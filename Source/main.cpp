@@ -1,8 +1,11 @@
 #include <format>
 #include <Windows.h>
-#include <imgui/imgui.h>
 
+#ifdef _DEBUG
+#include <imgui/imgui.h>
 #include "Engine/ImGuiManager/ImGuiManager.h"
+#endif
+
 #include "Engine/Renderer/D3D12.h"
 #include "Engine/TextureManager/TextureManager.h"
 #include "Engine/Utils/ClientProperties.h"
@@ -38,8 +41,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 	D3D12 renderer;
 	renderer.Initialize(window.get());
 
+#ifdef _DEBUG
 	ImGuiManager imGuiManager;
 	imGuiManager.Initialize(&renderer, window.get());
+#endif
 
 	GameScene gameScene;
 	gameScene.Startup(&renderer, window.get());
@@ -49,12 +54,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 			break;
 		}
 
+	#ifdef _DEBUG
 		imGuiManager.NewFrame();
+	#endif
 
 		// ゲームシーンの更新
 		gameScene.Update();
-
-		ImGui::ShowDemoWindow();
 
 		// レンダリングの前処理
 		renderer.PreRender();
@@ -62,7 +67,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 		// ゲームシーンのレンダリング
 		gameScene.Render();
 
+	#ifdef _DEBUG
 		imGuiManager.EndFrame();
+	#endif
 
 		// レンダリングの後処理
 		renderer.PostRender();
@@ -70,7 +77,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 
 	gameScene.Shutdown();
 
+#ifdef _DEBUG
 	imGuiManager.Shutdown();
+#endif
 
 	renderer.Terminate();
 

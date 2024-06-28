@@ -91,8 +91,8 @@ void GameScene::Startup(D3D12* renderer, Window* window) {
 	pipelineState = new PipelineState();
 	pipelineState->SetInputLayout(Vertex::inputLayout);
 	pipelineState->SetRootSignature(rootSignature->Get());
-	pipelineState->SetVS(L"./Source/Engine/Shaders/Object3d.VS.hlsl");
-	pipelineState->SetPS(L"./Source/Engine/Shaders/Object3d.PS.hlsl");
+	pipelineState->SetVS(L"./Resources/Shaders/Object3d.VS.hlsl");
+	pipelineState->SetPS(L"./Resources/Shaders/Object3d.PS.hlsl");
 	pipelineState->Create(renderer->GetDevice());
 	if (pipelineState) {
 		Log("パイプラインステートの生成に成功.\n");

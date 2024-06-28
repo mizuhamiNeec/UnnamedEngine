@@ -129,6 +129,9 @@ void D3D12::PostRender() {
 	//-------------------------------------------------------------------------
 	const HRESULT hr = commandList_->Close();
 	assert(SUCCEEDED(hr));
+	if (hr) {
+		Log(std::format("{:08x}\n", hr));
+	}
 
 	//-------------------------------------------------------------------------
 	// コマンドのキック
@@ -279,6 +282,9 @@ void D3D12::CreateCommandQueue() {
 	};
 	const HRESULT hr = device_->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue_));
 	assert(SUCCEEDED(hr));
+	if (hr) {
+		Log(std::format("{:08x}\n", hr));
+	}
 	Log("Complete create CommandQueue.\n");
 }
 
@@ -302,6 +308,9 @@ void D3D12::CreateSwapChain() {
 		reinterpret_cast<IDXGISwapChain1**>(swapChain_.GetAddressOf())
 	);
 	assert(SUCCEEDED(hr));
+	if (hr) {
+		Log(std::format("{:08x}\n", hr));
+	}
 	Log("Complete create SwapChain.\n");
 }
 
@@ -334,6 +343,9 @@ void D3D12::CreateRTV() {
 		// SwapChainからResourceを引っ張ってくる
 		const HRESULT hr = swapChain_->GetBuffer(i, IID_PPV_ARGS(&renderTargets_[i]));
 		assert(SUCCEEDED(hr));
+		if (hr) {
+			Log(std::format("{:08x}\n", hr));
+		}
 
 		rtvHandles_[i] = GetCPUDescriptorHandle(rtvDescriptorHeap_.Get(), descriptorSizeRTV, i);
 		device_->CreateRenderTargetView(renderTargets_[i].Get(), &rtvDesc, rtvHandles_[i]);
@@ -355,6 +367,9 @@ void D3D12::CreateCommandAllocator() {
 	const HRESULT hr = device_->
 		CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator_));
 	assert(SUCCEEDED(hr));
+	if (hr) {
+		Log(std::format("{:08x}\n", hr));
+	}
 	Log("Complete create CommandAllocator.\n");
 }
 
@@ -362,6 +377,9 @@ void D3D12::CreateCommandList() {
 	const HRESULT hr = device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator_.Get(), nullptr,
 		IID_PPV_ARGS(&commandList_));
 	assert(SUCCEEDED(hr));
+	if (hr) {
+		Log(std::format("{:08x}\n", hr));
+	}
 	commandList_->Close();
 	Log("Complete create CommandList.\n");
 }
@@ -369,6 +387,9 @@ void D3D12::CreateCommandList() {
 void D3D12::CreateFence() {
 	const HRESULT hr = device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
 	assert(SUCCEEDED(hr));
+	if (hr) {
+		Log(std::format("{:08x}\n", hr));
+	}
 
 	fenceEvent_ = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	assert(fenceEvent_ != nullptr);
@@ -419,6 +440,9 @@ ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_
 	}
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
 	assert(SUCCEEDED(hr));
+	if (hr) {
+		Log(std::format("{:08x}\n", hr));
+	}
 	return descriptorHeap;
 }
 
@@ -465,6 +489,9 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 		IID_PPV_ARGS(&resource)
 	); // 作成するResourceポインタへのポインタ
 	assert(SUCCEEDED(hr));
+	if (hr) {
+		Log(std::format("{:08x}\n", hr));
+	}
 
 	return resource;
 }

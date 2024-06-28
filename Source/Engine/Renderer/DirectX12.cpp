@@ -876,6 +876,7 @@ ComPtr<ID3D12DescriptorHeap> DirectX12::CreateDescriptorHeap(const D3D12_DESCRIP
 	}
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
 	assert(SUCCEEDED(hr));
+	Log(std::format("{:08x}\n", hr));
 	return descriptorHeap;
 }
 
@@ -1131,6 +1132,7 @@ ComPtr<ID3D12Resource> DirectX12::CreateDepthStencilTextureResource(int32_t widt
 		IID_PPV_ARGS(&resource)
 	); // 作成するResourceポインタへのポインタ
 	assert(SUCCEEDED(hr));
+	Log(std::format("{:08x}\n", hr));
 
 	return resource;
 }
@@ -1233,6 +1235,8 @@ ComPtr<ID3D12Resource> DirectX12::CreateTextureResource(ComPtr<ID3D12Device> dev
 		IID_PPV_ARGS(&resource) // 作成するResourceポインタへのポインタ
 	);
 	assert(SUCCEEDED(hr));
+	Log(std::format("{:08x}\n", hr));
+
 	return resource;
 }
 
@@ -1252,6 +1256,7 @@ void DirectX12::UploadTextureData(ID3D12Resource* texture, const DirectX::Scratc
 			static_cast<UINT>(img->slicePitch) // 1枚サイズ
 		);
 		assert(SUCCEEDED(hr));
+		Log(std::format("{:08x}\n", hr));
 	}
 }
 

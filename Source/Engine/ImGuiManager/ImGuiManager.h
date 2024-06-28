@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef _DEBUG
 #include "../Renderer/D3D12.h"
 #include "imgui/imgui.h"
 
@@ -23,3 +24,5 @@ private:
 	const D3D12* renderer_ = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap_;
 };
+
+#endif

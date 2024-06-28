@@ -5,10 +5,12 @@
 #include "../Renderer/D3D12.h"
 #include "../Utils/ClientProperties.h"
 #include "../Utils/Logger.h"
+#include "../Window/Window.h"
+
+#ifdef _DEBUG
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx12.h"
 #include "imgui/imgui_impl_win32.h"
-#include "../Window/Window.h"
 
 using namespace winrt::Windows::UI::ViewManagement;
 
@@ -88,3 +90,5 @@ void ImGuiManager::Shutdown() {
 
 	srvHeap_.Reset();
 }
+
+#endif

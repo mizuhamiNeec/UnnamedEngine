@@ -134,6 +134,7 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 void PipelineState::Create(ID3D12Device* device) {
 	HRESULT hr = device->CreateGraphicsPipelineState(&desc_, IID_PPV_ARGS(pipelineState.ReleaseAndGetAddressOf()));
 	assert(SUCCEEDED(hr));
+	Log(std::format("Failed CreatePipelineState: HRESULT = {:08x}\n", hr));
 }
 
 ID3D12PipelineState* PipelineState::Get() const {
