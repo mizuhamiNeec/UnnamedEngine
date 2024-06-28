@@ -364,3 +364,5 @@ DirectXGame/imgui.ini
 imgui.ini
 /Build/GE3_GameEngine/Debug
 /GE3_GameEngine/Intermediate/Debug
+/GE3_GameEngine/Intermediate/Release
+/Build/GE3_GameEngine/Release
