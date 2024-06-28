@@ -1,0 +1,283 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{6662133e-1a64-447a-a3b2-f43208ed7fb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{0b465c5b-8872-4a5f-ae97-3759c0978abc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Externals">
+      <UniqueIdentifier>{9c7208e4-b262-426d-b8de-5968dbe26a09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Externals\imgui">
+      <UniqueIdentifier>{4d5cec70-9a7f-41f4-8ae6-dc9e38c7c641}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine">
+      <UniqueIdentifier>{d38ddb39-7e90-40e0-8472-ac64593f3cce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Renderer">
+      <UniqueIdentifier>{dace177b-f085-4503-b1ab-6d5647d3d87e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Renderer\D3D12">
+      <UniqueIdentifier>{6069e666-f340-48c3-b1da-4cbdc5dc62ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Shared">
+      <UniqueIdentifier>{37c2ba99-10a8-44b2-9f40-e9d2444e6dc5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Shared\Math">
+      <UniqueIdentifier>{0fe28889-7eae-4d56-94df-eea0ea951d27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Shared\Math\Mat4">
+      <UniqueIdentifier>{8dce5be1-936d-49e6-b35c-8ed28d4804a1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Shared\Math\Transform">
+      <UniqueIdentifier>{2c88d32f-2480-4fbc-9519-310ffc7e1625}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Shared\Math\Vec3">
+      <UniqueIdentifier>{dae73c24-eb3d-49dc-9bd8-86fdf03d2c33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Shared\Math\Vec4">
+      <UniqueIdentifier>{6d2a9546-5e59-4328-86ff-ed22a1cf2bc1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Shared\Math\Vec2">
+      <UniqueIdentifier>{b3e8821c-115b-4d6d-842e-53c1b55b9a78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Shared\Utils">
+      <UniqueIdentifier>{f4c81c0b-6b48-456a-8e22-f7af498198fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Shared\Utils\Logger">
+      <UniqueIdentifier>{895e77ae-886f-493b-b9a0-d0ee4d9196ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Shared\Utils\Random">
+      <UniqueIdentifier>{6ff392f6-9b86-4aa9-8783-27b7954dccfb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Window">
+      <UniqueIdentifier>{a45eeede-df87-4e58-b4e8-972e7c441354}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Game">
+      <UniqueIdentifier>{9e76b31b-811c-408c-bb31-78836090ad81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Game\GameScene">
+      <UniqueIdentifier>{da8199e6-9053-46c5-aeed-f2d3adc1776f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\TextureManager">
+      <UniqueIdentifier>{c98428af-4416-4cc8-b30a-282563f21f32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\ImGuiManager">
+      <UniqueIdentifier>{3a747e75-1356-4b31-9f4d-7c071f85a7c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Texture">
+      <UniqueIdentifier>{40148d80-b91a-40bf-978b-8118d4916bea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Renderer\Old">
+      <UniqueIdentifier>{9e8faf47-143f-4a32-97b7-c46d902cc9df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\SharedStruct">
+      <UniqueIdentifier>{354cc7c0-3759-48b7-bde8-15d7324cf7f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\VertexBuffer">
+      <UniqueIdentifier>{14738773-c983-4734-8d95-fffed3906d35}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".editorconfig" />
+    <None Include="Source\Engine\Shaders\Object3d.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp">
+      <Filter>Source\Engine\Renderer\Old</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Utils\Logger.cpp">
+      <Filter>Source\Shared\Utils\Logger</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shared\Math\Matrix\Mat4.cpp">
+      <Filter>Source\Shared\Math\Mat4</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shared\Transform\Transform.cpp">
+      <Filter>Source\Shared\Math\Transform</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shared\Math\Vector\Vec3.cpp">
+      <Filter>Source\Shared\Math\Vec3</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shared\Math\Vector\Vec4.cpp">
+      <Filter>Source\Shared\Math\Vec4</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shared\Math\Vector\Vec2.cpp">
+      <Filter>Source\Shared\Math\Vec2</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\main.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp">
+      <Filter>Source\Engine\ImGuiManager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Window\Window.cpp">
+      <Filter>Source\Engine\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Renderer\D3D12.cpp">
+      <Filter>Source\Engine\Renderer\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shared\Math\Random\Random.cpp">
+      <Filter>Source\Shared\Utils\Random</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui.cpp">
+      <Filter>Externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_demo.cpp">
+      <Filter>Externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_draw.cpp">
+      <Filter>Externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_impl_dx12.cpp">
+      <Filter>Externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_impl_win32.cpp">
+      <Filter>Externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_tables.cpp">
+      <Filter>Externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_widgets.cpp">
+      <Filter>Externals\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\TextureManager\TextureManager.cpp">
+      <Filter>Source\Engine\TextureManager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Game\GameScene.cpp">
+      <Filter>Source\Game\GameScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\TextureManager\Texture.cpp">
+      <Filter>Source\Engine\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp">
+      <Filter>Source\Engine\Renderer\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Renderer\RootSignature.cpp">
+      <Filter>Source\Engine\Renderer\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp">
+      <Filter>Source\Engine\Renderer\D3D12</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Shared\Structs\Structs.cpp">
+      <Filter>Source\Engine\SharedStruct</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\Swapchain.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Engine\Renderer\Renderer.h">
+      <Filter>Source\Engine\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Renderer\DirectX12.h">
+      <Filter>Source\Engine\Renderer\Old</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Utils\Logger.h">
+      <Filter>Source\Shared\Utils\Logger</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shared\Math\Matrix\Mat4.h">
+      <Filter>Source\Shared\Math\Mat4</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shared\Transform\Transform.h">
+      <Filter>Source\Shared\Math\Transform</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shared\Math\Vector\Vec3.h">
+      <Filter>Source\Shared\Math\Vec3</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shared\Math\Vector\Vec4.h">
+      <Filter>Source\Shared\Math\Vec4</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shared\Math\Vector\Vec2.h">
+      <Filter>Source\Shared\Math\Vec2</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h">
+      <Filter>Source\Engine\ImGuiManager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shared\Math\MathLib.h">
+      <Filter>Source\Shared\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Window\Window.h">
+      <Filter>Source\Engine\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Utils\ConvertString.h">
+      <Filter>Source\Shared\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Utils\ClientProperties.h">
+      <Filter>Source\Shared\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Renderer\D3D12.h">
+      <Filter>Source\Engine\Renderer\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shared\Math\Random\Random.h">
+      <Filter>Source\Shared\Utils\Random</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Externals\imgui\imconfig.h">
+      <Filter>Externals\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Externals\imgui\imgui.h">
+      <Filter>Externals\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Externals\imgui\imgui_impl_dx12.h">
+      <Filter>Externals\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Externals\imgui\imgui_impl_win32.h">
+      <Filter>Externals\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Externals\imgui\imgui_internal.h">
+      <Filter>Externals\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Externals\imgui\imstb_rectpack.h">
+      <Filter>Externals\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Externals\imgui\imstb_textedit.h">
+      <Filter>Externals\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Externals\imgui\imstb_truetype.h">
+      <Filter>Externals\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\TextureManager\TextureManager.h">
+      <Filter>Source\Engine\TextureManager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\GameScene.h">
+      <Filter>Source\Game\GameScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\IGameScene.h">
+      <Filter>Source\Game\GameScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\TextureManager\Texture.h">
+      <Filter>Source\Engine\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Shared\Structs\Structs.h">
+      <Filter>Source\Engine\SharedStruct</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h">
+      <Filter>Source\Engine\Renderer\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Renderer\RootSignature.h">
+      <Filter>Source\Engine\Renderer\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h">
+      <Filter>Source\Engine\Renderer\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Renderer\PipelineState.h" />
+    <ClInclude Include="Source\Engine\Renderer\Swapchain.h" />
+    <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Source\Engine\Shaders\Object3d.VS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Source\Engine\Externals\imgui\LICENSE.txt">
+      <Filter>Externals\imgui</Filter>
+    </Text>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{02dead87-5f5a-4e2f-8508-dd65bacaadd8}</ProjectGuid>
+    <RootNamespace>CG2GameEngine</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>GE3_GameEngine</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)\Build\$(ProjectName)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\$(ProjectName)\Intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)\Build\$(ProjectName)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\$(ProjectName)\Intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
+                copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"
+            </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
+                copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"
+            </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include=".editorconfig" />
+    <None Include="Source\Engine\Shaders\Object3d.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\RootSignature.cpp" />
+    <ClCompile Include="Source\Engine\TextureManager\Texture.cpp" />
+    <ClCompile Include="Source\Game\GameScene.cpp" />
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui.cpp" />
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_demo.cpp" />
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_draw.cpp" />
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_tables.cpp" />
+    <ClCompile Include="Source\Engine\Externals\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp" />
+    <ClCompile Include="Source\Engine\Utils\Logger.cpp" />
+    <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\Shared\Math\Matrix\Mat4.cpp" />
+    <ClCompile Include="Source\Shared\Transform\Transform.cpp" />
+    <ClCompile Include="Source\Shared\Math\Vector\Vec2.cpp" />
+    <ClCompile Include="Source\Shared\Math\Vector\Vec3.cpp" />
+    <ClCompile Include="Source\Shared\Math\Vector\Vec4.cpp" />
+    <ClCompile Include="Source\Shared\Math\Random\Random.cpp" />
+    <ClCompile Include="Source\Engine\Window\Window.cpp" />
+    <ClCompile Include="Source\Engine\TextureManager\TextureManager.cpp" />
+    <ClCompile Include="Source\Shared\Structs\Structs.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\Swapchain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
+    <ClInclude Include="Source\Engine\Renderer\PipelineState.h" />
+    <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h" />
+    <ClInclude Include="Source\Engine\Renderer\RootSignature.h" />
+    <ClInclude Include="Source\Shared\Structs\Structs.h" />
+    <ClInclude Include="Source\Game\GameScene.h" />
+    <ClInclude Include="Source\Engine\Externals\imgui\imconfig.h" />
+    <ClInclude Include="Source\Engine\Externals\imgui\imgui.h" />
+    <ClInclude Include="Source\Engine\Externals\imgui\imgui_impl_dx12.h" />
+    <ClInclude Include="Source\Engine\Externals\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="Source\Engine\Externals\imgui\imgui_internal.h" />
+    <ClInclude Include="Source\Engine\Externals\imgui\imstb_rectpack.h" />
+    <ClInclude Include="Source\Engine\Externals\imgui\imstb_textedit.h" />
+    <ClInclude Include="Source\Engine\Externals\imgui\imstb_truetype.h" />
+    <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h" />
+    <ClInclude Include="Source\Engine\Renderer\D3D12.h" />
+    <ClInclude Include="Source\Engine\Utils\ConvertString.h" />
+    <ClInclude Include="Source\Engine\Renderer\DirectX12.h" />
+    <ClInclude Include="Source\Engine\Utils\ClientProperties.h" />
+    <ClInclude Include="Source\Engine\Utils\Logger.h" />
+    <ClInclude Include="Source\Game\IGameScene.h" />
+    <ClInclude Include="Source\Shared\Math\Matrix\Mat4.h" />
+    <ClInclude Include="Source\Engine\Renderer\Renderer.h" />
+    <ClInclude Include="Source\Shared\Transform\Transform.h" />
+    <ClInclude Include="Source\Shared\Math\Vector\Vec2.h" />
+    <ClInclude Include="Source\Shared\Math\Vector\Vec3.h" />
+    <ClInclude Include="Source\Shared\Math\Vector\Vec4.h" />
+    <ClInclude Include="Source\Shared\Math\Random\Random.h" />
+    <ClInclude Include="Source\Engine\Window\Window.h" />
+    <ClInclude Include="Source\Shared\Math\MathLib.h" />
+    <ClInclude Include="Source\Engine\TextureManager\TextureManager.h" />
+    <ClInclude Include="Source\Engine\TextureManager\Texture.h" />
+    <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h" />
+    <ClInclude Include="Source\Engine\Renderer\Swapchain.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Source\Engine\Shaders\Object3d.VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Source\Engine\Externals\imgui\LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="Source\Engine\Externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
+      <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
