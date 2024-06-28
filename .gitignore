@@ -362,7 +362,5 @@ DirectXGame/imgui.ini
 
 .idea/
 imgui.ini
-/Build/GE3_GameEngine/Debug
-/GE3_GameEngine/Intermediate/Debug
-
-Build/
+/Build/CG2_GameEngine/Debug
+/CG2_GameEngine/Intermediate/Debug
