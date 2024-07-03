@@ -6,7 +6,7 @@
 
 class GameScene : IGameScene {
 public:
-	void Startup(D3D12* renderer, Window* window) override;
+	void Init(D3D12* renderer, Window* window) override;
 	void Update() override;
 	void Render() override;
 	void Shutdown() override;

@@ -14,6 +14,7 @@ Window::Window() {
 }
 
 Window::~Window() {
+	CloseWindow(hWnd_);
 	CoUninitialize();
 }
 

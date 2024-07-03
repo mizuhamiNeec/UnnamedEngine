@@ -40,21 +40,21 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 	window->CreateMainWindow(windowConfig);
 
 	D3D12 renderer;
-	renderer.Initialize(window.get());
+	renderer.Init(window.get());
 
 	// ---------------------------------------------------------------------------
 	// 入力
 	// ---------------------------------------------------------------------------
 	Input* input = new Input();
-	input->Setup(*window);
+	input->Init(window.get());
 
 #ifdef _DEBUG
 	ImGuiManager imGuiManager;
-	imGuiManager.Initialize(&renderer, window.get());
+	imGuiManager.Init(&renderer, window.get());
 #endif
 
 	GameScene gameScene;
-	gameScene.Startup(&renderer, window.get());
+	gameScene.Init(&renderer, window.get());
 
 	while (true) {
 		if (Window::ProcessMessage()) {
@@ -100,9 +100,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 
 	delete input;
 
-	renderer.Terminate();
+	renderer.Shutdown();
 
-	TextureManager::GetInstance().ReleaseUnusedTextures();
 	TextureManager::GetInstance().Shutdown();
 
 	return 0;

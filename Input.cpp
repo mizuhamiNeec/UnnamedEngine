@@ -7,10 +7,10 @@
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
 
-void Input::Setup(const Window& window) {
+void Input::Init(const Window* window) {
 	ComPtr<IDirectInput8> directInput = nullptr;
 	HRESULT hr = DirectInput8Create(
-		window.GetHInstance(),
+		window->GetHInstance(),
 		DIRECTINPUT_VERSION,
 		IID_IDirectInput8,
 		reinterpret_cast<void**>(directInput.GetAddressOf()), nullptr
@@ -27,7 +27,7 @@ void Input::Setup(const Window& window) {
 
 	// 排他制御レベルのセット
 	hr = keyboard->SetCooperativeLevel(
-		window.GetHWND(),
+		window->GetHWND(),
 		DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY
 	);
 	assert(SUCCEEDED(hr));

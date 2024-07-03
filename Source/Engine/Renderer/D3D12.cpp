@@ -17,7 +17,7 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxcompiler.lib")
 
-void D3D12::Initialize(Window* window) {
+void D3D12::Init(Window* window) {
 	window_ = window;
 	windowConfig_ = window->GetWindowConfig();
 
@@ -42,11 +42,11 @@ void D3D12::Initialize(Window* window) {
 
 	SetViewportAndScissor();
 
-	Log("Complete Initialize DirectX12.\n");
+	Log("Complete Init DirectX12.\n");
 }
 
 void D3D12::ClearColorAndDepth() const {
-	float clearColor[] = {0.89f, 0.5f, 0.03f, 1.0f};
+	float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f };
 	commandList_->ClearRenderTargetView(
 		rtvHandles_[frameIndex_],
 		clearColor,
@@ -136,7 +136,7 @@ void D3D12::PostRender() {
 	//-------------------------------------------------------------------------
 	// コマンドのキック
 	//-------------------------------------------------------------------------
-	ID3D12CommandList* lists[] = {commandList_.Get()};
+	ID3D12CommandList* lists[] = { commandList_.Get() };
 	commandQueue_->ExecuteCommandLists(1, lists);
 
 	//-------------------------------------------------------------------------
@@ -147,10 +147,8 @@ void D3D12::PostRender() {
 	WaitPreviousFrame(); // 前のフレームを待つ
 }
 
-void D3D12::Terminate() {
+void D3D12::Shutdown() {
 	CloseHandle(fenceEvent_);
-	CloseWindow(window_->GetHWND());
-
 	Log("Bye!\n");
 }
 
@@ -222,7 +220,7 @@ void D3D12::CreateDevice() {
 		D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
 		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
 	};
-	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0", "11.1", "11.0"};
+	const char* featureLevelStrings[] = { "12.2", "12.1", "12.0", "11.1", "11.0" };
 
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
@@ -259,7 +257,7 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
+		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(denyIds);
 		filter.DenyList.pIDList = denyIds;

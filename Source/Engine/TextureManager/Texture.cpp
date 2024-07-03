@@ -31,8 +31,8 @@ void Texture::LoadTextureFromFile(ID3D12Device* device, const std::wstring& file
 	DirectX::ScratchImage scratchImage;
 
 	HRESULT hr = LoadFromWICFile(filename.c_str(), DirectX::WIC_FLAGS_NONE, &metadata, scratchImage);
-	std::filesystem::path fullpath = std::filesystem::absolute(filename);
-	Log(fullpath.generic_string());
+	std::filesystem::path fullPath = std::filesystem::absolute(filename);
+	Log("Texture Loaded: " + fullPath.generic_string() + "\n");
 	assert(SUCCEEDED(hr));
 
 	DirectX::ScratchImage mipChain;
@@ -119,7 +119,7 @@ void Texture::LoadTextureFromFile(ID3D12Device* device, const std::wstring& file
 
 	// コマンドリストの実行
 	commandList->Close();
-	ID3D12CommandList* ppCommandLists[] = {commandList.Get()};
+	ID3D12CommandList* ppCommandLists[] = { commandList.Get() };
 	commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
 	// GPU処理の完了を待つ

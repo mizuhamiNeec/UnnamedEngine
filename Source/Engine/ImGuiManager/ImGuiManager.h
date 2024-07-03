@@ -11,7 +11,7 @@ struct ColorTransition {
 
 class ImGuiManager {
 public:
-	void Initialize(const D3D12* renderer, const Window* window);
+	void Init(const D3D12* renderer, const Window* window);
 	void NewFrame();
 	void EndFrame() const;
 	void Shutdown();

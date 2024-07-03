@@ -114,7 +114,7 @@ DirectX12::~DirectX12() = default;
 /// DirectX12の初期化を行います
 /// </summary>
 /// <param name="window">描画するウィンドウクラス</param>
-void DirectX12::Initialize(Window* window) {
+void DirectX12::Init(Window* window) {
 	// UNDONE : エラーチェック
 	window_ = window;
 
@@ -149,7 +149,7 @@ void DirectX12::Initialize(Window* window) {
 	GetResourceFromSwapChain();
 	CreateRTV();
 
-	Log("Complete Initialize DirectX12.\n");
+	Log("Complete Init DirectX12.\n");
 
 	/* FenceとEventを生成する */
 	// 初期値0でFenceを作る
@@ -801,13 +801,13 @@ void DirectX12::PreRender() {
 	*transformationMatrixDataSprite_ = worldViewProjectionMatrixSprite;
 }
 
-void DirectX12::Terminate() {
+void DirectX12::Shutdown() {
 	Log("Terminating DirectX12 resources...\n");
 
 	CloseHandle(fenceEvent_);
 	CloseWindow(window_->GetHWND());
 
-	Log("Terminate process has been completed.\nBye!!\n");
+	Log("Shutdown process has been completed.\nBye!!\n");
 }
 
 void DirectX12::CreateCommandQueue() {

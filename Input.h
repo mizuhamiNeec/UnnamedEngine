@@ -9,7 +9,7 @@
 
 class Input {
 public:
-	void Setup(const Window& window);
+	void Init(const Window* window);
 	void Update();
 
 	// キーの押下をチェック

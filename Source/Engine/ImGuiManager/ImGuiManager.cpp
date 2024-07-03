@@ -18,7 +18,7 @@ inline bool IsColorLight(const winrt::Windows::UI::Color& clr) {
 	return 5 * clr.G + 2 * clr.R + clr.B > 8 * 128;
 }
 
-void ImGuiManager::Initialize(const D3D12* renderer, const Window* window) {
+void ImGuiManager::Init(const D3D12* renderer, const Window* window) {
 	renderer_ = renderer;
 
 	colorTransitions.resize(ImGuiCol_COUNT);

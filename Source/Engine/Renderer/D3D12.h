@@ -12,11 +12,11 @@ class D3D12 : public Renderer {
 public: // メンバ関数
 	~D3D12() override = default;
 
-	void Initialize(Window* window) override;
+	void Init(Window* window) override;
 	void ClearColorAndDepth() const;
 	void PreRender() override;
 	void PostRender() override;
-	void Terminate() override;
+	void Shutdown() override;
 	void OnSizeChanged(UINT width, UINT height, bool isMinimized) override;
 	void ToggleFullscreen() override;
 

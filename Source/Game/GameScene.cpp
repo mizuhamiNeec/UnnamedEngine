@@ -26,7 +26,7 @@ std::shared_ptr<Texture> texture2;
 D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU;
 D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU;
 
-void GameScene::Startup(D3D12* renderer, Window* window) {
+void GameScene::Init(D3D12* renderer, Window* window) {
 	renderer_ = renderer;
 	window_ = window;
 
