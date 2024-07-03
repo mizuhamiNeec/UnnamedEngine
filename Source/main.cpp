@@ -58,7 +58,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 
 	while (true) {
 		if (window->ProcessMessage()) {
-			break;
+			break; // ゲームループを抜ける
 		}
 
 		input->Update();
