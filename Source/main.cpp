@@ -12,6 +12,7 @@
 #include "Engine/Utils/ConvertString.h"
 #include "Engine/Utils/Logger.h"
 #include "Game/GameScene.h"
+#include "../Input.h"
 
 //-----------------------------------------------------------------------------
 // エントリーポイント
@@ -41,6 +42,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 	D3D12 renderer;
 	renderer.Initialize(window.get());
 
+	// ---------------------------------------------------------------------------
+	// 入力
+	// ---------------------------------------------------------------------------
+	Input* input = new Input();
+	input->Setup(*window);
+
 #ifdef _DEBUG
 	ImGuiManager imGuiManager;
 	imGuiManager.Initialize(&renderer, window.get());
@@ -54,9 +61,19 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 			break;
 		}
 
-	#ifdef _DEBUG
+		keyboard->Acquire();
+
+		// 前キーの入力状態を取得する
+		BYTE key[256] = {};
+		keyboard->GetDeviceState(sizeof(key), key);
+
+		if (key[DIK_0]) {
+			Log("Hit 0\n");
+		}
+
+#ifdef _DEBUG
 		imGuiManager.NewFrame();
-	#endif
+#endif
 
 		// ゲームシーンの更新
 		gameScene.Update();
@@ -67,9 +84,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 		// ゲームシーンのレンダリング
 		gameScene.Render();
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 		imGuiManager.EndFrame();
-	#endif
+#endif
 
 		// レンダリングの後処理
 		renderer.PostRender();
@@ -80,6 +97,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 #ifdef _DEBUG
 	imGuiManager.Shutdown();
 #endif
+
+	delete input;
 
 	renderer.Terminate();
 

@@ -7,7 +7,6 @@
 #include "../Engine/Renderer/RootSignature.h"
 #include "../Engine/Renderer/VertexBuffer.h"
 #include "../Engine/TextureManager/TextureManager.h"
-#include "../Engine/Utils/ClientProperties.h"
 #include "../Engine/Utils/Logger.h"
 #include "../Shared/Math/MathLib.h"
 #include "../Shared/Structs/Structs.h"

@@ -105,6 +105,7 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Input.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp" />
@@ -136,6 +137,7 @@
     <ClCompile Include="Source\Engine\Renderer\Swapchain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Input.h" />
     <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
     <ClInclude Include="Source\Engine\Renderer\PipelineState.h" />
     <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h" />
