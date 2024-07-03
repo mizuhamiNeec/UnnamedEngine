@@ -2,7 +2,7 @@
 #include "IGameScene.h"
 
 #include "../Renderer/Renderer.h"
-#include "../../Shared/Transform/Transform.h"
+#include "../Engine/Lib/Transform/Transform.h"
 
 class GameScene : IGameScene {
 public:

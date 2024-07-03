@@ -1,5 +1,7 @@
 #include "ImGuiManager.h"
 
+#ifdef _DEBUG
+
 #include <winrt/Windows.UI.ViewManagement.h>
 
 #include "../Renderer/D3D12.h"
@@ -7,7 +9,6 @@
 #include "../Utils/Logger.h"
 #include "../Window/Window.h"
 
-#ifdef _DEBUG
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx12.h"
 #include "imgui/imgui_impl_win32.h"

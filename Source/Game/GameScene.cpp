@@ -2,14 +2,13 @@
 
 #include <format>
 
-#include "../../Shared/Math/Vector/Vec3.h"
+#include "../Engine/Lib/Math/MathLib.h"
+#include "../Engine/Lib/Structs/Structs.h"
 #include "../Engine/Renderer/PipelineState.h"
 #include "../Engine/Renderer/RootSignature.h"
 #include "../Engine/Renderer/VertexBuffer.h"
 #include "../Engine/TextureManager/TextureManager.h"
 #include "../Engine/Utils/Logger.h"
-#include "../Shared/Math/MathLib.h"
-#include "../Shared/Structs/Structs.h"
 #include "imgui/imgui.h"
 
 VertexBuffer* vertexBuffer;

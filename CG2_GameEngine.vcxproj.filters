@@ -22,36 +22,6 @@
     <Filter Include="Source\Engine\Renderer\D3D12">
       <UniqueIdentifier>{6069e666-f340-48c3-b1da-4cbdc5dc62ba}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Shared">
-      <UniqueIdentifier>{37c2ba99-10a8-44b2-9f40-e9d2444e6dc5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Shared\Math">
-      <UniqueIdentifier>{0fe28889-7eae-4d56-94df-eea0ea951d27}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Shared\Math\Mat4">
-      <UniqueIdentifier>{8dce5be1-936d-49e6-b35c-8ed28d4804a1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Shared\Math\Transform">
-      <UniqueIdentifier>{2c88d32f-2480-4fbc-9519-310ffc7e1625}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Shared\Math\Vec3">
-      <UniqueIdentifier>{dae73c24-eb3d-49dc-9bd8-86fdf03d2c33}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Shared\Math\Vec4">
-      <UniqueIdentifier>{6d2a9546-5e59-4328-86ff-ed22a1cf2bc1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Shared\Math\Vec2">
-      <UniqueIdentifier>{b3e8821c-115b-4d6d-842e-53c1b55b9a78}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Shared\Utils">
-      <UniqueIdentifier>{f4c81c0b-6b48-456a-8e22-f7af498198fc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Shared\Utils\Logger">
-      <UniqueIdentifier>{895e77ae-886f-493b-b9a0-d0ee4d9196ef}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Shared\Utils\Random">
-      <UniqueIdentifier>{6ff392f6-9b86-4aa9-8783-27b7954dccfb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Engine\Window">
       <UniqueIdentifier>{a45eeede-df87-4e58-b4e8-972e7c441354}</UniqueIdentifier>
     </Filter>
@@ -60,12 +30,6 @@
     </Filter>
     <Filter Include="Source\Game\GameScene">
       <UniqueIdentifier>{da8199e6-9053-46c5-aeed-f2d3adc1776f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Engine\TextureManager">
-      <UniqueIdentifier>{c98428af-4416-4cc8-b30a-282563f21f32}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Engine\ImGuiManager">
-      <UniqueIdentifier>{3a747e75-1356-4b31-9f4d-7c071f85a7c1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Texture">
       <UniqueIdentifier>{40148d80-b91a-40bf-978b-8118d4916bea}</UniqueIdentifier>
@@ -76,11 +40,47 @@
     <Filter Include="Source\Engine\SharedStruct">
       <UniqueIdentifier>{354cc7c0-3759-48b7-bde8-15d7324cf7f9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Engine\VertexBuffer">
-      <UniqueIdentifier>{14738773-c983-4734-8d95-fffed3906d35}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Engine\Input">
       <UniqueIdentifier>{2507d64c-14db-42b4-ac15-770e306f9113}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Managers">
+      <UniqueIdentifier>{803c49d0-63f3-4b7e-a755-c890b06bf5a1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Managers\TextureManager">
+      <UniqueIdentifier>{c98428af-4416-4cc8-b30a-282563f21f32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Managers\ImGuiManager">
+      <UniqueIdentifier>{3a747e75-1356-4b31-9f4d-7c071f85a7c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib">
+      <UniqueIdentifier>{37c2ba99-10a8-44b2-9f40-e9d2444e6dc5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib\Math">
+      <UniqueIdentifier>{0fe28889-7eae-4d56-94df-eea0ea951d27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib\Math\Mat4">
+      <UniqueIdentifier>{8dce5be1-936d-49e6-b35c-8ed28d4804a1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib\Math\Transform">
+      <UniqueIdentifier>{2c88d32f-2480-4fbc-9519-310ffc7e1625}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib\Math\Vec3">
+      <UniqueIdentifier>{dae73c24-eb3d-49dc-9bd8-86fdf03d2c33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib\Math\Vec4">
+      <UniqueIdentifier>{6d2a9546-5e59-4328-86ff-ed22a1cf2bc1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib\Math\Vec2">
+      <UniqueIdentifier>{b3e8821c-115b-4d6d-842e-53c1b55b9a78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib\Utils">
+      <UniqueIdentifier>{f4c81c0b-6b48-456a-8e22-f7af498198fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib\Utils\Logger">
+      <UniqueIdentifier>{895e77ae-886f-493b-b9a0-d0ee4d9196ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib\Utils\Random">
+      <UniqueIdentifier>{6ff392f6-9b86-4aa9-8783-27b7954dccfb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -94,28 +94,28 @@
       <Filter>Source\Engine\Renderer\Old</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Utils\Logger.cpp">
-      <Filter>Source\Shared\Utils\Logger</Filter>
+      <Filter>Source\Engine\Lib\Utils\Logger</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Shared\Math\Matrix\Mat4.cpp">
-      <Filter>Source\Shared\Math\Mat4</Filter>
+    <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp">
+      <Filter>Source\Engine\Lib\Math\Mat4</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Shared\Transform\Transform.cpp">
-      <Filter>Source\Shared\Math\Transform</Filter>
+    <ClCompile Include="Source\Engine\Lib\Transform\Transform.cpp">
+      <Filter>Source\Engine\Lib\Math\Transform</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Shared\Math\Vector\Vec3.cpp">
-      <Filter>Source\Shared\Math\Vec3</Filter>
+    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp">
+      <Filter>Source\Engine\Lib\Math\Vec3</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Shared\Math\Vector\Vec4.cpp">
-      <Filter>Source\Shared\Math\Vec4</Filter>
+    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec4.cpp">
+      <Filter>Source\Engine\Lib\Math\Vec4</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Shared\Math\Vector\Vec2.cpp">
-      <Filter>Source\Shared\Math\Vec2</Filter>
+    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp">
+      <Filter>Source\Engine\Lib\Math\Vec2</Filter>
     </ClCompile>
     <ClCompile Include="Source\main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp">
-      <Filter>Source\Engine\ImGuiManager</Filter>
+      <Filter>Source\Engine\Managers\ImGuiManager</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Window\Window.cpp">
       <Filter>Source\Engine\Window</Filter>
@@ -123,8 +123,8 @@
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp">
       <Filter>Source\Engine\Renderer\D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Shared\Math\Random\Random.cpp">
-      <Filter>Source\Shared\Utils\Random</Filter>
+    <ClCompile Include="Source\Engine\Lib\Math\Random\Random.cpp">
+      <Filter>Source\Engine\Lib\Utils\Random</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Externals\imgui\imgui.cpp">
       <Filter>Externals\imgui</Filter>
@@ -148,7 +148,7 @@
       <Filter>Externals\imgui</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\TextureManager\TextureManager.cpp">
-      <Filter>Source\Engine\TextureManager</Filter>
+      <Filter>Source\Engine\Managers\TextureManager</Filter>
     </ClCompile>
     <ClCompile Include="Source\Game\GameScene.cpp">
       <Filter>Source\Game\GameScene</Filter>
@@ -165,7 +165,7 @@
     <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp">
       <Filter>Source\Engine\Renderer\D3D12</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Shared\Structs\Structs.cpp">
+    <ClCompile Include="Source\Engine\Lib\Structs\Structs.cpp">
       <Filter>Source\Engine\SharedStruct</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
@@ -183,43 +183,43 @@
       <Filter>Source\Engine\Renderer\Old</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Utils\Logger.h">
-      <Filter>Source\Shared\Utils\Logger</Filter>
+      <Filter>Source\Engine\Lib\Utils\Logger</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Shared\Math\Matrix\Mat4.h">
-      <Filter>Source\Shared\Math\Mat4</Filter>
+    <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h">
+      <Filter>Source\Engine\Lib\Math\Mat4</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Shared\Transform\Transform.h">
-      <Filter>Source\Shared\Math\Transform</Filter>
+    <ClInclude Include="Source\Engine\Lib\Transform\Transform.h">
+      <Filter>Source\Engine\Lib\Math\Transform</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Shared\Math\Vector\Vec3.h">
-      <Filter>Source\Shared\Math\Vec3</Filter>
+    <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec3.h">
+      <Filter>Source\Engine\Lib\Math\Vec3</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Shared\Math\Vector\Vec4.h">
-      <Filter>Source\Shared\Math\Vec4</Filter>
+    <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec4.h">
+      <Filter>Source\Engine\Lib\Math\Vec4</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Shared\Math\Vector\Vec2.h">
-      <Filter>Source\Shared\Math\Vec2</Filter>
+    <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec2.h">
+      <Filter>Source\Engine\Lib\Math\Vec2</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h">
-      <Filter>Source\Engine\ImGuiManager</Filter>
+      <Filter>Source\Engine\Managers\ImGuiManager</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Shared\Math\MathLib.h">
-      <Filter>Source\Shared\Math</Filter>
+    <ClInclude Include="Source\Engine\Lib\Math\MathLib.h">
+      <Filter>Source\Engine\Lib\Math</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Window\Window.h">
       <Filter>Source\Engine\Window</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Utils\ConvertString.h">
-      <Filter>Source\Shared\Utils</Filter>
+      <Filter>Source\Engine\Lib\Utils</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Utils\ClientProperties.h">
-      <Filter>Source\Shared\Utils</Filter>
+      <Filter>Source\Engine\Lib\Utils</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\D3D12.h">
       <Filter>Source\Engine\Renderer\D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Shared\Math\Random\Random.h">
-      <Filter>Source\Shared\Utils\Random</Filter>
+    <ClInclude Include="Source\Engine\Lib\Math\Random\Random.h">
+      <Filter>Source\Engine\Lib\Utils\Random</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Externals\imgui\imconfig.h">
       <Filter>Externals\imgui</Filter>
@@ -246,7 +246,7 @@
       <Filter>Externals\imgui</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\TextureManager\TextureManager.h">
-      <Filter>Source\Engine\TextureManager</Filter>
+      <Filter>Source\Engine\Managers\TextureManager</Filter>
     </ClInclude>
     <ClInclude Include="Source\Game\GameScene.h">
       <Filter>Source\Game\GameScene</Filter>
@@ -257,7 +257,7 @@
     <ClInclude Include="Source\Engine\TextureManager\Texture.h">
       <Filter>Source\Engine\Texture</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Shared\Structs\Structs.h">
+    <ClInclude Include="Source\Engine\Lib\Structs\Structs.h">
       <Filter>Source\Engine\SharedStruct</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h">
