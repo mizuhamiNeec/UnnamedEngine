@@ -61,15 +61,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 			break;
 		}
 
-		keyboard->Acquire();
+		input->Update();
 
-		// 前キーの入力状態を取得する
-		BYTE key[256] = {};
-		keyboard->GetDeviceState(sizeof(key), key);
-
-		if (key[DIK_0]) {
+		/*if (key[DIK_0]) {
 			Log("Hit 0\n");
-		}
+		}*/
 
 #ifdef _DEBUG
 		imGuiManager.NewFrame();
