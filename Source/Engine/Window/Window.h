@@ -44,7 +44,9 @@ public:
 
 	HWND GetHWND() const { return hWnd_; }
 
-	HINSTANCE GetHInstance() const { return wc_.hInstance; }
+	HINSTANCE GetHInstance() const {
+		return wc_.hInstance;
+	}
 
 private:
 	HWND hWnd_ = nullptr;
