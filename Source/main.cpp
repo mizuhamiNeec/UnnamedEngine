@@ -57,7 +57,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 	gameScene.Init(&renderer, window.get());
 
 	while (true) {
-		if (Window::ProcessMessage()) {
+		if (window->ProcessMessage()) {
 			break;
 		}
 
