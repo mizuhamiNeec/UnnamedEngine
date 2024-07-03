@@ -10,7 +10,7 @@
 void Input::Setup(const Window& window) {
 	ComPtr<IDirectInput8> directInput = nullptr;
 	HRESULT hr = DirectInput8Create(
-		GetModuleHandle(nullptr),
+		window.GetHInstance(),
 		DIRECTINPUT_VERSION,
 		IID_IDirectInput8,
 		reinterpret_cast<void**>(directInput.GetAddressOf()), nullptr

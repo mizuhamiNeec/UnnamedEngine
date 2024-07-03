@@ -29,6 +29,7 @@ void ImGuiManager::Initialize(const D3D12* renderer, const Window* window) {
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 
 	ImFontConfig imFontConfig;
@@ -70,6 +71,9 @@ void ImGuiManager::NewFrame() {
 void ImGuiManager::EndFrame() const {
 	// ImGuiのフレームを終了しレンダリング準備
 	ImGui::Render();
+
+	ImGui::UpdatePlatformWindows();
+	ImGui::RenderPlatformWindowsDefault();
 
 	ID3D12DescriptorHeap* imGuiHeap = renderer_->GetSRVDescriptorHeap();
 	renderer_->GetCommandList()->SetDescriptorHeaps(1, &imGuiHeap);

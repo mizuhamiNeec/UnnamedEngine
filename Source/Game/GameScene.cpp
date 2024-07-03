@@ -102,6 +102,8 @@ void GameScene::Startup(D3D12* renderer, Window* window) {
 	texture2 = TextureManager::GetInstance().GetTexture(renderer_->GetDevice(), L"./Resources/Textures/uvChecker.png");
 }
 
+int iterator = 0;
+
 void GameScene::Update() {
 	transform.rotate.y += 0.003f;
 	Mat4 worldMat = Mat4::Affine(transform.scale, transform.rotate, transform.translate);

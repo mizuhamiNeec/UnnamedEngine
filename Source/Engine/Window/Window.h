@@ -42,12 +42,11 @@ public:
 
 	static bool ProcessMessage();
 
-	HWND GetHWND() const {
-		return hWnd_;
-	}
+	HWND GetHWND() const { return hWnd_; }
+
+	HINSTANCE GetHInstance() const { return wc_.hInstance; }
 
 private:
-
 	HWND hWnd_ = nullptr;
 	WNDCLASSEX wc_ = {};
 	WindowConfig windowConfig_ = {};
