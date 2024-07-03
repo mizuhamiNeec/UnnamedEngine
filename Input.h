@@ -12,6 +12,16 @@ public:
 	void Setup(const Window& window);
 	void Update();
 
+	// キーの押下をチェック
+	bool PushKey(BYTE keyNumber);
+	// キーのトリガーをチェック
+	bool TriggerKey(BYTE keyNumber);
+
+public:
+	// 全キーの状態
+	BYTE key[256] = {};
+	BYTE preKey[256] = {};
+
 	template <class T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 private:

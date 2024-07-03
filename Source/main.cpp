@@ -63,9 +63,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 
 		input->Update();
 
-		/*if (key[DIK_0]) {
-			Log("Hit 0\n");
-		}*/
+		if (input->TriggerKey(DIK_0)) {
+			Log("TriggerKey 0\n");
+		}
+
+		if (input->PushKey(DIK_0)) {
+			Log("PressKey 0\n");
+		}
 
 #ifdef _DEBUG
 		imGuiManager.NewFrame();

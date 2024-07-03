@@ -34,9 +34,25 @@ void Input::Setup(const Window& window) {
 }
 
 void Input::Update() {
+	memcpy(preKey, key, sizeof(key));
+
 	keyboard->Acquire();
 
-	// 前キーの入力状態を取得する
-	BYTE key[256] = {};
 	keyboard->GetDeviceState(sizeof(key), key);
+}
+
+bool Input::PushKey(BYTE keyNumber) {
+	// 指定キーを押していればtrueを返す
+	if (key[keyNumber]) {
+		return true;
+	}
+	// そうでなければfalseを返す
+	return false;
+}
+
+bool Input::TriggerKey(BYTE keyNumber) {
+	if (key[keyNumber] && !preKey[keyNumber]) {
+		return true;
+	}
+	return false;
 }
