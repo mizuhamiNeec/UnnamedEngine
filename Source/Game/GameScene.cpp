@@ -119,6 +119,8 @@ void GameScene::Update() {
 	TransformationMatrix* ptr = transformation->GetPtr<TransformationMatrix>();
 	ptr->WVP = worldViewProjMat;
 	ptr->World = worldMat;
+
+	ImGui::ShowDemoWindow();
 }
 
 void GameScene::Render() {
