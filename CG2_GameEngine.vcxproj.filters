@@ -31,9 +31,6 @@
     <Filter Include="Source\Game\GameScene">
       <UniqueIdentifier>{da8199e6-9053-46c5-aeed-f2d3adc1776f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Engine\Texture">
-      <UniqueIdentifier>{40148d80-b91a-40bf-978b-8118d4916bea}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Engine\Renderer\Old">
       <UniqueIdentifier>{9e8faf47-143f-4a32-97b7-c46d902cc9df}</UniqueIdentifier>
     </Filter>
@@ -81,6 +78,9 @@
     </Filter>
     <Filter Include="Source\Engine\Lib\Utils\Random">
       <UniqueIdentifier>{6ff392f6-9b86-4aa9-8783-27b7954dccfb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Managers\TextureManager\Texture">
+      <UniqueIdentifier>{40148d80-b91a-40bf-978b-8118d4916bea}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -154,7 +154,7 @@
       <Filter>Source\Game\GameScene</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\TextureManager\Texture.cpp">
-      <Filter>Source\Engine\Texture</Filter>
+      <Filter>Source\Engine\Managers\TextureManager\Texture</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp">
       <Filter>Source\Engine\Renderer\D3D12</Filter>
@@ -255,7 +255,7 @@
       <Filter>Source\Game\GameScene</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\TextureManager\Texture.h">
-      <Filter>Source\Engine\Texture</Filter>
+      <Filter>Source\Engine\Managers\TextureManager\Texture</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Lib\Structs\Structs.h">
       <Filter>Source\Engine\SharedStruct</Filter>
