@@ -87,6 +87,8 @@ void ImGuiManager::EndFrame() const {
 }
 
 void ImGuiManager::Shutdown() {
+	ImGui::DestroyPlatformWindows();
+
 	// ImGuiの終了処理。詳細はさして重要ではないので解説は省略する。
 	// こういうもんである。初期化と逆順に行う
 	ImGui_ImplDX12_Shutdown();

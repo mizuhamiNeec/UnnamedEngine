@@ -34,9 +34,10 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	case WM_SIZE:
 		// TODO : サイズ可変にしたい
 		break;
+	case WM_CLOSE:
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		break;
+		return 0;
 	default:
 		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
