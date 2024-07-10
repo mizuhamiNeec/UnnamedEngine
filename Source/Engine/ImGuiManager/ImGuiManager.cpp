@@ -6,6 +6,7 @@
 #include "../Utils/ClientProperties.h"
 #include "../Utils/Logger.h"
 #include "../Window/Window.h"
+#include "imgui/imgui_internal.h"
 
 #ifdef _DEBUG
 #include "imgui/imgui.h"
@@ -86,6 +87,8 @@ void ImGuiManager::EndFrame() const {
 }
 
 void ImGuiManager::Shutdown() {
+	ImGui::DestroyPlatformWindows();
+
 	// ImGuiの終了処理。詳細はさして重要ではないので解説は省略する。
 	// こういうもんである。初期化と逆順に行う
 	ImGui_ImplDX12_Shutdown();

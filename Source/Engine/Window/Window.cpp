@@ -34,9 +34,11 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	case WM_SIZE:
 		// TODO : サイズ可変にしたい
 		break;
+
+	case WM_CLOSE:
 	case WM_DESTROY:
 		PostQuitMessage(0);
-		break;
+		return 0;
 	default:
 		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
@@ -68,7 +70,7 @@ void Window::CreateMainWindow(const WindowConfig& windowConfig) {
 		return;
 	}
 
-	RECT wrc = { 0, 0, static_cast<LONG>(windowConfig_.clientWidth), static_cast<LONG>(windowConfig_.clientHeight) };
+	RECT wrc = {0, 0, static_cast<LONG>(windowConfig_.clientWidth), static_cast<LONG>(windowConfig_.clientHeight)};
 
 	AdjustWindowRectEx(&wrc, windowConfig_.dwStyle, false, windowConfig_.dwExStyle);
 
