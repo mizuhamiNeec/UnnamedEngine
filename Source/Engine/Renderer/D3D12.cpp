@@ -10,6 +10,8 @@
 #include "../Utils/Logger.h"
 #include "DirectXTex/d3dx12.h"
 #include <dxgi1_3.h>
+#include <thread>
+
 #include "../Utils/ClientProperties.h"
 
 #pragma comment(lib, "d3d12.lib")
@@ -20,6 +22,8 @@
 void D3D12::Init(Window* window) {
 	window_ = window;
 	windowConfig_ = window->GetWindowConfig();
+
+	InitializeFixFPS();
 
 #ifdef _DEBUG
 	EnableDebugLayer();
@@ -46,7 +50,7 @@ void D3D12::Init(Window* window) {
 }
 
 void D3D12::ClearColorAndDepth() const {
-	float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f };
+	float clearColor[] = {0.89f, 0.5f, 0.03f, 1.0f};
 	commandList_->ClearRenderTargetView(
 		rtvHandles_[frameIndex_],
 		clearColor,
@@ -136,15 +140,18 @@ void D3D12::PostRender() {
 	//-------------------------------------------------------------------------
 	// コマンドのキック
 	//-------------------------------------------------------------------------
-	ID3D12CommandList* lists[] = { commandList_.Get() };
+	ID3D12CommandList* lists[] = {commandList_.Get()};
 	commandQueue_->ExecuteCommandLists(1, lists);
+
 
 	//-------------------------------------------------------------------------
 	// GPU と OS に画面の交換を行うよう通知
 	//-------------------------------------------------------------------------
-	swapChain_->Present(1, 0);
+	swapChain_->Present(kEnableVSync ? 1 : 0, 0); // Todo
 
 	WaitPreviousFrame(); // 前のフレームを待つ
+
+	UpdateFixFPS();
 }
 
 void D3D12::Shutdown() {
@@ -220,7 +227,7 @@ void D3D12::CreateDevice() {
 		D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
 		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
 	};
-	const char* featureLevelStrings[] = { "12.2", "12.1", "12.0", "11.1", "11.0" };
+	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0", "11.1", "11.0"};
 
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
@@ -257,7 +264,7 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
+		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(denyIds);
 		filter.DenyList.pIDList = denyIds;
@@ -424,6 +431,33 @@ void D3D12::WaitPreviousFrame() {
 		// イベント待つ
 		WaitForSingleObject(fenceEvent_, INFINITE);
 	}
+}
+
+void D3D12::InitializeFixFPS() {
+	// 現在時間を記録する
+	reference_ = std::chrono::steady_clock::now();
+}
+
+void D3D12::UpdateFixFPS() {
+	// 1/60秒ピッタリの時間
+	constexpr std::chrono::microseconds kMinTime(static_cast<uint64_t>(1000000.0f / kMaxFPS));
+
+	// 現在時間を取得する
+	auto now = std::chrono::steady_clock::now();
+	// 前回記録からの経過時間を取得する
+	auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - reference_);
+
+	// 1/60秒 (よりわずかに短い時間) 経っていない場合
+	if (elapsed < kMinTime) {
+		// 1/60秒経過するまで微小なスリープを繰り返す
+		auto wait_until = reference_ + kMinTime;
+		while (std::chrono::steady_clock::now() < wait_until) {
+			std::this_thread::yield(); // CPUに他のスレッドの実行を許可
+		}
+	}
+
+	// 現在の時間を記録する
+	reference_ = std::chrono::steady_clock::now();
 }
 
 ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType, const UINT numDescriptors, const bool shaderVisible) const {

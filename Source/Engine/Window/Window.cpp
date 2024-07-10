@@ -7,13 +7,19 @@
 #include "../Renderer/DirectX12.h"
 #include "../Utils/Logger.h"
 
+#pragma comment(lib, "winmm.lib")
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 Window::Window() {
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+	timeBeginPeriod(1); // システムタイマーの分解能を上げる
 }
 
 Window::~Window() {
+	timeEndPeriod(1);
+
 	CloseWindow(hWnd_);
 	CoUninitialize();
 }
@@ -69,7 +75,7 @@ void Window::CreateMainWindow(const WindowConfig& windowConfig) {
 		return;
 	}
 
-	RECT wrc = { 0, 0, static_cast<LONG>(windowConfig_.clientWidth), static_cast<LONG>(windowConfig_.clientHeight) };
+	RECT wrc = {0, 0, static_cast<LONG>(windowConfig_.clientWidth), static_cast<LONG>(windowConfig_.clientHeight)};
 
 	AdjustWindowRectEx(&wrc, windowConfig_.dwStyle, false, windowConfig_.dwExStyle);
 

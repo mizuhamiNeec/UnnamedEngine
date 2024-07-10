@@ -1,10 +1,12 @@
 #pragma once
+#include <chrono>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <vector>
 #include <wrl/client.h>
 
 #include "Renderer.h"
+#include "../Utils/ClientProperties.h"
 
 using namespace Microsoft::WRL;
 
@@ -54,6 +56,8 @@ private: //　メンバ変数
 	uint32_t descriptorSizeRTV = 0;
 	uint32_t descriptorSizeDSV = 0;
 
+	std::chrono::steady_clock::time_point reference_;
+
 	// メンバ関数
 	//------------------------------------------------------------------------
 	// 初期化関連
@@ -73,6 +77,9 @@ private: //　メンバ変数
 	void SetViewportAndScissor();
 
 	void WaitPreviousFrame();
+
+	void InitializeFixFPS();
+	void UpdateFixFPS();
 
 	// -----------------------------------------------------------------------
 	// Accessor
