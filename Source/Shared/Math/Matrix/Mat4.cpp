@@ -3,9 +3,8 @@
 #include <cassert>
 #include <cmath>
 #include <format>
-
-#include "../Utils/ConvertString.h"
-#include "../Utils/Logger.h"
+#include "../../../Engine/Core/Utils/Logger.h"
+#include "../../../Engine/Core/Utils/ConvertString.h"
 
 Mat4 Mat4::operator+(const Mat4& rhs) const {
 	return {

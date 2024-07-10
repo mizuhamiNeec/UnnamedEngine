@@ -46,7 +46,7 @@ void D3D12::Initialize(Window* window) {
 }
 
 void D3D12::ClearColorAndDepth() const {
-	float clearColor[] = {0.89f, 0.5f, 0.03f, 1.0f};
+	float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f };
 	commandList_->ClearRenderTargetView(
 		rtvHandles_[frameIndex_],
 		clearColor,
@@ -94,9 +94,9 @@ void D3D12::PreRender() {
 	);
 	assert(SUCCEEDED(hr));
 
-	//-----------------------------------------------------------------------------
+	//-------------------------------------------------------------------------
 	// ビューポートとシザー矩形を設定
-	//-----------------------------------------------------------------------------
+	//-------------------------------------------------------------------------
 	commandList_->RSSetViewports(1, &viewport_);
 	commandList_->RSSetScissorRects(1, &scissorRect_);
 
@@ -136,7 +136,7 @@ void D3D12::PostRender() {
 	//-------------------------------------------------------------------------
 	// コマンドのキック
 	//-------------------------------------------------------------------------
-	ID3D12CommandList* lists[] = {commandList_.Get()};
+	ID3D12CommandList* lists[] = { commandList_.Get() };
 	commandQueue_->ExecuteCommandLists(1, lists);
 
 	//-------------------------------------------------------------------------
@@ -148,9 +148,9 @@ void D3D12::PostRender() {
 }
 
 void D3D12::Terminate() {
+	WaitPreviousFrame();
 	CloseHandle(fenceEvent_);
 	CloseWindow(window_->GetHWND());
-
 	Log("Bye!\n");
 }
 
@@ -222,7 +222,7 @@ void D3D12::CreateDevice() {
 		D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
 		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
 	};
-	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0", "11.1", "11.0"};
+	const char* featureLevelStrings[] = { "12.2", "12.1", "12.0", "11.1", "11.0" };
 
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
@@ -259,7 +259,7 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
+		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(denyIds);
 		filter.DenyList.pIDList = denyIds;
@@ -321,7 +321,6 @@ void D3D12::CreateDescriptorHeaps() {
 	descriptorSizeSRV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	descriptorSizeRTV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	descriptorSizeDSV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-
 
 	// SRV用のヒープでディスクリプタの数は128。SRVはShader内で触るものなので、ShaderVisibleはtrue
 	srvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, true);
@@ -459,8 +458,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12::GetGPUDescriptorHandle(ID3D12DescriptorHeap* 
 }
 
 ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
-	// 生成するResourceの設定
-	D3D12_RESOURCE_DESC resourceDesc = {};
+	D3D12_RESOURCE_DESC resourceDesc = {}; // 生成するResourceの設定
 	resourceDesc.Width = windowConfig_.clientWidth;
 	resourceDesc.Height = windowConfig_.clientHeight;
 	resourceDesc.MipLevels = 1; // Mipmapの数
@@ -473,13 +471,12 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 	D3D12_HEAP_PROPERTIES heapProperties = {}; // 利用するHeapの設定
 	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; // vRAM上に作る
 
-	// 深度値のクリア設定
-	D3D12_CLEAR_VALUE depthClearValue = {};
+	D3D12_CLEAR_VALUE depthClearValue = {}; // 深度値のクリア設定
 	depthClearValue.DepthStencil.Depth = 1.0f; // 最大値でクリア
 	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-	// Resourceの生成
-	ComPtr<ID3D12Resource> resource;
+
+	ComPtr<ID3D12Resource> resource; // Resourceの生成
 	const HRESULT hr = device_->CreateCommittedResource(
 		&heapProperties,
 		D3D12_HEAP_FLAG_NONE,
@@ -497,8 +494,7 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 }
 
 D3DResourceLeakChecker::~D3DResourceLeakChecker() {
-	// リソースリークチェック
-	ComPtr<IDXGIDebug> debug;
+	ComPtr<IDXGIDebug> debug; // リソースリークチェック
 	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug)))) {
 		debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
 		debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);

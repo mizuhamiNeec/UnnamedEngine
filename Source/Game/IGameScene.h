@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Renderer/Renderer.h"
-#include "../Engine/Renderer/D3D12.h"
+#include "../Engine/Core/Renderer/D3D12.h"
+#include "../Engine/Core/Window/Window.h"
 
 class IGameScene {
 public:

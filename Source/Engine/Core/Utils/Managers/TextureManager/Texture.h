@@ -1,9 +1,8 @@
 #pragma once
 
+#include <d3d12.h>
 #include <string>
 #include <wrl/client.h>
-
-#include "../../Engine/Renderer/D3D12.h"
 
 using namespace Microsoft::WRL;
 

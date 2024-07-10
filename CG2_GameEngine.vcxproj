@@ -46,11 +46,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\Build\$(ProjectName)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\$(ProjectName)\Intermediate\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)\Intermediate\$(ProjectName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)\Build\$(ProjectName)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\$(ProjectName)\Intermediate\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)\Intermediate\$(ProjectName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -105,11 +105,11 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\RootSignature.cpp" />
-    <ClCompile Include="Source\Engine\TextureManager\Texture.cpp" />
+    <ClCompile Include="Source\Engine\Core\Renderer\DescriptorManager.cpp" />
+    <ClCompile Include="Source\Engine\Core\Renderer\PipelineState.cpp" />
+    <ClCompile Include="Source\Engine\Core\Renderer\ConstantBuffer.cpp" />
+    <ClCompile Include="Source\Engine\Core\Renderer\RootSignature.cpp" />
+    <ClCompile Include="Source\Engine\Core\Utils\Managers\TextureManager\Texture.cpp" />
     <ClCompile Include="Source\Game\GameScene.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui_demo.cpp" />
@@ -118,28 +118,28 @@
     <ClCompile Include="Source\Engine\Externals\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui_tables.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp" />
-    <ClCompile Include="Source\Engine\Utils\Logger.cpp" />
+    <ClCompile Include="Source\Engine\Core\Utils\Managers\ImGuiManager\ImGuiManager.cpp" />
+    <ClCompile Include="Source\Engine\Core\Renderer\D3D12.cpp" />
+    <ClCompile Include="Source\Engine\Core\Renderer\DirectX12.cpp" />
+    <ClCompile Include="Source\Engine\Core\Utils\Logger.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Shared\Math\Matrix\Mat4.cpp" />
     <ClCompile Include="Source\Shared\Transform\Transform.cpp" />
     <ClCompile Include="Source\Shared\Math\Vector\Vec2.cpp" />
     <ClCompile Include="Source\Shared\Math\Vector\Vec3.cpp" />
     <ClCompile Include="Source\Shared\Math\Vector\Vec4.cpp" />
-    <ClCompile Include="Source\Shared\Math\Random\Random.cpp" />
-    <ClCompile Include="Source\Engine\Window\Window.cpp" />
-    <ClCompile Include="Source\Engine\TextureManager\TextureManager.cpp" />
+    <ClCompile Include="Source\Engine\Core\Utils\Random\Random.cpp" />
+    <ClCompile Include="Source\Engine\Core\Window\Window.cpp" />
+    <ClCompile Include="Source\Engine\Core\Utils\Managers\TextureManager\TextureManager.cpp" />
     <ClCompile Include="Source\Shared\Structs\Structs.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\Swapchain.cpp" />
+    <ClCompile Include="Source\Engine\Core\Renderer\VertexBuffer.cpp" />
+    <ClCompile Include="Source\Engine\Core\Renderer\Swapchain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
-    <ClInclude Include="Source\Engine\Renderer\PipelineState.h" />
-    <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h" />
-    <ClInclude Include="Source\Engine\Renderer\RootSignature.h" />
+    <ClInclude Include="Source\Engine\Core\Renderer\DescriptorManager.h" />
+    <ClInclude Include="Source\Engine\Core\Renderer\PipelineState.h" />
+    <ClInclude Include="Source\Engine\Core\Renderer\ConstantBuffer.h" />
+    <ClInclude Include="Source\Engine\Core\Renderer\RootSignature.h" />
     <ClInclude Include="Source\Shared\Structs\Structs.h" />
     <ClInclude Include="Source\Game\GameScene.h" />
     <ClInclude Include="Source\Engine\Externals\imgui\imconfig.h" />
@@ -150,26 +150,26 @@
     <ClInclude Include="Source\Engine\Externals\imgui\imstb_rectpack.h" />
     <ClInclude Include="Source\Engine\Externals\imgui\imstb_textedit.h" />
     <ClInclude Include="Source\Engine\Externals\imgui\imstb_truetype.h" />
-    <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h" />
-    <ClInclude Include="Source\Engine\Renderer\D3D12.h" />
-    <ClInclude Include="Source\Engine\Utils\ConvertString.h" />
-    <ClInclude Include="Source\Engine\Renderer\DirectX12.h" />
-    <ClInclude Include="Source\Engine\Utils\ClientProperties.h" />
-    <ClInclude Include="Source\Engine\Utils\Logger.h" />
+    <ClInclude Include="Source\Engine\Core\Utils\Managers\ImGuiManager\ImGuiManager.h" />
+    <ClInclude Include="Source\Engine\Core\Renderer\D3D12.h" />
+    <ClInclude Include="Source\Engine\Core\Utils\ConvertString.h" />
+    <ClInclude Include="Source\Engine\Core\Renderer\DirectX12.h" />
+    <ClInclude Include="Source\Engine\Core\Utils\ClientProperties.h" />
+    <ClInclude Include="Source\Engine\Core\Utils\Logger.h" />
     <ClInclude Include="Source\Game\IGameScene.h" />
     <ClInclude Include="Source\Shared\Math\Matrix\Mat4.h" />
-    <ClInclude Include="Source\Engine\Renderer\Renderer.h" />
+    <ClInclude Include="Source\Engine\Core\Renderer\Renderer.h" />
     <ClInclude Include="Source\Shared\Transform\Transform.h" />
     <ClInclude Include="Source\Shared\Math\Vector\Vec2.h" />
     <ClInclude Include="Source\Shared\Math\Vector\Vec3.h" />
     <ClInclude Include="Source\Shared\Math\Vector\Vec4.h" />
-    <ClInclude Include="Source\Shared\Math\Random\Random.h" />
-    <ClInclude Include="Source\Engine\Window\Window.h" />
+    <ClInclude Include="Source\Engine\Core\Utils\Random\Random.h" />
+    <ClInclude Include="Source\Engine\Core\Window\Window.h" />
     <ClInclude Include="Source\Shared\Math\MathLib.h" />
-    <ClInclude Include="Source\Engine\TextureManager\TextureManager.h" />
-    <ClInclude Include="Source\Engine\TextureManager\Texture.h" />
-    <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h" />
-    <ClInclude Include="Source\Engine\Renderer\Swapchain.h" />
+    <ClInclude Include="Source\Engine\Core\Utils\Managers\TextureManager\TextureManager.h" />
+    <ClInclude Include="Source\Engine\Core\Utils\Managers\TextureManager\Texture.h" />
+    <ClInclude Include="Source\Engine\Core\Renderer\VertexBuffer.h" />
+    <ClInclude Include="Source\Engine\Core\Renderer\Swapchain.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">

@@ -1,8 +1,9 @@
 #include "TextureManager.h"
-#include "../Utils/Logger.h"
+
 #include <format>
 
-#include "../Utils/ConvertString.h"
+#include "../../ConvertString.h"
+#include "../../Logger.h"
 
 TextureManager& TextureManager::GetInstance() {
 	static TextureManager instance;

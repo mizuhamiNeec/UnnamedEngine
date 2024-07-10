@@ -2,10 +2,9 @@
 
 #include <filesystem>
 
-#include "DirectXTex/DirectXTex.h"
-#include "../Utils/ConvertString.h"
+#include "../../Logger.h"
 #include "DirectXTex/d3dx12.h"
-#include "../Utils/Logger.h"
+#include "DirectXTex/DirectXTex.h"
 
 Texture::Texture(ID3D12Device* device, const std::wstring& filename) {
 	LoadTextureFromFile(device, filename);

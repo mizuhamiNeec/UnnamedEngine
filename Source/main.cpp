@@ -3,15 +3,14 @@
 
 #ifdef _DEBUG
 #include <imgui/imgui.h>
-#include "Engine/ImGuiManager/ImGuiManager.h"
+#include "Engine/Core/Utils/Managers/ImGuiManager/ImGuiManager.h"
 #endif
 
-#include "Engine/Renderer/D3D12.h"
-#include "Engine/TextureManager/TextureManager.h"
-#include "Engine/Utils/ClientProperties.h"
-#include "Engine/Utils/ConvertString.h"
-#include "Engine/Utils/Logger.h"
+#include "Engine/Core/Utils/ClientProperties.h"
+#include "Engine/Core/Utils/ConvertString.h"
+#include "Engine/Core/Utils/Logger.h"
 #include "Game/GameScene.h"
+#include "Engine/Core/Utils/Managers/TextureManager/TextureManager.h"
 
 //-----------------------------------------------------------------------------
 // エントリーポイント
@@ -54,9 +53,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 			break;
 		}
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 		imGuiManager.NewFrame();
-	#endif
+#endif
 
 		// ゲームシーンの更新
 		gameScene.Update();
@@ -67,9 +66,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 		// ゲームシーンのレンダリング
 		gameScene.Render();
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 		imGuiManager.EndFrame();
-	#endif
+#endif
 
 		// レンダリングの後処理
 		renderer.PostRender();

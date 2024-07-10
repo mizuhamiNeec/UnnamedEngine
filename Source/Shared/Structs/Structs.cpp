@@ -2,8 +2,6 @@
 
 #include <dxgiformat.h>
 
-#include "../../Engine/Renderer/D3D12.h"
-
 const D3D12_INPUT_ELEMENT_DESC Vertex::inputElements[] = {
 	{
 		.SemanticName = "POSITION",

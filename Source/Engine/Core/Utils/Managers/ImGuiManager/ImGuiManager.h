@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef _DEBUG
-#include "../Renderer/D3D12.h"
+#include "../../../Renderer/D3D12.h"
 #include "imgui/imgui.h"
 
 struct ColorTransition {
