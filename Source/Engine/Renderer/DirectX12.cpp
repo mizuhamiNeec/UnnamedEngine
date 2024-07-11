@@ -801,15 +801,6 @@ void DirectX12::PreRender() {
 	*transformationMatrixDataSprite_ = worldViewProjectionMatrixSprite;
 }
 
-void DirectX12::Shutdown() {
-	Log("Terminating DirectX12 resources...\n");
-
-	CloseHandle(fenceEvent_);
-	CloseWindow(window_->GetHWND());
-
-	Log("Shutdown process has been completed.\nBye!!\n");
-}
-
 void DirectX12::CreateCommandQueue() {
 	constexpr D3D12_COMMAND_QUEUE_DESC commandQueueDesc = {
 		D3D12_COMMAND_LIST_TYPE_DIRECT,

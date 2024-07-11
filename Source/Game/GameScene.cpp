@@ -10,6 +10,7 @@
 #include "../Engine/TextureManager/TextureManager.h"
 #include "../Engine/Utils/Logger.h"
 #include "imgui/imgui.h"
+#include "../../RootSignatureManager.h"
 
 VertexBuffer* vertexBuffer;
 ConstantBuffer* transformation;
@@ -17,6 +18,7 @@ ConstantBuffer* materialResource;
 Material* material;
 
 RootSignature* rootSignature;
+RootSignatureManager* rootSignatureManager;
 PipelineState* pipelineState;
 
 std::shared_ptr<Texture> texture;
@@ -79,7 +81,49 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 #pragma endregion
 
 #pragma region ルートシグネチャ
-	rootSignature = new RootSignature(renderer->GetDevice());
+	rootSignatureManager = new RootSignatureManager(renderer->GetDevice());
+
+	D3D12_DESCRIPTOR_RANGE descriptorRange[1];
+	descriptorRange[0] = {
+		.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV, // SRVを使う
+		.NumDescriptors = 1, // 数は一つ
+		.BaseShaderRegister = 0, // 0から始まる
+		.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND // Offsetを自動計算
+	};
+
+	std::vector< D3D12_ROOT_PARAMETER> spriteRootParameters(4);
+	spriteRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う。b0のbと一致する
+	spriteRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	spriteRootParameters[0].Descriptor.ShaderRegister = 0; // レジスタ番号0とバインド。b0の0と一致する。もしb11と紐づけたいなら11となる
+
+	spriteRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	spriteRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	spriteRootParameters[1].Descriptor.ShaderRegister = 0;
+
+	spriteRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // DescriptorTableを使う
+	spriteRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	spriteRootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange; // Tableの中身の配列を指定
+	spriteRootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange);
+
+	spriteRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
+	spriteRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	spriteRootParameters[3].Descriptor.ShaderRegister = 1; // レジスタ番号1を使う
+
+	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {
+		{
+			.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR, // バイリニアフィルタ
+			.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP, // 0～1の範囲外をリピート
+			.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+			.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+			.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER, // 比較しない
+			.MaxLOD = D3D12_FLOAT32_MAX, // ありったけのMipmapを使う
+			.ShaderRegister = 0, // レジスタ番号0を使う
+			.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL // PixelShaderで使う
+		}
+	};
+
+	rootSignatureManager->CreateRootSignature("Sprite", spriteRootParameters, staticSamplers, _countof(staticSamplers));
+
 	if (rootSignature) {
 		Log("ルートシグネチャの生成に成功.\n");
 	}
@@ -88,7 +132,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 #pragma region パイプラインステート
 	pipelineState = new PipelineState();
 	pipelineState->SetInputLayout(Vertex::inputLayout);
-	pipelineState->SetRootSignature(rootSignature->Get());
+	pipelineState->SetRootSignature(rootSignatureManager->Get("Sprite"));
 	pipelineState->SetVS(L"./Resources/Shaders/Object3d.VS.hlsl");
 	pipelineState->SetPS(L"./Resources/Shaders/Object3d.PS.hlsl");
 	pipelineState->Create(renderer->GetDevice());
@@ -132,7 +176,7 @@ void GameScene::Render() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = {texture2->GetSRVHeap()};
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	commandList->SetGraphicsRootSignature(rootSignature->Get());
+	commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Sprite"));
 	commandList->SetPipelineState(pipelineState->Get());
 
 	commandList->IASetVertexBuffers(0, 1, &vbView);
@@ -153,6 +197,7 @@ void GameScene::Shutdown() {
 	delete transformation;
 	delete materialResource;
 	delete rootSignature;
+	delete rootSignatureManager;
 	delete pipelineState;
 }
 

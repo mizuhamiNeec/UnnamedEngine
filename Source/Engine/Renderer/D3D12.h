@@ -12,13 +12,12 @@ using namespace Microsoft::WRL;
 
 class D3D12 : public Renderer {
 public: // メンバ関数
-	~D3D12() override = default;
+	~D3D12() override;
 
 	void Init(Window* window) override;
 	void ClearColorAndDepth() const;
 	void PreRender() override;
 	void PostRender() override;
-	void Shutdown() override;
 	void OnSizeChanged(UINT width, UINT height, bool isMinimized) override;
 	void ToggleFullscreen() override;
 

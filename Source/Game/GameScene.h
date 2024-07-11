@@ -12,12 +12,10 @@ public:
 	void Shutdown() override;
 
 private:
-	Window* window_;
-	D3D12* renderer_;
+	Window* window_ = nullptr;
+	D3D12* renderer_ = nullptr;
 
 	Transform transform;
 
 	Transform cameraTransform;
-
 };
-

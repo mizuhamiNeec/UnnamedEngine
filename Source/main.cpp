@@ -13,6 +13,8 @@
 #include "Engine/Utils/Logger.h"
 #include "Game/GameScene.h"
 #include "../Input.h"
+#include "../Sprite.h"
+#include "../SpriteManager.h"
 
 //-----------------------------------------------------------------------------
 // エントリーポイント
@@ -39,22 +41,32 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 
 	window->CreateMainWindow(windowConfig);
 
-	D3D12 renderer;
-	renderer.Init(window.get());
+	std::unique_ptr<D3D12> renderer = std::make_unique<D3D12>();
+	renderer->Init(window.get());
+
+	std::unique_ptr<SpriteManager> spriteManager = std::make_unique<SpriteManager>();
+	spriteManager->Init();
 
 	// ---------------------------------------------------------------------------
 	// 入力
 	// ---------------------------------------------------------------------------
-	Input* input = new Input();
+	std::unique_ptr<Input> input = std::make_unique<Input>();
 	input->Init(window.get());
 
 #ifdef _DEBUG
 	ImGuiManager imGuiManager;
-	imGuiManager.Init(&renderer, window.get());
+	imGuiManager.Init(renderer.get(), window.get());
 #endif
 
+#pragma region シーンの初期化
+
 	GameScene gameScene;
-	gameScene.Init(&renderer, window.get());
+	gameScene.Init(renderer.get(), window.get());
+
+	Sprite* sprite = new Sprite();
+	sprite->Init();
+
+#pragma endregion
 
 	while (true) {
 		if (window->ProcessMessage()) {
@@ -71,25 +83,25 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 			Log("PressKey 0\n");
 		}
 
-#ifdef _DEBUG
+	#ifdef _DEBUG
 		imGuiManager.NewFrame();
-#endif
+	#endif
 
 		// ゲームシーンの更新
 		gameScene.Update();
 
 		// レンダリングの前処理
-		renderer.PreRender();
+		renderer->PreRender();
 
 		// ゲームシーンのレンダリング
 		gameScene.Render();
 
-#ifdef _DEBUG
+	#ifdef _DEBUG
 		imGuiManager.EndFrame();
-#endif
+	#endif
 
 		// レンダリングの後処理
-		renderer.PostRender();
+		renderer->PostRender();
 	}
 
 	gameScene.Shutdown();
@@ -98,9 +110,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 	imGuiManager.Shutdown();
 #endif
 
-	delete input;
-
-	renderer.Shutdown();
+	delete sprite;
 
 	TextureManager::GetInstance().Shutdown();
 

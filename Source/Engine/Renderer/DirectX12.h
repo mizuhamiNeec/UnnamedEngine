@@ -67,7 +67,6 @@ public:
 	// 基本関数
 	// ==============================
 	void Init(Window* window) override;
-	void Shutdown() override;
 
 	void PreRender() override;
 

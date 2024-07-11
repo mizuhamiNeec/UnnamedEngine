@@ -19,6 +19,11 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxcompiler.lib")
 
+D3D12::~D3D12() {
+	CloseHandle(fenceEvent_);
+	Log("Bye!\n");
+}
+
 void D3D12::Init(Window* window) {
 	window_ = window;
 	windowConfig_ = window->GetWindowConfig();
@@ -154,11 +159,6 @@ void D3D12::PostRender() {
 	UpdateFixFPS();
 }
 
-void D3D12::Shutdown() {
-	CloseHandle(fenceEvent_);
-	Log("Bye!\n");
-}
-
 void D3D12::OnSizeChanged(UINT width, UINT height, bool isMinimized) {
 	width; height; isMinimized;
 }
@@ -181,6 +181,7 @@ void D3D12::EnableDebugLayer() {
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
 		debugController->EnableDebugLayer(); //デバッグレイヤーの有効化
 		debugController->SetEnableGPUBasedValidation(TRUE); // GPU側でのチェックを有効化
+		debugController->Release();
 	}
 }
 
