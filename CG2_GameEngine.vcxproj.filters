@@ -177,6 +177,7 @@
     <ClCompile Include="SpriteManager.cpp" />
     <ClCompile Include="Sprite.cpp" />
     <ClCompile Include="RootSignatureManager.cpp" />
+    <ClCompile Include="Console.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Renderer\Renderer.h">
@@ -281,6 +282,7 @@
     <ClInclude Include="SpriteManager.h" />
     <ClInclude Include="Sprite.h" />
     <ClInclude Include="RootSignatureManager.h" />
+    <ClInclude Include="Console.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">

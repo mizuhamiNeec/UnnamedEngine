@@ -15,6 +15,7 @@
 #include "../Input.h"
 #include "../Sprite.h"
 #include "../SpriteManager.h"
+#include "../Console.h"
 
 //-----------------------------------------------------------------------------
 // エントリーポイント
@@ -45,7 +46,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 	renderer->Init(window.get());
 
 	std::unique_ptr<SpriteManager> spriteManager = std::make_unique<SpriteManager>();
-	spriteManager->Init();
+	spriteManager->Init(renderer.get());
 
 	// ---------------------------------------------------------------------------
 	// 入力
@@ -56,6 +57,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 #ifdef _DEBUG
 	ImGuiManager imGuiManager;
 	imGuiManager.Init(renderer.get(), window.get());
+
+	Console console;
+	console.Init();
 #endif
 
 #pragma region シーンの初期化
@@ -83,12 +87,19 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 			Log("PressKey 0\n");
 		}
 
-	#ifdef _DEBUG
+		if (input->TriggerKey(DIK_GRAVE)) {
+			console.ToggleConsole();
+			Log("PressKey `\n");
+		}
+
+#ifdef _DEBUG
 		imGuiManager.NewFrame();
-	#endif
+#endif
 
 		// ゲームシーンの更新
 		gameScene.Update();
+
+		console.Update();
 
 		// レンダリングの前処理
 		renderer->PreRender();
@@ -96,9 +107,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 		// ゲームシーンのレンダリング
 		gameScene.Render();
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 		imGuiManager.EndFrame();
-	#endif
+#endif
 
 		// レンダリングの後処理
 		renderer->PostRender();

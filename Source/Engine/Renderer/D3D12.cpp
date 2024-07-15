@@ -55,7 +55,7 @@ void D3D12::Init(Window* window) {
 }
 
 void D3D12::ClearColorAndDepth() const {
-	float clearColor[] = {0.89f, 0.5f, 0.03f, 1.0f};
+	float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f };
 	commandList_->ClearRenderTargetView(
 		rtvHandles_[frameIndex_],
 		clearColor,
@@ -103,9 +103,9 @@ void D3D12::PreRender() {
 	);
 	assert(SUCCEEDED(hr));
 
-	//-----------------------------------------------------------------------------
+	//-------------------------------------------------------------------------
 	// ビューポートとシザー矩形を設定
-	//-----------------------------------------------------------------------------
+	//-------------------------------------------------------------------------
 	commandList_->RSSetViewports(1, &viewport_);
 	commandList_->RSSetScissorRects(1, &scissorRect_);
 
@@ -145,7 +145,7 @@ void D3D12::PostRender() {
 	//-------------------------------------------------------------------------
 	// コマンドのキック
 	//-------------------------------------------------------------------------
-	ID3D12CommandList* lists[] = {commandList_.Get()};
+	ID3D12CommandList* lists[] = { commandList_.Get() };
 	commandQueue_->ExecuteCommandLists(1, lists);
 
 
@@ -228,7 +228,7 @@ void D3D12::CreateDevice() {
 		D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
 		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
 	};
-	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0", "11.1", "11.0"};
+	const char* featureLevelStrings[] = { "12.2", "12.1", "12.0", "11.1", "11.0" };
 
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
@@ -265,7 +265,7 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
+		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(denyIds);
 		filter.DenyList.pIDList = denyIds;
@@ -321,13 +321,10 @@ void D3D12::CreateSwapChain() {
 }
 
 void D3D12::CreateDescriptorHeaps() {
-	//-------------------------------------------------------------------
 	// DescriptorSizeを取得しておく
-	//-------------------------------------------------------------------
 	descriptorSizeSRV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	descriptorSizeRTV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	descriptorSizeDSV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-
 
 	// SRV用のヒープでディスクリプタの数は128。SRVはShader内で触るものなので、ShaderVisibleはtrue
 	srvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, true);

@@ -105,6 +105,7 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Console.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="RootSignatureManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp" />
@@ -140,6 +141,7 @@
     <ClCompile Include="SpriteManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Console.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="RootSignatureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
