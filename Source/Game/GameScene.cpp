@@ -46,19 +46,19 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 #pragma region 頂点バッファ
 	Vertex vertices[3] = {};
 	// 左下
-	vertices[0].position = {-0.5f,-0.5f,0.0f ,1.0f};
-	vertices[0].normal = {0.0f,0.0f,-1.0f};
-	vertices[0].texcoord = {0.0f,1.0f};
+	vertices[0].position = { -0.5f,-0.5f,0.0f ,1.0f };
+	vertices[0].normal = { 0.0f,0.0f,-1.0f };
+	vertices[0].texcoord = { 0.0f,1.0f };
 
 	// 上
-	vertices[1].position = {0.0f,0.5f,0.0f ,1.0f};
-	vertices[1].normal = {0.0f,0.0f,-1.0f};
-	vertices[1].texcoord = {0.5f,0.0f};
+	vertices[1].position = { 0.0f,0.5f,0.0f ,1.0f };
+	vertices[1].normal = { 0.0f,0.0f,-1.0f };
+	vertices[1].texcoord = { 0.5f,0.0f };
 
 	// 右下
-	vertices[2].position = {0.5f,-0.5f,0.0f ,1.0f};
-	vertices[2].normal = {0.0f,0.0f,-1.0f};
-	vertices[2].texcoord = {1.0f,1.0f};
+	vertices[2].position = { 0.5f,-0.5f,0.0f ,1.0f };
+	vertices[2].normal = { 0.0f,0.0f,-1.0f };
+	vertices[2].texcoord = { 1.0f,1.0f };
 
 	size_t vertexStride = sizeof(Vertex);
 	vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * 3, vertexStride, vertices);
@@ -75,7 +75,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	materialResource = new ConstantBuffer(renderer_->GetDevice(), sizeof(Material));
 	// マテリアルにデータを書き込む
 	material = materialResource->GetPtr<Material>(); // 書き込むためのアドレスを取得
-	*material = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
+	*material = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
 	material->enableLighting = false;
 	material->uvTransform = Mat4::Identity();
 #pragma endregion
@@ -173,7 +173,7 @@ void GameScene::Render() {
 	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer->View();
 
 	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = {texture2->GetSRVHeap()};
+	ID3D12DescriptorHeap* descriptorHeaps[] = { texture2->GetSRVHeap() };
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Sprite"));

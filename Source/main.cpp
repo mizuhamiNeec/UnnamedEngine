@@ -88,9 +88,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 		}
 
 		if (input->TriggerKey(DIK_GRAVE)) {
-			console.ToggleConsole();
+			Console::ToggleConsole();
 			Log("PressKey `\n");
 		}
+
+		/*Console::Print("This is Normal.", kConsoleColorNormal);
+		Console::Print("This is Error.", kConsoleColorError);
+		Console::Print("This is Warning.", kConsoleColorWarning);*/
 
 #ifdef _DEBUG
 		imGuiManager.NewFrame();

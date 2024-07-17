@@ -13,6 +13,7 @@
 #include <thread>
 
 #include "../Utils/ClientProperties.h"
+#include "../../../Console.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -21,7 +22,8 @@
 
 D3D12::~D3D12() {
 	CloseHandle(fenceEvent_);
-	Log("Bye!\n");
+	Console::Print("Bye!\n");
+	Console::Print("Bye!");
 }
 
 void D3D12::Init(Window* window) {
@@ -51,7 +53,7 @@ void D3D12::Init(Window* window) {
 
 	SetViewportAndScissor();
 
-	Log("Complete Init DirectX12.\n");
+	Console::Print("Complete Init DirectX12.\n");
 }
 
 void D3D12::ClearColorAndDepth() const {
@@ -139,7 +141,7 @@ void D3D12::PostRender() {
 	const HRESULT hr = commandList_->Close();
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Log(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr));
 	}
 
 	//-------------------------------------------------------------------------
@@ -214,7 +216,7 @@ void D3D12::CreateDevice() {
 		// ソフトウェアアダプタでなければ採用
 		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE)) {
 			// 採用したアダプタの情報をログに出力
-			Log(ConvertString(std::format(L"Use Adapter : {}\n", adapterDesc.Description)));
+			Console::Print(ConvertString(std::format(L"Use Adapter : {}\n", adapterDesc.Description)));
 			break;
 		}
 		useAdapter = nullptr; // ソフトウェアアダプタの場合は見なかったことにする
@@ -237,14 +239,14 @@ void D3D12::CreateDevice() {
 		// 指定した機能レベルでデバイスが生成できたをできたかを確認
 		if (SUCCEEDED(hr)) {
 			// 生成できたのでログに出力し、ループを抜ける
-			Log(std::format("FeatureLevel : {}\n", featureLevelStrings[i]));
+			Console::Print(std::format("FeatureLevel : {}\n", featureLevelStrings[i]));
 			break;
 		}
 		device_ = nullptr;
 	}
 	assert(device_ != nullptr); // デバイスの生成がうまくいかなかったので起動できない
 
-	Log("Complete create D3D12Device.\n"); // 初期化完了のログを出す
+	Console::Print("Complete create D3D12Device.\n"); // 初期化完了のログを出す
 }
 
 void D3D12::SetInfoQueueBreakOnSeverity() const {
@@ -289,9 +291,9 @@ void D3D12::CreateCommandQueue() {
 	const HRESULT hr = device_->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue_));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Log(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr));
 	}
-	Log("Complete create CommandQueue.\n");
+	Console::Print("Complete create CommandQueue.\n");
 }
 
 void D3D12::CreateSwapChain() {
@@ -315,9 +317,9 @@ void D3D12::CreateSwapChain() {
 	);
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Log(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr));
 	}
-	Log("Complete create SwapChain.\n");
+	Console::Print("Complete create SwapChain.\n");
 }
 
 void D3D12::CreateDescriptorHeaps() {
@@ -347,13 +349,13 @@ void D3D12::CreateRTV() {
 		const HRESULT hr = swapChain_->GetBuffer(i, IID_PPV_ARGS(&renderTargets_[i]));
 		assert(SUCCEEDED(hr));
 		if (hr) {
-			Log(std::format("{:08x}\n", hr));
+			Console::Print(std::format("{:08x}\n", hr));
 		}
 
 		rtvHandles_[i] = GetCPUDescriptorHandle(rtvDescriptorHeap_.Get(), descriptorSizeRTV, i);
 		device_->CreateRenderTargetView(renderTargets_[i].Get(), &rtvDesc, rtvHandles_[i]);
 	}
-	Log("Complete create RenderTargetView.\n");
+	Console::Print("Complete create RenderTargetView.\n");
 }
 
 void D3D12::CreateDSV() {
@@ -371,9 +373,9 @@ void D3D12::CreateCommandAllocator() {
 		CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator_));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Log(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr));
 	}
-	Log("Complete create CommandAllocator.\n");
+	Console::Print("Complete create CommandAllocator.\n");
 }
 
 void D3D12::CreateCommandList() {
@@ -381,22 +383,22 @@ void D3D12::CreateCommandList() {
 		IID_PPV_ARGS(&commandList_));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Log(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr));
 	}
 	commandList_->Close();
-	Log("Complete create CommandList.\n");
+	Console::Print("Complete create CommandList.\n");
 }
 
 void D3D12::CreateFence() {
 	const HRESULT hr = device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Log(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr));
 	}
 
 	fenceEvent_ = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	assert(fenceEvent_ != nullptr);
-	Log("Complete create Fence.\n");
+	Console::Print("Complete create Fence.\n");
 }
 
 void D3D12::SetViewportAndScissor() {
@@ -471,7 +473,7 @@ ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Log(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr));
 	}
 	return descriptorHeap;
 }
@@ -520,7 +522,7 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 	); // 作成するResourceポインタへのポインタ
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Log(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr));
 	}
 
 	return resource;

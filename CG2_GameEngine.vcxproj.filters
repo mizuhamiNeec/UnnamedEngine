@@ -88,6 +88,7 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp">

@@ -102,6 +102,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
+    <None Include="ClassDiagram.cd" />
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
