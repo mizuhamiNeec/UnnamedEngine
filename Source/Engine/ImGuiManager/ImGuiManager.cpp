@@ -6,7 +6,6 @@
 
 #include "../Renderer/D3D12.h"
 #include "../Utils/ClientProperties.h"
-#include "../Utils/Logger.h"
 #include "../Window/Window.h"
 
 #include "imgui/imgui.h"

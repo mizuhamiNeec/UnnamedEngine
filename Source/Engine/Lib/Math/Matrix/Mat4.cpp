@@ -5,7 +5,7 @@
 #include <format>
 
 #include "../Utils/ConvertString.h"
-#include "../Utils/Logger.h"
+#include "../../../../../Console.h"
 
 Mat4 Mat4::operator+(const Mat4& rhs) const {
 	return {
@@ -180,7 +180,7 @@ void Mat4::LogMat4() {
 		}
 		result += L"\n";
 	}
-	Log(ConvertString(result));
+	Console::Print(ConvertString(result));
 }
 
 Mat4 Mat4::Identity() {

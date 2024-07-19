@@ -1,9 +1,10 @@
 #include "Console.h"
 
+#include "Source/Engine/Utils/ConvertString.h"
+
 #ifdef _DEBUG
 
 #include "imgui/imgui.h"
-#include "imgui/imgui_internal.h"
 #include "Source/Engine/Utils/ClientProperties.h"
 #include <format>
 
@@ -15,7 +16,7 @@ void Console::Update() {
 		return;
 	}
 
-	char str[1024];
+
 
 	if (ImGui::Begin("Console", &bShowConsole, ImGuiWindowFlags_NoScrollbar)) {
 		// バツボタンの位置とサイズを設定
@@ -38,7 +39,6 @@ void Console::Update() {
 		for (const ConsoleText& consoleText : history_) {
 			ImGui::PushStyleColor(ImGuiCol_Text, consoleText.color);
 			ImGui::Selectable((consoleText.text).c_str());
-			//ImGui::InputText("##", const_cast<char*>(consoleText.text.c_str()), sizeof(str), ImGuiInputTextFlags_ReadOnly);
 			ImGui::PopStyleColor();
 		}
 
@@ -64,13 +64,16 @@ void Console::Update() {
 		size.x -= ImGui::CalcTextSize("  Submit  ").x;
 
 		ImGui::PushItemWidth(size.x);
+
 		if (ImGui::InputText("##input", str, IM_ARRAYSIZE(str), ImGuiInputTextFlags_EnterReturnsTrue)) {
 			ImGui::SetKeyboardFocusHere(-1);
 			SubmitCommand(str);
+			memset(str, 0, sizeof str);
 		}
 		ImGui::SameLine();
 		if (ImGui::Button(" Submit ")) {
 			SubmitCommand(str);
+			memset(str, 0, sizeof str);
 		}
 
 		ImGui::End();
@@ -90,6 +93,7 @@ void Console::Print(const std::string& message, const ImVec4 color) {
 		// 前のメッセージと異なる場合、新しいメッセージを追加
 		history_.push_back({ message, color });
 		repeatCounts_.push_back(1);
+		OutputDebugString(ConvertString(message + "\n").c_str());
 	}
 
 	wishScrollToBottom = true;
@@ -120,6 +124,7 @@ void Console::SubmitCommand(const std::string& command) {
 		// 前のメッセージと異なる場合、新しいメッセージを追加
 		history_.push_back({ "] " + command,ImVec4(1.0f,1.0f,1.0f,1.0f) });
 		repeatCounts_.push_back(1);
+		OutputDebugString(ConvertString(command + "\n").c_str());
 	}
 
 	wishScrollToBottom = true;

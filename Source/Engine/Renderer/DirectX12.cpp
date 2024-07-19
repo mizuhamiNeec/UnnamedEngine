@@ -6,9 +6,9 @@
 #include <fstream>
 #include <sstream>
 #include <imgui/imgui_impl_dx12.h>
-#include "../Utils/Logger.h"
 #include "../Utils/ClientProperties.h"
 #include "../Utils/ConvertString.h"
+#include "../../../Console.h"
 
 ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename) {
 	ModelData modelData; // 構築するModelData
@@ -149,7 +149,7 @@ void DirectX12::Init(Window* window) {
 	GetResourceFromSwapChain();
 	CreateRTV();
 
-	Log("Complete Init DirectX12.\n");
+	Console::Print("Complete Init DirectX12.\n");
 
 	/* FenceとEventを生成する */
 	// 初期値0でFenceを作る
@@ -212,7 +212,7 @@ void DirectX12::Init(Window* window) {
 	hr_ = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob_,
 		&errorBlob_);
 	if (FAILED(hr_)) {
-		Log(static_cast<char*>(errorBlob_->GetBufferPointer()));
+		Console::Print(static_cast<char*>(errorBlob_->GetBufferPointer()));
 		assert(false);
 	}
 	// バイナリを元に生成
@@ -810,7 +810,7 @@ void DirectX12::CreateCommandQueue() {
 	};
 	hr_ = device_->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue_)); // コマンドキューを生成する
 	assert(SUCCEEDED(hr_)); // コマンドキューの生成がうまくいかなかったので起動できない
-	Log("Complete create CommandQueue.\n");
+	Console::Print("Complete create CommandQueue.\n");
 }
 
 void DirectX12::CreateCommandList() {
@@ -824,7 +824,7 @@ void DirectX12::CreateCommandList() {
 		IID_PPV_ARGS(&commandList_));
 	// コマンドリストの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr_));
-	Log("Complete create CommandList.\n");
+	Console::Print("Complete create CommandList.\n");
 }
 
 void DirectX12::CreateSwapChain() {
@@ -850,7 +850,7 @@ void DirectX12::CreateSwapChain() {
 	);
 	assert(SUCCEEDED(hr_));
 
-	Log("Complete create SwapChain.\n");
+	Console::Print("Complete create SwapChain.\n");
 }
 
 ComPtr<ID3D12DescriptorHeap> DirectX12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType,
@@ -867,7 +867,7 @@ ComPtr<ID3D12DescriptorHeap> DirectX12::CreateDescriptorHeap(const D3D12_DESCRIP
 	}
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
 	assert(SUCCEEDED(hr));
-	Log(std::format("{:08x}\n", hr));
+	Console::Print(std::format("{:08x}\n", hr));
 	return descriptorHeap;
 }
 
@@ -889,7 +889,7 @@ void DirectX12::CreateRTV() {
 		rtvHandles_[i] = GetCPUDescriptorHandle(rtvDescriptorHeap_.Get(), descriptorSizeRTV, i);
 		device_->CreateRenderTargetView(swapChainResources_[i].Get(), &rtvDesc_, rtvHandles_[i]);
 	}
-	Log("Complete create RenderTargetView.\n");
+	Console::Print("Complete create RenderTargetView.\n");
 }
 
 void DirectX12::InitializeDxc() {
@@ -935,7 +935,7 @@ void DirectX12::CreateDevice() {
 		assert(SUCCEEDED(hr_));
 		// ソフトウェアアダプタでなければ採用!
 		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE)) {
-			Log(ConvertString(std::format(L"Use Adapter : {}\n", adapterDesc.Description))); // 採用したアダプタの情報をログに出力。
+			Console::Print(ConvertString(std::format(L"Use Adapter : {}\n", adapterDesc.Description))); // 採用したアダプタの情報をログに出力。
 			break;
 		}
 		useAdapter = nullptr; // ソフトウェアアダプタの場合は見なかったことにする
@@ -956,12 +956,12 @@ void DirectX12::CreateDevice() {
 		hr_ = D3D12CreateDevice(useAdapter.Get(), featureLevels[i], IID_PPV_ARGS(&device_)); // 採用したアダプターでデバイスを生成
 		// 指定した機能レベルでデバイスが生成できたかを確認
 		if (SUCCEEDED(hr_)) {
-			Log(std::format("FeatureLevel : {}\n", featureLevelStrings[i])); // 生成できたのでログ出力を行ってループを抜ける
+			Console::Print(std::format("FeatureLevel : {}\n", featureLevelStrings[i])); // 生成できたのでログ出力を行ってループを抜ける
 			break;
 		}
 	}
 	assert(device_ != nullptr); // デバイスの生成がうまくいかなかったので起動できない
-	Log("Complete create D3D12Device.\n"); // 初期化完了のログを出す
+	Console::Print("Complete create D3D12Device.\n"); // 初期化完了のログを出す
 }
 
 void DirectX12::SetInfoQueueBreakOnSeverity() const {
@@ -1000,7 +1000,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
 	/* 1. hlslファイルを読む */
 	// これからシェーダーをコンパイルする旨をログに出す
-	Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
+	Console::Print(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
 	// hlslファイルを読む
 	IDxcBlobEncoding* shaderSource = nullptr;
 	hr_ = dxcUtils->LoadFile(filePath.c_str(), nullptr, &shaderSource);
@@ -1040,7 +1040,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	IDxcBlobUtf8* shaderError = nullptr;
 	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
 	if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
-		Log(shaderError->GetStringPointer());
+		Console::Print(shaderError->GetStringPointer());
 		// 警告・エラーダメゼッタイ
 		assert(false);
 	}
@@ -1051,7 +1051,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	hr_ = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr_));
 	// 成功したらログを出す
-	Log(ConvertString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)));
+	Console::Print(ConvertString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)));
 	// もう使わないリソースを開放
 	shaderSource->Release();
 	shaderResult->Release();
@@ -1123,7 +1123,7 @@ ComPtr<ID3D12Resource> DirectX12::CreateDepthStencilTextureResource(int32_t widt
 		IID_PPV_ARGS(&resource)
 	); // 作成するResourceポインタへのポインタ
 	assert(SUCCEEDED(hr));
-	Log(std::format("{:08x}\n", hr));
+	Console::Print(std::format("{:08x}\n", hr));
 
 	return resource;
 }
@@ -1226,7 +1226,7 @@ ComPtr<ID3D12Resource> DirectX12::CreateTextureResource(ComPtr<ID3D12Device> dev
 		IID_PPV_ARGS(&resource) // 作成するResourceポインタへのポインタ
 	);
 	assert(SUCCEEDED(hr));
-	Log(std::format("{:08x}\n", hr));
+	Console::Print(std::format("{:08x}\n", hr));
 
 	return resource;
 }
@@ -1247,7 +1247,7 @@ void DirectX12::UploadTextureData(ID3D12Resource* texture, const DirectX::Scratc
 			static_cast<UINT>(img->slicePitch) // 1枚サイズ
 		);
 		assert(SUCCEEDED(hr));
-		Log(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr));
 	}
 }
 

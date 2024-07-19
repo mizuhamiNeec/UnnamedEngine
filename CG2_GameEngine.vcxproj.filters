@@ -73,9 +73,6 @@
     <Filter Include="Source\Engine\Lib\Utils">
       <UniqueIdentifier>{f4c81c0b-6b48-456a-8e22-f7af498198fc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Engine\Lib\Utils\Logger">
-      <UniqueIdentifier>{895e77ae-886f-493b-b9a0-d0ee4d9196ef}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Engine\Lib\Utils\Random">
       <UniqueIdentifier>{6ff392f6-9b86-4aa9-8783-27b7954dccfb}</UniqueIdentifier>
     </Filter>
@@ -93,9 +90,6 @@
   <ItemGroup>
     <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp">
       <Filter>Source\Engine\Renderer\Old</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Utils\Logger.cpp">
-      <Filter>Source\Engine\Lib\Utils\Logger</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp">
       <Filter>Source\Engine\Lib\Math\Mat4</Filter>
@@ -186,9 +180,6 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\DirectX12.h">
       <Filter>Source\Engine\Renderer\Old</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Utils\Logger.h">
-      <Filter>Source\Engine\Lib\Utils\Logger</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h">
       <Filter>Source\Engine\Lib\Math\Mat4</Filter>

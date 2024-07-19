@@ -1,8 +1,8 @@
 #include "TextureManager.h"
-#include "../Utils/Logger.h"
 #include <format>
 
 #include "../Utils/ConvertString.h"
+#include "../../../Console.h"
 
 TextureManager& TextureManager::GetInstance() {
 	static TextureManager instance;
@@ -34,7 +34,7 @@ void TextureManager::Shutdown() {
 	for (auto& pair : textures) {
 		if (pair.second.use_count() > 1) {
 			// テクスチャがまだ参照されている
-			Log(ConvertString(std::format(L"Texture {} is still in use, use_count: {}\n", pair.first.c_str(), pair.second.use_count())));
+			Console::Print(ConvertString(std::format(L"Texture {} is still in use, use_count: {}\n", pair.first.c_str(), pair.second.use_count())));
 		}
 	}
 	textures.clear();

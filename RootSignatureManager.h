@@ -4,8 +4,6 @@
 #include <unordered_map>
 #include <wrl/client.h>
 
-#include "Source/Engine/Utils/Logger.h"
-
 using namespace Microsoft::WRL;
 
 class RootSignatureManager {

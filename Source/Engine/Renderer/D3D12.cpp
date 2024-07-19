@@ -7,7 +7,6 @@
 #include <format>
 
 #include "../Utils/ConvertString.h"
-#include "../Utils/Logger.h"
 #include "DirectXTex/d3dx12.h"
 #include <dxgi1_3.h>
 #include <thread>

@@ -125,7 +125,6 @@
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp" />
-    <ClCompile Include="Source\Engine\Utils\Logger.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp" />
     <ClCompile Include="Source\Engine\Lib\Transform\Transform.cpp" />
@@ -164,7 +163,6 @@
     <ClInclude Include="Source\Engine\Utils\ConvertString.h" />
     <ClInclude Include="Source\Engine\Renderer\DirectX12.h" />
     <ClInclude Include="Source\Engine\Utils\ClientProperties.h" />
-    <ClInclude Include="Source\Engine\Utils\Logger.h" />
     <ClInclude Include="Source\Game\IGameScene.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h" />
     <ClInclude Include="Source\Engine\Renderer\Renderer.h" />

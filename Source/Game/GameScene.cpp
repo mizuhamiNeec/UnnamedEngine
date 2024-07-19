@@ -8,9 +8,9 @@
 #include "../Engine/Renderer/RootSignature.h"
 #include "../Engine/Renderer/VertexBuffer.h"
 #include "../Engine/TextureManager/TextureManager.h"
-#include "../Engine/Utils/Logger.h"
 #include "imgui/imgui.h"
 #include "../../RootSignatureManager.h"
+#include "../../Console.h"
 
 VertexBuffer* vertexBuffer;
 ConstantBuffer* transformation;
@@ -64,7 +64,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * 3, vertexStride, vertices);
 
 	if (vertexBuffer) {
-		Log("頂点バッファの生成に成功.\n");
+		Console::Print("頂点バッファの生成に成功.\n");
 	}
 #pragma endregion
 
@@ -125,7 +125,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	rootSignatureManager->CreateRootSignature("Sprite", spriteRootParameters, staticSamplers, _countof(staticSamplers));
 
 	if (rootSignature) {
-		Log("ルートシグネチャの生成に成功.\n");
+		Console::Print("ルートシグネチャの生成に成功.\n");
 	}
 #pragma endregion
 
@@ -137,7 +137,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	pipelineState->SetPS(L"./Resources/Shaders/Object3d.PS.hlsl");
 	pipelineState->Create(renderer->GetDevice());
 	if (pipelineState) {
-		Log("パイプラインステートの生成に成功.\n");
+		Console::Print("パイプラインステートの生成に成功.\n");
 	}
 #pragma endregion
 	// テクスチャのロードとSRVハンドルの取得

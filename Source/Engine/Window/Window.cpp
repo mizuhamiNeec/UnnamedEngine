@@ -5,7 +5,7 @@
 #include <imgui/imgui.h>
 
 #include "../Renderer/DirectX12.h"
-#include "../Utils/Logger.h"
+#include "../../../Console.h"
 
 #pragma comment(lib, "winmm.lib")
 
@@ -71,7 +71,7 @@ void Window::CreateMainWindow(const WindowConfig& windowConfig) {
 
 	if (!RegisterClassEx(&wc_)) {
 		MessageBox(nullptr, L"Failed to register window class.", nullptr, MB_ICONERROR);
-		Log("Failed to register window class.");
+		Console::Print("Failed to register window class.");
 		return;
 	}
 
@@ -98,7 +98,7 @@ void Window::CreateMainWindow(const WindowConfig& windowConfig) {
 
 	if (hWnd_ == nullptr) {
 		MessageBox(nullptr, L"Failed to create window.", nullptr, MB_ICONERROR);
-		Log("Failed to create window.");
+		Console::Print("Failed to create window.");
 		return;
 	}
 

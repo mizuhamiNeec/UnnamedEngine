@@ -10,7 +10,6 @@
 #include "Engine/TextureManager/TextureManager.h"
 #include "Engine/Utils/ClientProperties.h"
 #include "Engine/Utils/ConvertString.h"
-#include "Engine/Utils/Logger.h"
 #include "Game/GameScene.h"
 #include "../Input.h"
 #include "../Sprite.h"
@@ -21,7 +20,7 @@
 // エントリーポイント
 //-----------------------------------------------------------------------------
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
-	Log(
+	Console::Print(
 		ConvertString(
 			std::format(L"Launch Args: {}\n", pCmdLine)
 		)
@@ -80,16 +79,16 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 		input->Update();
 
 		if (input->TriggerKey(DIK_0)) {
-			Log("TriggerKey 0\n");
+			Console::Print("TriggerKey 0\n");
 		}
 
 		if (input->PushKey(DIK_0)) {
-			Log("PressKey 0\n");
+			Console::Print("PressKey 0\n");
 		}
 
 		if (input->TriggerKey(DIK_GRAVE)) {
 			Console::ToggleConsole();
-			Log("PressKey `\n");
+			Console::Print("PressKey `\n");
 		}
 
 		/*Console::Print("This is Normal.", kConsoleColorNormal);

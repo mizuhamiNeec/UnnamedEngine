@@ -3,7 +3,7 @@
 #include <cassert>
 #include <format>
 #include "../Utils/ConvertString.h"
-#include "../Utils/Logger.h"
+#include "../../../Console.h"
 
 PipelineState::PipelineState() {
 	D3D12_BLEND_DESC blendDesc = {};
@@ -72,7 +72,7 @@ void PipelineState::SetPS(const std::wstring& filePath) {
 IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
 	/* 1. hlslファイルを読む */
 	// これからシェーダーをコンパイルする旨をログに出す
-	Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
+	Console::Print(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
 	// hlslファイルを読む
 	IDxcBlobEncoding* shaderSource = nullptr;
 	HRESULT hr = dxcUtils->LoadFile(filePath.c_str(), nullptr, &shaderSource);
@@ -112,7 +112,7 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	IDxcBlobUtf8* shaderError = nullptr;
 	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
 	if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
-		Log(shaderError->GetStringPointer());
+		Console::Print(shaderError->GetStringPointer());
 		// 警告・エラーダメゼッタイ
 		assert(false);
 	}
@@ -123,7 +123,7 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	hr = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
-	Log(ConvertString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)));
+	Console::Print(ConvertString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)));
 	// もう使わないリソースを開放
 	shaderSource->Release();
 	shaderResult->Release();
@@ -135,7 +135,7 @@ void PipelineState::Create(ID3D12Device* device) {
 	HRESULT hr = device->CreateGraphicsPipelineState(&desc_, IID_PPV_ARGS(pipelineState.ReleaseAndGetAddressOf()));
 	assert(SUCCEEDED(hr));
 	if (SUCCEEDED(hr)) {
-		Log("Complete Create PipelineState.\n");
+		Console::Print("Complete Create PipelineState.\n");
 	}
 }
 

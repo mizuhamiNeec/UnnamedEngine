@@ -2,6 +2,8 @@
 
 #include <format>
 
+#include "Console.h"
+
 bool RootSignatureManager::CreateRootSignature(
 	const std::string& name,
 	const std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
@@ -25,7 +27,7 @@ bool RootSignatureManager::CreateRootSignature(
 	HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob);
 	if (FAILED(hr)) {
 		if (errorBlob) {
-			Log(static_cast<char*>(errorBlob->GetBufferPointer()));
+			Console::Print(static_cast<char*>(errorBlob->GetBufferPointer()));
 		}
 		return false;
 	}
@@ -38,7 +40,7 @@ bool RootSignatureManager::CreateRootSignature(
 
 	rootSignatures_[name] = rootSignature;
 
-	Log(std::format("Complete Create RootSignature : {}\n", name));
+	Console::Print(std::format("Complete Create RootSignature : {}\n", name));
 
 	return true;
 }

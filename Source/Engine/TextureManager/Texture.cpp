@@ -5,7 +5,7 @@
 #include "DirectXTex/DirectXTex.h"
 #include "../Utils/ConvertString.h"
 #include "DirectXTex/d3dx12.h"
-#include "../Utils/Logger.h"
+#include "../../../Console.h"
 
 Texture::Texture(ID3D12Device* device, const std::wstring& filename) {
 	LoadTextureFromFile(device, filename);
@@ -32,7 +32,7 @@ void Texture::LoadTextureFromFile(ID3D12Device* device, const std::wstring& file
 
 	HRESULT hr = LoadFromWICFile(filename.c_str(), DirectX::WIC_FLAGS_NONE, &metadata, scratchImage);
 	std::filesystem::path fullPath = std::filesystem::absolute(filename);
-	Log("Texture Loaded: " + fullPath.generic_string() + "\n");
+	Console::Print("Texture Loaded: " + fullPath.generic_string() + "\n");
 	assert(SUCCEEDED(hr));
 
 	DirectX::ScratchImage mipChain;

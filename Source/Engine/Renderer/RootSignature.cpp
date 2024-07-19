@@ -1,7 +1,7 @@
 #include "RootSignature.h"
 
 #include <cassert>
-#include "../Utils/Logger.h"
+#include "../../../Console.h"
 
 RootSignature::RootSignature(const ComPtr<ID3D12Device>& device) {
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
@@ -54,7 +54,7 @@ RootSignature::RootSignature(const ComPtr<ID3D12Device>& device) {
 	HRESULT hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob,
 		&errorBlob);
 	if (FAILED(hr)) {
-		Log(static_cast<char*>(errorBlob->GetBufferPointer()));
+		Console::Print(static_cast<char*>(errorBlob->GetBufferPointer()));
 		assert(false);
 	}
 	// バイナリを元に生成

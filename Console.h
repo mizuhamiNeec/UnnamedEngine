@@ -28,6 +28,8 @@ public:
 private:
 	static void ScrollToBottom();
 	static void SubmitCommand(const std::string& command);
+
+	char str[1024] = "";
 };
 
 static bool bShowConsole = true;
