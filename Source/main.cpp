@@ -15,6 +15,7 @@
 #include "../Sprite.h"
 #include "../SpriteManager.h"
 #include "../Console.h"
+#include "../ConVar.h"
 
 //-----------------------------------------------------------------------------
 // エントリーポイント
@@ -91,9 +92,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 			Console::Print("PressKey `\n");
 		}
 
-		/*Console::Print("This is Normal.", kConsoleColorNormal);
-		Console::Print("This is Error.", kConsoleColorError);
-		Console::Print("This is Warning.", kConsoleColorWarning);*/
+		ConVar cl_showpos("cl_showpos", 0, "Draw current position at top of screen");
+
+		//Console::Print("This is Normal.", kConsoleNormal);
+		//Console::Print("This is Error.", kConsoleError);
+		//Console::Print("This is Warning.", kConsoleWarning);
 
 #ifdef _DEBUG
 		imGuiManager.NewFrame();

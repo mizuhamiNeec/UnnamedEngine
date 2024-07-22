@@ -107,6 +107,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Console.cpp" />
+    <ClCompile Include="ConVar.cpp" />
+    <ClCompile Include="ConVars.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="RootSignatureManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp" />
@@ -142,6 +144,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Console.h" />
+    <ClInclude Include="ConVar.h" />
+    <ClInclude Include="ConVars.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="RootSignatureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />

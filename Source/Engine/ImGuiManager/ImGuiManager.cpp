@@ -21,10 +21,6 @@ inline bool IsColorLight(const winrt::Windows::UI::Color& clr) {
 void ImGuiManager::Init(const D3D12* renderer, const Window* window) {
 	renderer_ = renderer;
 
-	colorTransitions.resize(ImGuiCol_COUNT);
-
-	// ImGuiの初期化。詳細はさして重要ではないので解説はh省略する。
-	// こういうもんである
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
@@ -32,14 +28,20 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window) {
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 
+	auto& style = ImGui::GetStyle();
+	style.WindowRounding = 12;
+	style.FrameRounding = 2;
+
 	ImFontConfig imFontConfig;
 	imFontConfig.OversampleH = 1;
 	imFontConfig.OversampleV = 1;
 	imFontConfig.PixelSnapH = true;
 	imFontConfig.SizePixels = 18;
 
-	// 日本語
-	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\JetBrainsMono.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese());
+	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\JetBrainsMono.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesDefault());
+
+	imFontConfig.MergeMode = true;
+	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese());
 
 	UISettings settings = UISettings();
 	winrt::Windows::UI::Color foreground = settings.GetColorValue(UIColorType::Foreground);

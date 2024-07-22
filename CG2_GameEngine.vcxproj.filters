@@ -173,6 +173,8 @@
     <ClCompile Include="Sprite.cpp" />
     <ClCompile Include="RootSignatureManager.cpp" />
     <ClCompile Include="Console.cpp" />
+    <ClCompile Include="ConVars.cpp" />
+    <ClCompile Include="ConVar.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Renderer\Renderer.h">
@@ -275,6 +277,8 @@
     <ClInclude Include="Sprite.h" />
     <ClInclude Include="RootSignatureManager.h" />
     <ClInclude Include="Console.h" />
+    <ClInclude Include="ConVars.h" />
+    <ClInclude Include="ConVar.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">

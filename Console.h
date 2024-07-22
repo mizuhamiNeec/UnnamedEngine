@@ -7,9 +7,9 @@
 
 #include "imgui/imgui.h"
 
-constexpr ImVec4 kConsoleColorNormal = { 1.0f,1.0f,1.0f,1.0f };
-constexpr ImVec4 kConsoleColorError = { 1.0f,0.0f,0.0f,1.0f };
-constexpr ImVec4 kConsoleColorWarning = { 1.0f,1.0f,0.0f,1.0f };
+constexpr ImVec4 kConsoleNormal = { 1.0f,1.0f,1.0f,1.0f };
+constexpr ImVec4 kConsoleError = { 1.0f,0.0f,0.0f,1.0f };
+constexpr ImVec4 kConsoleWarning = { 1.0f,1.0f,0.0f,1.0f };
 
 struct ConsoleText {
 	std::string text;
@@ -21,15 +21,13 @@ public:
 	void Init();
 	void Update();
 
-	static void Print(const std::string& message, const ImVec4 color = kConsoleColorNormal);
+	static void Print(const std::string& message, const ImVec4 color = kConsoleNormal);
 	static void ToggleConsole();
 	void OutputLog(std::string filepath, std::string log);
 
 private:
 	static void ScrollToBottom();
 	static void SubmitCommand(const std::string& command);
-
-	char str[1024] = "";
 };
 
 static bool bShowConsole = true;
