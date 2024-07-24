@@ -11,6 +11,10 @@ constexpr ImVec4 kConsoleNormal = { 1.0f,1.0f,1.0f,1.0f };
 constexpr ImVec4 kConsoleError = { 1.0f,0.0f,0.0f,1.0f };
 constexpr ImVec4 kConsoleWarning = { 1.0f,1.0f,0.0f,1.0f };
 
+constexpr size_t kConsoleSuggestLineCount = 8;
+constexpr size_t kConsoleRepeatWarning = 64;
+constexpr size_t kConsoleRepeatError = 512;
+
 struct ConsoleText {
 	std::string text;
 	ImVec4 color;
