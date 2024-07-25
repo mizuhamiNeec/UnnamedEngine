@@ -18,6 +18,10 @@ public:
 	float GetFloat() const;
 	Vec3 GetVec3() const;
 
+	void SetValue(int value);
+	void SetValue(float value);
+	void SetValue(Vec3 value);
+
 private:
 	std::string name_;
 	ConVarType type_;

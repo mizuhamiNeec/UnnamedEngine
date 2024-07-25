@@ -3,9 +3,9 @@
 #include <cassert>
 #include <dxcapi.h>
 
+#include "Console.h"
 #include "Source/Engine/Lib/Structs/Structs.h"
 #include "Source/Engine/Renderer/PipelineState.h"
-#include "Source/Engine/Utils/Logger.h"
 
 void SpriteManager::Init(D3D12* renderer) {
 	renderer_ = renderer;
@@ -67,7 +67,7 @@ void SpriteManager::CreateRootSignature() {
 	HRESULT hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob,
 		&errorBlob);
 	if (FAILED(hr)) {
-		Log(static_cast<char*>(errorBlob->GetBufferPointer()));
+		Console::Print(static_cast<char*>(errorBlob->GetBufferPointer()));
 		assert(false);
 	}
 	// バイナリを元に生成
@@ -75,7 +75,7 @@ void SpriteManager::CreateRootSignature() {
 		IID_PPV_ARGS(&rootSignature_));
 	assert(SUCCEEDED(hr));
 
-	Log("Complete Create Sprite RootSignature.\n");
+	Console::Print("Complete Create Sprite RootSignature.\n");
 }
 
 void SpriteManager::CreateGraphicsPipeline() {

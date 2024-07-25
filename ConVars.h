@@ -17,7 +17,7 @@ public:
 	void AddConVar(ConVar* conVar);
 	ConVar* GetConVar(const std::string& name);
 
-	std::vector<ConVar*> GetAllConVars() const;
+	std::unordered_map<std::string, ConVar*> GetAllConVars() const;
 
 private:
 	std::unordered_map<std::string, ConVar*> conVars_;

@@ -16,12 +16,7 @@ ConVar* ConVars::GetConVar(const std::string& name) {
 	return nullptr;
 }
 
-std::vector<ConVar*> ConVars::GetAllConVars() const {
-	std::vector<ConVar*> allConVars;
-	allConVars.reserve(conVars_.size());
-	for (const auto& val : conVars_ | std::views::values) {
-		allConVars.push_back(val);
-	}
-	return allConVars;
+std::unordered_map<std::string, ConVar*> ConVars::GetAllConVars() const {
+	return conVars_;
 }
 

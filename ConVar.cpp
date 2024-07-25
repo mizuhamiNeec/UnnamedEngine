@@ -40,3 +40,27 @@ Vec3 ConVar::GetVec3() const {
 	assert(0 && "私、Vec3じゃないです");
 	return Vec3::Zero();
 }
+
+void ConVar::SetValue(int value) {
+	if (type_ == ConVarType::INT) {
+		value_ = value;
+	} else {
+		assert(0 && "私、intじゃないです");
+	}
+}
+
+void ConVar::SetValue(float value) {
+	if (type_ == ConVarType::FLOAT) {
+		value_ = value;
+	} else {
+		assert(0 && "私、floatじゃないです");
+	}
+}
+
+void ConVar::SetValue(Vec3 value) {
+	if (type_ == ConVarType::VEC3) {
+		value_ = value;
+	} else {
+		assert(0 && "私、Vec3じゃないです");
+	}
+}
