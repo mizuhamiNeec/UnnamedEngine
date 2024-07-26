@@ -96,9 +96,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 			Console::Print("PressKey `");
 		}
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 		imGuiManager.NewFrame();
-	#endif
+#endif
 
 		// ゲームシーンの更新
 		gameScene.Update();
@@ -106,7 +106,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 		console.Update();
 
 		if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f,0.0f});
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
 
 			ImGuiWindowFlags windowFlags =
 				ImGuiWindowFlags_NoBackground |
@@ -115,7 +115,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 				ImGuiWindowFlags_NoMove |
 				ImGuiWindowFlags_NoSavedSettings;
 
-			ImVec2 windowPos = ImVec2(0.0f, 16.0f);
+			ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
 			ImVec2 windowSize = ImVec2(1080.0f, 80.0f);
 
 			windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
@@ -161,7 +161,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 		}
 
 		if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f,0.0f});
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
 
 			ImGuiWindowFlags windowFlags =
 				ImGuiWindowFlags_NoBackground |
@@ -170,7 +170,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 				ImGuiWindowFlags_NoMove |
 				ImGuiWindowFlags_NoSavedSettings;
 
-			ImVec2 windowPos = ImVec2(0.0f, 2);
+			ImVec2 windowPos = ImVec2(0.0f, 128.0f);
 			ImVec2 windowSize = ImVec2(1080.0f, 80.0f);
 
 			windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
@@ -187,7 +187,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 
 			float outlineSize = 1.0f;
 
-			std::string text = std::format("{:.0f} fps", ImGui::GetIO().Framerate);
+			std::string text = std::format("{:.2f} fps", ImGui::GetIO().Framerate);
 
 			ImU32 textColor = IM_COL32(255, 0, 0, 255);
 			ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
@@ -212,9 +212,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 		// ゲームシーンのレンダリング
 		gameScene.Render();
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 		imGuiManager.EndFrame();
-	#endif
+#endif
 
 		// レンダリングの後処理
 		renderer->PostRender();

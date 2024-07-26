@@ -1,5 +1,6 @@
 #include "Console.h"
 
+#include <format>
 #include <sstream>
 
 #include "ConVar.h"
@@ -11,16 +12,40 @@
 
 #include "imgui/imgui.h"
 #include "Source/Engine/Utils/ClientProperties.h"
-#include <format>
+#include <cstring>
 
-int ConsoleCallback(const ImGuiInputTextCallbackData* data) {
+int ConsoleCallback(ImGuiInputTextCallbackData* data) {
 	switch (data->EventFlag) {
 	case ImGuiInputTextFlags_CallbackCompletion:
 		Console::Print("Completion", kConsoleWarning);
 		break;
 
 	case ImGuiInputTextFlags_CallbackHistory:
-		Console::Print("History", kConsoleError);
+	{
+		const int prev_history_index = historyIndex;
+		if (data->EventKey == ImGuiKey_UpArrow) {
+			if (historyIndex > 0) {
+				historyIndex--;
+			}
+		} else if (data->EventKey == ImGuiKey_DownArrow) {
+			if (historyIndex < static_cast<int>(history.size()) - 1) {
+				historyIndex++;
+			} else {
+				historyIndex = static_cast<int>(history.size());  // 履歴が空の場合はサイズと一致させる
+			}
+		}
+		if (prev_history_index != historyIndex) {
+			data->DeleteChars(0, data->BufTextLen);
+			if (historyIndex < static_cast<int>(history.size())) {
+				data->InsertChars(0, history[historyIndex].c_str());
+			} else {
+				data->InsertChars(0, "");  // 履歴が空の場合は空文字列を挿入
+			}
+		}
+	}
+	break;
+
+	case ImGuiInputTextFlags_CallbackEdit:
 		break;
 
 	case ImGuiInputTextFlags_CallbackResize:
@@ -39,14 +64,18 @@ void Console::Update() {
 		return;
 	}
 
-	bool open = ImGui::Begin("Console", &bShowConsole, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking);
+	ImGuiWindowFlags consoleWindowFlags =
+		ImGuiWindowFlags_NoScrollbar |
+		ImGuiWindowFlags_NoBringToFrontOnFocus |
+		ImGuiWindowFlags_NoDocking;
 
-	// 閉じるボタンを表示
-	ImVec2 windowSize = ImGui::GetWindowSize();
-	ImVec2 closeButtonPos = ImVec2(windowSize.x - 20, 5);
-	if (ImGui::CloseButton(ImGui::GetID("##closeButton"), closeButtonPos)) {
-		bShowConsole = false; // ボタンがクリックされたらウィンドウを閉じる
+	if (bShowPopup) {
+		consoleWindowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 	}
+
+	ImGui::SetNextWindowSizeConstraints({ 256.0f,256.0f }, { 8192.0f,8192.0f });
+
+	bool open = ImGui::Begin("Console", &bShowConsole, consoleWindowFlags);
 
 	if (open) {
 		ImVec2 size = ImGui::GetContentRegionAvail();
@@ -55,7 +84,7 @@ void Console::Update() {
 		ImGui::Spacing();
 
 		if (ImGui::BeginChild("##scrollbox", size, true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
-			for (const ConsoleText& consoleText : history) {
+			for (const ConsoleText& consoleText : consoleTexts) {
 				ImGui::PushStyleColor(ImGuiCol_Text, consoleText.color);
 				ImGui::Selectable((consoleText.text).c_str());
 				ImGui::PopStyleColor();
@@ -74,9 +103,9 @@ void Console::Update() {
 			}
 
 			ScrollToBottom();
-
-			ImGui::EndChild();
 		}
+
+		ImGui::EndChild();
 
 		ImGui::Spacing();
 
@@ -85,33 +114,46 @@ void Console::Update() {
 
 		ImGui::PushItemWidth(size.x);
 
-		static char str[kInputBufferSize] = {0};
-
 		ImGuiInputTextFlags inputTextFlags =
 			ImGuiInputTextFlags_EnterReturnsTrue |
+			ImGuiInputTextFlags_EscapeClearsAll |
 			ImGuiInputTextFlags_CallbackAlways |
 			ImGuiInputTextFlags_CallbackCharFilter |
 			ImGuiInputTextFlags_CallbackCompletion |
+			ImGuiInputTextFlags_CallbackEdit |
 			ImGuiInputTextFlags_CallbackHistory;
 
 		if (ImGui::InputText("##input", str, IM_ARRAYSIZE(str), inputTextFlags, reinterpret_cast<ImGuiInputTextCallback>(ConsoleCallback))) {
 			ImGui::SetKeyboardFocusHere(-1);
-
 			SubmitCommand(str);
+			if (!std::string(str).empty()) {
+				history.emplace_back(str);
+				historyIndex = static_cast<int>(history.size());
+			}
 			memset(str, 0, sizeof str);
+		}
+
+		if (ImGui::IsItemActive()) {
+			bShowPopup = true;
+		} else {
+			bShowPopup = false;
 		}
 
 		ImGui::SameLine();
 
 		if (ImGui::Button(" Submit ")) {
 			SubmitCommand(str);
+			if (!std::string(str).empty()) {
+				history.emplace_back(str);
+				historyIndex = static_cast<int>(history.size());
+			}
 			memset(str, 0, sizeof str);
 		}
 	}
 	ImGui::End();
 
-	if (history.size() >= kConsoleMaxLineCount) {
-		history.erase(history.begin());
+	if (consoleTexts.size() >= kConsoleMaxLineCount) {
+		consoleTexts.erase(consoleTexts.begin());
 	}
 }
 
@@ -119,11 +161,11 @@ void Console::UpdateRepeatCount(const std::string& message, const ImVec4 color) 
 	repeatCounts.back()++;
 
 	if (repeatCounts.back() >= kConsoleRepeatError) {
-		history.back() = {std::format("{} [x{}]", message, repeatCounts.back()), kConsoleError};
+		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleError };
 	} else if (repeatCounts.back() >= kConsoleRepeatWarning) {
-		history.back() = {std::format("{} [x{}]", message, repeatCounts.back()), kConsoleWarning};
+		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleWarning };
 	} else {
-		history.back() = {std::format("{} [x{}]", message, repeatCounts.back()), color};
+		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), color };
 	}
 }
 
@@ -132,12 +174,12 @@ void Console::Print(const std::string& message, const ImVec4 color) {
 		return;
 	}
 
-	if (!history.empty() && history.back().text.find(message) == 0) {
+	if (!consoleTexts.empty() && consoleTexts.back().text.find(message) == 0) {
 		// 前のメッセージと同じ場合、カウントを増加させる
 		UpdateRepeatCount(message, color);
 	} else {
 		// 前のメッセージと異なる場合、新しいメッセージを追加
-		history.push_back({message, color});
+		consoleTexts.push_back({ message, color });
 		repeatCounts.push_back(1);
 		OutputDebugString(ConvertString(message + "\n").c_str());
 	}
@@ -145,7 +187,7 @@ void Console::Print(const std::string& message, const ImVec4 color) {
 	wishScrollToBottom = true;
 }
 
-// ログに出力
+// ログファイルにに出力
 void Console::OutputLog(std::string filepath, std::string log) {
 	filepath;
 	log;
@@ -174,7 +216,13 @@ void Console::SubmitCommand(const std::string& command) {
 	AddHistory(trimmedCommand);
 
 	if (ConVars::GetInstance().GetAllConVars().contains(tokens[0])) {
-		ConVars::GetInstance().GetConVar(tokens[0])->SetValue(std::stoi(tokens[1]));
+		if (tokens.size() < 2) {
+			Print(ConVars::GetInstance().GetConVar(tokens[0])->GetDescription());
+		}
+
+		for (int i = 1; i < tokens.size(); ++i) {
+			ConVars::GetInstance().GetConVar(tokens[0])->SetValue(std::stoi(tokens[i]));
+		}
 	} else {
 		Print(std::format("Unknown command: {}", trimmedCommand));
 	}
@@ -182,12 +230,49 @@ void Console::SubmitCommand(const std::string& command) {
 	repeatCounts.push_back(1);
 	OutputDebugString(ConvertString(command + "\n").c_str());
 
-
 	wishScrollToBottom = true;
 }
 
 void Console::AddHistory(const std::string& command) {
-	history.push_back({"> " + command,ImVec4(0.8f,1.0f,1.0f,1.0f)});
+	consoleTexts.push_back({ "> " + command,ImVec4(0.8f,1.0f,1.0f,1.0f) });
+}
+
+void Console::ShowPopup() {
+	ImVec2 windowPos = ImGui::GetWindowPos();
+	ImVec2 windowSize = ImGui::GetWindowSize();
+	ImVec2 inputTextRectMin = ImGui::GetItemRectMin();
+	ImVec2 inputTextRectMax = ImGui::GetItemRectMax();
+
+	ImGuiWindowFlags popupFlags =
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_HorizontalScrollbar |
+		ImGuiWindowFlags_NoSavedSettings |
+		ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+	// 見た目が悪いので角を丸めない
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+	// テキストボックスの上に配置
+	ImGui::SetNextWindowPos(ImVec2(inputTextRectMin.x, windowPos.y + windowSize.y));
+	// テキストボックスの幅に設定
+	ImGui::SetNextWindowSize(ImVec2(inputTextRectMax.x - inputTextRectMin.x, ImGui::GetTextLineHeightWithSpacing() * kConsoleSuggestLineCount));
+
+	if (ImGui::Begin("history_popup", nullptr, popupFlags)) {
+		ImGui::PushAllowKeyboardFocus(false);
+
+		for (auto h : history) {
+			ImGui::Selectable(h.c_str());
+		}
+
+		ImGui::SetScrollHereY(1.0f);
+
+		ImGui::PopAllowKeyboardFocus();
+	}
+
+	ImGui::End();
+
+	ImGui::PopStyleVar();
 }
 
 std::string Console::TrimSpaces(const std::string& string) {
