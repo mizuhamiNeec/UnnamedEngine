@@ -7,7 +7,6 @@
 #include "../Renderer/D3D12.h"
 #include "../Utils/ClientProperties.h"
 #include "../Window/Window.h"
-
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx12.h"
 #include "imgui/imgui_impl_win32.h"
@@ -23,13 +22,14 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window) {
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 
 	auto& style = ImGui::GetStyle();
-	style.WindowRounding = 12;
+	style.WindowRounding = 4;
 	style.FrameRounding = 2;
 
 	ImFontConfig imFontConfig;
@@ -39,7 +39,6 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window) {
 	imFontConfig.SizePixels = 18;
 
 	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\JetBrainsMono.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesDefault());
-
 	imFontConfig.MergeMode = true;
 	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese());
 
@@ -83,19 +82,14 @@ void ImGuiManager::EndFrame() const {
 	//実際のcommandListのImGuiの描画コマンドを積む
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), renderer_->GetCommandList());
 
-	// ImGuiのエンドフレーム
 	ImGui::EndFrame();
 }
 
 void ImGuiManager::Shutdown() {
 	ImGui::DestroyPlatformWindows();
-
-	// ImGuiの終了処理。詳細はさして重要ではないので解説は省略する。
-	// こういうもんである。初期化と逆順に行う
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
-
 	srvHeap_.Reset();
 }
 
