@@ -236,7 +236,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 	result = xAudio2->CreateMasteringVoice(&masterVoice);
 
 	// 音声読み込み
-	SoundData soundData1 = SoundLoadWave("./Resources/Sounds/ニビイロドロウレ_Ayase.wav");
+	SoundData soundData1 = SoundLoadWave("./Resources/Sounds/mokugyo.wav");
 
 	// 音声再生
 	SoundPlayWave(xAudio2.Get(), soundData1);
