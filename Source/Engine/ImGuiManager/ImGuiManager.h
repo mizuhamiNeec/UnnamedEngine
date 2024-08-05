@@ -1,8 +1,12 @@
 #pragma once
 
-#ifdef _DEBUG
 #include "../Renderer/D3D12.h"
+
+#ifdef _DEBUG
 #include "imgui/imgui.h"
+#endif
+
+#include "../../../Console.h"
 
 struct ColorTransition {
 	ImVec4 targetColor;
@@ -25,6 +29,7 @@ private:
 	ComPtr<ID3D12DescriptorHeap> srvHeap_;
 };
 
+#ifdef _DEBUG
 inline void TextOutlined(ImDrawList* drawList, const ImVec2& pos, const char* text, ImU32 textColor, ImU32 outlineColor, float outlineSize = 1.0f) {
 	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y), outlineColor, text);
 	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y), outlineColor, text);
@@ -36,5 +41,4 @@ inline void TextOutlined(ImDrawList* drawList, const ImVec2& pos, const char* te
 	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y + outlineSize), outlineColor, text);
 	drawList->AddText(pos, textColor, text);
 }
-
 #endif

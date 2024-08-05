@@ -1,9 +1,6 @@
 #pragma once
 #include <string>
 #include <unordered_map>
-#include <variant>
-
-#include "Source/Engine/Lib/Math/Vector/Vec3.h"
 
 class ConVar;
 

@@ -1,8 +1,5 @@
 #include "ConVars.h"
 
-#include <cassert>
-#include <ranges>
-
 #include "ConVar.h"
 
 void ConVars::AddConVar(ConVar* conVar) {

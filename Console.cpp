@@ -1,19 +1,21 @@
 #include "Console.h"
 
+#include <cstring>
 #include <format>
 #include <sstream>
 
 #include "ConVar.h"
 #include "ConVars.h"
-#include "imgui/imgui_internal.h"
 #include "Source/Engine/Utils/ConvertString.h"
 
 #ifdef _DEBUG
-
 #include "imgui/imgui.h"
-#include "Source/Engine/Utils/ClientProperties.h"
-#include <cstring>
+#include "imgui/imgui_internal.h"
+#endif
 
+#include "Source/Engine/Utils/ClientProperties.h"
+
+#ifdef _DEBUG
 int ConsoleCallback(ImGuiInputTextCallbackData* data) {
 	switch (data->EventFlag) {
 	case ImGuiInputTextFlags_CallbackCompletion:
@@ -55,11 +57,10 @@ int ConsoleCallback(ImGuiInputTextCallbackData* data) {
 	}
 	return 0;
 }
-
-void Console::Init() {
-}
+#endif	
 
 void Console::Update() {
+#ifdef _DEBUG
 	if (!bShowConsole) {
 		return;
 	}
@@ -123,14 +124,14 @@ void Console::Update() {
 			ImGuiInputTextFlags_CallbackEdit |
 			ImGuiInputTextFlags_CallbackHistory;
 
-		if (ImGui::InputText("##input", str, IM_ARRAYSIZE(str), inputTextFlags, reinterpret_cast<ImGuiInputTextCallback>(ConsoleCallback))) {
+		if (ImGui::InputText("##input", inputText, IM_ARRAYSIZE(inputText), inputTextFlags, reinterpret_cast<ImGuiInputTextCallback>(ConsoleCallback))) {
 			ImGui::SetKeyboardFocusHere(-1);
-			SubmitCommand(str);
-			if (!std::string(str).empty()) {
-				history.emplace_back(str);
+			SubmitCommand(inputText);
+			if (!std::string(inputText).empty()) {
+				history.emplace_back(inputText);
 				historyIndex = static_cast<int>(history.size());
 			}
-			memset(str, 0, sizeof str);
+			memset(inputText, 0, sizeof inputText);
 		}
 
 		if (ImGui::IsItemActive()) {
@@ -142,12 +143,12 @@ void Console::Update() {
 		ImGui::SameLine();
 
 		if (ImGui::Button(" Submit ")) {
-			SubmitCommand(str);
-			if (!std::string(str).empty()) {
-				history.emplace_back(str);
+			SubmitCommand(inputText);
+			if (!std::string(inputText).empty()) {
+				history.emplace_back(inputText);
 				historyIndex = static_cast<int>(history.size());
 			}
-			memset(str, 0, sizeof str);
+			memset(inputText, 0, sizeof inputText);
 		}
 	}
 	ImGui::End();
@@ -155,9 +156,12 @@ void Console::Update() {
 	if (consoleTexts.size() >= kConsoleMaxLineCount) {
 		consoleTexts.erase(consoleTexts.begin());
 	}
+#endif
 }
 
 void Console::UpdateRepeatCount(const std::string& message, const ImVec4 color) {
+	message; color;
+#ifdef _DEBUG
 	repeatCounts.back()++;
 
 	if (repeatCounts.back() >= kConsoleRepeatError) {
@@ -166,10 +170,13 @@ void Console::UpdateRepeatCount(const std::string& message, const ImVec4 color) 
 		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleWarning };
 	} else {
 		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), color };
-	}
+}
+#endif
 }
 
 void Console::Print(const std::string& message, const ImVec4 color) {
+	message; color;
+#ifdef _DEBUG
 	if (message.empty()) {
 		return;
 	}
@@ -181,30 +188,31 @@ void Console::Print(const std::string& message, const ImVec4 color) {
 		// 前のメッセージと異なる場合、新しいメッセージを追加
 		consoleTexts.push_back({ message, color });
 		repeatCounts.push_back(1);
-		OutputDebugString(ConvertString(message + "\n").c_str());
+		OutputDebugString(ConvertString(message).c_str());
 	}
 
 	wishScrollToBottom = true;
-}
-
-// ログファイルにに出力
-void Console::OutputLog(std::string filepath, std::string log) {
-	filepath;
-	log;
+#endif
 }
 
 void Console::ToggleConsole() {
+#ifdef _DEBUG
 	bShowConsole = !bShowConsole;
+#endif
 }
 
 void Console::ScrollToBottom() {
+#ifdef _DEBUG
 	if (wishScrollToBottom) {
 		ImGui::SetScrollHereY(1.0f);
 		wishScrollToBottom = false;
 	}
+#endif
 }
 
 void Console::SubmitCommand(const std::string& command) {
+	command;
+#ifdef _DEBUG
 	std::string trimmedCommand = TrimSpaces(command);
 
 	if (trimmedCommand.empty()) {
@@ -227,17 +235,19 @@ void Console::SubmitCommand(const std::string& command) {
 		Print(std::format("Unknown command: {}", trimmedCommand));
 	}
 
-	repeatCounts.push_back(1);
-	OutputDebugString(ConvertString(command + "\n").c_str());
-
 	wishScrollToBottom = true;
+#endif
 }
 
 void Console::AddHistory(const std::string& command) {
+	command;
+#ifdef _DEBUG
 	consoleTexts.push_back({ "> " + command,ImVec4(0.8f,1.0f,1.0f,1.0f) });
+#endif	
 }
 
 void Console::ShowPopup() {
+#ifdef _DEBUG
 	ImVec2 windowPos = ImGui::GetWindowPos();
 	ImVec2 windowSize = ImGui::GetWindowSize();
 	ImVec2 inputTextRectMin = ImGui::GetItemRectMin();
@@ -273,6 +283,7 @@ void Console::ShowPopup() {
 	ImGui::End();
 
 	ImGui::PopStyleVar();
+#endif
 }
 
 std::string Console::TrimSpaces(const std::string& string) {
@@ -297,5 +308,3 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 
 	return tokens;
 }
-
-#endif
