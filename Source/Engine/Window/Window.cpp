@@ -2,14 +2,19 @@
 
 #include <dwmapi.h>
 #include <uxtheme.h>
+
+#ifdef _DEBUG
 #include <imgui/imgui.h>
+#endif
 
 #include "../Renderer/DirectX12.h"
 #include "../../../Console.h"
 
 #pragma comment(lib, "winmm.lib")
 
+#ifdef _DEBUG
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#endif	
 
 Window::Window() {
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -25,9 +30,11 @@ Window::~Window() {
 }
 
 LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
+#ifdef _DEBUG
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
 		return true;
 	}
+#endif
 
 	// ------------------------------------------------------------------------
 	// どちらかのキーを押すと時が止まる Alt || F10キー対策
@@ -75,7 +82,7 @@ void Window::CreateMainWindow(const WindowConfig& windowConfig) {
 		return;
 	}
 
-	RECT wrc = {0, 0, static_cast<LONG>(windowConfig_.clientWidth), static_cast<LONG>(windowConfig_.clientHeight)};
+	RECT wrc = { 0, 0, static_cast<LONG>(windowConfig_.clientWidth), static_cast<LONG>(windowConfig_.clientHeight) };
 
 	AdjustWindowRectEx(&wrc, windowConfig_.dwStyle, false, windowConfig_.dwExStyle);
 

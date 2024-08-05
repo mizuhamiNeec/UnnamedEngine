@@ -1,31 +1,143 @@
 #include "GameScene.h"
 
 #include <format>
+#include <fstream>
 
+#ifdef _DEBUG
+#include "imgui/imgui.h"
+#endif
+
+#include "../../Console.h"
+#include "../../ConVars.h"
+#include "../../ConVar.h"
+#include "../../RootSignatureManager.h"
 #include "../Engine/Lib/Math/MathLib.h"
 #include "../Engine/Lib/Structs/Structs.h"
 #include "../Engine/Renderer/PipelineState.h"
 #include "../Engine/Renderer/RootSignature.h"
 #include "../Engine/Renderer/VertexBuffer.h"
 #include "../Engine/TextureManager/TextureManager.h"
-#include "imgui/imgui.h"
-#include "../../RootSignatureManager.h"
-#include "../../Console.h"
+#include "../Engine/ImGuiManager/ImGuiManager.h"
 
 VertexBuffer* vertexBuffer;
 ConstantBuffer* transformation;
-ConstantBuffer* materialResource;
+
 Material* material;
+ConstantBuffer* materialResource;
+
+ConstantBuffer* directionalLightResource;
+DirectionalLight* directionalLight;
 
 RootSignature* rootSignature;
 RootSignatureManager* rootSignatureManager;
 PipelineState* pipelineState;
+
+ModelData loadedModelData;
 
 std::shared_ptr<Texture> texture;
 std::shared_ptr<Texture> texture2;
 
 D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU;
 D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU;
+
+float fov = 90.0f;
+
+MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
+	MaterialData materialData; // 構築するMaterialData
+	std::string line; // ファイルから読んだ1行を格納するもの
+	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
+	assert(file.is_open()); // とりあえず開けなかったら止める
+
+	while (std::getline(file, line)) {
+		std::string identifier;
+		std::istringstream s(line);
+		s >> identifier;
+
+		// identifierに応じた処理
+		if (identifier == "map_Kd") {
+			std::string textureFilename;
+			s >> textureFilename;
+			// 連結してファイルパスにする
+			materialData.textureFilePath = directoryPath + "/" + textureFilename;
+		}
+	}
+
+	return materialData;
+}
+
+ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename) {
+	ModelData modelData; // 構築するModelData
+	std::vector<Vec4> positions; // 位置
+	std::vector<Vec3> normals; // 法線
+	std::vector<Vec2> texcoords; // テクスチャの座標
+	std::string line;
+
+	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
+	assert(file.is_open());
+
+	while (std::getline(file, line)) {
+		std::string identifier;
+		std::istringstream s(line);
+		s >> identifier; // 先頭の識別子を読む
+
+		if (identifier == "v") {
+			Vec4 position;
+			s >> position.x >> position.y >> position.z;
+			position.w = 1.0f;
+			positions.push_back(position);
+		} else if (identifier == "vt") {
+			Vec2 texcoord;
+			s >> texcoord.x >> texcoord.y;
+			texcoord.y = 1.0f - texcoord.y;
+			texcoords.push_back(texcoord);
+		} else if (identifier == "vn") {
+			Vec3 normal;
+			s >> normal.x >> normal.y >> normal.z;
+			normals.push_back(normal);
+		} else if (identifier == "f") {
+			Vertex triangle[3];
+
+			// 面は三角形限定。その他は未対応
+			for (int32_t faceVertex = 0; faceVertex < 3; ++faceVertex) {
+				std::string vertexDefinition;
+				s >> vertexDefinition;
+				// 頂点の要素へのIndexは[位置/UV/法線] で格納されているので、分解してIndexを取得する
+				std::istringstream v(vertexDefinition);
+				std::string index;
+				uint32_t elementIndices[3] = { 0, 0, 0 };
+				int element = 0;
+
+				while (std::getline(v, index, '/') && element < 3) {
+					if (!index.empty()) {
+						elementIndices[element] = std::stoi(index);
+					}
+					++element;
+				}
+
+				// 要素へのIndexから、実際の要素の値を取得して、頂点を構築する
+				Vec4 position = positions[elementIndices[0] - 1];
+				Vec2 texcoord = elementIndices[1] ? texcoords[elementIndices[1] - 1] : Vec2{ 0.0f, 0.0f };
+				Vec3 normal = elementIndices[2] ? normals[elementIndices[2] - 1] : Vec3{ 0.0f, 0.0f, 0.0f };
+
+				position.x *= -1.0f;
+				normal.x *= -1.0f;
+				triangle[faceVertex] = { position, texcoord, normal };
+			}
+			// 頂点を逆順で登録することで、周り順を逆にする
+			modelData.vertices.push_back(triangle[2]);
+			modelData.vertices.push_back(triangle[1]);
+			modelData.vertices.push_back(triangle[0]);
+		} else if (identifier == "mtllib") {
+			// materialTemplateLibraryファイルの名前を取得する
+			std::string materialFilename;
+			s >> materialFilename;
+			// 基本的にobjファイルと同一階層にmtlは存在させるので、ディレクトリ名とファイル名を渡す
+			modelData.material = LoadMaterialTemplateFile(directoryPath, materialFilename);
+		}
+	}
+
+	return modelData;
+}
 
 void GameScene::Init(D3D12* renderer, Window* window) {
 	renderer_ = renderer;
@@ -44,28 +156,42 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	};
 
 #pragma region 頂点バッファ
-	Vertex vertices[3] = {};
-	// 左下
-	vertices[0].position = { -0.5f,-0.5f,0.0f ,1.0f };
-	vertices[0].normal = { 0.0f,0.0f,-1.0f };
-	vertices[0].texcoord = { 0.0f,1.0f };
+	// モデルの読み込み
+	loadedModelData = LoadObjFile("Resources/Models", "suzanne.obj");
+	// 頂点リソースを作る
+	vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * loadedModelData.vertices.size(), sizeof(Vertex), loadedModelData.vertices.data());
 
-	// 上
-	vertices[1].position = { 0.0f,0.5f,0.0f ,1.0f };
-	vertices[1].normal = { 0.0f,0.0f,-1.0f };
-	vertices[1].texcoord = { 0.5f,0.0f };
-
-	// 右下
-	vertices[2].position = { 0.5f,-0.5f,0.0f ,1.0f };
-	vertices[2].normal = { 0.0f,0.0f,-1.0f };
-	vertices[2].texcoord = { 1.0f,1.0f };
-
-	size_t vertexStride = sizeof(Vertex);
-	vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * 3, vertexStride, vertices);
+	Console::Print(std::format("Vertex Count: {}", loadedModelData.vertices.size()));
+	for (const auto& vertex : loadedModelData.vertices) {
+		Console::Print(std::format("Position: ({}, {}, {})", vertex.position.x, vertex.position.y, vertex.position.z));
+	}
 
 	if (vertexBuffer) {
 		Console::Print("頂点バッファの生成に成功.\n");
 	}
+
+	//Vertex vertices[3] = {};
+	//// 左下
+	//vertices[0].position = { -0.5f,-0.5f,0.0f ,1.0f };
+	//vertices[0].normal = { 0.0f,0.0f,-1.0f };
+	//vertices[0].texcoord = { 0.0f,1.0f };
+
+	//// 上
+	//vertices[1].position = { 0.0f,0.5f,0.0f ,1.0f };
+	//vertices[1].normal = { 0.0f,0.0f,-1.0f };
+	//vertices[1].texcoord = { 0.5f,0.0f };
+
+	//// 右下
+	//vertices[2].position = { 0.5f,-0.5f,0.0f ,1.0f };
+	//vertices[2].normal = { 0.0f,0.0f,-1.0f };
+	//vertices[2].texcoord = { 1.0f,1.0f };
+
+	//size_t vertexStride = sizeof(Vertex);
+	//vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * 3, vertexStride, vertices);
+
+	//if (vertexBuffer) {
+	//	Console::Print("頂点バッファの生成に成功.\n");
+	//}
 #pragma endregion
 
 #pragma region 定数バッファ
@@ -76,8 +202,17 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	// マテリアルにデータを書き込む
 	material = materialResource->GetPtr<Material>(); // 書き込むためのアドレスを取得
 	*material = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
-	material->enableLighting = false;
+	material->enableLighting = true;
 	material->uvTransform = Mat4::Identity();
+
+	// ---------------------------------------------------------------------------
+	// Directional Light
+	// ---------------------------------------------------------------------------
+	directionalLightResource = new ConstantBuffer(renderer_->GetDevice(), sizeof(DirectionalLight));
+	directionalLight = directionalLightResource->GetPtr<DirectionalLight>();
+	directionalLight->color = { 1.0f,1.0f,1.0f,1.0f };
+	directionalLight->direction = Vec3(-1.0f, -1.0f, 1.0f).Normalize();
+	directionalLight->intensity = 1.0f;
 #pragma endregion
 
 #pragma region ルートシグネチャ
@@ -145,15 +280,13 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	texture2 = TextureManager::GetInstance().GetTexture(renderer_->GetDevice(), L"./Resources/Textures/uvChecker.png");
 }
 
-int iterator = 0;
-
 void GameScene::Update() {
 	transform.rotate.y += 0.003f;
 	Mat4 worldMat = Mat4::Affine(transform.scale, transform.rotate, transform.translate);
 	Mat4 cameraMat = Mat4::Affine(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
 	Mat4 viewMat = cameraMat.Inverse();
 	Mat4 projectionMat = Mat4::PerspectiveFovMat(
-		90.0f * deg2Rad, // FieldOfView 90 degree!!
+		fov * deg2Rad, // FieldOfView 90 degree!!
 		static_cast<float>(window_->GetWindowConfig().clientWidth) / static_cast<float>(window_->GetWindowConfig().clientHeight),
 		0.1f,
 		100.0f
@@ -164,7 +297,79 @@ void GameScene::Update() {
 	ptr->WVP = worldViewProjMat;
 	ptr->World = worldMat;
 
-	ImGui::ShowDemoWindow();
+#ifdef _DEBUG
+	ImGui::Begin("Window");
+
+	if (ImGui::CollapsingHeader("Camera")) {
+		ImGui::DragFloat3("cam##pos", &cameraTransform.translate.x, 0.01f);
+		ImGui::DragFloat3("cam##rot", &cameraTransform.rotate.x, 0.01f);
+		ImGui::DragFloat("cam##Fov", &fov, 1.0f);
+	}
+
+	if (ImGui::CollapsingHeader("transform")) {
+		ImGui::DragFloat3("trans##pos", &transform.translate.x, 0.01f);
+		ImGui::DragFloat3("trans##rot", &transform.rotate.x, 0.01f);
+		ImGui::DragFloat3("trans##scale", &transform.scale.x, 0.01f);
+	}
+
+	ImGui::End();
+
+	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
+
+		ImGuiWindowFlags windowFlags =
+			ImGuiWindowFlags_NoBackground |
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoSavedSettings;
+
+		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
+		ImVec2 windowSize = ImVec2(1080.0f, 80.0f);
+
+		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
+		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
+
+		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+
+		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
+
+		ImVec2 textPos = ImGui::GetCursorScreenPos();
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		float outlineSize = 1.0f;
+
+		std::string text = std::format(
+			"name: {}\n"
+			"pos : {:.2f} {:.2f} {:.2f}\n"
+			"rot : {:.2f} {:.2f} {:.2f}\n"
+			"vel : {:.2f}\n",
+			"unnamed",
+			cameraTransform.translate.x, cameraTransform.translate.y, cameraTransform.translate.z,
+			cameraTransform.rotate.x * rad2Deg, cameraTransform.rotate.y * rad2Deg, cameraTransform.rotate.z * rad2Deg,
+			0.0f
+		);
+
+		ImU32 textColor = IM_COL32(255, 255, 255, 255);
+		ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
+
+		TextOutlined(
+			drawList,
+			textPos,
+			text.c_str(),
+			textColor,
+			outlineColor,
+			outlineSize
+		);
+
+
+		ImGui::PopStyleVar();
+
+		ImGui::End();
+	}
+#endif
 }
 
 void GameScene::Render() {
@@ -185,8 +390,9 @@ void GameScene::Render() {
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetAddress());
 	commandList->SetGraphicsRootConstantBufferView(1, transformation->GetAddress());
 	commandList->SetGraphicsRootDescriptorTable(2, texture2->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart()); // テクスチャのSRVを設定
+	commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetAddress());
 
-	commandList->DrawInstanced(3, 1, 0, 0);
+	commandList->DrawInstanced(static_cast<UINT>(loadedModelData.vertices.size()), 1, 0, 0);
 }
 
 void GameScene::Shutdown() {
@@ -196,6 +402,7 @@ void GameScene::Shutdown() {
 	delete vertexBuffer;
 	delete transformation;
 	delete materialResource;
+	delete directionalLightResource;
 	delete rootSignature;
 	delete rootSignatureManager;
 	delete pipelineState;

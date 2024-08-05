@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <d3d12.h>
+#include <string>
+#include <vector>
 
 #include "../Math/Matrix/Mat4.h"
 #include "../Math/Vector/Vec2.h"
@@ -30,4 +32,19 @@ struct Material {
 struct TransformationMatrix {
 	Mat4 WVP; // ワールドビュープロジェクション
 	Mat4 World; // ワールド
+};
+
+struct MaterialData {
+	std::string textureFilePath;
+};
+
+struct ModelData {
+	std::vector<Vertex> vertices;
+	MaterialData material;
+};
+
+struct DirectionalLight {
+	Vec4 color; //!< ライトの色
+	Vec3 direction; //!< ライトの向き
+	float intensity; //!< 輝度
 };

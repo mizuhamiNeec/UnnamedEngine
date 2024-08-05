@@ -5,6 +5,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include "Engine/ImGuiManager/ImGuiManager.h"
+#include "imgui/imgui_internal.h"
 #endif
 
 #include "../Console.h"
@@ -171,11 +172,12 @@ void SoundPlayWave(IXAudio2* xAudio2, const SoundData& soundData) {
 // エントリーポイント
 //-----------------------------------------------------------------------------
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
-	Console::Print(
-		ConvertString(
-			std::format(L"Launch Args: {}\n", pCmdLine)
-		)
-	);
+	Console::Print(ConvertString(std::format(L"Launch Args: {}\n", pCmdLine)));
+
+	ConVar cl_showpos("cl_showpos", 1, "Draw current position at top of screen");
+	ConVar cl_showfps("cl_showfps", 1, "Draw fps meter (1 = fps)");
+
+	Console::SubmitCommand(ConvertString(pCmdLine));
 
 	D3DResourceLeakChecker leakChecker;
 
@@ -209,7 +211,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 	imGuiManager.Init(renderer.get(), window.get());
 
 	Console console;
-	console.Init();
 #endif
 
 #pragma region シーンの初期化
@@ -247,83 +248,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 
 		input->Update();
 
-		if (input->TriggerKey(DIK_0)) {
-			Console::Print("TriggerKey 0");
-		}
-
-		if (input->PushKey(DIK_0)) {
-			Console::Print("PressKey 0");
-		}
-
+		// コンソールの表示切り替え
 		if (input->TriggerKey(DIK_GRAVE)) {
 			Console::ToggleConsole();
-			Console::Print("PressKey `");
 		}
 
 	#ifdef _DEBUG
 		imGuiManager.NewFrame();
-	#endif
+		console.Update();
+#endif
 
 		// ゲームシーンの更新
 		gameScene.Update();
-
-		console.Update();
-
-		if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f,0.0f});
-
-			ImGuiWindowFlags windowFlags =
-				ImGuiWindowFlags_NoBackground |
-				ImGuiWindowFlags_NoTitleBar |
-				ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove |
-				ImGuiWindowFlags_NoSavedSettings;
-
-			ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
-			ImVec2 windowSize = ImVec2(1080.0f, 80.0f);
-
-			windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
-			windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
-
-			ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-			ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
-
-			ImGui::Begin("##cl_showpos", nullptr, windowFlags);
-
-			ImVec2 textPos = ImGui::GetCursorScreenPos();
-
-			ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-			float outlineSize = 1.0f;
-
-			std::string text = std::format(
-				"name: {}\n"
-				"pos : {:.2f} {:.2f} {:.2f}\n"
-				"rot : {:.2f} {:.2f} {:.2f}\n"
-				"vel : {:.2f}\n",
-				"unnamed",
-				0.0f, 0.0f, 0.0f,
-				0.0f, 0.0f, 0.0f,
-				0.0f
-			);
-
-			ImU32 textColor = IM_COL32(255, 255, 255, 255);
-			ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
-
-			TextOutlined(
-				drawList,
-				textPos,
-				text.c_str(),
-				textColor,
-				outlineColor,
-				outlineSize
-			);
-
-			ImGui::PopStyleVar();
-
-			ImGui::End();
-		}
-
+    
+#ifdef _DEBUG
 		if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f,0.0f});
 
@@ -369,6 +307,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 
 			ImGui::End();
 		}
+#endif
 
 		// レンダリングの前処理
 		renderer->PreRender();

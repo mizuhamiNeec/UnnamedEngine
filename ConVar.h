@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <variant>
 
 #include "ConVars.h"
 #include "Source/Engine/Lib/Math/Vector/Vec3.h"

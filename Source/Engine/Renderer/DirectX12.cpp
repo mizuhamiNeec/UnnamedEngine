@@ -1,5 +1,7 @@
 #include "DirectX12.h"
 
+#ifdef _DEBUG
+
 #include <cassert>
 #include <dxgidebug.h>
 #include <format>
@@ -10,100 +12,100 @@
 #include "../Utils/ConvertString.h"
 #include "../../../Console.h"
 
-ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename) {
-	ModelData modelData; // 構築するModelData
-	std::vector<Vec4> positions; // 位置
-	std::vector<Vec3> normals; // 法線
-	std::vector<Vec2> texcoords; // テクスチャの座標
-	std::string line;
+//ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename) {
+//	ModelData modelData; // 構築するModelData
+//	std::vector<Vec4> positions; // 位置
+//	std::vector<Vec3> normals; // 法線
+//	std::vector<Vec2> texcoords; // テクスチャの座標
+//	std::string line;
+//
+//	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
+//	assert(file.is_open());
+//
+//	while (std::getline(file, line)) {
+//		std::string identifier;
+//		std::istringstream s(line);
+//		s >> identifier; // 先頭の識別子を読む
+//
+//		if (identifier == "v") {
+//			Vec4 position;
+//			s >> position.x >> position.y >> position.z;
+//			position.w = 1.0f;
+//			positions.push_back(position);
+//		} else if (identifier == "vt") {
+//			Vec2 texcoord;
+//			s >> texcoord.x >> texcoord.y;
+//			texcoord.y = 1.0f - texcoord.y;
+//			texcoords.push_back(texcoord);
+//		} else if (identifier == "vn") {
+//			Vec3 normal;
+//			s >> normal.x >> normal.y >> normal.z;
+//			normals.push_back(normal);
+//		} else if (identifier == "f") {
+//			VertexData triangle[3];
+//
+//			// 面は三角形限定。その他は未対応
+//			for (int32_t faceVertex = 0; faceVertex < 3; ++faceVertex) {
+//				std::string vertexDefinition;
+//				s >> vertexDefinition;
+//				// 頂点の要素へのIndexは[位置/UV/法線] で格納されているので、分解してIndexを取得する
+//				std::istringstream v(vertexDefinition);
+//				uint32_t elementIndices[3];
+//				for (int32_t element = 0; element < 3; ++element) {
+//					std::string index;
+//					std::getline(v, index, '/'); // 区切りでインデックスを読んでいく
+//					elementIndices[element] = std::stoi(index);
+//				}
+//
+//				// 要素へのIndexから、実際の要素の値を取得して、頂点を構築する
+//				Vec4 position = positions[elementIndices[0] - 1];
+//				Vec2 texcoord = texcoords[elementIndices[1] - 1];
+//				Vec3 normal = normals[elementIndices[2] - 1];
+//				/*VertexData vertex = { position, texcoord, normal };
+//				modelData.vertices.push_back(vertex);*/
+//
+//				position.x *= -1.0f;
+//				normal.x *= -1.0f;
+//				triangle[faceVertex] = {position, texcoord, normal};
+//			}
+//			// 頂点を逆順で登録することで、周り順を逆にする
+//			modelData.vertices.push_back(triangle[2]);
+//			modelData.vertices.push_back(triangle[1]);
+//			modelData.vertices.push_back(triangle[0]);
+//		} else if (identifier == "mtllib") {
+//			// materialTemplateLibraryファイルの名前を取得する
+//			std::string materialFilename;
+//			s >> materialFilename;
+//			// 基本的にobjファイルと同一階層にmtlは存在させるので、ディレクトリ名とファイル名を渡す
+//			modelData.material = LoadMaterialTemplateFile(directoryPath, materialFilename);
+//		}
+//	}
+//
+//	return modelData;
+//}
 
-	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
-	assert(file.is_open());
-
-	while (std::getline(file, line)) {
-		std::string identifier;
-		std::istringstream s(line);
-		s >> identifier; // 先頭の識別子を読む
-
-		if (identifier == "v") {
-			Vec4 position;
-			s >> position.x >> position.y >> position.z;
-			position.w = 1.0f;
-			positions.push_back(position);
-		} else if (identifier == "vt") {
-			Vec2 texcoord;
-			s >> texcoord.x >> texcoord.y;
-			texcoord.y = 1.0f - texcoord.y;
-			texcoords.push_back(texcoord);
-		} else if (identifier == "vn") {
-			Vec3 normal;
-			s >> normal.x >> normal.y >> normal.z;
-			normals.push_back(normal);
-		} else if (identifier == "f") {
-			VertexData triangle[3];
-
-			// 面は三角形限定。その他は未対応
-			for (int32_t faceVertex = 0; faceVertex < 3; ++faceVertex) {
-				std::string vertexDefinition;
-				s >> vertexDefinition;
-				// 頂点の要素へのIndexは[位置/UV/法線] で格納されているので、分解してIndexを取得する
-				std::istringstream v(vertexDefinition);
-				uint32_t elementIndices[3];
-				for (int32_t element = 0; element < 3; ++element) {
-					std::string index;
-					std::getline(v, index, '/'); // 区切りでインデックスを読んでいく
-					elementIndices[element] = std::stoi(index);
-				}
-
-				// 要素へのIndexから、実際の要素の値を取得して、頂点を構築する
-				Vec4 position = positions[elementIndices[0] - 1];
-				Vec2 texcoord = texcoords[elementIndices[1] - 1];
-				Vec3 normal = normals[elementIndices[2] - 1];
-				/*VertexData vertex = { position, texcoord, normal };
-				modelData.vertices.push_back(vertex);*/
-
-				position.x *= -1.0f;
-				normal.x *= -1.0f;
-				triangle[faceVertex] = {position, texcoord, normal};
-			}
-			// 頂点を逆順で登録することで、周り順を逆にする
-			modelData.vertices.push_back(triangle[2]);
-			modelData.vertices.push_back(triangle[1]);
-			modelData.vertices.push_back(triangle[0]);
-		} else if (identifier == "mtllib") {
-			// materialTemplateLibraryファイルの名前を取得する
-			std::string materialFilename;
-			s >> materialFilename;
-			// 基本的にobjファイルと同一階層にmtlは存在させるので、ディレクトリ名とファイル名を渡す
-			modelData.material = LoadMaterialTemplateFile(directoryPath, materialFilename);
-		}
-	}
-
-	return modelData;
-}
-
-MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
-	MaterialData materialData; // 構築するMaterialData
-	std::string line; // ファイルから読んだ1行を格納するもの
-	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
-	assert(file.is_open()); // とりあえず開けなかったら止める
-
-	while (std::getline(file, line)) {
-		std::string identifier;
-		std::istringstream s(line);
-		s >> identifier;
-
-		// identifierに応じた処理
-		if (identifier == "map_Kd") {
-			std::string textureFilename;
-			s >> textureFilename;
-			// 連結してファイルパスにする
-			materialData.textureFilePath = directoryPath + "/" + textureFilename;
-		}
-	}
-
-	return materialData;
-}
+//MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
+//	MaterialData materialData; // 構築するMaterialData
+//	std::string line; // ファイルから読んだ1行を格納するもの
+//	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
+//	assert(file.is_open()); // とりあえず開けなかったら止める
+//
+//	while (std::getline(file, line)) {
+//		std::string identifier;
+//		std::istringstream s(line);
+//		s >> identifier;
+//
+//		// identifierに応じた処理
+//		if (identifier == "map_Kd") {
+//			std::string textureFilename;
+//			s >> textureFilename;
+//			// 連結してファイルパスにする
+//			materialData.textureFilePath = directoryPath + "/" + textureFilename;
+//		}
+//	}
+//
+//	return materialData;
+//}
 
 DirectX12::DirectX12() {
 }
@@ -315,8 +317,8 @@ void DirectX12::Init(Window* window) {
 	directionalLightResource_ = CreateBufferResource(device_.Get(), sizeof(DirectionalLight));
 	directionalLightData_ = nullptr;
 	directionalLightResource_->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData_));
-	directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
-	directionalLightData_->direction = {0.0f, 0.0f, 1.0f};
+	directionalLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	directionalLightData_->direction = { 0.0f, 0.0f, 1.0f };
 	directionalLightData_->intensity = 1.0f;
 
 	//// 球の描画
@@ -334,7 +336,7 @@ void DirectX12::Init(Window* window) {
 	materialDataMesh_ = nullptr;
 	// 書き込むためのアドレスを取得
 	materialResourceMesh_->Map(0, nullptr, reinterpret_cast<void**>(&materialDataMesh_));
-	*materialDataMesh_ = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
+	*materialDataMesh_ = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
 	materialDataMesh_->enableLighting = true;
 	materialDataMesh_->uvTransform = Mat4::Identity();
 
@@ -589,25 +591,25 @@ void DirectX12::Init(Window* window) {
 	vertexResourceSprite_->Map(0, nullptr, reinterpret_cast<void**>(&vertexDataSprite));
 
 	// 1枚目の三角形
-	vertexDataSprite[0].position = {0.0f, 360.0f, 0.0f, 1.0f}; // 左下
-	vertexDataSprite[0].texcoord = {0.0f, 1.0f};
-	vertexDataSprite[0].normal = {0.0f, 0.0f, -1.0f};
-	vertexDataSprite[1].position = {0.0f, 0.0f, 0.0f, 1.0f};
-	vertexDataSprite[1].texcoord = {0.0f, 0.0f};
-	vertexDataSprite[1].normal = {0.0f, 0.0f, -1.0f};
-	vertexDataSprite[2].position = {640.0f, 360.0f, 0.0f, 1.0f};
-	vertexDataSprite[2].texcoord = {1.0f, 1.0f};
-	vertexDataSprite[2].normal = {0.0f, 0.0f, -1.0f};
+	vertexDataSprite[0].position = { 0.0f, 360.0f, 0.0f, 1.0f }; // 左下
+	vertexDataSprite[0].texcoord = { 0.0f, 1.0f };
+	vertexDataSprite[0].normal = { 0.0f, 0.0f, -1.0f };
+	vertexDataSprite[1].position = { 0.0f, 0.0f, 0.0f, 1.0f };
+	vertexDataSprite[1].texcoord = { 0.0f, 0.0f };
+	vertexDataSprite[1].normal = { 0.0f, 0.0f, -1.0f };
+	vertexDataSprite[2].position = { 640.0f, 360.0f, 0.0f, 1.0f };
+	vertexDataSprite[2].texcoord = { 1.0f, 1.0f };
+	vertexDataSprite[2].normal = { 0.0f, 0.0f, -1.0f };
 	// 2枚目の三角形
-	vertexDataSprite[3].position = {0.0f, 0.0f, 0.0f, 1.0f}; // 左上
-	vertexDataSprite[3].texcoord = {0.0f, 0.0f};
-	vertexDataSprite[3].normal = {0.0f, 0.0f, -1.0f};
-	vertexDataSprite[4].position = {640.0f, 0.0f, 0.0f, 1.0f};
-	vertexDataSprite[4].texcoord = {1.0f, 0.0f};
-	vertexDataSprite[4].normal = {0.0f, 0.0f, -1.0f};
-	vertexDataSprite[5].position = {640.0f, 360.0f, 0.0f, 1.0f};
-	vertexDataSprite[5].texcoord = {1.0f, 1.0f};
-	vertexDataSprite[5].normal = {0.0f, 0.0f, -1.0f};
+	vertexDataSprite[3].position = { 0.0f, 0.0f, 0.0f, 1.0f }; // 左上
+	vertexDataSprite[3].texcoord = { 0.0f, 0.0f };
+	vertexDataSprite[3].normal = { 0.0f, 0.0f, -1.0f };
+	vertexDataSprite[4].position = { 640.0f, 0.0f, 0.0f, 1.0f };
+	vertexDataSprite[4].texcoord = { 1.0f, 0.0f };
+	vertexDataSprite[4].normal = { 0.0f, 0.0f, -1.0f };
+	vertexDataSprite[5].position = { 640.0f, 360.0f, 0.0f, 1.0f };
+	vertexDataSprite[5].texcoord = { 1.0f, 1.0f };
+	vertexDataSprite[5].normal = { 0.0f, 0.0f, -1.0f };
 
 	// インデックスリソース
 	indexResourceSprite_ = CreateBufferResource(device_.Get(), sizeof(uint32_t) * 6);
@@ -639,7 +641,7 @@ void DirectX12::Init(Window* window) {
 	materialDataSprite_ = nullptr;
 	// 書き込むためのアドレスを取得
 	materialResourceSprite_->Map(0, nullptr, reinterpret_cast<void**>(&materialDataSprite_));
-	*materialDataSprite_ = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
+	*materialDataSprite_ = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
 	// スプライトはライティングしない
 	materialDataSprite_->enableLighting = false;
 	materialDataSprite_->uvTransform = Mat4::Identity();
@@ -689,11 +691,11 @@ void DirectX12::PreRender() {
 	// 指定した深度で画面全体をクリアする
 	commandList_->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	// 指定した色で画面全体をクリアする
-	float clearColor[] = {0.89f, 0.5f, 0.03f, 1.0f}; // RGBAの順
+	float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f }; // RGBAの順
 	commandList_->ClearRenderTargetView(rtvHandles_[backBufferIndex], clearColor, 0, nullptr);
 
 	// 描画用のDescriptorHeapの設定
-	ComPtr<ID3D12DescriptorHeap> descriptorHeaps[] = {srvDescriptorHeap_.Get()};
+	ComPtr<ID3D12DescriptorHeap> descriptorHeaps[] = { srvDescriptorHeap_.Get() };
 	commandList_->SetDescriptorHeaps(1, descriptorHeaps->GetAddressOf());
 
 	/* コマンドを積む */
@@ -757,7 +759,7 @@ void DirectX12::PreRender() {
 
 	/* コマンドをキックする */
 	// GPUにコマンドリストの実行を行わせる
-	ID3D12CommandList* commandLists[] = {commandList_.Get()};
+	ID3D12CommandList* commandLists[] = { commandList_.Get() };
 	commandQueue_->ExecuteCommandLists(1, commandLists);
 	// GPUとOSに画面の交換を行うよう通知する
 	swapChain_->Present(1, 0);
@@ -949,7 +951,7 @@ void DirectX12::CreateDevice() {
 	D3D_FEATURE_LEVEL featureLevels[] = {
 		D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0
 	};
-	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0"};
+	const char* featureLevelStrings[] = { "12.2", "12.1", "12.0" };
 
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
@@ -982,7 +984,7 @@ void DirectX12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
+		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(denyIds);
 		filter.DenyList.pIDList = denyIds;
@@ -1268,3 +1270,5 @@ D3D12_GPU_DESCRIPTOR_HANDLE DirectX12::GetGPUDescriptorHandle(ID3D12DescriptorHe
 bool* DirectX12::GetUseMonsterBall() {
 	return &useMonsterBall;
 }
+
+#endif

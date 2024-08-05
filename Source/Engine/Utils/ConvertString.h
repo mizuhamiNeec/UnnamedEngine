@@ -23,3 +23,11 @@ inline std::string ConvertString(const std::wstring& string) {
 		nullptr);
 	return result;
 }
+
+inline std::string ConvertString(const PWSTR string) {
+	// WideCharToMultiByteを使用して、ワイド文字列をマルチバイト文字列に変換
+	int size_needed = WideCharToMultiByte(CP_UTF8, 0, string, -1, nullptr, 0, nullptr, nullptr);
+	std::string ret(size_needed, 0);
+	WideCharToMultiByte(CP_UTF8, 0, string, -1, &ret[0], size_needed, nullptr, nullptr);
+	return ret;
+}
