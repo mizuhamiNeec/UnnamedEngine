@@ -5,14 +5,14 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include "Engine/ImGuiManager/ImGuiManager.h"
-#include "imgui/imgui_internal.h"
+
 #endif
 
 #include "../Console.h"
 #include "../ConVar.h"
 #include "../Input.h"
 #include "../Sprite.h"
-#include "../SpriteManager.h"
+#include "../SpriteCommon.h"
 #include "Engine/Renderer/D3D12.h"
 #include "Engine/TextureManager/TextureManager.h"
 #include "Engine/Utils/ClientProperties.h"
@@ -24,6 +24,7 @@
 
 #pragma comment(lib, "xaudio2.lib")
 #include <fstream>
+#include "../Engine.h"
 
 // チャンクヘッダ
 struct ChunkHeader {
@@ -171,60 +172,19 @@ void SoundPlayWave(IXAudio2* xAudio2, const SoundData& soundData) {
 //-----------------------------------------------------------------------------
 // エントリーポイント
 //-----------------------------------------------------------------------------
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nShowCmd) {
 	Console::Print(ConvertString(std::format(L"Launch Args: {}\n", pCmdLine)));
 
 	ConVar cl_showpos("cl_showpos", 1, "Draw current position at top of screen");
 	ConVar cl_showfps("cl_showfps", 1, "Draw fps meter (1 = fps)");
+	ConVar cl_nshowcmd("cl_nshowcmd", nShowCmd, "");
 
 	Console::SubmitCommand(ConvertString(pCmdLine));
 
 	D3DResourceLeakChecker leakChecker;
 
-	std::unique_ptr<Window> window = std::make_unique<Window>();
-	WindowConfig windowConfig = {
-		kWindowTitle,
-		kClientWidth,
-		kClientHeight,
-		kWindowClassName,
-		WS_OVERLAPPEDWINDOW,
-		WS_EX_WINDOWEDGE,
-		nCmdShow
-	};
-
-	window->CreateMainWindow(windowConfig);
-
-	std::unique_ptr<D3D12> renderer = std::make_unique<D3D12>();
-	renderer->Init(window.get());
-
-	std::unique_ptr<SpriteManager> spriteManager = std::make_unique<SpriteManager>();
-	spriteManager->Init(renderer.get());
-
-	// ---------------------------------------------------------------------------
-	// 入力
-	// ---------------------------------------------------------------------------
-	std::unique_ptr<Input> input = std::make_unique<Input>();
-	input->Init(window.get());
-
-#ifdef _DEBUG
-	ImGuiManager imGuiManager;
-	imGuiManager.Init(renderer.get(), window.get());
-
-	Console console;
-#endif
-
-#pragma region シーンの初期化
-
-	GameScene gameScene;
-	gameScene.Init(renderer.get(), window.get());
-
-	Sprite* sprite = new Sprite();
-	sprite->Init();
-
-#pragma endregion
-
-	ConVar cl_showpos("cl_showpos", 0, "Draw current position at top of screen");
-	ConVar cl_showfps("cl_showfps", 1, "Draw fps meter (1 = fps)");
+	std::unique_ptr<Engine> engine = std::make_unique<Engine>();
+	engine->Run();
 
 	ComPtr<IXAudio2> xAudio2;
 	IXAudio2MasteringVoice* masterVoice;
@@ -240,98 +200,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nCmdShow) {
 
 	// 音声再生
 	SoundPlayWave(xAudio2.Get(), soundData1);
-
-	while (true) {
-		if (window->ProcessMessage()) {
-			break; // ゲームループを抜ける
-		}
-
-		input->Update();
-
-		// コンソールの表示切り替え
-		if (input->TriggerKey(DIK_GRAVE)) {
-			Console::ToggleConsole();
-		}
-
-	#ifdef _DEBUG
-		imGuiManager.NewFrame();
-		console.Update();
-#endif
-
-		// ゲームシーンの更新
-		gameScene.Update();
-    
-#ifdef _DEBUG
-		if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f,0.0f});
-
-			ImGuiWindowFlags windowFlags =
-				ImGuiWindowFlags_NoBackground |
-				ImGuiWindowFlags_NoTitleBar |
-				ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove |
-				ImGuiWindowFlags_NoSavedSettings;
-
-			ImVec2 windowPos = ImVec2(0.0f, 128.0f);
-			ImVec2 windowSize = ImVec2(1080.0f, 80.0f);
-
-			windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
-			windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
-
-			ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-			ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
-
-			ImGui::Begin("##cl_showfps", nullptr, windowFlags);
-
-			ImVec2 textPos = ImGui::GetCursorScreenPos();
-
-			ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-			float outlineSize = 1.0f;
-
-			std::string text = std::format("{:.2f} fps", ImGui::GetIO().Framerate);
-
-			ImU32 textColor = IM_COL32(255, 0, 0, 255);
-			ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
-
-			TextOutlined(
-				drawList,
-				textPos,
-				text.c_str(),
-				textColor,
-				outlineColor,
-				outlineSize
-			);
-
-			ImGui::PopStyleVar();
-
-			ImGui::End();
-		}
-#endif
-
-		// レンダリングの前処理
-		renderer->PreRender();
-
-		// ゲームシーンのレンダリング
-		gameScene.Render();
-
-	#ifdef _DEBUG
-		imGuiManager.EndFrame();
-	#endif
-
-		// レンダリングの後処理
-		renderer->PostRender();
-	}
-
-	gameScene.Shutdown();
-
-#ifdef _DEBUG
-	imGuiManager.Shutdown();
-#endif
-
-	delete sprite;
-
-	TextureManager::GetInstance().Shutdown();
 
 	return 0;
 }

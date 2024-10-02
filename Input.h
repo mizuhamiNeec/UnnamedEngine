@@ -13,9 +13,9 @@ public:
 	void Update();
 
 	// キーの押下をチェック
-	bool PushKey(BYTE keyNumber);
+	bool PushKey(BYTE keyNumber) const;
 	// キーのトリガーをチェック
-	bool TriggerKey(BYTE keyNumber);
+	bool TriggerKey(BYTE keyNumber) const;
 
 public:
 	// 全キーの状態

@@ -19,6 +19,8 @@
 #include "../Engine/TextureManager/TextureManager.h"
 #include "../Engine/ImGuiManager/ImGuiManager.h"
 
+// TODO : メンバに移動しよう
+
 VertexBuffer* vertexBuffer;
 ConstantBuffer* transformation;
 
@@ -40,7 +42,7 @@ std::shared_ptr<Texture> texture2;
 D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU;
 D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU;
 
-float fov = 90.0f;
+float fov = 90.0f; // deg
 
 MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
 	MaterialData materialData; // 構築するMaterialData
@@ -162,9 +164,9 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * loadedModelData.vertices.size(), sizeof(Vertex), loadedModelData.vertices.data());
 
 	Console::Print(std::format("Vertex Count: {}", loadedModelData.vertices.size()));
-	for (const auto& vertex : loadedModelData.vertices) {
+	/*for (const auto& vertex : loadedModelData.vertices) {
 		Console::Print(std::format("Position: ({}, {}, {})", vertex.position.x, vertex.position.y, vertex.position.z));
-	}
+	}*/
 
 	if (vertexBuffer) {
 		Console::Print("頂点バッファの生成に成功.\n");
@@ -226,23 +228,23 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 		.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND // Offsetを自動計算
 	};
 
-	std::vector< D3D12_ROOT_PARAMETER> spriteRootParameters(4);
-	spriteRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う。b0のbと一致する
-	spriteRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
-	spriteRootParameters[0].Descriptor.ShaderRegister = 0; // レジスタ番号0とバインド。b0の0と一致する。もしb11と紐づけたいなら11となる
+	std::vector< D3D12_ROOT_PARAMETER> modelRootParameters(4);
+	modelRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う。b0のbと一致する
+	modelRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	modelRootParameters[0].Descriptor.ShaderRegister = 0; // レジスタ番号0とバインド。b0の0と一致する。もしb11と紐づけたいなら11となる
 
-	spriteRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	spriteRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-	spriteRootParameters[1].Descriptor.ShaderRegister = 0;
+	modelRootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	modelRootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	modelRootParameters[1].Descriptor.ShaderRegister = 0;
 
-	spriteRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // DescriptorTableを使う
-	spriteRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
-	spriteRootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange; // Tableの中身の配列を指定
-	spriteRootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange);
+	modelRootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // DescriptorTableを使う
+	modelRootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	modelRootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange; // Tableの中身の配列を指定
+	modelRootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange);
 
-	spriteRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
-	spriteRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
-	spriteRootParameters[3].Descriptor.ShaderRegister = 1; // レジスタ番号1を使う
+	modelRootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
+	modelRootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	modelRootParameters[3].Descriptor.ShaderRegister = 1; // レジスタ番号1を使う
 
 	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {
 		{
@@ -257,19 +259,22 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 		}
 	};
 
-	rootSignatureManager->CreateRootSignature("Sprite", spriteRootParameters, staticSamplers, _countof(staticSamplers));
+	rootSignatureManager->CreateRootSignature("Object3d", modelRootParameters, staticSamplers, _countof(staticSamplers));
 
-	if (rootSignature) {
+	if (rootSignatureManager->Get("Object3d")) {
 		Console::Print("ルートシグネチャの生成に成功.\n");
 	}
 #pragma endregion
 
 #pragma region パイプラインステート
+	// 3D
 	pipelineState = new PipelineState();
 	pipelineState->SetInputLayout(Vertex::inputLayout);
-	pipelineState->SetRootSignature(rootSignatureManager->Get("Sprite"));
+	pipelineState->SetRootSignature(rootSignatureManager->Get("Object3d"));
 	pipelineState->SetVS(L"./Resources/Shaders/Object3d.VS.hlsl");
 	pipelineState->SetPS(L"./Resources/Shaders/Object3d.PS.hlsl");
+
+
 	pipelineState->Create(renderer->GetDevice());
 	if (pipelineState) {
 		Console::Print("パイプラインステートの生成に成功.\n");
@@ -314,6 +319,7 @@ void GameScene::Update() {
 
 	ImGui::End();
 
+#pragma region cl_showpos
 	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
 
@@ -369,6 +375,11 @@ void GameScene::Update() {
 
 		ImGui::End();
 	}
+#pragma endregion
+
+	ImGui::Begin("RenderMode");
+
+	ImGui::End();
 #endif
 }
 
@@ -381,7 +392,7 @@ void GameScene::Render() {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { texture2->GetSRVHeap() };
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Sprite"));
+	commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Object3d"));
 	commandList->SetPipelineState(pipelineState->Get());
 
 	commandList->IASetVertexBuffers(0, 1, &vbView);

@@ -416,11 +416,25 @@ void D3D12::SetViewportAndScissor() {
 	scissorRect_.bottom = static_cast<LONG>(windowConfig_.clientHeight);
 }
 
+void D3D12::HandleDeviceLost() {
+	device_.Reset();
+
+	// デバイスと関連リソースの再作成
+	CreateDevice();
+}
+
 void D3D12::WaitPreviousFrame() {
 	fenceValue_++; // Fenceの値を更新
 
 	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
-	commandQueue_->Signal(fence_.Get(), fenceValue_);
+	HRESULT hr = commandQueue_->Signal(fence_.Get(), fenceValue_);
+
+	if (FAILED(hr)) {
+		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+			// デバイスが消えた!!?
+			HandleDeviceLost();
+		}
+	}
 
 	// Fenceの値が指定したSignal値にたどり着いているか確認する
 	// GetCompletedValueの初期値はFence作成時に渡した初期値

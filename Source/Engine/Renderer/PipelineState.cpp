@@ -9,7 +9,6 @@ PipelineState::PipelineState() {
 	D3D12_BLEND_DESC blendDesc = {};
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	D3D12_RASTERIZER_DESC rasterizerDesc = {};
 	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK; // 裏面(時計回り)を表示しない
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // 三角形の中を塗りつぶす
 
@@ -137,6 +136,10 @@ void PipelineState::Create(ID3D12Device* device) {
 	if (SUCCEEDED(hr)) {
 		Console::Print("Complete Create PipelineState.\n");
 	}
+}
+
+void PipelineState::SetFillMode(const D3D12_FILL_MODE fillMode) {
+	rasterizerDesc.FillMode = fillMode;
 }
 
 ID3D12PipelineState* PipelineState::Get() const {

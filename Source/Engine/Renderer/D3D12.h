@@ -75,6 +75,7 @@ private: //　メンバ変数
 
 	void SetViewportAndScissor();
 
+	void HandleDeviceLost();
 	void WaitPreviousFrame();
 
 	void InitializeFixFPS();

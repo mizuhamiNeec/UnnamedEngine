@@ -18,9 +18,13 @@ public:
 	static IDxcBlob* CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler);
 	void Create(ID3D12Device* device);
 
+	void SetFillMode(D3D12_FILL_MODE fillMode);
+
 	ID3D12PipelineState* Get() const;
 
 private:
+	D3D12_RASTERIZER_DESC rasterizerDesc = {};
+
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC desc_ = {};
 	ComPtr<ID3D12PipelineState> pipelineState = nullptr;
 	ComPtr<IDxcBlob> vsBlob = nullptr;
