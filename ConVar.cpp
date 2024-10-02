@@ -38,7 +38,7 @@ Vec3 ConVar::GetVec3() const {
 		return std::get<Vec3>(value_);
 	}
 	assert(0 && "私、Vec3じゃないです");
-	return Vec3::Zero();
+	return Vec3::zero;
 }
 
 void ConVar::SetValue(int value) {

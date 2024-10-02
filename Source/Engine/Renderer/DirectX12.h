@@ -8,11 +8,10 @@
 #include <wrl/client.h>
 
 #include "Renderer.h"
+#include "../Lib/Transform/Transform.h"
 #include "../Lib/Math/Vector/Vec4.h"
 #include "../Lib/Math/Vector/Vec2.h"
-#include "../Lib/Math/Vector/Vec3.h"
 #include "../Lib/Math/Matrix/Mat4.h"
-#include "../Lib/Transform/Transform.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")

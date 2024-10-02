@@ -6,6 +6,7 @@
 
 #include "../Utils/ConvertString.h"
 #include "../../../../../Console.h"
+#include "../MathLib.h"
 
 Mat4 Mat4::operator+(const Mat4& rhs) const {
 	return {
@@ -217,7 +218,7 @@ Mat4 Mat4::Scale(const Vec3& scale) {
 }
 
 Vec3 Mat4::Transform(const Vec3& vector, const Mat4& matrix) {
-	Vec3 result; // w=1がデカルト座標系であるので(x,y,z,1)のベクトルとしてmatrixとの積をとる
+	Vec3 result = Vec3::zero; // w=1がデカルト座標系であるので(x,y,z,1)のベクトルとしてmatrixとの積をとる
 	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][0];
 	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][1];
 	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + 1.0f * matrix.m[3][2];
@@ -307,6 +308,31 @@ Mat4 Mat4::MakeOrthographicMat(const float left, const float top, const float ri
 	result.m[3][0] = (left + right) / (left - right);
 	result.m[3][1] = (top + bottom) / (bottom - top);
 	result.m[3][2] = nearClip / (nearClip - farClip);
+
+	return result;
+}
+
+Mat4 Mat4::FishEyeProjection(const float fov, const float aspect, const float nearClip, const float farClip) {
+	Mat4 result = Identity();
+
+	// 度からラジアンに変換
+	float fovRad = fov * (Math::pi / 180.0f);
+	// 視野角に基づいてスケールを計算
+	float scale = 1.0f / std::tan(fovRad / 2.0f);
+
+	// 行列の初期化
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			result.m[i][j] = 0.0f;
+		}
+	}
+
+	// 投影行列の設定
+	result.m[0][0] = scale / aspect;   // x軸スケール
+	result.m[1][1] = scale;            // y軸スケール
+	result.m[2][2] = -(farClip + nearClip) / (farClip - nearClip);  // z軸スケール
+	result.m[2][3] = -1.0f;            // w軸スケール（透視投影）
+	result.m[3][2] = -(2.0f * farClip * nearClip) / (farClip - nearClip); // z軸変換
 
 	return result;
 }

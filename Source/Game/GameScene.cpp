@@ -213,7 +213,8 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	directionalLightResource = new ConstantBuffer(renderer_->GetDevice(), sizeof(DirectionalLight));
 	directionalLight = directionalLightResource->GetPtr<DirectionalLight>();
 	directionalLight->color = { 1.0f,1.0f,1.0f,1.0f };
-	directionalLight->direction = Vec3(-1.0f, -1.0f, 1.0f).Normalize();
+	const Vec3 dir = Vec3(-1.0f, -1.0f, 1.0f);
+	directionalLight->direction = dir.Normalized();
 	directionalLight->intensity = 1.0f;
 #pragma endregion
 
@@ -291,10 +292,10 @@ void GameScene::Update() {
 	Mat4 cameraMat = Mat4::Affine(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
 	Mat4 viewMat = cameraMat.Inverse();
 	Mat4 projectionMat = Mat4::PerspectiveFovMat(
-		fov * deg2Rad, // FieldOfView 90 degree!!
+		fov * Math::deg2Rad, // FieldOfView 90 degree!!
 		static_cast<float>(window_->GetWindowConfig().clientWidth) / static_cast<float>(window_->GetWindowConfig().clientHeight),
-		0.1f,
-		100.0f
+		0.01f,
+		1000.0f
 	);
 	Mat4 worldViewProjMat = worldMat * viewMat * projectionMat;
 
@@ -354,7 +355,7 @@ void GameScene::Update() {
 			"vel : {:.2f}\n",
 			"unnamed",
 			cameraTransform.translate.x, cameraTransform.translate.y, cameraTransform.translate.z,
-			cameraTransform.rotate.x * rad2Deg, cameraTransform.rotate.y * rad2Deg, cameraTransform.rotate.z * rad2Deg,
+			cameraTransform.rotate.x * Math::rad2Deg, cameraTransform.rotate.y * Math::rad2Deg, cameraTransform.rotate.z * Math::rad2Deg,
 			0.0f
 		);
 

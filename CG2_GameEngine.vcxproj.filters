@@ -100,15 +100,6 @@
     <ClCompile Include="Source\Engine\Lib\Transform\Transform.cpp">
       <Filter>Source\Engine\Lib\Math\Transform</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp">
-      <Filter>Source\Engine\Lib\Math\Vec3</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec4.cpp">
-      <Filter>Source\Engine\Lib\Math\Vec4</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp">
-      <Filter>Source\Engine\Lib\Math\Vec2</Filter>
-    </ClCompile>
     <ClCompile Include="Source\main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -185,6 +176,12 @@
     </ClCompile>
     <ClCompile Include="SpriteCommon.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp">
+      <Filter>Source\Engine\Lib\Math\Vec2</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp">
+      <Filter>Source\Engine\Lib\Math\Vec3</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Renderer\Renderer.h">

@@ -112,6 +112,8 @@
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="RootSignatureManager.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp" />
@@ -131,9 +133,6 @@
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp" />
     <ClCompile Include="Source\Engine\Lib\Transform\Transform.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec4.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Random\Random.cpp" />
     <ClCompile Include="Source\Engine\Window\Window.cpp" />
     <ClCompile Include="Source\Engine\TextureManager\TextureManager.cpp" />

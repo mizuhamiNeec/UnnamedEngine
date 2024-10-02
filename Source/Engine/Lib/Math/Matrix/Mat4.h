@@ -27,8 +27,8 @@ struct Mat4 final {
 	static Mat4 Affine(const Vec3& scale, const Vec3& rotate, const Vec3& translate);
 
 	static Mat4 PerspectiveFovMat(float fovY, float aspectRatio, float nearClip, float farClip);
-	static Mat4 MakeOrthographicMat(float left, float top, float right, float bottom,
-		float nearClip, float farClip);
+	static Mat4 MakeOrthographicMat(float left, float top, float right, float bottom, float nearClip, float farClip);
+	static Mat4 FishEyeProjection(float fov, float aspect, float nearClip, float farClip);
 	static Mat4 ViewportMat(float left, float top, float width, float height,
 		float minDepth, float maxDepth);
 };

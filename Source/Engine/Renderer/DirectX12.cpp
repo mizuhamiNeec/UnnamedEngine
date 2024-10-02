@@ -8,9 +8,11 @@
 #include <fstream>
 #include <sstream>
 #include <imgui/imgui_impl_dx12.h>
+
+#include "../../../Console.h"
 #include "../Utils/ClientProperties.h"
 #include "../Utils/ConvertString.h"
-#include "../../../Console.h"
+#include "../Lib/Math/Matrix/Mat4.h"
 
 //ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename) {
 //	ModelData modelData; // 構築するModelData
@@ -106,9 +108,6 @@
 //
 //	return materialData;
 //}
-
-DirectX12::DirectX12() {
-}
 
 DirectX12::~DirectX12() = default;
 
