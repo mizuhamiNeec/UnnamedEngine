@@ -23,5 +23,14 @@ private:
 enum class ConVarType {
 	INT,
 	FLOAT,
-	VEC3
+	VEC3,
 };
+
+inline const char* ToString(const ConVarType e) {
+	switch (e) {
+	case ConVarType::INT: return "INT";
+	case ConVarType::FLOAT: return "FLOAT";
+	case ConVarType::VEC3: return "VEC3";
+	}
+	return "unknown";
+}

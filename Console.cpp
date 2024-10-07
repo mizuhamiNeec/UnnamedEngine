@@ -159,8 +159,7 @@ void Console::Update() {
 #endif
 }
 
-void Console::UpdateRepeatCount(const std::string& message, const ImVec4 color) {
-	message; color;
+void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[maybe_unused]] const ImVec4 color) {
 #ifdef _DEBUG
 	repeatCounts.back()++;
 
@@ -170,12 +169,11 @@ void Console::UpdateRepeatCount(const std::string& message, const ImVec4 color) 
 		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleWarning };
 	} else {
 		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), color };
-}
+	}
 #endif
 }
 
-void Console::Print(const std::string& message, const ImVec4 color) {
-	message; color;
+void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]] const ImVec4 color) {
 #ifdef _DEBUG
 	if (message.empty()) {
 		return;
@@ -210,8 +208,7 @@ void Console::ScrollToBottom() {
 #endif
 }
 
-void Console::SubmitCommand(const std::string& command) {
-	command;
+void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
 	std::string trimmedCommand = TrimSpaces(command);
 
@@ -224,23 +221,32 @@ void Console::SubmitCommand(const std::string& command) {
 	AddHistory(trimmedCommand);
 
 	if (ConVars::GetInstance().GetAllConVars().contains(tokens[0])) {
-		if (tokens.size() < 2) {
-			Print(ConVars::GetInstance().GetConVar(tokens[0])->GetDescription());
-		}
+		ConVar* conVar = ConVars::GetInstance().GetConVar(tokens[0]);
 
-		for (int i = 1; i < tokens.size(); ++i) {
-			ConVars::GetInstance().GetConVar(tokens[0])->SetValue(std::stoi(tokens[i]));
+		if (tokens.size() < 2) {
+			Print(conVar->GetDescription());
 		}
-	} else {
-		Print(std::format("Unknown command: {}", trimmedCommand));
 	}
+
+	/*{
+		if (ConVars::GetInstance().GetAllConVars().contains(tokens[0])) {
+			if (tokens.size() < 2) {
+				Print(ConVars::GetInstance().GetConVar(tokens[0])->GetDescription());
+			}
+
+			for (int i = 1; i < tokens.size(); ++i) {
+				ConVars::GetInstance().GetConVar(tokens[0])->SetValue(std::stoi(tokens[i]));
+			}
+		} else {
+			Print(std::format("Unknown command: {}", trimmedCommand));
+		}
+	}*/
 
 	wishScrollToBottom = true;
 #endif
 }
 
-void Console::AddHistory(const std::string& command) {
-	command;
+void Console::AddHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
 	consoleTexts.push_back({ "> " + command,ImVec4(0.8f,1.0f,1.0f,1.0f) });
 #endif	

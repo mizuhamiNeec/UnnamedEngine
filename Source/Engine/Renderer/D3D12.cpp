@@ -13,6 +13,8 @@
 
 #include "../Utils/ClientProperties.h"
 #include "../../../Console.h"
+#include "../../../ConVars.h"
+#include "../../../ConVar.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -452,8 +454,8 @@ void D3D12::InitializeFixFPS() {
 }
 
 void D3D12::UpdateFixFPS() {
-	// 1/60秒ピッタリの時間
-	constexpr std::chrono::microseconds kMinTime(static_cast<uint64_t>(1000000.0f / kMaxFPS));
+	// フレームレートピッタリの時間
+	const std::chrono::microseconds kMinTime(static_cast<uint64_t>(1000000.0f / ConVars::GetInstance().GetConVar("cl_maxfps")->GetFloat()));
 
 	// 現在時間を取得する
 	auto now = std::chrono::steady_clock::now();
@@ -463,8 +465,8 @@ void D3D12::UpdateFixFPS() {
 	// 1/60秒 (よりわずかに短い時間) 経っていない場合
 	if (elapsed < kMinTime) {
 		// 1/60秒経過するまで微小なスリープを繰り返す
-		auto wait_until = reference_ + kMinTime;
-		while (std::chrono::steady_clock::now() < wait_until) {
+		auto waitUntil = reference_ + kMinTime;
+		while (std::chrono::steady_clock::now() < waitUntil) {
 			std::this_thread::yield(); // CPUに他のスレッドの実行を許可
 		}
 	}

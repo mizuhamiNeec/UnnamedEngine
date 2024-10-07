@@ -5,19 +5,14 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include "Engine/ImGuiManager/ImGuiManager.h"
-
 #endif
 
 #include "../Console.h"
 #include "../ConVar.h"
 #include "../Input.h"
-#include "../Sprite.h"
-#include "../SpriteCommon.h"
 #include "Engine/Renderer/D3D12.h"
 #include "Engine/TextureManager/TextureManager.h"
-#include "Engine/Utils/ClientProperties.h"
 #include "Engine/Utils/ConvertString.h"
-#include "Game/GameScene.h"
 
 // audio
 #include <xaudio2.h>
@@ -178,8 +173,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nShowCmd) {
 	ConVar cl_showpos("cl_showpos", 1, "Draw current position at top of screen");
 	ConVar cl_showfps("cl_showfps", 1, "Draw fps meter (1 = fps)");
 	ConVar cl_nshowcmd("cl_nshowcmd", nShowCmd, "");
-
-	Console::SubmitCommand(ConvertString(pCmdLine));
+	ConVar cl_maxfps("cl_maxfps", 60.0f, "最大フレームレート");
 
 	D3DResourceLeakChecker leakChecker;
 
@@ -191,6 +185,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nShowCmd) {
 
 	// XAudioエンジンのインスタンスを生成
 	HRESULT result = XAudio2Create(&xAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
+	if (FAILED(result)) {
+		assert(0 && "なんかだめだったみたい");
+	}
 
 	// マスターボイスを生成
 	result = xAudio2->CreateMasteringVoice(&masterVoice);

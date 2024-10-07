@@ -3,7 +3,6 @@
 #include <variant>
 
 #include "ConVars.h"
-#include "Source/Engine/Lib/Math/Mathlib.h"
 #include "Source/Engine/Lib/Math/Vector/Vec3.h"
 
 class ConVar {
