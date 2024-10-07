@@ -208,6 +208,52 @@ void Console::ScrollToBottom() {
 #endif
 }
 
+// int 型かどうかの判定
+bool IsInteger(const std::string& str) {
+	try {
+		size_t pos;
+		(void)std::stoi(str, &pos);
+		// 変換後に余分な文字列がないか確認
+		return pos == str.length();
+	} catch ([[maybe_unused]] const std::invalid_argument& e) {
+		return false;
+	} catch ([[maybe_unused]] const std::out_of_range& e) {
+		return false;
+	}
+}
+
+// float 型かどうかの判定
+bool IsFloat(const std::string& str) {
+	try {
+		size_t pos;
+		(void)std::stof(str, &pos);
+		// 変換後に余分な文字列がないか確認
+		return pos == str.length();
+	} catch ([[maybe_unused]] const std::invalid_argument& e) {
+		return false;
+	} catch ([[maybe_unused]] const std::out_of_range& e) {
+		return false;
+	}
+}
+
+// Vec3 かどうかの判定
+bool IsVec3(const std::vector<std::string>& tokens, int index) {
+	if (index + 2 >= tokens.size()) {
+		return false;
+	}
+
+	// 3つ連続するトークンがすべてfloatとして解釈できるか
+	return IsFloat(tokens[index]) && IsFloat(tokens[index + 1]) && IsFloat(tokens[index + 2]);
+}
+
+// Vec3 の解析
+Vec3 ParseVec3(const std::vector<std::string>& tokens, int index) {
+	float x = std::stof(tokens[index]);
+	float y = std::stof(tokens[index + 1]);
+	float z = std::stof(tokens[index + 2]);
+	return Vec3(x, y, z);
+}
+
 void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
 	std::string trimmedCommand = TrimSpaces(command);
@@ -224,8 +270,41 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 		ConVar* conVar = ConVars::GetInstance().GetConVar(tokens[0]);
 
 		if (tokens.size() < 2) {
-			Print(conVar->GetDescription());
+			std::string str = std::format("[{}]", ToString(conVar->GetType()));
+			std::string description = conVar->GetDescription();
+
+			switch (conVar->GetType()) {
+			case ConVarType::INT:
+				Print(description + " " + str, kConsoleInt);
+				break;
+			case ConVarType::FLOAT:
+				Print(description + " " + str, kConsoleFloat);
+				break;
+			case ConVarType::VEC3:
+				Print(description + " " + str, kConsoleVec3);
+				break;
+			}
+			return;
 		}
+
+		for (int i = 1; i < tokens.size(); ++i) {
+			const std::string& param = tokens[i];
+
+			if (IsInteger(param)) {
+				conVar->SetValue(std::stoi(param));
+			} else if (IsFloat(param)) {
+				conVar->SetValue(std::stof(param));
+			} else if (IsVec3(tokens, i)) {
+				Vec3 vec = ParseVec3(tokens, i);
+				conVar->SetValue(vec);
+				i += 2;
+			} else {
+				Print(std::format("無効なパラメーターです。 {}", param), kConsoleWarning);
+				return;
+			}
+		}
+	} else {
+		Print(std::format("Unknown command: {}", trimmedCommand));
 	}
 
 	/*{

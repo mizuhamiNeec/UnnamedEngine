@@ -8,6 +8,9 @@
 constexpr ImVec4 kConsoleNormal = { 0.87f, 0.87f, 0.87f, 1.0f }; // 通常テキストの色
 constexpr ImVec4 kConsoleWarning = { 1.0f,1.0f,0.0f,1.0f }; // 警告テキストの色
 constexpr ImVec4 kConsoleError = { 1.0f,0.0f,0.0f,1.0f }; // エラーテキストの色
+constexpr ImVec4 kConsoleInt = { 0.12f, 0.89f, 0.69f, 1.0f };
+constexpr ImVec4 kConsoleFloat = { 0.22f, 0.84f, 0.0f, 1.0f };
+constexpr ImVec4 kConsoleVec3 = { 1.0f, 0.79f, 0.14f, 1.0f };
 #else
 struct ImVec4 {
 	float x, y, z, w;
