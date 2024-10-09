@@ -12,10 +12,16 @@ std::shared_ptr<Texture> debug;
 // スプライトの頂点数を定義
 constexpr uint32_t kSpriteVertexCount = 6;
 
+//-----------------------------------------------------------------------------
+// Purpose : デストラクタ
+//-----------------------------------------------------------------------------
 Sprite::~Sprite() {
 	debug.reset();
 }
 
+//-----------------------------------------------------------------------------
+// Purpose : スプライトを初期化します
+//-----------------------------------------------------------------------------
 void Sprite::Init(SpriteCommon* spriteCommon) {
 	this->spriteCommon_ = spriteCommon;
 
@@ -25,23 +31,23 @@ void Sprite::Init(SpriteCommon* spriteCommon) {
 
 	Vertex vertices[kSpriteVertexCount] = {};
 	// 1枚目の三角形
-	vertices[0].position = { 0.0f, 360.0f, 0.0f, 1.0f }; // 左下
+	vertices[0].position = { 0.0f, 1.0f, 0.0f, 1.0f }; // 左下
 	vertices[0].texcoord = { 0.0f, 1.0f };
 	vertices[0].normal = { 0.0f, 0.0f, -1.0f };
 	vertices[1].position = { 0.0f, 0.0f, 0.0f, 1.0f }; // 左上
 	vertices[1].texcoord = { 0.0f, 0.0f };
 	vertices[1].normal = { 0.0f, 0.0f, -1.0f };
-	vertices[2].position = { 640.0f, 360.0f, 0.0f, 1.0f }; // 右下
+	vertices[2].position = { 1.0f, 1.0f, 0.0f, 1.0f }; // 右下
 	vertices[2].texcoord = { 1.0f, 1.0f };
 	vertices[2].normal = { 0.0f, 0.0f, -1.0f };
 	// 2枚目の三角形
 	vertices[3].position = { 0.0f, 0.0f, 0.0f, 1.0f }; // 左上
 	vertices[3].texcoord = { 0.0f, 0.0f };
 	vertices[3].normal = { 0.0f, 0.0f, -1.0f };
-	vertices[4].position = { 640.0f, 0.0f, 0.0f, 1.0f }; // 右上
+	vertices[4].position = { 1.0f, 0.0f, 0.0f, 1.0f }; // 右上
 	vertices[4].texcoord = { 1.0f, 0.0f };
 	vertices[4].normal = { 0.0f, 0.0f, -1.0f };
-	vertices[5].position = { 640.0f, 360.0f, 0.0f, 1.0f }; // 右下
+	vertices[5].position = { 1.0f, 1.0f, 0.0f, 1.0f }; // 右下
 	vertices[5].texcoord = { 1.0f, 1.0f };
 	vertices[5].normal = { 0.0f, 0.0f, -1.0f };
 
@@ -77,24 +83,10 @@ void Sprite::Init(SpriteCommon* spriteCommon) {
 	debug = TextureManager::GetInstance().GetTexture(spriteCommon_->GetD3D12()->GetDevice(), L"./Resources/Textures/uvChecker.png");
 }
 
-void Sprite::Update() {
-	ImGui::Begin("Sprite");
-	if (ImGui::CollapsingHeader("Sprite", ImGuiTreeNodeFlags_DefaultOpen)) {
-		ImGui::DragFloat3("pos##sprite", &transform_.translate.x, 0.01f);
-		ImGui::DragFloat3("rot##sprite", &transform_.rotate.x, 0.01f);
-		ImGui::DragFloat3("scale##sprite", &transform_.scale.x, 0.01f);
-
-		ImGui::Separator();
-
-		if (ImGui::CollapsingHeader("UV", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::DragFloat2("pos##uv", &uvTransform_.translate.x, 0.01f);
-			ImGui::DragFloat2("scale##uv", &uvTransform_.scale.x, 0.01f);
-			ImGui::SliderAngle("rotZ##uv", &uvTransform_.rotate.z);
-		}
-	}
-
-	ImGui::End();
-
+//-----------------------------------------------------------------------------
+// Purpose : スプライトの更新処理
+//-----------------------------------------------------------------------------
+void Sprite::Update() const {
 	// uvTransformから行列を作成
 	Mat4 uvTransformMat = Mat4::Scale(uvTransform_.scale);
 	uvTransformMat = uvTransformMat * Mat4::RotateZ(uvTransform_.rotate.z);
@@ -115,7 +107,10 @@ void Sprite::Update() {
 	*transformationMatrixData_ = worldViewProjectionMatrixSprite;
 }
 
-void Sprite::Draw() {
+//-----------------------------------------------------------------------------
+// Purpose : スプライトの描画処理
+//-----------------------------------------------------------------------------
+void Sprite::Draw() const {
 	// ディスクリプタヒープの設定
 	ID3D12DescriptorHeap* descriptorHeaps[] = { debug->GetSRVHeap() };
 	spriteCommon_->GetD3D12()->GetCommandList()->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -139,8 +134,32 @@ void Sprite::Draw() {
 	spriteCommon_->GetD3D12()->GetCommandList()->DrawIndexedInstanced(kSpriteVertexCount, 1, 0, 0, 0);
 }
 
-void Sprite::SetTransform(const Transform& newTransform) {
-	transform_ = newTransform;
+Vec3 Sprite::GetPos() {
+	return transform_.translate;
+}
+
+Vec3 Sprite::GetRot() {
+	return transform_.rotate;
+}
+
+Vec3 Sprite::GetSize() {
+	return transform_.scale;
+}
+
+Vec4 Sprite::GetColor() const {
+	return materialData_->color;
+}
+
+Vec2 Sprite::GetUVPos() {
+	return { uvTransform_.translate.x,uvTransform_.translate.y };
+}
+
+Vec2 Sprite::GetUVSize() {
+	return { uvTransform_.scale.x,uvTransform_.scale.y };
+}
+
+float Sprite::GetUVRot() const {
+	return uvTransform_.rotate.z;
 }
 
 void Sprite::SetPos(const Vec3& newPos) {
@@ -151,6 +170,26 @@ void Sprite::SetRot(const Vec3& newRot) {
 	transform_.rotate = newRot;
 }
 
-void Sprite::SetScale(const Vec3& newScale) {
-	transform_.scale = newScale;
+void Sprite::SetSize(const Vec3& newSize) {
+	transform_.scale = newSize;
+}
+
+void Sprite::SetColor(const Vec4 color) const {
+	materialData_->color = color;
+}
+
+void Sprite::SetUVPos(const Vec2& newPos) {
+	for (uint32_t i = 0; i < 2; ++i) {
+		uvTransform_.translate[i] = newPos[i];
+	}
+}
+
+void Sprite::SetUVSize(const Vec2& newSize) {
+	for (uint32_t i = 0; i < 2; ++i) {
+		uvTransform_.scale[i] = newSize[i];
+	}
+}
+
+void Sprite::SetUVRot(const float& newRot) {
+	uvTransform_.rotate.z = newRot;
 }

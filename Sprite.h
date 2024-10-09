@@ -15,13 +15,26 @@ public:
 	~Sprite();
 
 	void Init(SpriteCommon* spriteCommon);
-	void Update();
-	void Draw();
+	void Update() const;
+	void Draw() const;
 
-	void SetTransform(const Transform& newTransform);
+	// Getter
+	Vec3 GetPos();
+	Vec3 GetRot();
+	Vec3 GetSize();
+	Vec4 GetColor() const;
+	Vec2 GetUVPos();
+	Vec2 GetUVSize();
+	float GetUVRot() const;
+
+	// Setter
 	void SetPos(const Vec3& newPos);
 	void SetRot(const Vec3& newRot);
-	void SetScale(const Vec3& newScale);
+	void SetSize(const Vec3& newSize);
+	void SetColor(Vec4 color) const;
+	void SetUVPos(const Vec2& newPos);
+	void SetUVSize(const Vec2& newSize);
+	void SetUVRot(const float& newRot);
 private:
 	SpriteCommon* spriteCommon_ = nullptr;
 

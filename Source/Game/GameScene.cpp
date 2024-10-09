@@ -43,8 +43,6 @@ std::shared_ptr<Texture> texture2;
 D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU;
 D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU;
 
-float fov = 90.0f; // deg
-
 MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
 	MaterialData materialData; // 構築するMaterialData
 	std::string line; // ファイルから読んだ1行を格納するもの
@@ -164,37 +162,9 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	// 頂点リソースを作る
 	vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * loadedModelData.vertices.size(), sizeof(Vertex), loadedModelData.vertices.data());
 
-	Console::Print(std::format("Vertex Count: {}", loadedModelData.vertices.size()));
-	/*for (const auto& vertex : loadedModelData.vertices) {
-		Console::Print(std::format("Position: ({}, {}, {})", vertex.position.x, vertex.position.y, vertex.position.z));
-	}*/
-
 	if (vertexBuffer) {
 		Console::Print("頂点バッファの生成に成功.\n");
 	}
-
-	//Vertex vertices[3] = {};
-	//// 左下
-	//vertices[0].position = { -0.5f,-0.5f,0.0f ,1.0f };
-	//vertices[0].normal = { 0.0f,0.0f,-1.0f };
-	//vertices[0].texcoord = { 0.0f,1.0f };
-
-	//// 上
-	//vertices[1].position = { 0.0f,0.5f,0.0f ,1.0f };
-	//vertices[1].normal = { 0.0f,0.0f,-1.0f };
-	//vertices[1].texcoord = { 0.5f,0.0f };
-
-	//// 右下
-	//vertices[2].position = { 0.5f,-0.5f,0.0f ,1.0f };
-	//vertices[2].normal = { 0.0f,0.0f,-1.0f };
-	//vertices[2].texcoord = { 1.0f,1.0f };
-
-	//size_t vertexStride = sizeof(Vertex);
-	//vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * 3, vertexStride, vertices);
-
-	//if (vertexBuffer) {
-	//	Console::Print("頂点バッファの生成に成功.\n");
-	//}
 #pragma endregion
 
 #pragma region 定数バッファ
@@ -309,6 +279,44 @@ void GameScene::Update() {
 	TransformationMatrix* ptr = transformation->GetPtr<TransformationMatrix>();
 	ptr->WVP = worldViewProjMat;
 	ptr->World = worldMat;
+
+	ImGui::Begin("Sprite");
+	if (ImGui::CollapsingHeader("Sprite", ImGuiTreeNodeFlags_DefaultOpen)) {
+		Vec3 pos = sprite_->GetPos();
+		Vec3 rot = sprite_->GetRot();
+		Vec3 size = sprite_->GetSize();
+		Vec4 color = sprite_->GetColor();
+		if (ImGui::DragFloat3("pos##sprite", &pos.x, 0.01f)) {
+			sprite_->SetPos(pos);
+		}
+		if (ImGui::DragFloat3("rot##sprite", &rot.x, 0.01f)) {
+			sprite_->SetRot(rot);
+		}
+		if (ImGui::DragFloat3("scale##sprite", &size.x, 0.01f)) {
+			sprite_->SetSize(size);
+		}
+		if (ImGui::ColorEdit4("color##sprite", &color.x)) {
+			sprite_->SetColor(color);
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::CollapsingHeader("UV", ImGuiTreeNodeFlags_DefaultOpen)) {
+			Vec2 uvPos = sprite_->GetUVPos();
+			Vec2 uvSize = sprite_->GetUVSize();
+			float uvRot = sprite_->GetUVRot();
+			if (ImGui::DragFloat2("pos##uv", &uvPos.x, 0.01f)) {
+				sprite_->SetUVPos(uvPos);
+			}
+			if (ImGui::DragFloat2("scale##uv", &uvSize.x, 0.01f)) {
+				sprite_->SetUVSize(uvSize);
+			}
+			if (ImGui::SliderAngle("rotZ##uv", &uvRot)) {
+				sprite_->SetUVRot(uvRot);
+			}
+		}
+	}
+	ImGui::End();
 
 	sprite_->Update();
 

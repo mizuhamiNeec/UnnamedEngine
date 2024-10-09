@@ -92,9 +92,17 @@ void Engine::Update() const {
 
 			float outlineSize = 1.0f;
 
-			std::string text = std::format("{:.2f} fps", ImGui::GetIO().Framerate);
+			ImGuiIO io = ImGui::GetIO();
 
-			ImU32 textColor = IM_COL32(255, 0, 0, 255);
+			std::string text = std::format("{:.2f} fps", io.Framerate);
+
+			ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleError);
+			if (io.Framerate >= 59.9f) {
+				textColor = ImGui::ColorConvertFloat4ToU32(kConsoleFloat);
+			} else if (io.Framerate >= 29.9f) {
+				textColor = ImGui::ColorConvertFloat4ToU32(kConsoleWarning);
+			}
+
 			ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
 
 			TextOutlined(

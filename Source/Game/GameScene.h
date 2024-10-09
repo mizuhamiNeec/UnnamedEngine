@@ -24,4 +24,6 @@ private:
 	Transform transform;
 
 	Transform cameraTransform;
+
+	float fov = 90.0f; // deg
 };
