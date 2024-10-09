@@ -8,16 +8,18 @@
 #endif
 
 #include "../../Console.h"
-#include "../../ConVars.h"
 #include "../../ConVar.h"
+#include "../../ConVars.h"
 #include "../../RootSignatureManager.h"
+#include "../../Sprite.h"
+#include "../../SpriteCommon.h"
+#include "../Engine/ImGuiManager/ImGuiManager.h"
 #include "../Engine/Lib/Math/MathLib.h"
 #include "../Engine/Lib/Structs/Structs.h"
 #include "../Engine/Renderer/PipelineState.h"
 #include "../Engine/Renderer/RootSignature.h"
 #include "../Engine/Renderer/VertexBuffer.h"
 #include "../Engine/TextureManager/TextureManager.h"
-#include "../Engine/ImGuiManager/ImGuiManager.h"
 
 // TODO : メンバに移動しよう
 
@@ -36,7 +38,6 @@ PipelineState* pipelineState;
 
 ModelData loadedModelData;
 
-std::shared_ptr<Texture> texture;
 std::shared_ptr<Texture> texture2;
 
 D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU;
@@ -282,8 +283,14 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	}
 #pragma endregion
 	// テクスチャのロードとSRVハンドルの取得
-	texture = TextureManager::GetInstance().GetTexture(renderer_->GetDevice(), L"./Resources/Textures/Debugempty.png");
 	texture2 = TextureManager::GetInstance().GetTexture(renderer_->GetDevice(), L"./Resources/Textures/uvChecker.png");
+
+	// 共通スプライト
+	spriteCommon_ = std::make_unique<SpriteCommon>();
+	spriteCommon_->Init(renderer_);
+
+	sprite_ = std::make_unique<Sprite>();
+	sprite_->Init(spriteCommon_.get());
 }
 
 void GameScene::Update() {
@@ -303,19 +310,21 @@ void GameScene::Update() {
 	ptr->WVP = worldViewProjMat;
 	ptr->World = worldMat;
 
+	sprite_->Update();
+
 #ifdef _DEBUG
 	ImGui::Begin("Window");
 
 	if (ImGui::CollapsingHeader("Camera")) {
-		ImGui::DragFloat3("cam##pos", &cameraTransform.translate.x, 0.01f);
-		ImGui::DragFloat3("cam##rot", &cameraTransform.rotate.x, 0.01f);
-		ImGui::DragFloat("cam##Fov", &fov, 1.0f);
+		ImGui::DragFloat3("pos##cam", &cameraTransform.translate.x, 0.01f);
+		ImGui::DragFloat3("rot##cam", &cameraTransform.rotate.x, 0.01f);
+		ImGui::DragFloat("Fov##cam", &fov, 1.0f);
 	}
 
 	if (ImGui::CollapsingHeader("transform")) {
-		ImGui::DragFloat3("trans##pos", &transform.translate.x, 0.01f);
-		ImGui::DragFloat3("trans##rot", &transform.rotate.x, 0.01f);
-		ImGui::DragFloat3("trans##scale", &transform.scale.x, 0.01f);
+		ImGui::DragFloat3("pos##trans", &transform.translate.x, 0.01f);
+		ImGui::DragFloat3("rot##trans", &transform.rotate.x, 0.01f);
+		ImGui::DragFloat3("scale##trans", &transform.scale.x, 0.01f);
 	}
 
 	ImGui::End();
@@ -386,29 +395,35 @@ void GameScene::Update() {
 
 void GameScene::Render() {
 	//size_t currentIndex = renderer_->GetBackBufferCount();
-	ID3D12GraphicsCommandList* commandList = renderer_->GetCommandList();
-	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer->View();
+	//ID3D12GraphicsCommandList* commandList = renderer_->GetCommandList();
+	//D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer->View();
 
-	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { texture2->GetSRVHeap() };
-	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	//// ディスクリプタヒープの設定
+	//ID3D12DescriptorHeap* descriptorHeaps[] = { texture2->GetSRVHeap() };
+	//commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Object3d"));
-	commandList->SetPipelineState(pipelineState->Get());
+	//commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Object3d"));
+	//commandList->SetPipelineState(pipelineState->Get());
 
-	commandList->IASetVertexBuffers(0, 1, &vbView);
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//commandList->IASetVertexBuffers(0, 1, &vbView);
+	//commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetAddress());
-	commandList->SetGraphicsRootConstantBufferView(1, transformation->GetAddress());
-	commandList->SetGraphicsRootDescriptorTable(2, texture2->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart()); // テクスチャのSRVを設定
-	commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetAddress());
+	//commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetAddress());
+	//commandList->SetGraphicsRootConstantBufferView(1, transformation->GetAddress());
+	//commandList->SetGraphicsRootDescriptorTable(2, texture2->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart()); // テクスチャのSRVを設定
+	//commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetAddress());
 
-	commandList->DrawInstanced(static_cast<UINT>(loadedModelData.vertices.size()), 1, 0, 0);
+	//commandList->DrawInstanced(static_cast<UINT>(loadedModelData.vertices.size()), 1, 0, 0);
+
+	//----------------------------------------
+	spriteCommon_->Render();
+	//----------------------------------------
+
+	sprite_->Draw();
 }
 
 void GameScene::Shutdown() {
-	texture.reset();
+	spriteCommon_->Shutdown();
 	texture2.reset();
 
 	delete vertexBuffer;

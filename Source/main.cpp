@@ -14,7 +14,7 @@
 #include "Engine/TextureManager/TextureManager.h"
 #include "Engine/Utils/ConvertString.h"
 
-// audio
+// audio TODO : さっさとクラス化しよう
 #include <xaudio2.h>
 
 #pragma comment(lib, "xaudio2.lib")
@@ -173,7 +173,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nShowCmd) {
 	ConVar cl_showpos("cl_showpos", 1, "Draw current position at top of screen");
 	ConVar cl_showfps("cl_showfps", 1, "Draw fps meter (1 = fps)");
 	ConVar cl_nshowcmd("cl_nshowcmd", nShowCmd, "");
-	ConVar cl_maxfps("cl_maxfps", 60.0f, "最大フレームレート");
+	ConVar cl_maxfps("cl_maxfps", 60.0f, "max frame rate.");
 
 	D3DResourceLeakChecker leakChecker;
 
@@ -182,6 +182,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nShowCmd) {
 
 	ComPtr<IXAudio2> xAudio2;
 	IXAudio2MasteringVoice* masterVoice;
+
+	// TODO : コンソール変数を編集できるように
 
 	// XAudioエンジンのインスタンスを生成
 	HRESULT result = XAudio2Create(&xAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);

@@ -5,6 +5,8 @@
 #include "Source/Engine/Renderer/D3D12.h"
 #include "Source/Game/GameScene.h"
 
+#include "Sprite.h"
+
 class Engine {
 public:
 	void Run();
@@ -17,7 +19,6 @@ private:
 private:
 	std::unique_ptr<Window> window_;
 	std::unique_ptr<D3D12> renderer_;
-	std::unique_ptr<SpriteCommon> spriteCommon_;
 	std::unique_ptr<Input> input_;
 	std::unique_ptr<GameScene> gameScene_;
 

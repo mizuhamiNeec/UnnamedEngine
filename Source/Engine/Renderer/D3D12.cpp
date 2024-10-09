@@ -166,8 +166,7 @@ void D3D12::OnSizeChanged(UINT width, UINT height, bool isMinimized) {
 	width; height; isMinimized;
 }
 
-void D3D12::ToggleFullscreen() {
-}
+void D3D12::ToggleFullscreen() {}
 
 void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data) {
 	void* mapped;

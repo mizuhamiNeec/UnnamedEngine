@@ -4,6 +4,8 @@
 #include "../Utils/ConvertString.h"
 #include "../../../Console.h"
 
+// HACK : 要修正
+
 TextureManager& TextureManager::GetInstance() {
 	static TextureManager instance;
 	return instance;

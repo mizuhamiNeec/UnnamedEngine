@@ -2,6 +2,7 @@
 
 #include "ConVars.h"
 #include "ConVar.h"
+#include "Sprite.h"
 #include "Source/Engine/TextureManager/TextureManager.h"
 
 void Engine::Run() {
@@ -27,10 +28,6 @@ void Engine::Initialize() {
 	// レンダラ
 	renderer_ = std::make_unique<D3D12>();
 	renderer_->Init(window_.get());
-
-	// 共通スプライト
-	spriteCommon_ = std::make_unique<SpriteCommon>();
-	spriteCommon_->Init(renderer_.get());
 
 	// 入力
 	input_ = std::make_unique<Input>();
@@ -123,8 +120,6 @@ void Engine::Update() const {
 
 		gameScene_->Render();
 
-		spriteCommon_->Render();
-
 #ifdef _DEBUG
 		imGuiManager_->EndFrame();
 #endif
@@ -142,11 +137,11 @@ void Engine::Update() const {
 
 void Engine::Shutdown() {
 	gameScene_->Shutdown();
-	spriteCommon_->Shutdown();
+	TextureManager::GetInstance().ReleaseUnusedTextures();
+	TextureManager::GetInstance().Shutdown();
 
 	// ImGuiManagerのシャットダウンは最後に行う
 	if (imGuiManager_) {
 		imGuiManager_->Shutdown();
 	}
-	TextureManager::GetInstance().Shutdown();
 }

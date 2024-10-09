@@ -23,10 +23,10 @@ Window::Window() {
 }
 
 Window::~Window() {
-	timeEndPeriod(1);
-
 	CloseWindow(hWnd_);
 	CoUninitialize();
+
+	timeEndPeriod(1);
 }
 
 LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {

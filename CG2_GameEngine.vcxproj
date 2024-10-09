@@ -115,6 +115,7 @@
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\IndexBuffer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\RootSignature.cpp" />
@@ -150,6 +151,7 @@
     <ClInclude Include="Input.h" />
     <ClInclude Include="RootSignatureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
+    <ClInclude Include="Source\Engine\Renderer\IndexBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\PipelineState.h" />
     <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\RootSignature.h" />
