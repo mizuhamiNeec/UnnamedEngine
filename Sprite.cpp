@@ -62,6 +62,7 @@ void Sprite::Init(SpriteCommon* spriteCommon) {
 		Console::Print("インデックスバッファの生成に成功.\n");
 	}
 
+	// 頂点バッファの作成
 	size_t vertexStride = sizeof(Vertex);
 	vertexBuffer_ = std::make_unique<VertexBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Vertex) * kSpriteVertexCount, vertexStride, vertices);
 	if (vertexBuffer_) {
@@ -71,14 +72,14 @@ void Sprite::Init(SpriteCommon* spriteCommon) {
 	// 定数バッファ
 	materialResource_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Material));
 	materialData_ = materialResource_->GetPtr<Material>();
-	materialData_->color = Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData_->enableLighting = false;
 	materialData_->uvTransform = Mat4::Identity();
 
 	transformation_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
 	transformationMatrixData_ = transformation_->GetPtr<TransformationMatrix>();
-	transformationMatrixData_->WVP = Mat4::Identity();
-	transformationMatrixData_->World = Mat4::Identity();
+	transformationMatrixData_->wvp = Mat4::Identity();
+	transformationMatrixData_->world = Mat4::Identity();
 
 	debug = TextureManager::GetInstance().GetTexture(spriteCommon_->GetD3D12()->GetDevice(), L"./Resources/Textures/uvChecker.png");
 }
@@ -134,15 +135,15 @@ void Sprite::Draw() const {
 	spriteCommon_->GetD3D12()->GetCommandList()->DrawIndexedInstanced(kSpriteVertexCount, 1, 0, 0, 0);
 }
 
-Vec3 Sprite::GetPos() {
+Vec3 Sprite::GetPos() const {
 	return transform_.translate;
 }
 
-Vec3 Sprite::GetRot() {
+Vec3 Sprite::GetRot() const {
 	return transform_.rotate;
 }
 
-Vec3 Sprite::GetSize() {
+Vec3 Sprite::GetSize() const {
 	return transform_.scale;
 }
 
@@ -150,15 +151,15 @@ Vec4 Sprite::GetColor() const {
 	return materialData_->color;
 }
 
-Vec2 Sprite::GetUVPos() {
+Vec2 Sprite::GetUvPos() {
 	return { uvTransform_.translate.x,uvTransform_.translate.y };
 }
 
-Vec2 Sprite::GetUVSize() {
+Vec2 Sprite::GetUvSize() {
 	return { uvTransform_.scale.x,uvTransform_.scale.y };
 }
 
-float Sprite::GetUVRot() const {
+float Sprite::GetUvRot() const {
 	return uvTransform_.rotate.z;
 }
 
@@ -178,18 +179,18 @@ void Sprite::SetColor(const Vec4 color) const {
 	materialData_->color = color;
 }
 
-void Sprite::SetUVPos(const Vec2& newPos) {
+void Sprite::SetUvPos(const Vec2& newPos) {
 	for (uint32_t i = 0; i < 2; ++i) {
 		uvTransform_.translate[i] = newPos[i];
 	}
 }
 
-void Sprite::SetUVSize(const Vec2& newSize) {
+void Sprite::SetUvSize(const Vec2& newSize) {
 	for (uint32_t i = 0; i < 2; ++i) {
 		uvTransform_.scale[i] = newSize[i];
 	}
 }
 
-void Sprite::SetUVRot(const float& newRot) {
+void Sprite::SetUvRot(const float& newRot) {
 	uvTransform_.rotate.z = newRot;
 }

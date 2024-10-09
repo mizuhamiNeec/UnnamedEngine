@@ -34,8 +34,8 @@ struct Material {
 };
 
 struct TransformationMatrix {
-	Mat4 WVP;
-	Mat4 World;
+	Mat4 wvp;
+	Mat4 world;
 };
 
 struct DirectionalLight {

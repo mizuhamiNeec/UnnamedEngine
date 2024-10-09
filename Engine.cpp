@@ -4,6 +4,7 @@
 #include "ConVar.h"
 #include "Sprite.h"
 #include "Source/Engine/TextureManager/TextureManager.h"
+#include "Source/Engine/Utils/ConvertString.h"
 
 void Engine::Run() {
 	Initialize();
@@ -15,10 +16,10 @@ void Engine::Initialize() {
 	// ウィンドウの作成
 	window_ = std::make_unique<Window>();
 	WindowConfig windowConfig = {
-		.windowTitle = kWindowTitle,
+		.windowTitle = ConvertString::ToString(kWindowTitle),
 		.clientWidth = kClientWidth,
 		.clientHeight = kClientHeight,
-		.windowClassName = kWindowClassName,
+		.windowClassName = ConvertString::ToString(kWindowClassName),
 		.dwStyle = WS_OVERLAPPEDWINDOW,
 		.dwExStyle = WS_EX_OVERLAPPEDWINDOW,
 		.nCmdShow = ConVars::GetInstance().GetConVar("cl_nshowcmd")->GetInt(),

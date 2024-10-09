@@ -216,7 +216,7 @@ void D3D12::CreateDevice() {
 		// ソフトウェアアダプタでなければ採用
 		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE)) {
 			// 採用したアダプタの情報をログに出力
-			Console::Print(ConvertString(std::format(L"Use Adapter : {}\n", adapterDesc.Description)));
+			Console::Print(ConvertString::ToString(std::format(L"Use Adapter : {}\n", adapterDesc.Description)));
 			break;
 		}
 		useAdapter = nullptr; // ソフトウェアアダプタの場合は見なかったことにする

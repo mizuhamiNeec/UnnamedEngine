@@ -147,13 +147,13 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	transform = {
 		{1.0f, 1.0f, 1.0f},
 		{0.0f, 0.0f, 0.0f},
-		{0.0f, 0.0f, 0.0f}
+		{65535.0f, 0.0f, 0.0f}
 	};
 
 	cameraTransform = {
 		{1.0f, 1.0f, 1.0f},
 		{0.0f, 0.0f, 0.0f},
-		{0.0f, 0.0f, -1.0f}
+		{65535.0f, 0.0f, -2.0f}
 	};
 
 #pragma region 頂点バッファ
@@ -259,8 +259,13 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	spriteCommon_ = std::make_unique<SpriteCommon>();
 	spriteCommon_->Init(renderer_);
 
-	sprite_ = std::make_unique<Sprite>();
-	sprite_->Init(spriteCommon_.get());
+	for (uint32_t i = 0; i < 5; ++i) {
+		Sprite* sprite = new Sprite();
+		sprite->Init(spriteCommon_.get());
+		sprite->SetPos({ 256.0f * i,0.0f,0.0f });
+		sprite->SetSize({ 256.0f,256.0f,1.0f });
+		sprites_.push_back(sprite);
+	}
 }
 
 void GameScene::Update() {
@@ -277,48 +282,54 @@ void GameScene::Update() {
 	Mat4 worldViewProjMat = worldMat * viewMat * projectionMat;
 
 	TransformationMatrix* ptr = transformation->GetPtr<TransformationMatrix>();
-	ptr->WVP = worldViewProjMat;
-	ptr->World = worldMat;
+	ptr->wvp = worldViewProjMat;
+	ptr->world = worldMat;
 
-	ImGui::Begin("Sprite");
-	if (ImGui::CollapsingHeader("Sprite", ImGuiTreeNodeFlags_DefaultOpen)) {
-		Vec3 pos = sprite_->GetPos();
-		Vec3 rot = sprite_->GetRot();
-		Vec3 size = sprite_->GetSize();
-		Vec4 color = sprite_->GetColor();
-		if (ImGui::DragFloat3("pos##sprite", &pos.x, 0.01f)) {
-			sprite_->SetPos(pos);
-		}
-		if (ImGui::DragFloat3("rot##sprite", &rot.x, 0.01f)) {
-			sprite_->SetRot(rot);
-		}
-		if (ImGui::DragFloat3("scale##sprite", &size.x, 0.01f)) {
-			sprite_->SetSize(size);
-		}
-		if (ImGui::ColorEdit4("color##sprite", &color.x)) {
-			sprite_->SetColor(color);
-		}
-
-		ImGui::Separator();
-
-		if (ImGui::CollapsingHeader("UV", ImGuiTreeNodeFlags_DefaultOpen)) {
-			Vec2 uvPos = sprite_->GetUVPos();
-			Vec2 uvSize = sprite_->GetUVSize();
-			float uvRot = sprite_->GetUVRot();
-			if (ImGui::DragFloat2("pos##uv", &uvPos.x, 0.01f)) {
-				sprite_->SetUVPos(uvPos);
+	ImGui::Begin("Sprites");
+	for (uint32_t i = 0; i < sprites_.size(); ++i) {
+		if (ImGui::CollapsingHeader(std::format("Sprite {}", i).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+			Vec3 pos = sprites_[i]->GetPos();
+			Vec3 rot = sprites_[i]->GetRot();
+			Vec3 size = sprites_[i]->GetSize();
+			Vec4 color = sprites_[i]->GetColor();
+			if (ImGui::DragFloat3(std::format("pos##sprite{}", i).c_str(), &pos.x, 1.0f)) {
+				sprites_[i]->SetPos(pos);
 			}
-			if (ImGui::DragFloat2("scale##uv", &uvSize.x, 0.01f)) {
-				sprite_->SetUVSize(uvSize);
+			if (ImGui::DragFloat3(std::format("rot##sprite{}", i).c_str(), &rot.x, 0.01f)) {
+				sprites_[i]->SetRot(rot);
 			}
-			if (ImGui::SliderAngle("rotZ##uv", &uvRot)) {
-				sprite_->SetUVRot(uvRot);
+			if (ImGui::DragFloat3(std::format("scale##sprite{}", i).c_str(), &size.x, 0.01f)) {
+				sprites_[i]->SetSize(size);
+			}
+			if (ImGui::ColorEdit4(std::format("color##sprite{}", i).c_str(), &color.x)) {
+				sprites_[i]->SetColor(color);
+			}
+
+			ImGui::Separator();
+
+			if (ImGui::TreeNode(std::format("UV##sprite{}", i).c_str())) {
+				Vec2 uvPos = sprites_[i]->GetUvPos();
+				Vec2 uvSize = sprites_[i]->GetUvSize();
+				float uvRot = sprites_[i]->GetUvRot();
+				if (ImGui::DragFloat2(std::format("pos##uv{}", i).c_str(), &uvPos.x, 0.01f)) {
+					sprites_[i]->SetUvPos(uvPos);
+				}
+				if (ImGui::DragFloat2(std::format("scale##uv{}", i).c_str(), &uvSize.x, 0.01f)) {
+					sprites_[i]->SetUvSize(uvSize);
+				}
+				if (ImGui::SliderAngle(std::format("rotZ##uv{}", i).c_str(), &uvRot)) {
+					sprites_[i]->SetUvRot(uvRot);
+				}
+
+				ImGui::TreePop();
 			}
 		}
 	}
 	ImGui::End();
 
-	sprite_->Update();
+	for (const Sprite* sprite : sprites_) {
+		sprite->Update();
+	}
 
 #ifdef _DEBUG
 	ImGui::Begin("Window");
@@ -402,35 +413,40 @@ void GameScene::Update() {
 }
 
 void GameScene::Render() {
-	//size_t currentIndex = renderer_->GetBackBufferCount();
-	//ID3D12GraphicsCommandList* commandList = renderer_->GetCommandList();
-	//D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer->View();
+	ID3D12GraphicsCommandList* commandList = renderer_->GetCommandList();
+	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer->View();
 
-	//// ディスクリプタヒープの設定
-	//ID3D12DescriptorHeap* descriptorHeaps[] = { texture2->GetSRVHeap() };
-	//commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	// ディスクリプタヒープの設定
+	ID3D12DescriptorHeap* descriptorHeaps[] = { texture2->GetSRVHeap() };
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	//commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Object3d"));
-	//commandList->SetPipelineState(pipelineState->Get());
+	commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Object3d"));
+	commandList->SetPipelineState(pipelineState->Get());
 
-	//commandList->IASetVertexBuffers(0, 1, &vbView);
-	//commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->IASetVertexBuffers(0, 1, &vbView);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	//commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetAddress());
-	//commandList->SetGraphicsRootConstantBufferView(1, transformation->GetAddress());
-	//commandList->SetGraphicsRootDescriptorTable(2, texture2->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart()); // テクスチャのSRVを設定
-	//commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetAddress());
+	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetAddress());
+	commandList->SetGraphicsRootConstantBufferView(1, transformation->GetAddress());
+	commandList->SetGraphicsRootDescriptorTable(2, texture2->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart()); // テクスチャのSRVを設定
+	commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetAddress());
 
-	//commandList->DrawInstanced(static_cast<UINT>(loadedModelData.vertices.size()), 1, 0, 0);
+	commandList->DrawInstanced(static_cast<UINT>(loadedModelData.vertices.size()), 1, 0, 0);
 
 	//----------------------------------------
 	spriteCommon_->Render();
 	//----------------------------------------
 
-	sprite_->Draw();
+	for (Sprite* sprite : sprites_) {
+		sprite->Draw();
+	}
 }
 
 void GameScene::Shutdown() {
+	for (Sprite* sprite : sprites_) {
+		delete sprite;
+	}
+
 	spriteCommon_->Shutdown();
 	texture2.reset();
 

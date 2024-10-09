@@ -30,8 +30,8 @@ struct Material {
 };
 
 struct TransformationMatrix {
-	Mat4 WVP; // ワールドビュープロジェクション
-	Mat4 World; // ワールド
+	Mat4 wvp; // ワールドビュープロジェクション
+	Mat4 world; // ワールド
 };
 
 struct MaterialData {

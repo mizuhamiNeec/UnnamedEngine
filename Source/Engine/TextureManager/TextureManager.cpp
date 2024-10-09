@@ -36,7 +36,7 @@ void TextureManager::Shutdown() {
 	for (auto& pair : textures) {
 		if (pair.second.use_count() > 1) {
 			// テクスチャがまだ参照されている
-			Console::Print(ConvertString(std::format(L"Texture {} is still in use, use_count: {}\n", pair.first.c_str(), pair.second.use_count())));
+			Console::Print(ConvertString::ToString(std::format(L"Texture {} is still in use, use_count: {}\n", pair.first.c_str(), pair.second.use_count())));
 		}
 	}
 	textures.clear();

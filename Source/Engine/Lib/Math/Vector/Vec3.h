@@ -12,9 +12,7 @@ struct Vec3 final {
 	static const Vec3 forward;
 	static const Vec3 backward;
 
-	Vec3() : x(0.0f), y(0.0f), z(0) {}
-	Vec3(const float x, const float y, const float z) : x(x), y(y), z(z) {}
-	Vec3(const Vec3& other) : x(other.x), y(other.y), z(other.z) {}
+	Vec3(float x = 0.0f, float y = 0.0f, float z = 0.0f);
 
 	/* ---------------- 関数類 ---------------- */
 	float Length() const;
@@ -32,7 +30,6 @@ struct Vec3 final {
 	Vec3 ClampLength(float min, float max);
 	Vec3 Lerp(const Vec3& target, float t) const;
 	Vec3 Reflect(const Vec3& normal) const;
-	Vec3 RotateVector(float angleZ) const;
 
 	/* ---------------- 演算子 ---------------- */
 	float& operator[](uint32_t index);
@@ -47,6 +44,11 @@ struct Vec3 final {
 	Vec3 operator-(const float& rhs) const;
 	Vec3 operator*(const Vec3& rhs) const;
 	Vec3 operator/(const Vec3& rhs) const;
+
+	friend Vec3 operator+(float lhs, const Vec3& rhs);
+	friend Vec3 operator-(float lhs, const Vec3& rhs);
+	friend Vec3 operator*(float lhs, const Vec3& rhs);
+	friend Vec3 operator/(float lhs, const Vec3& rhs);
 
 	Vec3& operator+=(const Vec3& rhs);
 	Vec3& operator-=(const Vec3& rhs);

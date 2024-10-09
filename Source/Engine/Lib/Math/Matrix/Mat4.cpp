@@ -181,7 +181,7 @@ void Mat4::LogMat4() {
 		}
 		result += L"\n";
 	}
-	Console::Print(ConvertString(result));
+	Console::Print(ConvertString::ToString(result));
 }
 
 Mat4 Mat4::Identity() {

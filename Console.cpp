@@ -186,7 +186,7 @@ void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]
 		// 前のメッセージと異なる場合、新しいメッセージを追加
 		consoleTexts.push_back({ message, color });
 		repeatCounts.push_back(1);
-		OutputDebugString(ConvertString(message).c_str());
+		OutputDebugString(ConvertString::ToString(message));
 	}
 
 	wishScrollToBottom = true;
@@ -270,7 +270,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 		ConVar* conVar = ConVars::GetInstance().GetConVar(tokens[0]);
 
 		if (tokens.size() < 2) {
-			std::string str = std::format("[{}]", ToString(conVar->GetType()));
+			std::string str = std::format("[{}]", ConVars::ToString(conVar->GetType()));
 			std::string description = conVar->GetDescription();
 
 			switch (conVar->GetType()) {

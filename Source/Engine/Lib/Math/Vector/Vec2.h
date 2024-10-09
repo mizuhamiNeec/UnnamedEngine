@@ -10,9 +10,7 @@ struct Vec2 final {
 	static const Vec2 up;
 	static const Vec2 down;
 
-	Vec2();
-	Vec2(float x, float y);
-	Vec2(const Vec2& other);
+	Vec2(float x = 0.0f, float y = 0.0f);
 
 	/* ---------------- 関数類 ---------------- */
 	float Length() const;
@@ -21,7 +19,7 @@ struct Vec2 final {
 	float Dot(const Vec2& other) const;
 	float Cross(const Vec2& other) const;
 
-	bool IsZero(float tolerance = 0.01f) const;
+	bool IsZero(float tolerance = 1e-6f) const;
 
 	void Normalize();
 	Vec2 Normalized() const;
@@ -45,6 +43,11 @@ struct Vec2 final {
 	Vec2 operator-(const float& rhs) const;
 	Vec2 operator*(const Vec2& rhs) const;
 	Vec2 operator/(const Vec2& rhs) const;
+
+	friend Vec2 operator+(float lhs, const Vec2& rhs);
+	friend Vec2 operator-(float lhs, const Vec2& rhs);
+	friend Vec2 operator*(float lhs, const Vec2& rhs);
+	friend Vec2 operator/(float lhs, const Vec2& rhs);
 
 	Vec2& operator+=(const Vec2& rhs);
 	Vec2& operator-=(const Vec2& rhs);

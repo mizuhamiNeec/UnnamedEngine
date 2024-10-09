@@ -19,7 +19,7 @@ private:
 	D3D12* renderer_ = nullptr;
 
 	std::unique_ptr<SpriteCommon> spriteCommon_;
-	std::unique_ptr<Sprite> sprite_;
+	std::vector<Sprite*> sprites_;
 
 	Transform transform;
 

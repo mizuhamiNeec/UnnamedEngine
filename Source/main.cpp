@@ -168,7 +168,7 @@ void SoundPlayWave(IXAudio2* xAudio2, const SoundData& soundData) {
 // エントリーポイント
 //-----------------------------------------------------------------------------
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nShowCmd) {
-	Console::Print(ConvertString(std::format(L"Launch Args: {}\n", pCmdLine)));
+	Console::Print(ConvertString::ToString(std::format(L"Launch Args: {}\n", pCmdLine)));
 
 	ConVar cl_showpos("cl_showpos", 1, "Draw current position at top of screen");
 	ConVar cl_showfps("cl_showfps", 1, "Draw fps meter (1 = fps)");

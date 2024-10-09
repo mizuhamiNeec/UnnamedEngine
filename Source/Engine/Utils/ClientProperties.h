@@ -1,7 +1,8 @@
 #pragma once
 
-inline const wchar_t* kWindowTitle = L"MainWindow";
-inline const wchar_t* kWindowClassName = L"WindowClass";
+const std::string kWindowTitle = "MainWindow";
+const std::string kWindowClassName = "WindowClass";
+
 constexpr int32_t kClientWidth = 1280;
 constexpr int32_t kClientHeight = 720;
 

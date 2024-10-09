@@ -19,22 +19,22 @@ public:
 	void Draw() const;
 
 	// Getter
-	Vec3 GetPos();
-	Vec3 GetRot();
-	Vec3 GetSize();
+	Vec3 GetPos() const;
+	Vec3 GetRot() const;
+	Vec3 GetSize() const;
 	Vec4 GetColor() const;
-	Vec2 GetUVPos();
-	Vec2 GetUVSize();
-	float GetUVRot() const;
+	Vec2 GetUvPos();
+	Vec2 GetUvSize();
+	float GetUvRot() const;
 
 	// Setter
 	void SetPos(const Vec3& newPos);
 	void SetRot(const Vec3& newRot);
 	void SetSize(const Vec3& newSize);
 	void SetColor(Vec4 color) const;
-	void SetUVPos(const Vec2& newPos);
-	void SetUVSize(const Vec2& newSize);
-	void SetUVRot(const float& newRot);
+	void SetUvPos(const Vec2& newPos);
+	void SetUvSize(const Vec2& newSize);
+	void SetUvRot(const float& newRot);
 private:
 	SpriteCommon* spriteCommon_ = nullptr;
 
