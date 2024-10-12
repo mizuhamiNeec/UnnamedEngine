@@ -30,6 +30,9 @@ void Engine::Initialize() {
 	renderer_ = std::make_unique<D3D12>();
 	renderer_->Init(window_.get());
 
+	// テクスチャマネージャ
+	TextureManager::GetInstance()->Initialize();
+
 	// 入力
 	input_ = std::make_unique<Input>();
 	input_->Init(window_.get());
@@ -146,8 +149,8 @@ void Engine::Update() const {
 
 void Engine::Shutdown() {
 	gameScene_->Shutdown();
-	TextureManager::GetInstance().ReleaseUnusedTextures();
-	TextureManager::GetInstance().Shutdown();
+
+	TextureManager::GetInstance()->Shutdown();
 
 	// ImGuiManagerのシャットダウンは最後に行う
 	if (imGuiManager_) {
