@@ -48,3 +48,13 @@ VertexBuffer::VertexBuffer(const ComPtr<ID3D12Device>& device, const size_t size
 D3D12_VERTEX_BUFFER_VIEW VertexBuffer::View() const {
 	return view_;
 }
+
+void VertexBuffer::Update(const void* newVertices, const size_t vertexCount) const {
+	if (newVertices != nullptr) {
+		void* ptr = nullptr;
+		HRESULT hr = buffer_->Map(0, nullptr, &ptr);
+		assert(SUCCEEDED(hr));
+		memcpy(ptr, newVertices, sizeof(Vertex) * vertexCount);
+		buffer_->Unmap(0, nullptr);
+	}
+}

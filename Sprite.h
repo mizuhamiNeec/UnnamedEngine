@@ -8,6 +8,9 @@
 #include "Source/Engine/Renderer/VertexBuffer.h"
 #include "Source/Engine/Renderer/IndexBuffer.h"
 
+// スプライトの頂点数
+constexpr uint32_t kSpriteVertexCount = 6;
+
 class SpriteCommon;
 
 class Sprite {
@@ -15,7 +18,7 @@ public:
 	~Sprite();
 
 	void Init(SpriteCommon* spriteCommon, const std::string& textureFilePath);
-	void Update() const;
+	void Update();
 	void Draw() const;
 
 	void ChangeTexture(const std::string& textureFilePath);
@@ -24,6 +27,7 @@ public:
 	Vec3 GetPos() const;
 	Vec3 GetRot() const;
 	Vec3 GetSize() const;
+	Vec2 GetAnchorPoint() const;
 	Vec4 GetColor() const;
 	Vec2 GetUvPos();
 	Vec2 GetUvSize();
@@ -33,6 +37,7 @@ public:
 	void SetPos(const Vec3& newPos);
 	void SetRot(const Vec3& newRot);
 	void SetSize(const Vec3& newSize);
+	void SetAnchorPoint(const Vec2& anchorPoint);
 	void SetColor(Vec4 color) const;
 	void SetUvPos(const Vec2& newPos);
 	void SetUvSize(const Vec2& newSize);
@@ -40,11 +45,21 @@ public:
 private:
 	SpriteCommon* spriteCommon_ = nullptr;
 
+	Vec2 anchorPoint_ = { 0.0f,0.0f };
+
 	Transform transform_;
 	Transform uvTransform_;
 
 	// テクスチャ番号
 	uint32_t textureIndex_ = 0;
+
+	Vertex vertices[kSpriteVertexCount] = {};
+
+	// インデックスの作成
+	uint16_t indices[kSpriteVertexCount] = {
+		0, 1, 2, // 1枚目の三角形
+		2, 1, 4  // 2枚目の三角形
+	};
 
 	// バッファリソース
 	std::unique_ptr<VertexBuffer> vertexBuffer_ = nullptr;

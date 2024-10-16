@@ -6,9 +6,6 @@
 #include "Source/Engine/Renderer/VertexBuffer.h"
 #include "Source/Engine/TextureManager/TextureManager.h"
 
-// スプライトの頂点数を定義
-constexpr uint32_t kSpriteVertexCount = 6;
-
 //-----------------------------------------------------------------------------
 // Purpose : デストラクタ
 //-----------------------------------------------------------------------------
@@ -25,7 +22,6 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 	transform_ = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f} };
 	uvTransform_ = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f} };
 
-	Vertex vertices[kSpriteVertexCount] = {};
 	// 1枚目の三角形
 	vertices[0].position = { 0.0f, 1.0f, 0.0f, 1.0f }; // 左下
 	vertices[0].texcoord = { 0.0f, 1.0f };
@@ -47,11 +43,6 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 	vertices[5].texcoord = { 1.0f, 1.0f };
 	vertices[5].normal = { 0.0f, 0.0f, -1.0f };
 
-	// インデックスの作成
-	uint16_t indices[] = {
-		0, 1, 2, // 1枚目の三角形
-		2, 1, 4  // 2枚目の三角形
-	};
 	// インデックスバッファの作成
 	indexBuffer_ = std::make_unique<IndexBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(indices), indices);
 
@@ -77,13 +68,27 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 //-----------------------------------------------------------------------------
 // Purpose : スプライトの更新処理
 //-----------------------------------------------------------------------------
-void Sprite::Update() const {
+void Sprite::Update() {
+	float left = 0.0f - anchorPoint_.x;
+	float right = 1.0f - anchorPoint_.x;
+	float top = 0.0f - anchorPoint_.y;
+	float bottom = 1.0f - anchorPoint_.y;
+
+	vertices[0].position = { left, bottom, 0.0f,1.0f }; // 左下
+	vertices[1].position = { left, top , 0.0f,1.0f }; // 左上
+	vertices[2].position = { right, bottom, 0.0f,1.0f }; // 右下
+	vertices[3].position = { right, top , 0.0f,1.0f }; // 右上
+
+	vertexBuffer_->Update(vertices, kSpriteVertexCount);
+	indexBuffer_->Update(indices, sizeof(indices));
+
 	// uvTransformから行列を作成
 	Mat4 uvTransformMat = Mat4::Scale(uvTransform_.scale);
 	uvTransformMat = uvTransformMat * Mat4::RotateZ(uvTransform_.rotate.z);
 	uvTransformMat = uvTransformMat * Mat4::Translate(uvTransform_.translate);
 	// 設定
 	materialData_->uvTransform = uvTransformMat;
+
 
 	// 各種行列を作成
 	Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
@@ -145,6 +150,8 @@ Vec3 Sprite::GetSize() const {
 	return transform_.scale;
 }
 
+Vec2 Sprite::GetAnchorPoint() const { return anchorPoint_; }
+
 Vec4 Sprite::GetColor() const {
 	return materialData_->color;
 }
@@ -172,6 +179,8 @@ void Sprite::SetRot(const Vec3& newRot) {
 void Sprite::SetSize(const Vec3& newSize) {
 	transform_.scale = newSize;
 }
+
+void Sprite::SetAnchorPoint(const Vec2& anchorPoint) { this->anchorPoint_ = anchorPoint; }
 
 void Sprite::SetColor(const Vec4 color) const {
 	materialData_->color = color;

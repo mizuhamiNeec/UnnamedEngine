@@ -296,6 +296,7 @@ void GameScene::Update() {
 			Vec3 pos = sprites_[i]->GetPos();
 			Vec3 rot = sprites_[i]->GetRot();
 			Vec3 size = sprites_[i]->GetSize();
+			Vec2 anchor = sprites_[i]->GetAnchorPoint();
 			Vec4 color = sprites_[i]->GetColor();
 			if (ImGui::DragFloat3(std::format("pos##sprite{}", i).c_str(), &pos.x, 1.0f)) {
 				sprites_[i]->SetPos(pos);
@@ -306,10 +307,12 @@ void GameScene::Update() {
 			if (ImGui::DragFloat3(std::format("scale##sprite{}", i).c_str(), &size.x, 0.01f)) {
 				sprites_[i]->SetSize(size);
 			}
+			if (ImGui::DragFloat2(std::format("anchorPoint#sprite{}", i).c_str(), &anchor.x, 0.01f)) {
+				sprites_[i]->SetAnchorPoint(anchor);
+			}
 			if (ImGui::ColorEdit4(std::format("color##sprite{}", i).c_str(), &color.x)) {
 				sprites_[i]->SetColor(color);
 			}
-
 			ImGui::Separator();
 
 			if (ImGui::TreeNode(std::format("UV##sprite{}", i).c_str())) {
@@ -364,7 +367,7 @@ void GameScene::Update() {
 		ImGui::End();
 	}
 
-	for (const Sprite* sprite : sprites_) {
+	for (Sprite* sprite : sprites_) {
 		sprite->Update();
 	}
 

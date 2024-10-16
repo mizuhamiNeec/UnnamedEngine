@@ -1,6 +1,7 @@
 #include "IndexBuffer.h"
 
 #include <cassert>
+#include <iterator>
 
 IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, const size_t size, const void* pInitData) {
 	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
@@ -43,4 +44,15 @@ IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, con
 
 D3D12_INDEX_BUFFER_VIEW IndexBuffer::View() {
 	return view_;
+}
+
+void IndexBuffer::Update(const void* pInitData, const size_t size) const {
+	if (pInitData != nullptr) {
+		void* ptr = nullptr;
+		HRESULT hr = buffer_->Map(0, nullptr, &ptr);
+		assert(SUCCEEDED(hr));
+
+		memcpy(ptr, pInitData, size);
+		buffer_->Unmap(0, nullptr);
+	}
 }
