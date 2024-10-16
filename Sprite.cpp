@@ -125,6 +125,14 @@ void Sprite::Draw() const {
 	spriteCommon_->GetD3D12()->GetCommandList()->DrawIndexedInstanced(kSpriteVertexCount, 1, 0, 0, 0);
 }
 
+void Sprite::ChangeTexture(const std::string& textureFilePath) {
+	// 新しくインデックスを取得
+	this->textureIndex_ = TextureManager::GetInstance()->GetTextureIndexByFilePath(textureFilePath);
+
+	// SRVを更新
+//	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(textureIndex_));
+}
+
 Vec3 Sprite::GetPos() const {
 	return transform_.translate;
 }

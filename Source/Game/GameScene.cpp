@@ -332,22 +332,37 @@ void GameScene::Update() {
 	}
 	ImGui::End();
 
-	ImGui::Begin("Loaded Texture");
-	ImVec2 imageWindowSize = ImGui::GetContentRegionAvail();
-	static int index = 0;
-	float sliderHeight = ImGui::GetFrameHeightWithSpacing(); // スライダーの高さを取得
-	float imageSize = (imageWindowSize.x < (imageWindowSize.y - sliderHeight)) ? imageWindowSize.x : (imageWindowSize.y - sliderHeight);
+	{
+		ImGui::Begin("Loaded Texture");
+		ImVec2 imageWindowSize = ImGui::GetContentRegionAvail();
+		static int index = 0;
+		float sliderHeight = ImGui::GetFrameHeightWithSpacing(); // スライダーの高さを取得
+		float imageSize = (imageWindowSize.x < (imageWindowSize.y - sliderHeight)) ? imageWindowSize.x : (imageWindowSize.y - sliderHeight);
 
-	ImGui::SliderInt("index", &index, 0, TextureManager::GetInstance()->GetLoadedTextureCount());
+		ImGui::SliderInt("index", &index, 0, TextureManager::GetInstance()->GetLoadedTextureCount());
 
-	/*int frameIndex = renderer_->GetSwapChain()->GetCurrentBackBufferIndex();
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = renderer_->GetSRVDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
-	gpuHandle.ptr += (renderer_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3) * frameIndex;*/
+		/*int frameIndex = renderer_->GetSwapChain()->GetCurrentBackBufferIndex();
+		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = renderer_->GetSRVDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
+		gpuHandle.ptr += (renderer_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3) * frameIndex;*/
 
-	ImTextureID tex = reinterpret_cast<ImTextureID>(renderer_->GetSRVDescriptorHeap()->GetGPUDescriptorHandleForHeapStart().ptr + (renderer_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * index));
-	//ImTextureID tex = reinterpret_cast<ImTextureID>(gpuHandle.ptr);
-	ImGui::Image(tex, { imageSize ,imageSize });
-	ImGui::End();
+		ImTextureID tex = reinterpret_cast<ImTextureID>(renderer_->GetSRVDescriptorHeap()->GetGPUDescriptorHandleForHeapStart().ptr + (renderer_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * index));
+		//ImTextureID tex = reinterpret_cast<ImTextureID>(gpuHandle.ptr);
+		ImGui::Image(tex, { imageSize ,imageSize });
+		ImGui::End();
+	}
+
+	{
+		ImGui::Begin("Texture 0");
+		static bool texindex = false;
+		if (ImGui::Checkbox("Toggle Texture", &texindex)) {
+			if (texindex) {
+				sprites_[0]->ChangeTexture("./Resources/Textures/uvChecker.png");
+			} else {
+				sprites_[0]->ChangeTexture("./Resources/Textures/debugempty.png");
+			}
+		}
+		ImGui::End();
+	}
 
 	for (const Sprite* sprite : sprites_) {
 		sprite->Update();

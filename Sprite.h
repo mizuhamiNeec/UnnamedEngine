@@ -18,6 +18,8 @@ public:
 	void Update() const;
 	void Draw() const;
 
+	void ChangeTexture(const std::string& textureFilePath);
+
 	// Getter
 	Vec3 GetPos() const;
 	Vec3 GetRot() const;
