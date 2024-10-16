@@ -328,7 +328,7 @@ void D3D12::CreateDescriptorHeaps() {
 	descriptorSizeRTV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	descriptorSizeDSV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
-	// SRV用のヒープでディスクリプタの数は128。SRVはShader内で触るものなので、ShaderVisibleはtrue
+	// SRV用のヒープでディスクリプタの数はkMaxSRVCount。SRVはShader内で触るものなので、ShaderVisibleはtrue
 	srvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kMaxSRVCount, true);
 	// RTV用のヒープでディスクリプタの数は2。RTVはShader内で触るものではないので、ShaderVisibleはfalse
 	rtvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, kFrameBufferCount, false);
@@ -356,6 +356,22 @@ void D3D12::CreateRTV() {
 		device_->CreateRenderTargetView(renderTargets_[i].Get(), &rtvDesc, rtvHandles_[i]);
 	}
 	Console::Print("Complete create RenderTargetView.\n");
+
+	for (int i = 0; i < kFrameBufferCount; ++i) {
+		D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart();
+		srvHandle.ptr += (descriptorSizeSRV * 3) * i; // 各バックバッファに対して異なるSRVを作成
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Format = renderTargets_[0]->GetDesc().Format;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Texture2D.PlaneSlice = 0;
+		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+		device_->CreateShaderResourceView(renderTargets_[i].Get(), &srvDesc, srvHandle);
+	}
 }
 
 void D3D12::CreateDSV() {

@@ -37,11 +37,11 @@ RootSignatureManager* rootSignatureManager;
 PipelineState* pipelineState;
 
 ModelData loadedModelData;
-
-std::shared_ptr<Texture> texture2;
+uint32_t modelTextureIndex;
 
 D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU;
 D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU;
+
 
 MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
 	MaterialData materialData; // 構築するMaterialData
@@ -147,13 +147,13 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	transform = {
 		{1.0f, 1.0f, 1.0f},
 		{0.0f, 0.0f, 0.0f},
-		{65535.0f, 0.0f, 0.0f}
+		{0.0f, 0.0f, 0.0f}
 	};
 
 	cameraTransform = {
 		{1.0f, 1.0f, 1.0f},
 		{0.0f, 0.0f, 0.0f},
-		{65535.0f, 0.0f, -2.0f}
+		{0.0f, 0.0f, -2.0f}
 	};
 
 #pragma region 頂点バッファ
@@ -252,16 +252,21 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 		Console::Print("パイプラインステートの生成に成功.\n");
 	}
 #pragma endregion
-	// テクスチャのロードとSRVハンドルの取得
-	texture2 = TextureManager::GetInstance().GetTexture(renderer_->GetDevice(), L"./Resources/Textures/uvChecker.png");
-
 	// 共通スプライト
 	spriteCommon_ = std::make_unique<SpriteCommon>();
 	spriteCommon_->Init(renderer_);
 
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/debugempty.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/uvChecker.png");
+	modelTextureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath("./Resources/Textures/debugempty.png");
+
 	for (uint32_t i = 0; i < 5; ++i) {
 		Sprite* sprite = new Sprite();
-		sprite->Init(spriteCommon_.get());
+		if (i % 2 == 0) {
+			sprite->Init(spriteCommon_.get(), "./Resources/Textures/debugempty.png");
+		} else {
+			sprite->Init(spriteCommon_.get(), "./Resources/Textures/uvChecker.png");
+		}
 		sprite->SetPos({ 256.0f * i,0.0f,0.0f });
 		sprite->SetSize({ 256.0f,256.0f,1.0f });
 		sprites_.push_back(sprite);
@@ -325,6 +330,23 @@ void GameScene::Update() {
 			}
 		}
 	}
+	ImGui::End();
+
+	ImGui::Begin("Loaded Texture");
+	ImVec2 imageWindowSize = ImGui::GetContentRegionAvail();
+	static int index = 0;
+	float sliderHeight = ImGui::GetFrameHeightWithSpacing(); // スライダーの高さを取得
+	float imageSize = (imageWindowSize.x < (imageWindowSize.y - sliderHeight)) ? imageWindowSize.x : (imageWindowSize.y - sliderHeight);
+
+	ImGui::SliderInt("index", &index, 0, TextureManager::GetInstance()->GetLoadedTextureCount());
+
+	/*int frameIndex = renderer_->GetSwapChain()->GetCurrentBackBufferIndex();
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = renderer_->GetSRVDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
+	gpuHandle.ptr += (renderer_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3) * frameIndex;*/
+
+	ImTextureID tex = reinterpret_cast<ImTextureID>(renderer_->GetSRVDescriptorHeap()->GetGPUDescriptorHandleForHeapStart().ptr + (renderer_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * index));
+	//ImTextureID tex = reinterpret_cast<ImTextureID>(gpuHandle.ptr);
+	ImGui::Image(tex, { imageSize ,imageSize });
 	ImGui::End();
 
 	for (const Sprite* sprite : sprites_) {
@@ -417,7 +439,7 @@ void GameScene::Render() {
 	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer->View();
 
 	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { texture2->GetSRVHeap() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { renderer_->GetSRVDescriptorHeap() };
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Object3d"));
@@ -428,7 +450,7 @@ void GameScene::Render() {
 
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetAddress());
 	commandList->SetGraphicsRootConstantBufferView(1, transformation->GetAddress());
-	commandList->SetGraphicsRootDescriptorTable(2, texture2->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart()); // テクスチャのSRVを設定
+	commandList->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelTextureIndex)); // テクスチャのSRVを設定
 	commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetAddress());
 
 	commandList->DrawInstanced(static_cast<UINT>(loadedModelData.vertices.size()), 1, 0, 0);
@@ -448,7 +470,6 @@ void GameScene::Shutdown() {
 	}
 
 	spriteCommon_->Shutdown();
-	texture2.reset();
 
 	delete vertexBuffer;
 	delete transformation;

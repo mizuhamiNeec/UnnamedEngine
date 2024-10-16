@@ -14,7 +14,7 @@ class Sprite {
 public:
 	~Sprite();
 
-	void Init(SpriteCommon* spriteCommon);
+	void Init(SpriteCommon* spriteCommon, const std::string& textureFilePath);
 	void Update() const;
 	void Draw() const;
 
@@ -40,6 +40,9 @@ private:
 
 	Transform transform_;
 	Transform uvTransform_;
+
+	// テクスチャ番号
+	uint32_t textureIndex_ = 0;
 
 	// バッファリソース
 	std::unique_ptr<VertexBuffer> vertexBuffer_ = nullptr;

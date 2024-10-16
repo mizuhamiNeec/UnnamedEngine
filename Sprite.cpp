@@ -4,10 +4,7 @@
 #include "SpriteCommon.h"
 #include "Source/Engine/Lib/Structs/Structs.h"
 #include "Source/Engine/Renderer/VertexBuffer.h"
-#include "Source/Engine/TextureManager/Texture.h"
 #include "Source/Engine/TextureManager/TextureManager.h"
-
-std::shared_ptr<Texture> debug;
 
 // スプライトの頂点数を定義
 constexpr uint32_t kSpriteVertexCount = 6;
@@ -15,15 +12,14 @@ constexpr uint32_t kSpriteVertexCount = 6;
 //-----------------------------------------------------------------------------
 // Purpose : デストラクタ
 //-----------------------------------------------------------------------------
-Sprite::~Sprite() {
-	debug.reset();
-}
+Sprite::~Sprite() {}
 
 //-----------------------------------------------------------------------------
 // Purpose : スプライトを初期化します
 //-----------------------------------------------------------------------------
-void Sprite::Init(SpriteCommon* spriteCommon) {
+void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath) {
 	this->spriteCommon_ = spriteCommon;
+	this->textureIndex_ = TextureManager::GetInstance()->GetTextureIndexByFilePath(textureFilePath);
 
 	// 各トランスフォームに初期値を設定
 	transform_ = { {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f}, {0.0f,0.0f,0.0f} };
@@ -58,16 +54,10 @@ void Sprite::Init(SpriteCommon* spriteCommon) {
 	};
 	// インデックスバッファの作成
 	indexBuffer_ = std::make_unique<IndexBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(indices), indices);
-	if (indexBuffer_) {
-		Console::Print("インデックスバッファの生成に成功.\n");
-	}
 
 	// 頂点バッファの作成
 	size_t vertexStride = sizeof(Vertex);
 	vertexBuffer_ = std::make_unique<VertexBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Vertex) * kSpriteVertexCount, vertexStride, vertices);
-	if (vertexBuffer_) {
-		Console::Print("頂点バッファの生成に成功.\n");
-	}
 
 	// 定数バッファ
 	materialResource_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Material));
@@ -81,7 +71,7 @@ void Sprite::Init(SpriteCommon* spriteCommon) {
 	transformationMatrixData_->wvp = Mat4::Identity();
 	transformationMatrixData_->world = Mat4::Identity();
 
-	debug = TextureManager::GetInstance().GetTexture(spriteCommon_->GetD3D12()->GetDevice(), L"./Resources/Textures/uvChecker.png");
+	Console::Print("スプライトの初期化に成功しました。\n");
 }
 
 //-----------------------------------------------------------------------------
@@ -112,8 +102,8 @@ void Sprite::Update() const {
 // Purpose : スプライトの描画処理
 //-----------------------------------------------------------------------------
 void Sprite::Draw() const {
-	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { debug->GetSRVHeap() };
+	//// ディスクリプタヒープの設定
+	ID3D12DescriptorHeap* descriptorHeaps[] = { spriteCommon_->GetD3D12()->GetSRVDescriptorHeap() };
 	spriteCommon_->GetD3D12()->GetCommandList()->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	// 頂点バッファの設定
@@ -125,7 +115,7 @@ void Sprite::Draw() const {
 	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(1, transformation_->GetAddress());
 
 	// SRVを設定
-	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(2, debug->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart());
+	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(textureIndex_));
 
 	// インデックスバッファの設定
 	D3D12_INDEX_BUFFER_VIEW indexBufferView = indexBuffer_->View();

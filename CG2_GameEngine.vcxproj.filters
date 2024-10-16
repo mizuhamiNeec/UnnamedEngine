@@ -142,9 +142,6 @@
     <ClCompile Include="Source\Game\GameScene.cpp">
       <Filter>Source\Game\GameScene</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\TextureManager\Texture.cpp">
-      <Filter>Source\Engine\Managers\TextureManager\Texture</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp">
       <Filter>Source\Engine\Renderer\D3D12</Filter>
     </ClCompile>
@@ -261,9 +258,6 @@
     </ClInclude>
     <ClInclude Include="Source\Game\IGameScene.h">
       <Filter>Source\Game\GameScene</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\TextureManager\Texture.h">
-      <Filter>Source\Engine\Managers\TextureManager\Texture</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Lib\Structs\Structs.h">
       <Filter>Source\Engine\SharedStruct</Filter>

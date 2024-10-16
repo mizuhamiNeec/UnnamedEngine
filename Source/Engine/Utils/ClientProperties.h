@@ -14,7 +14,12 @@ constexpr int32_t kClientHeight = 720;
 constexpr uint32_t kFrameBufferCount = 2; // バックバッファの数 TODO : 起動時の引数などで変更できるようにしたい
 constexpr uint32_t kMaxSRVCount = 512;
 constexpr bool kEnableVSync = false; // 垂直同期
-constexpr float kMaxFPS = 60.0f;
+constexpr float kMaxFPS = 256.0f;
+
+//-----------------------------------------------------------------------------
+// Purpose : テクスチャマネージャー
+//-----------------------------------------------------------------------------
+constexpr uint32_t kSRVIndexTop = 1; // ImGuiで0番を使用するため、1番から使用
 
 //-----------------------------------------------------------------------------
 // Purpose : コンソール

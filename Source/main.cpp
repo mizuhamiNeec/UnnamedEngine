@@ -180,25 +180,28 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nShowCmd) {
 	std::unique_ptr<Engine> engine = std::make_unique<Engine>();
 	engine->Run();
 
-	ComPtr<IXAudio2> xAudio2;
-	IXAudio2MasteringVoice* masterVoice;
+	// 音声
+	{
+		ComPtr<IXAudio2> xAudio2;
+		IXAudio2MasteringVoice* masterVoice;
 
-	// TODO : コンソール変数を編集できるように
+		// TODO : コンソール変数を編集できるように
 
-	// XAudioエンジンのインスタンスを生成
-	HRESULT result = XAudio2Create(&xAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
-	if (FAILED(result)) {
-		assert(0 && "なんかだめだったみたい");
+		// XAudioエンジンのインスタンスを生成
+		HRESULT result = XAudio2Create(&xAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
+		if (FAILED(result)) {
+			assert(0 && "なんかだめだったみたい");
+		}
+
+		// マスターボイスを生成
+		result = xAudio2->CreateMasteringVoice(&masterVoice);
+
+		// 音声読み込み
+		SoundData soundData1 = SoundLoadWave("./Resources/Sounds/mokugyo.wav");
+
+		// 音声再生
+		SoundPlayWave(xAudio2.Get(), soundData1);
 	}
-
-	// マスターボイスを生成
-	result = xAudio2->CreateMasteringVoice(&masterVoice);
-
-	// 音声読み込み
-	SoundData soundData1 = SoundLoadWave("./Resources/Sounds/mokugyo.wav");
-
-	// 音声再生
-	SoundPlayWave(xAudio2.Get(), soundData1);
 
 	return 0;
 }

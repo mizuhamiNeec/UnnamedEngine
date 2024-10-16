@@ -81,19 +81,20 @@ private: //　メンバ変数
 	void InitializeFixFPS();
 	void UpdateFixFPS();
 
+public:
 	// -----------------------------------------------------------------------
 	// Accessor
 	// -----------------------------------------------------------------------
-public:
 	ID3D12Device* GetDevice() const { return device_.Get(); }
 	ID3D12GraphicsCommandList* GetCommandList() const { return commandList_.Get(); }
 	size_t GetBackBufferCount() const { return renderTargets_.size(); }
 	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const { return srvDescriptorHeap_.Get(); }
+	IDXGISwapChain4* GetSwapChain() const { return swapChain_.Get(); }
 
+private:
 	//------------------------------------------------------------------------
 	// 汎用関数
 	//------------------------------------------------------------------------
-private:
 	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors,
 		bool shaderVisible) const;
 

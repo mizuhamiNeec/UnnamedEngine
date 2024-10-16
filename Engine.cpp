@@ -30,8 +30,15 @@ void Engine::Initialize() {
 	renderer_ = std::make_unique<D3D12>();
 	renderer_->Init(window_.get());
 
+#ifdef _DEBUG
+	imGuiManager_ = std::make_unique<ImGuiManager>();
+	imGuiManager_->Init(renderer_.get(), window_.get());
+
+	console_ = std::make_unique<Console>();
+#endif
+
 	// テクスチャマネージャ
-	TextureManager::GetInstance()->Initialize();
+	TextureManager::GetInstance()->Initialize(renderer_->GetDevice(), renderer_->GetSRVDescriptorHeap());
 
 	// 入力
 	input_ = std::make_unique<Input>();
@@ -40,13 +47,6 @@ void Engine::Initialize() {
 	// シーン
 	gameScene_ = std::make_unique<GameScene>();
 	gameScene_->Init(renderer_.get(), window_.get());
-
-#ifdef _DEBUG
-	imGuiManager_ = std::make_unique<ImGuiManager>();
-	imGuiManager_->Init(renderer_.get(), window_.get());
-
-	console_ = std::make_unique<Console>();
-#endif
 }
 
 void Engine::Update() const {

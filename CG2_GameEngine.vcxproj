@@ -119,7 +119,6 @@
     <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\RootSignature.cpp" />
-    <ClCompile Include="Source\Engine\TextureManager\Texture.cpp" />
     <ClCompile Include="Source\Game\GameScene.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui_demo.cpp" />
@@ -181,7 +180,6 @@
     <ClInclude Include="Source\Engine\Window\Window.h" />
     <ClInclude Include="Source\Engine\Lib\Math\MathLib.h" />
     <ClInclude Include="Source\Engine\TextureManager\TextureManager.h" />
-    <ClInclude Include="Source\Engine\TextureManager\Texture.h" />
     <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\Swapchain.h" />
     <ClInclude Include="Sprite.h" />

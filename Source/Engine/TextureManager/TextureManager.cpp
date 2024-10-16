@@ -3,6 +3,7 @@
 
 #include "../Utils/ConvertString.h"
 #include "../../../Console.h"
+#include "../Utils/ClientProperties.h"
 
 TextureManager* TextureManager::instance = nullptr;
 
@@ -17,19 +18,9 @@ TextureManager* TextureManager::GetInstance() {
 	return instance;
 }
 
-std::shared_ptr<Texture> TextureManager::GetTexture(ID3D12Device* device, const std::wstring& filename) {
-	auto it = textures.find(filename);
-	if (it != textures.end()) {
-		return it->second;
-	}
-
-	std::shared_ptr<Texture> texture = std::make_shared<Texture>(device, filename);
-	textures[filename] = texture;
-	return texture;
-}
-
-void TextureManager::Initialize(const ComPtr<ID3D12Device>& device) {
+void TextureManager::Initialize(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12DescriptorHeap>& srvDescriptorHeap) {
 	device_ = device;
+	srvDescriptorHeap_ = srvDescriptorHeap;
 
 	// SRVの数と同数
 	//-------------------------------------------------------------------------
@@ -38,16 +29,6 @@ void TextureManager::Initialize(const ComPtr<ID3D12Device>& device) {
 	// 最初に最大個数のメモリを確保しておくことでその欠点を塞いでおく
 	//-------------------------------------------------------------------------
 	textureData_.reserve(kMaxSRVCount);
-}
-
-void TextureManager::ReleaseUnusedTextures() {
-	for (auto it = textures.begin(); it != textures.end(); ) {
-		if (it->second.use_count() == 1) {
-			it = textures.erase(it);
-		} else {
-			++it;
-		}
-	}
 }
 
 ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(const DirectX::TexMetadata& metadata) const {
@@ -78,7 +59,6 @@ ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(const DirectX::TexM
 		IID_PPV_ARGS(&resource) // 作成するResourceポインタへのポインタ
 	);
 	assert(SUCCEEDED(hr));
-	Console::Print(std::format("{:08x}\n", hr));
 
 	return resource;
 }
@@ -98,17 +78,43 @@ D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetGPUDescriptorHandle(ID3D12Descrip
 void TextureManager::Shutdown() {
 	delete instance;
 	instance = nullptr;
+}
 
-	for (auto& pair : textures) {
-		if (pair.second.use_count() > 1) {
-			// テクスチャがまだ参照されている
-			Console::Print(ConvertString::ToString(std::format(L"Texture {} is still in use, use_count: {}\n", pair.first.c_str(), pair.second.use_count())));
-		}
+void TextureManager::UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages) {
+	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
+
+	// 全MipMapについて
+	for (size_t mipLevel = 0; mipLevel < metadata.mipLevels; ++mipLevel) {
+		// MipMapLevelを指定して各Imageを取得
+		const DirectX::Image* img = mipImages.GetImage(mipLevel, 0, 0);
+		// Textureに転送
+		HRESULT hr = texture->WriteToSubresource(
+			static_cast<UINT>(mipLevel),
+			nullptr, // 全領域へコピー
+			img->pixels, // 元データアドレス
+			static_cast<UINT>(img->rowPitch), // 1ラインサイズ
+			static_cast<UINT>(img->slicePitch) // 1枚サイズ
+		);
+		assert(SUCCEEDED(hr));
 	}
-	textures.clear();
 }
 
 void TextureManager::LoadTexture(const std::string& filePath) {
+	// 読み込み済みテクスチャを検索
+	auto it = std::ranges::find_if(
+		textureData_,
+		[&](const TextureData& textureData) {
+			return textureData.filePath == filePath;
+		}
+	);
+
+	if (it != textureData_.end()) {
+		return; // 読み込み済みなら早期リターン
+	}
+
+	// テクスチャ枚数上限チェック
+	assert(textureData_.size() + kSRVIndexTop < kMaxSRVCount);
+
 	// テクスチャファイルを読んでプログラムで扱えるようにする
 	DirectX::ScratchImage image = {};
 	std::wstring filePathW = ConvertString::ToString(filePath);
@@ -125,15 +131,49 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 	// 追加したテクスチャデータの参照を取得する
 	TextureData& textureData = textureData_.back();
 
+	textureData.filePath = filePath;
+	textureData.metadata = mipImages.GetMetadata();
+	textureData.resource = CreateTextureResource(textureData.metadata);
+	UploadTextureData(textureData.resource, mipImages);
+
 	// テクスチャデータの要素数番号をSRVのインデックスとする
-	uint32_t srvIndex = static_cast<uint32_t>(textureData_.size());
-
-	textureData = {
-		.filePath = filePath,
-		.metadata = mipImages.GetMetadata(),
-		.resource = CreateTextureResource(textureData.metadata),
-		.srvHandleCPU =
-	};
+	uint32_t srvIndex = static_cast<uint32_t>(textureData_.size() - 1) + kSRVIndexTop; // ImGuiのために+1しておく
 
 
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = textureData.metadata.format;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // 2Dテクスチャ
+	srvDesc.Texture2D.MipLevels = static_cast<UINT>(textureData.metadata.mipLevels);
+
+	textureData.srvHandleCPU = GetCPUDescriptorHandle(srvDescriptorHeap_.Get(), device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV), srvIndex);
+	textureData.srvHandleGPU = GetGPUDescriptorHandle(srvDescriptorHeap_.Get(), device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV), srvIndex);
+
+	device_->CreateShaderResourceView(textureData.resource.Get(), &srvDesc, textureData.srvHandleCPU);
+}
+
+uint32_t TextureManager::GetTextureIndexByFilePath(const std::string& filePath) {
+	// 読み込み済みテクスチャを検索
+	auto it = std::ranges::find_if(
+		textureData_,
+		[&](const TextureData& textureData) {
+			return textureData.filePath == filePath;
+		}
+	);
+
+	if (it != textureData_.end()) {
+		// 読み込み済みなら要素番号を返す
+		uint32_t textureIndex = static_cast<uint32_t>(std::distance(textureData_.begin(), it));
+		return textureIndex;
+	}
+
+	assert(0);
+	return 0;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(uint32_t textureIndex) {
+	assert(textureIndex < textureData_.size() && "範囲外指定違反: textureIndexが無効です。");
+
+	TextureData& textureData = textureData_[textureIndex];
+	return textureData.srvHandleGPU;
 }
