@@ -23,7 +23,10 @@ public: // メンバ関数
 
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data);
 
-private: //　メンバ変数
+	void WaitPreviousFrame();
+
+private:
+	//　メンバ変数
 	ComPtr<ID3D12Device> device_;
 	ComPtr<IDXGIFactory7> dxgiFactory_;
 	ComPtr<ID3D12CommandQueue> commandQueue_;
@@ -76,7 +79,6 @@ private: //　メンバ変数
 	void SetViewportAndScissor();
 
 	void HandleDeviceLost();
-	void WaitPreviousFrame();
 
 	void InitializeFixFPS();
 	void UpdateFixFPS();
@@ -87,9 +89,16 @@ public:
 	// -----------------------------------------------------------------------
 	ID3D12Device* GetDevice() const { return device_.Get(); }
 	ID3D12GraphicsCommandList* GetCommandList() const { return commandList_.Get(); }
+	ID3D12CommandQueue* GetCommandQueue() const { return commandQueue_.Get(); }
 	size_t GetBackBufferCount() const { return renderTargets_.size(); }
 	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const { return srvDescriptorHeap_.Get(); }
 	IDXGISwapChain4* GetSwapChain() const { return swapChain_.Get(); }
+	ID3D12Fence* GetFence() const { return fence_.Get(); }
+	ID3D12CommandAllocator* GetCommandAllocator() const { return commandAllocator_.Get(); }
+
+	uint64_t GetFenceValue() const { return fenceValue_; }
+	void SetFenceValue(const uint64_t newValue) { fenceValue_ = newValue; };
+
 
 private:
 	//------------------------------------------------------------------------

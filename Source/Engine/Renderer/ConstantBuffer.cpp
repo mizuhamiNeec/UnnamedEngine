@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-ConstantBuffer::ConstantBuffer(ComPtr<ID3D12Device> device, const size_t size) {
+ConstantBuffer::ConstantBuffer(const ComPtr<ID3D12Device>& device, const size_t size) {
 	size_t align = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
 	UINT64 sizeAligned = (size + (align - 1)) & ~(align - 1);
 
