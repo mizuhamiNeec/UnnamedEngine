@@ -24,7 +24,6 @@
 D3D12::~D3D12() {
 	CloseHandle(fenceEvent_);
 	Console::Print("Bye!\n");
-	Console::Print("Bye!");
 }
 
 void D3D12::Init(Window* window) {

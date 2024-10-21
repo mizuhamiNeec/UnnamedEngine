@@ -1,12 +1,12 @@
 #pragma once
 
 #include <d3d12.h>
-#include <memory>
 #include <string>
 #include <wrl/client.h>
 
 #include "DirectXTex/DirectXTex.h"
 
+class D3D12;
 using namespace Microsoft::WRL;
 
 class TextureManager {
@@ -14,11 +14,13 @@ public:
 	// シングルトンインスタンスの取得
 	static TextureManager* GetInstance();
 
-	void Initialize(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12DescriptorHeap>& srvDescriptorHeap);
+	void Initialize(D3D12* renderer);
 	void Shutdown();
 
-	void UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages);
+	HRESULT CreateBufferResource(size_t size) const;
 	void LoadTexture(const std::string& filePath);
+
+	static void UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages);
 
 	// SRVインデックスの開始番号
 	uint32_t GetTextureIndexByFilePath(const std::string& filePath);
@@ -46,8 +48,7 @@ private:
 	// テクスチャデータ
 	std::vector<TextureData> textureData_;
 
-	ComPtr<ID3D12Device> device_ = nullptr;
-	ComPtr<ID3D12DescriptorHeap> srvDescriptorHeap_ = nullptr;
+	D3D12* renderer_;
 
 	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);

@@ -38,7 +38,7 @@ void Engine::Initialize() {
 #endif
 
 	// テクスチャマネージャ
-	TextureManager::GetInstance()->Initialize(renderer_->GetDevice(), renderer_->GetSRVDescriptorHeap());
+	TextureManager::GetInstance()->Initialize(renderer_.get());
 
 	// 入力
 	input_ = std::make_unique<Input>();
