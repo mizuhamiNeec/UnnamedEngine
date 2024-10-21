@@ -4,6 +4,7 @@
 #include "../Utils/ConvertString.h"
 #include "../../../Console.h"
 #include "../Utils/ClientProperties.h"
+#include <../Externals/DirectXTex/d3dx12.h>
 
 TextureManager* TextureManager::instance = nullptr;
 

@@ -89,7 +89,6 @@ void Sprite::Update() {
 	// 設定
 	materialData_->uvTransform = uvTransformMat;
 
-
 	// 各種行列を作成
 	Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
 	Mat4 viewMat = Mat4::Identity();
