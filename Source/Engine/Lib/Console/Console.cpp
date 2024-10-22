@@ -6,20 +6,24 @@
 
 #include "ConVar.h"
 #include "ConVars.h"
-#include "Source/Engine/Utils/ConvertString.h"
 
 #ifdef _DEBUG
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 #endif
+#include <debugapi.h>
 
-#include "Source/Engine/Utils/ClientProperties.h"
+#include "../Math/Vector/Vec3.h"
+
+#include "../Utils/ClientProperties.h"
+
+#include "../Utils/ConvertString.h"
 
 #ifdef _DEBUG
 int ConsoleCallback(ImGuiInputTextCallbackData* data) {
 	switch (data->EventFlag) {
 	case ImGuiInputTextFlags_CallbackCompletion:
-		Console::Print("Completion", kConsoleWarning);
+		Console::Print("Completion", kConsoleColorWarning);
 		break;
 
 	case ImGuiInputTextFlags_CallbackHistory:
@@ -51,7 +55,7 @@ int ConsoleCallback(ImGuiInputTextCallbackData* data) {
 		break;
 
 	case ImGuiInputTextFlags_CallbackResize:
-		Console::Print("Resize	", kConsoleError);
+		Console::Print("Resize	", kConsoleColorError);
 		break;
 	default:;
 	}
@@ -76,9 +80,7 @@ void Console::Update() {
 
 	ImGui::SetNextWindowSizeConstraints({ 256.0f,256.0f }, { 8192.0f,8192.0f });
 
-	bool open = ImGui::Begin("Console", &bShowConsole, consoleWindowFlags);
-
-	if (open) {
+	if (ImGui::Begin("Console", &bShowConsole, consoleWindowFlags)) {
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		size.y -= ImGui::GetFrameHeightWithSpacing() + 9.0f;
 
@@ -164,9 +166,9 @@ void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[m
 	repeatCounts.back()++;
 
 	if (repeatCounts.back() >= kConsoleRepeatError) {
-		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleError };
+		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleColorError };
 	} else if (repeatCounts.back() >= kConsoleRepeatWarning) {
-		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleWarning };
+		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleColorWarning };
 	} else {
 		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), color };
 	}
@@ -275,13 +277,13 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 			switch (conVar->GetType()) {
 			case ConVarType::INT:
-				Print(description + " " + str, kConsoleInt);
+				Print(description + " " + str, kConsoleColorInt);
 				break;
 			case ConVarType::FLOAT:
-				Print(description + " " + str, kConsoleFloat);
+				Print(description + " " + str, kConsoleColorFloat);
 				break;
 			case ConVarType::VEC3:
-				Print(description + " " + str, kConsoleVec3);
+				Print(description + " " + str, kConsoleColorVec3);
 				break;
 			}
 			return;
@@ -299,7 +301,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 				conVar->SetValue(vec);
 				i += 2;
 			} else {
-				Print(std::format("無効なパラメーターです。 {}", param), kConsoleWarning);
+				Print(std::format("無効なパラメーターです。 {}", param), kConsoleColorWarning);
 				return;
 			}
 		}

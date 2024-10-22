@@ -15,7 +15,7 @@ public:
 
 	template<typename T>
 	T* GetPtr() {
-		return reinterpret_cast<T*>(GetPtr());
+		return static_cast<T*>(GetPtr());
 	}
 
 private:

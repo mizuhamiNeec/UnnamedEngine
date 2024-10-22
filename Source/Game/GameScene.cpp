@@ -7,22 +7,23 @@
 #include "imgui/imgui.h"
 #endif
 
-#include "../../Console.h"
-#include "../../ConVar.h"
-#include "../../ConVars.h"
-#include "../../RootSignatureManager.h"
-#include "../../Sprite.h"
-#include "../../SpriteCommon.h"
-#include "../Engine/ImGuiManager/ImGuiManager.h"
-#include "../Engine/Lib/Math/MathLib.h"
-#include "../Engine/Lib/Structs/Structs.h"
-#include "../Engine/Renderer/PipelineState.h"
-#include "../Engine/Renderer/RootSignature.h"
-#include "../Engine/Renderer/VertexBuffer.h"
-#include "../Engine/TextureManager/TextureManager.h"
+#include "../ImGuiManager/ImGuiManager.h"
+#include "../Lib/Console/Console.h"
+#include "../Lib/Console/ConVar.h"
+#include "../Lib/Console/ConVars.h"
+#include "../Lib/Math/MathLib.h"
+#include "../Lib/Structs/Structs.h"
+#include "../Renderer/PipelineState.h"
+#include "../Renderer/RootSignature.h"
+#include "../Renderer/RootSignatureManager.h"
+#include "../Renderer/VertexBuffer.h"
+#include "../Sprite/Sprite.h"
+#include "../Sprite/SpriteCommon.h"
+#include "../TextureManager/TextureManager.h"
 
 // TODO : メンバに移動しよう
 
+class RootSignatureManager;
 VertexBuffer* vertexBuffer;
 ConstantBuffer* transformation;
 
@@ -86,19 +87,16 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 			s >> position.x >> position.y >> position.z;
 			position.w = 1.0f;
 			positions.push_back(position);
-		}
-		else if (identifier == "vt") {
+		} else if (identifier == "vt") {
 			Vec2 texcoord;
 			s >> texcoord.x >> texcoord.y;
 			texcoord.y = 1.0f - texcoord.y;
 			texcoords.push_back(texcoord);
-		}
-		else if (identifier == "vn") {
+		} else if (identifier == "vn") {
 			Vec3 normal;
 			s >> normal.x >> normal.y >> normal.z;
 			normals.push_back(normal);
-		}
-		else if (identifier == "f") {
+		} else if (identifier == "f") {
 			Vertex triangle[3];
 
 			// 面は三角形限定。その他は未対応
@@ -108,7 +106,7 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 				// 頂点の要素へのIndexは[位置/UV/法線] で格納されているので、分解してIndexを取得する
 				std::istringstream v(vertexDefinition);
 				std::string index;
-				uint32_t elementIndices[3] = {0, 0, 0};
+				uint32_t elementIndices[3] = { 0, 0, 0 };
 				int element = 0;
 
 				while (std::getline(v, index, '/') && element < 3) {
@@ -120,19 +118,18 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 
 				// 要素へのIndexから、実際の要素の値を取得して、頂点を構築する
 				Vec4 position = positions[elementIndices[0] - 1];
-				Vec2 texcoord = elementIndices[1] ? texcoords[elementIndices[1] - 1] : Vec2{0.0f, 0.0f};
-				Vec3 normal = elementIndices[2] ? normals[elementIndices[2] - 1] : Vec3{0.0f, 0.0f, 0.0f};
+				Vec2 texcoord = elementIndices[1] ? texcoords[elementIndices[1] - 1] : Vec2{ 0.0f, 0.0f };
+				Vec3 normal = elementIndices[2] ? normals[elementIndices[2] - 1] : Vec3{ 0.0f, 0.0f, 0.0f };
 
 				position.x *= -1.0f;
 				normal.x *= -1.0f;
-				triangle[faceVertex] = {position, texcoord, normal};
+				triangle[faceVertex] = { position, texcoord, normal };
 			}
 			// 頂点を逆順で登録することで、周り順を逆にする
 			modelData.vertices.push_back(triangle[2]);
 			modelData.vertices.push_back(triangle[1]);
 			modelData.vertices.push_back(triangle[0]);
-		}
-		else if (identifier == "mtllib") {
+		} else if (identifier == "mtllib") {
 			// materialTemplateLibraryファイルの名前を取得する
 			std::string materialFilename;
 			s >> materialFilename;
@@ -165,7 +162,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	loadedModelData = LoadObjFile("Resources/Models", "suzanne.obj");
 	// 頂点リソースを作る
 	vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * loadedModelData.vertices.size(),
-	                                sizeof(Vertex), loadedModelData.vertices.data());
+		sizeof(Vertex), loadedModelData.vertices.data());
 
 	if (vertexBuffer) {
 		Console::Print("頂点バッファの生成に成功.\n");
@@ -179,7 +176,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	materialResource = new ConstantBuffer(renderer_->GetDevice(), sizeof(Material));
 	// マテリアルにデータを書き込む
 	material = materialResource->GetPtr<Material>(); // 書き込むためのアドレスを取得
-	*material = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
+	*material = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
 	material->enableLighting = true;
 	material->uvTransform = Mat4::Identity();
 
@@ -188,7 +185,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	// ---------------------------------------------------------------------------
 	directionalLightResource = new ConstantBuffer(renderer_->GetDevice(), sizeof(DirectionalLight));
 	directionalLight = directionalLightResource->GetPtr<DirectionalLight>();
-	directionalLight->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	directionalLight->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	const Vec3 dir = Vec3(-1.0f, -1.0f, 1.0f);
 	directionalLight->direction = dir.Normalized();
 	directionalLight->intensity = 1.0f;
@@ -237,7 +234,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	};
 
 	rootSignatureManager->CreateRootSignature("Object3d", modelRootParameters, staticSamplers,
-	                                          _countof(staticSamplers));
+		_countof(staticSamplers));
 
 	if (rootSignatureManager->Get("Object3d")) {
 		Console::Print("ルートシグネチャの生成に成功.\n");
@@ -264,18 +261,18 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/debugempty.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/uvChecker.png");
+
 	modelTextureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath("./Resources/Textures/debugempty.png");
 
 	for (uint32_t i = 0; i < 5; ++i) {
 		Sprite* sprite = new Sprite();
 		if (i % 2 == 0) {
 			sprite->Init(spriteCommon_.get(), "./Resources/Textures/debugempty.png");
-		}
-		else {
+		} else {
 			sprite->Init(spriteCommon_.get(), "./Resources/Textures/uvChecker.png");
 		}
-		sprite->SetPos({256.0f * i, 0.0f, 0.0f});
-		sprite->SetSize({256.0f, 256.0f, 1.0f});
+		sprite->SetPos({ 256.0f * i, 0.0f, 0.0f });
+		sprite->SetSize({ 256.0f, 256.0f, 1.0f });
 		sprites_.push_back(sprite);
 	}
 }
@@ -287,8 +284,7 @@ void GameScene::Update() {
 	Mat4 viewMat = cameraMat.Inverse();
 	Mat4 projectionMat = Mat4::PerspectiveFovMat(
 		fov * Math::deg2Rad, // FieldOfView 90 degree!!
-		static_cast<float>(window_->GetWindowConfig().clientWidth) / static_cast<float>(window_->GetWindowConfig().
-			clientHeight),
+		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight()),
 		0.01f,
 		1000.0f
 	);
@@ -298,6 +294,7 @@ void GameScene::Update() {
 	ptr->wvp = worldViewProjMat;
 	ptr->world = worldMat;
 
+#ifdef _DEBUG
 	ImGui::Begin("Sprites");
 	for (uint32_t i = 0; i < sprites_.size(); ++i) {
 		if (ImGui::CollapsingHeader(std::format("Sprite {}", i).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -349,8 +346,8 @@ void GameScene::Update() {
 		static int index = 0;
 		float sliderHeight = ImGui::GetFrameHeightWithSpacing(); // スライダーの高さを取得
 		float imageSize = (imageWindowSize.x < (imageWindowSize.y - sliderHeight))
-			                  ? imageWindowSize.x
-			                  : (imageWindowSize.y - sliderHeight);
+			? imageWindowSize.x
+			: (imageWindowSize.y - sliderHeight);
 
 		ImGui::SliderInt("index", &index, 0, TextureManager::GetInstance()->GetLoadedTextureCount());
 
@@ -359,10 +356,10 @@ void GameScene::Update() {
 		gpuHandle.ptr += (renderer_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3) * frameIndex;*/
 
 		ImTextureID tex = reinterpret_cast<ImTextureID>(renderer_->GetSRVDescriptorHeap()->
-		                                                           GetGPUDescriptorHandleForHeapStart().ptr + (renderer_
-			->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * index));
+			GetGPUDescriptorHandleForHeapStart().ptr + (renderer_
+				->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * index));
 		//ImTextureID tex = reinterpret_cast<ImTextureID>(gpuHandle.ptr);
-		ImGui::Image(tex, {imageSize, imageSize});
+		ImGui::Image(tex, { imageSize, imageSize });
 		ImGui::End();
 	}
 
@@ -372,13 +369,13 @@ void GameScene::Update() {
 		if (ImGui::Checkbox("Toggle Texture", &texindex)) {
 			if (texindex) {
 				sprites_[0]->ChangeTexture("./Resources/Textures/uvChecker.png");
-			}
-			else {
+			} else {
 				sprites_[0]->ChangeTexture("./Resources/Textures/debugempty.png");
 			}
 		}
 		ImGui::End();
 	}
+#endif
 
 	for (Sprite* sprite : sprites_) {
 		sprite->Update();
@@ -403,7 +400,7 @@ void GameScene::Update() {
 
 #pragma region cl_showpos
 	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -471,7 +468,7 @@ void GameScene::Render() {
 	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer->View();
 
 	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = {renderer_->GetSRVDescriptorHeap()};
+	ID3D12DescriptorHeap* descriptorHeaps[] = { renderer_->GetSRVDescriptorHeap() };
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Object3d"));

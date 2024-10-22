@@ -3,9 +3,9 @@
 #define DIRECTINPUT_VERSION 0x0800 // DirectInputのバージョン指定
 #include <dinput.h>
 
-#include "Source/Engine/Window/Window.h"
-
 #include <wrl/client.h>
+
+class Window;
 
 class Input {
 public:

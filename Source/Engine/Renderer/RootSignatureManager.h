@@ -23,6 +23,6 @@ public:
 private:
 	ID3D12Device* device_;
 	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;
-	RootSignatureManager* rootSignatureManager_;
+	RootSignatureManager* rootSignatureManager_ = nullptr;
 };
 

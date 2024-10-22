@@ -86,8 +86,6 @@ public:
 
 	void SetTransformationMatrixData(const TransformationMatrix& newtTransformationMatrix) const;
 
-	void SetIsRunning(bool isRunning);
-
 	void SetMaterialData(const Material& matData) const;
 	Material* GetMaterialData() const;
 
@@ -132,7 +130,7 @@ private:
 		IDxcIncludeHandler* includeHandler
 	);
 
-	static ComPtr<ID3D12Resource> CreateTextureResource(ComPtr<ID3D12Device> device,
+	static ComPtr<ID3D12Resource> CreateTextureResource(const ComPtr<ID3D12Device>& device,
 		const DirectX::TexMetadata& metadata);
 	ComPtr<ID3D12Resource> CreateBufferResource(const ComPtr<ID3D12Device>& device, size_t sizeInBytes);
 	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource(int32_t width, int32_t height) const;

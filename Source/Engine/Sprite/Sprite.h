@@ -1,12 +1,12 @@
 #pragma once
 #include <memory>
 
-#include "Source/Engine/Lib/Math/Vector/Vec2.h"
-#include "Source/Engine/Lib/Structs/Structs.h"
-#include "Source/Engine/Lib/Transform/Transform.h"
-#include "Source/Engine/Renderer/ConstantBuffer.h"
-#include "Source/Engine/Renderer/VertexBuffer.h"
-#include "Source/Engine/Renderer/IndexBuffer.h"
+#include "../Lib/Math/Vector/Vec2.h"
+#include "../Lib/Structs/Structs.h"
+#include "../Lib/Transform/Transform.h"
+#include "../Renderer/ConstantBuffer.h"
+#include "../Renderer/VertexBuffer.h"
+#include "../Renderer/IndexBuffer.h"
 
 // スプライトの頂点数
 constexpr uint32_t kSpriteVertexCount = 6;
@@ -55,10 +55,10 @@ private:
 	// テクスチャサイズをイメージに合わせる
 	void AdjustTextureSize();
 private:
-	
+
 	SpriteCommon* spriteCommon_ = nullptr;
 
-	Vec2 anchorPoint_ = {0.0f, 0.0f};
+	Vec2 anchorPoint_ = { 0.0f, 0.0f };
 
 	Transform transform_;
 	Transform uvTransform_;
@@ -69,8 +69,8 @@ private:
 	bool isFlipY_ = false;
 
 	// テクスチャ左上座標
-	Vec2 textureLeftTop = {0.0f, 0.0f};
-	Vec2 textureSize = {100.0f, 100.0f};
+	Vec2 textureLeftTop = { 0.0f, 0.0f };
+	Vec2 textureSize = { 100.0f, 100.0f };
 
 	// テクスチャ番号
 	uint32_t textureIndex_ = 0;

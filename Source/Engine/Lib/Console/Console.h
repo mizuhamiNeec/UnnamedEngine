@@ -3,20 +3,20 @@
 #include <string>
 #include <vector>
 
+#include "../ImGuiManager/ImGuiManager.h"
+
 #ifdef _DEBUG
 #include "imgui/imgui.h"
-constexpr ImVec4 kConsoleNormal = { 0.87f, 0.87f, 0.87f, 1.0f }; // 通常テキストの色
-constexpr ImVec4 kConsoleWarning = { 1.0f,1.0f,0.0f,1.0f }; // 警告テキストの色
-constexpr ImVec4 kConsoleError = { 1.0f,0.0f,0.0f,1.0f }; // エラーテキストの色
-constexpr ImVec4 kConsoleInt = { 0.12f, 0.89f, 0.69f, 1.0f };
-constexpr ImVec4 kConsoleFloat = { 0.22f, 0.84f, 0.0f, 1.0f };
-constexpr ImVec4 kConsoleVec3 = { 1.0f, 0.79f, 0.14f, 1.0f };
-#else
-struct ImVec4 {
-	float x, y, z, w;
-};
 #endif
+constexpr ImVec4 kConsoleColorNormal = { 0.87f, 0.87f, 0.87f, 1.0f }; // 通常テキストの色
+constexpr ImVec4 kConsoleColorWarning = { 1.0f,1.0f,0.0f,1.0f }; // 警告テキストの色
+constexpr ImVec4 kConsoleColorError = { 1.0f,0.0f,0.0f,1.0f }; // エラーテキストの色
+constexpr ImVec4 kConsoleColorWait = { 0.274f, 0.51f, 0.706f, 1.0f }; // 待ち状態テキストの色
+constexpr ImVec4 kConsoleColorCompleted = { 0.133f, 0.545f, 0.133f, 1.0f };
 
+constexpr ImVec4 kConsoleColorInt = { 0.12f, 0.89f, 0.69f, 1.0f };
+constexpr ImVec4 kConsoleColorFloat = { 0.22f, 0.84f, 0.0f, 1.0f };
+constexpr ImVec4 kConsoleColorVec3 = { 1.0f, 0.79f, 0.14f, 1.0f };
 
 constexpr uint32_t kInputBufferSize = 512; // コンソールが一度に送信できるバッファの数
 
@@ -31,10 +31,10 @@ struct ConsoleText {
 
 class Console {
 public:
-	void Update();
+	static void Update();
 
 #ifdef _DEBUG
-	static void Print(const std::string& message, const ImVec4 color = kConsoleNormal);
+	static void Print(const std::string& message, ImVec4 color = kConsoleColorNormal);
 #else
 	static void Print(const std::string& message, const ImVec4 color = { 0.0f,0.0f,0.0f,0.0f });
 #endif
@@ -42,7 +42,7 @@ public:
 	static void ToggleConsole();
 
 #ifdef _DEBUG
-	static void UpdateRepeatCount(const std::string& message, ImVec4 color = kConsoleNormal);
+	static void UpdateRepeatCount(const std::string& message, ImVec4 color = kConsoleColorNormal);
 #else
 	static void UpdateRepeatCount(const std::string& message, ImVec4 color = { 0.0f,0.0f,0.0f,0.0f });
 #endif
@@ -63,7 +63,7 @@ static bool bShowConsole = false; // コンソールを表示するか?
 static bool wishScrollToBottom = false; // 一番下にスクロールしたい
 static bool bShowPopup = false; // ポップアップを表示
 static std::vector<ConsoleText> consoleTexts; // コンソールに出力されているテキスト
-static char inputText[kInputBufferSize] = { 0 }; // 入力中のテキスト
+static char inputText[kInputBufferSize] = {}; // 入力中のテキスト
 static int historyIndex = -1;
 static std::vector<std::string> history; // 入力の履歴
 static std::vector<int> repeatCounts;

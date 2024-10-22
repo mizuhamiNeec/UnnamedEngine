@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "Source/Engine/Window/Window.h"
+#include "../Window/Window.h"
 
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
@@ -27,7 +27,7 @@ void Input::Init(const Window* window) {
 
 	// 排他制御レベルのセット
 	hr = keyboard->SetCooperativeLevel(
-		window->GetHWND(),
+		window->GetWindowHandle(),
 		DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY
 	);
 	assert(SUCCEEDED(hr));

@@ -4,9 +4,11 @@
 
 #ifdef _DEBUG
 #include "imgui/imgui.h"
+#else
+struct ImVec4 {
+	float x, y, z, w;
+};
 #endif
-
-#include "../../../Console.h"
 
 struct ColorTransition {
 	ImVec4 targetColor;

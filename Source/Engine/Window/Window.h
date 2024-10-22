@@ -1,54 +1,41 @@
 #pragma once
+//-----------------------------------------------------------------------------
+//#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+//-----------------------------------------------------------------------------
 
 #include <cstdint>
-#include <Windows.h>
 
-struct WindowConfig {
-	LPCWSTR windowTitle;
-	uint32_t clientWidth;
-	uint32_t clientHeight;
-	LPCWSTR windowClassName;
-	DWORD dwStyle;
-	DWORD dwExStyle;
-	int nCmdShow;
-};
-
-struct CaptionButton {
-	UINT uCmd; // Command to send when clicked (WM_COMMAND)
-	int nRightBorder; // Pixels between this button and buttons to the right
-	HBITMAP hBmp; // Bitmap to display
-	BOOL fPressed; // Is the button pressed in or out?
-};
-
-constexpr int maxTitleButtons = 2;
-
-struct CustomCaption {
-	CaptionButton buttons[maxTitleButtons];
-	int nNumButtons;
-	BOOL fMouseDown; // is the mouse button being clicked?
-	WNDPROC wpOldProc; // old window procedure
-	int iActiveButton; // the button index being clicked.
-};
+#include "../Lib/Utils/ConvertString.h"
+#include "../Lib/Utils/ClientProperties.h"
 
 class Window final {
 public:
-	Window();
+	Window(std::wstring title, uint32_t width, uint32_t height, DWORD style = WS_OVERLAPPEDWINDOW, DWORD exStyle = 0);
 	~Window();
 
-	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-	void CreateMainWindow(const WindowConfig& windowConfig);
-	WindowConfig GetWindowConfig() const;
+	bool Create(HINSTANCE hInstance, const std::string& className = kWindowClassName, WNDPROC wndProc = WindowProc);
+
+	static void SetUseImmersiveDarkMode(HWND hWnd, bool darkMode);
+
+	HWND GetWindowHandle() const;
+	HINSTANCE GetHInstance() const;
+
+	uint32_t GetClientWidth() const;
+	uint32_t GetClientHeight() const;
 
 	static bool ProcessMessage();
 
-	HWND GetHWND() const { return hWnd_; }
-
-	HINSTANCE GetHInstance() const { return wc_.hInstance; }
-
 private:
-	HWND hWnd_ = nullptr;
+	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 	WNDCLASSEX wc_ = {};
-	WindowConfig windowConfig_ = {};
-	float aspectRatio_ = 0;
+
+	HWND hWnd_ = nullptr;
+	std::wstring title_;
+	uint32_t width_;
+	uint32_t height_;
+	DWORD style_;
+	DWORD exStyle_;
 };

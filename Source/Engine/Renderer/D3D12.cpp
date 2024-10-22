@@ -2,19 +2,19 @@
 
 #include <cassert>
 #include <d3d12.h>
+#include <dxgi1_3.h>
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
 #include <format>
-
-#include "../Utils/ConvertString.h"
-#include "DirectXTex/d3dx12.h"
-#include <dxgi1_3.h>
 #include <thread>
 
-#include "../Utils/ClientProperties.h"
-#include "../../../Console.h"
-#include "../../../ConVars.h"
-#include "../../../ConVar.h"
+#include "../Lib/Console/Console.h"
+#include "../Lib/Console/ConVar.h"
+#include "../Lib/Console/ConVars.h"
+#include "../Lib/Utils/ClientProperties.h"
+#include "../Lib/Utils/ConvertString.h"
+
+#include "DirectXTex/d3dx12.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -28,7 +28,6 @@ D3D12::~D3D12() {
 
 void D3D12::Init(Window* window) {
 	window_ = window;
-	windowConfig_ = window->GetWindowConfig();
 
 	InitializeFixFPS();
 
@@ -190,17 +189,7 @@ void D3D12::CreateDevice() {
 	//-------------------------------------------------------------------------
 	// ファクトリーの生成
 	//-------------------------------------------------------------------------
-	HRESULT hr;
-	UINT dxgiFlags = 0;
-
-#ifdef _DEBUG
-	// デバッグ有効化時にはDXGI_CREATE_FACTORY_DEBUG フラグを付与する
-	dxgiFlags |= DXGI_CREATE_FACTORY_DEBUG;
-#endif
-
-	dxgiFlags = 0;
-
-	hr = CreateDXGIFactory2(dxgiFlags, IID_PPV_ARGS(&dxgiFactory_));
+	HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&dxgiFactory_));
 	assert(SUCCEEDED(hr));
 
 	//-------------------------------------------------------------------------
@@ -298,8 +287,8 @@ void D3D12::CreateCommandQueue() {
 void D3D12::CreateSwapChain() {
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.BufferCount = kFrameBufferCount;
-	swapChainDesc.Width = windowConfig_.clientWidth;
-	swapChainDesc.Height = windowConfig_.clientHeight;
+	swapChainDesc.Width = window_->GetClientWidth();
+	swapChainDesc.Height = window_->GetClientHeight();
 	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // 色の形式
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // レンダーターゲットとして利用
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // モニタに映したら中身を破棄
@@ -308,7 +297,7 @@ void D3D12::CreateSwapChain() {
 
 	const HRESULT hr = dxgiFactory_->CreateSwapChainForHwnd(
 		commandQueue_.Get(),
-		window_->GetHWND(),
+		window_->GetWindowHandle(),
 		&swapChainDesc,
 		nullptr,
 		nullptr,
@@ -420,16 +409,16 @@ void D3D12::SetViewportAndScissor() {
 	// Viewport
 	viewport_.TopLeftX = 0;
 	viewport_.TopLeftY = 0;
-	viewport_.Width = static_cast<FLOAT>(windowConfig_.clientWidth);
-	viewport_.Height = static_cast<FLOAT>(windowConfig_.clientHeight);
+	viewport_.Width = static_cast<FLOAT>(window_->GetClientWidth());
+	viewport_.Height = static_cast<FLOAT>(window_->GetClientHeight());
 	viewport_.MinDepth = 0.0f;
 	viewport_.MaxDepth = 1.0f;
 
 	// ScissorRect
 	scissorRect_.left = 0;
 	scissorRect_.top = 0;
-	scissorRect_.right = static_cast<LONG>(windowConfig_.clientWidth);
-	scissorRect_.bottom = static_cast<LONG>(windowConfig_.clientHeight);
+	scissorRect_.right = static_cast<LONG>(window_->GetClientWidth());
+	scissorRect_.bottom = static_cast<LONG>(window_->GetClientHeight());
 }
 
 void D3D12::HandleDeviceLost() {
@@ -522,8 +511,8 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12::GetGPUDescriptorHandle(ID3D12DescriptorHeap* 
 ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 	// 生成するResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc = {};
-	resourceDesc.Width = windowConfig_.clientWidth;
-	resourceDesc.Height = windowConfig_.clientHeight;
+	resourceDesc.Width = window_->GetClientWidth();
+	resourceDesc.Height = window_->GetClientHeight();
 	resourceDesc.MipLevels = 1; // Mipmapの数
 	resourceDesc.DepthOrArraySize = 1; // 奥行きor配列Textureの配列数
 	resourceDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // DepthStencilとして利用可能なフォーマット

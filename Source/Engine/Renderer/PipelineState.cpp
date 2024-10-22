@@ -2,14 +2,14 @@
 
 #include <cassert>
 #include <format>
-#include "../Utils/ConvertString.h"
-#include "../../../Console.h"
+#include "../Lib/Console/Console.h"
+#include "../Lib/Utils/ConvertString.h"
 
 PipelineState::PipelineState() {
 }
 
 PipelineState::PipelineState(const D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK,
-                             const D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID) {
+	const D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID) {
 	D3D12_BLEND_DESC blendDesc = {};
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
@@ -38,12 +38,22 @@ PipelineState::PipelineState(const D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BA
 
 	// DXCの初期化
 	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils_));
-	assert(SUCCEEDED(hr));
+	if (FAILED(hr)) {
+		Console::Print("Failed to create DxcUtils instance\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+		return;
+	}
+
 	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler_));
-	assert(SUCCEEDED(hr));
+	if (FAILED(hr)) {
+		Console::Print("Failed to create DxcCompiler instance\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+		return;
+	}
 
 	hr = dxcUtils_->CreateDefaultIncludeHandler(&includeHandler_);
-	assert(SUCCEEDED(hr));
+	if (FAILED(hr)) {
+		Console::Print("Failed to create default include handler\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+		return;
+	}
 }
 
 void PipelineState::SetInputLayout(const D3D12_INPUT_LAYOUT_DESC layout) {
@@ -73,7 +83,7 @@ void PipelineState::SetPS(const std::wstring& filePath) {
 }
 
 IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils,
-                                       IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
+	IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
 	/* 1. hlslファイルを読む */
 	// これからシェーダーをコンパイルする旨をログに出す
 	Console::Print(

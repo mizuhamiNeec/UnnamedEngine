@@ -2,20 +2,13 @@
 
 #ifdef _DEBUG
 
-#include <winrt/Windows.UI.ViewManagement.h>
-
 #include "../Renderer/D3D12.h"
-#include "../Utils/ClientProperties.h"
 #include "../Window/Window.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx12.h"
 #include "imgui/imgui_impl_win32.h"
-
-using namespace winrt::Windows::UI::ViewManagement;
-
-inline bool IsColorLight(const winrt::Windows::UI::Color& clr) {
-	return 5 * clr.G + 2 * clr.R + clr.B > 8 * 128;
-}
+#include "../Lib/Utils/ClientProperties.h"
+#include "../Window/WindowsUtils.h"
 
 void ImGuiManager::Init(const D3D12* renderer, const Window* window) {
 	renderer_ = renderer;
@@ -28,6 +21,7 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window) {
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 
+	// 少し角丸に
 	auto& style = ImGui::GetStyle();
 	style.WindowRounding = 4;
 	style.FrameRounding = 2;
@@ -38,19 +32,21 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window) {
 	imFontConfig.PixelSnapH = true;
 	imFontConfig.SizePixels = 18;
 
+	// Ascii
 	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\JetBrainsMono.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesDefault());
 	imFontConfig.MergeMode = true;
+	// 日本語フォールバック
 	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese());
 
-	UISettings settings = UISettings();
-	winrt::Windows::UI::Color foreground = settings.GetColorValue(UIColorType::Foreground);
-	if (IsColorLight(foreground)) {
+	// テーマの設定
+	// TODO : 多分いらないけどランタイムで変わったらカッコいいよね!!
+	if (WindowsUtils::IsAppDarkTheme()) {
 		ImGui::StyleColorsDark();
 	} else {
 		ImGui::StyleColorsLight();
 	}
 
-	ImGui_ImplWin32_Init(window->GetHWND());
+	ImGui_ImplWin32_Init(window->GetWindowHandle());
 
 	ImGui_ImplDX12_Init(
 		renderer_->GetDevice(),
@@ -73,13 +69,15 @@ void ImGuiManager::EndFrame() const {
 	// ImGuiのフレームを終了しレンダリング準備
 	ImGui::Render();
 
+	// ImGuiマルチビューポート用
 	ImGui::UpdatePlatformWindows();
 	ImGui::RenderPlatformWindowsDefault();
+
 
 	ID3D12DescriptorHeap* imGuiHeap = renderer_->GetSRVDescriptorHeap();
 	renderer_->GetCommandList()->SetDescriptorHeaps(1, &imGuiHeap);
 
-	//実際のcommandListのImGuiの描画コマンドを積む
+	// 実際のCommandListのImGuiの描画コマンドを積む
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), renderer_->GetCommandList());
 
 	ImGui::EndFrame();
@@ -92,5 +90,8 @@ void ImGuiManager::Shutdown() {
 	ImGui::DestroyContext();
 	srvHeap_.Reset();
 }
+#else
+void ImGuiManager::Shutdown() {
 
+}
 #endif

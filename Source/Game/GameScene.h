@@ -3,8 +3,8 @@
 
 #include "../Renderer/Renderer.h"
 #include "../Engine/Lib/Transform/Transform.h"
+#include "../Sprite/SpriteCommon.h"
 
-class SpriteCommon;
 class Sprite;
 
 class GameScene : IGameScene {

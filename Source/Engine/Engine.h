@@ -1,20 +1,24 @@
 #pragma once
-#include "Input.h"
-#include "SpriteCommon.h"
-#include "Source/Engine/ImGuiManager/ImGuiManager.h"
-#include "Source/Engine/Renderer/D3D12.h"
-#include "Source/Game/GameScene.h"
+#include <memory>
 
-#include "Sprite.h"
+#include "../Game/GameScene.h"
+
+#include "../Input/Input.h"
+
+class Console;
+class ImGuiManager;
+class D3D12;
+class Window;
 
 class Engine {
 public:
+	Engine();
 	void Run();
 
 private:
 	void Initialize();
 	void Update() const;
-	void Shutdown();
+	void Shutdown() const;
 
 private:
 	std::unique_ptr<Window> window_;

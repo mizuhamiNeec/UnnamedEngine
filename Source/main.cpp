@@ -7,12 +7,8 @@
 #include "Engine/ImGuiManager/ImGuiManager.h"
 #endif
 
-#include "../Console.h"
-#include "../ConVar.h"
-#include "../Input.h"
 #include "Engine/Renderer/D3D12.h"
 #include "Engine/TextureManager/TextureManager.h"
-#include "Engine/Utils/ConvertString.h"
 
 // audio TODO : さっさとクラス化しよう
 #include <xaudio2.h>
@@ -20,6 +16,10 @@
 #pragma comment(lib, "xaudio2.lib")
 #include <fstream>
 #include "../Engine.h"
+
+#include "Engine/Lib/Console/Console.h"
+#include "Engine/Lib/Console/ConVar.h"
+#include "Engine/Lib/Utils/ConvertString.h"
 
 // チャンクヘッダ
 struct ChunkHeader {
@@ -134,13 +134,11 @@ void SoundUnload(SoundData* soundData) {
 }
 
 void SoundPlayWave(IXAudio2* xAudio2, const SoundData& soundData) {
-	HRESULT result;
-
 	// 波形フォーマットを先にSourceVoiceの生成
 	IXAudio2SourceVoice* pSourceVoice = nullptr;
-	result = xAudio2->CreateSourceVoice(&pSourceVoice, &soundData.wfex);
+	HRESULT result = xAudio2->CreateSourceVoice(&pSourceVoice, &soundData.wfex);
 	if (FAILED(result)) {
-		Console::Print(std::format("CreateSourceVoice failed: HRESULT = {:#010x}", result));
+		Console::Print(std::format("CreateSourceVoice failed: HRESULT = {:#010x}\n", result));
 		assert(SUCCEEDED(result));
 	}
 
@@ -153,13 +151,13 @@ void SoundPlayWave(IXAudio2* xAudio2, const SoundData& soundData) {
 	// 波形データの生成
 	result = pSourceVoice->SubmitSourceBuffer(&buf);
 	if (FAILED(result)) {
-		Console::Print(std::format("SubmitSourceBuffer failed: HRESULT = {:#010x}", result));
+		Console::Print(std::format("SubmitSourceBuffer failed: HRESULT = {:#010x}\n", result));
 		assert(SUCCEEDED(result));
 	}
 
 	result = pSourceVoice->Start();
 	if (FAILED(result)) {
-		Console::Print(std::format("Start failed: HRESULT = {:#010x}", result));
+		Console::Print(std::format("Start failed: HRESULT = {:#010x}\n", result));
 		assert(SUCCEEDED(result));
 	}
 }

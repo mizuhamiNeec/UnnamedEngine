@@ -14,5 +14,4 @@ public:
 
 protected:
 	Window* window_ = nullptr;
-	WindowConfig windowConfig_ = {};
 };

@@ -1,9 +1,10 @@
 #include "SpriteCommon.h"
 
-#include "Console.h"
-#include "RootSignatureManager.h"
-#include "Source/Engine/Lib/Structs/Structs.h"
-#include "Source/Engine/Renderer/PipelineState.h"
+#include "../Lib/Console/Console.h"
+#include "../Lib/Structs/Structs.h"
+
+#include "../Renderer/D3D12.h"
+#include "../Renderer/RootSignatureManager.h"
 
 /// <summary>
 /// SpriteCommonを初期化します
@@ -11,7 +12,7 @@
 /// <param name="d3d12"></param>
 void SpriteCommon::Init(D3D12* d3d12) {
 	d3d12_ = d3d12;
-	Console::Print("SpriteCommon : SpriteCommonを初期化します。");
+	Console::Print("SpriteCommon : SpriteCommonを初期化します。\n");
 	CreateGraphicsPipeline();
 }
 
@@ -96,7 +97,7 @@ void SpriteCommon::CreateGraphicsPipeline() {
 	}
 }
 
-void SpriteCommon::Render() {
+void SpriteCommon::Render() const {
 	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
 	d3d12_->GetCommandList()->SetGraphicsRootSignature(rootSignatureManager_->Get("SpriteCommon"));
 	d3d12_->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

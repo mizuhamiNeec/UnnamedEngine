@@ -1,6 +1,8 @@
 #include "VertexBuffer.h"
 
 #include <cassert>
+#include "../Lib/Console/Console.h"
+#include "../Lib/Structs/Structs.h"
 
 VertexBuffer::VertexBuffer(const ComPtr<ID3D12Device>& device, const size_t size, const size_t stride, const void* pInitData) {
 	// リソース用のヒープを設定
@@ -54,7 +56,10 @@ void VertexBuffer::Update(const void* newVertices, const size_t vertexCount) con
 	if (newVertices != nullptr) {
 		void* ptr = nullptr;
 		HRESULT hr = buffer_->Map(0, nullptr, &ptr);
-		assert(SUCCEEDED(hr));
+		if (FAILED(hr)) {
+			Console::Print("Failed to map vertex buffer\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+			return; // エラー時は処理を中断
+		}
 		size_t size = sizeof(Vertex) * vertexCount;
 		memcpy(ptr, newVertices, size);
 		buffer_->Unmap(0, nullptr);

@@ -6,7 +6,6 @@
 #include <wrl/client.h>
 
 #include "Renderer.h"
-#include "../Utils/ClientProperties.h"
 
 using namespace Microsoft::WRL;
 

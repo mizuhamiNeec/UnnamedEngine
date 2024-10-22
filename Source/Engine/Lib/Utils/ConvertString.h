@@ -36,9 +36,9 @@ public:
 
 	static wchar_t* ToString(const std::string& str) {
 		// 変換に必要なバッファサイズを取得
-		int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), NULL, 0);
+		int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.size()), nullptr, 0);
 		wchar_t* wstr = new wchar_t[sizeNeeded + 1]; // +1 は終端用
-		MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), wstr, sizeNeeded);
+		MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.size()), wstr, sizeNeeded);
 		wstr[sizeNeeded] = L'\0'; // 終端を追加
 		return wstr;
 	}

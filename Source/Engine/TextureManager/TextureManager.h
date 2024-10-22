@@ -15,9 +15,8 @@ public:
 	static TextureManager* GetInstance();
 
 	void Initialize(D3D12* renderer);
-	void Shutdown();
+	static void Shutdown();
 
-	HRESULT CreateBufferResource(size_t size) const;
 	void LoadTexture(const std::string& filePath);
 
 	static void UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages);
@@ -28,14 +27,14 @@ public:
 	// テクスチャ番号からGPUハンドルを取得
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(uint32_t textureIndex);
 
-	uint32_t GetLoadedTextureCount() const {
+	[[nodiscard]] uint32_t GetLoadedTextureCount() const {
 		return static_cast<uint32_t>(textureData_.size());
 	}
 
 	const DirectX::TexMetadata& GetMetaData(uint32_t textureIndex) const;
 
 private:
-	ComPtr<ID3D12Resource> CreateTextureResource(const DirectX::TexMetadata& metadata) const;
+	[[nodiscard]] ComPtr<ID3D12Resource> CreateTextureResource(const DirectX::TexMetadata& metadata) const;
 
 private:
 	// テクスチャ1枚分のデータ
@@ -58,7 +57,7 @@ private:
 	                                                          uint32_t descriptorSize, uint32_t index);
 
 private:
-	static TextureManager* instance;
+	static TextureManager* instance_;
 
 	TextureManager() = default;
 	~TextureManager() = default;

@@ -3,8 +3,6 @@
 #include <d3d12.h>
 #include <wrl.h>
 
-#include <../Lib/Structs/Structs.h>
-
 using namespace Microsoft::WRL;
 
 class VertexBuffer {

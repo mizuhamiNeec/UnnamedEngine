@@ -102,16 +102,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
-    <None Include="ClassDiagram.cd" />
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Console.cpp" />
-    <ClCompile Include="ConVar.cpp" />
-    <ClCompile Include="ConVars.cpp" />
-    <ClCompile Include="Engine.cpp" />
-    <ClCompile Include="Input.cpp" />
-    <ClCompile Include="RootSignatureManager.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Console\Console.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Console\ConVar.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Console\ConVars.cpp" />
+    <ClCompile Include="Source\Engine\Engine.cpp" />
+    <ClCompile Include="Source\Engine\Input\Input.cpp" />
+    <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\RootSignatureManager.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp" />
@@ -139,16 +139,18 @@
     <ClCompile Include="Source\Engine\Lib\Structs\Structs.cpp" />
     <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\Swapchain.cpp" />
-    <ClCompile Include="Sprite.cpp" />
-    <ClCompile Include="SpriteCommon.cpp" />
+    <ClCompile Include="Source\Engine\Sprite\Sprite.cpp" />
+    <ClCompile Include="Source\Engine\Sprite\SpriteCommon.cpp" />
+    <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Console.h" />
-    <ClInclude Include="ConVar.h" />
-    <ClInclude Include="ConVars.h" />
-    <ClInclude Include="Engine.h" />
-    <ClInclude Include="Input.h" />
-    <ClInclude Include="RootSignatureManager.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\Console.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\ConVar.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\ConVars.h" />
+    <ClInclude Include="Source\Engine\Engine.h" />
+    <ClInclude Include="Source\Engine\Input\Input.h" />
+    <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h" />
+    <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
     <ClInclude Include="Source\Engine\Renderer\IndexBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\PipelineState.h" />
@@ -166,9 +168,9 @@
     <ClInclude Include="Source\Engine\Externals\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h" />
     <ClInclude Include="Source\Engine\Renderer\D3D12.h" />
-    <ClInclude Include="Source\Engine\Utils\ConvertString.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\ConvertString.h" />
     <ClInclude Include="Source\Engine\Renderer\DirectX12.h" />
-    <ClInclude Include="Source\Engine\Utils\ClientProperties.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\ClientProperties.h" />
     <ClInclude Include="Source\Game\IGameScene.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h" />
     <ClInclude Include="Source\Engine\Renderer\Renderer.h" />
@@ -182,8 +184,9 @@
     <ClInclude Include="Source\Engine\TextureManager\TextureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\Swapchain.h" />
-    <ClInclude Include="Sprite.h" />
-    <ClInclude Include="SpriteCommon.h" />
+    <ClInclude Include="Source\Engine\Sprite\Sprite.h" />
+    <ClInclude Include="Source\Engine\Sprite\SpriteCommon.h" />
+    <ClInclude Include="Source\Engine\Window\WindowsUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">

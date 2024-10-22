@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <iterator>
+#include "../Lib/Console/Console.h"
 
 IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, const size_t size, const void* pInitData) {
 	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
@@ -50,7 +51,10 @@ void IndexBuffer::Update(const void* pInitData, const size_t size) const {
 	if (pInitData != nullptr) {
 		void* ptr = nullptr;
 		HRESULT hr = buffer_->Map(0, nullptr, &ptr);
-		assert(SUCCEEDED(hr));
+		if (FAILED(hr)) {
+			Console::Print("Failed to map index buffer\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+			return;
+		}
 
 		memcpy(ptr, pInitData, size);
 		buffer_->Unmap(0, nullptr);

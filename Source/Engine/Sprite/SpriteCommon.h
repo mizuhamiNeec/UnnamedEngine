@@ -1,7 +1,9 @@
 #pragma once
-#include "RootSignatureManager.h"
-#include "Source/Engine/Renderer/D3D12.h"
-#include "Source/Engine/Renderer/PipelineState.h"
+
+#include "../Renderer/PipelineState.h"
+
+class RootSignatureManager;
+class D3D12;
 
 class SpriteCommon {
 public:
@@ -11,7 +13,7 @@ public:
 
 	void CreateGraphicsPipeline();
 
-	void Render();
+	void Render() const;
 
 	D3D12* GetD3D12() const { return d3d12_; }
 

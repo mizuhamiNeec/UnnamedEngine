@@ -3,7 +3,10 @@
 #include <variant>
 
 #include "ConVars.h"
-#include "Source/Engine/Lib/Math/Vector/Vec3.h"
+
+#include "../Math/Vector/Vec3.h"
+
+struct Vec3;
 
 class ConVar {
 public:

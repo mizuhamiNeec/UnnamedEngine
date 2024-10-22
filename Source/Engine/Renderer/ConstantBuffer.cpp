@@ -35,7 +35,6 @@ ConstantBuffer::ConstantBuffer(const ComPtr<ID3D12Device>& device, const size_t 
 	hr = buffer_->Map(0, nullptr, &mappedPtr);
 	assert(SUCCEEDED(hr));
 
-	desc_ = {};
 	desc_.BufferLocation = buffer_->GetGPUVirtualAddress();
 	desc_.SizeInBytes = static_cast<UINT>(sizeAligned);
 }

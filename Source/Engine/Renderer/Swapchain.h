@@ -1,8 +1,5 @@
 #pragma once
-#include <dxgi1_5.h>
-#include <memory>
 #include <wrl/client.h>
-#include <d3d12.h>
 
 using namespace Microsoft::WRL;
 

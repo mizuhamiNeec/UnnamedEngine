@@ -1,10 +1,15 @@
 #include "Engine.h"
 
-#include "ConVars.h"
-#include "ConVar.h"
-#include "Sprite.h"
-#include "Source/Engine/TextureManager/TextureManager.h"
-#include "Source/Engine/Utils/ConvertString.h"
+#include "Lib/Console/ConVars.h"
+#include "Lib/Console/ConVar.h"
+#include "Lib/Utils/ClientProperties.h"
+#include "Renderer/D3D12.h"
+#include "Lib/Console/Console.h"
+#include "../ImGuiManager/ImGuiManager.h"
+
+#include "TextureManager/TextureManager.h"
+
+#include "Window/Window.h"
 
 void Engine::Run() {
 	Initialize();
@@ -12,19 +17,15 @@ void Engine::Run() {
 	Shutdown();
 }
 
+Engine::Engine() = default;
+
 void Engine::Initialize() {
 	// ウィンドウの作成
-	window_ = std::make_unique<Window>();
-	WindowConfig windowConfig = {
-		.windowTitle = ConvertString::ToString(kWindowTitle),
-		.clientWidth = kClientWidth,
-		.clientHeight = kClientHeight,
-		.windowClassName = ConvertString::ToString(kWindowClassName),
-		.dwStyle = WS_OVERLAPPEDWINDOW,
-		.dwExStyle = WS_EX_OVERLAPPEDWINDOW,
-		.nCmdShow = ConVars::GetInstance().GetConVar("cl_nshowcmd")->GetInt(),
-	};
-	window_->CreateMainWindow(windowConfig);
+	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
+	// ウィンドウの作成を試みる
+	if (!window_->Create(nullptr)) {
+		assert(false && "ウィンドウの作成に失敗した");
+	}
 
 	// レンダラ
 	renderer_ = std::make_unique<D3D12>();
@@ -100,11 +101,11 @@ void Engine::Update() const {
 
 			std::string text = std::format("{:.2f} fps", io.Framerate);
 
-			ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleError);
+			ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
 			if (io.Framerate >= 59.9f) {
-				textColor = ImGui::ColorConvertFloat4ToU32(kConsoleFloat);
+				textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
 			} else if (io.Framerate >= 29.9f) {
-				textColor = ImGui::ColorConvertFloat4ToU32(kConsoleWarning);
+				textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 			}
 
 			ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
@@ -147,10 +148,10 @@ void Engine::Update() const {
 	}
 }
 
-void Engine::Shutdown() {
+void Engine::Shutdown() const {
 	gameScene_->Shutdown();
 
-	TextureManager::GetInstance()->Shutdown();
+	TextureManager::Shutdown();
 
 	// ImGuiManagerのシャットダウンは最後に行う
 	if (imGuiManager_) {

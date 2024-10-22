@@ -5,14 +5,12 @@
 #include <cassert>
 #include <dxgidebug.h>
 #include <format>
-#include <fstream>
-#include <sstream>
 #include <imgui/imgui_impl_dx12.h>
+#include "../Lib/Utils/ConvertString.h"
 
-#include "../../../Console.h"
-#include "../Utils/ClientProperties.h"
-#include "../Utils/ConvertString.h"
 #include "../Lib/Math/Matrix/Mat4.h"
+#include "../Lib/Console/Console.h"
+#include "../Lib/Utils/ClientProperties.h"
 
 //ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename) {
 //	ModelData modelData; // 構築するModelData
@@ -108,6 +106,9 @@
 //
 //	return materialData;
 //}
+
+DirectX12::DirectX12() {
+}
 
 DirectX12::~DirectX12() = default;
 
@@ -829,12 +830,10 @@ void DirectX12::CreateCommandList() {
 }
 
 void DirectX12::CreateSwapChain() {
-	const WindowConfig windowConfig = window_->GetWindowConfig();
-
 	// スワップチェーンを生成する
 	swapChainDesc_.BufferCount = kFrameBufferCount; // ダブルバッファ
-	swapChainDesc_.Width = windowConfig.clientWidth; // 画面の幅。ウィンドウのクライアント領域を同じものにしておく
-	swapChainDesc_.Height = windowConfig.clientHeight; // 画面の高さ。ウィンドウのクライアント領域を同じものにしておく
+	//swapChainDesc_.Width = windowConfig.clientWidth; // 画面の幅。ウィンドウのクライアント領域を同じものにしておく
+	//swapChainDesc_.Height = windowConfig.clientHeight; // 画面の高さ。ウィンドウのクライアント領域を同じものにしておく
 	swapChainDesc_.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // 色の形式
 	swapChainDesc_.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 描画のターゲットとして利用する
 	swapChainDesc_.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // モニタにうつしたら、中身を破棄
@@ -843,7 +842,7 @@ void DirectX12::CreateSwapChain() {
 	// コマンドキュー、ウィンドウハンドル、設定を渡して生成する
 	hr_ = dxgiFactory_->CreateSwapChainForHwnd(
 		commandQueue_.Get(),
-		window_->GetHWND(),
+		window_->GetWindowHandle(),
 		&swapChainDesc_,
 		nullptr,
 		nullptr,
@@ -1198,8 +1197,8 @@ DirectX::ScratchImage DirectX12::LoadTexture(const std::string& filePath) {
 	return mipImages;
 }
 
-ComPtr<ID3D12Resource> DirectX12::CreateTextureResource(ComPtr<ID3D12Device> device,
-	const DirectX::TexMetadata& metadata) {
+ComPtr<ID3D12Resource> DirectX12::CreateTextureResource(const ComPtr<ID3D12Device>& device,
+                                                        const DirectX::TexMetadata& metadata) {
 	// metadataを下にResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc = {};
 	resourceDesc.Width = static_cast<UINT>(metadata.width); // Textureの幅
