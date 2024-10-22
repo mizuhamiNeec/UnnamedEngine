@@ -13,7 +13,7 @@ constexpr uint32_t kSpriteVertexCount = 6;
 
 class SpriteCommon;
 
-class Sprite {
+class Sprite final {
 public:
 	~Sprite();
 
@@ -29,6 +29,8 @@ public:
 	Vec3 GetSize() const;
 	Vec2 GetAnchorPoint() const;
 	Vec4 GetColor() const;
+	Vec2 GetTextureLeftTop() const;
+	Vec2 GetTextureSize() const;
 	bool GetIsFlipX() const;
 	bool GetIsFlipY() const;
 	Vec2 GetUvPos();
@@ -43,14 +45,20 @@ public:
 	void SetColor(Vec4 color) const;
 	void SetIsFlipX(bool isFlipX);
 	void SetIsFlipY(bool isFlipY);
+	void SetTextureLeftTop(const Vec2& newTextureLeftTop);
+	void SetTextureSize(const Vec2& newTextureSize);
 	void SetUvPos(const Vec2& newPos);
 	void SetUvSize(const Vec2& newSize);
 	void SetUvRot(const float& newRot);
 
 private:
+	// テクスチャサイズをイメージに合わせる
+	void AdjustTextureSize();
+private:
+	
 	SpriteCommon* spriteCommon_ = nullptr;
 
-	Vec2 anchorPoint_ = { 0.0f,0.0f };
+	Vec2 anchorPoint_ = {0.0f, 0.0f};
 
 	Transform transform_;
 	Transform uvTransform_;
@@ -60,13 +68,17 @@ private:
 	// 上下フリップ
 	bool isFlipY_ = false;
 
+	// テクスチャ左上座標
+	Vec2 textureLeftTop = {0.0f, 0.0f};
+	Vec2 textureSize = {100.0f, 100.0f};
+
 	// テクスチャ番号
 	uint32_t textureIndex_ = 0;
 
 	Vertex vertices[kSpriteVertexCount] = {};
 
 	uint32_t indices[kSpriteVertexCount] = {
-		0, 1, 2,  // 1つ目の三角形
+		0, 1, 2, // 1つ目の三角形
 		1, 4, 2 // 2つ目の三角形
 	};
 
@@ -81,4 +93,3 @@ private:
 	Material* materialData_ = nullptr;
 	TransformationMatrix* transformationMatrixData_ = nullptr;
 };
-

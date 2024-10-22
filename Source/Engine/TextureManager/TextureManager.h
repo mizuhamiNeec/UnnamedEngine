@@ -32,6 +32,8 @@ public:
 		return static_cast<uint32_t>(textureData_.size());
 	}
 
+	const DirectX::TexMetadata& GetMetaData(uint32_t textureIndex) const;
+
 private:
 	ComPtr<ID3D12Resource> CreateTextureResource(const DirectX::TexMetadata& metadata) const;
 
@@ -50,8 +52,10 @@ private:
 
 	D3D12* renderer_;
 
-	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
-	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
+	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
+	                                                          uint32_t descriptorSize, uint32_t index);
+	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
+	                                                          uint32_t descriptorSize, uint32_t index);
 
 private:
 	static TextureManager* instance;

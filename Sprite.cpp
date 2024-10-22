@@ -64,6 +64,8 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 	transformationMatrixData_->wvp = Mat4::Identity();
 	transformationMatrixData_->world = Mat4::Identity();
 
+	AdjustTextureSize();
+
 	Console::Print("スプライトの初期化に成功しました。\n");
 }
 
@@ -87,6 +89,17 @@ void Sprite::Update() {
 		bottom = -bottom;
 	}
 
+	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureIndex_);
+	float texLeft = textureLeftTop.x / metadata.width;
+	float texRight = (textureLeftTop.x + textureSize.x) / metadata.width;
+	float texTop = textureLeftTop.y / metadata.height;
+	float texBottom = (textureLeftTop.y + textureSize.y) / metadata.height;
+
+	vertices[0].texcoord = {texLeft, texBottom};
+	vertices[1].texcoord = {texLeft, texTop};
+	vertices[2].texcoord = {texRight, texBottom};
+	vertices[4].texcoord = {texRight, texTop};
+
 	vertices[0].position = {left, bottom, 0.0f, 1.0f}; // 左下
 	vertices[1].position = {left, top, 0.0f, 1.0f}; // 左上
 	vertices[2].position = {right, bottom, 0.0f, 1.0f}; // 右下
@@ -97,7 +110,14 @@ void Sprite::Update() {
 
 	ImGui::Begin("SpriteFlipper");
 	ImGui::Checkbox("Flip X", &isFlipX_);
+	ImGui::SameLine();
 	ImGui::Checkbox("Flip Y", &isFlipY_);
+	ImGui::Separator();
+	ImGui::End();
+
+	ImGui::Begin("Sprite Slicer");
+	ImGui::DragFloat2("LeftTop", &textureLeftTop.x, 0.01f);
+	ImGui::DragFloat2("TextureSize", &textureSize.x, 0.01f);
 	ImGui::End();
 
 	// uvTransformから行列を作成
@@ -175,6 +195,14 @@ Vec4 Sprite::GetColor() const {
 	return materialData_->color;
 }
 
+Vec2 Sprite::GetTextureLeftTop() const {
+	return textureLeftTop;
+}
+
+Vec2 Sprite::GetTextureSize() const {
+	return textureSize;
+}
+
 bool Sprite::GetIsFlipX() const {
 	return isFlipX_;
 }
@@ -221,6 +249,14 @@ void Sprite::SetIsFlipY(const bool isFlipY) {
 	isFlipY_ = isFlipY;
 }
 
+void Sprite::SetTextureLeftTop(const Vec2& newTextureLeftTop) {
+	this->textureLeftTop = newTextureLeftTop;
+}
+
+void Sprite::SetTextureSize(const Vec2& newTextureSize) {
+	this->textureSize = newTextureSize;
+}
+
 void Sprite::SetUvPos(const Vec2& newPos) {
 	for (uint32_t i = 0; i < 2; ++i) {
 		uvTransform_.translate[i] = newPos[i];
@@ -235,4 +271,13 @@ void Sprite::SetUvSize(const Vec2& newSize) {
 
 void Sprite::SetUvRot(const float& newRot) {
 	uvTransform_.rotate.z = newRot;
+}
+
+void Sprite::AdjustTextureSize() {
+	// テクスチャメタデータを取得
+	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureIndex_);
+
+	// 画像サイズをテクスチャサイズに合わせる
+	textureSize.x = static_cast<float>(metadata.width);
+	textureSize.y = static_cast<float>(metadata.height);
 }
