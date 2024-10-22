@@ -18,6 +18,7 @@ VertexBuffer::VertexBuffer(const ComPtr<ID3D12Device>& device, const size_t size
 	resourceDesc.SampleDesc.Count = 1;
 	// バッファの場合はこれにする決まり
 	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	resourceDesc.Alignment = 0; // デフォルトのアライメント
 
 	// 実際にリソースを作る
 	HRESULT hr = device->CreateCommittedResource(
@@ -54,7 +55,8 @@ void VertexBuffer::Update(const void* newVertices, const size_t vertexCount) con
 		void* ptr = nullptr;
 		HRESULT hr = buffer_->Map(0, nullptr, &ptr);
 		assert(SUCCEEDED(hr));
-		memcpy(ptr, newVertices, sizeof(Vertex) * vertexCount);
+		size_t size = sizeof(Vertex) * vertexCount;
+		memcpy(ptr, newVertices, size);
 		buffer_->Unmap(0, nullptr);
 	}
 }

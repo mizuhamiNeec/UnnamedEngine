@@ -70,7 +70,8 @@ void SpriteCommon::CreateRootSignature() {
 
 
 	// ルートシグネチャを作成
-	rootSignatureManager_->CreateRootSignature("SpriteCommon", rootParameters, staticSamplers, _countof(staticSamplers));
+	rootSignatureManager_->
+		CreateRootSignature("SpriteCommon", rootParameters, staticSamplers, _countof(staticSamplers));
 
 	if (rootSignatureManager_->Get("SpriteCommon")) {
 		Console::Print("SpriteCommon : ルートシグネチャの生成に成功.\n");
@@ -81,7 +82,7 @@ void SpriteCommon::CreateGraphicsPipeline() {
 	CreateRootSignature();
 
 	// パイプラインステートを作成
-	pipelineState_ = PipelineState();
+	pipelineState_ = PipelineState(D3D12_CULL_MODE_NONE, D3D12_FILL_MODE_SOLID);
 	pipelineState_.SetInputLayout(Vertex::inputLayout);
 	pipelineState_.SetRootSignature(rootSignatureManager_->Get("SpriteCommon"));
 
@@ -96,7 +97,7 @@ void SpriteCommon::CreateGraphicsPipeline() {
 }
 
 void SpriteCommon::Render() {
-	d3d12_->GetCommandList()->SetGraphicsRootSignature(rootSignatureManager_->Get("SpriteCommon"));
 	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
+	d3d12_->GetCommandList()->SetGraphicsRootSignature(rootSignatureManager_->Get("SpriteCommon"));
 	d3d12_->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }

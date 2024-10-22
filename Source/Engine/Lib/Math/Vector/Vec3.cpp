@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include "Vec2.h"
+
 const Vec3 Vec3::zero(0.0f, 0.0f, 0.0f);
 const Vec3 Vec3::right(1.0f, 0.0f, 0.0f);
 const Vec3 Vec3::left(-1.0f, 0.0f, 0.0f);
@@ -13,6 +15,8 @@ const Vec3 Vec3::forward(0.0f, 0.0f, 1.0f);
 const Vec3 Vec3::backward(0.0f, 0.0f, -1.0f);
 
 Vec3::Vec3(const float x, const float y, const float z) : x(x), y(y), z(z) {}
+
+Vec3::Vec3(const Vec2 vec2) : x(vec2.x), y(vec2.y), z(0.0f) {}
 
 float Vec3::Length() const {
 	const float sqrLength = SqrLength();

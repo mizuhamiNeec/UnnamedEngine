@@ -10,15 +10,14 @@ using namespace Microsoft::WRL;
 class PipelineState {
 public:
 	PipelineState();
-
+	PipelineState(D3D12_CULL_MODE cullMode, D3D12_FILL_MODE fillMode);
 	void SetInputLayout(D3D12_INPUT_LAYOUT_DESC layout);
 	void SetRootSignature(ID3D12RootSignature* rootSignature);
 	void SetVS(const std::wstring& filePath);
 	void SetPS(const std::wstring& filePath);
-	static IDxcBlob* CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler);
+	static IDxcBlob* CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils,
+	                               IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler);
 	void Create(ID3D12Device* device);
-
-	void SetFillMode(D3D12_FILL_MODE fillMode);
 
 	ID3D12PipelineState* Get() const;
 
@@ -34,4 +33,3 @@ private:
 	ComPtr<IDxcCompiler3> dxcCompiler_;
 	ComPtr<IDxcIncludeHandler> includeHandler_;
 };
-

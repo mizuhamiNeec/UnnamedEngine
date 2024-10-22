@@ -1,6 +1,8 @@
 #pragma once
 #include <cstdint>
 
+struct Vec2;
+
 struct Vec3 final {
 	float x, y, z;
 
@@ -13,6 +15,7 @@ struct Vec3 final {
 	static const Vec3 backward;
 
 	Vec3(float x = 0.0f, float y = 0.0f, float z = 0.0f);
+	Vec3(Vec2 vec2);
 
 	/* ---------------- 関数類 ---------------- */
 	float Length() const;

@@ -29,8 +29,8 @@ IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, con
 	assert(SUCCEEDED(hr));
 
 	view_.BufferLocation = buffer_->GetGPUVirtualAddress();
-	view_.SizeInBytes = static_cast<UINT>(size);
-	view_.Format = DXGI_FORMAT_R16_UINT;
+	view_.SizeInBytes = sizeof(uint32_t) * 6;
+	view_.Format = DXGI_FORMAT_R32_UINT;
 
 	if (pInitData != nullptr) {
 		void* ptr = nullptr;
@@ -42,7 +42,7 @@ IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, con
 	}
 }
 
-D3D12_INDEX_BUFFER_VIEW IndexBuffer::View() {
+D3D12_INDEX_BUFFER_VIEW IndexBuffer::View() const {
 	return view_;
 }
 

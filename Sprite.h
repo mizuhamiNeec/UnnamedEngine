@@ -29,6 +29,8 @@ public:
 	Vec3 GetSize() const;
 	Vec2 GetAnchorPoint() const;
 	Vec4 GetColor() const;
+	bool GetIsFlipX() const;
+	bool GetIsFlipY() const;
 	Vec2 GetUvPos();
 	Vec2 GetUvSize();
 	float GetUvRot() const;
@@ -39,9 +41,12 @@ public:
 	void SetSize(const Vec3& newSize);
 	void SetAnchorPoint(const Vec2& anchorPoint);
 	void SetColor(Vec4 color) const;
+	void SetIsFlipX(bool isFlipX);
+	void SetIsFlipY(bool isFlipY);
 	void SetUvPos(const Vec2& newPos);
 	void SetUvSize(const Vec2& newSize);
 	void SetUvRot(const float& newRot);
+
 private:
 	SpriteCommon* spriteCommon_ = nullptr;
 
@@ -50,15 +55,19 @@ private:
 	Transform transform_;
 	Transform uvTransform_;
 
+	// 左右フリップ
+	bool isFlipX_ = false;
+	// 上下フリップ
+	bool isFlipY_ = false;
+
 	// テクスチャ番号
 	uint32_t textureIndex_ = 0;
 
 	Vertex vertices[kSpriteVertexCount] = {};
 
-	// インデックスの作成
-	uint16_t indices[kSpriteVertexCount] = {
-		0, 1, 2, // 1枚目の三角形
-		2, 1, 4  // 2枚目の三角形
+	uint32_t indices[kSpriteVertexCount] = {
+		0, 1, 2,  // 1つ目の三角形
+		1, 4, 2 // 2つ目の三角形
 	};
 
 	// バッファリソース

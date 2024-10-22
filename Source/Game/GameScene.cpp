@@ -86,16 +86,19 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 			s >> position.x >> position.y >> position.z;
 			position.w = 1.0f;
 			positions.push_back(position);
-		} else if (identifier == "vt") {
+		}
+		else if (identifier == "vt") {
 			Vec2 texcoord;
 			s >> texcoord.x >> texcoord.y;
 			texcoord.y = 1.0f - texcoord.y;
 			texcoords.push_back(texcoord);
-		} else if (identifier == "vn") {
+		}
+		else if (identifier == "vn") {
 			Vec3 normal;
 			s >> normal.x >> normal.y >> normal.z;
 			normals.push_back(normal);
-		} else if (identifier == "f") {
+		}
+		else if (identifier == "f") {
 			Vertex triangle[3];
 
 			// 面は三角形限定。その他は未対応
@@ -105,7 +108,7 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 				// 頂点の要素へのIndexは[位置/UV/法線] で格納されているので、分解してIndexを取得する
 				std::istringstream v(vertexDefinition);
 				std::string index;
-				uint32_t elementIndices[3] = { 0, 0, 0 };
+				uint32_t elementIndices[3] = {0, 0, 0};
 				int element = 0;
 
 				while (std::getline(v, index, '/') && element < 3) {
@@ -117,18 +120,19 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 
 				// 要素へのIndexから、実際の要素の値を取得して、頂点を構築する
 				Vec4 position = positions[elementIndices[0] - 1];
-				Vec2 texcoord = elementIndices[1] ? texcoords[elementIndices[1] - 1] : Vec2{ 0.0f, 0.0f };
-				Vec3 normal = elementIndices[2] ? normals[elementIndices[2] - 1] : Vec3{ 0.0f, 0.0f, 0.0f };
+				Vec2 texcoord = elementIndices[1] ? texcoords[elementIndices[1] - 1] : Vec2{0.0f, 0.0f};
+				Vec3 normal = elementIndices[2] ? normals[elementIndices[2] - 1] : Vec3{0.0f, 0.0f, 0.0f};
 
 				position.x *= -1.0f;
 				normal.x *= -1.0f;
-				triangle[faceVertex] = { position, texcoord, normal };
+				triangle[faceVertex] = {position, texcoord, normal};
 			}
 			// 頂点を逆順で登録することで、周り順を逆にする
 			modelData.vertices.push_back(triangle[2]);
 			modelData.vertices.push_back(triangle[1]);
 			modelData.vertices.push_back(triangle[0]);
-		} else if (identifier == "mtllib") {
+		}
+		else if (identifier == "mtllib") {
 			// materialTemplateLibraryファイルの名前を取得する
 			std::string materialFilename;
 			s >> materialFilename;
@@ -160,7 +164,8 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	// モデルの読み込み
 	loadedModelData = LoadObjFile("Resources/Models", "suzanne.obj");
 	// 頂点リソースを作る
-	vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * loadedModelData.vertices.size(), sizeof(Vertex), loadedModelData.vertices.data());
+	vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * loadedModelData.vertices.size(),
+	                                sizeof(Vertex), loadedModelData.vertices.data());
 
 	if (vertexBuffer) {
 		Console::Print("頂点バッファの生成に成功.\n");
@@ -174,7 +179,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	materialResource = new ConstantBuffer(renderer_->GetDevice(), sizeof(Material));
 	// マテリアルにデータを書き込む
 	material = materialResource->GetPtr<Material>(); // 書き込むためのアドレスを取得
-	*material = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
+	*material = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
 	material->enableLighting = true;
 	material->uvTransform = Mat4::Identity();
 
@@ -183,7 +188,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	// ---------------------------------------------------------------------------
 	directionalLightResource = new ConstantBuffer(renderer_->GetDevice(), sizeof(DirectionalLight));
 	directionalLight = directionalLightResource->GetPtr<DirectionalLight>();
-	directionalLight->color = { 1.0f,1.0f,1.0f,1.0f };
+	directionalLight->color = {1.0f, 1.0f, 1.0f, 1.0f};
 	const Vec3 dir = Vec3(-1.0f, -1.0f, 1.0f);
 	directionalLight->direction = dir.Normalized();
 	directionalLight->intensity = 1.0f;
@@ -200,7 +205,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 		.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND // Offsetを自動計算
 	};
 
-	std::vector< D3D12_ROOT_PARAMETER> modelRootParameters(4);
+	std::vector<D3D12_ROOT_PARAMETER> modelRootParameters(4);
 	modelRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う。b0のbと一致する
 	modelRootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
 	modelRootParameters[0].Descriptor.ShaderRegister = 0; // レジスタ番号0とバインド。b0の0と一致する。もしb11と紐づけたいなら11となる
@@ -231,7 +236,8 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 		}
 	};
 
-	rootSignatureManager->CreateRootSignature("Object3d", modelRootParameters, staticSamplers, _countof(staticSamplers));
+	rootSignatureManager->CreateRootSignature("Object3d", modelRootParameters, staticSamplers,
+	                                          _countof(staticSamplers));
 
 	if (rootSignatureManager->Get("Object3d")) {
 		Console::Print("ルートシグネチャの生成に成功.\n");
@@ -240,7 +246,7 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 
 #pragma region パイプラインステート
 	// 3D
-	pipelineState = new PipelineState();
+	pipelineState = new PipelineState(D3D12_CULL_MODE_BACK, D3D12_FILL_MODE_SOLID);
 	pipelineState->SetInputLayout(Vertex::inputLayout);
 	pipelineState->SetRootSignature(rootSignatureManager->Get("Object3d"));
 	pipelineState->SetVS(L"./Resources/Shaders/Object3d.VS.hlsl");
@@ -264,11 +270,12 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 		Sprite* sprite = new Sprite();
 		if (i % 2 == 0) {
 			sprite->Init(spriteCommon_.get(), "./Resources/Textures/debugempty.png");
-		} else {
+		}
+		else {
 			sprite->Init(spriteCommon_.get(), "./Resources/Textures/uvChecker.png");
 		}
-		sprite->SetPos({ 256.0f * i,0.0f,0.0f });
-		sprite->SetSize({ 256.0f,256.0f,1.0f });
+		sprite->SetPos({256.0f * i, 0.0f, 0.0f});
+		sprite->SetSize({256.0f, 256.0f, 1.0f});
 		sprites_.push_back(sprite);
 	}
 }
@@ -280,7 +287,8 @@ void GameScene::Update() {
 	Mat4 viewMat = cameraMat.Inverse();
 	Mat4 projectionMat = Mat4::PerspectiveFovMat(
 		fov * Math::deg2Rad, // FieldOfView 90 degree!!
-		static_cast<float>(window_->GetWindowConfig().clientWidth) / static_cast<float>(window_->GetWindowConfig().clientHeight),
+		static_cast<float>(window_->GetWindowConfig().clientWidth) / static_cast<float>(window_->GetWindowConfig().
+			clientHeight),
 		0.01f,
 		1000.0f
 	);
@@ -340,7 +348,9 @@ void GameScene::Update() {
 		ImVec2 imageWindowSize = ImGui::GetContentRegionAvail();
 		static int index = 0;
 		float sliderHeight = ImGui::GetFrameHeightWithSpacing(); // スライダーの高さを取得
-		float imageSize = (imageWindowSize.x < (imageWindowSize.y - sliderHeight)) ? imageWindowSize.x : (imageWindowSize.y - sliderHeight);
+		float imageSize = (imageWindowSize.x < (imageWindowSize.y - sliderHeight))
+			                  ? imageWindowSize.x
+			                  : (imageWindowSize.y - sliderHeight);
 
 		ImGui::SliderInt("index", &index, 0, TextureManager::GetInstance()->GetLoadedTextureCount());
 
@@ -348,9 +358,11 @@ void GameScene::Update() {
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = renderer_->GetSRVDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
 		gpuHandle.ptr += (renderer_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3) * frameIndex;*/
 
-		ImTextureID tex = reinterpret_cast<ImTextureID>(renderer_->GetSRVDescriptorHeap()->GetGPUDescriptorHandleForHeapStart().ptr + (renderer_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * index));
+		ImTextureID tex = reinterpret_cast<ImTextureID>(renderer_->GetSRVDescriptorHeap()->
+		                                                           GetGPUDescriptorHandleForHeapStart().ptr + (renderer_
+			->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * index));
 		//ImTextureID tex = reinterpret_cast<ImTextureID>(gpuHandle.ptr);
-		ImGui::Image(tex, { imageSize ,imageSize });
+		ImGui::Image(tex, {imageSize, imageSize});
 		ImGui::End();
 	}
 
@@ -360,7 +372,8 @@ void GameScene::Update() {
 		if (ImGui::Checkbox("Toggle Texture", &texindex)) {
 			if (texindex) {
 				sprites_[0]->ChangeTexture("./Resources/Textures/uvChecker.png");
-			} else {
+			}
+			else {
 				sprites_[0]->ChangeTexture("./Resources/Textures/debugempty.png");
 			}
 		}
@@ -390,7 +403,7 @@ void GameScene::Update() {
 
 #pragma region cl_showpos
 	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -423,7 +436,8 @@ void GameScene::Update() {
 			"vel : {:.2f}\n",
 			"unnamed",
 			cameraTransform.translate.x, cameraTransform.translate.y, cameraTransform.translate.z,
-			cameraTransform.rotate.x * Math::rad2Deg, cameraTransform.rotate.y * Math::rad2Deg, cameraTransform.rotate.z * Math::rad2Deg,
+			cameraTransform.rotate.x * Math::rad2Deg, cameraTransform.rotate.y * Math::rad2Deg,
+			cameraTransform.rotate.z * Math::rad2Deg,
 			0.0f
 		);
 
@@ -457,7 +471,7 @@ void GameScene::Render() {
 	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer->View();
 
 	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { renderer_->GetSRVDescriptorHeap() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = {renderer_->GetSRVDescriptorHeap()};
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Object3d"));
@@ -468,7 +482,8 @@ void GameScene::Render() {
 
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetAddress());
 	commandList->SetGraphicsRootConstantBufferView(1, transformation->GetAddress());
-	commandList->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelTextureIndex)); // テクスチャのSRVを設定
+	commandList->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelTextureIndex));
+	// テクスチャのSRVを設定
 	commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetAddress());
 
 	commandList->DrawInstanced(static_cast<UINT>(loadedModelData.vertices.size()), 1, 0, 0);
@@ -497,4 +512,3 @@ void GameScene::Shutdown() {
 	delete rootSignatureManager;
 	delete pipelineState;
 }
-
