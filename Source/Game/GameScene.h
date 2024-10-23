@@ -2,7 +2,6 @@
 #include <memory>
 
 #include "IGameScene.h"
-#include "../Engine/Lib/Transform/Transform.h"
 #include "../Object3D/Object3D.h"
 #include "../Object3D/Object3DCommon.h"
 #include "../Renderer/Renderer.h"

@@ -133,7 +133,6 @@
     <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Transform\Transform.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Random\Random.cpp" />
     <ClCompile Include="Source\Engine\Window\Window.cpp" />
     <ClCompile Include="Source\Engine\TextureManager\TextureManager.cpp" />
@@ -176,7 +175,6 @@
     <ClInclude Include="Source\Game\IGameScene.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h" />
     <ClInclude Include="Source\Engine\Renderer\Renderer.h" />
-    <ClInclude Include="Source\Engine\Lib\Transform\Transform.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec2.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec3.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec4.h" />

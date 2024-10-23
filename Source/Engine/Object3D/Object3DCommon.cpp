@@ -4,11 +4,21 @@
 #include "../Renderer/RootSignatureManager.h"
 #include "../Lib/Structs/Structs.h"
 
+//-----------------------------------------------------------------------------
+// Purpose : Object3DCommonを初期化します
+//-----------------------------------------------------------------------------
 void Object3DCommon::Init(D3D12* d3d12) {
 	this->d3d12_ = d3d12;
 	Console::Print("Object3d : Object3dを初期化します。\n", kConsoleColorWait);
 	CreateGraphicsPipeline();
 	Console::Print("Object3d : Object3dの初期化が完了しました。\n", kConsoleColorCompleted);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose : Object3DCommonをシャットダウンします
+//-----------------------------------------------------------------------------
+void Object3DCommon::Shutdown() {
+	delete rootSignatureManager_;
 }
 
 //-----------------------------------------------------------------------------

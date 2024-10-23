@@ -48,3 +48,9 @@ struct DirectionalLight {
 	Vec3 direction; //!< ライトの向き
 	float intensity; //!< 輝度
 };
+
+struct Transform {
+	Vec3 scale;
+	Vec3 rotate;
+	Vec3 translate;
+};

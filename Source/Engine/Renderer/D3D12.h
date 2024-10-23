@@ -95,6 +95,8 @@ public:
 	ID3D12Fence* GetFence() const { return fence_.Get(); }
 	ID3D12CommandAllocator* GetCommandAllocator() const { return commandAllocator_.Get(); }
 
+	Window* GetWindow() const { return window_; }
+
 	uint64_t GetFenceValue() const { return fenceValue_; }
 	void SetFenceValue(const uint64_t newValue) { fenceValue_ = newValue; };
 

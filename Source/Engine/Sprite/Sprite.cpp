@@ -147,7 +147,7 @@ void Sprite::Update() {
 // Purpose : スプライトの描画処理
 //-----------------------------------------------------------------------------
 void Sprite::Draw() const {
-	//// ディスクリプタヒープの設定
+	// ディスクリプタヒープの設定
 	ID3D12DescriptorHeap* descriptorHeaps[] = { spriteCommon_->GetD3D12()->GetSRVDescriptorHeap() };
 	spriteCommon_->GetD3D12()->GetCommandList()->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 

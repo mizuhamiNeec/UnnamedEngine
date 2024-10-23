@@ -3,7 +3,6 @@
 
 #include "../Lib/Math/Vector/Vec2.h"
 #include "../Lib/Structs/Structs.h"
-#include "../Lib/Transform/Transform.h"
 #include "../Renderer/ConstantBuffer.h"
 #include "../Renderer/VertexBuffer.h"
 #include "../Renderer/IndexBuffer.h"

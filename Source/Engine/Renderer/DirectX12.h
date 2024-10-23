@@ -8,10 +8,10 @@
 #include <wrl/client.h>
 
 #include "Renderer.h"
-#include "../Lib/Transform/Transform.h"
 #include "../Lib/Math/Vector/Vec4.h"
 #include "../Lib/Math/Vector/Vec2.h"
 #include "../Lib/Math/Matrix/Mat4.h"
+#include "../Lib/Structs/Structs.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -24,33 +24,6 @@ struct VertexData {
 	Vec4 position;
 	Vec2 texcoord;
 	Vec3 normal;
-};
-
-struct Material {
-	Vec4 color;
-	int32_t enableLighting;
-	float padding[3];
-	Mat4 uvTransform;
-};
-
-struct TransformationMatrix {
-	Mat4 wvp;
-	Mat4 world;
-};
-
-struct DirectionalLight {
-	Vec4 color; //!< ライトの色
-	Vec3 direction; //!< ライトの向き
-	float intensity; //!< 輝度
-};
-
-struct MaterialData {
-	std::string textureFilePath;
-};
-
-struct ModelData {
-	std::vector<VertexData> vertices;
-	MaterialData material;
 };
 
 ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);

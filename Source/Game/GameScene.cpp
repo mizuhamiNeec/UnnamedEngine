@@ -282,7 +282,7 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 
 
 	object3D_ = std::make_unique<Object3D>();
-	object3D_->Initialize();
+	object3D_->Initialize(object3DCommon_);
 
 #pragma endregion
 }
@@ -386,6 +386,8 @@ void GameScene::Update() {
 		ImGui::End();
 	}
 #endif
+
+	object3D_->Update();
 
 	for (Sprite* sprite : sprites_) {
 		sprite->Update();
@@ -500,13 +502,12 @@ void GameScene::Render() {
 	object3DCommon_->Render();
 	//----------------------------------------
 
-
+	object3D_->Draw();
 
 	//----------------------------------------
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
-
 
 	for (Sprite* sprite : sprites_) {
 		sprite->Draw();
@@ -519,6 +520,7 @@ void GameScene::Shutdown() {
 	}
 
 	spriteCommon_->Shutdown();
+	object3DCommon_->Shutdown();
 
 	delete vertexBuffer;
 	delete transformation;

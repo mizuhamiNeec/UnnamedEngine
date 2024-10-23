@@ -21,9 +21,7 @@ void SpriteCommon::Init(D3D12* d3d12) {
 /// SpriteCommonをシャットダウンします
 /// </summary>
 void SpriteCommon::Shutdown() const {
-	if (rootSignatureManager_) {
-		delete rootSignatureManager_;
-	}
+	delete rootSignatureManager_;
 }
 
 void SpriteCommon::CreateRootSignature() {
