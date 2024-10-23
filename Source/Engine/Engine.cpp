@@ -46,7 +46,7 @@ void Engine::Initialize() {
 	spriteCommon_->Init(renderer_.get());
 
 	object3DCommon_ = std::make_unique<Object3DCommon>();
-	object3DCommon_->Initialize();
+	object3DCommon_->Init(renderer_.get());
 
 	// 入力
 	input_ = std::make_unique<Input>();

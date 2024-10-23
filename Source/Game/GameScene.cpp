@@ -496,8 +496,17 @@ void GameScene::Render() {
 	commandList->DrawInstanced(static_cast<UINT>(loadedModelData.vertices.size()), 1, 0, 0);
 
 	//----------------------------------------
+	// オブジェクト3Dの描画設定
+	object3DCommon_->Render();
+	//----------------------------------------
+
+
+
+	//----------------------------------------
+	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
+
 
 	for (Sprite* sprite : sprites_) {
 		sprite->Draw();
