@@ -6,6 +6,7 @@
 #include "Renderer/D3D12.h"
 #include "Lib/Console/Console.h"
 #include "../ImGuiManager/ImGuiManager.h"
+#include "Object3D/Object3DCommon.h"
 
 #include "TextureManager/TextureManager.h"
 
@@ -41,13 +42,19 @@ void Engine::Initialize() {
 	// テクスチャマネージャ
 	TextureManager::GetInstance()->Initialize(renderer_.get());
 
+	spriteCommon_ = std::make_unique<SpriteCommon>();
+	spriteCommon_->Init(renderer_.get());
+
+	object3DCommon_ = std::make_unique<Object3DCommon>();
+	object3DCommon_->Initialize();
+
 	// 入力
 	input_ = std::make_unique<Input>();
 	input_->Init(window_.get());
 
 	// シーン
 	gameScene_ = std::make_unique<GameScene>();
-	gameScene_->Init(renderer_.get(), window_.get());
+	gameScene_->Init(renderer_.get(), window_.get(), spriteCommon_.get(), object3DCommon_.get());
 }
 
 void Engine::Update() const {

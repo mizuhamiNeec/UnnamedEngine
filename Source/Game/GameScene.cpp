@@ -7,6 +7,7 @@
 #include "imgui/imgui.h"
 #endif
 
+#include "../Object3D/Object3D.h"
 #include "../ImGuiManager/ImGuiManager.h"
 #include "../Lib/Console/Console.h"
 #include "../Lib/Console/ConVar.h"
@@ -141,17 +142,19 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 	return modelData;
 }
 
-void GameScene::Init(D3D12* renderer, Window* window) {
+void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon) {
 	renderer_ = renderer;
 	window_ = window;
+	spriteCommon_ = spriteCommon;
+	object3DCommon_ = object3DCommon;
 
-	transform = {
+	transform_ = {
 		{1.0f, 1.0f, 1.0f},
 		{0.0f, 0.0f, 0.0f},
 		{0.0f, 0.0f, 0.0f}
 	};
 
-	cameraTransform = {
+	cameraTransform_ = {
 		{1.0f, 1.0f, 1.0f},
 		{0.0f, 0.0f, 0.0f},
 		{0.0f, 0.0f, -2.0f}
@@ -255,10 +258,8 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 		Console::Print("パイプラインステートの生成に成功.\n");
 	}
 #pragma endregion
-	// 共通スプライト
-	spriteCommon_ = std::make_unique<SpriteCommon>();
-	spriteCommon_->Init(renderer_);
 
+#pragma region スプライト類
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/debugempty.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/uvChecker.png");
 
@@ -267,23 +268,32 @@ void GameScene::Init(D3D12* renderer, Window* window) {
 	for (uint32_t i = 0; i < 5; ++i) {
 		Sprite* sprite = new Sprite();
 		if (i % 2 == 0) {
-			sprite->Init(spriteCommon_.get(), "./Resources/Textures/debugempty.png");
+			sprite->Init(spriteCommon_, "./Resources/Textures/debugempty.png");
 		} else {
-			sprite->Init(spriteCommon_.get(), "./Resources/Textures/uvChecker.png");
+			sprite->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
 		}
 		sprite->SetPos({ 256.0f * i, 0.0f, 0.0f });
 		sprite->SetSize({ 256.0f, 256.0f, 1.0f });
 		sprites_.push_back(sprite);
 	}
+#pragma endregion
+
+#pragma region 3Dオブジェクト類
+
+
+	object3D_ = std::make_unique<Object3D>();
+	object3D_->Initialize();
+
+#pragma endregion
 }
 
 void GameScene::Update() {
-	transform.rotate.y += 0.003f;
-	Mat4 worldMat = Mat4::Affine(transform.scale, transform.rotate, transform.translate);
-	Mat4 cameraMat = Mat4::Affine(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
+	transform_.rotate.y += 0.003f;
+	Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
+	Mat4 cameraMat = Mat4::Affine(cameraTransform_.scale, cameraTransform_.rotate, cameraTransform_.translate);
 	Mat4 viewMat = cameraMat.Inverse();
 	Mat4 projectionMat = Mat4::PerspectiveFovMat(
-		fov * Math::deg2Rad, // FieldOfView 90 degree!!
+		fov_ * Math::deg2Rad, // FieldOfView 90 degree!!
 		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight()),
 		0.01f,
 		1000.0f
@@ -385,15 +395,15 @@ void GameScene::Update() {
 	ImGui::Begin("Window");
 
 	if (ImGui::CollapsingHeader("Camera")) {
-		ImGui::DragFloat3("pos##cam", &cameraTransform.translate.x, 0.01f);
-		ImGui::DragFloat3("rot##cam", &cameraTransform.rotate.x, 0.01f);
-		ImGui::DragFloat("Fov##cam", &fov, 1.0f);
+		ImGui::DragFloat3("pos##cam", &cameraTransform_.translate.x, 0.01f);
+		ImGui::DragFloat3("rot##cam", &cameraTransform_.rotate.x, 0.01f);
+		ImGui::DragFloat("Fov##cam", &fov_, 1.0f);
 	}
 
 	if (ImGui::CollapsingHeader("transform")) {
-		ImGui::DragFloat3("pos##trans", &transform.translate.x, 0.01f);
-		ImGui::DragFloat3("rot##trans", &transform.rotate.x, 0.01f);
-		ImGui::DragFloat3("scale##trans", &transform.scale.x, 0.01f);
+		ImGui::DragFloat3("pos##trans", &transform_.translate.x, 0.01f);
+		ImGui::DragFloat3("rot##trans", &transform_.rotate.x, 0.01f);
+		ImGui::DragFloat3("scale##trans", &transform_.scale.x, 0.01f);
 	}
 
 	ImGui::End();
@@ -432,9 +442,9 @@ void GameScene::Update() {
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
 			"unnamed",
-			cameraTransform.translate.x, cameraTransform.translate.y, cameraTransform.translate.z,
-			cameraTransform.rotate.x * Math::rad2Deg, cameraTransform.rotate.y * Math::rad2Deg,
-			cameraTransform.rotate.z * Math::rad2Deg,
+			cameraTransform_.translate.x, cameraTransform_.translate.y, cameraTransform_.translate.z,
+			cameraTransform_.rotate.x * Math::rad2Deg, cameraTransform_.rotate.y * Math::rad2Deg,
+			cameraTransform_.rotate.z * Math::rad2Deg,
 			0.0f
 		);
 
