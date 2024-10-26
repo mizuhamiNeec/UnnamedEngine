@@ -12,7 +12,7 @@ constexpr ImVec4 kConsoleColorNormal = { 0.87f, 0.87f, 0.87f, 1.0f }; // 通常�
 constexpr ImVec4 kConsoleColorWarning = { 1.0f,1.0f,0.0f,1.0f }; // 警告テキストの色
 constexpr ImVec4 kConsoleColorError = { 1.0f,0.0f,0.0f,1.0f }; // エラーテキストの色
 constexpr ImVec4 kConsoleColorWait = { 0.274f, 0.51f, 0.706f, 1.0f }; // 待ち状態テキストの色
-constexpr ImVec4 kConsoleColorCompleted = { 0.133f, 0.545f, 0.133f, 1.0f };
+constexpr ImVec4 kConsoleColorCompleted = { 0.35f, 0.66f, 0.41f, 1.0f }; // 完了テキストの色
 
 constexpr ImVec4 kConsoleColorInt = { 0.12f, 0.89f, 0.69f, 1.0f };
 constexpr ImVec4 kConsoleColorFloat = { 0.22f, 0.84f, 0.0f, 1.0f };

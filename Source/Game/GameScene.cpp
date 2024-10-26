@@ -170,7 +170,7 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 		sizeof(Vertex), loadedModelData.vertices.data());
 
 	if (vertexBuffer) {
-		Console::Print("頂点バッファの生成に成功.\n");
+		Console::Print("頂点バッファの生成に成功.\n", kConsoleColorCompleted);
 	}
 #pragma endregion
 
@@ -242,7 +242,7 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 		_countof(staticSamplers));
 
 	if (rootSignatureManager->Get("Object3d")) {
-		Console::Print("ルートシグネチャの生成に成功.\n");
+		Console::Print("ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
 	}
 #pragma endregion
 
@@ -257,20 +257,20 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 
 	pipelineState->Create(renderer->GetDevice());
 	if (pipelineState) {
-		Console::Print("パイプラインステートの生成に成功.\n");
+		Console::Print("パイプラインステートの生成に成功.\n", kConsoleColorCompleted);
 	}
 #pragma endregion
 
 #pragma region スプライト類
-	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/debugempty.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/uvChecker.png");
 
-	modelTextureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath("./Resources/Textures/debugempty.png");
+	modelTextureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath("./Resources/Textures/empty.png");
 
 	for (uint32_t i = 0; i < 5; ++i) {
 		Sprite* sprite = new Sprite();
 		if (i % 2 == 0) {
-			sprite->Init(spriteCommon_, "./Resources/Textures/debugempty.png");
+			sprite->Init(spriteCommon_, "./Resources/Textures/empty.png");
 		} else {
 			sprite->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
 		}

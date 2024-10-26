@@ -73,7 +73,7 @@ void Object3DCommon::CreateRootSignature() {
 		CreateRootSignature("Object3d", rootParameters, staticSamplers, _countof(staticSamplers));
 
 	if (rootSignatureManager_->Get("Object3d")) {
-		Console::Print("Object3d : ルートシグネチャの生成に成功.\n");
+		Console::Print("Object3d : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
 	}
 }
 
@@ -94,7 +94,7 @@ void Object3DCommon::CreateGraphicsPipeline() {
 	pipelineState_.Create(d3d12_->GetDevice());
 
 	if (pipelineState_.Get()) {
-		Console::Print("Object3DCommon : パイプラインステートの作成に成功.\n");
+		Console::Print("Object3DCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted);
 	}
 }
 

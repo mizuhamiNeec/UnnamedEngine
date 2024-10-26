@@ -1000,7 +1000,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
 	/* 1. hlslファイルを読む */
 	// これからシェーダーをコンパイルする旨をログに出す
-	Console::Print(ConvertString::ToString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
+	Console::Print(ConvertString::ToString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)), kConsoleColorWait);
 	// hlslファイルを読む
 	IDxcBlobEncoding* shaderSource = nullptr;
 	hr_ = dxcUtils->LoadFile(filePath.c_str(), nullptr, &shaderSource);
@@ -1040,7 +1040,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	IDxcBlobUtf8* shaderError = nullptr;
 	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
 	if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
-		Console::Print(shaderError->GetStringPointer());
+		Console::Print(shaderError->GetStringPointer(), kConsoleColorError);
 		// 警告・エラーダメゼッタイ
 		assert(false);
 	}
@@ -1051,7 +1051,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	hr_ = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr_));
 	// 成功したらログを出す
-	Console::Print(ConvertString::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)));
+	Console::Print(ConvertString::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)), kConsoleColorCompleted);
 	// もう使わないリソースを開放
 	shaderSource->Release();
 	shaderResult->Release();
@@ -1198,7 +1198,7 @@ DirectX::ScratchImage DirectX12::LoadTexture(const std::string& filePath) {
 }
 
 ComPtr<ID3D12Resource> DirectX12::CreateTextureResource(const ComPtr<ID3D12Device>& device,
-                                                        const DirectX::TexMetadata& metadata) {
+	const DirectX::TexMetadata& metadata) {
 	// metadataを下にResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc = {};
 	resourceDesc.Width = static_cast<UINT>(metadata.width); // Textureの幅

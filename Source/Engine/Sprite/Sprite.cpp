@@ -66,7 +66,7 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 
 	AdjustTextureSize();
 
-	Console::Print("スプライトの初期化に成功しました。\n");
+	Console::Print("スプライトの初期化に成功しました。\n", kConsoleColorCompleted);
 }
 
 //-----------------------------------------------------------------------------

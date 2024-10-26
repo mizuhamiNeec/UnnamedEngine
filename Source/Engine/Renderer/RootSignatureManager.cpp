@@ -39,7 +39,7 @@ bool RootSignatureManager::CreateRootSignature(
 
 	rootSignatures_[name] = rootSignature;
 
-	Console::Print(std::format("Complete Create RootSignature : {}\n", name));
+	Console::Print(std::format("Complete Create RootSignature : {}\n", name), kConsoleColorCompleted);
 
 	return true;
 }

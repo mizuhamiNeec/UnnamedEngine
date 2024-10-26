@@ -136,8 +136,13 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 	DirectX::ScratchImage image = {};
 	std::wstring filePathW = ConvertString::ToString(filePath);
 	HRESULT hr = LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
-	assert(SUCCEEDED(hr));
-
+	if (FAILED(hr)) {
+		Console::Print(std::format("ERROR : Failed to Load {}\n", filePath), kConsoleColorError);
+		// 読み込み失敗時にデフォルトのテクスチャを読み込む
+		filePathW = ConvertString::ToString("./Resources/Textures/empty.png");
+		hr = LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
+		assert(SUCCEEDED(hr)); // デフォルトのテクスチャも読み込めなかった場合はエラー
+	}
 	// MipMapの作成
 	DirectX::ScratchImage mipImages = {};
 	hr = GenerateMipMaps(image.GetImages(), image.GetImageCount(), image.GetMetadata(), DirectX::TEX_FILTER_SRGB, 0,
