@@ -10,7 +10,6 @@
 #include "Renderer.h"
 #include "../Lib/Math/Vector/Vec4.h"
 #include "../Lib/Math/Vector/Vec2.h"
-#include "../Lib/Math/Matrix/Mat4.h"
 #include "../Lib/Structs/Structs.h"
 
 #pragma comment(lib, "d3d12.lib")
@@ -30,7 +29,7 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 
 MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
 
-class DirectX12 final : public Renderer {
+class DirectX12 : public Renderer {
 public:
 	DirectX12();
 	~DirectX12() override;

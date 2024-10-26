@@ -7,13 +7,14 @@
 #include "imgui/imgui.h"
 #endif
 
-#include "../Object3D/Object3D.h"
 #include "../ImGuiManager/ImGuiManager.h"
 #include "../Lib/Console/Console.h"
 #include "../Lib/Console/ConVar.h"
 #include "../Lib/Console/ConVars.h"
 #include "../Lib/Math/MathLib.h"
 #include "../Lib/Structs/Structs.h"
+#include "../Model/Model.h"
+#include "../Object3D/Object3D.h"
 #include "../Renderer/PipelineState.h"
 #include "../Renderer/RootSignature.h"
 #include "../Renderer/RootSignatureManager.h"
@@ -142,11 +143,12 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 	return modelData;
 }
 
-void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon) {
+void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon, ModelCommon* modelCommon) {
 	renderer_ = renderer;
 	window_ = window;
 	spriteCommon_ = spriteCommon;
 	object3DCommon_ = object3DCommon;
+	modelCommon_ = modelCommon;
 
 	transform_ = {
 		{1.0f, 1.0f, 1.0f},
@@ -280,9 +282,11 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 
 #pragma region 3Dオブジェクト類
 
+	model_ = std::make_unique<Model>();
+	model_->Init(modelCommon_, "axis.obj");
 
 	object3D_ = std::make_unique<Object3D>();
-	object3D_->Initialize(object3DCommon_);
+	object3D_->Init(model_.get(), object3DCommon_, modelCommon_);
 
 #pragma endregion
 }

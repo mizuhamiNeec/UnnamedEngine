@@ -10,7 +10,7 @@
 
 class GameScene : IGameScene {
 public:
-	void Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon) override;
+	void Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon, ModelCommon* modelCommon) override;
 	void Update() override;
 	void Render() override;
 	void Shutdown() override;
@@ -21,6 +21,7 @@ private:
 
 	std::vector<Sprite*> sprites_;
 	std::unique_ptr<Object3D> object3D_;
+	std::unique_ptr<Model> model_;
 
 	Transform transform_;
 	Transform cameraTransform_;

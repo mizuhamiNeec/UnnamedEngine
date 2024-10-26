@@ -4,6 +4,7 @@
 #include "../Game/GameScene.h"
 
 #include "../Input/Input.h"
+#include "Model/ModelCommon.h"
 
 class Console;
 class ImGuiManager;
@@ -27,6 +28,7 @@ private:
 	std::unique_ptr<GameScene> gameScene_;
 	std::unique_ptr<SpriteCommon> spriteCommon_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;
+	std::unique_ptr<ModelCommon> modelCommon_;
 
 	// Dev
 	std::unique_ptr<ImGuiManager> imGuiManager_;

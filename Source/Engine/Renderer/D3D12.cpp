@@ -23,7 +23,7 @@
 
 D3D12::~D3D12() {
 	CloseHandle(fenceEvent_);
-	Console::Print("Bye!\n");
+	Console::Print("Bye!\n", kConsoleColorCompleted);
 }
 
 void D3D12::Init(Window* window) {
@@ -52,7 +52,7 @@ void D3D12::Init(Window* window) {
 
 	SetViewportAndScissor();
 
-	Console::Print("Complete Init DirectX12.\n");
+	Console::Print("Complete Init DirectX12.\n", kConsoleColorCompleted);
 }
 
 void D3D12::ClearColorAndDepth() const {
@@ -140,7 +140,7 @@ void D3D12::PostRender() {
 	const HRESULT hr = commandList_->Close();
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 
 	//-------------------------------------------------------------------------
@@ -153,16 +153,14 @@ void D3D12::PostRender() {
 	//-------------------------------------------------------------------------
 	// GPU と OS に画面の交換を行うよう通知
 	//-------------------------------------------------------------------------
-	swapChain_->Present(kEnableVSync ? 1 : 0, 0); // Todo
+	swapChain_->Present(kEnableVSync ? 1 : 0, 0);
 
 	WaitPreviousFrame(); // 前のフレームを待つ
 
 	UpdateFixFPS();
 }
 
-void D3D12::OnSizeChanged(UINT width, UINT height, bool isMinimized) {
-	width; height; isMinimized;
-}
+void D3D12::OnSizeChanged([[maybe_unused]] UINT width, [[maybe_unused]] UINT height, [[maybe_unused]] bool isMinimized) {}
 
 void D3D12::ToggleFullscreen() {}
 
@@ -227,14 +225,14 @@ void D3D12::CreateDevice() {
 		// 指定した機能レベルでデバイスが生成できたをできたかを確認
 		if (SUCCEEDED(hr)) {
 			// 生成できたのでログに出力し、ループを抜ける
-			Console::Print(std::format("FeatureLevel : {}\n", featureLevelStrings[i]));
+			Console::Print(std::format("FeatureLevel : {}\n", featureLevelStrings[i]), kConsoleColorCompleted);
 			break;
 		}
 		device_ = nullptr;
 	}
 	assert(device_ != nullptr); // デバイスの生成がうまくいかなかったので起動できない
 
-	Console::Print("Complete create D3D12Device.\n"); // 初期化完了のログを出す
+	Console::Print("Complete create D3D12Device.\n", kConsoleColorCompleted); // 初期化完了のログを出す
 }
 
 void D3D12::SetInfoQueueBreakOnSeverity() const {
@@ -279,9 +277,9 @@ void D3D12::CreateCommandQueue() {
 	const HRESULT hr = device_->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue_));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
-	Console::Print("Complete create CommandQueue.\n");
+	Console::Print("Complete create CommandQueue.\n", kConsoleColorCompleted);
 }
 
 void D3D12::CreateSwapChain() {
@@ -305,9 +303,9 @@ void D3D12::CreateSwapChain() {
 	);
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
-	Console::Print("Complete create SwapChain.\n");
+	Console::Print("Complete create SwapChain.\n", kConsoleColorCompleted);
 }
 
 void D3D12::CreateDescriptorHeaps() {
@@ -337,15 +335,15 @@ void D3D12::CreateRTV() {
 		const HRESULT hr = swapChain_->GetBuffer(i, IID_PPV_ARGS(&renderTargets_[i]));
 		assert(SUCCEEDED(hr));
 		if (hr) {
-			Console::Print(std::format("{:08x}\n", hr));
+			Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 		}
 
 		rtvHandles_[i] = GetCPUDescriptorHandle(rtvDescriptorHeap_.Get(), descriptorSizeRTV, i);
 		device_->CreateRenderTargetView(renderTargets_[i].Get(), &rtvDesc, rtvHandles_[i]);
 	}
-	Console::Print("Complete create RenderTargetView.\n");
+	Console::Print("Complete create RenderTargetView.\n", kConsoleColorCompleted);
 
-	for (int i = 0; i < kFrameBufferCount; ++i) {
+	for (uint32_t i = 0; kFrameBufferCount > i; ++i) {
 		D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart();
 		srvHandle.ptr += (descriptorSizeSRV * 3) * i; // 各バックバッファに対して異なるSRVを作成
 
@@ -377,9 +375,9 @@ void D3D12::CreateCommandAllocator() {
 		CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator_));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
-	Console::Print("Complete create CommandAllocator.\n");
+	Console::Print("Complete create CommandAllocator.\n", kConsoleColorCompleted);
 }
 
 void D3D12::CreateCommandList() {
@@ -387,22 +385,22 @@ void D3D12::CreateCommandList() {
 		IID_PPV_ARGS(&commandList_));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 	commandList_->Close();
-	Console::Print("Complete create CommandList.\n");
+	Console::Print("Complete create CommandList.\n", kConsoleColorCompleted);
 }
 
 void D3D12::CreateFence() {
 	const HRESULT hr = device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 
 	fenceEvent_ = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	assert(fenceEvent_ != nullptr);
-	Console::Print("Complete create Fence.\n");
+	Console::Print("Complete create Fence.\n", kConsoleColorCompleted);
 }
 
 void D3D12::SetViewportAndScissor() {
@@ -491,7 +489,7 @@ ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 	return descriptorHeap;
 }
@@ -540,7 +538,7 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 	); // 作成するResourceポインタへのポインタ
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr));
+		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 
 	return resource;

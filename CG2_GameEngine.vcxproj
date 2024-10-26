@@ -105,6 +105,8 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Model\ModelCommon.cpp" />
+    <ClCompile Include="Source\Engine\Model\Model.cpp" />
     <ClCompile Include="Source\Engine\Object3D\Object3D.cpp" />
     <ClCompile Include="Source\Engine\Lib\Console\Console.cpp" />
     <ClCompile Include="Source\Engine\Lib\Console\ConVar.cpp" />
@@ -144,6 +146,8 @@
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Model\ModelCommon.h" />
+    <ClInclude Include="Source\Engine\Model\Model.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3D.h" />
     <ClInclude Include="Source\Engine\Lib\Console\Console.h" />
     <ClInclude Include="Source\Engine\Lib\Console\ConVar.h" />

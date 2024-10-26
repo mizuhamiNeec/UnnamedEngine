@@ -173,6 +173,8 @@
     <ClCompile Include="Source\Engine\Sprite\SpriteCommon.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
     <ClCompile Include="Source\Engine\Object3D\Object3D.cpp" />
+    <ClCompile Include="Source\Engine\Model\Model.cpp" />
+    <ClCompile Include="Source\Engine\Model\ModelCommon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Renderer\Renderer.h">
@@ -272,6 +274,8 @@
     <ClInclude Include="Source\Engine\Sprite\SpriteCommon.h" />
     <ClInclude Include="Source\Engine\Window\WindowsUtils.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3D.h" />
+    <ClInclude Include="Source\Engine\Model\Model.h" />
+    <ClInclude Include="Source\Engine\Model\ModelCommon.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">

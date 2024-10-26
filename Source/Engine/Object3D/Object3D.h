@@ -1,28 +1,19 @@
 #pragma once
 
 #include <memory>
-#include <string>
-#include <vector>
 
 #include "../Lib/Math/Matrix/Mat4.h"
 #include "../Lib/Math/Vector/Vec4.h"
 #include "../Lib/Structs/Structs.h"
+#include "../Model/Model.h"
 
+class ModelCommon;
 class ConstantBuffer;
 struct Vertex;
 class VertexBuffer;
 class Object3DCommon;
 
 class Object3D {
-	struct MaterialData {
-		std::string textureFilePath;
-		uint32_t textureIndex = 0;
-	};
-
-	struct ModelData {
-		std::vector<Vertex> vertices;
-		MaterialData material;
-	};
 
 	// マテリアル
 	struct Material {
@@ -46,26 +37,33 @@ class Object3D {
 	};
 
 public:
-	void Initialize(Object3DCommon* object3DCommon);
-	void Update() const;
+	void Init(Model* model, Object3DCommon* object3DCommon, ModelCommon* modelCommon);
+	void Update();
 	void Draw() const;
 
-	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
+	void SetModel(Model* model);
 
-	static ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
+	// Setter
+	void SetScale(const Vec3& scale) { transform_.scale = scale; }
+	void SetRot(const Vec3& newRot) { transform_.rotate = newRot; }
+	void SetPos(const Vec3& newPos) { transform_.translate = newPos; }
+
+	// Getter
+	const Vec3& GetScale() const { return transform_.scale; }
+	const Vec3& GetRot() const { return transform_.rotate; }
+	const Vec3& GetPos() const { return transform_.translate; }
 private:
 	Object3DCommon* object3DCommon_ = nullptr;
+	ModelCommon* modelCommon_ = nullptr;
+
+	Model* model_ = nullptr;
 
 	Transform transform_;
 	Transform cameraTransform_;
 
-	ModelData modelData_; // Objファイルのデータ
-	Material* materialData_ = nullptr; // マテリアルのポインタ
 	TransformationMatrix* transformationMatrixData_ = nullptr; // 座標変換行列のポインタ
 	DirectionalLight* directionalLightData_ = nullptr; // 指向性ライトのポインタ
 
-	std::unique_ptr<VertexBuffer> vertexBuffer_;
-	std::unique_ptr<ConstantBuffer> materialConstantBuffer_;
 	std::unique_ptr<ConstantBuffer> transformationMatrixConstantBuffer_;
 	std::unique_ptr<ConstantBuffer> directionalLightConstantBuffer_;
 };

@@ -25,7 +25,7 @@ void Engine::Initialize() {
 	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
 	// ウィンドウの作成を試みる
 	if (!window_->Create(nullptr)) {
-		assert(false && "ウィンドウの作成に失敗した");
+		assert(false && "ウィンドウの作成に失敗しました");
 	}
 
 	// レンダラ
@@ -42,11 +42,14 @@ void Engine::Initialize() {
 	// テクスチャマネージャ
 	TextureManager::GetInstance()->Initialize(renderer_.get());
 
-	spriteCommon_ = std::make_unique<SpriteCommon>();
-	spriteCommon_->Init(renderer_.get());
+	modelCommon_ = std::make_unique<ModelCommon>();
+	modelCommon_->Init(renderer_.get());
 
 	object3DCommon_ = std::make_unique<Object3DCommon>();
 	object3DCommon_->Init(renderer_.get());
+
+	spriteCommon_ = std::make_unique<SpriteCommon>();
+	spriteCommon_->Init(renderer_.get());
 
 	// 入力
 	input_ = std::make_unique<Input>();
@@ -54,7 +57,7 @@ void Engine::Initialize() {
 
 	// シーン
 	gameScene_ = std::make_unique<GameScene>();
-	gameScene_->Init(renderer_.get(), window_.get(), spriteCommon_.get(), object3DCommon_.get());
+	gameScene_->Init(renderer_.get(), window_.get(), spriteCommon_.get(), object3DCommon_.get(), modelCommon_.get());
 }
 
 void Engine::Update() const {

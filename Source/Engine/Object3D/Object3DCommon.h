@@ -8,7 +8,7 @@ class D3D12;
 class Object3DCommon {
 public:
 	void Init(D3D12* d3d12);
-	void Shutdown();
+	void Shutdown() const;
 
 	void CreateRootSignature();
 	void CreateGraphicsPipeline();

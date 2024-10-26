@@ -17,7 +17,7 @@ void Object3DCommon::Init(D3D12* d3d12) {
 //-----------------------------------------------------------------------------
 // Purpose : Object3DCommonをシャットダウンします
 //-----------------------------------------------------------------------------
-void Object3DCommon::Shutdown() {
+void Object3DCommon::Shutdown() const {
 	delete rootSignatureManager_;
 }
 
