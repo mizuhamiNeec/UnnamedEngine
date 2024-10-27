@@ -175,6 +175,7 @@
     <ClCompile Include="Source\Engine\Object3D\Object3D.cpp" />
     <ClCompile Include="Source\Engine\Model\Model.cpp" />
     <ClCompile Include="Source\Engine\Model\ModelCommon.cpp" />
+    <ClCompile Include="Source\Engine\Model\ModelManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Renderer\Renderer.h">
@@ -276,6 +277,7 @@
     <ClInclude Include="Source\Engine\Object3D\Object3D.h" />
     <ClInclude Include="Source\Engine\Model\Model.h" />
     <ClInclude Include="Source\Engine\Model\ModelCommon.h" />
+    <ClInclude Include="Source\Engine\Model\ModelManager.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">

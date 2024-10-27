@@ -56,13 +56,13 @@ void D3D12::Init(Window* window) {
 }
 
 void D3D12::ClearColorAndDepth() const {
-	//float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f };
-	//commandList_->ClearRenderTargetView(
-	//	rtvHandles_[frameIndex_],
-	//	clearColor,
-	//	0,
-	//	nullptr
-	//);
+	float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f };
+	commandList_->ClearRenderTargetView(
+		rtvHandles_[frameIndex_],
+		clearColor,
+		0,
+		nullptr
+	);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = GetCPUDescriptorHandle(
 		dsvDescriptorHeap_.Get(),

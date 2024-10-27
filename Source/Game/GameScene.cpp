@@ -22,6 +22,7 @@
 #include "../Sprite/Sprite.h"
 #include "../Sprite/SpriteCommon.h"
 #include "../TextureManager/TextureManager.h"
+#include "../Engine/Model/ModelManager.h"
 
 // TODO : メンバに移動しよう
 
@@ -282,11 +283,11 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 
 #pragma region 3Dオブジェクト類
 
-	model_ = std::make_unique<Model>();
-	model_->Init(modelCommon_, "axis.obj");
+	ModelManager::GetInstance()->LoadModel("axis.obj");
 
 	object3D_ = std::make_unique<Object3D>();
-	object3D_->Init(model_.get(), object3DCommon_, modelCommon_);
+	object3D_->Init(object3DCommon_, modelCommon_);
+	object3D_->SetModel("axis.obj");
 
 #pragma endregion
 }

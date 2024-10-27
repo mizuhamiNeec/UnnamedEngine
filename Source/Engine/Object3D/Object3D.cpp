@@ -9,15 +9,15 @@
 #include "../Lib/Console/Console.h"
 #include "../Lib/Math/MathLib.h"
 #include "../Model/Model.h"
+#include "../Model/ModelManager.h"
 
 
 //-----------------------------------------------------------------------------
 // Purpose : 初期化します
 //-----------------------------------------------------------------------------
-void Object3D::Init(Model* model, Object3DCommon* object3DCommon, ModelCommon* modelCommon) {
+void Object3D::Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon) {
 
 	// 引数で受け取ってメンバ変数に記録する
-	this->model_ = model;
 	this->object3DCommon_ = object3DCommon;
 	this->modelCommon_ = modelCommon;
 
@@ -81,4 +81,9 @@ void Object3D::Draw() const {
 
 void Object3D::SetModel(Model* model) {
 	this->model_ = model;
+}
+
+void Object3D::SetModel(const std::string& filePath) {
+	// モデルを検索してセットする
+	model_ = ModelManager::GetInstance()->FindModel(filePath);
 }

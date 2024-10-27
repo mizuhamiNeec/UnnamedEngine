@@ -9,10 +9,10 @@
 #include "../Renderer/D3D12.h"
 #include "../TextureManager/TextureManager.h"
 
-void Model::Init(ModelCommon* modelCommon, const std::string& fileName) {
+void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, const std::string& fileName) {
 	this->modelCommon_ = modelCommon;
 
-	modelData_ = LoadObjFile("Resources/Models", fileName);
+	modelData_ = LoadObjFile(directoryPath, fileName);
 
 	// 頂点バッファ modelData_を突っ込む
 	vertexBuffer_ = std::make_unique<VertexBuffer>(modelCommon_->GetD3D12()->GetDevice(), sizeof(Vertex) * modelData_.vertices.size(), sizeof(Vertex), modelData_.vertices.data());

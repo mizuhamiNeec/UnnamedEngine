@@ -1,26 +1,31 @@
 #include "Engine.h"
 
-#include "Lib/Console/ConVars.h"
-#include "Lib/Console/ConVar.h"
-#include "Lib/Utils/ClientProperties.h"
-#include "Renderer/D3D12.h"
-#include "Lib/Console/Console.h"
 #include "../ImGuiManager/ImGuiManager.h"
+
+#include "Lib/Console/Console.h"
+#include "Lib/Console/ConVar.h"
+#include "Lib/Console/ConVars.h"
+#include "Lib/Utils/ClientProperties.h"
+
+#include "Model/ModelManager.h"
+
 #include "Object3D/Object3DCommon.h"
+
+#include "Renderer/D3D12.h"
 
 #include "TextureManager/TextureManager.h"
 
 #include "Window/Window.h"
 
 void Engine::Run() {
-	Initialize();
+	Init();
 	Update();
 	Shutdown();
 }
 
 Engine::Engine() = default;
 
-void Engine::Initialize() {
+void Engine::Init() {
 	// ウィンドウの作成
 	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
 	// ウィンドウの作成を試みる
@@ -40,7 +45,10 @@ void Engine::Initialize() {
 #endif
 
 	// テクスチャマネージャ
-	TextureManager::GetInstance()->Initialize(renderer_.get());
+	TextureManager::GetInstance()->Init(renderer_.get());
+
+	// 3Dモデルマネージャ
+	ModelManager::GetInstance()->Init(renderer_.get());
 
 	modelCommon_ = std::make_unique<ModelCommon>();
 	modelCommon_->Init(renderer_.get());
@@ -161,6 +169,7 @@ void Engine::Update() const {
 void Engine::Shutdown() const {
 	gameScene_->Shutdown();
 
+	ModelManager::Shutdown();
 	TextureManager::Shutdown();
 
 	// ImGuiManagerのシャットダウンは最後に行う

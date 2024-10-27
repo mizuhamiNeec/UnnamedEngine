@@ -17,7 +17,7 @@ public:
 	void Run();
 
 private:
-	void Initialize();
+	void Init();
 	void Update() const;
 	void Shutdown() const;
 

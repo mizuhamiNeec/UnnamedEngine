@@ -19,7 +19,7 @@ class Model {
 		MaterialData material;
 	};
 public:
-	void Init(ModelCommon* modelCommon, const std::string& fileName);
+	void Init(ModelCommon* modelCommon, const std::string& directoryPath, const std::string& fileName);
 	void Draw() const;
 
 	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);

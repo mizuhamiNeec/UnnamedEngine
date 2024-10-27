@@ -20,7 +20,7 @@ TextureManager* TextureManager::GetInstance() {
 	return instance_;
 }
 
-void TextureManager::Initialize(D3D12* renderer) {
+void TextureManager::Init(D3D12* renderer) {
 	renderer_ = renderer;
 
 	// SRVの数と同数

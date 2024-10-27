@@ -37,11 +37,12 @@ class Object3D {
 	};
 
 public:
-	void Init(Model* model, Object3DCommon* object3DCommon, ModelCommon* modelCommon);
+	void Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon);
 	void Update();
 	void Draw() const;
 
 	void SetModel(Model* model);
+	void SetModel(const std::string& filePath);
 
 	// Setter
 	void SetScale(const Vec3& scale) { transform_.scale = scale; }

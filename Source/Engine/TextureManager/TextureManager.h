@@ -14,7 +14,7 @@ public:
 	// シングルトンインスタンスの取得
 	static TextureManager* GetInstance();
 
-	void Initialize(D3D12* renderer);
+	void Init(D3D12* renderer);
 	static void Shutdown();
 
 	void LoadTexture(const std::string& filePath);
