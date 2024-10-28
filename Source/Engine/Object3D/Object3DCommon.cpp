@@ -102,6 +102,11 @@ void Object3DCommon::CreateGraphicsPipeline() {
 // Purpose : 共通描画設定
 //-----------------------------------------------------------------------------
 void Object3DCommon::Render() const {
+	ID3D12GraphicsCommandList* commandList = d3d12_->GetCommandList();
+	// ディスクリプタヒープの設定
+	ID3D12DescriptorHeap* descriptorHeaps[] = { d3d12_->GetSRVDescriptorHeap() };
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
 	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
 	d3d12_->GetCommandList()->SetGraphicsRootSignature(rootSignatureManager_->Get("Object3d"));
 	d3d12_->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

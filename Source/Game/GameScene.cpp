@@ -483,27 +483,6 @@ void GameScene::Update() {
 }
 
 void GameScene::Render() {
-	ID3D12GraphicsCommandList* commandList = renderer_->GetCommandList();
-	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer->View();
-
-	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { renderer_->GetSRVDescriptorHeap() };
-	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-	commandList->SetGraphicsRootSignature(rootSignatureManager->Get("Object3d"));
-	commandList->SetPipelineState(pipelineState->Get());
-
-	commandList->IASetVertexBuffers(0, 1, &vbView);
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetAddress());
-	commandList->SetGraphicsRootConstantBufferView(1, transformation->GetAddress());
-	commandList->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelTextureIndex));
-	// テクスチャのSRVを設定
-	commandList->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetAddress());
-
-	commandList->DrawInstanced(static_cast<UINT>(loadedModelData.vertices.size()), 1, 0, 0);
-
 	//----------------------------------------
 	// オブジェクト3Dの描画設定
 	object3DCommon_->Render();
