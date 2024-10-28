@@ -275,7 +275,7 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 		} else {
 			sprite->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
 		}
-		sprite->SetPos({ 256.0f * i, 0.0f, 0.0f });
+		sprite->SetPos({ 256.0f * static_cast<float>(i), 0.0f, 0.0f });
 		sprite->SetSize({ 256.0f, 256.0f, 1.0f });
 		sprites_.push_back(sprite);
 	}
@@ -283,10 +283,12 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 
 #pragma region 3Dオブジェクト類
 
+	// .objファイルからモデルを読み込む
 	ModelManager::GetInstance()->LoadModel("axis.obj");
 
 	object3D_ = std::make_unique<Object3D>();
 	object3D_->Init(object3DCommon_, modelCommon_);
+	// 初期化済みの3Dオブジェクトにモデルを紐づける
 	object3D_->SetModel("axis.obj");
 
 #pragma endregion
