@@ -17,6 +17,7 @@
 
 #include "Window/Window.h"
 
+///
 void Engine::Run() {
 	Init();
 	Update();
@@ -63,9 +64,23 @@ void Engine::Init() {
 	input_ = std::make_unique<Input>();
 	input_->Init(window_.get());
 
+	//-------------------------------------------------------------------------
+	// コマンドのリセット
+	//-------------------------------------------------------------------------
+	HRESULT hr = renderer_->GetCommandAllocator()->Reset();
+	assert(SUCCEEDED(hr));
+	hr = renderer_->GetCommandList()->Reset(
+		renderer_->GetCommandAllocator(),
+		nullptr
+	);
+	assert(SUCCEEDED(hr));
+
 	// シーン
 	gameScene_ = std::make_unique<GameScene>();
 	gameScene_->Init(renderer_.get(), window_.get(), spriteCommon_.get(), object3DCommon_.get(), modelCommon_.get());
+
+	hr = renderer_->GetCommandList()->Close();
+	assert(SUCCEEDED(hr));
 }
 
 void Engine::Update() const {

@@ -146,8 +146,7 @@ void D3D12::PostRender() {
 	//-------------------------------------------------------------------------
 	// コマンドのキック
 	//-------------------------------------------------------------------------
-	ID3D12CommandList* lists[] = { commandList_.Get() };
-	commandQueue_->ExecuteCommandLists(1, lists);
+	commandQueue_->ExecuteCommandLists(1, CommandListCast(commandList_.GetAddressOf()));
 
 
 	//-------------------------------------------------------------------------
@@ -381,14 +380,36 @@ void D3D12::CreateCommandAllocator() {
 }
 
 void D3D12::CreateCommandList() {
-	const HRESULT hr = device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator_.Get(), nullptr,
-		IID_PPV_ARGS(&commandList_));
-	assert(SUCCEEDED(hr));
-	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+	// コマンドリストの作成
+	HRESULT hr = device_->CreateCommandList(
+		0,                                  // ノードマスク
+		D3D12_COMMAND_LIST_TYPE_DIRECT,     // コマンドリストタイプ
+		commandAllocator_.Get(),            // コマンドアロケーター
+		nullptr,                            // 初期パイプラインステート
+		IID_PPV_ARGS(&commandList_)         // 作成されるコマンドリスト
+	);
+
+	if (FAILED(hr)) {
+		Console::Print(
+			std::format("Failed to create command list. Error code: {:08x}\n", hr),
+			kConsoleColorError
+		);
+		assert(SUCCEEDED(hr));
+		return;
 	}
-	commandList_->Close();
-	Console::Print("Complete create CommandList.\n", kConsoleColorCompleted);
+
+	// コマンドリストを閉じる（初期状態では開いている）
+	hr = commandList_->Close();
+	if (FAILED(hr)) {
+		Console::Print(
+			std::format("Failed to close command list. Error code: {:08x}\n", hr),
+			kConsoleColorError
+		);
+		assert(SUCCEEDED(hr));
+		return;
+	}
+
+	Console::Print("Command List created and initialized successfully.\n", kConsoleColorCompleted);
 }
 
 void D3D12::CreateFence() {

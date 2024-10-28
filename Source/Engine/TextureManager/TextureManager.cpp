@@ -1,18 +1,17 @@
 #include "TextureManager.h"
 
 #include <format>
-
 #include <../Externals/DirectXTex/d3dx12.h>
 
+#include "../Lib/Console/Console.h"
 #include "../Lib/Utils/ClientProperties.h"
 #include "../Lib/Utils/ConvertString.h"
 #include "../Renderer/D3D12.h"
-#include "../Lib/Console/Console.h"
 
 TextureManager* TextureManager::instance_ = nullptr;
 
-// HACK : 要修正
-// TODO : シングルトンは悪!!
+/// @brief シングルトンインスタンスを取得します
+/// @return TextureManagerのインスタンス
 TextureManager* TextureManager::GetInstance() {
 	if (instance_ == nullptr) {
 		instance_ = new TextureManager;
@@ -20,6 +19,8 @@ TextureManager* TextureManager::GetInstance() {
 	return instance_;
 }
 
+/// @brief テクスチャマネージャーを初期化します
+/// @param renderer D3D12レンダラーのポインタ
 void TextureManager::Init(D3D12* renderer) {
 	renderer_ = renderer;
 
@@ -32,6 +33,9 @@ void TextureManager::Init(D3D12* renderer) {
 	textureData_.reserve(kMaxSRVCount);
 }
 
+/// @brief 指定されたテクスチャのメタデータを取得します
+/// @param textureIndex テクスチャのインデックス
+/// @return テクスチャのメタデータ
 const DirectX::TexMetadata& TextureManager::GetMetaData(const uint32_t textureIndex) const {
 	// 範囲外指定違反チェック
 	assert(textureIndex < textureData_.size());
@@ -39,6 +43,9 @@ const DirectX::TexMetadata& TextureManager::GetMetaData(const uint32_t textureIn
 	return textureData.metadata;
 }
 
+/// @brief テクスチャリソースを作成します
+/// @param metadata テクスチャのメタデータ
+/// @return 作成されたテクスチャリソース
 ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(const DirectX::TexMetadata& metadata) const {
 	// metadataをもとにResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc = {};
@@ -52,19 +59,16 @@ ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(const DirectX::TexM
 
 	// 利用するHeapの設定。 非常に特殊な運用。02_04exで一般的なケース版がある
 	D3D12_HEAP_PROPERTIES heapProperties = {};
-	heapProperties.Type = D3D12_HEAP_TYPE_CUSTOM; // 細かい設定を行う
-	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK; // WriteBackポリシーでCPUアクセス可能
-	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0; // プロセッサの近くに配置
-
-	// Resourceの生成
+	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+	// Resourceの作成
 	ComPtr<ID3D12Resource> resource = nullptr;
 	HRESULT hr = renderer_->GetDevice()->CreateCommittedResource(
-		&heapProperties, // Heapの設定
-		D3D12_HEAP_FLAG_NONE, // Heapの特殊な設定。特になし。
-		&resourceDesc, // Resourceの設定
-		D3D12_RESOURCE_STATE_GENERIC_READ, // 初回のResourceState。Textureは基本読むだけ
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&resourceDesc,
+		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
-		IID_PPV_ARGS(&resource) // 作成するResourceポインタへのポインタ
+		IID_PPV_ARGS(&resource)
 	);
 	if (FAILED(hr)) {
 		Console::Print("Failed to create texture resource\n", { 1.0f, 0.0f, 0.0f, 1.0f });
@@ -74,6 +78,11 @@ ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(const DirectX::TexM
 	return resource;
 }
 
+/// @brief CPUディスクリプタハンドルを取得します
+/// @param descriptorHeap ディスクリプタヒープ
+/// @param descriptorSize ディスクリプタサイズ
+/// @param index インデックス
+/// @return CPUディスクリプタハンドル
 D3D12_CPU_DESCRIPTOR_HANDLE TextureManager::GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
 	const uint32_t descriptorSize,
 	const uint32_t index) {
@@ -82,6 +91,11 @@ D3D12_CPU_DESCRIPTOR_HANDLE TextureManager::GetCPUDescriptorHandle(ID3D12Descrip
 	return handleCPU;
 }
 
+/// @brief GPUディスクリプタハンドルを取得します
+/// @param descriptorHeap ディスクリプタヒープ
+/// @param descriptorSize ディスクリプタサイズ
+/// @param index インデックス
+/// @return GPUディスクリプタハンドル
 D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
 	const uint32_t descriptorSize,
 	const uint32_t index) {
@@ -90,32 +104,77 @@ D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetGPUDescriptorHandle(ID3D12Descrip
 	return handleGPU;
 }
 
+/// @brief テクスチャマネージャーを終了します
 void TextureManager::Shutdown() {
 	delete instance_;
 	instance_ = nullptr;
 }
 
-void TextureManager::UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages) {
-	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
+/// @brief テクスチャデータをアップロードします
+/// @param texture テクスチャリソース
+/// @param mipImages MIPマップイメージ
+/// @return 中間リソース
+ComPtr<ID3D12Resource> TextureManager::UploadTextureData(const ComPtr<ID3D12Resource>& texture,
+	const DirectX::ScratchImage& mipImages) const {
+	// 中間リソースの作成
+	ComPtr<ID3D12Resource> intermediateResource = nullptr;
 
-	// 全MipMapについて
-	for (size_t mipLevel = 0; mipLevel < metadata.mipLevels; ++mipLevel) {
-		// MipMapLevelを指定して各Imageを取得
-		const DirectX::Image* img = mipImages.GetImage(mipLevel, 0, 0);
-		// Textureに転送
-		HRESULT hr = texture->WriteToSubresource(
-			static_cast<UINT>(mipLevel),
-			nullptr, // 全領域へコピー
-			img->pixels, // 元データアドレス
-			static_cast<UINT>(img->rowPitch), // 1ラインサイズ
-			static_cast<UINT>(img->slicePitch) // 1枚サイズ
-		);
-		if (FAILED(hr)) {
-			Console::Print("Failed to upload texture data to subresource\n", { 1.0f, 0.0f, 0.0f, 1.0f });
-		}
+	std::vector<D3D12_SUBRESOURCE_DATA> subResources;
+	DirectX::PrepareUpload(renderer_->GetDevice(), mipImages.GetImages(), mipImages.GetImageCount(), mipImages.GetMetadata(), subResources);
+
+	const uint64_t intermediateSize = GetRequiredIntermediateSize(texture.Get(), 0, static_cast<UINT>(subResources.size()));
+
+	// アップロード用のヒーププロパティ
+	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
+	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+	// リソースの設定
+	D3D12_RESOURCE_DESC uploadResourceDesc = {};
+	uploadResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	uploadResourceDesc.Width = intermediateSize;
+	uploadResourceDesc.Height = 1;
+	uploadResourceDesc.DepthOrArraySize = 1;
+	uploadResourceDesc.MipLevels = 1;
+	uploadResourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+	uploadResourceDesc.SampleDesc.Count = 1;
+	uploadResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+	// 中間リソースの作成
+	HRESULT hr = renderer_->GetDevice()->CreateCommittedResource(
+		&uploadHeapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&uploadResourceDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&intermediateResource)
+	);
+	if (FAILED(hr)) {
+		return nullptr;
 	}
+
+	// サブリソースの更新
+	UpdateSubresources(renderer_->GetCommandList(),
+		texture.Get(),
+		intermediateResource.Get(),
+		0, 0,
+		static_cast<UINT>(subResources.size()),
+		subResources.data());
+
+	// リソースバリアの設定
+	D3D12_RESOURCE_BARRIER barrier;
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = texture.Get();
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_GENERIC_READ;
+	renderer_->GetCommandList()->ResourceBarrier(1, &barrier);
+
+	return intermediateResource;
 }
 
+/// @brief テクスチャを読み込みます
+/// @param filePath テクスチャファイルのパス
 void TextureManager::LoadTexture(const std::string& filePath) {
 	// 読み込み済みテクスチャを検索
 	auto it = std::ranges::find_if(
@@ -157,7 +216,40 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 	textureData.filePath = filePath;
 	textureData.metadata = mipImages.GetMetadata();
 	textureData.resource = CreateTextureResource(textureData.metadata);
-	UploadTextureData(textureData.resource, mipImages);
+
+	ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(textureData.resource, mipImages);
+
+	//-------------------------------------------------------------------------
+	// コマンドリストを閉じる
+	//-------------------------------------------------------------------------
+	hr = renderer_->GetCommandList()->Close();
+	assert(SUCCEEDED(hr));
+	if (hr) {
+		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+	}
+
+	//-------------------------------------------------------------------------
+	// コマンドのキック
+	//-------------------------------------------------------------------------
+	ID3D12CommandList* lists[] = { renderer_->GetCommandList() };
+	renderer_->GetCommandQueue()->ExecuteCommandLists(1, lists);
+
+	// 実行を待つ
+	renderer_->WaitPreviousFrame(); // ここで実行が完了するのを待つ
+
+	//-------------------------------------------------------------------------
+	// コマンドのリセット
+	//-------------------------------------------------------------------------
+//	hr = renderer_->GetCommandAllocator()->Reset();
+	assert(SUCCEEDED(hr));
+	hr = renderer_->GetCommandList()->Reset(
+		renderer_->GetCommandAllocator(),
+		nullptr
+	);
+	assert(SUCCEEDED(hr));
+
+	// ここまで来たら転送は終わっているので、intermediateResourceはReleaseしても良い
+	intermediateResource.Reset();
 
 	// テクスチャデータの要素数番号をSRVのインデックスとする
 	uint32_t srvIndex = static_cast<uint32_t>(textureData_.size() - 1) + kSRVIndexTop; // ImGuiのために+1しておく
@@ -179,6 +271,9 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 	renderer_->GetDevice()->CreateShaderResourceView(textureData.resource.Get(), &srvDesc, textureData.srvHandleCPU);
 }
 
+/// @brief ファイルパスからテクスチャのインデックスを取得します
+/// @param filePath テクスチャファイルのパス
+/// @return テクスチャのインデックス
 uint32_t TextureManager::GetTextureIndexByFilePath(const std::string& filePath) {
 	// 読み込み済みテクスチャを検索
 	const auto it = std::ranges::find_if(
@@ -190,7 +285,7 @@ uint32_t TextureManager::GetTextureIndexByFilePath(const std::string& filePath) 
 
 	if (it != textureData_.end()) {
 		// 読み込み済みなら要素番号を返す
-		uint32_t textureIndex = static_cast<uint32_t>(std::distance(textureData_.begin(), it));
+		const uint32_t textureIndex = static_cast<uint32_t>(std::distance(textureData_.begin(), it));
 		return textureIndex;
 	}
 
@@ -198,12 +293,14 @@ uint32_t TextureManager::GetTextureIndexByFilePath(const std::string& filePath) 
 	return 0;
 }
 
+/// @brief テクスチャのGPUディスクリプタハンドルを取得します
+/// @param textureIndex テクスチャのインデックス
+/// @return GPUディスクリプタハンドル
 D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(const uint32_t textureIndex) {
 	if (textureIndex >= textureData_.size()) {
 		Console::Print("範囲外指定違反: textureIndexが無効です。", { 1.0f, 0.0f, 0.0f, 1.0f });
 		return {};
 	}
-
 	TextureData& textureData = textureData_[textureIndex];
 	return textureData.srvHandleGPU;
 }

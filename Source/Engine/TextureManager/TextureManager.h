@@ -11,7 +11,6 @@ using namespace Microsoft::WRL;
 
 class TextureManager {
 public:
-	// シングルトンインスタンスの取得
 	static TextureManager* GetInstance();
 
 	void Init(D3D12* renderer);
@@ -19,13 +18,15 @@ public:
 
 	void LoadTexture(const std::string& filePath);
 
-	static void UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages);
+	//static void UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages);
+	[[nodiscard]] ComPtr<ID3D12Resource> UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages) const;
 
 	// SRVインデックスの開始番号
 	uint32_t GetTextureIndexByFilePath(const std::string& filePath);
 
 	// テクスチャ番号からGPUハンドルを取得
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(uint32_t textureIndex);
+
 
 	[[nodiscard]] uint32_t GetLoadedTextureCount() const {
 		return static_cast<uint32_t>(textureData_.size());
@@ -52,9 +53,9 @@ private:
 	D3D12* renderer_;
 
 	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-	                                                          uint32_t descriptorSize, uint32_t index);
+		uint32_t descriptorSize, uint32_t index);
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-	                                                          uint32_t descriptorSize, uint32_t index);
+		uint32_t descriptorSize, uint32_t index);
 
 private:
 	static TextureManager* instance_;

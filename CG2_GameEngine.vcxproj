@@ -105,6 +105,7 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Source\Engine\Model\ModelManager.cpp" />
     <ClCompile Include="Source\Engine\Model\ModelCommon.cpp" />
     <ClCompile Include="Source\Engine\Model\Model.cpp" />
@@ -147,6 +148,7 @@
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="Source\Engine\Model\ModelManager.h" />
     <ClInclude Include="Source\Engine\Model\ModelCommon.h" />
     <ClInclude Include="Source\Engine\Model\Model.h" />

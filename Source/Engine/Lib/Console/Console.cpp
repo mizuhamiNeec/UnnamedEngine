@@ -175,13 +175,13 @@ void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[m
 #endif
 }
 
-void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]] const ImVec4 color) {
+void Console::Print(const std::string& message, [[maybe_unused]] const ImVec4 color) {
 #ifdef _DEBUG
 	if (message.empty()) {
 		return;
 	}
 
-	if (!consoleTexts.empty() && consoleTexts.back().text.find(message) == 0) {
+	if (!consoleTexts.empty() && consoleTexts.back().text.starts_with(message)) {
 		// 前のメッセージと同じ場合、カウントを増加させる
 		UpdateRepeatCount(message, color);
 	} else {
