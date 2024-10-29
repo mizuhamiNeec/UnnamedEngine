@@ -7,6 +7,7 @@
 #include "../Lib/Structs/Structs.h"
 #include "../Model/Model.h"
 
+class Camera;
 class ModelCommon;
 class ConstantBuffer;
 struct Vertex;
@@ -41,10 +42,10 @@ public:
 	void Update();
 	void Draw() const;
 
+	// Setter
 	void SetModel(Model* model);
 	void SetModel(const std::string& filePath);
-
-	// Setter
+	void SetCamera(Camera* camera) { this->camera_ = camera; }
 	void SetScale(const Vec3& scale) { transform_.scale = scale; }
 	void SetRot(const Vec3& newRot) { transform_.rotate = newRot; }
 	void SetPos(const Vec3& newPos) { transform_.translate = newPos; }
@@ -54,13 +55,18 @@ public:
 	const Vec3& GetRot() const { return transform_.rotate; }
 	const Vec3& GetPos() const { return transform_.translate; }
 private:
+	Camera* camera_ = nullptr;
+
 	Object3DCommon* object3DCommon_ = nullptr;
 	ModelCommon* modelCommon_ = nullptr;
 
 	Model* model_ = nullptr;
 
-	Transform transform_;
-	Transform cameraTransform_;
+	Transform transform_ = {
+		{1.0f,1.0f,1.0f},
+		{0.0f,0.0f,0.0f},
+		{0.0f,0.0f,0.0f}
+	};
 
 	TransformationMatrix* transformationMatrixData_ = nullptr; // 座標変換行列のポインタ
 	DirectionalLight* directionalLightData_ = nullptr; // 指向性ライトのポインタ

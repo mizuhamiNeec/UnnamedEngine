@@ -1,23 +1,17 @@
 #include "Engine.h"
 
 #include "../ImGuiManager/ImGuiManager.h"
-
+#include "Camera/Camera.h"
 #include "Lib/Console/Console.h"
 #include "Lib/Console/ConVar.h"
 #include "Lib/Console/ConVars.h"
 #include "Lib/Utils/ClientProperties.h"
-
 #include "Model/ModelManager.h"
-
 #include "Object3D/Object3DCommon.h"
-
 #include "Renderer/D3D12.h"
-
 #include "TextureManager/TextureManager.h"
-
 #include "Window/Window.h"
 
-///
 void Engine::Run() {
 	Init();
 	Update();
@@ -51,11 +45,14 @@ void Engine::Init() {
 	// 3Dモデルマネージャ
 	ModelManager::GetInstance()->Init(renderer_.get());
 
+	camera_ = std::make_unique<Camera>();
+
 	modelCommon_ = std::make_unique<ModelCommon>();
 	modelCommon_->Init(renderer_.get());
 
 	object3DCommon_ = std::make_unique<Object3DCommon>();
 	object3DCommon_->Init(renderer_.get());
+	object3DCommon_->SetDefaultCamera(camera_.get());
 
 	spriteCommon_ = std::make_unique<SpriteCommon>();
 	spriteCommon_->Init(renderer_.get());
@@ -98,6 +95,9 @@ void Engine::Update() const {
 		imGuiManager_->NewFrame();
 		console_->Update();
 #endif
+
+		camera_->SetAspectRatio(static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight()));
+		camera_->Update();
 
 		// ゲームシーンの更新
 		gameScene_->Update();

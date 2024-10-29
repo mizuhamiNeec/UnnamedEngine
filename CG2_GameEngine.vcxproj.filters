@@ -240,7 +240,7 @@
     <ClInclude Include="Source\Game\IGameScene.h">
       <Filter>Source\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Source\Engine\Camera\Camera.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">
@@ -363,7 +363,7 @@
     <ClCompile Include="Source\Game\GameScene.cpp">
       <Filter>Source\Game</Filter>
     </ClCompile>
-    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl" />

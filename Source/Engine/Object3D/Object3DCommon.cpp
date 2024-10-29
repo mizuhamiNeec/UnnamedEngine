@@ -113,3 +113,7 @@ void Object3DCommon::Render() const {
 }
 
 D3D12* Object3DCommon::GetD3D12() const { return d3d12_; }
+
+void Object3DCommon::SetDefaultCamera(Camera* camera) { this->defaultCamera_ = camera; }
+
+Camera* Object3DCommon::GetDefaultCamera() const { return defaultCamera_; }

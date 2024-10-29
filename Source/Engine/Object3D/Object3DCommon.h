@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Renderer/PipelineState.h"
+#include "../Camera/Camera.h"
 
 class RootSignatureManager;
 class D3D12;
@@ -17,7 +18,14 @@ public:
 
 	D3D12* GetD3D12() const;
 
+	// Setter
+	void SetDefaultCamera(Camera* camera);
+
+	// Getter
+	Camera* GetDefaultCamera() const;
+
 private:
+	Camera* defaultCamera_ = nullptr;
 	D3D12* d3d12_ = nullptr;
 	RootSignatureManager* rootSignatureManager_ = nullptr;
 	PipelineState pipelineState_;
