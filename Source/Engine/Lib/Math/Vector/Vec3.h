@@ -38,6 +38,10 @@ struct Vec3 final {
 	float& operator[](uint32_t index);
 	const float& operator[](uint32_t index) const;
 
+	Vec3 operator-() const {
+		return { -x, -y, -z };
+	}
+
 	Vec3 operator+(const Vec3& rhs) const;
 	Vec3 operator-(const Vec3& rhs) const;
 	Vec3 operator*(float rhs) const;

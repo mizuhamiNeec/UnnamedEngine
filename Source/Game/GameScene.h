@@ -7,6 +7,7 @@
 #include "../Renderer/Renderer.h"
 #include "../Sprite/Sprite.h"
 #include "../Sprite/SpriteCommon.h"
+#include "../../RailCamera.h"
 
 class GameScene : IGameScene {
 public:
@@ -22,6 +23,7 @@ private:
 	std::vector<Sprite*> sprites_;
 	std::unique_ptr<Object3D> object3D_;
 	std::unique_ptr<Model> model_;
+	std::unique_ptr<RailCamera> railCamera_;
 
 	Transform transform_;
 	Transform cameraTransform_;

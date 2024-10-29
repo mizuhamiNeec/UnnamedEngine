@@ -105,7 +105,9 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="RailCamera.cpp" />
     <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\MathLib.cpp" />
     <ClCompile Include="Source\Engine\Model\ModelManager.cpp" />
     <ClCompile Include="Source\Engine\Model\ModelCommon.cpp" />
     <ClCompile Include="Source\Engine\Model\Model.cpp" />
@@ -148,6 +150,7 @@
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="RailCamera.h" />
     <ClInclude Include="Source\Engine\Camera\Camera.h" />
     <ClInclude Include="Source\Engine\Model\ModelManager.h" />
     <ClInclude Include="Source\Engine\Model\ModelCommon.h" />
