@@ -57,7 +57,7 @@ void Object3DCommon::CreateRootSignature() {
 
 	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {
 		{
-			.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR, // バイリニアフィルタ
+			.Filter = D3D12_FILTER_ANISOTROPIC, // バイリニアフィルタ
 			.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP, // 0~1の範囲外をリピート
 			.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
 			.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
@@ -69,8 +69,7 @@ void Object3DCommon::CreateRootSignature() {
 	};
 
 	// ルートシグネチャを作成
-	rootSignatureManager_->
-		CreateRootSignature("Object3d", rootParameters, staticSamplers, _countof(staticSamplers));
+	rootSignatureManager_->CreateRootSignature("Object3d", rootParameters, staticSamplers, _countof(staticSamplers));
 
 	if (rootSignatureManager_->Get("Object3d")) {
 		Console::Print("Object3d : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);

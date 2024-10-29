@@ -13,7 +13,6 @@
 #include "../Lib/Console/ConVars.h"
 #include "../Lib/Math/MathLib.h"
 #include "../Lib/Structs/Structs.h"
-#include "../Model/Model.h"
 #include "../Object3D/Object3D.h"
 #include "../Renderer/PipelineState.h"
 #include "../Renderer/RootSignature.h"
@@ -290,6 +289,7 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 	object3D_->Init(object3DCommon_, modelCommon_);
 	// 初期化済みの3Dオブジェクトにモデルを紐づける
 	object3D_->SetModel("axis.obj");
+	object3D_->SetPos({ 1.0f, -0.3f, 0.6f });
 
 #pragma endregion
 }
