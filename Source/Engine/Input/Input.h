@@ -9,6 +9,8 @@ class Window;
 
 class Input {
 public:
+	static Input* GetInstance();
+
 	void Init(const Window* window);
 	void Update();
 
@@ -26,5 +28,10 @@ public:
 
 private:
 	Microsoft::WRL::ComPtr<IDirectInputDevice8> keyboard = nullptr;
+
+	// コンストラクタをプライベートにして外部からのインスタンス化を防ぐ
+	Input() = default;
+	Input(const Input&) = delete;
+	Input& operator=(const Input&) = delete;
 };
 

@@ -242,6 +242,7 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Camera\Camera.h" />
     <ClInclude Include="RailCamera.h" />
+    <ClInclude Include="Player.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">
@@ -367,6 +368,7 @@
     <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
     <ClCompile Include="RailCamera.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\MathLib.cpp" />
+    <ClCompile Include="Player.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl" />

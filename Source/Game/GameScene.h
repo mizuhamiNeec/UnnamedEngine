@@ -9,6 +9,8 @@
 #include "../Sprite/SpriteCommon.h"
 #include "../../RailCamera.h"
 
+#include "../../Player.h"
+
 class GameScene : IGameScene {
 public:
 	void Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon, ModelCommon* modelCommon) override;
@@ -16,6 +18,8 @@ public:
 	void Render() override;
 	void Shutdown() override;
 
+
+	void PlaceRailsAlongSpline();
 private:
 	Window* window_ = nullptr;
 	D3D12* renderer_ = nullptr;
@@ -24,6 +28,12 @@ private:
 	std::unique_ptr<Object3D> object3D_;
 	std::unique_ptr<Model> model_;
 	std::unique_ptr<RailCamera> railCamera_;
+
+	std::unique_ptr<Object3D> sky_;
+
+	std::unique_ptr<Player> player_;
+
+	std::vector<std::unique_ptr<Object3D>> rails_;
 
 	Transform transform_;
 	Transform cameraTransform_;

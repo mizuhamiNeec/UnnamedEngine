@@ -24,7 +24,6 @@ private:
 private:
 	std::unique_ptr<Window> window_;
 	std::unique_ptr<D3D12> renderer_;
-	std::unique_ptr<Input> input_;
 	std::unique_ptr<GameScene> gameScene_;
 	std::unique_ptr<Camera> camera_;
 	std::unique_ptr<SpriteCommon> spriteCommon_;

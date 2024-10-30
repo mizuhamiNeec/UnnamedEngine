@@ -58,3 +58,15 @@ Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p
 		(-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3
 		);
 }
+
+float Math::CalculateSplineLength(const std::vector<Vec3>& controlPointsA, const int numSamples) {
+	float length = 0.0f;
+	Vec3 prevPos = Math::CatmullRomPosition(controlPointsA, 0.0f);
+	for (int i = 1; i <= numSamples; ++i) {
+		float t = static_cast<float>(i) / numSamples;
+		Vec3 currentPos = Math::CatmullRomPosition(controlPointsA, t);
+		length += (currentPos - prevPos).Length();
+		prevPos = currentPos;
+	}
+	return length;
+}

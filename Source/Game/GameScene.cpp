@@ -7,6 +7,7 @@
 #include "imgui/imgui.h"
 #endif
 
+#include "../../Player.h"
 #include "../../RailCamera.h"
 
 #include "../ImGuiManager/ImGuiManager.h"
@@ -293,6 +294,22 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 	object3D_->SetModel("axis.obj");
 	object3D_->SetPos({ 1.0f, -0.3f, 0.6f });
 
+	ModelManager::GetInstance()->LoadModel("sky.obj");
+	sky_ = std::make_unique<Object3D>();
+	sky_->Init(object3DCommon_, modelCommon_);
+	sky_->SetModel("sky.obj");
+	sky_->SetPos({ 0.0f,0.0f,0.0f });
+	sky_->SetLighting(false);
+
+	player_ = std::make_unique<Player>();
+	player_->Init(object3DCommon_, modelCommon_);
+	player_->SetModel("axis.obj");
+	player_->SetPos({ 0.0f,0.0f,0.0f });
+	player_->Initialize();
+
+	ModelManager::GetInstance()->LoadModel("rail.obj");
+	PlaceRailsAlongSpline();
+
 #pragma endregion
 
 	railCamera_ = std::make_unique<RailCamera>();
@@ -300,7 +317,14 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 }
 
 void GameScene::Update() {
-	railCamera_->Update();
+	static bool toggle = false;
+	if (Input::GetInstance()->TriggerKey(DIK_V)) {
+		toggle = !toggle;
+	}
+
+	if (toggle) {
+		railCamera_->Update();
+	}
 
 	transform_.rotate.y += 0.003f;
 	Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
@@ -399,9 +423,32 @@ void GameScene::Update() {
 		}
 		ImGui::End();
 	}
+
+	ImGui::Begin("Object3D");
+	// 一旦変数に格納
+	Vec3 translate = object3D_->GetPos();
+	Vec3 rotate = object3D_->GetRot();
+	Vec3 scale = object3D_->GetScale();
+
+	ImGui::DragFloat3("transform##obj", &translate.x, 0.01f);
+	ImGui::DragFloat3("rotate##obj", &rotate.x, 0.01f);
+	ImGui::DragFloat3("scale##obj", &scale.x, 0.01f);
+
+	// ImGuiでの編集が終わったらSet
+	object3D_->SetPos(translate);
+	object3D_->SetRot(rotate);
+	object3D_->SetScale(scale);
+	ImGui::End();
 #endif
 
 	object3D_->Update();
+	sky_->Update();
+
+	player_->Update();
+
+	for (const std::unique_ptr<Object3D>& rail : rails_) {
+		rail->Update();
+	}
 
 	for (Sprite* sprite : sprites_) {
 		sprite->Update();
@@ -495,6 +542,13 @@ void GameScene::Render() {
 	//----------------------------------------
 
 	object3D_->Draw();
+	sky_->Draw();
+
+	player_->Draw();
+
+	for (const std::unique_ptr<Object3D>& rail : rails_) {
+		rail->Draw();
+	}
 
 	//----------------------------------------
 	// スプライト共通描画設定
@@ -521,4 +575,76 @@ void GameScene::Shutdown() {
 	delete rootSignature;
 	delete rootSignatureManager;
 	delete pipelineState;
+}
+
+void GameScene::PlaceRailsAlongSpline() {
+	const float railLength = 1.0f; // レール1つの長さ（メートル単位）
+	const float delta = 0.0001f;
+
+	// スプラインの全長を計算
+	float splineLength = 0.0f;
+	const int lengthSamples = 1000;
+	Vec3 prevPos = Math::CatmullRomPosition(controlPoints, 0.0f);
+
+	for (int i = 1; i <= lengthSamples; i++) {
+		float t = static_cast<float>(i) / lengthSamples;
+		Vec3 currentPos = Math::CatmullRomPosition(controlPoints, t);
+		splineLength += (currentPos - prevPos).Length();
+		prevPos = currentPos;
+	}
+
+	// レールの数を計算（スプラインの長さをレール1つの長さで割る）
+	int numRails = static_cast<int>(std::ceil(splineLength / railLength));
+
+	// 実際の配置間隔を計算（均等に分布させる）
+	float actualSpacing = splineLength / (numRails - 1);
+
+	// レールを配置
+	float accumulatedLength = 0.0f;
+	float currentT = 0.0f;
+	prevPos = Math::CatmullRomPosition(controlPoints, 0.0f);
+
+	for (int i = 0; i < numRails; ++i) {
+		// 目標の距離
+		float targetDistance = i * actualSpacing;
+
+		// 目標の距離に達するまでtを進める
+		while (accumulatedLength < targetDistance && currentT < 1.0f) {
+			currentT += delta;
+			Vec3 currentPos = Math::CatmullRomPosition(controlPoints, currentT);
+			accumulatedLength += (currentPos - prevPos).Length();
+			prevPos = currentPos;
+		}
+
+		// レールの位置を取得
+		Vec3 railPosition = Math::CatmullRomPosition(controlPoints, currentT);
+
+		// 接線ベクトルを計算
+		Vec3 tangent;
+		if (i == 0) {
+			Vec3 nextPosition = Math::CatmullRomPosition(controlPoints, currentT + delta);
+			tangent = (nextPosition - railPosition).Normalized();
+		} else if (i == numRails - 1) {
+			Vec3 prevPosition = Math::CatmullRomPosition(controlPoints, currentT - delta);
+			tangent = (railPosition - prevPosition).Normalized();
+		} else {
+			Vec3 prevPosition = Math::CatmullRomPosition(controlPoints, currentT - delta);
+			Vec3 nextPosition = Math::CatmullRomPosition(controlPoints, currentT + delta);
+			tangent = (nextPosition - prevPosition).Normalized();
+		}
+
+		// レールのモデルを生成
+		auto rail = std::make_unique<Object3D>();
+		rail->Init(object3DCommon_, modelCommon_);
+		rail->SetModel("rail.obj");
+		rail->SetPos(railPosition);
+
+		// 接線ベクトルから回転を計算
+		float pitch = std::asin(-tangent.y);
+		float yaw = std::atan2(tangent.x, tangent.z);
+		rail->SetRot({ pitch, yaw, 0.0f });
+
+		// レールをシーンに追加
+		rails_.push_back(std::move(rail));
+	}
 }

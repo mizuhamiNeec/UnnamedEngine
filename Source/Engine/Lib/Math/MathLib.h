@@ -5,17 +5,18 @@
 #include "Vector/Vec3.h"
 
 // スプライン曲線制御点(通過点)
-static std::vector<Vec3> controlPoints_{
-	{0,0,0},
-	{10,10,10},
-	{10,15,20},
-	{20,15,30},
-	{20,0,40},
-	{30,0,50},
-	{30,-15,60},
-	{40,15,70},
-	{40,-15,80},
-	{0,0,90},
+static std::vector<Vec3> controlPoints{
+	{4.0f, 0.0f, -1.0f},
+	{1.0f, 4.0f, 0.0f},
+	{1.5f, 1.0f, 1.0f},
+	{0.6f, 6.0f, 2.8f},
+	{3.7f, 9.0f, 4.6f},
+	{-2.2f, 7.0f, 4.4f},
+	{-3.1f, 3.0f, 1.2f},
+	{1.0f, -5.0f, 7.0f},
+	{-0.9f, -1.0f, 9.8f},
+	{-5.8f, 4.0f, 7.6f},
+	{3.3f, 4.0f, 2.4f},
 };
 
 namespace Math {
@@ -34,4 +35,5 @@ namespace Math {
 
 	Vec3 CatmullRomPosition(const std::vector<Vec3>& points, float t);
 	Vec3 CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, float t);
+	float CalculateSplineLength(const std::vector<Vec3>& controlPointsA, int numSamples);
 }

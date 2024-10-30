@@ -33,21 +33,7 @@ void Object3D::Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon) {
 	directionalLightData_->intensity = 1.0f; // 明るさ1
 }
 
-void Object3D::Update() {
-#ifdef _DEBUG
-	ImGui::Begin("Object3D");
-	ImGui::DragFloat3("transform##obj", &transform_.translate.x, 0.01f);
-	ImGui::DragFloat3("rotate##obj", &transform_.rotate.x, 0.01f);
-	ImGui::DragFloat3("scale##obj", &transform_.scale.x, 0.01f);
-	ImGui::Separator();
-	if (ImGui::DragFloat3("direction##light", &directionalLightData_->direction.x, 0.01f)) {
-		directionalLightData_->direction.Normalize();
-	}
-	ImGui::ColorPicker4("color##light", &directionalLightData_->color.x);
-	ImGui::DragFloat("intensity##light", &directionalLightData_->intensity, 0.01f);
-	ImGui::End();
-#endif
-
+void Object3D::Update() const {
 	Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
 
 	Mat4 worldViewProjMat;
@@ -84,4 +70,8 @@ void Object3D::SetModel(Model* model) {
 void Object3D::SetModel(const std::string& filePath) {
 	// モデルを検索してセットする
 	model_ = ModelManager::GetInstance()->FindModel(filePath);
+}
+
+void Object3D::SetLighting(const bool& newLighting) const {
+	model_->SetLighting(newLighting);
 }

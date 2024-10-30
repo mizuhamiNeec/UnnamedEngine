@@ -58,8 +58,7 @@ void Engine::Init() {
 	spriteCommon_->Init(renderer_.get());
 
 	// 入力
-	input_ = std::make_unique<Input>();
-	input_->Init(window_.get());
+	Input::GetInstance()->Init(window_.get());
 
 	//-------------------------------------------------------------------------
 	// コマンドのリセット
@@ -84,10 +83,10 @@ void Engine::Update() const {
 	while (true) {
 		/* ----------- 更新処理 ---------- */
 
-		input_->Update();
+		Input::GetInstance()->Update();
 
 		// コンソール表示切り替え
-		if (input_->TriggerKey(DIK_GRAVE)) {
+		if (Input::GetInstance()->TriggerKey(DIK_GRAVE)) {
 			Console::ToggleConsole();
 		}
 
