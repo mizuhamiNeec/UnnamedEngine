@@ -146,6 +146,7 @@
     <ClCompile Include="Source\Engine\Sprite\Sprite.cpp" />
     <ClCompile Include="Source\Engine\Sprite\SpriteCommon.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Camera\Camera.h" />
@@ -195,6 +196,7 @@
     <ClInclude Include="Source\Engine\Sprite\Sprite.h" />
     <ClInclude Include="Source\Engine\Sprite\SpriteCommon.h" />
     <ClInclude Include="Source\Engine\Window\WindowsUtils.h" />
+    <ClInclude Include="Source\Engine\Lib\Timer\EngineTimer.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">

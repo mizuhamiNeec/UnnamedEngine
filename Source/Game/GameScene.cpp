@@ -372,9 +372,9 @@ void GameScene::Update() {
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = renderer_->GetSRVDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
 		gpuHandle.ptr += (renderer_->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * 3) * frameIndex;*/
 
-		ImTextureID tex = reinterpret_cast<ImTextureID>(renderer_->GetSRVDescriptorHeap()->
-			GetGPUDescriptorHandleForHeapStart().ptr + (renderer_
-				->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * index));
+		ImTextureID tex = renderer_->GetSRVDescriptorHeap()->
+		                             GetGPUDescriptorHandleForHeapStart().ptr + renderer_
+			->GetDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * index;
 		//ImTextureID tex = reinterpret_cast<ImTextureID>(gpuHandle.ptr);
 		ImGui::Image(tex, { imageSize, imageSize });
 		ImGui::End();

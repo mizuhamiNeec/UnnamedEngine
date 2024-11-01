@@ -3,9 +3,9 @@
 
 #include "../Game/GameScene.h"
 
-#include "../Input/Input.h"
 #include "Model/ModelCommon.h"
 
+class EngineTimer;
 class Console;
 class ImGuiManager;
 class D3D12;
@@ -18,13 +18,13 @@ public:
 
 private:
 	void Init();
-	void Update() const;
+	void Update();
 	void Shutdown() const;
 
 private:
 	std::unique_ptr<Window> window_;
 	std::unique_ptr<D3D12> renderer_;
-	std::unique_ptr<Input> input_;
+	std::unique_ptr<EngineTimer> time_;
 	std::unique_ptr<GameScene> gameScene_;
 	std::unique_ptr<Camera> camera_;
 	std::unique_ptr<SpriteCommon> spriteCommon_;

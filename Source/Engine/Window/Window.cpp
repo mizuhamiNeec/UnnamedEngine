@@ -77,6 +77,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	SetUseImmersiveDarkMode(hWnd_, WindowsUtils::IsSystemDarkTheme());
 	// ウィンドウを表示
 	ShowWindow(hWnd_, SW_SHOW);
+	UpdateWindow(hWnd_);
 	// このウィンドウにフォーカス
 	SetFocus(hWnd_);
 
@@ -110,14 +111,11 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	// ------------------------------------------------------------------------
 	// どちらかのキーを押すと時が止まる Alt || F10キー対策
 	// ------------------------------------------------------------------------
-	if (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP) {
-		return 0;
-	}
 
 	switch (msg) {
 	case WM_SIZE:
-		// TODO : サイズ可変にしたい
-		break;
+
+		return 0;
 	case WM_SETTINGCHANGE: // Windowsの設定が変更された
 		if (lParam) {
 			const wchar_t* immersiveColorSet = std::bit_cast<const wchar_t*>(lParam);
@@ -132,13 +130,16 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 				}
 			}
 		}
+		return 0;
+	case WM_SYSCOMMAND:
+		if (msg == SC_KEYMENU) {
+			return 0;
+		}
 		break;
 	case WM_CLOSE:
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
-	default:
-		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 
 	return DefWindowProc(hWnd, msg, wParam, lParam);

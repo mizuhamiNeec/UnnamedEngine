@@ -79,9 +79,6 @@ private:
 
 	void HandleDeviceLost();
 
-	void InitializeFixFPS();
-	void UpdateFixFPS();
-
 public:
 	// -----------------------------------------------------------------------
 	// Accessor

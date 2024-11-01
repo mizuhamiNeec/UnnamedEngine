@@ -1,31 +1,43 @@
 #include "Engine.h"
 
+#include <thread>
+
 #include "../ImGuiManager/ImGuiManager.h"
+
 #include "Camera/Camera.h"
+
 #include "Lib/Console/Console.h"
 #include "Lib/Console/ConVar.h"
 #include "Lib/Console/ConVars.h"
 #include "Lib/Utils/ClientProperties.h"
+
 #include "Model/ModelManager.h"
+
 #include "Object3D/Object3DCommon.h"
+
 #include "Renderer/D3D12.h"
+
 #include "TextureManager/TextureManager.h"
+
 #include "Window/Window.h"
+
+Engine::Engine() = default;
 
 void Engine::Run() {
 	Init();
-	Update();
+	while (true) {
+		if (Window::ProcessMessage()) break; // ゲームループを抜ける
+		Update();
+	}
 	Shutdown();
 }
-
-Engine::Engine() = default;
 
 void Engine::Init() {
 	// ウィンドウの作成
 	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
 	// ウィンドウの作成を試みる
 	if (!window_->Create(nullptr)) {
-		assert(false && "ウィンドウの作成に失敗しました");
+		assert(false && "ウィンドウの作成に失敗しました。");
 	}
 
 	// レンダラ
@@ -73,23 +85,25 @@ void Engine::Init() {
 	assert(SUCCEEDED(hr));
 
 	// シーン
-	gameScene_ = std::make_unique<GameScene>();
-	gameScene_->Init(renderer_.get(), window_.get(), spriteCommon_.get(), object3DCommon_.get(), modelCommon_.get());
+	//gameScene_ = std::make_unique<GameScene>();
+	//gameScene_->Init(renderer_.get(), window_.get(), spriteCommon_.get(), object3DCommon_.get(), modelCommon_.get());
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
+
+	time_ = std::make_unique<EngineTimer>();
 }
 
-void Engine::Update() const {
-	while (true) {
-		/* ----------- 更新処理 ---------- */
+void Engine::Update() {
 
-		input_->Update();
+	/* ----------- 更新処理 ---------- */
 
-		// コンソール表示切り替え
-		if (input_->TriggerKey(DIK_GRAVE)) {
-			Console::ToggleConsole();
-		}
+	//Input::GetInstance()->Update();
+
+	//// コンソール表示切り替え
+	//if (Input::GetInstance()->TriggerKey(DIK_GRAVE)) {
+	//	Console::ToggleConsole();
+	//}
 
 #ifdef _DEBUG
 		imGuiManager_->NewFrame();
@@ -103,82 +117,77 @@ void Engine::Update() const {
 		gameScene_->Update();
 
 #ifdef _DEBUG // cl_showfps
-		if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
+	if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
 
-			ImGuiWindowFlags windowFlags =
-				ImGuiWindowFlags_NoBackground |
-				ImGuiWindowFlags_NoTitleBar |
-				ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove |
-				ImGuiWindowFlags_NoSavedSettings;
+		ImGuiWindowFlags windowFlags =
+			ImGuiWindowFlags_NoBackground |
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoSavedSettings;
 
-			ImVec2 windowPos = ImVec2(0.0f, 128.0f);
-			ImVec2 windowSize = ImVec2(1080.0f, 80.0f);
+		ImVec2 windowPos = ImVec2(0.0f, 128.0f);
+		ImVec2 windowSize = ImVec2(1080.0f, 80.0f);
 
-			windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
-			windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
+		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
+		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 
-			ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-			ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
 
-			ImGui::Begin("##cl_showfps", nullptr, windowFlags);
+		ImGui::Begin("##cl_showfps", nullptr, windowFlags);
 
-			ImVec2 textPos = ImGui::GetCursorScreenPos();
+		ImVec2 textPos = ImGui::GetCursorScreenPos();
 
-			ImDrawList* drawList = ImGui::GetWindowDrawList();
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-			float outlineSize = 1.0f;
+		float outlineSize = 1.0f;
 
-			ImGuiIO io = ImGui::GetIO();
+		ImGuiIO io = ImGui::GetIO();
 
-			std::string text = std::format("{:.2f} fps", io.Framerate);
+		std::string text = std::format("{:.2f} fps", io.Framerate);
 
-			ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
-			if (io.Framerate >= 59.9f) {
-				textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
-			} else if (io.Framerate >= 29.9f) {
-				textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
-			}
-
-			ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
-
-			TextOutlined(
-				drawList,
-				textPos,
-				text.c_str(),
-				textColor,
-				outlineColor,
-				outlineSize
-			);
-
-			ImGui::PopStyleVar();
-
-			ImGui::End();
+		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
+		if (io.Framerate >= 59.9f) {
+			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
+		} else if (io.Framerate >= 29.9f) {
+			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 		}
+
+		ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
+
+		TextOutlined(
+			drawList,
+			textPos,
+			text.c_str(),
+			textColor,
+			outlineColor,
+			outlineSize
+		);
+
+		ImGui::PopStyleVar();
+
+		ImGui::End();
+	}
 #endif
 
-		/* ---------- Pre ----------- */
+	/* ---------- Pre ----------- */
 
-		renderer_->PreRender();
+	renderer_->PreRender();
 
-		/* ---------- コマンド積み ----------- */
+	/* ---------- コマンド積み ----------- */
 
 		gameScene_->Render();
 
 #ifdef _DEBUG
-		imGuiManager_->EndFrame();
+	imGuiManager_->EndFrame();
 #endif
 
-		/* ---------- Post ----------- */
-		renderer_->PostRender();
+	/* ---------- Post ----------- */
+	renderer_->PostRender();
 
-		/* ---------- ゲームループ終了 ---------- */
-
-		if (Window::ProcessMessage()) {
-			break; // ゲームループを抜ける
-		}
-	}
+	/* ---------- ゲームループ終了 ---------- */
 }
 
 void Engine::Shutdown() const {

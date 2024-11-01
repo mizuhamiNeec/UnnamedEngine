@@ -29,7 +29,7 @@ D3D12::~D3D12() {
 void D3D12::Init(Window* window) {
 	window_ = window;
 
-	InitializeFixFPS();
+	//InitializeFixFPS();
 
 #ifdef _DEBUG
 	EnableDebugLayer();
@@ -156,7 +156,7 @@ void D3D12::PostRender() {
 
 	WaitPreviousFrame(); // 前のフレームを待つ
 
-	UpdateFixFPS();
+	//	UpdateFixFPS();
 }
 
 void D3D12::OnSizeChanged([[maybe_unused]] UINT width, [[maybe_unused]] UINT height, [[maybe_unused]] bool isMinimized) {}
@@ -468,33 +468,6 @@ void D3D12::WaitPreviousFrame() {
 		// イベント待つ
 		WaitForSingleObject(fenceEvent_, INFINITE);
 	}
-}
-
-void D3D12::InitializeFixFPS() {
-	// 現在時間を記録する
-	reference_ = std::chrono::steady_clock::now();
-}
-
-void D3D12::UpdateFixFPS() {
-	// フレームレートピッタリの時間
-	const std::chrono::microseconds kMinTime(static_cast<uint64_t>(1000000.0f / ConVars::GetInstance().GetConVar("cl_maxfps")->GetFloat()));
-
-	// 現在時間を取得する
-	auto now = std::chrono::steady_clock::now();
-	// 前回記録からの経過時間を取得する
-	auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - reference_);
-
-	// 1/60秒 (よりわずかに短い時間) 経っていない場合
-	if (elapsed < kMinTime) {
-		// 1/60秒経過するまで微小なスリープを繰り返す
-		auto waitUntil = reference_ + kMinTime;
-		while (std::chrono::steady_clock::now() < waitUntil) {
-			std::this_thread::yield(); // CPUに他のスレッドの実行を許可
-		}
-	}
-
-	// 現在の時間を記録する
-	reference_ = std::chrono::steady_clock::now();
 }
 
 ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType, const UINT numDescriptors, const bool shaderVisible) const {
