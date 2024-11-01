@@ -3,6 +3,7 @@
 #include "imgui/imgui.h"
 #include "Math/Matrix/Mat4.h"
 #include "Structs/Structs.h"
+#include <format>
 
 #include "Utils/ClientProperties.h"
 
@@ -22,6 +23,7 @@ void Camera::Update() {
 	ImGui::DragFloat("vFov##cam", &vFov_, 0.01f, kFovMin, kFovMax);
 	ImGui::DragFloat("nearZ", &nearZ_, 0.1f);
 	ImGui::DragFloat("farZ", &farZ_, 0.1f);
+	ImGui::Text(std::format("{}", aspectRatio_).c_str());
 	ImGui::End();
 #endif
 

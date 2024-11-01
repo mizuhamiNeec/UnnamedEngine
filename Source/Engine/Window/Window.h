@@ -25,7 +25,7 @@ public:
 	uint32_t GetClientWidth() const;
 	uint32_t GetClientHeight() const;
 
-	static bool ProcessMessage();
+	bool ProcessMessage();
 
 private:
 	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

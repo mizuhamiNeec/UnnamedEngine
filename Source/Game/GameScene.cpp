@@ -18,6 +18,8 @@
 #include "../Object3D/Object3D.h"
 
 #include "../Sprite/SpriteCommon.h"
+#include "../TextureManager/TextureManager.h"
+#include "../Engine/Model/ModelManager.h"
 
 #include "../Particle/Particle.h"
 
@@ -88,9 +90,8 @@ void GameScene::Update() {
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
 			"unnamed",
-			cameraTransform_.translate.x, cameraTransform_.translate.y, cameraTransform_.translate.z,
-			cameraTransform_.rotate.x * Math::rad2Deg, cameraTransform_.rotate.y * Math::rad2Deg,
-			cameraTransform_.rotate.z * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y, object3DCommon_->GetDefaultCamera()->GetPos().z,
+			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
 			0.0f
 		);
 
