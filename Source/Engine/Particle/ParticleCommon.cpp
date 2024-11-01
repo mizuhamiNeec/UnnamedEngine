@@ -1,4 +1,4 @@
-#include "SpriteCommon.h"
+#include "ParticleCommon.h"
 
 #include "../Lib/Console/Console.h"
 #include "../Lib/Structs/Structs.h"
@@ -7,23 +7,23 @@
 #include "../Renderer/RootSignatureManager.h"
 
 //-----------------------------------------------------------------------------
-// Purpose: SpriteCommonを初期化します
+// Purpose: ParticleCommonを初期化します
 //-----------------------------------------------------------------------------
-void SpriteCommon::Init(D3D12* d3d12) {
+void ParticleCommon::Init(D3D12* d3d12) {
 	d3d12_ = d3d12;
-	Console::Print("SpriteCommon : SpriteCommonを初期化します。\n");
+	Console::Print("ParticleCommon : ParticleCommonを初期化します。\n");
 	CreateGraphicsPipeline();
-	Console::Print("SpriteCommon : SpriteCommonの初期化が完了しました。\n");
+	Console::Print("ParticleCommon : ParticleCommonの初期化が完了しました。\n");
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: SpriteCommonをシャットダウンします
+// Purpose: ParticleCommonをシャットダウンします
 //-----------------------------------------------------------------------------
-void SpriteCommon::Shutdown() const {
+void ParticleCommon::Shutdown() const {
 	delete rootSignatureManager_;
 }
 
-void SpriteCommon::CreateRootSignature() {
+void ParticleCommon::CreateRootSignature() {
 	//  RootSignatureManagerのインスタンスを作成
 	rootSignatureManager_ = new RootSignatureManager(d3d12_->GetDevice());
 
@@ -69,33 +69,33 @@ void SpriteCommon::CreateRootSignature() {
 
 	// ルートシグネチャを作成
 	rootSignatureManager_->
-		CreateRootSignature("SpriteCommon", rootParameters, staticSamplers, _countof(staticSamplers));
+		CreateRootSignature("ParticleCommon", rootParameters, staticSamplers, _countof(staticSamplers));
 
-	if (rootSignatureManager_->Get("SpriteCommon")) {
-		Console::Print("SpriteCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
+	if (rootSignatureManager_->Get("ParticleCommon")) {
+		Console::Print("ParticleCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
 	}
 }
 
-void SpriteCommon::CreateGraphicsPipeline() {
+void ParticleCommon::CreateGraphicsPipeline() {
 	CreateRootSignature();
 
 	// パイプラインステートを作成
 	pipelineState_ = PipelineState(D3D12_CULL_MODE_NONE, D3D12_FILL_MODE_SOLID);
 	pipelineState_.SetInputLayout(Vertex::inputLayout);
-	pipelineState_.SetRootSignature(rootSignatureManager_->Get("SpriteCommon"));
+	pipelineState_.SetRootSignature(rootSignatureManager_->Get("ParticleCommon"));
 
 	// シェーダーのファイルパスを設定
-	pipelineState_.SetVS(L"./Resources/Shaders/SpriteCommon.VS.hlsl");
-	pipelineState_.SetPS(L"./Resources/Shaders/SpriteCommon.PS.hlsl");
+	pipelineState_.SetVS(L"./Resources/Shaders/ParticleCommon.VS.hlsl");
+	pipelineState_.SetPS(L"./Resources/Shaders/ParticleCommon.PS.hlsl");
 	pipelineState_.Create(d3d12_->GetDevice());
 
 	if (pipelineState_.Get()) {
-		Console::Print("SpriteCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted);
+		Console::Print("ParticleCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted);
 	}
 }
 
-void SpriteCommon::Render() const {
+void ParticleCommon::Render() const {
 	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
-	d3d12_->GetCommandList()->SetGraphicsRootSignature(rootSignatureManager_->Get("SpriteCommon"));
+	d3d12_->GetCommandList()->SetGraphicsRootSignature(rootSignatureManager_->Get("ParticleCommon"));
 	d3d12_->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }

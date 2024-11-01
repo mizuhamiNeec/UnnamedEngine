@@ -116,6 +116,8 @@
     <ClCompile Include="Source\Engine\Engine.cpp" />
     <ClCompile Include="Source\Engine\Input\Input.cpp" />
     <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp" />
+    <ClCompile Include="Source\Engine\Particle\Particle.cpp" />
+    <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
     <ClCompile Include="Source\Engine\Renderer\RootSignatureManager.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp" />
@@ -160,6 +162,8 @@
     <ClInclude Include="Source\Engine\Engine.h" />
     <ClInclude Include="Source\Engine\Input\Input.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h" />
+    <ClInclude Include="Source\Engine\Particle\Particle.h" />
+    <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
     <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
     <ClInclude Include="Source\Engine\Renderer\IndexBuffer.h" />

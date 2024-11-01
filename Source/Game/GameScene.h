@@ -6,6 +6,7 @@
 #include "../Object3D/Object3DCommon.h"
 #include "../Renderer/Renderer.h"
 #include "../Sprite/Sprite.h"
+#include "../Particle/Particle.h"
 #include "../Sprite/SpriteCommon.h"
 
 class GameScene : IGameScene {
@@ -19,9 +20,10 @@ private:
 	Window* window_ = nullptr;
 	D3D12* renderer_ = nullptr;
 
-	std::vector<Sprite*> sprites_;
 	std::unique_ptr<Object3D> object3D_;
 	std::unique_ptr<Model> model_;
+
+	std::unique_ptr<Particle> particle_;
 
 	Transform transform_;
 	Transform cameraTransform_;

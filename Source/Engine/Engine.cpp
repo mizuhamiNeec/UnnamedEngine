@@ -2,6 +2,8 @@
 
 #include <thread>
 
+#include "Input.h"
+
 #include "../ImGuiManager/ImGuiManager.h"
 
 #include "Camera/Camera.h"
@@ -70,8 +72,7 @@ void Engine::Init() {
 	spriteCommon_->Init(renderer_.get());
 
 	// 入力
-	input_ = std::make_unique<Input>();
-	input_->Init(window_.get());
+	Input::GetInstance()->Init(window_.get());
 
 	//-------------------------------------------------------------------------
 	// コマンドのリセット
@@ -85,8 +86,8 @@ void Engine::Init() {
 	assert(SUCCEEDED(hr));
 
 	// シーン
-	//gameScene_ = std::make_unique<GameScene>();
-	//gameScene_->Init(renderer_.get(), window_.get(), spriteCommon_.get(), object3DCommon_.get(), modelCommon_.get());
+	gameScene_ = std::make_unique<GameScene>();
+	gameScene_->Init(renderer_.get(), window_.get(), spriteCommon_.get(), object3DCommon_.get(), modelCommon_.get());
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
@@ -95,26 +96,24 @@ void Engine::Init() {
 }
 
 void Engine::Update() {
-
 	/* ----------- 更新処理 ---------- */
+	Input::GetInstance()->Update();
 
-	//Input::GetInstance()->Update();
-
-	//// コンソール表示切り替え
-	//if (Input::GetInstance()->TriggerKey(DIK_GRAVE)) {
-	//	Console::ToggleConsole();
-	//}
+	// コンソール表示切り替え
+	if (Input::GetInstance()->TriggerKey(DIK_GRAVE)) {
+		Console::ToggleConsole();
+	}
 
 #ifdef _DEBUG
-		imGuiManager_->NewFrame();
-		console_->Update();
+	imGuiManager_->NewFrame();
+	console_->Update();
 #endif
 
-		camera_->SetAspectRatio(static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight()));
-		camera_->Update();
+	camera_->SetAspectRatio(static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight()));
+	camera_->Update();
 
-		// ゲームシーンの更新
-		gameScene_->Update();
+	// ゲームシーンの更新
+	gameScene_->Update();
 
 #ifdef _DEBUG // cl_showfps
 	if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
@@ -128,12 +127,18 @@ void Engine::Update() {
 			ImGuiWindowFlags_NoSavedSettings;
 
 		ImVec2 windowPos = ImVec2(0.0f, 128.0f);
-		ImVec2 windowSize = ImVec2(1080.0f, 80.0f);
 
 		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+		// テキストのサイズを取得
+		ImGuiIO io = ImGui::GetIO();
+		std::string text = std::format("{:.2f} fps", io.Framerate);
+		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
+
+		// ウィンドウサイズをテキストサイズに基づいて設定
+		ImVec2 windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f); // 余白を追加
 		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
 
 		ImGui::Begin("##cl_showfps", nullptr, windowFlags);
@@ -143,10 +148,6 @@ void Engine::Update() {
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 
 		float outlineSize = 1.0f;
-
-		ImGuiIO io = ImGui::GetIO();
-
-		std::string text = std::format("{:.2f} fps", io.Framerate);
 
 		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
 		if (io.Framerate >= 59.9f) {
@@ -178,7 +179,7 @@ void Engine::Update() {
 
 	/* ---------- コマンド積み ----------- */
 
-		gameScene_->Render();
+	gameScene_->Render();
 
 #ifdef _DEBUG
 	imGuiManager_->EndFrame();

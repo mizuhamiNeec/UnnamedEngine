@@ -5,7 +5,8 @@
 
 #include "Model/ModelCommon.h"
 
-class EngineTimer;
+#include "Timer/EngineTimer.h"
+
 class Console;
 class ImGuiManager;
 class D3D12;

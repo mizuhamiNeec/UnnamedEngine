@@ -7,6 +7,11 @@
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
 
+Input* Input::GetInstance() {
+	static Input instance; // シングルトンインスタンス
+	return &instance; // ポインタを返す
+}
+
 void Input::Init(const Window* window) {
 	ComPtr<IDirectInput8> directInput = nullptr;
 	HRESULT hr = DirectInput8Create(

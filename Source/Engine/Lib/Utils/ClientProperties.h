@@ -1,4 +1,5 @@
 #pragma once
+#include "Math/MathLib.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : ウィンドウ
@@ -15,6 +16,12 @@ constexpr uint32_t kFrameBufferCount = 2; // バックバッファの数 TODO : 
 constexpr uint32_t kMaxSRVCount = 512;
 constexpr bool kEnableVSync = false; // 垂直同期
 constexpr float kMaxFPS = 256.0f;
+
+//-----------------------------------------------------------------------------
+// Purpose: カメラ
+//-----------------------------------------------------------------------------
+constexpr float kFovMax = 179.999f * Math::deg2Rad;
+constexpr float kFovMin = 0.001f;
 
 //-----------------------------------------------------------------------------
 // Purpose : テクスチャマネージャー
