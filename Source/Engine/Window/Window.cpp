@@ -5,7 +5,6 @@
 #endif
 
 #include <dwmapi.h>
-
 #include <utility>
 
 #include "WindowsUtils.h"
@@ -16,10 +15,17 @@
 
 #ifdef _DEBUG
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-#endif	
+#endif
 
-Window::Window(std::wstring title, const uint32_t width, const uint32_t height, const DWORD style, const DWORD exStyle) : title_(std::move(title)), width_(width), height_(height), style_(style), exStyle_(exStyle) {
-	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+Window::Window(
+	std::wstring title,
+	const uint32_t width,
+	const uint32_t height,
+	const DWORD style,
+	const DWORD exStyle
+) : title_(std::move(title)), width_(width), height_(height), style_(style), exStyle_(exStyle) {
+	const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	assert(SUCCEEDED(hr));
 	timeBeginPeriod(1); // システムタイマーの分解能を上げる
 }
 
@@ -44,13 +50,14 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	wc_.hIconSm = LoadIcon(hInstance, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc_)) {
-		Console::Print("Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n", kConsoleColorError);
+		Console::Print("Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
+		               kConsoleColorError);
 		return false;
 	}
 
 	Console::Print("Window class registered.\n");
 
-	RECT wrc{ 0,0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
+	RECT wrc{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
 
 	AdjustWindowRectEx(&wrc, style_, false, exStyle_);
 

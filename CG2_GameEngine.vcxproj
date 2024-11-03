@@ -106,6 +106,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\MathLib.cpp" />
     <ClCompile Include="Source\Engine\Model\ModelManager.cpp" />
     <ClCompile Include="Source\Engine\Model\ModelCommon.cpp" />
     <ClCompile Include="Source\Engine\Model\Model.cpp" />
@@ -116,8 +117,7 @@
     <ClCompile Include="Source\Engine\Engine.cpp" />
     <ClCompile Include="Source\Engine\Input\Input.cpp" />
     <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp" />
-    <ClCompile Include="Source\Engine\Particle\Particle.cpp" />
-    <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
+    <ClCompile Include="Source\Engine\Objects\Empty.cpp" />
     <ClCompile Include="Source\Engine\Renderer\RootSignatureManager.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp" />
@@ -162,8 +162,7 @@
     <ClInclude Include="Source\Engine\Engine.h" />
     <ClInclude Include="Source\Engine\Input\Input.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h" />
-    <ClInclude Include="Source\Engine\Particle\Particle.h" />
-    <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
+    <ClInclude Include="Source\Engine\Objects\Empty.h" />
     <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
     <ClInclude Include="Source\Engine\Renderer\IndexBuffer.h" />
@@ -223,6 +222,9 @@
     <ProjectReference Include="Source\Engine\Externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
       <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Source\Engine\Particle\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

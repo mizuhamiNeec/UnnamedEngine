@@ -2,6 +2,8 @@
 
 #include "../Renderer/D3D12.h"
 
+#include "Structs/Structs.h"
+
 #ifdef _DEBUG
 #include "imgui/imgui.h"
 #else
@@ -32,15 +34,8 @@ private:
 };
 
 #ifdef _DEBUG
-inline void TextOutlined(ImDrawList* drawList, const ImVec2& pos, const char* text, ImU32 textColor, ImU32 outlineColor, float outlineSize = 1.0f) {
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x, pos.y - outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x, pos.y + outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y - outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y - outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y + outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y + outlineSize), outlineColor, text);
-	drawList->AddText(pos, textColor, text);
-}
+void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive);
+void EditTransform(const std::string& name, Transform& transform, const float& vSpeed);
+void TextOutlined(ImDrawList* drawList, const ImVec2& pos, const char* text, ImU32 textColor, ImU32 outlineColor,
+                  float outlineSize = 1.0f);
 #endif

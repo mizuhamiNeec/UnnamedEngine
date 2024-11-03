@@ -30,7 +30,7 @@ void TextureManager::Init(D3D12* renderer) {
 	// std::vectorの欠点としてあらかじめ確保していた要素数を超えたときにメモリの再割り当てが発生することが挙げられる。
 	// 最初に最大個数のメモリを確保しておくことでその欠点を塞いでおく
 	//-------------------------------------------------------------------------
-	textureData_.reserve(kMaxSRVCount);
+	textureData_.reserve(kMaxSrvCount);
 }
 
 /// @brief 指定されたテクスチャのメタデータを取得します
@@ -189,7 +189,7 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 	}
 
 	// テクスチャ枚数上限チェック
-	assert(textureData_.size() + kSRVIndexTop < kMaxSRVCount);
+	assert(textureData_.size() + kSrvIndexTop < kMaxSrvCount);
 
 	// テクスチャファイルを読んでプログラムで扱えるようにする
 	DirectX::ScratchImage image = {};
@@ -252,7 +252,7 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 	intermediateResource.Reset();
 
 	// テクスチャデータの要素数番号をSRVのインデックスとする
-	uint32_t srvIndex = static_cast<uint32_t>(textureData_.size() - 1) + kSRVIndexTop; // ImGuiのために+1しておく
+	uint32_t srvIndex = static_cast<uint32_t>(textureData_.size() - 1) + kSrvIndexTop; // ImGuiのために+1しておく
 
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};

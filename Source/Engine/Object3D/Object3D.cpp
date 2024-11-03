@@ -20,30 +20,29 @@ void Object3D::Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon) {
 	this->camera_ = object3DCommon_->GetDefaultCamera();
 
 	// 座標変換行列定数バッファ
-	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(object3DCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
+	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
+		object3DCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
 	transformationMatrixData_ = transformationMatrixConstantBuffer_->GetPtr<TransformationMatrix>();
 	transformationMatrixData_->wvp = Mat4::Identity();
 	transformationMatrixData_->world = Mat4::Identity();
 
 	// 指向性ライト定数バッファ
-	directionalLightConstantBuffer_ = std::make_unique<ConstantBuffer>(object3DCommon_->GetD3D12()->GetDevice(), sizeof(DirectionalLight));
+	directionalLightConstantBuffer_ = std::make_unique<ConstantBuffer>(object3DCommon_->GetD3D12()->GetDevice(),
+	                                                                   sizeof(DirectionalLight));
 	directionalLightData_ = directionalLightConstantBuffer_->GetPtr<DirectionalLight>();
-	directionalLightData_->color = { 1.0f,1.0f,1.0f,1.0f }; // 白
-	directionalLightData_->direction = { 0.0f,-0.7071067812f,0.7071067812f }; // 斜め前向き
+	directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
+	directionalLightData_->direction = {0.0f, -0.7071067812f, 0.7071067812f}; // 斜め前向き
 	directionalLightData_->intensity = 1.0f; // 明るさ1
 }
 
 void Object3D::Update() {
 #ifdef _DEBUG
 	ImGui::Begin("Object3D");
-	ImGui::DragFloat3("transform##obj", &transform_.translate.x, 0.01f);
-	ImGui::DragFloat3("rotate##obj", &transform_.rotate.x, 0.01f);
-	ImGui::DragFloat3("scale##obj", &transform_.scale.x, 0.01f);
-	ImGui::Separator();
+	EditTransform("Object3D", transform_, 0.01f);
 	if (ImGui::DragFloat3("direction##light", &directionalLightData_->direction.x, 0.01f)) {
 		directionalLightData_->direction.Normalize();
 	}
-	ImGui::ColorPicker4("color##light", &directionalLightData_->color.x);
+	ImGui::ColorEdit4("color##light", &directionalLightData_->color.x);
 	ImGui::DragFloat("intensity##light", &directionalLightData_->intensity, 0.01f);
 	ImGui::End();
 #endif
@@ -56,7 +55,8 @@ void Object3D::Update() {
 		// カメラが存在する場合はカメラから行列を持ってくる
 		const Mat4& viewProjMat = camera_->GetViewProjMat();
 		worldViewProjMat = worldMat * viewProjMat;
-	} else {
+	}
+	else {
 		worldViewProjMat = worldMat;
 	}
 
@@ -66,10 +66,12 @@ void Object3D::Update() {
 
 void Object3D::Draw() const {
 	// 座標変換行列の定数バッファの設定
-	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(1, transformationMatrixConstantBuffer_->GetAddress());
+	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
+		1, transformationMatrixConstantBuffer_->GetAddress());
 
 	// 指向性ライトの定数バッファを設定
-	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightConstantBuffer_->GetAddress());
+	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
+		3, directionalLightConstantBuffer_->GetAddress());
 
 	// 3Dモデルが割り当てられていれば描画する
 	if (model_) {

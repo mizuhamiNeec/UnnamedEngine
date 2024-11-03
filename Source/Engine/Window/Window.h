@@ -1,8 +1,6 @@
 #pragma once
-//-----------------------------------------------------------------------------
-//#define WIN32_LEAN_AND_MEAN
+
 #include <Windows.h>
-//-----------------------------------------------------------------------------
 
 #include <cstdint>
 
@@ -13,7 +11,6 @@ class Window final {
 public:
 	Window(std::wstring title, uint32_t width, uint32_t height, DWORD style = WS_OVERLAPPEDWINDOW, DWORD exStyle = 0);
 	~Window();
-
 
 	bool Create(HINSTANCE hInstance, const std::string& className = kWindowClassName, WNDPROC wndProc = WindowProc);
 
@@ -26,7 +23,7 @@ public:
 	uint32_t GetClientHeight() const;
 
 	bool ProcessMessage();
-
+	
 private:
 	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 

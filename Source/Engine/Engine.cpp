@@ -28,7 +28,7 @@ Engine::Engine() = default;
 void Engine::Run() {
 	Init();
 	while (true) {
-		if (Window::ProcessMessage()) break; // ゲームループを抜ける
+		if (window_->ProcessMessage()) break; // ゲームループを抜ける
 		Update();
 	}
 	Shutdown();
@@ -109,7 +109,8 @@ void Engine::Update() {
 	console_->Update();
 #endif
 
-	camera_->SetAspectRatio(static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight()));
+	camera_->SetAspectRatio(
+		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight()));
 	camera_->Update();
 
 	// ゲームシーンの更新
@@ -197,8 +198,10 @@ void Engine::Shutdown() const {
 	ModelManager::Shutdown();
 	TextureManager::Shutdown();
 
+#ifdef _DEBUG
 	// ImGuiManagerのシャットダウンは最後に行う
 	if (imGuiManager_) {
 		imGuiManager_->Shutdown();
 	}
+#endif
 }

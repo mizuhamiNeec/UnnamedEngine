@@ -32,8 +32,8 @@ private:
 	std::unique_ptr<Object3DCommon> object3DCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
 
-	// Dev
+#ifdef _DEBUG
 	std::unique_ptr<ImGuiManager> imGuiManager_;
 	std::unique_ptr<Console> console_;
+#endif
 };
-

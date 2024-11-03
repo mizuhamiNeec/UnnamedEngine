@@ -6,6 +6,8 @@
 #include "imgui/imgui.h"
 #endif
 
+#include "WindowsUtils.h"
+
 #include "../Engine/Model/ModelManager.h"
 
 #include "../ImGuiManager/ImGuiManager.h"
@@ -13,19 +15,18 @@
 #include "../Lib/Console/ConVar.h"
 #include "../Lib/Console/ConVars.h"
 #include "../Lib/Math/MathLib.h"
-#include "../Lib/Structs/Structs.h"
 
 #include "../Object3D/Object3D.h"
 
 #include "../Sprite/SpriteCommon.h"
-#include "../TextureManager/TextureManager.h"
-#include "../Engine/Model/ModelManager.h"
-
-#include "../Particle/Particle.h"
 
 #include "../TextureManager/TextureManager.h"
 
-void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon, ModelCommon* modelCommon) {
+#ifdef _DEBUG
+#endif
+
+void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
+                     ModelCommon* modelCommon) {
 	renderer_ = renderer;
 	window_ = window;
 	spriteCommon_ = spriteCommon;
@@ -37,6 +38,9 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/uvChecker.png");
 #pragma endregion
 
+#pragma region スプライト類
+#pragma endregion
+
 #pragma region 3Dオブジェクト類
 	// .objファイルからモデルを読み込む
 	ModelManager::GetInstance()->LoadModel("axis.obj");
@@ -45,11 +49,11 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 	object3D_->Init(object3DCommon_, modelCommon_);
 	// 初期化済みの3Dオブジェクトにモデルを紐づける
 	object3D_->SetModel("axis.obj");
-	object3D_->SetPos({ 1.0f, -0.3f, 0.6f });
+	object3D_->SetPos({1.0f, -0.3f, 0.6f});
 #pragma endregion
 
 #pragma region パーティクル類
-	particle_ = std::make_unique<Particle>();
+
 #pragma endregion
 }
 
@@ -58,46 +62,47 @@ void GameScene::Update() {
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
-
-		ImGuiWindowFlags windowFlags =
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		const ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoMove |
 			ImGuiWindowFlags_NoSavedSettings;
-
 		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
-		ImVec2 windowSize = ImVec2(1080.0f, 80.0f);
-
 		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
-
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
 
-		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
-
-		ImVec2 textPos = ImGui::GetCursorScreenPos();
-
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-		float outlineSize = 1.0f;
-
+		// テキストのサイズを取得
+		ImGuiIO io = ImGui::GetIO();
 		std::string text = std::format(
 			"name: {}\n"
 			"pos : {:.2f} {:.2f} {:.2f}\n"
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
-			"unnamed",
-			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y, object3DCommon_->GetDefaultCamera()->GetPos().z,
-			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
+			WindowsUtils::GetWindowsUserName(),
+			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y,
+			object3DCommon_->GetDefaultCamera()->GetPos().z,
+			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
 			0.0f
 		);
+		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
+
+		// ウィンドウサイズをテキストサイズに基づいて設定
+		ImVec2 windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f); // 余白を追加
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+
+		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
+
+		ImVec2 textPos = ImGui::GetCursorScreenPos();
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		float outlineSize = 1.0f;
 
 		ImU32 textColor = IM_COL32(255, 255, 255, 255);
 		ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
-
 		TextOutlined(
 			drawList,
 			textPos,
@@ -108,7 +113,6 @@ void GameScene::Update() {
 		);
 
 		ImGui::PopStyleVar();
-
 		ImGui::End();
 	}
 #pragma endregion

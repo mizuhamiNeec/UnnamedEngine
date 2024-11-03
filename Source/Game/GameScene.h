@@ -6,12 +6,17 @@
 #include "../Object3D/Object3DCommon.h"
 #include "../Renderer/Renderer.h"
 #include "../Sprite/Sprite.h"
-#include "../Particle/Particle.h"
 #include "../Sprite/SpriteCommon.h"
 
 class GameScene : IGameScene {
 public:
-	void Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon, ModelCommon* modelCommon) override;
+	void Init(
+		D3D12* renderer,
+		Window* window,
+		SpriteCommon* spriteCommon,
+		Object3DCommon* object3DCommon,
+		ModelCommon* modelCommon
+	) override;
 	void Update() override;
 	void Render() override;
 	void Shutdown() override;
@@ -23,10 +28,6 @@ private:
 	std::unique_ptr<Object3D> object3D_;
 	std::unique_ptr<Model> model_;
 
-	std::unique_ptr<Particle> particle_;
-
 	Transform transform_;
 	Transform cameraTransform_;
-
-	float fov_ = 90.0f; // deg
 };

@@ -12,7 +12,7 @@
 
 struct Vertex {
 	Vec4 position; // 座標
-	Vec2 texcoord; // テクスチャ座標
+	Vec2 uv; // テクスチャ座標
 	Vec3 normal; // 法線
 
 	static const D3D12_INPUT_LAYOUT_DESC inputLayout;

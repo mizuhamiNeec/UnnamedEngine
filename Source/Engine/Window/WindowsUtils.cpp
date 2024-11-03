@@ -1,8 +1,19 @@
 #include "WindowsUtils.h"
 
 #include <dwmapi.h>
+#include <lmcons.h>
+#include <vector>
 
 #pragma comment(lib, "Dwmapi.lib")
+
+std::string WindowsUtils::GetWindowsUserName() {
+	DWORD bufferSize = UNLEN + 1; // +1 は　null文字分
+	std::vector<char> buffer(bufferSize);
+	if (GetUserNameA(buffer.data(), &bufferSize)) {
+		return std::string(buffer.data());
+	}
+	return std::string("名無しの権兵衛");
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 指定されたレジストリのキーを開き、名前に関連付けられたDWORD値を返します
