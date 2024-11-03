@@ -6,8 +6,6 @@
 #include "imgui/imgui.h"
 #endif
 
-#include "WindowsUtils.h"
-
 #include "../Engine/Model/ModelManager.h"
 
 #include "../ImGuiManager/ImGuiManager.h"
@@ -18,20 +16,24 @@
 
 #include "../Object3D/Object3D.h"
 
+#include "../Particle/ParticleCommon.h"
+
 #include "../Sprite/SpriteCommon.h"
 
 #include "../TextureManager/TextureManager.h"
 
 #ifdef _DEBUG
 #endif
+#include "../Engine/Window/WindowsUtils.h"
 
 void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
-                     ModelCommon* modelCommon) {
+                     ModelCommon* modelCommon, ParticleCommon* particleCommon) {
 	renderer_ = renderer;
 	window_ = window;
 	spriteCommon_ = spriteCommon;
 	object3DCommon_ = object3DCommon;
 	modelCommon_ = modelCommon;
+	particleCommon_ = particleCommon;
 
 #pragma region テクスチャ読み込み
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
@@ -39,6 +41,9 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 #pragma endregion
 
 #pragma region スプライト類
+	sprite_ = std::make_unique<Sprite>();
+	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
+	sprite_->SetSize({512.0f, 512.0f, 0.0f});
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -53,12 +58,15 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 #pragma endregion
 
 #pragma region パーティクル類
-
+	particle_ = std::make_unique<Particle>();
+	particle_->Init(particleCommon_, "./Resources/Textures/uvChecker.png");
 #pragma endregion
 }
 
 void GameScene::Update() {
+	sprite_->Update();
 	object3D_->Update();
+	particle_->Update();
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
@@ -121,7 +129,7 @@ void GameScene::Update() {
 
 void GameScene::Render() {
 	//----------------------------------------
-	// オブジェクト3Dの描画設定
+	// オブジェクト3D共通描画設定
 	object3DCommon_->Render();
 	//----------------------------------------
 
@@ -131,9 +139,17 @@ void GameScene::Render() {
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
+	//sprite_->Draw();
+
+	//----------------------------------------
+	// スプライト共通描画設定
+	particleCommon_->Render();
+	//----------------------------------------
+	particle_->Draw();
 }
 
 void GameScene::Shutdown() {
 	spriteCommon_->Shutdown();
 	object3DCommon_->Shutdown();
+	particleCommon_->Shutdown();
 }

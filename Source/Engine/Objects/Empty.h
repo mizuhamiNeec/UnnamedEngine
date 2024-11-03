@@ -1,5 +1,6 @@
-﻿#pragma once
-#include "Structs/Structs.h"
+#pragma once
+
+#include "../Lib/Structs/Structs.h"
 
 class Empty {
 public:
@@ -22,7 +23,7 @@ public:
 	[[nodiscard]] Empty* GetParent() const;
 
 private:
-	Transform transform_{{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
+	Transform transform_{ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
 	Empty* parent_ = nullptr;
 	std::vector<Empty*> children_;
 };

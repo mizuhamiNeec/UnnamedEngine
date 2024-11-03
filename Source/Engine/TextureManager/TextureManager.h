@@ -6,6 +6,7 @@
 
 #include "DirectXTex/DirectXTex.h"
 
+class SrvManager;
 class D3D12;
 using namespace Microsoft::WRL;
 
@@ -13,26 +14,26 @@ class TextureManager {
 public:
 	static TextureManager* GetInstance();
 
-	void Init(D3D12* renderer);
+	void Init(::D3D12* renderer, SrvManager* srvManager);
 	static void Shutdown();
 
 	void LoadTexture(const std::string& filePath);
 
 	//static void UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages);
-	[[nodiscard]] ComPtr<ID3D12Resource> UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages) const;
+	[[nodiscard]] ComPtr<ID3D12Resource> UploadTextureData(
+		const ComPtr<ID3D12Resource>& texture,
+		const DirectX::ScratchImage& mipImages
+	) const;
 
 	// SRVインデックスの開始番号
-	uint32_t GetTextureIndexByFilePath(const std::string& filePath);
+	uint32_t GetTextureIndexByFilePath(const std::string& filePath) const;
 
 	// テクスチャ番号からGPUハンドルを取得
-	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(uint32_t textureIndex);
+	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(const std::string& filePath);
 
+	[[nodiscard]] uint32_t GetLoadedTextureCount() const;
 
-	[[nodiscard]] uint32_t GetLoadedTextureCount() const {
-		return static_cast<uint32_t>(textureData_.size());
-	}
-
-	const DirectX::TexMetadata& GetMetaData(uint32_t textureIndex) const;
+	const DirectX::TexMetadata& GetMetaData(const std::string& filePath) const;
 
 private:
 	[[nodiscard]] ComPtr<ID3D12Resource> CreateTextureResource(const DirectX::TexMetadata& metadata) const;
@@ -43,19 +44,21 @@ private:
 		std::string filePath;
 		DirectX::TexMetadata metadata;
 		Microsoft::WRL::ComPtr<ID3D12Resource> resource;
+		uint32_t srvIndex;
 		D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU;
 		D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU;
 	};
 
 	// テクスチャデータ
-	std::vector<TextureData> textureData_;
+	std::unordered_map<std::string, TextureData> textureData_;
 
 	D3D12* renderer_;
+	SrvManager* srvManager_;
 
 	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-		uint32_t descriptorSize, uint32_t index);
+	                                                          uint32_t descriptorSize, uint32_t index);
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-		uint32_t descriptorSize, uint32_t index);
+	                                                          uint32_t descriptorSize, uint32_t index);
 
 private:
 	static TextureManager* instance_;

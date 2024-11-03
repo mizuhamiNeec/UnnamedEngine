@@ -31,7 +31,7 @@ private:
 	ComPtr<ID3D12CommandQueue> commandQueue_;
 	ComPtr<IDXGISwapChain4> swapChain_;
 
-	ComPtr<ID3D12DescriptorHeap> srvDescriptorHeap_;
+
 	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap_;
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_;
 
@@ -53,7 +53,6 @@ private:
 	D3D12_VIEWPORT viewport_ = {};
 	D3D12_RECT scissorRect_ = {};
 
-	uint32_t descriptorSizeSRV = 0;
 	uint32_t descriptorSizeRTV = 0;
 	uint32_t descriptorSizeDSV = 0;
 
@@ -87,7 +86,6 @@ public:
 	ID3D12GraphicsCommandList* GetCommandList() const { return commandList_.Get(); }
 	ID3D12CommandQueue* GetCommandQueue() const { return commandQueue_.Get(); }
 	size_t GetBackBufferCount() const { return renderTargets_.size(); }
-	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const { return srvDescriptorHeap_.Get(); }
 	IDXGISwapChain4* GetSwapChain() const { return swapChain_.Get(); }
 	ID3D12Fence* GetFence() const { return fence_.Get(); }
 	ID3D12CommandAllocator* GetCommandAllocator() const { return commandAllocator_.Get(); }
@@ -97,16 +95,17 @@ public:
 	uint64_t GetFenceValue() const { return fenceValue_; }
 	void SetFenceValue(const uint64_t newValue) { fenceValue_ = newValue; };
 
-
-private:
 	//------------------------------------------------------------------------
 	// 汎用関数
 	//------------------------------------------------------------------------
 	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors,
-		bool shaderVisible) const;
+	                                                  bool shaderVisible) const;
 
-	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
-	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
+private:
+	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
+	                                                          uint32_t descriptorSize, uint32_t index);
+	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
+	                                                          uint32_t descriptorSize, uint32_t index);
 	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource() const;
 };
 

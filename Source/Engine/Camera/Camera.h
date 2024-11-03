@@ -1,7 +1,6 @@
 #pragma once
-
-#include "Math/MathLib.h"
-#include "Structs/Structs.h"
+#include "../Lib/Structs/Structs.h"
+#include "../Lib/Math/MathLib.h"
 
 class Window;
 

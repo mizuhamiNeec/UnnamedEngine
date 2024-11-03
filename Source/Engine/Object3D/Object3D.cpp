@@ -27,8 +27,10 @@ void Object3D::Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon) {
 	transformationMatrixData_->world = Mat4::Identity();
 
 	// 指向性ライト定数バッファ
-	directionalLightConstantBuffer_ = std::make_unique<ConstantBuffer>(object3DCommon_->GetD3D12()->GetDevice(),
-	                                                                   sizeof(DirectionalLight));
+	directionalLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
+		object3DCommon_->GetD3D12()->GetDevice(),
+		sizeof(DirectionalLight)
+	);
 	directionalLightData_ = directionalLightConstantBuffer_->GetPtr<DirectionalLight>();
 	directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
 	directionalLightData_->direction = {0.0f, -0.7071067812f, 0.7071067812f}; // 斜め前向き
@@ -47,7 +49,11 @@ void Object3D::Update() {
 	ImGui::End();
 #endif
 
-	Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
+	Mat4 worldMat = Mat4::Affine(
+		transform_.scale,
+		transform_.rotate,
+		transform_.translate
+	);
 
 	Mat4 worldViewProjMat;
 

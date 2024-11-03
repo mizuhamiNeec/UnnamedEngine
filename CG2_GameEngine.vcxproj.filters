@@ -275,8 +275,10 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Camera\Camera.h" />
     <ClInclude Include="Source\Engine\Lib\Timer\EngineTimer.h" />
-    <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
+    <ClInclude Include="Source\Engine\Objects\Empty.h" />
+    <ClInclude Include="Source\Engine\Renderer\SrvManager.h" />
     <ClInclude Include="Source\Engine\Particle\Particle.h" />
+    <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">
@@ -407,6 +409,8 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
+    <ClCompile Include="Source\Engine\Objects\Empty.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
     <ClCompile Include="Source\Engine\Particle\Particle.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
   </ItemGroup>

@@ -2,11 +2,16 @@
 #include <memory>
 
 #include "IGameScene.h"
+
 #include "../Object3D/Object3D.h"
 #include "../Object3D/Object3DCommon.h"
+
 #include "../Renderer/Renderer.h"
+
 #include "../Sprite/Sprite.h"
 #include "../Sprite/SpriteCommon.h"
+
+#include "../Particle/Particle.h"
 
 class GameScene : IGameScene {
 public:
@@ -15,7 +20,8 @@ public:
 		Window* window,
 		SpriteCommon* spriteCommon,
 		Object3DCommon* object3DCommon,
-		ModelCommon* modelCommon
+		ModelCommon* modelCommon,
+		ParticleCommon* particleCommon
 	) override;
 	void Update() override;
 	void Render() override;
@@ -26,7 +32,9 @@ private:
 	D3D12* renderer_ = nullptr;
 
 	std::unique_ptr<Object3D> object3D_;
+	std::unique_ptr<Sprite> sprite_;
 	std::unique_ptr<Model> model_;
+	std::unique_ptr<Particle> particle_;
 
 	Transform transform_;
 	Transform cameraTransform_;

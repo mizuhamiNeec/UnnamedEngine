@@ -1,8 +1,7 @@
 #pragma once
 #include <chrono>
 #include <thread>
-
-#include "Utils/ClientProperties.h"
+#include "../Utils/ClientProperties.h"
 
 class EngineTimer {
 public:

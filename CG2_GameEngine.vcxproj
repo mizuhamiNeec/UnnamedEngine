@@ -62,7 +62,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;$(ProjectDir)Source/Engine/ImGuiManager;$(ProjectDir)Source/Engine/Input;$(ProjectDir)Source/Engine/Lib;$(ProjectDir)Source/Engine/Model;$(ProjectDir)Source/Engine/Object3D;$(ProjectDir)Source/Engine/Sprite;$(ProjectDir)Source/Engine/TextureManager;$(ProjectDir)Source/Engine/Window;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -86,7 +86,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;$(ProjectDir)Source/Engine/ImGuiManager;$(ProjectDir)Source/Engine/Input;$(ProjectDir)Source/Engine/Lib;$(ProjectDir)Source/Engine/Model;$(ProjectDir)Source/Engine/Object3D;$(ProjectDir)Source/Engine/Sprite;$(ProjectDir)Source/Engine/TextureManager;$(ProjectDir)Source/Engine/Window;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -105,6 +105,8 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
+    <ClCompile Include="Source\Engine\Particle\Particle.cpp" />
     <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\MathLib.cpp" />
     <ClCompile Include="Source\Engine\Model\ModelManager.cpp" />
@@ -149,8 +151,11 @@
     <ClCompile Include="Source\Engine\Sprite\SpriteCommon.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
+    <ClInclude Include="Source\Engine\Particle\Particle.h" />
     <ClInclude Include="Source\Engine\Camera\Camera.h" />
     <ClInclude Include="Source\Engine\Model\ModelManager.h" />
     <ClInclude Include="Source\Engine\Model\ModelCommon.h" />
@@ -200,6 +205,7 @@
     <ClInclude Include="Source\Engine\Sprite\SpriteCommon.h" />
     <ClInclude Include="Source\Engine\Window\WindowsUtils.h" />
     <ClInclude Include="Source\Engine\Lib\Timer\EngineTimer.h" />
+    <ClInclude Include="Source\Engine\Renderer\SrvManager.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">

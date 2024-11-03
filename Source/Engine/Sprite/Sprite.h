@@ -72,7 +72,7 @@ private:
 	Vec2 textureSize = {100.0f, 100.0f};
 
 	// テクスチャ番号
-	uint32_t textureIndex_ = 0;
+	std::string textureFilePath_;
 
 	std::vector<Vertex> vertices_;
 

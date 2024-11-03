@@ -4,6 +4,7 @@
 #include <imgui/imgui.h>
 #endif
 
+#include <cassert>
 #include <dwmapi.h>
 #include <utility>
 
@@ -25,7 +26,9 @@ Window::Window(
 	const DWORD exStyle
 ) : title_(std::move(title)), width_(width), height_(height), style_(style), exStyle_(exStyle) {
 	const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-	assert(SUCCEEDED(hr));
+	if (FAILED(hr)) {
+		Console::Print("Failed to initialize COM library");
+	}
 	timeBeginPeriod(1); // システムタイマーの分解能を上げる
 }
 
@@ -138,10 +141,15 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 			}
 		}
 		break;
+	case WM_ENTERSIZEMOVE:
+		break;
+	case WM_EXITSIZEMOVE:
+		break;
 	case WM_CLOSE:
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+	default: return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 
 	return DefWindowProc(hWnd, msg, wParam, lParam);

@@ -3,6 +3,7 @@
 #include "../Renderer/PipelineState.h"
 #include "../Camera/Camera.h"
 
+class SrvManager;
 class RootSignatureManager;
 class D3D12;
 

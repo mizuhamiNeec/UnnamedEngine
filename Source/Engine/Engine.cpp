@@ -2,7 +2,7 @@
 
 #include <thread>
 
-#include "Input.h"
+#include "../Input/Input.h"
 
 #include "../ImGuiManager/ImGuiManager.h"
 
@@ -17,7 +17,10 @@
 
 #include "Object3D/Object3DCommon.h"
 
+#include "Particle/ParticleCommon.h"
+
 #include "Renderer/D3D12.h"
+#include "Renderer/SrvManager.h"
 
 #include "TextureManager/TextureManager.h"
 
@@ -46,30 +49,43 @@ void Engine::Init() {
 	renderer_ = std::make_unique<D3D12>();
 	renderer_->Init(window_.get());
 
+	// SRVマネージャの初期化
+	srvManager_ = std::make_unique<SrvManager>();
+	srvManager_->Init(renderer_.get());
+
 #ifdef _DEBUG
 	imGuiManager_ = std::make_unique<ImGuiManager>();
-	imGuiManager_->Init(renderer_.get(), window_.get());
+	imGuiManager_->Init(renderer_.get(), window_.get(), srvManager_.get());
 
 	console_ = std::make_unique<Console>();
 #endif
 
 	// テクスチャマネージャ
-	TextureManager::GetInstance()->Init(renderer_.get());
+	TextureManager::GetInstance()->Init(renderer_.get(), srvManager_.get());
 
 	// 3Dモデルマネージャ
 	ModelManager::GetInstance()->Init(renderer_.get());
 
+	// カメラの作成
 	camera_ = std::make_unique<Camera>();
 
+	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
 	modelCommon_->Init(renderer_.get());
 
+	// オブジェクト3D
 	object3DCommon_ = std::make_unique<Object3DCommon>();
 	object3DCommon_->Init(renderer_.get());
 	object3DCommon_->SetDefaultCamera(camera_.get());
 
+	// スプライト
 	spriteCommon_ = std::make_unique<SpriteCommon>();
 	spriteCommon_->Init(renderer_.get());
+
+	// パーティクル
+	particleCommon_ = std::make_unique<ParticleCommon>();
+	particleCommon_->Init(renderer_.get());
+	particleCommon_->SetDefaultCamera(camera_.get());
 
 	// 入力
 	Input::GetInstance()->Init(window_.get());
@@ -87,7 +103,14 @@ void Engine::Init() {
 
 	// シーン
 	gameScene_ = std::make_unique<GameScene>();
-	gameScene_->Init(renderer_.get(), window_.get(), spriteCommon_.get(), object3DCommon_.get(), modelCommon_.get());
+	gameScene_->Init(
+		renderer_.get(),
+		window_.get(),
+		spriteCommon_.get(),
+		object3DCommon_.get(),
+		modelCommon_.get(),
+		particleCommon_.get()
+	);
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
@@ -110,7 +133,8 @@ void Engine::Update() {
 #endif
 
 	camera_->SetAspectRatio(
-		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight()));
+		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight())
+	);
 	camera_->Update();
 
 	// ゲームシーンの更新
@@ -118,7 +142,7 @@ void Engine::Update() {
 
 #ifdef _DEBUG // cl_showfps
 	if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -153,7 +177,8 @@ void Engine::Update() {
 		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
 		if (io.Framerate >= 59.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
-		} else if (io.Framerate >= 29.9f) {
+		}
+		else if (io.Framerate >= 29.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 		}
 
@@ -175,9 +200,8 @@ void Engine::Update() {
 #endif
 
 	/* ---------- Pre ----------- */
-
 	renderer_->PreRender();
-
+	srvManager_->PreDraw();
 	/* ---------- コマンド積み ----------- */
 
 	gameScene_->Render();
@@ -188,7 +212,6 @@ void Engine::Update() {
 
 	/* ---------- Post ----------- */
 	renderer_->PostRender();
-
 	/* ---------- ゲームループ終了 ---------- */
 }
 

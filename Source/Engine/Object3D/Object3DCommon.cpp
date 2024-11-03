@@ -4,14 +4,16 @@
 #include "../Renderer/RootSignatureManager.h"
 #include "../Lib/Structs/Structs.h"
 
+#include "../Renderer/SrvManager.h"
+
 //-----------------------------------------------------------------------------
 // Purpose : Object3DCommonを初期化します
 //-----------------------------------------------------------------------------
 void Object3DCommon::Init(D3D12* d3d12) {
 	this->d3d12_ = d3d12;
-	Console::Print("Object3d : Object3dを初期化します。\n", kConsoleColorWait);
+	Console::Print("Object3DCommon : Object3dを初期化します。\n", kConsoleColorWait);
 	CreateGraphicsPipeline();
-	Console::Print("Object3d : Object3dの初期化が完了しました。\n", kConsoleColorCompleted);
+	Console::Print("Object3DCommon : Object3dの初期化が完了しました。\n", kConsoleColorCompleted);
 }
 
 //-----------------------------------------------------------------------------
@@ -25,7 +27,7 @@ void Object3DCommon::Shutdown() const {
 // Purpose : ルートシグネチャを作成します
 //-----------------------------------------------------------------------------
 void Object3DCommon::CreateRootSignature() {
-	//  RootSignatureManagerのインスタンスを作成
+	// RootSignatureManagerのインスタンスを作成
 	rootSignatureManager_ = new RootSignatureManager(d3d12_->GetDevice());
 
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1];
@@ -72,7 +74,7 @@ void Object3DCommon::CreateRootSignature() {
 	rootSignatureManager_->CreateRootSignature("Object3d", rootParameters, staticSamplers, _countof(staticSamplers));
 
 	if (rootSignatureManager_->Get("Object3d")) {
-		Console::Print("Object3d : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
+		Console::Print("Object3DCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
 	}
 }
 
@@ -101,18 +103,19 @@ void Object3DCommon::CreateGraphicsPipeline() {
 // Purpose : 共通描画設定
 //-----------------------------------------------------------------------------
 void Object3DCommon::Render() const {
-	ID3D12GraphicsCommandList* commandList = d3d12_->GetCommandList();
-	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { d3d12_->GetSRVDescriptorHeap() };
-	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
 	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
 	d3d12_->GetCommandList()->SetGraphicsRootSignature(rootSignatureManager_->Get("Object3d"));
 	d3d12_->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
-D3D12* Object3DCommon::GetD3D12() const { return d3d12_; }
+D3D12* Object3DCommon::GetD3D12() const {
+	return d3d12_;
+}
 
-void Object3DCommon::SetDefaultCamera(Camera* camera) { this->defaultCamera_ = camera; }
+void Object3DCommon::SetDefaultCamera(Camera* camera) {
+	this->defaultCamera_ = camera;
+}
 
-Camera* Object3DCommon::GetDefaultCamera() const { return defaultCamera_; }
+Camera* Object3DCommon::GetDefaultCamera() const {
+	return defaultCamera_;
+}

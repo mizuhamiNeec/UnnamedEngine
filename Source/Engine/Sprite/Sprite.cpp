@@ -16,7 +16,7 @@ Sprite::~Sprite() = default;
 //-----------------------------------------------------------------------------
 void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath) {
 	this->spriteCommon_ = spriteCommon;
-	this->textureIndex_ = TextureManager::GetInstance()->GetTextureIndexByFilePath(textureFilePath);
+	this->textureFilePath_ = textureFilePath;
 
 	// 各トランスフォームに初期値を設定
 	transform_ = {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
@@ -76,7 +76,7 @@ void Sprite::Update() {
 		bottom = -bottom;
 	}
 
-	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureIndex_);
+	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureFilePath_);
 	float texLeft = textureLeftTop.x / static_cast<float>(metadata.width);
 	float texRight = (textureLeftTop.x + textureSize.x) / static_cast<float>(metadata.width);
 	float texTop = textureLeftTop.y / static_cast<float>(metadata.height);
@@ -121,10 +121,6 @@ void Sprite::Update() {
 // Purpose : スプライトの描画処理
 //-----------------------------------------------------------------------------
 void Sprite::Draw() const {
-	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = {spriteCommon_->GetD3D12()->GetSRVDescriptorHeap()};
-	spriteCommon_->GetD3D12()->GetCommandList()->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
 	// 頂点バッファの設定
 	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer_->View();
 	spriteCommon_->GetD3D12()->GetCommandList()->IASetVertexBuffers(0, 1, &vbView);
@@ -135,7 +131,7 @@ void Sprite::Draw() const {
 
 	// SRVを設定
 	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-		2, TextureManager::GetInstance()->GetSrvHandleGPU(textureIndex_));
+		2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_));
 
 	// インデックスバッファの設定
 	D3D12_INDEX_BUFFER_VIEW indexBufferView = indexBuffer_->View();
@@ -146,11 +142,8 @@ void Sprite::Draw() const {
 }
 
 void Sprite::ChangeTexture(const std::string& textureFilePath) {
-	// 新しくインデックスを取得
-	this->textureIndex_ = TextureManager::GetInstance()->GetTextureIndexByFilePath(textureFilePath);
-
-	// SRVを更新
-	//	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(2, Vec2 textureSize = {100.0f, 100.0f};TextureManager::GetInstance()->GetSrvHandleGPU(textureIndex_));
+	// テクスチャのパスを変更
+	this->textureFilePath_ = textureFilePath;
 }
 
 Vec3 Sprite::GetPos() const {
@@ -255,7 +248,7 @@ void Sprite::SetUvRot(const float& newRot) {
 
 void Sprite::AdjustTextureSize() {
 	// テクスチャメタデータを取得
-	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureIndex_);
+	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureFilePath_);
 
 	// 画像サイズをテクスチャサイズに合わせる
 	textureSize.x = static_cast<float>(metadata.width);

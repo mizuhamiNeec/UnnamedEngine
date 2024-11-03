@@ -1,5 +1,6 @@
 #pragma once
-#include "Math/MathLib.h"
+
+#include "../Lib/Math/MathLib.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : ウィンドウ
