@@ -2,11 +2,9 @@
 
 #include <format>
 
-#ifdef _DEBUG
-#include "imgui/imgui.h"
-#endif
-
+#include "../Engine/Lib/Timer/EngineTimer.h"
 #include "../Engine/Model/ModelManager.h"
+#include "../Engine/Window/WindowsUtils.h"
 
 #include "../ImGuiManager/ImGuiManager.h"
 
@@ -23,21 +21,27 @@
 #include "../TextureManager/TextureManager.h"
 
 #ifdef _DEBUG
+#include "imgui/imgui.h"
 #endif
-#include "../Engine/Window/WindowsUtils.h"
 
-void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
-                     ModelCommon* modelCommon, ParticleCommon* particleCommon) {
+void GameScene::Init(
+	D3D12* renderer, Window* window,
+	SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
+	ModelCommon* modelCommon, ParticleCommon* particleCommon,
+	EngineTimer* engineTimer
+) {
 	renderer_ = renderer;
 	window_ = window;
 	spriteCommon_ = spriteCommon;
 	object3DCommon_ = object3DCommon;
 	modelCommon_ = modelCommon;
 	particleCommon_ = particleCommon;
+	timer_ = engineTimer;
 
 #pragma region テクスチャ読み込み
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/uvChecker.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/circle.png");
 #pragma endregion
 
 #pragma region スプライト類
@@ -58,15 +62,15 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 #pragma endregion
 
 #pragma region パーティクル類
-	particle_ = std::make_unique<Particle>();
-	particle_->Init(particleCommon_, "./Resources/Textures/uvChecker.png");
+	particle_ = std::make_unique<ParticleObject>();
+	particle_->Init(particleCommon_, "./Resources/Textures/circle.png");
 #pragma endregion
 }
 
 void GameScene::Update() {
 	sprite_->Update();
 	object3D_->Update();
-	particle_->Update();
+	particle_->Update(timer_->GetDeltaTime());
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
@@ -76,7 +80,8 @@ void GameScene::Update() {
 			ImGuiWindowFlags_NoTitleBar |
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoSavedSettings;
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoDocking;
 		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
 		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
@@ -136,16 +141,16 @@ void GameScene::Render() {
 	object3D_->Draw();
 
 	//----------------------------------------
-	// スプライト共通描画設定
-	spriteCommon_->Render();
-	//----------------------------------------
-	//sprite_->Draw();
-
-	//----------------------------------------
-	// スプライト共通描画設定
+	// パーティクル共通描画設定
 	particleCommon_->Render();
 	//----------------------------------------
 	particle_->Draw();
+
+	//----------------------------------------
+	// スプライト共通描画設定
+	spriteCommon_->Render();
+	//----------------------------------------
+	sprite_->Draw();
 }
 
 void GameScene::Shutdown() {

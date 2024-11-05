@@ -7,6 +7,7 @@ struct Vec3 final {
 	float x, y, z;
 
 	static const Vec3 zero;
+	static const Vec3 one;
 	static const Vec3 right;
 	static const Vec3 left;
 	static const Vec3 up;

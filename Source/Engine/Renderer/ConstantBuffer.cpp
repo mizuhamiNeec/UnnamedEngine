@@ -50,3 +50,7 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC ConstantBuffer::ViewDesc() const {
 void* ConstantBuffer::GetPtr() const {
 	return mappedPtr;
 }
+
+ID3D12Resource* ConstantBuffer::GetResource() const {
+	return buffer_.Get();
+}

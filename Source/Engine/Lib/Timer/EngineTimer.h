@@ -3,6 +3,8 @@
 #include <thread>
 #include "../Utils/ClientProperties.h"
 
+#include "imgui/imgui.h"
+
 class EngineTimer {
 public:
 	EngineTimer() {
@@ -10,6 +12,12 @@ public:
 	}
 
 	void Update() {
+		ImGui::Begin("EngineTimer");
+		ImGui::Text("Framerate : %f", 1.0f / deltaTime_);
+		ImGui::Text("DeltaTime : %f", deltaTime_);
+		ImGui::Text("totalTime : %f", totalTime_);
+		ImGui::End();
+
 		// 現在時間を取得する
 		const auto now = clock::now();
 		// 前回記録からの経過時間を取得する

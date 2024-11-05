@@ -8,8 +8,10 @@
 PipelineState::PipelineState() {
 }
 
-PipelineState::PipelineState(const D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK,
-                             const D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID) {
+PipelineState::PipelineState(
+	const D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK,
+	const D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID
+) {
 	D3D12_BLEND_DESC blendDesc = {};
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
@@ -156,6 +158,79 @@ void PipelineState::Create(ID3D12Device* device) {
 	}
 }
 
+void PipelineState::SetBlendMode(const BlendMode blendMode) {
+	D3D12_BLEND_DESC blendDesc = {};
+	blendDesc.AlphaToCoverageEnable = FALSE;
+	blendDesc.IndependentBlendEnable = FALSE;
+	D3D12_RENDER_TARGET_BLEND_DESC rtBlendDesc = {};
+	rtBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	switch (blendMode) {
+	case kBlendModeNone:
+		rtBlendDesc.BlendEnable = FALSE;
+		break;
+	case kBlendModeNormal:
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		break;
+	case kBlendModeAdd:
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.DestBlend = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		break;
+	case kBlendModeSubtract:
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_INV_SRC_ALPHA;
+		rtBlendDesc.DestBlend = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_SUBTRACT;
+		break;
+	case kBlendModeMultiply:
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlend = D3D12_BLEND_SRC_COLOR;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		break;
+	case kBlendModeScreen:
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_ONE;
+		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_COLOR;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		break;
+	case kCountOfBlendMode:
+	default:
+		break;
+	}
+	blendDesc.RenderTarget[0] = rtBlendDesc;
+	desc_.BlendState = blendDesc;
+	currentBlendMode = blendMode;
+}
+
+BlendMode PipelineState::GetBlendMode() {
+	return currentBlendMode;
+}
+
 ID3D12PipelineState* PipelineState::Get() const {
 	return pipelineState.Get();
+}
+
+void PipelineState::SetDepthWriteMask(const D3D12_DEPTH_WRITE_MASK depthWriteMask) {
+	desc_.DepthStencilState.DepthWriteMask = depthWriteMask;
 }

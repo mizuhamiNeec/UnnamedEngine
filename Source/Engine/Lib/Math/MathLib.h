@@ -4,6 +4,7 @@
 
 #include "Vector/Vec3.h"
 
+struct AABB;
 // スプライン曲線制御点(通過点)
 static std::vector<Vec3> controlPoints{
 	{4.0f * 4.0f, 0.0f * 4.0f, -1.0f * 4.0f},
@@ -26,4 +27,6 @@ namespace Math {
 	// 変換
 	constexpr float deg2Rad = pi / 180.0f;
 	constexpr float rad2Deg = 180.0f / pi;
+
+	bool IsCollision(const AABB& aabb, const Vec3& point);
 }

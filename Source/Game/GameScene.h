@@ -11,7 +11,7 @@
 #include "../Sprite/Sprite.h"
 #include "../Sprite/SpriteCommon.h"
 
-#include "../Particle/Particle.h"
+#include "../Particle/ParticleObject.h"
 
 class GameScene : IGameScene {
 public:
@@ -21,7 +21,7 @@ public:
 		SpriteCommon* spriteCommon,
 		Object3DCommon* object3DCommon,
 		ModelCommon* modelCommon,
-		ParticleCommon* particleCommon
+		ParticleCommon* particleCommon, EngineTimer* engineTimer
 	) override;
 	void Update() override;
 	void Render() override;
@@ -34,7 +34,7 @@ private:
 	std::unique_ptr<Object3D> object3D_;
 	std::unique_ptr<Sprite> sprite_;
 	std::unique_ptr<Model> model_;
-	std::unique_ptr<Particle> particle_;
+	std::unique_ptr<ParticleObject> particle_;
 
 	Transform transform_;
 	Transform cameraTransform_;

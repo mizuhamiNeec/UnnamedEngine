@@ -89,6 +89,9 @@ void Object3DCommon::CreateGraphicsPipeline() {
 	pipelineState_.SetInputLayout(Vertex::inputLayout);
 	pipelineState_.SetRootSignature(rootSignatureManager_->Get("Object3d"));
 
+	pipelineState_.SetDepthWriteMask(D3D12_DEPTH_WRITE_MASK_ALL);
+	pipelineState_.SetBlendMode(kBlendModeNone);
+
 	// シェーダーのファイルパスを設定
 	pipelineState_.SetVS(L"./Resources/Shaders/Object3d.VS.hlsl");
 	pipelineState_.SetPS(L"./Resources/Shaders/Object3d.PS.hlsl");

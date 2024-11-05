@@ -253,8 +253,12 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 	textureData.srvIndex = srvManager_->Allocate();
 	textureData.srvHandleCPU = srvManager_->GetCPUDescriptorHandle(textureData.srvIndex);
 	textureData.srvHandleGPU = srvManager_->GetGPUDescriptorHandle(textureData.srvIndex);
-	srvManager_->CreateSRVForTexture2D(textureData.srvIndex, textureData.resource.Get(), textureData.metadata.format,
-	                                   static_cast<UINT>(textureData.metadata.mipLevels));
+	srvManager_->CreateSRVForTexture2D(
+		textureData.srvIndex,
+		textureData.resource.Get(),
+		textureData.metadata.format,
+		static_cast<UINT>(textureData.metadata.mipLevels)
+	);
 }
 
 /// @brief ファイルパスからテクスチャのインデックスを取得します

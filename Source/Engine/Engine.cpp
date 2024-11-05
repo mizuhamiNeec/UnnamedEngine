@@ -68,6 +68,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
+	camera_->SetPos({0.0f, 0.0f, -10.0f});
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -84,7 +85,7 @@ void Engine::Init() {
 
 	// パーティクル
 	particleCommon_ = std::make_unique<ParticleCommon>();
-	particleCommon_->Init(renderer_.get());
+	particleCommon_->Init(renderer_.get(), srvManager_.get());
 	particleCommon_->SetDefaultCamera(camera_.get());
 
 	// 入力
@@ -101,6 +102,8 @@ void Engine::Init() {
 	);
 	assert(SUCCEEDED(hr));
 
+	time_ = std::make_unique<EngineTimer>();
+
 	// シーン
 	gameScene_ = std::make_unique<GameScene>();
 	gameScene_->Init(
@@ -109,16 +112,22 @@ void Engine::Init() {
 		spriteCommon_.get(),
 		object3DCommon_.get(),
 		modelCommon_.get(),
-		particleCommon_.get()
+		particleCommon_.get(),
+		time_.get()
 	);
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
-
-	time_ = std::make_unique<EngineTimer>();
 }
 
 void Engine::Update() {
+#ifdef _DEBUG
+	imGuiManager_->NewFrame();
+	console_->Update();
+#endif
+
+	time_->Update();
+
 	/* ----------- 更新処理 ---------- */
 	Input::GetInstance()->Update();
 
@@ -126,11 +135,6 @@ void Engine::Update() {
 	if (Input::GetInstance()->TriggerKey(DIK_GRAVE)) {
 		Console::ToggleConsole();
 	}
-
-#ifdef _DEBUG
-	imGuiManager_->NewFrame();
-	console_->Update();
-#endif
 
 	camera_->SetAspectRatio(
 		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight())
@@ -149,7 +153,8 @@ void Engine::Update() {
 			ImGuiWindowFlags_NoTitleBar |
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoSavedSettings;
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoDocking;
 
 		ImVec2 windowPos = ImVec2(0.0f, 128.0f);
 

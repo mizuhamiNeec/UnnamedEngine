@@ -13,6 +13,8 @@ public:
 
 	void* GetPtr() const;
 
+	ID3D12Resource* GetResource() const;
+
 	template<typename T>
 	T* GetPtr() {
 		return static_cast<T*>(GetPtr());
