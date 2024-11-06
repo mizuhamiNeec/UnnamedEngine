@@ -17,8 +17,6 @@ public: // メンバ関数
 	void ClearColorAndDepth() const;
 	void PreRender() override;
 	void PostRender() override;
-	void OnSizeChanged(UINT width, UINT height, bool isMinimized) override;
-	void ToggleFullscreen() override;
 
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data);
 

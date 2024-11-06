@@ -4,7 +4,6 @@
 
 #include "Vector/Vec3.h"
 
-struct AABB;
 // スプライン曲線制御点(通過点)
 static std::vector<Vec3> controlPoints{
 	{4.0f * 4.0f, 0.0f * 4.0f, -1.0f * 4.0f},
@@ -19,6 +18,8 @@ static std::vector<Vec3> controlPoints{
 	{-5.8f * 4.0f, 4.0f * 4.0f, 7.6f * 4.0f},
 	{3.3f * 4.0f, 4.0f * 4.0f, 2.4f * 4.0f},
 };
+
+struct AABB;
 
 namespace Math {
 	// π!

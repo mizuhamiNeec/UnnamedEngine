@@ -12,11 +12,20 @@ public:
 	}
 
 	void Update() {
+#ifdef _DEBUG
 		ImGui::Begin("EngineTimer");
-		ImGui::Text("Framerate : %f", 1.0f / deltaTime_);
-		ImGui::Text("DeltaTime : %f", deltaTime_);
-		ImGui::Text("totalTime : %f", totalTime_);
+		ImGui::Text("%.2f FPS", 1.0f / deltaTime_);
+		ImGui::Text("%.2f ms", deltaTime_ * 1000.0f);
+
+		int totalMilliseconds = static_cast<int>(totalTime_ * 100.0f); // 0.01秒単位
+		int hours = (totalMilliseconds / (100 * 60 * 60)) % 24;
+		int minutes = (totalMilliseconds / (100 * 60)) % 60;
+		int secs = (totalMilliseconds / 100) % 60;
+		int centiseconds = totalMilliseconds % 100; // 小数点以下2桁
+
+		ImGui::Text("totalTime : %02d:%02d:%02d.%02d", hours, minutes, secs, centiseconds);
 		ImGui::End();
+#endif
 
 		// 現在時間を取得する
 		const auto now = clock::now();
