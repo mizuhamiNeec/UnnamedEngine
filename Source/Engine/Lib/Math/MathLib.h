@@ -30,4 +30,6 @@ namespace Math {
 	constexpr float rad2Deg = 180.0f / pi;
 
 	bool IsCollision(const AABB& aabb, const Vec3& point);
+
+	Vec3 Lerp(const Vec3& a, const Vec3& b, float t);
 }

@@ -165,12 +165,11 @@
 //-----------------------------------------------------------------------------
 // エントリーポイント
 //-----------------------------------------------------------------------------
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, const int nShowCmd) {
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR pCmdLine, [[maybe_unused]] const int nShowCmd) {
 	Console::Print(ConvertString::ToString(std::format(L"Launch Args: {}\n", pCmdLine)));
 
 	ConVar cl_showpos("cl_showpos", 1, "Draw current position at top of screen");
 	ConVar cl_showfps("cl_showfps", 1, "Draw fps meter (1 = fps)");
-	ConVar cl_nshowcmd("cl_nshowcmd", nShowCmd, "");
 	ConVar cl_maxfps("cl_maxfps", kMaxFPS, "max frame rate.");
 
 	D3DResourceLeakChecker leakChecker;

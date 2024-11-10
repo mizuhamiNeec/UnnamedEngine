@@ -8,3 +8,7 @@ bool Math::IsCollision(const AABB& aabb, const Vec3& point) {
 		point.z >= aabb.min.z && point.z <= aabb.max.z
 	);
 }
+
+Vec3 Math::Lerp(const Vec3& a, const Vec3& b, const float t) {
+	return a * (1 - t) + b * t;
+}

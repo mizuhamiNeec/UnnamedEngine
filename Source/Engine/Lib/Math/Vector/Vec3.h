@@ -32,7 +32,6 @@ struct Vec3 final {
 
 	Vec3 Clamp(Vec3 min, Vec3 max) const;
 	Vec3 ClampLength(float min, float max);
-	Vec3 Lerp(const Vec3& target, float t) const;
 	Vec3 Reflect(const Vec3& normal) const;
 
 	/* ---------------- 演算子 ---------------- */

@@ -68,7 +68,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({0.0f, 0.0f, -10.0f});
+	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -146,7 +146,7 @@ void Engine::Update() {
 
 #ifdef _DEBUG // cl_showfps
 	if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -154,7 +154,9 @@ void Engine::Update() {
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoMove |
 			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoDocking;
+			ImGuiWindowFlags_NoDocking |
+			ImGuiWindowFlags_NoBringToFrontOnFocus
+			;
 
 		ImVec2 windowPos = ImVec2(0.0f, 128.0f);
 
@@ -182,8 +184,7 @@ void Engine::Update() {
 		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
 		if (io.Framerate >= 59.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
-		}
-		else if (io.Framerate >= 29.9f) {
+		} else if (io.Framerate >= 29.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 		}
 

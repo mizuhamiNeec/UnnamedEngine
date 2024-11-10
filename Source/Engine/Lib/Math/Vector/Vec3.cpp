@@ -90,10 +90,6 @@ Vec3 Vec3::ClampLength(const float min, const float max) {
 	return {x, y, z};
 }
 
-Vec3 Vec3::Lerp(const Vec3& target, float t) const {
-	return *this * (1 - t) + target * t;
-}
-
 Vec3 Vec3::Reflect(const Vec3& normal) const {
 	return *this - 2 * this->Dot(normal) * normal;
 }
