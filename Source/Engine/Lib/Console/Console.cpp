@@ -48,7 +48,7 @@ void Console::Update() {
 
 		if (ImGui::BeginChild("##scrollbox", size, true,
 			ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
-			for (int i = 0; i < consoleTexts.size(); ++i) {
+			for (size_t i = 0; i < consoleTexts.size(); ++i) {
 				ImGui::PushStyleColor(ImGuiCol_Text, consoleTexts[i].color);
 				ImGui::Selectable((consoleTexts[i].text + "##" + std::to_string(i)).c_str());
 				ImGui::PopStyleColor();
@@ -141,9 +141,9 @@ void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[m
 #ifdef _DEBUG
 	repeatCounts.back()++;
 
-	if (repeatCounts.back() >= kConsoleRepeatError) {
+	if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatError)) {
 		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleColorError };
-	} else if (repeatCounts.back() >= kConsoleRepeatWarning) {
+	} else if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatWarning)) {
 		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleColorWarning };
 	} else {
 		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), color };
@@ -169,20 +169,20 @@ void Console::SuggestPopup([[maybe_unused]] SuggestPopupState& state, const ImVe
 	ImGui::Begin("suggestPopup", nullptr, flags);
 	ImGui::PushAllowKeyboardFocus(false);
 
-	for (int i = 0; i < kConsoleSuggestLineCount; ++i) {
+	for (size_t i = 0; i < kConsoleSuggestLineCount; ++i) {
 		size_t test = ConVarManager::GetInstance().GetAllConVars().size();
 		if (test <= i) {
 			break;
 		}
 
-		bool isIndexActive = state.activeIndex == i;
+		bool isIndexActive = state.activeIndex == static_cast<int>(i);
 		if (isIndexActive) {
 			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1, 0, 0, 1));
 		}
 
-		ImGui::PushID(i);
+		ImGui::PushID(static_cast<int>(i));
 		if (ImGui::Selectable(ConVarManager::GetInstance().GetAllConVars()[i]->GetName().c_str(), isIndexActive)) {
-			state.clickedIndex = i;
+			state.clickedIndex = static_cast<int>(i);
 		}
 		ImGui::PopID();
 
@@ -223,7 +223,7 @@ void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]
 //-----------------------------------------------------------------------------
 // Purpose: コンソールの表示/非表示を切り替えます
 //-----------------------------------------------------------------------------
-void Console::ToggleConsole() {
+void Console::ToggleConsole([[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
 	bShowConsole = !bShowConsole;
 #endif
@@ -318,8 +318,8 @@ bool IsFloat(const std::string& str) {
 }
 
 // Vec3 かどうかの判定
-bool IsVec3(const std::vector<std::string>& tokens, int index) {
-	if (index + 2 >= tokens.size()) {
+bool IsVec3(const std::vector<std::string>& tokens, const int index) {
+	if (index + 2 >= static_cast<int>(tokens.size())) {
 		return false;
 	}
 
@@ -391,7 +391,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 			} else {
 				// 引数込みで入力された場合の処理
 				bool isValidInput = true;
-				for (int i = 1; i < tokens.size(); ++i) {
+				for (size_t i = 1; i < tokens.size(); ++i) {
 					if (conVar->GetTypeAsString() == "int") {
 						if (tokens[i] == "true") {
 							tokens[i] = "1";
@@ -421,11 +421,11 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 					// Vec3やstringは追加のチェックが必要な場合に応じて処理する
 				}
 				if (isValidInput) {
-					for (int i = 1; i < tokens.size(); ++i) {
+					for (size_t i = 1; i < tokens.size(); ++i) {
 						conVar->SetValueFromString(tokens[i]);
 					}
 				} else {
-					Print("なんですって!!?!??!??!??\n", kConsoleColorError);
+					Print("Invalid argument...", kConsoleColorError);
 				}
 			}
 			break;

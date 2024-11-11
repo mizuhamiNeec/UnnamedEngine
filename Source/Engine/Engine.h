@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <memory>
 
 #include "../Game/GameScene.h"
@@ -26,6 +27,8 @@ private:
 	void Update() const;
 	void Shutdown() const;
 
+	static void Quit(const std::vector<std::string>& args = {});
+
 private:
 	Input* input_ = nullptr;
 
@@ -45,3 +48,5 @@ private:
 	std::unique_ptr<Console> console_;
 #endif
 };
+
+static bool bWishShutdown = false;
