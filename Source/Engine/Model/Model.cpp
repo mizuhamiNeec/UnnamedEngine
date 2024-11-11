@@ -153,3 +153,7 @@ Model::ModelData Model::LoadObjFile(const std::string& directoryPath, const std:
 
 	return modelData;
 }
+
+void Model::SetLighting(const bool& newLighting) const {
+	materialData_->enableLighting = newLighting;
+}
