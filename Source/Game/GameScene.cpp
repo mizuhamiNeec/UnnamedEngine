@@ -1,15 +1,11 @@
 #include "GameScene.h"
 
-#include <format>
-
+#include "../Engine/Lib/Console/ConVarManager.h"
 #include "../Engine/Lib/Timer/EngineTimer.h"
 #include "../Engine/Model/ModelManager.h"
-#include "../Engine/Window/WindowsUtils.h"
 
 #include "../ImGuiManager/ImGuiManager.h"
 
-#include "../Lib/Console/ConVar.h"
-#include "../Lib/Console/ConVars.h"
 #include "../Lib/Math/MathLib.h"
 
 #include "../Object3D/Object3D.h"
@@ -19,6 +15,8 @@
 #include "../Sprite/SpriteCommon.h"
 
 #include "../TextureManager/TextureManager.h"
+
+#include "../Window/WindowsUtils.h"
 
 #ifdef _DEBUG
 #include "imgui/imgui.h"
@@ -93,7 +91,7 @@ void GameScene::Update() {
 	particle_->Update(timer_->GetDeltaTime());
 #ifdef _DEBUG
 #pragma region cl_showpos
-	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
+	if (ConVarManager::GetInstance().GetConVar("cl_showpos")->GetValueAsString() == "1") {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 		const ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |

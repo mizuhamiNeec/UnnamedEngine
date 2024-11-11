@@ -1,66 +1,38 @@
 #include "ConVar.h"
 
-#include <cassert>
-
-ConVar::ConVar(std::string name, int value, std::string description)
-	: name_(std::move(name)), type_(ConVarType::INT), description_(std::move(description)), value_(value) {
-	ConVars::GetInstance().AddConVar(this);
-}
-
-ConVar::ConVar(std::string name, float value, std::string description)
-	: name_(std::move(name)), type_(ConVarType::FLOAT), description_(std::move(description)), value_(value) {
-	ConVars::GetInstance().AddConVar(this);
-}
-
-ConVar::ConVar(std::string name, Vec3 value, std::string description)
-	: name_(std::move(name)), type_(ConVarType::VEC3), description_(std::move(description)), value_(value) {
-	ConVars::GetInstance().AddConVar(this);
-}
-
-int ConVar::GetInt() const {
-	if (type_ == ConVarType::INT) {
-		return std::get<int>(value_);
-	}
-	assert(0 && "私、intじゃないです");
-	return 0;
-}
-
-float ConVar::GetFloat() const {
-	if (type_ == ConVarType::FLOAT) {
-		return std::get<float>(value_);
-	}
-	assert(0 && "私、floatじゃないです");
-	return 0.0f;
-}
-
-Vec3 ConVar::GetVec3() const {
-	if (type_ == ConVarType::VEC3) {
-		return std::get<Vec3>(value_);
-	}
-	assert(0 && "私、Vec3じゃないです");
-	return Vec3::zero;
-}
-
-void ConVar::SetValue(int value) {
-	if (type_ == ConVarType::INT) {
-		value_ = value;
-	} else {
-		assert(0 && "私、intじゃないです");
+std::string ToString(const ConVarFlags& e) {
+	switch (e) {
+	case ConVarFlags::ConVarFlags_None: return "ConVarFlags_None";
+	case ConVarFlags::ConVarFlags_Archive: return "ConVarFlags_Archive";
+	case ConVarFlags::ConVarFlags_Hidden: return "ConVarFlags_Hidden";
+	case ConVarFlags::ConVarFlags_Notify: return "ConVarFlags_Notify";
+	default: return "unknown";
 	}
 }
 
-void ConVar::SetValue(float value) {
-	if (type_ == ConVarType::FLOAT) {
-		value_ = value;
-	} else {
-		assert(0 && "私、floatじゃないです");
-	}
+bool HasFlags(const ConVarFlags& flags, const ConVarFlags& flag) {
+	return static_cast<int>(flags) & static_cast<int>(flag);
 }
 
-void ConVar::SetValue(Vec3 value) {
-	if (type_ == ConVarType::VEC3) {
-		value_ = value;
-	} else {
-		assert(0 && "私、Vec3じゃないです");
+template <typename T>
+ConVarFlags ConVar<T>::GetFlags() const { return flags_; }
+
+template <typename T>
+T ConVar<T>::GetValue() const { return value_; }
+
+template <typename T>
+void ConVar<T>::SetValue(const T& newValue) {
+	value_ = newValue;
+
+	if (HasFlags(flags_, ConVarFlags::ConVarFlags_Notify)) {
+		// TODO : プレイヤーに通知する
+		Console::Print(
+			std::format(
+				"{}のCVAR 値 '{}'を {} に変更しました\n",
+				"クライアント",
+				name_,
+				value_
+			)
+		);
 	}
 }

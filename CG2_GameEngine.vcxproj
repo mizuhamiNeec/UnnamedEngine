@@ -105,6 +105,7 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Lib\Console\ConVarManager.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
     <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
@@ -115,7 +116,6 @@
     <ClCompile Include="Source\Engine\Object3D\Object3D.cpp" />
     <ClCompile Include="Source\Engine\Lib\Console\Console.cpp" />
     <ClCompile Include="Source\Engine\Lib\Console\ConVar.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Console\ConVars.cpp" />
     <ClCompile Include="Source\Engine\Engine.cpp" />
     <ClCompile Include="Source\Engine\Input\Input.cpp" />
     <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp" />
@@ -154,6 +154,9 @@
     <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\IConVar.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
     <ClInclude Include="Source\Engine\Camera\Camera.h" />
@@ -163,7 +166,6 @@
     <ClInclude Include="Source\Engine\Object3D\Object3D.h" />
     <ClInclude Include="Source\Engine\Lib\Console\Console.h" />
     <ClInclude Include="Source\Engine\Lib\Console\ConVar.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConVars.h" />
     <ClInclude Include="Source\Engine\Engine.h" />
     <ClInclude Include="Source\Engine\Input\Input.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h" />

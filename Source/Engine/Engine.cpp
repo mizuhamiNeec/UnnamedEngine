@@ -9,8 +9,7 @@
 #include "Camera/Camera.h"
 
 #include "Lib/Console/Console.h"
-#include "Lib/Console/ConVar.h"
-#include "Lib/Console/ConVars.h"
+#include "Lib/Console/ConVarManager.h"
 #include "Lib/Utils/ClientProperties.h"
 
 #include "Model/ModelManager.h"
@@ -38,6 +37,14 @@ void Engine::Run() {
 }
 
 void Engine::Init() {
+	// コンソール変数を登録
+	ConVarManager& conVarManager = ConVarManager::GetInstance();
+	conVarManager.RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
+	conVarManager.RegisterConVar<int>("cl_showfps", 1, "Draw fps meter (1 = fps)");
+	conVarManager.RegisterConVar<int>("cl_maxfps", kMaxFPS, "Maximum number of frames per second");
+	Console::RegisterCommand("clear", Console::Clear);
+	Console::RegisterCommand("cls", Console::Clear);
+
 	// ウィンドウの作成
 	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
 	// ウィンドウの作成を試みる
@@ -68,7 +75,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
+	camera_->SetPos({0.0f, 0.0f, -10.0f});
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -145,8 +152,8 @@ void Engine::Update() {
 	gameScene_->Update();
 
 #ifdef _DEBUG // cl_showfps
-	if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+	if (ConVarManager::GetInstance().GetConVar("cl_showfps")->GetValueAsString() == "1") {
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -155,8 +162,7 @@ void Engine::Update() {
 			ImGuiWindowFlags_NoMove |
 			ImGuiWindowFlags_NoSavedSettings |
 			ImGuiWindowFlags_NoDocking |
-			ImGuiWindowFlags_NoBringToFrontOnFocus
-			;
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 		ImVec2 windowPos = ImVec2(0.0f, 128.0f);
 
@@ -184,7 +190,8 @@ void Engine::Update() {
 		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
 		if (io.Framerate >= 59.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
-		} else if (io.Framerate >= 29.9f) {
+		}
+		else if (io.Framerate >= 29.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 		}
 

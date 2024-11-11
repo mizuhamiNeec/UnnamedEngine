@@ -174,9 +174,6 @@
     <ClInclude Include="Source\Engine\Lib\Console\ConVar.h">
       <Filter>Source\Engine\Lib\Console</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\ConVars.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Lib\Math\MathLib.h">
       <Filter>Source\Engine\Lib\Math</Filter>
     </ClInclude>
@@ -279,7 +276,9 @@
     <ClInclude Include="Source\Engine\Renderer\SrvManager.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
-    <ClInclude Include="Source\Engine\Lib\Timer\DateTime.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\IConVar.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\main.cpp">
@@ -322,9 +321,6 @@
       <Filter>Source\Engine\Lib\Console</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Lib\Console\ConVar.cpp">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Console\ConVars.cpp">
       <Filter>Source\Engine\Lib\Console</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Lib\Math\MathLib.cpp">
@@ -414,7 +410,7 @@
     <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Timer\DateTime.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Console\ConVarManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl" />
