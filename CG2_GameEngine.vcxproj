@@ -62,7 +62,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;$(ProjectDir)Source/Engine/ImGuiManager;$(ProjectDir)Source/Engine/Input;$(ProjectDir)Source/Engine/Lib;$(ProjectDir)Source/Engine/Model;$(ProjectDir)Source/Engine/Object3D;$(ProjectDir)Source/Engine/Sprite;$(ProjectDir)Source/Engine/TextureManager;$(ProjectDir)Source/Engine/Window;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -86,7 +86,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;$(ProjectDir)Source/Engine/ImGuiManager;$(ProjectDir)Source/Engine/Input;$(ProjectDir)Source/Engine/Lib;$(ProjectDir)Source/Engine/Model;$(ProjectDir)Source/Engine/Object3D;$(ProjectDir)Source/Engine/Sprite;$(ProjectDir)Source/Engine/TextureManager;$(ProjectDir)Source/Engine/Window;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -105,6 +105,8 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
+    <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="RailCamera.cpp" />
     <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
@@ -119,6 +121,7 @@
     <ClCompile Include="Source\Engine\Engine.cpp" />
     <ClCompile Include="Source\Engine\Input\Input.cpp" />
     <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp" />
+    <ClCompile Include="Source\Engine\Objects\Empty.cpp" />
     <ClCompile Include="Source\Engine\Renderer\RootSignatureManager.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp" />
@@ -149,8 +152,12 @@
     <ClCompile Include="Source\Engine\Sprite\Sprite.cpp" />
     <ClCompile Include="Source\Engine\Sprite\SpriteCommon.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
+    <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="RailCamera.h" />
     <ClInclude Include="Source\Engine\Camera\Camera.h" />
@@ -164,6 +171,7 @@
     <ClInclude Include="Source\Engine\Engine.h" />
     <ClInclude Include="Source\Engine\Input\Input.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h" />
+    <ClInclude Include="Source\Engine\Objects\Empty.h" />
     <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
     <ClInclude Include="Source\Engine\Renderer\IndexBuffer.h" />
@@ -200,6 +208,8 @@
     <ClInclude Include="Source\Engine\Sprite\Sprite.h" />
     <ClInclude Include="Source\Engine\Sprite\SpriteCommon.h" />
     <ClInclude Include="Source\Engine\Window\WindowsUtils.h" />
+    <ClInclude Include="Source\Engine\Lib\Timer\EngineTimer.h" />
+    <ClInclude Include="Source\Engine\Renderer\SrvManager.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">
@@ -222,6 +232,10 @@
     <ProjectReference Include="Source\Engine\Externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
       <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\Shaders\" />
+    <Folder Include="Source\Engine\Particle\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

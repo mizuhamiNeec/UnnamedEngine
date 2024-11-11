@@ -1,8 +1,6 @@
 #pragma once
-//-----------------------------------------------------------------------------
-//#define WIN32_LEAN_AND_MEAN
+
 #include <Windows.h>
-//-----------------------------------------------------------------------------
 
 #include <cstdint>
 
@@ -14,7 +12,6 @@ public:
 	Window(std::wstring title, uint32_t width, uint32_t height, DWORD style = WS_OVERLAPPEDWINDOW, DWORD exStyle = 0);
 	~Window();
 
-
 	bool Create(HINSTANCE hInstance, const std::string& className = kWindowClassName, WNDPROC wndProc = WindowProc);
 
 	static void SetUseImmersiveDarkMode(HWND hWnd, bool darkMode);
@@ -25,8 +22,8 @@ public:
 	uint32_t GetClientWidth() const;
 	uint32_t GetClientHeight() const;
 
-	static bool ProcessMessage();
-
+	bool ProcessMessage();
+	
 private:
 	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 

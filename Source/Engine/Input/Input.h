@@ -34,4 +34,3 @@ private:
 	Input(const Input&) = delete;
 	Input& operator=(const Input&) = delete;
 };
-

@@ -2,6 +2,9 @@
 
 #include "../Renderer/D3D12.h"
 
+#include "../Lib/Math/MathLib.h"
+#include "../Lib/Structs/Structs.h"
+
 #ifdef _DEBUG
 #include "imgui/imgui.h"
 #else
@@ -10,6 +13,8 @@ struct ImVec4 {
 };
 #endif
 
+class SrvManager;
+
 struct ColorTransition {
 	ImVec4 targetColor;
 	bool isTransitioning;
@@ -17,7 +22,7 @@ struct ColorTransition {
 
 class ImGuiManager {
 public:
-	void Init(const D3D12* renderer, const Window* window);
+	void Init(const ::D3D12* renderer, const ::Window* window, const SrvManager* srvManager);
 	static void NewFrame();
 	void EndFrame() const;
 	void Shutdown();
@@ -28,19 +33,13 @@ private:
 	std::vector<ColorTransition> colorTransitions;
 
 	const D3D12* renderer_ = nullptr;
+	const SrvManager* srvManager_ = nullptr;
 	ComPtr<ID3D12DescriptorHeap> srvHeap_;
 };
 
 #ifdef _DEBUG
-inline void TextOutlined(ImDrawList* drawList, const ImVec2& pos, const char* text, ImU32 textColor, ImU32 outlineColor, float outlineSize = 1.0f) {
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x, pos.y - outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x, pos.y + outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y - outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y - outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y + outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y + outlineSize), outlineColor, text);
-	drawList->AddText(pos, textColor, text);
-}
+void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive);
+void EditTransform(const std::string& name, Transform& transform, const float& vSpeed);
+void TextOutlined(ImDrawList* drawList, const ImVec2& pos, const char* text, ImU32 textColor, ImU32 outlineColor,
+	float outlineSize = 1.0f);
 #endif

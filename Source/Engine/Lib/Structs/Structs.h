@@ -12,7 +12,7 @@
 
 struct Vertex {
 	Vec4 position; // 座標
-	Vec2 texcoord; // テクスチャ座標
+	Vec2 uv; // テクスチャ座標
 	Vec3 normal; // 法線
 
 	static const D3D12_INPUT_LAYOUT_DESC inputLayout;
@@ -34,6 +34,12 @@ struct TransformationMatrix {
 	Mat4 world; // ワールド
 };
 
+struct ParticleForGPU {
+	Mat4 wvp;
+	Mat4 world;
+	Vec4 color;
+};
+
 struct MaterialData {
 	std::string textureFilePath;
 };
@@ -53,4 +59,29 @@ struct Transform {
 	Vec3 scale;
 	Vec3 rotate;
 	Vec3 translate;
+};
+
+struct Particle {
+	Transform transform;
+	Vec3 vel;
+	Vec4 color;
+	float lifeTime;
+	float currentTime;
+};
+
+struct AABB {
+	Vec3 min;
+	Vec3 max;
+};
+
+struct Emitter {
+	Transform transform; // エミッタのトランスフォーム
+	uint32_t count; // 発生数
+	float frequency; // 発生頻度
+	float frequencyTime; // 頻度用時刻
+};
+
+struct AccelerationField {
+	Vec3 acceleration; // 加速度
+	AABB area; // 範囲
 };

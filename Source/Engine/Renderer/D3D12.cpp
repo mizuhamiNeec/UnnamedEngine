@@ -9,8 +9,6 @@
 #include <thread>
 
 #include "../Lib/Console/Console.h"
-#include "../Lib/Console/ConVar.h"
-#include "../Lib/Console/ConVars.h"
 #include "../Lib/Utils/ClientProperties.h"
 #include "../Lib/Utils/ConvertString.h"
 
@@ -29,7 +27,7 @@ D3D12::~D3D12() {
 void D3D12::Init(Window* window) {
 	window_ = window;
 
-	InitializeFixFPS();
+	//InitializeFixFPS();
 
 #ifdef _DEBUG
 	EnableDebugLayer();
@@ -56,7 +54,7 @@ void D3D12::Init(Window* window) {
 }
 
 void D3D12::ClearColorAndDepth() const {
-	float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f };
+	float clearColor[] = {0.89f, 0.5f, 0.03f, 1.0f};
 	commandList_->ClearRenderTargetView(
 		rtvHandles_[frameIndex_],
 		clearColor,
@@ -152,16 +150,10 @@ void D3D12::PostRender() {
 	//-------------------------------------------------------------------------
 	// GPU と OS に画面の交換を行うよう通知
 	//-------------------------------------------------------------------------
-	swapChain_->Present(kEnableVSync ? 1 : 0, 0);
+	swapChain_->Present(kEnableVerticalSync ? 1 : 0, 0);
 
 	WaitPreviousFrame(); // 前のフレームを待つ
-
-	UpdateFixFPS();
 }
-
-void D3D12::OnSizeChanged([[maybe_unused]] UINT width, [[maybe_unused]] UINT height, [[maybe_unused]] bool isMinimized) {}
-
-void D3D12::ToggleFullscreen() {}
 
 void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data) {
 	void* mapped;
@@ -194,7 +186,7 @@ void D3D12::CreateDevice() {
 	//-------------------------------------------------------------------------
 	ComPtr<IDXGIAdapter4> useAdapter;
 	for (UINT i = 0; dxgiFactory_->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-		IID_PPV_ARGS(&useAdapter)) != DXGI_ERROR_NOT_FOUND; ++i) {
+	                                                          IID_PPV_ARGS(&useAdapter)) != DXGI_ERROR_NOT_FOUND; ++i) {
 		DXGI_ADAPTER_DESC3 adapterDesc;
 		hr = useAdapter->GetDesc3(&adapterDesc);
 		assert(SUCCEEDED(hr));
@@ -215,7 +207,7 @@ void D3D12::CreateDevice() {
 		D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
 		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
 	};
-	const char* featureLevelStrings[] = { "12.2", "12.1", "12.0", "11.1", "11.0" };
+	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0", "11.1", "11.0"};
 
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
@@ -252,7 +244,7 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
+		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(denyIds);
 		filter.DenyList.pIDList = denyIds;
@@ -309,12 +301,9 @@ void D3D12::CreateSwapChain() {
 
 void D3D12::CreateDescriptorHeaps() {
 	// DescriptorSizeを取得しておく
-	descriptorSizeSRV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	descriptorSizeRTV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	descriptorSizeDSV = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
-	// SRV用のヒープでディスクリプタの数はkMaxSRVCount。SRVはShader内で触るものなので、ShaderVisibleはtrue
-	srvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kMaxSRVCount, true);
 	// RTV用のヒープでディスクリプタの数は2。RTVはShader内で触るものではないので、ShaderVisibleはfalse
 	rtvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, kFrameBufferCount, false);
 	// DSV用のヒープでディスクリプタの数は1。DSVはShader内で触るものではないので、ShaderVisibleはfalse
@@ -341,22 +330,6 @@ void D3D12::CreateRTV() {
 		device_->CreateRenderTargetView(renderTargets_[i].Get(), &rtvDesc, rtvHandles_[i]);
 	}
 	Console::Print("Complete create RenderTargetView.\n", kConsoleColorCompleted);
-
-	for (uint32_t i = 0; kFrameBufferCount > i; ++i) {
-		D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart();
-		srvHandle.ptr += (descriptorSizeSRV * 3) * i; // 各バックバッファに対して異なるSRVを作成
-
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Format = renderTargets_[0]->GetDesc().Format;
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MostDetailedMip = 0;
-		srvDesc.Texture2D.MipLevels = 1;
-		srvDesc.Texture2D.PlaneSlice = 0;
-		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-		device_->CreateShaderResourceView(renderTargets_[i].Get(), &srvDesc, srvHandle);
-	}
 }
 
 void D3D12::CreateDSV() {
@@ -366,7 +339,7 @@ void D3D12::CreateDSV() {
 	dsvDesc.Format = depthStencilResource_->GetDesc().Format;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	device_->CreateDepthStencilView(depthStencilResource_.Get(), &dsvDesc,
-		dsvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart());
+	                                dsvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart());
 }
 
 void D3D12::CreateCommandAllocator() {
@@ -382,11 +355,11 @@ void D3D12::CreateCommandAllocator() {
 void D3D12::CreateCommandList() {
 	// コマンドリストの作成
 	HRESULT hr = device_->CreateCommandList(
-		0,                                  // ノードマスク
-		D3D12_COMMAND_LIST_TYPE_DIRECT,     // コマンドリストタイプ
-		commandAllocator_.Get(),            // コマンドアロケーター
-		nullptr,                            // 初期パイプラインステート
-		IID_PPV_ARGS(&commandList_)         // 作成されるコマンドリスト
+		0, // ノードマスク
+		D3D12_COMMAND_LIST_TYPE_DIRECT, // コマンドリストタイプ
+		commandAllocator_.Get(), // コマンドアロケーター
+		nullptr, // 初期パイプラインステート
+		IID_PPV_ARGS(&commandList_) // 作成されるコマンドリスト
 	);
 
 	if (FAILED(hr)) {
@@ -470,41 +443,16 @@ void D3D12::WaitPreviousFrame() {
 	}
 }
 
-void D3D12::InitializeFixFPS() {
-	// 現在時間を記録する
-	reference_ = std::chrono::steady_clock::now();
-}
-
-void D3D12::UpdateFixFPS() {
-	// フレームレートピッタリの時間
-	const std::chrono::microseconds kMinTime(static_cast<uint64_t>(1000000.0f / ConVars::GetInstance().GetConVar("cl_maxfps")->GetFloat()));
-
-	// 現在時間を取得する
-	auto now = std::chrono::steady_clock::now();
-	// 前回記録からの経過時間を取得する
-	auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - reference_);
-
-	// 1/60秒 (よりわずかに短い時間) 経っていない場合
-	if (elapsed < kMinTime) {
-		// 1/60秒経過するまで微小なスリープを繰り返す
-		auto waitUntil = reference_ + kMinTime;
-		while (std::chrono::steady_clock::now() < waitUntil) {
-			std::this_thread::yield(); // CPUに他のスレッドの実行を許可
-		}
-	}
-
-	// 現在の時間を記録する
-	reference_ = std::chrono::steady_clock::now();
-}
-
-ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType, const UINT numDescriptors, const bool shaderVisible) const {
+ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType,
+                                                         const UINT numDescriptors, const bool shaderVisible) const {
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
 	descriptorHeapDesc.Type = heapType;
 	descriptorHeapDesc.NumDescriptors = numDescriptors;
 	if (shaderVisible) {
 		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	} else {
+	}
+	else {
 		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	}
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
@@ -515,13 +463,15 @@ ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_
 	return descriptorHeap;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, const uint32_t descriptorSize, const uint32_t index) {
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
+                                                          const uint32_t descriptorSize, const uint32_t index) {
 	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	handleCPU.ptr += static_cast<unsigned long long>(descriptorSize) * index;
 	return handleCPU;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE D3D12::GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, const uint32_t descriptorSize, const uint32_t index) {
+D3D12_GPU_DESCRIPTOR_HANDLE D3D12::GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
+                                                          const uint32_t descriptorSize, const uint32_t index) {
 	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	handleGPU.ptr += static_cast<unsigned long long>(descriptorSize) * index;
 	return handleGPU;

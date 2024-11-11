@@ -7,17 +7,21 @@
 //-----------------------------------------------------------------------------
 class Random final {
 public:
-	static Random& GetInstance();
+	static Random* GetInstance();
 
 	float RandomFloat(float min = 0.0f, float max = 1.0f);
 	int RandomInt(int min = 0, int max = 1);
 
 private:
-	Random();
+	std::random_device seedGenerator_;
+	std::mt19937_64 randomEngine_;
+	std::mutex mtx_;
 
-	Random(const Random&) = delete;
-	Random& operator=(const Random&) = delete;
+private:
+	static Random* instance_;
 
-	std::mt19937_64 rnd;
-	std::mutex mtx;
+	Random() = default;
+	~Random() = default;
+	Random(Random&) = delete;
+	Random& operator=(Random&) = delete;
 };

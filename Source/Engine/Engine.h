@@ -3,8 +3,12 @@
 
 #include "../Game/GameScene.h"
 
-#include "../Input/Input.h"
+#include "../Renderer/SrvManager.h"
+
 #include "Model/ModelCommon.h"
+#include "Lib/Timer/EngineTimer.h"
+
+#include "Particle/ParticleCommon.h"
 
 class Console;
 class ImGuiManager;
@@ -18,20 +22,23 @@ public:
 
 private:
 	void Init();
-	void Update() const;
+	void Update();
 	void Shutdown() const;
 
 private:
 	std::unique_ptr<Window> window_;
 	std::unique_ptr<D3D12> renderer_;
+	std::unique_ptr<SrvManager> srvManager_;
+	std::unique_ptr<EngineTimer> time_;
 	std::unique_ptr<GameScene> gameScene_;
 	std::unique_ptr<Camera> camera_;
 	std::unique_ptr<SpriteCommon> spriteCommon_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;
+	std::unique_ptr<ParticleCommon> particleCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
 
-	// Dev
+#ifdef _DEBUG
 	std::unique_ptr<ImGuiManager> imGuiManager_;
 	std::unique_ptr<Console> console_;
+#endif
 };
-

@@ -53,11 +53,11 @@ public:
 private:
 	// テクスチャサイズをイメージに合わせる
 	void AdjustTextureSize();
-private:
 
+private:
 	SpriteCommon* spriteCommon_ = nullptr;
 
-	Vec2 anchorPoint_ = { 0.0f, 0.0f };
+	Vec2 anchorPoint_ = {0.0f, 0.0f};
 
 	Transform transform_;
 	Transform uvTransform_;
@@ -68,13 +68,13 @@ private:
 	bool isFlipY_ = false;
 
 	// テクスチャ左上座標
-	Vec2 textureLeftTop = { 0.0f, 0.0f };
-	Vec2 textureSize = { 100.0f, 100.0f };
+	Vec2 textureLeftTop = {0.0f, 0.0f};
+	Vec2 textureSize = {100.0f, 100.0f};
 
 	// テクスチャ番号
-	uint32_t textureIndex_ = 0;
+	std::string textureFilePath_;
 
-	Vertex vertices[kSpriteVertexCount] = {};
+	std::vector<Vertex> vertices_;
 
 	uint32_t indices[kSpriteVertexCount] = {
 		0, 1, 2, // 1つ目の三角形

@@ -15,12 +15,14 @@ void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, con
 	modelData_ = LoadObjFile(directoryPath, fileName);
 
 	// 頂点バッファ modelData_を突っ込む
-	vertexBuffer_ = std::make_unique<VertexBuffer>(modelCommon_->GetD3D12()->GetDevice(), sizeof(Vertex) * modelData_.vertices.size(), sizeof(Vertex), modelData_.vertices.data());
+	vertexBuffer_ = std::make_unique<VertexBuffer>(modelCommon_->GetD3D12()->GetDevice(),
+	                                               sizeof(Vertex) * modelData_.vertices.size(), sizeof(Vertex),
+	                                               modelData_.vertices.data());
 
 	// マテリアル定数バッファ
 	materialConstantBuffer_ = std::make_unique<ConstantBuffer>(modelCommon_->GetD3D12()->GetDevice(), sizeof(Material));
 	materialData_ = materialConstantBuffer_->GetPtr<Material>();
-	materialData_->color = { 1.0f,1.0f,1.0f,1.0f }; // 白
+	materialData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
 	materialData_->enableLighting = true;
 	materialData_->uvTransform = Mat4::Identity();
 
@@ -29,7 +31,8 @@ void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, con
 		// .objの参照しているテクスチャファイル読み込み
 		TextureManager::GetInstance()->LoadTexture(modelData_.material.textureFilePath);
 		// 読み込んだテクスチャの番号を取得
-		modelData_.material.textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(modelData_.material.textureFilePath);
+		modelData_.material.textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(
+			modelData_.material.textureFilePath);
 	}
 }
 
@@ -39,10 +42,12 @@ void Model::Draw() const {
 	modelCommon_->GetD3D12()->GetCommandList()->IASetVertexBuffers(0, 1, &vbView);
 
 	// マテリアルの定数バッファの設定
-	modelCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialConstantBuffer_->GetAddress());
+	modelCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
+		0, materialConstantBuffer_->GetAddress());
 
 	// SRVのDescriptorTableの先頭を設定
-	modelCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelData_.material.textureIndex));
+	modelCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
+		2, TextureManager::GetInstance()->GetSrvHandleGPU(modelData_.material.textureFilePath));
 
 	// 描画
 	modelCommon_->GetD3D12()->GetCommandList()->DrawInstanced(static_cast<UINT>(modelData_.vertices.size()), 1, 0, 0);
@@ -91,16 +96,19 @@ Model::ModelData Model::LoadObjFile(const std::string& directoryPath, const std:
 			s >> position.x >> position.y >> position.z;
 			position.w = 1.0f;
 			positions.push_back(position);
-		} else if (identifier == "vt") {
+		}
+		else if (identifier == "vt") {
 			Vec2 texcoord;
 			s >> texcoord.x >> texcoord.y;
 			texcoord.y = 1.0f - texcoord.y;
 			texcoords.push_back(texcoord);
-		} else if (identifier == "vn") {
+		}
+		else if (identifier == "vn") {
 			Vec3 normal;
 			s >> normal.x >> normal.y >> normal.z;
 			normals.push_back(normal);
-		} else if (identifier == "f") {
+		}
+		else if (identifier == "f") {
 			Vertex triangle[3];
 
 			// 面は三角形限定。その他は未対応
@@ -110,7 +118,7 @@ Model::ModelData Model::LoadObjFile(const std::string& directoryPath, const std:
 				// 頂点の要素へのIndexは[位置/UV/法線] で格納されているので、分解してIndexを取得する
 				std::istringstream v(vertexDefinition);
 				std::string index;
-				uint32_t elementIndices[3] = { 0, 0, 0 };
+				uint32_t elementIndices[3] = {0, 0, 0};
 				int element = 0;
 
 				while (std::getline(v, index, '/') && element < 3) {
@@ -122,18 +130,19 @@ Model::ModelData Model::LoadObjFile(const std::string& directoryPath, const std:
 
 				// 要素へのIndexから、実際の要素の値を取得して、頂点を構築する
 				Vec4 position = positions[elementIndices[0] - 1];
-				Vec2 texcoord = elementIndices[1] ? texcoords[elementIndices[1] - 1] : Vec2{ 0.0f, 0.0f };
-				Vec3 normal = elementIndices[2] ? normals[elementIndices[2] - 1] : Vec3{ 0.0f, 0.0f, 0.0f };
+				Vec2 texcoord = elementIndices[1] ? texcoords[elementIndices[1] - 1] : Vec2{0.0f, 0.0f};
+				Vec3 normal = elementIndices[2] ? normals[elementIndices[2] - 1] : Vec3{0.0f, 0.0f, 0.0f};
 
 				position.x *= -1.0f;
 				normal.x *= -1.0f;
-				faceVertex = { position, texcoord, normal };
+				faceVertex = {position, texcoord, normal};
 			}
 			// 頂点を逆順で登録することで、周り順を逆にする
 			modelData.vertices.push_back(triangle[2]);
 			modelData.vertices.push_back(triangle[1]);
 			modelData.vertices.push_back(triangle[0]);
-		} else if (identifier == "mtllib") {
+		}
+		else if (identifier == "mtllib") {
 			// materialTemplateLibraryファイルの名前を取得する
 			std::string materialFilename;
 			s >> materialFilename;

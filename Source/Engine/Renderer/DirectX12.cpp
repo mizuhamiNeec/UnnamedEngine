@@ -327,7 +327,7 @@ void DirectX12::Init(Window* window) {
 	//vertNum = kSubdivision * kSubdivision * 6;
 
 	// モデル読み込み
-	modelData = LoadObjFile("Resources/Models", "axis.obj");
+	//modelData = LoadObjFile("Resources/Models", "axis.obj");
 
 	vertexResourceMesh_ = CreateBufferResource(device_.Get(), sizeof(VertexData) * modelData.vertices.size());
 

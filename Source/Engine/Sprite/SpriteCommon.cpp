@@ -6,10 +6,9 @@
 #include "../Renderer/D3D12.h"
 #include "../Renderer/RootSignatureManager.h"
 
-/// <summary>
-/// SpriteCommonを初期化します
-/// </summary>
-/// <param name="d3d12"></param>
+//-----------------------------------------------------------------------------
+// Purpose: SpriteCommonを初期化します
+//-----------------------------------------------------------------------------
 void SpriteCommon::Init(D3D12* d3d12) {
 	d3d12_ = d3d12;
 	Console::Print("SpriteCommon : SpriteCommonを初期化します。\n");
@@ -17,9 +16,9 @@ void SpriteCommon::Init(D3D12* d3d12) {
 	Console::Print("SpriteCommon : SpriteCommonの初期化が完了しました。\n");
 }
 
-/// <summary>
-/// SpriteCommonをシャットダウンします
-/// </summary>
+//-----------------------------------------------------------------------------
+// Purpose: SpriteCommonをシャットダウンします
+//-----------------------------------------------------------------------------
 void SpriteCommon::Shutdown() const {
 	delete rootSignatureManager_;
 }

@@ -4,8 +4,8 @@
 #include <imgui/imgui.h>
 #endif
 
+#include <cassert>
 #include <dwmapi.h>
-
 #include <utility>
 
 #include "WindowsUtils.h"
@@ -16,10 +16,19 @@
 
 #ifdef _DEBUG
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-#endif	
+#endif
 
-Window::Window(std::wstring title, const uint32_t width, const uint32_t height, const DWORD style, const DWORD exStyle) : title_(std::move(title)), width_(width), height_(height), style_(style), exStyle_(exStyle) {
-	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+Window::Window(
+	std::wstring title,
+	const uint32_t width,
+	const uint32_t height,
+	const DWORD style,
+	const DWORD exStyle
+) : title_(std::move(title)), width_(width), height_(height), style_(style), exStyle_(exStyle) {
+	const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	if (FAILED(hr)) {
+		Console::Print("Failed to initialize COM library");
+	}
 	timeBeginPeriod(1); // システムタイマーの分解能を上げる
 }
 
@@ -44,13 +53,14 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	wc_.hIconSm = LoadIcon(hInstance, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc_)) {
-		Console::Print("Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n", kConsoleColorError);
+		Console::Print("Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
+		               kConsoleColorError);
 		return false;
 	}
 
 	Console::Print("Window class registered.\n");
 
-	RECT wrc{ 0,0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
+	RECT wrc{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
 
 	AdjustWindowRectEx(&wrc, style_, false, exStyle_);
 
@@ -77,6 +87,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	SetUseImmersiveDarkMode(hWnd_, WindowsUtils::IsSystemDarkTheme());
 	// ウィンドウを表示
 	ShowWindow(hWnd_, SW_SHOW);
+	UpdateWindow(hWnd_);
 	// このウィンドウにフォーカス
 	SetFocus(hWnd_);
 
@@ -115,9 +126,6 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	}
 
 	switch (msg) {
-	case WM_SIZE:
-		// TODO : サイズ可変にしたい
-		break;
 	case WM_SETTINGCHANGE: // Windowsの設定が変更された
 		if (lParam) {
 			const wchar_t* immersiveColorSet = std::bit_cast<const wchar_t*>(lParam);
@@ -133,12 +141,15 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 			}
 		}
 		break;
+	case WM_ENTERSIZEMOVE:
+		break;
+	case WM_EXITSIZEMOVE:
+		break;
 	case WM_CLOSE:
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
-	default:
-		return DefWindowProc(hWnd, msg, wParam, lParam);
+	default: return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 
 	return DefWindowProc(hWnd, msg, wParam, lParam);
@@ -154,6 +165,12 @@ bool Window::ProcessMessage() {
 
 	if (msg.message == WM_QUIT) {
 		return true;
+	}
+
+	RECT rect;
+	if (GetClientRect(hWnd_, &rect)) {
+		width_ = rect.right - rect.left;
+		height_ = rect.bottom - rect.top;
 	}
 
 	return false;
