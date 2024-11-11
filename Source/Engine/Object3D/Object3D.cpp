@@ -93,7 +93,3 @@ void Object3D::SetModel(const std::string& filePath) {
 	// モデルを検索してセットする
 	model_ = ModelManager::GetInstance()->FindModel(filePath);
 }
-
-void Object3D::SetLighting(const bool& newLighting) const {
-	model_->SetLighting(newLighting);
-}

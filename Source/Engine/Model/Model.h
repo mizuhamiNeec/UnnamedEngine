@@ -25,8 +25,6 @@ public:
 	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
 	static ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
 
-	void SetLighting(const bool& newLighting) const;
-
 private:
 	ModelCommon* modelCommon_ = nullptr;
 	ModelData modelData_; // Objファイルのデータ

@@ -1,4 +1,4 @@
-﻿#include "MathLib.h"
+#include "MathLib.h"
 #include "../Lib/Structs/Structs.h"
 
 #include "MathLib.h"
@@ -12,11 +12,12 @@ bool Math::IsCollision(const AABB& aabb, const Vec3& point) {
 		point.x >= aabb.min.x && point.x <= aabb.max.x &&
 		point.y >= aabb.min.y && point.y <= aabb.max.y &&
 		point.z >= aabb.min.z && point.z <= aabb.max.z
-	);
+		);
 }
 
 Vec3 Math::Lerp(const Vec3& a, const Vec3& b, const float t) {
 	return a * (1 - t) + b * t;
+}
 
 Vec3 Math::CatmullRomPosition(const std::vector<Vec3>& points, float t) {
 	assert(points.size() >= 4 && "制御点は4点以上必要です");
@@ -71,16 +72,4 @@ Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p
 		(2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2 +
 		(-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3
 		);
-}
-
-float Math::CalculateSplineLength(const std::vector<Vec3>& controlPointsA, const int numSamples) {
-	float length = 0.0f;
-	Vec3 prevPos = Math::CatmullRomPosition(controlPointsA, 0.0f);
-	for (int i = 1; i <= numSamples; ++i) {
-		float t = static_cast<float>(i) / numSamples;
-		Vec3 currentPos = Math::CatmullRomPosition(controlPointsA, t);
-		length += (currentPos - prevPos).Length();
-		prevPos = currentPos;
-	}
-	return length;
 }

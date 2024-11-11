@@ -39,7 +39,7 @@ class Object3D {
 
 public:
 	void Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon);
-	void Update() const;
+	void Update();
 	void Draw() const;
 
 	// Setter
@@ -50,13 +50,11 @@ public:
 	void SetRot(const Vec3& newRot) { transform_.rotate = newRot; }
 	void SetPos(const Vec3& newPos) { transform_.translate = newPos; }
 
-	void SetLighting(const bool& newLighting) const;
-
 	// Getter
 	const Vec3& GetScale() const { return transform_.scale; }
 	const Vec3& GetRot() const { return transform_.rotate; }
 	const Vec3& GetPos() const { return transform_.translate; }
-protected:
+private:
 	Camera* camera_ = nullptr;
 
 	Object3DCommon* object3DCommon_ = nullptr;

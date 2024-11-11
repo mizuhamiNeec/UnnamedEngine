@@ -4,6 +4,7 @@
 #include "../Game/GameScene.h"
 
 #include "../Renderer/SrvManager.h"
+#include "Input/Input.h"
 
 #include "Model/ModelCommon.h"
 #include "Lib/Timer/EngineTimer.h"
@@ -22,10 +23,12 @@ public:
 
 private:
 	void Init();
-	void Update();
+	void Update() const;
 	void Shutdown() const;
 
 private:
+	Input* input_ = nullptr;
+
 	std::unique_ptr<Window> window_;
 	std::unique_ptr<D3D12> renderer_;
 	std::unique_ptr<SrvManager> srvManager_;
