@@ -1,7 +1,5 @@
-﻿#include "MathLib.h"
-#include "../Lib/Structs/Structs.h"
-
 #include "MathLib.h"
+#include "../Lib/Structs/Structs.h"
 
 #include <cassert>
 #include <cmath>
@@ -12,11 +10,12 @@ bool Math::IsCollision(const AABB& aabb, const Vec3& point) {
 		point.x >= aabb.min.x && point.x <= aabb.max.x &&
 		point.y >= aabb.min.y && point.y <= aabb.max.y &&
 		point.z >= aabb.min.z && point.z <= aabb.max.z
-	);
+		);
 }
 
 Vec3 Math::Lerp(const Vec3& a, const Vec3& b, const float t) {
 	return a * (1 - t) + b * t;
+}
 
 Vec3 Math::CatmullRomPosition(const std::vector<Vec3>& points, float t) {
 	assert(points.size() >= 4 && "制御点は4点以上必要です");

@@ -1,31 +1,146 @@
 #include "GameScene.h"
 
+#include <filesystem>
 #include <format>
-
-#include "../Engine/Lib/Timer/EngineTimer.h"
-#include "../Engine/Model/ModelManager.h"
-#include "../Engine/Window/WindowsUtils.h"
+#include <fstream>
 
 #include "../../Player.h"
 #include "../../RailCamera.h"
-
+#include "../Engine/LevelData/LevelData.h"
+#include "../Engine/Lib/Timer/EngineTimer.h"
+#include "../Engine/Model/ModelManager.h"
+#include "../Engine/Window/WindowsUtils.h"
 #include "../ImGuiManager/ImGuiManager.h"
-
 #include "../Lib/Console/ConVar.h"
 #include "../Lib/Console/ConVars.h"
 #include "../Lib/Math/MathLib.h"
-
 #include "../Object3D/Object3D.h"
-
 #include "../Particle/ParticleCommon.h"
-
 #include "../Sprite/SpriteCommon.h"
-
 #include "../TextureManager/TextureManager.h"
+#include "nlohmann/json.hpp"
 
 #ifdef _DEBUG
 #include "imgui/imgui.h"
 #endif
+
+
+void SaveFile(const std::string& groupName) {
+	using json = nlohmann::json;
+
+	json root;
+	root = json::object();
+
+	// jsonオブジェクト登録
+	root[groupName] = json::object();
+}
+
+const std::string kExtension = ".scene";
+
+// 子オブジェクトを処理するための再帰関数
+void LoadChildObject(LevelData* levelData, const nlohmann::json& child) {
+	assert(child.contains("type"));
+
+	// 子オブジェクトの種類を取得
+	std::string type = child["type"].get<std::string>();
+
+	// MESH
+	if (type == "MESH") {
+		// 要素追加
+		levelData->objects.emplace_back(LevelData::ObjectData{});
+		// 今追加した要素の参照を得る
+		LevelData::ObjectData& objectData = levelData->objects.back();
+
+		if (child.contains("file_name")) {
+			// ファイル名
+			objectData.fileName = child["file_name"];
+		}
+
+		// トランスフォームのパラメータ読み込み
+		if (child.contains("transform")) {
+			auto& transform = child["transform"];
+			objectData.position = { transform["translation"][0], transform["translation"][2], transform["translation"][1] };
+			objectData.rotation = { transform["rotation"][0], transform["rotation"][2], transform["rotation"][1] };
+			objectData.rotation *= -1.0f;
+			objectData.scale = { transform["scaling"][0], transform["scaling"][2], transform["scaling"][1] };
+		}
+
+		// コライダーのパラメータ読み込み
+		if (child.contains("collider")) {
+			auto& collider = child["collider"];
+			objectData.colliderType = collider["type"].get<std::string>();
+			objectData.colliderCenter = { collider["center"][0], collider["center"][2], collider["center"][1] };
+			objectData.colliderSize = { collider["size"][0], collider["size"][2], collider["size"][1] };
+		}
+	}
+
+	// 子オブジェクトがある場合、再帰的に処理
+	if (child.contains("children")) {
+		for (const auto& grandChild : child["children"]) {
+			LoadChildObject(levelData, grandChild);
+		}
+	}
+}
+
+void LoadFile(const std::string& relativePath) {
+	// 連結してフルパスを得る
+	const std::string fullPath = std::filesystem::current_path().string() + relativePath + kExtension;
+
+	// ファイルストリーム
+	std::ifstream file;
+
+	// ファイルを開く
+	file.open(fullPath);
+	// ファイルオープン失敗をチェック
+	if (file.fail()) {
+		assert(0);
+	}
+
+	// JSON文字列から解凍したデータ
+	nlohmann::json deserialized;
+
+	// 解凍
+	file >> deserialized;
+
+	// 正しいレベルデータファイル化チェック
+	assert(deserialized.is_object());
+	assert(deserialized.contains("name"));
+	assert(deserialized["name"].is_string());
+
+	// "name"を文字列として取得
+	std::string name = deserialized["name"].get<std::string>();
+	// 正しいレベルデータファイルかチェック
+	assert(name == "scene");
+
+	// レベルデータ格納用インスタンスを生成
+	LevelData* levelData = new LevelData();
+
+	// "objects"の全オブジェクトを走査
+	for (nlohmann::json& object : deserialized["objects"]) {
+		assert(object.contains("type"));
+
+		// 種別を取得
+		std::string type = object["type"].get<std::string>();
+
+		// MESHの場合、LoadChildObjectを呼び出す
+		if (type.compare("MESH") == 0) {
+			LoadChildObject(levelData, object);
+		}
+		// CURVEの場合、制御点を配列に格納
+		else if (type.compare("CURVE") == 0) {
+			if (object.contains("control_points")) {
+				for (const auto& point : object["control_points"]) {
+					// 制御点を配列に追加
+					controlPoints.push_back({
+						point["x"].get<float>(),
+						point["z"].get<float>(),
+						point["y"].get<float>()
+						});
+				}
+			}
+		}
+	}
+}
 
 void GameScene::Init(
 	D3D12* renderer, Window* window,
@@ -50,24 +165,24 @@ void GameScene::Init(
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({512.0f, 512.0f, 0.0f});
+	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
 	// .objファイルからモデルを読み込む
-	ModelManager::GetInstance()->LoadModel("axis.obj");
+	ModelManager::GetInstance()->LoadModel("cart.obj");
 
 	object3D_ = std::make_unique<Object3D>();
 	object3D_->Init(object3DCommon_, modelCommon_);
 	// 初期化済みの3Dオブジェクトにモデルを紐づける
-	object3D_->SetModel("axis.obj");
-	object3D_->SetPos({1.0f, -0.3f, 0.6f});
+	object3D_->SetModel("cart.obj");
+	object3D_->SetPos({ 0.0f,0.0f,0.0f });
 #pragma endregion
 
 #pragma region パーティクル類
 	particle_ = std::make_unique<ParticleObject>();
 	particle_->Init(particleCommon_, "./Resources/Textures/circle.png");
-
+#pragma endregion
 
 	ModelManager::GetInstance()->LoadModel("sky.obj");
 	sky_ = std::make_unique<Object3D>();
@@ -83,11 +198,13 @@ void GameScene::Init(
 	player_->Initialize();
 
 	ModelManager::GetInstance()->LoadModel("rail.obj");
+
+	LoadFile("./Resources/test");
+
 	PlaceRailsAlongSpline();
-#pragma endregion
 
 	railCamera_ = std::make_unique<RailCamera>();
-	railCamera_->Initialize(object3DCommon_->GetDefaultCamera(), { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
+	railCamera_->Initialize(object3D_.get(), controlPoints, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
 }
 
 void GameScene::Update() {
@@ -97,105 +214,11 @@ void GameScene::Update() {
 	}
 
 	if (toggle) {
-		railCamera_->Update();
+		railCamera_->Update(timer_->GetDeltaTime());
 	}
-
-	transform_.rotate.y += 0.003f;
-	Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
-	Mat4 cameraMat = Mat4::Affine(cameraTransform_.scale, cameraTransform_.rotate, cameraTransform_.translate);
-	Mat4 viewMat = cameraMat.Inverse();
-	Mat4 projectionMat = Mat4::PerspectiveFovMat(
-		fov_ * Math::deg2Rad, // FieldOfView 90 degree!!
-		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight()),
-		0.01f,
-		1000.0f
-	);
-	Mat4 worldViewProjMat = worldMat * viewMat * projectionMat;
-
-	TransformationMatrix* ptr = transformation->GetPtr<TransformationMatrix>();
-	ptr->wvp = worldViewProjMat;
-	ptr->world = worldMat;
-
-#ifdef _DEBUG
-	ImGui::Begin("Sprites");
-	for (uint32_t i = 0; i < sprites_.size(); ++i) {
-		if (ImGui::CollapsingHeader(std::format("Sprite {}", i).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-			Vec3 pos = sprites_[i]->GetPos();
-			Vec3 rot = sprites_[i]->GetRot();
-			Vec3 size = sprites_[i]->GetSize();
-			Vec2 anchor = sprites_[i]->GetAnchorPoint();
-			Vec4 color = sprites_[i]->GetColor();
-			if (ImGui::DragFloat3(std::format("pos##sprite{}", i).c_str(), &pos.x, 1.0f)) {
-				sprites_[i]->SetPos(pos);
-			}
-			if (ImGui::DragFloat3(std::format("rot##sprite{}", i).c_str(), &rot.x, 0.01f)) {
-				sprites_[i]->SetRot(rot);
-			}
-			if (ImGui::DragFloat3(std::format("scale##sprite{}", i).c_str(), &size.x, 0.01f)) {
-				sprites_[i]->SetSize(size);
-			}
-			if (ImGui::DragFloat2(std::format("anchorPoint#sprite{}", i).c_str(), &anchor.x, 0.01f)) {
-				sprites_[i]->SetAnchorPoint(anchor);
-			}
-			if (ImGui::ColorEdit4(std::format("color##sprite{}", i).c_str(), &color.x)) {
-				sprites_[i]->SetColor(color);
-			}
-			ImGui::Separator();
-
-			if (ImGui::TreeNode(std::format("UV##sprite{}", i).c_str())) {
-				Vec2 uvPos = sprites_[i]->GetUvPos();
-				Vec2 uvSize = sprites_[i]->GetUvSize();
-				float uvRot = sprites_[i]->GetUvRot();
-				if (ImGui::DragFloat2(std::format("pos##uv{}", i).c_str(), &uvPos.x, 0.01f)) {
-					sprites_[i]->SetUvPos(uvPos);
-				}
-				if (ImGui::DragFloat2(std::format("scale##uv{}", i).c_str(), &uvSize.x, 0.01f)) {
-					sprites_[i]->SetUvSize(uvSize);
-				}
-				if (ImGui::SliderAngle(std::format("rotZ##uv{}", i).c_str(), &uvRot)) {
-					sprites_[i]->SetUvRot(uvRot);
-				}
-
-	ImGui::Begin("Test");
-	ImGui::DragFloat3("Offset", &offset.x, 0.01f);
-	ImGui::DragFloat("interpSpd", &interpSpeed, 0.01f);
-	ImGui::End();
-
-	object3D_->SetPos(
-		object3D_->GetPos() + Vec3(1.0f, 0.0f, 1.0f) * timer_->GetDeltaTime()
-	);
-
-	{
-		ImGui::Begin("Texture 0");
-		static bool texindex = false;
-		if (ImGui::Checkbox("Toggle Texture", &texindex)) {
-			if (texindex) {
-				sprites_[0]->ChangeTexture("./Resources/Textures/uvChecker.png");
-			} else {
-				sprites_[0]->ChangeTexture("./Resources/Textures/debugempty.png");
-			}
-		}
-		ImGui::End();
-	}
-
-	ImGui::Begin("Object3D");
-	// 一旦変数に格納
-	Vec3 translate = object3D_->GetPos();
-	Vec3 rotate = object3D_->GetRot();
-	Vec3 scale = object3D_->GetScale();
-
-	ImGui::DragFloat3("transform##obj", &translate.x, 0.01f);
-	ImGui::DragFloat3("rotate##obj", &rotate.x, 0.01f);
-	ImGui::DragFloat3("scale##obj", &scale.x, 0.01f);
-
-	// ImGuiでの編集が終わったらSet
-	object3D_->SetPos(translate);
-	object3D_->SetRot(rotate);
-	object3D_->SetScale(scale);
-	ImGui::End();
-#endif
 
 	sprite_->Update();
+
 	object3D_->Update();
 	particle_->Update(timer_->GetDeltaTime());
 
@@ -207,13 +230,13 @@ void GameScene::Update() {
 		rail->Update();
 	}
 
-	for (Sprite* sprite : sprites_) {
-		sprite->Update();
-	}
+	object3DCommon_->GetDefaultCamera()->SetPos(Math::Lerp(object3DCommon_->GetDefaultCamera()->GetPos(), object3D_->GetPos() + Vec3(0.0f, 1.0f, 0.0f), 20.0f * timer_->GetDeltaTime()));
+	object3DCommon_->GetDefaultCamera()->SetRot(Math::Lerp(object3DCommon_->GetDefaultCamera()->GetRotate(), object3D_->GetRot(), 5.0f * timer_->GetDeltaTime()));
+
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 		const ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
@@ -274,13 +297,16 @@ void GameScene::Render() {
 	object3DCommon_->Render();
 	//----------------------------------------
 
-	object3D_->Draw();
 	sky_->Draw();
+
+	object3D_->Draw();
 
 	player_->Draw();
 
 	for (const std::unique_ptr<Object3D>& rail : rails_) {
-		rail->Draw();
+		if (object3DCommon_->GetDefaultCamera()->GetPos().Distance(rail->GetPos()) < 15.0f) {
+			rail->Draw();
+		}
 	}
 
 	//----------------------------------------

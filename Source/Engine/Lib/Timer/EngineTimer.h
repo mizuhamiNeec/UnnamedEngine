@@ -38,11 +38,11 @@ public:
 		// totalTime_を更新する
 		totalTime_ += deltaTime_;
 
-		// フレームレートをもとにスリープ
-		const std::chrono::microseconds kMinTime(static_cast<uint64_t>(1000000.0f / maxFps_));
-		if (elapsed < kMinTime) {
-			std::this_thread::sleep_for(kMinTime - elapsed); // 残り時間だけスリープ
-		}
+		//// フレームレートをもとにスリープ
+		//const std::chrono::microseconds kMinTime(static_cast<uint64_t>(1000000.0f / maxFps_));
+		//if (elapsed < kMinTime) {
+		//	std::this_thread::sleep_for(kMinTime - elapsed); // 残り時間だけスリープ
+		//}
 
 		// 現在の時間を記録する
 		reference_ = clock::now();

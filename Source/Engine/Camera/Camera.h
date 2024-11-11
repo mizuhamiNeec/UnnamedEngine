@@ -13,7 +13,7 @@ public:
 	// Setter
 	void SetTransform(const Transform& newTransform);
 	void SetPos(const Vec3& newPos);
-	void SetRotate(const Vec3& newRot);
+	void SetRot(const Vec3& newRot);
 	void SetFovVertical(const float& newFovVertical);
 	void SetNearZ(const float& newNearZ);
 	void SetFarZ(const float& newFarZ);
@@ -28,11 +28,12 @@ public:
 	float& GetZFar();
 	Mat4& GetViewProjMat();
 
+
 private:
 	float fov_ = 90.0f * Math::deg2Rad;
 	float aspectRatio_ = 0.0f;
 	float zNear_ = 0.1f;
-	float zFar_ = 100.0f;
+	float zFar_ = 10000.0f;
 
 	Transform transform_{
 		{1.0f, 1.0f, 1.0f},

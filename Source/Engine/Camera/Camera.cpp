@@ -19,8 +19,7 @@ Camera::Camera() :
 	worldMat_(Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate)), viewMat_(worldMat_.Inverse()),
 	aspectRatio_(16.0f / 9.0f),
 	projMat_(Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_)),
-	viewProjMat_(viewMat_* projMat_) {
-}
+	viewProjMat_(viewMat_* projMat_) {}
 
 void Camera::Update() {
 #ifdef _DEBUG
@@ -75,7 +74,7 @@ void Camera::SetPos(const Vec3& newPos) {
 //-----------------------------------------------------------------------------
 // Purpose: カメラの回転を設定します [rad]
 //-----------------------------------------------------------------------------
-void Camera::SetRotate(const Vec3& newRot) {
+void Camera::SetRot(const Vec3& newRot) {
 	transform_.rotate = newRot;
 }
 

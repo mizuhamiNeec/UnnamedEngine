@@ -1,39 +1,21 @@
 #pragma once
 #include "../Camera/Camera.h"
 
+class Object3D;
 struct Vec3;
 
 class RailCamera {
 public:
-	void Initialize(Camera* camera, Vec3 position, Vec3 rotation);
+	void Initialize(Object3D* object, const std::vector<Vec3>& points, Vec3 position, Vec3 rotation);
 
-	void Update();
+	void Update(const float& deltaTime);
 
 private:
-	// 距離からtを求める補間関数
-	float DistanceToT(float distance) const;
+	Object3D* object_ = nullptr;
+	std::vector<Vec3> points_;
 
-	// 現在の傾斜角度を計算（ラジアン）
-	static float CalculateSlope(float currentT);
+	float t_ = 0.0f;  // スプライン上の位置を示すパラメータ
+	float speed_ = 0.1f;  // オブジェクトの移動速度
 
-	// 傾斜に基づいて加速度を計算
-	float CalculateAcceleration(float slope) const;
-
-	void SetBaseSpeed(float speedMetersPerSecond);
-
-	// 現在の速度を取得（デバッグ用）
-	float GetCurrentSpeed() const;
-
-	float splineLength_ = 0.0f;
-	float distanceTraveled_ = 0.0f;
-	float baseSpeed_ = 2.0f;  // 平地での基本速度（メートル/秒）
-	float currentSpeed_ = 0.0f;  // 現在の速度
-	const float gravity_ = 9.81f;  // 重力加速度（メートル/秒^2）
-	const float friction_ = 0.02f;  // 摩擦係数
-	std::vector<Vec3> controlPoints_;
-	std::vector<std::pair<float, float>> distanceToTMap_;
-
-	float time_ = 0.0f;
-
-	Camera* camera_ = nullptr;
+	Vec3 CatmullRomSpline(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, float t);
 };

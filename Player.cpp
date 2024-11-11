@@ -4,9 +4,8 @@
 #include <cassert>
 #include <format>
 
-#include "TextureManager.h"
-#include "Console/Console.h"
 #include "imgui/imgui.h"
+#include "Source/Engine/Lib/Console/Console.h"
 
 Player::~Player() {
 	//delete sprite2DReticle_;

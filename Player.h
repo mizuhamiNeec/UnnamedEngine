@@ -1,8 +1,7 @@
 #pragma once
-#include "Input.h"
-#include "Model.h"
-#include "Object3D.h"
-#include "Sprite.h"
+#include "Source/Engine/Input/Input.h"
+#include "Source/Engine/Object3D/Object3D.h"
+#include "Source/Engine/Sprite/Sprite.h"
 
 //const float kPlayerRadius = 1.0f;
 

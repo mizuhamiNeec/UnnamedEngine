@@ -121,16 +121,6 @@ void Engine::Init() {
 }
 
 void Engine::Update() {
-	while (true) {
-		/* ----------- 更新処理 ---------- */
-
-		Input::GetInstance()->Update();
-
-		// コンソール表示切り替え
-		if (Input::GetInstance()->TriggerKey(DIK_GRAVE)) {
-			Console::ToggleConsole();
-		}
-    
 #ifdef _DEBUG
 	imGuiManager_->NewFrame();
 	console_->Update();

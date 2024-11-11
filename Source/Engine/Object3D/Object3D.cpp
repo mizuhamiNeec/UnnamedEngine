@@ -32,8 +32,8 @@ void Object3D::Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon) {
 		sizeof(DirectionalLight)
 	);
 	directionalLightData_ = directionalLightConstantBuffer_->GetPtr<DirectionalLight>();
-	directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
-	directionalLightData_->direction = {0.0f, -0.7071067812f, 0.7071067812f}; // 斜め前向き
+	directionalLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
+	directionalLightData_->direction = { 0.0f, -0.7071067812f, 0.7071067812f }; // 斜め前向き
 	directionalLightData_->intensity = 1.0f; // 明るさ1
 }
 
@@ -49,7 +49,7 @@ void Object3D::Update() {
 	ImGui::End();
 #endif
 
-	Mat4 worldMat = Mat4::Affine(
+	worldMat_ = Mat4::Affine(
 		transform_.scale,
 		transform_.rotate,
 		transform_.translate
@@ -60,14 +60,13 @@ void Object3D::Update() {
 	if (camera_) {
 		// カメラが存在する場合はカメラから行列を持ってくる
 		const Mat4& viewProjMat = camera_->GetViewProjMat();
-		worldViewProjMat = worldMat * viewProjMat;
-	}
-	else {
-		worldViewProjMat = worldMat;
+		worldViewProjMat = worldMat_ * viewProjMat;
+	} else {
+		worldViewProjMat = worldMat_;
 	}
 
 	transformationMatrixData_->wvp = worldViewProjMat;
-	transformationMatrixData_->world = worldMat;
+	transformationMatrixData_->world = worldMat_;
 }
 
 void Object3D::Draw() const {

@@ -156,6 +156,7 @@
     <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\LevelData\LevelData.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
     <ClInclude Include="Player.h" />

@@ -39,7 +39,7 @@ class Object3D {
 
 public:
 	void Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon);
-	void Update() const;
+	void Update();
 	void Draw() const;
 
 	// Setter
@@ -56,6 +56,7 @@ public:
 	const Vec3& GetScale() const { return transform_.scale; }
 	const Vec3& GetRot() const { return transform_.rotate; }
 	const Vec3& GetPos() const { return transform_.translate; }
+	const Mat4& GetWorldMat() const;
 protected:
 	Camera* camera_ = nullptr;
 
@@ -63,6 +64,8 @@ protected:
 	ModelCommon* modelCommon_ = nullptr;
 
 	Model* model_ = nullptr;
+
+	Mat4 worldMat_ = Mat4::Identity();
 
 	Transform transform_ = {
 		{1.0f,1.0f,1.0f},

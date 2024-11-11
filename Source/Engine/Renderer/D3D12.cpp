@@ -54,7 +54,7 @@ void D3D12::Init(Window* window) {
 }
 
 void D3D12::ClearColorAndDepth() const {
-	float clearColor[] = {0.89f, 0.5f, 0.03f, 1.0f};
+	float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f };
 	commandList_->ClearRenderTargetView(
 		rtvHandles_[frameIndex_],
 		clearColor,
@@ -146,7 +146,6 @@ void D3D12::PostRender() {
 	//-------------------------------------------------------------------------
 	commandQueue_->ExecuteCommandLists(1, CommandListCast(commandList_.GetAddressOf()));
 
-
 	//-------------------------------------------------------------------------
 	// GPU と OS に画面の交換を行うよう通知
 	//-------------------------------------------------------------------------
@@ -186,7 +185,7 @@ void D3D12::CreateDevice() {
 	//-------------------------------------------------------------------------
 	ComPtr<IDXGIAdapter4> useAdapter;
 	for (UINT i = 0; dxgiFactory_->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-	                                                          IID_PPV_ARGS(&useAdapter)) != DXGI_ERROR_NOT_FOUND; ++i) {
+		IID_PPV_ARGS(&useAdapter)) != DXGI_ERROR_NOT_FOUND; ++i) {
 		DXGI_ADAPTER_DESC3 adapterDesc;
 		hr = useAdapter->GetDesc3(&adapterDesc);
 		assert(SUCCEEDED(hr));
@@ -207,7 +206,7 @@ void D3D12::CreateDevice() {
 		D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
 		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
 	};
-	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0", "11.1", "11.0"};
+	const char* featureLevelStrings[] = { "12.2", "12.1", "12.0", "11.1", "11.0" };
 
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
@@ -244,7 +243,7 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
+		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(denyIds);
 		filter.DenyList.pIDList = denyIds;
@@ -339,7 +338,7 @@ void D3D12::CreateDSV() {
 	dsvDesc.Format = depthStencilResource_->GetDesc().Format;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	device_->CreateDepthStencilView(depthStencilResource_.Get(), &dsvDesc,
-	                                dsvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart());
+		dsvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart());
 }
 
 void D3D12::CreateCommandAllocator() {
@@ -444,15 +443,14 @@ void D3D12::WaitPreviousFrame() {
 }
 
 ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType,
-                                                         const UINT numDescriptors, const bool shaderVisible) const {
+	const UINT numDescriptors, const bool shaderVisible) const {
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
 	descriptorHeapDesc.Type = heapType;
 	descriptorHeapDesc.NumDescriptors = numDescriptors;
 	if (shaderVisible) {
 		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	}
-	else {
+	} else {
 		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	}
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
@@ -464,14 +462,14 @@ ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-                                                          const uint32_t descriptorSize, const uint32_t index) {
+	const uint32_t descriptorSize, const uint32_t index) {
 	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	handleCPU.ptr += static_cast<unsigned long long>(descriptorSize) * index;
 	return handleCPU;
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE D3D12::GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-                                                          const uint32_t descriptorSize, const uint32_t index) {
+	const uint32_t descriptorSize, const uint32_t index) {
 	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	handleGPU.ptr += static_cast<unsigned long long>(descriptorSize) * index;
 	return handleGPU;
