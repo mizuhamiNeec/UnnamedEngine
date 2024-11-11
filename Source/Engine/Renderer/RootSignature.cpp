@@ -1,7 +1,7 @@
 #include "RootSignature.h"
 
 #include <cassert>
-#include "../Utils/Logger.h"
+#include "../Lib/Console/Console.h"
 
 RootSignature::RootSignature(const ComPtr<ID3D12Device>& device) {
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};
@@ -40,7 +40,7 @@ RootSignature::RootSignature(const ComPtr<ID3D12Device>& device) {
 	staticSamplers[0].ShaderRegister = 0; // レジスタ番号0を使う
 	staticSamplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
 
-	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature = {};
+	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature;
 	descriptionRootSignature.NumParameters = _countof(rootParameters); // 配列の長さ
 	descriptionRootSignature.NumStaticSamplers = _countof(staticSamplers);
 	descriptionRootSignature.pParameters = rootParameters; // ルートパラメータ配列へのポインタ
@@ -54,7 +54,7 @@ RootSignature::RootSignature(const ComPtr<ID3D12Device>& device) {
 	HRESULT hr = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob,
 		&errorBlob);
 	if (FAILED(hr)) {
-		Log(static_cast<char*>(errorBlob->GetBufferPointer()));
+		Console::Print(static_cast<char*>(errorBlob->GetBufferPointer()));
 		assert(false);
 	}
 	// バイナリを元に生成

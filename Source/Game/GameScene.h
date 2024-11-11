@@ -1,23 +1,41 @@
 #pragma once
+#include <memory>
+
 #include "IGameScene.h"
 
+#include "../Object3D/Object3D.h"
+#include "../Object3D/Object3DCommon.h"
+
 #include "../Renderer/Renderer.h"
-#include "../../Shared/Transform/Transform.h"
+
+#include "../Sprite/Sprite.h"
+#include "../Sprite/SpriteCommon.h"
+#include "../Particle/ParticleObject.h"
 
 class GameScene : IGameScene {
 public:
-	void Startup(D3D12* renderer, Window* window) override;
+	void Init(
+		D3D12* renderer,
+		Window* window,
+		SpriteCommon* spriteCommon,
+		Object3DCommon* object3DCommon,
+		ModelCommon* modelCommon,
+		ParticleCommon* particleCommon, EngineTimer* engineTimer
+	) override;
 	void Update() override;
 	void Render() override;
 	void Shutdown() override;
 
 private:
-	Window* window_;
-	D3D12* renderer_;
+	Window* window_ = nullptr;
+	D3D12* renderer_ = nullptr;
 
-	Transform transform;
+	std::unique_ptr<Object3D> object3D_;
+	std::unique_ptr<Sprite> sprite_;
+	std::unique_ptr<Model> model_;
 
-	Transform cameraTransform;
+	std::unique_ptr<ParticleObject> particle_;
 
+	Transform transform_;
+	Transform cameraTransform_;
 };
-

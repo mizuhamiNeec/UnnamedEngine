@@ -8,11 +8,9 @@
 #include <wrl/client.h>
 
 #include "Renderer.h"
-#include "../../Shared/Math/Vector/Vec4.h"
-#include "../../Shared/Math/Vector/Vec2.h"
-#include "../../Shared/Math/Vector/Vec3.h"
-#include "../../Shared/Math/Matrix/Mat4.h"
-#include "../../Shared/Transform/Transform.h"
+#include "../Lib/Math/Vector/Vec4.h"
+#include "../Lib/Math/Vector/Vec2.h"
+#include "../Lib/Structs/Structs.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -27,38 +25,11 @@ struct VertexData {
 	Vec3 normal;
 };
 
-struct Material {
-	Vec4 color;
-	int32_t enableLighting;
-	float padding[3];
-	Mat4 uvTransform;
-};
-
-struct TransformationMatrix {
-	Mat4 WVP;
-	Mat4 World;
-};
-
-struct DirectionalLight {
-	Vec4 color; //!< ライトの色
-	Vec3 direction; //!< ライトの向き
-	float intensity; //!< 輝度
-};
-
-struct MaterialData {
-	std::string textureFilePath;
-};
-
-struct ModelData {
-	std::vector<VertexData> vertices;
-	MaterialData material;
-};
-
 ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
 
 MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
 
-class DirectX12 final : public Renderer {
+class DirectX12 : public Renderer {
 public:
 	DirectX12();
 	~DirectX12() override;
@@ -66,8 +37,7 @@ public:
 	// ==============================
 	// 基本関数
 	// ==============================
-	void Initialize(Window* window) override;
-	void Terminate() override;
+	void Init(Window* window) override;
 
 	void PreRender() override;
 
@@ -87,8 +57,6 @@ public:
 	VertexData* GetVertexDataSphere() const;
 
 	void SetTransformationMatrixData(const TransformationMatrix& newtTransformationMatrix) const;
-
-	void SetIsRunning(bool isRunning);
 
 	void SetMaterialData(const Material& matData) const;
 	Material* GetMaterialData() const;
@@ -134,7 +102,7 @@ private:
 		IDxcIncludeHandler* includeHandler
 	);
 
-	static ComPtr<ID3D12Resource> CreateTextureResource(ComPtr<ID3D12Device> device,
+	static ComPtr<ID3D12Resource> CreateTextureResource(const ComPtr<ID3D12Device>& device,
 		const DirectX::TexMetadata& metadata);
 	ComPtr<ID3D12Resource> CreateBufferResource(const ComPtr<ID3D12Device>& device, size_t sizeInBytes);
 	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource(int32_t width, int32_t height) const;

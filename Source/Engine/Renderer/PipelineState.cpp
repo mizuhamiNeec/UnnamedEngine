@@ -2,16 +2,21 @@
 
 #include <cassert>
 #include <format>
-#include "../Utils/ConvertString.h"
-#include "../Utils/Logger.h"
+#include "../Lib/Console/Console.h"
+#include "../Lib/Utils/ConvertString.h"
 
 PipelineState::PipelineState() {
+}
+
+PipelineState::PipelineState(
+	const D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK,
+	const D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID
+) {
 	D3D12_BLEND_DESC blendDesc = {};
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	D3D12_RASTERIZER_DESC rasterizerDesc = {};
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK; // 裏面(時計回り)を表示しない
-	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID; // 三角形の中を塗りつぶす
+	rasterizerDesc.CullMode = cullMode; // 裏面(時計回り)を表示しない
+	rasterizerDesc.FillMode = fillMode; // 三角形の中を塗りつぶす
 
 	// DepthStencilStateの設定
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
@@ -35,12 +40,22 @@ PipelineState::PipelineState() {
 
 	// DXCの初期化
 	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils_));
-	assert(SUCCEEDED(hr));
+	if (FAILED(hr)) {
+		Console::Print("Failed to create DxcUtils instance\n", {1.0f, 0.0f, 0.0f, 1.0f});
+		return;
+	}
+
 	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler_));
-	assert(SUCCEEDED(hr));
+	if (FAILED(hr)) {
+		Console::Print("Failed to create DxcCompiler instance\n", {1.0f, 0.0f, 0.0f, 1.0f});
+		return;
+	}
 
 	hr = dxcUtils_->CreateDefaultIncludeHandler(&includeHandler_);
-	assert(SUCCEEDED(hr));
+	if (FAILED(hr)) {
+		Console::Print("Failed to create default include handler\n", {1.0f, 0.0f, 0.0f, 1.0f});
+		return;
+	}
 }
 
 void PipelineState::SetInputLayout(const D3D12_INPUT_LAYOUT_DESC layout) {
@@ -56,7 +71,7 @@ void PipelineState::SetVS(const std::wstring& filePath) {
 	assert(vsBlob != nullptr);
 
 	desc_.VS = {
-	vsBlob->GetBufferPointer(), vsBlob->GetBufferSize()
+		vsBlob->GetBufferPointer(), vsBlob->GetBufferSize()
 	}; // VertexShader
 }
 
@@ -69,10 +84,13 @@ void PipelineState::SetPS(const std::wstring& filePath) {
 	}; // PixelShader
 }
 
-IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
+IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils,
+                                       IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
 	/* 1. hlslファイルを読む */
 	// これからシェーダーをコンパイルする旨をログに出す
-	Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
+	Console::Print(
+		ConvertString::ToString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)),
+		kConsoleColorWait);
 	// hlslファイルを読む
 	IDxcBlobEncoding* shaderSource = nullptr;
 	HRESULT hr = dxcUtils->LoadFile(filePath.c_str(), nullptr, &shaderSource);
@@ -112,7 +130,7 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	IDxcBlobUtf8* shaderError = nullptr;
 	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
 	if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
-		Log(shaderError->GetStringPointer());
+		Console::Print(shaderError->GetStringPointer(), kConsoleColorError);
 		// 警告・エラーダメゼッタイ
 		assert(false);
 	}
@@ -123,7 +141,8 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	hr = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
-	Log(ConvertString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)));
+	Console::Print(ConvertString::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)),
+	               kConsoleColorCompleted);
 	// もう使わないリソースを開放
 	shaderSource->Release();
 	shaderResult->Release();
@@ -134,8 +153,84 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 void PipelineState::Create(ID3D12Device* device) {
 	HRESULT hr = device->CreateGraphicsPipelineState(&desc_, IID_PPV_ARGS(pipelineState.ReleaseAndGetAddressOf()));
 	assert(SUCCEEDED(hr));
+	if (SUCCEEDED(hr)) {
+		//Console::Print("Complete Create PipelineState.\n", kConsoleColorCompleted);
+	}
+}
+
+void PipelineState::SetBlendMode(const BlendMode blendMode) {
+	D3D12_BLEND_DESC blendDesc = {};
+	blendDesc.AlphaToCoverageEnable = FALSE;
+	blendDesc.IndependentBlendEnable = FALSE;
+	D3D12_RENDER_TARGET_BLEND_DESC rtBlendDesc = {};
+	rtBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	switch (blendMode) {
+	case kBlendModeNone:
+		rtBlendDesc.BlendEnable = FALSE;
+		break;
+	case kBlendModeNormal:
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		break;
+	case kBlendModeAdd:
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.DestBlend = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		break;
+	case kBlendModeSubtract:
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_INV_SRC_ALPHA;
+		rtBlendDesc.DestBlend = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_SUBTRACT;
+		break;
+	case kBlendModeMultiply:
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlend = D3D12_BLEND_SRC_COLOR;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		break;
+	case kBlendModeScreen:
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_ONE;
+		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_COLOR;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		break;
+	case kCountOfBlendMode:
+	default:
+		break;
+	}
+	blendDesc.RenderTarget[0] = rtBlendDesc;
+	desc_.BlendState = blendDesc;
+	currentBlendMode = blendMode;
+}
+
+BlendMode PipelineState::GetBlendMode() {
+	return currentBlendMode;
 }
 
 ID3D12PipelineState* PipelineState::Get() const {
 	return pipelineState.Get();
+}
+
+void PipelineState::SetDepthWriteMask(const D3D12_DEPTH_WRITE_MASK depthWriteMask) {
+	desc_.DepthStencilState.DepthWriteMask = depthWriteMask;
 }

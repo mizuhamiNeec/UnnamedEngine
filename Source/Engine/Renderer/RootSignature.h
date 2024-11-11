@@ -3,8 +3,6 @@
 
 #include "ConstantBuffer.h"
 
-struct ID3D12RootSignature;
-
 using namespace Microsoft::WRL;
 
 class RootSignature {

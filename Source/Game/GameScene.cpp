@@ -1,156 +1,155 @@
 #include "GameScene.h"
 
-#include <format>
+#include "../Engine/Lib/Console/ConVarManager.h"
+#include "../Engine/Lib/Timer/EngineTimer.h"
+#include "../Engine/Model/ModelManager.h"
 
-#include "../../Shared/Math/Vector/Vec3.h"
-#include "../Engine/Renderer/PipelineState.h"
-#include "../Engine/Renderer/RootSignature.h"
-#include "../Engine/Renderer/VertexBuffer.h"
-#include "../Engine/TextureManager/TextureManager.h"
-#include "../Engine/Utils/ClientProperties.h"
-#include "../Engine/Utils/Logger.h"
-#include "../Shared/Math/MathLib.h"
-#include "../Shared/Structs/Structs.h"
+#include "../ImGuiManager/ImGuiManager.h"
+
+#include "../Lib/Math/MathLib.h"
+
+#include "../Object3D/Object3D.h"
+
+#include "../Particle/ParticleCommon.h"
+
+#include "../Sprite/SpriteCommon.h"
+
+#include "../TextureManager/TextureManager.h"
+
+#include "../Window/WindowsUtils.h"
+
+#ifdef _DEBUG
 #include "imgui/imgui.h"
+#endif
 
-VertexBuffer* vertexBuffer;
-ConstantBuffer* transformation;
-ConstantBuffer* materialResource;
-Material* material;
-
-RootSignature* rootSignature;
-PipelineState* pipelineState;
-
-std::shared_ptr<Texture> texture;
-std::shared_ptr<Texture> texture2;
-
-D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU;
-D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU;
-
-void GameScene::Startup(D3D12* renderer, Window* window) {
+void GameScene::Init(
+	D3D12* renderer, Window* window,
+	SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
+	ModelCommon* modelCommon, ParticleCommon* particleCommon,
+	EngineTimer* engineTimer
+) {
 	renderer_ = renderer;
 	window_ = window;
+	spriteCommon_ = spriteCommon;
+	object3DCommon_ = object3DCommon;
+	modelCommon_ = modelCommon;
+	particleCommon_ = particleCommon;
+	timer_ = engineTimer;
 
-	transform = {
-		{1.0f, 1.0f, 1.0f},
-		{0.0f, 0.0f, 0.0f},
-		{0.0f, 0.0f, 0.0f}
-	};
-
-	cameraTransform = {
-		{1.0f, 1.0f, 1.0f},
-		{0.0f, 0.0f, 0.0f},
-		{0.0f, 0.0f, -1.0f}
-	};
-
-#pragma region 頂点バッファ
-	Vertex vertices[3] = {};
-	// 左下
-	vertices[0].position = { -0.5f,-0.5f,0.0f ,1.0f };
-	vertices[0].normal = { 0.0f,0.0f,-1.0f };
-	vertices[0].texcoord = { 0.0f,1.0f };
-
-	// 上
-	vertices[1].position = { 0.0f,0.5f,0.0f ,1.0f };
-	vertices[1].normal = { 0.0f,0.0f,-1.0f };
-	vertices[1].texcoord = { 0.5f,0.0f };
-
-	// 右下
-	vertices[2].position = { 0.5f,-0.5f,0.0f ,1.0f };
-	vertices[2].normal = { 0.0f,0.0f,-1.0f };
-	vertices[2].texcoord = { 1.0f,1.0f };
-
-	size_t vertexStride = sizeof(Vertex);
-	vertexBuffer = new VertexBuffer(renderer_->GetDevice(), sizeof(Vertex) * 3, vertexStride, vertices);
-
-	if (vertexBuffer) {
-		Log("頂点バッファの生成に成功.\n");
-	}
+#pragma region テクスチャ読み込み
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/uvChecker.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/circle.png");
 #pragma endregion
 
-#pragma region 定数バッファ
-
-	transformation = new ConstantBuffer(renderer_->GetDevice(), sizeof(TransformationMatrix));
-
-	materialResource = new ConstantBuffer(renderer_->GetDevice(), sizeof(Material));
-	// マテリアルにデータを書き込む
-	material = materialResource->GetPtr<Material>(); // 書き込むためのアドレスを取得
-	*material = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
-	material->enableLighting = false;
-	material->uvTransform = Mat4::Identity();
+#pragma region スプライト類
+	sprite_ = std::make_unique<Sprite>();
+	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
+	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
 #pragma endregion
 
-#pragma region ルートシグネチャ
-	rootSignature = new RootSignature(renderer->GetDevice());
-	if (rootSignature) {
-		Log("ルートシグネチャの生成に成功.\n");
-	}
+#pragma region 3Dオブジェクト類
+	// .objファイルからモデルを読み込む
+	ModelManager::GetInstance()->LoadModel("axis.obj");
+
+	object3D_ = std::make_unique<Object3D>();
+	object3D_->Init(object3DCommon_, modelCommon_);
+	// 初期化済みの3Dオブジェクトにモデルを紐づける
+	object3D_->SetModel("axis.obj");
+	object3D_->SetPos({ 1.0f, -0.3f, 0.6f });
 #pragma endregion
 
-#pragma region パイプラインステート
-	pipelineState = new PipelineState();
-	pipelineState->SetInputLayout(Vertex::inputLayout);
-	pipelineState->SetRootSignature(rootSignature->Get());
-	pipelineState->SetVS(L"./Source/Engine/Shaders/Object3d.VS.hlsl");
-	pipelineState->SetPS(L"./Source/Engine/Shaders/Object3d.PS.hlsl");
-	pipelineState->Create(renderer->GetDevice());
-	if (pipelineState) {
-		Log("パイプラインステートの生成に成功.\n");
-	}
+#pragma region パーティクル類
+	particle_ = std::make_unique<ParticleObject>();
+	particle_->Init(particleCommon_, "./Resources/Textures/circle.png");
 #pragma endregion
-	// テクスチャのロードとSRVハンドルの取得
-	texture = TextureManager::GetInstance().GetTexture(renderer_->GetDevice(), L"./Resources/Textures/Debugempty.png");
-	texture2 = TextureManager::GetInstance().GetTexture(renderer_->GetDevice(), L"./Resources/Textures/uvChecker.png");
 }
 
 void GameScene::Update() {
-	transform.rotate.y += 0.003f;
-	Mat4 worldMat = Mat4::Affine(transform.scale, transform.rotate, transform.translate);
-	Mat4 cameraMat = Mat4::Affine(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
-	Mat4 viewMat = cameraMat.Inverse();
-	Mat4 projectionMat = Mat4::PerspectiveFovMat(
-		90.0f * deg2Rad, // FieldOfView 90 degree!!
-		static_cast<float>(window_->GetWindowConfig().clientWidth) / static_cast<float>(window_->GetWindowConfig().clientHeight),
-		0.1f,
-		100.0f
-	);
-	Mat4 worldViewProjMat = worldMat * viewMat * projectionMat;
+	sprite_->Update();
+	object3D_->Update();
+	particle_->Update(timer_->GetDeltaTime());
 
-	TransformationMatrix* ptr = transformation->GetPtr<TransformationMatrix>();
-	ptr->WVP = worldViewProjMat;
-	ptr->World = worldMat;
+#ifdef _DEBUG
+#pragma region cl_showpos
+	if (ConVarManager::GetInstance().GetConVar("cl_showpos")->GetValueAsString() == "1") {
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		const ImGuiWindowFlags windowFlags =
+			ImGuiWindowFlags_NoBackground |
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoDocking;
+		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
+		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
+		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
+		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+
+		// テキストのサイズを取得
+		ImGuiIO io = ImGui::GetIO();
+		std::string text = std::format(
+			"name: {}\n"
+			"pos : {:.2f} {:.2f} {:.2f}\n"
+			"rot : {:.2f} {:.2f} {:.2f}\n"
+			"vel : {:.2f}\n",
+			WindowsUtils::GetWindowsUserName(),
+			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y, object3DCommon_->GetDefaultCamera()->GetPos().z,
+			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
+			0.0f
+		);
+		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
+
+		// ウィンドウサイズをテキストサイズに基づいて設定
+		ImVec2 windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f); // 余白を追加
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+
+		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
+
+		ImVec2 textPos = ImGui::GetCursorScreenPos();
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		float outlineSize = 1.0f;
+
+		ImU32 textColor = IM_COL32(255, 255, 255, 255);
+		ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
+		TextOutlined(
+			drawList,
+			textPos,
+			text.c_str(),
+			textColor,
+			outlineColor,
+			outlineSize
+		);
+
+		ImGui::PopStyleVar();
+		ImGui::End();
+	}
+#pragma endregion
+#endif
 }
 
 void GameScene::Render() {
-	//size_t currentIndex = renderer_->GetBackBufferCount();
-	ID3D12GraphicsCommandList* commandList = renderer_->GetCommandList();
-	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer->View();
+	//----------------------------------------
+	// オブジェクト3D共通描画設定
+	object3DCommon_->Render();
+	//----------------------------------------
 
-	// ディスクリプタヒープの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { texture2->GetSRVHeap() };
-	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	object3D_->Draw();
 
-	commandList->SetGraphicsRootSignature(rootSignature->Get());
-	commandList->SetPipelineState(pipelineState->Get());
+	//----------------------------------------
+	// パーティクル共通描画設定
+	particleCommon_->Render();
+	//----------------------------------------
+	particle_->Draw();
 
-	commandList->IASetVertexBuffers(0, 1, &vbView);
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetAddress());
-	commandList->SetGraphicsRootConstantBufferView(1, transformation->GetAddress());
-	commandList->SetGraphicsRootDescriptorTable(2, texture2->GetSRVHeap()->GetGPUDescriptorHandleForHeapStart()); // テクスチャのSRVを設定
-
-	commandList->DrawInstanced(3, 1, 0, 0);
+	//----------------------------------------
+	// スプライト共通描画設定
+	spriteCommon_->Render();
+	//----------------------------------------
 }
 
 void GameScene::Shutdown() {
-	texture.reset();
-	texture2.reset();
-
-	delete vertexBuffer;
-	delete transformation;
-	delete materialResource;
-	delete rootSignature;
-	delete pipelineState;
+	spriteCommon_->Shutdown();
+	object3DCommon_->Shutdown();
+	particleCommon_->Shutdown();
 }
-

@@ -1,6 +1,8 @@
 #include "VertexBuffer.h"
 
 #include <cassert>
+#include "../Lib/Console/Console.h"
+#include "../Lib/Structs/Structs.h"
 
 VertexBuffer::VertexBuffer(const ComPtr<ID3D12Device>& device, const size_t size, const size_t stride, const void* pInitData) {
 	// リソース用のヒープを設定
@@ -18,6 +20,7 @@ VertexBuffer::VertexBuffer(const ComPtr<ID3D12Device>& device, const size_t size
 	resourceDesc.SampleDesc.Count = 1;
 	// バッファの場合はこれにする決まり
 	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	resourceDesc.Alignment = 0; // デフォルトのアライメント
 
 	// 実際にリソースを作る
 	HRESULT hr = device->CreateCommittedResource(
@@ -47,4 +50,18 @@ VertexBuffer::VertexBuffer(const ComPtr<ID3D12Device>& device, const size_t size
 
 D3D12_VERTEX_BUFFER_VIEW VertexBuffer::View() const {
 	return view_;
+}
+
+void VertexBuffer::Update(const void* newVertices, const size_t vertexCount) const {
+	if (newVertices != nullptr) {
+		void* ptr = nullptr;
+		HRESULT hr = buffer_->Map(0, nullptr, &ptr);
+		if (FAILED(hr)) {
+			Console::Print("Failed to map vertex buffer\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+			return; // エラー時は処理を中断
+		}
+		size_t size = sizeof(Vertex) * vertexCount;
+		memcpy(ptr, newVertices, size);
+		buffer_->Unmap(0, nullptr);
+	}
 }

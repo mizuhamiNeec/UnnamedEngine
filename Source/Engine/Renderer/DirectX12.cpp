@@ -1,109 +1,111 @@
 #include "DirectX12.h"
 
+#ifdef _DEBUG
+
 #include <cassert>
 #include <dxgidebug.h>
 #include <format>
-#include <fstream>
-#include <sstream>
 #include <imgui/imgui_impl_dx12.h>
-#include "../Utils/Logger.h"
-#include "../Utils/ClientProperties.h"
-#include "../Utils/ConvertString.h"
+#include "../Lib/Utils/ConvertString.h"
 
-ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename) {
-	ModelData modelData; // 構築するModelData
-	std::vector<Vec4> positions; // 位置
-	std::vector<Vec3> normals; // 法線
-	std::vector<Vec2> texcoords; // テクスチャの座標
-	std::string line;
+#include "../Lib/Math/Matrix/Mat4.h"
+#include "../Lib/Console/Console.h"
+#include "../Lib/Utils/ClientProperties.h"
 
-	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
-	assert(file.is_open());
+//ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename) {
+//	ModelData modelData; // 構築するModelData
+//	std::vector<Vec4> positions; // 位置
+//	std::vector<Vec3> normals; // 法線
+//	std::vector<Vec2> texcoords; // テクスチャの座標
+//	std::string line;
+//
+//	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
+//	assert(file.is_open());
+//
+//	while (std::getline(file, line)) {
+//		std::string identifier;
+//		std::istringstream s(line);
+//		s >> identifier; // 先頭の識別子を読む
+//
+//		if (identifier == "v") {
+//			Vec4 position;
+//			s >> position.x >> position.y >> position.z;
+//			position.w = 1.0f;
+//			positions.push_back(position);
+//		} else if (identifier == "vt") {
+//			Vec2 texcoord;
+//			s >> texcoord.x >> texcoord.y;
+//			texcoord.y = 1.0f - texcoord.y;
+//			texcoords.push_back(texcoord);
+//		} else if (identifier == "vn") {
+//			Vec3 normal;
+//			s >> normal.x >> normal.y >> normal.z;
+//			normals.push_back(normal);
+//		} else if (identifier == "f") {
+//			VertexData triangle[3];
+//
+//			// 面は三角形限定。その他は未対応
+//			for (int32_t faceVertex = 0; faceVertex < 3; ++faceVertex) {
+//				std::string vertexDefinition;
+//				s >> vertexDefinition;
+//				// 頂点の要素へのIndexは[位置/UV/法線] で格納されているので、分解してIndexを取得する
+//				std::istringstream v(vertexDefinition);
+//				uint32_t elementIndices[3];
+//				for (int32_t element = 0; element < 3; ++element) {
+//					std::string index;
+//					std::getline(v, index, '/'); // 区切りでインデックスを読んでいく
+//					elementIndices[element] = std::stoi(index);
+//				}
+//
+//				// 要素へのIndexから、実際の要素の値を取得して、頂点を構築する
+//				Vec4 position = positions[elementIndices[0] - 1];
+//				Vec2 texcoord = texcoords[elementIndices[1] - 1];
+//				Vec3 normal = normals[elementIndices[2] - 1];
+//				/*VertexData vertex = { position, texcoord, normal };
+//				modelData.vertices.push_back(vertex);*/
+//
+//				position.x *= -1.0f;
+//				normal.x *= -1.0f;
+//				triangle[faceVertex] = {position, texcoord, normal};
+//			}
+//			// 頂点を逆順で登録することで、周り順を逆にする
+//			modelData.vertices.push_back(triangle[2]);
+//			modelData.vertices.push_back(triangle[1]);
+//			modelData.vertices.push_back(triangle[0]);
+//		} else if (identifier == "mtllib") {
+//			// materialTemplateLibraryファイルの名前を取得する
+//			std::string materialFilename;
+//			s >> materialFilename;
+//			// 基本的にobjファイルと同一階層にmtlは存在させるので、ディレクトリ名とファイル名を渡す
+//			modelData.material = LoadMaterialTemplateFile(directoryPath, materialFilename);
+//		}
+//	}
+//
+//	return modelData;
+//}
 
-	while (std::getline(file, line)) {
-		std::string identifier;
-		std::istringstream s(line);
-		s >> identifier; // 先頭の識別子を読む
-
-		if (identifier == "v") {
-			Vec4 position;
-			s >> position.x >> position.y >> position.z;
-			position.w = 1.0f;
-			positions.push_back(position);
-		} else if (identifier == "vt") {
-			Vec2 texcoord;
-			s >> texcoord.x >> texcoord.y;
-			texcoord.y = 1.0f - texcoord.y;
-			texcoords.push_back(texcoord);
-		} else if (identifier == "vn") {
-			Vec3 normal;
-			s >> normal.x >> normal.y >> normal.z;
-			normals.push_back(normal);
-		} else if (identifier == "f") {
-			VertexData triangle[3];
-
-			// 面は三角形限定。その他は未対応
-			for (int32_t faceVertex = 0; faceVertex < 3; ++faceVertex) {
-				std::string vertexDefinition;
-				s >> vertexDefinition;
-				// 頂点の要素へのIndexは[位置/UV/法線] で格納されているので、分解してIndexを取得する
-				std::istringstream v(vertexDefinition);
-				uint32_t elementIndices[3];
-				for (int32_t element = 0; element < 3; ++element) {
-					std::string index;
-					std::getline(v, index, '/'); // 区切りでインデックスを読んでいく
-					elementIndices[element] = std::stoi(index);
-				}
-
-				// 要素へのIndexから、実際の要素の値を取得して、頂点を構築する
-				Vec4 position = positions[elementIndices[0] - 1];
-				Vec2 texcoord = texcoords[elementIndices[1] - 1];
-				Vec3 normal = normals[elementIndices[2] - 1];
-				/*VertexData vertex = { position, texcoord, normal };
-				modelData.vertices.push_back(vertex);*/
-
-				position.x *= -1.0f;
-				normal.x *= -1.0f;
-				triangle[faceVertex] = {position, texcoord, normal};
-			}
-			// 頂点を逆順で登録することで、周り順を逆にする
-			modelData.vertices.push_back(triangle[2]);
-			modelData.vertices.push_back(triangle[1]);
-			modelData.vertices.push_back(triangle[0]);
-		} else if (identifier == "mtllib") {
-			// materialTemplateLibraryファイルの名前を取得する
-			std::string materialFilename;
-			s >> materialFilename;
-			// 基本的にobjファイルと同一階層にmtlは存在させるので、ディレクトリ名とファイル名を渡す
-			modelData.material = LoadMaterialTemplateFile(directoryPath, materialFilename);
-		}
-	}
-
-	return modelData;
-}
-
-MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
-	MaterialData materialData; // 構築するMaterialData
-	std::string line; // ファイルから読んだ1行を格納するもの
-	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
-	assert(file.is_open()); // とりあえず開けなかったら止める
-
-	while (std::getline(file, line)) {
-		std::string identifier;
-		std::istringstream s(line);
-		s >> identifier;
-
-		// identifierに応じた処理
-		if (identifier == "map_Kd") {
-			std::string textureFilename;
-			s >> textureFilename;
-			// 連結してファイルパスにする
-			materialData.textureFilePath = directoryPath + "/" + textureFilename;
-		}
-	}
-
-	return materialData;
-}
+//MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
+//	MaterialData materialData; // 構築するMaterialData
+//	std::string line; // ファイルから読んだ1行を格納するもの
+//	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
+//	assert(file.is_open()); // とりあえず開けなかったら止める
+//
+//	while (std::getline(file, line)) {
+//		std::string identifier;
+//		std::istringstream s(line);
+//		s >> identifier;
+//
+//		// identifierに応じた処理
+//		if (identifier == "map_Kd") {
+//			std::string textureFilename;
+//			s >> textureFilename;
+//			// 連結してファイルパスにする
+//			materialData.textureFilePath = directoryPath + "/" + textureFilename;
+//		}
+//	}
+//
+//	return materialData;
+//}
 
 DirectX12::DirectX12() {
 }
@@ -114,7 +116,7 @@ DirectX12::~DirectX12() = default;
 /// DirectX12の初期化を行います
 /// </summary>
 /// <param name="window">描画するウィンドウクラス</param>
-void DirectX12::Initialize(Window* window) {
+void DirectX12::Init(Window* window) {
 	// UNDONE : エラーチェック
 	window_ = window;
 
@@ -149,7 +151,7 @@ void DirectX12::Initialize(Window* window) {
 	GetResourceFromSwapChain();
 	CreateRTV();
 
-	Log("Complete Initialize DirectX12.\n");
+	Console::Print("Complete Init DirectX12.\n");
 
 	/* FenceとEventを生成する */
 	// 初期値0でFenceを作る
@@ -212,7 +214,7 @@ void DirectX12::Initialize(Window* window) {
 	hr_ = D3D12SerializeRootSignature(&descriptionRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob_,
 		&errorBlob_);
 	if (FAILED(hr_)) {
-		Log(static_cast<char*>(errorBlob_->GetBufferPointer()));
+		Console::Print(static_cast<char*>(errorBlob_->GetBufferPointer()));
 		assert(false);
 	}
 	// バイナリを元に生成
@@ -315,8 +317,8 @@ void DirectX12::Initialize(Window* window) {
 	directionalLightResource_ = CreateBufferResource(device_.Get(), sizeof(DirectionalLight));
 	directionalLightData_ = nullptr;
 	directionalLightResource_->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData_));
-	directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
-	directionalLightData_->direction = {0.0f, 0.0f, 1.0f};
+	directionalLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	directionalLightData_->direction = { 0.0f, 0.0f, 1.0f };
 	directionalLightData_->intensity = 1.0f;
 
 	//// 球の描画
@@ -325,7 +327,7 @@ void DirectX12::Initialize(Window* window) {
 	//vertNum = kSubdivision * kSubdivision * 6;
 
 	// モデル読み込み
-	modelData = LoadObjFile("Resources/Models", "axis.obj");
+	//modelData = LoadObjFile("Resources/Models", "axis.obj");
 
 	vertexResourceMesh_ = CreateBufferResource(device_.Get(), sizeof(VertexData) * modelData.vertices.size());
 
@@ -334,7 +336,7 @@ void DirectX12::Initialize(Window* window) {
 	materialDataMesh_ = nullptr;
 	// 書き込むためのアドレスを取得
 	materialResourceMesh_->Map(0, nullptr, reinterpret_cast<void**>(&materialDataMesh_));
-	*materialDataMesh_ = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
+	*materialDataMesh_ = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
 	materialDataMesh_->enableLighting = true;
 	materialDataMesh_->uvTransform = Mat4::Identity();
 
@@ -344,7 +346,7 @@ void DirectX12::Initialize(Window* window) {
 	// 書き込むためのアドレスを取得
 	transformationMatrixResourceMesh_->Map(0, nullptr, reinterpret_cast<void**>(&transformationMatrixDataMesh_));
 	// 単位行列を書き込んでおく
-	transformationMatrixDataMesh_->WVP = Mat4::Identity();
+	transformationMatrixDataMesh_->wvp = Mat4::Identity();
 
 	/* VertexBufferViewを作成する */
 	// 頂点バッファビューを作成する
@@ -589,25 +591,25 @@ void DirectX12::Initialize(Window* window) {
 	vertexResourceSprite_->Map(0, nullptr, reinterpret_cast<void**>(&vertexDataSprite));
 
 	// 1枚目の三角形
-	vertexDataSprite[0].position = {0.0f, 360.0f, 0.0f, 1.0f}; // 左下
-	vertexDataSprite[0].texcoord = {0.0f, 1.0f};
-	vertexDataSprite[0].normal = {0.0f, 0.0f, -1.0f};
-	vertexDataSprite[1].position = {0.0f, 0.0f, 0.0f, 1.0f};
-	vertexDataSprite[1].texcoord = {0.0f, 0.0f};
-	vertexDataSprite[1].normal = {0.0f, 0.0f, -1.0f};
-	vertexDataSprite[2].position = {640.0f, 360.0f, 0.0f, 1.0f};
-	vertexDataSprite[2].texcoord = {1.0f, 1.0f};
-	vertexDataSprite[2].normal = {0.0f, 0.0f, -1.0f};
+	vertexDataSprite[0].position = { 0.0f, 360.0f, 0.0f, 1.0f }; // 左下
+	vertexDataSprite[0].texcoord = { 0.0f, 1.0f };
+	vertexDataSprite[0].normal = { 0.0f, 0.0f, -1.0f };
+	vertexDataSprite[1].position = { 0.0f, 0.0f, 0.0f, 1.0f };
+	vertexDataSprite[1].texcoord = { 0.0f, 0.0f };
+	vertexDataSprite[1].normal = { 0.0f, 0.0f, -1.0f };
+	vertexDataSprite[2].position = { 640.0f, 360.0f, 0.0f, 1.0f };
+	vertexDataSprite[2].texcoord = { 1.0f, 1.0f };
+	vertexDataSprite[2].normal = { 0.0f, 0.0f, -1.0f };
 	// 2枚目の三角形
-	vertexDataSprite[3].position = {0.0f, 0.0f, 0.0f, 1.0f}; // 左上
-	vertexDataSprite[3].texcoord = {0.0f, 0.0f};
-	vertexDataSprite[3].normal = {0.0f, 0.0f, -1.0f};
-	vertexDataSprite[4].position = {640.0f, 0.0f, 0.0f, 1.0f};
-	vertexDataSprite[4].texcoord = {1.0f, 0.0f};
-	vertexDataSprite[4].normal = {0.0f, 0.0f, -1.0f};
-	vertexDataSprite[5].position = {640.0f, 360.0f, 0.0f, 1.0f};
-	vertexDataSprite[5].texcoord = {1.0f, 1.0f};
-	vertexDataSprite[5].normal = {0.0f, 0.0f, -1.0f};
+	vertexDataSprite[3].position = { 0.0f, 0.0f, 0.0f, 1.0f }; // 左上
+	vertexDataSprite[3].texcoord = { 0.0f, 0.0f };
+	vertexDataSprite[3].normal = { 0.0f, 0.0f, -1.0f };
+	vertexDataSprite[4].position = { 640.0f, 0.0f, 0.0f, 1.0f };
+	vertexDataSprite[4].texcoord = { 1.0f, 0.0f };
+	vertexDataSprite[4].normal = { 0.0f, 0.0f, -1.0f };
+	vertexDataSprite[5].position = { 640.0f, 360.0f, 0.0f, 1.0f };
+	vertexDataSprite[5].texcoord = { 1.0f, 1.0f };
+	vertexDataSprite[5].normal = { 0.0f, 0.0f, -1.0f };
 
 	// インデックスリソース
 	indexResourceSprite_ = CreateBufferResource(device_.Get(), sizeof(uint32_t) * 6);
@@ -639,7 +641,7 @@ void DirectX12::Initialize(Window* window) {
 	materialDataSprite_ = nullptr;
 	// 書き込むためのアドレスを取得
 	materialResourceSprite_->Map(0, nullptr, reinterpret_cast<void**>(&materialDataSprite_));
-	*materialDataSprite_ = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
+	*materialDataSprite_ = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
 	// スプライトはライティングしない
 	materialDataSprite_->enableLighting = false;
 	materialDataSprite_->uvTransform = Mat4::Identity();
@@ -647,7 +649,7 @@ void DirectX12::Initialize(Window* window) {
 	// 書き込むためのアドレスを取得
 	transformationMatrixResourceSprite_->Map(0, nullptr, reinterpret_cast<void**>(&transformationMatrixDataSprite_));
 	// 単位行列を書き込んでおく
-	transformationMatrixDataSprite_->WVP = Mat4::Identity();
+	transformationMatrixDataSprite_->wvp = Mat4::Identity();
 
 	transformSprite_ = {
 		{1.0f, 1.0f, 1.0f},
@@ -689,11 +691,11 @@ void DirectX12::PreRender() {
 	// 指定した深度で画面全体をクリアする
 	commandList_->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	// 指定した色で画面全体をクリアする
-	float clearColor[] = {0.89f, 0.5f, 0.03f, 1.0f}; // RGBAの順
+	float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f }; // RGBAの順
 	commandList_->ClearRenderTargetView(rtvHandles_[backBufferIndex], clearColor, 0, nullptr);
 
 	// 描画用のDescriptorHeapの設定
-	ComPtr<ID3D12DescriptorHeap> descriptorHeaps[] = {srvDescriptorHeap_.Get()};
+	ComPtr<ID3D12DescriptorHeap> descriptorHeaps[] = { srvDescriptorHeap_.Get() };
 	commandList_->SetDescriptorHeaps(1, descriptorHeaps->GetAddressOf());
 
 	/* コマンドを積む */
@@ -757,7 +759,7 @@ void DirectX12::PreRender() {
 
 	/* コマンドをキックする */
 	// GPUにコマンドリストの実行を行わせる
-	ID3D12CommandList* commandLists[] = {commandList_.Get()};
+	ID3D12CommandList* commandLists[] = { commandList_.Get() };
 	commandQueue_->ExecuteCommandLists(1, commandLists);
 	// GPUとOSに画面の交換を行うよう通知する
 	swapChain_->Present(1, 0);
@@ -801,15 +803,6 @@ void DirectX12::PreRender() {
 	*transformationMatrixDataSprite_ = worldViewProjectionMatrixSprite;
 }
 
-void DirectX12::Terminate() {
-	Log("Terminating DirectX12 resources...\n");
-
-	CloseHandle(fenceEvent_);
-	CloseWindow(window_->GetHWND());
-
-	Log("Terminate process has been completed.\nBye!!\n");
-}
-
 void DirectX12::CreateCommandQueue() {
 	constexpr D3D12_COMMAND_QUEUE_DESC commandQueueDesc = {
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
@@ -819,7 +812,7 @@ void DirectX12::CreateCommandQueue() {
 	};
 	hr_ = device_->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue_)); // コマンドキューを生成する
 	assert(SUCCEEDED(hr_)); // コマンドキューの生成がうまくいかなかったので起動できない
-	Log("Complete create CommandQueue.\n");
+	Console::Print("Complete create CommandQueue.\n");
 }
 
 void DirectX12::CreateCommandList() {
@@ -833,16 +826,14 @@ void DirectX12::CreateCommandList() {
 		IID_PPV_ARGS(&commandList_));
 	// コマンドリストの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr_));
-	Log("Complete create CommandList.\n");
+	Console::Print("Complete create CommandList.\n");
 }
 
 void DirectX12::CreateSwapChain() {
-	const WindowConfig windowConfig = window_->GetWindowConfig();
-
 	// スワップチェーンを生成する
 	swapChainDesc_.BufferCount = kFrameBufferCount; // ダブルバッファ
-	swapChainDesc_.Width = windowConfig.clientWidth; // 画面の幅。ウィンドウのクライアント領域を同じものにしておく
-	swapChainDesc_.Height = windowConfig.clientHeight; // 画面の高さ。ウィンドウのクライアント領域を同じものにしておく
+	//swapChainDesc_.Width = windowConfig.clientWidth; // 画面の幅。ウィンドウのクライアント領域を同じものにしておく
+	//swapChainDesc_.Height = windowConfig.clientHeight; // 画面の高さ。ウィンドウのクライアント領域を同じものにしておく
 	swapChainDesc_.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // 色の形式
 	swapChainDesc_.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 描画のターゲットとして利用する
 	swapChainDesc_.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // モニタにうつしたら、中身を破棄
@@ -851,7 +842,7 @@ void DirectX12::CreateSwapChain() {
 	// コマンドキュー、ウィンドウハンドル、設定を渡して生成する
 	hr_ = dxgiFactory_->CreateSwapChainForHwnd(
 		commandQueue_.Get(),
-		window_->GetHWND(),
+		window_->GetWindowHandle(),
 		&swapChainDesc_,
 		nullptr,
 		nullptr,
@@ -859,7 +850,7 @@ void DirectX12::CreateSwapChain() {
 	);
 	assert(SUCCEEDED(hr_));
 
-	Log("Complete create SwapChain.\n");
+	Console::Print("Complete create SwapChain.\n");
 }
 
 ComPtr<ID3D12DescriptorHeap> DirectX12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType,
@@ -876,6 +867,7 @@ ComPtr<ID3D12DescriptorHeap> DirectX12::CreateDescriptorHeap(const D3D12_DESCRIP
 	}
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
 	assert(SUCCEEDED(hr));
+	Console::Print(std::format("{:08x}\n", hr));
 	return descriptorHeap;
 }
 
@@ -897,7 +889,7 @@ void DirectX12::CreateRTV() {
 		rtvHandles_[i] = GetCPUDescriptorHandle(rtvDescriptorHeap_.Get(), descriptorSizeRTV, i);
 		device_->CreateRenderTargetView(swapChainResources_[i].Get(), &rtvDesc_, rtvHandles_[i]);
 	}
-	Log("Complete create RenderTargetView.\n");
+	Console::Print("Complete create RenderTargetView.\n");
 }
 
 void DirectX12::InitializeDxc() {
@@ -943,7 +935,7 @@ void DirectX12::CreateDevice() {
 		assert(SUCCEEDED(hr_));
 		// ソフトウェアアダプタでなければ採用!
 		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE)) {
-			Log(ConvertString(std::format(L"Use Adapter : {}\n", adapterDesc.Description))); // 採用したアダプタの情報をログに出力。
+			Console::Print(ConvertString::ToString(std::format(L"Use Adapter : {}\n", adapterDesc.Description))); // 採用したアダプタの情報をログに出力。
 			break;
 		}
 		useAdapter = nullptr; // ソフトウェアアダプタの場合は見なかったことにする
@@ -957,19 +949,19 @@ void DirectX12::CreateDevice() {
 	D3D_FEATURE_LEVEL featureLevels[] = {
 		D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0
 	};
-	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0"};
+	const char* featureLevelStrings[] = { "12.2", "12.1", "12.0" };
 
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
 		hr_ = D3D12CreateDevice(useAdapter.Get(), featureLevels[i], IID_PPV_ARGS(&device_)); // 採用したアダプターでデバイスを生成
 		// 指定した機能レベルでデバイスが生成できたかを確認
 		if (SUCCEEDED(hr_)) {
-			Log(std::format("FeatureLevel : {}\n", featureLevelStrings[i])); // 生成できたのでログ出力を行ってループを抜ける
+			Console::Print(std::format("FeatureLevel : {}\n", featureLevelStrings[i])); // 生成できたのでログ出力を行ってループを抜ける
 			break;
 		}
 	}
 	assert(device_ != nullptr); // デバイスの生成がうまくいかなかったので起動できない
-	Log("Complete create D3D12Device.\n"); // 初期化完了のログを出す
+	Console::Print("Complete create D3D12Device.\n"); // 初期化完了のログを出す
 }
 
 void DirectX12::SetInfoQueueBreakOnSeverity() const {
@@ -990,7 +982,7 @@ void DirectX12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
+		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(denyIds);
 		filter.DenyList.pIDList = denyIds;
@@ -1008,7 +1000,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
 	/* 1. hlslファイルを読む */
 	// これからシェーダーをコンパイルする旨をログに出す
-	Log(ConvertString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)));
+	Console::Print(ConvertString::ToString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)), kConsoleColorWait);
 	// hlslファイルを読む
 	IDxcBlobEncoding* shaderSource = nullptr;
 	hr_ = dxcUtils->LoadFile(filePath.c_str(), nullptr, &shaderSource);
@@ -1048,7 +1040,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	IDxcBlobUtf8* shaderError = nullptr;
 	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
 	if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
-		Log(shaderError->GetStringPointer());
+		Console::Print(shaderError->GetStringPointer(), kConsoleColorError);
 		// 警告・エラーダメゼッタイ
 		assert(false);
 	}
@@ -1059,7 +1051,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	hr_ = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr_));
 	// 成功したらログを出す
-	Log(ConvertString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)));
+	Console::Print(ConvertString::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)), kConsoleColorCompleted);
 	// もう使わないリソースを開放
 	shaderSource->Release();
 	shaderResult->Release();
@@ -1131,6 +1123,7 @@ ComPtr<ID3D12Resource> DirectX12::CreateDepthStencilTextureResource(int32_t widt
 		IID_PPV_ARGS(&resource)
 	); // 作成するResourceポインタへのポインタ
 	assert(SUCCEEDED(hr));
+	Console::Print(std::format("{:08x}\n", hr));
 
 	return resource;
 }
@@ -1190,7 +1183,7 @@ ID3D12DescriptorHeap* DirectX12::SrvDescriptorHeap() const {
 DirectX::ScratchImage DirectX12::LoadTexture(const std::string& filePath) {
 	// テクスチャファイルを読んでプログラムで扱えるようにする
 	DirectX::ScratchImage image = {};
-	std::wstring filePathW = ConvertString(filePath);
+	std::wstring filePathW = ConvertString::ToString(filePath);
 	HRESULT hr = LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 	assert(SUCCEEDED(hr));
 
@@ -1204,7 +1197,7 @@ DirectX::ScratchImage DirectX12::LoadTexture(const std::string& filePath) {
 	return mipImages;
 }
 
-ComPtr<ID3D12Resource> DirectX12::CreateTextureResource(ComPtr<ID3D12Device> device,
+ComPtr<ID3D12Resource> DirectX12::CreateTextureResource(const ComPtr<ID3D12Device>& device,
 	const DirectX::TexMetadata& metadata) {
 	// metadataを下にResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc = {};
@@ -1233,6 +1226,8 @@ ComPtr<ID3D12Resource> DirectX12::CreateTextureResource(ComPtr<ID3D12Device> dev
 		IID_PPV_ARGS(&resource) // 作成するResourceポインタへのポインタ
 	);
 	assert(SUCCEEDED(hr));
+	Console::Print(std::format("{:08x}\n", hr));
+
 	return resource;
 }
 
@@ -1252,6 +1247,7 @@ void DirectX12::UploadTextureData(ID3D12Resource* texture, const DirectX::Scratc
 			static_cast<UINT>(img->slicePitch) // 1枚サイズ
 		);
 		assert(SUCCEEDED(hr));
+		Console::Print(std::format("{:08x}\n", hr));
 	}
 }
 
@@ -1272,3 +1268,5 @@ D3D12_GPU_DESCRIPTOR_HANDLE DirectX12::GetGPUDescriptorHandle(ID3D12DescriptorHe
 bool* DirectX12::GetUseMonsterBall() {
 	return &useMonsterBall;
 }
+
+#endif

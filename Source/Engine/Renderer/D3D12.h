@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <vector>
@@ -10,25 +11,25 @@ using namespace Microsoft::WRL;
 
 class D3D12 : public Renderer {
 public: // メンバ関数
-	~D3D12() override = default;
+	~D3D12() override;
 
-	void Initialize(Window* window) override;
+	void Init(Window* window) override;
 	void ClearColorAndDepth() const;
 	void PreRender() override;
 	void PostRender() override;
-	void Terminate() override;
-	void OnSizeChanged(UINT width, UINT height, bool isMinimized) override;
-	void ToggleFullscreen() override;
 
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data);
 
-private: //　メンバ変数
+	void WaitPreviousFrame();
+
+private:
+	//　メンバ変数
 	ComPtr<ID3D12Device> device_;
 	ComPtr<IDXGIFactory7> dxgiFactory_;
 	ComPtr<ID3D12CommandQueue> commandQueue_;
 	ComPtr<IDXGISwapChain4> swapChain_;
 
-	ComPtr<ID3D12DescriptorHeap> srvDescriptorHeap_;
+
 	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap_;
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_;
 
@@ -50,9 +51,10 @@ private: //　メンバ変数
 	D3D12_VIEWPORT viewport_ = {};
 	D3D12_RECT scissorRect_ = {};
 
-	uint32_t descriptorSizeSRV = 0;
 	uint32_t descriptorSizeRTV = 0;
 	uint32_t descriptorSizeDSV = 0;
+
+	std::chrono::steady_clock::time_point reference_;
 
 	// メンバ関数
 	//------------------------------------------------------------------------
@@ -72,26 +74,36 @@ private: //　メンバ変数
 
 	void SetViewportAndScissor();
 
-	void WaitPreviousFrame();
+	void HandleDeviceLost();
 
+public:
 	// -----------------------------------------------------------------------
 	// Accessor
 	// -----------------------------------------------------------------------
-public:
 	ID3D12Device* GetDevice() const { return device_.Get(); }
 	ID3D12GraphicsCommandList* GetCommandList() const { return commandList_.Get(); }
+	ID3D12CommandQueue* GetCommandQueue() const { return commandQueue_.Get(); }
 	size_t GetBackBufferCount() const { return renderTargets_.size(); }
-	ID3D12DescriptorHeap* GetSRVDescriptorHeap() const { return srvDescriptorHeap_.Get(); }
+	IDXGISwapChain4* GetSwapChain() const { return swapChain_.Get(); }
+	ID3D12Fence* GetFence() const { return fence_.Get(); }
+	ID3D12CommandAllocator* GetCommandAllocator() const { return commandAllocator_.Get(); }
+
+	Window* GetWindow() const { return window_; }
+
+	uint64_t GetFenceValue() const { return fenceValue_; }
+	void SetFenceValue(const uint64_t newValue) { fenceValue_ = newValue; };
 
 	//------------------------------------------------------------------------
 	// 汎用関数
 	//------------------------------------------------------------------------
-private:
 	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors,
-		bool shaderVisible) const;
+	                                                  bool shaderVisible) const;
 
-	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
-	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index);
+private:
+	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
+	                                                          uint32_t descriptorSize, uint32_t index);
+	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
+	                                                          uint32_t descriptorSize, uint32_t index);
 	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource() const;
 };
 

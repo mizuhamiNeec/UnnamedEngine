@@ -45,12 +45,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)\Build\$(ProjectName)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\$(ProjectName)\Intermediate\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)\Bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\Bin\Intermediate\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)\Build\$(ProjectName)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)\$(ProjectName)\Intermediate\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)\Bin\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\Bin\Intermediate\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -80,7 +80,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;IMGUI_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -105,11 +105,29 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Lib\Console\ConVarManager.cpp" />
+    <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
+    <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
+    <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\MathLib.cpp" />
+    <ClCompile Include="Source\Engine\Model\ModelManager.cpp" />
+    <ClCompile Include="Source\Engine\Model\ModelCommon.cpp" />
+    <ClCompile Include="Source\Engine\Model\Model.cpp" />
+    <ClCompile Include="Source\Engine\Object3D\Object3D.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Console\Console.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Console\ConVar.cpp" />
+    <ClCompile Include="Source\Engine\Engine.cpp" />
+    <ClCompile Include="Source\Engine\Input\Input.cpp" />
+    <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp" />
+    <ClCompile Include="Source\Engine\Objects\Empty.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\RootSignatureManager.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec2.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec3.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\IndexBuffer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\RootSignature.cpp" />
-    <ClCompile Include="Source\Engine\TextureManager\Texture.cpp" />
     <ClCompile Include="Source\Game\GameScene.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui_demo.cpp" />
@@ -121,26 +139,44 @@
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp" />
-    <ClCompile Include="Source\Engine\Utils\Logger.cpp" />
     <ClCompile Include="Source\main.cpp" />
-    <ClCompile Include="Source\Shared\Math\Matrix\Mat4.cpp" />
-    <ClCompile Include="Source\Shared\Transform\Transform.cpp" />
-    <ClCompile Include="Source\Shared\Math\Vector\Vec2.cpp" />
-    <ClCompile Include="Source\Shared\Math\Vector\Vec3.cpp" />
-    <ClCompile Include="Source\Shared\Math\Vector\Vec4.cpp" />
-    <ClCompile Include="Source\Shared\Math\Random\Random.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\Random\Random.cpp" />
     <ClCompile Include="Source\Engine\Window\Window.cpp" />
     <ClCompile Include="Source\Engine\TextureManager\TextureManager.cpp" />
-    <ClCompile Include="Source\Shared\Structs\Structs.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Structs\Structs.cpp" />
     <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\Swapchain.cpp" />
+    <ClCompile Include="Source\Engine\Sprite\Sprite.cpp" />
+    <ClCompile Include="Source\Engine\Sprite\SpriteCommon.cpp" />
+    <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\IConVar.h" />
+    <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
+    <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
+    <ClInclude Include="Source\Engine\Camera\Camera.h" />
+    <ClInclude Include="Source\Engine\Model\ModelManager.h" />
+    <ClInclude Include="Source\Engine\Model\ModelCommon.h" />
+    <ClInclude Include="Source\Engine\Model\Model.h" />
+    <ClInclude Include="Source\Engine\Object3D\Object3D.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\Console.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\ConVar.h" />
+    <ClInclude Include="Source\Engine\Engine.h" />
+    <ClInclude Include="Source\Engine\Input\Input.h" />
+    <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h" />
+    <ClInclude Include="Source\Engine\Objects\Empty.h" />
+    <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h" />
+    <ClInclude Include="Source\Engine\Renderer\IndexBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\PipelineState.h" />
     <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\RootSignature.h" />
-    <ClInclude Include="Source\Shared\Structs\Structs.h" />
+    <ClInclude Include="Source\Engine\Lib\Structs\Structs.h" />
     <ClInclude Include="Source\Game\GameScene.h" />
     <ClInclude Include="Source\Engine\Externals\imgui\imconfig.h" />
     <ClInclude Include="Source\Engine\Externals\imgui\imgui.h" />
@@ -152,24 +188,26 @@
     <ClInclude Include="Source\Engine\Externals\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h" />
     <ClInclude Include="Source\Engine\Renderer\D3D12.h" />
-    <ClInclude Include="Source\Engine\Utils\ConvertString.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\ConvertString.h" />
     <ClInclude Include="Source\Engine\Renderer\DirectX12.h" />
-    <ClInclude Include="Source\Engine\Utils\ClientProperties.h" />
-    <ClInclude Include="Source\Engine\Utils\Logger.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\ClientProperties.h" />
     <ClInclude Include="Source\Game\IGameScene.h" />
-    <ClInclude Include="Source\Shared\Math\Matrix\Mat4.h" />
+    <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h" />
     <ClInclude Include="Source\Engine\Renderer\Renderer.h" />
-    <ClInclude Include="Source\Shared\Transform\Transform.h" />
-    <ClInclude Include="Source\Shared\Math\Vector\Vec2.h" />
-    <ClInclude Include="Source\Shared\Math\Vector\Vec3.h" />
-    <ClInclude Include="Source\Shared\Math\Vector\Vec4.h" />
-    <ClInclude Include="Source\Shared\Math\Random\Random.h" />
+    <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec2.h" />
+    <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec3.h" />
+    <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec4.h" />
+    <ClInclude Include="Source\Engine\Lib\Math\Random\Random.h" />
     <ClInclude Include="Source\Engine\Window\Window.h" />
-    <ClInclude Include="Source\Shared\Math\MathLib.h" />
+    <ClInclude Include="Source\Engine\Lib\Math\MathLib.h" />
     <ClInclude Include="Source\Engine\TextureManager\TextureManager.h" />
-    <ClInclude Include="Source\Engine\TextureManager\Texture.h" />
     <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\Swapchain.h" />
+    <ClInclude Include="Source\Engine\Sprite\Sprite.h" />
+    <ClInclude Include="Source\Engine\Sprite\SpriteCommon.h" />
+    <ClInclude Include="Source\Engine\Window\WindowsUtils.h" />
+    <ClInclude Include="Source\Engine\Lib\Timer\EngineTimer.h" />
+    <ClInclude Include="Source\Engine\Renderer\SrvManager.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl">
@@ -192,6 +230,10 @@
     <ProjectReference Include="Source\Engine\Externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
       <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\Shaders\" />
+    <Folder Include="Source\Engine\Particle\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

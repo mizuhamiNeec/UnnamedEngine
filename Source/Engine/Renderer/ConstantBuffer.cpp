@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-ConstantBuffer::ConstantBuffer(ComPtr<ID3D12Device> device, const size_t size) {
+ConstantBuffer::ConstantBuffer(const ComPtr<ID3D12Device>& device, const size_t size) {
 	size_t align = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
 	UINT64 sizeAligned = (size + (align - 1)) & ~(align - 1);
 
@@ -35,7 +35,6 @@ ConstantBuffer::ConstantBuffer(ComPtr<ID3D12Device> device, const size_t size) {
 	hr = buffer_->Map(0, nullptr, &mappedPtr);
 	assert(SUCCEEDED(hr));
 
-	desc_ = {};
 	desc_.BufferLocation = buffer_->GetGPUVirtualAddress();
 	desc_.SizeInBytes = static_cast<UINT>(sizeAligned);
 }
@@ -50,4 +49,8 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC ConstantBuffer::ViewDesc() const {
 
 void* ConstantBuffer::GetPtr() const {
 	return mappedPtr;
+}
+
+ID3D12Resource* ConstantBuffer::GetResource() const {
+	return buffer_.Get();
 }
