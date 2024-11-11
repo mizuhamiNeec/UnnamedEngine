@@ -10,7 +10,6 @@
 
 #include "../Sprite/Sprite.h"
 #include "../Sprite/SpriteCommon.h"
-
 #include "../Particle/ParticleObject.h"
 
 class GameScene : IGameScene {
@@ -34,6 +33,7 @@ private:
 	std::unique_ptr<Object3D> object3D_;
 	std::unique_ptr<Sprite> sprite_;
 	std::unique_ptr<Model> model_;
+
 	std::unique_ptr<ParticleObject> particle_;
 
 	Transform transform_;

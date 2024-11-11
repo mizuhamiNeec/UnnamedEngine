@@ -4,7 +4,6 @@
 #include <imgui/imgui.h>
 #endif
 
-#include <cassert>
 #include <dwmapi.h>
 #include <utility>
 

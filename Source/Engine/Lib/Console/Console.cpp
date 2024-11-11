@@ -36,9 +36,9 @@ void Console::Update() {
 		consoleWindowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 	}
 
-	ImGui::SetNextWindowSizeConstraints({256.0f, 256.0f}, {8192.0f, 8192.0f});
+	ImGui::SetNextWindowSizeConstraints({ 256.0f, 256.0f }, { 8192.0f, 8192.0f });
 
-	ImVec2 popupPos, popupSize;
+	//ImVec2 popupPos, popupSize;
 
 	if (ImGui::Begin("Console", &bShowConsole, consoleWindowFlags)) {
 		ImVec2 size = ImGui::GetContentRegionAvail();
@@ -47,7 +47,7 @@ void Console::Update() {
 		ImGui::Spacing();
 
 		if (ImGui::BeginChild("##scrollbox", size, true,
-		                      ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
+			ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
 			for (int i = 0; i < consoleTexts.size(); ++i) {
 				ImGui::PushStyleColor(ImGuiCol_Text, consoleTexts[i].color);
 				ImGui::Selectable((consoleTexts[i].text + "##" + std::to_string(i)).c_str());
@@ -62,8 +62,7 @@ void Console::Update() {
 			// スクロールをいじった?
 			if (ImGui::GetScrollY() < ImGui::GetScrollMaxY()) {
 				bWishScrollToBottom = false;
-			}
-			else {
+			} else {
 				bWishScrollToBottom = true;
 			}
 
@@ -98,13 +97,12 @@ void Console::Update() {
 			memset(inputText, 0, sizeof inputText);
 		}
 
-		popupPos = {ImGui::GetItemRectMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowSize().y};
-		popupSize = {ImGui::GetItemRectSize().x, ImGui::GetTextLineHeight() * kConsoleSuggestLineCount};
+		//popupPos = { ImGui::GetItemRectMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowSize().y };
+		//popupSize = { ImGui::GetItemRectSize().x, ImGui::GetTextLineHeight() * kConsoleSuggestLineCount };
 
 		if (ImGui::IsItemActive()) {
 			bShowPopup = true;
-		}
-		else {
+		} else {
 			bShowPopup = false;
 		}
 
@@ -122,13 +120,13 @@ void Console::Update() {
 	}
 	ImGui::End();
 
-	static SuggestPopupState state = {
-		false, false, -1, -1
-	};
+	//static SuggestPopupState state = {
+	//	false, false, -1, -1
+	//};
 
-	static bool focused = true;
+	//static bool focused = true;
 
-	SuggestPopup(state, popupPos, popupSize, focused);
+	//SuggestPopup(state, popupPos, popupSize, focused);
 
 	if (consoleTexts.size() >= kConsoleMaxLineCount) {
 		consoleTexts.erase(consoleTexts.begin());
@@ -144,19 +142,18 @@ void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[m
 	repeatCounts.back()++;
 
 	if (repeatCounts.back() >= kConsoleRepeatError) {
-		consoleTexts.back() = {std::format("{} [x{}]", message, repeatCounts.back()), kConsoleColorError};
-	}
-	else if (repeatCounts.back() >= kConsoleRepeatWarning) {
-		consoleTexts.back() = {std::format("{} [x{}]", message, repeatCounts.back()), kConsoleColorWarning};
-	}
-	else {
-		consoleTexts.back() = {std::format("{} [x{}]", message, repeatCounts.back()), color};
+		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleColorError };
+	} else if (repeatCounts.back() >= kConsoleRepeatWarning) {
+		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleColorWarning };
+	} else {
+		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), color };
 	}
 #endif
 }
 
+#ifdef _DEBUG
 void Console::SuggestPopup([[maybe_unused]] SuggestPopupState& state, const ImVec2& pos, const ImVec2& size,
-                           [[maybe_unused]] bool& isFocused) {
+	[[maybe_unused]] bool& isFocused) {
 	// 角丸をなくす
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 
@@ -172,29 +169,33 @@ void Console::SuggestPopup([[maybe_unused]] SuggestPopupState& state, const ImVe
 	ImGui::Begin("suggestPopup", nullptr, flags);
 	ImGui::PushAllowKeyboardFocus(false);
 
-	ConVarFlags test = ConVarFlags::ConVarFlags_Notify;
-	ConVarFlags test2 = ConVarFlags::ConVarFlags_Notify;
-	test | test2;
-	if (test == test2) {
-	}
-
 	for (int i = 0; i < kConsoleSuggestLineCount; ++i) {
+		size_t test = ConVarManager::GetInstance().GetAllConVars().size();
+		if (test <= i) {
+			break;
+		}
+
 		bool isIndexActive = state.activeIndex == i;
 		if (isIndexActive) {
 			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1, 0, 0, 1));
 		}
 
-		// ImGui::PushID(i);
-		// if (ImGui::Selectable(, isIndexActive)) {
-		// 	state.clickedIndex = i;
-		// }
-		// ImGui::PopID();
+		ImGui::PushID(i);
+		if (ImGui::Selectable(ConVarManager::GetInstance().GetAllConVars()[i]->GetName().c_str(), isIndexActive)) {
+			state.clickedIndex = i;
+		}
+		ImGui::PopID();
+
+		if (isIndexActive) {
+			ImGui::PopStyleColor();
+		}
 	}
 
 	ImGui::PopAllowKeyboardFocus();
 	ImGui::PopStyleVar();
 	ImGui::End();
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: コンソールへ文字列を出力します
@@ -208,10 +209,9 @@ void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]
 	if (!consoleTexts.empty() && consoleTexts.back().text.starts_with(message) && consoleTexts.back().text != "]\n") {
 		// 前のメッセージと同じ場合、カウントを増加させる
 		UpdateRepeatCount(message, color);
-	}
-	else {
+	} else {
 		// 前のメッセージと異なる場合、新しいメッセージを追加
-		consoleTexts.push_back({message, color});
+		consoleTexts.push_back({ message, color });
 		repeatCounts.push_back(1);
 		OutputDebugString(ConvertString::ToString(message));
 	}
@@ -239,18 +239,17 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 		Print("Completion\n", kConsoleColorFloat);
 		break;
 
-	case ImGuiInputTextFlags_CallbackHistory: {
+	case ImGuiInputTextFlags_CallbackHistory:
+	{
 		const int prev_history_index = historyIndex;
 		if (data->EventKey == ImGuiKey_UpArrow) {
 			if (historyIndex > 0) {
 				historyIndex--;
 			}
-		}
-		else if (data->EventKey == ImGuiKey_DownArrow) {
+		} else if (data->EventKey == ImGuiKey_DownArrow) {
 			if (historyIndex < static_cast<int>(history.size()) - 1) {
 				historyIndex++;
-			}
-			else {
+			} else {
 				historyIndex = static_cast<int>(history.size()); // 履歴が空の場合はサイズと一致させる
 			}
 		}
@@ -258,8 +257,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 			data->DeleteChars(0, data->BufTextLen);
 			if (historyIndex < static_cast<int>(history.size())) {
 				data->InsertChars(0, history[historyIndex].c_str());
-			}
-			else {
+			} else {
 				data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
 			}
 		}
@@ -273,7 +271,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	case ImGuiInputTextFlags_CallbackResize:
 		Print("Resize\n", kConsoleColorError);
 		break;
-	default: ;
+	default:;
 	}
 	return 0;
 }
@@ -298,8 +296,7 @@ bool IsInteger(const std::string& str) {
 		(void)std::stoi(str, &pos);
 		// 変換後に余分な文字列がないか確認
 		return pos == str.length();
-	}
-	catch ([[maybe_unused]] const std::invalid_argument& e) {
+	} catch ([[maybe_unused]] const std::invalid_argument& e) {
 		return false;
 	} catch ([[maybe_unused]] const std::out_of_range& e) {
 		return false;
@@ -313,8 +310,7 @@ bool IsFloat(const std::string& str) {
 		(void)std::stof(str, &pos);
 		// 変換後に余分な文字列がないか確認
 		return pos == str.length();
-	}
-	catch ([[maybe_unused]] const std::invalid_argument& e) {
+	} catch ([[maybe_unused]] const std::invalid_argument& e) {
 		return false;
 	} catch ([[maybe_unused]] const std::out_of_range& e) {
 		return false;
@@ -336,7 +332,7 @@ Vec3 ParseVec3(const std::vector<std::string>& tokens, int index) {
 	float x = std::stof(tokens[index]);
 	float y = std::stof(tokens[index + 1]);
 	float z = std::stof(tokens[index + 2]);
-	return {x, y, z};
+	return { x, y, z };
 }
 
 void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
@@ -359,7 +355,6 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 		it->second(tokens); // コールバックの呼び出し
 		found = true;
 	}
-
 
 	ConVarManager& conVarManager = ConVarManager::GetInstance();
 
@@ -384,50 +379,40 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 				if (conVar->GetTypeAsString() == "bool") {
 					Print(" - " + description + " " + type, kConsoleColorBool);
-				}
-				else if (conVar->GetTypeAsString() == "int") {
+				} else if (conVar->GetTypeAsString() == "int") {
 					Print(" - " + description + " " + type, kConsoleColorInt);
-				}
-				else if (conVar->GetTypeAsString() == "float") {
+				} else if (conVar->GetTypeAsString() == "float") {
 					Print(" - " + description + " " + type, kConsoleColorFloat);
-				}
-				else if (conVar->GetTypeAsString() == "Vec3") {
+				} else if (conVar->GetTypeAsString() == "Vec3") {
 					Print(" - " + description + " " + type, kConsoleColorVec3);
-				}
-				else if (conVar->GetTypeAsString() == "string") {
+				} else if (conVar->GetTypeAsString() == "string") {
 					Print(" - " + description + " " + type, kConsoleColorString);
 				}
-			}
-			else {
+			} else {
 				// 引数込みで入力された場合の処理
 				bool isValidInput = true;
 				for (int i = 1; i < tokens.size(); ++i) {
 					if (conVar->GetTypeAsString() == "int") {
 						if (tokens[i] == "true") {
 							tokens[i] = "1";
-						}
-						else if (tokens[i] == "false") {
+						} else if (tokens[i] == "false") {
 							tokens[i] = "0";
 						}
 
 						try {
 							[[maybe_unused]] int value = std::stoi(tokens[i]);
-						}
-						catch (...) {
+						} catch (...) {
 							isValidInput = false;
 							break;
 						}
-					}
-					else if (conVar->GetTypeAsString() == "float") {
+					} else if (conVar->GetTypeAsString() == "float") {
 						try {
 							[[maybe_unused]] float value = std::stof(tokens[i]);
-						}
-						catch (...) {
+						} catch (...) {
 							isValidInput = false;
 							break;
 						}
-					}
-					else if (conVar->GetTypeAsString() == "bool") {
+					} else if (conVar->GetTypeAsString() == "bool") {
 						if (tokens[i] != "true" && tokens[i] != "false") {
 							isValidInput = false;
 							break;
@@ -439,8 +424,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 					for (int i = 1; i < tokens.size(); ++i) {
 						conVar->SetValueFromString(tokens[i]);
 					}
-				}
-				else {
+				} else {
 					Print("なんですって!!?!??!??!??\n", kConsoleColorError);
 				}
 			}
@@ -457,17 +441,30 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 #endif
 }
 
-void Console::RegisterCommand(const std::string& commandName, const CommandCallback& callback) {
+void Console::RegisterCommand([[maybe_unused]] const std::string& commandName,
+	[[maybe_unused]] const CommandCallback& callback) {
+#ifdef _DEBUG
 	commandMap[commandName] = callback;
+#endif
 }
 
 void Console::Clear([[maybe_unused]] const std::vector<std::string>& args) {
+#ifdef _DEBUG
 	consoleTexts.clear();
+#endif
+}
+
+void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
+#ifdef _DEBUG
+	for (auto conVar : ConVarManager::GetInstance().GetAllConVars()) {
+		Print(" - " + conVar->GetName() + " : " + conVar->GetHelp() + "\n");
+	}
+#endif
 }
 
 void Console::AddHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
-	consoleTexts.push_back({"] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f)});
+	consoleTexts.push_back({ "] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f) });
 #endif
 }
 

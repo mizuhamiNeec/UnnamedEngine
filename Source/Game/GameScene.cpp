@@ -45,7 +45,7 @@ void GameScene::Init(
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({512.0f, 512.0f, 0.0f});
+	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -56,7 +56,7 @@ void GameScene::Init(
 	object3D_->Init(object3DCommon_, modelCommon_);
 	// 初期化済みの3Dオブジェクトにモデルを紐づける
 	object3D_->SetModel("axis.obj");
-	object3D_->SetPos({1.0f, -0.3f, 0.6f});
+	object3D_->SetPos({ 1.0f, -0.3f, 0.6f });
 #pragma endregion
 
 #pragma region パーティクル類
@@ -66,29 +66,10 @@ void GameScene::Init(
 }
 
 void GameScene::Update() {
-	static float interpSpeed = 5.0f;
-	static Vec3 offset(0.0f, 0.0f, -5.0f);
-
-	ImGui::Begin("Test");
-	ImGui::DragFloat3("Offset", &offset.x, 0.01f);
-	ImGui::DragFloat("interpSpd", &interpSpeed, 0.01f);
-	ImGui::End();
-
-	object3D_->SetPos(
-		object3D_->GetPos() + Vec3(1.0f, 0.0f, 1.0f) * timer_->GetDeltaTime()
-	);
-
-	object3DCommon_->GetDefaultCamera()->SetPos(
-		Math::Lerp(
-			object3DCommon_->GetDefaultCamera()->GetPos(),
-			object3D_->GetPos() + offset,
-			interpSpeed * timer_->GetDeltaTime()
-		)
-	);
-
 	sprite_->Update();
 	object3D_->Update();
 	particle_->Update(timer_->GetDeltaTime());
+
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVarManager::GetInstance().GetConVar("cl_showpos")->GetValueAsString() == "1") {
@@ -113,11 +94,8 @@ void GameScene::Update() {
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
 			WindowsUtils::GetWindowsUserName(),
-			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y,
-			object3DCommon_->GetDefaultCamera()->GetPos().z,
-			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg,
-			object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg,
-			object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y, object3DCommon_->GetDefaultCamera()->GetPos().z,
+			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
 			0.0f
 		);
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
@@ -168,7 +146,6 @@ void GameScene::Render() {
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
-	//sprite_->Draw();
 }
 
 void GameScene::Shutdown() {

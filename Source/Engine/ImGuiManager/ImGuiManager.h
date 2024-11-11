@@ -2,7 +2,6 @@
 
 #include "../Renderer/D3D12.h"
 
-#include "../Lib/Math/MathLib.h"
 #include "../Lib/Structs/Structs.h"
 
 #ifdef _DEBUG

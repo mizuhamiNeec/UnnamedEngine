@@ -3,7 +3,9 @@
 #include <thread>
 #include "../Utils/ClientProperties.h"
 
+#ifdef _DEBUG
 #include "imgui/imgui.h"
+#endif
 
 class EngineTimer {
 public:

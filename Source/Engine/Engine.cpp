@@ -37,6 +37,7 @@ void Engine::Run() {
 }
 
 void Engine::Init() {
+#ifdef _DEBUG
 	// コンソール変数を登録
 	ConVarManager& conVarManager = ConVarManager::GetInstance();
 	conVarManager.RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
@@ -44,6 +45,8 @@ void Engine::Init() {
 	conVarManager.RegisterConVar<int>("cl_maxfps", kMaxFPS, "Maximum number of frames per second");
 	Console::RegisterCommand("clear", Console::Clear);
 	Console::RegisterCommand("cls", Console::Clear);
+	Console::RegisterCommand("help", Console::Help);
+#endif
 
 	// ウィンドウの作成
 	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
@@ -75,7 +78,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({0.0f, 0.0f, -10.0f});
+	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -96,7 +99,8 @@ void Engine::Init() {
 	particleCommon_->SetDefaultCamera(camera_.get());
 
 	// 入力
-	Input::GetInstance()->Init(window_.get());
+	input_ = Input::GetInstance();
+	input_->Init(window_.get());
 
 	//-------------------------------------------------------------------------
 	// コマンドのリセット
@@ -127,7 +131,7 @@ void Engine::Init() {
 	assert(SUCCEEDED(hr));
 }
 
-void Engine::Update() {
+void Engine::Update() const {
 #ifdef _DEBUG
 	imGuiManager_->NewFrame();
 	console_->Update();
@@ -153,7 +157,7 @@ void Engine::Update() {
 
 #ifdef _DEBUG // cl_showfps
 	if (ConVarManager::GetInstance().GetConVar("cl_showfps")->GetValueAsString() == "1") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -190,8 +194,7 @@ void Engine::Update() {
 		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
 		if (io.Framerate >= 59.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
-		}
-		else if (io.Framerate >= 29.9f) {
+		} else if (io.Framerate >= 29.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 		}
 
