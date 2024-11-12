@@ -5,8 +5,7 @@
 #include "Vector/Vec3.h"
 
 // スプライン曲線制御点(通過点)
-static std::vector<Vec3> controlPoints{
-};
+static std::vector<Vec3> controlPoints{};
 
 struct AABB;
 

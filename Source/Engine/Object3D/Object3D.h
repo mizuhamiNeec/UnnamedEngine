@@ -49,6 +49,7 @@ public:
 	void SetScale(const Vec3& scale) { transform_.scale = scale; }
 	void SetRot(const Vec3& newRot) { transform_.rotate = newRot; }
 	void SetPos(const Vec3& newPos) { transform_.translate = newPos; }
+	void SetVisible(const bool& newVisible) { bVisibility = newVisible; }
 
 	void SetLighting(const bool& newLighting) const;
 
@@ -58,6 +59,7 @@ public:
 	const Vec3& GetPos() const { return transform_.translate; }
 	const Mat4& GetWorldMat() const;
 	Transform& GetTransform();
+	bool IsVisible() const;
 
 protected:
 	Camera* camera_ = nullptr;
@@ -74,6 +76,8 @@ protected:
 		{0.0f,0.0f,0.0f},
 		{0.0f,0.0f,0.0f}
 	};
+
+	bool bVisibility = true;
 
 	TransformationMatrix* transformationMatrixData_ = nullptr; // 座標変換行列のポインタ
 	DirectionalLight* directionalLightData_ = nullptr; // 指向性ライトのポインタ

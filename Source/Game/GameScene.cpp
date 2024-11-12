@@ -60,9 +60,11 @@ void LoadChildObject(LevelData* levelData, const nlohmann::json& child) {
 		// トランスフォームのパラメータ読み込み
 		if (child.contains("transform")) {
 			auto& transform = child["transform"];
-			objectData.position = { transform["translation"][0], transform["translation"][2], transform["translation"][1] };
-			objectData.rotation = { transform["rotation"][0], transform["rotation"][2], transform["rotation"][1] };
-			objectData.rotation *= -1.0f;
+			objectData.position = {
+				transform["translation"][0], transform["translation"][2], transform["translation"][1]
+			};
+			objectData.rotation = { transform["rotation"][0], transform["rotation"][1], transform["rotation"][2] };
+			objectData.rotation *= -1.0f * Math::deg2Rad;
 			objectData.scale = { transform["scaling"][0], transform["scaling"][2], transform["scaling"][1] };
 		}
 
@@ -82,6 +84,8 @@ void LoadChildObject(LevelData* levelData, const nlohmann::json& child) {
 		}
 	}
 }
+
+std::vector<Transform> matoTransforms;
 
 void LoadFile(const std::string& relativePath) {
 	// 連結してフルパスを得る
@@ -126,6 +130,16 @@ void LoadFile(const std::string& relativePath) {
 		// MESHの場合、LoadChildObjectを呼び出す
 		if (type.compare("MESH") == 0) {
 			LoadChildObject(levelData, object);
+			LevelData::ObjectData& data = levelData->objects.back();
+			if (data.fileName == "mato") {
+				// レールのモデルを生成
+				Transform mato = {
+					.scale = data.scale,
+					.rotate = data.rotation,
+					.translate = data.position
+				};
+				matoTransforms.push_back(mato);
+			}
 		}
 		// CURVEの場合、制御点を配列に格納
 		else if (type.compare("CURVE") == 0) {
@@ -152,7 +166,7 @@ Vec4 MultiplyMat4Vec4(const Mat4& mat, const Vec4& vec) {
 	return result;
 }
 
-Vec3 ScreenToWorldDirection(Vec3 screen, const Mat4& viewProjMatrix, const Vec3& cameraPos, float zFar) {
+Vec3 ScreenToWorldDirection(Vec3 screen, const Mat4& viewProjMatrix, const Vec3& cameraPos) {
 	// 1. スクリーン座標をNDCに変換
 	float ndcX = (2.0f * screen.x / kClientWidth) - 1.0f;
 	float ndcY = 1.0f - (2.0f * screen.y / kClientHeight);
@@ -168,7 +182,7 @@ Vec3 ScreenToWorldDirection(Vec3 screen, const Mat4& viewProjMatrix, const Vec3&
 	Vec3 direction = (Vec3(worldPos.x, worldPos.y, worldPos.z) / worldPos.w).Normalized();
 
 	// 5. ZFarを掛けて最終的なワールド位置を取得
-	return cameraPos + direction * zFar;
+	return cameraPos + direction;
 }
 
 void GameScene::Init(
@@ -191,12 +205,14 @@ void GameScene::Init(
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/circle.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/world.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/reticle.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/mato.png");
 #pragma endregion
 
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/reticle.png");
 	sprite_->SetSize({ 64.0f, 64.0f, 0.0f });
+	sprite_->SetAnchorPoint({ 0.5f, 0.5f });
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -206,7 +222,12 @@ void GameScene::Init(
 	object3D_->Init(object3DCommon_, modelCommon_);
 	// 初期化済みの3Dオブジェクトにモデルを紐づける
 	object3D_->SetModel("cart.obj");
-	object3D_->SetPos({ 0.0f,0.0f,0.0f });
+	object3D_->SetPos({ 0.0f, 0.0f, 0.0f });
+
+	ModelManager::GetInstance()->LoadModel("axis.obj");
+	axis_ = std::make_unique<Object3D>();
+	axis_->Init(object3DCommon_, modelCommon_);
+	axis_->SetModel("axis.obj");
 #pragma endregion
 
 #pragma region パーティクル類
@@ -218,13 +239,13 @@ void GameScene::Init(
 	sky_ = std::make_unique<Object3D>();
 	sky_->Init(object3DCommon_, modelCommon_);
 	sky_->SetModel("sky.obj");
-	sky_->SetPos({ 0.0f,0.0f,0.0f });
+	sky_->SetPos({ 0.0f, 0.0f, 0.0f });
 	sky_->SetLighting(false);
 
 	player_ = std::make_unique<Player>();
 	player_->Init(object3DCommon_, modelCommon_);
 	player_->SetModel("axis.obj");
-	player_->SetPos({ 0.0f,0.0f,0.0f });
+	player_->SetPos({ 0.0f, 0.0f, 0.0f });
 	player_->Initialize();
 
 	ModelManager::GetInstance()->LoadModel("world.obj");
@@ -237,6 +258,19 @@ void GameScene::Init(
 	ModelManager::GetInstance()->LoadModel("rail.obj");
 
 	LoadFile("./Resources/test");
+
+	ModelManager::GetInstance()->LoadModel("mato.obj");
+
+	for (auto& transform : matoTransforms) {
+		auto mato = std::make_unique<Object3D>();
+		mato->Init(object3DCommon_, modelCommon_);
+		mato->SetModel("mato.obj");
+		mato->SetPos(transform.translate);
+		mato->SetRot(transform.rotate);
+		mato->SetScale(transform.scale);
+		mato->SetLighting(false);
+		mato_.push_back(std::move(mato));
+	}
 
 	ModelManager::GetInstance()->LoadModel("poll.obj");
 	for (auto& controlPoint : controlPoints) {
@@ -251,35 +285,35 @@ void GameScene::Init(
 	PlaceRailsAlongSpline();
 
 	railMover_ = std::make_unique<RailMover>();
-	railMover_->Initialize(object3D_.get(), controlPoints, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
+	railMover_->Initialize(object3D_.get(), controlPoints, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f });
 }
 
-Vec3 reticlePos = Vec3::zero;
-float reticleMoveSpd = 10.5f;
+bool IntersectRaySphere(const Vec3& rayOrigin, const Vec3& rayDir, const Vec3& sphereCenter, float sphereRadius) {
+	Vec3 oc = rayOrigin - sphereCenter;
+	float b = 2.0f * oc.Dot(rayDir);
+	float c = oc.Dot(oc) - sphereRadius * sphereRadius;
+	float discriminant = b * b - 4 * c;
+	return (discriminant > 0);  // 判定結果
+}
 
 void GameScene::Update(const float& deltaTime) {
 	if (Input::GetInstance()->PushKey(DIK_W)) {
-		reticlePos.y -= reticleMoveSpd;
+		reticlePos.y -= reticleMoveSpd * deltaTime;
 		Console::Print("Moving\n");
 	} else if (Input::GetInstance()->PushKey(DIK_S)) {
-		reticlePos.y += reticleMoveSpd;
+		reticlePos.y += reticleMoveSpd * deltaTime;
 		Console::Print("Moving\n");
 	}
 
 	if (Input::GetInstance()->PushKey(DIK_D)) {
-		reticlePos.x += reticleMoveSpd;
+		reticlePos.x += reticleMoveSpd * deltaTime;
 		Console::Print("Moving\n");
 	} else if (Input::GetInstance()->PushKey(DIK_A)) {
-		reticlePos.x -= reticleMoveSpd;
+		reticlePos.x -= reticleMoveSpd * deltaTime;
 		Console::Print("Moving\n");
 	}
 
 	sprite_->SetPos(reticlePos);
-
-	Vec3 test = ScreenToWorldDirection(reticlePos, object3DCommon_->GetDefaultCamera()->GetViewProjMat(), object3DCommon_->GetDefaultCamera()->GetPos(), object3DCommon_->GetDefaultCamera()->GetZFar());
-	ImGui::Begin("Test");
-	ImGui::DragFloat3("test", &test.x, 0.1f);
-	ImGui::End();
 
 	// object3D_の最新位置にカメラを追従させる
 	//object3DCommon_->GetDefaultCamera()->SetPos(object3D_->GetPos() + Vec3(std::sin(object3D_->GetRot().x), 1.0f, std::cos(object3D_->GetRot().x)));
@@ -289,7 +323,7 @@ void GameScene::Update(const float& deltaTime) {
 	Vec3 rotation = object3D_->GetRot();
 
 	// オフセットのベクトル
-	Vec3 offset(0.0f, 1.0f, 0.0f);  // 例: Z方向に-3の距離を持ち、Y方向に1.0f上げた位置
+	Vec3 offset(0.0f, 1.0f, 0.0f); // 例: Z方向に-3の距離を持ち、Y方向に1.0f上げた位置
 
 	// 回転行列を作成 (ここではX軸回転のみを考慮する例)
 	Mat4 rotationMatrix = Mat4::RotateY(rotation.y);
@@ -304,14 +338,28 @@ void GameScene::Update(const float& deltaTime) {
 	// レール移動の更新
 	railMover_->Update(deltaTime);
 
-	//EditTransform("obj3D", object3D_->GetTransform(), 0.01f);
-
 	// object3D_を更新
 	object3D_->Update();
 
 	world_->Update();
 
 	sprite_->Update();
+
+	Vec3 camPos = object3DCommon_->GetDefaultCamera()->GetPos();
+	Vec3 farPoint = object3DCommon_->GetDefaultCamera()->ScreenToWorld(
+		reticlePos, object3DCommon_->GetDefaultCamera()->GetZFar()); // スクリーン座標からFarZのワールド座標
+
+	Vec3 beamDir = (farPoint - camPos).Normalized(); // カメラからFarZへの方向ベクトル
+
+	axis_->SetPos(camPos + beamDir);
+
+	for (const std::unique_ptr<Object3D>& mato : mato_) {
+		// 衝突判定処理（線分と球の当たり判定）
+		if (IntersectRaySphere(camPos, beamDir, mato->GetPos(), 2.0f)) {
+			mato->SetVisible(false); // 衝突した球を非表示にする
+		}
+		mato->Update();
+	}
 
 	//// 残りのオブジェクトを更新
 	//sprite_->Update();
@@ -323,10 +371,14 @@ void GameScene::Update(const float& deltaTime) {
 		rail->Update();
 	}
 
+	for (const std::unique_ptr<Object3D>& mato : mato_) {
+		mato->SetRot(object3DCommon_->GetDefaultCamera()->GetRotate());
+		mato->Update();
+	}
+
 	for (const std::unique_ptr<Object3D>& poll : poll_) {
 		poll->Update();
 	}
-
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -352,8 +404,11 @@ void GameScene::Update(const float& deltaTime) {
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
 			WindowsUtils::GetWindowsUserName(),
-			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y, object3DCommon_->GetDefaultCamera()->GetPos().z,
-			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y,
+			object3DCommon_->GetDefaultCamera()->GetPos().z,
+			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
 			0.0f
 		);
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
@@ -396,14 +451,20 @@ void GameScene::Render() {
 
 	object3D_->Draw();
 
+	//axis_->Draw();
+
 	world_->Draw();
 
 	//player_->Draw();
 
 	for (const std::unique_ptr<Object3D>& rail : rails_) {
-		if (object3DCommon_->GetDefaultCamera()->GetPos().Distance(rail->GetPos()) < 10.0f) {
+		if (object3DCommon_->GetDefaultCamera()->GetPos().Distance(rail->GetPos()) < 15.0f) {
 			rail->Draw();
 		}
+	}
+
+	for (const std::unique_ptr<Object3D>& mato : mato_) {
+		mato->Draw();
 	}
 
 	for (const std::unique_ptr<Object3D>& poll : poll_) {

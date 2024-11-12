@@ -17,7 +17,7 @@ Random* Random::GetInstance() {
 //-----------------------------------------------------------------------------
 float Random::RandomFloat(const float min, const float max) {
 	std::uniform_real_distribution<float> distribution(min, max);
-	std::lock_guard<std::mutex> lock(mtx_); // 追加
+	//std::lock_guard<std::mutex> lock(mtx_); // 追加
 	return distribution(randomEngine_);
 }
 
@@ -26,6 +26,6 @@ float Random::RandomFloat(const float min, const float max) {
 //-----------------------------------------------------------------------------
 int Random::RandomInt(const int min, const int max) {
 	std::uniform_int_distribution<int> distribution(min, max);
-	std::lock_guard<std::mutex> lock(mtx_); // 追加
+	//std::lock_guard<std::mutex> lock(mtx_); // 追加
 	return distribution(randomEngine_);
 }
