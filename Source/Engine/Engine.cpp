@@ -31,6 +31,7 @@ Engine::Engine() = default;
 void Engine::Run() {
 	Init();
 	while (true) {
+		time_->Update();
 		if (window_->ProcessMessage()) break; // ゲームループを抜ける
 		Update();
 	}
@@ -121,12 +122,12 @@ void Engine::Init() {
 }
 
 void Engine::Update() {
+	float deltaTime = time_->GetDeltaTime();
+
 #ifdef _DEBUG
 	imGuiManager_->NewFrame();
 	console_->Update();
 #endif
-
-	time_->Update();
 
 	/* ----------- 更新処理 ---------- */
 	Input::GetInstance()->Update();
@@ -136,15 +137,17 @@ void Engine::Update() {
 		Console::ToggleConsole();
 	}
 
-	camera_->SetAspectRatio(
-		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight())
-	);
 	camera_->Update();
 
 	// ゲームシーンの更新
-	gameScene_->Update();
+	gameScene_->Update(deltaTime);
+
+	camera_->SetAspectRatio(
+		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight())
+	);
 
 #ifdef _DEBUG // cl_showfps
+
 	if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
@@ -211,6 +214,21 @@ void Engine::Update() {
 	/* ---------- コマンド積み ----------- */
 
 	gameScene_->Render();
+
+#ifdef _DEBUG
+	ImGui::Begin("EngineTimer");
+	ImGui::Text("%.2f FPS", 1.0f / deltaTime);
+	ImGui::Text("%.2f ms", deltaTime * 1000.0f);
+
+	int totalMilliseconds = static_cast<int>(time_->GetTotalTime() * 100.0f); // 0.01秒単位
+	int hours = (totalMilliseconds / (100 * 60 * 60)) % 24;
+	int minutes = (totalMilliseconds / (100 * 60)) % 60;
+	int secs = (totalMilliseconds / 100) % 60;
+	int centiseconds = totalMilliseconds % 100; // 小数点以下2桁
+
+	ImGui::Text("totalTime : %02d:%02d:%02d.%02d", hours, minutes, secs, centiseconds);
+	ImGui::End();
+#endif
 
 #ifdef _DEBUG
 	imGuiManager_->EndFrame();

@@ -57,6 +57,8 @@ public:
 	const Vec3& GetRot() const { return transform_.rotate; }
 	const Vec3& GetPos() const { return transform_.translate; }
 	const Mat4& GetWorldMat() const;
+	Transform& GetTransform();
+
 protected:
 	Camera* camera_ = nullptr;
 

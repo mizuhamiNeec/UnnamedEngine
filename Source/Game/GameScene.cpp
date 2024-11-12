@@ -5,7 +5,7 @@
 #include <fstream>
 
 #include "../../Player.h"
-#include "../../RailCamera.h"
+#include "../../RailMover.h"
 #include "../Engine/LevelData/LevelData.h"
 #include "../Engine/Lib/Timer/EngineTimer.h"
 #include "../Engine/Model/ModelManager.h"
@@ -23,6 +23,7 @@
 #ifdef _DEBUG
 #include "imgui/imgui.h"
 #endif
+#include "../Engine/Lib/Console/Console.h"
 
 
 void SaveFile(const std::string& groupName) {
@@ -142,6 +143,34 @@ void LoadFile(const std::string& relativePath) {
 	}
 }
 
+Vec4 MultiplyMat4Vec4(const Mat4& mat, const Vec4& vec) {
+	Vec4 result;
+	result.x = mat.m[0][0] * vec.x + mat.m[0][1] * vec.y + mat.m[0][2] * vec.z + mat.m[0][3] * vec.w;
+	result.y = mat.m[1][0] * vec.x + mat.m[1][1] * vec.y + mat.m[1][2] * vec.z + mat.m[1][3] * vec.w;
+	result.z = mat.m[2][0] * vec.x + mat.m[2][1] * vec.y + mat.m[2][2] * vec.z + mat.m[2][3] * vec.w;
+	result.w = mat.m[3][0] * vec.x + mat.m[3][1] * vec.y + mat.m[3][2] * vec.z + mat.m[3][3] * vec.w;
+	return result;
+}
+
+Vec3 ScreenToWorldDirection(Vec3 screen, const Mat4& viewProjMatrix, const Vec3& cameraPos, float zFar) {
+	// 1. スクリーン座標をNDCに変換
+	float ndcX = (2.0f * screen.x / kClientWidth) - 1.0f;
+	float ndcY = 1.0f - (2.0f * screen.y / kClientHeight);
+
+	// 2. NDC座標をクリップ空間座標に
+	Vec4 clipSpacePos(ndcX, ndcY, 1.0f, 1.0f);
+
+	// 3. ビュープロジェクション行列の逆行列でワールド座標へ変換
+	Mat4 invViewProj = viewProjMatrix.Inverse();
+	Vec4 worldPos = MultiplyMat4Vec4(invViewProj, clipSpacePos);
+
+	// 4. wで割って方向ベクトルを取得
+	Vec3 direction = (Vec3(worldPos.x, worldPos.y, worldPos.z) / worldPos.w).Normalized();
+
+	// 5. ZFarを掛けて最終的なワールド位置を取得
+	return cameraPos + direction * zFar;
+}
+
 void GameScene::Init(
 	D3D12* renderer, Window* window,
 	SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
@@ -160,18 +189,19 @@ void GameScene::Init(
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/uvChecker.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/circle.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/world.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/reticle.png");
 #pragma endregion
 
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
-	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
+	sprite_->Init(spriteCommon_, "./Resources/Textures/reticle.png");
+	sprite_->SetSize({ 64.0f, 64.0f, 0.0f });
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
 	// .objファイルからモデルを読み込む
 	ModelManager::GetInstance()->LoadModel("cart.obj");
-
 	object3D_ = std::make_unique<Object3D>();
 	object3D_->Init(object3DCommon_, modelCommon_);
 	// 初期化済みの3Dオブジェクトにモデルを紐づける
@@ -197,41 +227,106 @@ void GameScene::Init(
 	player_->SetPos({ 0.0f,0.0f,0.0f });
 	player_->Initialize();
 
+	ModelManager::GetInstance()->LoadModel("world.obj");
+	world_ = std::make_unique<Object3D>();
+	world_->Init(object3DCommon, modelCommon_);
+	world_->SetModel("world.obj");
+	world_->SetLighting(false);
+
+
 	ModelManager::GetInstance()->LoadModel("rail.obj");
 
 	LoadFile("./Resources/test");
 
+	ModelManager::GetInstance()->LoadModel("poll.obj");
+	for (auto& controlPoint : controlPoints) {
+		// レールのモデルを生成
+		auto poll = std::make_unique<Object3D>();
+		poll->Init(object3DCommon_, modelCommon_);
+		poll->SetModel("poll.obj");
+		poll->SetPos(controlPoint);
+		poll_.push_back(std::move(poll));
+	}
+
 	PlaceRailsAlongSpline();
 
-	railCamera_ = std::make_unique<RailCamera>();
-	railCamera_->Initialize(object3D_.get(), controlPoints, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
+	railMover_ = std::make_unique<RailMover>();
+	railMover_->Initialize(object3D_.get(), controlPoints, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
 }
 
-void GameScene::Update() {
-	static bool toggle = false;
-	if (Input::GetInstance()->TriggerKey(DIK_V)) {
-		toggle = !toggle;
+Vec3 reticlePos = Vec3::zero;
+float reticleMoveSpd = 10.5f;
+
+void GameScene::Update(const float& deltaTime) {
+	if (Input::GetInstance()->PushKey(DIK_W)) {
+		reticlePos.y -= reticleMoveSpd;
+		Console::Print("Moving\n");
+	} else if (Input::GetInstance()->PushKey(DIK_S)) {
+		reticlePos.y += reticleMoveSpd;
+		Console::Print("Moving\n");
 	}
 
-	if (toggle) {
-		railCamera_->Update(timer_->GetDeltaTime());
+	if (Input::GetInstance()->PushKey(DIK_D)) {
+		reticlePos.x += reticleMoveSpd;
+		Console::Print("Moving\n");
+	} else if (Input::GetInstance()->PushKey(DIK_A)) {
+		reticlePos.x -= reticleMoveSpd;
+		Console::Print("Moving\n");
 	}
+
+	sprite_->SetPos(reticlePos);
+
+	Vec3 test = ScreenToWorldDirection(reticlePos, object3DCommon_->GetDefaultCamera()->GetViewProjMat(), object3DCommon_->GetDefaultCamera()->GetPos(), object3DCommon_->GetDefaultCamera()->GetZFar());
+	ImGui::Begin("Test");
+	ImGui::DragFloat3("test", &test.x, 0.1f);
+	ImGui::End();
+
+	// object3D_の最新位置にカメラを追従させる
+	//object3DCommon_->GetDefaultCamera()->SetPos(object3D_->GetPos() + Vec3(std::sin(object3D_->GetRot().x), 1.0f, std::cos(object3D_->GetRot().x)));
+	object3DCommon_->GetDefaultCamera()->SetRot(object3D_->GetRot());
+
+	// オブジェクトの回転角度を取得
+	Vec3 rotation = object3D_->GetRot();
+
+	// オフセットのベクトル
+	Vec3 offset(0.0f, 1.0f, 0.0f);  // 例: Z方向に-3の距離を持ち、Y方向に1.0f上げた位置
+
+	// 回転行列を作成 (ここではX軸回転のみを考慮する例)
+	Mat4 rotationMatrix = Mat4::RotateY(rotation.y);
+
+	// オフセットを回転行列で変換して、カメラ位置を計算
+	Vec3 rotatedOffset = Mat4::Transform(offset, rotationMatrix);
+	Vec3 cameraPos = object3D_->GetPos() + rotatedOffset;
+
+	// カメラの位置を更新
+	object3DCommon_->GetDefaultCamera()->SetPos(cameraPos);
+
+	// レール移動の更新
+	railMover_->Update(deltaTime);
+
+	//EditTransform("obj3D", object3D_->GetTransform(), 0.01f);
+
+	// object3D_を更新
+	object3D_->Update();
+
+	world_->Update();
 
 	sprite_->Update();
 
-	object3D_->Update();
-	particle_->Update(timer_->GetDeltaTime());
-
+	//// 残りのオブジェクトを更新
+	//sprite_->Update();
+	//particle_->Update(deltaTime);
 	sky_->Update();
-
-	player_->Update();
+	//player_->Update();
 
 	for (const std::unique_ptr<Object3D>& rail : rails_) {
 		rail->Update();
 	}
 
-	object3DCommon_->GetDefaultCamera()->SetPos(Math::Lerp(object3DCommon_->GetDefaultCamera()->GetPos(), object3D_->GetPos() + Vec3(0.0f, 1.0f, 0.0f), 20.0f * timer_->GetDeltaTime()));
-	object3DCommon_->GetDefaultCamera()->SetRot(Math::Lerp(object3DCommon_->GetDefaultCamera()->GetRotate(), object3D_->GetRot(), 5.0f * timer_->GetDeltaTime()));
+	for (const std::unique_ptr<Object3D>& poll : poll_) {
+		poll->Update();
+	}
+
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -301,24 +396,31 @@ void GameScene::Render() {
 
 	object3D_->Draw();
 
-	player_->Draw();
+	world_->Draw();
+
+	//player_->Draw();
 
 	for (const std::unique_ptr<Object3D>& rail : rails_) {
-		if (object3DCommon_->GetDefaultCamera()->GetPos().Distance(rail->GetPos()) < 15.0f) {
+		if (object3DCommon_->GetDefaultCamera()->GetPos().Distance(rail->GetPos()) < 10.0f) {
 			rail->Draw();
 		}
+	}
+
+	for (const std::unique_ptr<Object3D>& poll : poll_) {
+		poll->Draw();
 	}
 
 	//----------------------------------------
 	// パーティクル共通描画設定
 	particleCommon_->Render();
 	//----------------------------------------
-	particle_->Draw();
+	//particle_->Draw();
 
 	//----------------------------------------
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
+	sprite_->Draw();
 }
 
 void GameScene::Shutdown() {
@@ -330,6 +432,9 @@ void GameScene::Shutdown() {
 void GameScene::PlaceRailsAlongSpline() {
 	const float railLength = 1.0f; // レール1つの長さ（メートル単位）
 	const float delta = 0.0001f;
+
+	// ループのために末尾に最初の制御点を追加する
+	controlPoints.push_back(controlPoints[0]);
 
 	// スプラインの全長を計算
 	float splineLength = 0.0f;

@@ -84,6 +84,8 @@ void SpriteCommon::CreateGraphicsPipeline() {
 	pipelineState_.SetInputLayout(Vertex::inputLayout);
 	pipelineState_.SetRootSignature(rootSignatureManager_->Get("SpriteCommon"));
 
+	pipelineState_.SetBlendMode(kBlendModeNormal);
+
 	// シェーダーのファイルパスを設定
 	pipelineState_.SetVS(L"./Resources/Shaders/SpriteCommon.VS.hlsl");
 	pipelineState_.SetPS(L"./Resources/Shaders/SpriteCommon.PS.hlsl");

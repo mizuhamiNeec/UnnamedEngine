@@ -17,6 +17,15 @@ Vec3 Math::Lerp(const Vec3& a, const Vec3& b, const float t) {
 	return a * (1 - t) + b * t;
 }
 
+Vec3 Math::CatmullRom(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, float t) {
+	float t2 = t * t;
+	float t3 = t2 * t;
+	return 0.5f * ((2.0f * p1) +
+		(-p0 + p2) * t +
+		(2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2 +
+		(-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3);
+}
+
 Vec3 Math::CatmullRomPosition(const std::vector<Vec3>& points, float t) {
 	assert(points.size() >= 4 && "制御点は4点以上必要です");
 

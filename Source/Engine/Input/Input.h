@@ -18,6 +18,9 @@ public:
 	bool PushKey(BYTE keyNumber) const;
 	// キーのトリガーをチェック
 	bool TriggerKey(BYTE keyNumber) const;
+	bool PushMouseButton(int button) const;
+	bool TriggerMouseButton(int button) const;
+	void GetMouseDelta(int& deltaX, int& deltaY) const;
 
 public:
 	// 全キーの状態
@@ -28,6 +31,9 @@ public:
 
 private:
 	Microsoft::WRL::ComPtr<IDirectInputDevice8> keyboard = nullptr;
+	Microsoft::WRL::ComPtr<IDirectInputDevice8> mouse = nullptr;
+
+	DIMOUSESTATE mouseState;
 
 	// コンストラクタをプライベートにして外部からのインスタンス化を防ぐ
 	Input() = default;

@@ -11,7 +11,9 @@
 
 #include "../Lib/Math/Random/Random.h"
 
+#ifdef _DEBUG
 #include "imgui/imgui.h"
+#endif
 
 void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& textureFilePath) {
 	this->particleCommon_ = particleCommon;
@@ -98,6 +100,7 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 }
 
 void ParticleObject::Update(const float deltaTime) {
+#ifdef _DEBUG
 	ImGui::Begin("Particle");
 	ImGui::Text("Particle Instance : %u", particles_.size());
 	EditTransform("EmitterTranslate", emitter_.transform, 0.1f);
@@ -105,6 +108,7 @@ void ParticleObject::Update(const float deltaTime) {
 		particles_.splice(particles_.end(), Emit(emitter_));
 	}
 	ImGui::End();
+#endif
 
 	numInstance = 0;
 	for (std::list<Particle>::iterator particleIterator = particles_.begin();

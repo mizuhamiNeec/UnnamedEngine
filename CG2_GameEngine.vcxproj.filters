@@ -279,7 +279,7 @@
     <ClInclude Include="Source\Engine\Renderer\SrvManager.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
-    <ClInclude Include="RailCamera.h" />
+    <ClInclude Include="RailMover.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Source\Engine\LevelData\LevelData.h" />
   </ItemGroup>
@@ -416,7 +416,7 @@
     <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
-    <ClCompile Include="RailCamera.cpp" />
+    <ClCompile Include="RailMover.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\MathLib.cpp" />
     <ClCompile Include="Player.cpp" />
   </ItemGroup>

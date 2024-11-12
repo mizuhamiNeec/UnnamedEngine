@@ -9,7 +9,7 @@
 
 Input* Input::GetInstance() {
 	static Input instance; // シングルトンインスタンス
-	return &instance; // ポインタを返す
+	return &instance;	   // ポインタを返す
 }
 
 void Input::Init(const Window* window) {
@@ -18,12 +18,15 @@ void Input::Init(const Window* window) {
 		window->GetHInstance(),
 		DIRECTINPUT_VERSION,
 		IID_IDirectInput8,
-		reinterpret_cast<void**>(directInput.GetAddressOf()), nullptr
-	);
+		reinterpret_cast<void**>(directInput.GetAddressOf()), nullptr);
 	assert(SUCCEEDED(hr));
 
 	// キーボードデバイスの生成
 	hr = directInput->CreateDevice(GUID_SysKeyboard, &keyboard, nullptr);
+	assert(SUCCEEDED(hr));
+
+	// マウスデバイスの生成
+	hr = directInput->CreateDevice(GUID_SysMouse, &mouse, nullptr);
 	assert(SUCCEEDED(hr));
 
 	// 入力データ形式のセット
@@ -33,8 +36,7 @@ void Input::Init(const Window* window) {
 	// 排他制御レベルのセット
 	hr = keyboard->SetCooperativeLevel(
 		window->GetWindowHandle(),
-		DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY
-	);
+		DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
 	assert(SUCCEEDED(hr));
 }
 
@@ -44,6 +46,9 @@ void Input::Update() {
 	keyboard->Acquire();
 
 	keyboard->GetDeviceState(sizeof(key), key);
+
+	mouse->Acquire();
+	mouse->GetDeviceState(sizeof(DIMOUSESTATE), &mouseState);
 }
 
 bool Input::PushKey(const BYTE keyNumber) const {
@@ -60,4 +65,24 @@ bool Input::TriggerKey(const BYTE keyNumber) const {
 		return true;
 	}
 	return false;
+}
+
+bool Input::PushMouseButton(const int button) const {
+	// 指定されたボタンが押されていればtrueを返す
+	return (mouseState.rgbButtons[button] & 0x80) != 0;
+}
+
+bool Input::TriggerMouseButton(const int button) const {
+	// ボタンが押された瞬間を検出するためのロジックを追加
+	static BYTE previousButtons[3] = { 0, 0, 0 }; // 前回のボタン状態を保持
+
+	bool isTriggered = (mouseState.rgbButtons[button] & 0x80) && !(previousButtons[button] & 0x80);
+	previousButtons[button] = mouseState.rgbButtons[button]; // 現在の状態を保存
+
+	return isTriggered;
+}
+
+void Input::GetMouseDelta(int& deltaX, int& deltaY) const {
+	deltaX = mouseState.lX; // X方向のデルタ
+	deltaY = mouseState.lY; // Y方向のデルタ
 }

@@ -4,7 +4,10 @@
 #include <cassert>
 #include <format>
 
+#ifdef _DEBUG
 #include "imgui/imgui.h"
+#endif
+
 #include "Source/Engine/Lib/Console/Console.h"
 
 Player::~Player() {
@@ -66,6 +69,7 @@ void Player::Update() {
 	//	bullet->Update();
 	//}
 
+#ifdef _DEBUG
 	// キャラクターの座標を画面表示する処理
 	ImGui::Begin("Menu");
 	ImGui::SetNextItemOpen(true);
@@ -77,6 +81,7 @@ void Player::Update() {
 	}
 
 	ImGui::End();
+#endif
 
 	// 行列を定数バッファに転送
 	Object3D::Update();

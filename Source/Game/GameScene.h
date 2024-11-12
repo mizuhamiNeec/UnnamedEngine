@@ -10,7 +10,7 @@
 
 #include "../Sprite/Sprite.h"
 #include "../Sprite/SpriteCommon.h"
-#include "../../RailCamera.h"
+#include "../../RailMover.h"
 
 #include "../../Player.h"
 
@@ -26,7 +26,7 @@ public:
 		ModelCommon* modelCommon,
 		ParticleCommon* particleCommon, EngineTimer* engineTimer
 	) override;
-	void Update() override;
+	void Update(const float& deltaTime) override;
 	void Render() override;
 	void Shutdown() override;
 
@@ -42,14 +42,13 @@ private:
 
 	std::unique_ptr<ParticleObject> particle_;
 
-	std::unique_ptr<RailCamera> railCamera_;
+	std::unique_ptr<RailMover> railMover_;
 
 	std::unique_ptr<Object3D> sky_;
+	std::unique_ptr<Object3D> world_;
+	std::vector<std::unique_ptr<Object3D>> poll_;
 
 	std::unique_ptr<Player> player_;
 
 	std::vector<std::unique_ptr<Object3D>> rails_;
-
-	Transform transform_;
-	Transform cameraTransform_;
 };
