@@ -36,18 +36,17 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window, const SrvMa
 
 	// Ascii
 	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\JetBrainsMono.ttf)", 18.0f, &imFontConfig,
-	                             io.Fonts->GetGlyphRangesDefault());
+		io.Fonts->GetGlyphRangesDefault());
 	imFontConfig.MergeMode = true;
 	// 日本語フォールバック
 	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig,
-	                             io.Fonts->GetGlyphRangesJapanese());
+		io.Fonts->GetGlyphRangesJapanese());
 
 	// テーマの設定
 	// TODO : 多分いらないけどランタイムで変わったらカッコいいよね!!
 	if (WindowsUtils::IsAppDarkTheme()) {
 		ImGui::StyleColorsDark();
-	}
-	else {
+	} else {
 		ImGui::StyleColorsLight();
 	}
 
@@ -102,18 +101,20 @@ void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVe
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, bgActive);
 }
 
-void EditTransform(const std::string& name, Transform& transform, const float& vSpeed) {
-	constexpr ImVec4 xBg = {0.72f, 0.11f, 0.11f, 0.75f};
-	constexpr ImVec4 xBgHovered = {0.83f, 0.18f, 0.18f, 0.75f};
-	constexpr ImVec4 xBgActive = {0.96f, 0.26f, 0.21f, 0.75f};
+bool EditTransform(const std::string& name, Transform& transform, const float& vSpeed) {
+	bool isEditing = false;
 
-	constexpr ImVec4 yBg = {0.11f, 0.37f, 0.13f, 0.75f};
-	constexpr ImVec4 yBgHovered = {0.22f, 0.56f, 0.24f, 0.75f};
-	constexpr ImVec4 yBgActive = {0.3f, 0.69f, 0.31f, 0.75f};
+	constexpr ImVec4 xBg = { 0.72f, 0.11f, 0.11f, 0.75f };
+	constexpr ImVec4 xBgHovered = { 0.83f, 0.18f, 0.18f, 0.75f };
+	constexpr ImVec4 xBgActive = { 0.96f, 0.26f, 0.21f, 0.75f };
 
-	constexpr ImVec4 zBg = {0.05f, 0.28f, 0.63f, 0.75f};
-	constexpr ImVec4 zBgHovered = {0.1f, 0.46f, 0.82f, 0.75f};
-	constexpr ImVec4 zBgActive = {0.13f, 0.59f, 0.95f, 0.75f};
+	constexpr ImVec4 yBg = { 0.11f, 0.37f, 0.13f, 0.75f };
+	constexpr ImVec4 yBgHovered = { 0.22f, 0.56f, 0.24f, 0.75f };
+	constexpr ImVec4 yBgActive = { 0.3f, 0.69f, 0.31f, 0.75f };
+
+	constexpr ImVec4 zBg = { 0.05f, 0.28f, 0.63f, 0.75f };
+	constexpr ImVec4 zBgHovered = { 0.1f, 0.46f, 0.82f, 0.75f };
+	constexpr ImVec4 zBgActive = { 0.13f, 0.59f, 0.95f, 0.75f };
 
 	// 幅を取得
 	const float width = ImGui::GetCurrentContext()->Style.ItemInnerSpacing.x;
@@ -130,7 +131,7 @@ void EditTransform(const std::string& name, Transform& transform, const float& v
 		/* --- 座標 --- */
 		// 色を送る
 		PushStyleColorForDrag(xBg, xBgHovered, xBgActive);
-		ImGui::DragFloat(("##posX" + name).c_str(), &transform.translate.x, vSpeed, 0.0f, 0.0f, "X %.3f");
+		isEditing |= ImGui::DragFloat(("##posX" + name).c_str(), &transform.translate.x, vSpeed, 0.0f, 0.0f, "X %.3f");
 		// 色を取り出す
 		ImGui::PopStyleColor(components);
 
@@ -138,13 +139,13 @@ void EditTransform(const std::string& name, Transform& transform, const float& v
 		ImGui::SameLine(0, width);
 
 		PushStyleColorForDrag(yBg, yBgHovered, yBgActive);
-		ImGui::DragFloat(("##posY" + name).c_str(), &transform.translate.y, vSpeed, 0.0f, 0.0f, "Y %.3f");
+		isEditing |= ImGui::DragFloat(("##posY" + name).c_str(), &transform.translate.y, vSpeed, 0.0f, 0.0f, "Y %.3f");
 		ImGui::PopStyleColor(components);
 
 		ImGui::SameLine(0, width);
 
 		PushStyleColorForDrag(zBg, zBgHovered, zBgActive);
-		ImGui::DragFloat(("##posZ" + name).c_str(), &transform.translate.z, vSpeed, 0.0f, 0.0f, "Z %.3f");
+		isEditing |= ImGui::DragFloat(("##posZ" + name).c_str(), &transform.translate.z, vSpeed, 0.0f, 0.0f, "Z %.3f");
 		ImGui::PopStyleColor(components);
 
 		ImGui::SameLine(0, width);
@@ -200,7 +201,13 @@ void EditTransform(const std::string& name, Transform& transform, const float& v
 			ImGui::PopItemWidth();
 		}
 	}
+
+	return isEditing;
 }
+
+//bool DragVec3(const std::string& name, Vec3& v, const float& vSpeed) {
+//
+//}
 
 void TextOutlined(
 	ImDrawList* drawList,
