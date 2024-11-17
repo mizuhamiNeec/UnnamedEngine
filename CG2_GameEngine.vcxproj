@@ -139,7 +139,7 @@
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp" />
-    <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\WinMain.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Random\Random.cpp" />
     <ClCompile Include="Source\Engine\Window\Window.cpp" />

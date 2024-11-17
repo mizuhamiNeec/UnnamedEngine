@@ -2,133 +2,142 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Bin">
-      <UniqueIdentifier>{F8D6959B-02F9-48CC-855F-68F00B941A3D}</UniqueIdentifier>
+      <UniqueIdentifier>{6A396EE7-D83F-461B-8486-526F2CD1BF45}</UniqueIdentifier>
     </Filter>
     <Filter Include="Bin\Debug">
-      <UniqueIdentifier>{0E857E11-B91E-49A0-867A-C6686D8DF5A3}</UniqueIdentifier>
+      <UniqueIdentifier>{B38608D3-AD37-4A91-847F-F063287787B7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Bin\Intermediate">
-      <UniqueIdentifier>{BC10906F-5887-495A-A0E3-36477B861550}</UniqueIdentifier>
+      <UniqueIdentifier>{6ECFC0D6-46C1-47BE-A52F-38D9B9571D01}</UniqueIdentifier>
     </Filter>
     <Filter Include="Bin\Intermediate\Debug">
-      <UniqueIdentifier>{7B3EA573-8D44-4990-ACE5-2D2E32971083}</UniqueIdentifier>
+      <UniqueIdentifier>{5AFE6265-C12D-4AAA-92AC-AB4044C3596D}</UniqueIdentifier>
     </Filter>
     <Filter Include="Bin\Intermediate\Debug\GE3_GameEngine.tlog">
-      <UniqueIdentifier>{1E57D28D-1C04-4E6A-B7F9-56F46DA4821F}</UniqueIdentifier>
+      <UniqueIdentifier>{B3ADF5EC-11D3-4500-8DEF-FB1CFC818DED}</UniqueIdentifier>
     </Filter>
     <Filter Include="Bin\Intermediate\Release">
-      <UniqueIdentifier>{ABB9D621-61EB-4AA9-9C41-3AE7F6DC6CE9}</UniqueIdentifier>
+      <UniqueIdentifier>{CC063FE9-1AC2-45B2-B786-149851F97EF4}</UniqueIdentifier>
     </Filter>
     <Filter Include="Bin\Intermediate\Release\GE3_GameEngine.tlog">
-      <UniqueIdentifier>{AA922E85-B915-4A62-9615-56E2FEE670FF}</UniqueIdentifier>
+      <UniqueIdentifier>{A7251ED6-5DEB-42BF-9FA2-8B2A133B7A74}</UniqueIdentifier>
     </Filter>
     <Filter Include="Bin\Release">
-      <UniqueIdentifier>{E18E73E8-EE44-4650-8984-7DD2489064E0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Doc">
-      <UniqueIdentifier>{12BC746F-D7E2-48D6-A51E-148987347DEA}</UniqueIdentifier>
+      <UniqueIdentifier>{774C239C-8A63-45AF-8DCD-6E3D1C8E8C11}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resources">
-      <UniqueIdentifier>{D4FACD53-6F8B-4DCC-8841-7D066346FED9}</UniqueIdentifier>
+      <UniqueIdentifier>{68D4F202-DF36-41AE-B795-2559B6F98B14}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resources\Shaders">
-      <UniqueIdentifier>{412AEEB2-F9EC-4BEE-88B2-E9EE3A6E1114}</UniqueIdentifier>
+      <UniqueIdentifier>{0F8B6A1D-A82C-44C9-A66D-5127194E3653}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source">
-      <UniqueIdentifier>{A1B52AD6-54E0-4EC9-8DEA-34D1ED679FD1}</UniqueIdentifier>
+      <UniqueIdentifier>{CE6CC7A3-C3F4-4DAD-BEC8-AF2614E424AF}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine">
-      <UniqueIdentifier>{19D57C18-467E-4C12-8FAF-2AE54F1AD26E}</UniqueIdentifier>
+      <UniqueIdentifier>{5E249960-B0D6-4854-8950-1EF7E142D808}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Camera">
-      <UniqueIdentifier>{22C914E3-41C3-4E98-AD8A-3F6FD7164FDE}</UniqueIdentifier>
+      <UniqueIdentifier>{CC6DCCAA-EEF7-4595-80AE-8C6C653B38EB}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals">
-      <UniqueIdentifier>{1676E441-CB7F-4FC3-A0D0-E70678208C4C}</UniqueIdentifier>
+      <UniqueIdentifier>{85CCC4B8-B94F-4CEF-A244-276455A18EBA}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\DirectXTex">
-      <UniqueIdentifier>{E3F6E9F9-1FA0-4D47-8A8C-9FD1968B9611}</UniqueIdentifier>
+      <UniqueIdentifier>{426983CF-3FC8-4DA0-A09E-305D70E09A84}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\DirectXTex\Bin">
-      <UniqueIdentifier>{49F6A57F-013C-476F-865C-96869276B47D}</UniqueIdentifier>
+      <UniqueIdentifier>{FCDB2D28-26C9-4488-96E1-03786894710C}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\DirectXTex\Bin\Desktop_2022_Win10">
-      <UniqueIdentifier>{9637DE35-1566-49A0-8080-4EBB58C0A246}</UniqueIdentifier>
+      <UniqueIdentifier>{0999BB16-12A4-4854-A425-5C34E163B986}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\DirectXTex\Bin\Desktop_2022_Win10\x64">
-      <UniqueIdentifier>{111D7B47-EAE2-4C89-8A1E-197C8CD77DD3}</UniqueIdentifier>
+      <UniqueIdentifier>{72165145-D1EE-4699-8A11-D52BBA319870}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug">
-      <UniqueIdentifier>{DD508263-50A6-4700-B253-DE4CD828AE6C}</UniqueIdentifier>
+      <UniqueIdentifier>{D30237D3-E694-40DB-86D8-1435645D0507}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug\DirectXTex.tlog">
-      <UniqueIdentifier>{22ABCBB8-BEBB-4802-8852-053A2B70F8A6}</UniqueIdentifier>
+      <UniqueIdentifier>{A9A7A58C-D862-49B3-B74E-6F34751F1967}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\DirectXTex\Bin\Desktop_2022_Win10\x64\Release">
-      <UniqueIdentifier>{D380D3A6-1E10-458C-B079-7EB9BA2F8BC7}</UniqueIdentifier>
+      <UniqueIdentifier>{F9336F64-74E6-43D8-9521-1D5BC00FC62E}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\DirectXTex\Bin\Desktop_2022_Win10\x64\Release\DirectXTex.tlog">
-      <UniqueIdentifier>{D7CEB34D-0E3C-40F3-BD26-7A5A84A60300}</UniqueIdentifier>
+      <UniqueIdentifier>{9841BB74-EF63-4299-99D2-E07175C8309B}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\DirectXTex\Shaders">
-      <UniqueIdentifier>{B8FE7722-C6C2-4C6E-98CE-A1F51ED3A984}</UniqueIdentifier>
+      <UniqueIdentifier>{80AB2127-96F9-461D-9E7B-A657527DFE86}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\DirectXTex\Shaders\Compiled">
-      <UniqueIdentifier>{1DCAE6D1-9C83-4314-8BB9-C05F0D66699E}</UniqueIdentifier>
+      <UniqueIdentifier>{94EC207F-E7CA-4AB3-B3D8-5AD0C8113A50}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Externals\imgui">
-      <UniqueIdentifier>{EB341762-4F85-4A4B-92A6-6A816393E6BA}</UniqueIdentifier>
+      <UniqueIdentifier>{9895CA8C-B995-435E-A91C-4A6BA4E70D97}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\ImGuiManager">
-      <UniqueIdentifier>{79E2FB5D-F408-479E-962D-F16F1422E51F}</UniqueIdentifier>
+      <UniqueIdentifier>{E14494E9-3DD7-42B8-ADE3-E0571BCB79CA}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Input">
-      <UniqueIdentifier>{ADFE6C63-C065-468A-8667-C3FF94CB92F1}</UniqueIdentifier>
+      <UniqueIdentifier>{EAF6FB3B-0537-45F0-AD1D-3A923438FA95}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Lib">
-      <UniqueIdentifier>{191895CC-A2F2-49D6-9737-CC08641DDC15}</UniqueIdentifier>
+      <UniqueIdentifier>{387C2B9E-867B-4B1B-ABB2-7C77E385C2B8}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Lib\Console">
-      <UniqueIdentifier>{CEA530D1-D969-457B-95F5-4140960382AA}</UniqueIdentifier>
+      <UniqueIdentifier>{69EC0528-C9F2-42BA-9F62-89C8C652BDE7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Lib\Math">
-      <UniqueIdentifier>{98907269-ECBF-499D-9EE1-C16BE2BCC5E2}</UniqueIdentifier>
+      <UniqueIdentifier>{6647FA3C-8F03-40A3-99BA-39728CDE2AE3}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Lib\Math\Matrix">
-      <UniqueIdentifier>{48B2F493-B902-49E8-9674-5510C69D7C03}</UniqueIdentifier>
+      <UniqueIdentifier>{E9B80BB2-A1CD-406A-B2C8-08483E84E4EC}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Lib\Math\Random">
-      <UniqueIdentifier>{90C3C0E3-A72B-4880-8C1C-9FF7EE6A119D}</UniqueIdentifier>
+      <UniqueIdentifier>{06534CB1-511C-4AB7-950B-9A3E83F32F21}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Lib\Math\Vector">
-      <UniqueIdentifier>{CA854965-C7B2-43C4-9B1A-793C573A59AD}</UniqueIdentifier>
+      <UniqueIdentifier>{4A786656-DAA9-4133-9167-5820DAB0D9E6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Lib\Structs">
-      <UniqueIdentifier>{ED3D0332-FDE6-4CD3-9C5C-81B04B661CDF}</UniqueIdentifier>
+      <UniqueIdentifier>{9BC343C6-6AA6-4E6E-BD41-F259FECD4C89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Lib\Timer">
+      <UniqueIdentifier>{B5306F6B-70A4-4231-AA6E-1536A5280AD5}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Lib\Utils">
-      <UniqueIdentifier>{FB7E7144-BDF8-47A6-BB58-FB5B47E8661E}</UniqueIdentifier>
+      <UniqueIdentifier>{810D6B75-A9DE-427B-A24F-F62DE7EF052A}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Model">
-      <UniqueIdentifier>{A85AD5DD-2079-48BB-A108-E1D21041A757}</UniqueIdentifier>
+      <UniqueIdentifier>{E65E7C43-0209-46EF-8934-A725E11B3217}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Object3D">
-      <UniqueIdentifier>{AFE73391-2C56-4024-B1AD-282BAE170C9E}</UniqueIdentifier>
+      <UniqueIdentifier>{894D4FD8-97BC-4276-A8A2-BFAB6DFBBFC0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Objects">
+      <UniqueIdentifier>{3631ABB7-D278-49C9-A415-CBCF5634345E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Particle">
+      <UniqueIdentifier>{6A2DC38D-6E64-4166-871D-E7C17F933E84}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Renderer">
-      <UniqueIdentifier>{D8A71257-0164-41BB-B26E-E813D0E7CB8C}</UniqueIdentifier>
+      <UniqueIdentifier>{EC59F162-163D-48B2-A8EA-A04DA3275374}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Sprite">
-      <UniqueIdentifier>{2F39B1AE-E069-4184-99E4-6C3089335FC9}</UniqueIdentifier>
+      <UniqueIdentifier>{2A89E8F6-9BA7-412A-BDCF-B95BC459EFEF}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\TextureManager">
-      <UniqueIdentifier>{510E7495-33A4-42D7-90A8-6262CAC453B8}</UniqueIdentifier>
+      <UniqueIdentifier>{7645E35D-965A-48E5-BC06-C777327CA52A}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Window">
-      <UniqueIdentifier>{9C1C0AA4-CF66-466A-BD99-C8B9161E534E}</UniqueIdentifier>
+      <UniqueIdentifier>{A598D643-3BFC-46F3-BE6B-8F2255EDADFA}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Game">
-      <UniqueIdentifier>{46A448EC-6BAA-4E0C-A70D-DE45F3F9C214}</UniqueIdentifier>
+      <UniqueIdentifier>{0887F467-2568-43AD-BA9B-FDAAE4E997AF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Game\Objects">
+      <UniqueIdentifier>{03D47B15-9FF5-4C25-B20B-1CAC07032B8A}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -174,6 +183,15 @@
     <ClInclude Include="Source\Engine\Lib\Console\ConVar.h">
       <Filter>Source\Engine\Lib\Console</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h">
+      <Filter>Source\Engine\Lib\Console</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h">
+      <Filter>Source\Engine\Lib\Console</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Lib\Console\IConVar.h">
+      <Filter>Source\Engine\Lib\Console</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Lib\Math\MathLib.h">
       <Filter>Source\Engine\Lib\Math</Filter>
     </ClInclude>
@@ -195,6 +213,9 @@
     <ClInclude Include="Source\Engine\Lib\Structs\Structs.h">
       <Filter>Source\Engine\Lib\Structs</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Lib\Timer\EngineTimer.h">
+      <Filter>Source\Engine\Lib\Timer</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Lib\Utils\ClientProperties.h">
       <Filter>Source\Engine\Lib\Utils</Filter>
     </ClInclude>
@@ -215,6 +236,15 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h">
       <Filter>Source\Engine\Object3D</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Objects\Empty.h">
+      <Filter>Source\Engine\Objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Particle\ParticleCommon.h">
+      <Filter>Source\Engine\Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Particle\ParticleObject.h">
+      <Filter>Source\Engine\Particle</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h">
       <Filter>Source\Engine\Renderer</Filter>
@@ -241,6 +271,9 @@
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h">
+      <Filter>Source\Engine\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Renderer\SrvManager.h">
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\Swapchain.h">
@@ -270,18 +303,9 @@
     <ClInclude Include="Source\Game\IGameScene.h">
       <Filter>Source\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Camera\Camera.h" />
-    <ClInclude Include="Source\Engine\Lib\Timer\EngineTimer.h" />
-    <ClInclude Include="Source\Engine\Objects\Empty.h" />
-    <ClInclude Include="Source\Engine\Renderer\SrvManager.h" />
-    <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
-    <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\IConVar.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\main.cpp">
+    <ClCompile Include="Source\WinMain.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Engine.cpp">
@@ -323,6 +347,9 @@
     <ClCompile Include="Source\Engine\Lib\Console\ConVar.cpp">
       <Filter>Source\Engine\Lib\Console</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Lib\Console\ConVarManager.cpp">
+      <Filter>Source\Engine\Lib\Console</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Lib\Math\MathLib.cpp">
       <Filter>Source\Engine\Lib\Math</Filter>
     </ClCompile>
@@ -341,6 +368,9 @@
     <ClCompile Include="Source\Engine\Lib\Structs\Structs.cpp">
       <Filter>Source\Engine\Lib\Structs</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp">
+      <Filter>Source\Engine\Lib\Timer</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Model\Model.cpp">
       <Filter>Source\Engine\Model</Filter>
     </ClCompile>
@@ -355,6 +385,15 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp">
       <Filter>Source\Engine\Object3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Objects\Empty.cpp">
+      <Filter>Source\Engine\Objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp">
+      <Filter>Source\Engine\Particle</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp">
+      <Filter>Source\Engine\Particle</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp">
       <Filter>Source\Engine\Renderer</Filter>
@@ -378,6 +417,9 @@
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\RootSignatureManager.cpp">
+      <Filter>Source\Engine\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp">
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\Swapchain.cpp">
@@ -404,13 +446,6 @@
     <ClCompile Include="Source\Game\GameScene.cpp">
       <Filter>Source\Game</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
-    <ClCompile Include="Source\Engine\Objects\Empty.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
-    <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
-    <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Console\ConVarManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl" />

@@ -45,7 +45,7 @@ void GameScene::Init(
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
+	sprite_->SetSize({512.0f, 512.0f, 0.0f});
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -56,7 +56,7 @@ void GameScene::Init(
 	object3D_->Init(object3DCommon_, modelCommon_);
 	// 初期化済みの3Dオブジェクトにモデルを紐づける
 	object3D_->SetModel("axis.obj");
-	object3D_->SetPos({ 1.0f, -0.3f, 0.6f });
+	object3D_->SetPos({1.0f, -0.3f, 0.6f});
 #pragma endregion
 
 #pragma region パーティクル類

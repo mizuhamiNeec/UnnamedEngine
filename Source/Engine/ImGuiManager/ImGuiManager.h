@@ -27,9 +27,7 @@ public:
 	void Shutdown();
 
 private:
-	bool isDarkMode = false;
-
-	std::vector<ColorTransition> colorTransitions;
+	static void StyleColorsDark(ImGuiStyle* dst = nullptr);
 
 	const D3D12* renderer_ = nullptr;
 	const SrvManager* srvManager_ = nullptr;

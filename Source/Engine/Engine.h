@@ -27,6 +27,7 @@ private:
 	void Update() const;
 	void Shutdown() const;
 
+	static void RegisterConsoleCommandsAndVariables();
 	static void Quit(const std::vector<std::string>& args = {});
 
 private:

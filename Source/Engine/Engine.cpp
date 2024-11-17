@@ -37,25 +37,12 @@ void Engine::Run() {
 
 void Engine::Init() {
 #ifdef _DEBUG
-	// コンソールコマンドを登録
-	Console::RegisterCommand("clear", Console::Clear);
-	Console::RegisterCommand("cls", Console::Clear);
-	Console::RegisterCommand("help", Console::Help);
-	Console::RegisterCommand("toggleconsole", Console::ToggleConsole);
-	Console::RegisterCommand("quit", Quit);
-	// コンソール変数を登録
-	ConVarManager& conVarManager = ConVarManager::GetInstance();
-	conVarManager.RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
-	conVarManager.RegisterConVar<int>("cl_showfps", 1, "Draw fps meter (1 = fps)");
-	conVarManager.RegisterConVar<int>("cl_maxfps", kMaxFPS, "Maximum number of frames per second");
+	RegisterConsoleCommandsAndVariables();
 #endif
 
 	// ウィンドウの作成
 	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
-	// ウィンドウの作成を試みる
-	if (!window_->Create(nullptr)) {
-		assert(false && "ウィンドウの作成に失敗しました。");
-	}
+	window_->Create(nullptr);
 
 	// レンダラ
 	renderer_ = std::make_unique<D3D12>();
@@ -135,8 +122,8 @@ void Engine::Init() {
 
 void Engine::Update() const {
 #ifdef _DEBUG
-	imGuiManager_->NewFrame();
-	console_->Update();
+	ImGuiManager::NewFrame();
+	Console::Update();
 #endif
 
 	time_->Update();
@@ -246,6 +233,20 @@ void Engine::Shutdown() const {
 		imGuiManager_->Shutdown();
 	}
 #endif
+}
+
+void Engine::RegisterConsoleCommandsAndVariables() {
+	// コンソールコマンドを登録
+	Console::RegisterCommand("clear", Console::Clear);
+	Console::RegisterCommand("cls", Console::Clear);
+	Console::RegisterCommand("help", Console::Help);
+	Console::RegisterCommand("toggleconsole", Console::ToggleConsole);
+	Console::RegisterCommand("quit", Quit);
+	// コンソール変数を登録
+	ConVarManager& conVarManager = ConVarManager::GetInstance();
+	conVarManager.RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
+	conVarManager.RegisterConVar<int>("cl_showfps", 1, "Draw fps meter (1 = fps)");
+	conVarManager.RegisterConVar<int>("cl_maxfps", kMaxFPS, "Maximum number of frames per second");
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
