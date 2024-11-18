@@ -13,6 +13,18 @@ bool Math::IsCollision(const AABB& aabb, const Vec3& point) {
 		);
 }
 
+bool Math::Clamp(float& value, const float& min, const float& max) {
+	bool clamped = false;
+	if (value < min) {
+		value = min;
+		clamped = true;
+	} else if (value > max) {
+		value = max;
+		clamped = true;
+	}
+	return clamped;
+}
+
 Vec3 Math::Lerp(const Vec3& a, const Vec3& b, const float t) {
 	return a * (1 - t) + b * t;
 }

@@ -7,6 +7,8 @@
 
 #include "Vec2.h"
 
+#include "../MathLib.h"
+
 const Vec3 Vec3::zero(0.0f, 0.0f, 0.0f);
 const Vec3 Vec3::one(1.0f, 1.0f, 1.0f);
 const Vec3 Vec3::right(1.0f, 0.0f, 0.0f);
@@ -46,7 +48,7 @@ float Vec3::Dot(const Vec3& other) const {
 }
 
 Vec3 Vec3::Cross(const Vec3& other) const {
-	return {y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x};
+	return { y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x };
 }
 
 bool Vec3::IsZero(const float tolerance) const {
@@ -65,28 +67,31 @@ void Vec3::Normalize() {
 Vec3 Vec3::Normalized() const {
 	const float len = Length();
 	if (len > 0) {
-		return {x / len, y / len, z / len};
+		return { x / len, y / len, z / len };
 	}
 	return zero;
 }
 
-void Vec3::Clamp(const Vec3 min, const Vec3 max) {
-	x = std::clamp(x, min.x, max.x);
-	y = std::clamp(y, min.y, max.y);
-	z = std::clamp(z, min.z, max.z);
+bool Vec3::Clamp(const Vec3 min, const Vec3 max) {
+	Vec3 value = *this;
+	bool clamped = Math::Clamp(value.x, min.x, max.x) ||
+		Math::Clamp(value.y, min.y, max.y) ||
+		Math::Clamp(value.z, min.z, max.z);
+	*this = value;
+	return clamped;
 }
 
 Vec3 Vec3::ClampLength(const float min, const float max) {
 	const float sqrLength = SqrLength();
 	if (sqrLength > max * max) {
 		const float scale = max / std::sqrt(sqrLength);
-		return {x * scale, y * scale, z * scale};
+		return { x * scale, y * scale, z * scale };
 	}
 	if (sqrLength < min * min) {
 		const float scale = min / std::sqrt(sqrLength);
-		return {x * scale, y * scale, z * scale};
+		return { x * scale, y * scale, z * scale };
 	}
-	return {x, y, z};
+	return { x, y, z };
 }
 
 Vec3 Vec3::Reflect(const Vec3& normal) const {
@@ -116,35 +121,35 @@ const float& Vec3::operator[](const uint32_t index) const {
 }
 
 Vec3 Vec3::operator+(const Vec3& rhs) const {
-	return {x + rhs.x, y + rhs.y, z + rhs.z};
+	return { x + rhs.x, y + rhs.y, z + rhs.z };
 }
 
 Vec3 Vec3::operator-(const Vec3& rhs) const {
-	return {x - rhs.x, y - rhs.y, z - rhs.z};
+	return { x - rhs.x, y - rhs.y, z - rhs.z };
 }
 
 Vec3 Vec3::operator*(const float rhs) const {
-	return {x * rhs, y * rhs, z * rhs};
+	return { x * rhs, y * rhs, z * rhs };
 }
 
 Vec3 Vec3::operator/(const float rhs) const {
-	return {x / rhs, y / rhs, z / rhs};
+	return { x / rhs, y / rhs, z / rhs };
 }
 
 Vec3 Vec3::operator+(const float& rhs) const {
-	return {x + rhs, y + rhs, z + rhs};
+	return { x + rhs, y + rhs, z + rhs };
 }
 
 Vec3 Vec3::operator-(const float& rhs) const {
-	return {x - rhs, y - rhs, z - rhs};
+	return { x - rhs, y - rhs, z - rhs };
 }
 
 Vec3 Vec3::operator*(const Vec3& rhs) const {
-	return {x * rhs.x, y * rhs.y, z * rhs.z};
+	return { x * rhs.x, y * rhs.y, z * rhs.z };
 }
 
 Vec3 Vec3::operator/(const Vec3& rhs) const {
-	return {x / rhs.x, y / rhs.y, z / rhs.z};
+	return { x / rhs.x, y / rhs.y, z / rhs.z };
 }
 
 Vec3& Vec3::operator+=(const Vec3& rhs) {
@@ -176,17 +181,17 @@ Vec3& Vec3::operator/=(const float rhs) {
 }
 
 Vec3 operator+(const float lhs, const Vec3& rhs) {
-	return {rhs.x + lhs, rhs.y + lhs, rhs.z + lhs};
+	return { rhs.x + lhs, rhs.y + lhs, rhs.z + lhs };
 }
 
 Vec3 operator-(const float lhs, const Vec3& rhs) {
-	return {rhs.x - lhs, rhs.y - lhs, rhs.z - lhs};
+	return { rhs.x - lhs, rhs.y - lhs, rhs.z - lhs };
 }
 
 Vec3 operator*(const float lhs, const Vec3& rhs) {
-	return {rhs.x * lhs, rhs.y * lhs, rhs.z * lhs};
+	return { rhs.x * lhs, rhs.y * lhs, rhs.z * lhs };
 }
 
 Vec3 operator/(const float lhs, const Vec3& rhs) {
-	return {rhs.x / lhs, rhs.y / lhs, rhs.z / lhs};
+	return { rhs.x / lhs, rhs.y / lhs, rhs.z / lhs };
 }

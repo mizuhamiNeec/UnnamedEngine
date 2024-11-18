@@ -83,21 +83,21 @@ void Sprite::Update() {
 	}
 
 	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureFilePath_);
-	float texLeft = textureLeftTop.x / static_cast<float>(metadata.width);
-	float texRight = (textureLeftTop.x + textureSize.x) / static_cast<float>(metadata.width);
-	float texTop = textureLeftTop.y / static_cast<float>(metadata.height);
-	float texBottom = (textureLeftTop.y + textureSize.y) / static_cast<float>(metadata.height);
+	float texLeft = cropTopLeft.x / static_cast<float>(metadata.width);
+	float texRight = cropBottomRight.x / static_cast<float>(metadata.width);
+	float texTop = cropTopLeft.y / static_cast<float>(metadata.height);
+	float texBottom = cropBottomRight.y / static_cast<float>(metadata.height);
 
 	vertices_[0].position = { left, bottom, 0.0f, 1.0f }; // 左下
 	vertices_[1].position = { left, top, 0.0f, 1.0f }; // 左上
 	vertices_[2].position = { right, bottom, 0.0f, 1.0f }; // 右下
 	vertices_[4].position = { right, top, 0.0f, 1.0f }; // 右上
 
+
 	vertices_[0].uv = { texLeft, texBottom };
 	vertices_[1].uv = { texLeft, texTop };
 	vertices_[2].uv = { texRight, texBottom };
 	vertices_[4].uv = { texRight, texTop };
-
 
 	vertexBuffer_->Update(vertices_.data(), kSpriteVertexCount);
 	indexBuffer_->Update(indices, kSpriteVertexCount);
@@ -200,6 +200,10 @@ float Sprite::GetUvRot() const {
 	return uvTransform_.rotate.z;
 }
 
+Vec2 Sprite::GetCropTopLeft() const { return cropTopLeft; }
+
+Vec2 Sprite::GetCropBottomRight() const { return cropBottomRight; }
+
 void Sprite::SetPos(const Vec3& newPos) {
 	transform_.translate = newPos;
 }
@@ -252,6 +256,8 @@ void Sprite::SetUvRot(const float& newRot) {
 	uvTransform_.rotate.z = newRot;
 }
 
+void Sprite::SetCropBottomRight(const Vec2& newCropBottomRight) { cropBottomRight = newCropBottomRight; }
+
 void Sprite::AdjustTextureSize() {
 	// テクスチャメタデータを取得
 	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureFilePath_);
@@ -259,4 +265,9 @@ void Sprite::AdjustTextureSize() {
 	// 画像サイズをテクスチャサイズに合わせる
 	textureSize.x = static_cast<float>(metadata.width);
 	textureSize.y = static_cast<float>(metadata.height);
+
+	transform_.scale.x = textureSize.x;
+	transform_.scale.y = textureSize.y;
+
+	cropBottomRight = textureSize;
 }

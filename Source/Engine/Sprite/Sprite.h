@@ -35,6 +35,8 @@ public:
 	Vec2 GetUvPos();
 	Vec2 GetUvSize();
 	float GetUvRot() const;
+	Vec2 GetCropTopLeft() const;
+	Vec2 GetCropBottomRight() const;
 
 	// Setter
 	void SetPos(const Vec3& newPos);
@@ -49,6 +51,8 @@ public:
 	void SetUvPos(const Vec2& newPos);
 	void SetUvSize(const Vec2& newSize);
 	void SetUvRot(const float& newRot);
+	void SetCropTopLeft(const Vec2& newCropTopLeft);
+	void SetCropBottomRight(const Vec2& newCropBottomRight);
 
 private:
 	// テクスチャサイズをイメージに合わせる
@@ -57,7 +61,7 @@ private:
 private:
 	SpriteCommon* spriteCommon_ = nullptr;
 
-	Vec2 anchorPoint_ = {0.0f, 0.0f};
+	Vec2 anchorPoint_ = { 0.0f, 0.0f };
 
 	Transform transform_;
 	Transform uvTransform_;
@@ -68,8 +72,10 @@ private:
 	bool isFlipY_ = false;
 
 	// テクスチャ左上座標
-	Vec2 textureLeftTop = {0.0f, 0.0f};
-	Vec2 textureSize = {100.0f, 100.0f};
+	Vec2 textureLeftTop = Vec2::zero;
+	Vec2 textureSize = { 100.0f, 100.0f };
+	Vec2 cropTopLeft = Vec2::zero;
+	Vec2 cropBottomRight = { 1.0f,1.0f };
 
 	// テクスチャ番号
 	std::string textureFilePath_;
@@ -92,3 +98,5 @@ private:
 	Material* materialData_ = nullptr;
 	TransformationMatrix* transformationMatrixData_ = nullptr;
 };
+
+inline void Sprite::SetCropTopLeft(const Vec2& newCropTopLeft) { cropTopLeft = newCropTopLeft; }

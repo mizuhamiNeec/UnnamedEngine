@@ -19,6 +19,7 @@ namespace Math {
 
 	bool IsCollision(const AABB& aabb, const Vec3& point);
 
+	bool Clamp(float& value, const float& min, const float& max);
 	Vec3 Lerp(const Vec3& a, const Vec3& b, float t);
 	Vec3 CatmullRom(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, float t);
 	Vec3 CatmullRomPosition(const std::vector<Vec3>& points, float t);

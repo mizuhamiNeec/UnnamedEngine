@@ -147,13 +147,12 @@ void Engine::Update() {
 		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight())
 	);
 
+#ifdef _DEBUG // cl_showfps
 	ImGui::Begin("Window");
 	ImGui::Text("Width : %d", window_->GetClientWidth());
 	ImGui::Text("Height : %d", window_->GetClientHeight());
 
 	ImGui::End();
-
-#ifdef _DEBUG // cl_showfps
 
 	if (ConVars::GetInstance().GetConVar("cl_showfps")->GetInt() == 1) {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });

@@ -1,5 +1,6 @@
 #include "GameScene.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -63,17 +64,17 @@ void LoadChildObject(LevelData* levelData, const nlohmann::json& child) {
 			objectData.position = {
 				transform["translation"][0], transform["translation"][2], transform["translation"][1]
 			};
-			objectData.rotation = {transform["rotation"][0], transform["rotation"][1], transform["rotation"][2]};
+			objectData.rotation = { transform["rotation"][0], transform["rotation"][1], transform["rotation"][2] };
 			objectData.rotation *= -1.0f * Math::deg2Rad;
-			objectData.scale = {transform["scaling"][0], transform["scaling"][2], transform["scaling"][1]};
+			objectData.scale = { transform["scaling"][0], transform["scaling"][2], transform["scaling"][1] };
 		}
 
 		// コライダーのパラメータ読み込み
 		if (child.contains("collider")) {
 			auto& collider = child["collider"];
 			objectData.colliderType = collider["type"].get<std::string>();
-			objectData.colliderCenter = {collider["center"][0], collider["center"][2], collider["center"][1]};
-			objectData.colliderSize = {collider["size"][0], collider["size"][2], collider["size"][1]};
+			objectData.colliderCenter = { collider["center"][0], collider["center"][2], collider["center"][1] };
+			objectData.colliderSize = { collider["size"][0], collider["size"][2], collider["size"][1] };
 		}
 	}
 
@@ -150,7 +151,7 @@ void LoadFile(const std::string& relativePath) {
 						point["x"].get<float>(),
 						point["z"].get<float>(),
 						point["y"].get<float>()
-					});
+						});
 				}
 			}
 		}
@@ -188,13 +189,27 @@ void GameScene::Init(
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/reticle.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/mato.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/axis.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/white.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/gaugeFrame.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/gaugeBar.png");
 #pragma endregion
 
 #pragma region スプライト類
-	sprite_ = std::make_unique<Sprite>();
-	sprite_->Init(spriteCommon_, "./Resources/Textures/reticle.png");
-	sprite_->SetSize({64.0f, 64.0f, 0.0f});
-	sprite_->SetAnchorPoint({0.5f, 0.5f});
+	reticleSprite_ = std::make_unique<Sprite>();
+	reticleSprite_->Init(spriteCommon_, "./Resources/Textures/reticle.png");
+	reticleSprite_->SetSize({ 64.0f, 64.0f, 0.0f });
+	reticleSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+
+	gaugeFrame_ = std::make_unique<Sprite>();
+	gaugeFrame_->Init(spriteCommon_, "./Resources/Textures/gaugeFrame.png");
+	gaugeFrame_->SetAnchorPoint({ 0.0f,1.0f });
+	gaugeFrame_->SetPos({ 64.0f, kClientHeight - 64.0f });
+
+	gaugeBar_ = std::make_unique<Sprite>();
+	gaugeBar_->Init(spriteCommon_, "./Resources/Textures/gaugeBar.png");
+	gaugeBar_->SetAnchorPoint({ 0.0f,1.0f });
+	gaugeBar_->SetPos(gaugeFrame_->GetPos() + Vec2(4.0f, -4.0f));
+	gaugeBar_->SetCropBottomRight({ 24.0f,248.0f });
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -204,7 +219,7 @@ void GameScene::Init(
 	object3D_->Init(object3DCommon_, modelCommon_);
 	// 初期化済みの3Dオブジェクトにモデルを紐づける
 	object3D_->SetModel("cart.obj");
-	object3D_->SetPos({0.0f, 0.0f, 0.0f});
+	object3D_->SetPos({ 0.0f, 0.0f, 0.0f });
 
 	ModelManager::GetInstance()->LoadModel("axis.obj");
 	axis_ = std::make_unique<Object3D>();
@@ -215,6 +230,7 @@ void GameScene::Init(
 	line_ = std::make_unique<Object3D>();
 	line_->Init(object3DCommon_, modelCommon_);
 	line_->SetModel("line.obj");
+	line_->SetLighting(false);
 #pragma endregion
 
 #pragma region パーティクル類
@@ -226,13 +242,13 @@ void GameScene::Init(
 	sky_ = std::make_unique<Object3D>();
 	sky_->Init(object3DCommon_, modelCommon_);
 	sky_->SetModel("sky.obj");
-	sky_->SetPos({0.0f, 0.0f, 0.0f});
+	sky_->SetPos({ 0.0f, 0.0f, 0.0f });
 	sky_->SetLighting(false);
 
 	player_ = std::make_unique<Player>();
 	player_->Init(object3DCommon_, modelCommon_);
 	player_->SetModel("axis.obj");
-	player_->SetPos({0.0f, 0.0f, 0.0f});
+	player_->SetPos({ 0.0f, 0.0f, 0.0f });
 	player_->Initialize();
 
 	ModelManager::GetInstance()->LoadModel("world.obj");
@@ -272,7 +288,9 @@ void GameScene::Init(
 	PlaceRailsAlongSpline();
 
 	railMover_ = std::make_unique<RailMover>();
-	railMover_->Initialize(object3D_.get(), controlPoints, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f});
+	railMover_->Initialize(object3D_.get(), controlPoints, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f });
+
+	reticlePos_ = { kClientWidth * 0.5f, kClientHeight * 0.5f, 0.0f };
 }
 
 bool IntersectRaySphere(const Vec3& rayOrigin, const Vec3& rayDir, const Vec3& sphereCenter, float sphereRadius) {
@@ -310,27 +328,103 @@ Vec3 ScreenToWorldAtDepth(const Vec3 screenPos, Camera* camera, const float kDis
 	return (cameraPos + finalRayDir * kDistanceFromCamera);
 }
 
-
 void GameScene::Update(const float& deltaTime) {
-	reticleMoveDir = Vec3::zero;
-	if (Input::GetInstance()->PushKey(DIK_W)) {
-		reticleMoveDir.y--;
-	}
-	else if (Input::GetInstance()->PushKey(DIK_S)) {
-		reticleMoveDir.y++;
+	// 発射しているかどうかの判定
+	isShooting = Input::GetInstance()->PushKey(DIK_SPACE) || Input::GetInstance()->PushKey(DIK_RETURN);
+
+	// 発射していない場合、熱量が回復する
+	if (!isShooting && !isOverheated) {
+		heat = min(kMaxHeat, heat + deltaTime * 10.0f); // 最大熱量を超えないように
 	}
 
-	if (Input::GetInstance()->PushKey(DIK_D)) {
-		reticleMoveDir.x++;
-	}
-	else if (Input::GetInstance()->PushKey(DIK_A)) {
-		reticleMoveDir.x--;
+	// オーバーヒート中の処理
+	if (isOverheated) {
+		// 一定時間経過したらオーバーヒートを解除
+		if (currentTime_ >= overheatStartTime + kOverheatPenaltyTime) {
+			isOverheated = false;
+		}
 	}
 
-	reticlePos += reticleMoveDir.Normalized() * reticleMoveSpd * deltaTime;
-	reticlePos.Clamp(Vec3::zero, {static_cast<float>(kClientWidth), static_cast<float>(kClientHeight), 0.0f});
+	// 発射中の処理
+	if (isShooting && !isOverheated) {
+		if (!isOverheated && heat > kMinHeat) {
+			lastShootTime = currentTime_; // 最後に発射した時間を更新
+			heat -= 0.125f; // 発射する度に熱量を減少
 
-	sprite_->SetPos(reticlePos);
+			// 熱量が0になったらオーバーヒート
+			if (heat <= kMinHeat) {
+				isOverheated = true;
+				overheatStartTime = currentTime_; // オーバーヒート開始時間を記録
+				isShooting = false;
+			}
+		} else {
+			isShooting = false;
+		}
+	} else {
+		isShooting = false;
+	}
+
+	// 現在の時間を進める
+	currentTime_ += deltaTime;
+
+	reticleMoveInput_ = Vec3::zero;
+	if (Input::GetInstance()->PushKey(DIK_W) && !Input::GetInstance()->PushKey(DIK_S)) {
+		reticleMoveInput_.y--;
+	} else if (!Input::GetInstance()->PushKey(DIK_W) && Input::GetInstance()->PushKey(DIK_S)) {
+		reticleMoveInput_.y++;
+	}
+
+	if (Input::GetInstance()->PushKey(DIK_D) && !Input::GetInstance()->PushKey(DIK_A)) {
+		reticleMoveInput_.x++;
+	} else if (!Input::GetInstance()->PushKey(DIK_D) && Input::GetInstance()->PushKey(DIK_A)) {
+		reticleMoveInput_.x--;
+	}
+	reticleMoveInput_.Normalize();
+
+	// 摩擦係数と加速係数
+	const float acceleration = 10.0f; // 加速係数 (0～1で設定)
+
+	// 加速処理
+	float currentSpeed = reticleMoveVel_.Dot(reticleMoveInput_); // 現在の速度成分
+	float addSpeed = reticleMoveSpd_ - currentSpeed; // 加速する必要のある速度
+
+	if (addSpeed > 0.0f) {
+		float accelSpeed = acceleration * deltaTime * reticleMoveSpd_; // 加速係数(0.1fは調整可能)
+		if (accelSpeed > addSpeed) {
+			accelSpeed = addSpeed; // 必要以上の加速を抑制
+		}
+
+		// 加速を適用
+		reticleMoveVel_ += reticleMoveInput_ * accelSpeed;
+	}
+
+	// 摩擦��用
+	float speed = reticleMoveVel_.Length();
+	if (speed > 0.001f) {
+		float friction = 8.0f; // 摩擦係数
+		float control = (speed < 1.0f) ? 1.0f : speed; // 最小速度制御値 (任意で調整可能)
+		float drop = control * friction * deltaTime;
+
+		// 新しい速度を計算
+		float newSpeed = speed - drop;
+		newSpeed = max(newSpeed, 0.0f);
+
+		// ベクトル全体にスケール適用
+		reticleMoveVel_ *= newSpeed / speed;
+	}
+
+	// 位置を更新
+	reticlePos_ += reticleMoveVel_ * deltaTime;
+
+	// 画面端に到達したらその軸の速度を0に
+	for (int i = 0; i < 2; ++i) {
+		if (Math::Clamp(reticlePos_[i], 0, static_cast<float>(i == 0 ? kClientWidth : kClientHeight))) {
+			reticleMoveVel_[i] = 0.0f;
+		}
+	}
+
+	// スプライトの位置を設定
+	reticleSprite_->SetPos(reticlePos_);
 
 	Vec3 cameraPos;
 	{
@@ -357,7 +451,7 @@ void GameScene::Update(const float& deltaTime) {
 	}
 
 	{
-		Vec3 offset(0.0f, 0.0f, 5.0f);
+		Vec3 offset(0.0f, 0.0f, 1.0f);
 		Mat4 rotationMatrixX = Mat4::RotateX(object3D_->GetRot().x);
 		Mat4 rotationMatrixY = Mat4::RotateY(object3D_->GetRot().y);
 		Mat4 rotMat = rotationMatrixX * rotationMatrixY;
@@ -365,10 +459,18 @@ void GameScene::Update(const float& deltaTime) {
 		line_->SetPos(object3D_->GetPos() + rotatedOffset);
 	}
 
-	Vec3 direction = axis_->GetPos() - line_->GetPos();
-	//float pitch = std::asin(-direction.y / direction.Length());
-	float yaw = std::atan2(direction.x, direction.z);
-	line_->SetRot({0.0f, yaw, 0.0f});
+	Vec3 direction = (axis_->GetPos() - line_->GetPos()).Normalized();
+	Vec3 rot;
+	// ヨー
+	rot.y = atan2(direction.x, direction.z);
+
+	// ピッチ
+	rot.x = -atan2(direction.y, sqrt(direction.x * direction.x + direction.z * direction.z));
+
+	// ロールはさせない
+	rot.z = 0.0f;
+	line_->SetScale({ 4.0f,0.1f,(axis_->GetPos() - line_->GetPos()).Length() });
+	line_->SetRot(rot);
 
 	{
 		const float kDistanceFromCamera = 40.0f;
@@ -377,7 +479,7 @@ void GameScene::Update(const float& deltaTime) {
 		Camera* camera = object3DCommon_->GetDefaultCamera();
 
 		// スクリーン座標をワールド座標に変換
-		Vec3 screenPos(reticlePos.x, reticlePos.y, 0.0f);
+		Vec3 screenPos(reticlePos_.x, reticlePos_.y, 0.0f);
 		Vec3 worldPos = ScreenToWorldAtDepth(screenPos, camera, kDistanceFromCamera);
 
 		// 照準オブジェクトを配置
@@ -393,19 +495,21 @@ void GameScene::Update(const float& deltaTime) {
 
 	world_->Update();
 
-	sprite_->Update();
+	reticleSprite_->Update();
 
 	line_->Update();
 
-	for (const std::unique_ptr<Object3D>& mato : mato_) {
-		// 衝突判定処理（線分と球の当たり判定）
-		if (IsLineSphereColliding(cameraPos, axis_->GetPos(), mato->GetPos(), 1.0f)) {
-			mato->SetVisible(false);
+	if (isShooting) {
+		for (const std::unique_ptr<Object3D>& mato : mato_) {
+			// 衝突判定処理（線分と球の当たり判定）
+			if (IsLineSphereColliding(cameraPos, axis_->GetPos(), mato->GetPos(), 1.0f)) {
+				mato->SetVisible(false);
+			}
 		}
 	}
 
 	//// 残りのオブジェクトを更新
-	//sprite_->Update();
+	//reticleSprite_->Update();
 	//particle_->Update(deltaTime);
 	sky_->Update();
 	//player_->Update();
@@ -425,10 +529,40 @@ void GameScene::Update(const float& deltaTime) {
 		poll->Update();
 	}
 
+
+#ifdef _DEBUG 
+	ImGui::Begin("Test");
+	Vec2 leftTop = gaugeBar_->GetTextureLeftTop();
+	if (ImGui::DragFloat2("lefttop", &leftTop.x, 1.0f)) {
+		gaugeBar_->SetTextureLeftTop(leftTop);
+	}
+	// クロップ用の変数を追加
+	Vec2 cropTopLeft = gaugeBar_->GetCropTopLeft();
+	Vec2 cropBottomRight = gaugeBar_->GetCropBottomRight();
+	if (ImGui::DragFloat2("Crop Top Left", &cropTopLeft.x, 1.0f)) {
+		gaugeBar_->SetCropTopLeft(cropTopLeft);
+	}
+	if (ImGui::DragFloat2("Crop Bottom Right", &cropBottomRight.x, 1.0f)) {
+		gaugeBar_->SetCropBottomRight(cropBottomRight);
+	}
+
+	Vec3 size = gaugeBar_->GetSize();
+	if (ImGui::DragFloat2("scale", &size.x, 1.0f)) {
+		gaugeBar_->SetSize(size);
+	}
+	ImGui::End();
+#endif
+
+	float gaugeRatio = heat / kMaxHeat;
+	gaugeBar_->SetSize({ gaugeBar_->GetSize().x, gaugeBar_->GetTextureSize().y * gaugeRatio });
+
+	gaugeFrame_->Update();
+	gaugeBar_->Update();
+
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 		const ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
@@ -496,11 +630,13 @@ void GameScene::Render() {
 
 	object3D_->Draw();
 
-	axis_->Draw();
+	//axis_->Draw();
 
 	world_->Draw();
 
-	line_->Draw();
+	if (isShooting) {
+		line_->Draw();
+	}
 
 	// player_->Draw();
 
@@ -530,7 +666,9 @@ void GameScene::Render() {
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
-	sprite_->Draw();
+	reticleSprite_->Draw();
+	gaugeFrame_->Draw();
+	gaugeBar_->Draw();
 }
 
 void GameScene::Shutdown() {
@@ -589,12 +727,10 @@ void GameScene::PlaceRailsAlongSpline() {
 		if (i == 0) {
 			Vec3 nextPosition = Math::CatmullRomPosition(controlPoints, currentT + delta);
 			tangent = (nextPosition - railPosition).Normalized();
-		}
-		else if (i == numRails - 1) {
+		} else if (i == numRails - 1) {
 			Vec3 prevPosition = Math::CatmullRomPosition(controlPoints, currentT - delta);
 			tangent = (railPosition - prevPosition).Normalized();
-		}
-		else {
+		} else {
 			Vec3 prevPosition = Math::CatmullRomPosition(controlPoints, currentT - delta);
 			Vec3 nextPosition = Math::CatmullRomPosition(controlPoints, currentT + delta);
 			tangent = (nextPosition - prevPosition).Normalized();
@@ -609,7 +745,7 @@ void GameScene::PlaceRailsAlongSpline() {
 		// 接線ベクトルから回転を計算
 		float pitch = std::asin(-tangent.y);
 		float yaw = std::atan2(tangent.x, tangent.z);
-		rail->SetRot({pitch, yaw, 0.0f});
+		rail->SetRot({ pitch, yaw, 0.0f });
 
 		// レールをシーンに追加
 		rails_.push_back(std::move(rail));
@@ -617,7 +753,7 @@ void GameScene::PlaceRailsAlongSpline() {
 }
 
 bool GameScene::IsLineSphereColliding(const Vec3& lineStart, const Vec3& lineEnd, const Vec3& sphereCenter,
-                                      float sphereRadius) {
+	float sphereRadius) {
 	// 線分の方向ベクトル
 	Vec3 lineDirection = lineEnd - lineStart;
 	float lineLengthSq = lineDirection.SqrLength();
@@ -633,12 +769,10 @@ bool GameScene::IsLineSphereColliding(const Vec3& lineStart, const Vec3& lineEnd
 	if (t < 0.0f) {
 		// 線分の始点が最近接点
 		closestPoint = lineStart;
-	}
-	else if (t > 1.0f) {
+	} else if (t > 1.0f) {
 		// 線分の終点が最近接点
 		closestPoint = lineEnd;
-	}
-	else {
+	} else {
 		// 線分上の点が最近接点
 		closestPoint = lineStart + lineDirection * t;
 	}
