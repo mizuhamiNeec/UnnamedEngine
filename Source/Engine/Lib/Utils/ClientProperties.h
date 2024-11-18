@@ -15,7 +15,7 @@ constexpr int32_t kClientHeight = 720;
 //-----------------------------------------------------------------------------
 constexpr uint32_t kFrameBufferCount = 2; // バックバッファの数 TODO: 引数などで変更
 constexpr uint32_t kMaxSrvCount = 512;
-constexpr bool kEnableVerticalSync = true; // 垂直同期
+constexpr bool kEnableVerticalSync = false; // 垂直同期
 constexpr float kMaxFPS = 256.0f;
 
 //-----------------------------------------------------------------------------

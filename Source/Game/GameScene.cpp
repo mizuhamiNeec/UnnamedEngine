@@ -63,17 +63,17 @@ void LoadChildObject(LevelData* levelData, const nlohmann::json& child) {
 			objectData.position = {
 				transform["translation"][0], transform["translation"][2], transform["translation"][1]
 			};
-			objectData.rotation = { transform["rotation"][0], transform["rotation"][1], transform["rotation"][2] };
+			objectData.rotation = {transform["rotation"][0], transform["rotation"][1], transform["rotation"][2]};
 			objectData.rotation *= -1.0f * Math::deg2Rad;
-			objectData.scale = { transform["scaling"][0], transform["scaling"][2], transform["scaling"][1] };
+			objectData.scale = {transform["scaling"][0], transform["scaling"][2], transform["scaling"][1]};
 		}
 
 		// コライダーのパラメータ読み込み
 		if (child.contains("collider")) {
 			auto& collider = child["collider"];
 			objectData.colliderType = collider["type"].get<std::string>();
-			objectData.colliderCenter = { collider["center"][0], collider["center"][2], collider["center"][1] };
-			objectData.colliderSize = { collider["size"][0], collider["size"][2], collider["size"][1] };
+			objectData.colliderCenter = {collider["center"][0], collider["center"][2], collider["center"][1]};
+			objectData.colliderSize = {collider["size"][0], collider["size"][2], collider["size"][1]};
 		}
 	}
 
@@ -150,7 +150,7 @@ void LoadFile(const std::string& relativePath) {
 						point["x"].get<float>(),
 						point["z"].get<float>(),
 						point["y"].get<float>()
-						});
+					});
 				}
 			}
 		}
@@ -164,25 +164,6 @@ Vec4 MultiplyMat4Vec4(const Mat4& mat, const Vec4& vec) {
 	result.z = mat.m[2][0] * vec.x + mat.m[2][1] * vec.y + mat.m[2][2] * vec.z + mat.m[2][3] * vec.w;
 	result.w = mat.m[3][0] * vec.x + mat.m[3][1] * vec.y + mat.m[3][2] * vec.z + mat.m[3][3] * vec.w;
 	return result;
-}
-
-Vec3 ScreenToWorldDirection(Vec3 screen, const Mat4& viewProjMatrix, const Vec3& cameraPos) {
-	// 1. スクリーン座標をNDCに変換
-	float ndcX = (2.0f * screen.x / kClientWidth) - 1.0f;
-	float ndcY = 1.0f - (2.0f * screen.y / kClientHeight);
-
-	// 2. NDC座標をクリップ空間座標に
-	Vec4 clipSpacePos(ndcX, ndcY, 1.0f, 1.0f);
-
-	// 3. ビュープロジェクション行列の逆行列でワールド座標へ変換
-	Mat4 invViewProj = viewProjMatrix.Inverse();
-	Vec4 worldPos = MultiplyMat4Vec4(invViewProj, clipSpacePos);
-
-	// 4. wで割って方向ベクトルを取得
-	Vec3 direction = (Vec3(worldPos.x, worldPos.y, worldPos.z) / worldPos.w).Normalized();
-
-	// 5. ZFarを掛けて最終的なワールド位置を取得
-	return cameraPos + direction;
 }
 
 void GameScene::Init(
@@ -206,13 +187,14 @@ void GameScene::Init(
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/world.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/reticle.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/mato.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/axis.png");
 #pragma endregion
 
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/reticle.png");
-	sprite_->SetSize({ 64.0f, 64.0f, 0.0f });
-	sprite_->SetAnchorPoint({ 0.5f, 0.5f });
+	sprite_->SetSize({64.0f, 64.0f, 0.0f});
+	sprite_->SetAnchorPoint({0.5f, 0.5f});
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -222,12 +204,17 @@ void GameScene::Init(
 	object3D_->Init(object3DCommon_, modelCommon_);
 	// 初期化済みの3Dオブジェクトにモデルを紐づける
 	object3D_->SetModel("cart.obj");
-	object3D_->SetPos({ 0.0f, 0.0f, 0.0f });
+	object3D_->SetPos({0.0f, 0.0f, 0.0f});
 
 	ModelManager::GetInstance()->LoadModel("axis.obj");
 	axis_ = std::make_unique<Object3D>();
 	axis_->Init(object3DCommon_, modelCommon_);
 	axis_->SetModel("axis.obj");
+
+	ModelManager::GetInstance()->LoadModel("line.obj");
+	line_ = std::make_unique<Object3D>();
+	line_->Init(object3DCommon_, modelCommon_);
+	line_->SetModel("line.obj");
 #pragma endregion
 
 #pragma region パーティクル類
@@ -239,13 +226,13 @@ void GameScene::Init(
 	sky_ = std::make_unique<Object3D>();
 	sky_->Init(object3DCommon_, modelCommon_);
 	sky_->SetModel("sky.obj");
-	sky_->SetPos({ 0.0f, 0.0f, 0.0f });
+	sky_->SetPos({0.0f, 0.0f, 0.0f});
 	sky_->SetLighting(false);
 
 	player_ = std::make_unique<Player>();
 	player_->Init(object3DCommon_, modelCommon_);
 	player_->SetModel("axis.obj");
-	player_->SetPos({ 0.0f, 0.0f, 0.0f });
+	player_->SetPos({0.0f, 0.0f, 0.0f});
 	player_->Initialize();
 
 	ModelManager::GetInstance()->LoadModel("world.obj");
@@ -285,7 +272,7 @@ void GameScene::Init(
 	PlaceRailsAlongSpline();
 
 	railMover_ = std::make_unique<RailMover>();
-	railMover_->Initialize(object3D_.get(), controlPoints, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f });
+	railMover_->Initialize(object3D_.get(), controlPoints, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f});
 }
 
 bool IntersectRaySphere(const Vec3& rayOrigin, const Vec3& rayDir, const Vec3& sphereCenter, float sphereRadius) {
@@ -293,47 +280,110 @@ bool IntersectRaySphere(const Vec3& rayOrigin, const Vec3& rayDir, const Vec3& s
 	float b = 2.0f * oc.Dot(rayDir);
 	float c = oc.Dot(oc) - sphereRadius * sphereRadius;
 	float discriminant = b * b - 4 * c;
-	return (discriminant > 0);  // 判定結果
+	return (discriminant > 0); // 判定結果
 }
 
+Vec3 ScreenToWorldAtDepth(const Vec3 screenPos, Camera* camera, const float kDistanceFromCamera) {
+	// スクリーン座標からNDC座標に変換
+	Vec4 ndcPos;
+	ndcPos.x = ((2.0f * screenPos.x) / kClientWidth) - 1.0f; // X軸を反転
+	ndcPos.y = 1.0f - ((2.0f * screenPos.y) / kClientHeight); // Y軸を反転
+	ndcPos.z = 1.0f; // ファークリップ面を使用
+	ndcPos.w = 1.0f;
+
+	// NDC空間からビュー空間へ変換
+	Mat4 invProj = camera->GetProjMat().Inverse();
+	Vec4 viewPos = MultiplyMat4Vec4(invProj, ndcPos);
+	viewPos.w = 1.0f;
+
+	// 同次座標を3Dビュー座標に変換
+	Vec3 viewRayDir = Vec3(viewPos.x / viewPos.w, viewPos.y / viewPos.w, 1.0f).Normalized();
+
+	// ビュー空間からワールド空間へ変換
+	Vec4 worldRayDir = MultiplyMat4Vec4(camera->GetViewMat(), Vec4(viewRayDir.x, viewRayDir.y, viewRayDir.z, 0.0f));
+
+	// ワールドレイ方向を正規化
+	Vec3 finalRayDir = Vec3(worldRayDir.x, worldRayDir.y, worldRayDir.z).Normalized();
+
+	// 指定距離の位置を計算
+	Vec3 cameraPos = camera->GetPos();
+	return (cameraPos + finalRayDir * kDistanceFromCamera);
+}
+
+
 void GameScene::Update(const float& deltaTime) {
+	reticleMoveDir = Vec3::zero;
 	if (Input::GetInstance()->PushKey(DIK_W)) {
-		reticlePos.y -= reticleMoveSpd * deltaTime;
-		Console::Print("Moving\n");
-	} else if (Input::GetInstance()->PushKey(DIK_S)) {
-		reticlePos.y += reticleMoveSpd * deltaTime;
-		Console::Print("Moving\n");
+		reticleMoveDir.y--;
+	}
+	else if (Input::GetInstance()->PushKey(DIK_S)) {
+		reticleMoveDir.y++;
 	}
 
 	if (Input::GetInstance()->PushKey(DIK_D)) {
-		reticlePos.x += reticleMoveSpd * deltaTime;
-		Console::Print("Moving\n");
-	} else if (Input::GetInstance()->PushKey(DIK_A)) {
-		reticlePos.x -= reticleMoveSpd * deltaTime;
-		Console::Print("Moving\n");
+		reticleMoveDir.x++;
 	}
+	else if (Input::GetInstance()->PushKey(DIK_A)) {
+		reticleMoveDir.x--;
+	}
+
+	reticlePos += reticleMoveDir.Normalized() * reticleMoveSpd * deltaTime;
+	reticlePos.Clamp(Vec3::zero, {static_cast<float>(kClientWidth), static_cast<float>(kClientHeight), 0.0f});
 
 	sprite_->SetPos(reticlePos);
 
-	// object3D_の最新位置にカメラを追従させる
-	//object3DCommon_->GetDefaultCamera()->SetPos(object3D_->GetPos() + Vec3(std::sin(object3D_->GetRot().x), 1.0f, std::cos(object3D_->GetRot().x)));
-	object3DCommon_->GetDefaultCamera()->SetRot(object3D_->GetRot());
+	Vec3 cameraPos;
+	{
+		// object3D_の最新位置にカメラを追従させる
+		object3DCommon_->GetDefaultCamera()->SetPos(
+			object3D_->GetPos() + Vec3(std::sin(object3D_->GetRot().x), 1.0f, std::cos(object3D_->GetRot().x)));
+		object3DCommon_->GetDefaultCamera()->SetRot(object3D_->GetRot());
 
-	// オブジェクトの回転角度を取得
-	Vec3 rotation = object3D_->GetRot();
+		// オブジェクトの回転角度を取得
+		Vec3 rotation = object3D_->GetRot();
 
-	// オフセットのベクトル
-	Vec3 offset(0.0f, 1.0f, 0.0f); // 例: Z方向に-3の距離を持ち、Y方向に1.0f上げた位置
+		// オフセットのベクトル
+		Vec3 offset(0.0f, 1.0f, 0.0f);
 
-	// 回転行列を作成 (ここではX軸回転のみを考慮する例)
-	Mat4 rotationMatrix = Mat4::RotateY(rotation.y);
+		// 回転行列を作成 (ここではX軸回転のみを考慮する例)
+		Mat4 rotationMatrix = Mat4::RotateY(rotation.y);
 
-	// オフセットを回転行列で変換して、カメラ位置を計算
-	Vec3 rotatedOffset = Mat4::Transform(offset, rotationMatrix);
-	Vec3 cameraPos = object3D_->GetPos() + rotatedOffset;
+		// オフセットを回転行列で変換して、カメラ位置を計算
+		Vec3 rotatedOffset = Mat4::Transform(offset, rotationMatrix);
+		cameraPos = object3D_->GetPos() + rotatedOffset;
 
-	// カメラの位置を更新
-	object3DCommon_->GetDefaultCamera()->SetPos(cameraPos);
+		// カメラの位置を更新
+		object3DCommon_->GetDefaultCamera()->SetPos(cameraPos);
+	}
+
+	{
+		Vec3 offset(0.0f, 0.0f, 5.0f);
+		Mat4 rotationMatrixX = Mat4::RotateX(object3D_->GetRot().x);
+		Mat4 rotationMatrixY = Mat4::RotateY(object3D_->GetRot().y);
+		Mat4 rotMat = rotationMatrixX * rotationMatrixY;
+		Vec3 rotatedOffset = Mat4::Transform(offset, rotMat);
+		line_->SetPos(object3D_->GetPos() + rotatedOffset);
+	}
+
+	Vec3 direction = axis_->GetPos() - line_->GetPos();
+	//float pitch = std::asin(-direction.y / direction.Length());
+	float yaw = std::atan2(direction.x, direction.z);
+	line_->SetRot({0.0f, yaw, 0.0f});
+
+	{
+		const float kDistanceFromCamera = 40.0f;
+
+		// // カメラ情報
+		Camera* camera = object3DCommon_->GetDefaultCamera();
+
+		// スクリーン座標をワールド座標に変換
+		Vec3 screenPos(reticlePos.x, reticlePos.y, 0.0f);
+		Vec3 worldPos = ScreenToWorldAtDepth(screenPos, camera, kDistanceFromCamera);
+
+		// 照準オブジェクトを配置
+		axis_->SetPos(worldPos);
+		axis_->Update();
+	}
 
 	// レール移動の更新
 	railMover_->Update(deltaTime);
@@ -345,20 +395,13 @@ void GameScene::Update(const float& deltaTime) {
 
 	sprite_->Update();
 
-	Vec3 camPos = object3DCommon_->GetDefaultCamera()->GetPos();
-	Vec3 farPoint = object3DCommon_->GetDefaultCamera()->ScreenToWorld(
-		reticlePos, object3DCommon_->GetDefaultCamera()->GetZFar()); // スクリーン座標からFarZのワールド座標
-
-	Vec3 beamDir = (farPoint - camPos).Normalized(); // カメラからFarZへの方向ベクトル
-
-	axis_->SetPos(camPos + beamDir);
+	line_->Update();
 
 	for (const std::unique_ptr<Object3D>& mato : mato_) {
 		// 衝突判定処理（線分と球の当たり判定）
-		if (IntersectRaySphere(camPos, beamDir, mato->GetPos(), 2.0f)) {
-			mato->SetVisible(false); // 衝突した球を非表示にする
+		if (IsLineSphereColliding(cameraPos, axis_->GetPos(), mato->GetPos(), 1.0f)) {
+			mato->SetVisible(false);
 		}
-		mato->Update();
 	}
 
 	//// 残りのオブジェクトを更新
@@ -372,8 +415,10 @@ void GameScene::Update(const float& deltaTime) {
 	}
 
 	for (const std::unique_ptr<Object3D>& mato : mato_) {
-		mato->SetRot(object3DCommon_->GetDefaultCamera()->GetRotate());
-		mato->Update();
+		if (mato->IsVisible()) {
+			mato->SetRot(object3DCommon_->GetDefaultCamera()->GetRot());
+			mato->Update();
+		}
 	}
 
 	for (const std::unique_ptr<Object3D>& poll : poll_) {
@@ -383,7 +428,7 @@ void GameScene::Update(const float& deltaTime) {
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVars::GetInstance().GetConVar("cl_showpos")->GetInt() == 1) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 		const ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
@@ -406,9 +451,9 @@ void GameScene::Update(const float& deltaTime) {
 			WindowsUtils::GetWindowsUserName(),
 			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y,
 			object3DCommon_->GetDefaultCamera()->GetPos().z,
-			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg,
-			object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg,
-			object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetRot().x * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetRot().y * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetRot().z * Math::rad2Deg,
 			0.0f
 		);
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
@@ -451,11 +496,13 @@ void GameScene::Render() {
 
 	object3D_->Draw();
 
-	//axis_->Draw();
+	axis_->Draw();
 
 	world_->Draw();
 
-	//player_->Draw();
+	line_->Draw();
+
+	// player_->Draw();
 
 	for (const std::unique_ptr<Object3D>& rail : rails_) {
 		if (object3DCommon_->GetDefaultCamera()->GetPos().Distance(rail->GetPos()) < 15.0f) {
@@ -464,7 +511,9 @@ void GameScene::Render() {
 	}
 
 	for (const std::unique_ptr<Object3D>& mato : mato_) {
-		mato->Draw();
+		if (object3DCommon_->GetDefaultCamera()->GetPos().Distance(mato->GetPos()) < 40.0f) {
+			mato->Draw();
+		}
 	}
 
 	for (const std::unique_ptr<Object3D>& poll : poll_) {
@@ -540,10 +589,12 @@ void GameScene::PlaceRailsAlongSpline() {
 		if (i == 0) {
 			Vec3 nextPosition = Math::CatmullRomPosition(controlPoints, currentT + delta);
 			tangent = (nextPosition - railPosition).Normalized();
-		} else if (i == numRails - 1) {
+		}
+		else if (i == numRails - 1) {
 			Vec3 prevPosition = Math::CatmullRomPosition(controlPoints, currentT - delta);
 			tangent = (railPosition - prevPosition).Normalized();
-		} else {
+		}
+		else {
 			Vec3 prevPosition = Math::CatmullRomPosition(controlPoints, currentT - delta);
 			Vec3 nextPosition = Math::CatmullRomPosition(controlPoints, currentT + delta);
 			tangent = (nextPosition - prevPosition).Normalized();
@@ -558,9 +609,44 @@ void GameScene::PlaceRailsAlongSpline() {
 		// 接線ベクトルから回転を計算
 		float pitch = std::asin(-tangent.y);
 		float yaw = std::atan2(tangent.x, tangent.z);
-		rail->SetRot({ pitch, yaw, 0.0f });
+		rail->SetRot({pitch, yaw, 0.0f});
 
 		// レールをシーンに追加
 		rails_.push_back(std::move(rail));
 	}
+}
+
+bool GameScene::IsLineSphereColliding(const Vec3& lineStart, const Vec3& lineEnd, const Vec3& sphereCenter,
+                                      float sphereRadius) {
+	// 線分の方向ベクトル
+	Vec3 lineDirection = lineEnd - lineStart;
+	float lineLengthSq = lineDirection.SqrLength();
+
+	// 線分の始点から球体中心へのベクトル
+	Vec3 startToSphere = sphereCenter - lineStart;
+
+	// 射影長を計算
+	float t = startToSphere.Dot(lineDirection) / lineLengthSq;
+
+	// 最近接点を計算
+	Vec3 closestPoint;
+	if (t < 0.0f) {
+		// 線分の始点が最近接点
+		closestPoint = lineStart;
+	}
+	else if (t > 1.0f) {
+		// 線分の終点が最近接点
+		closestPoint = lineEnd;
+	}
+	else {
+		// 線分上の点が最近接点
+		closestPoint = lineStart + lineDirection * t;
+	}
+
+	// 最近接点と球体中心との距離を計算
+	Vec3 distanceVec = closestPoint - sphereCenter;
+	float distanceSq = distanceVec.SqrLength();
+
+	// 距離の2乗が半径の2乗以下なら衝突している
+	return distanceSq <= (sphereRadius * sphereRadius);
 }

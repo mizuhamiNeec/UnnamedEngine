@@ -69,7 +69,7 @@ protected:
 
 	Model* model_ = nullptr;
 
-	Mat4 worldMat_ = Mat4::Identity();
+	Mat4 worldMat_ = Mat4::IdentityMat();
 
 	Transform transform_ = {
 		{1.0f,1.0f,1.0f},

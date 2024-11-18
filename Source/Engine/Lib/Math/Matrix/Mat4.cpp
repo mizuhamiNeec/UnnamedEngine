@@ -175,7 +175,7 @@ Mat4 Mat4::Transpose() const {
 
 void Mat4::LogMat4() {
 	std::wstring result;
-	for (float(&i)[4] : m) {
+	for (float (&i)[4] : m) {
 		for (float& j : i) {
 			result += std::format(L"{:.2f} ", j);
 		}
@@ -184,7 +184,7 @@ void Mat4::LogMat4() {
 	Console::Print(ConvertString::ToString(result));
 }
 
-Mat4 Mat4::Identity() {
+Mat4 Mat4::IdentityMat() {
 	return {
 		{
 			{1.0f, 0.0f, 0.0f, 0.0f},
@@ -195,7 +195,7 @@ Mat4 Mat4::Identity() {
 	};
 }
 
-Mat4 Mat4::Translate(const Vec3& translate) {
+Mat4 Mat4::TranslateMat(const Vec3& translate) {
 	return {
 		{
 			{1.0f, 0.0f, 0.0f, 0.0f},
@@ -206,7 +206,7 @@ Mat4 Mat4::Translate(const Vec3& translate) {
 	};
 }
 
-Mat4 Mat4::Scale(const Vec3& scale) {
+Mat4 Mat4::ScaleMat(const Vec3& scale) {
 	return {
 		{
 			{scale.x, 0.0f, 0.0f, 0.0f},
@@ -217,11 +217,22 @@ Mat4 Mat4::Scale(const Vec3& scale) {
 	};
 }
 
+Vec3 Mat4::GetScale() {
+	return {m[0][0], m[1][1], m[2][2]};
+}
+
+Vec3 Mat4::GetTranslation() {
+	return {m[3][0], m[3][1], m[3][2]};
+}
+
 Vec3 Mat4::Transform(const Vec3& vector, const Mat4& matrix) {
 	Vec3 result; // w=1がデカルト座標系であるので(x,y,z,1)のベクトルとしてmatrixとの積をとる
-	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][0];
-	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][1];
-	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + 1.0f * matrix.m[3][2];
+	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][
+		0];
+	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][
+		1];
+	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + 1.0f * matrix.m[3][
+		2];
 	float w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] + 1.0f * matrix.m[3][3];
 	assert(w != 0.0f); // ベクトルに対して基本的な操作を行う行列でwが0になることはありえない
 	result.x /= w; // w=1がデカルト座標系であるので、w除算することで同時座標をデカルト座標に戻す
@@ -230,8 +241,16 @@ Vec3 Mat4::Transform(const Vec3& vector, const Mat4& matrix) {
 	return result;
 }
 
+Vec3 Mat4::TransformNormal(const Vec3& v, const Mat4& m) {
+	return {
+		v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0],
+		v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1],
+		v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2]
+	};
+}
+
 Mat4 Mat4::RotateX(const float radian) {
-	Mat4 result = Identity();
+	Mat4 result = IdentityMat();
 
 	const float cos = std::cos(radian);
 	const float sin = std::sin(radian);
@@ -245,7 +264,7 @@ Mat4 Mat4::RotateX(const float radian) {
 }
 
 Mat4 Mat4::RotateY(const float radian) {
-	Mat4 result = Identity();
+	Mat4 result = IdentityMat();
 
 	const float cos = std::cos(radian);
 	const float sin = std::sin(radian);
@@ -259,7 +278,7 @@ Mat4 Mat4::RotateY(const float radian) {
 }
 
 Mat4 Mat4::RotateZ(const float radian) {
-	Mat4 result = Identity();
+	Mat4 result = IdentityMat();
 
 	const float cos = std::cos(radian);
 	const float sin = std::sin(radian);
@@ -273,17 +292,17 @@ Mat4 Mat4::RotateZ(const float radian) {
 }
 
 Mat4 Mat4::Affine(const Vec3& scale, const Vec3& rotate, const Vec3& translate) {
-	const Mat4 s = Scale(scale);
+	const Mat4 s = ScaleMat(scale);
 	const Mat4 rx = RotateX(rotate.x);
 	const Mat4 ry = RotateY(rotate.y);
 	const Mat4 rz = RotateZ(rotate.z);
-	const Mat4 t = Translate(translate);
+	const Mat4 t = TranslateMat(translate);
 
 	return s * rx * ry * rz * t;
 }
 
 Mat4 Mat4::PerspectiveFovMat(const float fovY, const float aspectRatio, const float nearClip, const float farClip) {
-	Mat4 result = Identity();
+	Mat4 result = IdentityMat();
 
 	const float cot = 1.0f / std::tan(fovY * 0.5f);
 	const float dist = farClip - nearClip;
@@ -299,8 +318,8 @@ Mat4 Mat4::PerspectiveFovMat(const float fovY, const float aspectRatio, const fl
 }
 
 Mat4 Mat4::MakeOrthographicMat(const float left, const float top, const float right, const float bottom,
-	const float nearClip, const float farClip) {
-	Mat4 result = Identity();
+                               const float nearClip, const float farClip) {
+	Mat4 result = IdentityMat();
 
 	result.m[0][0] = 2.0f / (right - left);
 	result.m[1][1] = 2.0f / (top - bottom);
@@ -313,7 +332,7 @@ Mat4 Mat4::MakeOrthographicMat(const float left, const float top, const float ri
 }
 
 Mat4 Mat4::FishEyeProjection(const float fov, const float aspect, const float nearClip, const float farClip) {
-	Mat4 result = Identity();
+	Mat4 result = IdentityMat();
 
 	// 度からラジアンに変換
 	float fovRad = fov * (Math::pi / 180.0f);
@@ -328,18 +347,18 @@ Mat4 Mat4::FishEyeProjection(const float fov, const float aspect, const float ne
 	}
 
 	// 投影行列の設定
-	result.m[0][0] = scale / aspect;   // x軸スケール
-	result.m[1][1] = scale;            // y軸スケール
-	result.m[2][2] = -(farClip + nearClip) / (farClip - nearClip);  // z軸スケール
-	result.m[2][3] = -1.0f;            // w軸スケール（透視投影）
+	result.m[0][0] = scale / aspect; // x軸スケール
+	result.m[1][1] = scale; // y軸スケール
+	result.m[2][2] = -(farClip + nearClip) / (farClip - nearClip); // z軸スケール
+	result.m[2][3] = -1.0f; // w軸スケール（透視投影）
 	result.m[3][2] = -(2.0f * farClip * nearClip) / (farClip - nearClip); // z軸変換
 
 	return result;
 }
 
 Mat4 Mat4::ViewportMat(const float left, const float top, const float width, const float height, const float minDepth,
-	const float maxDepth) {
-	Mat4 result = Identity();
+                       const float maxDepth) {
+	Mat4 result = IdentityMat();
 
 	result.m[0][0] = width / 2.0f;
 	result.m[1][1] = -height / 2.0f;

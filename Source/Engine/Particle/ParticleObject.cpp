@@ -60,7 +60,7 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 	materialData_ = materialResource_->GetPtr<Material>();
 	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData_->enableLighting = false;
-	materialData_->uvTransform = Mat4::Identity();
+	materialData_->uvTransform = Mat4::IdentityMat();
 
 	// Instancing用のTransformationMatrixリソースを作る
 	instancingResource_ = std::make_unique<ConstantBuffer>(
@@ -69,8 +69,8 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 	instancingData = instancingResource_->GetPtr<ParticleForGPU>();
 	// 単位行列を書き込んでおく
 	for (uint32_t index = 0; index < kNumMaxInstance; ++index) {
-		instancingData[index].wvp = Mat4::Identity();
-		instancingData[index].world = Mat4::Identity();
+		instancingData[index].wvp = Mat4::IdentityMat();
+		instancingData[index].world = Mat4::IdentityMat();
 		instancingData[index].color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	}
 
@@ -136,13 +136,13 @@ void ParticleObject::Update(const float deltaTime) {
 
 			// ビルボード
 			{
-				Mat4 cameraMat = Mat4::Affine(Vec3::one, camera_->GetRotate(), camera_->GetPos());
+				Mat4 cameraMat = Mat4::Affine(Vec3::one, camera_->GetRot(), camera_->GetPos());
 				Mat4 backToFrontMat = Mat4::RotateY(std::numbers::pi_v<float>);
 				Mat4 billboardMatrix = backToFrontMat * cameraMat;
 				billboardMatrix.m[3][0] = 0.0f;
 				billboardMatrix.m[3][1] = 0.0f;
 				billboardMatrix.m[3][2] = 0.0f;
-				worldMat = Mat4::Scale(particleIterator->transform.scale) * billboardMatrix * Mat4::Translate(
+				worldMat = Mat4::ScaleMat(particleIterator->transform.scale) * billboardMatrix * Mat4::TranslateMat(
 					particleIterator->transform.translate);
 			}
 

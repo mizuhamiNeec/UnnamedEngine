@@ -96,14 +96,13 @@ public:
 	//------------------------------------------------------------------------
 	// 汎用関数
 	//------------------------------------------------------------------------
-	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors,
-	                                                  bool shaderVisible) const;
-
+	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT numDescriptors,
+		bool shaderVisible);
 private:
 	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-	                                                          uint32_t descriptorSize, uint32_t index);
+		uint32_t descriptorSize, uint32_t index);
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-	                                                          uint32_t descriptorSize, uint32_t index);
+		uint32_t descriptorSize, uint32_t index);
 	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource() const;
 };
 

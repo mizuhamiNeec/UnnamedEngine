@@ -124,7 +124,7 @@ Vec3& Camera::GetPos() {
 //-----------------------------------------------------------------------------
 // Purpose: 回転を取得します [rad]
 //-----------------------------------------------------------------------------
-Vec3& Camera::GetRotate() {
+Vec3& Camera::GetRot() {
 	return transform_.rotate;
 }
 
@@ -157,5 +157,33 @@ Mat4& Camera::GetViewProjMat() {
 }
 
 Vec3 Camera::GetForward() {
-	return {worldMat_.m[2][0], worldMat_.m[2][1], worldMat_.m[2][2]};
+	return {
+		worldMat_.m[2][0],
+		worldMat_.m[2][1],
+		worldMat_.m[2][2]
+	};
+}
+
+Vec3 Camera::GetRight() {
+	return {
+		worldMat_.m[0][0],
+		worldMat_.m[0][1],
+		worldMat_.m[0][2],
+	};
+}
+
+Vec3 Camera::GetUp() {
+	return {
+		worldMat_.m[1][0],
+		worldMat_.m[1][1],
+		worldMat_.m[1][2],
+	};
+}
+
+Mat4& Camera::GetViewMat() {
+	return viewMat_;
+}
+
+Mat4& Camera::GetProjMat() {
+	return projMat_;
 }

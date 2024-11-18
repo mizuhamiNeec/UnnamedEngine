@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <format>
 #include <stdexcept>
 
 #include "Vec2.h"
@@ -69,12 +70,10 @@ Vec3 Vec3::Normalized() const {
 	return zero;
 }
 
-Vec3 Vec3::Clamp(const Vec3 min, const Vec3 max) const {
-	return {
-		std::clamp(x, min.x, max.x),
-		std::clamp(y, min.y, max.y),
-		std::clamp(z, min.z, max.z)
-	};
+void Vec3::Clamp(const Vec3 min, const Vec3 max) {
+	x = std::clamp(x, min.x, max.x);
+	y = std::clamp(y, min.y, max.y);
+	z = std::clamp(z, min.z, max.z);
 }
 
 Vec3 Vec3::ClampLength(const float min, const float max) {
@@ -92,6 +91,10 @@ Vec3 Vec3::ClampLength(const float min, const float max) {
 
 Vec3 Vec3::Reflect(const Vec3& normal) const {
 	return *this - 2 * this->Dot(normal) * normal;
+}
+
+std::string Vec3::ToString() {
+	return std::format("{}, {}, {}", x, y, z);
 }
 
 float& Vec3::operator[](const uint32_t index) {

@@ -16,7 +16,7 @@ PipelineState::PipelineState(
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
 	rasterizerDesc.CullMode = cullMode; // 裏面(時計回り)を表示しない
-	rasterizerDesc.FillMode = fillMode; // 三角形の中を塗りつぶす
+	rasterizerDesc.FillMode = fillMode	; // 三角形の中を塗りつぶす
 
 	// DepthStencilStateの設定
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};

@@ -12,13 +12,17 @@ struct Mat4 final {
 	Mat4 Inverse() const;
 	Mat4 Transpose() const;
 
+	Vec3 GetScale();
+	Vec3 GetTranslation();
+
 	void LogMat4();
 
-	static Mat4 Identity();
-	static Mat4 Translate(const Vec3& translate);
-	static Mat4 Scale(const Vec3& scale);
+	static Mat4 IdentityMat();
+	static Mat4 TranslateMat(const Vec3& translate);
+	static Mat4 ScaleMat(const Vec3& scale);
 
 	static Vec3 Transform(const Vec3& vector, const Mat4& matrix);
+	static Vec3 TransformNormal(const Vec3& v, const Mat4& m);
 
 	static Mat4 RotateX(float radian);
 	static Mat4 RotateY(float radian);

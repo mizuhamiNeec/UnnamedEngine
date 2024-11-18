@@ -122,6 +122,7 @@ void Engine::Init() {
 }
 
 void Engine::Update() {
+
 	float deltaTime = time_->GetDeltaTime();
 
 #ifdef _DEBUG
@@ -145,6 +146,12 @@ void Engine::Update() {
 	camera_->SetAspectRatio(
 		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight())
 	);
+
+	ImGui::Begin("Window");
+	ImGui::Text("Width : %d", window_->GetClientWidth());
+	ImGui::Text("Height : %d", window_->GetClientHeight());
+
+	ImGui::End();
 
 #ifdef _DEBUG // cl_showfps
 

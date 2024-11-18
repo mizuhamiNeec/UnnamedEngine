@@ -43,13 +43,13 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 	materialData_ = materialResource_->GetPtr<Material>();
 	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData_->enableLighting = false;
-	materialData_->uvTransform = Mat4::Identity();
+	materialData_->uvTransform = Mat4::IdentityMat();
 
 	transformation_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(),
 		sizeof(TransformationMatrix));
 	transformationMatrixData_ = transformation_->GetPtr<TransformationMatrix>();
-	transformationMatrixData_->wvp = Mat4::Identity();
-	transformationMatrixData_->world = Mat4::Identity();
+	transformationMatrixData_->wvp = Mat4::IdentityMat();
+	transformationMatrixData_->world = Mat4::IdentityMat();
 
 	AdjustTextureSize();
 
@@ -103,15 +103,15 @@ void Sprite::Update() {
 	indexBuffer_->Update(indices, kSpriteVertexCount);
 
 	// uvTransformから行列を作成
-	Mat4 uvTransformMat = Mat4::Scale(uvTransform_.scale);
+	Mat4 uvTransformMat = Mat4::ScaleMat(uvTransform_.scale);
 	uvTransformMat = uvTransformMat * Mat4::RotateZ(uvTransform_.rotate.z);
-	uvTransformMat = uvTransformMat * Mat4::Translate(uvTransform_.translate);
+	uvTransformMat = uvTransformMat * Mat4::TranslateMat(uvTransform_.translate);
 	// 設定
 	materialData_->uvTransform = uvTransformMat;
 
 	// 各種行列を作成
 	Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
-	Mat4 viewMat = Mat4::Identity();
+	Mat4 viewMat = Mat4::IdentityMat();
 	Mat4 projMat = Mat4::MakeOrthographicMat(0.0f, 0.0f, static_cast<float>(kClientWidth),
 		static_cast<float>(kClientHeight), 0.0f, 100.0f);
 

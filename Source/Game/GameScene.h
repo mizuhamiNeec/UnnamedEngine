@@ -33,13 +33,14 @@ public:
 
 	void PlaceRailsAlongSpline();
 	bool IsLineSphereColliding(const Vec3& lineStart, const Vec3& lineDir, const Vec3& sphereCenter,
-		float sphereRadius);
+	                           float sphereRadius);
 
 private:
 	Window* window_ = nullptr;
 	D3D12* renderer_ = nullptr;
 
 	Vec3 reticlePos = Vec3::zero;
+	Vec3 reticleMoveDir = Vec3::zero;
 	float reticleMoveSpd = 640.0f;
 
 	std::unique_ptr<Object3D> object3D_;
@@ -53,6 +54,7 @@ private:
 	std::unique_ptr<Object3D> sky_;
 	std::unique_ptr<Object3D> world_;
 	std::unique_ptr<Object3D> axis_;
+	std::unique_ptr<Object3D> line_;
 	std::vector<std::unique_ptr<Object3D>> poll_;
 
 	std::unique_ptr<Player> player_;

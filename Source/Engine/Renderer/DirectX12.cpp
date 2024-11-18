@@ -338,7 +338,7 @@ void DirectX12::Init(Window* window) {
 	materialResourceMesh_->Map(0, nullptr, reinterpret_cast<void**>(&materialDataMesh_));
 	*materialDataMesh_ = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
 	materialDataMesh_->enableLighting = true;
-	materialDataMesh_->uvTransform = Mat4::Identity();
+	materialDataMesh_->uvTransform = Mat4::IdentityMat();
 
 	// WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
 	transformationMatrixResourceMesh_ = CreateBufferResource(device_.Get(), sizeof(TransformationMatrix));
@@ -346,7 +346,7 @@ void DirectX12::Init(Window* window) {
 	// 書き込むためのアドレスを取得
 	transformationMatrixResourceMesh_->Map(0, nullptr, reinterpret_cast<void**>(&transformationMatrixDataMesh_));
 	// 単位行列を書き込んでおく
-	transformationMatrixDataMesh_->wvp = Mat4::Identity();
+	transformationMatrixDataMesh_->wvp = Mat4::IdentityMat();
 
 	/* VertexBufferViewを作成する */
 	// 頂点バッファビューを作成する
@@ -644,12 +644,12 @@ void DirectX12::Init(Window* window) {
 	*materialDataSprite_ = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
 	// スプライトはライティングしない
 	materialDataSprite_->enableLighting = false;
-	materialDataSprite_->uvTransform = Mat4::Identity();
+	materialDataSprite_->uvTransform = Mat4::IdentityMat();
 
 	// 書き込むためのアドレスを取得
 	transformationMatrixResourceSprite_->Map(0, nullptr, reinterpret_cast<void**>(&transformationMatrixDataSprite_));
 	// 単位行列を書き込んでおく
-	transformationMatrixDataSprite_->wvp = Mat4::Identity();
+	transformationMatrixDataSprite_->wvp = Mat4::IdentityMat();
 
 	transformSprite_ = {
 		{1.0f, 1.0f, 1.0f},
@@ -785,14 +785,14 @@ void DirectX12::PreRender() {
 	hr_ = commandList_->Reset(commandAllocator_.Get(), nullptr);
 	assert(SUCCEEDED(hr_));
 
-	Mat4 uvTransformMatrix = Mat4::Scale(uvTransformSprite_.scale);
+	Mat4 uvTransformMatrix = Mat4::ScaleMat(uvTransformSprite_.scale);
 	uvTransformMatrix = uvTransformMatrix * Mat4::RotateZ(uvTransformSprite_.rotate.z);
-	uvTransformMatrix = uvTransformMatrix * Mat4::Translate(uvTransformSprite_.translate);
+	uvTransformMatrix = uvTransformMatrix * Mat4::TranslateMat(uvTransformSprite_.translate);
 	materialDataSprite_->uvTransform = uvTransformMatrix;
 
 	// Sprite用のWorldViewProjectionMatrixを作る
 	Mat4 worldMatrixSprite = Mat4::Affine(transformSprite_.scale, transformSprite_.rotate, transformSprite_.translate);
-	Mat4 viewMatrixSprite = Mat4::Identity();
+	Mat4 viewMatrixSprite = Mat4::IdentityMat();
 	Mat4 projectionMatrixSprite = Mat4::MakeOrthographicMat(0.0f, 0.0f, static_cast<float>(kClientWidth),
 		static_cast<float>(kClientHeight), 0.0f,
 		100.0f);

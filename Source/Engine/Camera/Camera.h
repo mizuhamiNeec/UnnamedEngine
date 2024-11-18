@@ -23,17 +23,19 @@ public:
 	// Getter
 	Transform& GetTransform();
 	Vec3& GetPos();
-	Vec3& GetRotate();
+	Vec3& GetRot();
 	float& GetFovVertical();
 	float& GetZNear();
 	float& GetZFar();
 	Mat4& GetViewProjMat();
 	Vec3 GetForward();
+	Vec3 GetRight();
+	Vec3 GetUp();
 
 	Vec3 ScreenToWorld(const Vec3& screenPos, float z) const {
 		// 1. スクリーン空間からNDC（Normalized Device Coordinates）に変換
 		float ndcX = (screenPos.x / kClientWidth) * 2.0f - 1.0f;
-		float ndcY = 1.0f - (screenPos.y / kClientHeight) * 2.0f;  // Y軸を逆にする
+		float ndcY = 1.0f - (screenPos.y / kClientHeight) * 2.0f; // Y軸を逆にする
 		Vec4 ndcPos(ndcX, ndcY, z, 1.0f);
 
 		// 2. ビュープロジェクション行列の逆行列を取得
@@ -50,11 +52,14 @@ public:
 		return Vec3(worldPos.x, worldPos.y, worldPos.z);
 	}
 
+	Mat4& GetViewMat();
+	Mat4& GetProjMat();
+
 private:
 	float fov_ = 90.0f * Math::deg2Rad;
 	float aspectRatio_ = 0.0f;
 	float zNear_ = 0.1f;
-	float zFar_ = 10000.0f;
+	float zFar_ = 10000000.0f;
 
 	Transform transform_{
 		{1.0f, 1.0f, 1.0f},

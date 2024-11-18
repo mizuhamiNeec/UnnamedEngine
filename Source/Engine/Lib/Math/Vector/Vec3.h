@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 
 struct Vec2;
 
@@ -30,16 +31,18 @@ struct Vec3 final {
 	void Normalize();
 	Vec3 Normalized() const;
 
-	Vec3 Clamp(Vec3 min, Vec3 max) const;
+	void Clamp(Vec3 min, Vec3 max);
 	Vec3 ClampLength(float min, float max);
 	Vec3 Reflect(const Vec3& normal) const;
+
+	std::string ToString();
 
 	/* ---------------- 演算子 ---------------- */
 	float& operator[](uint32_t index);
 	const float& operator[](uint32_t index) const;
 
 	Vec3 operator-() const {
-		return { -x, -y, -z };
+		return {-x, -y, -z};
 	}
 
 	Vec3 operator+(const Vec3& rhs) const;

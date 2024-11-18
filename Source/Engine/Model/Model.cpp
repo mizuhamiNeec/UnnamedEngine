@@ -24,7 +24,7 @@ void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, con
 	materialData_ = materialConstantBuffer_->GetPtr<Material>();
 	materialData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
 	materialData_->enableLighting = true;
-	materialData_->uvTransform = Mat4::Identity();
+	materialData_->uvTransform = Mat4::IdentityMat();
 
 	// テクスチャのファイルパスが空ではなかったら
 	if (!modelData_.material.textureFilePath.empty()) {

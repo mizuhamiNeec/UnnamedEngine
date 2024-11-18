@@ -54,13 +54,13 @@ void D3D12::Init(Window* window) {
 }
 
 void D3D12::ClearColorAndDepth() const {
-	float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f };
+	/*float clearColor[] = { 0.89f, 0.5f, 0.03f, 1.0f };
 	commandList_->ClearRenderTargetView(
 		rtvHandles_[frameIndex_],
 		clearColor,
 		0,
 		nullptr
-	);
+	);*/
 
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = GetCPUDescriptorHandle(
 		dsvDescriptorHeap_.Get(),
@@ -307,7 +307,10 @@ void D3D12::CreateDescriptorHeaps() {
 	rtvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, kFrameBufferCount, false);
 	// DSV用のヒープでディスクリプタの数は1。DSVはShader内で触るものではないので、ShaderVisibleはfalse
 	dsvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
+
+	Console::Print("Complete create DescriptorHeaps.\n", kConsoleColorCompleted);
 }
+
 
 void D3D12::CreateRTV() {
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {}; // RTVの設定
@@ -442,22 +445,20 @@ void D3D12::WaitPreviousFrame() {
 	}
 }
 
-ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType,
-	const UINT numDescriptors, const bool shaderVisible) const {
+ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, UINT numDescriptors, bool shaderVisible) {
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Type = type;
+	desc.NumDescriptors = numDescriptors;
+	desc.Flags = shaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	desc.NodeMask = 0;
+
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
-	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
-	descriptorHeapDesc.Type = heapType;
-	descriptorHeapDesc.NumDescriptors = numDescriptors;
-	if (shaderVisible) {
-		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	} else {
-		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	}
-	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
+	HRESULT hr = device_->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&descriptorHeap));
 	assert(SUCCEEDED(hr));
 	if (hr) {
 		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
+
 	return descriptorHeap;
 }
 
