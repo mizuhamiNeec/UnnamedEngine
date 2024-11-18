@@ -53,13 +53,13 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 
 	if (!RegisterClassEx(&wc_)) {
 		Console::Print("Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
-		               kConsoleColorError);
+			kConsoleColorError);
 		return false;
 	}
 
 	Console::Print("Window class registered.\n");
 
-	RECT wrc{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
+	RECT wrc{ 0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
 
 	AdjustWindowRectEx(&wrc, style_, false, exStyle_);
 
@@ -100,7 +100,9 @@ void Window::SetUseImmersiveDarkMode(const HWND hWnd, const bool darkMode) {
 	DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
 }
 
-HINSTANCE Window::GetHInstance() const { return wc_.hInstance; }
+HINSTANCE Window::GetHInstance() const {
+	return wc_.hInstance;
+}
 
 uint32_t Window::GetClientWidth() const {
 	return width_;
@@ -139,10 +141,6 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 				}
 			}
 		}
-		break;
-	case WM_ENTERSIZEMOVE:
-		break;
-	case WM_EXITSIZEMOVE:
 		break;
 	case WM_CLOSE:
 	case WM_DESTROY:

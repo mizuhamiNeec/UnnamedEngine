@@ -16,7 +16,8 @@
 #include "../Lib/Utils/ClientProperties.h"
 
 Camera::Camera() :
-	aspectRatio_(16.0f / 9.0f), worldMat_(Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate)),
+	aspectRatio_(16.0f / 9.0f),
+	worldMat_(Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate)),
 	viewMat_(worldMat_.Inverse()),
 	projMat_(Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_)),
 	viewProjMat_(viewMat_* projMat_) {

@@ -15,7 +15,7 @@ constexpr int32_t kClientHeight = 720;
 //-----------------------------------------------------------------------------
 constexpr uint32_t kFrameBufferCount = 2; // バックバッファの数 TODO: 引数などで変更
 constexpr uint32_t kMaxSrvCount = 512;
-constexpr uint32_t kMaxFPS = 256;
+constexpr uint32_t kMaxFps = 256;
 constexpr bool kEnableVerticalSync = false; // 垂直同期
 
 //-----------------------------------------------------------------------------
@@ -32,4 +32,4 @@ constexpr uint32_t kSrvIndexTop = 1; // ImGuiで0番を使用するため、1番
 //-----------------------------------------------------------------------------
 // Purpose : コンソール
 //-----------------------------------------------------------------------------
-constexpr int kConsoleMaxLineCount = 512;
+constexpr int kConsoleMaxLineCount = 256;

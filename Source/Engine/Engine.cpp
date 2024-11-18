@@ -67,7 +67,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({0.0f, 0.0f, -10.0f});
+	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -146,7 +146,7 @@ void Engine::Update() const {
 
 #ifdef _DEBUG // cl_showfps
 	if (ConVarManager::GetInstance().GetConVar("cl_showfps")->GetValueAsString() == "1") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -183,8 +183,7 @@ void Engine::Update() const {
 		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
 		if (io.Framerate >= 59.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
-		}
-		else if (io.Framerate >= 29.9f) {
+		} else if (io.Framerate >= 29.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 		}
 
@@ -246,7 +245,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConVarManager& conVarManager = ConVarManager::GetInstance();
 	conVarManager.RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
 	conVarManager.RegisterConVar<int>("cl_showfps", 1, "Draw fps meter (1 = fps)");
-	conVarManager.RegisterConVar<int>("cl_maxfps", kMaxFPS, "Maximum number of frames per second");
+	conVarManager.RegisterConVar<int>("cl_maxfps", kMaxFps, "Maximum number of frames per second");
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {

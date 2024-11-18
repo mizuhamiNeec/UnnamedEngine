@@ -1,7 +1,8 @@
 #pragma once
 #include <chrono>
 #include <thread>
-#include "../Utils/ClientProperties.h"
+
+#include "../Lib/Console/ConVarManager.h"
 
 #ifdef _DEBUG
 #include "imgui/imgui.h"
@@ -40,19 +41,17 @@ public:
 		// totalTime_を更新する
 		totalTime_ += deltaTime_;
 
+
+		const float maxFps = std::stof(ConVarManager::GetInstance().GetConVar("cl_maxfps")->GetValueAsString());
+
 		// フレームレートをもとにスリープ
-		const std::chrono::microseconds kMinTime(static_cast<uint64_t>(1000000.0f / maxFps_));
+		const std::chrono::microseconds kMinTime(static_cast<uint64_t>(1000000.0f / maxFps));
 		if (elapsed < kMinTime) {
 			std::this_thread::sleep_for(kMinTime - elapsed); // 残り時間だけスリープ
 		}
 
 		// 現在の時間を記録する
 		reference_ = clock::now();
-	}
-
-	// Setter
-	void SetMaxFps(const float& newMaxFps) {
-		maxFps_ = newMaxFps;
 	}
 
 	// Getter
@@ -64,6 +63,4 @@ private:
 	clock::time_point reference_;
 	double deltaTime_ = 0.0f; // 前回のフレームから経過した時間
 	double totalTime_ = 0.0f; // エンジンの起動から経過した時間
-
-	float maxFps_ = kMaxFPS;
 };

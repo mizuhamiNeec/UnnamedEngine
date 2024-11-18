@@ -166,7 +166,9 @@ void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVe
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, bgActive);
 }
 
-void EditTransform(const std::string& name, Transform& transform, const float& vSpeed) {
+bool EditTransform(const std::string& name, Transform& transform, const float& vSpeed) {
+	bool isEditing = false;
+
 	constexpr ImVec4 xBg = { 0.72f, 0.11f, 0.11f, 0.75f };
 	constexpr ImVec4 xBgHovered = { 0.83f, 0.18f, 0.18f, 0.75f };
 	constexpr ImVec4 xBgActive = { 0.96f, 0.26f, 0.21f, 0.75f };
@@ -194,7 +196,7 @@ void EditTransform(const std::string& name, Transform& transform, const float& v
 		/* --- 座標 --- */
 		// 色を送る
 		PushStyleColorForDrag(xBg, xBgHovered, xBgActive);
-		ImGui::DragFloat(("##posX" + name).c_str(), &transform.translate.x, vSpeed, 0.0f, 0.0f, "X %.3f");
+		isEditing |= ImGui::DragFloat(("##posX" + name).c_str(), &transform.translate.x, vSpeed, 0.0f, 0.0f, "X %.3f");
 		// 色を取り出す
 		ImGui::PopStyleColor(components);
 
@@ -202,13 +204,13 @@ void EditTransform(const std::string& name, Transform& transform, const float& v
 		ImGui::SameLine(0, width);
 
 		PushStyleColorForDrag(yBg, yBgHovered, yBgActive);
-		ImGui::DragFloat(("##posY" + name).c_str(), &transform.translate.y, vSpeed, 0.0f, 0.0f, "Y %.3f");
+		isEditing |= ImGui::DragFloat(("##posY" + name).c_str(), &transform.translate.y, vSpeed, 0.0f, 0.0f, "Y %.3f");
 		ImGui::PopStyleColor(components);
 
 		ImGui::SameLine(0, width);
 
 		PushStyleColorForDrag(zBg, zBgHovered, zBgActive);
-		ImGui::DragFloat(("##posZ" + name).c_str(), &transform.translate.z, vSpeed, 0.0f, 0.0f, "Z %.3f");
+		isEditing |= ImGui::DragFloat(("##posZ" + name).c_str(), &transform.translate.z, vSpeed, 0.0f, 0.0f, "Z %.3f");
 		ImGui::PopStyleColor(components);
 
 		ImGui::SameLine(0, width);
@@ -264,7 +266,13 @@ void EditTransform(const std::string& name, Transform& transform, const float& v
 			ImGui::PopItemWidth();
 		}
 	}
+
+	return isEditing;
 }
+
+//bool DragVec3(const std::string& name, Vec3& v, const float& vSpeed) {
+//
+//}
 
 void TextOutlined(
 	ImDrawList* drawList,
