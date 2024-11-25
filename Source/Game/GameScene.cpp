@@ -18,10 +18,6 @@
 
 #include "../Window/WindowsUtils.h"
 
-#ifdef _DEBUG
-#include "imgui/imgui.h"
-#endif
-
 void GameScene::Init(
 	D3D12* renderer, Window* window,
 	SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,

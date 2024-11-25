@@ -1,9 +1,5 @@
 #include "Window.h"
 
-#ifdef _DEBUG
-#include <imgui/imgui.h>
-#endif
-
 #include <dwmapi.h>
 #include <utility>
 

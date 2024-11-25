@@ -270,10 +270,6 @@ bool EditTransform(const std::string& name, Transform& transform, const float& v
 	return isEditing;
 }
 
-//bool DragVec3(const std::string& name, Vec3& v, const float& vSpeed) {
-//
-//}
-
 void TextOutlined(
 	ImDrawList* drawList,
 	const ImVec2& pos,

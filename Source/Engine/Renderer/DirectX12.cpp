@@ -5,7 +5,6 @@
 #include <cassert>
 #include <dxgidebug.h>
 #include <format>
-#include <imgui/imgui_impl_dx12.h>
 #include "../Lib/Utils/ConvertString.h"
 
 #include "../Lib/Math/Matrix/Mat4.h"
@@ -743,7 +742,7 @@ void DirectX12::PreRender() {
 	//commandList_->DrawInstanced(6, 1, 0, 0);
 
 	// 実際のcommandListのImGuiの描画コマンドを積む
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList_.Get());
+	//ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList_.Get());
 
 	/* 画面表示できるようにする */
 	// 画面に描く処理はすべて終わり、画面に映すので、状態を遷移

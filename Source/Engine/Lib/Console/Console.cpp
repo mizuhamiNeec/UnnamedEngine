@@ -7,8 +7,7 @@
 #include "ConVar.h"
 
 #ifdef _DEBUG
-#include "imgui/imgui.h"
-#include "imgui/imgui_internal.h"
+
 #endif
 #include <algorithm>
 #include <debugapi.h>

@@ -4,10 +4,6 @@
 
 #include "../Lib/Console/ConVarManager.h"
 
-#ifdef _DEBUG
-#include "imgui/imgui.h"
-#endif
-
 class EngineTimer {
 public:
 	EngineTimer() {

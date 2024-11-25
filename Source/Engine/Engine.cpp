@@ -1,26 +1,16 @@
 #include "Engine.h"
 
-#include "../ImGuiManager/ImGuiManager.h"
-
 #include "../Input/Input.h"
-
 #include "Camera/Camera.h"
-
 #include "Lib/Console/Console.h"
 #include "Lib/Console/ConVarManager.h"
 #include "Lib/Utils/ClientProperties.h"
-
 #include "Model/ModelManager.h"
-
 #include "Object3D/Object3DCommon.h"
-
 #include "Particle/ParticleCommon.h"
-
 #include "Renderer/D3D12.h"
 #include "Renderer/SrvManager.h"
-
 #include "TextureManager/TextureManager.h"
-
 #include "Window/Window.h"
 
 Engine::Engine() = default;
@@ -36,9 +26,7 @@ void Engine::Run() {
 }
 
 void Engine::Init() {
-#ifdef _DEBUG
 	RegisterConsoleCommandsAndVariables();
-#endif
 
 	// ウィンドウの作成
 	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
@@ -67,7 +55,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
+	camera_->SetPos({0.0f, 0.0f, -10.0f});
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();

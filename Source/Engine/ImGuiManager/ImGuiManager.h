@@ -27,7 +27,9 @@ public:
 	void Shutdown();
 
 private:
+#ifdef _DEBUG
 	static void StyleColorsDark(ImGuiStyle* dst = nullptr);
+#endif
 
 	const D3D12* renderer_ = nullptr;
 	const SrvManager* srvManager_ = nullptr;

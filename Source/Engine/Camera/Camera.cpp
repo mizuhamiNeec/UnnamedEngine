@@ -1,18 +1,10 @@
 #include "Camera.h"
 
 #include <algorithm>
-#include <format>
 
 #include "../ImGuiManager/ImGuiManager.h"
-
-#ifdef _DEBUG
-#include "imgui/imgui.h"
-#endif
-
 #include "../Lib/Math/Matrix/Mat4.h"
-
 #include "../Lib/Structs/Structs.h"
-
 #include "../Lib/Utils/ClientProperties.h"
 
 Camera::Camera() :
@@ -20,8 +12,7 @@ Camera::Camera() :
 	worldMat_(Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate)),
 	viewMat_(worldMat_.Inverse()),
 	projMat_(Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_)),
-	viewProjMat_(viewMat_* projMat_) {
-}
+	viewProjMat_(viewMat_* projMat_) {}
 
 void Camera::Update() {
 #ifdef _DEBUG

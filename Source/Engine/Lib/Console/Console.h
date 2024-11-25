@@ -6,10 +6,6 @@
 
 #include "../ImGuiManager/ImGuiManager.h"
 
-#ifdef _DEBUG
-#include "imgui/imgui.h"
-#endif
-
 constexpr ImVec4 kConsoleColorNormal = { 0.87f, 0.87f, 0.87f, 1.0f }; // 通常テキストの色
 constexpr ImVec4 kConsoleColorWarning = { 1.0f, 1.0f, 0.0f, 1.0f }; // 警告テキストの色
 constexpr ImVec4 kConsoleColorError = { 1.0f, 0.0f, 0.0f, 1.0f }; // エラーテキストの色

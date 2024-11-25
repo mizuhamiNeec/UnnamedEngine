@@ -11,10 +11,6 @@
 
 #include "../Lib/Math/Random/Random.h"
 
-#ifdef _DEBUG
-#include "imgui/imgui.h"
-#endif
-
 void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& textureFilePath) {
 	this->particleCommon_ = particleCommon;
 	this->textureFilePath_ = textureFilePath;
