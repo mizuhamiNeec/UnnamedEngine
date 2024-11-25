@@ -33,7 +33,7 @@ public:
 		const float& fMin,
 		const bool& bMax,
 		const float& fMax
-	):
+	) :
 		name_(std::move(name)),
 		value_(defaultValue),
 		defaultValue_(defaultValue),
@@ -42,39 +42,30 @@ public:
 		bMin_(bMin),
 		fMin_(fMin),
 		bMax_(bMax),
-		fMax_(fMax) {
-	}
+		fMax_(fMax) {}
 
 	[[nodiscard]] std::string GetTypeAsString() const override {
 		if constexpr (std::is_same_v<T, bool>) {
 			return "bool";
-		}
-		else if constexpr (std::is_same_v<T, int>) {
+		} else if constexpr (std::is_same_v<T, int>) {
 			return "int";
-		}
-		else if constexpr (std::is_same_v<T, float>) {
+		} else if constexpr (std::is_same_v<T, float>) {
 			return "float";
-		}
-		else if constexpr (std::is_same_v<T, std::string>) {
+		} else if constexpr (std::is_same_v<T, std::string>) {
 			return "string";
-		}
-		else return "unknown";
+		} else return "unknown";
 	}
 
 	[[nodiscard]] std::string GetValueAsString() const override {
 		if constexpr (std::is_same_v<T, bool>) {
 			return std::to_string(value_);
-		}
-		else if constexpr (std::is_same_v<T, int>) {
+		} else if constexpr (std::is_same_v<T, int>) {
 			return std::to_string(value_);
-		}
-		else if constexpr (std::is_same_v<T, float>) {
+		} else if constexpr (std::is_same_v<T, float>) {
 			return std::to_string(value_);
-		}
-		else if constexpr (std::is_same_v<T, std::string>) {
+		} else if constexpr (std::is_same_v<T, std::string>) {
 			return value_;
-		}
-		else
+		} else
 			return "";
 	}
 
@@ -89,20 +80,16 @@ public:
 	void SetValueFromString(const std::string& valueStr) override {
 		if constexpr (std::is_same_v<T, bool>) {
 			if (value_) {
-				value_ = true;
+				SetValue(true);
+			} else {
+				SetValue(false);
 			}
-			else {
-				value_ = false;
-			}
-		}
-		else if constexpr (std::is_same_v<T, int>) {
-			value_ = std::stoi(valueStr);
-		}
-		else if constexpr (std::is_same_v<T, float>) {
-			value_ = std::stof(valueStr);
-		}
-		else if constexpr (std::is_same_v<T, std::string>) {
-			value_ = valueStr;
+		} else if constexpr (std::is_same_v<T, int>) {
+			SetValue(std::stoi(valueStr));
+		} else if constexpr (std::is_same_v<T, float>) {
+			SetValue(std::stof(valueStr));
+		} else if constexpr (std::is_same_v<T, std::string>) {
+			SetValue(valueStr);
 		}
 	}
 
@@ -122,3 +109,26 @@ private:
 	bool bMax_ = false;
 	float fMax_ = 0.0f;
 };
+
+template <typename T>
+ConVarFlags ConVar<T>::GetFlags() const { return flags_; }
+
+template <typename T>
+T ConVar<T>::GetValue() const { return value_; }
+
+template <typename T>
+void ConVar<T>::SetValue(const T& newValue) {
+	value_ = newValue;
+
+	if (HasFlags(flags_, ConVarFlags::ConVarFlags_Notify)) {
+		// TODO : プレイヤーに通知する
+		Console::Print(
+			std::format(
+				"{}のCVAR 値 '{}'を {} に変更しました\n",
+				"クライアント",
+				name_,
+				value_
+			)
+		);
+	}
+}

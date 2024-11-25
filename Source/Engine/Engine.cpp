@@ -12,6 +12,7 @@
 #include "Renderer/SrvManager.h"
 #include "TextureManager/TextureManager.h"
 #include "Window/Window.h"
+#include "Window/WindowsUtils.h"
 
 Engine::Engine() = default;
 
@@ -55,7 +56,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({0.0f, 0.0f, -10.0f});
+	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -121,7 +122,7 @@ void Engine::Update() const {
 
 	// コンソール表示切り替え
 	if (Input::GetInstance()->TriggerKey(DIK_GRAVE)) {
-		Console::ToggleConsole();
+		Console::SubmitCommand("toggleconsole");
 	}
 
 	camera_->SetAspectRatio(
@@ -133,7 +134,7 @@ void Engine::Update() const {
 	gameScene_->Update();
 
 #ifdef _DEBUG // cl_showfps
-	if (ConVarManager::GetInstance().GetConVar("cl_showfps")->GetValueAsString() == "1") {
+	if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() != "0") {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
 		ImGuiWindowFlags windowFlags =
@@ -151,9 +152,18 @@ void Engine::Update() const {
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-		// テキストのサイズを取得
-		ImGuiIO io = ImGui::GetIO();
-		std::string text = std::format("{:.2f} fps", io.Framerate);
+		std::string text;
+		float fps;
+		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "1") {
+			fps = 1.0f / time_->GetDeltaTime();
+		}
+		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "2") {
+			ImGuiIO io = ImGui::GetIO();
+			fps = io.Framerate;
+		}
+
+		text = std::format("{:.2f} fps", fps);
+
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 
 		// ウィンドウサイズをテキストサイズに基づいて設定
@@ -169,9 +179,9 @@ void Engine::Update() const {
 		float outlineSize = 1.0f;
 
 		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
-		if (io.Framerate >= 59.9f) {
+		if (fps >= 59.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
-		} else if (io.Framerate >= 29.9f) {
+		} else if (fps >= 29.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 		}
 
@@ -230,10 +240,12 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::RegisterCommand("toggleconsole", Console::ToggleConsole);
 	Console::RegisterCommand("quit", Quit);
 	// コンソール変数を登録
-	ConVarManager& conVarManager = ConVarManager::GetInstance();
-	conVarManager.RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
-	conVarManager.RegisterConVar<int>("cl_showfps", 1, "Draw fps meter (1 = fps)");
-	conVarManager.RegisterConVar<int>("cl_maxfps", kMaxFps, "Maximum number of frames per second");
+	ConVarManager::RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
+	ConVarManager::RegisterConVar<int>("cl_showfps", 1, "Draw fps meter (1 = fps, 2 = smooth)");
+	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps, "Frame rate limiter");
+	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);
+	Console::SubmitCommand(std::format("name {}", WindowsUtils::GetWindowsUserName()));
+	ConVarManager::RegisterConVar<float>("sensitivity", 1.0f, "Mouse sensitivity.");
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {

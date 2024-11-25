@@ -22,8 +22,11 @@ public:
 	uint32_t GetClientWidth() const;
 	uint32_t GetClientHeight() const;
 
+	static int GetDeltaX();
+	static int GetDeltaY();
+
 	bool ProcessMessage();
-	
+
 private:
 	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -35,4 +38,7 @@ private:
 	uint32_t height_;
 	DWORD style_;
 	DWORD exStyle_;
+
+	static int deltaX_;
+	static int deltaY_;
 };

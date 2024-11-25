@@ -13,10 +13,9 @@
 //-----------------------------------------------------------------------------
 // Purpose : 初期化します
 //-----------------------------------------------------------------------------
-void Object3D::Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon) {
+void Object3D::Init(Object3DCommon* object3DCommon) {
 	// 引数で受け取ってメンバ変数に記録する
 	this->object3DCommon_ = object3DCommon;
-	this->modelCommon_ = modelCommon;
 	this->camera_ = object3DCommon_->GetDefaultCamera();
 
 	// 座標変換行列定数バッファ
@@ -32,8 +31,8 @@ void Object3D::Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon) {
 		sizeof(DirectionalLight)
 	);
 	directionalLightData_ = directionalLightConstantBuffer_->GetPtr<DirectionalLight>();
-	directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
-	directionalLightData_->direction = {0.0f, -0.7071067812f, 0.7071067812f}; // 斜め前向き
+	directionalLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
+	directionalLightData_->direction = { 0.0f, -0.7071067812f, 0.7071067812f }; // 斜め前向き
 	directionalLightData_->intensity = 1.0f; // 明るさ1
 }
 
@@ -61,8 +60,7 @@ void Object3D::Update() {
 		// カメラが存在する場合はカメラから行列を持ってくる
 		const Mat4& viewProjMat = camera_->GetViewProjMat();
 		worldViewProjMat = worldMat * viewProjMat;
-	}
-	else {
+	} else {
 		worldViewProjMat = worldMat;
 	}
 

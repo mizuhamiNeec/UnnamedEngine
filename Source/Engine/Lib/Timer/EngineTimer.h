@@ -38,7 +38,7 @@ public:
 		totalTime_ += deltaTime_;
 
 
-		const float maxFps = std::stof(ConVarManager::GetInstance().GetConVar("cl_maxfps")->GetValueAsString());
+		const float maxFps = std::stof(ConVarManager::GetConVar("cl_fpsmax")->GetValueAsString());
 
 		// フレームレートをもとにスリープ
 		const std::chrono::microseconds kMinTime(static_cast<uint64_t>(1000000.0f / maxFps));

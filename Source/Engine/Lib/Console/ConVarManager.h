@@ -6,13 +6,9 @@
 
 class ConVarManager {
 public:
-	static ConVarManager& GetInstance() {
-		static ConVarManager instance;
-		return instance;
-	}
 
 	template <typename T>
-	void RegisterConVar(
+	static void RegisterConVar(
 		const std::string& name,
 		const T& defaultValue,
 		const std::string& helpString,
@@ -21,46 +17,48 @@ public:
 		float fMin = 0.0f,
 		bool bMax = false,
 		float fMax = 0.0f
-	) {
-		std::lock_guard lock(mutex_);
-		auto conVar = std::make_unique<ConVar<T>>(name, defaultValue, helpString, flags, bMin, fMin, bMax, fMax);
-
-		ConVarCache::GetInstance().CacheConVar(name, conVar.get());
-		conVars_[name] = std::move(conVar);
-	}
+	);
 
 	template <typename T>
-	T GetConVarValue(const std::string& name) {
-		std::lock_guard lock(mutex_);
-		auto it = conVars_.find(name);
-		if (it != conVars_.end()) {
-			auto* var = dynamic_cast<ConVar<T>*>(it->second.get());
-			if (var != nullptr) {
-				return var->GetValue();
-			}
-		}
-		Console::Print("ConVar not found: " + name, kConsoleColorError);
-		return 0;
-	}
+	static T GetConVarValue(const std::string& name);
 
-	IConVar* GetConVar(const std::string& name) {
-		std::lock_guard lock(mutex_);
-		auto it = conVars_.find(name);
-		return it != conVars_.end() ? it->second.get() : nullptr;
-	}
+	static IConVar* GetConVar(const std::string& name);
 
-	std::vector<IConVar*> GetAllConVars() {
-		std::lock_guard lock(mutex_);
-		std::vector<IConVar*> conVarArray;
-		conVarArray.reserve(conVars_.size());
-		for (const auto& pair : conVars_) {
-			conVarArray.push_back(pair.second.get());
-		}
-		return conVarArray;
-	}
+	static std::vector<IConVar*> GetAllConVars();
 
 private:
 	ConVarManager() = default;
-	std::unordered_map<std::string, std::unique_ptr<IConVar>> conVars_;
-	std::mutex mutex_;
+	static std::unordered_map<std::string, std::unique_ptr<IConVar>> conVars_;
+	static std::mutex mutex_;
 };
+
+template <typename T>
+void ConVarManager::RegisterConVar(
+	const std::string& name,
+	const T& defaultValue,
+	const std::string& helpString,
+	ConVarFlags flags,
+	bool bMin,
+	float fMin,
+	bool bMax,
+	float fMax) {
+	std::lock_guard lock(mutex_);
+	auto conVar = std::make_unique<ConVar<T>>(name, defaultValue, helpString, flags, bMin, fMin, bMax, fMax);
+
+	ConVarCache::GetInstance().CacheConVar(name, conVar.get());
+	conVars_[name] = std::move(conVar);
+}
+
+template <typename T>
+T ConVarManager::GetConVarValue(const std::string& name) {
+	std::lock_guard lock(mutex_);
+	auto it = conVars_.find(name);
+	if (it != conVars_.end()) {
+		auto* var = dynamic_cast<ConVar<T>*>(it->second.get());
+		if (var != nullptr) {
+			return var->GetValue();
+		}
+	}
+	Console::Print("ConVar not found: " + name, kConsoleColorError);
+	return 0;
+}

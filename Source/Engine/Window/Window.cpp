@@ -13,6 +13,9 @@
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif
 
+int Window::deltaX_ = 0;
+int Window::deltaY_ = 0;
+
 Window::Window(
 	std::wstring title,
 	const uint32_t width,
@@ -88,6 +91,13 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 
 	Console::Print("Complete create Window.\n", kConsoleColorCompleted);
 
+	RAWINPUTDEVICE rid;
+	rid.usUsagePage = 0x01; // マウス
+	rid.usUsage = 0x02;
+	rid.dwFlags = RIDEV_INPUTSINK;
+	rid.hwndTarget = hWnd_;
+	RegisterRawInputDevices(&rid, 1, sizeof(rid));
+
 	return true;
 }
 
@@ -106,6 +116,14 @@ uint32_t Window::GetClientWidth() const {
 
 uint32_t Window::GetClientHeight() const {
 	return height_;
+}
+
+int Window::GetDeltaX() {
+	return deltaX_;
+}
+
+int Window::GetDeltaY() {
+	return deltaY_;
 }
 
 LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -138,6 +156,17 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 			}
 		}
 		break;
+	case WM_INPUT:
+	{
+		RAWINPUT raw;
+		UINT size = sizeof(raw);
+		GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER));
+
+		if (raw.header.dwType == RIM_TYPEMOUSE) {
+			deltaX_ = raw.data.mouse.lLastX;
+			deltaY_ = raw.data.mouse.lLastY;
+		}
+	}
 	case WM_CLOSE:
 	case WM_DESTROY:
 		PostQuitMessage(0);

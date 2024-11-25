@@ -38,7 +38,7 @@ class Object3D {
 	};
 
 public:
-	void Init(Object3DCommon* object3DCommon, ModelCommon* modelCommon);
+	void Init(Object3DCommon* object3DCommon);
 	void Update();
 	void Draw() const;
 
@@ -58,7 +58,6 @@ private:
 	Camera* camera_ = nullptr;
 
 	Object3DCommon* object3DCommon_ = nullptr;
-	ModelCommon* modelCommon_ = nullptr;
 
 	Model* model_ = nullptr;
 

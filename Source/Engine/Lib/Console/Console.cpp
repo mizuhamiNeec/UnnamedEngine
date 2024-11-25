@@ -169,7 +169,7 @@ void Console::SuggestPopup([[maybe_unused]] SuggestPopupState& state, const ImVe
 	ImGui::PushAllowKeyboardFocus(false);
 
 	for (size_t i = 0; i < kConsoleSuggestLineCount; ++i) {
-		size_t test = ConVarManager::GetInstance().GetAllConVars().size();
+		size_t test = ConVarManager::GetAllConVars().size();
 		if (test <= i) {
 			break;
 		}
@@ -180,7 +180,7 @@ void Console::SuggestPopup([[maybe_unused]] SuggestPopupState& state, const ImVe
 		}
 
 		ImGui::PushID(static_cast<int>(i));
-		if (ImGui::Selectable(ConVarManager::GetInstance().GetAllConVars()[i]->GetName().c_str(), isIndexActive)) {
+		if (ImGui::Selectable(ConVarManager::GetAllConVars()[i]->GetName().c_str(), isIndexActive)) {
 			state.clickedIndex = static_cast<int>(i);
 		}
 		ImGui::PopID();
@@ -355,9 +355,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 		found = true;
 	}
 
-	ConVarManager& conVarManager = ConVarManager::GetInstance();
-
-	for (auto conVar : conVarManager.GetAllConVars()) {
+	for (auto conVar : ConVarManager::GetAllConVars()) {
 		// 変数が存在する場合
 		if (conVar->GetName() == tokens[0]) {
 			found = true;
@@ -455,7 +453,7 @@ void Console::Clear([[maybe_unused]] const std::vector<std::string>& args) {
 
 void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
-	for (auto conVar : ConVarManager::GetInstance().GetAllConVars()) {
+	for (auto conVar : ConVarManager::GetAllConVars()) {
 		Print(" - " + conVar->GetName() + " : " + conVar->GetHelp() + "\n");
 	}
 #endif

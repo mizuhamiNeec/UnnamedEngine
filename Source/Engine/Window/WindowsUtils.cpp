@@ -7,12 +7,19 @@
 #pragma comment(lib, "Dwmapi.lib")
 
 std::string WindowsUtils::GetWindowsUserName() {
-	DWORD bufferSize = UNLEN + 1; // +1 は　null文字分
+	DWORD bufferSize = UNLEN + 1; // +1 は null 文字分
 	std::vector<char> buffer(bufferSize);
 	if (GetUserNameA(buffer.data(), &bufferSize)) {
-		return std::string(buffer.data());
+		std::string userName(buffer.data());
+		// 空白をアンダースコアに置き換える
+		for (char& ch : userName) {
+			if (ch == ' ') {
+				ch = '_';
+			}
+		}
+		return userName;
 	}
-	return std::string("名無しの権兵衛");
+	return std::string("Windowsから取得できませんでした。");
 }
 
 //-----------------------------------------------------------------------------
