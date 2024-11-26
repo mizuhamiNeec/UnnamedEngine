@@ -31,9 +31,15 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 		sizeof(DirectionalLight)
 	);
 	directionalLightData_ = directionalLightConstantBuffer_->GetPtr<DirectionalLight>();
-	directionalLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
-	directionalLightData_->direction = { 0.0f, -0.7071067812f, 0.7071067812f }; // 斜め前向き
+	directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
+	directionalLightData_->direction = {0.0f, -0.7071067812f, 0.7071067812f}; // 斜め前向き
 	directionalLightData_->intensity = 1.0f; // 明るさ1
+
+	// カメラ定数バッファ
+	cameraConstantBuffer_ = std::make_unique<ConstantBuffer>(
+		object3DCommon_->GetD3D12()->GetDevice(), sizeof(CameraForGPU));
+	cameraForGPU_ = cameraConstantBuffer_->GetPtr<CameraForGPU>();
+	cameraForGPU_->worldPosition = camera_->GetPos();
 }
 
 void Object3D::Update() {
@@ -46,6 +52,8 @@ void Object3D::Update() {
 	ImGui::ColorEdit4("color##light", &directionalLightData_->color.x);
 	ImGui::DragFloat("intensity##light", &directionalLightData_->intensity, 0.01f);
 	ImGui::End();
+
+	model_->ImGuiDraw();
 #endif
 
 	Mat4 worldMat = Mat4::Affine(
@@ -60,12 +68,16 @@ void Object3D::Update() {
 		// カメラが存在する場合はカメラから行列を持ってくる
 		const Mat4& viewProjMat = camera_->GetViewProjMat();
 		worldViewProjMat = worldMat * viewProjMat;
-	} else {
+	}
+	else {
 		worldViewProjMat = worldMat;
 	}
 
 	transformationMatrixData_->wvp = worldViewProjMat;
 	transformationMatrixData_->world = worldMat;
+	transformationMatrixData_->worldInverseTranspose = worldMat.Inverse().Transpose();
+
+	cameraForGPU_->worldPosition = camera_->GetPos();
 }
 
 void Object3D::Draw() const {
@@ -76,6 +88,10 @@ void Object3D::Draw() const {
 	// 指向性ライトの定数バッファを設定
 	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
 		3, directionalLightConstantBuffer_->GetAddress());
+
+	// カメラの定数バッファを設定
+	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
+		4, cameraConstantBuffer_->GetAddress());
 
 	// 3Dモデルが割り当てられていれば描画する
 	if (model_) {

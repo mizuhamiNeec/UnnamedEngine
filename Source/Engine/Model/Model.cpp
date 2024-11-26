@@ -8,6 +8,9 @@
 #include "../Renderer/VertexBuffer.h"
 #include "../Renderer/D3D12.h"
 #include "../TextureManager/TextureManager.h"
+#ifdef _DEBUG
+#include "imgui/imgui.h"
+#endif
 
 void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, const std::string& fileName) {
 	this->modelCommon_ = modelCommon;
@@ -25,6 +28,8 @@ void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, con
 	materialData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
 	materialData_->enableLighting = true;
 	materialData_->uvTransform = Mat4::Identity();
+	materialData_->shininess = 128.0f;
+	materialData_->specularColor = Vec3(0.25f, 0.25f, 0.25f); // 灰色
 
 	// テクスチャのファイルパスが空ではなかったら
 	if (!modelData_.material.textureFilePath.empty()) {
@@ -34,6 +39,18 @@ void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, con
 		modelData_.material.textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(
 			modelData_.material.textureFilePath);
 	}
+}
+
+void Model::ImGuiDraw() {
+#ifdef _DEBUG
+	if (ImGui::Begin("Material Editor")) {
+		ImGui::ColorEdit4("Color", &materialData_->color.x); // 色の編集
+		ImGui::DragInt("Enable Lighting", &materialData_->enableLighting, 1, 0, 1); // ライティングの有効化
+		ImGui::SliderFloat("Shininess", &materialData_->shininess, 0.0f, 128.0f); // シャイニネスの編集
+		ImGui::ColorEdit3("Specular Color", &materialData_->specularColor.x); // スペキュラカラーの編集
+	}
+	ImGui::End();
+#endif
 }
 
 void Model::Draw() const {

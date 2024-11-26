@@ -22,9 +22,6 @@ public:
 	uint32_t GetClientWidth() const;
 	uint32_t GetClientHeight() const;
 
-	static int GetDeltaX();
-	static int GetDeltaY();
-
 	bool ProcessMessage();
 
 private:

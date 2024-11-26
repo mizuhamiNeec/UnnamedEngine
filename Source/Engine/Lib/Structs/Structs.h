@@ -27,6 +27,8 @@ struct Material {
 	int32_t enableLighting;
 	float padding[3];
 	Mat4 uvTransform;
+	float shininess;
+	Vec3 specularColor;
 };
 
 struct TransformationMatrix {
@@ -59,6 +61,11 @@ struct Transform {
 	Vec3 scale;
 	Vec3 rotate;
 	Vec3 translate;
+};
+
+// カメラの座標をGPUへ送る用
+struct CameraForGPU {
+	Vec3 worldPosition;
 };
 
 struct Particle {

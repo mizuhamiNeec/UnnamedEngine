@@ -15,7 +15,6 @@ class VertexBuffer;
 class Object3DCommon;
 
 class Object3D {
-
 	// マテリアル
 	struct Material {
 		Vec4 color;
@@ -28,6 +27,7 @@ class Object3D {
 	struct TransformationMatrix {
 		Mat4 wvp;
 		Mat4 world;
+		Mat4 worldInverseTranspose;
 	};
 
 	// 指向性ライト
@@ -54,6 +54,7 @@ public:
 	const Vec3& GetScale() const { return transform_.scale; }
 	const Vec3& GetRot() const { return transform_.rotate; }
 	const Vec3& GetPos() const { return transform_.translate; }
+
 private:
 	Camera* camera_ = nullptr;
 
@@ -62,15 +63,16 @@ private:
 	Model* model_ = nullptr;
 
 	Transform transform_ = {
-		{1.0f,1.0f,1.0f},
-		{0.0f,0.0f,0.0f},
-		{0.0f,0.0f,0.0f}
+		{1.0f, 1.0f, 1.0f},
+		{0.0f, 0.0f, 0.0f},
+		{0.0f, 0.0f, 0.0f}
 	};
 
 	TransformationMatrix* transformationMatrixData_ = nullptr; // 座標変換行列のポインタ
 	DirectionalLight* directionalLightData_ = nullptr; // 指向性ライトのポインタ
+	CameraForGPU* cameraForGPU_ = nullptr; // カメラのポインタ
 
 	std::unique_ptr<ConstantBuffer> transformationMatrixConstantBuffer_;
 	std::unique_ptr<ConstantBuffer> directionalLightConstantBuffer_;
+	std::unique_ptr<ConstantBuffer> cameraConstantBuffer_;
 };
-

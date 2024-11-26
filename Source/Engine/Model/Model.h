@@ -18,8 +18,10 @@ class Model {
 		std::vector<Vertex> vertices;
 		MaterialData material;
 	};
+
 public:
 	void Init(ModelCommon* modelCommon, const std::string& directoryPath, const std::string& fileName);
+	void ImGuiDraw();
 	void Draw() const;
 
 	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
@@ -33,4 +35,3 @@ private:
 	std::unique_ptr<VertexBuffer> vertexBuffer_;
 	std::unique_ptr<ConstantBuffer> materialConstantBuffer_;
 };
-
