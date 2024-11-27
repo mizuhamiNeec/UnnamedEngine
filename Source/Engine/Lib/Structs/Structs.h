@@ -57,6 +57,14 @@ struct DirectionalLight {
 	float intensity; //!< 輝度
 };
 
+struct PointLight {
+	Vec4 color; //!< ライトの色
+	Vec3 position; //!< ライトの位置
+	float intensity; //!< 輝度
+	float radius; //!< ライトの届く最大距離
+	float decay; //!< 減衰率
+};
+
 struct Transform {
 	Vec3 scale;
 	Vec3 rotate;

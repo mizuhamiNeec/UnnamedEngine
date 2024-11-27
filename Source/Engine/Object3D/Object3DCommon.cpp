@@ -20,7 +20,6 @@ void Object3DCommon::Init(D3D12* d3d12) {
 // Purpose : Object3DCommonをシャットダウンします
 //-----------------------------------------------------------------------------
 void Object3DCommon::Shutdown() const {
-	delete rootSignatureManager_;
 }
 
 //-----------------------------------------------------------------------------
@@ -28,7 +27,7 @@ void Object3DCommon::Shutdown() const {
 //-----------------------------------------------------------------------------
 void Object3DCommon::CreateRootSignature() {
 	// RootSignatureManagerのインスタンスを作成
-	rootSignatureManager_ = new RootSignatureManager(d3d12_->GetDevice());
+	rootSignatureManager_ = std::make_unique<RootSignatureManager>(d3d12_->GetDevice());
 
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1];
 	descriptorRange[0] = {
@@ -39,7 +38,7 @@ void Object3DCommon::CreateRootSignature() {
 	};
 
 	// ルートパラメータを作成
-	std::vector<D3D12_ROOT_PARAMETER> rootParameters(5);
+	std::vector<D3D12_ROOT_PARAMETER> rootParameters(6);
 	// ピクセルシェーダー : マテリアル
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う。b0のbと一致する
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
@@ -65,6 +64,11 @@ void Object3DCommon::CreateRootSignature() {
 	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
 	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
 	rootParameters[4].Descriptor.ShaderRegister = 2; // レジスタ番号2を使う
+
+	// ピクセルシェーダー : ポイントライト
+	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
+	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	rootParameters[5].Descriptor.ShaderRegister = 3; // レジスタ番号3を使う
 
 	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {
 		{
