@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "../Renderer/PipelineState.h"
 #include "../Camera/Camera.h"
 
@@ -28,6 +30,6 @@ public:
 private:
 	Camera* defaultCamera_ = nullptr;
 	D3D12* d3d12_ = nullptr;
-	RootSignatureManager* rootSignatureManager_ = nullptr;
+	std::unique_ptr<RootSignatureManager> rootSignatureManager_ = nullptr;
 	PipelineState pipelineState_;
 };

@@ -56,7 +56,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
+	camera_->SetPos({0.0f, 0.0f, -10.0f});
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -135,7 +135,7 @@ void Engine::Update() const {
 
 #ifdef _DEBUG // cl_showfps
 	if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() != "0") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -181,7 +181,8 @@ void Engine::Update() const {
 		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
 		if (fps >= 59.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
-		} else if (fps >= 29.9f) {
+		}
+		else if (fps >= 29.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 		}
 
@@ -246,6 +247,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);
 	Console::SubmitCommand(std::format("name {}", WindowsUtils::GetWindowsUserName()));
 	ConVarManager::RegisterConVar<float>("sensitivity", 1.0f, "Mouse sensitivity.");
+	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f, "Prescale the clock by this amount.");
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {

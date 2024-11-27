@@ -139,6 +139,7 @@ void GameScene::Render() {
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
+	//sprite_->Draw();
 }
 
 void GameScene::Shutdown() {

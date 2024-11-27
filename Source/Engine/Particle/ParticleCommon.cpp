@@ -16,12 +16,11 @@ void ParticleCommon::Init(D3D12* d3d12, SrvManager* srvManager) {
 }
 
 void ParticleCommon::Shutdown() const {
-	delete rootSignatureManager_;
 }
 
 void ParticleCommon::CreateRootSignature() {
 	//  RootSignatureManagerのインスタンスを作成
-	rootSignatureManager_ = new RootSignatureManager(d3d12_->GetDevice());
+	rootSignatureManager_ = std::make_unique<RootSignatureManager>(d3d12_->GetDevice());
 
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1];
 	descriptorRange[0] = {

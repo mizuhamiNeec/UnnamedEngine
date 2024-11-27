@@ -20,12 +20,11 @@ void SpriteCommon::Init(D3D12* d3d12) {
 // Purpose: SpriteCommonをシャットダウンします
 //-----------------------------------------------------------------------------
 void SpriteCommon::Shutdown() const {
-	delete rootSignatureManager_;
 }
 
 void SpriteCommon::CreateRootSignature() {
 	//  RootSignatureManagerのインスタンスを作成
-	rootSignatureManager_ = new RootSignatureManager(d3d12_->GetDevice());
+	rootSignatureManager_ = std::make_unique<RootSignatureManager>(d3d12_->GetDevice());
 
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1];
 	descriptorRange[0] = {
