@@ -155,7 +155,7 @@ void Engine::Update() const {
 		std::string text;
 		float fps;
 		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "1") {
-			fps = 1.0f / time_->GetDeltaTime();
+			fps = 1.0f / time_->GetScaledDeltaTime();
 		}
 		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "2") {
 			ImGuiIO io = ImGui::GetIO();

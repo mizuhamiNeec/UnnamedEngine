@@ -193,7 +193,7 @@
     <ClInclude Include="Source\Engine\Externals\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h" />
     <ClInclude Include="Source\Engine\Renderer\D3D12.h" />
-    <ClInclude Include="Source\Engine\Lib\Utils\ConvertString.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\StrUtils.h" />
     <ClInclude Include="Source\Engine\Renderer\DirectX12.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\ClientProperties.h" />
     <ClInclude Include="Source\Game\IGameScene.h" />

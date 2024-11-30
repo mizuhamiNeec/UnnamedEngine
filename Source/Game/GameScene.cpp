@@ -58,7 +58,7 @@ void GameScene::Init(
 void GameScene::Update() {
 	sprite_->Update();
 	object3D_->Update();
-	particle_->Update(timer_->GetDeltaTime());
+	particle_->Update(timer_->GetScaledDeltaTime());
 
 #ifdef _DEBUG
 #pragma region cl_showpos

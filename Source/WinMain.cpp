@@ -12,7 +12,7 @@
 #include "../Engine.h"
 
 #include "Engine/Lib/Console/Console.h"
-#include "Engine/Lib/Utils/ConvertString.h"
+#include "Engine/Lib/Utils/StrUtils.h"
 
 // // チャンクヘッダ
 // struct ChunkHeader {
@@ -330,7 +330,7 @@
 // エントリーポイント
 //-----------------------------------------------------------------------------
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR lpCmdLine, [[maybe_unused]] const int nShowCmd) {
-	Console::Print(ConvertString::ToString(std::format(L"Launch Args: {}\n", lpCmdLine)));
+	Console::Print(StrUtils::ToString(std::format(L"Launch Args: {}\n", lpCmdLine)));
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	D3DResourceLeakChecker leakChecker;
 	const auto engine = std::make_unique<Engine>();

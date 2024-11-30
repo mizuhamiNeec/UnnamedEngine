@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-#include "../Lib/Utils/ConvertString.h"
+#include "../Lib/Utils/StrUtils.h"
 #include "../Lib/Utils/ClientProperties.h"
 
 class Window final {

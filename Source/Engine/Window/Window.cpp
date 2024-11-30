@@ -46,7 +46,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	wc_.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wc_.hbrBackground = GetSysColorBrush(COLOR_BACKGROUND);
 	wc_.lpszMenuName = nullptr;
-	wc_.lpszClassName = ConvertString::ToString(className);
+	wc_.lpszClassName = StrUtils::ToString(className);
 	wc_.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
 	wc_.hIconSm = LoadIcon(hInstance, IDI_APPLICATION);
 

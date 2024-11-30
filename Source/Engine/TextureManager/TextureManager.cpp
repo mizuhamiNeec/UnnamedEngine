@@ -5,7 +5,7 @@
 
 #include "../Lib/Console/Console.h"
 #include "../Lib/Utils/ClientProperties.h"
-#include "../Lib/Utils/ConvertString.h"
+#include "../Lib/Utils/StrUtils.h"
 #include "../Renderer/D3D12.h"
 #include "../Renderer/SrvManager.h"
 
@@ -191,12 +191,12 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 
 	// テクスチャファイルを読んでプログラムで扱えるようにする
 	DirectX::ScratchImage image = {};
-	std::wstring filePathW = ConvertString::ToString(filePath);
+	std::wstring filePathW = StrUtils::ToString(filePath);
 	HRESULT hr = LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 	if (FAILED(hr)) {
 		Console::Print(std::format("ERROR : Failed to Load {}\n", filePath), kConsoleColorError);
 		// 読み込み失敗時にデフォルトのテクスチャを読み込む
-		filePathW = ConvertString::ToString("./Resources/Textures/empty.png");
+		filePathW = StrUtils::ToString("./Resources/Textures/empty.png");
 		hr = LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 		assert(SUCCEEDED(hr)); // デフォルトのテクスチャも読み込めなかった場合はエラー
 	}
