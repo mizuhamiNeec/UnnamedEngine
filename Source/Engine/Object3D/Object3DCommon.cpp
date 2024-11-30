@@ -38,7 +38,7 @@ void Object3DCommon::CreateRootSignature() {
 	};
 
 	// ルートパラメータを作成
-	std::vector<D3D12_ROOT_PARAMETER> rootParameters(6);
+	std::vector<D3D12_ROOT_PARAMETER> rootParameters(7);
 	// ピクセルシェーダー : マテリアル
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う。b0のbと一致する
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
@@ -69,6 +69,11 @@ void Object3DCommon::CreateRootSignature() {
 	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
 	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
 	rootParameters[5].Descriptor.ShaderRegister = 3; // レジスタ番号3を使う
+
+	// ピクセルシェーダー : スポットライト
+	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
+	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
+	rootParameters[6].Descriptor.ShaderRegister = 4; // レジスタ番号3を使う
 
 	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {
 		{

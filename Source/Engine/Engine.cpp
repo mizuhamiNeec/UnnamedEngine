@@ -19,7 +19,7 @@ Engine::Engine() = default;
 void Engine::Run() {
 	Init();
 	while (true) {
-		if (window_->ProcessMessage()) break; // ゲームループを抜ける
+		if (Window::ProcessMessage()) break; // ゲームループを抜ける
 		if (bWishShutdown) break;
 		Update();
 	}

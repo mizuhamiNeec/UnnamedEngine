@@ -50,6 +50,19 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 	pointLightData_->intensity = 1.0f;
 	pointLightData_->radius = 1.0f;
 	pointLightData_->decay = 1.0f;
+
+	// スポットライト定数バッファ
+	spotLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
+		object3DCommon_->GetD3D12()->GetDevice(),
+		sizeof(SpotLight));
+	spotLightData_ = spotLightConstantBuffer_->GetPtr<SpotLight>();
+	spotLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	spotLightData_->position = {0.0f, 0.0f, 0.0f};
+	spotLightData_->intensity = 4.0f;
+	spotLightData_->direction = {0.0f, -1.0f, 0.0f};
+	spotLightData_->distance = 8.0f;
+	spotLightData_->decay = 2.0f;
+	spotLightData_->cosAngle = 0.5f;
 }
 
 void Object3D::Update() {
@@ -70,6 +83,19 @@ void Object3D::Update() {
 		ImGui::DragFloat("intensity##point", &pointLightData_->intensity, 0.01f);
 		ImGui::DragFloat("radius##point", &pointLightData_->radius, 0.01f);
 		ImGui::DragFloat("decay##point", &pointLightData_->decay, 0.01f);
+	}
+
+	if (ImGui::CollapsingHeader("Spot")) {
+		ImGui::ColorEdit4("color##spot", &spotLightData_->color.x);
+		ImGui::DragFloat3("pos##spot", &spotLightData_->position.x, 0.01f);
+		ImGui::DragFloat("intensity##spot", &spotLightData_->intensity, 0.01f);
+		if (ImGui::DragFloat3("direction##spot", &spotLightData_->direction.x, 0.01f)) {
+			spotLightData_->direction.Normalize();
+		}
+		ImGui::DragFloat("distance##spot", &spotLightData_->distance, 0.01f);
+		ImGui::DragFloat("decay##spot", &spotLightData_->decay, 0.01f);
+		ImGui::DragFloat("cosAngle##spot", &spotLightData_->cosAngle, 0.01f);
+		ImGui::DragFloat("cosFalloff##spot", &spotLightData_->cosFalloffStart, 0.01f);
 	}
 	ImGui::End();
 
@@ -116,6 +142,10 @@ void Object3D::Draw() const {
 	// ポイントライトの定数バッファを設定
 	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
 		5, pointLightConstantBuffer_->GetAddress());
+
+	// スポットライトの定数バッファを設定
+	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
+		6, spotLightConstantBuffer_->GetAddress());
 
 	// 3Dモデルが割り当てられていれば描画する
 	if (model_) {

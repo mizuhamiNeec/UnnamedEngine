@@ -19,10 +19,10 @@ public:
 	HWND GetWindowHandle() const;
 	HINSTANCE GetHInstance() const;
 
-	uint32_t GetClientWidth() const;
-	uint32_t GetClientHeight() const;
+	uint32_t GetClientWidth();
+	uint32_t GetClientHeight();
 
-	bool ProcessMessage();
+	static bool ProcessMessage();
 
 private:
 	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

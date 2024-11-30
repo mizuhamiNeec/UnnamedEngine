@@ -47,12 +47,15 @@ D3D12_INDEX_BUFFER_VIEW IndexBuffer::View() const {
 	return view_;
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: インデックスバッファの更新.
+//-----------------------------------------------------------------------------
 void IndexBuffer::Update(const void* pInitData, const size_t size) const {
 	if (pInitData != nullptr) {
 		void* ptr = nullptr;
 		HRESULT hr = buffer_->Map(0, nullptr, &ptr);
 		if (FAILED(hr)) {
-			Console::Print("Failed to map index buffer\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+			Console::Print("Failed to map index buffer\n", {1.0f, 0.0f, 0.0f, 1.0f});
 			return;
 		}
 

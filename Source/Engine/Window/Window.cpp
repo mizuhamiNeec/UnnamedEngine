@@ -96,18 +96,30 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 
 void Window::SetUseImmersiveDarkMode(const HWND hWnd, const bool darkMode) {
 	const BOOL value = darkMode;
-	DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+	const HRESULT hr = DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+	if (FAILED(hr)) {
+		const std::string errorMessage = WindowsUtils::GetHresultMessage(hr);
+		Console::Print(errorMessage, kConsoleColorError);
+	}
 }
 
 HINSTANCE Window::GetHInstance() const {
 	return wc_.hInstance;
 }
 
-uint32_t Window::GetClientWidth() const {
+uint32_t Window::GetClientWidth() {
+	RECT rect;
+	if (GetClientRect(hWnd_, &rect)) {
+		width_ = rect.right - rect.left;
+	}
 	return width_;
 }
 
-uint32_t Window::GetClientHeight() const {
+uint32_t Window::GetClientHeight() {
+	RECT rect;
+	if (GetClientRect(hWnd_, &rect)) {
+		height_ = rect.bottom - rect.top;
+	}
 	return height_;
 }
 
@@ -132,11 +144,12 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 			// 変更された設定が "ImmersiveColorSet" か?
 			if (immersiveColorSet && wcscmp(immersiveColorSet, L"ImmersiveColorSet") == 0) {
 				static int sMode = 0;
-				bool darkMode = WindowsUtils::IsSystemDarkTheme(); // 現在のテーマを取得
+				const bool darkMode = WindowsUtils::IsSystemDarkTheme(); // 現在のテーマを取得
 				// 前回のテーマと異なる場合
 				if (static_cast<bool>(sMode) != darkMode) {
 					sMode = darkMode;
 					SetUseImmersiveDarkMode(hWnd, darkMode); // ウィンドウのモードを設定
+					Console::Print(std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"));
 				}
 			}
 		}
@@ -161,12 +174,6 @@ bool Window::ProcessMessage() {
 
 	if (msg.message == WM_QUIT) {
 		return true;
-	}
-
-	RECT rect;
-	if (GetClientRect(hWnd_, &rect)) {
-		width_ = rect.right - rect.left;
-		height_ = rect.bottom - rect.top;
 	}
 
 	return false;

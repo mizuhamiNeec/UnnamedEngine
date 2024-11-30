@@ -105,6 +105,14 @@
     <None Include="Source\Engine\Shaders\Object3d.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\Shaders\Line.PS.hlsl" />
+    <None Include="Resources\Shaders\Line.VS.hlsl" />
+    <None Include="Resources\Shaders\Object3d.PS.hlsl" />
+    <None Include="Resources\Shaders\Object3d.VS.hlsl" />
+    <None Include="Resources\Shaders\Particle.PS.hlsl" />
+    <None Include="Resources\Shaders\Particle.VS.hlsl" />
+    <None Include="Resources\Shaders\SpriteCommon.PS.hlsl" />
+    <None Include="Resources\Shaders\SpriteCommon.VS.hlsl" />
     <None Include="Resources\Shaders\Object3d.PS.hlsl" />
     <None Include="Resources\Shaders\Object3d.VS.hlsl" />
     <None Include="Resources\Shaders\Particle.PS.hlsl" />
@@ -158,6 +166,9 @@
     <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\Shaders\Object3d.hlsli" />
+    <None Include="Resources\Shaders\Particle.hlsli" />
+    <None Include="Resources\Shaders\Line.hlsli" />
     <None Include="Resources\Shaders\Object3d.hlsli" />
     <None Include="Resources\Shaders\Particle.hlsli" />
     <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h" />
@@ -236,6 +247,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Resources\Shaders\" />
+    <Folder Include="Source\Engine\Line\" />
     <Folder Include="Source\Engine\Particle\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

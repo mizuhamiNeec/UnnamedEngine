@@ -72,9 +72,11 @@ private:
 	DirectionalLight* directionalLightData_ = nullptr; // 指向性ライトのポインタ
 	CameraForGPU* cameraForGPU_ = nullptr; // カメラのポインタ
 	PointLight* pointLightData_ = nullptr; // ポイントライトのポインタ????
+	SpotLight* spotLightData_ = nullptr; // スポットライトのポインタ
 
 	std::unique_ptr<ConstantBuffer> transformationMatrixConstantBuffer_;
 	std::unique_ptr<ConstantBuffer> directionalLightConstantBuffer_;
 	std::unique_ptr<ConstantBuffer> cameraConstantBuffer_;
 	std::unique_ptr<ConstantBuffer> pointLightConstantBuffer_;
+	std::unique_ptr<ConstantBuffer> spotLightConstantBuffer_;
 };
