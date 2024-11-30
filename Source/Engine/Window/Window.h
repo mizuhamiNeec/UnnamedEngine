@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-#include "../Lib/Utils/ConvertString.h"
+#include "../Lib/Utils/StrUtils.h"
 #include "../Lib/Utils/ClientProperties.h"
 
 class Window final {
@@ -19,13 +19,10 @@ public:
 	HWND GetWindowHandle() const;
 	HINSTANCE GetHInstance() const;
 
-	uint32_t GetClientWidth() const;
-	uint32_t GetClientHeight() const;
+	uint32_t GetClientWidth();
+	uint32_t GetClientHeight();
 
-	static int GetDeltaX();
-	static int GetDeltaY();
-
-	bool ProcessMessage();
+	static bool ProcessMessage();
 
 private:
 	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

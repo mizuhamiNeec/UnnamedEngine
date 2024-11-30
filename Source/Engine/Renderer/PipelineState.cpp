@@ -3,7 +3,7 @@
 #include <cassert>
 #include <format>
 #include "../Lib/Console/Console.h"
-#include "../Lib/Utils/ConvertString.h"
+#include "../Lib/Utils/StrUtils.h"
 
 PipelineState::PipelineState() {
 }
@@ -89,7 +89,7 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	/* 1. hlslファイルを読む */
 	// これからシェーダーをコンパイルする旨をログに出す
 	Console::Print(
-		ConvertString::ToString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)),
+		StrUtils::ToString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)),
 		kConsoleColorWait);
 	// hlslファイルを読む
 	IDxcBlobEncoding* shaderSource = nullptr;
@@ -141,7 +141,7 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	hr = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
-	Console::Print(ConvertString::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)),
+	Console::Print(StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)),
 	               kConsoleColorCompleted);
 	// もう使わないリソースを開放
 	shaderSource->Release();

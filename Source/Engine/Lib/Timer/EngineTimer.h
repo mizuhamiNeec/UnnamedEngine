@@ -52,6 +52,7 @@ public:
 
 	// Getter
 	[[nodiscard]] float GetDeltaTime() const;
+	[[nodiscard]] float GetScaledDeltaTime() const;
 	[[nodiscard]] float GetTotalTime() const;
 
 private:

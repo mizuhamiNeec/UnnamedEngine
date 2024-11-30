@@ -6,7 +6,7 @@
 
 #include "../MathLib.h"
 #include "../../Console/Console.h"
-#include "../Lib/Utils/ConvertString.h"
+#include "../Lib/Utils/StrUtils.h"
 
 Mat4 Mat4::operator+(const Mat4& rhs) const {
 	return {
@@ -181,7 +181,7 @@ void Mat4::LogMat4() {
 		}
 		result += L"\n";
 	}
-	Console::Print(ConvertString::ToString(result));
+	Console::Print(StrUtils::ToString(result));
 }
 
 Mat4 Mat4::Identity() {

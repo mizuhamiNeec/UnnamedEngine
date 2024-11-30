@@ -35,18 +35,18 @@ void GameScene::Init(
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
+	sprite_->SetSize({512.0f, 512.0f, 0.0f});
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
 	// .objファイルからモデルを読み込む
-	ModelManager::GetInstance()->LoadModel("axis.obj");
+	ModelManager::GetInstance()->LoadModel("reflectionTest.obj");
 
 	object3D_ = std::make_unique<Object3D>();
 	object3D_->Init(object3DCommon_);
 	// 初期化済みの3Dオブジェクトにモデルを紐づける
-	object3D_->SetModel("axis.obj");
-	object3D_->SetPos({ 1.0f, -0.3f, 0.6f });
+	object3D_->SetModel("reflectionTest.obj");
+	object3D_->SetPos(Vec3::zero);
 #pragma endregion
 
 #pragma region パーティクル類
@@ -58,39 +58,12 @@ void GameScene::Init(
 void GameScene::Update() {
 	sprite_->Update();
 	object3D_->Update();
-	particle_->Update(timer_->GetDeltaTime());
-
-	static bool test = true;
-
-	if (Input::GetInstance()->TriggerKey(DIK_ESCAPE)) {
-		test = !test;
-	}
-
-	if (test) {
-		RECT rect;
-		GetClientRect(window_->GetWindowHandle(), &rect);
-		POINT ul = { rect.left, rect.top };
-		POINT lr = { rect.right, rect.bottom };
-
-		MapWindowPoints(window_->GetWindowHandle(), nullptr, &ul, 1);
-		MapWindowPoints(window_->GetWindowHandle(), nullptr, &lr, 1);
-
-		RECT lockRect = { ul.x, ul.y, lr.x,lr.y };
-		ClipCursor(&lockRect);
-	} else {
-		ClipCursor(nullptr);
-	}
-
-	Camera* cam = object3DCommon_->GetDefaultCamera();
-
-	Vec3 delta = { static_cast<float>(Window::GetDeltaX()),static_cast<float>(Window::GetDeltaY()) , 0.0f };
-
-	cam->SetRotate(cam->GetRotate() + delta * stof(ConVarManager::GetConVar("sensitivity")->GetValueAsString()));
+	particle_->Update(timer_->GetScaledDeltaTime());
 
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVarManager::GetConVar("cl_showpos")->GetValueAsString() == "1") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 		const ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
@@ -111,8 +84,11 @@ void GameScene::Update() {
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
 			ConVarManager::GetConVar("name")->GetValueAsString(),
-			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y, object3DCommon_->GetDefaultCamera()->GetPos().z,
-			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg, object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y,
+			object3DCommon_->GetDefaultCamera()->GetPos().z,
+			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg,
+			object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
 			0.0f
 		);
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
@@ -163,6 +139,7 @@ void GameScene::Render() {
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
+	//sprite_->Draw();
 }
 
 void GameScene::Shutdown() {

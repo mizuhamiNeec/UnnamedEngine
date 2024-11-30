@@ -27,6 +27,8 @@ struct Material {
 	int32_t enableLighting;
 	float padding[3];
 	Mat4 uvTransform;
+	float shininess;
+	Vec3 specularColor;
 };
 
 struct TransformationMatrix {
@@ -55,10 +57,36 @@ struct DirectionalLight {
 	float intensity; //!< 輝度
 };
 
+struct PointLight {
+	Vec4 color; //!< ライトの色
+	Vec3 position; //!< ライトの位置
+	float intensity; //!< 輝度
+	float radius; //!< ライトの届く最大距離
+	float decay; //!< 減衰率
+	float padding[2];
+};
+
+struct SpotLight {
+	Vec4 color; //!< ライトの色
+	Vec3 position; //!< ライトの位置
+	float intensity; //!< 輝度
+	Vec3 direction; //!< スポットライトの方向
+	float distance; //!< ライトの届く最大距離
+	float decay; //!< 減衰率
+	float cosAngle; //!< スポットライトの余弦
+	float cosFalloffStart;
+	float padding[2];
+};
+
 struct Transform {
 	Vec3 scale;
 	Vec3 rotate;
 	Vec3 translate;
+};
+
+// カメラの座標をGPUへ送る用
+struct CameraForGPU {
+	Vec3 worldPosition;
 };
 
 struct Particle {

@@ -30,7 +30,7 @@ public:
 private:
 	D3D12* d3d12_ = nullptr;
 	Camera* defaultCamera_ = nullptr;
-	RootSignatureManager* rootSignatureManager_ = nullptr;
+	std::unique_ptr<RootSignatureManager> rootSignatureManager_ = nullptr;
 	PipelineState pipelineState_;
 	SrvManager* srvManager_ = nullptr;
 };

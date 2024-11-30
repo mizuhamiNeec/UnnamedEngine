@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../Renderer/PipelineState.h"
+#include <memory>
 
-class RootSignatureManager;
+#include "../Renderer/PipelineState.h"
+#include "../Renderer/RootSignatureManager.h"
+
 class D3D12;
 
 class SpriteCommon {
@@ -19,6 +21,6 @@ public:
 
 private:
 	D3D12* d3d12_ = nullptr;
-	RootSignatureManager* rootSignatureManager_ = nullptr;
+	std::unique_ptr<RootSignatureManager> rootSignatureManager_ = nullptr;
 	PipelineState pipelineState_;
 };

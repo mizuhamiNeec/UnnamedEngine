@@ -46,19 +46,19 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	wc_.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wc_.hbrBackground = GetSysColorBrush(COLOR_BACKGROUND);
 	wc_.lpszMenuName = nullptr;
-	wc_.lpszClassName = ConvertString::ToString(className);
+	wc_.lpszClassName = StrUtils::ToString(className);
 	wc_.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
 	wc_.hIconSm = LoadIcon(hInstance, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc_)) {
 		Console::Print("Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
-			kConsoleColorError);
+		               kConsoleColorError);
 		return false;
 	}
 
 	Console::Print("Window class registered.\n");
 
-	RECT wrc{ 0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
+	RECT wrc{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
 
 	AdjustWindowRectEx(&wrc, style_, false, exStyle_);
 
@@ -91,39 +91,36 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 
 	Console::Print("Complete create Window.\n", kConsoleColorCompleted);
 
-	RAWINPUTDEVICE rid;
-	rid.usUsagePage = 0x01; // マウス
-	rid.usUsage = 0x02;
-	rid.dwFlags = RIDEV_INPUTSINK;
-	rid.hwndTarget = hWnd_;
-	RegisterRawInputDevices(&rid, 1, sizeof(rid));
-
 	return true;
 }
 
 void Window::SetUseImmersiveDarkMode(const HWND hWnd, const bool darkMode) {
 	const BOOL value = darkMode;
-	DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+	const HRESULT hr = DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+	if (FAILED(hr)) {
+		const std::string errorMessage = WindowsUtils::GetHresultMessage(hr);
+		Console::Print(errorMessage, kConsoleColorError);
+	}
 }
 
 HINSTANCE Window::GetHInstance() const {
 	return wc_.hInstance;
 }
 
-uint32_t Window::GetClientWidth() const {
+uint32_t Window::GetClientWidth() {
+	RECT rect;
+	if (GetClientRect(hWnd_, &rect)) {
+		width_ = rect.right - rect.left;
+	}
 	return width_;
 }
 
-uint32_t Window::GetClientHeight() const {
+uint32_t Window::GetClientHeight() {
+	RECT rect;
+	if (GetClientRect(hWnd_, &rect)) {
+		height_ = rect.bottom - rect.top;
+	}
 	return height_;
-}
-
-int Window::GetDeltaX() {
-	return deltaX_;
-}
-
-int Window::GetDeltaY() {
-	return deltaY_;
 }
 
 LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
@@ -147,26 +144,16 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 			// 変更された設定が "ImmersiveColorSet" か?
 			if (immersiveColorSet && wcscmp(immersiveColorSet, L"ImmersiveColorSet") == 0) {
 				static int sMode = 0;
-				bool darkMode = WindowsUtils::IsSystemDarkTheme(); // 現在のテーマを取得
+				const bool darkMode = WindowsUtils::IsSystemDarkTheme(); // 現在のテーマを取得
 				// 前回のテーマと異なる場合
 				if (static_cast<bool>(sMode) != darkMode) {
 					sMode = darkMode;
 					SetUseImmersiveDarkMode(hWnd, darkMode); // ウィンドウのモードを設定
+					Console::Print(std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"));
 				}
 			}
 		}
 		break;
-	case WM_INPUT:
-	{
-		RAWINPUT raw;
-		UINT size = sizeof(raw);
-		GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER));
-
-		if (raw.header.dwType == RIM_TYPEMOUSE) {
-			deltaX_ = raw.data.mouse.lLastX;
-			deltaY_ = raw.data.mouse.lLastY;
-		}
-	}
 	case WM_CLOSE:
 	case WM_DESTROY:
 		PostQuitMessage(0);
@@ -187,12 +174,6 @@ bool Window::ProcessMessage() {
 
 	if (msg.message == WM_QUIT) {
 		return true;
-	}
-
-	RECT rect;
-	if (GetClientRect(hWnd_, &rect)) {
-		width_ = rect.right - rect.left;
-		height_ = rect.bottom - rect.top;
 	}
 
 	return false;

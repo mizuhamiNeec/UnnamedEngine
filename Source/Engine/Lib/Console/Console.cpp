@@ -13,12 +13,8 @@
 #include <debugapi.h>
 
 #include "ConVarManager.h"
-
-#include "../Math/Vector/Vec3.h"
-
 #include "../Utils/ClientProperties.h"
-
-#include "../Utils/ConvertString.h"
+#include "../Utils/StrUtils.h"
 
 //-----------------------------------------------------------------------------
 // Purpose: コンソールの更新処理
@@ -35,7 +31,7 @@ void Console::Update() {
 		consoleWindowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 	}
 
-	ImGui::SetNextWindowSizeConstraints({ 256.0f, 256.0f }, { 8192.0f, 8192.0f });
+	ImGui::SetNextWindowSizeConstraints({256.0f, 256.0f}, {8192.0f, 8192.0f});
 
 	//ImVec2 popupPos, popupSize;
 
@@ -46,7 +42,7 @@ void Console::Update() {
 		ImGui::Spacing();
 
 		if (ImGui::BeginChild("##scrollbox", size, true,
-			ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
+		                      ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
 			for (size_t i = 0; i < consoleTexts.size(); ++i) {
 				ImGui::PushStyleColor(ImGuiCol_Text, consoleTexts[i].color);
 				ImGui::Selectable((consoleTexts[i].text + "##" + std::to_string(i)).c_str());
@@ -61,7 +57,8 @@ void Console::Update() {
 			// スクロールをいじった?
 			if (ImGui::GetScrollY() < ImGui::GetScrollMaxY()) {
 				bWishScrollToBottom = false;
-			} else {
+			}
+			else {
 				bWishScrollToBottom = true;
 			}
 
@@ -101,7 +98,8 @@ void Console::Update() {
 
 		if (ImGui::IsItemActive()) {
 			bShowPopup = true;
-		} else {
+		}
+		else {
 			bShowPopup = false;
 		}
 
@@ -129,6 +127,10 @@ void Console::Update() {
 
 	if (consoleTexts.size() >= kConsoleMaxLineCount) {
 		consoleTexts.erase(consoleTexts.begin());
+		consoleTexts.shrink_to_fit(); // 開放
+		history.shrink_to_fit();
+		suggestions.shrink_to_fit();
+		repeatCounts.shrink_to_fit();
 	}
 #endif
 }
@@ -141,18 +143,45 @@ void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[m
 	repeatCounts.back()++;
 
 	if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatError)) {
-		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleColorError };
-	} else if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatWarning)) {
-		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), kConsoleColorWarning };
-	} else {
-		consoleTexts.back() = { std::format("{} [x{}]", message, repeatCounts.back()), color };
+		consoleTexts.back() = {
+			std::format(
+				"{} [x{}]",
+				message,
+				repeatCounts.back()
+			),
+			kConsoleColorError
+		};
+	}
+	else if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatWarning)) {
+		consoleTexts.back() = {
+			std::format(
+				"{} [x{}]",
+				message,
+				repeatCounts.back()
+			),
+			kConsoleColorWarning
+		};
+	}
+	else {
+		consoleTexts.back() = {
+			std::format(
+				"{} [x{}]",
+				message,
+				repeatCounts.back()
+			),
+			color
+		};
 	}
 #endif
 }
 
 #ifdef _DEBUG
-void Console::SuggestPopup([[maybe_unused]] SuggestPopupState& state, const ImVec2& pos, const ImVec2& size,
-	[[maybe_unused]] bool& isFocused) {
+void Console::SuggestPopup(
+	[[maybe_unused]] SuggestPopupState& state,
+	const ImVec2& pos,
+	const ImVec2& size,
+	[[maybe_unused]] bool& isFocused
+) {
 	// 角丸をなくす
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 
@@ -208,11 +237,12 @@ void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]
 	if (!consoleTexts.empty() && consoleTexts.back().text.starts_with(message) && consoleTexts.back().text != "]\n") {
 		// 前のメッセージと同じ場合、カウントを増加させる
 		UpdateRepeatCount(message, color);
-	} else {
+	}
+	else {
 		// 前のメッセージと異なる場合、新しいメッセージを追加
-		consoleTexts.push_back({ message, color });
+		consoleTexts.push_back({message, color});
 		repeatCounts.push_back(1);
-		OutputDebugString(ConvertString::ToString(message));
+		OutputDebugString(StrUtils::ToString(message));
 	}
 
 	bWishScrollToBottom = true;
@@ -238,17 +268,18 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 		Print("Completion\n", kConsoleColorFloat);
 		break;
 
-	case ImGuiInputTextFlags_CallbackHistory:
-	{
+	case ImGuiInputTextFlags_CallbackHistory: {
 		const int prev_history_index = historyIndex;
 		if (data->EventKey == ImGuiKey_UpArrow) {
 			if (historyIndex > 0) {
 				historyIndex--;
 			}
-		} else if (data->EventKey == ImGuiKey_DownArrow) {
+		}
+		else if (data->EventKey == ImGuiKey_DownArrow) {
 			if (historyIndex < static_cast<int>(history.size()) - 1) {
 				historyIndex++;
-			} else {
+			}
+			else {
 				historyIndex = static_cast<int>(history.size()); // 履歴が空の場合はサイズと一致させる
 			}
 		}
@@ -256,7 +287,8 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 			data->DeleteChars(0, data->BufTextLen);
 			if (historyIndex < static_cast<int>(history.size())) {
 				data->InsertChars(0, history[historyIndex].c_str());
-			} else {
+			}
+			else {
 				data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
 			}
 		}
@@ -270,7 +302,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	case ImGuiInputTextFlags_CallbackResize:
 		Print("Resize\n", kConsoleColorError);
 		break;
-	default:;
+	default: ;
 	}
 	return 0;
 }
@@ -286,52 +318,6 @@ void Console::ScrollToBottom() {
 		bWishScrollToBottom = false;
 	}
 #endif
-}
-
-// int 型かどうかの判定
-bool IsInteger(const std::string& str) {
-	try {
-		size_t pos;
-		(void)std::stoi(str, &pos);
-		// 変換後に余分な文字列がないか確認
-		return pos == str.length();
-	} catch ([[maybe_unused]] const std::invalid_argument& e) {
-		return false;
-	} catch ([[maybe_unused]] const std::out_of_range& e) {
-		return false;
-	}
-}
-
-// float 型かどうかの判定
-bool IsFloat(const std::string& str) {
-	try {
-		size_t pos;
-		(void)std::stof(str, &pos);
-		// 変換後に余分な文字列がないか確認
-		return pos == str.length();
-	} catch ([[maybe_unused]] const std::invalid_argument& e) {
-		return false;
-	} catch ([[maybe_unused]] const std::out_of_range& e) {
-		return false;
-	}
-}
-
-// Vec3 かどうかの判定
-bool IsVec3(const std::vector<std::string>& tokens, const int index) {
-	if (index + 2 >= static_cast<int>(tokens.size())) {
-		return false;
-	}
-
-	// 3つ連続するトークンがすべてfloatとして解釈できるか
-	return IsFloat(tokens[index]) && IsFloat(tokens[index + 1]) && IsFloat(tokens[index + 2]);
-}
-
-// Vec3 の解析
-Vec3 ParseVec3(const std::vector<std::string>& tokens, int index) {
-	float x = std::stof(tokens[index]);
-	float y = std::stof(tokens[index + 1]);
-	float z = std::stof(tokens[index + 2]);
-	return { x, y, z };
 }
 
 void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
@@ -357,7 +343,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 	for (auto conVar : ConVarManager::GetAllConVars()) {
 		// 変数が存在する場合
-		if (conVar->GetName() == tokens[0]) {
+		if (StrUtils::Equal(conVar->GetName(), tokens[0])) {
 			found = true;
 			// 変数のみ入力された場合
 			if (tokens.size() < 2) {
@@ -376,40 +362,50 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 				if (conVar->GetTypeAsString() == "bool") {
 					Print(" - " + description + " " + type, kConsoleColorBool);
-				} else if (conVar->GetTypeAsString() == "int") {
+				}
+				else if (conVar->GetTypeAsString() == "int") {
 					Print(" - " + description + " " + type, kConsoleColorInt);
-				} else if (conVar->GetTypeAsString() == "float") {
+				}
+				else if (conVar->GetTypeAsString() == "float") {
 					Print(" - " + description + " " + type, kConsoleColorFloat);
-				} else if (conVar->GetTypeAsString() == "Vec3") {
+				}
+				else if (conVar->GetTypeAsString() == "Vec3") {
 					Print(" - " + description + " " + type, kConsoleColorVec3);
-				} else if (conVar->GetTypeAsString() == "string") {
+				}
+				else if (conVar->GetTypeAsString() == "string") {
 					Print(" - " + description + " " + type, kConsoleColorString);
 				}
-			} else {
+			}
+			else {
 				// 引数込みで入力された場合の処理
 				bool isValidInput = true;
 				for (size_t i = 1; i < tokens.size(); ++i) {
 					if (conVar->GetTypeAsString() == "int") {
 						if (tokens[i] == "true") {
 							tokens[i] = "1";
-						} else if (tokens[i] == "false") {
+						}
+						else if (tokens[i] == "false") {
 							tokens[i] = "0";
 						}
 
 						try {
 							[[maybe_unused]] int value = std::stoi(tokens[i]);
-						} catch (...) {
+						}
+						catch (...) {
 							isValidInput = false;
 							break;
 						}
-					} else if (conVar->GetTypeAsString() == "float") {
+					}
+					else if (conVar->GetTypeAsString() == "float") {
 						try {
 							[[maybe_unused]] float value = std::stof(tokens[i]);
-						} catch (...) {
+						}
+						catch (...) {
 							isValidInput = false;
 							break;
 						}
-					} else if (conVar->GetTypeAsString() == "bool") {
+					}
+					else if (conVar->GetTypeAsString() == "bool") {
 						if (tokens[i] != "true" && tokens[i] != "false") {
 							isValidInput = false;
 							break;
@@ -421,8 +417,9 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 					for (size_t i = 1; i < tokens.size(); ++i) {
 						conVar->SetValueFromString(tokens[i]);
 					}
-				} else {
-					Print("Invalid argument...", kConsoleColorError);
+				}
+				else {
+					Print("what ?", kConsoleColorError);
 				}
 			}
 			break;
@@ -438,8 +435,10 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 #endif
 }
 
-void Console::RegisterCommand([[maybe_unused]] const std::string& commandName,
-	[[maybe_unused]] const CommandCallback& callback) {
+void Console::RegisterCommand(
+	[[maybe_unused]] const std::string& commandName,
+	[[maybe_unused]] const CommandCallback& callback
+) {
 #ifdef _DEBUG
 	commandMap[commandName] = callback;
 #endif
@@ -447,7 +446,16 @@ void Console::RegisterCommand([[maybe_unused]] const std::string& commandName,
 
 void Console::Clear([[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
-	consoleTexts.clear();
+	consoleTexts.clear(); // コンソールのテキストをクリア
+	consoleTexts.shrink_to_fit(); // 開放
+	history.clear(); // コマンド履歴をクリア
+	history.shrink_to_fit();
+	suggestions.clear(); // サジェストをクリア
+	suggestions.shrink_to_fit();
+	repeatCounts.clear(); // 繰り返しカウントをクリア
+	repeatCounts.shrink_to_fit();
+	historyIndex = -1; // 履歴インデックスを初期化
+	bWishScrollToBottom = true; // 再描画の際にスクロールをリセット
 #endif
 }
 
@@ -461,7 +469,7 @@ void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
 
 void Console::AddHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
-	consoleTexts.push_back({ "] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f) });
+	consoleTexts.push_back({"] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f)});
 #endif
 }
 

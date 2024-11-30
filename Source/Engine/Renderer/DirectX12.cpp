@@ -5,7 +5,7 @@
 #include <cassert>
 #include <dxgidebug.h>
 #include <format>
-#include "../Lib/Utils/ConvertString.h"
+#include "../Lib/Utils/StrUtils.h"
 
 #include "../Lib/Math/Matrix/Mat4.h"
 #include "../Lib/Console/Console.h"
@@ -934,7 +934,7 @@ void DirectX12::CreateDevice() {
 		assert(SUCCEEDED(hr_));
 		// ソフトウェアアダプタでなければ採用!
 		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE)) {
-			Console::Print(ConvertString::ToString(std::format(L"Use Adapter : {}\n", adapterDesc.Description))); // 採用したアダプタの情報をログに出力。
+			Console::Print(StrUtils::ToString(std::format(L"Use Adapter : {}\n", adapterDesc.Description))); // 採用したアダプタの情報をログに出力。
 			break;
 		}
 		useAdapter = nullptr; // ソフトウェアアダプタの場合は見なかったことにする
@@ -999,7 +999,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
 	/* 1. hlslファイルを読む */
 	// これからシェーダーをコンパイルする旨をログに出す
-	Console::Print(ConvertString::ToString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)), kConsoleColorWait);
+	Console::Print(StrUtils::ToString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)), kConsoleColorWait);
 	// hlslファイルを読む
 	IDxcBlobEncoding* shaderSource = nullptr;
 	hr_ = dxcUtils->LoadFile(filePath.c_str(), nullptr, &shaderSource);
@@ -1050,7 +1050,7 @@ IDxcBlob* DirectX12::CompileShader(const std::wstring& filePath, const wchar_t* 
 	hr_ = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr_));
 	// 成功したらログを出す
-	Console::Print(ConvertString::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)), kConsoleColorCompleted);
+	Console::Print(StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)), kConsoleColorCompleted);
 	// もう使わないリソースを開放
 	shaderSource->Release();
 	shaderResult->Release();
@@ -1182,7 +1182,7 @@ ID3D12DescriptorHeap* DirectX12::SrvDescriptorHeap() const {
 DirectX::ScratchImage DirectX12::LoadTexture(const std::string& filePath) {
 	// テクスチャファイルを読んでプログラムで扱えるようにする
 	DirectX::ScratchImage image = {};
-	std::wstring filePathW = ConvertString::ToString(filePath);
+	std::wstring filePathW = StrUtils::ToString(filePath);
 	HRESULT hr = LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 	assert(SUCCEEDED(hr));
 

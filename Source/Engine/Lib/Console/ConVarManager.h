@@ -6,12 +6,11 @@
 
 class ConVarManager {
 public:
-
 	template <typename T>
 	static void RegisterConVar(
 		const std::string& name,
 		const T& defaultValue,
-		const std::string& helpString,
+		const std::string& helpString = "",
 		ConVarFlags flags = ConVarFlags::ConVarFlags_None,
 		bool bMin = false,
 		float fMin = 0.0f,

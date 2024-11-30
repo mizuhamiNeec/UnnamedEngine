@@ -23,6 +23,37 @@ std::string WindowsUtils::GetWindowsUserName() {
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: HRESULTからのメッセージを取得します
+//-----------------------------------------------------------------------------
+std::string WindowsUtils::GetHresultMessage(const HRESULT hr) {
+	char* messageBuffer = nullptr;
+	const size_t messageLength = FormatMessageA(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr,
+		hr,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		reinterpret_cast<LPSTR>(&messageBuffer),
+		0,
+		nullptr
+	);
+
+	std::string message;
+	if (messageLength > 0) {
+		message = std::string(messageBuffer, messageLength);
+	}
+	else {
+		message = "Unknown error code : " + std::to_string(hr);
+	}
+
+	// メモリ解放
+	if (messageBuffer) {
+		LocalFree(messageBuffer);
+	}
+
+	return message;
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: 指定されたレジストリのキーを開き、名前に関連付けられたDWORD値を返します
 //-----------------------------------------------------------------------------
 bool WindowsUtils::RegistryGetDWord(const HKEY hKeyParent, char const* key, char const* name, DWORD* pData) {
