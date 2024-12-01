@@ -115,7 +115,7 @@ void Engine::Update() const {
 	Console::Update();
 #endif
 
-	time_->Update();
+	time_->StartFrame();
 
 	/* ----------- 更新処理 ---------- */
 	Input::GetInstance()->Update();
@@ -217,6 +217,8 @@ void Engine::Update() const {
 	/* ---------- Post ----------- */
 	renderer_->PostRender();
 	/* ---------- ゲームループ終了 ---------- */
+
+	time_->EndFrame();
 }
 
 void Engine::Shutdown() const {
@@ -242,7 +244,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::RegisterCommand("quit", Quit);
 	// コンソール変数を登録
 	ConVarManager::RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
-	ConVarManager::RegisterConVar<int>("cl_showfps", 1, "Draw fps meter (1 = fps, 2 = smooth)");
+	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");
 	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps, "Frame rate limiter");
 	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);
 	Console::SubmitCommand(std::format("name {}", WindowsUtils::GetWindowsUserName()));

@@ -1,9 +1,20 @@
-﻿#include "Empty.h"
+﻿#include "Entity.h"
+
+//-----------------------------------------------------------------------------
+// Purpose: 更新処理
+//-----------------------------------------------------------------------------
+void Entity::Update() {
+	for (const auto element : children_) {
+		if (element != nullptr) {
+			element->Update();
+		}
+	}
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 子を追加します
 //-----------------------------------------------------------------------------
-void Empty::AddChild(Empty* child) {
+void Entity::AddChild(Entity* child) {
 	children_.push_back(child);
 	child->SetParent(this);
 }
@@ -11,69 +22,69 @@ void Empty::AddChild(Empty* child) {
 //-----------------------------------------------------------------------------
 // Purpose: トランスフォームを設定します
 //-----------------------------------------------------------------------------
-void Empty::SetTransform(const Transform& newTransform) {
+void Entity::SetTransform(const Transform& newTransform) {
 	transform_ = newTransform;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 座標を設定します
 //-----------------------------------------------------------------------------
-void Empty::SetPos(const Vec3& newPos) {
+void Entity::SetPosition(const Vec3& newPos) {
 	transform_.translate = newPos;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 回転を設定します
 //-----------------------------------------------------------------------------
-void Empty::SetRot(const Vec3& newRot) {
+void Entity::SetRotation(const Vec3& newRot) {
 	transform_.rotate = newRot;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 拡縮を設定します
 //-----------------------------------------------------------------------------
-void Empty::SetScale(const Vec3& newScale) {
+void Entity::SetScale(const Vec3& newScale) {
 	transform_.scale = newScale;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 親を設定します
 //-----------------------------------------------------------------------------
-void Empty::SetParent(Empty* parent) {
+void Entity::SetParent(Entity* parent) {
 	parent_ = parent;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: トランスフォームを取得します
 //-----------------------------------------------------------------------------
-Transform& Empty::GetTransform() {
+Transform& Entity::GetTransform() {
 	return transform_;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 座標を取得します
 //-----------------------------------------------------------------------------
-Vec3& Empty::GetPos() {
+Vec3& Entity::Position() {
 	return transform_.translate;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 回転を取得します
 //-----------------------------------------------------------------------------
-Vec3& Empty::GetRot() {
+Vec3& Entity::Rotation() {
 	return transform_.rotate;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 拡縮を取得します
 //-----------------------------------------------------------------------------
-Vec3& Empty::GetScale() {
+Vec3& Entity::Scale() {
 	return transform_.scale;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose:	親を取得します
 //-----------------------------------------------------------------------------
-Empty* Empty::GetParent() const {
+Entity* Entity::GetParent() const {
 	return parent_;
 }
