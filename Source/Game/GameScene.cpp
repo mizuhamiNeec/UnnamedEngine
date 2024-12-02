@@ -139,6 +139,7 @@ void GameScene::Update() {
 	object3D_->Update();
 	particle_->Update(EngineTimer::GetScaledDeltaTime());
 
+#ifdef _DEBUG
 	const std::vector<float> powerOfTwoValues = {
 		0.125f, 0.25f, 0.5f, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384
 	};
@@ -205,6 +206,7 @@ void GameScene::Update() {
 	{
 		DrawGrid(100.0f, 4, 16, gridSize);
 	}
+#endif
 
 #ifdef _DEBUG
 #pragma region cl_showpos
