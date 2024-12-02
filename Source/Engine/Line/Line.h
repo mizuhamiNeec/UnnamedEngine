@@ -10,7 +10,7 @@
 #include "../Renderer/VertexBuffer.h"
 
 struct TransformationMatrix;
-constexpr size_t kMaxLineCount = 6553599;
+constexpr size_t kMaxLineCount = 256;
 
 struct LineVertex {
 	Vec3 pos;

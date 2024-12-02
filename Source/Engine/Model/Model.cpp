@@ -27,7 +27,7 @@ void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, con
 	materialData_ = materialConstantBuffer_->GetPtr<Material>();
 	materialData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
 	materialData_->enableLighting = true;
-	materialData_->uvTransform = Mat4::Identity();
+	materialData_->uvTransform = Mat4::identity;
 	materialData_->shininess = 128.0f;
 	materialData_->specularColor = Vec3(0.25f, 0.25f, 0.25f); // 灰色
 

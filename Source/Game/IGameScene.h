@@ -20,7 +20,6 @@ public:
 		Object3DCommon* object3DCommon,
 		ModelCommon* modelCommon,
 		ParticleCommon* particleCommon,
-		LineCommon* lineCommon,
 		EngineTimer* engineTimer
 	) = 0;
 	virtual void Update() = 0;
@@ -32,6 +31,5 @@ protected:
 	Object3DCommon* object3DCommon_ = nullptr;
 	ModelCommon* modelCommon_ = nullptr;
 	ParticleCommon* particleCommon_ = nullptr;
-	LineCommon* lineCommon_ = nullptr;
 	EngineTimer* timer_ = nullptr;
 };

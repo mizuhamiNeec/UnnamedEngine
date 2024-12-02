@@ -8,6 +8,47 @@
 #include "../../Console/Console.h"
 #include "../Lib/Utils/StrUtils.h"
 
+Mat4::Mat4() {
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			m[i][j] = (i == j) ? 1.0f : 0.0f;
+		}
+	}
+}
+
+Mat4::Mat4(const Mat4& other) {
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			m[i][j] = other.m[i][j];
+		}
+	}
+}
+
+Mat4::Mat4(const std::initializer_list<std::initializer_list<float>> list) {
+	int row = 0;
+	for (const auto& sublist : list) {
+		int col = 0;
+		for (const float value : sublist) {
+			if (row < 4 && col < 4) {
+				m[row][col] = value;
+			}
+			++col;
+		}
+		++row;
+	}
+
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			if (i >= static_cast<int>(list.size()) || j >= static_cast<int>(((list.begin() + i))->size())) {
+				m[i][j] = 0.0f;
+			}
+		}
+	}
+}
+
+const Mat4 Mat4::identity = Mat4();
+const Mat4 Mat4::zero = {{{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+
 Mat4 Mat4::operator+(const Mat4& rhs) const {
 	return {
 		{
@@ -31,133 +72,125 @@ Mat4 Mat4::operator-(const Mat4& rhs) const {
 }
 
 Mat4 Mat4::operator*(const Mat4& rhs) const {
-	return {
-		{
-			{
-				m[0][0] * rhs.m[0][0] + m[0][1] * rhs.m[1][0] + m[0][2] * rhs.m[2][0] + m[0][3] * rhs.m[3][0],
-				m[0][0] * rhs.m[0][1] + m[0][1] * rhs.m[1][1] + m[0][2] * rhs.m[2][1] + m[0][3] * rhs.m[3][1],
-				m[0][0] * rhs.m[0][2] + m[0][1] * rhs.m[1][2] + m[0][2] * rhs.m[2][2] + m[0][3] * rhs.m[3][2],
-				m[0][0] * rhs.m[0][3] + m[0][1] * rhs.m[1][3] + m[0][2] * rhs.m[2][3] + m[0][3] * rhs.m[3][3]
-			},
-			{
-				m[1][0] * rhs.m[0][0] + m[1][1] * rhs.m[1][0] + m[1][2] * rhs.m[2][0] + m[1][3] * rhs.m[3][0],
-				m[1][0] * rhs.m[0][1] + m[1][1] * rhs.m[1][1] + m[1][2] * rhs.m[2][1] + m[1][3] * rhs.m[3][1],
-				m[1][0] * rhs.m[0][2] + m[1][1] * rhs.m[1][2] + m[1][2] * rhs.m[2][2] + m[1][3] * rhs.m[3][2],
-				m[1][0] * rhs.m[0][3] + m[1][1] * rhs.m[1][3] + m[1][2] * rhs.m[2][3] + m[1][3] * rhs.m[3][3]
-			},
-			{
-				m[2][0] * rhs.m[0][0] + m[2][1] * rhs.m[1][0] + m[2][2] * rhs.m[2][0] + m[2][3] * rhs.m[3][0],
-				m[2][0] * rhs.m[0][1] + m[2][1] * rhs.m[1][1] + m[2][2] * rhs.m[2][1] + m[2][3] * rhs.m[3][1],
-				m[2][0] * rhs.m[0][2] + m[2][1] * rhs.m[1][2] + m[2][2] * rhs.m[2][2] + m[2][3] * rhs.m[3][2],
-				m[2][0] * rhs.m[0][3] + m[2][1] * rhs.m[1][3] + m[2][2] * rhs.m[2][3] + m[2][3] * rhs.m[3][3]
-			},
-			{
-				m[3][0] * rhs.m[0][0] + m[3][1] * rhs.m[1][0] + m[3][2] * rhs.m[2][0] + m[3][3] * rhs.m[3][0],
-				m[3][0] * rhs.m[0][1] + m[3][1] * rhs.m[1][1] + m[3][2] * rhs.m[2][1] + m[3][3] * rhs.m[3][1],
-				m[3][0] * rhs.m[0][2] + m[3][1] * rhs.m[1][2] + m[3][2] * rhs.m[2][2] + m[3][3] * rhs.m[3][2],
-				m[3][0] * rhs.m[0][3] + m[3][1] * rhs.m[1][3] + m[3][2] * rhs.m[2][3] + m[3][3] * rhs.m[3][3]
-			}
-		},
-	};
+	Mat4 result;
+	float rhsColumn[4][4];
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			rhsColumn[i][j] = rhs.m[j][i];
+		}
+	}
+
+	for (int row = 0; row < 4; ++row) {
+		for (int col = 0; col < 4; ++col) {
+			result.m[row][col] = m[row][0] * rhsColumn[col][0] +
+				m[row][1] * rhsColumn[col][1] +
+				m[row][2] * rhsColumn[col][2] +
+				m[row][3] * rhsColumn[col][3];
+		}
+	}
+	return result;
+}
+
+float Mat4::Determinant() const {
+	return
+		m[0][0] * (
+			m[1][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
+			m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) +
+			m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1])
+		) - m[0][1] * (
+			m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
+			m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+			m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0])
+		) + m[0][2] * (
+			m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
+			m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+			m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
+		) - m[0][3] * (
+			m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
+			m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
+			m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
+		);
 }
 
 Mat4 Mat4::Inverse() const {
-	const float a =
-		m[0][0] * m[1][1] * m[2][2] * m[3][3] + m[0][0] * m[1][2] * m[2][3] * m[3][1] + m[0][0] * m[1][3] * m[2][1]
-		* m[3][2] -
-		m[0][0] * m[1][3] * m[2][2] * m[3][1] - m[0][0] * m[1][2] * m[2][1] * m[3][3] - m[0][0] * m[1][1] * m[2][3]
-		* m[3][2] -
-		m[0][1] * m[1][0] * m[2][2] * m[3][3] - m[0][2] * m[1][0] * m[2][3] * m[3][1] - m[0][3] * m[1][0] * m[2][1]
-		* m[3][2] +
-		m[0][3] * m[1][0] * m[2][2] * m[3][1] + m[0][2] * m[1][0] * m[2][1] * m[3][3] + m[0][1] * m[1][0] * m[2][3]
-		* m[3][2] +
-		m[0][1] * m[1][2] * m[2][0] * m[3][3] + m[0][2] * m[1][3] * m[2][0] * m[3][1] + m[0][3] * m[1][1] * m[2][0]
-		* m[3][2] -
-		m[0][3] * m[1][2] * m[2][0] * m[3][1] - m[0][2] * m[1][1] * m[2][0] * m[3][3] - m[0][1] * m[1][3] * m[2][0]
-		* m[3][2] -
-		m[0][1] * m[1][2] * m[2][3] * m[3][0] - m[0][2] * m[1][3] * m[2][1] * m[3][0] - m[0][3] * m[1][1] * m[2][2]
-		* m[3][0] +
-		m[0][3] * m[1][2] * m[2][1] * m[3][0] + m[0][2] * m[1][1] * m[2][3] * m[3][0] + m[0][1] * m[1][3] * m[2][2]
-		* m[3][0];
+	Mat4 result;
+	const float det = Determinant();
 
-	const Mat4 result = {
-		{
-			{
-				(m[1][1] * m[2][2] * m[3][3] + m[1][2] * m[2][3] * m[3][1] + m[1][3] * m[2][1] * m[3][2] - m[1][3] * m[
-						2][2]
-					* m
-					[3][1] - m[1][2] * m[2][1] * m[3][3] - m[1][1] * m[2][3] * m[3][2]) / a,
-				(-m[0][1] * m[2][2] * m[3][3] - m[0][2] * m[2][3] * m[3][1] - m[0][3] * m[2][1] * m[3][2] + m[0][3] * m[
-						2][
-						2] *
-					m[3][1] + m[0][2] * m[2][1] * m[3][3] + m[0][1] * m[2][3] * m[3][2]) / a,
-				(m[0][1] * m[1][2] * m[3][3] + m[0][2] * m[1][3] * m[3][1] + m[0][3] * m[1][1] * m[3][2] - m[0][3] * m[
-						1][2]
-					* m
-					[3][1] - m[0][2] * m[1][1] * m[3][3] - m[0][1] * m[1][3] * m[3][2]) / a,
-				(-m[0][1] * m[1][2] * m[2][3] - m[0][2] * m[1][3] * m[2][1] - m[0][3] * m[1][1] * m[2][2] + m[0][3] * m[
-						1][
-						2] *
-					m[2][1] + m[0][2] * m[1][1] * m[2][3] + m[0][1] * m[1][3] * m[2][2]) / a
-			},
-			{
-				(-m[1][0] * m[2][2] * m[3][3] - m[1][2] * m[2][3] * m[3][0] - m[1][3] * m[2][0] * m[3][2] + m[1][3] * m[
-						2][
-						2] *
-					m[3][0] + m[1][2] * m[2][0] * m[3][3] + m[1][0] * m[2][3] * m[3][2]) / a,
-				(m[0][0] * m[2][2] * m[3][3] + m[0][2] * m[2][3] * m[3][0] + m[0][3] * m[2][0] * m[3][2] - m[0][3] * m[
-						2][2]
-					* m
-					[3][0] - m[0][2] * m[2][0] * m[3][3] - m[0][0] * m[2][3] * m[3][2]) / a,
-				(-m[0][0] * m[1][2] * m[3][3] - m[0][2] * m[1][3] * m[3][0] - m[0][3] * m[1][0] * m[3][2] + m[0][3] * m[
-						1][
-						2] *
-					m[3][0] + m[0][2] * m[1][0] * m[3][3] + m[0][0] * m[1][3] * m[3][2]) / a,
-				(m[0][0] * m[1][2] * m[2][3] + m[0][2] * m[1][3] * m[2][0] + m[0][3] * m[1][0] * m[2][2] - m[0][3] * m[
-						1][2]
-					* m
-					[2][0] - m[0][2] * m[1][0] * m[2][3] - m[0][0] * m[1][3] * m[2][2]) / a
-			},
+	if (det == 0.0f) {
+		Console::Print("Mat4 : 行列式がゼロのため、逆行列は存在しません。\n", kConsoleColorError);
+		return result;
+	}
 
-			{
-				(m[1][0] * m[2][1] * m[3][3] + m[1][1] * m[2][3] * m[3][0] + m[1][3] * m[2][0] * m[3][1] - m[1][3] * m[
-						2][1]
-					* m
-					[3][0] - m[1][1] * m[2][0] * m[3][3] - m[1][0] * m[2][3] * m[3][1]) / a,
-				(-m[0][0] * m[2][1] * m[3][3] - m[0][1] * m[2][3] * m[3][0] - m[0][3] * m[2][0] * m[3][1] + m[0][3] * m[
-						2][
-						1] *
-					m[3][0] + m[0][1] * m[2][0] * m[3][3] + m[0][0] * m[2][3] * m[3][1]) / a,
-				(m[0][0] * m[1][1] * m[3][3] + m[0][1] * m[1][3] * m[3][0] + m[0][3] * m[1][0] * m[3][1] - m[0][3] * m[
-						1][1]
-					* m
-					[3][0] - m[0][1] * m[1][0] * m[3][3] - m[0][0] * m[1][3] * m[3][1]) / a,
-				(-m[0][0] * m[1][1] * m[2][3] - m[0][1] * m[1][3] * m[2][0] - m[0][3] * m[1][0] * m[2][1] + m[0][3] * m[
-						1][
-						1] *
-					m[2][0] * m[0][1] * m[1][0] * m[2][3] + m[0][0] * m[1][3] * m[2][1]) / a
-			},
+	// 逆行列の計算
+	const float invDet = 1.0f / det;
 
-			{
-				(-m[1][0] * m[2][1] * m[3][2] - m[1][1] * m[2][2] * m[3][0] - m[1][2] * m[2][0] * m[3][1] + m[1][2] * m[
-						2][
-						1] *
-					m[3][0] + m[1][1] * m[2][0] * m[3][2] + m[1][0] * m[2][2] * m[3][1]) / a,
-				(m[0][0] * m[2][1] * m[3][2] + m[0][1] * m[2][2] * m[3][0] + m[0][2] * m[2][0] * m[3][1] - m[0][2] * m[
-						2][1]
-					* m
-					[3][0] - m[0][1] * m[2][0] * m[3][2] - m[0][0] * m[2][2] * m[3][1]) / a,
-				(-m[0][0] * m[1][1] * m[3][2] - m[0][1] * m[1][2] * m[3][0] - m[0][2] * m[1][0] * m[3][1] + m[0][2] * m[
-						1][
-						1] *
-					m[3][0] + m[0][1] * m[1][0] * m[3][2] + m[0][0] * m[1][2] * m[3][1]) / a,
-				(m[0][0] * m[1][1] * m[2][2] + m[0][1] * m[1][2] * m[2][0] + m[0][2] * m[1][0] * m[2][1] - m[0][2] * m[
-						1][1]
-					* m
-					[2][0] - m[0][1] * m[1][0] * m[2][2] - m[0][0] * m[1][2] * m[2][1]) / a
-			}
-		},
-	};
+	result.m[0][0] = invDet * (
+		m[1][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
+		m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) +
+		m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]));
+	result.m[0][1] = invDet * -(
+		m[0][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
+		m[0][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) +
+		m[0][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]));
+	result.m[0][2] = invDet * (
+		m[0][1] * (m[1][2] * m[3][3] - m[1][3] * m[3][2]) -
+		m[0][2] * (m[1][1] * m[3][3] - m[1][3] * m[3][1]) +
+		m[0][3] * (m[1][1] * m[3][2] - m[1][2] * m[3][1]));
+	result.m[0][3] = invDet * -(
+		m[0][1] * (m[1][2] * m[2][3] - m[1][3] * m[2][2]) -
+		m[0][2] * (m[1][1] * m[2][3] - m[1][3] * m[2][1]) +
+		m[0][3] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]));
+
+	result.m[1][0] = invDet * -(
+		m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
+		m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+		m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]));
+	result.m[1][1] = invDet * (
+		m[0][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
+		m[0][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+		m[0][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]));
+	result.m[1][2] = invDet * -(
+		m[0][0] * (m[1][2] * m[3][3] - m[1][3] * m[3][2]) -
+		m[0][2] * (m[1][0] * m[3][3] - m[1][3] * m[3][0]) +
+		m[0][3] * (m[1][0] * m[3][2] - m[1][2] * m[3][0]));
+	result.m[1][3] = invDet * (
+		m[0][0] * (m[1][2] * m[2][3] - m[1][3] * m[2][2]) -
+		m[0][2] * (m[1][0] * m[2][3] - m[1][3] * m[2][0]) +
+		m[0][3] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]));
+
+	result.m[2][0] = invDet * (
+		m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
+		m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+		m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
+	result.m[2][1] = invDet * -(
+		m[0][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
+		m[0][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+		m[0][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
+	result.m[2][2] = invDet * (
+		m[0][0] * (m[1][1] * m[3][3] - m[1][3] * m[3][1]) -
+		m[0][1] * (m[1][0] * m[3][3] - m[1][3] * m[3][0]) +
+		m[0][3] * (m[1][0] * m[3][1] - m[1][1] * m[3][0]));
+	result.m[2][3] = invDet * -(
+		m[0][0] * (m[1][1] * m[2][3] - m[1][3] * m[2][1]) -
+		m[0][1] * (m[1][0] * m[2][3] - m[1][3] * m[2][0]) +
+		m[0][3] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]));
+
+	result.m[3][0] = invDet * -(
+		m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
+		m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
+		m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
+	result.m[3][1] = invDet * (
+		m[0][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
+		m[0][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
+		m[0][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
+	result.m[3][2] = invDet * -(
+		m[0][0] * (m[1][1] * m[3][2] - m[1][2] * m[3][1]) -
+		m[0][1] * (m[1][0] * m[3][2] - m[1][2] * m[3][0]) +
+		m[0][2] * (m[1][0] * m[3][1] - m[1][1] * m[3][0]));
+	result.m[3][3] = invDet * (
+		m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
+		m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+		m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]));
 
 	return result;
 }
@@ -175,24 +208,13 @@ Mat4 Mat4::Transpose() const {
 
 void Mat4::LogMat4() {
 	std::wstring result;
-	for (float(&i)[4] : m) {
+	for (float (&i)[4] : m) {
 		for (float& j : i) {
 			result += std::format(L"{:.2f} ", j);
 		}
 		result += L"\n";
 	}
 	Console::Print(StrUtils::ToString(result));
-}
-
-Mat4 Mat4::Identity() {
-	return {
-		{
-			{1.0f, 0.0f, 0.0f, 0.0f},
-			{0.0f, 1.0f, 0.0f, 0.0f},
-			{0.0f, 0.0f, 1.0f, 0.0f},
-			{0.0f, 0.0f, 0.0f, 1.0f}
-		},
-	};
 }
 
 Mat4 Mat4::Translate(const Vec3& translate) {
@@ -219,9 +241,12 @@ Mat4 Mat4::Scale(const Vec3& scale) {
 
 Vec3 Mat4::Transform(const Vec3& vector, const Mat4& matrix) {
 	Vec3 result; // w=1がデカルト座標系であるので(x,y,z,1)のベクトルとしてmatrixとの積をとる
-	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][0];
-	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][1];
-	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + 1.0f * matrix.m[3][2];
+	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][
+		0];
+	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][
+		1];
+	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + 1.0f * matrix.m[3][
+		2];
 	float w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] + 1.0f * matrix.m[3][3];
 	assert(w != 0.0f); // ベクトルに対して基本的な操作を行う行列でwが0になることはありえない
 	result.x /= w; // w=1がデカルト座標系であるので、w除算することで同時座標をデカルト座標に戻す
@@ -231,7 +256,7 @@ Vec3 Mat4::Transform(const Vec3& vector, const Mat4& matrix) {
 }
 
 Mat4 Mat4::RotateX(const float radian) {
-	Mat4 result = Identity();
+	Mat4 result = identity;
 
 	const float cos = std::cos(radian);
 	const float sin = std::sin(radian);
@@ -245,7 +270,7 @@ Mat4 Mat4::RotateX(const float radian) {
 }
 
 Mat4 Mat4::RotateY(const float radian) {
-	Mat4 result = Identity();
+	Mat4 result = identity;
 
 	const float cos = std::cos(radian);
 	const float sin = std::sin(radian);
@@ -259,7 +284,7 @@ Mat4 Mat4::RotateY(const float radian) {
 }
 
 Mat4 Mat4::RotateZ(const float radian) {
-	Mat4 result = Identity();
+	Mat4 result = identity;
 
 	const float cos = std::cos(radian);
 	const float sin = std::sin(radian);
@@ -283,7 +308,7 @@ Mat4 Mat4::Affine(const Vec3& scale, const Vec3& rotate, const Vec3& translate) 
 }
 
 Mat4 Mat4::PerspectiveFovMat(const float fovY, const float aspectRatio, const float nearClip, const float farClip) {
-	Mat4 result = Identity();
+	Mat4 result = identity;
 
 	const float cot = 1.0f / std::tan(fovY * 0.5f);
 	const float dist = farClip - nearClip;
@@ -299,8 +324,8 @@ Mat4 Mat4::PerspectiveFovMat(const float fovY, const float aspectRatio, const fl
 }
 
 Mat4 Mat4::MakeOrthographicMat(const float left, const float top, const float right, const float bottom,
-	const float nearClip, const float farClip) {
-	Mat4 result = Identity();
+                               const float nearClip, const float farClip) {
+	Mat4 result = identity;
 
 	result.m[0][0] = 2.0f / (right - left);
 	result.m[1][1] = 2.0f / (top - bottom);
@@ -312,34 +337,9 @@ Mat4 Mat4::MakeOrthographicMat(const float left, const float top, const float ri
 	return result;
 }
 
-Mat4 Mat4::FishEyeProjection(const float fov, const float aspect, const float nearClip, const float farClip) {
-	Mat4 result = Identity();
-
-	// 度からラジアンに変換
-	float fovRad = fov * (Math::pi / 180.0f);
-	// 視野角に基づいてスケールを計算
-	float scale = 1.0f / std::tan(fovRad / 2.0f);
-
-	// 行列の初期化
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			result.m[i][j] = 0.0f;
-		}
-	}
-
-	// 投影行列の設定
-	result.m[0][0] = scale / aspect;   // x軸スケール
-	result.m[1][1] = scale;            // y軸スケール
-	result.m[2][2] = -(farClip + nearClip) / (farClip - nearClip);  // z軸スケール
-	result.m[2][3] = -1.0f;            // w軸スケール（透視投影）
-	result.m[3][2] = -(2.0f * farClip * nearClip) / (farClip - nearClip); // z軸変換
-
-	return result;
-}
-
 Mat4 Mat4::ViewportMat(const float left, const float top, const float width, const float height, const float minDepth,
-	const float maxDepth) {
-	Mat4 result = Identity();
+                       const float maxDepth) {
+	Mat4 result = identity;
 
 	result.m[0][0] = width / 2.0f;
 	result.m[1][1] = -height / 2.0f;

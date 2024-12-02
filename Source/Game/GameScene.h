@@ -23,7 +23,6 @@ public:
 		Object3DCommon* object3DCommon,
 		ModelCommon* modelCommon,
 		ParticleCommon* particleCommon,
-		LineCommon* lineCommon,
 		EngineTimer* engineTimer
 	) override;
 	void Update() override;

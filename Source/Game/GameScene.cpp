@@ -17,7 +17,7 @@ void GameScene::Init(
 	D3D12* renderer, Window* window,
 	SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
 	ModelCommon* modelCommon, ParticleCommon* particleCommon,
-	LineCommon* lineCommon, EngineTimer* engineTimer
+	EngineTimer* engineTimer
 ) {
 	renderer_ = renderer;
 	window_ = window;
@@ -25,7 +25,6 @@ void GameScene::Init(
 	object3DCommon_ = object3DCommon;
 	modelCommon_ = modelCommon;
 	particleCommon_ = particleCommon;
-	lineCommon_ = lineCommon;
 	timer_ = engineTimer;
 
 #pragma region テクスチャ読み込み
@@ -55,13 +54,9 @@ void GameScene::Init(
 	particle_ = std::make_unique<ParticleObject>();
 	particle_->Init(particleCommon_, "./Resources/Textures/circle.png");
 #pragma endregion
-
-#pragma region ライン類
-	line_ = std::make_unique<Line>(lineCommon_);
-#pragma endregion
 }
 
-void DrawCircle(Vec3 position, float radius, float segments, Vec4 color) {
+void DrawCircle(const Vec3& position, const float& radius, const float& segments, const Vec4& color) {
 	// 描画できない形状の場合
 	if (radius <= 0.0f || segments <= 0) {
 		// 返す
@@ -92,14 +87,123 @@ void DrawCircle(Vec3 position, float radius, float segments, Vec4 color) {
 	}
 }
 
+static void DrawGrid(const float gridRange, const int mediumGridSize, const int largeGridSize, const float gridSize) {
+	// グリッドサイズが範囲外の場合、適切な範囲に制限
+	if (gridSize <= 0.0f || gridSize > 512.0f) {
+		//std::cerr << "Invalid grid size. Valid range is between 0.125f and 512.0f." << std::endl;
+		return;
+	}
+
+	// 軸色
+	constexpr Vec4 axisColor = Vec4(0.0f, 0.39f, 0.39f, 1.0f);
+	// 1024グリッドの色
+	constexpr Vec4 gridColor1024 = Vec4(0.39f, 0.2f, 0.02f, 1.0f);
+	// 64グリッドの色
+	constexpr Vec4 gridColor64 = Vec4(0.45f, 0.45f, 0.45f, 1.0f);
+	// その他細かいグリッドの色
+	constexpr Vec4 gridColor = Vec4(0.29f, 0.29f, 0.29f, 1.0f);
+
+	// グリッドを描画
+	// 描画範囲の設定 (-16384 ～ 16384)
+	for (float i = -gridRange; i <= gridRange; i += gridSize) {
+		// X軸方向
+		const Vec3 startX = Vec3(i, 0.0f, -gridRange);
+		const Vec3 endX = Vec3(i, 0.0f, gridRange);
+		// 色設定
+		const Vec4 lineColorX = (i == 0)
+			                        ? axisColor
+			                        : (static_cast<int>(i) % largeGridSize == 0)
+			                        ? gridColor1024
+			                        : (static_cast<int>(i) % mediumGridSize == 0)
+			                        ? gridColor64
+			                        : gridColor;
+		Engine::AddLine(startX, endX, lineColorX);
+
+		// Z軸方向
+		const Vec3 startZ = Vec3(-gridRange, 0.0f, i);
+		const Vec3 endZ = Vec3(gridRange, 0.0f, i);
+		// 色設定
+		const Vec4 lineColorZ = (i == 0)
+			                        ? axisColor
+			                        : (static_cast<int>(i) % largeGridSize == 0)
+			                        ? gridColor1024
+			                        : (static_cast<int>(i) % mediumGridSize == 0)
+			                        ? gridColor64
+			                        : gridColor;
+		Engine::AddLine(startZ, endZ, lineColorZ);
+	}
+}
+
 void GameScene::Update() {
 	sprite_->Update();
 	object3D_->Update();
 	particle_->Update(EngineTimer::GetScaledDeltaTime());
 
+	const std::vector<float> powerOfTwoValues = {
+		0.125f, 0.25f, 0.5f, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384
+	};
+
+	const std::vector<float> regularGridValues = {
+		1, 5, 10, 50, 100, 500, 1000, 5000, 10000
+	};
+
+	static int selectedIndex = 6; // 最初の選択肢を選んでおく
+	static int selectedGridType = 0; // 0: 2のべき乗グリッド, 1: 通常のグリッド
+
+	static float gridSize = 4.0f; // 最初のグリッドサイズは1.0f
+
+	ImGui::Begin("Game Scene");
+
+	// グリッドの種類を選択
+	const char* gridTypeNames[] = {"Power of 2", "Regular"};
+	if (ImGui::Combo("Grid Type", &selectedGridType, gridTypeNames, IM_ARRAYSIZE(gridTypeNames))) {
+		// グリッドタイプが変更された場合、最初の選択肢を設定
+		if (selectedGridType == 0) {
+			gridSize = powerOfTwoValues[selectedIndex]; // 2のべき乗グリッドサイズを設定
+		}
+		else {
+			gridSize = regularGridValues[selectedIndex]; // 通常グリッドサイズを設定
+		}
+	}
+
+	// グリッドサイズを変更
+	if (selectedGridType == 0) {
+		// 2のべき乗グリッド
+		if (ImGui::BeginCombo("Grid Size", std::to_string(powerOfTwoValues[selectedIndex]).c_str())) {
+			for (int i = 0; i < powerOfTwoValues.size(); ++i) {
+				const bool isSelected = (selectedIndex == i);
+				if (ImGui::Selectable(std::to_string(powerOfTwoValues[i]).c_str(), isSelected)) {
+					selectedIndex = i;
+					gridSize = powerOfTwoValues[selectedIndex];
+				}
+				if (isSelected) {
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+	}
+	else {
+		// 通常のグリッド
+		if (ImGui::BeginCombo("Grid Size", std::to_string(regularGridValues[selectedIndex]).c_str())) {
+			for (int i = 0; i < regularGridValues.size(); ++i) {
+				const bool isSelected = (selectedIndex == i);
+				if (ImGui::Selectable(std::to_string(regularGridValues[i]).c_str(), isSelected)) {
+					selectedIndex = i;
+					gridSize = regularGridValues[selectedIndex];
+				}
+				if (isSelected) {
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+	}
+	ImGui::End();
+
 	// ライン描画
 	{
-		DrawCircle(Vec3::zero, 2.0f, 32, {1.0f, 0.0f, 0.0f, 1.0f});
+		DrawGrid(100.0f, 4, 16, gridSize);
 	}
 
 #ifdef _DEBUG
@@ -182,12 +286,6 @@ void GameScene::Render() {
 	spriteCommon_->Render();
 	//----------------------------------------
 	//sprite_->Draw();
-
-	//----------------------------------------
-	// ライン共通描画設定
-	lineCommon_->Render();
-	//----------------------------------------
-	line_->Draw();
 }
 
 void GameScene::Shutdown() {

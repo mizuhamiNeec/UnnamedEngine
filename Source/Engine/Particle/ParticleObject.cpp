@@ -56,7 +56,7 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 	materialData_ = materialResource_->GetPtr<Material>();
 	materialData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
 	materialData_->enableLighting = false;
-	materialData_->uvTransform = Mat4::Identity();
+	materialData_->uvTransform = Mat4::identity;
 
 	// Instancing用のTransformationMatrixリソースを作る
 	instancingResource_ = std::make_unique<ConstantBuffer>(
@@ -65,8 +65,8 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 	instancingData = instancingResource_->GetPtr<ParticleForGPU>();
 	// 単位行列を書き込んでおく
 	for (uint32_t index = 0; index < kNumMaxInstance; ++index) {
-		instancingData[index].wvp = Mat4::Identity();
-		instancingData[index].world = Mat4::Identity();
+		instancingData[index].wvp = Mat4::identity;
+		instancingData[index].world = Mat4::identity;
 		instancingData[index].color = {1.0f, 1.0f, 1.0f, 1.0f};
 	}
 

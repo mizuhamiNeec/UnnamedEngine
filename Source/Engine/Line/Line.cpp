@@ -1,5 +1,7 @@
 ﻿#include "Line.h"
 
+#include <mutex>
+
 #include "../Camera/Camera.h"
 #include "../Lib/Console/Console.h"
 
@@ -48,11 +50,15 @@ Line::Line(LineCommon* lineCommon) {
 	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		lineCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
 	transformationMatrixData_ = transformationMatrixConstantBuffer_->GetPtr<TransformationMatrix>();
-	transformationMatrixData_->wvp = Mat4::Identity();
-	transformationMatrixData_->world = Mat4::Identity();
+	transformationMatrixData_->wvp = Mat4::identity;
+	transformationMatrixData_->world = Mat4::identity;
 }
 
+std::mutex lineMutex;
+
 void Line::AddLine(const Vec3& start, const Vec3& end, const Vec4& color) {
+	std::lock_guard<std::mutex> lock(lineMutex);
+
 	// 頂点を追加
 	const uint32_t startIndex = static_cast<uint32_t>(lineVertices_.size());
 
@@ -84,13 +90,6 @@ void Line::UpdateBuffer() {
 	const size_t requiredVertexBufferSize = sizeof(LineVertex) * lineVertices_.size();
 	const size_t requiredIndexBufferSize = sizeof(uint32_t) * lineIndices_.size();
 
-	// // デバッグ出力を追加
-	// Console::Print(
-	// 	std::format("Updating Buffers: Vertices={} (Size={}), Indices={} (Size={})\n",
-	// 	            lineVertices_.size(), requiredVertexBufferSize,
-	// 	            lineIndices_.size(), requiredIndexBufferSize)
-	// );
-
 	// バッファが不足している場合は再作成
 	if (vertexBuffer_->GetSize() < requiredVertexBufferSize) {
 		Console::Print("Line: VertexBufferを再作成します。\n", kConsoleColorWarning);
@@ -106,14 +105,14 @@ void Line::UpdateBuffer() {
 		Console::Print("Line: IndexBufferを再作成します。\n", kConsoleColorWarning);
 		indexBuffer_ = std::make_unique<IndexBuffer>(
 			lineCommon_->GetD3D12()->GetDevice(),
-			requiredIndexBufferSize, // 必要なインデックスバッファサイズを設定
+			requiredIndexBufferSize,
 			nullptr
 		);
 	}
 
 	// バッファを更新
 	vertexBuffer_->Update(lineVertices_.data(), lineVertices_.size());
-	indexBuffer_->Update(lineIndices_.data(), lineIndices_.size()); // インデックス数に基づくサイズを使用
+	indexBuffer_->Update(lineIndices_.data(), lineIndices_.size());
 
 	isDirty_ = false; // バッファは最新状態
 }
@@ -122,12 +121,6 @@ void Line::Draw() {
 	if (lineVertices_.empty() || lineIndices_.empty()) {
 		return;
 	}
-
-	Console::Print(
-		std::format("Drawing Lines: Vertices={}, Indices={}\n",
-		            lineVertices_.size(),
-		            lineIndices_.size())
-	);
 
 	lineCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
 		0, transformationMatrixConstantBuffer_->GetAddress());

@@ -114,7 +114,6 @@ void Engine::Init() {
 		object3DCommon_.get(),
 		modelCommon_.get(),
 		particleCommon_.get(),
-		lineCommon_.get(),
 		time_.get()
 	);
 
@@ -226,8 +225,11 @@ void Engine::Update() const {
 
 	gameScene_->Render();
 
+	//-------------------------------------------------------------------------
+	lineCommon_->Render();
 	// ライン描画
 	line_->Draw();
+	//-------------------------------------------------------------------------
 
 #ifdef _DEBUG
 	imGuiManager_->EndFrame();
@@ -243,7 +245,7 @@ void Engine::Update() const {
 void Engine::Shutdown() const {
 	gameScene_->Shutdown();
 
-	line_.release();
+	line_.reset();
 
 	ModelManager::Shutdown();
 	TextureManager::Shutdown();

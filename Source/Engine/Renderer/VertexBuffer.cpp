@@ -57,12 +57,15 @@ void VertexBuffer::Update(const void* newVertices, const size_t vertexCount) {
 	if (newVertices != nullptr) {
 		void* ptr = nullptr;
 		HRESULT hr = buffer_->Map(0, nullptr, &ptr);
-		if (FAILED(hr)) {
-			Console::Print("Failed to map vertex buffer\n", {1.0f, 0.0f, 0.0f, 1.0f});
+		if (FAILED(hr) || ptr == nullptr) { // ptrがnullptrでないことを確認
+			Console::Print("Failed to map vertex buffer or ptr is null\n", {1.0f, 0.0f, 0.0f, 1.0f});
 			return; // エラー時は処理を中断
 		}
 		size_ = sizeof(Vertex) * vertexCount;
-		memcpy(ptr, newVertices, size_);
+		
+		if (size_ > 0) {
+			memcpy(ptr, newVertices, size_);
+		}
 		buffer_->Unmap(0, nullptr);
 	}
 }

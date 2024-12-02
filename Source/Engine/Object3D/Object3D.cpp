@@ -22,8 +22,8 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		object3DCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
 	transformationMatrixData_ = transformationMatrixConstantBuffer_->GetPtr<TransformationMatrix>();
-	transformationMatrixData_->wvp = Mat4::Identity();
-	transformationMatrixData_->world = Mat4::Identity();
+	transformationMatrixData_->wvp = Mat4::identity;
+	transformationMatrixData_->world = Mat4::identity;
 
 	// 指向性ライト定数バッファ
 	directionalLightConstantBuffer_ = std::make_unique<ConstantBuffer>(

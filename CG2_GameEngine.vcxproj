@@ -113,6 +113,7 @@
     <None Include="Resources\Shaders\SpriteCommon.PS.hlsl" />
     <None Include="Resources\Shaders\SpriteCommon.VS.hlsl" />
     <ClCompile Include="Source\Engine\Lib\Console\ConVarManager.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\Quaternion\Quaternion.cpp" />
     <ClCompile Include="Source\Engine\Line\LineCommon.cpp" />
     <ClCompile Include="Source\Engine\Line\Line.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
@@ -168,6 +169,7 @@
     <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h" />
     <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h" />
     <ClInclude Include="Source\Engine\Lib\Console\IConVar.h" />
+    <ClInclude Include="Source\Engine\Lib\Math\Quaternion\Quaternion.h" />
     <ClInclude Include="Source\Engine\Line\LineCommon.h" />
     <ClInclude Include="Source\Engine\Line\Line.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
