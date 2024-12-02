@@ -14,6 +14,8 @@
 #include "Window/Window.h"
 #include "Window/WindowsUtils.h"
 
+std::unique_ptr<Line> Engine::line_;
+
 Engine::Engine() = default;
 
 void Engine::Run() {
@@ -24,6 +26,10 @@ void Engine::Run() {
 		Update();
 	}
 	Shutdown();
+}
+
+void Engine::AddLine(const Vec3 start, const Vec3 end, const Vec4 color) {
+	line_->AddLine(start, end, color);
 }
 
 void Engine::Init() {
@@ -76,6 +82,12 @@ void Engine::Init() {
 	particleCommon_->Init(renderer_.get(), srvManager_.get());
 	particleCommon_->SetDefaultCamera(camera_.get());
 
+	lineCommon_ = std::make_unique<LineCommon>();
+	lineCommon_->Init(renderer_.get());
+	lineCommon_->SetDefaultCamera(camera_.get());
+
+	line_ = std::make_unique<Line>(lineCommon_.get());
+
 	// 入力
 	input_ = Input::GetInstance();
 	input_->Init(window_.get());
@@ -102,6 +114,7 @@ void Engine::Init() {
 		object3DCommon_.get(),
 		modelCommon_.get(),
 		particleCommon_.get(),
+		lineCommon_.get(),
 		time_.get()
 	);
 
@@ -132,6 +145,9 @@ void Engine::Update() const {
 
 	// ゲームシーンの更新
 	gameScene_->Update();
+
+	// ライン更新
+	line_->Update();
 
 #ifdef _DEBUG // cl_showfps
 	if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() != "0") {
@@ -210,6 +226,9 @@ void Engine::Update() const {
 
 	gameScene_->Render();
 
+	// ライン描画
+	line_->Draw();
+
 #ifdef _DEBUG
 	imGuiManager_->EndFrame();
 #endif
@@ -223,6 +242,8 @@ void Engine::Update() const {
 
 void Engine::Shutdown() const {
 	gameScene_->Shutdown();
+
+	line_.release();
 
 	ModelManager::Shutdown();
 	TextureManager::Shutdown();

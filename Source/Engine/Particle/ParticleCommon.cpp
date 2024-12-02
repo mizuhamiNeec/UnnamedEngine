@@ -37,12 +37,13 @@ void ParticleCommon::CreateRootSignature() {
 	descriptorRangeForInstancing[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// ルートパラメータを作成
-	std::vector<D3D12_ROOT_PARAMETER> rootParameters(4);
+	std::vector<D3D12_ROOT_PARAMETER> rootParameters(3);
 	// マテリアル
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
 	rootParameters[0].Descriptor.ShaderRegister = 0; // レジスタ番号0
 
+	// ストラクチャードバッファー
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // DescriptorTableを使う
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // VertexShaderで使う
 	rootParameters[1].DescriptorTable.pDescriptorRanges = descriptorRangeForInstancing; // Tableの中身の配列を指定
@@ -53,11 +54,6 @@ void ParticleCommon::CreateRootSignature() {
 	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
 	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange; // Tableの中身の配列を指定
 	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange);
-
-	// サンプラー
-	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
-	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; // PixelShaderで使う
-	rootParameters[3].Descriptor.ShaderRegister = 1; // レジスタ番号1
 
 	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {
 		{
@@ -84,7 +80,7 @@ void ParticleCommon::CreateRootSignature() {
 void ParticleCommon::CreateGraphicsPipeline() {
 	CreateRootSignature();
 
-	pipelineState_ = PipelineState(D3D12_CULL_MODE_NONE, D3D12_FILL_MODE_SOLID);
+	pipelineState_ = PipelineState(D3D12_CULL_MODE_NONE, D3D12_FILL_MODE_SOLID, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 	pipelineState_.SetInputLayout(Vertex::inputLayout);
 	pipelineState_.SetRootSignature(rootSignatureManager_->Get("ParticleCommon"));
 	pipelineState_.SetBlendMode(kBlendModeAdd);

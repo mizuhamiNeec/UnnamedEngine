@@ -4,7 +4,8 @@
 #include <iterator>
 #include "../Lib/Console/Console.h"
 
-IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, const size_t size, const void* pInitData) {
+IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, const size_t size,
+						 const void* pInitData) : size_(size) {
 	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
 	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD; // UploadHeapを使う
 
@@ -30,7 +31,6 @@ IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, con
 	assert(SUCCEEDED(hr));
 
 	view_.BufferLocation = buffer_->GetGPUVirtualAddress();
-	view_.SizeInBytes = sizeof(uint32_t) * 6;
 	view_.Format = DXGI_FORMAT_R32_UINT;
 
 	if (pInitData != nullptr) {
@@ -43,14 +43,19 @@ IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, con
 	}
 }
 
-D3D12_INDEX_BUFFER_VIEW IndexBuffer::View() const {
+D3D12_INDEX_BUFFER_VIEW IndexBuffer::View() {
+	view_.SizeInBytes = static_cast<UINT>(size_);  // すでにバイト数になっている
+	view_.BufferLocation = buffer_->GetGPUVirtualAddress();
 	return view_;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: インデックスバッファの更新.
 //-----------------------------------------------------------------------------
-void IndexBuffer::Update(const void* pInitData, const size_t size) const {
+void IndexBuffer::Update(const void* pInitData, const size_t size) {
+	// サイズを明示的にバイト数で計算
+	size_ = size * sizeof(uint32_t);  // uint32_t のサイズを明示的に掛ける
+
 	if (pInitData != nullptr) {
 		void* ptr = nullptr;
 		HRESULT hr = buffer_->Map(0, nullptr, &ptr);
@@ -58,8 +63,11 @@ void IndexBuffer::Update(const void* pInitData, const size_t size) const {
 			Console::Print("Failed to map index buffer\n", {1.0f, 0.0f, 0.0f, 1.0f});
 			return;
 		}
-
-		memcpy(ptr, pInitData, size);
+		memcpy(ptr, pInitData, size_);  // size_ (バイト数) を使用
 		buffer_->Unmap(0, nullptr);
 	}
+}
+
+size_t IndexBuffer::GetSize() const {
+	return size_;
 }

@@ -1,22 +1,23 @@
 #include "GameScene.h"
 
+#include "../Engine.h"
 #include "../Engine/Lib/Console/ConVarManager.h"
+#include "../Engine/Lib/Math/Random/Random.h"
 #include "../Engine/Lib/Timer/EngineTimer.h"
+#include "../Engine/Line/LineCommon.h"
 #include "../Engine/Model/ModelManager.h"
 #include "../ImGuiManager/ImGuiManager.h"
-#include "../Input/Input.h"
 #include "../Lib/Math/MathLib.h"
 #include "../Object3D/Object3D.h"
 #include "../Particle/ParticleCommon.h"
 #include "../Sprite/SpriteCommon.h"
 #include "../TextureManager/TextureManager.h"
-#include "../Window/WindowsUtils.h"
 
 void GameScene::Init(
 	D3D12* renderer, Window* window,
 	SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
 	ModelCommon* modelCommon, ParticleCommon* particleCommon,
-	EngineTimer* engineTimer
+	LineCommon* lineCommon, EngineTimer* engineTimer
 ) {
 	renderer_ = renderer;
 	window_ = window;
@@ -24,6 +25,7 @@ void GameScene::Init(
 	object3DCommon_ = object3DCommon;
 	modelCommon_ = modelCommon;
 	particleCommon_ = particleCommon;
+	lineCommon_ = lineCommon;
 	timer_ = engineTimer;
 
 #pragma region テクスチャ読み込み
@@ -53,12 +55,52 @@ void GameScene::Init(
 	particle_ = std::make_unique<ParticleObject>();
 	particle_->Init(particleCommon_, "./Resources/Textures/circle.png");
 #pragma endregion
+
+#pragma region ライン類
+	line_ = std::make_unique<Line>(lineCommon_);
+#pragma endregion
+}
+
+void DrawCircle(Vec3 position, float radius, float segments, Vec4 color) {
+	// 描画できない形状の場合
+	if (radius <= 0.0f || segments <= 0) {
+		// 返す
+		return;
+	}
+
+	float angleStep = (360.0f / segments);
+
+	angleStep *= Math::deg2Rad;
+
+	Vec3 lineStart = Vec3::zero;
+	Vec3 lineEnd = Vec3::zero;
+
+	for (int i = 0; i < segments; ++i) {
+		lineStart.x = std::cos(angleStep * i);
+		lineStart.y = std::sin(angleStep * i);
+
+		lineEnd.x = std::cos(angleStep * (i + 1));
+		lineEnd.y = std::sin(angleStep * (i + 1));
+
+		lineStart *= radius;
+		lineEnd *= radius;
+
+		lineStart += position;
+		lineEnd += position;
+
+		Engine::AddLine(lineStart, lineEnd, color);
+	}
 }
 
 void GameScene::Update() {
 	sprite_->Update();
 	object3D_->Update();
-	particle_->Update(timer_->GetScaledDeltaTime());
+	particle_->Update(EngineTimer::GetScaledDeltaTime());
+
+	// ライン描画
+	{
+		DrawCircle(Vec3::zero, 2.0f, 32, {1.0f, 0.0f, 0.0f, 1.0f});
+	}
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -140,6 +182,12 @@ void GameScene::Render() {
 	spriteCommon_->Render();
 	//----------------------------------------
 	//sprite_->Draw();
+
+	//----------------------------------------
+	// ライン共通描画設定
+	lineCommon_->Render();
+	//----------------------------------------
+	line_->Draw();
 }
 
 void GameScene::Shutdown() {

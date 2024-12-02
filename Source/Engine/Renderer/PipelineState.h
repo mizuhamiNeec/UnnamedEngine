@@ -21,7 +21,7 @@ enum BlendMode {
 class PipelineState {
 public:
 	PipelineState();
-	PipelineState(D3D12_CULL_MODE cullMode, D3D12_FILL_MODE fillMode);
+	PipelineState(D3D12_CULL_MODE cullMode, D3D12_FILL_MODE fillMode, D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType);
 	void SetInputLayout(D3D12_INPUT_LAYOUT_DESC layout);
 	void SetRootSignature(ID3D12RootSignature* rootSignature);
 	void SetVS(const std::wstring& filePath);

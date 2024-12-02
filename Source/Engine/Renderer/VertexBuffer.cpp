@@ -4,7 +4,8 @@
 #include "../Lib/Console/Console.h"
 #include "../Lib/Structs/Structs.h"
 
-VertexBuffer::VertexBuffer(const ComPtr<ID3D12Device>& device, const size_t size, const size_t stride, const void* pInitData) {
+VertexBuffer::VertexBuffer(const ComPtr<ID3D12Device>& device, const size_t size, const size_t stride,
+                           const void* pInitData) : size_(size) {
 	// リソース用のヒープを設定
 	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
 	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD; // UploadHeapを使う
@@ -52,16 +53,16 @@ D3D12_VERTEX_BUFFER_VIEW VertexBuffer::View() const {
 	return view_;
 }
 
-void VertexBuffer::Update(const void* newVertices, const size_t vertexCount) const {
+void VertexBuffer::Update(const void* newVertices, const size_t vertexCount) {
 	if (newVertices != nullptr) {
 		void* ptr = nullptr;
 		HRESULT hr = buffer_->Map(0, nullptr, &ptr);
 		if (FAILED(hr)) {
-			Console::Print("Failed to map vertex buffer\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+			Console::Print("Failed to map vertex buffer\n", {1.0f, 0.0f, 0.0f, 1.0f});
 			return; // エラー時は処理を中断
 		}
-		size_t size = sizeof(Vertex) * vertexCount;
-		memcpy(ptr, newVertices, size);
+		size_ = sizeof(Vertex) * vertexCount;
+		memcpy(ptr, newVertices, size_);
 		buffer_->Unmap(0, nullptr);
 	}
 }

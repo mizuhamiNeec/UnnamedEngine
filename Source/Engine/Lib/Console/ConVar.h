@@ -124,7 +124,7 @@ void ConVar<T>::SetValue(const T& newValue) {
 		// TODO : プレイヤーに通知する
 		Console::Print(
 			std::format(
-				"{}のCVAR 値 '{}'を {} に変更しました\n",
+				"{}のCVAR 値 '{}' を {} に変更しました\n",
 				"クライアント",
 				name_,
 				value_

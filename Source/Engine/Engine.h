@@ -8,6 +8,7 @@
 #include "Input/Input.h"
 
 #include "Lib/Timer/EngineTimer.h"
+#include "Line/LineCommon.h"
 
 #include "Model/ModelCommon.h"
 
@@ -22,6 +23,8 @@ class Engine {
 public:
 	Engine();
 	void Run();
+
+	static void AddLine(Vec3 start, Vec3 end, Vec4 color);
 
 private:
 	void Init();
@@ -44,6 +47,9 @@ private:
 	std::unique_ptr<Object3DCommon> object3DCommon_;
 	std::unique_ptr<ParticleCommon> particleCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
+	std::unique_ptr<LineCommon> lineCommon_;
+
+	static std::unique_ptr<Line> line_;
 
 #ifdef _DEBUG
 	std::unique_ptr<ImGuiManager> imGuiManager_;

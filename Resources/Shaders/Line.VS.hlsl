@@ -14,7 +14,7 @@ ConstantBuffer<TransformationMatrix> gTransformationMatrix : register(b0);
 
 VertexShaderOutput main(VertexShaderInput input) {
 	VertexShaderOutput output;
-	output.position = mul(input.position, gTransformationMatrix.WVP);
+	output.position = mul(float4(input.position, 1.0), gTransformationMatrix.WVP);
 	output.color = input.color;
 	return output;
 }

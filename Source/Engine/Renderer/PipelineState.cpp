@@ -10,7 +10,8 @@ PipelineState::PipelineState() {
 
 PipelineState::PipelineState(
 	const D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK,
-	const D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID
+	const D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID,
+	const D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE
 ) {
 	D3D12_BLEND_DESC blendDesc = {};
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -31,7 +32,7 @@ PipelineState::PipelineState(
 	desc_.NumRenderTargets = 1;
 	desc_.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	// 利用するトポロジ(形状)のタイプ。三角形
-	desc_.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	desc_.PrimitiveTopologyType = topologyType;
 	// どのように画面に色を打ち込むかの設定(気にしなくて良い)
 	desc_.SampleDesc.Count = 1;
 	desc_.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;

@@ -103,7 +103,7 @@ void Object3DCommon::CreateGraphicsPipeline() {
 	CreateRootSignature();
 
 	// パイプラインステートを作成
-	pipelineState_ = PipelineState(D3D12_CULL_MODE_BACK, D3D12_FILL_MODE_SOLID);
+	pipelineState_ = PipelineState(D3D12_CULL_MODE_BACK, D3D12_FILL_MODE_SOLID, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 	pipelineState_.SetInputLayout(Vertex::inputLayout);
 	pipelineState_.SetRootSignature(rootSignatureManager_->Get("Object3d"));
 
