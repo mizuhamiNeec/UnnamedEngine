@@ -323,8 +323,10 @@ Mat4 Mat4::PerspectiveFovMat(const float fovY, const float aspectRatio, const fl
 	return result;
 }
 
-Mat4 Mat4::MakeOrthographicMat(const float left, const float top, const float right, const float bottom,
-                               const float nearClip, const float farClip) {
+Mat4 Mat4::MakeOrthographicMat(
+	const float left, const float top, const float right, const float bottom,
+	const float nearClip, const float farClip
+) {
 	Mat4 result = identity;
 
 	result.m[0][0] = 2.0f / (right - left);
@@ -337,8 +339,10 @@ Mat4 Mat4::MakeOrthographicMat(const float left, const float top, const float ri
 	return result;
 }
 
-Mat4 Mat4::ViewportMat(const float left, const float top, const float width, const float height, const float minDepth,
-                       const float maxDepth) {
+Mat4 Mat4::ViewportMat(
+	const float left, const float top, const float width, const float height, const float minDepth,
+	const float maxDepth
+) {
 	Mat4 result = identity;
 
 	result.m[0][0] = width / 2.0f;

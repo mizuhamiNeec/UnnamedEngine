@@ -1,8 +1,6 @@
 #include "MathLib.h"
 #include "../Lib/Structs/Structs.h"
 
-#include "MathLib.h"
-
 #include <cassert>
 #include <cmath>
 #include <algorithm>
@@ -12,7 +10,7 @@ bool Math::IsCollision(const AABB& aabb, const Vec3& point) {
 		point.x >= aabb.min.x && point.x <= aabb.max.x &&
 		point.y >= aabb.min.y && point.y <= aabb.max.y &&
 		point.z >= aabb.min.z && point.z <= aabb.max.z
-		);
+	);
 }
 
 Vec3 Math::Lerp(const Vec3& a, const Vec3& b, const float t) {
@@ -25,15 +23,15 @@ Vec3 Math::CatmullRomPosition(const std::vector<Vec3>& points, float t) {
 	// 区間数は制御点の数-1
 	size_t division = points.size() - 1;
 	// 1区間の長さ(全体を1.0とした割合)
-	float areaWidth = 1.0f / division;
+	float areaWidth = 1.0f / static_cast<float>(division);
 
 	// 区間内の始点を0.0f,終点を1.0fとしたときの現在位置
-	float t_2 = std::fmod(t, areaWidth) * division;
+	float t_2 = std::fmod(t, areaWidth) * static_cast<float>(division);
 	// 下限(0.0f)と上限(1.0f)の範囲に収める
 	t_2 = std::clamp(t_2, 0.0f, 1.0f);
 
 	// 区間番号
-	size_t index = static_cast<size_t>(t / areaWidth);
+	size_t index = static_cast<int>(t / areaWidth);
 	// 区間番号が上限を超えないように収める
 	if (index >= division) {
 		index = division - 1;
@@ -71,5 +69,15 @@ Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p
 		(-p0 + p2) * t +
 		(2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2 +
 		(-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3
-		);
+	);
+}
+
+float Math::DeltaAngle(const float& currentAngle, const float& targetAngle) {
+	float delta = fmod(targetAngle - currentAngle, 360.0f);
+	if (delta > 180.0f) {
+		delta -= 360.0f;
+	} else if (delta < -180.0f) {
+		delta += 360.0f;
+	}
+	return delta;
 }

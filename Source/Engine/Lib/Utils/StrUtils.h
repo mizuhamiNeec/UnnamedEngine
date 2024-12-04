@@ -8,8 +8,10 @@ public:
 	static std::wstring ToWString(const std::string& string) {
 		if (string.empty()) { return {}; }
 
-		const auto sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, string.data(), static_cast<int>(string.size()), nullptr,
-		                                            0);
+		const auto sizeNeeded = MultiByteToWideChar(
+			CP_UTF8, 0, string.data(), static_cast<int>(string.size()), nullptr,
+			0
+		);
 		if (sizeNeeded == 0) { return {}; }
 		std::wstring result(sizeNeeded, 0);
 		MultiByteToWideChar(CP_UTF8, 0, string.data(), static_cast<int>(string.size()), result.data(), sizeNeeded);
@@ -19,14 +21,18 @@ public:
 	static std::string ToString(const std::wstring& string) {
 		if (string.empty()) { return {}; }
 
-		const auto sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, string.data(), static_cast<int>(string.size()), nullptr,
-		                                            0,
-		                                            nullptr, nullptr);
+		const auto sizeNeeded = WideCharToMultiByte(
+			CP_UTF8, 0, string.data(), static_cast<int>(string.size()), nullptr,
+			0,
+			nullptr, nullptr
+		);
 		if (sizeNeeded == 0) { return {}; }
 		std::string result(sizeNeeded, 0);
-		WideCharToMultiByte(CP_UTF8, 0, string.data(), static_cast<int>(string.size()), result.data(), sizeNeeded,
-		                    nullptr,
-		                    nullptr);
+		WideCharToMultiByte(
+			CP_UTF8, 0, string.data(), static_cast<int>(string.size()), result.data(), sizeNeeded,
+			nullptr,
+			nullptr
+		);
 		return result;
 	}
 
@@ -41,7 +47,7 @@ public:
 	static wchar_t* ToString(const std::string& str) {
 		// 変換に必要なバッファサイズを取得
 		int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.size()), nullptr, 0);
-		wchar_t* wstr = new wchar_t[sizeNeeded + 1]; // +1 は終端用
+		auto wstr = new wchar_t[sizeNeeded + 1]; // +1 は終端用
 		MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.size()), wstr, sizeNeeded);
 		wstr[sizeNeeded] = L'\0'; // 終端を追加
 		return wstr;

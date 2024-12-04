@@ -40,7 +40,8 @@ void ConVarManager::RegisterConVar(
 	bool bMin,
 	float fMin,
 	bool bMax,
-	float fMax) {
+	float fMax
+) {
 	std::lock_guard lock(mutex_);
 	auto conVar = std::make_unique<ConVar<T>>(name, defaultValue, helpString, flags, bMin, fMin, bMax, fMax);
 

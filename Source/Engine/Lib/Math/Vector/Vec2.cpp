@@ -27,41 +27,41 @@ const float& Vec2::operator[](const uint32_t index) const {
 }
 
 Vec2 Vec2::operator+(const Vec2& rhs) const {
-	return { x + rhs.x , y + rhs.y };
+	return {x + rhs.x, y + rhs.y};
 }
 
 Vec2 Vec2::operator-(const Vec2& rhs) const {
-	return { x - rhs.x, y - rhs.y };
+	return {x - rhs.x, y - rhs.y};
 }
 
 Vec2 Vec2::operator*(const float rhs) const {
-	return { x * rhs,y * rhs };
+	return {x * rhs, y * rhs};
 }
 
 Vec2 Vec2::operator/(const float rhs) const {
 	if (rhs == 0.0f) {
 		throw std::invalid_argument("ゼロ除算!!");
 	}
-	return { x / rhs, y / rhs };
+	return {x / rhs, y / rhs};
 }
 
 Vec2 Vec2::operator+(const float& rhs) const {
-	return { x + rhs, y + rhs };
+	return {x + rhs, y + rhs};
 }
 
 Vec2 Vec2::operator-(const float& rhs) const {
-	return { x - rhs, y - rhs };
+	return {x - rhs, y - rhs};
 }
 
 Vec2 Vec2::operator*(const Vec2& rhs) const {
-	return { x * rhs.x, y * rhs.y };
+	return {x * rhs.x, y * rhs.y};
 }
 
 Vec2 Vec2::operator/(const Vec2& rhs) const {
 	if (rhs.x == 0.0f || rhs.y == 0.0f) {
 		throw std::invalid_argument("ゼロ除算!!");
 	}
-	return { x / rhs.x, y / rhs.y };
+	return {x / rhs.x, y / rhs.y};
 }
 
 Vec2& Vec2::operator+=(const Vec2& rhs) {
@@ -89,22 +89,23 @@ Vec2& Vec2::operator/=(const float rhs) {
 }
 
 Vec2 operator+(const float lhs, const Vec2& rhs) {
-	return { lhs + rhs.x, lhs + rhs.y };
+	return {lhs + rhs.x, lhs + rhs.y};
 }
 
 Vec2 operator-(const float lhs, const Vec2& rhs) {
-	return { lhs - rhs.x, lhs - rhs.y };
+	return {lhs - rhs.x, lhs - rhs.y};
 }
 
 Vec2 operator*(const float lhs, const Vec2& rhs) {
-	return { lhs * rhs.x, lhs * rhs.y };
+	return {lhs * rhs.x, lhs * rhs.y};
 }
 
 Vec2 operator/(const float lhs, const Vec2& rhs) {
-	return { lhs / rhs.x, lhs / rhs.y };
+	return {lhs / rhs.x, lhs / rhs.y};
 }
 
-Vec2::Vec2(const float x, const float y) : x(x), y(y) {}
+Vec2::Vec2(const float x, const float y) : x(x),
+                                           y(y) {}
 
 float Vec2::Length() const {
 	const float sqrLength = SqrLength();
@@ -149,15 +150,15 @@ void Vec2::Normalize() {
 Vec2 Vec2::Normalized() const {
 	float len = Length();
 	if (len > 0) {
-		return { x / len, y / len };
+		return {x / len, y / len};
 	}
 	throw std::invalid_argument("ゼロ除算!!");
 }
 
 Vec2 Vec2::Clamp(const Vec2 min, const Vec2 max) const {
 	return {
-		std::clamp(x,min.x,max.x),
-		std::clamp(y, min.y,max.y)
+		std::clamp(x, min.x, max.x),
+		std::clamp(y, min.y, max.y)
 	};
 }
 
@@ -165,16 +166,16 @@ Vec2 Vec2::ClampLength(const float min, const float max) {
 	const float sqrLength = SqrLength();
 	if (sqrLength > max * max) {
 		const float scale = max / std::sqrt(sqrLength);
-		return { x * scale, y * scale };
+		return {x * scale, y * scale};
 	}
 	if (sqrLength < min * min) {
 		if (sqrLength == 0.0f) {
-			return { 0.0f, 0.0f };
+			return {0.0f, 0.0f};
 		}
 		const float scale = min / std::sqrt(sqrLength);
-		return { x * scale, y * scale };
+		return {x * scale, y * scale};
 	}
-	return { x, y };
+	return {x, y};
 }
 
 Vec2 Vec2::Lerp(const Vec2& target, float t) const {
@@ -188,5 +189,5 @@ Vec2 Vec2::Reflect(const Vec2& normal) const {
 Vec2 Vec2::RotateVector(const float angleZ) const {
 	const float cos = std::cos(angleZ);
 	const float sin = std::sin(angleZ);
-	return { x * cos - y * sin, x * sin + y * cos };
+	return {x * cos - y * sin, x * sin + y * cos};
 }

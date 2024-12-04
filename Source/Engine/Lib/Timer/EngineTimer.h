@@ -9,8 +9,7 @@ public:
 	EngineTimer()
 		: startTime_(Clock::now()),
 		  lastFrameTime_(Clock::now()),
-		  frameDuration_(1.0 / kMaxFps) {
-	}
+		  frameDuration_(1.0 / kMaxFps) {}
 
 	void StartFrame() {
 		const TimePoint currentTime = Clock::now();
