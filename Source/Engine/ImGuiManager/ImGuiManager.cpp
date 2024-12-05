@@ -160,13 +160,13 @@ void ImGuiManager::StyleColorsDark(ImGuiStyle* dst) {
 	//colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 }
 
-void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive) {
+void ImGuiManager::PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive) {
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, bg);
 	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, bgHovered);
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, bgActive);
 }
 
-bool EditTransform(const std::string& name, Transform& transform, const float& vSpeed) {
+bool ImGuiManager::EditTransform(const std::string& name, Transform& transform, const float& vSpeed) {
 	bool isEditing = false;
 
 	constexpr ImVec4 xBg = { 0.72f, 0.11f, 0.11f, 0.75f };
@@ -270,7 +270,7 @@ bool EditTransform(const std::string& name, Transform& transform, const float& v
 	return isEditing;
 }
 
-void TextOutlined(
+void ImGuiManager::TextOutlined(
 	ImDrawList* drawList,
 	const ImVec2& pos,
 	const char* text,
