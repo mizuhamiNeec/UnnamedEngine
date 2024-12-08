@@ -186,11 +186,11 @@ void Window::LockMouse() const {
 	// 現在のマウスカーソル位置を取得
 	GetCursorPos(&currentCursorPos);
 
+#ifdef _DEBUG
 	// マウスの移動量を計算
 	int deltaX = currentCursorPos.x - prevCursorPos.x;
 	int deltaY = currentCursorPos.y - prevCursorPos.y;
 
-#ifdef _DEBUG
 	// ImGuiのマウスデルタに反映
 	ImGuiIO& io = ImGui::GetIO();
 	io.MouseDelta.x = static_cast<float>(deltaX);

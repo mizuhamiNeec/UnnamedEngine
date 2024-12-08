@@ -33,7 +33,7 @@ void Engine::Run() {
 }
 
 void Engine::DrawGrid(const float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
-	const Vec4& axisColor, const Vec4& minorColor) {
+                      const Vec4& axisColor, const Vec4& minorColor) {
 	//const float range = 16384.0f;
 	constexpr float majorInterval = 1024.0f;
 	const float minorInterval = gridSize * 8.0f;
@@ -42,7 +42,8 @@ void Engine::DrawGrid(const float gridSize, const float range, const Vec4& color
 		Vec4 lineColor = color;
 		if (fmod(x, majorInterval) == 0) {
 			lineColor = majorColor;
-		} else if (fmod(x, minorInterval) == 0) {
+		}
+		else if (fmod(x, minorInterval) == 0) {
 			lineColor = minorColor;
 		}
 		if (x == 0) {
@@ -55,7 +56,8 @@ void Engine::DrawGrid(const float gridSize, const float range, const Vec4& color
 		Vec4 lineColor = color;
 		if (fmod(z, majorInterval) == 0) {
 			lineColor = majorColor;
-		} else if (fmod(z, minorInterval) == 0) {
+		}
+		else if (fmod(z, minorInterval) == 0) {
 			lineColor = minorColor;
 		}
 		if (z == 0) {
@@ -69,7 +71,7 @@ void Engine::Init() {
 	RegisterConsoleCommandsAndVariables();
 
 	// ウィンドウの作成
-	window_ = std::make_unique<Window>(L"LE2A_18_ミズサワ_ハミル", kClientWidth, kClientHeight);
+	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
 	window_->Create(nullptr);
 
 	// レンダラ
@@ -95,7 +97,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
+	camera_->SetPos({0.0f, 0.0f, -10.0f});
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -172,8 +174,9 @@ void Engine::Update() const {
 	}
 
 
+#ifdef _DEBUG
 	static bool firstReset = true; // 初回リセットフラグ
-
+	
 	if (ImGui::GetIO().MouseDown[1]) {
 		// マウスの移動量を取得
 		POINT currentCursorPos;
@@ -237,6 +240,7 @@ void Engine::Update() const {
 	} else {
 		firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
 	}
+#endif
 
 	camera_->SetAspectRatio(
 		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight())
@@ -250,10 +254,10 @@ void Engine::Update() const {
 	DrawGrid(
 		1.0f,
 		64,
-		{ .x = 0.28f, .y = 0.28f, .z = 0.28f, .w = 1.0f },
-		{ .x = 0.39f, .y = 0.2f, .z = 0.02f, .w = 1.0f },
-		{ .x = 0.0f, .y = 0.39f, .z = 0.39f, .w = 1.0f },
-		{ .x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f }
+		{.x = 0.28f, .y = 0.28f, .z = 0.28f, .w = 1.0f},
+		{.x = 0.39f, .y = 0.2f, .z = 0.02f, .w = 1.0f},
+		{.x = 0.0f, .y = 0.39f, .z = 0.39f, .w = 1.0f},
+		{.x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f}
 	);
 
 #ifdef _DEBUG
