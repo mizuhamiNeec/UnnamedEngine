@@ -57,7 +57,7 @@ private:
 private:
 	SpriteCommon* spriteCommon_ = nullptr;
 
-	Vec2 anchorPoint_ = {0.0f, 0.0f};
+	Vec2 anchorPoint_ = { 0.0f, 0.0f };
 
 	Transform transform_;
 	Transform uvTransform_;
@@ -68,8 +68,8 @@ private:
 	bool isFlipY_ = false;
 
 	// テクスチャ左上座標
-	Vec2 textureLeftTop = {0.0f, 0.0f};
-	Vec2 textureSize = {100.0f, 100.0f};
+	Vec2 textureLeftTop = { 0.0f, 0.0f };
+	Vec2 textureSize = { 100.0f, 100.0f };
 
 	// テクスチャ番号
 	std::string textureFilePath_;
@@ -82,7 +82,7 @@ private:
 	};
 
 	// バッファリソース
-	std::unique_ptr<VertexBuffer> vertexBuffer_ = nullptr;
+	std::unique_ptr<VertexBuffer<Vertex>> vertexBuffer_ = nullptr;
 	std::unique_ptr<ConstantBuffer> materialResource_ = nullptr;
 	std::unique_ptr<ConstantBuffer> transformation_ = nullptr;
 	std::unique_ptr<IndexBuffer> indexBuffer_ = nullptr;

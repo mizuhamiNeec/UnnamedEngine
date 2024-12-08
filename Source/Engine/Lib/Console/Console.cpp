@@ -6,10 +6,6 @@
 
 #include "ConVar.h"
 
-#ifdef _DEBUG
-
-#endif
-#include <algorithm>
 #include <debugapi.h>
 
 #include "ConVarManager.h"
@@ -25,25 +21,31 @@ void Console::Update() {
 		return;
 	}
 
-	ImGuiWindowFlags consoleWindowFlags = ImGuiWindowFlags_NoScrollbar; // ウィンドウにはスクロールバーを付けない
+	ImGuiWindowFlags consoleWindowFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse;
 
 	if (bShowPopup) {
 		consoleWindowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 	}
 
-	ImGui::SetNextWindowSizeConstraints({256.0f, 256.0f}, {8192.0f, 8192.0f});
+	ImGui::SetNextWindowSizeConstraints({ 360.0f, 360.0f }, { 8192.0f, 8192.0f });
 
-	//ImVec2 popupPos, popupSize;
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(12.0f, 10.0f));
+	bool bWindowOpen = ImGui::Begin("Console", &bShowConsole, consoleWindowFlags);
+	ImGui::PopStyleVar();
 
-	if (ImGui::Begin("Console", &bShowConsole, consoleWindowFlags)) {
-		ImVec2 size = ImGui::GetContentRegionAvail();
-		size.y -= ImGui::GetFrameHeightWithSpacing() + 9.0f;
+	if (bWindowOpen) {
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.0f, 3.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 16.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarRounding, 0.0f);
 
-		ImGui::Spacing();
+		// 入力フィールドとボタンの高さを取得
+		float inputTextHeight = ImGui::GetFrameHeightWithSpacing();
 
+		// 子ウィンドウの高さを調整
+		ImVec2 child_size = ImVec2(0, -inputTextHeight - ImGui::GetStyle().ItemSpacing.y);
 		if (ImGui::BeginChild(
-			"##scrollbox", size, true,
-			ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar
+			"##scrollbox", child_size, true,
+			ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoDecoration
 		)) {
 			for (size_t i = 0; i < consoleTexts.size(); ++i) {
 				ImGui::PushStyleColor(ImGuiCol_Text, consoleTexts[i].color);
@@ -51,12 +53,10 @@ void Console::Update() {
 				ImGui::PopStyleColor();
 			}
 
-			// 一番下にスクロールしているか?
 			if (bWishScrollToBottom && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
 				ImGui::SetScrollHereY(1.0f);
 			}
 
-			// スクロールをいじった?
 			if (ImGui::GetScrollY() < ImGui::GetScrollMaxY()) {
 				bWishScrollToBottom = false;
 			} else {
@@ -70,11 +70,11 @@ void Console::Update() {
 
 		ImGui::Spacing();
 
-		size = ImGui::GetContentRegionAvail();
-		size.x -= ImGui::CalcTextSize("  Submit  ").x;
+		ImVec2 size = ImGui::GetContentRegionAvail();
+		float buttonWidth = ImGui::CalcTextSize(" Submit ").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+		size.x -= buttonWidth + ImGui::GetStyle().ItemSpacing.x;
 
-		ImGui::PushItemWidth(size.x);
-
+		ImGui::SetNextItemWidth(size.x);
 		ImGuiInputTextFlags inputTextFlags =
 			ImGuiInputTextFlags_EnterReturnsTrue |
 			ImGuiInputTextFlags_EscapeClearsAll |
@@ -94,18 +94,8 @@ void Console::Update() {
 			memset(inputText, 0, sizeof inputText);
 		}
 
-		//popupPos = { ImGui::GetItemRectMin().x, ImGui::GetWindowPos().y + ImGui::GetWindowSize().y };
-		//popupSize = { ImGui::GetItemRectSize().x, ImGui::GetTextLineHeight() * kConsoleSuggestLineCount };
-
-		if (ImGui::IsItemActive()) {
-			bShowPopup = true;
-		} else {
-			bShowPopup = false;
-		}
-
 		ImGui::SameLine();
 
-		// 送信ボタン
 		if (ImGui::Button(" Submit ")) {
 			SubmitCommand(inputText);
 			if (!std::string(inputText).empty()) {
@@ -114,20 +104,14 @@ void Console::Update() {
 			}
 			memset(inputText, 0, sizeof inputText);
 		}
+
+		ImGui::PopStyleVar(3);
 	}
 	ImGui::End();
 
-	//static SuggestPopupState state = {
-	//	false, false, -1, -1
-	//};
-
-	//static bool focused = true;
-
-	//SuggestPopup(state, popupPos, popupSize, focused);
-
 	if (consoleTexts.size() >= kConsoleMaxLineCount) {
 		consoleTexts.erase(consoleTexts.begin());
-		consoleTexts.shrink_to_fit(); // 開放
+		consoleTexts.shrink_to_fit();
 		history.shrink_to_fit();
 		suggestions.shrink_to_fit();
 		repeatCounts.shrink_to_fit();
@@ -237,7 +221,7 @@ void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]
 		UpdateRepeatCount(message, color);
 	} else {
 		// 前のメッセージと異なる場合、新しいメッセージを追加
-		consoleTexts.push_back({message, color});
+		consoleTexts.push_back({ message, color });
 		repeatCounts.push_back(1);
 		OutputDebugString(StrUtils::ToString(message));
 	}
@@ -265,7 +249,8 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 		Print("Completion\n", kConsoleColorFloat);
 		break;
 
-	case ImGuiInputTextFlags_CallbackHistory: {
+	case ImGuiInputTextFlags_CallbackHistory:
+	{
 		const int prev_history_index = historyIndex;
 		if (data->EventKey == ImGuiKey_UpArrow) {
 			if (historyIndex > 0) {
@@ -296,7 +281,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	case ImGuiInputTextFlags_CallbackResize:
 		Print("Resize\n", kConsoleColorError);
 		break;
-	default: ;
+	default:;
 	}
 	return 0;
 }
@@ -313,6 +298,8 @@ void Console::ScrollToBottom() {
 	}
 #endif
 }
+
+float Console::scrollAnimationSpeed = 0.1f;
 
 void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
@@ -451,39 +438,21 @@ void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
 }
 
 void Console::Neofetch([[maybe_unused]] const std::vector<std::string>& args) {
-	Print(
-		"                                                                                                         \n"
-	);
-	Print(
-		"88        88  888b      88  888b      88         db         88b           d88  88888888888  88888888ba,  \n"
-	);
-	Print(
-		"88        88  8888b     88  8888b     88        d88b        888b         d888  88           88      `\"8b \n"
-	);
+	Print("                                                                                                         \n");
+	Print("88        88  888b      88  888b      88         db         88b           d88  88888888888  88888888ba,  \n");
+	Print("88        88  8888b     88  8888b     88        d88b        888b         d888  88           88      `\"8b \n");
 	Print("88        88  88 `8b    88  88 `8b    88       d8'`8b       88`8b       d8'88  88           88        `8b");
-	Print(
-		"88        88  88  `8b   88  88  `8b   88      d8'  `8b      88 `8b     d8' 88  88aaaaa      88         88\n"
-	);
-	Print(
-		"88        88  88   `8b  88  88   `8b  88     d8YaaaaY8b     88  `8b   d8'  88  88\"\"\"\"\"      88         88\n"
-	);
-	Print(
-		"88        88  88    `8b 88  88    `8b 88    d8\"\"\"\"\"\"\"\"8b    88   `8b d8'   88  88           88         8P\n"
-	);
-	Print(
-		"Y8a.    .a8P  88     `8888  88     `8888   d8'        `8b   88    `888'    88  88           88      .a8P \n"
-	);
-	Print(
-		" `\"Y8888Y\"\'   88      `888  88      `888  d8'          `8b  88     `8'     88  88888888888  88888888Y\"\'  \n"
-	);
-	Print(
-		"                                                                                                         \n"
-	);
+	Print("88        88  88  `8b   88  88  `8b   88      d8'  `8b      88 `8b     d8' 88  88aaaaa      88         88\n");
+	Print("88        88  88   `8b  88  88   `8b  88     d8YaaaaY8b     88  `8b   d8'  88  88\"\"\"\"\"      88         88\n");
+	Print("88        88  88    `8b 88  88    `8b 88    d8\"\"\"\"\"\"\"\"8b    88   `8b d8'   88  88           88         8P\n");
+	Print("Y8a.    .a8P  88     `8888  88     `8888   d8'        `8b   88    `888'    88  88           88      .a8P \n");
+	Print(" `\"Y8888Y\"\'   88      `888  88      `888  d8'          `8b  88     `8'     88  88888888888  88888888Y\"\'  \n");
+	Print("                                                                                                         \n");
 }
 
 void Console::AddHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
-	consoleTexts.push_back({"] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f)});
+	consoleTexts.push_back({ "] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f) });
 #endif
 }
 
@@ -509,3 +478,16 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 
 	return tokens;
 }
+
+#ifdef _DEBUG
+bool Console::bShowConsole = true;
+bool Console::bWishScrollToBottom = false;
+bool Console::bShowPopup = false;
+std::vector<ConsoleText> Console::consoleTexts;
+char Console::inputText[kInputBufferSize] = {};
+int Console::historyIndex = -1;
+std::vector<std::string> Console::history;
+std::vector<std::string> Console::suggestions;
+std::vector<int> Console::repeatCounts;
+std::unordered_map<std::string, CommandCallback> Console::commandMap;
+#endif

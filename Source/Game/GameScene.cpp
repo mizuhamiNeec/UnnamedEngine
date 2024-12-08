@@ -36,7 +36,7 @@ void GameScene::Init(
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({512.0f, 512.0f, 0.0f});
+	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -62,74 +62,9 @@ void GameScene::Update() {
 	particle_->Update(EngineTimer::GetScaledDeltaTime());
 
 #ifdef _DEBUG
-	const std::vector<float> powerOfTwoValues = {
-		0.125f, 0.25f, 0.5f, 1,
-		2, 4, 8, 16,
-		32, 64, 128, 256,
-		512, 1024, 2048, 4096,
-		8192, 16384
-	};
-
-	const std::vector<float> regularGridValues = {
-		1, 5, 10, 50, 100, 500, 1000, 5000, 10000
-	};
-
-	static int selectedIndex = 3; // 最初の選択肢を選んでおく
-	static int selectedGridType = 0; // 0: 2のべき乗グリッド, 1: 通常のグリッド
-
-	static float gridSize = 1.0f; // 最初のグリッドサイズは1.0f
-
-	ImGui::Begin("Game Scene");
-
-	// グリッドの種類を選択
-	const char* gridTypeNames[] = {"Power of 2", "Regular"};
-	if (ImGui::Combo("Grid Type", &selectedGridType, gridTypeNames, IM_ARRAYSIZE(gridTypeNames))) {
-		// グリッドタイプが変更された場合、最初の選択肢を設定
-		if (selectedGridType == 0) {
-			gridSize = powerOfTwoValues[selectedIndex]; // 2のべき乗グリッドサイズを設定
-		} else {
-			gridSize = regularGridValues[selectedIndex]; // 通常グリッドサイズを設定
-		}
-	}
-
-	// グリッドサイズを変更
-	if (selectedGridType == 0) {
-		// 2のべき乗グリッド
-		if (ImGui::BeginCombo("Grid Size", std::to_string(powerOfTwoValues[selectedIndex]).c_str())) {
-			for (int i = 0; i < powerOfTwoValues.size(); ++i) {
-				const bool isSelected = (selectedIndex == i);
-				if (ImGui::Selectable(std::to_string(powerOfTwoValues[i]).c_str(), isSelected)) {
-					selectedIndex = i;
-					gridSize = powerOfTwoValues[selectedIndex];
-				}
-				if (isSelected) {
-					ImGui::SetItemDefaultFocus();
-				}
-			}
-			ImGui::EndCombo();
-		}
-	} else {
-		// 通常のグリッド
-		if (ImGui::BeginCombo("Grid Size", std::to_string(regularGridValues[selectedIndex]).c_str())) {
-			for (int i = 0; i < regularGridValues.size(); ++i) {
-				const bool isSelected = (selectedIndex == i);
-				if (ImGui::Selectable(std::to_string(regularGridValues[i]).c_str(), isSelected)) {
-					selectedIndex = i;
-					gridSize = regularGridValues[selectedIndex];
-				}
-				if (isSelected) {
-					ImGui::SetItemDefaultFocus();
-				}
-			}
-			ImGui::EndCombo();
-		}
-	}
-	ImGui::End();
 
 	// ライン描画
 	{
-		Engine::DrawGrid(100.0f, 4, 16, gridSize);
-
 		static Vec3 pos;
 		static Vec3 rot;
 
@@ -146,7 +81,7 @@ void GameScene::Update() {
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVarManager::GetConVar("cl_showpos")->GetValueAsString() == "1") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 		constexpr ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
@@ -188,7 +123,7 @@ void GameScene::Update() {
 
 		ImU32 textColor = IM_COL32(255, 255, 255, 255);
 		ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
-		TextOutlined(
+		ImGuiManager::TextOutlined(
 			drawList,
 			textPos,
 			text.c_str(),
@@ -216,7 +151,7 @@ void GameScene::Render() {
 	// パーティクル共通描画設定
 	particleCommon_->Render();
 	//----------------------------------------
-	//particle_->Draw();
+	particle_->Draw();
 
 	//----------------------------------------
 	// スプライト共通描画設定

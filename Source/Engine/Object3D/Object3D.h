@@ -11,7 +11,6 @@ class Camera;
 class ModelCommon;
 class ConstantBuffer;
 struct Vertex;
-class VertexBuffer;
 class Object3DCommon;
 
 class Object3D {

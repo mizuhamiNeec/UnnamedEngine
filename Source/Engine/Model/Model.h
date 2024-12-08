@@ -4,8 +4,9 @@
 
 #include "../Lib/Structs/Structs.h"
 
+#include "../Renderer/VertexBuffer.h"
+
 class ConstantBuffer;
-class VertexBuffer;
 class ModelCommon;
 
 class Model {
@@ -32,6 +33,6 @@ private:
 	ModelData modelData_; // Objファイルのデータ
 	Material* materialData_ = nullptr; // マテリアルのポインタ
 
-	std::unique_ptr<VertexBuffer> vertexBuffer_;
+	std::unique_ptr<VertexBuffer<Vertex>> vertexBuffer_;
 	std::unique_ptr<ConstantBuffer> materialConstantBuffer_;
 };

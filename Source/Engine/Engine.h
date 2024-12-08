@@ -58,7 +58,8 @@ public:
 		float& radius, const Vec4& color, const bool& drawFromBase = true
 	);
 	static void DrawGrid(
-		const float& gridRange, const int& mediumGridSize, const int& largeGridSize, const float& gridSize
+		float gridSize, float range, const Vec4& color, const Vec4& majorColor, const Vec4& axisColor, const Vec4&
+		minorColor
 	);
 
 private:

@@ -27,11 +27,12 @@ public:
 	void Shutdown();
 
 #ifdef _DEBUG
-	void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive);
-	bool EditTransform(const std::string& name, Transform& transform, const float& vSpeed);
-	bool DragVec3(const std::string& name, Vec3& v, const float& vSpeed);
-	void TextOutlined(ImDrawList* drawList, const ImVec2& pos, const char* text, ImU32 textColor, ImU32 outlineColor,
-	float outlineSize = 1.0f);
+	static void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive);
+	static bool EditTransform(const std::string& name, Transform& transform, const float& vSpeed);
+	static bool DragVec3(const std::string& name, Vec3& v, const float& vSpeed);
+	static void TextOutlined(ImDrawList* drawList, const ImVec2& pos, const char* text, ImU32 textColor,
+	                         ImU32 outlineColor,
+	                         float outlineSize = 1.0f);
 #endif
 
 private:

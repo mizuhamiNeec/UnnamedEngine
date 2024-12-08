@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "LineCommon.h"
 #include "../Lib/Math/Matrix/Mat4.h"
@@ -47,7 +47,7 @@ private:
 	std::vector<LineVertex> lineVertices_;
 	std::vector<uint32_t> lineIndices_;
 
-	std::unique_ptr<VertexBuffer> vertexBuffer_;
+	std::unique_ptr<VertexBuffer<LineVertex>> vertexBuffer_;
 	std::unique_ptr<IndexBuffer> indexBuffer_;
 
 	TransformationMatrix* transformationMatrixData_ = nullptr; // 座標変換行列のポインタ

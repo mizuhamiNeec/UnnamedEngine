@@ -2,6 +2,11 @@
 
 #include "../Input/Input.h"
 #include "Camera/Camera.h"
+
+#ifdef _DEBUG
+#include "imgui/imgui_internal.h"
+#endif
+
 #include "Lib/Console/Console.h"
 #include "Lib/Console/ConVarManager.h"
 #include "Lib/Math/Quaternion/Quaternion.h"
@@ -42,9 +47,9 @@ void Engine::DrawAxis(const Vec3& position, const Quaternion& orientation) {
 	const Vec3 up = orientation * Vec3::up;
 	const Vec3 forward = orientation * Vec3::forward;
 
-	DrawRay(position, right, {1.0f, 0.0f, 0.0f, 1.0f});
-	DrawRay(position, up, {0.0f, 1.0f, 0.0f, 1.0f});
-	DrawRay(position, forward, {0.0f, 0.0f, 1.0f, 1.0f});
+	DrawRay(position, right, { 1.0f, 0.0f, 0.0f, 1.0f });
+	DrawRay(position, up, { 0.0f, 1.0f, 0.0f, 1.0f });
+	DrawRay(position, forward, { 0.0f, 0.0f, 1.0f, 1.0f });
 }
 
 void Engine::DrawCircle(
@@ -184,11 +189,11 @@ void Engine::DrawArrow(
 	const Vec3 arrowRight = end - (dirNormalized * headSize) - (right * headSize * 0.5f);
 
 	// 主体の線
-	Engine::DrawLine(position, end, color);
+	DrawLine(position, end, color);
 
 	// 羽根の線
-	Engine::DrawLine(end, arrowLeft, color);
-	Engine::DrawLine(end, arrowRight, color);
+	DrawLine(end, arrowLeft, color);
+	DrawLine(end, arrowRight, color);
 }
 
 void Engine::DrawQuad(
@@ -284,8 +289,8 @@ void Engine::DrawBox(const Vec3& position, const Quaternion& orientation, Vec3& 
 	Vec3 pointC = offsetX - offsetY;
 	Vec3 pointD = -offsetX - offsetY;
 
-	DrawRect(position - offsetZ, orientation, {size.x, size.y}, color);
-	DrawRect(position + offsetZ, orientation, {size.x, size.y}, color);
+	DrawRect(position - offsetZ, orientation, { size.x, size.y }, color);
+	DrawRect(position + offsetZ, orientation, { size.x, size.y }, color);
 
 	Engine::DrawLine(position + (pointA - offsetZ), position + (pointA + offsetZ), color);
 	Engine::DrawLine(position + (pointB - offsetZ), position + (pointB + offsetZ), color);
@@ -344,52 +349,35 @@ void Engine::DrawCapsule(
 	DrawArc(0, 180, topArcPosition, arcOrientation, radius, color);
 }
 
-void Engine::DrawGrid(
-	const float& gridRange, const int& mediumGridSize, const int& largeGridSize, const float& gridSize
-) {
-	// グリッドサイズが範囲外の場合、適切な範囲に制限
-	if (gridSize <= 0.0f || gridSize > 512.0f) {
-		//std::cerr << "Invalid grid size. Valid range is between 0.125f and 512.0f." << std::endl;
-		return;
+void Engine::DrawGrid(const float gridSize, const float range, const Vec4& color, const Vec4& majorColor, const Vec4& axisColor, const Vec4& minorColor) {
+	//const float range = 16384.0f;
+	const float majorInterval = 1024.0f;
+	const float minorInterval = gridSize * 8.0f;
+
+	for (float x = -range; x <= range; x += gridSize) {
+		Vec4 lineColor = color;
+		if (fmod(x, majorInterval) == 0) {
+			lineColor = majorColor;
+		} else if (fmod(x, minorInterval) == 0) {
+			lineColor = minorColor;
+		}
+		if (x == 0) {
+			lineColor = axisColor;
+		}
+		DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range), lineColor);
 	}
 
-	// 軸色
-	constexpr Vec4 axisColor = Vec4(0.0f, 0.39f, 0.39f, 1.0f);
-	// 1024グリッドの色
-	constexpr Vec4 gridColor1024 = Vec4(0.39f, 0.2f, 0.02f, 1.0f);
-	// 64グリッドの色
-	constexpr Vec4 gridColor64 = Vec4(0.45f, 0.45f, 0.45f, 1.0f);
-	// その他細かいグリッドの色
-	constexpr Vec4 gridColor = Vec4(0.29f, 0.29f, 0.29f, 1.0f);
-
-	// グリッドを描画
-	// 描画範囲の設定 (-16384 ～ 16384)
-	for (float i = -gridRange; i <= gridRange; i += gridSize) {
-		// X軸方向
-		const Vec3 startX = Vec3(i, 0.0f, -gridRange);
-		const Vec3 endX = Vec3(i, 0.0f, gridRange);
-		// 色設定
-		const Vec4 lineColorX = (i == 0) ?
-			                        axisColor :
-			                        (static_cast<int>(i) % largeGridSize == 0) ?
-			                        gridColor1024 :
-			                        (static_cast<int>(i) % mediumGridSize == 0) ?
-			                        gridColor64 :
-			                        gridColor;
-		Engine::DrawLine(startX, endX, lineColorX);
-
-		// Z軸方向
-		const Vec3 startZ = Vec3(-gridRange, 0.0f, i);
-		const Vec3 endZ = Vec3(gridRange, 0.0f, i);
-		// 色設定
-		const Vec4 lineColorZ = (i == 0) ?
-			                        axisColor :
-			                        (static_cast<int>(i) % largeGridSize == 0) ?
-			                        gridColor1024 :
-			                        (static_cast<int>(i) % mediumGridSize == 0) ?
-			                        gridColor64 :
-			                        gridColor;
-		Engine::DrawLine(startZ, endZ, lineColorZ);
+	for (float z = -range; z <= range; z += gridSize) {
+		Vec4 lineColor = color;
+		if (fmod(z, majorInterval) == 0) {
+			lineColor = majorColor;
+		} else if (fmod(z, minorInterval) == 0) {
+			lineColor = minorColor;
+		}
+		if (z == 0) {
+			lineColor = axisColor;
+		}
+		DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z), lineColor);
 	}
 }
 
@@ -423,7 +411,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({0.0f, 0.0f, -10.0f});
+	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -507,12 +495,72 @@ void Engine::Update() const {
 	// ゲームシーンの更新
 	gameScene_->Update();
 
+	// グリッドの表示
+	DrawGrid(
+		1.0f,
+		64,
+		{ .x = 0.28f, .y = 0.28f, .z = 0.28f, .w = 1.0f },
+		{ .x = 0.39f, .y = 0.2f, .z = 0.02f, .w = 1.0f },
+		{ .x = 0.0f, .y = 0.39f, .z = 0.39f, .w = 1.0f },
+		{ .x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f }
+	);
+
+#ifdef _DEBUG
+	ImGuiViewportP* viewport = static_cast<ImGuiViewportP*>(static_cast<void*>(ImGui::GetMainViewport()));
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+
+	ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.0f);
+
+	if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, 38, window_flags)) {
+		if (ImGui::BeginMenuBar()) {
+			ImGui::PopStyleVar();
+
+			ImGui::Text("ハリボテ");
+
+			ImGui::BeginDisabled(true);
+
+			// アングルスナップ
+			{
+				const float windowHeight = ImGui::GetWindowSize().y;
+				const char* items[] = { "0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°", "22.5°", "30°", "45°", "90°" };
+				static int itemCurrentIndex = 6;
+				const char* comboLabel = items[itemCurrentIndex];
+
+				ImGui::Text("Angle: ");
+
+				// 垂直中央に配置
+				float comboHeight = ImGui::GetFrameHeight();
+				float offsetY = (windowHeight - comboHeight) * 0.5f;
+				ImGui::SetCursorPosY(offsetY);
+
+				if (ImGui::BeginCombo("##angle", comboLabel)) {
+					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
+						const bool isSelected = (itemCurrentIndex == n);
+						if (ImGui::Selectable(items[n], isSelected)) {
+							itemCurrentIndex = n;
+						}
+						if (isSelected) {
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+			}
+
+			ImGui::EndDisabled();
+
+			ImGui::EndMenuBar();
+		}
+		ImGui::End();
+	}
+#endif
+
 	// ライン更新
 	line_->Update();
 
 #ifdef _DEBUG // cl_showfps
 	if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() != "0") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -564,7 +612,7 @@ void Engine::Update() const {
 
 		ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
 
-		TextOutlined(
+		ImGuiManager::TextOutlined(
 			drawList,
 			textPos,
 			text.c_str(),

@@ -68,7 +68,7 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 void Object3D::Update() {
 #ifdef _DEBUG
 	ImGui::Begin("Object3D");
-	EditTransform("Object3D", transform_, 0.01f);
+	ImGuiManager::EditTransform("Object3D", transform_, 0.01f);
 	if (ImGui::CollapsingHeader("Directional Light")) {
 		if (ImGui::DragFloat3("dir##light", &directionalLightData_->direction.x, 0.01f)) {
 			directionalLightData_->direction.Normalize();

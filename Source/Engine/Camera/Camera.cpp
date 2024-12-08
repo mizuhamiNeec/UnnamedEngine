@@ -17,7 +17,7 @@ Camera::Camera() :
 void Camera::Update() {
 #ifdef _DEBUG
 	ImGui::Begin("Camera");
-	EditTransform("Camera", transform_, 0.01f);
+	ImGuiManager::EditTransform("Camera", transform_, 0.01f);
 
 	if (ImGui::CollapsingHeader("Properties")) {
 		float fovTmp = fov_ * Math::rad2Deg;

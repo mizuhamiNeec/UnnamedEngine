@@ -55,7 +55,7 @@ void D3D12::Init(Window* window) {
 
 void D3D12::ClearColorAndDepth() const {
 	//float clearColor[] = {0.89f, 0.5f, 0.03f, 1.0f};
-	float clearColor[] = {0.0f, 0.0f, 0.0f, 1.0f};
+	float clearColor[] = {0.1f, 0.1f, 0.1f, 1.0f};
 	commandList_->ClearRenderTargetView(
 		rtvHandles_[frameIndex_],
 		clearColor,

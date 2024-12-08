@@ -53,7 +53,7 @@ private:
 	AccelerationField accelerationField_ = {};
 
 	std::vector<Vertex> vertices_;
-	std::unique_ptr<VertexBuffer> vertexBuffer_ = nullptr;
+	std::unique_ptr<VertexBuffer<Vertex>> vertexBuffer_ = nullptr;
 	std::unique_ptr<ConstantBuffer> materialResource_ = nullptr;
 	std::unique_ptr<ConstantBuffer> instancingResource_ = nullptr;
 	std::unique_ptr<IndexBuffer> indexBuffer_ = nullptr;

@@ -6,17 +6,17 @@
 
 #include "../ImGuiManager/ImGuiManager.h"
 
-constexpr ImVec4 kConsoleColorNormal = {0.87f, 0.87f, 0.87f, 1.0f}; // 通常テキストの色
-constexpr ImVec4 kConsoleColorWarning = {1.0f, 1.0f, 0.0f, 1.0f}; // 警告テキストの色
-constexpr ImVec4 kConsoleColorError = {1.0f, 0.0f, 0.0f, 1.0f}; // エラーテキストの色
-constexpr ImVec4 kConsoleColorWait = {0.274f, 0.51f, 0.706f, 1.0f}; // 待ち状態テキストの色
-constexpr ImVec4 kConsoleColorCompleted = {0.35f, 0.66f, 0.41f, 1.0f}; // 完了テキストの色
+constexpr ImVec4 kConsoleColorNormal = { 0.87f, 0.87f, 0.87f, 1.0f }; // 通常テキストの色
+constexpr ImVec4 kConsoleColorWarning = { 1.0f, 1.0f, 0.0f, 1.0f }; // 警告テキストの色
+constexpr ImVec4 kConsoleColorError = { 1.0f, 0.0f, 0.0f, 1.0f }; // エラーテキストの色
+constexpr ImVec4 kConsoleColorWait = { 0.274f, 0.51f, 0.706f, 1.0f }; // 待ち状態テキストの色
+constexpr ImVec4 kConsoleColorCompleted = { 0.35f, 0.66f, 0.41f, 1.0f }; // 完了テキストの色
 
-constexpr ImVec4 kConsoleColorBool = {0.58f, 0.0f, 0.0f, 1.0f};
-constexpr ImVec4 kConsoleColorInt = {0.12f, 0.89f, 0.69f, 1.0f};
-constexpr ImVec4 kConsoleColorFloat = {0.22f, 0.84f, 0.0f, 1.0f};
-constexpr ImVec4 kConsoleColorString = {0.99f, 0.0f, 0.83f, 1.0f};
-constexpr ImVec4 kConsoleColorVec3 = {1.0f, 0.79f, 0.14f, 1.0f};
+constexpr ImVec4 kConsoleColorBool = { 0.58f, 0.0f, 0.0f, 1.0f };
+constexpr ImVec4 kConsoleColorInt = { 0.12f, 0.89f, 0.69f, 1.0f };
+constexpr ImVec4 kConsoleColorFloat = { 0.22f, 0.84f, 0.0f, 1.0f };
+constexpr ImVec4 kConsoleColorString = { 0.99f, 0.0f, 0.83f, 1.0f };
+constexpr ImVec4 kConsoleColorVec3 = { 1.0f, 0.79f, 0.14f, 1.0f };
 
 constexpr uint32_t kInputBufferSize = 512; // コンソールが一度に送信できるバッファの数
 
@@ -66,21 +66,23 @@ private:
 #endif
 
 	static void ScrollToBottom();
+	static float scrollAnimationSpeed;
+
 	static void AddHistory(const std::string& command);
 
 	static std::string TrimSpaces(const std::string& string);
 	static std::vector<std::string> TokenizeCommand(const std::string& command);
-};
 
 #ifdef _DEBUG
-static bool bShowConsole = true; // コンソールを表示するか?
-static bool bWishScrollToBottom = false; // 一番下にスクロールしたい
-static bool bShowPopup = false; // ポップアップを表示
-static std::vector<ConsoleText> consoleTexts; // コンソールに出力されているテキスト
-static char inputText[kInputBufferSize] = {}; // 入力中のテキスト
-static int historyIndex = -1;
-static std::vector<std::string> history; // 入力の履歴
-static std::vector<std::string> suggestions; // サジェスト
-static std::vector<int> repeatCounts;
-static std::unordered_map<std::string, CommandCallback> commandMap;
+	static bool bShowConsole; // コンソールを表示するか?
+	static bool bWishScrollToBottom; // 一番下にスクロールしたい
+	static bool bShowPopup; // ポップアップを表示
+	static std::vector<ConsoleText> consoleTexts; // コンソールに出力されているテキスト
+	static char inputText[kInputBufferSize]; // 入力中のテキスト
+	static int historyIndex;
+	static std::vector<std::string> history; // 入力の履歴
+	static std::vector<std::string> suggestions; // サジェスト
+	static std::vector<int> repeatCounts;
+	static std::unordered_map<std::string, CommandCallback> commandMap;
 #endif
+};

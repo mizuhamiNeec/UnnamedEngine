@@ -1,4 +1,4 @@
-﻿#include "Line.h"
+#include "Line.h"
 
 #include <mutex>
 
@@ -35,10 +35,9 @@ Line::Line(LineCommon* lineCommon) {
 	lineCommon_ = lineCommon;
 	constexpr size_t vertexBufferSize = kMaxLineCount * 2 * sizeof(LineVertex); // 頂点数 = ライン数 * 2
 	constexpr size_t indexBufferSize = kMaxLineCount * 2 * sizeof(uint32_t); // インデックス数 = ライン数 * 2
-	vertexBuffer_ = std::make_unique<VertexBuffer>(
+	vertexBuffer_ = std::make_unique<VertexBuffer<LineVertex>>(
 		lineCommon_->GetD3D12()->GetDevice(),
 		vertexBufferSize,
-		sizeof(LineVertex),
 		nullptr
 	);
 	indexBuffer_ = std::make_unique<IndexBuffer>(
@@ -63,8 +62,8 @@ void Line::AddLine(const Vec3& start, const Vec3& end, const Vec4& color) {
 	const uint32_t startIndex = static_cast<uint32_t>(lineVertices_.size());
 
 	// インデックスを正確に追加 (最後の2つのインデックスのみを追加)
-	lineVertices_.push_back({.pos = start, .color = color});
-	lineVertices_.push_back({.pos = end, .color = color});
+	lineVertices_.push_back({ .pos = start, .color = color });
+	lineVertices_.push_back({ .pos = end, .color = color });
 
 	lineIndices_.push_back(startIndex); // 開始頂点
 	lineIndices_.push_back(startIndex + 1); // 終了頂点
@@ -93,10 +92,9 @@ void Line::UpdateBuffer() {
 	// バッファが不足している場合は再作成
 	if (vertexBuffer_->GetSize() < requiredVertexBufferSize) {
 		Console::Print("Line: VertexBufferを再作成します。\n", kConsoleColorWarning);
-		vertexBuffer_ = std::make_unique<VertexBuffer>(
+		vertexBuffer_ = std::make_unique<VertexBuffer<LineVertex>>(
 			lineCommon_->GetD3D12()->GetDevice(),
 			requiredVertexBufferSize,
-			sizeof(LineVertex),
 			nullptr
 		);
 	}
@@ -111,8 +109,8 @@ void Line::UpdateBuffer() {
 	}
 
 	// バッファを更新
-	vertexBuffer_->Update(lineVertices_.data(), lineVertices_.size());
-	indexBuffer_->Update(lineIndices_.data(), lineIndices_.size());
+	vertexBuffer_->Update(lineVertices_.data(), lineVertices_.size() * sizeof(LineVertex));
+	indexBuffer_->Update(lineIndices_.data(), lineIndices_.size() * sizeof(uint32_t));
 
 	isDirty_ = false; // バッファは最新状態
 }
