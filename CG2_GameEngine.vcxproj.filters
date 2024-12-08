@@ -219,9 +219,6 @@
     <ClInclude Include="Source\Engine\Lib\Utils\ClientProperties.h">
       <Filter>Source\Engine\Lib\Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Utils\ConvertString.h">
-      <Filter>Source\Engine\Lib\Utils</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Model\Model.h">
       <Filter>Source\Engine\Model</Filter>
     </ClInclude>
@@ -237,9 +234,6 @@
     <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h">
       <Filter>Source\Engine\Object3D</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Objects\Empty.h">
-      <Filter>Source\Engine\Objects</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Particle\ParticleCommon.h">
       <Filter>Source\Engine\Particle</Filter>
     </ClInclude>
@@ -250,9 +244,6 @@
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\D3D12.h">
-      <Filter>Source\Engine\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Renderer\DescriptorManager.h">
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\DirectX12.h">
@@ -274,9 +265,6 @@
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\SrvManager.h">
-      <Filter>Source\Engine\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Renderer\Swapchain.h">
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h">
@@ -303,6 +291,13 @@
     <ClInclude Include="Source\Game\IGameScene.h">
       <Filter>Source\Game</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Components\IComponent.h" />
+    <ClInclude Include="Source\Engine\Lib\Math\Quaternion\Quaternion.h" />
+    <ClInclude Include="Source\Engine\Line\LineCommon.h" />
+    <ClInclude Include="Source\Engine\Line\Line.h" />
+    <ClInclude Include="Source\Engine\Objects\Entity.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\StrUtils.h" />
+    <ClInclude Include="Source\Engine\Debug\Debug.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -386,9 +381,6 @@
     <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp">
       <Filter>Source\Engine\Object3D</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Objects\Empty.cpp">
-      <Filter>Source\Engine\Objects</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp">
       <Filter>Source\Engine\Particle</Filter>
     </ClCompile>
@@ -399,9 +391,6 @@
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp">
-      <Filter>Source\Engine\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Renderer\DescriptorManager.cpp">
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp">
@@ -420,9 +409,6 @@
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp">
-      <Filter>Source\Engine\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Renderer\Swapchain.cpp">
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp">
@@ -446,14 +432,25 @@
     <ClCompile Include="Source\Game\GameScene.cpp">
       <Filter>Source\Game</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Source\Engine\Shaders\Object3d.PS.hlsl" />
-    <FxCompile Include="Source\Engine\Shaders\Object3d.VS.hlsl" />
+    <ClCompile Include="Source\Engine\Lib\Math\Quaternion\Quaternion.cpp" />
+    <ClCompile Include="Source\Engine\Line\LineCommon.cpp" />
+    <ClCompile Include="Source\Engine\Line\Line.cpp" />
+    <ClCompile Include="Source\Engine\Objects\Entity.cpp" />
+    <ClCompile Include="Source\Engine\Debug\Debug.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
-    <None Include="Source\Engine\Shaders\Object3d.hlsli" />
+    <None Include="Resources\Shaders\Line.PS.hlsl" />
+    <None Include="Resources\Shaders\Line.VS.hlsl" />
+    <None Include="Resources\Shaders\Object3d.PS.hlsl" />
+    <None Include="Resources\Shaders\Object3d.VS.hlsl" />
+    <None Include="Resources\Shaders\Particle.PS.hlsl" />
+    <None Include="Resources\Shaders\Particle.VS.hlsl" />
+    <None Include="Resources\Shaders\SpriteCommon.PS.hlsl" />
+    <None Include="Resources\Shaders\SpriteCommon.VS.hlsl" />
+    <None Include="Resources\Shaders\Object3d.hlsli" />
+    <None Include="Resources\Shaders\Particle.hlsli" />
+    <None Include="Resources\Shaders\Line.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Source\Engine\Externals\imgui\LICENSE.txt" />

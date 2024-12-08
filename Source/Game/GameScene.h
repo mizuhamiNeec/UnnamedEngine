@@ -2,7 +2,6 @@
 #include <memory>
 
 #include "IGameScene.h"
-#include "../Engine/Line/LineCommon.h"
 
 #include "../Object3D/Object3D.h"
 #include "../Object3D/Object3DCommon.h"
@@ -36,8 +35,6 @@ private:
 	std::unique_ptr<Object3D> object3D_;
 	std::unique_ptr<Sprite> sprite_;
 	std::unique_ptr<Model> model_;
-
-	std::unique_ptr<Line> line_;
 
 	std::unique_ptr<ParticleObject> particle_;
 

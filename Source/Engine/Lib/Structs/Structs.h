@@ -25,7 +25,7 @@ private:
 struct Material {
 	Vec4 color;
 	int32_t enableLighting;
-	float padding[3];
+	Vec3 padding;
 	Mat4 uvTransform;
 	float shininess;
 	Vec3 specularColor;
@@ -95,6 +95,8 @@ struct Particle {
 	Vec4 color;
 	float lifeTime;
 	float currentTime;
+	Vec3 drag;
+	Vec3 gravity;
 };
 
 struct AABB {
@@ -107,6 +109,7 @@ struct Emitter {
 	uint32_t count; // 発生数
 	float frequency; // 発生頻度
 	float frequencyTime; // 頻度用時刻
+	Vec3 size; // エミッターのサイズ
 };
 
 struct AccelerationField {

@@ -22,18 +22,13 @@ public:
 	void Update(float deltaTime);
 	void Draw() const;
 
-	static Particle MakeNewParticle(const Vec3& pos);
+	static Particle MakeNewParticle(const Vec3& pos, const Vec3& vel, const Vec3& drag, const Vec3& gravity);
 
-	static std::list<Particle> Emit(const Emitter& emitter);
+	std::list<Particle> Emit(const Emitter& emitter, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity);
 
-	// Getter
-	// Vec3 GetPos() const;
-	// Vec3 GetScale() const;
-
-	// Setter
-	// void SetPos(const Vec3& newPos);
-	// void SetScale(const Vec3& newScale);
 	void SetCamera(Camera* newCamera);
+	Vec3 GeneratePosition(const Vec3& emitterPosition, int shapeType);
+	static Vec3 GenerateConeVelocity(float coneAngle);
 
 private:
 	ParticleCommon* particleCommon_ = nullptr;
@@ -41,7 +36,7 @@ private:
 	Camera* camera_ = nullptr;
 	std::string textureFilePath_;
 
-	uint32_t kNumMaxInstance = 256;
+	uint32_t kNumMaxInstance = 512;
 	uint32_t numInstance = 0; // 描画すべきインスタンス数
 
 	uint32_t srvIndex_ = 0;
@@ -62,4 +57,8 @@ private:
 	uint32_t* indexData_ = nullptr;
 	Material* materialData_ = nullptr;
 	ParticleForGPU* instancingData = nullptr;
+
+	bool enableGravity = true;
+	bool enableAccelerationField_ = true;
+	bool enableDrag = true;
 };

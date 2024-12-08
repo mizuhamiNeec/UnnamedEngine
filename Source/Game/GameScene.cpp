@@ -12,6 +12,7 @@
 #include "../Particle/ParticleCommon.h"
 #include "../Sprite/SpriteCommon.h"
 #include "../TextureManager/TextureManager.h"
+#include "../Debug/Debug.h"
 
 void GameScene::Init(
 	D3D12* renderer, Window* window,
@@ -36,7 +37,7 @@ void GameScene::Init(
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
+	sprite_->SetSize({512.0f, 512.0f, 0.0f});
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -58,30 +59,30 @@ void GameScene::Init(
 
 void GameScene::Update() {
 	sprite_->Update();
-	object3D_->Update();
+	//object3D_->Update();
 	particle_->Update(EngineTimer::GetScaledDeltaTime());
 
 #ifdef _DEBUG
 
-	// ライン描画
-	{
-		static Vec3 pos;
-		static Vec3 rot;
-
-		ImGui::Begin("Axis");
-		ImGui::DragFloat3("pos##axis", &pos.x, 0.01f);
-		ImGui::DragFloat3("rot##axis", &rot.x, 0.01f);
-		ImGui::End();
-
-		Engine::DrawAxis(pos, Quaternion::Euler(rot));
-	}
+	// // ライン描画
+	// {
+	// 	static Vec3 pos;
+	// 	static Vec3 rot;
+	//
+	// 	ImGui::Begin("Axis");
+	// 	ImGui::DragFloat3("pos##axis", &pos.x, 0.01f);
+	// 	ImGui::DragFloat3("rot##axis", &rot.x, 0.01f);
+	// 	ImGui::End();
+	//
+	// 	Debug::DrawAxis(pos, Quaternion::Euler(rot));
+	// }
 
 #endif
 
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVarManager::GetConVar("cl_showpos")->GetValueAsString() == "1") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 		constexpr ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
@@ -145,7 +146,7 @@ void GameScene::Render() {
 	object3DCommon_->Render();
 	//----------------------------------------
 
-	object3D_->Draw();
+	//object3D_->Draw();
 
 	//----------------------------------------
 	// パーティクル共通描画設定

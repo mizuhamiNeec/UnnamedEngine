@@ -25,7 +25,7 @@ struct Vec3 final {
 	float Dot(const Vec3& other) const;
 	Vec3 Cross(const Vec3& other) const;
 
-	bool IsZero(float tolerance = 0.01f) const;
+	bool IsZero(float tolerance = 1e-6f) const;
 	bool IsParallel(const Vec3& other) const;
 
 	void Normalize();
@@ -41,7 +41,7 @@ struct Vec3 final {
 
 
 	Vec3 operator-() const {
-		return {-x, -y, -z};
+		return { -x, -y, -z };
 	}
 
 	Vec3 operator+(const Vec3& rhs) const;

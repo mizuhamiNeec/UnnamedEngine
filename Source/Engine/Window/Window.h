@@ -24,6 +24,9 @@ public:
 
 	static bool ProcessMessage();
 
+	void LockMouse() const;
+	static void UnlockMouse();
+
 private:
 	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 

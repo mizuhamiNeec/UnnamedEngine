@@ -19,5 +19,5 @@ namespace Math {
 	Vec3 Lerp(const Vec3& a, const Vec3& b, float t);
 	Vec3 CatmullRomPosition(const std::vector<Vec3>& points, float t);
 	Vec3 CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, float t);
-	float DeltaAngle(const float& currentAngle, const float& targetAngle);
+	float DeltaAngle(const float& current, const float& target);
 }

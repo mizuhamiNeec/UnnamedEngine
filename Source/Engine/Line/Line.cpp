@@ -53,10 +53,10 @@ Line::Line(LineCommon* lineCommon) {
 	transformationMatrixData_->world = Mat4::identity;
 }
 
-std::mutex lineMutex;
+static std::mutex lineMutex;
 
 void Line::AddLine(const Vec3& start, const Vec3& end, const Vec4& color) {
-	std::lock_guard<std::mutex> lock(lineMutex);
+	std::lock_guard lock(lineMutex);
 
 	// 頂点を追加
 	const uint32_t startIndex = static_cast<uint32_t>(lineVertices_.size());

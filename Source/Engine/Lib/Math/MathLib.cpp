@@ -17,7 +17,7 @@ Vec3 Math::Lerp(const Vec3& a, const Vec3& b, const float t) {
 	return a * (1 - t) + b * t;
 }
 
-Vec3 Math::CatmullRomPosition(const std::vector<Vec3>& points, float t) {
+Vec3 Math::CatmullRomPosition(const std::vector<Vec3>& points, const float t) {
 	assert(points.size() >= 4 && "制御点は4点以上必要です");
 
 	// 区間数は制御点の数-1
@@ -59,7 +59,7 @@ Vec3 Math::CatmullRomPosition(const std::vector<Vec3>& points, float t) {
 	return CatmullRomInterpolation(p0, p1, p2, p3, t_2);
 }
 
-Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, float t) {
+Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, const float t) {
 	const float t2 = t * t;
 	const float t3 = t2 * t;
 
@@ -72,11 +72,12 @@ Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p
 	);
 }
 
-float Math::DeltaAngle(const float& currentAngle, const float& targetAngle) {
-	float delta = fmod(targetAngle - currentAngle, 360.0f);
+float Math::DeltaAngle(const float& current, const float& target) {
+	float delta = fmod(target - current, 360.0f);
 	if (delta > 180.0f) {
 		delta -= 360.0f;
-	} else if (delta < -180.0f) {
+	}
+	else if (delta < -180.0f) {
 		delta += 360.0f;
 	}
 	return delta;

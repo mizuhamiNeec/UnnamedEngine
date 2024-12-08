@@ -179,4 +179,43 @@ bool Window::ProcessMessage() {
 	return false;
 }
 
+void Window::LockMouse() const {
+	static POINT prevCursorPos = {}; // 前回のカーソル位置
+	POINT currentCursorPos; // 現在のカーソル位置
+
+	// 現在のマウスカーソル位置を取得
+	GetCursorPos(&currentCursorPos);
+
+	// マウスの移動量を計算
+	int deltaX = currentCursorPos.x - prevCursorPos.x;
+	int deltaY = currentCursorPos.y - prevCursorPos.y;
+
+#ifdef _DEBUG
+	// ImGuiのマウスデルタに反映
+	ImGuiIO& io = ImGui::GetIO();
+	io.MouseDelta.x = static_cast<float>(deltaX);
+	io.MouseDelta.y = static_cast<float>(deltaY);
+#endif
+
+	// ウィンドウの中央座標を計算
+	RECT clientRect;
+	GetClientRect(hWnd_, &clientRect);
+
+	POINT centerPos = {
+		clientRect.left + (clientRect.right - clientRect.left) / 2,
+		clientRect.top + (clientRect.bottom - clientRect.top) / 2
+	};
+	MapWindowPoints(hWnd_, nullptr, &centerPos, 1); // クライアント座標をスクリーン座標に変換
+
+	// マウスを画面中央に移動
+	SetCursorPos(centerPos.x, centerPos.y);
+
+	// 前回位置を中央にリセット
+	prevCursorPos = centerPos;
+}
+
+void Window::UnlockMouse() {
+	ClipCursor(nullptr);
+}
+
 HWND Window::GetWindowHandle() const { return hWnd_; }

@@ -21,13 +21,14 @@ void Console::Update() {
 		return;
 	}
 
-	ImGuiWindowFlags consoleWindowFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse;
+	ImGuiWindowFlags consoleWindowFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
+		ImGuiWindowFlags_NoCollapse;
 
 	if (bShowPopup) {
 		consoleWindowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 	}
 
-	ImGui::SetNextWindowSizeConstraints({ 360.0f, 360.0f }, { 8192.0f, 8192.0f });
+	ImGui::SetNextWindowSizeConstraints({360.0f, 360.0f}, {8192.0f, 8192.0f});
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(12.0f, 10.0f));
 	bool bWindowOpen = ImGui::Begin("Console", &bShowConsole, consoleWindowFlags);
@@ -45,7 +46,8 @@ void Console::Update() {
 		ImVec2 child_size = ImVec2(0, -inputTextHeight - ImGui::GetStyle().ItemSpacing.y);
 		if (ImGui::BeginChild(
 			"##scrollbox", child_size, true,
-			ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoDecoration
+			ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar |
+			ImGuiWindowFlags_NoDecoration
 		)) {
 			for (size_t i = 0; i < consoleTexts.size(); ++i) {
 				ImGui::PushStyleColor(ImGuiCol_Text, consoleTexts[i].color);
@@ -59,7 +61,8 @@ void Console::Update() {
 
 			if (ImGui::GetScrollY() < ImGui::GetScrollMaxY()) {
 				bWishScrollToBottom = false;
-			} else {
+			}
+			else {
 				bWishScrollToBottom = true;
 			}
 
@@ -135,7 +138,8 @@ void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[m
 			),
 			kConsoleColorError
 		};
-	} else if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatWarning)) {
+	}
+	else if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatWarning)) {
 		consoleTexts.back() = {
 			std::format(
 				"{} [x{}]",
@@ -144,7 +148,8 @@ void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[m
 			),
 			kConsoleColorWarning
 		};
-	} else {
+	}
+	else {
 		consoleTexts.back() = {
 			std::format(
 				"{} [x{}]",
@@ -219,9 +224,10 @@ void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]
 	if (!consoleTexts.empty() && consoleTexts.back().text.starts_with(message) && consoleTexts.back().text != "]\n") {
 		// 前のメッセージと同じ場合、カウントを増加させる
 		UpdateRepeatCount(message, color);
-	} else {
+	}
+	else {
 		// 前のメッセージと異なる場合、新しいメッセージを追加
-		consoleTexts.push_back({ message, color });
+		consoleTexts.push_back({message, color});
 		repeatCounts.push_back(1);
 		OutputDebugString(StrUtils::ToString(message));
 	}
@@ -249,17 +255,18 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 		Print("Completion\n", kConsoleColorFloat);
 		break;
 
-	case ImGuiInputTextFlags_CallbackHistory:
-	{
+	case ImGuiInputTextFlags_CallbackHistory: {
 		const int prev_history_index = historyIndex;
 		if (data->EventKey == ImGuiKey_UpArrow) {
 			if (historyIndex > 0) {
 				historyIndex--;
 			}
-		} else if (data->EventKey == ImGuiKey_DownArrow) {
+		}
+		else if (data->EventKey == ImGuiKey_DownArrow) {
 			if (historyIndex < static_cast<int>(history.size()) - 1) {
 				historyIndex++;
-			} else {
+			}
+			else {
 				historyIndex = static_cast<int>(history.size()); // 履歴が空の場合はサイズと一致させる
 			}
 		}
@@ -267,7 +274,8 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 			data->DeleteChars(0, data->BufTextLen);
 			if (historyIndex < static_cast<int>(history.size())) {
 				data->InsertChars(0, history[historyIndex].c_str());
-			} else {
+			}
+			else {
 				data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
 			}
 		}
@@ -281,7 +289,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	case ImGuiInputTextFlags_CallbackResize:
 		Print("Resize\n", kConsoleColorError);
 		break;
-	default:;
+	default: ;
 	}
 	return 0;
 }
@@ -343,40 +351,50 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 				if (conVar->GetTypeAsString() == "bool") {
 					Print(" - " + description + " " + type, kConsoleColorBool);
-				} else if (conVar->GetTypeAsString() == "int") {
+				}
+				else if (conVar->GetTypeAsString() == "int") {
 					Print(" - " + description + " " + type, kConsoleColorInt);
-				} else if (conVar->GetTypeAsString() == "float") {
+				}
+				else if (conVar->GetTypeAsString() == "float") {
 					Print(" - " + description + " " + type, kConsoleColorFloat);
-				} else if (conVar->GetTypeAsString() == "Vec3") {
+				}
+				else if (conVar->GetTypeAsString() == "Vec3") {
 					Print(" - " + description + " " + type, kConsoleColorVec3);
-				} else if (conVar->GetTypeAsString() == "string") {
+				}
+				else if (conVar->GetTypeAsString() == "string") {
 					Print(" - " + description + " " + type, kConsoleColorString);
 				}
-			} else {
+			}
+			else {
 				// 引数込みで入力された場合の処理
 				bool isValidInput = true;
 				for (size_t i = 1; i < tokens.size(); ++i) {
 					if (conVar->GetTypeAsString() == "int") {
 						if (tokens[i] == "true") {
 							tokens[i] = "1";
-						} else if (tokens[i] == "false") {
+						}
+						else if (tokens[i] == "false") {
 							tokens[i] = "0";
 						}
 
 						try {
 							[[maybe_unused]] int value = std::stoi(tokens[i]);
-						} catch (...) {
+						}
+						catch (...) {
 							isValidInput = false;
 							break;
 						}
-					} else if (conVar->GetTypeAsString() == "float") {
+					}
+					else if (conVar->GetTypeAsString() == "float") {
 						try {
 							[[maybe_unused]] float value = std::stof(tokens[i]);
-						} catch (...) {
+						}
+						catch (...) {
 							isValidInput = false;
 							break;
 						}
-					} else if (conVar->GetTypeAsString() == "bool") {
+					}
+					else if (conVar->GetTypeAsString() == "bool") {
 						if (tokens[i] != "true" && tokens[i] != "false") {
 							isValidInput = false;
 							break;
@@ -388,7 +406,8 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 					for (size_t i = 1; i < tokens.size(); ++i) {
 						conVar->SetValueFromString(tokens[i]);
 					}
-				} else {
+				}
+				else {
 					Print("what ?", kConsoleColorError);
 				}
 			}
@@ -438,21 +457,30 @@ void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
 }
 
 void Console::Neofetch([[maybe_unused]] const std::vector<std::string>& args) {
-	Print("                                                                                                         \n");
-	Print("88        88  888b      88  888b      88         db         88b           d88  88888888888  88888888ba,  \n");
-	Print("88        88  8888b     88  8888b     88        d88b        888b         d888  88           88      `\"8b \n");
+	Print(
+		"                                                                                                         \n");
+	Print(
+		"88        88  888b      88  888b      88         db         88b           d88  88888888888  88888888ba,  \n");
+	Print(
+		"88        88  8888b     88  8888b     88        d88b        888b         d888  88           88      `\"8b \n");
 	Print("88        88  88 `8b    88  88 `8b    88       d8'`8b       88`8b       d8'88  88           88        `8b");
-	Print("88        88  88  `8b   88  88  `8b   88      d8'  `8b      88 `8b     d8' 88  88aaaaa      88         88\n");
-	Print("88        88  88   `8b  88  88   `8b  88     d8YaaaaY8b     88  `8b   d8'  88  88\"\"\"\"\"      88         88\n");
-	Print("88        88  88    `8b 88  88    `8b 88    d8\"\"\"\"\"\"\"\"8b    88   `8b d8'   88  88           88         8P\n");
-	Print("Y8a.    .a8P  88     `8888  88     `8888   d8'        `8b   88    `888'    88  88           88      .a8P \n");
-	Print(" `\"Y8888Y\"\'   88      `888  88      `888  d8'          `8b  88     `8'     88  88888888888  88888888Y\"\'  \n");
-	Print("                                                                                                         \n");
+	Print(
+		"88        88  88  `8b   88  88  `8b   88      d8'  `8b      88 `8b     d8' 88  88aaaaa      88         88\n");
+	Print(
+		"88        88  88   `8b  88  88   `8b  88     d8YaaaaY8b     88  `8b   d8'  88  88\"\"\"\"\"      88         88\n");
+	Print(
+		"88        88  88    `8b 88  88    `8b 88    d8\"\"\"\"\"\"\"\"8b    88   `8b d8'   88  88           88         8P\n");
+	Print(
+		"Y8a.    .a8P  88     `8888  88     `8888   d8'        `8b   88    `888'    88  88           88      .a8P \n");
+	Print(
+		" `\"Y8888Y\"\'   88      `888  88      `888  d8'          `8b  88     `8'     88  88888888888  88888888Y\"\'  \n");
+	Print(
+		"                                                                                                         \n");
 }
 
 void Console::AddHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
-	consoleTexts.push_back({ "] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f) });
+	consoleTexts.push_back({"] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f)});
 #endif
 }
 
@@ -480,7 +508,7 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 }
 
 #ifdef _DEBUG
-bool Console::bShowConsole = true;
+bool Console::bShowConsole = false;
 bool Console::bWishScrollToBottom = false;
 bool Console::bShowPopup = false;
 std::vector<ConsoleText> Console::consoleTexts;
