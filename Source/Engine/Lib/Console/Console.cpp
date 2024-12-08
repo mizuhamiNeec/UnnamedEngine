@@ -28,7 +28,7 @@ void Console::Update() {
 		consoleWindowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 	}
 
-	ImGui::SetNextWindowSizeConstraints({360.0f, 360.0f}, {8192.0f, 8192.0f});
+	ImGui::SetNextWindowSizeConstraints({ 360.0f, 360.0f }, { 8192.0f, 8192.0f });
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(12.0f, 10.0f));
 	bool bWindowOpen = ImGui::Begin("Console", &bShowConsole, consoleWindowFlags);
@@ -61,8 +61,7 @@ void Console::Update() {
 
 			if (ImGui::GetScrollY() < ImGui::GetScrollMaxY()) {
 				bWishScrollToBottom = false;
-			}
-			else {
+			} else {
 				bWishScrollToBottom = true;
 			}
 
@@ -138,8 +137,7 @@ void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[m
 			),
 			kConsoleColorError
 		};
-	}
-	else if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatWarning)) {
+	} else if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatWarning)) {
 		consoleTexts.back() = {
 			std::format(
 				"{} [x{}]",
@@ -148,8 +146,7 @@ void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[m
 			),
 			kConsoleColorWarning
 		};
-	}
-	else {
+	} else {
 		consoleTexts.back() = {
 			std::format(
 				"{} [x{}]",
@@ -224,10 +221,9 @@ void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]
 	if (!consoleTexts.empty() && consoleTexts.back().text.starts_with(message) && consoleTexts.back().text != "]\n") {
 		// 前のメッセージと同じ場合、カウントを増加させる
 		UpdateRepeatCount(message, color);
-	}
-	else {
+	} else {
 		// 前のメッセージと異なる場合、新しいメッセージを追加
-		consoleTexts.push_back({message, color});
+		consoleTexts.push_back({ message, color });
 		repeatCounts.push_back(1);
 		OutputDebugString(StrUtils::ToString(message));
 	}
@@ -255,18 +251,17 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 		Print("Completion\n", kConsoleColorFloat);
 		break;
 
-	case ImGuiInputTextFlags_CallbackHistory: {
+	case ImGuiInputTextFlags_CallbackHistory:
+	{
 		const int prev_history_index = historyIndex;
 		if (data->EventKey == ImGuiKey_UpArrow) {
 			if (historyIndex > 0) {
 				historyIndex--;
 			}
-		}
-		else if (data->EventKey == ImGuiKey_DownArrow) {
+		} else if (data->EventKey == ImGuiKey_DownArrow) {
 			if (historyIndex < static_cast<int>(history.size()) - 1) {
 				historyIndex++;
-			}
-			else {
+			} else {
 				historyIndex = static_cast<int>(history.size()); // 履歴が空の場合はサイズと一致させる
 			}
 		}
@@ -274,8 +269,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 			data->DeleteChars(0, data->BufTextLen);
 			if (historyIndex < static_cast<int>(history.size())) {
 				data->InsertChars(0, history[historyIndex].c_str());
-			}
-			else {
+			} else {
 				data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
 			}
 		}
@@ -289,7 +283,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	case ImGuiInputTextFlags_CallbackResize:
 		Print("Resize\n", kConsoleColorError);
 		break;
-	default: ;
+	default:;
 	}
 	return 0;
 }
@@ -351,50 +345,40 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 				if (conVar->GetTypeAsString() == "bool") {
 					Print(" - " + description + " " + type, kConsoleColorBool);
-				}
-				else if (conVar->GetTypeAsString() == "int") {
+				} else if (conVar->GetTypeAsString() == "int") {
 					Print(" - " + description + " " + type, kConsoleColorInt);
-				}
-				else if (conVar->GetTypeAsString() == "float") {
+				} else if (conVar->GetTypeAsString() == "float") {
 					Print(" - " + description + " " + type, kConsoleColorFloat);
-				}
-				else if (conVar->GetTypeAsString() == "Vec3") {
+				} else if (conVar->GetTypeAsString() == "Vec3") {
 					Print(" - " + description + " " + type, kConsoleColorVec3);
-				}
-				else if (conVar->GetTypeAsString() == "string") {
+				} else if (conVar->GetTypeAsString() == "string") {
 					Print(" - " + description + " " + type, kConsoleColorString);
 				}
-			}
-			else {
+			} else {
 				// 引数込みで入力された場合の処理
 				bool isValidInput = true;
 				for (size_t i = 1; i < tokens.size(); ++i) {
 					if (conVar->GetTypeAsString() == "int") {
 						if (tokens[i] == "true") {
 							tokens[i] = "1";
-						}
-						else if (tokens[i] == "false") {
+						} else if (tokens[i] == "false") {
 							tokens[i] = "0";
 						}
 
 						try {
 							[[maybe_unused]] int value = std::stoi(tokens[i]);
-						}
-						catch (...) {
+						} catch (...) {
 							isValidInput = false;
 							break;
 						}
-					}
-					else if (conVar->GetTypeAsString() == "float") {
+					} else if (conVar->GetTypeAsString() == "float") {
 						try {
 							[[maybe_unused]] float value = std::stof(tokens[i]);
-						}
-						catch (...) {
+						} catch (...) {
 							isValidInput = false;
 							break;
 						}
-					}
-					else if (conVar->GetTypeAsString() == "bool") {
+					} else if (conVar->GetTypeAsString() == "bool") {
 						if (tokens[i] != "true" && tokens[i] != "false") {
 							isValidInput = false;
 							break;
@@ -406,8 +390,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 					for (size_t i = 1; i < tokens.size(); ++i) {
 						conVar->SetValueFromString(tokens[i]);
 					}
-				}
-				else {
+				} else {
 					Print("what ?", kConsoleColorError);
 				}
 			}
@@ -457,30 +440,90 @@ void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
 }
 
 void Console::Neofetch([[maybe_unused]] const std::vector<std::string>& args) {
-	Print(
-		"                                                                                                         \n");
-	Print(
-		"88        88  888b      88  888b      88         db         88b           d88  88888888888  88888888ba,  \n");
-	Print(
-		"88        88  8888b     88  8888b     88        d88b        888b         d888  88           88      `\"8b \n");
-	Print("88        88  88 `8b    88  88 `8b    88       d8'`8b       88`8b       d8'88  88           88        `8b");
-	Print(
-		"88        88  88  `8b   88  88  `8b   88      d8'  `8b      88 `8b     d8' 88  88aaaaa      88         88\n");
-	Print(
-		"88        88  88   `8b  88  88   `8b  88     d8YaaaaY8b     88  `8b   d8'  88  88\"\"\"\"\"      88         88\n");
-	Print(
-		"88        88  88    `8b 88  88    `8b 88    d8\"\"\"\"\"\"\"\"8b    88   `8b d8'   88  88           88         8P\n");
-	Print(
-		"Y8a.    .a8P  88     `8888  88     `8888   d8'        `8b   88    `888'    88  88           88      .a8P \n");
-	Print(
-		" `\"Y8888Y\"\'   88      `888  88      `888  d8'          `8b  88     `8'     88  88888888888  88888888Y\"\'  \n");
-	Print(
-		"                                                                                                         \n");
+	char* osEnv = nullptr;
+	size_t osEnvSize = 0;
+	_dupenv_s(&osEnv, &osEnvSize, "OS");
+	if (osEnv) {
+		Print("OS : " + std::string(osEnv) + "\n", kConsoleColorNormal);
+		free(osEnv);
+	} else {
+		Print("OS : Not found\n", kConsoleColorNormal);
+	}
+
+	char* usernameEnv = nullptr;
+	size_t usernameEnvSize = 0;
+	_dupenv_s(&usernameEnv, &usernameEnvSize, "USERNAME");
+	if (usernameEnv) {
+		Print("Username : " + std::string(usernameEnv) + "\n", kConsoleColorNormal);
+		free(usernameEnv);
+	} else {
+		Print("Username : Not found\n", kConsoleColorNormal);
+	}
+
+	char* computerNameEnv = nullptr;
+	size_t computerNameEnvSize = 0;
+	_dupenv_s(&computerNameEnv, &computerNameEnvSize, "COMPUTERNAME");
+	if (computerNameEnv) {
+		Print("Computer Name : " + std::string(computerNameEnv) + "\n", kConsoleColorNormal);
+		free(computerNameEnv);
+	} else {
+		Print("Computer Name : Not found\n", kConsoleColorNormal);
+	}
+
+	char* processorEnv = nullptr;
+	size_t processorEnvSize = 0;
+	_dupenv_s(&processorEnv, &processorEnvSize, "PROCESSOR_IDENTIFIER");
+	if (processorEnv) {
+		Print("Processor : " + std::string(processorEnv) + "\n", kConsoleColorNormal);
+		free(processorEnv);
+	} else {
+		Print("Processor : Not found\n", kConsoleColorNormal);
+	}
+
+	char* numProcessorsEnv = nullptr;
+	size_t numProcessorsEnvSize = 0;
+	_dupenv_s(&numProcessorsEnv, &numProcessorsEnvSize, "NUMBER_OF_PROCESSORS");
+	if (numProcessorsEnv) {
+		Print("Number of Processors : " + std::string(numProcessorsEnv) + "\n", kConsoleColorNormal);
+		free(numProcessorsEnv);
+	} else {
+		Print("Number of Processors : Not found\n", kConsoleColorNormal);
+	}
+
+	char* systemDriveEnv = nullptr;
+	size_t systemDriveEnvSize = 0;
+	_dupenv_s(&systemDriveEnv, &systemDriveEnvSize, "SystemDrive");
+	if (systemDriveEnv) {
+		Print("System Drive : " + std::string(systemDriveEnv) + "\n", kConsoleColorNormal);
+		free(systemDriveEnv);
+	} else {
+		Print("System Drive : Not found\n", kConsoleColorNormal);
+	}
+
+	char* systemRootEnv = nullptr;
+	size_t systemRootEnvSize = 0;
+	_dupenv_s(&systemRootEnv, &systemRootEnvSize, "SystemRoot");
+	if (systemRootEnv) {
+		Print("System Root : " + std::string(systemRootEnv) + "\n", kConsoleColorNormal);
+		free(systemRootEnv);
+	} else {
+		Print("System Root : Not found\n", kConsoleColorNormal);
+	}
+
+	char* userProfileEnv = nullptr;
+	size_t userProfileEnvSize = 0;
+	_dupenv_s(&userProfileEnv, &userProfileEnvSize, "USERPROFILE");
+	if (userProfileEnv) {
+		Print("User Profile : " + std::string(userProfileEnv) + "\n", kConsoleColorNormal);
+		free(userProfileEnv);
+	} else {
+		Print("User Profile : Not found\n", kConsoleColorNormal);
+	}
 }
 
 void Console::AddHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
-	consoleTexts.push_back({"] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f)});
+	consoleTexts.push_back({ "] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f) });
 #endif
 }
 

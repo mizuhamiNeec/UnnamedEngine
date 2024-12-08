@@ -436,8 +436,8 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("neofetch");
 	Console::RegisterCommand("quit", Quit);
 	// コンソール変数を登録
-	ConVarManager::RegisterConVar<int>("cl_showpos", 0, "Draw current position at top of screen");
-	ConVarManager::RegisterConVar<int>("cl_showfps", 0, "Draw fps meter (1 = fps, 2 = smooth)");
+	ConVarManager::RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
+	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");
 	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps, "Frame rate limiter");
 	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);
 	Console::SubmitCommand(std::format("name {}", WindowsUtils::GetWindowsUserName()));
