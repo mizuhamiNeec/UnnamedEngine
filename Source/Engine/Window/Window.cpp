@@ -5,6 +5,7 @@
 
 #include "WindowsUtils.h"
 
+#include "../Input/InputSystem.h"
 #include "../Lib/Console/Console.h"
 
 #pragma comment(lib, "winmm.lib")
@@ -22,7 +23,11 @@ Window::Window(
 	const uint32_t height,
 	const DWORD style,
 	const DWORD exStyle
-) : title_(std::move(title)), width_(width), height_(height), style_(style), exStyle_(exStyle) {
+) : title_(std::move(title)),
+width_(width),
+height_(height),
+style_(style),
+exStyle_(exStyle) {
 	const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	if (FAILED(hr)) {
 		Console::Print("Failed to initialize COM library");
@@ -51,14 +56,16 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	wc_.hIconSm = LoadIcon(hInstance, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc_)) {
-		Console::Print("Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
-		               kConsoleColorError);
+		Console::Print(
+			"Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
+			kConsoleColorError
+		);
 		return false;
 	}
 
 	Console::Print("Window class registered.\n");
 
-	RECT wrc{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
+	RECT wrc{ 0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
 
 	AdjustWindowRectEx(&wrc, style_, false, exStyle_);
 
@@ -154,6 +161,11 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 			}
 		}
 		break;
+	case WM_INPUT:
+	{
+		InputSystem::ProcessInput(lParam);
+		break;
+	}
 	case WM_CLOSE:
 	case WM_DESTROY:
 		PostQuitMessage(0);
@@ -161,61 +173,21 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	default: return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 
-	return DefWindowProc(hWnd, msg, wParam, lParam);
+	return 0;
 }
 
 bool Window::ProcessMessage() {
 	MSG msg = {};
 
-	if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+		if (msg.message == WM_QUIT) {
+			return true;
+		}
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
 
-	if (msg.message == WM_QUIT) {
-		return true;
-	}
-
 	return false;
-}
-
-void Window::LockMouse() const {
-	static POINT prevCursorPos = {}; // 前回のカーソル位置
-	POINT currentCursorPos; // 現在のカーソル位置
-
-	// 現在のマウスカーソル位置を取得
-	GetCursorPos(&currentCursorPos);
-
-#ifdef _DEBUG
-	// マウスの移動量を計算
-	int deltaX = currentCursorPos.x - prevCursorPos.x;
-	int deltaY = currentCursorPos.y - prevCursorPos.y;
-
-	// ImGuiのマウスデルタに反映
-	ImGuiIO& io = ImGui::GetIO();
-	io.MouseDelta.x = static_cast<float>(deltaX);
-	io.MouseDelta.y = static_cast<float>(deltaY);
-#endif
-
-	// ウィンドウの中央座標を計算
-	RECT clientRect;
-	GetClientRect(hWnd_, &clientRect);
-
-	POINT centerPos = {
-		clientRect.left + (clientRect.right - clientRect.left) / 2,
-		clientRect.top + (clientRect.bottom - clientRect.top) / 2
-	};
-	MapWindowPoints(hWnd_, nullptr, &centerPos, 1); // クライアント座標をスクリーン座標に変換
-
-	// マウスを画面中央に移動
-	SetCursorPos(centerPos.x, centerPos.y);
-
-	// 前回位置を中央にリセット
-	prevCursorPos = centerPos;
-}
-
-void Window::UnlockMouse() {
-	ClipCursor(nullptr);
 }
 
 HWND Window::GetWindowHandle() const { return hWnd_; }

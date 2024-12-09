@@ -1,6 +1,5 @@
 #include "Engine.h"
 
-#include "../Input/Input.h"
 #include "Camera/Camera.h"
 
 #ifdef _DEBUG
@@ -8,7 +7,9 @@
 #endif
 
 #include "Debug/Debug.h"
+#include "Input/InputSystem.h"
 
+#include "Lib/Console/ConCommand.h"
 #include "Lib/Console/Console.h"
 #include "Lib/Console/ConVarManager.h"
 #include "Lib/Utils/ClientProperties.h"
@@ -32,8 +33,10 @@ void Engine::Run() {
 	Shutdown();
 }
 
-void Engine::DrawGrid(const float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
-                      const Vec4& axisColor, const Vec4& minorColor) {
+void Engine::DrawGrid(
+	const float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
+	const Vec4& axisColor, const Vec4& minorColor
+) {
 	//const float range = 16384.0f;
 	constexpr float majorInterval = 1024.0f;
 	const float minorInterval = gridSize * 8.0f;
@@ -42,8 +45,7 @@ void Engine::DrawGrid(const float gridSize, const float range, const Vec4& color
 		Vec4 lineColor = color;
 		if (fmod(x, majorInterval) == 0) {
 			lineColor = majorColor;
-		}
-		else if (fmod(x, minorInterval) == 0) {
+		} else if (fmod(x, minorInterval) == 0) {
 			lineColor = minorColor;
 		}
 		if (x == 0) {
@@ -56,8 +58,7 @@ void Engine::DrawGrid(const float gridSize, const float range, const Vec4& color
 		Vec4 lineColor = color;
 		if (fmod(z, majorInterval) == 0) {
 			lineColor = majorColor;
-		}
-		else if (fmod(z, minorInterval) == 0) {
+		} else if (fmod(z, minorInterval) == 0) {
 			lineColor = minorColor;
 		}
 		if (z == 0) {
@@ -73,6 +74,8 @@ void Engine::Init() {
 	// ウィンドウの作成
 	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
 	window_->Create(nullptr);
+
+	InputSystem::Initialize();
 
 	// レンダラ
 	renderer_ = std::make_unique<D3D12>();
@@ -97,7 +100,7 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({0.0f, 0.0f, -10.0f});
+	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -123,10 +126,6 @@ void Engine::Init() {
 	lineCommon_->SetDefaultCamera(camera_.get());
 
 	Debug::Init(lineCommon_.get());
-
-	// 入力
-	input_ = Input::GetInstance();
-	input_->Init(window_.get());
 
 	//-------------------------------------------------------------------------
 	// コマンドのリセット
@@ -166,54 +165,65 @@ void Engine::Update() const {
 	time_->StartFrame();
 
 	/* ----------- 更新処理 ---------- */
-	Input::GetInstance()->Update();
+	InputSystem::Update();
 
 	// コンソール表示切り替え
-	if (Input::GetInstance()->TriggerKey(DIK_GRAVE)) {
+	if (InputSystem::IsPressed("toggleconsole")) {
 		Console::SubmitCommand("toggleconsole");
 	}
 
 
 #ifdef _DEBUG
 	static bool firstReset = true; // 初回リセットフラグ
-	
+
+	Vec2 delta = InputSystem::GetMouseDelta();
+	ImGui::Begin("RawInputTest");
+	ImGui::Text("MouseDelta: %.2f, %.2f", delta.x, delta.y);
+	ImGui::End();
+
+	static bool cursorHidden = false;
+
 	if (ImGui::GetIO().MouseDown[1]) {
-		// マウスの移動量を取得
-		POINT currentCursorPos;
-		GetCursorPos(&currentCursorPos);
-		static POINT prevCursorPos = {
-			static_cast<LONG>(window_->GetClientWidth() / 2), static_cast<LONG>(window_->GetClientHeight() / 2)
-		};
+		if (!cursorHidden) {
+			ShowCursor(FALSE); // カーソルを非表示にする
+			cursorHidden = true;
+		}
+
+		//// マウスの移動量を取得
+		//POINT currentCursorPos;
+		//GetCursorPos(&currentCursorPos);
+		//static POINT prevCursorPos = {
+		//	static_cast<LONG>(window_->GetClientWidth() / 2), static_cast<LONG>(window_->GetClientHeight() / 2)
+		//};
 
 		if (!firstReset) {
-			int deltaX = currentCursorPos.x - prevCursorPos.x;
-			int deltaY = currentCursorPos.y - prevCursorPos.y;
+
 
 			// カメラの回転を更新
 			float sensitivity = std::stof(ConVarManager::GetConVar("sensitivity")->GetValueAsString()) * 0.022f;
-			camera_->SetRotate(
-				camera_->GetRotate() + Vec3(deltaY * sensitivity, deltaX * sensitivity, 0.0f) * Math::deg2Rad);
+			Vec3 newCamRot = camera_->GetRotate() + Vec3(delta.y * sensitivity, delta.x * sensitivity, 0.0f) * Math::deg2Rad;
+			newCamRot.x = std::clamp(newCamRot.x, -89.9f * Math::deg2Rad, 89.9f * Math::deg2Rad);
+			camera_->SetRotate(newCamRot);
 
 			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
 
-			auto input = Input::GetInstance();
-			if (input->PushKey(DIK_W) && !input->PushKey(DIK_S)) {
-				moveInput.z = 1.0f;
-			} else if (!input->PushKey(DIK_W) && input->PushKey(DIK_S)) {
-				moveInput.z = -1.0f;
-			}
+			//if (Input::PushKey(DIK_W) && !Input::PushKey(DIK_S)) {
+			//	moveInput.z = 1.0f;
+			//} else if (!Input::PushKey(DIK_W) && Input::PushKey(DIK_S)) {
+			//	moveInput.z = -1.0f;
+			//}
 
-			if (input->PushKey(DIK_D) && !input->PushKey(DIK_A)) {
-				moveInput.x = 1.0f;
-			} else if (!input->PushKey(DIK_D) && input->PushKey(DIK_A)) {
-				moveInput.x = -1.0f;
-			}
+			//if (Input::PushKey(DIK_D) && !Input::PushKey(DIK_A)) {
+			//	moveInput.x = 1.0f;
+			//} else if (!Input::PushKey(DIK_D) && Input::PushKey(DIK_A)) {
+			//	moveInput.x = -1.0f;
+			//}
 
-			if (input->PushKey(DIK_E) && !input->PushKey(DIK_Q)) {
-				moveInput.y = 1.0f;
-			} else if (!input->PushKey(DIK_E) && input->PushKey(DIK_Q)) {
-				moveInput.y = -1.0f;
-			}
+			//if (Input::PushKey(DIK_E) && !Input::PushKey(DIK_Q)) {
+			//	moveInput.y = 1.0f;
+			//} else if (!Input::PushKey(DIK_E) && Input::PushKey(DIK_Q)) {
+			//	moveInput.y = -1.0f;
+			//}
 
 			moveInput.Normalize();
 
@@ -234,10 +244,13 @@ void Engine::Update() const {
 		};
 		ClientToScreen(window_->GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
 		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
-		prevCursorPos = centerCursorPos;
 
 		firstReset = false; // 初回リセット完了
 	} else {
+		if (cursorHidden) {
+			ShowCursor(TRUE); // カーソルを表示する
+			cursorHidden = false;
+		}
 		firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
 	}
 #endif
@@ -254,10 +267,10 @@ void Engine::Update() const {
 	DrawGrid(
 		1.0f,
 		64,
-		{.x = 0.28f, .y = 0.28f, .z = 0.28f, .w = 1.0f},
-		{.x = 0.39f, .y = 0.2f, .z = 0.02f, .w = 1.0f},
-		{.x = 0.0f, .y = 0.39f, .z = 0.39f, .w = 1.0f},
-		{.x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f}
+		{ .x = 0.28f, .y = 0.28f, .z = 0.28f, .w = 1.0f },
+		{ .x = 0.39f, .y = 0.2f, .z = 0.02f, .w = 1.0f },
+		{ .x = 0.0f, .y = 0.39f, .z = 0.39f, .w = 1.0f },
+		{ .x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f }
 	);
 
 #ifdef _DEBUG
@@ -427,14 +440,28 @@ void Engine::Shutdown() const {
 }
 
 void Engine::RegisterConsoleCommandsAndVariables() {
+	ConCommand::RegisterCommand("bind",
+		[](const std::vector<std::string>& args) {
+			if (args.size() < 2) {
+				Console::Print("Usage: bind <key> <command>\n");
+				return;
+			}
+			std::string key = args[0];
+			std::string command = args[1];
+			InputSystem::BindKey(key, command);
+		}, "Bind a key to a command."
+	);
+
+	Console::SubmitCommand("bind P toggleconsole");
+
 	// コンソールコマンドを登録
-	Console::RegisterCommand("clear", Console::Clear);
-	Console::RegisterCommand("cls", Console::Clear);
-	Console::RegisterCommand("help", Console::Help);
-	Console::RegisterCommand("toggleconsole", Console::ToggleConsole);
-	Console::RegisterCommand("neofetch", Console::Neofetch);
-	Console::SubmitCommand("neofetch");
-	Console::RegisterCommand("quit", Quit);
+	ConCommand::RegisterCommand("clear", Console::Clear, "Clear all console output.");
+	ConCommand::RegisterCommand("cls", Console::Clear, "Clear all console output.");
+	ConCommand::RegisterCommand("help", Console::Help, "Find help about a convar/concommand.");
+	ConCommand::RegisterCommand("toggleconsole", Console::ToggleConsole, "Show/hide the console.");
+	ConCommand::RegisterCommand("neofetch", Console::Neofetch, "Show system info.");
+	ConCommand::ExecuteCommand("neofetch");
+	ConCommand::RegisterCommand("quit", Quit, "Exit the engine.");
 	// コンソール変数を登録
 	ConVarManager::RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
 	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");

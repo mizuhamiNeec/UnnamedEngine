@@ -174,9 +174,6 @@
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h">
       <Filter>Source\Engine\ImGuiManager</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Input\Input.h">
-      <Filter>Source\Engine\Input</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Lib\Console\Console.h">
       <Filter>Source\Engine\Lib\Console</Filter>
     </ClInclude>
@@ -298,6 +295,9 @@
     <ClInclude Include="Source\Engine\Objects\Entity.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\StrUtils.h" />
     <ClInclude Include="Source\Engine\Debug\Debug.h" />
+    <ClInclude Include="Source\Engine\Lib\Console\ConCommand.h" />
+    <ClInclude Include="Source\Engine\Input\InputSystem.h" />
+    <ClInclude Include="Source\Engine\Input\InputCommand.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -332,9 +332,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp">
       <Filter>Source\Engine\ImGuiManager</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Input\Input.cpp">
-      <Filter>Source\Engine\Input</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Lib\Console\Console.cpp">
       <Filter>Source\Engine\Lib\Console</Filter>
@@ -437,6 +434,9 @@
     <ClCompile Include="Source\Engine\Line\Line.cpp" />
     <ClCompile Include="Source\Engine\Objects\Entity.cpp" />
     <ClCompile Include="Source\Engine\Debug\Debug.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Console\ConCommand.cpp" />
+    <ClCompile Include="Source\Engine\Input\InputSystem.cpp" />
+    <ClCompile Include="Source\Engine\Input\InputCommand.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

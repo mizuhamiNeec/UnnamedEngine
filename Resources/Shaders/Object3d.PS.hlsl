@@ -34,7 +34,7 @@ struct SpotLight {
 };
 
 struct Camera {
-	float3 worldPosition;
+	float3 worldPosition; //!< カメラの位置
 };
 
 ConstantBuffer<Material> gMaterial : register(b0);
@@ -123,7 +123,8 @@ PixelShaderOutput main(VertexShaderOutput input) {
 			// falloffFactorの計算
 			// cosFalloffStart と cosAngle の間で減衰を適用
 			float falloffFactor = saturate(
-				(spotCosTheta - gSpotLight.cosAngle) / (gSpotLight.cosFalloffStart - gSpotLight.cosAngle));
+				(spotCosTheta - gSpotLight.cosAngle) / (gSpotLight.cosFalloffStart - gSpotLight.cosAngle)
+			);
 
 			// 距離に基づく減衰
 			float spotAttenuation = pow(saturate(-distance / gSpotLight.distance + 1.0), gSpotLight.decay);
@@ -155,8 +156,7 @@ PixelShaderOutput main(VertexShaderOutput input) {
 			diffusePointLight + specularPointLight +
 			diffuseSpotLight + specularSpotLight;
 		output.color.a = gMaterial.color.a * textureColor.a;
-	}
-	else {
+	} else {
 		// ライティング無効時
 		output.color = gMaterial.color * textureColor;
 	}

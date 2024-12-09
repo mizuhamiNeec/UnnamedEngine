@@ -2,17 +2,10 @@
 #include <memory>
 
 #include "../Game/GameScene.h"
-
 #include "../Renderer/SrvManager.h"
-
-#include "Input/Input.h"
-#include "Lib/Math/Quaternion/Quaternion.h"
-
 #include "Lib/Timer/EngineTimer.h"
 #include "Line/LineCommon.h"
-
 #include "Model/ModelCommon.h"
-
 #include "Particle/ParticleCommon.h"
 
 class Console;
@@ -39,8 +32,6 @@ private:
 	);
 
 private:
-	Input* input_ = nullptr;
-
 	std::unique_ptr<Window> window_;
 	std::unique_ptr<D3D12> renderer_;
 	std::unique_ptr<SrvManager> srvManager_;

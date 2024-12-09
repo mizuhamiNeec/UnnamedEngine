@@ -8,6 +8,7 @@
 
 #include <debugapi.h>
 
+#include "ConCommand.h"
 #include "ConVarManager.h"
 #include "../Utils/ClientProperties.h"
 #include "../Utils/StrUtils.h"
@@ -128,33 +129,15 @@ void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[m
 #ifdef _DEBUG
 	repeatCounts.back()++;
 
-	if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatError)) {
-		consoleTexts.back() = {
-			std::format(
-				"{} [x{}]",
-				message,
-				repeatCounts.back()
-			),
-			kConsoleColorError
-		};
-	} else if (repeatCounts.back() >= static_cast<int>(kConsoleRepeatWarning)) {
-		consoleTexts.back() = {
-			std::format(
-				"{} [x{}]",
-				message,
-				repeatCounts.back()
-			),
-			kConsoleColorWarning
-		};
+	const auto repeatCount = repeatCounts.back();
+	const auto formattedMessage = std::format("{} [x{}]", message, repeatCount);
+
+	if (repeatCount >= static_cast<int>(kConsoleRepeatError)) {
+		consoleTexts.back() = { formattedMessage, kConsoleColorError };
+	} else if (repeatCount >= static_cast<int>(kConsoleRepeatWarning)) {
+		consoleTexts.back() = { formattedMessage, kConsoleColorWarning };
 	} else {
-		consoleTexts.back() = {
-			std::format(
-				"{} [x{}]",
-				message,
-				repeatCounts.back()
-			),
-			color
-		};
+		consoleTexts.back() = { formattedMessage, color };
 	}
 #endif
 }
@@ -307,6 +290,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
 	std::string trimmedCommand = TrimSpaces(command);
 
+	// コマンドが空なのでなんもしない
 	if (trimmedCommand.empty()) {
 		Print("]\n", kConsoleColorNormal);
 		return;
@@ -316,13 +300,10 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 	bool found = false;
 
+	// とりあえず履歴に追加
 	AddHistory(trimmedCommand);
 
-	auto it = commandMap.find(tokens[0]);
-	if (it != commandMap.end()) {
-		it->second(tokens); // コールバックの呼び出し
-		found = true;
-	}
+	found = ConCommand::ExecuteCommand(trimmedCommand);
 
 	for (auto conVar : ConVarManager::GetAllConVars()) {
 		// 変数が存在する場合
@@ -407,15 +388,6 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 #endif
 }
 
-void Console::RegisterCommand(
-	[[maybe_unused]] const std::string& commandName,
-	[[maybe_unused]] const CommandCallback& callback
-) {
-#ifdef _DEBUG
-	commandMap[commandName] = callback;
-#endif
-}
-
 void Console::Clear([[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
 	consoleTexts.clear(); // コンソールのテキストをクリア
@@ -433,6 +405,7 @@ void Console::Clear([[maybe_unused]] const std::vector<std::string>& args) {
 
 void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
+	ConCommand::Help();
 	for (auto conVar : ConVarManager::GetAllConVars()) {
 		Print(" - " + conVar->GetName() + " : " + conVar->GetHelp() + "\n");
 	}
@@ -551,7 +524,7 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 }
 
 #ifdef _DEBUG
-bool Console::bShowConsole = false;
+bool Console::bShowConsole = true;
 bool Console::bWishScrollToBottom = false;
 bool Console::bShowPopup = false;
 std::vector<ConsoleText> Console::consoleTexts;
@@ -560,5 +533,4 @@ int Console::historyIndex = -1;
 std::vector<std::string> Console::history;
 std::vector<std::string> Console::suggestions;
 std::vector<int> Console::repeatCounts;
-std::unordered_map<std::string, CommandCallback> Console::commandMap;
 #endif

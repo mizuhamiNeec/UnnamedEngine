@@ -40,8 +40,7 @@ std::string WindowsUtils::GetHresultMessage(const HRESULT hr) {
 	std::string message;
 	if (messageLength > 0) {
 		message = std::string(messageBuffer, messageLength);
-	}
-	else {
+	} else {
 		message = "Unknown error code : " + std::to_string(hr);
 	}
 

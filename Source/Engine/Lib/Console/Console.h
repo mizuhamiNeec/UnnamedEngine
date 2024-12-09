@@ -43,8 +43,6 @@ public:
 	static void Update();
 	static void SubmitCommand(const std::string& command);
 
-	static void RegisterCommand(const std::string& commandName, const CommandCallback& callback);
-
 	// Executable
 	static void ToggleConsole(const std::vector<std::string>& args = {});
 	static void Clear(const std::vector<std::string>& args = {});
@@ -83,6 +81,5 @@ private:
 	static std::vector<std::string> history; // 入力の履歴
 	static std::vector<std::string> suggestions; // サジェスト
 	static std::vector<int> repeatCounts;
-	static std::unordered_map<std::string, CommandCallback> commandMap;
 #endif
 };
