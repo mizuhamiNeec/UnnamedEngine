@@ -165,39 +165,21 @@ void Engine::Update() const {
 	time_->StartFrame();
 
 	/* ----------- 更新処理 ---------- */
-	InputSystem::Update();
 
 	// コンソール表示切り替え
-	if (InputSystem::IsPressed("toggleconsole")) {
-		Console::SubmitCommand("toggleconsole");
-	}
-
 
 #ifdef _DEBUG
 	static bool firstReset = true; // 初回リセットフラグ
-
-	Vec2 delta = InputSystem::GetMouseDelta();
-	ImGui::Begin("RawInputTest");
-	ImGui::Text("MouseDelta: %.2f, %.2f", delta.x, delta.y);
-	ImGui::End();
-
 	static bool cursorHidden = false;
 
-	if (ImGui::GetIO().MouseDown[1]) {
+	if (InputSystem::IsPressed("attack2")) {
 		if (!cursorHidden) {
 			ShowCursor(FALSE); // カーソルを非表示にする
 			cursorHidden = true;
 		}
 
-		//// マウスの移動量を取得
-		//POINT currentCursorPos;
-		//GetCursorPos(&currentCursorPos);
-		//static POINT prevCursorPos = {
-		//	static_cast<LONG>(window_->GetClientWidth() / 2), static_cast<LONG>(window_->GetClientHeight() / 2)
-		//};
-
 		if (!firstReset) {
-
+			Vec2 delta = InputSystem::GetMouseDelta();
 
 			// カメラの回転を更新
 			float sensitivity = std::stof(ConVarManager::GetConVar("sensitivity")->GetValueAsString()) * 0.022f;
@@ -207,34 +189,40 @@ void Engine::Update() const {
 
 			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
 
-			//if (Input::PushKey(DIK_W) && !Input::PushKey(DIK_S)) {
-			//	moveInput.z = 1.0f;
-			//} else if (!Input::PushKey(DIK_W) && Input::PushKey(DIK_S)) {
-			//	moveInput.z = -1.0f;
-			//}
+			if (InputSystem::IsPressed("forward")) {
+				moveInput.z += 1.0f;
+			}
 
-			//if (Input::PushKey(DIK_D) && !Input::PushKey(DIK_A)) {
-			//	moveInput.x = 1.0f;
-			//} else if (!Input::PushKey(DIK_D) && Input::PushKey(DIK_A)) {
-			//	moveInput.x = -1.0f;
-			//}
+			if (InputSystem::IsPressed("back")) {
+				moveInput.z -= 1.0f;
+			}
 
-			//if (Input::PushKey(DIK_E) && !Input::PushKey(DIK_Q)) {
-			//	moveInput.y = 1.0f;
-			//} else if (!Input::PushKey(DIK_E) && Input::PushKey(DIK_Q)) {
-			//	moveInput.y = -1.0f;
-			//}
+			if (InputSystem::IsPressed("moveright")) {
+				moveInput.x += 1.0f;
+			}
+
+			if (InputSystem::IsPressed("moveleft")) {
+				moveInput.x -= 1.0f;
+			}
+
+			if (InputSystem::IsPressed("moveup")) {
+				moveInput.y += 1.0f;
+			}
+
+			if (InputSystem::IsPressed("movedown")) {
+				moveInput.y -= 1.0f;
+			}
 
 			moveInput.Normalize();
 
 			Quaternion camRot = Quaternion::Euler(camera_->GetRotate());
 			Vec3 cameraForward = camRot * Vec3::forward;
 			Vec3 cameraRight = camRot * Vec3::right;
-			Vec3 cameraUp = Vec3::up;
+			Vec3 cameraUp = camRot * Vec3::up;
 
 			camera_->SetPos(
 				camera_->GetPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp *
-					moveInput.y) * 5.0f * time_->GetScaledDeltaTime()
+					moveInput.y) * 5.0f * EngineTimer::GetScaledDeltaTime()
 			);
 		}
 
@@ -400,6 +388,8 @@ void Engine::Update() const {
 	Debug::Update();
 #endif
 
+	InputSystem::Update();
+
 	/* ---------- Pre ----------- */
 	renderer_->PreRender();
 	srvManager_->PreDraw();
@@ -440,6 +430,7 @@ void Engine::Shutdown() const {
 }
 
 void Engine::RegisterConsoleCommandsAndVariables() {
+	// コンソールコマンドを登録
 	ConCommand::RegisterCommand("bind",
 		[](const std::vector<std::string>& args) {
 			if (args.size() < 2) {
@@ -451,10 +442,6 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 			InputSystem::BindKey(key, command);
 		}, "Bind a key to a command."
 	);
-
-	Console::SubmitCommand("bind P toggleconsole");
-
-	// コンソールコマンドを登録
 	ConCommand::RegisterCommand("clear", Console::Clear, "Clear all console output.");
 	ConCommand::RegisterCommand("cls", Console::Clear, "Clear all console output.");
 	ConCommand::RegisterCommand("help", Console::Help, "Find help about a convar/concommand.");
@@ -467,9 +454,30 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");
 	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps, "Frame rate limiter");
 	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);
-	Console::SubmitCommand(std::format("name {}", WindowsUtils::GetWindowsUserName()));
+	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName());
 	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f, "Mouse sensitivity.");
 	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f, "Prescale the clock by this amount.");
+
+	// デフォルトのバインド
+	Console::SubmitCommand("bind ` toggleconsole");
+	Console::SubmitCommand("bind w +forward");
+	Console::SubmitCommand("bind s +back");
+	Console::SubmitCommand("bind a +moveleft");
+	Console::SubmitCommand("bind d +moveright");
+	Console::SubmitCommand("bind e +moveup");
+	Console::SubmitCommand("bind q +movedown");
+	Console::SubmitCommand("bind space +jump");
+	Console::SubmitCommand("bind lshift +sprint");
+	Console::SubmitCommand("bind lctrl +crouch");
+	Console::SubmitCommand("bind r +reload");
+	//Console::SubmitCommand("bind e +use");
+	Console::SubmitCommand("bind mouse1 +attack1");
+	Console::SubmitCommand("bind mouse2 +attack2");
+	Console::SubmitCommand("bind mouse3 +attack3");
+	Console::SubmitCommand("bind mouse4 +attack4");
+	Console::SubmitCommand("bind mouse5 +attack5");
+	Console::SubmitCommand("bind mousewheelup +invprev");
+	Console::SubmitCommand("bind mousewheeldown +invnext");
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {

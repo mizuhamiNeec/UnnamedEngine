@@ -288,6 +288,5 @@ void ImGuiManager::TextOutlined(
 	drawList->AddText(pos, textColor, text);
 }
 #else
-void ImGuiManager::Shutdown() {
-}
+void ImGuiManager::Shutdown() {}
 #endif
