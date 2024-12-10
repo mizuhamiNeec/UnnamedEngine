@@ -10,8 +10,8 @@
 #include "../Renderer/IndexBuffer.h"
 #include "../Renderer/VertexBuffer.h"
 
-class SrvManager;
 class Camera;
+class SrvManager;
 class ParticleCommon;
 
 class ParticleObject {

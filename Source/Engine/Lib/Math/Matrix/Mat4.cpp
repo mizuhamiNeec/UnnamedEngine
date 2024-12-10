@@ -47,7 +47,7 @@ Mat4::Mat4(const std::initializer_list<std::initializer_list<float>> list) {
 }
 
 const Mat4 Mat4::identity = Mat4();
-const Mat4 Mat4::zero = {{{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+const Mat4 Mat4::zero = { {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}} };
 
 Mat4 Mat4::operator+(const Mat4& rhs) const {
 	return {
@@ -91,25 +91,30 @@ Mat4 Mat4::operator*(const Mat4& rhs) const {
 	return result;
 }
 
+Mat4& Mat4::operator*=(const Mat4& mat4) {
+	*this = *this * mat4;
+	return *this;
+}
+
 float Mat4::Determinant() const {
 	return
 		m[0][0] * (
 			m[1][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
 			m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) +
 			m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1])
-		) - m[0][1] * (
-			m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
-			m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
-			m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0])
-		) + m[0][2] * (
-			m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
-			m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
-			m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
-		) - m[0][3] * (
-			m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
-			m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
-			m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
-		);
+			) - m[0][1] * (
+				m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
+				m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+				m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0])
+				) + m[0][2] * (
+					m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
+					m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+					m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
+					) - m[0][3] * (
+						m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
+						m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
+						m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
+						);
 }
 
 Mat4 Mat4::Inverse() const {
@@ -208,7 +213,7 @@ Mat4 Mat4::Transpose() const {
 
 void Mat4::LogMat4() {
 	std::wstring result;
-	for (float (&i)[4] : m) {
+	for (float(&i)[4] : m) {
 		for (float& j : i) {
 			result += std::format(L"{:.2f} ", j);
 		}
@@ -253,6 +258,35 @@ Vec3 Mat4::Transform(const Vec3& vector, const Mat4& matrix) {
 	result.y /= w;
 	result.z /= w;
 	return result;
+}
+
+Mat4 Mat4::RotateQuaternion(Quaternion quaternion) {
+	Mat4 result = identity;
+    auto normalizedQuat = quaternion.Normalized();
+
+    const float xx = normalizedQuat.x * normalizedQuat.x;
+    const float yy = normalizedQuat.y * normalizedQuat.y;
+    const float zz = normalizedQuat.z * normalizedQuat.z;
+    const float xy = normalizedQuat.x * normalizedQuat.y;
+    const float xz = normalizedQuat.x * normalizedQuat.z;
+    const float yz = normalizedQuat.y * normalizedQuat.z;
+    const float wx = normalizedQuat.w * normalizedQuat.x;
+    const float wy = normalizedQuat.w * normalizedQuat.y;
+    const float wz = normalizedQuat.w * normalizedQuat.z;
+
+    result.m[0][0] = 1.0f - 2.0f * (yy + zz);
+    result.m[0][1] = 2.0f * (xy - wz);
+    result.m[0][2] = 2.0f * (xz + wy);
+
+    result.m[1][0] = 2.0f * (xy + wz);
+    result.m[1][1] = 1.0f - 2.0f * (xx + zz);
+    result.m[1][2] = 2.0f * (yz - wx);
+
+    result.m[2][0] = 2.0f * (xz - wy);
+    result.m[2][1] = 2.0f * (yz + wx);
+    result.m[2][2] = 1.0f - 2.0f * (xx + yy);
+
+    return result;
 }
 
 Mat4 Mat4::RotateX(const float radian) {

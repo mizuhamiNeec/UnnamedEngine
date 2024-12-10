@@ -1,7 +1,8 @@
-﻿#include "LineCommon.h"
+#include "LineCommon.h"
 
 #include "Line.h"
 #include "../Lib/Console/Console.h"
+#include "../EntityComponentSystem/Entity/Camera/Camera.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : LineCommonを初期化します
@@ -80,7 +81,7 @@ void LineCommon::CreateGraphicsPipeline() {
 //-----------------------------------------------------------------------------
 // Purpose : 共通描画設定
 //-----------------------------------------------------------------------------
-void LineCommon::Render() {
+void LineCommon::Render() const {
 	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
 	d3d12_->GetCommandList()->SetGraphicsRootSignature(rootSignatureManager_->Get("Line"));
 	d3d12_->GetCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);

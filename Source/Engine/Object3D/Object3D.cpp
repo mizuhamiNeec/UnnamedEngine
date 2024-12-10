@@ -1,7 +1,6 @@
 #include "Object3D.h"
 
 #include "Object3DCommon.h"
-#include "../Camera/Camera.h"
 #include "../Lib/Console/Console.h"
 #include "../Lib/Math/Vector/Vec3.h"
 #include "../Lib/Math/Vector/Vec4.h"
@@ -9,6 +8,7 @@
 #include "../Model/Model.h"
 #include "../Model/ModelManager.h"
 #include "../Renderer/ConstantBuffer.h"
+#include "../EntityComponentSystem/Entity/Camera/Camera.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : 初期化します
@@ -30,23 +30,23 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 		object3DCommon_->GetD3D12()->GetDevice(),
 		sizeof(DirectionalLight));
 	directionalLightData_ = directionalLightConstantBuffer_->GetPtr<DirectionalLight>();
-	directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
-	directionalLightData_->direction = {0.0f, -0.7071067812f, 0.7071067812f}; // 斜め前向き
+	directionalLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
+	directionalLightData_->direction = { 0.0f, -0.7071067812f, 0.7071067812f }; // 斜め前向き
 	directionalLightData_->intensity = 1.0f; // 明るさ1
 
 	// カメラ定数バッファ
 	cameraConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		object3DCommon_->GetD3D12()->GetDevice(), sizeof(CameraForGPU));
 	cameraForGPU_ = cameraConstantBuffer_->GetPtr<CameraForGPU>();
-	cameraForGPU_->worldPosition = camera_->GetPos();
+	cameraForGPU_->worldPosition = camera_->GetWorldPos();
 
 	// ポイントライト定数バッファ
 	pointLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		object3DCommon_->GetD3D12()->GetDevice(),
 		sizeof(PointLight));
 	pointLightData_ = pointLightConstantBuffer_->GetPtr<PointLight>();
-	pointLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
-	pointLightData_->position = {0.0f, 4.0f, 0.0f};
+	pointLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	pointLightData_->position = { 0.0f, 4.0f, 0.0f };
 	pointLightData_->intensity = 1.0f;
 	pointLightData_->radius = 1.0f;
 	pointLightData_->decay = 1.0f;
@@ -56,10 +56,10 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 		object3DCommon_->GetD3D12()->GetDevice(),
 		sizeof(SpotLight));
 	spotLightData_ = spotLightConstantBuffer_->GetPtr<SpotLight>();
-	spotLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
-	spotLightData_->position = {0.0f, 4.0f, 0.0f};
+	spotLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	spotLightData_->position = { 0.0f, 4.0f, 0.0f };
 	spotLightData_->intensity = 4.0f;
-	spotLightData_->direction = {0.0f, -1.0f, 0.0f};
+	spotLightData_->direction = { 0.0f, -1.0f, 0.0f };
 	spotLightData_->distance = 8.0f;
 	spotLightData_->decay = 2.0f;
 	spotLightData_->cosAngle = 0.5f;
@@ -114,8 +114,7 @@ void Object3D::Update() {
 		// カメラが存在する場合はカメラから行列を持ってくる
 		const Mat4& viewProjMat = camera_->GetViewProjMat();
 		worldViewProjMat = worldMat * viewProjMat;
-	}
-	else {
+	} else {
 		worldViewProjMat = worldMat;
 	}
 
@@ -123,7 +122,7 @@ void Object3D::Update() {
 	transformationMatrixData_->world = worldMat;
 	transformationMatrixData_->worldInverseTranspose = worldMat.Inverse().Transpose();
 
-	cameraForGPU_->worldPosition = camera_->GetPos();
+	cameraForGPU_->worldPosition = camera_->GetWorldPos();
 }
 
 void Object3D::Draw() const {

@@ -3,8 +3,8 @@
 #include <memory>
 
 #include "../Renderer/PipelineState.h"
-#include "../Camera/Camera.h"
 
+class Camera;
 class SrvManager;
 class RootSignatureManager;
 class D3D12;

@@ -3,6 +3,10 @@
 
 #include "../Game/GameScene.h"
 #include "../Renderer/SrvManager.h"
+#include "EntityComponentSystem/Entity/Camera/Camera.h"
+#include "EntityComponentSystem/System/Camera/CameraSystem.h"
+#include "EntityComponentSystem/System/Transform/TransformSystem.h"
+
 #include "Lib/Timer/EngineTimer.h"
 #include "Line/LineCommon.h"
 #include "Model/ModelCommon.h"
@@ -43,6 +47,9 @@ private:
 	std::unique_ptr<ParticleCommon> particleCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
+
+	std::unique_ptr<TransformSystem> transformSystem_;
+	std::unique_ptr<CameraSystem> cameraSystem_;
 
 private:
 	static bool bWishShutdown;

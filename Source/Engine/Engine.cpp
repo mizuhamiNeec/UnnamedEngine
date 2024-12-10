@@ -1,12 +1,13 @@
 #include "Engine.h"
 
-#include "Camera/Camera.h"
-
 #ifdef _DEBUG
 #include "imgui/imgui_internal.h"
 #endif
 
 #include "Debug/Debug.h"
+
+#include "EntityComponentSystem/System/Camera/CameraSystem.h"
+
 #include "Input/InputSystem.h"
 
 #include "Lib/Console/ConCommand.h"
@@ -98,9 +99,17 @@ void Engine::Init() {
 	// 3Dモデルマネージャ
 	ModelManager::GetInstance()->Init(renderer_.get());
 
+	transformSystem_ = std::make_unique<TransformSystem>();
+	transformSystem_->Initialize();
+
+	cameraSystem_ = std::make_unique<CameraSystem>();
+	cameraSystem_->Initialize();
+
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	camera_->SetPos({ 0.0f, 0.0f, -10.0f });
+	transformSystem_->RegisterComponent(camera_->GetTransform());
+	cameraSystem_->RegisterComponent(camera_->GetCamera());
+	camera_->SetWorldPos({ 0.0f, 0.0f, -10.0f });
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -178,14 +187,29 @@ void Engine::Update() const {
 			cursorHidden = true;
 		}
 
-		if (!firstReset) {
-			Vec2 delta = InputSystem::GetMouseDelta();
+		Vec2 delta = InputSystem::GetMouseDelta();
 
-			// カメラの回転を更新
-			float sensitivity = std::stof(ConVarManager::GetConVar("sensitivity")->GetValueAsString()) * 0.022f;
-			Vec3 newCamRot = camera_->GetRotate() + Vec3(delta.y * sensitivity, delta.x * sensitivity, 0.0f) * Math::deg2Rad;
-			newCamRot.x = std::clamp(newCamRot.x, -89.9f * Math::deg2Rad, 89.9f * Math::deg2Rad);
-			camera_->SetRotate(newCamRot);
+		// カメラのトランスフォームコンポーネントを取得
+		TransformComponent* cameraTransform = object3DCommon_->GetDefaultCamera()->GetTransform();
+
+		if (!firstReset) {
+			// 回転
+			float sensitivity = std::stof(ConVarManager::GetConVar("sensitivity")->GetValueAsString());
+			float m_pitch = 0.022f;
+			float m_yaw = 0.022f;
+			float min = -89.0f;
+			float max = 89.0f;
+			static Vec2 rot;
+			rot.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
+			rot.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
+
+			rot.y = std::clamp(rot.y, min * Math::deg2Rad, max * Math::deg2Rad);
+
+			cameraTransform->SetLocalRot(
+				Quaternion::Euler(
+					Vec3::up * rot.x + Vec3::right * rot.y
+				)
+			);
 
 			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
 
@@ -215,14 +239,14 @@ void Engine::Update() const {
 
 			moveInput.Normalize();
 
-			Quaternion camRot = Quaternion::Euler(camera_->GetRotate());
+			Quaternion camRot = cameraTransform->GetWorldRotation();
 			Vec3 cameraForward = camRot * Vec3::forward;
 			Vec3 cameraRight = camRot * Vec3::right;
 			Vec3 cameraUp = camRot * Vec3::up;
 
-			camera_->SetPos(
-				camera_->GetPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp *
-					moveInput.y) * 5.0f * EngineTimer::GetScaledDeltaTime()
+			cameraTransform->Translate(
+				(cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp *
+					moveInput.y) * 1.0f * EngineTimer::GetScaledDeltaTime()
 			);
 		}
 
@@ -242,11 +266,6 @@ void Engine::Update() const {
 		firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
 	}
 #endif
-
-	camera_->SetAspectRatio(
-		static_cast<float>(window_->GetClientWidth()) / static_cast<float>(window_->GetClientHeight())
-	);
-	camera_->Update();
 
 	// ゲームシーンの更新
 	gameScene_->Update();
@@ -384,9 +403,13 @@ void Engine::Update() const {
 	}
 #endif
 
+	transformSystem_->Update(EngineTimer::GetScaledDeltaTime());
+	cameraSystem_->Update(EngineTimer::GetScaledDeltaTime());
+
 #ifdef _DEBUG
 	Debug::Update();
 #endif
+
 
 	InputSystem::Update();
 
@@ -415,6 +438,9 @@ void Engine::Update() const {
 
 void Engine::Shutdown() const {
 	gameScene_->Shutdown();
+
+	transformSystem_->Terminate();
+	cameraSystem_->Terminate();
 
 	ModelManager::Shutdown();
 	TextureManager::Shutdown();

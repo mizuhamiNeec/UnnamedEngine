@@ -4,8 +4,6 @@
 
 #include "../Engine.h"
 
-#include "../Camera/Camera.h"
-
 #include "../Debug/Debug.h"
 
 #include "../ImGuiManager/ImGuiManager.h"
@@ -31,23 +29,35 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 
 	// 頂点リソースにデータを書き込む
 	vertices_.push_back({
-		.position = {.x = 1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f}, .uv = {0.0f, 0.0f}, .normal = Vec3::forward
-	}); // 左上
+		.position = {.x = 1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f},
+		.uv = {0.0f, 0.0f},
+		.normal = Vec3::forward
+		}); // 左上
 	vertices_.push_back({
-		.position = {.x = -1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f}, .uv = {1.0f, 0.0f}, .normal = Vec3::forward
-	}); // 右上
+		.position = {.x = -1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f},
+		.uv = {1.0f, 0.0f},
+		.normal = Vec3::forward
+		}); // 右上
 	vertices_.push_back({
-		.position = {.x = 1.0f, .y = -1.0f, .z = 0.0f, .w = 1.0f}, .uv = {0.0f, 1.0f}, .normal = Vec3::forward
-	}); // 左下
+		.position = {.x = 1.0f, .y = -1.0f, .z = 0.0f, .w = 1.0f},
+		.uv = {0.0f, 1.0f},
+		.normal = Vec3::forward
+		}); // 左下
 	vertices_.push_back({
-		.position = {.x = 1.0f, .y = -1.0f, .z = 0.0f, .w = 1.0f}, .uv = {0.0f, 1.0f}, .normal = Vec3::forward
-	}); // 左下
+		.position = {.x = 1.0f, .y = -1.0f, .z = 0.0f, .w = 1.0f},
+		.uv = {0.0f, 1.0f},
+		.normal = Vec3::forward
+		}); // 左下
 	vertices_.push_back({
-		.position = {.x = -1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f}, .uv = {1.0f, 0.0f}, .normal = Vec3::forward
-	}); // 右上
+		.position = {.x = -1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f},
+		.uv = {1.0f, 0.0f},
+		.normal = Vec3::forward
+		}); // 右上
 	vertices_.push_back({
-		.position = {.x = -1.0f, .y = -1.0f, .z = 0.0f, .w = 1.0f}, .uv = {1.0f, 1.0f}, .normal = Vec3::forward
-	}); // 右下
+		.position = {.x = -1.0f, .y = -1.0f, .z = 0.0f, .w = 1.0f},
+		.uv = {1.0f, 1.0f},
+		.normal = Vec3::forward
+		}); // 右下
 
 	uint32_t indices[] = {
 		0, 1, 2,
@@ -71,7 +81,7 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 	// 定数バッファ
 	materialResource_ = std::make_unique<ConstantBuffer>(particleCommon_->GetD3D12()->GetDevice(), sizeof(Material));
 	materialData_ = materialResource_->GetPtr<Material>();
-	materialData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData_->enableLighting = false;
 	materialData_->uvTransform = Mat4::identity;
 
@@ -84,7 +94,7 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 	for (uint32_t index = 0; index < kNumMaxInstance; ++index) {
 		instancingData[index].wvp = Mat4::identity;
 		instancingData[index].world = Mat4::identity;
-		instancingData[index].color = {.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f};
+		instancingData[index].color = { .x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f };
 	}
 
 	// SrvManagerのインスタンスを取得
@@ -101,21 +111,21 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 		sizeof(TransformationMatrix) // 構造体のバイトサイズ
 	);
 
-	emitter_.transform = {Vec3::one, Vec3::zero, Vec3::zero};
+	emitter_.transform = { Vec3::one, Vec3::zero, Vec3::zero };
 
 	emitter_.count = 3;
 	emitter_.frequency = 0.5f; // 0.5秒ごとに発生
 	emitter_.frequencyTime = 0.0f; // 発生頻度用の時刻、0で初期化
 	emitter_.size = Vec3::one; // エミッターのサイズを初期化
 
-	accelerationField_ = AccelerationField({15.0f, 0.0f, 0.0f}, {{-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f}});
+	accelerationField_ = AccelerationField({ 15.0f, 0.0f, 0.0f }, { {-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f} });
 }
 
 void ParticleObject::Update(const float deltaTime) {
 	static int shapeType = 0;
 	static float coneAngle = 45.0f;
-	static Vec3 drag = {0.0f, 0.0f, 0.0f};
-	static Vec3 gravity = {0.0f, -9.8f, 0.0f};
+	static Vec3 drag = { 0.0f, 0.0f, 0.0f };
+	static Vec3 gravity = { 0.0f, -9.8f, 0.0f };
 #ifdef _DEBUG
 	ImGui::Begin("Particle");
 	ImGui::Text("Particle Instance : %u", particles_.size());
@@ -128,7 +138,7 @@ void ParticleObject::Update(const float deltaTime) {
 	ImGui::DragFloat("Emission Frequency", &emitter_.frequency);
 
 	// エミッション形状の選択
-	const char* shapeItems[] = {"Sphere", "Cube"};
+	const char* shapeItems[] = { "Sphere", "Cube" };
 	ImGui::Combo("Emission Shape", &shapeType, shapeItems, IM_ARRAYSIZE(shapeItems));
 	// コーン速度の設定
 	ImGui::SliderAngle("Cone Angle", &coneAngle, 0.0f, 90.0f);
@@ -158,7 +168,7 @@ void ParticleObject::Update(const float deltaTime) {
 
 	numInstance = 0;
 	for (std::list<Particle>::iterator particleIterator = particles_.begin();
-	     particleIterator != particles_.end();) {
+		particleIterator != particles_.end();) {
 		if (particleIterator->lifeTime <= particleIterator->currentTime) {
 			particleIterator = particles_.erase(particleIterator); // 生存期間が過ぎたParticleはlistから消す。戻り値が次のイテレータとなる
 			continue;
@@ -195,7 +205,10 @@ void ParticleObject::Update(const float deltaTime) {
 
 			// ビルボード
 			{
-				Mat4 cameraMat = Mat4::Affine(Vec3::one, camera_->GetRotate(), camera_->GetPos());
+				// カメラの行列を取得
+				TransformComponent* transformComponent = camera_->GetTransform();
+
+				Mat4 cameraMat = Mat4::Affine(Vec3::one, transformComponent->GetWorldRotation().ToEulerAngles(), transformComponent->GetWorldPosition());
 				Mat4 backToFrontMat = Mat4::RotateY(std::numbers::pi_v<float>);
 				Mat4 billboardMatrix = backToFrontMat * cameraMat;
 				billboardMatrix.m[3][0] = 0.0f;
@@ -211,8 +224,7 @@ void ParticleObject::Update(const float deltaTime) {
 				// カメラが存在する場合はカメラから行列を持ってくる
 				const Mat4& viewProjMat = camera_->GetViewProjMat();
 				worldViewProjMat = worldMat * viewProjMat;
-			}
-			else {
+			} else {
 				worldViewProjMat = worldMat;
 			}
 
@@ -235,10 +247,10 @@ void ParticleObject::Update(const float deltaTime) {
 	switch (shapeType) {
 	case 0: // Sphere
 		Debug::DrawSphere(emitter_.transform.translate, Quaternion::identity, emitter_.size.x,
-		                  {1.0f, 0.0f, 0.0f, 1.0f});
+			{ 1.0f, 0.0f, 0.0f, 1.0f });
 		break;
 	case 1: // Cube
-		Debug::DrawBox(emitter_.transform.translate, Quaternion::identity, emitter_.size, {0.0f, 1.0f, 0.0f, 1.0f});
+		Debug::DrawBox(emitter_.transform.translate, Quaternion::identity, emitter_.size, { 0.0f, 1.0f, 0.0f, 1.0f });
 		break;
 	default:
 		break;
@@ -272,8 +284,8 @@ void ParticleObject::Draw() const {
 
 Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel, const Vec3& drag, const Vec3& gravity) {
 	Particle particle;
-	particle.transform.scale = {1.0f, 1.0f, 1.0f};
-	particle.transform.rotate = {0.0f, 0.0f, 0.0f};
+	particle.transform.scale = { 1.0f, 1.0f, 1.0f };
+	particle.transform.rotate = { 0.0f, 0.0f, 0.0f };
 	const Vec3 rand = Random::RandomVec3(-Vec3::one, Vec3::one);
 	particle.transform.translate = pos + rand;
 
@@ -298,7 +310,7 @@ Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel, const
 }
 
 std::list<Particle> ParticleObject::Emit(const Emitter& emitter, int shapeType, float coneAngle, const Vec3& drag,
-                                         const Vec3& gravity) {
+	const Vec3& gravity) {
 	std::list<Particle> particles;
 	for (uint32_t count = 0; count < emitter.count; ++count) {
 		Vec3 position = GeneratePosition(emitter.transform.translate, shapeType);
@@ -312,25 +324,25 @@ std::list<Particle> ParticleObject::Emit(const Emitter& emitter, int shapeType, 
 void ParticleObject::SetCamera(Camera* newCamera) { camera_ = newCamera; }
 
 Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition, int shapeType) {
-    switch (shapeType) {
-    case 0: // Sphere（球）
-    {
-        // ランダムな方向
-        Vec3 direction = Random::RandomVec3(-Vec3::one, Vec3::one);
-        direction.Normalize();
-        // ランダムな半径
-        float radius = Random::RandomFloat(0.0f, emitter_.size.x); // サイズを考慮
-        return emitterPosition + direction * radius;
-    }
-    case 1: // Cube（立方体）
-    {
-        // -1.0fから1.0fの範囲でランダムな位置
-        Vec3 offset = Random::RandomVec3(-Vec3::one, Vec3::one);
-        return emitterPosition + offset * emitter_.size; // サイズを考慮
-    }
-    default:
-        return emitterPosition;
-    }
+	switch (shapeType) {
+	case 0: // Sphere（球）
+	{
+		// ランダムな方向
+		Vec3 direction = Random::RandomVec3(-Vec3::one, Vec3::one);
+		direction.Normalize();
+		// ランダムな半径
+		float radius = Random::RandomFloat(0.0f, emitter_.size.x); // サイズを考慮
+		return emitterPosition + direction * radius;
+	}
+	case 1: // Cube（立方体）
+	{
+		// -1.0fから1.0fの範囲でランダムな位置
+		Vec3 offset = Random::RandomVec3(-Vec3::one, Vec3::one);
+		return emitterPosition + offset * emitter_.size; // サイズを考慮
+	}
+	default:
+		return emitterPosition;
+	}
 }
 
 Vec3 ParticleObject::GenerateConeVelocity(float coneAngle) {

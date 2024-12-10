@@ -14,6 +14,13 @@
 #include "../TextureManager/TextureManager.h"
 #include "../Debug/Debug.h"
 
+#include "../Engine/EntityComponentSystem/System/Transform/TransformSystem.h"
+#include "../Engine/EntityComponentSystem/Entity/Base/BaseEntity.h"
+
+TransformSystem transformSystem;
+BaseEntity playerEntity;
+BaseEntity cameraEntity;
+
 void GameScene::Init(
 	D3D12* renderer, Window* window,
 	SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
@@ -55,11 +62,37 @@ void GameScene::Init(
 	particle_ = std::make_unique<ParticleObject>();
 	particle_->Init(particleCommon_, "./Resources/Textures/circle.png");
 #pragma endregion
+
+#pragma region プレイヤー
+	//player_ = std::make_unique<Player>();
+	// コンポーネントを作成
+	auto* playerTransform = playerEntity.AddComponent<TransformComponent>();
+	auto* cameraTransform = cameraEntity.AddComponent<TransformComponent>();
+
+	// 親子関係を設定
+	cameraTransform->SetParent(playerTransform);
+	cameraTransform->SetLocalPos(Vec3(0.0f, 4.0f, -5.0f));
+
+	// コンポーネントをシステムに登録
+	transformSystem.RegisterComponent(playerTransform);
+	transformSystem.RegisterComponent(cameraTransform);
+
+	// システムの初期化
+	transformSystem.Initialize();
+#pragma endregion
 }
 
 void GameScene::Update() {
+	TransformComponent* tcomp = playerEntity.GetComponent<TransformComponent>();
+	//TransformComponent* cameratcomp = cameraEntity.GetComponent<TransformComponent>();
+
+	tcomp->Rotate(Quaternion::AngleAxis(0.25f, Vec3::up));
+	//cameratcomp->Translate();
+
+	transformSystem.Update(EngineTimer::GetScaledDeltaTime());
+
 	sprite_->Update();
-	//object3D_->Update();
+	object3D_->Update();
 	particle_->Update(EngineTimer::GetScaledDeltaTime());
 
 #ifdef _DEBUG
@@ -78,6 +111,9 @@ void GameScene::Update() {
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
+		// カメラのトランスフォームコンポーネントを取得
+		TransformComponent* cameraTransform = object3DCommon_->GetDefaultCamera()->GetTransform();
+
 		// テキストのサイズを取得
 		ImGuiIO io = ImGui::GetIO();
 		std::string text = std::format(
@@ -86,11 +122,10 @@ void GameScene::Update() {
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
 			ConVarManager::GetConVar("name")->GetValueAsString(),
-			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y,
-			object3DCommon_->GetDefaultCamera()->GetPos().z,
-			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg,
-			object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg,
-			object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
+			cameraTransform->GetWorldPosition().x, cameraTransform->GetWorldPosition().y, cameraTransform->GetWorldPosition().z,
+			cameraTransform->GetWorldRotation().ToEulerAngles().x * Math::rad2Deg,
+			cameraTransform->GetWorldRotation().ToEulerAngles().y * Math::rad2Deg,
+			cameraTransform->GetWorldRotation().ToEulerAngles().z * Math::rad2Deg,
 			0.0f
 		);
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
@@ -129,7 +164,7 @@ void GameScene::Render() {
 	object3DCommon_->Render();
 	//----------------------------------------
 
-	//object3D_->Draw();
+	object3D_->Draw();
 
 	//----------------------------------------
 	// パーティクル共通描画設定
@@ -145,6 +180,9 @@ void GameScene::Render() {
 }
 
 void GameScene::Shutdown() {
+	// システムの終了
+	transformSystem.Terminate();
+
 	spriteCommon_->Shutdown();
 	object3DCommon_->Shutdown();
 	particleCommon_->Shutdown();

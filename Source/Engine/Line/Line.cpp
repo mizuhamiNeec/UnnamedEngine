@@ -2,7 +2,9 @@
 
 #include <mutex>
 
-#include "../Camera/Camera.h"
+#include "../EntityComponentSystem/Components/Camera/CameraComponent.h"
+#include "../EntityComponentSystem/Entity/Camera/Camera.h"
+
 #include "../Lib/Console/Console.h"
 
 const D3D12_INPUT_ELEMENT_DESC LineVertex::inputElements[] = {

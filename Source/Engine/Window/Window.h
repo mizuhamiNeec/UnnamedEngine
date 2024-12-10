@@ -19,8 +19,8 @@ public:
 	HWND GetWindowHandle() const;
 	HINSTANCE GetHInstance() const;
 
-	uint32_t GetClientWidth();
-	uint32_t GetClientHeight();
+	static uint32_t GetClientWidth();
+	static uint32_t GetClientHeight();
 
 	static bool ProcessMessage();
 
@@ -29,13 +29,10 @@ private:
 
 	WNDCLASSEX wc_ = {};
 
-	HWND hWnd_ = nullptr;
+	static HWND hWnd_;
 	std::wstring title_;
-	uint32_t width_;
-	uint32_t height_;
+	static uint32_t width_;
+	static uint32_t height_;
 	DWORD style_;
 	DWORD exStyle_;
-
-	static int deltaX_;
-	static int deltaY_;
 };

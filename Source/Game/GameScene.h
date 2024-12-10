@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "IGameScene.h"
+#include "Player.h"
 
 #include "../Object3D/Object3D.h"
 #include "../Object3D/Object3DCommon.h"

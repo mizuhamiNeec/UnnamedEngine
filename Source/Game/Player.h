@@ -1,45 +1,14 @@
 #pragma once
-#include "Input.h"
-#include "Model.h"
-#include "Object3D.h"
-#include "Sprite.h"
 
-//const float kPlayerRadius = 1.0f;
+#include "../Engine/EntityComponentSystem/Entity/Base/BaseEntity.h"
+#include "../Engine/EntityComponentSystem/Components/Transform/TransformComponent.h"
 
-class Player : public Object3D {
+class Player : public BaseEntity {
 public:
-	~Player();
+	Player() {
+		transform_ = AddComponent<TransformComponent>();
+	}
 
-	void Initialize();
-
-	void Update();
-
-	void Draw() const;
-
-	void Rotate();
-
-	static Vec3 TransformNormal(Vec3 v, const Mat4& m);
-	/// <summary>
-	/// 攻撃
-	/// </summary>
-	void Attack();
-
-	Vec3 GetWorldPosition();
-
-	// 衝突を検出したら呼び出されるコールバック関数.
-	//void OnCollision();
-
-	void DrawUI();
-
-private: // メンバ園数
-	// モデル
-	Model* model_ = nullptr;
-	// テクスチャハンドル
-	uint32_t textureHandle_ = 0u;
-
-	// キーボード入力
-	Input* input_ = nullptr;
-
-	// 2Dレティクル用スプライト
-	Sprite* sprite2DReticle_ = nullptr;
+private:
+	TransformComponent* transform_ = nullptr;
 };

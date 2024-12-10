@@ -1,16 +1,16 @@
-﻿#pragma once
+#pragma once
 #include <ostream>
 
-class Entity;
+class BaseEntity;
 
-class IComponent {
+class BaseComponent {
 public:
-	explicit IComponent(Entity* entity) : parentEntity_(entity) {
+	explicit BaseComponent(BaseEntity* entity) : parentEntity_(entity) {
 	}
 
-	virtual ~IComponent() = default;
+	virtual ~BaseComponent() = default;
 
-	[[nodiscard]] Entity* ParentEntity() const { return parentEntity_; }
+	[[nodiscard]] BaseEntity* ParentEntity() const { return parentEntity_; }
 
 	virtual void Initialize() = 0;
 	virtual void Update(float deltaTime) = 0;
@@ -19,9 +19,9 @@ public:
 	virtual void Serialize(std::ostream& out) const = 0;
 	virtual void Deserialize(std::istream& in) = 0;
 
-	virtual void ImGuiDraw();
+	virtual void ImGuiDraw() = 0;
 
 protected:
 	// このコンポーネントが引っ付いているエンティティのポインタ
-	Entity* parentEntity_ = nullptr;
+	BaseEntity* parentEntity_ = nullptr;
 };

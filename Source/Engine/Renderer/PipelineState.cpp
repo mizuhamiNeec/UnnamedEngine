@@ -23,7 +23,7 @@ PipelineState::PipelineState(
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
 	depthStencilDesc.DepthEnable = true; // Depthの機能を有効化する
 	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL; // 書き込みします
-	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL; // 比較関数はLessEqual。つまり、近ければ描画される
+	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS; // 比較関数はLessEqual。つまり、近ければ描画される
 
 	// ステートの設定
 	desc_.BlendState = blendDesc; // BlendState
@@ -37,24 +37,24 @@ PipelineState::PipelineState(
 	desc_.SampleDesc.Count = 1;
 	desc_.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
 	desc_.DepthStencilState = depthStencilDesc;
-	desc_.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	desc_.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
 	// DXCの初期化
 	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils_));
 	if (FAILED(hr)) {
-		Console::Print("Failed to create DxcUtils instance\n", {1.0f, 0.0f, 0.0f, 1.0f});
+		Console::Print("Failed to create DxcUtils instance\n", { 1.0f, 0.0f, 0.0f, 1.0f });
 		return;
 	}
 
 	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler_));
 	if (FAILED(hr)) {
-		Console::Print("Failed to create DxcCompiler instance\n", {1.0f, 0.0f, 0.0f, 1.0f});
+		Console::Print("Failed to create DxcCompiler instance\n", { 1.0f, 0.0f, 0.0f, 1.0f });
 		return;
 	}
 
 	hr = dxcUtils_->CreateDefaultIncludeHandler(&includeHandler_);
 	if (FAILED(hr)) {
-		Console::Print("Failed to create default include handler\n", {1.0f, 0.0f, 0.0f, 1.0f});
+		Console::Print("Failed to create default include handler\n", { 1.0f, 0.0f, 0.0f, 1.0f });
 		return;
 	}
 }
@@ -86,7 +86,7 @@ void PipelineState::SetPS(const std::wstring& filePath) {
 }
 
 IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils,
-                                       IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
+	IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
 	/* 1. hlslファイルを読む */
 	// これからシェーダーをコンパイルする旨をログに出す
 	Console::Print(
@@ -143,7 +143,7 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
 	Console::Print(StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)),
-	               kConsoleColorCompleted);
+		kConsoleColorCompleted);
 	// もう使わないリソースを開放
 	shaderSource->Release();
 	shaderResult->Release();

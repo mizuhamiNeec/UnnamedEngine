@@ -8,6 +8,7 @@
 #include "../Model/Model.h"
 
 class Camera;
+class CameraComponent;
 class ModelCommon;
 class ConstantBuffer;
 struct Vertex;
