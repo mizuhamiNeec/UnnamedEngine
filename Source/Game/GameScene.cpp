@@ -37,7 +37,7 @@ void GameScene::Init(
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({512.0f, 512.0f, 0.0f});
+	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -63,26 +63,9 @@ void GameScene::Update() {
 	particle_->Update(EngineTimer::GetScaledDeltaTime());
 
 #ifdef _DEBUG
-
-	// // ライン描画
-	// {
-	// 	static Vec3 pos;
-	// 	static Vec3 rot;
-	//
-	// 	ImGui::Begin("Axis");
-	// 	ImGui::DragFloat3("pos##axis", &pos.x, 0.01f);
-	// 	ImGui::DragFloat3("rot##axis", &rot.x, 0.01f);
-	// 	ImGui::End();
-	//
-	// 	Debug::DrawAxis(pos, Quaternion::Euler(rot));
-	// }
-
-#endif
-
-#ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVarManager::GetConVar("cl_showpos")->GetValueAsString() == "1") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 		constexpr ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
