@@ -33,12 +33,17 @@ void CameraSystem::Update(float deltaTime) {
 	}
 }
 
-void CameraSystem::Terminate() {
-}
+void CameraSystem::Terminate() {}
 
 void CameraSystem::SetMainCamera(CameraComponent* camera) {
 	if (std::ranges::find(components_, camera) != components_.end()) {
 		mainCamera_ = camera;
+	}
+}
+
+void CameraSystem::SwitchCamera(CameraComponent* newCamera) {
+	if (newCamera && std::find(components_.begin(), components_.end(), newCamera) != components_.end()) {
+		mainCamera_ = newCamera;
 	}
 }
 

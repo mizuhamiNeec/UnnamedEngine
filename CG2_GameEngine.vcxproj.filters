@@ -282,10 +282,10 @@
     <ClInclude Include="Source\Engine\Window\WindowsUtils.h">
       <Filter>Source\Engine\Window</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Game\GameScene.h">
+    <ClInclude Include="Source\Game\Scene\GameScene.h">
       <Filter>Source\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Game\IGameScene.h">
+    <ClInclude Include="Source\Game\Scene\Base\IGameScene.h">
       <Filter>Source\Game</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\EntityComponentSystem\Components\Base\BaseComponent.h" />
@@ -299,11 +299,12 @@
     <ClInclude Include="Source\Engine\Input\InputSystem.h" />
     <ClInclude Include="Source\Engine\Input\InputCommand.h" />
     <ClInclude Include="Source\Engine\EntityComponentSystem\Components\Transform\TransformComponent.h" />
-    <ClInclude Include="Source\Game\Player.h" />
+    <ClInclude Include="Source\Game\Entity\Player.h" />
     <ClInclude Include="Source\Engine\EntityComponentSystem\System\Base\BaseSystem.h" />
     <ClInclude Include="Source\Engine\EntityComponentSystem\System\Transform\TransformSystem.h" />
     <ClInclude Include="Source\Engine\EntityComponentSystem\Entity\Camera\Camera.h" />
     <ClInclude Include="Source\Engine\EntityComponentSystem\System\Camera\CameraSystem.h" />
+    <ClInclude Include="Source\Game\Components\gamemovement.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -432,7 +433,7 @@
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp">
       <Filter>Source\Engine\Window</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Game\GameScene.cpp">
+    <ClCompile Include="Source\Game\Scene\GameScene.cpp">
       <Filter>Source\Game</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Lib\Math\Quaternion\Quaternion.cpp" />
@@ -443,10 +444,11 @@
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp" />
     <ClCompile Include="Source\Engine\Input\InputCommand.cpp" />
     <ClCompile Include="Source\Engine\EntityComponentSystem\Components\Transform\TransformComponent.cpp" />
-    <ClCompile Include="Source\Game\Player.cpp" />
+    <ClCompile Include="Source\Game\Entity\Player.cpp" />
     <ClCompile Include="Source\Engine\EntityComponentSystem\System\Transform\TransformSystem.cpp" />
     <ClCompile Include="Source\Engine\EntityComponentSystem\Entity\Camera\Camera.cpp" />
     <ClCompile Include="Source\Engine\EntityComponentSystem\System\Camera\CameraSystem.cpp" />
+    <ClCompile Include="Source\Game\Components\gamemovement.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include "../Game/GameScene.h"
+#include "../Game/Scene/GameScene.h"
 #include "../Renderer/SrvManager.h"
 #include "EntityComponentSystem/Entity/Camera/Camera.h"
 #include "EntityComponentSystem/System/Camera/CameraSystem.h"

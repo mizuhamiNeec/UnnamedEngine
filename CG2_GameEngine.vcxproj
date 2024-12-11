@@ -104,6 +104,7 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Game\Components\gamemovement.cpp" />
     <ClCompile Include="Source\Engine\EntityComponentSystem\System\Camera\CameraSystem.cpp" />
     <ClCompile Include="Source\Engine\EntityComponentSystem\Entity\Camera\Camera.cpp" />
     <ClCompile Include="Source\Engine\EntityComponentSystem\Components\Transform\TransformComponent.cpp" />
@@ -143,7 +144,7 @@
     <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\RootSignature.cpp" />
-    <ClCompile Include="Source\Game\GameScene.cpp" />
+    <ClCompile Include="Source\Game\Scene\GameScene.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui_demo.cpp" />
     <ClCompile Include="Source\Engine\Externals\imgui\imgui_draw.cpp" />
@@ -154,7 +155,7 @@
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp" />
-    <ClCompile Include="Source\Game\Player.cpp" />
+    <ClCompile Include="Source\Game\Entity\Player.cpp" />
     <ClCompile Include="Source\WinMain.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Random\Random.cpp" />
@@ -169,11 +170,12 @@
     <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Game\Components\gamemovement.h" />
     <ClInclude Include="Source\Engine\EntityComponentSystem\System\Camera\CameraSystem.h" />
     <ClInclude Include="Source\Engine\EntityComponentSystem\Entity\Camera\Camera.h" />
     <ClInclude Include="Source\Engine\EntityComponentSystem\System\Base\BaseSystem.h" />
     <ClInclude Include="Source\Engine\EntityComponentSystem\Components\Transform\TransformComponent.h" />
-    <ClInclude Include="Source\Game\Player.h" />
+    <ClInclude Include="Source\Game\Entity\Player.h" />
     <ClInclude Include="Source\Engine\EntityComponentSystem\System\Transform\TransformSystem.h" />
     <None Include="Resources\Shaders\Object3d.hlsli" />
     <None Include="Resources\Shaders\Particle.hlsli" />
@@ -207,7 +209,7 @@
     <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\RootSignature.h" />
     <ClInclude Include="Source\Engine\Lib\Structs\Structs.h" />
-    <ClInclude Include="Source\Game\GameScene.h" />
+    <ClInclude Include="Source\Game\Scene\GameScene.h" />
     <ClInclude Include="Source\Engine\Externals\imgui\imconfig.h" />
     <ClInclude Include="Source\Engine\Externals\imgui\imgui.h" />
     <ClInclude Include="Source\Engine\Externals\imgui\imgui_impl_dx12.h" />
@@ -221,7 +223,7 @@
     <ClInclude Include="Source\Engine\Lib\Utils\StrUtils.h" />
     <ClInclude Include="Source\Engine\Renderer\DirectX12.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\ClientProperties.h" />
-    <ClInclude Include="Source\Game\IGameScene.h" />
+    <ClInclude Include="Source\Game\Scene\Base\IGameScene.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h" />
     <ClInclude Include="Source\Engine\Renderer\Renderer.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec2.h" />

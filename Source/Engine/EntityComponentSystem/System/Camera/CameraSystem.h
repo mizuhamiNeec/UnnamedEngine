@@ -17,6 +17,7 @@ public:
 	void Terminate() override;
 
 	void SetMainCamera(CameraComponent* camera);
+	void SwitchCamera(CameraComponent* newCamera);
 	CameraComponent* GetMainCamera() const;
 
 private:

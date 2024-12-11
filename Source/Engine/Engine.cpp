@@ -19,6 +19,7 @@
 #include "Particle/ParticleCommon.h"
 #include "Renderer/D3D12.h"
 #include "Renderer/SrvManager.h"
+#include "Sprite/SpriteCommon.h"
 #include "TextureManager/TextureManager.h"
 #include "Window/Window.h"
 #include "Window/WindowsUtils.h"
@@ -28,7 +29,8 @@ Engine::Engine() = default;
 void Engine::Run() {
 	Init();
 	while (true) {
-		if (Window::ProcessMessage() || bWishShutdown) break; // ゲームループを抜ける
+		if (Window::ProcessMessage() || bWishShutdown)
+			break; // ゲームループを抜ける
 		Update();
 	}
 	Shutdown();
@@ -36,9 +38,8 @@ void Engine::Run() {
 
 void Engine::DrawGrid(
 	const float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
-	const Vec4& axisColor, const Vec4& minorColor
-) {
-	//const float range = 16384.0f;
+	const Vec4& axisColor, const Vec4& minorColor) {
+	// const float range = 16384.0f;
 	constexpr float majorInterval = 1024.0f;
 	const float minorInterval = gridSize * 8.0f;
 
@@ -143,8 +144,7 @@ void Engine::Init() {
 	assert(SUCCEEDED(hr));
 	hr = renderer_->GetCommandList()->Reset(
 		renderer_->GetCommandAllocator(),
-		nullptr
-	);
+		nullptr);
 	assert(SUCCEEDED(hr));
 
 	time_ = std::make_unique<EngineTimer>();
@@ -158,7 +158,9 @@ void Engine::Init() {
 		object3DCommon_.get(),
 		modelCommon_.get(),
 		particleCommon_.get(),
-		time_.get()
+		time_.get(),
+		transformSystem_.get(),
+		cameraSystem_.get()
 	);
 
 	hr = renderer_->GetCommandList()->Close();
@@ -174,10 +176,13 @@ void Engine::Update() const {
 	time_->StartFrame();
 
 	/* ----------- 更新処理 ---------- */
-
-	// コンソール表示切り替え
+	transformSystem_->Update(EngineTimer::GetScaledDeltaTime());
+	cameraSystem_->Update(EngineTimer::GetScaledDeltaTime());
 
 #ifdef _DEBUG
+	// カメラの操作
+	static float moveSpd = 4.0f;
+
 	static bool firstReset = true; // 初回リセットフラグ
 	static bool cursorHidden = false;
 
@@ -207,9 +212,7 @@ void Engine::Update() const {
 
 			cameraTransform->SetLocalRot(
 				Quaternion::Euler(
-					Vec3::up * rot.x + Vec3::right * rot.y
-				)
-			);
+					Vec3::up * rot.x + Vec3::right * rot.y));
 
 			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
 
@@ -244,16 +247,23 @@ void Engine::Update() const {
 			Vec3 cameraRight = camRot * Vec3::right;
 			Vec3 cameraUp = camRot * Vec3::up;
 
+			if (InputSystem::IsTriggered("invprev")) {
+				moveSpd += 1.0f;
+			}
+
+			if (InputSystem::IsTriggered("invnext")) {
+				moveSpd -= 1.0f;
+			}
+
+			moveSpd = std::clamp(moveSpd, 1.0f, 100.0f);
+
 			cameraTransform->Translate(
-				(cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp *
-					moveInput.y) * 1.0f * EngineTimer::GetScaledDeltaTime()
-			);
+				(cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) * moveSpd * EngineTimer::GetScaledDeltaTime());
 		}
 
 		// カーソルをウィンドウの中央にリセット
 		POINT centerCursorPos = {
-			static_cast<LONG>(window_->GetClientWidth() / 2), static_cast<LONG>(window_->GetClientHeight() / 2)
-		};
+			static_cast<LONG>(window_->GetClientWidth() / 2), static_cast<LONG>(window_->GetClientHeight() / 2) };
 		ClientToScreen(window_->GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
 		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
 
@@ -277,8 +287,7 @@ void Engine::Update() const {
 		{ .x = 0.28f, .y = 0.28f, .z = 0.28f, .w = 1.0f },
 		{ .x = 0.39f, .y = 0.2f, .z = 0.02f, .w = 1.0f },
 		{ .x = 0.0f, .y = 0.39f, .z = 0.39f, .w = 1.0f },
-		{ .x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f }
-	);
+		{ .x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f });
 
 #ifdef _DEBUG
 	ImGuiViewportP* viewport = static_cast<ImGuiViewportP*>(static_cast<void*>(ImGui::GetMainViewport()));
@@ -299,8 +308,7 @@ void Engine::Update() const {
 			{
 				const float windowHeight = ImGui::GetWindowSize().y;
 				const char* items[] = {
-					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°", "22.5°", "30°", "45°", "90°"
-				};
+					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°", "22.5°", "30°", "45°", "90°" };
 				static int itemCurrentIndex = 6;
 				const char* comboLabel = items[itemCurrentIndex];
 
@@ -327,12 +335,16 @@ void Engine::Update() const {
 
 			ImGui::EndDisabled();
 
+			float textWidth = ImGui::CalcTextSize(std::format("move speed: %.2f", moveSpd).c_str()).x;
+			float windowWidth = ImGui::GetWindowWidth();
+			ImGui::SetCursorPosX(windowWidth - textWidth - ImGui::GetStyle().WindowPadding.x);
+			ImGui::Text("move speed: %.2f", moveSpd);
+
 			ImGui::EndMenuBar();
 		}
 		ImGui::End();
 	}
 #endif
-
 
 #ifdef _DEBUG // cl_showfps
 	if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() != "0") {
@@ -394,8 +406,7 @@ void Engine::Update() const {
 			text.c_str(),
 			textColor,
 			outlineColor,
-			outlineSize
-		);
+			outlineSize);
 
 		ImGui::PopStyleVar();
 
@@ -403,13 +414,9 @@ void Engine::Update() const {
 	}
 #endif
 
-	transformSystem_->Update(EngineTimer::GetScaledDeltaTime());
-	cameraSystem_->Update(EngineTimer::GetScaledDeltaTime());
-
 #ifdef _DEBUG
 	Debug::Update();
 #endif
-
 
 	InputSystem::Update();
 
@@ -457,17 +464,14 @@ void Engine::Shutdown() const {
 
 void Engine::RegisterConsoleCommandsAndVariables() {
 	// コンソールコマンドを登録
-	ConCommand::RegisterCommand("bind",
-		[](const std::vector<std::string>& args) {
-			if (args.size() < 2) {
-				Console::Print("Usage: bind <key> <command>\n");
-				return;
-			}
-			std::string key = args[0];
-			std::string command = args[1];
-			InputSystem::BindKey(key, command);
-		}, "Bind a key to a command."
-	);
+	ConCommand::RegisterCommand("bind", [](const std::vector<std::string>& args) {
+		if (args.size() < 2) {
+			Console::Print("Usage: bind <key> <command>\n");
+			return;
+		}
+		std::string key = args[0];
+		std::string command = args[1];
+		InputSystem::BindKey(key, command); }, "Bind a key to a command.");
 	ConCommand::RegisterCommand("clear", Console::Clear, "Clear all console output.");
 	ConCommand::RegisterCommand("cls", Console::Clear, "Clear all console output.");
 	ConCommand::RegisterCommand("help", Console::Help, "Find help about a convar/concommand.");
@@ -483,6 +487,12 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName());
 	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f, "Mouse sensitivity.");
 	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f, "Prescale the clock by this amount.");
+	ConVarManager::RegisterConVar<float>("sv_gravity", 800.0f, "World gravity.");
+	ConVarManager::RegisterConVar<float>("sv_maxvelocity", 3500.0f, "Maximum speed any ballistically moving object is allowed to attain per axis.");
+	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f, "Linear acceleration amount (old value is 5.6)");
+	ConVarManager::RegisterConVar<float>("sv_maxspeed", 320.0f, "Maximum speed a player can move.");
+	ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f, "Minimum stopping speed when on ground.");
+	ConVarManager::RegisterConVar<float>("sv_friction", 4.0f, "World friction.");
 
 	// デフォルトのバインド
 	Console::SubmitCommand("bind ` toggleconsole");
@@ -496,7 +506,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind lshift +sprint");
 	Console::SubmitCommand("bind lctrl +crouch");
 	Console::SubmitCommand("bind r +reload");
-	//Console::SubmitCommand("bind e +use");
+	// Console::SubmitCommand("bind e +use");
 	Console::SubmitCommand("bind mouse1 +attack1");
 	Console::SubmitCommand("bind mouse2 +attack2");
 	Console::SubmitCommand("bind mouse3 +attack3");
@@ -504,6 +514,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind mouse5 +attack5");
 	Console::SubmitCommand("bind mousewheelup +invprev");
 	Console::SubmitCommand("bind mousewheeldown +invnext");
+	Console::SubmitCommand("bind c +changecamera");
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {

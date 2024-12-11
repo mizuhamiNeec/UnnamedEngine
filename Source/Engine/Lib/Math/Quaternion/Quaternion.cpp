@@ -10,14 +10,12 @@ const Quaternion Quaternion::identity = Quaternion(0, 0, 0, 1);
 Quaternion::Quaternion() : x(0),
 y(0),
 z(0),
-w(1) {
-}
+w(1) {}
 
 Quaternion::Quaternion(const float x, const float y, const float z, const float w) : x(x),
 y(y),
 z(z),
-w(w) {
-}
+w(w) {}
 
 Quaternion::Quaternion(const Vec3& axis, const float angleRad) {
 	const float halfAngle = angleRad * 0.5f;

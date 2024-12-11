@@ -36,6 +36,10 @@ struct Mat4 final {
 	static Mat4 MakeOrthographicMat(float left, float top, float right, float bottom, float nearClip, float farClip);
 	static Mat4 ViewportMat(float left, float top, float width, float height, float minDepth, float maxDepth);
 
+	Quaternion ToQuaternion() const;
+
+	Vec3 GetTranslate();
+
 	//-------------------------------------------------------------------------
 	// Operator
 	//-------------------------------------------------------------------------

@@ -262,31 +262,31 @@ Vec3 Mat4::Transform(const Vec3& vector, const Mat4& matrix) {
 
 Mat4 Mat4::RotateQuaternion(Quaternion quaternion) {
 	Mat4 result = identity;
-    auto normalizedQuat = quaternion.Normalized();
+	auto normalizedQuat = quaternion.Normalized();
 
-    const float xx = normalizedQuat.x * normalizedQuat.x;
-    const float yy = normalizedQuat.y * normalizedQuat.y;
-    const float zz = normalizedQuat.z * normalizedQuat.z;
-    const float xy = normalizedQuat.x * normalizedQuat.y;
-    const float xz = normalizedQuat.x * normalizedQuat.z;
-    const float yz = normalizedQuat.y * normalizedQuat.z;
-    const float wx = normalizedQuat.w * normalizedQuat.x;
-    const float wy = normalizedQuat.w * normalizedQuat.y;
-    const float wz = normalizedQuat.w * normalizedQuat.z;
+	const float xx = normalizedQuat.x * normalizedQuat.x;
+	const float yy = normalizedQuat.y * normalizedQuat.y;
+	const float zz = normalizedQuat.z * normalizedQuat.z;
+	const float xy = normalizedQuat.x * normalizedQuat.y;
+	const float xz = normalizedQuat.x * normalizedQuat.z;
+	const float yz = normalizedQuat.y * normalizedQuat.z;
+	const float wx = normalizedQuat.w * normalizedQuat.x;
+	const float wy = normalizedQuat.w * normalizedQuat.y;
+	const float wz = normalizedQuat.w * normalizedQuat.z;
 
-    result.m[0][0] = 1.0f - 2.0f * (yy + zz);
-    result.m[0][1] = 2.0f * (xy - wz);
-    result.m[0][2] = 2.0f * (xz + wy);
+	result.m[0][0] = 1.0f - 2.0f * (yy + zz);
+	result.m[0][1] = 2.0f * (xy - wz);
+	result.m[0][2] = 2.0f * (xz + wy);
 
-    result.m[1][0] = 2.0f * (xy + wz);
-    result.m[1][1] = 1.0f - 2.0f * (xx + zz);
-    result.m[1][2] = 2.0f * (yz - wx);
+	result.m[1][0] = 2.0f * (xy + wz);
+	result.m[1][1] = 1.0f - 2.0f * (xx + zz);
+	result.m[1][2] = 2.0f * (yz - wx);
 
-    result.m[2][0] = 2.0f * (xz - wy);
-    result.m[2][1] = 2.0f * (yz + wx);
-    result.m[2][2] = 1.0f - 2.0f * (xx + yy);
+	result.m[2][0] = 2.0f * (xz - wy);
+	result.m[2][1] = 2.0f * (yz + wx);
+	result.m[2][2] = 1.0f - 2.0f * (xx + yy);
 
-    return result;
+	return result;
 }
 
 Mat4 Mat4::RotateX(const float radian) {
@@ -387,4 +387,41 @@ Mat4 Mat4::ViewportMat(
 	result.m[3][2] = minDepth;
 
 	return result;
+}
+
+Quaternion Mat4::ToQuaternion() const {
+	Quaternion q;
+	float trace = m[0][0] + m[1][1] + m[2][2];
+	if (trace > 0) {
+		float s = 0.5f / sqrtf(trace + 1.0f);
+		q.w = 0.25f / s;
+		q.x = (m[2][1] - m[1][2]) * s;
+		q.y = (m[0][2] - m[2][0]) * s;
+		q.z = (m[1][0] - m[0][1]) * s;
+	} else {
+		if (m[0][0] > m[1][1] && m[0][0] > m[2][2]) {
+			float s = 2.0f * sqrtf(1.0f + m[0][0] - m[1][1] - m[2][2]);
+			q.w = (m[2][1] - m[1][2]) / s;
+			q.x = 0.25f * s;
+			q.y = (m[0][1] + m[1][0]) / s;
+			q.z = (m[0][2] + m[2][0]) / s;
+		} else if (m[1][1] > m[2][2]) {
+			float s = 2.0f * sqrtf(1.0f + m[1][1] - m[0][0] - m[2][2]);
+			q.w = (m[0][2] - m[2][0]) / s;
+			q.x = (m[0][1] + m[1][0]) / s;
+			q.y = 0.25f * s;
+			q.z = (m[1][2] + m[2][1]) / s;
+		} else {
+			float s = 2.0f * sqrtf(1.0f + m[2][2] - m[0][0] - m[1][1]);
+			q.w = (m[1][0] - m[0][1]) / s;
+			q.x = (m[0][2] + m[2][0]) / s;
+			q.y = (m[1][2] + m[2][1]) / s;
+			q.z = 0.25f * s;
+		}
+	}
+	return q;
+}
+
+Vec3 Mat4::GetTranslate() {
+	return { m[3][0], m[3][1], m[3][2] };
 }

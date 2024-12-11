@@ -4,6 +4,9 @@
 
 #include "../../Components/Base/BaseComponent.h"
 
+#include "../EntityComponentSystem/Components/Transform/TransformComponent.h"
+#include "../../Game/Components/gamemovement.h"
+
 #include "../Lib/Structs/Structs.h"
 
 class BaseEntity {

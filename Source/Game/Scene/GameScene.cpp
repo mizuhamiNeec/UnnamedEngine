@@ -1,11 +1,12 @@
 #include "GameScene.h"
 
 #include "../Engine.h"
-#include "../Engine/Lib/Console/ConVarManager.h"
-#include "../Engine/Lib/Math/Quaternion/Quaternion.h"
-#include "../Engine/Lib/Math/Random/Random.h"
-#include "../Engine/Lib/Timer/EngineTimer.h"
-#include "../Engine/Model/ModelManager.h"
+#include "../../Engine/EntityComponentSystem/Components/Camera/CameraComponent.h"
+#include "../../Engine/Lib/Console/ConVarManager.h"
+#include "../../Engine/Lib/Math/Quaternion/Quaternion.h"
+#include "../../Engine/Lib/Math/Random/Random.h"
+#include "../../Engine/Lib/Timer/EngineTimer.h"
+#include "../../Engine/Model/ModelManager.h"
 #include "../ImGuiManager/ImGuiManager.h"
 #include "../Lib/Math/MathLib.h"
 #include "../Object3D/Object3D.h"
@@ -13,19 +14,15 @@
 #include "../Sprite/SpriteCommon.h"
 #include "../TextureManager/TextureManager.h"
 #include "../Debug/Debug.h"
+#include "../../Engine/Input/InputSystem.h"
 
-#include "../Engine/EntityComponentSystem/System/Transform/TransformSystem.h"
-#include "../Engine/EntityComponentSystem/Entity/Base/BaseEntity.h"
-
-TransformSystem transformSystem;
-BaseEntity playerEntity;
-BaseEntity cameraEntity;
+#include "../../Engine/EntityComponentSystem/System/Transform/TransformSystem.h"
+#include "../../Engine/EntityComponentSystem/Entity/Base/BaseEntity.h"
 
 void GameScene::Init(
-	D3D12* renderer, Window* window,
-	SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
-	ModelCommon* modelCommon, ParticleCommon* particleCommon,
-	EngineTimer* engineTimer
+	D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
+	ModelCommon* modelCommon, ParticleCommon* particleCommon, EngineTimer* engineTimer, TransformSystem* transformSystem,
+	CameraSystem* cameraSystem
 ) {
 	renderer_ = renderer;
 	window_ = window;
@@ -34,6 +31,20 @@ void GameScene::Init(
 	modelCommon_ = modelCommon;
 	particleCommon_ = particleCommon;
 	timer_ = engineTimer;
+	transformSystem_ = transformSystem;
+	cameraSystem_ = cameraSystem;
+
+#pragma region プレイヤー
+	player_ = std::make_unique<Player>();
+	player_->Initialize();
+	TransformComponent* playerTransform = player_->GetComponent<TransformComponent>();
+	playerTransform->Initialize();
+
+	// コンポーネントをシステムに登録
+	transformSystem_->RegisterComponent(player_->GetComponent<TransformComponent>());
+	// システムの初期化
+	transformSystem_->Initialize();
+#pragma endregion
 
 #pragma region テクスチャ読み込み
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
@@ -62,38 +73,14 @@ void GameScene::Init(
 	particle_ = std::make_unique<ParticleObject>();
 	particle_->Init(particleCommon_, "./Resources/Textures/circle.png");
 #pragma endregion
-
-#pragma region プレイヤー
-	//player_ = std::make_unique<Player>();
-	// コンポーネントを作成
-	auto* playerTransform = playerEntity.AddComponent<TransformComponent>();
-	auto* cameraTransform = cameraEntity.AddComponent<TransformComponent>();
-
-	// 親子関係を設定
-	cameraTransform->SetParent(playerTransform);
-	cameraTransform->SetLocalPos(Vec3(0.0f, 4.0f, -5.0f));
-
-	// コンポーネントをシステムに登録
-	transformSystem.RegisterComponent(playerTransform);
-	transformSystem.RegisterComponent(cameraTransform);
-
-	// システムの初期化
-	transformSystem.Initialize();
-#pragma endregion
 }
 
 void GameScene::Update() {
-	TransformComponent* tcomp = playerEntity.GetComponent<TransformComponent>();
-	//TransformComponent* cameratcomp = cameraEntity.GetComponent<TransformComponent>();
-
-	tcomp->Rotate(Quaternion::AngleAxis(0.25f, Vec3::up));
-	//cameratcomp->Translate();
-
-	transformSystem.Update(EngineTimer::GetScaledDeltaTime());
+	player_->Update(EngineTimer::GetScaledDeltaTime());
 
 	sprite_->Update();
 	object3D_->Update();
-	particle_->Update(EngineTimer::GetScaledDeltaTime());
+	//particle_->Update(EngineTimer::GetScaledDeltaTime());
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -163,14 +150,13 @@ void GameScene::Render() {
 	// オブジェクト3D共通描画設定
 	object3DCommon_->Render();
 	//----------------------------------------
-
 	object3D_->Draw();
 
 	//----------------------------------------
 	// パーティクル共通描画設定
-	particleCommon_->Render();
+	//particleCommon_->Render();
 	//----------------------------------------
-	particle_->Draw();
+	//particle_->Draw();
 
 	//----------------------------------------
 	// スプライト共通描画設定
@@ -180,9 +166,6 @@ void GameScene::Render() {
 }
 
 void GameScene::Shutdown() {
-	// システムの終了
-	transformSystem.Terminate();
-
 	spriteCommon_->Shutdown();
 	object3DCommon_->Shutdown();
 	particleCommon_->Shutdown();

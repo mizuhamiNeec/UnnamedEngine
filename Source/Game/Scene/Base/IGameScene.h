@@ -1,12 +1,14 @@
 #pragma once
 
-#include "../Engine/Renderer/D3D12.h"
+#include "../../Engine/Renderer/D3D12.h"
 #include "../Model/ModelCommon.h"
 #include "../Object3D/Object3DCommon.h"
 #include "../Renderer/Renderer.h"
 #include "../Sprite/SpriteCommon.h"
 #include "../Line/LineCommon.h"
 
+class CameraSystem;
+class TransformSystem;
 class EngineTimer;
 class ParticleCommon;
 
@@ -20,7 +22,9 @@ public:
 		Object3DCommon* object3DCommon,
 		ModelCommon* modelCommon,
 		ParticleCommon* particleCommon,
-		EngineTimer* engineTimer
+		EngineTimer* engineTimer,
+		TransformSystem* transformSystem,
+		CameraSystem* cameraSystem
 	) = 0;
 	virtual void Update() = 0;
 	virtual void Render() = 0;
@@ -32,4 +36,6 @@ protected:
 	ModelCommon* modelCommon_ = nullptr;
 	ParticleCommon* particleCommon_ = nullptr;
 	EngineTimer* timer_ = nullptr;
+	TransformSystem* transformSystem_ = nullptr;
+	CameraSystem* cameraSystem_ = nullptr;
 };
