@@ -26,9 +26,11 @@
 
 Engine::Engine() = default;
 
-void Engine::Run() {
+void Engine::Run()
+{
 	Init();
-	while (true) {
+	while (true)
+	{
 		if (Window::ProcessMessage() || bWishShutdown)
 			break; // ゲームループを抜ける
 		Update();
@@ -38,39 +40,51 @@ void Engine::Run() {
 
 void Engine::DrawGrid(
 	const float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
-	const Vec4& axisColor, const Vec4& minorColor) {
+	const Vec4& axisColor, const Vec4& minorColor)
+{
 	// const float range = 16384.0f;
 	constexpr float majorInterval = 1024.0f;
 	const float minorInterval = gridSize * 8.0f;
 
-	for (float x = -range; x <= range; x += gridSize) {
+	for (float x = -range; x <= range; x += gridSize)
+	{
 		Vec4 lineColor = color;
-		if (fmod(x, majorInterval) == 0) {
+		if (fmod(x, majorInterval) == 0)
+		{
 			lineColor = majorColor;
-		} else if (fmod(x, minorInterval) == 0) {
+		}
+		else if (fmod(x, minorInterval) == 0)
+		{
 			lineColor = minorColor;
 		}
-		if (x == 0) {
+		if (x == 0)
+		{
 			lineColor = axisColor;
 		}
 		Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range), lineColor);
 	}
 
-	for (float z = -range; z <= range; z += gridSize) {
+	for (float z = -range; z <= range; z += gridSize)
+	{
 		Vec4 lineColor = color;
-		if (fmod(z, majorInterval) == 0) {
+		if (fmod(z, majorInterval) == 0)
+		{
 			lineColor = majorColor;
-		} else if (fmod(z, minorInterval) == 0) {
+		}
+		else if (fmod(z, minorInterval) == 0)
+		{
 			lineColor = minorColor;
 		}
-		if (z == 0) {
+		if (z == 0)
+		{
 			lineColor = axisColor;
 		}
 		Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z), lineColor);
 	}
 }
 
-void Engine::Init() {
+void Engine::Init()
+{
 	RegisterConsoleCommandsAndVariables();
 
 	// ウィンドウの作成
@@ -160,14 +174,14 @@ void Engine::Init() {
 		particleCommon_.get(),
 		time_.get(),
 		transformSystem_.get(),
-		cameraSystem_.get()
-	);
+		cameraSystem_.get());
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
 }
 
-void Engine::Update() const {
+void Engine::Update() const
+{
 #ifdef _DEBUG
 	ImGuiManager::NewFrame();
 	Console::Update();
@@ -186,8 +200,13 @@ void Engine::Update() const {
 	static bool firstReset = true; // 初回リセットフラグ
 	static bool cursorHidden = false;
 
-	if (InputSystem::IsPressed("attack2")) {
-		if (!cursorHidden) {
+	ImGui::Begin("Debug");
+	ImGui::End();
+
+	if (InputSystem::IsPressed("attack2"))
+	{
+		if (!cursorHidden)
+		{
 			ShowCursor(FALSE); // カーソルを非表示にする
 			cursorHidden = true;
 		}
@@ -197,7 +216,8 @@ void Engine::Update() const {
 		// カメラのトランスフォームコンポーネントを取得
 		TransformComponent* cameraTransform = object3DCommon_->GetDefaultCamera()->GetTransform();
 
-		if (!firstReset) {
+		if (!firstReset)
+		{
 			// 回転
 			float sensitivity = std::stof(ConVarManager::GetConVar("sensitivity")->GetValueAsString());
 			float m_pitch = 0.022f;
@@ -216,27 +236,33 @@ void Engine::Update() const {
 
 			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
 
-			if (InputSystem::IsPressed("forward")) {
+			if (InputSystem::IsPressed("forward"))
+			{
 				moveInput.z += 1.0f;
 			}
 
-			if (InputSystem::IsPressed("back")) {
+			if (InputSystem::IsPressed("back"))
+			{
 				moveInput.z -= 1.0f;
 			}
 
-			if (InputSystem::IsPressed("moveright")) {
+			if (InputSystem::IsPressed("moveright"))
+			{
 				moveInput.x += 1.0f;
 			}
 
-			if (InputSystem::IsPressed("moveleft")) {
+			if (InputSystem::IsPressed("moveleft"))
+			{
 				moveInput.x -= 1.0f;
 			}
 
-			if (InputSystem::IsPressed("moveup")) {
+			if (InputSystem::IsPressed("moveup"))
+			{
 				moveInput.y += 1.0f;
 			}
 
-			if (InputSystem::IsPressed("movedown")) {
+			if (InputSystem::IsPressed("movedown"))
+			{
 				moveInput.y -= 1.0f;
 			}
 
@@ -247,11 +273,13 @@ void Engine::Update() const {
 			Vec3 cameraRight = camRot * Vec3::right;
 			Vec3 cameraUp = camRot * Vec3::up;
 
-			if (InputSystem::IsTriggered("invprev")) {
+			if (InputSystem::IsTriggered("invprev"))
+			{
 				moveSpd += 1.0f;
 			}
 
-			if (InputSystem::IsTriggered("invnext")) {
+			if (InputSystem::IsTriggered("invnext"))
+			{
 				moveSpd -= 1.0f;
 			}
 
@@ -268,8 +296,11 @@ void Engine::Update() const {
 		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
 
 		firstReset = false; // 初回リセット完了
-	} else {
-		if (cursorHidden) {
+	}
+	else
+	{
+		if (cursorHidden)
+		{
 			ShowCursor(TRUE); // カーソルを表示する
 			cursorHidden = false;
 		}
@@ -296,8 +327,10 @@ void Engine::Update() const {
 
 	ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.0f);
 
-	if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, 38, window_flags)) {
-		if (ImGui::BeginMenuBar()) {
+	if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, 38, window_flags))
+	{
+		if (ImGui::BeginMenuBar())
+		{
 			ImGui::PopStyleVar();
 
 			ImGui::Text("ハリボテ");
@@ -319,13 +352,17 @@ void Engine::Update() const {
 				float offsetY = (windowHeight - comboHeight) * 0.5f;
 				ImGui::SetCursorPosY(offsetY);
 
-				if (ImGui::BeginCombo("##angle", comboLabel)) {
-					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
+				if (ImGui::BeginCombo("##angle", comboLabel))
+				{
+					for (int n = 0; n < IM_ARRAYSIZE(items); ++n)
+					{
 						const bool isSelected = (itemCurrentIndex == n);
-						if (ImGui::Selectable(items[n], isSelected)) {
+						if (ImGui::Selectable(items[n], isSelected))
+						{
 							itemCurrentIndex = n;
 						}
-						if (isSelected) {
+						if (isSelected)
+						{
 							ImGui::SetItemDefaultFocus();
 						}
 					}
@@ -347,7 +384,8 @@ void Engine::Update() const {
 #endif
 
 #ifdef _DEBUG // cl_showfps
-	if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() != "0") {
+	if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() != "0")
+	{
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
 		ImGuiWindowFlags windowFlags =
@@ -367,10 +405,12 @@ void Engine::Update() const {
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 		std::string text;
 		float fps;
-		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "1") {
+		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "1")
+		{
 			fps = 1.0f / time_->GetScaledDeltaTime();
 		}
-		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "2") {
+		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "2")
+		{
 			ImGuiIO io = ImGui::GetIO();
 			fps = io.Framerate;
 		}
@@ -392,9 +432,12 @@ void Engine::Update() const {
 		float outlineSize = 1.0f;
 
 		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
-		if (fps >= 59.9f) {
+		if (fps >= 59.9f)
+		{
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
-		} else if (fps >= 29.9f) {
+		}
+		else if (fps >= 29.9f)
+		{
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 		}
 
@@ -443,7 +486,8 @@ void Engine::Update() const {
 	time_->EndFrame();
 }
 
-void Engine::Shutdown() const {
+void Engine::Shutdown() const
+{
 	gameScene_->Shutdown();
 
 	transformSystem_->Terminate();
@@ -456,22 +500,25 @@ void Engine::Shutdown() const {
 
 #ifdef _DEBUG
 	// ImGuiManagerのシャットダウンは最後に行う
-	if (imGuiManager_) {
+	if (imGuiManager_)
+	{
 		imGuiManager_->Shutdown();
 	}
 #endif
 }
 
-void Engine::RegisterConsoleCommandsAndVariables() {
+void Engine::RegisterConsoleCommandsAndVariables()
+{
 	// コンソールコマンドを登録
-	ConCommand::RegisterCommand("bind", [](const std::vector<std::string>& args) {
-		if (args.size() < 2) {
-			Console::Print("Usage: bind <key> <command>\n");
-			return;
-		}
-		std::string key = args[0];
-		std::string command = args[1];
-		InputSystem::BindKey(key, command); }, "Bind a key to a command.");
+	ConCommand::RegisterCommand("bind", [](const std::vector<std::string>& args)
+		{
+			if (args.size() < 2) {
+				Console::Print("Usage: bind <key> <command>\n");
+				return;
+			}
+			std::string key = args[0];
+			std::string command = args[1];
+			InputSystem::BindKey(key, command); }, "Bind a key to a command.");
 	ConCommand::RegisterCommand("clear", Console::Clear, "Clear all console output.");
 	ConCommand::RegisterCommand("cls", Console::Clear, "Clear all console output.");
 	ConCommand::RegisterCommand("help", Console::Help, "Find help about a convar/concommand.");
@@ -517,7 +564,8 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind c +changecamera");
 }
 
-void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
+void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args)
+{
 	bWishShutdown = true;
 }
 

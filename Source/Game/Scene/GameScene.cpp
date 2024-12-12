@@ -1,29 +1,28 @@
 #include "GameScene.h"
 
-#include "../Engine.h"
 #include "../../Engine/EntityComponentSystem/Components/Camera/CameraComponent.h"
+#include "../../Engine/Input/InputSystem.h"
 #include "../../Engine/Lib/Console/ConVarManager.h"
 #include "../../Engine/Lib/Math/Quaternion/Quaternion.h"
 #include "../../Engine/Lib/Math/Random/Random.h"
 #include "../../Engine/Lib/Timer/EngineTimer.h"
 #include "../../Engine/Model/ModelManager.h"
+#include "../Debug/Debug.h"
+#include "../Engine.h"
 #include "../ImGuiManager/ImGuiManager.h"
 #include "../Lib/Math/MathLib.h"
 #include "../Object3D/Object3D.h"
 #include "../Particle/ParticleCommon.h"
 #include "../Sprite/SpriteCommon.h"
 #include "../TextureManager/TextureManager.h"
-#include "../Debug/Debug.h"
-#include "../../Engine/Input/InputSystem.h"
 
-#include "../../Engine/EntityComponentSystem/System/Transform/TransformSystem.h"
 #include "../../Engine/EntityComponentSystem/Entity/Base/BaseEntity.h"
+#include "../../Engine/EntityComponentSystem/System/Transform/TransformSystem.h"
 
 void GameScene::Init(
 	D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
-	ModelCommon* modelCommon, ParticleCommon* particleCommon, EngineTimer* engineTimer, TransformSystem* transformSystem,
-	CameraSystem* cameraSystem
-) {
+	ModelCommon* modelCommon, ParticleCommon* particleCommon, EngineTimer* engineTimer,
+	TransformSystem* transformSystem, CameraSystem* cameraSystem) {
 	renderer_ = renderer;
 	window_ = window;
 	spriteCommon_ = spriteCommon;
@@ -55,7 +54,7 @@ void GameScene::Init(
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
+	sprite_->SetSize({512.0f, 512.0f, 0.0f});
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -76,22 +75,18 @@ void GameScene::Init(
 }
 
 void GameScene::Update() {
-	player_->Update(EngineTimer::GetScaledDeltaTime());
+	//player_->Update(EngineTimer::GetScaledDeltaTime());
 
 	sprite_->Update();
 	object3D_->Update();
-	//particle_->Update(EngineTimer::GetScaledDeltaTime());
+	// particle_->Update(EngineTimer::GetScaledDeltaTime());
 
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVarManager::GetConVar("cl_showpos")->GetValueAsString() == "1") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
-		constexpr ImGuiWindowFlags windowFlags =
-			ImGuiWindowFlags_NoBackground |
-			ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoSavedSettings |
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
 			ImGuiWindowFlags_NoDocking;
 		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
 		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
@@ -108,13 +103,11 @@ void GameScene::Update() {
 			"pos : {:.2f} {:.2f} {:.2f}\n"
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
-			ConVarManager::GetConVar("name")->GetValueAsString(),
-			cameraTransform->GetWorldPosition().x, cameraTransform->GetWorldPosition().y, cameraTransform->GetWorldPosition().z,
+			ConVarManager::GetConVar("name")->GetValueAsString(), cameraTransform->GetWorldPosition().x,
+			cameraTransform->GetWorldPosition().y, cameraTransform->GetWorldPosition().z,
 			cameraTransform->GetWorldRotation().ToEulerAngles().x * Math::rad2Deg,
 			cameraTransform->GetWorldRotation().ToEulerAngles().y * Math::rad2Deg,
-			cameraTransform->GetWorldRotation().ToEulerAngles().z * Math::rad2Deg,
-			0.0f
-		);
+			cameraTransform->GetWorldRotation().ToEulerAngles().z * Math::rad2Deg, 0.0f);
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 
 		// ウィンドウサイズをテキストサイズに基づいて設定
@@ -129,14 +122,7 @@ void GameScene::Update() {
 
 		ImU32 textColor = IM_COL32(255, 255, 255, 255);
 		ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
-		ImGuiManager::TextOutlined(
-			drawList,
-			textPos,
-			text.c_str(),
-			textColor,
-			outlineColor,
-			outlineSize
-		);
+		ImGuiManager::TextOutlined(drawList, textPos, text.c_str(), textColor, outlineColor, outlineSize);
 
 		ImGui::PopStyleVar();
 		ImGui::End();
@@ -154,15 +140,15 @@ void GameScene::Render() {
 
 	//----------------------------------------
 	// パーティクル共通描画設定
-	//particleCommon_->Render();
+	// particleCommon_->Render();
 	//----------------------------------------
-	//particle_->Draw();
+	// particle_->Draw();
 
 	//----------------------------------------
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
-	//sprite_->Draw();
+	// sprite_->Draw();
 }
 
 void GameScene::Shutdown() {

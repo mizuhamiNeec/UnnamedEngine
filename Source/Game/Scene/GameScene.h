@@ -16,26 +16,19 @@
 
 class CameraSystem;
 
-class GameScene : IGameScene
-{
+class GameScene : IGameScene {
 public:
 	void Init(
-		D3D12 *renderer,
-		Window *window,
-		SpriteCommon *spriteCommon,
-		Object3DCommon *object3DCommon,
-		ModelCommon *modelCommon,
-		ParticleCommon *particleCommon,
-		EngineTimer *engineTimer,
-		TransformSystem *transformSystem,
-		CameraSystem *cameraSystem) override;
+		D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
+		ModelCommon* modelCommon, ParticleCommon* particleCommon, EngineTimer* engineTimer,
+		TransformSystem* transformSystem, CameraSystem* cameraSystem) override;
 	void Update() override;
 	void Render() override;
 	void Shutdown() override;
 
 private:
-	Window *window_ = nullptr;
-	D3D12 *renderer_ = nullptr;
+	Window* window_ = nullptr;
+	D3D12* renderer_ = nullptr;
 
 	std::unique_ptr<Player> player_;
 	std::unique_ptr<Camera> camera_;
