@@ -1,8 +1,7 @@
 #include "LineCommon.h"
 
-#include "Line.h"
 #include "../Lib/Console/Console.h"
-#include "../EntityComponentSystem/Entity/Camera/Camera.h"
+#include "Line.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : LineCommonを初期化します
@@ -46,8 +45,7 @@ void LineCommon::CreateRootSignature() {
 		"Line",
 		rootParameters,
 		nullptr, // 今回サンプラーは使用しない
-		0
-	);
+		0);
 
 	if (rootSignatureManager_->Get("Line")) {
 		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);

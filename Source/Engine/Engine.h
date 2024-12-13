@@ -3,9 +3,6 @@
 
 #include "../Game/Scene/GameScene.h"
 #include "../Renderer/SrvManager.h"
-#include "EntityComponentSystem/Entity/Camera/Camera.h"
-#include "EntityComponentSystem/System/Camera/CameraSystem.h"
-#include "EntityComponentSystem/System/Transform/TransformSystem.h"
 
 #include "Lib/Timer/EngineTimer.h"
 #include "Line/LineCommon.h"
@@ -31,9 +28,7 @@ private:
 	static void Quit(const std::vector<std::string>& args = {});
 
 	static void DrawGrid(
-		float gridSize, float range, const Vec4& color, const Vec4& majorColor, const Vec4& axisColor, const Vec4&
-		minorColor
-	);
+		float gridSize, float range, const Vec4& color, const Vec4& majorColor, const Vec4& axisColor, const Vec4& minorColor);
 
 private:
 	std::unique_ptr<Window> window_;
@@ -47,9 +42,6 @@ private:
 	std::unique_ptr<ParticleCommon> particleCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
-
-	std::unique_ptr<TransformSystem> transformSystem_;
-	std::unique_ptr<CameraSystem> cameraSystem_;
 
 private:
 	static bool bWishShutdown;

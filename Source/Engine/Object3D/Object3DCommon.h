@@ -2,9 +2,9 @@
 
 #include <memory>
 
+#include "../Camera/Camera.h"
 #include "../Renderer/PipelineState.h"
 
-class Camera;
 class SrvManager;
 class RootSignatureManager;
 class D3D12;

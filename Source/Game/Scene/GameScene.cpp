@@ -1,12 +1,10 @@
 #include "GameScene.h"
 
-#include "../../Engine/EntityComponentSystem/Components/Camera/CameraComponent.h"
-#include "../../Engine/Input/InputSystem.h"
 #include "../../Engine/Lib/Console/ConVarManager.h"
-#include "../../Engine/Lib/Math/Quaternion/Quaternion.h"
 #include "../../Engine/Lib/Math/Random/Random.h"
 #include "../../Engine/Lib/Timer/EngineTimer.h"
 #include "../../Engine/Model/ModelManager.h"
+#include "../Camera/Camera.h"
 #include "../Debug/Debug.h"
 #include "../Engine.h"
 #include "../ImGuiManager/ImGuiManager.h"
@@ -16,13 +14,9 @@
 #include "../Sprite/SpriteCommon.h"
 #include "../TextureManager/TextureManager.h"
 
-#include "../../Engine/EntityComponentSystem/Entity/Base/BaseEntity.h"
-#include "../../Engine/EntityComponentSystem/System/Transform/TransformSystem.h"
-
 void GameScene::Init(
 	D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
-	ModelCommon* modelCommon, ParticleCommon* particleCommon, EngineTimer* engineTimer,
-	TransformSystem* transformSystem, CameraSystem* cameraSystem) {
+	ModelCommon* modelCommon, ParticleCommon* particleCommon, EngineTimer* engineTimer) {
 	renderer_ = renderer;
 	window_ = window;
 	spriteCommon_ = spriteCommon;
@@ -30,20 +24,6 @@ void GameScene::Init(
 	modelCommon_ = modelCommon;
 	particleCommon_ = particleCommon;
 	timer_ = engineTimer;
-	transformSystem_ = transformSystem;
-	cameraSystem_ = cameraSystem;
-
-#pragma region プレイヤー
-	player_ = std::make_unique<Player>();
-	player_->Initialize();
-	TransformComponent* playerTransform = player_->GetComponent<TransformComponent>();
-	playerTransform->Initialize();
-
-	// コンポーネントをシステムに登録
-	transformSystem_->RegisterComponent(player_->GetComponent<TransformComponent>());
-	// システムの初期化
-	transformSystem_->Initialize();
-#pragma endregion
 
 #pragma region テクスチャ読み込み
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
@@ -75,7 +55,7 @@ void GameScene::Init(
 }
 
 void GameScene::Update() {
-	//player_->Update(EngineTimer::GetScaledDeltaTime());
+	// player_->Update(EngineTimer::GetScaledDeltaTime());
 
 	sprite_->Update();
 	object3D_->Update();
@@ -93,8 +73,7 @@ void GameScene::Update() {
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
-		// カメラのトランスフォームコンポーネントを取得
-		TransformComponent* cameraTransform = object3DCommon_->GetDefaultCamera()->GetTransform();
+		Camera* cam = object3DCommon_->GetDefaultCamera();
 
 		// テキストのサイズを取得
 		ImGuiIO io = ImGui::GetIO();
@@ -103,11 +82,12 @@ void GameScene::Update() {
 			"pos : {:.2f} {:.2f} {:.2f}\n"
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
-			ConVarManager::GetConVar("name")->GetValueAsString(), cameraTransform->GetWorldPosition().x,
-			cameraTransform->GetWorldPosition().y, cameraTransform->GetWorldPosition().z,
-			cameraTransform->GetWorldRotation().ToEulerAngles().x * Math::rad2Deg,
-			cameraTransform->GetWorldRotation().ToEulerAngles().y * Math::rad2Deg,
-			cameraTransform->GetWorldRotation().ToEulerAngles().z * Math::rad2Deg, 0.0f);
+			ConVarManager::GetConVar("name")->GetValueAsString(),
+			cam->GetPos().x, cam->GetPos().y, cam->GetPos().z,
+			cam->GetRotate().x * Math::rad2Deg,
+			cam->GetRotate().y * Math::rad2Deg,
+			cam->GetRotate().z * Math::rad2Deg,
+			0.0f);
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 
 		// ウィンドウサイズをテキストサイズに基づいて設定

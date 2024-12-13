@@ -2,36 +2,28 @@
 
 #include <mutex>
 
-#include "../EntityComponentSystem/Components/Camera/CameraComponent.h"
-#include "../EntityComponentSystem/Entity/Camera/Camera.h"
-
+#include "../Camera/Camera.h"
 #include "../Lib/Console/Console.h"
 
 const D3D12_INPUT_ELEMENT_DESC LineVertex::inputElements[] = {
-	{
-		"POSITION",
-		0,
-		DXGI_FORMAT_R32G32B32_FLOAT,
-		0,
-		0,
-		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-		0
-	},
-	{
-		"COLOR",
-		0,
-		DXGI_FORMAT_R32G32B32A32_FLOAT,
-		0,
-		12,
-		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-		0
-	}
-};
+	{"POSITION",
+	 0,
+	 DXGI_FORMAT_R32G32B32_FLOAT,
+	 0,
+	 0,
+	 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+	 0},
+	{"COLOR",
+	 0,
+	 DXGI_FORMAT_R32G32B32A32_FLOAT,
+	 0,
+	 12,
+	 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+	 0}};
 
 const D3D12_INPUT_LAYOUT_DESC LineVertex::inputLayout = {
 	inputElements,
-	inputElementCount
-};
+	inputElementCount};
 
 Line::Line(LineCommon* lineCommon) {
 	lineCommon_ = lineCommon;
@@ -40,13 +32,11 @@ Line::Line(LineCommon* lineCommon) {
 	vertexBuffer_ = std::make_unique<VertexBuffer<LineVertex>>(
 		lineCommon_->GetD3D12()->GetDevice(),
 		vertexBufferSize,
-		nullptr
-	);
+		nullptr);
 	indexBuffer_ = std::make_unique<IndexBuffer>(
 		lineCommon_->GetD3D12()->GetDevice(),
 		indexBufferSize,
-		nullptr
-	);
+		nullptr);
 
 	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		lineCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
@@ -64,8 +54,8 @@ void Line::AddLine(const Vec3& start, const Vec3& end, const Vec4& color) {
 	const uint32_t startIndex = static_cast<uint32_t>(lineVertices_.size());
 
 	// インデックスを正確に追加 (最後の2つのインデックスのみを追加)
-	lineVertices_.push_back({ .pos = start, .color = color });
-	lineVertices_.push_back({ .pos = end, .color = color });
+	lineVertices_.push_back({.pos = start, .color = color});
+	lineVertices_.push_back({.pos = end, .color = color});
 
 	lineIndices_.push_back(startIndex); // 開始頂点
 	lineIndices_.push_back(startIndex + 1); // 終了頂点
@@ -97,8 +87,7 @@ void Line::UpdateBuffer() {
 		vertexBuffer_ = std::make_unique<VertexBuffer<LineVertex>>(
 			lineCommon_->GetD3D12()->GetDevice(),
 			requiredVertexBufferSize,
-			nullptr
-		);
+			nullptr);
 	}
 
 	if (indexBuffer_->GetSize() < requiredIndexBufferSize) {
@@ -106,8 +95,7 @@ void Line::UpdateBuffer() {
 		indexBuffer_ = std::make_unique<IndexBuffer>(
 			lineCommon_->GetD3D12()->GetDevice(),
 			requiredIndexBufferSize,
-			nullptr
-		);
+			nullptr);
 	}
 
 	// バッファを更新

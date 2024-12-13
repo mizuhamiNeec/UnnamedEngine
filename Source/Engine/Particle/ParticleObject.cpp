@@ -2,6 +2,7 @@
 
 #include "ParticleCommon.h"
 
+#include "../Camera/Camera.h"
 #include "../Engine.h"
 
 #include "../Debug/Debug.h"
@@ -179,9 +180,10 @@ void ParticleObject::Update(const float deltaTime) {
 			// ビルボード
 			{
 				// カメラの行列を取得
-				TransformComponent* transformComponent = camera_->GetTransform();
+				Vec3 camPos = camera_->GetPos();
+				Quaternion camRot = Quaternion::Euler(camera_->GetRotate());
 
-				Mat4 cameraMat = Mat4::Affine(Vec3::one, transformComponent->GetWorldRotation().ToEulerAngles(), transformComponent->GetWorldPosition());
+				Mat4 cameraMat = Mat4::Affine(Vec3::one, camRot.ToEulerAngles(), camPos);
 				Mat4 backToFrontMat = Mat4::RotateY(std::numbers::pi_v<float>);
 				Mat4 billboardMatrix = backToFrontMat * cameraMat;
 				billboardMatrix.m[3][0] = 0.0f;

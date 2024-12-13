@@ -1,10 +1,9 @@
 #pragma once
 
-#include "../EntityComponentSystem/Entity/Camera/Camera.h"
-
 #include "../Renderer/PipelineState.h"
 #include "../Renderer/SrvManager.h"
 
+class Camera;
 class CameraComponent;
 class RootSignatureManager;
 class D3D12;

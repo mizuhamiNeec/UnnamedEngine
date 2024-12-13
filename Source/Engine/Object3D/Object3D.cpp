@@ -1,6 +1,6 @@
 #include "Object3D.h"
 
-#include "../EntityComponentSystem/Entity/Camera/Camera.h"
+#include "../Camera/Camera.h"
 #include "../Lib/Console/Console.h"
 #include "../Lib/Math/Vector/Vec3.h"
 #include "../Lib/Math/Vector/Vec4.h"
@@ -38,7 +38,7 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 	cameraConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		object3DCommon_->GetD3D12()->GetDevice(), sizeof(CameraForGPU));
 	cameraForGPU_ = cameraConstantBuffer_->GetPtr<CameraForGPU>();
-	cameraForGPU_->worldPosition = camera_->GetWorldPos();
+	cameraForGPU_->worldPosition = camera_->GetPos();
 
 	// ポイントライト定数バッファ
 	pointLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
@@ -121,7 +121,7 @@ void Object3D::Update() {
 	transformationMatrixData_->world = worldMat;
 	transformationMatrixData_->worldInverseTranspose = worldMat.Inverse().Transpose();
 
-	cameraForGPU_->worldPosition = camera_->GetWorldPos();
+	cameraForGPU_->worldPosition = camera_->GetPos();
 }
 
 void Object3D::Draw() const {

@@ -104,11 +104,6 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Game\Components\gamemovement.cpp" />
-    <ClCompile Include="Source\Engine\EntityComponentSystem\System\Camera\CameraSystem.cpp" />
-    <ClCompile Include="Source\Engine\EntityComponentSystem\Entity\Camera\Camera.cpp" />
-    <ClCompile Include="Source\Engine\EntityComponentSystem\Components\Transform\TransformComponent.cpp" />
-    <ClCompile Include="Source\Engine\EntityComponentSystem\System\Transform\TransformSystem.cpp" />
     <None Include="Resources\Shaders\Line.PS.hlsl" />
     <None Include="Resources\Shaders\Line.VS.hlsl" />
     <None Include="Resources\Shaders\Object3d.PS.hlsl" />
@@ -117,6 +112,7 @@
     <None Include="Resources\Shaders\Particle.VS.hlsl" />
     <None Include="Resources\Shaders\SpriteCommon.PS.hlsl" />
     <None Include="Resources\Shaders\SpriteCommon.VS.hlsl" />
+    <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
     <ClCompile Include="Source\Engine\Input\InputCommand.cpp" />
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp" />
     <ClCompile Include="Source\Engine\Lib\Console\ConCommand.cpp" />
@@ -127,7 +123,6 @@
     <ClCompile Include="Source\Engine\Line\Line.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
-    <ClCompile Include="Source\Engine\EntityComponentSystem\Components\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\MathLib.cpp" />
     <ClCompile Include="Source\Engine\Model\ModelManager.cpp" />
     <ClCompile Include="Source\Engine\Model\ModelCommon.cpp" />
@@ -155,7 +150,6 @@
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
     <ClCompile Include="Source\Engine\Renderer\DirectX12.cpp" />
-    <ClCompile Include="Source\Game\Entity\Player.cpp" />
     <ClCompile Include="Source\WinMain.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Random\Random.cpp" />
@@ -170,20 +164,13 @@
     <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Game\Components\gamemovement.h" />
-    <ClInclude Include="Source\Engine\EntityComponentSystem\System\Camera\CameraSystem.h" />
-    <ClInclude Include="Source\Engine\EntityComponentSystem\Entity\Camera\Camera.h" />
-    <ClInclude Include="Source\Engine\EntityComponentSystem\System\Base\BaseSystem.h" />
-    <ClInclude Include="Source\Engine\EntityComponentSystem\Components\Transform\TransformComponent.h" />
-    <ClInclude Include="Source\Game\Entity\Player.h" />
-    <ClInclude Include="Source\Engine\EntityComponentSystem\System\Transform\TransformSystem.h" />
     <None Include="Resources\Shaders\Object3d.hlsli" />
     <None Include="Resources\Shaders\Particle.hlsli" />
     <None Include="Resources\Shaders\Line.hlsli" />
+    <ClInclude Include="Source\Engine\Camera\Camera.h" />
     <ClInclude Include="Source\Engine\Input\InputCommand.h" />
     <ClInclude Include="Source\Engine\Input\InputSystem.h" />
     <ClInclude Include="Source\Engine\Lib\Console\ConCommand.h" />
-    <ClInclude Include="Source\Engine\EntityComponentSystem\Components\Base\BaseComponent.h" />
     <ClInclude Include="Source\Engine\Debug\Debug.h" />
     <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h" />
     <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h" />
@@ -193,7 +180,6 @@
     <ClInclude Include="Source\Engine\Line\Line.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleCommon.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
-    <ClInclude Include="Source\Engine\EntityComponentSystem\Components\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Engine\Model\ModelManager.h" />
     <ClInclude Include="Source\Engine\Model\ModelCommon.h" />
     <ClInclude Include="Source\Engine\Model\Model.h" />
@@ -202,7 +188,6 @@
     <ClInclude Include="Source\Engine\Lib\Console\ConVar.h" />
     <ClInclude Include="Source\Engine\Engine.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h" />
-    <ClInclude Include="Source\Engine\EntityComponentSystem\Entity\Base\BaseEntity.h" />
     <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\IndexBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\PipelineState.h" />

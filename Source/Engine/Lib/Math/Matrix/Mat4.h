@@ -28,6 +28,7 @@ struct Mat4 final {
 	static Mat4 Scale(const Vec3& scale);
 	static Vec3 Transform(const Vec3& vector, const Mat4& matrix);
 	static Mat4 RotateQuaternion(Quaternion quaternion);
+	static Mat4 FromQuaternion(const Quaternion& q);
 	static Mat4 RotateX(float radian);
 	static Mat4 RotateY(float radian);
 	static Mat4 RotateZ(float radian);

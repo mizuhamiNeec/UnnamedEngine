@@ -4,15 +4,14 @@
 #include "imgui/imgui_internal.h"
 #endif
 
+#include "Camera/Camera.h"
 #include "Debug/Debug.h"
-
-#include "EntityComponentSystem/System/Camera/CameraSystem.h"
 
 #include "Input/InputSystem.h"
 
 #include "Lib/Console/ConCommand.h"
-#include "Lib/Console/Console.h"
 #include "Lib/Console/ConVarManager.h"
+#include "Lib/Console/Console.h"
 #include "Lib/Utils/ClientProperties.h"
 #include "Model/ModelManager.h"
 #include "Object3D/Object3DCommon.h"
@@ -26,11 +25,9 @@
 
 Engine::Engine() = default;
 
-void Engine::Run()
-{
+void Engine::Run() {
 	Init();
-	while (true)
-	{
+	while (true) {
 		if (Window::ProcessMessage() || bWishShutdown)
 			break; // ゲームループを抜ける
 		Update();
@@ -40,51 +37,39 @@ void Engine::Run()
 
 void Engine::DrawGrid(
 	const float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
-	const Vec4& axisColor, const Vec4& minorColor)
-{
+	const Vec4& axisColor, const Vec4& minorColor) {
 	// const float range = 16384.0f;
 	constexpr float majorInterval = 1024.0f;
 	const float minorInterval = gridSize * 8.0f;
 
-	for (float x = -range; x <= range; x += gridSize)
-	{
+	for (float x = -range; x <= range; x += gridSize) {
 		Vec4 lineColor = color;
-		if (fmod(x, majorInterval) == 0)
-		{
+		if (fmod(x, majorInterval) == 0) {
 			lineColor = majorColor;
-		}
-		else if (fmod(x, minorInterval) == 0)
-		{
+		} else if (fmod(x, minorInterval) == 0) {
 			lineColor = minorColor;
 		}
-		if (x == 0)
-		{
+		if (x == 0) {
 			lineColor = axisColor;
 		}
 		Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range), lineColor);
 	}
 
-	for (float z = -range; z <= range; z += gridSize)
-	{
+	for (float z = -range; z <= range; z += gridSize) {
 		Vec4 lineColor = color;
-		if (fmod(z, majorInterval) == 0)
-		{
+		if (fmod(z, majorInterval) == 0) {
 			lineColor = majorColor;
-		}
-		else if (fmod(z, minorInterval) == 0)
-		{
+		} else if (fmod(z, minorInterval) == 0) {
 			lineColor = minorColor;
 		}
-		if (z == 0)
-		{
+		if (z == 0) {
 			lineColor = axisColor;
 		}
 		Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z), lineColor);
 	}
 }
 
-void Engine::Init()
-{
+void Engine::Init() {
 	RegisterConsoleCommandsAndVariables();
 
 	// ウィンドウの作成
@@ -114,17 +99,8 @@ void Engine::Init()
 	// 3Dモデルマネージャ
 	ModelManager::GetInstance()->Init(renderer_.get());
 
-	transformSystem_ = std::make_unique<TransformSystem>();
-	transformSystem_->Initialize();
-
-	cameraSystem_ = std::make_unique<CameraSystem>();
-	cameraSystem_->Initialize();
-
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
-	transformSystem_->RegisterComponent(camera_->GetTransform());
-	cameraSystem_->RegisterComponent(camera_->GetCamera());
-	camera_->SetWorldPos({ 0.0f, 0.0f, -10.0f });
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -172,16 +148,13 @@ void Engine::Init()
 		object3DCommon_.get(),
 		modelCommon_.get(),
 		particleCommon_.get(),
-		time_.get(),
-		transformSystem_.get(),
-		cameraSystem_.get());
+		time_.get());
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
 }
 
-void Engine::Update() const
-{
+void Engine::Update() const {
 #ifdef _DEBUG
 	ImGuiManager::NewFrame();
 	Console::Update();
@@ -190,8 +163,6 @@ void Engine::Update() const
 	time_->StartFrame();
 
 	/* ----------- 更新処理 ---------- */
-	transformSystem_->Update(EngineTimer::GetScaledDeltaTime());
-	cameraSystem_->Update(EngineTimer::GetScaledDeltaTime());
 
 #ifdef _DEBUG
 	// カメラの操作
@@ -203,21 +174,15 @@ void Engine::Update() const
 	ImGui::Begin("Debug");
 	ImGui::End();
 
-	if (InputSystem::IsPressed("attack2"))
-	{
-		if (!cursorHidden)
-		{
+	if (InputSystem::IsPressed("attack2")) {
+		if (!cursorHidden) {
 			ShowCursor(FALSE); // カーソルを非表示にする
 			cursorHidden = true;
 		}
 
 		Vec2 delta = InputSystem::GetMouseDelta();
 
-		// カメラのトランスフォームコンポーネントを取得
-		TransformComponent* cameraTransform = object3DCommon_->GetDefaultCamera()->GetTransform();
-
-		if (!firstReset)
-		{
+		if (!firstReset) {
 			// 回転
 			float sensitivity = std::stof(ConVarManager::GetConVar("sensitivity")->GetValueAsString());
 			float m_pitch = 0.022f;
@@ -230,77 +195,65 @@ void Engine::Update() const
 
 			rot.y = std::clamp(rot.y, min * Math::deg2Rad, max * Math::deg2Rad);
 
-			cameraTransform->SetLocalRot(
-				Quaternion::Euler(
-					Vec3::up * rot.x + Vec3::right * rot.y));
+			Camera* cam = object3DCommon_->GetDefaultCamera();
 
-			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
+			cam->SetRotate(Vec3::up * rot.x + Vec3::right * rot.y);
 
-			if (InputSystem::IsPressed("forward"))
-			{
+			Vec3 moveInput = {0.0f, 0.0f, 0.0f};
+
+			if (InputSystem::IsPressed("forward")) {
 				moveInput.z += 1.0f;
 			}
 
-			if (InputSystem::IsPressed("back"))
-			{
+			if (InputSystem::IsPressed("back")) {
 				moveInput.z -= 1.0f;
 			}
 
-			if (InputSystem::IsPressed("moveright"))
-			{
+			if (InputSystem::IsPressed("moveright")) {
 				moveInput.x += 1.0f;
 			}
 
-			if (InputSystem::IsPressed("moveleft"))
-			{
+			if (InputSystem::IsPressed("moveleft")) {
 				moveInput.x -= 1.0f;
 			}
 
-			if (InputSystem::IsPressed("moveup"))
-			{
+			if (InputSystem::IsPressed("moveup")) {
 				moveInput.y += 1.0f;
 			}
 
-			if (InputSystem::IsPressed("movedown"))
-			{
+			if (InputSystem::IsPressed("movedown")) {
 				moveInput.y -= 1.0f;
 			}
 
 			moveInput.Normalize();
 
-			Quaternion camRot = cameraTransform->GetWorldRotation();
+			Quaternion camRot = Quaternion::Euler(cam->GetRotate());
 			Vec3 cameraForward = camRot * Vec3::forward;
 			Vec3 cameraRight = camRot * Vec3::right;
 			Vec3 cameraUp = camRot * Vec3::up;
 
-			if (InputSystem::IsTriggered("invprev"))
-			{
+			if (InputSystem::IsTriggered("invprev")) {
 				moveSpd += 1.0f;
 			}
 
-			if (InputSystem::IsTriggered("invnext"))
-			{
+			if (InputSystem::IsTriggered("invnext")) {
 				moveSpd -= 1.0f;
 			}
 
 			moveSpd = std::clamp(moveSpd, 1.0f, 100.0f);
 
-			cameraTransform->Translate(
-				(cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) * moveSpd * EngineTimer::GetScaledDeltaTime());
+			cam->SetPos(cam->GetPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) * moveSpd * EngineTimer::GetScaledDeltaTime());
 		}
 
 		// カーソルをウィンドウの中央にリセット
 		POINT centerCursorPos = {
-			static_cast<LONG>(window_->GetClientWidth() / 2), static_cast<LONG>(window_->GetClientHeight() / 2) };
+			static_cast<LONG>(window_->GetClientWidth() / 2), static_cast<LONG>(window_->GetClientHeight() / 2)};
 		ClientToScreen(window_->GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
 		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
 
 		firstReset = false; // 初回リセット完了
-	}
-	else
-	{
-		if (cursorHidden)
-		{
+	} else {
+		if (cursorHidden) {
 			ShowCursor(TRUE); // カーソルを表示する
 			cursorHidden = false;
 		}
@@ -311,14 +264,16 @@ void Engine::Update() const
 	// ゲームシーンの更新
 	gameScene_->Update();
 
+	camera_->Update();
+
 	// グリッドの表示
 	DrawGrid(
 		1.0f,
 		64,
-		{ .x = 0.28f, .y = 0.28f, .z = 0.28f, .w = 1.0f },
-		{ .x = 0.39f, .y = 0.2f, .z = 0.02f, .w = 1.0f },
-		{ .x = 0.0f, .y = 0.39f, .z = 0.39f, .w = 1.0f },
-		{ .x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f });
+		{.x = 0.28f, .y = 0.28f, .z = 0.28f, .w = 1.0f},
+		{.x = 0.39f, .y = 0.2f, .z = 0.02f, .w = 1.0f},
+		{.x = 0.0f, .y = 0.39f, .z = 0.39f, .w = 1.0f},
+		{.x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f});
 
 #ifdef _DEBUG
 	ImGuiViewportP* viewport = static_cast<ImGuiViewportP*>(static_cast<void*>(ImGui::GetMainViewport()));
@@ -327,10 +282,8 @@ void Engine::Update() const
 
 	ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.0f);
 
-	if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, 38, window_flags))
-	{
-		if (ImGui::BeginMenuBar())
-		{
+	if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, 38, window_flags)) {
+		if (ImGui::BeginMenuBar()) {
 			ImGui::PopStyleVar();
 
 			ImGui::Text("ハリボテ");
@@ -341,7 +294,7 @@ void Engine::Update() const
 			{
 				const float windowHeight = ImGui::GetWindowSize().y;
 				const char* items[] = {
-					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°", "22.5°", "30°", "45°", "90°" };
+					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°", "22.5°", "30°", "45°", "90°"};
 				static int itemCurrentIndex = 6;
 				const char* comboLabel = items[itemCurrentIndex];
 
@@ -352,17 +305,13 @@ void Engine::Update() const
 				float offsetY = (windowHeight - comboHeight) * 0.5f;
 				ImGui::SetCursorPosY(offsetY);
 
-				if (ImGui::BeginCombo("##angle", comboLabel))
-				{
-					for (int n = 0; n < IM_ARRAYSIZE(items); ++n)
-					{
+				if (ImGui::BeginCombo("##angle", comboLabel)) {
+					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
 						const bool isSelected = (itemCurrentIndex == n);
-						if (ImGui::Selectable(items[n], isSelected))
-						{
+						if (ImGui::Selectable(items[n], isSelected)) {
 							itemCurrentIndex = n;
 						}
-						if (isSelected)
-						{
+						if (isSelected) {
 							ImGui::SetItemDefaultFocus();
 						}
 					}
@@ -384,9 +333,8 @@ void Engine::Update() const
 #endif
 
 #ifdef _DEBUG // cl_showfps
-	if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() != "0")
-	{
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+	if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() != "0") {
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -405,12 +353,10 @@ void Engine::Update() const
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 		std::string text;
 		float fps;
-		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "1")
-		{
+		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "1") {
 			fps = 1.0f / time_->GetScaledDeltaTime();
 		}
-		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "2")
-		{
+		if (ConVarManager::GetConVar("cl_showfps")->GetValueAsString() == "2") {
 			ImGuiIO io = ImGui::GetIO();
 			fps = io.Framerate;
 		}
@@ -432,12 +378,9 @@ void Engine::Update() const
 		float outlineSize = 1.0f;
 
 		ImU32 textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorError);
-		if (fps >= 59.9f)
-		{
+		if (fps >= 59.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorFloat);
-		}
-		else if (fps >= 29.9f)
-		{
+		} else if (fps >= 29.9f) {
 			textColor = ImGui::ColorConvertFloat4ToU32(kConsoleColorWarning);
 		}
 
@@ -486,12 +429,8 @@ void Engine::Update() const
 	time_->EndFrame();
 }
 
-void Engine::Shutdown() const
-{
+void Engine::Shutdown() const {
 	gameScene_->Shutdown();
-
-	transformSystem_->Terminate();
-	cameraSystem_->Terminate();
 
 	ModelManager::Shutdown();
 	TextureManager::Shutdown();
@@ -500,18 +439,15 @@ void Engine::Shutdown() const
 
 #ifdef _DEBUG
 	// ImGuiManagerのシャットダウンは最後に行う
-	if (imGuiManager_)
-	{
+	if (imGuiManager_) {
 		imGuiManager_->Shutdown();
 	}
 #endif
 }
 
-void Engine::RegisterConsoleCommandsAndVariables()
-{
+void Engine::RegisterConsoleCommandsAndVariables() {
 	// コンソールコマンドを登録
-	ConCommand::RegisterCommand("bind", [](const std::vector<std::string>& args)
-		{
+	ConCommand::RegisterCommand("bind", [](const std::vector<std::string>& args) {
 			if (args.size() < 2) {
 				Console::Print("Usage: bind <key> <command>\n");
 				return;
@@ -564,8 +500,7 @@ void Engine::RegisterConsoleCommandsAndVariables()
 	Console::SubmitCommand("bind c +changecamera");
 }
 
-void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args)
-{
+void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
 	bWishShutdown = true;
 }
 
