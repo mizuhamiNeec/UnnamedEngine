@@ -7,7 +7,6 @@
 #include "Lib/Timer/EngineTimer.h"
 #include "Line/LineCommon.h"
 #include "Model/ModelCommon.h"
-#include "Particle/ParticleCommon.h"
 
 class Console;
 class ImGuiManager;
@@ -39,7 +38,6 @@ private:
 	std::unique_ptr<Camera> camera_;
 	std::unique_ptr<SpriteCommon> spriteCommon_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;
-	std::unique_ptr<ParticleCommon> particleCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
 

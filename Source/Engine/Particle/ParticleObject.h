@@ -10,15 +10,15 @@
 #include "../Renderer/IndexBuffer.h"
 #include "../Renderer/VertexBuffer.h"
 
-class Camera;
 class SrvManager;
-class ParticleCommon;
+class Camera;
+class ParticleManager;
 
 class ParticleObject {
 public:
 	~ParticleObject() = default;
 
-	void Init(ParticleCommon* particleCommon, const std::string& textureFilePath);
+	void Init(ParticleManager* particleCommon, const std::string& textureFilePath);
 	void Update(float deltaTime);
 	void Draw() const;
 
@@ -31,7 +31,7 @@ public:
 	static Vec3 GenerateConeVelocity(float coneAngle);
 
 private:
-	ParticleCommon* particleCommon_ = nullptr;
+	ParticleManager* particleCommon_ = nullptr;
 	SrvManager* srvManager_ = nullptr;
 	Camera* camera_ = nullptr;
 	std::string textureFilePath_;
@@ -47,8 +47,6 @@ private:
 	Emitter emitter_ = {};
 	AccelerationField accelerationField_ = {};
 
-	std::vector<Vertex> vertices_;
-	std::unique_ptr<VertexBuffer<Vertex>> vertexBuffer_ = nullptr;
 	std::unique_ptr<ConstantBuffer> materialResource_ = nullptr;
 	std::unique_ptr<ConstantBuffer> instancingResource_ = nullptr;
 	std::unique_ptr<IndexBuffer> indexBuffer_ = nullptr;

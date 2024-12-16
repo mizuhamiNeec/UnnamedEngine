@@ -15,7 +15,7 @@
 #include "Lib/Utils/ClientProperties.h"
 #include "Model/ModelManager.h"
 #include "Object3D/Object3DCommon.h"
-#include "Particle/ParticleCommon.h"
+#include "Particle/ParticleManager.h"
 #include "Renderer/D3D12.h"
 #include "Renderer/SrvManager.h"
 #include "Sprite/SpriteCommon.h"
@@ -118,11 +118,6 @@ void Engine::Init() {
 	spriteCommon_ = std::make_unique<SpriteCommon>();
 	spriteCommon_->Init(renderer_.get());
 
-	// パーティクル
-	particleCommon_ = std::make_unique<ParticleCommon>();
-	particleCommon_->Init(renderer_.get(), srvManager_.get());
-	particleCommon_->SetDefaultCamera(camera_.get());
-
 	// ライン
 	lineCommon_ = std::make_unique<LineCommon>();
 	lineCommon_->Init(renderer_.get());
@@ -150,7 +145,7 @@ void Engine::Init() {
 		spriteCommon_.get(),
 		object3DCommon_.get(),
 		modelCommon_.get(),
-		particleCommon_.get(),
+		srvManager_.get(),
 		time_.get());
 
 	hr = renderer_->GetCommandList()->Close();
@@ -166,6 +161,7 @@ void Engine::Update() {
 	time_->StartFrame();
 
 	/* ----------- 更新処理 ---------- */
+	camera_->Update();
 
 #ifdef _DEBUG
 	// カメラの操作
@@ -174,8 +170,8 @@ void Engine::Update() {
 	static bool firstReset = true; // 初回リセットフラグ
 	static bool cursorHidden = false;
 
-	ImGui::Begin("Debug");
-	ImGui::End();
+	static bool bOpenPopup = false; // ポップアップ表示フラグ
+	static float popupTimer = 0.0f;
 
 	if (InputSystem::IsPressed("attack2")) {
 		if (!cursorHidden) {
@@ -243,11 +239,18 @@ void Engine::Update() {
 				moveSpd -= 1.0f;
 			}
 
+			static float oldMoveSpd = 0.0f;
+			if (moveSpd != oldMoveSpd) {
+				bOpenPopup = true;
+				popupTimer = 0.0f;
+			}
+
 			moveSpd = std::clamp(moveSpd, 1.0f, 100.0f);
+
+			oldMoveSpd = moveSpd;
 
 			cam->SetPos(cam->GetPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) * moveSpd * EngineTimer::GetScaledDeltaTime());
 		}
-
 		// カーソルをウィンドウの中央にリセット
 		POINT centerCursorPos = {
 			static_cast<LONG>(window_->GetClientWidth() / 2), static_cast<LONG>(window_->GetClientHeight() / 2)};
@@ -262,16 +265,66 @@ void Engine::Update() {
 		}
 		firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
 	}
+
+	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
+	if (bOpenPopup) {
+
+		// ビューポートのサイズと位置を取得
+		ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImVec2 viewportPos = viewport->Pos;
+		ImVec2 viewportSize = viewport->Size;
+		ImVec2 windowSize = ImVec2(256.0f, 32.0f);
+
+		// ウィンドウの中央下部位置を計算
+		ImVec2 windowPos(
+			viewportPos.x + (viewportSize.x) * 0.5f,
+			viewportPos.y + (viewportSize.y) * 0.75f);
+
+		// ウィンドウの位置を調整
+		windowPos.x -= windowSize.x * 0.5f;
+		windowPos.y -= windowSize.y * 0.5f;
+
+		// ウィンドウの位置を設定
+		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+
+		// ウィンドウを角丸に
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 16.0f);
+		// タイトルバーを非表示
+
+		ImGui::Begin(
+			"##move speed",
+			nullptr,
+			ImGuiWindowFlags_NoTitleBar |
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoSavedSettings |
+				ImGuiWindowFlags_NoBringToFrontOnFocus |
+				ImGuiWindowFlags_NoFocusOnAppearing |
+				ImGuiWindowFlags_NoScrollbar);
+
+		ImGui::SetCursorPos(
+			ImVec2((windowSize.x - ImGui::CalcTextSize(std::format("{:.2f}", moveSpd).c_str()).x) * 0.5f, (windowSize.y - ImGui::GetFontSize()) * 0.5f));
+		ImGui::Text("%.2f", moveSpd);
+
+		// 一定時間経過後にポップアップをフェードアウトして閉じる
+		popupTimer += EngineTimer::GetDeltaTime(); // ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
+		if (popupTimer >= 3.0f) {
+			ImGui::CloseCurrentPopup();
+			bOpenPopup = false;
+			popupTimer = 0.0f;
+		}
+
+		ImGui::End();
+
+		ImGui::PopStyleVar();
+	}
+
+
 #endif
 
 	// ゲームシーンの更新
 	gameScene_->Update();
-
-	float width = static_cast<float>(Window::GetClientWidth());
-	float height = static_cast<float>(Window::GetClientHeight());
-
-	camera_->SetAspectRatio(width / height);
-	camera_->Update();
 
 	// グリッドの表示
 	DrawGrid(
@@ -327,11 +380,6 @@ void Engine::Update() {
 			}
 
 			ImGui::EndDisabled();
-
-			float textWidth = ImGui::CalcTextSize(std::format("move speed: %.2f", moveSpd).c_str()).x;
-			float windowWidth = ImGui::GetWindowWidth();
-			ImGui::SetCursorPosX(windowWidth - textWidth - ImGui::GetStyle().WindowPadding.x);
-			ImGui::Text("move speed: %.2f", moveSpd);
 
 			ImGui::EndMenuBar();
 		}

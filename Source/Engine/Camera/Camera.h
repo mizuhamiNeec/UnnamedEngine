@@ -27,6 +27,8 @@ public:
 	float& GetZNear();
 	float& GetZFar();
 	Mat4& GetViewProjMat();
+	Mat4& GetViewMat();
+	Mat4& GetProjMat();
 
 private:
 	float fov_ = 90.0f * Math::deg2Rad;

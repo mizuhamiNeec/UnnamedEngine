@@ -19,7 +19,7 @@ class GameScene : IGameScene {
 public:
 	void Init(
 		D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
-		ModelCommon* modelCommon, ParticleCommon* particleCommon, EngineTimer* engineTimer) override;
+		ModelCommon* modelCommon, SrvManager* srvManager, EngineTimer* engineTimer) override;
 	void Update() override;
 	void Render() override;
 	void Shutdown() override;
@@ -33,6 +33,8 @@ private:
 	std::unique_ptr<Object3D> object3D_;
 	std::unique_ptr<Sprite> sprite_;
 	std::unique_ptr<Model> model_;
+
+	std::unique_ptr<ParticleManager> particleManager_;
 
 	std::unique_ptr<ParticleObject> particle_;
 };

@@ -1,9 +1,10 @@
 #include "ParticleObject.h"
 
-#include "ParticleCommon.h"
+#include "ParticleManager.h"
+
+#include "../Engine.h"
 
 #include "../Camera/Camera.h"
-#include "../Engine.h"
 
 #include "../Debug/Debug.h"
 
@@ -16,7 +17,7 @@
 
 #include "../TextureManager/TextureManager.h"
 
-void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& textureFilePath) {
+void ParticleObject::Init(ParticleManager* particleCommon, const std::string& textureFilePath) {
 	this->particleCommon_ = particleCommon;
 	this->textureFilePath_ = textureFilePath;
 	this->camera_ = particleCommon_->GetDefaultCamera();
@@ -28,14 +29,6 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 		particle = MakeNewParticle(Vec3::zero, Vec3::zero, Vec3::zero, Vec3::zero);
 	}
 
-	// 頂点リソースにデータを書き込む
-	vertices_.push_back({.position = {.x = 1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f}, .uv = {0.0f, 0.0f}, .normal = Vec3::forward}); // 左上
-	vertices_.push_back({.position = {.x = -1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f}, .uv = {1.0f, 0.0f}, .normal = Vec3::forward}); // 右上
-	vertices_.push_back({.position = {.x = 1.0f, .y = -1.0f, .z = 0.0f, .w = 1.0f}, .uv = {0.0f, 1.0f}, .normal = Vec3::forward}); // 左下
-	vertices_.push_back({.position = {.x = 1.0f, .y = -1.0f, .z = 0.0f, .w = 1.0f}, .uv = {0.0f, 1.0f}, .normal = Vec3::forward}); // 左下
-	vertices_.push_back({.position = {.x = -1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f}, .uv = {1.0f, 0.0f}, .normal = Vec3::forward}); // 右上
-	vertices_.push_back({.position = {.x = -1.0f, .y = -1.0f, .z = 0.0f, .w = 1.0f}, .uv = {1.0f, 1.0f}, .normal = Vec3::forward}); // 右下
-
 	uint32_t indices[] = {
 		0, 1, 2,
 		1, 5, 2};
@@ -45,12 +38,6 @@ void ParticleObject::Init(ParticleCommon* particleCommon, const std::string& tex
 		particleCommon_->GetD3D12()->GetDevice(),
 		sizeof(indices),
 		indices);
-
-	// 頂点バッファの作成
-	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(
-		particleCommon_->GetD3D12()->GetDevice(),
-		sizeof(Vertex) * vertices_.size(),
-		vertices_.data());
 
 	// 定数バッファ
 	materialResource_ = std::make_unique<ConstantBuffer>(particleCommon_->GetD3D12()->GetDevice(), sizeof(Material));
@@ -179,11 +166,7 @@ void ParticleObject::Update(const float deltaTime) {
 
 			// ビルボード
 			{
-				// カメラの行列を取得
-				Vec3 camPos = camera_->GetPos();
-				Quaternion camRot = Quaternion::Euler(camera_->GetRotate());
-
-				Mat4 cameraMat = Mat4::Affine(Vec3::one, camRot.ToEulerAngles(), camPos);
+				Mat4 cameraMat = Mat4::Affine(Vec3::one, camera_->GetRotate(), camera_->GetPos());
 				Mat4 backToFrontMat = Mat4::RotateY(std::numbers::pi_v<float>);
 				Mat4 billboardMatrix = backToFrontMat * cameraMat;
 				billboardMatrix.m[3][0] = 0.0f;
@@ -232,7 +215,7 @@ void ParticleObject::Update(const float deltaTime) {
 
 void ParticleObject::Draw() const {
 	// 頂点バッファの設定
-	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer_->View();
+	D3D12_VERTEX_BUFFER_VIEW vbView = particleCommon_->GetVertexBuffer()->View();
 	particleCommon_->GetD3D12()->GetCommandList()->IASetVertexBuffers(0, 1, &vbView);
 
 	// 定数バッファの設定
@@ -252,14 +235,14 @@ void ParticleObject::Draw() const {
 	particleCommon_->GetD3D12()->GetCommandList()->IASetIndexBuffer(&indexBufferView);
 	// 描画
 	particleCommon_->GetD3D12()->GetCommandList()->DrawIndexedInstanced(
-		static_cast<UINT>(vertices_.size()), numInstance, 0, 0, 0);
+		static_cast<UINT>(particleCommon_->GetVertices().size()), numInstance, 0, 0, 0);
 }
 
 Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel, const Vec3& drag, const Vec3& gravity) {
 	Particle particle;
 	particle.transform.scale = {1.0f, 1.0f, 1.0f};
 	particle.transform.rotate = {0.0f, 0.0f, 0.0f};
-	const Vec3 rand = Random::RandomVec3(-Vec3::one, Vec3::one);
+	const Vec3 rand = Random::Vec3Range(-Vec3::one, Vec3::one);
 	particle.transform.translate = pos + rand;
 
 	particle.vel = vel;
@@ -269,13 +252,13 @@ Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel, const
 
 	// 色
 	particle.color = {
-		Random::RandomFloat(0.0f, 1.0f),
-		Random::RandomFloat(0.0f, 1.0f),
-		Random::RandomFloat(0.0f, 1.0f),
+		Random::FloatRange(0.0f, 1.0f),
+		Random::FloatRange(0.0f, 1.0f),
+		Random::FloatRange(0.0f, 1.0f),
 		1.0f};
 
 	// 生存時間
-	particle.lifeTime = Random::RandomFloat(1.0f, 4.0f);
+	particle.lifeTime = Random::FloatRange(1.0f, 4.0f);
 	particle.currentTime = 0.0f;
 
 	return particle;
@@ -299,16 +282,16 @@ Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition, int shapeType
 	case 0: // Sphere（球）
 	{
 		// ランダムな方向
-		Vec3 direction = Random::RandomVec3(-Vec3::one, Vec3::one);
+		Vec3 direction = Random::Vec3Range(-Vec3::one, Vec3::one);
 		direction.Normalize();
 		// ランダムな半径
-		float radius = Random::RandomFloat(0.0f, emitter_.size.x); // サイズを考慮
+		float radius = Random::FloatRange(0.0f, emitter_.size.x); // サイズを考慮
 		return emitterPosition + direction * radius;
 	}
 	case 1: // Cube（立方体）
 	{
 		// -1.0fから1.0fの範囲でランダムな位置
-		Vec3 offset = Random::RandomVec3(-Vec3::one, Vec3::one);
+		Vec3 offset = Random::Vec3Range(-Vec3::one, Vec3::one);
 		return emitterPosition + offset * emitter_.size; // サイズを考慮
 	}
 	default:
@@ -324,9 +307,9 @@ Vec3 ParticleObject::GenerateConeVelocity(float coneAngle) {
 	float angleRad = coneAngle * Math::deg2Rad;
 
 	// ランダムな円周上の角度を生成
-	float theta = Random::RandomFloat(0.0f, 2.0f * std::numbers::pi_v<float>);
+	float theta = Random::FloatRange(0.0f, 2.0f * std::numbers::pi_v<float>);
 	// コーン内のランダムな角度を生成
-	float cosPhi = Random::RandomFloat(cos(angleRad), 1.0f);
+	float cosPhi = Random::FloatRange(cos(angleRad), 1.0f);
 	float sinPhi = sqrt(1.0f - cosPhi * cosPhi);
 
 	// ディレクションベクトルを計算

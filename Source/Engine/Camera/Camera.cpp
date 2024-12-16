@@ -32,6 +32,11 @@ void Camera::Update() {
 	ImGui::End();
 #endif
 
+	float width = static_cast<float>(Window::GetClientWidth());
+	float height = static_cast<float>(Window::GetClientHeight());
+
+	SetAspectRatio(width / height);
+
 	// transform_からアフィン変換行列を作成
 	worldMat_ = Mat4::Affine(
 		{1.0f, 1.0f, 1.0f},
@@ -144,4 +149,18 @@ float& Camera::GetZFar() {
 //-----------------------------------------------------------------------------
 Mat4& Camera::GetViewProjMat() {
 	return viewProjMat_;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: ビュー行列を取得します
+//-----------------------------------------------------------------------------
+Mat4& Camera::GetViewMat() {
+	return viewMat_;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: プロジェクション行列を取得します
+//-----------------------------------------------------------------------------
+Mat4& Camera::GetProjMat() {
+	return projMat_;
 }

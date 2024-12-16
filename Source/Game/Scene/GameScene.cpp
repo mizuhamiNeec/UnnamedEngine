@@ -10,19 +10,19 @@
 #include "../ImGuiManager/ImGuiManager.h"
 #include "../Lib/Math/MathLib.h"
 #include "../Object3D/Object3D.h"
-#include "../Particle/ParticleCommon.h"
+#include "../Particle/ParticleManager.h"
 #include "../Sprite/SpriteCommon.h"
 #include "../TextureManager/TextureManager.h"
 
 void GameScene::Init(
 	D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
-	ModelCommon* modelCommon, ParticleCommon* particleCommon, EngineTimer* engineTimer) {
+	ModelCommon* modelCommon, SrvManager* srvManager, EngineTimer* engineTimer) {
 	renderer_ = renderer;
 	window_ = window;
 	spriteCommon_ = spriteCommon;
 	object3DCommon_ = object3DCommon;
 	modelCommon_ = modelCommon;
-	particleCommon_ = particleCommon;
+	srvManager_ = srvManager;
 	timer_ = engineTimer;
 
 #pragma region テクスチャ読み込み
@@ -49,17 +49,22 @@ void GameScene::Init(
 #pragma endregion
 
 #pragma region パーティクル類
+	particleManager_ = std::make_unique<ParticleManager>();
+	particleManager_->Init(object3DCommon_->GetD3D12(), srvManager);
+	particleManager_->SetDefaultCamera(object3DCommon_->GetDefaultCamera());
+	particleManager_->CreateParticleGroup("circle", "./Resources/Textures/circle.png");
+
 	particle_ = std::make_unique<ParticleObject>();
-	particle_->Init(particleCommon_, "./Resources/Textures/circle.png");
+	particle_->Init(particleManager_.get(), "./Resources/Textures/circle.png");
 #pragma endregion
 }
 
 void GameScene::Update() {
-	// player_->Update(EngineTimer::GetScaledDeltaTime());
-
 	sprite_->Update();
 	object3D_->Update();
-	// particle_->Update(EngineTimer::GetScaledDeltaTime());
+
+	particleManager_->Update(EngineTimer::GetScaledDeltaTime());
+	particle_->Update(EngineTimer::GetScaledDeltaTime());
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -120,9 +125,9 @@ void GameScene::Render() {
 
 	//----------------------------------------
 	// パーティクル共通描画設定
-	// particleCommon_->Render();
+	particleManager_->Render();
 	//----------------------------------------
-	// particle_->Draw();
+	particle_->Draw();
 
 	//----------------------------------------
 	// スプライト共通描画設定
@@ -134,5 +139,5 @@ void GameScene::Render() {
 void GameScene::Shutdown() {
 	spriteCommon_->Shutdown();
 	object3DCommon_->Shutdown();
-	particleCommon_->Shutdown();
+	particleManager_->Shutdown();
 }
