@@ -21,7 +21,7 @@ public:
 
 private:
 	void Init();
-	void Update() const;
+	void Update();
 	void Shutdown() const;
 
 	static void RegisterConsoleCommandsAndVariables();
@@ -45,6 +45,8 @@ private:
 
 private:
 	static bool bWishShutdown;
+
+	Vec3 rot = Vec3::zero;
 
 #ifdef _DEBUG
 	std::unique_ptr<ImGuiManager> imGuiManager_;

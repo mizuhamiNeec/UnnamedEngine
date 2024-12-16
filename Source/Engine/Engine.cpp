@@ -101,6 +101,9 @@ void Engine::Init() {
 
 	// カメラの作成
 	camera_ = std::make_unique<Camera>();
+	camera_->SetPos(Vec3::forward * -5.0f + Vec3::up * 2.0f);
+	camera_->SetRotate(Vec3::right * 15.0f * Math::deg2Rad);
+	rot = camera_->GetRotate();
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -154,7 +157,7 @@ void Engine::Init() {
 	assert(SUCCEEDED(hr));
 }
 
-void Engine::Update() const {
+void Engine::Update() {
 #ifdef _DEBUG
 	ImGuiManager::NewFrame();
 	Console::Update();
@@ -189,7 +192,7 @@ void Engine::Update() const {
 			float m_yaw = 0.022f;
 			float min = -89.0f;
 			float max = 89.0f;
-			static Vec2 rot;
+
 			rot.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
 			rot.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
 
@@ -264,6 +267,10 @@ void Engine::Update() const {
 	// ゲームシーンの更新
 	gameScene_->Update();
 
+	float width = static_cast<float>(Window::GetClientWidth());
+	float height = static_cast<float>(Window::GetClientHeight());
+
+	camera_->SetAspectRatio(width / height);
 	camera_->Update();
 
 	// グリッドの表示

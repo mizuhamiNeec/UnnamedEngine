@@ -11,8 +11,7 @@ PipelineState::PipelineState() {
 PipelineState::PipelineState(
 	const D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK,
 	const D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID,
-	const D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE
-) {
+	const D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE) {
 	D3D12_BLEND_DESC blendDesc = {};
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
@@ -21,9 +20,10 @@ PipelineState::PipelineState(
 
 	// DepthStencilStateの設定
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
-	depthStencilDesc.DepthEnable = true; // Depthの機能を有効化する
-	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL; // 書き込みします
-	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS; // 比較関数はLessEqual。つまり、近ければ描画される
+	depthStencilDesc.DepthEnable = TRUE; // Depthの機能を有効化する
+	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL; // 書き込む
+	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS; // 比較関数はLess
+	depthStencilDesc.StencilEnable = FALSE;
 
 	// ステートの設定
 	desc_.BlendState = blendDesc; // BlendState
@@ -42,19 +42,19 @@ PipelineState::PipelineState(
 	// DXCの初期化
 	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils_));
 	if (FAILED(hr)) {
-		Console::Print("Failed to create DxcUtils instance\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+		Console::Print("Failed to create DxcUtils instance\n", {1.0f, 0.0f, 0.0f, 1.0f});
 		return;
 	}
 
 	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler_));
 	if (FAILED(hr)) {
-		Console::Print("Failed to create DxcCompiler instance\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+		Console::Print("Failed to create DxcCompiler instance\n", {1.0f, 0.0f, 0.0f, 1.0f});
 		return;
 	}
 
 	hr = dxcUtils_->CreateDefaultIncludeHandler(&includeHandler_);
 	if (FAILED(hr)) {
-		Console::Print("Failed to create default include handler\n", { 1.0f, 0.0f, 0.0f, 1.0f });
+		Console::Print("Failed to create default include handler\n", {1.0f, 0.0f, 0.0f, 1.0f});
 		return;
 	}
 }
@@ -72,8 +72,7 @@ void PipelineState::SetVS(const std::wstring& filePath) {
 	assert(vsBlob != nullptr);
 
 	desc_.VS = {
-		vsBlob->GetBufferPointer(), vsBlob->GetBufferSize()
-	}; // VertexShader
+		vsBlob->GetBufferPointer(), vsBlob->GetBufferSize()}; // VertexShader
 }
 
 void PipelineState::SetPS(const std::wstring& filePath) {
@@ -81,12 +80,10 @@ void PipelineState::SetPS(const std::wstring& filePath) {
 	assert(psBlob != nullptr);
 
 	desc_.PS = {
-		psBlob->GetBufferPointer(), psBlob->GetBufferSize()
-	}; // PixelShader
+		psBlob->GetBufferPointer(), psBlob->GetBufferSize()}; // PixelShader
 }
 
-IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils,
-	IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
+IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
 	/* 1. hlslファイルを読む */
 	// これからシェーダーをコンパイルする旨をログに出す
 	Console::Print(
@@ -142,8 +139,7 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	hr = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
-	Console::Print(StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)),
-		kConsoleColorCompleted);
+	Console::Print(StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)), kConsoleColorCompleted);
 	// もう使わないリソースを開放
 	shaderSource->Release();
 	shaderResult->Release();
@@ -155,7 +151,7 @@ void PipelineState::Create(ID3D12Device* device) {
 	HRESULT hr = device->CreateGraphicsPipelineState(&desc_, IID_PPV_ARGS(pipelineState.ReleaseAndGetAddressOf()));
 	assert(SUCCEEDED(hr));
 	if (SUCCEEDED(hr)) {
-		//Console::Print("Complete Create PipelineState.\n", kConsoleColorCompleted);
+		// Console::Print("Complete Create PipelineState.\n", kConsoleColorCompleted);
 	}
 }
 
