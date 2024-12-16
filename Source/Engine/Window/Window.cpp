@@ -14,9 +14,6 @@
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif
 
-int Window::deltaX_ = 0;
-int Window::deltaY_ = 0;
-
 Window::Window(
 	std::wstring title,
 	const uint32_t width,
@@ -24,10 +21,10 @@ Window::Window(
 	const DWORD style,
 	const DWORD exStyle
 ) : title_(std::move(title)),
-width_(width),
-height_(height),
 style_(style),
 exStyle_(exStyle) {
+	width_ = width;
+	height_ = height;
 	const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	if (FAILED(hr)) {
 		Console::Print("Failed to initialize COM library");
@@ -191,3 +188,7 @@ bool Window::ProcessMessage() {
 }
 
 HWND Window::GetWindowHandle() const { return hWnd_; }
+
+HWND Window::hWnd_ = nullptr;
+uint32_t Window::width_ = 0;
+uint32_t Window::height_ = 0;

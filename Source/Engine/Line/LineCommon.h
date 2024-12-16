@@ -1,10 +1,11 @@
-﻿#pragma once
+#pragma once
 #include <memory>
 
 #include "../Renderer/RootSignatureManager.h"
 #include "../Renderer/PipelineState.h"
 
 class Camera;
+class CameraComponent;
 class D3D12;
 
 class LineCommon {
@@ -15,7 +16,7 @@ public:
 	void CreateRootSignature();
 	void CreateGraphicsPipeline();
 
-	void Render();
+	void Render() const;
 
 	D3D12* GetD3D12() const;
 

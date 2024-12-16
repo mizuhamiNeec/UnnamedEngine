@@ -1,6 +1,6 @@
 #pragma once
-#include "../Lib/Structs/Structs.h"
 #include "../Lib/Math/MathLib.h"
+#include "../Lib/Structs/Structs.h"
 
 class Window;
 
@@ -27,6 +27,8 @@ public:
 	float& GetZNear();
 	float& GetZFar();
 	Mat4& GetViewProjMat();
+	Mat4& GetViewMat();
+	Mat4& GetProjMat();
 
 private:
 	float fov_ = 90.0f * Math::deg2Rad;
@@ -37,8 +39,7 @@ private:
 	Transform transform_{
 		{1.0f, 1.0f, 1.0f},
 		{0.0f, 0.0f, 0.0f},
-		{0.0f, 0.0f, 0.0f}
-	};
+		{0.0f, 0.0f, 0.0f}};
 
 	Mat4 worldMat_;
 	Mat4 viewMat_;

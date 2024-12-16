@@ -9,7 +9,7 @@ std::mutex Random::mtx_; // mutexも定義
 //-----------------------------------------------------------------------------
 // 指定された範囲の乱数を生成します
 //-----------------------------------------------------------------------------
-int Random::RandomInt(const int& min, const int& max) {
+int Random::IntRange(const int& min, const int& max) {
 	std::uniform_int_distribution<int> distribution(min, max);
 	std::lock_guard lock(mtx_);
 	return distribution(randomEngine_);
@@ -18,7 +18,7 @@ int Random::RandomInt(const int& min, const int& max) {
 //-----------------------------------------------------------------------------
 // 指定された範囲の乱数を生成します
 //-----------------------------------------------------------------------------
-float Random::RandomFloat(const float& min, const float& max) {
+float Random::FloatRange(const float& min, const float& max) {
 	std::uniform_real_distribution<float> distribution(min, max);
 	std::lock_guard lock(mtx_);
 	return distribution(randomEngine_);
@@ -27,10 +27,9 @@ float Random::RandomFloat(const float& min, const float& max) {
 //-----------------------------------------------------------------------------
 // 指定された範囲の乱数を生成します
 //-----------------------------------------------------------------------------
-Vec3 Random::RandomVec3(const Vec3& min, const Vec3& max) {
+Vec3 Random::Vec3Range(const Vec3& min, const Vec3& max) {
 	return {
-		RandomFloat(min.x, max.x),
-		RandomFloat(min.y, max.y),
-		RandomFloat(min.z, max.z)
-	};
+		FloatRange(min.x, max.x),
+		FloatRange(min.y, max.y),
+		FloatRange(min.z, max.z)};
 }

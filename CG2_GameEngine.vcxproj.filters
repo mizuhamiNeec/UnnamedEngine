@@ -144,9 +144,6 @@
     <ClInclude Include="Source\Engine\Engine.h">
       <Filter>Source\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Camera\Camera.h">
-      <Filter>Source\Engine\Camera</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Externals\imgui\imconfig.h">
       <Filter>Source\Engine\Externals\imgui</Filter>
     </ClInclude>
@@ -231,12 +228,6 @@
     <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h">
       <Filter>Source\Engine\Object3D</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Particle\ParticleCommon.h">
-      <Filter>Source\Engine\Particle</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Particle\ParticleObject.h">
-      <Filter>Source\Engine\Particle</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h">
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
@@ -282,22 +273,25 @@
     <ClInclude Include="Source\Engine\Window\WindowsUtils.h">
       <Filter>Source\Engine\Window</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Game\GameScene.h">
+    <ClInclude Include="Source\Game\Scene\GameScene.h">
       <Filter>Source\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Game\IGameScene.h">
+    <ClInclude Include="Source\Game\Scene\Base\IGameScene.h">
       <Filter>Source\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Components\IComponent.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Quaternion\Quaternion.h" />
     <ClInclude Include="Source\Engine\Line\LineCommon.h" />
     <ClInclude Include="Source\Engine\Line\Line.h" />
-    <ClInclude Include="Source\Engine\Objects\Entity.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\StrUtils.h" />
     <ClInclude Include="Source\Engine\Debug\Debug.h" />
     <ClInclude Include="Source\Engine\Lib\Console\ConCommand.h" />
     <ClInclude Include="Source\Engine\Input\InputSystem.h" />
     <ClInclude Include="Source\Engine\Input\InputCommand.h" />
+    <ClInclude Include="Source\Engine\Camera\Camera.h" />
+    <ClInclude Include="Source\Engine\Renderer\StructuredBuffer.h" />
+    <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
+    <ClInclude Include="Source\Engine\Particle\ParticleManager.h" />
+    <ClInclude Include="Source\Engine\Particle\ParticleEmitter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -305,9 +299,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Engine.cpp">
       <Filter>Source\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Camera\Camera.cpp">
-      <Filter>Source\Engine\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Externals\imgui\imgui.cpp">
       <Filter>Source\Engine\Externals\imgui</Filter>
@@ -378,12 +369,6 @@
     <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp">
       <Filter>Source\Engine\Object3D</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Particle\ParticleCommon.cpp">
-      <Filter>Source\Engine\Particle</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp">
-      <Filter>Source\Engine\Particle</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp">
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
@@ -426,17 +411,22 @@
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp">
       <Filter>Source\Engine\Window</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Game\GameScene.cpp">
+    <ClCompile Include="Source\Game\Scene\GameScene.cpp">
       <Filter>Source\Game</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Lib\Math\Quaternion\Quaternion.cpp" />
     <ClCompile Include="Source\Engine\Line\LineCommon.cpp" />
     <ClCompile Include="Source\Engine\Line\Line.cpp" />
-    <ClCompile Include="Source\Engine\Objects\Entity.cpp" />
     <ClCompile Include="Source\Engine\Debug\Debug.cpp" />
     <ClCompile Include="Source\Engine\Lib\Console\ConCommand.cpp" />
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp" />
     <ClCompile Include="Source\Engine\Input\InputCommand.cpp" />
+    <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp" />
+    <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
+    <ClCompile Include="Source\Engine\Particle\ParticleManager.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec4.cpp" />
+    <ClCompile Include="Source\Engine\Particle\ParticleEmitter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

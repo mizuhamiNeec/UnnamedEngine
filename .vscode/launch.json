@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "EngineDebug",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/Bin/Debug/GE3_GameEngine.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "console": "integratedTerminal",
+      "preLaunchTask": "build"
+    },
+    {
+      "name": "EngineRelease",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/Bin/Release/GE3_GameEngine.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "console": "integratedTerminal",
+      "preLaunchTask": "build-release"
+    }
+  ]
+}

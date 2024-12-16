@@ -55,7 +55,7 @@ void D3D12::Init(Window* window) {
 
 void D3D12::ClearColorAndDepth() const {
 	//float clearColor[] = {0.89f, 0.5f, 0.03f, 1.0f};
-	float clearColor[] = {0.1f, 0.1f, 0.1f, 1.0f};
+	float clearColor[] = { 0.1f, 0.1f, 0.1f, 1.0f };
 	commandList_->ClearRenderTargetView(
 		rtvHandles_[frameIndex_],
 		clearColor,
@@ -71,7 +71,7 @@ void D3D12::ClearColorAndDepth() const {
 
 	commandList_->ClearDepthStencilView(
 		dsvHandle,
-		D3D12_CLEAR_FLAG_DEPTH,
+		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
 		1.0f,
 		0,
 		0,
@@ -187,7 +187,7 @@ void D3D12::CreateDevice() {
 	//-------------------------------------------------------------------------
 	ComPtr<IDXGIAdapter4> useAdapter;
 	for (UINT i = 0; dxgiFactory_->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-	                                                          IID_PPV_ARGS(&useAdapter)) != DXGI_ERROR_NOT_FOUND; ++i) {
+		IID_PPV_ARGS(&useAdapter)) != DXGI_ERROR_NOT_FOUND; ++i) {
 		DXGI_ADAPTER_DESC3 adapterDesc;
 		hr = useAdapter->GetDesc3(&adapterDesc);
 		assert(SUCCEEDED(hr));
@@ -208,7 +208,7 @@ void D3D12::CreateDevice() {
 		D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
 		D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
 	};
-	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0", "11.1", "11.0"};
+	const char* featureLevelStrings[] = { "12.2", "12.1", "12.0", "11.1", "11.0" };
 
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
@@ -245,7 +245,7 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
+		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(denyIds);
 		filter.DenyList.pIDList = denyIds;
@@ -340,7 +340,7 @@ void D3D12::CreateDSV() {
 	dsvDesc.Format = depthStencilResource_->GetDesc().Format;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	device_->CreateDepthStencilView(depthStencilResource_.Get(), &dsvDesc,
-	                                dsvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart());
+		dsvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart());
 }
 
 void D3D12::CreateCommandAllocator() {
@@ -445,15 +445,14 @@ void D3D12::WaitPreviousFrame() {
 }
 
 ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType,
-                                                         const UINT numDescriptors, const bool shaderVisible) const {
+	const UINT numDescriptors, const bool shaderVisible) const {
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
 	descriptorHeapDesc.Type = heapType;
 	descriptorHeapDesc.NumDescriptors = numDescriptors;
 	if (shaderVisible) {
 		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	}
-	else {
+	} else {
 		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	}
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
@@ -465,14 +464,14 @@ ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-                                                          const uint32_t descriptorSize, const uint32_t index) {
+	const uint32_t descriptorSize, const uint32_t index) {
 	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	handleCPU.ptr += static_cast<unsigned long long>(descriptorSize) * index;
 	return handleCPU;
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE D3D12::GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-                                                          const uint32_t descriptorSize, const uint32_t index) {
+	const uint32_t descriptorSize, const uint32_t index) {
 	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	handleGPU.ptr += static_cast<unsigned long long>(descriptorSize) * index;
 	return handleGPU;
@@ -481,11 +480,11 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12::GetGPUDescriptorHandle(ID3D12DescriptorHeap* 
 ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 	// 生成するResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc = {};
-	resourceDesc.Width = window_->GetClientWidth();
-	resourceDesc.Height = window_->GetClientHeight();
+	resourceDesc.Width = Window::GetClientWidth();
+	resourceDesc.Height = Window::GetClientHeight();
 	resourceDesc.MipLevels = 1; // Mipmapの数
 	resourceDesc.DepthOrArraySize = 1; // 奥行きor配列Textureの配列数
-	resourceDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // DepthStencilとして利用可能なフォーマット
+	resourceDesc.Format = DXGI_FORMAT_D32_FLOAT; // DepthStencilとして利用可能なフォーマット
 	resourceDesc.SampleDesc.Count = 1; // サンプリングカウント。1固定
 	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D; // 2次元
 	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL; // DepthStencilとして使う通知
@@ -496,7 +495,7 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 	// 深度値のクリア設定
 	D3D12_CLEAR_VALUE depthClearValue = {};
 	depthClearValue.DepthStencil.Depth = 1.0f; // 最大値でクリア
-	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 
 	// Resourceの生成
 	ComPtr<ID3D12Resource> resource;

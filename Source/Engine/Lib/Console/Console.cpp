@@ -12,6 +12,7 @@
 #include "ConVarManager.h"
 #include "../Utils/ClientProperties.h"
 #include "../Utils/StrUtils.h"
+#include "../../Input/InputSystem.h"
 
 //-----------------------------------------------------------------------------
 // Purpose: コンソールの更新処理
@@ -32,7 +33,7 @@ void Console::Update() {
 	ImGui::SetNextWindowSizeConstraints({ 360.0f, 360.0f }, { 8192.0f, 8192.0f });
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(12.0f, 10.0f));
-	bool bWindowOpen = ImGui::Begin("Console", &bShowConsole, consoleWindowFlags);
+	bool bWindowOpen = ImGui::Begin("コンソール", &bShowConsole, consoleWindowFlags);
 	ImGui::PopStyleVar();
 
 	if (bWindowOpen) {
@@ -298,12 +299,21 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 	std::vector<std::string> tokens = TokenizeCommand(trimmedCommand);
 
-	bool found = false;
-
 	// とりあえず履歴に追加
 	AddHistory(trimmedCommand);
 
-	found = ConCommand::ExecuteCommand(trimmedCommand);
+	bool found = ConCommand::ExecuteCommand(trimmedCommand);
+
+	// InputSystemのコマンド実行
+	// アクションコマンドの処理
+	if (!found && !tokens.empty()) {
+		// +-プレフィックスの処理
+		if (tokens[0][0] == '+' || tokens[0][0] == '-') {
+			bool isDown = (tokens[0][0] == '+');
+			InputSystem::ExecuteCommand(tokens[0], isDown);
+			found = true;
+		}
+	}
 
 	for (auto conVar : ConVarManager::GetAllConVars()) {
 		// 変数が存在する場合

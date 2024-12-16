@@ -32,8 +32,7 @@ public:
 		const bool& bMin,
 		const float& fMin,
 		const bool& bMax,
-		const float& fMax
-	) :
+		const float& fMax) :
 		name_(std::move(name)),
 		value_(defaultValue),
 		defaultValue_(defaultValue),
@@ -53,7 +52,8 @@ public:
 			return "float";
 		} else if constexpr (std::is_same_v<T, std::string>) {
 			return "string";
-		} else return "unknown";
+		} else
+			return "unknown";
 	}
 
 	[[nodiscard]] std::string GetValueAsString() const override {
@@ -93,6 +93,33 @@ public:
 		}
 	}
 
+	[[nodiscard]] float GetValueAsFloat() const override {
+		if constexpr (std::is_same_v<T, float>) {
+			return value_;
+		} else {
+			Console::Print("ConVarの値がfloat型ではありません\n");
+			return 0.0f;
+		}
+	}
+
+	[[nodiscard]] int GetValueAsInt() const override {
+		if constexpr (std::is_same_v<T, int>) {
+			return value_;
+		} else {
+			Console::Print("ConVarの値がint型ではありません\n");
+			return 0;
+		}
+	}
+
+	[[nodiscard]] bool GetValueAsBool() const override {
+		if constexpr (std::is_same_v<T, bool>) {
+			return value_;
+		} else {
+			Console::Print("ConVarの値がbool型ではありません\n");
+			return false;
+		}
+	}
+
 	[[nodiscard]] ConVarFlags GetFlags() const;
 
 	T GetValue() const;
@@ -127,8 +154,6 @@ void ConVar<T>::SetValue(const T& newValue) {
 				"{}のCVAR 値 '{}' を {} に変更しました\n",
 				"クライアント",
 				name_,
-				value_
-			)
-		);
+				value_));
 	}
 }

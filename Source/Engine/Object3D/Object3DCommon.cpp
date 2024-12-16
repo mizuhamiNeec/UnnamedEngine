@@ -1,8 +1,8 @@
 #include "Object3DCommon.h"
 
 #include "../Lib/Console/Console.h"
-#include "../Renderer/RootSignatureManager.h"
 #include "../Lib/Structs/Structs.h"
+#include "../Renderer/RootSignatureManager.h"
 
 #include "../Renderer/SrvManager.h"
 
@@ -108,7 +108,7 @@ void Object3DCommon::CreateGraphicsPipeline() {
 	pipelineState_.SetRootSignature(rootSignatureManager_->Get("Object3d"));
 
 	pipelineState_.SetDepthWriteMask(D3D12_DEPTH_WRITE_MASK_ALL);
-	pipelineState_.SetBlendMode(kBlendModeNone);
+	pipelineState_.SetBlendMode(kBlendModeNormal);
 
 	// シェーダーのファイルパスを設定
 	pipelineState_.SetVS(L"./Resources/Shaders/Object3d.VS.hlsl");

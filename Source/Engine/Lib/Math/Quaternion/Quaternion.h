@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "../Lib/Math/Vector/Vec3.h"
 
@@ -17,13 +17,21 @@ struct Quaternion {
 	void Normalize();
 	Quaternion Normalized() const;
 	Quaternion Conjugate() const;
+	Quaternion Inverse() const;
 	void ToAxisAngle(Vec3& outAxis, float& outAngle) const;
 	static Quaternion Euler(const Vec3& eulerRad);
 	static Quaternion Euler(const float& x, const float& y, const float& z);
+	static Quaternion EulerDegrees(const Vec3& eulerDeg);
+	static Quaternion EulerDegrees(const float& x, const float& y, const float& z);
 	static Quaternion AngleAxis(const float& angleDeg, const Vec3& axis);
 	static Quaternion Lerp(const Quaternion& a, const Quaternion& b, float t);
 	static Quaternion Slerp(const Quaternion& a, const Quaternion& b, float t);
 	Vec3 ToEulerAngles() const;
+	Vec3 ToEulerDegrees();
+	Vec3 GetAxis() const;
+	float GetRotationAroundAxis(const Vec3& axis) const;
+	float GetAngle() const;
+	float GetAngleDegrees() const;
 
 	//-------------------------------------------------------------------------
 	// Operator

@@ -1,12 +1,12 @@
 #pragma once
 #include <memory>
 
-#include "../Game/GameScene.h"
+#include "../Game/Scene/GameScene.h"
 #include "../Renderer/SrvManager.h"
+
 #include "Lib/Timer/EngineTimer.h"
 #include "Line/LineCommon.h"
 #include "Model/ModelCommon.h"
-#include "Particle/ParticleCommon.h"
 
 class Console;
 class ImGuiManager;
@@ -20,16 +20,14 @@ public:
 
 private:
 	void Init();
-	void Update() const;
+	void Update();
 	void Shutdown() const;
 
 	static void RegisterConsoleCommandsAndVariables();
 	static void Quit(const std::vector<std::string>& args = {});
 
 	static void DrawGrid(
-		float gridSize, float range, const Vec4& color, const Vec4& majorColor, const Vec4& axisColor, const Vec4&
-		minorColor
-	);
+		float gridSize, float range, const Vec4& color, const Vec4& majorColor, const Vec4& axisColor, const Vec4& minorColor);
 
 private:
 	std::unique_ptr<Window> window_;
@@ -40,12 +38,13 @@ private:
 	std::unique_ptr<Camera> camera_;
 	std::unique_ptr<SpriteCommon> spriteCommon_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;
-	std::unique_ptr<ParticleCommon> particleCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
 
 private:
 	static bool bWishShutdown;
+
+	Vec3 rot = Vec3::zero;
 
 #ifdef _DEBUG
 	std::unique_ptr<ImGuiManager> imGuiManager_;

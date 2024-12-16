@@ -2,6 +2,8 @@
 
 #include <initializer_list>
 
+#include "../Quaternion/Quaternion.h"
+
 #include "../Vector/Vec3.h"
 
 struct Mat4 final {
@@ -25,6 +27,8 @@ struct Mat4 final {
 	static Mat4 Translate(const Vec3& translate);
 	static Mat4 Scale(const Vec3& scale);
 	static Vec3 Transform(const Vec3& vector, const Mat4& matrix);
+	static Mat4 RotateQuaternion(Quaternion quaternion);
+	static Mat4 FromQuaternion(const Quaternion& q);
 	static Mat4 RotateX(float radian);
 	static Mat4 RotateY(float radian);
 	static Mat4 RotateZ(float radian);
@@ -33,12 +37,18 @@ struct Mat4 final {
 	static Mat4 MakeOrthographicMat(float left, float top, float right, float bottom, float nearClip, float farClip);
 	static Mat4 ViewportMat(float left, float top, float width, float height, float minDepth, float maxDepth);
 
+	Quaternion ToQuaternion() const;
+
+	Vec3 GetTranslate();
+
 	//-------------------------------------------------------------------------
 	// Operator
 	//-------------------------------------------------------------------------
 	Mat4 operator+(const Mat4& rhs) const;
 	Mat4 operator-(const Mat4& rhs) const;
 	Mat4 operator*(const Mat4& rhs) const;
+
+	Mat4& operator*=(const Mat4& mat4);
 
 private:
 	float Determinant() const;

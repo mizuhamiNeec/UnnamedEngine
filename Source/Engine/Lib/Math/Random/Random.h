@@ -9,9 +9,9 @@ struct Vec3;
 //-----------------------------------------------------------------------------
 class Random final {
 public:
-	static int RandomInt(const int& min = 0, const int& max = 1);
-	static float RandomFloat(const float& min = 0.0f, const float& max = 1.0f);
-	static Vec3 RandomVec3(const Vec3& min, const Vec3& max);
+	static int IntRange(const int& min = 0, const int& max = 1);
+	static float FloatRange(const float& min = 0.0f, const float& max = 1.0f);
+	static Vec3 Vec3Range(const Vec3& min, const Vec3& max);
 
 private:
 	static std::mt19937_64 randomEngine_;

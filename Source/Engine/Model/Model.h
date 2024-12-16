@@ -10,11 +10,6 @@ class ConstantBuffer;
 class ModelCommon;
 
 class Model {
-	struct MaterialData {
-		std::string textureFilePath;
-		uint32_t textureIndex = 0;
-	};
-
 	struct ModelData {
 		std::vector<Vertex> vertices;
 		MaterialData material;

@@ -1,31 +1,28 @@
 #include "GameScene.h"
 
+#include "../../Engine/Lib/Console/ConVarManager.h"
+#include "../../Engine/Lib/Math/Random/Random.h"
+#include "../../Engine/Lib/Timer/EngineTimer.h"
+#include "../../Engine/Model/ModelManager.h"
+#include "../Camera/Camera.h"
+#include "../Debug/Debug.h"
 #include "../Engine.h"
-#include "../Engine/Lib/Console/ConVarManager.h"
-#include "../Engine/Lib/Math/Quaternion/Quaternion.h"
-#include "../Engine/Lib/Math/Random/Random.h"
-#include "../Engine/Lib/Timer/EngineTimer.h"
-#include "../Engine/Model/ModelManager.h"
 #include "../ImGuiManager/ImGuiManager.h"
 #include "../Lib/Math/MathLib.h"
 #include "../Object3D/Object3D.h"
-#include "../Particle/ParticleCommon.h"
+#include "../Particle/ParticleManager.h"
 #include "../Sprite/SpriteCommon.h"
 #include "../TextureManager/TextureManager.h"
-#include "../Debug/Debug.h"
 
 void GameScene::Init(
-	D3D12* renderer, Window* window,
-	SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
-	ModelCommon* modelCommon, ParticleCommon* particleCommon,
-	EngineTimer* engineTimer
-) {
+	D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
+	ModelCommon* modelCommon, SrvManager* srvManager, EngineTimer* engineTimer) {
 	renderer_ = renderer;
 	window_ = window;
 	spriteCommon_ = spriteCommon;
 	object3DCommon_ = object3DCommon;
 	modelCommon_ = modelCommon;
-	particleCommon_ = particleCommon;
+	srvManager_ = srvManager;
 	timer_ = engineTimer;
 
 #pragma region テクスチャ読み込み
@@ -52,48 +49,36 @@ void GameScene::Init(
 #pragma endregion
 
 #pragma region パーティクル類
+	particleManager_ = std::make_unique<ParticleManager>();
+	particleManager_->Init(object3DCommon_->GetD3D12(), srvManager);
+	particleManager_->SetDefaultCamera(object3DCommon_->GetDefaultCamera());
+	particleManager_->CreateParticleGroup("circle", "./Resources/Textures/circle.png");
+
 	particle_ = std::make_unique<ParticleObject>();
-	particle_->Init(particleCommon_, "./Resources/Textures/circle.png");
+	particle_->Init(particleManager_.get(), "./Resources/Textures/circle.png");
 #pragma endregion
 }
 
 void GameScene::Update() {
 	sprite_->Update();
-	//object3D_->Update();
+	object3D_->Update();
+
+	particleManager_->Update(EngineTimer::GetScaledDeltaTime());
 	particle_->Update(EngineTimer::GetScaledDeltaTime());
-
-#ifdef _DEBUG
-
-	// // ライン描画
-	// {
-	// 	static Vec3 pos;
-	// 	static Vec3 rot;
-	//
-	// 	ImGui::Begin("Axis");
-	// 	ImGui::DragFloat3("pos##axis", &pos.x, 0.01f);
-	// 	ImGui::DragFloat3("rot##axis", &rot.x, 0.01f);
-	// 	ImGui::End();
-	//
-	// 	Debug::DrawAxis(pos, Quaternion::Euler(rot));
-	// }
-
-#endif
 
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVarManager::GetConVar("cl_showpos")->GetValueAsString() == "1") {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
-		constexpr ImGuiWindowFlags windowFlags =
-			ImGuiWindowFlags_NoBackground |
-			ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoSavedSettings |
+		constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
 			ImGuiWindowFlags_NoDocking;
 		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
 		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+
+		Camera* cam = object3DCommon_->GetDefaultCamera();
 
 		// テキストのサイズを取得
 		ImGuiIO io = ImGui::GetIO();
@@ -103,13 +88,11 @@ void GameScene::Update() {
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
 			ConVarManager::GetConVar("name")->GetValueAsString(),
-			object3DCommon_->GetDefaultCamera()->GetPos().x, object3DCommon_->GetDefaultCamera()->GetPos().y,
-			object3DCommon_->GetDefaultCamera()->GetPos().z,
-			object3DCommon_->GetDefaultCamera()->GetRotate().x * Math::rad2Deg,
-			object3DCommon_->GetDefaultCamera()->GetRotate().y * Math::rad2Deg,
-			object3DCommon_->GetDefaultCamera()->GetRotate().z * Math::rad2Deg,
-			0.0f
-		);
+			cam->GetPos().x, cam->GetPos().y, cam->GetPos().z,
+			cam->GetRotate().x * Math::rad2Deg,
+			cam->GetRotate().y * Math::rad2Deg,
+			cam->GetRotate().z * Math::rad2Deg,
+			0.0f);
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 
 		// ウィンドウサイズをテキストサイズに基づいて設定
@@ -124,14 +107,7 @@ void GameScene::Update() {
 
 		ImU32 textColor = IM_COL32(255, 255, 255, 255);
 		ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
-		ImGuiManager::TextOutlined(
-			drawList,
-			textPos,
-			text.c_str(),
-			textColor,
-			outlineColor,
-			outlineSize
-		);
+		ImGuiManager::TextOutlined(drawList, textPos, text.c_str(), textColor, outlineColor, outlineSize);
 
 		ImGui::PopStyleVar();
 		ImGui::End();
@@ -145,12 +121,11 @@ void GameScene::Render() {
 	// オブジェクト3D共通描画設定
 	object3DCommon_->Render();
 	//----------------------------------------
-
-	//object3D_->Draw();
+	object3D_->Draw();
 
 	//----------------------------------------
 	// パーティクル共通描画設定
-	particleCommon_->Render();
+	particleManager_->Render();
 	//----------------------------------------
 	particle_->Draw();
 
@@ -158,11 +133,11 @@ void GameScene::Render() {
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
-	//sprite_->Draw();
+	// sprite_->Draw();
 }
 
 void GameScene::Shutdown() {
 	spriteCommon_->Shutdown();
 	object3DCommon_->Shutdown();
-	particleCommon_->Shutdown();
+	particleManager_->Shutdown();
 }

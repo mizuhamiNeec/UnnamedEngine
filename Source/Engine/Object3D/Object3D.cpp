@@ -1,6 +1,5 @@
 #include "Object3D.h"
 
-#include "Object3DCommon.h"
 #include "../Camera/Camera.h"
 #include "../Lib/Console/Console.h"
 #include "../Lib/Math/Vector/Vec3.h"
@@ -9,6 +8,7 @@
 #include "../Model/Model.h"
 #include "../Model/ModelManager.h"
 #include "../Renderer/ConstantBuffer.h"
+#include "Object3DCommon.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : 初期化します
@@ -68,7 +68,7 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 void Object3D::Update() {
 #ifdef _DEBUG
 	ImGui::Begin("Object3D");
-	ImGuiManager::EditTransform("Object3D", transform_, 0.01f);
+	ImGuiManager::EditTransform(transform_, 0.01f);
 	if (ImGui::CollapsingHeader("Directional Light")) {
 		if (ImGui::DragFloat3("dir##light", &directionalLightData_->direction.x, 0.01f)) {
 			directionalLightData_->direction.Normalize();
@@ -105,8 +105,7 @@ void Object3D::Update() {
 	Mat4 worldMat = Mat4::Affine(
 		transform_.scale,
 		transform_.rotate,
-		transform_.translate
-	);
+		transform_.translate);
 
 	Mat4 worldViewProjMat;
 
@@ -114,8 +113,7 @@ void Object3D::Update() {
 		// カメラが存在する場合はカメラから行列を持ってくる
 		const Mat4& viewProjMat = camera_->GetViewProjMat();
 		worldViewProjMat = worldMat * viewProjMat;
-	}
-	else {
+	} else {
 		worldViewProjMat = worldMat;
 	}
 

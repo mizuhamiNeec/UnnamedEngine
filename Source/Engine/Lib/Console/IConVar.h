@@ -6,6 +6,9 @@ public:
 	virtual ~IConVar() = default;
 
 	[[nodiscard]] virtual std::string GetValueAsString() const = 0;
+	[[nodiscard]] virtual float GetValueAsFloat() const = 0;
+	[[nodiscard]] virtual int GetValueAsInt() const = 0;
+	[[nodiscard]] virtual bool GetValueAsBool() const = 0;
 	[[nodiscard]] virtual std::string GetTypeAsString() const = 0;
 	[[nodiscard]] virtual const std::string& GetName() const = 0;
 	[[nodiscard]] virtual const std::string& GetHelp() const = 0;

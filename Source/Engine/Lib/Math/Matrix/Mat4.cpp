@@ -47,7 +47,7 @@ Mat4::Mat4(const std::initializer_list<std::initializer_list<float>> list) {
 }
 
 const Mat4 Mat4::identity = Mat4();
-const Mat4 Mat4::zero = {{{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+const Mat4 Mat4::zero = { {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}} };
 
 Mat4 Mat4::operator+(const Mat4& rhs) const {
 	return {
@@ -91,25 +91,30 @@ Mat4 Mat4::operator*(const Mat4& rhs) const {
 	return result;
 }
 
+Mat4& Mat4::operator*=(const Mat4& mat4) {
+	*this = *this * mat4;
+	return *this;
+}
+
 float Mat4::Determinant() const {
 	return
 		m[0][0] * (
 			m[1][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
 			m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) +
 			m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1])
-		) - m[0][1] * (
-			m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
-			m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
-			m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0])
-		) + m[0][2] * (
-			m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
-			m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
-			m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
-		) - m[0][3] * (
-			m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
-			m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
-			m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
-		);
+			) - m[0][1] * (
+				m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
+				m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+				m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0])
+				) + m[0][2] * (
+					m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
+					m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
+					m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
+					) - m[0][3] * (
+						m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
+						m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
+						m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
+						);
 }
 
 Mat4 Mat4::Inverse() const {
@@ -208,7 +213,7 @@ Mat4 Mat4::Transpose() const {
 
 void Mat4::LogMat4() {
 	std::wstring result;
-	for (float (&i)[4] : m) {
+	for (float(&i)[4] : m) {
 		for (float& j : i) {
 			result += std::format(L"{:.2f} ", j);
 		}
@@ -252,6 +257,71 @@ Vec3 Mat4::Transform(const Vec3& vector, const Mat4& matrix) {
 	result.x /= w; // w=1がデカルト座標系であるので、w除算することで同時座標をデカルト座標に戻す
 	result.y /= w;
 	result.z /= w;
+	return result;
+}
+
+Mat4 Mat4::RotateQuaternion(Quaternion quaternion) {
+	Mat4 result = identity;
+	auto normalizedQuat = quaternion.Normalized();
+
+	const float xx = normalizedQuat.x * normalizedQuat.x;
+	const float yy = normalizedQuat.y * normalizedQuat.y;
+	const float zz = normalizedQuat.z * normalizedQuat.z;
+	const float xy = normalizedQuat.x * normalizedQuat.y;
+	const float xz = normalizedQuat.x * normalizedQuat.z;
+	const float yz = normalizedQuat.y * normalizedQuat.z;
+	const float wx = normalizedQuat.w * normalizedQuat.x;
+	const float wy = normalizedQuat.w * normalizedQuat.y;
+	const float wz = normalizedQuat.w * normalizedQuat.z;
+
+	result.m[0][0] = 1.0f - 2.0f * (yy + zz);
+	result.m[0][1] = 2.0f * (xy - wz);
+	result.m[0][2] = 2.0f * (xz + wy);
+
+	result.m[1][0] = 2.0f * (xy + wz);
+	result.m[1][1] = 1.0f - 2.0f * (xx + zz);
+	result.m[1][2] = 2.0f * (yz - wx);
+
+	result.m[2][0] = 2.0f * (xz - wy);
+	result.m[2][1] = 2.0f * (yz + wx);
+	result.m[2][2] = 1.0f - 2.0f * (xx + yy);
+
+	return result;
+}
+
+Mat4 Mat4::FromQuaternion(const Quaternion& q) {
+	Mat4 result;
+
+	float xx = q.x * q.x;
+	float yy = q.y * q.y;
+	float zz = q.z * q.z;
+	float xy = q.x * q.y;
+	float xz = q.x * q.z;
+	float yz = q.y * q.z;
+	float wx = q.w * q.x;
+	float wy = q.w * q.y;
+	float wz = q.w * q.z;
+
+	result.m[0][0] = 1.0f - 2.0f * (yy + zz);
+	result.m[0][1] = 2.0f * (xy - wz);
+	result.m[0][2] = 2.0f * (xz + wy);
+	result.m[0][3] = 0.0f;
+
+	result.m[1][0] = 2.0f * (xy + wz);
+	result.m[1][1] = 1.0f - 2.0f * (xx + zz);
+	result.m[1][2] = 2.0f * (yz - wx);
+	result.m[1][3] = 0.0f;
+
+	result.m[2][0] = 2.0f * (xz - wy);
+	result.m[2][1] = 2.0f * (yz + wx);
+	result.m[2][2] = 1.0f - 2.0f * (xx + yy);
+	result.m[2][3] = 0.0f;
+
+	result.m[3][0] = 0.0f;
+	result.m[3][1] = 0.0f;
+	result.m[3][2] = 0.0f;
+	result.m[3][3] = 1.0f;
+
 	return result;
 }
 
@@ -353,4 +423,41 @@ Mat4 Mat4::ViewportMat(
 	result.m[3][2] = minDepth;
 
 	return result;
+}
+
+Quaternion Mat4::ToQuaternion() const {
+	Quaternion q;
+	float trace = m[0][0] + m[1][1] + m[2][2];
+	if (trace > 0) {
+		float s = 0.5f / sqrtf(trace + 1.0f);
+		q.w = 0.25f / s;
+		q.x = (m[2][1] - m[1][2]) * s;
+		q.y = (m[0][2] - m[2][0]) * s;
+		q.z = (m[1][0] - m[0][1]) * s;
+	} else {
+		if (m[0][0] > m[1][1] && m[0][0] > m[2][2]) {
+			float s = 2.0f * sqrtf(1.0f + m[0][0] - m[1][1] - m[2][2]);
+			q.w = (m[2][1] - m[1][2]) / s;
+			q.x = 0.25f * s;
+			q.y = (m[0][1] + m[1][0]) / s;
+			q.z = (m[0][2] + m[2][0]) / s;
+		} else if (m[1][1] > m[2][2]) {
+			float s = 2.0f * sqrtf(1.0f + m[1][1] - m[0][0] - m[2][2]);
+			q.w = (m[0][2] - m[2][0]) / s;
+			q.x = (m[0][1] + m[1][0]) / s;
+			q.y = 0.25f * s;
+			q.z = (m[1][2] + m[2][1]) / s;
+		} else {
+			float s = 2.0f * sqrtf(1.0f + m[2][2] - m[0][0] - m[1][1]);
+			q.w = (m[1][0] - m[0][1]) / s;
+			q.x = (m[0][2] + m[2][0]) / s;
+			q.y = (m[1][2] + m[2][1]) / s;
+			q.z = 0.25f * s;
+		}
+	}
+	return q;
+}
+
+Vec3 Mat4::GetTranslate() {
+	return { m[3][0], m[3][1], m[3][2] };
 }

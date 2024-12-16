@@ -12,17 +12,16 @@ Camera::Camera() :
 	worldMat_(Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate)),
 	viewMat_(worldMat_.Inverse()),
 	projMat_(Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_)),
-	viewProjMat_(viewMat_* projMat_) {}
+	viewProjMat_(viewMat_ * projMat_) {}
 
 void Camera::Update() {
 #ifdef _DEBUG
 	ImGui::Begin("Camera");
-	ImGuiManager::EditTransform("Camera", transform_, 0.01f);
+	ImGuiManager::EditTransform(transform_, 0.01f);
 
 	if (ImGui::CollapsingHeader("Properties")) {
 		float fovTmp = fov_ * Math::rad2Deg;
-		if (ImGui::DragFloat("FOV##cam", &fovTmp, 0.1f, kFovMin * Math::rad2Deg, kFovMax * Math::rad2Deg,
-			"%.2f [deg]")) {
+		if (ImGui::DragFloat("FOV##cam", &fovTmp, 0.1f, kFovMin * Math::rad2Deg, kFovMax * Math::rad2Deg, "%.2f [deg]")) {
 			SetFovVertical(fovTmp * Math::deg2Rad);
 		}
 
@@ -33,12 +32,16 @@ void Camera::Update() {
 	ImGui::End();
 #endif
 
+	float width = static_cast<float>(Window::GetClientWidth());
+	float height = static_cast<float>(Window::GetClientHeight());
+
+	SetAspectRatio(width / height);
+
 	// transform_からアフィン変換行列を作成
 	worldMat_ = Mat4::Affine(
-		{ 1.0f, 1.0f, 1.0f },
+		{1.0f, 1.0f, 1.0f},
 		transform_.rotate,
-		transform_.translate
-	);
+		transform_.translate);
 
 	// worldMatの逆行列
 	viewMat_ = worldMat_.Inverse();
@@ -146,4 +149,18 @@ float& Camera::GetZFar() {
 //-----------------------------------------------------------------------------
 Mat4& Camera::GetViewProjMat() {
 	return viewProjMat_;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: ビュー行列を取得します
+//-----------------------------------------------------------------------------
+Mat4& Camera::GetViewMat() {
+	return viewMat_;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: プロジェクション行列を取得します
+//-----------------------------------------------------------------------------
+Mat4& Camera::GetProjMat() {
+	return projMat_;
 }

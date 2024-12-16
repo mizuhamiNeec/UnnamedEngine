@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "memory": "cpp",
+        "algorithm": "cpp",
+        "xstring": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "cmath": "cpp",
+        "random": "cpp",
+        "mutex": "cpp"
+    }
+}
