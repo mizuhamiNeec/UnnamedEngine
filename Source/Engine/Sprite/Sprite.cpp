@@ -1,10 +1,10 @@
 #include "Sprite.h"
 
-#include "SpriteCommon.h"
-#include "../TextureManager/TextureManager.h"
 #include "../Lib/Console/Console.h"
 #include "../Lib/Utils/ClientProperties.h"
 #include "../Renderer/D3D12.h"
+#include "../TextureManager/TextureManager.h"
+#include "SpriteCommon.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : デストラクタ
@@ -34,10 +34,7 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 	indexBuffer_ = std::make_unique<IndexBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(indices), indices);
 
 	// 頂点バッファの作成
-	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(spriteCommon_->GetD3D12()->GetDevice(),
-		sizeof(Vertex) * kSpriteVertexCount,
-		vertices_.data()
-	);
+	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Vertex) * kSpriteVertexCount, vertices_.data());
 
 	// 定数バッファ
 	materialResource_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Material));
@@ -46,15 +43,14 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 	materialData_->enableLighting = false;
 	materialData_->uvTransform = Mat4::identity;
 
-	transformation_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(),
-		sizeof(TransformationMatrix));
+	transformation_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
 	transformationMatrixData_ = transformation_->GetPtr<TransformationMatrix>();
 	transformationMatrixData_->wvp = Mat4::identity;
 	transformationMatrixData_->world = Mat4::identity;
 
 	AdjustTextureSize();
 
-	Console::Print("スプライトの初期化に成功しました。\n", kConsoleColorCompleted);
+	Console::Print("スプライトの初期化に成功しました。\n", kConsoleColorCompleted, Channel::kEngine);
 }
 
 //-----------------------------------------------------------------------------
@@ -107,8 +103,7 @@ void Sprite::Update() {
 	// 各種行列を作成
 	Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
 	Mat4 viewMat = Mat4::identity;
-	Mat4 projMat = Mat4::MakeOrthographicMat(0.0f, 0.0f, static_cast<float>(kClientWidth),
-		static_cast<float>(kClientHeight), 0.0f, 100.0f);
+	Mat4 projMat = Mat4::MakeOrthographicMat(0.0f, 0.0f, static_cast<float>(kClientWidth), static_cast<float>(kClientHeight), 0.0f, 100.0f);
 
 	TransformationMatrix worldViewProjectionMatrixSprite = {
 		worldMat * viewMat * projMat,

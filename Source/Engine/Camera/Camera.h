@@ -34,7 +34,7 @@ private:
 	float fov_ = 90.0f * Math::deg2Rad;
 	float aspectRatio_ = 0.0f;
 	float zNear_ = 0.1f;
-	float zFar_ = 100.0f;
+	float zFar_ = 1024.0f;
 
 	Transform transform_{
 		{1.0f, 1.0f, 1.0f},

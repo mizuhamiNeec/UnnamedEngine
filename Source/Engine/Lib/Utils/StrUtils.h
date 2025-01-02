@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <string>
+#include <vector>
 #include <windows.h>
 
 class StrUtils {
@@ -78,5 +79,20 @@ public:
 				return std::tolower(c1) == std::tolower(c2);
 			}
 		);
+	}
+
+	static std::string Join(const std::vector<std::string>& args, const char* delimiter) {
+		if (args.empty()) {
+			return "";
+		}
+
+		std::string result;
+		for (const auto& arg : args) {
+			result += arg + delimiter;
+		}
+		if (!result.empty()) {
+			result.pop_back();
+		}
+		return result;
 	}
 };

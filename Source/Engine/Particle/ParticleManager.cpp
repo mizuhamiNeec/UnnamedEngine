@@ -15,7 +15,7 @@
 void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
 	d3d12_ = d3d12;
 	srvManager_ = srvManager;
-	Console::Print("ParticleManager : ParticleCommonを初期化します。\n", kConsoleColorWait);
+	Console::Print("ParticleManager : ParticleCommonを初期化します。\n", kConsoleColorWait, Channel::kEngine);
 	// 頂点データの生成
 	vertices_ = {
 		{{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, Vec3::forward},
@@ -33,7 +33,7 @@ void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
 
 	CreateGraphicsPipeline();
 
-	Console::Print("ParticleManager : ParticleCommonの初期化が完了しました。\n", kConsoleColorCompleted);
+	Console::Print("ParticleManager : ParticleCommonの初期化が完了しました。\n", kConsoleColorCompleted, Channel::kEngine);
 }
 
 void ParticleManager::Shutdown() const {
@@ -93,7 +93,7 @@ void ParticleManager::CreateRootSignature() {
 	rootSignatureManager_->CreateRootSignature("ParticleManager", rootParameters, staticSamplers, _countof(staticSamplers));
 
 	if (rootSignatureManager_->Get("ParticleManager")) {
-		Console::Print("ParticleManager : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
+		Console::Print("ParticleManager : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }
 
@@ -112,7 +112,7 @@ void ParticleManager::CreateGraphicsPipeline() {
 
 
 	if (pipelineState_.Get()) {
-		Console::Print("ParticleManager: パイプラインの作成に成功しました。\n");
+		Console::Print("ParticleManager: パイプラインの作成に成功しました。\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }
 

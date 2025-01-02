@@ -4,9 +4,9 @@
 #include <cmath>
 #include <format>
 
-#include "../MathLib.h"
 #include "../../Console/Console.h"
 #include "../Lib/Utils/StrUtils.h"
+#include "../MathLib.h"
 
 Mat4::Mat4() {
 	for (int i = 0; i < 4; ++i) {
@@ -47,7 +47,7 @@ Mat4::Mat4(const std::initializer_list<std::initializer_list<float>> list) {
 }
 
 const Mat4 Mat4::identity = Mat4();
-const Mat4 Mat4::zero = { {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}} };
+const Mat4 Mat4::zero = {{{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
 
 Mat4 Mat4::operator+(const Mat4& rhs) const {
 	return {
@@ -56,8 +56,7 @@ Mat4 Mat4::operator+(const Mat4& rhs) const {
 			{m[1][0] + rhs.m[1][0], m[1][1] + rhs.m[1][1], m[1][2] + rhs.m[1][2], m[1][3] + rhs.m[1][3]},
 			{m[2][0] + rhs.m[2][0], m[2][1] + rhs.m[2][1], m[2][2] + rhs.m[2][2], m[2][3] + rhs.m[2][3]},
 			{m[3][0] + rhs.m[3][0], m[3][1] + rhs.m[3][1], m[3][2] + rhs.m[3][2], m[3][3] + rhs.m[3][3]},
-		}
-	};
+		}};
 }
 
 Mat4 Mat4::operator-(const Mat4& rhs) const {
@@ -97,24 +96,7 @@ Mat4& Mat4::operator*=(const Mat4& mat4) {
 }
 
 float Mat4::Determinant() const {
-	return
-		m[0][0] * (
-			m[1][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
-			m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) +
-			m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1])
-			) - m[0][1] * (
-				m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
-				m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
-				m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0])
-				) + m[0][2] * (
-					m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
-					m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
-					m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
-					) - m[0][3] * (
-						m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
-						m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
-						m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])
-						);
+	return m[0][0] * (m[1][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) - m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) + m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1])) - m[0][1] * (m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) - m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) + m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0])) + m[0][2] * (m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) - m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) + m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])) - m[0][3] * (m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) - m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) + m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
 }
 
 Mat4 Mat4::Inverse() const {
@@ -129,86 +111,35 @@ Mat4 Mat4::Inverse() const {
 	// 逆行列の計算
 	const float invDet = 1.0f / det;
 
-	result.m[0][0] = invDet * (
-		m[1][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
-		m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) +
-		m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]));
-	result.m[0][1] = invDet * -(
-		m[0][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
-		m[0][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) +
-		m[0][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]));
-	result.m[0][2] = invDet * (
-		m[0][1] * (m[1][2] * m[3][3] - m[1][3] * m[3][2]) -
-		m[0][2] * (m[1][1] * m[3][3] - m[1][3] * m[3][1]) +
-		m[0][3] * (m[1][1] * m[3][2] - m[1][2] * m[3][1]));
-	result.m[0][3] = invDet * -(
-		m[0][1] * (m[1][2] * m[2][3] - m[1][3] * m[2][2]) -
-		m[0][2] * (m[1][1] * m[2][3] - m[1][3] * m[2][1]) +
-		m[0][3] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]));
+	result.m[0][0] = invDet * (m[1][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) - m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) + m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]));
+	result.m[0][1] = invDet * -(m[0][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) - m[0][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) + m[0][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]));
+	result.m[0][2] = invDet * (m[0][1] * (m[1][2] * m[3][3] - m[1][3] * m[3][2]) - m[0][2] * (m[1][1] * m[3][3] - m[1][3] * m[3][1]) + m[0][3] * (m[1][1] * m[3][2] - m[1][2] * m[3][1]));
+	result.m[0][3] = invDet * -(m[0][1] * (m[1][2] * m[2][3] - m[1][3] * m[2][2]) - m[0][2] * (m[1][1] * m[2][3] - m[1][3] * m[2][1]) + m[0][3] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]));
 
-	result.m[1][0] = invDet * -(
-		m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
-		m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
-		m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]));
-	result.m[1][1] = invDet * (
-		m[0][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) -
-		m[0][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
-		m[0][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]));
-	result.m[1][2] = invDet * -(
-		m[0][0] * (m[1][2] * m[3][3] - m[1][3] * m[3][2]) -
-		m[0][2] * (m[1][0] * m[3][3] - m[1][3] * m[3][0]) +
-		m[0][3] * (m[1][0] * m[3][2] - m[1][2] * m[3][0]));
-	result.m[1][3] = invDet * (
-		m[0][0] * (m[1][2] * m[2][3] - m[1][3] * m[2][2]) -
-		m[0][2] * (m[1][0] * m[2][3] - m[1][3] * m[2][0]) +
-		m[0][3] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]));
+	result.m[1][0] = invDet * -(m[1][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) - m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) + m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]));
+	result.m[1][1] = invDet * (m[0][0] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) - m[0][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) + m[0][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]));
+	result.m[1][2] = invDet * -(m[0][0] * (m[1][2] * m[3][3] - m[1][3] * m[3][2]) - m[0][2] * (m[1][0] * m[3][3] - m[1][3] * m[3][0]) + m[0][3] * (m[1][0] * m[3][2] - m[1][2] * m[3][0]));
+	result.m[1][3] = invDet * (m[0][0] * (m[1][2] * m[2][3] - m[1][3] * m[2][2]) - m[0][2] * (m[1][0] * m[2][3] - m[1][3] * m[2][0]) + m[0][3] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]));
 
-	result.m[2][0] = invDet * (
-		m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
-		m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
-		m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
-	result.m[2][1] = invDet * -(
-		m[0][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) -
-		m[0][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) +
-		m[0][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
-	result.m[2][2] = invDet * (
-		m[0][0] * (m[1][1] * m[3][3] - m[1][3] * m[3][1]) -
-		m[0][1] * (m[1][0] * m[3][3] - m[1][3] * m[3][0]) +
-		m[0][3] * (m[1][0] * m[3][1] - m[1][1] * m[3][0]));
-	result.m[2][3] = invDet * -(
-		m[0][0] * (m[1][1] * m[2][3] - m[1][3] * m[2][1]) -
-		m[0][1] * (m[1][0] * m[2][3] - m[1][3] * m[2][0]) +
-		m[0][3] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]));
+	result.m[2][0] = invDet * (m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) - m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) + m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
+	result.m[2][1] = invDet * -(m[0][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) - m[0][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) + m[0][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
+	result.m[2][2] = invDet * (m[0][0] * (m[1][1] * m[3][3] - m[1][3] * m[3][1]) - m[0][1] * (m[1][0] * m[3][3] - m[1][3] * m[3][0]) + m[0][3] * (m[1][0] * m[3][1] - m[1][1] * m[3][0]));
+	result.m[2][3] = invDet * -(m[0][0] * (m[1][1] * m[2][3] - m[1][3] * m[2][1]) - m[0][1] * (m[1][0] * m[2][3] - m[1][3] * m[2][0]) + m[0][3] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]));
 
-	result.m[3][0] = invDet * -(
-		m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
-		m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
-		m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
-	result.m[3][1] = invDet * (
-		m[0][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) -
-		m[0][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) +
-		m[0][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
-	result.m[3][2] = invDet * -(
-		m[0][0] * (m[1][1] * m[3][2] - m[1][2] * m[3][1]) -
-		m[0][1] * (m[1][0] * m[3][2] - m[1][2] * m[3][0]) +
-		m[0][2] * (m[1][0] * m[3][1] - m[1][1] * m[3][0]));
-	result.m[3][3] = invDet * (
-		m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
-		m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
-		m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]));
+	result.m[3][0] = invDet * -(m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) - m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) + m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
+	result.m[3][1] = invDet * (m[0][0] * (m[2][1] * m[3][2] - m[2][2] * m[3][1]) - m[0][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) + m[0][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][0]));
+	result.m[3][2] = invDet * -(m[0][0] * (m[1][1] * m[3][2] - m[1][2] * m[3][1]) - m[0][1] * (m[1][0] * m[3][2] - m[1][2] * m[3][0]) + m[0][2] * (m[1][0] * m[3][1] - m[1][1] * m[3][0]));
+	result.m[3][3] = invDet * (m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]));
 
 	return result;
 }
 
 Mat4 Mat4::Transpose() const {
 	return {
-		{
-			{m[0][0], m[1][0], m[2][0], m[3][0]},
-			{m[0][1], m[1][1], m[2][1], m[3][1]},
-			{m[0][2], m[1][2], m[2][2], m[3][2]},
-			{m[0][3], m[1][3], m[2][3], m[3][3]}
-		}
-	};
+		{{m[0][0], m[1][0], m[2][0], m[3][0]},
+		 {m[0][1], m[1][1], m[2][1], m[3][1]},
+		 {m[0][2], m[1][2], m[2][2], m[3][2]},
+		 {m[0][3], m[1][3], m[2][3], m[3][3]}}};
 }
 
 void Mat4::LogMat4() {
@@ -224,34 +155,27 @@ void Mat4::LogMat4() {
 
 Mat4 Mat4::Translate(const Vec3& translate) {
 	return {
-		{
-			{1.0f, 0.0f, 0.0f, 0.0f},
-			{0.0f, 1.0f, 0.0f, 0.0f},
-			{0.0f, 0.0f, 1.0f, 0.0f},
-			{translate.x, translate.y, translate.z, 1.0f}
-		},
+		{{1.0f, 0.0f, 0.0f, 0.0f},
+		 {0.0f, 1.0f, 0.0f, 0.0f},
+		 {0.0f, 0.0f, 1.0f, 0.0f},
+		 {translate.x, translate.y, translate.z, 1.0f}},
 	};
 }
 
 Mat4 Mat4::Scale(const Vec3& scale) {
 	return {
-		{
-			{scale.x, 0.0f, 0.0f, 0.0f},
-			{0.0f, scale.y, 0.0f, 0.0f},
-			{0.0f, 0.0f, scale.z, 0.0f},
-			{0.0f, 0.0f, 0.0f, 1.0f}
-		},
+		{{scale.x, 0.0f, 0.0f, 0.0f},
+		 {0.0f, scale.y, 0.0f, 0.0f},
+		 {0.0f, 0.0f, scale.z, 0.0f},
+		 {0.0f, 0.0f, 0.0f, 1.0f}},
 	};
 }
 
 Vec3 Mat4::Transform(const Vec3& vector, const Mat4& matrix) {
 	Vec3 result; // w=1がデカルト座標系であるので(x,y,z,1)のベクトルとしてmatrixとの積をとる
-	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][
-		0];
-	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][
-		1];
-	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + 1.0f * matrix.m[3][
-		2];
+	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][0];
+	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][1];
+	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + 1.0f * matrix.m[3][2];
 	float w = vector.x * matrix.m[0][3] + vector.y * matrix.m[1][3] + vector.z * matrix.m[2][3] + 1.0f * matrix.m[3][3];
 	assert(w != 0.0f); // ベクトルに対して基本的な操作を行う行列でwが0になることはありえない
 	result.x /= w; // w=1がデカルト座標系であるので、w除算することで同時座標をデカルト座標に戻す
@@ -260,19 +184,19 @@ Vec3 Mat4::Transform(const Vec3& vector, const Mat4& matrix) {
 	return result;
 }
 
-Mat4 Mat4::RotateQuaternion(Quaternion quaternion) {
+Mat4 Mat4::RotateQuaternion(const Quaternion quaternion) {
 	Mat4 result = identity;
-	auto normalizedQuat = quaternion.Normalized();
+	const auto normalizedQuaternion = quaternion.Normalized();
 
-	const float xx = normalizedQuat.x * normalizedQuat.x;
-	const float yy = normalizedQuat.y * normalizedQuat.y;
-	const float zz = normalizedQuat.z * normalizedQuat.z;
-	const float xy = normalizedQuat.x * normalizedQuat.y;
-	const float xz = normalizedQuat.x * normalizedQuat.z;
-	const float yz = normalizedQuat.y * normalizedQuat.z;
-	const float wx = normalizedQuat.w * normalizedQuat.x;
-	const float wy = normalizedQuat.w * normalizedQuat.y;
-	const float wz = normalizedQuat.w * normalizedQuat.z;
+	const float xx = normalizedQuaternion.x * normalizedQuaternion.x;
+	const float yy = normalizedQuaternion.y * normalizedQuaternion.y;
+	const float zz = normalizedQuaternion.z * normalizedQuaternion.z;
+	const float xy = normalizedQuaternion.x * normalizedQuaternion.y;
+	const float xz = normalizedQuaternion.x * normalizedQuaternion.z;
+	const float yz = normalizedQuaternion.y * normalizedQuaternion.z;
+	const float wx = normalizedQuaternion.w * normalizedQuaternion.x;
+	const float wy = normalizedQuaternion.w * normalizedQuaternion.y;
+	const float wz = normalizedQuaternion.w * normalizedQuaternion.z;
 
 	result.m[0][0] = 1.0f - 2.0f * (yy + zz);
 	result.m[0][1] = 2.0f * (xy - wz);
@@ -395,8 +319,7 @@ Mat4 Mat4::PerspectiveFovMat(const float fovY, const float aspectRatio, const fl
 
 Mat4 Mat4::MakeOrthographicMat(
 	const float left, const float top, const float right, const float bottom,
-	const float nearClip, const float farClip
-) {
+	const float nearClip, const float farClip) {
 	Mat4 result = identity;
 
 	result.m[0][0] = 2.0f / (right - left);
@@ -411,8 +334,7 @@ Mat4 Mat4::MakeOrthographicMat(
 
 Mat4 Mat4::ViewportMat(
 	const float left, const float top, const float width, const float height, const float minDepth,
-	const float maxDepth
-) {
+	const float maxDepth) {
 	Mat4 result = identity;
 
 	result.m[0][0] = width / 2.0f;
@@ -459,5 +381,5 @@ Quaternion Mat4::ToQuaternion() const {
 }
 
 Vec3 Mat4::GetTranslate() {
-	return { m[3][0], m[3][1], m[3][2] };
+	return {m[3][0], m[3][1], m[3][2]};
 }

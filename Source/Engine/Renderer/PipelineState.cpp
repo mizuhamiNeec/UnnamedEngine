@@ -85,10 +85,6 @@ void PipelineState::SetPS(const std::wstring& filePath) {
 
 IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
 	/* 1. hlslファイルを読む */
-	// これからシェーダーをコンパイルする旨をログに出す
-	Console::Print(
-		StrUtils::ToString(std::format(L"Begin CompileShader, path:{}, profile:{}\n", filePath, profile)),
-		kConsoleColorWait);
 	// hlslファイルを読む
 	IDxcBlobEncoding* shaderSource = nullptr;
 	HRESULT hr = dxcUtils->LoadFile(filePath.c_str(), nullptr, &shaderSource);
@@ -128,7 +124,7 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	IDxcBlobUtf8* shaderError = nullptr;
 	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
 	if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
-		Console::Print(shaderError->GetStringPointer(), kConsoleColorError);
+		Console::Print(shaderError->GetStringPointer(), kConsoleColorError, Channel::kEngine);
 		// 警告・エラーダメゼッタイ
 		assert(false);
 	}
@@ -139,7 +135,7 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	hr = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
-	Console::Print(StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)), kConsoleColorCompleted);
+	Console::Print(StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)), kConsoleColorCompleted, Channel::kEngine);
 	// もう使わないリソースを開放
 	shaderSource->Release();
 	shaderResult->Release();
@@ -151,7 +147,7 @@ void PipelineState::Create(ID3D12Device* device) {
 	HRESULT hr = device->CreateGraphicsPipelineState(&desc_, IID_PPV_ARGS(pipelineState.ReleaseAndGetAddressOf()));
 	assert(SUCCEEDED(hr));
 	if (SUCCEEDED(hr)) {
-		// Console::Print("Complete Create PipelineState.\n", kConsoleColorCompleted);
+		Console::Print("Complete Create PipelineState.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }
 

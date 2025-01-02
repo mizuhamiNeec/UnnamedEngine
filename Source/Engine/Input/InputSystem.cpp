@@ -2,10 +2,9 @@
 
 #include <Windows.h>
 
-#include "../Lib/Console/ConCommand.h"
 #include "../Lib/Console/Console.h"
 
-void InputSystem::Initialize() {
+void InputSystem::Init() {
 	RAWINPUTDEVICE rid[2];
 
 	// キーボードデバイスを登録
@@ -22,6 +21,15 @@ void InputSystem::Initialize() {
 
 	if (!RegisterRawInputDevices(rid, 2, sizeof(RAWINPUTDEVICE))) {
 		MessageBox(nullptr, L"Failed to register raw input devices", L"Error", MB_OK);
+	}
+}
+
+void InputSystem::Update() {
+	// トリガー/リリース状態のクリア
+	triggeredCommands_.clear();
+	releasedCommands_.clear();
+	for (auto& [command, state] : commandStates_) {
+		state.isPressed = false; // isPressedは毎フレームリセット
 	}
 }
 
@@ -79,7 +87,7 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 					// +コマンドの場合、ベース名を抽出 (+attack -> attack)
 					std::string baseCmd = cmd.substr(1);
 					triggeredCommands_[baseCmd] = true;
-					pressedCommands_[baseCmd] = true;  // 長押し状態を設定
+					pressedCommands_[baseCmd] = true; // 長押し状態を設定
 				}
 			}
 		}
@@ -89,7 +97,7 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 				std::string cmd = keyBindings_["mouse1"];
 				if (cmd[0] == '+') {
 					std::string baseCmd = cmd.substr(1);
-					pressedCommands_[baseCmd] = false;  // 長押し状態を解除
+					pressedCommands_[baseCmd] = false; // 長押し状態を解除
 					releasedCommands_[baseCmd] = true;
 				}
 			}
@@ -102,7 +110,7 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 					// +コマンドの場合、ベース名を抽出 (+attack -> attack)
 					std::string baseCmd = cmd.substr(1);
 					triggeredCommands_[baseCmd] = true;
-					pressedCommands_[baseCmd] = true;  // 長押し状態を設定
+					pressedCommands_[baseCmd] = true; // 長押し状態を設定
 				}
 			}
 		}
@@ -112,7 +120,7 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 				std::string cmd = keyBindings_["mouse2"];
 				if (cmd[0] == '+') {
 					std::string baseCmd = cmd.substr(1);
-					pressedCommands_[baseCmd] = false;  // 長押し状態を解除
+					pressedCommands_[baseCmd] = false; // 長押し状態を解除
 					releasedCommands_[baseCmd] = true;
 				}
 			}
@@ -133,15 +141,6 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 	}
 
 	delete[] lpb;
-}
-
-void InputSystem::Update() {
-	// トリガー/リリース状態のクリア
-	triggeredCommands_.clear();
-	releasedCommands_.clear();
-	for (auto& [command, state] : commandStates_) {
-		state.isPressed = false; // isPressedは毎フレームリセット
-	}
 }
 
 Vec2 InputSystem::GetMouseDelta() {
@@ -235,7 +234,6 @@ std::string InputSystem::GetKeyName(const UINT virtualKey) {
 Vec2 InputSystem::mouseDelta_ = Vec2::zero;
 
 std::unordered_map<std::string, std::string> InputSystem::keyBindings_;
-std::unordered_map<std::string, bool> InputSystem::keyStates_;
 std::unordered_map<std::string, InputSystem::CommandState> InputSystem::commandStates_;
 std::unordered_map<std::string, bool> InputSystem::triggeredCommands_;
 std::unordered_map<std::string, bool> InputSystem::pressedCommands_;

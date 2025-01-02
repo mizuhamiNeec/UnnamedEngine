@@ -16,7 +16,7 @@ public:
 
 	static void SetUseImmersiveDarkMode(HWND hWnd, bool darkMode);
 
-	HWND GetWindowHandle() const;
+	static HWND GetWindowHandle();
 	HINSTANCE GetHInstance() const;
 
 	static uint32_t GetClientWidth();

@@ -1,5 +1,5 @@
-#include <format>
 #include <Windows.h>
+#include <format>
 
 #include <fstream>
 
@@ -330,11 +330,11 @@
 // エントリーポイント
 //-----------------------------------------------------------------------------
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR lpCmdLine, [[maybe_unused]] const int nShowCmd) {
-	Console::Print(StrUtils::ToString(std::format(L"Launch Args: {}\n", lpCmdLine)));
+	Console::Print(StrUtils::ToString(std::format(L"command line arguments: {}\n", lpCmdLine)), kConsoleColorNormal, Channel::kConsole);
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	D3DResourceLeakChecker leakChecker;
 	const auto engine = std::make_unique<Engine>();
-	
+
 	//// 音声
 	//{
 	//	ComPtr<IXAudio2> xAudio2;
@@ -361,7 +361,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR lpCmdLine, [[maybe_unused]] cons
 	//	SoundPlayWave(xAudio2.Get(), soundData1);
 	//	Sleep(50);
 	//}
-	
+
 	engine->Run();
 
 	CoUninitialize();

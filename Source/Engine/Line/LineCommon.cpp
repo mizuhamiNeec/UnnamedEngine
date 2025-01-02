@@ -8,9 +8,9 @@
 //-----------------------------------------------------------------------------
 void LineCommon::Init(D3D12* d3d12) {
 	this->d3d12_ = d3d12;
-	Console::Print("LineCommon : Lineを初期化します。\n");
+	Console::Print("LineCommon : Lineを初期化します。\n", kConsoleColorWait, Channel::kEngine);
 	CreateGraphicsPipeline();
-	Console::Print("LineCommon : Lineの初期化が完了しました。\n");
+	Console::Print("LineCommon : Lineの初期化が完了しました。\n", kConsoleColorCompleted, Channel::kEngine);
 }
 
 //-----------------------------------------------------------------------------
@@ -26,14 +26,6 @@ void LineCommon::CreateRootSignature() {
 	// RootSignatureManagerのインスタンスを作成
 	rootSignatureManager_ = std::make_unique<RootSignatureManager>(d3d12_->GetDevice());
 
-	// D3D12_DESCRIPTOR_RANGE descriptorRange[1];
-	// descriptorRange[0] = {
-	// 	.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV, // SRVを使う
-	// 	.NumDescriptors = 1, // 数は一つ
-	// 	.BaseShaderRegister = 0, // 0から始まる
-	// 	.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
-	// };
-
 	// ルートパラメーターを作成
 	std::vector<D3D12_ROOT_PARAMETER> rootParameters(1);
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // CBVを使う
@@ -48,7 +40,7 @@ void LineCommon::CreateRootSignature() {
 		0);
 
 	if (rootSignatureManager_->Get("Line")) {
-		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
+		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }
 
@@ -72,7 +64,7 @@ void LineCommon::CreateGraphicsPipeline() {
 	pipelineState_.Create(d3d12_->GetDevice());
 
 	if (pipelineState_.Get()) {
-		Console::Print("LineCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted);
+		Console::Print("LineCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }
 

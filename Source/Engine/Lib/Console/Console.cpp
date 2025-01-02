@@ -1,39 +1,36 @@
 #include "Console.h"
 
 #include <cstring>
-#include <format>
-#include <sstream>
-
-#include "ConVar.h"
-
 #include <debugapi.h>
+#include <format>
 
+#include "../../Input/InputSystem.h"
+#include "../../Window/WindowsUtils.h"
+#include "../Timer/EngineTimer.h"
+#include "../Utils/StrUtils.h"
 #include "ConCommand.h"
 #include "ConVarManager.h"
-#include "../Utils/ClientProperties.h"
-#include "../Utils/StrUtils.h"
-#include "../../Input/InputSystem.h"
 
 //-----------------------------------------------------------------------------
-// Purpose: コンソールの更新処理
+// Purpose: コンソールを更新します
 //-----------------------------------------------------------------------------
 void Console::Update() {
 #ifdef _DEBUG
-	if (!bShowConsole) {
+	if (!bShowConsole_) {
 		return;
 	}
 
 	ImGuiWindowFlags consoleWindowFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
 		ImGuiWindowFlags_NoCollapse;
 
-	if (bShowPopup) {
+	if (bShowPopup_) {
 		consoleWindowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 	}
 
 	ImGui::SetNextWindowSizeConstraints({ 360.0f, 360.0f }, { 8192.0f, 8192.0f });
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(12.0f, 10.0f));
-	bool bWindowOpen = ImGui::Begin("コンソール", &bShowConsole, consoleWindowFlags);
+	bool bWindowOpen = ImGui::Begin("コンソール", &bShowConsole_, consoleWindowFlags);
 	ImGui::PopStyleVar();
 
 	if (bWindowOpen) {
@@ -49,22 +46,21 @@ void Console::Update() {
 		if (ImGui::BeginChild(
 			"##scrollbox", child_size, true,
 			ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar |
-			ImGuiWindowFlags_NoDecoration
-		)) {
-			for (size_t i = 0; i < consoleTexts.size(); ++i) {
-				ImGui::PushStyleColor(ImGuiCol_Text, consoleTexts[i].color);
-				ImGui::Selectable((consoleTexts[i].text + "##" + std::to_string(i)).c_str());
+			ImGuiWindowFlags_NoDecoration)) {
+			for (size_t i = 0; i < consoleTexts_.size(); ++i) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(consoleTexts_[i].color));
+				ImGui::Selectable((consoleTexts_[i].text + "##" + std::to_string(i)).c_str());
 				ImGui::PopStyleColor();
 			}
 
-			if (bWishScrollToBottom && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
+			if (bWishScrollToBottom_ && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
 				ImGui::SetScrollHereY(1.0f);
 			}
 
 			if (ImGui::GetScrollY() < ImGui::GetScrollMaxY()) {
-				bWishScrollToBottom = false;
+				bWishScrollToBottom_ = false;
 			} else {
-				bWishScrollToBottom = true;
+				bWishScrollToBottom_ = true;
 			}
 
 			ScrollToBottom();
@@ -75,7 +71,7 @@ void Console::Update() {
 		ImGui::Spacing();
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
-		float buttonWidth = ImGui::CalcTextSize(" Submit ").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+		const float buttonWidth = ImGui::CalcTextSize(" Submit ").x + ImGui::GetStyle().FramePadding.x * 2.0f;
 		size.x -= buttonWidth + ImGui::GetStyle().ItemSpacing.x;
 
 		ImGui::SetNextItemWidth(size.x);
@@ -88,219 +84,52 @@ void Console::Update() {
 			ImGuiInputTextFlags_CallbackEdit |
 			ImGuiInputTextFlags_CallbackHistory;
 
-		if (ImGui::InputText("##input", inputText, IM_ARRAYSIZE(inputText), inputTextFlags, InputTextCallback)) {
+		if (ImGui::InputText("##input", inputText_, IM_ARRAYSIZE(inputText_), inputTextFlags, InputTextCallback)) {
 			ImGui::SetKeyboardFocusHere(-1);
-			SubmitCommand(inputText);
-			if (!std::string(inputText).empty()) {
-				history.emplace_back(inputText);
-				historyIndex = static_cast<int>(history.size());
+			SubmitCommand(inputText_);
+			if (!std::string(inputText_).empty()) {
+				history_.emplace_back(inputText_);
+				historyIndex_ = static_cast<int>(history_.size());
 			}
-			memset(inputText, 0, sizeof inputText);
+			memset(inputText_, 0, sizeof inputText_);
 		}
 
 		ImGui::SameLine();
 
 		if (ImGui::Button(" Submit ")) {
-			SubmitCommand(inputText);
-			if (!std::string(inputText).empty()) {
-				history.emplace_back(inputText);
-				historyIndex = static_cast<int>(history.size());
+			SubmitCommand(inputText_);
+			if (!std::string(inputText_).empty()) {
+				history_.emplace_back(inputText_);
+				historyIndex_ = static_cast<int>(history_.size());
 			}
-			memset(inputText, 0, sizeof inputText);
+			memset(inputText_, 0, sizeof inputText_);
 		}
 
 		ImGui::PopStyleVar(3);
 	}
 	ImGui::End();
 
-	if (consoleTexts.size() >= kConsoleMaxLineCount) {
-		consoleTexts.erase(consoleTexts.begin());
-		consoleTexts.shrink_to_fit();
-		history.shrink_to_fit();
-		suggestions.shrink_to_fit();
-		repeatCounts.shrink_to_fit();
-	}
+	CheckLineCount();
 #endif
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: リピートカウントを更新
+// Purpose: コマンドを送信/実行します
 //-----------------------------------------------------------------------------
-void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[maybe_unused]] const ImVec4 color) {
-#ifdef _DEBUG
-	repeatCounts.back()++;
-
-	const auto repeatCount = repeatCounts.back();
-	const auto formattedMessage = std::format("{} [x{}]", message, repeatCount);
-
-	if (repeatCount >= static_cast<int>(kConsoleRepeatError)) {
-		consoleTexts.back() = { formattedMessage, kConsoleColorError };
-	} else if (repeatCount >= static_cast<int>(kConsoleRepeatWarning)) {
-		consoleTexts.back() = { formattedMessage, kConsoleColorWarning };
-	} else {
-		consoleTexts.back() = { formattedMessage, color };
-	}
-#endif
-}
-
-#ifdef _DEBUG
-void Console::SuggestPopup(
-	[[maybe_unused]] SuggestPopupState& state,
-	const ImVec2& pos,
-	const ImVec2& size,
-	[[maybe_unused]] bool& isFocused
-) {
-	// 角丸をなくす
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
-
-	ImGuiWindowFlags flags =
-		ImGuiWindowFlags_NoTitleBar | // タイトルバーなし
-		ImGuiWindowFlags_NoResize | // リサイズしない
-		ImGuiWindowFlags_NoMove | // 移動しない
-		ImGuiWindowFlags_HorizontalScrollbar | // 水平スクロールバー
-		ImGuiWindowFlags_NoSavedSettings; // iniファイルに書き込まない
-
-	ImGui::SetNextWindowPos(pos);
-	ImGui::SetNextWindowSize(size);
-	ImGui::Begin("suggestPopup", nullptr, flags);
-	ImGui::PushAllowKeyboardFocus(false);
-
-	for (size_t i = 0; i < kConsoleSuggestLineCount; ++i) {
-		size_t test = ConVarManager::GetAllConVars().size();
-		if (test <= i) {
-			break;
-		}
-
-		bool isIndexActive = state.activeIndex == static_cast<int>(i);
-		if (isIndexActive) {
-			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1, 0, 0, 1));
-		}
-
-		ImGui::PushID(static_cast<int>(i));
-		if (ImGui::Selectable(ConVarManager::GetAllConVars()[i]->GetName().c_str(), isIndexActive)) {
-			state.clickedIndex = static_cast<int>(i);
-		}
-		ImGui::PopID();
-
-		if (isIndexActive) {
-			ImGui::PopStyleColor();
-		}
-	}
-
-	ImGui::PopAllowKeyboardFocus();
-	ImGui::PopStyleVar();
-	ImGui::End();
-}
-#endif
-
-//-----------------------------------------------------------------------------
-// Purpose: コンソールへ文字列を出力します
-//-----------------------------------------------------------------------------
-void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]] const ImVec4 color) {
-#ifdef _DEBUG
-	if (message.empty()) {
-		return;
-	}
-
-	if (!consoleTexts.empty() && consoleTexts.back().text.starts_with(message) && consoleTexts.back().text != "]\n") {
-		// 前のメッセージと同じ場合、カウントを増加させる
-		UpdateRepeatCount(message, color);
-	} else {
-		// 前のメッセージと異なる場合、新しいメッセージを追加
-		consoleTexts.push_back({ message, color });
-		repeatCounts.push_back(1);
-		OutputDebugString(StrUtils::ToString(message));
-	}
-
-	bWishScrollToBottom = true;
-#endif
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: コンソールの表示/非表示を切り替えます
-//-----------------------------------------------------------------------------
-void Console::ToggleConsole([[maybe_unused]] const std::vector<std::string>& args) {
-#ifdef _DEBUG
-	bShowConsole = !bShowConsole;
-#endif
-}
-
-#ifdef _DEBUG
-//-----------------------------------------------------------------------------
-// Purpose: InputTextからのイベントを処理します。 
-//-----------------------------------------------------------------------------
-int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
-	switch (data->EventFlag) {
-	case ImGuiInputTextFlags_CallbackCompletion:
-		Print("Completion\n", kConsoleColorFloat);
-		break;
-
-	case ImGuiInputTextFlags_CallbackHistory:
-	{
-		const int prev_history_index = historyIndex;
-		if (data->EventKey == ImGuiKey_UpArrow) {
-			if (historyIndex > 0) {
-				historyIndex--;
-			}
-		} else if (data->EventKey == ImGuiKey_DownArrow) {
-			if (historyIndex < static_cast<int>(history.size()) - 1) {
-				historyIndex++;
-			} else {
-				historyIndex = static_cast<int>(history.size()); // 履歴が空の場合はサイズと一致させる
-			}
-		}
-		if (prev_history_index != historyIndex) {
-			data->DeleteChars(0, data->BufTextLen);
-			if (historyIndex < static_cast<int>(history.size())) {
-				data->InsertChars(0, history[historyIndex].c_str());
-			} else {
-				data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
-			}
-		}
-	}
-	break;
-
-	case ImGuiInputTextFlags_CallbackEdit:
-		Print("Edit\n", kConsoleColorInt);
-		break;
-
-	case ImGuiInputTextFlags_CallbackResize:
-		Print("Resize\n", kConsoleColorError);
-		break;
-	default:;
-	}
-	return 0;
-}
-#endif
-
-//-----------------------------------------------------------------------------
-// Purpose: 一番下にスクロールします
-//-----------------------------------------------------------------------------
-void Console::ScrollToBottom() {
-#ifdef _DEBUG
-	if (bWishScrollToBottom) {
-		ImGui::SetScrollHereY(1.0f);
-		bWishScrollToBottom = false;
-	}
-#endif
-}
-
-float Console::scrollAnimationSpeed = 0.1f;
-
 void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
 	std::string trimmedCommand = TrimSpaces(command);
 
 	// コマンドが空なのでなんもしない
 	if (trimmedCommand.empty()) {
-		Print("]\n", kConsoleColorNormal);
+		Print(">\n", kConsoleColorNormal);
 		return;
 	}
 
 	std::vector<std::string> tokens = TokenizeCommand(trimmedCommand);
 
 	// とりあえず履歴に追加
-	AddHistory(trimmedCommand);
+	AddCommandHistory(trimmedCommand);
 
 	bool found = ConCommand::ExecuteCommand(trimmedCommand);
 
@@ -325,8 +154,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 					std::format(
 						R"("{}" = "{}")",
 						conVar->GetName(),
-						conVar->GetValueAsString()
-					),
+						conVar->GetValueAsString()),
 					kConsoleColorWarning
 				);
 				// 変数の説明を取得
@@ -382,7 +210,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 						conVar->SetValueFromString(tokens[i]);
 					}
 				} else {
-					Print("what ?", kConsoleColorError);
+					Print("CVARの型を変換できませんでした", kConsoleColorError, Channel::kConsole);
 				}
 			}
 			break;
@@ -394,122 +222,358 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 		Print(std::format("Unknown command: {}\n", trimmedCommand));
 	}
 
-	bWishScrollToBottom = true;
+	bWishScrollToBottom_ = true;
 #endif
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: コンソールへ文字列を出力します
+//-----------------------------------------------------------------------------
+void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]] const Vec4& color, [[maybe_unused]] const Channel& channel) {
+#ifdef _DEBUG
+	if (message.empty()) {
+		return;
+	}
+
+	std::string msg = message;
+
+	if (channel != Channel::kNone) {
+		msg = "[ " + ToString(channel) + " ] " + message;
+	}
+
+	if (!consoleTexts_.empty() && consoleTexts_.back().text.starts_with(msg) && consoleTexts_.back().text != "]\n") {
+		// 前のメッセージと同じ場合、カウントを増加させる
+		UpdateRepeatCount(msg, color);
+	} else {
+		// 前のメッセージと異なる場合、新しいメッセージを追加
+		consoleTexts_.push_back({ msg, color });
+		repeatCounts_.push_back(1);
+		OutputDebugString(StrUtils::ToString(msg));
+	}
+
+	bWishScrollToBottom_ = true;
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 開発者を叱ります
+//-----------------------------------------------------------------------------
+void Console::PrintNullptr(const std::string& message, const Channel& channel) {
+	Print("ぬるぽ >> " + message + "\n", kConsoleColorError, channel);
+	Print("ｶﾞｯ\n", kConsoleColorWarning, channel);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: リピートカウントを更新
+//-----------------------------------------------------------------------------
+void Console::UpdateRepeatCount([[maybe_unused]] const std::string& message, [[maybe_unused]] const Vec4 color) {
+#ifdef _DEBUG
+	repeatCounts_.back()++;
+
+	const auto repeatCount = repeatCounts_.back();
+	const auto formattedMessage = std::format("{} [x{}]", message, repeatCount);
+
+	if (repeatCount >= static_cast<int>(kConsoleRepeatError)) {
+		consoleTexts_.back() = { .text = formattedMessage, .color = kConsoleColorError };
+	} else if (repeatCount >= static_cast<int>(kConsoleRepeatWarning)) {
+		consoleTexts_.back() = { .text = formattedMessage, .color = kConsoleColorWarning };
+	} else {
+		consoleTexts_.back() = { .text = formattedMessage, .color = color };
+	}
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: コンソールの表示/非表示を切り替えます
+//-----------------------------------------------------------------------------
+void Console::ToggleConsole([[maybe_unused]] const std::vector<std::string>& args) {
+#ifdef _DEBUG
+	bShowConsole_ = !bShowConsole_;
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: すべてのコンソール出力をクリアします
+//-----------------------------------------------------------------------------
 void Console::Clear([[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
-	consoleTexts.clear(); // コンソールのテキストをクリア
-	consoleTexts.shrink_to_fit(); // 開放
-	history.clear(); // コマンド履歴をクリア
-	history.shrink_to_fit();
-	suggestions.clear(); // サジェストをクリア
-	suggestions.shrink_to_fit();
-	repeatCounts.clear(); // 繰り返しカウントをクリア
-	repeatCounts.shrink_to_fit();
-	historyIndex = -1; // 履歴インデックスを初期化
-	bWishScrollToBottom = true; // 再描画の際にスクロールをリセット
+	consoleTexts_.clear(); // コンソールのテキストをクリア
+	consoleTexts_.shrink_to_fit(); // 開放
+	history_.clear(); // コマンド履歴をクリア
+	history_.shrink_to_fit();
+	suggestions_.clear(); // サジェストをクリア
+	suggestions_.shrink_to_fit();
+	repeatCounts_.clear(); // 繰り返しカウントをクリア
+	repeatCounts_.shrink_to_fit();
+	historyIndex_ = -1; // 履歴インデックスを初期化
+	bWishScrollToBottom_ = true; // 再描画の際にスクロールをリセット
 #endif
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: ヘルプを表示します
+//-----------------------------------------------------------------------------
 void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
 	ConCommand::Help();
 	for (auto conVar : ConVarManager::GetAllConVars()) {
-		Print(" - " + conVar->GetName() + " : " + conVar->GetHelp() + "\n");
+		Print(" - " + conVar->GetName() + " : " + conVar->GetHelp() + "\n", kConsoleColorNormal, Channel::kNone);
 	}
 #endif
 }
 
-void Console::Neofetch([[maybe_unused]] const std::vector<std::string>& args) {
-	char* osEnv = nullptr;
-	size_t osEnvSize = 0;
-	_dupenv_s(&osEnv, &osEnvSize, "OS");
-	if (osEnv) {
-		Print("OS : " + std::string(osEnv) + "\n", kConsoleColorNormal);
-		free(osEnv);
-	} else {
-		Print("OS : Not found\n", kConsoleColorNormal);
+//-----------------------------------------------------------------------------
+// Purpose: システム情報を表示します
+//-----------------------------------------------------------------------------
+void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
+	std::vector<std::string> asciiArt = {
+		"                  >>>>>>>>                   ",
+		"                    >>>>>>>>                 ",
+		"                       >>>>>>>>              ",
+		"                         >>>>>>>>            ",
+		"                            >>>>>>>>         ",
+		"                              >>>>>>>>       ",
+		"  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    ",
+		"  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  ",
+		"  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>    ",
+		"                              >>>>>>>>       ",
+		"                            >>>>>>>>         ",
+		"                         >>>>>>>>            ",
+		"                       >>>>>>>>              ",
+		"                    >>>>>>>>                 ",
+		"                  >>>>>>>>                   ",
+		"                                             "
+	};
+
+	const std::string prompt = WindowsUtils::GetWindowsUserName() + "@" + WindowsUtils::GetWindowsComputerName();
+
+	const DateTime dateTime = EngineTimer::GetUpDateTime();
+
+	std::vector<std::string> uptimeParts;
+	if (dateTime.day > 0) {
+		uptimeParts.push_back(std::to_string(dateTime.day) + " days,");
+	}
+	if (dateTime.hour > 0) {
+		uptimeParts.push_back(std::to_string(dateTime.hour) + " hours,");
+	}
+	if (dateTime.minute > 0) {
+		uptimeParts.push_back(std::to_string(dateTime.minute) + " mins,");
+	}
+	if (dateTime.second > 0) {
+		uptimeParts.push_back(std::to_string(dateTime.second) + " sec");
+	}
+	const std::string uptime = "Uptime:  " + StrUtils::Join(uptimeParts, " ");
+
+	const std::vector info = {
+		prompt + "\n",
+		(!prompt.empty() ? std::string(prompt.size(), '-') : "") + "\n",
+		uptime + "\n",
+		"Resolution:  " + std::to_string(Window::GetClientWidth()) + "x" + std::to_string(Window::GetClientHeight()) + "\n",
+		"CPU:  " + WindowsUtils::GetCPUName() + "\n",
+		"GPU:  " + WindowsUtils::GetGPUName() + "\n",
+		"Memory:  " + WindowsUtils::GetRamUsage() + " / " + WindowsUtils::GetRamMax() + "\n"
+	};
+
+	// 結合結果を格納するベクトル
+	std::vector<std::string> combined;
+
+	// アスキーアートとシステム情報の行数の最大値を取得
+	const size_t maxRows = max(asciiArt.size(), info.size());
+	const size_t asciiWidth = asciiArt[0].size();
+
+	// 結合処理
+	for (size_t i = 0; i < maxRows; ++i) {
+		constexpr size_t padding = 5;
+		std::string leftPart = (i < asciiArt.size()) ? asciiArt[i] : std::string(asciiWidth, ' ');
+		std::string rightPart = (i < info.size()) ? info[i] : "";
+		combined.push_back(leftPart + std::string(padding, ' ') + rightPart);
 	}
 
-	char* usernameEnv = nullptr;
-	size_t usernameEnvSize = 0;
-	_dupenv_s(&usernameEnv, &usernameEnvSize, "USERNAME");
-	if (usernameEnv) {
-		Print("Username : " + std::string(usernameEnv) + "\n", kConsoleColorNormal);
-		free(usernameEnv);
-	} else {
-		Print("Username : Not found\n", kConsoleColorNormal);
-	}
-
-	char* computerNameEnv = nullptr;
-	size_t computerNameEnvSize = 0;
-	_dupenv_s(&computerNameEnv, &computerNameEnvSize, "COMPUTERNAME");
-	if (computerNameEnv) {
-		Print("Computer Name : " + std::string(computerNameEnv) + "\n", kConsoleColorNormal);
-		free(computerNameEnv);
-	} else {
-		Print("Computer Name : Not found\n", kConsoleColorNormal);
-	}
-
-	char* processorEnv = nullptr;
-	size_t processorEnvSize = 0;
-	_dupenv_s(&processorEnv, &processorEnvSize, "PROCESSOR_IDENTIFIER");
-	if (processorEnv) {
-		Print("Processor : " + std::string(processorEnv) + "\n", kConsoleColorNormal);
-		free(processorEnv);
-	} else {
-		Print("Processor : Not found\n", kConsoleColorNormal);
-	}
-
-	char* numProcessorsEnv = nullptr;
-	size_t numProcessorsEnvSize = 0;
-	_dupenv_s(&numProcessorsEnv, &numProcessorsEnvSize, "NUMBER_OF_PROCESSORS");
-	if (numProcessorsEnv) {
-		Print("Number of Processors : " + std::string(numProcessorsEnv) + "\n", kConsoleColorNormal);
-		free(numProcessorsEnv);
-	} else {
-		Print("Number of Processors : Not found\n", kConsoleColorNormal);
-	}
-
-	char* systemDriveEnv = nullptr;
-	size_t systemDriveEnvSize = 0;
-	_dupenv_s(&systemDriveEnv, &systemDriveEnvSize, "SystemDrive");
-	if (systemDriveEnv) {
-		Print("System Drive : " + std::string(systemDriveEnv) + "\n", kConsoleColorNormal);
-		free(systemDriveEnv);
-	} else {
-		Print("System Drive : Not found\n", kConsoleColorNormal);
-	}
-
-	char* systemRootEnv = nullptr;
-	size_t systemRootEnvSize = 0;
-	_dupenv_s(&systemRootEnv, &systemRootEnvSize, "SystemRoot");
-	if (systemRootEnv) {
-		Print("System Root : " + std::string(systemRootEnv) + "\n", kConsoleColorNormal);
-		free(systemRootEnv);
-	} else {
-		Print("System Root : Not found\n", kConsoleColorNormal);
-	}
-
-	char* userProfileEnv = nullptr;
-	size_t userProfileEnvSize = 0;
-	_dupenv_s(&userProfileEnv, &userProfileEnvSize, "USERPROFILE");
-	if (userProfileEnv) {
-		Print("User Profile : " + std::string(userProfileEnv) + "\n", kConsoleColorNormal);
-		free(userProfileEnv);
-	} else {
-		Print("User Profile : Not found\n", kConsoleColorNormal);
+	// 結合結果を一行ずつ出力
+	for (const std::string& line : combined) {
+		Print(line, kConsoleColorWait, Channel::kNone);
 	}
 }
 
-void Console::AddHistory([[maybe_unused]] const std::string& command) {
+//-----------------------------------------------------------------------------
+// Purpose: 入力された文字列をエコーします
+//-----------------------------------------------------------------------------
+void Console::Echo(const std::vector<std::string>& args) {
+	Print(StrUtils::Join(args, " ") + "\n", kConsoleColorNormal, Channel::kConsole);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: チャンネルを文字列に変換します
+//-----------------------------------------------------------------------------
+std::string Console::ToString(const Channel& e) {
+	switch (e) {
+	case Channel::kNone:
+		return "";
+	case Channel::kConsole:
+		return "Console";
+	case Channel::kEngine:
+		return "Engine";
+	case Channel::kGeneral:
+		return "General";
+	case Channel::kDeveloper:
+		return "Developer";
+	case Channel::kClient:
+		return "Client";
+	case Channel::kServer:
+		return "Server";
+	case Channel::kHost:
+		return "Host";
+	case Channel::kGame:
+		return "Game";
+	case Channel::kInputSystem:
+		return "InputSystem";
+	case Channel::kSound:
+		return "Sound";
+	case Channel::kPhysics:
+		return "Physics";
+	case Channel::kRenderPipeline:
+		return "RenderPipeline";
+	case Channel::kRenderSystem:
+		return "RenderSystem";
+	case Channel::kUserInterface:
+		return "UserInterface";
+	default:
+		return "unknown";
+	}
+}
+
 #ifdef _DEBUG
-	consoleTexts.push_back({ "] " + command, ImVec4(0.8f, 1.0f, 1.0f, 1.0f) });
+void Console::SuggestPopup([[maybe_unused]] SuggestPopupState& state, const ImVec2& pos, const ImVec2& size, [[maybe_unused]] bool& isFocused) {
+	// 角丸をなくす
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+
+	ImGuiWindowFlags flags =
+		ImGuiWindowFlags_NoTitleBar | // タイトルバーなし
+		ImGuiWindowFlags_NoResize | // リサイズしない
+		ImGuiWindowFlags_NoMove | // 移動しない
+		ImGuiWindowFlags_HorizontalScrollbar | // 水平スクロールバー
+		ImGuiWindowFlags_NoSavedSettings; // iniファイルに書き込まない
+
+	ImGui::SetNextWindowPos(pos);
+	ImGui::SetNextWindowSize(size);
+	ImGui::Begin("suggestPopup", nullptr, flags);
+	ImGui::PushAllowKeyboardFocus(false);
+
+	for (size_t i = 0; i < kConsoleSuggestLineCount; ++i) {
+		size_t test = ConVarManager::GetAllConVars().size();
+		if (test <= i) {
+			break;
+		}
+
+		bool isIndexActive = state.activeIndex == static_cast<int>(i);
+		if (isIndexActive) {
+			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1, 0, 0, 1));
+		}
+
+		ImGui::PushID(static_cast<int>(i));
+		if (ImGui::Selectable(ConVarManager::GetAllConVars()[i]->GetName().c_str(), isIndexActive)) {
+			state.clickedIndex = static_cast<int>(i);
+		}
+		ImGui::PopID();
+
+		if (isIndexActive) {
+			ImGui::PopStyleColor();
+		}
+	}
+
+	ImGui::PopAllowKeyboardFocus();
+	ImGui::PopStyleVar();
+	ImGui::End();
+}
+#endif
+
+#ifdef _DEBUG
+//-----------------------------------------------------------------------------
+// Purpose: InputTextからのイベントを処理します。
+//-----------------------------------------------------------------------------
+int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
+	switch (data->EventFlag) {
+	case ImGuiInputTextFlags_CallbackCompletion:
+		Print("Completion\n", kConsoleColorFloat);
+		break;
+
+	case ImGuiInputTextFlags_CallbackHistory:
+		{
+			const int prev_history_index = historyIndex_;
+			if (data->EventKey == ImGuiKey_UpArrow) {
+				if (historyIndex_ > 0) {
+					historyIndex_--;
+				}
+			} else if (data->EventKey == ImGuiKey_DownArrow) {
+				if (historyIndex_ < static_cast<int>(history_.size()) - 1) {
+					historyIndex_++;
+				} else {
+					historyIndex_ = static_cast<int>(history_.size()); // 履歴が空の場合はサイズと一致させる
+				}
+			}
+			if (prev_history_index != historyIndex_) {
+				data->DeleteChars(0, data->BufTextLen);
+				if (historyIndex_ < static_cast<int>(history_.size())) {
+					data->InsertChars(0, history_[historyIndex_].c_str());
+				} else {
+					data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
+				}
+			}
+		} break;
+
+	case ImGuiInputTextFlags_CallbackEdit:
+		Print("Edit\n", kConsoleColorInt);
+		break;
+
+	case ImGuiInputTextFlags_CallbackResize:
+		Print("Resize\n", kConsoleColorError);
+		break;
+	default:;
+	}
+	return 0;
+}
+#endif
+
+//-----------------------------------------------------------------------------
+// Purpose: 一番下にスクロールします
+//-----------------------------------------------------------------------------
+void Console::ScrollToBottom() {
+#ifdef _DEBUG
+	if (bWishScrollToBottom_) {
+		ImGui::SetScrollHereY(1.0f);
+		bWishScrollToBottom_ = false;
+	}
 #endif
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: コマンド履歴に追加します
+//-----------------------------------------------------------------------------
+void Console::AddCommandHistory([[maybe_unused]] const std::string& command) {
+#ifdef _DEBUG
+	consoleTexts_.push_back({ .text = "> " + command, .color = {.x = 0.8f, .y = 1.0f, .z = 1.0f, .w = 1.0f} });
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: コンソールの行数をチェックします
+//-----------------------------------------------------------------------------
+void Console::CheckLineCount() {
+#ifdef _DEBUG
+	while (consoleTexts_.size() > kConsoleMaxLineCount) {
+		consoleTexts_.erase(consoleTexts_.begin());
+	}
+
+	consoleTexts_.shrink_to_fit();
+	history_.shrink_to_fit();
+	suggestions_.shrink_to_fit();
+	repeatCounts_.shrink_to_fit();
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 文字列の余分な空白を削除します
+//-----------------------------------------------------------------------------
 std::string Console::TrimSpaces(const std::string& string) {
 	const size_t start = string.find_first_not_of(" \t\n\r");
 	const size_t end = string.find_last_not_of(" \t\n\r");
@@ -521,6 +585,9 @@ std::string Console::TrimSpaces(const std::string& string) {
 	return string.substr(start, end - start + 1);
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: コマンドをトークン化します
+//-----------------------------------------------------------------------------
 std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 	std::istringstream stream(command);
 	std::vector<std::string> tokens;
@@ -534,13 +601,13 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 }
 
 #ifdef _DEBUG
-bool Console::bShowConsole = true;
-bool Console::bWishScrollToBottom = false;
-bool Console::bShowPopup = false;
-std::vector<ConsoleText> Console::consoleTexts;
-char Console::inputText[kInputBufferSize] = {};
-int Console::historyIndex = -1;
-std::vector<std::string> Console::history;
-std::vector<std::string> Console::suggestions;
-std::vector<int> Console::repeatCounts;
+bool Console::bShowConsole_ = true;
+bool Console::bWishScrollToBottom_ = false;
+bool Console::bShowPopup_ = false;
+std::vector<Console::Text> Console::consoleTexts_;
+char Console::inputText_[kInputBufferSize] = {};
+int Console::historyIndex_ = -1;
+std::vector<std::string> Console::history_;
+std::vector<std::string> Console::suggestions_;
+std::vector<uint64_t> Console::repeatCounts_;
 #endif

@@ -1,18 +1,16 @@
 #pragma once
+#include <Windows.h>
 #include <string>
 #include <unordered_map>
-#include <Windows.h>
 
-#include "InputCommand.h"
 #include "../Lib/Math/Vector/Vec2.h"
 
 class InputSystem {
 public:
-	static void Initialize();
+	static void Init();
+	static void Update();
 
 	static void ProcessInput(LPARAM lParam);
-
-	static void Update();
 
 	static Vec2 GetMouseDelta();
 
@@ -35,13 +33,9 @@ private:
 		bool isPressed = false; // 押されている
 	};
 
-
-	static std::unordered_map<std::string, std::string> keyBindings_;
-	static std::unordered_map<std::string, bool> keyStates_;
 	static std::unordered_map<std::string, CommandState> commandStates_; // コマンドの状態
-	static std::unordered_map<std::string, InputCommand> commands;
+	static std::unordered_map<std::string, std::string> keyBindings_; // キーとコマンドのバインド
 	static std::unordered_map<std::string, bool> triggeredCommands_;
 	static std::unordered_map<std::string, bool> pressedCommands_;
 	static std::unordered_map<std::string, bool> releasedCommands_;
 };
-

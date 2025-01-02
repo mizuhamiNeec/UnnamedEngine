@@ -11,7 +11,6 @@
 //-----------------------------------------------------------------------------
 void Object3DCommon::Init(D3D12* d3d12) {
 	this->d3d12_ = d3d12;
-	Console::Print("Object3DCommon : Object3dを初期化します。\n", kConsoleColorWait);
 	CreateGraphicsPipeline();
 	Console::Print("Object3DCommon : Object3dの初期化が完了しました。\n", kConsoleColorCompleted);
 }
@@ -90,10 +89,6 @@ void Object3DCommon::CreateRootSignature() {
 
 	// ルートシグネチャを作成
 	rootSignatureManager_->CreateRootSignature("Object3d", rootParameters, staticSamplers, _countof(staticSamplers));
-
-	if (rootSignatureManager_->Get("Object3d")) {
-		Console::Print("Object3DCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -114,10 +109,6 @@ void Object3DCommon::CreateGraphicsPipeline() {
 	pipelineState_.SetVS(L"./Resources/Shaders/Object3d.VS.hlsl");
 	pipelineState_.SetPS(L"./Resources/Shaders/Object3d.PS.hlsl");
 	pipelineState_.Create(d3d12_->GetDevice());
-
-	if (pipelineState_.Get()) {
-		Console::Print("Object3DCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted);
-	}
 }
 
 //-----------------------------------------------------------------------------

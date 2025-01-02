@@ -20,3 +20,8 @@ struct Vec4 final {
 	static Vec4 purple;
 	static Vec4 brown;
 };
+
+#ifdef _DEBUG
+#include "imgui/imgui.h"
+ImVec4 ToImVec4(const Vec4& vec);
+#endif

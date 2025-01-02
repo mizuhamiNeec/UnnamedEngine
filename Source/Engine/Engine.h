@@ -3,7 +3,6 @@
 
 #include "../Game/Scene/GameScene.h"
 #include "../Renderer/SrvManager.h"
-
 #include "Lib/Timer/EngineTimer.h"
 #include "Line/LineCommon.h"
 #include "Model/ModelCommon.h"
@@ -37,14 +36,15 @@ private:
 	std::unique_ptr<GameScene> gameScene_;
 	std::unique_ptr<Camera> camera_;
 	std::unique_ptr<SpriteCommon> spriteCommon_;
+	std::unique_ptr<ParticleManager> particleManager_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
 
 private:
-	static bool bWishShutdown;
+	static bool bWishShutdown_; // 終了したいか?
 
-	Vec3 rot = Vec3::zero;
+	Vec3 rot_ = Vec3::zero; // TODO : 消す予定
 
 #ifdef _DEBUG
 	std::unique_ptr<ImGuiManager> imGuiManager_;

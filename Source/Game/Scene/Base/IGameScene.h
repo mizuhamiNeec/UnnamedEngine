@@ -3,11 +3,12 @@
 #include "../../Engine/Renderer/D3D12.h"
 #include "../Model/ModelCommon.h"
 #include "../Object3D/Object3DCommon.h"
+#include "../Particle/ParticleManager.h"
 #include "../Renderer/Renderer.h"
 #include "../Sprite/SpriteCommon.h"
 
+class EntityManager;
 class EngineTimer;
-class ParticleManager;
 
 class IGameScene {
 public:
@@ -16,6 +17,7 @@ public:
 		D3D12* renderer,
 		Window* window,
 		SpriteCommon* spriteCommon,
+		ParticleManager* particleManager,
 		Object3DCommon* object3DCommon,
 		ModelCommon* modelCommon,
 		SrvManager* srvManager,
@@ -26,6 +28,7 @@ public:
 
 protected:
 	SpriteCommon* spriteCommon_ = nullptr;
+	ParticleManager* particleManager_ = nullptr;
 	Object3DCommon* object3DCommon_ = nullptr;
 	ModelCommon* modelCommon_ = nullptr;
 	SrvManager* srvManager_ = nullptr;

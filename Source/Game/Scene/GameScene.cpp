@@ -14,12 +14,11 @@
 #include "../Sprite/SpriteCommon.h"
 #include "../TextureManager/TextureManager.h"
 
-void GameScene::Init(
-	D3D12* renderer, Window* window, SpriteCommon* spriteCommon, Object3DCommon* object3DCommon,
-	ModelCommon* modelCommon, SrvManager* srvManager, EngineTimer* engineTimer) {
+void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, ParticleManager* particleManager, Object3DCommon* object3DCommon, ModelCommon* modelCommon, SrvManager* srvManager, EngineTimer* engineTimer) {
 	renderer_ = renderer;
 	window_ = window;
 	spriteCommon_ = spriteCommon;
+	particleManager_ = particleManager;
 	object3DCommon_ = object3DCommon;
 	modelCommon_ = modelCommon;
 	srvManager_ = srvManager;
@@ -34,7 +33,7 @@ void GameScene::Init(
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
 	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({512.0f, 512.0f, 0.0f});
+	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -49,27 +48,28 @@ void GameScene::Init(
 #pragma endregion
 
 #pragma region パーティクル類
-	particleManager_ = std::make_unique<ParticleManager>();
-	particleManager_->Init(object3DCommon_->GetD3D12(), srvManager);
-	particleManager_->SetDefaultCamera(object3DCommon_->GetDefaultCamera());
 	particleManager_->CreateParticleGroup("circle", "./Resources/Textures/circle.png");
 
 	particle_ = std::make_unique<ParticleObject>();
-	particle_->Init(particleManager_.get(), "./Resources/Textures/circle.png");
+	particle_->Init(particleManager_, "./Resources/Textures/circle.png");
+#pragma endregion
+
+#pragma region エンティティ
+
 #pragma endregion
 }
 
 void GameScene::Update() {
 	sprite_->Update();
-	object3D_->Update();
+	// object3D_->Update();
 
-	particleManager_->Update(EngineTimer::GetScaledDeltaTime());
-	particle_->Update(EngineTimer::GetScaledDeltaTime());
+	// particleManager_->Update(EngineTimer::GetScaledDeltaTime());
+	// particle_->Update(EngineTimer::GetScaledDeltaTime());
 
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (ConVarManager::GetConVar("cl_showpos")->GetValueAsString() == "1") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 		constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
 			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
 			ImGuiWindowFlags_NoDocking;
@@ -121,13 +121,13 @@ void GameScene::Render() {
 	// オブジェクト3D共通描画設定
 	object3DCommon_->Render();
 	//----------------------------------------
-	object3D_->Draw();
+	// object3D_->Draw();
 
 	//----------------------------------------
 	// パーティクル共通描画設定
 	particleManager_->Render();
 	//----------------------------------------
-	particle_->Draw();
+	// particle_->Draw();
 
 	//----------------------------------------
 	// スプライト共通描画設定

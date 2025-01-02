@@ -1,15 +1,15 @@
 #include "ImGuiManager.h"
+
 #include "../Renderer/SrvManager.h"
+#include "imgui/imgui_impl_dx12.h"
+#include "imgui/imgui_impl_win32.h"
+#include "imgui/imgui_internal.h"
 
 #ifdef _DEBUG
 #include "../Lib/Utils/ClientProperties.h"
 #include "../Renderer/D3D12.h"
 #include "../Window/Window.h"
 #include "../Window/WindowsUtils.h"
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_dx12.h"
-#include "imgui/imgui_impl_win32.h"
-#include "imgui/imgui_internal.h"
 
 void ImGuiManager::Init(const D3D12* renderer, const Window* window, const SrvManager* srvManager) {
 	renderer_ = renderer;
@@ -37,6 +37,7 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window, const SrvMa
 	// Ascii
 	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\JetBrainsMono.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesDefault());
 	imFontConfig.MergeMode = true;
+
 	// 日本語フォールバック
 	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese());
 
@@ -166,16 +167,16 @@ bool ImGuiManager::EditTransform(Transform& transform, const float& vSpeed) {
 	bool isEditing = false;
 
 	if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
-		isEditing = DragVec3("Position", transform.translate, vSpeed, "%.3f");
+		isEditing |= DragVec3("Position", transform.translate, vSpeed, "%.3f");
 
 		// 回転を取っておく
 		Vec3 rotate = transform.rotate * Math::rad2Deg;
 		if (DragVec3("Rotation", transform.rotate, vSpeed, "%.3f")) {
-			isEditing = true;
+			isEditing |= true;
 			transform.rotate = rotate * Math::deg2Rad;
 		}
 
-		isEditing = DragVec3("Scale", transform.scale, vSpeed, "%.3f");
+		isEditing |= DragVec3("Scale", transform.scale, vSpeed, "%.3f");
 	}
 
 	return isEditing;
@@ -191,17 +192,17 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3& v, const float& vSpee
 	// 幅を取得
 	const float width = ImGui::GetCurrentContext()->Style.ItemInnerSpacing.x;
 
-	constexpr ImVec4 xBg = {0.72f, 0.11f, 0.11f, 0.75f};
-	constexpr ImVec4 xBgHovered = {0.83f, 0.18f, 0.18f, 0.75f};
-	constexpr ImVec4 xBgActive = {0.96f, 0.26f, 0.21f, 0.75f};
+	constexpr ImVec4 xBg = { 0.72f, 0.11f, 0.11f, 0.75f };
+	constexpr ImVec4 xBgHovered = { 0.83f, 0.18f, 0.18f, 0.75f };
+	constexpr ImVec4 xBgActive = { 0.96f, 0.26f, 0.21f, 0.75f };
 
-	constexpr ImVec4 yBg = {0.11f, 0.37f, 0.13f, 0.75f};
-	constexpr ImVec4 yBgHovered = {0.22f, 0.56f, 0.24f, 0.75f};
-	constexpr ImVec4 yBgActive = {0.3f, 0.69f, 0.31f, 0.75f};
+	constexpr ImVec4 yBg = { 0.11f, 0.37f, 0.13f, 0.75f };
+	constexpr ImVec4 yBgHovered = { 0.22f, 0.56f, 0.24f, 0.75f };
+	constexpr ImVec4 yBgActive = { 0.3f, 0.69f, 0.31f, 0.75f };
 
-	constexpr ImVec4 zBg = {0.05f, 0.28f, 0.63f, 0.75f};
-	constexpr ImVec4 zBgHovered = {0.1f, 0.46f, 0.82f, 0.75f};
-	constexpr ImVec4 zBgActive = {0.13f, 0.59f, 0.95f, 0.75f};
+	constexpr ImVec4 zBg = { 0.05f, 0.28f, 0.63f, 0.75f };
+	constexpr ImVec4 zBgHovered = { 0.1f, 0.46f, 0.82f, 0.75f };
+	constexpr ImVec4 zBgActive = { 0.13f, 0.59f, 0.95f, 0.75f };
 
 	// 幅を決定
 	ImGui::PushMultiItemsWidths(components, ImGui::CalcItemWidth());
@@ -229,7 +230,7 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3& v, const float& vSpee
 		ImGui::PopItemWidth();
 	}
 
-	return false;
+	return isEditing;
 }
 
 void ImGuiManager::TextOutlined(

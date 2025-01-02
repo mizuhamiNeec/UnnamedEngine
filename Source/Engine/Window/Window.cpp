@@ -2,16 +2,16 @@
 
 #include <dwmapi.h>
 #include <utility>
+#include <imgui/imgui.h>
 
 #include "WindowsUtils.h"
-
 #include "../Input/InputSystem.h"
 #include "../Lib/Console/Console.h"
 
 #pragma comment(lib, "winmm.lib")
 
 #ifdef _DEBUG
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGuiImplWin32WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif
 
 Window::Window(
@@ -19,10 +19,10 @@ Window::Window(
 	const uint32_t width,
 	const uint32_t height,
 	const DWORD style,
-	const DWORD exStyle
-) : title_(std::move(title)),
-style_(style),
-exStyle_(exStyle) {
+	const DWORD exStyle) :
+	title_(std::move(title)),
+	style_(style),
+	exStyle_(exStyle) {
 	width_ = width;
 	height_ = height;
 	const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -39,8 +39,6 @@ Window::~Window() {
 }
 
 bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::string& className, const WNDPROC wndProc) {
-	Console::Print("Creating Window...\n", kConsoleColorWait);
-
 	wc_.cbSize = sizeof(WNDCLASSEX);
 	wc_.style = CS_HREDRAW | CS_VREDRAW;
 	wc_.lpfnWndProc = wndProc;
@@ -55,14 +53,11 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	if (!RegisterClassEx(&wc_)) {
 		Console::Print(
 			"Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
-			kConsoleColorError
-		);
+			kConsoleColorError);
 		return false;
 	}
 
-	Console::Print("Window class registered.\n");
-
-	RECT wrc{ 0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
+	RECT wrc{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
 
 	AdjustWindowRectEx(&wrc, style_, false, exStyle_);
 
@@ -77,11 +72,10 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 		nullptr, // このウィンドウの親
 		nullptr, // メニュー
 		wc_.hInstance,
-		nullptr
-	);
+		nullptr);
 
 	if (!hWnd_) {
-		Console::Print("Failed to create window.\n", kConsoleColorError);
+		Console::Print("Failed to create window.\n", kConsoleColorError, Channel::kEngine);
 		return false;
 	}
 
@@ -93,7 +87,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	// このウィンドウにフォーカス
 	SetFocus(hWnd_);
 
-	Console::Print("Complete create Window.\n", kConsoleColorCompleted);
+	Console::Print("Complete create Window.\n", kConsoleColorCompleted, Channel::kEngine);
 
 	return true;
 }
@@ -129,7 +123,7 @@ uint32_t Window::GetClientHeight() {
 
 LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
 #ifdef _DEBUG
-	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
+	if (ImGuiImplWin32WndProcHandler(hWnd, msg, wParam, lParam)) {
 		return true;
 	}
 #endif
@@ -153,13 +147,12 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 				if (static_cast<bool>(sMode) != darkMode) {
 					sMode = darkMode;
 					SetUseImmersiveDarkMode(hWnd, darkMode); // ウィンドウのモードを設定
-					Console::Print(std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"));
+					Console::Print(std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConsoleColorWait, Channel::kEngine);
 				}
 			}
 		}
 		break;
-	case WM_INPUT:
-	{
+	case WM_INPUT: {
 		InputSystem::ProcessInput(lParam);
 		break;
 	}
@@ -167,7 +160,8 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
-	default: return DefWindowProc(hWnd, msg, wParam, lParam);
+	default:
+		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 
 	return 0;
@@ -187,7 +181,7 @@ bool Window::ProcessMessage() {
 	return false;
 }
 
-HWND Window::GetWindowHandle() const { return hWnd_; }
+HWND Window::GetWindowHandle() { return hWnd_; }
 
 HWND Window::hWnd_ = nullptr;
 uint32_t Window::width_ = 0;
