@@ -11,7 +11,8 @@ PipelineState::PipelineState() {
 PipelineState::PipelineState(
 	const D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK,
 	const D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID,
-	const D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE) {
+	const D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE
+) {
 	D3D12_BLEND_DESC blendDesc = {};
 	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
@@ -41,19 +42,22 @@ PipelineState::PipelineState(
 
 	// DXCの初期化
 	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils_));
-	if (FAILED(hr)) {
+	if (FAILED(hr))
+	{
 		Console::Print("Failed to create DxcUtils instance\n", {1.0f, 0.0f, 0.0f, 1.0f});
 		return;
 	}
 
 	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler_));
-	if (FAILED(hr)) {
+	if (FAILED(hr))
+	{
 		Console::Print("Failed to create DxcCompiler instance\n", {1.0f, 0.0f, 0.0f, 1.0f});
 		return;
 	}
 
 	hr = dxcUtils_->CreateDefaultIncludeHandler(&includeHandler_);
-	if (FAILED(hr)) {
+	if (FAILED(hr))
+	{
 		Console::Print("Failed to create default include handler\n", {1.0f, 0.0f, 0.0f, 1.0f});
 		return;
 	}
@@ -72,7 +76,8 @@ void PipelineState::SetVS(const std::wstring& filePath) {
 	assert(vsBlob != nullptr);
 
 	desc_.VS = {
-		vsBlob->GetBufferPointer(), vsBlob->GetBufferSize()}; // VertexShader
+		vsBlob->GetBufferPointer(), vsBlob->GetBufferSize()
+	}; // VertexShader
 }
 
 void PipelineState::SetPS(const std::wstring& filePath) {
@@ -80,10 +85,14 @@ void PipelineState::SetPS(const std::wstring& filePath) {
 	assert(psBlob != nullptr);
 
 	desc_.PS = {
-		psBlob->GetBufferPointer(), psBlob->GetBufferSize()}; // PixelShader
+		psBlob->GetBufferPointer(), psBlob->GetBufferSize()
+	}; // PixelShader
 }
 
-IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler) {
+IDxcBlob* PipelineState::CompileShader(
+	const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler,
+	IDxcIncludeHandler* includeHandler
+) {
 	/* 1. hlslファイルを読む */
 	// hlslファイルを読む
 	IDxcBlobEncoding* shaderSource = nullptr;
@@ -123,7 +132,8 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	// 警告・エラーが出てきたらログに出して止める
 	IDxcBlobUtf8* shaderError = nullptr;
 	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
-	if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
+	if (shaderError != nullptr && shaderError->GetStringLength() != 0)
+	{
 		Console::Print(shaderError->GetStringPointer(), kConsoleColorError, Channel::kEngine);
 		// 警告・エラーダメゼッタイ
 		assert(false);
@@ -135,7 +145,10 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 	hr = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
-	Console::Print(StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)), kConsoleColorCompleted, Channel::kEngine);
+	Console::Print(
+		StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)),
+		kConsoleColorCompleted, Channel::kEngine
+	);
 	// もう使わないリソースを開放
 	shaderSource->Release();
 	shaderResult->Release();
@@ -146,7 +159,8 @@ IDxcBlob* PipelineState::CompileShader(const std::wstring& filePath, const wchar
 void PipelineState::Create(ID3D12Device* device) {
 	HRESULT hr = device->CreateGraphicsPipelineState(&desc_, IID_PPV_ARGS(pipelineState.ReleaseAndGetAddressOf()));
 	assert(SUCCEEDED(hr));
-	if (SUCCEEDED(hr)) {
+	if (SUCCEEDED(hr))
+	{
 		Console::Print("Complete Create PipelineState.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }
@@ -158,12 +172,11 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 	D3D12_RENDER_TARGET_BLEND_DESC rtBlendDesc = {};
 	rtBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	switch (blendMode) {
-	case kBlendModeNone:
-		rtBlendDesc.BlendEnable = FALSE;
+	switch (blendMode)
+	{
+	case kBlendModeNone: rtBlendDesc.BlendEnable = FALSE;
 		break;
-	case kBlendModeNormal:
-		rtBlendDesc.BlendEnable = TRUE;
+	case kBlendModeNormal: rtBlendDesc.BlendEnable = TRUE;
 		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
 		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
@@ -171,8 +184,7 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
-	case kBlendModeAdd:
-		rtBlendDesc.BlendEnable = TRUE;
+	case kBlendModeAdd: rtBlendDesc.BlendEnable = TRUE;
 		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
 		rtBlendDesc.DestBlend = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
@@ -180,8 +192,7 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
-	case kBlendModeSubtract:
-		rtBlendDesc.BlendEnable = TRUE;
+	case kBlendModeSubtract: rtBlendDesc.BlendEnable = TRUE;
 		rtBlendDesc.SrcBlend = D3D12_BLEND_INV_SRC_ALPHA;
 		rtBlendDesc.DestBlend = D3D12_BLEND_SRC_ALPHA;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
@@ -189,8 +200,7 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_SUBTRACT;
 		break;
-	case kBlendModeMultiply:
-		rtBlendDesc.BlendEnable = TRUE;
+	case kBlendModeMultiply: rtBlendDesc.BlendEnable = TRUE;
 		rtBlendDesc.SrcBlend = D3D12_BLEND_ZERO;
 		rtBlendDesc.DestBlend = D3D12_BLEND_SRC_COLOR;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
@@ -198,8 +208,7 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_SRC_ALPHA;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
-	case kBlendModeScreen:
-		rtBlendDesc.BlendEnable = TRUE;
+	case kBlendModeScreen: rtBlendDesc.BlendEnable = TRUE;
 		rtBlendDesc.SrcBlend = D3D12_BLEND_ONE;
 		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_COLOR;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
@@ -208,8 +217,7 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
 	case kCountOfBlendMode:
-	default:
-		break;
+	default: break;
 	}
 	blendDesc.RenderTarget[0] = rtBlendDesc;
 	desc_.BlendState = blendDesc;

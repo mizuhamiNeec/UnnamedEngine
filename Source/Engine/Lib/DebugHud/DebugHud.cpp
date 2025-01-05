@@ -12,11 +12,12 @@ void DebugHud::ShowFrameRate() {
 #ifdef _DEBUG
 	const int flag = ConVarManager::GetConVar("cl_showfps")->GetValueAsInt();
 
-	if (flag == 0) {
+	if (flag == 0)
+	{
 		return;
 	}
 
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 
 	ImGuiWindowFlags windowFlags =
 		ImGuiWindowFlags_NoBackground |
@@ -27,7 +28,7 @@ void DebugHud::ShowFrameRate() {
 		ImGuiWindowFlags_NoDocking |
 		ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-	ImVec2 windowPos = ImVec2(0.0f, 128.0f);
+	auto windowPos = ImVec2(0.0f, 128.0f);
 
 	windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
 	windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
@@ -35,10 +36,12 @@ void DebugHud::ShowFrameRate() {
 	ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 	std::string text;
 	float fps;
-	if (flag == 1) {
+	if (flag == 1)
+	{
 		fps = 1.0f / EngineTimer::GetScaledDeltaTime();
 	}
-	if (flag == 2) {
+	if (flag == 2)
+	{
 		ImGuiIO io = ImGui::GetIO();
 		fps = io.Framerate;
 	}
@@ -48,7 +51,7 @@ void DebugHud::ShowFrameRate() {
 	const ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 
 	// ウィンドウサイズをテキストサイズに基づいて設定
-	const ImVec2 windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f); // 余白を追加
+	const auto windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f); // 余白を追加
 	ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
 
 	ImGui::Begin("##cl_showfps", nullptr, windowFlags);
@@ -60,9 +63,11 @@ void DebugHud::ShowFrameRate() {
 	float outlineSize = 1.0f;
 
 	ImU32 textColor = ImGui::ColorConvertFloat4ToU32(ToImVec4(kConsoleColorError));
-	if (fps >= 59.9f) {
+	if (fps >= 59.9f)
+	{
 		textColor = ImGui::ColorConvertFloat4ToU32(ToImVec4(kConsoleColorFloat));
-	} else if (fps >= 29.9f) {
+	} else if (fps >= 29.9f)
+	{
 		textColor = ImGui::ColorConvertFloat4ToU32(ToImVec4(kConsoleColorWarning));
 	}
 
@@ -74,7 +79,8 @@ void DebugHud::ShowFrameRate() {
 		text.c_str(),
 		textColor,
 		outlineColor,
-		outlineSize);
+		outlineSize
+	);
 
 	ImGui::PopStyleVar();
 

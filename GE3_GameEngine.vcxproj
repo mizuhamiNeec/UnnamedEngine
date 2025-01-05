@@ -62,7 +62,8 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Externals/;$(SolutionDir)Source/Engine/;$(SolutionDir)Source/Game/;$(SolutionDir)Source/Editor/;$(SolutionDir)Source/Externals/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -86,7 +87,8 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(SolutionDir)Source/Engine/Externals;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Externals/;$(SolutionDir)Source/Engine/;$(SolutionDir)Source/Game/;$(SolutionDir)Source/Editor/;$(SolutionDir)Source/Externals/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -104,22 +106,16 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Editor\Editor.cpp" />
     <ClCompile Include="Source\Engine\Entity\Base\Entity.cpp" />
     <ClCompile Include="Source\Engine\Components\Base\Component.cpp" />
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui.cpp" />
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_demo.cpp" />
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_draw.cpp" />
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_impl_dx12.cpp" />
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_impl_win32.cpp" />
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_tables.cpp" />
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Engine\Lib\DebugHud\DebugHud.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleEmitter.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec4.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleManager.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
     <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp" />
-    <ClCompile Include="Source\Engine\Components\Transform.cpp" />
+    <ClCompile Include="Source\Engine\Components\TransformComponent.cpp" />
     <None Include="Resources\Shaders\Line.PS.hlsl" />
     <None Include="Resources\Shaders\Line.VS.hlsl" />
     <None Include="Resources\Shaders\Object3d.PS.hlsl" />
@@ -153,6 +149,14 @@
     <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\RootSignature.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_impl_win32.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Source\Game\Scene\Base\Scene.cpp" />
     <ClCompile Include="Source\Game\Scene\GameScene.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
@@ -170,22 +174,15 @@
     <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Editor\Editor.h" />
     <ClInclude Include="Source\Engine\Entity\Base\Entity.h" />
     <ClInclude Include="Source\Engine\Components\Base\Component.h" />
-    <ClInclude Include="Source\Engine\Externals\imgui\imconfig.h" />
-    <ClInclude Include="Source\Engine\Externals\imgui\imgui.h" />
-    <ClInclude Include="Source\Engine\Externals\imgui\imgui_impl_dx12.h" />
-    <ClInclude Include="Source\Engine\Externals\imgui\imgui_impl_win32.h" />
-    <ClInclude Include="Source\Engine\Externals\imgui\imgui_internal.h" />
-    <ClInclude Include="Source\Engine\Externals\imgui\imstb_rectpack.h" />
-    <ClInclude Include="Source\Engine\Externals\imgui\imstb_textedit.h" />
-    <ClInclude Include="Source\Engine\Externals\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Engine\Lib\DebugHud\DebugHud.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleEmitter.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleManager.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
     <ClInclude Include="Source\Engine\Renderer\StructuredBuffer.h" />
-    <ClInclude Include="Source\Engine\Components\Transform.h" />
+    <ClInclude Include="Source\Engine\Components\TransformComponent.h" />
     <None Include="Resources\Shaders\Object3d.hlsli" />
     <None Include="Resources\Shaders\Particle.hlsli" />
     <None Include="Resources\Shaders\Line.hlsli" />
@@ -214,12 +211,20 @@
     <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\RootSignature.h" />
     <ClInclude Include="Source\Engine\Lib\Structs\Structs.h" />
+    <ClInclude Include="Source\Externals\ImGui\imconfig.h" />
+    <ClInclude Include="Source\Externals\ImGui\imgui.h" />
+    <ClInclude Include="Source\Externals\ImGui\imgui_impl_dx12.h" />
+    <ClInclude Include="Source\Externals\ImGui\imgui_impl_win32.h" />
+    <ClInclude Include="Source\Externals\ImGui\imgui_internal.h" />
+    <ClInclude Include="Source\Externals\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="Source\Externals\ImGui\imstb_textedit.h" />
+    <ClInclude Include="Source\Externals\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Game\Scene\GameScene.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h" />
     <ClInclude Include="Source\Engine\Renderer\D3D12.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\StrUtils.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\ClientProperties.h" />
-    <ClInclude Include="Source\Game\Scene\Base\IGameScene.h" />
+    <ClInclude Include="Source\Game\Scene\Base\Scene.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h" />
     <ClInclude Include="Source\Engine\Renderer\Renderer.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec2.h" />
@@ -237,16 +242,16 @@
     <ClInclude Include="Source\Engine\Renderer\SrvManager.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Source\Engine\Externals\imgui\LICENSE.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="Source\Engine\Externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
+    <ProjectReference Include="Source\Externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
       <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\Shaders\" />
     <Folder Include="Source\Engine\Particle\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Source\Externals\ImGui\LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

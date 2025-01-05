@@ -24,7 +24,9 @@ public:
 
 	static Particle MakeNewParticle(const Vec3& pos, const Vec3& vel, const Vec3& drag, const Vec3& gravity);
 
-	std::list<Particle> Emit(const Emitter& emitter, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity);
+	std::list<Particle> Emit(
+		const Emitter& emitter, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity
+	);
 
 	void SetCamera(Camera* newCamera);
 	Vec3 GeneratePosition(const Vec3& emitterPosition, int shapeType);

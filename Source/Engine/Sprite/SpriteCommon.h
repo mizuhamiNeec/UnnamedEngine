@@ -17,7 +17,9 @@ public:
 
 	void Render() const;
 
-	D3D12* GetD3D12() const { return d3d12_; }
+	D3D12* GetD3D12() const {
+		return d3d12_;
+	}
 
 private:
 	D3D12* d3d12_ = nullptr;

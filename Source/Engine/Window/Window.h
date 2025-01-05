@@ -4,8 +4,8 @@
 
 #include <cstdint>
 
-#include "../Lib/Utils/StrUtils.h"
-#include "../Lib/Utils/ClientProperties.h"
+#include "Lib/Utils/StrUtils.h"
+#include "Lib/Utils/ClientProperties.h"
 
 class Window final {
 public:

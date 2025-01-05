@@ -28,10 +28,8 @@ private:
 	// モデルデータ
 	std::map<std::string, std::unique_ptr<Model>> models_;
 
-private:
 	ModelManager() = default;
 	~ModelManager() = default;
 	ModelManager(ModelManager&) = delete;
 	ModelManager& operator=(ModelManager&) = delete;
 };
-

@@ -14,7 +14,7 @@ class TextureManager {
 public:
 	static TextureManager* GetInstance();
 
-	void Init(::D3D12* renderer, SrvManager* srvManager);
+	void Init(D3D12* renderer, SrvManager* srvManager);
 	static void Shutdown();
 
 	void LoadTexture(const std::string& filePath);
@@ -38,7 +38,6 @@ public:
 private:
 	[[nodiscard]] ComPtr<ID3D12Resource> CreateTextureResource(const DirectX::TexMetadata& metadata) const;
 
-private:
 	// テクスチャ1枚分のデータ
 	struct TextureData {
 		std::string filePath;
@@ -55,12 +54,15 @@ private:
 	D3D12* renderer_;
 	SrvManager* srvManager_;
 
-	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-	                                                          uint32_t descriptorSize, uint32_t index);
-	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-	                                                          uint32_t descriptorSize, uint32_t index);
+	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(
+		ID3D12DescriptorHeap* descriptorHeap,
+		uint32_t descriptorSize, uint32_t index
+	);
+	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(
+		ID3D12DescriptorHeap* descriptorHeap,
+		uint32_t descriptorSize, uint32_t index
+	);
 
-private:
 	static TextureManager* instance_;
 
 	TextureManager() = default;

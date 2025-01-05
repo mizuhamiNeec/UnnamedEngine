@@ -25,19 +25,22 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 	particles_.resize(kNumMaxInstance);
 
 	// 各トランスフォームに初期値を設定
-	for (Particle& particle : particles_) {
+	for (Particle& particle : particles_)
+	{
 		particle = MakeNewParticle(Vec3::zero, Vec3::zero, Vec3::zero, Vec3::zero);
 	}
 
 	uint32_t indices[] = {
 		0, 1, 2,
-		1, 5, 2};
+		1, 5, 2
+	};
 
 	// インデックスバッファの作成
 	indexBuffer_ = std::make_unique<IndexBuffer>(
 		particleCommon_->GetD3D12()->GetDevice(),
 		sizeof(indices),
-		indices);
+		indices
+	);
 
 	// 定数バッファ
 	materialResource_ = std::make_unique<ConstantBuffer>(particleCommon_->GetD3D12()->GetDevice(), sizeof(Material));
@@ -48,11 +51,13 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 
 	// Instancing用のTransformationMatrixリソースを作る
 	instancingResource_ = std::make_unique<ConstantBuffer>(
-		particleCommon_->GetD3D12()->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance);
+		particleCommon_->GetD3D12()->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance
+	);
 	// 書き込むためのアドレスを取得
 	instancingData = instancingResource_->GetPtr<ParticleForGPU>();
 	// 単位行列を書き込んでおく
-	for (uint32_t index = 0; index < kNumMaxInstance; ++index) {
+	for (uint32_t index = 0; index < kNumMaxInstance; ++index)
+	{
 		instancingData[index].wvp = Mat4::identity;
 		instancingData[index].world = Mat4::identity;
 		instancingData[index].color = {.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f};
@@ -121,35 +126,43 @@ void ParticleObject::Update(const float deltaTime) {
 	// エミッターのサイズを編集
 	ImGui::DragFloat3("Emitter Size", &emitter_.size.x);
 
-	if (ImGui::Button("Emit Particles")) {
+	if (ImGui::Button("Emit Particles"))
+	{
 		particles_.splice(particles_.end(), Emit(emitter_, shapeType, coneAngle, drag, gravity));
 	}
 	ImGui::End();
 #endif
 
 	numInstance = 0;
-	for (std::list<Particle>::iterator particleIterator = particles_.begin();
-		 particleIterator != particles_.end();) {
-		if (particleIterator->lifeTime <= particleIterator->currentTime) {
+	for (auto particleIterator = particles_.begin();
+	     particleIterator != particles_.end();)
+	{
+		if (particleIterator->lifeTime <= particleIterator->currentTime)
+		{
 			particleIterator = particles_.erase(particleIterator); // 生存期間が過ぎたParticleはlistから消す。戻り値が次のイテレータとなる
 			continue;
 		}
 
-		if (numInstance < kNumMaxInstance) {
-			if (enableAccelerationField_) {
+		if (numInstance < kNumMaxInstance)
+		{
+			if (enableAccelerationField_)
+			{
 				// Fieldの範囲内のParticleには加速度を適用する
-				if (Math::IsCollision(accelerationField_.area, particleIterator->transform.translate)) {
+				if (Math::IsCollision(accelerationField_.area, particleIterator->transform.translate))
+				{
 					particleIterator->vel += accelerationField_.acceleration * deltaTime;
 				}
 			}
 
 			// 重力の適用
-			if (enableGravity) {
+			if (enableGravity)
+			{
 				particleIterator->vel += particleIterator->gravity * deltaTime;
 			}
 
 			// 抗力の適用
-			if (enableDrag) {
+			if (enableDrag)
+			{
 				particleIterator->vel -= particleIterator->drag * particleIterator->vel * deltaTime;
 			}
 
@@ -172,16 +185,20 @@ void ParticleObject::Update(const float deltaTime) {
 				billboardMatrix.m[3][0] = 0.0f;
 				billboardMatrix.m[3][1] = 0.0f;
 				billboardMatrix.m[3][2] = 0.0f;
-				worldMat = Mat4::Scale(particleIterator->transform.scale) * billboardMatrix * Mat4::Translate(particleIterator->transform.translate);
+				worldMat = Mat4::Scale(particleIterator->transform.scale) * billboardMatrix * Mat4::Translate(
+					particleIterator->transform.translate
+				);
 			}
 
 			Mat4 worldViewProjMat;
 
-			if (camera_) {
+			if (camera_)
+			{
 				// カメラが存在する場合はカメラから行列を持ってくる
 				const Mat4& viewProjMat = camera_->GetViewProjMat();
 				worldViewProjMat = worldMat * viewProjMat;
-			} else {
+			} else
+			{
 				worldViewProjMat = worldMat;
 			}
 
@@ -195,21 +212,24 @@ void ParticleObject::Update(const float deltaTime) {
 
 	emitter_.frequencyTime += deltaTime; // 時刻を進める
 	// 頻度より大きいなら発生
-	if (emitter_.frequency <= emitter_.frequencyTime) {
+	if (emitter_.frequency <= emitter_.frequencyTime)
+	{
 		particles_.splice(particles_.end(), Emit(emitter_, shapeType, coneAngle, drag, gravity)); // 発生処理
 		emitter_.frequencyTime -= emitter_.frequency; // 余計に過ぎた時間も加味して頻度計算する
 	}
 
 	// エミッターの形状を描画
-	switch (shapeType) {
+	switch (shapeType)
+	{
 	case 0: // Sphere
-		Debug::DrawSphere(emitter_.transform.translate, Quaternion::identity, emitter_.size.x, {1.0f, 0.0f, 0.0f, 1.0f});
+		Debug::DrawSphere(
+			emitter_.transform.translate, Quaternion::identity, emitter_.size.x, {1.0f, 0.0f, 0.0f, 1.0f}
+		);
 		break;
 	case 1: // Cube
 		Debug::DrawBox(emitter_.transform.translate, Quaternion::identity, emitter_.size, {0.0f, 1.0f, 0.0f, 1.0f});
 		break;
-	default:
-		break;
+	default: break;
 	}
 }
 
@@ -220,22 +240,26 @@ void ParticleObject::Draw() const {
 
 	// 定数バッファの設定
 	particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
-		0, materialResource_->GetAddress());
+		0, materialResource_->GetAddress()
+	);
 
 	// SRVを設定
 	particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-		1, srvManager_->GetGPUDescriptorHandle(srvIndex_));
+		1, srvManager_->GetGPUDescriptorHandle(srvIndex_)
+	);
 
 	// SRVのDescriptorTableの先頭を設定
 	particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-		2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_));
+		2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_)
+	);
 
 	// インデックスバッファの設定
 	D3D12_INDEX_BUFFER_VIEW indexBufferView = indexBuffer_->View();
 	particleCommon_->GetD3D12()->GetCommandList()->IASetIndexBuffer(&indexBufferView);
 	// 描画
 	particleCommon_->GetD3D12()->GetCommandList()->DrawIndexedInstanced(
-		static_cast<UINT>(particleCommon_->GetVertices().size()), numInstance, 0, 0, 0);
+		static_cast<UINT>(particleCommon_->GetVertices().size()), numInstance, 0, 0, 0
+	);
 }
 
 Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel, const Vec3& drag, const Vec3& gravity) {
@@ -255,7 +279,8 @@ Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel, const
 		Random::FloatRange(0.0f, 1.0f),
 		Random::FloatRange(0.0f, 1.0f),
 		Random::FloatRange(0.0f, 1.0f),
-		1.0f};
+		1.0f
+	};
 
 	// 生存時間
 	particle.lifeTime = Random::FloatRange(1.0f, 4.0f);
@@ -264,9 +289,12 @@ Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel, const
 	return particle;
 }
 
-std::list<Particle> ParticleObject::Emit(const Emitter& emitter, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity) {
+std::list<Particle> ParticleObject::Emit(
+	const Emitter& emitter, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity
+) {
 	std::list<Particle> particles;
-	for (uint32_t count = 0; count < emitter.count; ++count) {
+	for (uint32_t count = 0; count < emitter.count; ++count)
+	{
 		Vec3 position = GeneratePosition(emitter.transform.translate, shapeType);
 		Vec3 velocity = GenerateConeVelocity(coneAngle);
 		Particle particle = MakeNewParticle(position, velocity, drag, gravity);
@@ -275,27 +303,29 @@ std::list<Particle> ParticleObject::Emit(const Emitter& emitter, int shapeType, 
 	return particles;
 }
 
-void ParticleObject::SetCamera(Camera* newCamera) { camera_ = newCamera; }
+void ParticleObject::SetCamera(Camera* newCamera) {
+	camera_ = newCamera;
+}
 
 Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition, int shapeType) {
-	switch (shapeType) {
+	switch (shapeType)
+	{
 	case 0: // Sphere（球）
-	{
-		// ランダムな方向
-		Vec3 direction = Random::Vec3Range(-Vec3::one, Vec3::one);
-		direction.Normalize();
-		// ランダムな半径
-		float radius = Random::FloatRange(0.0f, emitter_.size.x); // サイズを考慮
-		return emitterPosition + direction * radius;
-	}
+		{
+			// ランダムな方向
+			Vec3 direction = Random::Vec3Range(-Vec3::one, Vec3::one);
+			direction.Normalize();
+			// ランダムな半径
+			float radius = Random::FloatRange(0.0f, emitter_.size.x); // サイズを考慮
+			return emitterPosition + direction * radius;
+		}
 	case 1: // Cube（立方体）
-	{
-		// -1.0fから1.0fの範囲でランダムな位置
-		Vec3 offset = Random::Vec3Range(-Vec3::one, Vec3::one);
-		return emitterPosition + offset * emitter_.size; // サイズを考慮
-	}
-	default:
-		return emitterPosition;
+		{
+			// -1.0fから1.0fの範囲でランダムな位置
+			Vec3 offset = Random::Vec3Range(-Vec3::one, Vec3::one);
+			return emitterPosition + offset * emitter_.size; // サイズを考慮
+		}
+	default: return emitterPosition;
 	}
 }
 
@@ -319,7 +349,8 @@ Vec3 ParticleObject::GenerateConeVelocity(float coneAngle) {
 	randomDir.z = cosPhi;
 
 	// コーンの方向がVec3::upでない場合、回転を適用
-	if (!(coneDirection - Vec3::up).IsZero()) {
+	if (!(coneDirection - Vec3::up).IsZero())
+	{
 		// 回転軸を計算
 		Vec3 rotationAxis = Vec3::up.Cross(coneDirection);
 		rotationAxis.Normalize();

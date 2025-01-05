@@ -19,6 +19,7 @@
 #include "Particle/ParticleManager.h"
 #include "Renderer/D3D12.h"
 #include "Renderer/SrvManager.h"
+#include "Scene/GameScene.h"
 #include "Sprite/SpriteCommon.h"
 #include "TextureManager/TextureManager.h"
 #include "Window/Window.h"
@@ -28,7 +29,8 @@ Engine::Engine() = default;
 
 void Engine::Run() {
 	Init();
-	while (true) {
+	while (true)
+	{
 		if (Window::ProcessMessage() || bWishShutdown_)
 			break; // ゲームループを抜ける
 		Update();
@@ -36,38 +38,9 @@ void Engine::Run() {
 	Shutdown();
 }
 
-void Engine::DrawGrid(
-	const float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
-	const Vec4& axisColor, const Vec4& minorColor) {
-	// const float range = 16384.0f;
-	constexpr float majorInterval = 1024.0f;
-	const float minorInterval = gridSize * 8.0f;
-
-	for (float x = -range; x <= range; x += gridSize) {
-		Vec4 lineColor = color;
-		if (fmod(x, majorInterval) == 0) {
-			lineColor = majorColor;
-		} else if (fmod(x, minorInterval) == 0) {
-			lineColor = minorColor;
-		}
-		if (x == 0) {
-			lineColor = axisColor;
-		}
-		Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range), lineColor);
-	}
-
-	for (float z = -range; z <= range; z += gridSize) {
-		Vec4 lineColor = color;
-		if (fmod(z, majorInterval) == 0) {
-			lineColor = majorColor;
-		} else if (fmod(z, minorInterval) == 0) {
-			lineColor = minorColor;
-		}
-		if (z == 0) {
-			lineColor = axisColor;
-		}
-		Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z), lineColor);
-	}
+void Engine::ChangeScene(const std::shared_ptr<Scene>& newScene) {
+	currentScene_ = std::move(newScene);
+	currentScene_->Init(this);
 }
 
 void Engine::Init() {
@@ -138,25 +111,17 @@ void Engine::Init() {
 	assert(SUCCEEDED(hr));
 	hr = renderer_->GetCommandList()->Reset(
 		renderer_->GetCommandAllocator(),
-		nullptr);
+		nullptr
+	);
 	assert(SUCCEEDED(hr));
 
 	time_ = std::make_unique<EngineTimer>();
 
 	Console::SubmitCommand("neofetch");
 
-	// シーン
-	gameScene_ = std::make_unique<GameScene>();
-	gameScene_->Init(
-		renderer_.get(),
-		window_.get(),
-		spriteCommon_.get(),
-		particleManager_.get(),
-		object3DCommon_.get(),
-		modelCommon_.get(),
-		srvManager_.get(),
-		time_.get()
-	);
+	std::shared_ptr<Scene> gameScene = std::make_shared<GameScene>();
+	ChangeScene(gameScene);
+	CheckEditorMode();
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
@@ -185,7 +150,6 @@ void Engine::Update() {
 	static float popupTimer = 0.0f;
 
 	if (InputSystem::IsPressed("attack2")) {
-
 		if (!cursorHidden) {
 			ShowCursor(FALSE); // カーソルを非表示にする
 			cursorHidden = true;
@@ -261,11 +225,15 @@ void Engine::Update() {
 
 			oldMoveSpd = moveSpd;
 
-			cam->SetPos(cam->GetPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) * moveSpd * EngineTimer::GetScaledDeltaTime());
+			cam->SetPos(
+				cam->GetPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) *
+				moveSpd * EngineTimer::GetScaledDeltaTime()
+			);
 		}
 		// カーソルをウィンドウの中央にリセット
 		POINT centerCursorPos = {
-			static_cast<LONG>(Window::GetClientWidth() / 2), static_cast<LONG>(Window::GetClientHeight() / 2) };
+			static_cast<LONG>(Window::GetClientWidth() / 2), static_cast<LONG>(Window::GetClientHeight() / 2)
+		};
 		ClientToScreen(Window::GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
 		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
 
@@ -280,17 +248,17 @@ void Engine::Update() {
 
 	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
 	if (bOpenPopup) {
-
 		// ビューポートのサイズと位置を取得
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImVec2 viewportPos = viewport->Pos;
 		ImVec2 viewportSize = viewport->Size;
-		ImVec2 windowSize = ImVec2(256.0f, 32.0f);
+		auto windowSize = ImVec2(256.0f, 32.0f);
 
 		// ウィンドウの中央下部位置を計算
 		ImVec2 windowPos(
 			viewportPos.x + (viewportSize.x) * 0.5f,
-			viewportPos.y + (viewportSize.y) * 0.75f);
+			viewportPos.y + (viewportSize.y) * 0.75f
+		);
 
 		// ウィンドウの位置を調整
 		windowPos.x -= windowSize.x * 0.5f;
@@ -313,10 +281,15 @@ void Engine::Update() {
 			ImGuiWindowFlags_NoSavedSettings |
 			ImGuiWindowFlags_NoBringToFrontOnFocus |
 			ImGuiWindowFlags_NoFocusOnAppearing |
-			ImGuiWindowFlags_NoScrollbar);
+			ImGuiWindowFlags_NoScrollbar
+		);
 
 		ImGui::SetCursorPos(
-			ImVec2((windowSize.x - ImGui::CalcTextSize(std::format("{:.2f}", moveSpd).c_str()).x) * 0.5f, (windowSize.y - ImGui::GetFontSize()) * 0.5f));
+			ImVec2(
+				(windowSize.x - ImGui::CalcTextSize(std::format("{:.2f}", moveSpd).c_str()).x) * 0.5f,
+				(windowSize.y - ImGui::GetFontSize()) * 0.5f
+			)
+		);
 		ImGui::Text("%.2f", moveSpd);
 
 		// 一定時間経過後にポップアップをフェードアウトして閉じる
@@ -332,103 +305,60 @@ void Engine::Update() {
 	}
 #endif
 
-	// ゲームシーンの更新
-	gameScene_->Update();
-
-	// グリッドの表示
-	DrawGrid(
-		1.0f,
-		64,
-		{ .x = 0.28f, .y = 0.28f, .z = 0.28f, .w = 1.0f },
-		{ .x = 0.39f, .y = 0.2f, .z = 0.02f, .w = 1.0f },
-		{ .x = 0.0f, .y = 0.39f, .z = 0.39f, .w = 1.0f },
-		{ .x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f });
+	if (IsEditorMode())
+	{
+		editor_->Update(EngineTimer::GetDeltaTime());
+	} else
+	{
+		if (currentScene_)
+		{
+			currentScene_->Update(EngineTimer::GetScaledDeltaTime());
+		}
+	}
 
 #ifdef _DEBUG
 	DebugHud::Update();
-
-	ImGuiViewportP* viewport = static_cast<ImGuiViewportP*>(static_cast<void*>(ImGui::GetMainViewport()));
-	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_MenuBar;
-
-	ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.0f);
-
-	if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, 38, window_flags)) {
-		if (ImGui::BeginMenuBar()) {
-			ImGui::PopStyleVar();
-
-			ImGui::Text("ハリボテ");
-
-			ImGui::BeginDisabled(true);
-
-			// アングルスナップ
-			{
-				const float windowHeight = ImGui::GetWindowSize().y;
-				const char* items[] = {
-					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°", "22.5°", "30°", "45°", "90°" };
-				static int itemCurrentIndex = 6;
-				const char* comboLabel = items[itemCurrentIndex];
-
-				ImGui::Text("Angle: ");
-
-				// 垂直中央に配置
-				float comboHeight = ImGui::GetFrameHeight();
-				float offsetY = (windowHeight - comboHeight) * 0.5f;
-				ImGui::SetCursorPosY(offsetY);
-
-				if (ImGui::BeginCombo("##angle", comboLabel)) {
-					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
-						const bool isSelected = (itemCurrentIndex == n);
-						if (ImGui::Selectable(items[n], isSelected)) {
-							itemCurrentIndex = n;
-						}
-						if (isSelected) {
-							ImGui::SetItemDefaultFocus();
-						}
-					}
-					ImGui::EndCombo();
-				}
-			}
-
-			ImGui::EndDisabled();
-
-			ImGui::EndMenuBar();
-		}
-		ImGui::End();
-	}
 #endif
+
+
+	InputSystem::Update();
+
+	//-------------------------------------------------------------------------
+	// --- PreRender↓ ---
+	renderer_->PreRender();
+	srvManager_->PreDraw();
+	//-------------------------------------------------------------------------
+
+	if (IsEditorMode())
+	{
+		editor_->Render();
+	} else
+	{
+		if (currentScene_)
+		{
+			currentScene_->Render();
+		}
+	}
 
 #ifdef _DEBUG
 	Debug::Update();
 #endif
 
-	InputSystem::Update();
-
-	/* ---------- Pre ----------- */
-	renderer_->PreRender();
-	srvManager_->PreDraw();
-	/* ---------- コマンド積み ----------- */
-
-	gameScene_->Render();
-
 	//-------------------------------------------------------------------------
 	lineCommon_->Render();
 	Debug::Draw();
-	//-------------------------------------------------------------------------
-
+	// --- PostRender↓ ---
 #ifdef _DEBUG
 	imGuiManager_->EndFrame();
 #endif
-
-	/* ---------- Post ----------- */
 	renderer_->PostRender();
-	/* ---------- ゲームループ終了 ---------- */
+	//-------------------------------------------------------------------------
 
 	time_->EndFrame();
 }
 
 void Engine::Shutdown() const {
-	gameScene_->Shutdown();
+	currentScene_->Shutdown();
 
 	ModelManager::Shutdown();
 	TextureManager::Shutdown();
@@ -448,7 +378,8 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConCommand::RegisterCommand(
 		"bind",
 		[](const std::vector<std::string>& args) {
-			if (args.size() < 2) {
+			if (args.size() < 2)
+			{
 				Console::Print("Usage: bind <key> <command>\n", kConsoleColorWarning, Channel::kInputSystem);
 				return;
 			}
@@ -456,7 +387,8 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 			std::string command = args[1];
 			InputSystem::BindKey(key, command);
 		},
-		"Bind a key to a command.");
+		"Bind a key to a command."
+	);
 	ConCommand::RegisterCommand("clear", Console::Clear, "Clear all console output");
 	ConCommand::RegisterCommand("cls", Console::Clear, "Clear all console output");
 	ConCommand::RegisterCommand("echo", Console::Echo, "Echo text to console.");
@@ -465,6 +397,16 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConCommand::RegisterCommand("neofetch", Console::NeoFetch, "Show system info.");
 	ConCommand::RegisterCommand("quit", Quit, "Exit the engine.");
 	ConCommand::RegisterCommand("toggleconsole", Console::ToggleConsole, "Show/hide the console.");
+
+	ConCommand::RegisterCommand(
+		"toggleeditor",
+		[]([[maybe_unused]] const std::vector<std::string>& args) {
+			bIsEditorMode_ = !bIsEditorMode_;
+			Console::Print("Editor mode is now " + std::to_string(bIsEditorMode_) + "\n", kConsoleColorNormal);
+		},
+		"Toggle editor mode."
+	);
+
 	// コンソール変数を登録
 	ConVarManager::RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
 	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");
@@ -474,7 +416,9 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f, "Mouse sensitivity.");
 	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f, "Prescale the clock by this amount.");
 	ConVarManager::RegisterConVar<float>("sv_gravity", 800.0f, "World gravity.");
-	ConVarManager::RegisterConVar<float>("sv_maxvelocity", 3500.0f, "Maximum speed any ballistically moving object is allowed to attain per axis.");
+	ConVarManager::RegisterConVar<float>(
+		"sv_maxvelocity", 3500.0f, "Maximum speed any ballistically moving object is allowed to attain per axis."
+	);
 	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f, "Linear acceleration amount (old value is 5.6)");
 	ConVarManager::RegisterConVar<float>("sv_maxspeed", 320.0f, "Maximum speed a player can move.");
 	ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f, "Minimum stopping speed when on ground.");
@@ -488,23 +432,27 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind d +moveright");
 	Console::SubmitCommand("bind e +moveup");
 	Console::SubmitCommand("bind q +movedown");
-	Console::SubmitCommand("bind space +jump");
-	Console::SubmitCommand("bind lshift +sprint");
-	Console::SubmitCommand("bind lctrl +crouch");
-	Console::SubmitCommand("bind r +reload");
-	// Console::SubmitCommand("bind e +use");
 	Console::SubmitCommand("bind mouse1 +attack1");
 	Console::SubmitCommand("bind mouse2 +attack2");
-	Console::SubmitCommand("bind mouse3 +attack3");
-	Console::SubmitCommand("bind mouse4 +attack4");
-	Console::SubmitCommand("bind mouse5 +attack5");
 	Console::SubmitCommand("bind mousewheelup +invprev");
 	Console::SubmitCommand("bind mousewheeldown +invnext");
 	Console::SubmitCommand("bind c +changecamera");
+	Console::SubmitCommand("bind f1 toggleeditor");
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
 	bWishShutdown_ = true;
 }
 
+void Engine::CheckEditorMode() {
+	if (bIsEditorMode_)
+	{
+		editor_ = std::make_unique<Editor>(currentScene_);
+	} else
+	{
+		editor_.reset();
+	}
+}
+
 bool Engine::bWishShutdown_ = false;
+bool Engine::bIsEditorMode_ = true;

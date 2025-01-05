@@ -1,5 +1,5 @@
 #include "MathLib.h"
-#include "../Lib/Structs/Structs.h"
+#include "Lib/Structs/Structs.h"
 
 #include <cassert>
 #include <cmath>
@@ -33,19 +33,22 @@ Vec3 Math::CatmullRomPosition(const std::vector<Vec3>& points, const float t) {
 	// 区間番号
 	size_t index = static_cast<int>(t / areaWidth);
 	// 区間番号が上限を超えないように収める
-	if (index >= division) {
+	if (index >= division)
+	{
 		index = division - 1;
 	}
 
 	// 4点分のインデックス
 	size_t index0 = index;
-	if (index > 0) {
+	if (index > 0)
+	{
 		index0 = index - 1;
 	}
 	size_t index1 = index;
 	size_t index2 = index + 1;
 	size_t index3 = index2;
-	if (index3 + 1 < points.size()) {
+	if (index3 + 1 < points.size())
+	{
 		index3 = index2 + 1;
 	}
 
@@ -74,10 +77,11 @@ Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p
 
 float Math::DeltaAngle(const float& current, const float& target) {
 	float delta = fmod(target - current, 360.0f);
-	if (delta > 180.0f) {
+	if (delta > 180.0f)
+	{
 		delta -= 360.0f;
-	}
-	else if (delta < -180.0f) {
+	} else if (delta < -180.0f)
+	{
 		delta += 360.0f;
 	}
 	return delta;

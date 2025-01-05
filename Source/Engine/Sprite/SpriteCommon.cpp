@@ -67,9 +67,12 @@ void SpriteCommon::CreateRootSignature() {
 	};
 
 	// ルートシグネチャを作成
-	rootSignatureManager_->CreateRootSignature("SpriteCommon", rootParameters, staticSamplers, _countof(staticSamplers));
+	rootSignatureManager_->CreateRootSignature(
+		"SpriteCommon", rootParameters, staticSamplers, _countof(staticSamplers)
+	);
 
-	if (rootSignatureManager_->Get("SpriteCommon")) {
+	if (rootSignatureManager_->Get("SpriteCommon"))
+	{
 		Console::Print("SpriteCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }
@@ -87,7 +90,8 @@ void SpriteCommon::CreateGraphicsPipeline() {
 	pipelineState_.SetPS(L"./Resources/Shaders/SpriteCommon.PS.hlsl");
 	pipelineState_.Create(d3d12_->GetDevice());
 
-	if (pipelineState_.Get()) {
+	if (pipelineState_.Get())
+	{
 		Console::Print("SpriteCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }

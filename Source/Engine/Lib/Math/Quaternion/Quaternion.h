@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Lib/Math/Vector/Vec3.h"
+#include "Lib/Math/Vector/Vec3.h"
 
 struct Quaternion {
 	float x, y, z, w;

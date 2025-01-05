@@ -1,9 +1,11 @@
 #include "ImGuiManager.h"
 
-#include "../Renderer/SrvManager.h"
-#include "imgui/imgui_impl_dx12.h"
-#include "imgui/imgui_impl_win32.h"
-#include "imgui/imgui_internal.h"
+#include <imgui_impl_dx12.h>
+#include <imgui_impl_win32.h>
+#include <imgui_internal.h>
+#include <Components/TransformComponent.h>
+#include <Entity/Base/Entity.h>
+#include <Renderer/SrvManager.h>
 
 #ifdef _DEBUG
 #include "../Lib/Utils/ClientProperties.h"
@@ -35,11 +37,15 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window, const SrvMa
 	imFontConfig.SizePixels = 18;
 
 	// Ascii
-	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\JetBrainsMono.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesDefault());
+	io.Fonts->AddFontFromFileTTF(
+		R"(.\Resources\Fonts\JetBrainsMono.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesDefault()
+	);
 	imFontConfig.MergeMode = true;
 
 	// 日本語フォールバック
-	io.Fonts->AddFontFromFileTTF(R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese());
+	io.Fonts->AddFontFromFileTTF(
+		R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese()
+	);
 
 	// テーマの設定
 	// TODO : 多分絶対いらないけどランタイムで変わったらカッコいいよね!!
@@ -57,7 +63,8 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window, const SrvMa
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		srvManager_->GetDescriptorHeap(),
 		srvManager_->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
-		srvManager_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+		srvManager_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart()
+	);
 }
 
 void ImGuiManager::NewFrame() {
@@ -182,6 +189,34 @@ bool ImGuiManager::EditTransform(Transform& transform, const float& vSpeed) {
 	return isEditing;
 }
 
+bool ImGuiManager::EditTransform(TransformComponent& transform, const float& vSpeed) {
+	bool isEditing = false;
+	Vec3 localPos = transform.GetLocalPos();
+	Quaternion localRot = transform.GetLocalRot();
+	Vec3 localScale = transform.GetLocalScale();
+
+	if (ImGui::CollapsingHeader(("Transform##" + transform.GetOwner()->GetName()).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (DragVec3("Position", localPos, vSpeed, "%.3f")) {
+			transform.SetLocalPos(localPos);
+			isEditing |= true;
+		}
+
+		// 回転を取っておく
+		Vec3 rotate = localRot.ToEulerDegrees();
+		if (DragVec3("Rotation", rotate, vSpeed * 10.0f, "%.3f")) {
+			localRot = Quaternion::EulerDegrees(rotate);
+			transform.SetLocalRot(localRot);
+			isEditing |= true;
+		}
+
+		if (DragVec3("Scale", localScale, vSpeed, "%.3f")) {
+			transform.SetLocalScale(localScale);
+			isEditing |= true;
+		}
+	}
+	return isEditing;
+}
+
 bool ImGuiManager::DragVec3(const std::string& name, Vec3& v, const float& vSpeed, const char* format) {
 	// 編集中かどうか
 	bool isEditing = false;
@@ -209,19 +244,25 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3& v, const float& vSpee
 
 	/* --- 座標 --- */
 	// 色を送る
+	ImGui::PushID("X");
 	PushStyleColorForDrag(xBg, xBgHovered, xBgActive);
 	isEditing |= ImGui::DragFloat(("##X" + name).c_str(), &v.x, vSpeed, 0.0f, 0.0f, format);
 	ImGui::PopStyleColor(components);
+	ImGui::PopID();
 	ImGui::SameLine(0, width);
 
+	ImGui::PushID("Y");
 	PushStyleColorForDrag(yBg, yBgHovered, yBgActive);
 	isEditing |= ImGui::DragFloat(("##Y" + name).c_str(), &v.y, vSpeed, 0.0f, 0.0f, format);
 	ImGui::PopStyleColor(components);
+	ImGui::PopID();
 	ImGui::SameLine(0, width);
 
+	ImGui::PushID("Z");
 	PushStyleColorForDrag(zBg, zBgHovered, zBgActive);
 	isEditing |= ImGui::DragFloat(("##Z" + name).c_str(), &v.z, vSpeed, 0.0f, 0.0f, format);
 	ImGui::PopStyleColor(components);
+	ImGui::PopID();
 	ImGui::SameLine(0, width);
 
 	ImGui::Text(name.c_str());
@@ -239,7 +280,8 @@ void ImGuiManager::TextOutlined(
 	const char* text,
 	const ImU32 textColor,
 	const ImU32 outlineColor,
-	const float outlineSize) {
+	const float outlineSize
+) {
 	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y), outlineColor, text);
 	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y), outlineColor, text);
 	drawList->AddText(ImVec2(pos.x, pos.y - outlineSize), outlineColor, text);
@@ -251,5 +293,6 @@ void ImGuiManager::TextOutlined(
 	drawList->AddText(pos, textColor, text);
 }
 #else
-void ImGuiManager::Shutdown() {}
+void ImGuiManager::Shutdown() {
+}
 #endif

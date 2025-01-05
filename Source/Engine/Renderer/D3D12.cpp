@@ -58,12 +58,14 @@ void D3D12::ClearColorAndDepth() const {
 		rtvHandles_[frameIndex_],
 		clearColor,
 		0,
-		nullptr);
+		nullptr
+	);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = GetCPUDescriptorHandle(
 		dsvDescriptorHeap_.Get(),
 		descriptorSizeDSV,
-		0);
+		0
+	);
 
 	commandList_->ClearDepthStencilView(
 		dsvHandle,
@@ -71,13 +73,15 @@ void D3D12::ClearColorAndDepth() const {
 		1.0f,
 		0,
 		0,
-		nullptr);
+		nullptr
+	);
 
 	commandList_->OMSetRenderTargets(
 		1,
 		&rtvHandles_[frameIndex_],
 		false,
-		&dsvHandle);
+		&dsvHandle
+	);
 }
 
 void D3D12::PreRender() {
@@ -89,7 +93,8 @@ void D3D12::PreRender() {
 	assert(SUCCEEDED(hr));
 	hr = commandList_->Reset(
 		commandAllocator_.Get(),
-		nullptr);
+		nullptr
+	);
 	assert(SUCCEEDED(hr));
 
 	// ビューポートとシザー矩形を設定
@@ -117,7 +122,8 @@ void D3D12::PostRender() {
 	// コマンドリストを閉じる
 	const HRESULT hr = commandList_->Close();
 	assert(SUCCEEDED(hr));
-	if (hr) {
+	if (hr)
+	{
 		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 
@@ -133,7 +139,8 @@ void D3D12::PostRender() {
 void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data) {
 	void* mapped;
 	HRESULT hr = resource->Map(0, nullptr, &mapped);
-	if (SUCCEEDED(hr)) {
+	if (SUCCEEDED(hr))
+	{
 		memcpy(mapped, data, size);
 		resource->Unmap(0, nullptr);
 	}
@@ -142,7 +149,8 @@ void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, con
 void D3D12::EnableDebugLayer() {
 	ID3D12Debug6* debugController;
 
-	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
+	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
+	{
 		debugController->EnableDebugLayer(); // デバッグレイヤーの有効化
 		debugController->SetEnableGPUBasedValidation(TRUE); // GPU側でのチェックを有効化
 		debugController->Release();
@@ -156,12 +164,16 @@ void D3D12::CreateDevice() {
 
 	// ハードウェアアダプタの検索
 	ComPtr<IDXGIAdapter4> useAdapter;
-	for (UINT i = 0; dxgiFactory_->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&useAdapter)) != DXGI_ERROR_NOT_FOUND; ++i) {
+	for (UINT i = 0; dxgiFactory_->EnumAdapterByGpuPreference(
+		     i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&useAdapter)
+	     ) != DXGI_ERROR_NOT_FOUND; ++i)
+	{
 		DXGI_ADAPTER_DESC3 adapterDesc;
 		hr = useAdapter->GetDesc3(&adapterDesc);
 		assert(SUCCEEDED(hr));
 		// ソフトウェアアダプタでなければ採用
-		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE)) {
+		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE))
+		{
 			// 採用したアダプタの情報をログに出力
 			Console::Print(StrUtils::ToString(std::format(L"Use Adapter : {}\n", adapterDesc.Description)));
 			break;
@@ -181,11 +193,13 @@ void D3D12::CreateDevice() {
 	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0", "11.1", "11.0"};
 
 	// 高い順に生成できるか試していく
-	for (size_t i = 0; i < _countof(featureLevels); ++i) {
+	for (size_t i = 0; i < _countof(featureLevels); ++i)
+	{
 		// 採用したアダプターでデバイスを生成
 		hr = D3D12CreateDevice(useAdapter.Get(), featureLevels[i], IID_PPV_ARGS(&device_));
 		// 指定した機能レベルでデバイスが生成できたをできたかを確認
-		if (SUCCEEDED(hr)) {
+		if (SUCCEEDED(hr))
+		{
 			// 生成できたのでログに出力し、ループを抜ける
 			Console::Print(std::format("FeatureLevel : {}\n", featureLevelStrings[i]), kConsoleColorNormal);
 			break;
@@ -197,7 +211,8 @@ void D3D12::CreateDevice() {
 
 void D3D12::SetInfoQueueBreakOnSeverity() const {
 	ComPtr<ID3D12InfoQueue> infoQueue;
-	if (SUCCEEDED(device_->QueryInterface(IID_PPV_ARGS(&infoQueue)))) {
+	if (SUCCEEDED(device_->QueryInterface(IID_PPV_ARGS(&infoQueue))))
+	{
 		// やばいエラー時に止まる
 		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
 		// エラー時に止まる
@@ -209,7 +224,8 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		D3D12_MESSAGE_ID denyIds[] = {
 			// Windows11でのDXGIデバッグレイヤーとDX12デバッグレイヤーの相互作用バグによるエラーメッセージ
 			// https://stackoverflow.com/questions/69805245/directx-12-application-is-crashing-in-windows-11
-			D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE};
+			D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE
+		};
 
 		// 抑制するレベル
 		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
@@ -229,10 +245,12 @@ void D3D12::CreateCommandQueue() {
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
 		0,
 		D3D12_COMMAND_QUEUE_FLAG_NONE,
-		0};
+		0
+	};
 	const HRESULT hr = device_->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue_));
 	assert(SUCCEEDED(hr));
-	if (hr) {
+	if (hr)
+	{
 		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 }
@@ -254,9 +272,11 @@ void D3D12::CreateSwapChain() {
 		&swapChainDesc,
 		nullptr,
 		nullptr,
-		reinterpret_cast<IDXGISwapChain1**>(swapChain_.GetAddressOf()));
+		reinterpret_cast<IDXGISwapChain1**>(swapChain_.GetAddressOf())
+	);
 	assert(SUCCEEDED(hr));
-	if (hr) {
+	if (hr)
+	{
 		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 }
@@ -280,11 +300,13 @@ void D3D12::CreateRTV() {
 	renderTargets_.resize(kFrameBufferCount); // フレームバッファ数でリサイズ
 	rtvHandles_.resize(kFrameBufferCount);
 
-	for (unsigned int i = 0; i < kFrameBufferCount; ++i) {
+	for (unsigned int i = 0; i < kFrameBufferCount; ++i)
+	{
 		// SwapChainからResourceを引っ張ってくる
 		const HRESULT hr = swapChain_->GetBuffer(i, IID_PPV_ARGS(&renderTargets_[i]));
 		assert(SUCCEEDED(hr));
-		if (hr) {
+		if (hr)
+		{
 			Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 		}
 
@@ -299,13 +321,18 @@ void D3D12::CreateDSV() {
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 	dsvDesc.Format = depthStencilResource_->GetDesc().Format;
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-	device_->CreateDepthStencilView(depthStencilResource_.Get(), &dsvDesc, dsvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart());
+	device_->CreateDepthStencilView(
+		depthStencilResource_.Get(), &dsvDesc, dsvDescriptorHeap_->GetCPUDescriptorHandleForHeapStart()
+	);
 }
 
 void D3D12::CreateCommandAllocator() {
-	const HRESULT hr = device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator_));
+	const HRESULT hr = device_->CreateCommandAllocator(
+		D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator_)
+	);
 	assert(SUCCEEDED(hr));
-	if (hr) {
+	if (hr)
+	{
 		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 }
@@ -320,20 +347,24 @@ void D3D12::CreateCommandList() {
 		IID_PPV_ARGS(&commandList_) // 作成されるコマンドリスト
 	);
 
-	if (FAILED(hr)) {
+	if (FAILED(hr))
+	{
 		Console::Print(
 			std::format("Failed to create command list. Error code: {:08x}\n", hr),
-			kConsoleColorError);
+			kConsoleColorError
+		);
 		assert(SUCCEEDED(hr));
 		return;
 	}
 
 	// コマンドリストを閉じる（初期状態では開いている）
 	hr = commandList_->Close();
-	if (FAILED(hr)) {
+	if (FAILED(hr))
+	{
 		Console::Print(
 			std::format("Failed to close command list. Error code: {:08x}\n", hr),
-			kConsoleColorError);
+			kConsoleColorError
+		);
 		assert(SUCCEEDED(hr));
 	}
 }
@@ -341,7 +372,8 @@ void D3D12::CreateCommandList() {
 void D3D12::CreateFence() {
 	const HRESULT hr = device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
 	assert(SUCCEEDED(hr));
-	if (hr) {
+	if (hr)
+	{
 		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 
@@ -378,8 +410,10 @@ void D3D12::WaitPreviousFrame() {
 	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
 	HRESULT hr = commandQueue_->Signal(fence_.Get(), fenceValue_);
 
-	if (FAILED(hr)) {
-		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+	if (FAILED(hr))
+	{
+		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+		{
 			// デバイスが消えた!!?
 			HandleDeviceLost();
 		}
@@ -387,7 +421,8 @@ void D3D12::WaitPreviousFrame() {
 
 	// Fenceの値が指定したSignal値にたどり着いているか確認する
 	// GetCompletedValueの初期値はFence作成時に渡した初期値
-	if (fence_->GetCompletedValue() < fenceValue_) {
+	if (fence_->GetCompletedValue() < fenceValue_)
+	{
 		// 指定したSignalにたどり着いていないので、たどり着くまで待つようにイベントを設定する
 		fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
 		// イベント待つ
@@ -395,31 +430,40 @@ void D3D12::WaitPreviousFrame() {
 	}
 }
 
-ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType, const UINT numDescriptors, const bool shaderVisible) const {
+ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(
+	const D3D12_DESCRIPTOR_HEAP_TYPE heapType, const UINT numDescriptors, const bool shaderVisible
+) const {
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
 	D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
 	descriptorHeapDesc.Type = heapType;
 	descriptorHeapDesc.NumDescriptors = numDescriptors;
-	if (shaderVisible) {
+	if (shaderVisible)
+	{
 		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	} else {
+	} else
+	{
 		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	}
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
 	assert(SUCCEEDED(hr));
-	if (hr) {
+	if (hr)
+	{
 		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 	return descriptorHeap;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, const uint32_t descriptorSize, const uint32_t index) {
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetCPUDescriptorHandle(
+	ID3D12DescriptorHeap* descriptorHeap, const uint32_t descriptorSize, const uint32_t index
+) {
 	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	handleCPU.ptr += static_cast<unsigned long long>(descriptorSize) * index;
 	return handleCPU;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE D3D12::GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, const uint32_t descriptorSize, const uint32_t index) {
+D3D12_GPU_DESCRIPTOR_HANDLE D3D12::GetGPUDescriptorHandle(
+	ID3D12DescriptorHeap* descriptorHeap, const uint32_t descriptorSize, const uint32_t index
+) {
 	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	handleGPU.ptr += static_cast<unsigned long long>(descriptorSize) * index;
 	return handleGPU;
@@ -453,9 +497,11 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 		&resourceDesc,
 		D3D12_RESOURCE_STATE_DEPTH_WRITE,
 		&depthClearValue,
-		IID_PPV_ARGS(&resource)); // 作成するResourceポインタへのポインタ
+		IID_PPV_ARGS(&resource)
+	); // 作成するResourceポインタへのポインタ
 	assert(SUCCEEDED(hr));
-	if (hr) {
+	if (hr)
+	{
 		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 
@@ -465,7 +511,8 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 D3DResourceLeakChecker::~D3DResourceLeakChecker() {
 	// リソースリークチェック
 	ComPtr<IDXGIDebug> debug;
-	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug)))) {
+	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug))))
+	{
 		debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
 		debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
 		debug->ReportLiveObjects(DXGI_DEBUG_D3D12, DXGI_DEBUG_RLO_ALL);

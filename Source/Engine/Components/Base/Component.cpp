@@ -2,4 +2,10 @@
 
 Component::~Component() = default;
 
-void Component::OnAttach(Entity& owner) { this->owner_ = &owner; }
+void Component::OnAttach(Entity& owner) {
+	this->owner_ = &owner;
+}
+
+bool Component::IsEditorOnly() const {
+	return false;
+}

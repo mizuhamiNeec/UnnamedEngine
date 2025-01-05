@@ -1,17 +1,17 @@
 #include "Window.h"
 
 #include <dwmapi.h>
+#include <imgui.h>
 #include <utility>
-#include <imgui/imgui.h>
 
 #include "WindowsUtils.h"
 #include "../Input/InputSystem.h"
-#include "../Lib/Console/Console.h"
+#include "Lib/Console/Console.h"
 
 #pragma comment(lib, "winmm.lib")
 
 #ifdef _DEBUG
-extern IMGUI_IMPL_API LRESULT ImGuiImplWin32WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif
 
 Window::Window(
@@ -19,14 +19,16 @@ Window::Window(
 	const uint32_t width,
 	const uint32_t height,
 	const DWORD style,
-	const DWORD exStyle) :
+	const DWORD exStyle
+) :
 	title_(std::move(title)),
 	style_(style),
 	exStyle_(exStyle) {
 	width_ = width;
 	height_ = height;
 	const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-	if (FAILED(hr)) {
+	if (FAILED(hr))
+	{
 		Console::Print("Failed to initialize COM library");
 	}
 	timeBeginPeriod(1); // システムタイマーの分解能を上げる
@@ -50,10 +52,12 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	wc_.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
 	wc_.hIconSm = LoadIcon(hInstance, IDI_APPLICATION);
 
-	if (!RegisterClassEx(&wc_)) {
+	if (!RegisterClassEx(&wc_))
+	{
 		Console::Print(
 			"Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
-			kConsoleColorError);
+			kConsoleColorError
+		);
 		return false;
 	}
 
@@ -72,9 +76,11 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 		nullptr, // このウィンドウの親
 		nullptr, // メニュー
 		wc_.hInstance,
-		nullptr);
+		nullptr
+	);
 
-	if (!hWnd_) {
+	if (!hWnd_)
+	{
 		Console::Print("Failed to create window.\n", kConsoleColorError, Channel::kEngine);
 		return false;
 	}
@@ -95,7 +101,8 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 void Window::SetUseImmersiveDarkMode(const HWND hWnd, const bool darkMode) {
 	const BOOL value = darkMode;
 	const HRESULT hr = DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
-	if (FAILED(hr)) {
+	if (FAILED(hr))
+	{
 		const std::string errorMessage = WindowsUtils::GetHresultMessage(hr);
 		Console::Print(errorMessage, kConsoleColorError);
 	}
@@ -107,7 +114,8 @@ HINSTANCE Window::GetHInstance() const {
 
 uint32_t Window::GetClientWidth() {
 	RECT rect;
-	if (GetClientRect(hWnd_, &rect)) {
+	if (GetClientRect(hWnd_, &rect))
+	{
 		width_ = rect.right - rect.left;
 	}
 	return width_;
@@ -115,7 +123,8 @@ uint32_t Window::GetClientWidth() {
 
 uint32_t Window::GetClientHeight() {
 	RECT rect;
-	if (GetClientRect(hWnd_, &rect)) {
+	if (GetClientRect(hWnd_, &rect))
+	{
 		height_ = rect.bottom - rect.top;
 	}
 	return height_;
@@ -123,7 +132,7 @@ uint32_t Window::GetClientHeight() {
 
 LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
 #ifdef _DEBUG
-	if (ImGuiImplWin32WndProcHandler(hWnd, msg, wParam, lParam)) {
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
 		return true;
 	}
 #endif
@@ -131,37 +140,44 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	// ------------------------------------------------------------------------
 	// どちらかのキーを押すと時が止まる Alt || F10キー対策
 	// ------------------------------------------------------------------------
-	if (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP) {
+	if (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP)
+	{
 		return 0;
 	}
 
-	switch (msg) {
+	switch (msg)
+	{
 	case WM_SETTINGCHANGE: // Windowsの設定が変更された
-		if (lParam) {
-			const wchar_t* immersiveColorSet = std::bit_cast<const wchar_t*>(lParam);
+		if (lParam)
+		{
+			auto immersiveColorSet = std::bit_cast<const wchar_t*>(lParam);
 			// 変更された設定が "ImmersiveColorSet" か?
-			if (immersiveColorSet && wcscmp(immersiveColorSet, L"ImmersiveColorSet") == 0) {
+			if (immersiveColorSet && wcscmp(immersiveColorSet, L"ImmersiveColorSet") == 0)
+			{
 				static int sMode = 0;
 				const bool darkMode = WindowsUtils::IsSystemDarkTheme(); // 現在のテーマを取得
 				// 前回のテーマと異なる場合
-				if (static_cast<bool>(sMode) != darkMode) {
+				if (static_cast<bool>(sMode) != darkMode)
+				{
 					sMode = darkMode;
 					SetUseImmersiveDarkMode(hWnd, darkMode); // ウィンドウのモードを設定
-					Console::Print(std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConsoleColorWait, Channel::kEngine);
+					Console::Print(
+						std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConsoleColorWait,
+						Channel::kEngine
+					);
 				}
 			}
 		}
 		break;
-	case WM_INPUT: {
-		InputSystem::ProcessInput(lParam);
-		break;
-	}
+	case WM_INPUT:
+		{
+			InputSystem::ProcessInput(lParam);
+			break;
+		}
 	case WM_CLOSE:
-	case WM_DESTROY:
-		PostQuitMessage(0);
+	case WM_DESTROY: PostQuitMessage(0);
 		return 0;
-	default:
-		return DefWindowProc(hWnd, msg, wParam, lParam);
+	default: return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
 
 	return 0;
@@ -170,8 +186,10 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 bool Window::ProcessMessage() {
 	MSG msg = {};
 
-	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-		if (msg.message == WM_QUIT) {
+	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+	{
+		if (msg.message == WM_QUIT)
+		{
 			return true;
 		}
 		TranslateMessage(&msg);
@@ -181,7 +199,9 @@ bool Window::ProcessMessage() {
 	return false;
 }
 
-HWND Window::GetWindowHandle() { return hWnd_; }
+HWND Window::GetWindowHandle() {
+	return hWnd_;
+}
 
 HWND Window::hWnd_ = nullptr;
 uint32_t Window::width_ = 0;

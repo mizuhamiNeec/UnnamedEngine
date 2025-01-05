@@ -37,9 +37,11 @@ void LineCommon::CreateRootSignature() {
 		"Line",
 		rootParameters,
 		nullptr, // 今回サンプラーは使用しない
-		0);
+		0
+	);
 
-	if (rootSignatureManager_->Get("Line")) {
+	if (rootSignatureManager_->Get("Line"))
+	{
 		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }
@@ -63,7 +65,8 @@ void LineCommon::CreateGraphicsPipeline() {
 	pipelineState_.SetPS(L"./Resources/Shaders/Line.PS.hlsl");
 	pipelineState_.Create(d3d12_->GetDevice());
 
-	if (pipelineState_.Get()) {
+	if (pipelineState_.Get())
+	{
 		Console::Print("LineCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }

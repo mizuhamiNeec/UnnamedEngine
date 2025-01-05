@@ -15,15 +15,17 @@ void SrvManager::Init(D3D12* d3d12) {
 
 void SrvManager::PreDraw() const {
 	// 描画用のDescriptorHeapの設定
-	ID3D12DescriptorHeap* descriptorHeaps[] = { descriptorHeap_.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = {descriptorHeap_.Get()};
 	d3d12_->GetCommandList()->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: SRV生成(テクスチャ用)
 //-----------------------------------------------------------------------------
-void SrvManager::CreateSRVForTexture2D(uint32_t srvIndex, ID3D12Resource* pResource, DXGI_FORMAT format,
-	UINT mipLevels) const {
+void SrvManager::CreateSRVForTexture2D(
+	uint32_t srvIndex, ID3D12Resource* pResource, DXGI_FORMAT format,
+	UINT mipLevels
+) const {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = format;
@@ -40,8 +42,10 @@ void SrvManager::CreateSRVForTexture2D(uint32_t srvIndex, ID3D12Resource* pResou
 //-----------------------------------------------------------------------------
 // Purpose: SRV生成(Structured Buffer用)
 //-----------------------------------------------------------------------------
-void SrvManager::CreateSRVForStructuredBuffer(uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements,
-	UINT structureByteStride) const {
+void SrvManager::CreateSRVForStructuredBuffer(
+	uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements,
+	UINT structureByteStride
+) const {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;

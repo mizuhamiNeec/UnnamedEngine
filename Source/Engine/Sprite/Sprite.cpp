@@ -19,31 +19,35 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 	this->textureFilePath_ = textureFilePath;
 
 	// 各トランスフォームに初期値を設定
-	transform_ = { {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
-	uvTransform_ = { {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
+	transform_ = {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
+	uvTransform_ = {{1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}};
 
 	// 頂点リソースにデータを書き込む
-	vertices_.push_back({ {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} }); // 左下
-	vertices_.push_back({ {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }); // 左上
-	vertices_.push_back({ {1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} }); // 右下
-	vertices_.push_back({ {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }); // 左上
-	vertices_.push_back({ {1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }); // 右上
-	vertices_.push_back({ {1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} }); // 右下
+	vertices_.push_back({{0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}); // 左下
+	vertices_.push_back({{0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}}); // 左上
+	vertices_.push_back({{1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}); // 右下
+	vertices_.push_back({{0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}}); // 左上
+	vertices_.push_back({{1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}}); // 右上
+	vertices_.push_back({{1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}); // 右下
 
 	// インデックスバッファの作成
 	indexBuffer_ = std::make_unique<IndexBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(indices), indices);
 
 	// 頂点バッファの作成
-	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Vertex) * kSpriteVertexCount, vertices_.data());
+	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(
+		spriteCommon_->GetD3D12()->GetDevice(), sizeof(Vertex) * kSpriteVertexCount, vertices_.data()
+	);
 
 	// 定数バッファ
 	materialResource_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Material));
 	materialData_ = materialResource_->GetPtr<Material>();
-	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	materialData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
 	materialData_->enableLighting = false;
 	materialData_->uvTransform = Mat4::identity;
 
-	transformation_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
+	transformation_ = std::make_unique<ConstantBuffer>(
+		spriteCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix)
+	);
 	transformationMatrixData_ = transformation_->GetPtr<TransformationMatrix>();
 	transformationMatrixData_->wvp = Mat4::identity;
 	transformationMatrixData_->world = Mat4::identity;
@@ -63,12 +67,14 @@ void Sprite::Update() {
 	float bottom = 1.0f - anchorPoint_.y; // アンカーを考慮した下
 
 	// 左右反転
-	if (isFlipX_) {
+	if (isFlipX_)
+	{
 		left = -left;
 		right = -right;
 	}
 	// 上下反転
-	if (isFlipY_) {
+	if (isFlipY_)
+	{
 		top = -top;
 		bottom = -bottom;
 	}
@@ -79,15 +85,15 @@ void Sprite::Update() {
 	float texTop = textureLeftTop.y / static_cast<float>(metadata.height);
 	float texBottom = (textureLeftTop.y + textureSize.y) / static_cast<float>(metadata.height);
 
-	vertices_[0].position = { left, bottom, 0.0f, 1.0f }; // 左下
-	vertices_[1].position = { left, top, 0.0f, 1.0f }; // 左上
-	vertices_[2].position = { right, bottom, 0.0f, 1.0f }; // 右下
-	vertices_[4].position = { right, top, 0.0f, 1.0f }; // 右上
+	vertices_[0].position = {left, bottom, 0.0f, 1.0f}; // 左下
+	vertices_[1].position = {left, top, 0.0f, 1.0f}; // 左上
+	vertices_[2].position = {right, bottom, 0.0f, 1.0f}; // 右下
+	vertices_[4].position = {right, top, 0.0f, 1.0f}; // 右上
 
-	vertices_[0].uv = { texLeft, texBottom };
-	vertices_[1].uv = { texLeft, texTop };
-	vertices_[2].uv = { texRight, texBottom };
-	vertices_[4].uv = { texRight, texTop };
+	vertices_[0].uv = {texLeft, texBottom};
+	vertices_[1].uv = {texLeft, texTop};
+	vertices_[2].uv = {texRight, texBottom};
+	vertices_[4].uv = {texRight, texTop};
 
 
 	vertexBuffer_->Update(vertices_.data(), kSpriteVertexCount);
@@ -103,7 +109,9 @@ void Sprite::Update() {
 	// 各種行列を作成
 	Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
 	Mat4 viewMat = Mat4::identity;
-	Mat4 projMat = Mat4::MakeOrthographicMat(0.0f, 0.0f, static_cast<float>(kClientWidth), static_cast<float>(kClientHeight), 0.0f, 100.0f);
+	Mat4 projMat = Mat4::MakeOrthographicMat(
+		0.0f, 0.0f, static_cast<float>(kClientWidth), static_cast<float>(kClientHeight), 0.0f, 100.0f
+	);
 
 	TransformationMatrix worldViewProjectionMatrixSprite = {
 		worldMat * viewMat * projMat,
@@ -127,7 +135,8 @@ void Sprite::Draw() const {
 
 	// SRVを設定
 	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-		2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_));
+		2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_)
+	);
 
 	// インデックスバッファの設定
 	D3D12_INDEX_BUFFER_VIEW indexBufferView = indexBuffer_->View();
@@ -179,11 +188,11 @@ bool Sprite::GetIsFlipY() const {
 }
 
 Vec2 Sprite::GetUvPos() {
-	return { uvTransform_.translate.x, uvTransform_.translate.y };
+	return {uvTransform_.translate.x, uvTransform_.translate.y};
 }
 
 Vec2 Sprite::GetUvSize() {
-	return { uvTransform_.scale.x, uvTransform_.scale.y };
+	return {uvTransform_.scale.x, uvTransform_.scale.y};
 }
 
 float Sprite::GetUvRot() const {
@@ -227,13 +236,15 @@ void Sprite::SetTextureSize(const Vec2& newTextureSize) {
 }
 
 void Sprite::SetUvPos(const Vec2& newPos) {
-	for (uint32_t i = 0; i < 2; ++i) {
+	for (uint32_t i = 0; i < 2; ++i)
+	{
 		uvTransform_.translate[i] = newPos[i];
 	}
 }
 
 void Sprite::SetUvSize(const Vec2& newSize) {
-	for (uint32_t i = 0; i < 2; ++i) {
+	for (uint32_t i = 0; i < 2; ++i)
+	{
 		uvTransform_.scale[i] = newSize[i];
 	}
 }

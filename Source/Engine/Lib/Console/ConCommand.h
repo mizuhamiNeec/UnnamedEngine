@@ -15,4 +15,3 @@ private:
 
 	static std::unordered_map<std::string, std::pair<CommandCallback, std::string>> commands_;
 };
-

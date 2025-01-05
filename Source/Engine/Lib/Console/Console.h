@@ -4,19 +4,19 @@
 #include <string>
 #include <vector>
 
-#include "../ImGuiManager/ImGuiManager.h"
+#include "ImGuiManager/ImGuiManager.h"
 
-constexpr Vec4 kConsoleColorNormal = { .x = 0.87f, .y = 0.87f, .z = 0.87f, .w = 1.0f }; // 通常テキストの色
-constexpr Vec4 kConsoleColorWarning = { .x = 1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f }; // 警告テキストの色
-constexpr Vec4 kConsoleColorError = { .x = 1.0f, .y = 0.0f, .z = 0.0f, .w = 1.0f }; // エラーテキストの色
-constexpr Vec4 kConsoleColorWait = { .x = 0.93f, .y = 0.79f, .z = 0.09f, .w = 1.0f }; // 待ち状態テキストの色
-constexpr Vec4 kConsoleColorCompleted = { .x = 0.48f, .y = 0.76f, .z = 0.26f, .w = 1.0f }; // 完了テキストの色
+constexpr Vec4 kConsoleColorNormal = {.x = 0.87f, .y = 0.87f, .z = 0.87f, .w = 1.0f}; // 通常テキストの色
+constexpr Vec4 kConsoleColorWarning = {.x = 1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f}; // 警告テキストの色
+constexpr Vec4 kConsoleColorError = {.x = 1.0f, .y = 0.0f, .z = 0.0f, .w = 1.0f}; // エラーテキストの色
+constexpr Vec4 kConsoleColorWait = {.x = 0.93f, .y = 0.79f, .z = 0.09f, .w = 1.0f}; // 待ち状態テキストの色
+constexpr Vec4 kConsoleColorCompleted = {.x = 0.48f, .y = 0.76f, .z = 0.26f, .w = 1.0f}; // 完了テキストの色
 
-constexpr Vec4 kConsoleColorBool = { .x = 0.58f, .y = 0.0f, .z = 0.0f, .w = 1.0f };
-constexpr Vec4 kConsoleColorInt = { .x = 0.12f, .y = 0.89f, .z = 0.69f, .w = 1.0f };
-constexpr Vec4 kConsoleColorFloat = { .x = 0.22f, .y = 0.84f, .z = 0.0f, .w = 1.0f };
-constexpr Vec4 kConsoleColorString = { .x = 0.99f, .y = 0.0f, .z = 0.83f, .w = 1.0f };
-constexpr Vec4 kConsoleColorVec3 = { .x = 1.0f, .y = 0.79f, .z = 0.14f, .w = 1.0f };
+constexpr Vec4 kConsoleColorBool = {.x = 0.58f, .y = 0.0f, .z = 0.0f, .w = 1.0f};
+constexpr Vec4 kConsoleColorInt = {.x = 0.12f, .y = 0.89f, .z = 0.69f, .w = 1.0f};
+constexpr Vec4 kConsoleColorFloat = {.x = 0.22f, .y = 0.84f, .z = 0.0f, .w = 1.0f};
+constexpr Vec4 kConsoleColorString = {.x = 0.99f, .y = 0.0f, .z = 0.83f, .w = 1.0f};
+constexpr Vec4 kConsoleColorVec3 = {.x = 1.0f, .y = 0.79f, .z = 0.14f, .w = 1.0f};
 
 constexpr uint32_t kInputBufferSize = 512; // コンソールが一度に送信できるバッファの数
 constexpr uint32_t kConsoleMaxLineCount = 2048;
@@ -53,7 +53,6 @@ enum class Channel {
 };
 
 class Console {
-
 	struct Text {
 		std::string text;
 		Vec4 color;
@@ -70,7 +69,9 @@ public:
 	static void Update();
 	static void SubmitCommand(const std::string& command);
 
-	static void Print(const std::string& message, const Vec4& color = kConsoleColorNormal, const Channel& channel = Channel::kGeneral);
+	static void Print(
+		const std::string& message, const Vec4& color = kConsoleColorNormal, const Channel& channel = Channel::kGeneral
+	);
 	static void PrintNullptr(const std::string& message, const Channel& channel);
 	static void UpdateRepeatCount(const std::string& message, Vec4 color = kConsoleColorNormal);
 

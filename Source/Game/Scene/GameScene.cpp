@@ -1,28 +1,28 @@
 #include "GameScene.h"
 
-#include "../../Engine/Lib/Console/ConVarManager.h"
-#include "../../Engine/Lib/Math/Random/Random.h"
-#include "../../Engine/Lib/Timer/EngineTimer.h"
-#include "../../Engine/Model/ModelManager.h"
-#include "../Camera/Camera.h"
-#include "../Debug/Debug.h"
-#include "../Engine.h"
-#include "../ImGuiManager/ImGuiManager.h"
-#include "../Lib/Math/MathLib.h"
-#include "../Object3D/Object3D.h"
-#include "../Particle/ParticleManager.h"
-#include "../Sprite/SpriteCommon.h"
-#include "../TextureManager/TextureManager.h"
+#include "Lib/Console/ConVarManager.h"
+#include "Lib/Math/Random/Random.h"
+#include "Lib/Timer/EngineTimer.h"
+#include "Model/ModelManager.h"
+#include "Camera/Camera.h"
+#include "Debug/Debug.h"
+#include "Engine.h"
+#include "ImGuiManager/ImGuiManager.h"
+#include "Lib/Math/MathLib.h"
+#include "Object3D/Object3D.h"
+#include "Particle/ParticleManager.h"
+#include "Sprite/SpriteCommon.h"
+#include "TextureManager/TextureManager.h"
 
-void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon, ParticleManager* particleManager, Object3DCommon* object3DCommon, ModelCommon* modelCommon, SrvManager* srvManager, EngineTimer* engineTimer) {
-	renderer_ = renderer;
-	window_ = window;
-	spriteCommon_ = spriteCommon;
-	particleManager_ = particleManager;
-	object3DCommon_ = object3DCommon;
-	modelCommon_ = modelCommon;
-	srvManager_ = srvManager;
-	timer_ = engineTimer;
+void GameScene::Init(Engine* engine) {
+	renderer_ = engine->GetRenderer();
+	window_ = engine->GetWindow();
+	spriteCommon_ = engine->GetSpriteCommon();
+	particleManager_ = engine->GetParticleManager();
+	object3DCommon_ = engine->GetObject3DCommon();
+	modelCommon_ = engine->GetModelCommon();
+	srvManager_ = engine->GetSrvManager();
+	timer_ = engine->GetEngineTimer();
 
 #pragma region テクスチャ読み込み
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
@@ -55,16 +55,25 @@ void GameScene::Init(D3D12* renderer, Window* window, SpriteCommon* spriteCommon
 #pragma endregion
 
 #pragma region エンティティ
+	testEnt_ = std::make_unique<Entity>("testEnt");
+	testEnt2_ = std::make_unique<Entity>("testEnt2");
 
+	testEnt_->GetTransform()->SetLocalPos(Vec3(0.0f, 1.0f, 0.0f));
+	testEnt_->GetTransform()->SetLocalRot(Quaternion::Euler(Vec3(0.0f, 45.0f * 3.14159f / 180.0f, 0.0f)));
+	testEnt2_->GetTransform()->SetLocalPos(Vec3(1.0f, 0.0f, 0.0f));
+
+	testEnt2_->SetParent(testEnt_.get());
 #pragma endregion
 }
 
-void GameScene::Update() {
+void GameScene::Update(const float deltaTime) {
 	sprite_->Update();
-	// object3D_->Update();
+	object3D_->Update();
 
-	// particleManager_->Update(EngineTimer::GetScaledDeltaTime());
-	// particle_->Update(EngineTimer::GetScaledDeltaTime());
+   // particleManager_->Update(EngineTimer::GetScaledDeltaTime());
+   // particle_->Update(EngineTimer::GetScaledDeltaTime());
+
+	testEnt_->Update(deltaTime);
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -92,7 +101,8 @@ void GameScene::Update() {
 			cam->GetRotate().x * Math::rad2Deg,
 			cam->GetRotate().y * Math::rad2Deg,
 			cam->GetRotate().z * Math::rad2Deg,
-			0.0f);
+			0.0f
+		);
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 
 		// ウィンドウサイズをテキストサイズに基づいて設定
@@ -121,7 +131,7 @@ void GameScene::Render() {
 	// オブジェクト3D共通描画設定
 	object3DCommon_->Render();
 	//----------------------------------------
-	// object3D_->Draw();
+	object3D_->Draw();
 
 	//----------------------------------------
 	// パーティクル共通描画設定

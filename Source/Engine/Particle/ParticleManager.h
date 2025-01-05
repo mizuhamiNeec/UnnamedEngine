@@ -2,15 +2,12 @@
 
 #include <list>
 #include <unordered_map>
+#include <Lib/Structs/Structs.h>
+#include <Renderer/ConstantBuffer.h>
+#include <Renderer/PipelineState.h>
+#include <Renderer/SrvManager.h>
+#include <Renderer/VertexBuffer.h>
 
-#include "../Renderer/PipelineState.h"
-
-#include "../Renderer/SrvManager.h"
-
-#include "../Lib/Structs/Structs.h"
-#include "../Renderer/VertexBuffer.h"
-
-class ConstantBuffer;
 class Camera;
 class RootSignatureManager;
 class D3D12;

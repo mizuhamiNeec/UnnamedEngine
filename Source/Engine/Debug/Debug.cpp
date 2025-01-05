@@ -20,9 +20,11 @@ void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {
 
 void Debug::DrawCircle(
 	const Vec3& position, const Quaternion& rotation, const float& radius, const Vec4& color,
-	const uint32_t& segments) {
+	const uint32_t& segments
+) {
 	// 描画できない形状の場合
-	if (radius <= 0.0f || segments <= 0) {
+	if (radius <= 0.0f || segments <= 0)
+	{
 		// 返す
 		return;
 	}
@@ -36,7 +38,8 @@ void Debug::DrawCircle(
 	Vec3 lineStart = Vec3::zero;
 	Vec3 lineEnd = Vec3::zero;
 
-	for (int i = 0; i < static_cast<int>(segments); i++) {
+	for (int i = 0; i < static_cast<int>(segments); i++)
+	{
 		// 開始点
 		lineStart.x = std::cos(angleStep * static_cast<float>(i));
 		lineStart.y = std::sin(angleStep * static_cast<float>(i));
@@ -67,10 +70,12 @@ void Debug::DrawCircle(
 void Debug::DrawArc(
 	const float& startAngle, const float& endAngle, const Vec3& position,
 	const Quaternion& orientation, const float& radius, const Vec4& color,
-	const bool& drawChord, const bool& drawSector, const int& arcSegments) {
+	const bool& drawChord, const bool& drawSector, const int& arcSegments
+) {
 	float arcSpan = Math::DeltaAngle(startAngle, endAngle);
 
-	if (arcSpan <= 0) {
+	if (arcSpan <= 0)
+	{
 		arcSpan += 360.0f;
 	}
 
@@ -85,7 +90,8 @@ void Debug::DrawArc(
 
 	Vec3 arcOrigin = position;
 
-	for (int i = 0; i < arcSegments; i++) {
+	for (int i = 0; i < arcSegments; i++)
+	{
 		const float stepStart = angleStep * static_cast<float>(i) + stepOffset;
 		const float stepEnd = angleStep * static_cast<float>(i + 1) + stepOffset;
 
@@ -106,21 +112,25 @@ void Debug::DrawArc(
 		lineStart += position;
 		lineEnd += position;
 
-		if (i == 0) {
+		if (i == 0)
+		{
 			arcStart = lineStart;
 		}
 
-		if (i == arcSegments - 1) {
+		if (i == arcSegments - 1)
+		{
 			arcEnd = lineEnd;
 		}
 
 		DrawLine(lineStart, lineEnd, color);
 	}
 
-	if (drawChord) {
+	if (drawChord)
+	{
 		DrawLine(arcStart, arcEnd, color);
 	}
-	if (drawSector) {
+	if (drawSector)
+	{
 		DrawLine(arcStart, arcOrigin, color);
 		DrawLine(arcEnd, arcOrigin, color);
 	}
@@ -129,7 +139,8 @@ void Debug::DrawArc(
 void Debug::DrawArrow(
 	const Vec3& position, const Vec3& direction,
 	const Vec4& color,
-	float headSize) {
+	float headSize
+) {
 	// 矢印の終点
 	const Vec3 end = position + direction;
 
@@ -141,7 +152,8 @@ void Debug::DrawArrow(
 
 	// 矢印の頭部を描画するための垂直なベクトルを計算
 	Vec3 up = Vec3::up; // Y軸を基準に取る（特殊ケースで方向と一致する場合を後で処理）
-	if (dirNormalized.IsParallel(up)) {
+	if (dirNormalized.IsParallel(up))
+	{
 		up = Vec3::right; // 代わりにX軸を使用
 	}
 	const Vec3 right = dirNormalized.Cross(up).Normalized();
@@ -159,7 +171,8 @@ void Debug::DrawArrow(
 }
 
 void Debug::DrawQuad(
-	const Vec3& pointA, const Vec3& pointB, const Vec3& pointC, const Vec3& pointD, const Vec4& color) {
+	const Vec3& pointA, const Vec3& pointB, const Vec3& pointC, const Vec3& pointD, const Vec4& color
+) {
 	DrawLine(pointA, pointB, color);
 	DrawLine(pointB, pointC, color);
 	DrawLine(pointC, pointD, color);
@@ -180,12 +193,14 @@ void Debug::DrawRect(const Vec3& position, const Quaternion& orientation, const 
 		position + offsetB,
 		position + offsetC,
 		position + offsetD,
-		color);
+		color
+	);
 }
 
 void Debug::DrawRect(
 	const Vec2& point1, const Vec2& point2, const Vec3& origin, const Quaternion& orientation,
-	const Vec4& color) {
+	const Vec4& color
+) {
 	const float extentX = abs(point1.x - point2.x);
 	const float extentY = abs(point1.y - point2.y);
 
@@ -201,8 +216,10 @@ void Debug::DrawRect(
 }
 
 void Debug::DrawSphere(
-	const Vec3& position, const Quaternion& orientation, float radius, const Vec4& color, int segments) {
-	if (radius <= 0) {
+	const Vec3& position, const Quaternion& orientation, float radius, const Vec4& color, int segments
+) {
+	if (radius <= 0)
+	{
 		radius = 0.01f;
 	}
 	segments = max(segments, 2);
@@ -211,19 +228,22 @@ void Debug::DrawSphere(
 
 	const float meridianStep = 180.0f / static_cast<float>(segments);
 
-	for (int i = 0; i < segments; i++) {
+	for (int i = 0; i < segments; i++)
+	{
 		DrawCircle(
 			position,
 			orientation * Quaternion::Euler(0, meridianStep * static_cast<float>(i) * Math::deg2Rad, 0), radius,
 			color,
-			doubleSegments);
+			doubleSegments
+		);
 	}
 
 	Vec3 verticalOffset = Vec3::zero;
 	float parallelAngleStep = Math::pi / static_cast<float>(segments);
 	float stepRadius = 0.0f;
 
-	for (int i = 1; i < segments; i++) {
+	for (int i = 1; i < segments; i++)
+	{
 		float stepAngle = parallelAngleStep * static_cast<float>(i);
 		verticalOffset = (orientation * Vec3::up) * cos(stepAngle) * radius;
 		stepRadius = sin(stepAngle) * radius;
@@ -231,7 +251,8 @@ void Debug::DrawSphere(
 		DrawCircle(
 			position + verticalOffset, orientation * Quaternion::Euler(90.0f * Math::deg2Rad, 0, 0), stepRadius,
 			color,
-			doubleSegments);
+			doubleSegments
+		);
 	}
 }
 
@@ -256,7 +277,8 @@ void Debug::DrawBox(const Vec3& position, const Quaternion& orientation, Vec3 si
 
 void Debug::DrawCylinder(
 	const Vec3& position, const Quaternion& orientation, const float& height, const float& radius, const Vec4& color,
-	const bool& drawFromBase) {
+	const bool& drawFromBase
+) {
 	const Vec3 localUp = orientation * Vec3::up;
 	const Vec3 localRight = orientation * Vec3::right;
 	const Vec3 localForward = orientation * Vec3::forward;
@@ -283,7 +305,8 @@ void Debug::DrawCylinder(
 
 void Debug::DrawCapsule(
 	const Vec3& position, const Quaternion& orientation, const float& height, const float& radius, const Vec4& color,
-	const bool& drawFromBase) {
+	const bool& drawFromBase
+) {
 	const float rad = std::clamp(radius, 0.0f, height * 0.5f);
 	const Vec3 localUp = orientation * Vec3::up;
 	const Quaternion arcOrientation = orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0);

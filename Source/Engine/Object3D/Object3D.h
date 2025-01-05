@@ -45,15 +45,35 @@ public:
 	// Setter
 	void SetModel(Model* model);
 	void SetModel(const std::string& filePath);
-	void SetCamera(Camera* camera) { this->camera_ = camera; }
-	void SetScale(const Vec3& scale) { transform_.scale = scale; }
-	void SetRot(const Vec3& newRot) { transform_.rotate = newRot; }
-	void SetPos(const Vec3& newPos) { transform_.translate = newPos; }
+
+	void SetCamera(Camera* camera) {
+		this->camera_ = camera;
+	}
+
+	void SetScale(const Vec3& scale) {
+		transform_.scale = scale;
+	}
+
+	void SetRot(const Vec3& newRot) {
+		transform_.rotate = newRot;
+	}
+
+	void SetPos(const Vec3& newPos) {
+		transform_.translate = newPos;
+	}
 
 	// Getter
-	const Vec3& GetScale() const { return transform_.scale; }
-	const Vec3& GetRot() const { return transform_.rotate; }
-	const Vec3& GetPos() const { return transform_.translate; }
+	const Vec3& GetScale() const {
+		return transform_.scale;
+	}
+
+	const Vec3& GetRot() const {
+		return transform_.rotate;
+	}
+
+	const Vec3& GetPos() const {
+		return transform_.translate;
+	}
 
 private:
 	Camera* camera_ = nullptr;

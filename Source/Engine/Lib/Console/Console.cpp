@@ -42,11 +42,12 @@ void Console::Update() {
 		float inputTextHeight = ImGui::GetFrameHeightWithSpacing();
 
 		// 子ウィンドウの高さを調整
-		ImVec2 child_size = ImVec2(0, -inputTextHeight - ImGui::GetStyle().ItemSpacing.y);
+		auto child_size = ImVec2(0, -inputTextHeight - ImGui::GetStyle().ItemSpacing.y);
 		if (ImGui::BeginChild(
 			"##scrollbox", child_size, true,
 			ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_AlwaysVerticalScrollbar |
-			ImGuiWindowFlags_NoDecoration)) {
+			ImGuiWindowFlags_NoDecoration
+		)) {
 			for (size_t i = 0; i < consoleTexts_.size(); ++i) {
 				ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(consoleTexts_[i].color));
 				ImGui::Selectable((consoleTexts_[i].text + "##" + std::to_string(i)).c_str());
@@ -117,11 +118,11 @@ void Console::Update() {
 // Purpose: コマンドを送信/実行します
 //-----------------------------------------------------------------------------
 void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
-#ifdef _DEBUG
 	std::string trimmedCommand = TrimSpaces(command);
 
 	// コマンドが空なのでなんもしない
-	if (trimmedCommand.empty()) {
+	if (trimmedCommand.empty())
+	{
 		Print(">\n", kConsoleColorNormal);
 		return;
 	}
@@ -135,26 +136,32 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 	// InputSystemのコマンド実行
 	// アクションコマンドの処理
-	if (!found && !tokens.empty()) {
+	if (!found && !tokens.empty())
+	{
 		// +-プレフィックスの処理
-		if (tokens[0][0] == '+' || tokens[0][0] == '-') {
+		if (tokens[0][0] == '+' || tokens[0][0] == '-')
+		{
 			bool isDown = (tokens[0][0] == '+');
 			InputSystem::ExecuteCommand(tokens[0], isDown);
 			found = true;
 		}
 	}
 
-	for (auto conVar : ConVarManager::GetAllConVars()) {
+	for (auto conVar : ConVarManager::GetAllConVars())
+	{
 		// 変数が存在する場合
-		if (StrUtils::Equal(conVar->GetName(), tokens[0])) {
+		if (StrUtils::Equal(conVar->GetName(), tokens[0]))
+		{
 			found = true;
 			// 変数のみ入力された場合
-			if (tokens.size() < 2) {
+			if (tokens.size() < 2)
+			{
 				Print(
 					std::format(
 						R"("{}" = "{}")",
 						conVar->GetName(),
-						conVar->GetValueAsString()),
+						conVar->GetValueAsString()
+					),
 					kConsoleColorWarning
 				);
 				// 変数の説明を取得
@@ -162,54 +169,74 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 				// 変数の型を取得
 				std::string type = std::format("[{}]\n", conVar->GetTypeAsString());
 
-				if (conVar->GetTypeAsString() == "bool") {
+				if (conVar->GetTypeAsString() == "bool")
+				{
 					Print(" - " + description + " " + type, kConsoleColorBool);
-				} else if (conVar->GetTypeAsString() == "int") {
+				} else if (conVar->GetTypeAsString() == "int")
+				{
 					Print(" - " + description + " " + type, kConsoleColorInt);
-				} else if (conVar->GetTypeAsString() == "float") {
+				} else if (conVar->GetTypeAsString() == "float")
+				{
 					Print(" - " + description + " " + type, kConsoleColorFloat);
-				} else if (conVar->GetTypeAsString() == "Vec3") {
+				} else if (conVar->GetTypeAsString() == "Vec3")
+				{
 					Print(" - " + description + " " + type, kConsoleColorVec3);
-				} else if (conVar->GetTypeAsString() == "string") {
+				} else if (conVar->GetTypeAsString() == "string")
+				{
 					Print(" - " + description + " " + type, kConsoleColorString);
 				}
-			} else {
+			} else
+			{
 				// 引数込みで入力された場合の処理
 				bool isValidInput = true;
-				for (size_t i = 1; i < tokens.size(); ++i) {
-					if (conVar->GetTypeAsString() == "int") {
-						if (tokens[i] == "true") {
+				for (size_t i = 1; i < tokens.size(); ++i)
+				{
+					if (conVar->GetTypeAsString() == "int")
+					{
+						if (tokens[i] == "true")
+						{
 							tokens[i] = "1";
-						} else if (tokens[i] == "false") {
+						} else if (tokens[i] == "false")
+						{
 							tokens[i] = "0";
 						}
 
-						try {
+						try
+						{
 							[[maybe_unused]] int value = std::stoi(tokens[i]);
-						} catch (...) {
+						} catch (...)
+						{
 							isValidInput = false;
 							break;
 						}
-					} else if (conVar->GetTypeAsString() == "float") {
-						try {
+					} else if (conVar->GetTypeAsString() == "float")
+					{
+						try
+						{
 							[[maybe_unused]] float value = std::stof(tokens[i]);
-						} catch (...) {
+						} catch (...)
+						{
 							isValidInput = false;
 							break;
 						}
-					} else if (conVar->GetTypeAsString() == "bool") {
-						if (tokens[i] != "true" && tokens[i] != "false") {
+					} else if (conVar->GetTypeAsString() == "bool")
+					{
+						if (tokens[i] != "true" && tokens[i] != "false")
+						{
 							isValidInput = false;
 							break;
 						}
 					}
 					// Vec3やstringは追加のチェックが必要な場合に応じて処理する
 				}
-				if (isValidInput) {
-					for (size_t i = 1; i < tokens.size(); ++i) {
+				if (isValidInput)
+				{
+					for (size_t i = 1; i < tokens.size(); ++i)
+					{
 						conVar->SetValueFromString(tokens[i]);
 					}
-				} else {
+				} else
+				{
 					Print("CVARの型を変換できませんでした", kConsoleColorError, Channel::kConsole);
 				}
 			}
@@ -218,10 +245,12 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 	}
 
 	// コマンドが見つからなかった
-	if (!found) {
+	if (!found)
+	{
 		Print(std::format("Unknown command: {}\n", trimmedCommand));
 	}
 
+#ifdef _DEBUG
 	bWishScrollToBottom_ = true;
 #endif
 }
@@ -229,7 +258,10 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 //-----------------------------------------------------------------------------
 // Purpose: コンソールへ文字列を出力します
 //-----------------------------------------------------------------------------
-void Console::Print([[maybe_unused]] const std::string& message, [[maybe_unused]] const Vec4& color, [[maybe_unused]] const Channel& channel) {
+void Console::Print(
+	[[maybe_unused]] const std::string& message, [[maybe_unused]] const Vec4& color,
+	[[maybe_unused]] const Channel& channel
+) {
 #ifdef _DEBUG
 	if (message.empty()) {
 		return;
@@ -350,16 +382,20 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	const DateTime dateTime = EngineTimer::GetUpDateTime();
 
 	std::vector<std::string> uptimeParts;
-	if (dateTime.day > 0) {
+	if (dateTime.day > 0)
+	{
 		uptimeParts.push_back(std::to_string(dateTime.day) + " days,");
 	}
-	if (dateTime.hour > 0) {
+	if (dateTime.hour > 0)
+	{
 		uptimeParts.push_back(std::to_string(dateTime.hour) + " hours,");
 	}
-	if (dateTime.minute > 0) {
+	if (dateTime.minute > 0)
+	{
 		uptimeParts.push_back(std::to_string(dateTime.minute) + " mins,");
 	}
-	if (dateTime.second > 0) {
+	if (dateTime.second > 0)
+	{
 		uptimeParts.push_back(std::to_string(dateTime.second) + " sec");
 	}
 	const std::string uptime = "Uptime:  " + StrUtils::Join(uptimeParts, " ");
@@ -368,7 +404,8 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 		prompt + "\n",
 		(!prompt.empty() ? std::string(prompt.size(), '-') : "") + "\n",
 		uptime + "\n",
-		"Resolution:  " + std::to_string(Window::GetClientWidth()) + "x" + std::to_string(Window::GetClientHeight()) + "\n",
+		"Resolution:  " + std::to_string(Window::GetClientWidth()) + "x" + std::to_string(Window::GetClientHeight()) +
+		"\n",
 		"CPU:  " + WindowsUtils::GetCPUName() + "\n",
 		"GPU:  " + WindowsUtils::GetGPUName() + "\n",
 		"Memory:  " + WindowsUtils::GetRamUsage() + " / " + WindowsUtils::GetRamMax() + "\n"
@@ -382,7 +419,8 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	const size_t asciiWidth = asciiArt[0].size();
 
 	// 結合処理
-	for (size_t i = 0; i < maxRows; ++i) {
+	for (size_t i = 0; i < maxRows; ++i)
+	{
 		constexpr size_t padding = 5;
 		std::string leftPart = (i < asciiArt.size()) ? asciiArt[i] : std::string(asciiWidth, ' ');
 		std::string rightPart = (i < info.size()) ? info[i] : "";
@@ -390,7 +428,8 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	}
 
 	// 結合結果を一行ずつ出力
-	for (const std::string& line : combined) {
+	for (const std::string& line : combined)
+	{
 		Print(line, kConsoleColorWait, Channel::kNone);
 	}
 }
@@ -406,44 +445,31 @@ void Console::Echo(const std::vector<std::string>& args) {
 // Purpose: チャンネルを文字列に変換します
 //-----------------------------------------------------------------------------
 std::string Console::ToString(const Channel& e) {
-	switch (e) {
-	case Channel::kNone:
-		return "";
-	case Channel::kConsole:
-		return "Console";
-	case Channel::kEngine:
-		return "Engine";
-	case Channel::kGeneral:
-		return "General";
-	case Channel::kDeveloper:
-		return "Developer";
-	case Channel::kClient:
-		return "Client";
-	case Channel::kServer:
-		return "Server";
-	case Channel::kHost:
-		return "Host";
-	case Channel::kGame:
-		return "Game";
-	case Channel::kInputSystem:
-		return "InputSystem";
-	case Channel::kSound:
-		return "Sound";
-	case Channel::kPhysics:
-		return "Physics";
-	case Channel::kRenderPipeline:
-		return "RenderPipeline";
-	case Channel::kRenderSystem:
-		return "RenderSystem";
-	case Channel::kUserInterface:
-		return "UserInterface";
-	default:
-		return "unknown";
+	switch (e)
+	{
+	case Channel::kNone: return "";
+	case Channel::kConsole: return "Console";
+	case Channel::kEngine: return "Engine";
+	case Channel::kGeneral: return "General";
+	case Channel::kDeveloper: return "Developer";
+	case Channel::kClient: return "Client";
+	case Channel::kServer: return "Server";
+	case Channel::kHost: return "Host";
+	case Channel::kGame: return "Game";
+	case Channel::kInputSystem: return "InputSystem";
+	case Channel::kSound: return "Sound";
+	case Channel::kPhysics: return "Physics";
+	case Channel::kRenderPipeline: return "RenderPipeline";
+	case Channel::kRenderSystem: return "RenderSystem";
+	case Channel::kUserInterface: return "UserInterface";
+	default: return "unknown";
 	}
 }
 
 #ifdef _DEBUG
-void Console::SuggestPopup([[maybe_unused]] SuggestPopupState& state, const ImVec2& pos, const ImVec2& size, [[maybe_unused]] bool& isFocused) {
+void Console::SuggestPopup(
+	[[maybe_unused]] SuggestPopupState& state, const ImVec2& pos, const ImVec2& size, [[maybe_unused]] bool& isFocused
+) {
 	// 角丸をなくす
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 
@@ -493,8 +519,7 @@ void Console::SuggestPopup([[maybe_unused]] SuggestPopupState& state, const ImVe
 //-----------------------------------------------------------------------------
 int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	switch (data->EventFlag) {
-	case ImGuiInputTextFlags_CallbackCompletion:
-		Print("Completion\n", kConsoleColorFloat);
+	case ImGuiInputTextFlags_CallbackCompletion: Print("Completion\n", kConsoleColorFloat);
 		break;
 
 	case ImGuiInputTextFlags_CallbackHistory:
@@ -519,14 +544,13 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 					data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
 				}
 			}
-		} break;
-
-	case ImGuiInputTextFlags_CallbackEdit:
-		Print("Edit\n", kConsoleColorInt);
+		}
 		break;
 
-	case ImGuiInputTextFlags_CallbackResize:
-		Print("Resize\n", kConsoleColorError);
+	case ImGuiInputTextFlags_CallbackEdit: Print("Edit\n", kConsoleColorInt);
+		break;
+
+	case ImGuiInputTextFlags_CallbackResize: Print("Resize\n", kConsoleColorError);
 		break;
 	default:;
 	}
@@ -578,7 +602,8 @@ std::string Console::TrimSpaces(const std::string& string) {
 	const size_t start = string.find_first_not_of(" \t\n\r");
 	const size_t end = string.find_last_not_of(" \t\n\r");
 
-	if (start == std::string::npos || end == std::string::npos) {
+	if (start == std::string::npos || end == std::string::npos)
+	{
 		return "";
 	}
 
@@ -593,7 +618,8 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 	std::vector<std::string> tokens;
 	std::string token;
 
-	while (stream >> token) {
+	while (stream >> token)
+	{
 		tokens.push_back(token);
 	}
 

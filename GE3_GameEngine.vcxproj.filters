@@ -294,36 +294,21 @@
     <ClInclude Include="Source\Game\Scene\GameScene.h">
       <Filter>Source\Game\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Game\Scene\Base\IGameScene.h">
+    <ClInclude Include="Source\Game\Scene\Base\Scene.h">
       <Filter>Source\Game\Scene\Base</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Components\Base\Component.h" />
     <ClInclude Include="Source\Engine\Entity\Base\Entity.h" />
-    <ClInclude Include="Source\Engine\Components\Transform.h" />
-    <ClInclude Include="Source\Engine\Externals\imgui\imconfig.h">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Externals\imgui\imgui.h">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Externals\imgui\imgui_impl_dx12.h">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Externals\imgui\imgui_impl_win32.h">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Externals\imgui\imgui_internal.h">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Externals\imgui\imstb_rectpack.h">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Externals\imgui\imstb_textedit.h">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Externals\imgui\imstb_truetype.h">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClInclude>
+    <ClInclude Include="Source\Engine\Components\TransformComponent.h" />
+    <ClInclude Include="Source\Externals\ImGui\imconfig.h" />
+    <ClInclude Include="Source\Externals\ImGui\imgui.h" />
+    <ClInclude Include="Source\Externals\ImGui\imgui_impl_dx12.h" />
+    <ClInclude Include="Source\Externals\ImGui\imgui_impl_win32.h" />
+    <ClInclude Include="Source\Externals\ImGui\imgui_internal.h" />
+    <ClInclude Include="Source\Externals\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="Source\Externals\ImGui\imstb_textedit.h" />
+    <ClInclude Include="Source\Externals\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Source\Editor\Editor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -466,28 +451,16 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Components\Base\Component.cpp" />
     <ClCompile Include="Source\Engine\Entity\Base\Entity.cpp" />
-    <ClCompile Include="Source\Engine\Components\Transform.cpp" />
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui.cpp">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_demo.cpp">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_draw.cpp">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_impl_dx12.cpp">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_impl_win32.cpp">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_tables.cpp">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Externals\imgui\imgui_widgets.cpp">
-      <Filter>Source\Engine\Externals\ImGui</Filter>
-    </ClCompile>
+    <ClCompile Include="Source\Engine\Components\TransformComponent.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_impl_win32.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Source\Editor\Editor.cpp" />
+    <ClCompile Include="Source\Game\Scene\Base\Scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
@@ -526,6 +499,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Source\Engine\Externals\imgui\LICENSE.txt" />
+    <Text Include="Source\Externals\ImGui\LICENSE.txt" />
   </ItemGroup>
 </Project>

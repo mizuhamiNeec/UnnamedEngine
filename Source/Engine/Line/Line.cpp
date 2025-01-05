@@ -6,24 +6,30 @@
 #include "../Lib/Console/Console.h"
 
 const D3D12_INPUT_ELEMENT_DESC LineVertex::inputElements[] = {
-	{"POSITION",
-	 0,
-	 DXGI_FORMAT_R32G32B32_FLOAT,
-	 0,
-	 0,
-	 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-	 0},
-	{"COLOR",
-	 0,
-	 DXGI_FORMAT_R32G32B32A32_FLOAT,
-	 0,
-	 12,
-	 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-	 0}};
+	{
+		"POSITION",
+		0,
+		DXGI_FORMAT_R32G32B32_FLOAT,
+		0,
+		0,
+		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+		0
+	},
+	{
+		"COLOR",
+		0,
+		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		0,
+		12,
+		D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+		0
+	}
+};
 
 const D3D12_INPUT_LAYOUT_DESC LineVertex::inputLayout = {
 	inputElements,
-	inputElementCount};
+	inputElementCount
+};
 
 Line::Line(LineCommon* lineCommon) {
 	lineCommon_ = lineCommon;
@@ -32,14 +38,17 @@ Line::Line(LineCommon* lineCommon) {
 	vertexBuffer_ = std::make_unique<VertexBuffer<LineVertex>>(
 		lineCommon_->GetD3D12()->GetDevice(),
 		vertexBufferSize,
-		nullptr);
+		nullptr
+	);
 	indexBuffer_ = std::make_unique<IndexBuffer>(
 		lineCommon_->GetD3D12()->GetDevice(),
 		indexBufferSize,
-		nullptr);
+		nullptr
+	);
 
 	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
-		lineCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
+		lineCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix)
+	);
 	transformationMatrixData_ = transformationMatrixConstantBuffer_->GetPtr<TransformationMatrix>();
 	transformationMatrixData_->wvp = Mat4::identity;
 	transformationMatrixData_->world = Mat4::identity;
@@ -73,7 +82,8 @@ void Line::Update() {
 
 void Line::UpdateBuffer() {
 	// 更新の必要がない、またはデータが空の場合は終了
-	if (!isDirty_ || lineVertices_.empty()) {
+	if (!isDirty_ || lineVertices_.empty())
+	{
 		return;
 	}
 
@@ -82,20 +92,24 @@ void Line::UpdateBuffer() {
 	const size_t requiredIndexBufferSize = sizeof(uint32_t) * lineIndices_.size();
 
 	// バッファが不足している場合は再作成
-	if (vertexBuffer_->GetSize() < requiredVertexBufferSize) {
+	if (vertexBuffer_->GetSize() < requiredVertexBufferSize)
+	{
 		Console::Print("Line: VertexBufferを再作成します。\n", kConsoleColorWarning);
 		vertexBuffer_ = std::make_unique<VertexBuffer<LineVertex>>(
 			lineCommon_->GetD3D12()->GetDevice(),
 			requiredVertexBufferSize,
-			nullptr);
+			nullptr
+		);
 	}
 
-	if (indexBuffer_->GetSize() < requiredIndexBufferSize) {
+	if (indexBuffer_->GetSize() < requiredIndexBufferSize)
+	{
 		Console::Print("Line: IndexBufferを再作成します。\n", kConsoleColorWarning);
 		indexBuffer_ = std::make_unique<IndexBuffer>(
 			lineCommon_->GetD3D12()->GetDevice(),
 			requiredIndexBufferSize,
-			nullptr);
+			nullptr
+		);
 	}
 
 	// バッファを更新
@@ -106,12 +120,14 @@ void Line::UpdateBuffer() {
 }
 
 void Line::Draw() {
-	if (lineVertices_.empty() || lineIndices_.empty()) {
+	if (lineVertices_.empty() || lineIndices_.empty())
+	{
 		return;
 	}
 
 	lineCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
-		0, transformationMatrixConstantBuffer_->GetAddress());
+		0, transformationMatrixConstantBuffer_->GetAddress()
+	);
 
 	const D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer_->View();
 	const D3D12_INDEX_BUFFER_VIEW ibView = indexBuffer_->View();

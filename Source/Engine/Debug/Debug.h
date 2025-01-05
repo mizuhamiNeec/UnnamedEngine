@@ -42,7 +42,7 @@ public:
 	static void DrawCapsule(
 		const Vec3& position, const Quaternion& orientation, const float& height,
 		const float& radius, const Vec4& color, const bool& drawFromBase = true
-		);
+	);
 
 	static void Init(LineCommon* lineCommon);
 	static void Update();

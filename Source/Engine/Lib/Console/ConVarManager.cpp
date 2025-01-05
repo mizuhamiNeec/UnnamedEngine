@@ -13,7 +13,8 @@ std::vector<IConVar*> ConVarManager::GetAllConVars() {
 	std::lock_guard lock(mutex_);
 	std::vector<IConVar*> conVarArray;
 	conVarArray.reserve(conVars_.size());
-	for (const auto& pair : conVars_) {
+	for (const auto& pair : conVars_)
+	{
 		conVarArray.push_back(pair.second.get());
 	}
 	return conVarArray;

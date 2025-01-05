@@ -41,7 +41,7 @@ struct Vec3 final {
 
 
 	Vec3 operator-() const {
-		return { -x, -y, -z };
+		return {-x, -y, -z};
 	}
 
 	Vec3 operator+(const Vec3& rhs) const;

@@ -12,8 +12,10 @@ public:
 
 	ID3D12DescriptorHeap* GetDescriptorHeap() const;
 	void CreateSRVForTexture2D(uint32_t srvIndex, ID3D12Resource* pResource, DXGI_FORMAT format, UINT mipLevels) const;
-	void CreateSRVForStructuredBuffer(uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements,
-		UINT structureByteStride) const;
+	void CreateSRVForStructuredBuffer(
+		uint32_t srvIndex, ID3D12Resource* pResource, UINT numElements,
+		UINT structureByteStride
+	) const;
 	void SetGraphicsRootDescriptorTable(UINT rootParameterIndex, uint32_t srvIndex) const;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(uint32_t index) const;

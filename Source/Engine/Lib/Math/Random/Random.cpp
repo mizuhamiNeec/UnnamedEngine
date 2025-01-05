@@ -31,5 +31,6 @@ Vec3 Random::Vec3Range(const Vec3& min, const Vec3& max) {
 	return {
 		FloatRange(min.x, max.x),
 		FloatRange(min.y, max.y),
-		FloatRange(min.z, max.z)};
+		FloatRange(min.z, max.z)
+	};
 }

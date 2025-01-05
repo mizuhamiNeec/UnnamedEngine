@@ -7,27 +7,39 @@
 class StrUtils {
 public:
 	static std::wstring ToWString(const std::string& string) {
-		if (string.empty()) { return {}; }
+		if (string.empty())
+		{
+			return {};
+		}
 
 		const auto sizeNeeded = MultiByteToWideChar(
 			CP_UTF8, 0, string.data(), static_cast<int>(string.size()), nullptr,
 			0
 		);
-		if (sizeNeeded == 0) { return {}; }
+		if (sizeNeeded == 0)
+		{
+			return {};
+		}
 		std::wstring result(sizeNeeded, 0);
 		MultiByteToWideChar(CP_UTF8, 0, string.data(), static_cast<int>(string.size()), result.data(), sizeNeeded);
 		return result;
 	}
 
 	static std::string ToString(const std::wstring& string) {
-		if (string.empty()) { return {}; }
+		if (string.empty())
+		{
+			return {};
+		}
 
 		const auto sizeNeeded = WideCharToMultiByte(
 			CP_UTF8, 0, string.data(), static_cast<int>(string.size()), nullptr,
 			0,
 			nullptr, nullptr
 		);
-		if (sizeNeeded == 0) { return {}; }
+		if (sizeNeeded == 0)
+		{
+			return {};
+		}
 		std::string result(sizeNeeded, 0);
 		WideCharToMultiByte(
 			CP_UTF8, 0, string.data(), static_cast<int>(string.size()), result.data(), sizeNeeded,
@@ -68,7 +80,8 @@ public:
 	}
 
 	static bool Equal(const std::string& str1, const std::string& str2) {
-		if (str1.size() != str2.size()) {
+		if (str1.size() != str2.size())
+		{
 			return false;
 		}
 		return std::equal(
@@ -82,15 +95,18 @@ public:
 	}
 
 	static std::string Join(const std::vector<std::string>& args, const char* delimiter) {
-		if (args.empty()) {
+		if (args.empty())
+		{
 			return "";
 		}
 
 		std::string result;
-		for (const auto& arg : args) {
+		for (const auto& arg : args)
+		{
 			result += arg + delimiter;
 		}
-		if (!result.empty()) {
+		if (!result.empty())
+		{
 			result.pop_back();
 		}
 		return result;
