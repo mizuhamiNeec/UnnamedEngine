@@ -7,12 +7,15 @@
 #include "Camera/Camera.h"
 #include "Debug/Debug.h"
 #include "Engine.h"
+#include "Camera/CameraManager.h"
+#include "Components/PlayerMovement.h"
 #include "ImGuiManager/ImGuiManager.h"
 #include "Lib/Math/MathLib.h"
 #include "Object3D/Object3D.h"
 #include "Particle/ParticleManager.h"
 #include "Sprite/SpriteCommon.h"
 #include "TextureManager/TextureManager.h"
+#include "Components/CameraRotator.h"
 
 void GameScene::Init(Engine* engine) {
 	renderer_ = engine->GetRenderer();
@@ -55,14 +58,42 @@ void GameScene::Init(Engine* engine) {
 #pragma endregion
 
 #pragma region エンティティ
+	camera_ = std::make_unique<Entity>("camera");
+	// 生ポインタを取得
+	CameraComponent* rawCameraPtr = camera_->AddComponent<CameraComponent>();
+
+	// 生ポインタを std::shared_ptr に変換
+	const std::shared_ptr<CameraComponent> camera = std::shared_ptr<CameraComponent>(rawCameraPtr, [](CameraComponent*) {});
+
+	// カメラを CameraManager に追加
+	CameraManager::AddCamera(camera);
+	// アクティブカメラに設定
+	CameraManager::SetActiveCamera(camera);
+
 	testEnt_ = std::make_unique<Entity>("testEnt");
+	testEnt_->GetTransform()->SetLocalPos(Vec3::zero);
+
 	testEnt2_ = std::make_unique<Entity>("testEnt2");
-
-	testEnt_->GetTransform()->SetLocalPos(Vec3(0.0f, 1.0f, 0.0f));
-	testEnt_->GetTransform()->SetLocalRot(Quaternion::Euler(Vec3(0.0f, 45.0f * 3.14159f / 180.0f, 0.0f)));
-	testEnt2_->GetTransform()->SetLocalPos(Vec3(1.0f, 0.0f, 0.0f));
-
+	testEnt2_->GetTransform()->SetLocalPos(Vec3::right * 2.0f);
 	testEnt2_->SetParent(testEnt_.get());
+
+	testEnt3_ = std::make_unique<Entity>("testEnt3");
+	testEnt3_->GetTransform()->SetLocalPos(Vec3::right * 2.0f);
+	testEnt3_->SetParent(testEnt2_.get());
+
+	player_ = std::make_unique<Entity>("player");
+	player_->GetTransform()->SetLocalPos(Vec3::zero);
+	playerMovementComponent_ = player_->AddComponent<PlayerMovement>();
+
+	cameraBase_ = std::make_unique<Entity>("cameraBase");
+	cameraRotator_ = cameraBase_->AddComponent<CameraRotator>();
+	cameraBase_->SetParent(player_.get());
+	cameraBase_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
+
+	// プレイヤーにカメラをアタッチ
+	camera_->SetParent(cameraBase_.get());
+	camera_->GetTransform()->SetLocalPos(Vec3::forward * -5.0f);
+
 #pragma endregion
 }
 
@@ -70,10 +101,15 @@ void GameScene::Update(const float deltaTime) {
 	sprite_->Update();
 	object3D_->Update();
 
-   // particleManager_->Update(EngineTimer::GetScaledDeltaTime());
-   // particle_->Update(EngineTimer::GetScaledDeltaTime());
+	// particleManager_->Update(EngineTimer::GetScaledDeltaTime());
+	// particle_->Update(EngineTimer::GetScaledDeltaTime());
 
+	testEnt_->GetTransform()->SetWorldRot(testEnt_->GetTransform()->GetWorldRot() * Quaternion::Euler(Vec3::up * 1.0f * deltaTime));
+	testEnt2_->GetTransform()->SetLocalRot(testEnt2_->GetTransform()->GetLocalRot() * Quaternion::Euler(Vec3::up * 1.0f * deltaTime));
+	testEnt3_->GetTransform()->SetLocalRot(testEnt3_->GetTransform()->GetLocalRot() * Quaternion::Euler(Vec3::up * 1.0f * deltaTime));
 	testEnt_->Update(deltaTime);
+
+	player_->Update(deltaTime);
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -87,7 +123,8 @@ void GameScene::Update(const float deltaTime) {
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
-		Camera* cam = object3DCommon_->GetDefaultCamera();
+		Vec3 camPos = CameraManager::GetActiveCamera()->GetViewMat().GetTranslate();
+		Vec3 camRot = CameraManager::GetActiveCamera()->GetViewMat().GetRotate();
 
 		// テキストのサイズを取得
 		ImGuiIO io = ImGui::GetIO();
@@ -97,11 +134,11 @@ void GameScene::Update(const float deltaTime) {
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
 			ConVarManager::GetConVar("name")->GetValueAsString(),
-			cam->GetPos().x, cam->GetPos().y, cam->GetPos().z,
-			cam->GetRotate().x * Math::rad2Deg,
-			cam->GetRotate().y * Math::rad2Deg,
-			cam->GetRotate().z * Math::rad2Deg,
-			0.0f
+			camPos.x, camPos.y, camPos.z,
+			camRot.x * Math::rad2Deg,
+			camRot.y * Math::rad2Deg,
+			camRot.z * Math::rad2Deg,
+			Math::MtoH(playerMovementComponent_->GetVelocity().Length())
 		);
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 

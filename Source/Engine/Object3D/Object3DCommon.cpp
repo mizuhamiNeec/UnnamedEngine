@@ -5,6 +5,7 @@
 #include "../Renderer/RootSignatureManager.h"
 
 #include "../Renderer/SrvManager.h"
+#include "Camera/CameraManager.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : Object3DCommonを初期化します
@@ -18,8 +19,7 @@ void Object3DCommon::Init(D3D12* d3d12) {
 //-----------------------------------------------------------------------------
 // Purpose : Object3DCommonをシャットダウンします
 //-----------------------------------------------------------------------------
-void Object3DCommon::Shutdown() const {
-}
+void Object3DCommon::Shutdown() const {}
 
 //-----------------------------------------------------------------------------
 // Purpose : ルートシグネチャを作成します
@@ -124,10 +124,6 @@ D3D12* Object3DCommon::GetD3D12() const {
 	return d3d12_;
 }
 
-void Object3DCommon::SetDefaultCamera(Camera* camera) {
-	this->defaultCamera_ = camera;
-}
-
-Camera* Object3DCommon::GetDefaultCamera() const {
-	return defaultCamera_;
+CameraComponent* Object3DCommon::GetDefaultCamera() const {
+	return CameraManager::GetActiveCamera().get();
 }

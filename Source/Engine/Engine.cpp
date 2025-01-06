@@ -4,33 +4,31 @@
 #include "imgui/imgui_internal.h"
 #endif
 
-#include "Camera/Camera.h"
-#include "Debug/Debug.h"
-
-#include "Input/InputSystem.h"
-
-#include "Lib/Console/ConCommand.h"
-#include "Lib/Console/ConVarManager.h"
-#include "Lib/Console/Console.h"
-#include "Lib/DebugHud/DebugHud.h"
-#include "Lib/Utils/ClientProperties.h"
-#include "Model/ModelManager.h"
-#include "Object3D/Object3DCommon.h"
-#include "Particle/ParticleManager.h"
-#include "Renderer/D3D12.h"
-#include "Renderer/SrvManager.h"
-#include "Scene/GameScene.h"
-#include "Sprite/SpriteCommon.h"
-#include "TextureManager/TextureManager.h"
-#include "Window/Window.h"
-#include "Window/WindowsUtils.h"
+#include <Camera/Camera.h>
+#include <Camera/CameraManager.h>
+#include <Debug/Debug.h>
+#include <Input/InputSystem.h>
+#include <Lib/Console/ConCommand.h>
+#include <Lib/Console/Console.h>
+#include <Lib/Console/ConVarManager.h>
+#include <Lib/DebugHud/DebugHud.h>
+#include <Lib/Utils/ClientProperties.h>
+#include <Model/ModelManager.h>
+#include <Object3D/Object3DCommon.h>
+#include <Particle/ParticleManager.h>
+#include <Renderer/D3D12.h>
+#include <Renderer/SrvManager.h>
+#include <Scene/GameScene.h>
+#include <Sprite/SpriteCommon.h>
+#include <TextureManager/TextureManager.h>
+#include <Window/Window.h>
+#include <Window/WindowsUtils.h>
 
 Engine::Engine() = default;
 
 void Engine::Run() {
 	Init();
-	while (true)
-	{
+	while (true) {
 		if (Window::ProcessMessage() || bWishShutdown_)
 			break; // ゲームループを抜ける
 		Update();
@@ -74,10 +72,21 @@ void Engine::Init() {
 	ModelManager::GetInstance()->Init(renderer_.get());
 
 	// カメラの作成
-	camera_ = std::make_unique<Camera>();
-	camera_->SetPos(Vec3::forward * -5.0f + Vec3::up * 2.0f);
-	camera_->SetRotate(Vec3::right * 15.0f * Math::deg2Rad);
-	rot_ = camera_->GetRotate();
+	cameraEntity_ = std::make_unique<Entity>("editorcamera");
+	cameraEntity_->GetTransform()->SetLocalPos(Vec3::forward * -5.0f + Vec3::up * 2.0f);
+	cameraEntity_->GetTransform()->SetLocalRot(Quaternion::Euler(Vec3::right * 15.0f * Math::deg2Rad));
+	rot_ = cameraEntity_->GetTransform()->GetLocalRot().ToEulerAngles();
+
+	// 生ポインタを取得
+	CameraComponent* rawCameraPtr = cameraEntity_->AddComponent<CameraComponent>();
+
+	// 生ポインタを std::shared_ptr に変換
+	std::shared_ptr<CameraComponent> camera = std::shared_ptr<CameraComponent>(rawCameraPtr, [cameraEntity = cameraEntity_.get()](CameraComponent*) {});
+
+	// カメラを CameraManager に追加
+	CameraManager::AddCamera(camera);
+	// アクティブカメラに設定
+	CameraManager::SetActiveCamera(camera);
 
 	// モデル
 	modelCommon_ = std::make_unique<ModelCommon>();
@@ -86,7 +95,6 @@ void Engine::Init() {
 	// オブジェクト3D
 	object3DCommon_ = std::make_unique<Object3DCommon>();
 	object3DCommon_->Init(renderer_.get());
-	object3DCommon_->SetDefaultCamera(camera_.get());
 
 	// スプライト
 	spriteCommon_ = std::make_unique<SpriteCommon>();
@@ -95,12 +103,10 @@ void Engine::Init() {
 	// パーティクル
 	particleManager_ = std::make_unique<ParticleManager>();
 	particleManager_->Init(object3DCommon_->GetD3D12(), srvManager_.get());
-	particleManager_->SetDefaultCamera(object3DCommon_->GetDefaultCamera());
 
 	// ライン
 	lineCommon_ = std::make_unique<LineCommon>();
 	lineCommon_->Init(renderer_.get());
-	lineCommon_->SetDefaultCamera(camera_.get());
 
 	Debug::Init(lineCommon_.get());
 
@@ -136,10 +142,7 @@ void Engine::Update() {
 	time_->StartFrame();
 
 	/* ----------- 更新処理 ---------- */
-	camera_->Update();
-
 #ifdef _DEBUG
-
 	// カメラの操作
 	static float moveSpd = 4.0f;
 
@@ -170,9 +173,7 @@ void Engine::Update() {
 
 			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad, max * Math::deg2Rad);
 
-			Camera* cam = object3DCommon_->GetDefaultCamera();
-
-			cam->SetRotate(Vec3::up * rot_.x + Vec3::right * rot_.y);
+			cameraEntity_->GetTransform()->SetWorldRot(Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
 
 			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
 
@@ -202,7 +203,7 @@ void Engine::Update() {
 
 			moveInput.Normalize();
 
-			Quaternion camRot = Quaternion::Euler(cam->GetRotate());
+			Quaternion camRot = cameraEntity_->GetTransform()->GetWorldRot();
 			Vec3 cameraForward = camRot * Vec3::forward;
 			Vec3 cameraRight = camRot * Vec3::right;
 			Vec3 cameraUp = camRot * Vec3::up;
@@ -225,8 +226,8 @@ void Engine::Update() {
 
 			oldMoveSpd = moveSpd;
 
-			cam->SetPos(
-				cam->GetPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) *
+			cameraEntity_->GetTransform()->SetWorldPos(
+				cameraEntity_->GetTransform()->GetWorldPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) *
 				moveSpd * EngineTimer::GetScaledDeltaTime()
 			);
 		}
@@ -303,15 +304,14 @@ void Engine::Update() {
 		ImGui::End();
 		ImGui::PopStyleVar();
 	}
+
 #endif
 
-	if (IsEditorMode())
-	{
+
+	if (IsEditorMode()) {
 		editor_->Update(EngineTimer::GetDeltaTime());
-	} else
-	{
-		if (currentScene_)
-		{
+	} else {
+		if (currentScene_) {
 			currentScene_->Update(EngineTimer::GetScaledDeltaTime());
 		}
 	}
@@ -319,7 +319,6 @@ void Engine::Update() {
 #ifdef _DEBUG
 	DebugHud::Update();
 #endif
-
 
 	InputSystem::Update();
 
@@ -329,24 +328,22 @@ void Engine::Update() {
 	srvManager_->PreDraw();
 	//-------------------------------------------------------------------------
 
-	if (IsEditorMode())
-	{
+#ifdef _DEBUG
+	Debug::Update();
+#endif
+	CameraManager::Update(EngineTimer::GetDeltaTime());
+
+	if (IsEditorMode()) {
+		lineCommon_->Render();
+		Debug::Draw();
 		editor_->Render();
-	} else
-	{
-		if (currentScene_)
-		{
+	} else {
+		if (currentScene_) {
 			currentScene_->Render();
 		}
 	}
 
-#ifdef _DEBUG
-	Debug::Update();
-#endif
-
-	//-------------------------------------------------------------------------
-	lineCommon_->Render();
-	Debug::Draw();
+	//------------------------------------------------------------------------
 	// --- PostRender↓ ---
 #ifdef _DEBUG
 	imGuiManager_->EndFrame();
@@ -378,8 +375,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConCommand::RegisterCommand(
 		"bind",
 		[](const std::vector<std::string>& args) {
-			if (args.size() < 2)
-			{
+			if (args.size() < 2) {
 				Console::Print("Usage: bind <key> <command>\n", kConsoleColorWarning, Channel::kInputSystem);
 				return;
 			}
@@ -420,6 +416,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 		"sv_maxvelocity", 3500.0f, "Maximum speed any ballistically moving object is allowed to attain per axis."
 	);
 	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f, "Linear acceleration amount (old value is 5.6)");
+	ConVarManager::RegisterConVar<float>("sv_airaccelerate", 12.0f);
 	ConVarManager::RegisterConVar<float>("sv_maxspeed", 320.0f, "Maximum speed a player can move.");
 	ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f, "Minimum stopping speed when on ground.");
 	ConVarManager::RegisterConVar<float>("sv_friction", 4.0f, "World friction.");
@@ -432,6 +429,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind d +moveright");
 	Console::SubmitCommand("bind e +moveup");
 	Console::SubmitCommand("bind q +movedown");
+	Console::SubmitCommand("bind space +jump");
 	Console::SubmitCommand("bind mouse1 +attack1");
 	Console::SubmitCommand("bind mouse2 +attack2");
 	Console::SubmitCommand("bind mousewheelup +invprev");
@@ -445,11 +443,9 @@ void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
 }
 
 void Engine::CheckEditorMode() {
-	if (bIsEditorMode_)
-	{
+	if (bIsEditorMode_) {
 		editor_ = std::make_unique<Editor>(currentScene_);
-	} else
-	{
+	} else {
 		editor_.reset();
 	}
 }

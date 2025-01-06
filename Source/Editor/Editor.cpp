@@ -12,8 +12,7 @@ Editor::Editor(std::shared_ptr<Scene> scene) : scene_(std::move(scene)) {
 	Init();
 }
 
-void Editor::Init() {
-}
+void Editor::Init() {}
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// グリッドの表示
@@ -85,6 +84,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 }
 
 void Editor::Render() {
+	if (scene_) {
+		scene_->Render();
+	}
 }
 
 void Editor::DrawGrid(

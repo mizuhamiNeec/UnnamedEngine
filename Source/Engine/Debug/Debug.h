@@ -23,7 +23,7 @@ public:
 		const Quaternion& orientation, const float& radius, const Vec4& color,
 		const bool& drawChord = false, const bool& drawSector = false, const int& arcSegments = 32
 	);
-	static void DrawArrow(const Vec3& position, const Vec3& direction, const Vec4& color, float headSize);
+	static void DrawArrow(const Vec3& position, const Vec3& direction, const Vec4& color, float headSize = 0.25f);
 	static void DrawQuad(
 		const Vec3& pointA, const Vec3& pointB, const Vec3& pointC, const Vec3& pointD, const Vec4& color
 	);

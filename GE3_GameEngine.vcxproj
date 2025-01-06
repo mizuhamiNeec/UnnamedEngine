@@ -106,6 +106,10 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
+    <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
+    <ClCompile Include="Source\Engine\Components\CameraComponent.cpp" />
+    <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
     <ClCompile Include="Source\Editor\Editor.cpp" />
     <ClCompile Include="Source\Engine\Entity\Base\Entity.cpp" />
     <ClCompile Include="Source\Engine\Components\Base\Component.cpp" />
@@ -174,6 +178,10 @@
     <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Game\Components\CameraRotator.h" />
+    <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
+    <ClInclude Include="Source\Engine\Components\CameraComponent.h" />
+    <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
     <ClInclude Include="Source\Editor\Editor.h" />
     <ClInclude Include="Source\Engine\Entity\Base\Entity.h" />
     <ClInclude Include="Source\Engine\Components\Base\Component.h" />

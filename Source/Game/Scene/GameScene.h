@@ -13,6 +13,8 @@
 #include "Sprite/Sprite.h"
 #include "Sprite/SpriteCommon.h"
 
+class CameraRotator;
+class PlayerMovement;
 class CameraSystem;
 
 class GameScene : public Scene {
@@ -35,6 +37,16 @@ private:
 
 	std::unique_ptr<Entity> testEnt_;
 	std::unique_ptr<Entity> testEnt2_;
+	std::unique_ptr<Entity> testEnt3_;
+
+	std::unique_ptr<Entity> player_;
+	PlayerMovement* playerMovementComponent_ = nullptr;
+
+	std::unique_ptr<Entity> cameraBase_;
+	CameraRotator* cameraRotator_ = nullptr;
+
+	std::unique_ptr<Entity> camera_;
+	std::shared_ptr<CameraComponent> cameraComponent_;
 
 	std::unique_ptr<ParticleObject> particle_;
 };

@@ -309,6 +309,10 @@
     <ClInclude Include="Source\Externals\ImGui\imstb_textedit.h" />
     <ClInclude Include="Source\Externals\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Editor\Editor.h" />
+    <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
+    <ClInclude Include="Source\Engine\Components\CameraComponent.h" />
+    <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
+    <ClInclude Include="Source\Game\Components\CameraRotator.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -461,6 +465,10 @@
     <ClCompile Include="Source\Externals\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Editor\Editor.cpp" />
     <ClCompile Include="Source\Game\Scene\Base\Scene.cpp" />
+    <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
+    <ClCompile Include="Source\Engine\Components\CameraComponent.cpp" />
+    <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
+    <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

@@ -10,7 +10,7 @@ bool Math::IsCollision(const AABB& aabb, const Vec3& point) {
 		point.x >= aabb.min.x && point.x <= aabb.max.x &&
 		point.y >= aabb.min.y && point.y <= aabb.max.y &&
 		point.z >= aabb.min.z && point.z <= aabb.max.z
-	);
+		);
 }
 
 Vec3 Math::Lerp(const Vec3& a, const Vec3& b, const float t) {
@@ -33,22 +33,19 @@ Vec3 Math::CatmullRomPosition(const std::vector<Vec3>& points, const float t) {
 	// 区間番号
 	size_t index = static_cast<int>(t / areaWidth);
 	// 区間番号が上限を超えないように収める
-	if (index >= division)
-	{
+	if (index >= division) {
 		index = division - 1;
 	}
 
 	// 4点分のインデックス
 	size_t index0 = index;
-	if (index > 0)
-	{
+	if (index > 0) {
 		index0 = index - 1;
 	}
 	size_t index1 = index;
 	size_t index2 = index + 1;
 	size_t index3 = index2;
-	if (index3 + 1 < points.size())
-	{
+	if (index3 + 1 < points.size()) {
 		index3 = index2 + 1;
 	}
 
@@ -72,17 +69,36 @@ Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p
 		(-p0 + p2) * t +
 		(2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2 +
 		(-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3
-	);
+		);
 }
 
 float Math::DeltaAngle(const float& current, const float& target) {
 	float delta = fmod(target - current, 360.0f);
-	if (delta > 180.0f)
-	{
+	if (delta > 180.0f) {
 		delta -= 360.0f;
-	} else if (delta < -180.0f)
-	{
+	} else if (delta < -180.0f) {
 		delta += 360.0f;
 	}
 	return delta;
+}
+
+Vec3 Math::HtoM(const Vec3& vec) {
+	// Hammer -> Meter
+	return vec * 0.0254f;
+}
+
+float Math::HtoM(const float val) {
+	// Hammer -> Meter
+	return val * 0.0254f;
+
+}
+
+Vec3 Math::MtoH(const Vec3& vec) {
+	// Meter -> Hammer
+	return vec * 39.3701f;
+}
+
+float Math::MtoH(const float val) {
+	// Meter -> Hammer
+	return val * 39.3701f;
 }

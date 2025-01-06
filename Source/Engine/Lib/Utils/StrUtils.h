@@ -7,8 +7,7 @@
 class StrUtils {
 public:
 	static std::wstring ToWString(const std::string& string) {
-		if (string.empty())
-		{
+		if (string.empty()) {
 			return {};
 		}
 
@@ -16,8 +15,7 @@ public:
 			CP_UTF8, 0, string.data(), static_cast<int>(string.size()), nullptr,
 			0
 		);
-		if (sizeNeeded == 0)
-		{
+		if (sizeNeeded == 0) {
 			return {};
 		}
 		std::wstring result(sizeNeeded, 0);
@@ -26,8 +24,7 @@ public:
 	}
 
 	static std::string ToString(const std::wstring& string) {
-		if (string.empty())
-		{
+		if (string.empty()) {
 			return {};
 		}
 
@@ -36,8 +33,7 @@ public:
 			0,
 			nullptr, nullptr
 		);
-		if (sizeNeeded == 0)
-		{
+		if (sizeNeeded == 0) {
 			return {};
 		}
 		std::string result(sizeNeeded, 0);
@@ -80,8 +76,7 @@ public:
 	}
 
 	static bool Equal(const std::string& str1, const std::string& str2) {
-		if (str1.size() != str2.size())
-		{
+		if (str1.size() != str2.size()) {
 			return false;
 		}
 		return std::equal(
@@ -95,20 +90,30 @@ public:
 	}
 
 	static std::string Join(const std::vector<std::string>& args, const char* delimiter) {
-		if (args.empty())
-		{
+		if (args.empty()) {
 			return "";
 		}
 
 		std::string result;
-		for (const auto& arg : args)
-		{
+		for (const auto& arg : args) {
 			result += arg + delimiter;
 		}
-		if (!result.empty())
-		{
+		if (!result.empty()) {
 			result.pop_back();
 		}
 		return result;
+	}
+
+	static std::string DescribeAxis(const int& i) {
+		switch (i) {
+		case 0:
+			return "X";
+		case 1:
+			return "Y";
+		case 2:
+			return "Z";
+		default:
+			return "Unknown";
+		}
 	}
 };
