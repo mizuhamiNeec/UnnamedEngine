@@ -1,15 +1,13 @@
 #include "Console.h"
 
-#include <cstring>
-#include <debugapi.h>
 #include <format>
 
-#include "../../Input/InputSystem.h"
-#include "../../Window/WindowsUtils.h"
-#include "../Timer/EngineTimer.h"
-#include "../Utils/StrUtils.h"
-#include "ConCommand.h"
-#include "ConVarManager.h"
+#include <Input/InputSystem.h>
+#include <Lib/Console/ConCommand.h>
+#include <Lib/Console/ConVarManager.h>
+#include <Lib/Timer/EngineTimer.h>
+#include <Lib/Utils/StrUtils.h>
+#include <Window/WindowsUtils.h>
 
 //-----------------------------------------------------------------------------
 // Purpose: コンソールを更新します
@@ -121,8 +119,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 	std::string trimmedCommand = TrimSpaces(command);
 
 	// コマンドが空なのでなんもしない
-	if (trimmedCommand.empty())
-	{
+	if (trimmedCommand.empty()) {
 		Print(">\n", kConsoleColorNormal);
 		return;
 	}
@@ -136,26 +133,21 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 	// InputSystemのコマンド実行
 	// アクションコマンドの処理
-	if (!found && !tokens.empty())
-	{
+	if (!found && !tokens.empty()) {
 		// +-プレフィックスの処理
-		if (tokens[0][0] == '+' || tokens[0][0] == '-')
-		{
+		if (tokens[0][0] == '+' || tokens[0][0] == '-') {
 			bool isDown = (tokens[0][0] == '+');
 			InputSystem::ExecuteCommand(tokens[0], isDown);
 			found = true;
 		}
 	}
 
-	for (auto conVar : ConVarManager::GetAllConVars())
-	{
+	for (auto conVar : ConVarManager::GetAllConVars()) {
 		// 変数が存在する場合
-		if (StrUtils::Equal(conVar->GetName(), tokens[0]))
-		{
+		if (StrUtils::Equal(conVar->GetName(), tokens[0])) {
 			found = true;
 			// 変数のみ入力された場合
-			if (tokens.size() < 2)
-			{
+			if (tokens.size() < 2) {
 				Print(
 					std::format(
 						R"("{}" = "{}")",
@@ -169,74 +161,54 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 				// 変数の型を取得
 				std::string type = std::format("[{}]\n", conVar->GetTypeAsString());
 
-				if (conVar->GetTypeAsString() == "bool")
-				{
+				if (conVar->GetTypeAsString() == "bool") {
 					Print(" - " + description + " " + type, kConsoleColorBool);
-				} else if (conVar->GetTypeAsString() == "int")
-				{
+				} else if (conVar->GetTypeAsString() == "int") {
 					Print(" - " + description + " " + type, kConsoleColorInt);
-				} else if (conVar->GetTypeAsString() == "float")
-				{
+				} else if (conVar->GetTypeAsString() == "float") {
 					Print(" - " + description + " " + type, kConsoleColorFloat);
-				} else if (conVar->GetTypeAsString() == "Vec3")
-				{
+				} else if (conVar->GetTypeAsString() == "Vec3") {
 					Print(" - " + description + " " + type, kConsoleColorVec3);
-				} else if (conVar->GetTypeAsString() == "string")
-				{
+				} else if (conVar->GetTypeAsString() == "string") {
 					Print(" - " + description + " " + type, kConsoleColorString);
 				}
-			} else
-			{
+			} else {
 				// 引数込みで入力された場合の処理
 				bool isValidInput = true;
-				for (size_t i = 1; i < tokens.size(); ++i)
-				{
-					if (conVar->GetTypeAsString() == "int")
-					{
-						if (tokens[i] == "true")
-						{
+				for (size_t i = 1; i < tokens.size(); ++i) {
+					if (conVar->GetTypeAsString() == "int") {
+						if (tokens[i] == "true") {
 							tokens[i] = "1";
-						} else if (tokens[i] == "false")
-						{
+						} else if (tokens[i] == "false") {
 							tokens[i] = "0";
 						}
 
-						try
-						{
+						try {
 							[[maybe_unused]] int value = std::stoi(tokens[i]);
-						} catch (...)
-						{
+						} catch (...) {
 							isValidInput = false;
 							break;
 						}
-					} else if (conVar->GetTypeAsString() == "float")
-					{
-						try
-						{
+					} else if (conVar->GetTypeAsString() == "float") {
+						try {
 							[[maybe_unused]] float value = std::stof(tokens[i]);
-						} catch (...)
-						{
+						} catch (...) {
 							isValidInput = false;
 							break;
 						}
-					} else if (conVar->GetTypeAsString() == "bool")
-					{
-						if (tokens[i] != "true" && tokens[i] != "false")
-						{
+					} else if (conVar->GetTypeAsString() == "bool") {
+						if (tokens[i] != "true" && tokens[i] != "false") {
 							isValidInput = false;
 							break;
 						}
 					}
 					// Vec3やstringは追加のチェックが必要な場合に応じて処理する
 				}
-				if (isValidInput)
-				{
-					for (size_t i = 1; i < tokens.size(); ++i)
-					{
+				if (isValidInput) {
+					for (size_t i = 1; i < tokens.size(); ++i) {
 						conVar->SetValueFromString(tokens[i]);
 					}
-				} else
-				{
+				} else {
 					Print("CVARの型を変換できませんでした", kConsoleColorError, Channel::kConsole);
 				}
 			}
@@ -245,8 +217,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 	}
 
 	// コマンドが見つからなかった
-	if (!found)
-	{
+	if (!found) {
 		Print(std::format("Unknown command: {}\n", trimmedCommand));
 	}
 
@@ -382,20 +353,16 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	const DateTime dateTime = EngineTimer::GetUpDateTime();
 
 	std::vector<std::string> uptimeParts;
-	if (dateTime.day > 0)
-	{
+	if (dateTime.day > 0) {
 		uptimeParts.push_back(std::to_string(dateTime.day) + " days,");
 	}
-	if (dateTime.hour > 0)
-	{
+	if (dateTime.hour > 0) {
 		uptimeParts.push_back(std::to_string(dateTime.hour) + " hours,");
 	}
-	if (dateTime.minute > 0)
-	{
+	if (dateTime.minute > 0) {
 		uptimeParts.push_back(std::to_string(dateTime.minute) + " mins,");
 	}
-	if (dateTime.second > 0)
-	{
+	if (dateTime.second > 0) {
 		uptimeParts.push_back(std::to_string(dateTime.second) + " sec");
 	}
 	const std::string uptime = "Uptime:  " + StrUtils::Join(uptimeParts, " ");
@@ -419,8 +386,7 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	const size_t asciiWidth = asciiArt[0].size();
 
 	// 結合処理
-	for (size_t i = 0; i < maxRows; ++i)
-	{
+	for (size_t i = 0; i < maxRows; ++i) {
 		constexpr size_t padding = 5;
 		std::string leftPart = (i < asciiArt.size()) ? asciiArt[i] : std::string(asciiWidth, ' ');
 		std::string rightPart = (i < info.size()) ? info[i] : "";
@@ -428,8 +394,7 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	}
 
 	// 結合結果を一行ずつ出力
-	for (const std::string& line : combined)
-	{
+	for (const std::string& line : combined) {
 		Print(line, kConsoleColorWait, Channel::kNone);
 	}
 }
@@ -445,8 +410,7 @@ void Console::Echo(const std::vector<std::string>& args) {
 // Purpose: チャンネルを文字列に変換します
 //-----------------------------------------------------------------------------
 std::string Console::ToString(const Channel& e) {
-	switch (e)
-	{
+	switch (e) {
 	case Channel::kNone: return "";
 	case Channel::kConsole: return "Console";
 	case Channel::kEngine: return "Engine";
@@ -602,8 +566,7 @@ std::string Console::TrimSpaces(const std::string& string) {
 	const size_t start = string.find_first_not_of(" \t\n\r");
 	const size_t end = string.find_last_not_of(" \t\n\r");
 
-	if (start == std::string::npos || end == std::string::npos)
-	{
+	if (start == std::string::npos || end == std::string::npos) {
 		return "";
 	}
 
@@ -618,8 +581,7 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 	std::vector<std::string> tokens;
 	std::string token;
 
-	while (stream >> token)
-	{
+	while (stream >> token) {
 		tokens.push_back(token);
 	}
 

@@ -1,11 +1,17 @@
 #include "Debug.h"
 
+#include <Engine.h>
+
 void Debug::DrawLine(const Vec3& a, const Vec3& b, const Vec4& color) {
-	line_->AddLine(a, b, color);
+	if (Engine::IsEditorMode()) {
+		line_->AddLine(a, b, color);
+	}
 }
 
 void Debug::DrawRay(const Vec3& position, const Vec3& dir, const Vec4& color) {
-	line_->AddLine(position, position + dir, color);
+	if (Engine::IsEditorMode()) {
+		line_->AddLine(position, position + dir, color);
+	}
 }
 
 void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {

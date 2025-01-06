@@ -313,6 +313,9 @@
     <ClInclude Include="Source\Engine\Components\CameraComponent.h" />
     <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
+    <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
+    <ClInclude Include="Source\Game\Components\EnemyMovement.h" />
+    <ClInclude Include="Source\Engine\Components\ColliderComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -469,6 +472,9 @@
     <ClCompile Include="Source\Engine\Components\CameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
+    <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
+    <ClCompile Include="Source\Game\Components\EnemyMovement.cpp" />
+    <ClCompile Include="Source\Engine\Components\ColliderComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

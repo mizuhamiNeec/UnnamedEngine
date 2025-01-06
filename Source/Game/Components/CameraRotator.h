@@ -14,5 +14,7 @@ public:
 private:
 	TransformComponent* transform_ = nullptr;
 	Vec3 rot_ = Vec3::zero;
+
+	bool isMouseLocked_ = true;
 };
 

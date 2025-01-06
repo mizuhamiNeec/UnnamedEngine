@@ -3,6 +3,7 @@
 #include <ranges>
 
 #include "Debug/Debug.h"
+#include "Lib/Console/ConVarManager.h"
 
 Entity::~Entity() {}
 
@@ -22,7 +23,11 @@ void Entity::Update(const float deltaTime) {
 		child->Update(deltaTime);
 	}
 
-	Debug::DrawAxis(GetTransform()->GetWorldPos(), GetTransform()->GetWorldRot());
+#ifdef _DEBUG
+	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
+		Debug::DrawAxis(GetTransform()->GetWorldPos(), GetTransform()->GetWorldRot());
+	}
+#endif
 }
 
 EntityType Entity::GetType() const {

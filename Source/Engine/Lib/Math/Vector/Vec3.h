@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 
 struct Vec2;
 
@@ -41,7 +42,7 @@ struct Vec3 final {
 
 
 	Vec3 operator-() const {
-		return {-x, -y, -z};
+		return { -x, -y, -z };
 	}
 
 	Vec3 operator+(const Vec3& rhs) const;
@@ -63,4 +64,5 @@ struct Vec3 final {
 	Vec3& operator-=(const Vec3& rhs);
 	Vec3& operator*=(float rhs);
 	Vec3& operator/=(float rhs);
+	std::string ToString() const;
 };

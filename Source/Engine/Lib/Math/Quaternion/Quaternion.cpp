@@ -32,8 +32,7 @@ Quaternion::Quaternion(const Vec3& axis, const float angleRad) {
 
 void Quaternion::Normalize() {
 	const float len = std::sqrt(x * x + y * y + z * z + w * w);
-	if (len > 0)
-	{
+	if (len > 0) {
 		x /= len;
 		y /= len;
 		z /= len;
@@ -43,18 +42,17 @@ void Quaternion::Normalize() {
 
 Quaternion Quaternion::Normalized() const {
 	const float magnitude = std::sqrt(x * x + y * y + z * z + w * w);
-	return {x / magnitude, y / magnitude, z / magnitude, w / magnitude};
+	return { x / magnitude, y / magnitude, z / magnitude, w / magnitude };
 }
 
 Quaternion Quaternion::Conjugate() const {
-	return {-x, -y, -z, w};
+	return { -x, -y, -z, w };
 }
 
 Quaternion Quaternion::Inverse() const {
 	float normSquared = x * x + y * y + z * z + w * w;
 
-	if (normSquared < 1e-6f)
-	{
+	if (normSquared < 1e-6f) {
 		return identity;
 	}
 
@@ -69,12 +67,10 @@ Quaternion Quaternion::Inverse() const {
 
 void Quaternion::ToAxisAngle(Vec3& outAxis, float& outAngle) const {
 	const float scale = Vec3(x, y, z).SqrLength();
-	if (scale > 1e-6)
-	{
-		outAxis = {x / scale, y / scale, z / scale};
+	if (scale > 1e-6) {
+		outAxis = { x / scale, y / scale, z / scale };
 		outAngle = 2.0f * std::acos(w);
-	} else
-	{
+	} else {
 		outAxis = Vec3::right;
 		outAngle = 0.0f;
 	}
@@ -93,16 +89,15 @@ Quaternion Quaternion::Euler(const Vec3& eulerRad) {
 	const float cosRoll = std::cos(roll * 0.5f);
 
 	return Quaternion(
-			sinPitch * cosYaw * cosRoll - cosPitch * sinYaw * sinRoll,
-			cosPitch * sinYaw * cosRoll + sinPitch * cosYaw * sinRoll,
-			cosPitch * cosYaw * sinRoll - sinPitch * sinYaw * cosRoll,
-			cosPitch * cosYaw * cosRoll + sinPitch * sinYaw * sinRoll
-		)
-		.Normalized();
+		sinPitch * cosYaw * cosRoll - cosPitch * sinYaw * sinRoll,
+		cosPitch * sinYaw * cosRoll + sinPitch * cosYaw * sinRoll,
+		cosPitch * cosYaw * sinRoll - sinPitch * sinYaw * cosRoll,
+		cosPitch * cosYaw * cosRoll + sinPitch * sinYaw * sinRoll
+	).Normalized();
 }
 
 Quaternion Quaternion::Euler(const float& x, const float& y, const float& z) {
-	return Euler({x, y, z});
+	return Euler({ x, y, z });
 }
 
 Quaternion Quaternion::EulerDegrees(const Vec3& eulerDeg) {
@@ -132,30 +127,52 @@ Quaternion Quaternion::Lerp(const Quaternion& a, const Quaternion& b, float t) {
 Quaternion Quaternion::Slerp(const Quaternion& a, const Quaternion& b, float t) {
 	t = std::clamp(t, 0.0f, 1.0f);
 
+	// a と b の内積を計算
 	float dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-	float angle = std::acos(std::abs(dot));
 
-	if (angle < 1e-6f)
-	{
-		return a;
+	// dot が 1 または -1 になる可能性を防ぐ（数値誤差を避ける）
+	dot = std::clamp(dot, -1.0f, 1.0f);
+
+	// angle を計算
+	float angle = std::acos(dot);
+
+	// angle が非常に小さい場合は Lerp に切り替え
+	if (angle < 1e-6f) {
+		return a;  // angle が 0 に近い場合、Slerp の結果は a とほぼ同じ
 	}
 
+	// sin(angle) を計算
 	float sinAngle = std::sin(angle);
+
+	// sinAngle が非常に小さい場合は Lerp に切り替え
+	if (std::abs(sinAngle) < 1e-6f) {
+		return Lerp(a, b, t);  // Lerp を使用して補完
+	}
+
+	// t が 0 または 1 の場合は早期リターン
+	if (t == 0.0f) {
+		return a;
+	}
+	if (t == 1.0f) {
+		return b;
+	}
+
+	// Slerp の計算
 	float scale0 = std::sin((1.0f - t) * angle) / sinAngle;
 	float scale1 = std::sin(t * angle) / sinAngle;
 
-	if (dot < 0.0f)
-	{
+	// dot が負の場合、反転する
+	if (dot < 0.0f) {
 		scale1 = -scale1;
 	}
 
+	// 最終的な Quaternion を計算し、正規化
 	return Quaternion(
-			scale0 * a.x + scale1 * b.x,
-			scale0 * a.y + scale1 * b.y,
-			scale0 * a.z + scale1 * b.z,
-			scale0 * a.w + scale1 * b.w
-		)
-		.Normalized();
+		scale0 * a.x + scale1 * b.x,
+		scale0 * a.y + scale1 * b.y,
+		scale0 * a.z + scale1 * b.z,
+		scale0 * a.w + scale1 * b.w
+	).Normalized();  // 結果を正規化して返す
 }
 
 Vec3 Quaternion::ToEulerAngles() const {
@@ -168,11 +185,9 @@ Vec3 Quaternion::ToEulerAngles() const {
 
 	// Pitch
 	const float sinP = 2 * (w * y - z * x);
-	if (std::abs(sinP) >= 1)
-	{
+	if (std::abs(sinP) >= 1) {
 		euler.y = std::copysign(Math::pi * 0.5f, sinP);
-	} else
-	{
+	} else {
 		euler.y = std::asin(sinP);
 	}
 
@@ -190,8 +205,7 @@ Vec3 Quaternion::ToEulerDegrees() {
 
 Vec3 Quaternion::GetAxis() const {
 	const float scale = std::sqrt(1.0f - w * w);
-	if (scale < 1e-6f)
-	{
+	if (scale < 1e-6f) {
 		return Vec3::up;
 	}
 	return Vec3(x / scale, y / scale, z / scale);

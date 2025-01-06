@@ -122,10 +122,6 @@ void ParticleManager::CreateGraphicsPipeline() {
 }
 
 void ParticleManager::Update(float deltaTime) {
-	// ビルボード行列の計算
-	const Mat4 view = defaultCamera_->GetViewMat();
-	const Mat4 projection = defaultCamera_->GetProjMat();
-
 	// すべてのパーティクルグループについて処理する
 	for (auto& particleGroup : particleGroups_ | std::views::values) {
 		// グループ内のすべてのパーティクルについて処理する
@@ -141,17 +137,6 @@ void ParticleManager::Update(float deltaTime) {
 				particle.transform.translate += particle.vel * deltaTime;
 				// 経過時間を計算
 				particle.currentTime += deltaTime;
-				// ワールド行列を計算
-				const Mat4 world = Mat4::Translate(particle.transform.translate) * Mat4::FromQuaternion(
-					Quaternion::Euler(particle.transform.rotate)
-				) * Mat4::Scale(particle.transform.scale);
-				// ワールドビュープロジェクション行列を合成
-				const Mat4 wvp = world * view * projection;
-				// インスタンシング用データ1個分の書き込み
-				particleGroup.instancingData->wvp = wvp;
-				particleGroup.instancingData->world = world;
-				particleGroup.instancingData->color = particle.color;
-				++particleGroup.instancingData;
 				return false; // パーティクルを保持
 			}
 		);
@@ -159,6 +144,10 @@ void ParticleManager::Update(float deltaTime) {
 }
 
 void ParticleManager::Render() {
+	// ビルボード行列の計算
+	const Mat4 view = CameraManager::GetActiveCamera()->GetViewMat();
+	const Mat4 projection = CameraManager::GetActiveCamera()->GetProjMat();
+
 	d3d12_->GetCommandList()->SetGraphicsRootSignature(rootSignatureManager_->Get("ParticleManager"));
 	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
 	// プリミティブトポロジを設定
@@ -169,6 +158,21 @@ void ParticleManager::Render() {
 	// すべてのパーティクルグループについて
 	// テクスチャのSRVのDescriptorTableを設定
 	for (auto& particleGroup : particleGroups_ | std::views::values) {
+		// グループ内のすべてのパーティクルについて処理する
+		for (auto& particle : particleGroup.particles) {
+			// ワールド行列を計算
+			const Mat4 world = Mat4::Translate(particle.transform.translate) * Mat4::FromQuaternion(
+				Quaternion::Euler(particle.transform.rotate)
+			) * Mat4::Scale(particle.transform.scale);
+			// ワールドビュープロジェクション行列を合成
+			const Mat4 wvp = world * view * projection;
+			// インスタンシング用データ1個分の書き込み
+			particleGroup.instancingData->wvp = wvp;
+			particleGroup.instancingData->world = world;
+			particleGroup.instancingData->color = particle.color;
+			++particleGroup.instancingData;
+		}
+
 		d3d12_->GetCommandList()->SetGraphicsRootDescriptorTable(
 			2, TextureManager::GetInstance()->GetSrvHandleGPU(particleGroup.materialData.textureFilePath)
 		);

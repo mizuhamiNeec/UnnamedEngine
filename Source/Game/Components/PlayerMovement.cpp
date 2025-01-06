@@ -1,10 +1,9 @@
 #include "PlayerMovement.h"
 
+#include <algorithm>
 #include <Entity/Base/Entity.h>
 #include <Input/InputSystem.h>
 #include <Lib/Math/Vector/Vec3.h>
-
-#include <algorithm>
 
 #include "Camera/CameraManager.h"
 #include "Components/CameraComponent.h"
@@ -19,6 +18,9 @@ void PlayerMovement::OnAttach(Entity& owner) {
 	// 初期化処理
 	// トランスフォームコンポーネントを取得
 	transform_ = owner_->GetTransform();
+
+	speed_ = 300.0f;
+	jumpVel_ = 300.0f;
 }
 
 void PlayerMovement::ProcessInput() {
@@ -46,42 +48,42 @@ void PlayerMovement::ProcessInput() {
 	moveInput_.Normalize();
 }
 
-void PlayerMovement::ApplyHalfGravity() {
-	const float gravity = ConVarManager::GetConVar("sv_gravity")->GetValueAsFloat();
-	velocity_.y -= Math::HtoM(gravity) * 0.5f * deltaTime_;
+void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
+	deltaTime_ = deltaTime;
+	position_ = transform_->GetLocalPos();
+
+	// 入力処理
+	ProcessInput();
+
+	Move();
+
+	transform_->SetLocalPos(position_ + velocity_ * deltaTime_);
+
+	// 各軸の範囲外に出たら制限し、各軸のvelocityを0にする
+	Vec3 worldPos = transform_->GetWorldPos();
+
+	if (worldPos.x > 32.0f || worldPos.x < -32.0f) {
+		worldPos.x = std::clamp(worldPos.x, -32.0f, 32.0f);
+		velocity_.x = 0.0f;
+	}
+
+	if (worldPos.z > 32.0f || worldPos.z < -32.0f) {
+		worldPos.z = std::clamp(worldPos.z, -32.0f, 32.0f);
+		velocity_.z = 0.0f;
+	}
+
+	transform_->SetWorldPos(worldPos);
+
+	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
+	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), 2.0f, 0.5f, isGrounded_ ? Vec4::green : Vec4::red);
+	Debug::DrawRay(transform_->GetWorldPos(), moveInput_, Vec4::cyan);
 }
 
-void PlayerMovement::ApplyFriction() {
-	Vec3 vel = Math::MtoH(velocity_);
+void PlayerMovement::DrawInspectorImGui() {
 
-	vel.y = 0.0f;
-
-	const float speed = vel.Length();
-
-	if (speed < 0.0f) {
-		return;
-	}
-
-	float drop = 0.0f;
-
-	if (isGrounded_) {
-		const float friction = ConVarManager::GetConVar("sv_friction")->GetValueAsFloat();
-		const float control = (speed < ConVarManager::GetConVar("sv_stopspeed")->GetValueAsFloat()) ? ConVarManager::GetConVar("sv_stopspeed")->GetValueAsFloat() : speed;
-		drop += control * friction * deltaTime_;
-	}
-
-	float newspeed = speed - drop;
-
-	newspeed = max(newspeed, 0.0f);
-
-	if (newspeed != speed) {
-		newspeed /= speed;
-	}
-
-	velocity_ *= newspeed;
 }
 
-void PlayerMovement::FullWalkMove() {
+void PlayerMovement::Move() {
 	// 接地判定
 	isGrounded_ = CheckGrounded();
 
@@ -116,6 +118,7 @@ void PlayerMovement::FullWalkMove() {
 	forward.Normalize();
 
 	if (isGrounded_) {
+		velocity_.y = 0.0f;
 		Vec3 wishvel = moveInput_.x * right + moveInput_.z * forward;
 		wishvel.y = 0.0f;
 		wishvel.Normalize();
@@ -146,88 +149,12 @@ void PlayerMovement::FullWalkMove() {
 	// y座標が0以下の場合は0にする
 	position_.y = max(position_.y, 0.0f);
 
-	// 入力処理
-	ProcessInput();
-
 	if (!isGrounded_) {
 		ApplyHalfGravity();
 	}
 }
 
-void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
-	deltaTime_ = deltaTime;
-	position_ = transform_->GetLocalPos();
-
-	FullWalkMove();
-
-	transform_->SetLocalPos(position_ + velocity_ * deltaTime_);
-	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
-	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), 2.0f, 0.5f, isGrounded_ ? Vec4::green : Vec4::red);
-	Debug::DrawRay(transform_->GetWorldPos(), moveInput_, Vec4::cyan);
-}
-
-void PlayerMovement::DrawInspectorImGui() {
-
-}
-
-bool PlayerMovement::CheckGrounded() const {
+bool PlayerMovement::CheckGrounded() {
 	// y座標が0以下の場合は接地していると判定
 	return transform_->GetLocalPos().y <= 0.0f;
 }
-
-void PlayerMovement::Accelerate(const Vec3 wishdir, const float wishspeed, const float accel) {
-	float currentspeed = Math::MtoH(velocity_).Dot(wishdir);
-	float addspeed = wishspeed - currentspeed;
-
-	if (addspeed <= 0) {
-		return;
-	}
-
-	float accelspeed = accel * deltaTime_ * wishspeed;
-
-	accelspeed = min(accelspeed, addspeed);
-
-	velocity_ += Math::HtoM(accelspeed) * wishdir;
-}
-
-void PlayerMovement::AirAccelerate([[maybe_unused]] Vec3 wishdir, [[maybe_unused]] float wishspeed, [[maybe_unused]] float accel) {
-	float wishspd = wishspeed;
-	if (wishspd > 30.0f) {
-		wishspd = 30.0f;
-	}
-
-	float currentspeed = Math::MtoH(velocity_).Dot(wishdir);
-	float addspeed = wishspd - currentspeed;
-
-	if (addspeed <= 0.0f) {
-		return;
-	}
-
-	float accelspeed = accel * wishspeed * deltaTime_;
-
-	if (accelspeed > addspeed) {
-		accelspeed = addspeed;
-	}
-
-	velocity_ += Math::HtoM(accelspeed) * wishdir;
-}
-
-void PlayerMovement::CheckVelocity() {
-	for (int i = 0; i < 3; ++i) {
-		std::string name = ConVarManager::GetConVar("name")->GetValueAsString();
-		float maxVel = ConVarManager::GetConVar("sv_maxvelocity")->GetValueAsFloat();
-
-		if (velocity_[i] > Math::HtoM(maxVel)) {
-			velocity_[i] = Math::HtoM(maxVel);
-			Console::Print(name + "Got a velocity too high ( >" + std::to_string((Math::MtoH(velocity_[i]))) + ") on " + StrUtils::DescribeAxis(i));
-		} else if (velocity_[i] < -Math::HtoM(maxVel)) {
-			velocity_[i] = -Math::HtoM(maxVel);
-			Console::Print(name + "Got a velocity too low ( <" + std::to_string((Math::MtoH(velocity_[i]))) + ") on " + StrUtils::DescribeAxis(i));
-		}
-	}
-}
-
-Vec3 PlayerMovement::GetVelocity() const {
-	return velocity_;
-}
-
