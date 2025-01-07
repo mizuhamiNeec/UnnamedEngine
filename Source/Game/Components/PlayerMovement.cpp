@@ -95,8 +95,12 @@ void PlayerMovement::Move() {
 		ApplyFriction();
 	}
 
+	if (InputSystem::IsTriggered("+jump")) {
+		Console::Print("Attack2", Vec4::orange, Channel::kGame);
+	}
+
 	// ジャンプ処理
-	if (isGrounded_ && InputSystem::IsPressed("+jump")) {
+	if (isGrounded_ && InputSystem::IsTriggered("+jump")) {
 		velocity_.y = Math::HtoM(jumpVel_);
 		isGrounded_ = false;
 	}
@@ -157,4 +161,8 @@ void PlayerMovement::Move() {
 bool PlayerMovement::CheckGrounded() {
 	// y座標が0以下の場合は接地していると判定
 	return transform_->GetLocalPos().y <= 0.0f;
+}
+
+void PlayerMovement::SetVelocity(const Vec3 newVel) {
+	velocity_ = newVel;
 }

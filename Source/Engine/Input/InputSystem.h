@@ -23,6 +23,8 @@ public:
 	static void UnbindAll(); // すべてのバインドを解除
 	static void ExecuteCommand(const std::string& command, bool isDown); // コマンドを実行
 
+	static void ResetAllKeys();
+
 private:
 	static std::string GetKeyName(UINT virtualKey);
 

@@ -4,8 +4,7 @@
 #include "Entity/Base/Entity.h"
 #include "Lib/Console/ConVarManager.h"
 
-EnemyMovement::~EnemyMovement() {
-}
+EnemyMovement::~EnemyMovement() {}
 
 void EnemyMovement::OnAttach(Entity& owner) {
 	CharacterMovement::OnAttach(owner);
@@ -20,6 +19,21 @@ void EnemyMovement::Update(float deltaTime) {
 	Move();
 
 	transform_->SetLocalPos(position_ + velocity_ * deltaTime_);
+
+	// 各軸の範囲外に出たら制限し、各軸のvelocityを0にする
+	Vec3 worldPos = transform_->GetWorldPos();
+
+	if (worldPos.x > 32.0f || worldPos.x < -32.0f) {
+		worldPos.x = std::clamp(worldPos.x, -32.0f, 32.0f);
+		velocity_.x = 0.0f;
+	}
+
+	if (worldPos.z > 32.0f || worldPos.z < -32.0f) {
+		worldPos.z = std::clamp(worldPos.z, -32.0f, 32.0f);
+		velocity_.z = 0.0f;
+	}
+
+	transform_->SetWorldPos(worldPos);
 
 	// 範囲外に出ないように制限
 	transform_->SetWorldPos(transform_->GetWorldPos().Clamp(Vec3(-32.0f, 0.0f, -32.0f), Vec3(32.0f, 100.0f, 32.0f)));
@@ -86,4 +100,35 @@ void EnemyMovement::Move() {
 
 void EnemyMovement::SetMoveInput(const Vec3 newMoveInput) {
 	moveInput_ = newMoveInput.Normalized();
+}
+
+void EnemyMovement::OnCollisionWithEnemy(Entity* otherEnemy) {
+	Vec3 currentPos = owner_->GetTransform()->GetWorldPos();
+	Vec3 otherPos = otherEnemy->GetTransform()->GetWorldPos();
+	Vec3 dir = (currentPos - otherPos).Normalized();
+	Vec3 targetPos = currentPos + dir * 0.1f;
+
+	// 線形補間を使用してスムーズに位置を更新
+	float lerpFactor = 0.1f; // 補間係数（0.0fから1.0fの範囲）
+	Vec3 newPos = Math::Lerp(currentPos, targetPos, lerpFactor);
+
+	owner_->GetTransform()->SetLocalPos(newPos);
+}
+
+void EnemyMovement::OnSwordHit(Entity* enemy) {
+	Vec3 currentPos = owner_->GetTransform()->GetWorldPos();
+	Vec3 enemyPos = enemy->GetTransform()->GetWorldPos();
+	Vec3 knockbackDir = (currentPos - enemyPos).Normalized();
+	knockbackDir.y = 0.5f; // 上方向の成分を追加
+	knockbackDir.Normalize(); // 正規化して方向ベクトルを得る
+	float knockbackStrength = 1.0f; // ノックバックの強さを調整
+
+	Vec3 knockbackVelocity = knockbackDir * knockbackStrength;
+	owner_->GetComponent<EnemyMovement>()->ApplyKnockBack(knockbackVelocity);
+}
+
+void EnemyMovement::ApplyKnockBack(const Vec3& knockBackVel) {
+	velocity_ += knockBackVel * 5.0f; // ノックバックの強さを調整
+	transform_->SetWorldPos(transform_->GetWorldPos() + Vec3::up * 0.25f);
+	isGrounded_ = false;
 }

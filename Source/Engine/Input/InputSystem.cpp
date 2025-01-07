@@ -49,34 +49,33 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 	auto* raw = reinterpret_cast<RAWINPUT*>(lpb);
 
 	// キーボード入力
-	if (raw->header.dwType == RIM_TYPEKEYBOARD)
-	{
+	if (raw->header.dwType == RIM_TYPEKEYBOARD) {
 		const auto vKey = raw->data.keyboard.VKey;
 		const bool isKeyDown = !(raw->data.keyboard.Flags & RI_KEY_BREAK);
 
 		// 仮想キーを文字列に変換
 		std::string keyName = GetKeyName(vKey);
 		keyName = StrUtils::ToLowerCase(keyName);
-		if (!keyName.empty() && keyBindings_.contains(keyName))
-		{
+
+		if (!keyName.empty() && keyBindings_.contains(keyName)) {
 			std::string cmd = keyBindings_[keyName];
-			if (cmd[0] == '+')
-			{
+			if (cmd[0] == '+') {
 				std::string baseCmd = cmd.substr(1);
-				if (isKeyDown)
-				{
-					triggeredCommands_[baseCmd] = true;
-					pressedCommands_[baseCmd] = true;
-				} else
-				{
+
+				if (isKeyDown) {
+					// すでに押下中でない場合のみ triggered に追加
+					if (!pressedCommands_[baseCmd]) {
+						triggeredCommands_[baseCmd] = true;
+						pressedCommands_[baseCmd] = true;
+					}
+				} else {
+					// キーリリース時の処理
 					pressedCommands_[baseCmd] = false;
 					releasedCommands_[baseCmd] = true;
 				}
-			} else
-			{
+			} else {
 				// プレフィックスなしコマンドは押した瞬間のみ実行
-				if (isKeyDown)
-				{
+				if (isKeyDown) {
 					triggeredCommands_[cmd] = true;
 					Console::SubmitCommand(cmd);
 				}
@@ -258,6 +257,14 @@ void InputSystem::ExecuteCommand(const std::string& command, bool isDown) {
 			Console::SubmitCommand(baseCommand);
 		}
 	}
+}
+
+void InputSystem::ResetAllKeys() {
+	pressedCommands_.clear();
+	triggeredCommands_.clear();
+	releasedCommands_.clear();
+	commandStates_.clear();
+	mouseDelta_ = Vec2::zero;
 }
 
 std::string InputSystem::GetKeyName(const UINT virtualKey) {

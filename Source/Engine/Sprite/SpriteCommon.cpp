@@ -19,8 +19,7 @@ void SpriteCommon::Init(D3D12* d3d12) {
 //-----------------------------------------------------------------------------
 // Purpose: SpriteCommonをシャットダウンします
 //-----------------------------------------------------------------------------
-void SpriteCommon::Shutdown() const {
-}
+void SpriteCommon::Shutdown() const {}
 
 void SpriteCommon::CreateRootSignature() {
 	//  RootSignatureManagerのインスタンスを作成
@@ -71,8 +70,7 @@ void SpriteCommon::CreateRootSignature() {
 		"SpriteCommon", rootParameters, staticSamplers, _countof(staticSamplers)
 	);
 
-	if (rootSignatureManager_->Get("SpriteCommon"))
-	{
+	if (rootSignatureManager_->Get("SpriteCommon")) {
 		Console::Print("SpriteCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }
@@ -88,10 +86,10 @@ void SpriteCommon::CreateGraphicsPipeline() {
 	// シェーダーのファイルパスを設定
 	pipelineState_.SetVS(L"./Resources/Shaders/SpriteCommon.VS.hlsl");
 	pipelineState_.SetPS(L"./Resources/Shaders/SpriteCommon.PS.hlsl");
+	pipelineState_.SetBlendMode(kBlendModeNormal);
 	pipelineState_.Create(d3d12_->GetDevice());
 
-	if (pipelineState_.Get())
-	{
+	if (pipelineState_.Get()) {
 		Console::Print("SpriteCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
 	}
 }

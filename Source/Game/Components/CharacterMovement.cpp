@@ -9,8 +9,7 @@
 #include "Lib/Console/ConVarManager.h"
 #include "Lib/Math/MathLib.h"
 
-CharacterMovement::~CharacterMovement() {
-}
+CharacterMovement::~CharacterMovement() {}
 
 void CharacterMovement::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
@@ -29,11 +28,9 @@ void CharacterMovement::Update(float deltaTime) {
 	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), 2.0f, 0.5f, isGrounded_ ? Vec4::green : Vec4::red);
 }
 
-void CharacterMovement::DrawInspectorImGui() {
-}
+void CharacterMovement::DrawInspectorImGui() {}
 
-void CharacterMovement::Move() {
-}
+void CharacterMovement::Move() {}
 
 void CharacterMovement::ApplyHalfGravity() {
 	const float gravity = ConVarManager::GetConVar("sv_gravity")->GetValueAsFloat();
@@ -61,7 +58,7 @@ void CharacterMovement::ApplyFriction() {
 
 	newspeed = std::max<float>(newspeed, 0);
 
-	if (newspeed != speed) {
+	if (newspeed != speed && speed != 0.0f) {
 		newspeed /= speed;
 	}
 
@@ -101,6 +98,10 @@ void CharacterMovement::AirAccelerate(const Vec3 dir, const float speed, const f
 	float accelspeed = accel * deltaTime_ * speed;
 	accelspeed = min(accelspeed, addspeed);
 	velocity_ += Math::HtoM(accelspeed) * dir;
+}
+
+bool CharacterMovement::IsGrounded() const {
+	return isGrounded_;
 }
 
 void CharacterMovement::CheckVelocity() {

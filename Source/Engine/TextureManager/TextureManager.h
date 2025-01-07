@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d12.h>
+#include <memory>
 #include <string>
 #include <wrl/client.h>
 
@@ -11,13 +12,22 @@ class D3D12;
 using namespace Microsoft::WRL;
 
 class TextureManager {
+	// テクスチャ1枚分のデータ
+	struct TextureData {
+		std::string filePath;
+		DirectX::TexMetadata metadata;
+		ComPtr<ID3D12Resource> resource;
+		uint32_t srvIndex;
+		D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU;
+		D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU;
+	};
 public:
 	static TextureManager* GetInstance();
 
 	void Init(D3D12* renderer, SrvManager* srvManager);
 	static void Shutdown();
 
-	void LoadTexture(const std::string& filePath);
+	std::shared_ptr<TextureData> LoadTexture(const std::string& filePath);
 
 	//static void UploadTextureData(const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages);
 	[[nodiscard]] ComPtr<ID3D12Resource> UploadTextureData(
@@ -37,16 +47,6 @@ public:
 
 private:
 	[[nodiscard]] ComPtr<ID3D12Resource> CreateTextureResource(const DirectX::TexMetadata& metadata) const;
-
-	// テクスチャ1枚分のデータ
-	struct TextureData {
-		std::string filePath;
-		DirectX::TexMetadata metadata;
-		ComPtr<ID3D12Resource> resource;
-		uint32_t srvIndex;
-		D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU;
-		D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU;
-	};
 
 	// テクスチャデータ
 	std::unordered_map<std::string, TextureData> textureData_;

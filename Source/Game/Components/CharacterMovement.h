@@ -20,6 +20,8 @@ public:
 	void Accelerate(Vec3 dir, float speed, float accel);
 	void AirAccelerate(Vec3 dir, float speed, float accel);
 
+	bool IsGrounded() const;
+
 	void CheckVelocity();
 
 	[[nodiscard]] Vec3 GetVelocity() const;

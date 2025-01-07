@@ -19,7 +19,7 @@
 
 #include "Input/InputSystem.h"
 
-constexpr int enemyCount = 10;
+constexpr int enemyCount = 24;
 
 void GameScene::Init(Engine* engine) {
 	renderer_ = engine->GetRenderer();
@@ -37,12 +37,13 @@ void GameScene::Init(Engine* engine) {
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/circle.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/weaponNinjaSword.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/fakeShadow.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/hud.png");
 #pragma endregion
 
 #pragma region スプライト類
 	sprite_ = std::make_unique<Sprite>();
-	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetSize({ 512.0f, 512.0f, 0.0f });
+	sprite_->Init(spriteCommon_, "./Resources/Textures/hud.png");
+	sprite_->SetSize({ 1280.0f, 720.0f, 0.0f });
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -84,10 +85,10 @@ void GameScene::Init(Engine* engine) {
 #pragma endregion
 
 #pragma region パーティクル類
-	particleManager_->CreateParticleGroup("circle", "./Resources/Textures/circle.png");
+	particleManager_->CreateParticleGroup("circle", "./Resources/Textures/doublestar.png");
 
 	particle_ = std::make_unique<ParticleObject>();
-	particle_->Init(particleManager_, "./Resources/Textures/circle.png");
+	particle_->Init(particleManager_, "./Resources/Textures/doublestar.png");
 #pragma endregion
 
 #pragma region エンティティ
@@ -125,27 +126,32 @@ void GameScene::Init(Engine* engine) {
 		std::unique_ptr<Entity> enemy = std::make_unique<Entity>("enemy" + std::to_string(i));
 		enemy->GetTransform()->SetLocalPos(Random::Vec3Range({ -32.0f, 0.0f, -32.0f }, { 32.0f , 32.0f, 32.0f }));
 		enemyMovementComponents_.push_back(enemy->AddComponent<EnemyMovement>());
-		enemyColliderComponents_.push_back(enemy->AddComponent<ColliderComponent>());
+		auto collider = enemy->AddComponent<ColliderComponent>();
+		if (collider) {
+			enemyColliderComponents_.push_back(collider);
+		} else {
+			Console::Print("Failed to add ColliderComponent to enemy " + std::to_string(i));
+		}
 		enemyPreviousRotations_.push_back(Quaternion::identity);
 		enemyTargetRotations_.push_back(Quaternion::identity);
-		enemy->AddComponent<ColliderComponent>();
 		enemies_.push_back(std::move(enemy));
 	}
 
-	// コリジョンコールバックの登録
-	playerColliderComponent_->RegisterCollisionCallback([this](Entity* other) {
-		Console::Print("Player collided with: " + other->GetName());
-		}
-	);
+	//// コリジョンコールバックの登録
+	//playerColliderComponent_->RegisterCollisionCallback([this](Entity* other) {
+	//	Console::Print("Player collided with: " + other->GetName());
+	//	}
+	//);
 
-	testEntColliderComponent_->RegisterCollisionCallback([this](Entity* other) {
-		Console::Print("testEnt collided with: " + other->GetName());
-		}
-	);
+	//testEntColliderComponent_->RegisterCollisionCallback([this](Entity* other) {
+	//	Console::Print("testEnt collided with: " + other->GetName());
+	//	}
+	//);
 
 	// 剣のエンティティを作成
 	swordEntity_ = std::make_unique<Entity>("sword");
 	swordEntity_->GetTransform()->SetLocalPos(Vec3::zero);
+	swordTransform_ = swordEntity_->GetTransform();
 
 	cameraRoot_ = std::make_unique<Entity>("cameraBase");
 	cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
@@ -156,6 +162,12 @@ void GameScene::Init(Engine* engine) {
 	camera_->SetParent(cameraRoot_.get());
 	camera_->GetTransform()->SetLocalPos(Vec3::forward * -2.5f);
 
+#pragma endregion
+
+#pragma region コンソール変数/コマンド
+	ConVarManager::RegisterConVar<float>("sw_interpspeed", 15.0f, "Speed of interpolation for sword movement");
+	Console::SubmitCommand("bind f11 +attack1");
+	Console::SubmitCommand("bind f12 +attack2");
 #pragma endregion
 }
 
@@ -190,6 +202,9 @@ void GameScene::Update(const float deltaTime) {
 	particleManager_->Update(EngineTimer::GetScaledDeltaTime());
 	particle_->Update(EngineTimer::GetScaledDeltaTime());
 
+	// 剣先にパーティクルを生成
+	//particle_->EmitParticlesAtPosition(player_->GetTransform()->GetWorldPos(), 0, 0.1f, Vec3::zero, Vec3::zero, 2);
+
 	testEnt_->GetTransform()->SetWorldRot(testEnt_->GetTransform()->GetWorldRot() * Quaternion::Euler(Vec3::up * 1.0f * deltaTime));
 	testEnt2_->GetTransform()->SetLocalRot(testEnt2_->GetTransform()->GetLocalRot() * Quaternion::Euler(Vec3::up * 1.0f * deltaTime));
 	testEnt3_->GetTransform()->SetLocalRot(testEnt3_->GetTransform()->GetLocalRot() * Quaternion::Euler(Vec3::up * 1.0f * deltaTime));
@@ -212,6 +227,16 @@ void GameScene::Update(const float deltaTime) {
 		enemyObjects_[i]->Update();
 	}
 
+	// 敵同士の衝突判定
+	for (int i = 0; i < enemyCount; ++i) {
+		for (int j = i + 1; j < enemyCount; ++j) {
+			if (CheckSphereCollision(*enemyColliderComponents_[i], *enemyColliderComponents_[j])) {
+				enemyMovementComponents_[i]->OnCollisionWithEnemy(enemies_[j].get());
+				enemyMovementComponents_[j]->OnCollisionWithEnemy(enemies_[i].get());
+			}
+		}
+	}
+
 	Vec3 velocity = playerMovementComponent_->GetVelocity() * 0.254f;
 	RotateMesh(previousRotation_, targetRotation_, deltaTime, velocity);
 
@@ -222,16 +247,27 @@ void GameScene::Update(const float deltaTime) {
 
 	BehaviorInit();
 
+	// attack3のそれぞれのパラメーターを編集
+#ifdef _DEBUG
+	ImGuiManager::DragVec3("attack3Restpos", attack3RestPos, 0.1f, "%.2f");
+	ImGuiManager::DragVec3("attack3Restrot", attack3RestRot, 0.1f, "%.2f");
+	ImGui::Separator();
+	ImGuiManager::DragVec3("attack3Endpos", attack3EndPos, 0.1f, "%.2f");
+	ImGuiManager::DragVec3("attack3EndRot", attack3EndRot, 0.1f, "%.2f");
+#endif
+
 	BehaviorUpdate(deltaTime);
 
 	shadow_->SetPos({ player_->GetTransform()->GetWorldPos().x,0.0f, player_->GetTransform()->GetWorldPos().z });
 	shadow_->Update();
 
-	 // 衝突判定
+	// 衝突判定
 	if (CheckSphereCollision(*playerColliderComponent_, *testEntColliderComponent_)) {
 		playerColliderComponent_->OnCollision(testEnt_.get());
 		testEntColliderComponent_->OnCollision(player_.get());
 	}
+
+	sprite_->Update();
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -309,7 +345,7 @@ void GameScene::Render() {
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
-	// sprite_->Draw();
+	sprite_->Draw();
 }
 
 void GameScene::Shutdown() {
@@ -319,11 +355,36 @@ void GameScene::Shutdown() {
 }
 
 bool GameScene::CheckSphereCollision(const ColliderComponent& collider1, const ColliderComponent& collider2) {
+	if (!&collider1 || !&collider2) {
+		Console::Print("One of the colliders is null");
+		return false;
+	}
+
 	Vec3 pos1 = collider1.GetPosition();
 	Vec3 pos2 = collider2.GetPosition();
 
 	float distance = (pos1 - pos2).Length();
 	return distance <= (collider1.GetRadius() + collider2.GetRadius());
+}
+
+void GameScene::CheckSwordCollision([[maybe_unused]] Entity* player, Entity* enemy) {
+	// 剣の位置を取得
+	Vec3 swordPos = swordEntity_->GetTransform()->GetWorldPos();
+	// 敵の位置を取得
+	Vec3 enemyPos = enemy->GetTransform()->GetWorldPos();
+
+	// 剣と敵の距離を計算
+	float distance = (swordPos - enemyPos).Length();
+
+	// 当たり判定の範囲を設定
+	float collisionRange = 2.0f; // 適切な範囲に調整
+
+	// 剣が敵に当たった場合の条件
+	if (distance <= collisionRange) {
+		if (EnemyMovement* enemyMovement = enemy->GetComponent<EnemyMovement>()) {
+			enemyMovement->OnSwordHit(player); // プレイヤーエンティティを渡す
+		}
+	}
 }
 
 void GameScene::RequestBehavior(SwordBehavior request) {
@@ -350,8 +411,12 @@ void GameScene::IdleUpdate([[maybe_unused]] float deltaTime) {
 	sword_->SetRot(swordTransform->GetWorldRot().ToEulerAngles());
 	sword_->Update();
 
-	if (InputSystem::IsPressed("attack1")) {
-		RequestBehavior(SwordBehavior::Attack1);
+	if (InputSystem::IsTriggered("attack1")) {
+		if (playerMovementComponent_->IsGrounded()) {
+			RequestBehavior(SwordBehavior::Attack1);
+		} else {
+			RequestBehavior(SwordBehavior::Attack3Swing);
+		}
 	}
 }
 
@@ -359,47 +424,177 @@ void GameScene::IdleUpdate([[maybe_unused]] float deltaTime) {
 // Purpose: 攻撃1
 //-----------------------------------------------------------------------------
 void GameScene::Attack1Init() {
+	swordTransform_->SetWorldPos(playerObject_->GetPos() + previousRotation_ * attack1RestPos);
+	swordTransform_->SetLocalRot(previousRotation_ * Quaternion::Euler(attack1RestRot * Math::deg2Rad));
+	// 前方にふっとばす
+	playerMovementComponent_->SetVelocity(previousRotation_ * Vec3::forward * Math::HtoM(2000.0f));
 }
 
 void GameScene::Attack1Update([[maybe_unused]] float deltaTime) {
-	// プレイヤーの手らへんに剣を配置
-	static Vec3 swordOffset = Vec3(0.2f, 0.6f, -0.3f); // 背中の位置をオフセットで指定
-	ImGuiManager::DragVec3("swordOffset", swordOffset, 0.01f, "%.2f");
-	Vec3 swordPosition = playerObject_->GetPos() + previousRotation_ * swordOffset;
+	Vec3 targetPos = playerObject_->GetPos() + previousRotation_ * attack1EndPos;
 	TransformComponent* swordTransform = swordEntity_->GetTransform();
 
-	swordTransform->SetWorldPos(Math::Lerp(swordTransform->GetWorldPos(), swordPosition, deltaTime * 20.0f));
+	Debug::DrawAxis(playerObject_->GetPos() + previousRotation_ * attack1RestPos, previousRotation_ * Quaternion::Euler(attack1RestRot * Math::deg2Rad));
 
-	static Vec3 swordRotation = Vec3(160.0f, 0.0f, 0.0f);
-	ImGuiManager::DragVec3("swordRotation", swordRotation, 0.01f, "%.2f");
-	swordTransform->SetLocalRot(
-		Quaternion::Slerp(
-			swordTransform->GetLocalRot(),
-			previousRotation_ * Quaternion::Euler(swordRotation * Math::deg2Rad),
-			deltaTime * 10.0f)
-	);
+#ifdef _DEBUG
+	ImGuiManager::DragVec3("attack1RestPos", attack1RestPos, 0.01f, "%.2f");
+	ImGuiManager::DragVec3("attack1EndPos", attack1EndPos, 0.01f, "%.2f");
+#endif
 
-	sword_->SetPos(swordTransform->GetWorldPos());
-	sword_->SetRot(swordTransform->GetWorldRot().ToEulerAngles());
+	//float interpspeed = ConVarManager::GetConVar("sw_interpspeed")->GetValueAsFloat();
+	if (playerMovementComponent_->IsGrounded()) {
+		swordTransform->SetWorldPos(Math::Lerp(swordTransform->GetWorldPos(), targetPos, deltaTime * 30.0f));
+		swordTransform->SetLocalRot(
+			Quaternion::Slerp(
+				swordTransform->GetLocalRot(),
+				previousRotation_ * Quaternion::Euler(attack1EndRot * Math::deg2Rad),
+				deltaTime * 10.0f)
+		);
+
+		Debug::DrawAxis(targetPos, previousRotation_ * Quaternion::Euler(attack1EndRot * Math::deg2Rad));
+	} else {
+		// プレイヤーの前方向に剣を配置
+		static Vec3 swordOffset = Vec3(0.0f, 0.0f, 1.0f); // 前方向の位置をオフセットで指定
+		Vec3 swordPosition = playerObject_->GetPos() + previousRotation_ * swordOffset;
+
+		swordTransform_->SetWorldPos(Math::Lerp(swordTransform_->GetWorldPos(), swordPosition, deltaTime * 30.0f));
+		static Vec3 testRot = Vec3(90.0f, 45.0f, 90.0f);
+#ifdef _DEBUG
+		ImGuiManager::DragVec3("rot", testRot, 0.1f, "%.2f");
+#endif
+		swordTransform_->SetLocalRot(Quaternion::Slerp(swordTransform_->GetLocalRot(), previousRotation_ * Quaternion::Euler(testRot * Math::deg2Rad), deltaTime * 10.0f));
+
+		Debug::DrawAxis(swordPosition, previousRotation_ * Quaternion::Euler(testRot * Math::deg2Rad));
+	}
+
+	sword_->SetPos(swordTransform_->GetWorldPos());
+	sword_->SetRot(swordTransform_->GetWorldRot().ToEulerAngles());
 	sword_->Update();
+
+	Vec3 swordTipPosition = swordTransform_->GetWorldPos() + swordTransform_->GetLocalRot() * Vec3::up * 1.0f;
+	particle_->EmitParticlesAtPosition(swordTipPosition, 0, 0.1f, Vec3::zero, Vec3::zero, 2);
+
+	// 剣の当たり判定をチェック
+	for (auto& enemy : enemies_) {
+		CheckSwordCollision(player_.get(), enemy.get());
+	}
+
+	// endPosに到達したらアイドル状態に戻す
+	if (swordTransform->GetWorldPos().Distance(targetPos) < 0.25f) {
+		RequestBehavior(SwordBehavior::Idle);
+	}
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 攻撃2
 //-----------------------------------------------------------------------------
-void GameScene::Attack2Init() {
+void GameScene::Attack2Init() {}
+
+void GameScene::Attack2Update([[maybe_unused]] float deltaTime) {}
+
+void GameScene::Attack3SwingInit() {
+	strikeTimer_ = 0.0f;
+	swordTransform_->SetWorldPos(playerObject_->GetPos() + previousRotation_ * attack3swingPos);
+	swordTransform_->SetLocalRot(previousRotation_ * Quaternion::Euler(attack3swingRot * Math::deg2Rad));
+	// 斜上前にふっとばす
+	playerMovementComponent_->SetVelocity(previousRotation_ * Vec3::forward * Math::HtoM(200.0f) + Vec3::up * Math::HtoM(600.0f));
 }
 
-void GameScene::Attack2Update([[maybe_unused]] float deltaTime) {
+void GameScene::Attack3SwingUpdate(float deltaTime) {
+	Debug::DrawAxis(playerObject_->GetPos() + previousRotation_ * attack3swingPos, previousRotation_ * Quaternion::Euler(attack3swingRot * Math::deg2Rad));
+
+	//float interpspeed = ConVarManager::GetConVar("sw_interpspeed")->GetValueAsFloat();
+
+	// TODO : 通常のdeltaTimeに戻す
+
+	strikeTimer_ += deltaTime;
+
+	Console::Print(std::format("strikeTimer: {}", strikeTimer_), Vec4::orange, Channel::kGame);
+
+	// attack3swingPosの編集
+#ifdef _DEBUG
+	ImGuiManager::DragVec3("attack3swingPos", attack3swingPos, 0.1f, "%.2f");
+	ImGuiManager::DragVec3("attack3swingRot", attack3swingRot, 0.1f, "%.2f");
+	ImGuiManager::DragVec3("attack3swingEndPos", attack3swingEndPos, 0.1f, "%.2f");
+	ImGuiManager::DragVec3("attack3swingEndRot", attack3swingEndRot, 0.1f, "%.2f");
+#endif	
+
+	Debug::DrawAxis(playerObject_->GetPos() + previousRotation_ * attack3swingEndPos, previousRotation_ * Quaternion::Euler(attack3swingEndRot * Math::deg2Rad));
+
+	if (strikeTimer_ < strikeTime_) {
+		Vec3 targetPos = playerObject_->GetPos() + previousRotation_ * attack3swingEndPos;
+		swordTransform_->SetWorldPos(Math::Lerp(swordTransform_->GetWorldPos(), targetPos, deltaTime * 10));
+
+		swordTransform_->SetLocalRot(
+			Quaternion::Slerp(
+				swordTransform_->GetLocalRot(),
+				previousRotation_ * Quaternion::Euler(attack3swingEndRot * Math::deg2Rad),
+				deltaTime * 4)
+		);
+	} else {
+		RequestBehavior(SwordBehavior::Attack3);
+	}
+	sword_->SetPos(swordTransform_->GetWorldPos());
+	sword_->SetRot(swordTransform_->GetWorldRot().ToEulerAngles());
+	sword_->Update();
+
+	Vec3 swordTipPosition = swordTransform_->GetWorldPos() + swordTransform_->GetLocalRot() * Vec3::up * 1.0f;
+	particle_->EmitParticlesAtPosition(swordTipPosition, 0, 0.1f, Vec3::zero, Vec3::zero, 2);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 攻撃3
 //-----------------------------------------------------------------------------
 void GameScene::Attack3Init() {
+	swordTransform_->SetWorldPos(playerObject_->GetPos() + previousRotation_ * attack3RestPos);
+	swordTransform_->SetLocalRot(previousRotation_ * Quaternion::Euler(attack3RestRot * Math::deg2Rad));
+	// ストライク!
+	playerMovementComponent_->SetVelocity(previousRotation_ * Vec3::forward * Math::HtoM(200.0f) + -Vec3::up * Math::HtoM(1000.0f));
 }
 
 void GameScene::Attack3Update([[maybe_unused]] float deltaTime) {
+	float interpspeed = ConVarManager::GetConVar("sw_interpspeed")->GetValueAsFloat();
+
+	// TODO : 通常のdeltaTimeに戻す
+
+	Debug::DrawAxis(playerObject_->GetPos() + previousRotation_ * attack3RestPos, previousRotation_ * Quaternion::Euler(attack3RestRot * Math::deg2Rad));
+
+#ifdef _DEBUG
+	ImGuiManager::DragVec3("attack3swingPos", attack3RestPos, 0.1f, "%.2f");
+	ImGuiManager::DragVec3("attack3swingRot", attack3RestRot, 0.1f, "%.2f");
+	ImGuiManager::DragVec3("attack3swingEndPos", attack3EndPos, 0.1f, "%.2f");
+	ImGuiManager::DragVec3("attack3swingEndRot", attack3EndRot, 0.1f, "%.2f");
+#endif
+
+	Debug::DrawAxis(playerObject_->GetPos() + previousRotation_ * attack3RestPos, previousRotation_ * Quaternion::Euler(attack3RestRot));
+	Debug::DrawAxis(playerObject_->GetPos() + previousRotation_ * attack3EndPos, previousRotation_ * Quaternion::Euler(attack3EndRot));
+
+	Vec3 targetPos = playerObject_->GetPos() + previousRotation_ * attack3EndPos;
+	swordTransform_->SetWorldPos(Math::Lerp(swordTransform_->GetWorldPos(), targetPos, deltaTime * interpspeed));
+
+	swordTransform_->SetLocalRot(
+		Quaternion::Slerp(
+			swordTransform_->GetLocalRot(),
+			previousRotation_ * Quaternion::Euler(attack3EndRot * Math::deg2Rad),
+			deltaTime * interpspeed)
+	);
+
+	sword_->SetPos(swordTransform_->GetWorldPos());
+	sword_->SetRot(swordTransform_->GetWorldRot().ToEulerAngles());
+	sword_->Update();
+
+
+	Vec3 swordTipPosition = swordTransform_->GetWorldPos() + swordTransform_->GetLocalRot() * Vec3::up * 1.0f;
+	particle_->EmitParticlesAtPosition(swordTipPosition, 0, 0.1f, Vec3::zero, Vec3::zero, 2);
+
+	// 剣の当たり判定をチェック
+	for (auto& enemy : enemies_) {
+		CheckSwordCollision(player_.get(), enemy.get());
+	}
+
+	if (playerMovementComponent_->IsGrounded()) {
+		RequestBehavior(SwordBehavior::Idle);
+	}
 }
 
 void GameScene::BehaviorInit() {
@@ -417,6 +612,9 @@ void GameScene::BehaviorInit() {
 			break;
 		case SwordBehavior::Attack3:
 			Attack3Init();
+			break;
+		case SwordBehavior::Attack3Swing:
+			Attack3SwingInit();
 			break;
 		}
 		behaviorRequest_ = std::nullopt;
@@ -436,6 +634,9 @@ void GameScene::BehaviorUpdate(float deltaTime) {
 		break;
 	case SwordBehavior::Attack3:
 		Attack3Update(deltaTime);
+		break;
+	case SwordBehavior::Attack3Swing:
+		Attack3SwingUpdate(deltaTime);
 		break;
 	}
 }

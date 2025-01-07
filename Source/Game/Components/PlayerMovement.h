@@ -19,6 +19,8 @@ public:
 	void ProcessInput();
 	bool CheckGrounded();
 
+	void SetVelocity(Vec3 newVel);
+
 private:
 	// プレイヤーの移動入力
 	Vec3 moveInput_ = Vec3::zero;

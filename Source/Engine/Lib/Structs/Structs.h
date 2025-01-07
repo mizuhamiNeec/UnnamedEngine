@@ -98,6 +98,7 @@ struct Particle {
 	float currentTime;
 	Vec3 drag;
 	Vec3 gravity;
+	uint32_t textureIndex;
 };
 
 struct AABB {

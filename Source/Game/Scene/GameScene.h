@@ -31,6 +31,8 @@ public:
 private:
 	static bool CheckSphereCollision(const ColliderComponent& collider1, const ColliderComponent& collider2);
 
+	void CheckSwordCollision(Entity* player, Entity* enemy);
+
 	Window* window_ = nullptr;
 	D3D12* renderer_ = nullptr;
 
@@ -67,6 +69,7 @@ private:
 	// 剣
 	std::unique_ptr<Entity> swordEntity_;
 	std::unique_ptr<Object3D> sword_;
+	TransformComponent* swordTransform_ = nullptr;
 
 	std::unique_ptr<Entity> cameraRoot_;
 	CameraRotator* cameraRotator_ = nullptr;
@@ -77,24 +80,50 @@ private:
 	std::unique_ptr<ParticleObject> particle_;
 
 	// 剣のビヘイビア
+
 	enum class SwordBehavior {
 		Idle,
 		Attack1,
 		Attack2,
+		Attack3Swing,
 		Attack3,
 	};
+
 
 	void RequestBehavior(SwordBehavior request);
 
 	void IdleInit();
 	void IdleUpdate(float deltaTime);
 
+
+	Vec3 attack1RestPos = { -0.65f, 0.0f, 0.2f };
+	Vec3 attack1RestRot = { 90.0f, 100.0f, 180.0f };
+	Vec3 attack1EndPos = { 0.5f, 0.0f,1.3f };
+	Vec3 attack1EndRot = { 90.0f, -80.0f, 180.0f };
 	void Attack1Init();
 	void Attack1Update(float deltaTime);
 
+	Vec3 attack2RestPos = { -0.5f, 0.0f, 0.5f };
+	Vec3 attack2RestRot = { 90.0f, 100.0f, 180.0f };
+	Vec3 attack2EndPos = { 0.5f, 0.0f,0.75f };
+	Vec3 attack2EndRot = { 90.0f, -80.0f, 180.0f };
 	void Attack2Init();
 	void Attack2Update(float deltaTime);
 
+
+	Vec3 attack3swingPos = { 0.4f, -2.5f, -0.5f };
+	Vec3 attack3swingRot = { 0.0f, 90.0f, 180.0f };
+	Vec3 attack3swingEndPos = { 0.25f, 1.0f, -0.25f };
+	Vec3 attack3swingEndRot = { -20.0f, 60.0f, 180.0f };
+	void Attack3SwingInit();
+	void Attack3SwingUpdate(float deltaTime);
+
+	Vec3 attack3RestPos = { 0.0f, 1.0f, 0.0f };
+	Vec3 attack3RestRot = { 90.0f, 130.0f, 90.0f };
+	Vec3 attack3EndPos = { 0.0f, -3.0f,1.35f };
+	Vec3 attack3EndRot = { 90.0f, 10.0f, 90.0f };
+	float strikeTime_ = 0.75f;
+	float strikeTimer_ = 0.0f;
 	void Attack3Init();
 	void Attack3Update(float deltaTime);
 

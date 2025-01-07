@@ -33,6 +33,8 @@ public:
 	Vec3 GeneratePosition(const Vec3& emitterPosition, int shapeType);
 	static Vec3 GenerateConeVelocity(float coneAngle);
 
+	void EmitParticlesAtPosition(const Vec3& position, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity, uint32_t count);
+
 private:
 	ParticleManager* particleCommon_ = nullptr;
 	SrvManager* srvManager_ = nullptr;
