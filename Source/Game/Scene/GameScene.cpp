@@ -38,12 +38,26 @@ void GameScene::Init(Engine* engine) {
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/weaponNinjaSword.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/fakeShadow.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/hud.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/num.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/combo.png");
 #pragma endregion
 
 #pragma region スプライト類
-	sprite_ = std::make_unique<Sprite>();
-	sprite_->Init(spriteCommon_, "./Resources/Textures/hud.png");
-	sprite_->SetSize({ 1280.0f, 720.0f, 0.0f });
+	hudSprite_ = std::make_unique<Sprite>();
+	hudSprite_->Init(spriteCommon_, "./Resources/Textures/hud.png");
+	hudSprite_->SetSize({ 1280.0f, 720.0f, 0.0f });
+
+	comboSprite_ = std::make_unique<Sprite>();
+	comboSprite_->Init(spriteCommon_, "./Resources/Textures/combo.png");
+	comboSprite_->SetSize({ 154.0f, 47.0f, 0.0f });
+
+	for (int i = 0; i < 5; ++i) {
+		Number number;
+		number.sprite = std::make_unique<Sprite>();
+		number.sprite->Init(spriteCommon_, "./Resources/Textures/num.png");
+		number.sprite->SetSize({ 64.0f, 128.0f, 0.0f });
+		digits_.push_back(std::move(number));
+	}
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -103,18 +117,6 @@ void GameScene::Init(Engine* engine) {
 	CameraManager::AddCamera(camera);
 	// アクティブカメラに設定
 	CameraManager::SetActiveCamera(camera);
-
-	testEnt_ = std::make_unique<Entity>("testEnt");
-	testEntColliderComponent_ = testEnt_->AddComponent<ColliderComponent>();
-	testEnt_->GetTransform()->SetLocalPos(Vec3::zero);
-
-	testEnt2_ = std::make_unique<Entity>("testEnt2");
-	testEnt2_->GetTransform()->SetLocalPos(Vec3::right * 2.0f);
-	testEnt2_->SetParent(testEnt_.get());
-
-	testEnt3_ = std::make_unique<Entity>("testEnt3");
-	testEnt3_->GetTransform()->SetLocalPos(Vec3::right * 2.0f);
-	testEnt3_->SetParent(testEnt2_.get());
 
 	player_ = std::make_unique<Entity>("player");
 	playerColliderComponent_ = player_->AddComponent<ColliderComponent>();
@@ -196,19 +198,11 @@ void GameScene::RotateMesh(Quaternion& prev, Quaternion target, const float delt
 }
 
 void GameScene::Update(const float deltaTime) {
-	sprite_->Update();
+	hudSprite_->Update();
 	ground_->Update();
 
 	particleManager_->Update(EngineTimer::GetScaledDeltaTime());
 	particle_->Update(EngineTimer::GetScaledDeltaTime());
-
-	// 剣先にパーティクルを生成
-	//particle_->EmitParticlesAtPosition(player_->GetTransform()->GetWorldPos(), 0, 0.1f, Vec3::zero, Vec3::zero, 2);
-
-	testEnt_->GetTransform()->SetWorldRot(testEnt_->GetTransform()->GetWorldRot() * Quaternion::Euler(Vec3::up * 1.0f * deltaTime));
-	testEnt2_->GetTransform()->SetLocalRot(testEnt2_->GetTransform()->GetLocalRot() * Quaternion::Euler(Vec3::up * 1.0f * deltaTime));
-	testEnt3_->GetTransform()->SetLocalRot(testEnt3_->GetTransform()->GetLocalRot() * Quaternion::Euler(Vec3::up * 1.0f * deltaTime));
-	testEnt_->Update(deltaTime);
 
 	player_->Update(deltaTime);
 
@@ -261,13 +255,10 @@ void GameScene::Update(const float deltaTime) {
 	shadow_->SetPos({ player_->GetTransform()->GetWorldPos().x,0.0f, player_->GetTransform()->GetWorldPos().z });
 	shadow_->Update();
 
-	// 衝突判定
-	if (CheckSphereCollision(*playerColliderComponent_, *testEntColliderComponent_)) {
-		playerColliderComponent_->OnCollision(testEnt_.get());
-		testEntColliderComponent_->OnCollision(player_.get());
-	}
+	static Vec3 offset = { 760.0f, 130.0f, 0.0f };
+	NumbersUpdate(combo_, digits_, offset);
 
-	sprite_->Update();
+	hudSprite_->Update();
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -345,7 +336,11 @@ void GameScene::Render() {
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
-	sprite_->Draw();
+	for (const auto& digit : digits_) {
+		digit.sprite->Draw();
+	}
+	comboSprite_->Draw();
+	hudSprite_->Draw();
 }
 
 void GameScene::Shutdown() {
@@ -355,11 +350,6 @@ void GameScene::Shutdown() {
 }
 
 bool GameScene::CheckSphereCollision(const ColliderComponent& collider1, const ColliderComponent& collider2) {
-	if (!&collider1 || !&collider2) {
-		Console::Print("One of the colliders is null");
-		return false;
-	}
-
 	Vec3 pos1 = collider1.GetPosition();
 	Vec3 pos2 = collider2.GetPosition();
 
@@ -381,9 +371,38 @@ void GameScene::CheckSwordCollision([[maybe_unused]] Entity* player, Entity* ene
 
 	// 剣が敵に当たった場合の条件
 	if (distance <= collisionRange) {
-		if (EnemyMovement* enemyMovement = enemy->GetComponent<EnemyMovement>()) {
-			enemyMovement->OnSwordHit(player); // プレイヤーエンティティを渡す
+		float currentTime = EngineTimer::GetTotalTime();
+		if (!lastSwordHitTime_.contains(enemy) ||
+			currentTime - lastSwordHitTime_[enemy] > kSwordHitInterval) {
+			if (EnemyMovement* enemyMovement = enemy->GetComponent<EnemyMovement>()) {
+				enemyMovement->OnSwordHit(player); // プレイヤーエンティティを渡す
+			}
+			combo_++;
+			lastSwordHitTime_[enemy] = currentTime;
 		}
+	}
+}
+
+void GameScene::NumbersUpdate(int number, std::vector<Number>& digits, Vec3 offset) {
+	std::string numberStr = std::to_string(number);
+	while (numberStr.length() < 5) {
+		numberStr = "0" + numberStr; // 5桁にするためにゼロパディング
+	}
+
+	for (size_t i = 0; i < digits.size(); ++i) {
+		int digit = numberStr[i] - '0';
+		digits[i].uvPos.x = digit * digits[i].uvSize.x;
+		digits[i].sprite->SetUvPos(digits[i].uvPos);
+		digits[i].sprite->SetUvSize(digits[i].uvSize);
+		digits[i].sprite->SetPos({ offset.x + 64.0f * i, offset.y, offset.z }); // オフセットを考慮して1桁ごとに64ピクセルずらす
+		digits[i].sprite->Update();
+	}
+
+	// comboSpriteを一番右の数字の右下に設置
+	if (!digits.empty()) {
+		Vec3 lastDigitPos = digits.back().sprite->GetPos();
+		comboSprite_->SetPos({ lastDigitPos.x + 64.0f, lastDigitPos.y + 64.0f, lastDigitPos.z });
+		comboSprite_->Update();
 	}
 }
 

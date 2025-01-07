@@ -45,7 +45,7 @@ void Engine::Init() {
 	RegisterConsoleCommandsAndVariables();
 
 	// ウィンドウの作成
-	window_ = std::make_unique<Window>(L"Window", kClientWidth, kClientHeight);
+	window_ = std::make_unique<Window>(L"LE2A_18_ミズサワ_ハミル", kClientWidth, kClientHeight);
 	window_->Create(nullptr);
 
 	InputSystem::Init();

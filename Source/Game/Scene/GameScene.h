@@ -33,22 +33,31 @@ private:
 
 	void CheckSwordCollision(Entity* player, Entity* enemy);
 
+	struct Number {
+		std::unique_ptr<Sprite> sprite;
+		Vec2 pos = Vec2::zero;
+		Vec2 uvSize = { 0.1f, 1.0f };
+		Vec2 uvPos = { 0.0f,0.0f };
+	};
+	void NumbersUpdate(int number, std::vector<Number>& digits, Vec3 offset);
+	std::vector<Number> digits_;
+
 	Window* window_ = nullptr;
 	D3D12* renderer_ = nullptr;
 
-	std::unique_ptr<Sprite> sprite_;
+	std::unique_ptr<Sprite> hudSprite_;
+	std::unique_ptr<Sprite> comboSprite_;
+
+	int combo_ = 0;
+
+	std::unordered_map<Entity*, float> lastSwordHitTime_;
+	float kSwordHitInterval = 0.5f;
 
 	// Env
 	std::unique_ptr<Object3D> ground_;
 
 	// Shadow
 	std::unique_ptr<Object3D> shadow_;
-
-	std::unique_ptr<Entity> testEnt_;
-	std::unique_ptr<Entity> testEnt2_;
-	std::unique_ptr<Entity> testEnt3_;
-
-	ColliderComponent* testEntColliderComponent_ = nullptr;
 
 	// Player
 	std::unique_ptr<Entity> player_;

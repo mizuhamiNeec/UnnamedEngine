@@ -128,7 +128,7 @@ void EnemyMovement::OnSwordHit(Entity* enemy) {
 }
 
 void EnemyMovement::ApplyKnockBack(const Vec3& knockBackVel) {
-	velocity_ += knockBackVel * 5.0f; // ノックバックの強さを調整
+	velocity_ += knockBackVel * 25.0f; // ノックバックの強さを調整
 	transform_->SetWorldPos(transform_->GetWorldPos() + Vec3::up * 0.25f);
 	isGrounded_ = false;
 }
