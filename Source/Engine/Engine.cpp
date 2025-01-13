@@ -1,7 +1,7 @@
 #include "Engine.h"
 
 #ifdef _DEBUG
-#include "imgui/imgui_internal.h"
+#include <imgui_internal.h>
 #endif
 
 #include <Camera/Camera.h>
@@ -13,6 +13,7 @@
 #include <Lib/Console/ConVarManager.h>
 #include <Lib/DebugHud/DebugHud.h>
 #include <Lib/Utils/ClientProperties.h>
+#include <Lib/Utils/StrUtils.h>
 #include <Model/ModelManager.h>
 #include <Object3D/Object3DCommon.h>
 #include <Particle/ParticleManager.h>
@@ -45,7 +46,7 @@ void Engine::Init() {
 	RegisterConsoleCommandsAndVariables();
 
 	// ウィンドウの作成
-	window_ = std::make_unique<Window>(L"LE2A_18_ミズサワ_ハミル", kClientWidth, kClientHeight);
+	window_ = std::make_unique<Window>(StrUtils::ToString(kWindowTitle), kClientWidth, kClientHeight);
 	window_->Create(nullptr);
 
 	InputSystem::Init();
@@ -60,7 +61,7 @@ void Engine::Init() {
 
 #ifdef _DEBUG
 	imGuiManager_ = std::make_unique<ImGuiManager>();
-	imGuiManager_->Init(renderer_.get(), window_.get(), srvManager_.get());
+	imGuiManager_->Init(renderer_.get(), srvManager_.get());
 
 	console_ = std::make_unique<Console>();
 #endif
@@ -386,7 +387,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 		"bind",
 		[](const std::vector<std::string>& args) {
 			if (args.size() < 2) {
-				Console::Print("Usage: bind <key> <command>\n", kConsoleColorWarning, Channel::kInputSystem);
+				Console::Print("Usage: bind <key> <command>\n", kConsoleColorWarning, Channel::InputSystem);
 				return;
 			}
 			std::string key = args[0];
@@ -414,7 +415,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	);
 
 	// コンソール変数を登録
-	ConVarManager::RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen");
+	ConVarManager::RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen (1 = meter, 2 = hammer)");
 	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");
 	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps, "Frame rate limiter");
 	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);

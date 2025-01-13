@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <string>
 
-struct Vec2;
+#include <Lib/Math/Vector/Vec2.h>
 
 struct Vec3 final {
 	float x, y, z;
@@ -16,8 +16,8 @@ struct Vec3 final {
 	static const Vec3 forward;
 	static const Vec3 backward;
 
-	Vec3(float x = 0.0f, float y = 0.0f, float z = 0.0f);
-	Vec3(Vec2 vec2);
+	constexpr Vec3(const float x = 0.0f, const float y = 0.0f, const float z = 0.0f) : x(x), y(y), z(z) {}
+	constexpr Vec3(const Vec2 vec2) : x(vec2.x), y(vec2.y), z(0.0f) {}
 
 	/* ---------------- 関数類 ---------------- */
 	float Length() const;
@@ -40,10 +40,7 @@ struct Vec3 final {
 	float& operator[](uint32_t index);
 	const float& operator[](uint32_t index) const;
 
-
-	Vec3 operator-() const {
-		return { -x, -y, -z };
-	}
+	Vec3 operator-() const;
 
 	Vec3 operator+(const Vec3& rhs) const;
 	Vec3 operator-(const Vec3& rhs) const;

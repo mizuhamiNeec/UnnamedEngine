@@ -3,10 +3,10 @@
 #include <dwmapi.h>
 #include <imgui.h>
 #include <utility>
-
-#include "WindowsUtils.h"
-#include "../Input/InputSystem.h"
-#include "Lib/Console/Console.h"
+#include <Input/InputSystem.h>
+#include <Lib/Console/Console.h>
+#include <Lib/Utils/StrUtils.h>
+#include <Window/WindowsUtils.h>
 
 #pragma comment(lib, "winmm.lib")
 
@@ -78,7 +78,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	);
 
 	if (!hWnd_) {
-		Console::Print("Failed to create window.\n", kConsoleColorError, Channel::kEngine);
+		Console::Print("Failed to create window.\n", kConsoleColorError, Channel::Engine);
 		return false;
 	}
 
@@ -90,7 +90,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	// このウィンドウにフォーカス
 	SetFocus(hWnd_);
 
-	Console::Print("Complete create Window.\n", kConsoleColorCompleted, Channel::kEngine);
+	Console::Print("Complete create Window.\n", kConsoleColorCompleted, Channel::Engine);
 
 	return true;
 }
@@ -150,20 +150,23 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 				if (static_cast<bool>(sMode) != darkMode) {
 					sMode = darkMode;
 					SetUseImmersiveDarkMode(hWnd, darkMode); // ウィンドウのモードを設定
+					if (sMode) {
+						ImGuiManager::StyleColorsDark();
+					} else {
+						ImGuiManager::StyleColorsLight();
+					}
 					Console::Print(
 						std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConsoleColorWait,
-						Channel::kEngine
+						Channel::Engine
 					);
 				}
 			}
 		}
 		break;
 	case WM_INPUT:
-	{
-		InputSystem::ProcessInput(lParam);
+		// RawInputの処理
+		InputSystem::ProcessInput(static_cast<long>(lParam));
 		break;
-	}
-
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE) {
 			// ウィンドウが非アクティブになったときリセットする

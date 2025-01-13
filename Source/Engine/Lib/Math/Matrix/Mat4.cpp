@@ -123,7 +123,7 @@ Mat4 Mat4::Inverse() const {
 	const float det = Determinant();
 
 	if (det == 0.0f) {
-		Console::Print("Mat4 : 行列式がゼロのため、逆行列は存在しません。\n", kConsoleColorError, Channel::kEngine);
+		Console::Print("Mat4 : 行列式がゼロのため、逆行列は存在しません。\n", kConsoleColorError, Channel::Engine);
 		return result;
 	}
 
@@ -425,7 +425,7 @@ Quaternion Mat4::ToQuaternion() const {
 			q.z = 0.25f * s;
 		}
 	}
-	return q;
+	return q.Normalized();
 }
 
 //-----------------------------------------------------------------------------

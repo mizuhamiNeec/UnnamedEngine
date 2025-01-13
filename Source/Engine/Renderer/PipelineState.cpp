@@ -134,7 +134,7 @@ IDxcBlob* PipelineState::CompileShader(
 	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
 	if (shaderError != nullptr && shaderError->GetStringLength() != 0)
 	{
-		Console::Print(shaderError->GetStringPointer(), kConsoleColorError, Channel::kEngine);
+		Console::Print(shaderError->GetStringPointer(), kConsoleColorError, Channel::Engine);
 		// 警告・エラーダメゼッタイ
 		assert(false);
 	}
@@ -147,7 +147,7 @@ IDxcBlob* PipelineState::CompileShader(
 	// 成功したらログを出す
 	Console::Print(
 		StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)),
-		kConsoleColorCompleted, Channel::kEngine
+		kConsoleColorCompleted, Channel::Engine
 	);
 	// もう使わないリソースを開放
 	shaderSource->Release();
@@ -161,7 +161,7 @@ void PipelineState::Create(ID3D12Device* device) {
 	assert(SUCCEEDED(hr));
 	if (SUCCEEDED(hr))
 	{
-		Console::Print("Complete Create PipelineState.\n", kConsoleColorCompleted, Channel::kEngine);
+		Console::Print("Complete Create PipelineState.\n", kConsoleColorCompleted, Channel::Engine);
 	}
 }
 

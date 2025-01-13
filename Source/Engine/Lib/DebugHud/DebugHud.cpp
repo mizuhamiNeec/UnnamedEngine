@@ -12,12 +12,11 @@ void DebugHud::ShowFrameRate() {
 #ifdef _DEBUG
 	const int flag = ConVarManager::GetConVar("cl_showfps")->GetValueAsInt();
 
-	if (flag == 0)
-	{
+	if (flag == 0) {
 		return;
 	}
 
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
 	ImGuiWindowFlags windowFlags =
 		ImGuiWindowFlags_NoBackground |
@@ -36,12 +35,10 @@ void DebugHud::ShowFrameRate() {
 	ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 	std::string text;
 	float fps;
-	if (flag == 1)
-	{
+	if (flag == 1) {
 		fps = 1.0f / EngineTimer::GetScaledDeltaTime();
 	}
-	if (flag == 2)
-	{
+	if (flag == 2) {
 		ImGuiIO io = ImGui::GetIO();
 		fps = io.Framerate;
 	}
@@ -62,23 +59,19 @@ void DebugHud::ShowFrameRate() {
 
 	float outlineSize = 1.0f;
 
-	ImU32 textColor = ImGui::ColorConvertFloat4ToU32(ToImVec4(kConsoleColorError));
-	if (fps >= 59.9f)
-	{
-		textColor = ImGui::ColorConvertFloat4ToU32(ToImVec4(kConsoleColorFloat));
-	} else if (fps >= 29.9f)
-	{
-		textColor = ImGui::ColorConvertFloat4ToU32(ToImVec4(kConsoleColorWarning));
+	ImVec4 textColor = ToImVec4(kConsoleColorError);
+	if (fps >= 59.9f) {
+		textColor = ToImVec4(kConsoleColorFloat);
+	} else if (fps >= 29.9f) {
+		textColor = ToImVec4(kConsoleColorWarning);
 	}
-
-	constexpr ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
 
 	ImGuiManager::TextOutlined(
 		drawList,
 		textPos,
 		text.c_str(),
 		textColor,
-		outlineColor,
+		ToImVec4(kDebugHudOutlineColor),
 		outlineSize
 	);
 

@@ -1,10 +1,8 @@
 #include "GameScene.h"
 
+#include <Engine.h>
 #include <Camera/CameraManager.h>
 #include <Components/CameraRotator.h>
-#include <Components/PlayerMovement.h>
-#include <Debug/Debug.h>
-#include <Engine.h>
 #include <ImGuiManager/ImGuiManager.h>
 #include <Lib/Console/ConVarManager.h>
 #include <Lib/Math/MathLib.h>
@@ -15,11 +13,10 @@
 #include <Particle/ParticleManager.h>
 #include <Sprite/SpriteCommon.h>
 #include <TextureManager/TextureManager.h>
-#include <Components/EnemyMovement.h>
 
+#include "Debug/Debug.h"
 #include "Input/InputSystem.h"
-
-constexpr int enemyCount = 24;
+#include "Lib/DebugHud/DebugHud.h"
 
 void GameScene::Init(Engine* engine) {
 	renderer_ = engine->GetRenderer();
@@ -38,18 +35,17 @@ void GameScene::Init(Engine* engine) {
 #pragma endregion
 
 #pragma region スプライト類
+	sprite_ = std::make_unique<Sprite>();
+	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
+	sprite_->SetAnchorPoint(Vec2::one * 0.5f);
+	sprite_->SetSize(Vec3(512.0f, 512.0f));
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
-	// .objファイルからモデルを読み込む
-	ModelManager::GetInstance()->LoadModel("player.obj");
 #pragma endregion
 
 #pragma region パーティクル類
-	particleManager_->CreateParticleGroup("doublestar", "./Resources/Textures/doublestar.png");
 
-	particle_ = std::make_unique<ParticleObject>();
-	particle_->Init(particleManager_, "./Resources/Textures/doublestar.png");
 #pragma endregion
 
 #pragma region エンティティ
@@ -68,13 +64,12 @@ void GameScene::Init(Engine* engine) {
 	CameraManager::SetActiveCamera(camera);
 
 	cameraRoot_ = std::make_unique<Entity>("cameraBase");
-	cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
 	cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
+	cameraRotator_ = camera_->AddComponent<CameraRotator>();
 
 	// プレイヤーにカメラをアタッチ
-	camera_->SetParent(cameraRoot_.get());
-	camera_->GetTransform()->SetLocalPos(Vec3::forward * -2.5f);
-
+	//camera_->SetParent(cameraRoot_.get());
+	camera_->GetTransform()->SetLocalPos(Vec3::up * 2.0f + Vec3::forward * -2.5f);
 #pragma endregion
 
 #pragma region コンソール変数/コマンド
@@ -82,16 +77,33 @@ void GameScene::Init(Engine* engine) {
 }
 
 void GameScene::Update(const float deltaTime) {
-	cameraRoot_->Update(deltaTime);
+	camera_->Update(deltaTime);
+
+	// マウスホイールでカメラのローカルZ軸方向に移動
+	if (InputSystem::IsTriggered("+invprev")) {
+		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() + Vec3::forward * 0.1f);
+	} else if (InputSystem::IsTriggered("+invnext")) {
+		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 0.1f);
+	}
 
 	particleManager_->Update(deltaTime);
-	particle_->Update(deltaTime);
+	static bool isOffscreen = false;
+	static float rotation = 0.0f;
+	Vec3 pos = Math::WorldToScreen(Vec3::right * 2.0f + Vec3::forward * 5.0f, true, 32.0f, isOffscreen, rotation);
+
+	ImGui::Checkbox("isOffscreen", &isOffscreen);
+	ImGui::SliderFloat("rotation", &rotation, 0.0f, 360.0f);
+
+	sprite_->SetPos(Vec3(pos.x, pos.y));
+	sprite_->SetRot(Vec3::forward * rotation);
+	sprite_->Update();
+
+	Debug::DrawAxisWithCharacter(Vec3::zero, Quaternion::Euler(0.0f, 0.0f, 0.0f));
 
 #ifdef _DEBUG
 #pragma region cl_showpos
-	if (ConVarManager::GetConVar("cl_showpos")->GetValueAsString() == "1")
-	{
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() != "0") {
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 		constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
 			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
 			ImGuiWindowFlags_NoDocking;
@@ -100,8 +112,9 @@ void GameScene::Update(const float deltaTime) {
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
-		Vec3 camPos = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate();
-		Vec3 camRot = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetRotate();
+		Mat4 invViewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
+		Vec3 camPos = invViewMat.GetTranslate();
+		const Vec3 camRot = invViewMat.ToQuaternion().ToEulerAngles();
 
 		// テキストのサイズを取得
 		ImGuiIO io = ImGui::GetIO();
@@ -117,6 +130,9 @@ void GameScene::Update(const float deltaTime) {
 			camRot.z * Math::rad2Deg,
 			0.0f
 		);
+
+		//Console::Print(text);
+
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 
 		// ウィンドウサイズをテキストサイズに基づいて設定
@@ -129,9 +145,14 @@ void GameScene::Update(const float deltaTime) {
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		float outlineSize = 1.0f;
 
-		ImU32 textColor = IM_COL32(255, 255, 255, 255);
-		ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
-		ImGuiManager::TextOutlined(drawList, textPos, text.c_str(), textColor, outlineColor, outlineSize);
+		ImGuiManager::TextOutlined(
+			drawList,
+			textPos,
+			text.c_str(),
+			ToImVec4(kDebugHudTextColor),
+			ToImVec4(kDebugHudOutlineColor),
+			outlineSize
+		);
 
 		ImGui::PopStyleVar();
 		ImGui::End();
@@ -150,12 +171,12 @@ void GameScene::Render() {
 	// パーティクル共通描画設定
 	particleManager_->Render();
 	//----------------------------------------
-	particle_->Draw();
 
 	//----------------------------------------
 	// スプライト共通描画設定
 	spriteCommon_->Render();
 	//----------------------------------------
+	sprite_->Draw();
 }
 
 void GameScene::Shutdown() {

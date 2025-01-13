@@ -31,11 +31,11 @@ private:
 	Window* window_ = nullptr;
 	D3D12* renderer_ = nullptr;
 
+	std::unique_ptr<Sprite> sprite_;
+
 	std::unique_ptr<Entity> cameraRoot_;
 	CameraRotator* cameraRotator_ = nullptr;
 
 	std::unique_ptr<Entity> camera_;
 	std::shared_ptr<CameraComponent> cameraComponent_;
-
-	std::unique_ptr<ParticleObject> particle_;
 };

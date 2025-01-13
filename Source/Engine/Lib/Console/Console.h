@@ -6,20 +6,21 @@
 
 #include "ImGuiManager/ImGuiManager.h"
 
-constexpr Vec4 kConsoleColorNormal = {.x = 0.87f, .y = 0.87f, .z = 0.87f, .w = 1.0f}; // 通常テキストの色
-constexpr Vec4 kConsoleColorWarning = {.x = 1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f}; // 警告テキストの色
-constexpr Vec4 kConsoleColorError = {.x = 1.0f, .y = 0.0f, .z = 0.0f, .w = 1.0f}; // エラーテキストの色
-constexpr Vec4 kConsoleColorWait = {.x = 0.93f, .y = 0.79f, .z = 0.09f, .w = 1.0f}; // 待ち状態テキストの色
-constexpr Vec4 kConsoleColorCompleted = {.x = 0.48f, .y = 0.76f, .z = 0.26f, .w = 1.0f}; // 完了テキストの色
+constexpr Vec4 kConsoleColorNormal = Vec4(0.71f, 0.71f, 0.71f, 1.0f); // 通常テキストの色
+constexpr Vec4 kConsoleColorExecute = Vec4(0.8f, 1.0f, 1.0f, 1.0f); // コマンド実行テキストの色
+constexpr Vec4 kConsoleColorWarning = Vec4(1.0f, 1.0f, 0.0f, 1.0f); // 警告テキストの色
+constexpr Vec4 kConsoleColorError = Vec4(1.0f, 0.0f, 0.0f, 1.0f); // エラーテキストの色
+constexpr Vec4 kConsoleColorWait = Vec4(0.93f, 0.79f, 0.09f, 1.0f); // 待ち状態テキストの色
+constexpr Vec4 kConsoleColorCompleted = Vec4(0.48f, 0.76f, 0.26f, 1.0f); // 完了テキストの色
 
-constexpr Vec4 kConsoleColorBool = {.x = 0.58f, .y = 0.0f, .z = 0.0f, .w = 1.0f};
-constexpr Vec4 kConsoleColorInt = {.x = 0.12f, .y = 0.89f, .z = 0.69f, .w = 1.0f};
-constexpr Vec4 kConsoleColorFloat = {.x = 0.22f, .y = 0.84f, .z = 0.0f, .w = 1.0f};
-constexpr Vec4 kConsoleColorString = {.x = 0.99f, .y = 0.0f, .z = 0.83f, .w = 1.0f};
-constexpr Vec4 kConsoleColorVec3 = {.x = 1.0f, .y = 0.79f, .z = 0.14f, .w = 1.0f};
+constexpr Vec4 kConsoleColorBool = Vec4(0.58f, 0.0f, 0.0f, 1.0f);
+constexpr Vec4 kConsoleColorInt = Vec4(0.12f, 0.89f, 0.69f, 1.0f);
+constexpr Vec4 kConsoleColorFloat = Vec4(0.22f, 0.84f, 0.0f, 1.0f);
+constexpr Vec4 kConsoleColorString = Vec4(0.99f, 0.0f, 0.83f, 1.0f);
+constexpr Vec4 kConsoleColorVec3 = Vec4(1.0f, 0.79f, 0.14f, 1.0f);
 
-constexpr uint32_t kInputBufferSize = 512; // コンソールが一度に送信できるバッファの数
-constexpr uint32_t kConsoleMaxLineCount = 2048;
+constexpr uint32_t kInputBufferSize = 4096; // コンソールが一度に送信できるバッファの数
+constexpr uint32_t kConsoleMaxLineCount = 2048; // コンソールに表示される最大行数
 
 constexpr uint32_t kConsoleSuggestLineCount = 8; // サジェストの最大候補数
 constexpr uint32_t kConsoleRepeatWarning = 256; // リピート回数がこの数値より多くなるとkConsoleWarningで指定した色になります
@@ -28,34 +29,39 @@ constexpr uint32_t kConsoleRepeatError = 512; // リピート回数がこの数�
 using CommandCallback = std::function<void(const std::vector<std::string>&)>;
 
 enum class Channel {
-	kNone = 0, // なし
+	None = 0, // なし
 
-	kConsole, // コンソール
+	Console, // コンソール
 
-	kEngine, // エンジン
+	// システム基盤系
+	Engine, // エンジン
+	Host, // ホスト
 
-	kGeneral, // 一般
-	kDeveloper, // 開発者向け
+	// 通信系
+	Client, // クライアント
+	Server, // サーバー
 
-	kClient, // クライアント
-	kServer, // サーバー
+	// ゲームロジック系
+	Game, // ゲーム内
+	InputSystem, // 入力システム
+	Physics, // 物理
 
-	kHost, // ホスト
+	// 描画・UI系
+	RenderPipeline, // レンダーパイプライン
+	RenderSystem, // レンダーシステム
+	UserInterface, // ユーザーインターフェース
+	Sound, // サウンド
 
-	kGame, // ゲーム内
-
-	kInputSystem, // 入力システム
-	kSound, // サウンド
-	kPhysics, // 物理
-	kRenderPipeline, // レンダーパイプライン
-	kRenderSystem, // レンダーシステム
-	kUserInterface, // ユーザーインターフェース
+	// 開発系
+	General, // 一般
+	Developer, // 開発者向け
 };
 
 class Console {
 	struct Text {
 		std::string text;
 		Vec4 color;
+		Channel channel;
 	};
 
 	struct SuggestPopupState {
@@ -66,14 +72,16 @@ class Console {
 	};
 
 public:
+
 	static void Update();
 	static void SubmitCommand(const std::string& command);
 
 	static void Print(
-		const std::string& message, const Vec4& color = kConsoleColorNormal, const Channel& channel = Channel::kGeneral
+		const std::string& message, const Vec4& color = kConsoleColorNormal, const Channel& channel = Channel::General
 	);
 	static void PrintNullptr(const std::string& message, const Channel& channel);
-	static void UpdateRepeatCount(const std::string& message, Vec4 color = kConsoleColorNormal);
+
+	static std::string ToString(Channel channel);
 
 	// Executable
 	static void ToggleConsole(const std::vector<std::string>& args = {});
@@ -82,32 +90,50 @@ public:
 	static void NeoFetch(const std::vector<std::string>& args = {});
 	static void Echo(const std::vector<std::string>& args = {});
 
-	static std::string ToString(const Channel& e);
-
 private:
 #ifdef _DEBUG
+	static void UpdateSuggestions(const std::string& input);
+	static void ShowSuggestPopup();
 	static void SuggestPopup(SuggestPopupState& state, const ImVec2& pos, const ImVec2& size, bool& isFocused);
 	static int InputTextCallback(ImGuiInputTextCallbackData* data);
 #endif
 
-	static void ScrollToBottom();
+	static void ShowMenuBar();
+	static void ShowConsoleText();
+	static void ShowConsoleBody();
+	static void ShowContextMenu();
+	static void ShowAbout();
 
 	static void AddCommandHistory(const std::string& command);
 
+	static void UpdateRepeatCount(const std::string& message, bool hasNewLine, const Vec4& color = kConsoleColorNormal);
+
+	static void CheckScroll();
 	static void CheckLineCount();
+
+	static Vec4 GetConVarTypeColor(const std::string& type);
+
+	static void LogToFile(const std::string& message);
+	static void RewriteLogFile();
 
 	static std::string TrimSpaces(const std::string& string);
 	static std::vector<std::string> TokenizeCommand(const std::string& command);
 
+	static size_t FilteredToActualIndex(const int filteredIndex);
+
 #ifdef _DEBUG
 	static bool bShowConsole_; // コンソールを表示するか?
 	static bool bWishScrollToBottom_; // 一番下にスクロールしたい
-	static bool bShowPopup_; // ポップアップを表示
+	static bool bShowSuggestPopup_; // サジェストポップアップを表示
+	static bool bShowAbout_; // Aboutを表示
 	static std::vector<Text> consoleTexts_; // コンソールに出力されているテキスト
 	static char inputText_[kInputBufferSize]; // 入力中のテキスト
 	static int historyIndex_;
 	static std::vector<std::string> history_; // 入力の履歴
 	static std::vector<std::string> suggestions_; // サジェスト
 	static std::vector<uint64_t> repeatCounts_;
+	static std::vector<bool> selectedItems_; // 選択されたアイテム
+	static int lastSelectedIndex_;
+	static Channel currentFilterChannel_;
 #endif
 };

@@ -1,5 +1,5 @@
 #pragma once
-#include <Windows.h>
+#include <intsafe.h>
 #include <string>
 #include <unordered_map>
 
@@ -10,7 +10,7 @@ public:
 	static void Init();
 	static void Update();
 
-	static void ProcessInput(LPARAM lParam);
+	static void ProcessInput(long lParam);
 
 	static Vec2 GetMouseDelta();
 
@@ -24,6 +24,8 @@ public:
 	static void ExecuteCommand(const std::string& command, bool isDown); // コマンドを実行
 
 	static void ResetAllKeys();
+
+	static void CheckMouseCursorLock();
 
 private:
 	static std::string GetKeyName(UINT virtualKey);
@@ -40,4 +42,6 @@ private:
 	static std::unordered_map<std::string, bool> triggeredCommands_;
 	static std::unordered_map<std::string, bool> pressedCommands_;
 	static std::unordered_map<std::string, bool> releasedCommands_;
+	static bool bMouseLock_; // マウスのロック
+	static bool bCursorHidden_; // カーソルが非表示か
 };

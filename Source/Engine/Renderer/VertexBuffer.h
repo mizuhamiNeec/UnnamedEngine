@@ -73,15 +73,15 @@ D3D12_VERTEX_BUFFER_VIEW VertexBuffer<VertexType>::View() const {
 
 template <typename VertexType>
 void VertexBuffer<VertexType>::Update(const VertexType* pInitData, size_t size) {
-	assert(pInitData != nullptr);
-	assert(size <= size_); // 初期サイズを超えないことを確認
+	void* mappedData = nullptr;
+	D3D12_RANGE range{ 0, 0 };
 
-	void* ptr = nullptr;
-	[[maybe_unused]] HRESULT hr = buffer_->Map(0, nullptr, &ptr);
-	assert(SUCCEEDED(hr));
-
-	memcpy(ptr, pInitData, size);
-	buffer_->Unmap(0, nullptr);
+	// マップしてGPUメモリにデータをコピー
+	HRESULT hr = buffer_->Map(0, &range, &mappedData);
+	if (SUCCEEDED(hr)) {
+		memcpy(mappedData, pInitData, size);
+		buffer_->Unmap(0, nullptr);
+	}
 }
 
 template <typename VertexType>

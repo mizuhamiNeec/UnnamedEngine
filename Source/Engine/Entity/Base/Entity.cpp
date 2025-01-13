@@ -23,11 +23,9 @@ void Entity::Update(const float deltaTime) {
 		child->Update(deltaTime);
 	}
 
-#ifdef _DEBUG
 	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
 		Debug::DrawAxis(GetTransform()->GetWorldPos(), GetTransform()->GetWorldRot());
 	}
-#endif
 }
 
 EntityType Entity::GetType() const {

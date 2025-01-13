@@ -59,7 +59,7 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 	for (uint32_t index = 0; index < kNumMaxInstance; ++index) {
 		instancingData[index].wvp = Mat4::identity;
 		instancingData[index].world = Mat4::identity;
-		instancingData[index].color = { .x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f };
+		instancingData[index].color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	}
 
 	// SrvManagerのインスタンスを取得
@@ -296,20 +296,20 @@ void ParticleObject::SetCamera(CameraComponent* newCamera) {
 Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition, int shapeType) {
 	switch (shapeType) {
 	case 0: // Sphere（球）
-	{
-		// ランダムな方向
-		Vec3 direction = Random::Vec3Range(-Vec3::one * 0.01f, Vec3::one * 0.01f);
-		direction.Normalize();
-		// ランダムな半径
-		float radius = Random::FloatRange(0.0f, 0.01f); // サイズを考慮
-		return emitterPosition + direction * radius;
-	}
+		{
+			// ランダムな方向
+			Vec3 direction = Random::Vec3Range(-Vec3::one * 0.01f, Vec3::one * 0.01f);
+			direction.Normalize();
+			// ランダムな半径
+			float radius = Random::FloatRange(0.0f, 0.01f); // サイズを考慮
+			return emitterPosition + direction * radius;
+		}
 	case 1: // Cube（立方体）
-	{
-		// -1.0fから1.0fの範囲でランダムな位置
-		Vec3 offset = Random::Vec3Range(-Vec3::one, Vec3::one);
-		return emitterPosition + offset * emitter_.size; // サイズを考慮
-	}
+		{
+			// -1.0fから1.0fの範囲でランダムな位置
+			Vec3 offset = Random::Vec3Range(-Vec3::one, Vec3::one);
+			return emitterPosition + offset * emitter_.size; // サイズを考慮
+		}
 	default: return emitterPosition;
 	}
 }

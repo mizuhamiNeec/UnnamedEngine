@@ -197,7 +197,7 @@ public:
 					value_
 				),
 				kConsoleColorWarning,
-				Channel::kGeneral
+				Channel::General
 			);
 		}
 	}
@@ -207,7 +207,7 @@ private:
 		Console::Print(
 			std::format("{} : CVAR を {} 型へ変換できませんでした\n", name_, GetTypeAsString()),
 			kConsoleColorError,
-			Channel::kGeneral
+			Channel::General
 		);
 	}
 

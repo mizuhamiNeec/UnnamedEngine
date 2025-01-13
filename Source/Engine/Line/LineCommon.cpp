@@ -9,9 +9,9 @@
 //-----------------------------------------------------------------------------
 void LineCommon::Init(D3D12* d3d12) {
 	this->d3d12_ = d3d12;
-	Console::Print("LineCommon : Lineを初期化します。\n", kConsoleColorWait, Channel::kEngine);
+	Console::Print("LineCommon : Lineを初期化します。\n", kConsoleColorWait, Channel::Engine);
 	CreateGraphicsPipeline();
-	Console::Print("LineCommon : Lineの初期化が完了しました。\n", kConsoleColorCompleted, Channel::kEngine);
+	Console::Print("LineCommon : Lineの初期化が完了しました。\n", kConsoleColorCompleted, Channel::Engine);
 }
 
 //-----------------------------------------------------------------------------
@@ -41,7 +41,7 @@ void LineCommon::CreateRootSignature() {
 	);
 
 	if (rootSignatureManager_->Get("Line")) {
-		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
+		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::Engine);
 	}
 }
 
@@ -65,7 +65,7 @@ void LineCommon::CreateGraphicsPipeline() {
 	pipelineState_.Create(d3d12_->GetDevice());
 
 	if (pipelineState_.Get()) {
-		Console::Print("LineCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
+		Console::Print("LineCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted, Channel::Engine);
 	}
 }
 

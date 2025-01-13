@@ -1,11 +1,9 @@
 #pragma once
-
-#include <Windows.h>
-
+#define NOMINMAX // 絶対許さないからなお前!!
 #include <cstdint>
-
-#include "Lib/Utils/StrUtils.h"
-#include "Lib/Utils/ClientProperties.h"
+#include <string>
+#include <Windows.h>
+#include <Lib/Utils/ClientProperties.h>
 
 class Window final {
 public:

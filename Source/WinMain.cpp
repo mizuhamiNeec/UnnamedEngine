@@ -331,7 +331,7 @@
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR lpCmdLine, [[maybe_unused]] const int nShowCmd) {
 	Console::Print(
 		StrUtils::ToString(std::format(L"command line arguments: {}\n", lpCmdLine)), kConsoleColorNormal,
-		Channel::kConsole
+		Channel::Console
 	);
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	D3DResourceLeakChecker leakChecker;

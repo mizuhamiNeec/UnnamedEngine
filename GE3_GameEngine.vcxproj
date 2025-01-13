@@ -107,12 +107,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Engine\Components\ColliderComponent.cpp" />
-    <ClCompile Include="Source\Game\Components\EnemyMovement.cpp" />
-    <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Engine\Components\CameraComponent.cpp" />
-    <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
     <ClCompile Include="Source\Editor\Editor.cpp" />
     <ClCompile Include="Source\Engine\Entity\Base\Entity.cpp" />
     <ClCompile Include="Source\Engine\Components\Base\Component.cpp" />
@@ -182,12 +180,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Components\ColliderComponent.h" />
-    <ClInclude Include="Source\Game\Components\EnemyMovement.h" />
-    <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
     <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
     <ClInclude Include="Source\Engine\Components\CameraComponent.h" />
-    <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
     <ClInclude Include="Source\Editor\Editor.h" />
     <ClInclude Include="Source\Engine\Entity\Base\Entity.h" />
     <ClInclude Include="Source\Engine\Components\Base\Component.h" />
@@ -197,6 +192,7 @@
     <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
     <ClInclude Include="Source\Engine\Renderer\StructuredBuffer.h" />
     <ClInclude Include="Source\Engine\Components\TransformComponent.h" />
+    <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <None Include="Resources\Shaders\Object3d.hlsli" />
     <None Include="Resources\Shaders\Particle.hlsli" />
     <None Include="Resources\Shaders\Line.hlsli" />

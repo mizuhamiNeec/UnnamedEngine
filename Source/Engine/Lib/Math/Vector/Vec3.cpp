@@ -16,16 +16,6 @@ const Vec3 Vec3::down(0.0f, -1.0f, 0.0f);
 const Vec3 Vec3::forward(0.0f, 0.0f, 1.0f);
 const Vec3 Vec3::backward(0.0f, 0.0f, -1.0f);
 
-Vec3::Vec3(const float x, const float y, const float z) : x(x),
-y(y),
-z(z) {
-}
-
-Vec3::Vec3(const Vec2 vec2) : x(vec2.x),
-y(vec2.y),
-z(0.0f) {
-}
-
 float Vec3::Length() const {
 	if (const float sqrLength = SqrLength(); sqrLength > 0.0f) {
 		return std::sqrt(sqrLength);
@@ -118,6 +108,10 @@ const float& Vec3::operator[](const uint32_t index) const {
 	case 2: return z;
 	default: throw std::out_of_range("Vec3 添字演算子");
 	}
+}
+
+Vec3 Vec3::operator-() const {
+	return { -x, -y, -z };
 }
 
 Vec3 Vec3::operator+(const Vec3& rhs) const {

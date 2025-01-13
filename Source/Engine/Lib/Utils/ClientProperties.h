@@ -3,6 +3,14 @@
 #include "../Lib/Math/MathLib.h"
 
 //-----------------------------------------------------------------------------
+// Purpose: エンジン
+//-----------------------------------------------------------------------------
+const std::string kEngineName = "Unnamed Engine";
+const std::string kEngineVersion = "0.0.1";
+const std::string kEngineBuildDate = __DATE__;
+const std::string kEngineBuildTime = __TIME__;
+
+//-----------------------------------------------------------------------------
 // Purpose : ウィンドウ
 //-----------------------------------------------------------------------------
 const std::string kWindowTitle = "MainWindow";
@@ -15,7 +23,7 @@ constexpr int32_t kClientHeight = 720;
 //-----------------------------------------------------------------------------
 constexpr uint32_t kFrameBufferCount = 2; // バックバッファの数 TODO: 引数などで変更
 constexpr uint32_t kMaxSrvCount = 512;
-constexpr uint32_t kMaxFps = 256;
+constexpr uint32_t kMaxFps = 360; // フレームレートの上限
 constexpr bool kEnableVerticalSync = false; // 垂直同期
 
 //-----------------------------------------------------------------------------
