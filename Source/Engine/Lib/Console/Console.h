@@ -98,11 +98,17 @@ private:
 	static int InputTextCallback(ImGuiInputTextCallbackData* data);
 #endif
 
+	// ImGui系
 	static void ShowMenuBar();
 	static void ShowConsoleText();
 	static void ShowConsoleBody();
 	static void ShowContextMenu();
 	static void ShowAbout();
+
+	// 送信系
+	static bool ProcessInputCommand(const std::string& command);
+	static bool ValidateType(const std::string& value, const std::string& type);
+	static void PrintTypeError(const std::string& type);
 
 	static void AddCommandHistory(const std::string& command);
 

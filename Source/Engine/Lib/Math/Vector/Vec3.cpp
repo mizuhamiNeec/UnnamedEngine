@@ -1,11 +1,9 @@
 #include "Vec3.h"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <format>
 #include <stdexcept>
-
-#include "Vec2.h"
 
 const Vec3 Vec3::zero(0.0f, 0.0f, 0.0f);
 const Vec3 Vec3::one(1.0f, 1.0f, 1.0f);
@@ -174,10 +172,6 @@ Vec3& Vec3::operator/=(const float rhs) {
 	return *this;
 }
 
-std::string Vec3::ToString() const {
-	return std::format("({:.2f}, {:.2f}, {:.2f})", x, y, z);
-}
-
 Vec3 operator+(const float lhs, const Vec3& rhs) {
 	return { rhs.x + lhs, rhs.y + lhs, rhs.z + lhs };
 }
@@ -192,4 +186,8 @@ Vec3 operator*(const float lhs, const Vec3& rhs) {
 
 Vec3 operator/(const float lhs, const Vec3& rhs) {
 	return { rhs.x / lhs, rhs.y / lhs, rhs.z / lhs };
+}
+
+std::string Vec3::ToString() const {
+	return std::format("({:.2f}, {:.2f}, {:.2f})", x, y, z);
 }

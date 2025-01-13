@@ -73,6 +73,7 @@ void GameScene::Init(Engine* engine) {
 #pragma endregion
 
 #pragma region コンソール変数/コマンド
+	ConVarManager::RegisterConVar<Vec3>("testPos", Vec3::zero, "Test position");
 #pragma endregion
 }
 
@@ -89,7 +90,13 @@ void GameScene::Update(const float deltaTime) {
 	particleManager_->Update(deltaTime);
 	static bool isOffscreen = false;
 	static float rotation = 0.0f;
-	Vec3 pos = Math::WorldToScreen(Vec3::right * 2.0f + Vec3::forward * 5.0f, true, 32.0f, isOffscreen, rotation);
+	Vec3 pos = Math::WorldToScreen(
+		ConVarManager::GetConVar("testPos")->GetValueAsVec3(),
+		true,
+		32.0f,
+		isOffscreen,
+		rotation
+	);
 
 	ImGui::Checkbox("isOffscreen", &isOffscreen);
 	ImGui::SliderFloat("rotation", &rotation, 0.0f, 360.0f);
@@ -98,7 +105,7 @@ void GameScene::Update(const float deltaTime) {
 	sprite_->SetRot(Vec3::forward * rotation);
 	sprite_->Update();
 
-	Debug::DrawAxisWithCharacter(Vec3::zero, Quaternion::Euler(0.0f, 0.0f, 0.0f));
+	Debug::DrawAxisWithCharacter(ConVarManager::GetConVar("testPos")->GetValueAsVec3(), Quaternion::Euler(0.0f, 0.0f, 0.0f));
 
 #ifdef _DEBUG
 #pragma region cl_showpos

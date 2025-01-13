@@ -10,6 +10,7 @@ public:
 	[[nodiscard]] virtual double GetValueAsDouble() const = 0;
 	[[nodiscard]] virtual int GetValueAsInt() const = 0;
 	[[nodiscard]] virtual bool GetValueAsBool() const = 0;
+	[[nodiscard]] virtual Vec3 GetValueAsVec3() const = 0;
 	[[nodiscard]] virtual std::string GetTypeAsString() const = 0;
 	[[nodiscard]] virtual const std::string& GetName() const = 0;
 	[[nodiscard]] virtual const std::string& GetHelp() const = 0;

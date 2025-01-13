@@ -93,6 +93,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 			found = true;
 			// 変数のみ入力された場合
 			if (tokens.size() < 2) {
+				// 現在の変数の値を表示
 				Print(
 					std::format(
 						R"("{}" = "{}")",
@@ -110,38 +111,70 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 			} else {
 				// 引数込みで入力された場合の処理
 				bool isValidInput = true;
-				for (size_t i = 1; i < tokens.size(); ++i) {
-					if (conVar->GetTypeAsString() == "int") {
-						if (tokens[i] == "true") {
-							tokens[i] = "1";
-						} else if (tokens[i] == "false") {
-							tokens[i] = "0";
-						}
+				// Vec3の場合の処理
+				if (conVar->GetTypeAsString() == "vec3") {
+					// 引数が3つあることを確認
+					if (tokens.size() < 4) { // tokens[0]が変数名なので、1,2,3の引数を含めて最低4つ必要
+						isValidInput = false;
+					} else {
+						try {
+							// 1, 2, 3の順番でx, y, zを取得
+							float x = std::stof(tokens[1]);
+							float y = std::stof(tokens[2]);
+							float z = std::stof(tokens[3]);
 
-						try {
-							[[maybe_unused]] int value = std::stoi(tokens[i]);
+							// Vec3型の文字列として値を設定
+							std::string vec3Value = std::format("{} {} {}", x, y, z);
+							conVar->SetValueFromString(vec3Value); // ここで値を設定
 						} catch (...) {
 							isValidInput = false;
-							break;
-						}
-					} else if (conVar->GetTypeAsString() == "float") {
-						try {
-							[[maybe_unused]] float value = std::stof(tokens[i]);
-						} catch (...) {
-							isValidInput = false;
-							break;
-						}
-					} else if (conVar->GetTypeAsString() == "bool") {
-						if (tokens[i] != "true" && tokens[i] != "false") {
-							isValidInput = false;
-							break;
 						}
 					}
-					// Vec3やstringは追加のチェックが必要な場合に応じて処理する
+				} else {
+					for (size_t i = 1; i < tokens.size(); ++i) {
+						if (conVar->GetTypeAsString() == "int") {
+							if (tokens[i] == "true") {
+								tokens[i] = "1";
+							} else if (tokens[i] == "false") {
+								tokens[i] = "0";
+							}
+
+							try {
+								[[maybe_unused]] int value = std::stoi(tokens[i]);
+							} catch (...) {
+								isValidInput = false;
+								break;
+							}
+						} else if (conVar->GetTypeAsString() == "float") {
+							try {
+								[[maybe_unused]] float value = std::stof(tokens[i]);
+							} catch (...) {
+								isValidInput = false;
+								break;
+							}
+						} else if (conVar->GetTypeAsString() == "bool") {
+							try {
+								// 入力が数値として解釈できる場合
+								int value = std::stoi(tokens[i]);
+								tokens[i] = (value == 0) ? "false" : "true";
+							} catch (...) {
+								// 数値に変換できなかった場合
+								if (tokens[i] == "true" || tokens[i] == "false") {
+									// 入力が "true" または "false" の場合はそのまま
+									continue;
+								}
+								isValidInput = false;
+								break;
+							}
+						}
+					}
 				}
 				if (isValidInput) {
-					for (size_t i = 1; i < tokens.size(); ++i) {
-						conVar->SetValueFromString(tokens[i]);
+					// Vec3型の場合は個別の処理を行ったのでスキップ
+					if (conVar->GetTypeAsString() != "vec3") {
+						for (size_t i = 1; i < tokens.size(); ++i) {
+							conVar->SetValueFromString(tokens[i]);
+						}
 					}
 				} else {
 					Print("CVAR型変換エラー: 指定された型が無効です。\n", kConsoleColorError, Channel::Console);
@@ -162,6 +195,13 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 #endif
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: コンソールにテキストを出力します
+// - message (std::string): 出力するテキスト
+// - color (Vec4): テキストの色
+// - channel (Channel): チャンネル
+// Return: void
+//-----------------------------------------------------------------------------
 void Console::Print(
 	[[maybe_unused]] const std::string& message, [[maybe_unused]] const Vec4& color,
 	[[maybe_unused]] const Channel& channel
@@ -198,7 +238,9 @@ void Console::Print(
 	// 新しいメッセージとして追加
 	consoleTexts_.push_back({ .text = msg, .color = color, .channel = channel });
 	repeatCounts_.push_back(1);
-	OutputDebugString(StrUtils::ToString(msg));
+	// 内蔵コンソール以外はチャンネルを表示
+	std::string channelStr = (channel != Channel::None) ? "[" + ToString(channel) + "] " : "";
+	OutputDebugString(StrUtils::ToString(channelStr + msg));
 	RewriteLogFile();
 
 	bWishScrollToBottom_ = true;
@@ -215,6 +257,7 @@ void Console::PrintNullptr(const std::string& message, const Channel& channel) {
 
 //-----------------------------------------------------------------------------
 // Purpose: チャンネルを文字列に変換します
+// - channel (Channel): チャンネル
 //-----------------------------------------------------------------------------
 std::string Console::ToString(const Channel channel) {
 	switch (channel) {
@@ -564,8 +607,9 @@ void Console::ShowConsoleText() {
 	// 子ウィンドウの高さを調整
 	ImVec2 childSize = ImVec2(0, -inputTextHeight - ImGui::GetStyle().ItemSpacing.y);
 
-	if (ImGui::BeginTable("ConsoleTable", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, childSize)) {
+	if (ImGui::BeginTable("ConsoleTable", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_SizingFixedFit, childSize)) {
 		// ヘッダー
+		ImGui::TableSetupScrollFreeze(0, 1);
 		ImGui::TableSetupColumn("Channel", ImGuiTableColumnFlags_WidthFixed);
 		ImGui::TableSetupColumn("Log", ImGuiTableColumnFlags_WidthStretch);
 		ImGui::TableHeadersRow();
@@ -789,7 +833,53 @@ void Console::ShowAbout() {
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: InputSystemにコマンドを送信します
+// - command (std::string): 送信するコマンド
+// Return: コマンドが有効か?
+//-----------------------------------------------------------------------------
+bool Console::ProcessInputCommand(const std::string& command) {
+	if (command.empty() || (command[0] != '+' && command[0] != '-')) {
+		return false;
+	}
+
+	InputSystem::ExecuteCommand(command, command[0] == '+');
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 型が一致しているか確認します
+// - value (std::string): 確認する値
+// - type (std::string): 確認する型
+// Return: 型が一致しているか?
+//-----------------------------------------------------------------------------
+bool Console::ValidateType(const std::string& value, const std::string& type) {
+	try {
+		if (type == "int") {
+			// nodiscard対策
+			[[maybe_unused]] int val = std::stoi(value);
+		} else if (type == "float") {
+			[[maybe_unused]] float val = std::stof(value);
+		} else if (type == "bool") {
+			return value == "true" || value == "false";
+		}
+		return true;
+	} catch (...) {
+		return false;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 型変換エラーを表示します
+// - type (std::string): エラーが発生した型
+//-----------------------------------------------------------------------------
+void Console::PrintTypeError(const std::string& type) {
+	Print("CVAR型変換エラー: 指定された型が無効です。\n", kConsoleColorError, Channel::Console);
+	Print("期待される型: " + type + "\n", GetConVarTypeColor(type), Channel::Console);
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: コマンド履歴に追加します
+// - command (std::string): 履歴に追加するコマンド
 //-----------------------------------------------------------------------------
 void Console::AddCommandHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
@@ -805,6 +895,9 @@ void Console::AddCommandHistory([[maybe_unused]] const std::string& command) {
 
 //-----------------------------------------------------------------------------
 // Purpose: リピートカウントを更新
+// - message (std::string): メッセージ
+// - hasNewLine (bool): 改行が含まれているか
+// - color (Vec4): テキストの色
 //-----------------------------------------------------------------------------
 void Console::UpdateRepeatCount(
 	[[maybe_unused]] const std::string& message,

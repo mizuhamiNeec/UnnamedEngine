@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 #include <string>
-
 #include <Lib/Math/Vector/Vec2.h>
 
 struct Vec3 final {
@@ -61,5 +60,6 @@ struct Vec3 final {
 	Vec3& operator-=(const Vec3& rhs);
 	Vec3& operator*=(float rhs);
 	Vec3& operator/=(float rhs);
+
 	std::string ToString() const;
 };
