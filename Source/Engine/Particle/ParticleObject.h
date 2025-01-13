@@ -9,6 +9,7 @@
 #include "../Renderer/ConstantBuffer.h"
 #include "../Renderer/IndexBuffer.h"
 #include "../Renderer/VertexBuffer.h"
+#include "Components/CameraComponent.h"
 
 class SrvManager;
 class Camera;
@@ -28,14 +29,16 @@ public:
 		const Emitter& emitter, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity
 	);
 
-	void SetCamera(Camera* newCamera);
+	void SetCamera(CameraComponent* newCamera);
 	Vec3 GeneratePosition(const Vec3& emitterPosition, int shapeType);
 	static Vec3 GenerateConeVelocity(float coneAngle);
+
+	void EmitParticlesAtPosition(const Vec3& position, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity, uint32_t count);
 
 private:
 	ParticleManager* particleCommon_ = nullptr;
 	SrvManager* srvManager_ = nullptr;
-	Camera* camera_ = nullptr;
+	CameraComponent* camera_ = nullptr;
 	std::string textureFilePath_;
 
 	uint32_t kNumMaxInstance = 512;

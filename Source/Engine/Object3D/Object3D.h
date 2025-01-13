@@ -46,7 +46,7 @@ public:
 	void SetModel(Model* model);
 	void SetModel(const std::string& filePath);
 
-	void SetCamera(Camera* camera) {
+	void SetCamera(CameraComponent* camera) {
 		this->camera_ = camera;
 	}
 
@@ -76,7 +76,7 @@ public:
 	}
 
 private:
-	Camera* camera_ = nullptr;
+	CameraComponent* camera_ = nullptr;
 
 	Object3DCommon* object3DCommon_ = nullptr;
 

@@ -1,25 +1,36 @@
 #include "Vec4.h"
 
-Vec4 Vec4::one = {.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f};
-Vec4 Vec4::zero = {.x = 0.0f, .y = 0.0f, .z = 0.0f, .w = 0.0f};
+#include <Lib/Math/Matrix/Mat4.h>
 
-Vec4 Vec4::red = {.x = 1.0f, .y = 0.0f, .z = 0.0f, .w = 1.0f};
-Vec4 Vec4::green = {.x = 0.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f};
-Vec4 Vec4::blue = {.x = 0.0f, .y = 0.0f, .z = 1.0f, .w = 1.0f};
-Vec4 Vec4::white = {.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f};
-Vec4 Vec4::black = {.x = 0.0f, .y = 0.0f, .z = 0.0f, .w = 1.0f};
-Vec4 Vec4::yellow = {.x = 1.0f, .y = 1.0f, .z = 0.0f, .w = 1.0f};
-Vec4 Vec4::cyan = {.x = 0.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f};
-Vec4 Vec4::magenta = {.x = 1.0f, .y = 0.0f, .z = 1.0f, .w = 1.0f};
-Vec4 Vec4::gray = {.x = 0.5f, .y = 0.5f, .z = 0.5f, .w = 1.0f};
-Vec4 Vec4::lightGray = {.x = 0.75f, .y = 0.75f, .z = 0.75f, .w = 1.0f};
-Vec4 Vec4::darkGray = {.x = 0.25f, .y = 0.25f, .z = 0.25f, .w = 1.0f};
-Vec4 Vec4::orange = {.x = 1.0f, .y = 0.5f, .z = 0.0f, .w = 1.0f};
-Vec4 Vec4::purple = {.x = 0.5f, .y = 0.0f, .z = 0.5f, .w = 1.0f};
-Vec4 Vec4::brown = {.x = 0.6f, .y = 0.3f, .z = 0.0f, .w = 1.0f};
+Vec4 Vec4::one = Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+Vec4 Vec4::zero = Vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+Vec4 Vec4::red = Vec4(1.0f, 0.0f, 0.0f, 1.0f);
+Vec4 Vec4::green = Vec4(0.0f, 1.0f, 0.0f, 1.0f);
+Vec4 Vec4::blue = Vec4(0.0f, 0.0f, 1.0f, 1.0f);
+Vec4 Vec4::white = Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+Vec4 Vec4::black = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+Vec4 Vec4::yellow = Vec4(1.0f, 1.0f, 0.0f, 1.0f);
+Vec4 Vec4::cyan = Vec4(0.0f, 1.0f, 1.0f, 1.0f);
+Vec4 Vec4::magenta = Vec4(1.0f, 0.0f, 1.0f, 1.0f);
+Vec4 Vec4::gray = Vec4(0.5f, 0.5f, 0.5f, 1.0f);
+Vec4 Vec4::lightGray = Vec4(0.75f, 0.75f, 0.75f, 1.0f);
+Vec4 Vec4::darkGray = Vec4(0.25f, 0.25f, 0.25f, 1.0f);
+Vec4 Vec4::orange = Vec4(1.0f, 0.5f, 0.0f, 1.0f);
+Vec4 Vec4::purple = Vec4(0.5f, 0.0f, 0.5f, 1.0f);
+Vec4 Vec4::brown = Vec4(0.6f, 0.3f, 0.0f, 1.0f);
+
+Vec4 Vec4::operator*(const Mat4& mat4) const {
+	return Vec4(
+		x * mat4.m[0][0] + y * mat4.m[1][0] + z * mat4.m[2][0] + w * mat4.m[3][0],
+		x * mat4.m[0][1] + y * mat4.m[1][1] + z * mat4.m[2][1] + w * mat4.m[3][1],
+		x * mat4.m[0][2] + y * mat4.m[1][2] + z * mat4.m[2][2] + w * mat4.m[3][2],
+		x * mat4.m[0][3] + y * mat4.m[1][3] + z * mat4.m[2][3] + w * mat4.m[3][3]
+	);
+}
 
 #ifdef _DEBUG
 ImVec4 ToImVec4(const Vec4& vec) {
-	return {vec.x, vec.y, vec.z, vec.w};
+	return { vec.x, vec.y, vec.z, vec.w };
 }
 #endif

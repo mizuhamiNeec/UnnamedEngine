@@ -6,11 +6,10 @@
 class TransformComponent : public Component {
 public:
 	TransformComponent() : position_(Vec3::zero),
-	                       rotation_(Quaternion::identity),
-	                       scale_(Vec3::one),
-	                       localMat_(Mat4::identity),
-	                       isDirty_(true) {
-	}
+		rotation_(Quaternion::identity),
+		scale_(Vec3::one),
+		localMat_(Mat4::identity),
+		isDirty_(true) {}
 
 	void Update(float deltaTime) override;
 
@@ -37,6 +36,9 @@ public:
 
 	void MarkDirty() const;
 	Entity* GetOwner() const;
+
+	bool IsDirty() const;
+	void SetIsDirty(bool newIsDirty) const;
 
 private:
 	Vec3 position_;

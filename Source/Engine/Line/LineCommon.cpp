@@ -2,22 +2,22 @@
 
 #include "../Lib/Console/Console.h"
 #include "Line.h"
+#include "Camera/CameraManager.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : LineCommonを初期化します
 //-----------------------------------------------------------------------------
 void LineCommon::Init(D3D12* d3d12) {
 	this->d3d12_ = d3d12;
-	Console::Print("LineCommon : Lineを初期化します。\n", kConsoleColorWait, Channel::kEngine);
+	Console::Print("LineCommon : Lineを初期化します。\n", kConsoleColorWait, Channel::Engine);
 	CreateGraphicsPipeline();
-	Console::Print("LineCommon : Lineの初期化が完了しました。\n", kConsoleColorCompleted, Channel::kEngine);
+	Console::Print("LineCommon : Lineの初期化が完了しました。\n", kConsoleColorCompleted, Channel::Engine);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose : LineCommonをシャットダウンします
 //-----------------------------------------------------------------------------
-void LineCommon::Shutdown() const {
-}
+void LineCommon::Shutdown() const {}
 
 //-----------------------------------------------------------------------------
 // Purpose : ルートシグネチャを作成します
@@ -40,9 +40,8 @@ void LineCommon::CreateRootSignature() {
 		0
 	);
 
-	if (rootSignatureManager_->Get("Line"))
-	{
-		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
+	if (rootSignatureManager_->Get("Line")) {
+		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::Engine);
 	}
 }
 
@@ -65,9 +64,8 @@ void LineCommon::CreateGraphicsPipeline() {
 	pipelineState_.SetPS(L"./Resources/Shaders/Line.PS.hlsl");
 	pipelineState_.Create(d3d12_->GetDevice());
 
-	if (pipelineState_.Get())
-	{
-		Console::Print("LineCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
+	if (pipelineState_.Get()) {
+		Console::Print("LineCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted, Channel::Engine);
 	}
 }
 
@@ -88,15 +86,8 @@ D3D12* LineCommon::GetD3D12() const {
 }
 
 //-----------------------------------------------------------------------------
-// Purpose : デフォルトのカメラを設定します
-//-----------------------------------------------------------------------------
-void LineCommon::SetDefaultCamera(Camera* camera) {
-	this->defaultCamera_ = camera;
-}
-
-//-----------------------------------------------------------------------------
 // Purpose : デフォルトのカメラを取得します
 //-----------------------------------------------------------------------------
-Camera* LineCommon::GetDefaultCamera() const {
-	return this->defaultCamera_;
+CameraComponent* LineCommon::GetDefaultCamera() const {
+	return CameraManager::GetActiveCamera().get();
 }

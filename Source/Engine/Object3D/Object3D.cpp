@@ -9,6 +9,7 @@
 #include "../Model/ModelManager.h"
 #include "../Renderer/ConstantBuffer.h"
 #include "Object3DCommon.h"
+#include "Camera/CameraManager.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : 初期化します
@@ -32,8 +33,8 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 		sizeof(DirectionalLight)
 	);
 	directionalLightData_ = directionalLightConstantBuffer_->GetPtr<DirectionalLight>();
-	directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
-	directionalLightData_->direction = {0.0f, -0.7071067812f, 0.7071067812f}; // 斜め前向き
+	directionalLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
+	directionalLightData_->direction = { -0.2f, -0.9f, 0.25f };
 	directionalLightData_->intensity = 1.0f; // 明るさ1
 
 	// カメラ定数バッファ
@@ -41,7 +42,7 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 		object3DCommon_->GetD3D12()->GetDevice(), sizeof(CameraForGPU)
 	);
 	cameraForGPU_ = cameraConstantBuffer_->GetPtr<CameraForGPU>();
-	cameraForGPU_->worldPosition = camera_->GetPos();
+	cameraForGPU_->worldPosition = camera_->GetViewMat().GetTranslate();
 
 	// ポイントライト定数バッファ
 	pointLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
@@ -49,8 +50,8 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 		sizeof(PointLight)
 	);
 	pointLightData_ = pointLightConstantBuffer_->GetPtr<PointLight>();
-	pointLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
-	pointLightData_->position = {0.0f, 4.0f, 0.0f};
+	pointLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	pointLightData_->position = { 0.0f, 4.0f, 0.0f };
 	pointLightData_->intensity = 1.0f;
 	pointLightData_->radius = 1.0f;
 	pointLightData_->decay = 1.0f;
@@ -61,10 +62,10 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 		sizeof(SpotLight)
 	);
 	spotLightData_ = spotLightConstantBuffer_->GetPtr<SpotLight>();
-	spotLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
-	spotLightData_->position = {0.0f, 4.0f, 0.0f};
+	spotLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	spotLightData_->position = { 0.0f, 4.0f, 0.0f };
 	spotLightData_->intensity = 4.0f;
-	spotLightData_->direction = {0.0f, -1.0f, 0.0f};
+	spotLightData_->direction = { 0.0f, -1.0f, 0.0f };
 	spotLightData_->distance = 8.0f;
 	spotLightData_->decay = 2.0f;
 	spotLightData_->cosAngle = 0.5f;
@@ -74,18 +75,15 @@ void Object3D::Update() {
 #ifdef _DEBUG
 	ImGui::Begin("Object3D");
 	ImGuiManager::EditTransform(transform_, 0.01f);
-	if (ImGui::CollapsingHeader("Directional Light"))
-	{
-		if (ImGui::DragFloat3("dir##light", &directionalLightData_->direction.x, 0.01f))
-		{
+	if (ImGui::CollapsingHeader("Directional Light")) {
+		if (ImGui::DragFloat3("dir##light", &directionalLightData_->direction.x, 0.01f)) {
 			directionalLightData_->direction.Normalize();
 		}
 		ImGui::ColorEdit4("color##light", &directionalLightData_->color.x);
 		ImGui::DragFloat("intensity##light", &directionalLightData_->intensity, 0.01f);
 	}
 
-	if (ImGui::CollapsingHeader("Point"))
-	{
+	if (ImGui::CollapsingHeader("Point")) {
 		ImGui::DragFloat3("pos##point", &pointLightData_->position.x, 0.01f);
 		ImGui::ColorEdit4("color##point", &pointLightData_->color.x);
 		ImGui::DragFloat("intensity##point", &pointLightData_->intensity, 0.01f);
@@ -93,13 +91,11 @@ void Object3D::Update() {
 		ImGui::DragFloat("decay##point", &pointLightData_->decay, 0.01f);
 	}
 
-	if (ImGui::CollapsingHeader("Spot"))
-	{
+	if (ImGui::CollapsingHeader("Spot")) {
 		ImGui::ColorEdit4("color##spot", &spotLightData_->color.x);
 		ImGui::DragFloat3("pos##spot", &spotLightData_->position.x, 0.01f);
 		ImGui::DragFloat("intensity##spot", &spotLightData_->intensity, 0.01f);
-		if (ImGui::DragFloat3("direction##spot", &spotLightData_->direction.x, 0.01f))
-		{
+		if (ImGui::DragFloat3("direction##spot", &spotLightData_->direction.x, 0.01f)) {
 			spotLightData_->direction.Normalize();
 		}
 		ImGui::DragFloat("distance##spot", &spotLightData_->distance, 0.01f);
@@ -111,33 +107,24 @@ void Object3D::Update() {
 
 	model_->ImGuiDraw();
 #endif
+}
 
+void Object3D::Draw() const {
 	Mat4 worldMat = Mat4::Affine(
 		transform_.scale,
 		transform_.rotate,
 		transform_.translate
 	);
 
-	Mat4 worldViewProjMat;
-
-	if (camera_)
-	{
-		// カメラが存在する場合はカメラから行列を持ってくる
-		const Mat4& viewProjMat = camera_->GetViewProjMat();
-		worldViewProjMat = worldMat * viewProjMat;
-	} else
-	{
-		worldViewProjMat = worldMat;
-	}
+	const Mat4& viewProjMat = CameraManager::GetActiveCamera()->GetViewProjMat();
+	Mat4 worldViewProjMat = worldMat * viewProjMat;
 
 	transformationMatrixData_->wvp = worldViewProjMat;
 	transformationMatrixData_->world = worldMat;
 	transformationMatrixData_->worldInverseTranspose = worldMat.Inverse().Transpose();
 
-	cameraForGPU_->worldPosition = camera_->GetPos();
-}
+	cameraForGPU_->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate();
 
-void Object3D::Draw() const {
 	// 座標変換行列の定数バッファの設定
 	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
 		1, transformationMatrixConstantBuffer_->GetAddress()
@@ -164,8 +151,7 @@ void Object3D::Draw() const {
 	);
 
 	// 3Dモデルが割り当てられていれば描画する
-	if (model_)
-	{
+	if (model_) {
 		model_->Draw();
 	}
 }

@@ -21,7 +21,7 @@
 
 D3D12::~D3D12() {
 	CloseHandle(fenceEvent_);
-	Console::Print("アリーヴェ帰ルチ! (さよナランチャ\n", kConsoleColorCompleted, Channel::kEngine);
+	Console::Print("アリーヴェ帰ルチ! (さよナランチャ\n", kConsoleColorCompleted, Channel::Engine);
 }
 
 void D3D12::Init(Window* window) {
@@ -48,7 +48,7 @@ void D3D12::Init(Window* window) {
 
 	SetViewportAndScissor();
 
-	Console::Print("Complete Init DirectX12.\n", kConsoleColorCompleted, Channel::kEngine);
+	Console::Print("Complete Init DirectX12.\n", kConsoleColorCompleted, Channel::Engine);
 }
 
 void D3D12::ClearColorAndDepth() const {

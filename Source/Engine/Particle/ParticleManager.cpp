@@ -3,6 +3,7 @@
 #include <ranges>
 
 #include "ParticleObject.h"
+#include <Components/CameraComponent.h>
 
 #include "../Camera/Camera.h"
 #include "../Lib/Console/Console.h"
@@ -11,11 +12,12 @@
 #include "../Renderer/D3D12.h"
 #include "../Renderer/RootSignatureManager.h"
 #include "../TextureManager/TextureManager.h"
+#include "Camera/CameraManager.h"
 
 void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
 	d3d12_ = d3d12;
 	srvManager_ = srvManager;
-	Console::Print("ParticleManager : ParticleCommonを初期化します。\n", kConsoleColorWait, Channel::kEngine);
+	Console::Print("ParticleManager : ParticleCommonを初期化します。\n", kConsoleColorWait, Channel::Engine);
 	// 頂点データの生成
 	vertices_ = {
 		{{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, Vec3::forward},
@@ -35,11 +37,10 @@ void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
 
 	CreateGraphicsPipeline();
 
-	Console::Print("ParticleManager : ParticleCommonの初期化が完了しました。\n", kConsoleColorCompleted, Channel::kEngine);
+	Console::Print("ParticleManager : ParticleCommonの初期化が完了しました。\n", kConsoleColorCompleted, Channel::Engine);
 }
 
-void ParticleManager::Shutdown() const {
-}
+void ParticleManager::Shutdown() const {}
 
 void ParticleManager::CreateRootSignature() {
 	//  RootSignatureManagerのインスタンスを作成
@@ -96,9 +97,8 @@ void ParticleManager::CreateRootSignature() {
 		"ParticleManager", rootParameters, staticSamplers, _countof(staticSamplers)
 	);
 
-	if (rootSignatureManager_->Get("ParticleManager"))
-	{
-		Console::Print("ParticleManager : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
+	if (rootSignatureManager_->Get("ParticleManager")) {
+		Console::Print("ParticleManager : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::Engine);
 	}
 }
 
@@ -116,25 +116,18 @@ void ParticleManager::CreateGraphicsPipeline() {
 	pipelineState_.Create(d3d12_->GetDevice());
 
 
-	if (pipelineState_.Get())
-	{
-		Console::Print("ParticleManager: パイプラインの作成に成功しました。\n", kConsoleColorCompleted, Channel::kEngine);
+	if (pipelineState_.Get()) {
+		Console::Print("ParticleManager: パイプラインの作成に成功しました。\n", kConsoleColorCompleted, Channel::Engine);
 	}
 }
 
 void ParticleManager::Update(float deltaTime) {
-	// ビルボード行列の計算
-	const Mat4 view = defaultCamera_->GetViewMat();
-	const Mat4 projection = defaultCamera_->GetProjMat();
-
 	// すべてのパーティクルグループについて処理する
-	for (auto& particleGroup : particleGroups_ | std::views::values)
-	{
+	for (auto& particleGroup : particleGroups_ | std::views::values) {
 		// グループ内のすべてのパーティクルについて処理する
 		particleGroup.particles.remove_if(
 			[&](Particle& particle) {
-				if (particle.currentTime >= particle.lifeTime)
-				{
+				if (particle.currentTime >= particle.lifeTime) {
 					return true; // パーティクルを削除
 				}
 				// 場の影響を計算(加速)
@@ -144,17 +137,6 @@ void ParticleManager::Update(float deltaTime) {
 				particle.transform.translate += particle.vel * deltaTime;
 				// 経過時間を計算
 				particle.currentTime += deltaTime;
-				// ワールド行列を計算
-				const Mat4 world = Mat4::Translate(particle.transform.translate) * Mat4::FromQuaternion(
-					Quaternion::Euler(particle.transform.rotate)
-				) * Mat4::Scale(particle.transform.scale);
-				// ワールドビュープロジェクション行列を合成
-				const Mat4 wvp = world * view * projection;
-				// インスタンシング用データ1個分の書き込み
-				particleGroup.instancingData->wvp = wvp;
-				particleGroup.instancingData->world = world;
-				particleGroup.instancingData->color = particle.color;
-				++particleGroup.instancingData;
 				return false; // パーティクルを保持
 			}
 		);
@@ -162,6 +144,10 @@ void ParticleManager::Update(float deltaTime) {
 }
 
 void ParticleManager::Render() {
+	// ビルボード行列の計算
+	const Mat4 view = CameraManager::GetActiveCamera()->GetViewMat();
+	const Mat4 projection = CameraManager::GetActiveCamera()->GetProjMat();
+
 	d3d12_->GetCommandList()->SetGraphicsRootSignature(rootSignatureManager_->Get("ParticleManager"));
 	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
 	// プリミティブトポロジを設定
@@ -171,8 +157,22 @@ void ParticleManager::Render() {
 	d3d12_->GetCommandList()->IASetVertexBuffers(0, 1, &vbView);
 	// すべてのパーティクルグループについて
 	// テクスチャのSRVのDescriptorTableを設定
-	for (auto& particleGroup : particleGroups_ | std::views::values)
-	{
+	for (auto& particleGroup : particleGroups_ | std::views::values) {
+		// グループ内のすべてのパーティクルについて処理する
+		for (auto& particle : particleGroup.particles) {
+			// ワールド行列を計算
+			const Mat4 world = Mat4::Translate(particle.transform.translate) * Mat4::FromQuaternion(
+				Quaternion::Euler(particle.transform.rotate)
+			) * Mat4::Scale(particle.transform.scale);
+			// ワールドビュープロジェクション行列を合成
+			const Mat4 wvp = world * view * projection;
+			// インスタンシング用データ1個分の書き込み
+			particleGroup.instancingData->wvp = wvp;
+			particleGroup.instancingData->world = world;
+			particleGroup.instancingData->color = particle.color;
+			++particleGroup.instancingData;
+		}
+
 		d3d12_->GetCommandList()->SetGraphicsRootDescriptorTable(
 			2, TextureManager::GetInstance()->GetSrvHandleGPU(particleGroup.materialData.textureFilePath)
 		);
@@ -189,8 +189,7 @@ void ParticleManager::Emit(const std::string& name, const Vec3& pos, const uint3
 	// 登録済みのパーティクルグループ名かチェックしてassert
 	assert(!particleGroups_.contains(name));
 	// 新たなパーティクルを作成し、指定されたパーティクルグループに登録
-	for (uint32_t i = 0; i < count; ++i)
-	{
+	for (uint32_t i = 0; i < count; ++i) {
 		particleGroups_[name].particles.push_back(
 			ParticleObject::MakeNewParticle(pos, ParticleObject::GenerateConeVelocity(30.0f), Vec3::zero, Vec3::zero)
 		);
@@ -201,13 +200,8 @@ D3D12* ParticleManager::GetD3D12() const {
 	return d3d12_;
 }
 
-
-void ParticleManager::SetDefaultCamera(Camera* newCamera) {
-	this->defaultCamera_ = newCamera;
-}
-
-Camera* ParticleManager::GetDefaultCamera() const {
-	return defaultCamera_;
+CameraComponent* ParticleManager::GetDefaultCamera() const {
+	return CameraManager::GetActiveCamera().get();
 }
 
 SrvManager* ParticleManager::GetSrvManager() const {

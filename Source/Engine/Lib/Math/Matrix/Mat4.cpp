@@ -8,20 +8,16 @@
 #include "Lib/Utils/StrUtils.h"
 
 Mat4::Mat4() {
-	for (int i = 0; i < 4; ++i)
-	{
-		for (int j = 0; j < 4; ++j)
-		{
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
 			m[i][j] = (i == j) ? 1.0f : 0.0f;
 		}
 	}
 }
 
 Mat4::Mat4(const Mat4& other) {
-	for (int i = 0; i < 4; ++i)
-	{
-		for (int j = 0; j < 4; ++j)
-		{
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
 			m[i][j] = other.m[i][j];
 		}
 	}
@@ -29,13 +25,10 @@ Mat4::Mat4(const Mat4& other) {
 
 Mat4::Mat4(const std::initializer_list<std::initializer_list<float>> list) {
 	int row = 0;
-	for (const auto& sublist : list)
-	{
+	for (const auto& sublist : list) {
 		int col = 0;
-		for (const float value : sublist)
-		{
-			if (row < 4 && col < 4)
-			{
+		for (const float value : sublist) {
+			if (row < 4 && col < 4) {
 				m[row][col] = value;
 			}
 			++col;
@@ -43,12 +36,9 @@ Mat4::Mat4(const std::initializer_list<std::initializer_list<float>> list) {
 		++row;
 	}
 
-	for (int i = 0; i < 4; ++i)
-	{
-		for (int j = 0; j < 4; ++j)
-		{
-			if (i >= static_cast<int>(list.size()) || j >= static_cast<int>(((list.begin() + i))->size()))
-			{
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			if (i >= static_cast<int>(list.size()) || j >= static_cast<int>(((list.begin() + i))->size())) {
 				m[i][j] = 0.0f;
 			}
 		}
@@ -56,7 +46,7 @@ Mat4::Mat4(const std::initializer_list<std::initializer_list<float>> list) {
 }
 
 const Mat4 Mat4::identity = Mat4();
-const Mat4 Mat4::zero = {{{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+const Mat4 Mat4::zero = { {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}} };
 
 Mat4 Mat4::operator+(const Mat4& rhs) const {
 	return {
@@ -83,18 +73,14 @@ Mat4 Mat4::operator-(const Mat4& rhs) const {
 Mat4 Mat4::operator*(const Mat4& rhs) const {
 	Mat4 result;
 	float rhsColumn[4][4];
-	for (int i = 0; i < 4; ++i)
-	{
-		for (int j = 0; j < 4; ++j)
-		{
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
 			rhsColumn[i][j] = rhs.m[j][i];
 		}
 	}
 
-	for (int row = 0; row < 4; ++row)
-	{
-		for (int col = 0; col < 4; ++col)
-		{
+	for (int row = 0; row < 4; ++row) {
+		for (int col = 0; col < 4; ++col) {
 			result.m[row][col] = m[row][0] * rhsColumn[col][0] +
 				m[row][1] * rhsColumn[col][1] +
 				m[row][2] * rhsColumn[col][2] +
@@ -120,25 +106,24 @@ Mat4& Mat4::operator*=(const Mat4& mat4) {
 
 float Mat4::Determinant() const {
 	return m[0][0] * (m[1][1] * (m[2][2] * m[3][3] - m[2][3] * m[3][2]) - m[1][2] * (m[2][1] * m[3][3] - m[2][3] * m[3][
-			1]) + m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1])) - m[0][1] * (m[1][0] * (m[2][2] * m[3][3] - m[2][3]
+		1]) + m[1][3] * (m[2][1] * m[3][2] - m[2][2] * m[3][1])) - m[0][1] * (m[1][0] * (m[2][2] * m[3][3] - m[2][3]
 			* m
 			[3][2]) - m[1][2] * (m[2][0] * m[3][3] - m[2][3] * m[3][0]) + m[1][3] * (m[2][0] * m[3][2] - m[2][2] * m[3][
-			0]))
-		+ m[0][2] * (m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) - m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][
+				0]))
+			+ m[0][2] * (m[1][0] * (m[2][1] * m[3][3] - m[2][3] * m[3][1]) - m[1][1] * (m[2][0] * m[3][3] - m[2][3] * m[3][
 				0]) +
-			m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])) - m[0][3] * (m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[
-			3][
-			1]) - m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) + m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][
-			0]));
+				m[1][3] * (m[2][0] * m[3][1] - m[2][1] * m[3][0])) - m[0][3] * (m[1][0] * (m[2][1] * m[3][2] - m[2][2] * m[
+					3][
+						1]) - m[1][1] * (m[2][0] * m[3][2] - m[2][2] * m[3][0]) + m[1][2] * (m[2][0] * m[3][1] - m[2][1] * m[3][
+							0]));
 }
 
 Mat4 Mat4::Inverse() const {
 	Mat4 result;
 	const float det = Determinant();
 
-	if (det == 0.0f)
-	{
-		Console::Print("Mat4 : 行列式がゼロのため、逆行列は存在しません。\n", kConsoleColorError, Channel::kEngine);
+	if (det == 0.0f) {
+		Console::Print("Mat4 : 行列式がゼロのため、逆行列は存在しません。\n", kConsoleColorError, Channel::Engine);
 		return result;
 	}
 
@@ -197,10 +182,8 @@ Mat4 Mat4::Transpose() const {
 
 void Mat4::LogMat4() {
 	std::wstring result;
-	for (float (&i)[4] : m)
-	{
-		for (float& j : i)
-		{
+	for (float(&i)[4] : m) {
+		for (float& j : i) {
 			result += std::format(L"{:.2f} ", j);
 		}
 		result += L"\n";
@@ -415,31 +398,26 @@ Mat4 Mat4::ViewportMat(
 Quaternion Mat4::ToQuaternion() const {
 	Quaternion q;
 	float trace = m[0][0] + m[1][1] + m[2][2];
-	if (trace > 0)
-	{
+	if (trace > 0) {
 		float s = 0.5f / sqrtf(trace + 1.0f);
 		q.w = 0.25f / s;
 		q.x = (m[2][1] - m[1][2]) * s;
 		q.y = (m[0][2] - m[2][0]) * s;
 		q.z = (m[1][0] - m[0][1]) * s;
-	} else
-	{
-		if (m[0][0] > m[1][1] && m[0][0] > m[2][2])
-		{
+	} else {
+		if (m[0][0] > m[1][1] && m[0][0] > m[2][2]) {
 			float s = 2.0f * sqrtf(1.0f + m[0][0] - m[1][1] - m[2][2]);
 			q.w = (m[2][1] - m[1][2]) / s;
 			q.x = 0.25f * s;
 			q.y = (m[0][1] + m[1][0]) / s;
 			q.z = (m[0][2] + m[2][0]) / s;
-		} else if (m[1][1] > m[2][2])
-		{
+		} else if (m[1][1] > m[2][2]) {
 			float s = 2.0f * sqrtf(1.0f + m[1][1] - m[0][0] - m[2][2]);
 			q.w = (m[0][2] - m[2][0]) / s;
 			q.x = (m[0][1] + m[1][0]) / s;
 			q.y = 0.25f * s;
 			q.z = (m[1][2] + m[2][1]) / s;
-		} else
-		{
+		} else {
 			float s = 2.0f * sqrtf(1.0f + m[2][2] - m[0][0] - m[1][1]);
 			q.w = (m[1][0] - m[0][1]) / s;
 			q.x = (m[0][2] + m[2][0]) / s;
@@ -447,7 +425,7 @@ Quaternion Mat4::ToQuaternion() const {
 			q.z = 0.25f * s;
 		}
 	}
-	return q;
+	return q.Normalized();
 }
 
 //-----------------------------------------------------------------------------
@@ -465,5 +443,13 @@ Vec3& Mat4::TransformPoint(Vec3 vec3) const {
 }
 
 Vec3 Mat4::GetTranslate() {
-	return {m[3][0], m[3][1], m[3][2]};
+	return { m[3][0], m[3][1], m[3][2] };
+}
+
+Vec3 Mat4::GetRotate() const {
+	Vec3 result;
+	result.x = std::atan2(m[2][1], m[2][2]);
+	result.y = std::atan2(-m[2][0], std::sqrt(m[2][1] * m[2][1] + m[2][2] * m[2][2]));
+	result.z = std::atan2(m[1][0], m[0][0]);
+	return result;
 }

@@ -2,26 +2,29 @@
 
 #include <ranges>
 
-Entity::~Entity() {
-}
+#include "Debug/Debug.h"
+#include "Lib/Console/ConVarManager.h"
+
+Entity::~Entity() {}
 
 void Entity::Update(const float deltaTime) {
 	// 必須コンポーネントの更新
 	transform_->Update(deltaTime);
 
-	for (const auto& component : components_ | std::views::values)
-	{
-		if (component->IsEditorOnly()/* && !bIsInEditor*/)
-		{
+	for (const auto& component : components_ | std::views::values) {
+		if (component->IsEditorOnly()/* && !bIsInEditor*/) {
 			continue; // エディター専用のコンポーネントはゲーム中には更新しない
 		}
 		component->Update(deltaTime);
 	}
 
 	// 子エンティティの更新
-	for (const auto& child : children_)
-	{
+	for (const auto& child : children_) {
 		child->Update(deltaTime);
+	}
+
+	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
+		Debug::DrawAxis(GetTransform()->GetWorldPos(), GetTransform()->GetWorldRot());
 	}
 }
 
@@ -38,17 +41,14 @@ TransformComponent* Entity::GetTransform() const {
 }
 
 void Entity::SetParent(Entity* newParent) {
-	if (parent_ == newParent)
-	{
+	if (parent_ == newParent) {
 		return; // 親が変わらない場合は何もしない
 	}
 
 	// 現在の親からこのエンティティを削除
-	if (parent_)
-	{
+	if (parent_) {
 		auto it = std::ranges::remove(parent_->children_, this).begin();
-		if (it != parent_->children_.end())
-		{
+		if (it != parent_->children_.end()) {
 			parent_->children_.erase(it);
 		}
 	}
@@ -57,16 +57,13 @@ void Entity::SetParent(Entity* newParent) {
 	parent_ = newParent;
 
 	// 新しい親の子供リストに追加
-	if (parent_)
-	{
-		if (std::ranges::find(parent_->children_, this) == parent_->children_.end())
-		{
+	if (parent_) {
+		if (std::ranges::find(parent_->children_, this) == parent_->children_.end()) {
 			parent_->children_.push_back(this);
 		}
 	}
 
-	if (transform_)
-	{
+	if (transform_) {
 		transform_->MarkDirty();
 	}
 }
@@ -80,8 +77,7 @@ const std::vector<Entity*>& Entity::GetChildren() const {
 }
 
 void Entity::AddChild(Entity* child) {
-	if (std::ranges::find(children_, child) == children_.end())
-	{
+	if (std::ranges::find(children_, child) == children_.end()) {
 		children_.push_back(child);
 		child->SetParent(this);
 	}
@@ -89,8 +85,7 @@ void Entity::AddChild(Entity* child) {
 
 void Entity::RemoveChild(Entity* child) {
 	auto it = std::ranges::remove(children_, child).begin();
-	if (it != children_.end())
-	{
+	if (it != children_.end()) {
 		children_.erase(it);
 		child->SetParent(nullptr);
 	}

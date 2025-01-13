@@ -14,8 +14,7 @@ TextureManager* TextureManager::instance_ = nullptr;
 /// @brief シングルトンインスタンスを取得します
 /// @return TextureManagerのインスタンス
 TextureManager* TextureManager::GetInstance() {
-	if (instance_ == nullptr)
-	{
+	if (instance_ == nullptr) {
 		instance_ = new TextureManager;
 	}
 	return instance_;
@@ -74,9 +73,8 @@ ComPtr<ID3D12Resource> TextureManager::CreateTextureResource(const DirectX::TexM
 		nullptr,
 		IID_PPV_ARGS(&resource)
 	);
-	if (FAILED(hr))
-	{
-		Console::Print("Failed to create texture resource\n", {1.0f, 0.0f, 0.0f, 1.0f});
+	if (FAILED(hr)) {
+		Console::Print("Failed to create texture resource\n", { 1.0f, 0.0f, 0.0f, 1.0f });
 		return nullptr; // エラー時はnullptrを返す
 	}
 
@@ -165,8 +163,7 @@ ComPtr<ID3D12Resource> TextureManager::UploadTextureData(
 		nullptr,
 		IID_PPV_ARGS(&intermediateResource)
 	);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return nullptr;
 	}
 
@@ -195,11 +192,10 @@ ComPtr<ID3D12Resource> TextureManager::UploadTextureData(
 
 /// @brief テクスチャを読み込みます
 /// @param filePath テクスチャファイルのパス
-void TextureManager::LoadTexture(const std::string& filePath) {
+std::shared_ptr<TextureManager::TextureData> TextureManager::LoadTexture(const std::string& filePath) {
 	// 読み込み済みテクスチャを検索
-	if (textureData_.contains(filePath))
-	{
-		return; // 読み込み済みなら早期リターン
+	if (textureData_.contains(filePath)) {
+		return std::make_shared<TextureData>(textureData_[filePath]); // 読み込み済みならそのデータを返す
 	}
 
 	// テクスチャ枚数上限チェック
@@ -209,8 +205,7 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 	DirectX::ScratchImage image = {};
 	std::wstring filePathW = StrUtils::ToString(filePath);
 	HRESULT hr = LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		Console::Print(std::format("ERROR : Failed to Load {}\n", filePath), kConsoleColorError);
 		// 読み込み失敗時にデフォルトのテクスチャを読み込む
 		filePathW = StrUtils::ToString("./Resources/Textures/empty.png");
@@ -226,8 +221,6 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 	assert(SUCCEEDED(hr));
 
 	// テクスチャデータを追加
-	//textureData_.resize(textureData_.size() + 1); // 要素数を1増やす
-	// 追加したテクスチャデータの参照を取得する
 	TextureData& textureData = textureData_[filePath];
 
 	textureData.filePath = filePath;
@@ -236,34 +229,22 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 
 	ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(textureData.resource, mipImages);
 
-	//-------------------------------------------------------------------------
 	// コマンドリストを閉じる
-	//-------------------------------------------------------------------------
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
-	if (hr)
-	{
+	if (hr) {
 		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 	}
 
-	//-------------------------------------------------------------------------
 	// コマンドのキック
-	//-------------------------------------------------------------------------
-	ID3D12CommandList* lists[] = {renderer_->GetCommandList()};
+	ID3D12CommandList* lists[] = { renderer_->GetCommandList() };
 	renderer_->GetCommandQueue()->ExecuteCommandLists(1, lists);
 
 	// 実行を待つ
 	renderer_->WaitPreviousFrame(); // ここで実行が完了するのを待つ
 
-	//-------------------------------------------------------------------------
 	// コマンドのリセット
-	//-------------------------------------------------------------------------
-	//	hr = renderer_->GetCommandAllocator()->Reset();
-	assert(SUCCEEDED(hr));
-	hr = renderer_->GetCommandList()->Reset(
-		renderer_->GetCommandAllocator(),
-		nullptr
-	);
+	hr = renderer_->GetCommandList()->Reset(renderer_->GetCommandAllocator(), nullptr);
 	assert(SUCCEEDED(hr));
 
 	// ここまで来たら転送は終わっているので、intermediateResourceはReleaseしても良い
@@ -279,6 +260,8 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 		textureData.metadata.format,
 		static_cast<UINT>(textureData.metadata.mipLevels)
 	);
+
+	return std::make_shared<TextureData>(textureData);
 }
 
 /// @brief ファイルパスからテクスチャのインデックスを取得します
@@ -286,8 +269,7 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 /// @return テクスチャのインデックス
 uint32_t TextureManager::GetTextureIndexByFilePath(const std::string& filePath) const {
 	// 読み込み済みテクスチャを検索
-	if (textureData_.contains(filePath))
-	{
+	if (textureData_.contains(filePath)) {
 		// 読み込み済みなら要素番号を返す
 		const uint32_t textureIndex = textureData_.contains(filePath);
 		return textureIndex;
@@ -302,8 +284,7 @@ uint32_t TextureManager::GetTextureIndexByFilePath(const std::string& filePath) 
 /// @return GPUディスクリプタハンドル
 D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(const std::string& filePath) {
 	const auto it = textureData_.find(filePath);
-	if (it == textureData_.end())
-	{
+	if (it == textureData_.end()) {
 		Console::Print("GetSrvHandleGPU: filePathが見つかりません。", kConsoleColorError);
 		return {};
 	}

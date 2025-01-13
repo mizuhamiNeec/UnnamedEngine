@@ -32,7 +32,11 @@ public:
 		return window_.get();
 	}
 
-	[[nodiscard]] Camera* GetCamera() const {
+	[[nodiscard]] Entity* GetCameraEntity() const {
+		return cameraEntity_.get();
+	}
+
+	[[nodiscard]] CameraComponent* GetCameraComponent() const {
 		return camera_.get();
 	}
 
@@ -78,7 +82,10 @@ private:
 	std::unique_ptr<D3D12> renderer_;
 	std::unique_ptr<SrvManager> srvManager_;
 	std::unique_ptr<EngineTimer> time_;
-	std::unique_ptr<Camera> camera_;
+
+	std::unique_ptr<Entity> cameraEntity_;
+	std::shared_ptr<CameraComponent> camera_;
+
 	std::unique_ptr<SpriteCommon> spriteCommon_;
 	std::unique_ptr<ParticleManager> particleManager_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;

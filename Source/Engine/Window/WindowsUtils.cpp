@@ -12,14 +12,11 @@
 std::string WindowsUtils::GetWindowsUserName() {
 	DWORD bufferSize = UNLEN + 1; // +1 は null 文字分
 	std::vector<char> buffer(bufferSize);
-	if (GetUserNameA(buffer.data(), &bufferSize))
-	{
+	if (GetUserNameA(buffer.data(), &bufferSize)) {
 		std::string userName(buffer.data());
 		// 空白をアンダースコアに置き換える
-		for (char& ch : userName)
-		{
-			if (ch == ' ')
-			{
+		for (char& ch : userName) {
+			if (ch == ' ') {
 				ch = '_';
 			}
 		}
@@ -31,8 +28,7 @@ std::string WindowsUtils::GetWindowsUserName() {
 std::string WindowsUtils::GetWindowsComputerName() {
 	DWORD bufferSize = MAX_COMPUTERNAME_LENGTH + 1; // +1 は null 文字分
 	std::vector<char> buffer(bufferSize);
-	if (GetComputerNameA(buffer.data(), &bufferSize))
-	{
+	if (GetComputerNameA(buffer.data(), &bufferSize)) {
 		return std::string(buffer.data());
 	}
 	return std::string("Windowsから取得できませんでした。");
@@ -43,7 +39,7 @@ std::string WindowsUtils::GetWindowsVersion() {
 }
 
 std::string WindowsUtils::GetCPUName() {
-	int cpuInfo[4] = {-1};
+	int cpuInfo[4] = { -1 };
 	char cpuBrand[0x40];
 	__cpuid(cpuInfo, 0x80000002);
 	memcpy(cpuBrand, cpuInfo, sizeof(cpuInfo));
@@ -57,14 +53,12 @@ std::string WindowsUtils::GetCPUName() {
 
 std::string WindowsUtils::GetGPUName() {
 	Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
-	if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory))))
-	{
+	if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory)))) {
 		return "Failed to create DXGI Factory";
 	}
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
-	if (FAILED(factory->EnumAdapters1(0, &adapter)))
-	{
+	if (FAILED(factory->EnumAdapters1(0, &adapter))) {
 		return "Failed to enumerate adapters";
 	}
 
@@ -111,17 +105,14 @@ std::string WindowsUtils::GetHresultMessage(const HRESULT hr) {
 	);
 
 	std::string message;
-	if (messageLength > 0)
-	{
+	if (messageLength > 0) {
 		message = std::string(messageBuffer, messageLength);
-	} else
-	{
+	} else {
 		message = "Unknown error code : " + std::to_string(hr);
 	}
 
 	// メモリ解放
-	if (messageBuffer)
-	{
+	if (messageBuffer) {
 		LocalFree(messageBuffer);
 	}
 
@@ -131,12 +122,11 @@ std::string WindowsUtils::GetHresultMessage(const HRESULT hr) {
 //-----------------------------------------------------------------------------
 // Purpose: 指定されたレジストリのキーを開き、名前に関連付けられたDWORD値を返します
 //-----------------------------------------------------------------------------
-bool WindowsUtils::RegistryGetDWord(const HKEY hKeyParent, const char* key, const char* name, DWORD* pData) {
+bool WindowsUtils::RegistryGetDWord(void* hKeyParent, const char* key, const char* name, unsigned long* pData) {
 	DWORD len = sizeof(DWORD);
 	HKEY hKey = nullptr;
-	DWORD rc = RegOpenKeyExA(hKeyParent, key, 0, KEY_READ, &hKey);
-	if (rc == ERROR_SUCCESS)
-	{
+	DWORD rc = RegOpenKeyExA(static_cast<HKEY>(hKeyParent), key, 0, KEY_READ, &hKey);
+	if (rc == ERROR_SUCCESS) {
 		rc = RegQueryValueExA(hKey, name, nullptr, nullptr, reinterpret_cast<LPBYTE>(pData), &len);
 	}
 	RegCloseKey(hKey);

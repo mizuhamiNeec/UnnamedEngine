@@ -13,7 +13,7 @@
 #include "../Window/Window.h"
 #include "../Window/WindowsUtils.h"
 
-void ImGuiManager::Init(const D3D12* renderer, const Window* window, const SrvManager* srvManager) {
+void ImGuiManager::Init(const D3D12* renderer, const SrvManager* srvManager) {
 	renderer_ = renderer;
 	srvManager_ = srvManager;
 
@@ -26,15 +26,16 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window, const SrvMa
 	io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 
 	// 少し角丸に
-	auto& style = ImGui::GetStyle();
-	style.WindowRounding = 4;
-	style.FrameRounding = 2;
+	ImGuiStyle* style = &ImGui::GetStyle();
+	style->WindowRounding = 4;
+	style->FrameRounding = 2;
 
 	ImFontConfig imFontConfig;
 	imFontConfig.OversampleH = 1;
 	imFontConfig.OversampleV = 1;
 	imFontConfig.PixelSnapH = true;
 	imFontConfig.SizePixels = 18;
+	imFontConfig.GlyphMinAdvanceX = 2.0f;
 
 	// Ascii
 	io.Fonts->AddFontFromFileTTF(
@@ -47,15 +48,23 @@ void ImGuiManager::Init(const D3D12* renderer, const Window* window, const SrvMa
 		R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese()
 	);
 
+	// 何故かベースラインがずれるので補正
+	imFontConfig.GlyphOffset = ImVec2(0.0f, 3.0f);
+
+	static constexpr ImWchar iconRanges[] = { 0xe003, 0xf8ff, 0 };
+	io.Fonts->AddFontFromFileTTF(
+		R"(.\Resources\Fonts\MaterialSymbolsSharp-Regular.ttf)",
+		18.0f, &imFontConfig, iconRanges
+	);
+
 	// テーマの設定
-	// TODO : 多分絶対いらないけどランタイムで変わったらカッコいいよね!!
 	if (WindowsUtils::IsAppDarkTheme()) {
 		StyleColorsDark();
 	} else {
-		ImGui::StyleColorsLight();
+		StyleColorsLight();
 	}
 
-	ImGui_ImplWin32_Init(window->GetWindowHandle());
+	ImGui_ImplWin32_Init(Window::GetWindowHandle());
 
 	ImGui_ImplDX12_Init(
 		renderer_->GetDevice(),
@@ -100,68 +109,14 @@ void ImGuiManager::Shutdown() {
 	srvHeap_.Reset();
 }
 
-void ImGuiManager::StyleColorsDark(ImGuiStyle* dst) {
-	ImGuiStyle* style = dst ? dst : &ImGui::GetStyle();
+void ImGuiManager::StyleColorsDark() {
+	ImGuiStyle* style = &ImGui::GetStyle();
+	// テキストの色を少し暗めに
 	ImVec4* colors = style->Colors;
+	colors[ImGuiCol_Text] = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
+}
 
-	colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-	// colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-	// colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.06f, 0.06f, 0.94f);
-	// colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-	// colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);
-	// colors[ImGuiCol_Border] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
-	// colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-	// colors[ImGuiCol_FrameBg] = ImVec4(0.16f, 0.29f, 0.48f, 0.54f);
-	// colors[ImGuiCol_FrameBgHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
-	// colors[ImGuiCol_FrameBgActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
-	// colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
-	// colors[ImGuiCol_TitleBgActive] = ImVec4(0.16f, 0.29f, 0.48f, 1.00f);
-	// colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
-	// colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-	// colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
-	// colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
-	// colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
-	// colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
-	// colors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-	// colors[ImGuiCol_SliderGrab] = ImVec4(0.24f, 0.52f, 0.88f, 1.00f);
-	// colors[ImGuiCol_SliderGrabActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-	// colors[ImGuiCol_Button] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
-	// colors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-	// colors[ImGuiCol_ButtonActive] = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
-	// colors[ImGuiCol_Header] = ImVec4(0.26f, 0.59f, 0.98f, 0.31f);
-	// colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
-	// colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-	// colors[ImGuiCol_Separator] = colors[ImGuiCol_Border];
-	// colors[ImGuiCol_SeparatorHovered] = ImVec4(0.10f, 0.40f, 0.75f, 0.78f);
-	// colors[ImGuiCol_SeparatorActive] = ImVec4(0.10f, 0.40f, 0.75f, 1.00f);
-	// colors[ImGuiCol_ResizeGrip] = ImVec4(0.26f, 0.59f, 0.98f, 0.20f);
-	// colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
-	// colors[ImGuiCol_ResizeGripActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
-	// colors[ImGuiCol_TabHovered] = colors[ImGuiCol_HeaderHovered];
-	// colors[ImGuiCol_Tab] = ImLerp(colors[ImGuiCol_Header], colors[ImGuiCol_TitleBgActive], 0.80f);
-	// colors[ImGuiCol_TabSelected] = ImLerp(colors[ImGuiCol_HeaderActive], colors[ImGuiCol_TitleBgActive], 0.60f);
-	// colors[ImGuiCol_TabSelectedOverline] = colors[ImGuiCol_HeaderActive];
-	// colors[ImGuiCol_TabDimmed] = ImLerp(colors[ImGuiCol_Tab], colors[ImGuiCol_TitleBg], 0.80f);
-	// colors[ImGuiCol_TabDimmedSelected] = ImLerp(colors[ImGuiCol_TabSelected], colors[ImGuiCol_TitleBg], 0.40f);
-	// colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-	// colors[ImGuiCol_DockingPreview] = colors[ImGuiCol_HeaderActive] * ImVec4(1.0f, 1.0f, 1.0f, 0.7f);
-	// colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
-	// colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
-	// colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-	// colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-	// colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-	// colors[ImGuiCol_TableHeaderBg] = ImVec4(0.19f, 0.19f, 0.20f, 1.00f);
-	// colors[ImGuiCol_TableBorderStrong] = ImVec4(0.31f, 0.31f, 0.35f, 1.00f);   // Prefer using Alpha=1.0 here
-	// colors[ImGuiCol_TableBorderLight] = ImVec4(0.23f, 0.23f, 0.25f, 1.00f);   // Prefer using Alpha=1.0 here
-	// colors[ImGuiCol_TableRowBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-	// colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
-	// colors[ImGuiCol_TextLink] = colors[ImGuiCol_HeaderActive];
-	// colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
-	// colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
-	// colors[ImGuiCol_NavCursor] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-	// colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
-	// colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
-	// colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+void ImGuiManager::StyleColorsLight() {
 }
 
 void ImGuiManager::PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive) {
@@ -278,19 +233,22 @@ void ImGuiManager::TextOutlined(
 	ImDrawList* drawList,
 	const ImVec2& pos,
 	const char* text,
-	const ImU32 textColor,
-	const ImU32 outlineColor,
+	const ImVec4 textColor,
+	const ImVec4 outlineColor,
 	const float outlineSize
 ) {
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x, pos.y - outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x, pos.y + outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y - outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y - outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y + outlineSize), outlineColor, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y + outlineSize), outlineColor, text);
-	drawList->AddText(pos, textColor, text);
+	ImU32 outlineCol = ImGui::ColorConvertFloat4ToU32(outlineColor);
+	ImU32 textCol = ImGui::ColorConvertFloat4ToU32(textColor);
+
+	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y), outlineCol, text);
+	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y), outlineCol, text);
+	drawList->AddText(ImVec2(pos.x, pos.y - outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(pos.x, pos.y + outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y - outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y - outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y + outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y + outlineSize), outlineCol, text);
+	drawList->AddText(pos, textCol, text);
 }
 #else
 void ImGuiManager::Shutdown() {

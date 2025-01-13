@@ -1,6 +1,21 @@
 #pragma once
+#include <memory>
+
+#include "Vec3.h"
+
+struct Mat4;
 
 struct Vec4 final {
+	constexpr Vec4(const float x = 0.0f, const float y = 0.0f, const float z = 0.0f, const float w = 0.0f) : x(x), y(y), z(z), w(w) {}
+	constexpr Vec4(const Vec3 vec3, const float w) : x(vec3.x), y(vec3.y), z(vec3.z), w(w) {}
+	constexpr Vec4(const std::initializer_list<float> list) {
+		auto it = list.begin();
+		x = (it != list.end()) ? *it++ : 0.0f;
+		y = (it != list.end()) ? *it++ : 0.0f;
+		z = (it != list.end()) ? *it++ : 0.0f;
+		w = (it != list.end()) ? *it++ : 0.0f;
+	}
+
 	float x, y, z, w;
 	static Vec4 one;
 	static Vec4 zero;
@@ -19,6 +34,8 @@ struct Vec4 final {
 	static Vec4 orange;
 	static Vec4 purple;
 	static Vec4 brown;
+
+	Vec4 operator*(const Mat4& mat4) const;
 };
 
 #ifdef _DEBUG

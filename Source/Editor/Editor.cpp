@@ -12,18 +12,17 @@ Editor::Editor(std::shared_ptr<Scene> scene) : scene_(std::move(scene)) {
 	Init();
 }
 
-void Editor::Init() {
-}
+void Editor::Init() {}
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// グリッドの表示
 	DrawGrid(
 		1.0f,
 		64,
-		{ .x = 0.28f, .y = 0.28f, .z = 0.28f, .w = 1.0f },
-		{ .x = 0.39f, .y = 0.2f, .z = 0.02f, .w = 1.0f },
-		{ .x = 0.0f, .y = 0.39f, .z = 0.39f, .w = 1.0f },
-		{ .x = 0.39f, .y = 0.39f, .z = 0.39f, .w = 1.0f }
+		{ 0.28f, 0.28f, 0.28f, 1.0f },
+		{ 0.39f, 0.2f, 0.02f, 1.0f },
+		{ 0.0f, 0.39f, 0.39f, 1.0f },
+		{ 0.39f, 0.39f, 0.39f, 1.0f }
 	);
 
 #ifdef _DEBUG
@@ -85,6 +84,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 }
 
 void Editor::Render() {
+	if (scene_) {
+		scene_->Render();
+	}
 }
 
 void Editor::DrawGrid(

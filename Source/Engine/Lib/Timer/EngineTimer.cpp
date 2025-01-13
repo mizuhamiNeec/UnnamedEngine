@@ -1,12 +1,15 @@
 #include "EngineTimer.h"
-#include "../Console/ConVarManager.h"
+
+#include <ImGuiManager/Icons.h>
+#include <Lib/Console/ConVarManager.h>
+#include <Lib/Utils/StrUtils.h>
 
 double EngineTimer::deltaTime_ = 0;
 double EngineTimer::totalTime_ = 0;
 
 EngineTimer::EngineTimer() : startTime_(Clock::now()),
-                             lastFrameTime_(Clock::now()),
-                             frameDuration_(1.0 / kMaxFps) {
+lastFrameTime_(Clock::now()),
+frameDuration_(1.0 / kMaxFps) {
 }
 
 void EngineTimer::StartFrame() {
@@ -17,7 +20,7 @@ void EngineTimer::StartFrame() {
 	lastFrameTime_ = currentTime;
 
 #ifdef _DEBUG
-	ImGui::Begin("EngineTimer");
+	ImGui::Begin((StrUtils::ConvertToUtf8(kIconTimer) + " EngineTimer").c_str());
 	ImGui::Text("%.2f FPS", 1.0 / deltaTime_);
 	ImGui::Text("%.2f ms", deltaTime_ * 1000.0);
 
@@ -43,8 +46,7 @@ void EngineTimer::StartFrame() {
 void EngineTimer::EndFrame() const {
 	const auto fpsMaxConVar = ConVarManager::GetConVar("cl_fpsmax");
 	const double fpsLimit = fpsMaxConVar->GetValueAsDouble();
-	if (fpsLimit > 0)
-	{
+	if (fpsLimit > 0) {
 		const double frameLimitDuration = 1.0 / fpsLimit;
 
 		// 現在時刻を取得
@@ -53,19 +55,16 @@ void EngineTimer::EndFrame() const {
 
 		// 次フレームまでの残り時間を計算
 		double remainingTime = frameLimitDuration - elapsed.count();
-		if (remainingTime > 0.0)
-		{
+		if (remainingTime > 0.0) {
 			// 残り時間の大部分をスリープ
 			const double sleepTime = remainingTime * 0.9; // 残り時間の90%をスリープ
-			if (sleepTime > 0.0)
-			{
+			if (sleepTime > 0.0) {
 				std::this_thread::sleep_for(std::chrono::duration<double>(sleepTime));
 			}
 
 			// スリープ後の補正（忙待ちで微調整）
 			TimePoint afterSleepTime = Clock::now();
-			while (std::chrono::duration<double>(afterSleepTime - lastFrameTime_).count() < frameLimitDuration)
-			{
+			while (std::chrono::duration<double>(afterSleepTime - lastFrameTime_).count() < frameLimitDuration) {
 				afterSleepTime = Clock::now();
 			}
 		}

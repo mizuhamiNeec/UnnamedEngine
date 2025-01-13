@@ -43,6 +43,7 @@ struct Mat4 final {
 	Vec3& TransformPoint(Vec3 vec3) const;
 
 	Vec3 GetTranslate();
+	Vec3 GetRotate() const;
 
 	//-------------------------------------------------------------------------
 	// Operator

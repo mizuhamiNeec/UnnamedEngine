@@ -8,6 +8,7 @@
 #include <Renderer/SrvManager.h>
 #include <Renderer/VertexBuffer.h>
 
+class CameraComponent;
 class Camera;
 class RootSignatureManager;
 class D3D12;
@@ -27,11 +28,8 @@ public:
 
 	D3D12* GetD3D12() const;
 
-	// Setter
-	void SetDefaultCamera(Camera* newCamera);
-
 	// Getter
-	Camera* GetDefaultCamera() const;
+	CameraComponent* GetDefaultCamera() const;
 	SrvManager* GetSrvManager() const;
 
 	const VertexBuffer<Vertex>* GetVertexBuffer() const;
@@ -53,7 +51,7 @@ private:
 	std::unordered_map<std::string, ParticleGroup> particleGroups_;
 
 	D3D12* d3d12_ = nullptr;
-	Camera* defaultCamera_ = nullptr;
+	CameraComponent* defaultCamera_ = nullptr;
 	std::unique_ptr<RootSignatureManager> rootSignatureManager_ = nullptr;
 	PipelineState pipelineState_;
 	SrvManager* srvManager_ = nullptr;
