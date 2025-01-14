@@ -49,7 +49,8 @@ void D3D12::Init(Window* window) {
 
 	SetViewportAndScissor();
 
-	ConVarManager::RegisterConVar("r_clear", true, "Clear the screen", ConVarFlags::ConVarFlags_Notify);
+	ConVarManager::RegisterConVar<bool>("r_clear", true, "Clear the screen", ConVarFlags::ConVarFlags_Notify);
+	ConVarManager::RegisterConVar<int>("r_vsync", 0, "Enable VSync", ConVarFlags::ConVarFlags_Notify);
 
 	Console::Print("Complete Init D3D12.\n", kConsoleColorCompleted, Channel::Engine);
 }
@@ -134,7 +135,7 @@ void D3D12::PostRender() {
 	commandQueue_->ExecuteCommandLists(1, CommandListCast(commandList_.GetAddressOf()));
 
 	// GPU と OS に画面の交換を行うよう通知
-	swapChain_->Present(kEnableVerticalSync ? 1 : 0, 0);
+	swapChain_->Present(ConVarManager::GetConVar("r_vsync")->GetValueAsInt(), 0);
 
 	WaitPreviousFrame(); // 前のフレームを待つ
 }
