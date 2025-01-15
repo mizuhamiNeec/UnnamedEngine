@@ -7,6 +7,7 @@
 #include "Model/ModelCommon.h"
 #include "Renderer/SrvManager.h"
 #include "Scene/Base/Scene.h"
+#include "UnnamedResource/Manager/ResourceManager.h"
 
 class Console;
 class ImGuiManager;
@@ -91,6 +92,10 @@ private:
 	std::unique_ptr<Object3DCommon> object3DCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
+
+	std::unique_ptr<ResourceManager> resourceManager_;
+
+	std::shared_ptr<Texture> testTexture_;
 
 	std::shared_ptr<Scene> currentScene_; // 現在のシーン
 	std::unique_ptr<Editor> editor_; // エディター

@@ -265,6 +265,7 @@ std::string Console::ToString(const Channel channel) {
 	case Channel::Console: return "Console";
 	case Channel::Engine: return "Engine";
 	case Channel::Host: return "Host";
+	case Channel::ResourceManager: return "ResourceManager";
 	case Channel::Client: return "Client";
 	case Channel::Server: return "Server";
 	case Channel::Game: return "Game";
@@ -525,38 +526,38 @@ void Console::SuggestPopup(
 int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	switch (data->EventFlag) {
 	case ImGuiInputTextFlags_CallbackCompletion:
-		{
-			// bShowSuggestPopup_ = !bShowSuggestPopup_;
-			if (bShowSuggestPopup_) {
-				UpdateSuggestions(data->Buf);
-			}
+	{
+		// bShowSuggestPopup_ = !bShowSuggestPopup_;
+		if (bShowSuggestPopup_) {
+			UpdateSuggestions(data->Buf);
 		}
-		break;
+	}
+	break;
 
 	case ImGuiInputTextFlags_CallbackHistory:
-		{
-			const int prev_history_index = historyIndex_;
-			if (data->EventKey == ImGuiKey_UpArrow) {
-				if (historyIndex_ > 0) {
-					historyIndex_--;
-				}
-			} else if (data->EventKey == ImGuiKey_DownArrow) {
-				if (historyIndex_ < static_cast<int>(history_.size()) - 1) {
-					historyIndex_++;
-				} else {
-					historyIndex_ = static_cast<int>(history_.size()); // 履歴が空の場合はサイズと一致させる
-				}
+	{
+		const int prev_history_index = historyIndex_;
+		if (data->EventKey == ImGuiKey_UpArrow) {
+			if (historyIndex_ > 0) {
+				historyIndex_--;
 			}
-			if (prev_history_index != historyIndex_) {
-				data->DeleteChars(0, data->BufTextLen);
-				if (historyIndex_ < static_cast<int>(history_.size())) {
-					data->InsertChars(0, history_[historyIndex_].c_str());
-				} else {
-					data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
-				}
+		} else if (data->EventKey == ImGuiKey_DownArrow) {
+			if (historyIndex_ < static_cast<int>(history_.size()) - 1) {
+				historyIndex_++;
+			} else {
+				historyIndex_ = static_cast<int>(history_.size()); // 履歴が空の場合はサイズと一致させる
 			}
 		}
-		break;
+		if (prev_history_index != historyIndex_) {
+			data->DeleteChars(0, data->BufTextLen);
+			if (historyIndex_ < static_cast<int>(history_.size())) {
+				data->InsertChars(0, history_[historyIndex_].c_str());
+			} else {
+				data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
+			}
+		}
+	}
+	break;
 
 	case ImGuiInputTextFlags_CallbackEdit:
 		Print("Edit\n", kConsoleColorInt);

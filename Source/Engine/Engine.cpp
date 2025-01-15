@@ -55,6 +55,10 @@ void Engine::Init() {
 	renderer_ = std::make_unique<D3D12>();
 	renderer_->Init(window_.get());
 
+	resourceManager_ = std::make_unique<ResourceManager>(
+		renderer_->GetDevice(), renderer_->GetCommandList(), kMaxSrvCount
+	);
+
 	// SRVマネージャの初期化
 	srvManager_ = std::make_unique<SrvManager>();
 	srvManager_->Init(renderer_.get());
@@ -129,6 +133,8 @@ void Engine::Init() {
 	std::shared_ptr<Scene> gameScene = std::make_shared<GameScene>();
 	ChangeScene(gameScene);
 	CheckEditorMode();
+
+	testTexture_ = resourceManager_->LoadTexture("./Resources/Textures/powerGenerator.png");
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
@@ -326,6 +332,17 @@ void Engine::Update() {
 	}
 
 #ifdef _DEBUG
+	ImGui::Begin("Texture");
+
+	// ImGuiにテクスチャを渡すためのキャスト
+	ImTextureID texId = testTexture_->GetImTextureID();
+
+	// テクスチャの表示
+	// uv座標は通常のDirectXと同じ向きにするため上下反転
+	ImGui::Image(texId, ImVec2(512, 512));
+
+	ImGui::End();
+
 	DebugHud::Update();
 #endif
 

@@ -37,6 +37,9 @@ enum class Channel {
 	Engine, // エンジン
 	Host, // ホスト
 
+	// マネージャー系
+	ResourceManager, // リソースマネージャー
+
 	// 通信系
 	Client, // クライアント
 	Server, // サーバー

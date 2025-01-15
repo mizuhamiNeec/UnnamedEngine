@@ -314,6 +314,11 @@
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
     <ClInclude Include="Source\Engine\Components\ColliderComponent.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Base\Resource.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\ResourceManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Texture.h" />
+    <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\SrvAllocator\SrvAllocator.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -471,6 +476,11 @@
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Base\Resource.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\ResourceManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Texture.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\SrvAllocator\SrvAllocator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

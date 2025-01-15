@@ -22,7 +22,7 @@ constexpr int32_t kClientHeight = 720;
 // Purpose : レンダラ
 //-----------------------------------------------------------------------------
 constexpr uint32_t kFrameBufferCount = 2; // バックバッファの数 TODO: 引数などで変更
-constexpr uint32_t kMaxSrvCount = 512;
+constexpr uint32_t kMaxSrvCount = 1024; // SRVの最大数
 constexpr uint32_t kMaxFps = 360; // フレームレートの上限
 
 //-----------------------------------------------------------------------------
