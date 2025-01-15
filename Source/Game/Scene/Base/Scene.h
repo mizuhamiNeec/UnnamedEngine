@@ -31,6 +31,6 @@ protected:
 	ParticleManager* particleManager_ = nullptr;
 	Object3DCommon* object3DCommon_ = nullptr;
 	ModelCommon* modelCommon_ = nullptr;
-	SrvManager* srvManager_ = nullptr;
+	//SrvManager* srvManager_ = nullptr;
 	EngineTimer* timer_ = nullptr;
 };

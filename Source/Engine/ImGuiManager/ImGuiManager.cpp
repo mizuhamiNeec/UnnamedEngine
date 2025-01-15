@@ -5,7 +5,8 @@
 #include <imgui_internal.h>
 #include <Components/TransformComponent.h>
 #include <Entity/Base/Entity.h>
-#include <Renderer/SrvManager.h>
+
+#include "UnnamedResource/Manager/ShaderResourceViewManager.h"
 
 #ifdef _DEBUG
 #include "../Lib/Utils/ClientProperties.h"
@@ -13,10 +14,7 @@
 #include "../Window/Window.h"
 #include "../Window/WindowsUtils.h"
 
-void ImGuiManager::Init(const D3D12* renderer, const SrvManager* srvManager) {
-	renderer_ = renderer;
-	srvManager_ = srvManager;
-
+ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManager* srvManager) : renderer_(renderer), srvManager_(srvManager) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
@@ -70,10 +68,13 @@ void ImGuiManager::Init(const D3D12* renderer, const SrvManager* srvManager) {
 		renderer_->GetDevice(),
 		kFrameBufferCount,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
-		srvManager_->GetDescriptorHeap(),
+		srvManager_->GetDescriptorHeap().Get(),
 		srvManager_->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
 		srvManager_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart()
 	);
+}
+
+void ImGuiManager::Init() {
 }
 
 void ImGuiManager::NewFrame() {
@@ -91,8 +92,7 @@ void ImGuiManager::EndFrame() const {
 	ImGui::UpdatePlatformWindows();
 	ImGui::RenderPlatformWindowsDefault();
 
-
-	ID3D12DescriptorHeap* imGuiHeap = srvManager_->GetDescriptorHeap();
+	ID3D12DescriptorHeap* imGuiHeap = srvManager_->GetDescriptorHeap().Get();
 	renderer_->GetCommandList()->SetDescriptorHeaps(1, &imGuiHeap);
 
 	// 実際のCommandListのImGuiの描画コマンドを積む

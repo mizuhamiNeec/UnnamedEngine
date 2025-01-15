@@ -10,7 +10,7 @@
 #endif
 
 class TransformComponent;
-class SrvManager;
+class ShaderResourceViewManager;
 
 struct ColorTransition {
 	Vec4 targetColor;
@@ -19,7 +19,8 @@ struct ColorTransition {
 
 class ImGuiManager {
 public:
-	void Init(const D3D12* renderer, const SrvManager* srvManager);
+	ImGuiManager(const D3D12* renderer, const ShaderResourceViewManager* srvManager);
+	void Init();
 	static void NewFrame();
 	void EndFrame() const;
 	void Shutdown();
@@ -40,6 +41,6 @@ public:
 
 private:
 	const D3D12* renderer_ = nullptr;
-	const SrvManager* srvManager_ = nullptr;
+	const ShaderResourceViewManager* srvManager_ = nullptr;
 	ComPtr<ID3D12DescriptorHeap> srvHeap_;
 };

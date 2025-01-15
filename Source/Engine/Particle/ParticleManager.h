@@ -5,7 +5,7 @@
 #include <Lib/Structs/Structs.h>
 #include <Renderer/ConstantBuffer.h>
 #include <Renderer/PipelineState.h>
-#include <Renderer/SrvManager.h>
+//#include <Renderer/SrvManager.h>
 #include <Renderer/VertexBuffer.h>
 
 class CameraComponent;
@@ -15,7 +15,7 @@ class D3D12;
 
 class ParticleManager {
 public:
-	void Init(D3D12* d3d12, SrvManager* srvManager);
+	//void Init(D3D12* d3d12, SrvManager* srvManager);
 	void Shutdown() const;
 
 	void CreateRootSignature();
@@ -30,7 +30,7 @@ public:
 
 	// Getter
 	CameraComponent* GetDefaultCamera() const;
-	SrvManager* GetSrvManager() const;
+//	SrvManager* GetSrvManager() const;
 
 	const VertexBuffer<Vertex>* GetVertexBuffer() const;
 	const std::vector<Vertex>& GetVertices() const;
@@ -54,7 +54,7 @@ private:
 	CameraComponent* defaultCamera_ = nullptr;
 	std::unique_ptr<RootSignatureManager> rootSignatureManager_ = nullptr;
 	PipelineState pipelineState_;
-	SrvManager* srvManager_ = nullptr;
+	//SrvManager* srvManager_ = nullptr;
 
 	uint32_t kNumMaxInstance = 512;
 

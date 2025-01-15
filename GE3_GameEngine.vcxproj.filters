@@ -267,9 +267,6 @@
     <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h">
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Renderer\SrvManager.h">
-      <Filter>Source\Engine\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\StructuredBuffer.h">
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
@@ -281,9 +278,6 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Sprite\SpriteCommon.h">
       <Filter>Source\Engine\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\TextureManager\TextureManager.h">
-      <Filter>Source\Engine\TextureManager</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Window\Window.h">
       <Filter>Source\Engine\Window</Filter>
@@ -314,11 +308,13 @@
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
     <ClInclude Include="Source\Engine\Components\ColliderComponent.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Base\Resource.h" />
+    <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Manager\ResourceManager.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Texture.h" />
-    <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\SrvAllocator\SrvAllocator.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\ShaderResourceViewManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\TextureManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Audio.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\AudioManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -432,9 +428,6 @@
     <ClCompile Include="Source\Engine\Renderer\RootSignatureManager.cpp">
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp">
-      <Filter>Source\Engine\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp">
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
@@ -446,9 +439,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Sprite\SpriteCommon.cpp">
       <Filter>Source\Engine\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\TextureManager\TextureManager.cpp">
-      <Filter>Source\Engine\TextureManager</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Window\Window.cpp">
       <Filter>Source\Engine\Window</Filter>
@@ -476,11 +466,13 @@
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Base\Resource.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Manager\ResourceManager.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Texture.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\SrvAllocator\SrvAllocator.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\ShaderResourceViewManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\TextureManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Audio.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\AudioManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

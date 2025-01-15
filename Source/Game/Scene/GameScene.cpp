@@ -12,7 +12,7 @@
 #include <Object3D/Object3D.h>
 #include <Particle/ParticleManager.h>
 #include <Sprite/SpriteCommon.h>
-#include <TextureManager/TextureManager.h>
+//#include <TextureManager/TextureManager.h>
 
 #include "Debug/Debug.h"
 #include "Input/InputSystem.h"
@@ -25,13 +25,13 @@ void GameScene::Init(Engine* engine) {
 	particleManager_ = engine->GetParticleManager();
 	object3DCommon_ = engine->GetObject3DCommon();
 	modelCommon_ = engine->GetModelCommon();
-	srvManager_ = engine->GetSrvManager();
+	//srvManager_ = engine->GetSrvManager();
 	timer_ = engine->GetEngineTimer();
 
 #pragma region テクスチャ読み込み
-	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
+	/*TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/uvChecker.png");
-	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/circle.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/circle.png");*/
 #pragma endregion
 
 #pragma region スプライト類
@@ -97,9 +97,6 @@ void GameScene::Update(const float deltaTime) {
 		isOffscreen,
 		rotation
 	);
-
-	ImGui::Checkbox("isOffscreen", &isOffscreen);
-	ImGui::SliderFloat("rotation", &rotation, 0.0f, 360.0f);
 
 	sprite_->SetPos(Vec3(pos.x, pos.y));
 	sprite_->SetRot(Vec3::forward * rotation);

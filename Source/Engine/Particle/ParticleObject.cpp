@@ -1,22 +1,14 @@
 #include "ParticleObject.h"
 
-#include "ParticleManager.h"
-
-#include "../Engine.h"
-
-#include "../Camera/Camera.h"
-
-#include "../Debug/Debug.h"
-
-#include "../ImGuiManager/ImGuiManager.h"
-
-#include "../Lib/Math/Quaternion/Quaternion.h"
-#include "../Lib/Math/Random/Random.h"
-
-#include "../Renderer/D3D12.h"
-
-#include "../TextureManager/TextureManager.h"
-#include "Camera/CameraManager.h"
+#include <Engine.h>
+#include <Camera/Camera.h>
+#include <Camera/CameraManager.h>
+#include <Debug/Debug.h>
+#include <ImGuiManager/ImGuiManager.h>
+#include <Lib/Math/Quaternion/Quaternion.h>
+#include <Lib/Math/Random/Random.h>
+#include <Particle/ParticleManager.h>
+#include <Renderer/D3D12.h>
 
 void ParticleObject::Init(ParticleManager* particleCommon, const std::string& textureFilePath) {
 	this->particleCommon_ = particleCommon;
@@ -63,18 +55,18 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 	}
 
 	// SrvManagerのインスタンスを取得
-	srvManager_ = particleCommon_->GetSrvManager();
+	//srvManager_ = particleCommon_->GetSrvManager();
 
 	// SRVのインデックスを取得
-	srvIndex_ = srvManager_->Allocate();
+	//srvIndex_ = srvManager_->Allocate();
 
 	// StructuredBuffer用のSRVを作成
-	srvManager_->CreateSRVForStructuredBuffer(
-		srvIndex_,
-		instancingResource_->GetResource(), // ID3D12Resource* 型のリソース
-		kNumMaxInstance, // 要素数
-		sizeof(TransformationMatrix) // 構造体のバイトサイズ
-	);
+	//srvManager_->CreateSRVForStructuredBuffer(
+	//	srvIndex_,
+	//	instancingResource_->GetResource(), // ID3D12Resource* 型のリソース
+	//	kNumMaxInstance, // 要素数
+	//	sizeof(TransformationMatrix) // 構造体のバイトサイズ
+	//);
 
 	emitter_.transform = { Vec3::one, Vec3::zero, Vec3::zero };
 
@@ -230,15 +222,15 @@ void ParticleObject::Draw() const {
 		0, materialResource_->GetAddress()
 	);
 
-	// SRVを設定
-	particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-		1, srvManager_->GetGPUDescriptorHandle(srvIndex_)
-	);
+	//// SRVを設定
+	//particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
+	//	1, srvManager_->GetGPUDescriptorHandle(srvIndex_)
+	//);
 
-	// SRVのDescriptorTableの先頭を設定
-	particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-		2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_)
-	);
+	//// SRVのDescriptorTableの先頭を設定
+	//particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
+	//	2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_)
+	//);
 
 	// インデックスバッファの設定
 	D3D12_INDEX_BUFFER_VIEW indexBufferView = indexBuffer_->View();

@@ -11,34 +11,34 @@
 #include "../Lib/Math/Random/Random.h"
 #include "../Renderer/D3D12.h"
 #include "../Renderer/RootSignatureManager.h"
-#include "../TextureManager/TextureManager.h"
+//#include "../TextureManager/TextureManager.h"
 #include "Camera/CameraManager.h"
 
-void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
-	d3d12_ = d3d12;
-	srvManager_ = srvManager;
-	Console::Print("ParticleManager : ParticleCommonを初期化します。\n", kConsoleColorWait, Channel::Engine);
-	// 頂点データの生成
-	vertices_ = {
-		{{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, Vec3::forward},
-		{{-1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, Vec3::forward},
-		{{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, Vec3::forward},
-		{{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, Vec3::forward},
-		{{-1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, Vec3::forward},
-		{{-1.0f, -1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, Vec3::forward}
-	};
-
-	// 頂点バッファの作成
-	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(
-		d3d12_->GetDevice(),
-		sizeof(Vertex) * vertices_.size(),
-		vertices_.data()
-	);
-
-	CreateGraphicsPipeline();
-
-	Console::Print("ParticleManager : ParticleCommonの初期化が完了しました。\n", kConsoleColorCompleted, Channel::Engine);
-}
+//void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
+//	d3d12_ = d3d12;
+//	srvManager_ = srvManager;
+//	Console::Print("ParticleManager : ParticleCommonを初期化します。\n", kConsoleColorWait, Channel::Engine);
+//	// 頂点データの生成
+//	vertices_ = {
+//		{{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, Vec3::forward},
+//		{{-1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, Vec3::forward},
+//		{{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, Vec3::forward},
+//		{{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, Vec3::forward},
+//		{{-1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, Vec3::forward},
+//		{{-1.0f, -1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, Vec3::forward}
+//	};
+//
+//	// 頂点バッファの作成
+//	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(
+//		d3d12_->GetDevice(),
+//		sizeof(Vertex) * vertices_.size(),
+//		vertices_.data()
+//	);
+//
+//	CreateGraphicsPipeline();
+//
+//	Console::Print("ParticleManager : ParticleCommonの初期化が完了しました。\n", kConsoleColorCompleted, Channel::Engine);
+//}
 
 void ParticleManager::Shutdown() const {}
 
@@ -173,13 +173,13 @@ void ParticleManager::Render() {
 			++particleGroup.instancingData;
 		}
 
-		d3d12_->GetCommandList()->SetGraphicsRootDescriptorTable(
-			2, TextureManager::GetInstance()->GetSrvHandleGPU(particleGroup.materialData.textureFilePath)
-		);
-		// インスタンシングデータのSRVのDescriptorTableを設定
-		d3d12_->GetCommandList()->SetGraphicsRootDescriptorTable(
-			1, srvManager_->GetGPUDescriptorHandle(particleGroup.srvIndex)
-		);
+		//d3d12_->GetCommandList()->SetGraphicsRootDescriptorTable(
+		//	2, TextureManager::GetInstance()->GetSrvHandleGPU(particleGroup.materialData.textureFilePath)
+		//);
+		//// インスタンシングデータのSRVのDescriptorTableを設定
+		//d3d12_->GetCommandList()->SetGraphicsRootDescriptorTable(
+		//	1, srvManager_->GetGPUDescriptorHandle(particleGroup.srvIndex)
+		//);
 		// 描画
 		d3d12_->GetCommandList()->DrawInstanced(static_cast<UINT>(vertices_.size()), particleGroup.numInstance, 0, 0);
 	}
@@ -204,9 +204,9 @@ CameraComponent* ParticleManager::GetDefaultCamera() const {
 	return CameraManager::GetActiveCamera().get();
 }
 
-SrvManager* ParticleManager::GetSrvManager() const {
-	return srvManager_;
-}
+//SrvManager* ParticleManager::GetSrvManager() const {
+//	return srvManager_;
+//}
 
 const VertexBuffer<Vertex>* ParticleManager::GetVertexBuffer() const {
 	return vertexBuffer_.get();
@@ -225,23 +225,23 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 	// 新たなパーティクルグループのマテリアルデータにテクスチャファイルパスを設定
 	particleGroups_[name].materialData.textureFilePath = textureFilePath;
 	// テクスチャを読み込む
-	TextureManager::GetInstance()->LoadTexture(textureFilePath);
+	//TextureManager::GetInstance()->LoadTexture(textureFilePath);
 	// マテリアルデータにテクスチャのSRVインデックスを記録
-	particleGroups_[name].materialData.textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(
+	/*particleGroups_[name].materialData.textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(
 		textureFilePath
-	);
+	);*/
 	// インスタンシング用リソースの生成
 	particleGroups_[name].instancingResource = std::make_unique<ConstantBuffer>(
 		d3d12_->GetDevice(),
 		sizeof(ParticleForGPU) * kNumMaxInstance
 	);
-	// インスタンシング用にSRVを確保してSRVインデックスを記録
-	particleGroups_[name].srvIndex = srvManager_->Allocate();
-	// SRV生成(StructuredBuffer用設定)
-	srvManager_->CreateSRVForStructuredBuffer(
-		particleGroups_[name].srvIndex,
-		particleGroups_[name].instancingResource->GetResource(),
-		kNumMaxInstance,
-		sizeof(ParticleForGPU)
-	);
+	//// インスタンシング用にSRVを確保してSRVインデックスを記録
+	//particleGroups_[name].srvIndex = srvManager_->Allocate();
+	//// SRV生成(StructuredBuffer用設定)
+	//srvManager_->CreateSRVForStructuredBuffer(
+	//	particleGroups_[name].srvIndex,
+	//	particleGroups_[name].instancingResource->GetResource(),
+	//	kNumMaxInstance,
+	//	sizeof(ParticleForGPU)
+	//);
 }

@@ -206,7 +206,7 @@ void Console::Print(
 	[[maybe_unused]] const std::string& message, [[maybe_unused]] const Vec4& color,
 	[[maybe_unused]] const Channel& channel
 ) {
-#ifdef _DEBUG
+
 	if (message.empty()) {
 		return;
 	}
@@ -217,6 +217,7 @@ void Console::Print(
 	const bool hasNewLine = !msg.empty() && msg.back() == '\n';
 	const std::string baseMsg = hasNewLine ? msg.substr(0, msg.size() - 1) : msg;
 
+#ifdef _DEBUG
 	// 前のメッセージと完全一致するかチェック（改行を除いて比較）
 	if (!consoleTexts_.empty()) {
 		const std::string lastMsg = consoleTexts_.back().text;
@@ -238,13 +239,14 @@ void Console::Print(
 	// 新しいメッセージとして追加
 	consoleTexts_.push_back({ .text = msg, .color = color, .channel = channel });
 	repeatCounts_.push_back(1);
-	// 内蔵コンソール以外はチャンネルを表示
-	std::string channelStr = (channel != Channel::None) ? "[" + ToString(channel) + "] " : "";
-	OutputDebugString(StrUtils::ToString(channelStr + msg));
-	RewriteLogFile();
-
 	bWishScrollToBottom_ = true;
 #endif
+	if (ConVarManager::GetConVar("verbose")->GetValueAsBool()) {
+		// 内蔵コンソール以外はチャンネルを表示
+		std::string channelStr = (channel != Channel::None) ? "[" + ToString(channel) + "] " : "";
+		OutputDebugString(StrUtils::ToString(channelStr + msg));
+		RewriteLogFile();
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -410,10 +412,11 @@ void Console::Echo(const std::vector<std::string>& args) {
 	Print(StrUtils::Join(args, " ") + "\n", kConsoleColorNormal, Channel::Console);
 }
 
+#ifdef _DEBUG
 void Console::UpdateSuggestions(const std::string& input) {
 	suggestions_.clear();
 
-	// 入力が空の場合はサジェストしない
+	  // 入力が空の場合はサジェストしない
 	if (input.empty()) {
 		for (const auto& command : ConCommand::GetCommands()) {
 			suggestions_.push_back(command.first);
@@ -436,7 +439,9 @@ void Console::UpdateSuggestions(const std::string& input) {
 		}
 	}
 }
+#endif
 
+#ifdef _DEBUG 
 //-----------------------------------------------------------------------------
 // Purpose: サジェストポップアップを表示します
 //-----------------------------------------------------------------------------
@@ -471,6 +476,7 @@ void Console::ShowSuggestPopup() {
 	}
 	ImGui::End();
 }
+#endif
 
 #ifdef _DEBUG
 void Console::SuggestPopup(
@@ -526,38 +532,38 @@ void Console::SuggestPopup(
 int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	switch (data->EventFlag) {
 	case ImGuiInputTextFlags_CallbackCompletion:
-	{
-		// bShowSuggestPopup_ = !bShowSuggestPopup_;
-		if (bShowSuggestPopup_) {
-			UpdateSuggestions(data->Buf);
+		{
+			// bShowSuggestPopup_ = !bShowSuggestPopup_;
+			if (bShowSuggestPopup_) {
+				UpdateSuggestions(data->Buf);
+			}
 		}
-	}
-	break;
+		break;
 
 	case ImGuiInputTextFlags_CallbackHistory:
-	{
-		const int prev_history_index = historyIndex_;
-		if (data->EventKey == ImGuiKey_UpArrow) {
-			if (historyIndex_ > 0) {
-				historyIndex_--;
+		{
+			const int prev_history_index = historyIndex_;
+			if (data->EventKey == ImGuiKey_UpArrow) {
+				if (historyIndex_ > 0) {
+					historyIndex_--;
+				}
+			} else if (data->EventKey == ImGuiKey_DownArrow) {
+				if (historyIndex_ < static_cast<int>(history_.size()) - 1) {
+					historyIndex_++;
+				} else {
+					historyIndex_ = static_cast<int>(history_.size()); // 履歴が空の場合はサイズと一致させる
+				}
 			}
-		} else if (data->EventKey == ImGuiKey_DownArrow) {
-			if (historyIndex_ < static_cast<int>(history_.size()) - 1) {
-				historyIndex_++;
-			} else {
-				historyIndex_ = static_cast<int>(history_.size()); // 履歴が空の場合はサイズと一致させる
+			if (prev_history_index != historyIndex_) {
+				data->DeleteChars(0, data->BufTextLen);
+				if (historyIndex_ < static_cast<int>(history_.size())) {
+					data->InsertChars(0, history_[historyIndex_].c_str());
+				} else {
+					data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
+				}
 			}
 		}
-		if (prev_history_index != historyIndex_) {
-			data->DeleteChars(0, data->BufTextLen);
-			if (historyIndex_ < static_cast<int>(history_.size())) {
-				data->InsertChars(0, history_[historyIndex_].c_str());
-			} else {
-				data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
-			}
-		}
-	}
-	break;
+		break;
 
 	case ImGuiInputTextFlags_CallbackEdit:
 		Print("Edit\n", kConsoleColorInt);
@@ -576,6 +582,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 // Purpose: メニューバーを表示します
 //-----------------------------------------------------------------------------
 void Console::ShowMenuBar() {
+#ifdef _DEBUG 
 	if (ImGui::BeginMenuBar()) {
 		if (ImGui::BeginMenu("File")) {
 			if (ImGui::MenuItem("Clear", "Ctrl+C")) {
@@ -597,12 +604,14 @@ void Console::ShowMenuBar() {
 		}
 		ImGui::EndMenuBar();
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: コンソールのテキストを表示します
 //-----------------------------------------------------------------------------
 void Console::ShowConsoleText() {
+#ifdef _DEBUG
 	// 入力フィールドとボタンの高さを取得
 	float inputTextHeight = ImGui::GetFrameHeightWithSpacing();
 	// 子ウィンドウの高さを調整
@@ -691,12 +700,14 @@ void Console::ShowConsoleText() {
 
 		ImGui::EndTable();
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: コンソールの本体を表示します
 //-----------------------------------------------------------------------------
 void Console::ShowConsoleBody() {
+#ifdef _DEBUG
 	ImGui::PushStyleColor(ImGuiCol_Border, { 0.0f,0.0f,0.0f,0.0f });
 	ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, { 0.0f,0.0f,0.0f,0.0f });
 
@@ -751,9 +762,11 @@ void Console::ShowConsoleBody() {
 
 	ImGui::PopStyleVar(3);
 	ImGui::PopStyleColor(2);
+#endif
 }
 
 void Console::ShowContextMenu() {
+#ifdef _DEBUG 
 	ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 8.0f);
 	ImGui::PushStyleColor(ImGuiCol_Border, { 0.25f,0.25f,0.25f,1.0f });
 
@@ -783,9 +796,11 @@ void Console::ShowContextMenu() {
 
 	ImGui::PopStyleColor();
 	ImGui::PopStyleVar();
+#endif
 }
 
 void Console::ShowAbout() {
+#ifdef _DEBUG
 	ImGui::OpenPopup(("About " + kEngineName + " Console").c_str());
 
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -831,6 +846,7 @@ void Console::ShowAbout() {
 
 		ImGui::EndPopup();
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -927,6 +943,7 @@ void Console::UpdateRepeatCount(
 // Purpose: 最下部までスクロールされている場合は自動スクロールします
 //-----------------------------------------------------------------------------
 void Console::CheckScroll() {
+#ifdef _DEBUG
 	if (bWishScrollToBottom_ && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
 		ImGui::SetScrollHereY(1.0f);
 	}
@@ -936,6 +953,7 @@ void Console::CheckScroll() {
 	} else {
 		bWishScrollToBottom_ = true;
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -981,12 +999,14 @@ void Console::LogToFile(const std::string& message) {
 }
 
 void Console::RewriteLogFile() {
+#ifdef _DEBUG
 	std::ofstream logFile("console.log", std::ios::trunc);
 	if (logFile.is_open()) {
 		for (const auto& text : consoleTexts_) {
 			logFile << text.text;
 		}
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1018,7 +1038,8 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 	return tokens;
 }
 
-size_t Console::FilteredToActualIndex(const int filteredIndex) {
+size_t Console::FilteredToActualIndex([[maybe_unused]] const int filteredIndex) {
+#ifdef _DEBUG
 	int visibleIndex = 0;
 	for (size_t i = 0; i < consoleTexts_.size(); ++i) {
 		if (currentFilterChannel_ == Channel::None || consoleTexts_[i].channel == currentFilterChannel_) {
@@ -1029,6 +1050,7 @@ size_t Console::FilteredToActualIndex(const int filteredIndex) {
 		}
 	}
 	return SIZE_MAX; // 該当なし
+#endif
 }
 
 #ifdef _DEBUG

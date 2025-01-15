@@ -113,7 +113,7 @@ Vec2 Math::WorldToScreen(const Vec3& worldPos, const bool& bClamp, const float& 
 	Vec2 screenPos((ndc.x * 0.5f + 0.5f) * screenWidth,
 		(1.0f - (ndc.y * 0.5f + 0.5f)) * screenHeight);
 
-// 画面中心からの方向ベクトル計算
+	// 画面中心からの方向ベクトル計算
 	Vec2 direction = screenPos - screenCenter;
 
 	// 角度計算
@@ -131,11 +131,10 @@ Vec2 Math::WorldToScreen(const Vec3& worldPos, const bool& bClamp, const float& 
 
 	// クランプ処理
 	isOffscreen = false;
-	Vec2 clampDirection;
 	if (viewSpace.z < 0.0f || screenPos.x < margin || screenPos.x > screenWidth - margin ||
 		screenPos.y < margin || screenPos.y > screenHeight - margin) {
 		isOffscreen = true;
-		clampDirection = viewSpace.z < 0.0f ? Vec2(viewSpace.x, -viewSpace.y) : direction;
+		Vec2 clampDirection = viewSpace.z < 0.0f ? Vec2(viewSpace.x, -viewSpace.y) : direction;
 
 		const float length = std::hypot(clampDirection.x, clampDirection.y);
 		if (length > 0.0f) {

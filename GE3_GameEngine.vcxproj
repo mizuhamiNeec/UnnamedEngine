@@ -106,9 +106,10 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\AudioManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Audio.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Manager\ResourceManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Base\Resource.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
@@ -125,7 +126,8 @@
     <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp" />
     <ClCompile Include="Source\Engine\Components\TransformComponent.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Texture.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\SrvAllocator\SrvAllocator.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\ShaderResourceViewManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\TextureManager.cpp" />
     <None Include="Resources\Shaders\Line.PS.hlsl" />
     <None Include="Resources\Shaders\Line.VS.hlsl" />
     <None Include="Resources\Shaders\Object3d.PS.hlsl" />
@@ -174,19 +176,18 @@
     <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Random\Random.cpp" />
     <ClCompile Include="Source\Engine\Window\Window.cpp" />
-    <ClCompile Include="Source\Engine\TextureManager\TextureManager.cpp" />
     <ClCompile Include="Source\Engine\Lib\Structs\Structs.cpp" />
     <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp" />
     <ClCompile Include="Source\Engine\Sprite\Sprite.cpp" />
     <ClCompile Include="Source\Engine\Sprite\SpriteCommon.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\AudioManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Audio.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Manager\ResourceManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Base\Resource.h" />
+    <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
     <ClInclude Include="Source\Engine\Components\ColliderComponent.h" />
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
     <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
@@ -202,7 +203,8 @@
     <ClInclude Include="Source\Engine\Components\TransformComponent.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Texture.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\SrvAllocator\SrvAllocator.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\ShaderResourceViewManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\TextureManager.h" />
     <None Include="Resources\Shaders\Object3d.hlsli" />
     <None Include="Resources\Shaders\Particle.hlsli" />
     <None Include="Resources\Shaders\Line.hlsli" />
@@ -253,13 +255,11 @@
     <ClInclude Include="Source\Engine\Lib\Math\Random\Random.h" />
     <ClInclude Include="Source\Engine\Window\Window.h" />
     <ClInclude Include="Source\Engine\Lib\Math\MathLib.h" />
-    <ClInclude Include="Source\Engine\TextureManager\TextureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h" />
     <ClInclude Include="Source\Engine\Sprite\Sprite.h" />
     <ClInclude Include="Source\Engine\Sprite\SpriteCommon.h" />
     <ClInclude Include="Source\Engine\Window\WindowsUtils.h" />
     <ClInclude Include="Source\Engine\Lib\Timer\EngineTimer.h" />
-    <ClInclude Include="Source\Engine\Renderer\SrvManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Source\Externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

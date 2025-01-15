@@ -1,10 +1,9 @@
 #include "Sprite.h"
 
-#include "../Lib/Console/Console.h"
-#include "../Lib/Utils/ClientProperties.h"
-#include "../Renderer/D3D12.h"
-#include "../TextureManager/TextureManager.h"
-#include "SpriteCommon.h"
+#include <Lib/Console/Console.h>
+#include <Lib/Utils/ClientProperties.h>
+#include <Renderer/D3D12.h>
+#include <Sprite/SpriteCommon.h>
 
 //-----------------------------------------------------------------------------
 // Purpose : デストラクタ
@@ -77,11 +76,11 @@ void Sprite::Update() {
 		bottom = -bottom;
 	}
 
-	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureFilePath_);
+	/*const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureFilePath_);
 	float texLeft = textureLeftTop.x / static_cast<float>(metadata.width);
 	float texRight = (textureLeftTop.x + textureSize.x) / static_cast<float>(metadata.width);
 	float texTop = textureLeftTop.y / static_cast<float>(metadata.height);
-	float texBottom = (textureLeftTop.y + textureSize.y) / static_cast<float>(metadata.height);
+	float texBottom = (textureLeftTop.y + textureSize.y) / static_cast<float>(metadata.height);*/
 
 	// すべての頂点を更新
 	vertices_[0].position = Vec4(left, bottom, 0.0f, 1.0f);   // 左下
@@ -91,13 +90,13 @@ void Sprite::Update() {
 	vertices_[4].position = Vec4(right, top, 0.0f, 1.0f);     // 右上
 	vertices_[5].position = Vec4(right, bottom, 0.0f, 1.0f);  // 右下 (追加)
 
-	// すべてのUV座標を更新
-	vertices_[0].uv = { texLeft, texBottom };   // 左下
-	vertices_[1].uv = { texLeft, texTop };      // 左上
-	vertices_[2].uv = { texRight, texBottom };  // 右下
-	vertices_[3].uv = { texLeft, texTop };      // 左上
-	vertices_[4].uv = { texRight, texTop };     // 右上
-	vertices_[5].uv = { texRight, texBottom };  // 右下 (追加)
+	//// すべてのUV座標を更新
+	//vertices_[0].uv = { texLeft, texBottom };   // 左下
+	//vertices_[1].uv = { texLeft, texTop };      // 左上
+	//vertices_[2].uv = { texRight, texBottom };  // 右下
+	//vertices_[3].uv = { texLeft, texTop };      // 左上
+	//vertices_[4].uv = { texRight, texTop };     // 右上
+	//vertices_[5].uv = { texRight, texBottom };  // 右下 (追加)
 }
 
 //-----------------------------------------------------------------------------
@@ -118,8 +117,8 @@ void Sprite::Draw() const {
 		// 各種行列を作成
 		Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
 		Mat4 viewMat = Mat4::identity;
-		Mat4 projMat = Mat4::MakeOrthographicMat(0.0f, 0.0f, static_cast<float>(kClientWidth),
-			static_cast<float>(kClientHeight), 0.0f, 100.0f);
+		Mat4 projMat = Mat4::MakeOrthographicMat(0.0f, 0.0f, static_cast<float>(Window::GetClientWidth()),
+			static_cast<float>(Window::GetClientHeight()), 0.0f, 100.0f);
 
 		TransformationMatrix worldViewProjectionMatrixSprite = {
 			worldMat * viewMat * projMat,
@@ -138,9 +137,9 @@ void Sprite::Draw() const {
 	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(1, transformation_->GetAddress());
 
 	// SRVを設定
-	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-		2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_)
-	);
+	//spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
+	//	2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_)
+	//);
 
 	// インデックスバッファの設定
 	D3D12_INDEX_BUFFER_VIEW indexBufferView = indexBuffer_->View();
@@ -257,11 +256,11 @@ void Sprite::SetUvRot(const float& newRot) {
 
 void Sprite::AdjustTextureSize() {
 	// テクスチャメタデータを取得
-	const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureFilePath_);
+	//const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureFilePath_);
 
 	// 画像サイズをテクスチャサイズに合わせる
-	textureSize.x = static_cast<float>(metadata.width);
-	textureSize.y = static_cast<float>(metadata.height);
+	/*textureSize.x = static_cast<float>(metadata.width);
+	textureSize.y = static_cast<float>(metadata.height);*/
 
 	transform_.scale.x = textureSize.x;
 	transform_.scale.y = textureSize.y;

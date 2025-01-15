@@ -11,7 +11,7 @@
 #include "../Renderer/VertexBuffer.h"
 #include "Components/CameraComponent.h"
 
-class SrvManager;
+class ShaderResourceViewManager;
 class Camera;
 class ParticleManager;
 
@@ -37,7 +37,7 @@ public:
 
 private:
 	ParticleManager* particleCommon_ = nullptr;
-	SrvManager* srvManager_ = nullptr;
+	ShaderResourceViewManager* srvManager_ = nullptr;
 	CameraComponent* camera_ = nullptr;
 	std::string textureFilePath_;
 

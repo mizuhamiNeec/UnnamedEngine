@@ -1,11 +1,10 @@
 #include "Object3DCommon.h"
 
-#include "../Lib/Console/Console.h"
-#include "../Lib/Structs/Structs.h"
-#include "../Renderer/RootSignatureManager.h"
+#include <Lib/Console/Console.h>
+#include <Lib/Structs/Structs.h>
+#include <Renderer/RootSignatureManager.h>
 
-#include "../Renderer/SrvManager.h"
-#include "Camera/CameraManager.h"
+#include <Camera/CameraManager.h>
 
 //-----------------------------------------------------------------------------
 // Purpose : Object3DCommonを初期化します

@@ -1,13 +1,13 @@
 #pragma once
+#include <Editor.h>
 #include <memory>
+#include <Lib/Timer/EngineTimer.h>
+#include <Line/LineCommon.h>
+#include <Model/ModelCommon.h>
+#include <Scene/Base/Scene.h>
+#include <UnnamedResource/Manager/ShaderResourceViewManager.h>
 
-#include "Editor.h"
-#include "Lib/Timer/EngineTimer.h"
-#include "Line/LineCommon.h"
-#include "Model/ModelCommon.h"
-#include "Renderer/SrvManager.h"
-#include "Scene/Base/Scene.h"
-#include "UnnamedResource/Manager/ResourceManager.h"
+#include "UnnamedResource/Texture.h"
 
 class Console;
 class ImGuiManager;
@@ -61,10 +61,6 @@ public:
 		return lineCommon_.get();
 	}
 
-	[[nodiscard]] SrvManager* GetSrvManager() const {
-		return srvManager_.get();
-	}
-
 	[[nodiscard]] EngineTimer* GetEngineTimer() const {
 		return time_.get();
 	}
@@ -81,7 +77,7 @@ private:
 
 	std::unique_ptr<Window> window_;
 	std::unique_ptr<D3D12> renderer_;
-	std::unique_ptr<SrvManager> srvManager_;
+	std::unique_ptr<ShaderResourceViewManager> srvManager_;
 	std::unique_ptr<EngineTimer> time_;
 
 	std::unique_ptr<Entity> cameraEntity_;
@@ -93,9 +89,7 @@ private:
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
 
-	std::unique_ptr<ResourceManager> resourceManager_;
-
-	std::shared_ptr<Texture> testTexture_;
+	std::shared_ptr<Texture> texture;
 
 	std::shared_ptr<Scene> currentScene_; // 現在のシーン
 	std::unique_ptr<Editor> editor_; // エディター

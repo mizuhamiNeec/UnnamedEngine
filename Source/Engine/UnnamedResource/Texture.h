@@ -1,52 +1,38 @@
 #pragma once
-
 #include <d3d12.h>
-#include <DirectXTex/DirectXTex.h>
-#include <UnnamedResource/Base/Resource.h>
-#include <UnnamedResource/SrvAllocator/SrvAllocator.h>
-#include <wrl/client.h>
+#include <string>
+#include <wrl.h>
 
-#ifdef _DEBUG
-#include "imgui.h"
-#endif
+#include <UnnamedResource/Manager/ShaderResourceViewManager.h>
 
-class Texture : public Resource {
+#include "DirectXTex/DirectXTex.h"
+#include "Renderer/D3D12.h"
+
+using Microsoft::WRL::ComPtr;
+
+class Texture {
 public:
-	Texture(const std::string& filePath, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, SrvAllocator* srvAllocator);
-	~Texture() override = default;
-	void Unload() override;
+	Texture() = default;
+	~Texture() = default;
 
-	[[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE GetSrvCPUHandle() const;
-	[[nodiscard]] D3D12_GPU_DESCRIPTOR_HANDLE GetSrvGPUHandle() const;
-	[[nodiscard]] const DirectX::TexMetadata& GetMetaData() const;
-	ComPtr<ID3D12Resource> GetResource() const;
+	bool LoadFromFile(
+		D3D12* d3d12,
+		ShaderResourceViewManager* shaderResourceViewManager,
+		const std::string& filePath
+	);
 
-#ifdef _DEBUG
-	[[nodiscard]] ImTextureID GetImTextureID() const {
-		if (srvGPUHandle_.ptr) {
-			return srvGPUHandle_.ptr;
-		}
-		return ImTextureID();
-	}
-#endif
+	D3D12_GPU_DESCRIPTOR_HANDLE GetShaderResourceView() const;
 
 private:
-	void LoadFromFile(const std::string& filePath);
-	void CreateTextureResource();
-	void UploadTextureData();
-	void CreateShaderResourceView();
+	ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* device);
+	ComPtr<ID3D12Resource> UploadTextureData(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const ComPtr<ID3D12Resource>& texture, const DirectX::
+		ScratchImage& mipImages) const;
 
-private:
-	std::string filePath_;
+	ComPtr<ID3D12Resource> textureResource_;
+	ComPtr<ID3D12Resource> uploadHeap_;
+
 	DirectX::TexMetadata metadata_;
-	DirectX::ScratchImage mipImages_;
-	Microsoft::WRL::ComPtr<ID3D12Resource> textureResource_;
-	Microsoft::WRL::ComPtr<ID3D12Resource> uploadHeap_;
-	D3D12_CPU_DESCRIPTOR_HANDLE srvCPUHandle_;
-	D3D12_GPU_DESCRIPTOR_HANDLE srvGPUHandle_;
 
-	ID3D12Device* device_;
-	ID3D12GraphicsCommandList* commandList_;
-	SrvAllocator* srvAllocator_;
+	D3D12_GPU_DESCRIPTOR_HANDLE handle_ = {};
 };
 

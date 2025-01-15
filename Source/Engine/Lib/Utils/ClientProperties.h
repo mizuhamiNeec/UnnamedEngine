@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Lib/Math/MathLib.h"
+#include <Lib/Math/MathLib.h>
 
 //-----------------------------------------------------------------------------
 // Purpose: エンジン

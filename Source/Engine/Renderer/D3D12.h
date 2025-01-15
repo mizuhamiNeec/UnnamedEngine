@@ -11,9 +11,11 @@ using namespace Microsoft::WRL;
 
 class D3D12 : public Renderer {
 public: // メンバ関数
+	D3D12();
 	~D3D12() override;
 
-	void Init(Window* window) override;
+	void Init() override;
+
 	void ClearColorAndDepth() const;
 	void PreRender() override;
 	void PostRender() override;
@@ -21,6 +23,8 @@ public: // メンバ関数
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data);
 
 	void WaitPreviousFrame();
+
+	void Resize(uint32_t width, uint32_t height);
 
 private:
 	//　メンバ変数
@@ -106,10 +110,6 @@ public:
 
 	ID3D12CommandAllocator* GetCommandAllocator() const {
 		return commandAllocator_.Get();
-	}
-
-	Window* GetWindow() const {
-		return window_;
 	}
 
 	uint64_t GetFenceValue() const {

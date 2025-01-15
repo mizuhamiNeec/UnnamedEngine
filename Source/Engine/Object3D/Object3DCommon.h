@@ -6,7 +6,7 @@
 #include "../Camera/Camera.h"
 #include "../Renderer/PipelineState.h"
 
-class SrvManager;
+//class SrvManager;
 class RootSignatureManager;
 class D3D12;
 

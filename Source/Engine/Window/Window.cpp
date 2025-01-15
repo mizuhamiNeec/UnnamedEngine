@@ -1,7 +1,6 @@
 #include "Window.h"
 
 #include <dwmapi.h>
-#include <imgui.h>
 #include <utility>
 #include <Input/InputSystem.h>
 #include <Lib/Console/Console.h>
@@ -150,11 +149,13 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 				if (static_cast<bool>(sMode) != darkMode) {
 					sMode = darkMode;
 					SetUseImmersiveDarkMode(hWnd, darkMode); // ウィンドウのモードを設定
+#ifdef _DEBUG
 					if (sMode) {
 						ImGuiManager::StyleColorsDark();
 					} else {
 						ImGuiManager::StyleColorsLight();
 					}
+#endif
 					Console::Print(
 						std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConsoleColorWait,
 						Channel::Engine
@@ -171,6 +172,15 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 		if (LOWORD(wParam) == WA_INACTIVE) {
 			// ウィンドウが非アクティブになったときリセットする
 			InputSystem::ResetAllKeys();
+		}
+		break;
+	case WM_SIZE:
+		if (wParam != SIZE_MINIMIZED) {
+			width_ = LOWORD(lParam);
+			height_ = HIWORD(lParam);
+			if (resizeCallback_) {
+				resizeCallback_(width_, height_);
+			}
 		}
 		break;
 	case WM_CLOSE:
@@ -196,6 +206,8 @@ bool Window::ProcessMessage() {
 	return false;
 }
 
+void Window::SetResizeCallback(ResizeEvent callback) { resizeCallback_ = std::move(callback); }
+
 HWND Window::GetWindowHandle() {
 	return hWnd_;
 }
@@ -203,3 +215,4 @@ HWND Window::GetWindowHandle() {
 HWND Window::hWnd_ = nullptr;
 uint32_t Window::width_ = 0;
 uint32_t Window::height_ = 0;
+Window::ResizeEvent Window::resizeCallback_ = nullptr;

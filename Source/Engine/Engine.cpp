@@ -3,6 +3,7 @@
 #ifdef _DEBUG
 #include <imgui_internal.h>
 #endif
+#pragma comment(lib, "xaudio2.lib")
 
 #include <Camera/Camera.h>
 #include <Camera/CameraManager.h>
@@ -18,12 +19,13 @@
 #include <Object3D/Object3DCommon.h>
 #include <Particle/ParticleManager.h>
 #include <Renderer/D3D12.h>
-#include <Renderer/SrvManager.h>
 #include <Scene/GameScene.h>
 #include <Sprite/SpriteCommon.h>
-#include <TextureManager/TextureManager.h>
 #include <Window/Window.h>
 #include <Window/WindowsUtils.h>
+
+#include "UnnamedResource/AudioManager.h"
+#include "UnnamedResource/TextureManager.h"
 
 Engine::Engine() = default;
 
@@ -42,6 +44,8 @@ void Engine::ChangeScene(const std::shared_ptr<Scene>& newScene) {
 	currentScene_->Init(this);
 }
 
+AudioManager audioManager = AudioManager();
+
 void Engine::Init() {
 	RegisterConsoleCommandsAndVariables();
 
@@ -49,29 +53,22 @@ void Engine::Init() {
 	window_ = std::make_unique<Window>(StrUtils::ToString(kWindowTitle), kClientWidth, kClientHeight);
 	window_->Create(nullptr);
 
-	InputSystem::Init();
-
 	// レンダラ
 	renderer_ = std::make_unique<D3D12>();
-	renderer_->Init(window_.get());
+	renderer_->Init();
 
-	resourceManager_ = std::make_unique<ResourceManager>(
-		renderer_->GetDevice(), renderer_->GetCommandList(), kMaxSrvCount
-	);
+	InputSystem::Init();
 
-	// SRVマネージャの初期化
-	srvManager_ = std::make_unique<SrvManager>();
-	srvManager_->Init(renderer_.get());
+	srvManager_ = std::make_unique<ShaderResourceViewManager>(renderer_->GetDevice());
 
 #ifdef _DEBUG
-	imGuiManager_ = std::make_unique<ImGuiManager>();
-	imGuiManager_->Init(renderer_.get(), srvManager_.get());
+	imGuiManager_ = std::make_unique<ImGuiManager>(renderer_.get(), srvManager_.get());
+	imGuiManager_->Init();
 
 	console_ = std::make_unique<Console>();
 #endif
 
-	// テクスチャマネージャ
-	TextureManager::GetInstance()->Init(renderer_.get(), srvManager_.get());
+	srvManager_->Init();
 
 	// 3Dモデルマネージャ
 	ModelManager::GetInstance()->Init(renderer_.get());
@@ -93,21 +90,21 @@ void Engine::Init() {
 	// アクティブカメラに設定
 	CameraManager::SetActiveCamera(camera);
 
-	// モデル
-	modelCommon_ = std::make_unique<ModelCommon>();
-	modelCommon_->Init(renderer_.get());
+	//// モデル
+	//modelCommon_ = std::make_unique<ModelCommon>();
+	//modelCommon_->Init(renderer_.get());
 
-	// オブジェクト3D
-	object3DCommon_ = std::make_unique<Object3DCommon>();
-	object3DCommon_->Init(renderer_.get());
+	//// オブジェクト3D
+	//object3DCommon_ = std::make_unique<Object3DCommon>();
+	//object3DCommon_->Init(renderer_.get());
 
-	// スプライト
-	spriteCommon_ = std::make_unique<SpriteCommon>();
-	spriteCommon_->Init(renderer_.get());
+	//// スプライト
+	//spriteCommon_ = std::make_unique<SpriteCommon>();
+	//spriteCommon_->Init(renderer_.get());
 
-	// パーティクル
-	particleManager_ = std::make_unique<ParticleManager>();
-	particleManager_->Init(object3DCommon_->GetD3D12(), srvManager_.get());
+	//// パーティクル
+	//particleManager_ = std::make_unique<ParticleManager>();
+	//particleManager_->Init(object3DCommon_->GetD3D12(), srvManager_.get());
 
 	// ライン
 	lineCommon_ = std::make_unique<LineCommon>();
@@ -130,11 +127,21 @@ void Engine::Init() {
 
 	Console::SubmitCommand("neofetch");
 
-	std::shared_ptr<Scene> gameScene = std::make_shared<GameScene>();
-	ChangeScene(gameScene);
-	CheckEditorMode();
+	TextureManager textureManager = TextureManager(renderer_.get(), srvManager_.get());
 
-	testTexture_ = resourceManager_->LoadTexture("./Resources/Textures/powerGenerator.png");
+	for (int i = 0; i < 512; ++i) {
+		texture = textureManager.GetTexture("./Resources/Textures/uvChecker.png");
+	}
+
+	if (texture) {
+		Console::Print("Texture loaded successfully\n");
+	}
+
+	audioManager.Init();
+
+	/*std::shared_ptr<Scene> gameScene = std::make_shared<GameScene>();
+	ChangeScene(gameScene);
+	CheckEditorMode();*/
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
@@ -332,16 +339,43 @@ void Engine::Update() {
 	}
 
 #ifdef _DEBUG
-	ImGui::Begin("Texture");
+	ImTextureID texId = texture->GetShaderResourceView().ptr;
 
-	// ImGuiにテクスチャを渡すためのキャスト
-	ImTextureID texId = testTexture_->GetImTextureID();
+	ImGui::Image(texId, ImVec2(256.0f, 256.0f));
 
-	// テクスチャの表示
-	// uv座標は通常のDirectXと同じ向きにするため上下反転
-	ImGui::Image(texId, ImVec2(512, 512));
 
+	ImGui::Begin("AudioTest");
+	ImGui::Text("mokugyo.wav");
+	static bool isLoop = false;
+	ImGui::Checkbox("Loop", &isLoop);
+
+	ImGui::Separator();
+
+	if (ImGui::Button("mokugyo.wav")) {
+		auto audio = audioManager.GetAudio("./Resources/Sounds/mokugyo.wav");
+		if (audio) {
+			audio->Play(isLoop);
+		}
+	}
+
+	if (ImGui::Button("fanfare.wav")) {
+		auto audio = audioManager.GetAudio("./Resources/Sounds/fanfare.wav");
+		if (audio) {
+			audio->Play(isLoop);
+		}
+	}
 	ImGui::End();
+
+	//ImGui::Begin("Texture");
+
+	//// ImGuiにテクスチャを渡すためのキャスト
+	//ImTextureID texId = testTexture_->GetImTextureID();
+
+	//// テクスチャの表示
+	//// uv座標は通常のDirectXと同じ向きにするため上下反転
+	//ImGui::Image(texId, ImVec2(512, 512));
+
+	//ImGui::End();
 
 	DebugHud::Update();
 #endif
@@ -351,7 +385,6 @@ void Engine::Update() {
 	//-------------------------------------------------------------------------
 	// --- PreRender↓ ---
 	renderer_->PreRender();
-	srvManager_->PreDraw();
 	//-------------------------------------------------------------------------
 
 #ifdef _DEBUG
@@ -383,10 +416,9 @@ void Engine::Update() {
 }
 
 void Engine::Shutdown() const {
-	currentScene_->Shutdown();
+	//currentScene_->Shutdown();
 
 	ModelManager::Shutdown();
-	TextureManager::Shutdown();
 
 	Debug::Shutdown();
 
