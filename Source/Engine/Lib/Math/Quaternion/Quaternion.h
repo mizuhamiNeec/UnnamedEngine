@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Lib/Math/Vector/Vec3.h"
+#include "Lib/Math/Vector/Vec3.h"
 
 struct Quaternion {
 	float x, y, z, w;
@@ -23,7 +23,7 @@ struct Quaternion {
 	static Quaternion Euler(const float& x, const float& y, const float& z);
 	static Quaternion EulerDegrees(const Vec3& eulerDeg);
 	static Quaternion EulerDegrees(const float& x, const float& y, const float& z);
-	static Quaternion AngleAxis(const float& angleDeg, const Vec3& axis);
+	static Quaternion AxisAngle(const Vec3& axis, const float& angleDeg);
 	static Quaternion Lerp(const Quaternion& a, const Quaternion& b, float t);
 	static Quaternion Slerp(const Quaternion& a, const Quaternion& b, float t);
 	Vec3 ToEulerAngles() const;

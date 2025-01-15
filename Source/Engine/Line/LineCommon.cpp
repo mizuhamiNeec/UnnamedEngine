@@ -2,22 +2,22 @@
 
 #include "../Lib/Console/Console.h"
 #include "Line.h"
+#include "Camera/CameraManager.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : LineCommonを初期化します
 //-----------------------------------------------------------------------------
 void LineCommon::Init(D3D12* d3d12) {
 	this->d3d12_ = d3d12;
-	Console::Print("LineCommon : Lineを初期化します。\n");
+	Console::Print("LineCommon : Lineを初期化します。\n", kConsoleColorWait, Channel::Engine);
 	CreateGraphicsPipeline();
-	Console::Print("LineCommon : Lineの初期化が完了しました。\n");
+	Console::Print("LineCommon : Lineの初期化が完了しました。\n", kConsoleColorCompleted, Channel::Engine);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose : LineCommonをシャットダウンします
 //-----------------------------------------------------------------------------
-void LineCommon::Shutdown() const {
-}
+void LineCommon::Shutdown() const {}
 
 //-----------------------------------------------------------------------------
 // Purpose : ルートシグネチャを作成します
@@ -25,14 +25,6 @@ void LineCommon::Shutdown() const {
 void LineCommon::CreateRootSignature() {
 	// RootSignatureManagerのインスタンスを作成
 	rootSignatureManager_ = std::make_unique<RootSignatureManager>(d3d12_->GetDevice());
-
-	// D3D12_DESCRIPTOR_RANGE descriptorRange[1];
-	// descriptorRange[0] = {
-	// 	.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV, // SRVを使う
-	// 	.NumDescriptors = 1, // 数は一つ
-	// 	.BaseShaderRegister = 0, // 0から始まる
-	// 	.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
-	// };
 
 	// ルートパラメーターを作成
 	std::vector<D3D12_ROOT_PARAMETER> rootParameters(1);
@@ -45,10 +37,11 @@ void LineCommon::CreateRootSignature() {
 		"Line",
 		rootParameters,
 		nullptr, // 今回サンプラーは使用しない
-		0);
+		0
+	);
 
 	if (rootSignatureManager_->Get("Line")) {
-		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
+		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::Engine);
 	}
 }
 
@@ -72,7 +65,7 @@ void LineCommon::CreateGraphicsPipeline() {
 	pipelineState_.Create(d3d12_->GetDevice());
 
 	if (pipelineState_.Get()) {
-		Console::Print("LineCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted);
+		Console::Print("LineCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted, Channel::Engine);
 	}
 }
 
@@ -93,15 +86,8 @@ D3D12* LineCommon::GetD3D12() const {
 }
 
 //-----------------------------------------------------------------------------
-// Purpose : デフォルトのカメラを設定します
-//-----------------------------------------------------------------------------
-void LineCommon::SetDefaultCamera(Camera* camera) {
-	this->defaultCamera_ = camera;
-}
-
-//-----------------------------------------------------------------------------
 // Purpose : デフォルトのカメラを取得します
 //-----------------------------------------------------------------------------
-Camera* LineCommon::GetDefaultCamera() const {
-	return this->defaultCamera_;
+CameraComponent* LineCommon::GetDefaultCamera() const {
+	return CameraManager::GetActiveCamera().get();
 }

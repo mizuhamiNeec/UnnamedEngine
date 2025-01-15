@@ -11,13 +11,15 @@ Quaternion::Quaternion() :
 	x(0),
 	y(0),
 	z(0),
-	w(1) {}
+	w(1) {
+}
 
-Quaternion::Quaternion(const float x, const float y, const float z, const float w) : 
+Quaternion::Quaternion(const float x, const float y, const float z, const float w) :
 	x(x),
 	y(y),
 	z(z),
-	w(w) {}
+	w(w) {
+}
 
 Quaternion::Quaternion(const Vec3& axis, const float angleRad) {
 	const float halfAngle = angleRad * 0.5f;
@@ -75,9 +77,9 @@ void Quaternion::ToAxisAngle(Vec3& outAxis, float& outAngle) const {
 }
 
 Quaternion Quaternion::Euler(const Vec3& eulerRad) {
-	const float pitch = eulerRad.x;  // X軸回転（ピッチ）
-	const float yaw = eulerRad.y;    // Y軸回転（ヨー）
-	const float roll = eulerRad.z;   // Z軸回転（ロール）
+	const float pitch = eulerRad.x; // X軸回転（ピッチ）
+	const float yaw = eulerRad.y; // Y軸回転（ヨー）
+	const float roll = eulerRad.z; // Z軸回転（ロール）
 
 	const float sinPitch = std::sin(pitch * 0.5f);
 	const float cosPitch = std::cos(pitch * 0.5f);
@@ -90,8 +92,8 @@ Quaternion Quaternion::Euler(const Vec3& eulerRad) {
 		sinPitch * cosYaw * cosRoll - cosPitch * sinYaw * sinRoll,
 		cosPitch * sinYaw * cosRoll + sinPitch * cosYaw * sinRoll,
 		cosPitch * cosYaw * sinRoll - sinPitch * sinYaw * cosRoll,
-		cosPitch * cosYaw * cosRoll + sinPitch * sinYaw * sinRoll)
-		.Normalized();
+		cosPitch * cosYaw * cosRoll + sinPitch * sinYaw * sinRoll
+	).Normalized();
 }
 
 Quaternion Quaternion::Euler(const float& x, const float& y, const float& z) {
@@ -106,8 +108,8 @@ Quaternion Quaternion::EulerDegrees(const float& x, const float& y, const float&
 	return Euler(x * Math::deg2Rad, y * Math::deg2Rad, z * Math::deg2Rad);
 }
 
-Quaternion Quaternion::AngleAxis(const float& angleDeg, const Vec3& axis) {
-	const float angleRad = angleDeg * Math::deg2Rad;
+Quaternion Quaternion::AxisAngle(const Vec3& axis, const float& angleDeg) {
+	const float angleRad = angleDeg;
 	return Quaternion(axis, angleRad);
 }
 
@@ -117,34 +119,60 @@ Quaternion Quaternion::Lerp(const Quaternion& a, const Quaternion& b, float t) {
 		(1.0f - t) * a.x + t * b.x,
 		(1.0f - t) * a.y + t * b.y,
 		(1.0f - t) * a.z + t * b.z,
-		(1.0f - t) * a.w + t * b.w };
+		(1.0f - t) * a.w + t * b.w
+	};
 	return result.Normalized();
 }
 
 Quaternion Quaternion::Slerp(const Quaternion& a, const Quaternion& b, float t) {
 	t = std::clamp(t, 0.0f, 1.0f);
 
+	// a と b の内積を計算
 	float dot = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-	float angle = std::acos(std::abs(dot));
 
+	// dot が 1 または -1 になる可能性を防ぐ（数値誤差を避ける）
+	dot = std::clamp(dot, -1.0f, 1.0f);
+
+	// angle を計算
+	float angle = std::acos(dot);
+
+	// angle が非常に小さい場合は Lerp に切り替え
 	if (angle < 1e-6f) {
-		return a;
+		return a;  // angle が 0 に近い場合、Slerp の結果は a とほぼ同じ
 	}
 
+	// sin(angle) を計算
 	float sinAngle = std::sin(angle);
+
+	// sinAngle が非常に小さい場合は Lerp に切り替え
+	if (std::abs(sinAngle) < 1e-6f) {
+		return Lerp(a, b, t);  // Lerp を使用して補完
+	}
+
+	// t が 0 または 1 の場合は早期リターン
+	if (t == 0.0f) {
+		return a;
+	}
+	if (t == 1.0f) {
+		return b;
+	}
+
+	// Slerp の計算
 	float scale0 = std::sin((1.0f - t) * angle) / sinAngle;
 	float scale1 = std::sin(t * angle) / sinAngle;
 
+	// dot が負の場合、反転する
 	if (dot < 0.0f) {
 		scale1 = -scale1;
 	}
 
+	// 最終的な Quaternion を計算し、正規化
 	return Quaternion(
 		scale0 * a.x + scale1 * b.x,
 		scale0 * a.y + scale1 * b.y,
 		scale0 * a.z + scale1 * b.z,
-		scale0 * a.w + scale1 * b.w)
-		.Normalized();
+		scale0 * a.w + scale1 * b.w
+	).Normalized();  // 結果を正規化して返す
 }
 
 Vec3 Quaternion::ToEulerAngles() const {
@@ -180,7 +208,7 @@ Vec3 Quaternion::GetAxis() const {
 	if (scale < 1e-6f) {
 		return Vec3::up;
 	}
-	return Vec3(x / scale, y / scale, z / scale);
+	return {x / scale, y / scale, z / scale};
 }
 
 float Quaternion::GetRotationAroundAxis(const Vec3& axis) const {
@@ -208,7 +236,8 @@ Quaternion Quaternion::operator*(const Quaternion& other) const {
 		w * other.x + x * other.w + y * other.z - z * other.y,
 		w * other.y - x * other.z + y * other.w + z * other.x,
 		w * other.z + x * other.y - y * other.x + z * other.w,
-		w * other.w - x * other.x - y * other.y - z * other.z };
+		w * other.w - x * other.x - y * other.y - z * other.z
+	};
 }
 
 Vec3 Quaternion::operator*(const Vec3& vec) const {
@@ -228,5 +257,6 @@ Vec3 Quaternion::operator*(const Vec3& vec) const {
 	return Vec3(
 		vec.x * (1.0f - (tyy + tzz)) + vec.y * (txy - twz) + vec.z * (txz + twy),
 		vec.x * (txy + twz) + vec.y * (1.0f - (txx + tzz)) + vec.z * (tyz - twx),
-		vec.x * (txz - twy) + vec.y * (tyz + twx) + vec.z * (1.0f - (txx + tyy)));
+		vec.x * (txz - twy) + vec.y * (tyz + twx) + vec.z * (1.0f - (txx + tyy))
+	);
 }

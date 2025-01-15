@@ -1,5 +1,4 @@
 #pragma once
-#include <functional>
 #include <string>
 
 #include "Console.h"
@@ -32,7 +31,8 @@ public:
 		const bool& bMin,
 		const float& fMin,
 		const bool& bMax,
-		const float& fMax) :
+		const float& fMax
+	) :
 		name_(std::move(name)),
 		value_(defaultValue),
 		defaultValue_(defaultValue),
@@ -41,32 +41,32 @@ public:
 		bMin_(bMin),
 		fMin_(fMin),
 		bMax_(bMax),
-		fMax_(fMax) {}
+		fMax_(fMax) {
+	}
 
 	[[nodiscard]] std::string GetTypeAsString() const override {
-		if constexpr (std::is_same_v<T, bool>) {
+		if constexpr (std::is_same_v<T, bool>)
 			return "bool";
-		} else if constexpr (std::is_same_v<T, int>) {
+		else if constexpr (std::is_same_v<T, int>)
 			return "int";
-		} else if constexpr (std::is_same_v<T, float>) {
+		else if constexpr (std::is_same_v<T, float>)
 			return "float";
-		} else if constexpr (std::is_same_v<T, std::string>) {
+		else if constexpr (std::is_same_v<T, std::string>)
 			return "string";
-		} else
+		else if constexpr (std::is_same_v<T, Vec3>)
+			return"vec3";
+		else
 			return "unknown";
 	}
 
 	[[nodiscard]] std::string GetValueAsString() const override {
-		if constexpr (std::is_same_v<T, bool>) {
-			return std::to_string(value_);
-		} else if constexpr (std::is_same_v<T, int>) {
-			return std::to_string(value_);
-		} else if constexpr (std::is_same_v<T, float>) {
-			return std::to_string(value_);
-		} else if constexpr (std::is_same_v<T, std::string>) {
+		if constexpr (std::is_same_v<T, std::string>) {
 			return value_;
-		} else
-			return "";
+		} else if constexpr (std::is_same_v<T, Vec3>) {
+			return std::format("{} {} {}", value_.x, value_.y, value_.z);
+		} else {
+			return std::to_string(value_);
+		}
 	}
 
 	[[nodiscard]] const std::string& GetName() const override {
@@ -77,55 +77,163 @@ public:
 		return helpString_;
 	}
 
-	void SetValueFromString(const std::string& valueStr) override {
-		if constexpr (std::is_same_v<T, bool>) {
-			if (value_) {
-				SetValue(true);
-			} else {
-				SetValue(false);
-			}
-		} else if constexpr (std::is_same_v<T, int>) {
-			SetValue(std::stoi(valueStr));
-		} else if constexpr (std::is_same_v<T, float>) {
-			SetValue(std::stof(valueStr));
-		} else if constexpr (std::is_same_v<T, std::string>) {
-			SetValue(valueStr);
-		}
-	}
-
 	[[nodiscard]] float GetValueAsFloat() const override {
 		if constexpr (std::is_same_v<T, float>) {
 			return value_;
+		} else if constexpr (std::is_arithmetic_v<T>) {
+			return static_cast<float>(value_);
 		} else {
-			Console::Print("ConVarの値がfloat型ではありません\n");
-			return 0.0f;
+			throw std::runtime_error("Unsupported type for conversion to float");
+		}
+	}
+
+	[[nodiscard]] double GetValueAsDouble() const override {
+		if constexpr (std::is_same_v<T, double>) {
+			return value_;
+		} else if constexpr (std::is_arithmetic_v<T>) {
+			return static_cast<double>(value_);
+		} else {
+			throw std::runtime_error("Unsupported type for conversion to double");
 		}
 	}
 
 	[[nodiscard]] int GetValueAsInt() const override {
 		if constexpr (std::is_same_v<T, int>) {
 			return value_;
+		} else if constexpr (std::is_arithmetic_v<T>) {
+			return static_cast<int>(value_);
 		} else {
-			Console::Print("ConVarの値がint型ではありません\n");
-			return 0;
+			throw std::runtime_error("Unsupported type for conversion to int");
 		}
 	}
 
 	[[nodiscard]] bool GetValueAsBool() const override {
 		if constexpr (std::is_same_v<T, bool>) {
 			return value_;
+		} else if constexpr (std::is_arithmetic_v<T>) {
+			return value_ != 0;
 		} else {
-			Console::Print("ConVarの値がbool型ではありません\n");
-			return false;
+			throw std::runtime_error("Unsupported type for conversion to bool");
 		}
 	}
 
-	[[nodiscard]] ConVarFlags GetFlags() const;
+	[[nodiscard]] Vec3 GetValueAsVec3() const override {
+		if constexpr (std::is_same_v<T, Vec3>) {
+			return value_;
+		} else {
+			throw std::runtime_error("Unsupported type for conversion to Vec3");
+		}
+	}
 
-	T GetValue() const;
-	void SetValue(const T& newValue);
+	void SetValueFromString(const std::string& valueStr) override {
+		if constexpr (std::is_same_v<T, bool>) {
+			SetValue(valueStr == "true" || valueStr == "1");
+		} else if constexpr (std::is_same_v<T, int>) {
+			SetValue(std::stoi(valueStr));
+		} else if constexpr (std::is_same_v<T, float>) {
+			SetValue(std::stof(valueStr));
+		} else if constexpr (std::is_same_v<T, std::string>) {
+			SetValue(valueStr);
+		} else if constexpr (std::is_same_v<T, Vec3>) {
+			float x, y, z;
+			try {
+				// スペースで区切られた3つの数値を取得
+				std::istringstream iss(valueStr);
+				std::string xStr, yStr, zStr;
+
+				if (iss >> xStr >> yStr >> zStr) {
+					x = std::stof(xStr);
+					y = std::stof(yStr);
+					z = std::stof(zStr);
+					SetValue(Vec3(x, y, z));
+				} else {
+					throw std::runtime_error("Invalid format for Vec3. Expected: x y z");
+				}
+			} catch (const std::exception&) {
+				throw std::runtime_error("Invalid format for Vec3. Expected: x y z");
+			}
+		}
+	}
+
+	void SetValueFromFloat(const float& newValue) override {
+		if constexpr (std::is_convertible_v<float, T>) {
+			SetValue(static_cast<T>(newValue));
+		} else {
+			PrintConvertErrorMessage();
+		}
+	}
+
+	void SetValueFromDouble(const double& newValue) override {
+		if constexpr (std::is_convertible_v<double, T>) {
+			if constexpr (std::is_same_v<T, float>) {
+				SetValue(static_cast<T>(static_cast<float>(newValue)));
+			} else if constexpr (std::is_same_v<T, Vec3>) {
+				SetValue(Vec3(Vec3::one * static_cast<float>(newValue)));
+			} else {
+				SetValue(static_cast<T>(newValue));
+			}
+		} else {
+			PrintConvertErrorMessage();
+		}
+	}
+
+	void SetValueFromInt(const int& newValue) override {
+		if constexpr (std::is_convertible_v<int, T>) {
+			if constexpr (std::is_same_v<T, float>) {
+				SetValue(static_cast<T>(static_cast<float>(newValue)));
+			} else if constexpr (std::is_same_v<T, Vec3>) {
+				SetValue(Vec3(Vec3::one * static_cast<float>(newValue)));
+			} else {
+				SetValue(static_cast<T>(newValue));
+			}
+		} else {
+			PrintConvertErrorMessage();
+		}
+	}
+
+	void SetValueFromBool(const bool& newValue) override {
+		if constexpr (std::is_same_v<T, bool>) {
+			SetValue(newValue);
+		} else {
+			PrintConvertErrorMessage();
+		}
+	}
+
+	[[nodiscard]] ConVarFlags GetFlags() const {
+		return flags_;
+	}
+
+	T GetValue() const {
+		return value_;
+	}
+
+	void SetValue(const T& newValue) {
+		value_ = newValue;
+
+		if (HasFlags(flags_, ConVarFlags::ConVarFlags_Notify)) {
+			// プレイヤーに通知する
+			Console::Print(
+				std::format(
+					"{}のCVAR 値 '{}' を {} に変更しました\n",
+					"クライアント",
+					name_,
+					GetValueAsString()
+				),
+				kConsoleColorWarning,
+				Channel::General
+			);
+		}
+	}
 
 private:
+	void PrintConvertErrorMessage() {
+		Console::Print(
+			std::format("{} : CVAR を {} 型へ変換できませんでした\n", name_, GetTypeAsString()),
+			kConsoleColorError,
+			Channel::General
+		);
+	}
+
 	std::string name_;
 	T value_;
 	T defaultValue_;
@@ -136,24 +244,3 @@ private:
 	bool bMax_ = false;
 	float fMax_ = 0.0f;
 };
-
-template <typename T>
-ConVarFlags ConVar<T>::GetFlags() const { return flags_; }
-
-template <typename T>
-T ConVar<T>::GetValue() const { return value_; }
-
-template <typename T>
-void ConVar<T>::SetValue(const T& newValue) {
-	value_ = newValue;
-
-	if (HasFlags(flags_, ConVarFlags::ConVarFlags_Notify)) {
-		// TODO : プレイヤーに通知する
-		Console::Print(
-			std::format(
-				"{}のCVAR 値 '{}' を {} に変更しました\n",
-				"クライアント",
-				name_,
-				value_));
-	}
-}

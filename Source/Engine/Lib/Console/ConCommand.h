@@ -8,6 +8,8 @@ public:
 	static void RegisterCommand(const std::string& name, const CommandCallback& callback, const std::string& help);
 	static bool ExecuteCommand(const std::string& command);
 
+	static std::unordered_map<std::string, std::pair<CommandCallback, std::string>> GetCommands();
+
 	static void Help();
 
 private:
@@ -15,4 +17,3 @@ private:
 
 	static std::unordered_map<std::string, std::pair<CommandCallback, std::string>> commands_;
 };
-

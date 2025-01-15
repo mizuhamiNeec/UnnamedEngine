@@ -1,11 +1,10 @@
 #pragma once
-
-#include <Windows.h>
-
+#define NOMINMAX // 絶対許さないからなお前!!
 #include <cstdint>
-
-#include "../Lib/Utils/StrUtils.h"
-#include "../Lib/Utils/ClientProperties.h"
+#include <functional>
+#include <string>
+#include <Windows.h>
+#include <Lib/Utils/ClientProperties.h>
 
 class Window final {
 public:
@@ -16,13 +15,16 @@ public:
 
 	static void SetUseImmersiveDarkMode(HWND hWnd, bool darkMode);
 
-	HWND GetWindowHandle() const;
+	static HWND GetWindowHandle();
 	HINSTANCE GetHInstance() const;
 
 	static uint32_t GetClientWidth();
 	static uint32_t GetClientHeight();
 
 	static bool ProcessMessage();
+
+	using ResizeEvent = std::function<void(uint32_t width, uint32_t height)>;
+	static void SetResizeCallback(ResizeEvent callback);
 
 private:
 	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -35,4 +37,6 @@ private:
 	static uint32_t height_;
 	DWORD style_;
 	DWORD exStyle_;
+
+	static ResizeEvent resizeCallback_;
 };

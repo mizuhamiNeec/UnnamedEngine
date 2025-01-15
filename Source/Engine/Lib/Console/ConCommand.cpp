@@ -8,23 +8,29 @@ void ConCommand::RegisterCommand(const std::string& name, const CommandCallback&
 
 bool ConCommand::ExecuteCommand(const std::string& command) {
 	auto tokens = TokenizeCommand(command);
-	if (tokens.empty()) return false;
+	if (tokens.empty()) {
+		return false;
+	}
 
 	const auto& cmdName = tokens[0];
 	auto it = commands_.find(cmdName);
 	if (it != commands_.end()) {
 		const auto& callback = it->second.first;
-		std::vector<std::string> args(tokens.begin() + 1, tokens.end());
+		const std::vector args(tokens.begin() + 1, tokens.end());
 		callback(args);
 		return true;
-	} else {
-		return false;
 	}
+
+	return false;
+}
+
+std::unordered_map<std::string, std::pair<CommandCallback, std::string>> ConCommand::GetCommands() {
+	return commands_;
 }
 
 void ConCommand::Help() {
 	for (const auto& [commandName, commandData] : commands_) {
-		Console::Print(" - " + commandName + " : " + commandData.second + "\n");
+		Console::Print(" - " + commandName + " : " + commandData.second + "\n", kConsoleColorNormal, Channel::None);
 	}
 }
 

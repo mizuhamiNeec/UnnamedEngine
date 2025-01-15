@@ -1,7 +1,8 @@
 #include "ConVar.h"
 
 std::string ToString(const ConVarFlags& e) {
-	switch (e) {
+	switch (e)
+	{
 	case ConVarFlags::ConVarFlags_None: return "ConVarFlags_None";
 	case ConVarFlags::ConVarFlags_Archive: return "ConVarFlags_Archive";
 	case ConVarFlags::ConVarFlags_Hidden: return "ConVarFlags_Hidden";

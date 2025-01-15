@@ -13,4 +13,3 @@ public:
 private:
 	ComPtr<ID3D12RootSignature> rootSignature = nullptr;
 };
-

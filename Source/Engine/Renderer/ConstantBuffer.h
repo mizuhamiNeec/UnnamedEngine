@@ -15,7 +15,7 @@ public:
 
 	ID3D12Resource* GetResource() const;
 
-	template<typename T>
+	template <typename T>
 	T* GetPtr() {
 		return static_cast<T*>(GetPtr());
 	}
@@ -28,4 +28,3 @@ private:
 	ConstantBuffer(const ConstantBuffer&) = delete;
 	void operator=(const ConstantBuffer&) = delete;
 };
-

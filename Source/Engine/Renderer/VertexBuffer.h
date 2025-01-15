@@ -23,7 +23,8 @@ private:
 
 template <typename VertexType>
 VertexBuffer<VertexType>::VertexBuffer(const ComPtr<ID3D12Device>& device, size_t size, const VertexType* pInitData) :
-	device_(device), size_(size) {
+	device_(device),
+	size_(size) {
 	// リソース用のヒープを設定
 	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
 	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD; // UploadHeapを使用
@@ -44,7 +45,8 @@ VertexBuffer<VertexType>::VertexBuffer(const ComPtr<ID3D12Device>& device, size_
 		&resourceDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(buffer_.GetAddressOf()));
+		IID_PPV_ARGS(buffer_.GetAddressOf())
+	);
 	assert(SUCCEEDED(hr));
 
 	// ビューを設定
@@ -53,7 +55,8 @@ VertexBuffer<VertexType>::VertexBuffer(const ComPtr<ID3D12Device>& device, size_
 	view_.StrideInBytes = static_cast<UINT>(sizeof(VertexType));
 
 	// 初期データがある場合はコピー
-	if (pInitData != nullptr) {
+	if (pInitData != nullptr)
+	{
 		void* ptr = nullptr;
 		hr = buffer_->Map(0, nullptr, &ptr);
 		assert(SUCCEEDED(hr));
@@ -70,15 +73,15 @@ D3D12_VERTEX_BUFFER_VIEW VertexBuffer<VertexType>::View() const {
 
 template <typename VertexType>
 void VertexBuffer<VertexType>::Update(const VertexType* pInitData, size_t size) {
-	assert(pInitData != nullptr);
-	assert(size <= size_); // 初期サイズを超えないことを確認
+	void* mappedData = nullptr;
+	D3D12_RANGE range{ 0, 0 };
 
-	void* ptr = nullptr;
-	[[maybe_unused]] HRESULT hr = buffer_->Map(0, nullptr, &ptr);
-	assert(SUCCEEDED(hr));
-
-	memcpy(ptr, pInitData, size);
-	buffer_->Unmap(0, nullptr);
+	// マップしてGPUメモリにデータをコピー
+	HRESULT hr = buffer_->Map(0, &range, &mappedData);
+	if (SUCCEEDED(hr)) {
+		memcpy(mappedData, pInitData, size);
+		buffer_->Unmap(0, nullptr);
+	}
 }
 
 template <typename VertexType>

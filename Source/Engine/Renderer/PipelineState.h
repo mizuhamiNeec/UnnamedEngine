@@ -26,8 +26,10 @@ public:
 	void SetRootSignature(ID3D12RootSignature* rootSignature);
 	void SetVS(const std::wstring& filePath);
 	void SetPS(const std::wstring& filePath);
-	static IDxcBlob* CompileShader(const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils,
-	                               IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler);
+	static IDxcBlob* CompileShader(
+		const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils,
+		IDxcCompiler3* dxcCompiler, IDxcIncludeHandler* includeHandler
+	);
 	void Create(ID3D12Device* device);
 	void SetBlendMode(BlendMode blendMode);
 	BlendMode GetBlendMode();

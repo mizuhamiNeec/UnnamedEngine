@@ -9,6 +9,7 @@
 #include "../Model/ModelManager.h"
 #include "../Renderer/ConstantBuffer.h"
 #include "Object3DCommon.h"
+#include "Camera/CameraManager.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : 初期化します
@@ -20,7 +21,8 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 
 	// 座標変換行列定数バッファ
 	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
-		object3DCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
+		object3DCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix)
+	);
 	transformationMatrixData_ = transformationMatrixConstantBuffer_->GetPtr<TransformationMatrix>();
 	transformationMatrixData_->wvp = Mat4::identity;
 	transformationMatrixData_->world = Mat4::identity;
@@ -28,25 +30,28 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 	// 指向性ライト定数バッファ
 	directionalLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		object3DCommon_->GetD3D12()->GetDevice(),
-		sizeof(DirectionalLight));
+		sizeof(DirectionalLight)
+	);
 	directionalLightData_ = directionalLightConstantBuffer_->GetPtr<DirectionalLight>();
-	directionalLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
-	directionalLightData_->direction = {0.0f, -0.7071067812f, 0.7071067812f}; // 斜め前向き
+	directionalLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
+	directionalLightData_->direction = { -0.2f, -0.9f, 0.25f };
 	directionalLightData_->intensity = 1.0f; // 明るさ1
 
 	// カメラ定数バッファ
 	cameraConstantBuffer_ = std::make_unique<ConstantBuffer>(
-		object3DCommon_->GetD3D12()->GetDevice(), sizeof(CameraForGPU));
+		object3DCommon_->GetD3D12()->GetDevice(), sizeof(CameraForGPU)
+	);
 	cameraForGPU_ = cameraConstantBuffer_->GetPtr<CameraForGPU>();
-	cameraForGPU_->worldPosition = camera_->GetPos();
+	cameraForGPU_->worldPosition = camera_->GetViewMat().GetTranslate();
 
 	// ポイントライト定数バッファ
 	pointLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		object3DCommon_->GetD3D12()->GetDevice(),
-		sizeof(PointLight));
+		sizeof(PointLight)
+	);
 	pointLightData_ = pointLightConstantBuffer_->GetPtr<PointLight>();
-	pointLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
-	pointLightData_->position = {0.0f, 4.0f, 0.0f};
+	pointLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	pointLightData_->position = { 0.0f, 4.0f, 0.0f };
 	pointLightData_->intensity = 1.0f;
 	pointLightData_->radius = 1.0f;
 	pointLightData_->decay = 1.0f;
@@ -54,12 +59,13 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 	// スポットライト定数バッファ
 	spotLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		object3DCommon_->GetD3D12()->GetDevice(),
-		sizeof(SpotLight));
+		sizeof(SpotLight)
+	);
 	spotLightData_ = spotLightConstantBuffer_->GetPtr<SpotLight>();
-	spotLightData_->color = {1.0f, 1.0f, 1.0f, 1.0f};
-	spotLightData_->position = {0.0f, 4.0f, 0.0f};
+	spotLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	spotLightData_->position = { 0.0f, 4.0f, 0.0f };
 	spotLightData_->intensity = 4.0f;
-	spotLightData_->direction = {0.0f, -1.0f, 0.0f};
+	spotLightData_->direction = { 0.0f, -1.0f, 0.0f };
 	spotLightData_->distance = 8.0f;
 	spotLightData_->decay = 2.0f;
 	spotLightData_->cosAngle = 0.5f;
@@ -101,49 +107,48 @@ void Object3D::Update() {
 
 	model_->ImGuiDraw();
 #endif
+}
 
+void Object3D::Draw() const {
 	Mat4 worldMat = Mat4::Affine(
 		transform_.scale,
 		transform_.rotate,
-		transform_.translate);
+		transform_.translate
+	);
 
-	Mat4 worldViewProjMat;
-
-	if (camera_) {
-		// カメラが存在する場合はカメラから行列を持ってくる
-		const Mat4& viewProjMat = camera_->GetViewProjMat();
-		worldViewProjMat = worldMat * viewProjMat;
-	} else {
-		worldViewProjMat = worldMat;
-	}
+	const Mat4& viewProjMat = CameraManager::GetActiveCamera()->GetViewProjMat();
+	Mat4 worldViewProjMat = worldMat * viewProjMat;
 
 	transformationMatrixData_->wvp = worldViewProjMat;
 	transformationMatrixData_->world = worldMat;
 	transformationMatrixData_->worldInverseTranspose = worldMat.Inverse().Transpose();
 
-	cameraForGPU_->worldPosition = camera_->GetPos();
-}
+	cameraForGPU_->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate();
 
-void Object3D::Draw() const {
 	// 座標変換行列の定数バッファの設定
 	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
-		1, transformationMatrixConstantBuffer_->GetAddress());
+		1, transformationMatrixConstantBuffer_->GetAddress()
+	);
 
 	// 指向性ライトの定数バッファを設定
 	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
-		3, directionalLightConstantBuffer_->GetAddress());
+		3, directionalLightConstantBuffer_->GetAddress()
+	);
 
 	// カメラの定数バッファを設定
 	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
-		4, cameraConstantBuffer_->GetAddress());
+		4, cameraConstantBuffer_->GetAddress()
+	);
 
 	// ポイントライトの定数バッファを設定
 	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
-		5, pointLightConstantBuffer_->GetAddress());
+		5, pointLightConstantBuffer_->GetAddress()
+	);
 
 	// スポットライトの定数バッファを設定
 	object3DCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
-		6, spotLightConstantBuffer_->GetAddress());
+		6, spotLightConstantBuffer_->GetAddress()
+	);
 
 	// 3Dモデルが割り当てられていれば描画する
 	if (model_) {

@@ -2,11 +2,10 @@
 
 #include <dwmapi.h>
 #include <utility>
-
-#include "WindowsUtils.h"
-
-#include "../Input/InputSystem.h"
-#include "../Lib/Console/Console.h"
+#include <Input/InputSystem.h>
+#include <Lib/Console/Console.h>
+#include <Lib/Utils/StrUtils.h>
+#include <Window/WindowsUtils.h>
 
 #pragma comment(lib, "winmm.lib")
 
@@ -20,9 +19,10 @@ Window::Window(
 	const uint32_t height,
 	const DWORD style,
 	const DWORD exStyle
-) : title_(std::move(title)),
-style_(style),
-exStyle_(exStyle) {
+) :
+	title_(std::move(title)),
+	style_(style),
+	exStyle_(exStyle) {
 	width_ = width;
 	height_ = height;
 	const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -39,8 +39,6 @@ Window::~Window() {
 }
 
 bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::string& className, const WNDPROC wndProc) {
-	Console::Print("Creating Window...\n", kConsoleColorWait);
-
 	wc_.cbSize = sizeof(WNDCLASSEX);
 	wc_.style = CS_HREDRAW | CS_VREDRAW;
 	wc_.lpfnWndProc = wndProc;
@@ -59,8 +57,6 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 		);
 		return false;
 	}
-
-	Console::Print("Window class registered.\n");
 
 	RECT wrc{ 0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_) };
 
@@ -81,7 +77,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	);
 
 	if (!hWnd_) {
-		Console::Print("Failed to create window.\n", kConsoleColorError);
+		Console::Print("Failed to create window.\n", kConsoleColorError, Channel::Engine);
 		return false;
 	}
 
@@ -93,7 +89,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	// このウィンドウにフォーカス
 	SetFocus(hWnd_);
 
-	Console::Print("Complete create Window.\n", kConsoleColorCompleted);
+	Console::Print("Complete create Window.\n", kConsoleColorCompleted, Channel::Engine);
 
 	return true;
 }
@@ -144,7 +140,7 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	switch (msg) {
 	case WM_SETTINGCHANGE: // Windowsの設定が変更された
 		if (lParam) {
-			const wchar_t* immersiveColorSet = std::bit_cast<const wchar_t*>(lParam);
+			auto immersiveColorSet = std::bit_cast<const wchar_t*>(lParam);
 			// 変更された設定が "ImmersiveColorSet" か?
 			if (immersiveColorSet && wcscmp(immersiveColorSet, L"ImmersiveColorSet") == 0) {
 				static int sMode = 0;
@@ -153,19 +149,42 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 				if (static_cast<bool>(sMode) != darkMode) {
 					sMode = darkMode;
 					SetUseImmersiveDarkMode(hWnd, darkMode); // ウィンドウのモードを設定
-					Console::Print(std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"));
+#ifdef _DEBUG
+					if (sMode) {
+						ImGuiManager::StyleColorsDark();
+					} else {
+						ImGuiManager::StyleColorsLight();
+					}
+#endif
+					Console::Print(
+						std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConsoleColorWait,
+						Channel::Engine
+					);
 				}
 			}
 		}
 		break;
 	case WM_INPUT:
-	{
-		InputSystem::ProcessInput(lParam);
+		// RawInputの処理
+		InputSystem::ProcessInput(static_cast<long>(lParam));
 		break;
-	}
+	case WM_ACTIVATE:
+		if (LOWORD(wParam) == WA_INACTIVE) {
+			// ウィンドウが非アクティブになったときリセットする
+			InputSystem::ResetAllKeys();
+		}
+		break;
+	case WM_SIZE:
+		if (wParam != SIZE_MINIMIZED) {
+			width_ = LOWORD(lParam);
+			height_ = HIWORD(lParam);
+			if (resizeCallback_) {
+				resizeCallback_(width_, height_);
+			}
+		}
+		break;
 	case WM_CLOSE:
-	case WM_DESTROY:
-		PostQuitMessage(0);
+	case WM_DESTROY: PostQuitMessage(0);
 		return 0;
 	default: return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
@@ -187,8 +206,13 @@ bool Window::ProcessMessage() {
 	return false;
 }
 
-HWND Window::GetWindowHandle() const { return hWnd_; }
+void Window::SetResizeCallback(ResizeEvent callback) { resizeCallback_ = std::move(callback); }
+
+HWND Window::GetWindowHandle() {
+	return hWnd_;
+}
 
 HWND Window::hWnd_ = nullptr;
 uint32_t Window::width_ = 0;
 uint32_t Window::height_ = 0;
+Window::ResizeEvent Window::resizeCallback_ = nullptr;

@@ -4,6 +4,8 @@
 
 #include "../Camera/Camera.h"
 #include "../Lib/Console/Console.h"
+#include "Camera/CameraManager.h"
+#include "Components/CameraComponent.h"
 
 const D3D12_INPUT_ELEMENT_DESC LineVertex::inputElements[] = {
 	{"POSITION",
@@ -19,16 +21,16 @@ const D3D12_INPUT_ELEMENT_DESC LineVertex::inputElements[] = {
 	 0,
 	 12,
 	 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-	 0}};
+	 0} };
 
 const D3D12_INPUT_LAYOUT_DESC LineVertex::inputLayout = {
 	inputElements,
-	inputElementCount};
+	inputElementCount };
 
 Line::Line(LineCommon* lineCommon) {
 	lineCommon_ = lineCommon;
 	constexpr size_t vertexBufferSize = kMaxLineCount * 2 * sizeof(LineVertex); // 頂点数 = ライン数 * 2
-	constexpr size_t indexBufferSize = kMaxLineCount * 2 * sizeof(uint32_t); // インデックス数 = ライン数 * 2
+	constexpr size_t indexBufferSize = kMaxLineCount * 2 * sizeof(uint32_t);	// インデックス数 = ライン数 * 2
 	vertexBuffer_ = std::make_unique<VertexBuffer<LineVertex>>(
 		lineCommon_->GetD3D12()->GetDevice(),
 		vertexBufferSize,
@@ -54,21 +56,17 @@ void Line::AddLine(const Vec3& start, const Vec3& end, const Vec4& color) {
 	const uint32_t startIndex = static_cast<uint32_t>(lineVertices_.size());
 
 	// インデックスを正確に追加 (最後の2つのインデックスのみを追加)
-	lineVertices_.push_back({.pos = start, .color = color});
-	lineVertices_.push_back({.pos = end, .color = color});
+	lineVertices_.push_back({ .pos = start, .color = color });
+	lineVertices_.push_back({ .pos = end, .color = color });
 
-	lineIndices_.push_back(startIndex); // 開始頂点
+	lineIndices_.push_back(startIndex);		// 開始頂点
 	lineIndices_.push_back(startIndex + 1); // 終了頂点
 
 	isDirty_ = true; // バッファを更新する
 }
 
 void Line::Update() {
-	const Mat4& viewProjMat = lineCommon_->GetDefaultCamera()->GetViewProjMat();
-
-	transformationMatrixData_->wvp = viewProjMat;
-
-	UpdateBuffer();
+	// UpdateBuffer();
 }
 
 void Line::UpdateBuffer() {
@@ -106,9 +104,17 @@ void Line::UpdateBuffer() {
 }
 
 void Line::Draw() {
+	if (isDirty_) {
+		UpdateBuffer();
+	}
+
 	if (lineVertices_.empty() || lineIndices_.empty()) {
 		return;
 	}
+
+	// ビュープロジェクション行列の設定
+	const Mat4& viewProjMat = CameraManager::GetActiveCamera()->GetViewProjMat();
+	transformationMatrixData_->wvp = viewProjMat;
 
 	lineCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
 		0, transformationMatrixConstantBuffer_->GetAddress());
@@ -119,12 +125,15 @@ void Line::Draw() {
 	lineCommon_->GetD3D12()->GetCommandList()->IASetVertexBuffers(0, 1, &vbView);
 	lineCommon_->GetD3D12()->GetCommandList()->IASetIndexBuffer(&ibView);
 
+	// パイプラインステートとルートシグネチャの設定
+	lineCommon_->Render();
+
 	lineCommon_->GetD3D12()->GetCommandList()->DrawIndexedInstanced(
 		static_cast<UINT>(lineIndices_.size()), // インデックス数
-		1, // インスタンス数
-		0, // 開始インデックス位置
-		0, // ベース頂点位置
-		0 // 開始インスタンス位置
+		1,										// インスタンス数
+		0,										// 開始インデックス位置
+		0,										// ベース頂点位置
+		0										// 開始インスタンス位置
 	);
 
 	lineVertices_.clear();

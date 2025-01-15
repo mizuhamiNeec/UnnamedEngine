@@ -11,7 +11,8 @@ ModelManager* ModelManager::instance_ = nullptr;
 // HACK : 要修正
 // TODO : シングルトンは悪!!
 ModelManager* ModelManager::GetInstance() {
-	if (instance_ == nullptr) {
+	if (instance_ == nullptr)
+	{
 		instance_ = new ModelManager;
 	}
 	return instance_;
@@ -38,13 +39,14 @@ void ModelManager::Shutdown() {
 //-----------------------------------------------------------------------------
 void ModelManager::LoadModel(const std::string& filePath) {
 	// 読み込み済みモデルを検索
-	if (models_.contains(filePath)) {
+	if (models_.contains(filePath))
+	{
 		// 読み込み済みなら早期return
 		return;
 	}
 
 	// モデルの生成とファイルの読み込み、初期化
-	std::unique_ptr<Model> model = std::make_unique<Model>();
+	auto model = std::make_unique<Model>();
 	model->Init(modelCommon_, "./Resources/Models/", filePath);
 
 	// モデルをmapコンテナに格納する
@@ -56,7 +58,8 @@ void ModelManager::LoadModel(const std::string& filePath) {
 //-----------------------------------------------------------------------------
 Model* ModelManager::FindModel(const std::string& filePath) const {
 	// 読み込み済みモデルを検索
-	if (models_.contains(filePath)) {
+	if (models_.contains(filePath))
+	{
 		// 読み込みモデルを戻り値としてreturn
 		return models_.at(filePath).get();
 	}

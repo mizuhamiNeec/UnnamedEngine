@@ -5,6 +5,7 @@
 #include "../Quaternion/Quaternion.h"
 
 #include "../Vector/Vec3.h"
+#include "Lib/Math/Vector/Vec4.h"
 
 struct Mat4 final {
 	float m[4][4];
@@ -39,7 +40,10 @@ struct Mat4 final {
 
 	Quaternion ToQuaternion() const;
 
+	Vec3& TransformPoint(Vec3 vec3) const;
+
 	Vec3 GetTranslate();
+	Vec3 GetRotate() const;
 
 	//-------------------------------------------------------------------------
 	// Operator
@@ -47,6 +51,7 @@ struct Mat4 final {
 	Mat4 operator+(const Mat4& rhs) const;
 	Mat4 operator-(const Mat4& rhs) const;
 	Mat4 operator*(const Mat4& rhs) const;
+	Vec4 operator*(const Vec4& vec) const;
 
 	Mat4& operator*=(const Mat4& mat4);
 

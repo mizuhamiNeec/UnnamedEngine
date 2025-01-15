@@ -1,17 +1,16 @@
 #include "Object3DCommon.h"
 
-#include "../Lib/Console/Console.h"
-#include "../Lib/Structs/Structs.h"
-#include "../Renderer/RootSignatureManager.h"
+#include <Lib/Console/Console.h>
+#include <Lib/Structs/Structs.h>
+#include <Renderer/RootSignatureManager.h>
 
-#include "../Renderer/SrvManager.h"
+#include <Camera/CameraManager.h>
 
 //-----------------------------------------------------------------------------
 // Purpose : Object3DCommonを初期化します
 //-----------------------------------------------------------------------------
 void Object3DCommon::Init(D3D12* d3d12) {
 	this->d3d12_ = d3d12;
-	Console::Print("Object3DCommon : Object3dを初期化します。\n", kConsoleColorWait);
 	CreateGraphicsPipeline();
 	Console::Print("Object3DCommon : Object3dの初期化が完了しました。\n", kConsoleColorCompleted);
 }
@@ -19,8 +18,7 @@ void Object3DCommon::Init(D3D12* d3d12) {
 //-----------------------------------------------------------------------------
 // Purpose : Object3DCommonをシャットダウンします
 //-----------------------------------------------------------------------------
-void Object3DCommon::Shutdown() const {
-}
+void Object3DCommon::Shutdown() const {}
 
 //-----------------------------------------------------------------------------
 // Purpose : ルートシグネチャを作成します
@@ -90,10 +88,6 @@ void Object3DCommon::CreateRootSignature() {
 
 	// ルートシグネチャを作成
 	rootSignatureManager_->CreateRootSignature("Object3d", rootParameters, staticSamplers, _countof(staticSamplers));
-
-	if (rootSignatureManager_->Get("Object3d")) {
-		Console::Print("Object3DCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted);
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -114,10 +108,6 @@ void Object3DCommon::CreateGraphicsPipeline() {
 	pipelineState_.SetVS(L"./Resources/Shaders/Object3d.VS.hlsl");
 	pipelineState_.SetPS(L"./Resources/Shaders/Object3d.PS.hlsl");
 	pipelineState_.Create(d3d12_->GetDevice());
-
-	if (pipelineState_.Get()) {
-		Console::Print("Object3DCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted);
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -133,10 +123,6 @@ D3D12* Object3DCommon::GetD3D12() const {
 	return d3d12_;
 }
 
-void Object3DCommon::SetDefaultCamera(Camera* camera) {
-	this->defaultCamera_ = camera;
-}
-
-Camera* Object3DCommon::GetDefaultCamera() const {
-	return defaultCamera_;
+CameraComponent* Object3DCommon::GetDefaultCamera() const {
+	return CameraManager::GetActiveCamera().get();
 }

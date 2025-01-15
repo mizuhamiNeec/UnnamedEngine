@@ -1,15 +1,18 @@
 #pragma once
 
 #include <string>
-#include <Windows.h>
 
 class WindowsUtils {
 public:
-	static void RegisterRawInput(const HWND& hwnd);
-
 	static std::string GetWindowsUserName();
-	static std::string GetHresultMessage(HRESULT hr);
-	static bool RegistryGetDWord(HKEY hKeyParent, char const* key, char const* name, DWORD* pData);
+	static std::string GetWindowsComputerName();
+	static std::string GetWindowsVersion();
+	static std::string GetCPUName();
+	static std::string GetGPUName();
+	static std::string GetRamMax();
+	static std::string GetRamUsage();
+	static std::string GetHresultMessage(long hr);
+	static bool RegistryGetDWord(void* hKeyParent, const char* key, const char* name, unsigned long* pData);
 	static bool IsAppDarkTheme();
 	static bool IsSystemDarkTheme();
 };

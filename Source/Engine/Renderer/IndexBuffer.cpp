@@ -4,8 +4,10 @@
 #include <iterator>
 #include "../Lib/Console/Console.h"
 
-IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, const size_t size,
-                         const void* pInitData) : size_(size) {
+IndexBuffer::IndexBuffer(
+	const ComPtr<ID3D12Device>& device, const size_t size,
+	const void* pInitData
+) : size_(size) {
 	device_ = device;
 
 	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
@@ -35,7 +37,8 @@ IndexBuffer::IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, con
 	view_.BufferLocation = buffer_->GetGPUVirtualAddress();
 	view_.Format = DXGI_FORMAT_R32_UINT;
 
-	if (pInitData != nullptr) {
+	if (pInitData != nullptr)
+	{
 		void* ptr = nullptr;
 		hr = buffer_->Map(0, nullptr, &ptr);
 		assert(SUCCEEDED(hr));

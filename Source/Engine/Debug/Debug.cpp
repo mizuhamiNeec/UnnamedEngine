@@ -1,21 +1,126 @@
 #include "Debug.h"
 
+#include <Engine.h>
+
+#include "Camera/CameraManager.h"
+
 void Debug::DrawLine(const Vec3& a, const Vec3& b, const Vec4& color) {
-	line_->AddLine(a, b, color);
+	if (Engine::IsEditorMode()) {
+		line_->AddLine(a, b, color);
+	}
 }
 
 void Debug::DrawRay(const Vec3& position, const Vec3& dir, const Vec4& color) {
-	line_->AddLine(position, position + dir, color);
+	if (Engine::IsEditorMode()) {
+		line_->AddLine(position, position + dir, color);
+	}
 }
 
 void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {
+	Mat4 viewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
+	Vec3 cameraPos = viewMat.GetTranslate();
+
+	// カメラとの距離が1m未満の場合は描画しない
+	if ((cameraPos - position).SqrLength() < 2.0f) {
+		return;
+	}
+
 	const Vec3 right = orientation * Vec3::right;
 	const Vec3 up = orientation * Vec3::up;
 	const Vec3 forward = orientation * Vec3::forward;
 
-	DrawRay(position, right, {1.0f, 0.0f, 0.0f, 1.0f});
-	DrawRay(position, up, {0.0f, 1.0f, 0.0f, 1.0f});
-	DrawRay(position, forward, {0.0f, 0.0f, 1.0f, 1.0f});
+	DrawRay(position, right, Vec4(1.0f, 0.0f, 0.0f, 1.0f));
+	DrawRay(position, up, Vec4(0.0f, 1.0f, 0.0f, 1.0f));
+	DrawRay(position, forward, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
+}
+
+void Debug::DrawAxisWithCharacter(const Vec3& position, const Quaternion& orientation) {
+	Mat4 viewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
+	Vec3 cameraPos = viewMat.GetTranslate();
+
+	// カメラとの距離が1m未満の場合は描画しない
+	if ((cameraPos - position).SqrLength() < 2.0f) {
+		return;
+	}
+
+	const Vec3 right = orientation * Vec3::right;
+	const Vec3 up = orientation * Vec3::up;
+	const Vec3 forward = orientation * Vec3::forward;
+
+	DrawRay(position, right, Vec4::red);
+	DrawRay(position, up, Vec4::green);
+	DrawRay(position, forward, Vec4::blue);
+
+	//// 軸の端点を計算
+	//Vec3 xEnd = position + right;
+	//Vec3 yEnd = position + up;
+	//Vec3 zEnd = position + forward;
+
+	//// それぞれの端点のスクリーン座標を計算
+	//Vec2 xScreenPos = Math::WorldToScreen(xEnd);
+	//Vec2 yScreenPos = Math::WorldToScreen(yEnd);
+	//Vec2 zScreenPos = Math::WorldToScreen(zEnd);
+
+	//// とりあえずそれぞれの座標にウィンドウを表示
+	//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.0f, 0.0f, 0.0f, 0.5f));
+	//ImGui::Begin("XP");
+	//ImGui::SetWindowPos({ xScreenPos.x, xScreenPos.y });
+	//ImGui::End();
+	//ImGui::PopStyleColor();
+
+	//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 1.0f, 0.0f, 0.5f));
+	//ImGui::SetNextWindowPos({ yScreenPos.x, yScreenPos.y });
+	//ImGui::Begin("YP");
+	//ImGui::End();
+	//ImGui::PopStyleColor();
+
+	//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 1.0f, 0.5f));
+	//ImGui::SetNextWindowPos({ zScreenPos.x, zScreenPos.y });
+	//ImGui::Begin("ZP");
+	//ImGui::End();
+	//ImGui::PopStyleColor();
+
+
+	//// それぞれのスクリーン座標の左上座標を求める
+	//Vec2 leftTopPos;
+	//leftTopPos.x = min(xScreenPos.x, min(yScreenPos.x, zScreenPos.x));
+	//leftTopPos.y = min(xScreenPos.y, min(yScreenPos.y, zScreenPos.y));
+
+	//// それぞれのスクリーン座標の右下座標を求める
+	//Vec2 rightBottomPos;
+	//rightBottomPos.x = max(xScreenPos.x, max(yScreenPos.x, zScreenPos.x));
+	//rightBottomPos.y = max(xScreenPos.y, max(yScreenPos.y, zScreenPos.y));
+
+	//// ウィンドウのサイズを求める
+	//Vec2 windowSize = rightBottomPos - leftTopPos;
+
+	//ImGui::SetNextWindowPos({ leftTopPos.x, leftTopPos.y });
+	//ImGui::SetNextWindowSize({ windowSize.x,windowSize.y });
+	//ImGui::Begin("Axis", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus);
+	//ImGui::Text("X");
+	//ImGui::Text("Y");
+	//ImGui::Text("Z");
+	//ImGui::End();
+	//// それぞれのスクリーン座標の左上座標を求める
+	//Vec2 leftTopPos;
+	//leftTopPos.x = min(xScreenPos.x, min(yScreenPos.x, zScreenPos.x));
+	//leftTopPos.y = min(xScreenPos.y, min(yScreenPos.y, zScreenPos.y));
+
+	//// それぞれのスクリーン座標の右下座標を求める
+	//Vec2 rightBottomPos;
+	//rightBottomPos.x = max(xScreenPos.x, max(yScreenPos.x, zScreenPos.x));
+	//rightBottomPos.y = max(xScreenPos.y, max(yScreenPos.y, zScreenPos.y));
+
+	//// ウィンドウのサイズを求める
+	//Vec2 windowSize = rightBottomPos - leftTopPos;
+
+	//ImGui::SetNextWindowPos({ leftTopPos.x, leftTopPos.y });
+	//ImGui::SetNextWindowSize({ windowSize.x,windowSize.y });
+	//ImGui::Begin("Axis", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus);
+	//ImGui::Text("X");
+	//ImGui::Text("Y");
+	//ImGui::Text("Z");
+	//ImGui::End();
 }
 
 void Debug::DrawCircle(
@@ -254,8 +359,8 @@ void Debug::DrawBox(const Vec3& position, const Quaternion& orientation, Vec3 si
 	const Vec3 pointC = offsetX - offsetY;
 	const Vec3 pointD = -offsetX - offsetY;
 
-	DrawRect(position - offsetZ, orientation, {size.x, size.y}, color);
-	DrawRect(position + offsetZ, orientation, {size.x, size.y}, color);
+	DrawRect(position - offsetZ, orientation, { size.x, size.y }, color);
+	DrawRect(position + offsetZ, orientation, { size.x, size.y }, color);
 
 	DrawLine(position + (pointA - offsetZ), position + (pointA + offsetZ), color);
 	DrawLine(position + (pointB - offsetZ), position + (pointB + offsetZ), color);
@@ -292,26 +397,25 @@ void Debug::DrawCylinder(
 }
 
 void Debug::DrawCapsule(
-	const Vec3& position, const Quaternion& orientation, const float& height, float& radius, const Vec4&
-	color,
+	const Vec3& position, const Quaternion& orientation, const float& height, const float& radius, const Vec4& color,
 	const bool& drawFromBase
 ) {
-	radius = std::clamp(radius, 0.0f, height * 0.5f);
+	const float rad = std::clamp(radius, 0.0f, height * 0.5f);
 	const Vec3 localUp = orientation * Vec3::up;
 	const Quaternion arcOrientation = orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0);
 
 	const Vec3 basePositionOffset = drawFromBase ? Vec3::zero : (localUp * height * 0.5f);
-	const Vec3 baseArcPosition = position + localUp * radius - basePositionOffset;
-	DrawArc(180, 360, baseArcPosition, orientation, radius, color);
-	DrawArc(180, 360, baseArcPosition, arcOrientation, radius, color);
+	const Vec3 baseArcPosition = position + localUp * rad - basePositionOffset;
+	DrawArc(180, 360, baseArcPosition, orientation, rad, color);
+	DrawArc(180, 360, baseArcPosition, arcOrientation, rad, color);
 
-	const float cylinderHeight = height - radius * 2.0f;
-	DrawCylinder(baseArcPosition, orientation, cylinderHeight, radius, color, true);
+	const float cylinderHeight = height - rad * 2.0f;
+	DrawCylinder(baseArcPosition, orientation, cylinderHeight, rad, color, true);
 
 	const Vec3 topArcPosition = baseArcPosition + localUp * cylinderHeight;
 
-	DrawArc(0, 180, topArcPosition, orientation, radius, color);
-	DrawArc(0, 180, topArcPosition, arcOrientation, radius, color);
+	DrawArc(0, 180, topArcPosition, orientation, rad, color);
+	DrawArc(0, 180, topArcPosition, arcOrientation, rad, color);
 }
 
 void Debug::Init(LineCommon* lineCommon) {

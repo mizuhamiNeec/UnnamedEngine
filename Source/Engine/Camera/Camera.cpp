@@ -12,16 +12,19 @@ Camera::Camera() :
 	worldMat_(Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate)),
 	viewMat_(worldMat_.Inverse()),
 	projMat_(Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_)),
-	viewProjMat_(viewMat_ * projMat_) {}
+	viewProjMat_(viewMat_ * projMat_) {
+}
 
 void Camera::Update() {
 #ifdef _DEBUG
 	ImGui::Begin("Camera");
 	ImGuiManager::EditTransform(transform_, 0.01f);
 
-	if (ImGui::CollapsingHeader("Properties")) {
+	if (ImGui::CollapsingHeader("Properties"))
+	{
 		float fovTmp = fov_ * Math::rad2Deg;
-		if (ImGui::DragFloat("FOV##cam", &fovTmp, 0.1f, kFovMin * Math::rad2Deg, kFovMax * Math::rad2Deg, "%.2f [deg]")) {
+		if (ImGui::DragFloat("FOV##cam", &fovTmp, 0.1f, kFovMin * Math::rad2Deg, kFovMax * Math::rad2Deg, "%.2f [deg]"))
+		{
 			SetFovVertical(fovTmp * Math::deg2Rad);
 		}
 
@@ -41,7 +44,8 @@ void Camera::Update() {
 	worldMat_ = Mat4::Affine(
 		{1.0f, 1.0f, 1.0f},
 		transform_.rotate,
-		transform_.translate);
+		transform_.translate
+	);
 
 	// worldMatの逆行列
 	viewMat_ = worldMat_.Inverse();

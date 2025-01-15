@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 const Vec2 Vec2::zero(0.0f, 0.0f);
+const Vec2 Vec2::one(1.0f, 1.0f);
 const Vec2 Vec2::right(1.0f, 0.0f);
 const Vec2 Vec2::left(-1.0f, 0.0f);
 const Vec2 Vec2::up(0.0f, 1.0f);
@@ -24,6 +25,10 @@ const float& Vec2::operator[](const uint32_t index) const {
 	case 1: return y;
 	default: throw std::out_of_range("Vec2 添字演算子");
 	}
+}
+
+Vec2 Vec2::operator-() const {
+	return { -x, -y };
 }
 
 Vec2 Vec2::operator+(const Vec2& rhs) const {
@@ -104,9 +109,6 @@ Vec2 operator/(const float lhs, const Vec2& rhs) {
 	return { lhs / rhs.x, lhs / rhs.y };
 }
 
-Vec2::Vec2(const float x, const float y) : x(x),
-y(y) {}
-
 float Vec2::Length() const {
 	const float sqrLength = SqrLength();
 	if (sqrLength > 0.0f) {
@@ -168,7 +170,7 @@ Vec2 Vec2::ClampLength(const float min, const float max) {
 	}
 	if (sqrLength < min * min) {
 		if (sqrLength == 0.0f) {
-			return { 0.0f, 0.0f };
+			return zero;
 		}
 		const float scale = min / std::sqrt(sqrLength);
 		return { x * scale, y * scale };
@@ -177,11 +179,11 @@ Vec2 Vec2::ClampLength(const float min, const float max) {
 }
 
 Vec2 Vec2::Lerp(const Vec2& target, float t) const {
-	return *this * (1 - t) + target * t;
+	return *this * (1.0f - t) + target * t;
 }
 
 Vec2 Vec2::Reflect(const Vec2& normal) const {
-	return *this - 2 * this->Dot(normal) * normal;
+	return *this - 2.0f * this->Dot(normal) * normal;
 }
 
 Vec2 Vec2::RotateVector(const float angleZ) const {

@@ -14,6 +14,7 @@ public:
 	static void DrawLine(const Vec3& a, const Vec3& b, const Vec4& color);
 	static void DrawRay(const Vec3& position, const Vec3& dir, const Vec4& color);
 	static void DrawAxis(const Vec3& position, const Quaternion& orientation);
+	static void DrawAxisWithCharacter(const Vec3& position, const Quaternion& orientation);
 	static void DrawCircle(
 		const Vec3& position, const Quaternion& rotation, const float& radius,
 		const Vec4& color, const uint32_t& segments = 32
@@ -23,7 +24,7 @@ public:
 		const Quaternion& orientation, const float& radius, const Vec4& color,
 		const bool& drawChord = false, const bool& drawSector = false, const int& arcSegments = 32
 	);
-	static void DrawArrow(const Vec3& position, const Vec3& direction, const Vec4& color, float headSize);
+	static void DrawArrow(const Vec3& position, const Vec3& direction, const Vec4& color, float headSize = 0.25f);
 	static void DrawQuad(
 		const Vec3& pointA, const Vec3& pointB, const Vec3& pointC, const Vec3& pointD, const Vec4& color
 	);
@@ -41,7 +42,7 @@ public:
 	);
 	static void DrawCapsule(
 		const Vec3& position, const Quaternion& orientation, const float& height,
-		float& radius, const Vec4& color, const bool& drawFromBase = true
+		const float& radius, const Vec4& color, const bool& drawFromBase = true
 	);
 
 	static void Init(LineCommon* lineCommon);

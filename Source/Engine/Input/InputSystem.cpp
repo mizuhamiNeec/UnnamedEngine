@@ -1,11 +1,11 @@
 #include "InputSystem.h"
 
-#include <Windows.h>
+#include <ranges>
+#include <Lib/Console/ConCommand.h>
+#include <Lib/Console/Console.h>
+#include <Lib/Utils/StrUtils.h>
 
-#include "../Lib/Console/ConCommand.h"
-#include "../Lib/Console/Console.h"
-
-void InputSystem::Initialize() {
+void InputSystem::Init() {
 	RAWINPUTDEVICE rid[2];
 
 	// キーボードデバイスを登録
@@ -22,15 +22,37 @@ void InputSystem::Initialize() {
 
 	if (!RegisterRawInputDevices(rid, 2, sizeof(RAWINPUTDEVICE))) {
 		MessageBox(nullptr, L"Failed to register raw input devices", L"Error", MB_OK);
+		Console::Print("Failed to register raw input devices\n", kConsoleColorError, Channel::InputSystem);
+	}
+
+	ConCommand::RegisterCommand(
+		"togglelockcursor",
+		[]([[maybe_unused]] const std::vector<std::string>& args) {
+			bMouseLock_ = !bMouseLock_;
+		},
+		"Toggle lock cursor."
+	);
+
+	bMouseLock_ = true;
+}
+
+void InputSystem::Update() {
+	CheckMouseCursorLock();
+
+	// トリガー/リリース状態のクリア
+	triggeredCommands_.clear();
+	releasedCommands_.clear();
+	for (auto& [isTriggered, isPressed] : commandStates_ | std::views::values) {
+		isPressed = false; // isPressedは毎フレームリセット
 	}
 }
 
-void InputSystem::ProcessInput(const LPARAM lParam) {
+void InputSystem::ProcessInput(const long lParam) {
 	UINT dwSize = 0;
-	GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER));
+	GetRawInputData(reinterpret_cast<HRAWINPUT>(static_cast<LPARAM>(lParam)), RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER));
 
 	auto* lpb = new BYTE[dwSize];
-	if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize) {
+	if (GetRawInputData(reinterpret_cast<HRAWINPUT>(static_cast<LPARAM>(lParam)), RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize) {
 		delete[] lpb;
 		return;
 	}
@@ -45,14 +67,20 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 		// 仮想キーを文字列に変換
 		std::string keyName = GetKeyName(vKey);
 		keyName = StrUtils::ToLowerCase(keyName);
+
 		if (!keyName.empty() && keyBindings_.contains(keyName)) {
 			std::string cmd = keyBindings_[keyName];
 			if (cmd[0] == '+') {
 				std::string baseCmd = cmd.substr(1);
+
 				if (isKeyDown) {
-					triggeredCommands_[baseCmd] = true;
-					pressedCommands_[baseCmd] = true;
+					// すでに押下中でない場合のみ triggered に追加
+					if (!pressedCommands_[baseCmd]) {
+						triggeredCommands_[baseCmd] = true;
+						pressedCommands_[baseCmd] = true;
+					}
 				} else {
+					// キーリリース時の処理
 					pressedCommands_[baseCmd] = false;
 					releasedCommands_[baseCmd] = true;
 				}
@@ -79,7 +107,7 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 					// +コマンドの場合、ベース名を抽出 (+attack -> attack)
 					std::string baseCmd = cmd.substr(1);
 					triggeredCommands_[baseCmd] = true;
-					pressedCommands_[baseCmd] = true;  // 長押し状態を設定
+					pressedCommands_[baseCmd] = true; // 長押し状態を設定
 				}
 			}
 		}
@@ -89,7 +117,7 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 				std::string cmd = keyBindings_["mouse1"];
 				if (cmd[0] == '+') {
 					std::string baseCmd = cmd.substr(1);
-					pressedCommands_[baseCmd] = false;  // 長押し状態を解除
+					pressedCommands_[baseCmd] = false; // 長押し状態を解除
 					releasedCommands_[baseCmd] = true;
 				}
 			}
@@ -102,7 +130,7 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 					// +コマンドの場合、ベース名を抽出 (+attack -> attack)
 					std::string baseCmd = cmd.substr(1);
 					triggeredCommands_[baseCmd] = true;
-					pressedCommands_[baseCmd] = true;  // 長押し状態を設定
+					pressedCommands_[baseCmd] = true; // 長押し状態を設定
 				}
 			}
 		}
@@ -112,12 +140,11 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 				std::string cmd = keyBindings_["mouse2"];
 				if (cmd[0] == '+') {
 					std::string baseCmd = cmd.substr(1);
-					pressedCommands_[baseCmd] = false;  // 長押し状態を解除
+					pressedCommands_[baseCmd] = false; // 長押し状態を解除
 					releasedCommands_[baseCmd] = true;
 				}
 			}
 		}
-
 
 		// マウスホイール
 		if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
@@ -133,15 +160,6 @@ void InputSystem::ProcessInput(const LPARAM lParam) {
 	}
 
 	delete[] lpb;
-}
-
-void InputSystem::Update() {
-	// トリガー/リリース状態のクリア
-	triggeredCommands_.clear();
-	releasedCommands_.clear();
-	for (auto& [command, state] : commandStates_) {
-		state.isPressed = false; // isPressedは毎フレームリセット
-	}
 }
 
 Vec2 InputSystem::GetMouseDelta() {
@@ -224,6 +242,44 @@ void InputSystem::ExecuteCommand(const std::string& command, bool isDown) {
 	}
 }
 
+void InputSystem::ResetAllKeys() {
+	pressedCommands_.clear();
+	triggeredCommands_.clear();
+	releasedCommands_.clear();
+	commandStates_.clear();
+	mouseDelta_ = Vec2::zero;
+	bMouseLock_ = false;
+	bCursorHidden_ = false;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: マウスカーソルの表示/非表示を切り替えます。カーソルの固定も行います。
+//-----------------------------------------------------------------------------
+void InputSystem::CheckMouseCursorLock() {
+	static int cursorCount = 0; // カーソル表示カウンタを追跡
+
+	if (bMouseLock_) {
+		// カーソルをウィンドウの中央にリセット
+		POINT centerCursorPos = {
+			static_cast<LONG>(Window::GetClientWidth() / 2), static_cast<LONG>(Window::GetClientHeight() / 2)
+		};
+		ClientToScreen(Window::GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
+		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
+
+		// カーソルを非表示にする
+		while (cursorCount >= 0) {
+			cursorCount = ShowCursor(FALSE);
+		}
+		bCursorHidden_ = true;
+	} else {
+		// カーソルを表示する
+		while (cursorCount < 0) {
+			cursorCount = ShowCursor(TRUE);
+		}
+		bCursorHidden_ = false;
+	}
+}
+
 std::string InputSystem::GetKeyName(const UINT virtualKey) {
 	char name[256];
 	if (GetKeyNameTextA(MapVirtualKey(virtualKey, MAPVK_VK_TO_VSC) << 16, name, sizeof(name))) {
@@ -235,8 +291,9 @@ std::string InputSystem::GetKeyName(const UINT virtualKey) {
 Vec2 InputSystem::mouseDelta_ = Vec2::zero;
 
 std::unordered_map<std::string, std::string> InputSystem::keyBindings_;
-std::unordered_map<std::string, bool> InputSystem::keyStates_;
 std::unordered_map<std::string, InputSystem::CommandState> InputSystem::commandStates_;
 std::unordered_map<std::string, bool> InputSystem::triggeredCommands_;
 std::unordered_map<std::string, bool> InputSystem::pressedCommands_;
 std::unordered_map<std::string, bool> InputSystem::releasedCommands_;
+bool InputSystem::bMouseLock_ = false;
+bool InputSystem::bCursorHidden_ = false;

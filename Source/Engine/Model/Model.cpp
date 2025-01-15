@@ -3,11 +3,11 @@
 #include <fstream>
 #include <sstream>
 
-#include "../Model/ModelCommon.h"
-#include "../Renderer/ConstantBuffer.h"
-#include "../Renderer/D3D12.h"
-#include "../Renderer/VertexBuffer.h"
-#include "../TextureManager/TextureManager.h"
+#include <Model/ModelCommon.h>
+#include <Renderer/ConstantBuffer.h>
+#include <Renderer/D3D12.h>
+#include <Renderer/VertexBuffer.h>
+
 #ifdef _DEBUG
 #include "imgui/imgui.h"
 #endif
@@ -21,25 +21,27 @@ void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, con
 	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(
 		modelCommon_->GetD3D12()->GetDevice(),
 		sizeof(Vertex) * modelData_.vertices.size(),
-		modelData_.vertices.data());
+		modelData_.vertices.data()
+	);
 
 	// マテリアル定数バッファ
 	materialConstantBuffer_ = std::make_unique<ConstantBuffer>(modelCommon_->GetD3D12()->GetDevice(), sizeof(Material));
 	materialData_ = materialConstantBuffer_->GetPtr<Material>();
-	materialData_->color = {1.0f, 1.0f, 1.0f, 1.0f}; // 白
+	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
 	materialData_->enableLighting = true;
 	materialData_->uvTransform = Mat4::identity;
 	materialData_->shininess = 128.0f;
 	materialData_->specularColor = Vec3(0.25f, 0.25f, 0.25f); // 灰色
 
-	// テクスチャのファイルパスが空ではなかったら
-	if (!modelData_.material.textureFilePath.empty()) {
-		// .objの参照しているテクスチャファイル読み込み
-		TextureManager::GetInstance()->LoadTexture(modelData_.material.textureFilePath);
-		// 読み込んだテクスチャの番号を取得
-		modelData_.material.textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(
-			modelData_.material.textureFilePath);
-	}
+	//// テクスチャのファイルパスが空ではなかったら
+	//if (!modelData_.material.textureFilePath.empty()) {
+	//	// .objの参照しているテクスチャファイル読み込み
+	//	TextureManager::GetInstance()->LoadTexture(modelData_.material.textureFilePath);
+	//	// 読み込んだテクスチャの番号を取得
+	//	modelData_.material.textureIndex = TextureManager::GetInstance()->GetTextureIndexByFilePath(
+	//		modelData_.material.textureFilePath
+	//	);
+	//}
 }
 
 void Model::ImGuiDraw() {
@@ -61,11 +63,13 @@ void Model::Draw() const {
 
 	// マテリアルの定数バッファの設定
 	modelCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
-		0, materialConstantBuffer_->GetAddress());
+		0, materialConstantBuffer_->GetAddress()
+	);
 
-	// SRVのDescriptorTableの先頭を設定
-	modelCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-		2, TextureManager::GetInstance()->GetSrvHandleGPU(modelData_.material.textureFilePath));
+	//// SRVのDescriptorTableの先頭を設定
+	//modelCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
+	//	2, TextureManager::GetInstance()->GetSrvHandleGPU(modelData_.material.textureFilePath)
+	//);
 
 	// 描画
 	modelCommon_->GetD3D12()->GetCommandList()->DrawInstanced(static_cast<UINT>(modelData_.vertices.size()), 1, 0, 0);
@@ -133,7 +137,7 @@ Model::ModelData Model::LoadObjFile(const std::string& directoryPath, const std:
 				// 頂点の要素へのIndexは[位置/UV/法線] で格納されているので、分解してIndexを取得する
 				std::istringstream v(vertexDefinition);
 				std::string index;
-				uint32_t elementIndices[3] = {0, 0, 0};
+				uint32_t elementIndices[3] = { 0, 0, 0 };
 				int element = 0;
 
 				while (std::getline(v, index, '/') && element < 3) {
@@ -145,12 +149,12 @@ Model::ModelData Model::LoadObjFile(const std::string& directoryPath, const std:
 
 				// 要素へのIndexから、実際の要素の値を取得して、頂点を構築する
 				Vec4 position = positions[elementIndices[0] - 1];
-				Vec2 texcoord = elementIndices[1] ? texcoords[elementIndices[1] - 1] : Vec2{0.0f, 0.0f};
-				Vec3 normal = elementIndices[2] ? normals[elementIndices[2] - 1] : Vec3{0.0f, 0.0f, 0.0f};
+				Vec2 texcoord = elementIndices[1] ? texcoords[elementIndices[1] - 1] : Vec2{ 0.0f, 0.0f };
+				Vec3 normal = elementIndices[2] ? normals[elementIndices[2] - 1] : Vec3{ 0.0f, 0.0f, 0.0f };
 
 				position.x *= -1.0f;
 				normal.x *= -1.0f;
-				faceVertex = {position, texcoord, normal};
+				faceVertex = { position, texcoord, normal };
 			}
 			// 頂点を逆順で登録することで、周り順を逆にする
 			modelData.vertices.push_back(triangle[2]);

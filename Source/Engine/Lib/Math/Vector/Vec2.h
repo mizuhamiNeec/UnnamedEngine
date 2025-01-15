@@ -5,12 +5,13 @@ struct Vec2 final {
 	float x, y;
 
 	static const Vec2 zero;
+	static const Vec2 one;
 	static const Vec2 right;
 	static const Vec2 left;
 	static const Vec2 up;
 	static const Vec2 down;
 
-	Vec2(float x = 0.0f, float y = 0.0f);
+	constexpr Vec2(const float x = 0.0f, const float y = 0.0f) : x(x), y(y) {}
 
 	/* ---------------- 関数類 ---------------- */
 	float Length() const;
@@ -33,6 +34,8 @@ struct Vec2 final {
 	/* ---------------- 演算子 ---------------- */
 	float& operator[](uint32_t index);
 	const float& operator[](uint32_t index) const;
+
+	Vec2 operator-() const;
 
 	Vec2 operator+(const Vec2& rhs) const;
 	Vec2 operator-(const Vec2& rhs) const;

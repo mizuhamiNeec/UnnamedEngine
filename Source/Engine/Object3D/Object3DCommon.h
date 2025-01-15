@@ -2,10 +2,11 @@
 
 #include <memory>
 
+#include <Components/CameraComponent.h>
 #include "../Camera/Camera.h"
 #include "../Renderer/PipelineState.h"
 
-class SrvManager;
+//class SrvManager;
 class RootSignatureManager;
 class D3D12;
 
@@ -21,14 +22,11 @@ public:
 
 	D3D12* GetD3D12() const;
 
-	// Setter
-	void SetDefaultCamera(Camera* camera);
-
 	// Getter
-	Camera* GetDefaultCamera() const;
+	CameraComponent* GetDefaultCamera() const;
 
 private:
-	Camera* defaultCamera_ = nullptr;
+	CameraComponent* defaultCamera_ = nullptr;
 	D3D12* d3d12_ = nullptr;
 	std::unique_ptr<RootSignatureManager> rootSignatureManager_ = nullptr;
 	PipelineState pipelineState_;

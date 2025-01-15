@@ -1,18 +1,16 @@
 #pragma once
+#include <intsafe.h>
 #include <string>
 #include <unordered_map>
-#include <Windows.h>
 
-#include "InputCommand.h"
 #include "../Lib/Math/Vector/Vec2.h"
 
 class InputSystem {
 public:
-	static void Initialize();
-
-	static void ProcessInput(LPARAM lParam);
-
+	static void Init();
 	static void Update();
+
+	static void ProcessInput(long lParam);
 
 	static Vec2 GetMouseDelta();
 
@@ -25,6 +23,10 @@ public:
 	static void UnbindAll(); // すべてのバインドを解除
 	static void ExecuteCommand(const std::string& command, bool isDown); // コマンドを実行
 
+	static void ResetAllKeys();
+
+	static void CheckMouseCursorLock();
+
 private:
 	static std::string GetKeyName(UINT virtualKey);
 
@@ -35,13 +37,11 @@ private:
 		bool isPressed = false; // 押されている
 	};
 
-
-	static std::unordered_map<std::string, std::string> keyBindings_;
-	static std::unordered_map<std::string, bool> keyStates_;
 	static std::unordered_map<std::string, CommandState> commandStates_; // コマンドの状態
-	static std::unordered_map<std::string, InputCommand> commands;
+	static std::unordered_map<std::string, std::string> keyBindings_; // キーとコマンドのバインド
 	static std::unordered_map<std::string, bool> triggeredCommands_;
 	static std::unordered_map<std::string, bool> pressedCommands_;
 	static std::unordered_map<std::string, bool> releasedCommands_;
+	static bool bMouseLock_; // マウスのロック
+	static bool bCursorHidden_; // カーソルが非表示か
 };
-

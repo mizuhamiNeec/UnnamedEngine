@@ -11,7 +11,8 @@ void ParticleEmitter::Update(float deltaTime) {
 	// 時刻を進める
 	emitter_.frequencyTime += deltaTime;
 	// 発生頻度より大きいなら発生
-	if (emitter_.frequency <= emitter_.frequencyTime) {
+	if (emitter_.frequency <= emitter_.frequencyTime)
+	{
 		// パーティクルを発生させる
 		particleManager_->Emit(groupName_, Vec3::zero, 1);
 		// 余計に過ぎた時間も加味して頻度計算する

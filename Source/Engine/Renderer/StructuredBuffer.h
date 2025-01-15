@@ -6,7 +6,8 @@
 class StructuredBuffer {
 public:
 	StructuredBuffer(const D3D12* d3d12, const uint32_t elementSize, const uint32_t numElements) :
-		elementSize_(elementSize), numElements_(numElements) {
+		elementSize_(elementSize),
+		numElements_(numElements) {
 		D3D12_RESOURCE_DESC resourceDesc = {};
 		resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 		resourceDesc.Width = elementSize_ * numElements_;
@@ -27,19 +28,26 @@ public:
 			&resourceDesc,
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&bufferResource_));
+			IID_PPV_ARGS(&bufferResource_)
+		);
 
-		bufferResource_->Map(0, nullptr, reinterpret_cast<void**>(&mappedData_));
+		bufferResource_->Map(0, nullptr, &mappedData_);
 	}
 
 	~StructuredBuffer() {
-		if (bufferResource_) {
+		if (bufferResource_)
+		{
 			bufferResource_->Unmap(0, nullptr);
 		}
 	}
 
-	ID3D12Resource* GetResource() const { return bufferResource_.Get(); }
-	void* GetMappedData() const { return mappedData_; }
+	ID3D12Resource* GetResource() const {
+		return bufferResource_.Get();
+	}
+
+	void* GetMappedData() const {
+		return mappedData_;
+	}
 
 private:
 	ComPtr<ID3D12Resource> bufferResource_;

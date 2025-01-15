@@ -11,9 +11,11 @@ using namespace Microsoft::WRL;
 
 class D3D12 : public Renderer {
 public: // メンバ関数
+	D3D12();
 	~D3D12() override;
 
-	void Init(Window* window) override;
+	void Init() override;
+
 	void ClearColorAndDepth() const;
 	void PreRender() override;
 	void PostRender() override;
@@ -21,6 +23,8 @@ public: // メンバ関数
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data);
 
 	void WaitPreviousFrame();
+
+	void Resize(uint32_t width, uint32_t height);
 
 private:
 	//　メンバ変数
@@ -80,30 +84,59 @@ public:
 	// -----------------------------------------------------------------------
 	// Accessor
 	// -----------------------------------------------------------------------
-	ID3D12Device* GetDevice() const { return device_.Get(); }
-	ID3D12GraphicsCommandList* GetCommandList() const { return commandList_.Get(); }
-	ID3D12CommandQueue* GetCommandQueue() const { return commandQueue_.Get(); }
-	size_t GetBackBufferCount() const { return renderTargets_.size(); }
-	IDXGISwapChain4* GetSwapChain() const { return swapChain_.Get(); }
-	ID3D12Fence* GetFence() const { return fence_.Get(); }
-	ID3D12CommandAllocator* GetCommandAllocator() const { return commandAllocator_.Get(); }
+	ID3D12Device* GetDevice() const {
+		return device_.Get();
+	}
 
-	Window* GetWindow() const { return window_; }
+	ID3D12GraphicsCommandList* GetCommandList() const {
+		return commandList_.Get();
+	}
 
-	uint64_t GetFenceValue() const { return fenceValue_; }
-	void SetFenceValue(const uint64_t newValue) { fenceValue_ = newValue; };
+	ID3D12CommandQueue* GetCommandQueue() const {
+		return commandQueue_.Get();
+	}
+
+	size_t GetBackBufferCount() const {
+		return renderTargets_.size();
+	}
+
+	IDXGISwapChain4* GetSwapChain() const {
+		return swapChain_.Get();
+	}
+
+	ID3D12Fence* GetFence() const {
+		return fence_.Get();
+	}
+
+	ID3D12CommandAllocator* GetCommandAllocator() const {
+		return commandAllocator_.Get();
+	}
+
+	uint64_t GetFenceValue() const {
+		return fenceValue_;
+	}
+
+	void SetFenceValue(const uint64_t newValue) {
+		fenceValue_ = newValue;
+	};
 
 	//------------------------------------------------------------------------
 	// 汎用関数
 	//------------------------------------------------------------------------
-	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors,
-	                                                  bool shaderVisible) const;
+	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(
+		D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors,
+		bool shaderVisible
+	) const;
 
 private:
-	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-	                                                          uint32_t descriptorSize, uint32_t index);
-	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap,
-	                                                          uint32_t descriptorSize, uint32_t index);
+	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(
+		ID3D12DescriptorHeap* descriptorHeap,
+		uint32_t descriptorSize, uint32_t index
+	);
+	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(
+		ID3D12DescriptorHeap* descriptorHeap,
+		uint32_t descriptorSize, uint32_t index
+	);
 	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource() const;
 };
 
