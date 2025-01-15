@@ -345,7 +345,6 @@ void Engine::Update() {
 
 
 	ImGui::Begin("AudioTest");
-	ImGui::Text("mokugyo.wav");
 	static bool isLoop = false;
 	ImGui::Checkbox("Loop", &isLoop);
 
