@@ -51,12 +51,21 @@ public:
 	void SetUvRot(const float& newRot);
 
 private:
+	struct Material {
+		Vec4 color;
+		int32_t enableLighting;
+		Vec3 padding;
+		Mat4 uvTransform;
+		float shininess;
+		Vec3 specularColor;
+	};
+
 	// テクスチャサイズをイメージに合わせる
 	void AdjustTextureSize();
 
 	SpriteCommon* spriteCommon_ = nullptr;
 
-	Vec2 anchorPoint_ = {0.0f, 0.0f};
+	Vec2 anchorPoint_ = { 0.0f, 0.0f };
 
 	Transform transform_;
 	Transform uvTransform_;
@@ -67,8 +76,8 @@ private:
 	bool isFlipY_ = false;
 
 	// テクスチャ左上座標
-	Vec2 textureLeftTop = {0.0f, 0.0f};
-	Vec2 textureSize = {100.0f, 100.0f};
+	Vec2 textureLeftTop = { 0.0f, 0.0f };
+	Vec2 textureSize = { 100.0f, 100.0f };
 
 	// テクスチャ番号
 	std::string textureFilePath_;

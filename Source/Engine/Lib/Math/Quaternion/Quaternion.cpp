@@ -208,7 +208,14 @@ Vec3 Quaternion::GetAxis() const {
 	if (scale < 1e-6f) {
 		return Vec3::up;
 	}
-	return {x / scale, y / scale, z / scale};
+	return { x / scale, y / scale, z / scale };
+}
+
+Vec3 Quaternion::RotateVector(Vec3 vec3) {
+	Quaternion qVec(vec3.x, vec3.y, vec3.z, 0.0f);
+	Quaternion qConj = Conjugate();
+	Quaternion qResult = *this * qVec * qConj;
+	return { qResult.x, qResult.y, qResult.z };
 }
 
 float Quaternion::GetRotationAroundAxis(const Vec3& axis) const {

@@ -4,6 +4,7 @@ class Entity;
 
 class Component {
 public:
+	Component();
 	virtual ~Component();
 
 	// エンティティにアタッチされたときに呼び出されます

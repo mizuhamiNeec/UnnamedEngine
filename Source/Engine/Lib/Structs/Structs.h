@@ -22,15 +22,6 @@ private:
 	static const D3D12_INPUT_ELEMENT_DESC inputElements[inputElementCount];
 };
 
-struct Material {
-	Vec4 color;
-	int32_t enableLighting;
-	Vec3 padding;
-	Mat4 uvTransform;
-	float shininess;
-	Vec3 specularColor;
-};
-
 struct TransformationMatrix {
 	Mat4 wvp; // ワールドビュープロジェクション
 	Mat4 world; // ワールド

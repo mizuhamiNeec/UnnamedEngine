@@ -21,10 +21,10 @@
 void GameScene::Init(Engine* engine) {
 	renderer_ = engine->GetRenderer();
 	window_ = engine->GetWindow();
-	spriteCommon_ = engine->GetSpriteCommon();
-	particleManager_ = engine->GetParticleManager();
-	object3DCommon_ = engine->GetObject3DCommon();
-	modelCommon_ = engine->GetModelCommon();
+	//spriteCommon_ = engine->GetSpriteCommon();
+	//particleManager_ = engine->GetParticleManager();
+	//object3DCommon_ = engine->GetObject3DCommon();
+	//modelCommon_ = engine->GetModelCommon();
 	//srvManager_ = engine->GetSrvManager();
 	timer_ = engine->GetEngineTimer();
 
@@ -35,10 +35,10 @@ void GameScene::Init(Engine* engine) {
 #pragma endregion
 
 #pragma region スプライト類
-	sprite_ = std::make_unique<Sprite>();
-	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetAnchorPoint(Vec2::one * 0.5f);
-	sprite_->SetSize(Vec3(512.0f, 512.0f));
+	//sprite_ = std::make_unique<Sprite>();
+	//sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
+	//sprite_->SetAnchorPoint(Vec2::one * 0.5f);
+	//sprite_->SetSize(Vec3(512.0f, 512.0f));
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -65,11 +65,11 @@ void GameScene::Init(Engine* engine) {
 
 	cameraRoot_ = std::make_unique<Entity>("cameraBase");
 	cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
-	cameraRotator_ = camera_->AddComponent<CameraRotator>();
+	cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
 
 	// プレイヤーにカメラをアタッチ
-	//camera_->SetParent(cameraRoot_.get());
-	camera_->GetTransform()->SetLocalPos(Vec3::up * 2.0f + Vec3::forward * -2.5f);
+	camera_->SetParent(cameraRoot_.get());
+	camera_->GetTransform()->SetLocalPos(Vec3::backward * 2.5f);
 #pragma endregion
 
 #pragma region コンソール変数/コマンド
@@ -78,7 +78,13 @@ void GameScene::Init(Engine* engine) {
 }
 
 void GameScene::Update(const float deltaTime) {
-	camera_->Update(deltaTime);
+
+	if (InputSystem::IsPressed("+attack2")) {
+		camera_->SetParent(nullptr);
+		camera_->Update(deltaTime);
+	} else {
+		camera_->SetParent(cameraRoot_.get());
+	}
 
 	// マウスホイールでカメラのローカルZ軸方向に移動
 	if (InputSystem::IsTriggered("+invprev")) {
@@ -87,7 +93,12 @@ void GameScene::Update(const float deltaTime) {
 		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 0.1f);
 	}
 
-	particleManager_->Update(deltaTime);
+	Vec3 currentPos = cameraRoot_->GetTransform()->GetLocalPos();
+	cameraRoot_->GetTransform()->SetLocalPos(currentPos + Vec3::forward * 1.0f * deltaTime);
+
+	cameraRoot_->Update(deltaTime);
+
+	/*particleManager_->Update(deltaTime);
 	static bool isOffscreen = false;
 	static float rotation = 0.0f;
 	Vec3 pos = Math::WorldToScreen(
@@ -96,11 +107,11 @@ void GameScene::Update(const float deltaTime) {
 		32.0f,
 		isOffscreen,
 		rotation
-	);
+	);*/
 
-	sprite_->SetPos(Vec3(pos.x, pos.y));
-	sprite_->SetRot(Vec3::forward * rotation);
-	sprite_->Update();
+	//sprite_->SetPos(Vec3(pos.x, pos.y));
+	//sprite_->SetRot(Vec3::forward * rotation);
+	//sprite_->Update();
 
 	Debug::DrawAxisWithCharacter(ConVarManager::GetConVar("testPos")->GetValueAsVec3(), Quaternion::Euler(0.0f, 0.0f, 0.0f));
 
@@ -168,23 +179,23 @@ void GameScene::Update(const float deltaTime) {
 void GameScene::Render() {
 	//----------------------------------------
 	// オブジェクト3D共通描画設定
-	object3DCommon_->Render();
+	//object3DCommon_->Render();
 	//----------------------------------------
 
 	//----------------------------------------
 	// パーティクル共通描画設定
-	particleManager_->Render();
+	//particleManager_->Render();
 	//----------------------------------------
 
 	//----------------------------------------
 	// スプライト共通描画設定
-	spriteCommon_->Render();
+	//spriteCommon_->Render();
 	//----------------------------------------
-	sprite_->Draw();
+	//sprite_->Draw();
 }
 
 void GameScene::Shutdown() {
-	spriteCommon_->Shutdown();
-	object3DCommon_->Shutdown();
-	particleManager_->Shutdown();
+	//spriteCommon_->Shutdown();
+	//object3DCommon_->Shutdown();
+	//particleManager_->Shutdown();
 }

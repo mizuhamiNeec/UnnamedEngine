@@ -1,36 +1,86 @@
 #include "Console.h"
 
+#include <filesystem>
 #include <format>
 #include <fstream>
+
 #include <ImGuiManager/Icons.h>
+
 #include <Input/InputSystem.h>
+
 #include <Lib/Console/ConCommand.h>
 #include <Lib/Console/ConVarManager.h>
 #include <Lib/Timer/EngineTimer.h>
 #include <Lib/Utils/StrUtils.h>
+
 #include <Window/WindowsUtils.h>
 
-//-----------------------------------------------------------------------------
-// Purpose: コンソールを更新します
-//-----------------------------------------------------------------------------
+using SetThreadDescriptionFunc = HRESULT(WINAPI*)(HANDLE, PCWSTR);
+
+Console::Console() {
+	bStopThread_ = false;
+	// ログファイルの初期化
+	{
+		std::lock_guard lock(mutex_);
+
+		// 既存のログファイルを削除
+		if (std::filesystem::exists("console.log")) {
+			std::filesystem::remove("console.log");
+		}
+
+		// 新規ファイルを作成
+		logFile_.open("console.log", std::ios::out | std::ios::binary);
+		if (logFile_.is_open()) {
+			// ヘッダーを書き込む
+			const auto now = EngineTimer::GetNow();
+			std::string header = std::format(
+				"//-----------------------------------------------------------------------------\n"
+				"// BuildDate: {}-{}\n"
+				"// Engine: {} Ver.{}\n"
+				"// LaunchDate: {:02}-{:02}-{:02} {:02}:{:02}:{:02}\n"
+				"//-----------------------------------------------------------------------------\n\n",
+				kEngineBuildDate, kEngineBuildTime,
+				kEngineName, kEngineVersion,
+				now.year, now.month, now.day, now.hour, now.minute, now.second
+			);
+			logFile_.write(header.c_str(), header.size());
+			logFile_.flush();
+		}
+	}
+	StartConsoleThread();
+}
+
+Console::~Console() {
+	Shutdown();
+}
+
 void Console::Update() {
 #ifdef _DEBUG
 	if (!bShowConsole_) {
 		return;
 	}
 
-	ImGuiWindowFlags consoleWindowFlags = ImGuiWindowFlags_NoScrollbar |
-		ImGuiWindowFlags_NoScrollWithMouse |
-		ImGuiWindowFlags_NoCollapse |
-		ImGuiWindowFlags_MenuBar;
+	// ウィンドウフラグの設定
+	ImGuiWindowFlags consoleWindowFlags =
+		ImGuiWindowFlags_NoScrollbar | // スクロールバーを非表示
+		ImGuiWindowFlags_NoScrollWithMouse | // マウスホイールでスクロールしない
+		ImGuiWindowFlags_NoCollapse | // ウィンドウの折り畳みを無効
+		ImGuiWindowFlags_MenuBar; // メニューバーを表示
 
 	if (bShowSuggestPopup_) {
+		// フォーカス時に前面に持ってこない
 		consoleWindowFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
 	}
 
-	ImGui::SetNextWindowSizeConstraints({ 360.0f, 360.0f }, { 0xFFFF, 0xFFFF });
+	// 最小サイズと最大サイズを設定
+	ImGui::SetNextWindowSizeConstraints(
+		{ 360.0f, 360.0f },
+		{ 0xFFFF, 0xFFFF }
+	);
 
-	bool bWindowOpen = ImGui::Begin((StrUtils::ConvertToUtf8(kIconTerminal) + " コンソール").c_str(), &bShowConsole_, consoleWindowFlags);
+	bool bWindowOpen = ImGui::Begin(
+		(StrUtils::ConvertToUtf8(kIconTerminal) + " コンソール").c_str(), &bShowConsole_, consoleWindowFlags
+	);
 
 	if (bWindowOpen) {
 		ShowMenuBar();
@@ -38,7 +88,7 @@ void Console::Update() {
 		bool bIsDarkMode = WindowsUtils::IsAppDarkTheme();
 
 		if (!bIsDarkMode) {
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, { 0.2f,0.2f,0.2f,1.0f });
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, { 0.2f, 0.2f, 0.2f, 1.0f });
 		}
 
 		ShowConsoleBody();
@@ -52,9 +102,33 @@ void Console::Update() {
 		}
 	}
 	ImGui::End();
-
-	CheckLineCount();
 #endif
+}
+
+void Console::Shutdown() {
+	{
+		std::lock_guard lock(mutex_);
+		bStopThread_ = true;
+	}
+
+	// スレッドを再開
+	cv_.notify_all();
+
+	// スレッドが終了するまで待機
+	if (consoleThread_.joinable()) {
+		consoleThread_.join();
+	}
+
+	// 残りのメッセージをファイルに書き込む
+	if (!messageBuffer_.empty()) {
+		FlushLogBuffer(messageBuffer_);
+		messageBuffer_.clear();
+	}
+
+	// ログファイルを閉じる
+	if (logFile_.is_open()) {
+		logFile_.close();
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -114,7 +188,8 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 				// Vec3の場合の処理
 				if (conVar->GetTypeAsString() == "vec3") {
 					// 引数が3つあることを確認
-					if (tokens.size() < 4) { // tokens[0]が変数名なので、1,2,3の引数を含めて最低4つ必要
+					if (tokens.size() < 4) {
+						// tokens[0]が変数名なので、1,2,3の引数を含めて最低4つ必要
 						isValidInput = false;
 					} else {
 						try {
@@ -178,7 +253,10 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 					}
 				} else {
 					Print("CVAR型変換エラー: 指定された型が無効です。\n", kConsoleColorError, Channel::Console);
-					Print("期待される型: " + conVar->GetTypeAsString() + "\n", GetConVarTypeColor(conVar->GetTypeAsString()), Channel::Console);
+					Print(
+						"期待される型: " + conVar->GetTypeAsString() + "\n", GetConVarTypeColor(conVar->GetTypeAsString()),
+						Channel::Console
+					);
 				}
 			}
 			break;
@@ -206,47 +284,48 @@ void Console::Print(
 	[[maybe_unused]] const std::string& message, [[maybe_unused]] const Vec4& color,
 	[[maybe_unused]] const Channel& channel
 ) {
-
 	if (message.empty()) {
 		return;
 	}
 
-	std::string msg = message;
+	// ログへの書き込み
+	if (ConVarManager::GetConVar("verbose")->GetValueAsBool()) {
+		std::string channelStr = (channel != Channel::None) ? "[" + ToString(channel) + "] " : "";
+		OutputDebugString(StrUtils::ToString(channelStr + message));
+		LogToFileAsync(channelStr + message);
+	}
 
-	// 改行の有無をチェック
-	const bool hasNewLine = !msg.empty() && msg.back() == '\n';
-	const std::string baseMsg = hasNewLine ? msg.substr(0, msg.size() - 1) : msg;
+	// タスクキューに追加
+	{
+		std::lock_guard lock(mutex_);
+		taskQueue_.emplace([message, color, channel] {
+			std::string msg = message;
+			const bool hasNewLine = !msg.empty() && msg.back() == '\n';
+			const std::string baseMsg = hasNewLine ? msg.substr(0, msg.size() - 1) : msg;
 
 #ifdef _DEBUG
-	// 前のメッセージと完全一致するかチェック（改行を除いて比較）
-	if (!consoleTexts_.empty()) {
-		const std::string lastMsg = consoleTexts_.back().text;
-		const bool lastHasNewLine = !lastMsg.empty() && lastMsg.back() == '\n';
-		const std::string lastBaseMsg = lastHasNewLine ? lastMsg.substr(0, lastMsg.size() - 1) : lastMsg;
+			if (!consoleTexts_.empty()) {
+				const std::string lastMsg = consoleTexts_.back().text;
+				const bool lastHasNewLine = !lastMsg.empty() && lastMsg.back() == '\n';
+				const std::string lastBaseMsg = lastHasNewLine ? lastMsg.substr(0, lastMsg.size() - 1) : lastMsg;
 
-		// リピートカウント表示を除いた部分で比較
-		const size_t bracketPos = lastBaseMsg.find(" [x");
-		const std::string lastBaseMsgWithoutCount = (bracketPos != std::string::npos)
-			? lastBaseMsg.substr(0, bracketPos)
-			: lastBaseMsg;
+				const size_t bracketPos = lastBaseMsg.find(" [x");
+				const std::string lastBaseMsgWithoutCount =
+					(bracketPos != std::string::npos) ? lastBaseMsg.substr(0, bracketPos) : lastBaseMsg;
 
-		if (baseMsg == lastBaseMsgWithoutCount && lastMsg != "]\n") {
-			UpdateRepeatCount(baseMsg, hasNewLine, color);
-			return;
-		}
-	}
+				if (baseMsg == lastBaseMsgWithoutCount && lastMsg != "]\n") {
+					UpdateRepeatCount(baseMsg, hasNewLine, channel, color);
+					return;
+				}
+			}
 
-	// 新しいメッセージとして追加
-	consoleTexts_.push_back({ .text = msg, .color = color, .channel = channel });
-	repeatCounts_.push_back(1);
-	bWishScrollToBottom_ = true;
+			consoleTexts_.push_back({ .text = msg, .color = color, .channel = channel });
+			repeatCounts_.push_back(1);
+			bWishScrollToBottom_ = true;
 #endif
-	if (ConVarManager::GetConVar("verbose")->GetValueAsBool()) {
-		// 内蔵コンソール以外はチャンネルを表示
-		std::string channelStr = (channel != Channel::None) ? "[" + ToString(channel) + "] " : "";
-		OutputDebugString(StrUtils::ToString(channelStr + msg));
-		RewriteLogFile();
+			});
 	}
+	cv_.notify_one();
 }
 
 //-----------------------------------------------------------------------------
@@ -263,15 +342,17 @@ void Console::PrintNullptr(const std::string& message, const Channel& channel) {
 //-----------------------------------------------------------------------------
 std::string Console::ToString(const Channel channel) {
 	switch (channel) {
-	case Channel::None: return "None";
+	case Channel::None: return "";
+	case Channel::CommandLine: return "CommandLine";
 	case Channel::Console: return "Console";
 	case Channel::Engine: return "Engine";
 	case Channel::Host: return "Host";
-	case Channel::ResourceManager: return "ResourceManager";
+	case Channel::AssetSystem: return "AssetSystem";
+	case Channel::ResourceSystem: return "ResourceSystem";
+	case Channel::InputSystem: return "InputSystem";
 	case Channel::Client: return "Client";
 	case Channel::Server: return "Server";
 	case Channel::Game: return "Game";
-	case Channel::InputSystem: return "InputSystem";
 	case Channel::Physics: return "Physics";
 	case Channel::RenderPipeline: return "RenderPipeline";
 	case Channel::RenderSystem: return "RenderSystem";
@@ -416,7 +497,7 @@ void Console::Echo(const std::vector<std::string>& args) {
 void Console::UpdateSuggestions(const std::string& input) {
 	suggestions_.clear();
 
-	  // 入力が空の場合はサジェストしない
+	// 入力が空の場合はサジェストしない
 	if (input.empty()) {
 		for (const auto& command : ConCommand::GetCommands()) {
 			suggestions_.push_back(command.first);
@@ -428,20 +509,20 @@ void Console::UpdateSuggestions(const std::string& input) {
 	}
 
 	for (const auto& command : ConCommand::GetCommands()) {
-		if (command.first.find(input) == 0) {
+		if (command.first.starts_with(input)) {
 			suggestions_.push_back(command.first);
 		}
 	}
 
 	for (const auto& conVar : ConVarManager::GetAllConVars()) {
-		if (conVar->GetName().find(input) == 0) {
+		if (conVar->GetName().starts_with(input)) {
 			suggestions_.push_back(conVar->GetName());
 		}
 	}
 }
 #endif
 
-#ifdef _DEBUG 
+#ifdef _DEBUG
 //-----------------------------------------------------------------------------
 // Purpose: サジェストポップアップを表示します
 //-----------------------------------------------------------------------------
@@ -453,19 +534,23 @@ void Console::ShowSuggestPopup() {
 	// ポップアップの位置とサイズを計算
 	ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
 	ImVec2 inputTextSize = ImGui::GetItemRectSize();
-	ImVec2 popupPos = ImVec2(cursorScreenPos.x, cursorScreenPos.y + inputTextSize.y);
-	ImVec2 popupSize = ImVec2(inputTextSize.x, ImGui::GetTextLineHeight() * min(suggestions_.size(), size_t(10)) + ImGui::GetStyle().WindowPadding.y * 2);
+	auto popupPos = ImVec2(cursorScreenPos.x, cursorScreenPos.y + inputTextSize.y);
+	auto popupSize = ImVec2(
+		inputTextSize.x,
+		ImGui::GetTextLineHeight() * min(suggestions_.size(), size_t(10)) + ImGui::GetStyle().WindowPadding.y * 2
+	);
 
 	// ポップアップウィンドウの表示
 	ImGui::SetNextWindowPos(popupPos);
 	ImGui::SetNextWindowSize(popupSize);
 
-	if (ImGui::Begin("Suggestions", nullptr,
+	if (ImGui::Begin(
+		"Suggestions", nullptr,
 		ImGuiWindowFlags_NoTitleBar |
 		ImGuiWindowFlags_NoMove |
 		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_Tooltip)) {
-
+		ImGuiWindowFlags_Tooltip
+	)) {
 		for (size_t i = 0; i < suggestions_.size(); i++) {
 			if (ImGui::Selectable(suggestions_[i].c_str())) {
 				// 選択されたサジェストで入力を置き換え
@@ -565,12 +650,10 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 		}
 		break;
 
-	case ImGuiInputTextFlags_CallbackEdit:
-		Print("Edit\n", kConsoleColorInt);
+	case ImGuiInputTextFlags_CallbackEdit: Print("Edit\n", kConsoleColorInt);
 		break;
 
-	case ImGuiInputTextFlags_CallbackResize:
-		Print("Resize\n", kConsoleColorError);
+	case ImGuiInputTextFlags_CallbackResize: Print("Resize\n", kConsoleColorError);
 		break;
 	default:;
 	}
@@ -582,7 +665,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 // Purpose: メニューバーを表示します
 //-----------------------------------------------------------------------------
 void Console::ShowMenuBar() {
-#ifdef _DEBUG 
+#ifdef _DEBUG
 	if (ImGui::BeginMenuBar()) {
 		if (ImGui::BeginMenu("File")) {
 			if (ImGui::MenuItem("Clear", "Ctrl+C")) {
@@ -612,12 +695,26 @@ void Console::ShowMenuBar() {
 //-----------------------------------------------------------------------------
 void Console::ShowConsoleText() {
 #ifdef _DEBUG
+	std::lock_guard lock(mutex_);
+
+	// 60FPSを超えない頻度でバッファを更新
+	const size_t currentFrame = EngineTimer::GetFrameCount();
+	if (currentFrame - displayState_.lastUpdateFrame > 1) {
+		displayState_.buffer = consoleTexts_;
+		displayState_.selected.resize(displayState_.buffer.size(), false);
+		displayState_.lastUpdateFrame = currentFrame;
+	}
+
 	// 入力フィールドとボタンの高さを取得
 	float inputTextHeight = ImGui::GetFrameHeightWithSpacing();
 	// 子ウィンドウの高さを調整
-	ImVec2 childSize = ImVec2(0, -inputTextHeight - ImGui::GetStyle().ItemSpacing.y);
+	auto childSize = ImVec2(0, -inputTextHeight - ImGui::GetStyle().ItemSpacing.y);
 
-	if (ImGui::BeginTable("ConsoleTable", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_SizingFixedFit, childSize)) {
+	if (ImGui::BeginTable(
+		"ConsoleTable", 2,
+		ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_SizingFixedFit,
+		childSize
+	)) {
 		// ヘッダー
 		ImGui::TableSetupScrollFreeze(0, 1);
 		ImGui::TableSetupColumn("Channel", ImGuiTableColumnFlags_WidthFixed);
@@ -628,24 +725,26 @@ void Console::ShowConsoleText() {
 		int visibleIndex = 0;
 
 		// データ行
-		for (size_t i = 0; i < consoleTexts_.size(); ++i) {
+		for (size_t i = 0; i < displayState_.buffer.size(); ++i) {
 			// チャンネルによるフィルター処理
-			if (currentFilterChannel_ != Channel::None && consoleTexts_[i].channel != currentFilterChannel_) {
+			if (currentFilterChannel_ != Channel::None && displayState_.buffer[i].channel != currentFilterChannel_) {
 				continue; // フィルターに一致しない場合はスキップ
 			}
 
 			ImGui::TableNextRow();
 
 			// チャンネル列
-			if (consoleTexts_[i].channel != Channel::None) {
+			if (displayState_.buffer[i].channel != Channel::None) {
 				if (ImGui::TableSetColumnIndex(0)) {
-					std::string channelName = ToString(consoleTexts_[i].channel);
-					if (ImGui::TextLink((channelName + "##" + std::to_string(i)).c_str())) {
-						// チャンネルをクリックした時のフィルター設定
-						if (currentFilterChannel_ == consoleTexts_[i].channel) {
-							currentFilterChannel_ = Channel::None; // 同じチャンネルをクリックするとフィルター解除
-						} else {
-							currentFilterChannel_ = consoleTexts_[i].channel;
+					std::string channelName = ToString(displayState_.buffer[i].channel);
+					if (!channelName.empty()) {
+						if (ImGui::TextLink((channelName + "##" + std::to_string(i)).c_str())) {
+							// チャンネルをクリックした時のフィルター設定
+							if (currentFilterChannel_ == displayState_.buffer[i].channel) {
+								currentFilterChannel_ = Channel::None; // 同じチャンネルをクリックするとフィルター解除
+							} else {
+								currentFilterChannel_ = displayState_.buffer[i].channel;
+							}
 						}
 					}
 				}
@@ -655,12 +754,12 @@ void Console::ShowConsoleText() {
 
 			// ログ列
 			if (ImGui::TableSetColumnIndex(1)) {
-				ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(consoleTexts_[i].color));
-				bool isSelected = selectedItems_[i];
-				if (ImGui::Selectable((consoleTexts_[i].text + "##" + std::to_string(i)).c_str(), isSelected)) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(displayState_.buffer[i].color));
+				bool isSelected = displayState_.selected[i];
+				if (ImGui::Selectable((displayState_.buffer[i].text + "##" + std::to_string(i)).c_str(), isSelected)) {
 					if (ImGui::GetIO().KeyCtrl) {
 						// 選択状態のトグル
-						selectedItems_[i] = !selectedItems_[i];
+						displayState_.selected[i] = !displayState_.selected[i];
 					} else if (ImGui::GetIO().KeyShift && lastSelectedIndex_ != -1) {
 						// フィルタリング後の範囲選択
 						const int start = min(lastSelectedIndex_, visibleIndex);
@@ -668,13 +767,13 @@ void Console::ShowConsoleText() {
 						for (int j = start; j <= end; ++j) {
 							size_t actualIndex = FilteredToActualIndex(j);
 							if (actualIndex != SIZE_MAX) {
-								selectedItems_[actualIndex] = true;
+								displayState_.selected[actualIndex] = true;
 							}
 						}
 					} else {
 						// 単一選択（フィルタリング後の要素に限定）
-						std::fill(selectedItems_.begin(), selectedItems_.end(), false);
-						selectedItems_[i] = true;
+						std::fill(displayState_.selected.begin(), displayState_.selected.end(), false);
+						displayState_.selected[i] = true;
 					}
 					lastSelectedIndex_ = visibleIndex; // フィルタリング後のインデックス
 				}
@@ -688,9 +787,9 @@ void Console::ShowConsoleText() {
 		// Ctrl+C でコピー
 		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C)) {
 			std::string copiedText;
-			for (size_t i = 0; i < consoleTexts_.size(); ++i) {
-				if (selectedItems_[i]) {
-					copiedText += consoleTexts_[i].text;
+			for (size_t i = 0; i < displayState_.buffer.size(); ++i) {
+				if (displayState_.selected[i]) {
+					copiedText += displayState_.buffer[i].text;
 				}
 			}
 			ImGui::SetClipboardText(copiedText.c_str());
@@ -708,16 +807,12 @@ void Console::ShowConsoleText() {
 //-----------------------------------------------------------------------------
 void Console::ShowConsoleBody() {
 #ifdef _DEBUG
-	ImGui::PushStyleColor(ImGuiCol_Border, { 0.0f,0.0f,0.0f,0.0f });
-	ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, { 0.0f,0.0f,0.0f,0.0f });
+	ImGui::PushStyleColor(ImGuiCol_Border, { 0.0f, 0.0f, 0.0f, 0.0f });
+	ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3.0f, 3.0f));
 	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 16.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarRounding, 128.0f);
-
-	if (selectedItems_.size() != consoleTexts_.size()) {
-		selectedItems_.resize(consoleTexts_.size(), false);
-	}
 
 	ShowConsoleText();
 
@@ -766,9 +861,9 @@ void Console::ShowConsoleBody() {
 }
 
 void Console::ShowContextMenu() {
-#ifdef _DEBUG 
+#ifdef _DEBUG
 	ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 8.0f);
-	ImGui::PushStyleColor(ImGuiCol_Border, { 0.25f,0.25f,0.25f,1.0f });
+	ImGui::PushStyleColor(ImGuiCol_Border, { 0.25f, 0.25f, 0.25f, 1.0f });
 
 	// 選択された全テキストをコピーする機能（右クリックメニューから）
 	if (ImGui::BeginPopupContextWindow()) {
@@ -776,9 +871,9 @@ void Console::ShowContextMenu() {
 
 		if (ImGui::MenuItem((StrUtils::ConvertToUtf8(kIconCopy) + " Copy Selected").c_str())) {
 			std::string copiedText;
-			for (size_t i = 0; i < consoleTexts_.size(); ++i) {
-				if (selectedItems_[i]) {
-					copiedText += consoleTexts_[i].text;
+			for (size_t i = 0; i < displayState_.buffer.size(); ++i) {
+				if (displayState_.selected[i]) {
+					copiedText += displayState_.buffer[i].text;
 				}
 			}
 			ImGui::SetClipboardText(copiedText.c_str());
@@ -830,8 +925,8 @@ void Console::ShowAbout() {
 		ImGui::Spacing();
 		ImGui::Spacing();
 		// ボタンサイズとウィンドウサイズを取得
-		ImVec2 buttonSize = ImVec2(74.0f, 24.0f);
-		ImVec2 windowSize = ImGui::GetWindowSize();  // ウィンドウ全体のサイズ
+		auto buttonSize = ImVec2(74.0f, 24.0f);
+		ImVec2 windowSize = ImGui::GetWindowSize(); // ウィンドウ全体のサイズ
 		ImVec2 cursorStartPos = ImGui::GetCursorPos(); // 現在のカーソル位置
 
 		// ボタンを中央に配置
@@ -902,9 +997,9 @@ void Console::AddCommandHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
 	consoleTexts_.push_back(
 		{
-		.text = "> " + command + "\n",
-		.color = kConsoleColorExecute,
-		.channel = Channel::Console
+			.text = "> " + command + "\n",
+			.color = kConsoleColorExecute,
+			.channel = Channel::Console
 		}
 	);
 #endif
@@ -919,6 +1014,7 @@ void Console::AddCommandHistory([[maybe_unused]] const std::string& command) {
 void Console::UpdateRepeatCount(
 	[[maybe_unused]] const std::string& message,
 	[[maybe_unused]] const bool hasNewLine,
+	[[maybe_unused]] const Channel& channel,
 	[[maybe_unused]] const Vec4& color
 ) {
 #ifdef _DEBUG
@@ -926,15 +1022,17 @@ void Console::UpdateRepeatCount(
 
 	const auto repeatCount = repeatCounts_.back();
 	// 改行を含めない形式でメッセージを作成し、必要な場合のみ最後に追加
-	auto formattedMessage = std::format("{} [x{}]{}", message, repeatCount,
-		hasNewLine ? "\n" : "");
+	auto formattedMessage = std::format(
+		"{} [x{}]{}", message, repeatCount,
+		hasNewLine ? "\n" : ""
+	);
 
 	if (repeatCount >= static_cast<int>(kConsoleRepeatError)) {
-		consoleTexts_.back() = { .text = formattedMessage, .color = kConsoleColorError };
+		consoleTexts_.back() = { .text = formattedMessage, .color = kConsoleColorError, .channel = channel };
 	} else if (repeatCount >= static_cast<int>(kConsoleRepeatWarning)) {
-		consoleTexts_.back() = { .text = formattedMessage, .color = kConsoleColorWarning };
+		consoleTexts_.back() = { .text = formattedMessage, .color = kConsoleColorWarning, .channel = channel };
 	} else {
-		consoleTexts_.back() = { .text = formattedMessage, .color = color };
+		consoleTexts_.back() = { .text = formattedMessage, .color = color, .channel = channel };
 	}
 #endif
 }
@@ -959,16 +1057,50 @@ void Console::CheckScroll() {
 //-----------------------------------------------------------------------------
 // Purpose: 行数をチェックして最大行数を超えた場合は削除します
 //-----------------------------------------------------------------------------
-void Console::CheckLineCount() {
+void Console::CheckLineCountAsync() {
+	std::lock_guard lock(mutex_);
 #ifdef _DEBUG
-	while (consoleTexts_.size() > kConsoleMaxLineCount) {
-		consoleTexts_.erase(consoleTexts_.begin());
+	// コンソールテキスト用の初期キャパシティを設定
+	constexpr size_t kInitialCapacity = 1024;
+	constexpr size_t kGrowthFactor = 512;    // 増加量
+	constexpr size_t kHistoryCapacity = 128;  // コマンド履歴の最大数
+	constexpr size_t kSuggestionsInitialCapacity = 32;
+
+	// コンソールテキストのキャパシティ管理
+	if (consoleTexts_.capacity() < kInitialCapacity) {
+		consoleTexts_.reserve(kInitialCapacity);
+		repeatCounts_.reserve(kInitialCapacity);
 	}
 
-	consoleTexts_.shrink_to_fit();
-	history_.shrink_to_fit();
-	suggestions_.shrink_to_fit();
-	repeatCounts_.shrink_to_fit();
+	// 履歴のキャパシティ管理
+	if (history_.capacity() < kHistoryCapacity) {
+		history_.reserve(kHistoryCapacity);
+	}
+
+	// サジェストのキャパシティ管理
+	if (suggestions_.capacity() < kSuggestionsInitialCapacity) {
+		suggestions_.reserve(kSuggestionsInitialCapacity);
+	}
+
+	// 最大行数を超えた場合は前方から削除
+	while (consoleTexts_.size() > kConsoleMaxLineCount) {
+		consoleTexts_.erase(consoleTexts_.begin());
+		repeatCounts_.erase(repeatCounts_.begin());
+	}
+
+	// 履歴が最大数を超えた場合、古いものを削除
+	if (history_.size() >= kHistoryCapacity) {
+		history_.erase(history_.begin());
+		historyIndex_ = static_cast<int>(history_.size()) - 1;
+	}
+
+	// コンソールテキストのキャパシティが大きすぎる場合は再確保
+	if (consoleTexts_.capacity() > consoleTexts_.size() + kGrowthFactor * 2) {
+		std::vector newTexts(consoleTexts_.begin(), consoleTexts_.end());
+		std::vector newCounts(repeatCounts_.begin(), repeatCounts_.end());
+		consoleTexts_ = std::move(newTexts);
+		repeatCounts_ = std::move(newCounts);
+	}
 #endif
 }
 
@@ -989,24 +1121,6 @@ Vec4 Console::GetConVarTypeColor(const std::string& type) {
 		return kConsoleColorString;
 	}
 	return kConsoleColorNormal;
-}
-
-void Console::LogToFile(const std::string& message) {
-	static std::ofstream logFile("console.log", std::ios::app);
-	if (logFile.is_open()) {
-		logFile << message;
-	}
-}
-
-void Console::RewriteLogFile() {
-#ifdef _DEBUG
-	std::ofstream logFile("console.log", std::ios::trunc);
-	if (logFile.is_open()) {
-		for (const auto& text : consoleTexts_) {
-			logFile << text.text;
-		}
-	}
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1041,8 +1155,8 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 size_t Console::FilteredToActualIndex([[maybe_unused]] const int filteredIndex) {
 #ifdef _DEBUG
 	int visibleIndex = 0;
-	for (size_t i = 0; i < consoleTexts_.size(); ++i) {
-		if (currentFilterChannel_ == Channel::None || consoleTexts_[i].channel == currentFilterChannel_) {
+	for (size_t i = 0; i < displayState_.buffer.size(); ++i) {
+		if (currentFilterChannel_ == Channel::None || displayState_.buffer[i].channel == currentFilterChannel_) {
 			if (visibleIndex == filteredIndex) {
 				return i;
 			}
@@ -1052,6 +1166,103 @@ size_t Console::FilteredToActualIndex([[maybe_unused]] const int filteredIndex) 
 	return SIZE_MAX; // 該当なし
 #endif
 }
+
+void Console::FlushLogBuffer(const std::vector<std::string>& buffer) {
+	if (!logFile_.is_open()) {
+		logFile_.open("console.log", std::ios::app | std::ios::binary);
+	}
+
+	if (logFile_.is_open()) {
+		for (const auto& msg : buffer) {
+			logFile_ << msg;
+		}
+		logFile_.flush();
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: コンソールスレッドを非同期で更新します
+//-----------------------------------------------------------------------------
+void Console::ConsoleUpdateAsync() {
+	while (!bStopThread_) {
+		std::vector<std::function<void()>> currentTasks;
+
+		{
+			std::unique_lock<std::mutex> lock(mutex_);
+			// タスクがない場合は条件変数で待機
+			cv_.wait(lock, [this] { return !taskQueue_.empty() || bStopThread_; });
+
+			if (bStopThread_) {
+				break;
+			}
+
+			// バッチ処理のためにタスクをローカルにコピー
+			while (!taskQueue_.empty()) {
+				currentTasks.push_back(std::move(taskQueue_.front()));
+				taskQueue_.pop();
+			}
+		}
+
+		// ロック外でタスクを実行
+		for (auto& task : currentTasks) {
+			task();
+		}
+
+		// 行数制限とメモリ管理
+		CheckLineCountAsync();
+
+		// スリープ時間を短くして応答性を向上
+		std::this_thread::sleep_for(std::chrono::microseconds(100));
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: コンソールスレッドを開始します
+//-----------------------------------------------------------------------------
+void Console::StartConsoleThread() {
+	consoleThread_ = std::thread(&Console::ConsoleUpdateAsync, this);
+
+	// スレッドのハンドルを取得
+	HANDLE hThread = consoleThread_.native_handle();
+
+	HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
+	auto setThreadDescription = reinterpret_cast<SetThreadDescriptionFunc>(
+		GetProcAddress(hKernel32, "SetThreadDescription")
+		);
+
+	// スレッドの説明を設定
+	if (setThreadDescription) {
+		setThreadDescription(hThread, L"ConsoleThread");
+	} else {
+		Print("SetThreadDescription関数が見つかりませんでした。\n", kConsoleColorError, Channel::Console);
+	}
+
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 非同期でログをファイルに書き込みます
+//-----------------------------------------------------------------------------
+void Console::LogToFileAsync(const std::string& message) {
+	{
+		std::lock_guard lock(mutex_);
+		messageBuffer_.push_back(message);
+
+		// バッファが一定数を超えた場合はフラッシュ
+		if (messageBuffer_.size() >= kBatchSize) {
+			std::vector<std::string> currentBatch = std::move(messageBuffer_);
+			messageBuffer_ = std::vector<std::string>();
+
+			taskQueue_.emplace([currentBatch] {
+				FlushLogBuffer(currentBatch);
+				});
+			cv_.notify_one();
+		}
+	}
+}
+
+std::mutex Console::mutex_;
+std::queue<std::function<void()>> Console::taskQueue_;
+std::condition_variable Console::cv_;
 
 #ifdef _DEBUG
 bool Console::bShowConsole_ = true;
@@ -1064,7 +1275,14 @@ int Console::historyIndex_ = -1;
 std::vector<std::string> Console::history_;
 std::vector<std::string> Console::suggestions_;
 std::vector<uint64_t> Console::repeatCounts_;
-std::vector<bool> Console::selectedItems_;
 int Console::lastSelectedIndex_ = -1;
 Channel Console::currentFilterChannel_ = Channel::None;
+
+std::thread Console::consoleThread_;
+bool Console::bStopThread_ = false;
+
+std::vector<std::string> Console::messageBuffer_;
+std::ofstream Console::logFile_;
+
+Console::DisplayState Console::displayState_;
 #endif

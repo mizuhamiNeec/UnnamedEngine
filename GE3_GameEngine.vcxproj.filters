@@ -156,9 +156,6 @@
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h">
       <Filter>Source\Engine\ImGuiManager</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Input\InputCommand.h">
-      <Filter>Source\Engine\Input</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Input\InputSystem.h">
       <Filter>Source\Engine\Input</Filter>
     </ClInclude>
@@ -312,9 +309,16 @@
     <ClInclude Include="Source\Engine\UnnamedResource\Manager\ResourceManager.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Texture.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Manager\ShaderResourceViewManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\TextureManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\TextureManager.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Audio.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\AudioManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\AudioManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Material.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Shader.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\PipelineManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\RootSignature2.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\RootSignatureManager2.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\ShaderManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\MaterialManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -331,9 +335,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp">
       <Filter>Source\Engine\ImGuiManager</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Input\InputCommand.cpp">
-      <Filter>Source\Engine\Input</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp">
       <Filter>Source\Engine\Input</Filter>
@@ -470,9 +471,16 @@
     <ClCompile Include="Source\Engine\UnnamedResource\Manager\ResourceManager.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Texture.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Manager\ShaderResourceViewManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\TextureManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\TextureManager.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Audio.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\AudioManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\AudioManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Material.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Shader.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\PipelineManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\RootSignature2.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\RootSignatureManager2.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\ShaderManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\MaterialManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

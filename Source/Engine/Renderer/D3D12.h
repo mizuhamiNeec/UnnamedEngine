@@ -80,6 +80,8 @@ private:
 
 	void HandleDeviceLost();
 
+	void PrepareForShutdown() const;
+
 public:
 	// -----------------------------------------------------------------------
 	// Accessor

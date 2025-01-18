@@ -1,17 +1,22 @@
 #pragma once
-#include <memory>
-#include <string>
+
+#include <UnnamedResource/Manager/AudioManager.h>
+#include <UnnamedResource/Manager/PipelineManager.h>
+#include <UnnamedResource/Manager/TextureManager.h>
 
 class ResourceManager {
 public:
-	//template<typename T>
-	//std::shared_ptr<T> Load(const std::string& path) {
-	//	if constexpr (std::is_same<T, Texture>::value) {
-	//		return textureManager.Get(path);
-	//	}
+	static void Init();
+	static void Shutdown();
 
-	//	return nullptr;
-	//}
+	static TextureManager& GetTextureManager();
+	static AudioManager& GetAudioManager();
+	static PipelineManager& GetPipelineManager();
+	static ShaderResourceViewManager& GetSrvManager();
 
 private:
+	static TextureManager textureManager_;
+	static AudioManager audioManager_;
+	static PipelineManager pipelineManager_;
+	static ShaderResourceViewManager srvManager_;
 };

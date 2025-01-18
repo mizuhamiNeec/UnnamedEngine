@@ -36,6 +36,15 @@ public:
 	void EmitParticlesAtPosition(const Vec3& position, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity, uint32_t count);
 
 private:
+	struct Material {
+		Vec4 color;
+		int32_t enableLighting;
+		Vec3 padding;
+		Mat4 uvTransform;
+		float shininess;
+		Vec3 specularColor;
+	};
+
 	ParticleManager* particleCommon_ = nullptr;
 	ShaderResourceViewManager* srvManager_ = nullptr;
 	CameraComponent* camera_ = nullptr;

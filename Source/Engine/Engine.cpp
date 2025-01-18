@@ -3,29 +3,35 @@
 #ifdef _DEBUG
 #include <imgui_internal.h>
 #endif
-#pragma comment(lib, "xaudio2.lib")
 
 #include <Camera/Camera.h>
 #include <Camera/CameraManager.h>
+
 #include <Debug/Debug.h>
+
 #include <Input/InputSystem.h>
+
 #include <Lib/Console/ConCommand.h>
-#include <Lib/Console/Console.h>
 #include <Lib/Console/ConVarManager.h>
+#include <Lib/Console/Console.h>
 #include <Lib/DebugHud/DebugHud.h>
 #include <Lib/Utils/ClientProperties.h>
 #include <Lib/Utils/StrUtils.h>
+
 #include <Model/ModelManager.h>
+
 #include <Object3D/Object3DCommon.h>
+
 #include <Particle/ParticleManager.h>
+
 #include <Renderer/D3D12.h>
+
 #include <Scene/GameScene.h>
+
 #include <Sprite/SpriteCommon.h>
+
 #include <Window/Window.h>
 #include <Window/WindowsUtils.h>
-
-#include "UnnamedResource/AudioManager.h"
-#include "UnnamedResource/TextureManager.h"
 
 Engine::Engine() = default;
 
@@ -44,13 +50,13 @@ void Engine::ChangeScene(const std::shared_ptr<Scene>& newScene) {
 	currentScene_->Init(this);
 }
 
-AudioManager audioManager = AudioManager();
-
 void Engine::Init() {
 	RegisterConsoleCommandsAndVariables();
 
 	// ウィンドウの作成
-	window_ = std::make_unique<Window>(StrUtils::ToString(kWindowTitle), kClientWidth, kClientHeight);
+	window_ = std::make_unique<Window>(
+		StrUtils::ToString(kWindowTitle), kClientWidth, kClientHeight
+	);
 	window_->Create(nullptr);
 
 	// レンダラ
@@ -70,9 +76,6 @@ void Engine::Init() {
 
 	srvManager_->Init();
 
-	// 3Dモデルマネージャ
-	ModelManager::GetInstance()->Init(renderer_.get());
-
 	// カメラの作成
 	cameraEntity_ = std::make_unique<Entity>("editorcamera");
 	cameraEntity_->GetTransform()->SetLocalPos(Vec3::forward * -5.0f + Vec3::up * 2.0f);
@@ -81,9 +84,11 @@ void Engine::Init() {
 
 	// 生ポインタを取得
 	CameraComponent* rawCameraPtr = cameraEntity_->AddComponent<CameraComponent>();
-
 	// 生ポインタを std::shared_ptr に変換
-	std::shared_ptr<CameraComponent> camera = std::shared_ptr<CameraComponent>(rawCameraPtr, [](CameraComponent*) {});
+	std::shared_ptr<CameraComponent> camera = std::shared_ptr<CameraComponent>(
+		rawCameraPtr, [](CameraComponent*) {
+		}
+	);
 
 	// カメラを CameraManager に追加
 	CameraManager::AddCamera(camera);
@@ -127,21 +132,9 @@ void Engine::Init() {
 
 	Console::SubmitCommand("neofetch");
 
-	TextureManager textureManager = TextureManager(renderer_.get(), srvManager_.get());
-
-	for (int i = 0; i < 512; ++i) {
-		texture = textureManager.GetTexture("./Resources/Textures/uvChecker.png");
-	}
-
-	if (texture) {
-		Console::Print("Texture loaded successfully\n");
-	}
-
-	audioManager.Init();
-
-	/*std::shared_ptr<Scene> gameScene = std::make_shared<GameScene>();
+	const std::shared_ptr<Scene> gameScene = std::make_shared<GameScene>();
 	ChangeScene(gameScene);
-	CheckEditorMode();*/
+	CheckEditorMode();
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
@@ -339,43 +332,8 @@ void Engine::Update() {
 	}
 
 #ifdef _DEBUG
-	ImTextureID texId = texture->GetShaderResourceView().ptr;
-
-	ImGui::Image(texId, ImVec2(256.0f, 256.0f));
-
-
-	ImGui::Begin("AudioTest");
-	ImGui::Text("mokugyo.wav");
-	static bool isLoop = false;
-	ImGui::Checkbox("Loop", &isLoop);
-
-	ImGui::Separator();
-
-	if (ImGui::Button("mokugyo.wav")) {
-		auto audio = audioManager.GetAudio("./Resources/Sounds/mokugyo.wav");
-		if (audio) {
-			audio->Play(isLoop);
-		}
-	}
-
-	if (ImGui::Button("fanfare.wav")) {
-		auto audio = audioManager.GetAudio("./Resources/Sounds/fanfare.wav");
-		if (audio) {
-			audio->Play(isLoop);
-		}
-	}
-	ImGui::End();
-
-	//ImGui::Begin("Texture");
-
-	//// ImGuiにテクスチャを渡すためのキャスト
-	//ImTextureID texId = testTexture_->GetImTextureID();
-
-	//// テクスチャの表示
-	//// uv座標は通常のDirectXと同じ向きにするため上下反転
-	//ImGui::Image(texId, ImVec2(512, 512));
-
-	//ImGui::End();
+	/*ImTextureID texId = texture->GetShaderResourceView().ptr;
+	ImGui::Image(texId, ImVec2(256.0f, 256.0f));*/
 
 	DebugHud::Update();
 #endif
@@ -464,7 +422,9 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	);
 
 	// コンソール変数を登録
-	ConVarManager::RegisterConVar<int>("cl_showpos", 1, "Draw current position at top of screen (1 = meter, 2 = hammer)");
+	ConVarManager::RegisterConVar<int>(
+		"cl_showpos", 1, "Draw current position at top of screen (1 = meter, 2 = hammer)"
+	);
 	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");
 	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps, "Frame rate limiter");
 	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);
@@ -500,6 +460,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind c +changecamera");
 	Console::SubmitCommand("bind f1 toggleeditor");
 	Console::SubmitCommand("bind esc togglelockcursor");
+	Console::SubmitCommand("bind f2 help");
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
@@ -521,4 +482,3 @@ bool Engine::bIsEditorMode_ = true;
 #else
 bool Engine::bIsEditorMode_ = false;
 #endif
-

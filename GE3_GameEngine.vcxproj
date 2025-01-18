@@ -106,7 +106,14 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Engine\UnnamedResource\AudioManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\MaterialManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\ShaderManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\RootSignatureManager2.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\RootSignature2.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\PipelineManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Shader.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Material.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\AudioManager.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Audio.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Manager\ResourceManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
@@ -127,7 +134,7 @@
     <ClCompile Include="Source\Engine\Components\TransformComponent.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Texture.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Manager\ShaderResourceViewManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\TextureManager.cpp" />
+    <ClCompile Include="Source\Engine\UnnamedResource\Manager\TextureManager.cpp" />
     <None Include="Resources\Shaders\Line.PS.hlsl" />
     <None Include="Resources\Shaders\Line.VS.hlsl" />
     <None Include="Resources\Shaders\Object3d.PS.hlsl" />
@@ -137,7 +144,6 @@
     <None Include="Resources\Shaders\SpriteCommon.PS.hlsl" />
     <None Include="Resources\Shaders\SpriteCommon.VS.hlsl" />
     <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
-    <ClCompile Include="Source\Engine\Input\InputCommand.cpp" />
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp" />
     <ClCompile Include="Source\Engine\Lib\Console\ConCommand.cpp" />
     <ClCompile Include="Source\Engine\Debug\Debug.cpp" />
@@ -184,7 +190,14 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Engine\UnnamedResource\AudioManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\MaterialManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\ShaderManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\RootSignatureManager2.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\RootSignature2.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\PipelineManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Shader.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Material.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\AudioManager.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Audio.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Manager\ResourceManager.h" />
     <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
@@ -204,12 +217,11 @@
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Texture.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Manager\ShaderResourceViewManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\TextureManager.h" />
+    <ClInclude Include="Source\Engine\UnnamedResource\Manager\TextureManager.h" />
     <None Include="Resources\Shaders\Object3d.hlsli" />
     <None Include="Resources\Shaders\Particle.hlsli" />
     <None Include="Resources\Shaders\Line.hlsli" />
     <ClInclude Include="Source\Engine\Camera\Camera.h" />
-    <ClInclude Include="Source\Engine\Input\InputCommand.h" />
     <ClInclude Include="Source\Engine\Input\InputSystem.h" />
     <ClInclude Include="Source\Engine\Lib\Console\ConCommand.h" />
     <ClInclude Include="Source\Engine\Debug\Debug.h" />

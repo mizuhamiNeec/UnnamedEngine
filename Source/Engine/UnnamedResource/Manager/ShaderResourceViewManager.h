@@ -18,7 +18,7 @@ public:
 
 	D3D12_GPU_DESCRIPTOR_HANDLE RegisterShaderResourceView(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc);
 
-	ComPtr<ID3D12DescriptorHeap> GetDescriptorHeap() const {
+	[[nodiscard]] ComPtr<ID3D12DescriptorHeap> GetDescriptorHeap() const {
 		return descriptorHeap_;
 	}
 

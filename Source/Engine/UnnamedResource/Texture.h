@@ -3,10 +3,11 @@
 #include <string>
 #include <wrl.h>
 
-#include <UnnamedResource/Manager/ShaderResourceViewManager.h>
+#include <DirectXTex/DirectXTex.h>
 
-#include "DirectXTex/DirectXTex.h"
-#include "Renderer/D3D12.h"
+#include <Renderer/D3D12.h>
+
+#include <UnnamedResource/Manager/ShaderResourceViewManager.h>
 
 using Microsoft::WRL::ComPtr;
 
@@ -23,10 +24,22 @@ public:
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetShaderResourceView() const;
 
+	bool CreateErrorTexture(D3D12* d3d12, ShaderResourceViewManager* shaderResourceViewManager);
+
 private:
 	ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* device);
-	ComPtr<ID3D12Resource> UploadTextureData(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const ComPtr<ID3D12Resource>& texture, const DirectX::
-		ScratchImage& mipImages) const;
+	static ComPtr<ID3D12Resource> UploadTextureData(
+		ID3D12Device* device,
+		ID3D12GraphicsCommandList* commandList,
+		const ComPtr<ID3D12Resource>& texture,
+		const DirectX::ScratchImage& mipImages
+	);
+	static ComPtr<ID3D12Resource> UploadTextureData(
+		ID3D12Device* device,
+		ID3D12GraphicsCommandList* commandList,
+		const ComPtr<ID3D12Resource>& texture,
+		const D3D12_SUBRESOURCE_DATA& textureData
+	);
 
 	ComPtr<ID3D12Resource> textureResource_;
 	ComPtr<ID3D12Resource> uploadHeap_;

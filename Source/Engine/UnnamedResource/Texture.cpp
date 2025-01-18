@@ -21,7 +21,7 @@ bool Texture::LoadFromFile(
 	HRESULT hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 	// 失敗した場合
 	if (FAILED(hr)) {
-		Console::Print("テクスチャの読み込みに失敗しました。\n", kConsoleColorError, Channel::ResourceManager);
+		Console::Print(std::format("テクスチャの読み込みに失敗しました: {}\n", filePath), kConsoleColorError, Channel::ResourceSystem);
 		return false;
 	}
 
@@ -71,10 +71,82 @@ bool Texture::LoadFromFile(
 
 	handle_ = shaderResourceViewManager->RegisterShaderResourceView(textureResource_.Get(), srvDesc);
 
+	Console::Print(std::format("テクスチャを読み込みました: {}\n", filePath), kConsoleColorCompleted, Channel::ResourceSystem);
+
 	return true;
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceView() const { return handle_; }
+
+bool Texture::CreateErrorTexture(D3D12* d3d12, ShaderResourceViewManager* shaderResourceViewManager) {
+	// デバッグ時は黒ピンクチェッカーの作成
+	constexpr uint32_t kCheckerSize = 32;
+	uint32_t checkerData[kCheckerSize * kCheckerSize] = {};
+
+	for (uint32_t y = 0; y < kCheckerSize; ++y) {
+		for (uint32_t x = 0; x < kCheckerSize; ++x) {
+			if ((x / 4 + y / 4) % 2 == 0) {
+				constexpr uint32_t kPink = 0xffff00ff;
+				checkerData[y * kCheckerSize + x] = kPink;
+			} else {
+				constexpr uint32_t kBlack = 0xFF000000;
+				checkerData[y * kCheckerSize + x] = kBlack;
+			}
+		}
+	}
+
+	// メタデータの設定
+	metadata_.width = kCheckerSize;
+	metadata_.height = kCheckerSize;
+	metadata_.format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	metadata_.arraySize = 1;
+	metadata_.mipLevels = 1;
+	metadata_.dimension = DirectX::TEX_DIMENSION_TEXTURE2D;
+
+	// テクスチャリソースの作成
+	textureResource_ = CreateTextureResource(d3d12->GetDevice());
+	if (!textureResource_) {
+		return false;
+	}
+
+	// テクスチャのアップロード
+	D3D12_SUBRESOURCE_DATA textureData = {};
+	textureData.pData = checkerData;
+	textureData.RowPitch = kCheckerSize * sizeof(uint32_t);
+	textureData.SlicePitch = textureData.RowPitch * kCheckerSize;
+
+	ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(
+		d3d12->GetDevice(),
+		d3d12->GetCommandList(),
+		textureResource_,
+		textureData
+	);
+
+	if (!intermediateResource) {
+		return false;
+	}
+
+	// コマンドの実行と待機
+	d3d12->GetCommandList()->Close();
+	ID3D12CommandList* commandLists[] = { d3d12->GetCommandList() };
+	d3d12->GetCommandQueue()->ExecuteCommandLists(1, commandLists);
+	d3d12->WaitPreviousFrame();
+	d3d12->GetCommandList()->Reset(d3d12->GetCommandAllocator(), nullptr);
+
+	// SRVの作成
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = metadata_.format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	handle_ = shaderResourceViewManager->RegisterShaderResourceView(
+		textureResource_.Get(),
+		srvDesc
+	);
+
+	return true;
+}
 
 ComPtr<ID3D12Resource> Texture::CreateTextureResource(ID3D12Device* device) {
 	// metadataをもとにResourceの設定
@@ -102,14 +174,14 @@ ComPtr<ID3D12Resource> Texture::CreateTextureResource(ID3D12Device* device) {
 	);
 
 	if (FAILED(hr)) {
-		Console::Print("テクスチャリソースの作成に失敗しました。\n", kConsoleColorError, Channel::ResourceManager);
+		Console::Print("テクスチャリソースの作成に失敗しました。\n", kConsoleColorError, Channel::ResourceSystem);
 		assert(SUCCEEDED(hr));
 	}
 
 	return resource;
 }
 
-ComPtr<ID3D12Resource> Texture::UploadTextureData(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages) const {
+ComPtr<ID3D12Resource> Texture::UploadTextureData(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const ComPtr<ID3D12Resource>& texture, const DirectX::ScratchImage& mipImages) {
 	// 中間リソースの作成
 	ComPtr<ID3D12Resource> intermediateResource = nullptr;
 
@@ -148,7 +220,7 @@ ComPtr<ID3D12Resource> Texture::UploadTextureData(ID3D12Device* device, ID3D12Gr
 	);
 
 	if (FAILED(hr)) {
-		Console::Print("アップロード用リソースの作成に失敗しました。\n", kConsoleColorError, Channel::ResourceManager);
+		Console::Print("アップロード用リソースの作成に失敗しました。\n", kConsoleColorError, Channel::ResourceSystem);
 		return nullptr;
 	}
 
@@ -161,6 +233,65 @@ ComPtr<ID3D12Resource> Texture::UploadTextureData(ID3D12Device* device, ID3D12Gr
 		0,
 		static_cast<UINT>(subResources.size()),
 		subResources.data()
+	);
+
+	// リソースバリアの設定
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = texture.Get();
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	commandList->ResourceBarrier(1, &barrier);
+
+	return intermediateResource;
+}
+
+ComPtr<ID3D12Resource> Texture::UploadTextureData(
+	ID3D12Device* device,
+	ID3D12GraphicsCommandList* commandList,
+	const ComPtr<ID3D12Resource>& texture,
+	const D3D12_SUBRESOURCE_DATA& textureData
+) {
+	const UINT64 uploadBufferSize = GetRequiredIntermediateSize(
+		texture.Get(), 0, 1
+	);
+
+	// アップロードヒープの作成
+	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
+	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+	D3D12_RESOURCE_DESC uploadResourceDesc = {};
+	uploadResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	uploadResourceDesc.Width = uploadBufferSize;
+	uploadResourceDesc.Height = 1;
+	uploadResourceDesc.DepthOrArraySize = 1;
+	uploadResourceDesc.MipLevels = 1;
+	uploadResourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+	uploadResourceDesc.SampleDesc.Count = 1;
+	uploadResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+	ComPtr<ID3D12Resource> intermediateResource;
+	HRESULT hr = device->CreateCommittedResource(
+		&uploadHeapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&uploadResourceDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&intermediateResource)
+	);
+
+	if (FAILED(hr)) {
+		return nullptr;
+	}
+
+	UpdateSubresources(
+		commandList,
+		texture.Get(),
+		intermediateResource.Get(),
+		0, 0, 1,
+		&textureData
 	);
 
 	// リソースバリアの設定

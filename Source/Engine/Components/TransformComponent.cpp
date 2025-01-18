@@ -1,8 +1,8 @@
 #include "TransformComponent.h"
 
-#include "../ImGuiManager/ImGuiManager.h"
-#include "Debug/Debug.h"
-#include "Entity/Base/Entity.h"
+#include <Debug/Debug.h>
+#include <Entity/Base/Entity.h>
+#include <ImGuiManager/ImGuiManager.h>
 
 void TransformComponent::Update([[maybe_unused]] float deltaTime) {}
 
@@ -136,7 +136,7 @@ void TransformComponent::DrawInspectorImGui() {
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: 行列を更新する必要がある場合に呼び出します。毎フレーム呼び出す必要はありません
+// Purpose: 行列を更新する必要がある場合に呼び出します。
 //-----------------------------------------------------------------------------
 void TransformComponent::MarkDirty() const {
 	isDirty_ = true;

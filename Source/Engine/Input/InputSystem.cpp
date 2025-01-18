@@ -5,6 +5,9 @@
 #include <Lib/Console/Console.h>
 #include <Lib/Utils/StrUtils.h>
 
+//-----------------------------------------------------------------------------
+// Purpose: インプットシステムの初期化を行います
+//-----------------------------------------------------------------------------
 void InputSystem::Init() {
 	RAWINPUTDEVICE rid[2];
 
@@ -33,7 +36,7 @@ void InputSystem::Init() {
 		"Toggle lock cursor."
 	);
 
-	bMouseLock_ = true;
+	bMouseLock_ = false;
 }
 
 void InputSystem::Update() {
@@ -51,13 +54,12 @@ void InputSystem::ProcessInput(const long lParam) {
 	UINT dwSize = 0;
 	GetRawInputData(reinterpret_cast<HRAWINPUT>(static_cast<LPARAM>(lParam)), RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER));
 
-	auto* lpb = new BYTE[dwSize];
-	if (GetRawInputData(reinterpret_cast<HRAWINPUT>(static_cast<LPARAM>(lParam)), RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize) {
-		delete[] lpb;
+	auto lpb = std::make_unique<BYTE[]>(dwSize);
+	if (GetRawInputData(reinterpret_cast<HRAWINPUT>(static_cast<LPARAM>(lParam)), RID_INPUT, lpb.get(), &dwSize, sizeof(RAWINPUTHEADER)) != dwSize) {
 		return;
 	}
 
-	auto* raw = reinterpret_cast<RAWINPUT*>(lpb);
+	auto* raw = reinterpret_cast<RAWINPUT*>(lpb.get());
 
 	// キーボード入力
 	if (raw->header.dwType == RIM_TYPEKEYBOARD) {
@@ -100,51 +102,41 @@ void InputSystem::ProcessInput(const long lParam) {
 		mouseDelta_.y += static_cast<float>(raw->data.mouse.lLastY);
 
 		// マウスボタンの状態を更新
-		if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN) {
-			if (keyBindings_.contains("mouse1")) {
-				std::string cmd = keyBindings_["mouse1"];
-				if (cmd[0] == '+') {
-					// +コマンドの場合、ベース名を抽出 (+attack -> attack)
-					std::string baseCmd = cmd.substr(1);
-					triggeredCommands_[baseCmd] = true;
-					pressedCommands_[baseCmd] = true; // 長押し状態を設定
-				}
-			}
-		}
-
-		if (raw->data.mouse.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP) {
-			if (keyBindings_.contains("mouse1")) {
-				std::string cmd = keyBindings_["mouse1"];
-				if (cmd[0] == '+') {
-					std::string baseCmd = cmd.substr(1);
-					pressedCommands_[baseCmd] = false; // 長押し状態を解除
-					releasedCommands_[baseCmd] = true;
-				}
-			}
-		}
-
-		if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN) {
-			if (keyBindings_.contains("mouse2")) {
-				std::string cmd = keyBindings_["mouse2"];
-				if (cmd[0] == '+') {
-					// +コマンドの場合、ベース名を抽出 (+attack -> attack)
-					std::string baseCmd = cmd.substr(1);
-					triggeredCommands_[baseCmd] = true;
-					pressedCommands_[baseCmd] = true; // 長押し状態を設定
-				}
-			}
-		}
-
-		if (raw->data.mouse.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP) {
-			if (keyBindings_.contains("mouse2")) {
-				std::string cmd = keyBindings_["mouse2"];
-				if (cmd[0] == '+') {
-					std::string baseCmd = cmd.substr(1);
-					pressedCommands_[baseCmd] = false; // 長押し状態を解除
-					releasedCommands_[baseCmd] = true;
-				}
-			}
-		}
+		// 左クリック
+		UpdateMouseButtonState(
+			raw->data.mouse.usButtonFlags,
+			"mouse1",
+			RI_MOUSE_LEFT_BUTTON_DOWN,
+			RI_MOUSE_LEFT_BUTTON_UP
+		);
+		// 右クリック
+		UpdateMouseButtonState(
+			raw->data.mouse.usButtonFlags,
+			"mouse2",
+			RI_MOUSE_RIGHT_BUTTON_DOWN,
+			RI_MOUSE_RIGHT_BUTTON_UP
+		);
+		// ホイールクリック
+		UpdateMouseButtonState(
+			raw->data.mouse.usButtonFlags,
+			"mouse3",
+			RI_MOUSE_MIDDLE_BUTTON_DOWN,
+			RI_MOUSE_MIDDLE_BUTTON_UP
+		);
+		// サイドボタン
+		UpdateMouseButtonState(
+			raw->data.mouse.usButtonFlags,
+			"mouse4",
+			RI_MOUSE_BUTTON_4_DOWN,
+			RI_MOUSE_BUTTON_4_UP
+		);
+		// サイドボタン
+		UpdateMouseButtonState(
+			raw->data.mouse.usButtonFlags,
+			"mouse5",
+			RI_MOUSE_BUTTON_5_DOWN,
+			RI_MOUSE_BUTTON_5_UP
+		);
 
 		// マウスホイール
 		if (raw->data.mouse.usButtonFlags & RI_MOUSE_WHEEL) {
@@ -158,8 +150,6 @@ void InputSystem::ProcessInput(const long lParam) {
 			}
 		}
 	}
-
-	delete[] lpb;
 }
 
 Vec2 InputSystem::GetMouseDelta() {
@@ -280,11 +270,38 @@ void InputSystem::CheckMouseCursorLock() {
 	}
 }
 
+void InputSystem::UpdateMouseButtonState(
+	const USHORT buttonFlags, const std::string& buttonName, const USHORT buttonDownFlag, const USHORT buttonUpFlag
+) {
+	if (buttonFlags & buttonDownFlag) {
+		if (keyBindings_.contains(buttonName)) {
+			const std::string cmd = keyBindings_[buttonName];
+			if (cmd[0] == '+') {
+				std::string baseCmd = cmd.substr(1);
+				triggeredCommands_[baseCmd] = true;
+				pressedCommands_[baseCmd] = true; // 長押し状態を設定
+			}
+		}
+	}
+
+	if (buttonFlags & buttonUpFlag) {
+		if (keyBindings_.contains(buttonName)) {
+			const std::string cmd = keyBindings_[buttonName];
+			if (cmd[0] == '+') {
+				std::string baseCmd = cmd.substr(1);
+				pressedCommands_[baseCmd] = false; // 長押し状態を解除
+				releasedCommands_[baseCmd] = true;
+			}
+		}
+	}
+}
+
 std::string InputSystem::GetKeyName(const UINT virtualKey) {
 	char name[256];
 	if (GetKeyNameTextA(MapVirtualKey(virtualKey, MAPVK_VK_TO_VSC) << 16, name, sizeof(name))) {
 		return std::string(name);
 	}
+	Console::Print(std::format("キーの名前を取得できませんでした: {}\n", virtualKey), kConsoleColorError, Channel::InputSystem);
 	return "Unknown";
 }
 

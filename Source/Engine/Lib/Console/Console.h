@@ -1,12 +1,14 @@
 #pragma once
 
+#include <condition_variable>
 #include <functional>
+#include <queue>
 #include <string>
 #include <vector>
-
-#include "ImGuiManager/ImGuiManager.h"
+#include <ImGuiManager/ImGuiManager.h>
 
 constexpr Vec4 kConsoleColorNormal = Vec4(0.71f, 0.71f, 0.71f, 1.0f); // 通常テキストの色
+constexpr Vec4 kConsoleColorGray = Vec4(0.77f, 0.74f, 0.66f, 1.0f); // グレーテキストの色
 constexpr Vec4 kConsoleColorExecute = Vec4(0.8f, 1.0f, 1.0f, 1.0f); // コマンド実行テキストの色
 constexpr Vec4 kConsoleColorWarning = Vec4(1.0f, 1.0f, 0.0f, 1.0f); // 警告テキストの色
 constexpr Vec4 kConsoleColorError = Vec4(1.0f, 0.0f, 0.0f, 1.0f); // エラーテキストの色
@@ -31,14 +33,17 @@ using CommandCallback = std::function<void(const std::vector<std::string>&)>;
 enum class Channel {
 	None = 0, // なし
 
+	CommandLine, // コマンドライン
 	Console, // コンソール
 
 	// システム基盤系
 	Engine, // エンジン
 	Host, // ホスト
 
-	// マネージャー系
-	ResourceManager, // リソースマネージャー
+	// システム系
+	AssetSystem, // アセットシステム
+	ResourceSystem, // リソースシステム
+	InputSystem, // 入力システム
 
 	// 通信系
 	Client, // クライアント
@@ -46,7 +51,6 @@ enum class Channel {
 
 	// ゲームロジック系
 	Game, // ゲーム内
-	InputSystem, // 入力システム
 	Physics, // 物理
 
 	// 描画・UI系
@@ -75,8 +79,11 @@ class Console {
 	};
 
 public:
+	Console();
+	~Console();
 
 	static void Update();
+	static void Shutdown();
 	static void SubmitCommand(const std::string& command);
 
 	static void Print(
@@ -115,20 +122,32 @@ private:
 
 	static void AddCommandHistory(const std::string& command);
 
-	static void UpdateRepeatCount(const std::string& message, bool hasNewLine, const Vec4& color = kConsoleColorNormal);
+	static void UpdateRepeatCount(const std::string& message, bool hasNewLine, const Channel& channel, const Vec4& color = kConsoleColorNormal);
 
 	static void CheckScroll();
-	static void CheckLineCount();
+	static void CheckLineCountAsync();
 
 	static Vec4 GetConVarTypeColor(const std::string& type);
-
-	static void LogToFile(const std::string& message);
-	static void RewriteLogFile();
 
 	static std::string TrimSpaces(const std::string& string);
 	static std::vector<std::string> TokenizeCommand(const std::string& command);
 
-	static size_t FilteredToActualIndex(const int filteredIndex);
+	static size_t FilteredToActualIndex(int filteredIndex);
+
+	static void FlushLogBuffer(const std::vector<std::string>& buffer);
+
+	// コンソールの非同期スレッド
+	void ConsoleUpdateAsync();
+	void StartConsoleThread();
+	static void StopConsoleThread();
+	static void LogToFileAsync(const std::string& message);
+
+	static std::mutex mutex_;
+	static std::queue<std::function<void()>> taskQueue_;
+	static std::condition_variable cv_;
+	static std::thread consoleThread_;
+	static bool bStopThread_;
+	bool bConsoleUpdate_ = false;
 
 #ifdef _DEBUG
 	static bool bShowConsole_; // コンソールを表示するか?
@@ -141,8 +160,19 @@ private:
 	static std::vector<std::string> history_; // 入力の履歴
 	static std::vector<std::string> suggestions_; // サジェスト
 	static std::vector<uint64_t> repeatCounts_;
-	static std::vector<bool> selectedItems_; // 選択されたアイテム
 	static int lastSelectedIndex_;
 	static Channel currentFilterChannel_;
+
+	// ログ
+	static std::vector<std::string> messageBuffer_;
+	static std::ofstream logFile_;
+	static constexpr size_t kBatchSize = 4;
+
+	struct DisplayState {
+		std::vector<Text> buffer; // バッファ
+		std::vector<bool> selected; // 選択状態
+		size_t lastUpdateFrame = 0; // 最終更新フレーム
+	};
+	static DisplayState displayState_;
 #endif
 };

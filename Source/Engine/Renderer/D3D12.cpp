@@ -29,7 +29,6 @@ D3D12::D3D12() {
 #ifdef _DEBUG
 	EnableDebugLayer();
 #endif
-
 	CreateDevice();
 
 #ifdef _DEBUG
@@ -44,6 +43,7 @@ D3D12::D3D12() {
 	CreateCommandAllocator();
 	CreateCommandList();
 	CreateFence();
+	Resize(kClientWidth, kClientHeight);
 
 	SetViewportAndScissor();
 
@@ -52,6 +52,7 @@ D3D12::D3D12() {
 
 D3D12::~D3D12() {
 	CloseHandle(fenceEvent_);
+	PrepareForShutdown();
 	Console::Print("アリーヴェ帰ルチ! (さよナランチャ\n", kConsoleColorCompleted, Channel::Engine);
 }
 
@@ -145,13 +146,89 @@ void D3D12::PostRender() {
 	WaitPreviousFrame(); // 前のフレームを待つ
 }
 
-void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data) {
+void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, const uint32_t size, const void* data) {
 	void* mapped;
 	HRESULT hr = resource->Map(0, nullptr, &mapped);
 	if (SUCCEEDED(hr)) {
 		memcpy(mapped, data, size);
 		resource->Unmap(0, nullptr);
 	}
+}
+
+void D3D12::WaitPreviousFrame() {
+	fenceValue_++; // Fenceの値を更新
+
+	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
+	const HRESULT hr = commandQueue_->Signal(fence_.Get(), fenceValue_);
+
+	if (FAILED(hr)) {
+		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+			// デバイスが消えた!!?
+			HandleDeviceLost();
+		}
+	}
+
+	// Fenceの値が指定したSignal値にたどり着いているか確認する
+	// GetCompletedValueの初期値はFence作成時に渡した初期値
+	if (fence_->GetCompletedValue() < fenceValue_) {
+		// 指定したSignalにたどり着いていないので、たどり着くまで待つようにイベントを設定する
+		fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
+		// イベント待つ
+		WaitForSingleObject(fenceEvent_, INFINITE);
+	}
+}
+
+void D3D12::Resize(const uint32_t width, const uint32_t height) {
+	if (width == 0 || height == 0) {
+		return;
+	}
+
+	// GPUの処理が終わるまで待つ
+	WaitPreviousFrame();
+
+	// リソースを開放
+	for (auto& rt : renderTargets_) {
+		rt.Reset();
+	}
+	renderTargets_.clear();
+	depthStencilResource_.Reset();
+
+	// ディスクリプタヒープを解放
+	rtvDescriptorHeap_.Reset();
+	dsvDescriptorHeap_.Reset();
+
+	// スワップチェーンのサイズを変更
+	HRESULT hr = swapChain_->ResizeBuffers(
+		kFrameBufferCount,
+		width, height,
+		DXGI_FORMAT_UNKNOWN,
+		0
+	);
+
+	if (FAILED(hr)) {
+		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+			HandleDeviceLost();
+			return;
+		}
+		Console::Print(
+			std::format("Failed to resize swap chain. Error code: {:08x}\n", hr),
+			kConsoleColorError,
+			Channel::Engine
+		);
+		return;
+	}
+
+	// ディスクリプタヒープを再作成
+	CreateDescriptorHeaps();
+
+	// レンダーターゲットを再作成
+	CreateRTV();
+
+	// デプスステンシルバッファを再作成
+	CreateDSV();
+
+	// ビューポートとシザー矩形を再設定
+	SetViewportAndScissor();
 }
 
 void D3D12::EnableDebugLayer() {
@@ -415,80 +492,17 @@ void D3D12::HandleDeviceLost() {
 	CreateDevice();
 }
 
-void D3D12::WaitPreviousFrame() {
-	fenceValue_++; // Fenceの値を更新
-
-	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
-	HRESULT hr = commandQueue_->Signal(fence_.Get(), fenceValue_);
-
-	if (FAILED(hr)) {
-		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
-			// デバイスが消えた!!?
-			HandleDeviceLost();
+//-----------------------------------------------------------------------------
+// Purpose: シャットダウンに備えて準備を行います
+//-----------------------------------------------------------------------------
+void D3D12::PrepareForShutdown() const {
+	if (swapChain_) {
+		BOOL isFullScreen = FALSE;
+		swapChain_->GetFullscreenState(&isFullScreen, nullptr);
+		if (isFullScreen) {
+			swapChain_->SetFullscreenState(FALSE, nullptr);
 		}
 	}
-
-	// Fenceの値が指定したSignal値にたどり着いているか確認する
-	// GetCompletedValueの初期値はFence作成時に渡した初期値
-	if (fence_->GetCompletedValue() < fenceValue_) {
-		// 指定したSignalにたどり着いていないので、たどり着くまで待つようにイベントを設定する
-		fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
-		// イベント待つ
-		WaitForSingleObject(fenceEvent_, INFINITE);
-	}
-}
-
-void D3D12::Resize(const uint32_t width, const uint32_t height) {
-	if (width == 0 || height == 0) {
-		return;
-	}
-
-	// GPUの処理が終わるまで待つ
-	WaitPreviousFrame();
-
-	// リソースを開放
-	for (auto& rt : renderTargets_) {
-		rt.Reset();
-	}
-	renderTargets_.clear();
-	depthStencilResource_.Reset();
-
-	// ディスクリプタヒープを解放
-	rtvDescriptorHeap_.Reset();
-	dsvDescriptorHeap_.Reset();
-
-	// スワップチェーンのサイズを変更
-	HRESULT hr = swapChain_->ResizeBuffers(
-		kFrameBufferCount,
-		width, height,
-		DXGI_FORMAT_UNKNOWN,
-		0
-	);
-
-	if (FAILED(hr)) {
-		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
-			HandleDeviceLost();
-			return;
-		}
-		Console::Print(
-			std::format("Failed to resize swap chain. Error code: {:08x}\n", hr),
-			kConsoleColorError,
-			Channel::Engine
-		);
-		return;
-	}
-
-	// ディスクリプタヒープを再作成
-	CreateDescriptorHeaps();
-
-	// レンダーターゲットを再作成
-	CreateRTV();
-
-	// デプスステンシルバッファを再作成
-	CreateDSV();
-
-	// ビューポートとシザー矩形を再設定
-	SetViewportAndScissor();
 }
 
 ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(
