@@ -23,7 +23,7 @@ struct Mat4 final {
 	[[nodiscard]] Mat4 Inverse() const;
 	[[nodiscard]] Mat4 Transpose() const;
 
-	void LogMat4();
+	void LogMat4(const std::string& matName);
 
 	static Mat4 Translate(const Vec3& translate);
 	static Mat4 Scale(const Vec3& scale);

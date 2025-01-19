@@ -33,13 +33,17 @@
 #include <Window/Window.h>
 #include <Window/WindowsUtils.h>
 
+#include "Components/MeshRenderer/StaticMeshRenderer.h"
+
 Engine::Engine() = default;
 
 void Engine::Run() {
 	Init();
-	while (true) {
-		if (Window::ProcessMessage() || bWishShutdown_)
+	while (!bWishShutdown_) {
+		if (Window::ProcessMessage()) {
+			PostQuitMessage(0);
 			break; // ゲームループを抜ける
+		}
 		Update();
 	}
 	Shutdown();
@@ -65,16 +69,16 @@ void Engine::Init() {
 
 	InputSystem::Init();
 
-	srvManager_ = std::make_unique<ShaderResourceViewManager>(renderer_->GetDevice());
+	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
 
 #ifdef _DEBUG
-	imGuiManager_ = std::make_unique<ImGuiManager>(renderer_.get(), srvManager_.get());
+	imGuiManager_ = std::make_unique<ImGuiManager>(renderer_.get(), resourceManager_->GetShaderResourceViewManager());
 	imGuiManager_->Init();
 
 	console_ = std::make_unique<Console>();
 #endif
 
-	srvManager_->Init();
+	resourceManager_->Init();
 
 	// カメラの作成
 	cameraEntity_ = std::make_unique<Entity>("editorcamera");
@@ -131,6 +135,8 @@ void Engine::Init() {
 	time_ = std::make_unique<EngineTimer>();
 
 	Console::SubmitCommand("neofetch");
+
+	resourceManager_->GetTextureManager()->InitErrorTexture();
 
 	const std::shared_ptr<Scene> gameScene = std::make_shared<GameScene>();
 	ChangeScene(gameScene);
@@ -332,7 +338,8 @@ void Engine::Update() {
 	}
 
 #ifdef _DEBUG
-	/*ImTextureID texId = texture->GetShaderResourceView().ptr;
+
+	/*ImTextureID texId = resourceManager_->GetTextureManager()->GetTexture("Assets/Textures/DefaultTexture.png")->GetShaderResourceView().ptr;
 	ImGui::Image(texId, ImVec2(256.0f, 256.0f));*/
 
 	DebugHud::Update();
@@ -376,9 +383,11 @@ void Engine::Update() {
 void Engine::Shutdown() const {
 	//currentScene_->Shutdown();
 
-	ModelManager::Shutdown();
+	resourceManager_->Shutdown();
 
 	Debug::Shutdown();
+
+	renderer_->Shutdown();
 
 #ifdef _DEBUG
 	// ImGuiManagerのシャットダウンは最後に行う
@@ -476,6 +485,7 @@ void Engine::CheckEditorMode() {
 }
 
 bool Engine::bWishShutdown_ = false;
+std::unique_ptr<D3D12> Engine::renderer_;
 
 #ifdef _DEBUG
 bool Engine::bIsEditorMode_ = true;

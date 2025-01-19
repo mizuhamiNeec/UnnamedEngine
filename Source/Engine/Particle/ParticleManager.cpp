@@ -2,17 +2,17 @@
 
 #include <ranges>
 
-#include "ParticleObject.h"
-#include <Components/CameraComponent.h>
+#include <Camera/Camera.h>
 
-#include "../Camera/Camera.h"
-#include "../Lib/Console/Console.h"
-#include "../Lib/Math/Matrix/Mat4.h"
-#include "../Lib/Math/Random/Random.h"
-#include "../Renderer/D3D12.h"
-#include "../Renderer/RootSignatureManager.h"
-//#include "../TextureManager/TextureManager.h"
-#include "Camera/CameraManager.h"
+#include <Lib/Console/Console.h>
+#include <Lib/Math/Matrix/Mat4.h>
+#include <Lib/Math/Random/Random.h>
+
+#include <Renderer/D3D12.h>
+#include <Renderer/RootSignatureManager.h>
+
+#include <Camera/CameraManager.h>
+#include <Particle/ParticleObject.h>
 
 //void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
 //	d3d12_ = d3d12;

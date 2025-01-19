@@ -1,6 +1,6 @@
 #include "CameraManager.h"
 
-#include "Components/CameraComponent.h"
+#include <Components/Camera/CameraComponent.h>
 
 void CameraManager::AddCamera(const std::shared_ptr<CameraComponent>& camera) {
 	cameras_.push_back(camera);

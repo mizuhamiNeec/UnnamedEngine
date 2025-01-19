@@ -2,13 +2,13 @@
 #include <algorithm>
 #include <memory>
 #include <string>
-#include <typeindex>
 #include <type_traits>
+#include <typeindex>
 #include <unordered_map>
 #include <utility>
-#include <Components/Base/Component.h>
 
-#include "Components/TransformComponent.h"
+#include <Components/Base/Component.h>
+#include <Components/Transform/TransformComponent.h>
 
 enum class EntityType {
 	RuntimeOnly,
@@ -19,8 +19,8 @@ enum class EntityType {
 class Entity {
 public:
 	explicit Entity(std::string name, const EntityType& type = EntityType::RuntimeOnly) : transform_(
-			std::make_unique<TransformComponent>()
-		),
+		std::make_unique<TransformComponent>()
+	),
 		entityType_(type),
 		name_(std::move(name)) {
 		transform_->OnAttach(*this);
@@ -29,6 +29,7 @@ public:
 	~Entity();
 
 	void Update(float deltaTime);
+	void Render(ID3D12GraphicsCommandList* commandList);
 
 	[[nodiscard]] EntityType GetType() const;
 	void SetType(const EntityType& type);
@@ -74,8 +75,7 @@ T* Entity::AddComponent(Args&&... args) {
 template <typename T>
 T* Entity::GetComponent() {
 	auto it = components_.find(typeid(T));
-	if (it != components_.end())
-	{
+	if (it != components_.end()) {
 		return static_cast<T*>(it->second.get());
 	}
 	return nullptr;

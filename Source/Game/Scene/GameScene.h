@@ -1,18 +1,20 @@
 #pragma once
 #include <memory>
 
-#include "Entity/Base/Entity.h"
-#include "Base/Scene.h"
-#include "Components/ColliderComponent.h"
+#include <Entity/Base/Entity.h>
 
-#include "Object3D/Object3D.h"
-#include "Object3D/Object3DCommon.h"
+#include <Object3D/Object3D.h>
+#include <Object3D/Object3DCommon.h>
 
-#include "Renderer/Renderer.h"
+#include <Particle/ParticleObject.h>
 
-#include "Particle/ParticleObject.h"
-#include "Sprite/Sprite.h"
-#include "Sprite/SpriteCommon.h"
+#include <Renderer/Renderer.h>
+
+#include <Scene/Base/Scene.h>
+
+#include <Components/MeshRenderer/StaticMeshRenderer.h>
+#include <Sprite/Sprite.h>
+#include <Sprite/SpriteCommon.h>
 
 class EnemyMovement;
 class CameraRotator;
@@ -28,7 +30,6 @@ public:
 	void Shutdown() override;
 
 private:
-	Window* window_ = nullptr;
 	D3D12* renderer_ = nullptr;
 
 	std::unique_ptr<Sprite> sprite_;
@@ -38,4 +39,7 @@ private:
 
 	std::unique_ptr<Entity> camera_;
 	std::shared_ptr<CameraComponent> cameraComponent_;
+
+	std::unique_ptr<Entity> testMeshEntity_;
+	std::shared_ptr<StaticMeshRenderer> testMeshRenderer_;
 };

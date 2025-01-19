@@ -180,7 +180,7 @@ Mat4 Mat4::Transpose() const {
 	};
 }
 
-void Mat4::LogMat4() {
+void Mat4::LogMat4(const std::string& matName) {
 	std::wstring result;
 	for (float(&i)[4] : m) {
 		for (float& j : i) {
@@ -188,7 +188,7 @@ void Mat4::LogMat4() {
 		}
 		result += L"\n";
 	}
-	Console::Print(StrUtils::ToString(result));
+	Console::Print(matName + "\n" + StrUtils::ToString(result));
 }
 
 Mat4 Mat4::Translate(const Vec3& translate) {

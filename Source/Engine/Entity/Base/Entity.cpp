@@ -2,10 +2,12 @@
 
 #include <ranges>
 
-#include "Debug/Debug.h"
-#include "Lib/Console/ConVarManager.h"
+#include <Debug/Debug.h>
 
-Entity::~Entity() {}
+#include <Lib/Console/ConVarManager.h>
+
+Entity::~Entity() {
+}
 
 void Entity::Update(const float deltaTime) {
 	// 必須コンポーネントの更新
@@ -25,6 +27,19 @@ void Entity::Update(const float deltaTime) {
 
 	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
 		Debug::DrawAxis(GetTransform()->GetWorldPos(), GetTransform()->GetWorldRot());
+	}
+}
+
+void Entity::Render(ID3D12GraphicsCommandList* commandList) {
+	for (const auto& component : components_ | std::views::values) {
+		if (component->IsEditorOnly()/* && !bIsInEditor*/) {
+			continue; // エディター専用のコンポーネントはゲーム中には描画しない
+		}
+		component->Render(commandList);
+	}
+	// 子エンティティの描画
+	for (const auto& child : children_) {
+		child->Render(commandList);
 	}
 }
 

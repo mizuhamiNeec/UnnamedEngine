@@ -6,6 +6,8 @@
 #include <Particle/ParticleManager.h>
 #include <Sprite/SpriteCommon.h>
 
+#include "UnnamedResource/Manager/ResourceManager.h"
+
 class Engine;
 class EngineTimer;
 
@@ -26,6 +28,8 @@ protected:
 	std::vector<Entity*> entities_; // シーンに存在するエンティティ
 
 	bool isEditorMode_ = false; // エディターモードか?
+
+	ResourceManager* resourceManager_ = nullptr;
 
 	SpriteCommon* spriteCommon_ = nullptr;
 	ParticleManager* particleManager_ = nullptr;

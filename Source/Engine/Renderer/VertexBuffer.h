@@ -10,9 +10,9 @@ template <typename VertexType>
 class VertexBuffer {
 public:
 	VertexBuffer(const ComPtr<ID3D12Device>& device, size_t size, const VertexType* pInitData);
-	D3D12_VERTEX_BUFFER_VIEW View() const;
+	[[nodiscard]] D3D12_VERTEX_BUFFER_VIEW View() const;
 	void Update(const VertexType* pInitData, size_t size);
-	size_t GetSize() const;
+	[[nodiscard]] size_t GetSize() const;
 
 private:
 	ComPtr<ID3D12Device> device_;
@@ -22,7 +22,7 @@ private:
 };
 
 template <typename VertexType>
-VertexBuffer<VertexType>::VertexBuffer(const ComPtr<ID3D12Device>& device, size_t size, const VertexType* pInitData) :
+VertexBuffer<VertexType>::VertexBuffer(const ComPtr<ID3D12Device>& device, const size_t size, const VertexType* pInitData) :
 	device_(device),
 	size_(size) {
 	// リソース用のヒープを設定

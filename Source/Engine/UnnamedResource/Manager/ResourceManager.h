@@ -1,22 +1,30 @@
 #pragma once
 
-#include <UnnamedResource/Manager/AudioManager.h>
-#include <UnnamedResource/Manager/PipelineManager.h>
-#include <UnnamedResource/Manager/TextureManager.h>
+#include <UnnamedResource/Material/MaterialManager.h>
+#include <UnnamedResource/Mesh/MeshManager.h>
+#include <UnnamedResource/Shader/ShaderManager.h>
+#include <UnnamedResource/Texture/TextureManager.h>
 
 class ResourceManager {
 public:
-	static void Init();
-	static void Shutdown();
+	ResourceManager(D3D12* d3d12);
+	~ResourceManager() = default;
 
-	static TextureManager& GetTextureManager();
-	static AudioManager& GetAudioManager();
-	static PipelineManager& GetPipelineManager();
-	static ShaderResourceViewManager& GetSrvManager();
+	void Init() const;
+	void Shutdown();
+
+	[[nodiscard]] ShaderResourceViewManager* GetShaderResourceViewManager() const;
+	[[nodiscard]] TextureManager* GetTextureManager() const;
+	[[nodiscard]] ShaderManager* GetShaderManager() const;
+	[[nodiscard]] MaterialManager* GetMaterialManager() const;
+	[[nodiscard]] MeshManager* GetMeshManager() const;
 
 private:
-	static TextureManager textureManager_;
-	static AudioManager audioManager_;
-	static PipelineManager pipelineManager_;
-	static ShaderResourceViewManager srvManager_;
+	D3D12* d3d12_;
+
+	std::unique_ptr<ShaderResourceViewManager> srvManager_;
+	std::unique_ptr<TextureManager> textureManager_;
+	std::unique_ptr<ShaderManager> shaderManager_;
+	std::unique_ptr<MaterialManager> materialManager_;
+	std::unique_ptr<MeshManager> meshManager_;
 };

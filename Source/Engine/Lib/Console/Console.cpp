@@ -19,6 +19,8 @@ using SetThreadDescriptionFunc = HRESULT(WINAPI*)(HANDLE, PCWSTR);
 
 Console::Console() {
 	bStopThread_ = false;
+
+#ifdef _DEBUG
 	// ログファイルの初期化
 	{
 		std::lock_guard lock(mutex_);
@@ -47,6 +49,7 @@ Console::Console() {
 			logFile_.flush();
 		}
 	}
+#endif
 	StartConsoleThread();
 }
 
@@ -119,6 +122,7 @@ void Console::Shutdown() {
 		consoleThread_.join();
 	}
 
+#ifdef _DEBUG
 	// 残りのメッセージをファイルに書き込む
 	if (!messageBuffer_.empty()) {
 		FlushLogBuffer(messageBuffer_);
@@ -129,6 +133,7 @@ void Console::Shutdown() {
 	if (logFile_.is_open()) {
 		logFile_.close();
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1167,7 +1172,8 @@ size_t Console::FilteredToActualIndex([[maybe_unused]] const int filteredIndex) 
 #endif
 }
 
-void Console::FlushLogBuffer(const std::vector<std::string>& buffer) {
+void Console::FlushLogBuffer([[maybe_unused]] const std::vector<std::string>& buffer) {
+#ifdef _DEBUG
 	if (!logFile_.is_open()) {
 		logFile_.open("console.log", std::ios::app | std::ios::binary);
 	}
@@ -1178,6 +1184,7 @@ void Console::FlushLogBuffer(const std::vector<std::string>& buffer) {
 		}
 		logFile_.flush();
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1242,7 +1249,8 @@ void Console::StartConsoleThread() {
 //-----------------------------------------------------------------------------
 // Purpose: 非同期でログをファイルに書き込みます
 //-----------------------------------------------------------------------------
-void Console::LogToFileAsync(const std::string& message) {
+void Console::LogToFileAsync([[maybe_unused]] const std::string& message) {
+#ifdef _DEBUG
 	{
 		std::lock_guard lock(mutex_);
 		messageBuffer_.push_back(message);
@@ -1258,11 +1266,15 @@ void Console::LogToFileAsync(const std::string& message) {
 			cv_.notify_one();
 		}
 	}
+#endif
 }
 
 std::mutex Console::mutex_;
 std::queue<std::function<void()>> Console::taskQueue_;
 std::condition_variable Console::cv_;
+
+std::thread Console::consoleThread_;
+bool Console::bStopThread_ = false;
 
 #ifdef _DEBUG
 bool Console::bShowConsole_ = true;
@@ -1277,9 +1289,6 @@ std::vector<std::string> Console::suggestions_;
 std::vector<uint64_t> Console::repeatCounts_;
 int Console::lastSelectedIndex_ = -1;
 Channel Console::currentFilterChannel_ = Channel::None;
-
-std::thread Console::consoleThread_;
-bool Console::bStopThread_ = false;
 
 std::vector<std::string> Console::messageBuffer_;
 std::ofstream Console::logFile_;

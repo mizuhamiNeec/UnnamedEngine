@@ -5,9 +5,12 @@
 #include <Line/LineCommon.h>
 #include <Model/ModelCommon.h>
 #include <Scene/Base/Scene.h>
-#include <UnnamedResource/Manager/ShaderResourceViewManager.h>
+#include <UnnamedResource/SRV/ShaderResourceViewManager.h>
 
-#include "UnnamedResource/Texture.h"
+#include "Components/MeshRenderer/StaticMeshRenderer.h"
+
+#include "UnnamedResource/Manager/ResourceManager.h"
+#include "UnnamedResource/Texture/Texture.h"
 
 class Console;
 class ImGuiManager;
@@ -25,7 +28,7 @@ public:
 		return bIsEditorMode_;
 	}
 
-	[[nodiscard]] D3D12* GetRenderer() const {
+	[[nodiscard]] static D3D12* GetRenderer() {
 		return renderer_.get();
 	}
 
@@ -65,6 +68,10 @@ public:
 		return time_.get();
 	}
 
+	[[nodiscard]] ResourceManager* GetResourceManager() const {
+		return resourceManager_.get();
+	}
+
 private:
 	void Init();
 	void Update();
@@ -76,8 +83,10 @@ private:
 	void CheckEditorMode();
 
 	std::unique_ptr<Window> window_;
-	std::unique_ptr<D3D12> renderer_;
-	std::unique_ptr<ShaderResourceViewManager> srvManager_;
+	static std::unique_ptr<D3D12> renderer_;
+
+	std::unique_ptr<ResourceManager> resourceManager_;
+
 	std::unique_ptr<EngineTimer> time_;
 
 	std::unique_ptr<Entity> cameraEntity_;

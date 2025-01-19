@@ -241,8 +241,8 @@ void Debug::DrawArrow(
 	// 矢印の終点
 	const Vec3 end = position + direction;
 
-	// 頭のりサイズ
-	headSize = min((position - end).Length(), headSize);
+	// 頭のリサイズ
+	headSize = std::min((position - end).Length(), headSize);
 
 	// 矢印の方向を正規化
 	const Vec3 dirNormalized = direction.Normalized();

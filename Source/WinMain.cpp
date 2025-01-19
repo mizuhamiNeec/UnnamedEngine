@@ -14,12 +14,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR lpCmdLine, [[maybe_unused]] cons
 	Console::Print("command line arguments:\n", kConsoleColorGray, Channel::CommandLine);
 	Console::Print(StrUtils::ToString(lpCmdLine) + "\n", kConsoleColorGray, Channel::CommandLine);
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-	D3DResourceLeakChecker leakChecker;
-	const auto engine = std::make_unique<Engine>();
-
-	engine->Run();
-
+	{
+		auto engine = std::make_unique<Engine>();
+		engine->Run();
+		D3DResourceLeakChecker leakChecker;
+		engine.reset();
+	}
 	CoUninitialize();
-
 	return 0;
 }

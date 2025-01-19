@@ -52,13 +52,100 @@ D3D12::D3D12() {
 
 D3D12::~D3D12() {
 	CloseHandle(fenceEvent_);
-	PrepareForShutdown();
 	Console::Print("アリーヴェ帰ルチ! (さよナランチャ\n", kConsoleColorCompleted, Channel::Engine);
 }
 
 void D3D12::Init() {
 	ConVarManager::RegisterConVar<bool>("r_clear", true, "Clear the screen", ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>("r_vsync", 0, "Enable VSync", ConVarFlags::ConVarFlags_Notify);
+}
+
+void D3D12::Shutdown() {
+	PrepareForShutdown();
+
+	// GPUの処理完了を待機
+	if (commandQueue_ && fence_) {
+		// 実行中のコマンドの完了を待機
+		WaitPreviousFrame();
+
+		// 最後のフェンス同期
+		const UINT64 lastFenceValue = fenceValue_;
+		commandQueue_->Signal(fence_.Get(), lastFenceValue);
+		if (fence_->GetCompletedValue() < lastFenceValue) {
+			fence_->SetEventOnCompletion(lastFenceValue, fenceEvent_);
+			WaitForSingleObject(fenceEvent_, INFINITE);
+		}
+	}
+
+	// コマンドリストのクリーンアップ
+	if (commandList_) {
+		// すべての処理が終了するまで待機
+		WaitPreviousFrame();
+		// コマンドリストをリセット
+		commandList_.Reset();
+	}
+
+	// コマンドアロケータのクリーンアップ
+	if (commandAllocator_) {
+		commandAllocator_->Reset();
+		commandAllocator_.Reset();
+	}
+
+	// レンダーターゲットの解放
+	for (auto& rt : renderTargets_) {
+		if (rt) {
+			rt.Reset();
+		}
+	}
+	renderTargets_.clear();
+	rtvHandles_.clear();
+
+	// 深度ステンシルリソースの解放
+	if (depthStencilResource_) {
+		depthStencilResource_.Reset();
+	}
+
+	// ディスクリプタヒープの解放
+	if (rtvDescriptorHeap_) {
+		rtvDescriptorHeap_.Reset();
+	}
+	if (dsvDescriptorHeap_) {
+		dsvDescriptorHeap_.Reset();
+	}
+
+	// フェンス関連の解放
+	if (fenceEvent_) {
+		CloseHandle(fenceEvent_);
+		fenceEvent_ = nullptr;
+	}
+	if (fence_) {
+		fence_.Reset();
+	}
+
+	// スワップチェーンの解放
+	if (swapChain_) {
+		BOOL isFullScreen = FALSE;
+		swapChain_->GetFullscreenState(&isFullScreen, nullptr);
+		if (isFullScreen) {
+			swapChain_->SetFullscreenState(FALSE, nullptr);
+		}
+		swapChain_.Reset();
+	}
+
+	// コマンドキューの解放
+	if (commandQueue_) {
+		commandQueue_.Reset();
+	}
+
+	// DXGIファクトリーの解放
+	if (dxgiFactory_) {
+		dxgiFactory_.Reset();
+	}
+
+	// デバイスの解放（最後に行う）
+	if (device_) {
+		device_.Reset();
+	}
 }
 
 void D3D12::ClearColorAndDepth() const {
@@ -158,23 +245,23 @@ void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, const uint32_t siz
 void D3D12::WaitPreviousFrame() {
 	fenceValue_++; // Fenceの値を更新
 
-	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
-	const HRESULT hr = commandQueue_->Signal(fence_.Get(), fenceValue_);
-
-	if (FAILED(hr)) {
-		if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
-			// デバイスが消えた!!?
-			HandleDeviceLost();
+   // GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
+	if (commandQueue_ && fence_) {
+		const HRESULT hr = commandQueue_->Signal(fence_.Get(), fenceValue_);
+		if (FAILED(hr)) {
+			if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+				// デバイスが消えた!!?
+				HandleDeviceLost();
+			}
 		}
-	}
 
-	// Fenceの値が指定したSignal値にたどり着いているか確認する
-	// GetCompletedValueの初期値はFence作成時に渡した初期値
-	if (fence_->GetCompletedValue() < fenceValue_) {
-		// 指定したSignalにたどり着いていないので、たどり着くまで待つようにイベントを設定する
-		fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
-		// イベント待つ
-		WaitForSingleObject(fenceEvent_, INFINITE);
+		// Fenceの値が指定したSignal値にたどり着いているか確認する
+		if (fence_->GetCompletedValue() < fenceValue_) {
+			// 指定したSignalにたどり着いていないので、たどり着くまで待つようにイベントを設定する
+			fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
+			// イベント待つ
+			WaitForSingleObject(fenceEvent_, INFINITE);
+		}
 	}
 }
 
@@ -500,7 +587,10 @@ void D3D12::PrepareForShutdown() const {
 		BOOL isFullScreen = FALSE;
 		swapChain_->GetFullscreenState(&isFullScreen, nullptr);
 		if (isFullScreen) {
+			// フルスクリーンモードを解除して、完了するまで待機
 			swapChain_->SetFullscreenState(FALSE, nullptr);
+			// 少し待機して状態の変更を確実にする
+			Sleep(100);
 		}
 	}
 }

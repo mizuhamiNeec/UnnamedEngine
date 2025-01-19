@@ -25,6 +25,7 @@ private:
 struct TransformationMatrix {
 	Mat4 wvp; // ワールドビュープロジェクション
 	Mat4 world; // ワールド
+	Mat4 worldInverseTranspose; // ワールドの逆転置
 };
 
 struct ParticleForGPU {

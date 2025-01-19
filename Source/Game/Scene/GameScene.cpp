@@ -19,8 +19,8 @@
 #include "Lib/DebugHud/DebugHud.h"
 
 void GameScene::Init(Engine* engine) {
-	renderer_ = engine->GetRenderer();
-	window_ = engine->GetWindow();
+	renderer_ = Engine::GetRenderer();
+	resourceManager_ = engine->GetResourceManager();
 	//spriteCommon_ = engine->GetSpriteCommon();
 	//particleManager_ = engine->GetParticleManager();
 	//object3DCommon_ = engine->GetObject3DCommon();
@@ -75,6 +75,22 @@ void GameScene::Init(Engine* engine) {
 #pragma region コンソール変数/コマンド
 	ConVarManager::RegisterConVar<Vec3>("testPos", Vec3::zero, "Test position");
 #pragma endregion
+
+#pragma region メッシュレンダラー
+	resourceManager_->GetTextureManager()->GetTexture("./Resources/Textures/dev_measure.png");
+	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/floattest.obj");
+	auto mesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/floattest.obj");
+	if (mesh) {
+		Console::Print("メッシュの読み込みに成功しました: " + mesh->GetName() + "\n", kConsoleColorCompleted);
+	}
+
+	testMeshEntity_ = std::make_unique<Entity>("testmesh");
+	StaticMeshRenderer* rawTestMeshRenderer = testMeshEntity_->AddComponent<StaticMeshRenderer>();
+	testMeshRenderer_ = std::shared_ptr<StaticMeshRenderer>(
+		rawTestMeshRenderer, [](StaticMeshRenderer*) {}
+	);
+	testMeshRenderer_->SetStaticMesh(mesh);
+#pragma endregion
 }
 
 void GameScene::Update(const float deltaTime) {
@@ -88,15 +104,14 @@ void GameScene::Update(const float deltaTime) {
 
 	// マウスホイールでカメラのローカルZ軸方向に移動
 	if (InputSystem::IsTriggered("+invprev")) {
-		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() + Vec3::forward * 0.1f);
+		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() + Vec3::forward * 16.0f);
 	} else if (InputSystem::IsTriggered("+invnext")) {
-		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 0.1f);
+		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 16.0f);
 	}
 
-	Vec3 currentPos = cameraRoot_->GetTransform()->GetLocalPos();
-	cameraRoot_->GetTransform()->SetLocalPos(currentPos + Vec3::forward * 1.0f * deltaTime);
-
 	cameraRoot_->Update(deltaTime);
+
+	testMeshEntity_->Update(EngineTimer::GetScaledDeltaTime());
 
 	/*particleManager_->Update(deltaTime);
 	static bool isOffscreen = false;
@@ -192,6 +207,8 @@ void GameScene::Render() {
 	//spriteCommon_->Render();
 	//----------------------------------------
 	//sprite_->Draw();
+
+	testMeshEntity_->Render(renderer_->GetCommandList());
 }
 
 void GameScene::Shutdown() {

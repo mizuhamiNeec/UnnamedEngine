@@ -5,7 +5,6 @@
 #include <cmath>
 #include <Engine.h>
 #include <Camera/CameraManager.h>
-#include <Components/CameraComponent.h>
 #include <Lib/Console/Console.h>
 #include <Lib/Structs/Structs.h>
 #include <Window/Window.h>

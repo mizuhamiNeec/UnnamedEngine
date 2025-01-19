@@ -3,13 +3,14 @@
 #include <list>
 #include <memory>
 
-#include "../Lib/Math/Vector/Vec3.h"
-#include "../Lib/Structs/Structs.h"
+#include <Components/Camera/CameraComponent.h>
 
-#include "../Renderer/ConstantBuffer.h"
-#include "../Renderer/IndexBuffer.h"
-#include "../Renderer/VertexBuffer.h"
-#include "Components/CameraComponent.h"
+#include <Lib/Math/Vector/Vec3.h>
+#include <Lib/Structs/Structs.h>
+
+#include <Renderer/ConstantBuffer.h>
+#include <Renderer/IndexBuffer.h>
+#include <Renderer/VertexBuffer.h>
 
 class ShaderResourceViewManager;
 class Camera;

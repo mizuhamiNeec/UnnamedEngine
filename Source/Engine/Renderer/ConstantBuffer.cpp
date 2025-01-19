@@ -39,6 +39,12 @@ ConstantBuffer::ConstantBuffer(const ComPtr<ID3D12Device>& device, const size_t 
 	desc_.SizeInBytes = static_cast<UINT>(sizeAligned);
 }
 
+ConstantBuffer::~ConstantBuffer() {
+	if (buffer_) {
+		buffer_->Unmap(0, nullptr);
+	}
+}
+
 D3D12_GPU_VIRTUAL_ADDRESS ConstantBuffer::GetAddress() const {
 	return desc_.BufferLocation;
 }

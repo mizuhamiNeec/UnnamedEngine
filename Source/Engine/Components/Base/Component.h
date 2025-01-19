@@ -1,5 +1,7 @@
 #pragma once
 
+#include <d3d12.h>
+
 class Entity;
 
 class Component {
@@ -11,6 +13,8 @@ public:
 	virtual void OnAttach(Entity& owner);
 	// コンポーネントの更新処理
 	virtual void Update(float deltaTime) = 0;
+	// 描画処理のあるコンポーネントはこの関数をオーバーライドします
+	virtual void Render(ID3D12GraphicsCommandList* commandList);
 	// インスペクターの描画
 	virtual void DrawInspectorImGui() = 0;
 

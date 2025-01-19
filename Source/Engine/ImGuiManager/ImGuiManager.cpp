@@ -3,10 +3,9 @@
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 #include <imgui_internal.h>
-#include <Components/TransformComponent.h>
 #include <Entity/Base/Entity.h>
 
-#include "UnnamedResource/Manager/ShaderResourceViewManager.h"
+#include "UnnamedResource/SRV/ShaderResourceViewManager.h"
 
 #ifdef _DEBUG
 #include "../Lib/Utils/ClientProperties.h"

@@ -2,15 +2,16 @@
 
 #include <list>
 #include <unordered_map>
+
 #include <Lib/Structs/Structs.h>
+
 #include <Renderer/ConstantBuffer.h>
 #include <Renderer/PipelineState.h>
-//#include <Renderer/SrvManager.h>
+#include <Renderer/RootSignatureManager.h>
 #include <Renderer/VertexBuffer.h>
 
 class CameraComponent;
 class Camera;
-class RootSignatureManager;
 class D3D12;
 
 class ParticleManager {
@@ -30,7 +31,7 @@ public:
 
 	// Getter
 	CameraComponent* GetDefaultCamera() const;
-//	SrvManager* GetSrvManager() const;
+	// SrvManager* GetSrvManager() const;
 
 	const VertexBuffer<Vertex>* GetVertexBuffer() const;
 	const std::vector<Vertex>& GetVertices() const;

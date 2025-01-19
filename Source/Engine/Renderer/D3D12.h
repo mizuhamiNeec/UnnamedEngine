@@ -9,12 +9,17 @@
 
 using namespace Microsoft::WRL;
 
+struct D3DResourceLeakChecker {
+	~D3DResourceLeakChecker();
+};
+
 class D3D12 : public Renderer {
 public: // メンバ関数
 	D3D12();
 	~D3D12() override;
 
 	void Init() override;
+	void Shutdown() override;
 
 	void ClearColorAndDepth() const;
 	void PreRender() override;
@@ -58,7 +63,12 @@ private:
 	uint32_t descriptorSizeRTV = 0;
 	uint32_t descriptorSizeDSV = 0;
 
-	std::chrono::steady_clock::time_point reference_;
+	struct ResourceWithFence {
+		ComPtr<ID3D12Resource> resource;
+		uint64_t fenceValue;
+	};
+
+	static std::vector<ResourceWithFence> resourcesToRelease_;
 
 	// メンバ関数
 	//------------------------------------------------------------------------
@@ -140,8 +150,4 @@ private:
 		uint32_t descriptorSize, uint32_t index
 	);
 	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource() const;
-};
-
-struct D3DResourceLeakChecker {
-	~D3DResourceLeakChecker();
 };
