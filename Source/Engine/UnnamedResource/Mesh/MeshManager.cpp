@@ -87,13 +87,16 @@ bool MeshManager::LoadMeshFromFile(const std::string& filePath) {
 	);
 	if (!scene) {
 		Console::Print("メッシュの読み込みに失敗しました: " + filePath + "\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("エラーメッセージ: " + std::string(importer.GetErrorString()) + "\n", kConsoleColorError, Channel::ResourceSystem);
 		assert(scene); // 読み込み失敗
 		return false;
 	}
+
 	if (!scene->HasMeshes()) {
 		Console::Print("メッシュがありません: " + filePath + "\n", kConsoleColorError, Channel::ResourceSystem);
 		assert(scene->HasMeshes()); // メッシュがない場合はエラー
 	}
+
 	StaticMesh* staticMesh = CreateStaticMesh(filePath);
 	ProcessNode(scene->mRootNode, scene, staticMesh);
 	return true;
@@ -188,7 +191,7 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, Stat
 				if (texture) {
 					material->SetTexture("diffuseTexture", texture);
 				}
-			} 
+			}
 		} else {
 			material->SetTexture("diffuseTexture", TextureManager::GetErrorTexture().get());
 		}

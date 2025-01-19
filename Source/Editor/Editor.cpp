@@ -18,7 +18,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// グリッドの表示
 	DrawGrid(
 		1.0f,
-		64,
+		1024,
 		{ 0.28f, 0.28f, 0.28f, 1.0f },
 		{ 0.39f, 0.2f, 0.02f, 1.0f },
 		{ 0.0f, 0.39f, 0.39f, 1.0f },

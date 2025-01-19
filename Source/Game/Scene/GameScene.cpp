@@ -77,19 +77,28 @@ void GameScene::Init(Engine* engine) {
 #pragma endregion
 
 #pragma region メッシュレンダラー
-	resourceManager_->GetTextureManager()->GetTexture("./Resources/Textures/dev_measure.png");
 	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/floattest.obj");
 	auto mesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/floattest.obj");
 	if (mesh) {
 		Console::Print("メッシュの読み込みに成功しました: " + mesh->GetName() + "\n", kConsoleColorCompleted);
 	}
 
+	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/bunny.obj");
+	auto debugMesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/bunny.obj");
+
 	testMeshEntity_ = std::make_unique<Entity>("testmesh");
 	StaticMeshRenderer* rawTestMeshRenderer = testMeshEntity_->AddComponent<StaticMeshRenderer>();
-	testMeshRenderer_ = std::shared_ptr<StaticMeshRenderer>(
+	floatTestMR_ = std::shared_ptr<StaticMeshRenderer>(
 		rawTestMeshRenderer, [](StaticMeshRenderer*) {}
 	);
-	testMeshRenderer_->SetStaticMesh(mesh);
+	floatTestMR_->SetStaticMesh(mesh);
+
+	debugTestMeshEntity_ = std::make_unique<Entity>("debugTestMesh");
+	StaticMeshRenderer* testMeshRenderer = debugTestMeshEntity_->AddComponent<StaticMeshRenderer>();
+	debugTestMR_ = std::shared_ptr<StaticMeshRenderer>(
+		testMeshRenderer, [](StaticMeshRenderer*) {}
+	);
+	debugTestMR_->SetStaticMesh(debugMesh);
 #pragma endregion
 }
 
@@ -104,14 +113,15 @@ void GameScene::Update(const float deltaTime) {
 
 	// マウスホイールでカメラのローカルZ軸方向に移動
 	if (InputSystem::IsTriggered("+invprev")) {
-		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() + Vec3::forward * 16.0f);
+		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() + Vec3::forward * 64.0f);
 	} else if (InputSystem::IsTriggered("+invnext")) {
-		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 16.0f);
+		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 64.0f);
 	}
 
 	cameraRoot_->Update(deltaTime);
 
 	testMeshEntity_->Update(EngineTimer::GetScaledDeltaTime());
+	debugTestMeshEntity_->Update(EngineTimer::GetScaledDeltaTime());
 
 	/*particleManager_->Update(deltaTime);
 	static bool isOffscreen = false;
@@ -209,6 +219,7 @@ void GameScene::Render() {
 	//sprite_->Draw();
 
 	testMeshEntity_->Render(renderer_->GetCommandList());
+	debugTestMeshEntity_->Render(renderer_->GetCommandList());
 }
 
 void GameScene::Shutdown() {

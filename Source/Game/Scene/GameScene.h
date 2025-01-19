@@ -41,5 +41,7 @@ private:
 	std::shared_ptr<CameraComponent> cameraComponent_;
 
 	std::unique_ptr<Entity> testMeshEntity_;
-	std::shared_ptr<StaticMeshRenderer> testMeshRenderer_;
+	std::shared_ptr<StaticMeshRenderer> floatTestMR_;
+	std::unique_ptr<Entity> debugTestMeshEntity_;
+	std::shared_ptr<StaticMeshRenderer> debugTestMR_;
 };
