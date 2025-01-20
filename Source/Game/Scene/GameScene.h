@@ -15,10 +15,10 @@
 #include <Components/MeshRenderer/StaticMeshRenderer.h>
 #include <Sprite/Sprite.h>
 #include <Sprite/SpriteCommon.h>
+#include <Components/PlayerMovement.h>
 
 class EnemyMovement;
 class CameraRotator;
-class PlayerMovement;
 class CameraSystem;
 
 class GameScene : public Scene {
@@ -39,6 +39,9 @@ private:
 
 	std::unique_ptr<Entity> camera_;
 	std::shared_ptr<CameraComponent> cameraComponent_;
+
+	std::unique_ptr<Entity> entPlayer_;
+	std::shared_ptr<PlayerMovement> playerMovement_;
 
 	std::unique_ptr<Entity> testMeshEntity_;
 	std::shared_ptr<StaticMeshRenderer> floatTestMR_;

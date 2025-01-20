@@ -6,6 +6,8 @@
 
 #include <Window/Window.h>
 
+#include "Camera/CameraManager.h"
+
 CameraComponent::~CameraComponent() {}
 
 void CameraComponent::OnAttach(Entity& owner) {
@@ -46,11 +48,17 @@ void CameraComponent::Update([[maybe_unused]] float deltaTime) {
 }
 
 void CameraComponent::DrawInspectorImGui() {
-#ifdef _DEBUG
-	ImGui::Begin("Camera");
-	ImGuiManager::EditTransform(*transform_, 0.01f);
+	if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (ImGui::Button("PrevCamera")) {
+			CameraManager::SwitchToNextCamera();
+		}
 
-	if (ImGui::CollapsingHeader("Properties")) {
+		ImGui::SameLine();
+
+		if (ImGui::Button("NextCamera")) {
+			CameraManager::SwitchToPrevCamera();
+		}
+
 		float fovTmp = fov_ * Math::rad2Deg;
 		if (ImGui::DragFloat("FOV##cam", &fovTmp, 0.1f, kFovMin * Math::rad2Deg, kFovMax * Math::rad2Deg, "%.2f [deg]")) {
 			SetFovVertical(fovTmp * Math::deg2Rad);
@@ -60,8 +68,6 @@ void CameraComponent::DrawInspectorImGui() {
 		ImGui::DragFloat("ZFar##cam", &zFar_, 0.1f);
 		ImGui::DragFloat("AspectRatio##cam", &aspectRatio_, 0.1f);
 	}
-	ImGui::End();
-#endif
 }
 
 //-----------------------------------------------------------------------------

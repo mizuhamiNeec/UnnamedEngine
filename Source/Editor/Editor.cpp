@@ -362,7 +362,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		// コンポーネントの一覧表示と編集
 		const auto& components = selectedEntity_->GetComponents<Component>();
 		for (const auto& component : components) {
-			component->DrawInspectorImGui();
+			if (component) {
+				component->DrawInspectorImGui();
+			}
 		}
 
 		ImGui::End();

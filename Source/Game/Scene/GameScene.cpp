@@ -50,6 +50,7 @@ void GameScene::Init(Engine* engine) {
 
 #pragma region エンティティ
 	camera_ = std::make_unique<Entity>("camera");
+	entities_.push_back(camera_.get());
 	// 生ポインタを取得
 	CameraComponent* rawCameraPtr = camera_->AddComponent<CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
@@ -58,18 +59,27 @@ void GameScene::Init(Engine* engine) {
 		}
 	);
 
-	//// カメラを CameraManager に追加
-	//CameraManager::AddCamera(camera);
-	//// アクティブカメラに設定
-	//CameraManager::SetActiveCamera(camera);
+	// カメラを CameraManager に追加
+	CameraManager::AddCamera(camera);
+	// アクティブカメラに設定
+	CameraManager::SetActiveCamera(camera);
 
-	//cameraRoot_ = std::make_unique<Entity>("cameraBase");
-	//cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
-	//cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
+	entPlayer_ = std::make_unique<Entity>("player");
+	PlayerMovement* rawPlayerMovement = entPlayer_->AddComponent<PlayerMovement>();
+	playerMovement_ = std::shared_ptr<PlayerMovement>(
+		rawPlayerMovement, [](PlayerMovement*) {}
+	);
+	entities_.push_back(entPlayer_.get());
 
-	//// プレイヤーにカメラをアタッチ
-	//camera_->SetParent(cameraRoot_.get());
-	//camera_->GetTransform()->SetLocalPos(Vec3::backward * 2.5f);
+	cameraRoot_ = std::make_unique<Entity>("cameraRoot");
+	cameraRoot_->SetParent(entPlayer_.get());
+	cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
+	cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
+	entities_.push_back(cameraRoot_.get());
+
+	// cameraRootにアタッチ
+	camera_->SetParent(cameraRoot_.get());
+	camera_->GetTransform()->SetLocalPos(Vec3::backward * 2.5f);
 #pragma endregion
 
 #pragma region コンソール変数/コマンド
@@ -121,6 +131,8 @@ void GameScene::Update(const float deltaTime) {
 
 	//cameraRoot_->Update(deltaTime);
 
+	entPlayer_->Update(deltaTime);
+
 	testMeshEntity_->Update(deltaTime);
 	debugTestMeshEntity_->Update(deltaTime);
 
@@ -151,7 +163,11 @@ void GameScene::Update(const float deltaTime) {
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
-		Mat4 invViewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
+		Mat4 invViewMat = Mat4::identity;
+		if (CameraManager::GetActiveCamera()) {
+			invViewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
+		}
+
 		Vec3 camPos = invViewMat.GetTranslate();
 		const Vec3 camRot = invViewMat.ToQuaternion().ToEulerAngles();
 

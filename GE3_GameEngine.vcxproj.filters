@@ -328,6 +328,8 @@
     <ClInclude Include="Source\Engine\EntitySystem\RuntimeEntitySystem.h" />
     <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
+    <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
+    <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -498,6 +500,8 @@
     <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
+    <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
+    <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
