@@ -19,6 +19,8 @@ public:
 	[[nodiscard]] Material* GetMaterial() const;
 	void SetMaterial(Material* material);
 
+	std::string& GetName();
+
 	void Render(ID3D12GraphicsCommandList* commandList) const;
 
 	void ReleaseResource();

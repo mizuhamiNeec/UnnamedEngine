@@ -6,10 +6,13 @@
 
 #include <Lib/Console/ConVarManager.h>
 
-Entity::~Entity() {
-}
+Entity::~Entity() {}
 
 void Entity::Update(const float deltaTime) {
+	if (!isActive_) {
+		return;
+	}
+
 	// 必須コンポーネントの更新
 	transform_->Update(deltaTime);
 
@@ -31,6 +34,10 @@ void Entity::Update(const float deltaTime) {
 }
 
 void Entity::Render(ID3D12GraphicsCommandList* commandList) {
+	if (!isVisible_) {
+		return;
+	}
+
 	for (const auto& component : components_ | std::views::values) {
 		if (component->IsEditorOnly()/* && !bIsInEditor*/) {
 			continue; // エディター専用のコンポーネントはゲーム中には描画しない
@@ -53,6 +60,22 @@ void Entity::SetType(const EntityType& type) {
 
 TransformComponent* Entity::GetTransform() const {
 	return transform_.get();
+}
+
+bool Entity::IsActive() const {
+	return isActive_;
+}
+
+void Entity::SetActive(const bool active) {
+	isActive_ = active;
+}
+
+bool Entity::IsVisible() const {
+	return isVisible_;
+}
+
+void Entity::SetVisible(const bool visible) {
+	isVisible_ = visible;
 }
 
 void Entity::SetParent(Entity* newParent) {

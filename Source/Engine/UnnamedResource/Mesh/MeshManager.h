@@ -24,7 +24,7 @@ public:
 
 private:
 	void ProcessNode(const aiNode* node, const aiScene* scene, StaticMesh* staticMesh);
-	SubMesh* ProcessMesh(const aiMesh* mesh, const aiScene* scene, StaticMesh* staticMesh);
+	SubMesh* ProcessMesh(const aiMesh* mesh, const aiScene* scene, StaticMesh* staticMesh, const aiMatrix4x4& transform);
 
 	TextureManager* textureManager_ = nullptr;
 	ShaderManager* shaderManager_ = nullptr;

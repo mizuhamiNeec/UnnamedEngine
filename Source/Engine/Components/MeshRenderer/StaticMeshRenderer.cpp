@@ -35,7 +35,7 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 }
 
 void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
-	 // メッシュが存在しない場合は描画をスキップ
+	// メッシュが存在しない場合は描画をスキップ
 	if (!staticMesh_) return;
 
 	// 現在バインドされているマテリアルを追跡
@@ -61,22 +61,14 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 }
 
 void StaticMeshRenderer::DrawInspectorImGui() {
-	// メッシュの選択
-	if (ImGui::CollapsingHeader("StaticMesh", ImGuiTreeNodeFlags_DefaultOpen)) {
-		//if (ImGui::Button("Select StaticMesh")) {
-		//	// ファイルダイアログを開いてファイルを選択
-		//	const std::string filePath = FileDialog::OpenFileDialog();
-		//	if (!filePath.empty()) {
-		//		// 選択されたファイルからStaticMeshをロード
-		//		staticMesh_ = StaticMesh::LoadFromFile(filePath);
-		//	}
-		//}
-		// 選択されたメッシュの情報を表示
+	// 子クラスのインスペクターUIの描画
+	if (ImGui::CollapsingHeader("StaticMeshRenderer", ImGuiTreeNodeFlags_DefaultOpen)) {
 		if (staticMesh_) {
-			/*ImGui::Text("Name: %s", staticMesh_->GetName().c_str());
-			ImGui::Text("SubMesh Count: %d", staticMesh_->GetSubMeshCount());*/
+			ImGui::Text("Name: %s", staticMesh_->GetName().c_str());
+			for (auto& subMesh : staticMesh_->GetSubMeshes()) {
+				ImGui::Selectable((subMesh->GetMaterial()->GetName() + "##" + subMesh->GetName()).c_str());
+			}
 		}
-		ImGui::TreePop();
 	}
 }
 

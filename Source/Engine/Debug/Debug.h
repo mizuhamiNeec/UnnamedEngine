@@ -14,7 +14,6 @@ public:
 	static void DrawLine(const Vec3& a, const Vec3& b, const Vec4& color);
 	static void DrawRay(const Vec3& position, const Vec3& dir, const Vec4& color);
 	static void DrawAxis(const Vec3& position, const Quaternion& orientation);
-	static void DrawAxisWithCharacter(const Vec3& position, const Quaternion& orientation);
 	static void DrawCircle(
 		const Vec3& position, const Quaternion& rotation, const float& radius,
 		const Vec4& color, const uint32_t& segments = 32

@@ -324,6 +324,10 @@
     <ClInclude Include="Source\Engine\UnnamedResource\Pipeline\PipelineManager.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Mesh\SubMesh.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Shader\DefaultShader.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\Base\EntitySystem.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\RuntimeEntitySystem.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
+    <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -491,6 +495,9 @@
     <ClCompile Include="Source\Engine\UnnamedResource\Pipeline\PipelineManager.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Mesh\SubMesh.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Shader\DefaultShader.cpp" />
+    <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
+    <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
+    <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

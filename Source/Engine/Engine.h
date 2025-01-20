@@ -5,12 +5,8 @@
 #include <Line/LineCommon.h>
 #include <Model/ModelCommon.h>
 #include <Scene/Base/Scene.h>
-#include <UnnamedResource/SRV/ShaderResourceViewManager.h>
-
-#include "Components/MeshRenderer/StaticMeshRenderer.h"
-
-#include "UnnamedResource/Manager/ResourceManager.h"
-#include "UnnamedResource/Texture/Texture.h"
+#include <SceneManager/SceneManager.h>
+#include <UnnamedResource/Manager/ResourceManager.h>
 
 class Console;
 class ImGuiManager;
@@ -34,14 +30,6 @@ public:
 
 	[[nodiscard]] Window* GetWindow() const {
 		return window_.get();
-	}
-
-	[[nodiscard]] Entity* GetCameraEntity() const {
-		return cameraEntity_.get();
-	}
-
-	[[nodiscard]] CameraComponent* GetCameraComponent() const {
-		return camera_.get();
 	}
 
 	[[nodiscard]] SpriteCommon* GetSpriteCommon() const {
@@ -89,24 +77,20 @@ private:
 
 	std::unique_ptr<EngineTimer> time_;
 
-	std::unique_ptr<Entity> cameraEntity_;
-	std::shared_ptr<CameraComponent> camera_;
-
 	std::unique_ptr<SpriteCommon> spriteCommon_;
 	std::unique_ptr<ParticleManager> particleManager_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
 
-	std::shared_ptr<Texture> texture;
-
 	std::shared_ptr<Scene> currentScene_; // 現在のシーン
+
+	std::shared_ptr<SceneManager> sceneManager_; // シーンマネージャー
+
 	std::unique_ptr<Editor> editor_; // エディター
 	static bool bIsEditorMode_; // エディターモードか?
 
 	static bool bWishShutdown_; // 終了したいか?
-
-	Vec3 rot_ = Vec3::zero; // TODO : 消す予定
 
 #ifdef _DEBUG
 	std::unique_ptr<ImGuiManager> imGuiManager_;

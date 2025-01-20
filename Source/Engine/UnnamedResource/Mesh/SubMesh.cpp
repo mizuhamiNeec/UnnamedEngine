@@ -4,11 +4,9 @@
 
 SubMesh::SubMesh(const ComPtr<ID3D12Device>& device, std::string name) :
 	name_(std::move(name)),
-	device_(device) {
-}
+	device_(device) {}
 
-SubMesh::~SubMesh() {
-}
+SubMesh::~SubMesh() {}
 
 void SubMesh::SetVertexBuffer(const std::vector<Vertex>& vertices) {
 	size_t size = vertices.size() * sizeof(Vertex);
@@ -23,6 +21,10 @@ void SubMesh::SetIndexBuffer(const std::vector<uint32_t>& indices) {
 Material* SubMesh::GetMaterial() const { return material_; }
 
 void SubMesh::SetMaterial(Material* material) { material_ = material; }
+
+std::string& SubMesh::GetName() {
+	return name_;
+}
 
 void SubMesh::Render(ID3D12GraphicsCommandList* commandList) const {
 	// 頂点バッファとインデックスバッファを設定
@@ -45,7 +47,7 @@ void SubMesh::ReleaseResource() {
 		vertexBuffer_.reset();
 	}
 	if (indexBuffer_) {
-	//	indexBuffer_->Release();
+		//	indexBuffer_->Release();
 		indexBuffer_.reset();
 	}
 	material_ = nullptr;

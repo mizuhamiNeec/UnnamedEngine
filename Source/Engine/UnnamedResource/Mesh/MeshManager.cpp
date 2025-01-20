@@ -113,13 +113,16 @@ void MeshManager::ProcessNode(const aiNode* node, const aiScene* scene, StaticMe
 		return;
 	}
 
+	// ノードの変換行列を取得
+	aiMatrix4x4 transform = node->mTransformation;
+
 	for (uint32_t meshIndex = 0; meshIndex < node->mNumMeshes; ++meshIndex) {
 		if (node->mMeshes[meshIndex] >= scene->mNumMeshes) {
 			Console::Print("メッシュインデックスが範囲外です\n", kConsoleColorError, Channel::ResourceSystem);
 			continue;
 		}
 		const aiMesh* mesh = scene->mMeshes[node->mMeshes[meshIndex]];
-		std::unique_ptr<SubMesh> subMesh = std::unique_ptr<SubMesh>(ProcessMesh(mesh, scene, staticMesh));
+		std::unique_ptr<SubMesh> subMesh = std::unique_ptr<SubMesh>(ProcessMesh(mesh, scene, staticMesh, transform));
 		staticMesh->AddSubMesh(std::move(subMesh));
 	}
 
@@ -128,15 +131,26 @@ void MeshManager::ProcessNode(const aiNode* node, const aiScene* scene, StaticMe
 	}
 }
 
-SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, StaticMesh* staticMesh) {
+SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, StaticMesh* staticMesh, const aiMatrix4x4& transform) {
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
 	// 頂点情報の取得
 	for (uint32_t i = 0; i < mesh->mNumVertices; ++i) {
 		Vertex vertex;
-		vertex.position = Vec4(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z, 1.0f);
-		vertex.normal = Vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+
+		// 変換行列を頂点に適用
+		aiVector3D pos(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+		aiVector3D transformedPos = transform * pos;
+		vertex.position = Vec4(transformedPos.x, transformedPos.y, transformedPos.z, 1.0f);
+
+		// 法線にも回転を適用（スケールは除外）
+		aiMatrix3x3 normalMatrix(transform);
+		aiVector3D normal(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+		aiVector3D transformedNormal = normalMatrix * normal;
+		transformedNormal.Normalize();
+		vertex.normal = Vec3(transformedNormal.x, transformedNormal.y, transformedNormal.z);
+
 		if (mesh->mTextureCoords[0]) {
 			vertex.uv = Vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
 		} else {

@@ -58,18 +58,18 @@ void GameScene::Init(Engine* engine) {
 		}
 	);
 
-	// カメラを CameraManager に追加
-	CameraManager::AddCamera(camera);
-	// アクティブカメラに設定
-	CameraManager::SetActiveCamera(camera);
+	//// カメラを CameraManager に追加
+	//CameraManager::AddCamera(camera);
+	//// アクティブカメラに設定
+	//CameraManager::SetActiveCamera(camera);
 
-	cameraRoot_ = std::make_unique<Entity>("cameraBase");
-	cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
-	cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
+	//cameraRoot_ = std::make_unique<Entity>("cameraBase");
+	//cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
+	//cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
 
-	// プレイヤーにカメラをアタッチ
-	camera_->SetParent(cameraRoot_.get());
-	camera_->GetTransform()->SetLocalPos(Vec3::backward * 2.5f);
+	//// プレイヤーにカメラをアタッチ
+	//camera_->SetParent(cameraRoot_.get());
+	//camera_->GetTransform()->SetLocalPos(Vec3::backward * 2.5f);
 #pragma endregion
 
 #pragma region コンソール変数/コマンド
@@ -77,14 +77,14 @@ void GameScene::Init(Engine* engine) {
 #pragma endregion
 
 #pragma region メッシュレンダラー
-	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/floattest.obj");
-	auto mesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/floattest.obj");
+	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/weaponNinjaSword.obj");
+	auto mesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/weaponNinjaSword.obj");
 	if (mesh) {
 		Console::Print("メッシュの読み込みに成功しました: " + mesh->GetName() + "\n", kConsoleColorCompleted);
 	}
 
-	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/bunny.obj");
-	auto debugMesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/bunny.obj");
+	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/playerCollisionTest.gltf");
+	auto debugMesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/playerCollisionTest.gltf");
 
 	testMeshEntity_ = std::make_unique<Entity>("testmesh");
 	StaticMeshRenderer* rawTestMeshRenderer = testMeshEntity_->AddComponent<StaticMeshRenderer>();
@@ -92,6 +92,7 @@ void GameScene::Init(Engine* engine) {
 		rawTestMeshRenderer, [](StaticMeshRenderer*) {}
 	);
 	floatTestMR_->SetStaticMesh(mesh);
+	entities_.push_back(testMeshEntity_.get());
 
 	debugTestMeshEntity_ = std::make_unique<Entity>("debugTestMesh");
 	StaticMeshRenderer* testMeshRenderer = debugTestMeshEntity_->AddComponent<StaticMeshRenderer>();
@@ -99,29 +100,29 @@ void GameScene::Init(Engine* engine) {
 		testMeshRenderer, [](StaticMeshRenderer*) {}
 	);
 	debugTestMR_->SetStaticMesh(debugMesh);
+	entities_.push_back(debugTestMeshEntity_.get());
 #pragma endregion
 }
 
 void GameScene::Update(const float deltaTime) {
+	//if (InputSystem::IsPressed("+attack2")) {
+	//	camera_->SetParent(nullptr);
+	//	camera_->Update(deltaTime);
+	//} else {
+	//	camera_->SetParent(cameraRoot_.get());
+	//}
 
-	if (InputSystem::IsPressed("+attack2")) {
-		camera_->SetParent(nullptr);
-		camera_->Update(deltaTime);
-	} else {
-		camera_->SetParent(cameraRoot_.get());
-	}
+	//// マウスホイールでカメラのローカルZ軸方向に移動
+	//if (InputSystem::IsTriggered("+invprev")) {
+	//	camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() + Vec3::forward * 64.0f);
+	//} else if (InputSystem::IsTriggered("+invnext")) {
+	//	camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 64.0f);
+	//}
 
-	// マウスホイールでカメラのローカルZ軸方向に移動
-	if (InputSystem::IsTriggered("+invprev")) {
-		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() + Vec3::forward * 64.0f);
-	} else if (InputSystem::IsTriggered("+invnext")) {
-		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 64.0f);
-	}
+	//cameraRoot_->Update(deltaTime);
 
-	cameraRoot_->Update(deltaTime);
-
-	testMeshEntity_->Update(EngineTimer::GetScaledDeltaTime());
-	debugTestMeshEntity_->Update(EngineTimer::GetScaledDeltaTime());
+	testMeshEntity_->Update(deltaTime);
+	debugTestMeshEntity_->Update(deltaTime);
 
 	/*particleManager_->Update(deltaTime);
 	static bool isOffscreen = false;
@@ -137,8 +138,6 @@ void GameScene::Update(const float deltaTime) {
 	//sprite_->SetPos(Vec3(pos.x, pos.y));
 	//sprite_->SetRot(Vec3::forward * rotation);
 	//sprite_->Update();
-
-	Debug::DrawAxisWithCharacter(ConVarManager::GetConVar("testPos")->GetValueAsVec3(), Quaternion::Euler(0.0f, 0.0f, 0.0f));
 
 #ifdef _DEBUG
 #pragma region cl_showpos

@@ -33,15 +33,15 @@ void ResourceManager::Init() const {
 void ResourceManager::Shutdown() {
 	Console::Print("ResourceManager を終了しています...\n", kConsoleColorWait, Channel::ResourceSystem);
 
-//#ifdef _DEBUG
-//	ComPtr<ID3D12DebugDevice> debugDevice;
-//	if (SUCCEEDED(d3d12_->GetDevice()->QueryInterface(IID_PPV_ARGS(&debugDevice)))) {
-//		// 詳細なリーク情報を出力
-//		debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-//	}
-//#endif
+	//#ifdef _DEBUG
+	//	ComPtr<ID3D12DebugDevice> debugDevice;
+	//	if (SUCCEEDED(d3d12_->GetDevice()->QueryInterface(IID_PPV_ARGS(&debugDevice)))) {
+	//		// 詳細なリーク情報を出力
+	//		debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+	//	}
+	//#endif
 
-	// 全てのリソースマネージャーを終了
+		// 全てのリソースマネージャーを終了
 	if (meshManager_) {
 		meshManager_->Shutdown();
 		meshManager_.reset();

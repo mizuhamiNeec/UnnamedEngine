@@ -115,6 +115,9 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
+    <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
+    <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Shader\DefaultShader.cpp" />
     <ClCompile Include="Source\Engine\UnnamedResource\Mesh\MeshManager.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.cpp" />
@@ -221,6 +224,10 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\RuntimeEntitySystem.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\Base\EntitySystem.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Shader\DefaultShader.h" />
     <ClInclude Include="Source\Engine\UnnamedResource\Mesh\MeshManager.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.h" />

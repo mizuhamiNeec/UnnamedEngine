@@ -36,11 +36,20 @@ public:
 
 	[[nodiscard]] TransformComponent* GetTransform() const;
 
+	[[nodiscard]] bool IsActive() const;
+	void SetActive(bool active);
+	[[nodiscard]] bool IsVisible() const;
+	void SetVisible(bool visible);
+
 	// コンポーネント
 	template <typename T, typename... Args>
 	T* AddComponent(Args&&... args);
 	template <typename T>
 	T* GetComponent();
+
+	// すべてのコンポーネントを取得
+	template <typename T>
+	std::vector<T*> GetComponents();
 
 	// 親子関係
 	void SetParent(Entity* newParent);
@@ -60,6 +69,11 @@ private:
 	std::unordered_map<std::type_index, std::unique_ptr<Component>> components_;
 	EntityType entityType_;
 	std::string name_;
+
+	// Updateを呼ぶかどうか
+	bool isActive_ = true;
+	// 描画を行うかどうか
+	bool isVisible_ = true;
 };
 
 template <typename T, typename... Args>
@@ -79,4 +93,16 @@ T* Entity::GetComponent() {
 		return static_cast<T*>(it->second.get());
 	}
 	return nullptr;
+}
+
+template <typename T>
+std::vector<T*> Entity::GetComponents() {
+	static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
+	std::vector<T*> result;
+	for (const auto& [type, component] : components_) {
+		if (auto castedComponent = dynamic_cast<T*>(component.get())) {
+			result.push_back(castedComponent);
+		}
+	}
+	return result;
 }
