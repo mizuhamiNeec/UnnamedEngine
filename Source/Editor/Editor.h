@@ -22,7 +22,10 @@ private:
 	std::shared_ptr<Scene> scene_; // 現在編集中のシーン
 	Entity* selectedEntity_; // 選択中のエンティティ
 
-	// エディターカメラ
+	// エディターのカメラ
 	std::unique_ptr<Entity> cameraEntity_;
 	std::shared_ptr<CameraComponent> camera_;
+
+	float gridSize_ = 1.0f;
+	float gridRange_ = 1024.0f;
 };

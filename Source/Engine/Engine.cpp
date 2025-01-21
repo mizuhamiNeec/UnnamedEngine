@@ -67,6 +67,13 @@ void Engine::Init() {
 	renderer_ = std::make_unique<D3D12>();
 	renderer_->Init();
 
+	// ウィンドウがリサイズされたときのコールバック
+	Window::SetResizeCallback(
+		[this](const uint32_t width, const uint32_t height) {
+			renderer_->Resize(width, height);
+		}
+	);
+
 	InputSystem::Init();
 
 	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
@@ -155,10 +162,6 @@ void Engine::Update() {
 	}
 
 #ifdef _DEBUG
-
-	/*ImTextureID texId = resourceManager_->GetTextureManager()->GetTexture("Assets/Textures/DefaultTexture.png")->GetShaderResourceView().ptr;
-	ImGui::Image(texId, ImVec2(256.0f, 256.0f));*/
-
 	DebugHud::Update();
 #endif
 
@@ -228,6 +231,25 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 			InputSystem::BindKey(key, command);
 		},
 		"Bind a key to a command."
+	);
+	ConCommand::RegisterCommand(
+		"unbind",
+		[](const std::vector<std::string>& args) {
+			if (args.size() < 1) {
+				Console::Print("Usage: unbind <key>\n", kConsoleColorWarning, Channel::InputSystem);
+				return;
+			}
+			std::string key = args[0];
+			InputSystem::UnbindKey(key);
+		},
+		"Unbind a key."
+	);
+	ConCommand::RegisterCommand(
+		"toggle",
+		[](const std::vector<std::string>& args) {
+			ConVarManager::ToggleConVar(args[0]);
+		},
+		"Toggle a convar."
 	);
 	ConCommand::RegisterCommand("clear", Console::Clear, "Clear all console output");
 	ConCommand::RegisterCommand("cls", Console::Clear, "Clear all console output");
@@ -302,7 +324,7 @@ void Engine::CheckEditorMode() {
 }
 
 bool Engine::bWishShutdown_ = false;
-std::unique_ptr<D3D12> Engine::renderer_;
+std::unique_ptr<D3D12> Engine::renderer_ = nullptr;
 
 #ifdef _DEBUG
 bool Engine::bIsEditorMode_ = true;

@@ -94,6 +94,15 @@ void Console::Update() {
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, { 0.2f, 0.2f, 0.2f, 1.0f });
 		}
 
+		if (ImGuiManager::IconButton(StrUtils::ConvertToUtf8(kIconTerminal).c_str(), "ConVar", { 48.0f,48.0f })) {
+			bShowConVarHelper_ = !bShowConVarHelper_;
+		}
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+
+		ShowConVarHelper();
+
 		ShowConsoleBody();
 
 		if (!bIsDarkMode) {
@@ -949,6 +958,278 @@ void Console::ShowAbout() {
 #endif
 }
 
+void Console::ShowConVarHelper() {
+#ifdef _DEBUG
+	if (!bShowConVarHelper_) {
+		return;
+	}
+
+	bool isOpen = ImGui::Begin("ConVar Helper", &bShowConVarHelper_);
+
+	if (isOpen) {
+		// ページ選択
+		{
+			// ComboBoxの表示
+			ImGui::Text("Page");
+			ImGui::SameLine();
+			if (ImGui::BeginCombo("##Page", pages_[selectedPageIndex_].name.c_str(), ImGuiComboFlags_WidthFitPreview)) {
+				for (uint32_t n = 0; n < pages_.size(); n++) {
+					const bool isSelected = (static_cast<int>(selectedPageIndex_) == n);
+					if (ImGui::Selectable(pages_[n].name.c_str(), isSelected)) {
+						selectedPageIndex_ = n;
+					}
+					if (isSelected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("+", { 24,0 })) {
+				Page newPage = {
+					.name = "User Page " + std::to_string(pages_.size()),
+					.grid = { 3, 10 },
+				};
+				pages_.push_back(newPage);
+			}
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::BeginTooltip();
+				ImGui::Text("ページを追加します");
+				ImGui::EndTooltip();
+			}
+		}
+
+		// ページ名の編集
+		{
+			char pageNameBuffer[256];
+			strncpy_s(pageNameBuffer, pages_[selectedPageIndex_].name.c_str(), sizeof(pageNameBuffer));
+			if (ImGui::InputText("PageName", pageNameBuffer, sizeof(pageNameBuffer))) {
+				pages_[selectedPageIndex_].name = pageNameBuffer;
+			}
+		}
+
+		// グリッドの設定
+		{
+			// ウィンドウの利用可能な幅を取得
+			const float windowWidth = ImGui::GetContentRegionAvail().x;
+
+			// 各要素の幅を計算
+			const float labelWidth = ImGui::CalcTextSize("Grid").x;
+			const float xTextWidth = ImGui::CalcTextSize("x").x;
+			const float spacing = ImGui::GetStyle().ItemSpacing.x;
+			const float inputWidth = (windowWidth - labelWidth - xTextWidth - spacing * 4) * 0.5f;
+
+			ImGui::Text("Grid");
+			ImGui::SameLine();
+
+			ImGui::SetNextItemWidth(inputWidth);
+			int tmpWidth = static_cast<int>(pages_[selectedPageIndex_].grid.width);
+			if (ImGui::InputInt("##Width", &tmpWidth, 1)) {
+				pages_[selectedPageIndex_].grid.width = max(1, tmpWidth);
+			}
+
+			ImGui::SameLine();
+			ImGui::Text("x");
+			ImGui::SameLine();
+
+			ImGui::SetNextItemWidth(inputWidth);
+			int tmpHeight = static_cast<int>(pages_[selectedPageIndex_].grid.height);
+			if (ImGui::InputInt("##Height", &tmpHeight, 1)) {
+				pages_[selectedPageIndex_].grid.height = max(1, tmpHeight);
+			}
+		}
+
+		// グリッドサイズのテーブルを作成
+		{
+			const auto& grid = pages_[selectedPageIndex_].grid;
+
+			// グリッド要素の数を正しく保つ
+			size_t expectedSize = grid.width * grid.height;
+			auto& elements = pages_[selectedPageIndex_].elements;
+			if (elements.size() != expectedSize) {
+				elements.resize(expectedSize);
+			}
+
+			if (ImGui::BeginTable("GridTable", grid.width,
+				ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+				ImGuiTableFlags_SizingFixedFit |
+				ImGuiTableFlags_NoPadInnerX |
+				ImGuiTableFlags_NoPadOuterX)) {
+
+				// 列幅を均等に設定
+				float columnWidth = ImGui::GetContentRegionAvail().x / static_cast<float>(grid.width);
+				for (uint32_t i = 0; i < grid.width; ++i) {
+					ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, columnWidth);
+				}
+
+				// スタイルのパディングとスペーシングをなくす
+				ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0, 0));
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+				// 固定のセル高さを設定
+				const float cellHeight = 50.0f;
+
+				for (uint32_t row = 0; row < grid.height; ++row) {
+					ImGui::TableNextRow(0, cellHeight);
+					for (uint32_t col = 0; col < grid.width; ++col) {
+						ImGui::TableSetColumnIndex(col);
+
+						// セルのインデックスを計算
+						size_t cellIndex = row * grid.width + col;
+						GridElement& element = elements[cellIndex];
+
+						// セルの内容を表示
+						std::string cellId = std::format("Cell ({}, {})", col, row);
+
+						// ボタンのサイズをセルの幅と高さに合わせる
+						ImVec2 cellSize = ImVec2(columnWidth, cellHeight);
+
+						if (element.type == GridElement::Type::None) {
+							// 要素がない場合は見えないボタンを配置してコンテキストメニューを有効にする
+							ImGui::InvisibleButton(cellId.c_str(), cellSize);
+
+							// 右クリックでコンテキストメニューを表示
+							if (ImGui::BeginPopupContextItem(cellId.c_str())) {
+								if (ImGui::MenuItem("Add Label")) {
+									bShowElementPopup_ = true;
+									editingElementIndex_ = cellIndex;
+									element.type = GridElement::Type::Label;
+								}
+								if (ImGui::MenuItem("Add Button")) {
+									bShowElementPopup_ = true;
+									editingElementIndex_ = cellIndex;
+									element.type = GridElement::Type::Button;
+								}
+								ImGui::EndPopup();
+							}
+						} else if (element.type == GridElement::Type::Label) {
+							// ラベルの場合は、テキストを表示
+							ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(element.color));
+
+							// テキストを中央揃えで配置
+							ImVec2 textSize = ImGui::CalcTextSize(element.label.c_str());
+							ImVec2 pos = ImGui::GetCursorPos();
+							pos.x += (cellSize.x - textSize.x) * 0.5f;
+							pos.y += (cellSize.y - textSize.y) * 0.5f;
+							ImGui::SetCursorPos(pos);
+
+							ImGui::TextUnformatted(element.label.c_str());
+							ImGui::PopStyleColor();
+
+							// 右クリックでコンテキストメニューを表示
+							if (ImGui::BeginPopupContextItem(cellId.c_str())) {
+								if (ImGui::MenuItem("Edit Label")) {
+									bShowElementPopup_ = true;
+									editingElementIndex_ = cellIndex;
+								}
+								if (ImGui::MenuItem("Remove Element")) {
+									element = GridElement(); // 要素を削除
+								}
+								ImGui::EndPopup();
+							}
+						} else if (element.type == GridElement::Type::Button) {
+							// ボタンの場合は、ボタンを表示
+							ImGui::PushStyleColor(ImGuiCol_Button, ToImVec4(element.color));
+
+							if (ImGui::Button(element.label.c_str(), cellSize)) {
+								// ボタンのクリック処理
+								SubmitCommand(element.command);
+							}
+
+							ImGui::PopStyleColor();
+
+							// 右クリックでコンテキストメニューを表示
+							if (ImGui::BeginPopupContextItem(cellId.c_str())) {
+								if (ImGui::MenuItem("Edit Button")) {
+									bShowElementPopup_ = true;
+									editingElementIndex_ = cellIndex;
+								}
+								if (ImGui::MenuItem("Remove Element")) {
+									element = GridElement(); // 要素を削除
+								}
+								ImGui::EndPopup();
+							}
+						}
+					}
+				}
+
+				ImGui::PopStyleVar(2);
+				ImGui::EndTable();
+			}
+		}
+
+		// 要素編集用のポップアップを表示
+		ShowElementEditPopup();
+	}
+
+	ImGui::End();
+#endif
+}
+
+void Console::ShowElementEditPopup() {
+#ifdef _DEBUG
+	if (!bShowElementPopup_) {
+		return;
+	}
+
+	// ポップアップ名を "Edit Element" に統一
+	ImGui::OpenPopup("Edit Element");
+
+	// フルスクリーンポップアップの設定
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+
+	// 画面中心に表示
+	ImVec2 size = ImVec2(400, 200);
+	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+	ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowSize(size);
+
+	// ポップアップ名を "Edit Element" に統一
+	if (ImGui::BeginPopupModal("Edit Element", &bShowElementPopup_, flags)) {
+		auto& element = pages_[selectedPageIndex_].elements[editingElementIndex_];
+
+		if (element.type == GridElement::Type::Label) {
+			char labelBuffer[256];
+			strncpy_s(labelBuffer, element.label.c_str(), sizeof(labelBuffer));
+			if (ImGui::InputText("Label", labelBuffer, sizeof(labelBuffer))) {
+				element.label = labelBuffer;
+			}
+			ImGui::ColorEdit4("Color", &element.color.x);
+		} else if (element.type == GridElement::Type::Button) {
+			char commandBuffer[256];
+			strncpy_s(commandBuffer, element.command.c_str(), sizeof(commandBuffer));
+			if (ImGui::InputText("ConVar/ConCommand", commandBuffer, sizeof(commandBuffer))) {
+				element.command = commandBuffer;
+			}
+
+			char labelBuffer[256];
+			strncpy_s(labelBuffer, element.label.c_str(), sizeof(labelBuffer));
+			if (ImGui::InputText("Label", labelBuffer, sizeof(labelBuffer))) {
+				element.label = labelBuffer;
+			}
+
+			ImGui::ColorEdit4("Color", &element.color.x);
+		}
+
+		// OK と Cancel ボタン
+		if (ImGui::Button("OK")) {
+			bShowElementPopup_ = false;
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel")) {
+			bShowElementPopup_ = false;
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+#endif
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: InputSystemにコマンドを送信します
 // - command (std::string): 送信するコマンド
@@ -1294,4 +1575,17 @@ std::vector<std::string> Console::messageBuffer_;
 std::ofstream Console::logFile_;
 
 Console::DisplayState Console::displayState_;
+
+// ConVarヘルパー
+bool Console::bShowConVarHelper_ = false;
+bool Console::bShowElementPopup_ = false;
+size_t Console::editingElementIndex_ = 0;
+std::vector<Console::Page> Console::pages_ = {
+	{
+		.name = "User Page 0",
+		.grid = {.width = 3, .height = 10 }
+	},
+};
+size_t Console::selectedPageIndex_ = 0;
 #endif
+

@@ -225,6 +225,46 @@ public:
 		}
 	}
 
+	void Toggle() override {
+		if constexpr (std::is_same_v<T, bool>) {
+			SetValue(!value_);
+		} else if constexpr (std::is_same_v<T, int>) {
+			if (value_ == 0) {
+				value_ = 1;
+			} else {
+				value_ = 0;
+			}
+		} else {
+			Console::Print(
+				std::format("{} : CVAR は bool 型か int 型でなければなりません\n", name_),
+				kConsoleColorError,
+				Channel::Console
+			);
+		}
+	}
+
+	void DrawImGui() override {
+#ifdef _DEBUG
+		if constexpr (std::is_same_v<T, bool>) {
+			ImGui::Checkbox(name_.c_str(), &value_);
+		} else if constexpr (std::is_same_v<T, int>) {
+			ImGui::DragInt(name_.c_str(), &value_);
+		} else if constexpr (std::is_same_v<T, float>) {
+			ImGui::DragFloat(name_.c_str(), &value_);
+		} else if constexpr (std::is_same_v<T, Vec3>) {
+			ImGui::DragFloat3(name_.c_str(), &value_.x);
+		} else if constexpr (std::is_same_v<T, std::string>) {
+			char buffer[256];
+			strncpy_s(buffer, value_.c_str(), sizeof(buffer));
+			if (ImGui::InputText(name_.c_str(), buffer, sizeof(buffer))) {
+				value_ = buffer;
+			}
+		} else {
+			ImGui::InputText(name_.c_str(), &value_);
+		}
+#endif
+	}
+
 private:
 	void PrintConvertErrorMessage() {
 		Console::Print(

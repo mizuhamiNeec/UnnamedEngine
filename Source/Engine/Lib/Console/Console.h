@@ -115,6 +115,10 @@ private:
 	static void ShowContextMenu();
 	static void ShowAbout();
 
+	// ConVarHelper
+	static void ShowConVarHelper();
+	static void ShowElementEditPopup();
+
 	// 送信系
 	static bool ProcessInputCommand(const std::string& command);
 	static bool ValidateType(const std::string& value, const std::string& type);
@@ -139,7 +143,6 @@ private:
 	// コンソールの非同期スレッド
 	void ConsoleUpdateAsync();
 	void StartConsoleThread();
-	static void StopConsoleThread();
 	static void LogToFileAsync(const std::string& message);
 
 	static std::mutex mutex_;
@@ -150,6 +153,7 @@ private:
 	bool bConsoleUpdate_ = false;
 
 #ifdef _DEBUG
+	// コンソール
 	static bool bShowConsole_; // コンソールを表示するか?
 	static bool bWishScrollToBottom_; // 一番下にスクロールしたい
 	static bool bShowSuggestPopup_; // サジェストポップアップを表示
@@ -174,5 +178,34 @@ private:
 		size_t lastUpdateFrame = 0; // 最終更新フレーム
 	};
 	static DisplayState displayState_;
+
+	// ConVarヘルパー
+	static bool bShowConVarHelper_; // ConVarヘルパーを表示するか?
+	static bool bShowElementPopup_; // 要素編集ポップアップを表示するか?
+	static size_t editingElementIndex_; // 編集中の要素
+	static size_t selectedPageIndex_; // 選択されているページ
+
+	struct GridElement {
+		enum class Type {
+			None,
+			Label,
+			Button
+		} type = Type::None;
+
+		std::string label;
+		std::string command;
+		Vec4 color = Vec4::white;
+		std::string description;
+	};
+
+	struct Page {
+		std::string name; // ページ名
+		struct Grid {
+			uint32_t width; // テーブルの列数
+			uint32_t height; // テーブルの行数
+		} grid; // グリッドサイズ
+		std::vector<GridElement> elements; // 要素
+	};
+	static std::vector<Page> pages_; // ページ
 #endif
 };

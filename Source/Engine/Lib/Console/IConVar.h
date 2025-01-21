@@ -20,4 +20,8 @@ public:
 	virtual void SetValueFromInt(const int& newValue) = 0;
 	virtual void SetValueFromBool(const bool& newValue) = 0;
 	virtual void SetValueFromString(const std::string& newValue) = 0;
+
+	virtual void Toggle() = 0;
+
+	virtual void DrawImGui() = 0;
 };

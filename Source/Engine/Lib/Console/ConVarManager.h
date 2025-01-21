@@ -22,6 +22,7 @@ public:
 	static T GetConVarValue(const std::string& name);
 
 	static IConVar* GetConVar(const std::string& name);
+	static void ToggleConVar(const std::string& name);
 
 	static std::vector<IConVar*> GetAllConVars();
 
@@ -53,11 +54,9 @@ template <typename T>
 T ConVarManager::GetConVarValue(const std::string& name) {
 	std::lock_guard lock(mutex_);
 	auto it = conVars_.find(name);
-	if (it != conVars_.end())
-	{
+	if (it != conVars_.end()) {
 		auto* var = dynamic_cast<ConVar<T>*>(it->second.get());
-		if (var != nullptr)
-		{
+		if (var != nullptr) {
 			return var->GetValue();
 		}
 	}

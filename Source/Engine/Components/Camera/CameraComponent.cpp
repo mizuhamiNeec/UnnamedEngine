@@ -48,6 +48,7 @@ void CameraComponent::Update([[maybe_unused]] float deltaTime) {
 }
 
 void CameraComponent::DrawInspectorImGui() {
+#ifdef _DEBUG
 	if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
 		if (ImGui::Button("PrevCamera")) {
 			CameraManager::SwitchToNextCamera();
@@ -68,6 +69,7 @@ void CameraComponent::DrawInspectorImGui() {
 		ImGui::DragFloat("ZFar##cam", &zFar_, 0.1f);
 		ImGui::DragFloat("AspectRatio##cam", &aspectRatio_, 0.1f);
 	}
+#endif
 }
 
 //-----------------------------------------------------------------------------

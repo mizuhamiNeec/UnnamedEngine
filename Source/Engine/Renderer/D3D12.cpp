@@ -19,13 +19,6 @@
 #pragma comment(lib, "dxcompiler.lib")
 
 D3D12::D3D12() {
-	// コールバック関数の登録
-	Window::SetResizeCallback(
-		[this](const uint32_t width, const uint32_t height) {
-			Resize(width, height);
-		}
-	);
-
 #ifdef _DEBUG
 	EnableDebugLayer();
 #endif

@@ -9,12 +9,18 @@ IConVar* ConVarManager::GetConVar(const std::string& name) {
 	return it != conVars_.end() ? it->second.get() : nullptr;
 }
 
+void ConVarManager::ToggleConVar(const std::string& name) {
+	auto it = conVars_.find(name);
+	if (it != conVars_.end()) {
+		it->second->Toggle();
+	}
+}
+
 std::vector<IConVar*> ConVarManager::GetAllConVars() {
 	std::lock_guard lock(mutex_);
 	std::vector<IConVar*> conVarArray;
 	conVarArray.reserve(conVars_.size());
-	for (const auto& pair : conVars_)
-	{
+	for (const auto& pair : conVars_) {
 		conVarArray.push_back(pair.second.get());
 	}
 	return conVarArray;

@@ -41,183 +41,184 @@ void Editor::Init() {
 void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// グリッドの表示
 	DrawGrid(
-		1.0f,
-		1024,
+		gridSize_,
+		gridRange_,
 		{ 0.28f, 0.28f, 0.28f, 1.0f },
 		{ 0.39f, 0.2f, 0.02f, 1.0f },
 		{ 0.0f, 0.39f, 0.39f, 1.0f },
 		{ 0.39f, 0.39f, 0.39f, 1.0f }
 	);
 
+//#ifdef _DEBUG
+//	// カメラの操作
+//	static float moveSpd = 4.0f;
+//
+//	static bool firstReset = true; // 初回リセットフラグ
+//	static bool cursorHidden = false;
+//
+//	static bool bOpenPopup = false; // ポップアップ表示フラグ
+//	static float popupTimer = 0.0f;
+//
+//	if (InputSystem::IsPressed("attack2")) {
+//		if (!cursorHidden) {
+//			ShowCursor(FALSE); // カーソルを非表示にする
+//			cursorHidden = true;
+//		}
+//
+//		Vec2 delta = InputSystem::GetMouseDelta();
+//
+//		if (!firstReset) {
+//			// 回転
+//			float sensitivity = ConVarManager::GetConVar("sensitivity")->GetValueAsFloat();
+//			float m_pitch = 0.022f;
+//			float m_yaw = 0.022f;
+//			float min = -89.0f;
+//			float max = 89.0f;
+//
+//			static Vec3 rot_ = cameraEntity_->GetTransform()->GetLocalRot().ToEulerAngles();
+//
+//			rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
+//			rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
+//
+//			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad, max * Math::deg2Rad);
+//
+//			cameraEntity_->GetTransform()->SetWorldRot(Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
+//
+//			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
+//
+//			if (InputSystem::IsPressed("forward")) {
+//				moveInput.z += 1.0f;
+//			}
+//
+//			if (InputSystem::IsPressed("back")) {
+//				moveInput.z -= 1.0f;
+//			}
+//
+//			if (InputSystem::IsPressed("moveright")) {
+//				moveInput.x += 1.0f;
+//			}
+//
+//			if (InputSystem::IsPressed("moveleft")) {
+//				moveInput.x -= 1.0f;
+//			}
+//
+//			if (InputSystem::IsPressed("moveup")) {
+//				moveInput.y += 1.0f;
+//			}
+//
+//			if (InputSystem::IsPressed("movedown")) {
+//				moveInput.y -= 1.0f;
+//			}
+//
+//			moveInput.Normalize();
+//
+//			Quaternion camRot = cameraEntity_->GetTransform()->GetWorldRot();
+//			Vec3 cameraForward = camRot * Vec3::forward;
+//			Vec3 cameraRight = camRot * Vec3::right;
+//			Vec3 cameraUp = camRot * Vec3::up;
+//
+//			if (InputSystem::IsTriggered("invprev")) {
+//				moveSpd += 1.0f;
+//			}
+//
+//			if (InputSystem::IsTriggered("invnext")) {
+//				moveSpd -= 1.0f;
+//			}
+//
+//			static float oldMoveSpd = 0.0f;
+//			if (moveSpd != oldMoveSpd) {
+//				bOpenPopup = true;
+//				popupTimer = 0.0f;
+//			}
+//
+//			moveSpd = std::clamp(moveSpd, 0.125f, 128.0f);
+//
+//			oldMoveSpd = moveSpd;
+//
+//			cameraEntity_->GetTransform()->SetWorldPos(
+//				cameraEntity_->GetTransform()->GetWorldPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) *
+//				moveSpd * EngineTimer::GetScaledDeltaTime()
+//			);
+//		}
+//		// カーソルをウィンドウの中央にリセット
+//		POINT centerCursorPos = {
+//			static_cast<LONG>(Window::GetClientWidth() / 2), static_cast<LONG>(Window::GetClientHeight() / 2)
+//		};
+//		ClientToScreen(Window::GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
+//		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
+//
+//		firstReset = false; // 初回リセット完了
+//	} else {
+//		if (cursorHidden) {
+//			ShowCursor(TRUE); // カーソルを表示する
+//			cursorHidden = false;
+//		}
+//		firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
+//	}
+//
+//	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
+//	if (bOpenPopup) {
+//		// ビューポートのサイズと位置を取得
+//		ImGuiViewport* viewport = ImGui::GetMainViewport();
+//		ImVec2 viewportPos = viewport->Pos;
+//		ImVec2 viewportSize = viewport->Size;
+//		auto windowSize = ImVec2(256.0f, 32.0f);
+//
+//		// ウィンドウの中央下部位置を計算
+//		ImVec2 windowPos(
+//			viewportPos.x + (viewportSize.x) * 0.5f,
+//			viewportPos.y + (viewportSize.y) * 0.75f
+//		);
+//
+//		// ウィンドウの位置を調整
+//		windowPos.x -= windowSize.x * 0.5f;
+//		windowPos.y -= windowSize.y * 0.5f;
+//
+//		// ウィンドウの位置を設定
+//		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+//		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+//
+//		// ウィンドウを角丸に
+//		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 16.0f);
+//		// タイトルバーを非表示
+//
+//		ImGui::Begin(
+//			"##move speed",
+//			nullptr,
+//			ImGuiWindowFlags_NoTitleBar |
+//			ImGuiWindowFlags_NoResize |
+//			ImGuiWindowFlags_NoMove |
+//			ImGuiWindowFlags_NoSavedSettings |
+//			ImGuiWindowFlags_NoBringToFrontOnFocus |
+//			ImGuiWindowFlags_NoFocusOnAppearing |
+//			ImGuiWindowFlags_NoScrollbar
+//		);
+//
+//		ImGui::SetCursorPos(
+//			ImVec2(
+//				(windowSize.x - ImGui::CalcTextSize((StrUtils::ConvertToUtf8(0xe9e4) + std::format(" {:.2f}", moveSpd)).c_str()).x) * 0.5f,
+//				(windowSize.y - ImGui::GetFontSize()) * 0.5f
+//			)
+//		);
+//		ImGui::Text((StrUtils::ConvertToUtf8(0xe9e4) + " %.2f").c_str(), moveSpd);
+//
+//		// 一定時間経過後にポップアップをフェードアウトして閉じる
+//		popupTimer += EngineTimer::GetDeltaTime(); // ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
+//		if (popupTimer >= 3.0f) {
+//			ImGui::CloseCurrentPopup();
+//			bOpenPopup = false;
+//			popupTimer = 0.0f;
+//		}
+//
+//		ImGui::End();
+//		ImGui::PopStyleVar();
+//	}
+//
+//	cameraEntity_->Update(deltaTime);
+//
+//#endif
+
 #ifdef _DEBUG
-	// カメラの操作
-	static float moveSpd = 4.0f;
-
-	static bool firstReset = true; // 初回リセットフラグ
-	static bool cursorHidden = false;
-
-	static bool bOpenPopup = false; // ポップアップ表示フラグ
-	static float popupTimer = 0.0f;
-
-	if (InputSystem::IsPressed("attack2")) {
-		if (!cursorHidden) {
-			ShowCursor(FALSE); // カーソルを非表示にする
-			cursorHidden = true;
-		}
-
-		Vec2 delta = InputSystem::GetMouseDelta();
-
-		if (!firstReset) {
-			// 回転
-			float sensitivity = ConVarManager::GetConVar("sensitivity")->GetValueAsFloat();
-			float m_pitch = 0.022f;
-			float m_yaw = 0.022f;
-			float min = -89.0f;
-			float max = 89.0f;
-
-			static Vec3 rot_ = cameraEntity_->GetTransform()->GetLocalRot().ToEulerAngles();
-
-			rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
-			rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
-
-			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad, max * Math::deg2Rad);
-
-			cameraEntity_->GetTransform()->SetWorldRot(Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
-
-			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
-
-			if (InputSystem::IsPressed("forward")) {
-				moveInput.z += 1.0f;
-			}
-
-			if (InputSystem::IsPressed("back")) {
-				moveInput.z -= 1.0f;
-			}
-
-			if (InputSystem::IsPressed("moveright")) {
-				moveInput.x += 1.0f;
-			}
-
-			if (InputSystem::IsPressed("moveleft")) {
-				moveInput.x -= 1.0f;
-			}
-
-			if (InputSystem::IsPressed("moveup")) {
-				moveInput.y += 1.0f;
-			}
-
-			if (InputSystem::IsPressed("movedown")) {
-				moveInput.y -= 1.0f;
-			}
-
-			moveInput.Normalize();
-
-			Quaternion camRot = cameraEntity_->GetTransform()->GetWorldRot();
-			Vec3 cameraForward = camRot * Vec3::forward;
-			Vec3 cameraRight = camRot * Vec3::right;
-			Vec3 cameraUp = camRot * Vec3::up;
-
-			if (InputSystem::IsTriggered("invprev")) {
-				moveSpd += 1.0f;
-			}
-
-			if (InputSystem::IsTriggered("invnext")) {
-				moveSpd -= 1.0f;
-			}
-
-			static float oldMoveSpd = 0.0f;
-			if (moveSpd != oldMoveSpd) {
-				bOpenPopup = true;
-				popupTimer = 0.0f;
-			}
-
-			moveSpd = std::clamp(moveSpd, 0.125f, 128.0f);
-
-			oldMoveSpd = moveSpd;
-
-			cameraEntity_->GetTransform()->SetWorldPos(
-				cameraEntity_->GetTransform()->GetWorldPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) *
-				moveSpd * EngineTimer::GetScaledDeltaTime()
-			);
-		}
-		// カーソルをウィンドウの中央にリセット
-		POINT centerCursorPos = {
-			static_cast<LONG>(Window::GetClientWidth() / 2), static_cast<LONG>(Window::GetClientHeight() / 2)
-		};
-		ClientToScreen(Window::GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
-		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
-
-		firstReset = false; // 初回リセット完了
-	} else {
-		if (cursorHidden) {
-			ShowCursor(TRUE); // カーソルを表示する
-			cursorHidden = false;
-		}
-		firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
-	}
-
-	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
-	if (bOpenPopup) {
-		// ビューポートのサイズと位置を取得
-		ImGuiViewport* viewport = ImGui::GetMainViewport();
-		ImVec2 viewportPos = viewport->Pos;
-		ImVec2 viewportSize = viewport->Size;
-		auto windowSize = ImVec2(256.0f, 32.0f);
-
-		// ウィンドウの中央下部位置を計算
-		ImVec2 windowPos(
-			viewportPos.x + (viewportSize.x) * 0.5f,
-			viewportPos.y + (viewportSize.y) * 0.75f
-		);
-
-		// ウィンドウの位置を調整
-		windowPos.x -= windowSize.x * 0.5f;
-		windowPos.y -= windowSize.y * 0.5f;
-
-		// ウィンドウの位置を設定
-		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
-
-		// ウィンドウを角丸に
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 16.0f);
-		// タイトルバーを非表示
-
-		ImGui::Begin(
-			"##move speed",
-			nullptr,
-			ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_NoFocusOnAppearing |
-			ImGuiWindowFlags_NoScrollbar
-		);
-
-		ImGui::SetCursorPos(
-			ImVec2(
-				(windowSize.x - ImGui::CalcTextSize((StrUtils::ConvertToUtf8(0xe9e4) + std::format(" {:.2f}", moveSpd)).c_str()).x) * 0.5f,
-				(windowSize.y - ImGui::GetFontSize()) * 0.5f
-			)
-		);
-		ImGui::Text((StrUtils::ConvertToUtf8(0xe9e4) + " %.2f").c_str(), moveSpd);
-
-		// 一定時間経過後にポップアップをフェードアウトして閉じる
-		popupTimer += EngineTimer::GetDeltaTime(); // ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
-		if (popupTimer >= 3.0f) {
-			ImGui::CloseCurrentPopup();
-			bOpenPopup = false;
-			popupTimer = 0.0f;
-		}
-
-		ImGui::End();
-		ImGui::PopStyleVar();
-	}
-
-	cameraEntity_->Update(deltaTime);
-
-#endif
-
 	ImGui::ShowDemoWindow();
 
 	if (ImGui::BeginMainMenuBar()) {
@@ -337,6 +338,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		}
 	}
 	ImGui::End();
+#endif
 
 	//// タブの名前
 	//static const char* tabNames[] = {
@@ -373,6 +375,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	//ImGui::End();
 
 	// インスペクタ
+#ifdef _DEBUG
 	if (ImGui::Begin("Inspector")) {
 		if (selectedEntity_) {
 			ImGui::Text("Name: %s", selectedEntity_->GetName().c_str());
@@ -391,11 +394,14 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	ImGui::End();
 
 
-	if (ImGui::Begin("World")) {
-
-		ImGui::Text("Hello World!!");
+	if (ImGui::Begin("World Settings")) {
+		ImGui::Text("Grid Size");
+		ImGui::SliderFloat("##GridSize", &gridSize_, 0.125f, 64.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+		ImGui::Text("Grid Range");
+		ImGui::SliderFloat("##GridRange", &gridRange_, 128.0f, 16384.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
 	}
 	ImGui::End();
+#endif
 
 #ifdef _DEBUG
 	auto viewport = static_cast<ImGuiViewportP*>(static_cast<void*>(ImGui::GetMainViewport()));
@@ -408,9 +414,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		if (ImGui::BeginMenuBar()) {
 			ImGui::PopStyleVar();
 
-			ImGui::Text("ハリボテ");
-
-			ImGui::BeginDisabled(true);
+			// ステータスバーの幅を取得
+			float statusBarWidth = ImGui::GetWindowWidth();
 
 			// アングルスナップ
 			{
@@ -428,6 +433,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				float offsetY = (windowHeight - comboHeight) * 0.5f;
 				ImGui::SetCursorPosY(offsetY);
 
+				// コンボボックスの幅をステータスバーの幅に合わせて調整
+				ImGui::PushItemWidth(statusBarWidth * 0.2f);
 				if (ImGui::BeginCombo("##angle", comboLabel)) {
 					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
 						const bool isSelected = (itemCurrentIndex == n);
@@ -440,9 +447,37 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 					}
 					ImGui::EndCombo();
 				}
+				ImGui::PopItemWidth();
 			}
 
-			ImGui::EndDisabled();
+			// グリッドスナップ
+			{
+				const float windowHeight = ImGui::GetWindowSize().y;
+				const char* items[] = { "0.125", "0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512" };
+				static int itemCurrentIndex = 2;
+				const char* comboLabel = items[itemCurrentIndex];
+				ImGui::Text("Grid: ");
+				// 垂直中央に配置
+				float comboHeight = ImGui::GetFrameHeight();
+				float offsetY = (windowHeight - comboHeight) * 0.5f;
+				ImGui::SetCursorPosY(offsetY);
+
+				// コンボボックスの幅をステータスバーの幅に合わせて調整
+				ImGui::PushItemWidth(statusBarWidth * 0.2f);
+				if (ImGui::BeginCombo("##grid", comboLabel)) {
+					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
+						const bool isSelected = (itemCurrentIndex == n);
+						if (ImGui::Selectable(items[n], isSelected)) {
+							itemCurrentIndex = n;
+						}
+						if (isSelected) {
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+				ImGui::PopItemWidth();
+			}
 
 			ImGui::EndMenuBar();
 		}
