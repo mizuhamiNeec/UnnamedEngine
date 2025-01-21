@@ -5,6 +5,8 @@
 #include <format>
 #include <stdexcept>
 
+#include "Lib/Math/Matrix/Mat4.h"
+
 const Vec3 Vec3::zero(0.0f, 0.0f, 0.0f);
 const Vec3 Vec3::one(1.0f, 1.0f, 1.0f);
 const Vec3 Vec3::right(1.0f, 0.0f, 0.0f);
@@ -88,6 +90,11 @@ Vec3 Vec3::ClampLength(const float min, const float max) {
 
 Vec3 Vec3::Reflect(const Vec3& normal) const {
 	return *this - 2 * this->Dot(normal) * normal;
+}
+
+Vec3 Vec3::TransformDirection(const Quaternion& rotation) const {
+	Mat4 rotationMat = Mat4::RotateQuaternion(rotation);
+	return Mat4::Transform(*this, rotationMat);
 }
 
 float& Vec3::operator[](const uint32_t index) {

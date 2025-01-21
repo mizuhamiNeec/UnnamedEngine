@@ -5,6 +5,8 @@
 
 #include <Lib/Math/Vector/Vec3.h>
 
+#include "Lib/Math/Quaternion/Quaternion.h"
+
 class TransformComponent;
 
 class PlayerMovement : public CharacterMovement {
@@ -23,4 +25,5 @@ public:
 private:
 	// プレイヤーの移動入力
 	Vec3 moveInput_ = Vec3::zero;
+	Vec3 wishdir = Vec3::zero;
 };

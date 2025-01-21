@@ -3,6 +3,8 @@
 #include <string>
 #include <Lib/Math/Vector/Vec2.h>
 
+struct Quaternion;
+
 struct Vec3 final {
 	float x, y, z;
 
@@ -34,6 +36,8 @@ struct Vec3 final {
 	Vec3 Clamp(Vec3 min, Vec3 max) const;
 	Vec3 ClampLength(float min, float max);
 	Vec3 Reflect(const Vec3& normal) const;
+
+	Vec3 TransformDirection(const Quaternion& rotation) const;
 
 	/* ---------------- 演算子 ---------------- */
 	float& operator[](uint32_t index);

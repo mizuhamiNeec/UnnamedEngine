@@ -12,8 +12,7 @@ public:
 		rotation_(Quaternion::identity),
 		scale_(Vec3::one),
 		localMat_(Mat4::identity),
-		isDirty_(true) {
-	}
+		isDirty_(true) {}
 
 	void Update(float deltaTime) override;
 
@@ -43,6 +42,11 @@ public:
 
 	bool IsDirty() const;
 	void SetIsDirty(bool newIsDirty) const;
+
+	Vec3 TransformDirection(const Vec3& localDir) const {
+		const Mat4 rotationMat = Mat4::RotateQuaternion(rotation_);
+		return Mat4::Transform(localDir, rotationMat);
+	}
 
 private:
 	Vec3 position_;

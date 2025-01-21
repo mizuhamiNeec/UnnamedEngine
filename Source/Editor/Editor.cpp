@@ -220,102 +220,122 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 	ImGui::ShowDemoWindow();
 
-	// アウトライナウィンドウの開始
-	ImGui::Begin("Outliner");
-
-	// テーブルの開始
-	if (ImGui::BeginTable("OutlinerTable", 3,
-		ImGuiTableFlags_NoBordersInBody |
-		ImGuiTableFlags_SizingFixedFit)) {
-
-		// カラムの設定
-		ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide | ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed, 30.0f);
-		ImGui::TableSetupColumn("Active", ImGuiTableColumnFlags_WidthFixed, 30.0f);
-
-		// 再帰的にエンティティを表示する関数
-		std::function<void(Entity*)> drawEntityNode = [&](Entity* entity) {
-			ImGui::PushID(entity);
-
-			ImGui::TableNextRow();
-			ImGui::TableNextColumn();
-
-			// エンティティ名とツリー構造
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
-				ImGuiTreeNodeFlags_SpanAvailWidth;
-
-			if (entity->GetChildren().empty()) {
-				flags |= ImGuiTreeNodeFlags_Leaf;
-			}
-			if (entity == selectedEntity_) {
-				flags |= ImGuiTreeNodeFlags_Selected;
-			}
-
-			bool nodeOpen = ImGui::TreeNodeEx(entity->GetName().c_str(), flags);
-
-			if (ImGui::IsItemClicked()) {
-				selectedEntity_ = entity;
-			}
-
-			// Visible アイコン
-			ImGui::TableNextColumn();
-			bool visible = entity->IsVisible();
-
-			// アイコンのサイズを一時的に変更
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));  // アイコン間のスペースを調整
-			float originalScale = ImGui::GetFont()->Scale;
-			ImGui::GetFont()->Scale = 1.2f;  // スケールを1.2倍に
-			ImGui::PushFont(ImGui::GetFont());
-
-			ImGui::PushStyleColor(ImGuiCol_Text, visible ?
-				ImGui::GetStyleColorVec4(ImGuiCol_Text) :
-				ImVec4(0.5f, 0.5f, 0.5f, 0.5f));
-
-			// アイコンを中央に配置
-			float iconWidth = ImGui::CalcTextSize(StrUtils::ConvertToUtf8(kIconVisibility).c_str()).x;
-			float columnWidth = ImGui::GetColumnWidth();
-			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (columnWidth - iconWidth) * 0.5f);
-
-			if (ImGui::Selectable(StrUtils::ConvertToUtf8(visible ?
-				kIconVisibility : kIconVisibilityOff).c_str(), false,
-				ImGuiSelectableFlags_DontClosePopups)) {
-				entity->SetVisible(!visible);
-			}
-
-			// スタイルを元に戻す
-			ImGui::PopStyleColor();
-			ImGui::GetFont()->Scale = originalScale;
-			ImGui::PopFont();
-			ImGui::PopStyleVar();
-
-			// Active チェックボックス
-			ImGui::TableNextColumn();
-			bool active = entity->IsActive();
-			if (ImGui::Checkbox("##Active", &active)) {
-				entity->SetActive(active);
-			}
-
-			if (nodeOpen) {
-				for (auto& child : entity->GetChildren()) {
-					drawEntityNode(child);
-				}
-				ImGui::TreePop();
-			}
-
-			ImGui::PopID();
-			};
-
-		// ルートエンティティから開始
-		auto entities = scene_->GetEntities();
-		for (auto& entity : entities) {
-			if (entity->GetParent() == nullptr) {
-				drawEntityNode(entity);
-			}
+	if (ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("File")) {
+			ImGui::EndMenu();
 		}
-
-		ImGui::EndTable();
+		if (ImGui::BeginMenu("Edit")) {
+			if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+			if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+			ImGui::Separator();
+			if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+			if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+			if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
 	}
 
+	// アウトライナウィンドウの開始
+	if (ImGui::Begin("Outliner")) {
+		// テーブルの開始
+		if (ImGui::BeginTable("OutlinerTable", 3,
+			ImGuiTableFlags_NoBordersInBody |
+			ImGuiTableFlags_SizingFixedFit |
+			ImGuiTableFlags_RowBg)
+			) {
+
+			// カラムの設定
+			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide | ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed, 30.0f);
+			ImGui::TableSetupColumn("Active", ImGuiTableColumnFlags_WidthFixed, 30.0f);
+
+			// 再帰的にエンティティを表示する関数
+			std::function<void(Entity*)> drawEntityNode = [&](Entity* entity) {
+				ImGui::PushID(entity);
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				// エンティティ名とツリー構造
+				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
+					ImGuiTreeNodeFlags_SpanAvailWidth |
+					ImGuiTreeNodeFlags_AllowItemOverlap |
+					ImGuiTreeNodeFlags_DefaultOpen;
+
+				if (entity->GetChildren().empty()) {
+					flags |= ImGuiTreeNodeFlags_Leaf;
+				}
+				if (entity == selectedEntity_) {
+					flags |= ImGuiTreeNodeFlags_Selected;
+				}
+
+				ImGui::AlignTextToFramePadding();
+				bool nodeOpen = ImGui::TreeNodeEx(entity->GetName().c_str(), flags);
+
+				if (ImGui::IsItemClicked()) {
+					selectedEntity_ = entity;
+				}
+
+				// Visible アイコン
+				ImGui::TableNextColumn();
+				bool visible = entity->IsVisible();
+
+				// アイコンのサイズを一時的に変更
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));  // アイコン間のスペースを調整
+				float originalScale = ImGui::GetFont()->Scale;
+				ImGui::GetFont()->Scale = 1.2f;  // スケールを1.2倍に
+				ImGui::PushFont(ImGui::GetFont());
+
+				ImGui::PushStyleColor(ImGuiCol_Text, visible ?
+					ImGui::GetStyleColorVec4(ImGuiCol_Text) :
+					ImVec4(0.5f, 0.5f, 0.5f, 0.5f));
+
+				// アイコンを中央に配置
+				float iconWidth = ImGui::CalcTextSize(StrUtils::ConvertToUtf8(kIconVisibility).c_str()).x;
+				float columnWidth = ImGui::GetColumnWidth();
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (columnWidth - iconWidth) * 0.5f);
+
+				if (ImGui::Selectable(StrUtils::ConvertToUtf8(visible ?
+					kIconVisibility : kIconVisibilityOff).c_str(), false,
+					ImGuiSelectableFlags_DontClosePopups)) {
+					entity->SetVisible(!visible);
+				}
+
+				// スタイルを元に戻す
+				ImGui::PopStyleColor();
+				ImGui::GetFont()->Scale = originalScale;
+				ImGui::PopFont();
+				ImGui::PopStyleVar();
+
+				// Active チェックボックス
+				ImGui::TableNextColumn();
+				bool active = entity->IsActive();
+				if (ImGui::Checkbox("##Active", &active)) {
+					entity->SetActive(active);
+				}
+
+				if (nodeOpen) {
+					for (auto& child : entity->GetChildren()) {
+						drawEntityNode(child);
+					}
+					ImGui::TreePop();
+				}
+
+				ImGui::PopID();
+				};
+
+			// ルートエンティティから開始
+			auto entities = scene_->GetEntities();
+			for (auto& entity : entities) {
+				if (entity->GetParent() == nullptr) {
+					drawEntityNode(entity);
+				}
+			}
+
+			ImGui::EndTable();
+		}
+	}
 	ImGui::End();
 
 	//// タブの名前
@@ -352,23 +372,30 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 	//ImGui::End();
 
-	if (selectedEntity_) {
-		ImGui::Begin("Inspector");
+	// インスペクタ
+	if (ImGui::Begin("Inspector")) {
+		if (selectedEntity_) {
+			ImGui::Text("Name: %s", selectedEntity_->GetName().c_str());
 
-		ImGui::Text("Name: %s", selectedEntity_->GetName().c_str());
+			selectedEntity_->GetTransform()->DrawInspectorImGui();
 
-		selectedEntity_->GetTransform()->DrawInspectorImGui();
-
-		// コンポーネントの一覧表示と編集
-		const auto& components = selectedEntity_->GetComponents<Component>();
-		for (const auto& component : components) {
-			if (component) {
-				component->DrawInspectorImGui();
+			// コンポーネントの一覧表示と編集
+			const auto& components = selectedEntity_->GetComponents<Component>();
+			for (const auto& component : components) {
+				if (component) {
+					component->DrawInspectorImGui();
+				}
 			}
 		}
-
-		ImGui::End();
 	}
+	ImGui::End();
+
+
+	if (ImGui::Begin("World")) {
+
+		ImGui::Text("Hello World!!");
+	}
+	ImGui::End();
 
 #ifdef _DEBUG
 	auto viewport = static_cast<ImGuiViewportP*>(static_cast<void*>(ImGui::GetMainViewport()));

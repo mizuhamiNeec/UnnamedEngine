@@ -44,6 +44,9 @@ struct Mat4 final {
 
 	Vec3 GetTranslate();
 	Vec3 GetRotate() const;
+	Vec3 GetRight();
+	Vec3 GetUp();
+	Vec3 GetForward();
 
 	//-------------------------------------------------------------------------
 	// Operator

@@ -64,24 +64,10 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 
 	transform_->SetLocalPos(position_ + velocity_ * deltaTime_);
 
-	// 各軸の範囲外に出たら制限し、各軸のvelocityを0にする
-	Vec3 worldPos = transform_->GetWorldPos();
-
-	if (worldPos.x > 32.0f || worldPos.x < -32.0f) {
-		worldPos.x = std::clamp(worldPos.x, -32.0f, 32.0f);
-		velocity_.x = 0.0f;
-	}
-
-	if (worldPos.z > 32.0f || worldPos.z < -32.0f) {
-		worldPos.z = std::clamp(worldPos.z, -32.0f, 32.0f);
-		velocity_.z = 0.0f;
-	}
-
-	transform_->SetWorldPos(worldPos);
-
 	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
 	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), Math::HtoM(73), Math::HtoM(33.0f * 0.5f), isGrounded_ ? Vec4::green : Vec4::red);
-	Debug::DrawRay(transform_->GetWorldPos(), moveInput_, Vec4::cyan);
+
+	Debug::DrawRay(transform_->GetWorldPos(), wishdir, Vec4::cyan);
 }
 
 void PlayerMovement::DrawInspectorImGui() {
@@ -101,7 +87,7 @@ void PlayerMovement::Move() {
 	}
 
 	// ジャンプ処理
-	if (isGrounded_ && InputSystem::IsTriggered("+jump")) {
+	if (isGrounded_ && InputSystem::IsPressed("+jump")) {
 		velocity_.y = Math::HtoM(jumpVel_);
 		isGrounded_ = false;
 	}
@@ -109,25 +95,28 @@ void PlayerMovement::Move() {
 	// CheckVelocity
 	CheckVelocity();
 
-	// ビュー行列の逆行列を計算
-	Mat4 inverseViewMatrix = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
+	// カメラの前方ベクトルを取得し、XZ平面に投影して正規化
+	auto camera = CameraManager::GetActiveCamera();
+	Vec3 cameraForward = camera->GetViewMat().Inverse().GetForward();
+	cameraForward.y = 0.0f;  // Y成分を0にする
+	cameraForward.Normalize();  // XZ平面での正規化が重要
 
-	// 逆行列の各列を取得
-	Vec3 right = { inverseViewMatrix.m[0][0], inverseViewMatrix.m[0][1], inverseViewMatrix.m[0][2] };
-	Vec3 up = { inverseViewMatrix.m[1][0], inverseViewMatrix.m[1][1], inverseViewMatrix.m[1][2] };
-	Vec3 forward = { inverseViewMatrix.m[2][0], inverseViewMatrix.m[2][1], inverseViewMatrix.m[2][2] };
+	// カメラの右方向ベクトルを計算（Y軸との外積）
+	Vec3 cameraRight = Vec3::up.Cross(cameraForward).Normalized();
 
-	// 方向ベクトルを正規化
-	right.Normalize();
-	up.Normalize();
-	forward.Normalize();
+	// 入力に基づいて移動方向を計算
+	Vec3 wishvel = (cameraForward * moveInput_.z) + (cameraRight * moveInput_.x);
+	wishvel.y = 0.0f;  // Y成分を確実に0に
+
+	if (!wishvel.IsZero()) {
+		wishvel.Normalize();
+	}
 
 	if (isGrounded_) {
 		velocity_.y = 0.0f;
-		Vec3 wishvel = moveInput_.x * right + moveInput_.z * forward;
 		wishvel.y = 0.0f;
 		wishvel.Normalize();
-		Vec3 wishdir = wishvel;
+		wishdir = wishvel;
 		float wishspeed = wishdir.Length();
 		wishspeed *= speed_;
 		float maxspeed = ConVarManager::GetConVar("sv_maxspeed")->GetValueAsFloat();
@@ -137,9 +126,8 @@ void PlayerMovement::Move() {
 		}
 		Accelerate(wishdir, wishspeed, ConVarManager::GetConVar("sv_accelerate")->GetValueAsFloat());
 	} else {
-		Vec3 wishvel = moveInput_.x * right + moveInput_.z * forward;
 		wishvel.y = 0.0f;
-		Vec3 wishdir = wishvel;
+		wishdir = wishvel;
 		wishvel.Normalize();
 		float wishspeed = wishdir.Length();
 		wishspeed *= speed_;
@@ -153,6 +141,8 @@ void PlayerMovement::Move() {
 
 	// y座標が0以下の場合は0にする
 	position_.y = max(position_.y, 0.0f);
+
+	isGrounded_ = CheckGrounded();
 
 	if (!isGrounded_) {
 		ApplyHalfGravity();

@@ -453,3 +453,15 @@ Vec3 Mat4::GetRotate() const {
 	result.z = std::atan2(m[1][0], m[0][0]);
 	return result;
 }
+
+Vec3 Mat4::GetRight() {
+	return { m[0][0], m[0][1], m[0][2] };
+}
+
+Vec3 Mat4::GetUp() {
+	return { m[1][0], m[1][1], m[1][2] };
+}
+
+Vec3 Mat4::GetForward() {
+	return { m[2][0], m[2][1], m[2][2] };
+}
