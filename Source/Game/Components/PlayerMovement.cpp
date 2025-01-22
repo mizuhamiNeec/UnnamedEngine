@@ -73,10 +73,11 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	Debug::DrawBox(transform_->GetWorldPos() + (Vec3::up * height * 0.5f), Quaternion::Euler(Vec3::zero), Vec3(width, height, width), Vec4::blue);
 
 	Debug::DrawRay(transform_->GetWorldPos(), wishdir, Vec4::cyan);
-}
+} 
 
 void PlayerMovement::DrawInspectorImGui() {
-
+	ImGui::CollapsingHeader("PlayerMovement", ImGuiTreeNodeFlags_DefaultOpen);
+	ImGuiManager::DragVec3("Velocity", velocity_, 0.1f, "%.2f m/s");
 }
 
 void PlayerMovement::Move() {
@@ -145,7 +146,7 @@ void PlayerMovement::Move() {
 	}
 
 	// y座標が0以下の場合は0にする
-	position_.y = max(position_.y, 0.0f);
+	position_.y = std::max(position_.y, 0.0f);
 
 	isGrounded_ = CheckGrounded();
 
@@ -156,7 +157,12 @@ void PlayerMovement::Move() {
 
 bool PlayerMovement::CheckGrounded() {
 	// y座標が0以下の場合は接地していると判定
-	return transform_->GetLocalPos().y <= 0.0f;
+	return false;
+	//return transform_->GetLocalPos().y <= 0.0f;
+}
+
+void PlayerMovement::SetIsGrounded(bool bIsGrounded) {
+	isGrounded_ = bIsGrounded;
 }
 
 void PlayerMovement::SetVelocity(const Vec3 newVel) {

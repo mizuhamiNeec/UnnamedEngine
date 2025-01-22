@@ -331,6 +331,8 @@
     <ClInclude Include="Source\Engine\ResourceSystem\Texture\Texture.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Texture\TextureManager.h" />
     <ClInclude Include="Source\Engine\Components\Collider\Base\Collider.h" />
+    <ClInclude Include="Source\Engine\Components\Collider\AABBCollider.h" />
+    <ClInclude Include="Source\Engine\Lib\Physics\Physics.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -504,6 +506,8 @@
     <ClCompile Include="Source\Engine\ResourceSystem\Texture\Texture.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Texture\TextureManager.cpp" />
     <ClCompile Include="Source\Engine\Components\Collider\Base\Collider.cpp" />
+    <ClCompile Include="Source\Engine\Components\Collider\AABBCollider.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Physics\Physics.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

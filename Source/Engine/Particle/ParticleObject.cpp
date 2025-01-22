@@ -75,7 +75,7 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 	emitter_.frequencyTime = 0.0f; // 発生頻度用の時刻、0で初期化
 	emitter_.size = Vec3::one; // エミッターのサイズを初期化
 
-	accelerationField_ = AccelerationField({ 15.0f, 0.0f, 0.0f }, { {-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f} });
+	//accelerationField_ = AccelerationField({ 15.0f, 0.0f, 0.0f }, { {-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f} });
 }
 
 void ParticleObject::Update(const float deltaTime) {
@@ -110,9 +110,9 @@ void ParticleObject::Update(const float deltaTime) {
 	ImGui::Checkbox("Enable Drag", &enableDrag);
 
 	// AccelerationFieldのパラメーター編集
-	ImGui::DragFloat3("Acceleration", &accelerationField_.acceleration.x);
+	/*ImGui::DragFloat3("Acceleration", &accelerationField_.acceleration.x);
 	ImGui::DragFloat3("Field Min", &accelerationField_.area.min.x);
-	ImGui::DragFloat3("Field Max", &accelerationField_.area.max.x);
+	ImGui::DragFloat3("Field Max", &accelerationField_.area.max.x);*/
 
 	// エミッターのサイズを編集
 	ImGui::DragFloat3("Emitter Size", &emitter_.size.x);
@@ -134,9 +134,9 @@ void ParticleObject::Update(const float deltaTime) {
 		if (numInstance < kNumMaxInstance) {
 			if (enableAccelerationField_) {
 				// Fieldの範囲内のParticleには加速度を適用する
-				if (Math::IsCollision(accelerationField_.area, particleIterator->transform.translate)) {
+				/*if (Math::IsCollision(accelerationField_.area, particleIterator->transform.translate)) {
 					particleIterator->vel += accelerationField_.acceleration * deltaTime;
-				}
+				}*/
 			}
 
 			// 重力の適用

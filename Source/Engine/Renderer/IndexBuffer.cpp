@@ -37,8 +37,7 @@ IndexBuffer::IndexBuffer(
 	view_.BufferLocation = buffer_->GetGPUVirtualAddress();
 	view_.Format = DXGI_FORMAT_R32_UINT;
 
-	if (pInitData != nullptr)
-	{
+	if (pInitData != nullptr) {
 		void* ptr = nullptr;
 		hr = buffer_->Map(0, nullptr, &ptr);
 		assert(SUCCEEDED(hr));
@@ -71,4 +70,16 @@ void IndexBuffer::Update(const void* pInitData, const size_t size) const {
 
 size_t IndexBuffer::GetSize() const {
 	return size_;
+}
+
+std::vector<uint32_t>& IndexBuffer::GetIndices() const {
+	indices_.resize(size_ / sizeof(uint32_t));
+	void* ptr = nullptr;
+	HRESULT hr = buffer_->Map(0, nullptr, &ptr);
+	assert(SUCCEEDED(hr));
+
+	memcpy(indices_.data(), ptr, size_);
+	buffer_->Unmap(0, nullptr);
+
+	return indices_;
 }

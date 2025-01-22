@@ -13,6 +13,8 @@ public:
 	void AddSubMesh(std::unique_ptr<SubMesh> subMesh);
 	const std::vector<std::unique_ptr<SubMesh>>& GetSubMeshes() const;
 	std::string GetName() const;
+	std::vector<Physics::Triangle> GetPolygons();
+
 	void Render(ID3D12GraphicsCommandList* commandList) const;
 
 	void ReleaseResource();

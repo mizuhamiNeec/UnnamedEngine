@@ -12,10 +12,11 @@
 
 #include <Scene/Base/Scene.h>
 
+#include <Components/PlayerMovement.h>
 #include <Components/MeshRenderer/StaticMeshRenderer.h>
 #include <Sprite/Sprite.h>
 #include <Sprite/SpriteCommon.h>
-#include <Components/PlayerMovement.h>
+#include <Components/Collider/AABBCollider.h>
 
 class EnemyMovement;
 class CameraRotator;
@@ -42,9 +43,14 @@ private:
 
 	std::unique_ptr<Entity> entPlayer_;
 	std::shared_ptr<PlayerMovement> playerMovement_;
+	std::shared_ptr<AABBCollider> playerCollider_;
 
 	std::unique_ptr<Entity> testMeshEntity_;
 	std::shared_ptr<StaticMeshRenderer> floatTestMR_;
+	StaticMesh* debugMesh = nullptr;
+
+	std::vector<Physics::Triangle> groundTriangle;
+
 	std::unique_ptr<Entity> debugTestMeshEntity_;
 	std::shared_ptr<StaticMeshRenderer> debugTestMR_;
 };

@@ -259,7 +259,7 @@ bool ImGuiManager::IconButton(const char* icon, const char* label, const ImVec2&
 
 	// 必要なサイズを計算
 	ImVec2 totalSize = ImVec2(
-		max(iconSize.x, labelSize.x) + 20.0f, // パディングを追加
+		std::max(iconSize.x, labelSize.x) + 20.0f, // パディングを追加
 		iconSize.y + labelSize.y + spacing
 	);
 

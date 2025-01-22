@@ -19,6 +19,7 @@ public:
 	void Move() override;
 	void ProcessInput();
 	bool CheckGrounded();
+	void SetIsGrounded(bool bIsGrounded);
 
 	void SetVelocity(Vec3 newVel);
 

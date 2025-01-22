@@ -241,7 +241,7 @@ void Debug::DrawSphere(
 	if (radius <= 0) {
 		radius = 0.01f;
 	}
-	segments = max(segments, 2);
+	segments = std::max(segments, 2);
 
 	const int doubleSegments = segments * 2;
 
@@ -340,6 +340,27 @@ void Debug::DrawCapsule(
 
 	DrawArc(0, 180, topArcPosition, orientation, rad, color);
 	DrawArc(0, 180, topArcPosition, arcOrientation, rad, color);
+}
+
+void Debug::DrawCapsule(const Vec3& start, const Vec3& end, const float& radius, const Vec4& color) {
+	// 始点から終点へのベクトルと長さを計算
+	const Vec3 direction = (end - start).Normalized();
+	const float length = (end - start).Length();
+
+	// 半球の向きを計算
+	Quaternion orientation = Quaternion::LookRotation(direction).Normalized();
+	orientation = orientation * Quaternion::Euler(90.0f * Math::deg2Rad, 0, 0);
+
+	// 始点での半球を描画
+	DrawArc(180, 360, start, orientation, radius, color);
+	DrawArc(180, 360, start, orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0), radius, color);
+
+	// 終点での半球を描画
+	DrawArc(0, 180, end, orientation, radius, color);
+	DrawArc(0, 180, end, orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0), radius, color);
+
+	// 中間の円柱部分を描画（両端の半球をつなぐ）
+	DrawCylinder(start, orientation, length, radius, color, true);
 }
 
 void Debug::Init(LineCommon* lineCommon) {

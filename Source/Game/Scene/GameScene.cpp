@@ -1,8 +1,8 @@
 #include "GameScene.h"
 
-#include <Engine.h>
 #include <Camera/CameraManager.h>
 #include <Components/CameraRotator.h>
+#include <Engine.h>
 #include <ImGuiManager/ImGuiManager.h>
 #include <Lib/Console/ConVarManager.h>
 #include <Lib/Math/MathLib.h>
@@ -17,6 +17,7 @@
 #include "Debug/Debug.h"
 #include "Input/InputSystem.h"
 #include "Lib/DebugHud/DebugHud.h"
+#include <Lib/Physics/Physics.h>
 
 void GameScene::Init(Engine* engine) {
 	renderer_ = Engine::GetRenderer();
@@ -65,9 +66,14 @@ void GameScene::Init(Engine* engine) {
 	CameraManager::SetActiveCamera(camera);
 
 	entPlayer_ = std::make_unique<Entity>("player");
+	entPlayer_->GetTransform()->SetLocalPos(Vec3::up * 1.0f); // 1m上に配置
 	PlayerMovement* rawPlayerMovement = entPlayer_->AddComponent<PlayerMovement>();
 	playerMovement_ = std::shared_ptr<PlayerMovement>(
 		rawPlayerMovement, [](PlayerMovement*) {}
+	);
+	AABBCollider* rawPlayerCollider = entPlayer_->AddComponent<AABBCollider>(Vec3::one);
+	playerCollider_ = std::shared_ptr<AABBCollider>(
+		rawPlayerCollider, [](AABBCollider*) {}
 	);
 	entities_.push_back(entPlayer_.get());
 
@@ -80,6 +86,7 @@ void GameScene::Init(Engine* engine) {
 	// cameraRootにアタッチ
 	camera_->SetParent(cameraRoot_.get());
 	camera_->GetTransform()->SetLocalPos(Vec3::backward * 2.5f);
+
 #pragma endregion
 
 #pragma region コンソール変数/コマンド
@@ -93,8 +100,10 @@ void GameScene::Init(Engine* engine) {
 		Console::Print("メッシュの読み込みに成功しました: " + mesh->GetName() + "\n", kConsoleColorCompleted);
 	}
 
-	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/playerCollisionTest.gltf");
-	auto debugMesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/playerCollisionTest.gltf");
+	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/lightWeight.obj");
+	debugMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
+		"./Resources/Models/lightWeight.obj"
+	);
 
 	testMeshEntity_ = std::make_unique<Entity>("testmesh");
 	StaticMeshRenderer* rawTestMeshRenderer = testMeshEntity_->AddComponent<StaticMeshRenderer>();
@@ -112,6 +121,10 @@ void GameScene::Init(Engine* engine) {
 	debugTestMR_->SetStaticMesh(debugMesh);
 	entities_.push_back(debugTestMeshEntity_.get());
 #pragma endregion
+
+	CameraManager::SetActiveCamera(camera);
+
+	groundTriangle = debugMesh->GetPolygons();
 }
 
 void GameScene::Update(const float deltaTime) {
@@ -131,6 +144,33 @@ void GameScene::Update(const float deltaTime) {
 
 	//cameraRoot_->Update(deltaTime);
 
+	// プレイヤーのAABBとベロシティを取得
+	Physics::AABB playerAABB = playerCollider_->GetAABB();
+	Vec3 playerVelocity = playerMovement_->GetVelocity();
+
+	// 地面の三角形（または他の衝突対象）を用意
+	static std::vector<Physics::Triangle> triangles = groundTriangle;
+
+	// 地面の三角形をデバッグ描画
+	for (auto triangle : triangles) {
+		Debug::DrawLine(triangle.v0, triangle.v1, Vec4(0.0f, 0.0f, 1.0f, 1.0f)); // 三角形の辺を描画
+		Debug::DrawLine(triangle.v1, triangle.v2, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
+		Debug::DrawLine(triangle.v2, triangle.v0, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
+
+		// 法線ベクトルを描画
+		Debug::DrawRay(triangle.GetCenter(), triangle.GetNormal() * 0.5f, Vec4::magenta);
+	}
+
+	// 衝突応答を計算
+	Vec3 resolvedPosition = ResolveCollisionAABB(playerAABB, playerVelocity, triangles);
+
+	// デバッグ描画（移動後の位置を描画）
+	DebugDrawAABBCollisionResponse(playerAABB, playerVelocity, resolvedPosition);
+
+	// プレイヤーの移動コンポーネントで位置を更新
+	entPlayer_->GetTransform()->SetLocalPos(resolvedPosition);  // playerMovement_ コンポーネントに位置を設定
+
+	// プレイヤーの更新（位置とベロシティの管理をコンポーネントで行う）
 	entPlayer_->Update(deltaTime);
 
 	testMeshEntity_->Update(deltaTime);

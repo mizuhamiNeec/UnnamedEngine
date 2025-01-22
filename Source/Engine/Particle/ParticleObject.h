@@ -60,7 +60,7 @@ private:
 	std::list<Particle> particles_;
 
 	Emitter emitter_ = {};
-	AccelerationField accelerationField_ = {};
+	//AccelerationField accelerationField_ = {};
 
 	std::unique_ptr<ConstantBuffer> materialResource_ = nullptr;
 	std::unique_ptr<ConstantBuffer> instancingResource_ = nullptr;

@@ -3,6 +3,7 @@
 #include <cassert>
 #include <d3d12.h>
 #include <wrl.h>
+#include <vector>
 
 using namespace Microsoft::WRL;
 
@@ -13,6 +14,7 @@ public:
 	[[nodiscard]] D3D12_VERTEX_BUFFER_VIEW View() const;
 	void Update(const VertexType* pInitData, size_t size);
 	[[nodiscard]] size_t GetSize() const;
+	std::vector<VertexType> GetVertices() const;
 
 private:
 	ComPtr<ID3D12Device> device_;
@@ -55,8 +57,7 @@ VertexBuffer<VertexType>::VertexBuffer(const ComPtr<ID3D12Device>& device, const
 	view_.StrideInBytes = static_cast<UINT>(sizeof(VertexType));
 
 	// 初期データがある場合はコピー
-	if (pInitData != nullptr)
-	{
+	if (pInitData != nullptr) {
 		void* ptr = nullptr;
 		hr = buffer_->Map(0, nullptr, &ptr);
 		assert(SUCCEEDED(hr));
@@ -87,4 +88,19 @@ void VertexBuffer<VertexType>::Update(const VertexType* pInitData, size_t size) 
 template <typename VertexType>
 size_t VertexBuffer<VertexType>::GetSize() const {
 	return size_;
+}
+
+template <typename VertexType>
+std::vector<VertexType> VertexBuffer<VertexType>::GetVertices() const {
+	std::vector<VertexType> vertices(size_ / sizeof(VertexType));
+	void* mappedData = nullptr;
+	D3D12_RANGE range{ 0, 0 };
+
+	HRESULT hr = buffer_->Map(0, &range, &mappedData);
+	assert(SUCCEEDED(hr));
+
+	memcpy(vertices.data(), mappedData, size_);
+	buffer_->Unmap(0, nullptr);
+
+	return vertices;
 }

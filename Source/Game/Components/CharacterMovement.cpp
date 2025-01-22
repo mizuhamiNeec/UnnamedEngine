@@ -79,14 +79,14 @@ void CharacterMovement::Accelerate(const Vec3 dir, const float speed, const floa
 	}
 
 	float accelspeed = accel * deltaTime_ * speed;
-	accelspeed = min(accelspeed, addspeed);
+	accelspeed = std::min(accelspeed, addspeed);
 	velocity_ += Math::HtoM(accelspeed) * dir;
 }
 
 void CharacterMovement::AirAccelerate(const Vec3 dir, const float speed, const float accel) {
 	float wishspd = speed;
 
-	wishspd = min(wishspd, 30.0f);
+	wishspd = std::min(wishspd, 30.0f);
 	float currentspeed = Math::MtoH(velocity_).Dot(dir);
 	float addspeed = wishspd - currentspeed;
 
@@ -95,7 +95,7 @@ void CharacterMovement::AirAccelerate(const Vec3 dir, const float speed, const f
 	}
 
 	float accelspeed = accel * deltaTime_ * speed;
-	accelspeed = min(accelspeed, addspeed);
+	accelspeed = std::min(accelspeed, addspeed);
 	velocity_ += Math::HtoM(accelspeed) * dir;
 }
 
