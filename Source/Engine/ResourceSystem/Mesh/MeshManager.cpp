@@ -8,9 +8,9 @@
 
 #include <Lib/Console/Console.h>
 
-#include <UnnamedResource/Manager/ResourceManager.h>
-#include <UnnamedResource/Material/MaterialManager.h>
-#include <UnnamedResource/Shader/DefaultShader.h>
+#include <ResourceSystem/Manager/ResourceManager.h>
+#include <ResourceSystem/Material/MaterialManager.h>
+#include <ResourceSystem/Shader/DefaultShader.h>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <UnnamedResource/Material/MaterialManager.h>
-#include <UnnamedResource/Mesh/MeshManager.h>
-#include <UnnamedResource/Shader/ShaderManager.h>
-#include <UnnamedResource/Texture/TextureManager.h>
+#include <ResourceSystem/Material/MaterialManager.h>
+#include <ResourceSystem/Mesh/MeshManager.h>
+#include <ResourceSystem/Shader/ShaderManager.h>
+#include <ResourceSystem/Texture/TextureManager.h>
 
 class ResourceManager {
 public:

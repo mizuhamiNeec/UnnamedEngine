@@ -1,7 +1,7 @@
 #pragma once
 #include <Components/MeshRenderer/Base/MeshRenderer.h>
 
-#include <UnnamedResource/Mesh/StaticMesh.h>
+#include <ResourceSystem/Mesh/StaticMesh.h>
 
 #include "Entity/Base/Entity.h"
 

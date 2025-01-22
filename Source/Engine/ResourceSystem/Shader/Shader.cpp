@@ -19,9 +19,9 @@
 // - gsPath (const std::string&): ジオメトリシェーダーファイルパス
 //-----------------------------------------------------------------------------
 Shader::Shader(
-	const std::string& vsPath, const std::string& psPath,
-	const std::string& gsPath
-) {
+	std::string name, const std::string& vsPath,
+	const std::string& psPath, const std::string& gsPath
+) : name_(std::move(name)) {
 	HRESULT hr = DxcCreateInstance(
 		CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils_)
 	);
@@ -118,6 +118,10 @@ UINT Shader::GetResourceRegister(const std::string& resourceName) const {
 
 const std::unordered_map<std::string, UINT>& Shader::GetResourceRegisterMap() const {
 	return resourceRegisterMap_;
+}
+
+std::string Shader::GetName() {
+	return name_;
 }
 
 void Shader::Release() {

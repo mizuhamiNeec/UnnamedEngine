@@ -7,7 +7,7 @@ ShaderResourceViewManager::ShaderResourceViewManager(
 	ID3D12Device* device
 ) : descriptorSize_(0),
 device_(device) {
-// ディスクリプタヒープを作成
+	// ディスクリプタヒープを作成
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	desc.NumDescriptors = kMaxSrvCount;
@@ -24,9 +24,7 @@ device_(device) {
 	}
 }
 
-ShaderResourceViewManager::~ShaderResourceViewManager() {
-	Shutdown();
-}
+ShaderResourceViewManager::~ShaderResourceViewManager() {}
 
 void ShaderResourceViewManager::Init() {
 	Console::Print(

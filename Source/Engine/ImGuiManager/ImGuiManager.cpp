@@ -4,8 +4,7 @@
 #include <imgui_impl_win32.h>
 #include <imgui_internal.h>
 #include <Entity/Base/Entity.h>
-
-#include "UnnamedResource/SRV/ShaderResourceViewManager.h"
+#include <ResourceSystem/SRV/ShaderResourceViewManager.h>
 
 #ifdef _DEBUG
 #include "../Lib/Utils/ClientProperties.h"
@@ -73,8 +72,7 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 	);
 }
 
-void ImGuiManager::Init() {
-}
+void ImGuiManager::Init() {}
 
 void ImGuiManager::NewFrame() {
 	// ImGuiの新しいフレームを開始
@@ -115,8 +113,7 @@ void ImGuiManager::StyleColorsDark() {
 	colors[ImGuiCol_Text] = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
 }
 
-void ImGuiManager::StyleColorsLight() {
-}
+void ImGuiManager::StyleColorsLight() {}
 
 void ImGuiManager::PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive) {
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, bg);
@@ -251,7 +248,7 @@ void ImGuiManager::TextOutlined(
 }
 
 bool ImGuiManager::IconButton(const char* icon, const char* label, const ImVec2& size) {
-	 // ボタンのサイズを計算
+	// ボタンのサイズを計算
 	const ImVec2 iconSize = ImGui::CalcTextSize(icon);
 	// フォントサイズを小さくしてラベルサイズを計算
 	ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); // デフォルトフォントに切り替え
@@ -299,6 +296,5 @@ bool ImGuiManager::IconButton(const char* icon, const char* label, const ImVec2&
 	return pressed;
 }
 #else
-void ImGuiManager::Shutdown() {
-}
+void ImGuiManager::Shutdown() {}
 #endif

@@ -2,7 +2,7 @@
 
 #include "Lib/Console/Console.h"
 
-#include "UnnamedResource/Pipeline/PipelineManager.h"
+#include "ResourceSystem/Pipeline/PipelineManager.h"
 
 Material* MaterialManager::GetOrCreateMaterial(const std::string& name, Shader* shader) {
 	// 既に作成済みのマテリアルがあるか確認

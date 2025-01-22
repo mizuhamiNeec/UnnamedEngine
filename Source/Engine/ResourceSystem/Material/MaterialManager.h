@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include <UnnamedResource/Material/Material.h>
+#include <ResourceSystem/Material/Material.h>
 
 class MaterialManager {
 public:

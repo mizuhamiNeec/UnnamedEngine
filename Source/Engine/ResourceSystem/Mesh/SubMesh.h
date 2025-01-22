@@ -4,7 +4,7 @@
 #include <Renderer/VertexBuffer.h>
 #include <Renderer/IndexBuffer.h>
 
-#include <UnnamedResource/Material/Material.h>
+#include <ResourceSystem/Material/Material.h>
 
 #include <Lib/Structs/Structs.h>
 

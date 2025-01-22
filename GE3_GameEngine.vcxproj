@@ -115,30 +115,32 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Components\Collider\Base\Collider.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Audio\Audio.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Audio\AudioManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Manager\ResourceManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Material\Material.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Material\MaterialManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\MeshManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\StaticMesh.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\SubMesh.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Pipeline\PipelineManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\RootSignature\RootSignature2.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\RootSignature\RootSignatureManager2.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Shader\DefaultShader.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Shader\Shader.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Shader\ShaderManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Texture\Texture.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Texture\TextureManager.cpp" />
     <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
     <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Shader\DefaultShader.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Mesh\MeshManager.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Mesh\StaticMesh.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Material\MaterialManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Pipeline\PipelineManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\RootSignature\RootSignature2.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\RootSignature\RootSignatureManager2.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Material\Material.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Audio\AudioManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Audio\Audio.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Manager\ResourceManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Shader\Shader.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Shader\ShaderManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\SRV\ShaderResourceViewManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Texture\Texture.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Texture\TextureManager.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Engine\Components\Camera\CameraComponent.cpp" />
@@ -153,7 +155,6 @@
     <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp" />
     <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Mesh\SubMesh.cpp" />
     <None Include="Resources\Shaders\Default.hlsli" />
     <None Include="Resources\Shaders\Line.PS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -226,30 +227,32 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Components\Collider\Base\Collider.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Audio\Audio.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Audio\AudioManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Manager\ResourceManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Material\Material.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Material\MaterialManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\MeshManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\StaticMesh.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\SubMesh.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Pipeline\PipelineManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\RootSignature\RootSignature2.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\RootSignature\RootSignatureManager2.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Shader\DefaultShader.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Shader\Shader.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Shader\ShaderManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Texture\Texture.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Texture\TextureManager.h" />
     <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
     <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
     <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
     <ClInclude Include="Source\Engine\EntitySystem\RuntimeEntitySystem.h" />
     <ClInclude Include="Source\Engine\EntitySystem\Base\EntitySystem.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Shader\DefaultShader.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Mesh\MeshManager.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Mesh\StaticMesh.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Material\MaterialManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Pipeline\PipelineManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\RootSignature\RootSignature2.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\RootSignature\RootSignatureManager2.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Material\Material.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Audio\AudioManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Audio\Audio.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Manager\ResourceManager.h" />
     <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Shader\Shader.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Shader\ShaderManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\SRV\ShaderResourceViewManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Texture\Texture.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Texture\TextureManager.h" />
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
     <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
     <ClInclude Include="Source\Engine\Components\Camera\CameraComponent.h" />
@@ -264,7 +267,6 @@
     <ClInclude Include="Source\Engine\Components\Transform\TransformComponent.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Mesh\SubMesh.h" />
     <None Include="Resources\Shaders\Object3d.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>

@@ -1,6 +1,7 @@
 #include "ResourceManager.h"
 
 #include "Lib/Console/Console.h"
+#include "ResourceSystem/RootSignature/RootSignatureManager2.h"
 
 ResourceManager::ResourceManager(D3D12* d3d12) :
 	d3d12_(d3d12),
@@ -22,6 +23,7 @@ void ResourceManager::Init() const {
 	srvManager_->Init();
 
 	// マネージャーを初期化
+	RootSignatureManager2::Init(d3d12_->GetDevice());
 	textureManager_->Init(d3d12_, srvManager_.get());
 	shaderManager_->Init();
 	materialManager_->Init();
@@ -61,6 +63,8 @@ void ResourceManager::Shutdown() {
 		textureManager_->Shutdown();
 		textureManager_.reset();
 	}
+
+	RootSignatureManager2::Shutdown();
 
 	if (srvManager_) {
 		srvManager_->Shutdown();

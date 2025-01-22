@@ -1,13 +1,13 @@
 #pragma once
 #include <string>
 
-#include <UnnamedResource/Mesh/StaticMesh.h>
+#include <ResourceSystem/Mesh/StaticMesh.h>
 
 #include <assimp/scene.h>
 
-#include "UnnamedResource/Material/MaterialManager.h"
-#include "UnnamedResource/Shader/ShaderManager.h"
-#include "UnnamedResource/Texture/TextureManager.h"
+#include "ResourceSystem/Material/MaterialManager.h"
+#include "ResourceSystem/Shader/ShaderManager.h"
+#include "ResourceSystem/Texture/TextureManager.h"
 
 class MeshManager {
 public:

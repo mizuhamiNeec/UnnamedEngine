@@ -4,7 +4,7 @@
 
 #include <Lib/Console/Console.h>
 
-#include <UnnamedResource/RootSignature/RootSignatureManager2.h>
+#include <ResourceSystem/RootSignature/RootSignatureManager2.h>
 
 void RootSignature2::AddConstantBuffer(const UINT shaderRegister, const UINT registerSpace) {
 	D3D12_ROOT_PARAMETER param;

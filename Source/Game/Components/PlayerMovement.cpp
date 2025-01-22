@@ -65,7 +65,12 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	transform_->SetLocalPos(position_ + velocity_ * deltaTime_);
 
 	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
-	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), Math::HtoM(73), Math::HtoM(33.0f * 0.5f), isGrounded_ ? Vec4::green : Vec4::red);
+
+
+	float width = Math::HtoM(33.0f); // 幅、奥行き
+	float height = Math::HtoM(73.0f); // 高さ
+	//Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), height, width * 0.5f, isGrounded_ ? Vec4::green : Vec4::red);
+	Debug::DrawBox(transform_->GetWorldPos() + (Vec3::up * height * 0.5f), Quaternion::Euler(Vec3::zero), Vec3(width, height, width), Vec4::blue);
 
 	Debug::DrawRay(transform_->GetWorldPos(), wishdir, Vec4::cyan);
 }

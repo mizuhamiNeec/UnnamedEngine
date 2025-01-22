@@ -2,7 +2,7 @@
 
 #include "Lib/Console/Console.h"
 
-Shader* ShaderManager::LoadShader(const std::string& vsPath, const std::string& psPath, const std::string& gsPath) {
+Shader* ShaderManager::LoadShader(const std::string& name, const std::string& vsPath, const std::string& psPath, const std::string& gsPath) {
 	// パスを結合してキーにする
 	std::string filePath = vsPath + ";" + psPath + ";" + gsPath;
 
@@ -12,7 +12,7 @@ Shader* ShaderManager::LoadShader(const std::string& vsPath, const std::string& 
 	}
 
 	// 新しいシェーダを作成
-	auto shader = std::make_unique<Shader>(vsPath, psPath, gsPath);
+	auto shader = std::make_unique<Shader>(name, vsPath, psPath, gsPath);
 	if (shader) {
 		// シェーダの読み込みに成功したので登録
 		shaders_[filePath] = std::move(shader);
@@ -45,7 +45,7 @@ void ShaderManager::Init() {
 void ShaderManager::Shutdown() {
 	Console::Print("ShaderManager を終了しています...\n", kConsoleColorWait, Channel::ResourceSystem);
 
-   // 個々のシェーダーインスタンスをクリーンアップ
+	// 個々のシェーダーインスタンスをクリーンアップ
 	for (auto& [path, shader] : shaders_) {
 		if (shader) {
 			shader->Release();

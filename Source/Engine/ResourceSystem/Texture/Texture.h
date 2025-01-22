@@ -7,7 +7,7 @@
 
 #include <Renderer/D3D12.h>
 
-#include <UnnamedResource/SRV/ShaderResourceViewManager.h>
+#include <ResourceSystem/SRV/ShaderResourceViewManager.h>
 
 using Microsoft::WRL::ComPtr;
 

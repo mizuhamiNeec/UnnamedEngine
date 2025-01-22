@@ -4,14 +4,49 @@
 
 #include <Lib/Console/Console.h>
 
+size_t PipelineManager::CalculatePSOHash(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc) {
+	std::hash<size_t> hasher;
+	size_t hash = 0;
+
+	// 各メンバのハッシュを組み合わせる
+	hash = hasher(reinterpret_cast<size_t>(desc.pRootSignature));
+
+	// シェーダーのハッシュ
+	if (desc.VS.pShaderBytecode) {
+		hash ^= hasher(std::hash<size_t>{}(reinterpret_cast<size_t>(desc.VS.pShaderBytecode))) << 1;
+		hash ^= hasher(desc.VS.BytecodeLength) << 1;
+	}
+	if (desc.PS.pShaderBytecode) {
+		hash ^= hasher(std::hash<size_t>{}(reinterpret_cast<size_t>(desc.PS.pShaderBytecode))) << 2;
+		hash ^= hasher(desc.PS.BytecodeLength) << 2;
+	}
+
+	hash ^= hasher(static_cast<size_t>(desc.BlendState.RenderTarget[0].BlendEnable)) << 3;
+	hash ^= hasher(static_cast<size_t>(desc.RasterizerState.FillMode)) << 4;
+	hash ^= hasher(static_cast<size_t>(desc.RasterizerState.CullMode)) << 5;
+	hash ^= hasher(static_cast<size_t>(desc.DepthStencilState.DepthEnable)) << 6;
+	hash ^= hasher(static_cast<size_t>(desc.DepthStencilState.DepthWriteMask)) << 7;
+	hash ^= hasher(static_cast<size_t>(desc.DepthStencilState.DepthFunc)) << 8;
+	hash ^= hasher(static_cast<size_t>(desc.NumRenderTargets)) << 9;
+	hash ^= hasher(static_cast<size_t>(desc.SampleDesc.Count)) << 10;
+	hash ^= hasher(static_cast<size_t>(desc.SampleMask)) << 11;
+	hash ^= hasher(static_cast<size_t>(desc.PrimitiveTopologyType)) << 12;
+	hash ^= hasher(static_cast<size_t>(desc.DSVFormat)) << 13;
+	hash ^= hasher(static_cast<size_t>(desc.RTVFormats[0])) << 14;
+
+	return hash;
+}
+
 ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 	ID3D12Device* device,
 	const std::string& key,
 	const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc
 ) {
-	 // 既存のパイプラインステートをチェック
-	auto it = pipelineStates_.find(key);
-	if (it != pipelineStates_.end()) {
+	size_t psoHash = CalculatePSOHash(desc);
+
+	// ハッシュ値で作成済みのPSOを検索
+	auto it = pipelineStatesByHash_.find(psoHash);
+	if (it != pipelineStatesByHash_.end()) {
 		return it->second.Get();
 	}
 
@@ -47,7 +82,8 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 		return nullptr;
 	}
 
-	// 作成したパイプラインステートを登録
+	// ハッシュとキーの両方を登録
+	pipelineStatesByHash_[psoHash] = pipelineState;
 	pipelineStates_[key] = pipelineState;
 
 	Console::Print(
@@ -62,13 +98,21 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 void PipelineManager::Shutdown() {
 	Console::Print("Pipeline Manager を終了しています...\n", kConsoleColorWait, Channel::ResourceSystem);
 
-   // 各パイプラインステートを解放
+	// 各パイプラインステートを解放
 	for (auto& [key, pipelineState] : pipelineStates_) {
 		if (pipelineState) {
 			pipelineState.Reset();
 		}
 	}
 	pipelineStates_.clear();
+
+	for (auto& pipelineStatesByHash : pipelineStatesByHash_) {
+		if (pipelineStatesByHash.second) {
+			pipelineStatesByHash.second.Reset();
+		}
+	}
+	pipelineStatesByHash_.clear();
 }
 
 std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> PipelineManager::pipelineStates_;
+std::unordered_map<size_t, ComPtr<ID3D12PipelineState>> PipelineManager::pipelineStatesByHash_;

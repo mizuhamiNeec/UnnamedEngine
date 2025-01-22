@@ -11,6 +11,7 @@ using Microsoft::WRL::ComPtr;
 class Shader {
 public:
 	Shader(
+		std::string name,
 		const std::string& vsPath,
 		const std::string& psPath,
 		const std::string& gsPath = ""
@@ -22,6 +23,7 @@ public:
 
 	UINT GetResourceRegister(const std::string& resourceName) const;
 	const std::unordered_map<std::string, UINT>& GetResourceRegisterMap() const;
+	std::string GetName();
 
 	void Release();
 	static void ReleaseStaticResources();
@@ -43,6 +45,8 @@ private:
 	static ComPtr<IDxcUtils> dxcUtils_;
 	static ComPtr<IDxcCompiler3> dxcCompiler_;
 	static ComPtr<IDxcIncludeHandler> includeHandler_;
+
+	std::string name_;
 
 	std::unordered_map<std::string, UINT> resourceRegisterMap_; // リソース名とレジスタ番号のマップ
 };

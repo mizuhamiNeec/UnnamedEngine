@@ -1,8 +1,8 @@
 #pragma once
 #include <Renderer/D3D12.h>
 
-#include <UnnamedResource/SRV/ShaderResourceViewManager.h>
-#include <UnnamedResource/Texture/Texture.h>
+#include <ResourceSystem/SRV/ShaderResourceViewManager.h>
+#include <ResourceSystem/Texture/Texture.h>
 
 class TextureManager {
 public:

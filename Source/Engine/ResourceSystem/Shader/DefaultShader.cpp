@@ -7,5 +7,5 @@ const std::string DefaultShader::kDefaultPSPath = "./Resources/Shaders/Default.P
 const std::string DefaultShader::kDefaultShaderName = "DefaultShader";
 
 Shader* DefaultShader::CreateDefaultShader(ShaderManager* shaderManager) {
-	return shaderManager->LoadShader(kDefaultVSPath, kDefaultPSPath);
+	return shaderManager->LoadShader("DefaultShader", kDefaultVSPath, kDefaultPSPath);
 }

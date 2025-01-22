@@ -4,9 +4,9 @@
 #include <unordered_map>
 #include <wrl.h>
 
-#include <UnnamedResource/RootSignature/RootSignature2.h>
+#include <ResourceSystem/RootSignature/RootSignature2.h>
 
-#include "UnnamedResource/Texture/TextureManager.h"
+#include "ResourceSystem/Texture/TextureManager.h"
 
 using Microsoft::WRL::ComPtr;
 
