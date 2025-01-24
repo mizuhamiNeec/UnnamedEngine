@@ -19,6 +19,20 @@
 #include "Lib/DebugHud/DebugHud.h"
 #include <Lib/Physics/Physics.h>
 
+Physics::AABB GenerateRandomAABB(const Vec3& worldMin, const Vec3& worldMax, const Vec3& sizeRange) {
+	Vec3 center = Random::Vec3Range(worldMin, worldMax);
+	Vec3 halfSize = Random::Vec3Range(Vec3::zero, sizeRange);
+	return { center - halfSize, center + halfSize };
+}
+
+std::vector<Physics::AABB> GenerateRandomAABBs(size_t count, const Vec3& worldMin, const Vec3& worldMax, const Vec3& sizeRange) {
+	std::vector<Physics::AABB> aabbs;
+	for (size_t i = 0; i < count; ++i) {
+		aabbs.push_back(GenerateRandomAABB(worldMin, worldMax, sizeRange));
+	}
+	return aabbs;
+}
+
 void GameScene::Init(Engine* engine) {
 	renderer_ = Engine::GetRenderer();
 	resourceManager_ = engine->GetResourceManager();
@@ -125,6 +139,8 @@ void GameScene::Init(Engine* engine) {
 	CameraManager::SetActiveCamera(camera);
 
 	groundTriangle = debugMesh->GetPolygons();
+
+	aabbs_ = GenerateRandomAABBs(4, Vec3(-128), Vec3(128), Vec3(2.0f));
 }
 
 void GameScene::Update(const float deltaTime) {
@@ -144,8 +160,35 @@ void GameScene::Update(const float deltaTime) {
 
 	//cameraRoot_->Update(deltaTime);
 
+	if (ImGui::Button("Regenerate AABB")) {
+		aabbs_ = GenerateRandomAABBs(65535, Vec3(-128), Vec3(128), Vec3(2.0f));
+	}
 
-	// プレイヤーの更新（位置とベロシティの管理をコンポーネントで行う）
+	for (auto& aabb : aabbs_) {
+		float angle = Random::FloatRange(0.0f, 2.0f * Math::pi);
+		float radius = Random::FloatRange(0.0f, 64.0f) * deltaTime;
+		Vec3 offset = Vec3(
+			std::cos(angle) * radius,
+			0.0f, // Y軸方向の動きはなし
+			std::sin(angle) * radius
+		);
+		aabb.min += offset;
+		aabb.max += offset;
+	}
+	// BVHのテスト
+	{
+		Physics::DynamicBVH bvh;
+		// BVHにオブジェクトを挿入
+		for (size_t i = 0; i < aabbs_.size(); ++i) {
+			bvh.InsertObject(aabbs_[i], static_cast<int>(i));
+		}
+
+		// BVHの描画
+		bvh.DrawBvh(Vec4::gray);      // 緑色でBVH構造を描画
+		bvh.DrawObjects(Vec4::red); // 赤色でオブジェクトを描画
+	}
+
+	// プレイヤーの更新
 	entPlayer_->Update(deltaTime);
 
 	testMeshEntity_->Update(deltaTime);

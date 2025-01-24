@@ -46,7 +46,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		{ 0.28f, 0.28f, 0.28f, 1.0f },
 		{ 0.39f, 0.2f, 0.02f, 1.0f },
 		{ 0.0f, 0.39f, 0.39f, 1.0f },
-		{ 0.39f, 0.39f, 0.39f, 1.0f }
+		{ 0.39f, 0.39f, 0.39f, 1.0f },
+		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
+		2048.0f
 	);
 
 #ifdef _DEBUG
@@ -118,11 +120,11 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			Vec3 cameraUp = camRot * Vec3::up;
 
 			if (InputSystem::IsTriggered("invprev")) {
-				moveSpd += 1.0f;
+				moveSpd += 4.0f;
 			}
 
 			if (InputSystem::IsTriggered("invnext")) {
-				moveSpd -= 1.0f;
+				moveSpd -= 4.0f;
 			}
 
 			static float oldMoveSpd = 0.0f;
@@ -131,7 +133,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				popupTimer = 0.0f;
 			}
 
-			moveSpd = std::clamp(moveSpd, 0.125f, 128.0f);
+			moveSpd = std::clamp(moveSpd, 0.125f, 65535.0f);
 
 			oldMoveSpd = moveSpd;
 
@@ -490,7 +492,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	}
 }
 
-void Editor::Render() {
+void Editor::Render() const {
 	if (scene_) {
 		scene_->Render();
 	}
@@ -498,35 +500,73 @@ void Editor::Render() {
 
 void Editor::DrawGrid(
 	const float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
-	const Vec4& axisColor, const Vec4& minorColor
+	const Vec4& axisColor, const Vec4& minorColor, const Vec3& cameraPosition, const float drawRadius
 ) {
-	// const float range = 16384.0f;
 	constexpr float majorInterval = 1024.0f;
 	const float minorInterval = gridSize * 8.0f;
 
+	// Squared radius for performance
+	const float drawRadiusSq = drawRadius * drawRadius;
+
+	// Draw vertical grid lines (along X-axis)
 	for (float x = -range; x <= range; x += gridSize) {
 		Vec4 lineColor = color;
+
 		if (fmod(x, majorInterval) == 0) {
-			lineColor = majorColor;
+			lineColor = majorColor;  // 主要なグリッド線
 		} else if (fmod(x, minorInterval) == 0) {
-			lineColor = minorColor;
+			lineColor = minorColor; // 細かいグリッド線
 		}
+
 		if (x == 0) {
-			lineColor = axisColor;
+			lineColor = axisColor;  // 軸線
 		}
-		Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range), lineColor);
+
+		if (fmod(x, majorInterval) == 0 || x == 0) {
+			// 主要線・軸線は常に最大範囲で描画
+			Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range), lineColor);
+		} else {
+			// 細かいグリッド線は円形範囲内のみ描画
+			float distToLineSq = powf(cameraPosition.x - x, 2);
+			if (distToLineSq <= drawRadiusSq) {
+				float maxZ = sqrt(drawRadiusSq - distToLineSq);
+				Debug::DrawLine(
+					Vec3(x, 0, cameraPosition.z - maxZ),
+					Vec3(x, 0, cameraPosition.z + maxZ),
+					lineColor
+				);
+			}
+		}
 	}
 
+	// Draw horizontal grid lines (along Z-axis)
 	for (float z = -range; z <= range; z += gridSize) {
 		Vec4 lineColor = color;
+
 		if (fmod(z, majorInterval) == 0) {
-			lineColor = majorColor;
+			lineColor = majorColor;  // 主要なグリッド線
 		} else if (fmod(z, minorInterval) == 0) {
-			lineColor = minorColor;
+			lineColor = minorColor; // 細かいグリッド線
 		}
+
 		if (z == 0) {
-			lineColor = axisColor;
+			lineColor = axisColor;  // 軸線
 		}
-		Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z), lineColor);
+
+		if (fmod(z, majorInterval) == 0 || z == 0) {
+			// 主要線・軸線は常に最大範囲で描画
+			Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z), lineColor);
+		} else {
+			// 細かいグリッド線は円形範囲内のみ描画
+			float distToLineSq = powf(cameraPosition.z - z, 2);
+			if (distToLineSq <= drawRadiusSq) {
+				float maxX = sqrt(drawRadiusSq - distToLineSq);
+				Debug::DrawLine(
+					Vec3(cameraPosition.x - maxX, 0, z),
+					Vec3(cameraPosition.x + maxX, 0, z),
+					lineColor
+				);
+			}
+		}
 	}
 }

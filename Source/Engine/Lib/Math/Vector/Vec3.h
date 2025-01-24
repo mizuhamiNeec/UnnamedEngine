@@ -17,7 +17,9 @@ struct Vec3 final {
 	static const Vec3 forward;
 	static const Vec3 backward;
 
-	constexpr Vec3(const float x = 0.0f, const float y = 0.0f, const float z = 0.0f) : x(x), y(y), z(z) {}
+	constexpr Vec3() : Vec3(0.0f, 0.0f, 0.0f) {}
+	constexpr Vec3(const float x, const float y, const float z) : x(x), y(y), z(z) {}
+	explicit constexpr Vec3(const float scalar) : x(scalar), y(scalar), z(scalar) {}
 	constexpr Vec3(const Vec2 vec2) : x(vec2.x), y(vec2.y), z(0.0f) {}
 
 	/* ---------------- 関数類 ---------------- */

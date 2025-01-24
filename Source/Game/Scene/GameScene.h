@@ -51,6 +51,8 @@ private:
 
 	std::vector<Physics::Triangle> groundTriangle;
 
+	std::vector<Physics::AABB> aabbs_;
+
 	std::unique_ptr<Entity> debugTestMeshEntity_;
 	std::shared_ptr<StaticMeshRenderer> debugTestMR_;
 };

@@ -10,12 +10,12 @@ private:
 	void Init();
 public:
 	void Update(float deltaTime);
-	void Render();
+	void Render() const;
 
 private:
-	void DrawGrid(
-		float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
-		const Vec4& axisColor, const Vec4& minorColor
+	static void DrawGrid(
+		float gridSize, float range, const Vec4& color, const Vec4& majorColor,
+		const Vec4& axisColor, const Vec4& minorColor, const Vec3& cameraPosition, float drawRadius
 	);
 
 private:
@@ -26,6 +26,6 @@ private:
 	std::unique_ptr<Entity> cameraEntity_;
 	std::shared_ptr<CameraComponent> camera_;
 
-	float gridSize_ = 1.0f;
-	float gridRange_ = 1024.0f;
+	float gridSize_ = 64.0f;
+	float gridRange_ = 16384.0f;
 };

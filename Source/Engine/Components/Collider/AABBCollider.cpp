@@ -6,7 +6,7 @@
 
 #include "ImGuiManager/ImGuiManager.h"
 
-AABBCollider::AABBCollider(const Vec3& size) : aabb_({ 0.0f, 0.0f }), size_(size) {
+AABBCollider::AABBCollider(const Vec3& size) : aabb_({ Vec3::zero, Vec3::zero }), size_(size) {
 	colliderType_ = ColliderType::AABB;
 }
 

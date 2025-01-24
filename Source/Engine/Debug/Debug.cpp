@@ -33,7 +33,7 @@ void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {
 	float desiredScreenSize = 128.0f; // スクリーン上での目標サイズ（ピクセル）
 
 	// 最大距離を設定（この距離以上では軸の長さが一定になる）
-	const float maxDistance = 32.0f; // 50メートルを超えたら一定の長さにする
+	constexpr float maxDistance = 32.0f; // 50メートルを超えたら一定の長さにする
 	distance = std::min(distance, maxDistance);
 
 	float length = distance * (desiredScreenSize / 1000.0f); // 1000.0fは調整用の係数

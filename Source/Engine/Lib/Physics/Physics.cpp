@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <stack>
 
 #include <Lib/Physics/Physics.h>
 
@@ -10,7 +11,8 @@
 // Purpose: AABBのコンストラクタ
 //-----------------------------------------------------------------------------
 Physics::AABB::AABB(const Vec3& min, const Vec3& max) :
-	min(min), max(max) {
+	min(min),
+	max(max) {
 }
 
 //-----------------------------------------------------------------------------
@@ -35,9 +37,48 @@ Vec3 Physics::AABB::GetHalfSize() const {
 }
 
 //-----------------------------------------------------------------------------
+// Purpose: AABB同士が交差しているかを判定します
+//-----------------------------------------------------------------------------
+bool Physics::AABB::Intersects(const AABB& other) const {
+	return (min.x <= other.max.x && max.x >= other.min.x) &&
+		(min.y <= other.max.y && max.y >= other.min.y) &&
+		(min.z <= other.max.z && max.z >= other.min.z);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: AABB同士を結合します
+//-----------------------------------------------------------------------------
+Physics::AABB Physics::AABB::Combine(const AABB& aabb) const {
+	return {
+		Vec3(
+			std::min(min.x, aabb.min.x),
+			std::min(min.y, aabb.min.y),
+			std::min(min.z, aabb.min.z)
+		),
+		Vec3(
+			std::max(max.x, aabb.max.x),
+			std::max(max.y, aabb.max.y),
+			std::max(max.z, aabb.max.z)
+		)
+	};
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 体積を取得します
+//-----------------------------------------------------------------------------
+float Physics::AABB::Volume() const {
+	const Vec3 size = GetSize();
+	return size.x * size.y * size.z;
+}
+
+//-----------------------------------------------------------------------------
 // Purpose: Triangleのコンストラクタ
 //-----------------------------------------------------------------------------
-Physics::Triangle::Triangle(const Vec3& v0, const Vec3& v1, const Vec3& v2) : v0(v0), v1(v1), v2(v2) {
+Physics::Triangle::Triangle(
+	const Vec3& v0, const Vec3& v1, const Vec3& v2
+) : v0(v0),
+v1(v1),
+v2(v2) {
 }
 
 //-----------------------------------------------------------------------------
@@ -85,18 +126,192 @@ bool Physics::Triangle::IsPointInside(const Vec3& point) const {
 
 Vec3 Physics::Triangle::GetVertex(const int index) const {
 	switch (index) {
-	case 0:
-		return v0;
-	case 1:
-		return v1;
-	case 2:
-		return v2;
-	default:
-		return Vec3::zero;
+	case 0: return v0;
+	case 1: return v1;
+	case 2: return v2;
+	default: return Vec3::zero;
 	}
 }
 
-void Physics::ProjectAABBOntoAxis(const Vec3 center, const Vec3 aabbHalfSize, Vec3 axis, float& outMin, float& outMax) {
+int Physics::DynamicBVH::InsertObject(const AABB& objectAABB, int objectIndex) {
+	int nodeID = static_cast<int>(nodes_.size());
+	nodes_.push_back({ objectAABB, -1, -1, -1, objectIndex, true });
+
+	if (rootNode_ == -1) {
+		rootNode_ = nodeID;
+		return nodeID;
+	}
+
+	int currentNode = rootNode_;
+	while (!nodes_[currentNode].isLeaf) {
+		float leftCost = CalculateGrowth(nodes_[currentNode].leftChild, objectAABB);
+		float rightCost = CalculateGrowth(nodes_[currentNode].rightChild, objectAABB);
+		currentNode = (leftCost < rightCost) ? nodes_[currentNode].leftChild : nodes_[currentNode].rightChild;
+	}
+
+	CreateNewParent(currentNode, nodeID);
+	return nodeID;
+}
+
+void Physics::DynamicBVH::RemoveObject(const int nodeId) {
+	BVHNode& node = nodes_[nodeId];
+	if (node.parent == -1) {
+		rootNode_ = -1;
+		return;
+	}
+
+	BVHNode& parent = nodes_[node.parent];
+	int siblingID = (parent.leftChild == nodeId) ? parent.rightChild : parent.leftChild;
+
+	if (parent.parent == -1) {
+		rootNode_ = siblingID;
+		nodes_[siblingID].parent = -1;
+	} else {
+		BVHNode& grandParent = nodes_[parent.parent];
+		if (grandParent.leftChild == parent.objectIndex) {
+			grandParent.leftChild = siblingID;
+		} else {
+			grandParent.rightChild = siblingID;
+		}
+		nodes_[siblingID].parent = parent.parent;
+	}
+
+	node.parent = -1;
+	parent.parent = -1;
+}
+
+void Physics::DynamicBVH::UpdateObject(int nodeId, const AABB& newAABB) {
+	RemoveObject(nodeId);
+	InsertObject(newAABB, nodes_[nodeId].objectIndex);
+}
+
+std::vector<int>
+Physics::DynamicBVH::QueryOverlaps(const AABB& queryBox) const {
+	std::vector<int> overlappingObjects;
+	std::stack<int> stack;
+	stack.push(rootNode_);
+
+	while (!stack.empty()) {
+		int nodeId = stack.top();
+		stack.pop();
+
+		if (nodeId == -1) {
+			continue;
+		}
+
+		const BVHNode& node = nodes_[nodeId];
+		if (!node.boundingBox.Intersects(queryBox)) {
+			continue;
+		}
+
+		if (node.isLeaf) {
+			overlappingObjects.push_back(node.objectIndex);
+		} else {
+			stack.push(node.leftChild);
+			stack.push(node.rightChild);
+		}
+	}
+
+	return overlappingObjects;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: AABBの体積増加量を計算します
+//-----------------------------------------------------------------------------
+float Physics::DynamicBVH::CalculateGrowth(int nodeId, const AABB& newAABB) {
+	if (nodeId == -1) {
+		return newAABB.Volume();
+	}
+
+	const BVHNode& node = nodes_[nodeId];
+
+	AABB combinedAABB = node.boundingBox.Combine(newAABB);
+	return combinedAABB.Volume() - node.boundingBox.Volume();
+}
+
+void Physics::DynamicBVH::CreateNewParent(int existingNodeId, int newNodeId) {
+	// 既存のノードの親を新しいノードに変更
+	BVHNode& existingNode = nodes_[existingNodeId];
+	BVHNode& newNode = nodes_[newNodeId];
+
+	// 新しい親ノードを作成
+	int newParentId = static_cast<int>(nodes_.size());
+	nodes_.push_back(
+		BVHNode(
+			existingNode.boundingBox.Combine(newNode.boundingBox),
+			existingNodeId,
+			newNodeId,
+			-1, // リーフではない
+			false
+		)
+	);
+
+	// 既存ノードの親を更新
+	if (existingNodeId == rootNode_) {
+		rootNode_ = newParentId;
+	} else {
+		// 既存ノードの親ノードを更新
+		for (BVHNode& node : nodes_) {
+			if (node.leftChild == existingNodeId || node.rightChild ==
+				existingNodeId) {
+				if (node.leftChild == existingNodeId) {
+					node.leftChild = newParentId;
+				} else {
+					node.rightChild = newParentId;
+				}
+				break;
+			}
+		}
+	}
+}
+
+void Physics::DynamicBVH::DrawBVHNode(const int nodeId, const Vec4& color) {
+	if (nodeId == -1) {
+		return;
+	}
+	const BVHNode& node = nodes_[nodeId];
+	Debug::DrawBox(
+		node.boundingBox.GetCenter(), Quaternion::identity,
+		node.boundingBox.GetHalfSize() * 2.0f, color
+	);
+
+	// 再帰!
+	if (!node.isLeaf) {
+		//子ノードへの線を描画
+		const BVHNode& leftChild = nodes_[node.leftChild];
+		const BVHNode& rightChild = nodes_[node.rightChild];
+		Debug::DrawLine(
+			node.boundingBox.GetCenter(), leftChild.boundingBox.GetCenter(),
+			Vec4::green
+		);
+		Debug::DrawLine(
+			node.boundingBox.GetCenter(), rightChild.boundingBox.GetCenter(),
+			Vec4::red
+		);
+		DrawBVHNode(node.leftChild, color);
+		DrawBVHNode(node.rightChild, color);
+	}
+}
+
+void Physics::DynamicBVH::DrawBvh(const Vec4& color) {
+	DrawBVHNode(rootNode_, color);
+}
+
+void Physics::DynamicBVH::DrawObjects(const Vec4& color) const {
+	for (const BVHNode& node : nodes_) {
+		if (node.isLeaf) {
+			Debug::DrawBox(
+				node.boundingBox.GetCenter(), Quaternion::identity,
+				node.boundingBox.GetHalfSize() * 1.95f, color
+			);
+		}
+	}
+}
+
+void Physics::ProjectAABBOntoAxis(
+	const Vec3 center, const Vec3 aabbHalfSize, Vec3 axis, float& outMin,
+	float& outMax
+) {
 	// 軸を正規化
 	axis.Normalize();
 
@@ -113,7 +328,9 @@ void Physics::ProjectAABBOntoAxis(const Vec3 center, const Vec3 aabbHalfSize, Ve
 	outMax = centerProjection + radius;
 }
 
-void Physics::ProjectTriangleOntoAxis(const Triangle& triangle, const Vec3& axis, float& outMin, float& outMax) {
+void Physics::ProjectTriangleOntoAxis(
+	const Triangle& triangle, const Vec3& axis, float& outMin, float& outMax
+) {
 	// 軸を正規化
 	Vec3 normalizedAxis = axis.Normalized();
 
@@ -127,7 +344,10 @@ void Physics::ProjectTriangleOntoAxis(const Triangle& triangle, const Vec3& axis
 	outMax = std::max(std::max(proj0, proj1), proj2);
 }
 
-bool Physics::TestAxis(const Vec3& axis, const Vec3& aabbCenter, const Vec3& aabbHalfSize, const Triangle& triangle) {
+bool Physics::TestAxis(
+	const Vec3& axis, const Vec3& aabbCenter, const Vec3& aabbHalfSize,
+	const Triangle& triangle
+) {
 	// 軸がゼロの場合は無視
 	if (axis.SqrLength() < 1e-6f) {
 		return true;
@@ -145,7 +365,9 @@ bool Physics::TestAxis(const Vec3& axis, const Vec3& aabbCenter, const Vec3& aab
 	return !(aabbMax < triangleMin || triangleMax < aabbMin);
 }
 
-Physics::CollisionResult Physics::IntersectAABBWithTriangle(const AABB& aabb, const Triangle& triangle) {
+Physics::CollisionResult Physics::IntersectAABBWithTriangle(
+	const AABB& aabb, const Triangle& triangle
+) {
 	// 分離軸アルゴリズムというらしい Separating Axis Theorem
 	// 軸の候補を出して、それぞれの軸に対してAABBと三角形を投影して重なっていたら衝突していることになるらしい...?
 	// あー
@@ -201,39 +423,62 @@ Physics::CollisionResult Physics::IntersectAABBWithTriangle(const AABB& aabb, co
 	// 重なっている場合は衝突している
 	result.hasCollision = true;
 	result.contactNormal = triangleNormal;
-	result.contactPoint = aabbCenter - triangleNormal * aabbExtents.Dot(triangleNormal);
+	result.contactPoint = aabbCenter - triangleNormal * aabbExtents.Dot(
+		triangleNormal
+	);
 
 	return result;
 }
 
-void Physics::DebugDrawAABBAndTriangle(const AABB& aabb, const Triangle& triangle, const CollisionResult& result) {
+void Physics::DebugDrawAABBAndTriangle(
+	const AABB& aabb, const Triangle& triangle, const CollisionResult& result
+) {
 	// --- 1. AABBを描画 ---
 	Vec3 center = (aabb.min + aabb.max) * 0.5f;
 	Vec3 size = aabb.max - aabb.min;
-	Debug::DrawBox(center, Quaternion(0, 0, 0, 1), size, Vec4(0.0f, 1.0f, 0.0f, 1.0f)); // 緑
+	Debug::DrawBox(
+		center, Quaternion(0, 0, 0, 1), size, Vec4(0.0f, 1.0f, 0.0f, 1.0f)
+	); // 緑
 
 	// --- 2. 三角形を描画 ---
-	Debug::DrawLine(triangle.v0, triangle.v1, Vec4(0.0f, 0.0f, 1.0f, 1.0f)); // 青
-	Debug::DrawLine(triangle.v1, triangle.v2, Vec4(0.0f, 0.0f, 1.0f, 1.0f)); // 青
-	Debug::DrawLine(triangle.v2, triangle.v0, Vec4(0.0f, 0.0f, 1.0f, 1.0f)); // 青
+	Debug::DrawLine(
+		triangle.v0, triangle.v1, Vec4(0.0f, 0.0f, 1.0f, 1.0f)
+	); // 青
+	Debug::DrawLine(
+		triangle.v1, triangle.v2, Vec4(0.0f, 0.0f, 1.0f, 1.0f)
+	); // 青
+	Debug::DrawLine(
+		triangle.v2, triangle.v0, Vec4(0.0f, 0.0f, 1.0f, 1.0f)
+	); // 青
 
 	// --- 3. 三角形の法線を描画 ---
 	Vec3 triangleCenter = (triangle.v0 + triangle.v1 + triangle.v2) / 3.0f;
-	Vec3 triangleNormal = (triangle.v1 - triangle.v0).Cross(triangle.v2 - triangle.v0).Normalized();
-	Debug::DrawRay(triangleCenter, triangleNormal * 0.5f, Vec4(1.0f, 1.0f, 0.0f, 1.0f)); // 黄色
+	Vec3 triangleNormal = (triangle.v1 - triangle.v0).Cross(
+		triangle.v2 - triangle.v0
+	).Normalized();
+	Debug::DrawRay(
+		triangleCenter, triangleNormal * 0.5f, Vec4(1.0f, 1.0f, 0.0f, 1.0f)
+	); // 黄色
 
 	// --- 4. 衝突結果の描画 ---
 	if (result.hasCollision) {
 		// 衝突点を描画
-		Debug::DrawBox(result.contactPoint, Quaternion(0, 0, 0, 1), Vec3(0.1f, 0.1f, 0.1f), Vec4(1.0f, 0.0f, 0.0f, 1.0f)); // 赤
+		Debug::DrawBox(
+			result.contactPoint, Quaternion(0, 0, 0, 1), Vec3(0.1f, 0.1f, 0.1f),
+			Vec4(1.0f, 0.0f, 0.0f, 1.0f)
+		); // 赤
 
 		// 衝突法線を描画
-		Debug::DrawRay(result.contactPoint, result.contactNormal * 0.5f, Vec4(1.0f, 0.0f, 0.0f, 1.0f)); // 赤
+		Debug::DrawRay(
+			result.contactPoint, result.contactNormal * 0.5f,
+			Vec4(1.0f, 0.0f, 0.0f, 1.0f)
+		); // 赤
 	}
 }
 
 Vec3 Physics::ResolveCollisionAABB(
-	const AABB& aabb, Vec3& velocity, const std::vector<Triangle>& triangles, int maxIterations
+	const AABB& aabb, Vec3& velocity, const std::vector<Triangle>& triangles,
+	int maxIterations
 ) {
 	Vec3 remainingVelocity = velocity; // 現在の移動ベクトル
 	Vec3 positionDelta(0.0f, 0.0f, 0.0f); // 実際の移動量
@@ -244,8 +489,12 @@ Vec3 Physics::ResolveCollisionAABB(
 		float closestDistance = FLT_MAX;
 
 		for (const auto& triangle : triangles) {
-			AABB movedAABB = { aabb.min + positionDelta, aabb.max + positionDelta };
-			CollisionResult result = IntersectAABBWithTriangle(movedAABB, triangle);
+			AABB movedAABB = {
+				aabb.min + positionDelta, aabb.max + positionDelta
+			};
+			CollisionResult result = IntersectAABBWithTriangle(
+				movedAABB, triangle
+			);
 
 			// 衝突していて、かつ最も近い衝突点を記録
 			if (result.hasCollision && result.distance < closestDistance) {
@@ -262,12 +511,15 @@ Vec3 Physics::ResolveCollisionAABB(
 
 		// 3. 衝突がある場合、スライド移動を計算
 		Vec3 slideNormal = closestCollision.contactNormal;
-		Vec3 slideVelocity = remainingVelocity - remainingVelocity.Dot(slideNormal) * slideNormal;
+		Vec3 slideVelocity = remainingVelocity - remainingVelocity.Dot(
+			slideNormal
+		) * slideNormal;
 
 		velocity = slideVelocity;
 
 		// 実際に移動する量を更新
-		positionDelta += remainingVelocity * (closestCollision.distance - 0.01f); // 0.01fは浮動小数点誤差を防ぐマージン
+		positionDelta += remainingVelocity * (closestCollision.distance -
+			0.01f); // 0.01fは浮動小数点誤差を防ぐマージン
 		remainingVelocity = slideVelocity;
 
 		// 4. 移動量が小さくなったら終了
@@ -279,20 +531,31 @@ Vec3 Physics::ResolveCollisionAABB(
 	return positionDelta;
 }
 
-void Physics::DebugDrawAABBCollisionResponse(const AABB& aabb, const Vec3& velocity, const Vec3& finalPosition) {
+void Physics::DebugDrawAABBCollisionResponse(
+	const AABB& aabb, const Vec3& velocity, const Vec3& finalPosition
+) {
 	// 初期位置のAABB
 	Vec3 initialCenter = (aabb.min + aabb.max) * 0.5f;
 	Vec3 finalCenter = initialCenter + finalPosition;
 
-	Debug::DrawBox(initialCenter, Quaternion::identity, aabb.max - aabb.min, Vec4(0.0f, 1.0f, 0.0f, 1.0f)); // 緑
-	Debug::DrawBox(finalCenter, Quaternion::identity, aabb.max - aabb.min, Vec4(0.0f, 0.0f, 1.0f, 1.0f)); // 青
+	Debug::DrawBox(
+		initialCenter, Quaternion::identity, aabb.max - aabb.min,
+		Vec4(0.0f, 1.0f, 0.0f, 1.0f)
+	); // 緑
+	Debug::DrawBox(
+		finalCenter, Quaternion::identity, aabb.max - aabb.min,
+		Vec4(0.0f, 0.0f, 1.0f, 1.0f)
+	); // 青
 
 	// 移動経路の描画
-	Debug::DrawRay(initialCenter, velocity, Vec4(1.0f, 1.0f, 0.0f, 1.0f)); // 黄色い線で移動経路を描画
+	Debug::DrawRay(
+		initialCenter, velocity, Vec4(1.0f, 1.0f, 0.0f, 1.0f)
+	); // 黄色い線で移動経路を描画
 }
 
 void Physics::ClosestPointBetweenSegments(
-	const Vec3& segA1, const Vec3& segA2, const Vec3& segB1, const Vec3& segB2, Vec3& outSegA, Vec3& outSegB
+	const Vec3& segA1, const Vec3& segA2, const Vec3& segB1, const Vec3& segB2,
+	Vec3& outSegA, Vec3& outSegB
 ) {
 	Vec3 d1 = segA2 - segA1; // 線分Aの方向ベクトル
 	Vec3 d2 = segB2 - segB1; // 線分Bの方向ベクトル
@@ -334,7 +597,9 @@ void Physics::ClosestPointBetweenSegments(
 	outSegB = segB1 + d2 * t;
 }
 
-Vec3 Physics::ClosestPointOnTriangle(const Vec3& point, const Triangle& triangle) {
+Vec3 Physics::ClosestPointOnTriangle(
+	const Vec3& point, const Triangle& triangle
+) {
 	Vec3 ab = triangle.v1 - triangle.v0;
 	Vec3 ac = triangle.v2 - triangle.v0;
 	Vec3 ap = point - triangle.v0;
@@ -342,13 +607,15 @@ Vec3 Physics::ClosestPointOnTriangle(const Vec3& point, const Triangle& triangle
 	float d1 = ab.Dot(ap);
 	float d2 = ac.Dot(ap);
 
-	if (d1 <= 0.0f && d2 <= 0.0f) return triangle.v0; // 最も近い頂点はv0
+	if (d1 <= 0.0f && d2 <= 0.0f)
+		return triangle.v0; // 最も近い頂点はv0
 
 	Vec3 bp = point - triangle.v1;
 	float d3 = ab.Dot(bp);
 	float d4 = ac.Dot(bp);
 
-	if (d3 >= 0.0f && d4 <= d3) return triangle.v1; // 最も近い頂点はv1
+	if (d3 >= 0.0f && d4 <= d3)
+		return triangle.v1; // 最も近い頂点はv1
 
 	float vc = d1 * d4 - d3 * d2;
 	if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
@@ -360,7 +627,8 @@ Vec3 Physics::ClosestPointOnTriangle(const Vec3& point, const Triangle& triangle
 	float d5 = ab.Dot(cp);
 	float d6 = ac.Dot(cp);
 
-	if (d6 >= 0.0f && d5 <= d6) return triangle.v2; // 最も近い頂点はv2
+	if (d6 >= 0.0f && d5 <= d6)
+		return triangle.v2; // 最も近い頂点はv2
 
 	float vb = d5 * d2 - d1 * d6;
 	if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
@@ -381,7 +649,9 @@ Vec3 Physics::ClosestPointOnTriangle(const Vec3& point, const Triangle& triangle
 	return triangle.v0 + ab * v + ac * w;
 }
 
-Physics::CollisionResult Physics::IntersectCapsuleWithTriangle(const Capsule& capsule, const Triangle& triangle) {
+Physics::CollisionResult Physics::IntersectCapsuleWithTriangle(
+	const Capsule& capsule, const Triangle& triangle
+) {
 	CollisionResult result;
 
 	// カプセルの線分
@@ -397,21 +667,24 @@ Physics::CollisionResult Physics::IntersectCapsuleWithTriangle(const Capsule& ca
 	float endDist = (capsuleEnd - triangle.v0).Dot(triangleNormal);
 
 	// 線分が平面を跨いでいるか、または端点が平面上にあるかをチェック
-	if (startDist * endDist <= 0.0f || std::abs(startDist) <= capsule.radius || std::abs(endDist) <= capsule.radius) {
+	if (startDist * endDist <= 0.0f || std::abs(startDist) <= capsule.radius ||
+		std::abs(endDist) <= capsule.radius) {
 		// 線分と平面の交点を計算
 		Vec3 dir = capsuleEnd - capsuleStart;
 		float denom = dir.Dot(triangleNormal);
 
 		// 線分が平面と平行でない場合のみ計算
 		if (std::abs(denom) > 1e-6f) {
-			float t = ((triangle.v0 - capsuleStart).Dot(triangleNormal)) / denom;
+			float t = ((triangle.v0 - capsuleStart).Dot(triangleNormal)) /
+				denom;
 			t = std::clamp(t, 0.0f, 1.0f);
 			Vec3 planeIntersection = capsuleStart + dir * t;
 
 			// 交点が三角形内にあるかチェック
 			if (triangle.IsPointInside(planeIntersection)) {
 				result.hasCollision = true;
-				result.contactPoint = planeIntersection - triangleNormal * capsule.radius;
+				result.contactPoint = planeIntersection - triangleNormal *
+					capsule.radius;
 				result.contactNormal = triangleNormal;
 				result.distance = 0.0f; // 平面上での衝突なので距離は0
 				return result;
@@ -429,7 +702,10 @@ Physics::CollisionResult Physics::IntersectCapsuleWithTriangle(const Capsule& ca
 		Vec3 edgeEnd = triangle.GetVertex((i + 1) % 3);
 
 		Vec3 tempCapsulePoint, tempEdgePoint;
-		ClosestPointBetweenSegments(capsuleStart, capsuleEnd, edgeStart, edgeEnd, tempCapsulePoint, tempEdgePoint);
+		ClosestPointBetweenSegments(
+			capsuleStart, capsuleEnd, edgeStart, edgeEnd, tempCapsulePoint,
+			tempEdgePoint
+		);
 
 		float dist = (tempCapsulePoint - tempEdgePoint).Length();
 		if (dist < minDistance) {
@@ -440,7 +716,9 @@ Physics::CollisionResult Physics::IntersectCapsuleWithTriangle(const Capsule& ca
 	}
 
 	// --- 3. カプセルの端点と三角形の面との最近接点をチェック ---
-	Vec3 closestPointOnTriangleToStart = ClosestPointOnTriangle(capsuleStart, triangle);
+	Vec3 closestPointOnTriangleToStart = ClosestPointOnTriangle(
+		capsuleStart, triangle
+	);
 	float distToStart = (capsuleStart - closestPointOnTriangleToStart).Length();
 	if (distToStart < minDistance) {
 		minDistance = distToStart;
@@ -448,7 +726,9 @@ Physics::CollisionResult Physics::IntersectCapsuleWithTriangle(const Capsule& ca
 		closestTriangleEdgePoint = closestPointOnTriangleToStart;
 	}
 
-	Vec3 closestPointOnTriangleToEnd = ClosestPointOnTriangle(capsuleEnd, triangle);
+	Vec3 closestPointOnTriangleToEnd = ClosestPointOnTriangle(
+		capsuleEnd, triangle
+	);
 	float distToEnd = (capsuleEnd - closestPointOnTriangleToEnd).Length();
 	if (distToEnd < minDistance) {
 		minDistance = distToEnd;
@@ -459,8 +739,10 @@ Physics::CollisionResult Physics::IntersectCapsuleWithTriangle(const Capsule& ca
 	// --- 4. 衝突判定 ---
 	if (minDistance <= capsule.radius) {
 		result.hasCollision = true;
-		result.contactPoint = closestCapsulePoint - (closestCapsulePoint - closestTriangleEdgePoint).Normalized() * capsule.radius;
-		result.contactNormal = (closestCapsulePoint - closestTriangleEdgePoint).Normalized();
+		result.contactPoint = closestCapsulePoint - (closestCapsulePoint -
+			closestTriangleEdgePoint).Normalized() * capsule.radius;
+		result.contactNormal = (closestCapsulePoint - closestTriangleEdgePoint).
+			Normalized();
 		result.distance = capsule.radius - minDistance;
 	}
 
@@ -468,29 +750,45 @@ Physics::CollisionResult Physics::IntersectCapsuleWithTriangle(const Capsule& ca
 }
 
 void Physics::DebugDrawCapsuleAndTriangle(
-	const Capsule& capsule, const Triangle& triangle, const CollisionResult& result
+	const Capsule& capsule, const Triangle& triangle,
+	const CollisionResult& result
 ) {
 	// --- 1. カプセルを描画 ---
 	Debug::DrawLine(capsule.start, capsule.end, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
-	Debug::DrawCapsule(capsule.start, capsule.end, capsule.radius, Vec4(0.0f, 1.0f, 1.0f, 0.5f));
+	Debug::DrawCapsule(
+		capsule.start, capsule.end, capsule.radius, Vec4(0.0f, 1.0f, 1.0f, 0.5f)
+	);
 
 	// --- 2. 三角形を描画 ---
 	Debug::DrawLine(triangle.v0, triangle.v1, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
 	Debug::DrawLine(triangle.v1, triangle.v2, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
 	Debug::DrawLine(triangle.v2, triangle.v0, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
 
-	Debug::DrawRay(triangle.GetCenter(), triangle.GetNormal() * 0.5f, Vec4(1.0f, 1.0f, 0.0f, 1.0f));
+	Debug::DrawRay(
+		triangle.GetCenter(), triangle.GetNormal() * 0.5f,
+		Vec4(1.0f, 1.0f, 0.0f, 1.0f)
+	);
 
 	// --- 3. 衝突点を描画 ---
 	if (result.hasCollision) {
 		// カプセル線分上の最近接点（黄）
-		Vec3 closestSegPoint = result.contactPoint + result.contactNormal * capsule.radius;
-		Debug::DrawBox(closestSegPoint, Quaternion::identity, Vec3(0.1f, 0.1f, 0.1f), Vec4(1.0f, 1.0f, 0.0f, 1.0f));
+		Vec3 closestSegPoint = result.contactPoint + result.contactNormal *
+			capsule.radius;
+		Debug::DrawBox(
+			closestSegPoint, Quaternion::identity, Vec3(0.1f, 0.1f, 0.1f),
+			Vec4(1.0f, 1.0f, 0.0f, 1.0f)
+		);
 
 		// 実際の接触点（赤）
-		Debug::DrawBox(result.contactPoint, Quaternion::identity, Vec3(0.1f, 0.1f, 0.1f), Vec4(1.0f, 0.0f, 0.0f, 1.0f));
+		Debug::DrawBox(
+			result.contactPoint, Quaternion::identity, Vec3(0.1f, 0.1f, 0.1f),
+			Vec4(1.0f, 0.0f, 0.0f, 1.0f)
+		);
 
 		// 衝突法線（赤）
-		Debug::DrawRay(result.contactPoint, result.contactNormal * 0.5f, Vec4(1.0f, 0.0f, 0.0f, 1.0f));
+		Debug::DrawRay(
+			result.contactPoint, result.contactNormal * 0.5f,
+			Vec4(1.0f, 0.0f, 0.0f, 1.0f)
+		);
 	}
 }

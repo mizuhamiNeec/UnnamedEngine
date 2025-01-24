@@ -333,6 +333,9 @@
     <ClInclude Include="Source\Engine\Components\Collider\Base\Collider.h" />
     <ClInclude Include="Source\Engine\Components\Collider\AABBCollider.h" />
     <ClInclude Include="Source\Engine\Lib\Physics\Physics.h" />
+    <ClInclude Include="Source\Engine\Lib\Physics\Shapes\Base\Shape.h" />
+    <ClInclude Include="Source\Engine\Lib\Physics\Shapes\Sphere.h" />
+    <ClInclude Include="Source\Engine\Lib\Physics\PhysicsObject.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -508,6 +511,8 @@
     <ClCompile Include="Source\Engine\Components\Collider\Base\Collider.cpp" />
     <ClCompile Include="Source\Engine\Components\Collider\AABBCollider.cpp" />
     <ClCompile Include="Source\Engine\Lib\Physics\Physics.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Physics\Shapes\Sphere.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Physics\PhysicsObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

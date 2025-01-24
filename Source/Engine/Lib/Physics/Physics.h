@@ -22,6 +22,10 @@ namespace Physics {
 		[[nodiscard]] Vec3 GetCenter() const;
 		[[nodiscard]] Vec3 GetSize() const;
 		[[nodiscard]] Vec3 GetHalfSize() const;
+
+		bool Intersects(const AABB& other) const;
+		AABB Combine(const AABB& aabb) const;
+		float Volume() const;
 	};
 
 	// 三角
@@ -41,6 +45,46 @@ namespace Physics {
 		Vec3 start; // 始点
 		Vec3 end; // 終点
 		float radius; // 半径
+	};
+#pragma endregion
+
+#pragma region BVH
+	//-------------------------------------------------------------------------
+	// 大量のオブジェクトを出したいのでBVHを採用
+	//-------------------------------------------------------------------------
+	struct BVHNode {
+		AABB boundingBox;
+		int leftChild = -1;
+		int rightChild = -1;
+		int parent = -1;
+		int objectIndex = -1;
+		bool isLeaf = false;
+
+		BVHNode(const AABB& box = {Vec3::zero, Vec3::zero}, int left = -1, int right = -1, int parent = -1, int objectIdx = -1, bool leaf = false)
+			: boundingBox(box), leftChild(left), rightChild(right), parent(parent), objectIndex(objectIdx), isLeaf(leaf) {
+		}
+	};
+
+	class DynamicBVH {
+	public:
+		DynamicBVH() : rootNode_(-1) {}
+
+		int InsertObject(const AABB& aabb, int objectIndex);
+		void RemoveObject(int nodeId);
+		void UpdateObject(int nodeId, const AABB& newAABB);
+		[[nodiscard]] std::vector<int> QueryOverlaps(const AABB& queryBox) const;
+
+		float CalculateGrowth(int nodeId, const AABB& newAABB);
+		void CreateNewParent(int existingNodeId, int newNodeId);
+
+		// デバッグ用
+		void DrawBVHNode(int nodeId, const Vec4& color);
+		void DrawBvh(const Vec4& color);
+		void DrawObjects(const Vec4& color) const;
+
+	private:
+		std::vector<BVHNode> nodes_;
+		int rootNode_;
 	};
 #pragma endregion
 

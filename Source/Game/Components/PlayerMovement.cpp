@@ -62,6 +62,12 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 
 	Move();
 
+	// y座標が0以下の場合は0にする
+	if (position_.y < 0.0f) {
+		position_.y = 0.0f;
+		velocity_.y = 0.0f;
+	}
+
 	transform_->SetLocalPos(position_ + velocity_ * deltaTime_);
 
 	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
@@ -73,7 +79,7 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	Debug::DrawBox(transform_->GetWorldPos() + (Vec3::up * height * 0.5f), Quaternion::Euler(Vec3::zero), Vec3(width, height, width), Vec4::blue);
 
 	Debug::DrawRay(transform_->GetWorldPos(), wishdir, Vec4::cyan);
-} 
+}
 
 void PlayerMovement::DrawInspectorImGui() {
 	ImGui::CollapsingHeader("PlayerMovement", ImGuiTreeNodeFlags_DefaultOpen);
@@ -144,9 +150,6 @@ void PlayerMovement::Move() {
 		}
 		AirAccelerate(wishdir, wishspeed, ConVarManager::GetConVar("sv_airaccelerate")->GetValueAsFloat());
 	}
-
-	// y座標が0以下の場合は0にする
-	position_.y = std::max(position_.y, 0.0f);
 
 	isGrounded_ = CheckGrounded();
 

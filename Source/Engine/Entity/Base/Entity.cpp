@@ -107,7 +107,7 @@ void Entity::SetParent(Entity* newParent) {
 
 	// 既存の親から削除
 	if (parent_) {
-		auto it = std::find(parent_->children_.begin(), parent_->children_.end(), this);
+		auto it = std::ranges::find(parent_->children_, this);
 		if (it != parent_->children_.end()) {
 			parent_->children_.erase(it);
 		}

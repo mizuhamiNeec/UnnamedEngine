@@ -115,6 +115,7 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Lib\Physics\PhysicsObject.cpp" />
     <ClCompile Include="Source\Engine\Components\Collider\AABBCollider.cpp" />
     <ClCompile Include="Source\Engine\Components\Collider\Base\Collider.cpp" />
     <ClCompile Include="Source\Engine\Lib\Physics\Physics.cpp" />
@@ -157,6 +158,7 @@
     <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp" />
     <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Physics\Shapes\Sphere.cpp" />
     <None Include="Resources\Shaders\Default.hlsli" />
     <None Include="Resources\Shaders\Line.PS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -229,6 +231,8 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Lib\Physics\PhysicsObject.h" />
+    <ClInclude Include="Source\Engine\Lib\Physics\Shapes\Base\Shape.h" />
     <ClInclude Include="Source\Engine\Components\Collider\AABBCollider.h" />
     <ClInclude Include="Source\Engine\Components\Collider\Base\Collider.h" />
     <ClInclude Include="Source\Engine\Lib\Physics\Physics.h" />
@@ -271,6 +275,7 @@
     <ClInclude Include="Source\Engine\Components\Transform\TransformComponent.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.h" />
+    <ClInclude Include="Source\Engine\Lib\Physics\Shapes\Sphere.h" />
     <None Include="Resources\Shaders\Object3d.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
