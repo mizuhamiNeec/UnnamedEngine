@@ -144,31 +144,6 @@ void GameScene::Update(const float deltaTime) {
 
 	//cameraRoot_->Update(deltaTime);
 
-	// プレイヤーのAABBとベロシティを取得
-	Physics::AABB playerAABB = playerCollider_->GetAABB();
-	Vec3 playerVelocity = playerMovement_->GetVelocity();
-
-	// 地面の三角形（または他の衝突対象）を用意
-	static std::vector<Physics::Triangle> triangles = groundTriangle;
-
-	// 地面の三角形をデバッグ描画
-	for (auto triangle : triangles) {
-		Debug::DrawLine(triangle.v0, triangle.v1, Vec4(0.0f, 0.0f, 1.0f, 1.0f)); // 三角形の辺を描画
-		Debug::DrawLine(triangle.v1, triangle.v2, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
-		Debug::DrawLine(triangle.v2, triangle.v0, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
-
-		// 法線ベクトルを描画
-		Debug::DrawRay(triangle.GetCenter(), triangle.GetNormal() * 0.5f, Vec4::magenta);
-	}
-
-	// 衝突応答を計算
-	Vec3 resolvedPosition = ResolveCollisionAABB(playerAABB, playerVelocity, triangles);
-
-	// デバッグ描画（移動後の位置を描画）
-	DebugDrawAABBCollisionResponse(playerAABB, playerVelocity, resolvedPosition);
-
-	// プレイヤーの移動コンポーネントで位置を更新
-	entPlayer_->GetTransform()->SetLocalPos(resolvedPosition);  // playerMovement_ コンポーネントに位置を設定
 
 	// プレイヤーの更新（位置とベロシティの管理をコンポーネントで行う）
 	entPlayer_->Update(deltaTime);

@@ -6,13 +6,17 @@
 #include <Lib/Math/Quaternion/Quaternion.h>
 #include <Lib/Math/Vector/Vec3.h>
 
+//-----------------------------------------------------------------------------
+// すべてのエンティティが持っているコンポーネントです
+//-----------------------------------------------------------------------------
 class TransformComponent : public Component {
 public:
 	TransformComponent() : position_(Vec3::zero),
 		rotation_(Quaternion::identity),
 		scale_(Vec3::one),
 		localMat_(Mat4::identity),
-		isDirty_(true) {}
+		isDirty_(true) {
+	}
 
 	void Update(float deltaTime) override;
 
