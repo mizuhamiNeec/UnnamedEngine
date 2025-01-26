@@ -17,16 +17,16 @@
 #include "Debug/Debug.h"
 #include "Input/InputSystem.h"
 #include "Lib/DebugHud/DebugHud.h"
-#include <Lib/Physics/Physics.h>
+#include <Physics/Physics.h>
 
-Physics::AABB GenerateRandomAABB(const Vec3& worldMin, const Vec3& worldMax, const Vec3& sizeRange) {
+AABB GenerateRandomAABB(const Vec3& worldMin, const Vec3& worldMax, const Vec3& sizeRange) {
 	Vec3 center = Random::Vec3Range(worldMin, worldMax);
 	Vec3 halfSize = Random::Vec3Range(Vec3::zero, sizeRange);
 	return { center - halfSize, center + halfSize };
 }
 
-std::vector<Physics::AABB> GenerateRandomAABBs(size_t count, const Vec3& worldMin, const Vec3& worldMax, const Vec3& sizeRange) {
-	std::vector<Physics::AABB> aabbs;
+std::vector<AABB> GenerateRandomAABBs(size_t count, const Vec3& worldMin, const Vec3& worldMax, const Vec3& sizeRange) {
+	std::vector<AABB> aabbs;
 	for (size_t i = 0; i < count; ++i) {
 		aabbs.push_back(GenerateRandomAABB(worldMin, worldMax, sizeRange));
 	}
@@ -63,6 +63,11 @@ void GameScene::Init(Engine* engine) {
 
 #pragma endregion
 
+#pragma region 物理エンジン
+	physicsEngine_ = std::make_unique<PhysicsEngine>();
+	physicsEngine_->Init();
+#pragma endregion
+
 #pragma region エンティティ
 	camera_ = std::make_unique<Entity>("camera");
 	entities_.push_back(camera_.get());
@@ -85,10 +90,11 @@ void GameScene::Init(Engine* engine) {
 	playerMovement_ = std::shared_ptr<PlayerMovement>(
 		rawPlayerMovement, [](PlayerMovement*) {}
 	);
-	AABBCollider* rawPlayerCollider = entPlayer_->AddComponent<AABBCollider>(Vec3::one);
-	playerCollider_ = std::shared_ptr<AABBCollider>(
-		rawPlayerCollider, [](AABBCollider*) {}
+	BoxColliderComponent* rawPlayerCollider = entPlayer_->AddComponent<BoxColliderComponent>();
+	playerCollider_ = std::shared_ptr<BoxColliderComponent>(
+		rawPlayerCollider, [](BoxColliderComponent*) {}
 	);
+	playerCollider_->SetSize(Math::HtoM(Vec3(33.0f, 73.0f, 33.0f)));
 	entities_.push_back(entPlayer_.get());
 
 	cameraRoot_ = std::make_unique<Entity>("cameraRoot");
@@ -100,7 +106,6 @@ void GameScene::Init(Engine* engine) {
 	// cameraRootにアタッチ
 	camera_->SetParent(cameraRoot_.get());
 	camera_->GetTransform()->SetLocalPos(Vec3::backward * 2.5f);
-
 #pragma endregion
 
 #pragma region コンソール変数/コマンド
@@ -133,14 +138,21 @@ void GameScene::Init(Engine* engine) {
 		testMeshRenderer, [](StaticMeshRenderer*) {}
 	);
 	debugTestMR_->SetStaticMesh(debugMesh);
+	MeshColliderComponent* meshColliderComponent =
+		debugTestMeshEntity_->AddComponent<MeshColliderComponent>();
+	debugTestMeshCollider_ = std::shared_ptr<MeshColliderComponent>(
+		meshColliderComponent,
+		[](MeshColliderComponent*) {}
+	);
 	entities_.push_back(debugTestMeshEntity_.get());
 #pragma endregion
 
 	CameraManager::SetActiveCamera(camera);
 
-	groundTriangle = debugMesh->GetPolygons();
+	worldMesh_ = debugMesh->GetPolygons();
 
-	aabbs_ = GenerateRandomAABBs(4, Vec3(-128), Vec3(128), Vec3(2.0f));
+	//physicsEngine_->RegisterEntity(entPlayer_.get(), false);
+	physicsEngine_->RegisterEntity(debugTestMeshEntity_.get(), true);
 }
 
 void GameScene::Update(const float deltaTime) {
@@ -150,46 +162,24 @@ void GameScene::Update(const float deltaTime) {
 	//} else {
 	//	camera_->SetParent(cameraRoot_.get());
 	//}
-
 	//// マウスホイールでカメラのローカルZ軸方向に移動
 	//if (InputSystem::IsTriggered("+invprev")) {
 	//	camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() + Vec3::forward * 64.0f);
 	//} else if (InputSystem::IsTriggered("+invnext")) {
 	//	camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 64.0f);
 	//}
-
 	//cameraRoot_->Update(deltaTime);
 
-	if (ImGui::Button("Regenerate AABB")) {
-		aabbs_ = GenerateRandomAABBs(65535, Vec3(-128), Vec3(128), Vec3(2.0f));
-	}
+	//for (auto worldMesh : worldMesh_) {
+	//	// メッシュのワイヤを描画
+	//	Debug::DrawTriangle(worldMesh, Vec4::orange);
+	//	Debug::DrawRay(worldMesh.GetCenter(), worldMesh.GetNormal(), Vec4::magenta);
+	//}
 
-	for (auto& aabb : aabbs_) {
-		float angle = Random::FloatRange(0.0f, 2.0f * Math::pi);
-		float radius = Random::FloatRange(0.0f, 64.0f) * deltaTime;
-		Vec3 offset = Vec3(
-			std::cos(angle) * radius,
-			0.0f, // Y軸方向の動きはなし
-			std::sin(angle) * radius
-		);
-		aabb.min += offset;
-		aabb.max += offset;
-	}
-	// BVHのテスト
-	{
-		Physics::DynamicBVH bvh;
-		// BVHにオブジェクトを挿入
-		for (size_t i = 0; i < aabbs_.size(); ++i) {
-			bvh.InsertObject(aabbs_[i], static_cast<int>(i));
-		}
-
-		// BVHの描画
-		bvh.DrawBvh(Vec4::gray);      // 緑色でBVH構造を描画
-		bvh.DrawObjects(Vec4::red); // 赤色でオブジェクトを描画
-	}
+	//physicsEngine_->Update(deltaTime);
 
 	// プレイヤーの更新
-	entPlayer_->Update(deltaTime);
+	//entPlayer_->Update(deltaTime);
 
 	testMeshEntity_->Update(deltaTime);
 	debugTestMeshEntity_->Update(deltaTime);

@@ -1,5 +1,7 @@
 #include "StaticMesh.h"
 
+#include <Physics/Physics.h>
+
 void StaticMesh::AddSubMesh(std::unique_ptr<SubMesh> subMesh) {
 	subMeshes_.push_back(std::move(subMesh));
 }
@@ -10,8 +12,8 @@ const std::vector<std::unique_ptr<SubMesh>>& StaticMesh::GetSubMeshes() const {
 
 std::string StaticMesh::GetName() const { return name_; }
 
-std::vector<Physics::Triangle> StaticMesh::GetPolygons() {
-	std::vector<Physics::Triangle> polygons;
+std::vector<Triangle> StaticMesh::GetPolygons() {
+	std::vector<Triangle> polygons;
 	for (const auto& subMesh : subMeshes_) {
 		auto subMeshPolygons = subMesh->GetPolygons();
 		polygons.insert(polygons.end(), subMeshPolygons.begin(), subMeshPolygons.end());

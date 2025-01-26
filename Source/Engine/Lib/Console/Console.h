@@ -1,11 +1,17 @@
 #pragma once
 
-#include <condition_variable>
 #include <functional>
+#include <mutex>
 #include <queue>
 #include <string>
+#include <thread>
 #include <vector>
+
 #include <ImGuiManager/ImGuiManager.h>
+#include <Lib/Math/Vector/Vec4.h>
+#include <cstdint>
+#include <imgui.h>
+#include <iosfwd>
 
 constexpr Vec4 kConsoleColorNormal = Vec4(0.71f, 0.71f, 0.71f, 1.0f); // 通常テキストの色
 constexpr Vec4 kConsoleColorGray = Vec4(0.77f, 0.74f, 0.66f, 1.0f); // グレーテキストの色

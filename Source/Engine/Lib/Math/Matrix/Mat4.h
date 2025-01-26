@@ -1,11 +1,11 @@
 #pragma once
 
 #include <initializer_list>
+#include <string>
 
-#include "../Quaternion/Quaternion.h"
-
-#include "../Vector/Vec3.h"
-#include "Lib/Math/Vector/Vec4.h"
+#include <Lib/Math/Quaternion/Quaternion.h>
+#include <Lib/Math/Vector/Vec3.h>
+#include <Lib/Math/Vector/Vec4.h>
 
 struct Mat4 final {
 	float m[4][4];

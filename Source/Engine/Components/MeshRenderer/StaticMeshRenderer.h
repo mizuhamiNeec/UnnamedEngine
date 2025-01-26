@@ -19,6 +19,7 @@ public:
 	// インスペクターの描画
 	virtual void DrawInspectorImGui() override;
 
+	StaticMesh* GetStaticMesh() const;
 	void SetStaticMesh(StaticMesh* staticMesh);
 
 protected:

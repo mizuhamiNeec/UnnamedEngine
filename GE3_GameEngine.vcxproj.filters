@@ -330,12 +330,11 @@
     <ClInclude Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Texture\Texture.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Texture\TextureManager.h" />
-    <ClInclude Include="Source\Engine\Components\Collider\Base\Collider.h" />
-    <ClInclude Include="Source\Engine\Components\Collider\AABBCollider.h" />
-    <ClInclude Include="Source\Engine\Lib\Physics\Physics.h" />
-    <ClInclude Include="Source\Engine\Lib\Physics\Shapes\Base\Shape.h" />
-    <ClInclude Include="Source\Engine\Lib\Physics\Shapes\Sphere.h" />
-    <ClInclude Include="Source\Engine\Lib\Physics\PhysicsObject.h" />
+    <ClInclude Include="Source\Engine\Physics\Physics.h" />
+    <ClInclude Include="Source\Engine\Physics\PhysicsEngine.h" />
+    <ClInclude Include="Source\Engine\Components\ColliderComponent\Base\ColliderComponent.h" />
+    <ClInclude Include="Source\Engine\Components\ColliderComponent\MeshColliderComponent.h" />
+    <ClInclude Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -508,11 +507,11 @@
     <ClCompile Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Texture\Texture.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Texture\TextureManager.cpp" />
-    <ClCompile Include="Source\Engine\Components\Collider\Base\Collider.cpp" />
-    <ClCompile Include="Source\Engine\Components\Collider\AABBCollider.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Physics\Physics.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Physics\Shapes\Sphere.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Physics\PhysicsObject.cpp" />
+    <ClCompile Include="Source\Engine\Physics\Physics.cpp" />
+    <ClCompile Include="Source\Engine\Physics\PhysicsEngine.cpp" />
+    <ClCompile Include="Source\Engine\Components\ColliderComponent\MeshColliderComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\ColliderComponent\Base\ColliderComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

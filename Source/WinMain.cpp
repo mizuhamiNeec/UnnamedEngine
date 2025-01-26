@@ -1,5 +1,6 @@
 #include <Engine.h>
 #include <format>
+#define NOMINMAX
 #include <Windows.h>
 #include <Lib/Console/Console.h>
 #include <Lib/Console/ConVarManager.h>

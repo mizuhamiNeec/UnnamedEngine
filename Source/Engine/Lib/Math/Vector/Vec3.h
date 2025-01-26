@@ -16,6 +16,8 @@ struct Vec3 final {
 	static const Vec3 down;
 	static const Vec3 forward;
 	static const Vec3 backward;
+	static const Vec3 max;
+	static const Vec3 min;
 
 	constexpr Vec3() : Vec3(0.0f, 0.0f, 0.0f) {}
 	constexpr Vec3(const float x, const float y, const float z) : x(x), y(y), z(z) {}
@@ -35,8 +37,8 @@ struct Vec3 final {
 	void Normalize();
 	Vec3 Normalized() const;
 
-	Vec3 Clamp(Vec3 min, Vec3 max) const;
-	Vec3 ClampLength(float min, float max);
+	Vec3 Clamp(Vec3 minVec, Vec3 maxVec) const;
+	Vec3 ClampLength(float minVec, float maxVec);
 	Vec3 Reflect(const Vec3& normal) const;
 
 	Vec3 TransformDirection(const Quaternion& rotation) const;
@@ -67,5 +69,10 @@ struct Vec3 final {
 	Vec3& operator*=(float rhs);
 	Vec3& operator/=(float rhs);
 
+	/* ---------------- その他 ---------------- */
 	std::string ToString() const;
+	bool operator!=(const Vec3& rhs) const;
+
+	static Vec3 Min(Vec3 lhs, Vec3 rhs);
+	static Vec3 Max(Vec3 lhs, Vec3 rhs);
 };

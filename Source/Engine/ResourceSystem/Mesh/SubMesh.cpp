@@ -2,6 +2,8 @@
 
 #include "Lib/Console/Console.h"
 
+#include <Physics/Physics.h>
+
 SubMesh::SubMesh(const ComPtr<ID3D12Device>& device, std::string name) :
 	name_(std::move(name)),
 	device_(device) {
@@ -54,8 +56,8 @@ void SubMesh::ReleaseResource() {
 	material_ = nullptr;
 }
 
-std::vector<Physics::Triangle> SubMesh::GetPolygons() {
-	std::vector<Physics::Triangle> polygons;
+std::vector<Triangle> SubMesh::GetPolygons() {
+	std::vector<Triangle> polygons;
 	if (!vertexBuffer_ || !indexBuffer_) {
 		Console::Print("頂点バッファまたはインデックスバッファが設定されていません", kConsoleColorError, Channel::RenderSystem);
 		return polygons;

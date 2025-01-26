@@ -22,6 +22,8 @@ public:
 	// エディター専用のコンポーネントを作成する場合はこの関数をオーバーライドします
 	[[nodiscard]] virtual bool IsEditorOnly() const;
 
+	[[nodiscard]] virtual Entity* GetOwner() const;
+
 protected:
 	Entity* owner_ = nullptr;
 };

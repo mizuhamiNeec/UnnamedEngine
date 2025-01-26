@@ -1,11 +1,15 @@
 #include "Vec3.h"
 
+#define NOMINMAX
+#undef min
+#undef max
+
 #include <algorithm>
 #include <cmath>
 #include <format>
 #include <stdexcept>
 
-#include "Lib/Math/Matrix/Mat4.h"
+#include <Lib/Math/Matrix/Mat4.h>
 
 const Vec3 Vec3::zero(0.0f, 0.0f, 0.0f);
 const Vec3 Vec3::one(1.0f, 1.0f, 1.0f);
@@ -15,6 +19,8 @@ const Vec3 Vec3::up(0.0f, 1.0f, 0.0f);
 const Vec3 Vec3::down(0.0f, -1.0f, 0.0f);
 const Vec3 Vec3::forward(0.0f, 0.0f, 1.0f);
 const Vec3 Vec3::backward(0.0f, 0.0f, -1.0f);
+const Vec3 Vec3::max(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+const Vec3 Vec3::min(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest());
 
 float Vec3::Length() const {
 	if (const float sqrLength = SqrLength(); sqrLength > 0.0f) {
@@ -67,22 +73,22 @@ Vec3 Vec3::Normalized() const {
 	return zero;
 }
 
-Vec3 Vec3::Clamp(const Vec3 min, const Vec3 max) const {
+Vec3 Vec3::Clamp(const Vec3 minVec, const Vec3 maxVec) const {
 	return {
-		std::clamp(x, min.x, max.x),
-		std::clamp(y, min.y, max.y),
-		std::clamp(z, min.z, max.z)
+		std::clamp(x, minVec.x, maxVec.x),
+		std::clamp(y, minVec.y, maxVec.y),
+		std::clamp(z, minVec.z, maxVec.z)
 	};
 }
 
-Vec3 Vec3::ClampLength(const float min, const float max) {
+Vec3 Vec3::ClampLength(const float minVec, const float maxVec) {
 	const float sqrLength = SqrLength();
-	if (sqrLength > max * max) {
-		const float scale = max / std::sqrt(sqrLength);
+	if (sqrLength > maxVec * maxVec) {
+		const float scale = maxVec / std::sqrt(sqrLength);
 		return { x * scale, y * scale, z * scale };
 	}
-	if (sqrLength < min * min) {
-		const float scale = min / std::sqrt(sqrLength);
+	if (sqrLength < minVec * minVec) {
+		const float scale = minVec / std::sqrt(sqrLength);
 		return { x * scale, y * scale, z * scale };
 	}
 	return { x, y, z };
@@ -197,4 +203,24 @@ Vec3 operator/(const float lhs, const Vec3& rhs) {
 
 std::string Vec3::ToString() const {
 	return std::format("({:.2f}, {:.2f}, {:.2f})", x, y, z);
+}
+
+bool Vec3::operator!=(const Vec3& rhs) const {
+	return x != rhs.x || y != rhs.y || z != rhs.z;
+}
+
+Vec3 Vec3::Min(const Vec3 lhs, const Vec3 rhs) {
+	return {
+		std::min(lhs.x, rhs.x),
+		std::min(lhs.y, rhs.y),
+		std::min(lhs.z, rhs.z)
+	};
+}
+
+Vec3 Vec3::Max(const Vec3 lhs, const Vec3 rhs) {
+	return {
+		std::max(lhs.x, rhs.x),
+		std::max(lhs.y, rhs.y),
+		std::max(lhs.z, rhs.z)
+	};
 }

@@ -1,5 +1,6 @@
 #include "StrUtils.h"
 
+#define NOMINMAX
 #include <Windows.h>
 
 std::wstring StrUtils::ToWString(const std::string& string) {

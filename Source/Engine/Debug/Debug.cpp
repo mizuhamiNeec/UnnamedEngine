@@ -241,7 +241,7 @@ void Debug::DrawSphere(
 	if (radius <= 0) {
 		radius = 0.01f;
 	}
-	segments = std::max(segments, 2);
+	segments = max(segments, 2);
 
 	const int doubleSegments = segments * 2;
 
@@ -361,6 +361,12 @@ void Debug::DrawCapsule(const Vec3& start, const Vec3& end, const float& radius,
 
 	// 中間の円柱部分を描画（両端の半球をつなぐ）
 	DrawCylinder(start, orientation, length, radius, color, true);
+}
+
+void Debug::DrawTriangle(const Triangle& triangle, const Vec4 vec4) {
+	DrawLine(triangle.GetVertex(0), triangle.GetVertex(1), vec4);
+	DrawLine(triangle.GetVertex(1), triangle.GetVertex(2), vec4);
+	DrawLine(triangle.GetVertex(2), triangle.GetVertex(0), vec4);
 }
 
 void Debug::Init(LineCommon* lineCommon) {

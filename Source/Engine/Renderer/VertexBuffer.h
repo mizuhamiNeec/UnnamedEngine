@@ -96,7 +96,7 @@ std::vector<VertexType> VertexBuffer<VertexType>::GetVertices() const {
 	void* mappedData = nullptr;
 	D3D12_RANGE range{ 0, 0 };
 
-	HRESULT hr = buffer_->Map(0, &range, &mappedData);
+	[[maybe_unused]] HRESULT hr = buffer_->Map(0, &range, &mappedData);
 	assert(SUCCEEDED(hr));
 
 	memcpy(vertices.data(), mappedData, size_);

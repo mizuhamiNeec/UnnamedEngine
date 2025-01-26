@@ -147,22 +147,25 @@ bool ImGuiManager::EditTransform(TransformComponent& transform, const float& vSp
 	Vec3 localScale = transform.GetLocalScale();
 
 	if (ImGui::CollapsingHeader(("Transform##" + transform.GetOwner()->GetName()).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+		// Position 編集
 		if (DragVec3("Position", localPos, vSpeed, "%.3f")) {
 			transform.SetLocalPos(localPos);
-			isEditing |= true;
+			isEditing = true;
 		}
 
-		// 回転を取っておく
-		Vec3 rotate = localRot.ToEulerDegrees();
-		if (DragVec3("Rotation", rotate, vSpeed * 10.0f, "%.3f")) {
-			localRot = Quaternion::EulerDegrees(rotate);
+		// Rotation 編集
+		Vec3 eulerDegrees = localRot.ToEulerDegrees();
+		if (DragVec3("Rotation", eulerDegrees, vSpeed * 10.0f, "%.3f")) {
+			// 編集された Euler 角を Quaternion に変換
+			localRot = Quaternion::EulerDegrees(eulerDegrees);
 			transform.SetLocalRot(localRot);
-			isEditing |= true;
+			isEditing = true;
 		}
 
+		// Scale 編集
 		if (DragVec3("Scale", localScale, vSpeed, "%.3f")) {
 			transform.SetLocalScale(localScale);
-			isEditing |= true;
+			isEditing = true;
 		}
 	}
 	return isEditing;
@@ -259,7 +262,7 @@ bool ImGuiManager::IconButton(const char* icon, const char* label, const ImVec2&
 
 	// 必要なサイズを計算
 	ImVec2 totalSize = ImVec2(
-		std::max(iconSize.x, labelSize.x) + 20.0f, // パディングを追加
+		max(iconSize.x, labelSize.x) + 20.0f, // パディングを追加
 		iconSize.y + labelSize.y + spacing
 	);
 

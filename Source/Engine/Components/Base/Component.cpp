@@ -25,3 +25,7 @@ void Component::Render([[maybe_unused]] ID3D12GraphicsCommandList* commandList) 
 bool Component::IsEditorOnly() const {
 	return false;
 }
+
+Entity* Component::GetOwner() const {
+	return owner_;
+}

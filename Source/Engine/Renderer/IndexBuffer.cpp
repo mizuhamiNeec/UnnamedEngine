@@ -75,7 +75,7 @@ size_t IndexBuffer::GetSize() const {
 std::vector<uint32_t>& IndexBuffer::GetIndices() const {
 	indices_.resize(size_ / sizeof(uint32_t));
 	void* ptr = nullptr;
-	HRESULT hr = buffer_->Map(0, nullptr, &ptr);
+	[[maybe_unused]] HRESULT hr = buffer_->Map(0, nullptr, &ptr);
 	assert(SUCCEEDED(hr));
 
 	memcpy(indices_.data(), ptr, size_);

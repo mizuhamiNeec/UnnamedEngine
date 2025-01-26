@@ -483,7 +483,7 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	std::vector<std::string> combined;
 
 	// アスキーアートとシステム情報の行数の最大値を取得
-	const size_t maxRows = std::max(asciiArt.size(), info.size());
+	const size_t maxRows = max(asciiArt.size(), info.size());
 	const size_t asciiWidth = asciiArt[0].size();
 
 	// 結合処理
@@ -551,7 +551,7 @@ void Console::ShowSuggestPopup() {
 	auto popupPos = ImVec2(cursorScreenPos.x, cursorScreenPos.y + inputTextSize.y);
 	auto popupSize = ImVec2(
 		inputTextSize.x,
-		ImGui::GetTextLineHeight() * std::min(suggestions_.size(), size_t(10)) + ImGui::GetStyle().WindowPadding.y * 2
+		ImGui::GetTextLineHeight() * min(suggestions_.size(), size_t(10)) + ImGui::GetStyle().WindowPadding.y * 2
 	);
 
 	// ポップアップウィンドウの表示
@@ -776,8 +776,8 @@ void Console::ShowConsoleText() {
 						displayState_.selected[i] = !displayState_.selected[i];
 					} else if (ImGui::GetIO().KeyShift && lastSelectedIndex_ != -1) {
 						// フィルタリング後の範囲選択
-						const int start = std::min(lastSelectedIndex_, visibleIndex);
-						const int end = std::max(lastSelectedIndex_, visibleIndex);
+						const int start = min(lastSelectedIndex_, visibleIndex);
+						const int end = max(lastSelectedIndex_, visibleIndex);
 						for (int j = start; j <= end; ++j) {
 							size_t actualIndex = FilteredToActualIndex(j);
 							if (actualIndex != SIZE_MAX) {
@@ -1028,7 +1028,7 @@ void Console::ShowConVarHelper() {
 			ImGui::SetNextItemWidth(inputWidth);
 			int tmpWidth = static_cast<int>(pages_[selectedPageIndex_].grid.width);
 			if (ImGui::InputInt("##Width", &tmpWidth, 1)) {
-				pages_[selectedPageIndex_].grid.width = std::max(1, tmpWidth);
+				pages_[selectedPageIndex_].grid.width = max(1, tmpWidth);
 			}
 
 			ImGui::SameLine();
@@ -1038,7 +1038,7 @@ void Console::ShowConVarHelper() {
 			ImGui::SetNextItemWidth(inputWidth);
 			int tmpHeight = static_cast<int>(pages_[selectedPageIndex_].grid.height);
 			if (ImGui::InputInt("##Height", &tmpHeight, 1)) {
-				pages_[selectedPageIndex_].grid.height = std::max(1, tmpHeight);
+				pages_[selectedPageIndex_].grid.height = max(1, tmpHeight);
 			}
 		}
 
@@ -1563,7 +1563,7 @@ bool Console::bWishScrollToBottom_ = false;
 bool Console::bShowSuggestPopup_ = false;
 bool Console::bShowAbout_ = false;
 std::vector<Console::Text> Console::consoleTexts_;
-char Console::inputText_[kInputBufferSize] = {};
+char Console::inputText_[kInputBufferSize] = { 0 };
 int Console::historyIndex_ = -1;
 std::vector<std::string> Console::history_;
 std::vector<std::string> Console::suggestions_;

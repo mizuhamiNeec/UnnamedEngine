@@ -9,7 +9,7 @@
 Entity::~Entity() {}
 
 void Entity::Update(const float deltaTime) {
-	if (!isActive_) {
+	if (!bIsActive_) {
 		return;
 	}
 
@@ -34,7 +34,7 @@ void Entity::Update(const float deltaTime) {
 }
 
 void Entity::Render(ID3D12GraphicsCommandList* commandList) {
-	if (!isVisible_) {
+	if (!bIsVisible_) {
 		return;
 	}
 
@@ -63,19 +63,19 @@ TransformComponent* Entity::GetTransform() const {
 }
 
 bool Entity::IsActive() const {
-	return isActive_;
+	return bIsActive_;
 }
 
 void Entity::SetActive(const bool active) {
-	isActive_ = active;
+	bIsActive_ = active;
 }
 
 bool Entity::IsVisible() const {
-	return isVisible_;
+	return bIsVisible_;
 }
 
 void Entity::SetVisible(const bool visible) {
-	isVisible_ = visible;
+	bIsVisible_ = visible;
 }
 
 void Entity::SetParent(Entity* newParent) {

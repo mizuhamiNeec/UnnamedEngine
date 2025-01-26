@@ -72,6 +72,10 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 	}
 }
 
+StaticMesh* StaticMeshRenderer::GetStaticMesh() const {
+	return staticMesh_;
+}
+
 void StaticMeshRenderer::SetStaticMesh(StaticMesh* staticMesh) {
 	staticMesh_ = staticMesh;
 }

@@ -17,6 +17,8 @@ public:
 	void ApplyFriction();
 	bool CheckGrounded() const;
 
+	virtual Vec3 CollideAndSlide(const Vec3& vel, const Vec3& pos, int depth);
+
 	void Accelerate(Vec3 dir, float speed, float accel);
 	void AirAccelerate(Vec3 dir, float speed, float accel);
 

@@ -10,8 +10,6 @@
 #include "../Math/Vector/Vec3.h"
 #include "../Math/Vector/Vec4.h"
 
-#include "Lib/Physics/Physics.h"
-
 struct Vertex {
 	Vec4 position; // 座標
 	Vec2 uv; // テクスチャ座標
@@ -105,5 +103,5 @@ struct Emitter {
 
 struct AccelerationField {
 	Vec3 acceleration; // 加速度
-	Physics::AABB area; // 範囲
+	//AABB area; // 範囲
 };

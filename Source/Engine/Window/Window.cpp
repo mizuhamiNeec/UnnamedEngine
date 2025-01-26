@@ -134,6 +134,10 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	// どちらかのキーを押すと時が止まる Alt || F10キー対策
 	// ------------------------------------------------------------------------
 	if (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP) {
+		if (wParam == VK_F4 && (lParam & (1 << 29))) { // Alt + F4
+			PostQuitMessage(0);
+			return 0;
+		}
 		return 0;
 	}
 

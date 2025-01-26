@@ -1,9 +1,9 @@
 #pragma once
 
-#include <wrl/client.h>
 #include <d3d12.h>
 #include <dxcapi.h>
 #include <string>
+#include <wrl/client.h>
 
 using namespace Microsoft::WRL;
 

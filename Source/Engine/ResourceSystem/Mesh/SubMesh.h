@@ -8,6 +8,8 @@
 
 #include <Lib/Structs/Structs.h>
 
+#include <Physics/Physics.h>
+
 class SubMesh {
 public:
 	SubMesh(const ComPtr<ID3D12Device>& device, std::string name);
@@ -24,7 +26,7 @@ public:
 	void Render(ID3D12GraphicsCommandList* commandList) const;
 
 	void ReleaseResource();
-	std::vector<Physics::Triangle> GetPolygons();
+	std::vector<Triangle> GetPolygons();
 
 private:
 	std::string name_;

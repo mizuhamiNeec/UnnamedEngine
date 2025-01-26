@@ -39,10 +39,12 @@ bool Texture::LoadFromFile(
 	assert(SUCCEEDED(hr));
 
 	metadata_ = mipImages.GetMetadata();
+	//metadata_ = image.GetMetadata();
 	textureResource_ = CreateTextureResource(d3d12->GetDevice());
 	textureResource_->SetName(StrUtils::ToWString(filePath).c_str());
 
 	ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(d3d12->GetDevice(), d3d12->GetCommandList(), textureResource_, mipImages);
+	//ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(d3d12->GetDevice(), d3d12->GetCommandList(), textureResource_, image);
 	intermediateResource->SetName(StrUtils::ToWString(filePath).c_str());
 
 	// コマンドリストを閉じる
