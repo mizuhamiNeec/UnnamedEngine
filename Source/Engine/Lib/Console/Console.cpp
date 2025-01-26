@@ -589,7 +589,7 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 }
 
 #ifdef _DEBUG
-bool Console::bShowConsole_ = true;
+bool Console::bShowConsole_ = false;
 bool Console::bWishScrollToBottom_ = false;
 bool Console::bShowPopup_ = false;
 std::vector<Console::Text> Console::consoleTexts_;

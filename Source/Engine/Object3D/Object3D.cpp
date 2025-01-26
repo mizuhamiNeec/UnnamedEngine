@@ -33,7 +33,7 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 		sizeof(DirectionalLight)
 	);
 	directionalLightData_ = directionalLightConstantBuffer_->GetPtr<DirectionalLight>();
-	directionalLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
+	directionalLightData_->color = { 1.0f, 0.0f, 0.0f, 1.0f };
 	directionalLightData_->direction = { -0.2f, -0.9f, 0.25f };
 	directionalLightData_->intensity = 1.0f; // 明るさ1
 
@@ -50,9 +50,9 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 		sizeof(PointLight)
 	);
 	pointLightData_ = pointLightConstantBuffer_->GetPtr<PointLight>();
-	pointLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	pointLightData_->position = { 0.0f, 4.0f, 0.0f };
-	pointLightData_->intensity = 1.0f;
+	pointLightData_->color = { 0.0f, 1.0f, 0.0f, 1.0f };
+	pointLightData_->position = { -1.0f, 1.3f, -0.0f };
+	pointLightData_->intensity = 10.0f;
 	pointLightData_->radius = 1.0f;
 	pointLightData_->decay = 1.0f;
 
@@ -62,11 +62,11 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 		sizeof(SpotLight)
 	);
 	spotLightData_ = spotLightConstantBuffer_->GetPtr<SpotLight>();
-	spotLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	spotLightData_->position = { 0.0f, 4.0f, 0.0f };
-	spotLightData_->intensity = 4.0f;
+	spotLightData_->color = { 0.0f, 0.0f, 1.0f, 1.0f };
+	spotLightData_->position = { 3.0f, 3.0f, -6.0f };
+	spotLightData_->intensity = 10.0f;
 	spotLightData_->direction = { 0.0f, -1.0f, 0.0f };
-	spotLightData_->distance = 8.0f;
+	spotLightData_->distance = 10.0f;
 	spotLightData_->decay = 2.0f;
 	spotLightData_->cosAngle = 0.5f;
 }

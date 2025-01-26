@@ -176,11 +176,8 @@ bool ImGuiManager::EditTransform(Transform& transform, const float& vSpeed) {
 	if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
 		isEditing |= DragVec3("Position", transform.translate, vSpeed, "%.3f");
 
-		// 回転を取っておく
-		Vec3 rotate = transform.rotate * Math::rad2Deg;
 		if (DragVec3("Rotation", transform.rotate, vSpeed, "%.3f")) {
 			isEditing |= true;
-			transform.rotate = rotate * Math::deg2Rad;
 		}
 
 		isEditing |= DragVec3("Scale", transform.scale, vSpeed, "%.3f");
