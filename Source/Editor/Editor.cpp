@@ -7,14 +7,15 @@
 #include "Camera/CameraManager.h"
 #include "ImGuiManager/Icons.h"
 #include "Input/InputSystem.h"
-#include "Lib/Console/ConVarManager.h"
+#include "SubSystem/Console/ConVarManager.h"
 #include "Lib/Utils/StrUtils.h"
 
 #ifdef _DEBUG
 #include <imgui_internal.h>
 #endif
 
-Editor::Editor(std::shared_ptr<Scene> scene) : scene_(std::move(scene)) {
+Editor::Editor(SceneManager& sceneManager) : sceneManager_(sceneManager) {
+	scene_ = sceneManager_.GetCurrentScene();
 	Init();
 }
 
@@ -487,14 +488,14 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	}
 #endif
 
-	if (scene_) {
-		scene_->Update(EngineTimer::GetScaledDeltaTime());
+	if (auto currentScene = sceneManager_.GetCurrentScene()) {
+		currentScene->Update(EngineTimer::GetDeltaTime());
 	}
 }
 
 void Editor::Render() const {
-	if (scene_) {
-		scene_->Render();
+	if (auto currentScene = sceneManager_.GetCurrentScene()) {
+		currentScene->Render();
 	}
 }
 

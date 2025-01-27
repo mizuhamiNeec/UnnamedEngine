@@ -115,6 +115,8 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
+    <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent\Base\ColliderComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent\MeshColliderComponent.cpp" />
@@ -137,9 +139,12 @@
     <ClCompile Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Texture\Texture.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Texture\TextureManager.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConCommand.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\Console.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConVar.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConVarManager.cpp" />
     <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
     <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
-    <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.cpp" />
@@ -186,9 +191,7 @@
     </None>
     <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Console\ConCommand.cpp" />
     <ClCompile Include="Source\Engine\Debug\Debug.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Console\ConVarManager.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Quaternion\Quaternion.cpp" />
     <ClCompile Include="Source\Engine\Line\LineCommon.cpp" />
     <ClCompile Include="Source\Engine\Line\Line.cpp" />
@@ -197,8 +200,6 @@
     <ClCompile Include="Source\Engine\Model\ModelCommon.cpp" />
     <ClCompile Include="Source\Engine\Model\Model.cpp" />
     <ClCompile Include="Source\Engine\Object3D\Object3D.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Console\Console.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Console\ConVar.cpp" />
     <ClCompile Include="Source\Engine\Engine.cpp" />
     <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp" />
     <ClCompile Include="Source\Engine\Renderer\RootSignatureManager.cpp" />
@@ -231,6 +232,8 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
+    <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h" />
     <ClInclude Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.h" />
     <ClInclude Include="Source\Engine\Components\ColliderComponent\MeshColliderComponent.h" />
     <ClInclude Include="Source\Engine\Physics\PhysicsEngine.h" />
@@ -253,9 +256,14 @@
     <ClInclude Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Texture\Texture.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Texture\TextureManager.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConCommand.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\Console.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVar.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVarCache.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVarManager.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\IConVar.h" />
     <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
     <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
-    <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
     <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
     <ClInclude Include="Source\Engine\EntitySystem\RuntimeEntitySystem.h" />
     <ClInclude Include="Source\Engine\EntitySystem\Base\EntitySystem.h" />
@@ -286,11 +294,7 @@
     </None>
     <ClInclude Include="Source\Engine\Camera\Camera.h" />
     <ClInclude Include="Source\Engine\Input\InputSystem.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConCommand.h" />
     <ClInclude Include="Source\Engine\Debug\Debug.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\IConVar.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Quaternion\Quaternion.h" />
     <ClInclude Include="Source\Engine\Line\LineCommon.h" />
     <ClInclude Include="Source\Engine\Line\Line.h" />
@@ -298,8 +302,6 @@
     <ClInclude Include="Source\Engine\Model\ModelCommon.h" />
     <ClInclude Include="Source\Engine\Model\Model.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3D.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\Console.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConVar.h" />
     <ClInclude Include="Source\Engine\Engine.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h" />
     <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h" />

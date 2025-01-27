@@ -4,7 +4,7 @@
 #include <d3d12shader.h>
 #include <d3dcompiler.h>
 #include <dxcapi.h>
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 #include <Lib/Utils/StrUtils.h>
 
 #ifndef DFCC_DXIL

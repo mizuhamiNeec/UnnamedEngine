@@ -1,12 +1,19 @@
 #pragma once
 #include <Editor.h>
 #include <memory>
+
 #include <Lib/Timer/EngineTimer.h>
+
 #include <Line/LineCommon.h>
+
 #include <Model/ModelCommon.h>
-#include <Scene/Base/Scene.h>
-#include <SceneManager/SceneManager.h>
+
 #include <ResourceSystem/Manager/ResourceManager.h>
+
+#include <Scene/Base/Scene.h>
+
+#include "SceneManager/SceneFactory.h"
+#include "SceneManager/SceneManager.h"
 
 class Console;
 class ImGuiManager;
@@ -17,8 +24,6 @@ class Engine {
 public:
 	Engine();
 	void Run();
-
-	void ChangeScene(const std::shared_ptr<Scene>& newScene);
 
 	[[nodiscard]] static bool IsEditorMode() {
 		return bIsEditorMode_;
@@ -56,7 +61,7 @@ public:
 		return time_.get();
 	}
 
-	[[nodiscard]] ResourceManager* GetResourceManager() const {
+	[[nodiscard]] static ResourceManager* GetResourceManager() {
 		return resourceManager_.get();
 	}
 
@@ -73,7 +78,7 @@ private:
 	std::unique_ptr<Window> window_;
 	static std::unique_ptr<D3D12> renderer_;
 
-	std::unique_ptr<ResourceManager> resourceManager_;
+	static std::unique_ptr<ResourceManager> resourceManager_;
 
 	std::unique_ptr<EngineTimer> time_;
 
@@ -83,17 +88,17 @@ private:
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
 
-	std::shared_ptr<Scene> currentScene_; // 現在のシーン
-
-	std::shared_ptr<SceneManager> sceneManager_; // シーンマネージャー
+	std::unique_ptr<SceneFactory> sceneFactory_;
+	std::shared_ptr<SceneManager> sceneManager_;
 
 	std::unique_ptr<Editor> editor_; // エディター
 	static bool bIsEditorMode_; // エディターモードか?
 
 	static bool bWishShutdown_; // 終了したいか?
 
+	std::unique_ptr<Console> console_;
+
 #ifdef _DEBUG
 	std::unique_ptr<ImGuiManager> imGuiManager_;
-	std::unique_ptr<Console> console_;
 #endif
 };

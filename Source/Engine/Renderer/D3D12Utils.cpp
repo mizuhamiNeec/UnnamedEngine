@@ -1,8 +1,8 @@
 #include "D3D12Utils.h"
 
-#include "DirectXTex/d3dx12.h"
-#include "Lib/Console/Console.h"
-#include "Lib/Utils/StrUtils.h"
+#include <DirectXTex/d3dx12.h>
+
+#include <Lib/Utils/StrUtils.h>
 
 std::string D3D12Utils::GetResourceName(const ComPtr<ID3D12Resource>& resource) {
 	if (!resource) {

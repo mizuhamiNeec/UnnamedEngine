@@ -6,7 +6,7 @@
 #include <locale>
 #include <string>
 
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 
 #include <ResourceSystem/Manager/ResourceManager.h>
 #include <ResourceSystem/Material/MaterialManager.h>

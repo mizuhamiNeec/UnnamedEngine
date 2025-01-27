@@ -1,8 +1,8 @@
 #include "InputSystem.h"
 
 #include <ranges>
-#include <Lib/Console/ConCommand.h>
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/ConCommand.h>
+#include <SubSystem/Console/Console.h>
 #include <Lib/Utils/StrUtils.h>
 
 //-----------------------------------------------------------------------------
@@ -27,6 +27,41 @@ void InputSystem::Init() {
 		MessageBox(nullptr, L"Failed to register raw input devices", L"Error", MB_OK);
 		Console::Print("Failed to register raw input devices\n", kConsoleColorError, Channel::InputSystem);
 	}
+
+	ConCommand::RegisterCommand(
+		"bind",
+		[](const std::vector<std::string>& args) {
+			if (args.size() < 2) {
+				Console::Print("Usage: bind <key> <command>\n", kConsoleColorWarning, Channel::InputSystem);
+				return;
+			}
+			std::string key = args[0];
+			std::string command = args[1];
+			InputSystem::BindKey(key, command);
+		},
+		"Bind a key to a command."
+	);
+
+	ConCommand::RegisterCommand(
+		"unbind",
+		[](const std::vector<std::string>& args) {
+			if (args.size() < 1) {
+				Console::Print("Usage: unbind <key>\n", kConsoleColorWarning, Channel::InputSystem);
+				return;
+			}
+			std::string key = args[0];
+			InputSystem::UnbindKey(key);
+		},
+		"Unbind a key."
+	);
+
+	ConCommand::RegisterCommand(
+		"unbindall",
+		[]([[maybe_unused]] const std::vector<std::string>& args) {
+			InputSystem::UnbindAll();
+		},
+		"Unbind all keys."
+	);
 
 	ConCommand::RegisterCommand(
 		"togglelockcursor",

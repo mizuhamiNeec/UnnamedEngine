@@ -1,6 +1,6 @@
 #include "ShaderResourceViewManager.h"
 
-#include "Lib/Console/Console.h"
+#include "SubSystem/Console/Console.h"
 #include "Lib/Utils/StrUtils.h"
 
 ShaderResourceViewManager::ShaderResourceViewManager(

@@ -1,6 +1,6 @@
 #include "ShaderManager.h"
 
-#include "Lib/Console/Console.h"
+#include "SubSystem/Console/Console.h"
 
 Shader* ShaderManager::LoadShader(const std::string& name, const std::string& vsPath, const std::string& psPath, const std::string& gsPath) {
 	// パスを結合してキーにする

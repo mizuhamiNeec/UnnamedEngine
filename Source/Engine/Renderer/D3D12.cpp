@@ -1,4 +1,4 @@
-﻿#include "D3D12.h"
+#include "D3D12.h"
 
 #include <cassert>
 #include <d3d12.h>
@@ -8,8 +8,8 @@
 #include <format>
 #include <thread>
 #include <DirectXTex/d3dx12.h>
-#include <Lib/Console/Console.h>
-#include <Lib/Console/ConVarManager.h>
+#include <SubSystem/Console/Console.h>
+#include <SubSystem/Console/ConVarManager.h>
 #include <Lib/Utils/ClientProperties.h>
 #include <Lib/Utils/StrUtils.h>
 
@@ -48,6 +48,13 @@ D3D12::~D3D12() {
 }
 
 void D3D12::Init() {
+	// ウィンドウがリサイズされたときのコールバック
+	Window::SetResizeCallback(
+		[this](const uint32_t width, const uint32_t height) {
+			Resize(width, height);
+		}
+	);
+
 	ConVarManager::RegisterConVar<bool>("r_clear", true, "Clear the screen", ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>("r_vsync", 0, "Enable VSync", ConVarFlags::ConVarFlags_Notify);
 }

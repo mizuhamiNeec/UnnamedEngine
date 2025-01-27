@@ -7,7 +7,7 @@
 
 #include <Debug/Debug.h>
 
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 #include <Lib/Math/Quaternion/Quaternion.h>
 #include <Lib/Math/Vector/Vec3.h>
 #include <Lib/Math/Vector/Vec4.h>

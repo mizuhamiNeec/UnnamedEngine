@@ -4,7 +4,7 @@
 #include <Components/CameraRotator.h>
 #include <Engine.h>
 #include <ImGuiManager/ImGuiManager.h>
-#include <Lib/Console/ConVarManager.h>
+#include <SubSystem/Console/ConVarManager.h>
 #include <Lib/Math/MathLib.h>
 #include <Lib/Math/Random/Random.h>
 #include <Lib/Timer/EngineTimer.h>
@@ -33,15 +33,15 @@ std::vector<AABB> GenerateRandomAABBs(size_t count, const Vec3& worldMin, const 
 	return aabbs;
 }
 
-void GameScene::Init(Engine* engine) {
+void GameScene::Init() {
 	renderer_ = Engine::GetRenderer();
-	resourceManager_ = engine->GetResourceManager();
+	resourceManager_ = Engine::GetResourceManager();
 	//spriteCommon_ = engine->GetSpriteCommon();
 	//particleManager_ = engine->GetParticleManager();
 	//object3DCommon_ = engine->GetObject3DCommon();
 	//modelCommon_ = engine->GetModelCommon();
 	//srvManager_ = engine->GetSrvManager();
-	timer_ = engine->GetEngineTimer();
+	//timer_ = engine->GetEngineTimer();
 
 #pragma region テクスチャ読み込み
 	/*TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");

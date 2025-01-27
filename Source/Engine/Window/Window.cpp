@@ -3,7 +3,7 @@
 #include <dwmapi.h>
 #include <utility>
 #include <Input/InputSystem.h>
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 #include <Lib/Utils/StrUtils.h>
 #include <Window/WindowsUtils.h>
 

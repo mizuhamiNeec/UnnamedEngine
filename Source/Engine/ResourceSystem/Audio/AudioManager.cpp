@@ -3,7 +3,7 @@
 #include <cassert>
 #include <ranges>
 
-#include "Lib/Console/Console.h"
+#include "SubSystem/Console/Console.h"
 
 AudioManager::AudioManager() {
 }

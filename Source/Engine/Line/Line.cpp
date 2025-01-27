@@ -7,7 +7,7 @@
 
 #include <Components/Camera/CameraComponent.h>
 
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 
 const D3D12_INPUT_ELEMENT_DESC LineVertex::inputElements[] = {
 	{"POSITION",

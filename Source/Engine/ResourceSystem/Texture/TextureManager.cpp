@@ -1,6 +1,6 @@
 #include "TextureManager.h"
 
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 
 void TextureManager::Init(D3D12* d3d12, ShaderResourceViewManager* srvManager) {
 	Console::Print(

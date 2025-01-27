@@ -2,8 +2,8 @@
 #include <format>
 #define NOMINMAX
 #include <Windows.h>
-#include <Lib/Console/Console.h>
-#include <Lib/Console/ConVarManager.h>
+#include <SubSystem/Console/Console.h>
+#include <SubSystem/Console/ConVarManager.h>
 #include <Lib/Utils/StrUtils.h>
 
 //-----------------------------------------------------------------------------

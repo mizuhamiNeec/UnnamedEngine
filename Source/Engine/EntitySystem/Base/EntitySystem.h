@@ -9,4 +9,3 @@ public:
 	virtual void Update(float deltaTime) = 0;
 	virtual void Render(ID3D12GraphicsCommandList* commandList) = 0;
 };
-

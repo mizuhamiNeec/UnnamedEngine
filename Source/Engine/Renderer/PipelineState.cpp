@@ -6,7 +6,7 @@
 #include <winnt.h>
 #include <dxcapi.h>
 #include <string>
-#include "../Lib/Console/Console.h"
+#include "../SubSystem/Console/Console.h"
 #include "../Lib/Utils/StrUtils.h"
 
 PipelineState::PipelineState() = default;

@@ -3,9 +3,11 @@
 
 #include "Scene/Base/Scene.h"
 
+#include "SceneManager/SceneManager.h"
+
 class Editor {
 public:
-	explicit Editor(std::shared_ptr<Scene> scene);
+	explicit Editor(SceneManager& sceneManager);
 private:
 	void Init();
 public:
@@ -19,6 +21,8 @@ private:
 	);
 
 private:
+	SceneManager& sceneManager_; // シーンマネージャ
+
 	std::shared_ptr<Scene> scene_; // 現在編集中のシーン
 	Entity* selectedEntity_; // 選択中のエンティティ
 

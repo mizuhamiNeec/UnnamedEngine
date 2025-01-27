@@ -1,6 +1,6 @@
 #include "ResourceManager.h"
 
-#include "Lib/Console/Console.h"
+#include "SubSystem/Console/Console.h"
 #include "ResourceSystem/RootSignature/RootSignatureManager2.h"
 
 ResourceManager::ResourceManager(D3D12* d3d12) :

@@ -4,7 +4,7 @@
 #include <comdef.h>
 #include <fstream>
 
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 #include <Lib/Utils/StrUtils.h>
 
 Audio::Audio() {

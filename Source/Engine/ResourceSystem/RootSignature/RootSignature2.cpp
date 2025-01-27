@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 
 #include <ResourceSystem/RootSignature/RootSignatureManager2.h>
 

@@ -1,6 +1,6 @@
 #pragma once
 #include <Components/Base/Component.h>
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 
 class PhysicsEngine;
 

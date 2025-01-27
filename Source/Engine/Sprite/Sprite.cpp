@@ -1,6 +1,6 @@
 #include "Sprite.h"
 
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 #include <Lib/Utils/ClientProperties.h>
 #include <Renderer/D3D12.h>
 #include <Sprite/SpriteCommon.h>

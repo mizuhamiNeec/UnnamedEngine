@@ -159,24 +159,6 @@
     <ClInclude Include="Source\Engine\Input\InputSystem.h">
       <Filter>Source\Engine\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\ConCommand.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\Console.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\ConVar.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\IConVar.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Lib\DebugHud\DebugHud.h">
       <Filter>Source\Engine\Lib\DebugHud</Filter>
     </ClInclude>
@@ -310,7 +292,6 @@
     <ClInclude Include="Source\Engine\EntitySystem\Base\EntitySystem.h" />
     <ClInclude Include="Source\Engine\EntitySystem\RuntimeEntitySystem.h" />
     <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
-    <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
     <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
     <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Audio\Audio.h" />
@@ -335,6 +316,14 @@
     <ClInclude Include="Source\Engine\Components\ColliderComponent\Base\ColliderComponent.h" />
     <ClInclude Include="Source\Engine\Components\ColliderComponent\MeshColliderComponent.h" />
     <ClInclude Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConCommand.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVarCache.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVarManager.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\IConVar.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\Console.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVar.h" />
+    <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h" />
+    <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -354,18 +343,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp">
       <Filter>Source\Engine\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Console\ConCommand.cpp">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Console\Console.cpp">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Console\ConVar.cpp">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Console\ConVarManager.cpp">
-      <Filter>Source\Engine\Lib\Console</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Lib\DebugHud\DebugHud.cpp">
       <Filter>Source\Engine\Lib\DebugHud</Filter>
@@ -487,7 +464,6 @@
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
-    <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
     <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
     <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Audio\Audio.cpp" />
@@ -512,6 +488,12 @@
     <ClCompile Include="Source\Engine\Components\ColliderComponent\MeshColliderComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent\Base\ColliderComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConCommand.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConVarManager.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\Console.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConVar.cpp" />
+    <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp" />
+    <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

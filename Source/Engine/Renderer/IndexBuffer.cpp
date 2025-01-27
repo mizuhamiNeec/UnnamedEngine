@@ -2,7 +2,7 @@
 
 #include <cassert>
 #include <iterator>
-#include "../Lib/Console/Console.h"
+#include "../SubSystem/Console/Console.h"
 
 IndexBuffer::IndexBuffer(
 	const ComPtr<ID3D12Device>& device, const size_t size,

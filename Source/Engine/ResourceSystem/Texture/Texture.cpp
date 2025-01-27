@@ -2,7 +2,7 @@
 
 #include <DirectXTex/d3dx12.h>
 #include <DirectXTex/DirectXTex.h>
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 #include <Lib/Utils/StrUtils.h>
 
 bool Texture::LoadFromFile(

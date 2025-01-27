@@ -1,6 +1,17 @@
 #include "ConCommand.h"
 
+#include "ConVarManager.h"
 #include "Console.h"
+
+void ConCommand::Init() {
+	RegisterCommand(
+		"toggle",
+		[](const std::vector<std::string>& args) {
+			ConVarManager::ToggleConVar(args[0]);
+		},
+		"Toggles a convar on or off, or cycles through a set of values."
+	);
+}
 
 void ConCommand::RegisterCommand(const std::string& name, const CommandCallback& callback, const std::string& help) {
 	commands_[name] = { callback, help };

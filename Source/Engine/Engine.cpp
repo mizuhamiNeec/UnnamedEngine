@@ -11,9 +11,9 @@
 
 #include <Input/InputSystem.h>
 
-#include <Lib/Console/ConCommand.h>
-#include <Lib/Console/ConVarManager.h>
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/ConCommand.h>
+#include <SubSystem/Console/ConVarManager.h>
+#include <SubSystem/Console/Console.h>
 #include <Lib/DebugHud/DebugHud.h>
 #include <Lib/Utils/ClientProperties.h>
 #include <Lib/Utils/StrUtils.h>
@@ -49,17 +49,11 @@ void Engine::Run() {
 	Shutdown();
 }
 
-void Engine::ChangeScene(const std::shared_ptr<Scene>& newScene) {
-	currentScene_ = std::move(newScene);
-	currentScene_->Init(this);
-}
-
 void Engine::Init() {
-	RegisterConsoleCommandsAndVariables();
-
 	// ウィンドウの作成
 	window_ = std::make_unique<Window>(
-		StrUtils::ToString(kWindowTitle), kClientWidth, kClientHeight
+		StrUtils::ToString(kWindowTitle),
+		kClientWidth, kClientHeight
 	);
 	window_->Create(nullptr);
 
@@ -67,23 +61,19 @@ void Engine::Init() {
 	renderer_ = std::make_unique<D3D12>();
 	renderer_->Init();
 
-	// ウィンドウがリサイズされたときのコールバック
-	Window::SetResizeCallback(
-		[this](const uint32_t width, const uint32_t height) {
-			renderer_->Resize(width, height);
-		}
-	);
-
+	// 入力システム
 	InputSystem::Init();
+
+	RegisterConsoleCommandsAndVariables();
 
 	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
 
 #ifdef _DEBUG
 	imGuiManager_ = std::make_unique<ImGuiManager>(renderer_.get(), resourceManager_->GetShaderResourceViewManager());
 	imGuiManager_->Init();
+#endif
 
 	console_ = std::make_unique<Console>();
-#endif
 
 	resourceManager_->Init();
 
@@ -126,8 +116,15 @@ void Engine::Init() {
 
 	resourceManager_->GetTextureManager()->InitErrorTexture();
 
-	const std::shared_ptr<Scene> gameScene = std::make_shared<GameScene>();
-	ChangeScene(gameScene);
+	// シーンマネージャ/ファクトリーの作成
+	sceneFactory_ = std::make_unique<SceneFactory>();
+	sceneManager_ = std::make_shared<SceneManager>(*sceneFactory_);
+	// ゲームシーンを登録
+	sceneFactory_->RegisterScene<GameScene>("GameScene");
+	// シーンの初期化
+	sceneManager_->ChangeScene("GameScene");
+
+	// エディターの初期化
 	CheckEditorMode();
 
 	hr = renderer_->GetCommandList()->Close();
@@ -156,9 +153,7 @@ void Engine::Update() {
 			editor_->Update(EngineTimer::GetDeltaTime());
 		}
 	} else {
-		if (currentScene_) {
-			currentScene_->Update(EngineTimer::GetScaledDeltaTime());
-		}
+		sceneManager_->Update(EngineTimer::GetScaledDeltaTime());
 	}
 
 #ifdef _DEBUG
@@ -184,9 +179,7 @@ void Engine::Update() {
 			editor_->Render();
 		}
 	} else {
-		if (currentScene_) {
-			currentScene_->Render();
-		}
+		sceneManager_->Render();
 	}
 
 	//------------------------------------------------------------------------
@@ -201,7 +194,6 @@ void Engine::Update() {
 }
 
 void Engine::Shutdown() const {
-	//currentScene_->Shutdown();
 
 	resourceManager_->Shutdown();
 
@@ -219,46 +211,8 @@ void Engine::Shutdown() const {
 
 void Engine::RegisterConsoleCommandsAndVariables() {
 	// コンソールコマンドを登録
-	ConCommand::RegisterCommand(
-		"bind",
-		[](const std::vector<std::string>& args) {
-			if (args.size() < 2) {
-				Console::Print("Usage: bind <key> <command>\n", kConsoleColorWarning, Channel::InputSystem);
-				return;
-			}
-			std::string key = args[0];
-			std::string command = args[1];
-			InputSystem::BindKey(key, command);
-		},
-		"Bind a key to a command."
-	);
-	ConCommand::RegisterCommand(
-		"unbind",
-		[](const std::vector<std::string>& args) {
-			if (args.size() < 1) {
-				Console::Print("Usage: unbind <key>\n", kConsoleColorWarning, Channel::InputSystem);
-				return;
-			}
-			std::string key = args[0];
-			InputSystem::UnbindKey(key);
-		},
-		"Unbind a key."
-	);
-	ConCommand::RegisterCommand(
-		"toggle",
-		[](const std::vector<std::string>& args) {
-			ConVarManager::ToggleConVar(args[0]);
-		},
-		"Toggle a convar."
-	);
-	ConCommand::RegisterCommand("clear", Console::Clear, "Clear all console output");
-	ConCommand::RegisterCommand("cls", Console::Clear, "Clear all console output");
-	ConCommand::RegisterCommand("echo", Console::Echo, "Echo text to console.");
 	ConCommand::RegisterCommand("exit", Quit, "Exit the engine.");
-	ConCommand::RegisterCommand("help", Console::Help, "Find help about a convar/concommand.");
-	ConCommand::RegisterCommand("neofetch", Console::NeoFetch, "Show system info.");
 	ConCommand::RegisterCommand("quit", Quit, "Exit the engine.");
-	ConCommand::RegisterCommand("toggleconsole", Console::ToggleConsole, "Show/hide the console.");
 
 	ConCommand::RegisterCommand(
 		"toggleeditor",
@@ -289,11 +243,11 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f, "Minimum stopping speed when on ground.");
 	ConVarManager::RegisterConVar<float>("sv_friction", 4.0f, "World friction.");
 
-	// デバッグ用にaxisを表示するためのコンソール変数
+	// デバッグ用にエンティティのaxisを表示するためのコンソール変数
 	ConVarManager::RegisterConVar<int>("ent_axis", 0, "Show entity axis");
 
 	// デフォルトのバインド
-	Console::SubmitCommand("bind ` toggleconsole");
+	Console::SubmitCommand("bind esc togglelockcursor");
 	Console::SubmitCommand("bind w +forward");
 	Console::SubmitCommand("bind s +back");
 	Console::SubmitCommand("bind a +moveleft");
@@ -305,10 +259,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind mouse2 +attack2");
 	Console::SubmitCommand("bind mousewheelup +invprev");
 	Console::SubmitCommand("bind mousewheeldown +invnext");
-	Console::SubmitCommand("bind c +changecamera");
 	Console::SubmitCommand("bind f1 toggleeditor");
-	Console::SubmitCommand("bind esc togglelockcursor");
-	Console::SubmitCommand("bind f2 help");
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
@@ -317,7 +268,7 @@ void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
 
 void Engine::CheckEditorMode() {
 	if (bIsEditorMode_) {
-		editor_ = std::make_unique<Editor>(currentScene_);
+		editor_ = std::make_unique<Editor>(*sceneManager_);
 	} else {
 		editor_.reset();
 	}
@@ -325,9 +276,10 @@ void Engine::CheckEditorMode() {
 
 bool Engine::bWishShutdown_ = false;
 std::unique_ptr<D3D12> Engine::renderer_ = nullptr;
+std::unique_ptr<ResourceManager> Engine::resourceManager_ = nullptr;
 
 #ifdef _DEBUG
-bool Engine::bIsEditorMode_ = true;
+bool Engine::bIsEditorMode_ = false;
 #else
 bool Engine::bIsEditorMode_ = false;
 #endif

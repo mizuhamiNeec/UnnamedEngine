@@ -4,7 +4,7 @@
 
 #include <Debug/Debug.h>
 
-#include <Lib/Console/ConVarManager.h>
+#include <SubSystem/Console/ConVarManager.h>
 
 Entity::~Entity() {}
 

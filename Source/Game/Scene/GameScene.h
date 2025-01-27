@@ -32,7 +32,7 @@ class CameraSystem;
 class GameScene : public Scene {
 public:
 	~GameScene() override = default;
-	void Init(Engine* engine) override;
+	void Init() override;
 	void Update(float deltaTime) override;
 	void Render() override;
 	void Shutdown() override;

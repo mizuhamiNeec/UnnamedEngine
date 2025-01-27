@@ -8,8 +8,8 @@
 
 #include <Input/InputSystem.h>
 
-#include <Lib/Console/ConCommand.h>
-#include <Lib/Console/ConVarManager.h>
+#include <SubSystem/Console/ConCommand.h>
+#include <SubSystem/Console/ConVarManager.h>
 #include <Lib/Timer/EngineTimer.h>
 #include <Lib/Utils/StrUtils.h>
 
@@ -51,6 +51,15 @@ Console::Console() {
 	}
 #endif
 	StartConsoleThread();
+
+	ConCommand::RegisterCommand("toggleconsole", ToggleConsole, "Show/hide the console.");
+
+	ConCommand::RegisterCommand("clear", Clear, "Clear all console output");
+	ConCommand::RegisterCommand("cls", Clear, "Clear all console output");
+	ConCommand::RegisterCommand("echo", Echo, "Echo text to console.");
+	ConCommand::RegisterCommand("help", Help, "Find help about a convar/concommand.");
+	ConCommand::RegisterCommand("neofetch", NeoFetch, "Show system info.");
+	SubmitCommand("bind ` toggleconsole");
 }
 
 Console::~Console() {
@@ -1472,35 +1481,43 @@ void Console::FlushLogBuffer([[maybe_unused]] const std::vector<std::string>& bu
 // Purpose: コンソールスレッドを非同期で更新します
 //-----------------------------------------------------------------------------
 void Console::ConsoleUpdateAsync() {
-	while (!bStopThread_) {
-		std::vector<std::function<void()>> currentTasks;
+	try {
+		while (!bStopThread_) {
+			std::vector<std::function<void()>> currentTasks;
 
-		{
-			std::unique_lock<std::mutex> lock(mutex_);
-			// タスクがない場合は条件変数で待機
-			cv_.wait(lock, [this] { return !taskQueue_.empty() || bStopThread_; });
+			{
+				std::unique_lock lock(mutex_);
+				cv_.wait(lock, [this] { return !taskQueue_.empty() || bStopThread_; });
 
-			if (bStopThread_) {
-				break;
+				if (bStopThread_) {
+					break;
+				}
+
+				while (!taskQueue_.empty()) {
+					currentTasks.push_back(std::move(taskQueue_.front()));
+					taskQueue_.pop();
+				}
 			}
 
-			// バッチ処理のためにタスクをローカルにコピー
-			while (!taskQueue_.empty()) {
-				currentTasks.push_back(std::move(taskQueue_.front()));
-				taskQueue_.pop();
+			for (auto& task : currentTasks) {
+				try {
+					task();
+				} catch (const std::length_error& e) {
+					Print(std::string("Length error in task: ") + e.what() + "\n", kConsoleColorError, Channel::Console);
+				} catch (const std::exception& e) {
+					Print(std::string("Task exception: ") + e.what() + "\n", kConsoleColorError, Channel::Console);
+				} catch (...) {
+					Print("Task exception: Unknown error\n", kConsoleColorError, Channel::Console);
+				}
 			}
+
+			CheckLineCountAsync();
+			std::this_thread::sleep_for(std::chrono::microseconds(100));
 		}
-
-		// ロック外でタスクを実行
-		for (auto& task : currentTasks) {
-			task();
-		}
-
-		// 行数制限とメモリ管理
-		CheckLineCountAsync();
-
-		// スリープ時間を短くして応答性を向上
-		std::this_thread::sleep_for(std::chrono::microseconds(100));
+	} catch (const std::exception& e) {
+		Print(std::string("ConsoleUpdateAsync exception: ") + e.what() + "\n", kConsoleColorError, Channel::Console);
+	} catch (...) {
+		Print("ConsoleUpdateAsync exception: Unknown error\n", kConsoleColorError, Channel::Console);
 	}
 }
 

@@ -53,7 +53,7 @@ std::shared_ptr<CameraComponent> CameraManager::GetActiveCamera() {
 	return activeCamera_;
 }
 
-void CameraManager::Update(float deltaTime) {
+void CameraManager::Update(const float deltaTime) {
 	if (activeCamera_) {
 		if (activeCamera_.use_count() > 1) {
 			activeCamera_->Update(deltaTime);

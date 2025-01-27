@@ -2,7 +2,7 @@
 
 #include <d3d12shader.h>
 
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 
 #include <ResourceSystem/Shader/Shader.h>
 #include <ResourceSystem/Pipeline/PipelineManager.h>
@@ -52,7 +52,7 @@ void Material::SetTexture(const std::string& name, Texture* texture) {
 	//}
 }
 
-void Material::qaSetConstantBuffer(const UINT shaderRegister, ID3D12Resource* buffer) {
+void Material::SetConstantBuffer(const UINT shaderRegister, ID3D12Resource* buffer) {
 	constantBuffers_[shaderRegister] = buffer;
 	//rootSignatureBuilder_.AddConstantBuffer(shaderRegister);
 }

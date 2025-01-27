@@ -4,7 +4,7 @@
 
 #include <Camera/Camera.h>
 
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 #include <Lib/Math/Matrix/Mat4.h>
 #include <Lib/Math/Random/Random.h>
 
