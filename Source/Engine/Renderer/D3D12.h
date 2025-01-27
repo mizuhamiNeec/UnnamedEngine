@@ -21,7 +21,7 @@ public: // メンバ関数
 	void Init() override;
 	void Shutdown() override;
 
-	void ClearColorAndDepth() const;
+	void ClearColorAndDepth(ID3D12GraphicsCommandList* commandList) const;
 	void PreRender() override;
 	void PostRender() override;
 
@@ -38,7 +38,6 @@ private:
 	ComPtr<ID3D12CommandQueue> commandQueue_;
 	ComPtr<IDXGISwapChain4> swapChain_;
 
-
 	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap_;
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_;
 
@@ -47,11 +46,12 @@ private:
 
 	ComPtr<ID3D12Resource> depthStencilResource_;
 
-	ComPtr<ID3D12CommandAllocator> commandAllocator_;
-	ComPtr<ID3D12GraphicsCommandList> commandList_;
+	std::vector<ComPtr<ID3D12CommandAllocator>> commandAllocators_;
+	std::vector<ComPtr<ID3D12GraphicsCommandList>> commandLists_;
 
 	ComPtr<ID3D12Fence> fence_;
 	uint64_t fenceValue_ = 0;
+	uint64_t fenceValues_[kFrameBufferCount] = {};
 	HANDLE fenceEvent_ = nullptr;
 	UINT frameIndex_ = 0;
 
@@ -68,8 +68,6 @@ private:
 		uint64_t fenceValue;
 	};
 
-	static std::vector<ResourceWithFence> resourcesToRelease_;
-
 	// メンバ関数
 	//------------------------------------------------------------------------
 	// 初期化関連
@@ -82,8 +80,7 @@ private:
 	void CreateDescriptorHeaps();
 	void CreateRTV();
 	void CreateDSV();
-	void CreateCommandAllocator();
-	void CreateCommandList();
+	void CreateCommandAllocatorsAndLists();
 	void CreateFence();
 
 	void SetViewportAndScissor();
@@ -101,7 +98,7 @@ public:
 	}
 
 	ID3D12GraphicsCommandList* GetCommandList() const {
-		return commandList_.Get();
+		return commandLists_[frameIndex_].Get();
 	}
 
 	ID3D12CommandQueue* GetCommandQueue() const {
@@ -121,7 +118,7 @@ public:
 	}
 
 	ID3D12CommandAllocator* GetCommandAllocator() const {
-		return commandAllocator_.Get();
+		return commandAllocators_[frameIndex_].Get();
 	}
 
 	uint64_t GetFenceValue() const {
