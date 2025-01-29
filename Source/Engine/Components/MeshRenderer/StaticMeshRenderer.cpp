@@ -83,34 +83,18 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 		Material* material = subMesh->GetMaterial();
 		if (material && material != currentlyBoundMaterial) {
 
-			material->SetConstantBuffer(0, matparamCBV->GetResource());
+			/*material->SetConstantBuffer(0, matparamCBV->GetResource());*/
 
-			if (const auto* transform = transform_) {
-				const Mat4 worldMat = transform->GetWorldMat();
+			
 
-				const Mat4& viewProjMat = CameraManager::GetActiveCamera()->GetViewProjMat();
-				Mat4 worldViewProjMat = worldMat * viewProjMat;
+			/*cameraData->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate();
+			material->SetConstantBuffer(2, cameraCB->GetResource());*/
 
-				transformationMatrix_->wvp = worldViewProjMat;
-				transformationMatrix_->world = worldMat;
-				transformationMatrix_->worldInverseTranspose = worldMat.Inverse().Transpose();
-
-				//// ルートパラメータインデックスが正しいことを確認
-				//commandList->SetGraphicsRootConstantBufferView(
-				//	1, // インデックスが正しいか確認
-				//	transformationMatrixConstantBuffer_->GetAddress()
-				//);
-
-				material->SetConstantBuffer(1, transformationMatrixConstantBuffer_->GetResource());
-			}
-
-			cameraData->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate();
-			material->SetConstantBuffer(2, cameraCB->GetResource());
-
-			// トランスフォームをバインド
-			BindTransform(commandList);
+			
 
 			material->Apply(commandList); // Materialにバインド処理を委任
+			// トランスフォームをバインド
+			BindTransform(commandList);
 			currentlyBoundMaterial = material;
 		} else if (!material) {
 			Console::Print(
@@ -159,5 +143,27 @@ void StaticMeshRenderer::SetStaticMesh(StaticMesh* staticMesh) {
 }
 
 void StaticMeshRenderer::BindTransform(ID3D12GraphicsCommandList* commandList) {
-	commandList;
+	if (const auto* transform = transform_) {
+		const Mat4 worldMat = transform->GetWorldMat();
+
+		const Mat4& viewProjMat = CameraManager::GetActiveCamera()->GetViewProjMat();
+		Mat4 worldViewProjMat = worldMat * viewProjMat;
+
+		transformationMatrix_->wvp = worldViewProjMat;
+		transformationMatrix_->world = worldMat;
+		transformationMatrix_->worldInverseTranspose = worldMat.Inverse().Transpose();
+
+		//// ルートパラメータインデックスが正しいことを確認
+		//commandList->SetGraphicsRootConstantBufferView(
+		//	1, // インデックスが正しいか確認
+		//	transformationMatrixConstantBuffer_->GetAddress()
+		//);
+
+		commandList->SetGraphicsRootConstantBufferView(
+			0,
+			transformationMatrixConstantBuffer_->GetAddress()
+		);
+
+		//material->SetConstantBuffer(0, transformationMatrixConstantBuffer_->GetResource());
+	}
 }

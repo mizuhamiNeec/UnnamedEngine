@@ -7,11 +7,14 @@
 #include <dxgidebug.h>
 #include <format>
 #include <thread>
+
 #include <DirectXTex/d3dx12.h>
-#include <SubSystem/Console/Console.h>
-#include <SubSystem/Console/ConVarManager.h>
+
 #include <Lib/Utils/ClientProperties.h>
 #include <Lib/Utils/StrUtils.h>
+
+#include <SubSystem/Console/ConVarManager.h>
+#include <SubSystem/Console/Console.h>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -33,7 +36,8 @@ D3D12::D3D12() {
 	CreateDescriptorHeaps();
 	CreateRTV();
 	CreateDSV();
-	CreateCommandAllocatorsAndLists();
+	CreateCommandAllocator();
+	CreateCommandList();
 	CreateFence();
 	Resize(kClientWidth, kClientHeight);
 
@@ -48,13 +52,6 @@ D3D12::~D3D12() {
 }
 
 void D3D12::Init() {
-	// ウィンドウがリサイズされたときのコールバック
-	Window::SetResizeCallback(
-		[this](const uint32_t width, const uint32_t height) {
-			Resize(width, height);
-		}
-	);
-
 	ConVarManager::RegisterConVar<bool>("r_clear", true, "Clear the screen", ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>("r_vsync", 0, "Enable VSync", ConVarFlags::ConVarFlags_Notify);
 }
@@ -76,15 +73,19 @@ void D3D12::Shutdown() {
 		}
 	}
 
-	for (auto commandList : commandLists_) {
-		commandList.Reset();
+	// コマンドリストのクリーンアップ
+	if (commandList_) {
+		// すべての処理が終了するまで待機
+		WaitPreviousFrame();
+		// コマンドリストをリセット
+		commandList_.Reset();
 	}
-	commandLists_.clear();
 
-	for (auto commandAllocator : commandAllocators_) {
-		commandAllocator.Reset();
+	// コマンドアロケータのクリーンアップ
+	if (commandAllocator_) {
+		commandAllocator_->Reset();
+		commandAllocator_.Reset();
 	}
-	commandAllocators_.clear();
 
 	// レンダーターゲットの解放
 	for (auto& rt : renderTargets_) {
@@ -143,10 +144,10 @@ void D3D12::Shutdown() {
 	}
 }
 
-void D3D12::ClearColorAndDepth(ID3D12GraphicsCommandList* commandList) const {
+void D3D12::ClearColorAndDepth() const {
 	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
 		float clearColor[] = { 0.1f, 0.1f, 0.1f, 1.0f };
-		commandList->ClearRenderTargetView(
+		commandList_->ClearRenderTargetView(
 			rtvHandles_[frameIndex_],
 			clearColor,
 			0,
@@ -160,14 +161,7 @@ void D3D12::ClearColorAndDepth(ID3D12GraphicsCommandList* commandList) const {
 		0
 	);
 
-	commandList->OMSetRenderTargets(
-		1,
-		&rtvHandles_[frameIndex_],
-		false,
-		&dsvHandle
-	);
-
-	commandList->ClearDepthStencilView(
+	commandList_->ClearDepthStencilView(
 		dsvHandle,
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
 		1.0f,
@@ -175,61 +169,64 @@ void D3D12::ClearColorAndDepth(ID3D12GraphicsCommandList* commandList) const {
 		0,
 		nullptr
 	);
+
+	commandList_->OMSetRenderTargets(
+		1,
+		&rtvHandles_[frameIndex_],
+		false,
+		&dsvHandle
+	);
 }
 
 void D3D12::PreRender() {
 	// これから書き込むバックバッファのインデックスを取得
 	frameIndex_ = swapChain_->GetCurrentBackBufferIndex();
 
-	// 現在のフレーム用のコマンドアロケータとコマンドリストを取得
-	auto& commandAllocator = commandAllocators_[frameIndex_];
-	auto& commandList = commandLists_[frameIndex_];
-
-	WaitPreviousFrame();
-
-	// リセット
-	commandAllocator->Reset();
-	commandList->Reset(commandAllocator.Get(), nullptr);
+	// コマンドのリセット
+	HRESULT hr = commandAllocator_->Reset();
+	assert(SUCCEEDED(hr));
+	hr = commandList_->Reset(
+		commandAllocator_.Get(),
+		nullptr
+	);
+	assert(SUCCEEDED(hr));
 
 	// ビューポートとシザー矩形を設定
-	commandList->RSSetViewports(1, &viewport_);
-	commandList->RSSetScissorRects(1, &scissorRect_);
+	commandList_->RSSetViewports(1, &viewport_);
+	commandList_->RSSetScissorRects(1, &scissorRect_);
 
 	// リソースバリアを張る
+	barrier_.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier_.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 	barrier_.Transition.pResource = renderTargets_[frameIndex_].Get();
 	barrier_.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 	barrier_.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	commandList->ResourceBarrier(1, &barrier_);
+	commandList_->ResourceBarrier(1, &barrier_);
 
 	// レンダーターゲットと深度ステンシルバッファをクリアする
-	ClearColorAndDepth(commandList.Get());
+	ClearColorAndDepth();
 }
 
 void D3D12::PostRender() {
-	auto& commandList = commandLists_[frameIndex_];
-
 	// リソースバリア遷移↓
 	barrier_.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrier_.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-	commandList->ResourceBarrier(1, &barrier_);
+	commandList_->ResourceBarrier(1, &barrier_);
 
 	// コマンドリストを閉じる
-	const HRESULT hr = commandList->Close();
+	const HRESULT hr = commandList_->Close();
 	if (hr) {
 		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
 		assert(SUCCEEDED(hr));
 	}
 
 	// コマンドのキック
-	ID3D12CommandList* commandLists[] = { commandList.Get() };
-	commandQueue_->ExecuteCommandLists(1, commandLists);
+	commandQueue_->ExecuteCommandLists(1, CommandListCast(commandList_.GetAddressOf()));
 
 	// GPU と OS に画面の交換を行うよう通知
 	swapChain_->Present(ConVarManager::GetConVar("r_vsync")->GetValueAsInt(), 0);
 
-	const uint64_t currentFenceValue = ++fenceValue_;
-	commandQueue_->Signal(fence_.Get(), currentFenceValue);
-	fenceValues_[frameIndex_] = currentFenceValue;
+	WaitPreviousFrame(); // 前のフレームを待つ
 }
 
 void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, const uint32_t size, const void* data) {
@@ -242,12 +239,11 @@ void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, const uint32_t siz
 }
 
 void D3D12::WaitPreviousFrame() {
-	const uint64_t fenceToWaitFor = fenceValues_[frameIndex_];
+	fenceValue_++; // Fenceの値を更新
 
-	//fenceValue_++; // Fenceの値を更新
 	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
 	if (commandQueue_ && fence_) {
-		const HRESULT hr = commandQueue_->Signal(fence_.Get(), fenceToWaitFor);
+		const HRESULT hr = commandQueue_->Signal(fence_.Get(), fenceValue_);
 		if (FAILED(hr)) {
 			if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
 				// デバイスが消えた!!?
@@ -256,9 +252,9 @@ void D3D12::WaitPreviousFrame() {
 		}
 
 		// Fenceの値が指定したSignal値にたどり着いているか確認する
-		if (fence_->GetCompletedValue() < fenceToWaitFor) {
+		if (fence_->GetCompletedValue() < fenceValue_) {
 			// 指定したSignalにたどり着いていないので、たどり着くまで待つようにイベントを設定する
-			fence_->SetEventOnCompletion(fenceToWaitFor, fenceEvent_);
+			fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
 			// イベント待つ
 			WaitForSingleObject(fenceEvent_, INFINITE);
 		}
@@ -431,13 +427,6 @@ void D3D12::CreateSwapChain() {
 	swapChainDesc.SampleDesc.Count = 1; // マルチサンプルしない
 	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-	DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullScreenDesc = {};
-	fullScreenDesc.Windowed = TRUE; // ウィンドウモード
-	fullScreenDesc.RefreshRate.Numerator = 60; // リフレッシュレート
-	fullScreenDesc.RefreshRate.Denominator = 1; // リフレッシュレート
-	fullScreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED; // スキャンラインの順番
-	fullScreenDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED; // スケーリング
-
 	if (Window::GetWindowHandle()) {
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH; // 画面サイズに合わせて伸縮
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE; // アルファモードは無視
@@ -452,7 +441,7 @@ void D3D12::CreateSwapChain() {
 		commandQueue_.Get(),
 		Window::GetWindowHandle(),
 		&swapChainDesc,
-		&fullScreenDesc,
+		nullptr,
 		nullptr,
 		reinterpret_cast<IDXGISwapChain1**>(swapChain_.GetAddressOf())
 	);
@@ -512,34 +501,45 @@ void D3D12::CreateDSV() {
 	);
 }
 
-void D3D12::CreateCommandAllocatorsAndLists() {
-	commandAllocators_.resize(kFrameBufferCount);
-	commandLists_.resize(kFrameBufferCount);
+void D3D12::CreateCommandAllocator() {
+	const HRESULT hr = device_->CreateCommandAllocator(
+		D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator_)
+	);
+	if (hr) {
+		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+		assert(SUCCEEDED(hr));
+	}
+}
 
-	for (UINT i = 0; i < kFrameBufferCount; ++i) {
-		HRESULT hr = device_->CreateCommandAllocator(
-			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			IID_PPV_ARGS(&commandAllocators_[i])
+void D3D12::CreateCommandList() {
+	// コマンドリストの作成
+	HRESULT hr = device_->CreateCommandList(
+		0, // ノードマスク
+		D3D12_COMMAND_LIST_TYPE_DIRECT, // コマンドリストタイプ
+		commandAllocator_.Get(), // コマンドアロケーター
+		nullptr, // 初期パイプラインステート
+		IID_PPV_ARGS(&commandList_) // 作成されるコマンドリスト
+	);
+
+	commandList_->SetName(L"MainCommandList");
+
+	if (FAILED(hr)) {
+		Console::Print(
+			std::format("Failed to create command list. Error code: {:08x}\n", hr),
+			kConsoleColorError
 		);
-		if (hr) {
-			Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
-			assert(SUCCEEDED(hr));
-		}
+		assert(SUCCEEDED(hr));
+		return;
+	}
 
-		hr = device_->CreateCommandList(
-			0,
-			D3D12_COMMAND_LIST_TYPE_DIRECT,
-			commandAllocators_[i].Get(),
-			nullptr,
-			IID_PPV_ARGS(&commandLists_[i])
+	// コマンドリストを閉じる（初期状態では開いている）
+	hr = commandList_->Close();
+	if (FAILED(hr)) {
+		Console::Print(
+			std::format("Failed to close command list. Error code: {:08x}\n", hr),
+			kConsoleColorError
 		);
-		if (hr) {
-			Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
-			assert(SUCCEEDED(hr));
-		}
-
-		// コマンドリストを閉じる
-		commandLists_[i]->Close();
+		assert(SUCCEEDED(hr));
 	}
 }
 
@@ -587,6 +587,8 @@ void D3D12::PrepareForShutdown() const {
 		if (isFullScreen) {
 			// フルスクリーンモードを解除して、完了するまで待機
 			swapChain_->SetFullscreenState(FALSE, nullptr);
+			// 少し待機して状態の変更を確実にする
+			Sleep(100);
 		}
 	}
 }
