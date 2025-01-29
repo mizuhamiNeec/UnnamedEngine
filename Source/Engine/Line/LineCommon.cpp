@@ -1,6 +1,6 @@
 #include "LineCommon.h"
 
-#include "../Lib/Console/Console.h"
+#include "../SubSystem/Console/Console.h"
 #include "Line.h"
 #include "Camera/CameraManager.h"
 

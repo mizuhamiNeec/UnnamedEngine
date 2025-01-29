@@ -2,6 +2,8 @@
 #include <d3d12.h>
 #include <string>
 #include <unordered_map>
+#include <vector>
+
 #include <wrl/client.h>
 
 using namespace Microsoft::WRL;
@@ -18,8 +20,7 @@ public:
 
 	ID3D12RootSignature* Get(const std::string& name) const {
 		auto it = rootSignatures_.find(name);
-		if (it != rootSignatures_.end())
-		{
+		if (it != rootSignatures_.end()) {
 			return it->second.Get();
 		}
 		return nullptr;

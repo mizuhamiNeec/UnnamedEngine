@@ -1,6 +1,6 @@
 #include "Sprite.h"
 
-#include <Lib/Console/Console.h>
+#include <SubSystem/Console/Console.h>
 #include <Lib/Utils/ClientProperties.h>
 #include <Renderer/D3D12.h>
 #include <Sprite/SpriteCommon.h>
@@ -38,14 +38,14 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 	);
 
 	// 定数バッファ
-	materialResource_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Material));
+	materialResource_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Material), "SpriteMaterial");
 	materialData_ = materialResource_->GetPtr<Material>();
 	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData_->enableLighting = false;
 	materialData_->uvTransform = Mat4::identity;
 
 	transformation_ = std::make_unique<ConstantBuffer>(
-		spriteCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix)
+		spriteCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix), "SpriteTransformation"
 	);
 	transformationMatrixData_ = transformation_->GetPtr<TransformationMatrix>();
 	transformationMatrixData_->wvp = Mat4::identity;

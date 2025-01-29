@@ -2,10 +2,12 @@
 
 #include <mutex>
 
-#include "../Camera/Camera.h"
-#include "../Lib/Console/Console.h"
-#include "Camera/CameraManager.h"
-#include "Components/CameraComponent.h"
+#include <Camera/Camera.h>
+#include <Camera/CameraManager.h>
+
+#include <Components/Camera/CameraComponent.h>
+
+#include <SubSystem/Console/Console.h>
 
 const D3D12_INPUT_ELEMENT_DESC LineVertex::inputElements[] = {
 	{"POSITION",
@@ -41,7 +43,9 @@ Line::Line(LineCommon* lineCommon) {
 		nullptr);
 
 	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
-		lineCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
+		lineCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix),
+		"LineTransformation"
+	);
 	transformationMatrixData_ = transformationMatrixConstantBuffer_->GetPtr<TransformationMatrix>();
 	transformationMatrixData_->wvp = Mat4::identity;
 	transformationMatrixData_->world = Mat4::identity;

@@ -1,8 +1,11 @@
 #include "ConstantBuffer.h"
 
 #include <cassert>
+#include <string>
 
-ConstantBuffer::ConstantBuffer(const ComPtr<ID3D12Device>& device, const size_t size) {
+ConstantBuffer::ConstantBuffer(const ComPtr<ID3D12Device>& device, const size_t size, std::string name): name_(
+	std::move(name)
+) {
 	size_t align = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
 	UINT64 sizeAligned = (size + (align - 1)) & ~(align - 1);
 
@@ -35,8 +38,16 @@ ConstantBuffer::ConstantBuffer(const ComPtr<ID3D12Device>& device, const size_t 
 	hr = buffer_->Map(0, nullptr, &mappedPtr);
 	assert(SUCCEEDED(hr));
 
+	buffer_->SetName(std::wstring(name.begin(), name.end()).c_str());
+
 	desc_.BufferLocation = buffer_->GetGPUVirtualAddress();
 	desc_.SizeInBytes = static_cast<UINT>(sizeAligned);
+}
+
+ConstantBuffer::~ConstantBuffer() {
+	if (buffer_) {
+		buffer_->Unmap(0, nullptr);
+	}
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS ConstantBuffer::GetAddress() const {

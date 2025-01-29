@@ -1,7 +1,7 @@
 #include "RootSignature.h"
 
 #include <cassert>
-#include "../Lib/Console/Console.h"
+#include "../SubSystem/Console/Console.h"
 
 RootSignature::RootSignature(const ComPtr<ID3D12Device>& device) {
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1] = {};

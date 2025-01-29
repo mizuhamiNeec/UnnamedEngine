@@ -1,10 +1,10 @@
 #include "GameScene.h"
 
-#include <Engine.h>
 #include <Camera/CameraManager.h>
 #include <Components/CameraRotator.h>
+#include <Engine.h>
 #include <ImGuiManager/ImGuiManager.h>
-#include <Lib/Console/ConVarManager.h>
+#include <SubSystem/Console/ConVarManager.h>
 #include <Lib/Math/MathLib.h>
 #include <Lib/Math/Random/Random.h>
 #include <Lib/Timer/EngineTimer.h>
@@ -17,16 +17,31 @@
 #include "Debug/Debug.h"
 #include "Input/InputSystem.h"
 #include "Lib/DebugHud/DebugHud.h"
+#include <Physics/Physics.h>
 
-void GameScene::Init(Engine* engine) {
-	renderer_ = engine->GetRenderer();
-	window_ = engine->GetWindow();
-	spriteCommon_ = engine->GetSpriteCommon();
-	particleManager_ = engine->GetParticleManager();
-	object3DCommon_ = engine->GetObject3DCommon();
-	modelCommon_ = engine->GetModelCommon();
+AABB GenerateRandomAABB(const Vec3& worldMin, const Vec3& worldMax, const Vec3& sizeRange) {
+	Vec3 center = Random::Vec3Range(worldMin, worldMax);
+	Vec3 halfSize = Random::Vec3Range(Vec3::zero, sizeRange);
+	return { center - halfSize, center + halfSize };
+}
+
+std::vector<AABB> GenerateRandomAABBs(size_t count, const Vec3& worldMin, const Vec3& worldMax, const Vec3& sizeRange) {
+	std::vector<AABB> aabbs;
+	for (size_t i = 0; i < count; ++i) {
+		aabbs.push_back(GenerateRandomAABB(worldMin, worldMax, sizeRange));
+	}
+	return aabbs;
+}
+
+void GameScene::Init() {
+	renderer_ = Engine::GetRenderer();
+	resourceManager_ = Engine::GetResourceManager();
+	//spriteCommon_ = engine->GetSpriteCommon();
+	//particleManager_ = engine->GetParticleManager();
+	//object3DCommon_ = engine->GetObject3DCommon();
+	//modelCommon_ = engine->GetModelCommon();
 	//srvManager_ = engine->GetSrvManager();
-	timer_ = engine->GetEngineTimer();
+	//timer_ = engine->GetEngineTimer();
 
 #pragma region テクスチャ読み込み
 	/*TextureManager::GetInstance()->LoadTexture("./Resources/Textures/empty.png");
@@ -35,10 +50,10 @@ void GameScene::Init(Engine* engine) {
 #pragma endregion
 
 #pragma region スプライト類
-	sprite_ = std::make_unique<Sprite>();
-	sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
-	sprite_->SetAnchorPoint(Vec2::one * 0.5f);
-	sprite_->SetSize(Vec3(512.0f, 512.0f));
+	//sprite_ = std::make_unique<Sprite>();
+	//sprite_->Init(spriteCommon_, "./Resources/Textures/uvChecker.png");
+	//sprite_->SetAnchorPoint(Vec2::one * 0.5f);
+	//sprite_->SetSize(Vec3(512.0f, 512.0f));
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -48,8 +63,14 @@ void GameScene::Init(Engine* engine) {
 
 #pragma endregion
 
+#pragma region 物理エンジン
+	physicsEngine_ = std::make_unique<PhysicsEngine>();
+	physicsEngine_->Init();
+#pragma endregion
+
 #pragma region エンティティ
 	camera_ = std::make_unique<Entity>("camera");
+	entities_.push_back(camera_.get());
 	// 生ポインタを取得
 	CameraComponent* rawCameraPtr = camera_->AddComponent<CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
@@ -63,31 +84,107 @@ void GameScene::Init(Engine* engine) {
 	// アクティブカメラに設定
 	CameraManager::SetActiveCamera(camera);
 
-	cameraRoot_ = std::make_unique<Entity>("cameraBase");
-	cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
-	cameraRotator_ = camera_->AddComponent<CameraRotator>();
+	entPlayer_ = std::make_unique<Entity>("player");
+	entPlayer_->GetTransform()->SetLocalPos(Vec3::up * 1.0f); // 1m上に配置
+	PlayerMovement* rawPlayerMovement = entPlayer_->AddComponent<PlayerMovement>();
+	playerMovement_ = std::shared_ptr<PlayerMovement>(
+		rawPlayerMovement, [](PlayerMovement*) {}
+	);
+	BoxColliderComponent* rawPlayerCollider = entPlayer_->AddComponent<BoxColliderComponent>();
+	playerCollider_ = std::shared_ptr<BoxColliderComponent>(
+		rawPlayerCollider, [](BoxColliderComponent*) {}
+	);
+	playerCollider_->SetSize(Math::HtoM(Vec3(33.0f, 73.0f, 33.0f)));
+	entities_.push_back(entPlayer_.get());
 
-	// プレイヤーにカメラをアタッチ
-	//camera_->SetParent(cameraRoot_.get());
-	camera_->GetTransform()->SetLocalPos(Vec3::up * 2.0f + Vec3::forward * -2.5f);
+	cameraRoot_ = std::make_unique<Entity>("cameraRoot");
+	cameraRoot_->SetParent(entPlayer_.get());
+	cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
+	cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
+	entities_.push_back(cameraRoot_.get());
+
+	// cameraRootにアタッチ
+	camera_->SetParent(cameraRoot_.get());
+	camera_->GetTransform()->SetLocalPos(Vec3::backward * 2.5f);
 #pragma endregion
 
 #pragma region コンソール変数/コマンド
 	ConVarManager::RegisterConVar<Vec3>("testPos", Vec3::zero, "Test position");
 #pragma endregion
+
+#pragma region メッシュレンダラー
+	//resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/weaponNinjaSword.obj");
+	//auto mesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/weaponNinjaSword.obj");
+	//if (mesh) {
+	//	Console::Print("メッシュの読み込みに成功しました: " + mesh->GetName() + "\n", kConsoleColorCompleted);
+	//}
+
+	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/lightWeight.obj");
+	debugMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
+		"./Resources/Models/lightWeight.obj"
+	);
+
+	/*testMeshEntity_ = std::make_unique<Entity>("testmesh");
+	StaticMeshRenderer* rawTestMeshRenderer = testMeshEntity_->AddComponent<StaticMeshRenderer>();
+	floatTestMR_ = std::shared_ptr<StaticMeshRenderer>(
+		rawTestMeshRenderer, [](StaticMeshRenderer*) {}
+	);
+	floatTestMR_->SetStaticMesh(mesh);
+	entities_.push_back(testMeshEntity_.get());*/
+
+	debugTestMeshEntity_ = std::make_unique<Entity>("debugTestMesh");
+	StaticMeshRenderer* testMeshRenderer = debugTestMeshEntity_->AddComponent<StaticMeshRenderer>();
+	debugTestMR_ = std::shared_ptr<StaticMeshRenderer>(
+		testMeshRenderer, [](StaticMeshRenderer*) {}
+	);
+	debugTestMR_->SetStaticMesh(debugMesh);
+	MeshColliderComponent* meshColliderComponent =
+		debugTestMeshEntity_->AddComponent<MeshColliderComponent>();
+	debugTestMeshCollider_ = std::shared_ptr<MeshColliderComponent>(
+		meshColliderComponent,
+		[](MeshColliderComponent*) {}
+	);
+	entities_.push_back(debugTestMeshEntity_.get());
+#pragma endregion
+
+	CameraManager::SetActiveCamera(camera);
+
+	worldMesh_ = debugMesh->GetPolygons();
+
+	//physicsEngine_->RegisterEntity(entPlayer_.get(), false);
+	physicsEngine_->RegisterEntity(debugTestMeshEntity_.get(), true);
 }
 
 void GameScene::Update(const float deltaTime) {
-	camera_->Update(deltaTime);
+	//if (InputSystem::IsPressed("+attack2")) {
+	//	camera_->SetParent(nullptr);
+	//	camera_->Update(deltaTime);
+	//} else {
+	//	camera_->SetParent(cameraRoot_.get());
+	//}
+	//// マウスホイールでカメラのローカルZ軸方向に移動
+	//if (InputSystem::IsTriggered("+invprev")) {
+	//	camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() + Vec3::forward * 64.0f);
+	//} else if (InputSystem::IsTriggered("+invnext")) {
+	//	camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 64.0f);
+	//}
+	//cameraRoot_->Update(deltaTime);
 
-	// マウスホイールでカメラのローカルZ軸方向に移動
-	if (InputSystem::IsTriggered("+invprev")) {
-		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() + Vec3::forward * 0.1f);
-	} else if (InputSystem::IsTriggered("+invnext")) {
-		camera_->GetTransform()->SetLocalPos(camera_->GetTransform()->GetLocalPos() - Vec3::forward * 0.1f);
-	}
+	//for (auto worldMesh : worldMesh_) {
+	//	// メッシュのワイヤを描画
+	//	Debug::DrawTriangle(worldMesh, Vec4::orange);
+	//	Debug::DrawRay(worldMesh.GetCenter(), worldMesh.GetNormal(), Vec4::magenta);
+	//}
 
-	particleManager_->Update(deltaTime);
+	//physicsEngine_->Update(deltaTime);
+
+	// プレイヤーの更新
+	//entPlayer_->Update(deltaTime);
+
+	// testMeshEntity_->Update(deltaTime);
+	debugTestMeshEntity_->Update(deltaTime);
+
+	/*particleManager_->Update(deltaTime);
 	static bool isOffscreen = false;
 	static float rotation = 0.0f;
 	Vec3 pos = Math::WorldToScreen(
@@ -96,13 +193,11 @@ void GameScene::Update(const float deltaTime) {
 		32.0f,
 		isOffscreen,
 		rotation
-	);
+	);*/
 
-	sprite_->SetPos(Vec3(pos.x, pos.y));
-	sprite_->SetRot(Vec3::forward * rotation);
-	sprite_->Update();
-
-	Debug::DrawAxisWithCharacter(ConVarManager::GetConVar("testPos")->GetValueAsVec3(), Quaternion::Euler(0.0f, 0.0f, 0.0f));
+	//sprite_->SetPos(Vec3(pos.x, pos.y));
+	//sprite_->SetRot(Vec3::forward * rotation);
+	//sprite_->Update();
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -116,7 +211,11 @@ void GameScene::Update(const float deltaTime) {
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
-		Mat4 invViewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
+		Mat4 invViewMat = Mat4::identity;
+		if (CameraManager::GetActiveCamera()) {
+			invViewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
+		}
+
 		Vec3 camPos = invViewMat.GetTranslate();
 		const Vec3 camRot = invViewMat.ToQuaternion().ToEulerAngles();
 
@@ -168,23 +267,26 @@ void GameScene::Update(const float deltaTime) {
 void GameScene::Render() {
 	//----------------------------------------
 	// オブジェクト3D共通描画設定
-	object3DCommon_->Render();
+	//object3DCommon_->Render();
 	//----------------------------------------
 
 	//----------------------------------------
 	// パーティクル共通描画設定
-	particleManager_->Render();
+	//particleManager_->Render();
 	//----------------------------------------
 
 	//----------------------------------------
 	// スプライト共通描画設定
-	spriteCommon_->Render();
+	//spriteCommon_->Render();
 	//----------------------------------------
-	sprite_->Draw();
+	//sprite_->Draw();
+
+	//testMeshEntity_->Render(renderer_->GetCommandList());
+	debugTestMeshEntity_->Render(renderer_->GetCommandList());
 }
 
 void GameScene::Shutdown() {
-	spriteCommon_->Shutdown();
-	object3DCommon_->Shutdown();
-	particleManager_->Shutdown();
+	//spriteCommon_->Shutdown();
+	//object3DCommon_->Shutdown();
+	//particleManager_->Shutdown();
 }

@@ -22,18 +22,10 @@ private:
 	static const D3D12_INPUT_ELEMENT_DESC inputElements[inputElementCount];
 };
 
-struct Material {
-	Vec4 color;
-	int32_t enableLighting;
-	Vec3 padding;
-	Mat4 uvTransform;
-	float shininess;
-	Vec3 specularColor;
-};
-
 struct TransformationMatrix {
 	Mat4 wvp; // ワールドビュープロジェクション
 	Mat4 world; // ワールド
+	Mat4 worldInverseTranspose; // ワールドの逆転置
 };
 
 struct ParticleForGPU {
@@ -101,11 +93,6 @@ struct Particle {
 	uint32_t textureIndex;
 };
 
-struct AABB {
-	Vec3 min;
-	Vec3 max;
-};
-
 struct Emitter {
 	Transform transform; // エミッタのトランスフォーム
 	uint32_t count; // 発生数
@@ -116,5 +103,5 @@ struct Emitter {
 
 struct AccelerationField {
 	Vec3 acceleration; // 加速度
-	AABB area; // 範囲
+	//AABB area; // 範囲
 };

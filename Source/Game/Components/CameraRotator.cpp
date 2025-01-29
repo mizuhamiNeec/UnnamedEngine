@@ -1,12 +1,11 @@
 #include "CameraRotator.h"
 
-#include "Components/CameraComponent.h"
-#include "Components/TransformComponent.h"
-#include "Entity/Base/Entity.h"
-#include "Input/InputSystem.h"
-#include "Lib/Console/ConCommand.h"
-#include "Lib/Console/ConVarManager.h"
-#include "Lib/Math/Vector/Vec3.h"
+#include <Entity/Base/Entity.h>
+
+#include <Input/InputSystem.h>
+
+#include <SubSystem/Console/ConVarManager.h>
+#include <Lib/Math/Vector/Vec3.h>
 
 CameraRotator::~CameraRotator() {}
 

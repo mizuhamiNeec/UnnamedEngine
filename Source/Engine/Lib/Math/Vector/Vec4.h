@@ -1,7 +1,8 @@
 #pragma once
-#include <memory>
 
-#include "Vec3.h"
+#include <initializer_list>
+
+#include <Lib/Math/Vector/Vec3.h>
 
 struct Mat4;
 

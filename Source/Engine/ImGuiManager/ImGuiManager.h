@@ -37,6 +37,7 @@ public:
 		ImDrawList* drawList, const ImVec2& pos, const char* text, ImVec4 textColor, ImVec4 outlineColor,
 		float outlineSize = 1.0f
 	);
+	static bool IconButton(const char* icon, const char* label, const ImVec2& size = ImVec2(0, 0));
 #endif
 
 private:

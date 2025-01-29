@@ -20,107 +20,31 @@ void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {
 	Mat4 viewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
 	Vec3 cameraPos = viewMat.GetTranslate();
 
-	// カメラとの距離が1m未満の場合は描画しない
-	if ((cameraPos - position).SqrLength() < 2.0f) {
+	// カメラとの距離を計算
+	float distance = (cameraPos - position).Length();
+
+	// カメラとの距離が一定以下の場合は軸を描画しない
+	if (distance < 0.01f) {
 		return;
 	}
 
-	const Vec3 right = orientation * Vec3::right;
-	const Vec3 up = orientation * Vec3::up;
-	const Vec3 forward = orientation * Vec3::forward;
+	// スクリーン上で一定の長さに見えるように、
+	// カメラからの距離に比例して実際の長さを調整
+	float desiredScreenSize = 128.0f; // スクリーン上での目標サイズ（ピクセル）
 
-	DrawRay(position, right, Vec4(1.0f, 0.0f, 0.0f, 1.0f));
-	DrawRay(position, up, Vec4(0.0f, 1.0f, 0.0f, 1.0f));
-	DrawRay(position, forward, Vec4(0.0f, 0.0f, 1.0f, 1.0f));
-}
+	// 最大距離を設定（この距離以上では軸の長さが一定になる）
+	constexpr float maxDistance = 32.0f; // 50メートルを超えたら一定の長さにする
+	distance = std::min(distance, maxDistance);
 
-void Debug::DrawAxisWithCharacter(const Vec3& position, const Quaternion& orientation) {
-	Mat4 viewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
-	Vec3 cameraPos = viewMat.GetTranslate();
+	float length = distance * (desiredScreenSize / 1000.0f); // 1000.0fは調整用の係数
 
-	// カメラとの距離が1m未満の場合は描画しない
-	if ((cameraPos - position).SqrLength() < 2.0f) {
-		return;
-	}
-
-	const Vec3 right = orientation * Vec3::right;
-	const Vec3 up = orientation * Vec3::up;
-	const Vec3 forward = orientation * Vec3::forward;
+	const Vec3 right = orientation * Vec3::right * length;
+	const Vec3 up = orientation * Vec3::up * length;
+	const Vec3 forward = orientation * Vec3::forward * length;
 
 	DrawRay(position, right, Vec4::red);
 	DrawRay(position, up, Vec4::green);
 	DrawRay(position, forward, Vec4::blue);
-
-	//// 軸の端点を計算
-	//Vec3 xEnd = position + right;
-	//Vec3 yEnd = position + up;
-	//Vec3 zEnd = position + forward;
-
-	//// それぞれの端点のスクリーン座標を計算
-	//Vec2 xScreenPos = Math::WorldToScreen(xEnd);
-	//Vec2 yScreenPos = Math::WorldToScreen(yEnd);
-	//Vec2 zScreenPos = Math::WorldToScreen(zEnd);
-
-	//// とりあえずそれぞれの座標にウィンドウを表示
-	//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.0f, 0.0f, 0.0f, 0.5f));
-	//ImGui::Begin("XP");
-	//ImGui::SetWindowPos({ xScreenPos.x, xScreenPos.y });
-	//ImGui::End();
-	//ImGui::PopStyleColor();
-
-	//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 1.0f, 0.0f, 0.5f));
-	//ImGui::SetNextWindowPos({ yScreenPos.x, yScreenPos.y });
-	//ImGui::Begin("YP");
-	//ImGui::End();
-	//ImGui::PopStyleColor();
-
-	//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 1.0f, 0.5f));
-	//ImGui::SetNextWindowPos({ zScreenPos.x, zScreenPos.y });
-	//ImGui::Begin("ZP");
-	//ImGui::End();
-	//ImGui::PopStyleColor();
-
-
-	//// それぞれのスクリーン座標の左上座標を求める
-	//Vec2 leftTopPos;
-	//leftTopPos.x = min(xScreenPos.x, min(yScreenPos.x, zScreenPos.x));
-	//leftTopPos.y = min(xScreenPos.y, min(yScreenPos.y, zScreenPos.y));
-
-	//// それぞれのスクリーン座標の右下座標を求める
-	//Vec2 rightBottomPos;
-	//rightBottomPos.x = max(xScreenPos.x, max(yScreenPos.x, zScreenPos.x));
-	//rightBottomPos.y = max(xScreenPos.y, max(yScreenPos.y, zScreenPos.y));
-
-	//// ウィンドウのサイズを求める
-	//Vec2 windowSize = rightBottomPos - leftTopPos;
-
-	//ImGui::SetNextWindowPos({ leftTopPos.x, leftTopPos.y });
-	//ImGui::SetNextWindowSize({ windowSize.x,windowSize.y });
-	//ImGui::Begin("Axis", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus);
-	//ImGui::Text("X");
-	//ImGui::Text("Y");
-	//ImGui::Text("Z");
-	//ImGui::End();
-	//// それぞれのスクリーン座標の左上座標を求める
-	//Vec2 leftTopPos;
-	//leftTopPos.x = min(xScreenPos.x, min(yScreenPos.x, zScreenPos.x));
-	//leftTopPos.y = min(xScreenPos.y, min(yScreenPos.y, zScreenPos.y));
-
-	//// それぞれのスクリーン座標の右下座標を求める
-	//Vec2 rightBottomPos;
-	//rightBottomPos.x = max(xScreenPos.x, max(yScreenPos.x, zScreenPos.x));
-	//rightBottomPos.y = max(xScreenPos.y, max(yScreenPos.y, zScreenPos.y));
-
-	//// ウィンドウのサイズを求める
-	//Vec2 windowSize = rightBottomPos - leftTopPos;
-
-	//ImGui::SetNextWindowPos({ leftTopPos.x, leftTopPos.y });
-	//ImGui::SetNextWindowSize({ windowSize.x,windowSize.y });
-	//ImGui::Begin("Axis", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus);
-	//ImGui::Text("X");
-	//ImGui::Text("Y");
-	//ImGui::Text("Z");
-	//ImGui::End();
 }
 
 void Debug::DrawCircle(
@@ -241,8 +165,8 @@ void Debug::DrawArrow(
 	// 矢印の終点
 	const Vec3 end = position + direction;
 
-	// 頭のりサイズ
-	headSize = min((position - end).Length(), headSize);
+	// 頭のリサイズ
+	headSize = std::min((position - end).Length(), headSize);
 
 	// 矢印の方向を正規化
 	const Vec3 dirNormalized = direction.Normalized();
@@ -416,6 +340,33 @@ void Debug::DrawCapsule(
 
 	DrawArc(0, 180, topArcPosition, orientation, rad, color);
 	DrawArc(0, 180, topArcPosition, arcOrientation, rad, color);
+}
+
+void Debug::DrawCapsule(const Vec3& start, const Vec3& end, const float& radius, const Vec4& color) {
+	// 始点から終点へのベクトルと長さを計算
+	const Vec3 direction = (end - start).Normalized();
+	const float length = (end - start).Length();
+
+	// 半球の向きを計算
+	Quaternion orientation = Quaternion::LookRotation(direction).Normalized();
+	orientation = orientation * Quaternion::Euler(90.0f * Math::deg2Rad, 0, 0);
+
+	// 始点での半球を描画
+	DrawArc(180, 360, start, orientation, radius, color);
+	DrawArc(180, 360, start, orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0), radius, color);
+
+	// 終点での半球を描画
+	DrawArc(0, 180, end, orientation, radius, color);
+	DrawArc(0, 180, end, orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0), radius, color);
+
+	// 中間の円柱部分を描画（両端の半球をつなぐ）
+	DrawCylinder(start, orientation, length, radius, color, true);
+}
+
+void Debug::DrawTriangle(const Triangle& triangle, const Vec4 vec4) {
+	DrawLine(triangle.GetVertex(0), triangle.GetVertex(1), vec4);
+	DrawLine(triangle.GetVertex(1), triangle.GetVertex(2), vec4);
+	DrawLine(triangle.GetVertex(2), triangle.GetVertex(0), vec4);
 }
 
 void Debug::Init(LineCommon* lineCommon) {

@@ -9,12 +9,13 @@
 
 #include "../Line/Line.h"
 
+#include "Physics/Physics.h"
+
 class Debug {
 public:
 	static void DrawLine(const Vec3& a, const Vec3& b, const Vec4& color);
 	static void DrawRay(const Vec3& position, const Vec3& dir, const Vec4& color);
 	static void DrawAxis(const Vec3& position, const Quaternion& orientation);
-	static void DrawAxisWithCharacter(const Vec3& position, const Quaternion& orientation);
 	static void DrawCircle(
 		const Vec3& position, const Quaternion& rotation, const float& radius,
 		const Vec4& color, const uint32_t& segments = 32
@@ -44,6 +45,10 @@ public:
 		const Vec3& position, const Quaternion& orientation, const float& height,
 		const float& radius, const Vec4& color, const bool& drawFromBase = true
 	);
+	static void DrawCapsule(
+		const Vec3& start, const Vec3& end, const float& radius, const Vec4& color
+	);
+	static void DrawTriangle(const Triangle& triangle, Vec4 vec4);
 
 	static void Init(LineCommon* lineCommon);
 	static void Update();

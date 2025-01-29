@@ -9,14 +9,19 @@
 
 using namespace Microsoft::WRL;
 
+struct D3DResourceLeakChecker {
+	~D3DResourceLeakChecker();
+};
+
 class D3D12 : public Renderer {
 public: // メンバ関数
 	D3D12();
 	~D3D12() override;
 
 	void Init() override;
+	void Shutdown() override;
 
-	void ClearColorAndDepth() const;
+	void ClearColorAndDepth(ID3D12GraphicsCommandList* commandList) const;
 	void PreRender() override;
 	void PostRender() override;
 
@@ -33,7 +38,6 @@ private:
 	ComPtr<ID3D12CommandQueue> commandQueue_;
 	ComPtr<IDXGISwapChain4> swapChain_;
 
-
 	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap_;
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_;
 
@@ -42,11 +46,12 @@ private:
 
 	ComPtr<ID3D12Resource> depthStencilResource_;
 
-	ComPtr<ID3D12CommandAllocator> commandAllocator_;
-	ComPtr<ID3D12GraphicsCommandList> commandList_;
+	std::vector<ComPtr<ID3D12CommandAllocator>> commandAllocators_;
+	std::vector<ComPtr<ID3D12GraphicsCommandList>> commandLists_;
 
 	ComPtr<ID3D12Fence> fence_;
 	uint64_t fenceValue_ = 0;
+	uint64_t fenceValues_[kFrameBufferCount] = {};
 	HANDLE fenceEvent_ = nullptr;
 	UINT frameIndex_ = 0;
 
@@ -58,7 +63,10 @@ private:
 	uint32_t descriptorSizeRTV = 0;
 	uint32_t descriptorSizeDSV = 0;
 
-	std::chrono::steady_clock::time_point reference_;
+	struct ResourceWithFence {
+		ComPtr<ID3D12Resource> resource;
+		uint64_t fenceValue;
+	};
 
 	// メンバ関数
 	//------------------------------------------------------------------------
@@ -72,13 +80,14 @@ private:
 	void CreateDescriptorHeaps();
 	void CreateRTV();
 	void CreateDSV();
-	void CreateCommandAllocator();
-	void CreateCommandList();
+	void CreateCommandAllocatorsAndLists();
 	void CreateFence();
 
 	void SetViewportAndScissor();
 
 	void HandleDeviceLost();
+
+	void PrepareForShutdown() const;
 
 public:
 	// -----------------------------------------------------------------------
@@ -89,7 +98,7 @@ public:
 	}
 
 	ID3D12GraphicsCommandList* GetCommandList() const {
-		return commandList_.Get();
+		return commandLists_[frameIndex_].Get();
 	}
 
 	ID3D12CommandQueue* GetCommandQueue() const {
@@ -109,7 +118,7 @@ public:
 	}
 
 	ID3D12CommandAllocator* GetCommandAllocator() const {
-		return commandAllocator_.Get();
+		return commandAllocators_[frameIndex_].Get();
 	}
 
 	uint64_t GetFenceValue() const {
@@ -138,8 +147,4 @@ private:
 		uint32_t descriptorSize, uint32_t index
 	);
 	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource() const;
-};
-
-struct D3DResourceLeakChecker {
-	~D3DResourceLeakChecker();
 };

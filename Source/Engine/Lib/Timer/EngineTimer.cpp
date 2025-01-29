@@ -1,15 +1,16 @@
 #include "EngineTimer.h"
 
 #include <ImGuiManager/Icons.h>
-#include <Lib/Console/ConVarManager.h>
+#include <SubSystem/Console/ConVarManager.h>
 #include <Lib/Utils/StrUtils.h>
+#include <time.h>
 
 double EngineTimer::deltaTime_ = 0;
 double EngineTimer::totalTime_ = 0;
+uint64_t EngineTimer::frameCount_ = 0;
 
 EngineTimer::EngineTimer() : startTime_(Clock::now()),
-lastFrameTime_(Clock::now()),
-frameDuration_(1.0 / kMaxFps) {
+lastFrameTime_(Clock::now()) {
 }
 
 void EngineTimer::StartFrame() {
@@ -69,6 +70,8 @@ void EngineTimer::EndFrame() const {
 			}
 		}
 	}
+
+	++frameCount_;
 }
 
 float EngineTimer::ScaledDelta() {
@@ -89,12 +92,24 @@ float EngineTimer::GetScaledDeltaTime() {
 	return static_cast<float>(deltaTime_) * GetTimeScale();
 }
 
+double EngineTimer::GetDeltaTimeDouble() {
+	return deltaTime_;
+}
+
+double EngineTimer::GetScaledDeltaTimeDouble() {
+	return deltaTime_ * GetTimeScale();
+}
+
 float EngineTimer::GetTotalTime() {
 	return static_cast<float>(totalTime_);
 }
 
 float EngineTimer::GetTimeScale() {
 	return ConVarManager::GetConVar("host_timescale")->GetValueAsFloat();
+}
+
+uint64_t EngineTimer::GetFrameCount() {
+	return frameCount_;
 }
 
 int EngineTimer::GetDay() {
@@ -126,6 +141,22 @@ DateTime EngineTimer::GetUpDateTime() {
 		.hour = GetHour(),
 		.minute = GetMinute(),
 		.second = GetSecond(),
+		.millisecond = GetMillisecond()
+	};
+}
+
+DateTime EngineTimer::GetNow() {
+	const auto now = Clock::now();
+	const auto nowTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	struct tm nowTm;
+	localtime_s(&nowTm, &nowTime);
+	return {
+		.year = nowTm.tm_year + 1900,
+		.month = nowTm.tm_mon + 1,
+		.day = nowTm.tm_mday,
+		.hour = nowTm.tm_hour,
+		.minute = nowTm.tm_min,
+		.second = nowTm.tm_sec,
 		.millisecond = GetMillisecond()
 	};
 }

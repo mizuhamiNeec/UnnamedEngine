@@ -24,6 +24,15 @@ public:
 	static ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
 
 private:
+	struct Material {
+		Vec4 color;
+		int32_t enableLighting;
+		Vec3 padding;
+		Mat4 uvTransform;
+		float shininess;
+		Vec3 specularColor;
+	};
+
 	ModelCommon* modelCommon_ = nullptr;
 	ModelData modelData_; // Objファイルのデータ
 	Material* materialData_ = nullptr; // マテリアルのポインタ

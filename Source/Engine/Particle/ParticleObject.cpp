@@ -35,7 +35,11 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 	);
 
 	// 定数バッファ
-	materialResource_ = std::make_unique<ConstantBuffer>(particleCommon_->GetD3D12()->GetDevice(), sizeof(Material));
+	materialResource_ = std::make_unique<ConstantBuffer>(
+		particleCommon_->GetD3D12()->GetDevice(),
+		sizeof(Material),
+		"ParticleMaterial"
+	);
 	materialData_ = materialResource_->GetPtr<Material>();
 	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData_->enableLighting = false;
@@ -43,7 +47,9 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 
 	// Instancing用のTransformationMatrixリソースを作る
 	instancingResource_ = std::make_unique<ConstantBuffer>(
-		particleCommon_->GetD3D12()->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance
+		particleCommon_->GetD3D12()->GetDevice(),
+		sizeof(ParticleForGPU) * kNumMaxInstance,
+		"ParticleInstancing"
 	);
 	// 書き込むためのアドレスを取得
 	instancingData = instancingResource_->GetPtr<ParticleForGPU>();
@@ -75,7 +81,7 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 	emitter_.frequencyTime = 0.0f; // 発生頻度用の時刻、0で初期化
 	emitter_.size = Vec3::one; // エミッターのサイズを初期化
 
-	accelerationField_ = AccelerationField({ 15.0f, 0.0f, 0.0f }, { {-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f} });
+	//accelerationField_ = AccelerationField({ 15.0f, 0.0f, 0.0f }, { {-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f} });
 }
 
 void ParticleObject::Update(const float deltaTime) {
@@ -110,9 +116,9 @@ void ParticleObject::Update(const float deltaTime) {
 	ImGui::Checkbox("Enable Drag", &enableDrag);
 
 	// AccelerationFieldのパラメーター編集
-	ImGui::DragFloat3("Acceleration", &accelerationField_.acceleration.x);
+	/*ImGui::DragFloat3("Acceleration", &accelerationField_.acceleration.x);
 	ImGui::DragFloat3("Field Min", &accelerationField_.area.min.x);
-	ImGui::DragFloat3("Field Max", &accelerationField_.area.max.x);
+	ImGui::DragFloat3("Field Max", &accelerationField_.area.max.x);*/
 
 	// エミッターのサイズを編集
 	ImGui::DragFloat3("Emitter Size", &emitter_.size.x);
@@ -134,9 +140,9 @@ void ParticleObject::Update(const float deltaTime) {
 		if (numInstance < kNumMaxInstance) {
 			if (enableAccelerationField_) {
 				// Fieldの範囲内のParticleには加速度を適用する
-				if (Math::IsCollision(accelerationField_.area, particleIterator->transform.translate)) {
+				/*if (Math::IsCollision(accelerationField_.area, particleIterator->transform.translate)) {
 					particleIterator->vel += accelerationField_.acceleration * deltaTime;
-				}
+				}*/
 			}
 
 			// 重力の適用
@@ -288,20 +294,20 @@ void ParticleObject::SetCamera(CameraComponent* newCamera) {
 Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition, int shapeType) {
 	switch (shapeType) {
 	case 0: // Sphere（球）
-		{
-			// ランダムな方向
-			Vec3 direction = Random::Vec3Range(-Vec3::one * 0.01f, Vec3::one * 0.01f);
-			direction.Normalize();
-			// ランダムな半径
-			float radius = Random::FloatRange(0.0f, 0.01f); // サイズを考慮
-			return emitterPosition + direction * radius;
-		}
+	{
+		// ランダムな方向
+		Vec3 direction = Random::Vec3Range(-Vec3::one * 0.01f, Vec3::one * 0.01f);
+		direction.Normalize();
+		// ランダムな半径
+		float radius = Random::FloatRange(0.0f, 0.01f); // サイズを考慮
+		return emitterPosition + direction * radius;
+	}
 	case 1: // Cube（立方体）
-		{
-			// -1.0fから1.0fの範囲でランダムな位置
-			Vec3 offset = Random::Vec3Range(-Vec3::one, Vec3::one);
-			return emitterPosition + offset * emitter_.size; // サイズを考慮
-		}
+	{
+		// -1.0fから1.0fの範囲でランダムな位置
+		Vec3 offset = Random::Vec3Range(-Vec3::one, Vec3::one);
+		return emitterPosition + offset * emitter_.size; // サイズを考慮
+	}
 	default: return emitterPosition;
 	}
 }

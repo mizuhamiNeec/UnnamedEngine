@@ -25,7 +25,7 @@ void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, con
 	);
 
 	// マテリアル定数バッファ
-	materialConstantBuffer_ = std::make_unique<ConstantBuffer>(modelCommon_->GetD3D12()->GetDevice(), sizeof(Material));
+	materialConstantBuffer_ = std::make_unique<ConstantBuffer>(modelCommon_->GetD3D12()->GetDevice(), sizeof(Material), "ModelMaterial");
 	materialData_ = materialConstantBuffer_->GetPtr<Material>();
 	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
 	materialData_->enableLighting = true;

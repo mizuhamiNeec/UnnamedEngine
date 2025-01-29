@@ -1,11 +1,11 @@
 #pragma once
 
 #include <initializer_list>
+#include <string>
 
-#include "../Quaternion/Quaternion.h"
-
-#include "../Vector/Vec3.h"
-#include "Lib/Math/Vector/Vec4.h"
+#include <Lib/Math/Quaternion/Quaternion.h>
+#include <Lib/Math/Vector/Vec3.h>
+#include <Lib/Math/Vector/Vec4.h>
 
 struct Mat4 final {
 	float m[4][4];
@@ -23,7 +23,7 @@ struct Mat4 final {
 	[[nodiscard]] Mat4 Inverse() const;
 	[[nodiscard]] Mat4 Transpose() const;
 
-	void LogMat4();
+	void LogMat4(const std::string& matName);
 
 	static Mat4 Translate(const Vec3& translate);
 	static Mat4 Scale(const Vec3& scale);
@@ -44,6 +44,9 @@ struct Mat4 final {
 
 	Vec3 GetTranslate();
 	Vec3 GetRotate() const;
+	Vec3 GetRight();
+	Vec3 GetUp();
+	Vec3 GetForward();
 
 	//-------------------------------------------------------------------------
 	// Operator

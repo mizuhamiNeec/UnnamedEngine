@@ -1,9 +1,9 @@
 #pragma once
 
-#include <wrl/client.h>
 #include <d3d12.h>
 #include <dxcapi.h>
 #include <string>
+#include <wrl/client.h>
 
 using namespace Microsoft::WRL;
 
@@ -32,7 +32,7 @@ public:
 	);
 	void Create(ID3D12Device* device);
 	void SetBlendMode(BlendMode blendMode);
-	BlendMode GetBlendMode();
+	BlendMode GetBlendMode() const;
 
 	ID3D12PipelineState* Get() const;
 	void SetDepthWriteMask(D3D12_DEPTH_WRITE_MASK depthWriteMask);

@@ -3,10 +3,8 @@
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 #include <imgui_internal.h>
-#include <Components/TransformComponent.h>
 #include <Entity/Base/Entity.h>
-
-#include "UnnamedResource/Manager/ShaderResourceViewManager.h"
+#include <ResourceSystem/SRV/ShaderResourceViewManager.h>
 
 #ifdef _DEBUG
 #include "../Lib/Utils/ClientProperties.h"
@@ -47,12 +45,12 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 	);
 
 	// 何故かベースラインがずれるので補正
-	imFontConfig.GlyphOffset = ImVec2(0.0f, 3.0f);
+	imFontConfig.GlyphOffset = ImVec2(0.0f, 5.0f);
 
 	static constexpr ImWchar iconRanges[] = { 0xe003, 0xf8ff, 0 };
 	io.Fonts->AddFontFromFileTTF(
-		R"(.\Resources\Fonts\MaterialSymbolsSharp-Regular.ttf)",
-		18.0f, &imFontConfig, iconRanges
+		R"(.\Resources\Fonts\MaterialSymbolsRounded_Filled_28pt-Regular.ttf)",
+		24.0f, &imFontConfig, iconRanges
 	);
 
 	// テーマの設定
@@ -74,8 +72,7 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 	);
 }
 
-void ImGuiManager::Init() {
-}
+void ImGuiManager::Init() {}
 
 void ImGuiManager::NewFrame() {
 	// ImGuiの新しいフレームを開始
@@ -116,8 +113,7 @@ void ImGuiManager::StyleColorsDark() {
 	colors[ImGuiCol_Text] = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
 }
 
-void ImGuiManager::StyleColorsLight() {
-}
+void ImGuiManager::StyleColorsLight() {}
 
 void ImGuiManager::PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive) {
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, bg);
@@ -151,22 +147,25 @@ bool ImGuiManager::EditTransform(TransformComponent& transform, const float& vSp
 	Vec3 localScale = transform.GetLocalScale();
 
 	if (ImGui::CollapsingHeader(("Transform##" + transform.GetOwner()->GetName()).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+		// Position 編集
 		if (DragVec3("Position", localPos, vSpeed, "%.3f")) {
 			transform.SetLocalPos(localPos);
-			isEditing |= true;
+			isEditing = true;
 		}
 
-		// 回転を取っておく
-		Vec3 rotate = localRot.ToEulerDegrees();
-		if (DragVec3("Rotation", rotate, vSpeed * 10.0f, "%.3f")) {
-			localRot = Quaternion::EulerDegrees(rotate);
+		// Rotation 編集
+		Vec3 eulerDegrees = localRot.ToEulerDegrees();
+		if (DragVec3("Rotation", eulerDegrees, vSpeed * 10.0f, "%.3f")) {
+			// 編集された Euler 角を Quaternion に変換
+			localRot = Quaternion::EulerDegrees(eulerDegrees);
 			transform.SetLocalRot(localRot);
-			isEditing |= true;
+			isEditing = true;
 		}
 
+		// Scale 編集
 		if (DragVec3("Scale", localScale, vSpeed, "%.3f")) {
 			transform.SetLocalScale(localScale);
-			isEditing |= true;
+			isEditing = true;
 		}
 	}
 	return isEditing;
@@ -250,7 +249,55 @@ void ImGuiManager::TextOutlined(
 	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y + outlineSize), outlineCol, text);
 	drawList->AddText(pos, textCol, text);
 }
-#else
-void ImGuiManager::Shutdown() {
+
+bool ImGuiManager::IconButton(const char* icon, const char* label, const ImVec2& size) {
+	// ボタンのサイズを計算
+	const ImVec2 iconSize = ImGui::CalcTextSize(icon);
+	// フォントサイズを小さくしてラベルサイズを計算
+	ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); // デフォルトフォントに切り替え
+	const ImVec2 labelSize = ImGui::CalcTextSize(label);
+	ImGui::PopFont();
+
+	const float spacing = ImGui::GetStyle().ItemSpacing.y;
+
+	// 必要なサイズを計算
+	ImVec2 totalSize = ImVec2(
+		max(iconSize.x, labelSize.x) + 20.0f, // パディングを追加
+		iconSize.y + labelSize.y + spacing
+	);
+
+	// ボタンのサイズを指定
+	ImVec2 buttonSize = size.x > 0 && size.y > 0 ? size : totalSize;
+
+	// ボタンの開始位置を記録
+	ImVec2 buttonPos = ImGui::GetCursorPos();
+
+	// ボタンを描画
+	bool pressed = ImGui::Button("##icon_button", buttonSize);
+
+	// アイコンを中央揃えで描画
+	float iconY = buttonPos.y + (buttonSize.y - (iconSize.y + labelSize.y + spacing)) * 0.5f;
+	ImGui::SetCursorPos(ImVec2(
+		buttonPos.x + (buttonSize.x - iconSize.x) * 0.5f,
+		iconY
+	));
+	ImGui::Text("%s", icon);
+
+	// ラベルを小さいフォントで中央揃えで描画
+	ImGui::SetCursorPos(ImVec2(
+		buttonPos.x + (buttonSize.x - labelSize.x * 0.8f) * 0.5f,
+		iconY + iconSize.y + spacing
+	));
+
+	float defaultFontSize = ImGui::GetFont()->Scale;
+	ImGui::GetFont()->Scale = 0.8f;
+	ImGui::PushFont(ImGui::GetFont());
+	ImGui::Text("%s", label);
+	ImGui::GetFont()->Scale = defaultFontSize;
+	ImGui::PopFont();
+
+	return pressed;
 }
+#else
+void ImGuiManager::Shutdown() {}
 #endif

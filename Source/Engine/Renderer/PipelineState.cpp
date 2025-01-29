@@ -1,20 +1,24 @@
 #include "PipelineState.h"
 
 #include <cassert>
-#include <format>
-#include "../Lib/Console/Console.h"
+#include <d3d12.h>
+#include <dxgiformat.h>
+#include <winnt.h>
+#include <dxcapi.h>
+#include <string>
+#include "../SubSystem/Console/Console.h"
 #include "../Lib/Utils/StrUtils.h"
 
-PipelineState::PipelineState() {
-}
+PipelineState::PipelineState() = default;
 
 PipelineState::PipelineState(
-	const D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK,
-	const D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID,
-	const D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE
+	const D3D12_CULL_MODE cullMode,
+	const D3D12_FILL_MODE fillMode,
+	const D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType
 ) {
 	D3D12_BLEND_DESC blendDesc = {};
-	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask =
+		D3D12_COLOR_WRITE_ENABLE_ALL;
 
 	rasterizerDesc.CullMode = cullMode; // 裏面(時計回り)を表示しない
 	rasterizerDesc.FillMode = fillMode; // 三角形の中を塗りつぶす
@@ -42,23 +46,32 @@ PipelineState::PipelineState(
 
 	// DXCの初期化
 	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils_));
-	if (FAILED(hr))
-	{
-		Console::Print("Failed to create DxcUtils instance\n", {1.0f, 0.0f, 0.0f, 1.0f});
+	if (FAILED(hr)) {
+		Console::Print(
+			"Failed to create DxcUtils instance\n", {
+				1.0F, 0.0F, 0.0F, 1.0F
+			}
+		);
 		return;
 	}
 
 	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler_));
-	if (FAILED(hr))
-	{
-		Console::Print("Failed to create DxcCompiler instance\n", {1.0f, 0.0f, 0.0f, 1.0f});
+	if (FAILED(hr)) {
+		Console::Print(
+			"Failed to create DxcCompiler instance\n", {
+				1.0F, 0.0F, 0.0F, 1.0F
+			}
+		);
 		return;
 	}
 
 	hr = dxcUtils_->CreateDefaultIncludeHandler(&includeHandler_);
-	if (FAILED(hr))
-	{
-		Console::Print("Failed to create default include handler\n", {1.0f, 0.0f, 0.0f, 1.0f});
+	if (FAILED(hr)) {
+		Console::Print(
+			"Failed to create default include handler\n", {
+				1.0F, 0.0F, 0.0F, 1.0F
+			}
+		);
 		return;
 	}
 }
@@ -72,25 +85,36 @@ void PipelineState::SetRootSignature(ID3D12RootSignature* rootSignature) {
 }
 
 void PipelineState::SetVS(const std::wstring& filePath) {
-	vsBlob = CompileShader(filePath, L"vs_6_0", dxcUtils_.Get(), dxcCompiler_.Get(), includeHandler_.Get());
+	vsBlob = CompileShader(
+		filePath, L"vs_6_0", dxcUtils_.Get(), dxcCompiler_.Get(),
+		includeHandler_.Get()
+	);
 	assert(vsBlob != nullptr);
 
 	desc_.VS = {
-		vsBlob->GetBufferPointer(), vsBlob->GetBufferSize()
+		.pShaderBytecode = vsBlob->GetBufferPointer(),
+		.BytecodeLength = vsBlob->
+		GetBufferSize()
 	}; // VertexShader
 }
 
 void PipelineState::SetPS(const std::wstring& filePath) {
-	psBlob = CompileShader(filePath, L"ps_6_0", dxcUtils_.Get(), dxcCompiler_.Get(), includeHandler_.Get());
+	psBlob = CompileShader(
+		filePath, L"ps_6_0", dxcUtils_.Get(), dxcCompiler_.Get(),
+		includeHandler_.Get()
+	);
 	assert(psBlob != nullptr);
 
 	desc_.PS = {
-		psBlob->GetBufferPointer(), psBlob->GetBufferSize()
+		.pShaderBytecode = psBlob->GetBufferPointer(),
+		.BytecodeLength = psBlob->
+		GetBufferSize()
 	}; // PixelShader
 }
 
 IDxcBlob* PipelineState::CompileShader(
-	const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils, IDxcCompiler3* dxcCompiler,
+	const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils,
+	IDxcCompiler3* dxcCompiler,
 	IDxcIncludeHandler* includeHandler
 ) {
 	/* 1. hlslファイルを読む */
@@ -100,7 +124,7 @@ IDxcBlob* PipelineState::CompileShader(
 	// 読めなかったら止める
 	assert(SUCCEEDED(hr));
 	// 読み込んだファイルの内容を設定する
-	DxcBuffer shaderSourceBuffer;
+	DxcBuffer shaderSourceBuffer {};
 	shaderSourceBuffer.Ptr = shaderSource->GetBufferPointer();
 	shaderSourceBuffer.Size = shaderSource->GetBufferSize();
 	shaderSourceBuffer.Encoding = DXC_CP_UTF8; // UTF8の文字コードであることを通知
@@ -131,10 +155,13 @@ IDxcBlob* PipelineState::CompileShader(
 	/* 3. 警告・エラーが出ていないか確認する */
 	// 警告・エラーが出てきたらログに出して止める
 	IDxcBlobUtf8* shaderError = nullptr;
-	shaderResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr);
-	if (shaderError != nullptr && shaderError->GetStringLength() != 0)
-	{
-		Console::Print(shaderError->GetStringPointer(), kConsoleColorError, Channel::Engine);
+	shaderResult->GetOutput(
+		DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr
+	);
+	if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
+		Console::Print(
+			shaderError->GetStringPointer(), kConsoleColorError, Channel::Engine
+		);
 		// 警告・エラーダメゼッタイ
 		assert(false);
 	}
@@ -142,11 +169,17 @@ IDxcBlob* PipelineState::CompileShader(
 	/* 4. Compile結果を受け取って返す */
 	// コンパイル結果から実行用のバイナリ部分を取得
 	IDxcBlob* shaderBlob = nullptr;
-	hr = shaderResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr);
+	hr = shaderResult->GetOutput(
+		DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr
+	);
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
 	Console::Print(
-		StrUtils::ToString(std::format(L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile)),
+		StrUtils::ToString(
+			std::format(
+				L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile
+			)
+		),
 		kConsoleColorCompleted, Channel::Engine
 	);
 	// もう使わないリソースを開放
@@ -157,11 +190,15 @@ IDxcBlob* PipelineState::CompileShader(
 }
 
 void PipelineState::Create(ID3D12Device* device) {
-	HRESULT hr = device->CreateGraphicsPipelineState(&desc_, IID_PPV_ARGS(pipelineState.ReleaseAndGetAddressOf()));
+	const HRESULT hr = device->CreateGraphicsPipelineState(
+		&desc_, IID_PPV_ARGS(pipelineState.ReleaseAndGetAddressOf())
+	);
 	assert(SUCCEEDED(hr));
-	if (SUCCEEDED(hr))
-	{
-		Console::Print("Complete Create PipelineState.\n", kConsoleColorCompleted, Channel::Engine);
+	if (SUCCEEDED(hr)) {
+		Console::Print(
+			"Complete Create PipelineState.\n", kConsoleColorCompleted,
+			Channel::Engine
+		);
 	}
 }
 
@@ -172,8 +209,7 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 	D3D12_RENDER_TARGET_BLEND_DESC rtBlendDesc = {};
 	rtBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	switch (blendMode)
-	{
+	switch (blendMode) {
 	case kBlendModeNone: rtBlendDesc.BlendEnable = FALSE;
 		break;
 	case kBlendModeNormal: rtBlendDesc.BlendEnable = TRUE;
@@ -224,14 +260,16 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 	currentBlendMode = blendMode;
 }
 
-BlendMode PipelineState::GetBlendMode() {
+auto PipelineState::GetBlendMode() const -> BlendMode {
 	return currentBlendMode;
 }
 
-ID3D12PipelineState* PipelineState::Get() const {
+auto PipelineState::Get() const -> ID3D12PipelineState* {
 	return pipelineState.Get();
 }
 
-void PipelineState::SetDepthWriteMask(const D3D12_DEPTH_WRITE_MASK depthWriteMask) {
+void PipelineState::SetDepthWriteMask(
+	const D3D12_DEPTH_WRITE_MASK depthWriteMask
+) {
 	desc_.DepthStencilState.DepthWriteMask = depthWriteMask;
 }

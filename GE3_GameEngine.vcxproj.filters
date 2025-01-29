@@ -156,29 +156,8 @@
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h">
       <Filter>Source\Engine\ImGuiManager</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Input\InputCommand.h">
-      <Filter>Source\Engine\Input</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Input\InputSystem.h">
       <Filter>Source\Engine\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\ConCommand.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\Console.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\ConVar.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Console\IConVar.h">
-      <Filter>Source\Engine\Lib\Console</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Lib\DebugHud\DebugHud.h">
       <Filter>Source\Engine\Lib\DebugHud</Filter>
@@ -293,7 +272,7 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Components\Base\Component.h" />
     <ClInclude Include="Source\Engine\Entity\Base\Entity.h" />
-    <ClInclude Include="Source\Engine\Components\TransformComponent.h" />
+    <ClInclude Include="Source\Engine\Components\Transform\TransformComponent.h" />
     <ClInclude Include="Source\Externals\ImGui\imconfig.h" />
     <ClInclude Include="Source\Externals\ImGui\imgui.h" />
     <ClInclude Include="Source\Externals\ImGui\imgui_impl_dx12.h" />
@@ -303,18 +282,48 @@
     <ClInclude Include="Source\Externals\ImGui\imstb_textedit.h" />
     <ClInclude Include="Source\Externals\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Editor\Editor.h" />
-    <ClInclude Include="Source\Engine\Components\CameraComponent.h" />
+    <ClInclude Include="Source\Engine\Components\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
-    <ClInclude Include="Source\Engine\Components\ColliderComponent.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Manager\ResourceManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Texture.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Manager\ShaderResourceViewManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\TextureManager.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\Audio.h" />
-    <ClInclude Include="Source\Engine\UnnamedResource\AudioManager.h" />
+    <ClInclude Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.h" />
+    <ClInclude Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\Base\EntitySystem.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\RuntimeEntitySystem.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
+    <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
+    <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Audio\Audio.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Audio\AudioManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Manager\ResourceManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Material\Material.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Material\MaterialManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\MeshManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\StaticMesh.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\SubMesh.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Pipeline\PipelineManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\RootSignature\RootSignature2.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\RootSignature\RootSignatureManager2.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Shader\DefaultShader.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Shader\Shader.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Shader\ShaderManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Texture\Texture.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Texture\TextureManager.h" />
+    <ClInclude Include="Source\Engine\Physics\Physics.h" />
+    <ClInclude Include="Source\Engine\Physics\PhysicsEngine.h" />
+    <ClInclude Include="Source\Engine\Components\ColliderComponent\Base\ColliderComponent.h" />
+    <ClInclude Include="Source\Engine\Components\ColliderComponent\MeshColliderComponent.h" />
+    <ClInclude Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConCommand.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVarCache.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVarManager.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\IConVar.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\Console.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVar.h" />
+    <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h" />
+    <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -332,23 +341,8 @@
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp">
       <Filter>Source\Engine\ImGuiManager</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Input\InputCommand.cpp">
-      <Filter>Source\Engine\Input</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp">
       <Filter>Source\Engine\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Console\ConCommand.cpp">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Console\Console.cpp">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Console\ConVar.cpp">
-      <Filter>Source\Engine\Lib\Console</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Console\ConVarManager.cpp">
-      <Filter>Source\Engine\Lib\Console</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Lib\DebugHud\DebugHud.cpp">
       <Filter>Source\Engine\Lib\DebugHud</Filter>
@@ -451,7 +445,7 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Components\Base\Component.cpp" />
     <ClCompile Include="Source\Engine\Entity\Base\Entity.cpp" />
-    <ClCompile Include="Source\Engine\Components\TransformComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_demo.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_draw.cpp" />
@@ -461,18 +455,45 @@
     <ClCompile Include="Source\Externals\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Editor\Editor.cpp" />
     <ClCompile Include="Source\Game\Scene\Base\Scene.cpp" />
-    <ClCompile Include="Source\Engine\Components\CameraComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
-    <ClCompile Include="Source\Engine\Components\ColliderComponent.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Manager\ResourceManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Texture.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Manager\ShaderResourceViewManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\TextureManager.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\Audio.cpp" />
-    <ClCompile Include="Source\Engine\UnnamedResource\AudioManager.cpp" />
+    <ClCompile Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
+    <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
+    <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
+    <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
+    <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Audio\Audio.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Audio\AudioManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Manager\ResourceManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Material\Material.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Material\MaterialManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\MeshManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\StaticMesh.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\SubMesh.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Pipeline\PipelineManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\RootSignature\RootSignature2.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\RootSignature\RootSignatureManager2.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Shader\DefaultShader.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Shader\Shader.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Shader\ShaderManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Texture\Texture.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Texture\TextureManager.cpp" />
+    <ClCompile Include="Source\Engine\Physics\Physics.cpp" />
+    <ClCompile Include="Source\Engine\Physics\PhysicsEngine.cpp" />
+    <ClCompile Include="Source\Engine\Components\ColliderComponent\MeshColliderComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\ColliderComponent\Base\ColliderComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConCommand.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConVarManager.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\Console.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConVar.cpp" />
+    <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp" />
+    <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
@@ -507,6 +528,15 @@
       <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Resources\Shaders\SpriteCommon.PS.hlsl">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Default.hlsli">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Default.VS.hlsl">
+      <Filter>Resources\Shaders</Filter>
+    </None>
+    <None Include="Resources\Shaders\Default.PS.hlsl">
       <Filter>Resources\Shaders</Filter>
     </None>
   </ItemGroup>

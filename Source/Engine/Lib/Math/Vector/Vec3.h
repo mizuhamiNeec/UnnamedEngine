@@ -3,6 +3,8 @@
 #include <string>
 #include <Lib/Math/Vector/Vec2.h>
 
+struct Quaternion;
+
 struct Vec3 final {
 	float x, y, z;
 
@@ -14,8 +16,12 @@ struct Vec3 final {
 	static const Vec3 down;
 	static const Vec3 forward;
 	static const Vec3 backward;
+	static const Vec3 max;
+	static const Vec3 min;
 
-	constexpr Vec3(const float x = 0.0f, const float y = 0.0f, const float z = 0.0f) : x(x), y(y), z(z) {}
+	constexpr Vec3() : Vec3(0.0f, 0.0f, 0.0f) {}
+	constexpr Vec3(const float x, const float y, const float z) : x(x), y(y), z(z) {}
+	explicit constexpr Vec3(const float scalar) : x(scalar), y(scalar), z(scalar) {}
 	constexpr Vec3(const Vec2 vec2) : x(vec2.x), y(vec2.y), z(0.0f) {}
 
 	/* ---------------- 関数類 ---------------- */
@@ -31,9 +37,11 @@ struct Vec3 final {
 	void Normalize();
 	Vec3 Normalized() const;
 
-	Vec3 Clamp(Vec3 min, Vec3 max) const;
-	Vec3 ClampLength(float min, float max);
+	Vec3 Clamp(Vec3 minVec, Vec3 maxVec) const;
+	Vec3 ClampLength(float minVec, float maxVec);
 	Vec3 Reflect(const Vec3& normal) const;
+
+	Vec3 TransformDirection(const Quaternion& rotation) const;
 
 	/* ---------------- 演算子 ---------------- */
 	float& operator[](uint32_t index);
@@ -61,5 +69,10 @@ struct Vec3 final {
 	Vec3& operator*=(float rhs);
 	Vec3& operator/=(float rhs);
 
+	/* ---------------- その他 ---------------- */
 	std::string ToString() const;
+	bool operator!=(const Vec3& rhs) const;
+
+	static Vec3 Min(Vec3 lhs, Vec3 rhs);
+	static Vec3 Max(Vec3 lhs, Vec3 rhs);
 };
