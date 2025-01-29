@@ -6,10 +6,10 @@
 
 #include <ResourceSystem/RootSignature/RootSignatureManager2.h>
 
-void RootSignature2::AddConstantBuffer(const UINT shaderRegister, const UINT registerSpace) {
+void RootSignature2::AddConstantBuffer(const UINT shaderRegister, const D3D12_SHADER_VISIBILITY visibility, const UINT registerSpace) {
 	D3D12_ROOT_PARAMETER param;
 	param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	param.ShaderVisibility = visibility;
 	param.Descriptor.ShaderRegister = shaderRegister;
 	param.Descriptor.RegisterSpace = registerSpace;
 	rootParameters_.push_back(param);
@@ -57,27 +57,27 @@ void RootSignature2::AddRootParameter(const D3D12_ROOT_PARAMETER1& param1) {
 
 	switch (param1.ParameterType) {
 	case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-		{
-			std::vector<D3D12_DESCRIPTOR_RANGE> ranges;
-			ranges.reserve(param1.DescriptorTable.NumDescriptorRanges);
+	{
+		std::vector<D3D12_DESCRIPTOR_RANGE> ranges;
+		ranges.reserve(param1.DescriptorTable.NumDescriptorRanges);
 
-			// ディスクリプタレンジを変換
-			for (UINT i = 0; i < param1.DescriptorTable.NumDescriptorRanges; i++) {
-				const auto& range1 = param1.DescriptorTable.pDescriptorRanges[i];
-				D3D12_DESCRIPTOR_RANGE range = {};
-				range.RangeType = range1.RangeType;
-				range.NumDescriptors = range1.NumDescriptors;
-				range.BaseShaderRegister = range1.BaseShaderRegister;
-				range.RegisterSpace = range1.RegisterSpace;
-				range.OffsetInDescriptorsFromTableStart = range1.OffsetInDescriptorsFromTableStart;
-				ranges.push_back(range);
-			}
-
-			descriptorTableRanges_.push_back(std::move(ranges));
-			param.DescriptorTable.NumDescriptorRanges = param1.DescriptorTable.NumDescriptorRanges;
-			param.DescriptorTable.pDescriptorRanges = descriptorTableRanges_.back().data();
-			break;
+		// ディスクリプタレンジを変換
+		for (UINT i = 0; i < param1.DescriptorTable.NumDescriptorRanges; i++) {
+			const auto& range1 = param1.DescriptorTable.pDescriptorRanges[i];
+			D3D12_DESCRIPTOR_RANGE range = {};
+			range.RangeType = range1.RangeType;
+			range.NumDescriptors = range1.NumDescriptors;
+			range.BaseShaderRegister = range1.BaseShaderRegister;
+			range.RegisterSpace = range1.RegisterSpace;
+			range.OffsetInDescriptorsFromTableStart = range1.OffsetInDescriptorsFromTableStart;
+			ranges.push_back(range);
 		}
+
+		descriptorTableRanges_.push_back(std::move(ranges));
+		param.DescriptorTable.NumDescriptorRanges = param1.DescriptorTable.NumDescriptorRanges;
+		param.DescriptorTable.pDescriptorRanges = descriptorTableRanges_.back().data();
+		break;
+	}
 	case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
 		param.Constants.Num32BitValues = param1.Constants.Num32BitValues;
 		param.Constants.ShaderRegister = param1.Constants.ShaderRegister;
@@ -162,13 +162,19 @@ void RootSignature2::Build(ID3D12Device* device) {
 	);
 
 	if (FAILED(hr)) {
+		if (errorBlob) {
+			Console::Print(
+				static_cast<const char*>(errorBlob->GetBufferPointer()),
+				kConsoleColorError,
+				Channel::ResourceSystem
+			);
+		}
 		Console::Print(
 			"ルートシグネチャのシリアライズに失敗しました\n",
 			kConsoleColorError,
 			Channel::ResourceSystem
 		);
 		assert(SUCCEEDED(hr));
-		return;
 	}
 
 	hr = device->CreateRootSignature(

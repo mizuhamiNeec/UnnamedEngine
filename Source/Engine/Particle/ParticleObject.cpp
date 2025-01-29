@@ -35,7 +35,11 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 	);
 
 	// 定数バッファ
-	materialResource_ = std::make_unique<ConstantBuffer>(particleCommon_->GetD3D12()->GetDevice(), sizeof(Material));
+	materialResource_ = std::make_unique<ConstantBuffer>(
+		particleCommon_->GetD3D12()->GetDevice(),
+		sizeof(Material),
+		"ParticleMaterial"
+	);
 	materialData_ = materialResource_->GetPtr<Material>();
 	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData_->enableLighting = false;
@@ -43,7 +47,9 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 
 	// Instancing用のTransformationMatrixリソースを作る
 	instancingResource_ = std::make_unique<ConstantBuffer>(
-		particleCommon_->GetD3D12()->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance
+		particleCommon_->GetD3D12()->GetDevice(),
+		sizeof(ParticleForGPU) * kNumMaxInstance,
+		"ParticleInstancing"
 	);
 	// 書き込むためのアドレスを取得
 	instancingData = instancingResource_->GetPtr<ParticleForGPU>();
@@ -288,20 +294,20 @@ void ParticleObject::SetCamera(CameraComponent* newCamera) {
 Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition, int shapeType) {
 	switch (shapeType) {
 	case 0: // Sphere（球）
-		{
-			// ランダムな方向
-			Vec3 direction = Random::Vec3Range(-Vec3::one * 0.01f, Vec3::one * 0.01f);
-			direction.Normalize();
-			// ランダムな半径
-			float radius = Random::FloatRange(0.0f, 0.01f); // サイズを考慮
-			return emitterPosition + direction * radius;
-		}
+	{
+		// ランダムな方向
+		Vec3 direction = Random::Vec3Range(-Vec3::one * 0.01f, Vec3::one * 0.01f);
+		direction.Normalize();
+		// ランダムな半径
+		float radius = Random::FloatRange(0.0f, 0.01f); // サイズを考慮
+		return emitterPosition + direction * radius;
+	}
 	case 1: // Cube（立方体）
-		{
-			// -1.0fから1.0fの範囲でランダムな位置
-			Vec3 offset = Random::Vec3Range(-Vec3::one, Vec3::one);
-			return emitterPosition + offset * emitter_.size; // サイズを考慮
-		}
+	{
+		// -1.0fから1.0fの範囲でランダムな位置
+		Vec3 offset = Random::Vec3Range(-Vec3::one, Vec3::one);
+		return emitterPosition + offset * emitter_.size; // サイズを考慮
+	}
 	default: return emitterPosition;
 	}
 }

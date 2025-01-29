@@ -31,4 +31,11 @@ private:
 
 	TransformComponent* transform_ = nullptr;
 	StaticMesh* staticMesh_ = nullptr;
+
+	// TODO: 消す予定
+	std::unique_ptr<ConstantBuffer> matparamCBV;
+	MatParam* materialData = nullptr;
+
+	std::unique_ptr<ConstantBuffer> cameraCB;
+	CameraForGPU* cameraData = nullptr;
 };

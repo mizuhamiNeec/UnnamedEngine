@@ -233,7 +233,8 @@ void ParticleManager::CreateParticleGroup(const std::string& name, const std::st
 	// インスタンシング用リソースの生成
 	particleGroups_[name].instancingResource = std::make_unique<ConstantBuffer>(
 		d3d12_->GetDevice(),
-		sizeof(ParticleForGPU) * kNumMaxInstance
+		sizeof(ParticleForGPU) * kNumMaxInstance,
+		"ParticleInstancingResource"
 	);
 	//// インスタンシング用にSRVを確保してSRVインデックスを記録
 	//particleGroups_[name].srvIndex = srvManager_->Allocate();

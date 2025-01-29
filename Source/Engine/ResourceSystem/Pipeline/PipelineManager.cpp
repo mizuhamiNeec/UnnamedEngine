@@ -4,6 +4,8 @@
 
 #include <Lib/Console/Console.h>
 
+#include "Lib/Utils/StrUtils.h"
+
 size_t PipelineManager::CalculatePSOHash(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc) {
 	std::hash<size_t> hasher;
 	size_t hash = 0;
@@ -91,6 +93,8 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 		kConsoleColorCompleted,
 		Channel::RenderPipeline
 	);
+
+	pipelineState->SetName(StrUtils::ToWString(key).c_str());
 
 	return pipelineState.Get();
 }

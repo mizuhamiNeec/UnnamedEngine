@@ -43,7 +43,9 @@ Line::Line(LineCommon* lineCommon) {
 		nullptr);
 
 	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
-		lineCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix));
+		lineCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix),
+		"LineTransformation"
+	);
 	transformationMatrixData_ = transformationMatrixConstantBuffer_->GetPtr<TransformationMatrix>();
 	transformationMatrixData_->wvp = Mat4::identity;
 	transformationMatrixData_->world = Mat4::identity;

@@ -103,7 +103,7 @@ ComPtr<IDxcBlob> Shader::GetGeometryShaderBlob() {
 UINT Shader::GetResourceRegister(const std::string& resourceName) const {
 	auto it = resourceRegisterMap_.find(resourceName);
 	if (it != resourceRegisterMap_.end()) {
-		return it->second;
+		return it->second.bindPoint;
 	}
 
 	// リソースが見つからなかった
@@ -116,7 +116,7 @@ UINT Shader::GetResourceRegister(const std::string& resourceName) const {
 	return 0;
 }
 
-const std::unordered_map<std::string, UINT>& Shader::GetResourceRegisterMap() const {
+const std::unordered_map<std::string, ResourceInfo>& Shader::GetResourceRegisterMap() const {
 	return resourceRegisterMap_;
 }
 
@@ -251,7 +251,7 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 	return shaderBlob;
 }
 
-void Shader::ReflectShaderBlob(const ComPtr<IDxcBlob> shaderBlob) {
+void Shader::ReflectShaderBlob(const ComPtr<IDxcBlob>& shaderBlob, ShaderType shaderType) {
 	if (!shaderBlob) {
 		Console::Print("shaderBlobがnullです\n", kConsoleColorError, Channel::RenderSystem);
 		return;
@@ -291,50 +291,112 @@ void Shader::ReflectShaderBlob(const ComPtr<IDxcBlob> shaderBlob) {
 		return;
 	}
 
-	// 定数バッファの解析
-	for (UINT i = 0; i < shaderDesc.ConstantBuffers; i++) {
-		ID3D12ShaderReflectionConstantBuffer* cb = reflector->GetConstantBufferByIndex(i);
-		D3D12_SHADER_BUFFER_DESC bufferDesc;
-		hr = cb->GetDesc(&bufferDesc);
-		if (SUCCEEDED(hr)) {
-			std::string name = "CB_" + std::string(bufferDesc.Name);
-			resourceRegisterMap_[name] = i;
-			Console::Print(
-				std::format("定数バッファを検出: {} (register b{})\n", name, i),
-				kConsoleColorCompleted,
-				Channel::RenderSystem
-			);
-		}
-	}
+	std::unordered_map<std::string, ResourceInfo> stageResources;
 
-	// バインドリソースの解析
-	for (UINT i = 0; i < shaderDesc.BoundResources; i++) {
+	// バウンドリソースの解析
+	for (UINT i = 0; i < shaderDesc.BoundResources; ++i) {
 		D3D12_SHADER_INPUT_BIND_DESC bindDesc;
 		hr = reflector->GetResourceBindingDesc(i, &bindDesc);
 		if (SUCCEEDED(hr)) {
 			std::string name = bindDesc.Name;
-			if (bindDesc.Type == D3D_SIT_TEXTURE) {
-				name = "TEX_" + name;
+			ResourceInfo info;
+			info.bindPoint = bindDesc.BindPoint;
+			info.type = bindDesc.Type;
+
+			// シェーダーステージに応じたvisibilityを設定
+			switch (shaderType) {
+			case ShaderType::VertexShader:
+				info.visibility = D3D12_SHADER_VISIBILITY_VERTEX;
+				break;
+			case ShaderType::PixelShader:
+				info.visibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				break;
+			case ShaderType::GeometryShader:
+				info.visibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
+				break;
+			default:
+				info.visibility = D3D12_SHADER_VISIBILITY_ALL;
+				break;
 			}
-			resourceRegisterMap_[name] = bindDesc.BindPoint;
+
+			// ステージごとのリソースマップに追加
+			stageResources[name] = info;
+
 			Console::Print(
-				std::format("リソースを検出: {} (register {})\n", name, bindDesc.BindPoint),
+				std::format(
+					"リソースを検出: {} (register {}, type {}, visibility {})\n",
+					name,
+					info.bindPoint,
+					static_cast<int>(info.type),
+					static_cast<int>(info.visibility)
+				),
 				kConsoleColorCompleted,
 				Channel::RenderSystem
 			);
 		}
 	}
+
+	// グローバルリソースマップとのマージ
+	for (const auto& [name, info] : stageResources) {
+		auto it = resourceRegisterMap_.find(name);
+		if (it != resourceRegisterMap_.end()) {
+			// 既存のリソースがある場合
+			if (it->second.type == info.type && it->second.bindPoint == info.bindPoint) {
+				// 同じリソースが別のステージで使用される場合
+				if (it->second.visibility != info.visibility) {
+					it->second.visibility = D3D12_SHADER_VISIBILITY_ALL;
+				}
+			}
+		} else {
+			// 新しいリソースとして追加
+			resourceRegisterMap_[name] = info;
+		}
+	}
+
+	//// 定数バッファの解析
+	//for (UINT i = 0; i < shaderDesc.ConstantBuffers; i++) {
+	//	ID3D12ShaderReflectionConstantBuffer* cb = reflector->GetConstantBufferByIndex(i);
+	//	D3D12_SHADER_BUFFER_DESC bufferDesc;
+	//	hr = cb->GetDesc(&bufferDesc);
+	//	if (SUCCEEDED(hr)) {
+	//		std::string name = "CB_" + std::string(bufferDesc.Name);
+	//		resourceRegisterMap_[name] = { i, D3D12_SHADER_VISIBILITY_ALL };
+	//		Console::Print(
+	//			std::format("定数バッファを検出: {} (register b{})\n", name, i),
+	//			kConsoleColorCompleted,
+	//			Channel::RenderSystem
+	//		);
+	//	}
+	//}
+
+	//// バインドリソースの解析
+	//for (UINT i = 0; i < shaderDesc.BoundResources; i++) {
+	//	D3D12_SHADER_INPUT_BIND_DESC bindDesc;
+	//	hr = reflector->GetResourceBindingDesc(i, &bindDesc);
+	//	if (SUCCEEDED(hr)) {
+	//		std::string name = bindDesc.Name;
+	//		if (bindDesc.Type == D3D_SIT_TEXTURE) {
+	//			name = "TEX_" + name;
+	//		}
+	//		resourceRegisterMap_[name] = bindDesc.BindPoint;
+	//		Console::Print(
+	//			std::format("リソースを検出: {} (register {})\n", name, bindDesc.BindPoint),
+	//			kConsoleColorCompleted,
+	//			Channel::RenderSystem
+	//		);
+	//	}
+	//}
 }
 
 void Shader::ReflectShaderResources() {
 	if (vertexShaderBlob_) {
-		ReflectShaderBlob(vertexShaderBlob_);
+		ReflectShaderBlob(vertexShaderBlob_, ShaderType::VertexShader);
 	}
 	if (pixelShaderBlob_) {
-		ReflectShaderBlob(pixelShaderBlob_);
+		ReflectShaderBlob(pixelShaderBlob_, ShaderType::PixelShader);
 	}
 	if (geometryShaderBlob_) {
-		ReflectShaderBlob(geometryShaderBlob_);
+		ReflectShaderBlob(geometryShaderBlob_, ShaderType::GeometryShader);
 	}
 }
 

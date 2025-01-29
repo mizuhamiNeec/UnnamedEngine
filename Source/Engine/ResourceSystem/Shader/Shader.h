@@ -8,6 +8,18 @@
 
 using Microsoft::WRL::ComPtr;
 
+struct ResourceInfo {
+	UINT bindPoint;
+	D3D12_SHADER_VISIBILITY visibility;
+	D3D_SHADER_INPUT_TYPE type;
+};
+
+enum class ShaderType {
+	VertexShader,
+	PixelShader,
+	GeometryShader
+};
+
 class Shader {
 public:
 	Shader(
@@ -22,7 +34,7 @@ public:
 	ComPtr<IDxcBlob> GetGeometryShaderBlob();
 
 	UINT GetResourceRegister(const std::string& resourceName) const;
-	const std::unordered_map<std::string, UINT>& GetResourceRegisterMap() const;
+	const std::unordered_map<std::string, ResourceInfo>& GetResourceRegisterMap() const;
 	std::string GetName();
 
 	void Release();
@@ -35,7 +47,7 @@ private:
 		const std::string& profile
 	);
 
-	void ReflectShaderBlob(ComPtr<IDxcBlob> shaderBlob);
+	void ReflectShaderBlob(const ComPtr<IDxcBlob>& shaderBlob, ShaderType shaderType);
 	void ReflectShaderResources();
 
 	ComPtr<IDxcBlob> vertexShaderBlob_;
@@ -48,6 +60,6 @@ private:
 
 	std::string name_;
 
-	std::unordered_map<std::string, UINT> resourceRegisterMap_; // リソース名とレジスタ番号のマップ
+	std::unordered_map<std::string, ResourceInfo> resourceRegisterMap_; // リソース名とレジスタ番号のマップ
 };
 

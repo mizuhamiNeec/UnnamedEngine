@@ -113,24 +113,24 @@ void GameScene::Init(Engine* engine) {
 #pragma endregion
 
 #pragma region メッシュレンダラー
-	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/weaponNinjaSword.obj");
-	auto mesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/weaponNinjaSword.obj");
-	if (mesh) {
-		Console::Print("メッシュの読み込みに成功しました: " + mesh->GetName() + "\n", kConsoleColorCompleted);
-	}
+	//resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/weaponNinjaSword.obj");
+	//auto mesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/weaponNinjaSword.obj");
+	//if (mesh) {
+	//	Console::Print("メッシュの読み込みに成功しました: " + mesh->GetName() + "\n", kConsoleColorCompleted);
+	//}
 
 	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/lightWeight.obj");
 	debugMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
 		"./Resources/Models/lightWeight.obj"
 	);
 
-	testMeshEntity_ = std::make_unique<Entity>("testmesh");
+	/*testMeshEntity_ = std::make_unique<Entity>("testmesh");
 	StaticMeshRenderer* rawTestMeshRenderer = testMeshEntity_->AddComponent<StaticMeshRenderer>();
 	floatTestMR_ = std::shared_ptr<StaticMeshRenderer>(
 		rawTestMeshRenderer, [](StaticMeshRenderer*) {}
 	);
 	floatTestMR_->SetStaticMesh(mesh);
-	entities_.push_back(testMeshEntity_.get());
+	entities_.push_back(testMeshEntity_.get());*/
 
 	debugTestMeshEntity_ = std::make_unique<Entity>("debugTestMesh");
 	StaticMeshRenderer* testMeshRenderer = debugTestMeshEntity_->AddComponent<StaticMeshRenderer>();
@@ -181,7 +181,7 @@ void GameScene::Update(const float deltaTime) {
 	// プレイヤーの更新
 	//entPlayer_->Update(deltaTime);
 
-	testMeshEntity_->Update(deltaTime);
+	// testMeshEntity_->Update(deltaTime);
 	debugTestMeshEntity_->Update(deltaTime);
 
 	/*particleManager_->Update(deltaTime);
@@ -281,7 +281,7 @@ void GameScene::Render() {
 	//----------------------------------------
 	//sprite_->Draw();
 
-	testMeshEntity_->Render(renderer_->GetCommandList());
+	//testMeshEntity_->Render(renderer_->GetCommandList());
 	debugTestMeshEntity_->Render(renderer_->GetCommandList());
 }
 

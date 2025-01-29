@@ -3,11 +3,12 @@
 #include <string>
 #include <unordered_map>
 #include <wrl.h>
-
 #include <ResourceSystem/RootSignature/RootSignature2.h>
+#include <ResourceSystem/Texture/TextureManager.h>
 
-#include "ResourceSystem/Texture/TextureManager.h"
+#include "Renderer/ConstantBuffer.h"
 
+struct MatParam;
 using Microsoft::WRL::ComPtr;
 
 class Texture;
@@ -34,11 +35,11 @@ public:
 private:
 	std::string name_; // マテリアルの名前
 	Shader* shader_; // シェーダ
-	std::unordered_map<std::string, Texture*> textures_; // テクスチャ 名前とテクスチャのペア
-	std::unordered_map<UINT, ID3D12Resource*> constantBuffers_; // 定数バッファ UINTはレジスタ番号
 
 	ComPtr<ID3D12PipelineState> pipelineState_; // キャッシュされたパイプラインステート
 	ComPtr<ID3D12RootSignature> rootSignature_; // キャッシュされたルートシグネチャ
+	std::unordered_map<std::string, Texture*> textures_; // テクスチャ 名前とテクスチャのペア
+	std::unordered_map<UINT, ID3D12Resource*> constantBuffers_; // 定数バッファ UINTはレジスタ番号
 
 	RootSignature2 rootSignatureBuilder_;
 };

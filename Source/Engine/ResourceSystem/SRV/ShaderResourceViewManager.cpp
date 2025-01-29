@@ -16,6 +16,9 @@ device_(device) {
 	HRESULT hr = device_->CreateDescriptorHeap(
 		&desc, IID_PPV_ARGS(&descriptorHeap_)
 	);
+
+	descriptorHeap_->SetName(L"SRV Descriptor Heap");
+
 	if (FAILED(hr)) {
 		Console::Print(
 			"Failed to create descriptor heap\n", kConsoleColorError,

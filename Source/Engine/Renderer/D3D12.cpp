@@ -238,7 +238,7 @@ void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, const uint32_t siz
 void D3D12::WaitPreviousFrame() {
 	fenceValue_++; // Fenceの値を更新
 
-   // GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
+	// GPUがここまでたどり着いたときに、Fenceの値を指定した値に代入するようにSignalを送る
 	if (commandQueue_ && fence_) {
 		const HRESULT hr = commandQueue_->Signal(fence_.Get(), fenceValue_);
 		if (FAILED(hr)) {
@@ -517,6 +517,8 @@ void D3D12::CreateCommandList() {
 		nullptr, // 初期パイプラインステート
 		IID_PPV_ARGS(&commandList_) // 作成されるコマンドリスト
 	);
+
+	commandList_->SetName(L"MainCommandList");
 
 	if (FAILED(hr)) {
 		Console::Print(

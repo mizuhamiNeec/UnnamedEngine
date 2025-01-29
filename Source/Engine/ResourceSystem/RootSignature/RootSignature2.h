@@ -11,7 +11,7 @@ class RootSignature2 {
 public:
 	RootSignature2() = default;
 
-	void AddConstantBuffer(UINT shaderRegister, UINT registerSpace = 0);
+	void AddConstantBuffer(UINT shaderRegister, D3D12_SHADER_VISIBILITY visibility, UINT registerSpace = 0);
 	void AddShaderResourceView(UINT shaderRegister, UINT registerSpace = 0);
 	void AddUnorderedAccessView(UINT shaderRegister, UINT registerSpace = 0);
 	void AddDescriptorTable(const D3D12_DESCRIPTOR_RANGE* ranges, UINT numRanges);

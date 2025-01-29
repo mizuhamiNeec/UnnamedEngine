@@ -21,7 +21,7 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 
 	// 座標変換行列定数バッファ
 	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
-		object3DCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix)
+		object3DCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix), "Object3DTransformation"
 	);
 	transformationMatrixData_ = transformationMatrixConstantBuffer_->GetPtr<TransformationMatrix>();
 	transformationMatrixData_->wvp = Mat4::identity;
@@ -31,7 +31,8 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 	// 指向性ライト定数バッファ
 	directionalLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		object3DCommon_->GetD3D12()->GetDevice(),
-		sizeof(DirectionalLight)
+		sizeof(DirectionalLight),
+		"Object3DDirectionalLight"
 	);
 	directionalLightData_ = directionalLightConstantBuffer_->GetPtr<DirectionalLight>();
 	directionalLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
@@ -40,7 +41,8 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 
 	// カメラ定数バッファ
 	cameraConstantBuffer_ = std::make_unique<ConstantBuffer>(
-		object3DCommon_->GetD3D12()->GetDevice(), sizeof(CameraForGPU)
+		object3DCommon_->GetD3D12()->GetDevice(), sizeof(CameraForGPU),
+		"Object3DCamera"
 	);
 	cameraForGPU_ = cameraConstantBuffer_->GetPtr<CameraForGPU>();
 	cameraForGPU_->worldPosition = camera_->GetViewMat().GetTranslate();
@@ -48,7 +50,8 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 	// ポイントライト定数バッファ
 	pointLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		object3DCommon_->GetD3D12()->GetDevice(),
-		sizeof(PointLight)
+		sizeof(PointLight),
+		"Object3DPointLight"
 	);
 	pointLightData_ = pointLightConstantBuffer_->GetPtr<PointLight>();
 	pointLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -60,7 +63,8 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 	// スポットライト定数バッファ
 	spotLightConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		object3DCommon_->GetD3D12()->GetDevice(),
-		sizeof(SpotLight)
+		sizeof(SpotLight),
+		"Object3DSpotLight"
 	);
 	spotLightData_ = spotLightConstantBuffer_->GetPtr<SpotLight>();
 	spotLightData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
