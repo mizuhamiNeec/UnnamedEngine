@@ -1056,7 +1056,7 @@ void Console::ShowConVarHelper() {
 			const auto& grid = pages_[selectedPageIndex_].grid;
 
 			// グリッド要素の数を正しく保つ
-			size_t expectedSize = grid.width * grid.height;
+			size_t expectedSize = static_cast<size_t>(grid.width) * grid.height;
 			auto& elements = pages_[selectedPageIndex_].elements;
 			if (elements.size() != expectedSize) {
 				elements.resize(expectedSize);
@@ -1079,7 +1079,7 @@ void Console::ShowConVarHelper() {
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
 				// 固定のセル高さを設定
-				const float cellHeight = 50.0f;
+				const float cellHeight = 16.0f;
 
 				for (uint32_t row = 0; row < grid.height; ++row) {
 					ImGui::TableNextRow(0, cellHeight);
