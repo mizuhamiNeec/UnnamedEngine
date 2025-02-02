@@ -44,7 +44,7 @@ void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, con
 	//}
 }
 
-void Model::ImGuiDraw() {
+void Model::ImGuiDraw() const {
 #ifdef _DEBUG
 	if (ImGui::Begin("Material Editor")) {
 		ImGui::ColorEdit4("Color", &materialData_->color.x); // 色の編集

@@ -31,7 +31,7 @@ public:
 	);
 
 	void SetCamera(CameraComponent* newCamera);
-	Vec3 GeneratePosition(const Vec3& emitterPosition, int shapeType);
+	Vec3 GeneratePosition(const Vec3& emitterPosition, int shapeType) const;
 	static Vec3 GenerateConeVelocity(float coneAngle);
 
 	void EmitParticlesAtPosition(const Vec3& position, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity, uint32_t count);

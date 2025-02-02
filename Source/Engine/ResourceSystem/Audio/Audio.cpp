@@ -27,13 +27,13 @@ bool Audio::LoadFromFile(IXAudio2* xAudio2, const char* filename) {
 
 	// ソースボイスの作成前にエラーチェック
 	if (!xAudio2) {
-		Console::Print("[Audio] XAudio2インスタンスが無効です\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("[Audio] XAudio2インスタンスが無効です\n", kConTextColorError, Channel::ResourceSystem);
 		return false;
 	}
 
 	// WAVEFORMATEX のチェック
 	if (soundData.wfex.wFormatTag != WAVE_FORMAT_PCM) {
-		Console::Print("[Audio] 未対応の音声フォーマットです\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("[Audio] 未対応の音声フォーマットです\n", kConTextColorError, Channel::ResourceSystem);
 		return false;
 	}
 
@@ -42,14 +42,14 @@ bool Audio::LoadFromFile(IXAudio2* xAudio2, const char* filename) {
 	if (FAILED(hr)) {
 		switch (hr) {
 		case XAUDIO2_E_INVALID_CALL:
-			Console::Print("[Audio] 無効な関数呼び出しです\n", kConsoleColorError, Channel::ResourceSystem);
+			Console::Print("[Audio] 無効な関数呼び出しです\n", kConTextColorError, Channel::ResourceSystem);
 			break;
 		case XAUDIO2_E_XMA_DECODER_ERROR:
-			Console::Print("[Audio] XMAデコーダーエラーです\n", kConsoleColorError, Channel::ResourceSystem);
+			Console::Print("[Audio] XMAデコーダーエラーです\n", kConTextColorError, Channel::ResourceSystem);
 			break;
 		default:
 			Console::Print(std::format("[Audio] ソースボイスの作成に失敗しました: {:#x}\n", hr),
-				kConsoleColorError, Channel::ResourceSystem);
+				kConTextColorError, Channel::ResourceSystem);
 		}
 		return false;
 	}
@@ -124,7 +124,7 @@ bool Audio::LoadWavFile(const std::string& filename, SoundData& outData) {
 	file.open(filename, std::ios_base::binary);
 	if (!file.is_open()) {
 		Console::Print(std::format("[Audio] ファイルのオープンに失敗しました: {}\n", filename),
-			kConsoleColorError, Channel::ResourceSystem);
+			kConTextColorError, Channel::ResourceSystem);
 		return false;
 	}
 
@@ -133,7 +133,7 @@ bool Audio::LoadWavFile(const std::string& filename, SoundData& outData) {
 	file.read(reinterpret_cast<char*>(&riff), sizeof(riff));
 	if (strncmp(riff.chunk.id, "RIFF", 4) != 0 || strncmp(riff.type, "WAVE", 4) != 0) {
 		Console::Print("[Audio] 無効なWAVEファイル形式です\n",
-			kConsoleColorError, Channel::ResourceSystem);
+			kConTextColorError, Channel::ResourceSystem);
 		return false;
 	}
 
@@ -154,7 +154,7 @@ bool Audio::LoadWavFile(const std::string& filename, SoundData& outData) {
 				format.fmt = wfext.Format;
 			} else {
 				Console::Print("[Audio] 未対応のフォーマットチャンクサイズです\n",
-					kConsoleColorError, Channel::ResourceSystem);
+					kConTextColorError, Channel::ResourceSystem);
 				return false;
 			}
 			foundFmt = true;
@@ -168,7 +168,7 @@ bool Audio::LoadWavFile(const std::string& filename, SoundData& outData) {
 
 	if (!foundFmt || !foundData) {
 		Console::Print("[Audio] 必要なチャンクが見つかりません\n",
-			kConsoleColorError, Channel::ResourceSystem);
+			kConTextColorError, Channel::ResourceSystem);
 		return false;
 	}
 
@@ -183,7 +183,7 @@ bool Audio::LoadWavFile(const std::string& filename, SoundData& outData) {
 		format.fmt.nChannels,
 		format.fmt.nSamplesPerSec,
 		format.fmt.wBitsPerSample),
-		kConsoleColorCompleted, Channel::ResourceSystem);
+		kConTextColorCompleted, Channel::ResourceSystem);
 
 	file.close();
 

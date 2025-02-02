@@ -25,14 +25,14 @@ void InputSystem::Init() {
 
 	if (!RegisterRawInputDevices(rid, 2, sizeof(RAWINPUTDEVICE))) {
 		MessageBox(nullptr, L"Failed to register raw input devices", L"Error", MB_OK);
-		Console::Print("Failed to register raw input devices\n", kConsoleColorError, Channel::InputSystem);
+		Console::Print("Failed to register raw input devices\n", kConTextColorError, Channel::InputSystem);
 	}
 
 	ConCommand::RegisterCommand(
 		"bind",
 		[](const std::vector<std::string>& args) {
 			if (args.size() < 2) {
-				Console::Print("Usage: bind <key> <command>\n", kConsoleColorWarning, Channel::InputSystem);
+				Console::Print("Usage: bind <key> <command>\n", kConTextColorWarning, Channel::InputSystem);
 				return;
 			}
 			std::string key = args[0];
@@ -46,7 +46,7 @@ void InputSystem::Init() {
 		"unbind",
 		[](const std::vector<std::string>& args) {
 			if (args.size() < 1) {
-				Console::Print("Usage: unbind <key>\n", kConsoleColorWarning, Channel::InputSystem);
+				Console::Print("Usage: unbind <key>\n", kConTextColorWarning, Channel::InputSystem);
 				return;
 			}
 			std::string key = args[0];
@@ -336,7 +336,7 @@ std::string InputSystem::GetKeyName(const UINT virtualKey) {
 	if (GetKeyNameTextA(MapVirtualKey(virtualKey, MAPVK_VK_TO_VSC) << 16, name, sizeof(name))) {
 		return std::string(name);
 	}
-	Console::Print(std::format("キーの名前を取得できませんでした: {}\n", virtualKey), kConsoleColorError, Channel::InputSystem);
+	Console::Print(std::format("キーの名前を取得できませんでした: {}\n", virtualKey), kConTextColorError, Channel::InputSystem);
 	return "Unknown";
 }
 

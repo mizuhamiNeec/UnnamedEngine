@@ -11,7 +11,7 @@ std::vector<HitResult> ColliderComponent::BoxCast(
 
 	Console::Print(
 		"PhysicsEngineがnullptrです\n",
-		kConsoleColorError,
+		kConTextColorError,
 		Channel::Physics
 	);
 	return {};

@@ -36,6 +36,19 @@ private:
 	std::unique_ptr<ConstantBuffer> matparamCBV;
 	MatParam* materialData = nullptr;
 
+	// b1
+	std::unique_ptr<ConstantBuffer> directionalLightCB;
+	DirectionalLight* directionalLightData = nullptr;
+
+	// b2
 	std::unique_ptr<ConstantBuffer> cameraCB;
 	CameraForGPU* cameraData = nullptr;
+
+	// b3
+	std::unique_ptr<ConstantBuffer> pointLightCB;
+	PointLight* pointLightData = nullptr;
+
+	// b4
+	std::unique_ptr<ConstantBuffer> spotLightCB;
+	SpotLight* spotLightData = nullptr;
 };

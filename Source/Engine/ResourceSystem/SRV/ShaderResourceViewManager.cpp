@@ -21,7 +21,7 @@ device_(device) {
 
 	if (FAILED(hr)) {
 		Console::Print(
-			"Failed to create descriptor heap\n", kConsoleColorError,
+			"Failed to create descriptor heap\n", kConTextColorError,
 			Channel::ResourceSystem
 		);
 	}
@@ -32,7 +32,7 @@ ShaderResourceViewManager::~ShaderResourceViewManager() {}
 void ShaderResourceViewManager::Init() {
 	Console::Print(
 		"SRV Manager を初期化しています...\n",
-		kConsoleColorGray, Channel::ResourceSystem
+		kConTextColorGray, Channel::ResourceSystem
 	);
 
 	descriptorSize_ = device_->GetDescriptorHandleIncrementSize(
@@ -44,7 +44,7 @@ void ShaderResourceViewManager::Init() {
 }
 
 void ShaderResourceViewManager::Shutdown() {
-	Console::Print("SRV Manager を終了しています...\n", kConsoleColorWait, Channel::ResourceSystem);
+	Console::Print("SRV Manager を終了しています...\n", kConTextColorWait, Channel::ResourceSystem);
 
 	// キャッシュされているリソースの参照を解放
 	for (auto& entry : srvCache_) {
@@ -80,7 +80,7 @@ ShaderResourceViewManager::RegisterShaderResourceView(
 	// 上限を超えていたらエラー
 	if (currentDescriptorIndex_ >= descriptorHeap_->GetDesc().NumDescriptors) {
 		Console::Print(
-			"ディスクリプタの上限を超えました\n", kConsoleColorError, Channel::ResourceSystem
+			"ディスクリプタの上限を超えました\n", kConTextColorError, Channel::ResourceSystem
 		);
 		return {};
 	}

@@ -12,8 +12,8 @@
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR lpCmdLine, [[maybe_unused]] const int nShowCmd) {
 	// TODO: リリース時にはverboseをfalseにする
 	ConVarManager::RegisterConVar<bool>("verbose", true, "Enable verbose logging");
-	Console::Print("command line arguments:\n", kConsoleColorGray, Channel::CommandLine);
-	Console::Print(StrUtils::ToString(lpCmdLine) + "\n", kConsoleColorGray, Channel::CommandLine);
+	Console::Print("command line arguments:\n", kConTextColorGray, Channel::CommandLine);
+	Console::Print(StrUtils::ToString(lpCmdLine) + "\n", kConTextColorGray, Channel::CommandLine);
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	{
 		auto engine = std::make_unique<Engine>();

@@ -13,7 +13,7 @@ void MeshColliderComponent::OnAttach(Entity& owner) {
 	} else {
 		Console::Print(
 			owner_->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
-			kConsoleColorWarning,
+			kConTextColorWarning,
 			Channel::Physics
 		);
 	}
@@ -39,7 +39,7 @@ AABB MeshColliderComponent::GetBoundingBox() const {
 	if (!meshRenderer_) {
 		Console::Print(
 			owner_->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
-			kConsoleColorWarning,
+			kConTextColorWarning,
 			Channel::Physics
 		);
 		return AABB(Vec3::zero, Vec3::zero);

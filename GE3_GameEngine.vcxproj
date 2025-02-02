@@ -115,6 +115,7 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Lib\Utils\IniParser.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.cpp" />
@@ -148,7 +149,6 @@
     <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
@@ -232,6 +232,7 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Lib\Utils\IniParser.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h" />
     <ClInclude Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.h" />
@@ -268,7 +269,6 @@
     <ClInclude Include="Source\Engine\EntitySystem\RuntimeEntitySystem.h" />
     <ClInclude Include="Source\Engine\EntitySystem\Base\EntitySystem.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.h" />
-    <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
     <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
     <ClInclude Include="Source\Engine\Components\Camera\CameraComponent.h" />

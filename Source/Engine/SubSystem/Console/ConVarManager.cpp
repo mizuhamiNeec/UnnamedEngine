@@ -13,7 +13,10 @@ void ConVarManager::ToggleConVar(const std::string& name) {
 	auto it = conVars_.find(name);
 	if (it != conVars_.end()) {
 		it->second->Toggle();
+		return;
 	}
+
+	Console::Print("ConVar not found: " + name, kConTextColorError, Channel::Console);
 }
 
 std::vector<IConVar*> ConVarManager::GetAllConVars() {

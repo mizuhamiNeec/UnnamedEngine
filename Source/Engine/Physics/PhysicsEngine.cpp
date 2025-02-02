@@ -30,7 +30,7 @@ void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) {	// 既に登
 	if (!entity || registeredEntities_.contains(entity)) {
 		Console::Print(
 			"エンティティが登録済みかnullptrです\n",
-			kConsoleColorWarning,
+			kConTextColorWarning,
 			Channel::Physics
 		);
 		return;
@@ -43,7 +43,7 @@ void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) {	// 既に登
 				"Entity: '{}' にはColliderComponentがアタッチされていません\n",
 				entity->GetName()
 			),
-			kConsoleColorWarning,
+			kConTextColorWarning,
 			Channel::Physics
 		);
 		return;
@@ -111,7 +111,7 @@ void PhysicsEngine::UnregisterEntity(Entity* entity) {
 	if (!entity || !registeredEntities_.contains(entity)) {
 		Console::Print(
 			"エンティティが登録されていないかnullptrです\n",
-			kConsoleColorWarning,
+			kConTextColorWarning,
 			Channel::Physics
 		);
 		return;
@@ -124,7 +124,7 @@ void PhysicsEngine::UnregisterEntity(Entity* entity) {
 				"Entity: '{}' にはColliderComponentがアタッチされていません\n",
 				entity->GetName()
 			),
-			kConsoleColorWarning,
+			kConTextColorWarning,
 			Channel::Physics
 		);
 		return;
@@ -423,8 +423,8 @@ void PhysicsEngine::UpdateBVH() {
 	//staticBVH_.DrawObjects(Vec4::blue);
 
 	// 各静的メッシュのlocalBVHを描画
-	for (const auto& pair : staticMeshes_) {
-		const auto& meshData = pair.second;
+	for (const auto& val : staticMeshes_ | std::views::values) {
+		const auto& meshData = val;
 
 		// localBVHのノードを描画
 		meshData.localBVH.DrawBvh(Vec4::purple);
@@ -432,8 +432,5 @@ void PhysicsEngine::UpdateBVH() {
 	}
 }
 
-PhysicsEngine::StaticMeshData::StaticMeshData() :
-	worldTriangles(),
-	worldBounds(Vec3::zero, Vec3::zero),
-	localBVH() {
+PhysicsEngine::StaticMeshData::StaticMeshData() {
 }

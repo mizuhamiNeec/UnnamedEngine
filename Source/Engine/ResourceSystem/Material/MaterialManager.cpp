@@ -24,7 +24,7 @@ Material* MaterialManager::GetMaterial(const std::string& name) {
 void MaterialManager::Init() {
 	Console::Print(
 		"MaterialManager を初期化しています...\n",
-		kConsoleColorGray,
+		kConTextColorGray,
 		Channel::ResourceSystem
 	);
 	materials_.clear();

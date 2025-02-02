@@ -18,14 +18,15 @@ void DebugHud::ShowFrameRate() {
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 
-	ImGuiWindowFlags windowFlags =
+	constexpr ImGuiWindowFlags windowFlags =
 		ImGuiWindowFlags_NoBackground |
 		ImGuiWindowFlags_NoTitleBar |
 		ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoMove |
 		ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_NoDocking |
-		ImGuiWindowFlags_NoBringToFrontOnFocus;
+		ImGuiWindowFlags_NoFocusOnAppearing |
+		ImGuiWindowFlags_NoNav;
 
 	auto windowPos = ImVec2(0.0f, 128.0f);
 
@@ -59,11 +60,11 @@ void DebugHud::ShowFrameRate() {
 
 	float outlineSize = 1.0f;
 
-	ImVec4 textColor = ToImVec4(kConsoleColorError);
+	ImVec4 textColor = ToImVec4(kConTextColorError);
 	if (fps >= 59.9f) {
 		textColor = ToImVec4(kConsoleColorFloat);
 	} else if (fps >= 29.9f) {
-		textColor = ToImVec4(kConsoleColorWarning);
+		textColor = ToImVec4(kConTextColorWarning);
 	}
 
 	ImGuiManager::TextOutlined(

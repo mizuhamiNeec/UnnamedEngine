@@ -1,15 +1,13 @@
 #include "Material.h"
 
+#include <Engine.h>
 #include <d3d12shader.h>
 
-#include <SubSystem/Console/Console.h>
-
-#include <ResourceSystem/Shader/Shader.h>
 #include <ResourceSystem/Pipeline/PipelineManager.h>
+#include <ResourceSystem/RootSignature/RootSignatureManager2.h>
+#include <ResourceSystem/Shader/Shader.h>
 
-#include "Engine.h"
-#include "Renderer/D3D12Utils.h"
-#include "ResourceSystem/RootSignature/RootSignatureManager2.h"
+#include <SubSystem/Console/Console.h>
 
 //-----------------------------------------------------------------------------
 // なるほど完璧な作戦っスね―――ッ
@@ -19,54 +17,36 @@
 Material::Material(std::string name, Shader* shader) :
 	name_(std::move(name)),
 	shader_(shader), pipelineState_(nullptr), rootSignature_(nullptr) {
-	Console::Print("マテリアルを作成しました: " + name_ + "\n", kConsoleColorCompleted, Channel::ResourceSystem);
+	Console::Print("マテリアルを作成しました: " + name_ + "\n", kConTextColorCompleted, Channel::ResourceSystem);
 
 	InitializeRootSignature();
 }
 
 void Material::SetTexture(const std::string& name, Texture* texture) {
 	textures_[name] = texture;
-	//UINT shaderRegister = shader_->GetResourceRegister(name);
-
-	//D3D12_DESCRIPTOR_RANGE srvRange = {};
-	//srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	//srvRange.NumDescriptors = 1;
-	//srvRange.BaseShaderRegister = shaderRegister;
-	//srvRange.RegisterSpace = 0;
-	//srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-	//rootSignatureBuilder_.AddDescriptorTable(&srvRange, 1);
-
-	//if (!rootSignatureBuilder_.HasStaticSampler()) {
-	//	D3D12_STATIC_SAMPLER_DESC staticSampler = {};
-	//	staticSampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-	//	staticSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	//	staticSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	//	staticSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-	//	staticSampler.ShaderRegister = 0; // s0 レジスタ
-	//	staticSampler.RegisterSpace = 0;
-	//	staticSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-	//	// 追加が必要
-	//	rootSignatureBuilder_.AddStaticSampler(staticSampler);
-	//}
 }
 
 void Material::SetConstantBuffer(const UINT shaderRegister, ID3D12Resource* buffer) {
-	constantBuffers_[shaderRegister] = buffer;
-	//rootSignatureBuilder_.AddConstantBuffer(shaderRegister);
+	// シェーダーからリソース情報を取得
+	for (const auto& [bindPoint, visibility, type] : shader_->GetResourceRegisterMap() | std::views::values) {
+		if (type == D3D_SIT_CBUFFER && bindPoint == shaderRegister) {
+			// シェーダーステージとレジスタ番号からキーを生成
+			std::string key = GenerateBufferKey(visibility, bindPoint);
+			constantBuffers_[key] = buffer;
+		}
+	}
 }
 
 void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 	if (!shader_) {
-		Console::Print("シェーダが設定されていません。\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("シェーダが設定されていません。\n", kConTextColorError, Channel::ResourceSystem);
 		return;
 	}
 
 	// ルートシグネチャの取得と設定
 	auto rootSignature = GetOrCreateRootSignature(Engine::GetRenderer()->GetDevice());
 	if (!rootSignature) {
-		Console::Print("ルートシグネチャが設定されていません。\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("ルートシグネチャが設定されていません。\n", kConTextColorError, Channel::ResourceSystem);
 		return;
 	}
 	commandList->SetGraphicsRootSignature(rootSignature);
@@ -82,6 +62,7 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 	desc.RasterizerState = {
 		.FillMode = D3D12_FILL_MODE_SOLID,
 		.CullMode = D3D12_CULL_MODE_BACK,
+		.DepthClipEnable = TRUE,
 	};
 
 	// デプスステンシル設定
@@ -103,29 +84,39 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 
 	auto pso = GetOrCreatePipelineState(Engine::GetRenderer()->GetDevice(), desc);
 	if (!pso) {
-		Console::Print("パイプラインステートが作成されていません。\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("パイプラインステートが作成されていません。\n", kConTextColorError, Channel::ResourceSystem);
 		return;
 	}
 	commandList->SetPipelineState(pso);
 
+	  // 定数バッファをバインド
+	UINT parameterIndex = 0; // ルートパラメータのインデックスを追跡
+	for (const auto& [bindPoint, visibility, type] : shader_->GetResourceRegisterMap() | std::views::values) {
+		if (type == D3D_SIT_CBUFFER) {
+			// キーを生成
+			std::string key = GenerateBufferKey(visibility, bindPoint);
+
+			// 対応する定数バッファを検索
+			auto it = constantBuffers_.find(key);
+			if (it != constantBuffers_.end() && it->second) {
+				commandList->SetGraphicsRootConstantBufferView(
+					parameterIndex,
+					it->second->GetGPUVirtualAddress()
+				);
+				Console::Print(
+					std::format("定数バッファをバインド: {} (b{} -> parameter{})\n",
+						key, bindPoint, parameterIndex),
+					kConTextColorCompleted,
+					Channel::ResourceSystem
+				);
+			}
+			parameterIndex++;
+		}
+	}
+
 	// ディスクリプタヒープを設定
 	ID3D12DescriptorHeap* descriptorHeaps[] = { ShaderResourceViewManager::GetDescriptorHeap().Get() };
 	commandList->SetDescriptorHeaps(1, descriptorHeaps);
-
-	// 定数バッファをバインド
-	for (const auto& [shaderRegister, buffer] : constantBuffers_) {
-		if (buffer) {
-			commandList->SetGraphicsRootConstantBufferView(shaderRegister, buffer->GetGPUVirtualAddress());
-			Console::Print(
-				std::format("定数バッファをバインド: (b{})\n", shaderRegister),
-				kConsoleColorCompleted,
-				Channel::ResourceSystem
-			);
-		} else {
-			Console::Print("定数バッファが設定されていません: " + std::to_string(shaderRegister) + "\n",
-				kConsoleColorError, Channel::ResourceSystem);
-		}
-	}
 
 	// テクスチャのバインド
 	if (!textures_.empty()) {
@@ -151,12 +142,17 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 							tableIndex,
 							texture->GetShaderResourceView()
 						);
+						Console::Print(
+							std::format("テクスチャをバインド: {} (t{})\n", name, resourceInfo.bindPoint),
+							kConTextColorCompleted,
+							Channel::ResourceSystem
+						);
 					}
 				}
 			} else {
 				Console::Print(
 					"テクスチャが設定されていません: " + name + "\n",
-					kConsoleColorError,
+					kConTextColorError,
 					Channel::ResourceSystem
 				);
 				// エラーテクスチャも同じインデックスで設定
@@ -173,7 +169,7 @@ ID3D12PipelineState* Material::GetOrCreatePipelineState(
 	ID3D12Device* device, const D3D12_GRAPHICS_PIPELINE_STATE_DESC& baseDesc
 ) {
 	if (!shader_) {
-		Console::Print("シェーダーが設定されていません\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("シェーダーが設定されていません\n", kConTextColorError, Channel::ResourceSystem);
 		return nullptr;
 	}
 
@@ -190,7 +186,7 @@ ID3D12PipelineState* Material::GetOrCreatePipelineState(
 	// ルートシグネチャの設定
 	auto rootSig = GetOrCreateRootSignature(device);
 	if (!rootSig) {
-		Console::Print("ルートシグネチャの取得に失敗しました\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("ルートシグネチャの取得に失敗しました\n", kConTextColorError, Channel::ResourceSystem);
 		return nullptr;
 	}
 	desc.pRootSignature = rootSig;
@@ -218,20 +214,38 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature([[maybe_unused]] ID3D12D
 	if (!rootSignature_) {
 		// ルートシグネチャがない場合は作成
 		std::string key = shader_->GetName();
-
 		RootSignatureDesc desc = {};
 
 		// シェーダーリソースマップからリソースを解析
 		const auto& resourceMap = shader_->GetResourceRegisterMap();
-
 		std::vector<D3D12_DESCRIPTOR_RANGE> srvRanges;
 
 		// リソースの分類とルートパラメータの追加
 		for (const auto& [name, resourceInfo] : resourceMap) {
+			// ShaderVisibilityを文字列に変換
+			std::string visibilityStr;
+			switch (resourceInfo.visibility) {
+			case D3D12_SHADER_VISIBILITY_VERTEX:
+				visibilityStr = "VS";
+				break;
+			case D3D12_SHADER_VISIBILITY_PIXEL:
+				visibilityStr = "PS";
+				break;
+			case D3D12_SHADER_VISIBILITY_ALL:
+				visibilityStr = "ALL";
+				break;
+			case D3D12_SHADER_VISIBILITY_GEOMETRY:
+				visibilityStr = "GS";
+				break;
+			// 他のシェーダーステージがあれば追加
+			default:
+				visibilityStr = "UNKNOWN";
+				break;
+			}
+
 			if (resourceInfo.type == D3D_SIT_CBUFFER) {
 				D3D12_ROOT_PARAMETER param = {};
 				param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-				// resourceInfoから取得したvisibilityを使用
 				param.ShaderVisibility = resourceInfo.visibility;
 				param.Descriptor.ShaderRegister = resourceInfo.bindPoint;
 				param.Descriptor.RegisterSpace = 0;
@@ -242,9 +256,9 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature([[maybe_unused]] ID3D12D
 						"定数バッファを追加: {} (register b{}, visibility: {})\n",
 						name,
 						resourceInfo.bindPoint,
-						static_cast<int>(resourceInfo.visibility)
+						visibilityStr
 					),
-					kConsoleColorCompleted,
+					kConTextColorCompleted,
 					Channel::ResourceSystem
 				);
 			} else if (resourceInfo.type == D3D_SIT_TEXTURE) {
@@ -257,8 +271,13 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature([[maybe_unused]] ID3D12D
 				srvRanges.push_back(range);
 
 				Console::Print(
-					std::format("テクスチャを追加: {} (register t{})\n", name, range.BaseShaderRegister),
-					kConsoleColorCompleted,
+					std::format(
+						"テクスチャを追加: {} (register t{}, visibility: {})\n",
+						name,
+						range.BaseShaderRegister,
+						visibilityStr
+					),
+					kConTextColorCompleted,
 					Channel::ResourceSystem
 				);
 			}
@@ -299,12 +318,46 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature([[maybe_unused]] ID3D12D
 	return rootSignature_.Get();
 }
 
-void Material::InitializeRootSignature() {
+void Material::InitializeRootSignature() const {
 	if (!shader_) {
-		Console::Print("シェーダーが設定されていません\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("シェーダーが設定されていません\n", kConTextColorError, Channel::ResourceSystem);
 	}
 }
 
 const std::string& Material::GetName() const { return name_; }
 
 const std::unordered_map<std::string, Texture*>& Material::GetTextures() const { return textures_; }
+
+std::string Material::GenerateBufferKey(D3D12_SHADER_VISIBILITY visibility, UINT bindPoint) {
+	std::string key;
+	switch (visibility) {
+	case D3D12_SHADER_VISIBILITY_ALL:
+		key = "ALL";
+		break;
+	case D3D12_SHADER_VISIBILITY_VERTEX:
+		key = "VS";
+		break;
+	case D3D12_SHADER_VISIBILITY_HULL:
+		key = "HS";
+		break;
+	case D3D12_SHADER_VISIBILITY_DOMAIN:
+		key = "DS";
+		break;
+	case D3D12_SHADER_VISIBILITY_GEOMETRY:
+		key = "GS";
+		break;
+	case D3D12_SHADER_VISIBILITY_PIXEL:
+		key = "PS";
+		break;
+	case D3D12_SHADER_VISIBILITY_AMPLIFICATION:
+		key = "AS";
+		break;
+	case D3D12_SHADER_VISIBILITY_MESH:
+		key = "MS";
+		break;
+	default:
+		key = "UNKNOWN";
+		break;
+	}
+	return key + "_" + std::to_string(bindPoint);
+}

@@ -20,7 +20,7 @@
 void MeshManager::Init(const ComPtr<ID3D12Device>& device, TextureManager* textureManager, ShaderManager* shaderManager, MaterialManager* materialManager) {
 	Console::Print(
 		"MeshManager を初期化しています...\n",
-		kConsoleColorGray,
+		kConTextColorGray,
 		Channel::ResourceSystem
 	);
 	device_ = device;
@@ -32,19 +32,19 @@ void MeshManager::Init(const ComPtr<ID3D12Device>& device, TextureManager* textu
 void MeshManager::Shutdown() {
 	Console::Print(
 		"MeshManager を終了しています...\n",
-		kConsoleColorGray,
+		kConTextColorGray,
 		Channel::ResourceSystem
 	);
 
-	for (auto& pair : subMeshes_) {
-		pair.second->ReleaseResource();
-		pair.second.reset();
+	for (auto& [fst, snd] : subMeshes_) {
+		snd->ReleaseResource();
+		snd.reset();
 	}
 	subMeshes_.clear();
 
-	for (auto& pair : staticMeshes_) {
-		if (pair.second) {
-			pair.second->ReleaseResource();
+	for (auto& [fst, snd] : staticMeshes_) {
+		if (snd) {
+			snd->ReleaseResource();
 		}
 	}
 	staticMeshes_.clear();
@@ -86,14 +86,14 @@ bool MeshManager::LoadMeshFromFile(const std::string& filePath) {
 		aiProcess_ConvertToLeftHanded
 	);
 	if (!scene) {
-		Console::Print("メッシュの読み込みに失敗しました: " + filePath + "\n", kConsoleColorError, Channel::ResourceSystem);
-		Console::Print("エラーメッセージ: " + std::string(importer.GetErrorString()) + "\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("メッシュの読み込みに失敗しました: " + filePath + "\n", kConTextColorError, Channel::ResourceSystem);
+		Console::Print("エラーメッセージ: " + std::string(importer.GetErrorString()) + "\n", kConTextColorError, Channel::ResourceSystem);
 		assert(scene); // 読み込み失敗
 		return false;
 	}
 
 	if (!scene->HasMeshes()) {
-		Console::Print("メッシュがありません: " + filePath + "\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("メッシュがありません: " + filePath + "\n", kConTextColorError, Channel::ResourceSystem);
 		assert(scene->HasMeshes()); // メッシュがない場合はエラー
 	}
 
@@ -109,7 +109,7 @@ StaticMesh* MeshManager::GetStaticMesh(const std::string& name) const {
 
 void MeshManager::ProcessNode(const aiNode* node, const aiScene* scene, StaticMesh* staticMesh) {
 	if (!node || !scene || !scene->mMeshes) {
-		Console::Print("無効なノードまたはシーン\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("無効なノードまたはシーン\n", kConTextColorError, Channel::ResourceSystem);
 		return;
 	}
 
@@ -118,7 +118,7 @@ void MeshManager::ProcessNode(const aiNode* node, const aiScene* scene, StaticMe
 
 	for (uint32_t meshIndex = 0; meshIndex < node->mNumMeshes; ++meshIndex) {
 		if (node->mMeshes[meshIndex] >= scene->mNumMeshes) {
-			Console::Print("メッシュインデックスが範囲外です\n", kConsoleColorError, Channel::ResourceSystem);
+			Console::Print("メッシュインデックスが範囲外です\n", kConTextColorError, Channel::ResourceSystem);
 			continue;
 		}
 		const aiMesh* mesh = scene->mMeshes[node->mMeshes[meshIndex]];
@@ -161,7 +161,7 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, Stat
 		vertices.push_back(vertex);
 	}
 
-	Console::Print("頂点数: " + std::to_string(mesh->mNumVertices) + "\n", kConsoleColorGray, Channel::ResourceSystem);
+	Console::Print("頂点数: " + std::to_string(mesh->mNumVertices) + "\n", kConTextColorGray, Channel::ResourceSystem);
 
 	// 面情報の取得
 	for (uint32_t faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex) {
@@ -172,7 +172,7 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, Stat
 		}
 	}
 
-	Console::Print("三角面数: " + std::to_string(mesh->mNumFaces) + "\n", kConsoleColorGray, Channel::ResourceSystem);
+	Console::Print("三角面数: " + std::to_string(mesh->mNumFaces) + "\n", kConTextColorGray, Channel::ResourceSystem);
 
 	// マテリアルの設定
 	Material* material = nullptr;
@@ -199,12 +199,11 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, Stat
 
 				Console::Print(
 					"Loading texture: " + fullTexturePath.string() + "\n",
-					kConsoleColorCompleted,
+					kConTextColorCompleted,
 					Channel::ResourceSystem
 				);
 
-				Texture* texture = textureManager_->GetTexture(fullTexturePath.string()).get();
-				if (texture) {
+				if (Texture* texture = textureManager_->GetTexture(fullTexturePath.string()).get()) {
 					material->SetTexture("diffuseTexture", texture);
 				}
 			}

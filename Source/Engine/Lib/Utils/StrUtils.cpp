@@ -61,11 +61,10 @@ wchar_t* StrUtils::ToString(const std::string& str) {
 
 std::string StrUtils::ToLowerCase(const std::string& input) {
 	std::string result = input;
-	std::transform(
+	std::ranges::transform(
+		result,
 		result.begin(),
-		result.end(),
-		result.begin(),
-		[](unsigned char c) {
+		[](const unsigned char c) {
 			return static_cast<char>(std::tolower(c));
 		}
 	);

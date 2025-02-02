@@ -13,13 +13,20 @@
 #include <imgui.h>
 #include <iosfwd>
 
-constexpr Vec4 kConsoleColorNormal = Vec4(0.71f, 0.71f, 0.71f, 1.0f); // 通常テキストの色
-constexpr Vec4 kConsoleColorGray = Vec4(0.77f, 0.74f, 0.66f, 1.0f); // グレーテキストの色
-constexpr Vec4 kConsoleColorExecute = Vec4(0.8f, 1.0f, 1.0f, 1.0f); // コマンド実行テキストの色
-constexpr Vec4 kConsoleColorWarning = Vec4(1.0f, 1.0f, 0.0f, 1.0f); // 警告テキストの色
-constexpr Vec4 kConsoleColorError = Vec4(1.0f, 0.0f, 0.0f, 1.0f); // エラーテキストの色
-constexpr Vec4 kConsoleColorWait = Vec4(0.93f, 0.79f, 0.09f, 1.0f); // 待ち状態テキストの色
-constexpr Vec4 kConsoleColorCompleted = Vec4(0.48f, 0.76f, 0.26f, 1.0f); // 完了テキストの色
+constexpr Vec4 kConBgColorDark = Vec4(0.2f, 0.2f, 0.2f, 0.5f); // ダークモードの背景色
+constexpr Vec4 kConFgColorDark = Vec4(0.71f, 0.71f, 0.72f, 1.0f); // ダークモードの前景色
+
+constexpr Vec4 kConBgColorLight = Vec4(0.94f, 0.94f, 0.94f, 1.0f); // ライトモードの背景色
+constexpr Vec4 kConFgColorLight = Vec4(0.0f, 0.0f, 0.0f, 1.0f); // ライトモードの前景色
+
+constexpr Vec4 kConHelperColorLabelBg = Vec4(0.0f, 0.0f, 0.0f, 1.0f); // ヘルパーのラベル背景色
+
+constexpr Vec4 kConTextColorGray = Vec4(0.77f, 0.74f, 0.66f, 1.0f); // グレーテキストの色
+constexpr Vec4 kConTextColorExecute = Vec4(0.8f, 1.0f, 1.0f, 1.0f); // コマンド実行テキストの色
+constexpr Vec4 kConTextColorWarning = Vec4(1.0f, 1.0f, 0.0f, 1.0f); // 警告テキストの色
+constexpr Vec4 kConTextColorError = Vec4(1.0f, 0.0f, 0.0f, 1.0f); // エラーテキストの色
+constexpr Vec4 kConTextColorWait = Vec4(0.93f, 0.79f, 0.09f, 1.0f); // 待ち状態テキストの色
+constexpr Vec4 kConTextColorCompleted = Vec4(0.48f, 0.76f, 0.26f, 1.0f); // 完了テキストの色
 
 constexpr Vec4 kConsoleColorBool = Vec4(0.58f, 0.0f, 0.0f, 1.0f);
 constexpr Vec4 kConsoleColorInt = Vec4(0.12f, 0.89f, 0.69f, 1.0f);
@@ -93,7 +100,7 @@ public:
 	static void SubmitCommand(const std::string& command);
 
 	static void Print(
-		const std::string& message, const Vec4& color = kConsoleColorNormal, const Channel& channel = Channel::General
+		const std::string& message, const Vec4& color = kConFgColorDark, const Channel& channel = Channel::General
 	);
 	static void PrintNullptr(const std::string& message, const Channel& channel);
 
@@ -123,6 +130,16 @@ private:
 
 	// ConVarHelper
 	static void ShowConVarHelper();
+	static void RearrangeGridElements(uint32_t newWidth, uint32_t newHeight);
+	static void InsertRow(uint32_t row);
+	static void DeleteRow(uint32_t row);
+
+	static void ImportPage();
+	static std::vector<std::string> TokenizeKey(const std::string& key);
+	static Vec4 ParseColor(const std::string& color);
+
+	static void ExportPage();
+
 	static void ShowElementEditPopup();
 
 	// 送信系
@@ -132,7 +149,7 @@ private:
 
 	static void AddCommandHistory(const std::string& command);
 
-	static void UpdateRepeatCount(const std::string& message, bool hasNewLine, const Channel& channel, const Vec4& color = kConsoleColorNormal);
+	static void UpdateRepeatCount(const std::string& message, bool hasNewLine, const Channel& channel, const Vec4& color = kConFgColorDark);
 
 	static void CheckScroll();
 	static void CheckLineCountAsync();
@@ -141,13 +158,14 @@ private:
 
 	static std::string TrimSpaces(const std::string& string);
 	static std::vector<std::string> TokenizeCommand(const std::string& command);
+	static std::vector<std::string> SplitCommands(const std::string& command);
 
 	static size_t FilteredToActualIndex(int filteredIndex);
 
 	static void FlushLogBuffer(const std::vector<std::string>& buffer);
 
 	// コンソールの非同期スレッド
-	void ConsoleUpdateAsync();
+	void ConsoleUpdateAsync() const;
 	void StartConsoleThread();
 	static void LogToFileAsync(const std::string& message);
 
@@ -164,6 +182,7 @@ private:
 	static bool bWishScrollToBottom_; // 一番下にスクロールしたい
 	static bool bShowSuggestPopup_; // サジェストポップアップを表示
 	static bool bShowAbout_; // Aboutを表示
+	static bool bFocusedConsoleWindow_; // ウィンドウがフォーカスされているか?
 	static std::vector<Text> consoleTexts_; // コンソールに出力されているテキスト
 	static char inputText_[kInputBufferSize]; // 入力中のテキスト
 	static int historyIndex_;
@@ -200,7 +219,8 @@ private:
 
 		std::string label;
 		std::string command;
-		Vec4 color = Vec4::white;
+		Vec4 bgColor = kConBgColorDark;
+		Vec4 fgColor = kConFgColorDark;
 		std::string description;
 	};
 

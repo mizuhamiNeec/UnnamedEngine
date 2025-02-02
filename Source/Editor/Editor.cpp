@@ -21,7 +21,7 @@ Editor::Editor(SceneManager& sceneManager) : sceneManager_(sceneManager) {
 
 void Editor::Init() {
 	// カメラの作成
-	cameraEntity_ = std::make_unique<Entity>("editorcamera");
+	cameraEntity_ = std::make_unique<Entity>("editorCamera");
 	cameraEntity_->GetTransform()->SetLocalPos(Vec3::forward * -5.0f + Vec3::up * 2.0f);
 	cameraEntity_->GetTransform()->SetLocalRot(Quaternion::Euler(Vec3::right * 15.0f * Math::deg2Rad));
 
@@ -37,20 +37,14 @@ void Editor::Init() {
 	CameraManager::AddCamera(camera);
 	// アクティブカメラに設定
 	CameraManager::SetActiveCamera(camera);
+
+	sceneManager_.GetCurrentScene()->AddEntity(std::move(cameraEntity_).get());
 }
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
-	// グリッドの表示
-	DrawGrid(
-		gridSize_,
-		gridRange_,
-		{ 0.28f, 0.28f, 0.28f, 1.0f },
-		{ 0.39f, 0.2f, 0.02f, 1.0f },
-		{ 0.0f, 0.39f, 0.39f, 1.0f },
-		{ 0.39f, 0.39f, 0.39f, 1.0f },
-		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
-		2048.0f
-	);
+	if (auto currentScene = sceneManager_.GetCurrentScene()) {
+		currentScene->Update(EngineTimer::GetDeltaTime());
+	}
 
 #ifdef _DEBUG
 	// カメラの操作
@@ -121,11 +115,13 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			Vec3 cameraUp = camRot * Vec3::up;
 
 			if (InputSystem::IsTriggered("invprev")) {
-				moveSpd += 4.0f;
+				moveSpd *= 2.0f;
+				moveSpd = RoundToNearestPowerOfTwo(moveSpd);
 			}
 
 			if (InputSystem::IsTriggered("invnext")) {
-				moveSpd -= 4.0f;
+				moveSpd *= 0.5f;
+				moveSpd = RoundToNearestPowerOfTwo(moveSpd);
 			}
 
 			static float oldMoveSpd = 0.0f;
@@ -457,7 +453,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			{
 				const float windowHeight = ImGui::GetWindowSize().y;
 				const char* items[] = { "0.125", "0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512" };
-				static int itemCurrentIndex = 2;
+				static int itemCurrentIndex = 9;
 				const char* comboLabel = items[itemCurrentIndex];
 				ImGui::Text("Grid: ");
 				// 垂直中央に配置
@@ -467,11 +463,15 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 				// コンボボックスの幅をステータスバーの幅に合わせて調整
 				ImGui::PushItemWidth(statusBarWidth * 0.2f);
+				ImGui::PushID("GridCombo"); // IDの衝突を避けるためにプッシュ
+
 				if (ImGui::BeginCombo("##grid", comboLabel)) {
 					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
 						const bool isSelected = (itemCurrentIndex == n);
 						if (ImGui::Selectable(items[n], isSelected)) {
 							itemCurrentIndex = n;
+							// 選択された文字列を浮動小数点数に変換してgridSize_に設定
+							gridSize_ = std::stof(items[itemCurrentIndex]);
 						}
 						if (isSelected) {
 							ImGui::SetItemDefaultFocus();
@@ -479,6 +479,19 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 					}
 					ImGui::EndCombo();
 				}
+
+				// コンボボックスにマウスオーバーしている時にホイールで操作
+				if (ImGui::IsItemHovered()) {
+					float wheel = ImGui::GetIO().MouseWheel;
+					if (wheel != 0.0f) {
+						itemCurrentIndex -= static_cast<int>(wheel);
+						itemCurrentIndex = std::clamp(itemCurrentIndex, 0, IM_ARRAYSIZE(items) - 1);
+						// 選択された文字列を浮動小数点数に変換してgridSize_に設定
+						gridSize_ = std::stof(items[itemCurrentIndex]);
+					}
+				}
+
+				ImGui::PopID();
 				ImGui::PopItemWidth();
 			}
 
@@ -488,9 +501,17 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	}
 #endif
 
-	if (auto currentScene = sceneManager_.GetCurrentScene()) {
-		currentScene->Update(EngineTimer::GetDeltaTime());
-	}
+	// グリッドの表示
+	DrawGrid(
+		gridSize_,
+		gridRange_,
+		{ 0.28f, 0.28f, 0.28f, 1.0f },
+		{ 0.39f, 0.2f, 0.02f, 1.0f },
+		{ 0.0f, 0.39f, 0.39f, 1.0f },
+		{ 0.39f, 0.39f, 0.39f, 1.0f },
+		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
+		gridSize_ * 32.0f
+	);
 }
 
 void Editor::Render() const {
@@ -503,71 +524,95 @@ void Editor::DrawGrid(
 	const float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
 	const Vec4& axisColor, const Vec4& minorColor, const Vec3& cameraPosition, const float drawRadius
 ) {
-	constexpr float majorInterval = 1024.0f;
 	const float minorInterval = gridSize * 8.0f;
 
-	// Squared radius for performance
+	// 描画範囲の二乗を事前計算
 	const float drawRadiusSq = drawRadius * drawRadius;
 
-	// Draw vertical grid lines (along X-axis)
-	for (float x = -range; x <= range; x += gridSize) {
-		Vec4 lineColor = color;
+	// カメラ位置のXとZを事前に取得
+	const float cameraPosX = cameraPosition.x;
+	const float cameraPosZ = cameraPosition.z;
 
-		if (fmod(x, majorInterval) == 0) {
-			lineColor = majorColor;  // 主要なグリッド線
-		} else if (fmod(x, minorInterval) == 0) {
-			lineColor = minorColor; // 細かいグリッド線
+	// 範囲内のグリッドラインを計算
+	const int numLines = static_cast<int>((range * 2) / gridSize) + 1;
+	const float startX = -range;
+	const float startZ = -range;
+
+	for (int i = 0; i < numLines; ++i) {
+		constexpr float majorInterval = 1024.0f;
+		float x = startX + i * gridSize;
+		float z = startZ + i * gridSize;
+
+		// 垂直線（X軸に沿った線）の描画
+		{
+			Vec4 lineColor = color;
+
+			if (std::fmod(x, majorInterval) == 0.0f) {
+				lineColor = majorColor;  // 主要なグリッド線
+			} else if (std::fmod(x, minorInterval) == 0.0f) {
+				lineColor = minorColor; // 細かいグリッド線
+			}
+
+			if (x == 0.0f) {
+				lineColor = axisColor;  // 軸線
+			}
+
+			if (std::fmod(x, majorInterval) == 0.0f || x == 0.0f) {
+				// 主要線・軸線は常に最大範囲で描画
+				Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range), lineColor);
+			} else {
+				// 細かいグリッド線は円形範囲内のみ描画
+				float distToLineSq = (cameraPosX - x) * (cameraPosX - x);
+				if (distToLineSq <= drawRadiusSq) {
+					float maxZ = std::sqrt(drawRadiusSq - distToLineSq);
+					Debug::DrawLine(
+						Vec3(x, 0, cameraPosZ - maxZ),
+						Vec3(x, 0, cameraPosZ + maxZ),
+						lineColor
+					);
+				}
+			}
 		}
 
-		if (x == 0) {
-			lineColor = axisColor;  // 軸線
-		}
+		// 水平線（Z軸に沿った線）の描画
+		{
+			Vec4 lineColor = color;
 
-		if (fmod(x, majorInterval) == 0 || x == 0) {
-			// 主要線・軸線は常に最大範囲で描画
-			Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range), lineColor);
-		} else {
-			// 細かいグリッド線は円形範囲内のみ描画
-			float distToLineSq = powf(cameraPosition.x - x, 2);
-			if (distToLineSq <= drawRadiusSq) {
-				float maxZ = sqrt(drawRadiusSq - distToLineSq);
-				Debug::DrawLine(
-					Vec3(x, 0, cameraPosition.z - maxZ),
-					Vec3(x, 0, cameraPosition.z + maxZ),
-					lineColor
-				);
+			if (std::fmod(z, majorInterval) == 0.0f) {
+				lineColor = majorColor;  // 主要なグリッド線
+			} else if (std::fmod(z, minorInterval) == 0.0f) {
+				lineColor = minorColor; // 細かいグリッド線
+			}
+
+			if (z == 0.0f) {
+				lineColor = axisColor;  // 軸線
+			}
+
+			if (std::fmod(z, majorInterval) == 0.0f || z == 0.0f) {
+				// 主要線・軸線は常に最大範囲で描画
+				Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z), lineColor);
+			} else {
+				// 細かいグリッド線は円形範囲内のみ描画
+				float distToLineSq = (cameraPosZ - z) * (cameraPosZ - z);
+				if (distToLineSq <= drawRadiusSq) {
+					float maxX = std::sqrt(drawRadiusSq - distToLineSq);
+					Debug::DrawLine(
+						Vec3(cameraPosX - maxX, 0, z),
+						Vec3(cameraPosX + maxX, 0, z),
+						lineColor
+					);
+				}
 			}
 		}
 	}
+}
 
-	// Draw horizontal grid lines (along Z-axis)
-	for (float z = -range; z <= range; z += gridSize) {
-		Vec4 lineColor = color;
+float Editor::RoundToNearestPowerOfTwo(const float value) {
+	float lowerPowerOfTwo = std::pow(2.0f, std::floor(std::log2(value)));
+	float upperPowerOfTwo = std::pow(2.0f, std::ceil(std::log2(value)));
 
-		if (fmod(z, majorInterval) == 0) {
-			lineColor = majorColor;  // 主要なグリッド線
-		} else if (fmod(z, minorInterval) == 0) {
-			lineColor = minorColor; // 細かいグリッド線
-		}
-
-		if (z == 0) {
-			lineColor = axisColor;  // 軸線
-		}
-
-		if (fmod(z, majorInterval) == 0 || z == 0) {
-			// 主要線・軸線は常に最大範囲で描画
-			Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z), lineColor);
-		} else {
-			// 細かいグリッド線は円形範囲内のみ描画
-			float distToLineSq = powf(cameraPosition.z - z, 2);
-			if (distToLineSq <= drawRadiusSq) {
-				float maxX = sqrt(drawRadiusSq - distToLineSq);
-				Debug::DrawLine(
-					Vec3(cameraPosition.x - maxX, 0, z),
-					Vec3(cameraPosition.x + maxX, 0, z),
-					lineColor
-				);
-			}
-		}
+	if (value - lowerPowerOfTwo < upperPowerOfTwo - value) {
+		return lowerPowerOfTwo;
 	}
+	return upperPowerOfTwo;
 }

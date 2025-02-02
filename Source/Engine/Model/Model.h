@@ -17,7 +17,7 @@ class Model {
 
 public:
 	void Init(ModelCommon* modelCommon, const std::string& directoryPath, const std::string& fileName);
-	void ImGuiDraw();
+	void ImGuiDraw() const;
 	void Draw() const;
 
 	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);

@@ -70,7 +70,6 @@ void Engine::Init() {
 
 #ifdef _DEBUG
 	imGuiManager_ = std::make_unique<ImGuiManager>(renderer_.get(), resourceManager_->GetShaderResourceViewManager());
-	imGuiManager_->Init();
 #endif
 
 	console_ = std::make_unique<Console>();
@@ -218,7 +217,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 		"toggleeditor",
 		[]([[maybe_unused]] const std::vector<std::string>& args) {
 			bIsEditorMode_ = !bIsEditorMode_;
-			Console::Print("Editor mode is now " + std::to_string(bIsEditorMode_) + "\n", kConsoleColorNormal);
+			Console::Print("Editor mode is now " + std::to_string(bIsEditorMode_) + "\n", kConFgColorDark);
 		},
 		"Toggle editor mode."
 	);
@@ -279,7 +278,7 @@ std::unique_ptr<D3D12> Engine::renderer_ = nullptr;
 std::unique_ptr<ResourceManager> Engine::resourceManager_ = nullptr;
 
 #ifdef _DEBUG
-bool Engine::bIsEditorMode_ = false;
+bool Engine::bIsEditorMode_ = true;
 #else
 bool Engine::bIsEditorMode_ = false;
 #endif

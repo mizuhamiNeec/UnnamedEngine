@@ -60,14 +60,50 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 		materialData->specularColor = { 0.25f, 0.25f, 0.25f };
 	}
 
+	directionalLightCB = std::make_unique<ConstantBuffer>(
+		Engine::GetRenderer()->GetDevice(),
+		sizeof(DirectionalLight),
+		"DirectionalLight"
+	);
+	directionalLightData = directionalLightCB->GetPtr<DirectionalLight>();
+	directionalLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	directionalLightData->direction = { -0.2f, -0.9f, 0.25f };
+	directionalLightData->intensity = 1.0f;
+
 	cameraCB = std::make_unique<ConstantBuffer>(
 		Engine::GetRenderer()->GetDevice(),
 		sizeof(CameraForGPU),
 		"Camera"
 	);
-
 	cameraData = cameraCB->GetPtr<CameraForGPU>();
 	cameraData->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().GetTranslate();
+
+	pointLightCB = std::make_unique<ConstantBuffer>(
+		Engine::GetRenderer()->GetDevice(),
+		sizeof(PointLight),
+		"PointLight"
+	);
+	pointLightData = pointLightCB->GetPtr<PointLight>();
+	pointLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	pointLightData->position = { 0.0f, 4.0f, 0.0f };
+	pointLightData->intensity = 1.0f;
+	pointLightData->radius = 1.0f;
+	pointLightData->decay = 1.0f;
+
+	spotLightCB = std::make_unique<ConstantBuffer>(
+		Engine::GetRenderer()->GetDevice(),
+		sizeof(SpotLight),
+		"SpotLight"
+	);
+	spotLightData = spotLightCB->GetPtr<SpotLight>();
+	spotLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	spotLightData->position = { 0.0f, 4.0f, 0.0f };
+	spotLightData->intensity = 1.0f;
+	spotLightData->direction = { 0.0f, -1.0f, 0.0f };
+	spotLightData->distance = 8.0f;
+	spotLightData->decay = 2.0f;
+	spotLightData->cosAngle = 0.5f;
+	spotLightData->cosFalloffStart = 0.5f;
 }
 
 void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
@@ -82,24 +118,54 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 		// 必要であればマテリアルをバインド
 		Material* material = subMesh->GetMaterial();
 		if (material && material != currentlyBoundMaterial) {
+			// VS用のトランスフォーム (b0)
+			if (const auto* transform = transform_) {
+				const Mat4 worldMat = transform->GetWorldMat();
+				const Mat4& viewProjMat = CameraManager::GetActiveCamera()->GetViewProjMat();
+				Mat4 worldViewProjMat = worldMat * viewProjMat;
 
-			/*material->SetConstantBuffer(0, matparamCBV->GetResource());*/
+				transformationMatrix_->wvp = worldViewProjMat;
+				transformationMatrix_->world = worldMat;
+				transformationMatrix_->worldInverseTranspose = worldMat.Inverse().Transpose();
 
-			
+				// VSのb0レジスタにバインド
+				const UINT vsTransformRegister = material->GetShader()->GetResourceRegister("gTransformationMatrix");
+				material->SetConstantBuffer(vsTransformRegister, transformationMatrixConstantBuffer_->GetResource());
+			}
 
-			/*cameraData->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate();
-			material->SetConstantBuffer(2, cameraCB->GetResource());*/
+			// PS用の各種パラメータ
+			const UINT materialRegister = material->GetShader()->GetResourceRegister("gMaterial");
+			if (materialRegister < 0xffffffff) {
+				material->SetConstantBuffer(materialRegister, matparamCBV->GetResource());
+			}
 
-			
+			const UINT dirLightRegister = material->GetShader()->GetResourceRegister("gDirectionalLight");
+			if (dirLightRegister < 0xffffffff) {
+				material->SetConstantBuffer(dirLightRegister, directionalLightCB->GetResource());
+			}
 
-			material->Apply(commandList); // Materialにバインド処理を委任
-			// トランスフォームをバインド
-			BindTransform(commandList);
+			const UINT cameraRegister = material->GetShader()->GetResourceRegister("gCamera");
+			if (cameraRegister < 0xffffffff) {
+				cameraData->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate();
+				material->SetConstantBuffer(cameraRegister, cameraCB->GetResource());
+			}
+
+			const UINT pointLightRegister = material->GetShader()->GetResourceRegister("gPointLight");
+			if (pointLightRegister < 0xffffffff) {
+				material->SetConstantBuffer(pointLightRegister, pointLightCB->GetResource());
+			}
+
+			const UINT spotLightRegister = material->GetShader()->GetResourceRegister("gSpotLight");
+			if (spotLightRegister < 0xffffffff) {
+				material->SetConstantBuffer(spotLightRegister, spotLightCB->GetResource());
+			}
+
+			material->Apply(commandList);
 			currentlyBoundMaterial = material;
 		} else if (!material) {
 			Console::Print(
 				"サブメッシュにマテリアルが設定されていません",
-				kConsoleColorError,
+				kConTextColorError,
 				Channel::RenderSystem
 			);
 			continue;
@@ -110,10 +176,26 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 	}
 }
 
+void MatrixEdit(const std::string& label, Mat4& mat) {
+	ImGui::Text(label.c_str());
+	ImGui::DragFloat4((label + "##" + std::to_string(0)).c_str(), &mat.m[0][0], 0.01f);
+	ImGui::DragFloat4((label + "##" + std::to_string(1)).c_str(), &mat.m[1][0], 0.01f);
+	ImGui::DragFloat4((label + "##" + std::to_string(2)).c_str(), &mat.m[2][0], 0.01f);
+	ImGui::DragFloat4((label + "##" + std::to_string(3)).c_str(), &mat.m[3][0], 0.01f);
+}
+
 void StaticMeshRenderer::DrawInspectorImGui() {
 	// 子クラスのインスペクターUIの描画
 	if (ImGui::CollapsingHeader("StaticMeshRenderer", ImGuiTreeNodeFlags_DefaultOpen)) {
 		if (staticMesh_) {
+			ImGui::Text("TransformationMatrix");
+			MatrixEdit("WVP", transformationMatrix_->wvp);
+			MatrixEdit("World", transformationMatrix_->world);
+			MatrixEdit("WorldInverseTranspose", transformationMatrix_->worldInverseTranspose);
+
+			ImGui::Text("World");
+			ImGui::Text("WorldInverseTranspose");
+
 			ImGui::Text("MatParams");
 			ImGui::ColorEdit4("Color", &materialData->color.x);
 			static bool enableLighting = true;
@@ -123,8 +205,30 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 			ImGui::SliderFloat("Shininess", &materialData->shininess, 0.0f, 128.0f);
 			ImGui::ColorEdit3("Specular Color", &materialData->specularColor.x);
 
+			ImGui::Text("DirectionalLight");
+			ImGui::ColorEdit4("Color##Directional", &directionalLightData->color.x);
+			ImGui::DragFloat3("Direction##Directional", &directionalLightData->direction.x, 0.01f);
+			ImGui::DragFloat("Intensity##Directional", &directionalLightData->intensity, 0.01f);
+
 			ImGui::Text("CameraForGPU");
 			ImGui::Text("World Position: %f, %f, %f", cameraData->worldPosition.x, cameraData->worldPosition.y, cameraData->worldPosition.z);
+
+			ImGui::Text("PointLight");
+			ImGui::ColorEdit4("Color##Point", &pointLightData->color.x);
+			ImGui::DragFloat3("Position##Point", &pointLightData->position.x, 0.01f);
+			ImGui::DragFloat("Intensity##Point", &pointLightData->intensity, 0.01f);
+			ImGui::DragFloat("Radius##Point", &pointLightData->radius, 0.01f);
+			ImGui::DragFloat("Decay##Point", &pointLightData->decay, 0.01f);
+
+			ImGui::Text("SpotLight");
+			ImGui::ColorEdit4("Color##Spot", &spotLightData->color.x);
+			ImGui::DragFloat3("Position##Spot", &spotLightData->position.x, 0.01f);
+			ImGui::DragFloat("Intensity##Spot", &spotLightData->intensity, 0.01f);
+			ImGui::DragFloat3("Direction##Spot", &spotLightData->direction.x, 0.01f);
+			ImGui::DragFloat("Distance##Spot", &spotLightData->distance, 0.01f);
+			ImGui::DragFloat("Decay##Spot", &spotLightData->decay, 0.01f);
+			ImGui::DragFloat("CosAngle##Spot", &spotLightData->cosAngle, 0.01f);
+			ImGui::DragFloat("CosFalloff##Spot", &spotLightData->cosFalloffStart, 0.01f);
 
 			ImGui::Text("Name: %s", staticMesh_->GetName().c_str());
 			for (auto& subMesh : staticMesh_->GetSubMeshes()) {
@@ -143,27 +247,5 @@ void StaticMeshRenderer::SetStaticMesh(StaticMesh* staticMesh) {
 }
 
 void StaticMeshRenderer::BindTransform(ID3D12GraphicsCommandList* commandList) {
-	if (const auto* transform = transform_) {
-		const Mat4 worldMat = transform->GetWorldMat();
-
-		const Mat4& viewProjMat = CameraManager::GetActiveCamera()->GetViewProjMat();
-		Mat4 worldViewProjMat = worldMat * viewProjMat;
-
-		transformationMatrix_->wvp = worldViewProjMat;
-		transformationMatrix_->world = worldMat;
-		transformationMatrix_->worldInverseTranspose = worldMat.Inverse().Transpose();
-
-		//// ルートパラメータインデックスが正しいことを確認
-		//commandList->SetGraphicsRootConstantBufferView(
-		//	1, // インデックスが正しいか確認
-		//	transformationMatrixConstantBuffer_->GetAddress()
-		//);
-
-		commandList->SetGraphicsRootConstantBufferView(
-			0,
-			transformationMatrixConstantBuffer_->GetAddress()
-		);
-
-		//material->SetConstantBuffer(0, transformationMatrixConstantBuffer_->GetResource());
-	}
+	commandList;
 }

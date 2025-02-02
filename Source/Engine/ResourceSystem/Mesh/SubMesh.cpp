@@ -32,7 +32,7 @@ std::string& SubMesh::GetName() {
 void SubMesh::Render(ID3D12GraphicsCommandList* commandList) const {
 	// 頂点バッファとインデックスバッファを設定
 	if (!vertexBuffer_ || !indexBuffer_) {
-		Console::Print("頂点バッファまたはインデックスバッファが設定されていません", kConsoleColorError, Channel::RenderSystem);
+		Console::Print("頂点バッファまたはインデックスバッファが設定されていません", kConTextColorError, Channel::RenderSystem);
 		return;
 	}
 	const D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer_->View();
@@ -56,10 +56,10 @@ void SubMesh::ReleaseResource() {
 	material_ = nullptr;
 }
 
-std::vector<Triangle> SubMesh::GetPolygons() {
+std::vector<Triangle> SubMesh::GetPolygons() const {
 	std::vector<Triangle> polygons;
 	if (!vertexBuffer_ || !indexBuffer_) {
-		Console::Print("頂点バッファまたはインデックスバッファが設定されていません", kConsoleColorError, Channel::RenderSystem);
+		Console::Print("頂点バッファまたはインデックスバッファが設定されていません", kConTextColorError, Channel::RenderSystem);
 		return polygons;
 	}
 	const std::vector<Vertex>& vertices = vertexBuffer_->GetVertices();

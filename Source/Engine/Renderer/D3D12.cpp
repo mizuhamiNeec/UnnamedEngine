@@ -43,17 +43,22 @@ D3D12::D3D12() {
 
 	SetViewportAndScissor();
 
-	Console::Print("Complete Init D3D12.\n", kConsoleColorCompleted, Channel::Engine);
+	Console::Print("Complete Init D3D12.\n", kConTextColorCompleted, Channel::Engine);
 }
 
 D3D12::~D3D12() {
 	CloseHandle(fenceEvent_);
-	Console::Print("アリーヴェ帰ルチ! (さよナランチャ\n", kConsoleColorCompleted, Channel::Engine);
+	Console::Print("アリーヴェ帰ルチ! (さよナランチャ\n", kConTextColorCompleted, Channel::Engine);
 }
 
 void D3D12::Init() {
 	ConVarManager::RegisterConVar<bool>("r_clear", true, "Clear the screen", ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>("r_vsync", 0, "Enable VSync", ConVarFlags::ConVarFlags_Notify);
+
+	Window::SetResizeCallback([this](uint32_t width, uint32_t height) {
+		Resize(width, height);
+		}
+	);
 }
 
 void D3D12::Shutdown() {
@@ -163,7 +168,7 @@ void D3D12::ClearColorAndDepth() const {
 
 	commandList_->ClearDepthStencilView(
 		dsvHandle,
-		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+		D3D12_CLEAR_FLAG_DEPTH,
 		1.0f,
 		0,
 		0,
@@ -214,9 +219,8 @@ void D3D12::PostRender() {
 	commandList_->ResourceBarrier(1, &barrier_);
 
 	// コマンドリストを閉じる
-	const HRESULT hr = commandList_->Close();
-	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+	if (const HRESULT hr = commandList_->Close()) {
+		Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
 		assert(SUCCEEDED(hr));
 	}
 
@@ -295,7 +299,7 @@ void D3D12::Resize(const uint32_t width, const uint32_t height) {
 		}
 		Console::Print(
 			std::format("Failed to resize swap chain. Error code: {:08x}\n", hr),
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::Engine
 		);
 		return;
@@ -364,7 +368,7 @@ void D3D12::CreateDevice() {
 		// 指定した機能レベルでデバイスが生成できたをできたかを確認
 		if (SUCCEEDED(hr)) {
 			// 生成できたのでログに出力し、ループを抜ける
-			Console::Print(std::format("FeatureLevel : {}\n", featureLevelStrings[i]), kConsoleColorNormal);
+			Console::Print(std::format("FeatureLevel : {}\n", featureLevelStrings[i]), kConFgColorDark);
 			break;
 		}
 		device_ = nullptr;
@@ -409,9 +413,8 @@ void D3D12::CreateCommandQueue() {
 		D3D12_COMMAND_QUEUE_FLAG_NONE,
 		0
 	};
-	const HRESULT hr = device_->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue_));
-	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+	if (const HRESULT hr = device_->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue_))) {
+		Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
 		assert(SUCCEEDED(hr));
 	}
 }
@@ -430,11 +433,11 @@ void D3D12::CreateSwapChain() {
 	if (Window::GetWindowHandle()) {
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH; // 画面サイズに合わせて伸縮
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE; // アルファモードは無視
-		Console::Print("Window Mode\n", kConsoleColorNormal);
+		Console::Print("Window Mode\n", kConFgColorDark);
 	} else {
 		swapChainDesc.Scaling = DXGI_SCALING_NONE; // 画面サイズに合わせない
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED; // アルファモードは事前乗算
-		Console::Print("FullScreen Mode\n", kConsoleColorNormal);
+		Console::Print("FullScreen Mode\n", kConFgColorDark);
 	}
 
 	const HRESULT hr = dxgiFactory_->CreateSwapChainForHwnd(
@@ -447,7 +450,7 @@ void D3D12::CreateSwapChain() {
 	);
 
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+		Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
 		assert(SUCCEEDED(hr));
 	}
 }
@@ -479,9 +482,8 @@ void D3D12::CreateRTV() {
 
 	for (unsigned int i = 0; i < kFrameBufferCount; ++i) {
 		// SwapChainからResourceを引っ張ってくる
-		const HRESULT hr = swapChain_->GetBuffer(i, IID_PPV_ARGS(&renderTargets_[i]));
-		if (hr) {
-			Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+		if (const HRESULT hr = swapChain_->GetBuffer(i, IID_PPV_ARGS(&renderTargets_[i]))) {
+			Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
 			assert(SUCCEEDED(hr));
 		}
 
@@ -506,7 +508,7 @@ void D3D12::CreateCommandAllocator() {
 		D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator_)
 	);
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+		Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
 		assert(SUCCEEDED(hr));
 	}
 }
@@ -526,7 +528,7 @@ void D3D12::CreateCommandList() {
 	if (FAILED(hr)) {
 		Console::Print(
 			std::format("Failed to create command list. Error code: {:08x}\n", hr),
-			kConsoleColorError
+			kConTextColorError
 		);
 		assert(SUCCEEDED(hr));
 		return;
@@ -537,16 +539,15 @@ void D3D12::CreateCommandList() {
 	if (FAILED(hr)) {
 		Console::Print(
 			std::format("Failed to close command list. Error code: {:08x}\n", hr),
-			kConsoleColorError
+			kConTextColorError
 		);
 		assert(SUCCEEDED(hr));
 	}
 }
 
 void D3D12::CreateFence() {
-	const HRESULT hr = device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
-	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+	if (const HRESULT hr = device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_))) {
+		Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
 		assert(SUCCEEDED(hr));
 	}
 
@@ -587,8 +588,6 @@ void D3D12::PrepareForShutdown() const {
 		if (isFullScreen) {
 			// フルスクリーンモードを解除して、完了するまで待機
 			swapChain_->SetFullscreenState(FALSE, nullptr);
-			// 少し待機して状態の変更を確実にする
-			Sleep(100);
 		}
 	}
 }
@@ -608,7 +607,7 @@ ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(
 	const HRESULT hr = device_->CreateDescriptorHeap(&descriptorHeapDesc, IID_PPV_ARGS(&descriptorHeap));
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+		Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
 	}
 	return descriptorHeap;
 }
@@ -643,6 +642,8 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 
 	D3D12_HEAP_PROPERTIES heapProperties = {}; // 利用するHeapの設定
 	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; // vRAM上に作る
+	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN; // CPUのページプロパティ
+	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN; // メモリプールの設定
 
 	// 深度値のクリア設定
 	D3D12_CLEAR_VALUE depthClearValue = {};
@@ -661,7 +662,7 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 	); // 作成するResourceポインタへのポインタ
 	assert(SUCCEEDED(hr));
 	if (hr) {
-		Console::Print(std::format("{:08x}\n", hr), kConsoleColorError);
+		Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
 	}
 
 	return resource;

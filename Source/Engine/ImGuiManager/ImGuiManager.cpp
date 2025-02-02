@@ -72,8 +72,6 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 	);
 }
 
-void ImGuiManager::Init() {}
-
 void ImGuiManager::NewFrame() {
 	// ImGuiの新しいフレームを開始
 	ImGui_ImplDX12_NewFrame();
@@ -107,13 +105,17 @@ void ImGuiManager::Shutdown() {
 }
 
 void ImGuiManager::StyleColorsDark() {
+	ImGui::StyleColorsDark();
+
 	ImGuiStyle* style = &ImGui::GetStyle();
 	// テキストの色を少し暗めに
 	ImVec4* colors = style->Colors;
 	colors[ImGuiCol_Text] = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
 }
 
-void ImGuiManager::StyleColorsLight() {}
+void ImGuiManager::StyleColorsLight() {
+	ImGui::StyleColorsLight();
+}
 
 void ImGuiManager::PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive) {
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, bg);

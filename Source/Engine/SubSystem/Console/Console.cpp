@@ -15,6 +15,8 @@
 
 #include <Window/WindowsUtils.h>
 
+#include "Lib/Utils/IniParser.h"
+
 using SetThreadDescriptionFunc = HRESULT(WINAPI*)(HANDLE, PCWSTR);
 
 Console::Console() {
@@ -51,6 +53,8 @@ Console::Console() {
 	}
 #endif
 	StartConsoleThread();
+
+	ConCommand::Init();
 
 	ConCommand::RegisterCommand("toggleconsole", ToggleConsole, "Show/hide the console.");
 
@@ -97,10 +101,26 @@ void Console::Update() {
 	if (bWindowOpen) {
 		ShowMenuBar();
 
-		bool bIsDarkMode = WindowsUtils::IsAppDarkTheme();
+		bFocusedConsoleWindow_ = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
-		if (!bIsDarkMode) {
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, { 0.2f, 0.2f, 0.2f, 1.0f });
+		if (!WindowsUtils::IsAppDarkTheme()) {
+			if (bFocusedConsoleWindow_) {
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ToImVec4(kConBgColorLight));
+			} else {
+				Vec4 color = kConBgColorLight;
+				color.w = 0.125f;
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ToImVec4(color));
+				ImGui::PushStyleColor(ImGuiCol_WindowBg, ToImVec4(color));
+			}
+		} else {
+			if (bFocusedConsoleWindow_) {
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ToImVec4(kConBgColorDark));
+			} else {
+				Vec4 color = kConBgColorDark;
+				color.w = 0.125f;
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ToImVec4(color));
+				ImGui::PushStyleColor(ImGuiCol_WindowBg, ToImVec4(color));
+			}
 		}
 
 		if (ImGuiManager::IconButton(StrUtils::ConvertToUtf8(kIconTerminal).c_str(), "ConVar", { 48.0f,48.0f })) {
@@ -110,12 +130,11 @@ void Console::Update() {
 		ImGui::Spacing();
 		ImGui::Spacing();
 
-		ShowConVarHelper();
-
 		ShowConsoleBody();
-
-		if (!bIsDarkMode) {
+		if (bFocusedConsoleWindow_) {
 			ImGui::PopStyleColor();
+		} else {
+			ImGui::PopStyleColor(2);
 		}
 
 		if (bShowAbout_) {
@@ -123,6 +142,8 @@ void Console::Update() {
 		}
 	}
 	ImGui::End();
+
+	ShowConVarHelper();
 #endif
 }
 
@@ -162,133 +183,144 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 
 	// コマンドが空なのでなんもしない
 	if (trimmedCommand.empty()) {
-		Print(">\n", kConsoleColorNormal);
+		Print(">\n", kConFgColorDark);
 		return;
 	}
 
-	std::vector<std::string> tokens = TokenizeCommand(trimmedCommand);
+	// セミコロンでコマンドを区切る
+	std::vector<std::string> commands = SplitCommands(trimmedCommand);
 
 	// とりあえず履歴に追加
 	AddCommandHistory(trimmedCommand);
 
-	bool found = ConCommand::ExecuteCommand(trimmedCommand);
+	for (const auto& singleCommand : commands) {
+		std::string cmd = TrimSpaces(singleCommand);
 
-	// InputSystemのコマンド実行
-	// アクションコマンドの処理
-	if (!found && !tokens.empty()) {
-		// +-プレフィックスの処理
-		if (tokens[0][0] == '+' || tokens[0][0] == '-') {
-			bool isDown = (tokens[0][0] == '+');
-			InputSystem::ExecuteCommand(tokens[0], isDown);
-			found = true;
+		if (cmd.empty()) {
+			continue;
 		}
-	}
 
-	for (auto conVar : ConVarManager::GetAllConVars()) {
-		// 変数が存在する場合
-		if (StrUtils::Equal(conVar->GetName(), tokens[0])) {
-			found = true;
-			// 変数のみ入力された場合
-			if (tokens.size() < 2) {
-				// 現在の変数の値を表示
-				Print(
-					std::format(
-						R"("{}" = "{}")",
-						conVar->GetName(),
-						conVar->GetValueAsString()
-					) + "\n",
-					kConsoleColorWarning
-				);
-				// 変数の説明を取得
-				std::string description = conVar->GetHelp();
-				// 変数の型を取得
-				std::string type = std::format("[{}]\n", conVar->GetTypeAsString());
+		std::vector<std::string> tokens = TokenizeCommand(cmd);
 
-				Print(" - " + description + " " + type, GetConVarTypeColor(conVar->GetTypeAsString()));
-			} else {
-				// 引数込みで入力された場合の処理
-				bool isValidInput = true;
-				// Vec3の場合の処理
-				if (conVar->GetTypeAsString() == "vec3") {
-					// 引数が3つあることを確認
-					if (tokens.size() < 4) {
-						// tokens[0]が変数名なので、1,2,3の引数を含めて最低4つ必要
-						isValidInput = false;
-					} else {
-						try {
-							// 1, 2, 3の順番でx, y, zを取得
-							float x = std::stof(tokens[1]);
-							float y = std::stof(tokens[2]);
-							float z = std::stof(tokens[3]);
+		bool found = ConCommand::ExecuteCommand(cmd);
 
-							// Vec3型の文字列として値を設定
-							std::string vec3Value = std::format("{} {} {}", x, y, z);
-							conVar->SetValueFromString(vec3Value); // ここで値を設定
-						} catch (...) {
-							isValidInput = false;
-						}
-					}
-				} else {
-					for (size_t i = 1; i < tokens.size(); ++i) {
-						if (conVar->GetTypeAsString() == "int") {
-							if (tokens[i] == "true") {
-								tokens[i] = "1";
-							} else if (tokens[i] == "false") {
-								tokens[i] = "0";
-							}
-
-							try {
-								[[maybe_unused]] int value = std::stoi(tokens[i]);
-							} catch (...) {
-								isValidInput = false;
-								break;
-							}
-						} else if (conVar->GetTypeAsString() == "float") {
-							try {
-								[[maybe_unused]] float value = std::stof(tokens[i]);
-							} catch (...) {
-								isValidInput = false;
-								break;
-							}
-						} else if (conVar->GetTypeAsString() == "bool") {
-							try {
-								// 入力が数値として解釈できる場合
-								int value = std::stoi(tokens[i]);
-								tokens[i] = (value == 0) ? "false" : "true";
-							} catch (...) {
-								// 数値に変換できなかった場合
-								if (tokens[i] == "true" || tokens[i] == "false") {
-									// 入力が "true" または "false" の場合はそのまま
-									continue;
-								}
-								isValidInput = false;
-								break;
-							}
-						}
-					}
-				}
-				if (isValidInput) {
-					// Vec3型の場合は個別の処理を行ったのでスキップ
-					if (conVar->GetTypeAsString() != "vec3") {
-						for (size_t i = 1; i < tokens.size(); ++i) {
-							conVar->SetValueFromString(tokens[i]);
-						}
-					}
-				} else {
-					Print("CVAR型変換エラー: 指定された型が無効です。\n", kConsoleColorError, Channel::Console);
-					Print(
-						"期待される型: " + conVar->GetTypeAsString() + "\n", GetConVarTypeColor(conVar->GetTypeAsString()),
-						Channel::Console
-					);
-				}
+		// InputSystemのコマンド実行
+		// アクションコマンドの処理
+		if (!found && !tokens.empty()) {
+			// +-プレフィックスの処理
+			if (tokens[0][0] == '+' || tokens[0][0] == '-') {
+				bool isDown = (tokens[0][0] == '+');
+				InputSystem::ExecuteCommand(tokens[0], isDown);
+				found = true;
 			}
-			break;
 		}
-	}
 
-	// コマンドが見つからなかった
-	if (!found) {
-		Print(std::format("Unknown command: {}\n", trimmedCommand));
+		for (auto conVar : ConVarManager::GetAllConVars()) {
+			// 変数が存在する場合
+			if (StrUtils::Equal(conVar->GetName(), tokens[0])) {
+				found = true;
+				// 変数のみ入力された場合
+				if (tokens.size() < 2) {
+					// 現在の変数の値を表示
+					Print(
+						std::format(
+							R"("{}" = "{}")",
+							conVar->GetName(),
+							conVar->GetValueAsString()
+						) + "\n",
+						kConTextColorWarning
+					);
+					// 変数の説明を取得
+					std::string description = conVar->GetHelp();
+					// 変数の型を取得
+					std::string type = std::format("[{}]\n", conVar->GetTypeAsString());
+
+					Print(" - " + description + " " + type, GetConVarTypeColor(conVar->GetTypeAsString()));
+				} else {
+					// 引数込みで入力された場合の処理
+					bool isValidInput = true;
+					// Vec3の場合の処理
+					if (conVar->GetTypeAsString() == "vec3") {
+						// 引数が3つあることを確認
+						if (tokens.size() < 4) {
+							// tokens[0]が変数名なので、1,2,3の引数を含めて最低4つ必要
+							isValidInput = false;
+						} else {
+							try {
+								// 1, 2, 3の順番でx, y, zを取得
+								float x = std::stof(tokens[1]);
+								float y = std::stof(tokens[2]);
+								float z = std::stof(tokens[3]);
+
+								// Vec3型の文字列として値を設定
+								std::string vec3Value = std::format("{} {} {}", x, y, z);
+								conVar->SetValueFromString(vec3Value); // ここで値を設定
+							} catch (...) {
+								isValidInput = false;
+							}
+						}
+					} else {
+						for (size_t i = 1; i < tokens.size(); ++i) {
+							if (conVar->GetTypeAsString() == "int") {
+								if (tokens[i] == "true") {
+									tokens[i] = "1";
+								} else if (tokens[i] == "false") {
+									tokens[i] = "0";
+								}
+
+								try {
+									[[maybe_unused]] int value = std::stoi(tokens[i]);
+								} catch (...) {
+									isValidInput = false;
+									break;
+								}
+							} else if (conVar->GetTypeAsString() == "float") {
+								try {
+									[[maybe_unused]] float value = std::stof(tokens[i]);
+								} catch (...) {
+									isValidInput = false;
+									break;
+								}
+							} else if (conVar->GetTypeAsString() == "bool") {
+								try {
+									// 入力が数値として解釈できる場合
+									int value = std::stoi(tokens[i]);
+									tokens[i] = (value == 0) ? "false" : "true";
+								} catch (...) {
+									// 数値に変換できなかった場合
+									if (tokens[i] == "true" || tokens[i] == "false") {
+										// 入力が "true" または "false" の場合はそのまま
+										continue;
+									}
+									isValidInput = false;
+									break;
+								}
+							}
+						}
+					}
+					if (isValidInput) {
+						// Vec3型の場合は個別の処理を行ったのでスキップ
+						if (conVar->GetTypeAsString() != "vec3") {
+							for (size_t i = 1; i < tokens.size(); ++i) {
+								conVar->SetValueFromString(tokens[i]);
+							}
+						}
+					} else {
+						Print("CVAR型変換エラー: 指定された型が無効です。\n", kConTextColorError, Channel::Console);
+						Print(
+							"期待される型: " + conVar->GetTypeAsString() + "\n", GetConVarTypeColor(conVar->GetTypeAsString()),
+							Channel::Console
+						);
+					}
+				}
+				break;
+			}
+		}
+
+		// コマンドが見つからなかった
+		if (!found) {
+			Print(std::format("Unknown command: {}\n", trimmedCommand));
+		}
 	}
 
 #ifdef _DEBUG
@@ -355,8 +387,8 @@ void Console::Print(
 // Purpose: 開発者を叱ります
 //-----------------------------------------------------------------------------
 void Console::PrintNullptr(const std::string& message, const Channel& channel) {
-	Print("ぬるぽ >> " + message + "\n", kConsoleColorError, channel);
-	Print("ｶﾞｯ\n", kConsoleColorWarning, channel);
+	Print("ぬるぽ >> " + message + "\n", kConTextColorError, channel);
+	Print("ｶﾞｯ\n", kConTextColorWarning, channel);
 }
 
 //-----------------------------------------------------------------------------
@@ -421,7 +453,7 @@ void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
 	ConCommand::Help();
 	for (auto conVar : ConVarManager::GetAllConVars()) {
-		Print(" - " + conVar->GetName() + " : " + conVar->GetHelp() + "\n", kConsoleColorNormal, Channel::None);
+		Print(" - " + conVar->GetName() + " : " + conVar->GetHelp() + "\n", kConFgColorDark, Channel::None);
 	}
 #endif
 }
@@ -505,7 +537,7 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 
 	// 結合結果を一行ずつ出力
 	for (const std::string& line : combined) {
-		Print(line, kConsoleColorWait, Channel::None);
+		Print(line, kConTextColorWait, Channel::None);
 	}
 }
 
@@ -513,7 +545,7 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 // Purpose: 入力された文字列をエコーします
 //-----------------------------------------------------------------------------
 void Console::Echo(const std::vector<std::string>& args) {
-	Print(StrUtils::Join(args, " ") + "\n", kConsoleColorNormal, Channel::Console);
+	Print(StrUtils::Join(args, " ") + "\n", kConFgColorDark, Channel::Console);
 }
 
 #ifdef _DEBUG
@@ -676,7 +708,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	case ImGuiInputTextFlags_CallbackEdit: Print("Edit\n", kConsoleColorInt);
 		break;
 
-	case ImGuiInputTextFlags_CallbackResize: Print("Resize\n", kConsoleColorError);
+	case ImGuiInputTextFlags_CallbackResize: Print("Resize\n", kConTextColorError);
 		break;
 	default:;
 	}
@@ -777,7 +809,20 @@ void Console::ShowConsoleText() {
 
 			// ログ列
 			if (ImGui::TableSetColumnIndex(1)) {
-				ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(displayState_.buffer[i].color));
+				if (WindowsUtils::IsAppDarkTheme()) {
+					if (bFocusedConsoleWindow_) {
+						ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(displayState_.buffer[i].color));
+					} else {
+						Vec4 color = displayState_.buffer[i].color;
+						color.w = 0.5f;
+						ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(color));
+					}
+				} else {
+					Vec4 color = displayState_.buffer[i].color;
+					Vec3 col = { color.x,color.y,color.z };
+					col *= 0.5f;
+					ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4({ col,1.0f }));
+				}
 				bool isSelected = displayState_.selected[i];
 				if (ImGui::Selectable((displayState_.buffer[i].text + "##" + std::to_string(i)).c_str(), isSelected)) {
 					if (ImGui::GetIO().KeyCtrl) {
@@ -795,7 +840,7 @@ void Console::ShowConsoleText() {
 						}
 					} else {
 						// 単一選択（フィルタリング後の要素に限定）
-						std::fill(displayState_.selected.begin(), displayState_.selected.end(), false);
+						std::ranges::fill(displayState_.selected, false);
 						displayState_.selected[i] = true;
 					}
 					lastSelectedIndex_ = visibleIndex; // フィルタリング後のインデックス
@@ -973,9 +1018,30 @@ void Console::ShowConVarHelper() {
 		return;
 	}
 
-	bool isOpen = ImGui::Begin("ConVar Helper", &bShowConVarHelper_);
+	ImGui::SetNextWindowSizeConstraints(
+		{ 320.0f,0.0f },
+		{ 0xFFFF,0xFFFF }
+	);
 
-	if (isOpen) {
+	if (bool isOpen = ImGui::Begin("ConVar Helper", &bShowConVarHelper_, ImGuiWindowFlags_MenuBar)) {
+		// メニューバー
+		{
+			if (ImGui::BeginMenuBar()) {
+				if (ImGui::BeginMenu("File")) {
+					if (ImGui::MenuItem((StrUtils::ConvertToUtf8(kIconDownload) + " Import Page").c_str())) {
+						ImportPage();
+					}
+					ImGui::BeginDisabled();
+					if (ImGui::MenuItem((StrUtils::ConvertToUtf8(kIconUpload) + " Export Page").c_str())) {
+						ExportPage();
+					}
+					ImGui::EndDisabled();
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenuBar();
+			}
+		}
+
 		// ページ選択
 		{
 			// ComboBoxの表示
@@ -1037,7 +1103,10 @@ void Console::ShowConVarHelper() {
 			ImGui::SetNextItemWidth(inputWidth);
 			int tmpWidth = static_cast<int>(pages_[selectedPageIndex_].grid.width);
 			if (ImGui::InputInt("##Width", &tmpWidth, 1)) {
-				pages_[selectedPageIndex_].grid.width = max(1, tmpWidth);
+				if (tmpWidth > 0 && tmpWidth != static_cast<int>(pages_[selectedPageIndex_].grid.width)) {
+					RearrangeGridElements(tmpWidth, pages_[selectedPageIndex_].grid.height);
+					pages_[selectedPageIndex_].grid.width = tmpWidth;
+				}
 			}
 
 			ImGui::SameLine();
@@ -1063,7 +1132,7 @@ void Console::ShowConVarHelper() {
 			}
 
 			if (ImGui::BeginTable("GridTable", grid.width,
-				ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+				ImGuiTableFlags_Borders |
 				ImGuiTableFlags_SizingFixedFit |
 				ImGuiTableFlags_NoPadInnerX |
 				ImGuiTableFlags_NoPadOuterX)) {
@@ -1079,9 +1148,9 @@ void Console::ShowConVarHelper() {
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
 				// 固定のセル高さを設定
-				const float cellHeight = 16.0f;
 
 				for (uint32_t row = 0; row < grid.height; ++row) {
+					const float cellHeight = 20.0f;
 					ImGui::TableNextRow(0, cellHeight);
 					for (uint32_t col = 0; col < grid.width; ++col) {
 						ImGui::TableSetColumnIndex(col);
@@ -1116,17 +1185,20 @@ void Console::ShowConVarHelper() {
 							}
 						} else if (element.type == GridElement::Type::Label) {
 							// ラベルの場合は、テキストを表示
-							ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(element.color));
+							ImGui::PushStyleColor(ImGuiCol_Button, ToImVec4(element.bgColor));
+							ImGui::PushStyleColor(ImGuiCol_ButtonActive, ToImVec4(element.bgColor));
+							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ToImVec4(element.bgColor));
+							ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(element.fgColor));
 
-							// テキストを中央揃えで配置
-							ImVec2 textSize = ImGui::CalcTextSize(element.label.c_str());
-							ImVec2 pos = ImGui::GetCursorPos();
-							pos.x += (cellSize.x - textSize.x) * 0.5f;
-							pos.y += (cellSize.y - textSize.y) * 0.5f;
-							ImGui::SetCursorPos(pos);
+							//// テキストを中央揃えで配置
+							//ImVec2 textSize = ImGui::CalcTextSize(element.label.c_str());
+							//ImVec2 pos = ImGui::GetCursorPos();
+							//pos.x += (cellSize.x - textSize.x) * 0.5f;
+							//pos.y += (cellSize.y - textSize.y) * 0.5f;
+							//ImGui::SetCursorPos(pos);
 
-							ImGui::TextUnformatted(element.label.c_str());
-							ImGui::PopStyleColor();
+							ImGui::Button((element.label + "##" + std::to_string(row) + std::to_string(col)).c_str(), cellSize);
+							ImGui::PopStyleColor(4);
 
 							// 右クリックでコンテキストメニューを表示
 							if (ImGui::BeginPopupContextItem(cellId.c_str())) {
@@ -1134,21 +1206,28 @@ void Console::ShowConVarHelper() {
 									bShowElementPopup_ = true;
 									editingElementIndex_ = cellIndex;
 								}
-								if (ImGui::MenuItem("Remove Element")) {
+								if (ImGui::MenuItem("Delete Label")) {
 									element = GridElement(); // 要素を削除
 								}
 								ImGui::EndPopup();
 							}
 						} else if (element.type == GridElement::Type::Button) {
 							// ボタンの場合は、ボタンを表示
-							ImGui::PushStyleColor(ImGuiCol_Button, ToImVec4(element.color));
+							ImGui::PushStyleColor(ImGuiCol_Button, ToImVec4(element.bgColor));
+							ImGui::PushStyleColor(ImGuiCol_ButtonActive, ToImVec4(element.bgColor));
+							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.33f, 0.37f, 0.44f, 1.0f });
+							ImGui::PushStyleColor(ImGuiCol_Text, ToImVec4(element.fgColor));
 
-							if (ImGui::Button(element.label.c_str(), cellSize)) {
+							if (ImGui::Button((element.label + "##" + std::to_string(row) + std::to_string(col)).c_str(), cellSize)) {
 								// ボタンのクリック処理
 								SubmitCommand(element.command);
 							}
 
-							ImGui::PopStyleColor();
+							if (ImGui::IsItemHovered()) {
+								ImGui::SetTooltip("%s", element.command.c_str());
+							}
+
+							ImGui::PopStyleColor(4);
 
 							// 右クリックでコンテキストメニューを表示
 							if (ImGui::BeginPopupContextItem(cellId.c_str())) {
@@ -1156,8 +1235,25 @@ void Console::ShowConVarHelper() {
 									bShowElementPopup_ = true;
 									editingElementIndex_ = cellIndex;
 								}
-								if (ImGui::MenuItem("Remove Element")) {
-									element = GridElement(); // 要素を削除
+								if (element.type == GridElement::Type::Label) {
+									if (ImGui::MenuItem("Delete Button")) {
+										element = GridElement(); // 要素を削除
+									}
+								}
+
+								ImGui::Separator();
+
+								if (ImGui::MenuItem("Copy Command")) {
+									ImGui::SetClipboardText(element.command.c_str());
+								}
+
+								ImGui::Separator();
+
+								if (ImGui::MenuItem("Insert Row")) {
+									InsertRow(row);
+								}
+								if (ImGui::MenuItem("Delete Row")) {
+									DeleteRow(row);
 								}
 								ImGui::EndPopup();
 							}
@@ -1178,36 +1274,288 @@ void Console::ShowConVarHelper() {
 #endif
 }
 
+void Console::RearrangeGridElements([[maybe_unused]] const uint32_t newWidth, [[maybe_unused]] const uint32_t newHeight) {
+#ifdef _DEBUG
+	auto& elements = pages_[selectedPageIndex_].elements;
+	std::vector<GridElement> newElements(newWidth * newHeight);
+
+	for (uint32_t row = 0; row < pages_[selectedPageIndex_].grid.height; ++row) {
+		for (uint32_t col = 0; col < pages_[selectedPageIndex_].grid.width; ++col) {
+			uint32_t oldIndex = row * pages_[selectedPageIndex_].grid.width + col;
+			uint32_t newIndex = row * newWidth + col;
+
+			if (row < newHeight && col < newWidth && oldIndex < elements.size() && newIndex < newElements.size()) {
+				newElements[newIndex] = elements[oldIndex];
+			}
+		}
+	}
+
+	elements = std::move(newElements);
+#endif
+}
+
+void Console::InsertRow([[maybe_unused]] const uint32_t row) {
+#ifdef _DEBUG
+	auto& grid = pages_[selectedPageIndex_].grid;
+	auto& elements = pages_[selectedPageIndex_].elements;
+
+	// 新しい行を挿入
+	elements.insert(elements.begin() + row * grid.width, grid.width, GridElement());
+
+	// グリッドの高さを更新
+	grid.height++;
+#endif
+}
+
+void Console::DeleteRow([[maybe_unused]] const uint32_t row) {
+#ifdef _DEBUG
+	auto& grid = pages_[selectedPageIndex_].grid;
+	auto& elements = pages_[selectedPageIndex_].elements;
+
+	// 行を削除
+	elements.erase(elements.begin() + row * grid.width, elements.begin() + (row + 1) * grid.width);
+
+	// グリッドの高さを更新
+	grid.height--;
+#endif
+}
+
+void Console::ImportPage() {
+#ifdef _DEBUG
+	// カレントディレクトリを保存
+	WCHAR currentDir[MAX_PATH];
+	GetCurrentDirectory(MAX_PATH, currentDir);
+
+	OPENFILENAME ofn;
+	WCHAR szFile[260] = {};
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = Window::GetWindowHandle();
+	ofn.lpstrFile = szFile;
+	ofn.nMaxFile = sizeof(szFile);
+	ofn.lpstrFilter = L"Files (*.ini)\0*.ini\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = nullptr;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = nullptr;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+	ofn.lpstrTitle = L"Open File";
+
+	if (GetOpenFileName(&ofn) == TRUE) {
+		std::ifstream file(ofn.lpstrFile);
+		if (file.is_open()) {
+			IniParser parser;
+			auto iniData = parser.ParseIniFile(StrUtils::ToString(ofn.lpstrFile));
+
+			// Generalセクションからグリッドサイズを取得
+			auto general = iniData.find("General");
+			if (general != iniData.end()) {
+				// GridWidth
+				auto gridWidth = general->second.find("GridWidth");
+				if (gridWidth != general->second.end()) {
+					pages_[selectedPageIndex_].grid.width = std::stoi(gridWidth->second);
+				}
+				// GridHeight
+				auto gridHeight = general->second.find("GridHeight");
+				if (gridHeight != general->second.end()) {
+					pages_[selectedPageIndex_].grid.height = std::stoi(gridHeight->second);
+				}
+			}
+
+			// 要素を初期化
+			pages_[selectedPageIndex_].elements.clear();
+			size_t totalElements = pages_[selectedPageIndex_].grid.width * pages_[selectedPageIndex_].grid.height;
+			pages_[selectedPageIndex_].elements.resize(totalElements);
+
+			// 各セクションを処理
+			for (const auto& [key, value] : iniData.at("General")) {
+				std::vector<std::string> tokens = TokenizeKey(key);
+				if (tokens.size() < 4) {
+					continue;
+				}
+
+				uint32_t col = std::stoul(tokens[1]);
+				uint32_t row = std::stoul(tokens[2]);
+				const std::string& property = tokens[3];
+
+				// インデックス計算
+				uint32_t index = row * pages_[selectedPageIndex_].grid.width + col;
+				if (index >= pages_[selectedPageIndex_].elements.size()) {
+					Print("インデックスが範囲外です: " + key + "\n", kConTextColorError, Channel::Console);
+					continue;
+				}
+
+				GridElement& element = pages_[selectedPageIndex_].elements[index];
+
+				// プロパティに基づいて値を設定
+				if (property == "Label") {
+					element.type = GridElement::Type::Label;
+					element.bgColor = kConHelperColorLabelBg;
+					element.label = value;
+				} else if (property == "AltButtonText") {
+					element.type = GridElement::Type::Button;
+					element.label = value;
+				} else if (property == "Command") {
+					element.command = value;
+				} else if (property == "Description") {
+					element.description = value;
+				} else if (property == "BGColor") {
+					element.bgColor = ParseColor(value);
+				} else if (property == "FGColor") {
+					element.fgColor = ParseColor(value);
+				} else {
+					//Print("不明なプロパティ: " + key + "\n", kConTextColorError, Channel::Console);
+				}
+
+				pages_[selectedPageIndex_].elements[index] = element;
+			}
+
+			file.close();
+		} else {
+			Print("ファイルが開けませんでした。\n", kConTextColorError, Channel::Console);
+		}
+	} else {
+		Print("ファイルが選択がキャンセルされました。\n", kConTextColorError, Channel::Console);
+	}
+
+	SetCurrentDirectory(currentDir);
+#endif
+}
+
+std::vector<std::string> Console::TokenizeKey(const std::string& key) {
+	std::vector < std::string> tokens;
+	std::stringstream ss(key);
+	std::string token;
+
+	while (std::getline(ss, token, '-')) {
+		tokens.push_back(token);
+	}
+
+	return tokens;
+}
+
+Vec4 Console::ParseColor(const std::string& color) {
+	// 1. 括弧内の内容を取得
+	size_t start = color.find('(');
+	size_t end = color.rfind(')');
+	if (start == std::string::npos || end == std::string::npos || end <= start) {
+		Print("ParseColor: 無効な形式の文字列です: " + color + "\n", kConTextColorError, Channel::Console);
+		return Vec4(0.0f, 0.0f, 0.0f, 1.0f); // デフォルトの色を返す
+	}
+	std::string content = color.substr(start + 1, end - start - 1);
+
+	// 2. エスケープシーケンスを展開してバイト配列を取得
+	std::vector<uint8_t> bytes;
+	for (size_t i = 0; i < content.size();) {
+		if (content[i] == '\\') {
+			i++;
+			if (i >= content.size()) break;
+			char c = content[i];
+			if (c == 'x') {
+				// 16進数エスケープ (\xHH)
+				if (i + 2 < content.size()) {
+					std::string hexStr = content.substr(i + 1, 2);
+					uint8_t val = static_cast<uint8_t>(std::stoul(hexStr, nullptr, 16));
+					bytes.push_back(val);
+					i += 3; // '\\', 'x', 'HH' の分を消費
+				} else {
+					break; // 不完全なエスケープシーケンス
+				}
+			} else if (std::isdigit(static_cast<unsigned char>(c))) {
+				// 8進数エスケープ (\NNN)
+				std::string octStr;
+				int digits = 0;
+				while (i < content.size() && digits < 3 && std::isdigit(static_cast<unsigned char>(content[i]))) {
+					octStr += content[i];
+					i++;
+					digits++;
+				}
+				uint8_t val = static_cast<uint8_t>(std::stoul(octStr, nullptr, 8));
+				bytes.push_back(val);
+			} else {
+				// その他のエスケープシーケンス
+				switch (c) {
+				case 'n': bytes.push_back('\n'); i++; break;
+				case 't': bytes.push_back('\t'); i++; break;
+				case '\\': bytes.push_back('\\'); i++; break;
+				default: bytes.push_back(static_cast<uint8_t>(c)); i++; break;
+				}
+			}
+		} else {
+			bytes.push_back(static_cast<uint8_t>(content[i]));
+			i++;
+		}
+	}
+
+	// 3. バイト配列から色情報を取得
+	if (bytes.size() < 16) {
+		Print("ParseColor: データサイズが不足しています: " + color + "\n", kConTextColorError, Channel::Console);
+		return Vec4(0.0f, 0.0f, 0.0f, 1.0f); // デフォルトの色を返す
+	}
+
+	// バイト配列から float 値を取得（リトルエンディアンを想定）
+	float components[4];
+	for (int i = 0; i < 4; ++i) {
+		uint32_t val = static_cast<uint32_t>(bytes[i * 4]) |
+			(static_cast<uint32_t>(bytes[i * 4 + 1]) << 8) |
+			(static_cast<uint32_t>(bytes[i * 4 + 2]) << 16) |
+			(static_cast<uint32_t>(bytes[i * 4 + 3]) << 24);
+		components[i] = *reinterpret_cast<float*>(&val);
+	}
+
+	return Vec4(components[0], components[1], components[2], components[3]);
+}
+
+void Console::ExportPage() {
+}
+
 void Console::ShowElementEditPopup() {
 #ifdef _DEBUG
 	if (!bShowElementPopup_) {
 		return;
 	}
 
-	// ポップアップ名を "Edit Element" に統一
-	ImGui::OpenPopup("Edit Element");
-
 	// フルスクリーンポップアップの設定
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
-	// 画面中心に表示
+	// ビューポート中心に表示
 	ImVec2 size = ImVec2(400, 200);
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 	ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 	ImGui::SetNextWindowSize(size);
 
-	// ポップアップ名を "Edit Element" に統一
-	if (ImGui::BeginPopupModal("Edit Element", &bShowElementPopup_, flags)) {
-		auto& element = pages_[selectedPageIndex_].elements[editingElementIndex_];
+	auto& element = pages_[selectedPageIndex_].elements[editingElementIndex_];
 
-		if (element.type == GridElement::Type::Label) {
+	if (element.type == GridElement::Type::Label) {
+		ImGui::OpenPopup("Edit Label");
+
+		// ポップアップ名を "Edit Element" に統一
+		if (ImGui::BeginPopupModal("Edit Label", &bShowElementPopup_, flags)) {
 			char labelBuffer[256];
 			strncpy_s(labelBuffer, element.label.c_str(), sizeof(labelBuffer));
 			if (ImGui::InputText("Label", labelBuffer, sizeof(labelBuffer))) {
 				element.label = labelBuffer;
 			}
-			ImGui::ColorEdit4("Color", &element.color.x);
-		} else if (element.type == GridElement::Type::Button) {
+
+			ImGui::ColorEdit4("Foreground ", &element.fgColor.x);
+			ImGui::ColorEdit4("Background ", &element.bgColor.x);
+
+			// OK と Cancel ボタン
+			if (ImGui::Button("OK")) {
+				bShowElementPopup_ = false;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel")) {
+				bShowElementPopup_ = false;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
+	} else if (element.type == GridElement::Type::Button) {
+		ImGui::OpenPopup("Edit ConVar");
+
+		if (ImGui::BeginPopupModal("Edit ConVar", &bShowElementPopup_, flags)) {
 			char commandBuffer[256];
 			strncpy_s(commandBuffer, element.command.c_str(), sizeof(commandBuffer));
 			if (ImGui::InputText("ConVar/ConCommand", commandBuffer, sizeof(commandBuffer))) {
@@ -1220,21 +1568,21 @@ void Console::ShowElementEditPopup() {
 				element.label = labelBuffer;
 			}
 
-			ImGui::ColorEdit4("Color", &element.color.x);
-		}
+			ImGui::ColorEdit4("Foreground ", &element.fgColor.x);
+			ImGui::ColorEdit4("Background ", &element.bgColor.x);
 
-		// OK と Cancel ボタン
-		if (ImGui::Button("OK")) {
-			bShowElementPopup_ = false;
-			ImGui::CloseCurrentPopup();
+			// OK と Cancel ボタン
+			if (ImGui::Button("OK")) {
+				bShowElementPopup_ = false;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel")) {
+				bShowElementPopup_ = false;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
 		}
-		ImGui::SameLine();
-		if (ImGui::Button("Cancel")) {
-			bShowElementPopup_ = false;
-			ImGui::CloseCurrentPopup();
-		}
-
-		ImGui::EndPopup();
 	}
 #endif
 }
@@ -1280,7 +1628,7 @@ bool Console::ValidateType(const std::string& value, const std::string& type) {
 // - type (std::string): エラーが発生した型
 //-----------------------------------------------------------------------------
 void Console::PrintTypeError(const std::string& type) {
-	Print("CVAR型変換エラー: 指定された型が無効です。\n", kConsoleColorError, Channel::Console);
+	Print("CVAR型変換エラー: 指定された型が無効です。\n", kConTextColorError, Channel::Console);
 	Print("期待される型: " + type + "\n", GetConVarTypeColor(type), Channel::Console);
 }
 
@@ -1293,7 +1641,7 @@ void Console::AddCommandHistory([[maybe_unused]] const std::string& command) {
 	consoleTexts_.push_back(
 		{
 			.text = "> " + command + "\n",
-			.color = kConsoleColorExecute,
+			.color = kConTextColorExecute,
 			.channel = Channel::Console
 		}
 	);
@@ -1323,9 +1671,9 @@ void Console::UpdateRepeatCount(
 	);
 
 	if (repeatCount >= static_cast<int>(kConsoleRepeatError)) {
-		consoleTexts_.back() = { .text = formattedMessage, .color = kConsoleColorError, .channel = channel };
+		consoleTexts_.back() = { .text = formattedMessage, .color = kConTextColorError, .channel = channel };
 	} else if (repeatCount >= static_cast<int>(kConsoleRepeatWarning)) {
-		consoleTexts_.back() = { .text = formattedMessage, .color = kConsoleColorWarning, .channel = channel };
+		consoleTexts_.back() = { .text = formattedMessage, .color = kConTextColorWarning, .channel = channel };
 	} else {
 		consoleTexts_.back() = { .text = formattedMessage, .color = color, .channel = channel };
 	}
@@ -1415,7 +1763,7 @@ Vec4 Console::GetConVarTypeColor(const std::string& type) {
 	if (type == "string") {
 		return kConsoleColorString;
 	}
-	return kConsoleColorNormal;
+	return kConFgColorDark;
 }
 
 //-----------------------------------------------------------------------------
@@ -1445,6 +1793,32 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 	}
 
 	return tokens;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: コマンドをセミコロンで分割します
+//-----------------------------------------------------------------------------
+std::vector<std::string> Console::SplitCommands(const std::string& command) {
+	std::vector<std::string> result;
+	std::string current;
+	bool inQuotes = false;
+	for (char ch : command) {
+		if (ch == '"') {
+			inQuotes = !inQuotes;
+			current += ch;
+		} else if (ch == ';' && !inQuotes) {
+			result.push_back(current);
+			current.clear();
+		} else {
+			current += ch;
+		}
+	}
+
+	if (!current.empty()) {
+		result.push_back(current);
+	}
+
+	return result;
 }
 
 size_t Console::FilteredToActualIndex([[maybe_unused]] const int filteredIndex) {
@@ -1480,7 +1854,7 @@ void Console::FlushLogBuffer([[maybe_unused]] const std::vector<std::string>& bu
 //-----------------------------------------------------------------------------
 // Purpose: コンソールスレッドを非同期で更新します
 //-----------------------------------------------------------------------------
-void Console::ConsoleUpdateAsync() {
+void Console::ConsoleUpdateAsync() const {
 	try {
 		while (!bStopThread_) {
 			std::vector<std::function<void()>> currentTasks;
@@ -1503,11 +1877,11 @@ void Console::ConsoleUpdateAsync() {
 				try {
 					task();
 				} catch (const std::length_error& e) {
-					Print(std::string("Length error in task: ") + e.what() + "\n", kConsoleColorError, Channel::Console);
+					Print(std::string("Length error in task: ") + e.what() + "\n", kConTextColorError, Channel::Console);
 				} catch (const std::exception& e) {
-					Print(std::string("Task exception: ") + e.what() + "\n", kConsoleColorError, Channel::Console);
+					Print(std::string("Task exception: ") + e.what() + "\n", kConTextColorError, Channel::Console);
 				} catch (...) {
-					Print("Task exception: Unknown error\n", kConsoleColorError, Channel::Console);
+					Print("Task exception: Unknown error\n", kConTextColorError, Channel::Console);
 				}
 			}
 
@@ -1515,9 +1889,9 @@ void Console::ConsoleUpdateAsync() {
 			std::this_thread::sleep_for(std::chrono::microseconds(100));
 		}
 	} catch (const std::exception& e) {
-		Print(std::string("ConsoleUpdateAsync exception: ") + e.what() + "\n", kConsoleColorError, Channel::Console);
+		Print(std::string("ConsoleUpdateAsync exception: ") + e.what() + "\n", kConTextColorError, Channel::Console);
 	} catch (...) {
-		Print("ConsoleUpdateAsync exception: Unknown error\n", kConsoleColorError, Channel::Console);
+		Print("ConsoleUpdateAsync exception: Unknown error\n", kConTextColorError, Channel::Console);
 	}
 }
 
@@ -1539,7 +1913,7 @@ void Console::StartConsoleThread() {
 	if (setThreadDescription) {
 		setThreadDescription(hThread, L"ConsoleThread");
 	} else {
-		Print("SetThreadDescription関数が見つかりませんでした。\n", kConsoleColorError, Channel::Console);
+		Print("SetThreadDescription関数が見つかりませんでした。\n", kConTextColorError, Channel::Console);
 	}
 
 }
@@ -1579,8 +1953,9 @@ bool Console::bShowConsole_ = true;
 bool Console::bWishScrollToBottom_ = false;
 bool Console::bShowSuggestPopup_ = false;
 bool Console::bShowAbout_ = false;
+bool Console::bFocusedConsoleWindow_ = false;
 std::vector<Console::Text> Console::consoleTexts_;
-char Console::inputText_[kInputBufferSize] = { 0 };
+char Console::inputText_[kInputBufferSize] = {};
 int Console::historyIndex_ = -1;
 std::vector<std::string> Console::history_;
 std::vector<std::string> Console::suggestions_;

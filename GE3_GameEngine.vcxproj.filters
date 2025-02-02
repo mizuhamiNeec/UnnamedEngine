@@ -286,7 +286,6 @@
     <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
-    <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.h" />
     <ClInclude Include="Source\Engine\EntitySystem\Base\EntitySystem.h" />
@@ -324,6 +323,7 @@
     <ClInclude Include="Source\Engine\SubSystem\Console\ConVar.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\IniParser.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -459,7 +459,6 @@
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
@@ -494,6 +493,7 @@
     <ClCompile Include="Source\Engine\SubSystem\Console\ConVar.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Utils\IniParser.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

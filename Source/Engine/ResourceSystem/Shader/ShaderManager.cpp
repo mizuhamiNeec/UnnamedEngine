@@ -12,8 +12,7 @@ Shader* ShaderManager::LoadShader(const std::string& name, const std::string& vs
 	}
 
 	// 新しいシェーダを作成
-	auto shader = std::make_unique<Shader>(name, vsPath, psPath, gsPath);
-	if (shader) {
+	if (auto shader = std::make_unique<Shader>(name, vsPath, psPath, gsPath)) {
 		// シェーダの読み込みに成功したので登録
 		shaders_[filePath] = std::move(shader);
 		return shaders_[filePath].get();
@@ -21,7 +20,7 @@ Shader* ShaderManager::LoadShader(const std::string& name, const std::string& vs
 
 	Console::Print(
 		"シェーダの読み込みに失敗しました: " + filePath + "\n",
-		kConsoleColorError,
+		kConTextColorError,
 		Channel::ResourceSystem
 	);
 
@@ -36,14 +35,14 @@ Shader* ShaderManager::GetShader(const std::string& name) {
 void ShaderManager::Init() {
 	Console::Print(
 		"ShaderManager を初期化しています...\n",
-		kConsoleColorGray,
+		kConTextColorGray,
 		Channel::ResourceSystem
 	);
 	shaders_.clear();
 }
 
 void ShaderManager::Shutdown() {
-	Console::Print("ShaderManager を終了しています...\n", kConsoleColorWait, Channel::ResourceSystem);
+	Console::Print("ShaderManager を終了しています...\n", kConTextColorWait, Channel::ResourceSystem);
 
 	// 個々のシェーダーインスタンスをクリーンアップ
 	for (auto& [path, shader] : shaders_) {
