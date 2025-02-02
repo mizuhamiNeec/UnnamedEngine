@@ -1,178 +1,122 @@
 #include "Object3d.hlsli"
 
 struct Material {
-	float4 color;
-	int enableLighting;
-	float4x4 uvTransform;
-	float shininess;
-	float3 specularColor; // 鏡面反射色
+	float4 baseColor;
+	float metallic;
+	float roughness;
+	float3 emissive;
 };
 
 struct DirectionalLight {
-	float4 color; //!< ライトの色
-	float3 direction; //!< ライトの向き
-	float intensity; //!< 輝度
-};
-
-struct PointLight {
-	float4 color; //!< ライトの色
-	float3 position; //!< ライトの位置
-	float intensity; //!< 輝度
-	float radius; //!< ライトの届く最大距離
-	float decay; //!< 減衰率
-};
-
-struct SpotLight {
-	float4 color; //!< ライトの色
-	float3 position; //!< ライトの位置
-	float intensity; //!< 輝度
-	float3 direction; //!< スポットライトの方向
-	float distance; //!< ライトの届く最大距離
-	float decay; //!< 減衰率
-	float cosAngle; //!< スポットライトの余弦
-	float cosFalloffStart;
+	float4 color;
+	float3 direction;
+	float intensity;
 };
 
 struct Camera {
-	float3 worldPosition; //!< カメラの位置
+	float3 worldPosition;
 };
 
 ConstantBuffer<Material> gMaterial : register(b1);
 ConstantBuffer<DirectionalLight> gDirectionalLight : register(b2);
 ConstantBuffer<Camera> gCamera : register(b3);
-ConstantBuffer<PointLight> gPointLight : register(b4);
-ConstantBuffer<SpotLight> gSpotLight : register(b5);
-Texture2D diffuseTexture : register(t0);
+Texture2D baseColorTexture : register(t0);
+Texture2D envMap : register(t1); // 🌟 IBL用のキューブマップ
+//Texture2D brdfLUT : register(t2); // 🌟 BRDF LUT（スクリーンスペース用）
 SamplerState samplerState : register(s0);
 
 struct PixelShaderOutput {
 	float4 color : SV_TARGET0;
 };
 
+// SchlickのFresnel項
+float3 FresnelSchlick(float cosTheta, float3 F0) {
+	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+// GGX 法線分布関数（NDF）
+float NormalDistribution_GGX(float NdotH, float roughness) {
+	float a = roughness * roughness;
+	float a2 = a * a;
+	float NdotH2 = NdotH * NdotH;
+	float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+	return a2 / (3.141592 * denom * denom);
+}
+
+// Smith-Schlickの幾何減衰項（G）
+float Geometry_SmithGGX(float NdotV, float NdotL, float roughness) {
+	float r = roughness + 1.0;
+	float k = (r * r) / 8.0;
+	float G_V = NdotV / (NdotV * (1.0 - k) + k);
+	float G_L = NdotL / (NdotL * (1.0 - k) + k);
+	return G_V * G_L;
+}
+
+float2 EquirectangularUV(float3 dir) {
+	float2 uv;
+	uv.x = 0.5 + atan2(dir.z, dir.x) / (2.0 * 3.141592); // 水平方向（360°）
+	uv.y = 0.5 - asin(dir.y) / 3.141592; // 垂直方向（180°）
+	return uv;
+}
+
 PixelShaderOutput PSMain(VertexShaderOutput input) {
 	PixelShaderOutput output;
 
-	// UV変換とテクスチャサンプリング
-	float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
-    //float4 transformedUV = float4(input.texcoord, 0.0f, 1.0f);
-	float4 textureColor = diffuseTexture.Sample(samplerState, transformedUV.xy);
+    // テクスチャサンプリング
+	float4 baseColor = baseColorTexture.Sample(samplerState, input.texcoord) * gMaterial.baseColor;
+    
+	float metallic = gMaterial.metallic;
+	float roughness = max(gMaterial.roughness, 0.05); // 0.05以下は計算が不安定なのでクランプ
+	float3 emissive = gMaterial.emissive;
 
-	// ライティング
-	if (gMaterial.enableLighting != 0) {
-		float3 toEye = normalize(gCamera.worldPosition - input.worldPosition);
+	float3 N = normalize(input.normal);
+	float3 V = normalize(gCamera.worldPosition - input.worldPosition);
+	float3 R = reflect(-V, N);
 
-		//---------------------------------------------------------------------
-		// Purpose: Directional Light
-		//---------------------------------------------------------------------
-		float3 diffuseDirectionalLight;
-		float3 specularDirectionalLight;
-		{
-			float cosThetaDir = saturate(dot(input.normal, -gDirectionalLight.direction));
-			float3 halfVectorDir = normalize(-gDirectionalLight.direction + toEye);
-			float NDotHDir = dot(normalize(input.normal), halfVectorDir);
-			float specularPowDir = pow(saturate(NDotHDir), gMaterial.shininess);
+    // 金属度に応じてF0を計算（非金属は0.04, 金属はbaseColor）
+	float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor.rgb, metallic);
 
-			diffuseDirectionalLight =
-				gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb *
-				cosThetaDir * gDirectionalLight.intensity;
+    // ----------------------------------------------------------------------------
+    // **IBLによる間接光の追加**
+    // ----------------------------------------------------------------------------
+	float2 uvDiffuse = EquirectangularUV(N);
+	float3 irradiance = envMap.Sample(samplerState, uvDiffuse).rgb; // ☀ 拡散IBL
+	float2 uvSpecular = EquirectangularUV(R);
+	float3 prefiltered = envMap.Sample(samplerState, uvSpecular).rgb; // ✨ 鏡面IBL
+	//float2 brdf = brdfLUT.Sample(samplerState, float2(dot(N, V), roughness)).rg;
 
-			specularDirectionalLight =
-				gMaterial.specularColor * gDirectionalLight.color.rgb *
-				gDirectionalLight.intensity * specularPowDir;
-		}
+	float3 diffuseIBL = irradiance * baseColor.rgb * (1.0 - metallic);
+	float3 specularIBL = prefiltered * (F0 /* * brdf.x + brdf.y*/);
 
-		//---------------------------------------------------------------------
-		// Purpose: Point Light
-		//---------------------------------------------------------------------
-		float3 diffusePointLight = float3(0.0f, 0.0f, 0.0f);
-		float3 specularPointLight = float3(0.0f, 0.0f, 0.0f);
-		{
-			float3 pointLightDirection = gPointLight.position - input.worldPosition;
-			float distance = length(pointLightDirection);
-			pointLightDirection = normalize(pointLightDirection);
+    // ----------------------------------------------------------------------------
+    // Directional Light（方向光）
+    // ----------------------------------------------------------------------------
+	float3 L = normalize(-gDirectionalLight.direction);
+	float3 H = normalize(V + L);
 
-			float attenuationFactor = pow(saturate(-distance / gPointLight.radius + 1.0), gPointLight.decay);
+	float NdotL = saturate(dot(N, L));
+	float NdotV = saturate(dot(N, V));
+	float NdotH = saturate(dot(N, H));
+	float HdotV = saturate(dot(H, V));
 
-			float cosThetaPoint = saturate(dot(input.normal, pointLightDirection));
-			diffusePointLight =
-				gMaterial.color.rgb * textureColor.rgb * gPointLight.color.rgb *
-				cosThetaPoint * gPointLight.intensity * attenuationFactor;
+    // BRDFの計算
+	float3 F = FresnelSchlick(HdotV, F0);
+	float D = NormalDistribution_GGX(NdotH, roughness);
+	float G = Geometry_SmithGGX(NdotV, NdotL, roughness);
 
-			float3 halfVectorPoint = normalize(pointLightDirection + toEye);
-			float NDotHPoint = dot(normalize(input.normal), halfVectorPoint);
-			float specularPowPoint = pow(NDotHPoint, gMaterial.shininess);
+	float3 specular = (D * F * G) / max(4.0 * NdotV * NdotL, 0.001);
+	float3 diffuse = (1.0 - F) * baseColor.rgb * (1.0 - metallic) / 3.141592;
 
-			specularPointLight =
-				gMaterial.specularColor * gPointLight.color.rgb *
-				gPointLight.intensity * specularPowPoint * attenuationFactor;
-		}
+	float3 lightColor = gDirectionalLight.color.rgb * gDirectionalLight.intensity;
+	float3 radiance = lightColor * NdotL;
 
-		//---------------------------------------------------------------------
-		// Purpose: Spot Light
-		//---------------------------------------------------------------------
-		float3 diffuseSpotLight = float3(0.0f, 0.0f, 0.0f);
-		float3 specularSpotLight = float3(0.0f, 0.0f, 0.0f);
-		{
-			// スポットライトの位置と方向を計算
-			float3 spotLightDirection = gSpotLight.position - input.worldPosition;
-			float distance = length(spotLightDirection);
-			spotLightDirection = normalize(spotLightDirection);
+	float3 directLight = (diffuse + specular) * radiance;
 
-			// スポットライトの照射角度（余弦値）
-			float spotCosTheta = dot(-spotLightDirection, gSpotLight.direction);
-
-			// falloffFactorの計算
-			// cosFalloffStart と cosAngle の間で減衰を適用
-			float falloffFactor = saturate(
-				(spotCosTheta - gSpotLight.cosAngle) / (gSpotLight.cosFalloffStart - gSpotLight.cosAngle)
-			);
-
-			// 距離に基づく減衰
-			float spotAttenuation = pow(saturate(-distance / gSpotLight.distance + 1.0), gSpotLight.decay);
-
-			// 最終的な減衰
-			spotAttenuation *= falloffFactor;
-
-			// 法線との角度を計算
-			float cosThetaSpot = saturate(dot(input.normal, spotLightDirection));
-
-			// 拡散反射成分
-			diffuseSpotLight =
-				gMaterial.color.rgb * textureColor.rgb * gSpotLight.color.rgb *
-				cosThetaSpot * gSpotLight.intensity * spotAttenuation;
-
-			// 鏡面反射成分
-			float3 halfVectorSpot = normalize(spotLightDirection + toEye);
-			float NDotHSpot = dot(normalize(input.normal), halfVectorSpot);
-			float specularPowSpot = pow(NDotHSpot, gMaterial.shininess);
-
-			specularSpotLight =
-				gMaterial.specularColor * gSpotLight.color.rgb *
-				gSpotLight.intensity * specularPowSpot * spotAttenuation;
-		}
-
-        //色の合成
-		output.color.rgb =
-			diffuseDirectionalLight + specularDirectionalLight +
-			diffusePointLight + specularPointLight +
-			diffuseSpotLight + specularSpotLight;
-
-		//output.color.rgb =
-		//	diffuseDirectionalLight + specularDirectionalLight;
-
-		output.color.a = gMaterial.color.a * textureColor.a;
-	}
-	else {
-		// ライティング無効時
-		output.color = gMaterial.color * textureColor;
-		output.color.a = gMaterial.color.a * textureColor.a;
-	}
-
-	// sRGBへの変換（オプション）
-	// output.color.rgb = pow(output.color.rgb, 1 / 2.2);
-
-	//output.color = gMaterial.color * textureColor;
-	//output.color.a = gMaterial.color.a * textureColor.a;
+    // ----------------------------------------------------------------------------
+    // 出力
+    // ----------------------------------------------------------------------------
+	output.color.rgb = diffuseIBL + specularIBL + directLight + emissive;
+	output.color.a = baseColor.a; // アルファは元の値を維持
 
 	return output;
 }

@@ -15,12 +15,10 @@
 
 // TODO: 後で消す Object3Dシェーダーとはおさらばじゃ!!
 struct MatParam {
-	Vec4 color;
-	int32_t enableLighting;
-	Vec3 padding;
-	Mat4 uvTransform;
-	float shininess;
-	Vec3 specularColor;
+	Vec4 baseColor;
+	float metallic;
+	float roughness;
+	Vec3 emissive;
 };
 
 StaticMeshRenderer::~StaticMeshRenderer() {
@@ -53,11 +51,10 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 		);
 
 		materialData = matparamCBV->GetPtr<MatParam>();
-		materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		materialData->enableLighting = 1;
-		materialData->uvTransform = Mat4::identity;
-		materialData->shininess = 128.0f;
-		materialData->specularColor = { 0.25f, 0.25f, 0.25f };
+		materialData->baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+		materialData->metallic = 0.0f;
+		materialData->roughness = 0.5f;
+		materialData->emissive = { 0.0f, 0.0f, 0.0f };
 	}
 
 	directionalLightCB = std::make_unique<ConstantBuffer>(
@@ -68,7 +65,7 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 	directionalLightData = directionalLightCB->GetPtr<DirectionalLight>();
 	directionalLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	directionalLightData->direction = { -0.2f, -0.9f, 0.25f };
-	directionalLightData->intensity = 1.0f;
+	directionalLightData->intensity = 8.0f;
 
 	cameraCB = std::make_unique<ConstantBuffer>(
 		Engine::GetRenderer()->GetDevice(),
@@ -150,15 +147,7 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 				material->SetConstantBuffer(cameraRegister, cameraCB->GetResource());
 			}
 
-			const UINT pointLightRegister = material->GetShader()->GetResourceRegister("gPointLight");
-			if (pointLightRegister < 0xffffffff) {
-				material->SetConstantBuffer(pointLightRegister, pointLightCB->GetResource());
-			}
-
-			const UINT spotLightRegister = material->GetShader()->GetResourceRegister("gSpotLight");
-			if (spotLightRegister < 0xffffffff) {
-				material->SetConstantBuffer(spotLightRegister, spotLightCB->GetResource());
-			}
+			//material->SetTexture("envMap", TextureManager::GetErrorTexture().get());
 
 			material->Apply(commandList);
 			currentlyBoundMaterial = material;
@@ -188,26 +177,19 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 	// 子クラスのインスペクターUIの描画
 	if (ImGui::CollapsingHeader("StaticMeshRenderer", ImGuiTreeNodeFlags_DefaultOpen)) {
 		if (staticMesh_) {
-			ImGui::Text("TransformationMatrix");
-			MatrixEdit("WVP", transformationMatrix_->wvp);
-			MatrixEdit("World", transformationMatrix_->world);
-			MatrixEdit("WorldInverseTranspose", transformationMatrix_->worldInverseTranspose);
-
-			ImGui::Text("World");
-			ImGui::Text("WorldInverseTranspose");
-
 			ImGui::Text("MatParams");
-			ImGui::ColorEdit4("Color", &materialData->color.x);
-			static bool enableLighting = true;
-			if (ImGui::Checkbox("Enable Lighting", &enableLighting)) {
-				materialData->enableLighting = enableLighting ? 1 : 0;
-			}
-			ImGui::SliderFloat("Shininess", &materialData->shininess, 0.0f, 128.0f);
-			ImGui::ColorEdit3("Specular Color", &materialData->specularColor.x);
+			ImGui::ColorEdit4("BaseColor", &materialData->baseColor.x);
+			ImGui::DragFloat("Metallic", &materialData->metallic, 0.01f);
+			ImGui::DragFloat("Roughness", &materialData->roughness, 0.01f);
+			ImGui::ColorEdit3("Emissive", &materialData->emissive.x);
+
+			ImGui::Separator();
 
 			ImGui::Text("DirectionalLight");
 			ImGui::ColorEdit4("Color##Directional", &directionalLightData->color.x);
-			ImGui::DragFloat3("Direction##Directional", &directionalLightData->direction.x, 0.01f);
+			if (ImGui::DragFloat3("Direction##Directional", &directionalLightData->direction.x, 0.01f)) {
+				directionalLightData->direction.Normalize();
+			}
 			ImGui::DragFloat("Intensity##Directional", &directionalLightData->intensity, 0.01f);
 
 			ImGui::Text("CameraForGPU");

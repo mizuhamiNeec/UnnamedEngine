@@ -26,6 +26,8 @@ void CharacterMovement::Update(float deltaTime) {
 
 	Move();
 
+	position_.y = std::max<float>(position_.y, 0.0f);
+
 	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
 	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), Math::HtoM(73.0f), Math::HtoM(33.0f * 0.5f), isGrounded_ ? Vec4::green : Vec4::red);
 }
@@ -67,29 +69,34 @@ void CharacterMovement::ApplyFriction() {
 }
 
 
-bool CharacterMovement::CheckGrounded() const {
-	ColliderComponent* collider = owner_->GetComponent<ColliderComponent>();
-	if (!collider) {
-		Console::Print(
-			"CharacterMovement::CheckGrounded() : ColliderComponent is not attached to the owner entity.",
-			Vec4::yellow,
-			Channel::Physics
-		);
-		return false;
+bool CharacterMovement::CheckGrounded() {
+	// y軸0以下だったら接地していると判定
+	if (position_.y <= 0.0f) {
+		return true;
 	}
 
-	Vec3 currentPosition = transform_->GetWorldPos();
-	Vec3 direction = Vec3::down;
-	float distance = Math::HtoM(4.0f); // 少し下方にキャスト
-	Vec3 halfSize = collider->GetBoundingBox().GetSize();
+	//ColliderComponent* collider = owner_->GetComponent<ColliderComponent>();
+	//if (!collider) {
+	//	Console::Print(
+	//		"CharacterMovement::CheckGrounded() : ColliderComponent is not attached to the owner entity.",
+	//		Vec4::yellow,
+	//		Channel::Physics
+	//	);
+	//	return false;
+	//}
 
-	std::vector<HitResult> hits = collider->BoxCast(currentPosition, direction, distance, halfSize);
+	//Vec3 currentPosition = transform_->GetWorldPos();
+	//Vec3 direction = Vec3::down;
+	//float distance = Math::HtoM(4.0f); // 少し下方にキャスト
+	//Vec3 halfSize = collider->GetBoundingBox().GetSize();
 
-	for (const auto& hit : hits) {
-		if (hit.isHit && hit.hitNormal.y > 0.7f) { // 上向きの法線
-			return true;
-		}
-	}
+	//std::vector<HitResult> hits = collider->BoxCast(currentPosition, direction, distance, halfSize);
+
+	//for (const auto& hit : hits) {
+	//	if (hit.isHit && hit.hitNormal.y > 0.7f) { // 上向きの法線
+	//		return true;
+	//	}
+	//}
 
 	return false;
 }

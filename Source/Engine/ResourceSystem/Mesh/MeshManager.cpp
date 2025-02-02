@@ -204,11 +204,16 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, Stat
 				);
 
 				if (Texture* texture = textureManager_->GetTexture(fullTexturePath.string()).get()) {
-					material->SetTexture("diffuseTexture", texture);
+					material->SetTexture("baseColorTexture", texture);
 				}
 			}
 		} else {
-			material->SetTexture("diffuseTexture", TextureManager::GetErrorTexture().get());
+			material->SetTexture("baseColorTexture", TextureManager::GetErrorTexture().get());
+		}
+
+		//material->SetTexture("envMap", TextureManager::GetErrorTexture().get());
+		if (Texture* texture = textureManager_->GetTexture("./Resources/Textures/kloofendal_48d_partly_cloudy_puresky_2k.png").get()) {
+			material->SetTexture("envMap", texture);
 		}
 	}
 

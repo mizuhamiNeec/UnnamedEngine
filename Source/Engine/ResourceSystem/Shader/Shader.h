@@ -36,6 +36,8 @@ public:
 	UINT GetResourceRegister(const std::string& resourceName) const;
 	const std::unordered_map<std::string, ResourceInfo>& GetResourceRegisterMap() const;
 	std::string GetName();
+	UINT GetResourceParameterIndex(const std::string& resourceName);
+	void SetResourceParameterIndex(const std::string& resourceName, UINT index);
 
 	void Release();
 	static void ReleaseStaticResources();
@@ -60,6 +62,10 @@ private:
 
 	std::string name_;
 
-	std::unordered_map<std::string, ResourceInfo> resourceRegisterMap_; // リソース名とレジスタ番号のマップ
+	// リソース名とレジスタ番号のマップ
+	std::unordered_map<std::string, ResourceInfo> resourceRegisterMap_;
+
+	// リソース名とパラメータインデックスのマップ
+	std::unordered_map<std::string, UINT> resourceParameterIndices_;
 };
 

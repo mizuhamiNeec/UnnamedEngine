@@ -31,7 +31,7 @@ void PlayerMovement::OnAttach(Entity& owner) {
 	speed_ = 300.0f;
 	jumpVel_ = 300.0f;
 
-	Console::SubmitCommand("sv_gravity 0");
+	//Console::SubmitCommand("sv_gravity 0");
 }
 
 void PlayerMovement::ProcessInput() {
@@ -68,8 +68,10 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 
 	Move();
 
+	position_.y = std::max<float>(position_.y, 0.0f);
+	transform_->SetLocalPos(position_);
 	// デバッグ描画
-	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
+	Debug::DrawArrow(transform_->GetWorldPos(), velocity_, Vec4::yellow);
 
 	float width = Math::HtoM(33.0f);
 	float height = Math::HtoM(73.0f);
@@ -97,6 +99,8 @@ void PlayerMovement::Move() {
 	if (!isGrounded_) {
 		ApplyHalfGravity();
 	}
+
+	isGrounded_ = CheckGrounded();
 
 	// ジャンプ処理
 	if (isGrounded_ && InputSystem::IsPressed("+jump")) {
@@ -150,8 +154,9 @@ void PlayerMovement::Move() {
 		AirAccelerate(wishdir_, wishspeed, ConVarManager::GetConVar("sv_airaccelerate")->GetValueAsFloat());
 	}
 
+	position_ += velocity_ * deltaTime_;
 
-	test = CollideAndSlide(velocity_, transform_->GetWorldPos(), 0); // 衝突判定とスライド移動
+	//test = CollideAndSlide(velocity_, transform_->GetWorldPos(), 0); // 衝突判定とスライド移動
 	//velocity_
 	//isGrounded_ = CheckGrounded(); // 最後に接地判定を更新
 

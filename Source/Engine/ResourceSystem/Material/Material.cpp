@@ -89,7 +89,13 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 	}
 	commandList->SetPipelineState(pso);
 
-	  // 定数バッファをバインド
+	Console::Print(
+		"マテリアルを適用しました: " + name_ + "\n",
+		kConTextColorCompleted,
+		Channel::ResourceSystem
+	);
+
+	// 定数バッファをバインド
 	UINT parameterIndex = 0; // ルートパラメータのインデックスを追跡
 	for (const auto& [bindPoint, visibility, type] : shader_->GetResourceRegisterMap() | std::views::values) {
 		if (type == D3D_SIT_CBUFFER) {
@@ -143,7 +149,7 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 							texture->GetShaderResourceView()
 						);
 						Console::Print(
-							std::format("テクスチャをバインド: {} (t{})\n", name, resourceInfo.bindPoint),
+							std::format("テクスチャをバインド: {} (t{}) {}\n", name, resourceInfo.bindPoint, texture->GetFilePath()),
 							kConTextColorCompleted,
 							Channel::ResourceSystem
 						);

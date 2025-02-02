@@ -14,6 +14,8 @@ bool Texture::LoadFromFile(
 
 	// TODO: テクスチャ枚数上限チェック
 
+	filePath_ = filePath;
+
 	// テクスチャファイルを読み込んでプログラムで扱えるようにする
 	DirectX::ScratchImage image = {};
 	std::wstring filePathW = StrUtils::ToWString(filePath);
@@ -73,16 +75,33 @@ bool Texture::LoadFromFile(
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // 2Dテクスチャ
 	srvDesc.Texture2D.MipLevels = static_cast<UINT>(metadata_.mipLevels); // MipMapの数
 
-	handle_ = shaderResourceViewManager->RegisterShaderResourceView(textureResource_.Get(), srvDesc);
-
+	auto handles = shaderResourceViewManager->RegisterShaderResourceView(
+		textureResource_.Get(), srvDesc
+	);
 	Console::Print(std::format("テクスチャを読み込みました: {}\n", filePath), kConTextColorCompleted, Channel::ResourceSystem);
+
+	handle_ = handles.gpuHandle;
+	cpuHandle_ = handles.cpuHandle;
 
 	return true;
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceView() const { return handle_; }
 
+D3D12_CPU_DESCRIPTOR_HANDLE Texture::GetShaderResourceViewCPUHandle() {
+	return cpuHandle_;
+}
+
+std::string Texture::GetFilePath() const {
+	return filePath_;
+}
+
+ComPtr<ID3D12Resource> Texture::GetResource() const {
+	return textureResource_;
+}
+
 bool Texture::CreateErrorTexture(D3D12* d3d12, ShaderResourceViewManager* shaderResourceViewManager) {
+#ifdef _DEBUG
 	// デバッグ時は黒ピンクチェッカーの作成
 	constexpr uint32_t kCheckerSize = 32;
 	uint32_t checkerData[kCheckerSize * kCheckerSize] = {};
@@ -98,6 +117,11 @@ bool Texture::CreateErrorTexture(D3D12* d3d12, ShaderResourceViewManager* shader
 			}
 		}
 	}
+#else
+	// リリース時は真っ白のテクスチャを作成
+	constexpr uint32_t kCheckerSize = 1;
+	uint32_t checkerData[kCheckerSize * kCheckerSize] = { 0xFFFFFFFF };
+#endif
 
 	// メタデータの設定
 	metadata_.width = kCheckerSize;
@@ -146,10 +170,13 @@ bool Texture::CreateErrorTexture(D3D12* d3d12, ShaderResourceViewManager* shader
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = 1;
 
-	handle_ = shaderResourceViewManager->RegisterShaderResourceView(
+	auto handles = shaderResourceViewManager->RegisterShaderResourceView(
 		textureResource_.Get(),
 		srvDesc
 	);
+
+	handle_ = handles.gpuHandle;
+	cpuHandle_ = handles.cpuHandle;
 
 	return true;
 }
