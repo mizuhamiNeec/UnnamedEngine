@@ -291,7 +291,7 @@ void ParticleObject::SetCamera(CameraComponent* newCamera) {
 	camera_ = newCamera;
 }
 
-Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition, int shapeType) {
+Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition, int shapeType) const {
 	switch (shapeType) {
 	case 0: // Sphere（球）
 	{

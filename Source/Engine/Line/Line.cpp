@@ -69,10 +69,6 @@ void Line::AddLine(const Vec3& start, const Vec3& end, const Vec4& color) {
 	isDirty_ = true; // バッファを更新する
 }
 
-void Line::Update() {
-	// UpdateBuffer();
-}
-
 void Line::UpdateBuffer() {
 	// 更新の必要がない、またはデータが空の場合は終了
 	if (!isDirty_ || lineVertices_.empty()) {
@@ -85,7 +81,7 @@ void Line::UpdateBuffer() {
 
 	// バッファが不足している場合は再作成
 	if (vertexBuffer_->GetSize() < requiredVertexBufferSize) {
-		Console::Print("Line: VertexBufferを再作成します。\n", kConsoleColorWarning);
+		Console::Print("Line: VertexBufferを再作成します。\n", kConTextColorWarning);
 		vertexBuffer_ = std::make_unique<VertexBuffer<LineVertex>>(
 			lineCommon_->GetD3D12()->GetDevice(),
 			requiredVertexBufferSize,
@@ -93,7 +89,7 @@ void Line::UpdateBuffer() {
 	}
 
 	if (indexBuffer_->GetSize() < requiredIndexBufferSize) {
-		Console::Print("Line: IndexBufferを再作成します。\n", kConsoleColorWarning);
+		Console::Print("Line: IndexBufferを再作成します。\n", kConTextColorWarning);
 		indexBuffer_ = std::make_unique<IndexBuffer>(
 			lineCommon_->GetD3D12()->GetDevice(),
 			requiredIndexBufferSize,

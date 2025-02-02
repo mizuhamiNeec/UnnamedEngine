@@ -36,7 +36,7 @@ public:
 	);
 
 private:
-	bool IntersectAABBWithTriangle(const AABB& aabb, const Triangle& triangle, HitResult& outHit);
+	static bool IntersectAABBWithTriangle(const AABB& aabb, const Triangle& triangle, HitResult& outHit);
 
 	static Vec3 ClosestPointOnTriangleToPoint(const Vec3& point, const Triangle& triangle);
 	static Vec3 ClosestPointOnAABBToPoint(const Vec3& point, const AABB& aabb);

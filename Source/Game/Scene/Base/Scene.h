@@ -19,6 +19,7 @@ public:
 	virtual void Shutdown() = 0; // シーンの終了処理
 
 	virtual std::vector<Entity*>& GetEntities();
+	virtual void AddEntity(Entity* entity);
 
 	virtual void SetEditorMode(bool isEditorMode) { isEditorMode_ = isEditorMode; }
 	virtual bool IsEditorMode() const { return isEditorMode_; }

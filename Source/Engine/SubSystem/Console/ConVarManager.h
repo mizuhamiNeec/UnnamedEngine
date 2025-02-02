@@ -60,6 +60,6 @@ T ConVarManager::GetConVarValue(const std::string& name) {
 			return var->GetValue();
 		}
 	}
-	Console::Print("ConVar not found: " + name, kConsoleColorError);
+	Console::Print("ConVar not found: " + name, kConTextColorError);
 	return 0;
 }

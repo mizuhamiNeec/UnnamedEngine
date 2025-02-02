@@ -37,6 +37,7 @@ struct Vec4 final {
 	static Vec4 brown;
 
 	Vec4 operator*(const Mat4& mat4) const;
+	Vec4 operator*(float rhs) const;
 };
 
 #ifdef _DEBUG

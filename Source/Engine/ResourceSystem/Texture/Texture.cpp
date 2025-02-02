@@ -21,11 +21,11 @@ bool Texture::LoadFromFile(
 	HRESULT hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 	// 失敗した場合
 	if (FAILED(hr)) {
-		Console::Print(std::format("テクスチャの読み込みに失敗しました: {}\n", filePath), kConsoleColorError, Channel::ResourceSystem);
+		Console::Print(std::format("テクスチャの読み込みに失敗しました: {}\n", filePath), kConTextColorError, Channel::ResourceSystem);
 		return false;
 	}
 
-	// MipMapの作成 TODO: 本当に必要かどうか要検証
+	// MipMapの作成 これがないと遠くから見たときにバリバリになる
 	DirectX::ScratchImage mipImages = {};
 	hr = GenerateMipMaps(
 		image.GetImages(),
@@ -75,7 +75,7 @@ bool Texture::LoadFromFile(
 
 	handle_ = shaderResourceViewManager->RegisterShaderResourceView(textureResource_.Get(), srvDesc);
 
-	Console::Print(std::format("テクスチャを読み込みました: {}\n", filePath), kConsoleColorCompleted, Channel::ResourceSystem);
+	Console::Print(std::format("テクスチャを読み込みました: {}\n", filePath), kConTextColorCompleted, Channel::ResourceSystem);
 
 	return true;
 }
@@ -181,7 +181,7 @@ ComPtr<ID3D12Resource> Texture::CreateTextureResource(ID3D12Device* device) {
 	resource->SetName(L"TextureResource");
 
 	if (FAILED(hr)) {
-		Console::Print("テクスチャリソースの作成に失敗しました。\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("テクスチャリソースの作成に失敗しました。\n", kConTextColorError, Channel::ResourceSystem);
 		assert(SUCCEEDED(hr));
 	}
 
@@ -227,7 +227,7 @@ ComPtr<ID3D12Resource> Texture::UploadTextureData(ID3D12Device* device, ID3D12Gr
 	);
 
 	if (FAILED(hr)) {
-		Console::Print("アップロード用リソースの作成に失敗しました。\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("アップロード用リソースの作成に失敗しました。\n", kConTextColorError, Channel::ResourceSystem);
 		return nullptr;
 	}
 

@@ -113,7 +113,7 @@ void RootSignature2::Init(ID3D12Device* device, const RootSignatureDesc& desc) {
 		if (errorBlob) {
 			Console::Print(
 				"ルートシグネチャのシリアライズに失敗しました: " + std::string(static_cast<char*>(errorBlob->GetBufferPointer())),
-				kConsoleColorError,
+				kConTextColorError,
 				Channel::ResourceSystem
 			);
 			assert(SUCCEEDED(hr));
@@ -130,7 +130,7 @@ void RootSignature2::Init(ID3D12Device* device, const RootSignatureDesc& desc) {
 	if (FAILED(hr)) {
 		Console::Print(
 			"ルートシグネチャの作成に失敗しました\n",
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::ResourceSystem
 		);
 		assert(SUCCEEDED(hr));
@@ -148,7 +148,7 @@ void RootSignature2::Build(ID3D12Device* device) {
 	for (const auto& param : rootParameters_) {
 		std::stringstream ss;
 		ss << "Root Parameter Type: " << param.ParameterType << "\n";
-		Console::Print(ss.str(), kConsoleColorCompleted, Channel::ResourceSystem);
+		Console::Print(ss.str(), kConTextColorCompleted, Channel::ResourceSystem);
 	}
 
 	ComPtr<ID3DBlob> serializeRootSig;
@@ -165,13 +165,13 @@ void RootSignature2::Build(ID3D12Device* device) {
 		if (errorBlob) {
 			Console::Print(
 				static_cast<const char*>(errorBlob->GetBufferPointer()),
-				kConsoleColorError,
+				kConTextColorError,
 				Channel::ResourceSystem
 			);
 		}
 		Console::Print(
 			"ルートシグネチャのシリアライズに失敗しました\n",
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::ResourceSystem
 		);
 		assert(SUCCEEDED(hr));
@@ -187,7 +187,7 @@ void RootSignature2::Build(ID3D12Device* device) {
 	if (FAILED(hr)) {
 		Console::Print(
 			"ルートシグネチャの作成に失敗しました\n",
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::ResourceSystem
 		);
 		assert(SUCCEEDED(hr));
@@ -201,7 +201,7 @@ ID3D12RootSignature* RootSignature2::Get() const {
 
 	Console::Print(
 		"ルートシグネチャが作成されていません\n",
-		kConsoleColorError,
+		kConTextColorError,
 		Channel::ResourceSystem
 	);
 	assert(false);

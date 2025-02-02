@@ -20,6 +20,8 @@ private:
 		const Vec4& axisColor, const Vec4& minorColor, const Vec3& cameraPosition, float drawRadius
 	);
 
+	static float RoundToNearestPowerOfTwo(float value);
+
 private:
 	SceneManager& sceneManager_; // シーンマネージャ
 

@@ -116,7 +116,7 @@ void GameScene::Init() {
 	//resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/weaponNinjaSword.obj");
 	//auto mesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/weaponNinjaSword.obj");
 	//if (mesh) {
-	//	Console::Print("メッシュの読み込みに成功しました: " + mesh->GetName() + "\n", kConsoleColorCompleted);
+	//	Console::Print("メッシュの読み込みに成功しました: " + mesh->GetName() + "\n", kConTextColorCompleted);
 	//}
 
 	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/lightWeight.obj");
@@ -203,9 +203,15 @@ void GameScene::Update(const float deltaTime) {
 #pragma region cl_showpos
 	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() != "0") {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
-		constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoDocking;
+		constexpr ImGuiWindowFlags windowFlags =
+			ImGuiWindowFlags_NoBackground |
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoDocking |
+			ImGuiWindowFlags_NoFocusOnAppearing |
+			ImGuiWindowFlags_NoNav;
 		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
 		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;

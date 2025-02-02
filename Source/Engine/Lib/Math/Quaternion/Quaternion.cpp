@@ -251,7 +251,7 @@ Vec3 Quaternion::ToEulerAngles() const {
 	return euler; // ラジアン単位
 }
 
-Vec3 Quaternion::ToEulerDegrees() {
+Vec3 Quaternion::ToEulerDegrees() const {
 	return ToEulerAngles() * Math::rad2Deg;
 }
 
@@ -263,7 +263,7 @@ Vec3 Quaternion::GetAxis() const {
 	return { x / scale, y / scale, z / scale };
 }
 
-Vec3 Quaternion::RotateVector(Vec3 vec3) {
+Vec3 Quaternion::RotateVector(const Vec3 vec3) const {
 	Quaternion qVec(vec3.x, vec3.y, vec3.z, 0.0f);
 	Quaternion qConj = Conjugate();
 	Quaternion qResult = *this * qVec * qConj;

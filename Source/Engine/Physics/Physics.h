@@ -51,8 +51,7 @@ public:
 	DynamicBVH(DynamicBVH&& other) noexcept
 		: nodes_(std::move(other.nodes_))
 		, rootNode_(other.rootNode_)
-		, freeList_(std::move(other.freeList_))
-		, bvhMutex_() {
+		, freeList_(std::move(other.freeList_)) {
 		other.rootNode_ = -1;
 	}
 

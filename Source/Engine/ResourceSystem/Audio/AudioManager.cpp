@@ -14,7 +14,7 @@ AudioManager::~AudioManager() {
 bool AudioManager::Init() {
 	HRESULT hr = XAudio2Create(xAudio2_.GetAddressOf(), 0, XAUDIO2_DEFAULT_PROCESSOR);
 	if (FAILED(hr)) {
-		Console::Print("[AudioManager] XAudio2の作成に失敗しました\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("[AudioManager] XAudio2の作成に失敗しました\n", kConTextColorError, Channel::ResourceSystem);
 		assert(SUCCEEDED(hr));
 		return false;
 	}
@@ -22,7 +22,7 @@ bool AudioManager::Init() {
 	// マスターボイスの作成を追加
 	hr = xAudio2_->CreateMasteringVoice(&masterVoice_);
 	if (FAILED(hr)) {
-		Console::Print("[AudioManager] マスターボイスの作成に失敗しました\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("[AudioManager] マスターボイスの作成に失敗しました\n", kConTextColorError, Channel::ResourceSystem);
 		return false;
 	}
 
@@ -46,7 +46,7 @@ std::shared_ptr<Audio> AudioManager::GetAudio(const std::string& filePath) {
 		return audio;
 	}
 
-	Console::Print("[AudioManager] 音声の読み込みに失敗しました: " + filePath + "\n", kConsoleColorError, Channel::ResourceSystem);
+	Console::Print("[AudioManager] 音声の読み込みに失敗しました: " + filePath + "\n", kConTextColorError, Channel::ResourceSystem);
 
 	return nullptr;
 }
@@ -56,7 +56,7 @@ void AudioManager::UnloadAudio(const std::string& filePath) {
 	if (audioCache_.contains(filePath)) {
 		audioCache_.erase(filePath);
 	} else {
-		Console::Print("[AudioManager] 音声のアンロードに失敗しました: " + filePath + "\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("[AudioManager] 音声のアンロードに失敗しました: " + filePath + "\n", kConTextColorError, Channel::ResourceSystem);
 	}
 }
 

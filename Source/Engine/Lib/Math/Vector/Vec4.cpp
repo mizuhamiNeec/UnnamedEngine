@@ -29,6 +29,10 @@ Vec4 Vec4::operator*(const Mat4& mat4) const {
 	);
 }
 
+Vec4 Vec4::operator*(const float rhs) const {
+	return Vec4(x * rhs, y * rhs, z * rhs, w * rhs);
+}
+
 #ifdef _DEBUG
 ImVec4 ToImVec4(const Vec4& vec) {
 	return { vec.x, vec.y, vec.z, vec.w };

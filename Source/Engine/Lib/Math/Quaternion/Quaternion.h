@@ -28,9 +28,9 @@ struct Quaternion {
 	static Quaternion Lerp(const Quaternion& a, const Quaternion& b, float t);
 	static Quaternion Slerp(const Quaternion& a, const Quaternion& b, float t);
 	Vec3 ToEulerAngles() const;
-	Vec3 ToEulerDegrees();
+	Vec3 ToEulerDegrees() const;
 	Vec3 GetAxis() const;
-	Vec3 RotateVector(Vec3 vec3);
+	Vec3 RotateVector(Vec3 vec3) const;
 	float GetRotationAroundAxis(const Vec3& axis) const;
 	float GetAngle() const;
 	float GetAngleDegrees() const;

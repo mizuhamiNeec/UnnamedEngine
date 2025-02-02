@@ -219,7 +219,7 @@ public:
 					name_,
 					GetValueAsString()
 				),
-				kConsoleColorWarning,
+				kConTextColorWarning,
 				Channel::General
 			);
 		}
@@ -237,7 +237,7 @@ public:
 		} else {
 			Console::Print(
 				std::format("{} : CVAR は bool 型か int 型でなければなりません\n", name_),
-				kConsoleColorError,
+				kConTextColorError,
 				Channel::Console
 			);
 		}
@@ -269,7 +269,7 @@ private:
 	void PrintConvertErrorMessage() {
 		Console::Print(
 			std::format("{} : CVAR を {} 型へ変換できませんでした\n", name_, GetTypeAsString()),
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::General
 		);
 	}

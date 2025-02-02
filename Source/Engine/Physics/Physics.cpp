@@ -230,7 +230,7 @@ int DynamicBVH::InsertObject(const AABB& objectAABB, int objectIndex) {
 		// エラーハンドリング
 		Console::Print(
 			"BVHノードの範囲外アクセスが検出されました\n",
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::Physics
 		);
 	}

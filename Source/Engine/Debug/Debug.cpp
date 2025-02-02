@@ -374,7 +374,6 @@ void Debug::Init(LineCommon* lineCommon) {
 }
 
 void Debug::Update() {
-	line_->Update();
 }
 
 void Debug::Draw() {

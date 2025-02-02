@@ -108,7 +108,7 @@ T* Entity::GetComponent() {
 
 template <typename T>
 std::vector<T*> Entity::GetComponents() {
-	static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
+	static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
 	std::vector<T*> result;
 	for (const auto& component : components_ | std::views::values) {
 		if (auto castedComponent = dynamic_cast<T*>(component.get())) {

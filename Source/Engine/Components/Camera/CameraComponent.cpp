@@ -29,22 +29,22 @@ void CameraComponent::Update([[maybe_unused]] float deltaTime) {
 	SetAspectRatio(width / height);
 
 	// 変更があった場合のみ更新
-	if (transform_->IsDirty()) {
-		const Vec3& pos = transform_->GetWorldPos();
-		const Vec3& scale = transform_->GetWorldScale();
-		const Quaternion& rot = transform_->GetWorldRot();
+	//	if (transform_->IsDirty()) {
+	const Vec3& pos = transform_->GetWorldPos();
+	const Vec3& scale = transform_->GetWorldScale();
+	const Quaternion& rot = transform_->GetWorldRot();
 
-		const Mat4 S = Mat4::Scale(scale);
-		const Mat4 R = Mat4::FromQuaternion(rot);
-		const Mat4 T = Mat4::Translate(pos);
+	const Mat4 S = Mat4::Scale(scale);
+	const Mat4 R = Mat4::FromQuaternion(rot);
+	const Mat4 T = Mat4::Translate(pos);
 
-		worldMat_ = R * S * T;
-		viewMat_ = worldMat_.Inverse();
-		projMat_ = Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_);
-		viewProjMat_ = viewMat_ * projMat_;
+	worldMat_ = R * S * T;
+	viewMat_ = worldMat_.Inverse();
+	projMat_ = Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_);
+	viewProjMat_ = viewMat_ * projMat_;
 
-		transform_->SetIsDirty(false);
-	}
+	transform_->SetIsDirty(false);
+//	}
 }
 
 void CameraComponent::DrawInspectorImGui() {

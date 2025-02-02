@@ -12,7 +12,7 @@ const std::vector<std::unique_ptr<SubMesh>>& StaticMesh::GetSubMeshes() const {
 
 std::string StaticMesh::GetName() const { return name_; }
 
-std::vector<Triangle> StaticMesh::GetPolygons() {
+std::vector<Triangle> StaticMesh::GetPolygons() const {
 	std::vector<Triangle> polygons;
 	for (const auto& subMesh : subMeshes_) {
 		auto subMeshPolygons = subMesh->GetPolygons();

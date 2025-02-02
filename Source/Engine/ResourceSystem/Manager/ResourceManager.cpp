@@ -17,7 +17,7 @@ ResourceManager::ResourceManager(D3D12* d3d12) :
 }
 
 void ResourceManager::Init() const {
-	Console::Print("ResourceManager を初期化しています...\n", kConsoleColorWait, Channel::ResourceSystem);
+	Console::Print("ResourceManager を初期化しています...\n", kConTextColorWait, Channel::ResourceSystem);
 
 	// ImGuiで使ったら初期化
 	srvManager_->Init();
@@ -29,11 +29,11 @@ void ResourceManager::Init() const {
 	materialManager_->Init();
 	meshManager_->Init(d3d12_->GetDevice(), textureManager_.get(), shaderManager_.get(), materialManager_.get());
 
-	Console::Print("ResourceManager の初期化が完了しました\n", kConsoleColorCompleted, Channel::ResourceSystem);
+	Console::Print("ResourceManager の初期化が完了しました\n", kConTextColorCompleted, Channel::ResourceSystem);
 }
 
 void ResourceManager::Shutdown() {
-	Console::Print("ResourceManager を終了しています...\n", kConsoleColorWait, Channel::ResourceSystem);
+	Console::Print("ResourceManager を終了しています...\n", kConTextColorWait, Channel::ResourceSystem);
 
 	//#ifdef _DEBUG
 	//	ComPtr<ID3D12DebugDevice> debugDevice;

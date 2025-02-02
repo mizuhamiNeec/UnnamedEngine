@@ -49,7 +49,7 @@ bool RootSignatureManager::CreateRootSignature(
 
 	rootSignatures_[name] = rootSignature;
 
-	Console::Print(std::format("Complete Create RootSignature : {}\n", name), kConsoleColorCompleted, Channel::Engine);
+	Console::Print(std::format("Complete Create RootSignature : {}\n", name), kConTextColorCompleted, Channel::Engine);
 
 	return true;
 }

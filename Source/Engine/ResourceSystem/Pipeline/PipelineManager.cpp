@@ -7,11 +7,10 @@
 #include "Lib/Utils/StrUtils.h"
 
 size_t PipelineManager::CalculatePSOHash(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc) {
-	std::hash<size_t> hasher;
-	size_t hash = 0;
+	constexpr std::hash<size_t> hasher;
 
 	// 各メンバのハッシュを組み合わせる
-	hash = hasher(reinterpret_cast<size_t>(desc.pRootSignature));
+	size_t hash = hasher(reinterpret_cast<size_t>(desc.pRootSignature));
 
 	// シェーダーのハッシュ
 	if (desc.VS.pShaderBytecode) {
@@ -56,7 +55,7 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 	if (!desc.pRootSignature) {
 		Console::Print(
 			"ルートシグネチャが設定されていません: " + key + "\n",
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::RenderPipeline
 		);
 		return nullptr;
@@ -66,7 +65,16 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 	if (!desc.VS.pShaderBytecode || !desc.VS.BytecodeLength) {
 		Console::Print(
 			"頂点シェーダーが設定されていません: " + key + "\n",
-			kConsoleColorError,
+			kConTextColorError,
+			Channel::RenderPipeline
+		);
+		return nullptr;
+	}
+
+	if (!desc.PS.pShaderBytecode || !desc.PS.BytecodeLength) {
+		Console::Print(
+			"ピクセルシェーダーが設定されていません: " + key + "\n",
+			kConTextColorError,
 			Channel::RenderPipeline
 		);
 		return nullptr;
@@ -78,7 +86,7 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 	if (FAILED(hr)) {
 		Console::Print(
 			std::format("PSOの作成に失敗しました: {} (HRESULT: {:08X})\n", key, static_cast<unsigned int>(hr)),
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::RenderPipeline
 		);
 		return nullptr;
@@ -90,7 +98,7 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 
 	Console::Print(
 		"PSOを作成しました: " + key + "\n",
-		kConsoleColorCompleted,
+		kConTextColorCompleted,
 		Channel::RenderPipeline
 	);
 
@@ -100,7 +108,7 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 }
 
 void PipelineManager::Shutdown() {
-	Console::Print("Pipeline Manager を終了しています...\n", kConsoleColorWait, Channel::ResourceSystem);
+	Console::Print("Pipeline Manager を終了しています...\n", kConTextColorWait, Channel::ResourceSystem);
 
 	// 各パイプラインステートを解放
 	for (auto& [key, pipelineState] : pipelineStates_) {

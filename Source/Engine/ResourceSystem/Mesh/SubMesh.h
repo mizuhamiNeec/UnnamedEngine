@@ -26,7 +26,7 @@ public:
 	void Render(ID3D12GraphicsCommandList* commandList) const;
 
 	void ReleaseResource();
-	std::vector<Triangle> GetPolygons();
+	std::vector<Triangle> GetPolygons() const;
 
 private:
 	std::string name_;

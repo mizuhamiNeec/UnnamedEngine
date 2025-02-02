@@ -53,7 +53,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	if (!RegisterClassEx(&wc_)) {
 		Console::Print(
 			"Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
-			kConsoleColorError
+			kConTextColorError
 		);
 		return false;
 	}
@@ -77,7 +77,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	);
 
 	if (!hWnd_) {
-		Console::Print("Failed to create window.\n", kConsoleColorError, Channel::Engine);
+		Console::Print("Failed to create window.\n", kConTextColorError, Channel::Engine);
 		return false;
 	}
 
@@ -89,7 +89,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	// このウィンドウにフォーカス
 	SetFocus(hWnd_);
 
-	Console::Print("Complete create Window.\n", kConsoleColorCompleted, Channel::Engine);
+	Console::Print("Complete create Window.\n", kConTextColorCompleted, Channel::Engine);
 
 	return true;
 }
@@ -99,7 +99,7 @@ void Window::SetUseImmersiveDarkMode(const HWND hWnd, const bool darkMode) {
 	const HRESULT hr = DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
 	if (FAILED(hr)) {
 		const std::string errorMessage = WindowsUtils::GetHresultMessage(hr);
-		Console::Print(errorMessage, kConsoleColorError);
+		Console::Print(errorMessage, kConTextColorError);
 	}
 }
 
@@ -161,7 +161,7 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 					}
 #endif
 					Console::Print(
-						std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConsoleColorWait,
+						std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConTextColorWait,
 						Channel::Engine
 					);
 				}

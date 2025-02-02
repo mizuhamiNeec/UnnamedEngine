@@ -35,7 +35,6 @@ public:
 	explicit Line(LineCommon* lineCommon);
 
 	void AddLine(const Vec3& start, const Vec3& end, const Vec4& color);
-	void Update();
 	void Draw();
 
 private:

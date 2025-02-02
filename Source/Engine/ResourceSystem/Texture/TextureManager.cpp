@@ -5,7 +5,7 @@
 void TextureManager::Init(D3D12* d3d12, ShaderResourceViewManager* srvManager) {
 	Console::Print(
 		"TextureManager を初期化しています...\n",
-		kConsoleColorGray,
+		kConTextColorGray,
 		Channel::ResourceSystem
 	);
 	d3d12_ = d3d12;
@@ -21,7 +21,7 @@ std::shared_ptr<Texture> TextureManager::GetTexture(const std::string& filePath)
 
 	auto texture = std::make_shared<Texture>();
 	if (!texture->LoadFromFile(d3d12_, srvManager_, filePath)) {
-		Console::Print("テクスチャの読み込みに失敗しました: " + filePath + "\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("テクスチャの読み込みに失敗しました: " + filePath + "\n", kConTextColorError, Channel::ResourceSystem);
 		return errorTexture_;
 	}
 
@@ -34,7 +34,7 @@ void TextureManager::UnloadTexture(const std::string& filePath) {
 	if (textureCache_.contains(filePath)) {
 		textureCache_.erase(filePath);
 	} else {
-		Console::Print("テクスチャのアンロードに失敗しました: " + filePath + "\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("テクスチャのアンロードに失敗しました: " + filePath + "\n", kConTextColorError, Channel::ResourceSystem);
 	}
 }
 
@@ -48,7 +48,7 @@ void TextureManager::Shutdown() {
 void TextureManager::InitErrorTexture() const {
 	errorTexture_ = std::make_shared<Texture>();
 	if (!CreateErrorTexture(errorTexture_)) {
-		Console::Print("エラーテクスチャの作成に失敗しました\n", kConsoleColorError, Channel::ResourceSystem);
+		Console::Print("エラーテクスチャの作成に失敗しました\n", kConTextColorError, Channel::ResourceSystem);
 	}
 }
 
