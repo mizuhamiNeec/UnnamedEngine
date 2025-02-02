@@ -124,6 +124,24 @@ std::string Shader::GetName() {
 	return name_;
 }
 
+UINT Shader::GetResourceParameterIndex(const std::string& resourceName) {
+	auto it = resourceParameterIndices_.find(resourceName);
+	if (it != resourceParameterIndices_.end()) {
+		return it->second;
+	}
+
+	Console::Print(
+		"リソースが見つかりません: " + resourceName + "\n",
+		kConTextColorError,
+		Channel::RenderSystem
+	);
+	return UINT_MAX;
+}
+
+void Shader::SetResourceParameterIndex(const std::string& resourceName, const UINT index) {
+	resourceParameterIndices_[resourceName] = index;
+}
+
 void Shader::Release() {
 	if (vertexShaderBlob_) {
 		vertexShaderBlob_.Reset();

@@ -15,7 +15,7 @@ public:
 	virtual void Move();
 	void ApplyHalfGravity();
 	void ApplyFriction();
-	bool CheckGrounded() const;
+	bool CheckGrounded();
 
 	virtual Vec3 CollideAndSlide(const Vec3& vel, const Vec3& pos, int depth);
 

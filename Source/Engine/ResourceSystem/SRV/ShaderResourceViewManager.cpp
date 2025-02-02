@@ -67,7 +67,7 @@ void ShaderResourceViewManager::Shutdown() {
 	descriptorSize_ = 0;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE
+DescriptorHandles
 ShaderResourceViewManager::RegisterShaderResourceView(
 	ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc
 ) {
@@ -95,14 +95,14 @@ ShaderResourceViewManager::RegisterShaderResourceView(
 	device_->CreateShaderResourceView(resource, &srvDesc, handleCPU);
 
 	// キャッシュに登録
-	srvCache_[resource] = handleGPU;
+	srvCache_[resource] = { handleCPU, handleGPU };
 
 	// ディスクリプタのインデックスを進める
 	++currentDescriptorIndex_;
 
 	resource->SetName(StrUtils::ToWString("SRV: " + std::to_string(currentDescriptorIndex_)).c_str());
 
-	return handleGPU;
+	return { handleCPU, handleGPU };
 }
 
 ComPtr<ID3D12DescriptorHeap> ShaderResourceViewManager::GetDescriptorHeap() {

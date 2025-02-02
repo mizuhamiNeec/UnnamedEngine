@@ -23,10 +23,11 @@ public:
 	);
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetShaderResourceView() const;
+	D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceViewCPUHandle();
 
-	ComPtr<ID3D12Resource> GetResource() const {
-		return textureResource_;
-	}
+	std::string GetFilePath() const;
+
+	ComPtr<ID3D12Resource> GetResource() const;
 
 	bool CreateErrorTexture(D3D12* d3d12, ShaderResourceViewManager* shaderResourceViewManager);
 
@@ -50,6 +51,9 @@ private:
 
 	DirectX::TexMetadata metadata_;
 
+	std::string filePath_;
+
 	D3D12_GPU_DESCRIPTOR_HANDLE handle_ = {};
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle_ = {};
 };
 
