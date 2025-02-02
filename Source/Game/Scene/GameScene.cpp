@@ -123,10 +123,10 @@ void GameScene::Init() {
 	floatTestMR_->SetStaticMesh(mesh);
 	entities_.push_back(testMeshEntity_.get());
 
-	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/ground.obj");
-	auto groundMesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/ground.obj");
-	StaticMeshRenderer* groundMeshRenderer = entPlayer_->AddComponent<StaticMeshRenderer>();
-	groundMeshRenderer->SetStaticMesh(groundMesh);
+	//resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/ground.obj");
+	//auto groundMesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/ground.obj");
+	//StaticMeshRenderer* groundMeshRenderer = entPlayer_->AddComponent<StaticMeshRenderer>();
+	//groundMeshRenderer->SetStaticMesh(groundMesh);
 
 	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/lightWeight.obj");
 	debugMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
