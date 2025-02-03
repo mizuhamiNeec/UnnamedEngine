@@ -28,10 +28,15 @@ public:
 	void ReleaseResource();
 	std::vector<Triangle> GetPolygons() const;
 
+	void BuildBVH();
+	const DynamicBVH& GetBVH() const;
+
 private:
 	std::string name_;
 	ComPtr<ID3D12Device> device_;
 	std::unique_ptr<VertexBuffer<Vertex>> vertexBuffer_;
 	std::unique_ptr<IndexBuffer> indexBuffer_;
 	Material* material_ = nullptr;
+
+	DynamicBVH localBVH_;
 };

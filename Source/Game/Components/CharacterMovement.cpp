@@ -76,17 +76,26 @@ bool CharacterMovement::CheckGrounded() {
 
 	// 足元判定の開始位置。自分自身との衝突を避けるために少し上にオフセット
 	Vec3 pos = transform_->GetWorldPos();
-	pos.y += collider->GetBoundingBox().GetHalfSize().y;
+	pos.y += Math::HtoM(24.0f);
 
-	constexpr float rayDistance = 0.025f;
+	constexpr float rayDistance = 0.01f;
 	// ColliderComponentに実装してあるBoxCastを利用
-	auto hitResults = collider->BoxCast(pos, Vec3::down, rayDistance, collider->GetBoundingBox().GetHalfSize());
+	auto hitResults = collider->BoxCast(
+		pos,
+		Vec3::down,
+		rayDistance,
+		{
+			collider->GetBoundingBox().GetHalfSize().x,
+			Math::HtoM(24.0f),
+			collider->GetBoundingBox().GetHalfSize().z
+		}
+	);
 
 	//Debug::DrawRay(pos, Vec3::down * rayDistance, Vec4::red);
 
 	// 各HitResultをチェックし、十分な上向きの法線（地面らしい面）であれば接地と判定
 	for (const auto& hit : hitResults) {
-		//Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
+		Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
 		if (hit.isHit && hit.hitNormal.y > 0.7f) {
 			normal_ = hit.hitNormal;
 			return true;

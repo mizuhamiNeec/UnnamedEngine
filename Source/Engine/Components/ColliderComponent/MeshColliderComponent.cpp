@@ -74,6 +74,13 @@ std::vector<Triangle> MeshColliderComponent::GetTriangles() {
 	return triangles_;
 }
 
+StaticMesh* MeshColliderComponent::GetStaticMesh() const {
+	if (meshRenderer_) {
+		return meshRenderer_->GetStaticMesh();
+	}
+	return nullptr;
+}
+
 void MeshColliderComponent::BuildTriangleList() {
 	auto* mesh = meshRenderer_->GetStaticMesh();
 	if (!mesh) {

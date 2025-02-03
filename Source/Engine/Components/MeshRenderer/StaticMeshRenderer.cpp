@@ -147,8 +147,6 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 				material->SetConstantBuffer(cameraRegister, cameraCB->GetResource());
 			}
 
-			//material->SetTexture("envMap", TextureManager::GetErrorTexture().get());
-
 			material->Apply(commandList);
 			currentlyBoundMaterial = material;
 		} else if (!material) {

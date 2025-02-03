@@ -41,6 +41,8 @@ struct Vec3 final {
 	Vec3 ClampLength(float minVec, float maxVec);
 	Vec3 Reflect(const Vec3& normal) const;
 
+	Vec3 Abs();
+
 	Vec3 TransformDirection(const Quaternion& rotation) const;
 
 	/* ---------------- 演算子 ---------------- */

@@ -52,6 +52,14 @@ private:
 	std::shared_ptr<PlayerMovement> playerMovement_;
 	std::shared_ptr<BoxColliderComponent> playerCollider_;
 
+	struct Enemy {
+		std::unique_ptr<Entity> entity;
+		std::shared_ptr<PlayerMovement> movement;
+		std::shared_ptr<BoxColliderComponent> collider;
+	};
+
+	std::vector<Enemy> enemies_;
+
 	std::unique_ptr<Entity> testMeshEntity_;
 	std::shared_ptr<StaticMeshRenderer> floatTestMR_;
 	StaticMesh* debugMesh = nullptr;
