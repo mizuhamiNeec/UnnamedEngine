@@ -133,11 +133,14 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 
 static Vec3 test;
 
+static float kEdgeAngleThreshold = 0.2f; // エッジ判定の閾値
+
 void PlayerMovement::DrawInspectorImGui() {
 #ifdef _DEBUG
 	if (ImGui::CollapsingHeader("PlayerMovement", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGuiManager::DragVec3("Velocity", velocity_, 0.1f, "%.2f m/s");
 		ImGuiManager::DragVec3("test", test, 0.1f, "%.2f m/s");
+		ImGui::DragFloat("edge angle threshold", &kEdgeAngleThreshold, 0.01f, 0.0f, 1.0f);
 	}
 #endif
 }
@@ -227,60 +230,82 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		return;
 	}
 
-	// 現在の移動開始位置（Collider の中心を基準）
-	Vec3 startPos = collider->GetBoundingBox().GetCenter();
+	const int kMaxBounces = 4;      // 最大反射回数
+	const float kEpsilon = 0.001f;   // 衝突判定の許容値
+	const float kPushOut = 0.001f;  // 押し出し量
 
-	// パラメータ設定
-	const float epsilon = 0.01f;
-	const float pushOutOffset = 0.02f;  // 衝突時に一発で押し出すオフセット
 
-	// 希望移動距離
-	float moveLength = desiredDisplacement.Length();
-	auto hitResults = collider->BoxCast(startPos, desiredDisplacement.Normalized(), moveLength, collider->GetBoundingBox().GetHalfSize());
+	Vec3 remainingDisp = desiredDisplacement;
+	Vec3 currentPos = transform_->GetWorldPos() + collider->GetOffset();
+	Vec3 finalVelocity = velocity_;
+	Vec3 averageNormal = Vec3::zero;
+	int hitCount = 0;
 
-	if (!hitResults.empty()) {
-		// 衝突までの距離が最短のものを取得
+	for (int bounce = 0; bounce < kMaxBounces && remainingDisp.SqrLength() > kEpsilon * kEpsilon; ++bounce) {
+		float moveLength = remainingDisp.Length();
+		auto hitResults = collider->BoxCast(currentPos, remainingDisp.Normalized(), moveLength,
+			collider->GetBoundingBox().GetHalfSize());
+
+		if (hitResults.empty()) {
+			currentPos += remainingDisp;
+			break;
+		}
+
+		// エッジ衝突の検出と平均法線の計算
+		for (const auto& result : hitResults) {
+			if (result.dist < kEpsilon * 2.0f) {
+				averageNormal += result.hitNormal;
+				hitCount++;
+			}
+		}
+
 		auto hit = *std::ranges::min_element(hitResults, [](const HitResult& a, const HitResult& b) {
 			return a.dist < b.dist;
 			});
 
-		// 衝突位置まで移動（epsilon 分バック）
-		float travelDist = (std::max)(hit.dist - epsilon, 0.0f);
-		Vec3 newPos = startPos + desiredDisplacement.Normalized() * travelDist;
+		Vec3 hitNormal = hit.hitNormal;
+		if (hitCount > 1) {
+			// 複数の法線がある場合は平均化して正規化
+			hitNormal = (averageNormal / static_cast<float>(hitCount)).Normalized();
+		}
 
-		// 衝突面方向に一発で押し出し
-		newPos += hit.hitNormal * pushOutOffset;
+		// エッジケースの検出
+		bool isEdgeCollision = false;
+		if (hitCount > 1 && std::abs(hit.hitNormal.Dot(hitNormal)) < kEdgeAngleThreshold) {
+			isEdgeCollision = true;
+			// エッジに沿った移動ベクトルを計算
+			Vec3 edgeDir = hit.hitNormal.Cross(hitNormal).Normalized();
+			remainingDisp = edgeDir * remainingDisp.Dot(edgeDir);
+		} else {
+			float travelDist = (std::max)(hit.dist - kEpsilon, 0.0f);
+			currentPos += remainingDisp.Normalized() * travelDist;
 
-		// 残り移動分から衝突面成分を除いたスライドベクトルを計算
-		float fraction = hit.dist / moveLength;
-		Vec3 remainingDisp = desiredDisplacement * (1.0f - fraction);
-		Vec3 slide = remainingDisp - hit.hitNormal * remainingDisp.Dot(hit.hitNormal);
+			if (hit.dist < kEpsilon) {
+				currentPos += hitNormal * kPushOut;
+			}
 
-		// スライド方向の移動を判定
-		float slideLength = slide.Length();
-		if (slideLength > epsilon) {
-			auto slideHits = collider->BoxCast(newPos, slide.Normalized(), slideLength, collider->GetBoundingBox().GetHalfSize());
-			if (!slideHits.empty()) {
-				auto slideHit = *std::ranges::min_element(slideHits, [](const HitResult& a, const HitResult& b) {
-					return a.dist < b.dist;
-					});
-				float slideTravel = (std::max)(slideHit.dist - epsilon, 0.0f);
-				newPos += slide.Normalized() * slideTravel;
-				// さらに一発で押し出し
-				newPos += slideHit.hitNormal * pushOutOffset;
+			float fraction = hit.dist / moveLength;
+			remainingDisp = remainingDisp * (1.0f - fraction);
+
+			Vec3 slide = remainingDisp - hitNormal * remainingDisp.Dot(hitNormal);
+
+			if (hitNormal.y > 0.7f) {
+				remainingDisp = slide;
+				normal_ = hitNormal;
+				isGrounded_ = true;
 			} else {
-				newPos += slide;
+				Vec3 reflection = remainingDisp - 2.0f * hitNormal * remainingDisp.Dot(hitNormal);
+				remainingDisp = slide * 0.8f + reflection * 0.2f;
+				finalVelocity = finalVelocity - hitNormal * finalVelocity.Dot(hitNormal);
 			}
 		}
 
-		// 最終位置を Collider のオフセットで補正して反映
-		position_ = newPos - collider->GetOffset();
-
-		// 衝突解消＋スライド後の実際の移動量から新しい velocity_ を算出（適用）
-		Vec3 finalDisp = newPos - collider->GetBoundingBox().GetCenter();
-		velocity_ = finalDisp / deltaTime_;
-	} else {
-		// 衝突が無ければそのまま移動
-		position_ += desiredDisplacement;
+		// エッジ衝突時の速度調整
+		if (isEdgeCollision) {
+			finalVelocity *= 0.8f; // エッジ衝突時は速度を減衰
+		}
 	}
+
+	position_ = currentPos - collider->GetOffset();
+	velocity_ = finalVelocity;
 }

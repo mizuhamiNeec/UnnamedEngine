@@ -85,20 +85,23 @@ void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) { // 既に登
 
 	collider->SetPhysicsEngine(this);
 
+	// コライダーコンポーネントとエンティティを登録
+	colliderComponents_.push_back(collider);
+	registeredEntities_.insert(entity);
+
 	// コライダーのAABBを取得
 	AABB aabb = collider->GetBoundingBox();
+
+	// インデックスを取得（新たに追加されたコライダーの位置）
+	int colliderIndex = static_cast<int>(colliderComponents_.size()) - 1;
 
 	// BVHにAABBとコライダーのポインタを登録
 	int nodeId = -1;
 	if (isStatic) {
-		nodeId = staticBVH_.InsertObject(aabb, static_cast<int>(colliderComponents_.size()));
+		nodeId = staticBVH_.InsertObject(aabb, colliderIndex);
 	} else {
-		nodeId = dynamicBVH_.InsertObject(aabb, static_cast<int>(colliderComponents_.size()));
+		nodeId = dynamicBVH_.InsertObject(aabb, colliderIndex);
 	}
-
-	// コライダーコンポーネントとエンティティを登録
-	colliderComponents_.push_back(collider);
-	registeredEntities_.insert(entity);
 
 	// コライダーとnodeIdのマップを保存
 	colliderNodeIds_[collider] = nodeId;

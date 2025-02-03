@@ -238,7 +238,7 @@ void GameScene::Update(const float deltaTime) {
 			camRot.x * Math::rad2Deg,
 			camRot.y * Math::rad2Deg,
 			camRot.z * Math::rad2Deg,
-			0.0f
+			Math::MtoH(playerMovement_->GetVelocity().Length())
 		);
 
 		//Console::Print(text);

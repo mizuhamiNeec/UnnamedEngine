@@ -94,6 +94,8 @@ private:
 namespace Physics {
 	// ヘルパー関数
 	bool RayIntersectsTriangle(const Vec3& rayOrigin, const Vec3& rayDir, const Triangle& triangle, float& outTime);
+	float ComputeBoxPenetration(const Vec3& boxCenter, const Vec3& halfSize, const Vec3& hitPos, const Vec3& hitNormal);
+	Vec3 ComputeAABBOverlap(const AABB& a, const AABB& b);
 #pragma region BVH
 
 #pragma endregion

@@ -18,7 +18,8 @@
 // Purpose: AABBのコンストラクタ
 //-----------------------------------------------------------------------------
 AABB::AABB(const Vec3& min, const Vec3& max) : min(min),
-max(max) {}
+max(max) {
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: AABBの中心を取得します
@@ -134,7 +135,8 @@ Triangle::Triangle(
 	const Vec3& v1,
 	const Vec3& v2) : v0(v0),
 	v1(v1),
-	v2(v2) {}
+	v2(v2) {
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 三角形の法線ベクトルを取得します
@@ -499,4 +501,49 @@ bool Physics::RayIntersectsTriangle(
 		return true;
 	}
 	return false;
+}
+
+float Physics::ComputeBoxPenetration(
+	const Vec3& boxCenter, const Vec3& halfSize, const Vec3& hitPos, [[maybe_unused]]const Vec3& hitNormal
+) {
+	// ローカル座標での衝突座標を計算
+	Vec3 localHitPos = hitPos - boxCenter;
+	Vec3 penetration = halfSize - localHitPos.Abs();
+	return std::min({ penetration.x, penetration.y, penetration.z });
+}
+
+Vec3 Physics::ComputeAABBOverlap(const AABB& a, const AABB& b) {
+	// 各軸毎の重なり量（正の値）を計算
+	float overlapX = std::min(a.max.x, b.max.x) - std::max(a.min.x, b.min.x);
+	float overlapY = std::min(a.max.y, b.max.y) - std::max(a.min.y, b.min.y);
+	float overlapZ = std::min(a.max.z, b.max.z) - std::max(a.min.z, b.min.z);
+
+	// 重なりが発生していない軸があれば Vec3::zero を返す
+	if (overlapX <= 0 || overlapY <= 0 || overlapZ <= 0) {
+		return Vec3::zero;
+	}
+
+	// 最小の押し出し成分を持つ軸を選択
+	float minOverlap = overlapX;
+	Vec3 mtv = Vec3(overlapX, 0.0f, 0.0f);
+
+	if (overlapY < minOverlap) {
+		minOverlap = overlapY;
+		mtv = Vec3(0.0f, overlapY, 0.0f);
+	}
+	if (overlapZ < minOverlap) {
+		minOverlap = overlapZ;
+		mtv = Vec3(0.0f, 0.0f, overlapZ);
+	}
+
+	// 押し出し方向：対象AABBと候補 AABB の中心差分の符号に従って向きを決定
+	Vec3 centerA = (a.min + a.max) * 0.5f;
+	Vec3 centerB = (b.min + b.max) * 0.5f;
+	Vec3 diff = centerB - centerA;
+
+	if (mtv.x > 0.0f && diff.x < 0.0f) mtv.x = -mtv.x;
+	if (mtv.y > 0.0f && diff.y < 0.0f) mtv.y = -mtv.y;
+	if (mtv.z > 0.0f && diff.z < 0.0f) mtv.z = -mtv.z;
+
+	return mtv;
 }

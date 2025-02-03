@@ -76,3 +76,18 @@ std::vector<Triangle> SubMesh::GetPolygons() const {
 	}
 	return polygons;
 }
+
+void SubMesh::BuildBVH() {
+	// BVHをリセット
+	localBVH_.Clear();
+	// サブメッシュの全ポリゴンをBVHに登録
+	const auto polygons = GetPolygons();
+	for (size_t i = 0; i < polygons.size(); ++i) {
+		AABB triAABB = FromTriangle(polygons[i]);
+		localBVH_.InsertObject(triAABB, static_cast<int>(i));
+	}
+}
+
+const DynamicBVH& SubMesh::GetBVH() const {
+	return localBVH_;
+}
