@@ -95,6 +95,7 @@ void GameScene::Init() {
 		rawPlayerCollider, [](BoxColliderComponent*) {}
 	);
 	playerCollider_->SetSize(Math::HtoM(Vec3(33.0f, 73.0f, 33.0f)));
+	playerCollider_->SetOffset(Math::HtoM(Vec3::up * 73.0f * 0.5f));
 	entities_.push_back(entPlayer_.get());
 
 	cameraRoot_ = std::make_unique<Entity>("cameraRoot");
@@ -151,7 +152,7 @@ void GameScene::Init() {
 
 	worldMesh_ = debugMesh->GetPolygons();
 
-	//physicsEngine_->RegisterEntity(entPlayer_.get(), false);
+	physicsEngine_->RegisterEntity(entPlayer_.get(), false);
 	physicsEngine_->RegisterEntity(debugTestMeshEntity_.get(), true);
 }
 
@@ -176,10 +177,10 @@ void GameScene::Update(const float deltaTime) {
 	//	Debug::DrawRay(worldMesh.GetCenter(), worldMesh.GetNormal(), Vec4::magenta);
 	//}
 
-	//physicsEngine_->Update(deltaTime);
+	physicsEngine_->Update(deltaTime);
 
 	//プレイヤーの更新
-	entPlayer_->Update(deltaTime);
+	entPlayer_->Update(EngineTimer::GetScaledDeltaTime());
 
 	testMeshEntity_->Update(deltaTime);
 	debugTestMeshEntity_->Update(deltaTime);

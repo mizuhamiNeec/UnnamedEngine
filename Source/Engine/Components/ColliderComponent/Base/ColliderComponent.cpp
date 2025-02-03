@@ -16,3 +16,16 @@ std::vector<HitResult> ColliderComponent::BoxCast(
 	);
 	return {};
 }
+
+std::vector<HitResult> ColliderComponent::RayCast(const Vec3& start, const Vec3& direction, float distance) const {
+	if (physicsEngine_) {
+		return physicsEngine_->RayCast(start, direction, distance);
+	}
+
+	Console::Print(
+		"PhysicsEngineがnullptrです\n",
+		kConTextColorError,
+		Channel::Physics
+	);
+	return {};
+}

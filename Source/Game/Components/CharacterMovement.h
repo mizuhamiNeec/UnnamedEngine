@@ -5,10 +5,11 @@
 
 class TransformComponent;
 
-class CharacterMovement : public Component {
+class CharacterMovement : public Component
+{
 public:
 	~CharacterMovement() override;
-	void OnAttach(Entity& owner) override;
+	void OnAttach(Entity &owner) override;
 	void Update(float deltaTime) override;
 	void DrawInspectorImGui() override;
 
@@ -16,8 +17,6 @@ public:
 	void ApplyHalfGravity();
 	void ApplyFriction();
 	bool CheckGrounded();
-
-	virtual Vec3 CollideAndSlide(const Vec3& vel, const Vec3& pos, int depth);
 
 	void Accelerate(Vec3 dir, float speed, float accel);
 	void AirAccelerate(Vec3 dir, float speed, float accel);
@@ -29,7 +28,7 @@ public:
 	[[nodiscard]] Vec3 GetVelocity() const;
 
 protected:
-	TransformComponent* transform_ = nullptr;
+	TransformComponent *transform_ = nullptr;
 
 	float deltaTime_ = 0.0f;
 
@@ -40,4 +39,5 @@ protected:
 	float jumpVel_ = 0.0f;
 
 	bool isGrounded_ = false;
+	Vec3 normal_ = Vec3::zero;
 };
