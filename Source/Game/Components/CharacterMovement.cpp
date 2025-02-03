@@ -68,114 +68,31 @@ void CharacterMovement::ApplyFriction() {
 	}
 }
 
-
 bool CharacterMovement::CheckGrounded() {
-	// y軸0以下だったら接地していると判定
-	if (position_.y <= 0.0f) {
-		return true;
-	}
-
-	//ColliderComponent* collider = owner_->GetComponent<ColliderComponent>();
-	//if (!collider) {
-	//	Console::Print(
-	//		"CharacterMovement::CheckGrounded() : ColliderComponent is not attached to the owner entity.",
-	//		Vec4::yellow,
-	//		Channel::Physics
-	//	);
-	//	return false;
-	//}
-
-	//Vec3 currentPosition = transform_->GetWorldPos();
-	//Vec3 direction = Vec3::down;
-	//float distance = Math::HtoM(4.0f); // 少し下方にキャスト
-	//Vec3 halfSize = collider->GetBoundingBox().GetSize();
-
-	//std::vector<HitResult> hits = collider->BoxCast(currentPosition, direction, distance, halfSize);
-
-	//for (const auto& hit : hits) {
-	//	if (hit.isHit && hit.hitNormal.y > 0.7f) { // 上向きの法線
-	//		return true;
-	//	}
-	//}
-
-	return false;
-}
-
-Vec3 CharacterMovement::CollideAndSlide(const Vec3& vel, const Vec3& pos, int depth) {
-	vel, pos, depth;
-
 	auto* collider = owner_->GetComponent<ColliderComponent>();
 	if (!collider) {
-		Console::Print(
-			"CharacterMovement::CollideAndSlide() : ColliderComponent is not attached to the owner entity.",
-			Vec4::yellow,
-			Channel::Physics
-		);
-		return Vec3::zero;
+		return false;
 	}
 
-	constexpr int kMaxBounces = 4;
-	constexpr float kMinMoveDistance = 0.01f;
-	constexpr float kPushOffset = 0.003f;
+	// 足元判定の開始位置。自分自身との衝突を避けるために少し上にオフセット
+	Vec3 pos = transform_->GetWorldPos();
+	pos.y += collider->GetBoundingBox().GetHalfSize().y;
 
-	// 速度に時間を掛けて実際の移動量を計算
-	Vec3 remainingVelocity = velocity_ * deltaTime_;
-	Vec3 currentPosition = transform_->GetWorldPos();
+	constexpr float rayDistance = 0.025f;
+	// ColliderComponentに実装してあるBoxCastを利用
+	auto hitResults = collider->BoxCast(pos, Vec3::down, rayDistance, collider->GetBoundingBox().GetHalfSize());
 
-	for (int i = 0; i < kMaxBounces && remainingVelocity.Length() > kMinMoveDistance; ++i) {
-		// BoxCastで衝突判定
-		std::vector<HitResult> hits = collider->BoxCast(
-			currentPosition,
-			remainingVelocity.Normalized(),
-			remainingVelocity.Length(),
-			collider->GetBoundingBox().GetHalfSize()
-		);
+	//Debug::DrawRay(pos, Vec3::down * rayDistance, Vec4::red);
 
-		if (hits.empty()) {
-			// 衝突がない場合は移動を適用
-			currentPosition += remainingVelocity;
-			break;
-		}
-
-		// 最も近い衝突点を見つける
-		float nearestDist = FLT_MAX;
-		HitResult* nearestHit = nullptr;
-
-		for (auto& hit : hits) {
-			float dist = (hit.hitPos - currentPosition).Length();
-			if (dist < nearestDist) {
-				nearestDist = dist;
-				nearestHit = &hit;
-			}
-		}
-
-		if (nearestHit) {
-			// 衝突面に沿って滑らせる
-			Vec3 normal = nearestHit->hitNormal;
-
-			// 面に沿った移動ベクトルを計算
-			float backoffScale = remainingVelocity.Dot(normal);
-			Vec3 slideVector = remainingVelocity - (normal * backoffScale);
-
-			// 衝突位置まで移動 + 微小オフセット
-			currentPosition = nearestHit->hitPos + (normal * kPushOffset);
-
-			// 残りの移動量を更新
-			remainingVelocity = slideVector;
-
-			// 上向きの法線との衝突で接地判定
-			if (normal.y > 0.7f) {
-				isGrounded_ = true;
-			}
+	// 各HitResultをチェックし、十分な上向きの法線（地面らしい面）であれば接地と判定
+	for (const auto& hit : hitResults) {
+		//Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
+		if (hit.isHit && hit.hitNormal.y > 0.7f) {
+			normal_ = hit.hitNormal;
+			return true;
 		}
 	}
-
-	// 最終位置を適用
-	transform_->SetWorldPos(currentPosition);
-	// 実際の速度を保持（deltaTimeで割って元のスケールに戻す）
-	velocity_ = remainingVelocity / deltaTime_;
-
-	return Vec3::zero;
+	return false;
 }
 
 void CharacterMovement::Accelerate(const Vec3 dir, const float speed, const float accel) {

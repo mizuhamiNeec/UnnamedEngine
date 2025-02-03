@@ -20,13 +20,10 @@ public:
 	void ProcessInput();
 	void SetIsGrounded(bool bIsGrounded);
 
-	Vec3 CollideAndSlide(const Vec3& vel, const Vec3& pos, int depth) override;
-
 	void SetVelocity(Vec3 newVel);
 
 private:
-	int maxBounces = 5;
-	float skinWidth = 0.015f;
+	void CollideAndSlide(const Vec3& desiredDisplacement);
 
 	// プレイヤーの移動入力
 	Vec3 moveInput_ = Vec3::zero;

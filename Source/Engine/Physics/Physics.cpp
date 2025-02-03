@@ -17,10 +17,8 @@
 //-----------------------------------------------------------------------------
 // Purpose: AABBのコンストラクタ
 //-----------------------------------------------------------------------------
-AABB::AABB(const Vec3& min, const Vec3& max) :
-	min(min),
-	max(max) {
-}
+AABB::AABB(const Vec3& min, const Vec3& max) : min(min),
+max(max) {}
 
 //-----------------------------------------------------------------------------
 // Purpose: AABBの中心を取得します
@@ -66,14 +64,11 @@ AABB AABB::Combine(const AABB& aabb) const {
 		Vec3(
 			std::min(min.x, aabb.min.x),
 			std::min(min.y, aabb.min.y),
-			std::min(min.z, aabb.min.z)
-		),
+			std::min(min.z, aabb.min.z)),
 		Vec3(
 			std::max(max.x, aabb.max.x),
 			std::max(max.y, aabb.max.y),
-			std::max(max.z, aabb.max.z)
-		)
-	};
+			std::max(max.z, aabb.max.z)) };
 }
 
 //-----------------------------------------------------------------------------
@@ -135,11 +130,11 @@ AABB FromTriangle(const Triangle& triangle) {
 // Purpose: Triangleのコンストラクタ
 //-----------------------------------------------------------------------------
 Triangle::Triangle(
-	const Vec3& v0, const Vec3& v1, const Vec3& v2
-) : v0(v0),
-v1(v1),
-v2(v2) {
-}
+	const Vec3& v0,
+	const Vec3& v1,
+	const Vec3& v2) : v0(v0),
+	v1(v1),
+	v2(v2) {}
 
 //-----------------------------------------------------------------------------
 // Purpose: 三角形の法線ベクトルを取得します
@@ -186,10 +181,14 @@ bool Triangle::IsPointInside(const Vec3& point) const {
 
 Vec3 Triangle::GetVertex(const int index) const {
 	switch (index) {
-	case 0: return v0;
-	case 1: return v1;
-	case 2: return v2;
-	default: return Vec3::zero;
+	case 0:
+		return v0;
+	case 1:
+		return v1;
+	case 2:
+		return v2;
+	default:
+		return Vec3::zero;
 	}
 }
 
@@ -210,7 +209,7 @@ int DynamicBVH::InsertObject(const AABB& objectAABB, int objectIndex) {
 	// ルートノードが存在しない場合
 	if (rootNode_ == -1) {
 		rootNode_ = nodeID;
-		//OptimizeMemoryLayout();
+		// OptimizeMemoryLayout();
 		return nodeID;
 	}
 
@@ -225,14 +224,13 @@ int DynamicBVH::InsertObject(const AABB& objectAABB, int objectIndex) {
 	// 範囲チェック
 	if (currentNode >= 0 && currentNode < nodes_.size()) {
 		CreateNewParent(currentNode, nodeID);
-		//OptimizeMemoryLayout();
+		// OptimizeMemoryLayout();
 	} else {
 		// エラーハンドリング
 		Console::Print(
 			"BVHノードの範囲外アクセスが検出されました\n",
 			kConTextColorError,
-			Channel::Physics
-		);
+			Channel::Physics);
 	}
 
 	return nodeID;
@@ -367,7 +365,7 @@ void DynamicBVH::CreateNewParent(const int existingNodeId, const int newNodeId) 
 		existingNodeId,
 		newNodeId,
 		oldParent,
-		-1,  // objectIndex
+		-1,	  // objectIndex
 		false // isLeaf
 	);
 
@@ -399,8 +397,7 @@ void DynamicBVH::DrawBvhNode(const int nodeId, const Vec4& color) const {
 	const BVHNode& node = nodes_[nodeId];
 	Debug::DrawBox(
 		node.boundingBox.GetCenter(), Quaternion::identity,
-		node.boundingBox.GetHalfSize() * 2.0f, color
-	);
+		node.boundingBox.GetHalfSize() * 2.0f, color);
 
 	// 再帰をループに置き換え
 	std::stack<int> stack;
@@ -416,20 +413,16 @@ void DynamicBVH::DrawBvhNode(const int nodeId, const Vec4& color) const {
 			const BVHNode& rightChild = nodes_[currentNode.rightChild];
 			Debug::DrawLine(
 				currentNode.boundingBox.GetCenter(), leftChild.boundingBox.GetCenter(),
-				Vec4::green
-			);
+				Vec4::green);
 			Debug::DrawLine(
 				currentNode.boundingBox.GetCenter(), rightChild.boundingBox.GetCenter(),
-				Vec4::red
-			);
+				Vec4::red);
 			Debug::DrawBox(
 				leftChild.boundingBox.GetCenter(), Quaternion::identity,
-				leftChild.boundingBox.GetHalfSize() * 2.0f, color
-			);
+				leftChild.boundingBox.GetHalfSize() * 2.0f, color);
 			Debug::DrawBox(
 				rightChild.boundingBox.GetCenter(), Quaternion::identity,
-				rightChild.boundingBox.GetHalfSize() * 2.0f, color
-			);
+				rightChild.boundingBox.GetHalfSize() * 2.0f, color);
 			stack.push(currentNode.leftChild);
 			stack.push(currentNode.rightChild);
 		}
@@ -445,8 +438,7 @@ void DynamicBVH::DrawObjects(const Vec4& color) const {
 		if (node.isLeaf) {
 			Debug::DrawBox(
 				node.boundingBox.GetCenter(), Quaternion::identity,
-				node.boundingBox.GetHalfSize() * 2.0f, color
-			);
+				node.boundingBox.GetHalfSize() * 2.0f, color);
 		}
 	}
 }
@@ -477,4 +469,34 @@ void DynamicBVH::OptimizeMemoryLayout() {
 	}
 
 	nodes_ = std::move(optimizedNodes);
+}
+
+bool Physics::RayIntersectsTriangle(
+	const Vec3& rayOrigin, const Vec3& rayDir, const Triangle& triangle, float& outTime
+) {
+	constexpr float EPSILON = 1e-5f;
+	Vec3 edge1 = triangle.v1 - triangle.v0;
+	Vec3 edge2 = triangle.v2 - triangle.v0;
+	Vec3 h = rayDir.Cross(edge2);
+	float a = edge1.Dot(h);
+	if (std::fabs(a) < EPSILON) {
+		return false;
+	}
+	float f = 1.0f / a;
+	Vec3 s = rayOrigin - triangle.v0;
+	float u = f * s.Dot(h);
+	if (u < 0.0f || u > 1.0f) {
+		return false;
+	}
+	Vec3 q = s.Cross(edge1);
+	float v = f * rayDir.Dot(q);
+	if (v < 0.0f || (u + v) > 1.0f) {
+		return false;
+	}
+	float t = f * edge2.Dot(q);
+	if (t > EPSILON) {
+		outTime = t;
+		return true;
+	}
+	return false;
 }

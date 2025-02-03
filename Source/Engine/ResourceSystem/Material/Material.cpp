@@ -89,11 +89,11 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 	}
 	commandList->SetPipelineState(pso);
 
-	Console::Print(
+	/*Console::Print(
 		"マテリアルを適用しました: " + name_ + "\n",
 		kConTextColorCompleted,
 		Channel::ResourceSystem
-	);
+	);*/
 
 	// 定数バッファをバインド
 	UINT parameterIndex = 0; // ルートパラメータのインデックスを追跡
@@ -109,12 +109,12 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 					parameterIndex,
 					it->second->GetGPUVirtualAddress()
 				);
-				Console::Print(
+				/*Console::Print(
 					std::format("定数バッファをバインド: {} (b{} -> parameter{})\n",
 						key, bindPoint, parameterIndex),
 					kConTextColorCompleted,
 					Channel::ResourceSystem
-				);
+				);*/
 			}
 			parameterIndex++;
 		}
@@ -148,11 +148,11 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 							tableIndex,
 							texture->GetShaderResourceView()
 						);
-						Console::Print(
+						/*Console::Print(
 							std::format("テクスチャをバインド: {} (t{}) {}\n", name, resourceInfo.bindPoint, texture->GetFilePath()),
 							kConTextColorCompleted,
 							Channel::ResourceSystem
-						);
+						);*/
 					}
 				}
 			} else {
@@ -243,7 +243,7 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature([[maybe_unused]] ID3D12D
 			case D3D12_SHADER_VISIBILITY_GEOMETRY:
 				visibilityStr = "GS";
 				break;
-			// 他のシェーダーステージがあれば追加
+				// 他のシェーダーステージがあれば追加
 			default:
 				visibilityStr = "UNKNOWN";
 				break;
