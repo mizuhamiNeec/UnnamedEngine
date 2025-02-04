@@ -230,10 +230,10 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		return;
 	}
 
-	const int kMaxBounces = 4;      // 最大反射回数
-	const float kEpsilon = 0.001f;   // 衝突判定の許容値
-	const float kPushOut = 0.001f;  // 押し出し量
-
+	const int kMaxBounces = 4;		  // 最大反射回数
+	const float kEpsilon = 0.001f;	  // 衝突判定の許容値
+	const float kPushOut = 0.005f;	  // 押し出し量
+	const float stepMaxHeight = 0.3f; // 床とみなす最大段差(必要に応じて調整)
 
 	Vec3 remainingDisp = desiredDisplacement;
 	Vec3 currentPos = transform_->GetWorldPos() + collider->GetOffset();
@@ -252,6 +252,8 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		}
 
 		// エッジ衝突の検出と平均法線の計算
+		averageNormal = Vec3::zero;
+		hitCount = 0;
 		for (const auto& result : hitResults) {
 			if (result.dist < kEpsilon * 2.0f) {
 				averageNormal += result.hitNormal;
@@ -259,9 +261,7 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 			}
 		}
 
-		auto hit = *std::ranges::min_element(hitResults, [](const HitResult& a, const HitResult& b) {
-			return a.dist < b.dist;
-			});
+		auto hit = *std::ranges::min_element(hitResults, [](const HitResult& a, const HitResult& b) { return a.dist < b.dist; });
 
 		Vec3 hitNormal = hit.hitNormal;
 		if (hitCount > 1) {
@@ -289,7 +289,8 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 
 			Vec3 slide = remainingDisp - hitNormal * remainingDisp.Dot(hitNormal);
 
-			if (hitNormal.y > 0.7f) {
+			// 接地判定：接触点の高さが現在位置から stepMaxHeight 以内の場合のみ床とみなす
+			if (hitNormal.y > 0.7f && hit.hitPos.y <= currentPos.y + stepMaxHeight) {
 				remainingDisp = slide;
 				normal_ = hitNormal;
 				isGrounded_ = true;
@@ -300,10 +301,11 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 			}
 		}
 
-		// エッジ衝突時の速度調整
-		if (isEdgeCollision) {
-			finalVelocity *= 0.8f; // エッジ衝突時は速度を減衰
-		}
+		//// エッジ衝突時の速度調整
+		//if (isEdgeCollision)
+		//{
+		//	finalVelocity *= 0.8f; // エッジ衝突時は速度を減衰
+		//}
 	}
 
 	position_ = currentPos - collider->GetOffset();
