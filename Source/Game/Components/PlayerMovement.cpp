@@ -301,11 +301,10 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 			}
 		}
 
-		//// エッジ衝突時の速度調整
-		//if (isEdgeCollision)
-		//{
-		//	finalVelocity *= 0.8f; // エッジ衝突時は速度を減衰
-		//}
+		// エッジ衝突時の速度調整
+		if (isEdgeCollision) {
+			finalVelocity *= 0.8f; // エッジ衝突時は速度を減衰
+		}
 	}
 
 	position_ = currentPos - collider->GetOffset();
