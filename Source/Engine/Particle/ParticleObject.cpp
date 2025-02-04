@@ -1,22 +1,14 @@
 #include "ParticleObject.h"
 
-#include "ParticleManager.h"
-
-#include "../Engine.h"
-
-#include "../Camera/Camera.h"
-
-#include "../Debug/Debug.h"
-
-#include "../ImGuiManager/ImGuiManager.h"
-
-#include "../Lib/Math/Quaternion/Quaternion.h"
-#include "../Lib/Math/Random/Random.h"
-
-#include "../Renderer/D3D12.h"
-
-#include "../TextureManager/TextureManager.h"
-#include "Camera/CameraManager.h"
+#include <Engine.h>
+#include <Camera/Camera.h>
+#include <Camera/CameraManager.h>
+#include <Debug/Debug.h>
+#include <ImGuiManager/ImGuiManager.h>
+#include <Lib/Math/Quaternion/Quaternion.h>
+#include <Lib/Math/Random/Random.h>
+#include <Particle/ParticleManager.h>
+#include <Renderer/D3D12.h>
 
 void ParticleObject::Init(ParticleManager* particleCommon, const std::string& textureFilePath) {
 	this->particleCommon_ = particleCommon;
@@ -43,7 +35,11 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 	);
 
 	// 定数バッファ
-	materialResource_ = std::make_unique<ConstantBuffer>(particleCommon_->GetD3D12()->GetDevice(), sizeof(Material));
+	materialResource_ = std::make_unique<ConstantBuffer>(
+		particleCommon_->GetD3D12()->GetDevice(),
+		sizeof(Material),
+		"ParticleMaterial"
+	);
 	materialData_ = materialResource_->GetPtr<Material>();
 	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	materialData_->enableLighting = false;
@@ -51,7 +47,9 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 
 	// Instancing用のTransformationMatrixリソースを作る
 	instancingResource_ = std::make_unique<ConstantBuffer>(
-		particleCommon_->GetD3D12()->GetDevice(), sizeof(ParticleForGPU) * kNumMaxInstance
+		particleCommon_->GetD3D12()->GetDevice(),
+		sizeof(ParticleForGPU) * kNumMaxInstance,
+		"ParticleInstancing"
 	);
 	// 書き込むためのアドレスを取得
 	instancingData = instancingResource_->GetPtr<ParticleForGPU>();
@@ -59,22 +57,22 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 	for (uint32_t index = 0; index < kNumMaxInstance; ++index) {
 		instancingData[index].wvp = Mat4::identity;
 		instancingData[index].world = Mat4::identity;
-		instancingData[index].color = { .x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f };
+		instancingData[index].color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	}
 
 	// SrvManagerのインスタンスを取得
-	srvManager_ = particleCommon_->GetSrvManager();
+	//srvManager_ = particleCommon_->GetSrvManager();
 
 	// SRVのインデックスを取得
-	srvIndex_ = srvManager_->Allocate();
+	//srvIndex_ = srvManager_->Allocate();
 
 	// StructuredBuffer用のSRVを作成
-	srvManager_->CreateSRVForStructuredBuffer(
-		srvIndex_,
-		instancingResource_->GetResource(), // ID3D12Resource* 型のリソース
-		kNumMaxInstance, // 要素数
-		sizeof(TransformationMatrix) // 構造体のバイトサイズ
-	);
+	//srvManager_->CreateSRVForStructuredBuffer(
+	//	srvIndex_,
+	//	instancingResource_->GetResource(), // ID3D12Resource* 型のリソース
+	//	kNumMaxInstance, // 要素数
+	//	sizeof(TransformationMatrix) // 構造体のバイトサイズ
+	//);
 
 	emitter_.transform = { Vec3::one, Vec3::zero, Vec3::zero };
 
@@ -83,7 +81,7 @@ void ParticleObject::Init(ParticleManager* particleCommon, const std::string& te
 	emitter_.frequencyTime = 0.0f; // 発生頻度用の時刻、0で初期化
 	emitter_.size = Vec3::one; // エミッターのサイズを初期化
 
-	accelerationField_ = AccelerationField({ 15.0f, 0.0f, 0.0f }, { {-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f} });
+	//accelerationField_ = AccelerationField({ 15.0f, 0.0f, 0.0f }, { {-1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, 1.0f} });
 }
 
 void ParticleObject::Update(const float deltaTime) {
@@ -118,9 +116,9 @@ void ParticleObject::Update(const float deltaTime) {
 	ImGui::Checkbox("Enable Drag", &enableDrag);
 
 	// AccelerationFieldのパラメーター編集
-	ImGui::DragFloat3("Acceleration", &accelerationField_.acceleration.x);
+	/*ImGui::DragFloat3("Acceleration", &accelerationField_.acceleration.x);
 	ImGui::DragFloat3("Field Min", &accelerationField_.area.min.x);
-	ImGui::DragFloat3("Field Max", &accelerationField_.area.max.x);
+	ImGui::DragFloat3("Field Max", &accelerationField_.area.max.x);*/
 
 	// エミッターのサイズを編集
 	ImGui::DragFloat3("Emitter Size", &emitter_.size.x);
@@ -142,9 +140,9 @@ void ParticleObject::Update(const float deltaTime) {
 		if (numInstance < kNumMaxInstance) {
 			if (enableAccelerationField_) {
 				// Fieldの範囲内のParticleには加速度を適用する
-				if (Math::IsCollision(accelerationField_.area, particleIterator->transform.translate)) {
+				/*if (Math::IsCollision(accelerationField_.area, particleIterator->transform.translate)) {
 					particleIterator->vel += accelerationField_.acceleration * deltaTime;
-				}
+				}*/
 			}
 
 			// 重力の適用
@@ -230,15 +228,15 @@ void ParticleObject::Draw() const {
 		0, materialResource_->GetAddress()
 	);
 
-	// SRVを設定
-	particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-		1, srvManager_->GetGPUDescriptorHandle(srvIndex_)
-	);
+	//// SRVを設定
+	//particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
+	//	1, srvManager_->GetGPUDescriptorHandle(srvIndex_)
+	//);
 
-	// SRVのDescriptorTableの先頭を設定
-	particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-		2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_)
-	);
+	//// SRVのDescriptorTableの先頭を設定
+	//particleCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
+	//	2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_)
+	//);
 
 	// インデックスバッファの設定
 	D3D12_INDEX_BUFFER_VIEW indexBufferView = indexBuffer_->View();
@@ -293,7 +291,7 @@ void ParticleObject::SetCamera(CameraComponent* newCamera) {
 	camera_ = newCamera;
 }
 
-Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition, int shapeType) {
+Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition, int shapeType) const {
 	switch (shapeType) {
 	case 0: // Sphere（球）
 	{

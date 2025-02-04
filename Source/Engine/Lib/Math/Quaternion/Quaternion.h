@@ -23,12 +23,14 @@ struct Quaternion {
 	static Quaternion Euler(const float& x, const float& y, const float& z);
 	static Quaternion EulerDegrees(const Vec3& eulerDeg);
 	static Quaternion EulerDegrees(const float& x, const float& y, const float& z);
-	static Quaternion AngleAxis(const float& angleDeg, const Vec3& axis);
+	static Quaternion AxisAngle(const Vec3& axis, const float& angleDeg);
+	static Quaternion LookRotation(const Vec3& forward, const Vec3& up = Vec3::up);
 	static Quaternion Lerp(const Quaternion& a, const Quaternion& b, float t);
 	static Quaternion Slerp(const Quaternion& a, const Quaternion& b, float t);
 	Vec3 ToEulerAngles() const;
-	Vec3 ToEulerDegrees();
+	Vec3 ToEulerDegrees() const;
 	Vec3 GetAxis() const;
+	Vec3 RotateVector(Vec3 vec3) const;
 	float GetRotationAroundAxis(const Vec3& axis) const;
 	float GetAngle() const;
 	float GetAngleDegrees() const;

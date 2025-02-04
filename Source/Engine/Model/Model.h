@@ -17,13 +17,22 @@ class Model {
 
 public:
 	void Init(ModelCommon* modelCommon, const std::string& directoryPath, const std::string& fileName);
-	void ImGuiDraw();
+	void ImGuiDraw() const;
 	void Draw() const;
 
 	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
 	static ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
 
 private:
+	struct Material {
+		Vec4 color;
+		int32_t enableLighting;
+		Vec3 padding;
+		Mat4 uvTransform;
+		float shininess;
+		Vec3 specularColor;
+	};
+
 	ModelCommon* modelCommon_ = nullptr;
 	ModelData modelData_; // Objファイルのデータ
 	Material* materialData_ = nullptr; // マテリアルのポインタ

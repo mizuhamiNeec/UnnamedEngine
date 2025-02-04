@@ -58,16 +58,21 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(SolutionDir)Source/Externals/;$(SolutionDir)Source/Engine/;$(SolutionDir)Source/Game/;$(SolutionDir)Source/Editor/;$(SolutionDir)Source/Externals/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Externals/;$(SolutionDir)Source/Engine/;$(SolutionDir)Source/Game/;$(SolutionDir)Source/Editor/;$(SolutionDir)Source/Externals/ImGui;$(SolutionDir)Source/Externals/assimp/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <BuildStlModules>true</BuildStlModules>
+      <MinimalRebuild>false</MinimalRebuild>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)Source/Externals/assimp/lib/Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
@@ -83,18 +88,22 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;IMGUI_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(SolutionDir)Source/Externals/;$(SolutionDir)Source/Engine/;$(SolutionDir)Source/Game/;$(SolutionDir)Source/Editor/;$(SolutionDir)Source/Externals/ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Externals/;$(SolutionDir)Source/Engine/;$(SolutionDir)Source/Game/;$(SolutionDir)Source/Editor/;$(SolutionDir)Source/Externals/ImGui;$(SolutionDir)Source/Externals/assimp/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <BuildStlModules>true</BuildStlModules>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)Source/Externals/assimp/lib/Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
@@ -106,13 +115,44 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Engine\Components\ColliderComponent.cpp" />
-    <ClCompile Include="Source\Game\Components\EnemyMovement.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Utils\IniParser.cpp" />
+    <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
+    <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp" />
+    <ClCompile Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\ColliderComponent\Base\ColliderComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\ColliderComponent\MeshColliderComponent.cpp" />
+    <ClCompile Include="Source\Engine\Physics\PhysicsEngine.cpp" />
+    <ClCompile Include="Source\Engine\Physics\Physics.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Audio\Audio.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Audio\AudioManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Manager\ResourceManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Material\Material.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Material\MaterialManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\MeshManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\StaticMesh.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\SubMesh.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Pipeline\PipelineManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\RootSignature\RootSignature2.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\RootSignature\RootSignatureManager2.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Shader\DefaultShader.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Shader\Shader.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Shader\ShaderManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Texture\Texture.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Texture\TextureManager.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConCommand.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\Console.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConVar.cpp" />
+    <ClCompile Include="Source\Engine\SubSystem\Console\ConVarManager.cpp" />
+    <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
     <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
+    <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
+    <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
+    <ClCompile Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
-    <ClCompile Include="Source\Engine\Components\CameraComponent.cpp" />
-    <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
+    <ClCompile Include="Source\Engine\Components\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Editor\Editor.cpp" />
     <ClCompile Include="Source\Engine\Entity\Base\Entity.cpp" />
     <ClCompile Include="Source\Engine\Components\Base\Component.cpp" />
@@ -122,21 +162,36 @@
     <ClCompile Include="Source\Engine\Particle\ParticleManager.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
     <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp" />
-    <ClCompile Include="Source\Engine\Components\TransformComponent.cpp" />
-    <None Include="Resources\Shaders\Line.PS.hlsl" />
-    <None Include="Resources\Shaders\Line.VS.hlsl" />
-    <None Include="Resources\Shaders\Object3d.PS.hlsl" />
-    <None Include="Resources\Shaders\Object3d.VS.hlsl" />
-    <None Include="Resources\Shaders\Particle.PS.hlsl" />
-    <None Include="Resources\Shaders\Particle.VS.hlsl" />
-    <None Include="Resources\Shaders\SpriteCommon.PS.hlsl" />
-    <None Include="Resources\Shaders\SpriteCommon.VS.hlsl" />
+    <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
+    <None Include="Resources\Shaders\Default.hlsli" />
+    <None Include="Resources\Shaders\Line.PS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\Line.VS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\Object3d.PS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\Object3d.VS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\Particle.PS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\Particle.VS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\SpriteCommon.PS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\SpriteCommon.VS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
     <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
-    <ClCompile Include="Source\Engine\Input\InputCommand.cpp" />
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Console\ConCommand.cpp" />
     <ClCompile Include="Source\Engine\Debug\Debug.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Console\ConVarManager.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Quaternion\Quaternion.cpp" />
     <ClCompile Include="Source\Engine\Line\LineCommon.cpp" />
     <ClCompile Include="Source\Engine\Line\Line.cpp" />
@@ -145,8 +200,6 @@
     <ClCompile Include="Source\Engine\Model\ModelCommon.cpp" />
     <ClCompile Include="Source\Engine\Model\Model.cpp" />
     <ClCompile Include="Source\Engine\Object3D\Object3D.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Console\Console.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Console\ConVar.cpp" />
     <ClCompile Include="Source\Engine\Engine.cpp" />
     <ClCompile Include="Source\Engine\Object3D\Object3DCommon.cpp" />
     <ClCompile Include="Source\Engine\Renderer\RootSignatureManager.cpp" />
@@ -171,23 +224,54 @@
     <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Random\Random.cpp" />
     <ClCompile Include="Source\Engine\Window\Window.cpp" />
-    <ClCompile Include="Source\Engine\TextureManager\TextureManager.cpp" />
     <ClCompile Include="Source\Engine\Lib\Structs\Structs.cpp" />
     <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp" />
     <ClCompile Include="Source\Engine\Sprite\Sprite.cpp" />
     <ClCompile Include="Source\Engine\Sprite\SpriteCommon.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp" />
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\SrvManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Engine\Components\ColliderComponent.h" />
-    <ClInclude Include="Source\Game\Components\EnemyMovement.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\IniParser.h" />
+    <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
+    <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h" />
+    <ClInclude Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.h" />
+    <ClInclude Include="Source\Engine\Components\ColliderComponent\MeshColliderComponent.h" />
+    <ClInclude Include="Source\Engine\Physics\PhysicsEngine.h" />
+    <ClInclude Include="Source\Engine\Components\ColliderComponent\Base\ColliderComponent.h" />
+    <ClInclude Include="Source\Engine\Physics\Physics.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Audio\Audio.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Audio\AudioManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Manager\ResourceManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Material\Material.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Material\MaterialManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\MeshManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\StaticMesh.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\SubMesh.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Pipeline\PipelineManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\RootSignature\RootSignature2.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\RootSignature\RootSignatureManager2.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Shader\DefaultShader.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Shader\Shader.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Shader\ShaderManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Texture\Texture.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Texture\TextureManager.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConCommand.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\Console.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVar.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVarCache.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\ConVarManager.h" />
+    <ClInclude Include="Source\Engine\SubSystem\Console\IConVar.h" />
+    <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
     <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\RuntimeEntitySystem.h" />
+    <ClInclude Include="Source\Engine\EntitySystem\Base\EntitySystem.h" />
+    <ClInclude Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.h" />
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
     <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
-    <ClInclude Include="Source\Engine\Components\CameraComponent.h" />
-    <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
+    <ClInclude Include="Source\Engine\Components\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Editor\Editor.h" />
     <ClInclude Include="Source\Engine\Entity\Base\Entity.h" />
     <ClInclude Include="Source\Engine\Components\Base\Component.h" />
@@ -196,18 +280,21 @@
     <ClInclude Include="Source\Engine\Particle\ParticleManager.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
     <ClInclude Include="Source\Engine\Renderer\StructuredBuffer.h" />
-    <ClInclude Include="Source\Engine\Components\TransformComponent.h" />
-    <None Include="Resources\Shaders\Object3d.hlsli" />
-    <None Include="Resources\Shaders\Particle.hlsli" />
-    <None Include="Resources\Shaders\Line.hlsli" />
+    <ClInclude Include="Source\Engine\Components\Transform\TransformComponent.h" />
+    <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
+    <ClInclude Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.h" />
+    <None Include="Resources\Shaders\Object3d.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\Particle.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="Resources\Shaders\Line.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
     <ClInclude Include="Source\Engine\Camera\Camera.h" />
-    <ClInclude Include="Source\Engine\Input\InputCommand.h" />
     <ClInclude Include="Source\Engine\Input\InputSystem.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConCommand.h" />
     <ClInclude Include="Source\Engine\Debug\Debug.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConVarCache.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConVarManager.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\IConVar.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Quaternion\Quaternion.h" />
     <ClInclude Include="Source\Engine\Line\LineCommon.h" />
     <ClInclude Include="Source\Engine\Line\Line.h" />
@@ -215,8 +302,6 @@
     <ClInclude Include="Source\Engine\Model\ModelCommon.h" />
     <ClInclude Include="Source\Engine\Model\Model.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3D.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\Console.h" />
-    <ClInclude Include="Source\Engine\Lib\Console\ConVar.h" />
     <ClInclude Include="Source\Engine\Engine.h" />
     <ClInclude Include="Source\Engine\Object3D\Object3DCommon.h" />
     <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h" />
@@ -247,13 +332,11 @@
     <ClInclude Include="Source\Engine\Lib\Math\Random\Random.h" />
     <ClInclude Include="Source\Engine\Window\Window.h" />
     <ClInclude Include="Source\Engine\Lib\Math\MathLib.h" />
-    <ClInclude Include="Source\Engine\TextureManager\TextureManager.h" />
     <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h" />
     <ClInclude Include="Source\Engine\Sprite\Sprite.h" />
     <ClInclude Include="Source\Engine\Sprite\SpriteCommon.h" />
     <ClInclude Include="Source\Engine\Window\WindowsUtils.h" />
     <ClInclude Include="Source\Engine\Lib\Timer\EngineTimer.h" />
-    <ClInclude Include="Source\Engine\Renderer\SrvManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Source\Externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
@@ -266,6 +349,14 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="Source\Externals\ImGui\LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\Default.PS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Resources\Shaders\Default.VS.hlsl">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

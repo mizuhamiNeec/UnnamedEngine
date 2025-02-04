@@ -2,12 +2,13 @@
 
 #include <memory>
 
-#include <Components/CameraComponent.h>
-#include "../Camera/Camera.h"
-#include "../Renderer/PipelineState.h"
+#include <Components/Camera/CameraComponent.h>
 
-class SrvManager;
-class RootSignatureManager;
+#include <Renderer/PipelineState.h>
+
+#include "Renderer/RootSignatureManager.h"
+
+//class SrvManager;
 class D3D12;
 
 class Object3DCommon {

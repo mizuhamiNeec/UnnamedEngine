@@ -1,21 +1,22 @@
 #pragma once
 #include <Components/Base/Component.h>
 
-#include "Lib/Math/Vector/Vec3.h"
+#include <Lib/Math/Vector/Vec3.h>
 
 class TransformComponent;
 
-class CharacterMovement : public Component {
+class CharacterMovement : public Component
+{
 public:
 	~CharacterMovement() override;
-	void OnAttach(Entity& owner) override;
+	void OnAttach(Entity &owner) override;
 	void Update(float deltaTime) override;
 	void DrawInspectorImGui() override;
 
 	virtual void Move();
 	void ApplyHalfGravity();
 	void ApplyFriction();
-	bool CheckGrounded() const;
+	bool CheckGrounded();
 
 	void Accelerate(Vec3 dir, float speed, float accel);
 	void AirAccelerate(Vec3 dir, float speed, float accel);
@@ -27,7 +28,7 @@ public:
 	[[nodiscard]] Vec3 GetVelocity() const;
 
 protected:
-	TransformComponent* transform_ = nullptr;
+	TransformComponent *transform_ = nullptr;
 
 	float deltaTime_ = 0.0f;
 
@@ -38,4 +39,5 @@ protected:
 	float jumpVel_ = 0.0f;
 
 	bool isGrounded_ = false;
+	Vec3 normal_ = Vec3::zero;
 };

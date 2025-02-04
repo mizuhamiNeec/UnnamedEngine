@@ -4,6 +4,9 @@
 
 class TransformComponent;
 
+//-----------------------------------------------------------------------------
+// 基本的にカメラを回転させるコンポーネントです。
+//-----------------------------------------------------------------------------
 class CameraRotator : public Component {
 public:
 	~CameraRotator() override;
@@ -13,7 +16,8 @@ public:
 
 private:
 	TransformComponent* transform_ = nullptr;
-	Vec3 rot_ = Vec3::zero;
+	float pitch_ = 0.0f;
+	float yaw_ = 0.0f;
 
 	bool isMouseLocked_ = true;
 };

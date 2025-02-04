@@ -1,0 +1,23 @@
+# Blender 4.3.2 MTL File: 'None'
+# www.blender.org
+
+newmtl materials/dev/dev_measuregeneric01c.vmat
+Ns 50.000011
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+map_Kd ../Textures/dev_measure.png
+
+newmtl materials/dev/reflectivity_30.vmat.001
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+map_Kd ../../../../Softwares/Steam/steamapps/common/Half-Life Alyx/content/core/materials/dev/reflectivity_30_color.tga
+map_Ns ../../../../Softwares/Steam/steamapps/common/Half-Life Alyx/content/core/materials/default/default_gloss.tga
+map_Bump -bm 1.000000 ../../../../Softwares/Steam/steamapps/common/Half-Life Alyx/content/core/materials/default/default_normal.tga

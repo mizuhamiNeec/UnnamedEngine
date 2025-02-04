@@ -3,18 +3,21 @@
 #include <algorithm>
 #include <string>
 
-#include "Components/TransformComponent.h"
-#include "Debug/Debug.h"
-#include "Entity/Base/Entity.h"
-#include "Lib/Console/ConVarManager.h"
-#include "Lib/Math/MathLib.h"
+#include <Debug/Debug.h>
+
+#include <Entity/Base/Entity.h>
+
+#include <SubSystem/Console/ConVarManager.h>
+#include <Lib/Math/MathLib.h>
+
+#include "Components/ColliderComponent/Base/ColliderComponent.h"
+
+#include "Physics/PhysicsEngine.h"
 
 CharacterMovement::~CharacterMovement() {}
 
 void CharacterMovement::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
-
-
 }
 
 void CharacterMovement::Update(float deltaTime) {
@@ -23,9 +26,10 @@ void CharacterMovement::Update(float deltaTime) {
 
 	Move();
 
-	transform_->SetLocalPos(position_ + velocity_ * deltaTime);
+	position_.y = std::max<float>(position_.y, 0.0f);
+
 	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
-	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), 2.0f, 0.5f, isGrounded_ ? Vec4::green : Vec4::red);
+	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), Math::HtoM(73.0f), Math::HtoM(33.0f * 0.5f), isGrounded_ ? Vec4::green : Vec4::red);
 }
 
 void CharacterMovement::DrawInspectorImGui() {}
@@ -42,7 +46,7 @@ void CharacterMovement::ApplyFriction() {
 
 	vel.y = 0.0f;
 	float speed = vel.Length();
-	if (speed < 0.0f) {
+	if (speed < 0.1f) {
 		return;
 	}
 
@@ -58,17 +62,46 @@ void CharacterMovement::ApplyFriction() {
 
 	newspeed = std::max<float>(newspeed, 0);
 
-	if (newspeed != speed && speed != 0.0f) {
+	if (newspeed != speed) {
 		newspeed /= speed;
+		velocity_ *= newspeed;
 	}
-
-	velocity_ *= newspeed;
 }
 
+bool CharacterMovement::CheckGrounded() {
+	auto* collider = owner_->GetComponent<ColliderComponent>();
+	if (!collider) {
+		return false;
+	}
 
-bool CharacterMovement::CheckGrounded() const {
-	// y座標が0以下の場合は接地していると判定
-	return transform_->GetLocalPos().y <= 0.0f;
+	// 足元判定の開始位置。自分自身との衝突を避けるために少し上にオフセット
+	Vec3 pos = transform_->GetWorldPos();
+	pos.y += Math::HtoM(24.0f);
+
+	constexpr float rayDistance = 0.01f;
+	// ColliderComponentに実装してあるBoxCastを利用
+	auto hitResults = collider->BoxCast(
+		pos,
+		Vec3::down,
+		rayDistance,
+		{
+			collider->GetBoundingBox().GetHalfSize().x,
+			Math::HtoM(24.0f),
+			collider->GetBoundingBox().GetHalfSize().z
+		}
+	);
+
+	//Debug::DrawRay(pos, Vec3::down * rayDistance, Vec4::red);
+
+	// 各HitResultをチェックし、十分な上向きの法線（地面らしい面）であれば接地と判定
+	for (const auto& hit : hitResults) {
+		Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
+		if (hit.isHit && hit.hitNormal.y > 0.7f) {
+			normal_ = hit.hitNormal;
+			return true;
+		}
+	}
+	return false;
 }
 
 void CharacterMovement::Accelerate(const Vec3 dir, const float speed, const float accel) {

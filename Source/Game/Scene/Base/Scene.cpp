@@ -3,3 +3,7 @@
 std::vector<Entity*>& Scene::GetEntities() {
 	return entities_;
 }
+
+void Scene::AddEntity(Entity* entity) {
+	entities_.push_back(entity);
+}

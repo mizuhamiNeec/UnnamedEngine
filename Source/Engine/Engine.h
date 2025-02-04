@@ -1,12 +1,19 @@
 #pragma once
+#include <Editor.h>
 #include <memory>
 
-#include "Editor.h"
-#include "Lib/Timer/EngineTimer.h"
-#include "Line/LineCommon.h"
-#include "Model/ModelCommon.h"
-#include "Renderer/SrvManager.h"
-#include "Scene/Base/Scene.h"
+#include <Lib/Timer/EngineTimer.h>
+
+#include <Line/LineCommon.h>
+
+#include <Model/ModelCommon.h>
+
+#include <ResourceSystem/Manager/ResourceManager.h>
+
+#include <Scene/Base/Scene.h>
+
+#include "SceneManager/SceneFactory.h"
+#include "SceneManager/SceneManager.h"
 
 class Console;
 class ImGuiManager;
@@ -18,26 +25,16 @@ public:
 	Engine();
 	void Run();
 
-	void ChangeScene(const std::shared_ptr<Scene>& newScene);
-
 	[[nodiscard]] static bool IsEditorMode() {
 		return bIsEditorMode_;
 	}
 
-	[[nodiscard]] D3D12* GetRenderer() const {
+	[[nodiscard]] static D3D12* GetRenderer() {
 		return renderer_.get();
 	}
 
 	[[nodiscard]] Window* GetWindow() const {
 		return window_.get();
-	}
-
-	[[nodiscard]] Entity* GetCameraEntity() const {
-		return cameraEntity_.get();
-	}
-
-	[[nodiscard]] CameraComponent* GetCameraComponent() const {
-		return camera_.get();
 	}
 
 	[[nodiscard]] SpriteCommon* GetSpriteCommon() const {
@@ -60,12 +57,12 @@ public:
 		return lineCommon_.get();
 	}
 
-	[[nodiscard]] SrvManager* GetSrvManager() const {
-		return srvManager_.get();
-	}
-
 	[[nodiscard]] EngineTimer* GetEngineTimer() const {
 		return time_.get();
+	}
+
+	[[nodiscard]] static ResourceManager* GetResourceManager() {
+		return resourceManager_.get();
 	}
 
 private:
@@ -79,12 +76,11 @@ private:
 	void CheckEditorMode();
 
 	std::unique_ptr<Window> window_;
-	std::unique_ptr<D3D12> renderer_;
-	std::unique_ptr<SrvManager> srvManager_;
-	std::unique_ptr<EngineTimer> time_;
+	static std::unique_ptr<D3D12> renderer_;
 
-	std::unique_ptr<Entity> cameraEntity_;
-	std::shared_ptr<CameraComponent> camera_;
+	static std::unique_ptr<ResourceManager> resourceManager_;
+
+	std::unique_ptr<EngineTimer> time_;
 
 	std::unique_ptr<SpriteCommon> spriteCommon_;
 	std::unique_ptr<ParticleManager> particleManager_;
@@ -92,16 +88,17 @@ private:
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
 
-	std::shared_ptr<Scene> currentScene_; // 現在のシーン
+	std::unique_ptr<SceneFactory> sceneFactory_;
+	std::shared_ptr<SceneManager> sceneManager_;
+
 	std::unique_ptr<Editor> editor_; // エディター
 	static bool bIsEditorMode_; // エディターモードか?
 
 	static bool bWishShutdown_; // 終了したいか?
 
-	Vec3 rot_ = Vec3::zero; // TODO : 消す予定
+	std::unique_ptr<Console> console_;
 
 #ifdef _DEBUG
 	std::unique_ptr<ImGuiManager> imGuiManager_;
-	std::unique_ptr<Console> console_;
 #endif
 };

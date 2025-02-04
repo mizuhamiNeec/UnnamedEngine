@@ -1,6 +1,6 @@
 #include "SpriteCommon.h"
 
-#include "../Lib/Console/Console.h"
+#include "../SubSystem/Console/Console.h"
 #include "../Lib/Structs/Structs.h"
 
 #include "../Renderer/D3D12.h"
@@ -11,9 +11,9 @@
 //-----------------------------------------------------------------------------
 void SpriteCommon::Init(D3D12* d3d12) {
 	d3d12_ = d3d12;
-	Console::Print("SpriteCommon : SpriteCommonを初期化します。\n", kConsoleColorWait, Channel::kEngine);
+	Console::Print("SpriteCommon : SpriteCommonを初期化します。\n", kConTextColorWait, Channel::Engine);
 	CreateGraphicsPipeline();
-	Console::Print("SpriteCommon : SpriteCommonの初期化が完了しました。\n", kConsoleColorCompleted, Channel::kEngine);
+	Console::Print("SpriteCommon : SpriteCommonの初期化が完了しました。\n", kConTextColorCompleted, Channel::Engine);
 }
 
 //-----------------------------------------------------------------------------
@@ -71,7 +71,7 @@ void SpriteCommon::CreateRootSignature() {
 	);
 
 	if (rootSignatureManager_->Get("SpriteCommon")) {
-		Console::Print("SpriteCommon : ルートシグネチャの生成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
+		Console::Print("SpriteCommon : ルートシグネチャの生成に成功.\n", kConTextColorCompleted, Channel::Engine);
 	}
 }
 
@@ -90,7 +90,7 @@ void SpriteCommon::CreateGraphicsPipeline() {
 	pipelineState_.Create(d3d12_->GetDevice());
 
 	if (pipelineState_.Get()) {
-		Console::Print("SpriteCommon : パイプラインステートの作成に成功.\n", kConsoleColorCompleted, Channel::kEngine);
+		Console::Print("SpriteCommon : パイプラインステートの作成に成功.\n", kConTextColorCompleted, Channel::Engine);
 	}
 }
 

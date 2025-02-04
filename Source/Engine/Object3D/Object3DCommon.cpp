@@ -1,11 +1,10 @@
 #include "Object3DCommon.h"
 
-#include "../Lib/Console/Console.h"
-#include "../Lib/Structs/Structs.h"
-#include "../Renderer/RootSignatureManager.h"
+#include <SubSystem/Console/Console.h>
+#include <Lib/Structs/Structs.h>
+#include <Renderer/RootSignatureManager.h>
 
-#include "../Renderer/SrvManager.h"
-#include "Camera/CameraManager.h"
+#include <Camera/CameraManager.h>
 
 //-----------------------------------------------------------------------------
 // Purpose : Object3DCommonを初期化します
@@ -13,7 +12,7 @@
 void Object3DCommon::Init(D3D12* d3d12) {
 	this->d3d12_ = d3d12;
 	CreateGraphicsPipeline();
-	Console::Print("Object3DCommon : Object3dの初期化が完了しました。\n", kConsoleColorCompleted);
+	Console::Print("Object3DCommon : Object3dの初期化が完了しました。\n", kConTextColorCompleted);
 }
 
 //-----------------------------------------------------------------------------

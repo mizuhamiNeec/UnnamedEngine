@@ -3,15 +3,16 @@
 #include <list>
 #include <memory>
 
-#include "../Lib/Math/Vector/Vec3.h"
-#include "../Lib/Structs/Structs.h"
+#include <Components/Camera/CameraComponent.h>
 
-#include "../Renderer/ConstantBuffer.h"
-#include "../Renderer/IndexBuffer.h"
-#include "../Renderer/VertexBuffer.h"
-#include "Components/CameraComponent.h"
+#include <Lib/Math/Vector/Vec3.h>
+#include <Lib/Structs/Structs.h>
 
-class SrvManager;
+#include <Renderer/ConstantBuffer.h>
+#include <Renderer/IndexBuffer.h>
+#include <Renderer/VertexBuffer.h>
+
+class ShaderResourceViewManager;
 class Camera;
 class ParticleManager;
 
@@ -30,14 +31,23 @@ public:
 	);
 
 	void SetCamera(CameraComponent* newCamera);
-	Vec3 GeneratePosition(const Vec3& emitterPosition, int shapeType);
+	Vec3 GeneratePosition(const Vec3& emitterPosition, int shapeType) const;
 	static Vec3 GenerateConeVelocity(float coneAngle);
 
 	void EmitParticlesAtPosition(const Vec3& position, int shapeType, float coneAngle, const Vec3& drag, const Vec3& gravity, uint32_t count);
 
 private:
+	struct Material {
+		Vec4 color;
+		int32_t enableLighting;
+		Vec3 padding;
+		Mat4 uvTransform;
+		float shininess;
+		Vec3 specularColor;
+	};
+
 	ParticleManager* particleCommon_ = nullptr;
-	SrvManager* srvManager_ = nullptr;
+	ShaderResourceViewManager* srvManager_ = nullptr;
 	CameraComponent* camera_ = nullptr;
 	std::string textureFilePath_;
 
@@ -50,7 +60,7 @@ private:
 	std::list<Particle> particles_;
 
 	Emitter emitter_ = {};
-	AccelerationField accelerationField_ = {};
+	//AccelerationField accelerationField_ = {};
 
 	std::unique_ptr<ConstantBuffer> materialResource_ = nullptr;
 	std::unique_ptr<ConstantBuffer> instancingResource_ = nullptr;

@@ -77,22 +77,19 @@ void Quaternion::ToAxisAngle(Vec3& outAxis, float& outAngle) const {
 }
 
 Quaternion Quaternion::Euler(const Vec3& eulerRad) {
-	const float pitch = eulerRad.x; // X軸回転（ピッチ）
-	const float yaw = eulerRad.y; // Y軸回転（ヨー）
-	const float roll = eulerRad.z; // Z軸回転（ロール）
-
-	const float sinPitch = std::sin(pitch * 0.5f);
-	const float cosPitch = std::cos(pitch * 0.5f);
-	const float sinYaw = std::sin(yaw * 0.5f);
-	const float cosYaw = std::cos(yaw * 0.5f);
-	const float sinRoll = std::sin(roll * 0.5f);
-	const float cosRoll = std::cos(roll * 0.5f);
+	// 回転の順序：Yaw（Y軸）、Pitch（X軸）、Roll（Z軸）
+	float cy = std::cos(eulerRad.y * 0.5f); // Yaw
+	float sy = std::sin(eulerRad.y * 0.5f);
+	float cp = std::cos(eulerRad.x * 0.5f); // Pitch
+	float sp = std::sin(eulerRad.x * 0.5f);
+	float cr = std::cos(eulerRad.z * 0.5f); // Roll
+	float sr = std::sin(eulerRad.z * 0.5f);
 
 	return Quaternion(
-		sinPitch * cosYaw * cosRoll - cosPitch * sinYaw * sinRoll,
-		cosPitch * sinYaw * cosRoll + sinPitch * cosYaw * sinRoll,
-		cosPitch * cosYaw * sinRoll - sinPitch * sinYaw * cosRoll,
-		cosPitch * cosYaw * cosRoll + sinPitch * sinYaw * sinRoll
+		cy * sp * cr + sy * cp * sr, // x
+		sy * cp * cr - cy * sp * sr, // y
+		cy * cp * sr - sy * sp * cr, // z
+		cy * cp * cr + sy * sp * sr  // w
 	).Normalized();
 }
 
@@ -101,16 +98,70 @@ Quaternion Quaternion::Euler(const float& x, const float& y, const float& z) {
 }
 
 Quaternion Quaternion::EulerDegrees(const Vec3& eulerDeg) {
-	return EulerDegrees(eulerDeg.x, eulerDeg.y, eulerDeg.z);
+	return Euler(eulerDeg * Math::deg2Rad);
 }
 
 Quaternion Quaternion::EulerDegrees(const float& x, const float& y, const float& z) {
 	return Euler(x * Math::deg2Rad, y * Math::deg2Rad, z * Math::deg2Rad);
 }
 
-Quaternion Quaternion::AngleAxis(const float& angleDeg, const Vec3& axis) {
-	const float angleRad = angleDeg * Math::deg2Rad;
+Quaternion Quaternion::AxisAngle(const Vec3& axis, const float& angleDeg) {
+	const float angleRad = angleDeg;
 	return Quaternion(axis, angleRad);
+}
+
+Quaternion Quaternion::LookRotation(const Vec3& forward, const Vec3& up) {
+	Vec3 f = forward.Normalized();
+	Vec3 u = up.Normalized();
+	Vec3 r = u.Cross(f).Normalized();
+	u = f.Cross(r);
+
+	float m00 = r.x;
+	float m01 = r.y;
+	float m02 = r.z;
+	float m10 = u.x;
+	float m11 = u.y;
+	float m12 = u.z;
+	float m20 = f.x;
+	float m21 = f.y;
+	float m22 = f.z;
+
+	float num8 = (m00 + m11) + m22;
+	Quaternion quaternion;
+	if (num8 > 0.0f) {
+		float num = sqrt(num8 + 1.0f);
+		quaternion.w = num * 0.5f;
+		num = 0.5f / num;
+		quaternion.x = (m12 - m21) * num;
+		quaternion.y = (m20 - m02) * num;
+		quaternion.z = (m01 - m10) * num;
+		return quaternion;
+	}
+	if ((m00 >= m11) && (m00 >= m22)) {
+		float num7 = sqrt(((1.0f + m00) - m11) - m22);
+		float num4 = 0.5f / num7;
+		quaternion.x = 0.5f * num7;
+		quaternion.y = (m01 + m10) * num4;
+		quaternion.z = (m02 + m20) * num4;
+		quaternion.w = (m12 - m21) * num4;
+		return quaternion;
+	}
+	if (m11 > m22) {
+		float num6 = sqrt(((1.0f + m11) - m00) - m22);
+		float num3 = 0.5f / num6;
+		quaternion.x = (m10 + m01) * num3;
+		quaternion.y = 0.5f * num6;
+		quaternion.z = (m21 + m12) * num3;
+		quaternion.w = (m20 - m02) * num3;
+		return quaternion;
+	}
+	float num5 = sqrt(((1.0f + m22) - m00) - m11);
+	float num2 = 0.5f / num5;
+	quaternion.x = (m20 + m02) * num2;
+	quaternion.y = (m21 + m12) * num2;
+	quaternion.z = 0.5f * num5;
+	quaternion.w = (m01 - m10) * num2;
+	return quaternion;
 }
 
 Quaternion Quaternion::Lerp(const Quaternion& a, const Quaternion& b, float t) {
@@ -176,30 +227,31 @@ Quaternion Quaternion::Slerp(const Quaternion& a, const Quaternion& b, float t) 
 }
 
 Vec3 Quaternion::ToEulerAngles() const {
+	// 回転の順序：Yaw（Y軸）、Pitch（X軸）、Roll（Z軸）
 	Vec3 euler;
 
-	// Roll
-	const float sinRCosP = 2 * (w * x + y * z);
-	const float cosRCosP = 1 - 2 * (x * x + y * y);
-	euler.x = std::atan2(sinRCosP, cosRCosP);
+	// Yaw（Y軸回転）
+	float sinr_cosp = 2.0f * (w * y - z * x);
+	float cosr_cosp = 1.0f - 2.0f * (y * y + x * x);
+	euler.y = std::atan2(sinr_cosp, cosr_cosp);
 
-	// Pitch
-	const float sinP = 2 * (w * y - z * x);
-	if (std::abs(sinP) >= 1) {
-		euler.y = std::copysign(Math::pi * 0.5f, sinP);
+	// Pitch（X軸回転）
+	float sinp = 2.0f * (w * x + y * z);
+	if (std::abs(sinp) >= 1.0f) {
+		euler.x = std::copysign(Math::pi / 2.0f, sinp); // 90度
 	} else {
-		euler.y = std::asin(sinP);
+		euler.x = std::asin(sinp);
 	}
 
-	// Yaw
-	const float sinYCosP = 2 * (w * z + x * y);
-	const float cosYCosP = 1 - 2 * (y * y + z * z);
-	euler.z = std::atan2(sinYCosP, cosYCosP);
+	// Roll（Z軸回転）
+	float siny_cosp = 2.0f * (w * z - x * y);
+	float cosy_cosp = 1.0f - 2.0f * (x * x + z * z);
+	euler.z = std::atan2(siny_cosp, cosy_cosp);
 
-	return euler;
+	return euler; // ラジアン単位
 }
 
-Vec3 Quaternion::ToEulerDegrees() {
+Vec3 Quaternion::ToEulerDegrees() const {
 	return ToEulerAngles() * Math::rad2Deg;
 }
 
@@ -208,7 +260,14 @@ Vec3 Quaternion::GetAxis() const {
 	if (scale < 1e-6f) {
 		return Vec3::up;
 	}
-	return Vec3(x / scale, y / scale, z / scale);
+	return { x / scale, y / scale, z / scale };
+}
+
+Vec3 Quaternion::RotateVector(const Vec3 vec3) const {
+	Quaternion qVec(vec3.x, vec3.y, vec3.z, 0.0f);
+	Quaternion qConj = Conjugate();
+	Quaternion qResult = *this * qVec * qConj;
+	return { qResult.x, qResult.y, qResult.z };
 }
 
 float Quaternion::GetRotationAroundAxis(const Vec3& axis) const {

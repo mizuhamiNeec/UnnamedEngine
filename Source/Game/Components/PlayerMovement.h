@@ -1,10 +1,11 @@
 #pragma once
 
-#include <xstring>
+#include <Components/CharacterMovement.h>
 #include <Components/Base/Component.h>
 
-#include <Components/CharacterMovement.h>
-#include "Lib/Math/Vector/Vec3.h"
+#include <Lib/Math/Vector/Vec3.h>
+
+#include "Lib/Math/Quaternion/Quaternion.h"
 
 class TransformComponent;
 
@@ -17,11 +18,14 @@ public:
 
 	void Move() override;
 	void ProcessInput();
-	bool CheckGrounded();
+	void SetIsGrounded(bool bIsGrounded);
 
 	void SetVelocity(Vec3 newVel);
 
 private:
+	void CollideAndSlide(const Vec3& desiredDisplacement);
+
 	// プレイヤーの移動入力
 	Vec3 moveInput_ = Vec3::zero;
+	Vec3 wishdir_ = Vec3::zero;
 };

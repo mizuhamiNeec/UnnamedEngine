@@ -1,12 +1,11 @@
 #include "Window.h"
 
 #include <dwmapi.h>
-#include <imgui.h>
 #include <utility>
-
-#include "WindowsUtils.h"
-#include "../Input/InputSystem.h"
-#include "Lib/Console/Console.h"
+#include <Input/InputSystem.h>
+#include <SubSystem/Console/Console.h>
+#include <Lib/Utils/StrUtils.h>
+#include <Window/WindowsUtils.h>
 
 #pragma comment(lib, "winmm.lib")
 
@@ -54,7 +53,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	if (!RegisterClassEx(&wc_)) {
 		Console::Print(
 			"Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
-			kConsoleColorError
+			kConTextColorError
 		);
 		return false;
 	}
@@ -78,7 +77,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	);
 
 	if (!hWnd_) {
-		Console::Print("Failed to create window.\n", kConsoleColorError, Channel::kEngine);
+		Console::Print("Failed to create window.\n", kConTextColorError, Channel::Engine);
 		return false;
 	}
 
@@ -90,7 +89,7 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 	// このウィンドウにフォーカス
 	SetFocus(hWnd_);
 
-	Console::Print("Complete create Window.\n", kConsoleColorCompleted, Channel::kEngine);
+	Console::Print("Complete create Window.\n", kConTextColorCompleted, Channel::Engine);
 
 	return true;
 }
@@ -100,7 +99,7 @@ void Window::SetUseImmersiveDarkMode(const HWND hWnd, const bool darkMode) {
 	const HRESULT hr = DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
 	if (FAILED(hr)) {
 		const std::string errorMessage = WindowsUtils::GetHresultMessage(hr);
-		Console::Print(errorMessage, kConsoleColorError);
+		Console::Print(errorMessage, kConTextColorError);
 	}
 }
 
@@ -135,6 +134,10 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	// どちらかのキーを押すと時が止まる Alt || F10キー対策
 	// ------------------------------------------------------------------------
 	if (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP) {
+		if (wParam == VK_F4 && (lParam & (1 << 29))) { // Alt + F4
+			PostQuitMessage(0);
+			return 0;
+		}
 		return 0;
 	}
 
@@ -150,24 +153,38 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 				if (static_cast<bool>(sMode) != darkMode) {
 					sMode = darkMode;
 					SetUseImmersiveDarkMode(hWnd, darkMode); // ウィンドウのモードを設定
+#ifdef _DEBUG
+					if (sMode) {
+						ImGuiManager::StyleColorsDark();
+					} else {
+						ImGuiManager::StyleColorsLight();
+					}
+#endif
 					Console::Print(
-						std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConsoleColorWait,
-						Channel::kEngine
+						std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConTextColorWait,
+						Channel::Engine
 					);
 				}
 			}
 		}
 		break;
 	case WM_INPUT:
-	{
-		InputSystem::ProcessInput(lParam);
+		// RawInputの処理
+		InputSystem::ProcessInput(static_cast<long>(lParam));
 		break;
-	}
-
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE) {
 			// ウィンドウが非アクティブになったときリセットする
 			InputSystem::ResetAllKeys();
+		}
+		break;
+	case WM_SIZE:
+		if (wParam != SIZE_MINIMIZED) {
+			width_ = LOWORD(lParam);
+			height_ = HIWORD(lParam);
+			if (resizeCallback_) {
+				resizeCallback_(width_, height_);
+			}
 		}
 		break;
 	case WM_CLOSE:
@@ -193,6 +210,8 @@ bool Window::ProcessMessage() {
 	return false;
 }
 
+void Window::SetResizeCallback(ResizeEvent callback) { resizeCallback_ = std::move(callback); }
+
 HWND Window::GetWindowHandle() {
 	return hWnd_;
 }
@@ -200,3 +219,4 @@ HWND Window::GetWindowHandle() {
 HWND Window::hWnd_ = nullptr;
 uint32_t Window::width_ = 0;
 uint32_t Window::height_ = 0;
+Window::ResizeEvent Window::resizeCallback_ = nullptr;

@@ -2,7 +2,7 @@
 
 #include <format>
 
-#include "../Lib/Console/Console.h"
+#include "../SubSystem/Console/Console.h"
 
 
 bool RootSignatureManager::CreateRootSignature(
@@ -49,7 +49,7 @@ bool RootSignatureManager::CreateRootSignature(
 
 	rootSignatures_[name] = rootSignature;
 
-	Console::Print(std::format("Complete Create RootSignature : {}\n", name), kConsoleColorCompleted, Channel::kEngine);
+	Console::Print(std::format("Complete Create RootSignature : {}\n", name), kConTextColorCompleted, Channel::Engine);
 
 	return true;
 }
