@@ -4,6 +4,8 @@
 
 #include "../Lib/Structs/Structs.h"
 
+#include "Window/Window.h"
+
 #ifdef _DEBUG
 #include <imgui.h>
 #else

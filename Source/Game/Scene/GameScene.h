@@ -45,6 +45,13 @@ private:
 	Window* window_ = nullptr;
 	D3D12* renderer_ = nullptr;
 
+	std::unique_ptr<Sprite> titleSprite_;
+	std::unique_ptr<Sprite> result_;
+
+	float timer = 10.0f;
+	float time = 0.0f;
+	bool isPlaying = false;
+
 	std::unique_ptr<Sprite> hudSprite_;
 	std::unique_ptr<Sprite> comboSprite_;
 
@@ -89,7 +96,6 @@ private:
 	std::unique_ptr<ParticleObject> particle_;
 
 	// 剣のビヘイビア
-
 	enum class SwordBehavior {
 		Idle,
 		Attack1,
@@ -97,7 +103,6 @@ private:
 		Attack3Swing,
 		Attack3,
 	};
-
 
 	void RequestBehavior(SwordBehavior request);
 
@@ -141,4 +146,6 @@ private:
 
 	SwordBehavior behavior_ = SwordBehavior::Idle;
 	std::optional<SwordBehavior> behaviorRequest_ = std::nullopt;
+
+
 };

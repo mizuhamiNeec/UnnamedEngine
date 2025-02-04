@@ -132,3 +132,7 @@ void EnemyMovement::ApplyKnockBack(const Vec3& knockBackVel) {
 	transform_->SetWorldPos(transform_->GetWorldPos() + Vec3::up * 0.25f);
 	isGrounded_ = false;
 }
+
+void EnemyMovement::SetVelocity(Vec3 vec3) {
+	velocity_ = vec3;
+}

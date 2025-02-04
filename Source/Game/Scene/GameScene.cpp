@@ -40,6 +40,7 @@ void GameScene::Init(Engine* engine) {
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/hud.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/num.png");
 	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/combo.png");
+	TextureManager::GetInstance()->LoadTexture("./Resources/Textures/title.png");
 #pragma endregion
 
 #pragma region スプライト類
@@ -58,6 +59,10 @@ void GameScene::Init(Engine* engine) {
 		number.sprite->SetSize({ 64.0f, 128.0f, 0.0f });
 		digits_.push_back(std::move(number));
 	}
+
+	titleSprite_ = std::make_unique<Sprite>();
+	titleSprite_->Init(spriteCommon_, "./Resources/Textures/title.png");
+	titleSprite_->SetSize({ 1280.0f, 720.0f, 0.0f });
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
@@ -198,149 +203,180 @@ void GameScene::RotateMesh(Quaternion& prev, Quaternion target, const float delt
 }
 
 void GameScene::Update(const float deltaTime) {
-	hudSprite_->Update();
-	ground_->Update();
+	if (isPlaying) {
 
-	particleManager_->Update(EngineTimer::GetScaledDeltaTime());
-	particle_->Update(EngineTimer::GetScaledDeltaTime());
+		hudSprite_->Update();
+		ground_->Update();
 
-	player_->Update(deltaTime);
+		particleManager_->Update(EngineTimer::GetScaledDeltaTime());
+		particle_->Update(EngineTimer::GetScaledDeltaTime());
 
-	// 敵の更新
-	for (int i = 0; i < enemyCount; ++i) {
-		if (enemies_[i]->GetTransform()->GetWorldPos().Distance(player_->GetTransform()->GetWorldPos()) >= 2.0f) {
-			enemyMovementComponents_[i]->SetMoveInput(player_->GetTransform()->GetWorldPos() - enemies_[i]->GetTransform()->GetWorldPos());
-		} else {
-			enemyMovementComponents_[i]->SetMoveInput(Vec3::zero);
+		player_->Update(deltaTime);
+
+		// 敵の更新
+		for (int i = 0; i < enemyCount; ++i) {
+			if (enemies_[i]->GetTransform()->GetWorldPos().Distance(player_->GetTransform()->GetWorldPos()) >= 2.0f) {
+				enemyMovementComponents_[i]->SetMoveInput(player_->GetTransform()->GetWorldPos() - enemies_[i]->GetTransform()->GetWorldPos());
+			} else {
+				enemyMovementComponents_[i]->SetMoveInput(Vec3::zero);
+			}
+			enemies_[i]->Update(deltaTime);
+			Vec3 enemyVel = enemyMovementComponents_[i]->GetVelocity();
+			RotateMesh(enemyPreviousRotations_[i], enemyTargetRotations_[i], deltaTime, enemyVel);
+			enemyObjects_[i]->SetRot(enemyPreviousRotations_[i].ToEulerAngles());
+			enemyObjects_[i]->SetPos(enemies_[i]->GetTransform()->GetWorldPos() + Vec3::up * 1.0f);
+			enemyObjects_[i]->Update();
 		}
-		enemies_[i]->Update(deltaTime);
-		Vec3 enemyVel = enemyMovementComponents_[i]->GetVelocity();
-		RotateMesh(enemyPreviousRotations_[i], enemyTargetRotations_[i], deltaTime, enemyVel);
-		enemyObjects_[i]->SetRot(enemyPreviousRotations_[i].ToEulerAngles());
-		enemyObjects_[i]->SetPos(enemies_[i]->GetTransform()->GetWorldPos() + Vec3::up * 1.0f);
-		enemyObjects_[i]->Update();
-	}
 
-	// 敵同士の衝突判定
-	for (int i = 0; i < enemyCount; ++i) {
-		for (int j = i + 1; j < enemyCount; ++j) {
-			if (CheckSphereCollision(*enemyColliderComponents_[i], *enemyColliderComponents_[j])) {
-				enemyMovementComponents_[i]->OnCollisionWithEnemy(enemies_[j].get());
-				enemyMovementComponents_[j]->OnCollisionWithEnemy(enemies_[i].get());
+		// 敵同士の衝突判定
+		for (int i = 0; i < enemyCount; ++i) {
+			for (int j = i + 1; j < enemyCount; ++j) {
+				if (CheckSphereCollision(*enemyColliderComponents_[i], *enemyColliderComponents_[j])) {
+					enemyMovementComponents_[i]->OnCollisionWithEnemy(enemies_[j].get());
+					enemyMovementComponents_[j]->OnCollisionWithEnemy(enemies_[i].get());
+				}
 			}
 		}
-	}
 
-	Vec3 velocity = playerMovementComponent_->GetVelocity() * 0.254f;
-	RotateMesh(previousRotation_, targetRotation_, deltaTime, velocity);
+		Vec3 velocity = playerMovementComponent_->GetVelocity() * 0.254f;
+		RotateMesh(previousRotation_, targetRotation_, deltaTime, velocity);
 
-	playerObject_->SetRot(previousRotation_.ToEulerAngles());
-	playerObject_->SetPos(player_->GetTransform()->GetWorldPos() + Vec3::up * 1.0f);
-	playerObject_->Update();
+		playerObject_->SetRot(previousRotation_.ToEulerAngles());
+		playerObject_->SetPos(player_->GetTransform()->GetWorldPos() + Vec3::up * 1.0f);
+		playerObject_->Update();
 
 
-	BehaviorInit();
+		BehaviorInit();
 
-	// attack3のそれぞれのパラメーターを編集
+		// attack3のそれぞれのパラメーターを編集
 #ifdef _DEBUG
-	ImGuiManager::DragVec3("attack3Restpos", attack3RestPos, 0.1f, "%.2f");
-	ImGuiManager::DragVec3("attack3Restrot", attack3RestRot, 0.1f, "%.2f");
-	ImGui::Separator();
-	ImGuiManager::DragVec3("attack3Endpos", attack3EndPos, 0.1f, "%.2f");
-	ImGuiManager::DragVec3("attack3EndRot", attack3EndRot, 0.1f, "%.2f");
+		ImGuiManager::DragVec3("attack3Restpos", attack3RestPos, 0.1f, "%.2f");
+		ImGuiManager::DragVec3("attack3Restrot", attack3RestRot, 0.1f, "%.2f");
+		ImGui::Separator();
+		ImGuiManager::DragVec3("attack3Endpos", attack3EndPos, 0.1f, "%.2f");
+		ImGuiManager::DragVec3("attack3EndRot", attack3EndRot, 0.1f, "%.2f");
 #endif
 
-	BehaviorUpdate(deltaTime);
+		BehaviorUpdate(deltaTime);
 
-	shadow_->SetPos({ player_->GetTransform()->GetWorldPos().x,0.0f, player_->GetTransform()->GetWorldPos().z });
-	shadow_->Update();
+		shadow_->SetPos({ player_->GetTransform()->GetWorldPos().x,0.0f, player_->GetTransform()->GetWorldPos().z });
+		shadow_->Update();
 
-	static Vec3 offset = { 760.0f, 130.0f, 0.0f };
-	NumbersUpdate(combo_, digits_, offset);
+		static Vec3 offset = { 760.0f, 130.0f, 0.0f };
+		NumbersUpdate(combo_, digits_, offset);
 
-	hudSprite_->Update();
+		hudSprite_->Update();
 
 #ifdef _DEBUG
 #pragma region cl_showpos
-	if (ConVarManager::GetConVar("cl_showpos")->GetValueAsString() == "1") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
-		constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoDocking;
-		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
-		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
-		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
-		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+		if (ConVarManager::GetConVar("cl_showpos")->GetValueAsString() == "1") {
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+			constexpr ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
+				ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+				ImGuiWindowFlags_NoDocking;
+			ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
+			windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
+			windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
+			ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
-		Vec3 camPos = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate();
-		Vec3 camRot = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetRotate();
+			Vec3 camPos = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate();
+			Vec3 camRot = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetRotate();
 
-		// テキストのサイズを取得
-		ImGuiIO io = ImGui::GetIO();
-		std::string text = std::format(
-			"name: {}\n"
-			"pos : {:.2f} {:.2f} {:.2f}\n"
-			"rot : {:.2f} {:.2f} {:.2f}\n"
-			"vel : {:.2f}\n",
-			ConVarManager::GetConVar("name")->GetValueAsString(),
-			camPos.x, camPos.y, camPos.z,
-			camRot.x * Math::rad2Deg,
-			camRot.y * Math::rad2Deg,
-			camRot.z * Math::rad2Deg,
-			Math::MtoH(playerMovementComponent_->GetVelocity().Length())
-		);
-		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
+			// テキストのサイズを取得
+			ImGuiIO io = ImGui::GetIO();
+			std::string text = std::format(
+				"name: {}\n"
+				"pos : {:.2f} {:.2f} {:.2f}\n"
+				"rot : {:.2f} {:.2f} {:.2f}\n"
+				"vel : {:.2f}\n",
+				ConVarManager::GetConVar("name")->GetValueAsString(),
+				camPos.x, camPos.y, camPos.z,
+				camRot.x * Math::rad2Deg,
+				camRot.y * Math::rad2Deg,
+				camRot.z * Math::rad2Deg,
+				Math::MtoH(playerMovementComponent_->GetVelocity().Length())
+			);
+			ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 
-		// ウィンドウサイズをテキストサイズに基づいて設定
-		ImVec2 windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f); // 余白を追加
-		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+			// ウィンドウサイズをテキストサイズに基づいて設定
+			ImVec2 windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f); // 余白を追加
+			ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
 
-		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
+			ImGui::Begin("##cl_showpos", nullptr, windowFlags);
 
-		ImVec2 textPos = ImGui::GetCursorScreenPos();
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		float outlineSize = 1.0f;
+			ImVec2 textPos = ImGui::GetCursorScreenPos();
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+			float outlineSize = 1.0f;
 
-		ImU32 textColor = IM_COL32(255, 255, 255, 255);
-		ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
-		ImGuiManager::TextOutlined(drawList, textPos, text.c_str(), textColor, outlineColor, outlineSize);
+			ImU32 textColor = IM_COL32(255, 255, 255, 255);
+			ImU32 outlineColor = IM_COL32(0, 0, 0, 94);
+			ImGuiManager::TextOutlined(drawList, textPos, text.c_str(), textColor, outlineColor, outlineSize);
 
-		ImGui::PopStyleVar();
-		ImGui::End();
-	}
+			ImGui::PopStyleVar();
+			ImGui::End();
+		}
 #pragma endregion
 #endif
+
+		time += deltaTime;
+		if (time >= timer) {
+			isPlaying = false;
+			time = 0.0f;
+		}
+	} else {
+		player_->GetTransform()->SetLocalPos(Vec3::zero);
+		playerMovementComponent_->SetVelocity(Vec3::zero);
+
+		for (const auto& enemy : enemies_) {
+			enemy->GetTransform()->SetLocalPos(Random::Vec3Range({ -32.0f, 0.0f, -32.0f }, { 32.0f , 32.0f, 32.0f }));
+		}
+		for (auto enemove : enemyMovementComponents_) {
+			enemove->SetMoveInput(Vec3::zero);
+			enemove->SetVelocity(Vec3::zero);
+		}
+
+		if (InputSystem::IsTriggered("+jump")) {
+			isPlaying = true;
+		}
+
+		titleSprite_->Update();
+	}
 }
 
 void GameScene::Render() {
-	//----------------------------------------
-	// オブジェクト3D共通描画設定
-	object3DCommon_->Render();
-	//----------------------------------------
-	ground_->Draw();
-	sword_->Draw();
-	shadow_->Draw();
-	playerObject_->Draw();
-	// 敵の描画
-	for (auto& enemy : enemyObjects_) {
-		enemy->Draw();
-	}
+	if (isPlaying) {
+		//----------------------------------------
+		// オブジェクト3D共通描画設定
+		object3DCommon_->Render();
+		//----------------------------------------
+		ground_->Draw();
+		sword_->Draw();
+		shadow_->Draw();
+		playerObject_->Draw();
+		// 敵の描画
+		for (auto& enemy : enemyObjects_) {
+			enemy->Draw();
+		}
 
-	//----------------------------------------
-	// パーティクル共通描画設定
-	particleManager_->Render();
-	//----------------------------------------
-	particle_->Draw();
+		//----------------------------------------
+		// パーティクル共通描画設定
+		particleManager_->Render();
+		//----------------------------------------
+		particle_->Draw();
 
-	//----------------------------------------
-	// スプライト共通描画設定
-	spriteCommon_->Render();
-	//----------------------------------------
-	for (const auto& digit : digits_) {
-		digit.sprite->Draw();
+		//----------------------------------------
+		// スプライト共通描画設定
+		spriteCommon_->Render();
+		//----------------------------------------
+		for (const auto& digit : digits_) {
+			digit.sprite->Draw();
+		}
+		comboSprite_->Draw();
+		hudSprite_->Draw();
+	} else {
+		spriteCommon_->Render();
+		titleSprite_->Draw();
 	}
-	comboSprite_->Draw();
-	hudSprite_->Draw();
 }
 
 void GameScene::Shutdown() {

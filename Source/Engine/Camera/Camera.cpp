@@ -7,6 +7,8 @@
 #include "../Lib/Structs/Structs.h"
 #include "../Lib/Utils/ClientProperties.h"
 
+#include "Window/Window.h"
+
 Camera::Camera() :
 	aspectRatio_(16.0f / 9.0f),
 	worldMat_(Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate)),

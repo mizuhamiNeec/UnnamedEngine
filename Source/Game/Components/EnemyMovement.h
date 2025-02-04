@@ -16,6 +16,7 @@ public:
 
 	void OnSwordHit(Entity* enemy);
 	void ApplyKnockBack(const Vec3& knockBackVel);
+	void SetVelocity(Vec3 vec3);
 
 private:
 	Vec3 moveInput_ = Vec3::zero;

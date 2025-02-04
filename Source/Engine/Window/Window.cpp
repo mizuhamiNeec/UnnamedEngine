@@ -1,11 +1,11 @@
 #include "Window.h"
 
 #include <dwmapi.h>
-#include <imgui.h>
 #include <utility>
+#include <Input/InputSystem.h>
+#include <Lib/Utils/StrUtils.h>
+#include <Window/WindowsUtils.h>
 
-#include "WindowsUtils.h"
-#include "../Input/InputSystem.h"
 #include "Lib/Console/Console.h"
 
 #pragma comment(lib, "winmm.lib")
@@ -135,6 +135,10 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	// どちらかのキーを押すと時が止まる Alt || F10キー対策
 	// ------------------------------------------------------------------------
 	if (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP) {
+		if (wParam == VK_F4 && (lParam & (1 << 29))) { // Alt + F4
+			PostQuitMessage(0);
+			return 0;
+		}
 		return 0;
 	}
 
@@ -150,6 +154,13 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 				if (static_cast<bool>(sMode) != darkMode) {
 					sMode = darkMode;
 					SetUseImmersiveDarkMode(hWnd, darkMode); // ウィンドウのモードを設定
+#ifdef _DEBUG
+					//if (sMode) {
+					//	ImGuiManager::StyleColorsDark();
+					//} else {
+					//	ImGuiManager::StyleColorsLight();
+					//}
+#endif
 					Console::Print(
 						std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConsoleColorWait,
 						Channel::kEngine
@@ -159,15 +170,22 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 		}
 		break;
 	case WM_INPUT:
-	{
-		InputSystem::ProcessInput(lParam);
+		// RawInputの処理
+		InputSystem::ProcessInput(static_cast<long>(lParam));
 		break;
-	}
-
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE) {
 			// ウィンドウが非アクティブになったときリセットする
 			InputSystem::ResetAllKeys();
+		}
+		break;
+	case WM_SIZE:
+		if (wParam != SIZE_MINIMIZED) {
+			width_ = LOWORD(lParam);
+			height_ = HIWORD(lParam);
+			if (resizeCallback_) {
+				resizeCallback_(width_, height_);
+			}
 		}
 		break;
 	case WM_CLOSE:
@@ -193,6 +211,8 @@ bool Window::ProcessMessage() {
 	return false;
 }
 
+void Window::SetResizeCallback(ResizeEvent callback) { resizeCallback_ = std::move(callback); }
+
 HWND Window::GetWindowHandle() {
 	return hWnd_;
 }
@@ -200,3 +220,4 @@ HWND Window::GetWindowHandle() {
 HWND Window::hWnd_ = nullptr;
 uint32_t Window::width_ = 0;
 uint32_t Window::height_ = 0;
+Window::ResizeEvent Window::resizeCallback_ = nullptr;

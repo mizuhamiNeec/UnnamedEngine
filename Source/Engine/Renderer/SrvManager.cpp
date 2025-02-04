@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "Lib/Utils/ClientProperties.h"
+
 void SrvManager::Init(D3D12* d3d12) {
 	// 引数で受け取ってメンバ変数に記録する
 	d3d12_ = d3d12;

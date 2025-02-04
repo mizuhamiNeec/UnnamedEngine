@@ -197,6 +197,7 @@
     <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
     <ClInclude Include="Source\Engine\Renderer\StructuredBuffer.h" />
     <ClInclude Include="Source\Engine\Components\TransformComponent.h" />
+    <ClInclude Include="Source\Game\Scene\Title.h" />
     <None Include="Resources\Shaders\Object3d.hlsli" />
     <None Include="Resources\Shaders\Particle.hlsli" />
     <None Include="Resources\Shaders\Line.hlsli" />

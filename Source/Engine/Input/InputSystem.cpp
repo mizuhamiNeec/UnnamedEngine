@@ -4,6 +4,8 @@
 
 #include "../Lib/Console/Console.h"
 
+#include "Lib/Utils/StrUtils.h"
+
 void InputSystem::Init() {
 	RAWINPUTDEVICE rid[2];
 

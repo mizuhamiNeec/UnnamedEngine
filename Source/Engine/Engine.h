@@ -8,6 +8,7 @@
 #include "Renderer/SrvManager.h"
 #include "Scene/Base/Scene.h"
 
+class SceneManager;
 class Console;
 class ImGuiManager;
 class D3D12;
@@ -17,7 +18,6 @@ class Engine {
 public:
 	Engine();
 	void Run();
-
 	void ChangeScene(const std::shared_ptr<Scene>& newScene);
 
 	[[nodiscard]] static bool IsEditorMode() {
@@ -93,6 +93,7 @@ private:
 	std::unique_ptr<LineCommon> lineCommon_;
 
 	std::shared_ptr<Scene> currentScene_; // 現在のシーン
+
 	std::unique_ptr<Editor> editor_; // エディター
 	static bool bIsEditorMode_; // エディターモードか?
 
