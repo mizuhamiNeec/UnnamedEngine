@@ -335,6 +335,8 @@ void GameScene::Update(const float deltaTime) {
 			enemove->SetVelocity(Vec3::zero);
 		}
 
+		combo_ = 0;
+
 		if (InputSystem::IsTriggered("+jump")) {
 			isPlaying = true;
 		}

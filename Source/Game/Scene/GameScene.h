@@ -48,7 +48,7 @@ private:
 	std::unique_ptr<Sprite> titleSprite_;
 	std::unique_ptr<Sprite> result_;
 
-	float timer = 10.0f;
+	float timer = 60.0f;
 	float time = 0.0f;
 	bool isPlaying = false;
 
