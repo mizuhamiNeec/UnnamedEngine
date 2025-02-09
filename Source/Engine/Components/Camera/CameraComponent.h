@@ -35,11 +35,10 @@ private:
 	float fov_ = 90.0f * Math::deg2Rad;
 	float aspectRatio_ = 0.0f;
 	float zNear_ = 0x.1p1f;
-	float zFar_ = 0x4000p0f;
+	float zFar_ = 0x61A8p0f;
 
 	Mat4 worldMat_;
 	Mat4 viewMat_;
 	Mat4 projMat_;
 	Mat4 viewProjMat_;
 };
-

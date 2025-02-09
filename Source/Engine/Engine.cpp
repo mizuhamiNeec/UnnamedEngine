@@ -4,7 +4,6 @@
 #include <imgui_internal.h>
 #endif
 
-#include <Camera/Camera.h>
 #include <Camera/CameraManager.h>
 
 #include <Debug/Debug.h>
@@ -134,6 +133,8 @@ void Engine::Update() {
 #ifdef _DEBUG
 	ImGuiManager::NewFrame();
 	Console::Update();
+
+	ImGui::Text("Hello World!!");
 #endif
 
 	time_->StartFrame();

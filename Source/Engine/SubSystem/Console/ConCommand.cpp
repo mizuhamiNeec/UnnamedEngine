@@ -50,7 +50,7 @@ std::vector<std::string> ConCommand::TokenizeCommand(const std::string& command)
 	std::vector<std::string> tokens;
 	std::string token;
 	while (stream >> token) {
-		tokens.push_back(token);
+		tokens.emplace_back(token);
 	}
 	return tokens;
 }

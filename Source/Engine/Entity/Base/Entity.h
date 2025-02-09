@@ -19,8 +19,8 @@ enum class EntityType {
 
 class Entity {
 public:
-	explicit Entity(std::string name, const EntityType& type = EntityType::RuntimeOnly) : transform_(
-		std::make_unique<TransformComponent>()),
+	explicit Entity(std::string name, const EntityType& type = EntityType::RuntimeOnly) :
+		transform_(std::make_unique<TransformComponent>()),
 		entityType_(type),
 		name_(std::move(name)) {
 		transform_->OnAttach(*this);
@@ -28,8 +28,8 @@ public:
 
 	~Entity();
 
-	void Update(float deltaTime);
-	void Render(ID3D12GraphicsCommandList* commandList);
+	void Update(float deltaTime) const;
+	void Render(ID3D12GraphicsCommandList* commandList) const;
 
 	[[nodiscard]] EntityType GetType() const;
 	void SetType(const EntityType& type);
@@ -68,11 +68,10 @@ private:
 	std::unique_ptr<TransformComponent> transform_;
 	std::vector<std::unique_ptr<Component>> components_;
 	EntityType entityType_; // エンティティの種類
-	std::string name_;		// エンティティの名前
+	std::string name_; // エンティティの名前
 
-	bool bEnableCollisionDetection_ = false; // 衝突判定を有効にするかどうか
-	bool bIsActive_ = true;					 // Updateを呼ぶかどうか
-	bool bIsVisible_ = true;				 // 描画を行うかどうか
+	bool bIsActive_ = true; // Updateを呼ぶかどうか
+	bool bIsVisible_ = true; // 描画を行うかどうか
 };
 
 template <typename T, typename... Args>
@@ -80,7 +79,7 @@ T* Entity::AddComponent(Args &&...args) {
 	static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
 	auto component = std::make_unique<T>(std::forward<Args>(args)...);
 	T* rawPtr = component.get();
-	components_.push_back(std::move(component));
+	components_.emplace_back(std::move(component));
 	rawPtr->OnAttach(*this);
 	return rawPtr;
 }
@@ -101,7 +100,7 @@ std::vector<T*> Entity::GetComponents() {
 	std::vector<T*> result;
 	for (const auto& component : components_) {
 		if (auto castedComponent = dynamic_cast<T*>(component.get())) {
-			result.push_back(castedComponent);
+			result.emplace_back(castedComponent);
 		}
 	}
 	return result;

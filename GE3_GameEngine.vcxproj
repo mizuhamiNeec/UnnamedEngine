@@ -189,7 +189,6 @@
     <None Include="Resources\Shaders\SpriteCommon.VS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
-    <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp" />
     <ClCompile Include="Source\Engine\Debug\Debug.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Quaternion\Quaternion.cpp" />
@@ -292,7 +291,6 @@
     <None Include="Resources\Shaders\Line.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
-    <ClInclude Include="Source\Engine\Camera\Camera.h" />
     <ClInclude Include="Source\Engine\Input\InputSystem.h" />
     <ClInclude Include="Source\Engine\Debug\Debug.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Quaternion\Quaternion.h" />

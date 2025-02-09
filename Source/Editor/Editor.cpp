@@ -21,7 +21,7 @@ Editor::Editor(SceneManager& sceneManager) : sceneManager_(sceneManager) {
 
 void Editor::Init() {
 	// カメラの作成
-	cameraEntity_ = std::make_unique<Entity>("editorCamera");
+	cameraEntity_ = std::make_unique<Entity>("editorCamera", EntityType::EditorOnly);
 	cameraEntity_->GetTransform()->SetLocalPos(Vec3::forward * -5.0f + Vec3::up * 2.0f);
 	cameraEntity_->GetTransform()->SetLocalRot(Quaternion::Euler(Vec3::right * 15.0f * Math::deg2Rad));
 
