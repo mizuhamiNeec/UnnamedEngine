@@ -12,7 +12,7 @@ void RootSignature2::AddConstantBuffer(const UINT shaderRegister, const D3D12_SH
 	param.ShaderVisibility = visibility;
 	param.Descriptor.ShaderRegister = shaderRegister;
 	param.Descriptor.RegisterSpace = registerSpace;
-	rootParameters_.push_back(param);
+	rootParameters_.emplace_back(param);
 }
 
 void RootSignature2::AddShaderResourceView(const UINT shaderRegister, const UINT registerSpace) {
@@ -21,7 +21,7 @@ void RootSignature2::AddShaderResourceView(const UINT shaderRegister, const UINT
 	param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	param.Descriptor.ShaderRegister = shaderRegister;
 	param.Descriptor.RegisterSpace = registerSpace;
-	rootParameters_.push_back(param);
+	rootParameters_.emplace_back(param);
 }
 
 void RootSignature2::AddUnorderedAccessView(const UINT shaderRegister, const UINT registerSpace) {
@@ -30,7 +30,7 @@ void RootSignature2::AddUnorderedAccessView(const UINT shaderRegister, const UIN
 	param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	param.Descriptor.ShaderRegister = shaderRegister;
 	param.Descriptor.RegisterSpace = registerSpace;
-	rootParameters_.push_back(param);
+	rootParameters_.emplace_back(param);
 }
 
 void RootSignature2::AddDescriptorTable(const D3D12_DESCRIPTOR_RANGE* ranges, const UINT numRanges) {
@@ -43,11 +43,11 @@ void RootSignature2::AddDescriptorTable(const D3D12_DESCRIPTOR_RANGE* ranges, co
 	param.DescriptorTable.NumDescriptorRanges = numRanges;
 	param.DescriptorTable.pDescriptorRanges = descriptorTableRanges_.back().data();
 
-	rootParameters_.push_back(param);
+	rootParameters_.emplace_back(param);
 }
 
 void RootSignature2::AddStaticSampler(const D3D12_STATIC_SAMPLER_DESC& samplerDesc) {
-	staticSamplers_.push_back(samplerDesc);
+	staticSamplers_.emplace_back(samplerDesc);
 }
 
 void RootSignature2::AddRootParameter(const D3D12_ROOT_PARAMETER1& param1) {
@@ -70,10 +70,10 @@ void RootSignature2::AddRootParameter(const D3D12_ROOT_PARAMETER1& param1) {
 			range.BaseShaderRegister = range1.BaseShaderRegister;
 			range.RegisterSpace = range1.RegisterSpace;
 			range.OffsetInDescriptorsFromTableStart = range1.OffsetInDescriptorsFromTableStart;
-			ranges.push_back(range);
+			ranges.emplace_back(range);
 		}
 
-		descriptorTableRanges_.push_back(std::move(ranges));
+		descriptorTableRanges_.emplace_back(std::move(ranges));
 		param.DescriptorTable.NumDescriptorRanges = param1.DescriptorTable.NumDescriptorRanges;
 		param.DescriptorTable.pDescriptorRanges = descriptorTableRanges_.back().data();
 		break;
@@ -91,7 +91,7 @@ void RootSignature2::AddRootParameter(const D3D12_ROOT_PARAMETER1& param1) {
 		break;
 	}
 
-	rootParameters_.push_back(param);
+	rootParameters_.emplace_back(param);
 }
 
 void RootSignature2::Init(ID3D12Device* device, const RootSignatureDesc& desc) {

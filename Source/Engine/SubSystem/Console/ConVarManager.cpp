@@ -24,7 +24,7 @@ std::vector<IConVar*> ConVarManager::GetAllConVars() {
 	std::vector<IConVar*> conVarArray;
 	conVarArray.reserve(conVars_.size());
 	for (const auto& pair : conVars_) {
-		conVarArray.push_back(pair.second.get());
+		conVarArray.emplace_back(pair.second.get());
 	}
 	return conVarArray;
 }

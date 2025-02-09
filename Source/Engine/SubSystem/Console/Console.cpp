@@ -374,8 +374,8 @@ void Console::Print(
 				}
 			}
 
-			consoleTexts_.push_back({ .text = msg, .color = color, .channel = channel });
-			repeatCounts_.push_back(1);
+			consoleTexts_.emplace_back(Text(msg, color, channel));
+			repeatCounts_.emplace_back(1);
 			bWishScrollToBottom_ = true;
 #endif
 			});
@@ -487,16 +487,16 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 
 	std::vector<std::string> uptimeParts;
 	if (dateTime.day > 0) {
-		uptimeParts.push_back(std::to_string(dateTime.day) + " days,");
+		uptimeParts.emplace_back(std::to_string(dateTime.day) + " days,");
 	}
 	if (dateTime.hour > 0) {
-		uptimeParts.push_back(std::to_string(dateTime.hour) + " hours,");
+		uptimeParts.emplace_back(std::to_string(dateTime.hour) + " hours,");
 	}
 	if (dateTime.minute > 0) {
-		uptimeParts.push_back(std::to_string(dateTime.minute) + " mins,");
+		uptimeParts.emplace_back(std::to_string(dateTime.minute) + " mins,");
 	}
 	if (dateTime.second > 0) {
-		uptimeParts.push_back(std::to_string(dateTime.second) + " sec");
+		uptimeParts.emplace_back(std::to_string(dateTime.second) + " sec");
 	}
 	const std::string uptime = "Uptime:  " + StrUtils::Join(uptimeParts, " ");
 
@@ -532,7 +532,7 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 		constexpr size_t padding = 5;
 		std::string leftPart = (i < asciiArt.size()) ? asciiArt[i] : std::string(asciiWidth, ' ');
 		std::string rightPart = (i < info.size()) ? info[i] : "";
-		combined.push_back(leftPart + std::string(padding, ' ') + rightPart);
+		combined.emplace_back(leftPart + std::string(padding, ' ') + rightPart);
 	}
 
 	// 結合結果を一行ずつ出力
@@ -555,23 +555,23 @@ void Console::UpdateSuggestions(const std::string& input) {
 	// 入力が空の場合はサジェストしない
 	if (input.empty()) {
 		for (const auto& command : ConCommand::GetCommands()) {
-			suggestions_.push_back(command.first);
+			suggestions_.emplace_back(command.first);
 		}
 		for (const auto& conVar : ConVarManager::GetAllConVars()) {
-			suggestions_.push_back(conVar->GetName());
+			suggestions_.emplace_back(conVar->GetName());
 		}
 		return;
 	}
 
 	for (const auto& command : ConCommand::GetCommands()) {
 		if (command.first.starts_with(input)) {
-			suggestions_.push_back(command.first);
+			suggestions_.emplace_back(command.first);
 		}
 	}
 
 	for (const auto& conVar : ConVarManager::GetAllConVars()) {
 		if (conVar->GetName().starts_with(input)) {
-			suggestions_.push_back(conVar->GetName());
+			suggestions_.emplace_back(conVar->GetName());
 		}
 	}
 }
@@ -592,7 +592,7 @@ void Console::ShowSuggestPopup() {
 	auto popupPos = ImVec2(cursorScreenPos.x, cursorScreenPos.y + inputTextSize.y);
 	auto popupSize = ImVec2(
 		inputTextSize.x,
-		ImGui::GetTextLineHeight() * min(suggestions_.size(), size_t(10)) + ImGui::GetStyle().WindowPadding.y * 2
+		ImGui::GetTextLineHeight() * (std::min)(suggestions_.size(), static_cast<size_t>(10)) + ImGui::GetStyle().WindowPadding.y * 2
 	);
 
 	// ポップアップウィンドウの表示
@@ -1023,7 +1023,7 @@ void Console::ShowConVarHelper() {
 		{ 0xFFFF,0xFFFF }
 	);
 
-	if (bool isOpen = ImGui::Begin("ConVar Helper", &bShowConVarHelper_, ImGuiWindowFlags_MenuBar)) {
+	if (ImGui::Begin("ConVar Helper", &bShowConVarHelper_, ImGuiWindowFlags_MenuBar)) {
 		// メニューバー
 		{
 			if (ImGui::BeginMenuBar()) {
@@ -1067,7 +1067,7 @@ void Console::ShowConVarHelper() {
 					.name = "User Page " + std::to_string(pages_.size()),
 					.grid = { 3, 10 },
 				};
-				pages_.push_back(newPage);
+				pages_.emplace_back(newPage);
 			}
 
 			if (ImGui::IsItemHovered()) {
@@ -1150,7 +1150,7 @@ void Console::ShowConVarHelper() {
 				// 固定のセル高さを設定
 
 				for (uint32_t row = 0; row < grid.height; ++row) {
-					const float cellHeight = 20.0f;
+					constexpr float cellHeight = 20.0f;
 					ImGui::TableNextRow(0, cellHeight);
 					for (uint32_t col = 0; col < grid.width; ++col) {
 						ImGui::TableSetColumnIndex(col);
@@ -1428,7 +1428,7 @@ std::vector<std::string> Console::TokenizeKey(const std::string& key) {
 	std::string token;
 
 	while (std::getline(ss, token, '-')) {
-		tokens.push_back(token);
+		tokens.emplace_back(token);
 	}
 
 	return tokens;
@@ -1456,7 +1456,7 @@ Vec4 Console::ParseColor(const std::string& color) {
 				if (i + 2 < content.size()) {
 					std::string hexStr = content.substr(i + 1, 2);
 					uint8_t val = static_cast<uint8_t>(std::stoul(hexStr, nullptr, 16));
-					bytes.push_back(val);
+					bytes.emplace_back(val);
 					i += 3; // '\\', 'x', 'HH' の分を消費
 				} else {
 					break; // 不完全なエスケープシーケンス
@@ -1471,18 +1471,18 @@ Vec4 Console::ParseColor(const std::string& color) {
 					digits++;
 				}
 				uint8_t val = static_cast<uint8_t>(std::stoul(octStr, nullptr, 8));
-				bytes.push_back(val);
+				bytes.emplace_back(val);
 			} else {
 				// その他のエスケープシーケンス
 				switch (c) {
-				case 'n': bytes.push_back('\n'); i++; break;
-				case 't': bytes.push_back('\t'); i++; break;
-				case '\\': bytes.push_back('\\'); i++; break;
-				default: bytes.push_back(static_cast<uint8_t>(c)); i++; break;
+				case 'n': bytes.emplace_back('\n'); i++; break;
+				case 't': bytes.emplace_back('\t'); i++; break;
+				case '\\': bytes.emplace_back('\\'); i++; break;
+				default: bytes.emplace_back(static_cast<uint8_t>(c)); i++; break;
 				}
 			}
 		} else {
-			bytes.push_back(static_cast<uint8_t>(content[i]));
+			bytes.emplace_back(static_cast<uint8_t>(content[i]));
 			i++;
 		}
 	}
@@ -1639,11 +1639,11 @@ void Console::PrintTypeError(const std::string& type) {
 void Console::AddCommandHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
 	consoleTexts_.push_back(
-		{
-			.text = "> " + command + "\n",
-			.color = kConTextColorExecute,
-			.channel = Channel::Console
-		}
+		Text(
+			"> " + command + "\n",
+			kConTextColorExecute,
+			Channel::Console
+		)
 	);
 #endif
 }
@@ -1789,7 +1789,7 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 	std::string token;
 
 	while (stream >> token) {
-		tokens.push_back(token);
+		tokens.emplace_back(token);
 	}
 
 	return tokens;
@@ -1807,7 +1807,7 @@ std::vector<std::string> Console::SplitCommands(const std::string& command) {
 			inQuotes = !inQuotes;
 			current += ch;
 		} else if (ch == ';' && !inQuotes) {
-			result.push_back(current);
+			result.emplace_back(current);
 			current.clear();
 		} else {
 			current += ch;
@@ -1815,7 +1815,7 @@ std::vector<std::string> Console::SplitCommands(const std::string& command) {
 	}
 
 	if (!current.empty()) {
-		result.push_back(current);
+		result.emplace_back(current);
 	}
 
 	return result;
@@ -1868,7 +1868,7 @@ void Console::ConsoleUpdateAsync() const {
 				}
 
 				while (!taskQueue_.empty()) {
-					currentTasks.push_back(std::move(taskQueue_.front()));
+					currentTasks.emplace_back(std::move(taskQueue_.front()));
 					taskQueue_.pop();
 				}
 			}
@@ -1925,7 +1925,7 @@ void Console::LogToFileAsync([[maybe_unused]] const std::string& message) {
 #ifdef _DEBUG
 	{
 		std::lock_guard lock(mutex_);
-		messageBuffer_.push_back(message);
+		messageBuffer_.emplace_back(message);
 
 		// バッファが一定数を超えた場合はフラッシュ
 		if (messageBuffer_.size() >= kBatchSize) {

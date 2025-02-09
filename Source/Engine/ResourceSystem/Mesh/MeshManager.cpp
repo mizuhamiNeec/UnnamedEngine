@@ -158,7 +158,7 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, Stat
 		} else {
 			vertex.uv = Vec2::zero;
 		}
-		vertices.push_back(vertex);
+		vertices.emplace_back(vertex);
 	}
 
 	Console::Print("頂点数: " + std::to_string(mesh->mNumVertices) + "\n", kConTextColorGray, Channel::ResourceSystem);
@@ -168,7 +168,7 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, Stat
 		const aiFace face = mesh->mFaces[faceIndex];
 		assert(face.mNumIndices == 3); // 三角形以外はエラー
 		for (uint32_t j = 0; j < face.mNumIndices; ++j) {
-			indices.push_back(face.mIndices[j]);
+			indices.emplace_back(face.mIndices[j]);
 		}
 	}
 
@@ -196,12 +196,6 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, Stat
 				// テクスチャパスを結合して完全なパスを作成
 				std::filesystem::path texPath(texturePathStr);
 				std::filesystem::path fullTexturePath = modelDir / texPath;
-
-				Console::Print(
-					"Loading texture: " + fullTexturePath.string() + "\n",
-					kConTextColorCompleted,
-					Channel::ResourceSystem
-				);
 
 				if (Texture* texture = textureManager_->GetTexture(fullTexturePath.string()).get()) {
 					material->SetTexture("baseColorTexture", texture);

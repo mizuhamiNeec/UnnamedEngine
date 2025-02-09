@@ -3,7 +3,7 @@
 #include <Components/Camera/CameraComponent.h>
 
 void CameraManager::AddCamera(const std::shared_ptr<CameraComponent>& camera) {
-	cameras_.push_back(camera);
+	cameras_.emplace_back(camera);
 }
 
 void CameraManager::RemoveCamera(const std::shared_ptr<CameraComponent>& camera) {

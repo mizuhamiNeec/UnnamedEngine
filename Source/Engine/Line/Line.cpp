@@ -1,8 +1,6 @@
 #include "Line.h"
 
 #include <mutex>
-
-#include <Camera/Camera.h>
 #include <Camera/CameraManager.h>
 
 #include <Components/Camera/CameraComponent.h>
@@ -60,11 +58,11 @@ void Line::AddLine(const Vec3& start, const Vec3& end, const Vec4& color) {
 	const uint32_t startIndex = static_cast<uint32_t>(lineVertices_.size());
 
 	// インデックスを正確に追加 (最後の2つのインデックスのみを追加)
-	lineVertices_.push_back({ .pos = start, .color = color });
-	lineVertices_.push_back({ .pos = end, .color = color });
+	lineVertices_.emplace_back(LineVertex(start, color));
+	lineVertices_.emplace_back(LineVertex(end, color));
 
-	lineIndices_.push_back(startIndex);		// 開始頂点
-	lineIndices_.push_back(startIndex + 1); // 終了頂点
+	lineIndices_.emplace_back(startIndex);		// 開始頂点
+	lineIndices_.emplace_back(startIndex + 1); // 終了頂点
 
 	isDirty_ = true; // バッファを更新する
 }

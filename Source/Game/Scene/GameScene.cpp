@@ -28,7 +28,7 @@ AABB GenerateRandomAABB(const Vec3& worldMin, const Vec3& worldMax, const Vec3& 
 std::vector<AABB> GenerateRandomAABBs(size_t count, const Vec3& worldMin, const Vec3& worldMax, const Vec3& sizeRange) {
 	std::vector<AABB> aabbs;
 	for (size_t i = 0; i < count; ++i) {
-		aabbs.push_back(GenerateRandomAABB(worldMin, worldMax, sizeRange));
+		aabbs.emplace_back(GenerateRandomAABB(worldMin, worldMax, sizeRange));
 	}
 	return aabbs;
 }
@@ -70,7 +70,7 @@ void GameScene::Init() {
 
 #pragma region エンティティ
 	camera_ = std::make_unique<Entity>("camera");
-	entities_.push_back(camera_.get());
+	AddEntity(camera_.get());
 	// 生ポインタを取得
 	CameraComponent* rawCameraPtr = camera_->AddComponent<CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
@@ -96,13 +96,13 @@ void GameScene::Init() {
 	);
 	playerCollider_->SetSize(Math::HtoM(Vec3(33.0f, 73.0f, 33.0f)));
 	playerCollider_->SetOffset(Math::HtoM(Vec3::up * 73.0f * 0.5f));
-	entities_.push_back(entPlayer_.get());
+	AddEntity(entPlayer_.get());
 
 	cameraRoot_ = std::make_unique<Entity>("cameraRoot");
 	cameraRoot_->SetParent(entPlayer_.get());
 	cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
 	cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
-	entities_.push_back(cameraRoot_.get());
+	AddEntity(cameraRoot_.get());
 
 	// cameraRootにアタッチ
 	camera_->SetParent(cameraRoot_.get());
@@ -122,16 +122,16 @@ void GameScene::Init() {
 		rawTestMeshRenderer, [](StaticMeshRenderer*) {}
 	);
 	floatTestMR_->SetStaticMesh(mesh);
-	entities_.push_back(testMeshEntity_.get());
+	AddEntity(testMeshEntity_.get());
 
 	//resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/ground.obj");
 	//auto groundMesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/ground.obj");
 	//StaticMeshRenderer* groundMeshRenderer = entPlayer_->AddComponent<StaticMeshRenderer>();
 	//groundMeshRenderer->SetStaticMesh(groundMesh);
 
-	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/lightWeight.obj");
+	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/sp_physicstest.obj");
 	debugMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
-		"./Resources/Models/lightWeight.obj"
+		"./Resources/Models/sp_physicstest.obj"
 	);
 	debugTestMeshEntity_ = std::make_unique<Entity>("debugTestMesh");
 	StaticMeshRenderer* testMeshRenderer = debugTestMeshEntity_->AddComponent<StaticMeshRenderer>();
@@ -145,7 +145,7 @@ void GameScene::Init() {
 		meshColliderComponent,
 		[](MeshColliderComponent*) {}
 	);
-	entities_.push_back(debugTestMeshEntity_.get());
+	AddEntity(debugTestMeshEntity_.get());
 #pragma endregion
 
 	CameraManager::SetActiveCamera(camera);
@@ -171,19 +171,18 @@ void GameScene::Update(const float deltaTime) {
 	//}
 	//cameraRoot_->Update(deltaTime);
 
-	//for (auto worldMesh : worldMesh_) {
-	//	// メッシュのワイヤを描画
-	//	Debug::DrawTriangle(worldMesh, Vec4::orange);
-	//	Debug::DrawRay(worldMesh.GetCenter(), worldMesh.GetNormal(), Vec4::magenta);
-	//}
-
-	physicsEngine_->Update(deltaTime);
+	for (auto worldMesh : worldMesh_) {
+		// メッシュのワイヤを描画
+		//Debug::DrawTriangle(worldMesh, Vec4::orange);
+	}
 
 	//プレイヤーの更新
 	entPlayer_->Update(EngineTimer::GetScaledDeltaTime());
 
 	testMeshEntity_->Update(deltaTime);
 	debugTestMeshEntity_->Update(deltaTime);
+
+	physicsEngine_->Update(deltaTime);
 
 	/*particleManager_->Update(deltaTime);
 	static bool isOffscreen = false;

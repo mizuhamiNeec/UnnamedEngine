@@ -1,6 +1,5 @@
 #include "Object3D.h"
 
-#include "../Camera/Camera.h"
 #include "../SubSystem/Console/Console.h"
 #include "../Lib/Math/Vector/Vec3.h"
 #include "../Lib/Math/Vector/Vec4.h"

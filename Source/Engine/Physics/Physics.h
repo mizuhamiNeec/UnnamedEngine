@@ -70,6 +70,8 @@ public:
 	void DrawBvh(const Vec4& color) const;
 	void DrawObjects(const Vec4& color) const;
 
+	[[nodiscard]] AABB GetNodeAABB(int nodeId) const;
+
 private:
 	struct BVHNode {
 		AABB boundingBox = { Vec3::zero, Vec3::zero };

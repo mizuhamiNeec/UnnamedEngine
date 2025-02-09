@@ -17,6 +17,9 @@ public:
 	std::string GetName() const;
 	std::vector<Triangle> GetPolygons() const;
 
+	AABB GetBoundingBox() const;
+	void BuildBVH() const;
+
 	void Render(ID3D12GraphicsCommandList* commandList) const;
 
 	void ReleaseResource();

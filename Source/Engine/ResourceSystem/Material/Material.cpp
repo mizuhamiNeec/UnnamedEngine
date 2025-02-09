@@ -60,7 +60,7 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 
 	// ラスタライザ設定
 	desc.RasterizerState = {
-		.FillMode = D3D12_FILL_MODE_SOLID,
+		.FillMode = D3D12_FILL_MODE_WIREFRAME,
 		.CullMode = D3D12_CULL_MODE_BACK,
 		.DepthClipEnable = TRUE,
 	};
@@ -255,7 +255,7 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature([[maybe_unused]] ID3D12D
 				param.ShaderVisibility = resourceInfo.visibility;
 				param.Descriptor.ShaderRegister = resourceInfo.bindPoint;
 				param.Descriptor.RegisterSpace = 0;
-				desc.parameters.push_back(param);
+				desc.parameters.emplace_back(param);
 
 				Console::Print(
 					std::format(
@@ -274,7 +274,7 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature([[maybe_unused]] ID3D12D
 				range.BaseShaderRegister = resourceInfo.bindPoint;
 				range.RegisterSpace = 0;
 				range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-				srvRanges.push_back(range);
+				srvRanges.emplace_back(range);
 
 				Console::Print(
 					std::format(
@@ -296,7 +296,7 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature([[maybe_unused]] ID3D12D
 			param.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 			param.DescriptorTable.NumDescriptorRanges = static_cast<UINT>(srvRanges.size());
 			param.DescriptorTable.pDescriptorRanges = srvRanges.data();
-			desc.parameters.push_back(param);
+			desc.parameters.emplace_back(param);
 
 			// サンプラーの追加
 			D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -313,7 +313,7 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature([[maybe_unused]] ID3D12D
 			samplerDesc.ShaderRegister = 0;
 			samplerDesc.RegisterSpace = 0;
 			samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-			desc.samplers.push_back(samplerDesc);
+			desc.samplers.emplace_back(samplerDesc);
 		}
 
 		// INPUT_LAYOUTフラグを設定

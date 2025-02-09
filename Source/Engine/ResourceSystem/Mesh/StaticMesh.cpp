@@ -3,7 +3,7 @@
 #include <Physics/Physics.h>
 
 void StaticMesh::AddSubMesh(std::unique_ptr<SubMesh> subMesh) {
-	subMeshes_.push_back(std::move(subMesh));
+	subMeshes_.emplace_back(std::move(subMesh));
 }
 
 const std::vector<std::unique_ptr<SubMesh>>& StaticMesh::GetSubMeshes() const {
@@ -19,6 +19,17 @@ std::vector<Triangle> StaticMesh::GetPolygons() const {
 		polygons.insert(polygons.end(), subMeshPolygons.begin(), subMeshPolygons.end());
 	}
 	return polygons;
+}
+
+AABB StaticMesh::GetBoundingBox() const {
+	std::vector<Triangle> allPolygons = GetPolygons();
+	return FromTriangles(allPolygons);
+}
+
+void StaticMesh::BuildBVH() const {
+	for (const auto& subMesh : subMeshes_) {
+		subMesh->BuildBVH();
+	}
 }
 
 void StaticMesh::Render(ID3D12GraphicsCommandList* commandList) const {

@@ -147,9 +147,6 @@
     <ClInclude Include="Source\Engine\Engine.h">
       <Filter>Source\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Camera\Camera.h">
-      <Filter>Source\Engine\Camera</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Debug\Debug.h">
       <Filter>Source\Engine\Debug</Filter>
     </ClInclude>
@@ -331,9 +328,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Engine.cpp">
       <Filter>Source\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Camera\Camera.cpp">
-      <Filter>Source\Engine\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Debug\Debug.cpp">
       <Filter>Source\Engine\Debug</Filter>

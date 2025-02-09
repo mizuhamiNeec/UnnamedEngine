@@ -13,6 +13,7 @@
 #include <Lib/Math/Vector/Vec4.h>
 
 #include <Physics/Physics.h>
+#include "Physics.h"
 
 //-----------------------------------------------------------------------------
 // Purpose: AABBのコンストラクタ
@@ -330,7 +331,7 @@ std::vector<int> DynamicBVH::QueryOverlaps(const AABB& queryBox) const {
 		}
 
 		if (node.isLeaf) {
-			overlappingObjects.push_back(node.objectIndex);
+			overlappingObjects.emplace_back(node.objectIndex);
 		} else {
 			stack.push(node.leftChild);
 			stack.push(node.rightChild);
@@ -445,6 +446,14 @@ void DynamicBVH::DrawObjects(const Vec4& color) const {
 	}
 }
 
+AABB DynamicBVH::GetNodeAABB(int nodeId) const {
+	std::shared_lock lock(bvhMutex_);
+    if (nodeId < 0 || nodeId >= static_cast<int>(nodes_.size()) || !nodes_[nodeId].isValid) {
+        return AABB(Vec3::zero, Vec3::zero);
+    }
+    return nodes_[nodeId].boundingBox;
+}
+
 void DynamicBVH::OptimizeMemoryLayout() {
 	// ノードを連続したメモリブロックに再配置
 	std::vector<BVHNode> optimizedNodes;
@@ -461,7 +470,7 @@ void DynamicBVH::OptimizeMemoryLayout() {
 			continue;
 		}
 
-		optimizedNodes.push_back(nodes_[nodeId]);
+		optimizedNodes.emplace_back(nodes_[nodeId]);
 
 		const BVHNode& node = nodes_[nodeId];
 		if (!node.isLeaf) {
@@ -504,7 +513,7 @@ bool Physics::RayIntersectsTriangle(
 }
 
 float Physics::ComputeBoxPenetration(
-	const Vec3& boxCenter, const Vec3& halfSize, const Vec3& hitPos, [[maybe_unused]]const Vec3& hitNormal
+	const Vec3& boxCenter, const Vec3& halfSize, const Vec3& hitPos, [[maybe_unused]] const Vec3& hitNormal
 ) {
 	// ローカル座標での衝突座標を計算
 	Vec3 localHitPos = hitPos - boxCenter;
