@@ -144,7 +144,7 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, Stat
 		aiVector3D transformedPos = transform * pos;
 		vertex.position = Vec4(transformedPos.x, transformedPos.y, transformedPos.z, 1.0f);
 
-		vertex.position = Vec4(Math::HtoM(transformedPos.x), Math::HtoM(transformedPos.y), Math::HtoM(transformedPos.z), 1.0f);
+		//vertex.position = Vec4(Math::HtoM(transformedPos.x), Math::HtoM(transformedPos.y), Math::HtoM(transformedPos.z), 1.0f);
 
 		// 法線にも回転を適用（スケールは除外）
 		aiMatrix3x3 normalMatrix(transform);

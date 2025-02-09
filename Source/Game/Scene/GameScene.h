@@ -60,8 +60,8 @@ private:
 
 	std::vector<Enemy> enemies_;
 
-	std::unique_ptr<Entity> testMeshEntity_;
-	std::shared_ptr<StaticMeshRenderer> floatTestMR_;
+	//std::unique_ptr<Entity> testMeshEntity_;
+	//std::shared_ptr<StaticMeshRenderer> floatTestMR_;
 	StaticMesh* debugMesh = nullptr;
 
 	std::unique_ptr<Entity> debugTestMeshEntity_;
