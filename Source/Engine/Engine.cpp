@@ -41,7 +41,7 @@ void Engine::Run() {
 	while (!bWishShutdown_) {
 		if (Window::ProcessMessage()) {
 			PostQuitMessage(0);
-			break; // ゲームループを抜ける
+			break;
 		}
 		Update();
 	}

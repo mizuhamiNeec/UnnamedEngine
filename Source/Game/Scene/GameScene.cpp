@@ -114,15 +114,15 @@ void GameScene::Init() {
 #pragma endregion
 
 #pragma region メッシュレンダラー
-	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/weaponNinjaSword.obj");
-	auto mesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/weaponNinjaSword.obj");
-	testMeshEntity_ = std::make_unique<Entity>("testmesh");
-	StaticMeshRenderer* rawTestMeshRenderer = testMeshEntity_->AddComponent<StaticMeshRenderer>();
-	floatTestMR_ = std::shared_ptr<StaticMeshRenderer>(
-		rawTestMeshRenderer, [](StaticMeshRenderer*) {}
-	);
-	floatTestMR_->SetStaticMesh(mesh);
-	AddEntity(testMeshEntity_.get());
+	//resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/weaponNinjaSword.obj");
+	//auto mesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/weaponNinjaSword.obj");
+	//testMeshEntity_ = std::make_unique<Entity>("testmesh");
+	//StaticMeshRenderer* rawTestMeshRenderer = testMeshEntity_->AddComponent<StaticMeshRenderer>();
+	//floatTestMR_ = std::shared_ptr<StaticMeshRenderer>(
+	//	rawTestMeshRenderer, [](StaticMeshRenderer*) {}
+	//);
+	//floatTestMR_->SetStaticMesh(mesh);
+	//AddEntity(testMeshEntity_.get());
 
 	//resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/ground.obj");
 	//auto groundMesh = resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/ground.obj");
@@ -179,7 +179,7 @@ void GameScene::Update(const float deltaTime) {
 	//プレイヤーの更新
 	entPlayer_->Update(EngineTimer::GetScaledDeltaTime());
 
-	testMeshEntity_->Update(deltaTime);
+	//testMeshEntity_->Update(deltaTime);
 	debugTestMeshEntity_->Update(deltaTime);
 
 	physicsEngine_->Update(deltaTime);
@@ -288,7 +288,8 @@ void GameScene::Render() {
 	//sprite_->Draw();
 
 	debugTestMeshEntity_->Render(renderer_->GetCommandList());
-	testMeshEntity_->Render(renderer_->GetCommandList());
+	//testMeshEntity_->Render(renderer_->GetCommandList());
+	//entPlayer_->Render(renderer_->GetCommandList());
 }
 
 void GameScene::Shutdown() {

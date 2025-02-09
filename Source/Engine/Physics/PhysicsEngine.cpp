@@ -189,7 +189,7 @@ std::vector<HitResult> PhysicsEngine::BoxCast(
 	candidateIndices.assign(uniqueCandidates.begin(), uniqueCandidates.end());
 
 	// 移動軌跡上を離散サンプリングして衝突判定を行う
-	const int steps = 4;
+	constexpr int steps = 8;
 	float dt = distance / steps;
 	for (int i = 0; i <= steps; i++) {
 		float t = i * dt;
@@ -475,7 +475,7 @@ void PhysicsEngine::UpdateBVH() {
 
 	// 追加: 現在参照中のBVHノードのみを描画
 	for (const auto& [collider, nodeId] : colliderNodeIds_) {
-		AABB nodeAABB ={Vec3::zero,Vec3::zero};
+		AABB nodeAABB = { Vec3::zero,Vec3::zero };
 		if (collider->IsDynamic()) {
 			nodeAABB = dynamicBVH_.GetNodeAABB(nodeId); // ※ GetNodeAABB() の実装が必要です
 		} else {
