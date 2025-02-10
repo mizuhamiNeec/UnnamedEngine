@@ -6,7 +6,7 @@
 // Purpose: エンジン
 //-----------------------------------------------------------------------------
 const std::string kEngineName = "Unnamed Engine";
-const std::string kEngineVersion = "0.0.2";
+const std::string kEngineVersion = "0.02";
 const std::string kEngineBuildDate = __DATE__;
 const std::string kEngineBuildTime = __TIME__;
 

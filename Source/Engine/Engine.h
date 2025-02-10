@@ -10,7 +10,7 @@
 
 #include <ResourceSystem/Manager/ResourceManager.h>
 
-#include <Scene/Base/Scene.h>
+#include <Scene/Base/BaseScene.h>
 
 #include "SceneManager/SceneFactory.h"
 #include "SceneManager/SceneManager.h"

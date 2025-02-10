@@ -6,7 +6,7 @@ public:
 	explicit SceneManager(SceneFactory& factory) : factory_(factory) {}
 
 	void ChangeScene(const std::string& name) {
-		if (std::shared_ptr<Scene> newScene = factory_.CreateScene(name)) {
+		if (std::shared_ptr<BaseScene> newScene = factory_.CreateScene(name)) {
 			if (currentScene_) {
 				currentScene_->Shutdown();
 			}
@@ -27,11 +27,11 @@ public:
 		}
 	}
 
-	std::shared_ptr<Scene> GetCurrentScene() const {
+	std::shared_ptr<BaseScene> GetCurrentScene() const {
 		return currentScene_;
 	}
 
 private:
 	SceneFactory& factory_;
-	std::shared_ptr<Scene> currentScene_;
+	std::shared_ptr<BaseScene> currentScene_;
 };

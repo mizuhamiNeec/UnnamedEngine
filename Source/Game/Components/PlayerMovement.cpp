@@ -40,21 +40,21 @@ void PlayerMovement::ProcessInput() {
 	//-------------------------------------------------------------------------
 	// 移動入力
 	//-------------------------------------------------------------------------
-	moveInput_ = { 0.0f, 0.0f, 0.0f };
+	moveInput_ = {0.0f,0.0f,0.0f};
 
-	if (InputSystem::IsPressed("forward")) {
+	if(InputSystem::IsPressed("forward")) {
 		moveInput_.z += 1.0f;
 	}
 
-	if (InputSystem::IsPressed("back")) {
+	if(InputSystem::IsPressed("back")) {
 		moveInput_.z -= 1.0f;
 	}
 
-	if (InputSystem::IsPressed("moveright")) {
+	if(InputSystem::IsPressed("moveright")) {
 		moveInput_.x += 1.0f;
 	}
 
-	if (InputSystem::IsPressed("moveleft")) {
+	if(InputSystem::IsPressed("moveleft")) {
 		moveInput_.x -= 1.0f;
 	}
 
@@ -73,16 +73,16 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	// position_.y = std::max<float>(position_.y, 0.0f);
 	transform_->SetLocalPos(position_);
 	// デバッグ描画
-	Debug::DrawArrow(transform_->GetWorldPos(), velocity_, Vec4::yellow);
+	Debug::DrawArrow(transform_->GetWorldPos(),velocity_,Vec4::yellow);
 
 	float width = Math::HtoM(33.0f);
 	float height = Math::HtoM(73.0f);
 	Debug::DrawBox(
 		transform_->GetWorldPos() + (Vec3::up * height * 0.5f),
 		Quaternion::Euler(Vec3::zero),
-		Vec3(width, height, width),
+		Vec3(width,height,width),
 		isGrounded_ ? Vec4::green : Vec4::blue);
-	Debug::DrawRay(transform_->GetWorldPos(), wishdir_, Vec4::cyan);
+	Debug::DrawRay(transform_->GetWorldPos(),wishdir_,Vec4::cyan);
 
 	//// カメラの前方ベクトルを取得し、XZ平面に投影して正規化
 	// auto camera = CameraManager::GetActiveCamera();
@@ -136,24 +136,24 @@ static Vec3 test;
 static float kEdgeAngleThreshold = 0.2f; // エッジ判定の閾値
 
 void PlayerMovement::DrawInspectorImGui() {
-#ifdef _DEBUG
-	if (ImGui::CollapsingHeader("PlayerMovement", ImGuiTreeNodeFlags_DefaultOpen)) {
-		ImGuiManager::DragVec3("Velocity", velocity_, 0.1f, "%.2f m/s");
-		ImGuiManager::DragVec3("test", test, 0.1f, "%.2f m/s");
-		ImGui::DragFloat("edge angle threshold", &kEdgeAngleThreshold, 0.01f, 0.0f, 1.0f);
+	#ifdef _DEBUG
+	if(ImGui::CollapsingHeader("PlayerMovement",ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGuiManager::DragVec3("Velocity",velocity_,0.1f,"%.2f m/s");
+		ImGuiManager::DragVec3("test",test,0.1f,"%.2f m/s");
+		ImGui::DragFloat("edge angle threshold",&kEdgeAngleThreshold,0.01f,0.0f,1.0f);
 	}
-#endif
+	#endif
 }
 
 void PlayerMovement::Move() {
-	if (!isGrounded_) {
+	if(!isGrounded_) {
 		ApplyHalfGravity();
 	}
 
 	isGrounded_ = CheckGrounded();
 
 	// ジャンプ処理
-	if (isGrounded_ && InputSystem::IsPressed("+jump")) {
+	if(isGrounded_ && InputSystem::IsPressed("+jump")) {
 		velocity_.y = Math::HtoM(jumpVel_);
 		isGrounded_ = false; // ジャンプ中は接地判定を解除
 	}
@@ -162,7 +162,7 @@ void PlayerMovement::Move() {
 	//	velocity_.y = 0.0f; // 落下中のみリセット
 	// }
 
-	if (isGrounded_) {
+	if(isGrounded_) {
 		ApplyFriction();
 	}
 
@@ -183,18 +183,18 @@ void PlayerMovement::Move() {
 	Vec3 wishvel = (cameraForward * moveInput_.z) + (cameraRight * moveInput_.x);
 	wishvel.y = 0.0f;
 
-	if (!wishvel.IsZero()) {
+	if(!wishvel.IsZero()) {
 		wishvel.Normalize();
 	}
 
-	if (isGrounded_) {
+	if(isGrounded_) {
 		wishdir_ = wishvel;
 		float wishspeed = wishdir_.Length() * speed_;
 		float maxspeed = ConVarManager::GetConVar("sv_maxspeed")->GetValueAsFloat();
-		if (wishspeed > maxspeed) {
+		if(wishspeed > maxspeed) {
 			wishvel *= maxspeed / wishspeed;
 		}
-		Accelerate(wishdir_, wishspeed, ConVarManager::GetConVar("sv_accelerate")->GetValueAsFloat());
+		Accelerate(wishdir_,wishspeed,ConVarManager::GetConVar("sv_accelerate")->GetValueAsFloat());
 
 		// 地面にいたらベロシティを地面の法線方向に投影
 		velocity_ = velocity_ - (normal_ * velocity_.Dot(normal_));
@@ -202,17 +202,19 @@ void PlayerMovement::Move() {
 		wishdir_ = wishvel;
 		float wishspeed = wishdir_.Length() * speed_;
 		float maxspeed = ConVarManager::GetConVar("sv_maxspeed")->GetValueAsFloat();
-		if (wishspeed > maxspeed) {
+		if(wishspeed > maxspeed) {
 			wishvel *= maxspeed / wishspeed;
 		}
-		AirAccelerate(wishdir_, wishspeed, ConVarManager::GetConVar("sv_airaccelerate")->GetValueAsFloat());
+		AirAccelerate(wishdir_,wishspeed,ConVarManager::GetConVar("sv_airaccelerate")->GetValueAsFloat());
 	}
 
 	CollideAndSlide(velocity_ * deltaTime_);
 
-	if (!isGrounded_) {
+	if(!isGrounded_) {
 		ApplyHalfGravity();
 	}
+
+	CheckVelocity();
 }
 
 void PlayerMovement::SetIsGrounded(bool bIsGrounded) {
@@ -225,7 +227,7 @@ void PlayerMovement::SetVelocity(const Vec3 newVel) {
 
 void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 	auto* collider = owner_->GetComponent<BoxColliderComponent>();
-	if (!collider) {
+	if(!collider) {
 		position_ += desiredDisplacement;
 		return;
 	}
@@ -241,12 +243,12 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 	Vec3 averageNormal = Vec3::zero;
 	int hitCount = 0;
 
-	for (int bounce = 0; bounce < kMaxBounces && remainingDisp.SqrLength() > kEpsilon * kEpsilon; ++bounce) {
+	for(int bounce = 0; bounce < kMaxBounces && remainingDisp.SqrLength() > kEpsilon * kEpsilon; ++bounce) {
 		float moveLength = remainingDisp.Length();
-		auto hitResults = collider->BoxCast(currentPos, remainingDisp.Normalized(), moveLength,
+		auto hitResults = collider->BoxCast(currentPos,remainingDisp.Normalized(),moveLength,
 			collider->GetBoundingBox().GetHalfSize());
 
-		if (hitResults.empty()) {
+		if(hitResults.empty()) {
 			currentPos += remainingDisp;
 			break;
 		}
@@ -254,33 +256,33 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		// エッジ衝突の検出と平均法線の計算
 		averageNormal = Vec3::zero;
 		hitCount = 0;
-		for (const auto& result : hitResults) {
-			if (result.dist < kEpsilon * 2.0f) {
+		for(const auto& result : hitResults) {
+			if(result.dist < kEpsilon * 2.0f) {
 				averageNormal += result.hitNormal;
 				hitCount++;
 			}
 		}
 
-		auto hit = *std::ranges::min_element(hitResults, [](const HitResult& a, const HitResult& b) { return a.dist < b.dist; });
+		auto hit = *std::ranges::min_element(hitResults,[](const HitResult& a,const HitResult& b) { return a.dist < b.dist; });
 
 		Vec3 hitNormal = hit.hitNormal;
-		if (hitCount > 1) {
+		if(hitCount > 1) {
 			// 複数の法線がある場合は平均化して正規化
 			hitNormal = (averageNormal / static_cast<float>(hitCount)).Normalized();
 		}
 
 		// エッジケースの検出
 		bool isEdgeCollision = false;
-		if (hitCount > 1 && std::abs(hit.hitNormal.Dot(hitNormal)) < kEdgeAngleThreshold) {
+		if(hitCount > 1 && std::abs(hit.hitNormal.Dot(hitNormal)) < kEdgeAngleThreshold) {
 			isEdgeCollision = true;
 			// エッジに沿った移動ベクトルを計算
 			Vec3 edgeDir = hit.hitNormal.Cross(hitNormal).Normalized();
 			remainingDisp = edgeDir * remainingDisp.Dot(edgeDir);
 		} else {
-			float travelDist = (std::max)(hit.dist - kEpsilon, 0.0f);
+			float travelDist = (std::max)(hit.dist - kEpsilon,0.0f);
 			currentPos += remainingDisp.Normalized() * travelDist;
 
-			if (hit.dist < kEpsilon) {
+			if(hit.dist < kEpsilon) {
 				currentPos += hitNormal * kPushOut;
 			}
 
@@ -290,7 +292,7 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 			Vec3 slide = remainingDisp - hitNormal * remainingDisp.Dot(hitNormal);
 
 			// 接地判定：接触点の高さが現在位置から stepMaxHeight 以内の場合のみ床とみなす
-			if (hitNormal.y > 0.7f && hit.hitPos.y <= currentPos.y + stepMaxHeight) {
+			if(hitNormal.y > 0.7f && hit.hitPos.y <= currentPos.y + stepMaxHeight) {
 				remainingDisp = slide;
 				normal_ = hitNormal;
 				isGrounded_ = true;
@@ -302,7 +304,7 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		}
 
 		// エッジ衝突時の速度調整
-		if (isEdgeCollision) {
+		if(isEdgeCollision) {
 			finalVelocity *= 0.8f; // エッジ衝突時は速度を減衰
 		}
 	}

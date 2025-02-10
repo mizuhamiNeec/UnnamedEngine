@@ -109,6 +109,23 @@ ComPtr<ID3D12DescriptorHeap> ShaderResourceViewManager::GetDescriptorHeap() {
 	return descriptorHeap_;
 }
 
+void ShaderResourceViewManager::BindDescriptorTable(
+	const std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& gpuHandles,
+	ID3D12GraphicsCommandList* commandList,
+	const UINT rootParameterIndex
+) const {
+	const D3D12_GPU_DESCRIPTOR_HANDLE tableStart = AllocateAndCopyDescriptors(gpuHandles);
+	commandList->SetGraphicsRootDescriptorTable(rootParameterIndex, tableStart);
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE ShaderResourceViewManager::AllocateAndCopyDescriptors(
+	const std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& handles
+) const {
+	handles;
+	const D3D12_GPU_DESCRIPTOR_HANDLE startHandle = GetGPUDescriptorHandle(currentDescriptorIndex_);
+	return startHandle;
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE ShaderResourceViewManager::GetCPUDescriptorHandle(
 	const UINT index
 ) const {

@@ -67,6 +67,7 @@
       <BuildStlModules>true</BuildStlModules>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -96,6 +97,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <BuildStlModules>true</BuildStlModules>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -115,6 +117,12 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Assets\Manager\AssetManager.cpp" />
+    <ClCompile Include="Source\Engine\Async\JobTask\Base\BaseJobTask.cpp" />
+    <ClCompile Include="Source\Engine\Async\JobTask\JobTask.cpp" />
+    <ClCompile Include="Source\Engine\Async\MainThreadDispatcher.cpp" />
+    <ClCompile Include="Source\Engine\Async\JobSystem.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Material\MaterialInstance.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\IniParser.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp" />
@@ -164,6 +172,7 @@
     <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp" />
     <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Assets\Asset\TextureAsset.cpp" />
     <None Include="Resources\Shaders\Default.hlsli" />
     <None Include="Resources\Shaders\Line.PS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -215,7 +224,7 @@
     <ClCompile Include="Source\Externals\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="Source\Game\Scene\Base\Scene.cpp" />
+    <ClCompile Include="Source\Game\Scene\Base\BaseScene.cpp" />
     <ClCompile Include="Source\Game\Scene\GameScene.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
@@ -231,6 +240,13 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Assets\Manager\AssetManager.h" />
+    <ClInclude Include="Source\Engine\Assets\Asset\Base\Asset.h" />
+    <ClInclude Include="Source\Engine\Async\JobTask\Base\BaseJobTask.h" />
+    <ClInclude Include="Source\Engine\Async\JobTask\JobTask.h" />
+    <ClInclude Include="Source\Engine\Async\MainThreadDispatcher.h" />
+    <ClInclude Include="Source\Engine\Async\JobSystem.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Material\MaterialInstance.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\IniParser.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h" />
@@ -282,6 +298,7 @@
     <ClInclude Include="Source\Engine\Components\Transform\TransformComponent.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.h" />
+    <ClInclude Include="Source\Engine\Assets\Asset\TextureAsset.h" />
     <None Include="Resources\Shaders\Object3d.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
@@ -321,7 +338,7 @@
     <ClInclude Include="Source\Engine\Renderer\D3D12.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\StrUtils.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\ClientProperties.h" />
-    <ClInclude Include="Source\Game\Scene\Base\Scene.h" />
+    <ClInclude Include="Source\Game\Scene\Base\BaseScene.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h" />
     <ClInclude Include="Source\Engine\Renderer\Renderer.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec2.h" />
