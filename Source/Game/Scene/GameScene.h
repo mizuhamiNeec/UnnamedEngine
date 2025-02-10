@@ -15,7 +15,7 @@
 
 #include <Renderer/Renderer.h>
 
-#include <Scene/Base/Scene.h>
+#include <Scene/Base/BaseScene.h>
 
 #include <Sprite/Sprite.h>
 #include <Sprite/SpriteCommon.h>
@@ -29,7 +29,7 @@ class EnemyMovement;
 class CameraRotator;
 class CameraSystem;
 
-class GameScene : public Scene {
+class GameScene : public BaseScene {
 public:
 	~GameScene() override = default;
 	void Init() override;

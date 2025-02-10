@@ -264,7 +264,7 @@
     <ClInclude Include="Source\Game\Scene\GameScene.h">
       <Filter>Source\Game\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Game\Scene\Base\Scene.h">
+    <ClInclude Include="Source\Game\Scene\Base\BaseScene.h">
       <Filter>Source\Game\Scene\Base</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Components\Base\Component.h" />
@@ -321,6 +321,14 @@
     <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\IniParser.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Material\MaterialInstance.h" />
+    <ClInclude Include="Source\Engine\Async\JobSystem.h" />
+    <ClInclude Include="Source\Engine\Async\MainThreadDispatcher.h" />
+    <ClInclude Include="Source\Engine\Async\JobTask\Base\BaseJobTask.h" />
+    <ClInclude Include="Source\Engine\Async\JobTask\JobTask.h" />
+    <ClInclude Include="Source\Engine\Assets\Asset\Base\Asset.h" />
+    <ClInclude Include="Source\Engine\Assets\Asset\TextureAsset.h" />
+    <ClInclude Include="Source\Engine\Assets\Manager\AssetManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -448,7 +456,7 @@
     <ClCompile Include="Source\Externals\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Editor\Editor.cpp" />
-    <ClCompile Include="Source\Game\Scene\Base\Scene.cpp" />
+    <ClCompile Include="Source\Game\Scene\Base\BaseScene.cpp" />
     <ClCompile Include="Source\Engine\Components\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
@@ -488,6 +496,13 @@
     <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\IniParser.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Material\MaterialInstance.cpp" />
+    <ClCompile Include="Source\Engine\Async\JobSystem.cpp" />
+    <ClCompile Include="Source\Engine\Async\MainThreadDispatcher.cpp" />
+    <ClCompile Include="Source\Engine\Async\JobTask\Base\BaseJobTask.cpp" />
+    <ClCompile Include="Source\Engine\Async\JobTask\JobTask.cpp" />
+    <ClCompile Include="Source\Engine\Assets\Asset\TextureAsset.cpp" />
+    <ClCompile Include="Source\Engine\Assets\Manager\AssetManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

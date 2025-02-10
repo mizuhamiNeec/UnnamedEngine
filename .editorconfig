@@ -1,2 +1,128 @@
-[*.{cpp,h,hlsl,hlsli}]
+root = true
+
+[*.{c++,cc,cpp,cppm,cxx,h,h++,hh,hlsl,hlsli,hlslinc,hpp,hxx,inl,ipp,ixx,tlh,tli}]
 charset = utf-8
+
+# Visual C++ code style
+
+cpp_generate_documentation_comments = doxygen_triple_slash
+
+# Visual C++
+
+indent_style = tab
+indent_size = tab
+tab_width= 4
+cpp_indent_braces = false
+cpp_indent_multi_line_relative_to = statement_begin
+cpp_indent_within_parentheses = indent
+cpp_indent_preserve_within_parentheses = true
+cpp_indent_case_contents = false
+cpp_indent_case_labels = false
+cpp_indent_case_contents_when_block = false
+cpp_indent_lambda_braces_when_parameter = false
+cpp_indent_goto_labels = none
+cpp_indent_preprocessor = none
+cpp_indent_access_specifiers = false
+cpp_indent_namespace_contents = false
+cpp_indent_preserve_comments = false
+cpp_new_line_before_open_brace_namespace = ignore
+cpp_new_line_before_open_brace_type = ignore
+cpp_new_line_before_open_brace_function = ignore
+cpp_new_line_before_open_brace_block = ignore
+cpp_new_line_before_open_brace_lambda = ignore
+cpp_new_line_scope_braces_on_separate_lines = false
+cpp_new_line_close_brace_same_line_empty_type = true
+cpp_new_line_close_brace_same_line_empty_function = true
+cpp_new_line_before_catch = false
+cpp_new_line_before_else = false
+cpp_new_line_before_while_in_do_while = false
+cpp_space_before_function_open_parenthesis = ignore
+cpp_space_within_parameter_list_parentheses = false
+cpp_space_between_empty_parameter_list_parentheses = false
+cpp_space_after_keywords_in_control_flow_statements = false
+cpp_space_within_control_flow_statement_parentheses = false
+cpp_space_before_lambda_open_parenthesis = false
+cpp_space_within_cast_parentheses = false
+cpp_space_after_cast_close_parenthesis = false
+cpp_space_within_expression_parentheses = false
+cpp_space_before_block_open_brace = false
+cpp_space_between_empty_braces = false
+cpp_space_before_initializer_list_open_brace = false
+cpp_space_within_initializer_list_braces = false
+cpp_space_preserve_in_initializer_list = false
+cpp_space_before_open_square_bracket = false
+cpp_space_within_square_brackets = false
+cpp_space_before_empty_square_brackets = false
+cpp_space_between_empty_square_brackets = false
+cpp_space_group_square_brackets = false
+cpp_space_within_lambda_brackets = false
+cpp_space_between_empty_lambda_brackets = false
+cpp_space_before_comma = false
+cpp_space_after_comma = false
+cpp_space_remove_around_member_operators = false
+cpp_space_before_inheritance_colon = false
+cpp_space_before_constructor_colon = false
+cpp_space_remove_before_semicolon = false
+cpp_space_after_semicolon = false
+cpp_space_remove_around_unary_operator = false
+cpp_space_around_binary_operator = ignore
+cpp_space_around_assignment_operator = ignore
+cpp_space_pointer_reference_alignment = ignore
+cpp_space_around_ternary_operator = ignore
+cpp_use_unreal_engine_macro_formatting = false
+cpp_wrap_preserve_blocks = never
+
+# Visual C++ include cleanup
+
+cpp_include_cleanup_add_missing_error_tag_type = error
+cpp_include_cleanup_remove_unused_error_tag_type = error
+cpp_include_cleanup_optimize_unused_error_tag_type = error
+cpp_include_cleanup_sort_after_edits = true
+cpp_sort_includes_error_tag_type = error
+cpp_sort_includes_priority_case_sensitive = false
+cpp_sort_includes_priority_style = ignore
+cpp_includes_style = default
+cpp_includes_use_forward_slash = false
+
+# ReSharper properties
+resharper_break_template_declaration = do_not_change
+resharper_cpp_anonymous_method_declaration_braces = end_of_line
+resharper_cpp_case_block_braces = end_of_line
+resharper_cpp_empty_block_style = together
+resharper_cpp_indent_style = tab
+resharper_cpp_invocable_declaration_braces = end_of_line
+resharper_cpp_new_line_before_catch = false
+resharper_cpp_new_line_before_else = false
+resharper_cpp_other_braces = end_of_line
+resharper_cpp_type_declaration_braces = end_of_line
+resharper_cpp_wrap_after_declaration_lpar = true
+resharper_cpp_wrap_after_invocation_lpar = true
+resharper_cpp_wrap_before_declaration_rpar = true
+resharper_cpp_wrap_before_invocation_rpar = true
+resharper_cpp_wrap_before_ternary_opsigns = false
+resharper_cpp_wrap_multiple_type_parameter_constraints_style = wrap_if_long
+resharper_cpp_wrap_ternary_expr_style = wrap_if_long
+resharper_export_declaration_braces = end_of_line
+resharper_function_declaration_return_type_style = on_single_line
+resharper_function_definition_return_type_style = on_single_line
+resharper_keep_existing_enum_arrangement = false
+resharper_line_break_after_comma_in_member_initializer_lists = true
+resharper_namespace_declaration_braces = end_of_line
+resharper_new_line_before_while = false
+resharper_requires_expression_braces = end_of_line
+resharper_show_autodetect_configure_formatting_tip = false
+resharper_toplevel_function_declaration_return_type_style = on_single_line
+resharper_toplevel_function_definition_return_type_style = on_single_line
+resharper_wrap_enumeration_style = wrap_if_long
+
+# ReSharper inspection severities
+resharper_arrange_redundant_parentheses_highlighting = hint
+resharper_arrange_this_qualifier_highlighting = hint
+resharper_arrange_type_member_modifiers_highlighting = hint
+resharper_arrange_type_modifiers_highlighting = hint
+resharper_built_in_type_reference_style_for_member_access_highlighting = hint
+resharper_built_in_type_reference_style_highlighting = hint
+resharper_redundant_base_qualifier_highlighting = warning
+resharper_suggest_var_or_type_built_in_types_highlighting = hint
+resharper_suggest_var_or_type_elsewhere_highlighting = hint
+resharper_suggest_var_or_type_simple_types_highlighting = hint

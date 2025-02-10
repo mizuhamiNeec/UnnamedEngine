@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include "Scene/Base/Scene.h"
+#include "Scene/Base/BaseScene.h"
 
 #include "SceneManager/SceneManager.h"
 
@@ -25,7 +25,7 @@ private:
 private:
 	SceneManager& sceneManager_; // シーンマネージャ
 
-	std::shared_ptr<Scene> scene_; // 現在編集中のシーン
+	std::shared_ptr<BaseScene> scene_; // 現在編集中のシーン
 	Entity* selectedEntity_; // 選択中のエンティティ
 
 	// エディターのカメラ

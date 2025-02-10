@@ -26,6 +26,9 @@ public:
 
 	[[nodiscard]] static ComPtr<ID3D12DescriptorHeap> GetDescriptorHeap();
 
+	void BindDescriptorTable(const std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& gpuHandles, ID3D12GraphicsCommandList* commandList, UINT rootParameterIndex) const;
+	D3D12_GPU_DESCRIPTOR_HANDLE AllocateAndCopyDescriptors(const std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& handles) const;
+
 private:
 	static ComPtr<ID3D12DescriptorHeap> descriptorHeap_;
 	UINT descriptorSize_;

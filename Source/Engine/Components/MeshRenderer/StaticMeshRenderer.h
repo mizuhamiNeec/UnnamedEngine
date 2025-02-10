@@ -1,11 +1,9 @@
 #pragma once
 #include <Components/MeshRenderer/Base/MeshRenderer.h>
-
+#include <Entity/Base/Entity.h>
+#include <Renderer/ConstantBuffer.h>
 #include <ResourceSystem/Mesh/StaticMesh.h>
-
-#include "Entity/Base/Entity.h"
-
-#include "Renderer/ConstantBuffer.h"
+#include <ResourceSystem/Material/MaterialInstance.h>
 
 class StaticMeshRenderer : public MeshRenderer {
 public:

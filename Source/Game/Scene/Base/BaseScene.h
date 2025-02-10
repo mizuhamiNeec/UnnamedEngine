@@ -10,9 +10,9 @@
 class Engine;
 class EngineTimer;
 
-class Scene {
+class BaseScene {
 public:
-	virtual ~Scene() = default;
+	virtual ~BaseScene() = default;
 	virtual void Init() = 0;
 	virtual void Update(float deltaTime) = 0; // Entity, Componentの更新
 	virtual void Render() = 0; // Scene, Componentの描画
