@@ -34,6 +34,9 @@
 
 #include "Components/MeshRenderer/StaticMeshRenderer.h"
 
+#include <RHI/D3D12/D3D12RenderDevice.h>
+#include <RHI/Vulkan/VulkanRenderDevice.h>
+
 Engine::Engine() = default;
 
 void Engine::Run() {
@@ -56,24 +59,28 @@ void Engine::Init() {
 	);
 	window_->Create(nullptr);
 
-	// レンダラ
-	renderer_ = std::make_unique<D3D12>();
-	renderer_->Init();
+	// 選択したAPIに応じたレンダーデバイスを作成
+	renderDevice_ = std::move(CreateRenderDevice(APIType::Vulkan));
+	renderDevice_->Init();
+
+	//// レンダラ
+	//renderer_ = std::make_unique<D3D12>();
+	//renderer_->Init();
 
 	// 入力システム
 	InputSystem::Init();
 
 	RegisterConsoleCommandsAndVariables();
 
-	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
+	/*resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());*/
 
 #ifdef _DEBUG
-	imGuiManager_ = std::make_unique<ImGuiManager>(renderer_.get(), resourceManager_->GetShaderResourceViewManager());
+	//imGuiManager_ = std::make_unique<ImGuiManager>(renderer_.get(), resourceManager_->GetShaderResourceViewManager());
 #endif
 
 	console_ = std::make_unique<Console>();
 
-	resourceManager_->Init();
+	//resourceManager_->Init();
 
 	//// モデル
 	//modelCommon_ = std::make_unique<ModelCommon>();
@@ -91,88 +98,86 @@ void Engine::Init() {
 	//particleManager_ = std::make_unique<ParticleManager>();
 	//particleManager_->Init(object3DCommon_->GetD3D12(), srvManager_.get());
 
-	// ライン
-	lineCommon_ = std::make_unique<LineCommon>();
-	lineCommon_->Init(renderer_.get());
+	//// ライン
+	//lineCommon_ = std::make_unique<LineCommon>();
+	//lineCommon_->Init(renderer_.get());
 
-	Debug::Init(lineCommon_.get());
+	//Debug::Init(lineCommon_.get());
 
-	//-------------------------------------------------------------------------
-	// コマンドのリセット
-	//-------------------------------------------------------------------------
-	HRESULT hr = renderer_->GetCommandAllocator()->Reset();
-	assert(SUCCEEDED(hr));
-	hr = renderer_->GetCommandList()->Reset(
-		renderer_->GetCommandAllocator(),
-		nullptr
-	);
-	assert(SUCCEEDED(hr));
+	////-------------------------------------------------------------------------
+	//// コマンドのリセット
+	////-------------------------------------------------------------------------
+	//HRESULT hr = renderer_->GetCommandAllocator()->Reset();
+	//assert(SUCCEEDED(hr));
+	//hr = renderer_->GetCommandList()->Reset(
+	//	renderer_->GetCommandAllocator(),
+	//	nullptr
+	//);
+	//assert(SUCCEEDED(hr));
 
 	time_ = std::make_unique<EngineTimer>();
 
 	Console::SubmitCommand("neofetch");
 
-	resourceManager_->GetTextureManager()->InitErrorTexture();
+	//resourceManager_->GetTextureManager()->InitErrorTexture();
 
-	// シーンマネージャ/ファクトリーの作成
-	sceneFactory_ = std::make_unique<SceneFactory>();
-	sceneManager_ = std::make_shared<SceneManager>(*sceneFactory_);
-	// ゲームシーンを登録
-	sceneFactory_->RegisterScene<GameScene>("GameScene");
-	// シーンの初期化
-	sceneManager_->ChangeScene("GameScene");
+	//// シーンマネージャ/ファクトリーの作成
+	//sceneFactory_ = std::make_unique<SceneFactory>();
+	//sceneManager_ = std::make_shared<SceneManager>(*sceneFactory_);
+	//// ゲームシーンを登録
+	//sceneFactory_->RegisterScene<GameScene>("GameScene");
+	//// シーンの初期化
+	//sceneManager_->ChangeScene("GameScene");
 
-	// エディターの初期化
-	CheckEditorMode();
+	//// エディターの初期化
+	//CheckEditorMode();
 
-	hr = renderer_->GetCommandList()->Close();
-	assert(SUCCEEDED(hr));
+	//hr = renderer_->GetCommandList()->Close();
+	//assert(SUCCEEDED(hr));
 }
 
 void Engine::Update() {
-#ifdef _DEBUG
-	ImGuiManager::NewFrame();
-	Console::Update();
-
-	ImGui::Text("Hello World!!");
-#endif
+//#ifdef _DEBUG
+//	ImGuiManager::NewFrame();
+//	Console::Update();
+//#endif
 
 	time_->StartFrame();
 
-	// 前のフレームとeditorModeが違う場合はエディターモードを切り替える
-	static bool bPrevEditorMode = bIsEditorMode_;
-	if (bPrevEditorMode != bIsEditorMode_) {
-		CheckEditorMode();
-		bPrevEditorMode = bIsEditorMode_;
-	}
-
-	/* ----------- 更新処理 ---------- */
-
-	if (IsEditorMode()) {
-		if (editor_) {
-			editor_->Update(EngineTimer::GetDeltaTime());
-		}
-	} else {
-		sceneManager_->Update(EngineTimer::GetScaledDeltaTime());
-	}
-
-#ifdef _DEBUG
-	DebugHud::Update();
-#endif
+//	// 前のフレームとeditorModeが違う場合はエディターモードを切り替える
+//	static bool bPrevEditorMode = bIsEditorMode_;
+//	if (bPrevEditorMode != bIsEditorMode_) {
+//		CheckEditorMode();
+//		bPrevEditorMode = bIsEditorMode_;
+//	}
+//
+//	/* ----------- 更新処理 ---------- */
+//
+//	if (IsEditorMode()) {
+//		if (editor_) {
+//			editor_->Update(EngineTimer::GetDeltaTime());
+//		}
+//	} else {
+//		sceneManager_->Update(EngineTimer::GetScaledDeltaTime());
+//	}
+//
+//#ifdef _DEBUG
+//	DebugHud::Update();
+//#endif
 
 	InputSystem::Update();
 
 	//-------------------------------------------------------------------------
 	// --- PreRender↓ ---
-	renderer_->PreRender();
+	//renderer_->PreRender();
 	//-------------------------------------------------------------------------
 
-#ifdef _DEBUG
-	Debug::Update();
-#endif
-	CameraManager::Update(EngineTimer::GetDeltaTime());
+//#ifdef _DEBUG
+//	Debug::Update();
+//#endif
+	//CameraManager::Update(EngineTimer::GetDeltaTime());
 
-	if (IsEditorMode()) {
+	/*if (IsEditorMode()) {
 		lineCommon_->Render();
 		Debug::Draw();
 		if (editor_) {
@@ -180,14 +185,14 @@ void Engine::Update() {
 		}
 	} else {
 		sceneManager_->Render();
-	}
+	}*/
 
 	//------------------------------------------------------------------------
 	// --- PostRender↓ ---
 #ifdef _DEBUG
-	imGuiManager_->EndFrame();
+	//imGuiManager_->EndFrame();
 #endif
-	renderer_->PostRender();
+	//renderer_->PostRender();
 	//-------------------------------------------------------------------------
 
 	time_->EndFrame();
@@ -195,18 +200,31 @@ void Engine::Update() {
 
 void Engine::Shutdown() const {
 
-	resourceManager_->Shutdown();
+	renderDevice_->Shutdown();
 
-	Debug::Shutdown();
+	//resourceManager_->Shutdown();
 
-	renderer_->Shutdown();
+	//Debug::Shutdown();
 
-#ifdef _DEBUG
-	// ImGuiManagerのシャットダウンは最後に行う
-	if (imGuiManager_) {
-		imGuiManager_->Shutdown();
+	//renderer_->Shutdown();
+
+//#ifdef _DEBUG
+//	// ImGuiManagerのシャットダウンは最後に行う
+//	if (imGuiManager_) {
+//		imGuiManager_->Shutdown();
+//	}
+//#endif
+}
+
+std::unique_ptr<IRenderDevice> Engine::CreateRenderDevice(const APIType apiType) {
+	switch (apiType) {
+	case APIType::DirectX12:
+		return std::make_unique<D3D12RenderDevice>();
+	case APIType::Vulkan:
+		return std::make_unique<VulkanRenderDevice>();
+	default:
+		return nullptr;
 	}
-#endif
 }
 
 void Engine::RegisterConsoleCommandsAndVariables() {

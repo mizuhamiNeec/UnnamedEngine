@@ -329,6 +329,10 @@
     <ClInclude Include="Source\Engine\Assets\Asset\Base\Asset.h" />
     <ClInclude Include="Source\Engine\Assets\Asset\TextureAsset.h" />
     <ClInclude Include="Source\Engine\Assets\Manager\AssetManager.h" />
+    <ClInclude Include="Source\Engine\RHI\Vulkan\VulkanRenderDevice.h" />
+    <ClInclude Include="Source\Engine\RHI\Base\IRenderDevice.h" />
+    <ClInclude Include="Source\Engine\RHI\D3D12\D3D12RenderDevice.h" />
+    <ClInclude Include="Source\Engine\RHI\Base\ICommandBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -500,9 +504,12 @@
     <ClCompile Include="Source\Engine\Async\JobSystem.cpp" />
     <ClCompile Include="Source\Engine\Async\MainThreadDispatcher.cpp" />
     <ClCompile Include="Source\Engine\Async\JobTask\Base\BaseJobTask.cpp" />
-    <ClCompile Include="Source\Engine\Async\JobTask\JobTask.cpp" />
     <ClCompile Include="Source\Engine\Assets\Asset\TextureAsset.cpp" />
     <ClCompile Include="Source\Engine\Assets\Manager\AssetManager.cpp" />
+    <ClCompile Include="Source\Engine\RHI\Vulkan\VulkanRenderDevice.cpp" />
+    <ClCompile Include="Source\Engine\RHI\Base\IRenderDevice.cpp" />
+    <ClCompile Include="Source\Engine\RHI\D3D12\D3D12RenderDevice.cpp" />
+    <ClCompile Include="Source\Engine\RHI\Base\ICommandBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

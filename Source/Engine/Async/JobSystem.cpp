@@ -3,64 +3,85 @@
 #include <cassert>
 #include <Windows.h>
 
-JobSystem::JobSystem(std::string name,const size_t threadCount)
-	: mStop(false)
-{
-	for(size_t i = 0; i < threadCount; ++i) {
-		mThreads.emplace_back(
-			[this,name,i] {
-			std::string threadName = name + std::to_string(i);
-			HRESULT hr = SetThreadDescription(GetCurrentThread(),
-				std::wstring(threadName.begin(),threadName.end()).c_str());
-			assert(SUCCEEDED(hr));
+//-----------------------------------------------------------------------------
+// Purpose: コンストラクタ
+// - name (std::string): スレッド名
+// - threadCount (size_t): スレッド数
+//-----------------------------------------------------------------------------
+JobSystem::JobSystem(std::string name, const size_t threadCount)
+	: mStop_(false),
+	name_(std::move(name)) {
+	for (size_t i = 0; i < threadCount; ++i) {
+		mThreads_.emplace_back(
+			[this, name, i] {
+				std::string threadName = name + std::to_string(i);
+				const HRESULT hr = SetThreadDescription(GetCurrentThread(),
+					std::wstring(threadName.begin(), threadName.end()).c_str());
+				assert(SUCCEEDED(hr));
 
-			while(true) {
-				std::function<void()> job;
-				{
-					std::unique_lock<std::mutex> lock(mQueueMutex);
-					mQueueCondition.wait(lock,[this] {
-						return mStop || !mJobQueue.empty();
-					});
-					if(mStop && mJobQueue.empty()) {
-						return;
+				while (true) {
+					std::function<void()> job;
+					{
+						std::unique_lock<std::mutex> lock(mQueueMutex_);
+						mQueueCondition_.wait(lock, [this] {
+							return mStop_ || !mJobQueue_.empty();
+							});
+						if (mStop_ && mJobQueue_.empty()) {
+							return;
+						}
+						job = mJobQueue_.top().job;
+						mJobQueue_.pop();
 					}
-					job = mJobQueue.top().job;
-					mJobQueue.pop();
+					job();
 				}
-				job();
 			}
-		}
 		);
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: デストラクタ
+//-----------------------------------------------------------------------------
 JobSystem::~JobSystem() {
 	{
-		std::lock_guard<std::mutex> lock(mQueueMutex);
-		mStop = true;
+		std::lock_guard lock(mQueueMutex_);
+		mStop_ = true;
 	}
-	mQueueCondition.notify_all();
-	for(auto& thread : mThreads) {
-		if(thread.joinable()) {
+	mQueueCondition_.notify_all();
+	for (auto& thread : mThreads_) {
+		if (thread.joinable()) {
 			thread.join();
 		}
 	}
 }
 
-void JobSystem::EnqueueJob(int priority,std::function<void()> job) {
+//-----------------------------------------------------------------------------
+// Purpose: ジョブをキューに追加します
+// - priority (int): 優先度 (高いほど優先されます)
+// - job (std::function<void()>): ジョブ
+//-----------------------------------------------------------------------------
+void JobSystem::EnqueueJob(const int priority, std::function<void()> job) {
 	{
-		std::lock_guard<std::mutex> lock(mQueueMutex);
-		mJobQueue.push(JobItem{priority,std::move(job)});
+		std::lock_guard lock(mQueueMutex_);
+		mJobQueue_.push(JobItem{ .priority = priority, .job = std::move(job) });
 	}
-	mQueueCondition.notify_one();
+	mQueueCondition_.notify_one();
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: メインスレッドジョブを送信します
+// - job (std::function<void()>): ジョブ
+//-----------------------------------------------------------------------------
 void JobSystem::SubmitMainThreadJob(std::function<void()> job) const {
-	if(mMainThreadDispatcher) {
-		mMainThreadDispatcher->Enqueue(std::move(job));
+	if (mMainThreadDispatcher_) {
+		mMainThreadDispatcher_->Enqueue(std::move(job));
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: メインスレッドディスパッチャを設定します
+// - dispatcher (MainThreadDispatcher*): メインスレッドディスパッチャ
+//-----------------------------------------------------------------------------
 void JobSystem::SetMainThreadDispatcher(MainThreadDispatcher* dispatcher) {
-	mMainThreadDispatcher = dispatcher;
+	mMainThreadDispatcher_ = dispatcher;
 }

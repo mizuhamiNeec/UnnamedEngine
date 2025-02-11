@@ -6,7 +6,7 @@
 
 class JobSystem;
 
-class BaseJobTask: public std::enable_shared_from_this<BaseJobTask> {
+class BaseJobTask : public std::enable_shared_from_this<BaseJobTask> {
 public:
 	virtual ~BaseJobTask();
 	virtual void Execute() = 0;
@@ -19,11 +19,11 @@ public:
 	void SetPriority(int priority);
 
 protected:
-	std::atomic<int> mRemainingDependencies{0}; // 未解決の依存件数
-	int mPriority = 0; // 優先度(高いほど優先される)
-	JobSystem* mJobSystem = nullptr; // タスクスケジュール先のJobSystem
+	std::atomic<int> mRemainingDependencies_{ 0 }; // 未解決の依存件数
+	int mPriority_ = 0; // 優先度(高いほど優先される)
+	JobSystem* mJobSystem_ = nullptr; // タスクスケジュール先のJobSystem
 
 private:
-	std::mutex mDependentsMutex;
-	std::vector<std::weak_ptr<BaseJobTask>> mDependents; // 依存しているタスク
+	std::mutex mDependentsMutex_;
+	std::vector<std::weak_ptr<BaseJobTask>> mDependents_; // 依存しているタスク
 };

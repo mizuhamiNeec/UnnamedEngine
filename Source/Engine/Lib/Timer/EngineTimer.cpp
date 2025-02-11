@@ -20,28 +20,28 @@ void EngineTimer::StartFrame() {
 	totalTime_ += deltaTime_;
 	lastFrameTime_ = currentTime;
 
-#ifdef _DEBUG
-	ImGui::Begin((StrUtils::ConvertToUtf8(kIconTimer) + " EngineTimer").c_str());
-	ImGui::Text("%.2f FPS", 1.0 / deltaTime_);
-	ImGui::Text("%.2f ms", deltaTime_ * 1000.0);
-
-	const int totalMilliseconds = GetMillisecond(); // 0.01秒単位
-	const int days = GetDay();
-	const int hours = GetHour();
-	const int minutes = GetMinute();
-	const int secs = GetSecond();
-	const int centiseconds = totalMilliseconds % 100;
-
-	ImGui::Text(
-		"Uptime: %02d:%02d:%02d:%02d.%02d",
-		days,
-		hours,
-		minutes,
-		secs,
-		centiseconds
-	);
-	ImGui::End();
-#endif
+//#ifdef _DEBUG
+//	ImGui::Begin((StrUtils::ConvertToUtf8(kIconTimer) + " EngineTimer").c_str());
+//	ImGui::Text("%.2f FPS", 1.0 / deltaTime_);
+//	ImGui::Text("%.2f ms", deltaTime_ * 1000.0);
+//
+//	const int totalMilliseconds = GetMillisecond(); // 0.01秒単位
+//	const int days = GetDay();
+//	const int hours = GetHour();
+//	const int minutes = GetMinute();
+//	const int secs = GetSecond();
+//	const int centiseconds = totalMilliseconds % 100;
+//
+//	ImGui::Text(
+//		"Uptime: %02d:%02d:%02d:%02d.%02d",
+//		days,
+//		hours,
+//		minutes,
+//		secs,
+//		centiseconds
+//	);
+//	ImGui::End();
+//#endif
 }
 
 void EngineTimer::EndFrame() const {
