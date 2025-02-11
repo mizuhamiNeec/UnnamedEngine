@@ -1,10 +1,11 @@
 #pragma once
-#include "Base/Asset.h"
-#include "SubSystem/Console/Console.h"
+#include <Assets/Asset/Base/Asset.h>
 
-class TextureAsset: public Asset {
+#include <SubSystem/Console/Console.h>
+
+class TextureAsset : public Asset {
 public:
-	TextureAsset(const std::string& id): mId(id) {
+	TextureAsset(std::string id) : mId(std::move(id)) {
 		Console::Print("Loading Texture...\n");
 		std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 読み込み時間をシミュレート
 	}
@@ -16,4 +17,3 @@ public:
 private:
 	std::string mId;
 };
-
