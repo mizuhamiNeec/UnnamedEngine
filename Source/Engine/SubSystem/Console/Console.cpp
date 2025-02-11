@@ -63,7 +63,7 @@ Console::Console() {
 	ConCommand::RegisterCommand("echo", Echo, "Echo text to console.");
 	ConCommand::RegisterCommand("help", Help, "Find help about a convar/concommand.");
 	ConCommand::RegisterCommand("neofetch", NeoFetch, "Show system info.");
-	SubmitCommand("bind ` toggleconsole");
+	SubmitCommand("bind ` toggleconsole", true);
 }
 
 Console::~Console() {
@@ -177,8 +177,10 @@ void Console::Shutdown() {
 
 //-----------------------------------------------------------------------------
 // Purpose: コマンドを送信/実行します
+// - command (const std::string&) : コマンド
+// - bSilent (bool) : コマンドを実行した際にログに出力しないかどうか
 //-----------------------------------------------------------------------------
-void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
+void Console::SubmitCommand([[maybe_unused]] const std::string& command, const bool bSilent) {
 	std::string trimmedCommand = TrimSpaces(command);
 
 	// コマンドが空なのでなんもしない
@@ -190,8 +192,15 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 	// セミコロンでコマンドを区切る
 	std::vector<std::string> commands = SplitCommands(trimmedCommand);
 
-	// とりあえず履歴に追加
-	AddCommandHistory(trimmedCommand);
+	if (bSilent) {
+		AddCommandHistory(trimmedCommand);
+	} else {
+		Print(
+			"> " + trimmedCommand + "\n",
+			kConTextColorExecute,
+			Channel::Console
+		);
+	}
 
 	for (const auto& singleCommand : commands) {
 		std::string cmd = TrimSpaces(singleCommand);

@@ -97,7 +97,7 @@ public:
 
 	static void Update();
 	static void Shutdown();
-	static void SubmitCommand(const std::string& command);
+	static void SubmitCommand(const std::string& command, bool bSilent = false);
 
 	static void Print(
 		const std::string& message, const Vec4& color = kConFgColorDark, const Channel& channel = Channel::General

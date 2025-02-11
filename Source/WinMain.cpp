@@ -12,6 +12,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, const PWSTR lpCmdLine, [[maybe_unused]
 #endif
 	Console::Print("command line arguments:\n", kConTextColorGray, Channel::CommandLine);
 	Console::Print(StrUtils::ToString(lpCmdLine) + "\n", kConTextColorGray, Channel::CommandLine);
+	ConVarManager::RegisterConVar<std::string>("launchargs", StrUtils::ToString(lpCmdLine), "Command line arguments");
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	{
 		auto engine = std::make_unique<Engine>();
