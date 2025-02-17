@@ -2,6 +2,7 @@
 
 #define NOMINMAX
 #include <Windows.h>
+#include <sstream>
 
 std::wstring StrUtils::ToWString(const std::string& string) {
 	if (string.empty()) {
@@ -138,4 +139,16 @@ std::string StrUtils::ConvertToUtf8(uint32_t codePoint) {
 	}
 
 	return utf8String;
+}
+
+std::vector<int> StrUtils::ParseVersion(const std::string& version) {
+	std::vector<int> result;
+	std::stringstream ss(version);
+	std::string item;
+
+	while (std::getline(ss, item, '.')) {
+		result.push_back(std::stoi(item));
+	}
+
+	return result;
 }

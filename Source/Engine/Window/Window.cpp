@@ -1,16 +1,21 @@
 #include "Window.h"
 
 #include <dwmapi.h>
-#include <utility>
+
 #include <Input/InputSystem.h>
-#include <SubSystem/Console/Console.h>
+
 #include <Lib/Utils/StrUtils.h>
+
+#include <SubSystem/Console/Console.h>
+
 #include <Window/WindowsUtils.h>
+
+#include "SubSystem/Console/ConVarManager.h"
 
 #pragma comment(lib, "winmm.lib")
 
 #ifdef _DEBUG
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGuiImplWin32WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif
 
 Window::Window(
@@ -30,6 +35,8 @@ Window::Window(
 		Console::Print("Failed to initialize COM library");
 	}
 	timeBeginPeriod(1); // システムタイマーの分解能を上げる
+
+	ConVarManager::RegisterConVar<std::string>("w_title", StrUtils::ToString(title_));
 }
 
 Window::~Window() {
@@ -62,12 +69,24 @@ bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::strin
 
 	AdjustWindowRectEx(&wrc, style_, false, exStyle_);
 
+	// アクティブなモニタを取得
+	HMONITOR hMonitor = MonitorFromWindow(nullptr, MONITOR_DEFAULTTONEAREST);
+	MONITORINFO mi = { sizeof(mi) };
+	if (!GetMonitorInfo(hMonitor, &mi)) {
+		Console::Print("Failed to get monitor info.\n", kConTextColorError, Channel::Engine);
+		return false;
+	}
+
+	// モニタの中央位置を計算
+	const int32_t posX = mi.rcMonitor.left + (mi.rcMonitor.right - mi.rcMonitor.left - (wrc.right - wrc.left)) / 2;
+	const int32_t posY = mi.rcMonitor.top + (mi.rcMonitor.bottom - mi.rcMonitor.top - (wrc.bottom - wrc.top)) / 2;
+
 	hWnd_ = CreateWindowEx(
 		exStyle_, // 拡張ウィンドウスタイル
 		wc_.lpszClassName,
-		title_.c_str(), // ウィンドウタイトル
+		StrUtils::ToWString(ConVarManager::GetConVar("w_title")->GetValueAsString()).c_str(), // ウィンドウタイトル
 		style_, // ウィンドウスタイル
-		CW_USEDEFAULT, CW_USEDEFAULT, // ウィンドウの初期位置
+		posX, posY, // ウィンドウの初期位置
 		wrc.right - wrc.left, // ウィンドウの幅
 		wrc.bottom - wrc.top, // ウィンドウの高さ
 		nullptr, // このウィンドウの親
@@ -125,13 +144,13 @@ uint32_t Window::GetClientHeight() {
 
 LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
 #ifdef _DEBUG
-	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
+	if (ImGuiImplWin32WndProcHandler(hWnd, msg, wParam, lParam)) {
 		return true;
 	}
 #endif
 
 	// ------------------------------------------------------------------------
-	// どちらかのキーを押すと時が止まる Alt || F10キー対策
+	// ザ・ワールド対策 Alt || F10キー対策
 	// ------------------------------------------------------------------------
 	if (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP) {
 		if (wParam == VK_F4 && (lParam & (1 << 29))) { // Alt + F4
@@ -199,12 +218,15 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 bool Window::ProcessMessage() {
 	MSG msg = {};
 
+	// Windowタイトルをコンソールから取得して更新
+	SetWindowTextA(hWnd_, ConVarManager::GetConVar("w_title")->GetValueAsString().c_str());
+
 	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 		if (msg.message == WM_QUIT) {
 			return true;
 		}
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
 	}
 
 	return false;

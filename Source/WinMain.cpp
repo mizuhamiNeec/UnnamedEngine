@@ -1,6 +1,8 @@
 #include <Engine.h>
 #include <Windows.h>
+
 #include <Lib/Utils/StrUtils.h>
+
 #include <SubSystem/Console/ConVarManager.h>
 #include <SubSystem/Console/Console.h>
 
@@ -22,7 +24,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, const PWSTR lpCmdLine, [[maybe_unused]
 			Console::Print(e.what(), kConTextColorError, Channel::Engine);
 			return EXIT_FAILURE;
 		}
-		D3DResourceLeakChecker leakChecker;
 		engine.reset();
 	}
 	CoUninitialize();

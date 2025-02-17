@@ -43,7 +43,7 @@ void Engine::Run() {
 	Init();
 	while (!bWishShutdown_) {
 		if (Window::ProcessMessage()) {
-			PostQuitMessage(0);
+			PostQuitMessage(ERROR_SUCCESS);
 			break;
 		}
 		Update();
@@ -59,18 +59,36 @@ void Engine::Init() {
 	);
 	window_->Create(nullptr);
 
-	// 選択したAPIに応じたレンダーデバイスを作成
-	renderDevice_ = std::move(CreateRenderDevice(APIType::Vulkan));
-	renderDevice_->Init();
-
-	//// レンダラ
-	//renderer_ = std::make_unique<D3D12>();
-	//renderer_->Init();
-
 	// 入力システム
 	InputSystem::Init();
 
+	// コンソールコマンドと変数の登録
 	RegisterConsoleCommandsAndVariables();
+
+	// コマンドライン引数をコンソールに送信
+	Console::SubmitCommand(ConVarManager::GetConVar("launchargs")->GetValueAsString());
+
+	// 選択したAPIに応じたレンダーデバイスを作成
+	if (ConVarManager::GetConVar("r_vulkanenabled")->GetValueAsBool()) {
+		renderDevice_ = std::move(CreateRenderDevice(APIType::Vulkan));
+	} else {
+		renderDevice_ = std::move(CreateRenderDevice(APIType::D3D12));
+	}
+
+	try {
+		if (renderDevice_->Init()) {
+			Console::Print("RenderDevice initialized.\n", kConTextColorCompleted, Channel::Engine);
+		} else {
+			Console::Print("Failed to initialize RenderDevice.\n", kConTextColorError, Channel::Engine);
+			bWishShutdown_ = true;
+			return;
+		}
+	} catch (const std::exception& e) {
+		MessageBox(Window::GetWindowHandle(), StrUtils::ToWString(e.what()).c_str(), L"Error", MB_OK | MB_ICONERROR);
+		Console::Print(e.what(), kConTextColorError, Channel::Engine);
+		bWishShutdown_ = true;
+		return;
+	}
 
 	/*resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());*/
 
@@ -121,8 +139,7 @@ void Engine::Init() {
 	// すべての初期化が完了
 	//-------------------------------------------------------------------------
 
-	Console::SubmitCommand(ConVarManager::GetConVar("launchargs")->GetValueAsString());
-	Console::SubmitCommand("neofetch");
+	//Console::SubmitCommand("neofetch");
 
 	//resourceManager_->GetTextureManager()->InitErrorTexture();
 
@@ -171,6 +188,8 @@ void Engine::Update() {
 //#endif
 
 	InputSystem::Update();
+
+	//ConVarManager::GetConVar("w_title")->SetValueFromString(std::to_string(EngineTimer::GetFrameCount()));
 
 	//-------------------------------------------------------------------------
 	// --- PreRender↓ ---
@@ -223,7 +242,7 @@ void Engine::Shutdown() const {
 
 std::unique_ptr<IRenderDevice> Engine::CreateRenderDevice(const APIType apiType) {
 	switch (apiType) {
-	case APIType::DirectX12:
+	case APIType::D3D12:
 		return std::make_unique<D3D12RenderDevice>();
 	case APIType::Vulkan:
 		return std::make_unique<VulkanRenderDevice>();
@@ -247,6 +266,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	);
 
 	// コンソール変数を登録
+	ConVarManager::RegisterConVar<bool>("r_vulkanenabled", false, "Enable Vulkan renderer");
 	ConVarManager::RegisterConVar<int>(
 		"cl_showpos", 1, "Draw current position at top of screen (1 = meter, 2 = hammer)"
 	);
@@ -256,10 +276,15 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName(), true);
 	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f, "Mouse sensitivity.");
 	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f, "Prescale the clock by this amount.");
+	// World
 	ConVarManager::RegisterConVar<float>("sv_gravity", 800.0f, "World gravity.");
 	ConVarManager::RegisterConVar<float>(
-		"sv_maxvelocity", 3500.0f, "Maximum speed any ballistically moving object is allowed to attain per axis."
+		"sv_maxvelocity",
+		3500.0f,
+		"Maximum speed any ballistically moving object is allowed to attain per axis."
 	);
+
+	// Player
 	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f, "Linear acceleration amount (old value is 5.6)");
 	ConVarManager::RegisterConVar<float>("sv_airaccelerate", 12.0f);
 	ConVarManager::RegisterConVar<float>("sv_maxspeed", 320.0f, "Maximum speed a player can move.");

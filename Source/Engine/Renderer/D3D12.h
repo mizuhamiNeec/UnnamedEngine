@@ -63,13 +63,6 @@ private:
 	uint32_t descriptorSizeRTV = 0;
 	uint32_t descriptorSizeDSV = 0;
 
-	struct ResourceWithFence {
-		ComPtr<ID3D12Resource> resource;
-		uint64_t fenceValue;
-	};
-
-	static std::vector<ResourceWithFence> resourcesToRelease_;
-
 	// メンバ関数
 	//------------------------------------------------------------------------
 	// 初期化関連
