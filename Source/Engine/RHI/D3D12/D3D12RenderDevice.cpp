@@ -102,6 +102,20 @@ bool D3D12RenderDevice::Init() {
 		infoQueue->PushStorageFilter(&filter);
 	}
 
+	// コマンドキューの生成
+	constexpr D3D12_COMMAND_QUEUE_DESC queueDesc = {
+		.Type = D3D12_COMMAND_LIST_TYPE_DIRECT,
+		.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
+		.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE,
+		.NodeMask = 0,
+	};
+	hr = device_->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&commandQueue_));
+	if (FAILED(hr)) {
+		Console::Print(std::format("{:08x}\n", hr), kConTextColorError, Channel::RenderSystem);
+		assert(SUCCEEDED(hr));
+		return false;
+	}
+
 	return false;
 }
 
@@ -114,6 +128,6 @@ void D3D12RenderDevice::EnableDebugLayer() {
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
 		debugController->EnableDebugLayer();				// デバッグレイヤーの有効化
 		debugController->SetEnableGPUBasedValidation(TRUE); // GPU側でのチェックを有効化
-		debugController->Release();
+		debugController->Release();							// デバッグコントローラの解放
 	}
 }

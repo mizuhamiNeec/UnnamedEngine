@@ -3,7 +3,7 @@
 #include <memory>
 
 enum class APIType {
-	DirectX12,
+	D3D12,
 	Vulkan,
 };
 

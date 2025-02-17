@@ -19,4 +19,5 @@ private:
 	static void EnableDebugLayer();
 
 	ComPtr<ID3D12Device> device_;
+	ComPtr<ID3D12CommandQueue> commandQueue_;
 };
