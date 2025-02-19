@@ -6,6 +6,7 @@
 
 #include <SubSystem/Console/ConVarManager.h>
 #include <Lib/Math/Vector/Vec3.h>
+#include <Lib/Math/MathLib.h>
 
 CameraRotator::~CameraRotator() {}
 

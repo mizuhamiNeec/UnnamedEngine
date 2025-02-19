@@ -3,6 +3,8 @@
 #include "../../SubSystem/Console/ConVarManager.h"
 #include "../Timer/EngineTimer.h"
 
+#include "ImGuiManager/ImGuiManager.h"
+
 void DebugHud::Update() {
 	ShowFrameRate();
 	ShowPlayerInfo();

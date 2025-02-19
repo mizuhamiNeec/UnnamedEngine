@@ -7,8 +7,7 @@ class MainThreadDispatcher {
 public:
 	void Enqueue(std::function<void()> task);
 	void ProcessAll();
-
 private:
-	std::mutex mMutex;
-	std::queue<std::function<void()>> mTasks;
+	std::mutex mMutex_;
+	std::queue<std::function<void()>> mTasks_;
 };

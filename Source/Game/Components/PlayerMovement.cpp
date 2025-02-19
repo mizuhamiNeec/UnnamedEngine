@@ -17,6 +17,9 @@
 
 #include "Components/ColliderComponent/BoxColliderComponent.h"
 #include "Components/ColliderComponent/Base/ColliderComponent.h"
+
+#include "ImGuiManager/ImGuiManager.h"
+
 #include "Lib/DebugHud/DebugHud.h"
 
 #include "Physics/PhysicsEngine.h"

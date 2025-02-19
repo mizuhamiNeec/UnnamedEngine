@@ -1,5 +1,7 @@
 #include "ConCommand.h"
 
+#include <sstream>
+
 #include "ConVarManager.h"
 #include "Console.h"
 

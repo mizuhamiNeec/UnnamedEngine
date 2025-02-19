@@ -2,6 +2,8 @@
 #include <Components/Base/Component.h>
 #include <SubSystem/Console/Console.h>
 
+#include "Physics/Physics.h"
+
 class PhysicsEngine;
 
 struct HitResult;

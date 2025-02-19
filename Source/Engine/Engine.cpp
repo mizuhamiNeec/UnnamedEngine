@@ -40,7 +40,7 @@ void Engine::Run() {
 	Init();
 	while (!bWishShutdown_) {
 		if (Window::ProcessMessage()) {
-			PostQuitMessage(0);
+			PostQuitMessage(ERROR_SUCCESS);
 			break;
 		}
 		Update();
@@ -56,14 +56,17 @@ void Engine::Init() {
 	);
 	window_->Create(nullptr);
 
-	// レンダラ
 	renderer_ = std::make_unique<D3D12>();
 	renderer_->Init();
 
 	// 入力システム
 	InputSystem::Init();
 
+	// コンソールコマンドと変数の登録
 	RegisterConsoleCommandsAndVariables();
+
+	// コマンドライン引数をコンソールに送信
+	Console::SubmitCommand(ConVarManager::GetConVar("launchargs")->GetValueAsString());
 
 	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
 
@@ -110,6 +113,10 @@ void Engine::Init() {
 
 	time_ = std::make_unique<EngineTimer>();
 
+	//-------------------------------------------------------------------------
+	// すべての初期化が完了
+	//-------------------------------------------------------------------------
+
 	Console::SubmitCommand("neofetch");
 
 	resourceManager_->GetTextureManager()->InitErrorTexture();
@@ -133,8 +140,6 @@ void Engine::Update() {
 #ifdef _DEBUG
 	ImGuiManager::NewFrame();
 	Console::Update();
-
-	ImGui::Text("Hello World!!");
 #endif
 
 	time_->StartFrame();
@@ -161,6 +166,8 @@ void Engine::Update() {
 #endif
 
 	InputSystem::Update();
+
+	//ConVarManager::GetConVar("w_title")->SetValueFromString(std::to_string(EngineTimer::GetFrameCount()));
 
 	//-------------------------------------------------------------------------
 	// --- PreRender↓ ---
@@ -230,13 +237,18 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");
 	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps, "Frame rate limiter");
 	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);
-	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName());
+	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName(), true);
 	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f, "Mouse sensitivity.");
 	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f, "Prescale the clock by this amount.");
+	// World
 	ConVarManager::RegisterConVar<float>("sv_gravity", 800.0f, "World gravity.");
 	ConVarManager::RegisterConVar<float>(
-		"sv_maxvelocity", 3500.0f, "Maximum speed any ballistically moving object is allowed to attain per axis."
+		"sv_maxvelocity",
+		3500.0f,
+		"Maximum speed any ballistically moving object is allowed to attain per axis."
 	);
+
+	// Player
 	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f, "Linear acceleration amount (old value is 5.6)");
 	ConVarManager::RegisterConVar<float>("sv_airaccelerate", 12.0f);
 	ConVarManager::RegisterConVar<float>("sv_maxspeed", 320.0f, "Maximum speed a player can move.");
@@ -247,19 +259,19 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConVarManager::RegisterConVar<int>("ent_axis", 0, "Show entity axis");
 
 	// デフォルトのバインド
-	Console::SubmitCommand("bind esc togglelockcursor");
-	Console::SubmitCommand("bind w +forward");
-	Console::SubmitCommand("bind s +back");
-	Console::SubmitCommand("bind a +moveleft");
-	Console::SubmitCommand("bind d +moveright");
-	Console::SubmitCommand("bind e +moveup");
-	Console::SubmitCommand("bind q +movedown");
-	Console::SubmitCommand("bind space +jump");
-	Console::SubmitCommand("bind mouse1 +attack1");
-	Console::SubmitCommand("bind mouse2 +attack2");
-	Console::SubmitCommand("bind mousewheelup +invprev");
-	Console::SubmitCommand("bind mousewheeldown +invnext");
-	Console::SubmitCommand("bind f1 toggleeditor");
+	Console::SubmitCommand("bind esc togglelockcursor", true);
+	Console::SubmitCommand("bind w +forward", true);
+	Console::SubmitCommand("bind s +back", true);
+	Console::SubmitCommand("bind a +moveleft", true);
+	Console::SubmitCommand("bind d +moveright", true);
+	Console::SubmitCommand("bind e +moveup", true);
+	Console::SubmitCommand("bind q +movedown", true);
+	Console::SubmitCommand("bind space +jump", true);
+	Console::SubmitCommand("bind mouse1 +attack1", true);
+	Console::SubmitCommand("bind mouse2 +attack2", true);
+	Console::SubmitCommand("bind mousewheelup +invprev", true);
+	Console::SubmitCommand("bind mousewheeldown +invnext", true);
+	Console::SubmitCommand("bind f1 toggleeditor", true);
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
@@ -275,8 +287,8 @@ void Engine::CheckEditorMode() {
 }
 
 bool Engine::bWishShutdown_ = false;
-std::unique_ptr<D3D12> Engine::renderer_ = nullptr;
-std::unique_ptr<ResourceManager> Engine::resourceManager_ = nullptr;
+std::unique_ptr<D3D12> Engine::renderer_;
+std::unique_ptr<ResourceManager> Engine::resourceManager_;
 
 #ifdef _DEBUG
 bool Engine::bIsEditorMode_ = true;

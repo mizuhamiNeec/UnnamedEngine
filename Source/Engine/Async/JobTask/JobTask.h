@@ -4,7 +4,7 @@
 #include <Async/JobTask/Base/BaseJobTask.h>
 
 template<typename ReturnType>
-class JobTask: public BaseJobTask {
+class JobTask : public BaseJobTask {
 public:
 	explicit JobTask(std::packaged_task<ReturnType()>&& task);
 
@@ -13,20 +13,21 @@ public:
 	std::future<ReturnType> GetFuture();
 
 private:
-	std::packaged_task<ReturnType()> mTask;
-	std::future<ReturnType> mFuture;
+	std::packaged_task<ReturnType()> mTask_;
+	std::future<ReturnType> mFuture_;
 };
 
 template <typename ReturnType>
 JobTask<ReturnType>::JobTask(std::packaged_task<ReturnType()>&& task)
-	: mTask(std::move(task)),mFuture(mTask.get_future()) {}
+	: mTask_(std::move(task)), mFuture_(mTask_.get_future()) {
+}
 
 template <typename ReturnType>
 void JobTask<ReturnType>::Execute() {
-	mTask();
+	mTask_();
 }
 
 template <typename ReturnType>
 std::future<ReturnType> JobTask<ReturnType>::GetFuture() {
-	return std::move(mFuture);
+	return std::move(mFuture_);
 }

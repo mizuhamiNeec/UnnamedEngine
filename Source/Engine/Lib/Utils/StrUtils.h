@@ -19,4 +19,6 @@ public:
 	static std::string DescribeAxis(const int& i);
 
 	static std::string ConvertToUtf8(uint32_t codePoint);
+
+	static std::vector<int> ParseVersion(const std::string& version);
 };

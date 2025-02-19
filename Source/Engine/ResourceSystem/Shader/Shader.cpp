@@ -10,6 +10,7 @@
 #ifndef DFCC_DXIL
 #define DFCC_DXIL MAKEFOURCC('D', 'X', 'I', 'L')
 #endif	
+#include <format>
 
 
 //-----------------------------------------------------------------------------
