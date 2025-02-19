@@ -525,18 +525,6 @@
     <ClInclude Include="Source\Engine\ResourceSystem\Texture\TextureManager.h">
       <Filter>Source\Engine\ResourceSystem\Texture</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\RHI\Base\ICommandBuffer.h">
-      <Filter>Source\Engine\RHI\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\RHI\Base\IRenderDevice.h">
-      <Filter>Source\Engine\RHI\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\RHI\D3D12\D3D12RenderDevice.h">
-      <Filter>Source\Engine\RHI\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\RHI\Vulkan\VulkanRenderDevice.h">
-      <Filter>Source\Engine\RHI\Vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h">
       <Filter>Source\Engine\SceneManager</Filter>
     </ClInclude>
@@ -832,18 +820,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\ResourceSystem\Texture\TextureManager.cpp">
       <Filter>Source\Engine\ResourceSystem\Texture</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\RHI\Base\ICommandBuffer.cpp">
-      <Filter>Source\Engine\RHI\Base</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\RHI\Base\IRenderDevice.cpp">
-      <Filter>Source\Engine\RHI\Base</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\RHI\D3D12\D3D12RenderDevice.cpp">
-      <Filter>Source\Engine\RHI\D3D12</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\RHI\Vulkan\VulkanRenderDevice.cpp">
-      <Filter>Source\Engine\RHI\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp">
       <Filter>Source\Engine\SceneManager</Filter>
