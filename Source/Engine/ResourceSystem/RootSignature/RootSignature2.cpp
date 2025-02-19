@@ -1,6 +1,7 @@
 #include "RootSignature2.h"
 
 #include <cassert>
+#include <sstream>
 
 #include <SubSystem/Console/Console.h>
 

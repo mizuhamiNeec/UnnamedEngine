@@ -1,4 +1,6 @@
 #pragma once
+#include <format>
+#include <sstream>
 #include <string>
 
 #include "Console.h"

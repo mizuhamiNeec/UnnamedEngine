@@ -6,7 +6,6 @@
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
 #include <format>
-#include <thread>
 
 #include <DirectXTex/d3dx12.h>
 
@@ -620,13 +619,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetCPUDescriptorHandle(
 	return handleCPU;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE D3D12::GetGPUDescriptorHandle(
-	ID3D12DescriptorHeap* descriptorHeap, const uint32_t descriptorSize, const uint32_t index
-) {
-	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
-	handleGPU.ptr += static_cast<unsigned long long>(descriptorSize) * index;
-	return handleGPU;
-}
 
 ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 	// 生成するResourceの設定

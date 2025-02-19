@@ -8,14 +8,19 @@
 
 #include <Input/InputSystem.h>
 
-#include <SubSystem/Console/ConCommand.h>
-#include <SubSystem/Console/ConVarManager.h>
 #include <Lib/Timer/EngineTimer.h>
 #include <Lib/Utils/StrUtils.h>
+#include <SubSystem/Console/ConCommand.h>
+#include <SubSystem/Console/ConVarManager.h>
 
 #include <Window/WindowsUtils.h>
 
+#include "ImGuiManager/ImGuiManager.h"
+
 #include "Lib/Utils/IniParser.h"
+
+#include "Window/Window.h"
+#include <algorithm>
 
 using SetThreadDescriptionFunc = HRESULT(WINAPI*)(HANDLE, PCWSTR);
 
@@ -849,7 +854,7 @@ void Console::ShowConsoleText() {
 						}
 					} else {
 						// 単一選択（フィルタリング後の要素に限定）
-						std::ranges::fill(displayState_.selected, false);
+						std::fill(displayState_.selected.begin(), displayState_.selected.end(), false);
 						displayState_.selected[i] = true;
 					}
 					lastSelectedIndex_ = visibleIndex; // フィルタリング後のインデックス

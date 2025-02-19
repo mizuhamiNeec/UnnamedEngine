@@ -1,9 +1,15 @@
 #include "InputSystem.h"
 
+#include <Windows.h>
+#include <format>
 #include <ranges>
+
+#include <Lib/Utils/StrUtils.h>
+
 #include <SubSystem/Console/ConCommand.h>
 #include <SubSystem/Console/Console.h>
-#include <Lib/Utils/StrUtils.h>
+
+#include <Window/Window.h>
 
 //-----------------------------------------------------------------------------
 // Purpose: インプットシステムの初期化を行います

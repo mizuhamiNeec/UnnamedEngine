@@ -10,6 +10,10 @@
 #include "Object3DCommon.h"
 #include "Camera/CameraManager.h"
 
+#include "ImGuiManager/ImGuiManager.h"
+
+#include "Renderer/D3D12.h"
+
 //-----------------------------------------------------------------------------
 // Purpose : 初期化します
 //-----------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 #include "PipelineManager.h"
 
 #include <cassert>
+#include <format>
 
 #include <SubSystem/Console/Console.h>
 

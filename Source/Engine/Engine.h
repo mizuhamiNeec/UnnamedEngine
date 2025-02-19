@@ -12,13 +12,14 @@
 
 #include <Scene/Base/BaseScene.h>
 
-#include "RHI/Base/IRenderDevice.h"
+#include <RHI/Base/IRenderDevice.h>
 
-#include "SceneManager/SceneFactory.h"
-#include "SceneManager/SceneManager.h"
+#include <SceneManager/SceneFactory.h>
+#include <SceneManager/SceneManager.h>
+
+#include "ImGuiManager/ImGuiManager.h"
 
 class Console;
-class ImGuiManager;
 class D3D12;
 class Window;
 

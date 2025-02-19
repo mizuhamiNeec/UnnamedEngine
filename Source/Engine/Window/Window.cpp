@@ -10,6 +10,8 @@
 
 #include <Window/WindowsUtils.h>
 
+#include "ImGuiManager/ImGuiManager.h"
+
 #include "SubSystem/Console/ConVarManager.h"
 
 #pragma comment(lib, "winmm.lib")
