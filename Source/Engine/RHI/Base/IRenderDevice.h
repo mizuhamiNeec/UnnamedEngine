@@ -1,7 +1,5 @@
 #pragma once
 
-#include <memory>
-
 enum class APIType {
 	D3D12,
 	Vulkan,

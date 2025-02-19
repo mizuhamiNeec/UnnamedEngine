@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <comdef.h>
+#include <format>
 #include <fstream>
 
 #include <SubSystem/Console/Console.h>

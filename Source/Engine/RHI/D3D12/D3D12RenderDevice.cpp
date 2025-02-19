@@ -3,6 +3,8 @@
 #include "Lib/Utils/StrUtils.h"
 
 #include "SubSystem/Console/Console.h"
+#include <dxgi1_6.h>
+#include <format>
 
 bool D3D12RenderDevice::Init() {
 #ifdef _DEBUG
@@ -116,11 +118,11 @@ bool D3D12RenderDevice::Init() {
 		return false;
 	}
 
-	return false;
+	return true;
 }
 
 bool D3D12RenderDevice::Shutdown() {
-	return false;
+	return true;
 }
 
 void D3D12RenderDevice::EnableDebugLayer() {
