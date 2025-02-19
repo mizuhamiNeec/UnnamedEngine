@@ -62,7 +62,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Source/Externals/;$(SolutionDir)Source/Engine/;$(SolutionDir)Source/Game/;$(SolutionDir)Source/Editor/;$(SolutionDir)Source/Externals/ImGui;$(SolutionDir)Source/Externals/assimp/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Externals/;$(SolutionDir)Source/Engine/;$(SolutionDir)Source/Game/;$(SolutionDir)Source/Editor/;$(SolutionDir)Source/Externals/ImGui;$(SolutionDir)Source/Externals/assimp/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <BuildStlModules>true</BuildStlModules>
       <MinimalRebuild>false</MinimalRebuild>
@@ -73,7 +73,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Source/Externals/assimp/lib/Debug;$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc143-mdd.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
@@ -93,7 +93,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(VULKAN_SDK)\Include;$(SolutionDir)Source/Externals/;$(SolutionDir)Source/Engine/;$(SolutionDir)Source/Game/;$(SolutionDir)Source/Editor/;$(SolutionDir)Source/Externals/ImGui;$(SolutionDir)Source/Externals/assimp/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Source/Externals/;$(SolutionDir)Source/Engine/;$(SolutionDir)Source/Game/;$(SolutionDir)Source/Editor/;$(SolutionDir)Source/Externals/ImGui;$(SolutionDir)Source/Externals/assimp/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <BuildStlModules>true</BuildStlModules>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -105,7 +105,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)Source/Externals/assimp/lib/Release;$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc143-mt.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
@@ -117,16 +117,12 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Engine\RHI\Base\ICommandBuffer.cpp" />
     <ClCompile Include="Source\Engine\Assets\Manager\AssetManager.cpp" />
     <ClCompile Include="Source\Engine\Async\JobTask\Base\BaseJobTask.cpp" />
     <ClCompile Include="Source\Engine\Async\MainThreadDispatcher.cpp" />
     <ClCompile Include="Source\Engine\Async\JobSystem.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Material\MaterialInstance.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\IniParser.cpp" />
-    <ClCompile Include="Source\Engine\RHI\Base\IRenderDevice.cpp" />
-    <ClCompile Include="Source\Engine\RHI\D3D12\D3D12RenderDevice.cpp" />
-    <ClCompile Include="Source\Engine\RHI\Vulkan\VulkanRenderDevice.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.cpp" />
@@ -243,7 +239,6 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Engine\RHI\Base\ICommandBuffer.h" />
     <ClInclude Include="Source\Engine\Assets\Manager\AssetManager.h" />
     <ClInclude Include="Source\Engine\Assets\Asset\Base\Asset.h" />
     <ClInclude Include="Source\Engine\Async\JobTask\Base\BaseJobTask.h" />
@@ -252,9 +247,6 @@
     <ClInclude Include="Source\Engine\Async\JobSystem.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Material\MaterialInstance.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\IniParser.h" />
-    <ClInclude Include="Source\Engine\RHI\Base\IRenderDevice.h" />
-    <ClInclude Include="Source\Engine\RHI\D3D12\D3D12RenderDevice.h" />
-    <ClInclude Include="Source\Engine\RHI\Vulkan\VulkanRenderDevice.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h" />
     <ClInclude Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.h" />

@@ -12,8 +12,6 @@
 
 #include <Scene/Base/BaseScene.h>
 
-#include <RHI/Base/IRenderDevice.h>
-
 #include <SceneManager/SceneFactory.h>
 #include <SceneManager/SceneManager.h>
 
@@ -73,8 +71,6 @@ private:
 	void Update();
 	void Shutdown() const;
 
-	static std::unique_ptr<IRenderDevice> CreateRenderDevice(APIType apiType);
-
 	static void RegisterConsoleCommandsAndVariables();
 	static void Quit(const std::vector<std::string>& args = {});
 
@@ -82,8 +78,6 @@ private:
 
 	std::unique_ptr<Window> window_;
 	static std::unique_ptr<D3D12> renderer_;
-
-	std::unique_ptr<IRenderDevice> renderDevice_;
 
 	static std::unique_ptr<ResourceManager> resourceManager_;
 
