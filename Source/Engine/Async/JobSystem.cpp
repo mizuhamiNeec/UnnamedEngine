@@ -3,6 +3,8 @@
 #include <cassert>
 #include <Windows.h>
 
+#include "SubSystem/Console/Console.h"
+
 //-----------------------------------------------------------------------------
 // Purpose: コンストラクタ
 // - name (std::string): スレッド名
@@ -17,7 +19,10 @@ JobSystem::JobSystem(std::string name, const size_t threadCount)
 				std::string threadName = name + std::to_string(i);
 				const HRESULT hr = SetThreadDescription(GetCurrentThread(),
 					std::wstring(threadName.begin(), threadName.end()).c_str());
-				assert(SUCCEEDED(hr));
+				if (FAILED(hr)) {
+					Console::Print("SetThreadDescription failed.\n", kConTextColorError, Channel::Console);
+					assert(SUCCEEDED(hr));
+				}
 
 				while (true) {
 					std::function<void()> job;

@@ -24,16 +24,16 @@
 void GameScene::Init() {
 
 	size_t workerCount = (std::thread::hardware_concurrency() > 1) ? std::thread::hardware_concurrency() - 1 : 1;
-	JobSystem jobSystem("AssetLoad",workerCount);
+	JobSystem jobSystem("AssetLoad", workerCount);
 
 	AssetManager assetManager(jobSystem);
 
 	std::shared_ptr<TextureAsset> texture;
 
-	for(int i = 0; i < 10; ++i) {
-		auto textureFuture = jobSystem.SubmitJob(0,[&assetManager,i]() -> std::shared_ptr<TextureAsset> {
+	for (int i = 0; i < 10; ++i) {
+		auto textureFuture = jobSystem.SubmitJob(0, [&assetManager, i]() -> std::shared_ptr<TextureAsset> {
 			return assetManager.LoadAsset<TextureAsset>("texture" + std::to_string(i));
-		});
+			});
 
 		// なんかする
 		texture = textureFuture.get();
@@ -46,33 +46,33 @@ void GameScene::Init() {
 	renderer_ = Engine::GetRenderer();
 	resourceManager_ = Engine::GetResourceManager();
 
-	#pragma region テクスチャ読み込み
-	#pragma endregion
+#pragma region テクスチャ読み込み
+#pragma endregion
 
-	#pragma region スプライト類
-	#pragma endregion
+#pragma region スプライト類
+#pragma endregion
 
-	#pragma region 3Dオブジェクト類
-	#pragma endregion
+#pragma region 3Dオブジェクト類
+#pragma endregion
 
-	#pragma region パーティクル類
+#pragma region パーティクル類
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region 物理エンジン
+#pragma region 物理エンジン
 	physicsEngine_ = std::make_unique<PhysicsEngine>();
 	physicsEngine_->Init();
-	#pragma endregion
+#pragma endregion
 
-	#pragma region エンティティ
+#pragma region エンティティ
 	camera_ = std::make_unique<Entity>("camera");
 	AddEntity(camera_.get());
 	// 生ポインタを取得
 	CameraComponent* rawCameraPtr = camera_->AddComponent<CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
 	const auto camera = std::shared_ptr<CameraComponent>(
-		rawCameraPtr,[](CameraComponent*) {
-	}
+		rawCameraPtr, [](CameraComponent*) {
+		}
 	);
 
 	// カメラを CameraManager に追加
@@ -84,13 +84,13 @@ void GameScene::Init() {
 	entPlayer_->GetTransform()->SetLocalPos(Vec3::up * 1.0f); // 1m上に配置
 	PlayerMovement* rawPlayerMovement = entPlayer_->AddComponent<PlayerMovement>();
 	playerMovement_ = std::shared_ptr<PlayerMovement>(
-		rawPlayerMovement,[](PlayerMovement*) {}
+		rawPlayerMovement, [](PlayerMovement*) {}
 	);
 	BoxColliderComponent* rawPlayerCollider = entPlayer_->AddComponent<BoxColliderComponent>();
 	playerCollider_ = std::shared_ptr<BoxColliderComponent>(
-		rawPlayerCollider,[](BoxColliderComponent*) {}
+		rawPlayerCollider, [](BoxColliderComponent*) {}
 	);
-	playerCollider_->SetSize(Math::HtoM(Vec3(33.0f,73.0f,33.0f)));
+	playerCollider_->SetSize(Math::HtoM(Vec3(33.0f, 73.0f, 33.0f)));
 	playerCollider_->SetOffset(Math::HtoM(Vec3::up * 73.0f * 0.5f));
 	AddEntity(entPlayer_.get());
 
@@ -103,29 +103,28 @@ void GameScene::Init() {
 	// cameraRootにアタッチ
 	camera_->SetParent(cameraRoot_.get());
 	camera_->GetTransform()->SetLocalPos(Vec3::backward * 2.5f);
-	#pragma endregion
+#pragma endregion
 
-	#pragma region コンソール変数/コマンド
-	#pragma endregion
+#pragma region コンソール変数/コマンド
+#pragma endregion
 
-	#pragma region メッシュレンダラー
-
-	#pragma endregion
+#pragma region メッシュレンダラー
+#pragma endregion
 
 	CameraManager::SetActiveCamera(camera);
 
 	// 物理エンジンにプレイヤーエンティティを登録
-	physicsEngine_->RegisterEntity(entPlayer_.get(),false);
+	physicsEngine_->RegisterEntity(entPlayer_.get(), false);
 }
 
 void GameScene::Update(const float deltaTime) {
 	entPlayer_->Update(EngineTimer::GetScaledDeltaTime());
 	physicsEngine_->Update(deltaTime);
 
-	#ifdef _DEBUG
-	#pragma region cl_showpos
-	if(int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() != "0") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,{0.0f,0.0f});
+#ifdef _DEBUG
+#pragma region cl_showpos
+	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() != "0") {
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
 		constexpr ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
@@ -135,13 +134,13 @@ void GameScene::Update(const float deltaTime) {
 			ImGuiWindowFlags_NoDocking |
 			ImGuiWindowFlags_NoFocusOnAppearing |
 			ImGuiWindowFlags_NoNav;
-		ImVec2 windowPos = ImVec2(0.0f,128.0f + 16.0f);
+		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
 		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
 		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
-		ImGui::SetNextWindowPos(windowPos,ImGuiCond_Always);
+		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
 		Mat4 invViewMat = Mat4::identity;
-		if(CameraManager::GetActiveCamera()) {
+		if (CameraManager::GetActiveCamera()) {
 			invViewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
 		}
 
@@ -156,7 +155,7 @@ void GameScene::Update(const float deltaTime) {
 			"rot : {:.2f} {:.2f} {:.2f}\n"
 			"vel : {:.2f}\n",
 			ConVarManager::GetConVar("name")->GetValueAsString(),
-			camPos.x,camPos.y,camPos.z,
+			camPos.x, camPos.y, camPos.z,
 			camRot.x * Math::rad2Deg,
 			camRot.y * Math::rad2Deg,
 			camRot.z * Math::rad2Deg,
@@ -168,10 +167,10 @@ void GameScene::Update(const float deltaTime) {
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 
 		// ウィンドウサイズをテキストサイズに基づいて設定
-		ImVec2 windowSize = ImVec2(textSize.x + 20.0f,textSize.y + 20.0f); // 余白を追加
-		ImGui::SetNextWindowSize(windowSize,ImGuiCond_Always);
+		ImVec2 windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f); // 余白を追加
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
 
-		ImGui::Begin("##cl_showpos",nullptr,windowFlags);
+		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
 
 		ImVec2 textPos = ImGui::GetCursorScreenPos();
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
@@ -189,8 +188,8 @@ void GameScene::Update(const float deltaTime) {
 		ImGui::PopStyleVar();
 		ImGui::End();
 	}
-	#pragma endregion
-	#endif
+#pragma endregion
+#endif
 }
 
 void GameScene::Render() {}

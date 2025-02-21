@@ -9,7 +9,7 @@
 #include <SubSystem/Console/ConCommand.h>
 #include <SubSystem/Console/Console.h>
 
-#include <Window/Window.h>
+#include <Window/MainWindow.h>
 
 #include "Window/WindowManager.h"
 

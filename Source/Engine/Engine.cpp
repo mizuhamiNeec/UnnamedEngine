@@ -17,25 +17,17 @@
 #include <Lib/Utils/ClientProperties.h>
 #include <Lib/Utils/StrUtils.h>
 
-#include <Model/ModelManager.h>
-
-#include <Object3D/Object3DCommon.h>
-
-#include <Particle/ParticleManager.h>
-
 #include <Renderer/D3D12.h>
 
 #include <Scene/GameScene.h>
 
-#include <Sprite/SpriteCommon.h>
-
-#include <Window/Window.h>
+#include <Window/MainWindow.h>
 #include <Window/WindowsUtils.h>
-
-#include "Components/MeshRenderer/StaticMeshRenderer.h"
 
 #include <Renderer/AbstractionLayer/D3D12/D3D12Renderer.h>
 #include <Renderer/AbstractionLayer/Vulkan/VulkanRenderer.h>
+
+#include "Window/EditorWindow.h"
 
 Engine::Engine() = default;
 
@@ -53,12 +45,19 @@ void Engine::Run() {
 
 void Engine::Init() {
 	// メインビューポート用ウィンドウの作成
-	auto gameWindow = std::make_unique<Window>(
-		StrUtils::ToString(kWindowTitle),
-		kClientWidth, kClientHeight
-	);
+	auto gameWindow = std::make_unique<MainWindow>();
 
-	if (gameWindow->Create(nullptr)) {
+	WindowInfo gameWindowInfo = {
+		.title = "GameWindow",
+		.width = kClientWidth,
+		.height = kClientHeight,
+		.style = WS_OVERLAPPEDWINDOW,
+		.exStyle = 0,
+		.hInstance = GetModuleHandle(nullptr),
+		.className = "gameWindowClassName"
+	};
+
+	if (gameWindow->Create(gameWindowInfo)) {
 		wm_->AddWindow(std::move(gameWindow));
 	} else {
 		Console::Print(
@@ -69,15 +68,46 @@ void Engine::Init() {
 		return;
 	}
 
-	//secondWindow_ = std::make_unique<Window>(
-	//	StrUtils::ToString("SecondWindow"),
-	//	kClientWidth, kClientHeight
-	//);
-	//secondWindow_->Create(nullptr, "secondWindowClassName");
+	auto secondWindow_ = std::make_unique<EditorWindow>();
 
+	WindowInfo editorWindowInfo = {
+		.title = "EditorWindow",
+		.width = 400,
+		.height = 300,
+		.style = WS_OVERLAPPEDWINDOW,
+		.exStyle = 0,
+		.hInstance = GetModuleHandle(nullptr),
+		.className = "editorWindowClassName"
+	};
+
+	if (secondWindow_->Create(editorWindowInfo)) {
+		wm_->AddWindow(std::move(secondWindow_));
+	} else {
+		Console::Print(
+			"Failed to create second window.\n",
+			kConTextColorError,
+			Channel::Engine
+		);
+		return;
+	}
+
+	renderer_ = std::make_unique<D3D12>(wm_->GetMainWindow());
+	renderer_->Init();
+
+	// 入力システム
+	InputSystem::Init();
+
+	// コンソールコマンドと変数の登録
+	RegisterConsoleCommandsAndVariables();
+
+	// 抽象化レイヤーテスト
 	rendererInitInfo_ = {};
-	rendererInitInfo_.api = API::DX12;
-	rendererInitInfo_.windowHandle = wm_->GetMainWindow()->GetWindowHandle();
+	if (ConVarManager::GetConVar("r_vulkanenabled")->GetValueAsBool()) {
+		rendererInitInfo_.api = API::Vulkan;
+	} else {
+		rendererInitInfo_.api = API::DX12;
+	}
+	rendererInitInfo_.windowHandle = wm_->GetWindows()[1]->GetWindowHandle();
 #ifdef _DEBUG
 	rendererInitInfo_.enableDebugLayer = true;
 #else
@@ -95,15 +125,6 @@ void Engine::Init() {
 		assert(true && "Failed to initialize renderer.");
 		throw std::runtime_error("Failed to initialize renderer.");
 	}
-
-	renderer_ = std::make_unique<D3D12>(wm_->GetMainWindow());
-	renderer_->Init();
-
-	// 入力システム
-	InputSystem::Init();
-
-	// コンソールコマンドと変数の登録
-	RegisterConsoleCommandsAndVariables();
 
 	// コマンドライン引数をコンソールに送信
 	Console::SubmitCommand(ConVarManager::GetConVar("launchargs")->GetValueAsString());
@@ -174,7 +195,7 @@ void Engine::Init() {
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
-}
+	}
 
 void Engine::Update() {
 #ifdef _DEBUG
@@ -273,6 +294,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	);
 
 	// コンソール変数を登録
+	ConVarManager::RegisterConVar<bool>("r_vulkanenabled", false, "Enable Vulkan renderer", ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>(
 		"cl_showpos", 1, "Draw current position at top of screen (1 = meter, 2 = hammer)"
 	);
