@@ -35,7 +35,7 @@ bool WindowManager::ProcessMessage() {
 }
 
 BaseWindow* WindowManager::GetMainWindow() {
-	return windows_.empty() ? nullptr : windows_.front().get();
+	return windows_.empty() ? nullptr : windows_[0].get();
 }
 
 void WindowManager::ClearWindows() {

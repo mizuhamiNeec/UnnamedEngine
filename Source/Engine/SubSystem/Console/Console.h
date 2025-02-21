@@ -112,6 +112,8 @@ public:
 	static void NeoFetch(const std::vector<std::string>& args = {});
 	static void Echo(const std::vector<std::string>& args = {});
 
+	static std::vector<std::string> GetBuffer();
+
 private:
 #ifdef _DEBUG
 	static void UpdateSuggestions(const std::string& input);

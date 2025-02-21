@@ -20,7 +20,9 @@
 #include "Lib/Utils/IniParser.h"
 
 #include <algorithm>
-#include "Window/Window.h"
+
+#include "Lib/Utils/ClientProperties.h"
+#include "Window/MainWindow.h"
 
 #include "Window/WindowManager.h"
 
@@ -565,6 +567,14 @@ void Console::Echo(const std::vector<std::string>& args) {
 	Print(StrUtils::Join(args, " ") + "\n", kConFgColorDark, Channel::Console);
 }
 
+std::vector<std::string> Console::GetBuffer() {
+#ifdef _DEBUG
+	return messageBuffer_;
+#else
+	return {};
+#endif
+}
+
 #ifdef _DEBUG
 void Console::UpdateSuggestions(const std::string& input) {
 	suggestions_.clear();
@@ -689,38 +699,38 @@ void Console::SuggestPopup(
 int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	switch (data->EventFlag) {
 	case ImGuiInputTextFlags_CallbackCompletion:
-		{
-			// bShowSuggestPopup_ = !bShowSuggestPopup_;
-			if (bShowSuggestPopup_) {
-				UpdateSuggestions(data->Buf);
-			}
+	{
+		// bShowSuggestPopup_ = !bShowSuggestPopup_;
+		if (bShowSuggestPopup_) {
+			UpdateSuggestions(data->Buf);
 		}
-		break;
+	}
+	break;
 
 	case ImGuiInputTextFlags_CallbackHistory:
-		{
-			const int prev_history_index = historyIndex_;
-			if (data->EventKey == ImGuiKey_UpArrow) {
-				if (historyIndex_ > 0) {
-					historyIndex_--;
-				}
-			} else if (data->EventKey == ImGuiKey_DownArrow) {
-				if (historyIndex_ < static_cast<int>(history_.size()) - 1) {
-					historyIndex_++;
-				} else {
-					historyIndex_ = static_cast<int>(history_.size()); // 履歴が空の場合はサイズと一致させる
-				}
+	{
+		const int prev_history_index = historyIndex_;
+		if (data->EventKey == ImGuiKey_UpArrow) {
+			if (historyIndex_ > 0) {
+				historyIndex_--;
 			}
-			if (prev_history_index != historyIndex_) {
-				data->DeleteChars(0, data->BufTextLen);
-				if (historyIndex_ < static_cast<int>(history_.size())) {
-					data->InsertChars(0, history_[historyIndex_].c_str());
-				} else {
-					data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
-				}
+		} else if (data->EventKey == ImGuiKey_DownArrow) {
+			if (historyIndex_ < static_cast<int>(history_.size()) - 1) {
+				historyIndex_++;
+			} else {
+				historyIndex_ = static_cast<int>(history_.size()); // 履歴が空の場合はサイズと一致させる
 			}
 		}
-		break;
+		if (prev_history_index != historyIndex_) {
+			data->DeleteChars(0, data->BufTextLen);
+			if (historyIndex_ < static_cast<int>(history_.size())) {
+				data->InsertChars(0, history_[historyIndex_].c_str());
+			} else {
+				data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
+			}
+		}
+	}
+	break;
 
 	case ImGuiInputTextFlags_CallbackEdit: Print("Edit\n", kConsoleColorInt);
 		break;
@@ -1523,8 +1533,7 @@ Vec4 Console::ParseColor(const std::string& color) {
 	return Vec4(components[0], components[1], components[2], components[3]);
 }
 
-void Console::ExportPage() {
-}
+void Console::ExportPage() {}
 
 void Console::ShowElementEditPopup() {
 #ifdef _DEBUG

@@ -4,11 +4,10 @@
 
 #include <ImGuiManager/ImGuiManager.h>
 
-#include <Window/Window.h>
+#include <Camera/CameraManager.h>
+#include <Lib/Utils/ClientProperties.h>
 
-#include "Camera/CameraManager.h"
-
-#include "Window/WindowManager.h"
+#include <Window/WindowManager.h>
 
 CameraComponent::~CameraComponent() {}
 

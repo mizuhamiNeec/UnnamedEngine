@@ -543,7 +543,7 @@
     <ClInclude Include="Source\Engine\SubSystem\Console\IConVar.h">
       <Filter>Source\Engine\SubSystem\Console</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Window\Window.h">
+    <ClInclude Include="Source\Engine\Window\MainWindow.h">
       <Filter>Source\Engine\Window</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Window\WindowsUtils.h">
@@ -596,6 +596,7 @@
     <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.h" />
     <ClInclude Include="Source\Engine\Window\Base\BaseWindow.h" />
     <ClInclude Include="Source\Engine\Window\WindowManager.h" />
+    <ClInclude Include="Source\Engine\Window\EditorWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -841,7 +842,7 @@
     <ClCompile Include="Source\Engine\SubSystem\Console\ConVarManager.cpp">
       <Filter>Source\Engine\SubSystem\Console</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Window\Window.cpp">
+    <ClCompile Include="Source\Engine\Window\MainWindow.cpp">
       <Filter>Source\Engine\Window</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Window\WindowsUtils.cpp">
@@ -890,6 +891,7 @@
     <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowManager.cpp" />
+    <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

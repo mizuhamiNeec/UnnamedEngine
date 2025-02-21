@@ -1,29 +1,20 @@
 #pragma once
 #include <Editor.h>
 #include <memory>
-
+#include <ImGuiManager/ImGuiManager.h>
 #include <Lib/Timer/EngineTimer.h>
-
 #include <Line/LineCommon.h>
-
 #include <Model/ModelCommon.h>
-
+#include <Renderer/AbstractionLayer/Base/BaseRenderer.h>
 #include <ResourceSystem/Manager/ResourceManager.h>
-
 #include <Scene/Base/BaseScene.h>
-
 #include <SceneManager/SceneFactory.h>
 #include <SceneManager/SceneManager.h>
-
-#include "ImGuiManager/ImGuiManager.h"
-
-#include "Renderer/AbstractionLayer/Base/BaseRenderer.h"
-
-#include "Window/WindowManager.h"
+#include <Window/WindowManager.h>
 
 class Console;
 class D3D12;
-class Window;
+class MainWindow;
 
 class Engine {
 public:
@@ -36,30 +27,6 @@ public:
 
 	[[nodiscard]] static D3D12* GetRenderer() {
 		return renderer_.get();
-	}
-
-	[[nodiscard]] SpriteCommon* GetSpriteCommon() const {
-		return spriteCommon_.get();
-	}
-
-	[[nodiscard]] ParticleManager* GetParticleManager() const {
-		return particleManager_.get();
-	}
-
-	[[nodiscard]] Object3DCommon* GetObject3DCommon() const {
-		return object3DCommon_.get();
-	}
-
-	[[nodiscard]] ModelCommon* GetModelCommon() const {
-		return modelCommon_.get();
-	}
-
-	[[nodiscard]] LineCommon* GetLineCommon() const {
-		return lineCommon_.get();
-	}
-
-	[[nodiscard]] EngineTimer* GetEngineTimer() const {
-		return time_.get();
 	}
 
 	[[nodiscard]] static ResourceManager* GetResourceManager() {
