@@ -22,7 +22,7 @@ namespace Math {
 	Vec3 CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, float t);
 	float DeltaAngle(const float& current, const float& target);
 
-	Vec2 WorldToScreen(const Vec3& worldPos, const bool& bClamp, const float& margin, bool& isOffscreen, float& outAngle);
+	Vec2 WorldToScreen(const Vec3& worldPos, Vec2 screenSize, const bool& bClamp, const float& margin, bool& outIsOffscreen, float& outAngle);
 
 	// TODO: あんたはここにいるべきじゃない...
 	bool IsCollision(const AABB& aabb, const Vec3& point);

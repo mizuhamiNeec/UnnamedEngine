@@ -193,18 +193,6 @@
     <Filter Include="Source\Engine\ResourceSystem\Texture">
       <UniqueIdentifier>{D3E5AAE9-7497-450D-8A09-03D2A1C715BF}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Engine\RHI">
-      <UniqueIdentifier>{37D10DD6-0C20-4A4A-B19F-1DAF8147F27B}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Engine\RHI\Base">
-      <UniqueIdentifier>{0DAFC86E-C561-47A8-B4A0-2861DED888E7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Engine\RHI\D3D12">
-      <UniqueIdentifier>{39B2A761-1F6B-485C-80E6-47DB2D26815B}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Engine\RHI\Vulkan">
-      <UniqueIdentifier>{171AB574-1393-43DA-8652-847B44EADE78}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Engine\SceneManager">
       <UniqueIdentifier>{56D50742-7DEC-48D8-BF20-F782E907F8BF}</UniqueIdentifier>
     </Filter>
@@ -600,6 +588,14 @@
     <ClInclude Include="Source\Game\Scene\Base\BaseScene.h">
       <Filter>Source\Game\Scene\Base</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseRenderer.h" />
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseDevice.h" />
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Renderer.h" />
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.h" />
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.h" />
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.h" />
+    <ClInclude Include="Source\Engine\Window\Base\BaseWindow.h" />
+    <ClInclude Include="Source\Engine\Window\WindowManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -887,6 +883,13 @@
     <ClCompile Include="Source\Game\Scene\Base\BaseScene.cpp">
       <Filter>Source\Game\Scene\Base</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseDevice.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Renderer.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.cpp" />
+    <ClCompile Include="Source\Engine\Window\WindowManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

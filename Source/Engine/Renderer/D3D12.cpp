@@ -20,7 +20,7 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxcompiler.lib")
 
-D3D12::D3D12() {
+D3D12::D3D12(BaseWindow* window) : window_(window) {
 #ifdef _DEBUG
 	EnableDebugLayer();
 #endif
@@ -54,7 +54,7 @@ void D3D12::Init() {
 	ConVarManager::RegisterConVar<bool>("r_clear", true, "Clear the screen", ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>("r_vsync", 0, "Enable VSync", ConVarFlags::ConVarFlags_Notify);
 
-	Window::SetResizeCallback([this](uint32_t width, uint32_t height) {
+	window_->SetResizeCallback([this](uint32_t width, uint32_t height) {
 		Resize(width, height);
 		}
 	);
@@ -421,15 +421,15 @@ void D3D12::CreateCommandQueue() {
 void D3D12::CreateSwapChain() {
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.BufferCount = kFrameBufferCount;
-	swapChainDesc.Width = Window::GetClientWidth();
-	swapChainDesc.Height = Window::GetClientHeight();
+	swapChainDesc.Width = window_->GetClientWidth();
+	swapChainDesc.Height = window_->GetClientHeight();
 	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // 色の形式
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // レンダーターゲットとして利用
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // モニタに映したら中身を破棄
 	swapChainDesc.SampleDesc.Count = 1; // マルチサンプルしない
 	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-	if (Window::GetWindowHandle()) {
+	if (window_->GetWindowHandle()) {
 		swapChainDesc.Scaling = DXGI_SCALING_STRETCH; // 画面サイズに合わせて伸縮
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE; // アルファモードは無視
 		Console::Print("Window Mode\n", kConFgColorDark);
@@ -441,7 +441,7 @@ void D3D12::CreateSwapChain() {
 
 	const HRESULT hr = dxgiFactory_->CreateSwapChainForHwnd(
 		commandQueue_.Get(),
-		Window::GetWindowHandle(),
+		window_->GetWindowHandle(),
 		&swapChainDesc,
 		nullptr,
 		nullptr,
@@ -558,16 +558,16 @@ void D3D12::SetViewportAndScissor() {
 	// Viewport
 	viewport_.TopLeftX = 0;
 	viewport_.TopLeftY = 0;
-	viewport_.Width = static_cast<FLOAT>(Window::GetClientWidth());
-	viewport_.Height = static_cast<FLOAT>(Window::GetClientHeight());
+	viewport_.Width = static_cast<FLOAT>(window_->GetClientWidth());
+	viewport_.Height = static_cast<FLOAT>(window_->GetClientHeight());
 	viewport_.MinDepth = 0.0f;
 	viewport_.MaxDepth = 1.0f;
 
 	// ScissorRect
 	scissorRect_.left = 0;
 	scissorRect_.top = 0;
-	scissorRect_.right = static_cast<LONG>(Window::GetClientWidth());
-	scissorRect_.bottom = static_cast<LONG>(Window::GetClientHeight());
+	scissorRect_.right = static_cast<LONG>(window_->GetClientWidth());
+	scissorRect_.bottom = static_cast<LONG>(window_->GetClientHeight());
 }
 
 void D3D12::HandleDeviceLost() {
@@ -623,8 +623,8 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetCPUDescriptorHandle(
 ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource() const {
 	// 生成するResourceの設定
 	D3D12_RESOURCE_DESC resourceDesc = {};
-	resourceDesc.Width = Window::GetClientWidth();
-	resourceDesc.Height = Window::GetClientHeight();
+	resourceDesc.Width = window_->GetClientWidth();
+	resourceDesc.Height = window_->GetClientHeight();
 	resourceDesc.MipLevels = 1; // Mipmapの数
 	resourceDesc.DepthOrArraySize = 1; // 奥行きor配列Textureの配列数
 	resourceDesc.Format = DXGI_FORMAT_D32_FLOAT; // DepthStencilとして利用可能なフォーマット

@@ -117,6 +117,10 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Renderer.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseDevice.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseRenderer.cpp" />
     <ClCompile Include="Source\Engine\Assets\Manager\AssetManager.cpp" />
     <ClCompile Include="Source\Engine\Async\JobTask\Base\BaseJobTask.cpp" />
     <ClCompile Include="Source\Engine\Async\MainThreadDispatcher.cpp" />
@@ -172,6 +176,9 @@
     <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
     <ClCompile Include="Source\Engine\Assets\Asset\TextureAsset.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.cpp" />
+    <ClCompile Include="Source\Engine\Window\WindowManager.cpp" />
     <None Include="Resources\Shaders\Default.hlsli" />
     <None Include="Resources\Shaders\Line.PS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -239,6 +246,10 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.h" />
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Renderer.h" />
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseDevice.h" />
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseRenderer.h" />
     <ClInclude Include="Source\Engine\Assets\Manager\AssetManager.h" />
     <ClInclude Include="Source\Engine\Assets\Asset\Base\Asset.h" />
     <ClInclude Include="Source\Engine\Async\JobTask\Base\BaseJobTask.h" />
@@ -277,6 +288,7 @@
     <ClInclude Include="Source\Engine\SubSystem\Console\ConVarCache.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\ConVarManager.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\IConVar.h" />
+    <ClInclude Include="Source\Engine\Window\Base\BaseWindow.h" />
     <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
     <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
     <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
@@ -298,6 +310,9 @@
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.h" />
     <ClInclude Include="Source\Engine\Assets\Asset\TextureAsset.h" />
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.h" />
+    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.h" />
+    <ClInclude Include="Source\Engine\Window\WindowManager.h" />
     <None Include="Resources\Shaders\Object3d.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>

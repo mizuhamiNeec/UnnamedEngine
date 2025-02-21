@@ -1,34 +1,38 @@
 #pragma once
-#define NOMINMAX // 絶対許さないからなお前!!
 #include <cstdint>
 #include <functional>
 #include <string>
 #include <Windows.h>
 #include <Lib/Utils/ClientProperties.h>
 
-class Window final {
+#include <Window/Base/BaseWindow.h>
+
+class Window final : public BaseWindow {
 public:
 	Window(std::wstring title, uint32_t width, uint32_t height, DWORD style = WS_OVERLAPPEDWINDOW, DWORD exStyle = 0);
-	~Window();
+	~Window() override;
 
-	bool Create(HINSTANCE hInstance, const std::string& className = kWindowClassName, WNDPROC wndProc = WindowProc);
+	bool Create(HINSTANCE hInstance, const std::string& className = kWindowClassName) override;
 
 	static void SetUseImmersiveDarkMode(HWND hWnd, bool darkMode);
 
-	static HWND GetWindowHandle();
+	HWND GetWindowHandle() const override;
 	[[nodiscard]] HINSTANCE GetHInstance() const;
 
-	static uint32_t GetClientWidth();
-	static uint32_t GetClientHeight();
+	uint32_t GetClientWidth() override;
+	uint32_t GetClientHeight() override;
 
-	static bool ProcessMessage();
+	bool ProcessMessage() override;
 
-	using ResizeEvent = std::function<void(uint32_t width, uint32_t height)>;
-	static void SetResizeCallback(ResizeEvent callback);
+	void SetResizeCallback(ResizeCallback callback) override;
 
 private:
-	static LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	// すべてのインスタンスで共有するウィンドウプロシージャ
+	static LRESULT StaticWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	// 各インスタンス用
+	LRESULT WindowProc(UINT msg, WPARAM wParam, LPARAM lParam);
 
+private:
 	WNDCLASSEX wc_ = {};
 
 	static HWND hWnd_;
@@ -38,5 +42,5 @@ private:
 	DWORD style_;
 	DWORD exStyle_;
 
-	static ResizeEvent resizeCallback_;
+	static ResizeCallback resizeCallback_;
 };

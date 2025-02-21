@@ -17,6 +17,10 @@
 
 #include "ImGuiManager/ImGuiManager.h"
 
+#include "Renderer/AbstractionLayer/Base/BaseRenderer.h"
+
+#include "Window/WindowManager.h"
+
 class Console;
 class D3D12;
 class Window;
@@ -32,10 +36,6 @@ public:
 
 	[[nodiscard]] static D3D12* GetRenderer() {
 		return renderer_.get();
-	}
-
-	[[nodiscard]] Window* GetWindow() const {
-		return window_.get();
 	}
 
 	[[nodiscard]] SpriteCommon* GetSpriteCommon() const {
@@ -76,8 +76,11 @@ private:
 
 	void CheckEditorMode();
 
-	std::unique_ptr<Window> window_;
+	std::unique_ptr<WindowManager> wm_;
 	static std::unique_ptr<D3D12> renderer_;
+
+	RendererInitInfo rendererInitInfo_;
+	std::unique_ptr<BaseRenderer> testRenderer_;
 
 	static std::unique_ptr<ResourceManager> resourceManager_;
 

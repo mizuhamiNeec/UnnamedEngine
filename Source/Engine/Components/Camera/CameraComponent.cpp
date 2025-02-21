@@ -8,6 +8,8 @@
 
 #include "Camera/CameraManager.h"
 
+#include "Window/WindowManager.h"
+
 CameraComponent::~CameraComponent() {}
 
 void CameraComponent::OnAttach(Entity& owner) {
@@ -24,8 +26,8 @@ void CameraComponent::OnAttach(Entity& owner) {
 
 void CameraComponent::Update([[maybe_unused]] float deltaTime) {
 	// TODO : 毎フレームアスペクト比を計算するのは無駄なので、ウィンドウサイズ変更時のみ計算するようにする
-	const float width = static_cast<float>(Window::GetClientWidth());
-	const float height = static_cast<float>(Window::GetClientHeight());
+	const float width = static_cast<float>(WindowManager::GetMainWindow()->GetClientWidth());
+	const float height = static_cast<float>(WindowManager::GetMainWindow()->GetClientHeight());
 	SetAspectRatio(width / height);
 
 	// 変更があった場合のみ更新
@@ -44,7 +46,6 @@ void CameraComponent::Update([[maybe_unused]] float deltaTime) {
 	viewProjMat_ = viewMat_ * projMat_;
 
 	transform_->SetIsDirty(false);
-//	}
 }
 
 void CameraComponent::DrawInspectorImGui() {

@@ -19,8 +19,11 @@
 
 #include "Lib/Utils/IniParser.h"
 
-#include "Window/Window.h"
 #include <algorithm>
+#include "Window/Window.h"
+
+#include "Window/WindowManager.h"
+
 
 using SetThreadDescriptionFunc = HRESULT(WINAPI*)(HANDLE, PCWSTR);
 
@@ -518,7 +521,7 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 		prompt + "\n",
 		(!prompt.empty() ? std::string(prompt.size(), '-') : "") + "\n",
 		uptime + "\n",
-		"Resolution:  " + std::to_string(Window::GetClientWidth()) + "x" + std::to_string(Window::GetClientHeight()) +
+		"Resolution:  " + std::to_string(WindowManager::GetMainWindow()->GetClientWidth()) + "x" + std::to_string(WindowManager::GetMainWindow()->GetClientHeight()) +
 		"\n",
 		"CPU:  " + WindowsUtils::GetCPUName() + "\n",
 		"GPU:  " + WindowsUtils::GetGPUName() + "\n",
@@ -854,7 +857,7 @@ void Console::ShowConsoleText() {
 						}
 					} else {
 						// 単一選択（フィルタリング後の要素に限定）
-						std::fill(displayState_.selected.begin(), displayState_.selected.end(), false);
+						std::ranges::fill(displayState_.selected, false);
 						displayState_.selected[i] = true;
 					}
 					lastSelectedIndex_ = visibleIndex; // フィルタリング後のインデックス
@@ -1344,7 +1347,7 @@ void Console::ImportPage() {
 	WCHAR szFile[260] = {};
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = Window::GetWindowHandle();
+	ofn.hwndOwner = WindowManager::GetMainWindow()->GetWindowHandle();
 	ofn.lpstrFile = szFile;
 	ofn.nMaxFile = sizeof(szFile);
 	ofn.lpstrFilter = L"Files (*.ini)\0*.ini\0";

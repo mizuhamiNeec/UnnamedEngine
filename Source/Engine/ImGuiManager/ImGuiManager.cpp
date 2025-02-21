@@ -3,14 +3,19 @@
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 #include <imgui_internal.h>
+
 #include <Entity/Base/Entity.h>
+
 #include <ResourceSystem/SRV/ShaderResourceViewManager.h>
 
+#include <Window/WindowManager.h>
+
 #ifdef _DEBUG
-#include "../Lib/Utils/ClientProperties.h"
-#include "../Renderer/D3D12.h"
-#include "../Window/Window.h"
-#include "../Window/WindowsUtils.h"
+#include <Lib/Utils/ClientProperties.h>
+
+#include <Renderer/D3D12.h>
+
+#include <Window/WindowsUtils.h>
 
 ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManager* srvManager) : renderer_(renderer), srvManager_(srvManager) {
 	IMGUI_CHECKVERSION();
@@ -60,15 +65,15 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 		StyleColorsLight();
 	}
 
-	ImGui_ImplWin32_Init(Window::GetWindowHandle());
+	ImGui_ImplWin32_Init(WindowManager::GetMainWindow()->GetWindowHandle());
 
 	ImGui_ImplDX12_Init(
 		renderer_->GetDevice(),
 		kFrameBufferCount,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
-		srvManager_->GetDescriptorHeap().Get(),
-		srvManager_->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
-		srvManager_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart()
+		ShaderResourceViewManager::GetDescriptorHeap().Get(),
+		ShaderResourceViewManager::GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
+		ShaderResourceViewManager::GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart()
 	);
 }
 
@@ -87,7 +92,7 @@ void ImGuiManager::EndFrame() const {
 	ImGui::UpdatePlatformWindows();
 	ImGui::RenderPlatformWindowsDefault();
 
-	ID3D12DescriptorHeap* imGuiHeap = srvManager_->GetDescriptorHeap().Get();
+	ID3D12DescriptorHeap* imGuiHeap = ShaderResourceViewManager::GetDescriptorHeap().Get();
 	renderer_->GetCommandList()->SetDescriptorHeaps(1, &imGuiHeap);
 
 	// 実際のCommandListのImGuiの描画コマンドを積む
