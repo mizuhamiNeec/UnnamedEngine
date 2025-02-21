@@ -47,10 +47,10 @@ Window::~Window() {
 	timeEndPeriod(1);
 }
 
-bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::string& className, const WNDPROC wndProc) {
+bool Window::Create(const HINSTANCE hInstance, [[maybe_unused]] const std::string& className) {
 	wc_.cbSize = sizeof(WNDCLASSEX);
 	wc_.style = CS_HREDRAW | CS_VREDRAW;
-	wc_.lpfnWndProc = wndProc;
+	wc_.lpfnWndProc = StaticWindowProc;
 	wc_.hInstance = hInstance;
 	wc_.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wc_.hbrBackground = GetSysColorBrush(COLOR_BACKGROUND);
@@ -124,6 +124,10 @@ void Window::SetUseImmersiveDarkMode(const HWND hWnd, const bool darkMode) {
 	}
 }
 
+HWND Window::GetWindowHandle() const {
+	return hWnd_;
+}
+
 HINSTANCE Window::GetHInstance() const {
 	return wc_.hInstance;
 }
@@ -144,9 +148,26 @@ uint32_t Window::GetClientHeight() {
 	return height_;
 }
 
-LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
+LRESULT Window::StaticWindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
+	Window* pThis = nullptr;
+	if (msg == WM_NCCREATE) {
+		LPCREATESTRUCT pCreate = reinterpret_cast<LPCREATESTRUCT>(lParam);
+		pThis = static_cast<Window*>(pCreate->lpCreateParams);
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis));
+		pThis->hWnd_ = hWnd; // インスタンスにハンドルを設定
+	} else {
+		pThis = reinterpret_cast<Window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+	}
+
+	if (pThis) {
+		return pThis->WindowProc(msg, wParam, lParam);
+	}
+	return DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+LRESULT Window::WindowProc(const UINT msg, const WPARAM wParam, const LPARAM lParam) {
 #ifdef _DEBUG
-	if (ImGuiImplWin32WndProcHandler(hWnd, msg, wParam, lParam)) {
+	if (ImGuiImplWin32WndProcHandler(hWnd_, msg, wParam, lParam)) {
 		return true;
 	}
 #endif
@@ -163,32 +184,6 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	}
 
 	switch (msg) {
-	case WM_SETTINGCHANGE: // Windowsの設定が変更された
-		if (lParam) {
-			auto immersiveColorSet = std::bit_cast<const wchar_t*>(lParam);
-			// 変更された設定が "ImmersiveColorSet" か?
-			if (immersiveColorSet && wcscmp(immersiveColorSet, L"ImmersiveColorSet") == 0) {
-				static int sMode = 0;
-				const bool darkMode = WindowsUtils::IsSystemDarkTheme(); // 現在のテーマを取得
-				// 前回のテーマと異なる場合
-				if (static_cast<bool>(sMode) != darkMode) {
-					sMode = darkMode;
-					SetUseImmersiveDarkMode(hWnd, darkMode); // ウィンドウのモードを設定
-#ifdef _DEBUG
-					if (sMode) {
-						ImGuiManager::StyleColorsDark();
-					} else {
-						ImGuiManager::StyleColorsLight();
-					}
-#endif
-					Console::Print(
-						std::format("Setting Window Mode to {}...\n", sMode ? "Dark" : "Light"), kConTextColorWait,
-						Channel::Engine
-					);
-				}
-			}
-		}
-		break;
 	case WM_INPUT:
 		// RawInputの処理
 		InputSystem::ProcessInput(static_cast<long>(lParam));
@@ -211,7 +206,7 @@ LRESULT Window::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam,
 	case WM_CLOSE:
 	case WM_DESTROY: PostQuitMessage(0);
 		return 0;
-	default: return DefWindowProc(hWnd, msg, wParam, lParam);
+	default: return DefWindowProc(hWnd_, msg, wParam, lParam);
 	}
 
 	return 0;
@@ -234,13 +229,11 @@ bool Window::ProcessMessage() {
 	return false;
 }
 
-void Window::SetResizeCallback(ResizeEvent callback) { resizeCallback_ = std::move(callback); }
-
-HWND Window::GetWindowHandle() {
-	return hWnd_;
+void Window::SetResizeCallback(BaseWindow::ResizeCallback callback) {
+	resizeCallback_ = std::move(callback);
 }
 
 HWND Window::hWnd_ = nullptr;
 uint32_t Window::width_ = 0;
 uint32_t Window::height_ = 0;
-Window::ResizeEvent Window::resizeCallback_ = nullptr;
+Window::ResizeCallback Window::resizeCallback_ = nullptr;

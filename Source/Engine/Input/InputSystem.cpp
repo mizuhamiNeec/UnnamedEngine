@@ -11,6 +11,8 @@
 
 #include <Window/Window.h>
 
+#include "Window/WindowManager.h"
+
 //-----------------------------------------------------------------------------
 // Purpose: インプットシステムの初期化を行います
 //-----------------------------------------------------------------------------
@@ -292,9 +294,9 @@ void InputSystem::CheckMouseCursorLock() {
 	if (bMouseLock_) {
 		// カーソルをウィンドウの中央にリセット
 		POINT centerCursorPos = {
-			static_cast<LONG>(Window::GetClientWidth() / 2), static_cast<LONG>(Window::GetClientHeight() / 2)
+			static_cast<LONG>(WindowManager::GetMainWindow()->GetClientWidth() / 2), static_cast<LONG>(WindowManager::GetMainWindow()->GetClientWidth() / 2)
 		};
-		ClientToScreen(Window::GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
+		ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
 		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
 
 		// カーソルを非表示にする

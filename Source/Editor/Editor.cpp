@@ -10,6 +10,8 @@
 #include "SubSystem/Console/ConVarManager.h"
 #include "Lib/Utils/StrUtils.h"
 
+#include "Window/WindowManager.h"
+
 #ifdef _DEBUG
 #include <imgui_internal.h>
 #endif
@@ -141,9 +143,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		}
 		// カーソルをウィンドウの中央にリセット
 		POINT centerCursorPos = {
-			static_cast<LONG>(Window::GetClientWidth() / 2), static_cast<LONG>(Window::GetClientHeight() / 2)
+			static_cast<LONG>(WindowManager::GetMainWindow()->GetClientWidth() / 2), static_cast<LONG>(WindowManager::GetMainWindow()->GetClientHeight() / 2)
 		};
-		ClientToScreen(Window::GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
+		ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
 		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
 
 		firstReset = false; // 初回リセット完了

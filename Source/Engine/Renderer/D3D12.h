@@ -15,7 +15,7 @@ struct D3DResourceLeakChecker {
 
 class D3D12 : public Renderer {
 public: // メンバ関数
-	D3D12();
+	D3D12(BaseWindow* window);
 	~D3D12() override;
 
 	void Init() override;
@@ -38,6 +38,7 @@ private:
 	ComPtr<ID3D12CommandQueue> commandQueue_;
 	ComPtr<IDXGISwapChain4> swapChain_;
 
+	BaseWindow* window_ = nullptr;
 
 	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap_;
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_;

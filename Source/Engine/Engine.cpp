@@ -34,12 +34,15 @@
 
 #include "Components/MeshRenderer/StaticMeshRenderer.h"
 
+#include <Renderer/AbstractionLayer/D3D12/D3D12Renderer.h>
+#include <Renderer/AbstractionLayer/Vulkan/VulkanRenderer.h>
+
 Engine::Engine() = default;
 
 void Engine::Run() {
 	Init();
 	while (!bWishShutdown_) {
-		if (Window::ProcessMessage()) {
+		if (wm_->ProcessMessage()) {
 			PostQuitMessage(ERROR_SUCCESS);
 			break;
 		}
@@ -49,14 +52,51 @@ void Engine::Run() {
 }
 
 void Engine::Init() {
-	// ウィンドウの作成
-	window_ = std::make_unique<Window>(
+	// メインビューポート用ウィンドウの作成
+	auto gameWindow = std::make_unique<Window>(
 		StrUtils::ToString(kWindowTitle),
 		kClientWidth, kClientHeight
 	);
-	window_->Create(nullptr);
 
-	renderer_ = std::make_unique<D3D12>();
+	if (gameWindow->Create(nullptr)) {
+		wm_->AddWindow(std::move(gameWindow));
+	} else {
+		Console::Print(
+			"Failed to create main window.\n",
+			kConTextColorError,
+			Channel::Engine
+		);
+		return;
+	}
+
+	//secondWindow_ = std::make_unique<Window>(
+	//	StrUtils::ToString("SecondWindow"),
+	//	kClientWidth, kClientHeight
+	//);
+	//secondWindow_->Create(nullptr, "secondWindowClassName");
+
+	rendererInitInfo_ = {};
+	rendererInitInfo_.api = API::DX12;
+	rendererInitInfo_.windowHandle = wm_->GetMainWindow()->GetWindowHandle();
+#ifdef _DEBUG
+	rendererInitInfo_.enableDebugLayer = true;
+#else
+	rendererInitInfo_.enableDebugLayer = false;
+#endif
+
+	if (rendererInitInfo_.api == API::DX12) {
+		testRenderer_ = std::make_unique<D3D12Renderer>();
+	} else if (rendererInitInfo_.api == API::Vulkan) {
+		testRenderer_ = std::make_unique<VulkanRenderer>();
+	}
+
+	if (!testRenderer_->Init(rendererInitInfo_)) {
+		Console::Print("Failed to initialize renderer.\n", kConTextColorError, Channel::RenderSystem);
+		assert(true && "Failed to initialize renderer.");
+		throw std::runtime_error("Failed to initialize renderer.");
+	}
+
+	renderer_ = std::make_unique<D3D12>(wm_->GetMainWindow());
 	renderer_->Init();
 
 	// 入力システム
@@ -207,6 +247,8 @@ void Engine::Shutdown() const {
 	Debug::Shutdown();
 
 	renderer_->Shutdown();
+
+	testRenderer_->Shutdown();
 
 #ifdef _DEBUG
 	// ImGuiManagerのシャットダウンは最後に行う
