@@ -19,8 +19,7 @@
 // Purpose: AABBのコンストラクタ
 //-----------------------------------------------------------------------------
 AABB::AABB(const Vec3& min, const Vec3& max) : min(min),
-max(max) {
-}
+max(max) {}
 
 //-----------------------------------------------------------------------------
 // Purpose: AABBの中心を取得します
@@ -136,8 +135,7 @@ Triangle::Triangle(
 	const Vec3& v1,
 	const Vec3& v2) : v0(v0),
 	v1(v1),
-	v2(v2) {
-}
+	v2(v2) {}
 
 //-----------------------------------------------------------------------------
 // Purpose: 三角形の法線ベクトルを取得します
@@ -192,6 +190,20 @@ Vec3 Triangle::GetVertex(const int index) const {
 		return v2;
 	default:
 		return Vec3::zero;
+	}
+}
+
+void Triangle::SetVertex(const int index, const Vec3 newPos) {
+	switch (index) {
+	case 0:
+		v0 = newPos;
+		break;
+	case 1:
+		v1 = newPos;
+		break;
+	case 2:
+		v2 = newPos;
+		break;
 	}
 }
 
@@ -448,10 +460,10 @@ void DynamicBVH::DrawObjects(const Vec4& color) const {
 
 AABB DynamicBVH::GetNodeAABB(int nodeId) const {
 	std::shared_lock lock(bvhMutex_);
-    if (nodeId < 0 || nodeId >= static_cast<int>(nodes_.size()) || !nodes_[nodeId].isValid) {
-        return AABB(Vec3::zero, Vec3::zero);
-    }
-    return nodes_[nodeId].boundingBox;
+	if (nodeId < 0 || nodeId >= static_cast<int>(nodes_.size()) || !nodes_[nodeId].isValid) {
+		return AABB(Vec3::zero, Vec3::zero);
+	}
+	return nodes_[nodeId].boundingBox;
 }
 
 void DynamicBVH::OptimizeMemoryLayout() {

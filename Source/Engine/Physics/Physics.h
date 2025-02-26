@@ -15,6 +15,7 @@ struct Triangle {
 	[[nodiscard]] Vec3 GetCenter() const;
 	bool IsPointInside(const Vec3& point) const;
 	Vec3 GetVertex(int index) const;
+	void SetVertex(int index, Vec3 newPos);
 };
 
 // Axis Aligned Bounding Box (軸に沿った境界ボックス)

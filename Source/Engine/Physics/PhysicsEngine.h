@@ -34,7 +34,7 @@ public:
 		const Vec3 &start,
 		const Vec3 &direction,
 		float distance,
-		const Vec3 &halfSize);
+		const Vec3 &halfSize) const;
 
 	std::vector<HitResult> RayCast(
 		const Vec3 &start,
