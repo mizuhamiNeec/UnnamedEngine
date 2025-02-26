@@ -151,7 +151,7 @@ void PhysicsEngine::UnregisterEntity(Entity* entity) {
 }
 
 std::vector<HitResult> PhysicsEngine::BoxCast(
-	const Vec3& start, const Vec3& direction, float distance, const Vec3& halfSize) {
+	const Vec3& start, const Vec3& direction, float distance, const Vec3& halfSize) const {
 	std::vector<HitResult> hitResults;
 
 	// 正規化
@@ -189,7 +189,7 @@ std::vector<HitResult> PhysicsEngine::BoxCast(
 	candidateIndices.assign(uniqueCandidates.begin(), uniqueCandidates.end());
 
 	// 移動軌跡上を離散サンプリングして衝突判定を行う
-	constexpr int steps = 8;
+	constexpr int steps = 4;
 	float dt = distance / steps;
 	for (int i = 0; i <= steps; i++) {
 		float t = i * dt;

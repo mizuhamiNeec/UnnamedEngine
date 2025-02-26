@@ -183,6 +183,8 @@ void D3D12::ClearColorAndDepth() const {
 }
 
 void D3D12::PreRender() {
+	WaitPreviousFrame();
+
 	// これから書き込むバックバッファのインデックスを取得
 	frameIndex_ = swapChain_->GetCurrentBackBufferIndex();
 
@@ -229,7 +231,7 @@ void D3D12::PostRender() {
 	// GPU と OS に画面の交換を行うよう通知
 	swapChain_->Present(ConVarManager::GetConVar("r_vsync")->GetValueAsInt(), 0);
 
-	WaitPreviousFrame(); // 前のフレームを待つ
+	//WaitPreviousFrame(); // 前のフレームを待つ
 }
 
 void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, const uint32_t size, const void* data) {
@@ -389,7 +391,8 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		D3D12_MESSAGE_ID denyIds[] = {
 			// Windows11でのDXGIデバッグレイヤーとDX12デバッグレイヤーの相互作用バグによるエラーメッセージ
 			// https://stackoverflow.com/questions/69805245/directx-12-application-is-crashing-in-windows-11
-			D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE
+			D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE,
+			D3D12_MESSAGE_ID_CREATERESOURCE_STATE_IGNORED
 		};
 
 		// 抑制するレベル

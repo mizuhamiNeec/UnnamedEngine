@@ -53,6 +53,7 @@ void GameScene::Init() {
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
+	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/reflectionTest.obj");
 #pragma endregion
 
 #pragma region パーティクル類
@@ -80,6 +81,7 @@ void GameScene::Init() {
 	// アクティブカメラに設定
 	CameraManager::SetActiveCamera(camera);
 
+	// プレイヤー
 	entPlayer_ = std::make_unique<Entity>("player");
 	entPlayer_->GetTransform()->SetLocalPos(Vec3::up * 1.0f); // 1m上に配置
 	PlayerMovement* rawPlayerMovement = entPlayer_->AddComponent<PlayerMovement>();
@@ -94,6 +96,17 @@ void GameScene::Init() {
 	playerCollider_->SetOffset(Math::HtoM(Vec3::up * 73.0f * 0.5f));
 	AddEntity(entPlayer_.get());
 
+	// テスト用メッシュ
+	entTestMesh_ = std::make_unique<Entity>("testMesh");
+	StaticMeshRenderer* smRenderer = entTestMesh_->AddComponent<StaticMeshRenderer>();
+	smrTestMesh_ = std::shared_ptr<StaticMeshRenderer>(
+		smRenderer, [](StaticMeshRenderer*) {}
+	);
+	smRenderer->SetStaticMesh(resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/reflectionTest.obj"));
+	entTestMesh_->AddComponent<MeshColliderComponent>();
+	AddEntity(entTestMesh_.get());
+
+	// カメラの親エンティティ
 	cameraRoot_ = std::make_unique<Entity>("cameraRoot");
 	cameraRoot_->SetParent(entPlayer_.get());
 	cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
@@ -113,11 +126,35 @@ void GameScene::Init() {
 
 	CameraManager::SetActiveCamera(camera);
 
+	physicsEngine_->RegisterEntity(entTestMesh_.get(), true);
+
 	// 物理エンジンにプレイヤーエンティティを登録
 	physicsEngine_->RegisterEntity(entPlayer_.get(), false);
 }
 
 void GameScene::Update(const float deltaTime) {
+	for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
+		if (triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) < 8.0f) {
+			Triangle tri = triangle;
+			for (int i = 0; i < 3; ++i) {
+				tri.SetVertex(
+					i,
+					Math::Lerp(
+						tri.GetVertex(i),
+						triangle.GetCenter() + triangle.GetNormal(),
+						std::clamp(
+							triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) - 7.0f,
+							0.0f,
+							1.0f
+						)
+					)
+				);
+			}
+			Debug::DrawTriangle(tri, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
+		}
+	}
+
+	entTestMesh_->Update(deltaTime);
 	entPlayer_->Update(EngineTimer::GetScaledDeltaTime());
 	physicsEngine_->Update(deltaTime);
 
@@ -192,6 +229,8 @@ void GameScene::Update(const float deltaTime) {
 #endif
 }
 
-void GameScene::Render() {}
+void GameScene::Render() {
+	//entTestMesh_->Render(renderer_->GetCommandList());
+}
 
 void GameScene::Shutdown() {}

@@ -18,7 +18,7 @@ public:
 	EngineTimer();
 
 	void StartFrame();
-	void EndFrame() const;
+	void EndFrame();
 
 	static float ScaledDelta();
 
@@ -49,6 +49,7 @@ private:
 
 	TimePoint startTime_;
 	TimePoint lastFrameTime_;
+	TimePoint frameStartTime_;
 	static double deltaTime_; // 前回のフレームから経過した時間
 	static double totalTime_; // エンジンの起動から経過した時間
 	static uint64_t frameCount_; // フレーム数

@@ -5,40 +5,33 @@
 #endif
 
 #include <Camera/CameraManager.h>
-
 #include <Debug/Debug.h>
-
 #include <Input/InputSystem.h>
-
-#include <SubSystem/Console/ConCommand.h>
-#include <SubSystem/Console/ConVarManager.h>
-#include <SubSystem/Console/Console.h>
 #include <Lib/DebugHud/DebugHud.h>
 #include <Lib/Utils/ClientProperties.h>
-#include <Lib/Utils/StrUtils.h>
-
 #include <Renderer/D3D12.h>
-
-#include <Scene/GameScene.h>
-
-#include <Window/MainWindow.h>
-#include <Window/WindowsUtils.h>
-
 #include <Renderer/AbstractionLayer/D3D12/D3D12Renderer.h>
 #include <Renderer/AbstractionLayer/Vulkan/VulkanRenderer.h>
-
-#include "Window/EditorWindow.h"
+#include <Scene/GameScene.h>
+#include <SubSystem/Console/ConCommand.h>
+#include <SubSystem/Console/Console.h>
+#include <SubSystem/Console/ConVarManager.h>
+#include <Window/EditorWindow.h>
+#include <Window/MainWindow.h>
+#include <Window/WindowsUtils.h>
 
 Engine::Engine() = default;
 
 void Engine::Run() {
 	Init();
 	while (!bWishShutdown_) {
+		time_->StartFrame();
 		if (wm_->ProcessMessage()) {
 			PostQuitMessage(ERROR_SUCCESS);
 			break;
 		}
 		Update();
+		time_->EndFrame();
 	}
 	Shutdown();
 }
@@ -195,15 +188,13 @@ void Engine::Init() {
 
 	hr = renderer_->GetCommandList()->Close();
 	assert(SUCCEEDED(hr));
-	}
+}
 
 void Engine::Update() {
 #ifdef _DEBUG
 	ImGuiManager::NewFrame();
 	Console::Update();
 #endif
-
-	time_->StartFrame();
 
 	// 前のフレームとeditorModeが違う場合はエディターモードを切り替える
 	static bool bPrevEditorMode = bIsEditorMode_;
@@ -258,7 +249,7 @@ void Engine::Update() {
 	renderer_->PostRender();
 	//-------------------------------------------------------------------------
 
-	time_->EndFrame();
+	//time_->EndFrame();
 }
 
 void Engine::Shutdown() const {
