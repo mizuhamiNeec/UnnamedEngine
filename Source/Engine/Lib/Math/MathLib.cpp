@@ -75,6 +75,42 @@ float Math::DeltaAngle(const float& current, const float& target) {
 	return delta;
 }
 
+float Math::CubicBezier(const float t, const Vec2 p1, const Vec2 p2) {
+	if (t <= 0.0f) return 0.0f;
+	if (t >= 1.0f) return 1.0f;
+
+	float u = t;
+	constexpr int kMaxItr = 10;
+	for (int i = 0; i < kMaxItr; i++) {
+		const float oneMinusU = 1.0f - u;
+		const float bezierX = 3.0f * oneMinusU * oneMinusU * u * p1.x +
+			3.0f * oneMinusU * u * u * p2.x +
+			u * u * u;
+
+		const float derivative = 3.0f * oneMinusU * oneMinusU * p1.x +
+			6.0f * oneMinusU * u * (p2.x - p1.x) +
+			3.0f * u * u * (1.0f - p2.x);
+
+		if (std::fabs(derivative) < 1e-6f) {
+			break;
+		}
+
+		const float diff = bezierX - t;
+		u -= diff / derivative;
+	}
+
+	// u を用いて y(u) を計算
+	const float oneMinusU = 1.0f - u;
+	const float bezierY = 3.0f * oneMinusU * oneMinusU * u * p1.y +
+		3.0f * oneMinusU * u * u * p2.y +
+		u * u * u;
+	return bezierY;
+}
+
+float Math::CubicBezier(const float t, const float p1, const float p2, const float p3, const float p4) {
+	return CubicBezier(t, Vec2(p1, p2), Vec2(p3, p4));
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: ワールド座標をスクリーン座標と画面中心からの角度に変換します
 // Params : worldPos    - 変換するワールド座標

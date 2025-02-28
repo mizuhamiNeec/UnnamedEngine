@@ -133,6 +133,10 @@ void GameScene::Init() {
 }
 
 void GameScene::Update(const float deltaTime) {
+	static float controlPoints[4];
+
+	ImGui::DragFloat4("points", &controlPoints[0], 0.01f);
+
 	for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
 		if (triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) < 8.0f) {
 			Triangle tri = triangle;
@@ -142,10 +146,15 @@ void GameScene::Update(const float deltaTime) {
 					Math::Lerp(
 						tri.GetVertex(i),
 						triangle.GetCenter() + triangle.GetNormal(),
-						std::clamp(
+						Math::CubicBezier(std::clamp(
 							triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) - 7.0f,
 							0.0f,
 							1.0f
+						),
+							controlPoints[0],
+							controlPoints[1],
+							controlPoints[2],
+							controlPoints[3]
 						)
 					)
 				);

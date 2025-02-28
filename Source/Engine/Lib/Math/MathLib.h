@@ -21,6 +21,8 @@ namespace Math {
 	Vec3 CatmullRomPosition(const std::vector<Vec3>& points, float t);
 	Vec3 CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, float t);
 	float DeltaAngle(const float& current, const float& target);
+	float CubicBezier(float t, Vec2 p1, Vec2 p2);
+	float CubicBezier(float t, float p1, float p2, float p3, float p4);
 
 	Vec2 WorldToScreen(const Vec3& worldPos, Vec2 screenSize, const bool& bClamp, const float& margin, bool& outIsOffscreen, float& outAngle);
 
