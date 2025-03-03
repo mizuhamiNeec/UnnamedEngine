@@ -370,6 +370,10 @@ bool PhysicsEngine::IntersectAABBWithTriangle(
 	Vec3 closestPoint = ClosestPointOnTriangleToPoint(Vec3::zero, triangle);
 	outHit.hitPos = aabbCenter + closestPoint; // AABBのローカル座標からワールド座標へ
 
+	Debug::DrawRay(
+		outHit.hitPos, normal, Vec4::magenta
+	);
+
 	// 深さの計算 (AABB表面との最近距離)
 	Vec3 penetration = ClosestPointOnAABBToPoint(closestPoint, aabb) - closestPoint;
 	outHit.depth = penetration.Length();

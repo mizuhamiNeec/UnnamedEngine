@@ -20,7 +20,7 @@ void CharacterMovement::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
 }
 
-void CharacterMovement::Update(float deltaTime) {
+void CharacterMovement::Update(const float deltaTime) {
 	deltaTime_ = deltaTime;
 	position_ = transform_->GetLocalPos();
 
@@ -52,9 +52,9 @@ void CharacterMovement::ApplyFriction() {
 
 	float drop = 0.0f;
 	if (isGrounded_) {
-		float friction = ConVarManager::GetConVar("sv_friction")->GetValueAsFloat();
-		float stopspeed = ConVarManager::GetConVar("sv_stopspeed")->GetValueAsFloat();
-		float control = speed < stopspeed ? stopspeed : speed;
+		const float friction = ConVarManager::GetConVar("sv_friction")->GetValueAsFloat();
+		const float stopspeed = ConVarManager::GetConVar("sv_stopspeed")->GetValueAsFloat();
+		const float control = speed < stopspeed ? stopspeed : speed;
 		drop = control * friction * deltaTime_;
 	}
 
@@ -95,7 +95,6 @@ bool CharacterMovement::CheckGrounded() {
 
 	// 各HitResultをチェックし、十分な上向きの法線（地面らしい面）であれば接地と判定
 	for (const auto& hit : hitResults) {
-		Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
 		if (hit.isHit && hit.hitNormal.y > 0.7f) {
 			normal_ = hit.hitNormal;
 			return true;
@@ -113,14 +112,14 @@ void CharacterMovement::Accelerate(const Vec3 dir, const float speed, const floa
 	}
 
 	float accelspeed = accel * deltaTime_ * speed;
-	accelspeed = min(accelspeed, addspeed);
+	accelspeed = (std::min)(accelspeed, addspeed);
 	velocity_ += Math::HtoM(accelspeed) * dir;
 }
 
 void CharacterMovement::AirAccelerate(const Vec3 dir, const float speed, const float accel) {
 	float wishspd = speed;
 
-	wishspd = min(wishspd, 30.0f);
+	wishspd = (std::min)(wishspd, 30.0f);
 	float currentspeed = Math::MtoH(velocity_).Dot(dir);
 	float addspeed = wishspd - currentspeed;
 
@@ -129,7 +128,7 @@ void CharacterMovement::AirAccelerate(const Vec3 dir, const float speed, const f
 	}
 
 	float accelspeed = accel * deltaTime_ * speed;
-	accelspeed = min(accelspeed, addspeed);
+	accelspeed = (std::min)(accelspeed, addspeed);
 	velocity_ += Math::HtoM(accelspeed) * dir;
 }
 

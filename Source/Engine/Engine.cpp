@@ -253,14 +253,13 @@ void Engine::Update() {
 }
 
 void Engine::Shutdown() const {
-
-	resourceManager_->Shutdown();
-
 	Debug::Shutdown();
+
 
 	renderer_->Shutdown();
 
 	testRenderer_->Shutdown();
+
 
 #ifdef _DEBUG
 	// ImGuiManagerのシャットダウンは最後に行う
@@ -268,6 +267,7 @@ void Engine::Shutdown() const {
 		imGuiManager_->Shutdown();
 	}
 #endif
+	resourceManager_->Shutdown();
 }
 
 void Engine::RegisterConsoleCommandsAndVariables() {

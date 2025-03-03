@@ -275,7 +275,13 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				}
 
 				ImGui::AlignTextToFramePadding();
-				bool nodeOpen = ImGui::TreeNodeEx(entity->GetName().c_str(), flags);
+				bool nodeOpen = ImGui::TreeNodeEx(
+					(StrUtils::ConvertToUtf8(kIconObject) +
+						" " +
+						entity->GetName())
+					.c_str(),
+					flags
+				);
 
 				if (ImGui::IsItemClicked()) {
 					selectedEntity_ = entity;

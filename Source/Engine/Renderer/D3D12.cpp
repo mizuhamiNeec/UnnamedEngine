@@ -183,7 +183,7 @@ void D3D12::ClearColorAndDepth() const {
 }
 
 void D3D12::PreRender() {
-	WaitPreviousFrame();
+	//WaitPreviousFrame();
 
 	// これから書き込むバックバッファのインデックスを取得
 	frameIndex_ = swapChain_->GetCurrentBackBufferIndex();
@@ -231,7 +231,7 @@ void D3D12::PostRender() {
 	// GPU と OS に画面の交換を行うよう通知
 	swapChain_->Present(ConVarManager::GetConVar("r_vsync")->GetValueAsInt(), 0);
 
-	//WaitPreviousFrame(); // 前のフレームを待つ
+	WaitPreviousFrame(); // 前のフレームを待つ
 }
 
 void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource, const uint32_t size, const void* data) {

@@ -26,9 +26,6 @@ namespace Math {
 
 	Vec2 WorldToScreen(const Vec3& worldPos, Vec2 screenSize, const bool& bClamp, const float& margin, bool& outIsOffscreen, float& outAngle);
 
-	// TODO: あんたはここにいるべきじゃない...
-	bool IsCollision(const AABB& aabb, const Vec3& point);
-
 	//-------------------------------------------------------------------------
 	// 単位変換
 	//-------------------------------------------------------------------------

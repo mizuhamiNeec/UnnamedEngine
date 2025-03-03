@@ -117,6 +117,7 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\ImGuiManager\ImGuiWidgets.cpp" />
     <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
     <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.cpp" />
     <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Renderer.cpp" />
@@ -247,6 +248,7 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\ImGuiManager\ImGuiWidgets.h" />
     <ClInclude Include="Source\Engine\Window\EditorWindow.h" />
     <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.h" />
     <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Renderer.h" />
