@@ -20,6 +20,7 @@
 #include <format>
 
 #include "Assets/Manager/AssetManager.h"
+#include "ImGuiManager/ImGuiWidgets.h"
 
 void GameScene::Init() {
 
@@ -135,10 +136,17 @@ void GameScene::Init() {
 void GameScene::Update(const float deltaTime) {
 	static float controlPoints[4];
 
-	ImGui::DragFloat4("points", &controlPoints[0], 0.01f);
+	ImGui::Begin("CubicBezier Visualization");
+	static Vec3 test = Vec3::one;
+	ImGuiWidgets::DragVec3("hello Vec4", test, 0.01f, "X %.2f m/s");
+	ImGui::DragFloat3("Hello Vec4", &test.x, 0.01f, 0.0f, 1.0f);
+
+	ImGuiWidgets::EditCubicBezier("mesh", controlPoints[0], controlPoints[1], controlPoints[2], controlPoints[3]);
+
+	ImGui::End();
 
 	for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
-		if (triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) < 8.0f) {
+		if (triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) < 16.0f) {
 			Triangle tri = triangle;
 			for (int i = 0; i < 3; ++i) {
 				tri.SetVertex(
@@ -147,7 +155,7 @@ void GameScene::Update(const float deltaTime) {
 						tri.GetVertex(i),
 						triangle.GetCenter() + triangle.GetNormal(),
 						Math::CubicBezier(std::clamp(
-							triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) - 7.0f,
+							triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) - 14.0f,
 							0.0f,
 							1.0f
 						),
@@ -194,7 +202,7 @@ void GameScene::Update(const float deltaTime) {
 		const Vec3 camRot = invViewMat.ToQuaternion().ToEulerAngles();
 
 		// テキストのサイズを取得
-		ImGuiIO io = ImGui::GetIO();
+		//ImGuiIO io = ImGui::GetIO();
 		std::string text = std::format(
 			"name: {}\n"
 			"pos : {:.2f} {:.2f} {:.2f}\n"

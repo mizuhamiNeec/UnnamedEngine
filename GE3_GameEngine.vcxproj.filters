@@ -597,6 +597,7 @@
     <ClInclude Include="Source\Engine\Window\Base\BaseWindow.h" />
     <ClInclude Include="Source\Engine\Window\WindowManager.h" />
     <ClInclude Include="Source\Engine\Window\EditorWindow.h" />
+    <ClInclude Include="Source\Engine\ImGuiManager\ImGuiWidgets.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -892,6 +893,7 @@
     <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowManager.cpp" />
     <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
+    <ClCompile Include="Source\Engine\ImGuiManager\ImGuiWidgets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

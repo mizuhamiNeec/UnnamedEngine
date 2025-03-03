@@ -10,6 +10,8 @@
 
 #include <Window/WindowManager.h>
 
+#include "ImGuiWidgets.h"
+
 #ifdef _DEBUG
 #include <Lib/Utils/ClientProperties.h>
 
@@ -116,6 +118,7 @@ void ImGuiManager::StyleColorsDark() {
 	// テキストの色を少し暗めに
 	ImVec4* colors = style->Colors;
 	colors[ImGuiCol_Text] = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
+	colors[ImGuiCol_WindowBg] = ImVec4(0.17f, 0.18f, 0.19f, .8f);
 }
 
 void ImGuiManager::StyleColorsLight() {
@@ -136,7 +139,7 @@ bool ImGuiManager::EditTransform(Transform& transform, const float& vSpeed) {
 
 		// 回転を取っておく
 		Vec3 rotate = transform.rotate * Math::rad2Deg;
-		if (DragVec3("Rotation", transform.rotate, vSpeed, "%.3f")) {
+		if (ImGuiWidgets::DragVec3("Rotation", transform.rotate, vSpeed, "%.3f")) {
 			isEditing |= true;
 			transform.rotate = rotate * Math::deg2Rad;
 		}
@@ -155,14 +158,14 @@ bool ImGuiManager::EditTransform(TransformComponent& transform, const float& vSp
 
 	if (ImGui::CollapsingHeader(("Transform##" + transform.GetOwner()->GetName()).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
 		// Position 編集
-		if (DragVec3("Position", localPos, vSpeed, "%.3f")) {
+		if (ImGuiWidgets::DragVec3("Position", localPos, vSpeed, "%.3f")) {
 			transform.SetLocalPos(localPos);
 			isEditing = true;
 		}
 
 		// Rotation 編集
 		Vec3 eulerDegrees = localRot.ToEulerDegrees();
-		if (DragVec3("Rotation", eulerDegrees, vSpeed * 10.0f, "%.3f")) {
+		if (ImGuiWidgets::DragVec3("Rotation", eulerDegrees, vSpeed * 10.0f, "%.3f")) {
 			// 編集された Euler 角を Quaternion に変換
 			localRot = Quaternion::EulerDegrees(eulerDegrees);
 			transform.SetLocalRot(localRot);
@@ -170,7 +173,7 @@ bool ImGuiManager::EditTransform(TransformComponent& transform, const float& vSp
 		}
 
 		// Scale 編集
-		if (DragVec3("Scale", localScale, vSpeed, "%.3f")) {
+		if (ImGuiWidgets::DragVec3("Scale", localScale, vSpeed, "%.3f")) {
 			transform.SetLocalScale(localScale);
 			isEditing = true;
 		}

@@ -174,8 +174,8 @@ Vec2 Math::WorldToScreen(const Vec3& worldPos, const Vec2 screenSize, const bool
 			(screenBottom - screenCenter.y) / clampDirection.y
 		};
 
-		float minT = std::numeric_limits<float>::max(); // 修正
-		for (float t : tValues) {
+		float minT = std::numeric_limits<float>::max();
+		for (const float t : tValues) {
 			if (t > 0.0f && t < minT) minT = t;
 		}
 
