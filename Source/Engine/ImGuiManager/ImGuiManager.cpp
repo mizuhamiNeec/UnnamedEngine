@@ -51,7 +51,7 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 		R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese()
 	);
 
-	// 何故かベースラインがずれるので補正
+	// ??? 何故かベースラインがずれるので補正
 	imFontConfig.GlyphOffset = ImVec2(0.0f, 5.0f);
 
 	static constexpr ImWchar iconRanges[] = { 0xe003, 0xf8ff, 0 };
@@ -118,7 +118,7 @@ void ImGuiManager::StyleColorsDark() {
 	// テキストの色を少し暗めに
 	ImVec4* colors = style->Colors;
 	colors[ImGuiCol_Text] = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
-	colors[ImGuiCol_WindowBg] = ImVec4(0.17f, 0.18f, 0.19f, .8f);
+	//colors[ImGuiCol_WindowBg] = ImVec4(0.17f, 0.18f, 0.19f, .8f);
 }
 
 void ImGuiManager::StyleColorsLight() {
