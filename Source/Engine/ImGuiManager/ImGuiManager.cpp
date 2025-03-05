@@ -30,8 +30,8 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 
 	// 少し角丸に
 	ImGuiStyle* style = &ImGui::GetStyle();
-	style->WindowRounding = 4;
-	style->FrameRounding = 2;
+	style->WindowRounding = 8;
+	style->FrameRounding = 4;
 
 	ImFontConfig imFontConfig;
 	imFontConfig.OversampleH = 1;
@@ -118,7 +118,8 @@ void ImGuiManager::StyleColorsDark() {
 	// テキストの色を少し暗めに
 	ImVec4* colors = style->Colors;
 	colors[ImGuiCol_Text] = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
-	//colors[ImGuiCol_WindowBg] = ImVec4(0.17f, 0.18f, 0.19f, .8f);
+	colors[ImGuiCol_WindowBg] = ImVec4(0.22f, 0.22f, 0.24f, 1.0f);
+	colors[ImGuiCol_FrameBg] = ImVec4(0.13f, 0.12f, 0.13f, 1.0f);
 }
 
 void ImGuiManager::StyleColorsLight() {
