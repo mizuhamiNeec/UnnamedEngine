@@ -26,7 +26,7 @@ namespace ImGuiWidgets {
 		// 角丸四角形のサイズ
 		float rectWidth = 24.0f;
 		float rectHeight = 24.0f;
-		float rounding = 2.0f;
+		float rounding = 4.0f;
 		float dragWidth = setWidth - rectWidth; // 各 DragFloat の幅
 
 		const char* axisLabels[3] = { "X", "Y", "Z" };
@@ -36,7 +36,7 @@ namespace ImGuiWidgets {
 			IM_COL32(45, 48, 51, 255)
 		};
 		static const ImU32 textColors[3] = {
-			IM_COL32(226, 110, 105, 255),
+			IM_COL32(226, 110, 110, 255),
 			IM_COL32(168, 204, 96, 255),
 			IM_COL32(132, 181, 230, 255)
 		};
@@ -50,7 +50,7 @@ namespace ImGuiWidgets {
 				ImGui::Dummy(ImVec2(rectWidth, rectHeight));
 				ImVec2 rectPos = ImGui::GetItemRectMin();
 				ImVec2 rectMax(rectPos.x + rectWidth, rectPos.y + rectHeight);
-				ImGui::GetWindowDrawList()->AddRectFilled(rectPos, rectMax, rectColors[i], rounding);
+				ImGui::GetWindowDrawList()->AddRectFilled(rectPos, rectMax, rectColors[i], rounding, ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersBottomLeft);
 
 				ImVec2 labelSize = ImGui::CalcTextSize(axisLabels[i]);
 				ImVec2 labelPos(rectPos.x + (rectWidth - labelSize.x) * 0.5f,
@@ -59,9 +59,12 @@ namespace ImGuiWidgets {
 
 				// 角丸四角形と DragFloat の間に隙間を作らない
 				ImGui::SameLine(0, 0);
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 				ImGui::SetNextItemWidth(dragWidth - 2);
 				value_changed |= ImGui::DragFloat("", &v[i], vSpeed, 0, 0, format);
 				ImGui::PopID();
+
+				ImGui::PopStyleVar(); // `FrameRounding` の変更を元に戻す
 
 				// 各セットの後に `SameLine()` を適用して 1 行に並ぶようにする
 				if (i < 2) {
