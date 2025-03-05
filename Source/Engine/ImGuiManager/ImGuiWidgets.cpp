@@ -31,14 +31,14 @@ namespace ImGuiWidgets {
 
 		const char* axisLabels[3] = { "X", "Y", "Z" };
 		static const ImU32 rectColors[3] = {
-			IM_COL32(50,43, 43, 255),
-			IM_COL32(43,45, 39, 255),
+			IM_COL32(50, 43, 43, 255),
+			IM_COL32(43, 45, 39, 255),
 			IM_COL32(45, 48, 51, 255)
 		};
 		static const ImU32 textColors[3] = {
 			IM_COL32(226, 110, 105, 255),
-			IM_COL32(168,204, 96, 255),
-			IM_COL32(132,181, 230, 255)
+			IM_COL32(168, 204, 96, 255),
+			IM_COL32(132, 181, 230, 255)
 		};
 
 		ImGui::PushID(name.c_str());
