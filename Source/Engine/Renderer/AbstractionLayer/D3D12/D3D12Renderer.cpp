@@ -7,9 +7,8 @@
 
 #include "Lib/Utils/StrUtils.h"
 
-#include "Renderer/D3D12.h"
-
 #include "SubSystem/Console/Console.h"
+#include <format>
 
 D3D12Renderer::D3D12Renderer() : d3d12Device_(nullptr) {}
 

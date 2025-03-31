@@ -145,31 +145,32 @@ void GameScene::Update(const float deltaTime) {
 
 	ImGui::End();
 
-	for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
-		if (triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) < 16.0f) {
-			Triangle tri = triangle;
-			for (int i = 0; i < 3; ++i) {
-				tri.SetVertex(
-					i,
-					Math::Lerp(
-						tri.GetVertex(i),
-						triangle.GetCenter() + triangle.GetNormal(),
-						Math::CubicBezier(std::clamp(
-							triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) - 14.0f,
-							0.0f,
-							1.0f
-						),
-							controlPoints[0],
-							controlPoints[1],
-							controlPoints[2],
-							controlPoints[3]
-						)
-					)
-				);
-			}
-			Debug::DrawTriangle(tri, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
-		}
-	}
+	//for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
+	//	Debug::DrawTriangle(triangle, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
+	//	if (triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) < 16.0f) {
+	//		Triangle tri = triangle;
+	//		for (int i = 0; i < 3; ++i) {
+	//			tri.SetVertex(
+	//				i,
+	//				Math::Lerp(
+	//					tri.GetVertex(i),
+	//					triangle.GetCenter() + triangle.GetNormal(),
+	//					Math::CubicBezier(std::clamp(
+	//						triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) - 14.0f,
+	//						0.0f,
+	//						1.0f
+	//					),
+	//						controlPoints[0],
+	//						controlPoints[1],
+	//						controlPoints[2],
+	//						controlPoints[3]
+	//					)
+	//				)
+	//			);
+	//		}
+	//		Debug::DrawTriangle(tri, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
+	//	}
+	//}
 
 	entTestMesh_->Update(deltaTime);
 	entPlayer_->Update(EngineTimer::GetScaledDeltaTime());
@@ -247,7 +248,7 @@ void GameScene::Update(const float deltaTime) {
 }
 
 void GameScene::Render() {
-	//entTestMesh_->Render(renderer_->GetCommandList());
+	entTestMesh_->Render(renderer_->GetCommandList());
 }
 
 void GameScene::Shutdown() {}

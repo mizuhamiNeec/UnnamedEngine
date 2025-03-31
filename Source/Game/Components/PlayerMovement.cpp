@@ -149,6 +149,15 @@ void PlayerMovement::DrawInspectorImGui() {
 #endif
 }
 
+Vec3 ProjectOnPlane(const Vec3& vector, const Vec3& normal) {
+	return vector - normal * vector.Dot(normal);
+}
+
+Vec3 GetMoveDirection(const Vec3& forward, const Vec3& groundNormal) {
+	Vec3 projectedForward = ProjectOnPlane(forward, groundNormal);
+	return projectedForward.Normalized();
+}
+
 void PlayerMovement::Move() {
 	if (!isGrounded_) {
 		ApplyHalfGravity();
@@ -200,8 +209,8 @@ void PlayerMovement::Move() {
 		}
 		Accelerate(wishdir_, wishspeed, ConVarManager::GetConVar("sv_accelerate")->GetValueAsFloat());
 
-		// 地面にいたらベロシティを地面の法線方向に投影
-		velocity_ = velocity_ - (normal_ * velocity_.Dot(normal_));
+		//// 地面にいたらベロシティを地面の法線方向に投影
+		//velocity_ = velocity_ - (normal_ * velocity_.Dot(normal_));
 	} else {
 		wishdir_ = wishvel;
 		float wishspeed = wishdir_.Length() * speed_;
