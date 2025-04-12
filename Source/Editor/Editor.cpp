@@ -1,16 +1,14 @@
 #include "Editor.h"
 
+#include <Engine.h>
+#include <Camera/CameraManager.h>
 #include <Debug/Debug.h>
-
+#include <ImGuiManager/Icons.h>
+#include <Input/InputSystem.h>
 #include <Lib/Timer/EngineTimer.h>
-
-#include "Camera/CameraManager.h"
-#include "ImGuiManager/Icons.h"
-#include "Input/InputSystem.h"
-#include "SubSystem/Console/ConVarManager.h"
-#include "Lib/Utils/StrUtils.h"
-
-#include "Window/WindowManager.h"
+#include <Lib/Utils/StrUtils.h>
+#include <SubSystem/Console/ConVarManager.h>
+#include <Window/WindowManager.h>
 
 #ifdef _DEBUG
 #include <imgui_internal.h>
@@ -48,179 +46,179 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		currentScene->Update(EngineTimer::GetDeltaTime());
 	}
 
-	//#ifdef _DEBUG
-	//	// カメラの操作
-	//	static float moveSpd = 4.0f;
-	//
-	//	static bool firstReset = true; // 初回リセットフラグ
-	//	static bool cursorHidden = false;
-	//
-	//	static bool bOpenPopup = false; // ポップアップ表示フラグ
-	//	static float popupTimer = 0.0f;
-	//
-	//	if (InputSystem::IsPressed("attack2")) {
-	//		if (!cursorHidden) {
-	//			ShowCursor(FALSE); // カーソルを非表示にする
-	//			cursorHidden = true;
-	//		}
-	//
-	//		Vec2 delta = InputSystem::GetMouseDelta();
-	//
-	//		if (!firstReset) {
-	//			// 回転
-	//			float sensitivity = ConVarManager::GetConVar("sensitivity")->GetValueAsFloat();
-	//			float m_pitch = 0.022f;
-	//			float m_yaw = 0.022f;
-	//			float min = -89.0f;
-	//			float max = 89.0f;
-	//
-	//			static Vec3 rot_ = cameraEntity_->GetTransform()->GetLocalRot().ToEulerAngles();
-	//
-	//			rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
-	//			rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
-	//
-	//			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad, max * Math::deg2Rad);
-	//
-	//			cameraEntity_->GetTransform()->SetWorldRot(Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
-	//
-	//			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
-	//
-	//			if (InputSystem::IsPressed("forward")) {
-	//				moveInput.z += 1.0f;
-	//			}
-	//
-	//			if (InputSystem::IsPressed("back")) {
-	//				moveInput.z -= 1.0f;
-	//			}
-	//
-	//			if (InputSystem::IsPressed("moveright")) {
-	//				moveInput.x += 1.0f;
-	//			}
-	//
-	//			if (InputSystem::IsPressed("moveleft")) {
-	//				moveInput.x -= 1.0f;
-	//			}
-	//
-	//			if (InputSystem::IsPressed("moveup")) {
-	//				moveInput.y += 1.0f;
-	//			}
-	//
-	//			if (InputSystem::IsPressed("movedown")) {
-	//				moveInput.y -= 1.0f;
-	//			}
-	//
-	//			moveInput.Normalize();
-	//
-	//			Quaternion camRot = cameraEntity_->GetTransform()->GetWorldRot();
-	//			Vec3 cameraForward = camRot * Vec3::forward;
-	//			Vec3 cameraRight = camRot * Vec3::right;
-	//			Vec3 cameraUp = camRot * Vec3::up;
-	//
-	//			if (InputSystem::IsTriggered("invprev")) {
-	//				moveSpd *= 2.0f;
-	//				moveSpd = RoundToNearestPowerOfTwo(moveSpd);
-	//			}
-	//
-	//			if (InputSystem::IsTriggered("invnext")) {
-	//				moveSpd *= 0.5f;
-	//				moveSpd = RoundToNearestPowerOfTwo(moveSpd);
-	//			}
-	//
-	//			static float oldMoveSpd = 0.0f;
-	//			if (moveSpd != oldMoveSpd) {
-	//				bOpenPopup = true;
-	//				popupTimer = 0.0f;
-	//			}
-	//
-	//			moveSpd = std::clamp(moveSpd, 0.125f, 65535.0f);
-	//
-	//			oldMoveSpd = moveSpd;
-	//
-	//			cameraEntity_->GetTransform()->SetWorldPos(
-	//				cameraEntity_->GetTransform()->GetWorldPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) *
-	//				moveSpd * EngineTimer::GetScaledDeltaTime()
-	//			);
-	//		}
-	//		// カーソルをウィンドウの中央にリセット
-	//		POINT centerCursorPos = {
-	//			static_cast<LONG>(WindowManager::GetMainWindow()->GetClientWidth() / 2), static_cast<LONG>(WindowManager::GetMainWindow()->GetClientHeight() / 2)
-	//		};
-	//		ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
-	//		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
-	//
-	//		firstReset = false; // 初回リセット完了
-	//	} else {
-	//		if (cursorHidden) {
-	//			ShowCursor(TRUE); // カーソルを表示する
-	//			cursorHidden = false;
-	//		}
-	//		firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
-	//	}
-	//
-	//	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
-	//	if (bOpenPopup) {
-	//		// ビューポートのサイズと位置を取得
-	//		ImGuiViewport* viewport = ImGui::GetMainViewport();
-	//		ImVec2 viewportPos = viewport->Pos;
-	//		ImVec2 viewportSize = viewport->Size;
-	//		auto windowSize = ImVec2(256.0f, 32.0f);
-	//
-	//		// ウィンドウの中央下部位置を計算
-	//		ImVec2 windowPos(
-	//			viewportPos.x + (viewportSize.x) * 0.5f,
-	//			viewportPos.y + (viewportSize.y) * 0.75f
-	//		);
-	//
-	//		// ウィンドウの位置を調整
-	//		windowPos.x -= windowSize.x * 0.5f;
-	//		windowPos.y -= windowSize.y * 0.5f;
-	//
-	//		// ウィンドウの位置を設定
-	//		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-	//		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
-	//
-	//		// ウィンドウを角丸に
-	//		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 16.0f);
-	//		// タイトルバーを非表示
-	//
-	//		ImGui::Begin(
-	//			"##move speed",
-	//			nullptr,
-	//			ImGuiWindowFlags_NoTitleBar |
-	//			ImGuiWindowFlags_NoResize |
-	//			ImGuiWindowFlags_NoMove |
-	//			ImGuiWindowFlags_NoSavedSettings |
-	//			ImGuiWindowFlags_NoBringToFrontOnFocus |
-	//			ImGuiWindowFlags_NoFocusOnAppearing |
-	//			ImGuiWindowFlags_NoScrollbar
-	//		);
-	//
-	//		ImGui::SetCursorPos(
-	//			ImVec2(
-	//				(windowSize.x - ImGui::CalcTextSize((StrUtils::ConvertToUtf8(0xe9e4) + std::format(" {:.2f}", moveSpd)).c_str()).x) * 0.5f,
-	//				(windowSize.y - ImGui::GetFontSize()) * 0.5f
-	//			)
-	//		);
-	//		ImGui::Text((StrUtils::ConvertToUtf8(0xe9e4) + " %.2f").c_str(), moveSpd);
-	//
-	//		// 一定時間経過後にポップアップをフェードアウトして閉じる
-	//		popupTimer += EngineTimer::GetDeltaTime(); // ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
-	//		if (popupTimer >= 3.0f) {
-	//			ImGui::CloseCurrentPopup();
-	//			bOpenPopup = false;
-	//			popupTimer = 0.0f;
-	//		}
-	//
-	//		ImGui::End();
-	//		ImGui::PopStyleVar();
-	//	}
-	//
-	//	cameraEntity_->Update(deltaTime);
-	//
-	//#endif
+#ifdef _DEBUG
+	// カメラの操作
+	static float moveSpd = 4.0f;
+
+	static bool firstReset = true; // 初回リセットフラグ
+	static bool cursorHidden = false;
+
+	static bool bOpenPopup = false; // ポップアップ表示フラグ
+	static float popupTimer = 0.0f;
+
+	if (InputSystem::IsPressed("attack2")) {
+		if (!cursorHidden) {
+			ShowCursor(FALSE); // カーソルを非表示にする
+			cursorHidden = true;
+		}
+
+		Vec2 delta = InputSystem::GetMouseDelta();
+
+		if (!firstReset) {
+			// 回転
+			float sensitivity = ConVarManager::GetConVar("sensitivity")->GetValueAsFloat();
+			float m_pitch = 0.022f;
+			float m_yaw = 0.022f;
+			float min = -89.0f;
+			float max = 89.0f;
+
+			static Vec3 rot_ = cameraEntity_->GetTransform()->GetLocalRot().ToEulerAngles();
+
+			rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
+			rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
+
+			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad, max * Math::deg2Rad);
+
+			cameraEntity_->GetTransform()->SetWorldRot(Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
+
+			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
+
+			if (InputSystem::IsPressed("forward")) {
+				moveInput.z += 1.0f;
+			}
+
+			if (InputSystem::IsPressed("back")) {
+				moveInput.z -= 1.0f;
+			}
+
+			if (InputSystem::IsPressed("moveright")) {
+				moveInput.x += 1.0f;
+			}
+
+			if (InputSystem::IsPressed("moveleft")) {
+				moveInput.x -= 1.0f;
+			}
+
+			if (InputSystem::IsPressed("moveup")) {
+				moveInput.y += 1.0f;
+			}
+
+			if (InputSystem::IsPressed("movedown")) {
+				moveInput.y -= 1.0f;
+			}
+
+			moveInput.Normalize();
+
+			Quaternion camRot = cameraEntity_->GetTransform()->GetWorldRot();
+			Vec3 cameraForward = camRot * Vec3::forward;
+			Vec3 cameraRight = camRot * Vec3::right;
+			Vec3 cameraUp = camRot * Vec3::up;
+
+			if (InputSystem::IsTriggered("invprev")) {
+				moveSpd *= 2.0f;
+				moveSpd = RoundToNearestPowerOfTwo(moveSpd);
+			}
+
+			if (InputSystem::IsTriggered("invnext")) {
+				moveSpd *= 0.5f;
+				moveSpd = RoundToNearestPowerOfTwo(moveSpd);
+			}
+
+			static float oldMoveSpd = 0.0f;
+			if (moveSpd != oldMoveSpd) {
+				bOpenPopup = true;
+				popupTimer = 0.0f;
+			}
+
+			moveSpd = std::clamp(moveSpd, 0.125f, 65535.0f);
+
+			oldMoveSpd = moveSpd;
+
+			cameraEntity_->GetTransform()->SetWorldPos(
+				cameraEntity_->GetTransform()->GetWorldPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) *
+				moveSpd * EngineTimer::GetScaledDeltaTime()
+			);
+		}
+		// カーソルをウィンドウの中央にリセット
+		POINT centerCursorPos = {
+			static_cast<LONG>(WindowManager::GetMainWindow()->GetClientWidth() / 2), static_cast<LONG>(WindowManager::GetMainWindow()->GetClientHeight() / 2)
+		};
+		ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
+		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
+
+		firstReset = false; // 初回リセット完了
+	} else {
+		if (cursorHidden) {
+			ShowCursor(TRUE); // カーソルを表示する
+			cursorHidden = false;
+		}
+		firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
+	}
+
+	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
+	if (bOpenPopup) {
+		// ビューポートのサイズと位置を取得
+		ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImVec2 viewportPos = viewport->Pos;
+		ImVec2 viewportSize = viewport->Size;
+		auto windowSize = ImVec2(256.0f, 32.0f);
+
+		// ウィンドウの中央下部位置を計算
+		ImVec2 windowPos(
+			viewportPos.x + (viewportSize.x) * 0.5f,
+			viewportPos.y + (viewportSize.y) * 0.75f
+		);
+
+		// ウィンドウの位置を調整
+		windowPos.x -= windowSize.x * 0.5f;
+		windowPos.y -= windowSize.y * 0.5f;
+
+		// ウィンドウの位置を設定
+		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+
+		// ウィンドウを角丸に
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 16.0f);
+		// タイトルバーを非表示
+
+		ImGui::Begin(
+			"##move speed",
+			nullptr,
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoBringToFrontOnFocus |
+			ImGuiWindowFlags_NoFocusOnAppearing |
+			ImGuiWindowFlags_NoScrollbar
+		);
+
+		ImGui::SetCursorPos(
+			ImVec2(
+				(windowSize.x - ImGui::CalcTextSize((StrUtils::ConvertToUtf8(0xe9e4) + std::format(" {:.2f}", moveSpd)).c_str()).x) * 0.5f,
+				(windowSize.y - ImGui::GetFontSize()) * 0.5f
+			)
+		);
+		ImGui::Text((StrUtils::ConvertToUtf8(0xe9e4) + " %.2f").c_str(), moveSpd);
+
+		// 一定時間経過後にポップアップをフェードアウトして閉じる
+		popupTimer += EngineTimer::GetDeltaTime(); // ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
+		if (popupTimer >= 3.0f) {
+			ImGui::CloseCurrentPopup();
+			bOpenPopup = false;
+			popupTimer = 0.0f;
+		}
+
+		ImGui::End();
+		ImGui::PopStyleVar();
+	}
+
+	cameraEntity_->Update(deltaTime);
+
+#endif
 
 #ifdef _DEBUG
-	ShowDockspace();
+	ShowDockSpace();
 
 	ImGui::ShowDemoWindow();
 
@@ -511,10 +509,11 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 void Editor::Render() const {
 	if (auto currentScene = sceneManager_.GetCurrentScene()) {
 		currentScene->Render();
+		cameraEntity_->Render(Engine::GetRenderer()->GetCommandList());
 	}
 }
 
-void Editor::ShowDockspace() {
+void Editor::ShowDockSpace() {
 	static bool* p_open;
 
 	// READ THIS !!!
@@ -534,7 +533,7 @@ void Editor::ShowDockspace() {
 
 	static bool opt_fullscreen = true;
 	static bool opt_padding = false;
-	static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+	static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 
 	// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
 	// because it would be confusing to have two docking targets within each others.
@@ -579,18 +578,18 @@ void Editor::ShowDockspace() {
 	}
 
 	if (ImGui::BeginMenuBar()) {
-		if (ImGui::BeginMenu("File")) {
-			ImGui::EndMenu();
-		}
-		if (ImGui::BeginMenu("Edit")) {
-			if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
-			if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
-			ImGui::Separator();
-			if (ImGui::MenuItem("Cut", "CTRL+X")) {}
-			if (ImGui::MenuItem("Copy", "CTRL+C")) {}
-			if (ImGui::MenuItem("Paste", "CTRL+V")) {}
-			ImGui::EndMenu();
-		}
+		// if (ImGui::BeginMenu("File")) {
+		// 	ImGui::EndMenu();
+		// }
+		// if (ImGui::BeginMenu("Edit")) {
+		// 	if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+		// 	if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+		// 	ImGui::Separator();
+		// 	if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+		// 	if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+		// 	if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+		// 	ImGui::EndMenu();
+		// }
 
 		if (ImGui::BeginMenu("Options")) {
 			// Disabling fullscreen would allow the window to be moved to the front of other windows,

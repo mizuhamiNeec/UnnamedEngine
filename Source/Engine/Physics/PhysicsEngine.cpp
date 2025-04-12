@@ -477,14 +477,19 @@ void PhysicsEngine::UpdateBVH() {
 		}
 	}
 
+	staticBVH_.DrawBvh(Vec4::magenta);
+	// dynamicBVH_.DrawBvh(Vec4::cyan);
+
+
 	// 追加: 現在参照中のBVHノードのみを描画
 	for (const auto& [collider, nodeId] : colliderNodeIds_) {
 		AABB nodeAABB = { Vec3::zero,Vec3::zero };
-		if (collider->IsDynamic()) {
-			nodeAABB = dynamicBVH_.GetNodeAABB(nodeId); // ※ GetNodeAABB() の実装が必要です
+		nodeAABB = staticMeshes_[collider].localBVH.GetNodeAABB(nodeId);
+		/*if (collider->IsDynamic()) {
+			nodeAABB = dynamicBVH_.GetNodeAABB(nodeId);
 		} else {
-			nodeAABB = staticBVH_.GetNodeAABB(nodeId);    // ※ GetNodeAABB() の実装が必要です
-		}
+			nodeAABB = staticBVH_.GetNodeAABB(nodeId);
+		}*/
 		Debug::DrawBox(nodeAABB.GetCenter(), Quaternion::identity, nodeAABB.GetSize(), Vec4::yellow);
 	}
 }

@@ -246,8 +246,8 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 	}
 
 	const int kMaxBounces = 16;		  // 最大反射回数
-	const float kEpsilon = 0.001f;	  // 衝突判定の許容値
-	const float kPushOut = 0.005f;	  // 押し出し量
+	const float kEpsilon = 0.0025f;	  // 衝突判定の許容値
+	const float kPushOut = 0.01f;	  // 押し出し量
 	const float stepMaxHeight = 0.3f; // 床とみなす最大段差(必要に応じて調整)
 
 	Vec3 remainingDisp = desiredDisplacement;

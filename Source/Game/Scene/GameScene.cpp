@@ -84,7 +84,7 @@ void GameScene::Init() {
 
 	// プレイヤー
 	entPlayer_ = std::make_unique<Entity>("player");
-	entPlayer_->GetTransform()->SetLocalPos(Vec3::up * 1.0f); // 1m上に配置
+	entPlayer_->GetTransform()->SetLocalPos(Vec3::up * 4.0f); // 1m上に配置
 	PlayerMovement* rawPlayerMovement = entPlayer_->AddComponent<PlayerMovement>();
 	playerMovement_ = std::shared_ptr<PlayerMovement>(
 		rawPlayerMovement, [](PlayerMovement*) {}
@@ -130,7 +130,7 @@ void GameScene::Init() {
 	physicsEngine_->RegisterEntity(entTestMesh_.get(), true);
 
 	// 物理エンジンにプレイヤーエンティティを登録
-	physicsEngine_->RegisterEntity(entPlayer_.get(), false);
+	physicsEngine_->RegisterEntity(entPlayer_.get());
 }
 
 void GameScene::Update(const float deltaTime) {
@@ -249,6 +249,7 @@ void GameScene::Update(const float deltaTime) {
 
 void GameScene::Render() {
 	entTestMesh_->Render(renderer_->GetCommandList());
+
 }
 
 void GameScene::Shutdown() {}

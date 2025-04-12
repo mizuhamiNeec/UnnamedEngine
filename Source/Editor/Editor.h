@@ -15,7 +15,7 @@ public:
 	void Render() const;
 
 private:
-	void ShowDockspace();
+	void ShowDockSpace();
 
 	static void DrawGrid(
 		float gridSize, float range, const Vec4& color, const Vec4& majorColor,
