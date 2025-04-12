@@ -61,28 +61,28 @@ void Engine::Init() {
 		return;
 	}
 
-	auto secondWindow_ = std::make_unique<EditorWindow>();
+	// auto secondWindow_ = std::make_unique<EditorWindow>();
 
-	WindowInfo editorWindowInfo = {
-		.title = "EditorWindow",
-		.width = 400,
-		.height = 300,
-		.style = WS_OVERLAPPEDWINDOW,
-		.exStyle = 0,
-		.hInstance = GetModuleHandle(nullptr),
-		.className = "editorWindowClassName"
-	};
+	// WindowInfo editorWindowInfo = {
+	// 	.title = "EditorWindow",
+	// 	.width = 400,
+	// 	.height = 300,
+	// 	.style = WS_OVERLAPPEDWINDOW,
+	// 	.exStyle = 0,
+	// 	.hInstance = GetModuleHandle(nullptr),
+	// 	.className = "editorWindowClassName"
+	// };
 
-	if (secondWindow_->Create(editorWindowInfo)) {
-		wm_->AddWindow(std::move(secondWindow_));
-	} else {
-		Console::Print(
-			"Failed to create second window.\n",
-			kConTextColorError,
-			Channel::Engine
-		);
-		return;
-	}
+	// if (secondWindow_->Create(editorWindowInfo)) {
+	// 	wm_->AddWindow(std::move(secondWindow_));
+	// } else {
+	// 	Console::Print(
+	// 		"Failed to create second window.\n",
+	// 		kConTextColorError,
+	// 		Channel::Engine
+	// 	);
+	// 	return;
+	// }
 
 	renderer_ = std::make_unique<D3D12>(wm_->GetMainWindow());
 	renderer_->Init();
@@ -100,7 +100,7 @@ void Engine::Init() {
 	} else {
 		rendererInitInfo_.api = API::DX12;
 	}
-	rendererInitInfo_.windowHandle = wm_->GetWindows()[1]->GetWindowHandle();
+	//rendererInitInfo_.windowHandle = wm_->GetWindows()[1]->GetWindowHandle();
 #ifdef _DEBUG
 	rendererInitInfo_.enableDebugLayer = true;
 #else
@@ -262,7 +262,6 @@ void Engine::Shutdown() const {
 
 
 #ifdef _DEBUG
-	// ImGuiManagerのシャットダウンは最後に行う
 	if (imGuiManager_) {
 		imGuiManager_->Shutdown();
 	}

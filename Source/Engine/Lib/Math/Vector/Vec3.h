@@ -4,6 +4,7 @@
 #include <Lib/Math/Vector/Vec2.h>
 
 struct Quaternion;
+struct Vec4;
 
 struct Vec3 final {
 	float x, y, z;

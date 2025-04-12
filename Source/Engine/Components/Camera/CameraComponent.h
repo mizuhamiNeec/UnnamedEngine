@@ -11,6 +11,8 @@ public:
 
 	void OnAttach(Entity& owner) override;
 	void Update(float deltaTime) override;
+	void Render(ID3D12GraphicsCommandList* commandList) override;
+
 	void DrawInspectorImGui() override;
 
 	float& GetFovVertical();

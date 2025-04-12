@@ -80,62 +80,6 @@ namespace ImGuiWidgets {
 		ImGui::Text("%s", name.c_str());
 
 		return value_changed;
-		//return value_changed;
-
-		//// 編集中かどうか
-		//bool isEditing = false;
-
-		//// XYZの3つ分
-		//constexpr int components = 3;
-
-		//// 幅を取得
-		//const float width = ImGui::GetCurrentContext()->Style.ItemInnerSpacing.x;
-
-		//constexpr ImVec4 xBg = { 0.72f, 0.11f, 0.11f, 0.75f };
-		//constexpr ImVec4 xBgHovered = { 0.83f, 0.18f, 0.18f, 0.75f };
-		//constexpr ImVec4 xBgActive = { 0.96f, 0.26f, 0.21f, 0.75f };
-
-		//constexpr ImVec4 yBg = { 0.11f, 0.37f, 0.13f, 0.75f };
-		//constexpr ImVec4 yBgHovered = { 0.22f, 0.56f, 0.24f, 0.75f };
-		//constexpr ImVec4 yBgActive = { 0.3f, 0.69f, 0.31f, 0.75f };
-
-		//constexpr ImVec4 zBg = { 0.05f, 0.28f, 0.63f, 0.75f };
-		//constexpr ImVec4 zBgHovered = { 0.1f, 0.46f, 0.82f, 0.75f };
-		//constexpr ImVec4 zBgActive = { 0.13f, 0.59f, 0.95f, 0.75f };
-
-		//// 幅を決定
-		//ImGui::PushMultiItemsWidths(components, ImGui::CalcItemWidth());
-
-		///* --- 座標 --- */
-		//// 色を送る
-		//ImGui::PushID("X");
-		//PushStyleColorForDrag(xBg, xBgHovered, xBgActive);
-		//isEditing |= ImGui::DragFloat(("##X" + name).c_str(), &v.x, vSpeed, 0.0f, 0.0f, format);
-		//ImGui::PopStyleColor(components);
-		//ImGui::PopID();
-		//ImGui::SameLine(0, width);
-
-		//ImGui::PushID("Y");
-		//PushStyleColorForDrag(yBg, yBgHovered, yBgActive);
-		//isEditing |= ImGui::DragFloat(("##Y" + name).c_str(), &v.y, vSpeed, 0.0f, 0.0f, format);
-		//ImGui::PopStyleColor(components);
-		//ImGui::PopID();
-		//ImGui::SameLine(0, width);
-
-		//ImGui::PushID("Z");
-		//PushStyleColorForDrag(zBg, zBgHovered, zBgActive);
-		//isEditing |= ImGui::DragFloat(("##Z" + name).c_str(), &v.z, vSpeed, 0.0f, 0.0f, format);
-		//ImGui::PopStyleColor(components);
-		//ImGui::PopID();
-		//ImGui::SameLine(0, width);
-
-		//ImGui::Text(name.c_str());
-
-		//for (int i = 0; i < components; i++) {
-		//	ImGui::PopItemWidth();
-		//}
-
-		//return value_changed;
 	}
 
 	bool EditCubicBezier(const std::string& label, float& p0, float& p1, float& p2, float& p3) {
