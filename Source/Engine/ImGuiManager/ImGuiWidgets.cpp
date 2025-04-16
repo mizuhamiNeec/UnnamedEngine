@@ -17,17 +17,17 @@ namespace ImGuiWidgets {
 		if (window->SkipItems)
 			return false;
 
-		bool value_changed = false;
+		bool valueChanged = false;
 
 		// 全体のウィジェット幅は通常の DragFloat3 と同じ
 		float widgetWidth = ImGui::CalcItemWidth();
 		float setWidth = widgetWidth / 3.0f; // 各軸のセル幅
 
 		// 角丸四角形のサイズ
-		float rectWidth = 24.0f;
-		float rectHeight = 24.0f;
-		float rounding = 4.0f;
-		float dragWidth = setWidth - rectWidth; // 各 DragFloat の幅
+		const float rectWidth = 24.0f;
+		const float rectHeight = 24.0f;
+		const float rounding = 4.0f;
+		const float dragWidth = setWidth - rectWidth; // 各 DragFloat の幅
 
 		const char* axisLabels[3] = { "X", "Y", "Z" };
 		static const ImU32 rectColors[3] = {
@@ -50,18 +50,27 @@ namespace ImGuiWidgets {
 				ImGui::Dummy(ImVec2(rectWidth, rectHeight));
 				ImVec2 rectPos = ImGui::GetItemRectMin();
 				ImVec2 rectMax(rectPos.x + rectWidth, rectPos.y + rectHeight);
-				ImGui::GetWindowDrawList()->AddRectFilled(rectPos, rectMax, rectColors[i], rounding, ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersBottomLeft);
+				ImGui::GetWindowDrawList()->AddRectFilled(
+					rectPos,
+					rectMax,
+					rectColors[i],
+					rounding, 
+					ImDrawFlags_RoundCornersTopLeft |
+					ImDrawFlags_RoundCornersBottomLeft
+				);
 
 				ImVec2 labelSize = ImGui::CalcTextSize(axisLabels[i]);
-				ImVec2 labelPos(rectPos.x + (rectWidth - labelSize.x) * 0.5f,
-					rectPos.y + (rectHeight - labelSize.y) * 0.5f);
+				ImVec2 labelPos(
+					rectPos.x + (rectWidth - labelSize.x) * 0.5f,
+					rectPos.y + (rectHeight - labelSize.y) * 0.5f
+				);
 				ImGui::GetWindowDrawList()->AddText(labelPos, textColors[i], axisLabels[i]);
 
 				// 角丸四角形と DragFloat の間に隙間を作らない
 				ImGui::SameLine(0, 0);
 				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 				ImGui::SetNextItemWidth(dragWidth - 2);
-				value_changed |= ImGui::DragFloat("", &v[i], vSpeed, 0, 0, format);
+				valueChanged |= ImGui::DragFloat("", &v[i], vSpeed, 0, 0, format);
 				ImGui::PopID();
 
 				ImGui::PopStyleVar(); // `FrameRounding` の変更を元に戻す
@@ -79,7 +88,7 @@ namespace ImGuiWidgets {
 		ImGui::SameLine();
 		ImGui::Text("%s", name.c_str());
 
-		return value_changed;
+		return valueChanged;
 	}
 
 	bool EditCubicBezier(const std::string& label, float& p0, float& p1, float& p2, float& p3) {
