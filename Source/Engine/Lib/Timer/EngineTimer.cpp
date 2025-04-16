@@ -10,66 +10,68 @@ double EngineTimer::totalTime_ = 0;
 uint64_t EngineTimer::frameCount_ = 0;
 
 EngineTimer::EngineTimer() : startTime_(Clock::now()),
-lastFrameTime_(Clock::now()) {
-}
+lastFrameTime_(Clock::now()) {}
 
 void EngineTimer::StartFrame() {
-	const TimePoint currentTime = Clock::now();
-	const std::chrono::duration<double> elapsed = currentTime - lastFrameTime_;
-	deltaTime_ = elapsed.count();
-	totalTime_ += deltaTime_;
-	lastFrameTime_ = currentTime;
+	// フレーム開始時刻を記録
+	frameStartTime_ = Clock::now();
 
-#ifdef _DEBUG
-	ImGui::Begin((StrUtils::ConvertToUtf8(kIconTimer) + " EngineTimer").c_str());
-	ImGui::Text("%.2f FPS", 1.0 / deltaTime_);
-	ImGui::Text("%.2f ms", deltaTime_ * 1000.0);
-
-	const int totalMilliseconds = GetMillisecond(); // 0.01秒単位
-	const int days = GetDay();
-	const int hours = GetHour();
-	const int minutes = GetMinute();
-	const int secs = GetSecond();
-	const int centiseconds = totalMilliseconds % 100;
-
-	ImGui::Text(
-		"Uptime: %02d:%02d:%02d:%02d.%02d",
-		days,
-		hours,
-		minutes,
-		secs,
-		centiseconds
-	);
-	ImGui::End();
-#endif
+	//#ifdef _DEBUG
+	//	// 前フレームの経過時間（deltaTime_）を用いてデバッグ表示する場合、
+	//	// EndFrame()で更新したdeltaTime_を使うか、別途前フレームの時間を保存する必要があります。
+	//	ImGui::Begin((StrUtils::ConvertToUtf8(kIconTimer) + " EngineTimer").c_str());
+	//	ImGui::Text("%.2f FPS", 1.0 / deltaTime_);
+	//	ImGui::Text("%.2f ms", deltaTime_ * 1000.0);
+	//
+	//	const int totalMilliseconds = GetMillisecond(); // 0.01秒単位
+	//	const int days = GetDay();
+	//	const int hours = GetHour();
+	//	const int minutes = GetMinute();
+	//	const int secs = GetSecond();
+	//	const int centiseconds = totalMilliseconds % 100;
+	//
+	//	ImGui::Text(
+	//		"Uptime: %02d:%02d:%02d:%02d.%02d",
+	//		days,
+	//		hours,
+	//		minutes,
+	//		secs,
+	//		centiseconds
+	//	);
+	//	ImGui::End();
+	//#endif
 }
 
-void EngineTimer::EndFrame() const {
+void EngineTimer::EndFrame() {
 	const auto fpsMaxConVar = ConVarManager::GetConVar("cl_fpsmax");
 	const double fpsLimit = fpsMaxConVar->GetValueAsDouble();
 	if (fpsLimit > 0) {
 		const double frameLimitDuration = 1.0 / fpsLimit;
 
-		// 現在時刻を取得
-		const TimePoint currentTime = Clock::now();
-		const std::chrono::duration<double> elapsed = currentTime - lastFrameTime_;
+		// 現在時刻を取得し、フレーム処理にかかった時間を計算
+		TimePoint currentTime = Clock::now();
+		const double frameProcessingTime = std::chrono::duration<double>(currentTime - frameStartTime_).count();
 
 		// 次フレームまでの残り時間を計算
-		double remainingTime = frameLimitDuration - elapsed.count();
+		double remainingTime = frameLimitDuration - frameProcessingTime;
 		if (remainingTime > 0.0) {
 			// 残り時間の大部分をスリープ
-			const double sleepTime = remainingTime * 0.9; // 残り時間の90%をスリープ
+			const double sleepTime = remainingTime * 0.5;
 			if (sleepTime > 0.0) {
 				std::this_thread::sleep_for(std::chrono::duration<double>(sleepTime));
 			}
 
-			// スリープ後の補正（忙待ちで微調整）
-			TimePoint afterSleepTime = Clock::now();
-			while (std::chrono::duration<double>(afterSleepTime - lastFrameTime_).count() < frameLimitDuration) {
-				afterSleepTime = Clock::now();
+			// 忙待ちで正確なタイミングに補正
+			while (std::chrono::duration<double>(Clock::now() - frameStartTime_).count() < frameLimitDuration) {
+				// Busy wait
 			}
 		}
 	}
+
+	// フレーム終了時刻を記録し、次回のdeltaTime_を更新
+	TimePoint frameEndTime = Clock::now();
+	deltaTime_ = std::chrono::duration<double>(frameEndTime - frameStartTime_).count();
+	lastFrameTime_ = frameEndTime;
 
 	++frameCount_;
 }

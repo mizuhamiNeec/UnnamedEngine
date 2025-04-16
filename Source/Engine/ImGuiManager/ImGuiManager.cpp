@@ -3,14 +3,21 @@
 #include <imgui_impl_dx12.h>
 #include <imgui_impl_win32.h>
 #include <imgui_internal.h>
+
 #include <Entity/Base/Entity.h>
+
 #include <ResourceSystem/SRV/ShaderResourceViewManager.h>
 
+#include <Window/WindowManager.h>
+
+#include "ImGuiWidgets.h"
+
 #ifdef _DEBUG
-#include "../Lib/Utils/ClientProperties.h"
-#include "../Renderer/D3D12.h"
-#include "../Window/Window.h"
-#include "../Window/WindowsUtils.h"
+#include <Lib/Utils/ClientProperties.h>
+
+#include <Renderer/D3D12.h>
+
+#include <Window/WindowsUtils.h>
 
 ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManager* srvManager) : renderer_(renderer), srvManager_(srvManager) {
 	IMGUI_CHECKVERSION();
@@ -23,8 +30,8 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 
 	// 少し角丸に
 	ImGuiStyle* style = &ImGui::GetStyle();
-	style->WindowRounding = 4;
-	style->FrameRounding = 2;
+	style->WindowRounding = 8;
+	style->FrameRounding = 4;
 
 	ImFontConfig imFontConfig;
 	imFontConfig.OversampleH = 1;
@@ -44,7 +51,7 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 		R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese()
 	);
 
-	// 何故かベースラインがずれるので補正
+	// ??? 何故かベースラインがずれるので補正
 	imFontConfig.GlyphOffset = ImVec2(0.0f, 5.0f);
 
 	static constexpr ImWchar iconRanges[] = { 0xe003, 0xf8ff, 0 };
@@ -60,15 +67,15 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 		StyleColorsLight();
 	}
 
-	ImGui_ImplWin32_Init(Window::GetWindowHandle());
+	ImGui_ImplWin32_Init(WindowManager::GetMainWindow()->GetWindowHandle());
 
 	ImGui_ImplDX12_Init(
 		renderer_->GetDevice(),
 		kFrameBufferCount,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
-		srvManager_->GetDescriptorHeap().Get(),
-		srvManager_->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
-		srvManager_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart()
+		ShaderResourceViewManager::GetDescriptorHeap().Get(),
+		ShaderResourceViewManager::GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
+		ShaderResourceViewManager::GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart()
 	);
 }
 
@@ -87,7 +94,7 @@ void ImGuiManager::EndFrame() const {
 	ImGui::UpdatePlatformWindows();
 	ImGui::RenderPlatformWindowsDefault();
 
-	ID3D12DescriptorHeap* imGuiHeap = srvManager_->GetDescriptorHeap().Get();
+	ID3D12DescriptorHeap* imGuiHeap = ShaderResourceViewManager::GetDescriptorHeap().Get();
 	renderer_->GetCommandList()->SetDescriptorHeaps(1, &imGuiHeap);
 
 	// 実際のCommandListのImGuiの描画コマンドを積む
@@ -111,6 +118,8 @@ void ImGuiManager::StyleColorsDark() {
 	// テキストの色を少し暗めに
 	ImVec4* colors = style->Colors;
 	colors[ImGuiCol_Text] = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
+	colors[ImGuiCol_WindowBg] = ImVec4(0.22f, 0.22f, 0.24f, 1.0f);
+	colors[ImGuiCol_FrameBg] = ImVec4(0.13f, 0.12f, 0.13f, 1.0f);
 }
 
 void ImGuiManager::StyleColorsLight() {
@@ -131,7 +140,7 @@ bool ImGuiManager::EditTransform(Transform& transform, const float& vSpeed) {
 
 		// 回転を取っておく
 		Vec3 rotate = transform.rotate * Math::rad2Deg;
-		if (DragVec3("Rotation", transform.rotate, vSpeed, "%.3f")) {
+		if (ImGuiWidgets::DragVec3("Rotation", transform.rotate, vSpeed, "%.3f")) {
 			isEditing |= true;
 			transform.rotate = rotate * Math::deg2Rad;
 		}
@@ -150,14 +159,14 @@ bool ImGuiManager::EditTransform(TransformComponent& transform, const float& vSp
 
 	if (ImGui::CollapsingHeader(("Transform##" + transform.GetOwner()->GetName()).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
 		// Position 編集
-		if (DragVec3("Position", localPos, vSpeed, "%.3f")) {
+		if (ImGuiWidgets::DragVec3("Position", localPos, vSpeed, "%.3f")) {
 			transform.SetLocalPos(localPos);
 			isEditing = true;
 		}
 
 		// Rotation 編集
 		Vec3 eulerDegrees = localRot.ToEulerDegrees();
-		if (DragVec3("Rotation", eulerDegrees, vSpeed * 10.0f, "%.3f")) {
+		if (ImGuiWidgets::DragVec3("Rotation", eulerDegrees, vSpeed * 10.0f, "%.3f")) {
 			// 編集された Euler 角を Quaternion に変換
 			localRot = Quaternion::EulerDegrees(eulerDegrees);
 			transform.SetLocalRot(localRot);
@@ -165,7 +174,7 @@ bool ImGuiManager::EditTransform(TransformComponent& transform, const float& vSp
 		}
 
 		// Scale 編集
-		if (DragVec3("Scale", localScale, vSpeed, "%.3f")) {
+		if (ImGuiWidgets::DragVec3("Scale", localScale, vSpeed, "%.3f")) {
 			transform.SetLocalScale(localScale);
 			isEditing = true;
 		}

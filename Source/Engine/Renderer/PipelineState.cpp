@@ -5,6 +5,7 @@
 #include <dxgiformat.h>
 #include <winnt.h>
 #include <dxcapi.h>
+#include <format>
 #include <string>
 #include "../SubSystem/Console/Console.h"
 #include "../Lib/Utils/StrUtils.h"

@@ -12,11 +12,6 @@
 class TransformComponent;
 class ShaderResourceViewManager;
 
-struct ColorTransition {
-	Vec4 targetColor;
-	bool isTransitioning;
-};
-
 class ImGuiManager {
 public:
 	ImGuiManager(const D3D12* renderer, const ShaderResourceViewManager* srvManager);

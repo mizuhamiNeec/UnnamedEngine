@@ -21,7 +21,7 @@ ConstantBuffer<Material> gMaterial : register(b1);
 ConstantBuffer<DirectionalLight> gDirectionalLight : register(b2);
 ConstantBuffer<Camera> gCamera : register(b3);
 Texture2D baseColorTexture : register(t0);
-Texture2D envMap : register(t1); // 🌟 IBL用のキューブマップ
+//Texture2D envMap : register(t1); // 🌟 IBL用のキューブマップ
 //Texture2D brdfLUT : register(t2); // 🌟 BRDF LUT（スクリーンスペース用）
 SamplerState samplerState : register(s0);
 
@@ -80,13 +80,13 @@ PixelShaderOutput PSMain(VertexShaderOutput input) {
     // **IBLによる間接光の追加**
     // ----------------------------------------------------------------------------
 	float2 uvDiffuse = EquirectangularUV(N);
-	float3 irradiance = envMap.Sample(samplerState, uvDiffuse).rgb; // ☀ 拡散IBL
+	float3 irradiance = float3(0.0f, 0.0f, 0.0f) /*envMap.Sample(samplerState, uvDiffuse).rgb*/; // ☀ 拡散IBL
 	float2 uvSpecular = EquirectangularUV(R);
-	float3 prefiltered = envMap.Sample(samplerState, uvSpecular).rgb; // ✨ 鏡面IBL
+	float3 prefiltered = float3(0.0f, 0.0f, 0.0f) /*envMap.Sample(samplerState, uvSpecular).rgb*/; // ✨ 鏡面IBL
 	//float2 brdf = brdfLUT.Sample(samplerState, float2(dot(N, V), roughness)).rg;
 
 	float3 diffuseIBL = irradiance * baseColor.rgb * (1.0 - metallic);
-	float3 specularIBL = prefiltered * (F0 /* * brdf.x + brdf.y*/);
+	float3 specularIBL = /*prefiltered * */(F0 /* * brdf.x + brdf.y*/);
 
     // ----------------------------------------------------------------------------
     // Directional Light（方向光）
@@ -115,7 +115,7 @@ PixelShaderOutput PSMain(VertexShaderOutput input) {
     // ----------------------------------------------------------------------------
     // 出力
     // ----------------------------------------------------------------------------
-	output.color.rgb = diffuseIBL + specularIBL + directLight + emissive;
+	output.color.rgb = /*diffuseIBL + specularIBL+*/directLight + emissive;
 	output.color.a = baseColor.a; // アルファは元の値を維持
 
 	return output;

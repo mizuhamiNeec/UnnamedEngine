@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include "Scene/Base/Scene.h"
+#include "Scene/Base/BaseScene.h"
 
 #include "SceneManager/SceneManager.h"
 
@@ -15,6 +15,8 @@ public:
 	void Render() const;
 
 private:
+	void ShowDockSpace();
+
 	static void DrawGrid(
 		float gridSize, float range, const Vec4& color, const Vec4& majorColor,
 		const Vec4& axisColor, const Vec4& minorColor, const Vec3& cameraPosition, float drawRadius
@@ -25,7 +27,7 @@ private:
 private:
 	SceneManager& sceneManager_; // シーンマネージャ
 
-	std::shared_ptr<Scene> scene_; // 現在編集中のシーン
+	std::shared_ptr<BaseScene> scene_; // 現在編集中のシーン
 	Entity* selectedEntity_; // 選択中のエンティティ
 
 	// エディターのカメラ

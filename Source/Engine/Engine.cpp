@@ -5,65 +5,122 @@
 #endif
 
 #include <Camera/CameraManager.h>
-
 #include <Debug/Debug.h>
-
 #include <Input/InputSystem.h>
-
-#include <SubSystem/Console/ConCommand.h>
-#include <SubSystem/Console/ConVarManager.h>
-#include <SubSystem/Console/Console.h>
 #include <Lib/DebugHud/DebugHud.h>
 #include <Lib/Utils/ClientProperties.h>
-#include <Lib/Utils/StrUtils.h>
-
-#include <Model/ModelManager.h>
-
-#include <Object3D/Object3DCommon.h>
-
-#include <Particle/ParticleManager.h>
-
 #include <Renderer/D3D12.h>
-
+#include <Renderer/AbstractionLayer/D3D12/D3D12Renderer.h>
+#include <Renderer/AbstractionLayer/Vulkan/VulkanRenderer.h>
 #include <Scene/GameScene.h>
-
-#include <Sprite/SpriteCommon.h>
-
-#include <Window/Window.h>
+#include <SubSystem/Console/ConCommand.h>
+#include <SubSystem/Console/Console.h>
+#include <SubSystem/Console/ConVarManager.h>
+#include <Window/EditorWindow.h>
+#include <Window/MainWindow.h>
 #include <Window/WindowsUtils.h>
-
-#include "Components/MeshRenderer/StaticMeshRenderer.h"
 
 Engine::Engine() = default;
 
 void Engine::Run() {
 	Init();
 	while (!bWishShutdown_) {
-		if (Window::ProcessMessage()) {
-			PostQuitMessage(0);
+		time_->StartFrame();
+		if (wm_->ProcessMessage()) {
+			PostQuitMessage(ERROR_SUCCESS);
 			break;
 		}
 		Update();
+		time_->EndFrame();
 	}
 	Shutdown();
 }
 
 void Engine::Init() {
-	// ウィンドウの作成
-	window_ = std::make_unique<Window>(
-		StrUtils::ToString(kWindowTitle),
-		kClientWidth, kClientHeight
-	);
-	window_->Create(nullptr);
+	// メインビューポート用ウィンドウの作成
+	auto gameWindow = std::make_unique<MainWindow>();
 
-	// レンダラ
-	renderer_ = std::make_unique<D3D12>();
+	WindowInfo gameWindowInfo = {
+		.title = "GameWindow",
+		.width = kClientWidth,
+		.height = kClientHeight,
+		.style = WS_OVERLAPPEDWINDOW,
+		.exStyle = 0,
+		.hInstance = GetModuleHandle(nullptr),
+		.className = "gameWindowClassName"
+	};
+
+	if (gameWindow->Create(gameWindowInfo)) {
+		wm_->AddWindow(std::move(gameWindow));
+	} else {
+		Console::Print(
+			"Failed to create main window.\n",
+			kConTextColorError,
+			Channel::Engine
+		);
+		return;
+	}
+
+	// auto secondWindow_ = std::make_unique<EditorWindow>();
+
+	// WindowInfo editorWindowInfo = {
+	// 	.title = "EditorWindow",
+	// 	.width = 400,
+	// 	.height = 300,
+	// 	.style = WS_OVERLAPPEDWINDOW,
+	// 	.exStyle = 0,
+	// 	.hInstance = GetModuleHandle(nullptr),
+	// 	.className = "editorWindowClassName"
+	// };
+
+	// if (secondWindow_->Create(editorWindowInfo)) {
+	// 	wm_->AddWindow(std::move(secondWindow_));
+	// } else {
+	// 	Console::Print(
+	// 		"Failed to create second window.\n",
+	// 		kConTextColorError,
+	// 		Channel::Engine
+	// 	);
+	// 	return;
+	// }
+
+	renderer_ = std::make_unique<D3D12>(wm_->GetMainWindow());
 	renderer_->Init();
 
 	// 入力システム
 	InputSystem::Init();
 
+	// コンソールコマンドと変数の登録
 	RegisterConsoleCommandsAndVariables();
+
+	// 抽象化レイヤーテスト
+	rendererInitInfo_ = {};
+	if (ConVarManager::GetConVar("r_vulkanenabled")->GetValueAsBool()) {
+		rendererInitInfo_.api = API::Vulkan;
+	} else {
+		rendererInitInfo_.api = API::DX12;
+	}
+	//rendererInitInfo_.windowHandle = wm_->GetWindows()[1]->GetWindowHandle();
+#ifdef _DEBUG
+	rendererInitInfo_.enableDebugLayer = true;
+#else
+	rendererInitInfo_.enableDebugLayer = false;
+#endif
+
+	if (rendererInitInfo_.api == API::DX12) {
+		testRenderer_ = std::make_unique<D3D12Renderer>();
+	} else if (rendererInitInfo_.api == API::Vulkan) {
+		testRenderer_ = std::make_unique<VulkanRenderer>();
+	}
+
+	if (!testRenderer_->Init(rendererInitInfo_)) {
+		Console::Print("Failed to initialize renderer.\n", kConTextColorError, Channel::RenderSystem);
+		assert(true && "Failed to initialize renderer.");
+		throw std::runtime_error("Failed to initialize renderer.");
+	}
+
+	// コマンドライン引数をコンソールに送信
+	Console::SubmitCommand(ConVarManager::GetConVar("launchargs")->GetValueAsString());
 
 	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
 
@@ -110,6 +167,10 @@ void Engine::Init() {
 
 	time_ = std::make_unique<EngineTimer>();
 
+	//-------------------------------------------------------------------------
+	// すべての初期化が完了
+	//-------------------------------------------------------------------------
+
 	Console::SubmitCommand("neofetch");
 
 	resourceManager_->GetTextureManager()->InitErrorTexture();
@@ -133,11 +194,7 @@ void Engine::Update() {
 #ifdef _DEBUG
 	ImGuiManager::NewFrame();
 	Console::Update();
-
-	ImGui::Text("Hello World!!");
 #endif
-
-	time_->StartFrame();
 
 	// 前のフレームとeditorModeが違う場合はエディターモードを切り替える
 	static bool bPrevEditorMode = bIsEditorMode_;
@@ -161,6 +218,8 @@ void Engine::Update() {
 #endif
 
 	InputSystem::Update();
+
+	//ConVarManager::GetConVar("w_title")->SetValueFromString(std::to_string(EngineTimer::GetFrameCount()));
 
 	//-------------------------------------------------------------------------
 	// --- PreRender↓ ---
@@ -190,23 +249,24 @@ void Engine::Update() {
 	renderer_->PostRender();
 	//-------------------------------------------------------------------------
 
-	time_->EndFrame();
+	//time_->EndFrame();
 }
 
 void Engine::Shutdown() const {
-
-	resourceManager_->Shutdown();
-
 	Debug::Shutdown();
+
 
 	renderer_->Shutdown();
 
+	testRenderer_->Shutdown();
+
+
 #ifdef _DEBUG
-	// ImGuiManagerのシャットダウンは最後に行う
 	if (imGuiManager_) {
 		imGuiManager_->Shutdown();
 	}
 #endif
+	resourceManager_->Shutdown();
 }
 
 void Engine::RegisterConsoleCommandsAndVariables() {
@@ -224,19 +284,25 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	);
 
 	// コンソール変数を登録
+	ConVarManager::RegisterConVar<bool>("r_vulkanenabled", false, "Enable Vulkan renderer", ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>(
 		"cl_showpos", 1, "Draw current position at top of screen (1 = meter, 2 = hammer)"
 	);
 	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");
 	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps, "Frame rate limiter");
 	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);
-	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName());
+	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName(), true);
 	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f, "Mouse sensitivity.");
 	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f, "Prescale the clock by this amount.");
+	// World
 	ConVarManager::RegisterConVar<float>("sv_gravity", 800.0f, "World gravity.");
 	ConVarManager::RegisterConVar<float>(
-		"sv_maxvelocity", 3500.0f, "Maximum speed any ballistically moving object is allowed to attain per axis."
+		"sv_maxvelocity",
+		3500.0f,
+		"Maximum speed any ballistically moving object is allowed to attain per axis."
 	);
+
+	// Player
 	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f, "Linear acceleration amount (old value is 5.6)");
 	ConVarManager::RegisterConVar<float>("sv_airaccelerate", 12.0f);
 	ConVarManager::RegisterConVar<float>("sv_maxspeed", 320.0f, "Maximum speed a player can move.");
@@ -247,19 +313,19 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	ConVarManager::RegisterConVar<int>("ent_axis", 0, "Show entity axis");
 
 	// デフォルトのバインド
-	Console::SubmitCommand("bind esc togglelockcursor");
-	Console::SubmitCommand("bind w +forward");
-	Console::SubmitCommand("bind s +back");
-	Console::SubmitCommand("bind a +moveleft");
-	Console::SubmitCommand("bind d +moveright");
-	Console::SubmitCommand("bind e +moveup");
-	Console::SubmitCommand("bind q +movedown");
-	Console::SubmitCommand("bind space +jump");
-	Console::SubmitCommand("bind mouse1 +attack1");
-	Console::SubmitCommand("bind mouse2 +attack2");
-	Console::SubmitCommand("bind mousewheelup +invprev");
-	Console::SubmitCommand("bind mousewheeldown +invnext");
-	Console::SubmitCommand("bind f1 toggleeditor");
+	Console::SubmitCommand("bind esc togglelockcursor", true);
+	Console::SubmitCommand("bind w +forward", true);
+	Console::SubmitCommand("bind s +back", true);
+	Console::SubmitCommand("bind a +moveleft", true);
+	Console::SubmitCommand("bind d +moveright", true);
+	Console::SubmitCommand("bind e +moveup", true);
+	Console::SubmitCommand("bind q +movedown", true);
+	Console::SubmitCommand("bind space +jump", true);
+	Console::SubmitCommand("bind mouse1 +attack1", true);
+	Console::SubmitCommand("bind mouse2 +attack2", true);
+	Console::SubmitCommand("bind mousewheelup +invprev", true);
+	Console::SubmitCommand("bind mousewheeldown +invnext", true);
+	Console::SubmitCommand("bind f1 toggleeditor", true);
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
@@ -275,8 +341,8 @@ void Engine::CheckEditorMode() {
 }
 
 bool Engine::bWishShutdown_ = false;
-std::unique_ptr<D3D12> Engine::renderer_ = nullptr;
-std::unique_ptr<ResourceManager> Engine::resourceManager_ = nullptr;
+std::unique_ptr<D3D12> Engine::renderer_;
+std::unique_ptr<ResourceManager> Engine::resourceManager_;
 
 #ifdef _DEBUG
 bool Engine::bIsEditorMode_ = true;

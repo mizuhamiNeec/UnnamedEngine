@@ -1,17 +1,12 @@
 #include "StaticMeshRenderer.h"
 
 #include <d3d12.h>
+#include <Engine.h>
 #include <imgui.h>
-
+#include <Camera/CameraManager.h>
+#include <Components/Camera/CameraComponent.h>
+#include <Renderer/ConstantBuffer.h>
 #include <ResourceSystem/Mesh/StaticMesh.h>
-
-#include "Engine.h"
-
-#include "Camera/CameraManager.h"
-
-#include "Components/Camera/CameraComponent.h"
-
-#include "Renderer/ConstantBuffer.h"
 
 // TODO: 後で消す Object3Dシェーダーとはおさらばじゃ!!
 struct MatParam {

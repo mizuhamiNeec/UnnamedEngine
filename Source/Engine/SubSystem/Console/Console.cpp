@@ -8,14 +8,24 @@
 
 #include <Input/InputSystem.h>
 
-#include <SubSystem/Console/ConCommand.h>
-#include <SubSystem/Console/ConVarManager.h>
 #include <Lib/Timer/EngineTimer.h>
 #include <Lib/Utils/StrUtils.h>
+#include <SubSystem/Console/ConCommand.h>
+#include <SubSystem/Console/ConVarManager.h>
 
 #include <Window/WindowsUtils.h>
 
+#include "ImGuiManager/ImGuiManager.h"
+
 #include "Lib/Utils/IniParser.h"
+
+#include <algorithm>
+
+#include "Lib/Utils/ClientProperties.h"
+#include "Window/MainWindow.h"
+
+#include "Window/WindowManager.h"
+
 
 using SetThreadDescriptionFunc = HRESULT(WINAPI*)(HANDLE, PCWSTR);
 
@@ -40,7 +50,7 @@ Console::Console() {
 			std::string header = std::format(
 				"//-----------------------------------------------------------------------------\n"
 				"// BuildDate: {}-{}\n"
-				"// Engine: {} Ver.{}\n"
+				"// Engine: {} Ver. {}\n"
 				"// LaunchDate: {:02}-{:02}-{:02} {:02}:{:02}:{:02}\n"
 				"//-----------------------------------------------------------------------------\n\n",
 				kEngineBuildDate, kEngineBuildTime,
@@ -63,7 +73,7 @@ Console::Console() {
 	ConCommand::RegisterCommand("echo", Echo, "Echo text to console.");
 	ConCommand::RegisterCommand("help", Help, "Find help about a convar/concommand.");
 	ConCommand::RegisterCommand("neofetch", NeoFetch, "Show system info.");
-	SubmitCommand("bind ` toggleconsole");
+	SubmitCommand("bind ` toggleconsole", true);
 }
 
 Console::~Console() {
@@ -177,8 +187,10 @@ void Console::Shutdown() {
 
 //-----------------------------------------------------------------------------
 // Purpose: コマンドを送信/実行します
+// - command (const std::string&) : コマンド
+// - bSilent (bool) : コマンドを実行した際にログに出力しないかどうか
 //-----------------------------------------------------------------------------
-void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
+void Console::SubmitCommand([[maybe_unused]] const std::string& command, const bool bSilent) {
 	std::string trimmedCommand = TrimSpaces(command);
 
 	// コマンドが空なのでなんもしない
@@ -190,8 +202,15 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command) {
 	// セミコロンでコマンドを区切る
 	std::vector<std::string> commands = SplitCommands(trimmedCommand);
 
-	// とりあえず履歴に追加
-	AddCommandHistory(trimmedCommand);
+	if (bSilent) {
+		AddCommandHistory(trimmedCommand);
+	} else {
+		Print(
+			"> " + trimmedCommand + "\n",
+			kConTextColorExecute,
+			Channel::Console
+		);
+	}
 
 	for (const auto& singleCommand : commands) {
 		std::string cmd = TrimSpaces(singleCommand);
@@ -504,7 +523,7 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 		prompt + "\n",
 		(!prompt.empty() ? std::string(prompt.size(), '-') : "") + "\n",
 		uptime + "\n",
-		"Resolution:  " + std::to_string(Window::GetClientWidth()) + "x" + std::to_string(Window::GetClientHeight()) +
+		"Resolution:  " + std::to_string(WindowManager::GetMainWindow()->GetClientWidth()) + "x" + std::to_string(WindowManager::GetMainWindow()->GetClientHeight()) +
 		"\n",
 		"CPU:  " + WindowsUtils::GetCPUName() + "\n",
 		"GPU:  " + WindowsUtils::GetGPUName() + "\n",
@@ -546,6 +565,14 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 //-----------------------------------------------------------------------------
 void Console::Echo(const std::vector<std::string>& args) {
 	Print(StrUtils::Join(args, " ") + "\n", kConFgColorDark, Channel::Console);
+}
+
+std::vector<std::string> Console::GetBuffer() {
+#ifdef _DEBUG
+	return messageBuffer_;
+#else
+	return {};
+#endif
 }
 
 #ifdef _DEBUG
@@ -672,38 +699,38 @@ void Console::SuggestPopup(
 int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	switch (data->EventFlag) {
 	case ImGuiInputTextFlags_CallbackCompletion:
-		{
-			// bShowSuggestPopup_ = !bShowSuggestPopup_;
-			if (bShowSuggestPopup_) {
-				UpdateSuggestions(data->Buf);
-			}
+	{
+		// bShowSuggestPopup_ = !bShowSuggestPopup_;
+		if (bShowSuggestPopup_) {
+			UpdateSuggestions(data->Buf);
 		}
-		break;
+	}
+	break;
 
 	case ImGuiInputTextFlags_CallbackHistory:
-		{
-			const int prev_history_index = historyIndex_;
-			if (data->EventKey == ImGuiKey_UpArrow) {
-				if (historyIndex_ > 0) {
-					historyIndex_--;
-				}
-			} else if (data->EventKey == ImGuiKey_DownArrow) {
-				if (historyIndex_ < static_cast<int>(history_.size()) - 1) {
-					historyIndex_++;
-				} else {
-					historyIndex_ = static_cast<int>(history_.size()); // 履歴が空の場合はサイズと一致させる
-				}
+	{
+		const int prev_history_index = historyIndex_;
+		if (data->EventKey == ImGuiKey_UpArrow) {
+			if (historyIndex_ > 0) {
+				historyIndex_--;
 			}
-			if (prev_history_index != historyIndex_) {
-				data->DeleteChars(0, data->BufTextLen);
-				if (historyIndex_ < static_cast<int>(history_.size())) {
-					data->InsertChars(0, history_[historyIndex_].c_str());
-				} else {
-					data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
-				}
+		} else if (data->EventKey == ImGuiKey_DownArrow) {
+			if (historyIndex_ < static_cast<int>(history_.size()) - 1) {
+				historyIndex_++;
+			} else {
+				historyIndex_ = static_cast<int>(history_.size()); // 履歴が空の場合はサイズと一致させる
 			}
 		}
-		break;
+		if (prev_history_index != historyIndex_) {
+			data->DeleteChars(0, data->BufTextLen);
+			if (historyIndex_ < static_cast<int>(history_.size())) {
+				data->InsertChars(0, history_[historyIndex_].c_str());
+			} else {
+				data->InsertChars(0, ""); // 履歴が空の場合は空白を挿入
+			}
+		}
+	}
+	break;
 
 	case ImGuiInputTextFlags_CallbackEdit: Print("Edit\n", kConsoleColorInt);
 		break;
@@ -1330,7 +1357,7 @@ void Console::ImportPage() {
 	WCHAR szFile[260] = {};
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = Window::GetWindowHandle();
+	ofn.hwndOwner = WindowManager::GetMainWindow()->GetWindowHandle();
 	ofn.lpstrFile = szFile;
 	ofn.nMaxFile = sizeof(szFile);
 	ofn.lpstrFilter = L"Files (*.ini)\0*.ini\0";
@@ -1506,8 +1533,7 @@ Vec4 Console::ParseColor(const std::string& color) {
 	return Vec4(components[0], components[1], components[2], components[3]);
 }
 
-void Console::ExportPage() {
-}
+void Console::ExportPage() {}
 
 void Console::ShowElementEditPopup() {
 #ifdef _DEBUG

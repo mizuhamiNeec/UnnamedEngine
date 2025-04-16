@@ -3,10 +3,15 @@
 #include <Lib/Math/MathLib.h>
 
 //-----------------------------------------------------------------------------
+// Purpose: アプリケーション
+//-----------------------------------------------------------------------------
+const std::string kAppName = "Unnamed Application";
+
+//-----------------------------------------------------------------------------
 // Purpose: エンジン
 //-----------------------------------------------------------------------------
 const std::string kEngineName = "Unnamed Engine";
-const std::string kEngineVersion = "0.0.2";
+const std::string kEngineVersion = "0.1.2";
 const std::string kEngineBuildDate = __DATE__;
 const std::string kEngineBuildTime = __TIME__;
 

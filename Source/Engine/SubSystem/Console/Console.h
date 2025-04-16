@@ -1,17 +1,16 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
+#include <imgui.h>
+#include <iosfwd>
 #include <mutex>
 #include <queue>
 #include <string>
 #include <thread>
 #include <vector>
 
-#include <ImGuiManager/ImGuiManager.h>
 #include <Lib/Math/Vector/Vec4.h>
-#include <cstdint>
-#include <imgui.h>
-#include <iosfwd>
 
 constexpr Vec4 kConBgColorDark = Vec4(0.2f, 0.2f, 0.2f, 0.5f); // ダークモードの背景色
 constexpr Vec4 kConFgColorDark = Vec4(0.71f, 0.71f, 0.72f, 1.0f); // ダークモードの前景色
@@ -34,12 +33,12 @@ constexpr Vec4 kConsoleColorFloat = Vec4(0.22f, 0.84f, 0.0f, 1.0f);
 constexpr Vec4 kConsoleColorString = Vec4(0.99f, 0.0f, 0.83f, 1.0f);
 constexpr Vec4 kConsoleColorVec3 = Vec4(1.0f, 0.79f, 0.14f, 1.0f);
 
-constexpr uint32_t kInputBufferSize = 4096; // コンソールが一度に送信できるバッファの数
-constexpr uint32_t kConsoleMaxLineCount = 2048; // コンソールに表示される最大行数
+constexpr uint32_t kInputBufferSize = 0x1000; // コンソールが一度に送信できるバッファの数
+constexpr uint32_t kConsoleMaxLineCount = 0x800; // コンソールに表示される最大行数
 
 constexpr uint32_t kConsoleSuggestLineCount = 8; // サジェストの最大候補数
-constexpr uint32_t kConsoleRepeatWarning = 256; // リピート回数がこの数値より多くなるとkConsoleWarningで指定した色になります
-constexpr uint32_t kConsoleRepeatError = 512; // リピート回数がこの数値より多くなるとkConsoleErrorで指定した色になります
+constexpr uint32_t kConsoleRepeatWarning = 256; // リピート回数がこの数値を超えるとkConTextColorWarningで指定した色になります
+constexpr uint32_t kConsoleRepeatError = 512; // リピート回数がこの数値を超えるとkConTextColorErrorで指定した色になります
 
 using CommandCallback = std::function<void(const std::vector<std::string>&)>;
 
@@ -97,7 +96,7 @@ public:
 
 	static void Update();
 	static void Shutdown();
-	static void SubmitCommand(const std::string& command);
+	static void SubmitCommand(const std::string& command, bool bSilent = false);
 
 	static void Print(
 		const std::string& message, const Vec4& color = kConFgColorDark, const Channel& channel = Channel::General
@@ -112,6 +111,8 @@ public:
 	static void Help(const std::vector<std::string>& args = {});
 	static void NeoFetch(const std::vector<std::string>& args = {});
 	static void Echo(const std::vector<std::string>& args = {});
+
+	static std::vector<std::string> GetBuffer();
 
 private:
 #ifdef _DEBUG

@@ -2,6 +2,8 @@
 
 #include <Components/ColliderComponent/Base/ColliderComponent.h>
 
+class TransformComponent;
+
 class BoxColliderComponent : public ColliderComponent {
 public:
 	BoxColliderComponent();

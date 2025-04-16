@@ -17,6 +17,10 @@
 
 #include "Components/ColliderComponent/BoxColliderComponent.h"
 #include "Components/ColliderComponent/Base/ColliderComponent.h"
+
+#include "ImGuiManager/ImGuiManager.h"
+#include "ImGuiManager/ImGuiWidgets.h"
+
 #include "Lib/DebugHud/DebugHud.h"
 
 #include "Physics/PhysicsEngine.h"
@@ -40,7 +44,7 @@ void PlayerMovement::ProcessInput() {
 	//-------------------------------------------------------------------------
 	// 移動入力
 	//-------------------------------------------------------------------------
-	moveInput_ = { 0.0f, 0.0f, 0.0f };
+	moveInput_ = { 0.0f,0.0f,0.0f };
 
 	if (InputSystem::IsPressed("forward")) {
 		moveInput_.z += 1.0f;
@@ -138,11 +142,20 @@ static float kEdgeAngleThreshold = 0.2f; // エッジ判定の閾値
 void PlayerMovement::DrawInspectorImGui() {
 #ifdef _DEBUG
 	if (ImGui::CollapsingHeader("PlayerMovement", ImGuiTreeNodeFlags_DefaultOpen)) {
-		ImGuiManager::DragVec3("Velocity", velocity_, 0.1f, "%.2f m/s");
-		ImGuiManager::DragVec3("test", test, 0.1f, "%.2f m/s");
+		ImGuiWidgets::DragVec3("Velocity", velocity_, 0.1f, "%.2f m/s");
+		ImGuiWidgets::DragVec3("test", test, 0.1f, "%.2f m/s");
 		ImGui::DragFloat("edge angle threshold", &kEdgeAngleThreshold, 0.01f, 0.0f, 1.0f);
 	}
 #endif
+}
+
+Vec3 ProjectOnPlane(const Vec3& vector, const Vec3& normal) {
+	return vector - normal * vector.Dot(normal);
+}
+
+Vec3 GetMoveDirection(const Vec3& forward, const Vec3& groundNormal) {
+	Vec3 projectedForward = ProjectOnPlane(forward, groundNormal);
+	return projectedForward.Normalized();
 }
 
 void PlayerMovement::Move() {
@@ -196,8 +209,8 @@ void PlayerMovement::Move() {
 		}
 		Accelerate(wishdir_, wishspeed, ConVarManager::GetConVar("sv_accelerate")->GetValueAsFloat());
 
-		// 地面にいたらベロシティを地面の法線方向に投影
-		velocity_ = velocity_ - (normal_ * velocity_.Dot(normal_));
+		//// 地面にいたらベロシティを地面の法線方向に投影
+		//velocity_ = velocity_ - (normal_ * velocity_.Dot(normal_));
 	} else {
 		wishdir_ = wishvel;
 		float wishspeed = wishdir_.Length() * speed_;
@@ -213,6 +226,8 @@ void PlayerMovement::Move() {
 	if (!isGrounded_) {
 		ApplyHalfGravity();
 	}
+
+	CheckVelocity();
 }
 
 void PlayerMovement::SetIsGrounded(bool bIsGrounded) {
@@ -230,9 +245,9 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		return;
 	}
 
-	const int kMaxBounces = 4;		  // 最大反射回数
-	const float kEpsilon = 0.001f;	  // 衝突判定の許容値
-	const float kPushOut = 0.005f;	  // 押し出し量
+	const int kMaxBounces = 16;		  // 最大反射回数
+	const float kEpsilon = 0.0025f;	  // 衝突判定の許容値
+	const float kPushOut = 0.01f;	  // 押し出し量
 	const float stepMaxHeight = 0.3f; // 床とみなす最大段差(必要に応じて調整)
 
 	Vec3 remainingDisp = desiredDisplacement;

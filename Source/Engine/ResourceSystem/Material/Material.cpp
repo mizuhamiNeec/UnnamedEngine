@@ -60,7 +60,7 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList) {
 
 	// ラスタライザ設定
 	desc.RasterizerState = {
-		.FillMode = D3D12_FILL_MODE_WIREFRAME,
+		.FillMode = D3D12_FILL_MODE_SOLID,
 		.CullMode = D3D12_CULL_MODE_BACK,
 		.DepthClipEnable = TRUE,
 	};

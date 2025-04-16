@@ -5,7 +5,7 @@
 #include "../SubSystem/Console/Console.h"
 
 IndexBuffer::IndexBuffer(
-	const ComPtr<ID3D12Device>& device, const size_t size,
+	const Microsoft::WRL::ComPtr<ID3D12Device>& device, const size_t size,
 	const void* pInitData
 ) : size_(size) {
 	device_ = device;

@@ -19,8 +19,7 @@
 // Purpose: AABBのコンストラクタ
 //-----------------------------------------------------------------------------
 AABB::AABB(const Vec3& min, const Vec3& max) : min(min),
-max(max) {
-}
+max(max) {}
 
 //-----------------------------------------------------------------------------
 // Purpose: AABBの中心を取得します
@@ -136,8 +135,7 @@ Triangle::Triangle(
 	const Vec3& v1,
 	const Vec3& v2) : v0(v0),
 	v1(v1),
-	v2(v2) {
-}
+	v2(v2) {}
 
 //-----------------------------------------------------------------------------
 // Purpose: 三角形の法線ベクトルを取得します
@@ -195,6 +193,20 @@ Vec3 Triangle::GetVertex(const int index) const {
 	}
 }
 
+void Triangle::SetVertex(const int index, const Vec3 newPos) {
+	switch (index) {
+	case 0:
+		v0 = newPos;
+		break;
+	case 1:
+		v1 = newPos;
+		break;
+	case 2:
+		v2 = newPos;
+		break;
+	}
+}
+
 void DynamicBVH::Clear() {
 	nodes_.clear();
 	rootNode_ = -1;
@@ -240,26 +252,27 @@ int DynamicBVH::InsertObject(const AABB& objectAABB, int objectIndex) {
 }
 
 void DynamicBVH::RemoveObject(const int nodeId) {
+	if (nodeId < 0 || nodeId >= nodes_.size()) {
+		return;
+	}
+
 	BVHNode& node = nodes_[nodeId];
 
-	// ルートノードの場合
+	// ルートノードの場合は、ノードをクリア
 	if (node.parent == -1) {
 		nodes_.clear();
 		rootNode_ = -1;
 		return;
 	}
 
-	// 親ノードと兄弟ノードを取得
 	int parentId = node.parent;
 	BVHNode& parent = nodes_[parentId];
 	int siblingId = (parent.leftChild == nodeId) ? parent.rightChild : parent.leftChild;
 	BVHNode& sibling = nodes_[siblingId];
-
-	// 親の親ノード（祖父ノード）を取得
 	int grandParentId = parent.parent;
 
+	// 兄弟の親ポインタを更新
 	if (grandParentId != -1) {
-		// 親の親が存在する場合、祖父ノードの子を兄弟ノードに置き換える
 		BVHNode& grandParent = nodes_[grandParentId];
 		if (grandParent.leftChild == parentId) {
 			grandParent.leftChild = siblingId;
@@ -268,17 +281,34 @@ void DynamicBVH::RemoveObject(const int nodeId) {
 		}
 		sibling.parent = grandParentId;
 	} else {
-		// 親の親がいない場合、兄弟ノードをルートに設定
+		// 親の親がいない場合、兄弟が新たなルートになる
 		rootNode_ = siblingId;
 		sibling.parent = -1;
 	}
 
-	// 削除したノードと親ノードを無効化
-	nodes_[nodeId] = nodes_.back();
-	nodes_.pop_back();
+	// まず、削除対象として「親」ノードと「node」自体の両方を削除する処理を行います
+	// 削除順序は、まず末尾要素と置換し、該当インデックスを更新、その後ポップする
 
-	nodes_[parentId] = nodes_.back();
-	nodes_.pop_back();
+	auto swapAndPop = [this](int index) {
+		int lastIdx = static_cast<int>(nodes_.size()) - 1;
+		if (index != lastIdx) {
+			nodes_[index] = nodes_[lastIdx];
+			// nodes_[index] に移動したノードの親や子の値を必要に応じてアップデートする処理を追加する
+			// 例: このノードが他のノードから参照されている場合、その参照も index に向ける必要があります。
+		}
+		nodes_.pop_back();
+		};
+
+	// ノードを削除する順序を工夫します。まず、より大きいインデックス（親と削除対象のうち大きいほう）から削除することで、
+	// 残ったインデックスが変更されないようにします。
+
+	if (parentId > nodeId) {
+		swapAndPop(parentId);
+		swapAndPop(nodeId);
+	} else {
+		swapAndPop(nodeId);
+		swapAndPop(parentId);
+	}
 }
 
 void DynamicBVH::UpdateObject(const int nodeId, const AABB& newAABB) {
@@ -448,10 +478,10 @@ void DynamicBVH::DrawObjects(const Vec4& color) const {
 
 AABB DynamicBVH::GetNodeAABB(int nodeId) const {
 	std::shared_lock lock(bvhMutex_);
-    if (nodeId < 0 || nodeId >= static_cast<int>(nodes_.size()) || !nodes_[nodeId].isValid) {
-        return AABB(Vec3::zero, Vec3::zero);
-    }
-    return nodes_[nodeId].boundingBox;
+	if (nodeId < 0 || nodeId >= static_cast<int>(nodes_.size()) || !nodes_[nodeId].isValid) {
+		return AABB(Vec3::zero, Vec3::zero);
+	}
+	return nodes_[nodeId].boundingBox;
 }
 
 void DynamicBVH::OptimizeMemoryLayout() {
