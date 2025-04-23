@@ -216,6 +216,10 @@ bool Vec3::operator!=(const Vec3& rhs) const {
 	return x != rhs.x || y != rhs.y || z != rhs.z;
 }
 
+bool Vec3::operator==(const Vec3& vec3) const {
+	return x == vec3.x && y == vec3.y && z == vec3.z;
+}
+
 Vec3 Vec3::Min(const Vec3 lhs, const Vec3 rhs) {
 	return {
 		std::min(lhs.x, rhs.x),
