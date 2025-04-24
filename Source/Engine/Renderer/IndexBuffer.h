@@ -14,6 +14,7 @@ public:
 	std::vector<uint32_t>& GetIndices() const;
 
 private:
+
 	Microsoft::WRL::ComPtr<ID3D12Device> device_;
 	Microsoft::WRL::ComPtr<ID3D12Resource> buffer_;
 	D3D12_INDEX_BUFFER_VIEW view_;

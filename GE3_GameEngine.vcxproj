@@ -181,6 +181,9 @@
     <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowManager.cpp" />
+    <ClCompile Include="Source\Engine\SrvManager.cpp" />
+    <ClCompile Include="Source\Engine\TextureManager\TexManager.cpp" />
+    <ClCompile Include="Source\Engine\Particle\WindEffect.cpp" />
     <None Include="Resources\Shaders\Default.hlsli" />
     <None Include="Resources\Shaders\Line.PS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -317,6 +320,9 @@
     <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.h" />
     <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.h" />
     <ClInclude Include="Source\Engine\Window\WindowManager.h" />
+    <ClInclude Include="Source\Engine\SrvManager.h" />
+    <ClInclude Include="Source\Engine\TextureManager\TexManager.h" />
+    <ClInclude Include="Source\Engine\Particle\WindEffect.h" />
     <None Include="Resources\Shaders\Object3d.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>

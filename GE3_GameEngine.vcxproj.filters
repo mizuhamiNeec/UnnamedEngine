@@ -598,6 +598,9 @@
     <ClInclude Include="Source\Engine\Window\WindowManager.h" />
     <ClInclude Include="Source\Engine\Window\EditorWindow.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiWidgets.h" />
+    <ClInclude Include="Source\Engine\SrvManager.h" />
+    <ClInclude Include="Source\Engine\TextureManager\TexManager.h" />
+    <ClInclude Include="Source\Engine\Particle\WindEffect.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -894,6 +897,9 @@
     <ClCompile Include="Source\Engine\Window\WindowManager.cpp" />
     <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiWidgets.cpp" />
+    <ClCompile Include="Source\Engine\SrvManager.cpp" />
+    <ClCompile Include="Source\Engine\TextureManager\TexManager.cpp" />
+    <ClCompile Include="Source\Engine\Particle\WindEffect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

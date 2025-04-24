@@ -31,9 +31,11 @@ void GameScene::Init() {
 	std::shared_ptr<TextureAsset> texture;
 
 	for (int i = 0; i < 10; ++i) {
-		auto textureFuture = jobSystem.SubmitJob(0, [&assetManager, i]() -> std::shared_ptr<TextureAsset> {
-			return assetManager.LoadAsset<TextureAsset>("texture" + std::to_string(i));
-		});
+		auto textureFuture = jobSystem.SubmitJob(
+			0, [&assetManager, i]() -> std::shared_ptr<TextureAsset> {
+				return assetManager.LoadAsset<TextureAsset>("texture" + std::to_string(i));
+			}
+		);
 
 		// なんかする
 		texture = textureFuture.get();
@@ -57,6 +59,14 @@ void GameScene::Init() {
 #pragma endregion
 
 #pragma region パーティクル類
+	// パーティクルグループの作成
+	Engine::GetParticleManager()->CreateParticleGroup("wind", "./Resources/Textures/circle.png");
+
+	mParticleEmitter = std::make_unique<ParticleEmitter>();
+	mParticleEmitter->Init(Engine::GetParticleManager(), "wind");
+
+	mParticleObject = std::make_unique<ParticleObject>();
+	mParticleObject->Init(Engine::GetParticleManager(), "./Resources/Textures/circle.png");
 
 #pragma endregion
 
@@ -72,7 +82,8 @@ void GameScene::Init() {
 	CameraComponent* rawCameraPtr = camera_->AddComponent<CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
 	const auto camera = std::shared_ptr<CameraComponent>(
-		rawCameraPtr, [](CameraComponent*) {}
+		rawCameraPtr, [](CameraComponent*) {
+		}
 	);
 
 	// カメラを CameraManager に追加
@@ -85,21 +96,28 @@ void GameScene::Init() {
 	entPlayer_->GetTransform()->SetLocalPos(Vec3::up * 4.0f); // 1m上に配置
 	PlayerMovement* rawPlayerMovement = entPlayer_->AddComponent<PlayerMovement>();
 	playerMovement_ = std::shared_ptr<PlayerMovement>(
-		rawPlayerMovement, [](PlayerMovement*) {}
+		rawPlayerMovement, [](PlayerMovement*) {
+		}
 	);
 	BoxColliderComponent* rawPlayerCollider = entPlayer_->AddComponent<BoxColliderComponent>();
 	playerCollider_ = std::shared_ptr<BoxColliderComponent>(
-		rawPlayerCollider, [](BoxColliderComponent*) {}
+		rawPlayerCollider, [](BoxColliderComponent*) {
+		}
 	);
 	playerCollider_->SetSize(Math::HtoM(Vec3(33.0f, 73.0f, 33.0f)));
 	playerCollider_->SetOffset(Math::HtoM(Vec3::up * 73.0f * 0.5f));
 	AddEntity(entPlayer_.get());
 
+	// 風
+	windEffect_ = std::make_unique<WindEffect>();
+	windEffect_->Init(Engine::GetParticleManager(), playerMovement_.get());
+
 	// テスト用メッシュ
 	entTestMesh_ = std::make_unique<Entity>("testMesh");
 	StaticMeshRenderer* smRenderer = entTestMesh_->AddComponent<StaticMeshRenderer>();
 	smrTestMesh_ = std::shared_ptr<StaticMeshRenderer>(
-		smRenderer, [](StaticMeshRenderer*) {}
+		smRenderer, [](StaticMeshRenderer*) {
+		}
 	);
 	smRenderer->SetStaticMesh(resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/reflectionTest.obj"));
 	entTestMesh_->AddComponent<MeshColliderComponent>();
@@ -181,7 +199,7 @@ void GameScene::Update(const float deltaTime) {
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() != "0") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 		constexpr ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
@@ -247,10 +265,25 @@ void GameScene::Update(const float deltaTime) {
 	}
 #pragma endregion
 #endif
+
+	Engine::GetParticleManager()->Update(deltaTime);
+	mParticleEmitter->Update(deltaTime);
+	//	mParticleObject->Update(deltaTime);
+
+	if (InputSystem::IsTriggered("attack1")) {
+		mParticleEmitter->Emit();
+	}
+
+	windEffect_->Update(EngineTimer::ScaledDelta());
 }
 
 void GameScene::Render() {
 	entTestMesh_->Render(renderer_->GetCommandList());
+
+	Engine::GetParticleManager()->Render();
+	mParticleObject->Draw();
+	windEffect_->Draw();
 }
 
-void GameScene::Shutdown() {}
+void GameScene::Shutdown() {
+}

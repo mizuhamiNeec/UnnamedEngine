@@ -4,6 +4,9 @@ struct ParticleForGPU {
 	float4x4 WVP;
 	float4x4 World;
 	float4 color;
+	float2 uvOffset;
+	float2 uvScale;
+	float uvFrame;
 };
 
 StructuredBuffer<ParticleForGPU> gParticle : register(t0);
