@@ -23,7 +23,6 @@
 #include "ImGuiManager/ImGuiWidgets.h"
 
 void GameScene::Init() {
-
 	size_t workerCount = (std::thread::hardware_concurrency() > 1) ? std::thread::hardware_concurrency() - 1 : 1;
 	JobSystem jobSystem("AssetLoad", workerCount);
 
@@ -34,7 +33,7 @@ void GameScene::Init() {
 	for (int i = 0; i < 10; ++i) {
 		auto textureFuture = jobSystem.SubmitJob(0, [&assetManager, i]() -> std::shared_ptr<TextureAsset> {
 			return assetManager.LoadAsset<TextureAsset>("texture" + std::to_string(i));
-			});
+		});
 
 		// なんかする
 		texture = textureFuture.get();
@@ -73,8 +72,7 @@ void GameScene::Init() {
 	CameraComponent* rawCameraPtr = camera_->AddComponent<CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
 	const auto camera = std::shared_ptr<CameraComponent>(
-		rawCameraPtr, [](CameraComponent*) {
-		}
+		rawCameraPtr, [](CameraComponent*) {}
 	);
 
 	// カメラを CameraManager に追加
@@ -109,7 +107,7 @@ void GameScene::Init() {
 
 	// カメラの親エンティティ
 	cameraRoot_ = std::make_unique<Entity>("cameraRoot");
-	cameraRoot_->SetParent(entPlayer_.get());
+	//cameraRoot_->SetParent(entPlayer_.get());
 	cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
 	cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
 	AddEntity(cameraRoot_.get());
@@ -172,14 +170,18 @@ void GameScene::Update(const float deltaTime) {
 	//	}
 	//}
 
-	entTestMesh_->Update(deltaTime);
+	cameraRoot_->GetTransform()->SetWorldPos(playerMovement_->GetHeadPos());
+	cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
+	camera_->Update(EngineTimer::GetScaledDeltaTime());
+
 	entPlayer_->Update(EngineTimer::GetScaledDeltaTime());
+	entTestMesh_->Update(deltaTime);
 	physicsEngine_->Update(deltaTime);
 
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() != "0") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f,0.0f });
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 		constexpr ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
@@ -249,7 +251,6 @@ void GameScene::Update(const float deltaTime) {
 
 void GameScene::Render() {
 	entTestMesh_->Render(renderer_->GetCommandList());
-
 }
 
 void GameScene::Shutdown() {}

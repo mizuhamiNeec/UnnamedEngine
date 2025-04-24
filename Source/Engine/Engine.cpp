@@ -305,7 +305,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	// Player
 	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f, "Linear acceleration amount (old value is 5.6)");
 	ConVarManager::RegisterConVar<float>("sv_airaccelerate", 12.0f);
-	ConVarManager::RegisterConVar<float>("sv_maxspeed", 320.0f, "Maximum speed a player can move.");
+	ConVarManager::RegisterConVar<float>("sv_maxspeed", 800.0f, "Maximum speed a player can move.");
 	ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f, "Minimum stopping speed when on ground.");
 	ConVarManager::RegisterConVar<float>("sv_friction", 4.0f, "World friction.");
 
@@ -320,6 +320,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind d +moveright", true);
 	Console::SubmitCommand("bind e +moveup", true);
 	Console::SubmitCommand("bind q +movedown", true);
+	Console::SubmitCommand("bind c +crouch", true);
 	Console::SubmitCommand("bind space +jump", true);
 	Console::SubmitCommand("bind mouse1 +attack1", true);
 	Console::SubmitCommand("bind mouse2 +attack2", true);
