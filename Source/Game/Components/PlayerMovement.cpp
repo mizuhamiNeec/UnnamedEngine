@@ -34,8 +34,8 @@ void PlayerMovement::OnAttach(Entity& owner) {
 	// トランスフォームコンポーネントを取得
 	transform_ = owner_->GetTransform();
 
-	speed_ = 300.0f;
-	jumpVel_ = 300.0f;
+	mSpeed = 350.0f;
+	mJumpVel = 350.0f;
 
 	// Console::SubmitCommand("sv_gravity 0");
 }
@@ -44,7 +44,7 @@ void PlayerMovement::ProcessInput() {
 	//-------------------------------------------------------------------------
 	// 移動入力
 	//-------------------------------------------------------------------------
-	moveInput_ = { 0.0f,0.0f,0.0f };
+	moveInput_ = {0.0f, 0.0f, 0.0f};
 
 	if (InputSystem::IsPressed("forward")) {
 		moveInput_.z += 1.0f;
@@ -62,6 +62,14 @@ void PlayerMovement::ProcessInput() {
 		moveInput_.x -= 1.0f;
 	}
 
+	if (InputSystem::IsPressed("crouch")) {
+		bWishCrouch = true;
+	}
+
+	if (InputSystem::IsReleased("crouch")) {
+		bWishCrouch = false;
+	}
+
 	moveInput_.Normalize();
 }
 
@@ -72,67 +80,58 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	// 入力処理
 	ProcessInput();
 
+	if (bWishCrouch && !bIsCrouching) {
+		bIsCrouching = true;
+		mCurrentHeightHU = kDefaultHeightHU * 0.5f;
+	} else if (!bWishCrouch && bIsCrouching) {
+		bIsCrouching = false;
+		mCurrentHeightHU = kDefaultHeightHU;
+	}
+
+	Vec3 oldWorldPos = transform_->GetWorldPos();
+	CollideAndSlide(velocity_ * deltaTime_);
+
 	Move();
 
-	// position_.y = std::max<float>(position_.y, 0.0f);
-	transform_->SetLocalPos(position_);
 	// デバッグ描画
 	Debug::DrawArrow(transform_->GetWorldPos(), velocity_, Vec4::yellow);
 
-	float width = Math::HtoM(33.0f);
-	float height = Math::HtoM(73.0f);
+	const float width = Math::HtoM(mCurrentWidthHU);
+	const float height = Math::HtoM(mCurrentHeightHU);
 	Debug::DrawBox(
 		transform_->GetWorldPos() + (Vec3::up * height * 0.5f),
 		Quaternion::Euler(Vec3::zero),
 		Vec3(width, height, width),
-		isGrounded_ ? Vec4::green : Vec4::blue);
+		bIsGrounded ? Vec4::green : Vec4::blue);
 	Debug::DrawRay(transform_->GetWorldPos(), wishdir_, Vec4::cyan);
 
-	//// カメラの前方ベクトルを取得し、XZ平面に投影して正規化
-	// auto camera = CameraManager::GetActiveCamera();
-	// Vec3 cameraForward = camera->GetViewMat().Inverse().GetForward();
+	// position_.y = std::max<float>(position_.y, 0.0f);
+	transform_->SetLocalPos(position_);
 
-	// auto* collider = owner_->GetComponent<ColliderComponent>();
+	// カメラの前方ベクトルを取得し、XZ平面に投影して正規化
+	auto camera = CameraManager::GetActiveCamera();
+	Vec3 cameraForward = camera->GetViewMat().Inverse().GetForward();
 
-	// if (!collider) {
-	//	Console::Print(
-	//		"PlayerMovement::CollideAndSlide() : ColliderComponent is not attached to the owner entity.",
-	//		Vec4::yellow,
-	//		Channel::Physics
-	//	);
-	// } else {
-	//	std::vector<HitResult> hits = collider->RayCast(camera->GetViewMat().Inverse().GetTranslate(), cameraForward, 100.0f);
+	auto* collider = owner_->GetComponent<ColliderComponent>();
 
-	//	Debug::DrawRay(camera->GetViewMat().Inverse().GetTranslate(), cameraForward * 100.0f, Vec4::red);
-	//	ImGui::Begin("Hit", nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoFocusOnAppearing);
-	//	ImDrawList* drawList = ImGui::GetWindowDrawList();
-	//	float outlineSize = 1.0f;
-	//	for (auto hit : hits) {
-	//		if (hit.isHit) {
-	//			Debug::DrawBox(hit.hitPos, Quaternion::identity, Vec3(0.1f, 0.1f, 0.1f), Vec4::green);
-	//			Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
+	if (!collider) {
+		Console::Print(
+			"PlayerMovement::CollideAndSlide() : ColliderComponent is not attached to the owner entity.",
+			Vec4::yellow,
+			Channel::Physics
+		);
+	} else {
+		const std::vector<HitResult> hits = collider->RayCast(camera->GetViewMat().Inverse().GetTranslate(), cameraForward, 100.0f);
 
-	//			static bool isOffscreen;
-	//			static float outAngle;
-
-	//			Vec2 scrPos = Math::WorldToScreen(hit.hitPos, false, 32.0f, isOffscreen, outAngle);
-
-	//			if (!isOffscreen) {
-	//				std::string text = "HitPos: " + hit.hitPos.ToString() + "\nHitNormal: " + hit.hitNormal.ToString();
-
-	//				ImGuiManager::TextOutlined(
-	//					drawList,
-	//					{ scrPos.x,scrPos.y },
-	//					text.c_str(),
-	//					ToImVec4(kConFgColorDark),
-	//					ToImVec4(kDebugHudOutlineColor),
-	//					outlineSize
-	//				);
-	//			}
-	//		}
-	//	}
-	//	ImGui::End();
-	//}
+		Debug::DrawRay(camera->GetViewMat().Inverse().GetTranslate() + camera->GetViewMat().Inverse().GetForward() * 2.0f, cameraForward * 98.0f, Vec4::red);
+		for (auto hit : hits) {
+			if (hit.isHit) {
+				Debug::DrawBox(hit.hitPos, Quaternion::identity, Vec3(0.1f, 0.1f, 0.1f), Vec4::green);
+				Debug::DrawAxis(hit.hitPos, Quaternion::identity);
+				Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
+			}
+		}
+	}
 }
 
 static Vec3 test;
@@ -159,24 +158,45 @@ Vec3 GetMoveDirection(const Vec3& forward, const Vec3& groundNormal) {
 }
 
 void PlayerMovement::Move() {
-	if (!isGrounded_) {
+	if (!bIsGrounded) {
 		ApplyHalfGravity();
 	}
 
-	isGrounded_ = CheckGrounded();
+	bIsGrounded = CheckGrounded();
 
 	// ジャンプ処理
-	if (isGrounded_ && InputSystem::IsPressed("+jump")) {
-		velocity_.y = Math::HtoM(jumpVel_);
-		isGrounded_ = false; // ジャンプ中は接地判定を解除
+	if (bIsGrounded && InputSystem::IsPressed("+jump")) {
+		velocity_.y = Math::HtoM(mJumpVel);
+		bIsGrounded = false; // ジャンプ中は接地判定を解除
 	}
 
 	// if (isGrounded_ && velocity_.y < 0.0f) {
 	//	velocity_.y = 0.0f; // 落下中のみリセット
 	// }
 
-	if (isGrounded_) {
-		ApplyFriction();
+	if (bIsGrounded && bWishCrouch && !bIsCrouching && slideState == NotSliding) {
+		float currentSpeed = Math::MtoH(velocity_).Length();
+		if (currentSpeed > slideMinSpeed) {
+			slideState = Sliding;
+			slideTimer = 0.0f;
+			// しゃがみフラグの制御
+			bIsCrouching = true;
+			mCurrentHeightHU = kDefaultHeightHU * 0.5f;
+			// 前方向に加速
+			Vec3 slideDir = velocity_.Normalized();
+			velocity_ += slideDir * slideBoost;
+		}
+	}
+
+	if (slideState == Sliding) {
+		slideTimer += deltaTime_;
+		ApplyFriction(slideFriction);
+
+		if (!bWishCrouch || !bIsGrounded || slideTimer > maxSlideTime || Math::MtoH(velocity_).Length() < slideMinSpeed * 0.5f) {
+			slideState = NotSliding;
+		}
+	} else {
+		ApplyFriction(ConVarManager::GetConVar("sv_friction")->GetValueAsFloat());
 	}
 
 	// CheckVelocity
@@ -200,20 +220,21 @@ void PlayerMovement::Move() {
 		wishvel.Normalize();
 	}
 
-	if (isGrounded_) {
+	if (bIsGrounded) {
 		wishdir_ = wishvel;
-		float wishspeed = wishdir_.Length() * speed_;
+		float wishspeed = wishdir_.Length() * mSpeed;
 		float maxspeed = ConVarManager::GetConVar("sv_maxspeed")->GetValueAsFloat();
 		if (wishspeed > maxspeed) {
 			wishvel *= maxspeed / wishspeed;
 		}
+
 		Accelerate(wishdir_, wishspeed, ConVarManager::GetConVar("sv_accelerate")->GetValueAsFloat());
 
 		//// 地面にいたらベロシティを地面の法線方向に投影
 		//velocity_ = velocity_ - (normal_ * velocity_.Dot(normal_));
 	} else {
 		wishdir_ = wishvel;
-		float wishspeed = wishdir_.Length() * speed_;
+		float wishspeed = wishdir_.Length() * mSpeed;
 		float maxspeed = ConVarManager::GetConVar("sv_maxspeed")->GetValueAsFloat();
 		if (wishspeed > maxspeed) {
 			wishvel *= maxspeed / wishspeed;
@@ -221,17 +242,15 @@ void PlayerMovement::Move() {
 		AirAccelerate(wishdir_, wishspeed, ConVarManager::GetConVar("sv_airaccelerate")->GetValueAsFloat());
 	}
 
-	CollideAndSlide(velocity_ * deltaTime_);
-
-	if (!isGrounded_) {
+	if (!bIsGrounded) {
 		ApplyHalfGravity();
 	}
 
 	CheckVelocity();
 }
 
-void PlayerMovement::SetIsGrounded(bool bIsGrounded) {
-	isGrounded_ = bIsGrounded;
+void PlayerMovement::SetIsGrounded(const bool cond) {
+	bIsGrounded = cond;
 }
 
 void PlayerMovement::SetVelocity(const Vec3 newVel) {
@@ -245,9 +264,9 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		return;
 	}
 
-	const int kMaxBounces = 16;		  // 最大反射回数
-	const float kEpsilon = 0.0025f;	  // 衝突判定の許容値
-	const float kPushOut = 0.01f;	  // 押し出し量
+	const int kMaxBounces = 16; // 最大反射回数
+	const float kEpsilon = 0.0025f; // 衝突判定の許容値
+	const float kPushOut = 0.01f; // 押し出し量
 	const float stepMaxHeight = 0.3f; // 床とみなす最大段差(必要に応じて調整)
 
 	Vec3 remainingDisp = desiredDisplacement;
@@ -259,7 +278,7 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 	for (int bounce = 0; bounce < kMaxBounces && remainingDisp.SqrLength() > kEpsilon * kEpsilon; ++bounce) {
 		float moveLength = remainingDisp.Length();
 		auto hitResults = collider->BoxCast(currentPos, remainingDisp.Normalized(), moveLength,
-			collider->GetBoundingBox().GetHalfSize());
+		                                    collider->GetBoundingBox().GetHalfSize());
 
 		if (hitResults.empty()) {
 			currentPos += remainingDisp;
@@ -307,8 +326,8 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 			// 接地判定：接触点の高さが現在位置から stepMaxHeight 以内の場合のみ床とみなす
 			if (hitNormal.y > 0.7f && hit.hitPos.y <= currentPos.y + stepMaxHeight) {
 				remainingDisp = slide;
-				normal_ = hitNormal;
-				isGrounded_ = true;
+				mGroundNormal = hitNormal;
+				bIsGrounded = true;
 			} else {
 				Vec3 reflection = remainingDisp - 2.0f * hitNormal * remainingDisp.Dot(hitNormal);
 				remainingDisp = slide * 0.8f + reflection * 0.2f;
