@@ -32,6 +32,9 @@ struct ParticleForGPU {
 	Mat4 wvp;
 	Mat4 world;
 	Vec4 color;
+	Vec2 uvOffset;
+	Vec2 uvScale;
+	float uvFrame;
 };
 
 struct MaterialData {

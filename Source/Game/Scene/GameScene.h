@@ -23,6 +23,9 @@
 #include "Components/ColliderComponent/BoxColliderComponent.h"
 #include "Components/ColliderComponent/MeshColliderComponent.h"
 
+#include "Particle/ParticleEmitter.h"
+#include "Particle/WindEffect.h"
+
 #include "Physics/PhysicsEngine.h"
 
 class EnemyMovement;
@@ -63,4 +66,9 @@ private:
 	std::vector<Triangle> worldMesh_;
 
 	std::unique_ptr<PhysicsEngine> physicsEngine_;
+
+	std::unique_ptr<ParticleEmitter> mParticleEmitter;
+	std::unique_ptr<ParticleObject> mParticleObject;
+
+	std::unique_ptr<WindEffect> windEffect_;
 };

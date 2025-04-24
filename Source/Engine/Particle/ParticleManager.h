@@ -11,13 +11,28 @@
 #include <Renderer/RootSignatureManager.h>
 #include <Renderer/VertexBuffer.h>
 
+#include "Renderer/IndexBuffer.h"
+
+class SrvManager;
 class CameraComponent;
 class Camera;
 class D3D12;
 
+enum class ParticleMeshType {
+	Quad,
+	Ring,
+};
+
+struct MeshData {
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+	std::unique_ptr<VertexBuffer<Vertex>> vertexBuffer;
+	std::unique_ptr<IndexBuffer> indexBuffer;
+};
+
 class ParticleManager {
 public:
-	//void Init(D3D12* d3d12, SrvManager* srvManager);
+	void Init(D3D12* d3d12, SrvManager* srvManager);
 	void Shutdown() const;
 
 	void CreateRootSignature();
@@ -26,16 +41,24 @@ public:
 	void Update(float deltaTime);
 	void Render();
 
+	static std::vector<Vertex> GenerateRingVertices(float innerRadius, float outerRadius, int segments);
+	static std::vector<uint32_t> GenerateRingIndices(int segments);
+
+	void RegisterMesh(ParticleMeshType meshType, std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+
+	MeshData& GetMeshData(ParticleMeshType type);
+
 	void Emit(const std::string& name, const Vec3& pos, const uint32_t& count);
 
 	D3D12* GetD3D12() const;
 
 	// Getter
 	CameraComponent* GetDefaultCamera() const;
-	// SrvManager* GetSrvManager() const;
-
-	const VertexBuffer<Vertex>* GetVertexBuffer() const;
-	const std::vector<Vertex>& GetVertices() const;
+	SrvManager* GetSrvManager() const;
+	const VertexBuffer<Vertex>* GetVertexBuffer();
+	const IndexBuffer* GetIndexBuffer();
+	const std::vector<Vertex>& GetVertices();
+	const std::vector<uint32_t>& GetIndices();
 
 	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath);
 
@@ -47,6 +70,7 @@ private:
 		std::unique_ptr<ConstantBuffer> instancingResource = nullptr; // インスタンシングリソース
 		uint32_t numInstance = 0; // インスタンス数
 		ParticleForGPU* instancingData = nullptr; // インスタンシングデータを書き込むためのポインタ
+		ParticleMeshType meshType = ParticleMeshType::Quad; // メッシュの種類
 	};
 
 	// ユーザがつけるグループ名をキーとして、グループを複数持てるようにする
@@ -56,10 +80,9 @@ private:
 	CameraComponent* defaultCamera_ = nullptr;
 	std::unique_ptr<RootSignatureManager> rootSignatureManager_ = nullptr;
 	PipelineState pipelineState_;
-	//SrvManager* srvManager_ = nullptr;
+	SrvManager* srvManager_ = nullptr;
 
 	uint32_t kNumMaxInstance = 512;
 
-	std::vector<Vertex> vertices_;
-	std::unique_ptr<VertexBuffer<Vertex>> vertexBuffer_;
+	std::unordered_map<ParticleMeshType, MeshData> meshData_;
 };

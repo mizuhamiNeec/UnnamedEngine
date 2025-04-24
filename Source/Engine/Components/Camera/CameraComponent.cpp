@@ -49,50 +49,53 @@ void CameraComponent::Update([[maybe_unused]] float deltaTime) {
 }
 
 void CameraComponent::Render([[maybe_unused]] ID3D12GraphicsCommandList* commandList) {
-	// 視錐台のパラメータ計算
+// 視錐台のパラメータ計算
 	const float nearHalfHeight = std::tan(fov_ * 0.5f) * zNear_;
 	const float nearHalfWidth = nearHalfHeight * aspectRatio_;
 	const float farHalfHeight = std::tan(fov_ * 0.5f) * zFar_;
 	const float farHalfWidth = farHalfHeight * aspectRatio_;
 
-	// カメラ空間での近面と遠面の各頂点
-	const Vec4 ntl(-nearHalfWidth, nearHalfHeight, zNear_);
-	const Vec4 ntr(nearHalfWidth, nearHalfHeight, zNear_);
-	const Vec4 nbl(-nearHalfWidth, -nearHalfHeight, zNear_);
-	const Vec4 nbr(nearHalfWidth, -nearHalfHeight, zNear_);
+	// カメラ空間での近面と遠面の各頂点 (+Z方向)
+	const Vec4 ntl(-nearHalfWidth, nearHalfHeight, zNear_, 1.0f);
+	const Vec4 ntr(nearHalfWidth, nearHalfHeight, zNear_, 1.0f);
+	const Vec4 nbl(-nearHalfWidth, -nearHalfHeight, zNear_, 1.0f);
+	const Vec4 nbr(nearHalfWidth, -nearHalfHeight, zNear_, 1.0f);
 
-	const Vec4 ftl(-farHalfWidth, farHalfHeight, zFar_);
-	const Vec4 ftr(farHalfWidth, farHalfHeight, zFar_);
-	const Vec4 fbl(-farHalfWidth, -farHalfHeight, zFar_);
-	const Vec4 fbr(farHalfWidth, -farHalfHeight, zFar_);
+	const Vec4 ftl(-farHalfWidth, farHalfHeight, zFar_, 1.0f);
+	const Vec4 ftr(farHalfWidth, farHalfHeight, zFar_, 1.0f);
+	const Vec4 fbl(-farHalfWidth, -farHalfHeight, zFar_, 1.0f);
+	const Vec4 fbr(farHalfWidth, -farHalfHeight, zFar_, 1.0f);
+
+	// カメラのワールド位置を取得
+	const Vec3 cameraWorldPos = transform_->GetWorldPos();
 
 	// ローカル座標からワールド座標へ変換
-	const Vec4 wntl = worldMat_ * ntl;
-	const Vec4 wntr = worldMat_ * ntr;
-	const Vec4 wnbl = worldMat_ * nbl;
-	const Vec4 wnbr = worldMat_ * nbr;
-	const Vec4 wftl = worldMat_ * ftl;
-	const Vec4 wftr = worldMat_ * ftr;
-	const Vec4 wfbl = worldMat_ * fbl;
-	const Vec4 wfbr = worldMat_ * fbr;
+	const Vec4 wntl = worldMat_.Inverse() * ntl + Vec4(cameraWorldPos, 0.0f);
+	const Vec4 wntr = worldMat_.Inverse() * ntr + Vec4(cameraWorldPos, 0.0f);
+	const Vec4 wnbl = worldMat_.Inverse() * nbl + Vec4(cameraWorldPos, 0.0f);
+	const Vec4 wnbr = worldMat_.Inverse() * nbr + Vec4(cameraWorldPos, 0.0f);
+	const Vec4 wftl = worldMat_.Inverse() * ftl + Vec4(cameraWorldPos, 0.0f);
+	const Vec4 wftr = worldMat_.Inverse() * ftr + Vec4(cameraWorldPos, 0.0f);
+	const Vec4 wfbl = worldMat_.Inverse() * fbl + Vec4(cameraWorldPos, 0.0f);
+	const Vec4 wfbr = worldMat_.Inverse() * fbr + Vec4(cameraWorldPos, 0.0f);
 
 	// 近面のエッジ描画
-	Debug::DrawLine({ wntl.x,wntl.y,wntl.z }, { wntr.x,wntr.y,wntr.z }, Vec4::white);
-	Debug::DrawLine({ wntr.x,wntr.y,wntr.z }, { wnbr.x,wnbr.y,wnbr.z }, Vec4::white);
-	Debug::DrawLine({ wnbr.x,wnbr.y,wnbr.z }, { wnbl.x,wnbl.y,wnbl.z }, Vec4::white);
-	Debug::DrawLine({ wnbl.x,wnbl.y,wnbl.z }, { wntl.x,wntl.y,wntl.z }, Vec4::white);
+	Debug::DrawLine({ wntl.x, wntl.y, wntl.z }, { wntr.x, wntr.y, wntr.z }, Vec4::white);
+	Debug::DrawLine({ wntr.x, wntr.y, wntr.z }, { wnbr.x, wnbr.y, wnbr.z }, Vec4::white);
+	Debug::DrawLine({ wnbr.x, wnbr.y, wnbr.z }, { wnbl.x, wnbl.y, wnbl.z }, Vec4::white);
+	Debug::DrawLine({ wnbl.x, wnbl.y, wnbl.z }, { wntl.x, wntl.y, wntl.z }, Vec4::white);
 
 	// 遠面のエッジ描画
-	Debug::DrawLine({ wftl.x,wftl.y,wftl.z }, { wftr.x,wftr.y,wftr.z }, Vec4::white);
-	Debug::DrawLine({ wftr.x,wftr.y,wftr.z }, { wfbr.x,wfbr.y,wfbr.z }, Vec4::white);
-	Debug::DrawLine({ wfbr.x,wfbr.y,wfbr.z }, { wfbl.x,wfbl.y,wfbl.z }, Vec4::white);
-	Debug::DrawLine({ wfbl.x,wfbl.y,wfbl.z }, { wftl.x,wftl.y,wftl.z }, Vec4::white);
+	Debug::DrawLine({ wftl.x, wftl.y, wftl.z }, { wftr.x, wftr.y, wftr.z }, Vec4::white);
+	Debug::DrawLine({ wftr.x, wftr.y, wftr.z }, { wfbr.x, wfbr.y, wfbr.z }, Vec4::white);
+	Debug::DrawLine({ wfbr.x, wfbr.y, wfbr.z }, { wfbl.x, wfbl.y, wfbl.z }, Vec4::white);
+	Debug::DrawLine({ wfbl.x, wfbl.y, wfbl.z }, { wftl.x, wftl.y, wftl.z }, Vec4::white);
 
 	// 近面と遠面を接続するエッジ描画
-	Debug::DrawLine({ wntl.x,wntl.y,wntl.z }, { wftl.x,wftl.y,wftl.z }, Vec4::white);
-	Debug::DrawLine({ wntr.x,wntr.y,wntr.z }, { wftr.x,wftr.y,wftr.z }, Vec4::white);
-	Debug::DrawLine({ wnbl.x,wnbl.y,wnbl.z }, { wfbl.x,wfbl.y,wfbl.z }, Vec4::white);
-	Debug::DrawLine({ wnbr.x,wnbr.y,wnbr.z }, { wfbr.x,wfbr.y,wfbr.z }, Vec4::white);
+	Debug::DrawLine({ wntl.x, wntl.y, wntl.z }, { wftl.x, wftl.y, wftl.z }, Vec4::white);
+	Debug::DrawLine({ wntr.x, wntr.y, wntr.z }, { wftr.x, wftr.y, wftr.z }, Vec4::white);
+	Debug::DrawLine({ wnbl.x, wnbl.y, wnbl.z }, { wfbl.x, wfbl.y, wfbl.z }, Vec4::white);
+	Debug::DrawLine({ wnbr.x, wnbr.y, wnbr.z }, { wfbr.x, wfbr.y, wfbr.z }, Vec4::white);
 }
 
 void CameraComponent::DrawInspectorImGui() {

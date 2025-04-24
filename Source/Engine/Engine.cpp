@@ -20,6 +20,8 @@
 #include <Window/MainWindow.h>
 #include <Window/WindowsUtils.h>
 
+#include "SrvManager.h"
+
 Engine::Engine() = default;
 
 void Engine::Run() {
@@ -136,17 +138,22 @@ void Engine::Init() {
 	//modelCommon_ = std::make_unique<ModelCommon>();
 	//modelCommon_->Init(renderer_.get());
 
-	//// オブジェクト3D
-	//object3DCommon_ = std::make_unique<Object3DCommon>();
-	//object3DCommon_->Init(renderer_.get());
+	// オブジェクト3D
+	/*object3DCommon_ = std::make_unique<Object3DCommon>();
+	object3DCommon_->Init(renderer_.get());*/
 
 	//// スプライト
 	//spriteCommon_ = std::make_unique<SpriteCommon>();
 	//spriteCommon_->Init(renderer_.get());
 
-	//// パーティクル
-	//particleManager_ = std::make_unique<ParticleManager>();
-	//particleManager_->Init(object3DCommon_->GetD3D12(), srvManager_.get());
+	srvManager_ = std::make_unique<SrvManager>();
+	srvManager_->Init(renderer_.get());
+
+	TexManager::GetInstance()->Init(renderer_.get(), srvManager_.get());
+
+	// パーティクル
+	particleManager_ = std::make_unique<ParticleManager>();
+	particleManager_->Init(renderer_.get(), srvManager_.get());
 
 	// ライン
 	lineCommon_ = std::make_unique<LineCommon>();
@@ -344,6 +351,7 @@ void Engine::CheckEditorMode() {
 bool Engine::bWishShutdown_ = false;
 std::unique_ptr<D3D12> Engine::renderer_;
 std::unique_ptr<ResourceManager> Engine::resourceManager_;
+std::unique_ptr<ParticleManager> Engine::particleManager_;
 
 #ifdef _DEBUG
 bool Engine::bIsEditorMode_ = true;
