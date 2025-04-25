@@ -25,5 +25,5 @@ private:
 	float mSpeedThreshold = 10.0f;    // 風エフェクトが始まる速度閾値 (HU)
 	float mMaxEffectSpeed = 3000.0f;   // 最大効果が現れる速度 (HU)
 
-	Vec3 GetRandomPositionAroundCamera() const;
+	Vec3 GetRandomPositionInPlayerDirection() const;
 };

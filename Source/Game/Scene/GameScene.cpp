@@ -150,6 +150,19 @@ void GameScene::Init() {
 }
 
 void GameScene::Update(const float deltaTime) {
+	  // プレイヤーの速度を取得
+	const Vec3 playerVelocity = playerMovement_->GetVelocity();
+	const float speed = Math::HtoM(playerVelocity.Length());
+
+	// 速度に基づいてFOVを計算
+	const float baseFov = 90.0f * Math::deg2Rad; // 基本FOV
+	const float maxFov = 120.0f * Math::deg2Rad; // 最大FOV
+	const float speedThreshold = 10.0f; // 速度の閾値
+	const float newFov = baseFov + (maxFov - baseFov) * std::clamp(speed / speedThreshold, 0.0f, 1.0f);
+
+	// カメラのFOVを更新
+	CameraManager::GetActiveCamera()->SetFovVertical(newFov);
+
 	static float controlPoints[4];
 
 	ImGui::Begin("CubicBezier Visualization");

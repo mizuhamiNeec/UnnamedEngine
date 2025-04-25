@@ -215,9 +215,9 @@ void ParticleObject::Update(const float deltaTime) {
 					particleScale.z = particleScale.z * (1.0f + stretchFactor); // Z方向（速度方向）に伸ばす
 
 					// 最終的なワールド行列を計算
-					worldMat = Mat4::Translate(particleIterator->transform.translate)
-						* billboardMatrix
-						* Mat4::Scale(particleScale);
+					worldMat = Mat4::Scale(particleScale) * billboardMatrix * Mat4::Translate(
+						particleIterator->transform.translate
+					);
 				} else {
 					// 速度が小さい場合は通常のビルボード
 					Mat4 cameraMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
