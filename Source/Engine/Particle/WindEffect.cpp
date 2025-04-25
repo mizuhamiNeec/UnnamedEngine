@@ -2,6 +2,8 @@
 #include <Camera/CameraManager.h>
 #include <Lib/Math/Random/Random.h>
 
+#include "Entity/Base/Entity.h"
+
 void WindEffect::Init(ParticleManager* particleManager, PlayerMovement* playerMovement) {
 	mPlayerMovement = playerMovement;
 
@@ -15,8 +17,9 @@ void WindEffect::Update(float deltaTime) {
 		return;
 	}
 
-	// プレイヤーの速度を取得（ヒートユニット単位）
-	float playerSpeed = mPlayerMovement->GetVelocity().Length();
+	// プレイヤーの速度ベクトル
+	Vec3 playerVelocity = mPlayerMovement->GetVelocity();
+	float playerSpeed = playerVelocity.Length();
 
 	// 速度が閾値を超えている場合のみエフェクトを表示
 	if (playerSpeed > mSpeedThreshold) {
@@ -34,18 +37,11 @@ void WindEffect::Update(float deltaTime) {
 		if (mEmissionTimer >= emissionInterval) {
 			mEmissionTimer = 0.0f;
 
-			// カメラの周りにランダムな位置を生成
+			// 進行方向から来るように位置生成
+			Vec3 spawnPosition = GetRandomPositionInPlayerDirection();
 
-			auto camera = CameraManager::GetActiveCamera();
-			Vec3 cameraPos = camera->GetViewMat().Inverse().GetTranslate();
-
-			// カメラの前方向を取得
-			Vec3 cameraForward = camera->GetViewMat().Inverse().GetForward();
-			Vec3 spawnPosition = GetRandomPositionAroundCamera();
-			//Vec3 spawnPosition = cameraPos + cameraForward * 100.0f;
-
-			// プレイヤーの進行方向と逆向きにパーティクルを放出
-			Vec3 particleVelocity = -Math::HtoM(cameraForward).Normalized();
+			// パーティクルの速度をプレイヤーの進行方向に合わせる（見た目上、進行方向から"風が来る"状態）
+			Vec3 particleVelocity = -playerVelocity.Normalized();
 
 			// 速度に応じてパーティクルの速さを変更
 			float particleSpeed = mMinSpeed + speedFactor * (mMaxSpeed - mMinSpeed);
@@ -55,11 +51,11 @@ void WindEffect::Update(float deltaTime) {
 
 			// パーティクルを放出
 			mWindParticle->EmitParticlesAtPosition(
-				spawnPosition,                       // 位置
-				0,                                   // シェイプタイプ（球体）
-				30.0f,                               // コーン角度
-				Vec3(0.1f, 0.1f, 0.1f),             // 抵抗
-				Vec3::zero,                          // 重力なし
+				spawnPosition, // 位置
+				0, // シェイプタイプ（球体）
+				30.0f, // コーン角度
+				Vec3(0.1f, 0.1f, 0.1f), // 抵抗
+				Vec3::zero, // 重力なし
 				particleVelocity * particleSpeed, // 速度
 				particleCount // 放出数
 			);
@@ -76,31 +72,41 @@ void WindEffect::Draw() const {
 	}
 }
 
-Vec3 WindEffect::GetRandomPositionAroundCamera() const {
+Vec3 WindEffect::GetRandomPositionInPlayerDirection() const {
 	auto camera = CameraManager::GetActiveCamera();
-	if (!camera) {
+	if (!camera || !mPlayerMovement) {
 		return Vec3::zero;
 	}
 
-	// カメラの位置を取得
-	Vec3 cameraPos = camera->GetViewMat().Inverse().GetTranslate();
+	// アスペクト比取得
+	float aspectRatio = camera->GetAspectRatio();
 
-	// カメラの前方向を取得
-	Vec3 cameraForward = camera->GetViewMat().Inverse().GetForward();
-	Vec3 cameraRight = camera->GetViewMat().Inverse().GetRight();
-	Vec3 cameraUp = camera->GetViewMat().Inverse().GetUp();
+	// プレイヤー位置
+	Vec3 playerPos = mPlayerMovement->GetOwner()->GetTransform()->GetWorldPos();
 
-	// ランダムな位置をカメラの視野内に生成
-	float randomAngle = Random::FloatRange(0.0f, std::numbers::pi_v<float> *2.0f);
+	// 進行方向ベクトル
+	Vec3 moveDir = mPlayerMovement->GetVelocity().Normalized();
+	if (moveDir.Length() < 0.01f) {
+		moveDir = camera->GetViewMat().Inverse().GetForward(); // ほぼ静止時はカメラ前方でも
+	}
+
+	// 進行方向に直交するベクトルを算出
+	Vec3 right = Vec3::up.Cross(moveDir).Normalized();
+	Vec3 up = moveDir.Cross(right).Normalized();
+
+	// ランダムな位置を進行方向側に生成
+	float randomAngle = Random::FloatRange(0.0f, std::numbers::pi_v<float> * 2.0f);
 	float randomDistance = Random::FloatRange(6.0f, 24.0f);
 	float randomHeight = Random::FloatRange(-1.0f, 1.0f);
 
-	// カメラの前方向を基準に円周上の位置を計算
-	Vec3 randomPos = cameraPos +
-		cameraForward * randomDistance +
-		cameraRight * std::cos(randomAngle) * randomDistance * 0.5f +
-		cameraUp * std::sin(randomAngle) * randomDistance * 0.5f +
-		cameraUp * randomHeight;
+	// 横方向はアスペクト比に対応
+	float horizontalScale = aspectRatio;
+
+	Vec3 randomPos = playerPos +
+		moveDir * randomDistance +
+		right * std::cos(randomAngle) * randomDistance * 0.5f * horizontalScale +
+		up * std::sin(randomAngle) * randomDistance * 0.5f +
+		up * randomHeight;
 
 	return randomPos;
 }
