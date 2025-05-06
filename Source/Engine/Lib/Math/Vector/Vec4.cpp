@@ -33,6 +33,10 @@ Vec4 Vec4::operator*(const float rhs) const {
 	return Vec4(x * rhs, y * rhs, z * rhs, w * rhs);
 }
 
+Vec4 Vec4::operator+(const Vec4& vec4) const {
+	return Vec4(x + vec4.x, y + vec4.y, z + vec4.z, w + vec4.w);
+}
+
 #ifdef _DEBUG
 ImVec4 ToImVec4(const Vec4& vec) {
 	return { vec.x, vec.y, vec.z, vec.w };

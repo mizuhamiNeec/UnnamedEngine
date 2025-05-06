@@ -11,6 +11,9 @@
 #include <SceneManager/SceneFactory.h>
 #include <SceneManager/SceneManager.h>
 #include <Window/WindowManager.h>
+#include <SrvManager.h>
+
+#include "TextureManager/TexManager.h"
 
 class Console;
 class D3D12;
@@ -31,6 +34,10 @@ public:
 
 	[[nodiscard]] static ResourceManager* GetResourceManager() {
 		return resourceManager_.get();
+	}
+
+	[[nodiscard]] static ParticleManager* GetParticleManager() {
+		return particleManager_.get();
 	}
 
 private:
@@ -54,10 +61,12 @@ private:
 	std::unique_ptr<EngineTimer> time_;
 
 	std::unique_ptr<SpriteCommon> spriteCommon_;
-	std::unique_ptr<ParticleManager> particleManager_;
+	static std::unique_ptr<ParticleManager> particleManager_;
 	std::unique_ptr<Object3DCommon> object3DCommon_;
 	std::unique_ptr<ModelCommon> modelCommon_;
 	std::unique_ptr<LineCommon> lineCommon_;
+
+	std::unique_ptr<SrvManager> srvManager_;
 
 	std::unique_ptr<SceneFactory> sceneFactory_;
 	std::shared_ptr<SceneManager> sceneManager_;

@@ -29,7 +29,7 @@ void CharacterMovement::Update(const float deltaTime) {
 	position_.y = std::max<float>(position_.y, 0.0f);
 
 	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
-	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), Math::HtoM(73.0f), Math::HtoM(33.0f * 0.5f), isGrounded_ ? Vec4::green : Vec4::red);
+	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), Math::HtoM(73.0f), Math::HtoM(33.0f * 0.5f), bIsGrounded ? Vec4::green : Vec4::red);
 }
 
 void CharacterMovement::DrawInspectorImGui() {}
@@ -41,7 +41,7 @@ void CharacterMovement::ApplyHalfGravity() {
 	velocity_.y -= Math::HtoM(gravity) * 0.5f * deltaTime_;
 }
 
-void CharacterMovement::ApplyFriction() {
+void CharacterMovement::ApplyFriction(const float fricValue) {
 	Vec3 vel = Math::MtoH(velocity_);
 
 	vel.y = 0.0f;
@@ -51,8 +51,8 @@ void CharacterMovement::ApplyFriction() {
 	}
 
 	float drop = 0.0f;
-	if (isGrounded_) {
-		const float friction = ConVarManager::GetConVar("sv_friction")->GetValueAsFloat();
+	if (bIsGrounded) {
+		const float friction = fricValue;
 		const float stopspeed = ConVarManager::GetConVar("sv_stopspeed")->GetValueAsFloat();
 		const float control = speed < stopspeed ? stopspeed : speed;
 		drop = control * friction * deltaTime_;
@@ -76,27 +76,27 @@ bool CharacterMovement::CheckGrounded() {
 
 	// 足元判定の開始位置。自分自身との衝突を避けるために少し上にオフセット
 	Vec3 pos = transform_->GetWorldPos();
-	pos.y += Math::HtoM(24.0f);
+	pos.y += Math::HtoM(2.0f);
 
-	constexpr float rayDistance = 0.01f;
+	constexpr float castDist = 0.01f;
 	// ColliderComponentに実装してあるBoxCastを利用
 	auto hitResults = collider->BoxCast(
 		pos,
 		Vec3::down,
-		rayDistance,
+		castDist,
 		{
 			collider->GetBoundingBox().GetHalfSize().x,
-			Math::HtoM(24.0f),
+			Math::HtoM(2.0f),
 			collider->GetBoundingBox().GetHalfSize().z
 		}
 	);
 
 	//Debug::DrawRay(pos, Vec3::down * rayDistance, Vec4::red);
 
-	// 各HitResultをチェックし、十分な上向きの法線（地面らしい面）であれば接地と判定
+	// 各HitResultをチェックし、上向きの法線なら接地
 	for (const auto& hit : hitResults) {
 		if (hit.isHit && hit.hitNormal.y > 0.7f) {
-			normal_ = hit.hitNormal;
+			mGroundNormal = hit.hitNormal;
 			return true;
 		}
 	}
@@ -133,7 +133,7 @@ void CharacterMovement::AirAccelerate(const Vec3 dir, const float speed, const f
 }
 
 bool CharacterMovement::IsGrounded() const {
-	return isGrounded_;
+	return bIsGrounded;
 }
 
 void CharacterMovement::CheckVelocity() {
@@ -151,4 +151,8 @@ void CharacterMovement::CheckVelocity() {
 
 Vec3 CharacterMovement::GetVelocity() const {
 	return velocity_;
+}
+
+Vec3 CharacterMovement::GetHeadPos() const {
+	return transform_->GetWorldPos() + Vec3::up * Math::HtoM(mCurrentHeightHU - 9.0f);
 }

@@ -5,12 +5,15 @@
 #include <Lib/Utils/StrUtils.h>
 #include <time.h>
 
+#include <algorithm>
+
 double EngineTimer::deltaTime_ = 0;
 double EngineTimer::totalTime_ = 0;
 uint64_t EngineTimer::frameCount_ = 0;
 
 EngineTimer::EngineTimer() : startTime_(Clock::now()),
-lastFrameTime_(Clock::now()) {}
+lastFrameTime_(Clock::now()) {
+}
 
 void EngineTimer::StartFrame() {
 	// フレーム開始時刻を記録
@@ -87,6 +90,9 @@ void EngineTimer::SetTimeScale(const float& scale) {
 }
 
 float EngineTimer::GetDeltaTime() {
+	// スパイク防止
+	deltaTime_ = std::min<double>(deltaTime_, 1.0f / 60.0f);
+
 	return static_cast<float>(deltaTime_);
 }
 

@@ -75,6 +75,7 @@ struct Vec3 final {
 	/* ---------------- その他 ---------------- */
 	std::string ToString() const;
 	bool operator!=(const Vec3& rhs) const;
+	bool operator==(const Vec3& vec3) const;
 
 	static Vec3 Min(Vec3 lhs, Vec3 rhs);
 	static Vec3 Max(Vec3 lhs, Vec3 rhs);

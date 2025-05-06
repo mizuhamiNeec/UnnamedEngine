@@ -18,7 +18,7 @@ public:
 
 	void Move() override;
 	void ProcessInput();
-	void SetIsGrounded(bool bIsGrounded);
+	void SetIsGrounded(bool cond);
 
 	void SetVelocity(Vec3 newVel);
 

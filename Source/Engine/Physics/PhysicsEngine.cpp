@@ -171,8 +171,8 @@ std::vector<HitResult> PhysicsEngine::BoxCast(
 		sweepBox.max = Vec3::Max(startBox.max, endBox.max)
 	};
 
-	/*Debug::DrawBox(startBox.GetCenter(), Quaternion::identity, startBox.GetSize(), Vec4::brown);
-	Debug::DrawBox(endBox.GetCenter(), Quaternion::identity, endBox.GetSize(), Vec4::orange);*/
+	Debug::DrawBox(startBox.GetCenter(), Quaternion::identity, startBox.GetSize(), Vec4::brown);
+	// Debug::DrawBox(endBox.GetCenter(), Quaternion::identity, endBox.GetSize(), Vec4::orange);
 
 	// BVHから重なり候補のインデックスを取得（static/dynamicともに）
 	std::vector<int> candidateIndices;
@@ -188,7 +188,7 @@ std::vector<HitResult> PhysicsEngine::BoxCast(
 	std::unordered_set uniqueCandidates(candidateIndices.begin(), candidateIndices.end());
 	candidateIndices.assign(uniqueCandidates.begin(), uniqueCandidates.end());
 
-	// 移動軌跡上を離散サンプリングして衝突判定を行う
+	// 衝突判定を行う
 	constexpr int steps = 4;
 	float dt = distance / steps;
 	for (int i = 0; i <= steps; i++) {
@@ -213,6 +213,8 @@ std::vector<HitResult> PhysicsEngine::BoxCast(
 						// 現在位置を衝突点として採用（より詳細な衝突点計算は各自で実装）
 						hr.hitPos = curPos;
 						hr.hitEntity = entity;
+
+						Debug::DrawTriangle(tri, Vec4::cyan);
 						hitResults.emplace_back(hr);
 					}
 				}
