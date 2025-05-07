@@ -167,8 +167,6 @@ void GameScene::Update(const float deltaTime) {
 			for (int i = 0; i < 3; ++i) {
 				float distance = triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos());
 				float progress = std::clamp((distance - Math::HtoM(512.0f)) / 10.0f, 0.0f, 1.0f);
-				//                      ↑ ここの「50.0f」を大きくするとゆっくりになります
-
 				tri.SetVertex(
 					i,
 					Math::Lerp(
