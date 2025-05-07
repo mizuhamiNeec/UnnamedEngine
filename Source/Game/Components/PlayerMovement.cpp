@@ -34,7 +34,7 @@ void PlayerMovement::OnAttach(Entity& owner) {
 	// トランスフォームコンポーネントを取得
 	transform_ = owner_->GetTransform();
 
-	mSpeed = 350.0f;
+	mSpeed   = 350.0f;
 	mJumpVel = 350.0f;
 
 	// Console::SubmitCommand("sv_gravity 0");
@@ -75,16 +75,16 @@ void PlayerMovement::ProcessInput() {
 
 void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	deltaTime_ = deltaTime;
-	position_ = transform_->GetLocalPos();
+	position_  = transform_->GetLocalPos();
 
 	// 入力処理
 	ProcessInput();
 
 	if (bWishCrouch && !bIsCrouching) {
-		bIsCrouching = true;
+		bIsCrouching     = true;
 		mCurrentHeightHU = kDefaultHeightHU * 0.5f;
 	} else if (!bWishCrouch && bIsCrouching) {
-		bIsCrouching = false;
+		bIsCrouching     = false;
 		mCurrentHeightHU = kDefaultHeightHU;
 	}
 
@@ -96,7 +96,7 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	// デバッグ描画
 	Debug::DrawArrow(transform_->GetWorldPos(), velocity_, Vec4::yellow);
 
-	const float width = Math::HtoM(mCurrentWidthHU);
+	const float width  = Math::HtoM(mCurrentWidthHU);
 	const float height = Math::HtoM(mCurrentHeightHU);
 	Debug::DrawBox(
 		transform_->GetWorldPos() + (Vec3::up * height * 0.5f),
@@ -109,7 +109,7 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	transform_->SetLocalPos(position_);
 
 	// カメラの前方ベクトルを取得し、XZ平面に投影して正規化
-	auto camera = CameraManager::GetActiveCamera();
+	auto camera        = CameraManager::GetActiveCamera();
 	Vec3 cameraForward = camera->GetViewMat().Inverse().GetForward();
 
 	auto* collider = owner_->GetComponent<ColliderComponent>();
@@ -180,7 +180,7 @@ void PlayerMovement::Move() {
 			slideState = Sliding;
 			slideTimer = 0.0f;
 			// しゃがみフラグの制御
-			bIsCrouching = true;
+			bIsCrouching     = true;
 			mCurrentHeightHU = kDefaultHeightHU * 0.5f;
 			// 前方向に加速
 			Vec3 slideDir = velocity_.Normalized();
@@ -203,7 +203,7 @@ void PlayerMovement::Move() {
 	CheckVelocity();
 
 	// カメラの前方ベクトルを取得し、XZ平面に投影して正規化
-	auto camera = CameraManager::GetActiveCamera();
+	auto camera        = CameraManager::GetActiveCamera();
 	Vec3 cameraForward = camera->GetViewMat().Inverse().GetForward();
 
 	cameraForward.y = 0.0f; // Y成分を0にする
@@ -214,16 +214,16 @@ void PlayerMovement::Move() {
 
 	// 入力に基づいて移動方向を計算
 	Vec3 wishvel = (cameraForward * moveInput_.z) + (cameraRight * moveInput_.x);
-	wishvel.y = 0.0f;
+	wishvel.y    = 0.0f;
 
 	if (!wishvel.IsZero()) {
 		wishvel.Normalize();
 	}
 
 	if (bIsGrounded) {
-		wishdir_ = wishvel;
+		wishdir_        = wishvel;
 		float wishspeed = wishdir_.Length() * mSpeed;
-		float maxspeed = ConVarManager::GetConVar("sv_maxspeed")->GetValueAsFloat();
+		float maxspeed  = ConVarManager::GetConVar("sv_maxspeed")->GetValueAsFloat();
 		if (wishspeed > maxspeed) {
 			wishvel *= maxspeed / wishspeed;
 		}
@@ -233,9 +233,9 @@ void PlayerMovement::Move() {
 		//// 地面にいたらベロシティを地面の法線方向に投影
 		//velocity_ = velocity_ - (normal_ * velocity_.Dot(normal_));
 	} else {
-		wishdir_ = wishvel;
+		wishdir_        = wishvel;
 		float wishspeed = wishdir_.Length() * mSpeed;
-		float maxspeed = ConVarManager::GetConVar("sv_maxspeed")->GetValueAsFloat();
+		float maxspeed  = ConVarManager::GetConVar("sv_maxspeed")->GetValueAsFloat();
 		if (wishspeed > maxspeed) {
 			wishvel *= maxspeed / wishspeed;
 		}
@@ -264,21 +264,21 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		return;
 	}
 
-	const int kMaxBounces = 16; // 最大反射回数
-	const float kEpsilon = 0.0025f; // 衝突判定の許容値
-	const float kPushOut = 0.01f; // 押し出し量
-	const float stepMaxHeight = 0.3f; // 床とみなす最大段差(必要に応じて調整)
+	const int       kMaxBounces   = 16;      // 最大反射回数
+	constexpr float kEpsilon      = 0.0075f; // 衝突判定の許容値
+	constexpr float kPushOut      = 0.015f;  // 押し出し量
+	const float     stepMaxHeight = 0.3f;    // 床とみなす最大段差(必要に応じて調整)
 
 	Vec3 remainingDisp = desiredDisplacement;
-	Vec3 currentPos = transform_->GetWorldPos() + collider->GetOffset();
+	Vec3 currentPos    = transform_->GetWorldPos() + collider->GetOffset();
 	Vec3 finalVelocity = velocity_;
 	Vec3 averageNormal = Vec3::zero;
-	int hitCount = 0;
+	int  hitCount      = 0;
 
 	for (int bounce = 0; bounce < kMaxBounces && remainingDisp.SqrLength() > kEpsilon * kEpsilon; ++bounce) {
 		float moveLength = remainingDisp.Length();
-		auto hitResults = collider->BoxCast(currentPos, remainingDisp.Normalized(), moveLength,
-		                                    collider->GetBoundingBox().GetHalfSize());
+		auto  hitResults = collider->BoxCast(currentPos, remainingDisp.Normalized(), moveLength,
+			collider->GetBoundingBox().GetHalfSize());
 
 		if (hitResults.empty()) {
 			currentPos += remainingDisp;
@@ -287,7 +287,7 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 
 		// エッジ衝突の検出と平均法線の計算
 		averageNormal = Vec3::zero;
-		hitCount = 0;
+		hitCount      = 0;
 		for (const auto& result : hitResults) {
 			if (result.dist < kEpsilon * 2.0f) {
 				averageNormal += result.hitNormal;
@@ -308,7 +308,7 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		if (hitCount > 1 && std::abs(hit.hitNormal.Dot(hitNormal)) < kEdgeAngleThreshold) {
 			isEdgeCollision = true;
 			// エッジに沿った移動ベクトルを計算
-			Vec3 edgeDir = hit.hitNormal.Cross(hitNormal).Normalized();
+			Vec3 edgeDir  = hit.hitNormal.Cross(hitNormal).Normalized();
 			remainingDisp = edgeDir * remainingDisp.Dot(edgeDir);
 		} else {
 			float travelDist = (std::max)(hit.dist - kEpsilon, 0.0f);
@@ -319,7 +319,7 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 			}
 
 			float fraction = hit.dist / moveLength;
-			remainingDisp = remainingDisp * (1.0f - fraction);
+			remainingDisp  = remainingDisp * (1.0f - fraction);
 
 			Vec3 slide = remainingDisp - hitNormal * remainingDisp.Dot(hitNormal);
 
@@ -327,18 +327,18 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 			if (hitNormal.y > 0.7f && hit.hitPos.y <= currentPos.y + stepMaxHeight) {
 				remainingDisp = slide;
 				mGroundNormal = hitNormal;
-				bIsGrounded = true;
+				bIsGrounded   = true;
 			} else {
 				Vec3 reflection = remainingDisp - 2.0f * hitNormal * remainingDisp.Dot(hitNormal);
-				remainingDisp = slide * 0.8f + reflection * 0.2f;
-				finalVelocity = finalVelocity - hitNormal * finalVelocity.Dot(hitNormal);
+				remainingDisp   = slide * 0.8f + reflection * 0.2f;
+				finalVelocity   = finalVelocity - hitNormal * finalVelocity.Dot(hitNormal);
 			}
 		}
 
-		// エッジ衝突時の速度調整
-		if (isEdgeCollision) {
-			finalVelocity *= 0.8f; // エッジ衝突時は速度を減衰
-		}
+		// // エッジ衝突時の速度調整
+		// if (isEdgeCollision) {
+		// 	finalVelocity *= 0.8f; // エッジ衝突時は速度を減衰
+		// }
 	}
 
 	position_ = currentPos - collider->GetOffset();
