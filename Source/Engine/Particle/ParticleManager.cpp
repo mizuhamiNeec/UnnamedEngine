@@ -115,6 +115,12 @@ void ParticleManager::CreateRootSignature() {
 void ParticleManager::CreateGraphicsPipeline() {
 	CreateRootSignature();
 
+	// D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
+	// depthStencilDesc.DepthEnable = TRUE; // テストはON
+	// depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // 書き込まない!!!
+	// depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	// depthStencilDesc.StencilEnable = FALSE;
+
 	pipelineState_ = PipelineState(D3D12_CULL_MODE_NONE, D3D12_FILL_MODE_SOLID, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 	pipelineState_.SetInputLayout(Vertex::inputLayout);
 	pipelineState_.SetRootSignature(rootSignatureManager_->Get("ParticleManager"));

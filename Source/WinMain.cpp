@@ -1,4 +1,5 @@
 #include <Engine.h>
+#define NOMINMAX
 #include <Windows.h>
 
 #include <Lib/Utils/StrUtils.h>

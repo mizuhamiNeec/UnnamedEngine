@@ -1,6 +1,7 @@
 #include "JobSystem.h"
 
 #include <cassert>
+#define NOMINMAX
 #include <Windows.h>
 
 #include "SubSystem/Console/Console.h"

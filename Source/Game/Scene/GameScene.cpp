@@ -132,7 +132,7 @@ void GameScene::Init() {
 
 	// cameraRootにアタッチ
 	camera_->SetParent(cameraRoot_.get());
-	camera_->GetTransform()->SetLocalPos(Vec3::backward * 2.5f);
+	camera_->GetTransform()->SetLocalPos(Vec3::zero); // FPS
 #pragma endregion
 
 #pragma region コンソール変数/コマンド
@@ -150,19 +150,6 @@ void GameScene::Init() {
 }
 
 void GameScene::Update(const float deltaTime) {
-	  // プレイヤーの速度を取得
-	const Vec3 playerVelocity = playerMovement_->GetVelocity();
-	const float speed = Math::HtoM(playerVelocity.Length());
-
-	// 速度に基づいてFOVを計算
-	const float baseFov = 90.0f * Math::deg2Rad; // 基本FOV
-	const float maxFov = 120.0f * Math::deg2Rad; // 最大FOV
-	const float speedThreshold = 10.0f; // 速度の閾値
-	const float newFov = baseFov + (maxFov - baseFov) * std::clamp(speed / speedThreshold, 0.0f, 1.0f);
-
-	// カメラのFOVを更新
-	CameraManager::GetActiveCamera()->SetFovVertical(newFov);
-
 	static float controlPoints[4];
 
 	ImGui::Begin("CubicBezier Visualization");
@@ -174,32 +161,32 @@ void GameScene::Update(const float deltaTime) {
 
 	ImGui::End();
 
-	//for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
-	//	Debug::DrawTriangle(triangle, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
-	//	if (triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) < 16.0f) {
-	//		Triangle tri = triangle;
-	//		for (int i = 0; i < 3; ++i) {
-	//			tri.SetVertex(
-	//				i,
-	//				Math::Lerp(
-	//					tri.GetVertex(i),
-	//					triangle.GetCenter() + triangle.GetNormal(),
-	//					Math::CubicBezier(std::clamp(
-	//						triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) - 14.0f,
-	//						0.0f,
-	//						1.0f
-	//					),
-	//						controlPoints[0],
-	//						controlPoints[1],
-	//						controlPoints[2],
-	//						controlPoints[3]
-	//					)
-	//				)
-	//			);
-	//		}
-	//		Debug::DrawTriangle(tri, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
-	//	}
-	//}
+	for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
+		if (triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) < Math::HtoM(1024.0f)) {
+			Triangle tri = triangle;
+			for (int i = 0; i < 3; ++i) {
+				float distance = triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos());
+				float progress = std::clamp((distance - Math::HtoM(512.0f)) / 10.0f, 0.0f, 1.0f);
+				//                      ↑ ここの「50.0f」を大きくするとゆっくりになります
+
+				tri.SetVertex(
+					i,
+					Math::Lerp(
+						tri.GetVertex(i),
+						triangle.GetCenter() + triangle.GetNormal(),
+						Math::CubicBezier(
+							progress,
+							controlPoints[0],
+							controlPoints[1],
+							controlPoints[2],
+							controlPoints[3]
+						)
+					)
+				);
+			}
+			Debug::DrawTriangle(tri, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
+		}
+	}
 
 	cameraRoot_->GetTransform()->SetWorldPos(playerMovement_->GetHeadPos());
 	cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
@@ -212,7 +199,7 @@ void GameScene::Update(const float deltaTime) {
 #ifdef _DEBUG
 #pragma region cl_showpos
 	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() != "0") {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 		constexpr ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |

@@ -1,5 +1,5 @@
 #include "InputSystem.h"
-
+#define NOMINMAX
 #include <Windows.h>
 #include <format>
 #include <ranges>
@@ -8,8 +8,6 @@
 
 #include <SubSystem/Console/ConCommand.h>
 #include <SubSystem/Console/Console.h>
-
-#include <Window/MainWindow.h>
 
 #include "Window/WindowManager.h"
 
@@ -293,11 +291,20 @@ void InputSystem::CheckMouseCursorLock() {
 
 	if (bMouseLock_) {
 		// カーソルをウィンドウの中央にリセット
-		POINT centerCursorPos = {
+		const POINT centerCursorPos = {
 			static_cast<LONG>(WindowManager::GetMainWindow()->GetClientWidth() / 2), static_cast<LONG>(WindowManager::GetMainWindow()->GetClientWidth() / 2)
 		};
-		ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
-		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
+
+		if (WindowManager::GetMainWindow()->GetWindowHandle() == GetForegroundWindow()) {
+			RECT rect;
+			rect.left = centerCursorPos.x;
+			rect.top = centerCursorPos.y;
+			rect.right = centerCursorPos.x + 1;
+			rect.bottom = centerCursorPos.y + 1;
+			ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(), reinterpret_cast<LPPOINT>(&rect));
+			ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(), reinterpret_cast<LPPOINT>(&rect) + 1);
+			ClipCursor(&rect);
+		}
 
 		// カーソルを非表示にする
 		while (cursorCount >= 0) {
@@ -305,6 +312,8 @@ void InputSystem::CheckMouseCursorLock() {
 		}
 		bCursorHidden_ = true;
 	} else {
+		ClipCursor(nullptr); // カーソルのクリッピングを解除
+
 		// カーソルを表示する
 		while (cursorCount < 0) {
 			cursorCount = ShowCursor(TRUE);

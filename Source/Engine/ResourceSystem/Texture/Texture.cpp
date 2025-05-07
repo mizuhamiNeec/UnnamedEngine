@@ -126,7 +126,7 @@ bool Texture::CreateErrorTexture(D3D12* d3d12, ShaderResourceViewManager* shader
 	// メタデータの設定
 	metadata_.width = kCheckerSize;
 	metadata_.height = kCheckerSize;
-	metadata_.format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	metadata_.format = kBufferFormat;
 	metadata_.arraySize = 1;
 	metadata_.mipLevels = 1;
 	metadata_.dimension = DirectX::TEX_DIMENSION_TEXTURE2D;

@@ -21,6 +21,11 @@
 #include <Window/WindowsUtils.h>
 
 #include "SrvManager.h"
+#include "imgui_impl_dx12.h"
+
+#include "CopyImagePass/CopyImagePass.h"
+
+#include "TextureManager/TexManager.h"
 
 Engine::Engine() = default;
 
@@ -36,6 +41,32 @@ void Engine::Run() {
 		time_->EndFrame();
 	}
 	Shutdown();
+}
+
+constexpr Vec4 offscreenClearColor = {0.1f, 0.1f, 0.1f, 1.0f};
+
+void Engine::OnResize(const uint32_t width, const uint32_t height) {
+	// GPUの処理が終わるまで待つ
+	renderer_->WaitPreviousFrame();
+
+	renderer_->Resize(width, height);
+
+	offscreenRTV_ = {};
+	offscreenDSV_ = {};
+
+	offscreenRTV_ = renderer_->CreateRenderTargetTexture(
+		width, height,
+		offscreenClearColor,
+		kBufferFormat
+	);
+	offscreenDSV_ = renderer_->CreateDepthStencilTexture(
+		width, height,
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	offscreenRenderPassTargets_.pRTVs = &offscreenRTV_.rtvHandle;
+	offscreenRenderPassTargets_.numRTVs = 1;
+	offscreenRenderPassTargets_.pDSV = &offscreenDSV_.handles.cpuHandle;
 }
 
 void Engine::Init() {
@@ -87,7 +118,12 @@ void Engine::Init() {
 	// }
 
 	renderer_ = std::make_unique<D3D12>(wm_->GetMainWindow());
-	renderer_->Init();
+
+	wm_->GetMainWindow()->SetResizeCallback(
+		[this](const uint32_t width, const uint32_t height) {
+			OnResize(width, height);
+		}
+	);
 
 	// 入力システム
 	InputSystem::Init();
@@ -133,6 +169,33 @@ void Engine::Init() {
 	console_ = std::make_unique<Console>();
 
 	resourceManager_->Init();
+
+	renderer_->SetShaderResourceViewManager(resourceManager_->GetShaderResourceViewManager());
+	renderer_->Init();
+
+	offscreenRTV_ = renderer_->CreateRenderTargetTexture(
+		wm_->GetMainWindow()->GetClientWidth(),
+		wm_->GetMainWindow()->GetClientHeight(),
+		offscreenClearColor,
+		kBufferFormat
+	);
+
+	offscreenDSV_ = renderer_->CreateDepthStencilTexture(
+		wm_->GetMainWindow()->GetClientWidth(),
+		wm_->GetMainWindow()->GetClientHeight(),
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	offscreenRenderPassTargets_.pRTVs = &offscreenRTV_.rtvHandle;
+	offscreenRenderPassTargets_.numRTVs = 1;
+	offscreenRenderPassTargets_.pDSV = &offscreenDSV_.handles.cpuHandle;
+	offscreenRenderPassTargets_.clearColor = offscreenClearColor;
+	offscreenRenderPassTargets_.clearDepth = 1.0f;
+	offscreenRenderPassTargets_.clearStencil = 0;
+	offscreenRenderPassTargets_.bClearColor = true;
+	offscreenRenderPassTargets_.bClearDepth = true;
+
+	copyImagePass_ = std::make_unique<CopyImagePass>(renderer_->GetDevice());
 
 	//// モデル
 	//modelCommon_ = std::make_unique<ModelCommon>();
@@ -200,7 +263,6 @@ void Engine::Init() {
 void Engine::Update() {
 #ifdef _DEBUG
 	ImGuiManager::NewFrame();
-	Console::Update();
 #endif
 
 	// 前のフレームとeditorModeが違う場合はエディターモードを切り替える
@@ -216,11 +278,43 @@ void Engine::Update() {
 		if (editor_) {
 			editor_->Update(EngineTimer::GetDeltaTime());
 		}
+
+		{
+			static ImVec4 tint = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+			static ImVec4 bg = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+			ImGui::Begin("testColor");
+			ImGui::ColorEdit4("Tint", reinterpret_cast<float*>(&tint));
+			ImGui::ColorEdit4("Bg", reinterpret_cast<float*>(&bg));
+			ImGui::End();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+			ImGui::Begin("ViewPort", nullptr, ImGuiWindowFlags_NoBackground);
+			ImVec2 avail = ImGui::GetContentRegionAvail();
+			const auto ptr = offscreenRTV_.srvHandles.gpuHandle.ptr;
+			if (ptr) {
+				const ImTextureID texId = offscreenRTV_.srvHandles.gpuHandle.ptr;
+
+				ImGui::ImageWithBg(
+					texId,
+					avail,
+					ImVec2(0, 0),
+					ImVec2(1, 1),
+					bg,
+					tint
+				);
+			}
+			ImGui::End();
+			ImGui::PopStyleVar();
+		}
+
+		copyImagePass_->Update(EngineTimer::GetDeltaTime());
 	} else {
 		sceneManager_->Update(EngineTimer::GetScaledDeltaTime());
 	}
 
 #ifdef _DEBUG
+	Console::Update();
 	DebugHud::Update();
 #endif
 
@@ -228,16 +322,17 @@ void Engine::Update() {
 
 	//ConVarManager::GetConVar("w_title")->SetValueFromString(std::to_string(EngineTimer::GetFrameCount()));
 
-	//-------------------------------------------------------------------------
-	// --- PreRender↓ ---
-	renderer_->PreRender();
-	//-------------------------------------------------------------------------
-
 #ifdef _DEBUG
 	Debug::Update();
 #endif
 	CameraManager::Update(EngineTimer::GetDeltaTime());
 
+	//-------------------------------------------------------------------------
+	// --- PreRender↓ ---
+	renderer_->PreRender();
+	//-------------------------------------------------------------------------
+
+	renderer_->BeginRenderPass(offscreenRenderPassTargets_);
 	if (IsEditorMode()) {
 		lineCommon_->Render();
 		Debug::Draw();
@@ -250,9 +345,36 @@ void Engine::Update() {
 
 	//------------------------------------------------------------------------
 	// --- PostRender↓ ---
+	renderer_->BeginSwapChainRenderPass();
+
+	// バリアを設定
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = offscreenRTV_.rtv.Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+	renderer_->GetCommandList()->ResourceBarrier(1, &barrier);
+
+	copyImagePass_->Execute(
+		renderer_->GetCommandList(),
+		offscreenRTV_.rtv.Get(),
+		renderer_->GetSwapChainRenderTargetView(),
+		resourceManager_->GetShaderResourceViewManager()
+	);
+
 #ifdef _DEBUG
 	imGuiManager_->EndFrame();
 #endif
+
+	// バリアを元に戻す
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	renderer_->GetCommandList()->ResourceBarrier(1, &barrier);
+
 	renderer_->PostRender();
 	//-------------------------------------------------------------------------
 
@@ -262,11 +384,9 @@ void Engine::Update() {
 void Engine::Shutdown() const {
 	Debug::Shutdown();
 
-
 	renderer_->Shutdown();
 
 	testRenderer_->Shutdown();
-
 
 #ifdef _DEBUG
 	if (imGuiManager_) {

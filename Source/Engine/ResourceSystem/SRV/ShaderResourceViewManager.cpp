@@ -71,6 +71,9 @@ DescriptorHandles
 ShaderResourceViewManager::RegisterShaderResourceView(
 	ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc
 ) {
+	assert(device_ && "device_ is nullptr!");
+	assert(descriptorHeap_ && "descriptorHeap_ is nullptr!");
+
 	// 既存のSRVがあればそれを返す
 	auto it = srvCache_.find(resource);
 	if (it != srvCache_.end()) {

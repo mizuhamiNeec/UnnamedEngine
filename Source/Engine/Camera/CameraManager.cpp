@@ -22,14 +22,16 @@ void CameraManager::SetActiveCamera(const std::shared_ptr<CameraComponent>& came
 }
 
 void CameraManager::SwitchToNextCamera() {
-	if (cameras_.empty()) return;
+	if (cameras_.empty())
+		return;
 	size_t currentIndex = GetActiveCameraIndex();
 	size_t nextIndex = (currentIndex + 1) % cameras_.size();
 	SetActiveCameraByIndex(nextIndex);
 }
 
 void CameraManager::SwitchToPrevCamera() {
-	if (cameras_.empty()) return;
+	if (cameras_.empty())
+		return;
 	size_t currentIndex = GetActiveCameraIndex();
 	size_t prevIndex = currentIndex == 0 ? cameras_.size() - 1 : currentIndex - 1;
 	SetActiveCameraByIndex(prevIndex);
@@ -56,8 +58,6 @@ std::shared_ptr<CameraComponent> CameraManager::GetActiveCamera() {
 void CameraManager::Update(const float deltaTime) {
 	if (activeCamera_) {
 		if (activeCamera_.use_count() > 1) {
-
-
 			activeCamera_->Update(deltaTime);
 		}
 	}

@@ -917,6 +917,9 @@
     <None Include="Resources\Shaders\Line.hlsli" />
     <None Include="Resources\Shaders\Default.PS.hlsl" />
     <None Include="Resources\Shaders\Default.VS.hlsl" />
+    <None Include="Resources\Shaders\CopyImage.hlsli" />
+    <None Include="Resources\Shaders\CopyImage.PS.hlsl" />
+    <None Include="Resources\Shaders\CopyImage.VS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Source\Externals\ImGui\LICENSE.txt" />

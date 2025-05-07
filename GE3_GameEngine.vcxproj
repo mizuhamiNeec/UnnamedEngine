@@ -117,6 +117,7 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\CopyImagePass\CopyImagePass.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiWidgets.cpp" />
     <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
     <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.cpp" />
@@ -184,6 +185,7 @@
     <ClCompile Include="Source\Engine\SrvManager.cpp" />
     <ClCompile Include="Source\Engine\TextureManager\TexManager.cpp" />
     <ClCompile Include="Source\Engine\Particle\WindEffect.cpp" />
+    <None Include="Resources\Shaders\CopyImage.hlsli" />
     <None Include="Resources\Shaders\Default.hlsli" />
     <None Include="Resources\Shaders\Line.PS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -251,6 +253,7 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\CopyImagePass\CopyImagePass.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiWidgets.h" />
     <ClInclude Include="Source\Engine\Window\EditorWindow.h" />
     <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.h" />
@@ -395,6 +398,14 @@
       <FileType>Document</FileType>
     </None>
     <None Include="Resources\Shaders\Default.VS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\CopyImage.PS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Resources\Shaders\CopyImage.VS.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

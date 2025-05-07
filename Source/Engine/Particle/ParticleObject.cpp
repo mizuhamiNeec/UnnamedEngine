@@ -9,6 +9,8 @@
 #include <Particle/ParticleManager.h>
 #include <Renderer/D3D12.h>
 
+#include "TextureManager/TexManager.h"
+
 void ParticleObject::Init(ParticleManager* particleCommon, const std::string& textureFilePath) {
 	this->particleCommon_ = particleCommon;
 	this->textureFilePath_ = textureFilePath;
