@@ -46,10 +46,10 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 		);
 
 		materialData = matparamCBV->GetPtr<MatParam>();
-		materialData->baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-		materialData->metallic = 0.0f;
+		materialData->baseColor = {0.5f, 0.5f, 0.5f, 1.0f};
+		materialData->metallic = 0.25f;
 		materialData->roughness = 0.5f;
-		materialData->emissive = { 0.0f, 0.0f, 0.0f };
+		materialData->emissive = {0.0f, 0.0f, 0.0f};
 	}
 
 	directionalLightCB = std::make_unique<ConstantBuffer>(
@@ -58,8 +58,8 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 		"DirectionalLight"
 	);
 	directionalLightData = directionalLightCB->GetPtr<DirectionalLight>();
-	directionalLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	directionalLightData->direction = { -0.2f, -0.9f, 0.25f };
+	directionalLightData->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	directionalLightData->direction = {-0.2f, -0.9f, 0.25f};
 	directionalLightData->intensity = 8.0f;
 
 	cameraCB = std::make_unique<ConstantBuffer>(
@@ -76,8 +76,8 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 		"PointLight"
 	);
 	pointLightData = pointLightCB->GetPtr<PointLight>();
-	pointLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	pointLightData->position = { 0.0f, 4.0f, 0.0f };
+	pointLightData->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	pointLightData->position = {0.0f, 4.0f, 0.0f};
 	pointLightData->intensity = 1.0f;
 	pointLightData->radius = 1.0f;
 	pointLightData->decay = 1.0f;
@@ -88,10 +88,10 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 		"SpotLight"
 	);
 	spotLightData = spotLightCB->GetPtr<SpotLight>();
-	spotLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	spotLightData->position = { 0.0f, 4.0f, 0.0f };
+	spotLightData->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	spotLightData->position = {0.0f, 4.0f, 0.0f};
 	spotLightData->intensity = 1.0f;
-	spotLightData->direction = { 0.0f, -1.0f, 0.0f };
+	spotLightData->direction = {0.0f, -1.0f, 0.0f};
 	spotLightData->distance = 8.0f;
 	spotLightData->decay = 2.0f;
 	spotLightData->cosAngle = 0.5f;
@@ -100,7 +100,8 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 
 void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 	// メッシュが存在しない場合は描画をスキップ
-	if (!staticMesh_) return;
+	if (!staticMesh_)
+		return;
 
 	// 現在バインドされているマテリアルを追跡
 	Material* currentlyBoundMaterial = nullptr;

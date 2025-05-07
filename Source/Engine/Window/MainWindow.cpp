@@ -10,7 +10,7 @@
 #pragma comment(lib, "winmm.lib")
 
 #ifdef _DEBUG
-extern IMGUI_IMPL_API LRESULT ImGuiImplWin32WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #endif
 
 MainWindow::~MainWindow() {
@@ -133,7 +133,7 @@ void MainWindow::SetResizeCallback(ResizeCallback callback) {
 
 LRESULT MainWindow::WindowProc([[maybe_unused]] HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
 #ifdef _DEBUG
-	if (ImGuiImplWin32WndProcHandler(hWnd_, msg, wParam, lParam)) {
+	if (ImGui_ImplWin32_WndProcHandler(hWnd_, msg, wParam, lParam)) {
 		return true;
 	}
 #endif

@@ -18,10 +18,17 @@ enum BlendMode {
 	kCountOfBlendMode, // ブレンドモード数
 };
 
+constexpr D3D12_DEPTH_STENCIL_DESC defaultDepthStencilDesc = {
+	.DepthEnable = TRUE, // Depthの機能を有効化する
+	.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL, // 書き込む
+	.DepthFunc = D3D12_COMPARISON_FUNC_LESS, // 比較関数はLess
+	.StencilEnable = FALSE
+};
+
 class PipelineState {
 public:
 	PipelineState();
-	PipelineState(D3D12_CULL_MODE cullMode, D3D12_FILL_MODE fillMode, D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType);
+	PipelineState(D3D12_CULL_MODE cullMode, D3D12_FILL_MODE fillMode, D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType, const D3D12_DEPTH_STENCIL_DESC& depthStencilDesc = defaultDepthStencilDesc);
 	void SetInputLayout(D3D12_INPUT_LAYOUT_DESC layout);
 	void SetRootSignature(ID3D12RootSignature* rootSignature);
 	void SetVS(const std::wstring& filePath);

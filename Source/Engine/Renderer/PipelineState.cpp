@@ -10,12 +10,15 @@
 #include "../SubSystem/Console/Console.h"
 #include "../Lib/Utils/StrUtils.h"
 
+#include "Lib/Utils/ClientProperties.h"
+
 PipelineState::PipelineState() = default;
 
 PipelineState::PipelineState(
 	const D3D12_CULL_MODE cullMode,
 	const D3D12_FILL_MODE fillMode,
-	const D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType
+	const D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType,
+	const D3D12_DEPTH_STENCIL_DESC& depthStencilDesc
 ) {
 	D3D12_BLEND_DESC blendDesc = {};
 	blendDesc.RenderTarget[0].RenderTargetWriteMask =
@@ -24,19 +27,12 @@ PipelineState::PipelineState(
 	rasterizerDesc.CullMode = cullMode; // 裏面(時計回り)を表示しない
 	rasterizerDesc.FillMode = fillMode; // 三角形の中を塗りつぶす
 
-	// DepthStencilStateの設定
-	D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
-	depthStencilDesc.DepthEnable = TRUE; // Depthの機能を有効化する
-	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL; // 書き込む
-	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS; // 比較関数はLess
-	depthStencilDesc.StencilEnable = FALSE;
-
 	// ステートの設定
 	desc_.BlendState = blendDesc; // BlendState
 	desc_.RasterizerState = rasterizerDesc; // RasterizerState
 	// 書き込むRTVの情報
 	desc_.NumRenderTargets = 1;
-	desc_.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc_.RTVFormats[0] = kBufferFormat;
 	// 利用するトポロジ(形状)のタイプ。三角形
 	desc_.PrimitiveTopologyType = topologyType;
 	// どのように画面に色を打ち込むかの設定(気にしなくて良い)
@@ -211,41 +207,48 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 	rtBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
 	switch (blendMode) {
-	case kBlendModeNone: rtBlendDesc.BlendEnable = FALSE;
+	case kBlendModeNone: // 不透明
+		rtBlendDesc.BlendEnable = FALSE;
+	// ブレンドしないので値の設定不要
 		break;
-	case kBlendModeNormal: rtBlendDesc.BlendEnable = TRUE;
+	case kBlendModeNormal: // アルファブレンド
+		rtBlendDesc.BlendEnable = TRUE;
 		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
 		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
-	case kBlendModeAdd: rtBlendDesc.BlendEnable = TRUE;
+	case kBlendModeAdd: // 加算
+		rtBlendDesc.BlendEnable = TRUE;
 		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
 		rtBlendDesc.DestBlend = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
 		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
-	case kBlendModeSubtract: rtBlendDesc.BlendEnable = TRUE;
-		rtBlendDesc.SrcBlend = D3D12_BLEND_INV_SRC_ALPHA;
-		rtBlendDesc.DestBlend = D3D12_BLEND_SRC_ALPHA;
+	case kBlendModeSubtract: // 減算
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.DestBlend = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
 		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_SUBTRACT;
-		break;
-	case kBlendModeMultiply: rtBlendDesc.BlendEnable = TRUE;
-		rtBlendDesc.SrcBlend = D3D12_BLEND_ZERO;
-		rtBlendDesc.DestBlend = D3D12_BLEND_SRC_COLOR;
-		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
-		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
-	case kBlendModeScreen: rtBlendDesc.BlendEnable = TRUE;
+	case kBlendModeMultiply: // 乗算
+		rtBlendDesc.BlendEnable = TRUE;
+		rtBlendDesc.SrcBlend = D3D12_BLEND_DEST_COLOR;
+		rtBlendDesc.DestBlend = D3D12_BLEND_ZERO;
+		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		break;
+	case kBlendModeScreen: // スクリーン（発光）
+		rtBlendDesc.BlendEnable = TRUE;
 		rtBlendDesc.SrcBlend = D3D12_BLEND_ONE;
 		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_COLOR;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;

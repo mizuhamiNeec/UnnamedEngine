@@ -19,7 +19,8 @@
 
 #include <Window/WindowsUtils.h>
 
-ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManager* srvManager) : renderer_(renderer), srvManager_(srvManager) {
+ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManager* srvManager) : renderer_(renderer),
+                                                                                                 srvManager_(srvManager) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
@@ -54,7 +55,7 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 	// ??? 何故かベースラインがずれるので補正
 	imFontConfig.GlyphOffset = ImVec2(0.0f, 5.0f);
 
-	static constexpr ImWchar iconRanges[] = { 0xe003, 0xf8ff, 0 };
+	static constexpr ImWchar iconRanges[] = {0xe003, 0xf8ff, 0};
 	io.Fonts->AddFontFromFileTTF(
 		R"(.\Resources\Fonts\MaterialSymbolsRounded_Filled_28pt-Regular.ttf)",
 		24.0f, &imFontConfig, iconRanges
@@ -72,7 +73,7 @@ ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManage
 	ImGui_ImplDX12_Init(
 		renderer_->GetDevice(),
 		kFrameBufferCount,
-		DXGI_FORMAT_R8G8B8A8_UNORM,
+		kBufferFormat,
 		ShaderResourceViewManager::GetDescriptorHeap().Get(),
 		ShaderResourceViewManager::GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
 		ShaderResourceViewManager::GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart()
@@ -109,6 +110,28 @@ void ImGuiManager::Shutdown() {
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 	srvHeap_.Reset();
+}
+
+void ImGuiManager::Recreate() const {
+	// 1. ImGuiのDX12/Win32バックエンドを完全にシャットダウン
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+
+	// 2. Win32バックエンドを再初期化（ウィンドウハンドルを渡す）
+	ImGui_ImplWin32_Init(WindowManager::GetMainWindow()->GetWindowHandle());
+
+	// 3. DX12バックエンドを再初期化（ディスクリプタヒープ等を渡す）
+	ImGui_ImplDX12_Init(
+		renderer_->GetDevice(),
+		kFrameBufferCount,
+		kBufferFormat,
+		ShaderResourceViewManager::GetDescriptorHeap().Get(),
+		ShaderResourceViewManager::GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
+		ShaderResourceViewManager::GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart()
+	);
+
+	// 4. デバイスオブジェクト再作成
+	ImGui_ImplDX12_CreateDeviceObjects();
 }
 
 void ImGuiManager::StyleColorsDark() {
@@ -192,17 +215,17 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3& v, const float& vSpee
 	// 幅を取得
 	const float width = ImGui::GetCurrentContext()->Style.ItemInnerSpacing.x;
 
-	constexpr ImVec4 xBg = { 0.72f, 0.11f, 0.11f, 0.75f };
-	constexpr ImVec4 xBgHovered = { 0.83f, 0.18f, 0.18f, 0.75f };
-	constexpr ImVec4 xBgActive = { 0.96f, 0.26f, 0.21f, 0.75f };
+	constexpr ImVec4 xBg = {0.72f, 0.11f, 0.11f, 0.75f};
+	constexpr ImVec4 xBgHovered = {0.83f, 0.18f, 0.18f, 0.75f};
+	constexpr ImVec4 xBgActive = {0.96f, 0.26f, 0.21f, 0.75f};
 
-	constexpr ImVec4 yBg = { 0.11f, 0.37f, 0.13f, 0.75f };
-	constexpr ImVec4 yBgHovered = { 0.22f, 0.56f, 0.24f, 0.75f };
-	constexpr ImVec4 yBgActive = { 0.3f, 0.69f, 0.31f, 0.75f };
+	constexpr ImVec4 yBg = {0.11f, 0.37f, 0.13f, 0.75f};
+	constexpr ImVec4 yBgHovered = {0.22f, 0.56f, 0.24f, 0.75f};
+	constexpr ImVec4 yBgActive = {0.3f, 0.69f, 0.31f, 0.75f};
 
-	constexpr ImVec4 zBg = { 0.05f, 0.28f, 0.63f, 0.75f };
-	constexpr ImVec4 zBgHovered = { 0.1f, 0.46f, 0.82f, 0.75f };
-	constexpr ImVec4 zBgActive = { 0.13f, 0.59f, 0.95f, 0.75f };
+	constexpr ImVec4 zBg = {0.05f, 0.28f, 0.63f, 0.75f};
+	constexpr ImVec4 zBgHovered = {0.1f, 0.46f, 0.82f, 0.75f};
+	constexpr ImVec4 zBgActive = {0.13f, 0.59f, 0.95f, 0.75f};
 
 	// 幅を決定
 	ImGui::PushMultiItemsWidths(components, ImGui::CalcItemWidth());
@@ -288,17 +311,21 @@ bool ImGuiManager::IconButton(const char* icon, const char* label, const ImVec2&
 
 	// アイコンを中央揃えで描画
 	float iconY = buttonPos.y + (buttonSize.y - (iconSize.y + labelSize.y + spacing)) * 0.5f;
-	ImGui::SetCursorPos(ImVec2(
-		buttonPos.x + (buttonSize.x - iconSize.x) * 0.5f,
-		iconY
-	));
+	ImGui::SetCursorPos(
+		ImVec2(
+			buttonPos.x + (buttonSize.x - iconSize.x) * 0.5f,
+			iconY
+		)
+	);
 	ImGui::Text("%s", icon);
 
 	// ラベルを小さいフォントで中央揃えで描画
-	ImGui::SetCursorPos(ImVec2(
-		buttonPos.x + (buttonSize.x - labelSize.x * 0.8f) * 0.5f,
-		iconY + iconSize.y + spacing
-	));
+	ImGui::SetCursorPos(
+		ImVec2(
+			buttonPos.x + (buttonSize.x - labelSize.x * 0.8f) * 0.5f,
+			iconY + iconSize.y + spacing
+		)
+	);
 
 	float defaultFontSize = ImGui::GetFont()->Scale;
 	ImGui::GetFont()->Scale = 0.8f;

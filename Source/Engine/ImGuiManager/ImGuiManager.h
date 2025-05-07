@@ -18,6 +18,7 @@ public:
 	static void NewFrame();
 	void EndFrame() const;
 	void Shutdown();
+	void Recreate() const;
 
 #ifdef _DEBUG
 	static void StyleColorsDark();

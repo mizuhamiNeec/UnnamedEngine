@@ -26,12 +26,14 @@ void PhysicsEngine::Update([[maybe_unused]] float deltaTime) {
 	// TODO: 物理シミュレーション(やる気が出たら)
 }
 
-void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) { // 既に登録されているか、エンティティがnullptrの場合は登録しない
+void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) {
+	// 既に登録されているか、エンティティがnullptrの場合は登録しない
 	if (!entity || registeredEntities_.contains(entity)) {
 		Console::Print(
 			"エンティティが登録済みかnullptrです\n",
 			kConTextColorWarning,
-			Channel::Physics);
+			Channel::Physics
+		);
 		return;
 	}
 
@@ -40,9 +42,11 @@ void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) { // 既に登
 		Console::Print(
 			std::format(
 				"Entity: '{}' にはColliderComponentがアタッチされていません\n",
-				entity->GetName()),
+				entity->GetName()
+			),
 			kConTextColorWarning,
-			Channel::Physics);
+			Channel::Physics
+		);
 		return;
 	}
 
@@ -60,7 +64,7 @@ void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) { // 既に登
 			meshData.localBVH.Clear();
 			for (size_t i = 0; i < triangles.size(); ++i) {
 				// 三角形をワールド空間に変換
-				Triangle worldTri = { Vec3::zero, Vec3::zero, Vec3::zero };
+				Triangle worldTri = {Vec3::zero, Vec3::zero, Vec3::zero};
 				worldTri.v0 = Mat4::Transform(triangles[i].v0, worldMatrix);
 				worldTri.v1 = Mat4::Transform(triangles[i].v1, worldMatrix);
 				worldTri.v2 = Mat4::Transform(triangles[i].v2, worldMatrix);
@@ -112,7 +116,8 @@ void PhysicsEngine::UnregisterEntity(Entity* entity) {
 		Console::Print(
 			"エンティティが登録されていないかnullptrです\n",
 			kConTextColorWarning,
-			Channel::Physics);
+			Channel::Physics
+		);
 		return;
 	}
 
@@ -121,9 +126,11 @@ void PhysicsEngine::UnregisterEntity(Entity* entity) {
 		Console::Print(
 			std::format(
 				"Entity: '{}' にはColliderComponentがアタッチされていません\n",
-				entity->GetName()),
+				entity->GetName()
+			),
 			kConTextColorWarning,
-			Channel::Physics);
+			Channel::Physics
+		);
 		return;
 	}
 
@@ -151,7 +158,8 @@ void PhysicsEngine::UnregisterEntity(Entity* entity) {
 }
 
 std::vector<HitResult> PhysicsEngine::BoxCast(
-	const Vec3& start, const Vec3& direction, float distance, const Vec3& halfSize) const {
+	const Vec3& start, const Vec3& direction, float distance, const Vec3& halfSize
+) const {
 	std::vector<HitResult> hitResults;
 
 	// 正規化
@@ -180,7 +188,7 @@ std::vector<HitResult> PhysicsEngine::BoxCast(
 		for (int idx : indices) {
 			candidateIndices.emplace_back(idx);
 		}
-		};
+	};
 	addCandidates(staticBVH_.QueryOverlaps(sweepBox));
 	addCandidates(dynamicBVH_.QueryOverlaps(sweepBox));
 
@@ -260,6 +268,7 @@ std::vector<HitResult> PhysicsEngine::RayCast(const Vec3& start, const Vec3& dir
 						hit.hitNormal = tri.GetNormal();
 						hit.hitEntity = collider->GetOwner();
 						hitResults.emplace_back(hit);
+						Debug::DrawTriangle(tri, Vec4::cyan);
 					}
 				}
 			}
@@ -288,7 +297,7 @@ std::vector<HitResult> PhysicsEngine::RayCast(const Vec3& start, const Vec3& dir
 			//	}
 			// }
 		}
-		};
+	};
 
 	// 動的オブジェクトの処理
 	for (int i : dynamicOverlaps) {
@@ -303,12 +312,14 @@ std::vector<HitResult> PhysicsEngine::RayCast(const Vec3& start, const Vec3& dir
 
 	// 衝突結果を距離順にソート
 	std::ranges::sort(
-		hitResults, [](const HitResult& a, const HitResult& b) { return a.dist < b.dist; });
+		hitResults, [](const HitResult& a, const HitResult& b) { return a.dist < b.dist; }
+	);
 	return hitResults;
 }
 
 bool PhysicsEngine::IntersectAABBWithTriangle(
-	const AABB& aabb, const Triangle& triangle, HitResult& outHit) {
+	const AABB& aabb, const Triangle& triangle, HitResult& outHit
+) {
 	// AABBの中心と半径を取得
 	Vec3 aabbCenter = aabb.GetCenter();
 	Vec3 aabbHalfSize = aabb.GetHalfSize();
@@ -320,7 +331,8 @@ bool PhysicsEngine::IntersectAABBWithTriangle(
 
 	// AABBの軸
 	Vec3 axes[] = {
-		Vec3::right, Vec3::up, Vec3::forward };
+		Vec3::right, Vec3::up, Vec3::forward
+	};
 
 	// テスト1: AABBの各軸に対する投影
 	for (int i = 0; i < 3; ++i) {
@@ -328,8 +340,8 @@ bool PhysicsEngine::IntersectAABBWithTriangle(
 		float p0 = v0[i];
 		float p1 = v1[i];
 		float p2 = v2[i];
-		float minP = (std::min)({ p0, p1, p2 });
-		float maxP = (std::max)({ p0, p1, p2 });
+		float minP = (std::min)({p0, p1, p2});
+		float maxP = (std::max)({p0, p1, p2});
 		if (minP > r || maxP < -r) {
 			return false; // 分離軸発見
 		}
@@ -350,7 +362,8 @@ bool PhysicsEngine::IntersectAABBWithTriangle(
 	Vec3 edges[3] = {
 		v1 - v0,
 		v2 - v1,
-		v0 - v2 };
+		v0 - v2
+	};
 
 	for (const Vec3& edge : edges) {
 		for (const Vec3& a : axes) {
@@ -482,10 +495,9 @@ void PhysicsEngine::UpdateBVH() {
 	staticBVH_.DrawBvh(Vec4::magenta);
 	// dynamicBVH_.DrawBvh(Vec4::cyan);
 
-
 	// 追加: 現在参照中のBVHノードのみを描画
 	for (const auto& [collider, nodeId] : colliderNodeIds_) {
-		AABB nodeAABB = { Vec3::zero,Vec3::zero };
+		AABB nodeAABB = {Vec3::zero, Vec3::zero};
 		nodeAABB = staticMeshes_[collider].localBVH.GetNodeAABB(nodeId);
 		/*if (collider->IsDynamic()) {
 			nodeAABB = dynamicBVH_.GetNodeAABB(nodeId);
@@ -496,4 +508,5 @@ void PhysicsEngine::UpdateBVH() {
 	}
 }
 
-PhysicsEngine::StaticMeshData::StaticMeshData() {}
+PhysicsEngine::StaticMeshData::StaticMeshData() {
+}

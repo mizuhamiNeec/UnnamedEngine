@@ -42,9 +42,7 @@ void Editor::Init() {
 }
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
-	if (auto currentScene = sceneManager_.GetCurrentScene()) {
-		currentScene->Update(EngineTimer::GetDeltaTime());
-	}
+	ShowDockSpace();
 
 #ifdef _DEBUG
 	// カメラの操作
@@ -81,7 +79,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 			cameraEntity_->GetTransform()->SetWorldRot(Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
 
-			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
+			Vec3 moveInput = {0.0f, 0.0f, 0.0f};
 
 			if (InputSystem::IsPressed("forward")) {
 				moveInput.z += 1.0f;
@@ -215,22 +213,18 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 	cameraEntity_->Update(deltaTime);
 
-#endif
-
-#ifdef _DEBUG
-	ShowDockSpace();
-
 	ImGui::ShowDemoWindow();
 
 	// アウトライナウィンドウの開始
 	if (ImGui::Begin("Outliner")) {
 		// テーブルの開始
-		if (ImGui::BeginTable("OutlinerTable", 3,
-			ImGuiTableFlags_NoBordersInBody |
-			ImGuiTableFlags_SizingFixedFit |
-			ImGuiTableFlags_RowBg)
-			) {
-
+		if (ImGui::BeginTable(
+				"OutlinerTable", 3,
+				ImGuiTableFlags_NoBordersInBody |
+				ImGuiTableFlags_SizingFixedFit |
+				ImGuiTableFlags_RowBg
+			)
+		) {
 			// カラムの設定
 			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide | ImGuiTableColumnFlags_WidthStretch);
 			ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed, 30.0f);
@@ -274,23 +268,29 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				bool visible = entity->IsVisible();
 
 				// アイコンのサイズを一時的に変更
-				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));  // アイコン間のスペースを調整
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0)); // アイコン間のスペースを調整
 				float originalScale = ImGui::GetFont()->Scale;
-				ImGui::GetFont()->Scale = 1.2f;  // スケールを1.2倍に
+				ImGui::GetFont()->Scale = 1.2f; // スケールを1.2倍に
 				ImGui::PushFont(ImGui::GetFont());
 
-				ImGui::PushStyleColor(ImGuiCol_Text, visible ?
-					ImGui::GetStyleColorVec4(ImGuiCol_Text) :
-					ImVec4(0.5f, 0.5f, 0.5f, 0.5f));
+				ImGui::PushStyleColor(
+					ImGuiCol_Text, visible ?
+						               ImGui::GetStyleColorVec4(ImGuiCol_Text) :
+						               ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
+				);
 
 				// アイコンを中央に配置
 				float iconWidth = ImGui::CalcTextSize(StrUtils::ConvertToUtf8(kIconVisibility).c_str()).x;
 				float columnWidth = ImGui::GetColumnWidth();
 				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (columnWidth - iconWidth) * 0.5f);
 
-				if (ImGui::Selectable(StrUtils::ConvertToUtf8(visible ?
-					kIconVisibility : kIconVisibilityOff).c_str(), false,
-					ImGuiSelectableFlags_DontClosePopups)) {
+				if (ImGui::Selectable(
+					StrUtils::ConvertToUtf8(
+						visible ?
+							kIconVisibility : kIconVisibilityOff
+					).c_str(), false,
+					ImGuiSelectableFlags_DontClosePopups
+				)) {
 					entity->SetVisible(!visible);
 				}
 
@@ -315,7 +315,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				}
 
 				ImGui::PopID();
-				};
+			};
 
 			// ルートエンティティから開始
 			auto entities = scene_->GetEntities();
@@ -384,7 +384,6 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	}
 	ImGui::End();
 
-
 	if (ImGui::Begin("World Settings")) {
 		ImGui::Text("Grid Size");
 		ImGui::SliderFloat("##GridSize", &gridSize_, 0.125f, 64.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
@@ -444,7 +443,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			// グリッドスナップ
 			{
 				const float windowHeight = ImGui::GetWindowSize().y;
-				const char* items[] = { "0.125", "0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512" };
+				const char* items[] = {"0.125", "0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512"};
 				static int itemCurrentIndex = 9;
 				const char* comboLabel = items[itemCurrentIndex];
 				ImGui::Text("Grid: ");
@@ -497,13 +496,17 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	DrawGrid(
 		gridSize_,
 		gridRange_,
-		{ 0.28f, 0.28f, 0.28f, 1.0f },
-		{ 0.39f, 0.2f, 0.02f, 1.0f },
-		{ 0.0f, 0.39f, 0.39f, 1.0f },
-		{ 0.39f, 0.39f, 0.39f, 1.0f },
+		{0.28f, 0.28f, 0.28f, 1.0f},
+		{0.39f, 0.2f, 0.02f, 1.0f},
+		{0.0f, 0.39f, 0.39f, 1.0f},
+		{0.39f, 0.39f, 0.39f, 1.0f},
 		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
 		gridSize_ * 32.0f
 	);
+
+	if (auto currentScene = sceneManager_.GetCurrentScene()) {
+		currentScene->Update(EngineTimer::GetDeltaTime());
+	}
 }
 
 void Editor::Render() const {
@@ -647,13 +650,13 @@ void Editor::DrawGrid(
 			Vec4 lineColor = color;
 
 			if (std::fmod(x, majorInterval) == 0.0f) {
-				lineColor = majorColor;  // 主要なグリッド線
+				lineColor = majorColor; // 主要なグリッド線
 			} else if (std::fmod(x, minorInterval) == 0.0f) {
 				lineColor = minorColor; // 細かいグリッド線
 			}
 
 			if (x == 0.0f) {
-				lineColor = axisColor;  // 軸線
+				lineColor = axisColor; // 軸線
 			}
 
 			if (std::fmod(x, majorInterval) == 0.0f || x == 0.0f) {
@@ -678,13 +681,13 @@ void Editor::DrawGrid(
 			Vec4 lineColor = color;
 
 			if (std::fmod(z, majorInterval) == 0.0f) {
-				lineColor = majorColor;  // 主要なグリッド線
+				lineColor = majorColor; // 主要なグリッド線
 			} else if (std::fmod(z, minorInterval) == 0.0f) {
 				lineColor = minorColor; // 細かいグリッド線
 			}
 
 			if (z == 0.0f) {
-				lineColor = axisColor;  // 軸線
+				lineColor = axisColor; // 軸線
 			}
 
 			if (std::fmod(z, majorInterval) == 0.0f || z == 0.0f) {

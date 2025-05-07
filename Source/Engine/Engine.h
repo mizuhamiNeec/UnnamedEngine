@@ -13,7 +13,7 @@
 #include <Window/WindowManager.h>
 #include <SrvManager.h>
 
-#include "TextureManager/TexManager.h"
+#include "CopyImagePass/CopyImagePass.h"
 
 class Console;
 class D3D12;
@@ -40,6 +40,8 @@ public:
 		return particleManager_.get();
 	}
 
+	void OnResize(uint32_t width, uint32_t height);
+
 private:
 	void Init();
 	void Update();
@@ -52,6 +54,12 @@ private:
 
 	std::unique_ptr<WindowManager> wm_;
 	static std::unique_ptr<D3D12> renderer_;
+
+	RenderTargetTexture offscreenRTV_;
+	DepthStencilTexture offscreenDSV_;
+	RenderPassTargets offscreenRenderPassTargets_;
+
+	std::unique_ptr<CopyImagePass> copyImagePass_;
 
 	RendererInitInfo rendererInitInfo_;
 	std::unique_ptr<BaseRenderer> testRenderer_;

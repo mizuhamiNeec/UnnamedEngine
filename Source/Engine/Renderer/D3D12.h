@@ -3,14 +3,41 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <vector>
+
 #include <wrl/client.h>
 
-#include "Renderer.h"
+#include <Renderer/Renderer.h>
+
+#include <Lib/Math/Vector/Vec4.h>
+
+#include <ResourceSystem/SRV/ShaderResourceViewManager.h>
 
 using namespace Microsoft::WRL;
 
 struct D3DResourceLeakChecker {
 	~D3DResourceLeakChecker();
+};
+
+struct RenderTargetTexture {
+	ComPtr<ID3D12Resource> rtv;
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
+	DescriptorHandles srvHandles;
+};
+
+struct DepthStencilTexture {
+	ComPtr<ID3D12Resource> dsv;
+	DescriptorHandles handles;
+};
+
+struct RenderPassTargets {
+	D3D12_CPU_DESCRIPTOR_HANDLE* pRTVs; // 複数可
+	UINT numRTVs;
+	D3D12_CPU_DESCRIPTOR_HANDLE* pDSV; // nullptr でもOK
+	Vec4 clearColor;
+	float clearDepth;
+	uint8_t clearStencil;
+	bool bClearColor; // クリアカラーするか?
+	bool bClearDepth; // 深度クリアするか?
 };
 
 class D3D12 : public Renderer {
@@ -21,9 +48,18 @@ public: // メンバ関数
 	void Init() override;
 	void Shutdown() override;
 
+	void SetShaderResourceViewManager(ShaderResourceViewManager* srvManager);
+
 	void ClearColorAndDepth() const;
 	void PreRender() override;
 	void PostRender() override;
+
+	[[nodiscard]] RenderTargetTexture CreateRenderTargetTexture(uint32_t width, uint32_t height, Vec4 clearColor, DXGI_FORMAT format = kBufferFormat);
+	[[nodiscard]] DepthStencilTexture CreateDepthStencilTexture(uint32_t width, uint32_t height, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT);
+	void BeginRenderPass(const RenderPassTargets& targets) const;
+
+	void BeginSwapChainRenderPass() const;
+	D3D12_CPU_DESCRIPTOR_HANDLE GetSwapChainRenderTargetView() const;
 
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data);
 
@@ -32,7 +68,7 @@ public: // メンバ関数
 	void Resize(uint32_t width, uint32_t height);
 
 private:
-	//　メンバ変数
+	// メンバ変数
 	ComPtr<ID3D12Device> device_;
 	ComPtr<IDXGIFactory7> dxgiFactory_;
 	ComPtr<ID3D12CommandQueue> commandQueue_;
@@ -47,6 +83,7 @@ private:
 	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles_;
 
 	ComPtr<ID3D12Resource> depthStencilResource_;
+	DepthStencilTexture defaultDepthStencilTexture_;
 
 	ComPtr<ID3D12CommandAllocator> commandAllocator_;
 	ComPtr<ID3D12GraphicsCommandList> commandList_;
@@ -64,11 +101,16 @@ private:
 	uint32_t descriptorSizeRTV = 0;
 	uint32_t descriptorSizeDSV = 0;
 
+	uint32_t currentDSVIndex_ = 0;
+
+	ShaderResourceViewManager* srvManager_ = nullptr;
+
 	// メンバ関数
 	//------------------------------------------------------------------------
 	// 初期化関連
 	//------------------------------------------------------------------------
-	static void EnableDebugLayer();
+	static
+	void EnableDebugLayer();
 	void CreateDevice();
 	void SetInfoQueueBreakOnSeverity() const;
 	void CreateCommandQueue();
@@ -124,7 +166,7 @@ public:
 
 	void SetFenceValue(const uint64_t newValue) {
 		fenceValue_ = newValue;
-	};
+	}
 
 	//------------------------------------------------------------------------
 	// 汎用関数
@@ -139,9 +181,11 @@ private:
 		ID3D12DescriptorHeap* descriptorHeap,
 		uint32_t descriptorSize, uint32_t index
 	);
+	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource(uint32_t width, uint32_t height, DXGI_FORMAT format) const;
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(
 		ID3D12DescriptorHeap* descriptorHeap,
 		uint32_t descriptorSize, uint32_t index
 	);
-	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource() const;
+
+	[[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE AllocateNewRTVHandle();
 };
