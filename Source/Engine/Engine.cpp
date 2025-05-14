@@ -64,9 +64,9 @@ void Engine::OnResize(const uint32_t width, const uint32_t height) {
 		DXGI_FORMAT_D32_FLOAT
 	);
 
-	offscreenRenderPassTargets_.pRTVs = &offscreenRTV_.rtvHandle;
+	offscreenRenderPassTargets_.pRTVs   = &offscreenRTV_.rtvHandle;
 	offscreenRenderPassTargets_.numRTVs = 1;
-	offscreenRenderPassTargets_.pDSV = &offscreenDSV_.handles.cpuHandle;
+	offscreenRenderPassTargets_.pDSV    = &offscreenDSV_.handles.cpuHandle;
 }
 
 void Engine::Init() {
@@ -186,14 +186,14 @@ void Engine::Init() {
 		DXGI_FORMAT_D32_FLOAT
 	);
 
-	offscreenRenderPassTargets_.pRTVs = &offscreenRTV_.rtvHandle;
-	offscreenRenderPassTargets_.numRTVs = 1;
-	offscreenRenderPassTargets_.pDSV = &offscreenDSV_.handles.cpuHandle;
-	offscreenRenderPassTargets_.clearColor = offscreenClearColor;
-	offscreenRenderPassTargets_.clearDepth = 1.0f;
+	offscreenRenderPassTargets_.pRTVs        = &offscreenRTV_.rtvHandle;
+	offscreenRenderPassTargets_.numRTVs      = 1;
+	offscreenRenderPassTargets_.pDSV         = &offscreenDSV_.handles.cpuHandle;
+	offscreenRenderPassTargets_.clearColor   = offscreenClearColor;
+	offscreenRenderPassTargets_.clearDepth   = 1.0f;
 	offscreenRenderPassTargets_.clearStencil = 0;
-	offscreenRenderPassTargets_.bClearColor = true;
-	offscreenRenderPassTargets_.bClearDepth = true;
+	offscreenRenderPassTargets_.bClearColor  = true;
+	offscreenRenderPassTargets_.bClearDepth  = true;
 
 	copyImagePass_ = std::make_unique<CopyImagePass>(renderer_->GetDevice());
 
@@ -281,7 +281,7 @@ void Engine::Update() {
 
 		{
 			static ImVec4 tint = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-			static ImVec4 bg = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+			static ImVec4 bg   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 
 			ImGui::Begin("testColor");
 			ImGui::ColorEdit4("Tint", reinterpret_cast<float*>(&tint));
@@ -290,8 +290,8 @@ void Engine::Update() {
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 			ImGui::Begin("ViewPort", nullptr, ImGuiWindowFlags_NoBackground);
-			ImVec2 avail = ImGui::GetContentRegionAvail();
-			const auto ptr = offscreenRTV_.srvHandles.gpuHandle.ptr;
+			ImVec2     avail = ImGui::GetContentRegionAvail();
+			const auto ptr   = offscreenRTV_.srvHandles.gpuHandle.ptr;
 			if (ptr) {
 				const ImTextureID texId = offscreenRTV_.srvHandles.gpuHandle.ptr;
 
@@ -317,6 +317,8 @@ void Engine::Update() {
 	Console::Update();
 	DebugHud::Update();
 #endif
+
+	offscreenRenderPassTargets_.bClearColor = ConVarManager::GetConVar("r_clear")->GetValueAsBool();
 
 	InputSystem::Update();
 
@@ -349,11 +351,11 @@ void Engine::Update() {
 
 	// バリアを設定
 	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = offscreenRTV_.rtv.Get();
+	barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource   = offscreenRTV_.rtv.Get();
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
 	renderer_->GetCommandList()->ResourceBarrier(1, &barrier);
@@ -371,7 +373,7 @@ void Engine::Update() {
 
 	// バリアを元に戻す
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	renderer_->GetCommandList()->ResourceBarrier(1, &barrier);
 
@@ -468,8 +470,8 @@ void Engine::CheckEditorMode() {
 	}
 }
 
-bool Engine::bWishShutdown_ = false;
-std::unique_ptr<D3D12> Engine::renderer_;
+bool                             Engine::bWishShutdown_ = false;
+std::unique_ptr<D3D12>           Engine::renderer_;
 std::unique_ptr<ResourceManager> Engine::resourceManager_;
 std::unique_ptr<ParticleManager> Engine::particleManager_;
 

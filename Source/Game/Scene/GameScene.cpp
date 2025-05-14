@@ -177,33 +177,33 @@ void GameScene::Update(const float deltaTime) {
 
 	ImGui::End();
 
-	for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
-		if (triangle.GetCenter().Distance(
-			camera_->GetTransform()->GetWorldPos()) < Math::HtoM(1024.0f)) {
-			Triangle tri = triangle;
-			for (int i = 0; i < 3; ++i) {
-				float distance = triangle.GetCenter().Distance(
-					camera_->GetTransform()->GetWorldPos());
-				float progress = std::clamp(
-					(distance - Math::HtoM(512.0f)) / 10.0f, 0.0f, 1.0f);
-				tri.SetVertex(
-					i,
-					Math::Lerp(
-						tri.GetVertex(i),
-						triangle.GetCenter() + triangle.GetNormal(),
-						Math::CubicBezier(
-							progress,
-							controlPoints[0],
-							controlPoints[1],
-							controlPoints[2],
-							controlPoints[3]
-						)
-					)
-				);
-			}
-			Debug::DrawTriangle(tri, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
-		}
-	}
+	// for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
+	// 	if (triangle.GetCenter().Distance(
+	// 		camera_->GetTransform()->GetWorldPos()) < Math::HtoM(1024.0f)) {
+	// 		Triangle tri = triangle;
+	// 		for (int i = 0; i < 3; ++i) {
+	// 			float distance = triangle.GetCenter().Distance(
+	// 				camera_->GetTransform()->GetWorldPos());
+	// 			float progress = std::clamp(
+	// 				(distance - Math::HtoM(512.0f)) / 10.0f, 0.0f, 1.0f);
+	// 			tri.SetVertex(
+	// 				i,
+	// 				Math::Lerp(
+	// 					tri.GetVertex(i),
+	// 					triangle.GetCenter() + triangle.GetNormal(),
+	// 					Math::CubicBezier(
+	// 						progress,
+	// 						controlPoints[0],
+	// 						controlPoints[1],
+	// 						controlPoints[2],
+	// 						controlPoints[3]
+	// 					)
+	// 				)
+	// 			);
+	// 		}
+	// 		Debug::DrawTriangle(tri, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
+	// 	}
+	// }
 
 	cameraRoot_->GetTransform()->SetWorldPos(playerMovement_->GetHeadPos());
 	cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
