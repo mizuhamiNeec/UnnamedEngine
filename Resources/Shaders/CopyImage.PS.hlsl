@@ -107,7 +107,7 @@ PixelShaderOutput main(VertexShaderOutput input) : SV_TARGET {
 	float4 bloomCombined = srcColor + bloom * bloomStrength;
 	bloomCombined.a = srcColor.a;
 
-	// クロマティックアベレーション
+	// 色収差
 	float aberrationStrength = chromaticAberrationStrength;
 	float3 aberrationColor = ChromaticAberration(gTexture, gSampler, input.texcoord, texelSize, aberrationStrength);
 

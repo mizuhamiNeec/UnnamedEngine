@@ -22,6 +22,7 @@
 
 #include "Components/ColliderComponent/BoxColliderComponent.h"
 #include "Components/ColliderComponent/MeshColliderComponent.h"
+#include "CubeMap/CubeMap.h"
 
 #include "Particle/ParticleEmitter.h"
 #include "Particle/WindEffect.h"
@@ -45,22 +46,24 @@ private:
 
 	std::unique_ptr<Sprite> sprite_;
 
-	std::unique_ptr<Entity> cameraRoot_;
-	CameraRotator* cameraRotator_ = nullptr;
+	std::unique_ptr<CubeMap> cubeMap_;
 
-	std::unique_ptr<Entity> camera_;
+	std::unique_ptr<Entity> cameraRoot_;
+	CameraRotator*          cameraRotator_ = nullptr;
+
+	std::unique_ptr<Entity>          camera_;
 	std::shared_ptr<CameraComponent> cameraComponent_;
 
-	std::unique_ptr<Entity> entPlayer_;
-	std::shared_ptr<PlayerMovement> playerMovement_;
+	std::unique_ptr<Entity>               entPlayer_;
+	std::shared_ptr<PlayerMovement>       playerMovement_;
 	std::shared_ptr<BoxColliderComponent> playerCollider_;
 
-	std::unique_ptr<Entity> entTestMesh_;
+	std::unique_ptr<Entity>             entTestMesh_;
 	std::shared_ptr<StaticMeshRenderer> smrTestMesh_;
-	StaticMesh* debugMesh = nullptr;
+	StaticMesh*                         debugMesh = nullptr;
 
-	std::unique_ptr<Entity> debugTestMeshEntity_;
-	std::shared_ptr<StaticMeshRenderer> debugTestMR_;
+	std::unique_ptr<Entity>                debugTestMeshEntity_;
+	std::shared_ptr<StaticMeshRenderer>    debugTestMR_;
 	std::shared_ptr<MeshColliderComponent> debugTestMeshCollider_;
 
 	std::vector<Triangle> worldMesh_;
@@ -68,7 +71,7 @@ private:
 	std::unique_ptr<PhysicsEngine> physicsEngine_;
 
 	std::unique_ptr<ParticleEmitter> mParticleEmitter;
-	std::unique_ptr<ParticleObject> mParticleObject;
+	std::unique_ptr<ParticleObject>  mParticleObject;
 
 	std::unique_ptr<WindEffect> windEffect_;
 };

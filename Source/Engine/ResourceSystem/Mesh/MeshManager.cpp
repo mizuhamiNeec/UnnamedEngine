@@ -206,8 +206,12 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh* mesh, const aiScene* scene, Stat
 		}
 
 		//material->SetTexture("envMap", TextureManager::GetErrorTexture().get());
-		if (Texture* texture = textureManager_->GetTexture("./Resources/Textures/kloofendal_48d_partly_cloudy_puresky_2k.png").get()) {
-			material->SetTexture("envMap", texture);
+		//if (Texture* texture = textureManager_->GetTexture("./Resources/Textures/kloofendal_48d_partly_cloudy_puresky_2k.png").get()) {
+		//	material->SetTexture("envMap", texture);
+		//}
+
+		if (Texture* texture = textureManager_->GetTexture("./Resources/Textures/wave.dds").get()) {
+			material->SetTexture("gEnvironmentTexture", texture);
 		}
 	}
 

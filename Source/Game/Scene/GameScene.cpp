@@ -23,7 +23,9 @@
 #include "ImGuiManager/ImGuiWidgets.h"
 
 void GameScene::Init() {
-	size_t workerCount = (std::thread::hardware_concurrency() > 1) ? std::thread::hardware_concurrency() - 1 : 1;
+	size_t workerCount = (std::thread::hardware_concurrency() > 1)
+		                     ? std::thread::hardware_concurrency() - 1
+		                     : 1;
 	JobSystem jobSystem("AssetLoad", workerCount);
 
 	AssetManager assetManager(jobSystem);
@@ -33,7 +35,8 @@ void GameScene::Init() {
 	for (int i = 0; i < 10; ++i) {
 		auto textureFuture = jobSystem.SubmitJob(
 			0, [&assetManager, i]() -> std::shared_ptr<TextureAsset> {
-				return assetManager.LoadAsset<TextureAsset>("texture" + std::to_string(i));
+				return assetManager.LoadAsset<TextureAsset>(
+					"texture" + std::to_string(i));
 			}
 		);
 
@@ -45,28 +48,35 @@ void GameScene::Init() {
 
 	assetManager.PrintCacheStatus();
 
-	renderer_ = Engine::GetRenderer();
+	renderer_        = Engine::GetRenderer();
 	resourceManager_ = Engine::GetResourceManager();
 
 #pragma region テクスチャ読み込み
+	resourceManager_->GetTextureManager()->GetTexture(
+		"./Resources/Textures/wave.dds");
 #pragma endregion
 
 #pragma region スプライト類
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
-	resourceManager_->GetMeshManager()->LoadMeshFromFile("./Resources/Models/reflectionTest.obj");
+	resourceManager_->GetMeshManager()->LoadMeshFromFile(
+		"./Resources/Models/reflectionTest.obj");
+
+	cubeMap_ = std::make_unique<CubeMap>(renderer_->GetDevice());
 #pragma endregion
 
 #pragma region パーティクル類
 	// パーティクルグループの作成
-	Engine::GetParticleManager()->CreateParticleGroup("wind", "./Resources/Textures/circle.png");
+	Engine::GetParticleManager()->CreateParticleGroup(
+		"wind", "./Resources/Textures/circle.png");
 
 	mParticleEmitter = std::make_unique<ParticleEmitter>();
 	mParticleEmitter->Init(Engine::GetParticleManager(), "wind");
 
 	mParticleObject = std::make_unique<ParticleObject>();
-	mParticleObject->Init(Engine::GetParticleManager(), "./Resources/Textures/circle.png");
+	mParticleObject->Init(Engine::GetParticleManager(),
+	                      "./Resources/Textures/circle.png");
 
 #pragma endregion
 
@@ -94,12 +104,14 @@ void GameScene::Init() {
 	// プレイヤー
 	entPlayer_ = std::make_unique<Entity>("player");
 	entPlayer_->GetTransform()->SetLocalPos(Vec3::up * 4.0f); // 1m上に配置
-	PlayerMovement* rawPlayerMovement = entPlayer_->AddComponent<PlayerMovement>();
+	PlayerMovement* rawPlayerMovement = entPlayer_->AddComponent<
+		PlayerMovement>();
 	playerMovement_ = std::shared_ptr<PlayerMovement>(
 		rawPlayerMovement, [](PlayerMovement*) {
 		}
 	);
-	BoxColliderComponent* rawPlayerCollider = entPlayer_->AddComponent<BoxColliderComponent>();
+	BoxColliderComponent* rawPlayerCollider = entPlayer_->AddComponent<
+		BoxColliderComponent>();
 	playerCollider_ = std::shared_ptr<BoxColliderComponent>(
 		rawPlayerCollider, [](BoxColliderComponent*) {
 		}
@@ -113,13 +125,16 @@ void GameScene::Init() {
 	windEffect_->Init(Engine::GetParticleManager(), playerMovement_.get());
 
 	// テスト用メッシュ
-	entTestMesh_ = std::make_unique<Entity>("testMesh");
-	StaticMeshRenderer* smRenderer = entTestMesh_->AddComponent<StaticMeshRenderer>();
+	entTestMesh_                   = std::make_unique<Entity>("testMesh");
+	StaticMeshRenderer* smRenderer = entTestMesh_->AddComponent<
+		StaticMeshRenderer>();
 	smrTestMesh_ = std::shared_ptr<StaticMeshRenderer>(
 		smRenderer, [](StaticMeshRenderer*) {
 		}
 	);
-	smRenderer->SetStaticMesh(resourceManager_->GetMeshManager()->GetStaticMesh("./Resources/Models/reflectionTest.obj"));
+	smRenderer->SetStaticMesh(
+		resourceManager_->GetMeshManager()->GetStaticMesh(
+			"./Resources/Models/reflectionTest.obj"));
 	entTestMesh_->AddComponent<MeshColliderComponent>();
 	AddEntity(entTestMesh_.get());
 
@@ -157,16 +172,20 @@ void GameScene::Update(const float deltaTime) {
 	ImGuiWidgets::DragVec3("hello Vec4", test, 0.01f, "X %.2f m/s");
 	ImGui::DragFloat3("Hello Vec4", &test.x, 0.01f, 0.0f, 1.0f);
 
-	ImGuiWidgets::EditCubicBezier("mesh", controlPoints[0], controlPoints[1], controlPoints[2], controlPoints[3]);
+	ImGuiWidgets::EditCubicBezier("mesh", controlPoints[0], controlPoints[1],
+	                              controlPoints[2], controlPoints[3]);
 
 	ImGui::End();
 
 	for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
-		if (triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos()) < Math::HtoM(1024.0f)) {
+		if (triangle.GetCenter().Distance(
+			camera_->GetTransform()->GetWorldPos()) < Math::HtoM(1024.0f)) {
 			Triangle tri = triangle;
 			for (int i = 0; i < 3; ++i) {
-				float distance = triangle.GetCenter().Distance(camera_->GetTransform()->GetWorldPos());
-				float progress = std::clamp((distance - Math::HtoM(512.0f)) / 10.0f, 0.0f, 1.0f);
+				float distance = triangle.GetCenter().Distance(
+					camera_->GetTransform()->GetWorldPos());
+				float progress = std::clamp(
+					(distance - Math::HtoM(512.0f)) / 10.0f, 0.0f, 1.0f);
 				tri.SetVertex(
 					i,
 					Math::Lerp(
@@ -196,7 +215,8 @@ void GameScene::Update(const float deltaTime) {
 
 #ifdef _DEBUG
 #pragma region cl_showpos
-	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() != "0") {
+	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() !=
+		"0") {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 		constexpr ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -208,16 +228,17 @@ void GameScene::Update(const float deltaTime) {
 			ImGuiWindowFlags_NoFocusOnAppearing |
 			ImGuiWindowFlags_NoNav;
 		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
-		windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
-		windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
+		windowPos.x      = ImGui::GetMainViewport()->Pos.x + windowPos.x;
+		windowPos.y      = ImGui::GetMainViewport()->Pos.y + windowPos.y;
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
 		Mat4 invViewMat = Mat4::identity;
 		if (CameraManager::GetActiveCamera()) {
-			invViewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
+			invViewMat = CameraManager::GetActiveCamera()->GetViewMat().
+				Inverse();
 		}
 
-		Vec3 camPos = invViewMat.GetTranslate();
+		Vec3       camPos = invViewMat.GetTranslate();
 		const Vec3 camRot = invViewMat.ToQuaternion().ToEulerAngles();
 
 		// テキストのサイズを取得
@@ -240,14 +261,15 @@ void GameScene::Update(const float deltaTime) {
 		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
 
 		// ウィンドウサイズをテキストサイズに基づいて設定
-		ImVec2 windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f); // 余白を追加
+		ImVec2 windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f);
+		// 余白を追加
 		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
 
 		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
 
-		ImVec2 textPos = ImGui::GetCursorScreenPos();
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		float outlineSize = 1.0f;
+		ImVec2      textPos     = ImGui::GetCursorScreenPos();
+		ImDrawList* drawList    = ImGui::GetWindowDrawList();
+		float       outlineSize = 1.0f;
 
 		ImGuiManager::TextOutlined(
 			drawList,
@@ -273,6 +295,8 @@ void GameScene::Update(const float deltaTime) {
 	}
 
 	windEffect_->Update(EngineTimer::ScaledDelta());
+
+	cubeMap_->Update(deltaTime);
 }
 
 void GameScene::Render() {
@@ -281,6 +305,13 @@ void GameScene::Render() {
 	Engine::GetParticleManager()->Render();
 	mParticleObject->Draw();
 	windEffect_->Draw();
+
+	cubeMap_->Render(
+		renderer_->GetCommandList(),
+		resourceManager_->GetShaderResourceViewManager(),
+		resourceManager_->GetTextureManager()->GetTexture(
+			                "./Resources/Textures/wave.dds")
+		                ->GetResource());
 }
 
 void GameScene::Shutdown() {

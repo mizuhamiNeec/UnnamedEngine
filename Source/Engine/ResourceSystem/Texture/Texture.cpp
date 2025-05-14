@@ -19,9 +19,13 @@ bool Texture::LoadFromFile(
 	// テクスチャファイルを読み込んでプログラムで扱えるようにする
 	DirectX::ScratchImage image = {};
 	std::wstring filePathW = StrUtils::ToWString(filePath);
-	// TODO: 要検証
-	HRESULT hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
-	// 失敗した場合
+	HRESULT hr;
+	if (filePathW.ends_with(L".dds")) {
+		hr = DirectX::LoadFromDDSFile(filePathW.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
+	} else {
+		hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
+	}
+		// 失敗した場合
 	if (FAILED(hr)) {
 		Console::Print(std::format("テクスチャの読み込みに失敗しました: {}\n", filePath), kConTextColorError, Channel::ResourceSystem);
 		return false;
@@ -29,14 +33,18 @@ bool Texture::LoadFromFile(
 
 	// MipMapの作成 これがないと遠くから見たときにバリバリになる
 	DirectX::ScratchImage mipImages = {};
-	hr = GenerateMipMaps(
-		image.GetImages(),
-		image.GetImageCount(),
-		image.GetMetadata(),
-		DirectX::TEX_FILTER_SRGB,
-		0,
-		mipImages
-	);
+	if (DirectX::IsCompressed(image.GetMetadata().format)) {
+		mipImages = std::move(image);
+	} else {
+		hr = GenerateMipMaps(
+			image.GetImages(),
+			image.GetImageCount(),
+			image.GetMetadata(),
+			DirectX::TEX_FILTER_SRGB,
+			4,
+			mipImages
+		);
+	}
 
 	assert(SUCCEEDED(hr));
 
@@ -70,10 +78,18 @@ bool Texture::LoadFromFile(
 
 	// SRVを登録
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = metadata_.format; // フォーマット
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // 2Dテクスチャ
-	srvDesc.Texture2D.MipLevels = static_cast<UINT>(metadata_.mipLevels); // MipMapの数
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+	if (metadata_.IsCubemap()) {
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+		srvDesc.TextureCube.MostDetailedMip = 0; // unionがTextureCubeになったが、内部パラメータの意味はTexture2Dと変わらない
+		srvDesc.TextureCube.MipLevels = UINT_MAX;
+		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+	} else {
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // 2Dテクスチャ
+		srvDesc.Texture2D.MipLevels = static_cast<UINT>(metadata_.mipLevels); // MipMapの数
+	}
 
 	auto handles = shaderResourceViewManager->RegisterShaderResourceView(
 		textureResource_.Get(), srvDesc
