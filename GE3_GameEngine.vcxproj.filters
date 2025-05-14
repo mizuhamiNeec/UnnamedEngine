@@ -601,6 +601,8 @@
     <ClInclude Include="Source\Engine\SrvManager.h" />
     <ClInclude Include="Source\Engine\TextureManager\TexManager.h" />
     <ClInclude Include="Source\Engine\Particle\WindEffect.h" />
+    <ClInclude Include="Source\Engine\CopyImagePass\CopyImagePass.h" />
+    <ClInclude Include="Source\Engine\CubeMap\CubeMap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -900,6 +902,8 @@
     <ClCompile Include="Source\Engine\SrvManager.cpp" />
     <ClCompile Include="Source\Engine\TextureManager\TexManager.cpp" />
     <ClCompile Include="Source\Engine\Particle\WindEffect.cpp" />
+    <ClCompile Include="Source\Engine\CopyImagePass\CopyImagePass.cpp" />
+    <ClCompile Include="Source\Engine\CubeMap\CubeMap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
