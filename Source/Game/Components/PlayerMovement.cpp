@@ -34,7 +34,7 @@ void PlayerMovement::OnAttach(Entity& owner) {
 	// トランスフォームコンポーネントを取得
 	transform_ = owner_->GetTransform();
 
-	mSpeed   = 350.0f;
+	mSpeed   = 290.0f;
 	mJumpVel = 350.0f;
 
 	// Console::SubmitCommand("sv_gravity 0");

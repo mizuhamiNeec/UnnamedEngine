@@ -90,7 +90,7 @@ void CopyImagePass::Execute(
 
 	// 3. SRVをルートテーブルにバインド
 	commandList->SetGraphicsRootDescriptorTable(0, handles.gpuHandle); // SRV
-
+	//
 	commandList->SetGraphicsRootConstantBufferView(1, postProcessParamsCB_->GetGPUVirtualAddress()); // CBV
 
 	// フルスクリーン三角形の頂点バッファ: ここは外部でセットでも可
