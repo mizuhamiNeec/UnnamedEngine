@@ -39,7 +39,6 @@ void MaterialManager::Shutdown() {
 			Channel::ResourceSystem
 		);
 		material.second->Shutdown();
-		material.second.release();
 	}
 
 	PipelineManager::Shutdown();

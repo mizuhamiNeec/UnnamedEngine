@@ -361,15 +361,12 @@ void ParticleObject::Draw() const {
 void ParticleObject::Shutdown() {
 	if (materialResource_) {
 		materialResource_.reset();
-		materialResource_.release();
 	}
 	if (instancingResource_) {
 		instancingResource_.reset();
-		instancingResource_.release();
 	}
 	if (indexBuffer_) {
 		indexBuffer_.reset();
-		indexBuffer_.release();
 	}
 }
 

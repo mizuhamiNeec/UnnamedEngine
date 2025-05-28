@@ -268,6 +268,7 @@ void TexManager::LoadTexture(const std::string& filePath) {
 
 	// ここまで来たら転送は終わっているので、intermediateResourceはReleaseしても良い
 	intermediateResource.Reset();
+	intermediateResource.ReleaseAndGetAddressOf();
 
 	// SRV確保
 	textureData.srvIndex     = srvManager_->Allocate();

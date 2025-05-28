@@ -83,12 +83,12 @@ void GameScene::Init() {
 	Engine::GetParticleManager()->CreateParticleGroup(
 		"wind", "./Resources/Textures/circle.png");
 
-	//mParticleEmitter = std::make_unique<ParticleEmitter>();
-	//mParticleEmitter->Init(Engine::GetParticleManager(), "wind");
+	mParticleEmitter = std::make_unique<ParticleEmitter>();
+	mParticleEmitter->Init(Engine::GetParticleManager(), "wind");
 
-	// mParticleObject = std::make_unique<ParticleObject>();
-	// mParticleObject->Init(Engine::GetParticleManager(),
-	//                       "./Resources/Textures/circle.png");
+	mParticleObject = std::make_unique<ParticleObject>();
+	mParticleObject->Init(Engine::GetParticleManager(),
+	                      "./Resources/Textures/circle.png");
 
 #pragma endregion
 
@@ -133,8 +133,8 @@ void GameScene::Init() {
 	AddEntity(entPlayer_.get());
 
 	// 風
-	//windEffect_ = std::make_unique<WindEffect>();
-	//windEffect_->Init(Engine::GetParticleManager(), playerMovement_.get());
+	windEffect_ = std::make_unique<WindEffect>();
+	windEffect_->Init(Engine::GetParticleManager(), playerMovement_.get());
 
 	// テスト用メッシュ
 	entTestMesh_                   = std::make_unique<Entity>("testMesh");
@@ -259,13 +259,13 @@ void GameScene::Update(const float deltaTime) {
 #endif
 
 	Engine::GetParticleManager()->Update(deltaTime);
-	//mParticleEmitter->Update(deltaTime);
+	mParticleEmitter->Update(deltaTime);
 
 	if (InputSystem::IsTriggered("attack1")) {
 		//mParticleEmitter->Emit();
 	}
 
-	//windEffect_->Update(EngineTimer::ScaledDelta());
+	windEffect_->Update(EngineTimer::ScaledDelta());
 
 	cubeMap_->Update(deltaTime);
 }
@@ -274,8 +274,8 @@ void GameScene::Render() {
 	entTestMesh_->Render(renderer_->GetCommandList());
 
 	Engine::GetParticleManager()->Render();
-	//mParticleObject->Draw();
-	//windEffect_->Draw();
+	mParticleObject->Draw();
+	windEffect_->Draw();
 
 	cubeMap_->Render(
 		renderer_->GetCommandList(),

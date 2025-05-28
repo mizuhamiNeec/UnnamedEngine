@@ -8,7 +8,6 @@ WindEffect::~WindEffect() {
 	if (mWindParticle) {
 		mWindParticle->Shutdown();
 		mWindParticle.reset();
-		mWindParticle.release();
 	}
 }
 
@@ -16,73 +15,73 @@ void WindEffect::Init([[maybe_unused]] ParticleManager* particleManager,
                       PlayerMovement*                   playerMovement) {
 	mPlayerMovement = playerMovement;
 
-	// // 風パーティクル用のオブジェクト初期化
-	// mWindParticle = std::make_unique<ParticleObject>();
-	// mWindParticle->Init(particleManager, "./Resources/Textures/circle.png");
+	// 風パーティクル用のオブジェクト初期化
+	mWindParticle = std::make_unique<ParticleObject>();
+	mWindParticle->Init(particleManager, "./Resources/Textures/circle.png");
 }
 
 void WindEffect::Update([[maybe_unused]] const float deltaTime) {
-	// if (!mPlayerMovement || !mWindParticle) {
-	// 	return;
-	// }
-	//
-	// // プレイヤーの速度ベクトル
-	// Vec3  playerVelocity = mPlayerMovement->GetVelocity();
-	// float playerSpeed    = playerVelocity.Length();
-	//
-	// // 速度が閾値を超えている場合のみエフェクトを表示
-	// if (playerSpeed > mSpeedThreshold) {
-	// 	// 速度に基づいてエミッション率を計算
-	// 	float speedFactor = (std::min)(
-	// 		(playerSpeed - mSpeedThreshold) / (mMaxEffectSpeed -
-	// 			mSpeedThreshold), 1.0f);
-	// 	float currentEmissionRate = mMinEmissionRate + speedFactor * (
-	// 		mMaxEmissionRate - mMinEmissionRate);
-	//
-	// 	// エミッションタイマーを更新
-	// 	mEmissionTimer += deltaTime;
-	//
-	// 	// 次のエミッションまでの時間を計算
-	// 	float emissionInterval = 1.0f / currentEmissionRate;
-	//
-	// 	// 時間が経過したらパーティクルを放出
-	// 	if (mEmissionTimer >= emissionInterval) {
-	// 		mEmissionTimer = 0.0f;
-	//
-	// 		// 進行方向から来るように位置生成
-	// 		Vec3 spawnPosition = GetRandomPositionInPlayerDirection();
-	//
-	// 		// パーティクルの速度をプレイヤーの進行方向に合わせる（見た目上、進行方向から"風が来る"状態）
-	// 		Vec3 particleVelocity = -playerVelocity.Normalized();
-	//
-	// 		// 速度に応じてパーティクルの速さを変更
-	// 		float particleSpeed = mMinSpeed + speedFactor * (mMaxSpeed -
-	// 			mMinSpeed);
-	//
-	// 		// 放出するパーティクルの数（速度が速いほど多く）
-	// 		uint32_t particleCount = static_cast<uint32_t>(1 + speedFactor * 3);
-	//
-	// 		// パーティクルを放出
-	// 		mWindParticle->EmitParticlesAtPosition(
-	// 			spawnPosition,                    // 位置
-	// 			0,                                // シェイプタイプ（球体）
-	// 			30.0f,                            // コーン角度
-	// 			Vec3(0.1f, 0.1f, 0.1f),           // 抵抗
-	// 			Vec3::zero,                       // 重力なし
-	// 			particleVelocity * particleSpeed, // 速度
-	// 			particleCount                     // 放出数
-	// 		);
-	// 	}
-	// }
-	//
-	// // パーティクルの更新
-	// mWindParticle->Update(deltaTime);
+	if (!mPlayerMovement || !mWindParticle) {
+		return;
+	}
+
+	// プレイヤーの速度ベクトル
+	Vec3  playerVelocity = mPlayerMovement->GetVelocity();
+	float playerSpeed    = playerVelocity.Length();
+
+	// 速度が閾値を超えている場合のみエフェクトを表示
+	if (playerSpeed > mSpeedThreshold) {
+		// 速度に基づいてエミッション率を計算
+		float speedFactor = (std::min)(
+			(playerSpeed - mSpeedThreshold) / (mMaxEffectSpeed -
+				mSpeedThreshold), 1.0f);
+		float currentEmissionRate = mMinEmissionRate + speedFactor * (
+			mMaxEmissionRate - mMinEmissionRate);
+
+		// エミッションタイマーを更新
+		mEmissionTimer += deltaTime;
+
+		// 次のエミッションまでの時間を計算
+		float emissionInterval = 1.0f / currentEmissionRate;
+
+		// 時間が経過したらパーティクルを放出
+		if (mEmissionTimer >= emissionInterval) {
+			mEmissionTimer = 0.0f;
+
+			// 進行方向から来るように位置生成
+			Vec3 spawnPosition = GetRandomPositionInPlayerDirection();
+
+			// パーティクルの速度をプレイヤーの進行方向に合わせる（見た目上、進行方向から"風が来る"状態）
+			Vec3 particleVelocity = -playerVelocity.Normalized();
+
+			// 速度に応じてパーティクルの速さを変更
+			float particleSpeed = mMinSpeed + speedFactor * (mMaxSpeed -
+				mMinSpeed);
+
+			// 放出するパーティクルの数（速度が速いほど多く）
+			uint32_t particleCount = static_cast<uint32_t>(1 + speedFactor * 3);
+
+			// パーティクルを放出
+			mWindParticle->EmitParticlesAtPosition(
+				spawnPosition,                    // 位置
+				0,                                // シェイプタイプ（球体）
+				30.0f,                            // コーン角度
+				Vec3(0.1f, 0.1f, 0.1f),           // 抵抗
+				Vec3::zero,                       // 重力なし
+				particleVelocity * particleSpeed, // 速度
+				particleCount                     // 放出数
+			);
+		}
+	}
+
+	// パーティクルの更新
+	mWindParticle->Update(deltaTime);
 }
 
 void WindEffect::Draw() const {
-	// if (mWindParticle) {
-	// 	mWindParticle->Draw();
-	// }
+	if (mWindParticle) {
+		mWindParticle->Draw();
+	}
 }
 
 Vec3 WindEffect::GetRandomPositionInPlayerDirection() const {

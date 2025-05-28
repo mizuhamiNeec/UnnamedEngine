@@ -72,10 +72,13 @@ PixelShaderOutput PSMain(VertexShaderOutput input) {
 	static const float environmentIntensity = 4.0f;
 
 	// IBL
-	float3 irradiance = gEnvironmentTexture.Sample(gSampler, N).rgb *
+	float3      irradiance         = gEnvironmentTexture.Sample(gSampler, N).rgb *
 		environmentIntensity;
-	float3 prefiltered = gEnvironmentTexture.Sample(gSampler, R).rgb *
-		environmentIntensity;
+
+	const float MAX_REFLECTION_LOD = 4.0f; 
+	float       mipLevel           = roughness * MAX_REFLECTION_LOD;
+	float3      prefiltered        = gEnvironmentTexture.SampleLevel(gSampler, R, mipLevel).rgb *
+	 environmentIntensity;
 
 	float3 diffuseIBL  = irradiance * baseColor.rgb * (1.0 - metallic);
 	float3 specularIBL = prefiltered * F0;

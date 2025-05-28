@@ -95,8 +95,9 @@ void Engine::Init() {
 	renderer_ = std::make_unique<D3D12>(wm_->GetMainWindow());
 
 	wm_->GetMainWindow()->SetResizeCallback(
-		[this](const uint32_t width, const uint32_t height) {
-			OnResize(width, height);
+		[this]([[maybe_unused]] const uint32_t width,
+		       [[maybe_unused]] const uint32_t height) {
+			OnResize(width, height); // TODO: RenderPassまわりでエラーが出るので一旦コメントアウト
 		}
 	);
 
@@ -347,6 +348,7 @@ void Engine::Shutdown() const {
 	TexManager::GetInstance()->Shutdown();
 
 	particleManager_->Shutdown();
+	particleManager_.reset();
 
 	renderer_->Shutdown();
 
@@ -356,6 +358,7 @@ void Engine::Shutdown() const {
 	}
 #endif
 	resourceManager_->Shutdown();
+	resourceManager_.reset();
 }
 
 void Engine::RegisterConsoleCommandsAndVariables() {

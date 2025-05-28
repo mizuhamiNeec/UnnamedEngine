@@ -82,7 +82,7 @@ void Entity::SetParent(Entity* newParent) {
 	while (check) {
 		if (check == this) {
 			Console::Print(std::format("Entity '{}': Circular parenting detected!", name_),
-				Vec4(1, 0, 0, 1), Channel::General);
+			               Vec4(1, 0, 0, 1), Channel::General);
 			return;
 		}
 		check = check->parent_;

@@ -62,9 +62,11 @@ private:
 
 	std::unique_ptr<Entity> debugTestMeshEntity_;
 
-	std::unique_ptr<PhysicsEngine> physicsEngine_;
+	std::unique_ptr<PhysicsEngine>  physicsEngine_;
 
-	//std::unique_ptr<ParticleEmitter> mParticleEmitter;
+	std::unique_ptr<ParticleEmitter> mParticleEmitter;
 
+	std::unique_ptr<ParticleObject> mParticleObject;
+	
 	std::unique_ptr<WindEffect> windEffect_;
 };
