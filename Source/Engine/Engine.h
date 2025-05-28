@@ -5,7 +5,6 @@
 #include <Lib/Timer/EngineTimer.h>
 #include <Line/LineCommon.h>
 #include <Model/ModelCommon.h>
-#include <Renderer/AbstractionLayer/Base/BaseRenderer.h>
 #include <ResourceSystem/Manager/ResourceManager.h>
 #include <Scene/Base/BaseScene.h>
 #include <SceneManager/SceneFactory.h>
@@ -54,40 +53,38 @@ private:
 	void CheckEditorMode();
 
 	std::unique_ptr<WindowManager> wm_;
-	static std::unique_ptr<D3D12>  renderer_;
+
+	std::unique_ptr<SrvManager>             srvManager_;
+	static std::unique_ptr<ResourceManager> resourceManager_;
+
+	std::unique_ptr<EngineTimer> time_;
+
+	static std::unique_ptr<D3D12> renderer_;
+#ifdef _DEBUG
+	std::unique_ptr<ImGuiManager> imGuiManager_;
+#endif
+	static std::unique_ptr<ParticleManager> particleManager_;
+
+	std::unique_ptr<CopyImagePass> copyImagePass_;
+
+	std::unique_ptr<SpriteCommon>   spriteCommon_;
+	std::unique_ptr<Object3DCommon> object3DCommon_;
+	std::unique_ptr<ModelCommon>    modelCommon_;
+	std::unique_ptr<LineCommon>     lineCommon_;
+
+	std::unique_ptr<SceneFactory> sceneFactory_;
+	std::shared_ptr<SceneManager> sceneManager_;
+
+	std::unique_ptr<Editor> editor_; // エディター
+
+	std::unique_ptr<Console> console_;
 
 	RenderTargetTexture offscreenRTV_;
 	DepthStencilTexture offscreenDSV_;
 	RenderPassTargets   offscreenRenderPassTargets_;
 
-	std::unique_ptr<CopyImagePass> copyImagePass_;
 
-	RendererInitInfo              rendererInitInfo_;
-	std::unique_ptr<BaseRenderer> testRenderer_;
-
-	static std::unique_ptr<ResourceManager> resourceManager_;
-
-	std::unique_ptr<EngineTimer> time_;
-
-	std::unique_ptr<SpriteCommon>           spriteCommon_;
-	static std::unique_ptr<ParticleManager> particleManager_;
-	std::unique_ptr<Object3DCommon>         object3DCommon_;
-	std::unique_ptr<ModelCommon>            modelCommon_;
-	std::unique_ptr<LineCommon>             lineCommon_;
-
-	std::unique_ptr<SrvManager> srvManager_;
-
-	std::unique_ptr<SceneFactory> sceneFactory_;
-	std::shared_ptr<SceneManager> sceneManager_;
-
-	std::unique_ptr<Editor> editor_;        // エディター
-	static bool             bIsEditorMode_; // エディターモードか?
+	static bool bIsEditorMode_; // エディターモードか?
 
 	static bool bWishShutdown_; // 終了したいか?
-
-	std::unique_ptr<Console> console_;
-
-#ifdef _DEBUG
-	std::unique_ptr<ImGuiManager> imGuiManager_;
-#endif
 };

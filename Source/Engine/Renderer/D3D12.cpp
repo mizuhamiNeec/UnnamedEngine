@@ -20,7 +20,7 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxcompiler.lib")
 
-constexpr Vec4 kClearColorSwapChain = {0.0f, 0.0f, 0.0f, 1.0f};
+constexpr Vec4 kClearColorSwapChain = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 D3D12::D3D12(BaseWindow* window) : window_(window) {
 #ifdef _DEBUG
@@ -122,6 +122,12 @@ void D3D12::Shutdown() {
 		fence_.Reset();
 	}
 
+
+	// コマンドキューの解放
+	if (commandQueue_) {
+		commandQueue_.Reset();
+	}
+
 	// スワップチェーンの解放
 	if (swapChain_) {
 		BOOL isFullScreen = FALSE;
@@ -130,11 +136,6 @@ void D3D12::Shutdown() {
 			swapChain_->SetFullscreenState(FALSE, nullptr);
 		}
 		swapChain_.Reset();
-	}
-
-	// コマンドキューの解放
-	if (commandQueue_) {
-		commandQueue_.Reset();
 	}
 
 	// DXGIファクトリーの解放
@@ -396,8 +397,8 @@ void D3D12::CreateDevice() {
 	// ハードウェアアダプタの検索
 	ComPtr<IDXGIAdapter4> useAdapter;
 	for (UINT i = 0; dxgiFactory_->EnumAdapterByGpuPreference(
-		     i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&useAdapter)
-	     ) != DXGI_ERROR_NOT_FOUND; ++i) {
+		i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&useAdapter)
+	) != DXGI_ERROR_NOT_FOUND; ++i) {
 		DXGI_ADAPTER_DESC3 adapterDesc;
 		hr = useAdapter->GetDesc3(&adapterDesc);
 		assert(SUCCEEDED(hr));
@@ -419,7 +420,7 @@ void D3D12::CreateDevice() {
 		D3D_FEATURE_LEVEL_11_1,
 		D3D_FEATURE_LEVEL_11_0,
 	};
-	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0", "11.1", "11.0"};
+	const char* featureLevelStrings[] = { "12.2", "12.1", "12.0", "11.1", "11.0" };
 
 	// 高い順に生成できるか試していく
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
@@ -434,6 +435,8 @@ void D3D12::CreateDevice() {
 		device_ = nullptr;
 	}
 	assert(device_ != nullptr); // デバイスの生成がうまくいかなかったので起動できない
+
+	device_->SetName(L"DX12Device");
 }
 
 void D3D12::SetInfoQueueBreakOnSeverity() const {
@@ -455,7 +458,7 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
+		D3D12_MESSAGE_SEVERITY severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		filter.DenyList.NumIDs = _countof(denyIds);
 		filter.DenyList.pIDList = denyIds;
@@ -478,6 +481,7 @@ void D3D12::CreateCommandQueue() {
 		Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
 		assert(SUCCEEDED(hr));
 	}
+	commandQueue_->SetName(L"DX12CommandQueue");
 }
 
 void D3D12::CreateSwapChain() {
@@ -509,8 +513,6 @@ void D3D12::CreateSwapChain() {
 		nullptr,
 		reinterpret_cast<IDXGISwapChain1**>(swapChain_.GetAddressOf())
 	);
-
-	//swapChain_->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
 
 	if (hr) {
 		Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
@@ -552,6 +554,8 @@ void D3D12::CreateRTV() {
 
 		rtvHandles_[i] = GetCPUDescriptorHandle(rtvDescriptorHeap_.Get(), descriptorSizeRTV, i);
 		device_->CreateRenderTargetView(renderTargets_[i].Get(), &rtvDesc, rtvHandles_[i]);
+
+		renderTargets_[i]->SetName(std::format(L"RenderTarget_{}", i).c_str());
 	}
 }
 

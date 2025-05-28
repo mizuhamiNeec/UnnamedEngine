@@ -22,31 +22,43 @@
 #include "Assets/Manager/AssetManager.h"
 #include "ImGuiManager/ImGuiWidgets.h"
 
+GameScene::~GameScene() {
+	resourceManager_ = nullptr;
+	spriteCommon_    = nullptr;
+	particleManager_ = nullptr;
+	object3DCommon_  = nullptr;
+	modelCommon_     = nullptr;
+	physicsEngine_   = nullptr;
+	timer_           = nullptr;
+}
+
 void GameScene::Init() {
-	size_t workerCount = (std::thread::hardware_concurrency() > 1)
-		                     ? std::thread::hardware_concurrency() - 1
-		                     : 1;
-	JobSystem jobSystem("AssetLoad", workerCount);
-
-	AssetManager assetManager(jobSystem);
-
-	std::shared_ptr<TextureAsset> texture;
-
-	for (int i = 0; i < 10; ++i) {
-		auto textureFuture = jobSystem.SubmitJob(
-			0, [&assetManager, i]() -> std::shared_ptr<TextureAsset> {
-				return assetManager.LoadAsset<TextureAsset>(
-					"texture" + std::to_string(i));
-			}
-		);
-
-		// なんかする
-		texture = textureFuture.get();
+	{
+		// size_t workerCount = (std::thread::hardware_concurrency() > 1)
+		// 	                     ? std::thread::hardware_concurrency() - 1
+		// 	                     : 1;
+		// JobSystem jobSystem("AssetLoad", workerCount);
+		//
+		// AssetManager assetManager(jobSystem);
+		//
+		// std::shared_ptr<TextureAsset> texture;
+		//
+		// for (int i = 0; i < 10; ++i) {
+		// 	auto textureFuture = jobSystem.SubmitJob(
+		// 		0, [&assetManager, i]() -> std::shared_ptr<TextureAsset> {
+		// 			return assetManager.LoadAsset<TextureAsset>(
+		// 				"texture" + std::to_string(i));
+		// 		}
+		// 	);
+		//
+		// 	// なんかする
+		// 	texture = textureFuture.get();
+		// }
+		//
+		// Console::Print("Loaded asset : " + texture->GetID());
+		//
+		// assetManager.PrintCacheStatus();
 	}
-
-	Console::Print("Loaded asset : " + texture->GetID());
-
-	assetManager.PrintCacheStatus();
 
 	renderer_        = Engine::GetRenderer();
 	resourceManager_ = Engine::GetResourceManager();
@@ -71,12 +83,12 @@ void GameScene::Init() {
 	Engine::GetParticleManager()->CreateParticleGroup(
 		"wind", "./Resources/Textures/circle.png");
 
-	mParticleEmitter = std::make_unique<ParticleEmitter>();
-	mParticleEmitter->Init(Engine::GetParticleManager(), "wind");
+	//mParticleEmitter = std::make_unique<ParticleEmitter>();
+	//mParticleEmitter->Init(Engine::GetParticleManager(), "wind");
 
-	mParticleObject = std::make_unique<ParticleObject>();
-	mParticleObject->Init(Engine::GetParticleManager(),
-	                      "./Resources/Textures/circle.png");
+	// mParticleObject = std::make_unique<ParticleObject>();
+	// mParticleObject->Init(Engine::GetParticleManager(),
+	//                       "./Resources/Textures/circle.png");
 
 #pragma endregion
 
@@ -121,8 +133,8 @@ void GameScene::Init() {
 	AddEntity(entPlayer_.get());
 
 	// 風
-	windEffect_ = std::make_unique<WindEffect>();
-	windEffect_->Init(Engine::GetParticleManager(), playerMovement_.get());
+	//windEffect_ = std::make_unique<WindEffect>();
+	//windEffect_->Init(Engine::GetParticleManager(), playerMovement_.get());
 
 	// テスト用メッシュ
 	entTestMesh_                   = std::make_unique<Entity>("testMesh");
@@ -165,46 +177,6 @@ void GameScene::Init() {
 }
 
 void GameScene::Update(const float deltaTime) {
-	static float controlPoints[4];
-
-	ImGui::Begin("CubicBezier Visualization");
-	static Vec3 test = Vec3::one;
-	ImGuiWidgets::DragVec3("hello Vec4", test, 0.01f, "X %.2f m/s");
-	ImGui::DragFloat3("Hello Vec4", &test.x, 0.01f, 0.0f, 1.0f);
-
-	ImGuiWidgets::EditCubicBezier("mesh", controlPoints[0], controlPoints[1],
-	                              controlPoints[2], controlPoints[3]);
-
-	ImGui::End();
-
-	// for (const auto& triangle : smrTestMesh_->GetStaticMesh()->GetPolygons()) {
-	// 	if (triangle.GetCenter().Distance(
-	// 		camera_->GetTransform()->GetWorldPos()) < Math::HtoM(1024.0f)) {
-	// 		Triangle tri = triangle;
-	// 		for (int i = 0; i < 3; ++i) {
-	// 			float distance = triangle.GetCenter().Distance(
-	// 				camera_->GetTransform()->GetWorldPos());
-	// 			float progress = std::clamp(
-	// 				(distance - Math::HtoM(512.0f)) / 10.0f, 0.0f, 1.0f);
-	// 			tri.SetVertex(
-	// 				i,
-	// 				Math::Lerp(
-	// 					tri.GetVertex(i),
-	// 					triangle.GetCenter() + triangle.GetNormal(),
-	// 					Math::CubicBezier(
-	// 						progress,
-	// 						controlPoints[0],
-	// 						controlPoints[1],
-	// 						controlPoints[2],
-	// 						controlPoints[3]
-	// 					)
-	// 				)
-	// 			);
-	// 		}
-	// 		Debug::DrawTriangle(tri, Vec4(0.0f, 1.0f, 1.0f, 1.0f));
-	// 	}
-	// }
-
 	cameraRoot_->GetTransform()->SetWorldPos(playerMovement_->GetHeadPos());
 	cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
 	camera_->Update(EngineTimer::GetScaledDeltaTime());
@@ -287,14 +259,13 @@ void GameScene::Update(const float deltaTime) {
 #endif
 
 	Engine::GetParticleManager()->Update(deltaTime);
-	mParticleEmitter->Update(deltaTime);
-	//	mParticleObject->Update(deltaTime);
+	//mParticleEmitter->Update(deltaTime);
 
 	if (InputSystem::IsTriggered("attack1")) {
-		mParticleEmitter->Emit();
+		//mParticleEmitter->Emit();
 	}
 
-	windEffect_->Update(EngineTimer::ScaledDelta());
+	//windEffect_->Update(EngineTimer::ScaledDelta());
 
 	cubeMap_->Update(deltaTime);
 }
@@ -303,8 +274,8 @@ void GameScene::Render() {
 	entTestMesh_->Render(renderer_->GetCommandList());
 
 	Engine::GetParticleManager()->Render();
-	mParticleObject->Draw();
-	windEffect_->Draw();
+	//mParticleObject->Draw();
+	//windEffect_->Draw();
 
 	cubeMap_->Render(
 		renderer_->GetCommandList(),
@@ -315,4 +286,5 @@ void GameScene::Render() {
 }
 
 void GameScene::Shutdown() {
+	//cubeMap_.reset();
 }

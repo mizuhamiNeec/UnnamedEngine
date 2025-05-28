@@ -10,8 +10,6 @@
 #include <Lib/DebugHud/DebugHud.h>
 #include <Lib/Utils/ClientProperties.h>
 #include <Renderer/D3D12.h>
-#include <Renderer/AbstractionLayer/D3D12/D3D12Renderer.h>
-#include <Renderer/AbstractionLayer/Vulkan/VulkanRenderer.h>
 #include <Scene/GameScene.h>
 #include <SubSystem/Console/ConCommand.h>
 #include <SubSystem/Console/Console.h>
@@ -94,29 +92,6 @@ void Engine::Init() {
 		return;
 	}
 
-	// auto secondWindow_ = std::make_unique<EditorWindow>();
-
-	// WindowInfo editorWindowInfo = {
-	// 	.title = "EditorWindow",
-	// 	.width = 400,
-	// 	.height = 300,
-	// 	.style = WS_OVERLAPPEDWINDOW,
-	// 	.exStyle = 0,
-	// 	.hInstance = GetModuleHandle(nullptr),
-	// 	.className = "editorWindowClassName"
-	// };
-
-	// if (secondWindow_->Create(editorWindowInfo)) {
-	// 	wm_->AddWindow(std::move(secondWindow_));
-	// } else {
-	// 	Console::Print(
-	// 		"Failed to create second window.\n",
-	// 		kConTextColorError,
-	// 		Channel::Engine
-	// 	);
-	// 	return;
-	// }
-
 	renderer_ = std::make_unique<D3D12>(wm_->GetMainWindow());
 
 	wm_->GetMainWindow()->SetResizeCallback(
@@ -131,46 +106,23 @@ void Engine::Init() {
 	// コンソールコマンドと変数の登録
 	RegisterConsoleCommandsAndVariables();
 
-	// 抽象化レイヤーテスト
-	rendererInitInfo_ = {};
-	if (ConVarManager::GetConVar("r_vulkanenabled")->GetValueAsBool()) {
-		rendererInitInfo_.api = API::Vulkan;
-	} else {
-		rendererInitInfo_.api = API::DX12;
-	}
-	//rendererInitInfo_.windowHandle = wm_->GetWindows()[1]->GetWindowHandle();
-#ifdef _DEBUG
-	rendererInitInfo_.enableDebugLayer = true;
-#else
-	rendererInitInfo_.enableDebugLayer = false;
-#endif
-
-	if (rendererInitInfo_.api == API::DX12) {
-		testRenderer_ = std::make_unique<D3D12Renderer>();
-	} else if (rendererInitInfo_.api == API::Vulkan) {
-		testRenderer_ = std::make_unique<VulkanRenderer>();
-	}
-
-	if (!testRenderer_->Init(rendererInitInfo_)) {
-		Console::Print("Failed to initialize renderer.\n", kConTextColorError, Channel::RenderSystem);
-		assert(true && "Failed to initialize renderer.");
-		throw std::runtime_error("Failed to initialize renderer.");
-	}
-
 	// コマンドライン引数をコンソールに送信
-	Console::SubmitCommand(ConVarManager::GetConVar("launchargs")->GetValueAsString());
+	Console::SubmitCommand(
+		ConVarManager::GetConVar("launchargs")->GetValueAsString());
 
 	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
 
 #ifdef _DEBUG
-	imGuiManager_ = std::make_unique<ImGuiManager>(renderer_.get(), resourceManager_->GetShaderResourceViewManager());
+	imGuiManager_ = std::make_unique<ImGuiManager>(
+		renderer_.get(), resourceManager_->GetShaderResourceViewManager());
 #endif
 
 	console_ = std::make_unique<Console>();
 
 	resourceManager_->Init();
 
-	renderer_->SetShaderResourceViewManager(resourceManager_->GetShaderResourceViewManager());
+	renderer_->SetShaderResourceViewManager(
+		resourceManager_->GetShaderResourceViewManager());
 	renderer_->Init();
 
 	offscreenRTV_ = renderer_->CreateRenderTargetTexture(
@@ -293,7 +245,8 @@ void Engine::Update() {
 			ImVec2     avail = ImGui::GetContentRegionAvail();
 			const auto ptr   = offscreenRTV_.srvHandles.gpuHandle.ptr;
 			if (ptr) {
-				const ImTextureID texId = offscreenRTV_.srvHandles.gpuHandle.ptr;
+				const ImTextureID texId = offscreenRTV_.srvHandles.gpuHandle.
+					ptr;
 
 				ImGui::ImageWithBg(
 					texId,
@@ -318,7 +271,8 @@ void Engine::Update() {
 	DebugHud::Update();
 #endif
 
-	offscreenRenderPassTargets_.bClearColor = ConVarManager::GetConVar("r_clear")->GetValueAsBool();
+	offscreenRenderPassTargets_.bClearColor =
+		ConVarManager::GetConVar("r_clear")->GetValueAsBool();
 
 	InputSystem::Update();
 
@@ -384,11 +338,17 @@ void Engine::Update() {
 }
 
 void Engine::Shutdown() const {
+	renderer_->WaitPreviousFrame();
+
 	Debug::Shutdown();
 
-	renderer_->Shutdown();
+	copyImagePass_->Shutdown();
 
-	testRenderer_->Shutdown();
+	TexManager::GetInstance()->Shutdown();
+
+	particleManager_->Shutdown();
+
+	renderer_->Shutdown();
 
 #ifdef _DEBUG
 	if (imGuiManager_) {
@@ -407,24 +367,36 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 		"toggleeditor",
 		[]([[maybe_unused]] const std::vector<std::string>& args) {
 			bIsEditorMode_ = !bIsEditorMode_;
-			Console::Print("Editor mode is now " + std::to_string(bIsEditorMode_) + "\n", kConFgColorDark);
+			Console::Print(
+				"Editor mode is now " + std::to_string(bIsEditorMode_) + "\n",
+				kConFgColorDark);
 		},
 		"Toggle editor mode."
 	);
 
 	// コンソール変数を登録
-	ConVarManager::RegisterConVar<bool>("r_vulkanenabled", false, "Enable Vulkan renderer", ConVarFlags::ConVarFlags_Notify);
+	ConVarManager::RegisterConVar<bool>("r_vulkanenabled", false,
+	                                    "Enable Vulkan renderer",
+	                                    ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>(
-		"cl_showpos", 1, "Draw current position at top of screen (1 = meter, 2 = hammer)"
+		"cl_showpos", 1,
+		"Draw current position at top of screen (1 = meter, 2 = hammer)"
 	);
-	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");
-	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps, "Frame rate limiter");
-	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);
+	ConVarManager::RegisterConVar<int>("cl_showfps", 2,
+	                                   "Draw fps meter (1 = fps, 2 = smooth)");
+	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps,
+	                                   "Frame rate limiter");
+	ConVarManager::RegisterConVar<std::string>("name", "unnamed",
+	                                           "Current user name",
+	                                           ConVarFlags::ConVarFlags_Notify);
 	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName(), true);
-	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f, "Mouse sensitivity.");
-	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f, "Prescale the clock by this amount.");
+	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f,
+	                                     "Mouse sensitivity.");
+	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f,
+	                                     "Prescale the clock by this amount.");
 	// World
-	ConVarManager::RegisterConVar<float>("sv_gravity", 800.0f, "World gravity.");
+	ConVarManager::RegisterConVar<
+		float>("sv_gravity", 800.0f, "World gravity.");
 	ConVarManager::RegisterConVar<float>(
 		"sv_maxvelocity",
 		3500.0f,
@@ -432,11 +404,15 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	);
 
 	// Player
-	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f, "Linear acceleration amount (old value is 5.6)");
+	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f,
+	                                     "Linear acceleration amount (old value is 5.6)");
 	ConVarManager::RegisterConVar<float>("sv_airaccelerate", 12.0f);
-	ConVarManager::RegisterConVar<float>("sv_maxspeed", 800.0f, "Maximum speed a player can move.");
-	ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f, "Minimum stopping speed when on ground.");
-	ConVarManager::RegisterConVar<float>("sv_friction", 4.0f, "World friction.");
+	ConVarManager::RegisterConVar<float>("sv_maxspeed", 800.0f,
+	                                     "Maximum speed a player can move.");
+	ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f,
+	                                     "Minimum stopping speed when on ground.");
+	ConVarManager::RegisterConVar<
+		float>("sv_friction", 4.0f, "World friction.");
 
 	// デバッグ用にエンティティのaxisを表示するためのコンソール変数
 	ConVarManager::RegisterConVar<int>("ent_axis", 0, "Show entity axis");

@@ -13,13 +13,13 @@ using Microsoft::WRL::ComPtr;
 
 class Texture {
 public:
-	Texture() = default;
+	Texture()  = default;
 	~Texture() = default;
 
 	bool LoadFromFile(
-		D3D12* d3d12,
+		D3D12*                     d3d12,
 		ShaderResourceViewManager* shaderResourceViewManager,
-		const std::string& filePath
+		const std::string&         filePath
 	);
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetShaderResourceView() const;
@@ -29,31 +29,31 @@ public:
 
 	ComPtr<ID3D12Resource> GetResource() const;
 
-	bool CreateErrorTexture(D3D12* d3d12, ShaderResourceViewManager* shaderResourceViewManager);
+	bool CreateErrorTexture(D3D12* d3d12,
+	                        ShaderResourceViewManager*
+	                        shaderResourceViewManager);
 
 private:
-	ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* device);
+	ComPtr<ID3D12Resource>        CreateTextureResource(ID3D12Device* device);
 	static ComPtr<ID3D12Resource> UploadTextureData(
-		ID3D12Device* device,
-		ID3D12GraphicsCommandList* commandList,
+		ID3D12Device*                 device,
+		ID3D12GraphicsCommandList*    commandList,
 		const ComPtr<ID3D12Resource>& texture,
-		const DirectX::ScratchImage& mipImages
+		const DirectX::ScratchImage&  mipImages
 	);
 	static ComPtr<ID3D12Resource> UploadTextureData(
-		ID3D12Device* device,
-		ID3D12GraphicsCommandList* commandList,
+		ID3D12Device*                 device,
+		ID3D12GraphicsCommandList*    commandList,
 		const ComPtr<ID3D12Resource>& texture,
 		const D3D12_SUBRESOURCE_DATA& textureData
 	);
 
 	ComPtr<ID3D12Resource> textureResource_;
-	ComPtr<ID3D12Resource> uploadHeap_;
 
 	DirectX::TexMetadata metadata_;
 
 	std::string filePath_;
 
-	D3D12_GPU_DESCRIPTOR_HANDLE handle_ = {};
+	D3D12_GPU_DESCRIPTOR_HANDLE handle_    = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle_ = {};
 };
-

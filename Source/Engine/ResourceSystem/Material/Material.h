@@ -23,26 +23,33 @@ public:
 
 	void Apply(ID3D12GraphicsCommandList* commandList);
 
-	ID3D12PipelineState* GetOrCreatePipelineState(ID3D12Device* device, const D3D12_GRAPHICS_PIPELINE_STATE_DESC& baseDesc);
+	ID3D12PipelineState* GetOrCreatePipelineState(
+		ID3D12Device*                             device,
+		const D3D12_GRAPHICS_PIPELINE_STATE_DESC& baseDesc);
 	ID3D12RootSignature* GetOrCreateRootSignature(ID3D12Device* device);
 
 	void InitializeRootSignature() const;
 
+	void Shutdown();
+
 	[[nodiscard]] const std::string& GetName() const;
-	[[nodiscard]] Shader* GetShader() const { return shader_; }
-	[[nodiscard]] const std::unordered_map<std::string, Texture*>& GetTextures() const;
+	[[nodiscard]] Shader*            GetShader() const { return shader_; }
+	[[nodiscard]] const std::unordered_map<std::string, Texture*>&
+	GetTextures() const;
 
 private:
-	static std::string GenerateBufferKey(D3D12_SHADER_VISIBILITY visibility, UINT bindPoint);
+	static std::string GenerateBufferKey(D3D12_SHADER_VISIBILITY visibility,
+	                                     UINT                    bindPoint);
 
-	std::string name_; // マテリアルの名前
-	Shader* shader_; // シェーダ
+	std::string name_;   // マテリアルの名前
+	Shader*     shader_; // シェーダ
 
 	ComPtr<ID3D12PipelineState> pipelineState_; // キャッシュされたパイプラインステート
 	ComPtr<ID3D12RootSignature> rootSignature_; // キャッシュされたルートシグネチャ
 	std::unordered_map<std::string, Texture*> textures_; // テクスチャ 名前とテクスチャのペア
 
-	std::unordered_map<std::string, ID3D12Resource*> constantBuffers_; // 定数バッファ キーはシェーダーステージ_レジスタ番号
+	std::unordered_map<std::string, ID3D12Resource*> constantBuffers_;
+	// 定数バッファ キーはシェーダーステージ_レジスタ番号
 
 	RootSignature2 rootSignatureBuilder_;
 };

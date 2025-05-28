@@ -6,13 +6,12 @@
 
 
 bool RootSignatureManager::CreateRootSignature(
-	const std::string& name,
+	const std::string&                       name,
 	const std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
-	const D3D12_STATIC_SAMPLER_DESC* staticSamplers,
-	UINT numStaticSamplers
+	const D3D12_STATIC_SAMPLER_DESC*         staticSamplers,
+	UINT                                     numStaticSamplers
 ) {
-	if (rootSignatures_.contains(name))
-	{
+	if (rootSignatures_.contains(name)) {
 		return false; // すでに存在する場合は作る必要なし
 	}
 
@@ -26,13 +25,12 @@ bool RootSignatureManager::CreateRootSignature(
 
 	ComPtr<ID3DBlob> signatureBlob;
 	ComPtr<ID3DBlob> errorBlob;
-	HRESULT hr = D3D12SerializeRootSignature(
-		&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob
+	HRESULT          hr = D3D12SerializeRootSignature(
+		&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob,
+		&errorBlob
 	);
-	if (FAILED(hr))
-	{
-		if (errorBlob)
-		{
+	if (FAILED(hr)) {
+		if (errorBlob) {
 			Console::Print(static_cast<char*>(errorBlob->GetBufferPointer()));
 		}
 		return false;
@@ -40,16 +38,21 @@ bool RootSignatureManager::CreateRootSignature(
 
 	ComPtr<ID3D12RootSignature> rootSignature;
 	hr = device_->CreateRootSignature(
-		0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature)
+		0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(),
+		IID_PPV_ARGS(&rootSignature)
 	);
-	if (FAILED(hr))
-	{
+	if (FAILED(hr)) {
 		return false;
 	}
 
 	rootSignatures_[name] = rootSignature;
 
-	Console::Print(std::format("Complete Create RootSignature : {}\n", name), kConTextColorCompleted, Channel::Engine);
+	Console::Print(std::format("Complete Create RootSignature : {}\n", name),
+	               kConTextColorCompleted, Channel::Engine);
 
 	return true;
+}
+
+void RootSignatureManager::Shutdown() {
+	rootSignatures_.clear();
 }
