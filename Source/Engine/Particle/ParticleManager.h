@@ -24,16 +24,16 @@ enum class ParticleMeshType {
 };
 
 struct MeshData {
-	std::vector<Vertex> vertices;
-	std::vector<uint32_t> indices;
+	std::vector<Vertex>                   vertices;
+	std::vector<uint32_t>                 indices;
 	std::unique_ptr<VertexBuffer<Vertex>> vertexBuffer;
-	std::unique_ptr<IndexBuffer> indexBuffer;
+	std::unique_ptr<IndexBuffer>          indexBuffer;
 };
 
 class ParticleManager {
 public:
 	void Init(D3D12* d3d12, SrvManager* srvManager);
-	void Shutdown() const;
+	void Shutdown();
 
 	void CreateRootSignature();
 	void CreateGraphicsPipeline();
@@ -41,10 +41,12 @@ public:
 	void Update(float deltaTime);
 	void Render();
 
-	static std::vector<Vertex> GenerateRingVertices(float innerRadius, float outerRadius, int segments);
+	static std::vector<Vertex> GenerateRingVertices(
+		float innerRadius, float outerRadius, int segments);
 	static std::vector<uint32_t> GenerateRingIndices(int segments);
 
-	void RegisterMesh(ParticleMeshType meshType, std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+	void RegisterMesh(ParticleMeshType meshType, std::vector<Vertex>& vertices,
+	                  const std::vector<uint32_t>& indices);
 
 	MeshData& GetMeshData(ParticleMeshType type);
 
@@ -53,34 +55,38 @@ public:
 	D3D12* GetD3D12() const;
 
 	// Getter
-	CameraComponent* GetDefaultCamera() const;
-	SrvManager* GetSrvManager() const;
-	const VertexBuffer<Vertex>* GetVertexBuffer();
-	const IndexBuffer* GetIndexBuffer();
-	const std::vector<Vertex>& GetVertices();
+	CameraComponent*             GetDefaultCamera() const;
+	SrvManager*                  GetSrvManager() const;
+	const VertexBuffer<Vertex>*  GetVertexBuffer();
+	const IndexBuffer*           GetIndexBuffer();
+	const std::vector<Vertex>&   GetVertices();
 	const std::vector<uint32_t>& GetIndices();
 
-	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath);
+	void CreateParticleGroup(const std::string& name,
+	                         const std::string& textureFilePath);
 
 private:
 	struct ParticleGroup {
-		MaterialData materialData; // マテリアルデータ
-		std::list<Particle> particles; // パーティクルのリスト
-		uint32_t srvIndex = 0; // インスタンシングデータ用SRVインデックス
-		std::unique_ptr<ConstantBuffer> instancingResource = nullptr; // インスタンシングリソース
-		uint32_t numInstance = 0; // インスタンス数
-		ParticleForGPU* instancingData = nullptr; // インスタンシングデータを書き込むためのポインタ
-		ParticleMeshType meshType = ParticleMeshType::Quad; // メッシュの種類
+		MaterialData                    materialData; // マテリアルデータ
+		std::list<Particle>             particles; // パーティクルのリスト
+		uint32_t                        srvIndex = 0; // インスタンシングデータ用SRVインデックス
+		std::unique_ptr<ConstantBuffer> instancingResource = nullptr;
+		// インスタンシングリソース
+		uint32_t         numInstance    = 0; // インスタンス数
+		ParticleForGPU*  instancingData = nullptr; // インスタンシングデータを書き込むためのポインタ
+		ParticleMeshType meshType       = ParticleMeshType::Quad; // メッシュの種類
 	};
 
 	// ユーザがつけるグループ名をキーとして、グループを複数持てるようにする
 	std::unordered_map<std::string, ParticleGroup> particleGroups_;
 
-	D3D12* d3d12_ = nullptr;
-	CameraComponent* defaultCamera_ = nullptr;
+	std::vector<std::string> registeredGroupNames_;
+
+	D3D12*                                d3d12_                = nullptr;
 	std::unique_ptr<RootSignatureManager> rootSignatureManager_ = nullptr;
-	PipelineState pipelineState_;
-	SrvManager* srvManager_ = nullptr;
+	SrvManager*                           srvManager_           = nullptr;
+	std::unique_ptr<PipelineState>        pipelineState_        = nullptr;
+	CameraComponent*                      defaultCamera_        = nullptr;
 
 	uint32_t kNumMaxInstance = 512;
 

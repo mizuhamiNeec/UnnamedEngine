@@ -19,25 +19,25 @@ struct D3DResourceLeakChecker {
 };
 
 struct RenderTargetTexture {
-	ComPtr<ID3D12Resource> rtv;
+	ComPtr<ID3D12Resource>      rtv;
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
-	DescriptorHandles srvHandles;
+	DescriptorHandles           srvHandles;
 };
 
 struct DepthStencilTexture {
 	ComPtr<ID3D12Resource> dsv;
-	DescriptorHandles handles;
+	DescriptorHandles      handles;
 };
 
 struct RenderPassTargets {
 	D3D12_CPU_DESCRIPTOR_HANDLE* pRTVs; // 複数可
-	UINT numRTVs;
+	UINT                         numRTVs;
 	D3D12_CPU_DESCRIPTOR_HANDLE* pDSV; // nullptr でもOK
-	Vec4 clearColor;
-	float clearDepth;
-	uint8_t clearStencil;
-	bool bClearColor; // クリアカラーするか?
-	bool bClearDepth; // 深度クリアするか?
+	Vec4                         clearColor;
+	float                        clearDepth;
+	uint8_t                      clearStencil;
+	bool                         bClearColor; // クリアカラーするか?
+	bool                         bClearDepth; // 深度クリアするか?
 };
 
 class D3D12 : public Renderer {
@@ -54,63 +54,73 @@ public: // メンバ関数
 	void PreRender() override;
 	void PostRender() override;
 
-	[[nodiscard]] RenderTargetTexture CreateRenderTargetTexture(uint32_t width, uint32_t height, Vec4 clearColor, DXGI_FORMAT format = kBufferFormat);
-	[[nodiscard]] DepthStencilTexture CreateDepthStencilTexture(uint32_t width, uint32_t height, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT);
+	[[nodiscard]] RenderTargetTexture CreateRenderTargetTexture(
+		uint32_t    width, uint32_t height, Vec4 clearColor,
+		DXGI_FORMAT format = kBufferFormat);
+	[[nodiscard]] DepthStencilTexture CreateDepthStencilTexture(
+		uint32_t    width, uint32_t height,
+		DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT);
 	void BeginRenderPass(const RenderPassTargets& targets) const;
 
-	void BeginSwapChainRenderPass() const;
+	void                        BeginSwapChainRenderPass() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE GetSwapChainRenderTargetView() const;
 
-	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size, const void* data);
+	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size,
+		const void* data);
 
 	void WaitPreviousFrame();
 
 	void Resize(uint32_t width, uint32_t height);
 
 private:
+	// 持ってきたやつ
+	BaseWindow* window_ = nullptr;
+	ShaderResourceViewManager* srvManager_ = nullptr;
+
 	// メンバ変数
-	ComPtr<ID3D12Device> device_;
-	ComPtr<IDXGIFactory7> dxgiFactory_;
-	ComPtr<ID3D12CommandQueue> commandQueue_;
+	// 1. デバイス・ファクトリ・スワップチェーン
+	ComPtr<ID3D12Device>    device_;
+	ComPtr<IDXGIFactory7>   dxgiFactory_;
 	ComPtr<IDXGISwapChain4> swapChain_;
 
-	BaseWindow* window_ = nullptr;
+	// 2. コマンドキュー・アロケータ・リスト
+	ComPtr<ID3D12CommandQueue>       commandQueue_;
+	ComPtr<ID3D12CommandAllocator>   commandAllocator_;
+	ComPtr<ID3D12GraphicsCommandList> commandList_;
 
+	// 3. ディスクリプタヒープ
 	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap_;
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_;
 
+	// 4. レンダーターゲット・深度ステンシル
 	std::vector<ComPtr<ID3D12Resource>> renderTargets_;
 	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles_;
-
 	ComPtr<ID3D12Resource> depthStencilResource_;
-	DepthStencilTexture defaultDepthStencilTexture_;
+	DepthStencilTexture    defaultDepthStencilTexture_;
 
-	ComPtr<ID3D12CommandAllocator> commandAllocator_;
-	ComPtr<ID3D12GraphicsCommandList> commandList_;
-
+	// 5. フェンス等の同期
 	ComPtr<ID3D12Fence> fence_;
-	uint64_t fenceValue_ = 0;
-	HANDLE fenceEvent_ = nullptr;
-	UINT frameIndex_ = 0;
+	uint64_t            fenceValue_ = 0;
+	HANDLE              fenceEvent_ = nullptr;
+	UINT                frameIndex_ = 0;
 
+	// 6. その他
 	D3D12_RESOURCE_BARRIER barrier_ = {};
 
 	D3D12_VIEWPORT viewport_ = {};
-	D3D12_RECT scissorRect_ = {};
+	D3D12_RECT     scissorRect_ = {};
 
 	uint32_t descriptorSizeRTV = 0;
 	uint32_t descriptorSizeDSV = 0;
 
 	uint32_t currentDSVIndex_ = 0;
 
-	ShaderResourceViewManager* srvManager_ = nullptr;
-
 	// メンバ関数
 	//------------------------------------------------------------------------
 	// 初期化関連
 	//------------------------------------------------------------------------
 	static
-	void EnableDebugLayer();
+		void EnableDebugLayer();
 	void CreateDevice();
 	void SetInfoQueueBreakOnSeverity() const;
 	void CreateCommandQueue();
@@ -173,18 +183,19 @@ public:
 	//------------------------------------------------------------------------
 	ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(
 		D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors,
-		bool shaderVisible
+		bool                       shaderVisible
 	) const;
 
 private:
 	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(
 		ID3D12DescriptorHeap* descriptorHeap,
-		uint32_t descriptorSize, uint32_t index
+		uint32_t              descriptorSize, uint32_t index
 	);
-	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource(uint32_t width, uint32_t height, DXGI_FORMAT format) const;
+	ComPtr<ID3D12Resource> CreateDepthStencilTextureResource(
+		uint32_t width, uint32_t height, DXGI_FORMAT format) const;
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(
 		ID3D12DescriptorHeap* descriptorHeap,
-		uint32_t descriptorSize, uint32_t index
+		uint32_t              descriptorSize, uint32_t index
 	);
 
 	[[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE AllocateNewRTVHandle();

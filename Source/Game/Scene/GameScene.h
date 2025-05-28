@@ -35,7 +35,7 @@ class CameraSystem;
 
 class GameScene : public BaseScene {
 public:
-	~GameScene() override = default;
+	~GameScene() override;
 	void Init() override;
 	void Update(float deltaTime) override;
 	void Render() override;
@@ -43,8 +43,6 @@ public:
 
 private:
 	D3D12* renderer_ = nullptr;
-
-	std::unique_ptr<Sprite> sprite_;
 
 	std::unique_ptr<CubeMap> cubeMap_;
 
@@ -62,16 +60,11 @@ private:
 	std::shared_ptr<StaticMeshRenderer> smrTestMesh_;
 	StaticMesh*                         debugMesh = nullptr;
 
-	std::unique_ptr<Entity>                debugTestMeshEntity_;
-	std::shared_ptr<StaticMeshRenderer>    debugTestMR_;
-	std::shared_ptr<MeshColliderComponent> debugTestMeshCollider_;
-
-	std::vector<Triangle> worldMesh_;
+	std::unique_ptr<Entity> debugTestMeshEntity_;
 
 	std::unique_ptr<PhysicsEngine> physicsEngine_;
 
-	std::unique_ptr<ParticleEmitter> mParticleEmitter;
-	std::unique_ptr<ParticleObject>  mParticleObject;
+	//std::unique_ptr<ParticleEmitter> mParticleEmitter;
 
 	std::unique_ptr<WindEffect> windEffect_;
 };

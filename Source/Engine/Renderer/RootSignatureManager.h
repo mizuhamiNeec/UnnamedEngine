@@ -14,8 +14,10 @@ public:
 	}
 
 	bool CreateRootSignature(
-		const std::string& name, const std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
-		const D3D12_STATIC_SAMPLER_DESC* staticSamplers = nullptr, UINT numStaticSamplers = 0
+		const std::string&                       name,
+		const std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
+		const D3D12_STATIC_SAMPLER_DESC*         staticSamplers    = nullptr,
+		UINT                                     numStaticSamplers = 0
 	);
 
 	ID3D12RootSignature* Get(const std::string& name) const {
@@ -26,8 +28,10 @@ public:
 		return nullptr;
 	}
 
+	void Shutdown();
+
 private:
 	ID3D12Device* device_;
-	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>> rootSignatures_;
-	RootSignatureManager* rootSignatureManager_ = nullptr;
+	std::unordered_map<std::string, ComPtr<ID3D12RootSignature>>
+	rootSignatures_;
 };

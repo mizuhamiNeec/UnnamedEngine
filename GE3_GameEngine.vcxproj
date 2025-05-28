@@ -123,10 +123,6 @@
     <ClCompile Include="Source\Engine\CopyImagePass\CopyImagePass.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiWidgets.cpp" />
     <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Renderer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseDevice.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseRenderer.cpp" />
     <ClCompile Include="Source\Engine\Assets\Manager\AssetManager.cpp" />
     <ClCompile Include="Source\Engine\Async\JobTask\Base\BaseJobTask.cpp" />
     <ClCompile Include="Source\Engine\Async\MainThreadDispatcher.cpp" />
@@ -165,7 +161,6 @@
     <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
-    <ClCompile Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.cpp" />
     <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
@@ -182,8 +177,6 @@
     <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
     <ClCompile Include="Source\Engine\Assets\Asset\TextureAsset.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowManager.cpp" />
     <ClCompile Include="Source\Engine\SrvManager.cpp" />
     <ClCompile Include="Source\Engine\TextureManager\TexManager.cpp" />
@@ -261,10 +254,6 @@
     <ClInclude Include="Source\Engine\CopyImagePass\CopyImagePass.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiWidgets.h" />
     <ClInclude Include="Source\Engine\Window\EditorWindow.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Renderer.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseDevice.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseRenderer.h" />
     <ClInclude Include="Source\Engine\Assets\Manager\AssetManager.h" />
     <ClInclude Include="Source\Engine\Assets\Asset\Base\Asset.h" />
     <ClInclude Include="Source\Engine\Async\JobTask\Base\BaseJobTask.h" />
@@ -325,8 +314,6 @@
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.h" />
     <ClInclude Include="Source\Engine\Assets\Asset\TextureAsset.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.h" />
     <ClInclude Include="Source\Engine\Window\WindowManager.h" />
     <ClInclude Include="Source\Engine\SrvManager.h" />
     <ClInclude Include="Source\Engine\TextureManager\TexManager.h" />

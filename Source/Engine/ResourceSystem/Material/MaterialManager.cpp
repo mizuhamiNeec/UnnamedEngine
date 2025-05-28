@@ -4,14 +4,15 @@
 
 #include "ResourceSystem/Pipeline/PipelineManager.h"
 
-Material* MaterialManager::GetOrCreateMaterial(const std::string& name, Shader* shader) {
+Material* MaterialManager::GetOrCreateMaterial(const std::string& name,
+                                               Shader*            shader) {
 	// 既に作成済みのマテリアルがあるか確認
 	if (materials_.contains(name)) {
 		return materials_[name].get();
 	}
 
 	// なかったので作成
-	auto material = std::make_unique<Material>(name, shader);
+	auto material    = std::make_unique<Material>(name, shader);
 	materials_[name] = std::move(material);
 	return materials_[name].get();
 }
@@ -31,6 +32,16 @@ void MaterialManager::Init() {
 }
 
 void MaterialManager::Shutdown() {
-	materials_.clear();
+	for (auto& material : materials_) {
+		Console::Print(
+			"MatMgr: Releasing " + material.second->GetName() + "\n",
+			Vec4::white,
+			Channel::ResourceSystem
+		);
+		material.second->Shutdown();
+		material.second.release();
+	}
+
 	PipelineManager::Shutdown();
+	materials_.clear();
 }
