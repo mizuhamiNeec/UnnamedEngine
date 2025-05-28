@@ -7,8 +7,6 @@
 #include <SubSystem/Console/ConVarManager.h>
 #include <SubSystem/Console/Console.h>
 
-D3DResourceLeakChecker d3dResourceLeakChecker_;
-
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, const PWSTR lpCmdLine,
 	[[maybe_unused]] const int        nShowCmd) {
 #ifdef _DEBUG

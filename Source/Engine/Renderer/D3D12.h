@@ -66,15 +66,17 @@ public: // メンバ関数
 	D3D12_CPU_DESCRIPTOR_HANDLE GetSwapChainRenderTargetView() const;
 
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size,
-		const void* data);
+	                                    const void*     data);
 
 	void WaitPreviousFrame();
 
 	void Resize(uint32_t width, uint32_t height);
 
 private:
+	D3DResourceLeakChecker d3dResourceLeakChecker_;
+
 	// 持ってきたやつ
-	BaseWindow* window_ = nullptr;
+	BaseWindow*                window_     = nullptr;
 	ShaderResourceViewManager* srvManager_ = nullptr;
 
 	// メンバ変数
@@ -84,8 +86,8 @@ private:
 	ComPtr<IDXGISwapChain4> swapChain_;
 
 	// 2. コマンドキュー・アロケータ・リスト
-	ComPtr<ID3D12CommandQueue>       commandQueue_;
-	ComPtr<ID3D12CommandAllocator>   commandAllocator_;
+	ComPtr<ID3D12CommandQueue>        commandQueue_;
+	ComPtr<ID3D12CommandAllocator>    commandAllocator_;
 	ComPtr<ID3D12GraphicsCommandList> commandList_;
 
 	// 3. ディスクリプタヒープ
@@ -93,10 +95,10 @@ private:
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_;
 
 	// 4. レンダーターゲット・深度ステンシル
-	std::vector<ComPtr<ID3D12Resource>> renderTargets_;
+	std::vector<ComPtr<ID3D12Resource>>      renderTargets_;
 	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles_;
-	ComPtr<ID3D12Resource> depthStencilResource_;
-	DepthStencilTexture    defaultDepthStencilTexture_;
+	ComPtr<ID3D12Resource>                   depthStencilResource_;
+	DepthStencilTexture                      defaultDepthStencilTexture_;
 
 	// 5. フェンス等の同期
 	ComPtr<ID3D12Fence> fence_;
@@ -107,7 +109,7 @@ private:
 	// 6. その他
 	D3D12_RESOURCE_BARRIER barrier_ = {};
 
-	D3D12_VIEWPORT viewport_ = {};
+	D3D12_VIEWPORT viewport_    = {};
 	D3D12_RECT     scissorRect_ = {};
 
 	uint32_t descriptorSizeRTV = 0;
@@ -120,7 +122,7 @@ private:
 	// 初期化関連
 	//------------------------------------------------------------------------
 	static
-		void EnableDebugLayer();
+	void EnableDebugLayer();
 	void CreateDevice();
 	void SetInfoQueueBreakOnSeverity() const;
 	void CreateCommandQueue();

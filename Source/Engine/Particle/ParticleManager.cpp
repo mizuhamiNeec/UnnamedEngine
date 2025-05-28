@@ -66,20 +66,16 @@ void ParticleManager::Shutdown() {
 	}
 
 	for (auto name : registeredGroupNames_) {
-		particleGroups_[name].instancingResource.release();
 		particleGroups_[name].instancingResource.reset();
 	}
 
 	meshData_[ParticleMeshType::Quad].vertexBuffer.reset();
-	meshData_[ParticleMeshType::Quad].vertexBuffer.release();
 	meshData_[ParticleMeshType::Quad].indexBuffer.reset();
-	meshData_[ParticleMeshType::Quad].indexBuffer.release();
 
 	meshData_[ParticleMeshType::Ring].vertexBuffer.reset();
-	meshData_[ParticleMeshType::Ring].vertexBuffer.release();
 	meshData_[ParticleMeshType::Ring].indexBuffer.reset();
-	meshData_[ParticleMeshType::Ring].indexBuffer.release();
 
+	meshData_.clear();
 
 	Console::Print("ParticleManager : ParticleCommonの終了が完了しました。\n",
 	               kConTextColorCompleted, Channel::Engine);
