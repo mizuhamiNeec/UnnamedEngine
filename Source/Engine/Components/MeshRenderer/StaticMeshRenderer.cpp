@@ -115,7 +115,11 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 		if (material && material != currentlyBoundMaterial) {
 			// VS用のトランスフォーム (b0)
 			if (const auto* transform = transform_) {
-				const Mat4  worldMat    = transform->GetWorldMat();
+				const Mat4 worldMat = Mat4::Affine(
+					transform->GetWorldScale(),
+					transform->GetWorldRot().ToEulerAngles(),
+					transform->GetWorldPos()
+				);
 				const Mat4& viewProjMat = CameraManager::GetActiveCamera()->
 					GetViewProjMat();
 				Mat4 worldViewProjMat = worldMat * viewProjMat;

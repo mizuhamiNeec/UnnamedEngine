@@ -216,8 +216,8 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
 		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
-		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
 	case kBlendModeAdd: // 加算
@@ -225,8 +225,8 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
 		rtBlendDesc.DestBlend = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+			rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+    		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
 	case kBlendModeSubtract: // 減算
@@ -234,8 +234,8 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
 		rtBlendDesc.DestBlend = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+				rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+        		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
 	case kBlendModeMultiply: // 乗算
@@ -243,8 +243,8 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 		rtBlendDesc.SrcBlend = D3D12_BLEND_DEST_COLOR;
 		rtBlendDesc.DestBlend = D3D12_BLEND_ZERO;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
-		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+			rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+    		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
 	case kBlendModeScreen: // スクリーン（発光）
@@ -252,8 +252,8 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 		rtBlendDesc.SrcBlend = D3D12_BLEND_ONE;
 		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_COLOR;
 		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+			rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+    		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
 		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
 		break;
 	case kCountOfBlendMode:

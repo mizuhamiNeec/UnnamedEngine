@@ -22,6 +22,7 @@
 
 #include "Components/ColliderComponent/BoxColliderComponent.h"
 #include "Components/ColliderComponent/MeshColliderComponent.h"
+#include "Components/Weapon/WeaponSway.h"
 #include "CubeMap/CubeMap.h"
 
 #include "Particle/ParticleEmitter.h"
@@ -52,21 +53,23 @@ private:
 	std::unique_ptr<Entity>          camera_;
 	std::shared_ptr<CameraComponent> cameraComponent_;
 
-	std::unique_ptr<Entity>               entPlayer_;
-	std::shared_ptr<PlayerMovement>       playerMovement_;
-	std::shared_ptr<BoxColliderComponent> playerCollider_;
+	std::unique_ptr<Entity>             mEntWorldMesh;
+	std::shared_ptr<StaticMeshRenderer> mWorldMeshRenderer;
 
-	std::unique_ptr<Entity>             entTestMesh_;
-	std::shared_ptr<StaticMeshRenderer> smrTestMesh_;
-	StaticMesh*                         debugMesh = nullptr;
+	std::unique_ptr<Entity>               mEntPlayer;
+	std::shared_ptr<PlayerMovement>       mPlayerMovement;
+	std::shared_ptr<BoxColliderComponent> mPlayerCollider;
 
-	std::unique_ptr<Entity> debugTestMeshEntity_;
+	std::unique_ptr<Entity>             mEntWeapon;
+	std::shared_ptr<StaticMeshRenderer> mWeaponMeshRenderer;
+	std::shared_ptr<WeaponComponent>    mWeaponComponent;
+	std::shared_ptr<WeaponSway>         mWeaponSway;
 
-	std::unique_ptr<PhysicsEngine>  physicsEngine_;
+	std::unique_ptr<PhysicsEngine> physicsEngine_;
 
 	std::unique_ptr<ParticleEmitter> mParticleEmitter;
 
 	std::unique_ptr<ParticleObject> mParticleObject;
-	
+
 	std::unique_ptr<WindEffect> windEffect_;
 };

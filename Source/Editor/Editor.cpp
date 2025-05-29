@@ -48,110 +48,110 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// カメラの操作
 	static float moveSpd = 4.0f;
 
-	static bool firstReset = true; // 初回リセットフラグ
-	static bool cursorHidden = false;
+	// static bool firstReset = true; // 初回リセットフラグ
+	// static bool cursorHidden = false;
 
 	static bool bOpenPopup = false; // ポップアップ表示フラグ
 	static float popupTimer = 0.0f;
 
-	if (InputSystem::IsPressed("attack2")) {
-		if (!cursorHidden) {
-			ShowCursor(FALSE); // カーソルを非表示にする
-			cursorHidden = true;
-		}
-
-		Vec2 delta = InputSystem::GetMouseDelta();
-
-		if (!firstReset) {
-			// 回転
-			float sensitivity = ConVarManager::GetConVar("sensitivity")->GetValueAsFloat();
-			float m_pitch = 0.022f;
-			float m_yaw = 0.022f;
-			float min = -89.0f;
-			float max = 89.0f;
-
-			static Vec3 rot_ = cameraEntity_->GetTransform()->GetLocalRot().ToEulerAngles();
-
-			rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
-			rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
-
-			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad, max * Math::deg2Rad);
-
-			cameraEntity_->GetTransform()->SetWorldRot(Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
-
-			Vec3 moveInput = {0.0f, 0.0f, 0.0f};
-
-			if (InputSystem::IsPressed("forward")) {
-				moveInput.z += 1.0f;
-			}
-
-			if (InputSystem::IsPressed("back")) {
-				moveInput.z -= 1.0f;
-			}
-
-			if (InputSystem::IsPressed("moveright")) {
-				moveInput.x += 1.0f;
-			}
-
-			if (InputSystem::IsPressed("moveleft")) {
-				moveInput.x -= 1.0f;
-			}
-
-			if (InputSystem::IsPressed("moveup")) {
-				moveInput.y += 1.0f;
-			}
-
-			if (InputSystem::IsPressed("movedown")) {
-				moveInput.y -= 1.0f;
-			}
-
-			moveInput.Normalize();
-
-			Quaternion camRot = cameraEntity_->GetTransform()->GetWorldRot();
-			Vec3 cameraForward = camRot * Vec3::forward;
-			Vec3 cameraRight = camRot * Vec3::right;
-			Vec3 cameraUp = camRot * Vec3::up;
-
-			if (InputSystem::IsTriggered("invprev")) {
-				moveSpd *= 2.0f;
-				moveSpd = RoundToNearestPowerOfTwo(moveSpd);
-			}
-
-			if (InputSystem::IsTriggered("invnext")) {
-				moveSpd *= 0.5f;
-				moveSpd = RoundToNearestPowerOfTwo(moveSpd);
-			}
-
-			static float oldMoveSpd = 0.0f;
-			if (moveSpd != oldMoveSpd) {
-				bOpenPopup = true;
-				popupTimer = 0.0f;
-			}
-
-			moveSpd = std::clamp(moveSpd, 0.125f, 65535.0f);
-
-			oldMoveSpd = moveSpd;
-
-			cameraEntity_->GetTransform()->SetWorldPos(
-				cameraEntity_->GetTransform()->GetWorldPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) *
-				moveSpd * EngineTimer::GetScaledDeltaTime()
-			);
-		}
-		// カーソルをウィンドウの中央にリセット
-		POINT centerCursorPos = {
-			static_cast<LONG>(WindowManager::GetMainWindow()->GetClientWidth() / 2), static_cast<LONG>(WindowManager::GetMainWindow()->GetClientHeight() / 2)
-		};
-		ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
-		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
-
-		firstReset = false; // 初回リセット完了
-	} else {
-		if (cursorHidden) {
-			ShowCursor(TRUE); // カーソルを表示する
-			cursorHidden = false;
-		}
-		firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
-	}
+	// if (InputSystem::IsPressed("attack2")) {
+	// 	if (!cursorHidden) {
+	// 		ShowCursor(FALSE); // カーソルを非表示にする
+	// 		cursorHidden = true;
+	// 	}
+	//
+	// 	Vec2 delta = InputSystem::GetMouseDelta();
+	//
+	// 	if (!firstReset) {
+	// 		// 回転
+	// 		float sensitivity = ConVarManager::GetConVar("sensitivity")->GetValueAsFloat();
+	// 		float m_pitch = 0.022f;
+	// 		float m_yaw = 0.022f;
+	// 		float min = -89.0f;
+	// 		float max = 89.0f;
+	//
+	// 		static Vec3 rot_ = cameraEntity_->GetTransform()->GetLocalRot().ToEulerAngles();
+	//
+	// 		rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
+	// 		rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
+	//
+	// 		rot_.y = std::clamp(rot_.y, min * Math::deg2Rad, max * Math::deg2Rad);
+	//
+	// 		cameraEntity_->GetTransform()->SetWorldRot(Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
+	//
+	// 		Vec3 moveInput = {0.0f, 0.0f, 0.0f};
+	//
+	// 		if (InputSystem::IsPressed("forward")) {
+	// 			moveInput.z += 1.0f;
+	// 		}
+	//
+	// 		if (InputSystem::IsPressed("back")) {
+	// 			moveInput.z -= 1.0f;
+	// 		}
+	//
+	// 		if (InputSystem::IsPressed("moveright")) {
+	// 			moveInput.x += 1.0f;
+	// 		}
+	//
+	// 		if (InputSystem::IsPressed("moveleft")) {
+	// 			moveInput.x -= 1.0f;
+	// 		}
+	//
+	// 		if (InputSystem::IsPressed("moveup")) {
+	// 			moveInput.y += 1.0f;
+	// 		}
+	//
+	// 		if (InputSystem::IsPressed("movedown")) {
+	// 			moveInput.y -= 1.0f;
+	// 		}
+	//
+	// 		moveInput.Normalize();
+	//
+	// 		Quaternion camRot = cameraEntity_->GetTransform()->GetWorldRot();
+	// 		Vec3 cameraForward = camRot * Vec3::forward;
+	// 		Vec3 cameraRight = camRot * Vec3::right;
+	// 		Vec3 cameraUp = camRot * Vec3::up;
+	//
+	// 		if (InputSystem::IsTriggered("invprev")) {
+	// 			moveSpd *= 2.0f;
+	// 			moveSpd = RoundToNearestPowerOfTwo(moveSpd);
+	// 		}
+	//
+	// 		if (InputSystem::IsTriggered("invnext")) {
+	// 			moveSpd *= 0.5f;
+	// 			moveSpd = RoundToNearestPowerOfTwo(moveSpd);
+	// 		}
+	//
+	// 		static float oldMoveSpd = 0.0f;
+	// 		if (moveSpd != oldMoveSpd) {
+	// 			bOpenPopup = true;
+	// 			popupTimer = 0.0f;
+	// 		}
+	//
+	// 		moveSpd = std::clamp(moveSpd, 0.125f, 65535.0f);
+	//
+	// 		oldMoveSpd = moveSpd;
+	//
+	// 		cameraEntity_->GetTransform()->SetWorldPos(
+	// 			cameraEntity_->GetTransform()->GetWorldPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) *
+	// 			moveSpd * EngineTimer::GetScaledDeltaTime()
+	// 		);
+	// 	}
+	// 	// カーソルをウィンドウの中央にリセット
+	// 	POINT centerCursorPos = {
+	// 		static_cast<LONG>(WindowManager::GetMainWindow()->GetClientWidth() / 2), static_cast<LONG>(WindowManager::GetMainWindow()->GetClientHeight() / 2)
+	// 	};
+	// 	ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
+	// 	SetCursorPos(centerCursorPos.x, centerCursorPos.y);
+	//
+	// 	firstReset = false; // 初回リセット完了
+	// } else {
+	// 	if (cursorHidden) {
+	// 		ShowCursor(TRUE); // カーソルを表示する
+	// 		cursorHidden = false;
+	// 	}
+	// 	firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
+	// }
 
 	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
 	if (bOpenPopup) {
@@ -211,7 +211,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		ImGui::PopStyleVar();
 	}
 
-	cameraEntity_->Update(deltaTime);
+	//cameraEntity_->Update(deltaTime);
 
 	ImGui::ShowDemoWindow();
 

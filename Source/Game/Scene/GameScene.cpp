@@ -75,6 +75,9 @@ void GameScene::Init() {
 	resourceManager_->GetMeshManager()->LoadMeshFromFile(
 		"./Resources/Models/reflectionTest.obj");
 
+	resourceManager_->GetMeshManager()->LoadMeshFromFile(
+		"./Resources/Models/weapon.obj");
+
 	cubeMap_ = std::make_unique<CubeMap>(renderer_->GetDevice());
 #pragma endregion
 
@@ -114,41 +117,54 @@ void GameScene::Init() {
 	CameraManager::SetActiveCamera(camera);
 
 	// プレイヤー
-	entPlayer_ = std::make_unique<Entity>("player");
-	entPlayer_->GetTransform()->SetLocalPos(Vec3::up * 4.0f); // 1m上に配置
-	PlayerMovement* rawPlayerMovement = entPlayer_->AddComponent<
+	mEntPlayer = std::make_unique<Entity>("player");
+	mEntPlayer->GetTransform()->SetLocalPos(Vec3::up * 4.0f); // 1m上に配置
+	PlayerMovement* rawPlayerMovement = mEntPlayer->AddComponent<
 		PlayerMovement>();
-	playerMovement_ = std::shared_ptr<PlayerMovement>(
+	mPlayerMovement = std::shared_ptr<PlayerMovement>(
 		rawPlayerMovement, [](PlayerMovement*) {
 		}
 	);
-	BoxColliderComponent* rawPlayerCollider = entPlayer_->AddComponent<
+	BoxColliderComponent* rawPlayerCollider = mEntPlayer->AddComponent<
 		BoxColliderComponent>();
-	playerCollider_ = std::shared_ptr<BoxColliderComponent>(
+	mPlayerCollider = std::shared_ptr<BoxColliderComponent>(
 		rawPlayerCollider, [](BoxColliderComponent*) {
 		}
 	);
-	playerCollider_->SetSize(Math::HtoM(Vec3(33.0f, 73.0f, 33.0f)));
-	playerCollider_->SetOffset(Math::HtoM(Vec3::up * 73.0f * 0.5f));
-	AddEntity(entPlayer_.get());
+	mPlayerCollider->SetSize(Math::HtoM(Vec3(33.0f, 73.0f, 33.0f)));
+	mPlayerCollider->SetOffset(Math::HtoM(Vec3::up * 73.0f * 0.5f));
+	AddEntity(mEntPlayer.get());
 
-	// 風
-	windEffect_ = std::make_unique<WindEffect>();
-	windEffect_->Init(Engine::GetParticleManager(), playerMovement_.get());
+	mEntWeapon                         = std::make_unique<Entity>("weapon");
+	StaticMeshRenderer* weaponRenderer = mEntWeapon->AddComponent<
+		StaticMeshRenderer>();
+	mWeaponMeshRenderer = std::shared_ptr<StaticMeshRenderer>(
+		weaponRenderer, [](StaticMeshRenderer*) {
+		}
+	);
+	mWeaponMeshRenderer->SetStaticMesh(
+		resourceManager_->GetMeshManager()->GetStaticMesh(
+			"./Resources/Models/weapon.obj"));
+	WeaponSway* rawWeaponSway = mEntWeapon->AddComponent<WeaponSway>();
+	mWeaponSway               = std::shared_ptr<WeaponSway>(
+		rawWeaponSway, [](WeaponSway*) {
+		}
+	);
+	AddEntity(mEntWeapon.get());
 
 	// テスト用メッシュ
-	entTestMesh_                   = std::make_unique<Entity>("testMesh");
-	StaticMeshRenderer* smRenderer = entTestMesh_->AddComponent<
+	mEntWorldMesh                  = std::make_unique<Entity>("testMesh");
+	StaticMeshRenderer* smRenderer = mEntWorldMesh->AddComponent<
 		StaticMeshRenderer>();
-	smrTestMesh_ = std::shared_ptr<StaticMeshRenderer>(
+	mWorldMeshRenderer = std::shared_ptr<StaticMeshRenderer>(
 		smRenderer, [](StaticMeshRenderer*) {
 		}
 	);
 	smRenderer->SetStaticMesh(
 		resourceManager_->GetMeshManager()->GetStaticMesh(
 			"./Resources/Models/reflectionTest.obj"));
-	entTestMesh_->AddComponent<MeshColliderComponent>();
-	AddEntity(entTestMesh_.get());
+	mEntWorldMesh->AddComponent<MeshColliderComponent>();
+	AddEntity(mEntWorldMesh.get());
 
 	// カメラの親エンティティ
 	cameraRoot_ = std::make_unique<Entity>("cameraRoot");
@@ -160,7 +176,14 @@ void GameScene::Init() {
 	// cameraRootにアタッチ
 	camera_->SetParent(cameraRoot_.get());
 	camera_->GetTransform()->SetLocalPos(Vec3::zero); // FPS
+
+	mEntWeapon->SetParent(camera_.get());
+	mEntWeapon->GetTransform()->SetLocalPos(Vec3::zero); // カメラにめり込む
 #pragma endregion
+
+	// 風
+	windEffect_ = std::make_unique<WindEffect>();
+	windEffect_->Init(Engine::GetParticleManager(), mPlayerMovement.get());
 
 #pragma region コンソール変数/コマンド
 #pragma endregion
@@ -170,19 +193,22 @@ void GameScene::Init() {
 
 	CameraManager::SetActiveCamera(camera);
 
-	physicsEngine_->RegisterEntity(entTestMesh_.get(), true);
+	physicsEngine_->RegisterEntity(mEntWorldMesh.get(), true);
 
 	// 物理エンジンにプレイヤーエンティティを登録
-	physicsEngine_->RegisterEntity(entPlayer_.get());
+	physicsEngine_->RegisterEntity(mEntPlayer.get());
 }
 
 void GameScene::Update(const float deltaTime) {
-	cameraRoot_->GetTransform()->SetWorldPos(playerMovement_->GetHeadPos());
+	cameraRoot_->GetTransform()->SetWorldPos(mPlayerMovement->GetHeadPos());
 	cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
 	camera_->Update(EngineTimer::GetScaledDeltaTime());
 
-	entPlayer_->Update(EngineTimer::GetScaledDeltaTime());
-	entTestMesh_->Update(deltaTime);
+	mEntPlayer->Update(EngineTimer::GetScaledDeltaTime());
+	// mEntWeapon->Update(EngineTimer::GetScaledDeltaTime());
+	// mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
+	// mWeaponSway->Update(EngineTimer::GetScaledDeltaTime());
+	mEntWorldMesh->Update(deltaTime);
 	physicsEngine_->Update(deltaTime);
 
 #ifdef _DEBUG
@@ -225,7 +251,7 @@ void GameScene::Update(const float deltaTime) {
 			camRot.x * Math::rad2Deg,
 			camRot.y * Math::rad2Deg,
 			camRot.z * Math::rad2Deg,
-			Math::MtoH(playerMovement_->GetVelocity().Length())
+			Math::MtoH(mPlayerMovement->GetVelocity().Length())
 		);
 
 		//Console::Print(text);
@@ -271,18 +297,20 @@ void GameScene::Update(const float deltaTime) {
 }
 
 void GameScene::Render() {
-	entTestMesh_->Render(renderer_->GetCommandList());
-
-	Engine::GetParticleManager()->Render();
-	mParticleObject->Draw();
-	windEffect_->Draw();
-
 	cubeMap_->Render(
 		renderer_->GetCommandList(),
 		resourceManager_->GetShaderResourceViewManager(),
 		resourceManager_->GetTextureManager()->GetTexture(
 			                "./Resources/Textures/wave.dds")
 		                ->GetResource());
+
+	mEntWorldMesh->Render(renderer_->GetCommandList());
+
+	mEntWeapon->Render(renderer_->GetCommandList());
+
+	Engine::GetParticleManager()->Render();
+	mParticleObject->Draw();
+	windEffect_->Draw();
 }
 
 void GameScene::Shutdown() {

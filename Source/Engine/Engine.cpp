@@ -246,8 +246,7 @@ void Engine::Update() {
 			ImVec2     avail = ImGui::GetContentRegionAvail();
 			const auto ptr   = offscreenRTV_.srvHandles.gpuHandle.ptr;
 			if (ptr) {
-				const ImTextureID texId = offscreenRTV_.srvHandles.gpuHandle.
-					ptr;
+				const ImTextureID texId = offscreenRTV_.srvHandles.gpuHandle.ptr;
 
 				ImGui::ImageWithBg(
 					texId,
