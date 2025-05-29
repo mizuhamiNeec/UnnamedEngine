@@ -21,10 +21,10 @@ void Entity::Update(const float deltaTime) const {
 		component->Update(deltaTime);
 	}
 
-	// // 子のエンティティの更新
-	// for (const auto& child : children_) {
-	// 	child->Update(deltaTime);
-	// }
+	// 子のエンティティの更新
+	for (const auto& child : children_) {
+		child->Update(deltaTime);
+	}
 
 	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
 		Debug::DrawAxis(GetTransform()->GetWorldPos(), GetTransform()->GetWorldRot());

@@ -6,7 +6,8 @@
 
 #include <ImGuiManager/ImGuiManager.h>
 
-void TransformComponent::Update([[maybe_unused]] float deltaTime) {}
+void TransformComponent::Update([[maybe_unused]] float deltaTime) {
+}
 
 const Vec3& TransformComponent::GetLocalPos() const {
 	return position_;
@@ -37,9 +38,10 @@ void TransformComponent::SetLocalScale(const Vec3& newScale) {
 
 Vec3 TransformComponent::GetWorldPos() const {
 	if (owner_ && owner_->GetParent()) {
-		if (const TransformComponent* parentTransform = owner_->GetParent()->GetTransform()) {
+		if (const TransformComponent* parentTransform = owner_->GetParent()->
+			GetTransform()) {
 			// 親のワールド情報を取得
-			const Vec3 parentPos = parentTransform->GetWorldPos();
+			const Vec3       parentPos = parentTransform->GetWorldPos();
 			const Quaternion parentRot = parentTransform->GetWorldRot();
 
 			// ローカル位置を親の回転で変換
@@ -54,7 +56,8 @@ Vec3 TransformComponent::GetWorldPos() const {
 
 Quaternion TransformComponent::GetWorldRot() const {
 	if (owner_ && owner_->GetParent()) {
-		if (const TransformComponent* parentTransform = owner_->GetParent()->GetTransform()) {
+		if (const TransformComponent* parentTransform = owner_->GetParent()->
+			GetTransform()) {
 			return parentTransform->GetWorldRot() * rotation_;
 		}
 	}
@@ -63,7 +66,8 @@ Quaternion TransformComponent::GetWorldRot() const {
 
 Vec3 TransformComponent::GetWorldScale() const {
 	if (owner_->GetParent()) {
-		if (const TransformComponent* parentTransform = owner_->GetParent()->GetTransform()) {
+		if (const TransformComponent* parentTransform = owner_->GetParent()->
+			GetTransform()) {
 			return parentTransform->GetWorldScale() * scale_;
 		}
 	}
@@ -72,7 +76,8 @@ Vec3 TransformComponent::GetWorldScale() const {
 
 void TransformComponent::SetWorldPos(const Vec3& newPosition) {
 	if (owner_->GetParent()) {
-		if (const TransformComponent* parentTransform = owner_->GetParent()->GetTransform()) {
+		if (const TransformComponent* parentTransform = owner_->GetParent()->
+			GetTransform()) {
 			// 親の逆行列を用いてワールド座標をローカル座標に変換
 			const Mat4 parentWorldMat = parentTransform->GetWorldMat();
 			const Mat4 parentInvMat = parentWorldMat.Inverse();
@@ -88,12 +93,13 @@ void TransformComponent::SetWorldPos(const Vec3& newPosition) {
 
 void TransformComponent::SetWorldRot(const Quaternion& newRotation) {
 	if (owner_->GetParent()) {
-		if (const TransformComponent* parentTransform = owner_->GetParent()->GetTransform()) {
+		if (const TransformComponent* parentTransform = owner_->GetParent()->
+			GetTransform()) {
 			// 親の回転を取得
 			Quaternion parentRot = parentTransform->GetWorldRot();
 			// 親の回転の逆クォータニオンをかけることでローカル回転を取得
 			const Quaternion invParentRot = parentRot.Inverse();
-			rotation_ = invParentRot * newRotation;
+			rotation_                     = invParentRot * newRotation;
 			MarkDirty();
 			return;
 		}
@@ -104,9 +110,10 @@ void TransformComponent::SetWorldRot(const Quaternion& newRotation) {
 
 void TransformComponent::SetWorldScale(const Vec3& newScale) {
 	if (owner_->GetParent()) {
-		if (const TransformComponent* parentTransform = owner_->GetParent()->GetTransform()) {
+		if (const TransformComponent* parentTransform = owner_->GetParent()->
+			GetTransform()) {
 			const Vec3 parentScale = parentTransform->GetWorldScale();
-			scale_ = newScale / parentScale; // 親スケールとの比率を設定
+			scale_                 = newScale / parentScale; // 親スケールとの比率を設定
 			MarkDirty();
 			return;
 		}
@@ -124,7 +131,8 @@ const Mat4& TransformComponent::GetLocalMat() const {
 
 Mat4 TransformComponent::GetWorldMat() const {
 	if (owner_ && owner_->GetParent()) {
-		if (const TransformComponent* parentTransform = owner_->GetParent()->GetTransform()) {
+		if (const TransformComponent* parentTransform = owner_->GetParent()->
+			GetTransform()) {
 			return parentTransform->GetWorldMat() * GetLocalMat();
 		}
 	}
@@ -167,5 +175,5 @@ void TransformComponent::RecalculateMat() const {
 	const Mat4 T = Mat4::Translate(position_);
 
 	localMat_ = R * S * T;
-	isDirty_ = false;
+	isDirty_  = false;
 }
