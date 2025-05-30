@@ -122,6 +122,7 @@
     <ClCompile Include="Source\Engine\CubeMap\CubeMap.cpp" />
     <ClCompile Include="Source\Engine\CopyImagePass\CopyImagePass.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiWidgets.cpp" />
+    <ClCompile Include="Source\Engine\Particle\ExplosionEffect.cpp" />
     <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
     <ClCompile Include="Source\Engine\Assets\Manager\AssetManager.cpp" />
     <ClCompile Include="Source\Engine\Async\JobTask\Base\BaseJobTask.cpp" />
@@ -255,6 +256,7 @@
     <ClInclude Include="Source\Engine\CubeMap\CubeMap.h" />
     <ClInclude Include="Source\Engine\CopyImagePass\CopyImagePass.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiWidgets.h" />
+    <ClInclude Include="Source\Engine\Particle\ExplosionEffect.h" />
     <ClInclude Include="Source\Engine\Window\EditorWindow.h" />
     <ClInclude Include="Source\Engine\Assets\Manager\AssetManager.h" />
     <ClInclude Include="Source\Engine\Assets\Asset\Base\Asset.h" />
@@ -380,9 +382,6 @@
     <ProjectReference Include="Source\Externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
       <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Source\Engine\Particle\" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="console.log" />

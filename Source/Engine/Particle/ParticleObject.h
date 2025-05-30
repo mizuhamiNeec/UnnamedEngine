@@ -17,6 +17,14 @@
 class Camera;
 class ParticleManager;
 
+enum class BillboardType {
+	None, // ビルボードなし
+	XY,   // XY平面にビルボード
+	XZ,   // XZ平面にビルボード
+	YZ,   // YZ平面にビルボード
+	All   // 全方向にビルボード
+};
+
 class ParticleObject {
 public:
 	~ParticleObject() = default;
@@ -28,22 +36,31 @@ public:
 
 	void Shutdown();
 
-	static Particle MakeNewParticle(const Vec3& pos, const Vec3&  vel,
-	                                const Vec3& drag, const Vec3& gravity);
+	static Particle MakeNewParticle(const Vec3& pos, const Vec3& vel,
+	                                const Vec3& drag, const Vec3& gravity, Vec4 startColor, Vec4 endColor);
 
 	std::list<Particle> Emit(
-		const Emitter& emitter, int      shapeType, float     coneAngle,
-		const Vec3&    drag, const Vec3& gravity, const Vec3& velocity
+		const Emitter& emitter, int shapeType, float coneAngle,
+		const Vec3& drag, const Vec3& gravity, const Vec3& velocity, Vec4 startColor, Vec4
+		endColor
 	);
 
 	void SetCamera(CameraComponent* newCamera);
 	Vec3 GeneratePosition(const Vec3& emitterPosition, int shapeType) const;
 	static Vec3 GenerateConeVelocity(float coneAngle);
 
-	void EmitParticlesAtPosition(const Vec3& position, int          shapeType,
-	                             float       coneAngle, const Vec3& drag,
-	                             const Vec3& gravity, const Vec3&   velocity,
-	                             uint32_t    count);
+	void EmitParticlesAtPosition(const Vec3& position, int shapeType,
+	                             float coneAngle, const Vec3& drag,
+	                             const Vec3& gravity, const Vec3& velocity,
+	                             uint32_t count, Vec4 startColor, Vec4 endColor);
+
+	void SetBillboardType(const BillboardType type) {
+		billboardType_ = type;
+	}
+
+	[[nodiscard]] BillboardType GetBillboardType() const {
+		return billboardType_;
+	}
 
 private:
 	struct Material {
@@ -55,13 +72,15 @@ private:
 		Vec3    specularColor;
 	};
 
+	BillboardType billboardType_ = BillboardType::All;
+
 	ParticleManager* particleCommon_ = nullptr;
 	SrvManager*      srvManager_     = nullptr;
 	CameraComponent* camera_         = nullptr;
 	std::string      textureFilePath_;
 
-	uint32_t kNumMaxInstance = 512;
-	uint32_t numInstance     = 0; // 描画すべきインスタンス数
+	uint32_t kNumMaxInstance = 16385; // 最大インスタンス数
+	uint32_t numInstance     = 0;     // 描画すべきインスタンス数
 
 	uint32_t srvIndex_ = 0;
 

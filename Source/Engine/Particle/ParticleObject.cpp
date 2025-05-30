@@ -17,13 +17,13 @@ void ParticleObject::Init(ParticleManager*   particleCommon,
 	this->textureFilePath_ = textureFilePath;
 	this->camera_          = particleCommon_->GetDefaultCamera();
 
-	particles_.resize(kNumMaxInstance);
-
-	// 各トランスフォームに初期値を設定
-	for (Particle& particle : particles_) {
-		particle = MakeNewParticle(Vec3::zero, Vec3::zero, Vec3::zero,
-		                           Vec3::zero);
-	}
+	// particles_.resize(kNumMaxInstance);
+	//
+	// // 各トランスフォームに初期値を設定
+	// for (Particle& particle : particles_) {
+	// 	particle = MakeNewParticle(Vec3::zero, Vec3::zero, Vec3::zero,
+	// 	                           Vec3::zero, , TODO);
+	// }
 
 	std::vector<uint32_t> indices = {
 		0, 1, 2,
@@ -93,11 +93,16 @@ void ParticleObject::Update(const float deltaTime) {
 	static Vec3  drag      = {0.0f, 0.0f, 0.0f};
 	static Vec3  gravity   = {0.0f, -9.8f, 0.0f};
 #ifdef _DEBUG
-	ImGui::Begin("Particle");
+	ImGui::Begin(("Particle" + textureFilePath_).c_str());
 	ImGui::Text("Particle Instance : %u", particles_.size());
 
 	// エミッタのトランスフォームを編集
 	ImGuiManager::EditTransform(emitter_.transform, 0.1f);
+
+	// ビルボードタイプの設定
+	const char* billboardTypes[] = {"None", "XY", "XZ", "YZ", "All"};
+	ImGui::Combo("Billboard Type", reinterpret_cast<int*>(&billboardType_),
+	             billboardTypes, IM_ARRAYSIZE(billboardTypes));
 
 	// 発生数と頻度の設定
 	ImGui::InputInt("Particle Count", reinterpret_cast<int*>(&emitter_.count));
@@ -128,7 +133,7 @@ void ParticleObject::Update(const float deltaTime) {
 	if (ImGui::Button("Emit Particles")) {
 		particles_.splice(particles_.end(),
 		                  Emit(emitter_, shapeType, coneAngle, drag, gravity,
-		                       Vec3::zero));
+		                       Vec3::zero, Vec4::white, Vec4::white));
 	}
 
 	for (auto particle : particles_) {
@@ -183,91 +188,53 @@ void ParticleObject::Update(const float deltaTime) {
 
 			float lifeRatio = particleIterator->currentTime / particleIterator->
 				lifeTime;
-			instancingData[numInstance].color   = particleIterator->color;
-			instancingData[numInstance].color.w = 1.0f - lifeRatio;
+
+			particleIterator->color = Math::Lerp(
+				particleIterator->startColor, particleIterator->endColor,
+				Math::CubicBezier(
+					lifeRatio,
+					0.2f, 0.0f, 0.0f, 1.0f
+				)
+			);
+
+			instancingData[numInstance].color = particleIterator->color;
+			// instancingData[numInstance].color.w = 1.0f - lifeRatio;
+
+			particleIterator->transform.scale = Vec3::one *
+				(1.0f - lifeRatio) * 0.5f + Vec3::one * 0.5f;
 
 			Mat4 worldMat;
 
 			// ビルボード
 			{
-				// パーティクルの速度ベクトルを取得
-				Vec3  velocity       = particleIterator->vel;
-				float velocityLength = velocity.Length();
+				// カメラの位置と上方向を取得
+				Vec3 camPos = camera_->GetViewMat().Inverse().GetTranslate();
+				Vec3 up     = Vec3::up;
 
-				if (velocityLength > 0.1f) {
-					// 速度がある場合は速度方向にビルボードを向ける
+				Vec3 particlePos = particleIterator->transform.translate;
 
-					// 速度方向を正規化して前方向ベクトルとする
-					Vec3 forward = velocity.Normalized();
+				// Z軸（カメラ→パーティクル方向、正規化）
+				Vec3 zaxis = (particlePos - camPos).Normalized();
+				// X軸（upとzaxisの外積、正規化）
+				Vec3 xaxis = up.Cross(zaxis).Normalized();
+				// Y軸（zaxisとxaxisの外積、正規化）
+				Vec3 yaxis = zaxis.Cross(xaxis);
 
-					// カメラ位置からパーティクル位置への方向ベクトル
-					Mat4 cameraMat = CameraManager::GetActiveCamera()->
-					                 GetViewMat().Inverse();
-					Vec3 cameraPos = Vec3(cameraMat.m[3][0], cameraMat.m[3][1],
-					                      cameraMat.m[3][2]);
-					Vec3 toCameraDir = (cameraPos - particleIterator->transform.
-						translate).Normalized();
+				// 4x4行列を作成
+				Mat4 billboardMat    = Mat4::identity;
+				billboardMat.m[0][0] = xaxis.x;
+				billboardMat.m[0][1] = xaxis.y;
+				billboardMat.m[0][2] = xaxis.z;
+				billboardMat.m[1][0] = yaxis.x;
+				billboardMat.m[1][1] = yaxis.y;
+				billboardMat.m[1][2] = yaxis.z;
+				billboardMat.m[2][0] = zaxis.x;
+				billboardMat.m[2][1] = zaxis.y;
+				billboardMat.m[2][2] = zaxis.z;
 
-					// 右方向は上方向と前方向の外積
-					Vec3 right = Vec3::up.Cross(forward).Normalized();
-					if (right.SqrLength() < 0.01f) {
-						// 速度がほぼ垂直方向の場合は代替の右方向を使用
-						right = Vec3::right;
-					}
-
-					// 上方向は前方向と右方向の外積
-					Vec3 up = forward.Cross(right).Normalized();
-
-					// 前方向を速度方向にしつつカメラに向かうようにする
-					forward = right.Cross(up).Normalized();
-
-					// 回転行列を構築
-					Mat4 billboardMatrix;
-					billboardMatrix.m[0][0] = right.x;
-					billboardMatrix.m[0][1] = right.y;
-					billboardMatrix.m[0][2] = right.z;
-					billboardMatrix.m[0][3] = 0.0f;
-					billboardMatrix.m[1][0] = up.x;
-					billboardMatrix.m[1][1] = up.y;
-					billboardMatrix.m[1][2] = up.z;
-					billboardMatrix.m[1][3] = 0.0f;
-					billboardMatrix.m[2][0] = forward.x;
-					billboardMatrix.m[2][1] = forward.y;
-					billboardMatrix.m[2][2] = forward.z;
-					billboardMatrix.m[2][3] = 0.0f;
-					billboardMatrix.m[3][0] = 0.0f;
-					billboardMatrix.m[3][1] = 0.0f;
-					billboardMatrix.m[3][2] = 0.0f;
-					billboardMatrix.m[3][3] = 1.0f;
-
-					// 速度に応じたスケールの計算
-					Vec3  particleScale = particleIterator->transform.scale;
-					float stretchFactor = std::min(
-						particleIterator->vel.Length() * 0.05f,
-						100.0f); // 速度に応じた伸び率（上限あり）
-					particleScale.z = particleScale.z * (1.0f + stretchFactor);
-					// Z方向（速度方向）に伸ばす
-
-					// 最終的なワールド行列を計算
-					worldMat = Mat4::Scale(particleScale) * billboardMatrix *
-						Mat4::Translate(
-							particleIterator->transform.translate
-						);
-				} else {
-					// 速度が小さい場合は通常のビルボード
-					Mat4 cameraMat = CameraManager::GetActiveCamera()->
-					                 GetViewMat().Inverse();
-					Mat4 backToFrontMat = Mat4::RotateY(
-						std::numbers::pi_v<float>);
-					Mat4 billboardMatrix = backToFrontMat * cameraMat;
-					billboardMatrix.m[3][0] = 0.0f;
-					billboardMatrix.m[3][1] = 0.0f;
-					billboardMatrix.m[3][2] = 0.0f;
-					worldMat = Mat4::Scale(particleIterator->transform.scale) *
-						billboardMatrix * Mat4::Translate(
-							particleIterator->transform.translate
-						);
-				}
+				worldMat = Mat4::Scale(particleIterator->transform.scale)
+					* billboardMat
+					* Mat4::Translate(particleIterator->transform.translate);
 			}
 
 
@@ -277,12 +244,6 @@ void ParticleObject::Update(const float deltaTime) {
 			const Mat4& viewProjMat = CameraManager::GetActiveCamera()->
 				GetViewProjMat();
 			worldViewProjMat = worldMat * viewProjMat;
-
-			/*	if (camera_) {
-
-				} else {
-					worldViewProjMat = worldMat;
-				}*/
 
 			instancingData[numInstance].wvp   = worldViewProjMat;
 			instancingData[numInstance].world = worldMat;
@@ -297,7 +258,7 @@ void ParticleObject::Update(const float deltaTime) {
 	if (emitter_.frequency <= emitter_.frequencyTime) {
 		particles_.splice(particles_.end(),
 		                  Emit(emitter_, shapeType, coneAngle, drag, gravity,
-		                       Vec3::zero));          // 発生処理
+		                       Vec3::zero, Vec4::white, Vec4::white)); // 発生処理
 		emitter_.frequencyTime -= emitter_.frequency; // 余計に過ぎた時間も加味して頻度計算する
 	}
 
@@ -372,7 +333,10 @@ void ParticleObject::Shutdown() {
 
 Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel,
                                          const Vec3& drag,
-                                         const Vec3& gravity) {
+                                         const Vec3& gravity,
+                                         const Vec4  startColor,
+                                         const Vec4  endColor
+) {
 	Particle particle;
 	particle.transform.scale = {0.25f, 0.25f, 0.25f};
 	particle.transform.rotate = {0.0f, 0.0f, 0.0f};
@@ -384,6 +348,11 @@ Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel,
 	particle.drag    = drag;
 	particle.gravity = gravity;
 
+	particle.color = Vec4::white;
+
+	particle.startColor = startColor;
+	particle.endColor   = endColor;
+
 	// 色
 	/*particle.color = {
 		Random::FloatRange(0.0f, 1.0f),
@@ -392,7 +361,6 @@ Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel,
 		1.0f
 	};*/
 
-	particle.color = Vec4::white;
 
 	// 生存時間
 	particle.lifeTime    = Random::FloatRange(0.1f, 1.0f);
@@ -403,7 +371,9 @@ Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel,
 
 std::list<Particle> ParticleObject::Emit(
 	const Emitter& emitter, int shapeType, [[maybe_unused]] float coneAngle,
-	[[maybe_unused]] const Vec3& drag, const Vec3& gravity, const Vec3& velocity
+	[[maybe_unused]] const Vec3& drag, const Vec3& gravity,
+	const Vec3& velocity,
+	Vec4 startColor, Vec4 endColor
 ) {
 	std::list<Particle> particles;
 	for (uint32_t count = 0; count < emitter.count; ++count) {
@@ -411,7 +381,7 @@ std::list<Particle> ParticleObject::Emit(
 			GeneratePosition(emitter.transform.translate, shapeType);
 		//Vec3 velocity = GenerateConeVelocity(coneAngle);
 		Particle particle = MakeNewParticle(position, velocity, Vec3::zero,
-		                                    gravity);
+		                                    gravity, startColor, endColor);
 		particles.push_back(particle);
 	}
 	return particles;
@@ -486,12 +456,15 @@ void ParticleObject::EmitParticlesAtPosition(const Vec3& position,
                                              const Vec3& drag,
                                              const Vec3& gravity,
                                              const Vec3& velocity,
-                                             uint32_t count) {
+                                             uint32_t count,
+                                             const Vec4 startColor,
+                                             const Vec4 endColor
+) {
 	Emitter localEmitter             = emitter_;
 	localEmitter.transform.translate = position;
 	localEmitter.count               = count;
 	localEmitter.size                = Vec3::one * 4.0f; // エミッターのサイズを初期化
 	particles_.splice(particles_.end(),
 	                  Emit(localEmitter, shapeType, coneAngle, drag, gravity,
-	                       velocity));
+	                       velocity, startColor, endColor));
 }
