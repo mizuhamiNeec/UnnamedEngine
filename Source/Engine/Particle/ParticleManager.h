@@ -88,7 +88,7 @@ private:
 	std::unique_ptr<PipelineState>        pipelineState_        = nullptr;
 	CameraComponent*                      defaultCamera_        = nullptr;
 
-	uint32_t kNumMaxInstance = 512;
+	uint32_t kNumMaxInstance = 16385; // 最大インスタンス数
 
 	std::unordered_map<ParticleMeshType, MeshData> meshData_;
 };

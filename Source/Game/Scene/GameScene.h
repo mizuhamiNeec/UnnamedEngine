@@ -1,34 +1,24 @@
 #pragma once
 #include <memory>
-
 #include <Components/PlayerMovement.h>
+#include <Components/ColliderComponent/BoxColliderComponent.h>
+#include <Components/ColliderComponent/MeshColliderComponent.h>
 #include <Components/MeshRenderer/StaticMeshRenderer.h>
-
+#include <Components/Weapon/WeaponSway.h>
+#include <CubeMap/CubeMap.h>
 #include <Entity/Base/Entity.h>
-
 #include <Object3D/Object3D.h>
 #include <Object3D/Object3DCommon.h>
-
+#include <Particle/ExplosionEffect.h>
+#include <Particle/ParticleEmitter.h>
 #include <Particle/ParticleObject.h>
-
+#include <Particle/WindEffect.h>
 #include <Physics/Physics.h>
-
+#include <Physics/PhysicsEngine.h>
 #include <Renderer/Renderer.h>
-
 #include <Scene/Base/BaseScene.h>
-
 #include <Sprite/Sprite.h>
 #include <Sprite/SpriteCommon.h>
-
-#include "Components/ColliderComponent/BoxColliderComponent.h"
-#include "Components/ColliderComponent/MeshColliderComponent.h"
-#include "Components/Weapon/WeaponSway.h"
-#include "CubeMap/CubeMap.h"
-
-#include "Particle/ParticleEmitter.h"
-#include "Particle/WindEffect.h"
-
-#include "Physics/PhysicsEngine.h"
 
 class EnemyMovement;
 class CameraRotator;
@@ -73,5 +63,6 @@ private:
 
 	std::unique_ptr<ParticleObject> mParticleObject;
 
-	std::unique_ptr<WindEffect> windEffect_;
+	std::unique_ptr<WindEffect>      windEffect_;
+	std::unique_ptr<ExplosionEffect> explosionEffect_;
 };

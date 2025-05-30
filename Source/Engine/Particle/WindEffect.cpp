@@ -2,6 +2,7 @@
 #include <Camera/CameraManager.h>
 #include <Lib/Math/Random/Random.h>
 
+#include "Debug/Debug.h"
 #include "Entity/Base/Entity.h"
 
 WindEffect::~WindEffect() {
@@ -69,7 +70,9 @@ void WindEffect::Update([[maybe_unused]] const float deltaTime) {
 				Vec3(0.1f, 0.1f, 0.1f),           // 抵抗
 				Vec3::zero,                       // 重力なし
 				particleVelocity * particleSpeed, // 速度
-				particleCount                     // 放出数
+				particleCount,                    // 放出数
+				Vec4::cyan,
+				Vec4(1.0f, 1.0f, 1.0f, 1.0f)
 			);
 		}
 	}
@@ -121,6 +124,8 @@ Vec3 WindEffect::GetRandomPositionInPlayerDirection() const {
 		+
 		up * std::sin(randomAngle) * randomDistance * 0.5f +
 		up * randomHeight;
+
+	Debug::DrawAxis(randomPos, Quaternion::identity);
 
 	return randomPos;
 }

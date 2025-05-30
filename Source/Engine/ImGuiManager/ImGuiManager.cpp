@@ -169,7 +169,7 @@ bool ImGuiManager::EditTransform(Transform& transform, const float& vSpeed) {
 	bool isEditing = false;
 
 	if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
-		isEditing |= DragVec3("Position", transform.translate, vSpeed, "%.3f");
+		isEditing |= ImGuiWidgets::DragVec3("Position", transform.translate, vSpeed, "%.3f");
 
 		// 回転を取っておく
 		Vec3 rotate = transform.rotate * Math::rad2Deg;
@@ -178,7 +178,7 @@ bool ImGuiManager::EditTransform(Transform& transform, const float& vSpeed) {
 			transform.rotate = rotate * Math::deg2Rad;
 		}
 
-		isEditing |= DragVec3("Scale", transform.scale, vSpeed, "%.3f");
+		isEditing |= ImGuiWidgets::DragVec3("Scale", transform.scale, vSpeed, "%.3f");
 	}
 
 	return isEditing;

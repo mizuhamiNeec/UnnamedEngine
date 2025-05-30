@@ -52,7 +52,9 @@ Vec3 Math::CatmullRomPosition(const std::vector<Vec3>& points, const float t) {
 	return CatmullRomInterpolation(p0, p1, p2, p3, t_2);
 }
 
-Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p2, const Vec3& p3, const float t) {
+Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1,
+                                   const Vec3& p2, const Vec3& p3,
+                                   const float t) {
 	const float t2 = t * t;
 	const float t3 = t2 * t;
 
@@ -62,7 +64,7 @@ Vec3 Math::CatmullRomInterpolation(const Vec3& p0, const Vec3& p1, const Vec3& p
 		(-p0 + p2) * t +
 		(2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2 +
 		(-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3
-		);
+	);
 }
 
 float Math::DeltaAngle(const float& current, const float& target) {
@@ -79,11 +81,11 @@ float Math::CubicBezier(const float t, const Vec2 p1, const Vec2 p2) {
 	if (t <= 0.0f) return 0.0f;
 	if (t >= 1.0f) return 1.0f;
 
-	float u = t;
+	float         u       = t;
 	constexpr int kMaxItr = 10;
 	for (int i = 0; i < kMaxItr; i++) {
 		const float oneMinusU = 1.0f - u;
-		const float bezierX = 3.0f * oneMinusU * oneMinusU * u * p1.x +
+		const float bezierX   = 3.0f * oneMinusU * oneMinusU * u * p1.x +
 			3.0f * oneMinusU * u * u * p2.x +
 			u * u * u;
 
@@ -101,14 +103,24 @@ float Math::CubicBezier(const float t, const Vec2 p1, const Vec2 p2) {
 
 	// u を用いて y(u) を計算
 	const float oneMinusU = 1.0f - u;
-	const float bezierY = 3.0f * oneMinusU * oneMinusU * u * p1.y +
+	const float bezierY   = 3.0f * oneMinusU * oneMinusU * u * p1.y +
 		3.0f * oneMinusU * u * u * p2.y +
 		u * u * u;
 	return bezierY;
 }
 
-float Math::CubicBezier(const float t, const float p1, const float p2, const float p3, const float p4) {
+float Math::CubicBezier(const float t, const float  p1, const float p2,
+                        const float p3, const float p4) {
 	return CubicBezier(t, Vec2(p1, p2), Vec2(p3, p4));
+}
+
+Vec4 Math::Lerp(const Vec4& a, const Vec4& b, const float t) {
+	return Vec4(
+		a.x * (1 - t) + b.x * t,
+		a.y * (1 - t) + b.y * t,
+		a.z * (1 - t) + b.z * t,
+		a.w * (1 - t) + b.w * t
+	);
 }
 
 //-----------------------------------------------------------------------------
@@ -119,21 +131,23 @@ float Math::CubicBezier(const float t, const float p1, const float p2, const flo
 //          outIsOffscreen - 画面外にあるかどうかの結果
 //          outAngle    - 画面中心からの角度 [rad]
 //-----------------------------------------------------------------------------
-Vec2 Math::WorldToScreen(const Vec3& worldPos, const Vec2 screenSize, const bool& bClamp, const float& margin, bool& outIsOffscreen, float& outAngle) {
+Vec2 Math::WorldToScreen(const Vec3& worldPos, const Vec2   screenSize,
+                         const bool& bClamp, const float&   margin,
+                         bool&       outIsOffscreen, float& outAngle) {
 	// 初期設定
-	CameraComponent* camera = CameraManager::GetActiveCamera().get();
-	const Vec4 viewSpace = Vec4(worldPos, 1.0f) * camera->GetViewMat();
-	const Vec4 clipSpace = viewSpace * camera->GetProjMat();
+	CameraComponent* camera    = CameraManager::GetActiveCamera().get();
+	const Vec4       viewSpace = Vec4(worldPos, 1.0f) * camera->GetViewMat();
+	const Vec4       clipSpace = viewSpace * camera->GetProjMat();
 
 	const Vec2 screenCenter(screenSize.x * 0.5f, screenSize.y * 0.5f);
 
 	// w除算を行いNDC空間に変換
 	const float invW = 1.0f / clipSpace.w;
-	Vec3 ndc(clipSpace.x * invW, clipSpace.y * invW, clipSpace.z * invW);
+	Vec3        ndc(clipSpace.x * invW, clipSpace.y * invW, clipSpace.z * invW);
 
 	// スクリーン座標計算
 	Vec2 screenPos((ndc.x * 0.5f + 0.5f) * screenSize.x,
-		(1.0f - (ndc.y * 0.5f + 0.5f)) * screenSize.y);
+	               (1.0f - (ndc.y * 0.5f + 0.5f)) * screenSize.y);
 
 	// 画面中心からの方向ベクトル計算
 	Vec2 direction = screenPos - screenCenter;
@@ -153,17 +167,20 @@ Vec2 Math::WorldToScreen(const Vec3& worldPos, const Vec2 screenSize, const bool
 
 	// クランプ処理
 	outIsOffscreen = false;
-	if (viewSpace.z < 0.0f || screenPos.x < margin || screenPos.x > screenSize.x - margin ||
+	if (viewSpace.z < 0.0f || screenPos.x < margin || screenPos.x > screenSize.x
+		- margin ||
 		screenPos.y < margin || screenPos.y > screenSize.y - margin) {
-		outIsOffscreen = true;
-		Vec2 clampDirection = viewSpace.z < 0.0f ? Vec2(viewSpace.x, -viewSpace.y) : direction;
+		outIsOffscreen      = true;
+		Vec2 clampDirection = viewSpace.z < 0.0f
+			                      ? Vec2(viewSpace.x, -viewSpace.y)
+			                      : direction;
 
 		const float length = std::hypot(clampDirection.x, clampDirection.y);
 		if (length > 0.0f) {
 			clampDirection /= length; // 正規化
 		}
 
-		const float screenRight = screenSize.x - margin;
+		const float screenRight  = screenSize.x - margin;
 		const float screenBottom = screenSize.y - margin;
 
 		// 境界との交差点を計算
@@ -179,7 +196,7 @@ Vec2 Math::WorldToScreen(const Vec3& worldPos, const Vec2 screenSize, const bool
 			if (t > 0.0f && t < minT) minT = t;
 		}
 
-		screenPos = screenCenter + clampDirection * minT;
+		screenPos   = screenCenter + clampDirection * minT;
 		screenPos.x = std::clamp(screenPos.x, margin, screenRight);
 		screenPos.y = std::clamp(screenPos.y, margin, screenBottom);
 	}
@@ -195,7 +212,6 @@ Vec3 Math::HtoM(const Vec3& vec) {
 float Math::HtoM(const float val) {
 	// Hammer -> Meter
 	return val * 0.0254f;
-
 }
 
 Vec3 Math::MtoH(const Vec3& vec) {

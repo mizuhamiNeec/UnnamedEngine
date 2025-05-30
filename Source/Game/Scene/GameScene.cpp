@@ -21,6 +21,7 @@
 
 #include "Assets/Manager/AssetManager.h"
 #include "ImGuiManager/ImGuiWidgets.h"
+#include "TextureManager/TexManager.h"
 
 GameScene::~GameScene() {
 	resourceManager_ = nullptr;
@@ -66,6 +67,10 @@ void GameScene::Init() {
 #pragma region テクスチャ読み込み
 	resourceManager_->GetTextureManager()->GetTexture(
 		"./Resources/Textures/wave.dds");
+
+	TexManager::GetInstance()->LoadTexture(
+		"./Resources/Textures/smoke.png"
+	);
 
 #pragma endregion
 
@@ -203,6 +208,13 @@ void GameScene::Init() {
 	windEffect_ = std::make_unique<WindEffect>();
 	windEffect_->Init(Engine::GetParticleManager(), mPlayerMovement.get());
 
+	// 爆発
+	explosionEffect_ = std::make_unique<ExplosionEffect>();
+	explosionEffect_->Init(Engine::GetParticleManager(),
+	                       "./Resources/Textures/smoke.png");
+	explosionEffect_->SetColorGradient(
+		Vec4(1.0f, 0.3f, 0.0f, 1.0f), Vec4(0.1f, 0.1f, 0.1f, 0.5f));
+
 #pragma region コンソール変数/コマンド
 #pragma endregion
 
@@ -235,6 +247,11 @@ void GameScene::Update(const float deltaTime) {
 	}
 	if (InputSystem::IsPressed("+reload")) {
 		mWeaponComponent->Reload();
+	}
+
+	if (InputSystem::IsTriggered("+attack2")) {
+		explosionEffect_->TriggerExplosion(
+			mEntPlayer->GetTransform()->GetWorldPos(), 2048, 30.0f);
 	}
 
 	mEntWeapon->Update(EngineTimer::GetScaledDeltaTime());
@@ -327,6 +344,7 @@ void GameScene::Update(const float deltaTime) {
 	}
 
 	windEffect_->Update(EngineTimer::ScaledDelta());
+	explosionEffect_->Update(EngineTimer::ScaledDelta());
 
 	cubeMap_->Update(deltaTime);
 }
@@ -346,6 +364,7 @@ void GameScene::Render() {
 	Engine::GetParticleManager()->Render();
 	mParticleObject->Draw();
 	windEffect_->Draw();
+	explosionEffect_->Draw();
 }
 
 void GameScene::Shutdown() {
