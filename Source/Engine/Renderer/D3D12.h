@@ -64,6 +64,8 @@ public: // メンバ関数
 
 	void                        BeginSwapChainRenderPass() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE GetSwapChainRenderTargetView() const;
+	
+	void ResetCommandList();
 
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size,
 	                                    const void*     data);

@@ -61,9 +61,11 @@ private:
 	std::shared_ptr<BoxColliderComponent> mPlayerCollider;
 
 	std::unique_ptr<Entity>             mEntWeapon;
-	std::shared_ptr<StaticMeshRenderer> mWeaponMeshRenderer;
 	std::shared_ptr<WeaponComponent>    mWeaponComponent;
+	std::shared_ptr<StaticMeshRenderer> mWeaponMeshRenderer;
 	std::shared_ptr<WeaponSway>         mWeaponSway;
+
+	std::unique_ptr<Entity> mEntShakeRoot;
 
 	std::unique_ptr<PhysicsEngine> physicsEngine_;
 

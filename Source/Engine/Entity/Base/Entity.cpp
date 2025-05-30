@@ -4,7 +4,15 @@
 
 #include <SubSystem/Console/ConVarManager.h>
 
-Entity::~Entity() {}
+#include "imgui_internal.h"
+#include "Camera/CameraManager.h"
+#include "Components/Camera/CameraComponent.h"
+#include "ImGuiManager/ImGuiManager.h"
+#include "Lib/DebugHud/DebugHud.h"
+#include "Window/WindowManager.h"
+
+Entity::~Entity() {
+}
 
 void Entity::Update(const float deltaTime) const {
 	if (!bIsActive_) {
@@ -21,14 +29,84 @@ void Entity::Update(const float deltaTime) const {
 		component->Update(deltaTime);
 	}
 
-	// 子のエンティティの更新
-	for (const auto& child : children_) {
-		child->Update(deltaTime);
+	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
+		Vec3 worldPos   = GetTransform()->GetWorldPos();
+		Vec2 screenSize = Vec2(
+			static_cast<float>(WindowManager::GetMainWindow()->
+				GetClientWidth()),
+			static_cast<float>(WindowManager::GetMainWindow()->
+				GetClientHeight())
+		);
+
+		Debug::DrawAxis(worldPos,
+		                GetTransform()->GetWorldRot());
+
+		Vec3 cameraPos = CameraManager::GetActiveCamera()->GetViewMat().
+			Inverse().GetTranslate();
+
+		// カメラとの距離を計算
+		float distance = (worldPos - cameraPos).Length();
+
+
+		// カメラとの距離が一定以下の場合は軸を描画しない
+		if (distance < Math::HtoM(4.0f)) {
+			return;
+		}
+
+		bool  bIsOffscreen = false;
+		float outAngle     = 0.0f;
+
+		Vec2 scrPosition = Math::WorldToScreen(
+			worldPos,
+			screenSize,
+			false,
+			0.0f,
+			bIsOffscreen,
+			outAngle
+		);
+
+		if (!bIsOffscreen) {
+			auto   viewport  = ImGui::GetMainViewport();
+			ImVec2 screenPos = viewport->Pos;
+			ImGui::SetNextWindowPos(screenPos);
+			ImGui::SetNextWindowSize({screenSize.x, screenSize.y});
+			ImGui::SetNextWindowBgAlpha(0.0f); // 背景を透明にする
+			ImGui::Begin("##EntityName", nullptr,
+			             ImGuiWindowFlags_NoBackground |
+			             ImGuiWindowFlags_NoTitleBar |
+			             ImGuiWindowFlags_NoResize |
+			             ImGuiWindowFlags_NoMove |
+			             ImGuiWindowFlags_NoSavedSettings |
+			             ImGuiWindowFlags_NoDocking |
+			             ImGuiWindowFlags_NoFocusOnAppearing |
+			             ImGuiWindowFlags_NoInputs |
+			             ImGuiWindowFlags_NoNav
+			);
+
+			ImVec2      textPos  = {scrPosition.x, scrPosition.y};
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+			float outlineSize = 1.0f;
+
+			ImVec4 textColor = ToImVec4(Vec4::white);
+
+			ImGuiManager::TextOutlined(
+				drawList,
+				textPos,
+				name_.c_str(),
+				textColor,
+				ToImVec4(kDebugHudOutlineColor),
+				outlineSize
+			);
+
+			ImGui::End();
+		}
 	}
 
-	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
-		Debug::DrawAxis(GetTransform()->GetWorldPos(), GetTransform()->GetWorldRot());
-	}
+	// // 子のエンティティの更新
+	// for (const auto& child : children_) {
+	// 	child->Update(deltaTime);
+	// }
 }
 
 void Entity::Render(ID3D12GraphicsCommandList* commandList) const {
@@ -81,8 +159,9 @@ void Entity::SetParent(Entity* newParent) {
 	const Entity* check = newParent;
 	while (check) {
 		if (check == this) {
-			Console::Print(std::format("Entity '{}': Circular parenting detected!", name_),
-			               Vec4(1, 0, 0, 1), Channel::General);
+			Console::Print(
+				std::format("Entity '{}': Circular parenting detected!", name_),
+				Vec4(1, 0, 0, 1), Channel::General);
 			return;
 		}
 		check = check->parent_;
@@ -93,13 +172,13 @@ void Entity::SetParent(Entity* newParent) {
 	}
 
 	// 現在のワールド変換を保存
-	Vec3 currentWorldPos;
+	Vec3       currentWorldPos;
 	Quaternion currentWorldRot;
-	Vec3 currentWorldScale;
+	Vec3       currentWorldScale;
 
 	if (transform_) {
-		currentWorldPos = transform_->GetWorldPos();
-		currentWorldRot = transform_->GetWorldRot();
+		currentWorldPos   = transform_->GetWorldPos();
+		currentWorldRot   = transform_->GetWorldRot();
 		currentWorldScale = transform_->GetWorldScale();
 	}
 

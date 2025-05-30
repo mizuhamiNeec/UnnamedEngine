@@ -19,7 +19,7 @@
 
 #include <Window/WindowsUtils.h>
 
-ImGuiManager::ImGuiManager(const D3D12* renderer, const ShaderResourceViewManager* srvManager) : renderer_(renderer),
+ImGuiManager::ImGuiManager(D3D12* renderer, const ShaderResourceViewManager* srvManager) : renderer_(renderer),
                                                                                                  srvManager_(srvManager) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -87,19 +87,29 @@ void ImGuiManager::NewFrame() {
 	ImGui::NewFrame();
 }
 
-void ImGuiManager::EndFrame() const {
+void ImGuiManager::EndFrame() {
 	// ImGuiのフレームを終了しレンダリング準備
 	ImGui::Render();
 
-	// ImGuiマルチビューポート用
-	ImGui::UpdatePlatformWindows();
-	ImGui::RenderPlatformWindowsDefault();
-
+	// レンダーターゲットとして使用されたテクスチャリソースをすべてSRV状態に遷移
+	// これによりImGuiのマルチビューポートでも安全にテクスチャとして使用できる
 	ID3D12DescriptorHeap* imGuiHeap = ShaderResourceViewManager::GetDescriptorHeap().Get();
 	renderer_->GetCommandList()->SetDescriptorHeaps(1, &imGuiHeap);
 
-	// 実際のCommandListのImGuiの描画コマンドを積む
+	// メインウィンドウのImGuiコンテンツを描画
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), renderer_->GetCommandList());
+
+	// マルチビューポートの更新前に、すべてのコマンドを確実にフラッシュする
+	renderer_->GetCommandList()->Close();
+	ID3D12CommandList* cmdLists[] = { renderer_->GetCommandList() };
+	renderer_->GetCommandQueue()->ExecuteCommandLists(1, cmdLists);
+    
+	// マルチビューポート用のレンダリング（新しいコマンドリストが内部で作成される）
+	ImGui::UpdatePlatformWindows();
+	ImGui::RenderPlatformWindowsDefault();
+    
+	// 新しいコマンドリストを作成して作業を続行
+	renderer_->ResetCommandList();
 
 	ImGui::EndFrame();
 }
@@ -270,18 +280,22 @@ void ImGuiManager::TextOutlined(
 	const ImVec4 outlineColor,
 	const float outlineSize
 ) {
+	// クライアント領域の左上座標を取得
+	ImVec2 windowPos = ImGui::GetWindowPos();
+	ImVec2 clientPos = ImVec2(windowPos.x + pos.x, windowPos.y + pos.y);
+
 	ImU32 outlineCol = ImGui::ColorConvertFloat4ToU32(outlineColor);
 	ImU32 textCol = ImGui::ColorConvertFloat4ToU32(textColor);
 
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y), outlineCol, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y), outlineCol, text);
-	drawList->AddText(ImVec2(pos.x, pos.y - outlineSize), outlineCol, text);
-	drawList->AddText(ImVec2(pos.x, pos.y + outlineSize), outlineCol, text);
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y - outlineSize), outlineCol, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y - outlineSize), outlineCol, text);
-	drawList->AddText(ImVec2(pos.x - outlineSize, pos.y + outlineSize), outlineCol, text);
-	drawList->AddText(ImVec2(pos.x + outlineSize, pos.y + outlineSize), outlineCol, text);
-	drawList->AddText(pos, textCol, text);
+	drawList->AddText(ImVec2(clientPos.x - outlineSize, clientPos.y), outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x + outlineSize, clientPos.y), outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x, clientPos.y - outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x, clientPos.y + outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x - outlineSize, clientPos.y - outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x + outlineSize, clientPos.y - outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x - outlineSize, clientPos.y + outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x + outlineSize, clientPos.y + outlineSize), outlineCol, text);
+	drawList->AddText(clientPos, textCol, text);
 }
 
 bool ImGuiManager::IconButton(const char* icon, const char* label, const ImVec2& size) {

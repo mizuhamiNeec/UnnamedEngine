@@ -56,7 +56,7 @@ void DebugHud::ShowFrameRate() {
 
 	ImGui::Begin("##cl_showfps", nullptr, windowFlags);
 
-	ImVec2 textPos = ImGui::GetCursorScreenPos();
+	ImVec2 textPos = ImGui::GetCursorPos();
 
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
 

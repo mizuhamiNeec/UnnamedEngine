@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "Entity/Base/Entity.h"
 #include "Input/InputSystem.h"
+#include "Lib/Math/MathLib.h"
 
 WeaponSway::~WeaponSway() {
 }
@@ -28,8 +29,14 @@ void WeaponSway::Update([[maybe_unused]] const float deltaTime) {
 
 	Quaternion finalRotation = yaw * pitch;
 
+	transform->SetLocalPos(delta * 0.0001f); // 武器の位置をマウスの移動量に基づいて調整
+
 	// クォータニオンに変換してセット
 	transform->SetLocalRot(finalRotation);
+	transform->SetLocalPos(
+		Math::Lerp(transform->GetLocalPos(),
+		           Vec3::zero,
+		           (mAttenuation * 0.5f) * deltaTime)); // 武器の位置調整
 }
 
 void WeaponSway::Render(ID3D12GraphicsCommandList* commandList) {

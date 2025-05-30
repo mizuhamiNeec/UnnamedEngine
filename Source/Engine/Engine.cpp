@@ -44,10 +44,17 @@ void Engine::Run() {
 constexpr Vec4 offscreenClearColor = {0.1f, 0.1f, 0.1f, 1.0f};
 
 void Engine::OnResize(const uint32_t width, const uint32_t height) {
+	if (width == 0 || height == 0) {
+		return;
+	}
+
 	// GPUの処理が終わるまで待つ
 	renderer_->WaitPreviousFrame();
 
 	renderer_->Resize(width, height);
+
+	// offscreenRTV_.rtv.Reset();
+	// offscreenDSV_.dsv.Reset();
 
 	offscreenRTV_ = {};
 	offscreenDSV_ = {};
@@ -246,11 +253,32 @@ void Engine::Update() {
 			ImVec2     avail = ImGui::GetContentRegionAvail();
 			const auto ptr   = offscreenRTV_.srvHandles.gpuHandle.ptr;
 			if (ptr) {
-				const ImTextureID texId = offscreenRTV_.srvHandles.gpuHandle.ptr;
+				const ImTextureID texId = offscreenRTV_.srvHandles.gpuHandle.
+					ptr;
 
+				// アスペクト比を維持してサイズを計算
+				const float texWidth = static_cast<float>(
+					WindowManager::GetMainWindow()->GetClientWidth());
+				const float texHeight = static_cast<float>(
+					WindowManager::GetMainWindow()->GetClientHeight());
+				const float availAspect = avail.x / avail.y;
+				const float texAspect   = texWidth / texHeight;
+
+				ImVec2 drawSize = avail;
+				if (availAspect > texAspect) {
+					// 横が余る
+					drawSize.x = avail.y * texAspect;
+				} else {
+					// 縦が余る
+					drawSize.y = avail.x / texAspect;
+				}
+				ImVec2 offset = ImVec2((avail.x - drawSize.x) * 0.5f,
+				                       (avail.y - drawSize.y) * 0.5f);
+
+				ImGui::SetCursorPos(offset);
 				ImGui::ImageWithBg(
 					texId,
-					avail,
+					drawSize,
 					ImVec2(0, 0),
 					ImVec2(1, 1),
 					bg,
@@ -266,6 +294,8 @@ void Engine::Update() {
 		sceneManager_->Update(EngineTimer::GetScaledDeltaTime());
 	}
 
+	InputSystem::Update();
+
 #ifdef _DEBUG
 	Console::Update();
 	DebugHud::Update();
@@ -274,7 +304,6 @@ void Engine::Update() {
 	offscreenRenderPassTargets_.bClearColor =
 		ConVarManager::GetConVar("r_clear")->GetValueAsBool();
 
-	InputSystem::Update();
 
 	//ConVarManager::GetConVar("w_title")->SetValueFromString(std::to_string(EngineTimer::GetFrameCount()));
 
@@ -332,6 +361,7 @@ void Engine::Update() {
 	renderer_->GetCommandList()->ResourceBarrier(1, &barrier);
 
 	renderer_->PostRender();
+
 	//-------------------------------------------------------------------------
 
 	//time_->EndFrame();
@@ -431,6 +461,7 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind space +jump", true);
 	Console::SubmitCommand("bind mouse1 +attack1", true);
 	Console::SubmitCommand("bind mouse2 +attack2", true);
+	Console::SubmitCommand("bind r +reload", true);
 	Console::SubmitCommand("bind mousewheelup +invprev", true);
 	Console::SubmitCommand("bind mousewheeldown +invnext", true);
 	Console::SubmitCommand("bind f1 toggleeditor", true);

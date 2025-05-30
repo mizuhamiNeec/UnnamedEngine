@@ -302,6 +302,24 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetSwapChainRenderTargetView() const {
 	return rtvHandles_[frameIndex_];
 }
 
+void D3D12::ResetCommandList() {
+	// 前のコマンドリストの実行が完了するのを待つ
+	WaitPreviousFrame();
+
+	// コマンドアロケータとコマンドリストをリセット
+	HRESULT hr = commandAllocator_->Reset();
+	if (FAILED(hr)) {
+		// エラー処理
+		return;
+	}
+
+	hr = commandList_->Reset(commandAllocator_.Get(), nullptr);
+	if (FAILED(hr)) {
+		// エラー処理
+		return;
+	}
+}
+
 void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource,
                                     const uint32_t  size, const void* data) {
 	void*   mapped;

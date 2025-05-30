@@ -66,6 +66,7 @@ void GameScene::Init() {
 #pragma region テクスチャ読み込み
 	resourceManager_->GetTextureManager()->GetTexture(
 		"./Resources/Textures/wave.dds");
+
 #pragma endregion
 
 #pragma region スプライト類
@@ -125,6 +126,8 @@ void GameScene::Init() {
 		rawPlayerMovement, [](PlayerMovement*) {
 		}
 	);
+	mPlayerMovement->SetVelocity(Vec3::forward * 1.0f);
+	mPlayerMovement->AddCameraShakeEntity(camera_.get());
 	BoxColliderComponent* rawPlayerCollider = mEntPlayer->AddComponent<
 		BoxColliderComponent>();
 	mPlayerCollider = std::shared_ptr<BoxColliderComponent>(
@@ -142,6 +145,15 @@ void GameScene::Init() {
 		weaponRenderer, [](StaticMeshRenderer*) {
 		}
 	);
+	WeaponComponent* rawWeaponComponent = mEntWeapon->AddComponent<
+		WeaponComponent>("./Resources/Json/rocket.json");
+	mWeaponComponent = std::shared_ptr<WeaponComponent>(
+		rawWeaponComponent, [](WeaponComponent*) {
+		}
+	);
+
+	mEntWeapon->AddComponent<BoxColliderComponent>();
+
 	mWeaponMeshRenderer->SetStaticMesh(
 		resourceManager_->GetMeshManager()->GetStaticMesh(
 			"./Resources/Models/weapon.obj"));
@@ -151,6 +163,9 @@ void GameScene::Init() {
 		}
 	);
 	AddEntity(mEntWeapon.get());
+
+	mEntShakeRoot = std::make_unique<Entity>("shakeRoot");
+	mPlayerMovement->AddCameraShakeEntity(mEntShakeRoot.get(), 3.0f);
 
 	// テスト用メッシュ
 	mEntWorldMesh                  = std::make_unique<Entity>("testMesh");
@@ -177,8 +192,11 @@ void GameScene::Init() {
 	camera_->SetParent(cameraRoot_.get());
 	camera_->GetTransform()->SetLocalPos(Vec3::zero); // FPS
 
-	mEntWeapon->SetParent(camera_.get());
-	mEntWeapon->GetTransform()->SetLocalPos(Vec3::zero); // カメラにめり込む
+	mEntShakeRoot->SetParent(camera_.get());
+
+	mEntWeapon->SetParent(mEntShakeRoot.get());
+	mEntShakeRoot->GetTransform()->SetLocalPos(Vec3(0.08f, -0.1f, 0.18f));
+	mEntWeapon->GetTransform()->SetLocalPos(Vec3::zero);
 #pragma endregion
 
 	// 風
@@ -197,19 +215,36 @@ void GameScene::Init() {
 
 	// 物理エンジンにプレイヤーエンティティを登録
 	physicsEngine_->RegisterEntity(mEntPlayer.get());
+
+	physicsEngine_->RegisterEntity(mEntWeapon.get());
 }
 
 void GameScene::Update(const float deltaTime) {
+	physicsEngine_->Update(deltaTime);
+
 	cameraRoot_->GetTransform()->SetWorldPos(mPlayerMovement->GetHeadPos());
 	cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
 	camera_->Update(EngineTimer::GetScaledDeltaTime());
+	mEntShakeRoot->Update(EngineTimer::GetScaledDeltaTime());
+
+	if (InputSystem::IsPressed("+attack1")) {
+		mWeaponComponent->PullTrigger();
+	}
+	if (InputSystem::IsReleased("+attack1")) {
+		mWeaponComponent->ReleaseTrigger();
+	}
+	if (InputSystem::IsPressed("+reload")) {
+		mWeaponComponent->Reload();
+	}
+
+	mEntWeapon->Update(EngineTimer::GetScaledDeltaTime());
+	mWeaponComponent->Update(EngineTimer::GetScaledDeltaTime());
+	mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
+	mWeaponSway->Update(EngineTimer::GetScaledDeltaTime());
 
 	mEntPlayer->Update(EngineTimer::GetScaledDeltaTime());
-	// mEntWeapon->Update(EngineTimer::GetScaledDeltaTime());
-	// mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
-	// mWeaponSway->Update(EngineTimer::GetScaledDeltaTime());
+
 	mEntWorldMesh->Update(deltaTime);
-	physicsEngine_->Update(deltaTime);
 
 #ifdef _DEBUG
 #pragma region cl_showpos
@@ -263,9 +298,9 @@ void GameScene::Update(const float deltaTime) {
 		// 余白を追加
 		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
 
-		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
+		ImGui::Begin("cl_showpos", nullptr, windowFlags);
 
-		ImVec2      textPos     = ImGui::GetCursorScreenPos();
+		ImVec2      textPos     = ImGui::GetCursorPos();
 		ImDrawList* drawList    = ImGui::GetWindowDrawList();
 		float       outlineSize = 1.0f;
 

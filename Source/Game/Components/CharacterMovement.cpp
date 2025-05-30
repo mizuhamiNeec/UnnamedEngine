@@ -14,7 +14,8 @@
 
 #include "Physics/PhysicsEngine.h"
 
-CharacterMovement::~CharacterMovement() {}
+CharacterMovement::~CharacterMovement() {
+}
 
 void CharacterMovement::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
@@ -22,29 +23,35 @@ void CharacterMovement::OnAttach(Entity& owner) {
 
 void CharacterMovement::Update(const float deltaTime) {
 	deltaTime_ = deltaTime;
-	position_ = transform_->GetLocalPos();
+	position_  = transform_->GetLocalPos();
 
 	Move();
 
 	position_.y = std::max<float>(position_.y, 0.0f);
 
-	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
-	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), Math::HtoM(73.0f), Math::HtoM(33.0f * 0.5f), bIsGrounded ? Vec4::green : Vec4::red);
+	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f,
+	                 Vec4::yellow);
+	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero),
+	                   Math::HtoM(73.0f), Math::HtoM(33.0f * 0.5f),
+	                   bIsGrounded ? Vec4::green : Vec4::red);
 }
 
-void CharacterMovement::DrawInspectorImGui() {}
+void CharacterMovement::DrawInspectorImGui() {
+}
 
-void CharacterMovement::Move() {}
+void CharacterMovement::Move() {
+}
 
 void CharacterMovement::ApplyHalfGravity() {
-	const float gravity = ConVarManager::GetConVar("sv_gravity")->GetValueAsFloat();
+	const float gravity = ConVarManager::GetConVar("sv_gravity")->
+		GetValueAsFloat();
 	velocity_.y -= Math::HtoM(gravity) * 0.5f * deltaTime_;
 }
 
 void CharacterMovement::ApplyFriction(const float fricValue) {
 	Vec3 vel = Math::MtoH(velocity_);
 
-	vel.y = 0.0f;
+	vel.y       = 0.0f;
 	float speed = vel.Length();
 	if (speed < 0.1f) {
 		return;
@@ -52,10 +59,11 @@ void CharacterMovement::ApplyFriction(const float fricValue) {
 
 	float drop = 0.0f;
 	if (bIsGrounded) {
-		const float friction = fricValue;
-		const float stopspeed = ConVarManager::GetConVar("sv_stopspeed")->GetValueAsFloat();
+		const float friction  = fricValue;
+		const float stopspeed = ConVarManager::GetConVar("sv_stopspeed")->
+			GetValueAsFloat();
 		const float control = speed < stopspeed ? stopspeed : speed;
-		drop = control * friction * deltaTime_;
+		drop                = control * friction * deltaTime_;
 	}
 
 	float newspeed = speed - drop;
@@ -100,35 +108,38 @@ bool CharacterMovement::CheckGrounded() {
 			return true;
 		}
 	}
+
 	return false;
 }
 
-void CharacterMovement::Accelerate(const Vec3 dir, const float speed, const float accel) {
+void CharacterMovement::Accelerate(const Vec3  dir, const float speed,
+                                   const float accel) {
 	float currentspeed = Math::MtoH(velocity_).Dot(dir);
-	float addspeed = speed - currentspeed;
+	float addspeed     = speed - currentspeed;
 
 	if (addspeed <= 0.0f) {
 		return;
 	}
 
 	float accelspeed = accel * deltaTime_ * speed;
-	accelspeed = (std::min)(accelspeed, addspeed);
+	accelspeed       = (std::min)(accelspeed, addspeed);
 	velocity_ += Math::HtoM(accelspeed) * dir;
 }
 
-void CharacterMovement::AirAccelerate(const Vec3 dir, const float speed, const float accel) {
+void CharacterMovement::AirAccelerate(const Vec3  dir, const float speed,
+                                      const float accel) {
 	float wishspd = speed;
 
-	wishspd = (std::min)(wishspd, 30.0f);
+	wishspd            = (std::min)(wishspd, 30.0f);
 	float currentspeed = Math::MtoH(velocity_).Dot(dir);
-	float addspeed = wishspd - currentspeed;
+	float addspeed     = wishspd - currentspeed;
 
 	if (addspeed <= 0.0f) {
 		return;
 	}
 
 	float accelspeed = accel * deltaTime_ * speed;
-	accelspeed = (std::min)(accelspeed, addspeed);
+	accelspeed       = (std::min)(accelspeed, addspeed);
 	velocity_ += Math::HtoM(accelspeed) * dir;
 }
 
@@ -139,7 +150,8 @@ bool CharacterMovement::IsGrounded() const {
 void CharacterMovement::CheckVelocity() {
 	for (int i = 0; i < 3; ++i) {
 		std::string name = ConVarManager::GetConVar("name")->GetValueAsString();
-		float maxVel = ConVarManager::GetConVar("sv_maxvelocity")->GetValueAsFloat();
+		float       maxVel = ConVarManager::GetConVar("sv_maxvelocity")->
+			GetValueAsFloat();
 
 		if (velocity_[i] > Math::HtoM(maxVel)) {
 			velocity_[i] = Math::HtoM(maxVel);
@@ -154,5 +166,6 @@ Vec3 CharacterMovement::GetVelocity() const {
 }
 
 Vec3 CharacterMovement::GetHeadPos() const {
-	return transform_->GetWorldPos() + Vec3::up * Math::HtoM(mCurrentHeightHU - 9.0f);
+	return transform_->GetWorldPos() + Vec3::up * Math::HtoM(
+		mCurrentHeightHU - 9.0f);
 }
