@@ -1,0 +1,10 @@
+﻿{
+  "name": "rocket_launcher",
+  "max_ammo": 8,
+  "clip_size": 1,
+  "fire_rate": 0.9,
+  "reload_time": 3.7,
+  "damage": 120,
+  "primary_module": "hitscan",
+  "projectile_speed": 55.0
+}

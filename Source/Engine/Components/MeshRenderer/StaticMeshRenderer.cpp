@@ -13,6 +13,7 @@ struct MatParam {
 	Vec4  baseColor;
 	float metallic;
 	float roughness;
+	float padding[2];
 	Vec3  emissive;
 };
 
@@ -141,10 +142,8 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 			const UINT materialRegister = material->GetShader()->
 			                                        GetResourceRegister(
 				                                        "gMaterial");
-			if (materialRegister < 0xffffffff) {
-				material->SetConstantBuffer(materialRegister,
-				                            matparamCBV->GetResource());
-			}
+			material->SetConstantBuffer(materialRegister,
+			                            matparamCBV->GetResource());
 
 			const UINT dirLightRegister = material->GetShader()->
 			                                        GetResourceRegister(

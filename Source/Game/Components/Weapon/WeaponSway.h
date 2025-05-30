@@ -6,7 +6,7 @@
 //-----------------------------------------------------------------------------
 class WeaponSway final : public Component {
 public:
-	WeaponSway(const float& swayAmount = 0.005f) : mSwayAmount(swayAmount) {
+	WeaponSway(const float& swayAmount = 0.025f) : mSwayAmount(swayAmount) {
 	}
 
 	~WeaponSway() override;

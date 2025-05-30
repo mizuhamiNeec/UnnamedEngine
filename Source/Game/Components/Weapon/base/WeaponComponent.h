@@ -5,6 +5,21 @@
 
 class Entity;
 
+struct WeaponData {
+	std::string name;
+	int         maxAmmo    = 0;         // 最大弾薬数
+	int         clipSize   = 0;         // クリップサイズ
+	float       fireRate   = 0.0f;      // 発射レート [秒あたりの発射数]
+	float       reloadTime = 0.0f;      // リロード時間 [秒]
+	float       damage     = 0.0f;      // 攻撃力
+	std::string primaryModule;          // モジュール名
+	std::string secondaryModule;        // モジュール名
+	float       projectileSpeed = 0.0f; // 弾丸の速度 [HU/s]
+
+	static std::unique_ptr<WeaponData>
+	LoadFromJson(const std::string& jsonPath);
+};
+
 class IWeaponModule {
 public:
 	virtual ~IWeaponModule() = default;
@@ -14,44 +29,65 @@ public:
 	virtual void DrawInspectorImGui() = 0;
 };
 
-//-----------------------------------------------------------------------------
-// 近接攻撃
-//-----------------------------------------------------------------------------
-class MeleeModule final : public IWeaponModule {
+class HitscanModule final : public IWeaponModule {
 public:
-	explicit MeleeModule(
-		const float& range, const float& damage) :
-		mRange(range),
-		mDamage(damage) {
+	explicit HitscanModule(const WeaponData& weaponData) :
+		data_(weaponData) {
 	}
 
-	~MeleeModule() override;
 	void Execute(Entity& entity) override;
+
 	void Update(const float& deltaTime) override;
+
 	void DrawInspectorImGui() override;
 
+	[[nodiscard]] const WeaponData& GetWeaponData() const { return data_; }
+
 private:
-	float mRange;  // 攻撃範囲 [HU]
-	float mDamage; // 攻撃力
+	const WeaponData& data_;
 };
+
+// //-----------------------------------------------------------------------------
+// // 近接攻撃
+// //-----------------------------------------------------------------------------
+// class MeleeModule final : public IWeaponModule {
+// public:
+// 	explicit MeleeModule(
+// 		const float& range, const float& damage) :
+// 		mRange(range),
+// 		mDamage(damage) {
+// 	}
+//
+// 	~MeleeModule() override;
+// 	void Execute(Entity& entity) override;
+// 	void Update(const float& deltaTime) override;
+// 	void DrawInspectorImGui() override;
+//
+// private:
+// 	float mRange;  // 攻撃範囲 [HU]
+// 	float mDamage; // 攻撃力
+// };
 
 
 class WeaponComponent : public Component {
 public:
 	~WeaponComponent() override;
 
+	explicit WeaponComponent(const std::string& weaponJsonPath);
+
 	void OnAttach(Entity& owner) override;
 
 	void Update(float deltaTime) override;
-	void Render(ID3D12GraphicsCommandList* commandList) override;
+	//void Render(ID3D12GraphicsCommandList* commandList) override;
 
 	void DrawInspectorImGui() override;
 
-	[[nodiscard]] bool    IsEditorOnly() const override { return false; }
-	[[nodiscard]] Entity* GetOwner() const override;
+	void PullTrigger();
+	void ReleaseTrigger();
+	void Reload();
+	bool CanFire() const;
 
-	void PrimaryAction();
-	void SecondaryAction();
+	[[nodiscard]] Entity* GetOwner() const override;
 
 	void LoadFromJson(const std::string& jsonPath);
 
@@ -61,7 +97,15 @@ private:
 		std::unique_ptr<IWeaponModule> secondaryAction;
 	} mAction;
 
-	// UI用
-	int  mCurrentAmmo = 0;
-	bool bIsBusy      = false; // リロード、クールダウンなど
+	std::unique_ptr<WeaponData>    mWeaponData;
+	std::unique_ptr<IWeaponModule> mPrimaryModule; // 主モジュール
+
+	int   mCurrentAmmo     = 0;
+	int   mCurrentClip = 0;
+	float timeSinceShot_   = 0.0f; // 最後に発射してからの時間
+
+	bool  bIsReloading_ = false; // リロード中かどうか
+	float reloadTimer_  = 0.0f;  // リロードタイマー
+
+	bool bTriggerHeld_ = false; // トリガーが押されているかどうか
 };

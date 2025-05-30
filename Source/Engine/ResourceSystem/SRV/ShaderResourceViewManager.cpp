@@ -6,12 +6,12 @@
 ShaderResourceViewManager::ShaderResourceViewManager(
 	ID3D12Device* device
 ) : descriptorSize_(0),
-device_(device) {
+    device_(device) {
 	// ディスクリプタヒープを作成
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desc.NumDescriptors = kMaxSrvCount;
-	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	desc.Type                       = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	desc.NumDescriptors             = kMaxSrvCount;
+	desc.Flags                      = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 	HRESULT hr = device_->CreateDescriptorHeap(
 		&desc, IID_PPV_ARGS(&descriptorHeap_)
@@ -27,7 +27,8 @@ device_(device) {
 	}
 }
 
-ShaderResourceViewManager::~ShaderResourceViewManager() {}
+ShaderResourceViewManager::~ShaderResourceViewManager() {
+}
 
 void ShaderResourceViewManager::Init() {
 	Console::Print(
@@ -44,7 +45,8 @@ void ShaderResourceViewManager::Init() {
 }
 
 void ShaderResourceViewManager::Shutdown() {
-	Console::Print("SRV Manager を終了しています...\n", kConTextColorWait, Channel::ResourceSystem);
+	Console::Print("SRV Manager を終了しています...\n", kConTextColorWait,
+	               Channel::ResourceSystem);
 
 	// キャッシュされているリソースの参照を解放
 	for (auto& entry : srvCache_) {
@@ -64,7 +66,7 @@ void ShaderResourceViewManager::Shutdown() {
 
 	// インデックスをリセット
 	currentDescriptorIndex_ = 0;
-	descriptorSize_ = 0;
+	descriptorSize_         = 0;
 }
 
 DescriptorHandles
@@ -98,14 +100,16 @@ ShaderResourceViewManager::RegisterShaderResourceView(
 	device_->CreateShaderResourceView(resource, &srvDesc, handleCPU);
 
 	// キャッシュに登録
-	srvCache_[resource] = { handleCPU, handleGPU };
+	srvCache_[resource] = {handleCPU, handleGPU};
 
 	// ディスクリプタのインデックスを進める
 	++currentDescriptorIndex_;
 
-	resource->SetName(StrUtils::ToWString("SRV: " + std::to_string(currentDescriptorIndex_)).c_str());
+	resource->SetName(
+		StrUtils::ToWString("SRV: " + std::to_string(currentDescriptorIndex_)).
+		c_str());
 
-	return { handleCPU, handleGPU };
+	return {handleCPU, handleGPU};
 }
 
 ComPtr<ID3D12DescriptorHeap> ShaderResourceViewManager::GetDescriptorHeap() {
@@ -114,19 +118,29 @@ ComPtr<ID3D12DescriptorHeap> ShaderResourceViewManager::GetDescriptorHeap() {
 
 void ShaderResourceViewManager::BindDescriptorTable(
 	const std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& gpuHandles,
-	ID3D12GraphicsCommandList* commandList,
-	const UINT rootParameterIndex
+	ID3D12GraphicsCommandList*                      commandList,
+	const UINT                                      rootParameterIndex
 ) const {
-	const D3D12_GPU_DESCRIPTOR_HANDLE tableStart = AllocateAndCopyDescriptors(gpuHandles);
+	const D3D12_GPU_DESCRIPTOR_HANDLE tableStart = AllocateAndCopyDescriptors(
+		gpuHandles);
 	commandList->SetGraphicsRootDescriptorTable(rootParameterIndex, tableStart);
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE ShaderResourceViewManager::AllocateAndCopyDescriptors(
+D3D12_GPU_DESCRIPTOR_HANDLE
+ShaderResourceViewManager::AllocateAndCopyDescriptors(
 	const std::vector<D3D12_GPU_DESCRIPTOR_HANDLE>& handles
 ) const {
 	handles;
-	const D3D12_GPU_DESCRIPTOR_HANDLE startHandle = GetGPUDescriptorHandle(currentDescriptorIndex_);
+	const D3D12_GPU_DESCRIPTOR_HANDLE startHandle = GetGPUDescriptorHandle(
+		currentDescriptorIndex_);
 	return startHandle;
+}
+
+void ShaderResourceViewManager::ResetCache() {
+	srvCache_.clear();
+	currentDescriptorIndex_ = kSrvIndexTop; // ImGuiで使ったあとに初期化
+	Console::Print("SRV Cache をリセットしました\n", kConTextColorCompleted,
+	               Channel::ResourceSystem);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE ShaderResourceViewManager::GetCPUDescriptorHandle(
