@@ -61,6 +61,11 @@ private:
 		float rotationAmplitude = 0.0f;     // 回転の強さ
 		float rotationFrequency = 0.0f;     // 回転の頻度
 		Vec3  rotationAxis      = Vec3::up; // 回転軸
+
+		float baseAmplitude;         // 基本の振幅
+		float baseRotationAmplitude; // 基本の回転振幅
+		float maxAmplitude;          // 最大振幅
+		float maxRotationAmplitude;  // 最大回転振幅
 	};
 
 	CameraShake cameraShake_;

@@ -71,8 +71,10 @@ void WindEffect::Update([[maybe_unused]] const float deltaTime) {
 				Vec3::zero,                       // 重力なし
 				particleVelocity * particleSpeed, // 速度
 				particleCount,                    // 放出数
+				Vec4(1.0f, 1.0f, 1.0f, 1.0f),
 				Vec4::cyan,
-				Vec4(1.0f, 1.0f, 1.0f, 1.0f)
+				Vec3::one * 0.5f,
+				Vec3::zero
 			);
 		}
 	}
@@ -113,7 +115,7 @@ Vec3 WindEffect::GetRandomPositionInPlayerDirection() const {
 	float randomAngle = Random::FloatRange(
 		0.0f, std::numbers::pi_v<float> * 2.0f);
 	float randomDistance = Random::FloatRange(6.0f, 24.0f);
-	float randomHeight   = Random::FloatRange(-1.0f, 1.0f);
+	float randomHeight   = Random::FloatRange(-4.0f, 8.0f);
 
 	// 横方向はアスペクト比に対応
 	float horizontalScale = aspectRatio;

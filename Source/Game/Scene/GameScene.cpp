@@ -151,7 +151,7 @@ void GameScene::Init() {
 		}
 	);
 	WeaponComponent* rawWeaponComponent = mEntWeapon->AddComponent<
-		WeaponComponent>("./Resources/Json/rocket.json");
+		WeaponComponent>("./Resources/Json/rifle.json");
 	mWeaponComponent = std::shared_ptr<WeaponComponent>(
 		rawWeaponComponent, [](WeaponComponent*) {
 		}
@@ -213,7 +213,7 @@ void GameScene::Init() {
 	explosionEffect_->Init(Engine::GetParticleManager(),
 	                       "./Resources/Textures/smoke.png");
 	explosionEffect_->SetColorGradient(
-		Vec4(1.0f, 0.3f, 0.0f, 1.0f), Vec4(0.1f, 0.1f, 0.1f, 0.5f));
+		Vec4(0.78f, 0.29f, 0.05f, 1.0f), Vec4(0.04f, 0.04f, 0.05f, 1.0f));
 
 #pragma region コンソール変数/コマンド
 #pragma endregion
@@ -237,7 +237,6 @@ void GameScene::Update(const float deltaTime) {
 	cameraRoot_->GetTransform()->SetWorldPos(mPlayerMovement->GetHeadPos());
 	cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
 	camera_->Update(EngineTimer::GetScaledDeltaTime());
-	mEntShakeRoot->Update(EngineTimer::GetScaledDeltaTime());
 
 	if (InputSystem::IsPressed("+attack1")) {
 		mWeaponComponent->PullTrigger();
@@ -246,20 +245,46 @@ void GameScene::Update(const float deltaTime) {
 		mWeaponComponent->ReleaseTrigger();
 	}
 	if (InputSystem::IsPressed("+reload")) {
-		mWeaponComponent->Reload();
-	}
-
-	if (InputSystem::IsTriggered("+attack2")) {
-		explosionEffect_->TriggerExplosion(
-			mEntPlayer->GetTransform()->GetWorldPos(), 2048, 30.0f);
+		mEntPlayer->GetTransform()->SetWorldPos(Vec3::zero);
 	}
 
 	mEntWeapon->Update(EngineTimer::GetScaledDeltaTime());
-	mWeaponComponent->Update(EngineTimer::GetScaledDeltaTime());
+	//mWeaponComponent->Update(EngineTimer::GetScaledDeltaTime());
+	if (mWeaponComponent->HasFiredThisFrame()) {
+		Vec3 hitPos    = mWeaponComponent->GetHitPosition();
+		Vec3 hitNormal = mWeaponComponent->GetHitNormal();
+
+		// 爆発エフェクト
+		explosionEffect_->TriggerExplosion(hitPos + hitNormal * 2.0f, hitNormal,
+		                                   32, 30.0f);
+
+		// プレイヤーの位置と爆心地の距離を計算
+		Vec3  playerPos   = mEntPlayer->GetTransform()->GetWorldPos();
+		float blastRadius = Math::HtoM(512);     // 球状ゾーンの半径（例: 5m）
+		float blastPower  = Math::HtoM(1024.0f); // 吹き飛ばしの強さ
+
+		Vec3  toPlayer = playerPos - hitPos;
+		float distance = toPlayer.Length();
+
+		if (distance < blastRadius && distance > 0.5f) {
+			Vec3  forceDir = toPlayer.Normalized();
+			float force    = blastPower * (1.0f - (distance / blastRadius));
+			// プレイヤーに吹き飛ばしベクトルを加える
+			mPlayerMovement->SetVelocity(
+				mPlayerMovement->GetVelocity() + forceDir * force);
+		}
+
+		// カメラシェイク
+		mPlayerMovement->StartCameraShake(
+			0.1f, 0.1f, 5.0f, Vec3::forward, 0.025f, 3.0f,
+			Vec3::right
+		);
+	}
 	mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
 	mWeaponSway->Update(EngineTimer::GetScaledDeltaTime());
 
 	mEntPlayer->Update(EngineTimer::GetScaledDeltaTime());
+	mEntShakeRoot->Update(EngineTimer::GetScaledDeltaTime());
 
 	mEntWorldMesh->Update(deltaTime);
 
@@ -347,6 +372,67 @@ void GameScene::Update(const float deltaTime) {
 	explosionEffect_->Update(EngineTimer::ScaledDelta());
 
 	cubeMap_->Update(deltaTime);
+
+#ifdef _DEBUG
+	// レティクルの描画
+	ImGuiIO& io           = ImGui::GetIO();
+	ImVec2   windowCenter = ImVec2(io.DisplaySize.x * 0.5f,
+	                             io.DisplaySize.y * 0.5f);
+
+	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+
+	// レティクルの設定
+	const ImVec4 reticleColor     = ImVec4(1.0f, 1.0f, 1.0f, 0.8f); // 白色、少し透明
+	const ImVec4 outlineColor     = ImVec4(0.0f, 0.0f, 0.0f, 0.5f); // 黒の縁取り
+	const float  lineLength       = 10.0f;                          // 線の長さ
+	const float  gapSize          = 3.0f;                           // 中心の隙間
+	const float  lineThickness    = 1.5f;                           // 線の太さ
+	const float  outlineThickness = 0.5f;                           // 縁取りの太さ
+
+	// 内側の線を描画（横線）
+	drawList->AddLine(
+		ImVec2(windowCenter.x - lineLength - gapSize, windowCenter.y),
+		ImVec2(windowCenter.x - gapSize, windowCenter.y),
+		ImGui::ColorConvertFloat4ToU32(reticleColor),
+		lineThickness
+	);
+	drawList->AddLine(
+		ImVec2(windowCenter.x + gapSize, windowCenter.y),
+		ImVec2(windowCenter.x + lineLength + gapSize, windowCenter.y),
+		ImGui::ColorConvertFloat4ToU32(reticleColor),
+		lineThickness
+	);
+
+	// 内側の線を描画（縦線）
+	drawList->AddLine(
+		ImVec2(windowCenter.x, windowCenter.y - lineLength - gapSize),
+		ImVec2(windowCenter.x, windowCenter.y - gapSize),
+		ImGui::ColorConvertFloat4ToU32(reticleColor),
+		lineThickness
+	);
+	drawList->AddLine(
+		ImVec2(windowCenter.x, windowCenter.y + gapSize),
+		ImVec2(windowCenter.x, windowCenter.y + lineLength + gapSize),
+		ImGui::ColorConvertFloat4ToU32(reticleColor),
+		lineThickness
+	);
+
+	// 縁取り（中心に小さな点）
+	drawList->AddCircle(
+		windowCenter,
+		2.0f,
+		ImGui::ColorConvertFloat4ToU32(outlineColor),
+		0,
+		outlineThickness + lineThickness
+	);
+
+	// 中心点
+	drawList->AddCircleFilled(
+		windowCenter,
+		1.0f,
+		ImGui::ColorConvertFloat4ToU32(reticleColor)
+	);
+#endif
 }
 
 void GameScene::Render() {

@@ -3,6 +3,8 @@
 #include <string>
 #include <Components/Base/Component.h>
 
+#include "Lib/Math/Vector/Vec3.h"
+
 class Entity;
 
 struct WeaponData {
@@ -43,8 +45,26 @@ public:
 
 	[[nodiscard]] const WeaponData& GetWeaponData() const { return data_; }
 
+	Vec3 GetHitPosition() const {
+		if (bHit_) {
+			return hitPosition_;
+		}
+		return Vec3::min; // ヒットしていない場合はあらぬ座標を返す
+	}
+
+	Vec3& GetHitNormal() {
+		if (bHit_) {
+			return hitNormal_;
+		}
+		return hitNormal_;
+	}
+
 private:
 	const WeaponData& data_;
+
+	Vec3 hitPosition_ = Vec3::zero; // ヒット位置
+	Vec3 hitNormal_   = Vec3::zero; // ヒット面の法線
+	bool bHit_        = false;      // ヒットしたかどうか
 };
 
 // //-----------------------------------------------------------------------------
@@ -87,6 +107,11 @@ public:
 	void Reload();
 	bool CanFire() const;
 
+	Vec3  GetHitPosition() const;
+	Vec3& GetHitNormal();
+
+	[[nodiscard]] bool HasFiredThisFrame() const;
+
 	[[nodiscard]] Entity* GetOwner() const override;
 
 	void LoadFromJson(const std::string& jsonPath);
@@ -100,12 +125,16 @@ private:
 	std::unique_ptr<WeaponData>    mWeaponData;
 	std::unique_ptr<IWeaponModule> mPrimaryModule; // 主モジュール
 
-	int   mCurrentAmmo     = 0;
-	int   mCurrentClip = 0;
-	float timeSinceShot_   = 0.0f; // 最後に発射してからの時間
+	Vec3 mHitPosition = Vec3::zero; // ヒット位置
+
+	int   mCurrentAmmo   = 0;
+	int   mCurrentClip   = 0;
+	float timeSinceShot_ = 0.0f; // 最後に発射してからの時間
 
 	bool  bIsReloading_ = false; // リロード中かどうか
 	float reloadTimer_  = 0.0f;  // リロードタイマー
 
 	bool bTriggerHeld_ = false; // トリガーが押されているかどうか
+
+	bool bFiredThisFrame_ = false; // 今フレームで発射したかどうか
 };

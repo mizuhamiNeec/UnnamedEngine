@@ -17,22 +17,23 @@ void ExplosionEffect::Init(ParticleManager*   particleManager,
 }
 
 void ExplosionEffect::TriggerExplosion(const Vec3& position,
+                                       const Vec3& normal,
                                        uint32_t    particleCount,
                                        float       coneAngle) {
 	for (uint32_t i = 0; i < particleCount; ++i) {
 		Vec3 randomDir = Random::Vec3Range(-Vec3::one, Vec3::one);
 		randomDir.Normalize();
 		float randomSpeed = Random::FloatRange(5.0f, 15.0f);
-		Vec3  velocity    = randomDir * randomSpeed;
+		Vec3  velocity    = normal + randomDir * randomSpeed;
 
 		explosionParticleObject->EmitParticlesAtPosition(
 			position,
 			0,
 			coneAngle,
-			Vec3::one * 0.1f,
-			Vec3::down * -9.81f,
+			Vec3::one * 10.0f,
+			Vec3::down * 9.81f,
 			velocity,
-			1, startColor_, endColor_
+			1, startColor_, endColor_, Vec3::one * 4.0f, Vec3::zero
 		);
 	}
 }
