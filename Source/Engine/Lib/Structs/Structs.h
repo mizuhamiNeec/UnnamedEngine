@@ -97,6 +97,12 @@ struct Particle {
 
 	Vec4 startColor;
 	Vec4 endColor;
+
+	Vec3 startSize; // 開始サイズ
+	Vec3 endSize;   // 終了サイズ
+
+	float initialRotation = 0.0f;
+	float rotationSpeed   = 0.0f;
 };
 
 struct Emitter {

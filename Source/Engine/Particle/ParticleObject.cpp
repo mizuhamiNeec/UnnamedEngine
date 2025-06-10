@@ -133,7 +133,8 @@ void ParticleObject::Update(const float deltaTime) {
 	if (ImGui::Button("Emit Particles")) {
 		particles_.splice(particles_.end(),
 		                  Emit(emitter_, shapeType, coneAngle, drag, gravity,
-		                       Vec3::zero, Vec4::white, Vec4::white));
+		                       Vec3::zero, Vec4::white, Vec4::white, Vec3::one,
+		                       Vec3::one));
 	}
 
 	for (auto particle : particles_) {
@@ -200,8 +201,10 @@ void ParticleObject::Update(const float deltaTime) {
 			instancingData[numInstance].color = particleIterator->color;
 			// instancingData[numInstance].color.w = 1.0f - lifeRatio;
 
-			particleIterator->transform.scale = Vec3::one *
-				(1.0f - lifeRatio) * 0.5f + Vec3::one * 0.5f;
+			// スケールを時間に応じて変化させる（startSizeからendSizeへ補間）
+			particleIterator->transform.scale = Math::Lerp(
+				particleIterator->startSize, particleIterator->endSize,
+				lifeRatio);
 
 			Mat4 worldMat;
 
@@ -232,7 +235,18 @@ void ParticleObject::Update(const float deltaTime) {
 				billboardMat.m[2][1] = zaxis.y;
 				billboardMat.m[2][2] = zaxis.z;
 
+				// 現在の回転角度を計算（初期回転 + 時間経過による回転）
+				float currentRotation = particleIterator->initialRotation;
+				// +
+				// 	particleIterator->rotationSpeed * particleIterator->
+				// 	currentTime;
+
+				// ビルボード面での回転行列を作成
+				Mat4 rotationMat = Mat4::RotateZ(currentRotation);
+
+				// ビルボード行列に回転を適用
 				worldMat = Mat4::Scale(particleIterator->transform.scale)
+					* rotationMat // 回転を適用
 					* billboardMat
 					* Mat4::Translate(particleIterator->transform.translate);
 			}
@@ -258,7 +272,8 @@ void ParticleObject::Update(const float deltaTime) {
 	if (emitter_.frequency <= emitter_.frequencyTime) {
 		particles_.splice(particles_.end(),
 		                  Emit(emitter_, shapeType, coneAngle, drag, gravity,
-		                       Vec3::zero, Vec4::white, Vec4::white)); // 発生処理
+		                       Vec3::zero, Vec4::white, Vec4::white, Vec3::one,
+		                       Vec3::one));           // 発生処理
 		emitter_.frequencyTime -= emitter_.frequency; // 余計に過ぎた時間も加味して頻度計算する
 	}
 
@@ -335,11 +350,13 @@ Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel,
                                          const Vec3& drag,
                                          const Vec3& gravity,
                                          const Vec4  startColor,
-                                         const Vec4  endColor
+                                         const Vec4  endColor,
+                                         const Vec3& startSize,
+                                         const Vec3& endSize
 ) {
 	Particle particle;
 	particle.transform.scale = {0.25f, 0.25f, 0.25f};
-	particle.transform.rotate = {0.0f, 0.0f, 0.0f};
+	particle.transform.rotate = Vec3::zero;
 	const Vec3 rand = Random::Vec3Range(-Vec3::one * 0.1f, Vec3::one * 0.1f);
 	particle.transform.translate = pos + rand;
 
@@ -353,13 +370,13 @@ Particle ParticleObject::MakeNewParticle(const Vec3& pos, const Vec3& vel,
 	particle.startColor = startColor;
 	particle.endColor   = endColor;
 
-	// 色
-	/*particle.color = {
-		Random::FloatRange(0.0f, 1.0f),
-		Random::FloatRange(0.0f, 1.0f),
-		Random::FloatRange(0.0f, 1.0f),
-		1.0f
-	};*/
+	particle.startSize = startSize;
+	particle.endSize   = endSize;
+
+	// ランダムな初期回転を設定
+	particle.initialRotation = Random::FloatRange(0.0f, 0.1f);
+	particle.rotationSpeed   = 0.0f;
+	// 今回は回転させない // Random::FloatRange(-Math::pi, Math::pi);
 
 
 	// 生存時間
@@ -373,7 +390,8 @@ std::list<Particle> ParticleObject::Emit(
 	const Emitter& emitter, int shapeType, [[maybe_unused]] float coneAngle,
 	[[maybe_unused]] const Vec3& drag, const Vec3& gravity,
 	const Vec3& velocity,
-	Vec4 startColor, Vec4 endColor
+	Vec4 startColor, Vec4 endColor,
+	const Vec3& startSize, const Vec3& endSize
 ) {
 	std::list<Particle> particles;
 	for (uint32_t count = 0; count < emitter.count; ++count) {
@@ -381,7 +399,9 @@ std::list<Particle> ParticleObject::Emit(
 			GeneratePosition(emitter.transform.translate, shapeType);
 		//Vec3 velocity = GenerateConeVelocity(coneAngle);
 		Particle particle = MakeNewParticle(position, velocity, Vec3::zero,
-		                                    gravity, startColor, endColor);
+		                                    gravity, startColor, endColor,
+		                                    startSize, endSize
+		);
 		particles.push_back(particle);
 	}
 	return particles;
@@ -458,13 +478,16 @@ void ParticleObject::EmitParticlesAtPosition(const Vec3& position,
                                              const Vec3& velocity,
                                              uint32_t count,
                                              const Vec4 startColor,
-                                             const Vec4 endColor
+                                             const Vec4 endColor,
+                                             const Vec3& startSize,
+                                             const Vec3& endSize
 ) {
 	Emitter localEmitter             = emitter_;
 	localEmitter.transform.translate = position;
 	localEmitter.count               = count;
-	localEmitter.size                = Vec3::one * 4.0f; // エミッターのサイズを初期化
+	localEmitter.size                = startSize; // エミッターのサイズを初期化
 	particles_.splice(particles_.end(),
 	                  Emit(localEmitter, shapeType, coneAngle, drag, gravity,
-	                       velocity, startColor, endColor));
+	                       velocity, startColor, endColor,
+	                       startSize, endSize));
 }

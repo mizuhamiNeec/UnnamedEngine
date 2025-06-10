@@ -451,17 +451,54 @@ void PlayerMovement::StartCameraShake(
 	float       rotationAmplitude,
 	float       rotationFrequency,
 	const Vec3& rotationAxis) {
-	cameraShake_.duration    = duration;
-	cameraShake_.currentTime = 0.0f;
-	cameraShake_.amplitude   = amplitude;
-	cameraShake_.frequency   = frequency;
-	cameraShake_.direction   = direction.Normalized();
-	cameraShake_.isActive    = true;
+	// 既存のシェイクがアクティブな場合は蓄積
+	if (cameraShake_.isActive) {
+		// 残り時間の長い方を採用
+		cameraShake_.duration = (std::max)(
+			cameraShake_.duration - cameraShake_.currentTime, duration);
 
-	// 回転揺れパラメータの設定
-	cameraShake_.rotationAmplitude = rotationAmplitude;
-	cameraShake_.rotationFrequency = rotationFrequency;
-	cameraShake_.rotationAxis      = rotationAxis.Normalized();
+		// 振幅を加算（最大値を超えないよう制限）
+		cameraShake_.baseAmplitude += amplitude;
+		cameraShake_.amplitude = (std::min)(cameraShake_.baseAmplitude,
+		                                    cameraShake_.maxAmplitude);
+
+		// 回転振幅を加算（最大値を超えないよう制限）
+		cameraShake_.baseRotationAmplitude += rotationAmplitude;
+		cameraShake_.rotationAmplitude = (std::min)(
+			cameraShake_.baseRotationAmplitude,
+			cameraShake_.maxRotationAmplitude);
+
+		// 周波数は高い方を優先
+		cameraShake_.frequency = (std::max)(cameraShake_.frequency, frequency);
+		cameraShake_.rotationFrequency = (std::max)(
+			cameraShake_.rotationFrequency, rotationFrequency);
+
+		// 方向と回転軸は平均化して正規化
+		cameraShake_.direction = (cameraShake_.direction + direction).
+			Normalized();
+		cameraShake_.rotationAxis = (cameraShake_.rotationAxis + rotationAxis).
+			Normalized();
+	} else {
+		// 新規シェイクの場合は普通に初期化
+		cameraShake_.duration      = duration;
+		cameraShake_.currentTime   = 0.0f;
+		cameraShake_.amplitude     = amplitude;
+		cameraShake_.baseAmplitude = amplitude;
+		cameraShake_.frequency     = frequency;
+		cameraShake_.direction     = direction.Normalized();
+
+		// 回転揺れパラメータの設定
+		cameraShake_.rotationAmplitude     = rotationAmplitude;
+		cameraShake_.baseRotationAmplitude = rotationAmplitude;
+		cameraShake_.rotationFrequency     = rotationFrequency;
+		cameraShake_.rotationAxis          = rotationAxis.Normalized();
+
+		// 最大値の設定（調整可能）
+		cameraShake_.maxAmplitude         = 0.1f;  // 適切な最大振幅
+		cameraShake_.maxRotationAmplitude = 0.05f; // 適切な最大回転振幅
+	}
+
+	cameraShake_.isActive = true;
 }
 
 void PlayerMovement::UpdateCameraShake(const float deltaTime) {
@@ -474,6 +511,9 @@ void PlayerMovement::UpdateCameraShake(const float deltaTime) {
 	// 揺れの終了判定
 	if (cameraShake_.currentTime >= cameraShake_.duration) {
 		cameraShake_.isActive = false;
+		// シェイク終了時にベース値をリセット
+		cameraShake_.baseAmplitude         = 0.0f;
+		cameraShake_.baseRotationAmplitude = 0.0f;
 		return;
 	}
 
@@ -485,7 +525,12 @@ void PlayerMovement::UpdateCameraShake(const float deltaTime) {
 	float easedDamping = dampingFactor * dampingFactor * (3.0f - 2.0f *
 		dampingFactor);
 
-	// 回転揺れのノイズ（位置揺れとは異なるパターンに）
+	// 現在の振幅に減衰を適用
+	//float currentAmplitude = cameraShake_.amplitude * easedDamping;
+
+	// 現在の回転振幅に減衰を適用
+	float rotAmount = cameraShake_.rotationAmplitude * easedDamping;
+
 	float rotNoise1 = std::sin(
 		cameraShake_.currentTime * cameraShake_.rotationFrequency * 12.0f +
 		0.5f);
@@ -495,9 +540,6 @@ void PlayerMovement::UpdateCameraShake(const float deltaTime) {
 	float rotNoise3 = std::sin(
 		cameraShake_.currentTime * cameraShake_.rotationFrequency * 6.0f +
 		2.7f);
-
-	// 回転揺れの強さ計算
-	float rotAmount = cameraShake_.rotationAmplitude * easedDamping;
 
 	// 主軸と直交する軸を計算
 	Vec3 perpAxis1, perpAxis2;

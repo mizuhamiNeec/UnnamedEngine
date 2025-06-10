@@ -58,6 +58,12 @@ void HitscanModule::Execute(Entity& entity) {
 			                                     return a.dist < b.dist;
 		                                     });
 
+		if (!hit.hitEntity) {
+			// ヒットしたエンティティがない場合は何もしない
+			bHit_ = false;
+			return;
+		}
+
 		if (hit.isHit) {
 			Debug::DrawRay(eye, fwd * hit.dist, Vec4::red);
 			Debug::DrawBox(hit.hitPos, Quaternion::identity,
@@ -65,10 +71,15 @@ void HitscanModule::Execute(Entity& entity) {
 			Debug::DrawAxis(hit.hitPos, Quaternion::identity);
 			Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
 
-			hit.hitEntity->SetActive(false); // ヒットしたエンティティを非アクティブにする
+			//hit.hitEntity->SetActive(false); // ヒットしたエンティティを非アクティブにする
+			hitPosition_ = hit.hitPos;    // ヒット位置を保存
+			hitNormal_   = hit.hitNormal; // ヒット面の法線を保存
+			bHit_        = true;
 		}
 
 		Console::Print("Hitscan Fired!\n");
+	} else {
+		bHit_ = false; // ヒットしなかった場合はフラグをリセット
 	}
 }
 
@@ -134,6 +145,8 @@ void WeaponComponent::OnAttach(Entity& owner) {
 }
 
 void WeaponComponent::Update([[maybe_unused]] float deltaTime) {
+	bFiredThisFrame_ = false; // 今フレームで発射したかどうかをリセット
+
 	if (bIsReloading_) {
 		reloadTimer_ += deltaTime;
 		if (reloadTimer_ >= 0.0f) {
@@ -153,7 +166,8 @@ void WeaponComponent::Update([[maybe_unused]] float deltaTime) {
 	if (bTriggerHeld_ && CanFire()) {
 		mPrimaryModule->Execute(*GetOwner());
 		--mCurrentClip;
-		timeSinceShot_ = 0.0f;
+		timeSinceShot_   = 0.0f;
+		bFiredThisFrame_ = true; // 今フレームで発射した
 	}
 }
 
@@ -168,7 +182,8 @@ void WeaponComponent::PullTrigger() {
 	if (CanFire()) {
 		mPrimaryModule->Execute(*GetOwner());
 		--mCurrentClip;
-		timeSinceShot_ = 0.0f;
+		timeSinceShot_   = 0.0f;
+		bFiredThisFrame_ = true; // 今フレームで発射した
 	}
 }
 
@@ -194,6 +209,18 @@ bool WeaponComponent::CanFire() const {
 	return (mCurrentClip > 0) &&
 		(timeSinceShot_ >= mWeaponData->fireRate) &&
 		!bIsReloading_;
+}
+
+Vec3 WeaponComponent::GetHitPosition() const {
+	return dynamic_cast<HitscanModule*>(mPrimaryModule.get())->GetHitPosition();
+}
+
+Vec3& WeaponComponent::GetHitNormal() {
+	return dynamic_cast<HitscanModule*>(mPrimaryModule.get())->GetHitNormal();
+}
+
+bool WeaponComponent::HasFiredThisFrame() const {
+	return bFiredThisFrame_;
 }
 
 Entity* WeaponComponent::GetOwner() const {

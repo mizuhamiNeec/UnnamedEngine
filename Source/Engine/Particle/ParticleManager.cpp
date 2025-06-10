@@ -362,7 +362,7 @@ void ParticleManager::Emit(const std::string& name, const Vec3& pos,
 		particleGroups_[name].particles.push_back(
 			ParticleObject::MakeNewParticle(
 				pos, ParticleObject::GenerateConeVelocity(30.0f), Vec3::zero,
-				Vec3::zero, Vec4::white, Vec4::white)
+				Vec3::zero, Vec4::white, Vec4::white, Vec3::one, Vec3::one)
 		);
 	}
 }
