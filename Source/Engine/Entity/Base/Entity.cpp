@@ -4,6 +4,7 @@
 
 #include <SubSystem/Console/ConVarManager.h>
 
+#include "Engine.h"
 #include "imgui_internal.h"
 #include "Camera/CameraManager.h"
 #include "Components/Camera/CameraComponent.h"
@@ -31,12 +32,7 @@ void Entity::Update(const float deltaTime) const {
 
 	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
 		Vec3 worldPos   = GetTransform()->GetWorldPos();
-		Vec2 screenSize = Vec2(
-			static_cast<float>(WindowManager::GetMainWindow()->
-				GetClientWidth()),
-			static_cast<float>(WindowManager::GetMainWindow()->
-				GetClientHeight())
-		);
+		Vec2 screenSize = Engine::GetViewportSize();
 
 		Debug::DrawAxis(worldPos,
 		                GetTransform()->GetWorldRot());
@@ -47,8 +43,7 @@ void Entity::Update(const float deltaTime) const {
 		// カメラとの距離を計算
 		float distance = (worldPos - cameraPos).Length();
 
-
-		// カメラとの距離が一定以下の場合は軸を描画しない
+		// カメラとの距離が一定以下の場合は描画しない
 		if (distance < Math::HtoM(4.0f)) {
 			return;
 		}
@@ -66,8 +61,11 @@ void Entity::Update(const float deltaTime) const {
 		);
 
 		if (!bIsOffscreen) {
-			auto   viewport  = ImGui::GetMainViewport();
-			ImVec2 screenPos = viewport->Pos;
+			#ifdef _DEBUG
+			//auto   viewport  = ImGui::GetMainViewport();
+			ImVec2 screenPos = {
+				Engine::GetViewportLT().x, Engine::GetViewportLT().y
+			};
 			ImGui::SetNextWindowPos(screenPos);
 			ImGui::SetNextWindowSize({screenSize.x, screenSize.y});
 			ImGui::SetNextWindowBgAlpha(0.0f); // 背景を透明にする
@@ -100,6 +98,7 @@ void Entity::Update(const float deltaTime) const {
 			);
 
 			ImGui::End();
+			#endif
 		}
 	}
 

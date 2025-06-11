@@ -7,10 +7,10 @@
 #include <Camera/CameraManager.h>
 #include <Lib/Utils/ClientProperties.h>
 
-#include <Window/WindowManager.h>
 #include <Debug/Debug.h>
 
-CameraComponent::~CameraComponent() {}
+CameraComponent::~CameraComponent() {
+}
 
 void CameraComponent::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
@@ -18,42 +18,38 @@ void CameraComponent::OnAttach(Entity& owner) {
 	transform_ = owner_->GetTransform();
 
 	aspectRatio_ = (16.0f / 9.0f);
-	worldMat_ = transform_->GetWorldMat();
-	viewMat_ = worldMat_.Inverse();
-	projMat_ = Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_);
+	worldMat_    = transform_->GetWorldMat();
+	viewMat_     = worldMat_.Inverse();
+	projMat_     = Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_);
 	viewProjMat_ = viewMat_ * projMat_;
 }
 
 void CameraComponent::Update([[maybe_unused]] float deltaTime) {
-	// TODO : 毎フレームアスペクト比を計算するのは無駄なので、ウィンドウサイズ変更時のみ計算するようにする
-	const float width = static_cast<float>(WindowManager::GetMainWindow()->GetClientWidth());
-	const float height = static_cast<float>(WindowManager::GetMainWindow()->GetClientHeight());
-	SetAspectRatio(width / height);
-
 	// 変更があった場合のみ更新
 	//	if (transform_->IsDirty()) {
-	const Vec3& pos = transform_->GetWorldPos();
-	const Vec3& scale = transform_->GetWorldScale();
-	const Quaternion& rot = transform_->GetWorldRot();
+	const Vec3&       pos   = transform_->GetWorldPos();
+	const Vec3&       scale = transform_->GetWorldScale();
+	const Quaternion& rot   = transform_->GetWorldRot();
 
 	const Mat4 S = Mat4::Scale(scale);
 	const Mat4 R = Mat4::FromQuaternion(rot);
 	const Mat4 T = Mat4::Translate(pos);
 
-	worldMat_ = R * S * T;
-	viewMat_ = worldMat_.Inverse();
-	projMat_ = Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_);
+	worldMat_    = R * S * T;
+	viewMat_     = worldMat_.Inverse();
+	projMat_     = Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_);
 	viewProjMat_ = viewMat_ * projMat_;
 
 	transform_->SetIsDirty(false);
 }
 
-void CameraComponent::Render([[maybe_unused]] ID3D12GraphicsCommandList* commandList) {
-// 視錐台のパラメータ計算
+void CameraComponent::Render(
+	[[maybe_unused]] ID3D12GraphicsCommandList* commandList) {
+	// 視錐台のパラメータ計算
 	const float nearHalfHeight = std::tan(fov_ * 0.5f) * zNear_;
-	const float nearHalfWidth = nearHalfHeight * aspectRatio_;
-	const float farHalfHeight = std::tan(fov_ * 0.5f) * zFar_;
-	const float farHalfWidth = farHalfHeight * aspectRatio_;
+	const float nearHalfWidth  = nearHalfHeight * aspectRatio_;
+	const float farHalfHeight  = std::tan(fov_ * 0.5f) * zFar_;
+	const float farHalfWidth   = farHalfHeight * aspectRatio_;
 
 	// カメラ空間での近面と遠面の各頂点 (+Z方向)
 	const Vec4 ntl(-nearHalfWidth, nearHalfHeight, zNear_, 1.0f);
@@ -80,26 +76,38 @@ void CameraComponent::Render([[maybe_unused]] ID3D12GraphicsCommandList* command
 	const Vec4 wfbr = worldMat_.Inverse() * fbr + Vec4(cameraWorldPos, 0.0f);
 
 	// 近面のエッジ描画
-	Debug::DrawLine({ wntl.x, wntl.y, wntl.z }, { wntr.x, wntr.y, wntr.z }, Vec4::white);
-	Debug::DrawLine({ wntr.x, wntr.y, wntr.z }, { wnbr.x, wnbr.y, wnbr.z }, Vec4::white);
-	Debug::DrawLine({ wnbr.x, wnbr.y, wnbr.z }, { wnbl.x, wnbl.y, wnbl.z }, Vec4::white);
-	Debug::DrawLine({ wnbl.x, wnbl.y, wnbl.z }, { wntl.x, wntl.y, wntl.z }, Vec4::white);
+	Debug::DrawLine({wntl.x, wntl.y, wntl.z}, {wntr.x, wntr.y, wntr.z},
+	                Vec4::white);
+	Debug::DrawLine({wntr.x, wntr.y, wntr.z}, {wnbr.x, wnbr.y, wnbr.z},
+	                Vec4::white);
+	Debug::DrawLine({wnbr.x, wnbr.y, wnbr.z}, {wnbl.x, wnbl.y, wnbl.z},
+	                Vec4::white);
+	Debug::DrawLine({wnbl.x, wnbl.y, wnbl.z}, {wntl.x, wntl.y, wntl.z},
+	                Vec4::white);
 
 	// 遠面のエッジ描画
-	Debug::DrawLine({ wftl.x, wftl.y, wftl.z }, { wftr.x, wftr.y, wftr.z }, Vec4::white);
-	Debug::DrawLine({ wftr.x, wftr.y, wftr.z }, { wfbr.x, wfbr.y, wfbr.z }, Vec4::white);
-	Debug::DrawLine({ wfbr.x, wfbr.y, wfbr.z }, { wfbl.x, wfbl.y, wfbl.z }, Vec4::white);
-	Debug::DrawLine({ wfbl.x, wfbl.y, wfbl.z }, { wftl.x, wftl.y, wftl.z }, Vec4::white);
+	Debug::DrawLine({wftl.x, wftl.y, wftl.z}, {wftr.x, wftr.y, wftr.z},
+	                Vec4::white);
+	Debug::DrawLine({wftr.x, wftr.y, wftr.z}, {wfbr.x, wfbr.y, wfbr.z},
+	                Vec4::white);
+	Debug::DrawLine({wfbr.x, wfbr.y, wfbr.z}, {wfbl.x, wfbl.y, wfbl.z},
+	                Vec4::white);
+	Debug::DrawLine({wfbl.x, wfbl.y, wfbl.z}, {wftl.x, wftl.y, wftl.z},
+	                Vec4::white);
 
 	// 近面と遠面を接続するエッジ描画
-	Debug::DrawLine({ wntl.x, wntl.y, wntl.z }, { wftl.x, wftl.y, wftl.z }, Vec4::white);
-	Debug::DrawLine({ wntr.x, wntr.y, wntr.z }, { wftr.x, wftr.y, wftr.z }, Vec4::white);
-	Debug::DrawLine({ wnbl.x, wnbl.y, wnbl.z }, { wfbl.x, wfbl.y, wfbl.z }, Vec4::white);
-	Debug::DrawLine({ wnbr.x, wnbr.y, wnbr.z }, { wfbr.x, wfbr.y, wfbr.z }, Vec4::white);
+	Debug::DrawLine({wntl.x, wntl.y, wntl.z}, {wftl.x, wftl.y, wftl.z},
+	                Vec4::white);
+	Debug::DrawLine({wntr.x, wntr.y, wntr.z}, {wftr.x, wftr.y, wftr.z},
+	                Vec4::white);
+	Debug::DrawLine({wnbl.x, wnbl.y, wnbl.z}, {wfbl.x, wfbl.y, wfbl.z},
+	                Vec4::white);
+	Debug::DrawLine({wnbr.x, wnbr.y, wnbr.z}, {wfbr.x, wfbr.y, wfbr.z},
+	                Vec4::white);
 }
 
 void CameraComponent::DrawInspectorImGui() {
-#ifdef _DEBUG
+	#ifdef _DEBUG
 	if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
 		if (ImGui::Button("PrevCamera")) {
 			CameraManager::SwitchToNextCamera();
@@ -112,7 +120,8 @@ void CameraComponent::DrawInspectorImGui() {
 		}
 
 		float fovTmp = fov_ * Math::rad2Deg;
-		if (ImGui::DragFloat("FOV##cam", &fovTmp, 0.1f, kFovMin * Math::rad2Deg, kFovMax * Math::rad2Deg, "%.2f [deg]")) {
+		if (ImGui::DragFloat("FOV##cam", &fovTmp, 0.1f, kFovMin * Math::rad2Deg,
+		                     kFovMax * Math::rad2Deg, "%.2f [deg]")) {
 			SetFovVertical(fovTmp * Math::deg2Rad);
 		}
 
@@ -120,7 +129,7 @@ void CameraComponent::DrawInspectorImGui() {
 		ImGui::DragFloat("ZFar##cam", &zFar_, 0.1f);
 		ImGui::DragFloat("AspectRatio##cam", &aspectRatio_, 0.1f);
 	}
-#endif
+	#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -196,4 +205,3 @@ float& CameraComponent::GetAspectRatio() {
 void CameraComponent::SetAspectRatio(const float newAspectRatio) {
 	aspectRatio_ = newAspectRatio;
 }
-

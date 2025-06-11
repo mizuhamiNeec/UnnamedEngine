@@ -112,6 +112,11 @@ ShaderResourceViewManager::RegisterShaderResourceView(
 	return {handleCPU, handleGPU};
 }
 
+void ShaderResourceViewManager::UnregisterResource(
+	const ComPtr<ID3D12Resource>& resource) {
+	srvCache_.erase(resource.Get());
+}
+
 ComPtr<ID3D12DescriptorHeap> ShaderResourceViewManager::GetDescriptorHeap() {
 	return descriptorHeap_;
 }

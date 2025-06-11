@@ -41,7 +41,7 @@ void Engine::Run() {
 	Shutdown();
 }
 
-constexpr Vec4 offscreenClearColor = {0.1f, 0.1f, 0.1f, 1.0f};
+constexpr Vec4 offscreenClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 
 void Engine::OnResize(const uint32_t width, const uint32_t height) {
 	if (width == 0 || height == 0) {
@@ -49,15 +49,38 @@ void Engine::OnResize(const uint32_t width, const uint32_t height) {
 	}
 
 	// GPUの処理が終わるまで待つ
-	renderer_->WaitPreviousFrame();
+	renderer_->Flush();
+	//renderer_->WaitPreviousFrame();
 
 	renderer_->Resize(width, height);
 
-	// offscreenRTV_.rtv.Reset();
-	// offscreenDSV_.dsv.Reset();
+	const auto srvManager = resourceManager_->GetShaderResourceViewManager();
+
+	srvManager->UnregisterResource(
+		offscreenRTV_.rtv
+	);
+	srvManager->UnregisterResource(
+		offscreenDSV_.dsv
+	);
+
+	srvManager->UnregisterResource(
+		postProcessedRTV_.rtv
+	);
+	srvManager->UnregisterResource(
+		postProcessedDSV_.dsv
+	);
+
+	offscreenRTV_.rtv.Reset();
+	offscreenDSV_.dsv.Reset();
+
+	postProcessedRTV_.rtv.Reset();
+	postProcessedDSV_.dsv.Reset();
 
 	offscreenRTV_ = {};
 	offscreenDSV_ = {};
+
+	postProcessedRTV_ = {};
+	postProcessedDSV_ = {};
 
 	offscreenRTV_ = renderer_->CreateRenderTargetTexture(
 		width, height,
@@ -69,9 +92,108 @@ void Engine::OnResize(const uint32_t width, const uint32_t height) {
 		DXGI_FORMAT_D32_FLOAT
 	);
 
-	offscreenRenderPassTargets_.pRTVs   = &offscreenRTV_.rtvHandle;
+	postProcessedRTV_ = renderer_->CreateRenderTargetTexture(
+		width, height,
+		offscreenClearColor,
+		kBufferFormat
+	);
+
+	postProcessedDSV_ = renderer_->CreateDepthStencilTexture(
+		width, height,
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	offscreenRenderPassTargets_.pRTVs = &offscreenRTV_.rtvHandle;
 	offscreenRenderPassTargets_.numRTVs = 1;
-	offscreenRenderPassTargets_.pDSV    = &offscreenDSV_.handles.cpuHandle;
+	offscreenRenderPassTargets_.pDSV = &offscreenDSV_.handles.cpuHandle;
+
+	postProcessedRenderPassTargets_.pRTVs = &postProcessedRTV_.rtvHandle;
+	postProcessedRenderPassTargets_.numRTVs = 1;
+	postProcessedRenderPassTargets_.pDSV = &postProcessedDSV_.handles.cpuHandle;
+}
+
+void Engine::ResizeOffscreenRenderTextures(
+	const uint32_t width,
+	const uint32_t height
+) {
+	if (width == 0 || height == 0) {
+		return;
+	}
+
+	// GPUの処理が終わるまで待つ
+	renderer_->Flush();
+	//renderer_->WaitPreviousFrame();
+
+	// renderer_->Resize(width, height);
+
+	renderer_->ResetOffscreenRenderTextures();
+
+	const auto srvManager = resourceManager_->GetShaderResourceViewManager();
+
+	srvManager->UnregisterResource(
+		offscreenRTV_.rtv
+	);
+	srvManager->UnregisterResource(
+		offscreenDSV_.dsv
+	);
+
+	srvManager->UnregisterResource(
+		postProcessedRTV_.rtv
+	);
+	srvManager->UnregisterResource(
+		postProcessedDSV_.dsv
+	);
+
+	offscreenRTV_.rtv.Reset();
+	offscreenDSV_.dsv.Reset();
+
+	postProcessedRTV_.rtv.Reset();
+	postProcessedDSV_.dsv.Reset();
+
+	offscreenRTV_ = {};
+	offscreenDSV_ = {};
+
+	postProcessedRTV_ = {};
+	postProcessedDSV_ = {};
+
+	offscreenRTV_ = renderer_->CreateRenderTargetTexture(
+		width, height,
+		offscreenClearColor,
+		kBufferFormat
+	);
+	offscreenDSV_ = renderer_->CreateDepthStencilTexture(
+		width, height,
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	postProcessedRTV_ = renderer_->CreateRenderTargetTexture(
+		width, height,
+		offscreenClearColor,
+		kBufferFormat
+	);
+
+	postProcessedDSV_ = renderer_->CreateDepthStencilTexture(
+		width, height,
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	offscreenRenderPassTargets_.pRTVs = &offscreenRTV_.rtvHandle;
+	offscreenRenderPassTargets_.numRTVs = 1;
+	offscreenRenderPassTargets_.pDSV = &offscreenDSV_.handles.cpuHandle;
+
+	postProcessedRenderPassTargets_.pRTVs = &postProcessedRTV_.rtvHandle;
+	postProcessedRenderPassTargets_.numRTVs = 1;
+	postProcessedRenderPassTargets_.pDSV = &postProcessedDSV_.handles.cpuHandle;
+
+	//renderer_->SetViewportAndScissor(width, height);
+}
+
+Vec2 Engine::GetViewportLT() {
+	return viewportLT;
+}
+
+Vec2 Engine::GetViewportSize() {
+	return viewportSize;
 }
 
 void Engine::Init() {
@@ -103,8 +225,8 @@ void Engine::Init() {
 
 	wm_->GetMainWindow()->SetResizeCallback(
 		[this]([[maybe_unused]] const uint32_t width,
-		       [[maybe_unused]] const uint32_t height) {
-			OnResize(width, height); // TODO: RenderPassまわりでエラーが出るので一旦コメントアウト
+			[[maybe_unused]] const uint32_t height) {
+				OnResize(width, height);
 		}
 	);
 
@@ -146,14 +268,36 @@ void Engine::Init() {
 		DXGI_FORMAT_D32_FLOAT
 	);
 
-	offscreenRenderPassTargets_.pRTVs        = &offscreenRTV_.rtvHandle;
-	offscreenRenderPassTargets_.numRTVs      = 1;
-	offscreenRenderPassTargets_.pDSV         = &offscreenDSV_.handles.cpuHandle;
-	offscreenRenderPassTargets_.clearColor   = offscreenClearColor;
-	offscreenRenderPassTargets_.clearDepth   = 1.0f;
+	postProcessedRTV_ = renderer_->CreateRenderTargetTexture(
+		wm_->GetMainWindow()->GetClientWidth(),
+		wm_->GetMainWindow()->GetClientHeight(),
+		offscreenClearColor,
+		kBufferFormat
+	);
+
+	postProcessedDSV_ = renderer_->CreateDepthStencilTexture(
+		wm_->GetMainWindow()->GetClientWidth(),
+		wm_->GetMainWindow()->GetClientHeight(),
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	offscreenRenderPassTargets_.pRTVs = &offscreenRTV_.rtvHandle;
+	offscreenRenderPassTargets_.numRTVs = 1;
+	offscreenRenderPassTargets_.pDSV = &offscreenDSV_.handles.cpuHandle;
+	offscreenRenderPassTargets_.clearColor = offscreenClearColor;
+	offscreenRenderPassTargets_.clearDepth = 1.0f;
 	offscreenRenderPassTargets_.clearStencil = 0;
-	offscreenRenderPassTargets_.bClearColor  = true;
-	offscreenRenderPassTargets_.bClearDepth  = true;
+	offscreenRenderPassTargets_.bClearColor = true;
+	offscreenRenderPassTargets_.bClearDepth = true;
+
+	postProcessedRenderPassTargets_.pRTVs = &postProcessedRTV_.rtvHandle;
+	postProcessedRenderPassTargets_.numRTVs = 1;
+	postProcessedRenderPassTargets_.pDSV = &postProcessedDSV_.handles.cpuHandle;
+	postProcessedRenderPassTargets_.clearColor = offscreenClearColor;
+	postProcessedRenderPassTargets_.clearDepth = 1.0f;
+	postProcessedRenderPassTargets_.clearStencil = 0;
+	postProcessedRenderPassTargets_.bClearColor = true;
+	postProcessedRenderPassTargets_.bClearDepth = true;
 
 	copyImagePass_ = std::make_unique<CopyImagePass>(renderer_->GetDevice());
 
@@ -225,7 +369,7 @@ void Engine::Update() {
 	ImGuiManager::NewFrame();
 #endif
 
-	// 前のフレームとeditorModeが違う場合はエディターモードを切り替える
+// 前のフレームとeditorModeが違う場合はエディターモードを切り替える
 	static bool bPrevEditorMode = bIsEditorMode_;
 	if (bPrevEditorMode != bIsEditorMode_) {
 		CheckEditorMode();
@@ -241,28 +385,43 @@ void Engine::Update() {
 
 		{
 			static ImVec4 tint = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-			static ImVec4 bg   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-
-			ImGui::Begin("testColor");
-			ImGui::ColorEdit4("Tint", reinterpret_cast<float*>(&tint));
-			ImGui::ColorEdit4("Bg", reinterpret_cast<float*>(&bg));
-			ImGui::End();
+			static ImVec4 bg = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-			ImGui::Begin("ViewPort", nullptr, ImGuiWindowFlags_NoBackground);
+			ImGui::Begin(
+				"ViewPort",
+				nullptr,
+				/*ImGuiWindowFlags_NoBackground |*/
+				ImGuiWindowFlags_NoScrollbar |
+				ImGuiWindowFlags_NoScrollWithMouse
+			);
 			ImVec2     avail = ImGui::GetContentRegionAvail();
-			const auto ptr   = offscreenRTV_.srvHandles.gpuHandle.ptr;
-			if (ptr) {
-				const ImTextureID texId = offscreenRTV_.srvHandles.gpuHandle.
-					ptr;
+			const auto ptr = postProcessedRTV_.srvHandles.gpuHandle.ptr;
 
-				// アスペクト比を維持してサイズを計算
-				const float texWidth = static_cast<float>(
-					WindowManager::GetMainWindow()->GetClientWidth());
-				const float texHeight = static_cast<float>(
-					WindowManager::GetMainWindow()->GetClientHeight());
+			static int prevW = 0, prevH = 0;
+			int        w = static_cast<int>(avail.x);
+			int        h = static_cast<int>(avail.y);
+			if ((w != prevW || h != prevH) && w > 0 && h > 0) {
+				// ビューポートサイズがおかしくなるので一旦廃止
+				//ResizeOffscreenRenderTextures(w, h);
+				/*CameraManager::GetActiveCamera()->SetAspectRatio(
+					static_cast<float>(w) / static_cast<float>(h)
+				);*/
+				prevW = w;
+				prevH = h;
+			}
+
+			if (ptr) {
+				const ImTextureID texId =
+					postProcessedRTV_.srvHandles.gpuHandle.ptr;
+
+				// リソースからテクスチャの幅と高さを取得
+				auto        desc = postProcessedRTV_.rtv->GetDesc();
+				const float texWidth = static_cast<float>(desc.Width);
+				const float texHeight = static_cast<float>(desc.Height);
+
 				const float availAspect = avail.x / avail.y;
-				const float texAspect   = texWidth / texHeight;
+				const float texAspect = texWidth / texHeight;
 
 				ImVec2 drawSize = avail;
 				if (availAspect > texAspect) {
@@ -272,18 +431,27 @@ void Engine::Update() {
 					// 縦が余る
 					drawSize.y = avail.x / texAspect;
 				}
-				ImVec2 offset = ImVec2((avail.x - drawSize.x) * 0.5f,
-				                       (avail.y - drawSize.y) * 0.5f);
 
+				float titleBarHeight = ImGui::GetCurrentWindow()->TitleBarHeight;
+
+				// ここで中央に配置するためのオフセットを計算
+				ImVec2 offset = {
+					(avail.x - drawSize.x) * 0.5f,
+					(avail.y - drawSize.y) * 0.5f + titleBarHeight
+				};
 				ImGui::SetCursorPos(offset);
+
+				ImVec2 viewportScreenPos = ImGui::GetCursorScreenPos();
+
 				ImGui::ImageWithBg(
 					texId,
 					drawSize,
-					ImVec2(0, 0),
-					ImVec2(1, 1),
-					bg,
-					tint
+					ImVec2(0, 0), ImVec2(1, 1),
+					bg, tint
 				);
+
+				viewportLT = { viewportScreenPos.x, viewportScreenPos.y };
+				viewportSize = { drawSize.x, drawSize.y };
 			}
 			ImGui::End();
 			ImGui::PopStyleVar();
@@ -292,6 +460,11 @@ void Engine::Update() {
 		copyImagePass_->Update(EngineTimer::GetDeltaTime());
 	} else {
 		sceneManager_->Update(EngineTimer::GetScaledDeltaTime());
+		viewportLT = Vec2::zero;
+		viewportSize = {
+			static_cast<float>(wm_->GetMainWindow()->GetClientWidth()),
+			static_cast<float>(wm_->GetMainWindow()->GetClientHeight())
+		};
 	}
 
 	InputSystem::Update();
@@ -317,6 +490,14 @@ void Engine::Update() {
 	renderer_->PreRender();
 	//-------------------------------------------------------------------------
 
+	// renderer_->SetViewportAndScissor(
+	// 	WindowManager::GetMainWindow()->GetClientWidth(),
+	// 	WindowManager::GetMainWindow()->GetClientHeight()
+	// );
+	renderer_->SetViewportAndScissor(
+		static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Width),
+		static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Height)
+	);
 	renderer_->BeginRenderPass(offscreenRenderPassTargets_);
 	if (IsEditorMode()) {
 		lineCommon_->Render();
@@ -328,37 +509,80 @@ void Engine::Update() {
 		sceneManager_->Render();
 	}
 
-	//------------------------------------------------------------------------
-	// --- PostRender↓ ---
-	renderer_->BeginSwapChainRenderPass();
-
 	// バリアを設定
 	D3D12_RESOURCE_BARRIER barrier = {};
-	barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource   = offscreenRTV_.rtv.Get();
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = offscreenRTV_.rtv.Get();
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 
 	renderer_->GetCommandList()->ResourceBarrier(1, &barrier);
 
-	copyImagePass_->Execute(
-		renderer_->GetCommandList(),
-		offscreenRTV_.rtv.Get(),
-		renderer_->GetSwapChainRenderTargetView(),
-		resourceManager_->GetShaderResourceViewManager()
-	);
+	if (IsEditorMode()) {
+		// エディターモード時はポストプロセス用RTVに描画
+		renderer_->BeginRenderPass(postProcessedRenderPassTargets_);
+		renderer_->SetViewportAndScissor(
+			static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Width),
+			static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Height)
+		);
+		copyImagePass_->Execute(
+			renderer_->GetCommandList(),
+			offscreenRTV_.rtv.Get(),
+			postProcessedRTV_.rtvHandle,
+			resourceManager_->GetShaderResourceViewManager()
+		);
+
+		// バリアを設定
+		D3D12_RESOURCE_BARRIER postBarrier = {};
+		postBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		postBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		postBarrier.Transition.pResource = postProcessedRTV_.rtv.Get();
+		postBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		postBarrier.Transition.StateAfter =
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		renderer_->GetCommandList()->ResourceBarrier(1, &postBarrier);
+	} else {
+		// ゲーム時はスワップチェーンに直接描画
+		renderer_->BeginSwapChainRenderPass();
+		renderer_->SetViewportAndScissor(
+			WindowManager::GetMainWindow()->GetClientWidth(),
+			WindowManager::GetMainWindow()->GetClientHeight()
+		);
+		copyImagePass_->Execute(
+			renderer_->GetCommandList(),
+			offscreenRTV_.rtv.Get(),
+			renderer_->GetSwapChainRenderTargetView(),
+			resourceManager_->GetShaderResourceViewManager()
+		);
+	}
+
+	//------------------------------------------------------------------------
+	// --- PostRender↓ ---
+	if (IsEditorMode()) {
+		renderer_->BeginSwapChainRenderPass();
+	}
 
 #ifdef _DEBUG
 	imGuiManager_->EndFrame();
 #endif
 
-	// バリアを元に戻す
+// バリアを元に戻す
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-	barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	renderer_->GetCommandList()->ResourceBarrier(1, &barrier);
+
+	if (IsEditorMode()) {
+		// postProcessedRTV_ のバリアを戻す
+		D3D12_RESOURCE_BARRIER postBarrier = {};
+		postBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		postBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		postBarrier.Transition.pResource = postProcessedRTV_.rtv.Get();
+		postBarrier.Transition.StateBefore =
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		postBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		renderer_->GetCommandList()->ResourceBarrier(1, &postBarrier);
+	}
 
 	renderer_->PostRender();
 
@@ -408,25 +632,25 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 
 	// コンソール変数を登録
 	ConVarManager::RegisterConVar<bool>("r_vulkanenabled", false,
-	                                    "Enable Vulkan renderer",
-	                                    ConVarFlags::ConVarFlags_Notify);
+		"Enable Vulkan renderer",
+		ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>(
 		"cl_showpos", 1,
 		"Draw current position at top of screen (1 = meter, 2 = hammer)"
 	);
 	ConVarManager::RegisterConVar<int>("cl_showfps", 2,
-	                                   "Draw fps meter (1 = fps, 2 = smooth)");
+		"Draw fps meter (1 = fps, 2 = smooth)");
 	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps,
-	                                   "Frame rate limiter");
+		"Frame rate limiter");
 	ConVarManager::RegisterConVar<std::string>("name", "unnamed",
-	                                           "Current user name",
-	                                           ConVarFlags::ConVarFlags_Notify);
+		"Current user name",
+		ConVarFlags::ConVarFlags_Notify);
 	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName(), true);
 	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f,
-	                                     "Mouse sensitivity.");
+		"Mouse sensitivity.");
 	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f,
-	                                     "Prescale the clock by this amount.");
-	// World
+		"Prescale the clock by this amount.");
+// World
 	ConVarManager::RegisterConVar<
 		float>("sv_gravity", 800.0f, "World gravity.");
 	ConVarManager::RegisterConVar<float>(
@@ -437,12 +661,12 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 
 	// Player
 	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f,
-	                                     "Linear acceleration amount (old value is 5.6)");
+		"Linear acceleration amount (old value is 5.6)");
 	ConVarManager::RegisterConVar<float>("sv_airaccelerate", 12.0f);
 	ConVarManager::RegisterConVar<float>("sv_maxspeed", 800.0f,
-	                                     "Maximum speed a player can move.");
+		"Maximum speed a player can move.");
 	ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f,
-	                                     "Minimum stopping speed when on ground.");
+		"Minimum stopping speed when on ground.");
 	ConVarManager::RegisterConVar<
 		float>("sv_friction", 4.0f, "World friction.");
 
@@ -483,6 +707,9 @@ bool                             Engine::bWishShutdown_ = false;
 std::unique_ptr<D3D12>           Engine::renderer_;
 std::unique_ptr<ResourceManager> Engine::resourceManager_;
 std::unique_ptr<ParticleManager> Engine::particleManager_;
+
+Vec2 Engine::viewportLT = Vec2::zero;
+Vec2 Engine::viewportSize = Vec2::zero;
 
 #ifdef _DEBUG
 bool Engine::bIsEditorMode_ = true;

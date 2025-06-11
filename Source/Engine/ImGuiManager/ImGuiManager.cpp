@@ -19,8 +19,10 @@
 
 #include <Window/WindowsUtils.h>
 
-ImGuiManager::ImGuiManager(D3D12* renderer, const ShaderResourceViewManager* srvManager) : renderer_(renderer),
-                                                                                                 srvManager_(srvManager) {
+ImGuiManager::ImGuiManager(D3D12*                           renderer,
+                           const ShaderResourceViewManager* srvManager) :
+	renderer_(renderer),
+	srvManager_(srvManager) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
@@ -30,26 +32,28 @@ ImGuiManager::ImGuiManager(D3D12* renderer, const ShaderResourceViewManager* srv
 	io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 
 	// 少し角丸に
-	ImGuiStyle* style = &ImGui::GetStyle();
+	ImGuiStyle* style     = &ImGui::GetStyle();
 	style->WindowRounding = 8;
-	style->FrameRounding = 4;
+	style->FrameRounding  = 4;
 
 	ImFontConfig imFontConfig;
-	imFontConfig.OversampleH = 1;
-	imFontConfig.OversampleV = 1;
-	imFontConfig.PixelSnapH = true;
-	imFontConfig.SizePixels = 18;
+	imFontConfig.OversampleH      = 1;
+	imFontConfig.OversampleV      = 1;
+	imFontConfig.PixelSnapH       = true;
+	imFontConfig.SizePixels       = 18;
 	imFontConfig.GlyphMinAdvanceX = 2.0f;
 
 	// Ascii
 	io.Fonts->AddFontFromFileTTF(
-		R"(.\Resources\Fonts\JetBrainsMono.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesDefault()
+		R"(.\Resources\Fonts\JetBrainsMono.ttf)", 18.0f, &imFontConfig,
+		io.Fonts->GetGlyphRangesDefault()
 	);
 	imFontConfig.MergeMode = true;
 
 	// 日本語フォールバック
 	io.Fonts->AddFontFromFileTTF(
-		R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig, io.Fonts->GetGlyphRangesJapanese()
+		R"(.\Resources\Fonts\NotoSansJP.ttf)", 18.0f, &imFontConfig,
+		io.Fonts->GetGlyphRangesJapanese()
 	);
 
 	// ??? 何故かベースラインがずれるので補正
@@ -75,8 +79,10 @@ ImGuiManager::ImGuiManager(D3D12* renderer, const ShaderResourceViewManager* srv
 		kFrameBufferCount,
 		kBufferFormat,
 		ShaderResourceViewManager::GetDescriptorHeap().Get(),
-		ShaderResourceViewManager::GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
-		ShaderResourceViewManager::GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart()
+		ShaderResourceViewManager::GetDescriptorHeap()->
+		GetCPUDescriptorHandleForHeapStart(),
+		ShaderResourceViewManager::GetDescriptorHeap()->
+		GetGPUDescriptorHandleForHeapStart()
 	);
 }
 
@@ -93,21 +99,25 @@ void ImGuiManager::EndFrame() {
 
 	// レンダーターゲットとして使用されたテクスチャリソースをすべてSRV状態に遷移
 	// これによりImGuiのマルチビューポートでも安全にテクスチャとして使用できる
-	ID3D12DescriptorHeap* imGuiHeap = ShaderResourceViewManager::GetDescriptorHeap().Get();
+	ID3D12DescriptorHeap* imGuiHeap =
+		ShaderResourceViewManager::GetDescriptorHeap().Get();
 	renderer_->GetCommandList()->SetDescriptorHeaps(1, &imGuiHeap);
 
 	// メインウィンドウのImGuiコンテンツを描画
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), renderer_->GetCommandList());
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(),
+	                              renderer_->GetCommandList());
 
 	// マルチビューポートの更新前に、すべてのコマンドを確実にフラッシュする
 	renderer_->GetCommandList()->Close();
-	ID3D12CommandList* cmdLists[] = { renderer_->GetCommandList() };
+	ID3D12CommandList* cmdLists[] = {renderer_->GetCommandList()};
 	renderer_->GetCommandQueue()->ExecuteCommandLists(1, cmdLists);
-    
+
+	renderer_->WaitPreviousFrame();
+
 	// マルチビューポート用のレンダリング（新しいコマンドリストが内部で作成される）
 	ImGui::UpdatePlatformWindows();
 	ImGui::RenderPlatformWindowsDefault();
-    
+
 	// 新しいコマンドリストを作成して作業を続行
 	renderer_->ResetCommandList();
 
@@ -136,8 +146,10 @@ void ImGuiManager::Recreate() const {
 		kFrameBufferCount,
 		kBufferFormat,
 		ShaderResourceViewManager::GetDescriptorHeap().Get(),
-		ShaderResourceViewManager::GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(),
-		ShaderResourceViewManager::GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart()
+		ShaderResourceViewManager::GetDescriptorHeap()->
+		GetCPUDescriptorHandleForHeapStart(),
+		ShaderResourceViewManager::GetDescriptorHeap()->
+		GetGPUDescriptorHandleForHeapStart()
 	);
 
 	// 4. デバイスオブジェクト再作成
@@ -149,17 +161,19 @@ void ImGuiManager::StyleColorsDark() {
 
 	ImGuiStyle* style = &ImGui::GetStyle();
 	// テキストの色を少し暗めに
-	ImVec4* colors = style->Colors;
-	colors[ImGuiCol_Text] = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
+	ImVec4* colors            = style->Colors;
+	colors[ImGuiCol_Text]     = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
 	colors[ImGuiCol_WindowBg] = ImVec4(0.22f, 0.22f, 0.24f, 1.0f);
-	colors[ImGuiCol_FrameBg] = ImVec4(0.13f, 0.12f, 0.13f, 1.0f);
+	colors[ImGuiCol_FrameBg]  = ImVec4(0.13f, 0.12f, 0.13f, 1.0f);
 }
 
 void ImGuiManager::StyleColorsLight() {
 	ImGui::StyleColorsLight();
 }
 
-void ImGuiManager::PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive) {
+void ImGuiManager::PushStyleColorForDrag(const ImVec4& bg,
+                                         const ImVec4& bgHovered,
+                                         const ImVec4& bgActive) {
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, bg);
 	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, bgHovered);
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, bgActive);
@@ -169,28 +183,34 @@ bool ImGuiManager::EditTransform(Transform& transform, const float& vSpeed) {
 	bool isEditing = false;
 
 	if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
-		isEditing |= ImGuiWidgets::DragVec3("Position", transform.translate, vSpeed, "%.3f");
+		isEditing |= ImGuiWidgets::DragVec3("Position", transform.translate,
+		                                    vSpeed, "%.3f");
 
 		// 回転を取っておく
 		Vec3 rotate = transform.rotate * Math::rad2Deg;
-		if (ImGuiWidgets::DragVec3("Rotation", transform.rotate, vSpeed, "%.3f")) {
+		if (ImGuiWidgets::DragVec3("Rotation", transform.rotate, vSpeed,
+		                           "%.3f")) {
 			isEditing |= true;
 			transform.rotate = rotate * Math::deg2Rad;
 		}
 
-		isEditing |= ImGuiWidgets::DragVec3("Scale", transform.scale, vSpeed, "%.3f");
+		isEditing |= ImGuiWidgets::DragVec3("Scale", transform.scale, vSpeed,
+		                                    "%.3f");
 	}
 
 	return isEditing;
 }
 
-bool ImGuiManager::EditTransform(TransformComponent& transform, const float& vSpeed) {
-	bool isEditing = false;
-	Vec3 localPos = transform.GetLocalPos();
-	Quaternion localRot = transform.GetLocalRot();
-	Vec3 localScale = transform.GetLocalScale();
+bool ImGuiManager::EditTransform(TransformComponent& transform,
+                                 const float&        vSpeed) {
+	bool       isEditing  = false;
+	Vec3       localPos   = transform.GetLocalPos();
+	Quaternion localRot   = transform.GetLocalRot();
+	Vec3       localScale = transform.GetLocalScale();
 
-	if (ImGui::CollapsingHeader(("Transform##" + transform.GetOwner()->GetName()).c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+	if (ImGui::CollapsingHeader(
+		("Transform##" + transform.GetOwner()->GetName()).c_str(),
+		ImGuiTreeNodeFlags_DefaultOpen)) {
 		// Position 編集
 		if (ImGuiWidgets::DragVec3("Position", localPos, vSpeed, "%.3f")) {
 			transform.SetLocalPos(localPos);
@@ -199,7 +219,8 @@ bool ImGuiManager::EditTransform(TransformComponent& transform, const float& vSp
 
 		// Rotation 編集
 		Vec3 eulerDegrees = localRot.ToEulerDegrees();
-		if (ImGuiWidgets::DragVec3("Rotation", eulerDegrees, vSpeed * 10.0f, "%.3f")) {
+		if (ImGuiWidgets::DragVec3("Rotation", eulerDegrees, vSpeed * 10.0f,
+		                           "%.3f")) {
 			// 編集された Euler 角を Quaternion に変換
 			localRot = Quaternion::EulerDegrees(eulerDegrees);
 			transform.SetLocalRot(localRot);
@@ -215,7 +236,8 @@ bool ImGuiManager::EditTransform(TransformComponent& transform, const float& vSp
 	return isEditing;
 }
 
-bool ImGuiManager::DragVec3(const std::string& name, Vec3& v, const float& vSpeed, const char* format) {
+bool ImGuiManager::DragVec3(const std::string& name, Vec3&         v,
+                            const float&       vSpeed, const char* format) {
 	// 編集中かどうか
 	bool isEditing = false;
 
@@ -225,17 +247,17 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3& v, const float& vSpee
 	// 幅を取得
 	const float width = ImGui::GetCurrentContext()->Style.ItemInnerSpacing.x;
 
-	constexpr ImVec4 xBg = {0.72f, 0.11f, 0.11f, 0.75f};
+	constexpr ImVec4 xBg        = {0.72f, 0.11f, 0.11f, 0.75f};
 	constexpr ImVec4 xBgHovered = {0.83f, 0.18f, 0.18f, 0.75f};
-	constexpr ImVec4 xBgActive = {0.96f, 0.26f, 0.21f, 0.75f};
+	constexpr ImVec4 xBgActive  = {0.96f, 0.26f, 0.21f, 0.75f};
 
-	constexpr ImVec4 yBg = {0.11f, 0.37f, 0.13f, 0.75f};
+	constexpr ImVec4 yBg        = {0.11f, 0.37f, 0.13f, 0.75f};
 	constexpr ImVec4 yBgHovered = {0.22f, 0.56f, 0.24f, 0.75f};
-	constexpr ImVec4 yBgActive = {0.3f, 0.69f, 0.31f, 0.75f};
+	constexpr ImVec4 yBgActive  = {0.3f, 0.69f, 0.31f, 0.75f};
 
-	constexpr ImVec4 zBg = {0.05f, 0.28f, 0.63f, 0.75f};
+	constexpr ImVec4 zBg        = {0.05f, 0.28f, 0.63f, 0.75f};
 	constexpr ImVec4 zBgHovered = {0.1f, 0.46f, 0.82f, 0.75f};
-	constexpr ImVec4 zBgActive = {0.13f, 0.59f, 0.95f, 0.75f};
+	constexpr ImVec4 zBgActive  = {0.13f, 0.59f, 0.95f, 0.75f};
 
 	// 幅を決定
 	ImGui::PushMultiItemsWidths(components, ImGui::CalcItemWidth());
@@ -244,21 +266,24 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3& v, const float& vSpee
 	// 色を送る
 	ImGui::PushID("X");
 	PushStyleColorForDrag(xBg, xBgHovered, xBgActive);
-	isEditing |= ImGui::DragFloat(("##X" + name).c_str(), &v.x, vSpeed, 0.0f, 0.0f, format);
+	isEditing |= ImGui::DragFloat(("##X" + name).c_str(), &v.x, vSpeed, 0.0f,
+	                              0.0f, format);
 	ImGui::PopStyleColor(components);
 	ImGui::PopID();
 	ImGui::SameLine(0, width);
 
 	ImGui::PushID("Y");
 	PushStyleColorForDrag(yBg, yBgHovered, yBgActive);
-	isEditing |= ImGui::DragFloat(("##Y" + name).c_str(), &v.y, vSpeed, 0.0f, 0.0f, format);
+	isEditing |= ImGui::DragFloat(("##Y" + name).c_str(), &v.y, vSpeed, 0.0f,
+	                              0.0f, format);
 	ImGui::PopStyleColor(components);
 	ImGui::PopID();
 	ImGui::SameLine(0, width);
 
 	ImGui::PushID("Z");
 	PushStyleColorForDrag(zBg, zBgHovered, zBgActive);
-	isEditing |= ImGui::DragFloat(("##Z" + name).c_str(), &v.z, vSpeed, 0.0f, 0.0f, format);
+	isEditing |= ImGui::DragFloat(("##Z" + name).c_str(), &v.z, vSpeed, 0.0f,
+	                              0.0f, format);
 	ImGui::PopStyleColor(components);
 	ImGui::PopID();
 	ImGui::SameLine(0, width);
@@ -273,32 +298,45 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3& v, const float& vSpee
 }
 
 void ImGuiManager::TextOutlined(
-	ImDrawList* drawList,
+	ImDrawList*   drawList,
 	const ImVec2& pos,
-	const char* text,
-	const ImVec4 textColor,
-	const ImVec4 outlineColor,
-	const float outlineSize
+	const char*   text,
+	const ImVec4  textColor,
+	const ImVec4  outlineColor,
+	const float   outlineSize
 ) {
 	// クライアント領域の左上座標を取得
 	ImVec2 windowPos = ImGui::GetWindowPos();
 	ImVec2 clientPos = ImVec2(windowPos.x + pos.x, windowPos.y + pos.y);
 
 	ImU32 outlineCol = ImGui::ColorConvertFloat4ToU32(outlineColor);
-	ImU32 textCol = ImGui::ColorConvertFloat4ToU32(textColor);
+	ImU32 textCol    = ImGui::ColorConvertFloat4ToU32(textColor);
 
-	drawList->AddText(ImVec2(clientPos.x - outlineSize, clientPos.y), outlineCol, text);
-	drawList->AddText(ImVec2(clientPos.x + outlineSize, clientPos.y), outlineCol, text);
-	drawList->AddText(ImVec2(clientPos.x, clientPos.y - outlineSize), outlineCol, text);
-	drawList->AddText(ImVec2(clientPos.x, clientPos.y + outlineSize), outlineCol, text);
-	drawList->AddText(ImVec2(clientPos.x - outlineSize, clientPos.y - outlineSize), outlineCol, text);
-	drawList->AddText(ImVec2(clientPos.x + outlineSize, clientPos.y - outlineSize), outlineCol, text);
-	drawList->AddText(ImVec2(clientPos.x - outlineSize, clientPos.y + outlineSize), outlineCol, text);
-	drawList->AddText(ImVec2(clientPos.x + outlineSize, clientPos.y + outlineSize), outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x - outlineSize, clientPos.y),
+	                  outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x + outlineSize, clientPos.y),
+	                  outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x, clientPos.y - outlineSize),
+	                  outlineCol, text);
+	drawList->AddText(ImVec2(clientPos.x, clientPos.y + outlineSize),
+	                  outlineCol, text);
+	drawList->AddText(
+		ImVec2(clientPos.x - outlineSize, clientPos.y - outlineSize),
+		outlineCol, text);
+	drawList->AddText(
+		ImVec2(clientPos.x + outlineSize, clientPos.y - outlineSize),
+		outlineCol, text);
+	drawList->AddText(
+		ImVec2(clientPos.x - outlineSize, clientPos.y + outlineSize),
+		outlineCol, text);
+	drawList->AddText(
+		ImVec2(clientPos.x + outlineSize, clientPos.y + outlineSize),
+		outlineCol, text);
 	drawList->AddText(clientPos, textCol, text);
 }
 
-bool ImGuiManager::IconButton(const char* icon, const char* label, const ImVec2& size) {
+bool ImGuiManager::IconButton(const char*   icon, const char* label,
+                              const ImVec2& size) {
 	// ボタンのサイズを計算
 	const ImVec2 iconSize = ImGui::CalcTextSize(icon);
 	// フォントサイズを小さくしてラベルサイズを計算
@@ -324,7 +362,8 @@ bool ImGuiManager::IconButton(const char* icon, const char* label, const ImVec2&
 	bool pressed = ImGui::Button("##icon_button", buttonSize);
 
 	// アイコンを中央揃えで描画
-	float iconY = buttonPos.y + (buttonSize.y - (iconSize.y + labelSize.y + spacing)) * 0.5f;
+	float iconY = buttonPos.y + (buttonSize.y - (iconSize.y + labelSize.y +
+		spacing)) * 0.5f;
 	ImGui::SetCursorPos(
 		ImVec2(
 			buttonPos.x + (buttonSize.x - iconSize.x) * 0.5f,
@@ -341,7 +380,7 @@ bool ImGuiManager::IconButton(const char* icon, const char* label, const ImVec2&
 		)
 	);
 
-	float defaultFontSize = ImGui::GetFont()->Scale;
+	float defaultFontSize   = ImGui::GetFont()->Scale;
 	ImGui::GetFont()->Scale = 0.8f;
 	ImGui::PushFont(ImGui::GetFont());
 	ImGui::Text("%s", label);

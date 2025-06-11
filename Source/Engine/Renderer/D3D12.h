@@ -50,7 +50,7 @@ public: // メンバ関数
 
 	void SetShaderResourceViewManager(ShaderResourceViewManager* srvManager);
 
-	void ClearColorAndDepth() const;
+	void ClearColorAndDepth();
 	void PreRender() override;
 	void PostRender() override;
 
@@ -62,23 +62,28 @@ public: // メンバ関数
 		DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT);
 	void BeginRenderPass(const RenderPassTargets& targets) const;
 
-	void                        BeginSwapChainRenderPass() const;
+	void                        BeginSwapChainRenderPass();
 	D3D12_CPU_DESCRIPTOR_HANDLE GetSwapChainRenderTargetView() const;
-	
+
 	void ResetCommandList();
 
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size,
-	                                    const void*     data);
+		const void* data);
 
 	void WaitPreviousFrame();
+	void Flush();
 
 	void Resize(uint32_t width, uint32_t height);
+
+	void ResetOffscreenRenderTextures();
+
+	void SetViewportAndScissor(uint32_t width, uint32_t height);
 
 private:
 	D3DResourceLeakChecker d3dResourceLeakChecker_;
 
 	// 持ってきたやつ
-	BaseWindow*                window_     = nullptr;
+	BaseWindow* window_ = nullptr;
 	ShaderResourceViewManager* srvManager_ = nullptr;
 
 	// メンバ変数
@@ -98,7 +103,8 @@ private:
 
 	// 4. レンダーターゲット・深度ステンシル
 	std::vector<ComPtr<ID3D12Resource>>      renderTargets_;
-	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles_;
+	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandlesSwapChain_;
+	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandlesOffscreen_;
 	ComPtr<ID3D12Resource>                   depthStencilResource_;
 	DepthStencilTexture                      defaultDepthStencilTexture_;
 
@@ -111,7 +117,7 @@ private:
 	// 6. その他
 	D3D12_RESOURCE_BARRIER barrier_ = {};
 
-	D3D12_VIEWPORT viewport_    = {};
+	D3D12_VIEWPORT viewport_ = {};
 	D3D12_RECT     scissorRect_ = {};
 
 	uint32_t descriptorSizeRTV = 0;
@@ -124,7 +130,7 @@ private:
 	// 初期化関連
 	//------------------------------------------------------------------------
 	static
-	void EnableDebugLayer();
+		void EnableDebugLayer();
 	void CreateDevice();
 	void SetInfoQueueBreakOnSeverity() const;
 	void CreateCommandQueue();
