@@ -24,15 +24,15 @@ Entity::~Entity() {
 	}*/
 }
 
-void Entity::Update(const float deltaTime) const {
+void Entity::Update(const float deltaTime) {
 	if (!bIsActive_) {
 		return;
 	}
 
 	// 必須コンポーネントの更新
-	if (!transform_) {
+	if (!transform_.get()) {
 		Console::Print(
-			std::format("Entity '{}' has no TransformComponent!", name_),
+			std::format("Entity '{}' has no TransformComponent!", GetName()),
 			Vec4(1, 0, 0, 1), Channel::General);
 		return;
 	}
@@ -47,11 +47,11 @@ void Entity::Update(const float deltaTime) const {
 	}
 
 	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
-		Vec3 worldPos   = GetTransform()->GetWorldPos();
+		Vec3 worldPos = GetTransform()->GetWorldPos();
 		Vec2 screenSize = Engine::GetViewportSize();
 
 		Debug::DrawAxis(worldPos,
-		                GetTransform()->GetWorldRot());
+			GetTransform()->GetWorldRot());
 
 		Vec3 cameraPos = CameraManager::GetActiveCamera()->GetViewMat().
 			Inverse().GetTranslate();
@@ -65,7 +65,7 @@ void Entity::Update(const float deltaTime) const {
 		}
 
 		bool  bIsOffscreen = false;
-		float outAngle     = 0.0f;
+		float outAngle = 0.0f;
 
 		Vec2 scrPosition = Math::WorldToScreen(
 			worldPos,
@@ -77,27 +77,27 @@ void Entity::Update(const float deltaTime) const {
 		);
 
 		if (!bIsOffscreen) {
-			#ifdef _DEBUG
-			//auto   viewport  = ImGui::GetMainViewport();
+#ifdef _DEBUG
+//auto   viewport  = ImGui::GetMainViewport();
 			ImVec2 screenPos = {
 				Engine::GetViewportLT().x, Engine::GetViewportLT().y
 			};
 			ImGui::SetNextWindowPos(screenPos);
-			ImGui::SetNextWindowSize({screenSize.x, screenSize.y});
+			ImGui::SetNextWindowSize({ screenSize.x, screenSize.y });
 			ImGui::SetNextWindowBgAlpha(0.0f); // 背景を透明にする
 			ImGui::Begin("##EntityName", nullptr,
-			             ImGuiWindowFlags_NoBackground |
-			             ImGuiWindowFlags_NoTitleBar |
-			             ImGuiWindowFlags_NoResize |
-			             ImGuiWindowFlags_NoMove |
-			             ImGuiWindowFlags_NoSavedSettings |
-			             ImGuiWindowFlags_NoDocking |
-			             ImGuiWindowFlags_NoFocusOnAppearing |
-			             ImGuiWindowFlags_NoInputs |
-			             ImGuiWindowFlags_NoNav
+				ImGuiWindowFlags_NoBackground |
+				ImGuiWindowFlags_NoTitleBar |
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoSavedSettings |
+				ImGuiWindowFlags_NoDocking |
+				ImGuiWindowFlags_NoFocusOnAppearing |
+				ImGuiWindowFlags_NoInputs |
+				ImGuiWindowFlags_NoNav
 			);
 
-			ImVec2      textPos  = {scrPosition.x, scrPosition.y};
+			ImVec2      textPos = { scrPosition.x, scrPosition.y };
 			ImDrawList* drawList = ImGui::GetWindowDrawList();
 
 			float outlineSize = 1.0f;
@@ -114,13 +114,17 @@ void Entity::Update(const float deltaTime) const {
 			);
 
 			ImGui::End();
-			#endif
+#endif
 		}
 	}
 
-	// 子のエンティティの更新
-	for (const auto& child : children_) {
-		child->Update(deltaTime);
+	if (!GetChildren().empty()) {
+		// 子のエンティティの更新
+		for (const auto& child : children_) {
+			if (child) {
+				child->Update(deltaTime);
+			}
+		}
 	}
 }
 
@@ -192,8 +196,8 @@ void Entity::SetParent(Entity* newParent) {
 	Vec3       currentWorldScale;
 
 	if (transform_) {
-		currentWorldPos   = transform_->GetWorldPos();
-		currentWorldRot   = transform_->GetWorldRot();
+		currentWorldPos = transform_->GetWorldPos();
+		currentWorldRot = transform_->GetWorldRot();
 		currentWorldScale = transform_->GetWorldScale();
 	}
 
@@ -277,7 +281,7 @@ void Entity::RemoveChild(Entity* child) {
 	}
 }
 
-std::string Entity::GetName() {
+std::string& Entity::GetName() {
 	return name_;
 }
 

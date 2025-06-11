@@ -19,16 +19,16 @@ enum class EntityType {
 
 class Entity {
 public:
-	explicit Entity(std::string name, const EntityType& type = EntityType::RuntimeOnly) :
+	explicit Entity(const std::string& name, const EntityType& type = EntityType::RuntimeOnly) :
 		transform_(std::make_unique<TransformComponent>()),
 		entityType_(type),
-		name_(std::move(name)) {
+		name_(name) {
 		transform_->OnAttach(*this);
 	}
 
 	~Entity();
 
-	void Update(float deltaTime) const;
+	void Update(float deltaTime);
 	void Render(ID3D12GraphicsCommandList* commandList) const;
 
 	[[nodiscard]] EntityType GetType() const;
@@ -58,9 +58,9 @@ public:
 	void AddChild(Entity* child);
 	void RemoveChild(Entity* child);
 
-	std::string GetName();
+	std::string& GetName();
 	void        SetName(const std::string& name);
-	
+
 	void RemoveAllComponents();
 
 private:

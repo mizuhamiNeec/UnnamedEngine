@@ -441,8 +441,13 @@ void GameScene::Update(const float deltaTime) {
 	);
 	#endif
 
+
 	for (auto entity : entities_) {
-		entity->Update(deltaTime);
+		if (entity) {
+			if (!entity->GetParent()) {
+				entity->Update(deltaTime);
+			}
+		}
 	}
 }
 
@@ -455,7 +460,9 @@ void GameScene::Render() {
 		                ->GetResource());
 
 	for (auto entity : entities_) {
-		entity->Render(renderer_->GetCommandList());
+		if (entity) {
+			entity->Render(renderer_->GetCommandList());
+		}
 	}
 
 	Engine::GetParticleManager()->Render();

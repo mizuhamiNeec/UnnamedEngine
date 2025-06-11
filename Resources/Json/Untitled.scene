@@ -27,7 +27,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -55,7 +55,7 @@
                     1.0
                 ]
             },
-            "file_name": "sp_physicstest.obj"
+            "file_name": "./Resources/Models/sp_physicstest.obj"
         },
         {
             "type": "MESH",
@@ -83,7 +83,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -111,7 +111,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -139,7 +139,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -167,7 +167,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -195,7 +195,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -223,7 +223,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -251,7 +251,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -279,7 +279,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -307,7 +307,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -335,7 +335,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -363,7 +363,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -391,7 +391,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -419,7 +419,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -447,7 +447,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -475,7 +475,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -503,7 +503,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -531,7 +531,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -559,7 +559,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -587,7 +587,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -615,7 +615,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -643,7 +643,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -671,7 +671,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -699,7 +699,7 @@
                     1.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -727,7 +727,7 @@
                     10.0
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         },
         {
             "type": "MESH",
@@ -755,7 +755,7 @@
                     1.9999998807907104
                 ]
             },
-            "file_name": "teapot.obj"
+            "file_name": "./Resources/Models/teapot.obj"
         }
     ]
 }

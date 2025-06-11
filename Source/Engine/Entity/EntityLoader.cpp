@@ -39,15 +39,14 @@ Quaternion ToEngineQuat(const Quaternion& q) {
 }
 
 Vec3 ToBlenderPos(const Vec3& v) {
-	return {v.x, -v.z, v.y};
+	return {v.x, v.z, v.y}; // y成分の符号を修正
 }
 
 Quaternion ToBlenderQuat(const Quaternion& q) {
 	return {
-		q.x, -q.z, -q.y, q.w
+		q.x, -q.z, -q.y, q.w // 変更なし (既に正しい逆変換)
 	};
 }
-
 
 Entity* EntityLoader::LoadNode(
 	Entity*          parent,

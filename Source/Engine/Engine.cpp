@@ -353,6 +353,8 @@ void Engine::Init() {
 
 	resourceManager_->GetTextureManager()->InitErrorTexture();
 
+	entityLoader_ = std::make_unique<EntityLoader>();
+
 	// シーンマネージャ/ファクトリーの作成
 	sceneFactory_ = std::make_unique<SceneFactory>();
 	sceneManager_ = std::make_shared<SceneManager>(*sceneFactory_);
@@ -384,90 +386,262 @@ void Engine::Update() {
 	/* ----------- 更新処理 ---------- */
 
 	if (IsEditorMode()) {
-		if (editor_) {
-			editor_->Update(EngineTimer::GetDeltaTime());
-		}
 		{
-			static ImVec4 tint = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-			static ImVec4 bg   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+			// メニューバーを少し高くする
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
+			                    ImVec2(
+				                    0.0f, kTitleBarH * 0.5f -
+				                    ImGui::GetFontSize() * 0.5f));
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+			                    ImVec2(0.0f, kTitleBarH));
+			if (ImGui::BeginMainMenuBar()) {
+				ImGui::PopStyleVar(2); // メニューバーのスタイルを元に戻す
+				// アイコンメニュー
+				ImGui::PushStyleColor(ImGuiCol_Text,
+				                      ImVec4(0.13f, 0.5f, 1.0f, 1.0f));
 
-			ImGuiWindowFlags windowFlags =
-				ImGuiWindowFlags_NoScrollbar |
-				ImGuiWindowFlags_NoScrollWithMouse;
-
-			if (ImGuizmo::IsUsing()) {
-				windowFlags |= ImGuiWindowFlags_NoMove;
-			}
-
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-			ImGui::Begin(
-				"ViewPort",
-				nullptr,
-				windowFlags
-			);
-			ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
-
-			ImVec2     avail = ImGui::GetContentRegionAvail();
-			const auto ptr   = postProcessedRTV_.srvHandles.gpuHandle.ptr;
-
-			static int prevW = 0, prevH = 0;
-			int        w     = static_cast<int>(avail.x);
-			int        h     = static_cast<int>(avail.y);
-			if ((w != prevW || h != prevH) && w > 0 && h > 0) {
-				// ビューポートサイズがおかしくなるので一旦廃止
-				//ResizeOffscreenRenderTextures(w, h);
-				/*CameraManager::GetActiveCamera()->SetAspectRatio(
-					static_cast<float>(w) / static_cast<float>(h)
-				);*/
-				prevW = w;
-				prevH = h;
-			}
-
-			if (ptr) {
-				const ImTextureID texId =
-					postProcessedRTV_.srvHandles.gpuHandle.ptr;
-
-				// リソースからテクスチャの幅と高さを取得
-				auto        desc      = postProcessedRTV_.rtv->GetDesc();
-				const float texWidth  = static_cast<float>(desc.Width);
-				const float texHeight = static_cast<float>(desc.Height);
-
-				const float availAspect = avail.x / avail.y;
-				const float texAspect   = texWidth / texHeight;
-
-				ImVec2 drawSize = avail;
-				if (availAspect > texAspect) {
-					// 横が余る
-					drawSize.x = avail.y * texAspect;
+				if (ImGuiWidgets::BeginMainMenu(
+					StrUtil::ConvertToUtf8(kIconArrowForward).c_str())) {
+					ImGui::PopStyleColor();
+					if (ImGui::MenuItemEx(("About " + kEngineName).c_str(),
+					                      nullptr)) {
+					}
+					ImGui::EndMenu();
 				} else {
-					// 縦が余る
-					drawSize.y = avail.x / texAspect;
+					ImGui::PopStyleColor();
 				}
 
-				float titleBarHeight = ImGui::GetCurrentWindow()->
-					TitleBarHeight;
+				if (ImGuiWidgets::BeginMainMenu("File")) {
+					if (ImGui::MenuItemEx(
+						"Save", StrUtil::ConvertToUtf8(kIconSave).c_str())) {
+					}
 
-				// ここで中央に配置するためのオフセットを計算
-				ImVec2 offset = {
-					(avail.x - drawSize.x) * 0.5f,
-					(avail.y - drawSize.y) * 0.5f + titleBarHeight
-				};
-				ImGui::SetCursorPos(offset);
+					if (ImGui::MenuItemEx("Save As",
+					                      StrUtil::ConvertToUtf8(kIconSaveAs).
+					                      c_str())) {
+					}
 
-				ImVec2 viewportScreenPos = ImGui::GetCursorScreenPos();
+					ImGui::Separator();
 
-				ImGui::ImageWithBg(
-					texId,
-					drawSize,
-					ImVec2(0, 0), ImVec2(1, 1),
-					bg, tint
-				);
+					if (ImGui::MenuItemEx("Import",
+					                      StrUtil::ConvertToUtf8(kIconDownload)
+					                      .
+					                      c_str())) {
+						BaseScene* currentScene = sceneManager_->
+						                          GetCurrentScene().
+						                          get();
+						if (currentScene) {
+							char szFile[MAX_PATH] = ""; // 初期ファイル名は空
 
-				viewportLT   = {viewportScreenPos.x, viewportScreenPos.y};
-				viewportSize = {drawSize.x, drawSize.y};
+							OPENFILENAMEA ofn;
+							ZeroMemory(&ofn, sizeof(ofn)); // 構造体をゼロ初期化
+							ofn.lStructSize = sizeof(OPENFILENAMEA);
+
+							HWND hwndOwner = nullptr;
+							if (WindowManager::GetMainWindow()) {
+								hwndOwner = WindowManager::GetMainWindow()->
+									GetWindowHandle();
+							}
+							ofn.hwndOwner   = hwndOwner;
+							ofn.lpstrFilter =
+								"Scene Files (*.scene)\0*.scene\0All Files (*.*)\0*.*\0";
+							ofn.lpstrFile = szFile;
+							ofn.nMaxFile = MAX_PATH;
+							ofn.lpstrTitle = "Import Scene From";
+							ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST |
+								OFN_NOCHANGEDIR; // ファイル/パス存在確認、カレントディレクトリ変更なし
+							ofn.lpstrDefExt = "scene";
+
+							if (GetOpenFileNameA(&ofn)) {
+								loadFilePath_ = ofn.lpstrFile;
+							}
+						} else {
+							Console::Print(
+								"Import failed: No active scene found.");
+						}
+					}
+
+					if (ImGui::MenuItemEx("Export",
+					                      StrUtil::ConvertToUtf8(kIconUpload).
+					                      c_str())) {
+						BaseScene* currentScene = sceneManager_->
+						                          GetCurrentScene().
+						                          get();
+						if (currentScene) {
+							char szFile[MAX_PATH] = "scene.json"; // デフォルトのファイル名
+
+							OPENFILENAMEA ofn;
+							ZeroMemory(&ofn, sizeof(ofn)); // 構造体をゼロ初期化
+							ofn.lStructSize = sizeof(OPENFILENAMEA);
+
+							HWND hwndOwner = nullptr;
+							if (WindowManager::GetMainWindow()) {
+								hwndOwner = WindowManager::GetMainWindow()->
+									GetWindowHandle();
+							}
+							ofn.hwndOwner   = hwndOwner;
+							ofn.lpstrFilter =
+								"Scene Files (*.scene)\0*.scene\0All Files (*.*)\0*.*\0";
+							ofn.lpstrFile = szFile;
+							ofn.nMaxFile = MAX_PATH;
+							ofn.lpstrTitle = "Export Scene As";
+							ofn.Flags = OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+							// 上書き確認、カレントディレクトリ変更なし
+							ofn.lpstrDefExt = "scene";
+
+							if (GetSaveFileNameA(&ofn)) {
+								std::string filePath = ofn.lpstrFile;
+								entityLoader_->
+									SaveScene(filePath, currentScene);
+								Console::Print(
+									"Scene exported to: " + filePath);
+							}
+						} else {
+							Console::Print(
+								"Export failed: No active scene found.");
+						}
+					}
+
+					ImGui::Separator();
+
+					if (ImGui::MenuItemEx(
+							"Exit",
+							StrUtil::ConvertToUtf8(kIconPower).c_str())
+					) {
+						Console::SubmitCommand("quit");
+					}
+					ImGui::EndMenu();
+				}
+
+				if (ImGuiWidgets::BeginMainMenu("Edit")) {
+					ImGui::Separator();
+					if (ImGuiWidgets::MenuItemWithIcon(
+						StrUtil::ConvertToUtf8(kIconSettings).c_str(),
+						"Settings")) {
+					}
+
+					ImGui::EndMenu();
+				}
+				ImGui::EndMainMenuBar();
 			}
+
+			const ImGuiViewport* viewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(viewport->WorkPos);
+			ImGui::SetNextWindowSize(viewport->WorkSize);
+			ImGui::SetNextWindowViewport(viewport->ID);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+			                    ImVec2(0.0f, 0.0f));
+
+			constexpr ImGuiDockNodeFlags dockSpaceFlags =
+				ImGuiDockNodeFlags_PassthruCentralNode;
+			constexpr ImGuiWindowFlags windowFlags =
+				ImGuiWindowFlags_NoTitleBar |
+				ImGuiWindowFlags_NoCollapse |
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoBringToFrontOnFocus |
+				ImGuiWindowFlags_NoNavFocus |
+				ImGuiWindowFlags_NoBackground;
+
+			ImGui::Begin("DockSpace", nullptr, windowFlags);
+
+			ImGui::PopStyleVar(3);
+
+			const ImGuiIO& io = ImGui::GetIO();
+			if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+				const ImGuiID dockSpaceId = ImGui::GetID("MyDockSpace");
+				ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f),
+				                 dockSpaceFlags);
+			}
+
 			ImGui::End();
-			ImGui::PopStyleVar();
+		}
+
+		static ImVec4 tint = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+		static ImVec4 bg   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+		ImGuiWindowFlags windowFlags =
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoScrollWithMouse;
+
+		if (ImGuizmo::IsUsing()) {
+			windowFlags |= ImGuiWindowFlags_NoMove;
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+		ImGui::Begin(
+			"ViewPort",
+			nullptr,
+			windowFlags
+		);
+		ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+
+		ImVec2     avail = ImGui::GetContentRegionAvail();
+		const auto ptr   = postProcessedRTV_.srvHandles.gpuHandle.ptr;
+
+		static int prevW = 0, prevH = 0;
+		int        w     = static_cast<int>(avail.x);
+		int        h     = static_cast<int>(avail.y);
+		if ((w != prevW || h != prevH) && w > 0 && h > 0) {
+			// ビューポートサイズがおかしくなるので一旦廃止
+			//ResizeOffscreenRenderTextures(w, h);
+			/*CameraManager::GetActiveCamera()->SetAspectRatio(
+				static_cast<float>(w) / static_cast<float>(h)
+			);*/
+			prevW = w;
+			prevH = h;
+		}
+
+		if (ptr) {
+			const ImTextureID texId =
+				postProcessedRTV_.srvHandles.gpuHandle.ptr;
+
+			// リソースからテクスチャの幅と高さを取得
+			auto        desc      = postProcessedRTV_.rtv->GetDesc();
+			const float texWidth  = static_cast<float>(desc.Width);
+			const float texHeight = static_cast<float>(desc.Height);
+
+			const float availAspect = avail.x / avail.y;
+			const float texAspect   = texWidth / texHeight;
+
+			ImVec2 drawSize = avail;
+			if (availAspect > texAspect) {
+				// 横が余る
+				drawSize.x = avail.y * texAspect;
+			} else {
+				// 縦が余る
+				drawSize.y = avail.x / texAspect;
+			}
+
+			float titleBarHeight = ImGui::GetCurrentWindow()->
+				TitleBarHeight;
+
+			// ここで中央に配置するためのオフセットを計算
+			ImVec2 offset = {
+				(avail.x - drawSize.x) * 0.5f,
+				(avail.y - drawSize.y) * 0.5f + titleBarHeight
+			};
+			ImGui::SetCursorPos(offset);
+
+			ImVec2 viewportScreenPos = ImGui::GetCursorScreenPos();
+
+			ImGui::ImageWithBg(
+				texId,
+				drawSize,
+				ImVec2(0, 0), ImVec2(1, 1),
+				bg, tint
+			);
+
+			viewportLT   = {viewportScreenPos.x, viewportScreenPos.y};
+			viewportSize = {drawSize.x, drawSize.y};
+		}
+		ImGui::End();
+		ImGui::PopStyleVar();
+
+		if (editor_) {
+			editor_->Update(EngineTimer::GetDeltaTime());
 		}
 
 		copyImagePass_->Update(EngineTimer::GetDeltaTime());
@@ -595,6 +769,26 @@ void Engine::Update() {
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		postBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		renderer_->GetCommandList()->ResourceBarrier(1, &postBarrier);
+	}
+
+	if (loadFilePath_) {
+		BaseScene* currentScene = sceneManager_->
+		                          GetCurrentScene().
+		                          get();
+		ResourceManager* resourceManager =
+			Engine::GetResourceManager();
+		if (resourceManager) {
+			entityLoader_->LoadScene(
+				loadFilePath_.value(), currentScene,
+				resourceManager);
+			Console::Print(
+				"Scene imported from: " + loadFilePath_.value());
+		} else {
+			Console::Print(
+				"Import failed: ResourceManager not found.");
+		}
+
+		loadFilePath_.reset(); // ロード後はリセット
 	}
 
 	renderer_->PostRender();
