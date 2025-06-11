@@ -83,6 +83,10 @@ private:
 
 	std::unique_ptr<Console> console_;
 
+	std::optional<std::string> loadFilePath_; // シーンロードキュー
+
+	std::unique_ptr<EntityLoader> entityLoader_;
+
 	RenderTargetTexture offscreenRTV_;
 	DepthStencilTexture offscreenDSV_;
 	RenderPassTargets   offscreenRenderPassTargets_;

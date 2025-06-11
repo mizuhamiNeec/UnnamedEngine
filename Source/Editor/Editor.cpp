@@ -25,7 +25,7 @@ Editor::Editor(SceneManager& sceneManager) : sceneManager_(sceneManager) {
 void Editor::Init() {
 	// カメラの作成
 	cameraEntity_ = std::make_unique<Entity>("editorCamera",
-	                                         EntityType::EditorOnly);
+		EntityType::EditorOnly);
 	cameraEntity_->GetTransform()->SetLocalPos(
 		Vec3::forward * -5.0f + Vec3::up * 2.0f);
 	cameraEntity_->GetTransform()->SetLocalRot(
@@ -53,191 +53,11 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		currentScene->Update(EngineTimer::GetDeltaTime());
 	}
 
-	{
-		// メニューバーを少し高くする
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
-		                    ImVec2(
-			                    0.0f, kTitleBarH * 0.5f -
-			                    ImGui::GetFontSize() * 0.5f));
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
-		                    ImVec2(0.0f, kTitleBarH));
-		if (ImGui::BeginMainMenuBar()) {
-			ImGui::PopStyleVar(2); // メニューバーのスタイルを元に戻す
-			// アイコンメニュー
-			ImGui::PushStyleColor(ImGuiCol_Text,
-			                      ImVec4(0.13f, 0.5f, 1.0f, 1.0f));
-
-			if (ImGuiWidgets::BeginMainMenu(
-				StrUtil::ConvertToUtf8(kIconArrowForward).c_str())) {
-				ImGui::PopStyleColor();
-				if (ImGui::MenuItemEx(("About " + kEngineName).c_str(),
-				                      nullptr)) {
-				}
-				ImGui::EndMenu();
-			} else {
-				ImGui::PopStyleColor();
-			}
-
-			if (ImGuiWidgets::BeginMainMenu("File")) {
-				if (ImGui::MenuItemEx(
-					"Save", StrUtil::ConvertToUtf8(kIconSave).c_str())) {
-				}
-
-				if (ImGui::MenuItemEx("Save As",
-				                      StrUtil::ConvertToUtf8(kIconSaveAs).
-				                      c_str())) {
-				}
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItemEx("Import",
-				                      StrUtil::ConvertToUtf8(kIconDownload)
-				                      .
-				                      c_str())) {
-					BaseScene* currentScene = sceneManager_.GetCurrentScene().
-						get();
-					if (currentScene) {
-						char szFile[MAX_PATH] = ""; // 初期ファイル名は空
-
-						OPENFILENAMEA ofn;
-						ZeroMemory(&ofn, sizeof(ofn)); // 構造体をゼロ初期化
-						ofn.lStructSize = sizeof(OPENFILENAMEA);
-
-						HWND hwndOwner = nullptr;
-						if (WindowManager::GetMainWindow()) {
-							hwndOwner = WindowManager::GetMainWindow()->
-								GetWindowHandle();
-						}
-						ofn.hwndOwner   = hwndOwner;
-						ofn.lpstrFilter =
-							"Scene Files (*.scene)\0*.scene\0All Files (*.*)\0*.*\0";
-						ofn.lpstrFile  = szFile;
-						ofn.nMaxFile   = MAX_PATH;
-						ofn.lpstrTitle = "Import Scene From";
-						ofn.Flags      = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST |
-							OFN_NOCHANGEDIR; // ファイル/パス存在確認、カレントディレクトリ変更なし
-						ofn.lpstrDefExt = "scene";
-
-						if (GetOpenFileNameA(&ofn)) {
-							std::string      filePath = ofn.lpstrFile;
-							EntityLoader     loader;
-							ResourceManager* resourceManager =
-								Engine::GetResourceManager();
-							if (resourceManager) {
-								loader.LoadScene(
-									filePath, currentScene, resourceManager);
-								Console::Print(
-									"Scene imported from: " + filePath);
-							} else {
-								Console::Print(
-									"Import failed: ResourceManager not found.");
-							}
-						}
-					} else {
-						Console::Print("Import failed: No active scene found.");
-					}
-				}
-
-				if (ImGui::MenuItemEx("Export",
-				                      StrUtil::ConvertToUtf8(kIconUpload).
-				                      c_str())) {
-					BaseScene* currentScene = sceneManager_.GetCurrentScene().
-						get();
-					if (currentScene) {
-						char szFile[MAX_PATH] = "scene.json"; // デフォルトのファイル名
-
-						OPENFILENAMEA ofn;
-						ZeroMemory(&ofn, sizeof(ofn)); // 構造体をゼロ初期化
-						ofn.lStructSize = sizeof(OPENFILENAMEA);
-
-						HWND hwndOwner = nullptr;
-						if (WindowManager::GetMainWindow()) {
-							hwndOwner = WindowManager::GetMainWindow()->
-								GetWindowHandle();
-						}
-						ofn.hwndOwner   = hwndOwner;
-						ofn.lpstrFilter =
-							"Scene Files (*.scene)\0*.scene\0All Files (*.*)\0*.*\0";
-						ofn.lpstrFile  = szFile;
-						ofn.nMaxFile   = MAX_PATH;
-						ofn.lpstrTitle = "Export Scene As";
-						ofn.Flags      = OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
-						// 上書き確認、カレントディレクトリ変更なし
-						ofn.lpstrDefExt = "scene";
-
-						if (GetSaveFileNameA(&ofn)) {
-							std::string  filePath = ofn.lpstrFile;
-							EntityLoader loader;
-							loader.SaveScene(filePath, currentScene);
-							Console::Print("Scene exported to: " + filePath);
-						}
-					} else {
-						Console::Print("Export failed: No active scene found.");
-					}
-				}
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItemEx(
-						"Exit",
-						StrUtil::ConvertToUtf8(kIconPower).c_str())
-				) {
-					Console::SubmitCommand("quit");
-				}
-				ImGui::EndMenu();
-			}
-
-			if (ImGuiWidgets::BeginMainMenu("Edit")) {
-				ImGui::Separator();
-				if (ImGuiWidgets::MenuItemWithIcon(
-					StrUtil::ConvertToUtf8(kIconSettings).c_str(),
-					"Settings")) {
-				}
-
-				ImGui::EndMenu();
-			}
-			ImGui::EndMainMenuBar();
-		}
-
-		const ImGuiViewport* viewport = ImGui::GetMainViewport();
-		ImGui::SetNextWindowPos(viewport->WorkPos);
-		ImGui::SetNextWindowSize(viewport->WorkSize);
-		ImGui::SetNextWindowViewport(viewport->ID);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
-		                    ImVec2(0.0f, 0.0f));
-
-		constexpr ImGuiDockNodeFlags dockSpaceFlags =
-			ImGuiDockNodeFlags_PassthruCentralNode;
-		constexpr ImGuiWindowFlags windowFlags =
-			ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoBringToFrontOnFocus |
-			ImGuiWindowFlags_NoNavFocus |
-			ImGuiWindowFlags_NoBackground;
-
-		ImGui::Begin("DockSpace", nullptr, windowFlags);
-
-		ImGui::PopStyleVar(3);
-
-		const ImGuiIO& io = ImGui::GetIO();
-		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
-			const ImGuiID dockSpaceId = ImGui::GetID("MyDockSpace");
-			ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f),
-			                 dockSpaceFlags);
-		}
-
-		ImGui::End();
-	}
-
-	#ifdef _DEBUG
-	// カメラの操作
+#ifdef _DEBUG
+// カメラの操作
 	static float moveSpd = 4.0f;
 
-	static bool firstReset   = true; // 初回リセットフラグ
+	static bool firstReset = true; // 初回リセットフラグ
 	static bool cursorHidden = false;
 
 	static bool  bOpenPopup = false; // ポップアップ表示フラグ
@@ -256,23 +76,23 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			float sensitivity = ConVarManager::GetConVar("sensitivity")->
 				GetValueAsFloat();
 			float m_pitch = 0.022f;
-			float m_yaw   = 0.022f;
-			float min     = -89.0f;
-			float max     = 89.0f;
+			float m_yaw = 0.022f;
+			float min = -89.0f;
+			float max = 89.0f;
 
 			static Vec3 rot_ = cameraEntity_->GetTransform()->GetLocalRot().
-			                                  ToEulerAngles();
+				ToEulerAngles();
 
 			rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
 			rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
 
 			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad,
-			                    max * Math::deg2Rad);
+				max * Math::deg2Rad);
 
 			cameraEntity_->GetTransform()->SetWorldRot(
 				Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
 
-			Vec3 moveInput = {0.0f, 0.0f, 0.0f};
+			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
 
 			if (InputSystem::IsPressed("forward")) {
 				moveInput.z += 1.0f;
@@ -340,7 +160,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				/ 2)
 		};
 		ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(),
-		               &centerCursorPos); // クライアント座標をスクリーン座標に変換
+			&centerCursorPos); // クライアント座標をスクリーン座標に変換
 		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
 
 		firstReset = false; // 初回リセット完了
@@ -355,10 +175,10 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
 	if (bOpenPopup) {
 		// ビューポートのサイズと位置を取得
-		ImGuiViewport* viewport     = ImGui::GetMainViewport();
-		ImVec2         viewportPos  = viewport->Pos;
+		ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImVec2         viewportPos = viewport->Pos;
 		ImVec2         viewportSize = viewport->Size;
-		auto           windowSize   = ImVec2(256.0f, 32.0f);
+		auto           windowSize = ImVec2(256.0f, 32.0f);
 
 		// ウィンドウの中央下部位置を計算
 		ImVec2 windowPos(
@@ -399,9 +219,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			)
 		);
 		ImGui::Text((StrUtil::ConvertToUtf8(0xe9e4) + " %.2f").c_str(),
-		            moveSpd);
+			moveSpd);
 
-		// 一定時間経過後にポップアップをフェードアウトして閉じる
+// 一定時間経過後にポップアップをフェードアウトして閉じる
 		popupTimer += EngineTimer::GetDeltaTime();
 		// ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
 		if (popupTimer >= 3.0f) {
@@ -438,13 +258,21 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				ImGuiTableColumnFlags_NoHide |
 				ImGuiTableColumnFlags_WidthStretch);
 			ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed,
-			                        30.0f);
+				30.0f);
 			ImGui::TableSetupColumn("Active", ImGuiTableColumnFlags_WidthFixed,
-			                        30.0f);
+				30.0f);
 
 			// 再帰的にエンティティを表示する関数
 			std::function<void(Entity*)> drawEntityNode =
 				[&](Entity* entity) {
+				if (!entity) {
+					return;
+				}
+
+				if (entity->GetName().empty()) {
+					return;
+				}
+
 				ImGui::PushID(entity);
 
 				ImGui::TableNextRow();
@@ -514,15 +342,15 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				// アイコンのサイズを一時的に変更
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 				// アイコン間のスペースを調整
-				float originalScale     = ImGui::GetFont()->Scale;
+				float originalScale = ImGui::GetFont()->Scale;
 				ImGui::GetFont()->Scale = 1.2f; // スケールを1.2倍に
 				ImGui::PushFont(ImGui::GetFont());
 
 				ImGui::PushStyleColor(
 					ImGuiCol_Text,
 					visible
-						? ImGui::GetStyleColorVec4(ImGuiCol_Text)
-						: ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
+					? ImGui::GetStyleColorVec4(ImGuiCol_Text)
+					: ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
 				);
 
 				// アイコンを中央に配置
@@ -580,12 +408,12 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 					ImGui::TreePop();
 				}
 				ImGui::PopID();
-			};
+				};
 
-			// ルートエンティティから開始
-			// シーンからエンティティリストを取得する際、削除操作中にイテレータが無効になることを避けるため、
-			// リストのコピーに対して操作を行うか、削除を遅延させるなどの対策が必要になる場合がある。
-			// ここではGetCurrentScene()->GetEntities()が安全なコピーまたは参照を返すと仮定する。
+				// ルートエンティティから開始
+				// シーンからエンティティリストを取得する際、削除操作中にイテレータが無効になることを避けるため、
+				// リストのコピーに対して操作を行うか、削除を遅延させるなどの対策が必要になる場合がある。
+				// ここではGetCurrentScene()->GetEntities()が安全なコピーまたは参照を返すと仮定する。
 			if (scene_) {
 				// scene_が有効か確認
 				auto entities = scene_->GetEntities();
@@ -601,44 +429,44 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		}
 	}
 	ImGui::End();
-	#endif
+#endif
 
-	//// タブの名前
-	//static const char* tabNames[] = {
-	//	"Test",
-	//	("いい感じのヘッダー" + StrUtils::ConvertToUtf8(kIconTerminal)).c_str(),
-	//	"Physics",
-	//	"Audio",
-	//	"Input"
-	//};
-	//static int selectedTab = 0; // 現在選択中のタブインデックス
+//// タブの名前
+//static const char* tabNames[] = {
+//	"Test",
+//	("いい感じのヘッダー" + StrUtils::ConvertToUtf8(kIconTerminal)).c_str(),
+//	"Physics",
+//	"Audio",
+//	"Input"
+//};
+//static int selectedTab = 0; // 現在選択中のタブインデックス
 
-	//// 縦方向のレイアウトを作成
-	//ImGui::Begin("Vertical Tabs Example");
+//// 縦方向のレイアウトを作成
+//ImGui::Begin("Vertical Tabs Example");
 
-	//// タブ用の列を分割
-	//ImGui::Columns(2, nullptr, false);
+//// タブ用の列を分割
+//ImGui::Columns(2, nullptr, false);
 
-	//// タブのリスト (左側の列)
-	//ImGui::BeginChild("Tabs", ImVec2(32, 0), true);
-	//for (int i = 0; i < IM_ARRAYSIZE(tabNames); i++) {
-	//	// ボタンまたは選択可能なアイテムとしてタブを表現
-	//	if (ImGui::Selectable((StrUtils::ConvertToUtf8(kIconTerminal)).c_str(), selectedTab == i)) {
-	//		selectedTab = i; // タブを切り替える
-	//	}
-	//}
-	//ImGui::EndChild();
+//// タブのリスト (左側の列)
+//ImGui::BeginChild("Tabs", ImVec2(32, 0), true);
+//for (int i = 0; i < IM_ARRAYSIZE(tabNames); i++) {
+//	// ボタンまたは選択可能なアイテムとしてタブを表現
+//	if (ImGui::Selectable((StrUtils::ConvertToUtf8(kIconTerminal)).c_str(), selectedTab == i)) {
+//		selectedTab = i; // タブを切り替える
+//	}
+//}
+//ImGui::EndChild();
 
-	//// コンテンツ表示エリア (右側の列)
-	//ImGui::NextColumn();
-	//ImGui::BeginChild("Content", ImVec2(0, 0), false);
-	//ImGui::Text("Content for tab: %s", tabNames[selectedTab]);
-	//ImGui::EndChild();
+//// コンテンツ表示エリア (右側の列)
+//ImGui::NextColumn();
+//ImGui::BeginChild("Content", ImVec2(0, 0), false);
+//ImGui::Text("Content for tab: %s", tabNames[selectedTab]);
+//ImGui::EndChild();
 
-	//ImGui::End();
+//ImGui::End();
 
-	// インスペクタ
-	#ifdef _DEBUG
+// インスペクタ
+#ifdef _DEBUG
 	if (ImGui::Begin("Inspector")) {
 		if (selectedEntity_) {
 			ImGui::Text("Name: %s", selectedEntity_->GetName().c_str());
@@ -660,14 +488,14 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	if (ImGui::Begin("World Settings")) {
 		ImGui::Text("Grid Size");
 		ImGui::SliderFloat("##GridSize", &gridSize_, 0.125f, 64.0f, "%.3f",
-		                   ImGuiSliderFlags_Logarithmic);
+			ImGuiSliderFlags_Logarithmic);
 		ImGui::Text("Grid Range");
 		ImGui::SliderFloat("##GridRange", &gridRange_, 128.0f, 16384.0f, "%.3f",
-		                   ImGuiSliderFlags_Logarithmic);
+			ImGuiSliderFlags_Logarithmic);
 	}
 	ImGui::End();
 
-	Vec2 vLT   = Engine::GetViewportLT();
+	Vec2 vLT = Engine::GetViewportLT();
 	Vec2 vSize = Engine::GetViewportSize();
 	ImGuizmo::SetRect(
 		vLT.x, vLT.y,
@@ -675,13 +503,13 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	);
 
 	auto camera = CameraManager::GetActiveCamera();
-	Mat4 view   = camera->GetViewMat();
-	Mat4 proj   = camera->GetProjMat();
+	Mat4 view = camera->GetViewMat();
+	Mat4 proj = camera->GetProjMat();
 
 	if (selectedEntity_) {
 		Mat4 worldMat = selectedEntity_->GetTransform()->GetLocalMat();
 
-		static ImGuizmo::MODE      mode      = ImGuizmo::MODE::LOCAL;
+		static ImGuizmo::MODE      mode = ImGuizmo::MODE::LOCAL;
 		static ImGuizmo::OPERATION operation = ImGuizmo::OPERATION::TRANSLATE;
 
 		static bool bIsWorldMode = true;
@@ -742,9 +570,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	}
 
 
-	#endif
+#endif
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	auto viewport = static_cast<ImGuiViewportP*>(static_cast<void*>(
 		ImGui::GetMainViewport()));
 	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar |
@@ -754,7 +582,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.0f);
 
 	if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down,
-	                                38, window_flags)) {
+		38, window_flags)) {
 		if (ImGui::BeginMenuBar()) {
 			ImGui::PopStyleVar();
 
@@ -764,18 +592,18 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			// アングルスナップ
 			{
 				const float windowHeight = ImGui::GetWindowSize().y;
-				const char* items[]      = {
+				const char* items[] = {
 					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°",
 					"22.5°", "30°", "45°", "90°"
 				};
 				static int  itemCurrentIndex = 6;
-				const char* comboLabel       = items[itemCurrentIndex];
+				const char* comboLabel = items[itemCurrentIndex];
 
 				ImGui::Text("Angle: ");
 
 				// 垂直中央に配置
 				float comboHeight = ImGui::GetFrameHeight();
-				float offsetY     = (windowHeight - comboHeight) * 0.5f;
+				float offsetY = (windowHeight - comboHeight) * 0.5f;
 				ImGui::SetCursorPosY(offsetY);
 
 				// コンボボックスの幅をステータスバーの幅に合わせて調整
@@ -785,7 +613,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 						const bool isSelected = (itemCurrentIndex == n);
 						if (ImGui::Selectable(items[n], isSelected)) {
 							itemCurrentIndex = n;
-							angleSnap_       = std::stof(
+							angleSnap_ = std::stof(
 								items[itemCurrentIndex]);
 						}
 						if (isSelected) {
@@ -800,16 +628,16 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			// グリッドスナップ
 			{
 				const float windowHeight = ImGui::GetWindowSize().y;
-				const char* items[]      = {
+				const char* items[] = {
 					"0.125", "0.25", "0.5", "1", "2", "4", "8", "16", "32",
 					"64", "128", "256", "512"
 				};
 				static int  itemCurrentIndex = 9;
-				const char* comboLabel       = items[itemCurrentIndex];
+				const char* comboLabel = items[itemCurrentIndex];
 				ImGui::Text("Grid: ");
 				// 垂直中央に配置
 				float comboHeight = ImGui::GetFrameHeight();
-				float offsetY     = (windowHeight - comboHeight) * 0.5f;
+				float offsetY = (windowHeight - comboHeight) * 0.5f;
 				ImGui::SetCursorPosY(offsetY);
 
 				// コンボボックスの幅をステータスバーの幅に合わせて調整
@@ -851,16 +679,16 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		}
 		ImGui::End();
 	}
-	#endif
+#endif
 
-	// グリッドの表示
+// グリッドの表示
 	DrawGrid(
 		gridSize_,
 		gridRange_,
-		{0.28f, 0.28f, 0.28f, 1.0f},
-		{0.39f, 0.2f, 0.02f, 1.0f},
-		{0.0f, 0.39f, 0.39f, 1.0f},
-		{0.39f, 0.39f, 0.39f, 1.0f},
+		{ 0.28f, 0.28f, 0.28f, 1.0f },
+		{ 0.39f, 0.2f, 0.02f, 1.0f },
+		{ 0.0f, 0.39f, 0.39f, 1.0f },
+		{ 0.39f, 0.39f, 0.39f, 1.0f },
 		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
 		gridSize_ * 32.0f
 	);
@@ -891,8 +719,8 @@ void Editor::ShowDockSpace() {
 	// - (4) we have a local menu bar in the host window (vs. you could use BeginMainMenuBar() + DockSpaceOverViewport()
 	//      in your code, but we don't here because we allow the window to be floating)
 
-	static bool               opt_fullscreen  = true;
-	static bool               opt_padding     = false;
+	static bool               opt_fullscreen = true;
+	static bool               opt_padding = false;
 	static ImGuiDockNodeFlags dockspace_flags =
 		ImGuiDockNodeFlags_PassthruCentralNode;
 
@@ -964,35 +792,35 @@ void Editor::ShowDockSpace() {
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("Flag: NoDockingOverCentralNode", "",
-			                    (dockspace_flags &
-				                    ImGuiDockNodeFlags_NoDockingOverCentralNode)
-			                    != 0)) {
+				(dockspace_flags &
+					ImGuiDockNodeFlags_NoDockingOverCentralNode)
+				!= 0)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_NoDockingOverCentralNode;
 			}
 			if (ImGui::MenuItem("Flag: NoDockingSplit", "",
-			                    (dockspace_flags &
-				                    ImGuiDockNodeFlags_NoDockingSplit) != 0)) {
+				(dockspace_flags &
+					ImGuiDockNodeFlags_NoDockingSplit) != 0)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_NoDockingSplit;
 			}
 			if (ImGui::MenuItem("Flag: NoUndocking", "",
-			                    (dockspace_flags &
-				                    ImGuiDockNodeFlags_NoUndocking) != 0)) {
+				(dockspace_flags &
+					ImGuiDockNodeFlags_NoUndocking) != 0)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_NoUndocking;
 			}
 			if (ImGui::MenuItem("Flag: NoResize", "",
-			                    (dockspace_flags & ImGuiDockNodeFlags_NoResize)
-			                    != 0)) {
+				(dockspace_flags & ImGuiDockNodeFlags_NoResize)
+				!= 0)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
 			}
 			if (ImGui::MenuItem("Flag: AutoHideTabBar", "",
-			                    (dockspace_flags &
-				                    ImGuiDockNodeFlags_AutoHideTabBar) != 0)) {
+				(dockspace_flags &
+					ImGuiDockNodeFlags_AutoHideTabBar) != 0)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
 			}
 			if (ImGui::MenuItem("Flag: PassthruCentralNode", "",
-			                    (dockspace_flags &
-				                    ImGuiDockNodeFlags_PassthruCentralNode) !=
-			                    0, opt_fullscreen)) {
+				(dockspace_flags &
+					ImGuiDockNodeFlags_PassthruCentralNode) !=
+				0, opt_fullscreen)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
 			}
 			ImGui::Separator();
@@ -1027,13 +855,13 @@ void Editor::DrawGrid(
 
 	// 範囲内のグリッドラインを計算
 	const int   numLines = static_cast<int>((range * 2) / gridSize) + 1;
-	const float startX   = -range;
-	const float startZ   = -range;
+	const float startX = -range;
+	const float startZ = -range;
 
 	for (int i = 0; i < numLines; ++i) {
 		constexpr float majorInterval = 1024.0f;
-		float           x             = startX + i * gridSize;
-		float           z             = startZ + i * gridSize;
+		float           x = startX + i * gridSize;
+		float           z = startZ + i * gridSize;
 
 		// 垂直線（X軸に沿った線）の描画
 		{
@@ -1052,7 +880,7 @@ void Editor::DrawGrid(
 			if (std::fmod(x, majorInterval) == 0.0f || x == 0.0f) {
 				// 主要線・軸線は常に最大範囲で描画
 				Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range),
-				                lineColor);
+					lineColor);
 			} else {
 				// 細かいグリッド線は円形範囲内のみ描画
 				float distToLineSq = (cameraPosX - x) * (cameraPosX - x);
@@ -1084,7 +912,7 @@ void Editor::DrawGrid(
 			if (std::fmod(z, majorInterval) == 0.0f || z == 0.0f) {
 				// 主要線・軸線は常に最大範囲で描画
 				Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z),
-				                lineColor);
+					lineColor);
 			} else {
 				// 細かいグリッド線は円形範囲内のみ描画
 				float distToLineSq = (cameraPosZ - z) * (cameraPosZ - z);
