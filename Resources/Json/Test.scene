@@ -1,0 +1,1390 @@
+{
+    "name": "scene",
+    "objects": [
+        {
+            "name": "player",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    2.1453518867492676,
+                    0.009162485599517822
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/reflectionTest.obj",
+            "name": "testMesh",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "children": [
+                {
+                    "children": [
+                        {
+                            "children": [
+                                {
+                                    "file_name": "./Resources/Models/weapon.obj",
+                                    "name": "weapon",
+                                    "transform": {
+                                        "rotation": [
+                                            0.00027798954397439957,
+                                            -8.738003209884937e-09,
+                                            3.143284993711859e-05
+                                        ],
+                                        "rotation_quaternion": [
+                                            0.00013899477198719978,
+                                            -2.1845008024712342e-09,
+                                            1.5716424968559295e-05,
+                                            1.0
+                                        ],
+                                        "scaling": [
+                                            1.0,
+                                            1.0,
+                                            1.0
+                                        ],
+                                        "translation": [
+                                            0.0,
+                                            -0.0,
+                                            0.0
+                                        ]
+                                    },
+                                    "type": "MESH"
+                                }
+                            ],
+                            "name": "shakeRoot",
+                            "transform": {
+                                "rotation": [
+                                    -0.0038975898642092943,
+                                    -0.007410806138068438,
+                                    0.0038736683782190084
+                                ],
+                                "rotation_quaternion": [
+                                    -0.0019415998831391335,
+                                    -0.0037091549020260572,
+                                    0.0019295949023216963,
+                                    0.99998939037323
+                                ],
+                                "scaling": [
+                                    1.0,
+                                    1.0,
+                                    1.0
+                                ],
+                                "translation": [
+                                    0.07999999821186066,
+                                    -0.18000000715255737,
+                                    -0.10000000149011612
+                                ]
+                            },
+                            "type": "MESH"
+                        }
+                    ],
+                    "name": "camera",
+                    "transform": {
+                        "rotation": [
+                            -0.0012991965049877763,
+                            -0.0024702681694179773,
+                            0.0012912226375192404
+                        ],
+                        "rotation_quaternion": [
+                            -0.0006488001672551036,
+                            -0.0012355527142062783,
+                            0.000644808285869658,
+                            0.9999988079071045
+                        ],
+                        "scaling": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "translation": [
+                            0.0,
+                            -0.0,
+                            0.0
+                        ]
+                    },
+                    "type": "MESH"
+                }
+            ],
+            "name": "cameraRoot",
+            "transform": {
+                "rotation": [
+                    0.07657796889543533,
+                    0.005768348462879658,
+                    -0.07503761351108551
+                ],
+                "rotation_quaternion": [
+                    0.038360632956027985,
+                    0.0014441651292145252,
+                    -0.03759268298745155,
+                    0.9985555410385132
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    1.2495018243789673,
+                    1.6322317123413086
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy0",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy1",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy2",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy3",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy4",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy5",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy6",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy7",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy8",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy9",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy10",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy11",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy12",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy13",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy14",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "dummy15",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    -0.0,
+                    -0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -10.0,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/sp_physicstest.obj",
+            "name": "sp_physicstest.obj",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    -0.0,
+                    0.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.001",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.2617994248867035
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    -0.13052619993686676,
+                    0.9914448857307434
+                ],
+                "scaling": [
+                    0.9999999403953552,
+                    0.9999999403953552,
+                    1.0
+                ],
+                "translation": [
+                    2.5881905555725098,
+                    -9.659257888793945,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.002",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.5235987901687622
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    -0.258819043636322,
+                    0.9659258127212524
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    5.0,
+                    -8.660253524780273,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.003",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -0.7853982448577881
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    -0.3826834559440613,
+                    0.9238795638084412
+                ],
+                "scaling": [
+                    0.9999999403953552,
+                    0.9999999403953552,
+                    1.0
+                ],
+                "translation": [
+                    7.071067810058594,
+                    -7.071067810058594,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.004",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -1.0471975803375244
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    -0.5,
+                    0.8660253882408142
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    8.660253524780273,
+                    -5.0,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.005",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    -1.3089969158172607
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    -0.6087614297866821,
+                    0.7933533191680908
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    9.659257888793945,
+                    -2.5881903171539307,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.006",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    -1.5707964897155762
+                ],
+                "rotation_quaternion": [
+                    -0.0,
+                    -0.0,
+                    -0.7071068286895752,
+                    0.7071068286895752
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    10.0,
+                    2.384185791015625e-07,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.007",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    -1.8325958251953125
+                ],
+                "rotation_quaternion": [
+                    -0.0,
+                    -0.0,
+                    -0.7933533787727356,
+                    0.6087614297866821
+                ],
+                "scaling": [
+                    0.9999999403953552,
+                    0.9999999403953552,
+                    1.0
+                ],
+                "translation": [
+                    9.659257888793945,
+                    2.588190793991089,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.008",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    -2.094395160675049
+                ],
+                "rotation_quaternion": [
+                    -0.0,
+                    -0.0,
+                    -0.8660253882408142,
+                    0.4999999701976776
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    8.660253524780273,
+                    5.0,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.009",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    -2.356194496154785
+                ],
+                "rotation_quaternion": [
+                    -0.0,
+                    -0.0,
+                    -0.9238795638084412,
+                    0.3826834559440613
+                ],
+                "scaling": [
+                    0.9999999403953552,
+                    0.9999999403953552,
+                    1.0
+                ],
+                "translation": [
+                    7.071067810058594,
+                    7.071067810058594,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.010",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    -2.6179938316345215
+                ],
+                "rotation_quaternion": [
+                    -0.0,
+                    -0.0,
+                    -0.9659258127212524,
+                    0.2588190734386444
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    5.0,
+                    8.660253524780273,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.011",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    -2.879793167114258
+                ],
+                "rotation_quaternion": [
+                    -0.0,
+                    -0.0,
+                    -0.9914448857307434,
+                    0.13052622973918915
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    2.5881903171539307,
+                    9.659257888793945,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.012",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    -0.0,
+                    -3.141592502593994
+                ],
+                "rotation_quaternion": [
+                    -0.0,
+                    -0.0,
+                    -1.0,
+                    7.549790126404332e-08
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    -2.384185791015625e-07,
+                    10.0,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.013",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    2.879793167114258
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.9914448857307434,
+                    0.13052619993686676
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    -2.588190793991089,
+                    9.659257888793945,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.014",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    2.6179935932159424
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.9659258127212524,
+                    0.25881916284561157
+                ],
+                "scaling": [
+                    0.9999999403953552,
+                    0.9999999403953552,
+                    1.0
+                ],
+                "translation": [
+                    -5.0,
+                    8.660253524780273,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.015",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    2.356194019317627
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.9238794445991516,
+                    0.3826836347579956
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    -7.071067810058594,
+                    7.071067810058594,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.016",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    2.0943944454193115
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.8660252690315247,
+                    0.5000002384185791
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    -8.660253524780273,
+                    5.0,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.017",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    1.8325952291488647
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.7933531999588013,
+                    0.6087616682052612
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    -9.659257888793945,
+                    2.5881903171539307,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.018",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    1.5707954168319702
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.7071064710617065,
+                    0.7071071863174438
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    -10.0,
+                    -2.384185791015625e-07,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.019",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    1.3089954853057861
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.6087608337402344,
+                    0.793353796005249
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    -9.659257888793945,
+                    -2.588190793991089,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.020",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    1.0471956729888916
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.49999919533729553,
+                    0.8660258650779724
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    -8.660253524780273,
+                    -5.0,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.021",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.7853964567184448
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.3826826512813568,
+                    0.923879861831665
+                ],
+                "scaling": [
+                    0.9999999403953552,
+                    0.9999999403953552,
+                    1.0
+                ],
+                "translation": [
+                    -7.071067810058594,
+                    -7.071067810058594,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.022",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.5235970616340637
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.25881820917129517,
+                    0.9659260511398315
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    -5.0,
+                    -8.660253524780273,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.023",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.2617972791194916
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.130525141954422,
+                    0.991445004940033
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    -2.5881903171539307,
+                    -9.659257888793945,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.024",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scaling": [
+                    10.0,
+                    10.0,
+                    10.0
+                ],
+                "translation": [
+                    30.0,
+                    -40.0,
+                    20.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "file_name": "./Resources/Models/teapot.obj",
+            "name": "axis.025",
+            "transform": {
+                "rotation": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "rotation_quaternion": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "scaling": [
+                    1.9999998807907104,
+                    1.9999998807907104,
+                    1.9999998807907104
+                ],
+                "translation": [
+                    -30.0,
+                    -40.0,
+                    20.0
+                ]
+            },
+            "type": "MESH"
+        },
+        {
+            "name": "editorCamera",
+            "transform": {
+                "rotation": [
+                    0.2617994248867035,
+                    0.0,
+                    -0.0
+                ],
+                "rotation_quaternion": [
+                    0.13052619993686676,
+                    -0.0,
+                    -0.0,
+                    0.9914448857307434
+                ],
+                "scaling": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "translation": [
+                    0.0,
+                    5.0,
+                    2.0
+                ]
+            },
+            "type": "MESH"
+        }
+    ]
+}

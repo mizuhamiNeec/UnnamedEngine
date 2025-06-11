@@ -121,6 +121,7 @@
     <None Include="Resources\Shaders\Skybox.VS.hlsl" />
     <ClCompile Include="Source\Engine\CubeMap\CubeMap.cpp" />
     <ClCompile Include="Source\Engine\CopyImagePass\CopyImagePass.cpp" />
+    <ClCompile Include="Source\Engine\Entity\EntityLoader.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiWidgets.cpp" />
     <ClCompile Include="Source\Engine\Particle\ExplosionEffect.cpp" />
     <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
@@ -256,6 +257,7 @@
     <None Include="Resources\Shaders\Skybox.hlsli" />
     <ClInclude Include="Source\Engine\CubeMap\CubeMap.h" />
     <ClInclude Include="Source\Engine\CopyImagePass\CopyImagePass.h" />
+    <ClInclude Include="Source\Engine\Entity\EntityLoader.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiWidgets.h" />
     <ClInclude Include="Source\Engine\Particle\ExplosionEffect.h" />
     <ClInclude Include="Source\Engine\Window\EditorWindow.h" />

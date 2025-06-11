@@ -34,6 +34,8 @@ public:
 		float distance
 	) const;
 
+	PhysicsEngine* GetPhysicsEngine() const;
+
 protected:
 	PhysicsEngine* physicsEngine_ = nullptr;
 };

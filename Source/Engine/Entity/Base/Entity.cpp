@@ -8,11 +8,20 @@
 #include "imgui_internal.h"
 #include "Camera/CameraManager.h"
 #include "Components/Camera/CameraComponent.h"
+#include "Components/ColliderComponent/Base/ColliderComponent.h"
 #include "ImGuiManager/ImGuiManager.h"
 #include "Lib/DebugHud/DebugHud.h"
+#include "Physics/PhysicsEngine.h"
 #include "Window/WindowManager.h"
 
 Entity::~Entity() {
+	/*if (auto* collider = GetComponent<ColliderComponent>()) {
+		if (collider) {
+			if (collider->GetPhysicsEngine()) {
+				collider->GetPhysicsEngine()->UnregisterEntity(this);
+			}
+		}
+	}*/
 }
 
 void Entity::Update(const float deltaTime) const {
@@ -21,6 +30,13 @@ void Entity::Update(const float deltaTime) const {
 	}
 
 	// 必須コンポーネントの更新
+	if (!transform_) {
+		Console::Print(
+			std::format("Entity '{}' has no TransformComponent!", name_),
+			Vec4(1, 0, 0, 1), Channel::General);
+		return;
+	}
+
 	transform_->Update(deltaTime);
 
 	for (const auto& component : components_) {
@@ -102,10 +118,10 @@ void Entity::Update(const float deltaTime) const {
 		}
 	}
 
-	// // 子のエンティティの更新
-	// for (const auto& child : children_) {
-	// 	child->Update(deltaTime);
-	// }
+	// 子のエンティティの更新
+	for (const auto& child : children_) {
+		child->Update(deltaTime);
+	}
 }
 
 void Entity::Render(ID3D12GraphicsCommandList* commandList) const {
@@ -267,4 +283,8 @@ std::string Entity::GetName() {
 
 void Entity::SetName(const std::string& name) {
 	name_ = name;
+}
+
+void Entity::RemoveAllComponents() {
+	components_.clear();
 }
