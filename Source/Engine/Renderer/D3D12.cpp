@@ -10,7 +10,7 @@
 #include <DirectXTex/d3dx12.h>
 
 #include <Lib/Utils/ClientProperties.h>
-#include <Lib/Utils/StrUtils.h>
+#include <Lib/Utils/StrUtil.h>
 
 #include <SubSystem/Console/ConVarManager.h>
 #include <SubSystem/Console/Console.h>
@@ -474,7 +474,7 @@ void D3D12::CreateDevice() {
 		// ソフトウェアアダプタでなければ採用
 		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE)) {
 			// 採用したアダプタの情報をログに出力
-			Console::Print(StrUtils::ToString(
+			Console::Print(StrUtil::ToString(
 				std::format(L"Use Adapter : {}\n", adapterDesc.Description)));
 			break;
 		}

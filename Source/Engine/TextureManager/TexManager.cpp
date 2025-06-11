@@ -7,7 +7,7 @@
 #include "../Renderer/D3D12.h"
 #include "SrvManager.h"
 
-#include "Lib/Utils/StrUtils.h"
+#include "Lib/Utils/StrUtil.h"
 
 #include "SubSystem/Console/Console.h"
 
@@ -207,13 +207,13 @@ void TexManager::LoadTexture(const std::string& filePath) {
 
 	// テクスチャファイルを読んでプログラムで扱えるようにする
 	DirectX::ScratchImage image     = {};
-	std::wstring          filePathW = StrUtils::ToWString(filePath);
+	std::wstring          filePathW = StrUtil::ToWString(filePath);
 	HRESULT               hr        = LoadFromWICFile(filePathW.c_str(),
 	                             DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 	if (FAILED(hr)) {
 		Console::Print(std::format("ERROR : Failed to Load {}\n", filePath));
 		// 読み込み失敗時にデフォルトのテクスチャを読み込む
-		filePathW = StrUtils::ToWString("./Resources/Textures/empty.png");
+		filePathW = StrUtil::ToWString("./Resources/Textures/empty.png");
 		hr = LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB,
 		                     nullptr, image);
 		assert(SUCCEEDED(hr)); // デフォルトのテクスチャも読み込めなかった場合はエラー
@@ -284,7 +284,7 @@ void TexManager::LoadTexture(const std::string& filePath) {
 	);
 
 	textureData.resource->SetName(
-		StrUtils::ToWString(filePath).c_str()); // リソース名を設定
+		StrUtil::ToWString(filePath).c_str()); // リソース名を設定
 }
 
 /// @brief ファイルパスからテクスチャのインデックスを取得します

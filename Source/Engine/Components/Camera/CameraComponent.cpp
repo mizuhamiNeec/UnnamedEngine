@@ -205,3 +205,7 @@ float& CameraComponent::GetAspectRatio() {
 void CameraComponent::SetAspectRatio(const float newAspectRatio) {
 	aspectRatio_ = newAspectRatio;
 }
+
+void CameraComponent::SetViewMat(const Mat4& mat4) {
+	viewMat_ = mat4;
+}

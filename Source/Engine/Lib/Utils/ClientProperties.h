@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Lib/Math/MathLib.h>
+#include <dxgiformat.h>
 
 //-----------------------------------------------------------------------------
 // Purpose: アプリケーション
@@ -24,12 +25,19 @@ constexpr int32_t kClientWidth = 1280;
 constexpr int32_t kClientHeight = 720;
 
 //-----------------------------------------------------------------------------
+// Purpose : UI
+//-----------------------------------------------------------------------------
+constexpr float kTitleBarH = 24.0f;
+constexpr float kTopToolbarH = 35.0f;
+constexpr float kStatusBarH = 35.0f;
+
+//-----------------------------------------------------------------------------
 // Purpose : レンダラ
 //-----------------------------------------------------------------------------
-constexpr uint32_t kFrameBufferCount = 2; // バックバッファの数 TODO: 引数などで変更
-constexpr uint32_t kMaxRenderTargetCount = 16; // レンダーターゲットの最大数
+constexpr uint32_t kFrameBufferCount = 2;    // バックバッファの数 TODO: 引数などで変更
+constexpr uint32_t kMaxRenderTargetCount = 16;   // レンダーターゲットの最大数
 constexpr uint32_t kMaxSrvCount = 2048; // SRVの最大数
-constexpr uint32_t kMaxFps = 360; // フレームレートの上限
+constexpr uint32_t kMaxFps = 360;  // フレームレートの上限
 
 // バッファのフォーマット
 //constexpr DXGI_FORMAT kBufferFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;

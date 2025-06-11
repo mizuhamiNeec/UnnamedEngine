@@ -30,6 +30,7 @@ public:
 
 	float& GetAspectRatio();
 	void   SetAspectRatio(float newAspectRatio);
+	void SetViewMat(const Mat4& mat4);
 
 private:
 	TransformComponent* transform_ = nullptr;

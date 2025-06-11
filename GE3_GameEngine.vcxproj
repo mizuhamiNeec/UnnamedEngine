@@ -158,11 +158,12 @@
     <ClCompile Include="Source\Engine\SubSystem\Console\Console.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\ConVar.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\ConVarManager.cpp" />
+    <ClCompile Include="Source\Externals\ImGuizmo\ImGuizmo.cpp" />
     <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
     <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Utils\StrUtil.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Engine\Components\Camera\CameraComponent.cpp" />
@@ -297,6 +298,7 @@
     <ClInclude Include="Source\Engine\SubSystem\Console\ConVarManager.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\IConVar.h" />
     <ClInclude Include="Source\Engine\Window\Base\BaseWindow.h" />
+    <ClInclude Include="Source\Externals\ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
     <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
     <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
@@ -361,7 +363,7 @@
     <ClInclude Include="Source\Game\Scene\GameScene.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h" />
     <ClInclude Include="Source\Engine\Renderer\D3D12.h" />
-    <ClInclude Include="Source\Engine\Lib\Utils\StrUtils.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\StrUtil.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\ClientProperties.h" />
     <ClInclude Include="Source\Game\Scene\Base\BaseScene.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h" />

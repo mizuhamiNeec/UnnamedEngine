@@ -157,14 +157,73 @@ void ImGuiManager::Recreate() const {
 }
 
 void ImGuiManager::StyleColorsDark() {
-	ImGui::StyleColorsDark();
+	ImGuiStyle& style  = ImGui::GetStyle();
+	ImVec4*     colors = style.Colors;
 
-	ImGuiStyle* style = &ImGui::GetStyle();
-	// テキストの色を少し暗めに
-	ImVec4* colors            = style->Colors;
-	colors[ImGuiCol_Text]     = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
-	colors[ImGuiCol_WindowBg] = ImVec4(0.22f, 0.22f, 0.24f, 1.0f);
-	colors[ImGuiCol_FrameBg]  = ImVec4(0.13f, 0.12f, 0.13f, 1.0f);
+	colors[ImGuiCol_WindowBg]              = ImVec4(0.14f, 0.14f, 0.14f, 0.94f);
+	colors[ImGuiCol_Border]                = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+	colors[ImGuiCol_FrameBg]               = ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
+	colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.24f, 0.24f, 0.24f, 1.0f);
+	colors[ImGuiCol_FrameBgActive]         = ImVec4(0.26f, 0.26f, 0.26f, 1.0f);
+	colors[ImGuiCol_TitleBg]               = ImVec4(0.14f, 0.14f, 0.14f, 1.0f);
+	colors[ImGuiCol_TitleBgActive]         = ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
+	colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.14f, 0.14f, 0.14f, 1.0f);
+	colors[ImGuiCol_Button]                = ImVec4(0.20f, 0.20f, 0.20f, 1.0f);
+	colors[ImGuiCol_ButtonHovered]         = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
+	colors[ImGuiCol_ButtonActive]          = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
+	colors[ImGuiCol_Header]                = ImVec4(0.23f, 0.23f, 0.23f, 1.0f);
+	colors[ImGuiCol_HeaderHovered]         = ImVec4(0.28f, 0.28f, 0.28f, 1.0f);
+	colors[ImGuiCol_HeaderActive]          = ImVec4(0.32f, 0.32f, 0.32f, 1.0f);
+	colors[ImGuiCol_ResizeGrip]            = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
+	colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
+	colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.55f, 0.55f, 0.55f, 1.0f);
+	colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+	colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
+	colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
+	colors[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.40f, 0.40f, 0.40f, 1.0f);
+	colors[ImGuiCol_Text]                  = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
+	colors[ImGuiCol_TextDisabled]          = ImVec4(0.50f, 0.50f, 0.50f, 1.0f);
+	colors[ImGuiCol_CheckMark]             = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
+	colors[ImGuiCol_MenuBarBg]             = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+	colors[ImGuiCol_SliderGrab]            = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
+	colors[ImGuiCol_SliderGrabActive]      = ImVec4(0.89f, 0.57f, 0.19f, 1.00f);
+	colors[ImGuiCol_SeparatorHovered]      = ImVec4(0.89f, 0.49f, 0.02f, 0.78f);
+	colors[ImGuiCol_SeparatorActive]       = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
+	colors[ImGuiCol_TabHovered]            = ImVec4(0.20f, 0.20f, 0.20f, 0.81f);
+	colors[ImGuiCol_Tab]                   = ImVec4(0.25f, 0.25f, 0.25f, 0.86f);
+	colors[ImGuiCol_TabSelected]           = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+	colors[ImGuiCol_TabSelectedOverline]   = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
+	colors[ImGuiCol_TabDimmed]             = ImVec4(0.18f, 0.18f, 0.18f, 0.97f);
+	colors[ImGuiCol_TabDimmedSelected]     = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+	colors[ImGuiCol_DockingPreview]        = ImVec4(0.89f, 0.49f, 0.02f, 0.70f);
+	colors[ImGuiCol_TextLink]              = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
+	colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.17f, 0.17f, 0.17f, 0.86f);
+	colors[ImGuiCol_NavCursor]             = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
+	colors[ImGuiCol_NavWindowingHighlight] = ImVec4(0.89f, 0.49f, 0.02f, 0.70f);
+	colors[ImGuiCol_NavWindowingDimBg]     = ImVec4(0.17f, 0.17f, 0.17f, 0.86f);
+	colors[ImGuiCol_ModalWindowDimBg]      = ImVec4(0.17f, 0.17f, 0.17f, 0.86f);
+
+	style.GrabMinSize   = 8.0f;
+	style.ScrollbarSize = 16.0f;
+
+	style.WindowRounding    = 4.0f;
+	style.FrameRounding     = 4.0f;
+	style.GrabRounding      = 4.0f;
+	style.ScrollbarRounding = 8.0f;
+	style.TabRounding       = 0.0f;
+
+	style.WindowBorderSize = 1.0f;
+	style.FrameBorderSize  = 0.0f;
+
+	style.ItemSpacing   = ImVec2(8, 8);
+	style.FramePadding  = ImVec2(8, 8);
+	style.WindowPadding = ImVec2(8, 8);
+
+	style.SeparatorTextBorderSize = 2.0f;
+
+	style.TabBarBorderSize = 2.0f;
+
+	style.CellPadding = ImVec2(4, 4);
 }
 
 void ImGuiManager::StyleColorsLight() {
@@ -183,19 +242,32 @@ bool ImGuiManager::EditTransform(Transform& transform, const float& vSpeed) {
 	bool isEditing = false;
 
 	if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
-		isEditing |= ImGuiWidgets::DragVec3("Position", transform.translate,
-		                                    vSpeed, "%.3f");
+		isEditing |= ImGuiWidgets::DragVec3(
+			"Position",
+			transform.translate,
+			Vec3::zero,
+			vSpeed, "%.3f"
+		);
 
 		// 回転を取っておく
 		Vec3 rotate = transform.rotate * Math::rad2Deg;
-		if (ImGuiWidgets::DragVec3("Rotation", transform.rotate, vSpeed,
-		                           "%.3f")) {
+		if (ImGuiWidgets::DragVec3(
+			"Rotation",
+			transform.rotate,
+			Vec3::zero,
+			vSpeed,
+			"%.3f")) {
 			isEditing |= true;
 			transform.rotate = rotate * Math::deg2Rad;
 		}
 
-		isEditing |= ImGuiWidgets::DragVec3("Scale", transform.scale, vSpeed,
-		                                    "%.3f");
+		isEditing |= ImGuiWidgets::DragVec3(
+			"Scale",
+			transform.scale,
+			Vec3::one,
+			vSpeed,
+			"%.3f"
+		);
 	}
 
 	return isEditing;
@@ -212,15 +284,26 @@ bool ImGuiManager::EditTransform(TransformComponent& transform,
 		("Transform##" + transform.GetOwner()->GetName()).c_str(),
 		ImGuiTreeNodeFlags_DefaultOpen)) {
 		// Position 編集
-		if (ImGuiWidgets::DragVec3("Position", localPos, vSpeed, "%.3f")) {
+		if (ImGuiWidgets::DragVec3(
+			"Position",
+			localPos,
+			Vec3::zero,
+			vSpeed,
+			"%.3f"
+		)) {
 			transform.SetLocalPos(localPos);
 			isEditing = true;
 		}
 
 		// Rotation 編集
 		Vec3 eulerDegrees = localRot.ToEulerDegrees();
-		if (ImGuiWidgets::DragVec3("Rotation", eulerDegrees, vSpeed * 10.0f,
-		                           "%.3f")) {
+		if (ImGuiWidgets::DragVec3(
+				"Rotation",
+				eulerDegrees,
+				Vec3::zero,
+				vSpeed * 10.0f,
+				"%.3f")
+		) {
 			// 編集された Euler 角を Quaternion に変換
 			localRot = Quaternion::EulerDegrees(eulerDegrees);
 			transform.SetLocalRot(localRot);
@@ -228,7 +311,13 @@ bool ImGuiManager::EditTransform(TransformComponent& transform,
 		}
 
 		// Scale 編集
-		if (ImGuiWidgets::DragVec3("Scale", localScale, vSpeed, "%.3f")) {
+		if (ImGuiWidgets::DragVec3(
+				"Scale",
+				localScale,
+				Vec3::one,
+				vSpeed,
+				"%.3f")
+		) {
 			transform.SetLocalScale(localScale);
 			isEditing = true;
 		}

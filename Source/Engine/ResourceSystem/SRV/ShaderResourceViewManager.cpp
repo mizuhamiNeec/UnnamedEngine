@@ -1,7 +1,7 @@
 #include "ShaderResourceViewManager.h"
 
 #include "SubSystem/Console/Console.h"
-#include "Lib/Utils/StrUtils.h"
+#include "Lib/Utils/StrUtil.h"
 
 ShaderResourceViewManager::ShaderResourceViewManager(
 	ID3D12Device* device
@@ -106,7 +106,7 @@ ShaderResourceViewManager::RegisterShaderResourceView(
 	++currentDescriptorIndex_;
 
 	resource->SetName(
-		StrUtils::ToWString("SRV: " + std::to_string(currentDescriptorIndex_)).
+		StrUtil::ToWString("SRV: " + std::to_string(currentDescriptorIndex_)).
 		c_str());
 
 	return {handleCPU, handleGPU};

@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-class StrUtils {
+class StrUtil {
 public:
 	static std::wstring ToWString(const std::string& string);
 	static std::string ToString(const std::wstring& string);

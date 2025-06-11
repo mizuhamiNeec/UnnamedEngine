@@ -1,7 +1,7 @@
 #include "EditorWindow.h"
 
 #include "WindowManager.h"
-#include "Lib/Utils/StrUtils.h"
+#include "Lib/Utils/StrUtil.h"
 #include "SubSystem/Console/Console.h"
 
 EditorWindow::EditorWindow() {}
@@ -21,7 +21,7 @@ bool EditorWindow::Create(const WindowInfo info) {
 	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(WHITE_BRUSH));
 	wc.lpszMenuName = nullptr;
-	wc.lpszClassName = StrUtils::ToString(info_.className);
+	wc.lpszClassName = StrUtil::ToString(info_.className);
 	wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
 	wc.hIconSm = LoadIcon(info_.hInstance, IDI_APPLICATION);
 
@@ -40,7 +40,7 @@ bool EditorWindow::Create(const WindowInfo info) {
 	hWnd_ = CreateWindowEx(
 		info_.exStyle, // 拡張ウィンドウスタイル
 		wc.lpszClassName,
-		StrUtils::ToWString(info_.title).c_str(), // ウィンドウタイトル
+		StrUtil::ToWString(info_.title).c_str(), // ウィンドウタイトル
 		info_.style, // ウィンドウスタイル
 		CW_USEDEFAULT, CW_USEDEFAULT, // ウィンドウの初期位置
 		wrc.right - wrc.left, // ウィンドウの幅

@@ -5,7 +5,7 @@
 
 #include <SubSystem/Console/Console.h>
 
-#include "Lib/Utils/StrUtils.h"
+#include "Lib/Utils/StrUtil.h"
 
 size_t PipelineManager::CalculatePSOHash(
 	const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc) {
@@ -113,7 +113,7 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 		Channel::RenderPipeline
 	);
 
-	pipelineState->SetName(StrUtils::ToWString(key).c_str());
+	pipelineState->SetName(StrUtil::ToWString(key).c_str());
 
 	return pipelineState.Get();
 }

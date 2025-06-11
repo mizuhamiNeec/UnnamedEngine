@@ -5,7 +5,7 @@
 #include <d3dcompiler.h>
 #include <dxcapi.h>
 #include <SubSystem/Console/Console.h>
-#include <Lib/Utils/StrUtils.h>
+#include <Lib/Utils/StrUtil.h>
 
 #ifndef DFCC_DXIL
 #define DFCC_DXIL MAKEFOURCC('D', 'X', 'I', 'L')
@@ -181,7 +181,7 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 	std::string& entryPoint,
 	const std::string& profile
 ) {
-	std::wstring wFilePath = StrUtils::ToWString(filePath);
+	std::wstring wFilePath = StrUtil::ToWString(filePath);
 	// HLSLファイルを読み込む
 	IDxcBlobEncoding* shaderSource = nullptr;
 	HRESULT hr = dxcUtils_->LoadFile(
@@ -200,8 +200,8 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 	shaderSourceBuffer.Size = shaderSource->GetBufferSize();
 	shaderSourceBuffer.Encoding = DXC_CP_UTF8;
 
-	const std::wstring wEntryPoint = StrUtils::ToWString(entryPoint);
-	const std::wstring wProfile = StrUtils::ToWString(profile);
+	const std::wstring wEntryPoint = StrUtil::ToWString(entryPoint);
+	const std::wstring wProfile = StrUtil::ToWString(profile);
 	// コンパイルする
 	LPCWSTR arguments[] = {
 		wFilePath.c_str(), // コンパイル対象のhlslファイル名
@@ -252,7 +252,7 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
 	Console::Print(
-		StrUtils::ToString(
+		StrUtil::ToString(
 			std::format(
 				L"コンパイル成功! path: {}, profile: {}\n",
 				wFilePath,

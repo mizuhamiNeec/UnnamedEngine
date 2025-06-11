@@ -3,7 +3,7 @@
 #include <DirectXTex/d3dx12.h>
 #include <DirectXTex/DirectXTex.h>
 #include <SubSystem/Console/Console.h>
-#include <Lib/Utils/StrUtils.h>
+#include <Lib/Utils/StrUtil.h>
 
 bool Texture::LoadFromFile(
 	D3D12* d3d12,
@@ -18,7 +18,7 @@ bool Texture::LoadFromFile(
 
 	// テクスチャファイルを読み込んでプログラムで扱えるようにする
 	DirectX::ScratchImage image = {};
-	std::wstring filePathW = StrUtils::ToWString(filePath);
+	std::wstring filePathW = StrUtil::ToWString(filePath);
 	HRESULT hr;
 	if (filePathW.ends_with(L".dds")) {
 		hr = DirectX::LoadFromDDSFile(filePathW.c_str(), DirectX::DDS_FLAGS_NONE, nullptr, image);
@@ -51,11 +51,11 @@ bool Texture::LoadFromFile(
 	metadata_ = mipImages.GetMetadata();
 	//metadata_ = image.GetMetadata();
 	textureResource_ = CreateTextureResource(d3d12->GetDevice());
-	textureResource_->SetName(StrUtils::ToWString(filePath).c_str());
+	textureResource_->SetName(StrUtil::ToWString(filePath).c_str());
 
 	ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(d3d12->GetDevice(), d3d12->GetCommandList(), textureResource_, mipImages);
 	//ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(d3d12->GetDevice(), d3d12->GetCommandList(), textureResource_, image);
-	intermediateResource->SetName(StrUtils::ToWString(filePath).c_str());
+	intermediateResource->SetName(StrUtil::ToWString(filePath).c_str());
 
 	// コマンドリストを閉じる
 	hr = d3d12->GetCommandList()->Close();

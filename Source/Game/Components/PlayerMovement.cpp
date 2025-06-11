@@ -153,16 +153,19 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	}
 }
 
-static Vec3 test;
-
 static float kEdgeAngleThreshold = 0.2f; // エッジ判定の閾値
 
 void PlayerMovement::DrawInspectorImGui() {
-#ifdef _DEBUG
+	#ifdef _DEBUG
 	if (ImGui::CollapsingHeader("PlayerMovement",
 	                            ImGuiTreeNodeFlags_DefaultOpen)) {
-		ImGuiWidgets::DragVec3("Velocity", velocity_, 0.1f, "%.2f m/s");
-		ImGuiWidgets::DragVec3("test", test, 0.1f, "%.2f m/s");
+		ImGuiWidgets::DragVec3(
+			"Velocity",
+			velocity_,
+			Vec3::zero,
+			0.1f,
+			"%.2f m/s"
+		);
 		ImGui::DragFloat("edge angle threshold", &kEdgeAngleThreshold, 0.01f,
 		                 0.0f, 1.0f);
 
@@ -193,7 +196,7 @@ void PlayerMovement::DrawInspectorImGui() {
 			                        GetValueAsFloat();
 		ImGui::Text("Current Friction: %.4f", currentFriction);
 	}
-#endif
+	#endif
 }
 
 Vec3 ProjectOnPlane(const Vec3& vector, const Vec3& normal) {

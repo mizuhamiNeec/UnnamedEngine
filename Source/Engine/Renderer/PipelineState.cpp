@@ -8,7 +8,7 @@
 #include <format>
 #include <string>
 #include "../SubSystem/Console/Console.h"
-#include "../Lib/Utils/StrUtils.h"
+#include "../Lib/Utils/StrUtil.h"
 
 #include "Lib/Utils/ClientProperties.h"
 
@@ -172,7 +172,7 @@ IDxcBlob* PipelineState::CompileShader(
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
 	Console::Print(
-		StrUtils::ToString(
+		StrUtil::ToString(
 			std::format(
 				L"Compile Succeeded, path:{}, profile:{}\n", filePath, profile
 			)

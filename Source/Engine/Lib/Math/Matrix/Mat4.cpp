@@ -5,7 +5,7 @@
 #include <format>
 
 #include "../../../SubSystem/Console/Console.h"
-#include "Lib/Utils/StrUtils.h"
+#include "Lib/Utils/StrUtil.h"
 
 Mat4::Mat4() {
 	for (int i = 0; i < 4; ++i) {
@@ -188,7 +188,7 @@ void Mat4::LogMat4(const std::string& matName) {
 		}
 		result += L"\n";
 	}
-	Console::Print(matName + "\n" + StrUtils::ToString(result));
+	Console::Print(matName + "\n" + StrUtil::ToString(result));
 }
 
 Mat4 Mat4::Translate(const Vec3& translate) {
@@ -452,6 +452,14 @@ Vec3 Mat4::GetRotate() const {
 	result.y = std::atan2(-m[2][0], std::sqrt(m[2][1] * m[2][1] + m[2][2] * m[2][2]));
 	result.z = std::atan2(m[1][0], m[0][0]);
 	return result;
+}
+
+Vec3 Mat4::GetScale() const {
+	return {
+		std::sqrt(m[0][0] * m[0][0] + m[0][1] * m[0][1] + m[0][2] * m[0][2]),
+		std::sqrt(m[1][0] * m[1][0] + m[1][1] * m[1][1] + m[1][2] * m[1][2]),
+		std::sqrt(m[2][0] * m[2][0] + m[2][1] * m[2][1] + m[2][2] * m[2][2])
+	};
 }
 
 Vec3 Mat4::GetRight() {
