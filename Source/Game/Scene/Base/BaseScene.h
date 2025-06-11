@@ -23,6 +23,7 @@ public:
 
 	virtual void SetEditorMode(bool isEditorMode) { isEditorMode_ = isEditorMode; }
 	virtual bool IsEditorMode() const { return isEditorMode_; }
+	void RemoveEntity(Entity* entity);
 
 protected:
 	std::vector<Entity*> entities_; // シーンに存在するエンティティ

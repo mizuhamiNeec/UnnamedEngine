@@ -4,7 +4,7 @@
 #include <format>
 #include <ranges>
 
-#include <Lib/Utils/StrUtils.h>
+#include <Lib/Utils/StrUtil.h>
 
 #include <SubSystem/Console/ConCommand.h>
 #include <SubSystem/Console/Console.h>
@@ -119,7 +119,7 @@ void InputSystem::ProcessInput(const long lParam) {
 
 		// 仮想キーを文字列に変換
 		std::string keyName = GetKeyName(vKey);
-		keyName             = StrUtils::ToLowerCase(keyName);
+		keyName             = StrUtil::ToLowerCase(keyName);
 
 		if (!keyName.empty() && keyBindings_.contains(keyName)) {
 			std::string cmd = keyBindings_[keyName];

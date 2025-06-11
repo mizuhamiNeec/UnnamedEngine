@@ -1,10 +1,10 @@
-#include "StrUtils.h"
+#include "StrUtil.h"
 
 #define NOMINMAX
 #include <Windows.h>
 #include <sstream>
 
-std::wstring StrUtils::ToWString(const std::string& string) {
+std::wstring StrUtil::ToWString(const std::string& string) {
 	if (string.empty()) {
 		return {};
 	}
@@ -21,7 +21,7 @@ std::wstring StrUtils::ToWString(const std::string& string) {
 	return result;
 }
 
-std::string StrUtils::ToString(const std::wstring& string) {
+std::string StrUtil::ToString(const std::wstring& string) {
 	if (string.empty()) {
 		return {};
 	}
@@ -43,7 +43,7 @@ std::string StrUtils::ToString(const std::wstring& string) {
 	return result;
 }
 
-std::string StrUtils::ToString(const wchar_t* string) {
+std::string StrUtil::ToString(const wchar_t* string) {
 	// WideCharToMultiByteを使用して、ワイド文字列をマルチバイト文字列に変換
 	int bufferSize = WideCharToMultiByte(CP_UTF8, 0, string, -1, nullptr, 0, nullptr, nullptr);
 	std::string ret(bufferSize - 1, 0);
@@ -51,7 +51,7 @@ std::string StrUtils::ToString(const wchar_t* string) {
 	return ret;
 }
 
-wchar_t* StrUtils::ToString(const std::string& str) {
+wchar_t* StrUtil::ToString(const std::string& str) {
 	// 変換に必要なバッファサイズを取得
 	int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.size()), nullptr, 0);
 	auto wstr = new wchar_t[sizeNeeded + 1]; // +1 は終端用
@@ -60,7 +60,7 @@ wchar_t* StrUtils::ToString(const std::string& str) {
 	return wstr;
 }
 
-std::string StrUtils::ToLowerCase(const std::string& input) {
+std::string StrUtil::ToLowerCase(const std::string& input) {
 	std::string result = input;
 	std::ranges::transform(
 		result,
@@ -72,7 +72,7 @@ std::string StrUtils::ToLowerCase(const std::string& input) {
 	return result;
 }
 
-bool StrUtils::Equal(const std::string& str1, const std::string& str2) {
+bool StrUtil::Equal(const std::string& str1, const std::string& str2) {
 	if (str1.size() != str2.size()) {
 		return false;
 	}
@@ -86,7 +86,7 @@ bool StrUtils::Equal(const std::string& str1, const std::string& str2) {
 	);
 }
 
-std::string StrUtils::Join(const std::vector<std::string>& args, const char* delimiter) {
+std::string StrUtil::Join(const std::vector<std::string>& args, const char* delimiter) {
 	if (args.empty()) {
 		return "";
 	}
@@ -101,7 +101,7 @@ std::string StrUtils::Join(const std::vector<std::string>& args, const char* del
 	return result;
 }
 
-std::string StrUtils::DescribeAxis(const int& i) {
+std::string StrUtil::DescribeAxis(const int& i) {
 	switch (i) {
 	case 0:
 		return "X";
@@ -114,7 +114,7 @@ std::string StrUtils::DescribeAxis(const int& i) {
 	}
 }
 
-std::string StrUtils::ConvertToUtf8(uint32_t codePoint) {
+std::string StrUtil::ConvertToUtf8(uint32_t codePoint) {
 	std::string utf8String;
 
 	if (codePoint <= 0x7F) {
@@ -141,7 +141,7 @@ std::string StrUtils::ConvertToUtf8(uint32_t codePoint) {
 	return utf8String;
 }
 
-std::vector<int> StrUtils::ParseVersion(const std::string& version) {
+std::vector<int> StrUtil::ParseVersion(const std::string& version) {
 	std::vector<int> result;
 	std::stringstream ss(version);
 	std::string item;

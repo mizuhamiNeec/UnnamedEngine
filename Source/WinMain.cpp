@@ -2,7 +2,7 @@
 #define NOMINMAX
 #include <Windows.h>
 
-#include <Lib/Utils/StrUtils.h>
+#include <Lib/Utils/StrUtil.h>
 
 #include <SubSystem/Console/ConVarManager.h>
 #include <SubSystem/Console/Console.h>
@@ -17,10 +17,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, const PWSTR lpCmdLine,
 #endif
 	Console::Print("command line arguments:\n", kConTextColorGray,
 		Channel::CommandLine);
-	Console::Print(StrUtils::ToString(lpCmdLine) + "\n", kConTextColorGray,
+	Console::Print(StrUtil::ToString(lpCmdLine) + "\n", kConTextColorGray,
 		Channel::CommandLine);
 	ConVarManager::RegisterConVar<std::string>("launchargs",
-		StrUtils::ToString(lpCmdLine),
+		StrUtil::ToString(lpCmdLine),
 		"Command line arguments");
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	{

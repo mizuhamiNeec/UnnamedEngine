@@ -3,7 +3,7 @@
 #include <dwmapi.h>
 #include <ImGuiManager/ImGuiManager.h>
 #include <Input/InputSystem.h>
-#include <Lib/Utils/StrUtils.h>
+#include <Lib/Utils/StrUtil.h>
 #include <SubSystem/Console/Console.h>
 #include <Window/WindowsUtils.h>
 
@@ -41,7 +41,7 @@ bool MainWindow::Create(const WindowInfo info) {
 	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wc.hbrBackground = GetSysColorBrush(COLOR_BACKGROUND);
 	wc.lpszMenuName = nullptr;
-	wc.lpszClassName = StrUtils::ToString(info_.className);
+	wc.lpszClassName = StrUtil::ToString(info_.className);
 	wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
 	wc.hIconSm = LoadIcon(info_.hInstance, IDI_APPLICATION);
 
@@ -72,7 +72,7 @@ bool MainWindow::Create(const WindowInfo info) {
 	hWnd_ = CreateWindowEx(
 		info_.exStyle, // 拡張ウィンドウスタイル
 		wc.lpszClassName,
-		StrUtils::ToWString(info_.title).c_str(), // ウィンドウタイトル
+		StrUtil::ToWString(info_.title).c_str(), // ウィンドウタイトル
 		info_.style, // ウィンドウスタイル
 		posX, posY, // ウィンドウの初期位置
 		wrc.right - wrc.left, // ウィンドウの幅

@@ -9,7 +9,7 @@
 #include <Input/InputSystem.h>
 
 #include <Lib/Timer/EngineTimer.h>
-#include <Lib/Utils/StrUtils.h>
+#include <Lib/Utils/StrUtil.h>
 #include <SubSystem/Console/ConCommand.h>
 #include <SubSystem/Console/ConVarManager.h>
 
@@ -107,7 +107,7 @@ void Console::Update() {
 	);
 
 	bool bWindowOpen = ImGui::Begin(
-		(StrUtils::ConvertToUtf8(kIconTerminal) + " コンソール").c_str(),
+		(StrUtil::ConvertToUtf8(kIconTerminal) + " コンソール").c_str(),
 		&bShowConsole_, consoleWindowFlags
 	);
 
@@ -140,7 +140,7 @@ void Console::Update() {
 		}
 
 		if (ImGuiManager::IconButton(
-			StrUtils::ConvertToUtf8(kIconTerminal).c_str(), "ConVar",
+			StrUtil::ConvertToUtf8(kIconTerminal).c_str(), "ConVar",
 			{48.0f, 48.0f})) {
 			bShowConVarHelper_ = !bShowConVarHelper_;
 		}
@@ -245,7 +245,7 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command,
 
 		for (auto conVar : ConVarManager::GetAllConVars()) {
 			// 変数が存在する場合
-			if (StrUtils::Equal(conVar->GetName(), tokens[0])) {
+			if (StrUtil::Equal(conVar->GetName(), tokens[0])) {
 				found = true;
 				// 変数のみ入力された場合
 				if (tokens.size() < 2) {
@@ -386,7 +386,7 @@ void Console::Print(
 		std::string channelStr = (channel != Channel::None)
 			                         ? "[" + ToString(channel) + "] "
 			                         : "";
-		OutputDebugString(StrUtils::ToString(channelStr + message));
+		OutputDebugString(StrUtil::ToString(channelStr + message));
 		LogToFileAsync(channelStr + message);
 	}
 
@@ -549,7 +549,7 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	if (dateTime.second > 0) {
 		uptimeParts.emplace_back(std::to_string(dateTime.second) + " sec");
 	}
-	const std::string uptime = "Uptime:  " + StrUtils::Join(uptimeParts, " ");
+	const std::string uptime = "Uptime:  " + StrUtil::Join(uptimeParts, " ");
 
 	const std::vector<std::string> info = {
 		prompt + "\n",
@@ -601,7 +601,7 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 // Purpose: 入力された文字列をエコーします
 //-----------------------------------------------------------------------------
 void Console::Echo(const std::vector<std::string>& args) {
-	Print(StrUtils::Join(args, " ") + "\n", kConFgColorDark, Channel::Console);
+	Print(StrUtil::Join(args, " ") + "\n", kConFgColorDark, Channel::Console);
 }
 
 std::vector<std::string> Console::GetBuffer() {
@@ -807,7 +807,7 @@ void Console::ShowMenuBar() {
 				Help({});
 			}
 			if (ImGui::MenuItem(
-				(StrUtils::ConvertToUtf8(0xeb8e) + " About Console").c_str())) {
+				(StrUtil::ConvertToUtf8(0xeb8e) + " About Console").c_str())) {
 				bShowAbout_ = true;
 			}
 			ImGui::EndMenu();
@@ -1026,7 +1026,7 @@ void Console::ShowContextMenu() {
 		ImGui::Spacing();
 
 		if (ImGui::MenuItem(
-			(StrUtils::ConvertToUtf8(kIconCopy) + " Copy Selected").c_str())) {
+			(StrUtil::ConvertToUtf8(kIconCopy) + " Copy Selected").c_str())) {
 			std::string copiedText;
 			for (size_t i = 0; i < displayState_.buffer.size(); ++i) {
 				if (displayState_.selected[i]) {
@@ -1039,7 +1039,7 @@ void Console::ShowContextMenu() {
 		ImGui::Separator();
 
 		if (ImGui::MenuItem(
-			(StrUtils::ConvertToUtf8(kIconVisibility) + " Show All Channels").
+			(StrUtil::ConvertToUtf8(kIconVisibility) + " Show All Channels").
 			c_str())) {
 			currentFilterChannel_ = Channel::None;
 		}
@@ -1072,7 +1072,7 @@ void Console::ShowAbout() {
 
 	if (bOpen) {
 		ImGui::Text(
-			(StrUtils::ConvertToUtf8(kIconTerminal) + " Unnamed Console").
+			(StrUtil::ConvertToUtf8(kIconTerminal) + " Unnamed Console").
 			c_str());
 		ImGui::Spacing();
 		ImGui::Spacing();
@@ -1125,13 +1125,13 @@ void Console::ShowConVarHelper() {
 			if (ImGui::BeginMenuBar()) {
 				if (ImGui::BeginMenu("File")) {
 					if (ImGui::MenuItem(
-						(StrUtils::ConvertToUtf8(kIconDownload) +
+						(StrUtil::ConvertToUtf8(kIconDownload) +
 							" Import Page").c_str())) {
 						ImportPage();
 					}
 					ImGui::BeginDisabled();
 					if (ImGui::MenuItem(
-						(StrUtils::ConvertToUtf8(kIconUpload) + " Export Page").
+						(StrUtil::ConvertToUtf8(kIconUpload) + " Export Page").
 						c_str())) {
 						ExportPage();
 					}
@@ -1485,7 +1485,7 @@ void Console::ImportPage() {
 		if (file.is_open()) {
 			IniParser parser;
 			auto      iniData = parser.ParseIniFile(
-				StrUtils::ToString(ofn.lpstrFile));
+				StrUtil::ToString(ofn.lpstrFile));
 
 			// Generalセクションからグリッドサイズを取得
 			auto general = iniData.find("General");
@@ -1650,7 +1650,7 @@ void Console::ExportPage() {
 			}
 
 			file.close();
-			Print("ページを正常にエクスポートしました: " + StrUtils::ToString(ofn.lpstrFile) +
+			Print("ページを正常にエクスポートしました: " + StrUtil::ToString(ofn.lpstrFile) +
 			      "\n", kConFgColorDark, Channel::Console);
 		} else {
 			Print("ファイルを作成できませんでした。\n", kConTextColorError, Channel::Console);

@@ -2,7 +2,7 @@
 
 #include <ImGuiManager/Icons.h>
 #include <SubSystem/Console/ConVarManager.h>
-#include <Lib/Utils/StrUtils.h>
+#include <Lib/Utils/StrUtil.h>
 #include <time.h>
 
 #include <algorithm>

@@ -15,7 +15,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
-#include "Lib/Utils/StrUtils.h"
+#include "Lib/Utils/StrUtil.h"
 
 void MeshManager::Init(const ComPtr<ID3D12Device>& device,
                        TextureManager*             textureManager,

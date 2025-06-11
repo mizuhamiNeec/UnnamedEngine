@@ -6,7 +6,7 @@
 #include <fstream>
 
 #include <SubSystem/Console/Console.h>
-#include <Lib/Utils/StrUtils.h>
+#include <Lib/Utils/StrUtil.h>
 
 Audio::Audio() {
 	audioBuffer_ = {};
