@@ -3,7 +3,6 @@
 #ifdef _DEBUG
 #include <imgui.h>
 #include <imgui_internal.h>
-#endif
 
 namespace ImGuiWidgets {
 	void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive) {
@@ -253,3 +252,4 @@ namespace ImGuiWidgets {
 		return pressed;
 	}
 }
+#endif

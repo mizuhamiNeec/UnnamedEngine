@@ -20,7 +20,7 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxcompiler.lib")
 
-constexpr Vec4 kClearColorSwapChain = {0.0f, 0.0f, 0.0f, 1.0f};
+constexpr Vec4 kClearColorSwapChain = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 D3D12::D3D12(BaseWindow* window) : window_(window) {
 #ifdef _DEBUG
@@ -49,20 +49,20 @@ D3D12::D3D12(BaseWindow* window) : window_(window) {
 	SetViewportAndScissor();
 
 	Console::Print("Complete Init D3D12.\n", kConTextColorCompleted,
-	               Channel::Engine);
+		Channel::Engine);
 }
 
 D3D12::~D3D12() {
 	CloseHandle(fenceEvent_);
 	Console::Print("アリーヴェ帰ルチ! (さよナランチャ\n", kConTextColorCompleted,
-	               Channel::Engine);
+		Channel::Engine);
 }
 
 void D3D12::Init() {
 	ConVarManager::RegisterConVar<bool>("r_clear", true, "Clear the screen",
-	                                    ConVarFlags::ConVarFlags_Notify);
+		ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>("r_vsync", 0, "Enable VSync",
-	                                   ConVarFlags::ConVarFlags_Notify);
+		ConVarFlags::ConVarFlags_Notify);
 }
 
 void D3D12::Shutdown() {
@@ -103,7 +103,7 @@ void D3D12::Shutdown() {
 		}
 	}
 	renderTargets_.clear();
-	rtvHandles_.clear();
+	rtvHandlesSwapChain_.clear();
 
 	// 深度ステンシルリソースの解放
 	if (defaultDepthStencilTexture_.dsv) {
@@ -159,7 +159,7 @@ void D3D12::SetShaderResourceViewManager(
 	srvManager_ = srvManager;
 }
 
-void D3D12::ClearColorAndDepth() const {
+void D3D12::ClearColorAndDepth() {
 	auto dsvHandle = defaultDepthStencilTexture_.handles.cpuHandle;
 
 	commandList_->ClearDepthStencilView(
@@ -173,7 +173,7 @@ void D3D12::ClearColorAndDepth() const {
 
 	commandList_->OMSetRenderTargets(
 		1,
-		&rtvHandles_[frameIndex_],
+		&rtvHandlesSwapChain_[frameIndex_],
 		false,
 		&dsvHandle
 	);
@@ -187,16 +187,17 @@ void D3D12::ClearColorAndDepth() const {
 		};
 
 		commandList_->ClearRenderTargetView(
-			rtvHandles_[frameIndex_],
+			rtvHandlesSwapChain_[frameIndex_],
 			clearColor,
 			0,
 			nullptr
 		);
 	}
 
-	// ビューポートとシザー矩形を設定
-	commandList_->RSSetViewports(1, &viewport_);
-	commandList_->RSSetScissorRects(1, &scissorRect_);
+	SetViewportAndScissor(
+		window_->GetClientWidth(),
+		window_->GetClientHeight()
+	);
 }
 
 void D3D12::PreRender() {
@@ -215,11 +216,11 @@ void D3D12::PreRender() {
 	assert(SUCCEEDED(hr));
 
 	// リソースバリアを張る
-	barrier_.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	barrier_.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier_.Transition.pResource   = renderTargets_[frameIndex_].Get();
+	barrier_.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier_.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier_.Transition.pResource = renderTargets_[frameIndex_].Get();
 	barrier_.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	barrier_.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrier_.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	commandList_->ResourceBarrier(1, &barrier_);
 
 	// レンダーターゲットと深度ステンシルバッファをクリアする
@@ -237,7 +238,7 @@ void D3D12::PostRender() {
 
 	// リソースバリア遷移↓
 	barrier_.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	barrier_.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
+	barrier_.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 	commandList_->ResourceBarrier(1, &barrier_);
 
 	// コマンドリストを閉じる
@@ -252,7 +253,7 @@ void D3D12::PostRender() {
 
 	// GPU と OS に画面の交換を行うよう通知
 	swapChain_->Present(ConVarManager::GetConVar("r_vsync")->GetValueAsInt(),
-	                    0);
+		0);
 
 	WaitPreviousFrame(); // 前のフレームを待つ
 }
@@ -292,14 +293,17 @@ void D3D12::BeginRenderPass(const RenderPassTargets& targets) const {
 			nullptr
 		);
 	}
+
+	// commandList_->RSSetViewports(1, &viewport_);
+	// commandList_->RSSetScissorRects(1, &scissorRect_);
 }
 
-void D3D12::BeginSwapChainRenderPass() const {
+void D3D12::BeginSwapChainRenderPass() {
 	ClearColorAndDepth();
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetSwapChainRenderTargetView() const {
-	return rtvHandles_[frameIndex_];
+	return rtvHandlesSwapChain_[frameIndex_];
 }
 
 void D3D12::ResetCommandList() {
@@ -321,8 +325,8 @@ void D3D12::ResetCommandList() {
 }
 
 void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource,
-                                    const uint32_t  size, const void* data) {
-	void*   mapped;
+	const uint32_t  size, const void* data) {
+	void* mapped;
 	HRESULT hr = resource->Map(0, nullptr, &mapped);
 	if (SUCCEEDED(hr)) {
 		memcpy(mapped, data, size);
@@ -351,6 +355,17 @@ void D3D12::WaitPreviousFrame() {
 			// イベント待つ
 			WaitForSingleObject(fenceEvent_, INFINITE);
 		}
+	}
+}
+
+void D3D12::Flush() {
+	UINT64 fenceValue = ++fenceValue_;
+	commandQueue_->Signal(fence_.Get(), fenceValue);
+	if (fence_->GetCompletedValue() < fenceValue) {
+		HANDLE event = CreateEvent(nullptr, false, false, nullptr);
+		fence_->SetEventOnCompletion(fenceValue, event);
+		WaitForSingleObject(event, INFINITE);
+		CloseHandle(event);
 	}
 }
 
@@ -385,7 +400,7 @@ void D3D12::Resize(const uint32_t width, const uint32_t height) {
 		}
 		Console::Print(
 			std::format("Failed to resize swap chain. Error code: {:08x}\n",
-			            hr),
+				hr),
 			kConTextColorError,
 			Channel::Engine
 		);
@@ -405,8 +420,32 @@ void D3D12::Resize(const uint32_t width, const uint32_t height) {
 	defaultDepthStencilTexture_ = CreateDepthStencilTexture(
 		width, height, DXGI_FORMAT_D32_FLOAT);
 
-	// ビューポートとシザー矩形を再設定
-	SetViewportAndScissor();
+	//// ビューポートとシザー矩形を再設定
+	//SetViewportAndScissor(window_->GetClientWidth(),
+	//	window_->GetClientHeight());
+}
+
+void D3D12::ResetOffscreenRenderTextures() {
+	rtvHandlesOffscreen_.clear();
+	currentDSVIndex_ = 0;
+}
+
+void D3D12::SetViewportAndScissor(const uint32_t width, const uint32_t height) {
+	viewport_.TopLeftX = 0;
+	viewport_.TopLeftY = 0;
+	viewport_.Width = static_cast<FLOAT>(width);
+	viewport_.Height = static_cast<FLOAT>(height);
+	viewport_.MinDepth = 0.0f;
+	viewport_.MaxDepth = 1.0f;
+
+	scissorRect_.left = 0;
+	scissorRect_.top = 0;
+	scissorRect_.right = static_cast<LONG>(width);
+	scissorRect_.bottom = static_cast<LONG>(height);
+
+	// ビューポートとシザー矩形を設定
+	commandList_->RSSetViewports(1, &viewport_);
+	commandList_->RSSetScissorRects(1, &scissorRect_);
 }
 
 void D3D12::EnableDebugLayer() {
@@ -427,8 +466,8 @@ void D3D12::CreateDevice() {
 	// ハードウェアアダプタの検索
 	ComPtr<IDXGIAdapter4> useAdapter;
 	for (UINT i = 0; dxgiFactory_->EnumAdapterByGpuPreference(
-		     i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&useAdapter)
-	     ) != DXGI_ERROR_NOT_FOUND; ++i) {
+		i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&useAdapter)
+	) != DXGI_ERROR_NOT_FOUND; ++i) {
 		DXGI_ADAPTER_DESC3 adapterDesc;
 		hr = useAdapter->GetDesc3(&adapterDesc);
 		assert(SUCCEEDED(hr));
@@ -459,8 +498,8 @@ void D3D12::CreateDevice() {
 	for (size_t i = 0; i < _countof(featureLevels); ++i) {
 		// 採用したアダプターでデバイスを生成
 		hr = D3D12CreateDevice(useAdapter.Get(), featureLevels[i],
-		                       IID_PPV_ARGS(&device_));
-		// 指定した機能レベルでデバイスが生成できたをできたかを確認
+			IID_PPV_ARGS(&device_));
+// 指定した機能レベルでデバイスが生成できたをできたかを確認
 		if (SUCCEEDED(hr)) {
 			// 生成できたのでログに出力し、ループを抜ける
 			Console::Print(
@@ -494,12 +533,12 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 		};
 
 		// 抑制するレベル
-		D3D12_MESSAGE_SEVERITY  severities[] = {D3D12_MESSAGE_SEVERITY_INFO};
-		D3D12_INFO_QUEUE_FILTER filter       = {};
-		filter.DenyList.NumIDs               = _countof(denyIds);
-		filter.DenyList.pIDList              = denyIds;
-		filter.DenyList.NumSeverities        = _countof(severities);
-		filter.DenyList.pSeverityList        = severities;
+		D3D12_MESSAGE_SEVERITY  severities[] = { D3D12_MESSAGE_SEVERITY_INFO };
+		D3D12_INFO_QUEUE_FILTER filter = {};
+		filter.DenyList.NumIDs = _countof(denyIds);
+		filter.DenyList.pIDList = denyIds;
+		filter.DenyList.NumSeverities = _countof(severities);
+		filter.DenyList.pSeverityList = severities;
 		// 指定したメッセージの表示を抑制する
 		infoQueue->PushStorageFilter(&filter);
 	}
@@ -523,22 +562,22 @@ void D3D12::CreateCommandQueue() {
 
 void D3D12::CreateSwapChain() {
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-	swapChainDesc.BufferCount           = kFrameBufferCount;
-	swapChainDesc.Width                 = window_->GetClientWidth();
-	swapChainDesc.Height                = window_->GetClientHeight();
-	swapChainDesc.Format                = kBufferFormat; // 色の形式
-	swapChainDesc.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.BufferCount = kFrameBufferCount;
+	swapChainDesc.Width = window_->GetClientWidth();
+	swapChainDesc.Height = window_->GetClientHeight();
+	swapChainDesc.Format = kBufferFormat; // 色の形式
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	// レンダーターゲットとして利用
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // モニタに映したら中身を破棄
 	swapChainDesc.SampleDesc.Count = 1; // マルチサンプルしない
 	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
 	if (window_->GetWindowHandle()) {
-		swapChainDesc.Scaling   = DXGI_SCALING_STRETCH;   // 画面サイズに合わせて伸縮
+		swapChainDesc.Scaling = DXGI_SCALING_STRETCH;   // 画面サイズに合わせて伸縮
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE; // アルファモードは無視
 		Console::Print("Window Mode\n", kConFgColorDark);
 	} else {
-		swapChainDesc.Scaling   = DXGI_SCALING_NONE;             // 画面サイズに合わせない
+		swapChainDesc.Scaling = DXGI_SCALING_NONE;             // 画面サイズに合わせない
 		swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED; // アルファモードは事前乗算
 		Console::Print("FullScreen Mode\n", kConFgColorDark);
 	}
@@ -567,11 +606,11 @@ void D3D12::CreateDescriptorHeaps() {
 
 	// RTV用のヒープでディスクリプタの数は2。RTVはShader内で触るものではないので、ShaderVisibleはfalse
 	rtvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-	                                          kFrameBufferCount +
-	                                          kMaxRenderTargetCount, false);
-	// DSV用のヒープでディスクリプタの数は1。DSVはShader内で触るものではないので、ShaderVisibleはfalse
+		kFrameBufferCount +
+		kMaxRenderTargetCount, false);
+// DSV用のヒープでディスクリプタの数は1。DSVはShader内で触るものではないので、ShaderVisibleはfalse
 	dsvDescriptorHeap_ = CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
-	                                          kMaxRenderTargetCount, false);
+		kMaxRenderTargetCount, false);
 }
 
 void D3D12::CreateRTV() {
@@ -586,7 +625,7 @@ void D3D12::CreateRTV() {
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D; // 2Dテクスチャとして書き込む
 
 	renderTargets_.resize(kFrameBufferCount); // フレームバッファ数でリサイズ
-	rtvHandles_.resize(kFrameBufferCount);
+	rtvHandlesSwapChain_.resize(kFrameBufferCount);
 
 	for (unsigned int i = 0; i < kFrameBufferCount; ++i) {
 		// SwapChainからResourceを引っ張ってくる
@@ -596,10 +635,11 @@ void D3D12::CreateRTV() {
 			assert(SUCCEEDED(hr));
 		}
 
-		rtvHandles_[i] = GetCPUDescriptorHandle(rtvDescriptorHeap_.Get(),
-		                                        descriptorSizeRTV, i);
+		rtvHandlesSwapChain_[i] = GetCPUDescriptorHandle(
+			rtvDescriptorHeap_.Get(),
+			descriptorSizeRTV, i);
 		device_->CreateRenderTargetView(renderTargets_[i].Get(), &rtvDesc,
-		                                rtvHandles_[i]);
+			rtvHandlesSwapChain_[i]);
 
 		renderTargets_[i]->SetName(std::format(L"RenderTarget_{}", i).c_str());
 	}
@@ -607,9 +647,9 @@ void D3D12::CreateRTV() {
 
 void D3D12::CreateDSV() {
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	desc.NumDescriptors             = 128; // 必要なディスクリプタ数
-	desc.Type                       = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	desc.Flags                      = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	desc.NumDescriptors = 128; // 必要なディスクリプタ数
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
 	HRESULT hr = device_->CreateDescriptorHeap(
 		&desc, IID_PPV_ARGS(&dsvDescriptorHeap_));
@@ -651,7 +691,7 @@ void D3D12::CreateCommandList() {
 	if (FAILED(hr)) {
 		Console::Print(
 			std::format("Failed to create command list. Error code: {:08x}\n",
-			            hr),
+				hr),
 			kConTextColorError
 		);
 		assert(SUCCEEDED(hr));
@@ -663,7 +703,7 @@ void D3D12::CreateCommandList() {
 	if (FAILED(hr)) {
 		Console::Print(
 			std::format("Failed to close command list. Error code: {:08x}\n",
-			            hr),
+				hr),
 			kConTextColorError
 		);
 		assert(SUCCEEDED(hr));
@@ -672,7 +712,7 @@ void D3D12::CreateCommandList() {
 
 void D3D12::CreateFence() {
 	if (const HRESULT hr = device_->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-	                                            IID_PPV_ARGS(&fence_))) {
+		IID_PPV_ARGS(&fence_))) {
 		Console::Print(std::format("{:08x}\n", hr), kConTextColorError);
 		assert(SUCCEEDED(hr));
 	}
@@ -685,15 +725,15 @@ void D3D12::SetViewportAndScissor() {
 	// Viewport
 	viewport_.TopLeftX = 0;
 	viewport_.TopLeftY = 0;
-	viewport_.Width    = static_cast<FLOAT>(window_->GetClientWidth());
-	viewport_.Height   = static_cast<FLOAT>(window_->GetClientHeight());
+	viewport_.Width = static_cast<FLOAT>(window_->GetClientWidth());
+	viewport_.Height = static_cast<FLOAT>(window_->GetClientHeight());
 	viewport_.MinDepth = 0.0f;
 	viewport_.MaxDepth = 1.0f;
 
 	// ScissorRect
-	scissorRect_.left   = 0;
-	scissorRect_.top    = 0;
-	scissorRect_.right  = static_cast<LONG>(window_->GetClientWidth());
+	scissorRect_.left = 0;
+	scissorRect_.top = 0;
+	scissorRect_.right = static_cast<LONG>(window_->GetClientWidth());
 	scissorRect_.bottom = static_cast<LONG>(window_->GetClientHeight());
 }
 
@@ -724,8 +764,8 @@ ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(
 ) const {
 	ComPtr<ID3D12DescriptorHeap> descriptorHeap;
 	D3D12_DESCRIPTOR_HEAP_DESC   descriptorHeapDesc = {};
-	descriptorHeapDesc.Type                         = heapType;
-	descriptorHeapDesc.NumDescriptors               = numDescriptors;
+	descriptorHeapDesc.Type = heapType;
+	descriptorHeapDesc.NumDescriptors = numDescriptors;
 	if (shaderVisible) {
 		descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	} else {
@@ -765,16 +805,16 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource(
 	// DepthStencilとして使う通知
 
 	D3D12_HEAP_PROPERTIES heapProperties = {}; // 利用するHeapの設定
-	heapProperties.Type                  = D3D12_HEAP_TYPE_DEFAULT; // vRAM上に作る
-	heapProperties.CPUPageProperty       = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT; // vRAM上に作る
+	heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 	// CPUのページプロパティ
 	heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 	// メモリプールの設定
 
 	// 深度値のクリア設定
-	D3D12_CLEAR_VALUE depthClearValue  = {};
+	D3D12_CLEAR_VALUE depthClearValue = {};
 	depthClearValue.DepthStencil.Depth = 1.0f; // 最大値でクリア
-	depthClearValue.Format             = format;
+	depthClearValue.Format = format;
 
 	// Resourceの生成
 	ComPtr<ID3D12Resource> resource;
@@ -800,29 +840,29 @@ RenderTargetTexture D3D12::CreateRenderTargetTexture(
 
 	// ディスクリプタ
 	D3D12_RESOURCE_DESC desc = {};
-	desc.Dimension           = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	desc.Alignment           = 0;
-	desc.Width               = width;
-	desc.Height              = height;
-	desc.DepthOrArraySize    = 1;
-	desc.MipLevels           = 1;
-	desc.Format              = format;
-	desc.SampleDesc.Count    = 1;
-	desc.SampleDesc.Quality  = 0;
-	desc.Layout              = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	desc.Flags               = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+	desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	desc.Alignment = 0;
+	desc.Width = width;
+	desc.Height = height;
+	desc.DepthOrArraySize = 1;
+	desc.MipLevels = 1;
+	desc.Format = format;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
-	D3D12_CLEAR_VALUE clearValue    = {};
-	clearValue.Format               = format;
-	clearValue.DepthStencil.Depth   = 1.0f;
+	D3D12_CLEAR_VALUE clearValue = {};
+	clearValue.Format = format;
+	clearValue.DepthStencil.Depth = 1.0f;
 	clearValue.DepthStencil.Stencil = 0;
-	clearValue.Color[0]             = clearColor.x;
-	clearValue.Color[1]             = clearColor.y;
-	clearValue.Color[2]             = clearColor.z;
-	clearValue.Color[3]             = clearColor.w;
+	clearValue.Color[0] = clearColor.x;
+	clearValue.Color[1] = clearColor.y;
+	clearValue.Color[2] = clearColor.z;
+	clearValue.Color[3] = clearColor.w;
 
 	D3D12_HEAP_PROPERTIES heapProperties = {};
-	heapProperties.Type                  = D3D12_HEAP_TYPE_DEFAULT;
+	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
 
 	HRESULT hr = device_->CreateCommittedResource(
 		&heapProperties,
@@ -839,10 +879,10 @@ RenderTargetTexture D3D12::CreateRenderTargetTexture(
 	}
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-	rtvDesc.Format                        = format;
-	rtvDesc.ViewDimension                 = D3D12_RTV_DIMENSION_TEXTURE2D;
-	rtvDesc.Texture2D.MipSlice            = 0;
-	rtvDesc.Texture2D.PlaneSlice          = 0;
+	rtvDesc.Format = format;
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.Texture2D.PlaneSlice = 0;
 
 	result.rtvHandle = AllocateNewRTVHandle();
 	device_->CreateRenderTargetView(
@@ -853,25 +893,25 @@ RenderTargetTexture D3D12::CreateRenderTargetTexture(
 
 	if (srvManager_) {
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format                          = format;
-		srvDesc.ViewDimension                   = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Shader4ComponentMapping         =
+		srvDesc.Format = format;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Shader4ComponentMapping =
 			D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Texture2D.MostDetailedMip     = 0;
-		srvDesc.Texture2D.MipLevels           = 1;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = 1;
 		srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-		srvDesc.Texture2D.PlaneSlice          = 0;
+		srvDesc.Texture2D.PlaneSlice = 0;
 
 		result.srvHandles = srvManager_->RegisterShaderResourceView(
 			result.rtv.Get(), srvDesc
 		);
 	} else {
 		Console::Print("ShaderResourceViewManager is not set.\n",
-		               kConTextColorError);
+			kConTextColorError);
 	}
 
 	Console::Print("Created RenderTargetTexture.\n", kConTextColorCompleted,
-	               Channel::Engine);
+		Channel::Engine);
 
 	return result;
 }
@@ -896,9 +936,9 @@ DepthStencilTexture D3D12::CreateDepthStencilTexture(
 
 	// 3. DSVビュー作成
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-	dsvDesc.Format                        = format;
-	dsvDesc.ViewDimension                 = D3D12_DSV_DIMENSION_TEXTURE2D;
-	dsvDesc.Flags                         = D3D12_DSV_FLAG_NONE;
+	dsvDesc.Format = format;
+	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 
 	device_->CreateDepthStencilView(result.dsv.Get(), &dsvDesc, dsvHandle);
 
@@ -907,13 +947,14 @@ DepthStencilTexture D3D12::CreateDepthStencilTexture(
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12::AllocateNewRTVHandle() {
 	// ディスクリプタヒープのサイズを取得
-	uint32_t index = static_cast<uint32_t>(rtvHandles_.size());
+	uint32_t index = kFrameBufferCount + static_cast<uint32_t>(
+		rtvHandlesSwapChain_.size());
 
 	// インデックスからハンドル取得
 	auto handle = GetCPUDescriptorHandle(rtvDescriptorHeap_.Get(),
-	                                     descriptorSizeRTV, index);
+		descriptorSizeRTV, index);
 
-	rtvHandles_.emplace_back(handle);
+	rtvHandlesSwapChain_.emplace_back(handle);
 
 	return handle;
 }

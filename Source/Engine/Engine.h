@@ -41,6 +41,10 @@ public:
 	}
 
 	void OnResize(uint32_t width, uint32_t height);
+	void ResizeOffscreenRenderTextures(uint32_t width, uint32_t height);
+
+	static Vec2 GetViewportLT();
+	static Vec2 GetViewportSize();
 
 private:
 	void Init();
@@ -83,6 +87,12 @@ private:
 	DepthStencilTexture offscreenDSV_;
 	RenderPassTargets   offscreenRenderPassTargets_;
 
+	RenderTargetTexture postProcessedRTV_;
+	DepthStencilTexture postProcessedDSV_;
+	RenderPassTargets   postProcessedRenderPassTargets_;
+
+	static Vec2 viewportLT;
+	static Vec2 viewportSize;
 
 	static bool bIsEditorMode_; // エディターモードか?
 

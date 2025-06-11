@@ -1,5 +1,7 @@
 #include "CopyImagePass.h"
 
+#include <cassert>
+
 #include "Lib/Structs/Structs.h"
 
 #include "Renderer/PipelineState.h"
@@ -17,7 +19,7 @@ void CopyImagePass::Init() {
 	CreatePipelineState();
 
 	D3D12_HEAP_PROPERTIES props = {};
-	props.Type = D3D12_HEAP_TYPE_UPLOAD;
+	props.Type                  = D3D12_HEAP_TYPE_UPLOAD;
 
 	D3D12_RESOURCE_DESC desc = {};
 	desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -34,10 +36,13 @@ void CopyImagePass::Init() {
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr, IID_PPV_ARGS(&postProcessParamsCB_)
 	);
-	assert(SUCCEEDED(hr));
+	if (FAILED(hr)) {
+		assert(SUCCEEDED(hr));
+	}
 }
 
 void CopyImagePass::Update([[maybe_unused]] const float deltaTime) {
+	#ifdef _DEBUG
 	ImGui::Begin("PostProcess");
 	if (ImGui::CollapsingHeader("Simple Bloom")) {
 		ImGui::DragFloat("Bloom Strength", &postProcessParams_.bloomStrength, 0.01f, 0.0f, 10.0f);
@@ -54,24 +59,30 @@ void CopyImagePass::Update([[maybe_unused]] const float deltaTime) {
 	}
 
 	ImGui::End();
+	#endif
 }
 
 void CopyImagePass::Execute(
-	ID3D12GraphicsCommandList* commandList,
-	ID3D12Resource* srcTexture,
+	ID3D12GraphicsCommandList*  commandList,
+	ID3D12Resource*             srcTexture,
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv,
-	ShaderResourceViewManager* shaderSrvManager
+	ShaderResourceViewManager*  shaderSrvManager
 ) {
-	void* pData = nullptr;
-	HRESULT hr = postProcessParamsCB_->Map(0, nullptr, &pData);
-	assert(SUCCEEDED(hr));
+	void*   pData = nullptr;
+	HRESULT hr    = postProcessParamsCB_->Map(0, nullptr, &pData);
+	if (FAILED(hr)) {
+		assert(SUCCEEDED(hr));
+		return;
+	}
 	memcpy(pData, &postProcessParams_, sizeof(PostProcessParams));
 	postProcessParamsCB_->Unmap(0, nullptr);
 
 	commandList->SetPipelineState(pipelineState.Get());
 	commandList->SetGraphicsRootSignature(rootSignature.Get());
 
-	ID3D12DescriptorHeap* heaps[] = {ShaderResourceViewManager::GetDescriptorHeap().Get()};
+	ID3D12DescriptorHeap* heaps[] = {
+		ShaderResourceViewManager::GetDescriptorHeap().Get()
+	};
 	commandList->SetDescriptorHeaps(_countof(heaps), heaps);
 
 	// RTVセット
@@ -86,12 +97,14 @@ void CopyImagePass::Execute(
 	srvDesc.Texture2D.MipLevels = srcTexture->GetDesc().MipLevels;
 	srvDesc.Texture2D.PlaneSlice = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	DescriptorHandles handles = shaderSrvManager->RegisterShaderResourceView(srcTexture, srvDesc);
+	DescriptorHandles handles = shaderSrvManager->RegisterShaderResourceView(
+		srcTexture, srvDesc);
 
 	// 3. SRVをルートテーブルにバインド
 	commandList->SetGraphicsRootDescriptorTable(0, handles.gpuHandle); // SRV
 	//
-	commandList->SetGraphicsRootConstantBufferView(1, postProcessParamsCB_->GetGPUVirtualAddress()); // CBV
+	commandList->SetGraphicsRootConstantBufferView(
+		1, postProcessParamsCB_->GetGPUVirtualAddress()); // CBV
 
 	// フルスクリーン三角形の頂点バッファ: ここは外部でセットでも可
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -101,16 +114,18 @@ void CopyImagePass::Execute(
 }
 
 void CopyImagePass::CreateRootSignature() {
-	D3D12_DESCRIPTOR_RANGE1 range = {};
-	range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range.NumDescriptors = 1;
-	range.BaseShaderRegister = 0;
-	range.RegisterSpace = 0;
-	range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	D3D12_DESCRIPTOR_RANGE1 range           = {};
+	range.RangeType                         = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	range.NumDescriptors                    = 1;
+	range.BaseShaderRegister                = 0;
+	range.RegisterSpace                     = 0;
+	range.OffsetInDescriptorsFromTableStart =
+		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
 
 	D3D12_ROOT_PARAMETER1 rootParameters[2] = {};
-	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[0].ParameterType         =
+		D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[0].DescriptorTable.pDescriptorRanges = &range;
@@ -137,17 +152,19 @@ void CopyImagePass::CreateRootSignature() {
 	staticSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc = {};
-	desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-	desc.Desc_1_1.NumParameters = 2;
-	desc.Desc_1_1.pParameters = rootParameters;
-	desc.Desc_1_1.NumStaticSamplers = 1;
-	desc.Desc_1_1.pStaticSamplers = &staticSampler;
-	desc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	desc.Version                             = D3D_ROOT_SIGNATURE_VERSION_1_1;
+	desc.Desc_1_1.NumParameters              = 2;
+	desc.Desc_1_1.pParameters                = rootParameters;
+	desc.Desc_1_1.NumStaticSamplers          = 1;
+	desc.Desc_1_1.pStaticSamplers            = &staticSampler;
+	desc.Desc_1_1.Flags                      =
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
 	Microsoft::WRL::ComPtr<ID3DBlob> signatureBlob;
 	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 
-	HRESULT hr = D3D12SerializeVersionedRootSignature(&desc, &signatureBlob, &errorBlob);
+	HRESULT hr = D3D12SerializeVersionedRootSignature(
+		&desc, &signatureBlob, &errorBlob);
 	assert(SUCCEEDED(hr));
 
 	hr = device_->CreateRootSignature(
@@ -160,8 +177,8 @@ void CopyImagePass::CreateRootSignature() {
 void CopyImagePass::CreatePipelineState() {
 	// 頂点には何もデータを入力しない
 	D3D12_INPUT_LAYOUT_DESC inputLayout = {};
-	inputLayout.pInputElementDescs = nullptr;
-	inputLayout.NumElements = 0;
+	inputLayout.pInputElementDescs      = nullptr;
+	inputLayout.NumElements             = 0;
 
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {
 		.DepthEnable = false, // 全画面に対してなにか処理を施したいだけだから、比較も書き込みも必要ないのでDepth自体不要
@@ -170,7 +187,7 @@ void CopyImagePass::CreatePipelineState() {
 		.StencilEnable = FALSE
 	};
 
-	PipelineState pso {
+	PipelineState pso{
 		D3D12_CULL_MODE_NONE,
 		D3D12_FILL_MODE_SOLID,
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,

@@ -25,6 +25,7 @@ public:
 	[[nodiscard]] DescriptorHandles RegisterShaderResourceView(
 		ID3D12Resource*                        resource,
 		const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc);
+	void UnregisterResource(const ComPtr<ID3D12Resource>& resource);
 
 	[[nodiscard]] static ComPtr<ID3D12DescriptorHeap> GetDescriptorHeap();
 
