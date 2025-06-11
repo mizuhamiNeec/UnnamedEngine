@@ -116,6 +116,9 @@ bool MeshManager::LoadMeshFromFile(const std::string& filePath) {
 
 	StaticMesh* staticMesh = CreateStaticMesh(filePath);
 	ProcessNode(scene->mRootNode, scene, staticMesh);
+
+	Console::Print("メッシュの読み込みに成功しました: " + filePath + "\n",
+	               kConTextColorCompleted, Channel::ResourceSystem);
 	return true;
 }
 

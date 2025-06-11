@@ -59,7 +59,9 @@ public:
 	void RemoveChild(Entity* child);
 
 	std::string GetName();
-	void SetName(const std::string& name);
+	void        SetName(const std::string& name);
+	
+	void RemoveAllComponents();
 
 private:
 	Entity* parent_ = nullptr;

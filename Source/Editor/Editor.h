@@ -44,5 +44,7 @@ private:
 	float gridSize_  = 64.0f;
 	float gridRange_ = 16384.0f;
 
+	float angleSnap_ = 15.0f;
+
 	static bool bIsManipulating_;
 };

@@ -740,14 +740,14 @@ IMGUIZMO_NAMESPACE {
 
 	Style::Style() {
 		// default values
-		TranslationLineThickness   = 3.0f;
-		TranslationLineArrowSize   = 6.0f;
-		RotationLineThickness      = 2.0f;
-		RotationOuterLineThickness = 3.0f;
-		ScaleLineThickness         = 3.0f;
-		ScaleLineCircleSize        = 6.0f;
-		HatchedAxisLineThickness   = 6.0f;
-		CenterCircleSize           = 6.0f;
+		TranslationLineThickness   = 4.0f;
+		TranslationLineArrowSize   = 12.0f;
+		RotationLineThickness      = 4.0f;
+		RotationOuterLineThickness = 4.0f;
+		ScaleLineThickness         = 4.0f;
+		ScaleLineCircleSize        = 8.0f;
+		HatchedAxisLineThickness   = 8.0f;
+		CenterCircleSize           = 8.0f;
 
 		// initialize default colors
 		Colors[DIRECTION_X]           = ImVec4(0.666f, 0.000f, 0.000f, 1.000f);
@@ -763,6 +763,7 @@ IMGUIZMO_NAMESPACE {
 		Colors[ROTATION_USING_BORDER] = ImVec4(1.000f, 0.500f, 0.062f, 1.000f);
 		Colors[ROTATION_USING_FILL]   = ImVec4(1.000f, 0.500f, 0.062f, 0.500f);
 		Colors[HATCHED_AXIS_LINES]    = ImVec4(0.000f, 0.000f, 0.000f, 0.500f);
+		Colors[TEXT]                  = ImVec4(1.000f, 1.000f, 1.000f, 1.000f);
 		Colors[TEXT]                  = ImVec4(1.000f, 1.000f, 1.000f, 1.000f);
 		Colors[TEXT_SHADOW]           = ImVec4(0.000f, 0.000f, 0.000f, 1.000f);
 	}

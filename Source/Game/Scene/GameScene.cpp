@@ -64,7 +64,7 @@ void GameScene::Init() {
 	renderer_        = Engine::GetRenderer();
 	resourceManager_ = Engine::GetResourceManager();
 
-#pragma region テクスチャ読み込み
+	#pragma region テクスチャ読み込み
 	resourceManager_->GetTextureManager()->GetTexture(
 		"./Resources/Textures/wave.dds");
 
@@ -72,12 +72,12 @@ void GameScene::Init() {
 		"./Resources/Textures/smoke.png"
 	);
 
-#pragma endregion
+	#pragma endregion
 
-#pragma region スプライト類
-#pragma endregion
+	#pragma region スプライト類
+	#pragma endregion
 
-#pragma region 3Dオブジェクト類
+	#pragma region 3Dオブジェクト類
 	resourceManager_->GetMeshManager()->LoadMeshFromFile(
 		"./Resources/Models/reflectionTest.obj");
 
@@ -85,9 +85,9 @@ void GameScene::Init() {
 		"./Resources/Models/weapon.obj");
 
 	cubeMap_ = std::make_unique<CubeMap>(renderer_->GetDevice());
-#pragma endregion
+	#pragma endregion
 
-#pragma region パーティクル類
+	#pragma region パーティクル類
 	// パーティクルグループの作成
 	Engine::GetParticleManager()->CreateParticleGroup(
 		"wind", "./Resources/Textures/circle.png");
@@ -99,14 +99,14 @@ void GameScene::Init() {
 	mParticleObject->Init(Engine::GetParticleManager(),
 	                      "./Resources/Textures/circle.png");
 
-#pragma endregion
+	#pragma endregion
 
-#pragma region 物理エンジン
+	#pragma region 物理エンジン
 	physicsEngine_ = std::make_unique<PhysicsEngine>();
 	physicsEngine_->Init();
-#pragma endregion
+	#pragma endregion
 
-#pragma region エンティティ
+	#pragma region エンティティ
 	camera_ = std::make_unique<Entity>("camera");
 	AddEntity(camera_.get());
 	// 生ポインタを取得
@@ -202,7 +202,14 @@ void GameScene::Init() {
 	mEntWeapon->SetParent(mEntShakeRoot.get());
 	mEntShakeRoot->GetTransform()->SetLocalPos(Vec3(0.08f, -0.1f, 0.18f));
 	mEntWeapon->GetTransform()->SetLocalPos(Vec3::zero);
-#pragma endregion
+	//
+	// entityLoader_ = std::make_unique<EntityLoader>();
+	// entityLoader_->LoadScene(
+	// 	"./Resources/Json/Untitled.scene", this,
+	// 	resourceManager_
+	// );
+
+	#pragma endregion
 
 	// 風
 	windEffect_ = std::make_unique<WindEffect>();
@@ -215,11 +222,11 @@ void GameScene::Init() {
 	explosionEffect_->SetColorGradient(
 		Vec4(0.78f, 0.29f, 0.05f, 1.0f), Vec4(0.04f, 0.04f, 0.05f, 1.0f));
 
-#pragma region コンソール変数/コマンド
-#pragma endregion
+	#pragma region コンソール変数/コマンド
+	#pragma endregion
 
-#pragma region メッシュレンダラー
-#pragma endregion
+	#pragma region メッシュレンダラー
+	#pragma endregion
 
 	CameraManager::SetActiveCamera(camera);
 
@@ -233,10 +240,10 @@ void GameScene::Init() {
 
 void GameScene::Update(const float deltaTime) {
 	physicsEngine_->Update(deltaTime);
-
+	//
 	cameraRoot_->GetTransform()->SetWorldPos(mPlayerMovement->GetHeadPos());
-	cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
-	camera_->Update(EngineTimer::GetScaledDeltaTime());
+	// cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
+	// camera_->Update(EngineTimer::GetScaledDeltaTime());
 
 	if (InputSystem::IsPressed("+attack1")) {
 		mWeaponComponent->PullTrigger();
@@ -248,7 +255,7 @@ void GameScene::Update(const float deltaTime) {
 		mEntPlayer->GetTransform()->SetWorldPos(Vec3::zero);
 	}
 
-	mEntWeapon->Update(EngineTimer::GetScaledDeltaTime());
+	//mEntWeapon->Update(EngineTimer::GetScaledDeltaTime());
 	//mWeaponComponent->Update(EngineTimer::GetScaledDeltaTime());
 	if (mWeaponComponent->HasFiredThisFrame()) {
 		Vec3 hitPos    = mWeaponComponent->GetHitPosition();
@@ -280,16 +287,16 @@ void GameScene::Update(const float deltaTime) {
 			Vec3::right
 		);
 	}
-	mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
-	mWeaponSway->Update(EngineTimer::GetScaledDeltaTime());
+	// mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
+	// mWeaponSway->Update(EngineTimer::GetScaledDeltaTime());
+	//
+	// mEntPlayer->Update(EngineTimer::GetScaledDeltaTime());
+	// mEntShakeRoot->Update(EngineTimer::GetScaledDeltaTime());
+	//
+	// mEntWorldMesh->Update(deltaTime);
 
-	mEntPlayer->Update(EngineTimer::GetScaledDeltaTime());
-	mEntShakeRoot->Update(EngineTimer::GetScaledDeltaTime());
-
-	mEntWorldMesh->Update(deltaTime);
-
-#ifdef _DEBUG
-#pragma region cl_showpos
+	#ifdef _DEBUG
+	#pragma region cl_showpos
 	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() !=
 		"0") {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
@@ -358,8 +365,8 @@ void GameScene::Update(const float deltaTime) {
 		ImGui::PopStyleVar();
 		ImGui::End();
 	}
-#pragma endregion
-#endif
+	#pragma endregion
+	#endif
 
 	Engine::GetParticleManager()->Update(deltaTime);
 	mParticleEmitter->Update(deltaTime);
@@ -373,7 +380,7 @@ void GameScene::Update(const float deltaTime) {
 
 	cubeMap_->Update(deltaTime);
 
-#ifdef _DEBUG
+	#ifdef _DEBUG
 	// レティクルの描画
 	ImGuiIO& io           = ImGui::GetIO();
 	ImVec2   windowCenter = ImVec2(io.DisplaySize.x * 0.5f,
@@ -432,7 +439,11 @@ void GameScene::Update(const float deltaTime) {
 		1.0f,
 		ImGui::ColorConvertFloat4ToU32(reticleColor)
 	);
-#endif
+	#endif
+
+	for (auto entity : entities_) {
+		entity->Update(deltaTime);
+	}
 }
 
 void GameScene::Render() {
@@ -443,9 +454,9 @@ void GameScene::Render() {
 			                "./Resources/Textures/wave.dds")
 		                ->GetResource());
 
-	mEntWorldMesh->Render(renderer_->GetCommandList());
-
-	mEntWeapon->Render(renderer_->GetCommandList());
+	for (auto entity : entities_) {
+		entity->Render(renderer_->GetCommandList());
+	}
 
 	Engine::GetParticleManager()->Render();
 	mParticleObject->Draw();

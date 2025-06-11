@@ -57,6 +57,8 @@ private:
 
 	std::unique_ptr<Entity> mEntShakeRoot;
 
+	std::unique_ptr<EntityLoader> entityLoader_;
+
 	std::unique_ptr<PhysicsEngine> physicsEngine_;
 
 	std::unique_ptr<ParticleEmitter> mParticleEmitter;

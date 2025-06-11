@@ -29,3 +29,7 @@ std::vector<HitResult> ColliderComponent::RayCast(const Vec3& start, const Vec3&
 	);
 	return {};
 }
+
+PhysicsEngine* ColliderComponent::GetPhysicsEngine() const {
+	return physicsEngine_;
+}

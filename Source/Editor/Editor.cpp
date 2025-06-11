@@ -10,6 +10,7 @@
 #include <SubSystem/Console/ConVarManager.h>
 #include <Window/WindowManager.h>
 
+#include "ImGuiManager/ImGuiWidgets.h"
 #include "ImGuizmo/ImGuizmo.h"
 
 #ifdef _DEBUG
@@ -52,7 +53,185 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		currentScene->Update(EngineTimer::GetDeltaTime());
 	}
 
-	ShowDockSpace();
+	{
+		// メニューバーを少し高くする
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
+		                    ImVec2(
+			                    0.0f, kTitleBarH * 0.5f -
+			                    ImGui::GetFontSize() * 0.5f));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+		                    ImVec2(0.0f, kTitleBarH));
+		if (ImGui::BeginMainMenuBar()) {
+			ImGui::PopStyleVar(2); // メニューバーのスタイルを元に戻す
+			// アイコンメニュー
+			ImGui::PushStyleColor(ImGuiCol_Text,
+			                      ImVec4(0.13f, 0.5f, 1.0f, 1.0f));
+
+			if (ImGuiWidgets::BeginMainMenu(
+				StrUtil::ConvertToUtf8(kIconArrowForward).c_str())) {
+				ImGui::PopStyleColor();
+				if (ImGui::MenuItemEx(("About " + kEngineName).c_str(),
+				                      nullptr)) {
+				}
+				ImGui::EndMenu();
+			} else {
+				ImGui::PopStyleColor();
+			}
+
+			if (ImGuiWidgets::BeginMainMenu("File")) {
+				if (ImGui::MenuItemEx(
+					"Save", StrUtil::ConvertToUtf8(kIconSave).c_str())) {
+				}
+
+				if (ImGui::MenuItemEx("Save As",
+				                      StrUtil::ConvertToUtf8(kIconSaveAs).
+				                      c_str())) {
+				}
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItemEx("Import",
+				                      StrUtil::ConvertToUtf8(kIconDownload)
+				                      .
+				                      c_str())) {
+					BaseScene* currentScene = sceneManager_.GetCurrentScene().
+						get();
+					if (currentScene) {
+						char szFile[MAX_PATH] = ""; // 初期ファイル名は空
+
+						OPENFILENAMEA ofn;
+						ZeroMemory(&ofn, sizeof(ofn)); // 構造体をゼロ初期化
+						ofn.lStructSize = sizeof(OPENFILENAMEA);
+
+						HWND hwndOwner = nullptr;
+						if (WindowManager::GetMainWindow()) {
+							hwndOwner = WindowManager::GetMainWindow()->
+								GetWindowHandle();
+						}
+						ofn.hwndOwner   = hwndOwner;
+						ofn.lpstrFilter =
+							"Scene Files (*.scene)\0*.scene\0All Files (*.*)\0*.*\0";
+						ofn.lpstrFile  = szFile;
+						ofn.nMaxFile   = MAX_PATH;
+						ofn.lpstrTitle = "Import Scene From";
+						ofn.Flags      = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST |
+							OFN_NOCHANGEDIR; // ファイル/パス存在確認、カレントディレクトリ変更なし
+						ofn.lpstrDefExt = "scene";
+
+						if (GetOpenFileNameA(&ofn)) {
+							std::string      filePath = ofn.lpstrFile;
+							EntityLoader     loader;
+							ResourceManager* resourceManager =
+								Engine::GetResourceManager();
+							if (resourceManager) {
+								loader.LoadScene(
+									filePath, currentScene, resourceManager);
+								Console::Print(
+									"Scene imported from: " + filePath);
+							} else {
+								Console::Print(
+									"Import failed: ResourceManager not found.");
+							}
+						}
+					} else {
+						Console::Print("Import failed: No active scene found.");
+					}
+				}
+
+				if (ImGui::MenuItemEx("Export",
+				                      StrUtil::ConvertToUtf8(kIconUpload).
+				                      c_str())) {
+					BaseScene* currentScene = sceneManager_.GetCurrentScene().
+						get();
+					if (currentScene) {
+						char szFile[MAX_PATH] = "scene.json"; // デフォルトのファイル名
+
+						OPENFILENAMEA ofn;
+						ZeroMemory(&ofn, sizeof(ofn)); // 構造体をゼロ初期化
+						ofn.lStructSize = sizeof(OPENFILENAMEA);
+
+						HWND hwndOwner = nullptr;
+						if (WindowManager::GetMainWindow()) {
+							hwndOwner = WindowManager::GetMainWindow()->
+								GetWindowHandle();
+						}
+						ofn.hwndOwner   = hwndOwner;
+						ofn.lpstrFilter =
+							"Scene Files (*.scene)\0*.scene\0All Files (*.*)\0*.*\0";
+						ofn.lpstrFile  = szFile;
+						ofn.nMaxFile   = MAX_PATH;
+						ofn.lpstrTitle = "Export Scene As";
+						ofn.Flags      = OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+						// 上書き確認、カレントディレクトリ変更なし
+						ofn.lpstrDefExt = "scene";
+
+						if (GetSaveFileNameA(&ofn)) {
+							std::string  filePath = ofn.lpstrFile;
+							EntityLoader loader;
+							loader.SaveScene(filePath, currentScene);
+							Console::Print("Scene exported to: " + filePath);
+						}
+					} else {
+						Console::Print("Export failed: No active scene found.");
+					}
+				}
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItemEx(
+						"Exit",
+						StrUtil::ConvertToUtf8(kIconPower).c_str())
+				) {
+					Console::SubmitCommand("quit");
+				}
+				ImGui::EndMenu();
+			}
+
+			if (ImGuiWidgets::BeginMainMenu("Edit")) {
+				ImGui::Separator();
+				if (ImGuiWidgets::MenuItemWithIcon(
+					StrUtil::ConvertToUtf8(kIconSettings).c_str(),
+					"Settings")) {
+				}
+
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
+		}
+
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->WorkPos);
+		ImGui::SetNextWindowSize(viewport->WorkSize);
+		ImGui::SetNextWindowViewport(viewport->ID);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+		                    ImVec2(0.0f, 0.0f));
+
+		constexpr ImGuiDockNodeFlags dockSpaceFlags =
+			ImGuiDockNodeFlags_PassthruCentralNode;
+		constexpr ImGuiWindowFlags windowFlags =
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoBringToFrontOnFocus |
+			ImGuiWindowFlags_NoNavFocus |
+			ImGuiWindowFlags_NoBackground;
+
+		ImGui::Begin("DockSpace", nullptr, windowFlags);
+
+		ImGui::PopStyleVar(3);
+
+		const ImGuiIO& io = ImGui::GetIO();
+		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+			const ImGuiID dockSpaceId = ImGui::GetID("MyDockSpace");
+			ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f),
+			                 dockSpaceFlags);
+		}
+
+		ImGui::End();
+	}
 
 	#ifdef _DEBUG
 	// カメラの操作
@@ -241,14 +420,18 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 	// アウトライナウィンドウの開始
 	if (ImGui::Begin("Outliner")) {
+		if (ImGui::Button("Add Entity")) {
+			scene_->AddEntity(
+				new Entity("New Entity"));
+		}
+
 		// テーブルの開始
 		if (ImGui::BeginTable(
-				"OutlinerTable", 3,
-				ImGuiTableFlags_NoBordersInBody |
-				ImGuiTableFlags_SizingFixedFit |
-				ImGuiTableFlags_RowBg
-			)
-		) {
+			"OutlinerTable", 3,
+			ImGuiTableFlags_NoBordersInBody |
+			ImGuiTableFlags_SizingFixedFit |
+			ImGuiTableFlags_RowBg
+		)) {
 			// カラムの設定
 			ImGui::TableSetupColumn(
 				"Name",
@@ -260,7 +443,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			                        30.0f);
 
 			// 再帰的にエンティティを表示する関数
-			std::function<void(Entity*)> drawEntityNode = [&](Entity* entity) {
+			std::function<void(Entity*)> drawEntityNode =
+				[&](Entity* entity) {
 				ImGui::PushID(entity);
 
 				ImGui::TableNextRow();
@@ -279,19 +463,6 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 					flags |= ImGuiTreeNodeFlags_Selected;
 				}
 
-				ImGui::SameLine();
-				if (ImGui::Button("削除")) {
-					// シーンからエンティティを削除
-					scene_->RemoveEntity(entity);
-					// 選択解除
-					if (selectedEntity_ == entity) {
-						selectedEntity_ = nullptr;
-					}
-					// 早期リターン（削除後は描画しない）
-					ImGui::PopID();
-					return;
-				}
-				
 				ImGui::AlignTextToFramePadding();
 				bool nodeOpen = ImGui::TreeNodeEx(
 					(StrUtil::ConvertToUtf8(kIconObject) +
@@ -301,9 +472,40 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 					flags
 				);
 
-				if (ImGui::IsItemClicked()) {
+				// 左クリックで選択
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
 					selectedEntity_ = entity;
 				}
+
+				// 右クリックでコンテキストメニュー
+				if (ImGui::BeginPopupContextItem("EntityContextMenu")) {
+					if (entity != cameraEntity_.get()) {
+						// エディタカメラは削除不可
+						if (ImGui::MenuItem("Delete")) {
+							if (auto currentScene = sceneManager_.
+								GetCurrentScene()) {
+								// SceneクラスにRemoveEntityメソッドが実装されていると仮定
+								currentScene->RemoveEntity(entity);
+								if (selectedEntity_ == entity) {
+									selectedEntity_ = nullptr; // 選択を解除
+								}
+								ImGui::EndPopup(); // ポップアップを閉じる
+
+								// TreeNodeExが開かれていた場合、TreePopを呼び出してバランスを取る
+								if (nodeOpen) {
+									ImGui::TreePop();
+								}
+								ImGui::PopID();
+								// ImGui::PushID(entity) でプッシュしたIDをポップ
+								return; // 早期リターン
+							}
+						}
+					} else {
+						ImGui::TextDisabled("Cannot delete editor camera");
+					}
+					ImGui::EndPopup();
+				}
+
 
 				// Visible アイコン
 				ImGui::TableNextColumn();
@@ -353,23 +555,48 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				}
 
 				if (nodeOpen) {
-					for (auto& child : entity->GetChildren()) {
-						drawEntityNode(child);
+					// 子エンティティを処理する前に、現在のエンティティが削除されていないか確認
+					// (上記の削除処理でreturnしているため、基本的にはここは通らないはずだが念のため)
+					bool entityStillExists = false;
+					if (auto currentScene = sceneManager_.GetCurrentScene()) {
+						for (const auto& e : currentScene->GetEntities()) {
+							if (e == entity) {
+								entityStillExists = true;
+								break;
+							}
+						}
+					}
+
+					if (entityStillExists) {
+						// GetChildren() が返すコンテナのコピーに対してループする方が安全な場合がある
+						// ここでは元の実装に従う
+						auto children = entity->GetChildren();
+						// コピーを取得する方が安全かもしれない
+						for (auto& child : children) {
+							// childが削除される可能性も考慮すると、さらに堅牢なイテレーションが必要
+							drawEntityNode(child);
+						}
 					}
 					ImGui::TreePop();
 				}
-
 				ImGui::PopID();
 			};
 
 			// ルートエンティティから開始
-			auto entities = scene_->GetEntities();
-			for (auto& entity : entities) {
-				if (entity->GetParent() == nullptr) {
-					drawEntityNode(entity);
+			// シーンからエンティティリストを取得する際、削除操作中にイテレータが無効になることを避けるため、
+			// リストのコピーに対して操作を行うか、削除を遅延させるなどの対策が必要になる場合がある。
+			// ここではGetCurrentScene()->GetEntities()が安全なコピーまたは参照を返すと仮定する。
+			if (scene_) {
+				// scene_が有効か確認
+				auto entities = scene_->GetEntities();
+				// 削除操作があるため、コピーを取得することを検討
+				for (auto& entity : entities) {
+					if (entity && entity->GetParent() == nullptr) {
+						// entityがnullでないことも確認
+						drawEntityNode(entity);
+					}
 				}
 			}
-
 			ImGui::EndTable();
 		}
 	}
@@ -454,14 +681,6 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	if (selectedEntity_) {
 		Mat4 worldMat = selectedEntity_->GetTransform()->GetLocalMat();
 
-		// ImGuizmoのテスト
-		ImGuizmo::DrawCubes(
-			*view.m,
-			*proj.m,
-			*worldMat.m,
-			1
-		);
-
 		static ImGuizmo::MODE      mode      = ImGuizmo::MODE::LOCAL;
 		static ImGuizmo::OPERATION operation = ImGuizmo::OPERATION::TRANSLATE;
 
@@ -476,14 +695,27 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			mode = ImGuizmo::MODE::LOCAL;
 		}
 
+		Vec3 snapValue = Math::HtoM(Vec3(gridSize_, gridSize_, gridSize_));
+
+		if (InputSystem::IsTriggered("bounds")) {
+			operation = ImGuizmo::OPERATION::BOUNDS;
+		}
+
 		if (InputSystem::IsTriggered("translate")) {
 			operation = ImGuizmo::OPERATION::TRANSLATE;
+			snapValue = Math::HtoM(Vec3(gridSize_, gridSize_, gridSize_));
 		}
 		if (InputSystem::IsTriggered("rotate")) {
 			operation = ImGuizmo::OPERATION::ROTATE;
+			snapValue = {
+				angleSnap_ * Math::deg2Rad,
+				angleSnap_ * Math::deg2Rad,
+				angleSnap_ * Math::deg2Rad
+			}; // ラジアンに変換
 		}
 		if (InputSystem::IsTriggered("scale")) {
 			operation = ImGuizmo::OPERATION::SCALE;
+			snapValue = Math::HtoM(Vec3(gridSize_, gridSize_, gridSize_));
 		}
 
 		bIsManipulating_ = ImGuizmo::Manipulate(
@@ -491,7 +723,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			*proj.m,
 			operation,
 			mode,
-			*worldMat.m
+			*worldMat.m,
+			nullptr,
+			&snapValue.x
 		);
 
 		if (bIsManipulating_) {
@@ -551,6 +785,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 						const bool isSelected = (itemCurrentIndex == n);
 						if (ImGui::Selectable(items[n], isSelected)) {
 							itemCurrentIndex = n;
+							angleSnap_       = std::stof(
+								items[itemCurrentIndex]);
 						}
 						if (isSelected) {
 							ImGui::SetItemDefaultFocus();

@@ -384,111 +384,9 @@ void Engine::Update() {
 	/* ----------- 更新処理 ---------- */
 
 	if (IsEditorMode()) {
-		{
-			// メニューバーを少し高くする
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
-			                    ImVec2(
-				                    0.0f, kTitleBarH * 0.5f -
-				                    ImGui::GetFontSize() * 0.5f));
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
-			                    ImVec2(0.0f, kTitleBarH));
-			if (ImGui::BeginMainMenuBar()) {
-				ImGui::PopStyleVar(2); // メニューバーのスタイルを元に戻す
-				// アイコンメニュー
-				ImGui::PushStyleColor(ImGuiCol_Text,
-				                      ImVec4(0.13f, 0.5f, 1.0f, 1.0f));
-
-				if (ImGuiWidgets::BeginMainMenu(
-					StrUtil::ConvertToUtf8(kIconArrowForward).c_str())) {
-					ImGui::PopStyleColor();
-					if (ImGui::MenuItemEx(("About " + kEngineName).c_str(),
-					                      nullptr)) {
-					}
-					ImGui::EndMenu();
-				} else {
-					ImGui::PopStyleColor();
-				}
-
-				if (ImGuiWidgets::BeginMainMenu("File")) {
-					if (ImGui::MenuItemEx(
-						"Save", StrUtil::ConvertToUtf8(kIconSave).c_str())) {
-					}
-
-					if (ImGui::MenuItemEx("Save As",
-					                      StrUtil::ConvertToUtf8(kIconSaveAs).
-					                      c_str())) {
-					}
-
-					ImGui::Separator();
-
-					if (ImGui::MenuItemEx("Import",
-					                      StrUtil::ConvertToUtf8(kIconDownload)
-					                      .
-					                      c_str())) {
-					}
-
-					if (ImGui::MenuItemEx("Export",
-					                      StrUtil::ConvertToUtf8(kIconUpload).
-					                      c_str())) {
-					}
-
-					ImGui::Separator();
-
-					if (ImGui::MenuItemEx(
-							"Exit",
-							StrUtil::ConvertToUtf8(kIconPower).c_str())
-					) {
-						Console::SubmitCommand("quit");
-					}
-					ImGui::EndMenu();
-				}
-
-				if (ImGuiWidgets::BeginMainMenu("Edit")) {
-					ImGui::Separator();
-					if (ImGuiWidgets::MenuItemWithIcon(
-						StrUtil::ConvertToUtf8(kIconSettings).c_str(),
-						"Settings")) {
-					}
-
-					ImGui::EndMenu();
-				}
-				ImGui::EndMainMenuBar();
-			}
-
-			const ImGuiViewport* viewport = ImGui::GetMainViewport();
-			ImGui::SetNextWindowPos(viewport->WorkPos);
-			ImGui::SetNextWindowSize(viewport->WorkSize);
-			ImGui::SetNextWindowViewport(viewport->ID);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
-			                    ImVec2(0.0f, 0.0f));
-
-			constexpr ImGuiDockNodeFlags dockSpaceFlags =
-				ImGuiDockNodeFlags_PassthruCentralNode;
-			constexpr ImGuiWindowFlags windowFlags =
-				ImGuiWindowFlags_NoTitleBar |
-				ImGuiWindowFlags_NoCollapse |
-				ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove |
-				ImGuiWindowFlags_NoBringToFrontOnFocus |
-				ImGuiWindowFlags_NoNavFocus |
-				ImGuiWindowFlags_NoBackground;
-
-			ImGui::Begin("DockSpace", nullptr, windowFlags);
-
-			ImGui::PopStyleVar(3);
-
-			const ImGuiIO& io = ImGui::GetIO();
-			if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
-				const ImGuiID dockSpaceId = ImGui::GetID("MyDockSpace");
-				ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f),
-				                 dockSpaceFlags);
-			}
-
-			ImGui::End();
+		if (editor_) {
+			editor_->Update(EngineTimer::GetDeltaTime());
 		}
-
 		{
 			static ImVec4 tint = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
 			static ImVec4 bg   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -570,10 +468,6 @@ void Engine::Update() {
 			}
 			ImGui::End();
 			ImGui::PopStyleVar();
-		}
-
-		if (editor_) {
-			editor_->Update(EngineTimer::GetDeltaTime());
 		}
 
 		copyImagePass_->Update(EngineTimer::GetDeltaTime());
@@ -809,10 +703,11 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind mousewheeldown +invnext", true);
 	Console::SubmitCommand("bind f1 toggleeditor", true);
 
-	Console::SubmitCommand("bind 1 translate", true);
-	Console::SubmitCommand("bind 2 rotate", true);
-	Console::SubmitCommand("bind 3 scale", true);
-	Console::SubmitCommand("bind tab toggleGizmo", true);
+	Console::SubmitCommand("bind q +bounds", true);
+	Console::SubmitCommand("bind t +translate", true);
+	Console::SubmitCommand("bind r +rotate", true);
+	Console::SubmitCommand("bind e +scale", true);
+	Console::SubmitCommand("bind tab +toggleGizmo", true);
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
