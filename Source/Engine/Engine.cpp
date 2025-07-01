@@ -2,12 +2,17 @@
 
 #ifdef _DEBUG
 #include <imgui_internal.h>
+#include "imgui_impl_dx12.h"
+#include "ImGuiManager/Icons.h"
+#include "ImGuiManager/ImGuiWidgets.h"
+#include "ImGuizmo/ImGuizmo.h"
+#include <Lib/DebugHud/DebugHud.h>
+#include "Lib/Utils/StrUtil.h"
 #endif
 
 #include <Camera/CameraManager.h>
 #include <Debug/Debug.h>
 #include <Input/InputSystem.h>
-#include <Lib/DebugHud/DebugHud.h>
 #include <Lib/Utils/ClientProperties.h>
 #include <Renderer/D3D12.h>
 #include <Scene/GameScene.h>
@@ -19,13 +24,8 @@
 #include <Window/WindowsUtils.h>
 
 #include "SrvManager.h"
-#include "imgui_impl_dx12.h"
 
 #include "CopyImagePass/CopyImagePass.h"
-#include "ImGuiManager/Icons.h"
-#include "ImGuiManager/ImGuiWidgets.h"
-#include "ImGuizmo/ImGuizmo.h"
-#include "Lib/Utils/StrUtil.h"
 
 #include "TextureManager/TexManager.h"
 
@@ -246,10 +246,10 @@ void Engine::Init() {
 
 	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	imGuiManager_ = std::make_unique<ImGuiManager>(
 		renderer_.get(), resourceManager_->GetShaderResourceViewManager());
-	#endif
+#endif
 
 	console_ = std::make_unique<Console>();
 
@@ -371,10 +371,10 @@ void Engine::Init() {
 }
 
 void Engine::Update() {
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	ImGuiManager::NewFrame();
 	ImGuizmo::BeginFrame();
-	#endif
+#endif
 
 	// 前のフレームとeditorModeが違う場合はエディターモードを切り替える
 	static bool bPrevEditorMode = bIsEditorMode_;
@@ -386,6 +386,7 @@ void Engine::Update() {
 	/* ----------- 更新処理 ---------- */
 
 	if (IsEditorMode()) {
+#ifdef _DEBUG
 		{
 			// メニューバーを少し高くする
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
@@ -639,6 +640,7 @@ void Engine::Update() {
 		}
 		ImGui::End();
 		ImGui::PopStyleVar();
+#endif
 
 		if (editor_) {
 			editor_->Update(EngineTimer::GetDeltaTime());
@@ -656,10 +658,10 @@ void Engine::Update() {
 
 	InputSystem::Update();
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	Console::Update();
 	DebugHud::Update();
-	#endif
+#endif
 
 	offscreenRenderPassTargets_.bClearColor =
 		ConVarManager::GetConVar("r_clear")->GetValueAsBool();
@@ -667,9 +669,9 @@ void Engine::Update() {
 
 	//ConVarManager::GetConVar("w_title")->SetValueFromString(std::to_string(EngineTimer::GetFrameCount()));
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	Debug::Update();
-	#endif
+#endif
 	CameraManager::Update(EngineTimer::GetDeltaTime());
 
 	//-------------------------------------------------------------------------
@@ -750,9 +752,9 @@ void Engine::Update() {
 		renderer_->BeginSwapChainRenderPass();
 	}
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	imGuiManager_->EndFrame();
-	#endif
+#endif
 
 	// バリアを元に戻す
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -812,11 +814,11 @@ void Engine::Shutdown() const {
 
 	renderer_->Shutdown();
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	if (imGuiManager_) {
 		imGuiManager_->Shutdown();
 	}
-	#endif
+#endif
 	resourceManager_->Shutdown();
 	resourceManager_.reset();
 }
@@ -899,7 +901,6 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 
 	Console::SubmitCommand("bind q +bounds", true);
 	Console::SubmitCommand("bind t +translate", true);
-	Console::SubmitCommand("bind r +rotate", true);
 	Console::SubmitCommand("bind e +scale", true);
 	Console::SubmitCommand("bind tab +toggleGizmo", true);
 }

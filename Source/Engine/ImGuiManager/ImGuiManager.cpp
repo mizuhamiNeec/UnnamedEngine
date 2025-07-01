@@ -1,18 +1,17 @@
 #include "ImGuiManager.h"
 
-#include <imgui_impl_dx12.h>
-#include <imgui_impl_win32.h>
-#include <imgui_internal.h>
-
 #include <Entity/Base/Entity.h>
 
 #include <ResourceSystem/SRV/ShaderResourceViewManager.h>
 
 #include <Window/WindowManager.h>
 
-#include "ImGuiWidgets.h"
 
 #ifdef _DEBUG
+#include "ImGuiWidgets.h"
+#include <imgui_impl_dx12.h>
+#include <imgui_impl_win32.h>
+#include <imgui_internal.h>
 #include <Lib/Utils/ClientProperties.h>
 
 #include <Renderer/D3D12.h>
