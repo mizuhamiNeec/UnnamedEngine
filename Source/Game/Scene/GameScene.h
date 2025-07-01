@@ -57,6 +57,11 @@ private:
 
 	std::unique_ptr<Entity> mEntShakeRoot;
 
+	// テレポートトリガー用のAABB
+	Vec3 mTeleportTriggerMin;    // ボックスの最小点
+	Vec3 mTeleportTriggerMax;    // ボックスの最大点
+	bool mTeleportActive = true; // テレポートの有効/無効状態
+
 	std::unique_ptr<EntityLoader> entityLoader_;
 
 	std::unique_ptr<PhysicsEngine> physicsEngine_;

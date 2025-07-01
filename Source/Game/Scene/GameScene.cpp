@@ -64,7 +64,7 @@ void GameScene::Init() {
 	renderer_        = Engine::GetRenderer();
 	resourceManager_ = Engine::GetResourceManager();
 
-	#pragma region テクスチャ読み込み
+#pragma region テクスチャ読み込み
 	resourceManager_->GetTextureManager()->GetTexture(
 		"./Resources/Textures/wave.dds");
 
@@ -72,12 +72,12 @@ void GameScene::Init() {
 		"./Resources/Textures/smoke.png"
 	);
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region スプライト類
-	#pragma endregion
+#pragma region スプライト類
+#pragma endregion
 
-	#pragma region 3Dオブジェクト類
+#pragma region 3Dオブジェクト類
 	resourceManager_->GetMeshManager()->LoadMeshFromFile(
 		"./Resources/Models/reflectionTest.obj");
 
@@ -85,9 +85,9 @@ void GameScene::Init() {
 		"./Resources/Models/weapon.obj");
 
 	cubeMap_ = std::make_unique<CubeMap>(renderer_->GetDevice());
-	#pragma endregion
+#pragma endregion
 
-	#pragma region パーティクル類
+#pragma region パーティクル類
 	// パーティクルグループの作成
 	Engine::GetParticleManager()->CreateParticleGroup(
 		"wind", "./Resources/Textures/circle.png");
@@ -99,14 +99,14 @@ void GameScene::Init() {
 	mParticleObject->Init(Engine::GetParticleManager(),
 	                      "./Resources/Textures/circle.png");
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region 物理エンジン
+#pragma region 物理エンジン
 	physicsEngine_ = std::make_unique<PhysicsEngine>();
 	physicsEngine_->Init();
-	#pragma endregion
+#pragma endregion
 
-	#pragma region エンティティ
+#pragma region エンティティ
 	camera_ = std::make_unique<Entity>("camera");
 	AddEntity(camera_.get());
 	// 生ポインタを取得
@@ -202,14 +202,8 @@ void GameScene::Init() {
 	mEntWeapon->SetParent(mEntShakeRoot.get());
 	mEntShakeRoot->GetTransform()->SetLocalPos(Vec3(0.08f, -0.1f, 0.18f));
 	mEntWeapon->GetTransform()->SetLocalPos(Vec3::zero);
-	//
-	// entityLoader_ = std::make_unique<EntityLoader>();
-	// entityLoader_->LoadScene(
-	// 	"./Resources/Json/Untitled.scene", this,
-	// 	resourceManager_
-	// );
 
-	#pragma endregion
+#pragma endregion
 
 	// 風
 	windEffect_ = std::make_unique<WindEffect>();
@@ -222,11 +216,11 @@ void GameScene::Init() {
 	explosionEffect_->SetColorGradient(
 		Vec4(0.78f, 0.29f, 0.05f, 1.0f), Vec4(0.04f, 0.04f, 0.05f, 1.0f));
 
-	#pragma region コンソール変数/コマンド
-	#pragma endregion
+#pragma region コンソール変数/コマンド
+#pragma endregion
 
-	#pragma region メッシュレンダラー
-	#pragma endregion
+#pragma region メッシュレンダラー
+#pragma endregion
 
 	CameraManager::SetActiveCamera(camera);
 
@@ -236,6 +230,16 @@ void GameScene::Init() {
 	physicsEngine_->RegisterEntity(mEntPlayer.get());
 
 	physicsEngine_->RegisterEntity(mEntWeapon.get());
+
+	Console::SubmitCommand(
+		"sv_airaccelerate 100000000000000000"
+	);
+
+	// テレポートトリガー領域の設定
+	Vec3 triggerCenter(19.5072f, -29.2608f, 260.096f); // トリガーの中心位置
+	Vec3 triggerSize(Vec3::one * 13.0048f * 2.0f);     // トリガーのサイズ
+	mTeleportTriggerMin = triggerCenter - triggerSize * 0.5f;
+	mTeleportTriggerMax = triggerCenter + triggerSize * 0.5f;
 }
 
 void GameScene::Update(const float deltaTime) {
@@ -295,8 +299,8 @@ void GameScene::Update(const float deltaTime) {
 	//
 	// mEntWorldMesh->Update(deltaTime);
 
-	#ifdef _DEBUG
-	#pragma region cl_showpos
+#ifdef _DEBUG
+#pragma region cl_showpos
 	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() !=
 		"0") {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
@@ -365,8 +369,52 @@ void GameScene::Update(const float deltaTime) {
 		ImGui::PopStyleVar();
 		ImGui::End();
 	}
-	#pragma endregion
-	#endif
+#pragma endregion
+#endif
+
+	// プレイヤーの位置を取得
+	Vec3 playerPos = mEntPlayer->GetTransform()->GetWorldPos();
+
+	// AABBの内部にいるかチェック
+	if (mTeleportActive &&
+		playerPos.x >= mTeleportTriggerMin.x && playerPos.x <=
+		mTeleportTriggerMax.x &&
+		playerPos.y >= mTeleportTriggerMin.y && playerPos.y <=
+		mTeleportTriggerMax.y &&
+		playerPos.z >= mTeleportTriggerMin.z && playerPos.z <=
+		mTeleportTriggerMax.z) {
+		// プレイヤーを原点にテレポート
+		mEntPlayer->GetTransform()->SetWorldPos(Vec3::zero);
+
+		// 連続テレポートを防ぐための一時的な無効化（オプション）
+		mTeleportActive = false;
+
+		// デバッグ情報の出力
+		Console::Print("テレポートしました！");
+	}
+
+	AABB teleportTriggerAABB(
+		mTeleportTriggerMin, mTeleportTriggerMax);
+
+	Debug::DrawBox(
+		teleportTriggerAABB.GetCenter(),
+		Quaternion::identity,
+		teleportTriggerAABB.GetSize(),
+		Vec4(1.0f, 0.0f, 0.0f, 0.5f) // 赤色、半透明
+	);
+
+	// テレポート機能の再有効化（一定時間後または条件付きで）
+	if (!mTeleportActive) {
+		// 例: プレイヤーがトリガー領域から十分離れたら再度有効化
+		if (playerPos.x < mTeleportTriggerMin.x - 1.0f || playerPos.x >
+			mTeleportTriggerMax.x + 1.0f ||
+			playerPos.y < mTeleportTriggerMin.y - 1.0f || playerPos.y >
+			mTeleportTriggerMax.y + 1.0f ||
+			playerPos.z < mTeleportTriggerMin.z - 1.0f || playerPos.z >
+			mTeleportTriggerMax.z + 1.0f) {
+			mTeleportActive = true;
+		}
+	}
 
 	Engine::GetParticleManager()->Update(deltaTime);
 	mParticleEmitter->Update(deltaTime);
@@ -380,7 +428,7 @@ void GameScene::Update(const float deltaTime) {
 
 	cubeMap_->Update(deltaTime);
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	// レティクルの描画
 	ImGuiIO& io           = ImGui::GetIO();
 	ImVec2   windowCenter = ImVec2(io.DisplaySize.x * 0.5f,
@@ -439,7 +487,7 @@ void GameScene::Update(const float deltaTime) {
 		1.0f,
 		ImGui::ColorConvertFloat4ToU32(reticleColor)
 	);
-	#endif
+#endif
 
 
 	for (auto entity : entities_) {
