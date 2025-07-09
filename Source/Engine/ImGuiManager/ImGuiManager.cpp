@@ -18,8 +18,8 @@
 
 #include <Window/WindowsUtils.h>
 
-ImGuiManager::ImGuiManager(D3D12*                           renderer,
-                           const ShaderResourceViewManager* srvManager) :
+ImGuiManager::ImGuiManager(D3D12*            renderer,
+                           const SrvManager* srvManager) :
 	renderer_(renderer),
 	srvManager_(srvManager) {
 	IMGUI_CHECKVERSION();
@@ -73,16 +73,28 @@ ImGuiManager::ImGuiManager(D3D12*                           renderer,
 
 	ImGui_ImplWin32_Init(WindowManager::GetMainWindow()->GetWindowHandle());
 
-	ImGui_ImplDX12_Init(
-		renderer_->GetDevice(),
-		kFrameBufferCount,
-		kBufferFormat,
-		ShaderResourceViewManager::GetDescriptorHeap().Get(),
-		ShaderResourceViewManager::GetDescriptorHeap()->
-		GetCPUDescriptorHandleForHeapStart(),
-		ShaderResourceViewManager::GetDescriptorHeap()->
-		GetGPUDescriptorHandleForHeapStart()
-	);
+	// ImGuiの初期化
+	ImGui_ImplDX12_InitInfo init_info = {};
+	init_info.Device                  = renderer_->GetDevice();
+	init_info.NumFramesInFlight       = kFrameBufferCount;
+	init_info.RTVFormat               = DXGI_FORMAT_R8G8B8A8_UNORM;
+	init_info.SrvDescriptorHeap       = srvManager_->GetDescriptorHeap();
+	init_info.CommandQueue            = renderer_->GetCommandQueue();
+
+	// ディスクリプタ割り当て関数を実装
+	init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info,
+	                                    D3D12_CPU_DESCRIPTOR_HANDLE*
+	                                    out_cpu_handle,
+	                                    D3D12_GPU_DESCRIPTOR_HANDLE*
+	                                    out_gpu_handle) {
+		// 有効なディスクリプタを割り当てるコード
+		*out_cpu_handle = info->SrvDescriptorHeap->
+		                        GetCPUDescriptorHandleForHeapStart();
+		*out_gpu_handle = info->SrvDescriptorHeap->
+		                        GetGPUDescriptorHandleForHeapStart();
+	};
+
+	ImGui_ImplDX12_Init(&init_info);
 }
 
 void ImGuiManager::NewFrame() {

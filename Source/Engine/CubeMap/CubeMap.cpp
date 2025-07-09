@@ -1,12 +1,22 @@
 #include "CubeMap.h"
 
 #include "Camera/CameraManager.h"
+
 #include "Components/Camera/CameraComponent.h"
+
 #include "ImGuiManager/ImGuiWidgets.h"
+
 #include "Renderer/ConstantBuffer.h"
 #include "Renderer/PipelineState.h"
 
-CubeMap::CubeMap(ID3D12Device* device) : device_(device) {
+#include "TextureManager/TexManager.h"
+
+CubeMap::CubeMap(
+	ID3D12Device*          device,
+	SrvManager*            srvManager,
+	const std::string_view path
+) : device_(device), srvManager_(srvManager) {
+	texturePath_ = path;
 	Init();
 }
 
@@ -93,9 +103,7 @@ void CubeMap::Update([[maybe_unused]] const float deltaTime) {
 		CameraManager::GetActiveCamera()->GetProjMat();
 }
 
-void CubeMap::Render(ID3D12GraphicsCommandList*    commandList,
-                     ShaderResourceViewManager*    shaderSrvManager,
-                     const ComPtr<ID3D12Resource>& cubeMapTex) {
+void CubeMap::Render(ID3D12GraphicsCommandList* commandList) {
 	// TransformationMatrixの更新
 	memcpy(
 		transformationCB_->GetPtr(),
@@ -114,23 +122,26 @@ void CubeMap::Render(ID3D12GraphicsCommandList*    commandList,
 	commandList->SetGraphicsRootSignature(rootSignature.Get());
 
 	ID3D12DescriptorHeap* heaps[] = {
-		ShaderResourceViewManager::GetDescriptorHeap().Get()
+		srvManager_->GetDescriptorHeap(),
 	};
 	commandList->SetDescriptorHeaps(_countof(heaps), heaps);
 
 	// SRV登録
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // テクスチャのフォーマットに合わせる
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.TextureCube.MostDetailedMip = 0;
-	srvDesc.TextureCube.MipLevels = UINT_MAX;
-	srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
-	DescriptorHandles handles = shaderSrvManager->RegisterShaderResourceView(
-		cubeMapTex.Get(), srvDesc);
+	// D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	// srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // テクスチャのフォーマットに合わせる
+	// srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+	// srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	// srvDesc.TextureCube.MostDetailedMip = 0;
+	// srvDesc.TextureCube.MipLevels = UINT_MAX;
+	// srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+	// DescriptorHandles handles = shaderSrvManager->RegisterShaderResourceView(
+	// 	cubeMapTex.Get(), srvDesc);
+	//
 
 	// ルートパラメータでSRVとCBVをバインド
-	commandList->SetGraphicsRootDescriptorTable(0, handles.gpuHandle); // t0
+	commandList->SetGraphicsRootDescriptorTable(
+		0, TexManager::GetInstance()->GetSrvHandleGPU(texturePath_)
+	); // t0
 	commandList->SetGraphicsRootConstantBufferView(
 		1, transformationCB_->GetAddress()); // b0: TransformationMatrix
 	commandList->SetGraphicsRootConstantBufferView(
@@ -202,8 +213,8 @@ void CubeMap::CreateRootSignature() {
 	desc.Desc_1_1.Flags                      =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-	Microsoft::WRL::ComPtr<ID3DBlob> signatureBlob;
-	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+	ComPtr<ID3DBlob> signatureBlob;
+	ComPtr<ID3DBlob> errorBlob;
 
 	HRESULT hr = D3D12SerializeVersionedRootSignature(
 		&desc, &signatureBlob, &errorBlob);

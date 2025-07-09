@@ -19,7 +19,6 @@
 #include "Lib/Utils/StrUtil.h"
 
 void MeshManager::Init(const ComPtr<ID3D12Device>& device,
-                       TextureManager*             textureManager,
                        ShaderManager*              shaderManager,
                        MaterialManager*            materialManager) {
 	Console::Print(
@@ -28,7 +27,6 @@ void MeshManager::Init(const ComPtr<ID3D12Device>& device,
 		Channel::ResourceSystem
 	);
 	device_          = device;
-	textureManager_  = textureManager;
 	shaderManager_   = shaderManager;
 	materialManager_ = materialManager;
 }
@@ -234,10 +232,11 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 				std::filesystem::path texPath(texturePathStr);
 				std::filesystem::path fullTexturePath = modelDir / texPath;
 
-				if (Texture* texture = textureManager_->GetTexture(
-					fullTexturePath.string()).get()) {
-					material->SetTexture("baseColorTexture", texture);
-				}
+				std::shared_ptr<Texture> texture;
+				texture = std::make_shared<Texture>();
+				texture->FromOldTextureManager(fullTexturePath.string());
+
+				material->SetTexture("baseColorTexture", texture.get());
 			}
 		} else {
 			material->SetTexture("baseColorTexture",
@@ -249,10 +248,12 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 		//	material->SetTexture("envMap", texture);
 		//}
 
-		if (Texture* texture = textureManager_->GetTexture(
-			"./Resources/Textures/wave.dds").get()) {
-			material->SetTexture("gEnvironmentTexture", texture);
-		}
+
+		std::shared_ptr<Texture> texture;
+		texture = std::make_shared<Texture>();
+		texture->FromOldTextureManager("./Resources/Textures/wave.dds");
+
+		material->SetTexture("gEnvironmentTexture", texture.get());
 	}
 
 	auto subMesh = std::make_unique<SubMesh>(device_, mesh->mName.C_Str());

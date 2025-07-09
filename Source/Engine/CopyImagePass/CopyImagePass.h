@@ -3,6 +3,8 @@
 #include <d3d12.h>
 #include <wrl.h>
 
+#include "SrvManager.h"
+
 #include "ResourceSystem/SRV/ShaderResourceViewManager.h"
 
 struct PostProcessParams {
@@ -16,7 +18,7 @@ struct PostProcessParams {
 
 class CopyImagePass {
 public:
-	CopyImagePass(ID3D12Device* device);
+	CopyImagePass(ID3D12Device* device, SrvManager* srvManager);
 	~CopyImagePass();
 
 	void Init();
@@ -27,7 +29,7 @@ public:
 		ID3D12GraphicsCommandList*  commandList,
 		ID3D12Resource*             srcTexture,
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv,
-		ShaderResourceViewManager*  shaderSrvManager
+		SrvManager*                 srvManager
 	);
 
 	void Shutdown() { device_ = nullptr; }
@@ -35,6 +37,9 @@ public:
 private:
 	void CreateRootSignature();
 	void CreatePipelineState();
+
+	SrvManager* srvManager_ = nullptr;
+	uint32_t    srvIndex_   = 0;
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;

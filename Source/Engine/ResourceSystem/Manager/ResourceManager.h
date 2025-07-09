@@ -13,18 +13,19 @@ public:
 	void Init() const;
 	void Shutdown();
 
-	[[nodiscard]] ShaderResourceViewManager* GetShaderResourceViewManager() const;
-	[[nodiscard]] TextureManager* GetTextureManager() const;
-	[[nodiscard]] ShaderManager* GetShaderManager() const;
+	//[[nodiscard]] ShaderResourceViewManager*
+	//GetShaderResourceViewManager() const;
+	//[[nodiscard]] TextureManager* GetTextureManager() const;
+	[[nodiscard]] ShaderManager*   GetShaderManager() const;
 	[[nodiscard]] MaterialManager* GetMaterialManager() const;
-	[[nodiscard]] MeshManager* GetMeshManager() const;
+	[[nodiscard]] MeshManager*     GetMeshManager() const;
 
 private:
 	D3D12* d3d12_;
 
-	std::unique_ptr<ShaderResourceViewManager> srvManager_;
-	std::unique_ptr<TextureManager> textureManager_;
-	std::unique_ptr<ShaderManager> shaderManager_;
+	//std::unique_ptr<ShaderResourceViewManager> srvManager_;
+	//std::unique_ptr<TextureManager> textureManager_;
+	std::unique_ptr<ShaderManager>   shaderManager_;
 	std::unique_ptr<MaterialManager> materialManager_;
-	std::unique_ptr<MeshManager> meshManager_;
+	std::unique_ptr<MeshManager>     meshManager_;
 };

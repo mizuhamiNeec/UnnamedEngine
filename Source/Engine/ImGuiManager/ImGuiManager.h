@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../Renderer/D3D12.h"
+#include <SrvManager.h>
 
-#include "../Lib/Structs/Structs.h"
+#include <Renderer/D3D12.h>
+
+#include <Lib/Structs/Structs.h>
 
 #ifdef _DEBUG
 #include <imgui.h>
@@ -14,7 +16,7 @@ class ShaderResourceViewManager;
 
 class ImGuiManager {
 public:
-	ImGuiManager(D3D12* renderer, const ShaderResourceViewManager* srvManager);
+	ImGuiManager(D3D12* renderer, const SrvManager* srvManager);
 	static void NewFrame();
 	void        EndFrame();
 	void        Shutdown();
@@ -41,7 +43,7 @@ public:
 #endif
 
 private:
-	D3D12*                           renderer_   = nullptr;
-	const ShaderResourceViewManager* srvManager_ = nullptr;
-	ComPtr<ID3D12DescriptorHeap>     srvHeap_;
+	D3D12*                       renderer_   = nullptr;
+	const SrvManager*            srvManager_ = nullptr;
+	ComPtr<ID3D12DescriptorHeap> srvHeap_;
 };

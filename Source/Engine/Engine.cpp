@@ -1,33 +1,44 @@
 #include "Engine.h"
 
 #ifdef _DEBUG
+#include <imgui_impl_dx12.h>
 #include <imgui_internal.h>
-#include "imgui_impl_dx12.h"
-#include "ImGuiManager/Icons.h"
-#include "ImGuiManager/ImGuiWidgets.h"
-#include "ImGuizmo/ImGuizmo.h"
+
+#include <ImGuiManager/Icons.h>
+
+#include <ImGuizmo/ImGuizmo.h>
+
 #include <Lib/DebugHud/DebugHud.h>
-#include "Lib/Utils/StrUtil.h"
+#include <Lib/Utils/StrUtil.h>
+
+#include "ImGuiManager/ImGuiWidgets.h"
 #endif
 
+#include <SrvManager.h>
+
 #include <Camera/CameraManager.h>
+
+#include <CopyImagePass/CopyImagePass.h>
+
 #include <Debug/Debug.h>
+
 #include <Input/InputSystem.h>
+
 #include <Lib/Utils/ClientProperties.h>
+
 #include <Renderer/D3D12.h>
+
 #include <Scene/GameScene.h>
+
 #include <SubSystem/Console/ConCommand.h>
 #include <SubSystem/Console/Console.h>
 #include <SubSystem/Console/ConVarManager.h>
+
+#include <TextureManager/TexManager.h>
+
 #include <Window/EditorWindow.h>
 #include <Window/MainWindow.h>
 #include <Window/WindowsUtils.h>
-
-#include "SrvManager.h"
-
-#include "CopyImagePass/CopyImagePass.h"
-
-#include "TextureManager/TexManager.h"
 
 Engine::Engine() = default;
 
@@ -54,28 +65,8 @@ void Engine::OnResize(const uint32_t width, const uint32_t height) {
 
 	// GPUの処理が終わるまで待つ
 	renderer_->Flush();
-	//renderer_->WaitPreviousFrame();
 
 	renderer_->Resize(width, height);
-
-	const auto srvManager = resourceManager_->GetShaderResourceViewManager();
-
-	srvManager->UnregisterResource(
-		offscreenRTV_.rtv
-	);
-	srvManager->UnregisterResource(
-		offscreenDSV_.dsv
-	);
-
-	srvManager->UnregisterResource(
-		postProcessedRTV_.rtv
-	);
-	srvManager->UnregisterResource(
-		postProcessedDSV_.dsv
-	);
-
-	offscreenRTV_.rtv.Reset();
-	offscreenDSV_.dsv.Reset();
 
 	postProcessedRTV_.rtv.Reset();
 	postProcessedDSV_.dsv.Reset();
@@ -131,22 +122,6 @@ void Engine::ResizeOffscreenRenderTextures(
 	// renderer_->Resize(width, height);
 
 	renderer_->ResetOffscreenRenderTextures();
-
-	const auto srvManager = resourceManager_->GetShaderResourceViewManager();
-
-	srvManager->UnregisterResource(
-		offscreenRTV_.rtv
-	);
-	srvManager->UnregisterResource(
-		offscreenDSV_.dsv
-	);
-
-	srvManager->UnregisterResource(
-		postProcessedRTV_.rtv
-	);
-	srvManager->UnregisterResource(
-		postProcessedDSV_.dsv
-	);
 
 	offscreenRTV_.rtv.Reset();
 	offscreenDSV_.dsv.Reset();
@@ -246,18 +221,24 @@ void Engine::Init() {
 
 	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
 
-#ifdef _DEBUG
-	imGuiManager_ = std::make_unique<ImGuiManager>(
-		renderer_.get(), resourceManager_->GetShaderResourceViewManager());
-#endif
-
-	console_ = std::make_unique<Console>();
+	srvManager_ = std::make_unique<SrvManager>();
+	srvManager_->Init(renderer_.get());
 
 	resourceManager_->Init();
 
 	renderer_->SetShaderResourceViewManager(
-		resourceManager_->GetShaderResourceViewManager());
+		srvManager_.get());
 	renderer_->Init();
+
+	srvManager_->Allocate();
+	
+#ifdef _DEBUG
+	imGuiManager_ = std::make_unique<ImGuiManager>(
+		renderer_.get(), srvManager_.get());
+#endif
+
+	console_ = std::make_unique<Console>();
+
 
 	offscreenRTV_ = renderer_->CreateRenderTargetTexture(
 		wm_->GetMainWindow()->GetClientWidth(),
@@ -303,7 +284,9 @@ void Engine::Init() {
 	postProcessedRenderPassTargets_.bClearColor = true;
 	postProcessedRenderPassTargets_.bClearDepth = true;
 
-	copyImagePass_ = std::make_unique<CopyImagePass>(renderer_->GetDevice());
+	copyImagePass_ = std::make_unique<CopyImagePass>(
+		renderer_->GetDevice(), srvManager_.get()
+	);
 
 	//// モデル
 	//modelCommon_ = std::make_unique<ModelCommon>();
@@ -350,8 +333,6 @@ void Engine::Init() {
 	//-------------------------------------------------------------------------
 
 	Console::SubmitCommand("neofetch");
-
-	resourceManager_->GetTextureManager()->InitErrorTexture();
 
 	entityLoader_ = std::make_unique<EntityLoader>();
 
@@ -586,11 +567,6 @@ void Engine::Update() {
 		int        w     = static_cast<int>(avail.x);
 		int        h     = static_cast<int>(avail.y);
 		if ((w != prevW || h != prevH) && w > 0 && h > 0) {
-			// ビューポートサイズがおかしくなるので一旦廃止
-			//ResizeOffscreenRenderTextures(w, h);
-			/*CameraManager::GetActiveCamera()->SetAspectRatio(
-				static_cast<float>(w) / static_cast<float>(h)
-			);*/
 			prevW = w;
 			prevH = h;
 		}
@@ -609,17 +585,14 @@ void Engine::Update() {
 
 			ImVec2 drawSize = avail;
 			if (availAspect > texAspect) {
-				// 横が余る
 				drawSize.x = avail.y * texAspect;
 			} else {
-				// 縦が余る
 				drawSize.y = avail.x / texAspect;
 			}
 
 			float titleBarHeight = ImGui::GetCurrentWindow()->
 				TitleBarHeight;
 
-			// ここで中央に配置するためのオフセットを計算
 			ImVec2 offset = {
 				(avail.x - drawSize.x) * 0.5f,
 				(avail.y - drawSize.y) * 0.5f + titleBarHeight
@@ -679,10 +652,6 @@ void Engine::Update() {
 	renderer_->PreRender();
 	//-------------------------------------------------------------------------
 
-	// renderer_->SetViewportAndScissor(
-	// 	WindowManager::GetMainWindow()->GetClientWidth(),
-	// 	WindowManager::GetMainWindow()->GetClientHeight()
-	// );
 	renderer_->SetViewportAndScissor(
 		static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Width),
 		static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Height)
@@ -719,7 +688,7 @@ void Engine::Update() {
 			renderer_->GetCommandList(),
 			offscreenRTV_.rtv.Get(),
 			postProcessedRTV_.rtvHandle,
-			resourceManager_->GetShaderResourceViewManager()
+			srvManager_.get()
 		);
 
 		// バリアを設定
@@ -742,7 +711,7 @@ void Engine::Update() {
 			renderer_->GetCommandList(),
 			offscreenRTV_.rtv.Get(),
 			renderer_->GetSwapChainRenderTargetView(),
-			resourceManager_->GetShaderResourceViewManager()
+			srvManager_.get()
 		);
 	}
 
@@ -794,10 +763,6 @@ void Engine::Update() {
 	}
 
 	renderer_->PostRender();
-
-	//-------------------------------------------------------------------------
-
-	//time_->EndFrame();
 }
 
 void Engine::Shutdown() const {
@@ -921,6 +886,7 @@ bool                             Engine::bWishShutdown_ = false;
 std::unique_ptr<D3D12>           Engine::renderer_;
 std::unique_ptr<ResourceManager> Engine::resourceManager_;
 std::unique_ptr<ParticleManager> Engine::particleManager_;
+std::unique_ptr<SrvManager>      Engine::srvManager_;
 
 Vec2 Engine::viewportLT   = Vec2::zero;
 Vec2 Engine::viewportSize = Vec2::zero;
