@@ -63,10 +63,20 @@ void GameScene::Init() {
 
 	renderer_        = Engine::GetRenderer();
 	resourceManager_ = Engine::GetResourceManager();
+	srvManager_      = Engine::GetSrvManager();
 
 #pragma region テクスチャ読み込み
-	resourceManager_->GetTextureManager()->GetTexture(
-		"./Resources/Textures/wave.dds");
+	TexManager::GetInstance()->LoadTexture(
+		"./Resources/Textures/dev_measure.png"
+	);
+
+	TexManager::GetInstance()->LoadTexture(
+		"./Resources/Textures/uvChecker.png"
+	);
+
+	TexManager::GetInstance()->LoadTexture(
+		"./Resources/Textures/wave.dds"
+	);
 
 	TexManager::GetInstance()->LoadTexture(
 		"./Resources/Textures/smoke.png"
@@ -84,7 +94,11 @@ void GameScene::Init() {
 	resourceManager_->GetMeshManager()->LoadMeshFromFile(
 		"./Resources/Models/weapon.obj");
 
-	cubeMap_ = std::make_unique<CubeMap>(renderer_->GetDevice());
+	cubeMap_ = std::make_unique<CubeMap>(
+		renderer_->GetDevice(),
+		srvManager_,
+		"./Resources/Textures/wave.dds"
+	);
 #pragma endregion
 
 #pragma region パーティクル類
@@ -501,11 +515,8 @@ void GameScene::Update(const float deltaTime) {
 
 void GameScene::Render() {
 	cubeMap_->Render(
-		renderer_->GetCommandList(),
-		resourceManager_->GetShaderResourceViewManager(),
-		resourceManager_->GetTextureManager()->GetTexture(
-			                "./Resources/Textures/wave.dds")
-		                ->GetResource());
+		renderer_->GetCommandList()
+	);
 
 	for (auto entity : entities_) {
 		if (entity) {

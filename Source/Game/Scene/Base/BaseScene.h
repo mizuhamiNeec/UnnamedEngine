@@ -29,7 +29,7 @@ public:
 
 	virtual bool IsEditorMode() const { return isEditorMode_; }
 	void         RemoveEntity(Entity* entity);
-	Entity* CreateEntity(const std::string& value);
+	Entity*      CreateEntity(const std::string& value);
 
 protected:
 	std::vector<Entity*> entities_; // シーンに存在するエンティティ
@@ -42,6 +42,6 @@ protected:
 	ParticleManager* particleManager_ = nullptr;
 	Object3DCommon*  object3DCommon_  = nullptr;
 	ModelCommon*     modelCommon_     = nullptr;
-	//SrvManager* srvManager_ = nullptr;
-	EngineTimer* timer_ = nullptr;
+	SrvManager*      srvManager_      = nullptr;
+	EngineTimer*     timer_           = nullptr;
 };

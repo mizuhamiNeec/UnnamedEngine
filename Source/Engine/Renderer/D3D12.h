@@ -12,6 +12,8 @@
 
 #include <ResourceSystem/SRV/ShaderResourceViewManager.h>
 
+#include "SrvManager.h"
+
 using namespace Microsoft::WRL;
 
 struct D3DResourceLeakChecker {
@@ -48,7 +50,7 @@ public: // メンバ関数
 	void Init() override;
 	void Shutdown() override;
 
-	void SetShaderResourceViewManager(ShaderResourceViewManager* srvManager);
+	void SetShaderResourceViewManager(SrvManager* srvManager);
 
 	void ClearColorAndDepth();
 	void PreRender() override;
@@ -68,7 +70,7 @@ public: // メンバ関数
 	void ResetCommandList();
 
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size,
-		const void* data);
+	                                    const void*     data);
 
 	void WaitPreviousFrame();
 	void Flush();
@@ -83,8 +85,8 @@ private:
 	D3DResourceLeakChecker d3dResourceLeakChecker_;
 
 	// 持ってきたやつ
-	BaseWindow* window_ = nullptr;
-	ShaderResourceViewManager* srvManager_ = nullptr;
+	BaseWindow* window_     = nullptr;
+	SrvManager* srvManager_ = nullptr;
 
 	// メンバ変数
 	// 1. デバイス・ファクトリ・スワップチェーン
@@ -117,7 +119,7 @@ private:
 	// 6. その他
 	D3D12_RESOURCE_BARRIER barrier_ = {};
 
-	D3D12_VIEWPORT viewport_ = {};
+	D3D12_VIEWPORT viewport_    = {};
 	D3D12_RECT     scissorRect_ = {};
 
 	uint32_t descriptorSizeRTV = 0;
@@ -130,7 +132,7 @@ private:
 	// 初期化関連
 	//------------------------------------------------------------------------
 	static
-		void EnableDebugLayer();
+	void EnableDebugLayer();
 	void CreateDevice();
 	void SetInfoQueueBreakOnSeverity() const;
 	void CreateCommandQueue();

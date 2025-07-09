@@ -2,13 +2,19 @@
 
 #include <cassert>
 
+#include "SrvManager.h"
+
 #include "Lib/Structs/Structs.h"
 
 #include "Renderer/PipelineState.h"
 
 #include "ResourceSystem/SRV/ShaderResourceViewManager.h"
 
-CopyImagePass::CopyImagePass(ID3D12Device* device) : device_(device) {
+CopyImagePass::CopyImagePass(
+	ID3D12Device* device,
+	SrvManager*   srvManager
+) : srvManager_(srvManager),
+    device_(device) {
 	Init();
 }
 
@@ -17,6 +23,8 @@ CopyImagePass::~CopyImagePass() = default;
 void CopyImagePass::Init() {
 	CreateRootSignature();
 	CreatePipelineState();
+
+	srvIndex_ = srvManager_->Allocate(); // SRVのインデックスを確保
 
 	D3D12_HEAP_PROPERTIES props = {};
 	props.Type                  = D3D12_HEAP_TYPE_UPLOAD;
@@ -42,31 +50,38 @@ void CopyImagePass::Init() {
 }
 
 void CopyImagePass::Update([[maybe_unused]] const float deltaTime) {
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	ImGui::Begin("PostProcess");
 	if (ImGui::CollapsingHeader("Simple Bloom")) {
-		ImGui::DragFloat("Bloom Strength", &postProcessParams_.bloomStrength, 0.01f, 0.0f, 10.0f);
-		ImGui::DragFloat("Bloom Threshold", &postProcessParams_.bloomThreshold, 0.01f, 0.0f, 10.0f);
+		ImGui::DragFloat("Bloom Strength", &postProcessParams_.bloomStrength,
+		                 0.01f, 0.0f, 10.0f);
+		ImGui::DragFloat("Bloom Threshold", &postProcessParams_.bloomThreshold,
+		                 0.01f, 0.0f, 10.0f);
 	}
 
 	if (ImGui::CollapsingHeader("Vignette")) {
-		ImGui::DragFloat("Vignette Strength", &postProcessParams_.vignetteStrength, 0.01f, 0.0f, 10.0f);
-		ImGui::DragFloat("Vignette Radius", &postProcessParams_.vignetteRadius, 0.01f, 0.0f, 10.0f);
+		ImGui::DragFloat("Vignette Strength",
+		                 &postProcessParams_.vignetteStrength, 0.01f, 0.0f,
+		                 10.0f);
+		ImGui::DragFloat("Vignette Radius", &postProcessParams_.vignetteRadius,
+		                 0.01f, 0.0f, 10.0f);
 	}
 
 	if (ImGui::CollapsingHeader("Chromatic Aberration")) {
-		ImGui::DragFloat("Chromatic Aberration Strength", &postProcessParams_.chromaticAberration, 0.01f, 0.0f, 10.0f);
+		ImGui::DragFloat("Chromatic Aberration Strength",
+		                 &postProcessParams_.chromaticAberration, 0.01f, 0.0f,
+		                 10.0f);
 	}
 
 	ImGui::End();
-	#endif
+#endif
 }
 
 void CopyImagePass::Execute(
 	ID3D12GraphicsCommandList*  commandList,
 	ID3D12Resource*             srcTexture,
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv,
-	ShaderResourceViewManager*  shaderSrvManager
+	SrvManager*                 srvManager
 ) {
 	void*   pData = nullptr;
 	HRESULT hr    = postProcessParamsCB_->Map(0, nullptr, &pData);
@@ -89,19 +104,25 @@ void CopyImagePass::Execute(
 	commandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
 
 	// 2. SRV登録＆ハンドル取得
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = srcTexture->GetDesc().Format;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = srcTexture->GetDesc().MipLevels;
-	srvDesc.Texture2D.PlaneSlice = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	DescriptorHandles handles = shaderSrvManager->RegisterShaderResourceView(
-		srcTexture, srvDesc);
+	// D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	// srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	// srvDesc.Format = srcTexture->GetDesc().Format;
+	// srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	// srvDesc.Texture2D.MostDetailedMip = 0;
+	// srvDesc.Texture2D.MipLevels = srcTexture->GetDesc().MipLevels;
+	// srvDesc.Texture2D.PlaneSlice = 0;
+	// srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+	srvManager->CreateSRVForTexture2D(
+		srvIndex_,
+		srcTexture,
+		srcTexture->GetDesc().Format,
+		srcTexture->GetDesc().MipLevels
+	);
 
 	// 3. SRVをルートテーブルにバインド
-	commandList->SetGraphicsRootDescriptorTable(0, handles.gpuHandle); // SRV
+	commandList->SetGraphicsRootDescriptorTable(
+		0, srvManager->GetGPUDescriptorHandle(srvIndex_)); // SRV
 	//
 	commandList->SetGraphicsRootConstantBufferView(
 		1, postProcessParamsCB_->GetGPUVirtualAddress()); // CBV
