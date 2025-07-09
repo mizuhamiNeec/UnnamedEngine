@@ -393,9 +393,6 @@
     <ClInclude Include="Source\Engine\Lib\Utils\IniParser.h">
       <Filter>Source\Engine\Lib\Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Lib\Utils\StrUtils.h">
-      <Filter>Source\Engine\Lib\Utils</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Line\Line.h">
       <Filter>Source\Engine\Line</Filter>
     </ClInclude>
@@ -588,12 +585,6 @@
     <ClInclude Include="Source\Game\Scene\Base\BaseScene.h">
       <Filter>Source\Game\Scene\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseRenderer.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseDevice.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Renderer.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.h" />
-    <ClInclude Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.h" />
     <ClInclude Include="Source\Engine\Window\Base\BaseWindow.h" />
     <ClInclude Include="Source\Engine\Window\WindowManager.h" />
     <ClInclude Include="Source\Engine\Window\EditorWindow.h" />
@@ -603,6 +594,12 @@
     <ClInclude Include="Source\Engine\Particle\WindEffect.h" />
     <ClInclude Include="Source\Engine\CopyImagePass\CopyImagePass.h" />
     <ClInclude Include="Source\Engine\CubeMap\CubeMap.h" />
+    <ClInclude Include="Source\Engine\Entity\EntityLoader.h" />
+    <ClInclude Include="Source\Engine\Particle\ExplosionEffect.h" />
+    <ClInclude Include="Source\Externals\ImGuizmo\ImGuizmo.h" />
+    <ClInclude Include="Source\Game\Components\Weapon\base\WeaponComponent.h" />
+    <ClInclude Include="Source\Game\Components\Weapon\WeaponSway.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\StrUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -649,9 +646,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp">
       <Filter>Source\Engine\Components\MeshRenderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.cpp">
-      <Filter>Source\Engine\Components\MeshRenderer\Base</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp">
       <Filter>Source\Engine\Components\Transform</Filter>
@@ -705,9 +699,6 @@
       <Filter>Source\Engine\Lib\Timer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Lib\Utils\IniParser.cpp">
-      <Filter>Source\Engine\Lib\Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp">
       <Filter>Source\Engine\Lib\Utils</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Line\Line.cpp">
@@ -863,9 +854,6 @@
     <ClCompile Include="Source\Externals\ImGui\imgui_draw.cpp">
       <Filter>Source\Externals\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Externals\ImGui\imgui_impl_dx12.cpp">
-      <Filter>Source\Externals\ImGui</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Externals\ImGui\imgui_impl_win32.cpp">
       <Filter>Source\Externals\ImGui</Filter>
     </ClCompile>
@@ -890,12 +878,6 @@
     <ClCompile Include="Source\Game\Scene\Base\BaseScene.cpp">
       <Filter>Source\Game\Scene\Base</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseRenderer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Base\BaseDevice.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Renderer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\D3D12\D3D12Device.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanRenderer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\AbstractionLayer\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowManager.cpp" />
     <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiWidgets.cpp" />
@@ -904,6 +886,15 @@
     <ClCompile Include="Source\Engine\Particle\WindEffect.cpp" />
     <ClCompile Include="Source\Engine\CopyImagePass\CopyImagePass.cpp" />
     <ClCompile Include="Source\Engine\CubeMap\CubeMap.cpp" />
+    <ClCompile Include="Source\Engine\Entity\EntityLoader.cpp" />
+    <ClCompile Include="Source\Engine\Particle\ExplosionEffect.cpp" />
+    <ClCompile Include="Source\Externals\ImGuizmo\ImGuizmo.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Utils\StrUtil.cpp" />
+    <ClCompile Include="Source\Game\Components\Weapon\base\WeaponComponent.cpp" />
+    <ClCompile Include="Source\Game\Components\Weapon\WeaponSway.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_impl_dx12.cpp">
+      <Filter>Source\Externals\ImGui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
@@ -924,6 +915,9 @@
     <None Include="Resources\Shaders\CopyImage.hlsli" />
     <None Include="Resources\Shaders\CopyImage.PS.hlsl" />
     <None Include="Resources\Shaders\CopyImage.VS.hlsl" />
+    <None Include="Resources\Shaders\Skybox.PS.hlsl" />
+    <None Include="Resources\Shaders\Skybox.VS.hlsl" />
+    <None Include="Resources\Shaders\Skybox.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Source\Externals\ImGui\LICENSE.txt" />

@@ -160,7 +160,7 @@
     <ClCompile Include="Source\Engine\SubSystem\Console\ConVar.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\ConVarManager.cpp" />
     <ClCompile Include="Source\Externals\ImGuizmo\ImGuizmo.cpp" />
-    <None Include="Source\Externals\ImGui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_impl_dx12.cpp" />
     <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
     <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
