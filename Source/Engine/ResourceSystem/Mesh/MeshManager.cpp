@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <iostream>
 #include <locale>
+#include <ranges>
 #include <string>
 
 #include <SubSystem/Console/Console.h>
@@ -39,7 +40,7 @@ void MeshManager::Shutdown() {
 		Channel::ResourceSystem
 	);
 
-	for (auto& [fst, snd] : subMeshes_) {
+	for (auto& snd : subMeshes_ | std::views::values) {
 		Console::Print(
 			"MeshMgr: " + snd->GetName() + "\n",
 			Vec4::white,
@@ -50,7 +51,7 @@ void MeshManager::Shutdown() {
 	}
 	subMeshes_.clear();
 
-	for (auto& [fst, snd] : staticMeshes_) {
+	for (auto& snd : staticMeshes_ | std::views::values) {
 		if (snd) {
 			Console::Print(
 				"MeshMgr: Releasing " + snd->GetName() + "\n",
