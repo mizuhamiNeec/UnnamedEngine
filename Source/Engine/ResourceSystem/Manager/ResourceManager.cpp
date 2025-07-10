@@ -2,21 +2,26 @@
 
 #include "SubSystem/Console/Console.h"
 #include "ResourceSystem/RootSignature/RootSignatureManager2.h"
+#include "Renderer/D3D12.h"
 
 ResourceManager::ResourceManager(D3D12* d3d12) :
 	d3d12_(d3d12),
+	srvManager_(nullptr),
 	shaderManager_(nullptr),
 	materialManager_(nullptr),
 	meshManager_(nullptr) {
-	shaderManager_   = std::make_unique<ShaderManager>();
+	srvManager_ = std::make_unique<SrvManager>();
+	shaderManager_ = std::make_unique<ShaderManager>();
 	materialManager_ = std::make_unique<MaterialManager>();
-	meshManager_     = std::make_unique<MeshManager>();
+	meshManager_ = std::make_unique<MeshManager>();
 }
 
 void ResourceManager::Init() const {
 	Console::Print("ResourceManager を初期化しています...\n", kConTextColorWait,
 	               Channel::ResourceSystem);
 	// マネージャーを初期化
+	srvManager_->Init(d3d12_);
+	TexManager::GetInstance()->Init(d3d12_, srvManager_.get());
 	RootSignatureManager2::Init(d3d12_->GetDevice());
 	shaderManager_->Init();
 	materialManager_->Init();
@@ -49,7 +54,17 @@ void ResourceManager::Shutdown() {
 		shaderManager_.reset();
 	}
 	
+	TexManager::Shutdown();
+	
 	RootSignatureManager2::Shutdown();
+}
+
+SrvManager* ResourceManager::GetSrvManager() const {
+	return srvManager_.get();
+}
+
+TexManager* ResourceManager::GetTexManager() const {
+	return TexManager::GetInstance();
 }
 
 MeshManager* ResourceManager::GetMeshManager() const {
