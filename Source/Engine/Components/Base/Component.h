@@ -13,6 +13,7 @@ public:
 	virtual ~Component();
 
 	virtual void OnAttach(Entity& owner);
+	virtual void OnDetach();
 
 	virtual void Update(float deltaTime) = 0;
 	virtual void Render(ID3D12GraphicsCommandList* commandList);
