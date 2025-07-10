@@ -2,8 +2,6 @@
 
 #include <Entity/Base/Entity.h>
 
-#include <ResourceSystem/SRV/ShaderResourceViewManager.h>
-
 #include <Window/WindowManager.h>
 
 
@@ -74,25 +72,16 @@ ImGuiManager::ImGuiManager(D3D12*            renderer,
 	ImGui_ImplWin32_Init(WindowManager::GetMainWindow()->GetWindowHandle());
 
 	// ImGuiの初期化
-	ImGui_ImplDX12_InitInfo init_info = {};
-	init_info.Device                  = renderer_->GetDevice();
-	init_info.NumFramesInFlight       = kFrameBufferCount;
-	init_info.RTVFormat               = DXGI_FORMAT_R8G8B8A8_UNORM;
-	init_info.SrvDescriptorHeap       = srvManager_->GetDescriptorHeap();
-	init_info.CommandQueue            = renderer_->GetCommandQueue();
-
-	// ディスクリプタ割り当て関数を実装
-	init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info,
-	                                    D3D12_CPU_DESCRIPTOR_HANDLE*
-	                                    out_cpu_handle,
-	                                    D3D12_GPU_DESCRIPTOR_HANDLE*
-	                                    out_gpu_handle) {
-		// 有効なディスクリプタを割り当てるコード
-		*out_cpu_handle = info->SrvDescriptorHeap->
-		                        GetCPUDescriptorHandleForHeapStart();
-		*out_gpu_handle = info->SrvDescriptorHeap->
-		                        GetGPUDescriptorHandleForHeapStart();
-	};
+	ImGui_ImplDX12_InitInfo init_info      = {};
+	init_info.Device                       = renderer_->GetDevice();
+	init_info.NumFramesInFlight            = kFrameBufferCount;
+	init_info.RTVFormat                    = DXGI_FORMAT_R8G8B8A8_UNORM;
+	init_info.SrvDescriptorHeap            = srvManager_->GetDescriptorHeap();
+	init_info.CommandQueue                 = renderer_->GetCommandQueue();
+	init_info.LegacySingleSrvCpuDescriptor =
+		srvManager_->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+	init_info.LegacySingleSrvGpuDescriptor =
+		srvManager_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
 
 	ImGui_ImplDX12_Init(&init_info);
 }
@@ -110,8 +99,7 @@ void ImGuiManager::EndFrame() {
 
 	// レンダーターゲットとして使用されたテクスチャリソースをすべてSRV状態に遷移
 	// これによりImGuiのマルチビューポートでも安全にテクスチャとして使用できる
-	ID3D12DescriptorHeap* imGuiHeap =
-		ShaderResourceViewManager::GetDescriptorHeap().Get();
+	ID3D12DescriptorHeap* imGuiHeap = srvManager_->GetDescriptorHeap();
 	renderer_->GetCommandList()->SetDescriptorHeaps(1, &imGuiHeap);
 
 	// メインウィンドウのImGuiコンテンツを描画
@@ -156,11 +144,9 @@ void ImGuiManager::Recreate() const {
 		renderer_->GetDevice(),
 		kFrameBufferCount,
 		kBufferFormat,
-		ShaderResourceViewManager::GetDescriptorHeap().Get(),
-		ShaderResourceViewManager::GetDescriptorHeap()->
-		GetCPUDescriptorHandleForHeapStart(),
-		ShaderResourceViewManager::GetDescriptorHeap()->
-		GetGPUDescriptorHandleForHeapStart()
+		srvManager_->GetDescriptorHeap(),
+		srvManager_->GetCPUDescriptorHandle(0),
+		srvManager_->GetGPUDescriptorHandle(0)
 	);
 
 	// 4. デバイスオブジェクト再作成
