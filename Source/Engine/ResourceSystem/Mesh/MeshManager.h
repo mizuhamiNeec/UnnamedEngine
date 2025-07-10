@@ -7,7 +7,7 @@
 
 #include "ResourceSystem/Material/MaterialManager.h"
 #include "ResourceSystem/Shader/ShaderManager.h"
-#include "ResourceSystem/Texture/TextureManager.h"
+#include "TextureManager/TexManager.h"
 
 class MeshManager {
 public:
@@ -21,6 +21,8 @@ public:
 
 	bool LoadMeshFromFile(const std::string& filePath);
 
+	bool ReloadMeshFromFile(const std::string& filePath);
+
 	StaticMesh* GetStaticMesh(const std::string& name) const;
 
 private:
@@ -29,7 +31,7 @@ private:
 	SubMesh* ProcessMesh(const aiMesh* mesh, const aiScene* scene,
 	                     StaticMesh* staticMesh, const aiMatrix4x4& transform);
 
-	TextureManager*  textureManager_  = nullptr;
+	TexManager*      texManager_      = nullptr;
 	ShaderManager*   shaderManager_   = nullptr;
 	MaterialManager* materialManager_ = nullptr;
 	D3D12*           renderer_        = nullptr;
