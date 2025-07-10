@@ -11,18 +11,26 @@ void EmptyScene::Init() {
 	renderer_   = Engine::GetRenderer();
 	srvManager_ = Engine::GetSrvManager();
 
-	// キューブマップのみ初期化
-	cubeMap_ = std::make_unique<CubeMap>(
-		renderer_->GetDevice(),
-		srvManager_,
-		"./Resources/Textures/wave.dds"
-	);
+	// キューブマップ
+	{
+		TexManager::GetInstance()->LoadTexture(
+			"./Resources/Textures/wave.dds"
+		);
+
+		// キューブマップのみ初期化
+		cubeMap_ = std::make_unique<CubeMap>(
+			renderer_->GetDevice(),
+			srvManager_,
+			"./Resources/Textures/wave.dds"
+		);
+	}
 
 	Console::Print("EmptyScene initialized");
 }
 
 void EmptyScene::Update(float deltaTime) {
 	// 基本的な更新処理
+	cubeMap_->Update(deltaTime);
 
 	// シーン内のすべてのエンティティを更新
 	for (auto entity : entities_) {
