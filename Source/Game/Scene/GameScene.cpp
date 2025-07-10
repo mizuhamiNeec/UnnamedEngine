@@ -26,7 +26,7 @@
 #include "TextureManager/TexManager.h"
 
 // コンソールカラー定数
-constexpr Vec4 kConFgColorGreen = Vec4(0.0f, 1.0f, 0.0f, 1.0f);
+constexpr Vec4 kConFgColorGreen   = Vec4(0.0f, 1.0f, 0.0f, 1.0f);
 constexpr Vec4 kConFgColorWarning = Vec4(1.0f, 1.0f, 0.0f, 1.0f);
 
 GameScene::~GameScene() {
@@ -271,11 +271,16 @@ void GameScene::Update(const float deltaTime) {
 		mPendingMeshReload = true;
 		Console::Print("Mesh reload requested...", kConFgColorGreen);
 	}
-
-	// 遅延読み込み処理（レンダリング以外のタイミングで実行）
+	
 	if (mPendingMeshReload) {
-		ReloadWorldMesh();
-		mPendingMeshReload = false;
+		static bool reloadNextFrame = false;
+		if (reloadNextFrame) {
+			ReloadWorldMesh();
+			mPendingMeshReload = false;
+			reloadNextFrame    = false;
+		} else {
+			reloadNextFrame = true;
+		}
 	}
 
 	physicsEngine_->Update(deltaTime);
@@ -465,9 +470,11 @@ void GameScene::Update(const float deltaTime) {
 
 #ifdef _DEBUG
 	// レティクルの描画
-	ImGuiIO& io           = ImGui::GetIO();
-	ImVec2   windowCenter = ImVec2(io.DisplaySize.x * 0.5f,
-	                             io.DisplaySize.y * 0.5f);
+	ImVec2 windowCenter = ImVec2(
+		ImGui::GetMainViewport()->Pos.x + ImGui::GetMainViewport()->Size.x *
+		0.5f,
+		ImGui::GetMainViewport()->Pos.y + ImGui::GetMainViewport()->Size.y *
+		0.5f);
 
 	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 
@@ -558,20 +565,30 @@ void GameScene::Shutdown() {
 void GameScene::ReloadWorldMesh() {
 	Console::Print("Starting world mesh reload...", kConFgColorGreen);
 
+	// リロード開始前にGPU処理の完了を待機
+	if (renderer_) {
+		renderer_->WaitPreviousFrame();
+		Console::Print("Initial GPU sync before mesh reload", kConFgColorGreen);
+	}
+
 	try {
 		// まず安全な方法を試す
 		SafeReloadWorldMesh();
 	} catch (const std::exception& e) {
-		Console::Print(std::string("Safe reload failed: ") + e.what(), kConTextColorError);
-		Console::Print("Attempting full entity recreation...", kConFgColorWarning);
+		Console::Print(std::string("Safe reload failed: ") + e.what(),
+		               kConTextColorError);
+		Console::Print("Attempting full entity recreation...",
+		               kConFgColorWarning);
 		try {
 			RecreateWorldMeshEntity();
 		} catch (...) {
 			Console::Print("Full recreation also failed!", kConTextColorError);
 		}
 	} catch (...) {
-		Console::Print("Unknown exception during safe reload", kConTextColorError);
-		Console::Print("Attempting full entity recreation...", kConFgColorWarning);
+		Console::Print("Unknown exception during safe reload",
+		               kConTextColorError);
+		Console::Print("Attempting full entity recreation...",
+		               kConFgColorWarning);
 		try {
 			RecreateWorldMeshEntity();
 		} catch (...) {
@@ -588,32 +605,50 @@ void GameScene::RecreateWorldMeshEntity() {
 		physicsEngine_->UnregisterEntity(mEntWorldMesh.get());
 		RemoveEntity(mEntWorldMesh.get());
 		Console::Print("Removed old world mesh entity", kConTextColorWarning);
-		
+
 		// shared_ptrをリセット
 		mWorldMeshRenderer.reset();
-		
+
 		// unique_ptrをリセット
 		mEntWorldMesh.reset();
 	}
 
+	// GPU処理の完了を待機（テクスチャロード前の同期）
+	if (renderer_) {
+		renderer_->WaitPreviousFrame();
+		Console::Print("Waited for GPU completion before entity recreation",
+		               kConFgColorGreen);
+	}
+
 	// メッシュをリロード
-	const std::string meshPath = "./Resources/Models/reflectionTest.obj";
-	bool reloadSuccess = resourceManager_->GetMeshManager()->ReloadMeshFromFile(meshPath);
+	const std::string meshPath      = "./Resources/Models/reflectionTest.obj";
+	bool              reloadSuccess = resourceManager_->GetMeshManager()->
+		ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
 		return;
 	}
 
+	// GPU処理の完了を再度待機（テクスチャロード後の同期）
+	if (renderer_) {
+		renderer_->WaitPreviousFrame();
+		Console::Print("Waited for GPU completion after mesh reload",
+		               kConFgColorGreen);
+	}
+
 	// 新しいエンティティを作成
-	mEntWorldMesh = std::make_unique<Entity>("worldMesh");
-	StaticMeshRenderer* smRenderer = mEntWorldMesh->AddComponent<StaticMeshRenderer>();
+	mEntWorldMesh                  = std::make_unique<Entity>("worldMesh");
+	StaticMeshRenderer* smRenderer = mEntWorldMesh->AddComponent<
+		StaticMeshRenderer>();
 	mWorldMeshRenderer = std::shared_ptr<StaticMeshRenderer>(
-		smRenderer, [](StaticMeshRenderer*) {}
+		smRenderer, [](StaticMeshRenderer*) {
+		}
 	);
 
 	// 新しいメッシュを設定
-	StaticMesh* newMesh = resourceManager_->GetMeshManager()->GetStaticMesh(meshPath);
+	StaticMesh* newMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
+		meshPath);
 	if (newMesh) {
 		mWorldMeshRenderer->SetStaticMesh(newMesh);
 		Console::Print("Set new mesh to new entity", kConFgColorGreen);
@@ -642,7 +677,8 @@ void GameScene::SafeReloadWorldMesh() {
 
 	// 物理エンジンからエンティティの登録を解除
 	physicsEngine_->UnregisterEntity(mEntWorldMesh.get());
-	Console::Print("Unregistered entity from physics engine", kConFgColorWarning);
+	Console::Print("Unregistered entity from physics engine",
+	               kConTextColorWarning);
 
 	// MeshColliderComponentを削除
 	if (mEntWorldMesh->HasComponent<MeshColliderComponent>()) {
@@ -650,9 +686,17 @@ void GameScene::SafeReloadWorldMesh() {
 		Console::Print("Removed MeshColliderComponent", kConFgColorWarning);
 	}
 
+	// GPU処理の完了を待機（テクスチャロード前の同期）
+	if (renderer_) {
+		renderer_->WaitPreviousFrame();
+		Console::Print("Waited for GPU completion before mesh reload",
+		               kConFgColorGreen);
+	}
+
 	// メッシュをリロード
-	const std::string meshPath = "./Resources/Models/reflectionTest.obj";
-	bool reloadSuccess = resourceManager_->GetMeshManager()->ReloadMeshFromFile(meshPath);
+	const std::string meshPath      = "./Resources/Models/reflectionTest.obj";
+	bool              reloadSuccess = resourceManager_->GetMeshManager()->
+		ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
@@ -662,13 +706,22 @@ void GameScene::SafeReloadWorldMesh() {
 		return;
 	}
 
+	// GPU処理の完了を再度待機（テクスチャロード後の同期）
+	if (renderer_) {
+		renderer_->WaitPreviousFrame();
+		Console::Print("Waited for GPU completion after mesh reload",
+		               kConFgColorGreen);
+	}
+
 	// 新しいメッシュをレンダラーに設定
-	StaticMesh* newMesh = resourceManager_->GetMeshManager()->GetStaticMesh(meshPath);
+	StaticMesh* newMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
+		meshPath);
 	if (newMesh && mWorldMeshRenderer) {
 		mWorldMeshRenderer->SetStaticMesh(newMesh);
 		Console::Print("Set new mesh to renderer", kConFgColorGreen);
 	} else {
-		Console::Print("Failed to get new mesh or renderer!", kConTextColorError);
+		Console::Print("Failed to get new mesh or renderer!",
+		               kConTextColorError);
 		return;
 	}
 
