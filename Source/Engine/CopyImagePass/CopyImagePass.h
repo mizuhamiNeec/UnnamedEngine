@@ -5,7 +5,7 @@
 
 #include "SrvManager.h"
 
-#include "ResourceSystem/SRV/ShaderResourceViewManager.h"
+class ShaderResourceViewManager;
 
 struct PostProcessParams {
 	float bloomStrength       = 2.0f;
@@ -28,11 +28,13 @@ public:
 	void Execute(
 		ID3D12GraphicsCommandList*  commandList,
 		ID3D12Resource*             srcTexture,
-		D3D12_CPU_DESCRIPTOR_HANDLE rtv,
-		SrvManager*                 srvManager
+		D3D12_CPU_DESCRIPTOR_HANDLE rtv
 	);
 
 	void Shutdown() { device_ = nullptr; }
+	
+	// SRVインデックスを取得するメソッドを追加
+	uint32_t GetSrvIndex() const { return srvIndex_; }
 
 private:
 	void CreateRootSignature();
