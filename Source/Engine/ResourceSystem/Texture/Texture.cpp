@@ -98,7 +98,7 @@ bool Texture::LoadFromFile(D3D12* d3d12, SrvManager* shaderResourceViewManager,
 		// MipMapの数
 	}
 
-	uint32_t index = shaderResourceViewManager->Allocate();
+	uint32_t index = shaderResourceViewManager->AllocateForTexture();
 
 	shaderResourceViewManager->CreateSRVForTexture2D(
 		index, textureResource_.Get(), metadata_.format,
@@ -215,7 +215,7 @@ bool Texture::CreateErrorTexture(
 	srvDesc.Texture2D.MipLevels = 1;
 
 
-	uint32_t index = shaderResourceViewManager->Allocate();
+	uint32_t index = shaderResourceViewManager->AllocateForTexture();
 	shaderResourceViewManager->CreateSRVForTexture2D(
 		index, textureResource_.Get(), metadata_.format,
 		static_cast<UINT>(metadata_.mipLevels)
