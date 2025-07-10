@@ -417,7 +417,7 @@ void ParticleManager::CreateParticleGroup(const std::string& name,
 		"ParticleInstancingResource"
 	);
 	// インスタンシング用にSRVを確保してSRVインデックスを記録
-	particleGroups_[name].srvIndex = srvManager_->Allocate();
+	particleGroups_[name].srvIndex = srvManager_->AllocateForStructuredBuffer();
 	// SRV生成(StructuredBuffer用設定)
 	srvManager_->CreateSRVForStructuredBuffer(
 		particleGroups_[name].srvIndex,
