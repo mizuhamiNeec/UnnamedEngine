@@ -239,6 +239,7 @@
     <ClCompile Include="Source\Game\Components\Weapon\base\WeaponComponent.cpp" />
     <ClCompile Include="Source\Game\Components\Weapon\WeaponSway.cpp" />
     <ClCompile Include="Source\Game\Scene\Base\BaseScene.cpp" />
+    <ClCompile Include="Source\Game\Scene\EmptyScene.cpp" />
     <ClCompile Include="Source\Game\Scene\GameScene.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
@@ -362,6 +363,7 @@
     <ClInclude Include="Source\Externals\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Game\Components\Weapon\base\WeaponComponent.h" />
     <ClInclude Include="Source\Game\Components\Weapon\WeaponSway.h" />
+    <ClInclude Include="Source\Game\Scene\EmptyScene.h" />
     <ClInclude Include="Source\Game\Scene\GameScene.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h" />
     <ClInclude Include="Source\Engine\Renderer\D3D12.h" />
