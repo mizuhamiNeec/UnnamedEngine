@@ -7,9 +7,9 @@
 
 #include <Renderer/D3D12.h>
 
-#include <ResourceSystem/SRV/ShaderResourceViewManager.h>
-
 using Microsoft::WRL::ComPtr;
+
+class ShaderResourceViewManager;
 
 class Texture {
 public:
