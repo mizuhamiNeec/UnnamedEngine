@@ -205,6 +205,7 @@ ComPtr<ID3D12Resource> TexManager::UploadTextureData(
 void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 	// 読み込み済みテクスチャを検索
 	if (textureData_.contains(filePath)) {
+		Console::Print(std::format("LoadTexture: {} は既に読み込み済みです\n", filePath));
 		return; // 読み込み済みなら早期リターン
 	}
 
@@ -250,9 +251,9 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 		// デフォルトテクスチャの読み込み
 		filePathW = StrUtil::ToWString("./Resources/Textures/empty.png");
 		hr        = DirectX::LoadFromWICFile(filePathW.c_str(),
-		                              DirectX::WIC_FLAGS_FORCE_SRGB,
-		                              nullptr,
-		                              image);
+		                                     DirectX::WIC_FLAGS_FORCE_SRGB,
+		                                     nullptr,
+		                                     image);
 		assert(SUCCEEDED(hr)); // デフォルトのテクスチャも読み込めなかった場合はエラー
 		isCubeMap = false;     // デフォルトテクスチャはキューブマップではない
 	}
@@ -306,12 +307,17 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 	// リソース解放
 	intermediateResource.Reset();
 
-	// SRV確保
-	textureData.srvIndex     = srvManager_->Allocate();
+	// SRV確保（テクスチャ用専用Allocateを使用）
+	textureData.srvIndex     = srvManager_->AllocateForTexture();
 	textureData.srvHandleCPU = srvManager_->GetCPUDescriptorHandle(
 		textureData.srvIndex);
 	textureData.srvHandleGPU = srvManager_->GetGPUDescriptorHandle(
 		textureData.srvIndex);
+
+	// SRV割り当て情報をログ出力
+	Console::Print(std::format("LoadTexture: {} にSRVインデックス {} を割り当て\n",
+	                           filePath, textureData.srvIndex),
+	               kConTextColorCompleted);
 
 	// キューブマップの場合は専用のSRV作成メソッドを呼び出す
 	if (isCubeMap) {
@@ -388,14 +394,96 @@ TexManager::TextureData* TexManager::GetTextureData(
 /// @return テクスチャのインデックス
 uint32_t TexManager::GetTextureIndexByFilePath(
 	const std::string& filePath) const {
-	// 読み込み済みテクスチャを検索
-	if (textureData_.contains(filePath)) {
-		// 読み込み済みなら要素番号を返す
-		const uint32_t textureIndex = textureData_.contains(filePath);
-		return textureIndex;
+	// 1. まず完全なパスで検索
+	auto it = textureData_.find(filePath);
+	if (it != textureData_.end()) {
+		return it->second.srvIndex;
 	}
 
-	assert(0);
+	// 2. ファイル名のみで検索（パスの違いを無視）
+	std::string filename  = filePath;
+	size_t      lastSlash = filePath.find_last_of("/\\");
+	if (lastSlash != std::string::npos) {
+		filename = filePath.substr(lastSlash + 1);
+	}
+
+	for (const auto& [path, data] : textureData_) {
+		std::string currentFilename  = path;
+		size_t      currentLastSlash = path.find_last_of("/\\");
+		if (currentLastSlash != std::string::npos) {
+			currentFilename = path.substr(currentLastSlash + 1);
+		}
+
+		if (currentFilename == filename) {
+			Console::Print(std::format(
+				               "GetTextureIndexByFilePath: ファイル名一致で見つかりました: {} -> {} (インデックス {})",
+				               filePath, path, data.srvIndex),
+			               kConTextColorCompleted);
+			return data.srvIndex;
+		}
+	}
+
+	// パスが正規化されている可能性があるので、部分一致でチェック
+	for (const auto& [path, data] : textureData_) {
+		if (path.find(filePath) != std::string::npos || filePath.find(path) !=
+			std::string::npos) {
+			Console::Print(std::format(
+				               "GetTextureIndexByFilePath: 部分一致で見つかりました: {} -> {} (インデックス {})",
+				               filePath, path, data.srvIndex),
+			               kConTextColorWarning);
+			return data.srvIndex;
+		}
+	}
+
+	Console::Print(
+		std::format("GetTextureIndexByFilePath: テクスチャが見つかりません: {}", filePath),
+		kConTextColorError);
+	// デバッグ用に全てのテクスチャのパスを出力
+	Console::Print("登録されているテクスチャ一覧:");
+	for (const auto& [path, data] : textureData_) {
+		Console::Print(std::format("{} (インデックス: {})", path, data.srvIndex));
+	}
+
+	// エラーが発生した場合は、テクスチャをロードして再試行
+	Console::Print(
+		std::format("GetTextureIndexByFilePath: {} を自動ロードして再試行します", filePath),
+		kConTextColorWarning);
+	const_cast<TexManager*>(this)->LoadTexture(filePath);
+
+	// 再検索
+	it = textureData_.find(filePath);
+	if (it != textureData_.end()) {
+		Console::Print(std::format(
+			               "GetTextureIndexByFilePath: 自動ロード後に見つかりました: {} -> インデックス {}",
+			               filePath, it->second.srvIndex),
+		               kConTextColorCompleted);
+		return it->second.srvIndex;
+	}
+
+	// 最終手段: smoke.pngとdev_measure.pngの特別処理
+	if (filePath.find("dev_measure.png") != std::string::npos) {
+		// dev_measure.pngを明示的に検索
+		for (const auto& [path, data] : textureData_) {
+			if (path.find("dev_measure.png") != std::string::npos) {
+				Console::Print(std::format(
+					               "GetTextureIndexByFilePath: 特殊処理 - dev_measure.pngを見つけました: {} -> インデックス {}",
+					               path, data.srvIndex), kConTextColorWarning);
+				return data.srvIndex;
+			}
+		}
+	} else if (filePath.find("smoke.png") != std::string::npos) {
+		// smoke.pngを明示的に検索
+		for (const auto& [path, data] : textureData_) {
+			if (path.find("smoke.png") != std::string::npos) {
+				Console::Print(std::format(
+					               "GetTextureIndexByFilePath: 特殊処理 - smoke.pngを見つけました: {} -> インデックス {}",
+					               path, data.srvIndex), kConTextColorWarning);
+				return data.srvIndex;
+			}
+		}
+	}
+
+	// それでも見つからない場合は0を返す
 	return 0;
 }
 
@@ -404,13 +492,71 @@ uint32_t TexManager::GetTextureIndexByFilePath(
 /// @return GPUディスクリプタハンドル
 D3D12_GPU_DESCRIPTOR_HANDLE TexManager::GetSrvHandleGPU(
 	const std::string& filePath) {
-	const auto it = textureData_.find(filePath);
-	if (it == textureData_.end()) {
-		Console::Print("GetSrvHandleGPU: filePathが見つかりません。");
-		return {};
+	// ファイル名のみで検索（パスの違いを無視）- GetTextureIndexByFilePathと同様のロジック
+	std::string filename  = filePath;
+	size_t      lastSlash = filePath.find_last_of("/\\");
+	if (lastSlash != std::string::npos) {
+		filename = filePath.substr(lastSlash + 1);
 	}
-	TextureData& textureData = it->second;
-	return textureData.srvHandleGPU;
+
+	// まず完全一致で検索
+	auto it = textureData_.find(filePath);
+	if (it != textureData_.end()) {
+		return it->second.srvHandleGPU;
+	}
+
+	// ファイル名で検索
+	for (auto& [path, data] : textureData_) {
+		std::string currentFilename  = path;
+		size_t      currentLastSlash = path.find_last_of("/\\");
+		if (currentLastSlash != std::string::npos) {
+			currentFilename = path.substr(currentLastSlash + 1);
+		}
+
+		if (currentFilename == filename) {
+			Console::Print(std::format(
+				               "GetSrvHandleGPU: ファイル名一致で見つかりました: {} -> {}",
+				               filePath, path), kConTextColorCompleted);
+			return data.srvHandleGPU;
+		}
+	}
+
+	// パスが正規化されている可能性があるので、部分一致でチェック
+	for (auto& [path, data] : textureData_) {
+		if (path.find(filePath) != std::string::npos || filePath.find(path) !=
+			std::string::npos) {
+			Console::Print(std::format(
+				               "GetSrvHandleGPU: 部分一致で見つかりました: {} -> {}",
+				               filePath, path), kConTextColorWarning);
+			return data.srvHandleGPU;
+		}
+	}
+
+	// 特別なケース: dev_measure.pngとsmoke.png
+	if (filePath.find("dev_measure.png") != std::string::npos) {
+		for (auto& [path, data] : textureData_) {
+			if (path.find("dev_measure.png") != std::string::npos) {
+				Console::Print(std::format(
+					               "GetSrvHandleGPU: 特殊処理 - dev_measure.pngを見つけました: {} -> {}",
+					               filePath, path), kConTextColorWarning);
+				return data.srvHandleGPU;
+			}
+		}
+	} else if (filePath.find("smoke.png") != std::string::npos) {
+		for (auto& [path, data] : textureData_) {
+			if (path.find("smoke.png") != std::string::npos) {
+				Console::Print(std::format(
+					               "GetSrvHandleGPU: 特殊処理 - smoke.pngを見つけました: {} -> {}",
+					               filePath, path), kConTextColorWarning);
+				return data.srvHandleGPU;
+			}
+		}
+	}
+
+	Console::Print(
+		std::format("GetSrvHandleGPU: filePathが見つかりません: {}", filePath),
+		kConTextColorError);
+	return {};
 }
 
 uint32_t TexManager::GetLoadedTextureCount() const {
