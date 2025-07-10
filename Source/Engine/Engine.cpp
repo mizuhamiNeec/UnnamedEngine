@@ -338,8 +338,9 @@ void Engine::Init() {
 	sceneManager_ = std::make_shared<SceneManager>(*sceneFactory_);
 	// ゲームシーンを登録
 	sceneFactory_->RegisterScene<GameScene>("GameScene");
+	sceneFactory_->RegisterScene<EmptyScene>("EmptyScene");
 	// シーンの初期化
-	sceneManager_->ChangeScene("GameScene");
+	sceneManager_->ChangeScene("EmptyScene");
 
 	// エディターの初期化
 	CheckEditorMode();
@@ -359,6 +360,11 @@ void Engine::Update() {
 	if (bPrevEditorMode != bIsEditorMode_) {
 		CheckEditorMode();
 		bPrevEditorMode = bIsEditorMode_;
+	}
+
+	// シーン切り替え入力の処理
+	if (InputSystem::IsTriggered("toggle_scene")) {
+		ToggleScenes();
 	}
 
 	/* ----------- 更新処理 ---------- */
@@ -836,6 +842,9 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 		"Toggle editor mode."
 	);
 
+	// シーン切り替えコマンドの登録
+	RegisterSceneCommands();
+
 	// コンソール変数を登録
 	ConVarManager::RegisterConVar<bool>("r_vulkanenabled", false,
 	                                    "Enable Vulkan renderer",
@@ -914,11 +923,63 @@ void Engine::CheckEditorMode() {
 	}
 }
 
+void Engine::ChangeScene(const std::string& sceneName) {
+	if (GetSceneManager() && sceneName != "") {
+		GetSceneManager()->ChangeScene(sceneName);
+	}
+}
+
+std::shared_ptr<BaseScene> Engine::GetCurrentScene() {
+	if (GetSceneManager()) {
+		return GetSceneManager()->GetCurrentScene();
+	}
+	return nullptr;
+}
+
+void Engine::ToggleScenes() {
+	if (!GetSceneManager()) {
+		return;
+	}
+
+	auto currentScene = GetSceneManager()->GetCurrentScene();
+
+	// 現在のシーンに基づいて切り替え
+	if (dynamic_cast<GameScene*>(currentScene.get())) {
+		GetSceneManager()->ChangeScene("EmptyScene");
+		Console::Print("Switched to Empty Scene");
+	} else {
+		GetSceneManager()->ChangeScene("GameScene");
+		Console::Print("Switched to Game Scene");
+	}
+}
+
+void Engine::RegisterSceneCommands() {
+	// シーン切り替え用のキーバインディングを設定
+	InputSystem::BindKey("F1", "toggle_scene");
+
+	// シーン切り替えコマンドの登録
+	ConCommand::RegisterCommand("scene_toggle",
+	                            [](const std::vector<std::string>&) {
+		                            Engine::ToggleScenes();
+	                            }, "Toggle between Game and Empty scenes");
+
+	ConCommand::RegisterCommand("scene_game",
+	                            [](const std::vector<std::string>&) {
+		                            Engine::ChangeScene("GameScene");
+	                            }, "Switch to Game Scene");
+
+	ConCommand::RegisterCommand("scene_empty",
+	                            [](const std::vector<std::string>&) {
+		                            Engine::ChangeScene("EmptyScene");
+	                            }, "Switch to Empty Scene");
+}
+
 bool                             Engine::bWishShutdown_ = false;
 std::unique_ptr<D3D12>           Engine::renderer_;
 std::unique_ptr<ResourceManager> Engine::resourceManager_;
 std::unique_ptr<ParticleManager> Engine::particleManager_;
 std::unique_ptr<SrvManager>      Engine::srvManager_;
+std::shared_ptr<SceneManager>    Engine::sceneManager_;
 
 Vec2 Engine::viewportLT   = Vec2::zero;
 Vec2 Engine::viewportSize = Vec2::zero;

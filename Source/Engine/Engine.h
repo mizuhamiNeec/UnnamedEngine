@@ -16,6 +16,7 @@
 #include "CubeMap/CubeMap.h"
 
 #include "Scene/GameScene.h"
+#include "Scene/EmptyScene.h"
 
 class Console;
 class D3D12;
@@ -46,6 +47,15 @@ public:
 		return srvManager_.get();
 	}
 
+	[[nodiscard]] static SceneManager* GetSceneManager() {
+		return sceneManager_.get();
+	}
+
+	// シーン管理
+	static void                       ChangeScene(const std::string& sceneName);
+	static std::shared_ptr<BaseScene> GetCurrentScene();
+	static void                       ToggleScenes(); // シーンの切り替え
+
 	void OnResize(uint32_t width, uint32_t height);
 	void ResizeOffscreenRenderTextures(uint32_t width, uint32_t height);
 
@@ -59,6 +69,7 @@ private:
 
 	static void RegisterConsoleCommandsAndVariables();
 	static void Quit(const std::vector<std::string>& args = {});
+	static void RegisterSceneCommands(); // シーン切り替えコマンド登録
 
 	void CheckEditorMode();
 
@@ -83,7 +94,7 @@ private:
 	std::unique_ptr<LineCommon>     lineCommon_;
 
 	std::unique_ptr<SceneFactory> sceneFactory_;
-	std::shared_ptr<SceneManager> sceneManager_;
+	static std::shared_ptr<SceneManager> sceneManager_;
 
 	std::unique_ptr<Editor> editor_; // エディター
 
