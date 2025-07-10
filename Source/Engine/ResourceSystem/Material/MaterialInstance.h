@@ -1,22 +1,27 @@
 #pragma once
+
 #include <string>
-#include <ResourceSystem/Texture/Texture.h>
+#include <vector>
+#include <unordered_map>
+#include <d3d12.h>
+
+class SrvManager;
 
 class MaterialInstance {
 public:
-	void SetTexture(const std::string& slot, Texture* texture) {
-		textureSlots_[slot] = texture;
+	void SetTexture(const std::string& slot, const std::string& texturePath) {
+		textureSlots_[slot] = texturePath;
 	}
 
-	Texture* GetTexture(const std::string& slot) {
+	std::string GetTexture(const std::string& slot) {
 		auto it = textureSlots_.find(slot);
-		return it != textureSlots_.end() ? it->second : nullptr;
+		return it != textureSlots_.end() ? it->second : "";
 	}
 
-	void Apply(ID3D12GraphicsCommandList* commandList,
-		UINT rootParameterIndex,
-		ShaderResourceViewManager* srvManager,
+	void Apply(
+		UINT                            rootParameterIndex,
+		SrvManager*                     srvManager,
 		const std::vector<std::string>& textureOrder);
 private:
-	std::unordered_map<std::string, Texture*> textureSlots_;
+	std::unordered_map<std::string, std::string> textureSlots_;
 };
