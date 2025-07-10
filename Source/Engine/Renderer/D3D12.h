@@ -9,10 +9,8 @@
 #include <Renderer/Renderer.h>
 
 #include <Lib/Math/Vector/Vec4.h>
-
-#include <ResourceSystem/SRV/ShaderResourceViewManager.h>
-
-#include "SrvManager.h"
+#include <Lib/Utils/ClientProperties.h>
+#include <SrvManager.h>
 
 using namespace Microsoft::WRL;
 
@@ -23,12 +21,15 @@ struct D3DResourceLeakChecker {
 struct RenderTargetTexture {
 	ComPtr<ID3D12Resource>      rtv;
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
-	DescriptorHandles           srvHandles;
+	D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU;
+	uint32_t                    srvIndex;
 };
 
 struct DepthStencilTexture {
-	ComPtr<ID3D12Resource> dsv;
-	DescriptorHandles      handles;
+	ComPtr<ID3D12Resource>      dsv;
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU;
+	uint32_t                    srvIndex;
 };
 
 struct RenderPassTargets {
