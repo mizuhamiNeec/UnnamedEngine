@@ -32,6 +32,11 @@ public:
 	void Render() override;
 	void Shutdown() override;
 
+	// ホットリロード機能
+	void ReloadWorldMesh();
+	void RecreateWorldMeshEntity();
+	void SafeReloadWorldMesh();
+
 private:
 	D3D12* renderer_ = nullptr;
 
@@ -72,4 +77,7 @@ private:
 
 	std::unique_ptr<WindEffect>      windEffect_;
 	std::unique_ptr<ExplosionEffect> explosionEffect_;
+
+	// 遅延読み込み用フラグ
+	bool mPendingMeshReload = false;
 };
