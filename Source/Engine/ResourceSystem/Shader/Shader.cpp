@@ -371,40 +371,6 @@ void Shader::ReflectShaderBlob(const ComPtr<IDxcBlob>& shaderBlob, ShaderType sh
 			resourceRegisterMap_[name] = info;
 		}
 	}
-
-	//// 定数バッファの解析
-	//for (UINT i = 0; i < shaderDesc.ConstantBuffers; i++) {
-	//	ID3D12ShaderReflectionConstantBuffer* cb = reflector->GetConstantBufferByIndex(i);
-	//	D3D12_SHADER_BUFFER_DESC bufferDesc;
-	//	hr = cb->GetDesc(&bufferDesc);
-	//	if (SUCCEEDED(hr)) {
-	//		std::string name = "CB_" + std::string(bufferDesc.Name);
-	//		resourceRegisterMap_[name] = { i, D3D12_SHADER_VISIBILITY_ALL };
-	//		Console::Print(
-	//			std::format("定数バッファを検出: {} (register b{})\n", name, i),
-	//			kConTextColorCompleted,
-	//			Channel::RenderSystem
-	//		);
-	//	}
-	//}
-
-	//// バインドリソースの解析
-	//for (UINT i = 0; i < shaderDesc.BoundResources; i++) {
-	//	D3D12_SHADER_INPUT_BIND_DESC bindDesc;
-	//	hr = reflector->GetResourceBindingDesc(i, &bindDesc);
-	//	if (SUCCEEDED(hr)) {
-	//		std::string name = bindDesc.Name;
-	//		if (bindDesc.Type == D3D_SIT_TEXTURE) {
-	//			name = "TEX_" + name;
-	//		}
-	//		resourceRegisterMap_[name] = bindDesc.BindPoint;
-	//		Console::Print(
-	//			std::format("リソースを検出: {} (register {})\n", name, bindDesc.BindPoint),
-	//			kConTextColorCompleted,
-	//			Channel::RenderSystem
-	//		);
-	//	}
-	//}
 }
 
 void Shader::ReflectShaderResources() {
@@ -417,6 +383,29 @@ void Shader::ReflectShaderResources() {
 	if (geometryShaderBlob_) {
 		ReflectShaderBlob(geometryShaderBlob_, ShaderType::GeometryShader);
 	}
+}
+
+std::vector<std::string> Shader::GetTextureSlots() const {
+    std::vector<std::string> textureSlots;
+    
+    // リソースマップからテクスチャに関連するリソース名を抽出
+    for (const auto& [resourceName, info] : resourceRegisterMap_) {
+        // テクスチャっぽいリソース名を抽出（baseColorTextureなど）
+        if (resourceName.find("Texture") != std::string::npos || 
+            resourceName.find("Map") != std::string::npos ||
+            info.type == D3D_SIT_TEXTURE) {
+            textureSlots.push_back(resourceName);
+        }
+    }
+    
+    // デフォルトのテクスチャスロット名を追加（存在しなかった場合）
+    if (textureSlots.empty()) {
+        // もし特別にリストアップされていない場合は、一般的なテクスチャスロット名を返す
+        textureSlots.push_back("gMainTexture");
+        textureSlots.push_back("gBaseColorTexture");
+    }
+    
+    return textureSlots;
 }
 
 ComPtr<IDxcUtils> Shader::dxcUtils_ = nullptr;

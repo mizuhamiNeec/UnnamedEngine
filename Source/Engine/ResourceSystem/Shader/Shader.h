@@ -38,6 +38,9 @@ public:
 	std::string GetName();
 	UINT GetResourceParameterIndex(const std::string& resourceName);
 	void SetResourceParameterIndex(const std::string& resourceName, UINT index);
+	
+	// テクスチャスロット名のリストを取得
+	std::vector<std::string> GetTextureSlots() const;
 
 	void Release();
 	static void ReleaseStaticResources();
