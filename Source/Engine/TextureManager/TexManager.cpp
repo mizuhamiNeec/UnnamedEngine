@@ -203,6 +203,7 @@ ComPtr<ID3D12Resource> TexManager::UploadTextureData(
 /// @brief テクスチャを読み込みます
 /// @param filePath テクスチャファイルのパス
 void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
+	renderer_->WaitPreviousFrame();
 	// 読み込み済みテクスチャを検索
 	if (textureData_.contains(filePath)) {
 		Console::Print(std::format("LoadTexture: {} は既に読み込み済みです\n", filePath));
@@ -251,9 +252,9 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 		// デフォルトテクスチャの読み込み
 		filePathW = StrUtil::ToWString("./Resources/Textures/empty.png");
 		hr        = DirectX::LoadFromWICFile(filePathW.c_str(),
-		                                     DirectX::WIC_FLAGS_FORCE_SRGB,
-		                                     nullptr,
-		                                     image);
+		                              DirectX::WIC_FLAGS_FORCE_SRGB,
+		                              nullptr,
+		                              image);
 		assert(SUCCEEDED(hr)); // デフォルトのテクスチャも読み込めなかった場合はエラー
 		isCubeMap = false;     // デフォルトテクスチャはキューブマップではない
 	}
