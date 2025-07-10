@@ -26,12 +26,12 @@ constexpr Vec4 kClearColorSwapChain = {0.0f, 0.0f, 0.0f, 1.0f};
 
 D3D12::D3D12(BaseWindow* window) : window_(window) {
 #ifdef _DEBUG
-	EnableDebugLayer();
+	//EnableDebugLayer();
 #endif
 	CreateDevice();
 
 #ifdef _DEBUG
-	SetInfoQueueBreakOnSeverity();
+	//SetInfoQueueBreakOnSeverity();
 #endif
 
 	CreateCommandQueue();
@@ -162,7 +162,7 @@ void D3D12::SetShaderResourceViewManager(
 }
 
 void D3D12::ClearColorAndDepth() {
-	auto dsvHandle = defaultDepthStencilTexture_.handles.cpuHandle;
+	auto dsvHandle = defaultDepthStencilTexture_.dsvHandle;
 
 	commandList_->ClearDepthStencilView(
 		dsvHandle,
@@ -893,11 +893,39 @@ RenderTargetTexture D3D12::CreateRenderTargetTexture(
 		result.rtvHandle
 	);
 
-	// TODO: どうせ戻って来る
+	// SRVを作成
+	if (srvManager_) {
+		// SRVのインデックスを確保（テクスチャ用）
+		result.srvIndex = srvManager_->AllocateForTexture();
 
-	// if (srvManager_) {
-	// 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	// 	srvDesc.Format                          = format;
+		// SRVを作成
+		srvManager_->CreateSRVForTexture2D(
+			result.srvIndex,
+			result.rtv.Get(),
+			format,
+			1
+		);
+
+		// GPU用ハンドルを取得して保存
+		result.srvHandleGPU = srvManager_->GetGPUDescriptorHandle(
+			result.srvIndex);
+
+#ifdef _DEBUG
+		// ハンドルの値を確認 (デバッグ用)
+		Console::Print(std::format("CreateRTV: format={}, size={}x{}, srvIdx={}, srvHandleGPU.ptr=0x{:x}\n", 
+			static_cast<int>(format), width, height, result.srvIndex, result.srvHandleGPU.ptr),
+			kConTextColorWarning);
+#endif
+
+		// GPUハンドルが有効か確認
+		if (result.srvHandleGPU.ptr == 0) {
+			Console::Print("WARNING: SRV GPU handle is null!\n",
+			               kConTextColorWarning);
+		}
+	} else {
+		Console::Print("WARNING: No SrvManager available when creating RTV!\n",
+		               kConTextColorWarning);
+	}
 	// 	srvDesc.ViewDimension                   = D3D12_SRV_DIMENSION_TEXTURE2D;
 	// 	srvDesc.Shader4ComponentMapping         =
 	// 		D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -940,7 +968,7 @@ DepthStencilTexture D3D12::CreateDepthStencilTexture(
 		descriptorSizeDSV,
 		dsvIndex
 	);
-	result.handles.cpuHandle = dsvHandle;
+	result.dsvHandle = dsvHandle;
 
 	// 3. DSVビュー作成
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
