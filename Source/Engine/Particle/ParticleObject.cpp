@@ -67,7 +67,7 @@ void ParticleObject::Init(ParticleManager*   particleCommon,
 	srvManager_ = particleCommon_->GetSrvManager();
 
 	// SRVのインデックスを取得
-	srvIndex_ = srvManager_->Allocate();
+	srvIndex_ = srvManager_->AllocateForStructuredBuffer();
 
 	// StructuredBuffer用のSRVを作成
 	srvManager_->CreateSRVForStructuredBuffer(
