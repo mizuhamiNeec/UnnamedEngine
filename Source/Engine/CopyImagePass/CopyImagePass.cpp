@@ -1,20 +1,24 @@
 #include "CopyImagePass.h"
 
 #include <cassert>
+#include <format>
 
 #include "SrvManager.h"
+#include <SubSystem/Console/Console.h>
 
 #include "Lib/Structs/Structs.h"
 
 #include "Renderer/PipelineState.h"
-
-#include "ResourceSystem/SRV/ShaderResourceViewManager.h"
 
 CopyImagePass::CopyImagePass(
 	ID3D12Device* device,
 	SrvManager*   srvManager
 ) : srvManager_(srvManager),
     device_(device) {
+	// SrvManagerの有効性をチェック
+	assert(srvManager_ != nullptr && "SrvManager is null");
+	assert(device_ != nullptr && "Device is null");
+	
 	Init();
 }
 
@@ -24,7 +28,9 @@ void CopyImagePass::Init() {
 	CreateRootSignature();
 	CreatePipelineState();
 
-	srvIndex_ = srvManager_->Allocate(); // SRVのインデックスを確保
+	// SrvManagerが有効であることを確認してからSRVインデックスを確保
+	assert(srvManager_ != nullptr && "SrvManager is null in Init()");
+	srvIndex_ = srvManager_->AllocateForTexture(); // テクスチャ用SRVのインデックスを確保
 
 	D3D12_HEAP_PROPERTIES props = {};
 	props.Type                  = D3D12_HEAP_TYPE_UPLOAD;
@@ -80,9 +86,11 @@ void CopyImagePass::Update([[maybe_unused]] const float deltaTime) {
 void CopyImagePass::Execute(
 	ID3D12GraphicsCommandList*  commandList,
 	ID3D12Resource*             srcTexture,
-	D3D12_CPU_DESCRIPTOR_HANDLE rtv,
-	SrvManager*                 srvManager
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv
 ) {
+	// SrvManagerの有効性を再チェック
+	assert(srvManager_ != nullptr && "SrvManager is null in Execute");
+	
 	void*   pData = nullptr;
 	HRESULT hr    = postProcessParamsCB_->Map(0, nullptr, &pData);
 	if (FAILED(hr)) {
@@ -95,10 +103,18 @@ void CopyImagePass::Execute(
 	commandList->SetPipelineState(pipelineState.Get());
 	commandList->SetGraphicsRootSignature(rootSignature.Get());
 
-	ID3D12DescriptorHeap* heaps[] = {
-		ShaderResourceViewManager::GetDescriptorHeap().Get()
-	};
-	commandList->SetDescriptorHeaps(_countof(heaps), heaps);
+	// ディスクリプターヒープの有効性をチェック
+	ID3D12DescriptorHeap* descriptorHeap = srvManager_->GetDescriptorHeap();
+	if (descriptorHeap != nullptr) {
+		ID3D12DescriptorHeap* heaps[] = {
+			descriptorHeap
+		};
+		commandList->SetDescriptorHeaps(_countof(heaps), heaps);
+	} else {
+		// ディスクリプターヒープがnullの場合、エラーログを出力
+		assert(false && "SrvManager's descriptor heap is null in Execute");
+		return;
+	}
 
 	// RTVセット
 	commandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
@@ -113,16 +129,30 @@ void CopyImagePass::Execute(
 	// srvDesc.Texture2D.PlaneSlice = 0;
 	// srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-	srvManager->CreateSRVForTexture2D(
+	// フォーマット情報のデバッグ出力
+	const auto srcFormat = srcTexture->GetDesc().Format;
+	
+	// SRV作成
+	srvManager_->CreateSRVForTexture2D(
 		srvIndex_,
 		srcTexture,
-		srcTexture->GetDesc().Format,
+		srcFormat,
 		srcTexture->GetDesc().MipLevels
 	);
 
+	// GPUハンドルの取得とデバッグ情報出力
+	const auto gpuHandle = srvManager_->GetGPUDescriptorHandle(srvIndex_);
+	
+	static bool loggedOnce = false;
+	if (!loggedOnce) {
+		Console::Print(std::format("CopyImagePass: srvIdx={}, format={}, handle=0x{:x}\n", 
+			srvIndex_, static_cast<int>(srcFormat), gpuHandle.ptr), kConTextColorGray);
+		loggedOnce = true;
+	}
+
 	// 3. SRVをルートテーブルにバインド
 	commandList->SetGraphicsRootDescriptorTable(
-		0, srvManager->GetGPUDescriptorHandle(srvIndex_)); // SRV
+		0, gpuHandle); // SRV
 	//
 	commandList->SetGraphicsRootConstantBufferView(
 		1, postProcessParamsCB_->GetGPUVirtualAddress()); // CBV
