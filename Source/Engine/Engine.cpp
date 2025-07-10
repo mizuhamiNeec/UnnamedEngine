@@ -1,33 +1,44 @@
 #include "Engine.h"
 
 #ifdef _DEBUG
+#include <imgui_impl_dx12.h>
 #include <imgui_internal.h>
-#include "imgui_impl_dx12.h"
-#include "ImGuiManager/Icons.h"
-#include "ImGuiManager/ImGuiWidgets.h"
-#include "ImGuizmo/ImGuizmo.h"
+
+#include <ImGuiManager/Icons.h>
+
+#include <ImGuizmo/ImGuizmo.h>
+
 #include <Lib/DebugHud/DebugHud.h>
-#include "Lib/Utils/StrUtil.h"
+#include <Lib/Utils/StrUtil.h>
+
+#include "ImGuiManager/ImGuiWidgets.h"
 #endif
 
+#include <SrvManager.h>
+
 #include <Camera/CameraManager.h>
+
+#include <CopyImagePass/CopyImagePass.h>
+
 #include <Debug/Debug.h>
+
 #include <Input/InputSystem.h>
+
 #include <Lib/Utils/ClientProperties.h>
+
 #include <Renderer/D3D12.h>
-#include <Scene/GameScene.h>
-#include <SubSystem/Console/ConCommand.h>
+
+#include <SubSystem/Console/Console.h>
 #include <SubSystem/Console/Console.h>
 #include <SubSystem/Console/ConVarManager.h>
+
+#include <TextureManager/TexManager.h>
+
 #include <Window/EditorWindow.h>
 #include <Window/MainWindow.h>
 #include <Window/WindowsUtils.h>
 
-#include "SrvManager.h"
-
-#include "CopyImagePass/CopyImagePass.h"
-
-#include "TextureManager/TexManager.h"
+#include "SubSystem/Console/ConCommand.h"
 
 Engine::Engine() = default;
 
@@ -54,28 +65,8 @@ void Engine::OnResize(const uint32_t width, const uint32_t height) {
 
 	// GPUの処理が終わるまで待つ
 	renderer_->Flush();
-	//renderer_->WaitPreviousFrame();
 
 	renderer_->Resize(width, height);
-
-	const auto srvManager = resourceManager_->GetShaderResourceViewManager();
-
-	srvManager->UnregisterResource(
-		offscreenRTV_.rtv
-	);
-	srvManager->UnregisterResource(
-		offscreenDSV_.dsv
-	);
-
-	srvManager->UnregisterResource(
-		postProcessedRTV_.rtv
-	);
-	srvManager->UnregisterResource(
-		postProcessedDSV_.dsv
-	);
-
-	offscreenRTV_.rtv.Reset();
-	offscreenDSV_.dsv.Reset();
 
 	postProcessedRTV_.rtv.Reset();
 	postProcessedDSV_.dsv.Reset();
@@ -109,11 +100,11 @@ void Engine::OnResize(const uint32_t width, const uint32_t height) {
 
 	offscreenRenderPassTargets_.pRTVs   = &offscreenRTV_.rtvHandle;
 	offscreenRenderPassTargets_.numRTVs = 1;
-	offscreenRenderPassTargets_.pDSV    = &offscreenDSV_.handles.cpuHandle;
+	offscreenRenderPassTargets_.pDSV    = &offscreenDSV_.dsvHandle;
 
-	postProcessedRenderPassTargets_.pRTVs = &postProcessedRTV_.rtvHandle;
+	postProcessedRenderPassTargets_.pRTVs   = &postProcessedRTV_.rtvHandle;
 	postProcessedRenderPassTargets_.numRTVs = 1;
-	postProcessedRenderPassTargets_.pDSV = &postProcessedDSV_.handles.cpuHandle;
+	postProcessedRenderPassTargets_.pDSV    = &postProcessedDSV_.dsvHandle;
 }
 
 void Engine::ResizeOffscreenRenderTextures(
@@ -132,22 +123,6 @@ void Engine::ResizeOffscreenRenderTextures(
 
 	renderer_->ResetOffscreenRenderTextures();
 
-	const auto srvManager = resourceManager_->GetShaderResourceViewManager();
-
-	srvManager->UnregisterResource(
-		offscreenRTV_.rtv
-	);
-	srvManager->UnregisterResource(
-		offscreenDSV_.dsv
-	);
-
-	srvManager->UnregisterResource(
-		postProcessedRTV_.rtv
-	);
-	srvManager->UnregisterResource(
-		postProcessedDSV_.dsv
-	);
-
 	offscreenRTV_.rtv.Reset();
 	offscreenDSV_.dsv.Reset();
 
@@ -183,11 +158,11 @@ void Engine::ResizeOffscreenRenderTextures(
 
 	offscreenRenderPassTargets_.pRTVs   = &offscreenRTV_.rtvHandle;
 	offscreenRenderPassTargets_.numRTVs = 1;
-	offscreenRenderPassTargets_.pDSV    = &offscreenDSV_.handles.cpuHandle;
+	offscreenRenderPassTargets_.pDSV    = &offscreenDSV_.dsvHandle;
 
-	postProcessedRenderPassTargets_.pRTVs = &postProcessedRTV_.rtvHandle;
+	postProcessedRenderPassTargets_.pRTVs   = &postProcessedRTV_.rtvHandle;
 	postProcessedRenderPassTargets_.numRTVs = 1;
-	postProcessedRenderPassTargets_.pDSV = &postProcessedDSV_.handles.cpuHandle;
+	postProcessedRenderPassTargets_.pDSV    = &postProcessedDSV_.dsvHandle;
 
 	//renderer_->SetViewportAndScissor(width, height);
 }
@@ -246,18 +221,24 @@ void Engine::Init() {
 
 	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
 
-#ifdef _DEBUG
-	imGuiManager_ = std::make_unique<ImGuiManager>(
-		renderer_.get(), resourceManager_->GetShaderResourceViewManager());
-#endif
-
-	console_ = std::make_unique<Console>();
+	srvManager_ = std::make_unique<SrvManager>();
+	srvManager_->Init(renderer_.get());
 
 	resourceManager_->Init();
 
 	renderer_->SetShaderResourceViewManager(
-		resourceManager_->GetShaderResourceViewManager());
+		srvManager_.get());
 	renderer_->Init();
+
+	srvManager_->Allocate();
+
+#ifdef _DEBUG
+	imGuiManager_ = std::make_unique<ImGuiManager>(
+		renderer_.get(), srvManager_.get());
+#endif
+
+	console_ = std::make_unique<Console>();
+
 
 	offscreenRTV_ = renderer_->CreateRenderTargetTexture(
 		wm_->GetMainWindow()->GetClientWidth(),
@@ -287,23 +268,25 @@ void Engine::Init() {
 
 	offscreenRenderPassTargets_.pRTVs        = &offscreenRTV_.rtvHandle;
 	offscreenRenderPassTargets_.numRTVs      = 1;
-	offscreenRenderPassTargets_.pDSV         = &offscreenDSV_.handles.cpuHandle;
+	offscreenRenderPassTargets_.pDSV         = &offscreenDSV_.dsvHandle;
 	offscreenRenderPassTargets_.clearColor   = offscreenClearColor;
 	offscreenRenderPassTargets_.clearDepth   = 1.0f;
 	offscreenRenderPassTargets_.clearStencil = 0;
 	offscreenRenderPassTargets_.bClearColor  = true;
 	offscreenRenderPassTargets_.bClearDepth  = true;
 
-	postProcessedRenderPassTargets_.pRTVs = &postProcessedRTV_.rtvHandle;
-	postProcessedRenderPassTargets_.numRTVs = 1;
-	postProcessedRenderPassTargets_.pDSV = &postProcessedDSV_.handles.cpuHandle;
-	postProcessedRenderPassTargets_.clearColor = offscreenClearColor;
-	postProcessedRenderPassTargets_.clearDepth = 1.0f;
+	postProcessedRenderPassTargets_.pRTVs        = &postProcessedRTV_.rtvHandle;
+	postProcessedRenderPassTargets_.numRTVs      = 1;
+	postProcessedRenderPassTargets_.pDSV         = &postProcessedDSV_.dsvHandle;
+	postProcessedRenderPassTargets_.clearColor   = offscreenClearColor;
+	postProcessedRenderPassTargets_.clearDepth   = 1.0f;
 	postProcessedRenderPassTargets_.clearStencil = 0;
-	postProcessedRenderPassTargets_.bClearColor = true;
-	postProcessedRenderPassTargets_.bClearDepth = true;
+	postProcessedRenderPassTargets_.bClearColor  = true;
+	postProcessedRenderPassTargets_.bClearDepth  = true;
 
-	copyImagePass_ = std::make_unique<CopyImagePass>(renderer_->GetDevice());
+	copyImagePass_ = std::make_unique<CopyImagePass>(
+		renderer_->GetDevice(), srvManager_.get()
+	);
 
 	//// モデル
 	//modelCommon_ = std::make_unique<ModelCommon>();
@@ -316,9 +299,6 @@ void Engine::Init() {
 	//// スプライト
 	//spriteCommon_ = std::make_unique<SpriteCommon>();
 	//spriteCommon_->Init(renderer_.get());
-
-	srvManager_ = std::make_unique<SrvManager>();
-	srvManager_->Init(renderer_.get());
 
 	TexManager::GetInstance()->Init(renderer_.get(), srvManager_.get());
 
@@ -350,8 +330,6 @@ void Engine::Init() {
 	//-------------------------------------------------------------------------
 
 	Console::SubmitCommand("neofetch");
-
-	resourceManager_->GetTextureManager()->InitErrorTexture();
 
 	entityLoader_ = std::make_unique<EntityLoader>();
 
@@ -580,25 +558,41 @@ void Engine::Update() {
 		ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
 
 		ImVec2     avail = ImGui::GetContentRegionAvail();
-		const auto ptr   = postProcessedRTV_.srvHandles.gpuHandle.ptr;
+		const auto ptr   = postProcessedRTV_.srvHandleGPU.ptr;
 
 		static int prevW = 0, prevH = 0;
 		int        w     = static_cast<int>(avail.x);
 		int        h     = static_cast<int>(avail.y);
 		if ((w != prevW || h != prevH) && w > 0 && h > 0) {
-			// ビューポートサイズがおかしくなるので一旦廃止
-			//ResizeOffscreenRenderTextures(w, h);
-			/*CameraManager::GetActiveCamera()->SetAspectRatio(
-				static_cast<float>(w) / static_cast<float>(h)
-			);*/
 			prevW = w;
 			prevH = h;
 		}
 
-		if (ptr) {
-			const ImTextureID texId =
-				postProcessedRTV_.srvHandles.gpuHandle.ptr;
+		// ポインタの値とインデックスをログ出力 (デバッグ用)
+		static bool loggedOnce = false;
+		if (!loggedOnce) {
+			Console::Print(std::format(
+				               "ViewPort: srvIdx={}, srvHandleGPU.ptr=0x{:x}\n",
+				               postProcessedRTV_.srvIndex, ptr),
+			               kConTextColorWarning);
+			loggedOnce = true;
+		}
 
+		// ここで直接postProcessedRTV_のSRVハンドルを使用する
+		// CopyImagePassはoffscreenRTのSRVを作成するが、それはポストプロセス前の画像
+		// ポストプロセス後の画像は既にpostProcessedRTV_のSRVとして利用可能
+
+		// 一度だけログを出力
+		static bool loggedSrvOnce = false;
+		if (!loggedSrvOnce) {
+			Console::Print(std::format(
+				               "Using postProcessedRTV SRV: idx={}, handle=0x{:x}\n",
+				               postProcessedRTV_.srvIndex, ptr),
+			               kConTextColorWarning);
+			loggedSrvOnce = true;
+		}
+
+		if (ptr) {
 			// リソースからテクスチャの幅と高さを取得
 			auto        desc      = postProcessedRTV_.rtv->GetDesc();
 			const float texWidth  = static_cast<float>(desc.Width);
@@ -609,17 +603,14 @@ void Engine::Update() {
 
 			ImVec2 drawSize = avail;
 			if (availAspect > texAspect) {
-				// 横が余る
 				drawSize.x = avail.y * texAspect;
 			} else {
-				// 縦が余る
 				drawSize.y = avail.x / texAspect;
 			}
 
 			float titleBarHeight = ImGui::GetCurrentWindow()->
 				TitleBarHeight;
 
-			// ここで中央に配置するためのオフセットを計算
 			ImVec2 offset = {
 				(avail.x - drawSize.x) * 0.5f,
 				(avail.y - drawSize.y) * 0.5f + titleBarHeight
@@ -629,7 +620,7 @@ void Engine::Update() {
 			ImVec2 viewportScreenPos = ImGui::GetCursorScreenPos();
 
 			ImGui::ImageWithBg(
-				texId,
+				(ImTextureID)ptr, // postProcessedRTV_のSRVを直接使用
 				drawSize,
 				ImVec2(0, 0), ImVec2(1, 1),
 				bg, tint
@@ -679,10 +670,6 @@ void Engine::Update() {
 	renderer_->PreRender();
 	//-------------------------------------------------------------------------
 
-	// renderer_->SetViewportAndScissor(
-	// 	WindowManager::GetMainWindow()->GetClientWidth(),
-	// 	WindowManager::GetMainWindow()->GetClientHeight()
-	// );
 	renderer_->SetViewportAndScissor(
 		static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Width),
 		static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Height)
@@ -718,8 +705,7 @@ void Engine::Update() {
 		copyImagePass_->Execute(
 			renderer_->GetCommandList(),
 			offscreenRTV_.rtv.Get(),
-			postProcessedRTV_.rtvHandle,
-			resourceManager_->GetShaderResourceViewManager()
+			postProcessedRTV_.rtvHandle
 		);
 
 		// バリアを設定
@@ -731,6 +717,22 @@ void Engine::Update() {
 		postBarrier.Transition.StateAfter =
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		renderer_->GetCommandList()->ResourceBarrier(1, &postBarrier);
+
+		// CopyImagePass実行後にSRVを再作成して最新の内容を反映
+		if (srvManager_) {
+			// SRVを再作成
+			srvManager_->CreateSRVForTexture2D(
+				postProcessedRTV_.srvIndex,
+				postProcessedRTV_.rtv.Get(),
+				postProcessedRTV_.rtv->GetDesc().Format,
+				1
+			);
+
+			// GPUハンドルを再取得
+			postProcessedRTV_.srvHandleGPU = srvManager_->
+				GetGPUDescriptorHandle(
+					postProcessedRTV_.srvIndex);
+		}
 	} else {
 		// ゲーム時はスワップチェーンに直接描画
 		renderer_->BeginSwapChainRenderPass();
@@ -741,8 +743,7 @@ void Engine::Update() {
 		copyImagePass_->Execute(
 			renderer_->GetCommandList(),
 			offscreenRTV_.rtv.Get(),
-			renderer_->GetSwapChainRenderTargetView(),
-			resourceManager_->GetShaderResourceViewManager()
+			renderer_->GetSwapChainRenderTargetView()
 		);
 	}
 
@@ -794,10 +795,6 @@ void Engine::Update() {
 	}
 
 	renderer_->PostRender();
-
-	//-------------------------------------------------------------------------
-
-	//time_->EndFrame();
 }
 
 void Engine::Shutdown() const {
@@ -921,6 +918,7 @@ bool                             Engine::bWishShutdown_ = false;
 std::unique_ptr<D3D12>           Engine::renderer_;
 std::unique_ptr<ResourceManager> Engine::resourceManager_;
 std::unique_ptr<ParticleManager> Engine::particleManager_;
+std::unique_ptr<SrvManager>      Engine::srvManager_;
 
 Vec2 Engine::viewportLT   = Vec2::zero;
 Vec2 Engine::viewportSize = Vec2::zero;

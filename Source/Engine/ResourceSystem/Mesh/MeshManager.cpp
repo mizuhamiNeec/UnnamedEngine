@@ -19,7 +19,6 @@
 #include "Lib/Utils/StrUtil.h"
 
 void MeshManager::Init(const ComPtr<ID3D12Device>& device,
-                       TextureManager*             textureManager,
                        ShaderManager*              shaderManager,
                        MaterialManager*            materialManager) {
 	Console::Print(
@@ -28,7 +27,6 @@ void MeshManager::Init(const ComPtr<ID3D12Device>& device,
 		Channel::ResourceSystem
 	);
 	device_          = device;
-	textureManager_  = textureManager;
 	shaderManager_   = shaderManager;
 	materialManager_ = materialManager;
 }
@@ -63,9 +61,9 @@ void MeshManager::Shutdown() {
 	}
 	staticMeshes_.clear();
 
-	device_          = nullptr;
-	textureManager_  = nullptr;
-	shaderManager_   = nullptr;
+	device_         = nullptr;
+	texManager_     = nullptr;
+	shaderManager_  = nullptr;
 	materialManager_ = nullptr;
 }
 
@@ -121,6 +119,43 @@ bool MeshManager::LoadMeshFromFile(const std::string& filePath) {
 	Console::Print("メッシュの読み込みに成功しました: " + filePath + "\n",
 	               kConTextColorCompleted, Channel::ResourceSystem);
 	return true;
+}
+
+bool MeshManager::ReloadMeshFromFile(const std::string& filePath) {
+	Console::Print("メッシュをリロードしています: " + filePath + "\n",
+	               kConTextColorWarning, Channel::ResourceSystem);
+	
+	// 既存のメッシュを削除
+	auto it = staticMeshes_.find(filePath);
+	if (it != staticMeshes_.end()) {
+		Console::Print("既存のメッシュを削除しました: " + filePath + "\n",
+		               kConTextColorWarning, Channel::ResourceSystem);
+		staticMeshes_.erase(it);
+	}
+	
+	// 関連するサブメッシュも削除（メッシュ名をキーとして検索）
+	for (auto subMeshIt = subMeshes_.begin(); subMeshIt != subMeshes_.end();) {
+		if (subMeshIt->first.find(filePath) != std::string::npos) {
+			Console::Print("関連するサブメッシュを削除しました: " + subMeshIt->first + "\n",
+			               kConTextColorWarning, Channel::ResourceSystem);
+			subMeshIt = subMeshes_.erase(subMeshIt);
+		} else {
+			++subMeshIt;
+		}
+	}
+	
+	// 新しいメッシュを読み込み
+	bool result = LoadMeshFromFile(filePath);
+	
+	if (result) {
+		Console::Print("メッシュのリロードに成功しました: " + filePath + "\n",
+		               kConTextColorCompleted, Channel::ResourceSystem);
+	} else {
+		Console::Print("メッシュのリロードに失敗しました: " + filePath + "\n",
+		               kConTextColorError, Channel::ResourceSystem);
+	}
+	
+	return result;
 }
 
 StaticMesh* MeshManager::GetStaticMesh(const std::string& name) const {
@@ -215,9 +250,31 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 		const aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
 		const std::string materialName = aiMat->GetName().C_Str();
 
-		// マテリアルの作成またはキャッシュから取得
+		// メッシュ名を取得（ファイルパスからファイル名のみを抽出）
+		std::string meshName = staticMesh->GetName();
+		size_t lastSlash = meshName.find_last_of("/\\");
+		if (lastSlash != std::string::npos) {
+			meshName = meshName.substr(lastSlash + 1);
+		}
+		// 拡張子を削除
+		size_t lastDot = meshName.find_last_of('.');
+		if (lastDot != std::string::npos) {
+			meshName = meshName.substr(0, lastDot);
+		}
+
+		// マテリアルの作成またはキャッシュから取得（メッシュ名を含む一意キーで管理）
 		material = materialManager_->GetOrCreateMaterial(
-			materialName, DefaultShader::CreateDefaultShader(shaderManager_));
+			materialName, 
+			DefaultShader::CreateDefaultShader(shaderManager_),
+			meshName
+		);
+
+		Console::Print(
+			std::format("MeshManager: マテリアル割り当て - メッシュ: {}, マテリアル: {} (フルネーム: {})\n", 
+				meshName, materialName, material->GetFullName()),
+			kConTextColorCompleted,
+			Channel::ResourceSystem
+		);
 
 		// テクスチャの設定
 		aiString texturePath;
@@ -234,25 +291,18 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 				std::filesystem::path texPath(texturePathStr);
 				std::filesystem::path fullTexturePath = modelDir / texPath;
 
-				if (Texture* texture = textureManager_->GetTexture(
-					fullTexturePath.string()).get()) {
-					material->SetTexture("baseColorTexture", texture);
-				}
+				// 旧TexManagerを使用してテクスチャを読み込み
+				TexManager::GetInstance()->LoadTexture(fullTexturePath.string());
+				material->SetTexture("gBaseColorTexture", fullTexturePath.string());
 			}
 		} else {
-			material->SetTexture("baseColorTexture",
-			                     TextureManager::GetErrorTexture().get());
+			// エラーテクスチャのパスを設定（必要に応じて実装）
+			material->SetTexture("gBaseColorTexture", "./Resources/Textures/uvChecker.png");
 		}
 
-		//material->SetTexture("envMap", TextureManager::GetErrorTexture().get());
-		//if (Texture* texture = textureManager_->GetTexture("./Resources/Textures/kloofendal_48d_partly_cloudy_puresky_2k.png").get()) {
-		//	material->SetTexture("envMap", texture);
-		//}
-
-		if (Texture* texture = textureManager_->GetTexture(
-			"./Resources/Textures/wave.dds").get()) {
-			material->SetTexture("gEnvironmentTexture", texture);
-		}
+		// 環境マップテクスチャの設定
+		TexManager::GetInstance()->LoadTexture("./Resources/Textures/wave.dds");
+		material->SetTexture("gEnvironmentTexture", "./Resources/Textures/wave.dds");
 	}
 
 	auto subMesh = std::make_unique<SubMesh>(device_, mesh->mName.C_Str());

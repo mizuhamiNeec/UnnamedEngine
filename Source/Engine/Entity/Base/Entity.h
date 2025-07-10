@@ -46,6 +46,10 @@ public:
 	T* AddComponent(Args &&...args);
 	template <typename T>
 	T* GetComponent();
+	template <typename T>
+	bool HasComponent();
+	template <typename T>
+	bool RemoveComponent();
 
 	// すべてのコンポーネントを取得
 	template <typename T>
@@ -106,4 +110,29 @@ std::vector<T*> Entity::GetComponents() {
 		}
 	}
 	return result;
+}
+
+template <typename T>
+bool Entity::HasComponent() {
+	static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
+	for (const auto& component : components_) {
+		if (dynamic_cast<T*>(component.get())) {
+			return true;
+		}
+	}
+	return false;
+}
+
+template <typename T>
+bool Entity::RemoveComponent() {
+	static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
+	for (auto it = components_.begin(); it != components_.end(); ++it) {
+		if (auto* castedComponent = dynamic_cast<T*>(it->get())) {
+			// コンポーネントを削除する前にOnDetachを呼ぶ
+			castedComponent->OnDetach();
+			components_.erase(it);
+			return true; // 最初に見つかったコンポーネントを削除
+		}
+	}
+	return false; // 見つからなかった
 }

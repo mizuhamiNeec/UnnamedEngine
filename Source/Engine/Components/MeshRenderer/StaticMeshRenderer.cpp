@@ -103,8 +103,11 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 
 void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 	// メッシュが存在しない場合は描画をスキップ
-	if (!staticMesh_)
+	if (!staticMesh_) {
+		Console::Print("StaticMeshRenderer::Render - メッシュがnullです\n",
+		               kConTextColorError, Channel::RenderSystem);
 		return;
+	}
 
 	// 現在バインドされているマテリアルを追跡
 	Material* currentlyBoundMaterial = nullptr;
@@ -144,7 +147,7 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 				                                        "gMaterial");
 			material->SetConstantBuffer(materialRegister,
 			                            matparamCBV->GetResource());
-
+			
 			const UINT dirLightRegister = material->GetShader()->
 			                                        GetResourceRegister(
 				                                        "gDirectionalLight");
@@ -163,12 +166,37 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 				material->SetConstantBuffer(cameraRegister,
 				                            cameraCB->GetResource());
 			}
+			
+			// マテリアルのApply（すべてのテクスチャがディスクリプタテーブルでバインドされる）
+			std::string meshName = staticMesh_
+				                       ? staticMesh_->GetName()
+				                       : "UnknownMesh";
 
-			material->Apply(commandList);
+			// ファイルパスからファイル名のみを抽出
+			size_t lastSlash = meshName.find_last_of("/\\");
+			if (lastSlash != std::string::npos) {
+				meshName = meshName.substr(lastSlash + 1);
+			}
+
+			// 拡張子を削除
+			size_t lastDot = meshName.find_last_of('.');
+			if (lastDot != std::string::npos) {
+				meshName = meshName.substr(0, lastDot);
+			}
+			
+			material->Apply(commandList, meshName);
+
+			// デバッグ用：テクスチャスロット確認のみ
+			auto shader = material->GetShader();
+			if (shader) {
+				std::vector<std::string> textureOrder = shader->
+					GetTextureSlots();
+			}
+
 			currentlyBoundMaterial = material;
 		} else if (!material) {
 			Console::Print(
-				"サブメッシュにマテリアルが設定されていません",
+				"サブメッシュにマテリアルが設定されていません\n",
 				kConTextColorError,
 				Channel::RenderSystem
 			);
@@ -245,10 +273,75 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 			                 &spotLightData->cosFalloffStart, 0.01f);
 
 			ImGui::Text("Name: %s", staticMesh_->GetName().c_str());
+
+			// サブメッシュとテクスチャ情報の表示（デバッグ強化版）
+			ImGui::Separator();
+			ImGui::Text("SubMeshes and Textures:");
 			for (auto& subMesh : staticMesh_->GetSubMeshes()) {
-				ImGui::Selectable(
-					(subMesh->GetMaterial()->GetName() + "##" + subMesh->
-						GetName()).c_str());
+				Material* material = subMesh->GetMaterial();
+				if (material) {
+					if (ImGui::TreeNode(
+						(subMesh->GetName() + " - " + material->GetFullName()).
+						c_str())) {
+						// マテリアルのテクスチャ情報を表示
+						const auto& textures = material->GetTextures();
+						if (!textures.empty()) {
+							ImGui::Text("Textures:");
+							auto texManager = TexManager::GetInstance();
+
+							for (const auto& [name, filePath] : textures) {
+								// テクスチャ情報をより詳細に表示
+								if (ImGui::TreeNode(
+									(name + ": " + filePath).c_str())) {
+									ImGui::Text("Slot名: %s", name.c_str());
+									ImGui::Text("ファイルパス: %s", filePath.c_str());
+
+									// テクスチャインデックス情報を表示
+									uint32_t textureIndex = texManager->
+										GetTextureIndexByFilePath(filePath);
+									ImGui::Text("テクスチャインデックス: %u",
+									            textureIndex);
+
+									// テクスチャのプレビューを表示
+									D3D12_GPU_DESCRIPTOR_HANDLE handle =
+										texManager->GetSrvHandleGPU(filePath);
+									if (handle.ptr != 0) {
+										ImGui::Text(
+											"GPU Handle: %llu", handle.ptr);
+										ImGui::Image(
+											(ImTextureID)handle.ptr,
+											ImVec2(150, 150));
+
+										// メタデータ情報があれば表示
+										try {
+											const auto& metadata = texManager->
+												GetMetaData(filePath);
+											ImGui::Text("サイズ: %ux%u",
+												static_cast<uint32_t>(metadata.
+													width),
+												static_cast<uint32_t>(metadata.
+													height));
+											ImGui::Text(
+												"フォーマット: %d", metadata.format);
+										} catch (...) {
+											ImGui::Text("メタデータ取得エラー");
+										}
+									} else {
+										ImGui::Text("テクスチャのGPUハンドルが無効です");
+										// テクスチャロード試行
+										if (ImGui::Button("テクスチャ再ロード")) {
+											texManager->LoadTexture(filePath);
+										}
+									}
+									ImGui::TreePop();
+								}
+							}
+						} else {
+							ImGui::Text("テクスチャなし");
+						}
+						ImGui::TreePop();
+					}
+				}
 			}
 		}
 	}

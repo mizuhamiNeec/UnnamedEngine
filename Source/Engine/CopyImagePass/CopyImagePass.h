@@ -3,7 +3,9 @@
 #include <d3d12.h>
 #include <wrl.h>
 
-#include "ResourceSystem/SRV/ShaderResourceViewManager.h"
+#include "SrvManager.h"
+
+class ShaderResourceViewManager;
 
 struct PostProcessParams {
 	float bloomStrength       = 2.0f;
@@ -16,7 +18,7 @@ struct PostProcessParams {
 
 class CopyImagePass {
 public:
-	CopyImagePass(ID3D12Device* device);
+	CopyImagePass(ID3D12Device* device, SrvManager* srvManager);
 	~CopyImagePass();
 
 	void Init();
@@ -26,15 +28,20 @@ public:
 	void Execute(
 		ID3D12GraphicsCommandList*  commandList,
 		ID3D12Resource*             srcTexture,
-		D3D12_CPU_DESCRIPTOR_HANDLE rtv,
-		ShaderResourceViewManager*  shaderSrvManager
+		D3D12_CPU_DESCRIPTOR_HANDLE rtv
 	);
 
 	void Shutdown() { device_ = nullptr; }
+	
+	// SRVインデックスを取得するメソッドを追加
+	uint32_t GetSrvIndex() const { return srvIndex_; }
 
 private:
 	void CreateRootSignature();
 	void CreatePipelineState();
+
+	SrvManager* srvManager_ = nullptr;
+	uint32_t    srvIndex_   = 0;
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;

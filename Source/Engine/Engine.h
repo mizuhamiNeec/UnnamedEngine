@@ -15,6 +15,8 @@
 #include "CopyImagePass/CopyImagePass.h"
 #include "CubeMap/CubeMap.h"
 
+#include "Scene/GameScene.h"
+
 class Console;
 class D3D12;
 class MainWindow;
@@ -40,6 +42,10 @@ public:
 		return particleManager_.get();
 	}
 
+	[[nodiscard]] static SrvManager* GetSrvManager() {
+		return srvManager_.get();
+	}
+
 	void OnResize(uint32_t width, uint32_t height);
 	void ResizeOffscreenRenderTextures(uint32_t width, uint32_t height);
 
@@ -58,7 +64,7 @@ private:
 
 	std::unique_ptr<WindowManager> wm_;
 
-	std::unique_ptr<SrvManager>             srvManager_;
+	static std::unique_ptr<SrvManager>      srvManager_;
 	static std::unique_ptr<ResourceManager> resourceManager_;
 
 	std::unique_ptr<EngineTimer> time_;

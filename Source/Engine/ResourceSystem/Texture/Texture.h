@@ -7,9 +7,9 @@
 
 #include <Renderer/D3D12.h>
 
-#include <ResourceSystem/SRV/ShaderResourceViewManager.h>
-
 using Microsoft::WRL::ComPtr;
+
+class ShaderResourceViewManager;
 
 class Texture {
 public:
@@ -17,10 +17,12 @@ public:
 	~Texture() = default;
 
 	bool LoadFromFile(
-		D3D12*                     d3d12,
-		ShaderResourceViewManager* shaderResourceViewManager,
-		const std::string&         filePath
+		D3D12*             d3d12,
+		SrvManager*        shaderResourceViewManager,
+		const std::string& filePath
 	);
+
+	void FromOldTextureManager(const std::string& path);
 
 	D3D12_GPU_DESCRIPTOR_HANDLE GetShaderResourceView() const;
 	D3D12_CPU_DESCRIPTOR_HANDLE GetShaderResourceViewCPUHandle();
@@ -29,9 +31,8 @@ public:
 
 	ComPtr<ID3D12Resource> GetResource() const;
 
-	bool CreateErrorTexture(D3D12* d3d12,
-	                        ShaderResourceViewManager*
-	                        shaderResourceViewManager);
+	bool CreateErrorTexture(D3D12*      d3d12,
+	                        SrvManager* shaderResourceViewManager);
 
 private:
 	ComPtr<ID3D12Resource>        CreateTextureResource(ID3D12Device* device);

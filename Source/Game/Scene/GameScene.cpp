@@ -18,10 +18,16 @@
 #include <Sprite/SpriteCommon.h>
 #include <SubSystem/Console/ConVarManager.h>
 #include <format>
+#include <thread>
+#include <chrono>
 
 #include "Assets/Manager/AssetManager.h"
 #include "ImGuiManager/ImGuiWidgets.h"
 #include "TextureManager/TexManager.h"
+
+// コンソールカラー定数
+constexpr Vec4 kConFgColorGreen   = Vec4(0.0f, 1.0f, 0.0f, 1.0f);
+constexpr Vec4 kConFgColorWarning = Vec4(1.0f, 1.0f, 0.0f, 1.0f);
 
 GameScene::~GameScene() {
 	resourceManager_ = nullptr;
@@ -63,10 +69,20 @@ void GameScene::Init() {
 
 	renderer_        = Engine::GetRenderer();
 	resourceManager_ = Engine::GetResourceManager();
+	srvManager_      = Engine::GetSrvManager();
 
 #pragma region テクスチャ読み込み
-	resourceManager_->GetTextureManager()->GetTexture(
-		"./Resources/Textures/wave.dds");
+	TexManager::GetInstance()->LoadTexture(
+		"./Resources/Textures/dev_measure.png"
+	);
+
+	TexManager::GetInstance()->LoadTexture(
+		"./Resources/Textures/uvChecker.png"
+	);
+
+	TexManager::GetInstance()->LoadTexture(
+		"./Resources/Textures/wave.dds"
+	);
 
 	TexManager::GetInstance()->LoadTexture(
 		"./Resources/Textures/smoke.png"
@@ -84,7 +100,11 @@ void GameScene::Init() {
 	resourceManager_->GetMeshManager()->LoadMeshFromFile(
 		"./Resources/Models/weapon.obj");
 
-	cubeMap_ = std::make_unique<CubeMap>(renderer_->GetDevice());
+	cubeMap_ = std::make_unique<CubeMap>(
+		renderer_->GetDevice(),
+		srvManager_,
+		"./Resources/Textures/wave.dds"
+	);
 #pragma endregion
 
 #pragma region パーティクル類
@@ -235,6 +255,9 @@ void GameScene::Init() {
 		"sv_airaccelerate 100000000000000000"
 	);
 
+	// F5キーをバインド
+	Console::SubmitCommand("bind f5 +f5", true);
+
 	// テレポートトリガー領域の設定
 	Vec3 triggerCenter(19.5072f, -29.2608f, 260.096f); // トリガーの中心位置
 	Vec3 triggerSize(Vec3::one * 13.0048f * 2.0f);     // トリガーのサイズ
@@ -243,6 +266,23 @@ void GameScene::Init() {
 }
 
 void GameScene::Update(const float deltaTime) {
+	// F5キーでメッシュリロードをリクエスト
+	if (InputSystem::IsTriggered("+f5")) {
+		mPendingMeshReload = true;
+		Console::Print("Mesh reload requested...", kConFgColorGreen);
+	}
+	
+	if (mPendingMeshReload) {
+		static bool reloadNextFrame = false;
+		if (reloadNextFrame) {
+			ReloadWorldMesh();
+			mPendingMeshReload = false;
+			reloadNextFrame    = false;
+		} else {
+			reloadNextFrame = true;
+		}
+	}
+
 	physicsEngine_->Update(deltaTime);
 	//
 	cameraRoot_->GetTransform()->SetWorldPos(mPlayerMovement->GetHeadPos());
@@ -430,9 +470,11 @@ void GameScene::Update(const float deltaTime) {
 
 #ifdef _DEBUG
 	// レティクルの描画
-	ImGuiIO& io           = ImGui::GetIO();
-	ImVec2   windowCenter = ImVec2(io.DisplaySize.x * 0.5f,
-	                             io.DisplaySize.y * 0.5f);
+	ImVec2 windowCenter = ImVec2(
+		ImGui::GetMainViewport()->Pos.x + ImGui::GetMainViewport()->Size.x *
+		0.5f,
+		ImGui::GetMainViewport()->Pos.y + ImGui::GetMainViewport()->Size.y *
+		0.5f);
 
 	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 
@@ -490,22 +532,19 @@ void GameScene::Update(const float deltaTime) {
 #endif
 
 
-	for (auto entity : entities_) {
-		if (entity) {
-			if (!entity->GetParent()) {
-				entity->Update(deltaTime);
-			}
+	// エンティティの更新（安全にコピーしてからループ）
+	auto entitiesCopy = entities_;
+	for (auto entity : entitiesCopy) {
+		if (entity && !entity->GetParent()) {
+			entity->Update(deltaTime);
 		}
 	}
 }
 
 void GameScene::Render() {
 	cubeMap_->Render(
-		renderer_->GetCommandList(),
-		resourceManager_->GetShaderResourceViewManager(),
-		resourceManager_->GetTextureManager()->GetTexture(
-			                "./Resources/Textures/wave.dds")
-		                ->GetResource());
+		renderer_->GetCommandList()
+	);
 
 	for (auto entity : entities_) {
 		if (entity) {
@@ -521,4 +560,178 @@ void GameScene::Render() {
 
 void GameScene::Shutdown() {
 	//cubeMap_.reset();
+}
+
+void GameScene::ReloadWorldMesh() {
+	Console::Print("Starting world mesh reload...", kConFgColorGreen);
+
+	// リロード開始前にGPU処理の完了を待機
+	if (renderer_) {
+		renderer_->WaitPreviousFrame();
+		Console::Print("Initial GPU sync before mesh reload", kConFgColorGreen);
+	}
+
+	try {
+		// まず安全な方法を試す
+		SafeReloadWorldMesh();
+	} catch (const std::exception& e) {
+		Console::Print(std::string("Safe reload failed: ") + e.what(),
+		               kConTextColorError);
+		Console::Print("Attempting full entity recreation...",
+		               kConFgColorWarning);
+		try {
+			RecreateWorldMeshEntity();
+		} catch (...) {
+			Console::Print("Full recreation also failed!", kConTextColorError);
+		}
+	} catch (...) {
+		Console::Print("Unknown exception during safe reload",
+		               kConTextColorError);
+		Console::Print("Attempting full entity recreation...",
+		               kConFgColorWarning);
+		try {
+			RecreateWorldMeshEntity();
+		} catch (...) {
+			Console::Print("Full recreation also failed!", kConTextColorError);
+		}
+	}
+}
+
+void GameScene::RecreateWorldMeshEntity() {
+	Console::Print("Recreating world mesh entity...", kConFgColorGreen);
+
+	// 古いエンティティを物理エンジンから登録解除
+	if (mEntWorldMesh) {
+		physicsEngine_->UnregisterEntity(mEntWorldMesh.get());
+		RemoveEntity(mEntWorldMesh.get());
+		Console::Print("Removed old world mesh entity", kConTextColorWarning);
+
+		// shared_ptrをリセット
+		mWorldMeshRenderer.reset();
+
+		// unique_ptrをリセット
+		mEntWorldMesh.reset();
+	}
+
+	// GPU処理の完了を待機（テクスチャロード前の同期）
+	if (renderer_) {
+		renderer_->WaitPreviousFrame();
+		Console::Print("Waited for GPU completion before entity recreation",
+		               kConFgColorGreen);
+	}
+
+	// メッシュをリロード
+	const std::string meshPath      = "./Resources/Models/reflectionTest.obj";
+	bool              reloadSuccess = resourceManager_->GetMeshManager()->
+		ReloadMeshFromFile(meshPath);
+
+	if (!reloadSuccess) {
+		Console::Print("Failed to reload mesh!", kConTextColorError);
+		return;
+	}
+
+	// GPU処理の完了を再度待機（テクスチャロード後の同期）
+	if (renderer_) {
+		renderer_->WaitPreviousFrame();
+		Console::Print("Waited for GPU completion after mesh reload",
+		               kConFgColorGreen);
+	}
+
+	// 新しいエンティティを作成
+	mEntWorldMesh                  = std::make_unique<Entity>("worldMesh");
+	StaticMeshRenderer* smRenderer = mEntWorldMesh->AddComponent<
+		StaticMeshRenderer>();
+	mWorldMeshRenderer = std::shared_ptr<StaticMeshRenderer>(
+		smRenderer, [](StaticMeshRenderer*) {
+		}
+	);
+
+	// 新しいメッシュを設定
+	StaticMesh* newMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
+		meshPath);
+	if (newMesh) {
+		mWorldMeshRenderer->SetStaticMesh(newMesh);
+		Console::Print("Set new mesh to new entity", kConFgColorGreen);
+	} else {
+		Console::Print("Failed to get new mesh!", kConTextColorError);
+		return;
+	}
+
+	// MeshColliderComponentを追加
+	mEntWorldMesh->AddComponent<MeshColliderComponent>();
+	AddEntity(mEntWorldMesh.get());
+
+	// 物理エンジンに登録
+	physicsEngine_->RegisterEntity(mEntWorldMesh.get(), true);
+
+	Console::Print("World mesh entity recreation completed!", kConFgColorGreen);
+}
+
+void GameScene::SafeReloadWorldMesh() {
+	Console::Print("Safe reloading world mesh...", kConFgColorGreen);
+
+	if (!mEntWorldMesh) {
+		Console::Print("World mesh entity does not exist!", kConTextColorError);
+		return;
+	}
+
+	// 物理エンジンからエンティティの登録を解除
+	physicsEngine_->UnregisterEntity(mEntWorldMesh.get());
+	Console::Print("Unregistered entity from physics engine",
+	               kConTextColorWarning);
+
+	// MeshColliderComponentを削除
+	if (mEntWorldMesh->HasComponent<MeshColliderComponent>()) {
+		mEntWorldMesh->RemoveComponent<MeshColliderComponent>();
+		Console::Print("Removed MeshColliderComponent", kConFgColorWarning);
+	}
+
+	// GPU処理の完了を待機（テクスチャロード前の同期）
+	if (renderer_) {
+		renderer_->WaitPreviousFrame();
+		Console::Print("Waited for GPU completion before mesh reload",
+		               kConFgColorGreen);
+	}
+
+	// メッシュをリロード
+	const std::string meshPath      = "./Resources/Models/reflectionTest.obj";
+	bool              reloadSuccess = resourceManager_->GetMeshManager()->
+		ReloadMeshFromFile(meshPath);
+
+	if (!reloadSuccess) {
+		Console::Print("Failed to reload mesh!", kConTextColorError);
+		// 失敗した場合は元のコンポーネントを復元
+		mEntWorldMesh->AddComponent<MeshColliderComponent>();
+		physicsEngine_->RegisterEntity(mEntWorldMesh.get(), true);
+		return;
+	}
+
+	// GPU処理の完了を再度待機（テクスチャロード後の同期）
+	if (renderer_) {
+		renderer_->WaitPreviousFrame();
+		Console::Print("Waited for GPU completion after mesh reload",
+		               kConFgColorGreen);
+	}
+
+	// 新しいメッシュをレンダラーに設定
+	StaticMesh* newMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
+		meshPath);
+	if (newMesh && mWorldMeshRenderer) {
+		mWorldMeshRenderer->SetStaticMesh(newMesh);
+		Console::Print("Set new mesh to renderer", kConFgColorGreen);
+	} else {
+		Console::Print("Failed to get new mesh or renderer!",
+		               kConTextColorError);
+		return;
+	}
+
+	// 新しいMeshColliderComponentを追加
+	mEntWorldMesh->AddComponent<MeshColliderComponent>();
+	Console::Print("Added new MeshColliderComponent", kConFgColorGreen);
+
+	// 物理エンジンに再登録
+	physicsEngine_->RegisterEntity(mEntWorldMesh.get(), true);
+	Console::Print("Re-registered entity to physics engine", kConFgColorGreen);
+
+	Console::Print("Safe world mesh reload completed!", kConFgColorGreen);
 }

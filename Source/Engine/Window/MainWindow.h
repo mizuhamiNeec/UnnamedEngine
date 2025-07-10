@@ -1,5 +1,8 @@
 #pragma once
+
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <Windows.h>
 #include <Window/Base/BaseWindow.h>
 
@@ -17,5 +20,6 @@ public:
 	void SetResizeCallback(ResizeCallback callback) override;
 
 protected:
-	LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+	LRESULT WindowProc(HWND   hWnd, UINT msg, WPARAM wParam,
+	                   LPARAM lParam) override;
 };

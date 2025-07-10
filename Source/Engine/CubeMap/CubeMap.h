@@ -8,12 +8,15 @@
 
 class CubeMap {
 public:
-	CubeMap(ID3D12Device* device);
+	CubeMap(
+		ID3D12Device*    device,
+		SrvManager*      srvManager,
+		std::string_view path
+	);
 
 	void Update(const float deltaTime);
 	void Render(
-		ID3D12GraphicsCommandList* commandList, ShaderResourceViewManager*
-		shaderSrvManager, const ComPtr<ID3D12Resource>& cubeMapTex
+		ID3D12GraphicsCommandList* commandList
 	);
 
 private:
@@ -38,4 +41,7 @@ private:
 
 	TransformationMatrix transformationMatrixInstance_;
 	Object3D::Material   materialInstance_;
+	std::string          texturePath_;
+
+	SrvManager* srvManager_ = nullptr;
 };
