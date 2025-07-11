@@ -414,6 +414,17 @@ Mat4 Mat4::Affine(const Vec3& scale, const Vec3& rotate,
 	return s * rx * ry * rz * t;
 }
 
+Mat4 Mat4::Affine(
+	const Vec3&       scale,
+	const Quaternion& rotate,
+	const Vec3&       translate
+) {
+	const Mat4 s = Scale(scale);
+	const Mat4 r = RotateQuaternion(rotate);
+	const Mat4 t = Translate(translate);
+	return s * r * t;
+}
+
 Mat4 Mat4::PerspectiveFovMat(const float fovY, const float     aspectRatio,
                              const float nearClip, const float farClip) {
 	Mat4 result = identity;
