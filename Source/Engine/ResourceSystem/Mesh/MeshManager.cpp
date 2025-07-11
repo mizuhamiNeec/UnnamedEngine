@@ -421,24 +421,24 @@ SubMesh* MeshManager::ProcessSkeletalMesh(const aiMesh*      mesh,
                                           SkeletalMesh*      skeletalMesh,
                                           const aiMatrix4x4& transform) {
 	std::vector<SkinnedVertex> vertices;
-	std::vector<uint32_t> indices;
+	std::vector<uint32_t>      indices;
 
 	// 頂点ボーンデータの初期化
 	struct VertexBoneData {
-		float weights[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+		float    weights[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 		uint32_t indices[4] = {0, 0, 0, 0};
-		int count = 0;
+		int      count      = 0;
 	};
 	std::vector<VertexBoneData> vertexBoneData(mesh->mNumVertices);
 
 	// ボーン情報の処理
 	if (mesh->HasBones()) {
 		const Skeleton& skeleton = skeletalMesh->GetSkeleton();
-		
+
 		for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex) {
-			const aiBone* bone = mesh->mBones[boneIndex];
-			std::string boneName = bone->mName.C_Str();
-			
+			const aiBone* bone     = mesh->mBones[boneIndex];
+			std::string   boneName = bone->mName.C_Str();
+
 			// スケルトンからボーンIDを取得
 			auto it = skeleton.boneMap.find(boneName);
 			if (it == skeleton.boneMap.end()) {
@@ -446,27 +446,30 @@ SubMesh* MeshManager::ProcessSkeletalMesh(const aiMesh*      mesh,
 				               kConTextColorWarning, Channel::ResourceSystem);
 				continue;
 			}
-			
+
 			uint32_t globalBoneIndex = it->second;
-			
+
 			// ボーンインデックスが範囲内かチェック
 			if (globalBoneIndex >= 256) {
-				Console::Print("ボーンインデックスが範囲外です: " + std::to_string(globalBoneIndex) + " (最大255)\n",
-				               kConTextColorError, Channel::ResourceSystem);
+				Console::Print(
+					"ボーンインデックスが範囲外です: " + std::to_string(globalBoneIndex) +
+					" (最大255)\n",
+					kConTextColorError, Channel::ResourceSystem);
 				continue;
 			}
-			
+
 			// このボーンが影響する頂点のウェイトを設定
-			for (uint32_t weightIndex = 0; weightIndex < bone->mNumWeights; ++weightIndex) {
-				const aiVertexWeight& weight = bone->mWeights[weightIndex];
-				uint32_t vertexId = weight.mVertexId;
-				
+			for (uint32_t weightIndex = 0; weightIndex < bone->mNumWeights; ++
+			     weightIndex) {
+				const aiVertexWeight& weight   = bone->mWeights[weightIndex];
+				uint32_t              vertexId = weight.mVertexId;
+
 				if (vertexId >= mesh->mNumVertices) {
 					Console::Print("頂点インデックスが範囲外です\n",
 					               kConTextColorError, Channel::ResourceSystem);
 					continue;
 				}
-				
+
 				VertexBoneData& boneData = vertexBoneData[vertexId];
 				if (boneData.count < 4) {
 					boneData.weights[boneData.count] = weight.mWeight;
@@ -485,46 +488,46 @@ SubMesh* MeshManager::ProcessSkeletalMesh(const aiMesh*      mesh,
 		aiVector3D pos(mesh->mVertices[i].x, mesh->mVertices[i].y,
 		               mesh->mVertices[i].z);
 		aiVector3D transformedPos = transform * pos;
-		vertex.position = Vec4(transformedPos.x, transformedPos.y,
-		                      transformedPos.z, 1.0f);
+		vertex.position           = Vec4(transformedPos.x, transformedPos.y,
+		                                 transformedPos.z, 1.0f);
 
 		// 法線にも回転を適用（スケールは除外）
 		aiMatrix3x3 normalMatrix(transform);
 		if (mesh->mNormals) {
 			aiVector3D normal(mesh->mNormals[i].x, mesh->mNormals[i].y,
-			                 mesh->mNormals[i].z);
+			                  mesh->mNormals[i].z);
 			aiVector3D transformedNormal = normalMatrix * normal;
 			transformedNormal.Normalize();
 			vertex.normal = Vec3(transformedNormal.x, transformedNormal.y,
-			                    transformedNormal.z);
+			                     transformedNormal.z);
 		} else {
 			vertex.normal = Vec3(0.0f, 1.0f, 0.0f);
 		}
 
 		if (mesh->mTextureCoords[0]) {
 			vertex.uv = Vec2(mesh->mTextureCoords[0][i].x,
-			                mesh->mTextureCoords[0][i].y);
+			                 mesh->mTextureCoords[0][i].y);
 		} else {
 			vertex.uv = Vec2::zero;
 		}
-		
+
 		// ボーンウェイトとインデックスを設定
 		const VertexBoneData& boneData = vertexBoneData[i];
-		vertex.boneWeights = Vec4(boneData.weights[0], boneData.weights[1], 
-		                         boneData.weights[2], boneData.weights[3]);
+		vertex.boneWeights = Vec4(boneData.weights[0], boneData.weights[1],
+		                          boneData.weights[2], boneData.weights[3]);
 		vertex.boneIndices[0] = boneData.indices[0];
 		vertex.boneIndices[1] = boneData.indices[1];
 		vertex.boneIndices[2] = boneData.indices[2];
 		vertex.boneIndices[3] = boneData.indices[3];
-		
+
 		// ウェイトの正規化
-		float totalWeight = vertex.boneWeights.x + vertex.boneWeights.y + 
-		                   vertex.boneWeights.z + vertex.boneWeights.w;
+		float totalWeight = vertex.boneWeights.x + vertex.boneWeights.y +
+			vertex.boneWeights.z + vertex.boneWeights.w;
 		if (totalWeight > 0.0f) {
 			vertex.boneWeights = vertex.boneWeights / totalWeight;
 		} else {
 			// ボーンの影響がない頂点はルートボーン（インデックス0）に完全に紐づけ
-			vertex.boneWeights = Vec4(1.0f, 0.0f, 0.0f, 0.0f);
+			vertex.boneWeights    = Vec4(1.0f, 0.0f, 0.0f, 0.0f);
 			vertex.boneIndices[0] = 0;
 			vertex.boneIndices[1] = 0;
 			vertex.boneIndices[2] = 0;
@@ -532,13 +535,16 @@ SubMesh* MeshManager::ProcessSkeletalMesh(const aiMesh*      mesh,
 		}
 
 		vertices.emplace_back(vertex);
-		
+
 		// 最初の数頂点のボーン情報をデバッグ出力
 		if (i < 5) {
 			Console::Print(
-				std::format("頂点{}: ウェイト[{:.3f}, {:.3f}, {:.3f}, {:.3f}] インデックス[{}, {}, {}, {}]\n",
-				           i, vertex.boneWeights.x, vertex.boneWeights.y, vertex.boneWeights.z, vertex.boneWeights.w,
-				           vertex.boneIndices[0], vertex.boneIndices[1], vertex.boneIndices[2], vertex.boneIndices[3]),
+				std::format(
+					"頂点{}: ウェイト[{:.3f}, {:.3f}, {:.3f}, {:.3f}] インデックス[{}, {}, {}, {}]\n",
+					i, vertex.boneWeights.x, vertex.boneWeights.y,
+					vertex.boneWeights.z, vertex.boneWeights.w,
+					vertex.boneIndices[0], vertex.boneIndices[1],
+					vertex.boneIndices[2], vertex.boneIndices[3]),
 				kConTextColorGray,
 				Channel::ResourceSystem
 			);
@@ -668,28 +674,31 @@ Skeleton MeshManager::LoadSkeleton(const aiScene* scene) {
 				newBone.id   = boneIndex;
 
 				// オフセット行列をMat4に変換
+				// Assimpの行列は列優先なので、転置して行優先に変換
 				const aiMatrix4x4& offsetMatrix = bone->mOffsetMatrix;
 
 				for (int row = 0; row < 4; ++row) {
 					for (int col = 0; col < 4; ++col) {
+						// 転置して格納（列優先→行優先）
 						newBone.offsetMatrix.m[row][col] =
-							offsetMatrix[row][col];
+							offsetMatrix[col][row];
 					}
 				}
 
 				skeleton.bones.push_back(newBone);
 				skeleton.boneMap[boneName] = boneIndex;
 				boneIndexMap[boneName]     = boneIndex;
-				
+
 				// 最初の数ボーンの情報をデバッグ出力
 				if (boneIndex < 3) {
 					Console::Print(
-						std::format("ボーン{}: {} (ID: {})\n", boneIndex, boneName, newBone.id),
+						std::format("ボーン{}: {} (ID: {})\n", boneIndex, boneName,
+						            newBone.id),
 						kConTextColorGray,
 						Channel::ResourceSystem
 					);
 				}
-				
+
 				boneIndex++;
 			}
 		}
@@ -724,20 +733,23 @@ Node MeshManager::LoadNode(const aiNode* aiNode) {
 		}
 	}
 
-	// 変換情報を分解（簡易実装）
 	aiVector3D   translation, scaling;
 	aiQuaternion rotation;
 	transform.Decompose(scaling, rotation, translation);
 
 	node.transform.translate =
-		Vec3(translation.x, translation.y, translation.z);
-	node.transform.rotate = Quaternion(rotation.x, rotation.y, rotation.z,
-	                                   rotation.w);
+		Vec3(-translation.x, translation.y, translation.z);
+	node.transform.rotate = Quaternion(
+		-rotation.x,
+		rotation.y,
+		rotation.z,
+		rotation.w
+	);
 	node.transform.scale = Vec3(scaling.x, scaling.y, scaling.z);
 
 	// 子ノードを再帰的に読み込み
 	for (uint32_t i = 0; i < aiNode->mNumChildren; ++i) {
-		node.children.push_back(LoadNode(aiNode->mChildren[i]));
+		node.children.emplace_back(LoadNode(aiNode->mChildren[i]));
 	}
 
 	return node;
@@ -782,7 +794,7 @@ Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 			KeyframeVec3       keyframe;
 			keyframe.time = static_cast<float>(key.mTime / aiAnim->
 				mTicksPerSecond);
-			keyframe.value = Vec3(key.mValue.x, key.mValue.y, key.mValue.z);
+			keyframe.value = Vec3(-key.mValue.x, key.mValue.y, key.mValue.z);
 			nodeAnimation.translate.keyFrames.push_back(keyframe);
 		}
 
@@ -792,8 +804,12 @@ Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 			KeyframeQuaternion keyframe;
 			keyframe.time = static_cast<float>(key.mTime / aiAnim->
 				mTicksPerSecond);
-			keyframe.value = Quaternion(key.mValue.x, key.mValue.y,
-			                            key.mValue.z, key.mValue.w);
+			keyframe.value = Quaternion(
+				-key.mValue.x,
+				-key.mValue.y,
+				key.mValue.z,
+				key.mValue.w
+			);
 			nodeAnimation.rotate.keyFrames.push_back(keyframe);
 		}
 
