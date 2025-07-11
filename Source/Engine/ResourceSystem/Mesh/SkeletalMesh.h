@@ -27,7 +27,6 @@ class SkeletalMesh {
 public:
 	explicit SkeletalMesh(std::string name) : name_(std::move(name)) {
 	}
-
 	~SkeletalMesh() = default;
 
 	void AddSubMesh(std::unique_ptr<SubMesh> subMesh) {
