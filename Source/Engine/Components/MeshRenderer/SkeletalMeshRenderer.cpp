@@ -492,13 +492,16 @@ void SkeletalMeshRenderer::CalculateNodeTransform(
 		                                  animationTime);
 		Quaternion rotation = CalculateValue(nodeAnim.rotate.keyFrames,
 		                                     animationTime);
-		Vec3 scale = CalculateValue(nodeAnim.scale.keyFrames, animationTime);
-
-		nodeTransform = Mat4::Affine(scale, rotation.ToEulerAngles(),
-		                             translation);
+		Vec3 scale    = CalculateValue(nodeAnim.scale.keyFrames, animationTime);
+		nodeTransform = Mat4::Affine(
+			scale,
+			rotation,
+			translation
+		);
 	}
 
-	Mat4 globalTransform = parentTransform * nodeTransform;
+	// 左手座標系かつ行ベクトルの場合、変換順序を修正
+	Mat4 globalTransform = nodeTransform * parentTransform;
 
 	// このノードがボーンの場合、変換行列を設定
 	if (skeletalMesh_) {
@@ -507,10 +510,9 @@ void SkeletalMeshRenderer::CalculateNodeTransform(
 		if (it != skeleton.boneMap.end()) {
 			int boneIndex = it->second;
 			if (boneIndex < BoneMatrices::MAX_BONES) {
-				// 最終的なボーン変換行列 = 現在のグローバル変換 * オフセット行列
-				// オフセット行列は既にバインド時の逆変換になっている
-				boneMatrices_->bones[boneIndex] = globalTransform * skeleton.
-					bones[boneIndex].offsetMatrix;
+				// ボーン行列の計算順序を変更して試行
+				boneMatrices_->bones[boneIndex] = skeleton.
+					bones[boneIndex].offsetMatrix * globalTransform;
 			}
 		}
 	}
@@ -529,8 +531,8 @@ void SkeletalMeshRenderer::DrawBoneHierarchy(
 	Mat4 nodeTransform = node.localMat;
 
 	// アニメーションデータがある場合は適用
-	if (currentAnimation_ && currentAnimation_->nodeAnimations.find(node.name)
-		!= currentAnimation_->nodeAnimations.end()) {
+	if (currentAnimation_ && currentAnimation_->nodeAnimations.contains(
+		node.name)) {
 		const NodeAnimation& nodeAnim = currentAnimation_->nodeAnimations.at(
 			node.name);
 
@@ -540,27 +542,23 @@ void SkeletalMeshRenderer::DrawBoneHierarchy(
 		                                     animationTime_);
 		Vec3 scale = CalculateValue(nodeAnim.scale.keyFrames, animationTime_);
 
-		nodeTransform = Mat4::Affine(scale, rotation.ToEulerAngles(),
+		nodeTransform = Mat4::Affine(scale, rotation,
 		                             translation);
 	}
 
-	Mat4 globalTransform = parentTransform * nodeTransform;
-	Vec3 nodePos         = globalTransform.GetTranslate();
+	// 左手座標系かつ行ベクトルの場合、変換順序を修正
+	Mat4       globalTransform = nodeTransform * parentTransform;
+	Vec3       nodePos         = globalTransform.GetTranslate();
+	Quaternion nodeRot         = globalTransform.ToQuaternion();
 
-	if (skeletalMesh_->GetSkeleton().boneMap.find(node.name) !=
-		skeletalMesh_->GetSkeleton().boneMap.end()) {
-		Debug::DrawSphere(nodePos, Quaternion::identity, 0.03f,
+	if (skeletalMesh_->GetSkeleton().boneMap.contains(node.name)) {
+		Debug::DrawSphere(nodePos, nodeRot, 0.03f,
 		                  {1.0f, 0.2f, 0.2f, 1.0f});
 
 		if (parentTransform != Mat4::identity) {
 			Mat4 parentT   = parentTransform;
 			Vec3 parentPos = parentT.GetTranslate();
 			Debug::DrawLine(parentPos, nodePos, {0.8f, 0.8f, 0.2f, 1.0f});
-
-			Vec3 dir      = (nodePos - parentPos).Normalized();
-			Vec3 arrowPos = parentPos + dir * (nodePos - parentPos).Length() *
-				0.7f;
-			Debug::DrawArrow(arrowPos, dir, {0.2f, 1.0f, 0.2f, 1.0f}, 0.05f);
 		}
 
 		Debug::DrawAxis(nodePos, globalTransform.ToQuaternion());
