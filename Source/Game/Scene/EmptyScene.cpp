@@ -3,6 +3,8 @@
 #include <Input/InputSystem.h>
 #include <Debug/Debug.h>
 
+#include "Components/MeshRenderer/SkeletalMeshRenderer.h"
+
 EmptyScene::~EmptyScene() {
 	// クリーンアップ処理
 }
@@ -11,7 +13,8 @@ void EmptyScene::Init() {
 	renderer_   = Engine::GetRenderer();
 	srvManager_ = Engine::GetSrvManager();
 
-	// キューブマップ
+	resourceManager_ = Engine::GetResourceManager();
+
 	{
 		TexManager::GetInstance()->LoadTexture(
 			"./Resources/Textures/wave.dds"
@@ -24,6 +27,22 @@ void EmptyScene::Init() {
 			"./Resources/Textures/wave.dds"
 		);
 	}
+
+	TexManager::GetInstance()->LoadTexture(
+		"./Resources/Textures/uvChecker.png"
+	);
+
+	resourceManager_->GetMeshManager()->LoadSkeletalMeshFromFile(
+		"./Resources/Models/man/man.gltf");
+
+	skeletalMeshEntity_ = std::make_unique<Entity>("SkeletalMeshEntity");
+	auto sklMesh = skeletalMeshEntity_->AddComponent<SkeletalMeshRenderer>();
+
+	auto skeletalMesh = resourceManager_->GetMeshManager()->GetSkeletalMesh(
+		"./Resources/Models/man/man.gltf");
+	sklMesh->SetSkeletalMesh(skeletalMesh);
+
+	AddEntity(skeletalMeshEntity_.get());
 
 	Console::Print("EmptyScene initialized");
 }
