@@ -119,7 +119,13 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList, const std::string& 
 	desc.SampleDesc.Count      = 1;
 	desc.SampleMask            = D3D12_DEFAULT_SAMPLE_MASK;
 	desc.pRootSignature        = rootSignature;
-	desc.InputLayout           = Vertex::inputLayout;
+	
+	// シェーダー名に基づいて適切な入力レイアウトを選択
+	if (shader_->GetName() == "DefaultSkinnedShader") {
+		desc.InputLayout = SkinnedVertex::inputLayout;
+	} else {
+		desc.InputLayout = Vertex::inputLayout;
+	}
 
 	auto pso = GetOrCreatePipelineState(Engine::GetRenderer()->GetDevice(),
 	                                    desc, meshName);
