@@ -1,13 +1,14 @@
 #pragma once
 #include <string>
 
-#include <ResourceSystem/Mesh/StaticMesh.h>
-
 #include <assimp/scene.h>
 
-#include "ResourceSystem/Material/MaterialManager.h"
-#include "ResourceSystem/Shader/ShaderManager.h"
-#include "TextureManager/TexManager.h"
+#include <ResourceSystem/Material/MaterialManager.h>
+#include <ResourceSystem/Mesh/SkeletalMesh.h>
+#include <ResourceSystem/Mesh/StaticMesh.h>
+#include <ResourceSystem/Shader/ShaderManager.h>
+
+#include <TextureManager/TexManager.h>
 
 class MeshManager {
 public:
@@ -16,20 +17,39 @@ public:
 	);
 	void Shutdown();
 
-	StaticMesh* CreateStaticMesh(const std::string& name);
-	SubMesh*    CreateSubMesh(const std::string& name);
+	// StaticMesh
+	bool                      LoadMeshFromFile(const std::string& filePath);
+	bool                      ReloadMeshFromFile(const std::string& filePath);
+	[[nodiscard]] StaticMesh* GetStaticMesh(const std::string& name) const;
+	StaticMesh*               CreateStaticMesh(const std::string& name);
 
-	bool LoadMeshFromFile(const std::string& filePath);
+	// SkeletalMesh
+	bool LoadSkeletalMeshFromFile(const std::string& filePath);
+	[[nodiscard]] SkeletalMesh* GetSkeletalMesh(const std::string& name) const;
+	SkeletalMesh* CreateSkeletalMesh(const std::string& name);
 
-	bool ReloadMeshFromFile(const std::string& filePath);
-
-	StaticMesh* GetStaticMesh(const std::string& name) const;
+	SubMesh* CreateSubMesh(const std::string& name);
 
 private:
-	void ProcessNode(const aiNode* node, const aiScene* scene,
-	                 StaticMesh* staticMesh);
+	void ProcessStaticMeshNode(const aiNode* node, const aiScene* scene,
+	                           StaticMesh*   staticMesh);
+	void ProcessSkeletalMeshNode(aiNode*       node, const aiScene* scene,
+	                             SkeletalMesh* skeletalMesh);
+
 	SubMesh* ProcessMesh(const aiMesh* mesh, const aiScene* scene,
 	                     StaticMesh* staticMesh, const aiMatrix4x4& transform);
+	
+	// スケルタルメッシュ専用の処理関数
+	SubMesh* ProcessSkeletalMesh(const aiMesh* mesh, const aiScene* scene,
+	                             SkeletalMesh* skeletalMesh, const aiMatrix4x4& transform);
+	
+	// スケルトン読み込み関数
+	Skeleton LoadSkeleton(const aiScene* scene);
+	Node LoadNode(const aiNode* aiNode);
+	
+	// アニメーション読み込み関数
+	void LoadAnimations(const aiScene* scene, SkeletalMesh* skeletalMesh);
+	Animation LoadAnimation(const aiAnimation* aiAnim);
 
 	TexManager*      texManager_      = nullptr;
 	ShaderManager*   shaderManager_   = nullptr;
@@ -39,4 +59,6 @@ private:
 	ComPtr<ID3D12Device>                                         device_;
 	std::unordered_map<std::string, std::unique_ptr<StaticMesh>> staticMeshes_;
 	std::unordered_map<std::string, std::unique_ptr<SubMesh>>    subMeshes_;
+	std::unordered_map<std::string, std::unique_ptr<SkeletalMesh>>
+	skeletalMeshes_;
 };
