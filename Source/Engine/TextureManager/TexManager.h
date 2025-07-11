@@ -27,10 +27,8 @@ public:
 	void        Init(::D3D12* renderer, SrvManager* srvManager);
 	static void Shutdown();
 
-	void LoadTexture(const std::string& filePath, bool forceCubeMap = false);
-
-	[[nodiscard]] TextureData*
-	GetTextureData(const std::string& filePath) const;
+	void         LoadTexture(const std::string& filePath, bool forceCubeMap = false);
+	TextureData* GetTextureData(const std::string& filePath);
 
 	// SRVインデックスの開始番号
 	uint32_t GetTextureIndexByFilePath(const std::string& filePath) const;
