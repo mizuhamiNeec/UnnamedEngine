@@ -310,15 +310,15 @@ Mat4 Mat4::RotateQuaternion(const Quaternion quaternion) {
 	const float wz = normalizedQuaternion.w * normalizedQuaternion.z;
 
 	result.m[0][0] = 1.0f - 2.0f * (yy + zz);
-	result.m[0][1] = 2.0f * (xy - wz);
-	result.m[0][2] = 2.0f * (xz + wy);
+	result.m[0][1] = 2.0f * (xy + wz);
+	result.m[0][2] = 2.0f * (xz - wy);
 
-	result.m[1][0] = 2.0f * (xy + wz);
+	result.m[1][0] = 2.0f * (xy - wz);
 	result.m[1][1] = 1.0f - 2.0f * (xx + zz);
-	result.m[1][2] = 2.0f * (yz - wx);
+	result.m[1][2] = 2.0f * (yz + wx);
 
-	result.m[2][0] = 2.0f * (xz - wy);
-	result.m[2][1] = 2.0f * (yz + wx);
+	result.m[2][0] = 2.0f * (xz + wy);
+	result.m[2][1] = 2.0f * (yz - wx);
 	result.m[2][2] = 1.0f - 2.0f * (xx + yy);
 
 	return result;
