@@ -19,6 +19,7 @@ CharacterMovement::~CharacterMovement() {
 
 void CharacterMovement::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
+	transform_ = owner_->GetTransform();
 }
 
 void CharacterMovement::Update(const float deltaTime) {
@@ -26,14 +27,17 @@ void CharacterMovement::Update(const float deltaTime) {
 	position_  = transform_->GetLocalPos();
 
 	Move();
-
-	position_.y = std::max<float>(position_.y, 0.0f);
-
+	
 	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f,
 	                 Vec4::yellow);
-	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero),
-	                   Math::HtoM(73.0f), Math::HtoM(33.0f * 0.5f),
-	                   bIsGrounded ? Vec4::green : Vec4::red);
+
+	const float width  = Math::HtoM(mCurrentWidthHU);
+	const float height = Math::HtoM(mCurrentHeightHU);
+	Debug::DrawBox(
+		transform_->GetWorldPos() + (Vec3::up * height * 0.5f),
+		Quaternion::Euler(Vec3::zero),
+		Vec3(width, height, width),
+		bIsGrounded ? Vec4::green : Vec4::red);
 }
 
 void CharacterMovement::DrawInspectorImGui() {
