@@ -729,7 +729,8 @@ Node MeshManager::LoadNode(const aiNode* aiNode) {
 
 	for (int row = 0; row < 4; ++row) {
 		for (int col = 0; col < 4; ++col) {
-			node.localMat.m[row][col] = transform[row][col];
+			// オフセット行列と同様に転置して格納（列優先→行優先）
+			node.localMat.m[row][col] = transform[col][row];
 		}
 	}
 
@@ -738,9 +739,9 @@ Node MeshManager::LoadNode(const aiNode* aiNode) {
 	transform.Decompose(scaling, rotation, translation);
 
 	node.transform.translate =
-		Vec3(-translation.x, translation.y, translation.z);
+		Vec3(translation.x, translation.y, translation.z);
 	node.transform.rotate = Quaternion(
-		-rotation.x,
+		rotation.x,
 		rotation.y,
 		rotation.z,
 		rotation.w
@@ -794,7 +795,8 @@ Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 			KeyframeVec3       keyframe;
 			keyframe.time = static_cast<float>(key.mTime / aiAnim->
 				mTicksPerSecond);
-			keyframe.value = Vec3(-key.mValue.x, key.mValue.y, key.mValue.z);
+			// 位置キーフレーム（Assimpの左手座標系変換に依存）
+			keyframe.value = Vec3(key.mValue.x, key.mValue.y, key.mValue.z);
 			nodeAnimation.translate.keyFrames.push_back(keyframe);
 		}
 
@@ -804,9 +806,10 @@ Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 			KeyframeQuaternion keyframe;
 			keyframe.time = static_cast<float>(key.mTime / aiAnim->
 				mTicksPerSecond);
+			// 回転キーフレーム（デバッグ表示と同じ変換）
 			keyframe.value = Quaternion(
-				-key.mValue.x,
-				-key.mValue.y,
+				key.mValue.x,
+				key.mValue.y,
 				key.mValue.z,
 				key.mValue.w
 			);
