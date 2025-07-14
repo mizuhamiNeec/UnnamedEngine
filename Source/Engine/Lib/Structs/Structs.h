@@ -10,6 +10,8 @@
 #include "../Math/Vector/Vec3.h"
 #include "../Math/Vector/Vec4.h"
 
+#include "Animation/Node.h"
+
 struct Vertex {
 	Vec4 position; // 座標
 	Vec2 uv;       // テクスチャ座標
@@ -19,6 +21,21 @@ struct Vertex {
 
 private:
 	static constexpr int                  inputElementCount = 3;
+	static const D3D12_INPUT_ELEMENT_DESC inputElements[inputElementCount];
+};
+
+// スキニング用の頂点構造体
+struct SkinnedVertex {
+	Vec4 position;    // 座標
+	Vec2 uv;          // テクスチャ座標
+	Vec3 normal;      // 法線
+	Vec4 boneWeights; // ボーンウェイト（最大4つ）
+	uint32_t boneIndices[4]; // ボーンインデックス（最大4つ）
+
+	static const D3D12_INPUT_LAYOUT_DESC inputLayout;
+
+private:
+	static constexpr int                  inputElementCount = 5;
 	static const D3D12_INPUT_ELEMENT_DESC inputElements[inputElementCount];
 };
 
@@ -45,6 +62,7 @@ struct MaterialData {
 struct ModelData {
 	std::vector<Vertex> vertices;
 	MaterialData        material;
+	Node                rootNode;
 };
 
 struct DirectionalLight {
