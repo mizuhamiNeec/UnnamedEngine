@@ -6,15 +6,16 @@
 
 #include <filesystem>
 #include <format>
+#include <SrvManager.h>
+
 #include <../Externals/DirectXTex/d3dx12.h>
 
-#include "../Lib/Utils/ClientProperties.h"
-#include "../Renderer/D3D12.h"
-#include "SrvManager.h"
+#include <Lib/Utils/ClientProperties.h>
+#include <Lib/Utils/StrUtil.h>
 
-#include "Lib/Utils/StrUtil.h"
+#include <Renderer/D3D12.h>
 
-#include "SubSystem/Console/Console.h"
+#include <SubSystem/Console/Console.h>
 
 
 TexManager* TexManager::instance_ = nullptr;
@@ -204,9 +205,11 @@ ComPtr<ID3D12Resource> TexManager::UploadTextureData(
 /// @param filePath テクスチャファイルのパス
 void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 	renderer_->WaitPreviousFrame();
+
 	// 読み込み済みテクスチャを検索
 	if (textureData_.contains(filePath)) {
-		Console::Print(std::format("LoadTexture: {} は既に読み込み済みです\n", filePath));
+		Console::Print(std::format("LoadTexture: {} は既に読み込み済みです\n",
+		                           filePath));
 		return; // 読み込み済みなら早期リターン
 	}
 
@@ -214,7 +217,8 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 	assert(srvManager_->CanAllocate());
 
 	// ファイル拡張子を取得して小文字に変換
-	std::string extension = filePath.substr(filePath.find_last_of('.') + 1);
+	std::string extension = filePath.substr(
+		filePath.find_last_of('.') + 1);
 	// 小文字に変換
 	DirectX::ScratchImage image     = {};
 	std::wstring          filePathW = StrUtil::ToWString(filePath);
@@ -248,9 +252,10 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 
 	// 読み込み失敗時の処理
 	if (FAILED(hr)) {
-		Console::Print(std::format("ERROR : Failed to Load {}\n", filePath));
+		Console::Print(std::format("ERROR : Failed to Load {}\n",
+		                           filePath));
 		// デフォルトテクスチャの読み込み
-		filePathW = StrUtil::ToWString("./Resources/Textures/empty.png");
+		filePathW = StrUtil::ToWString("./Resources/Textures/uvChecker.png");
 		hr        = DirectX::LoadFromWICFile(filePathW.c_str(),
 		                              DirectX::WIC_FLAGS_FORCE_SRGB,
 		                              nullptr,
@@ -341,9 +346,9 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 }
 
 TexManager::TextureData* TexManager::GetTextureData(
-	const std::string& filePath) const {
+	const std::string& filePath) {
 	// ファイルパスを完全な相対パスに変換
-	std::string normalizedPath;
+	std::string normalizedPath = filePath;
 	try {
 		// パスを正規化
 		std::filesystem::path path(filePath);
@@ -459,29 +464,6 @@ uint32_t TexManager::GetTextureIndexByFilePath(
 			               filePath, it->second.srvIndex),
 		               kConTextColorCompleted);
 		return it->second.srvIndex;
-	}
-
-	// 最終手段: smoke.pngとdev_measure.pngの特別処理
-	if (filePath.find("dev_measure.png") != std::string::npos) {
-		// dev_measure.pngを明示的に検索
-		for (const auto& [path, data] : textureData_) {
-			if (path.find("dev_measure.png") != std::string::npos) {
-				Console::Print(std::format(
-					               "GetTextureIndexByFilePath: 特殊処理 - dev_measure.pngを見つけました: {} -> インデックス {}",
-					               path, data.srvIndex), kConTextColorWarning);
-				return data.srvIndex;
-			}
-		}
-	} else if (filePath.find("smoke.png") != std::string::npos) {
-		// smoke.pngを明示的に検索
-		for (const auto& [path, data] : textureData_) {
-			if (path.find("smoke.png") != std::string::npos) {
-				Console::Print(std::format(
-					               "GetTextureIndexByFilePath: 特殊処理 - smoke.pngを見つけました: {} -> インデックス {}",
-					               path, data.srvIndex), kConTextColorWarning);
-				return data.srvIndex;
-			}
-		}
 	}
 
 	// それでも見つからない場合は0を返す

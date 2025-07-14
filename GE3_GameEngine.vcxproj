@@ -117,13 +117,23 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\Shaders\SkinnedObject3d.hlsli" />
+    <None Include="Resources\Shaders\SkinnedObject3d.PS.hlsl" />
+    <None Include="Resources\Shaders\SkinnedObject3d.VS.hlsl" />
     <None Include="Resources\Shaders\Skybox.PS.hlsl" />
     <None Include="Resources\Shaders\Skybox.VS.hlsl" />
+    <ClCompile Include="Source\Engine\Animation\Animation.cpp" />
+    <ClCompile Include="Source\Engine\Animation\KeyFrame.cpp" />
+    <ClCompile Include="Source\Engine\Animation\Node.cpp" />
+    <ClCompile Include="Source\Engine\Components\Animation\AnimationComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\MeshRenderer\SkeletalMeshRenderer.cpp" />
     <ClCompile Include="Source\Engine\CubeMap\CubeMap.cpp" />
     <ClCompile Include="Source\Engine\CopyImagePass\CopyImagePass.cpp" />
     <ClCompile Include="Source\Engine\Entity\EntityLoader.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiWidgets.cpp" />
     <ClCompile Include="Source\Engine\Particle\ExplosionEffect.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Animation\AnimationManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\SkeletalMesh.cpp" />
     <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
     <ClCompile Include="Source\Engine\Assets\Manager\AssetManager.cpp" />
     <ClCompile Include="Source\Engine\Async\JobTask\Base\BaseJobTask.cpp" />
@@ -256,11 +266,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Shaders\Skybox.hlsli" />
+    <ClInclude Include="Source\Engine\Animation\Animation.h" />
+    <ClInclude Include="Source\Engine\Animation\KeyFrame.h" />
+    <ClInclude Include="Source\Engine\Animation\Node.h" />
+    <ClInclude Include="Source\Engine\Components\Animation\AnimationComponent.h" />
+    <ClInclude Include="Source\Engine\Components\MeshRenderer\SkeletalMeshRenderer.h" />
     <ClInclude Include="Source\Engine\CubeMap\CubeMap.h" />
     <ClInclude Include="Source\Engine\CopyImagePass\CopyImagePass.h" />
     <ClInclude Include="Source\Engine\Entity\EntityLoader.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiWidgets.h" />
     <ClInclude Include="Source\Engine\Particle\ExplosionEffect.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Animation\AnimationManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\SkeletalMesh.h" />
     <ClInclude Include="Source\Engine\Window\EditorWindow.h" />
     <ClInclude Include="Source\Engine\Assets\Manager\AssetManager.h" />
     <ClInclude Include="Source\Engine\Assets\Asset\Base\Asset.h" />

@@ -1,10 +1,8 @@
 #pragma once
 #include <algorithm>
 #include <memory>
-#include <ranges>
 #include <string>
 #include <type_traits>
-#include <typeindex>
 #include <unordered_map>
 #include <utility>
 
@@ -19,10 +17,10 @@ enum class EntityType {
 
 class Entity {
 public:
-	explicit Entity(const std::string& name, const EntityType& type = EntityType::RuntimeOnly) :
+	explicit Entity(std::string name, const EntityType& type = EntityType::RuntimeOnly) :
 		transform_(std::make_unique<TransformComponent>()),
 		entityType_(type),
-		name_(name) {
+		name_(std::move(name)) {
 		transform_->OnAttach(*this);
 	}
 
@@ -47,7 +45,7 @@ public:
 	template <typename T>
 	T* GetComponent();
 	template <typename T>
-	bool HasComponent();
+	bool HasComponent() const;
 	template <typename T>
 	bool RemoveComponent();
 
@@ -113,7 +111,7 @@ std::vector<T*> Entity::GetComponents() {
 }
 
 template <typename T>
-bool Entity::HasComponent() {
+bool Entity::HasComponent() const {
 	static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
 	for (const auto& component : components_) {
 		if (dynamic_cast<T*>(component.get())) {

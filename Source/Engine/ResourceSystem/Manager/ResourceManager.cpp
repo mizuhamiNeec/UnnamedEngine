@@ -10,10 +10,11 @@ ResourceManager::ResourceManager(D3D12* d3d12) :
 	shaderManager_(nullptr),
 	materialManager_(nullptr),
 	meshManager_(nullptr) {
-	srvManager_ = std::make_unique<SrvManager>();
-	shaderManager_ = std::make_unique<ShaderManager>();
-	materialManager_ = std::make_unique<MaterialManager>();
-	meshManager_ = std::make_unique<MeshManager>();
+	srvManager_       = std::make_unique<SrvManager>();
+	shaderManager_    = std::make_unique<ShaderManager>();
+	materialManager_  = std::make_unique<MaterialManager>();
+	meshManager_      = std::make_unique<MeshManager>();
+	animationManager_ = std::make_unique<AnimationManager>();
 }
 
 void ResourceManager::Init() const {
@@ -28,6 +29,8 @@ void ResourceManager::Init() const {
 	meshManager_->Init(d3d12_->GetDevice(),
 	                   shaderManager_.get(), materialManager_.get());
 
+	animationManager_->Init();
+
 	Console::Print("ResourceManager の初期化が完了しました\n", kConTextColorCompleted,
 	               Channel::ResourceSystem);
 }
@@ -37,8 +40,14 @@ void ResourceManager::Shutdown() {
 		"ResourceManager を終了しています...\n", kConTextColorWait,
 		Channel::ResourceSystem
 	);
-
+	
 	// 全てのリソースマネージャーを終了
+
+	if (animationManager_) {
+		animationManager_->Shutdown();
+		animationManager_.reset();
+	}
+
 	if (meshManager_) {
 		meshManager_->Shutdown();
 		meshManager_.reset();
@@ -53,9 +62,9 @@ void ResourceManager::Shutdown() {
 		shaderManager_->Shutdown();
 		shaderManager_.reset();
 	}
-	
+
 	TexManager::Shutdown();
-	
+
 	RootSignatureManager2::Shutdown();
 }
 
@@ -69,6 +78,10 @@ TexManager* ResourceManager::GetTexManager() const {
 
 MeshManager* ResourceManager::GetMeshManager() const {
 	return meshManager_.get();
+}
+
+AnimationManager* ResourceManager::GetAnimationManager() const {
+	return animationManager_.get();
 }
 
 MaterialManager* ResourceManager::GetMaterialManager() const {

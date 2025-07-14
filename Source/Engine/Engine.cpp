@@ -340,7 +340,7 @@ void Engine::Init() {
 	sceneFactory_->RegisterScene<GameScene>("GameScene");
 	sceneFactory_->RegisterScene<EmptyScene>("EmptyScene");
 	// シーンの初期化
-	sceneManager_->ChangeScene("EmptyScene");
+	sceneManager_->ChangeScene("GameScene");
 
 	// エディターの初期化
 	CheckEditorMode();
