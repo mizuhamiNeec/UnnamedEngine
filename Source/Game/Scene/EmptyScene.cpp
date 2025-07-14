@@ -35,15 +35,15 @@ void EmptyScene::Init() {
 	//"./Resources/Models/man/man.gltf"
 	//"./Resources/Models/human/sneakWalk.gltf"
 	resourceManager_->GetMeshManager()->LoadSkeletalMeshFromFile(
-		"./Resources/Models/vroid/vroid.gltf"
-	);
+		"./Resources/Models/man/man.gltf"
+		);
 
 	skeletalMeshEntity_ = std::make_unique<Entity>("SkeletalMeshEntity");
 	auto sklMesh = skeletalMeshEntity_->AddComponent<SkeletalMeshRenderer>();
-	
+
 	auto skeletalMesh = resourceManager_->GetMeshManager()->GetSkeletalMesh(
-		"./Resources/Models/vroid/vroid.gltf"
-	);
+		"./Resources/Models/man/man.gltf"
+		);
 	sklMesh->SetSkeletalMesh(skeletalMesh);
 
 	AddEntity(skeletalMeshEntity_.get());
