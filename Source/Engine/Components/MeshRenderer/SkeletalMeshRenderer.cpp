@@ -11,6 +11,8 @@
 
 #include "Debug/Debug.h"
 
+#include "Lib/DebugHud/DebugHud.h"
+
 // TODO: 後で消す Object3Dシェーダーとはおさらばじゃ!!
 struct MatParam {
 	Vec4  baseColor;
@@ -137,6 +139,9 @@ void SkeletalMeshRenderer::Update(float deltaTime) {
 		// ボーン変換行列を更新
 		UpdateBoneMatrices();
 	}
+	if (showBoneDebug_) {
+		DrawBoneDebug();
+	}
 }
 
 void SkeletalMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
@@ -253,72 +258,132 @@ void SkeletalMeshRenderer::DrawInspectorImGui() {
 	if (ImGui::CollapsingHeader("SkeletalMeshRenderer",
 	                            ImGuiTreeNodeFlags_DefaultOpen)) {
 		if (skeletalMesh_) {
-			// アニメーション制御UI
-			ImGui::Text("Animation Control");
-			ImGui::Separator();
+			ImGui::Checkbox("Show Bone Debug", &showBoneDebug_);
 
-			// アニメーション選択
-			const auto& animations = skeletalMesh_->GetAnimations();
-			if (!animations.empty()) {
-				if (ImGui::BeginCombo("Animation",
-				                      currentAnimationName_.c_str())) {
-					for (const auto& [animName, anim] : animations) {
-						bool isSelected = (currentAnimationName_ == animName);
-						if (ImGui::Selectable(animName.c_str(), isSelected)) {
-							PlayAnimation(animName, isLooping_);
+			if (ImGui::TreeNode("Animation")) {
+				// アニメーション制御UI
+				ImGui::Text("Animation Control");
+				ImGui::Separator();
+
+				// アニメーション選択
+				const auto& animations = skeletalMesh_->GetAnimations();
+				if (!animations.empty()) {
+					if (ImGui::BeginCombo("Animation",
+					                      currentAnimationName_.c_str())) {
+						for (const auto& [animName, anim] : animations) {
+							bool isSelected = (currentAnimationName_ ==
+								animName);
+							if (ImGui::Selectable(
+								animName.c_str(), isSelected)) {
+								PlayAnimation(animName, isLooping_);
+							}
+							if (isSelected) {
+								ImGui::SetItemDefaultFocus();
+							}
 						}
-						if (isSelected) {
-							ImGui::SetItemDefaultFocus();
+						ImGui::EndCombo();
+					}
+
+					// 再生制御
+					if (ImGui::Button(isPlaying_ ? "Pause" : "Play")) {
+						if (isPlaying_) {
+							PauseAnimation();
+						} else {
+							ResumeAnimation();
 						}
 					}
-					ImGui::EndCombo();
-				}
-
-				// 再生制御
-				if (ImGui::Button(isPlaying_ ? "Pause" : "Play")) {
-					if (isPlaying_) {
-						PauseAnimation();
-					} else {
-						ResumeAnimation();
+					ImGui::SameLine();
+					if (ImGui::Button("Stop")) {
+						StopAnimation();
 					}
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Stop")) {
-					StopAnimation();
-				}
 
-				// アニメーション設定
-				ImGui::Checkbox("Loop", &isLooping_);
-				ImGui::DragFloat("Speed", &animationSpeed_, 0.1f, 0.1f, 5.0f);
+					// アニメーション設定
+					ImGui::Checkbox("Loop", &isLooping_);
+					ImGui::DragFloat("Speed", &animationSpeed_, 0.1f, 0.1f,
+					                 5.0f);
 
-				if (currentAnimation_) {
-					ImGui::Text("Time: %.2f / %.2f", animationTime_,
-					            currentAnimation_->duration);
+					if (currentAnimation_) {
+						ImGui::Text("Time: %.2f / %.2f", animationTime_,
+						            currentAnimation_->duration);
 
-					// アニメーション時間スライダー
-					float normalizedTime = currentAnimation_->duration > 0
-						                       ? animationTime_ /
-						                       currentAnimation_->duration
-						                       : 0.0f;
-					if (ImGui::SliderFloat("Progress", &normalizedTime, 0.0f,
-					                       1.0f)) {
-						animationTime_ = normalizedTime * currentAnimation_->
-							duration;
-						UpdateBoneMatrices();
+						// アニメーション時間スライダー
+						float normalizedTime = currentAnimation_->duration > 0
+							                       ? animationTime_ /
+							                       currentAnimation_->duration
+							                       : 0.0f;
+						if (ImGui::SliderFloat("Progress", &normalizedTime,
+						                       0.0f,
+						                       1.0f)) {
+							animationTime_ = normalizedTime * currentAnimation_
+								->
+								duration;
+							UpdateBoneMatrices();
+						}
 					}
+				} else {
+					ImGui::Text("No animations available");
 				}
-			} else {
-				ImGui::Text("No animations available");
+				ImGui::TreePop();
 			}
 
 			ImGui::Separator();
 
-			// マテリアル設定（StaticMeshRendererと同様）
-			ImGui::Text("MatParams");
-			ImGui::ColorEdit4("BaseColor", &materialData->baseColor.x);
-			ImGui::DragFloat("Metallic", &materialData->metallic, 0.01f);
-			ImGui::DragFloat("Roughness", &materialData->roughness, 0.01f);
-			ImGui::ColorEdit3("Emissive", &materialData->emissive.x);
+			if (ImGui::TreeNode("Material")) {
+				ImGui::Text("MatParams");
+				ImGui::ColorEdit4("BaseColor", &materialData->baseColor.x);
+				ImGui::DragFloat("Metallic", &materialData->metallic, 0.01f);
+				ImGui::DragFloat("Roughness", &materialData->roughness, 0.01f);
+				ImGui::ColorEdit3("Emissive", &materialData->emissive.x);
+
+				ImGui::Separator();
+
+				ImGui::Text("DirectionalLight");
+				ImGui::ColorEdit4("Color##Directional",
+				                  &directionalLightData->color.x);
+				if (ImGui::DragFloat3("Direction##Directional",
+				                      &directionalLightData->direction.x,
+				                      0.01f)) {
+					directionalLightData->direction.Normalize();
+				}
+				ImGui::DragFloat("Intensity##Directional",
+				                 &directionalLightData->intensity, 0.01f);
+
+				ImGui::Text("CameraForGPU");
+				ImGui::Text("World Position: %f, %f, %f",
+				            cameraData->worldPosition.x,
+				            cameraData->worldPosition.y,
+				            cameraData->worldPosition.z);
+
+				ImGui::Text("PointLight");
+				ImGui::ColorEdit4("Color##Point", &pointLightData->color.x);
+				ImGui::DragFloat3("Position##Point",
+				                  &pointLightData->position.x,
+				                  0.01f);
+				ImGui::DragFloat("Intensity##Point", &pointLightData->intensity,
+				                 0.01f);
+				ImGui::DragFloat("Radius##Point", &pointLightData->radius,
+				                 0.01f);
+				ImGui::DragFloat("Decay##Point", &pointLightData->decay, 0.01f);
+
+				ImGui::Text("SpotLight");
+				ImGui::ColorEdit4("Color##Spot", &spotLightData->color.x);
+				ImGui::DragFloat3("Position##Spot", &spotLightData->position.x,
+				                  0.01f);
+				ImGui::DragFloat("Intensity##Spot", &spotLightData->intensity,
+				                 0.01f);
+				ImGui::DragFloat3("Direction##Spot",
+				                  &spotLightData->direction.x,
+				                  0.01f);
+				ImGui::DragFloat("Distance##Spot", &spotLightData->distance,
+				                 0.01f);
+				ImGui::DragFloat("Decay##Spot", &spotLightData->decay, 0.01f);
+				ImGui::DragFloat("CosAngle##Spot", &spotLightData->cosAngle,
+				                 0.01f);
+				ImGui::DragFloat("CosFalloff##Spot",
+				                 &spotLightData->cosFalloffStart, 0.01f);
+
+				ImGui::TreePop();
+			}
 
 			ImGui::Separator();
 
@@ -472,10 +537,6 @@ void SkeletalMeshRenderer::UpdateBoneMatrices() {
 	// ルートノードから開始して変換行列を計算
 	CalculateNodeTransform(skeleton.rootNode, Mat4::identity, currentAnimation_,
 	                       animationTime_);
-
-	if (showBoneDebug_) {
-		DrawBoneDebug();
-	}
 }
 
 void SkeletalMeshRenderer::CalculateNodeTransform(
@@ -492,6 +553,7 @@ void SkeletalMeshRenderer::CalculateNodeTransform(
 		                                  animationTime);
 		Quaternion rotation = CalculateValue(nodeAnim.rotate.keyFrames,
 		                                     animationTime);
+
 		Vec3 scale    = CalculateValue(nodeAnim.scale.keyFrames, animationTime);
 		nodeTransform = Mat4::Affine(
 			scale,
@@ -510,7 +572,7 @@ void SkeletalMeshRenderer::CalculateNodeTransform(
 		if (it != skeleton.boneMap.end()) {
 			int boneIndex = it->second;
 			if (boneIndex < BoneMatrices::MAX_BONES) {
-				// ボーン行列の計算順序を変更して試行
+				// 元の計算に戻す（補正なし）
 				boneMatrices_->bones[boneIndex] = skeleton.
 					bones[boneIndex].offsetMatrix * globalTransform;
 			}
@@ -552,15 +614,91 @@ void SkeletalMeshRenderer::DrawBoneHierarchy(
 	Quaternion nodeRot         = globalTransform.ToQuaternion();
 
 	if (skeletalMesh_->GetSkeleton().boneMap.contains(node.name)) {
-		Debug::DrawSphere(nodePos, nodeRot, 0.03f,
-		                  {1.0f, 0.2f, 0.2f, 1.0f});
+		Debug::DrawSphere(
+			nodePos,
+			nodeRot,
+			0.03f,
+			{1.0f, 0.2f, 0.2f, 1.0f},
+			3
+		);
 
 		if (parentTransform != Mat4::identity) {
 			Mat4 parentT   = parentTransform;
 			Vec3 parentPos = parentT.GetTranslate();
 			Debug::DrawLine(parentPos, nodePos, {0.8f, 0.8f, 0.2f, 1.0f});
+			{
+				const Vec3 worldPos   = nodePos;
+				Vec2       screenSize = Engine::GetViewportSize();
+
+				const Vec3 cameraPos = CameraManager::GetActiveCamera()->
+				                       GetViewMat().
+				                       Inverse().GetTranslate();
+
+				// カメラとの距離を計算
+				float distance = (worldPos - cameraPos).Length();
+
+				// カメラとの距離が一定以下の場合は描画しない
+				if (distance < Math::HtoM(4.0f)) {
+					return;
+				}
+
+				bool  bIsOffscreen = false;
+				float outAngle     = 0.0f;
+
+				Vec2 scrPosition = Math::WorldToScreen(
+					worldPos,
+					screenSize,
+					false,
+					0.0f,
+					bIsOffscreen,
+					outAngle
+				);
+
+				if (!bIsOffscreen) {
+#ifdef _DEBUG
+					//auto   viewport  = ImGui::GetMainViewport();
+					ImVec2 screenPos = {
+						Engine::GetViewportLT().x, Engine::GetViewportLT().y
+					};
+					ImGui::SetNextWindowPos(screenPos);
+					ImGui::SetNextWindowSize({screenSize.x, screenSize.y});
+					ImGui::SetNextWindowBgAlpha(0.0f); // 背景を透明にする
+					ImGui::Begin("##EntityName", nullptr,
+					             ImGuiWindowFlags_NoBackground |
+					             ImGuiWindowFlags_NoTitleBar |
+					             ImGuiWindowFlags_NoResize |
+					             ImGuiWindowFlags_NoMove |
+					             ImGuiWindowFlags_NoSavedSettings |
+					             ImGuiWindowFlags_NoDocking |
+					             ImGuiWindowFlags_NoFocusOnAppearing |
+					             ImGuiWindowFlags_NoInputs |
+					             ImGuiWindowFlags_NoNav
+					);
+
+					ImVec2      textPos  = {scrPosition.x, scrPosition.y};
+					ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+					float outlineSize = 1.0f;
+
+					ImVec4 textColor = ToImVec4(Vec4::white);
+
+					ImGuiManager::TextOutlined(
+						drawList,
+						textPos,
+						node.name.c_str(),
+						textColor,
+						ToImVec4(kDebugHudOutlineColor),
+						outlineSize
+					);
+
+					ImGui::End();
+#endif
+				}
+			}
 		}
 
+		Debug::DrawAxis(nodePos, globalTransform.ToQuaternion());
+	} else {
 		Debug::DrawAxis(nodePos, globalTransform.ToQuaternion());
 	}
 
