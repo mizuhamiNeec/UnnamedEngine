@@ -6,15 +6,16 @@
 
 #include <filesystem>
 #include <format>
+#include <SrvManager.h>
+
 #include <../Externals/DirectXTex/d3dx12.h>
 
-#include "../Lib/Utils/ClientProperties.h"
-#include "../Renderer/D3D12.h"
-#include "SrvManager.h"
+#include <Lib/Utils/ClientProperties.h>
+#include <Lib/Utils/StrUtil.h>
 
-#include "Lib/Utils/StrUtil.h"
+#include <Renderer/D3D12.h>
 
-#include "SubSystem/Console/Console.h"
+#include <SubSystem/Console/Console.h>
 
 
 TexManager* TexManager::instance_ = nullptr;
@@ -254,7 +255,7 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 		Console::Print(std::format("ERROR : Failed to Load {}\n",
 		                           filePath));
 		// デフォルトテクスチャの読み込み
-		filePathW = StrUtil::ToWString("./Resources/Textures/empty.png");
+		filePathW = StrUtil::ToWString("./Resources/Textures/uvChecker.png");
 		hr        = DirectX::LoadFromWICFile(filePathW.c_str(),
 		                              DirectX::WIC_FLAGS_FORCE_SRGB,
 		                              nullptr,
