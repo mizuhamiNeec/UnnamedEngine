@@ -29,12 +29,9 @@ PlayerMovement::~PlayerMovement() {
 }
 
 void PlayerMovement::OnAttach(Entity& owner) {
-	Component::OnAttach(owner);
+	CharacterMovement::OnAttach(owner);
 
-	// 初期化処理
-	// トランスフォームコンポーネントを取得
-	transform_ = owner_->GetTransform();
-
+	// プレイヤー固有の初期化処理
 	mSpeed   = 290.0f;
 	mJumpVel = 350.0f;
 
@@ -75,10 +72,7 @@ void PlayerMovement::ProcessInput() {
 }
 
 void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
-	deltaTime_ = deltaTime;
-	position_  = transform_->GetLocalPos();
-
-	// 入力処理
+	// プレイヤー固有の処理
 	ProcessInput();
 
 	// 前回状態を保存
@@ -93,10 +87,11 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 		mCurrentHeightHU = kDefaultHeightHU;
 	}
 
-	Vec3 oldWorldPos = transform_->GetWorldPos();
-	CollideAndSlide(velocity_ * deltaTime_);
+	// 衝突検出とスライド処理（プレイヤー固有）
+	CollideAndSlide(velocity_ * deltaTime);
 
-	Move();
+	// 基底クラスの共通更新処理を呼び出し
+	CharacterMovement::Update(deltaTime);
 
 	// スライディング開始の検出とイベント実行
 	if (slideState == Sliding && previousSlideState_ != Sliding) {
@@ -105,22 +100,10 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 		                 Vec3::right);
 	}
 
-	UpdateCameraShake(deltaTime_);
+	UpdateCameraShake(deltaTime);
 
-	// デバッグ描画
-	Debug::DrawArrow(transform_->GetWorldPos(), velocity_, Vec4::yellow);
-
-	const float width  = Math::HtoM(mCurrentWidthHU);
-	const float height = Math::HtoM(mCurrentHeightHU);
-	Debug::DrawBox(
-		transform_->GetWorldPos() + (Vec3::up * height * 0.5f),
-		Quaternion::Euler(Vec3::zero),
-		Vec3(width, height, width),
-		bIsGrounded ? Vec4::green : Vec4::blue);
+	// プレイヤー固有のデバッグ描画
 	Debug::DrawRay(transform_->GetWorldPos(), wishdir_, Vec4::cyan);
-
-	// position_.y = std::max<float>(position_.y, 0.0f);
-	transform_->SetLocalPos(position_);
 
 	// カメラの前方ベクトルを取得し、XZ平面に投影して正規化
 	auto camera        = CameraManager::GetActiveCamera();

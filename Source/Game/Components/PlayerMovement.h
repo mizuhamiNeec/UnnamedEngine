@@ -18,7 +18,7 @@ public:
 	void DrawInspectorImGui() override;
 
 	void Move() override;
-	void ProcessInput();
+
 	void SetIsGrounded(bool cond);
 
 	void SetVelocity(Vec3 newVel);
@@ -49,6 +49,35 @@ public:
 	                      float rotationFrequency, const Vec3& rotationAxis);
 
 private:
+	Vec3 moveInput_ = Vec3::zero;
+	Vec3 wishdir_   = Vec3::zero;
+	
+	bool  bCanDoubleJump_      = false;
+	bool  bDoubleJumped_       = false;
+	float doubleJumpVelocity_  = 300.0f; // 二段ジャンプの速度
+	bool  bJumpKeyWasReleased_ = true;
+	
+	enum SlideState {
+		NotSliding,
+		Sliding,
+		SlideRecovery
+	};
+
+	SlideState slideState         = NotSliding;
+	SlideState previousSlideState_ = NotSliding; // 前回のスライド状態
+	float      slideTimer         = 0.0f;
+	float      slideRecoveryTimer = 0.0f;
+
+	const float slideMinSpeed     = 180.0f; // スライドを維持するための最小速度
+	const float slideBoost        = 1.5f;   // スライド中の加速量
+	const float slideFriction     = 0.25f;  // スライド中の摩擦係数
+	const float maxSlideTime      = 1.0f;   // スライドの最大維持時間(秒)
+	const float slideRecoveryTime = 0.5f;   // スライド後の回復時間(秒)
+	const float slideDownForce    = 150.0f; // スライド中の下方向への力
+	const float kMinSlideTime     = 0.5f;   // 最小スライド時間（秒）
+
+	Vec3 mSlideDir = Vec3::zero; // スライド中の方向ベクトル
+	
 	struct CameraShake {
 		float duration    = 0.0f;       // 揺れの持続時間
 		float currentTime = 0.0f;       // 経過時間
@@ -75,23 +104,9 @@ private:
 		float   rotationMultiplier = 1.0f; // 回転の倍率
 	};
 
-
-	bool  bCanDoubleJump_      = false;
-	bool  bDoubleJumped_       = false;
-	float doubleJumpVelocity_  = 300.0f; // 二段ジャンプの速度
-	bool  bJumpKeyWasReleased_ = true;
-
-
-	SlideState  previousSlideState_ = NotSliding; // 前回のスライド状態
-	const float kMinSlideTime       = 0.5f;       // 最小スライド時間（秒）
-
 	std::vector<EntityShakeInfo> shakeEntities_;
-
+	
+	void ProcessInput();
 	void UpdateCameraShake(float deltaTime);
-
 	void CollideAndSlide(const Vec3& desiredDisplacement);
-
-	// プレイヤーの移動入力
-	Vec3 moveInput_ = Vec3::zero;
-	Vec3 wishdir_   = Vec3::zero;
 };
