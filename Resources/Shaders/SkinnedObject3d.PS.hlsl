@@ -31,7 +31,8 @@ struct PixelShaderOutput {
 
 // Schlick-IBL向けのFresnel式
 float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
-	return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+	return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness),
+	                 F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 // SchlickのFresnel項
@@ -60,65 +61,70 @@ float Geometry_SmithGGX(float NdotV, float NdotL, float roughness) {
 PixelShaderOutput PSMain(VertexShaderOutput input) {
 	PixelShaderOutput output;
 
- // テクスチャサンプリング
-    float4 baseColor = gBaseColorTexture.Sample(gSampler, input.texcoord) * 
-                      gMaterial.baseColor;
-    float  metallic  = gMaterial.metallic;
-    float  roughness = max(gMaterial.roughness, 0.05);
-    float3 emissive  = gMaterial.emissive;
+	// テクスチャサンプリング
+	float4 baseColor = gBaseColorTexture.Sample(gSampler, input.texcoord) *
+		gMaterial.baseColor;
+	float  metallic  = gMaterial.metallic;
+	float  roughness = max(gMaterial.roughness, 0.05);
+	float3 emissive  = gMaterial.emissive;
 
-    float3 N = normalize(input.normal);
-    float3 V = normalize(gCamera.worldPosition - input.worldPosition);
-    float3 R = reflect(-V, N);
-    
-    float NdotV = saturate(dot(N, V));
-    float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor.rgb, metallic);
+	float3 N = normalize(input.normal);
+	float3 V = normalize(gCamera.worldPosition - input.worldPosition);
+	float3 R = reflect(-V, N);
 
-    static const float environmentIntensity = 1.5f; // 強度を下げる
+	float  NdotV = saturate(dot(N, V));
+	float3 F0    = lerp(float3(0.04, 0.04, 0.04), baseColor.rgb, metallic);
 
-    // IBL
-    float3 irradiance = gEnvironmentTexture.Sample(gSampler, N).rgb * 
-                       environmentIntensity;
+	static const float environmentIntensity = 1.5f; // 強度を下げる
 
-    const float MAX_REFLECTION_LOD = 4.0f;
-    float mipLevel = roughness * MAX_REFLECTION_LOD;
-    float3 prefiltered = gEnvironmentTexture.SampleLevel(gSampler, R, mipLevel).rgb * 
-                        environmentIntensity;
+	// IBL
+	float3 irradiance = gEnvironmentTexture.Sample(gSampler, N).rgb *
+		environmentIntensity;
 
-    // IBLのFresnel項は視線方向と法線を使用
-    float3 F_IBL = FresnelSchlickRoughness(NdotV, F0, roughness);
-    
-    // IBLの拡散反射と鏡面反射の調整
-    float3 diffuseIBL = irradiance * baseColor.rgb * (1.0 - metallic);
-    float3 specularIBL = prefiltered * F_IBL;
+	const float MAX_REFLECTION_LOD = 4.0f;
+	float mipLevel = roughness * MAX_REFLECTION_LOD;
+	float3 prefiltered = gEnvironmentTexture.SampleLevel(gSampler, R, mipLevel).
+	                                         rgb *
+		environmentIntensity;
 
-    // ラフネスが高いほどspecularIBLを弱める
-    float specularFactor = (1.0 - roughness) * (0.5 + 0.5 * metallic);
-    specularIBL *= specularFactor;
+	// IBLのFresnel項は視線方向と法線を使用
+	float3 F_IBL = FresnelSchlickRoughness(NdotV, F0, roughness);
 
-    // Directional Light
-    float3 L = normalize(-gDirectionalLight.direction);
-    float3 H = normalize(V + L);
+	// IBLの拡散反射と鏡面反射の調整
+	float3 diffuseIBL  = irradiance * baseColor.rgb * (1.0 - metallic);
+	float3 specularIBL = prefiltered * F_IBL;
 
-    float NdotL = saturate(dot(N, L));
-    float NdotH = saturate(dot(N, H));
-    float HdotV = saturate(dot(H, V));
+	// ラフネスが高いほどspecularIBLを弱める
+	float specularFactor = (1.0 - roughness) * (0.5 + 0.5 * metallic);
+	specularIBL *= specularFactor;
 
-    float3 F = FresnelSchlick(HdotV, F0);
-    float  D = NormalDistribution_GGX(NdotH, roughness);
-    float  G = Geometry_SmithGGX(NdotV, NdotL, roughness);
+	// Directional Light
+	float3 L = normalize(-gDirectionalLight.direction);
+	float3 H = normalize(V + L);
 
-    float3 specular = (D * F * G) / max(4.0 * NdotV * NdotL, 0.001);
-    float3 diffuse  = (1.0 - F) * baseColor.rgb * (1.0 - metallic) / 3.141592;
+	float NdotL = saturate(dot(N, L));
+	float NdotH = saturate(dot(N, H));
+	float HdotV = saturate(dot(H, V));
 
-    float3 lightColor = gDirectionalLight.color.rgb * gDirectionalLight.intensity;
-    float3 radiance = lightColor * NdotL;
+	float3 F = FresnelSchlick(HdotV, F0);
+	float  D = NormalDistribution_GGX(NdotH, roughness);
+	float  G = Geometry_SmithGGX(NdotV, NdotL, roughness);
 
-    float3 directLight = (diffuse + specular) * radiance;
+	float3 specular = (D * F * G) / max(4.0 * NdotV * NdotL, 0.001);
+	float3 diffuse  = (1.0 - F) * baseColor.rgb * (1.0 - metallic) / 3.141592;
 
-    // 出力
-    output.color.rgb = diffuseIBL + specularIBL + directLight + emissive;
-    output.color.a   = baseColor.a;
+	float3 lightColor = gDirectionalLight.color.rgb * gDirectionalLight.
+		intensity;
+	float3 radiance = lightColor * NdotL;
 
-    return output;
+	float3 directLight = (diffuse + specular) * radiance;
+
+	// 出力
+	output.color.rgb = diffuseIBL + specularIBL + directLight + emissive;
+	output.color.a   = baseColor.a;
+	if (output.color.a < 0.5f) {
+		discard; // アルファテスト
+	}
+
+	return output;
 }
