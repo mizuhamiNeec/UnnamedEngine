@@ -32,18 +32,17 @@ void EmptyScene::Init() {
 		"./Resources/Textures/uvChecker.png"
 	);
 
-
 	//"./Resources/Models/man/man.gltf"
 	//"./Resources/Models/human/sneakWalk.gltf"
 	resourceManager_->GetMeshManager()->LoadSkeletalMeshFromFile(
-		"./Resources/Models/man/man.gltf"
+		"./Resources/Models/vroid/vroid.gltf"
 	);
 
 	skeletalMeshEntity_ = std::make_unique<Entity>("SkeletalMeshEntity");
 	auto sklMesh = skeletalMeshEntity_->AddComponent<SkeletalMeshRenderer>();
-
+	
 	auto skeletalMesh = resourceManager_->GetMeshManager()->GetSkeletalMesh(
-		"./Resources/Models/man/man.gltf"
+		"./Resources/Models/vroid/vroid.gltf"
 	);
 	sklMesh->SetSkeletalMesh(skeletalMesh);
 
