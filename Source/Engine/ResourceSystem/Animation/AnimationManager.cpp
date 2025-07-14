@@ -52,7 +52,7 @@ std::vector<Animation> AnimationManager::LoadAllAnimationsFromFile(const std::st
 		aiAnimation* animationAssimp = aScene->mAnimations[animIndex];
 		Animation animation = LoadSingleAnimation(animationAssimp);
 		
-		// アニメーション名を生成（ファイルパス + アニメーション名）
+		// アニメーションに名前をつける
 		std::string animationKey = filePath + "::" + std::string(animationAssimp->mName.C_Str());
 		animationNames.emplace_back(animationAssimp->mName.C_Str());
 		
@@ -69,7 +69,7 @@ std::vector<Animation> AnimationManager::LoadAllAnimationsFromFile(const std::st
 
 Animation AnimationManager::LoadAnimationByName(const std::string& filePath, const std::string& animationName) {
 	// キャッシュを確認
-	std::string animationKey = filePath + "::" + animationName;
+	const std::string animationKey = filePath + "::" + animationName;
 	auto it = animations_.find(animationKey);
 	if (it != animations_.end()) {
 		return it->second;
