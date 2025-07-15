@@ -1,5 +1,7 @@
 #include "IniParser.h"
 
+#include <fstream>
+
 #include "SubSystem/Console/Console.h"
 
 std::unordered_map<std::string, std::unordered_map<std::string, std::string>> IniParser::ParseIniFile(
