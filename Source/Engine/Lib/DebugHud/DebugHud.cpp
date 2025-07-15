@@ -42,7 +42,7 @@ void DebugHud::ShowFrameRate() {
 		fps = 1.0f / EngineTimer::GetScaledDeltaTime();
 	}
 	if (flag == 2) {
-		ImGuiIO io = ImGui::GetIO();
+		const ImGuiIO io = ImGui::GetIO();
 		fps = io.Framerate;
 	}
 
@@ -56,11 +56,11 @@ void DebugHud::ShowFrameRate() {
 
 	ImGui::Begin("##cl_showfps", nullptr, windowFlags);
 
-	ImVec2 textPos = ImGui::GetCursorPos();
+	const ImVec2 textPos = ImGui::GetCursorPos();
 
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-	float outlineSize = 1.0f;
+	const float outlineSize = 1.0f;
 
 	ImVec4 textColor = ToImVec4(kConTextColorError);
 	if (fps >= 59.9f) {
