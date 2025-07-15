@@ -2,6 +2,7 @@
 
 #include <list>
 #include <memory>
+#include <SrvManager.h>
 
 #include <Components/Camera/CameraComponent.h>
 
@@ -10,9 +11,6 @@
 
 #include <Renderer/ConstantBuffer.h>
 #include <Renderer/IndexBuffer.h>
-#include <Renderer/VertexBuffer.h>
-
-#include "SrvManager.h"
 
 class Camera;
 class ParticleManager;
@@ -57,11 +55,11 @@ public:
 	                             Vec3& endSize);
 
 	void SetBillboardType(const BillboardType type) {
-		billboardType_ = type;
+		mBillboardType = type;
 	}
 
 	[[nodiscard]] BillboardType GetBillboardType() const {
-		return billboardType_;
+		return mBillboardType;
 	}
 
 private:
@@ -74,34 +72,34 @@ private:
 		Vec3    specularColor;
 	};
 
-	BillboardType billboardType_ = BillboardType::All;
+	BillboardType mBillboardType = BillboardType::All;
 
-	ParticleManager* particleCommon_ = nullptr;
-	SrvManager*      srvManager_     = nullptr;
-	CameraComponent* camera_         = nullptr;
-	std::string      textureFilePath_;
+	ParticleManager* mParticleCommon = nullptr;
+	SrvManager*      mSrvManager     = nullptr;
+	CameraComponent* mCamera         = nullptr;
+	std::string      mTextureFilePath;
 
 	uint32_t kNumMaxInstance = 16385; // 最大インスタンス数
-	uint32_t numInstance     = 0;     // 描画すべきインスタンス数
+	uint32_t mNumInstance     = 0;     // 描画すべきインスタンス数
 
-	uint32_t srvIndex_ = 0;
+	uint32_t mSrvIndex = 0;
 
 	// パーティクル
-	std::list<Particle> particles_;
+	std::list<Particle> mParticles;
 
-	Emitter           emitter_           = {};
-	AccelerationField accelerationField_ = {};
+	Emitter           mEmitter           = {};
+	AccelerationField mAccelerationField = {};
 
-	std::unique_ptr<ConstantBuffer> materialResource_   = nullptr;
-	std::unique_ptr<ConstantBuffer> instancingResource_ = nullptr;
-	std::unique_ptr<IndexBuffer>    indexBuffer_        = nullptr;
+	std::unique_ptr<ConstantBuffer> mAterialResource   = nullptr;
+	std::unique_ptr<ConstantBuffer> mInstancingResource = nullptr;
+	std::unique_ptr<IndexBuffer>    mIndexBuffer        = nullptr;
 	// バッファリソース内のデータを指すポインタ
-	Vertex*         vertexData_    = nullptr;
-	uint32_t*       indexData_     = nullptr;
-	Material*       materialData_  = nullptr;
-	ParticleForGPU* instancingData = nullptr;
+	Vertex*         mVertexData    = nullptr;
+	uint32_t*       mIndexData     = nullptr;
+	Material*       mAterialData  = nullptr;
+	ParticleForGPU* mInstancingData = nullptr;
 
-	bool enableGravity            = true;
-	bool enableAccelerationField_ = true;
-	bool enableDrag               = true;
+	bool mEnableGravity            = true;
+	bool mEnableAccelerationField = true;
+	bool mEnableDrag               = true;
 };
