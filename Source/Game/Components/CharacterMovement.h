@@ -3,7 +3,7 @@
 
 #include <Lib/Math/Vector/Vec3.h>
 
-class TransformComponent;
+class SceneComponent;
 
 class CharacterMovement : public Component {
 public:
