@@ -559,7 +559,7 @@ void PlayerMovement::UpdateCameraShake(const float deltaTime) {
 		if (!entityInfo.entity) continue;
 
 		// カメラのトランスフォーム取得
-		TransformComponent* entTransform = entityInfo.entity->GetTransform();
+		SceneComponent* entTransform = entityInfo.entity->GetTransform();
 		if (entTransform) {
 			// 現在の回転を取得
 			Quaternion currentRot = Quaternion::identity; // ローカルなので単位

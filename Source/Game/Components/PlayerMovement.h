@@ -6,7 +6,7 @@
 
 #include <Lib/Math/Vector/Vec3.h>
 
-class TransformComponent;
+class SceneComponent;
 
 class PlayerMovement : public CharacterMovement {
 public:
@@ -23,8 +23,8 @@ public:
 
 	[[nodiscard]] Vec3 GetHeadPos() const override;
 
-	void AddCameraShakeEntity(Entity* ent,
-	                          float   rotationMultiplier = 1.0f) {
+	void AddCameraShakeEntity(Entity*     ent,
+	                          const float rotationMultiplier = 1.0f) {
 		if (!ent) return;
 
 		// 既に存在する場合は強度を更新
@@ -39,7 +39,7 @@ public:
 		EntityShakeInfo info;
 		info.entity             = ent;
 		info.rotationMultiplier = rotationMultiplier;
-		mShakeEntities.push_back(info);
+		mShakeEntities.emplace_back(info);
 	}
 
 	void StartCameraShake(float duration, float amplitude, float frequency,
@@ -49,11 +49,11 @@ public:
 private:
 	Vec3 mMoveInput = Vec3::zero;
 	Vec3 mWishdir   = Vec3::zero;
-	
+
 	bool  mCanDoubleJump      = false;
 	bool  mDoubleJumped       = false;
 	bool  mJumpKeyWasReleased = true;
-	float mDoubleJumpVelocity  = 300.0f; // 二段ジャンプの速度
+	float mDoubleJumpVelocity = 300.0f; // 二段ジャンプの速度
 
 	enum SlideState {
 		NotSliding,
@@ -69,13 +69,13 @@ private:
 	const float mSlideMinSpeed     = 180.0f; // スライドを維持するための最小速度
 	const float mSlideBoost        = 1.5f;   // スライド中の加速量
 	const float mSlideFriction     = 0.25f;  // スライド中の摩擦係数
-	const float mAxSlideTime      = 1.0f;   // スライドの最大維持時間(秒)
+	const float mAxSlideTime       = 1.0f;   // スライドの最大維持時間(秒)
 	const float mSlideRecoveryTime = 0.5f;   // スライド後の回復時間(秒)
 	const float mSlideDownForce    = 150.0f; // スライド中の下方向への力
-	const float kMinSlideTime     = 0.5f;   // 最小スライド時間（秒）
+	const float kMinSlideTime      = 0.5f;   // 最小スライド時間（秒）
 
 	Vec3 mSlideDir = Vec3::zero; // スライド中の方向ベクトル
-	
+
 	struct CameraShake {
 		float duration    = 0.0f;       // 揺れの持続時間
 		float currentTime = 0.0f;       // 経過時間
@@ -103,7 +103,7 @@ private:
 	};
 
 	std::vector<EntityShakeInfo> mShakeEntities;
-	
+
 	void ProcessInput();
 	void UpdateCameraShake(float deltaTime);
 	void CollideAndSlide(const Vec3& desiredDisplacement);
