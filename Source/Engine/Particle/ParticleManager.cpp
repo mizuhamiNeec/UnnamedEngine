@@ -17,12 +17,12 @@
 #include "TextureManager/TexManager.h"
 
 void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
-	mRenderer      = d3d12;
+	mRenderer   = d3d12;
 	mSrvManager = srvManager;
 	Console::Print("ParticleManager : ParticleCommonを初期化します。\n",
 	               kConTextColorWait, Channel::Engine);
 	// 頂点データの生成
-	std::vector<Vertex> vertices_ = {
+	std::vector<Vertex> vertices = {
 		{{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, Vec3::forward},
 		{{-1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, Vec3::forward},
 		{{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, Vec3::forward},
@@ -31,17 +31,12 @@ void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
 		{{-1.0f, -1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, Vec3::forward}
 	};
 
-	std::vector<uint32_t> indices = {
+	const std::vector<uint32_t> indices = {
 		0, 1, 2,
 		1, 5, 2
 	};
 
-	//
-	// auto ringVertices = GenerateRingVertices(0.5f, 1.0f, 64);
-	//
-	// auto ringIndices = GenerateRingIndices(64);
-
-	RegisterMesh(ParticleMeshType::Quad, vertices_, indices);
+	RegisterMesh(ParticleMeshType::Quad, vertices, indices);
 
 	CreateGraphicsPipeline();
 
@@ -174,8 +169,8 @@ void ParticleManager::CreateGraphicsPipeline() {
 	mPipelineState->SetBlendMode(kBlendModeAdd);
 	mPipelineState->SetDepthWriteMask(D3D12_DEPTH_WRITE_MASK_ZERO);
 
-	mPipelineState->SetVS(L"./Resources/Shaders/Particle.VS.hlsl");
-	mPipelineState->SetPS(L"./Resources/Shaders/Particle.PS.hlsl");
+	mPipelineState->SetVertexShader(L"./Resources/Shaders/Particle.VS.hlsl");
+	mPipelineState->SetPixelShader(L"./Resources/Shaders/Particle.PS.hlsl");
 	mPipelineState->Create(mRenderer->GetDevice());
 
 	if (mPipelineState->Get()) {
@@ -184,7 +179,7 @@ void ParticleManager::CreateGraphicsPipeline() {
 	}
 }
 
-void ParticleManager::Update(float deltaTime) {
+void ParticleManager::Update(const float deltaTime) {
 	// すべてのパーティクルグループについて処理する
 	for (auto& particleGroup : mParticleGroups | std::views::values) {
 		// グループ内のすべてのパーティクルについて処理する
@@ -308,18 +303,18 @@ std::vector<Vertex> ParticleManager::GenerateRingVertices(
 	return vertices;
 }
 
-std::vector<uint32_t> ParticleManager::GenerateRingIndices(int segments) {
+std::vector<uint32_t> ParticleManager::GenerateRingIndices(const int segments) {
 	std::vector<uint32_t> indices;
 	for (int i = 0; i < segments; ++i) {
-		int next = (i + 1) % segments;
+		const int next = (i + 1) % segments;
 		// 2つのトライアングル
-		indices.push_back(i * 2);     // outer
-		indices.push_back(i * 2 + 1); // inner
-		indices.push_back(next * 2);  // next outer
+		indices.emplace_back(i * 2);     // outer
+		indices.emplace_back(i * 2 + 1); // inner
+		indices.emplace_back(next * 2);  // next outer
 
-		indices.push_back(next * 2);     // next outer
-		indices.push_back(i * 2 + 1);    // inner
-		indices.push_back(next * 2 + 1); // next inner
+		indices.emplace_back(next * 2);     // next outer
+		indices.emplace_back(i * 2 + 1);    // inner
+		indices.emplace_back(next * 2 + 1); // next inner
 	}
 	return indices;
 }
@@ -359,7 +354,7 @@ void ParticleManager::Emit(const std::string& name, const Vec3& pos,
 
 	// 指定された数のパーティクルを追加
 	for (uint32_t i = 0; i < count; ++i) {
-		mParticleGroups[name].particles.push_back(
+		mParticleGroups[name].particles.emplace_back(
 			ParticleObject::MakeNewParticle(
 				pos, ParticleObject::GenerateConeVelocity(30.0f), Vec3::zero,
 				Vec3::zero, Vec4::white, Vec4::white, Vec3::one, Vec3::one)

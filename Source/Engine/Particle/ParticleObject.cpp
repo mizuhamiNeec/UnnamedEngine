@@ -381,7 +381,7 @@ std::list<Particle> ParticleObject::Emit(
 		                                    gravity, startColor, endColor,
 		                                    startSize, endSize
 		);
-		particles.push_back(particle);
+		particles.emplace_back(particle);
 	}
 	return particles;
 }
