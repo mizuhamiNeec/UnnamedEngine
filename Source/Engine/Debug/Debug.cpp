@@ -6,13 +6,13 @@
 
 void Debug::DrawLine(const Vec3& a, const Vec3& b, const Vec4& color) {
 	if (Engine::IsEditorMode()) {
-		line_->AddLine(a, b, color);
+		mLine->AddLine(a, b, color);
 	}
 }
 
 void Debug::DrawRay(const Vec3& position, const Vec3& dir, const Vec4& color) {
 	if (Engine::IsEditorMode()) {
-		line_->AddLine(position, position + dir, color);
+		mLine->AddLine(position, position + dir, color);
 	}
 }
 
@@ -402,18 +402,18 @@ void Debug::DrawTriangle(const Triangle& triangle, const Vec4 vec4) {
 }
 
 void Debug::Init(LineCommon* lineCommon) {
-	line_ = std::make_unique<Line>(lineCommon);
+	mLine = std::make_unique<Line>(lineCommon);
 }
 
 void Debug::Update() {
 }
 
 void Debug::Draw() {
-	line_->Draw();
+	mLine->Draw();
 }
 
 void Debug::Shutdown() {
-	line_.reset();
+	mLine.reset();
 }
 
-std::unique_ptr<Line> Debug::line_;
+std::unique_ptr<Line> Debug::mLine;
