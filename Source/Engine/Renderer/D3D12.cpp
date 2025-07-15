@@ -912,9 +912,11 @@ RenderTargetTexture D3D12::CreateRenderTargetTexture(
 
 #ifdef _DEBUG
 		// ハンドルの値を確認 (デバッグ用)
-		Console::Print(std::format("CreateRTV: format={}, size={}x{}, srvIdx={}, srvHandleGPU.ptr=0x{:x}\n", 
-			static_cast<int>(format), width, height, result.srvIndex, result.srvHandleGPU.ptr),
-			kConTextColorWarning);
+		Console::Print(std::format(
+			               "CreateRTV: format={}, size={}x{}, srvIdx={}, srvHandleGPU.ptr=0x{:x}\n",
+			               static_cast<int>(format), width, height,
+			               result.srvIndex, result.srvHandleGPU.ptr),
+		               kConTextColorWarning);
 #endif
 
 		// GPUハンドルが有効か確認
