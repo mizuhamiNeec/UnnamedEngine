@@ -47,10 +47,10 @@ private:
 	using Clock = std::chrono::high_resolution_clock;
 	using TimePoint = Clock::time_point;
 
-	TimePoint startTime_;
-	TimePoint lastFrameTime_;
-	TimePoint frameStartTime_;
-	static double deltaTime_; // 前回のフレームから経過した時間
-	static double totalTime_; // エンジンの起動から経過した時間
-	static uint64_t frameCount_; // フレーム数
+	TimePoint mStartTime;
+	TimePoint mLastFrameTime;
+	TimePoint mFrameStartTime;
+	static double mDeltaTime; // 前回のフレームから経過した時間
+	static double mTotalTime; // エンジンの起動から経過した時間
+	static uint64_t mFrameCount; // フレーム数
 };
