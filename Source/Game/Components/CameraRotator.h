@@ -1,7 +1,7 @@
 #pragma once
 #include <Components/Base/Component.h>
 
-class TransformComponent;
+class SceneComponent;
 
 //-----------------------------------------------------------------------------
 // 基本的にカメラを回転させるコンポーネントです。
