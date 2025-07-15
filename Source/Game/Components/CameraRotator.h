@@ -1,5 +1,4 @@
 #pragma once
-#include <Lib/Math/Vector/Vec3.h>
 #include <Components/Base/Component.h>
 
 class TransformComponent;
@@ -15,10 +14,8 @@ public:
 	void DrawInspectorImGui() override;
 
 private:
-	TransformComponent* transform_ = nullptr;
-	float pitch_ = 0.0f;
-	float yaw_ = 0.0f;
+	float mPitch = 0.0f;
+	float mYaw   = 0.0f;
 
 	bool isMouseLocked_ = true;
 };
-
