@@ -23,10 +23,10 @@ public:
 	}
 
 private:
-	ComPtr<ID3D12Resource> buffer_;
-	D3D12_CONSTANT_BUFFER_VIEW_DESC desc_;
-	void* mappedPtr = nullptr;
-	std::string name_;
+	ComPtr<ID3D12Resource> mBuffer;
+	D3D12_CONSTANT_BUFFER_VIEW_DESC mDesc;
+	void* mAppedPtr = nullptr;
+	std::string mName;
 
 	ConstantBuffer(const ConstantBuffer&) = delete;
 	void operator=(const ConstantBuffer&) = delete;

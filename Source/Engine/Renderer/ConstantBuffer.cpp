@@ -3,7 +3,7 @@
 #include <cassert>
 #include <string>
 
-ConstantBuffer::ConstantBuffer(const ComPtr<ID3D12Device>& device, const size_t size, std::string name): name_(
+ConstantBuffer::ConstantBuffer(const ComPtr<ID3D12Device>& device, const size_t size, std::string name): mName(
 	std::move(name)
 ) {
 	size_t align = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
@@ -30,38 +30,38 @@ ConstantBuffer::ConstantBuffer(const ComPtr<ID3D12Device>& device, const size_t 
 		&resourceDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(buffer_.GetAddressOf())
+		IID_PPV_ARGS(mBuffer.GetAddressOf())
 	);
 
 	assert(SUCCEEDED(hr));
 
-	hr = buffer_->Map(0, nullptr, &mappedPtr);
+	hr = mBuffer->Map(0, nullptr, &mAppedPtr);
 	assert(SUCCEEDED(hr));
 
-	buffer_->SetName(std::wstring(name.begin(), name.end()).c_str());
+	mBuffer->SetName(std::wstring(name.begin(), name.end()).c_str());
 
-	desc_.BufferLocation = buffer_->GetGPUVirtualAddress();
-	desc_.SizeInBytes = static_cast<UINT>(sizeAligned);
+	mDesc.BufferLocation = mBuffer->GetGPUVirtualAddress();
+	mDesc.SizeInBytes = static_cast<UINT>(sizeAligned);
 }
 
 ConstantBuffer::~ConstantBuffer() {
-	if (buffer_) {
-		buffer_->Unmap(0, nullptr);
+	if (mBuffer) {
+		mBuffer->Unmap(0, nullptr);
 	}
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS ConstantBuffer::GetAddress() const {
-	return desc_.BufferLocation;
+	return mDesc.BufferLocation;
 }
 
 D3D12_CONSTANT_BUFFER_VIEW_DESC ConstantBuffer::ViewDesc() const {
-	return desc_;
+	return mDesc;
 }
 
 void* ConstantBuffer::GetPtr() const {
-	return mappedPtr;
+	return mAppedPtr;
 }
 
 ID3D12Resource* ConstantBuffer::GetResource() const {
-	return buffer_.Get();
+	return mBuffer.Get();
 }
