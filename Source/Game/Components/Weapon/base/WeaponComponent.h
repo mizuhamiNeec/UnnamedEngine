@@ -34,7 +34,7 @@ public:
 class HitscanModule final : public IWeaponModule {
 public:
 	explicit HitscanModule(const WeaponData& weaponData) :
-		data_(weaponData) {
+		mData(weaponData) {
 	}
 
 	void Execute(Entity& entity) override;
@@ -43,28 +43,28 @@ public:
 
 	void DrawInspectorImGui() override;
 
-	[[nodiscard]] const WeaponData& GetWeaponData() const { return data_; }
+	[[nodiscard]] const WeaponData& GetWeaponData() const { return mData; }
 
-	Vec3 GetHitPosition() const {
-		if (bHit_) {
-			return hitPosition_;
+	[[nodiscard]] Vec3 GetHitPosition() const {
+		if (mIsHit) {
+			return mHitPosition;
 		}
 		return Vec3::min; // ヒットしていない場合はあらぬ座標を返す
 	}
 
 	Vec3& GetHitNormal() {
-		if (bHit_) {
-			return hitNormal_;
+		if (mIsHit) {
+			return mHitNormal;
 		}
-		return hitNormal_;
+		return mHitNormal;
 	}
 
 private:
-	const WeaponData& data_;
+	const WeaponData& mData;
 
-	Vec3 hitPosition_ = Vec3::zero; // ヒット位置
-	Vec3 hitNormal_   = Vec3::zero; // ヒット面の法線
-	bool bHit_        = false;      // ヒットしたかどうか
+	Vec3 mHitPosition = Vec3::zero; // ヒット位置
+	Vec3 mHitNormal   = Vec3::zero; // ヒット面の法線
+	bool mIsHit        = false;      // ヒットしたかどうか
 };
 
 // //-----------------------------------------------------------------------------
@@ -96,25 +96,22 @@ public:
 	explicit WeaponComponent(const std::string& weaponJsonPath);
 
 	void OnAttach(Entity& owner) override;
-
 	void Update(float deltaTime) override;
-	//void Render(ID3D12GraphicsCommandList* commandList) override;
-
 	void DrawInspectorImGui() override;
 
-	void PullTrigger();
-	void ReleaseTrigger();
-	void Reload();
-	bool CanFire() const;
+	void               PullTrigger();
+	void               ReleaseTrigger();
+	void               Reload();
+	[[nodiscard]] bool CanFire() const;
 
-	Vec3  GetHitPosition() const;
-	Vec3& GetHitNormal();
+	[[nodiscard]] Vec3  GetHitPosition() const;
+	[[nodiscard]] Vec3& GetHitNormal() const;
 
 	[[nodiscard]] bool HasFiredThisFrame() const;
 
 	[[nodiscard]] Entity* GetOwner() const override;
 
-	void LoadFromJson(const std::string& jsonPath);
+	static void LoadFromJson(const std::string& jsonPath);
 
 private:
 	struct ActionMapping {
@@ -129,12 +126,12 @@ private:
 
 	int   mCurrentAmmo   = 0;
 	int   mCurrentClip   = 0;
-	float timeSinceShot_ = 0.0f; // 最後に発射してからの時間
+	float mTimeSinceShot = 0.0f; // 最後に発射してからの時間
 
-	bool  bIsReloading_ = false; // リロード中かどうか
-	float reloadTimer_  = 0.0f;  // リロードタイマー
+	bool  mIsReloading = false; // リロード中かどうか
+	float mReloadTimer = 0.0f;  // リロードタイマー
 
-	bool bTriggerHeld_ = false; // トリガーが押されているかどうか
+	bool mTriggerHeld = false; // トリガーが押されているかどうか
 
-	bool bFiredThisFrame_ = false; // 今フレームで発射したかどうか
+	bool mFiredThisFrame = false; // 今フレームで発射したかどうか
 };

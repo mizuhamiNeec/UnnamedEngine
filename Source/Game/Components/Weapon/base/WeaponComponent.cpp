@@ -39,11 +39,11 @@ std::unique_ptr<WeaponData> WeaponData::LoadFromJson(
 // HitscanModule
 //-----------------------------------------------------------------------------
 void HitscanModule::Execute(Entity& entity) {
-	auto camera = CameraManager::GetActiveCamera();
-	Vec3 eye    = camera->GetViewMat().Inverse().GetTranslate();
-	Vec3 fwd    = camera->GetViewMat().Inverse().GetForward();
+	const auto camera = CameraManager::GetActiveCamera();
+	const Vec3 eye    = camera->GetViewMat().Inverse().GetTranslate();
+	const Vec3 fwd    = camera->GetViewMat().Inverse().GetForward();
 
-	auto* collider = entity.GetComponent<BoxColliderComponent>();
+	const auto* collider = entity.GetComponent<BoxColliderComponent>();
 
 	auto result = collider->RayCast(
 		eye,
@@ -52,7 +52,7 @@ void HitscanModule::Execute(Entity& entity) {
 	);
 
 	if (!result.empty()) {
-		auto hit = *std::ranges::min_element(result,
+		const auto hit = *std::ranges::min_element(result,
 		                                     [](const HitResult& a,
 		                                        const HitResult& b) {
 			                                     return a.dist < b.dist;
@@ -60,7 +60,7 @@ void HitscanModule::Execute(Entity& entity) {
 
 		if (!hit.hitEntity) {
 			// ヒットしたエンティティがない場合は何もしない
-			bHit_ = false;
+			mIsHit = false;
 			return;
 		}
 
@@ -72,14 +72,14 @@ void HitscanModule::Execute(Entity& entity) {
 			Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
 
 			//hit.hitEntity->SetActive(false); // ヒットしたエンティティを非アクティブにする
-			hitPosition_ = hit.hitPos;    // ヒット位置を保存
-			hitNormal_   = hit.hitNormal; // ヒット面の法線を保存
-			bHit_        = true;
+			mHitPosition = hit.hitPos;    // ヒット位置を保存
+			mHitNormal   = hit.hitNormal; // ヒット面の法線を保存
+			mIsHit        = true;
 		}
 
 		Console::Print("Hitscan Fired!\n");
 	} else {
-		bHit_ = false; // ヒットしなかった場合はフラグをリセット
+		mIsHit = false; // ヒットしなかった場合はフラグをリセット
 	}
 }
 
@@ -145,16 +145,16 @@ void WeaponComponent::OnAttach(Entity& owner) {
 }
 
 void WeaponComponent::Update([[maybe_unused]] float deltaTime) {
-	bFiredThisFrame_ = false; // 今フレームで発射したかどうかをリセット
+	mFiredThisFrame = false; // 今フレームで発射したかどうかをリセット
 
-	if (bIsReloading_) {
-		reloadTimer_ += deltaTime;
-		if (reloadTimer_ >= 0.0f) {
+	if (mIsReloading) {
+		mReloadTimer += deltaTime;
+		if (mReloadTimer >= 0.0f) {
 			int need = mWeaponData->clipSize - mCurrentClip;
 			int load = (std::min)(need, mCurrentAmmo);
 			mCurrentClip += load;
 			mCurrentAmmo -= load;
-			bIsReloading_ = false;
+			mIsReloading = false;
 			Console::Print(
 				"Reloaded!\n"
 			);
@@ -162,12 +162,12 @@ void WeaponComponent::Update([[maybe_unused]] float deltaTime) {
 		return;
 	}
 
-	timeSinceShot_ += deltaTime;
-	if (bTriggerHeld_ && CanFire()) {
+	mTimeSinceShot += deltaTime;
+	if (mTriggerHeld && CanFire()) {
 		mPrimaryModule->Execute(*GetOwner());
 		--mCurrentClip;
-		timeSinceShot_   = 0.0f;
-		bFiredThisFrame_ = true; // 今フレームで発射した
+		mTimeSinceShot   = 0.0f;
+		mFiredThisFrame = true; // 今フレームで発射した
 	}
 }
 
@@ -178,28 +178,28 @@ void WeaponComponent::DrawInspectorImGui() {
 }
 
 void WeaponComponent::PullTrigger() {
-	bTriggerHeld_ = true;
+	mTriggerHeld = true;
 	if (CanFire()) {
 		mPrimaryModule->Execute(*GetOwner());
 		--mCurrentClip;
-		timeSinceShot_   = 0.0f;
-		bFiredThisFrame_ = true; // 今フレームで発射した
+		mTimeSinceShot   = 0.0f;
+		mFiredThisFrame = true; // 今フレームで発射した
 	}
 }
 
 void WeaponComponent::ReleaseTrigger() {
-	bTriggerHeld_ = false;
+	mTriggerHeld = false;
 }
 
 void WeaponComponent::Reload() {
-	if (bIsReloading_ ||
+	if (mIsReloading ||
 		mCurrentAmmo <= 0 ||
 		mCurrentClip == mWeaponData->clipSize) {
 		// すでにリロード中、または弾薬がない、またはクリップが満タンの場合は何もしない
 		return;
 	}
-	bIsReloading_ = true;
-	reloadTimer_  = mWeaponData->reloadTime;
+	mIsReloading = true;
+	mReloadTimer  = mWeaponData->reloadTime;
 	Console::Print(
 		"Reloading...\n"
 	);
@@ -207,20 +207,20 @@ void WeaponComponent::Reload() {
 
 bool WeaponComponent::CanFire() const {
 	return (mCurrentClip > 0) &&
-		(timeSinceShot_ >= mWeaponData->fireRate) &&
-		!bIsReloading_;
+		(mTimeSinceShot >= mWeaponData->fireRate) &&
+		!mIsReloading;
 }
 
 Vec3 WeaponComponent::GetHitPosition() const {
 	return dynamic_cast<HitscanModule*>(mPrimaryModule.get())->GetHitPosition();
 }
 
-Vec3& WeaponComponent::GetHitNormal() {
+Vec3& WeaponComponent::GetHitNormal() const {
 	return dynamic_cast<HitscanModule*>(mPrimaryModule.get())->GetHitNormal();
 }
 
 bool WeaponComponent::HasFiredThisFrame() const {
-	return bFiredThisFrame_;
+	return mFiredThisFrame;
 }
 
 Entity* WeaponComponent::GetOwner() const {
