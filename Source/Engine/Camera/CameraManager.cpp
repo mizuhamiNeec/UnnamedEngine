@@ -3,69 +3,69 @@
 #include <Components/Camera/CameraComponent.h>
 
 void CameraManager::AddCamera(const std::shared_ptr<CameraComponent>& camera) {
-	cameras_.emplace_back(camera);
+	mCameras.emplace_back(camera);
 }
 
 void CameraManager::RemoveCamera(
 	const std::shared_ptr<CameraComponent>& camera) {
-	std::erase(cameras_, camera);
+	std::erase(mCameras, camera);
 }
 
 void CameraManager::SetActiveCamera(
 	const std::shared_ptr<CameraComponent>& camera) {
 	if (camera) {
-		activeCamera_ = camera;
+		mActiveCamera = camera;
 	} else {
 		// カメラが存在しない場合は最初のカメラをアクティブにする
-		if (!cameras_.empty()) {
-			activeCamera_ = cameras_.front();
+		if (!mCameras.empty()) {
+			mActiveCamera = mCameras.front();
 		}
 	}
 }
 
 void CameraManager::SwitchToNextCamera() {
-	if (cameras_.empty())
+	if (mCameras.empty())
 		return;
 	size_t currentIndex = GetActiveCameraIndex();
-	size_t nextIndex    = (currentIndex + 1) % cameras_.size();
+	size_t nextIndex    = (currentIndex + 1) % mCameras.size();
 	SetActiveCameraByIndex(nextIndex);
 }
 
 void CameraManager::SwitchToPrevCamera() {
-	if (cameras_.empty())
+	if (mCameras.empty())
 		return;
 	size_t currentIndex = GetActiveCameraIndex();
 	size_t prevIndex    = currentIndex == 0
-		                      ? cameras_.size() - 1
+		                      ? mCameras.size() - 1
 		                      : currentIndex - 1;
 	SetActiveCameraByIndex(prevIndex);
 }
 
 void CameraManager::SetActiveCameraByIndex(const size_t index) {
-	if (index < cameras_.size()) {
-		SetActiveCamera(cameras_[index]);
+	if (index < mCameras.size()) {
+		SetActiveCamera(mCameras[index]);
 	}
 }
 
 size_t CameraManager::GetActiveCameraIndex() {
-	if (!activeCamera_) {
+	if (!mActiveCamera) {
 		return 0;
 	}
-	auto it = std::ranges::find(cameras_, activeCamera_);
-	return it != cameras_.end() ? std::distance(cameras_.begin(), it) : 0;
+	auto it = std::ranges::find(mCameras, mActiveCamera);
+	return it != mCameras.end() ? std::distance(mCameras.begin(), it) : 0;
 }
 
 std::shared_ptr<CameraComponent> CameraManager::GetActiveCamera() {
-	return activeCamera_;
+	return mActiveCamera;
 }
 
 void CameraManager::Update(const float deltaTime) {
-	if (activeCamera_) {
-		if (activeCamera_.use_count() > 1) {
-			activeCamera_->Update(deltaTime);
+	if (mActiveCamera) {
+		if (mActiveCamera.use_count() > 1) {
+			mActiveCamera->Update(deltaTime);
 		}
 	}
 }
 
-std::vector<std::shared_ptr<CameraComponent>> CameraManager::cameras_;
-std::shared_ptr<CameraComponent> CameraManager::activeCamera_ = nullptr;
+std::vector<std::shared_ptr<CameraComponent>> CameraManager::mCameras;
+std::shared_ptr<CameraComponent> CameraManager::mActiveCamera = nullptr;
