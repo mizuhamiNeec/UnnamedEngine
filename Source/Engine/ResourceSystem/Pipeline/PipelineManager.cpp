@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <format>
+#include <ranges>
 
 #include <SubSystem/Console/Console.h>
 
@@ -55,8 +56,8 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 	size_t psoHash = CalculatePSOHash(desc);
 
 	// ハッシュ値で作成済みのPSOを検索
-	auto it = pipelineStatesByHash_.find(psoHash);
-	if (it != pipelineStatesByHash_.end()) {
+	auto it = mPipelineStatesByHash.find(psoHash);
+	if (it != mPipelineStatesByHash.end()) {
 		return it->second.Get();
 	}
 
@@ -90,8 +91,8 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 	}
 
 	// パイプラインステートの作成
-	ComPtr<ID3D12PipelineState> pipelineState;
-	HRESULT                     hr = device->CreateGraphicsPipelineState(
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
+	HRESULT hr = device->CreateGraphicsPipelineState(
 		&desc, IID_PPV_ARGS(&pipelineState));
 	if (FAILED(hr)) {
 		Console::Print(
@@ -104,8 +105,8 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 	}
 
 	// ハッシュとキーの両方を登録
-	pipelineStatesByHash_[psoHash] = pipelineState;
-	pipelineStates_[key]           = pipelineState;
+	mPipelineStatesByHash[psoHash] = pipelineState;
+	mPipelineStates[key]           = pipelineState;
 
 	Console::Print(
 		"PSOを作成しました: " + key + "\n",
@@ -123,7 +124,7 @@ void PipelineManager::Shutdown() {
 	               Channel::ResourceSystem);
 
 	// 各パイプラインステートを解放
-	for (auto& [key, pipelineState] : pipelineStates_) {
+	for (auto& [key, pipelineState] : mPipelineStates) {
 		if (pipelineState) {
 			Console::Print(
 				std::format("Pipeline: Releasing {}...\n", key),
@@ -133,22 +134,22 @@ void PipelineManager::Shutdown() {
 			pipelineState.Reset();
 		}
 	}
-	pipelineStates_.clear();
+	mPipelineStates.clear();
 
-	for (auto& pipelineStatesByHash : pipelineStatesByHash_) {
-		if (pipelineStatesByHash.second) {
+	for (auto& val : mPipelineStatesByHash | std::views::values) {
+		if (val) {
 			Console::Print(
 				"Pipeline: Releasing Hash...\n",
 				Vec4::white,
 				Channel::ResourceSystem
 			);
-			pipelineStatesByHash.second.Reset();
+			val.Reset();
 		}
 	}
-	pipelineStatesByHash_.clear();
+	mPipelineStatesByHash.clear();
 }
 
-std::unordered_map<std::string, ComPtr<ID3D12PipelineState>>
-PipelineManager::pipelineStates_;
-std::unordered_map<size_t, ComPtr<ID3D12PipelineState>>
-PipelineManager::pipelineStatesByHash_;
+std::unordered_map<std::string,  Microsoft::WRL::ComPtr<ID3D12PipelineState>>
+PipelineManager::mPipelineStates;
+std::unordered_map<size_t,  Microsoft::WRL::ComPtr<ID3D12PipelineState>>
+PipelineManager::mPipelineStatesByHash;
