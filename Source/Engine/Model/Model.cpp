@@ -9,7 +9,7 @@
 #include <Renderer/VertexBuffer.h>
 
 #ifdef _DEBUG
-#include "imgui/imgui.h"
+#include <imgui.h>
 #endif
 
 void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, const std::string& fileName) {
@@ -117,16 +117,16 @@ Model::ModelData Model::LoadObjFile(const std::string& directoryPath, const std:
 			Vec4 position;
 			s >> position.x >> position.y >> position.z;
 			position.w = 1.0f;
-			positions.push_back(position);
+			positions.emplace_back(position);
 		} else if (identifier == "vt") {
 			Vec2 texcoord;
 			s >> texcoord.x >> texcoord.y;
 			texcoord.y = 1.0f - texcoord.y;
-			texcoords.push_back(texcoord);
+			texcoords.emplace_back(texcoord);
 		} else if (identifier == "vn") {
 			Vec3 normal;
 			s >> normal.x >> normal.y >> normal.z;
-			normals.push_back(normal);
+			normals.emplace_back(normal);
 		} else if (identifier == "f") {
 			Vertex triangle[3];
 
@@ -157,9 +157,9 @@ Model::ModelData Model::LoadObjFile(const std::string& directoryPath, const std:
 				faceVertex = { position, texcoord, normal };
 			}
 			// 頂点を逆順で登録することで、周り順を逆にする
-			modelData.vertices.push_back(triangle[2]);
-			modelData.vertices.push_back(triangle[1]);
-			modelData.vertices.push_back(triangle[0]);
+			modelData.vertices.emplace_back(triangle[2]);
+			modelData.vertices.emplace_back(triangle[1]);
+			modelData.vertices.emplace_back(triangle[0]);
 		} else if (identifier == "mtllib") {
 			// materialTemplateLibraryファイルの名前を取得する
 			std::string materialFilename;
