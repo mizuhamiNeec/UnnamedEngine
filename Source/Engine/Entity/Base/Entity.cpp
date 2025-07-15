@@ -107,7 +107,7 @@ void Entity::Update(const float deltaTime) {
 			ImGuiManager::TextOutlined(
 				drawList,
 				textPos,
-				name_.c_str(),
+				mName.c_str(),
 				textColor,
 				ToImVec4(kDebugHudOutlineColor),
 				outlineSize
