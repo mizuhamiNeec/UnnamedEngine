@@ -917,7 +917,7 @@ void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
 
 void Engine::CheckEditorMode() {
 	if (bIsEditorMode_) {
-		editor_ = std::make_unique<Editor>(*sceneManager_);
+		editor_ = std::make_unique<Editor>(sceneManager_.get());
 	} else {
 		editor_.reset();
 	}

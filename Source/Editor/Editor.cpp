@@ -17,22 +17,22 @@
 #include <imgui_internal.h>
 #endif
 
-Editor::Editor(SceneManager& sceneManager) : sceneManager_(sceneManager) {
-	scene_ = sceneManager_.GetCurrentScene();
+Editor::Editor(SceneManager* sceneManager) : mSceneManager(sceneManager) {
+	mScene = mSceneManager->GetCurrentScene();
 	Init();
 }
 
 void Editor::Init() {
 	// カメラの作成
-	cameraEntity_ = std::make_unique<Entity>("editorCamera",
+	mCameraEntity = std::make_unique<Entity>("editorCamera",
 	                                         EntityType::EditorOnly);
-	cameraEntity_->GetTransform()->SetLocalPos(
+	mCameraEntity->GetTransform()->SetLocalPos(
 		Vec3::forward * -5.0f + Vec3::up * 2.0f);
-	cameraEntity_->GetTransform()->SetLocalRot(
+	mCameraEntity->GetTransform()->SetLocalRot(
 		Quaternion::Euler(Vec3::right * 15.0f * Math::deg2Rad));
 
 	// 生ポインタを取得
-	CameraComponent* rawCameraPtr = cameraEntity_->AddComponent<
+	CameraComponent* rawCameraPtr = mCameraEntity->AddComponent<
 		CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
 	auto camera = std::shared_ptr<CameraComponent>(
@@ -45,11 +45,11 @@ void Editor::Init() {
 	// アクティブカメラに設定
 	CameraManager::SetActiveCamera(camera);
 
-	sceneManager_.GetCurrentScene()->AddEntity(std::move(cameraEntity_).get());
+	mSceneManager->GetCurrentScene()->AddEntity(std::move(mCameraEntity).get());
 }
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
-	if (auto currentScene = sceneManager_.GetCurrentScene()) {
+	if (auto currentScene = mSceneManager->GetCurrentScene()) {
 		currentScene->Update(EngineTimer::GetScaledDeltaTime());
 	}
 
@@ -80,7 +80,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			float min     = -89.0f;
 			float max     = 89.0f;
 
-			static Vec3 rot_ = cameraEntity_->GetTransform()->GetLocalRot().
+			static Vec3 rot_ = mCameraEntity->GetTransform()->GetLocalRot().
 			                                  ToEulerAngles();
 
 			rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
@@ -89,7 +89,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad,
 			                    max * Math::deg2Rad);
 
-			cameraEntity_->GetTransform()->SetWorldRot(
+			mCameraEntity->GetTransform()->SetWorldRot(
 				Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
 
 			Vec3 moveInput = {0.0f, 0.0f, 0.0f};
@@ -120,7 +120,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 			moveInput.Normalize();
 
-			Quaternion camRot = cameraEntity_->GetTransform()->GetWorldRot();
+			Quaternion camRot = mCameraEntity->GetTransform()->GetWorldRot();
 			Vec3       cameraForward = camRot * Vec3::forward;
 			Vec3       cameraRight = camRot * Vec3::right;
 			Vec3       cameraUp = camRot * Vec3::up;
@@ -145,8 +145,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 			oldMoveSpd = moveSpd;
 
-			cameraEntity_->GetTransform()->SetWorldPos(
-				cameraEntity_->GetTransform()->GetWorldPos() + (cameraForward *
+			mCameraEntity->GetTransform()->SetWorldPos(
+				mCameraEntity->GetTransform()->GetWorldPos() + (cameraForward *
 					moveInput.z + cameraRight * moveInput.x + cameraUp *
 					moveInput.y) *
 				moveSpd * EngineTimer::GetScaledDeltaTime()
@@ -241,7 +241,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// アウトライナウィンドウの開始
 	if (ImGui::Begin("Outliner")) {
 		if (ImGui::Button("Add Entity")) {
-			scene_->AddEntity(
+			mScene->AddEntity(
 				new Entity("New Entity"));
 		}
 
@@ -287,7 +287,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				if (entity->GetChildren().empty()) {
 					flags |= ImGuiTreeNodeFlags_Leaf;
 				}
-				if (entity == selectedEntity_) {
+				if (entity == mSelectedEntity) {
 					flags |= ImGuiTreeNodeFlags_Selected;
 				}
 
@@ -302,20 +302,20 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 				// 左クリックで選択
 				if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-					selectedEntity_ = entity;
+					mSelectedEntity = entity;
 				}
 
 				// 右クリックでコンテキストメニュー
 				if (ImGui::BeginPopupContextItem("EntityContextMenu")) {
-					if (entity != cameraEntity_.get()) {
+					if (entity != mCameraEntity.get()) {
 						// エディタカメラは削除不可
 						if (ImGui::MenuItem("Delete")) {
-							if (auto currentScene = sceneManager_.
+							if (auto currentScene = mSceneManager->
 								GetCurrentScene()) {
 								// SceneクラスにRemoveEntityメソッドが実装されていると仮定
 								currentScene->RemoveEntity(entity);
-								if (selectedEntity_ == entity) {
-									selectedEntity_ = nullptr; // 選択を解除
+								if (mSelectedEntity == entity) {
+									mSelectedEntity = nullptr; // 選択を解除
 								}
 								ImGui::EndPopup(); // ポップアップを閉じる
 
@@ -386,7 +386,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 					// 子エンティティを処理する前に、現在のエンティティが削除されていないか確認
 					// (上記の削除処理でreturnしているため、基本的にはここは通らないはずだが念のため)
 					bool entityStillExists = false;
-					if (auto currentScene = sceneManager_.GetCurrentScene()) {
+					if (auto currentScene = mSceneManager->GetCurrentScene()) {
 						for (const auto& e : currentScene->GetEntities()) {
 							if (e == entity) {
 								entityStillExists = true;
@@ -414,9 +414,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			// シーンからエンティティリストを取得する際、削除操作中にイテレータが無効になることを避けるため、
 			// リストのコピーに対して操作を行うか、削除を遅延させるなどの対策が必要になる場合がある。
 			// ここではGetCurrentScene()->GetEntities()が安全なコピーまたは参照を返すと仮定する。
-			if (scene_) {
+			if (mScene) {
 				// scene_が有効か確認
-				auto entities = scene_->GetEntities();
+				auto entities = mScene->GetEntities();
 				// 削除操作があるため、コピーを取得することを検討
 				for (auto& entity : entities) {
 					if (entity && entity->GetParent() == nullptr) {
@@ -468,13 +468,13 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// インスペクタ
 #ifdef _DEBUG
 	if (ImGui::Begin("Inspector")) {
-		if (selectedEntity_) {
-			ImGui::Text("Name: %s", selectedEntity_->GetName().c_str());
+		if (mSelectedEntity) {
+			ImGui::Text("Name: %s", mSelectedEntity->GetName().c_str());
 
-			selectedEntity_->GetTransform()->DrawInspectorImGui();
+			mSelectedEntity->GetTransform()->DrawInspectorImGui();
 
 			// コンポーネントの一覧表示と編集
-			const auto& components = selectedEntity_->GetComponents<
+			const auto& components = mSelectedEntity->GetComponents<
 				Component>();
 			for (const auto& component : components) {
 				if (component) {
@@ -487,10 +487,10 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 	if (ImGui::Begin("World Settings")) {
 		ImGui::Text("Grid Size");
-		ImGui::SliderFloat("##GridSize", &gridSize_, 0.125f, 64.0f, "%.3f",
+		ImGui::SliderFloat("##GridSize", &mGridSize, 0.125f, 64.0f, "%.3f",
 		                   ImGuiSliderFlags_Logarithmic);
 		ImGui::Text("Grid Range");
-		ImGui::SliderFloat("##GridRange", &gridRange_, 128.0f, 16384.0f, "%.3f",
+		ImGui::SliderFloat("##GridRange", &mGridRange, 128.0f, 16384.0f, "%.3f",
 		                   ImGuiSliderFlags_Logarithmic);
 	}
 	ImGui::End();
@@ -506,8 +506,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	Mat4 view   = camera->GetViewMat();
 	Mat4 proj   = camera->GetProjMat();
 
-	if (selectedEntity_) {
-		Mat4 worldMat = selectedEntity_->GetTransform()->GetLocalMat();
+	if (mSelectedEntity) {
+		Mat4 worldMat = mSelectedEntity->GetTransform()->GetLocalMat();
 
 		static ImGuizmo::MODE      mode      = ImGuizmo::MODE::LOCAL;
 		static ImGuizmo::OPERATION operation = ImGuizmo::OPERATION::TRANSLATE;
@@ -523,7 +523,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			mode = ImGuizmo::MODE::LOCAL;
 		}
 
-		auto snapValue = Vec3(gridSize_, gridSize_, gridSize_);
+		auto snapValue = Vec3(mGridSize, mGridSize, mGridSize);
 
 		if (InputSystem::IsTriggered("bounds")) {
 			operation = ImGuizmo::OPERATION::BOUNDS;
@@ -531,22 +531,22 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 		if (InputSystem::IsTriggered("translate")) {
 			operation = ImGuizmo::OPERATION::TRANSLATE;
-			snapValue = Math::HtoM(Vec3(gridSize_, gridSize_, gridSize_));
+			snapValue = Math::HtoM(Vec3(mGridSize, mGridSize, mGridSize));
 		}
 		if (InputSystem::IsTriggered("rotate")) {
 			operation = ImGuizmo::OPERATION::ROTATE;
 			snapValue = {
-				angleSnap_ * Math::deg2Rad,
-				angleSnap_ * Math::deg2Rad,
-				angleSnap_ * Math::deg2Rad
+				mAngleSnap * Math::deg2Rad,
+				mAngleSnap * Math::deg2Rad,
+				mAngleSnap * Math::deg2Rad
 			}; // ラジアンに変換
 		}
 		if (InputSystem::IsTriggered("scale")) {
 			operation = ImGuizmo::OPERATION::SCALE;
-			snapValue = Math::HtoM(Vec3(gridSize_, gridSize_, gridSize_));
+			snapValue = Math::HtoM(Vec3(mGridSize, mGridSize, mGridSize));
 		}
 
-		bIsManipulating_ = ImGuizmo::Manipulate(
+		mIsManipulating = ImGuizmo::Manipulate(
 			*view.m,
 			*proj.m,
 			operation,
@@ -556,14 +556,14 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			&snapValue.x
 		);
 
-		if (bIsManipulating_) {
-			selectedEntity_->GetTransform()->SetLocalPos(
+		if (mIsManipulating) {
+			mSelectedEntity->GetTransform()->SetLocalPos(
 				worldMat.GetTranslate()
 			);
-			selectedEntity_->GetTransform()->SetLocalRot(
+			mSelectedEntity->GetTransform()->SetLocalRot(
 				Quaternion::Euler(worldMat.GetRotate()).Inverse()
 			);
-			selectedEntity_->GetTransform()->SetLocalScale(
+			mSelectedEntity->GetTransform()->SetLocalScale(
 				worldMat.GetScale()
 			);
 		}
@@ -613,7 +613,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 						const bool isSelected = (itemCurrentIndex == n);
 						if (ImGui::Selectable(items[n], isSelected)) {
 							itemCurrentIndex = n;
-							angleSnap_       = std::stof(
+							mAngleSnap       = std::stof(
 								items[itemCurrentIndex]);
 						}
 						if (isSelected) {
@@ -650,7 +650,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 						if (ImGui::Selectable(items[n], isSelected)) {
 							itemCurrentIndex = n;
 							// 選択された文字列を浮動小数点数に変換してgridSize_に設定
-							gridSize_ = std::stof(items[itemCurrentIndex]);
+							mGridSize = std::stof(items[itemCurrentIndex]);
 						}
 						if (isSelected) {
 							ImGui::SetItemDefaultFocus();
@@ -667,7 +667,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 						itemCurrentIndex = std::clamp(
 							itemCurrentIndex, 0, IM_ARRAYSIZE(items) - 1);
 						// 選択された文字列を浮動小数点数に変換してgridSize_に設定
-						gridSize_ = std::stof(items[itemCurrentIndex]);
+						mGridSize = std::stof(items[itemCurrentIndex]);
 					}
 				}
 
@@ -683,41 +683,26 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 	// グリッドの表示
 	DrawGrid(
-		gridSize_,
-		gridRange_,
+		mGridSize,
+		mGridRange,
 		{0.28f, 0.28f, 0.28f, 1.0f},
 		{0.39f, 0.2f, 0.02f, 1.0f},
 		{0.0f, 0.39f, 0.39f, 1.0f},
 		{0.39f, 0.39f, 0.39f, 1.0f},
 		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
-		gridSize_ * 32.0f
+		mGridSize * 32.0f
 	);
 }
 
 void Editor::Render() const {
-	if (auto currentScene = sceneManager_.GetCurrentScene()) {
+	if (auto currentScene = mSceneManager->GetCurrentScene()) {
 		currentScene->Render();
-		cameraEntity_->Render(Engine::GetRenderer()->GetCommandList());
+		mCameraEntity->Render(Engine::GetRenderer()->GetCommandList());
 	}
 }
 
 void Editor::ShowDockSpace() {
 	static bool* p_open;
-
-	// READ THIS !!!
-	// TL;DR; this demo is more complicated than what most users you would normally use.
-	// If we remove all options we are showcasing, this demo would become:
-	//     void ShowExampleAppDockSpace()
-	//     {
-	//         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-	//     }
-	// In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
-	// In this specific demo, we are not using DockSpaceOverViewport() because:
-	// - (1) we allow the host window to be floating/moveable instead of filling the viewport (when opt_fullscreen == false)
-	// - (2) we allow the host window to have padding (when opt_padding == true)
-	// - (3) we expose many flags and need a way to have them visible.
-	// - (4) we have a local menu bar in the host window (vs. you could use BeginMainMenuBar() + DockSpaceOverViewport()
-	//      in your code, but we don't here because we allow the window to be floating)
 
 	static bool               opt_fullscreen  = true;
 	static bool               opt_padding     = false;
@@ -744,16 +729,9 @@ void Editor::ShowDockSpace() {
 		dockspace_flags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
 	}
 
-	// When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
-	// and handle the pass-thru hole, so we ask Begin() to not render a background.
 	if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
 		window_flags |= ImGuiWindowFlags_NoBackground;
 
-	// Important: note that we proceed even if Begin() returns false (aka window is collapsed).
-	// This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
-	// all active windows docked into it will lose their parent and become undocked.
-	// We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
-	// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
 	if (!opt_padding)
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	ImGui::Begin("DockSpace Demo", p_open, window_flags);
@@ -763,7 +741,6 @@ void Editor::ShowDockSpace() {
 	if (opt_fullscreen)
 		ImGui::PopStyleVar(2);
 
-	// Submit the DockSpace
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
 		ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
@@ -939,4 +916,4 @@ float Editor::RoundToNearestPowerOfTwo(const float value) {
 	return upperPowerOfTwo;
 }
 
-bool Editor::bIsManipulating_ = false;
+bool Editor::mIsManipulating = false;
