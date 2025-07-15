@@ -2,48 +2,52 @@
 
 #include "SubSystem/Console/Console.h"
 #include "ResourceSystem/RootSignature/RootSignatureManager2.h"
+#include "Renderer/D3D12.h"
 
 ResourceManager::ResourceManager(D3D12* d3d12) :
 	d3d12_(d3d12),
-	textureManager_(nullptr),
+	srvManager_(nullptr),
 	shaderManager_(nullptr),
 	materialManager_(nullptr),
 	meshManager_(nullptr) {
-	srvManager_ = std::make_unique<ShaderResourceViewManager>(d3d12->GetDevice());
-	textureManager_ = std::make_unique<TextureManager>();
-	shaderManager_ = std::make_unique<ShaderManager>();
-	materialManager_ = std::make_unique<MaterialManager>();
-	meshManager_ = std::make_unique<MeshManager>();
+	srvManager_       = std::make_unique<SrvManager>();
+	shaderManager_    = std::make_unique<ShaderManager>();
+	materialManager_  = std::make_unique<MaterialManager>();
+	meshManager_      = std::make_unique<MeshManager>();
+	animationManager_ = std::make_unique<AnimationManager>();
 }
 
 void ResourceManager::Init() const {
-	Console::Print("ResourceManager を初期化しています...\n", kConsoleColorWait, Channel::ResourceSystem);
-
-	// ImGuiで使ったら初期化
-	srvManager_->Init();
-
+	Console::Print("ResourceManager を初期化しています...\n", kConTextColorWait,
+	               Channel::ResourceSystem);
 	// マネージャーを初期化
+	srvManager_->Init(d3d12_);
+	TexManager::GetInstance()->Init(d3d12_, srvManager_.get());
 	RootSignatureManager2::Init(d3d12_->GetDevice());
-	textureManager_->Init(d3d12_, srvManager_.get());
 	shaderManager_->Init();
 	materialManager_->Init();
-	meshManager_->Init(d3d12_->GetDevice(), textureManager_.get(), shaderManager_.get(), materialManager_.get());
+	meshManager_->Init(d3d12_->GetDevice(),
+	                   shaderManager_.get(), materialManager_.get());
 
-	Console::Print("ResourceManager の初期化が完了しました\n", kConsoleColorCompleted, Channel::ResourceSystem);
+	animationManager_->Init();
+
+	Console::Print("ResourceManager の初期化が完了しました\n", kConTextColorCompleted,
+	               Channel::ResourceSystem);
 }
 
 void ResourceManager::Shutdown() {
-	Console::Print("ResourceManager を終了しています...\n", kConsoleColorWait, Channel::ResourceSystem);
+	Console::Print(
+		"ResourceManager を終了しています...\n", kConTextColorWait,
+		Channel::ResourceSystem
+	);
+	
+	// 全てのリソースマネージャーを終了
 
-	//#ifdef _DEBUG
-	//	ComPtr<ID3D12DebugDevice> debugDevice;
-	//	if (SUCCEEDED(d3d12_->GetDevice()->QueryInterface(IID_PPV_ARGS(&debugDevice)))) {
-	//		// 詳細なリーク情報を出力
-	//		debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-	//	}
-	//#endif
+	if (animationManager_) {
+		animationManager_->Shutdown();
+		animationManager_.reset();
+	}
 
-		// 全てのリソースマネージャーを終了
 	if (meshManager_) {
 		meshManager_->Shutdown();
 		meshManager_.reset();
@@ -59,27 +63,25 @@ void ResourceManager::Shutdown() {
 		shaderManager_.reset();
 	}
 
-	if (textureManager_) {
-		textureManager_->Shutdown();
-		textureManager_.reset();
-	}
+	TexManager::Shutdown();
 
 	RootSignatureManager2::Shutdown();
-
-	if (srvManager_) {
-		srvManager_->Shutdown();
-		srvManager_.reset();
-	}
-
-	d3d12_ = nullptr;
 }
 
-TextureManager* ResourceManager::GetTextureManager() const {
-	return textureManager_.get();
+SrvManager* ResourceManager::GetSrvManager() const {
+	return srvManager_.get();
+}
+
+TexManager* ResourceManager::GetTexManager() const {
+	return TexManager::GetInstance();
 }
 
 MeshManager* ResourceManager::GetMeshManager() const {
 	return meshManager_.get();
+}
+
+AnimationManager* ResourceManager::GetAnimationManager() const {
+	return animationManager_.get();
 }
 
 MaterialManager* ResourceManager::GetMaterialManager() const {
@@ -89,8 +91,3 @@ MaterialManager* ResourceManager::GetMaterialManager() const {
 ShaderManager* ResourceManager::GetShaderManager() const {
 	return shaderManager_.get();
 }
-
-ShaderResourceViewManager* ResourceManager::GetShaderResourceViewManager() const {
-	return srvManager_.get();
-}
-

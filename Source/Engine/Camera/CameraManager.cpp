@@ -3,14 +3,16 @@
 #include <Components/Camera/CameraComponent.h>
 
 void CameraManager::AddCamera(const std::shared_ptr<CameraComponent>& camera) {
-	cameras_.push_back(camera);
+	cameras_.emplace_back(camera);
 }
 
-void CameraManager::RemoveCamera(const std::shared_ptr<CameraComponent>& camera) {
+void CameraManager::RemoveCamera(
+	const std::shared_ptr<CameraComponent>& camera) {
 	std::erase(cameras_, camera);
 }
 
-void CameraManager::SetActiveCamera(const std::shared_ptr<CameraComponent>& camera) {
+void CameraManager::SetActiveCamera(
+	const std::shared_ptr<CameraComponent>& camera) {
 	if (camera) {
 		activeCamera_ = camera;
 	} else {
@@ -22,16 +24,20 @@ void CameraManager::SetActiveCamera(const std::shared_ptr<CameraComponent>& came
 }
 
 void CameraManager::SwitchToNextCamera() {
-	if (cameras_.empty()) return;
+	if (cameras_.empty())
+		return;
 	size_t currentIndex = GetActiveCameraIndex();
-	size_t nextIndex = (currentIndex + 1) % cameras_.size();
+	size_t nextIndex    = (currentIndex + 1) % cameras_.size();
 	SetActiveCameraByIndex(nextIndex);
 }
 
 void CameraManager::SwitchToPrevCamera() {
-	if (cameras_.empty()) return;
+	if (cameras_.empty())
+		return;
 	size_t currentIndex = GetActiveCameraIndex();
-	size_t prevIndex = currentIndex == 0 ? cameras_.size() - 1 : currentIndex - 1;
+	size_t prevIndex    = currentIndex == 0
+		                      ? cameras_.size() - 1
+		                      : currentIndex - 1;
 	SetActiveCameraByIndex(prevIndex);
 }
 

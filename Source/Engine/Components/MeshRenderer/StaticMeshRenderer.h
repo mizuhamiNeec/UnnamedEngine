@@ -1,41 +1,50 @@
 #pragma once
 #include <Components/MeshRenderer/Base/MeshRenderer.h>
-
+#include <Entity/Base/Entity.h>
+#include <Renderer/ConstantBuffer.h>
 #include <ResourceSystem/Mesh/StaticMesh.h>
-
-#include "Entity/Base/Entity.h"
-
-#include "Renderer/ConstantBuffer.h"
+#include <ResourceSystem/Material/MaterialInstance.h>
 
 class StaticMeshRenderer : public MeshRenderer {
 public:
 	StaticMeshRenderer() = default;
-	virtual ~StaticMeshRenderer();
+	~StaticMeshRenderer() override;
 
 	void OnAttach(Entity& owner) override;
 
 	// 描画処理
-	virtual void Render(ID3D12GraphicsCommandList* commandList) override;
+	void Render(ID3D12GraphicsCommandList* commandList) override;
 	// インスペクターの描画
-	virtual void DrawInspectorImGui() override;
+	void DrawInspectorImGui() override;
 
-	StaticMesh* GetStaticMesh() const;
+	[[nodiscard]] StaticMesh* GetStaticMesh() const;
 	void SetStaticMesh(StaticMesh* staticMesh);
 
 protected:
 	void BindTransform(ID3D12GraphicsCommandList* commandList) override;
 
 private:
-	std::unique_ptr<ConstantBuffer> transformationMatrixConstantBuffer_;
-	TransformationMatrix* transformationMatrix_ = nullptr;
+	std::unique_ptr<ConstantBuffer> mTransformationMatrixConstantBuffer;
+	TransformationMatrix* mTransformationMatrix = nullptr;
 
-	TransformComponent* transform_ = nullptr;
-	StaticMesh* staticMesh_ = nullptr;
+	TransformComponent* mTransform = nullptr;
+	StaticMesh* mStaticMesh = nullptr;
+	std::unique_ptr<ConstantBuffer> mMatParamCBV;
+	MatParam* mMaterialData = nullptr;
 
-	// TODO: 消す予定
-	std::unique_ptr<ConstantBuffer> matparamCBV;
-	MatParam* materialData = nullptr;
+	// b1
+	std::unique_ptr<ConstantBuffer> mDirectionalLightCb;
+	DirectionalLight* mDirectionalLightData = nullptr;
 
-	std::unique_ptr<ConstantBuffer> cameraCB;
-	CameraForGPU* cameraData = nullptr;
+	// b2
+	std::unique_ptr<ConstantBuffer> mCameraCb;
+	CameraForGPU* mCameraData = nullptr;
+
+	// b3
+	std::unique_ptr<ConstantBuffer> mPointLightCb;
+	PointLight* mPointLightData = nullptr;
+
+	// b4
+	std::unique_ptr<ConstantBuffer> mSpotLightCb;
+	SpotLight* mSpotLightData = nullptr;
 };

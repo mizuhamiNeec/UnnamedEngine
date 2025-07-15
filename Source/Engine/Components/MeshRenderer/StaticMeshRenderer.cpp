@@ -1,105 +1,201 @@
 #include "StaticMeshRenderer.h"
 
 #include <d3d12.h>
+#include <Engine.h>
 #include <imgui.h>
-
+#include <Camera/CameraManager.h>
+#include <Components/Camera/CameraComponent.h>
+#include <Renderer/ConstantBuffer.h>
 #include <ResourceSystem/Mesh/StaticMesh.h>
 
-#include "Engine.h"
-
-#include "Camera/CameraManager.h"
-
-#include "Components/Camera/CameraComponent.h"
-
-#include "Renderer/ConstantBuffer.h"
-
-// TODO: 後で消す Object3Dシェーダーとはおさらばじゃ!!
 struct MatParam {
-	Vec4 color;
-	int32_t enableLighting;
-	Vec3 padding;
-	Mat4 uvTransform;
-	float shininess;
-	Vec3 specularColor;
+	Vec4  baseColor;
+	float metallic;
+	float roughness;
+	float padding[2];
+	Vec3  emissive;
 };
 
 StaticMeshRenderer::~StaticMeshRenderer() {
-	transformationMatrixConstantBuffer_.reset();
-	transformationMatrix_ = nullptr;
-	transform_ = nullptr;
-	staticMesh_ = nullptr;
+	mTransformationMatrixConstantBuffer.reset();
+	mTransformationMatrix = nullptr;
+	mTransform            = nullptr;
+	mStaticMesh           = nullptr;
 }
 
 void StaticMeshRenderer::OnAttach(Entity& owner) {
 	MeshRenderer::OnAttach(owner);
-	transform_ = owner_->GetTransform();
+	mTransform = mOwner->GetTransform();
 
-	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
+	mTransformationMatrixConstantBuffer = std::make_unique<ConstantBuffer>(
 		Engine::GetRenderer()->GetDevice(),
 		sizeof(TransformationMatrix),
 		"StaticMeshTransformation"
 	);
-	transformationMatrix_ = transformationMatrixConstantBuffer_->GetPtr<TransformationMatrix>();
-	transformationMatrix_->wvp = Mat4::identity;
-	transformationMatrix_->world = Mat4::identity;
-	transformationMatrix_->worldInverseTranspose = Mat4::identity;
-
-	// TODO: 消す予定
+	mTransformationMatrix = mTransformationMatrixConstantBuffer->GetPtr<
+		TransformationMatrix>();
+	mTransformationMatrix->wvp                   = Mat4::identity;
+	mTransformationMatrix->world                 = Mat4::identity;
+	mTransformationMatrix->worldInverseTranspose = Mat4::identity;
+	
 	{
-		matparamCBV = std::make_unique<ConstantBuffer>(
+		mMatParamCBV = std::make_unique<ConstantBuffer>(
 			Engine::GetRenderer()->GetDevice(),
 			sizeof(MatParam),
 			"MatParam"
 		);
 
-		materialData = matparamCBV->GetPtr<MatParam>();
-		materialData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		materialData->enableLighting = 1;
-		materialData->uvTransform = Mat4::identity;
-		materialData->shininess = 128.0f;
-		materialData->specularColor = { 0.25f, 0.25f, 0.25f };
+		mMaterialData            = mMatParamCBV->GetPtr<MatParam>();
+		mMaterialData->baseColor = {0.5f, 0.5f, 0.5f, 1.0f};
+		mMaterialData->metallic  = 0.25f;
+		mMaterialData->roughness = 0.5f;
+		mMaterialData->emissive  = {0.0f, 0.0f, 0.0f};
 	}
 
-	cameraCB = std::make_unique<ConstantBuffer>(
+	mDirectionalLightCb = std::make_unique<ConstantBuffer>(
+		Engine::GetRenderer()->GetDevice(),
+		sizeof(DirectionalLight),
+		"DirectionalLight"
+	);
+	mDirectionalLightData = mDirectionalLightCb->GetPtr<DirectionalLight>();
+	mDirectionalLightData->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	mDirectionalLightData->direction = {-0.2f, -0.9f, 0.25f};
+	mDirectionalLightData->intensity = 8.0f;
+
+	mCameraCb = std::make_unique<ConstantBuffer>(
 		Engine::GetRenderer()->GetDevice(),
 		sizeof(CameraForGPU),
 		"Camera"
 	);
+	mCameraData                = mCameraCb->GetPtr<CameraForGPU>();
+	mCameraData->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().
+		GetTranslate();
 
-	cameraData = cameraCB->GetPtr<CameraForGPU>();
-	cameraData->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().GetTranslate();
+	mPointLightCb = std::make_unique<ConstantBuffer>(
+		Engine::GetRenderer()->GetDevice(),
+		sizeof(PointLight),
+		"PointLight"
+	);
+	mPointLightData            = mPointLightCb->GetPtr<PointLight>();
+	mPointLightData->color     = {1.0f, 1.0f, 1.0f, 1.0f};
+	mPointLightData->position  = {0.0f, 4.0f, 0.0f};
+	mPointLightData->intensity = 1.0f;
+	mPointLightData->radius    = 1.0f;
+	mPointLightData->decay     = 1.0f;
+
+	mSpotLightCb = std::make_unique<ConstantBuffer>(
+		Engine::GetRenderer()->GetDevice(),
+		sizeof(SpotLight),
+		"SpotLight"
+	);
+	mSpotLightData                  = mSpotLightCb->GetPtr<SpotLight>();
+	mSpotLightData->color           = {1.0f, 1.0f, 1.0f, 1.0f};
+	mSpotLightData->position        = {0.0f, 4.0f, 0.0f};
+	mSpotLightData->intensity       = 1.0f;
+	mSpotLightData->direction       = {0.0f, -1.0f, 0.0f};
+	mSpotLightData->distance        = 8.0f;
+	mSpotLightData->decay           = 2.0f;
+	mSpotLightData->cosAngle        = 0.5f;
+	mSpotLightData->cosFalloffStart = 0.5f;
 }
 
 void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 	// メッシュが存在しない場合は描画をスキップ
-	if (!staticMesh_) return;
+	if (!mStaticMesh) {
+		Console::Print("StaticMeshRenderer::Render - メッシュがnullです\n",
+		               kConTextColorError, Channel::RenderSystem);
+		return;
+	}
 
 	// 現在バインドされているマテリアルを追跡
 	Material* currentlyBoundMaterial = nullptr;
 
 	// メッシュ内の各サブメッシュを描画
-	for (const auto& subMesh : staticMesh_->GetSubMeshes()) {
+	for (const auto& subMesh : mStaticMesh->GetSubMeshes()) {
 		// 必要であればマテリアルをバインド
 		Material* material = subMesh->GetMaterial();
 		if (material && material != currentlyBoundMaterial) {
+			// VS用のトランスフォーム (b0)
+			if (const auto* transform = mTransform) {
+				const Mat4 worldMat = Mat4::Affine(
+					transform->GetWorldScale(),
+					transform->GetWorldRot().ToEulerAngles(),
+					transform->GetWorldPos()
+				);
+				const Mat4& viewProjMat = CameraManager::GetActiveCamera()->
+					GetViewProjMat();
+				Mat4 worldViewProjMat = worldMat * viewProjMat;
 
-			/*material->SetConstantBuffer(0, matparamCBV->GetResource());*/
+				mTransformationMatrix->wvp                   = worldViewProjMat;
+				mTransformationMatrix->world                 = worldMat;
+				mTransformationMatrix->worldInverseTranspose = worldMat.
+					Inverse().Transpose();
 
+				// VSのb0レジスタにバインド
+				const UINT vsTransformRegister = material->GetShader()->
+					GetResourceRegister("gTransformationMatrix");
+				material->SetConstantBuffer(vsTransformRegister,
+				                            mTransformationMatrixConstantBuffer
+				                            ->GetResource());
+			}
+
+			// PS用の各種パラメータ
+			const UINT materialRegister = material->GetShader()->
+			                                        GetResourceRegister(
+				                                        "gMaterial");
+			material->SetConstantBuffer(materialRegister,
+			                            mMatParamCBV->GetResource());
 			
+			const UINT dirLightRegister = material->GetShader()->
+			                                        GetResourceRegister(
+				                                        "gDirectionalLight");
+			if (dirLightRegister < 0xffffffff) {
+				material->SetConstantBuffer(dirLightRegister,
+				                            mDirectionalLightCb->GetResource());
+			}
 
-			/*cameraData->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate();
-			material->SetConstantBuffer(2, cameraCB->GetResource());*/
-
+			const UINT cameraRegister = material->GetShader()->
+			                                      GetResourceRegister(
+				                                      "gCamera");
+			if (cameraRegister < 0xffffffff) {
+				mCameraData->worldPosition = CameraManager::GetActiveCamera()->
+				                            GetViewMat().Inverse().
+				                            GetTranslate();
+				material->SetConstantBuffer(cameraRegister,
+				                            mCameraCb->GetResource());
+			}
 			
+			// マテリアルのApply（すべてのテクスチャがディスクリプタテーブルでバインドされる）
+			std::string meshName = mStaticMesh
+				                       ? mStaticMesh->GetName()
+				                       : "UnknownMesh";
 
-			material->Apply(commandList); // Materialにバインド処理を委任
-			// トランスフォームをバインド
-			BindTransform(commandList);
+			// ファイルパスからファイル名のみを抽出
+			size_t lastSlash = meshName.find_last_of("/\\");
+			if (lastSlash != std::string::npos) {
+				meshName = meshName.substr(lastSlash + 1);
+			}
+
+			// 拡張子を削除
+			size_t lastDot = meshName.find_last_of('.');
+			if (lastDot != std::string::npos) {
+				meshName = meshName.substr(0, lastDot);
+			}
+			
+			material->Apply(commandList, meshName);
+
+			// デバッグ用：テクスチャスロット確認のみ
+			auto shader = material->GetShader();
+			if (shader) {
+				std::vector<std::string> textureOrder = shader->
+					GetTextureSlots();
+			}
+
 			currentlyBoundMaterial = material;
 		} else if (!material) {
 			Console::Print(
-				"サブメッシュにマテリアルが設定されていません",
-				kConsoleColorError,
+				"サブメッシュにマテリアルが設定されていません\n",
+				kConTextColorError,
 				Channel::RenderSystem
 			);
 			continue;
@@ -110,60 +206,153 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 	}
 }
 
+void MatrixEdit(const std::string& label, Mat4& mat) {
+	ImGui::Text(label.c_str());
+	ImGui::DragFloat4((label + "##" + std::to_string(0)).c_str(), &mat.m[0][0],
+	                  0.01f);
+	ImGui::DragFloat4((label + "##" + std::to_string(1)).c_str(), &mat.m[1][0],
+	                  0.01f);
+	ImGui::DragFloat4((label + "##" + std::to_string(2)).c_str(), &mat.m[2][0],
+	                  0.01f);
+	ImGui::DragFloat4((label + "##" + std::to_string(3)).c_str(), &mat.m[3][0],
+	                  0.01f);
+}
+
 void StaticMeshRenderer::DrawInspectorImGui() {
 	// 子クラスのインスペクターUIの描画
-	if (ImGui::CollapsingHeader("StaticMeshRenderer", ImGuiTreeNodeFlags_DefaultOpen)) {
-		if (staticMesh_) {
+	if (ImGui::CollapsingHeader("StaticMeshRenderer",
+	                            ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (mStaticMesh) {
 			ImGui::Text("MatParams");
-			ImGui::ColorEdit4("Color", &materialData->color.x);
-			static bool enableLighting = true;
-			if (ImGui::Checkbox("Enable Lighting", &enableLighting)) {
-				materialData->enableLighting = enableLighting ? 1 : 0;
+			ImGui::ColorEdit4("BaseColor", &mMaterialData->baseColor.x);
+			ImGui::DragFloat("Metallic", &mMaterialData->metallic, 0.01f);
+			ImGui::DragFloat("Roughness", &mMaterialData->roughness, 0.01f);
+			ImGui::ColorEdit3("Emissive", &mMaterialData->emissive.x);
+
+			ImGui::Separator();
+
+			ImGui::Text("DirectionalLight");
+			ImGui::ColorEdit4("Color##Directional",
+			                  &mDirectionalLightData->color.x);
+			if (ImGui::DragFloat3("Direction##Directional",
+			                      &mDirectionalLightData->direction.x, 0.01f)) {
+				mDirectionalLightData->direction.Normalize();
 			}
-			ImGui::SliderFloat("Shininess", &materialData->shininess, 0.0f, 128.0f);
-			ImGui::ColorEdit3("Specular Color", &materialData->specularColor.x);
+			ImGui::DragFloat("Intensity##Directional",
+			                 &mDirectionalLightData->intensity, 0.01f);
 
 			ImGui::Text("CameraForGPU");
-			ImGui::Text("World Position: %f, %f, %f", cameraData->worldPosition.x, cameraData->worldPosition.y, cameraData->worldPosition.z);
+			ImGui::Text("World Position: %f, %f, %f",
+			            mCameraData->worldPosition.x,
+			            mCameraData->worldPosition.y,
+			            mCameraData->worldPosition.z);
 
-			ImGui::Text("Name: %s", staticMesh_->GetName().c_str());
-			for (auto& subMesh : staticMesh_->GetSubMeshes()) {
-				ImGui::Selectable((subMesh->GetMaterial()->GetName() + "##" + subMesh->GetName()).c_str());
+			ImGui::Text("PointLight");
+			ImGui::ColorEdit4("Color##Point", &mPointLightData->color.x);
+			ImGui::DragFloat3("Position##Point", &mPointLightData->position.x,
+			                  0.01f);
+			ImGui::DragFloat("Intensity##Point", &mPointLightData->intensity,
+			                 0.01f);
+			ImGui::DragFloat("Radius##Point", &mPointLightData->radius, 0.01f);
+			ImGui::DragFloat("Decay##Point", &mPointLightData->decay, 0.01f);
+
+			ImGui::Text("SpotLight");
+			ImGui::ColorEdit4("Color##Spot", &mSpotLightData->color.x);
+			ImGui::DragFloat3("Position##Spot", &mSpotLightData->position.x,
+			                  0.01f);
+			ImGui::DragFloat("Intensity##Spot", &mSpotLightData->intensity,
+			                 0.01f);
+			ImGui::DragFloat3("Direction##Spot", &mSpotLightData->direction.x,
+			                  0.01f);
+			ImGui::DragFloat("Distance##Spot", &mSpotLightData->distance, 0.01f);
+			ImGui::DragFloat("Decay##Spot", &mSpotLightData->decay, 0.01f);
+			ImGui::DragFloat("CosAngle##Spot", &mSpotLightData->cosAngle, 0.01f);
+			ImGui::DragFloat("CosFalloff##Spot",
+			                 &mSpotLightData->cosFalloffStart, 0.01f);
+
+			ImGui::Text("Name: %s", mStaticMesh->GetName().c_str());
+
+			// サブメッシュとテクスチャ情報の表示（デバッグ強化版）
+			ImGui::Separator();
+			ImGui::Text("SubMeshes and Textures:");
+			for (auto& subMesh : mStaticMesh->GetSubMeshes()) {
+				Material* material = subMesh->GetMaterial();
+				if (material) {
+					if (ImGui::TreeNode(
+						(subMesh->GetName() + " - " + material->GetFullName()).
+						c_str())) {
+						// マテリアルのテクスチャ情報を表示
+						const auto& textures = material->GetTextures();
+						if (!textures.empty()) {
+							ImGui::Text("Textures:");
+							auto texManager = TexManager::GetInstance();
+
+							for (const auto& [name, filePath] : textures) {
+								// テクスチャ情報をより詳細に表示
+								if (ImGui::TreeNode(
+									(name + ": " + filePath).c_str())) {
+									ImGui::Text("Slot名: %s", name.c_str());
+									ImGui::Text("ファイルパス: %s", filePath.c_str());
+
+									// テクスチャインデックス情報を表示
+									uint32_t textureIndex = texManager->
+										GetTextureIndexByFilePath(filePath);
+									ImGui::Text("テクスチャインデックス: %u",
+									            textureIndex);
+
+									// テクスチャのプレビューを表示
+									D3D12_GPU_DESCRIPTOR_HANDLE handle =
+										texManager->GetSrvHandleGPU(filePath);
+									if (handle.ptr != 0) {
+										ImGui::Text(
+											"GPU Handle: %llu", handle.ptr);
+										ImGui::Image(
+											(ImTextureID)handle.ptr,
+											ImVec2(150, 150));
+
+										// メタデータ情報があれば表示
+										try {
+											const auto& metadata = texManager->
+												GetMetaData(filePath);
+											ImGui::Text("サイズ: %ux%u",
+												static_cast<uint32_t>(metadata.
+													width),
+												static_cast<uint32_t>(metadata.
+													height));
+											ImGui::Text(
+												"フォーマット: %d", metadata.format);
+										} catch (...) {
+											ImGui::Text("メタデータ取得エラー");
+										}
+									} else {
+										ImGui::Text("テクスチャのGPUハンドルが無効です");
+										// テクスチャロード試行
+										if (ImGui::Button("テクスチャ再ロード")) {
+											texManager->LoadTexture(filePath);
+										}
+									}
+									ImGui::TreePop();
+								}
+							}
+						} else {
+							ImGui::Text("テクスチャなし");
+						}
+						ImGui::TreePop();
+					}
+				}
 			}
 		}
 	}
 }
 
 StaticMesh* StaticMeshRenderer::GetStaticMesh() const {
-	return staticMesh_;
+	return mStaticMesh;
 }
 
 void StaticMeshRenderer::SetStaticMesh(StaticMesh* staticMesh) {
-	staticMesh_ = staticMesh;
+	mStaticMesh = staticMesh;
 }
 
 void StaticMeshRenderer::BindTransform(ID3D12GraphicsCommandList* commandList) {
-	if (const auto* transform = transform_) {
-		const Mat4 worldMat = transform->GetWorldMat();
-
-		const Mat4& viewProjMat = CameraManager::GetActiveCamera()->GetViewProjMat();
-		Mat4 worldViewProjMat = worldMat * viewProjMat;
-
-		transformationMatrix_->wvp = worldViewProjMat;
-		transformationMatrix_->world = worldMat;
-		transformationMatrix_->worldInverseTranspose = worldMat.Inverse().Transpose();
-
-		//// ルートパラメータインデックスが正しいことを確認
-		//commandList->SetGraphicsRootConstantBufferView(
-		//	1, // インデックスが正しいか確認
-		//	transformationMatrixConstantBuffer_->GetAddress()
-		//);
-
-		commandList->SetGraphicsRootConstantBufferView(
-			0,
-			transformationMatrixConstantBuffer_->GetAddress()
-		);
-
-		//material->SetConstantBuffer(0, transformationMatrixConstantBuffer_->GetResource());
-	}
+	commandList;
 }

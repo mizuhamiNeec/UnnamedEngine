@@ -5,6 +5,8 @@
 #include <Renderer/D3D12.h>
 #include <Sprite/SpriteCommon.h>
 
+#include "Window/WindowManager.h"
+
 //-----------------------------------------------------------------------------
 // Purpose : デストラクタ
 //-----------------------------------------------------------------------------
@@ -53,7 +55,7 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 
 	AdjustTextureSize();
 
-	Console::Print("スプライトの初期化に成功しました。\n", kConsoleColorCompleted, Channel::Engine);
+	Console::Print("スプライトの初期化に成功しました。\n", kConTextColorCompleted, Channel::Engine);
 }
 
 //-----------------------------------------------------------------------------
@@ -117,8 +119,14 @@ void Sprite::Draw() const {
 		// 各種行列を作成
 		Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
 		Mat4 viewMat = Mat4::identity;
-		Mat4 projMat = Mat4::MakeOrthographicMat(0.0f, 0.0f, static_cast<float>(Window::GetClientWidth()),
-			static_cast<float>(Window::GetClientHeight()), 0.0f, 100.0f);
+		Mat4 projMat = Mat4::MakeOrthographicMat(
+			0.0f, 
+			0.0f, 
+			static_cast<float>(WindowManager::GetMainWindow()->GetClientWidth()),
+			static_cast<float>(WindowManager::GetMainWindow()->GetClientHeight()),
+			0.0f, 
+			100.0f
+		);
 
 		TransformationMatrix worldViewProjectionMatrixSprite = {
 			worldMat * viewMat * projMat,

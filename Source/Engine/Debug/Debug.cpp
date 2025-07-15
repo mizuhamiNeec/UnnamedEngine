@@ -17,14 +17,14 @@ void Debug::DrawRay(const Vec3& position, const Vec3& dir, const Vec4& color) {
 }
 
 void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {
-	Mat4 viewMat = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
+	Mat4 viewMat   = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
 	Vec3 cameraPos = viewMat.GetTranslate();
 
 	// カメラとの距離を計算
-	float distance = (cameraPos - position).Length();
+	float distance = (position - cameraPos).Length();
 
 	// カメラとの距離が一定以下の場合は軸を描画しない
-	if (distance < 0.01f) {
+	if (distance < Math::HtoM(4.0f)) {
 		return;
 	}
 
@@ -34,12 +34,12 @@ void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {
 
 	// 最大距離を設定（この距離以上では軸の長さが一定になる）
 	constexpr float maxDistance = 32.0f; // 50メートルを超えたら一定の長さにする
-	distance = std::min(distance, maxDistance);
+	distance                    = std::min(distance, maxDistance);
 
 	float length = distance * (desiredScreenSize / 1000.0f); // 1000.0fは調整用の係数
 
-	const Vec3 right = orientation * Vec3::right * length;
-	const Vec3 up = orientation * Vec3::up * length;
+	const Vec3 right   = orientation * Vec3::right * length;
+	const Vec3 up      = orientation * Vec3::up * length;
 	const Vec3 forward = orientation * Vec3::forward * length;
 
 	DrawRay(position, right, Vec4::red);
@@ -48,7 +48,8 @@ void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {
 }
 
 void Debug::DrawCircle(
-	const Vec3& position, const Quaternion& rotation, const float& radius, const Vec4& color,
+	const Vec3&     position, const Quaternion& rotation, const float& radius,
+	const Vec4&     color,
 	const uint32_t& segments
 ) {
 	// 描画できない形状の場合
@@ -64,7 +65,7 @@ void Debug::DrawCircle(
 
 	// とりあえず原点で計算する
 	Vec3 lineStart = Vec3::zero;
-	Vec3 lineEnd = Vec3::zero;
+	Vec3 lineEnd   = Vec3::zero;
 
 	for (int i = 0; i < static_cast<int>(segments); i++) {
 		// 開始点
@@ -83,7 +84,7 @@ void Debug::DrawCircle(
 
 		// 回転させる
 		lineStart = rotation * lineStart;
-		lineEnd = rotation * lineEnd;
+		lineEnd   = rotation * lineEnd;
 
 		// 目的の座標に移動
 		lineStart += position;
@@ -95,9 +96,9 @@ void Debug::DrawCircle(
 }
 
 void Debug::DrawArc(
-	const float& startAngle, const float& endAngle, const Vec3& position,
+	const float&      startAngle, const float& endAngle, const Vec3& position,
 	const Quaternion& orientation, const float& radius, const Vec4& color,
-	const bool& drawChord, const bool& drawSector, const int& arcSegments
+	const bool&       drawChord, const bool& drawSector, const int& arcSegments
 ) {
 	float arcSpan = Math::DeltaAngle(startAngle, endAngle);
 
@@ -105,20 +106,22 @@ void Debug::DrawArc(
 		arcSpan += 360.0f;
 	}
 
-	float angleStep = (arcSpan / static_cast<float>(arcSegments)) * Math::deg2Rad;
+	float angleStep = (arcSpan / static_cast<float>(arcSegments)) *
+		Math::deg2Rad;
 	float stepOffset = startAngle * Math::deg2Rad;
 
 	Vec3 lineStart = Vec3::zero;
-	Vec3 lineEnd = Vec3::zero;
+	Vec3 lineEnd   = Vec3::zero;
 
 	Vec3 arcStart = Vec3::zero;
-	Vec3 arcEnd = Vec3::zero;
+	Vec3 arcEnd   = Vec3::zero;
 
 	Vec3 arcOrigin = position;
 
 	for (int i = 0; i < arcSegments; i++) {
 		const float stepStart = angleStep * static_cast<float>(i) + stepOffset;
-		const float stepEnd = angleStep * static_cast<float>(i + 1) + stepOffset;
+		const float stepEnd   = angleStep * static_cast<float>(i + 1) +
+			stepOffset;
 
 		lineStart.x = std::cos(stepStart);
 		lineStart.y = std::sin(stepStart);
@@ -132,7 +135,7 @@ void Debug::DrawArc(
 		lineEnd *= radius;
 
 		lineStart = orientation * lineStart;
-		lineEnd = orientation * lineEnd;
+		lineEnd   = orientation * lineEnd;
 
 		lineStart += position;
 		lineEnd += position;
@@ -160,7 +163,7 @@ void Debug::DrawArc(
 void Debug::DrawArrow(
 	const Vec3& position, const Vec3& direction,
 	const Vec4& color,
-	float headSize
+	float       headSize
 ) {
 	// 矢印の終点
 	const Vec3 end = position + direction;
@@ -179,8 +182,10 @@ void Debug::DrawArrow(
 	const Vec3 right = dirNormalized.Cross(up).Normalized();
 
 	// 頭部の羽根を描画
-	const Vec3 arrowLeft = end - (dirNormalized * headSize) + (right * headSize * 0.5f);
-	const Vec3 arrowRight = end - (dirNormalized * headSize) - (right * headSize * 0.5f);
+	const Vec3 arrowLeft = end - (dirNormalized * headSize) + (right * headSize
+		* 0.5f);
+	const Vec3 arrowRight = end - (dirNormalized * headSize) - (right * headSize
+		* 0.5f);
 
 	// 主体の線
 	DrawLine(position, end, color);
@@ -191,7 +196,8 @@ void Debug::DrawArrow(
 }
 
 void Debug::DrawQuad(
-	const Vec3& pointA, const Vec3& pointB, const Vec3& pointC, const Vec3& pointD, const Vec4& color
+	const Vec3& pointA, const Vec3& pointB, const Vec3& pointC,
+	const Vec3& pointD, const Vec4& color
 ) {
 	DrawLine(pointA, pointB, color);
 	DrawLine(pointB, pointC, color);
@@ -199,9 +205,10 @@ void Debug::DrawQuad(
 	DrawLine(pointD, pointA, color);
 }
 
-void Debug::DrawRect(const Vec3& position, const Quaternion& orientation, const Vec2& extent, const Vec4& color) {
+void Debug::DrawRect(const Vec3& position, const Quaternion& orientation,
+                     const Vec2& extent, const Vec4&         color) {
 	const Vec3 rightOffset = Vec3::right * extent.x * 0.5f;
-	const Vec3 upOffset = Vec3::up * extent.y * 0.5f;
+	const Vec3 upOffset    = Vec3::up * extent.y * 0.5f;
 
 	const Vec3 offsetA = orientation * (rightOffset + upOffset);
 	const Vec3 offsetB = orientation * (-rightOffset + upOffset);
@@ -218,14 +225,15 @@ void Debug::DrawRect(const Vec3& position, const Quaternion& orientation, const 
 }
 
 void Debug::DrawRect(
-	const Vec2& point1, const Vec2& point2, const Vec3& origin, const Quaternion& orientation,
-	const Vec4& color
+	const Vec2&       point1, const Vec2& point2, const Vec3& origin,
+	const Quaternion& orientation,
+	const Vec4&       color
 ) {
 	const float extentX = abs(point1.x - point2.x);
 	const float extentY = abs(point1.y - point2.y);
 
 	const Vec3 rotatedRight = orientation * Vec3::right;
-	const Vec3 rotatedUp = orientation * Vec3::up;
+	const Vec3 rotatedUp    = orientation * Vec3::up;
 
 	const Vec3 pointA = origin + rotatedRight * point1.x + rotatedUp * point1.y;
 	const Vec3 pointB = pointA + rotatedRight * extentX;
@@ -236,7 +244,8 @@ void Debug::DrawRect(
 }
 
 void Debug::DrawSphere(
-	const Vec3& position, const Quaternion& orientation, float radius, const Vec4& color, int segments
+	const Vec3& position, const Quaternion& orientation, float radius,
+	const Vec4& color, int                  segments
 ) {
 	if (radius <= 0) {
 		radius = 0.01f;
@@ -250,30 +259,35 @@ void Debug::DrawSphere(
 	for (int i = 0; i < segments; i++) {
 		DrawCircle(
 			position,
-			orientation * Quaternion::Euler(0, meridianStep * static_cast<float>(i) * Math::deg2Rad, 0), radius,
+			orientation * Quaternion::Euler(
+				0, meridianStep * static_cast<float>(i) * Math::deg2Rad, 0),
+			radius,
 			color,
 			doubleSegments
 		);
 	}
 
-	Vec3 verticalOffset = Vec3::zero;
+	Vec3  verticalOffset    = Vec3::zero;
 	float parallelAngleStep = Math::pi / static_cast<float>(segments);
-	float stepRadius = 0.0f;
+	float stepRadius        = 0.0f;
 
 	for (int i = 1; i < segments; i++) {
 		float stepAngle = parallelAngleStep * static_cast<float>(i);
-		verticalOffset = (orientation * Vec3::up) * cos(stepAngle) * radius;
-		stepRadius = sin(stepAngle) * radius;
+		verticalOffset  = (orientation * Vec3::up) * cos(stepAngle) * radius;
+		stepRadius      = sin(stepAngle) * radius;
 
 		DrawCircle(
-			position + verticalOffset, orientation * Quaternion::Euler(90.0f * Math::deg2Rad, 0, 0), stepRadius,
+			position + verticalOffset,
+			orientation * Quaternion::Euler(90.0f * Math::deg2Rad, 0, 0),
+			stepRadius,
 			color,
 			doubleSegments
 		);
 	}
 }
 
-void Debug::DrawBox(const Vec3& position, const Quaternion& orientation, Vec3 size, const Vec4& color) {
+void Debug::DrawBox(const Vec3& position, const Quaternion& orientation,
+                    Vec3        size, const Vec4&           color) {
 	const Vec3 offsetX = orientation * Vec3::right * size.x * 0.5f;
 	const Vec3 offsetY = orientation * Vec3::up * size.y * 0.5f;
 	const Vec3 offsetZ = orientation * Vec3::forward * size.z * 0.5f;
@@ -283,28 +297,36 @@ void Debug::DrawBox(const Vec3& position, const Quaternion& orientation, Vec3 si
 	const Vec3 pointC = offsetX - offsetY;
 	const Vec3 pointD = -offsetX - offsetY;
 
-	DrawRect(position - offsetZ, orientation, { size.x, size.y }, color);
-	DrawRect(position + offsetZ, orientation, { size.x, size.y }, color);
+	DrawRect(position - offsetZ, orientation, {size.x, size.y}, color);
+	DrawRect(position + offsetZ, orientation, {size.x, size.y}, color);
 
-	DrawLine(position + (pointA - offsetZ), position + (pointA + offsetZ), color);
-	DrawLine(position + (pointB - offsetZ), position + (pointB + offsetZ), color);
-	DrawLine(position + (pointC - offsetZ), position + (pointC + offsetZ), color);
-	DrawLine(position + (pointD - offsetZ), position + (pointD + offsetZ), color);
+	DrawLine(position + (pointA - offsetZ), position + (pointA + offsetZ),
+	         color);
+	DrawLine(position + (pointB - offsetZ), position + (pointB + offsetZ),
+	         color);
+	DrawLine(position + (pointC - offsetZ), position + (pointC + offsetZ),
+	         color);
+	DrawLine(position + (pointD - offsetZ), position + (pointD + offsetZ),
+	         color);
 }
 
 void Debug::DrawCylinder(
-	const Vec3& position, const Quaternion& orientation, const float& height, const float& radius, const Vec4& color,
-	const bool& drawFromBase
+	const Vec3&  position, const Quaternion& orientation, const float& height,
+	const float& radius, const Vec4&         color,
+	const bool&  drawFromBase
 ) {
-	const Vec3 localUp = orientation * Vec3::up;
-	const Vec3 localRight = orientation * Vec3::right;
+	const Vec3 localUp      = orientation * Vec3::up;
+	const Vec3 localRight   = orientation * Vec3::right;
 	const Vec3 localForward = orientation * Vec3::forward;
 
-	const Vec3 basePositionOffset = drawFromBase ? Vec3::zero : (localUp * height * 0.5f);
+	const Vec3 basePositionOffset = drawFromBase
+		                                ? Vec3::zero
+		                                : (localUp * height * 0.5f);
 	const Vec3 basePosition = position - basePositionOffset;
-	const Vec3 topPosition = basePosition + localUp * height;
+	const Vec3 topPosition  = basePosition + localUp * height;
 
-	const Quaternion circleOrientation = orientation * Quaternion::Euler(90.0f * Math::deg2Rad, 0, 0);
+	const Quaternion circleOrientation = orientation * Quaternion::Euler(
+		90.0f * Math::deg2Rad, 0, 0);
 
 	const Vec3 pointA = basePosition + localRight * radius;
 	const Vec3 pointB = basePosition + localForward * radius;
@@ -321,20 +343,25 @@ void Debug::DrawCylinder(
 }
 
 void Debug::DrawCapsule(
-	const Vec3& position, const Quaternion& orientation, const float& height, const float& radius, const Vec4& color,
-	const bool& drawFromBase
+	const Vec3&  position, const Quaternion& orientation, const float& height,
+	const float& radius, const Vec4&         color,
+	const bool&  drawFromBase
 ) {
-	const float rad = std::clamp(radius, 0.0f, height * 0.5f);
-	const Vec3 localUp = orientation * Vec3::up;
-	const Quaternion arcOrientation = orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0);
+	const float      rad            = std::clamp(radius, 0.0f, height * 0.5f);
+	const Vec3       localUp        = orientation * Vec3::up;
+	const Quaternion arcOrientation = orientation * Quaternion::Euler(
+		0, 90.0f * Math::deg2Rad, 0);
 
-	const Vec3 basePositionOffset = drawFromBase ? Vec3::zero : (localUp * height * 0.5f);
+	const Vec3 basePositionOffset = drawFromBase
+		                                ? Vec3::zero
+		                                : (localUp * height * 0.5f);
 	const Vec3 baseArcPosition = position + localUp * rad - basePositionOffset;
 	DrawArc(180, 360, baseArcPosition, orientation, rad, color);
 	DrawArc(180, 360, baseArcPosition, arcOrientation, rad, color);
 
 	const float cylinderHeight = height - rad * 2.0f;
-	DrawCylinder(baseArcPosition, orientation, cylinderHeight, rad, color, true);
+	DrawCylinder(baseArcPosition, orientation, cylinderHeight, rad, color,
+	             true);
 
 	const Vec3 topArcPosition = baseArcPosition + localUp * cylinderHeight;
 
@@ -342,10 +369,11 @@ void Debug::DrawCapsule(
 	DrawArc(0, 180, topArcPosition, arcOrientation, rad, color);
 }
 
-void Debug::DrawCapsule(const Vec3& start, const Vec3& end, const float& radius, const Vec4& color) {
+void Debug::DrawCapsule(const Vec3& start, const Vec3& end, const float& radius,
+                        const Vec4& color) {
 	// 始点から終点へのベクトルと長さを計算
-	const Vec3 direction = (end - start).Normalized();
-	const float length = (end - start).Length();
+	const Vec3  direction = (end - start).Normalized();
+	const float length    = (end - start).Length();
 
 	// 半球の向きを計算
 	Quaternion orientation = Quaternion::LookRotation(direction).Normalized();
@@ -353,11 +381,15 @@ void Debug::DrawCapsule(const Vec3& start, const Vec3& end, const float& radius,
 
 	// 始点での半球を描画
 	DrawArc(180, 360, start, orientation, radius, color);
-	DrawArc(180, 360, start, orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0), radius, color);
+	DrawArc(180, 360, start,
+	        orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0),
+	        radius, color);
 
 	// 終点での半球を描画
 	DrawArc(0, 180, end, orientation, radius, color);
-	DrawArc(0, 180, end, orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0), radius, color);
+	DrawArc(0, 180, end,
+	        orientation * Quaternion::Euler(0, 90.0f * Math::deg2Rad, 0),
+	        radius, color);
 
 	// 中間の円柱部分を描画（両端の半球をつなぐ）
 	DrawCylinder(start, orientation, length, radius, color, true);
@@ -374,7 +406,6 @@ void Debug::Init(LineCommon* lineCommon) {
 }
 
 void Debug::Update() {
-	line_->Update();
 }
 
 void Debug::Draw() {

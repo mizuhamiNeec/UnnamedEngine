@@ -10,21 +10,24 @@ using namespace Microsoft::WRL;
 template <typename VertexType>
 class VertexBuffer {
 public:
-	VertexBuffer(const ComPtr<ID3D12Device>& device, size_t size, const VertexType* pInitData);
+	VertexBuffer(const ComPtr<ID3D12Device>& device, size_t size,
+	             const VertexType* pInitData);
 	[[nodiscard]] D3D12_VERTEX_BUFFER_VIEW View() const;
 	void Update(const VertexType* pInitData, size_t size);
 	[[nodiscard]] size_t GetSize() const;
 	std::vector<VertexType> GetVertices() const;
 
 private:
-	ComPtr<ID3D12Device> device_;
-	ComPtr<ID3D12Resource> buffer_;
+	ComPtr<ID3D12Device>     device_;
+	ComPtr<ID3D12Resource>   buffer_;
 	D3D12_VERTEX_BUFFER_VIEW view_;
-	size_t size_ = 0;
+	size_t                   size_ = 0;
 };
 
 template <typename VertexType>
-VertexBuffer<VertexType>::VertexBuffer(const ComPtr<ID3D12Device>& device, const size_t size, const VertexType* pInitData) :
+VertexBuffer<VertexType>::VertexBuffer(const ComPtr<ID3D12Device>& device,
+                                       const size_t                size,
+                                       const VertexType*           pInitData) :
 	device_(device),
 	size_(size) {
 	// リソース用のヒープを設定
@@ -53,18 +56,20 @@ VertexBuffer<VertexType>::VertexBuffer(const ComPtr<ID3D12Device>& device, const
 
 	// ビューを設定
 	view_.BufferLocation = buffer_->GetGPUVirtualAddress();
-	view_.SizeInBytes = static_cast<UINT>(size_);
-	view_.StrideInBytes = static_cast<UINT>(sizeof(VertexType));
+	view_.SizeInBytes    = static_cast<UINT>(size_);
+	view_.StrideInBytes  = static_cast<UINT>(sizeof(VertexType));
 
 	// 初期データがある場合はコピー
 	if (pInitData != nullptr) {
 		void* ptr = nullptr;
-		hr = buffer_->Map(0, nullptr, &ptr);
+		hr        = buffer_->Map(0, nullptr, &ptr);
 		assert(SUCCEEDED(hr));
 
 		memcpy(ptr, pInitData, size_);
 		buffer_->Unmap(0, nullptr);
 	}
+
+	buffer_->SetName(L"VertexBuffer");
 }
 
 template <typename VertexType>
@@ -73,9 +78,10 @@ D3D12_VERTEX_BUFFER_VIEW VertexBuffer<VertexType>::View() const {
 }
 
 template <typename VertexType>
-void VertexBuffer<VertexType>::Update(const VertexType* pInitData, size_t size) {
-	void* mappedData = nullptr;
-	D3D12_RANGE range{ 0, 0 };
+void VertexBuffer<
+	VertexType>::Update(const VertexType* pInitData, size_t size) {
+	void*       mappedData = nullptr;
+	D3D12_RANGE range{0, 0};
 
 	// マップしてGPUメモリにデータをコピー
 	HRESULT hr = buffer_->Map(0, &range, &mappedData);
@@ -93,8 +99,8 @@ size_t VertexBuffer<VertexType>::GetSize() const {
 template <typename VertexType>
 std::vector<VertexType> VertexBuffer<VertexType>::GetVertices() const {
 	std::vector<VertexType> vertices(size_ / sizeof(VertexType));
-	void* mappedData = nullptr;
-	D3D12_RANGE range{ 0, 0 };
+	void*                   mappedData = nullptr;
+	D3D12_RANGE             range{0, 0};
 
 	[[maybe_unused]] HRESULT hr = buffer_->Map(0, &range, &mappedData);
 	assert(SUCCEEDED(hr));

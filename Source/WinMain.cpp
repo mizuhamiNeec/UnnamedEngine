@@ -1,26 +1,44 @@
 #include <Engine.h>
-#include <format>
-#define NOMINMAX
-#include <Windows.h>
-#include <SubSystem/Console/Console.h>
-#include <SubSystem/Console/ConVarManager.h>
-#include <Lib/Utils/StrUtils.h>
 
-//-----------------------------------------------------------------------------
-// Purpose: エントリーポイント
-//-----------------------------------------------------------------------------
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR lpCmdLine, [[maybe_unused]] const int nShowCmd) {
-	// TODO: リリース時にはverboseをfalseにする
-	ConVarManager::RegisterConVar<bool>("verbose", true, "Enable verbose logging");
-	Console::Print("command line arguments:\n", kConsoleColorGray, Channel::CommandLine);
-	Console::Print(StrUtils::ToString(lpCmdLine) + "\n", kConsoleColorGray, Channel::CommandLine);
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
+
+#include <Lib/Utils/StrUtil.h>
+
+#include <SubSystem/Console/ConVarManager.h>
+#include <SubSystem/Console/Console.h>
+
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, const PWSTR lpCmdLine,
+                    [[maybe_unused]] const int        nShowCmd) {
+#ifdef _DEBUG
+	ConVarManager::RegisterConVar<bool>("verbose", true,
+	                                    "Enable verbose logging");
+#else
+	ConVarManager::RegisterConVar<bool>("verbose", false, "Enable verbose logging");
+#endif
+	Console::Print("command line arguments:\n", kConTextColorGray,
+	               Channel::CommandLine);
+	Console::Print(StrUtil::ToString(lpCmdLine) + "\n", kConTextColorGray,
+	               Channel::CommandLine);
+	ConVarManager::RegisterConVar<std::string>("launchargs",
+	                                           StrUtil::ToString(lpCmdLine),
+	                                           "Command line arguments");
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	{
 		auto engine = std::make_unique<Engine>();
-		engine->Run();
-		D3DResourceLeakChecker leakChecker;
-		engine.reset();
+		try {
+			engine->Run();
+		} catch (const std::exception& e) {
+			Console::Print(e.what(), kConTextColorError, Channel::Engine);
+			return EXIT_FAILURE;
+		}
 	}
 	CoUninitialize();
-	return 0;
+	return EXIT_SUCCESS;
 }

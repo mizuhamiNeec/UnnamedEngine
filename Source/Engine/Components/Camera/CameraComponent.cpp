@@ -4,47 +4,47 @@
 
 #include <ImGuiManager/ImGuiManager.h>
 
-#include <Window/Window.h>
+#include <Camera/CameraManager.h>
+#include <Lib/Utils/ClientProperties.h>
 
-#include "Camera/CameraManager.h"
+#include <Debug/Debug.h>
 
-CameraComponent::~CameraComponent() {}
+CameraComponent::~CameraComponent() {
+}
 
 void CameraComponent::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
 	// 親からTransformComponentを取得
-	transform_ = owner_->GetTransform();
+	transform_ = mOwner->GetTransform();
 
-	aspectRatio_ = (16.0f / 9.0f);
-	worldMat_ = transform_->GetWorldMat();
-	viewMat_ = worldMat_.Inverse();
-	projMat_ = Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_);
+	aspectRatio_ = 16.0f / 9.0f;
+	worldMat_    = transform_->GetWorldMat();
+	viewMat_     = worldMat_.Inverse();
+	projMat_     = Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_);
 	viewProjMat_ = viewMat_ * projMat_;
 }
 
 void CameraComponent::Update([[maybe_unused]] float deltaTime) {
-	// TODO : 毎フレームアスペクト比を計算するのは無駄なので、ウィンドウサイズ変更時のみ計算するようにする
-	const float width = static_cast<float>(Window::GetClientWidth());
-	const float height = static_cast<float>(Window::GetClientHeight());
-	SetAspectRatio(width / height);
-
 	// 変更があった場合のみ更新
-	if (transform_->IsDirty()) {
-		const Vec3& pos = transform_->GetWorldPos();
-		const Vec3& scale = transform_->GetWorldScale();
-		const Quaternion& rot = transform_->GetWorldRot();
+	//	if (transform_->IsDirty()) {
+	const Vec3&       pos   = transform_->GetWorldPos();
+	const Vec3&       scale = transform_->GetWorldScale();
+	const Quaternion& rot   = transform_->GetWorldRot();
 
-		const Mat4 S = Mat4::Scale(scale);
-		const Mat4 R = Mat4::FromQuaternion(rot);
-		const Mat4 T = Mat4::Translate(pos);
+	const Mat4 S = Mat4::Scale(scale);
+	const Mat4 R = Mat4::FromQuaternion(rot);
+	const Mat4 T = Mat4::Translate(pos);
 
-		worldMat_ = R * S * T;
-		viewMat_ = worldMat_.Inverse();
-		projMat_ = Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_);
-		viewProjMat_ = viewMat_ * projMat_;
+	worldMat_    = R * S * T;
+	viewMat_     = worldMat_.Inverse();
+	projMat_     = Mat4::PerspectiveFovMat(fov_, aspectRatio_, zNear_, zFar_);
+	viewProjMat_ = viewMat_ * projMat_;
 
-		transform_->SetIsDirty(false);
-	}
+	transform_->SetIsDirty(false);
+}
+
+void CameraComponent::Render(
+	[[maybe_unused]] ID3D12GraphicsCommandList* commandList) {
 }
 
 void CameraComponent::DrawInspectorImGui() {
@@ -61,7 +61,8 @@ void CameraComponent::DrawInspectorImGui() {
 		}
 
 		float fovTmp = fov_ * Math::rad2Deg;
-		if (ImGui::DragFloat("FOV##cam", &fovTmp, 0.1f, kFovMin * Math::rad2Deg, kFovMax * Math::rad2Deg, "%.2f [deg]")) {
+		if (ImGui::DragFloat("FOV##cam", &fovTmp, 0.1f, kFovMin * Math::rad2Deg,
+		                     kFovMax * Math::rad2Deg, "%.2f [deg]")) {
 			SetFovVertical(fovTmp * Math::deg2Rad);
 		}
 
@@ -146,3 +147,6 @@ void CameraComponent::SetAspectRatio(const float newAspectRatio) {
 	aspectRatio_ = newAspectRatio;
 }
 
+void CameraComponent::SetViewMat(const Mat4& mat4) {
+	viewMat_ = mat4;
+}

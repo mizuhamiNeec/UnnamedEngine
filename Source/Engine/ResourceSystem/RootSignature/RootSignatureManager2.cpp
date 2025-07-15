@@ -1,5 +1,7 @@
 #include "RootSignatureManager2.h"
 
+#include <ranges>
+
 RootSignature2* RootSignatureManager2::GetOrCreateRootSignature(const std::string& key, const RootSignatureDesc& desc) {
 	// 既に作成済みのルートシグネチャがあるか確認
 	if (rootSignatures_.contains(key)) {
@@ -22,7 +24,7 @@ void RootSignatureManager2::Init(ID3D12Device* device) {
 
 void RootSignatureManager2::Shutdown() {
 	// 各RootSignature2インスタンスが保持しているリソースを解放
-	for (auto& [key, rootSignature] : rootSignatures_) {
+	for (auto& rootSignature : rootSignatures_ | std::views::values) {
 		if (rootSignature) {
 			// RootSignature内のComPtrを明示的にリセット
 			rootSignature->Release();

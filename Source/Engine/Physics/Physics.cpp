@@ -13,14 +13,13 @@
 #include <Lib/Math/Vector/Vec4.h>
 
 #include <Physics/Physics.h>
+#include "Physics.h"
 
 //-----------------------------------------------------------------------------
 // Purpose: AABBのコンストラクタ
 //-----------------------------------------------------------------------------
-AABB::AABB(const Vec3& min, const Vec3& max) :
-	min(min),
-	max(max) {
-}
+AABB::AABB(const Vec3& min, const Vec3& max) : min(min),
+max(max) {}
 
 //-----------------------------------------------------------------------------
 // Purpose: AABBの中心を取得します
@@ -66,14 +65,11 @@ AABB AABB::Combine(const AABB& aabb) const {
 		Vec3(
 			std::min(min.x, aabb.min.x),
 			std::min(min.y, aabb.min.y),
-			std::min(min.z, aabb.min.z)
-		),
+			std::min(min.z, aabb.min.z)),
 		Vec3(
 			std::max(max.x, aabb.max.x),
 			std::max(max.y, aabb.max.y),
-			std::max(max.z, aabb.max.z)
-		)
-	};
+			std::max(max.z, aabb.max.z)) };
 }
 
 //-----------------------------------------------------------------------------
@@ -135,11 +131,11 @@ AABB FromTriangle(const Triangle& triangle) {
 // Purpose: Triangleのコンストラクタ
 //-----------------------------------------------------------------------------
 Triangle::Triangle(
-	const Vec3& v0, const Vec3& v1, const Vec3& v2
-) : v0(v0),
-v1(v1),
-v2(v2) {
-}
+	const Vec3& v0,
+	const Vec3& v1,
+	const Vec3& v2) : v0(v0),
+	v1(v1),
+	v2(v2) {}
 
 //-----------------------------------------------------------------------------
 // Purpose: 三角形の法線ベクトルを取得します
@@ -186,10 +182,28 @@ bool Triangle::IsPointInside(const Vec3& point) const {
 
 Vec3 Triangle::GetVertex(const int index) const {
 	switch (index) {
-	case 0: return v0;
-	case 1: return v1;
-	case 2: return v2;
-	default: return Vec3::zero;
+	case 0:
+		return v0;
+	case 1:
+		return v1;
+	case 2:
+		return v2;
+	default:
+		return Vec3::zero;
+	}
+}
+
+void Triangle::SetVertex(const int index, const Vec3 newPos) {
+	switch (index) {
+	case 0:
+		v0 = newPos;
+		break;
+	case 1:
+		v1 = newPos;
+		break;
+	case 2:
+		v2 = newPos;
+		break;
 	}
 }
 
@@ -210,7 +224,7 @@ int DynamicBVH::InsertObject(const AABB& objectAABB, int objectIndex) {
 	// ルートノードが存在しない場合
 	if (rootNode_ == -1) {
 		rootNode_ = nodeID;
-		//OptimizeMemoryLayout();
+		// OptimizeMemoryLayout();
 		return nodeID;
 	}
 
@@ -225,40 +239,40 @@ int DynamicBVH::InsertObject(const AABB& objectAABB, int objectIndex) {
 	// 範囲チェック
 	if (currentNode >= 0 && currentNode < nodes_.size()) {
 		CreateNewParent(currentNode, nodeID);
-		//OptimizeMemoryLayout();
+		// OptimizeMemoryLayout();
 	} else {
 		// エラーハンドリング
 		Console::Print(
 			"BVHノードの範囲外アクセスが検出されました\n",
-			kConsoleColorError,
-			Channel::Physics
-		);
+			kConTextColorError,
+			Channel::Physics);
 	}
 
 	return nodeID;
 }
 
 void DynamicBVH::RemoveObject(const int nodeId) {
+	if (nodeId < 0 || nodeId >= nodes_.size()) {
+		return;
+	}
+
 	BVHNode& node = nodes_[nodeId];
 
-	// ルートノードの場合
+	// ルートノードの場合は、ノードをクリア
 	if (node.parent == -1) {
 		nodes_.clear();
 		rootNode_ = -1;
 		return;
 	}
 
-	// 親ノードと兄弟ノードを取得
 	int parentId = node.parent;
 	BVHNode& parent = nodes_[parentId];
 	int siblingId = (parent.leftChild == nodeId) ? parent.rightChild : parent.leftChild;
 	BVHNode& sibling = nodes_[siblingId];
-
-	// 親の親ノード（祖父ノード）を取得
 	int grandParentId = parent.parent;
 
+	// 兄弟の親ポインタを更新
 	if (grandParentId != -1) {
-		// 親の親が存在する場合、祖父ノードの子を兄弟ノードに置き換える
 		BVHNode& grandParent = nodes_[grandParentId];
 		if (grandParent.leftChild == parentId) {
 			grandParent.leftChild = siblingId;
@@ -267,17 +281,34 @@ void DynamicBVH::RemoveObject(const int nodeId) {
 		}
 		sibling.parent = grandParentId;
 	} else {
-		// 親の親がいない場合、兄弟ノードをルートに設定
+		// 親の親がいない場合、兄弟が新たなルートになる
 		rootNode_ = siblingId;
 		sibling.parent = -1;
 	}
 
-	// 削除したノードと親ノードを無効化
-	nodes_[nodeId] = nodes_.back();
-	nodes_.pop_back();
+	// まず、削除対象として「親」ノードと「node」自体の両方を削除する処理を行います
+	// 削除順序は、まず末尾要素と置換し、該当インデックスを更新、その後ポップする
 
-	nodes_[parentId] = nodes_.back();
-	nodes_.pop_back();
+	auto swapAndPop = [this](int index) {
+		int lastIdx = static_cast<int>(nodes_.size()) - 1;
+		if (index != lastIdx) {
+			nodes_[index] = nodes_[lastIdx];
+			// nodes_[index] に移動したノードの親や子の値を必要に応じてアップデートする処理を追加する
+			// 例: このノードが他のノードから参照されている場合、その参照も index に向ける必要があります。
+		}
+		nodes_.pop_back();
+		};
+
+	// ノードを削除する順序を工夫します。まず、より大きいインデックス（親と削除対象のうち大きいほう）から削除することで、
+	// 残ったインデックスが変更されないようにします。
+
+	if (parentId > nodeId) {
+		swapAndPop(parentId);
+		swapAndPop(nodeId);
+	} else {
+		swapAndPop(nodeId);
+		swapAndPop(parentId);
+	}
 }
 
 void DynamicBVH::UpdateObject(const int nodeId, const AABB& newAABB) {
@@ -330,7 +361,7 @@ std::vector<int> DynamicBVH::QueryOverlaps(const AABB& queryBox) const {
 		}
 
 		if (node.isLeaf) {
-			overlappingObjects.push_back(node.objectIndex);
+			overlappingObjects.emplace_back(node.objectIndex);
 		} else {
 			stack.push(node.leftChild);
 			stack.push(node.rightChild);
@@ -367,7 +398,7 @@ void DynamicBVH::CreateNewParent(const int existingNodeId, const int newNodeId) 
 		existingNodeId,
 		newNodeId,
 		oldParent,
-		-1,  // objectIndex
+		-1,	  // objectIndex
 		false // isLeaf
 	);
 
@@ -399,8 +430,7 @@ void DynamicBVH::DrawBvhNode(const int nodeId, const Vec4& color) const {
 	const BVHNode& node = nodes_[nodeId];
 	Debug::DrawBox(
 		node.boundingBox.GetCenter(), Quaternion::identity,
-		node.boundingBox.GetHalfSize() * 2.0f, color
-	);
+		node.boundingBox.GetHalfSize() * 2.0f, color);
 
 	// 再帰をループに置き換え
 	std::stack<int> stack;
@@ -416,20 +446,16 @@ void DynamicBVH::DrawBvhNode(const int nodeId, const Vec4& color) const {
 			const BVHNode& rightChild = nodes_[currentNode.rightChild];
 			Debug::DrawLine(
 				currentNode.boundingBox.GetCenter(), leftChild.boundingBox.GetCenter(),
-				Vec4::green
-			);
+				Vec4::green);
 			Debug::DrawLine(
 				currentNode.boundingBox.GetCenter(), rightChild.boundingBox.GetCenter(),
-				Vec4::red
-			);
+				Vec4::red);
 			Debug::DrawBox(
 				leftChild.boundingBox.GetCenter(), Quaternion::identity,
-				leftChild.boundingBox.GetHalfSize() * 2.0f, color
-			);
+				leftChild.boundingBox.GetHalfSize() * 2.0f, color);
 			Debug::DrawBox(
 				rightChild.boundingBox.GetCenter(), Quaternion::identity,
-				rightChild.boundingBox.GetHalfSize() * 2.0f, color
-			);
+				rightChild.boundingBox.GetHalfSize() * 2.0f, color);
 			stack.push(currentNode.leftChild);
 			stack.push(currentNode.rightChild);
 		}
@@ -445,10 +471,17 @@ void DynamicBVH::DrawObjects(const Vec4& color) const {
 		if (node.isLeaf) {
 			Debug::DrawBox(
 				node.boundingBox.GetCenter(), Quaternion::identity,
-				node.boundingBox.GetHalfSize() * 2.0f, color
-			);
+				node.boundingBox.GetHalfSize() * 2.0f, color);
 		}
 	}
+}
+
+AABB DynamicBVH::GetNodeAABB(int nodeId) const {
+	std::shared_lock lock(bvhMutex_);
+	if (nodeId < 0 || nodeId >= static_cast<int>(nodes_.size()) || !nodes_[nodeId].isValid) {
+		return AABB(Vec3::zero, Vec3::zero);
+	}
+	return nodes_[nodeId].boundingBox;
 }
 
 void DynamicBVH::OptimizeMemoryLayout() {
@@ -467,7 +500,7 @@ void DynamicBVH::OptimizeMemoryLayout() {
 			continue;
 		}
 
-		optimizedNodes.push_back(nodes_[nodeId]);
+		optimizedNodes.emplace_back(nodes_[nodeId]);
 
 		const BVHNode& node = nodes_[nodeId];
 		if (!node.isLeaf) {
@@ -477,4 +510,79 @@ void DynamicBVH::OptimizeMemoryLayout() {
 	}
 
 	nodes_ = std::move(optimizedNodes);
+}
+
+bool Physics::RayIntersectsTriangle(
+	const Vec3& rayOrigin, const Vec3& rayDir, const Triangle& triangle, float& outTime
+) {
+	constexpr float EPSILON = 1e-5f;
+	Vec3 edge1 = triangle.v1 - triangle.v0;
+	Vec3 edge2 = triangle.v2 - triangle.v0;
+	Vec3 h = rayDir.Cross(edge2);
+	float a = edge1.Dot(h);
+	if (std::fabs(a) < EPSILON) {
+		return false;
+	}
+	float f = 1.0f / a;
+	Vec3 s = rayOrigin - triangle.v0;
+	float u = f * s.Dot(h);
+	if (u < 0.0f || u > 1.0f) {
+		return false;
+	}
+	Vec3 q = s.Cross(edge1);
+	float v = f * rayDir.Dot(q);
+	if (v < 0.0f || (u + v) > 1.0f) {
+		return false;
+	}
+	float t = f * edge2.Dot(q);
+	if (t > EPSILON) {
+		outTime = t;
+		return true;
+	}
+	return false;
+}
+
+float Physics::ComputeBoxPenetration(
+	const Vec3& boxCenter, const Vec3& halfSize, const Vec3& hitPos, [[maybe_unused]] const Vec3& hitNormal
+) {
+	// ローカル座標での衝突座標を計算
+	Vec3 localHitPos = hitPos - boxCenter;
+	Vec3 penetration = halfSize - localHitPos.Abs();
+	return std::min({ penetration.x, penetration.y, penetration.z });
+}
+
+Vec3 Physics::ComputeAABBOverlap(const AABB& a, const AABB& b) {
+	// 各軸毎の重なり量（正の値）を計算
+	float overlapX = std::min(a.max.x, b.max.x) - std::max(a.min.x, b.min.x);
+	float overlapY = std::min(a.max.y, b.max.y) - std::max(a.min.y, b.min.y);
+	float overlapZ = std::min(a.max.z, b.max.z) - std::max(a.min.z, b.min.z);
+
+	// 重なりが発生していない軸があれば Vec3::zero を返す
+	if (overlapX <= 0 || overlapY <= 0 || overlapZ <= 0) {
+		return Vec3::zero;
+	}
+
+	// 最小の押し出し成分を持つ軸を選択
+	float minOverlap = overlapX;
+	Vec3 mtv = Vec3(overlapX, 0.0f, 0.0f);
+
+	if (overlapY < minOverlap) {
+		minOverlap = overlapY;
+		mtv = Vec3(0.0f, overlapY, 0.0f);
+	}
+	if (overlapZ < minOverlap) {
+		minOverlap = overlapZ;
+		mtv = Vec3(0.0f, 0.0f, overlapZ);
+	}
+
+	// 押し出し方向：対象AABBと候補 AABB の中心差分の符号に従って向きを決定
+	Vec3 centerA = (a.min + a.max) * 0.5f;
+	Vec3 centerB = (b.min + b.max) * 0.5f;
+	Vec3 diff = centerB - centerA;
+
+	if (mtv.x > 0.0f && diff.x < 0.0f) mtv.x = -mtv.x;
+	if (mtv.y > 0.0f && diff.y < 0.0f) mtv.y = -mtv.y;
+	if (mtv.z > 0.0f && diff.z < 0.0f) mtv.z = -mtv.z;
+
+	return mtv;
 }

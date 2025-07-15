@@ -16,12 +16,13 @@ void BoxColliderComponent::OnAttach(Entity& owner) {
 }
 
 void BoxColliderComponent::Update([[maybe_unused]] float deltaTime) {
-	Debug::DrawBox(transform_->GetWorldPos(), Quaternion::identity, size_, { 0.66f, 0.8f, 0.85f, 1.0f });
+	Debug::DrawBox(transform_->GetWorldPos() + offset_, Quaternion::identity, size_, { 0.66f, 0.8f, 0.85f, 1.0f });
 }
 
 void BoxColliderComponent::DrawInspectorImGui() {
 	if (ImGui::CollapsingHeader("BoxColliderComponent", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::DragFloat3("Size", &size_.x, 0.1f);
+		ImGui::DragFloat3("Offset", &offset_.x, 0.1f);
 	}
 }
 
@@ -43,7 +44,8 @@ const Vec3& BoxColliderComponent::GetSize() const {
 
 AABB BoxColliderComponent::GetBoundingBox() const {
 	Vec3 halfSize = size_ * 0.5f;
-	Vec3 min = transform_->GetWorldPos() - halfSize;
-	Vec3 max = transform_->GetWorldPos() + halfSize;
+	Vec3 center = transform_->GetWorldPos() + offset_;
+	Vec3 min = center - halfSize;
+	Vec3 max = center + halfSize;
 	return AABB(min, max);
 }

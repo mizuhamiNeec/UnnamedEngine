@@ -41,7 +41,7 @@ private:
 		unsigned int bufferSize = 0; // バッファのサイズ
 	};
 
-	bool LoadWavFile(const std::string& filename, SoundData& outData);
+	static bool LoadWavFile(const std::string& filename, SoundData& outData);
 
 	IXAudio2SourceVoice* sourceVoice_ = nullptr;
 	XAUDIO2_BUFFER audioBuffer_ = {};

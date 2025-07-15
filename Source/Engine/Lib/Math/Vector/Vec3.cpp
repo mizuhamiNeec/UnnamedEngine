@@ -98,6 +98,13 @@ Vec3 Vec3::Reflect(const Vec3& normal) const {
 	return *this - 2 * this->Dot(normal) * normal;
 }
 
+Vec3 Vec3::Abs() {
+	x = std::abs(x);
+	y = std::abs(y);
+	z = std::abs(z);
+	return *this;
+}
+
 Vec3 Vec3::TransformDirection(const Quaternion& rotation) const {
 	Mat4 rotationMat = Mat4::RotateQuaternion(rotation);
 	return Mat4::Transform(*this, rotationMat);
@@ -207,6 +214,10 @@ std::string Vec3::ToString() const {
 
 bool Vec3::operator!=(const Vec3& rhs) const {
 	return x != rhs.x || y != rhs.y || z != rhs.z;
+}
+
+bool Vec3::operator==(const Vec3& vec3) const {
+	return x == vec3.x && y == vec3.y && z == vec3.z;
 }
 
 Vec3 Vec3::Min(const Vec3 lhs, const Vec3 rhs) {

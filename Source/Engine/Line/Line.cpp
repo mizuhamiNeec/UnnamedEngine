@@ -1,8 +1,6 @@
 #include "Line.h"
 
 #include <mutex>
-
-#include <Camera/Camera.h>
 #include <Camera/CameraManager.h>
 
 #include <Components/Camera/CameraComponent.h>
@@ -60,17 +58,13 @@ void Line::AddLine(const Vec3& start, const Vec3& end, const Vec4& color) {
 	const uint32_t startIndex = static_cast<uint32_t>(lineVertices_.size());
 
 	// インデックスを正確に追加 (最後の2つのインデックスのみを追加)
-	lineVertices_.push_back({ .pos = start, .color = color });
-	lineVertices_.push_back({ .pos = end, .color = color });
+	lineVertices_.emplace_back(LineVertex(start, color));
+	lineVertices_.emplace_back(LineVertex(end, color));
 
-	lineIndices_.push_back(startIndex);		// 開始頂点
-	lineIndices_.push_back(startIndex + 1); // 終了頂点
+	lineIndices_.emplace_back(startIndex);		// 開始頂点
+	lineIndices_.emplace_back(startIndex + 1); // 終了頂点
 
 	isDirty_ = true; // バッファを更新する
-}
-
-void Line::Update() {
-	// UpdateBuffer();
 }
 
 void Line::UpdateBuffer() {
@@ -85,7 +79,7 @@ void Line::UpdateBuffer() {
 
 	// バッファが不足している場合は再作成
 	if (vertexBuffer_->GetSize() < requiredVertexBufferSize) {
-		Console::Print("Line: VertexBufferを再作成します。\n", kConsoleColorWarning);
+		Console::Print("Line: VertexBufferを再作成します。\n", kConTextColorWarning);
 		vertexBuffer_ = std::make_unique<VertexBuffer<LineVertex>>(
 			lineCommon_->GetD3D12()->GetDevice(),
 			requiredVertexBufferSize,
@@ -93,7 +87,7 @@ void Line::UpdateBuffer() {
 	}
 
 	if (indexBuffer_->GetSize() < requiredIndexBufferSize) {
-		Console::Print("Line: IndexBufferを再作成します。\n", kConsoleColorWarning);
+		Console::Print("Line: IndexBufferを再作成します。\n", kConTextColorWarning);
 		indexBuffer_ = std::make_unique<IndexBuffer>(
 			lineCommon_->GetD3D12()->GetDevice(),
 			requiredIndexBufferSize,

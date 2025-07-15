@@ -1,5 +1,7 @@
 #include "ConCommand.h"
 
+#include <sstream>
+
 #include "ConVarManager.h"
 #include "Console.h"
 
@@ -41,7 +43,7 @@ std::unordered_map<std::string, std::pair<CommandCallback, std::string>> ConComm
 
 void ConCommand::Help() {
 	for (const auto& [commandName, commandData] : commands_) {
-		Console::Print(" - " + commandName + " : " + commandData.second + "\n", kConsoleColorNormal, Channel::None);
+		Console::Print(" - " + commandName + " : " + commandData.second + "\n", kConFgColorDark, Channel::None);
 	}
 }
 
@@ -50,7 +52,7 @@ std::vector<std::string> ConCommand::TokenizeCommand(const std::string& command)
 	std::vector<std::string> tokens;
 	std::string token;
 	while (stream >> token) {
-		tokens.push_back(token);
+		tokens.emplace_back(token);
 	}
 	return tokens;
 }

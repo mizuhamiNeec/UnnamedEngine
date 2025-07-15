@@ -33,10 +33,17 @@ struct Mat4 final {
 	static Mat4 RotateX(float radian);
 	static Mat4 RotateY(float radian);
 	static Mat4 RotateZ(float radian);
-	static Mat4 Affine(const Vec3& scale, const Vec3& rotate, const Vec3& translate);
-	static Mat4 PerspectiveFovMat(float fovY, float aspectRatio, float nearClip, float farClip);
-	static Mat4 MakeOrthographicMat(float left, float top, float right, float bottom, float nearClip, float farClip);
-	static Mat4 ViewportMat(float left, float top, float width, float height, float minDepth, float maxDepth);
+	static Mat4 Affine(const Vec3& scale, const Vec3& rotate,
+	                   const Vec3& translate);
+	static Mat4 Affine(const Vec3& scale, const Quaternion& rotate,
+	                   const Vec3& translate);
+	static Mat4 PerspectiveFovMat(float fovY, float aspectRatio, float nearClip,
+	                              float farClip);
+	static Mat4 MakeOrthographicMat(float left, float top, float right,
+	                                float bottom, float nearClip,
+	                                float farClip);
+	static Mat4 ViewportMat(float left, float top, float width, float height,
+	                        float minDepth, float maxDepth);
 
 	Quaternion ToQuaternion() const;
 
@@ -44,6 +51,7 @@ struct Mat4 final {
 
 	Vec3 GetTranslate();
 	Vec3 GetRotate() const;
+	Vec3 GetScale() const;
 	Vec3 GetRight();
 	Vec3 GetUp();
 	Vec3 GetForward();
@@ -57,6 +65,8 @@ struct Mat4 final {
 	Vec4 operator*(const Vec4& vec) const;
 
 	Mat4& operator*=(const Mat4& mat4);
+
+	bool operator==(const Mat4& mat4) const;
 
 private:
 	float Determinant() const;

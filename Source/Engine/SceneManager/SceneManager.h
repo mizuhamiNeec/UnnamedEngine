@@ -6,9 +6,7 @@ public:
 	explicit SceneManager(SceneFactory& factory) : factory_(factory) {}
 
 	void ChangeScene(const std::string& name) {
-		std::shared_ptr<Scene> newScene = factory_.CreateScene(name);
-
-		if (newScene) {
+		if (std::shared_ptr<BaseScene> newScene = factory_.CreateScene(name)) {
 			if (currentScene_) {
 				currentScene_->Shutdown();
 			}
@@ -17,23 +15,23 @@ public:
 		}
 	}
 
-	void Update(float deltaTime) {
+	void Update(const float deltaTime) const {
 		if (currentScene_) {
 			currentScene_->Update(deltaTime);
 		}
 	}
 
-	void Render() {
+	void Render() const {
 		if (currentScene_) {
 			currentScene_->Render();
 		}
 	}
 
-	std::shared_ptr<Scene> GetCurrentScene() const {
+	std::shared_ptr<BaseScene> GetCurrentScene() const {
 		return currentScene_;
 	}
 
 private:
 	SceneFactory& factory_;
-	std::shared_ptr<Scene> currentScene_;
+	std::shared_ptr<BaseScene> currentScene_;
 };

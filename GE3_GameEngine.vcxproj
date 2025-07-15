@@ -66,13 +66,14 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <BuildStlModules>true</BuildStlModules>
       <MinimalRebuild>false</MinimalRebuild>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Source/Externals/assimp/lib/Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Source/Externals/assimp/lib/Debug;$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc143-mdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
@@ -96,13 +97,14 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <BuildStlModules>true</BuildStlModules>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Source/Externals/assimp/lib/Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Source/Externals/assimp/lib/Release;$(VULKAN_SDK)\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -115,6 +117,30 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\Shaders\SkinnedObject3d.hlsli" />
+    <None Include="Resources\Shaders\SkinnedObject3d.PS.hlsl" />
+    <None Include="Resources\Shaders\SkinnedObject3d.VS.hlsl" />
+    <None Include="Resources\Shaders\Skybox.PS.hlsl" />
+    <None Include="Resources\Shaders\Skybox.VS.hlsl" />
+    <ClCompile Include="Source\Engine\Animation\Animation.cpp" />
+    <ClCompile Include="Source\Engine\Animation\KeyFrame.cpp" />
+    <ClCompile Include="Source\Engine\Animation\Node.cpp" />
+    <ClCompile Include="Source\Engine\Components\Animation\AnimationComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\MeshRenderer\SkeletalMeshRenderer.cpp" />
+    <ClCompile Include="Source\Engine\CubeMap\CubeMap.cpp" />
+    <ClCompile Include="Source\Engine\CopyImagePass\CopyImagePass.cpp" />
+    <ClCompile Include="Source\Engine\Entity\EntityLoader.cpp" />
+    <ClCompile Include="Source\Engine\ImGuiManager\ImGuiWidgets.cpp" />
+    <ClCompile Include="Source\Engine\Particle\ExplosionEffect.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Animation\AnimationManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\SkeletalMesh.cpp" />
+    <ClCompile Include="Source\Engine\Window\EditorWindow.cpp" />
+    <ClCompile Include="Source\Engine\Assets\Manager\AssetManager.cpp" />
+    <ClCompile Include="Source\Engine\Async\JobTask\Base\BaseJobTask.cpp" />
+    <ClCompile Include="Source\Engine\Async\MainThreadDispatcher.cpp" />
+    <ClCompile Include="Source\Engine\Async\JobSystem.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Material\MaterialInstance.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Utils\IniParser.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneManager.cpp" />
     <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp" />
     <ClCompile Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.cpp" />
@@ -143,13 +169,13 @@
     <ClCompile Include="Source\Engine\SubSystem\Console\Console.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\ConVar.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\ConVarManager.cpp" />
+    <ClCompile Include="Source\Externals\ImGuizmo\ImGuizmo.cpp" />
+    <ClCompile Include="Source\Externals\ImGui\imgui_impl_dx12.cpp" />
     <ClCompile Include="Source\Game\Components\PlayerMovement.cpp" />
     <ClCompile Include="Source\Game\Components\CharacterMovement.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\EditorEntitySystem.cpp" />
     <ClCompile Include="Source\Engine\EntitySystem\RuntimeEntitySystem.cpp" />
-    <ClCompile Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\D3D12Utils.cpp" />
-    <ClCompile Include="Source\Engine\Lib\Utils\StrUtils.cpp" />
+    <ClCompile Include="Source\Engine\Lib\Utils\StrUtil.cpp" />
     <ClCompile Include="Source\Game\Components\CameraRotator.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Engine\Components\Camera\CameraComponent.cpp" />
@@ -164,6 +190,12 @@
     <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp" />
     <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Assets\Asset\TextureAsset.cpp" />
+    <ClCompile Include="Source\Engine\Window\WindowManager.cpp" />
+    <ClCompile Include="Source\Engine\SrvManager.cpp" />
+    <ClCompile Include="Source\Engine\TextureManager\TexManager.cpp" />
+    <ClCompile Include="Source\Engine\Particle\WindEffect.cpp" />
+    <None Include="Resources\Shaders\CopyImage.hlsli" />
     <None Include="Resources\Shaders\Default.hlsli" />
     <None Include="Resources\Shaders\Line.PS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -189,7 +221,6 @@
     <None Include="Resources\Shaders\SpriteCommon.VS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
-    <ClCompile Include="Source\Engine\Camera\Camera.cpp" />
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp" />
     <ClCompile Include="Source\Engine\Debug\Debug.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Quaternion\Quaternion.cpp" />
@@ -212,18 +243,20 @@
     <ClCompile Include="Source\Externals\ImGui\imgui.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_demo.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_draw.cpp" />
-    <ClCompile Include="Source\Externals\ImGui\imgui_impl_dx12.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_tables.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="Source\Game\Scene\Base\Scene.cpp" />
+    <ClCompile Include="Source\Game\Components\Weapon\base\WeaponComponent.cpp" />
+    <ClCompile Include="Source\Game\Components\Weapon\WeaponSway.cpp" />
+    <ClCompile Include="Source\Game\Scene\Base\BaseScene.cpp" />
+    <ClCompile Include="Source\Game\Scene\EmptyScene.cpp" />
     <ClCompile Include="Source\Game\Scene\GameScene.cpp" />
     <ClCompile Include="Source\Engine\ImGuiManager\ImGuiManager.cpp" />
     <ClCompile Include="Source\Engine\Renderer\D3D12.cpp" />
     <ClCompile Include="Source\WinMain.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Matrix\Mat4.cpp" />
     <ClCompile Include="Source\Engine\Lib\Math\Random\Random.cpp" />
-    <ClCompile Include="Source\Engine\Window\Window.cpp" />
+    <ClCompile Include="Source\Engine\Window\MainWindow.cpp" />
     <ClCompile Include="Source\Engine\Lib\Structs\Structs.cpp" />
     <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp" />
     <ClCompile Include="Source\Engine\Sprite\Sprite.cpp" />
@@ -232,6 +265,28 @@
     <ClCompile Include="Source\Engine\Lib\Timer\EngineTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resources\Shaders\Skybox.hlsli" />
+    <ClInclude Include="Source\Engine\Animation\Animation.h" />
+    <ClInclude Include="Source\Engine\Animation\KeyFrame.h" />
+    <ClInclude Include="Source\Engine\Animation\Node.h" />
+    <ClInclude Include="Source\Engine\Components\Animation\AnimationComponent.h" />
+    <ClInclude Include="Source\Engine\Components\MeshRenderer\SkeletalMeshRenderer.h" />
+    <ClInclude Include="Source\Engine\CubeMap\CubeMap.h" />
+    <ClInclude Include="Source\Engine\CopyImagePass\CopyImagePass.h" />
+    <ClInclude Include="Source\Engine\Entity\EntityLoader.h" />
+    <ClInclude Include="Source\Engine\ImGuiManager\ImGuiWidgets.h" />
+    <ClInclude Include="Source\Engine\Particle\ExplosionEffect.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Animation\AnimationManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\SkeletalMesh.h" />
+    <ClInclude Include="Source\Engine\Window\EditorWindow.h" />
+    <ClInclude Include="Source\Engine\Assets\Manager\AssetManager.h" />
+    <ClInclude Include="Source\Engine\Assets\Asset\Base\Asset.h" />
+    <ClInclude Include="Source\Engine\Async\JobTask\Base\BaseJobTask.h" />
+    <ClInclude Include="Source\Engine\Async\JobTask\JobTask.h" />
+    <ClInclude Include="Source\Engine\Async\MainThreadDispatcher.h" />
+    <ClInclude Include="Source\Engine\Async\JobSystem.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Material\MaterialInstance.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\IniParser.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneManager.h" />
     <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h" />
     <ClInclude Include="Source\Engine\Components\ColliderComponent\BoxColliderComponent.h" />
@@ -262,13 +317,14 @@
     <ClInclude Include="Source\Engine\SubSystem\Console\ConVarCache.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\ConVarManager.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\IConVar.h" />
+    <ClInclude Include="Source\Engine\Window\Base\BaseWindow.h" />
+    <ClInclude Include="Source\Externals\ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="Source\Game\Components\PlayerMovement.h" />
     <ClInclude Include="Source\Game\Components\CharacterMovement.h" />
     <ClInclude Include="Source\Engine\EntitySystem\EditorEntitySystem.h" />
     <ClInclude Include="Source\Engine\EntitySystem\RuntimeEntitySystem.h" />
     <ClInclude Include="Source\Engine\EntitySystem\Base\EntitySystem.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.h" />
-    <ClInclude Include="Source\Engine\Renderer\D3D12Utils.h" />
     <ClInclude Include="Source\Game\Components\CameraRotator.h" />
     <ClInclude Include="Source\Engine\Camera\CameraManager.h" />
     <ClInclude Include="Source\Engine\Components\Camera\CameraComponent.h" />
@@ -283,6 +339,11 @@
     <ClInclude Include="Source\Engine\Components\Transform\TransformComponent.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.h" />
+    <ClInclude Include="Source\Engine\Assets\Asset\TextureAsset.h" />
+    <ClInclude Include="Source\Engine\Window\WindowManager.h" />
+    <ClInclude Include="Source\Engine\SrvManager.h" />
+    <ClInclude Include="Source\Engine\TextureManager\TexManager.h" />
+    <ClInclude Include="Source\Engine\Particle\WindEffect.h" />
     <None Include="Resources\Shaders\Object3d.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
@@ -292,7 +353,6 @@
     <None Include="Resources\Shaders\Line.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
-    <ClInclude Include="Source\Engine\Camera\Camera.h" />
     <ClInclude Include="Source\Engine\Input\InputSystem.h" />
     <ClInclude Include="Source\Engine\Debug\Debug.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Quaternion\Quaternion.h" />
@@ -318,19 +378,22 @@
     <ClInclude Include="Source\Externals\ImGui\imstb_rectpack.h" />
     <ClInclude Include="Source\Externals\ImGui\imstb_textedit.h" />
     <ClInclude Include="Source\Externals\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Source\Game\Components\Weapon\base\WeaponComponent.h" />
+    <ClInclude Include="Source\Game\Components\Weapon\WeaponSway.h" />
+    <ClInclude Include="Source\Game\Scene\EmptyScene.h" />
     <ClInclude Include="Source\Game\Scene\GameScene.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\ImGuiManager.h" />
     <ClInclude Include="Source\Engine\Renderer\D3D12.h" />
-    <ClInclude Include="Source\Engine\Lib\Utils\StrUtils.h" />
+    <ClInclude Include="Source\Engine\Lib\Utils\StrUtil.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\ClientProperties.h" />
-    <ClInclude Include="Source\Game\Scene\Base\Scene.h" />
+    <ClInclude Include="Source\Game\Scene\Base\BaseScene.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Matrix\Mat4.h" />
     <ClInclude Include="Source\Engine\Renderer\Renderer.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec2.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec3.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Vector\Vec4.h" />
     <ClInclude Include="Source\Engine\Lib\Math\Random\Random.h" />
-    <ClInclude Include="Source\Engine\Window\Window.h" />
+    <ClInclude Include="Source\Engine\Window\MainWindow.h" />
     <ClInclude Include="Source\Engine\Lib\Math\MathLib.h" />
     <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h" />
     <ClInclude Include="Source\Engine\Sprite\Sprite.h" />
@@ -344,10 +407,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Resources\Shaders\" />
-    <Folder Include="Source\Engine\Particle\" />
-  </ItemGroup>
-  <ItemGroup>
+    <Text Include="console.log" />
     <Text Include="Source\Externals\ImGui\LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -357,6 +417,17 @@
     <None Include="Resources\Shaders\Default.VS.hlsl">
       <FileType>Document</FileType>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\Shaders\CopyImage.PS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Resources\Shaders\CopyImage.VS.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\Json\rifle.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

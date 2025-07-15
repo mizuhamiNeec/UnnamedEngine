@@ -1,97 +1,310 @@
 #include "Engine.h"
 
 #ifdef _DEBUG
+#include <imgui_impl_dx12.h>
 #include <imgui_internal.h>
+
+#include <ImGuiManager/Icons.h>
+
+#include <ImGuizmo/ImGuizmo.h>
+
+#include <Lib/DebugHud/DebugHud.h>
+#include <Lib/Utils/StrUtil.h>
+
+#include "ImGuiManager/ImGuiWidgets.h"
 #endif
 
-#include <Camera/Camera.h>
+#include <SrvManager.h>
+
 #include <Camera/CameraManager.h>
+
+#include <CopyImagePass/CopyImagePass.h>
 
 #include <Debug/Debug.h>
 
 #include <Input/InputSystem.h>
 
-#include <SubSystem/Console/ConCommand.h>
-#include <SubSystem/Console/ConVarManager.h>
-#include <SubSystem/Console/Console.h>
-#include <Lib/DebugHud/DebugHud.h>
 #include <Lib/Utils/ClientProperties.h>
-#include <Lib/Utils/StrUtils.h>
-
-#include <Model/ModelManager.h>
-
-#include <Object3D/Object3DCommon.h>
-
-#include <Particle/ParticleManager.h>
 
 #include <Renderer/D3D12.h>
 
-#include <Scene/GameScene.h>
+#include <SubSystem/Console/Console.h>
+#include <SubSystem/Console/Console.h>
+#include <SubSystem/Console/ConVarManager.h>
 
-#include <Sprite/SpriteCommon.h>
+#include <TextureManager/TexManager.h>
 
-#include <Window/Window.h>
+#include <Window/EditorWindow.h>
+#include <Window/MainWindow.h>
 #include <Window/WindowsUtils.h>
 
-#include "Components/MeshRenderer/StaticMeshRenderer.h"
+#include "SubSystem/Console/ConCommand.h"
 
 Engine::Engine() = default;
 
 void Engine::Run() {
 	Init();
 	while (!bWishShutdown_) {
-		if (Window::ProcessMessage()) {
-			PostQuitMessage(0);
-			break; // ゲームループを抜ける
+		time_->StartFrame();
+		if (wm_->ProcessMessage()) {
+			PostQuitMessage(ERROR_SUCCESS);
+			break;
 		}
 		Update();
+		time_->EndFrame();
 	}
 	Shutdown();
 }
 
-void Engine::Init() {
-	// ウィンドウの作成
-	window_ = std::make_unique<Window>(
-		StrUtils::ToString(kWindowTitle),
-		kClientWidth, kClientHeight
-	);
-	window_->Create(nullptr);
+constexpr Vec4 offscreenClearColor = {0.1f, 0.1f, 0.1f, 1.0f};
 
-	// レンダラ
-	renderer_ = std::make_unique<D3D12>();
-	renderer_->Init();
+void Engine::OnResize(const uint32_t width, const uint32_t height) {
+	if (width == 0 || height == 0) {
+		return;
+	}
+
+	// GPUの処理が終わるまで待つ
+	renderer_->Flush();
+
+	renderer_->Resize(width, height);
+
+	postProcessedRTV_.rtv.Reset();
+	postProcessedDSV_.dsv.Reset();
+
+	offscreenRTV_ = {};
+	offscreenDSV_ = {};
+
+	postProcessedRTV_ = {};
+	postProcessedDSV_ = {};
+
+	offscreenRTV_ = renderer_->CreateRenderTargetTexture(
+		width, height,
+		offscreenClearColor,
+		kBufferFormat
+	);
+	offscreenDSV_ = renderer_->CreateDepthStencilTexture(
+		width, height,
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	postProcessedRTV_ = renderer_->CreateRenderTargetTexture(
+		width, height,
+		offscreenClearColor,
+		kBufferFormat
+	);
+
+	postProcessedDSV_ = renderer_->CreateDepthStencilTexture(
+		width, height,
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	offscreenRenderPassTargets_.pRTVs   = &offscreenRTV_.rtvHandle;
+	offscreenRenderPassTargets_.numRTVs = 1;
+	offscreenRenderPassTargets_.pDSV    = &offscreenDSV_.dsvHandle;
+
+	postProcessedRenderPassTargets_.pRTVs   = &postProcessedRTV_.rtvHandle;
+	postProcessedRenderPassTargets_.numRTVs = 1;
+	postProcessedRenderPassTargets_.pDSV    = &postProcessedDSV_.dsvHandle;
+}
+
+void Engine::ResizeOffscreenRenderTextures(
+	const uint32_t width,
+	const uint32_t height
+) {
+	if (width == 0 || height == 0) {
+		return;
+	}
+
+	// GPUの処理が終わるまで待つ
+	renderer_->Flush();
+	//renderer_->WaitPreviousFrame();
+
+	// renderer_->Resize(width, height);
+
+	renderer_->ResetOffscreenRenderTextures();
+
+	offscreenRTV_.rtv.Reset();
+	offscreenDSV_.dsv.Reset();
+
+	postProcessedRTV_.rtv.Reset();
+	postProcessedDSV_.dsv.Reset();
+
+	offscreenRTV_ = {};
+	offscreenDSV_ = {};
+
+	postProcessedRTV_ = {};
+	postProcessedDSV_ = {};
+
+	offscreenRTV_ = renderer_->CreateRenderTargetTexture(
+		width, height,
+		offscreenClearColor,
+		kBufferFormat
+	);
+	offscreenDSV_ = renderer_->CreateDepthStencilTexture(
+		width, height,
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	postProcessedRTV_ = renderer_->CreateRenderTargetTexture(
+		width, height,
+		offscreenClearColor,
+		kBufferFormat
+	);
+
+	postProcessedDSV_ = renderer_->CreateDepthStencilTexture(
+		width, height,
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	offscreenRenderPassTargets_.pRTVs   = &offscreenRTV_.rtvHandle;
+	offscreenRenderPassTargets_.numRTVs = 1;
+	offscreenRenderPassTargets_.pDSV    = &offscreenDSV_.dsvHandle;
+
+	postProcessedRenderPassTargets_.pRTVs   = &postProcessedRTV_.rtvHandle;
+	postProcessedRenderPassTargets_.numRTVs = 1;
+	postProcessedRenderPassTargets_.pDSV    = &postProcessedDSV_.dsvHandle;
+
+	//renderer_->SetViewportAndScissor(width, height);
+}
+
+Vec2 Engine::GetViewportLT() {
+	return viewportLT;
+}
+
+Vec2 Engine::GetViewportSize() {
+	return viewportSize;
+}
+
+void Engine::Init() {
+	// メインビューポート用ウィンドウの作成
+	auto gameWindow = std::make_unique<MainWindow>();
+
+	WindowInfo gameWindowInfo = {
+		.title = "GameWindow",
+		.width = kClientWidth,
+		.height = kClientHeight,
+		.style = WS_OVERLAPPEDWINDOW,
+		.exStyle = 0,
+		.hInstance = GetModuleHandle(nullptr),
+		.className = "gameWindowClassName"
+	};
+
+	if (gameWindow->Create(gameWindowInfo)) {
+		wm_->AddWindow(std::move(gameWindow));
+	} else {
+		Console::Print(
+			"Failed to create main window.\n",
+			kConTextColorError,
+			Channel::Engine
+		);
+		return;
+	}
+
+	renderer_ = std::make_unique<D3D12>(wm_->GetMainWindow());
+
+	wm_->GetMainWindow()->SetResizeCallback(
+		[this]([[maybe_unused]] const uint32_t width,
+		       [[maybe_unused]] const uint32_t height) {
+			OnResize(width, height);
+		}
+	);
 
 	// 入力システム
 	InputSystem::Init();
 
+	// コンソールコマンドと変数の登録
 	RegisterConsoleCommandsAndVariables();
+
+	// コマンドライン引数をコンソールに送信
+	Console::SubmitCommand(
+		ConVarManager::GetConVar("launchargs")->GetValueAsString());
 
 	resourceManager_ = std::make_unique<ResourceManager>(renderer_.get());
 
+	srvManager_ = std::make_unique<SrvManager>();
+	srvManager_->Init(renderer_.get());
+
+	resourceManager_->Init();
+
+	renderer_->SetShaderResourceViewManager(
+		srvManager_.get());
+	renderer_->Init();
+
+	srvManager_->Allocate();
+
 #ifdef _DEBUG
-	imGuiManager_ = std::make_unique<ImGuiManager>(renderer_.get(), resourceManager_->GetShaderResourceViewManager());
-	imGuiManager_->Init();
+	imGuiManager_ = std::make_unique<ImGuiManager>(
+		renderer_.get(), srvManager_.get());
 #endif
 
 	console_ = std::make_unique<Console>();
 
-	resourceManager_->Init();
+
+	offscreenRTV_ = renderer_->CreateRenderTargetTexture(
+		wm_->GetMainWindow()->GetClientWidth(),
+		wm_->GetMainWindow()->GetClientHeight(),
+		offscreenClearColor,
+		kBufferFormat
+	);
+
+	offscreenDSV_ = renderer_->CreateDepthStencilTexture(
+		wm_->GetMainWindow()->GetClientWidth(),
+		wm_->GetMainWindow()->GetClientHeight(),
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	postProcessedRTV_ = renderer_->CreateRenderTargetTexture(
+		wm_->GetMainWindow()->GetClientWidth(),
+		wm_->GetMainWindow()->GetClientHeight(),
+		offscreenClearColor,
+		kBufferFormat
+	);
+
+	postProcessedDSV_ = renderer_->CreateDepthStencilTexture(
+		wm_->GetMainWindow()->GetClientWidth(),
+		wm_->GetMainWindow()->GetClientHeight(),
+		DXGI_FORMAT_D32_FLOAT
+	);
+
+	offscreenRenderPassTargets_.pRTVs        = &offscreenRTV_.rtvHandle;
+	offscreenRenderPassTargets_.numRTVs      = 1;
+	offscreenRenderPassTargets_.pDSV         = &offscreenDSV_.dsvHandle;
+	offscreenRenderPassTargets_.clearColor   = offscreenClearColor;
+	offscreenRenderPassTargets_.clearDepth   = 1.0f;
+	offscreenRenderPassTargets_.clearStencil = 0;
+	offscreenRenderPassTargets_.bClearColor  = true;
+	offscreenRenderPassTargets_.bClearDepth  = true;
+
+	postProcessedRenderPassTargets_.pRTVs        = &postProcessedRTV_.rtvHandle;
+	postProcessedRenderPassTargets_.numRTVs      = 1;
+	postProcessedRenderPassTargets_.pDSV         = &postProcessedDSV_.dsvHandle;
+	postProcessedRenderPassTargets_.clearColor   = offscreenClearColor;
+	postProcessedRenderPassTargets_.clearDepth   = 1.0f;
+	postProcessedRenderPassTargets_.clearStencil = 0;
+	postProcessedRenderPassTargets_.bClearColor  = true;
+	postProcessedRenderPassTargets_.bClearDepth  = true;
+
+	copyImagePass_ = std::make_unique<CopyImagePass>(
+		renderer_->GetDevice(), srvManager_.get()
+	);
 
 	//// モデル
 	//modelCommon_ = std::make_unique<ModelCommon>();
 	//modelCommon_->Init(renderer_.get());
 
-	//// オブジェクト3D
-	//object3DCommon_ = std::make_unique<Object3DCommon>();
-	//object3DCommon_->Init(renderer_.get());
+	// オブジェクト3D
+	/*object3DCommon_ = std::make_unique<Object3DCommon>();
+	object3DCommon_->Init(renderer_.get());*/
 
 	//// スプライト
 	//spriteCommon_ = std::make_unique<SpriteCommon>();
 	//spriteCommon_->Init(renderer_.get());
 
-	//// パーティクル
-	//particleManager_ = std::make_unique<ParticleManager>();
-	//particleManager_->Init(object3DCommon_->GetD3D12(), srvManager_.get());
+	TexManager::GetInstance()->Init(renderer_.get(), srvManager_.get());
+
+	// パーティクル
+	particleManager_ = std::make_unique<ParticleManager>();
+	particleManager_->Init(renderer_.get(), srvManager_.get());
 
 	// ライン
 	lineCommon_ = std::make_unique<LineCommon>();
@@ -112,15 +325,20 @@ void Engine::Init() {
 
 	time_ = std::make_unique<EngineTimer>();
 
+	//-------------------------------------------------------------------------
+	// すべての初期化が完了
+	//-------------------------------------------------------------------------
+
 	Console::SubmitCommand("neofetch");
 
-	resourceManager_->GetTextureManager()->InitErrorTexture();
+	entityLoader_ = std::make_unique<EntityLoader>();
 
 	// シーンマネージャ/ファクトリーの作成
 	sceneFactory_ = std::make_unique<SceneFactory>();
 	sceneManager_ = std::make_shared<SceneManager>(*sceneFactory_);
 	// ゲームシーンを登録
 	sceneFactory_->RegisterScene<GameScene>("GameScene");
+	sceneFactory_->RegisterScene<EmptyScene>("EmptyScene");
 	// シーンの初期化
 	sceneManager_->ChangeScene("GameScene");
 
@@ -134,10 +352,8 @@ void Engine::Init() {
 void Engine::Update() {
 #ifdef _DEBUG
 	ImGuiManager::NewFrame();
-	Console::Update();
+	ImGuizmo::BeginFrame();
 #endif
-
-	time_->StartFrame();
 
 	// 前のフレームとeditorModeが違う場合はエディターモードを切り替える
 	static bool bPrevEditorMode = bIsEditorMode_;
@@ -146,32 +362,325 @@ void Engine::Update() {
 		bPrevEditorMode = bIsEditorMode_;
 	}
 
+	// シーン切り替え入力の処理
+	if (InputSystem::IsTriggered("toggle_scene")) {
+		ToggleScenes();
+	}
+
 	/* ----------- 更新処理 ---------- */
 
 	if (IsEditorMode()) {
+#ifdef _DEBUG
+		{
+			// メニューバーを少し高くする
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
+			                    ImVec2(
+				                    0.0f, kTitleBarH * 0.5f -
+				                    ImGui::GetFontSize() * 0.5f));
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+			                    ImVec2(0.0f, kTitleBarH));
+			if (ImGui::BeginMainMenuBar()) {
+				ImGui::PopStyleVar(2); // メニューバーのスタイルを元に戻す
+				// アイコンメニュー
+				ImGui::PushStyleColor(ImGuiCol_Text,
+				                      ImVec4(0.13f, 0.5f, 1.0f, 1.0f));
+
+				if (ImGuiWidgets::BeginMainMenu(
+					StrUtil::ConvertToUtf8(kIconArrowForward).c_str())) {
+					ImGui::PopStyleColor();
+					if (ImGui::MenuItemEx(("About " + kEngineName).c_str(),
+					                      nullptr)) {
+					}
+					ImGui::EndMenu();
+				} else {
+					ImGui::PopStyleColor();
+				}
+
+				if (ImGuiWidgets::BeginMainMenu("File")) {
+					if (ImGui::MenuItemEx(
+						"Save", StrUtil::ConvertToUtf8(kIconSave).c_str())) {
+					}
+
+					if (ImGui::MenuItemEx("Save As",
+					                      StrUtil::ConvertToUtf8(kIconSaveAs).
+					                      c_str())) {
+					}
+
+					ImGui::Separator();
+
+					if (ImGui::MenuItemEx("Import",
+					                      StrUtil::ConvertToUtf8(kIconDownload)
+					                      .
+					                      c_str())) {
+						BaseScene* currentScene = sceneManager_->
+						                          GetCurrentScene().
+						                          get();
+						if (currentScene) {
+							char szFile[MAX_PATH] = ""; // 初期ファイル名は空
+
+							OPENFILENAMEA ofn;
+							ZeroMemory(&ofn, sizeof(ofn)); // 構造体をゼロ初期化
+							ofn.lStructSize = sizeof(OPENFILENAMEA);
+
+							HWND hwndOwner = nullptr;
+							if (WindowManager::GetMainWindow()) {
+								hwndOwner = WindowManager::GetMainWindow()->
+									GetWindowHandle();
+							}
+							ofn.hwndOwner   = hwndOwner;
+							ofn.lpstrFilter =
+								"Scene Files (*.scene)\0*.scene\0All Files (*.*)\0*.*\0";
+							ofn.lpstrFile = szFile;
+							ofn.nMaxFile = MAX_PATH;
+							ofn.lpstrTitle = "Import Scene From";
+							ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST |
+								OFN_NOCHANGEDIR; // ファイル/パス存在確認、カレントディレクトリ変更なし
+							ofn.lpstrDefExt = "scene";
+
+							if (GetOpenFileNameA(&ofn)) {
+								loadFilePath_ = ofn.lpstrFile;
+							}
+						} else {
+							Console::Print(
+								"Import failed: No active scene found.");
+						}
+					}
+
+					if (ImGui::MenuItemEx("Export",
+					                      StrUtil::ConvertToUtf8(kIconUpload).
+					                      c_str())) {
+						BaseScene* currentScene = sceneManager_->
+						                          GetCurrentScene().
+						                          get();
+						if (currentScene) {
+							char szFile[MAX_PATH] = "scene.json"; // デフォルトのファイル名
+
+							OPENFILENAMEA ofn;
+							ZeroMemory(&ofn, sizeof(ofn)); // 構造体をゼロ初期化
+							ofn.lStructSize = sizeof(OPENFILENAMEA);
+
+							HWND hwndOwner = nullptr;
+							if (WindowManager::GetMainWindow()) {
+								hwndOwner = WindowManager::GetMainWindow()->
+									GetWindowHandle();
+							}
+							ofn.hwndOwner   = hwndOwner;
+							ofn.lpstrFilter =
+								"Scene Files (*.scene)\0*.scene\0All Files (*.*)\0*.*\0";
+							ofn.lpstrFile = szFile;
+							ofn.nMaxFile = MAX_PATH;
+							ofn.lpstrTitle = "Export Scene As";
+							ofn.Flags = OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+							// 上書き確認、カレントディレクトリ変更なし
+							ofn.lpstrDefExt = "scene";
+
+							if (GetSaveFileNameA(&ofn)) {
+								std::string filePath = ofn.lpstrFile;
+								entityLoader_->
+									SaveScene(filePath, currentScene);
+								Console::Print(
+									"Scene exported to: " + filePath);
+							}
+						} else {
+							Console::Print(
+								"Export failed: No active scene found.");
+						}
+					}
+
+					ImGui::Separator();
+
+					if (ImGui::MenuItemEx(
+							"Exit",
+							StrUtil::ConvertToUtf8(kIconPower).c_str())
+					) {
+						Console::SubmitCommand("quit");
+					}
+					ImGui::EndMenu();
+				}
+
+				if (ImGuiWidgets::BeginMainMenu("Edit")) {
+					ImGui::Separator();
+					if (ImGuiWidgets::MenuItemWithIcon(
+						StrUtil::ConvertToUtf8(kIconSettings).c_str(),
+						"Settings")) {
+					}
+
+					ImGui::EndMenu();
+				}
+				ImGui::EndMainMenuBar();
+			}
+
+			const ImGuiViewport* viewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(viewport->WorkPos);
+			ImGui::SetNextWindowSize(viewport->WorkSize);
+			ImGui::SetNextWindowViewport(viewport->ID);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+			                    ImVec2(0.0f, 0.0f));
+
+			constexpr ImGuiDockNodeFlags dockSpaceFlags =
+				ImGuiDockNodeFlags_PassthruCentralNode;
+			constexpr ImGuiWindowFlags windowFlags =
+				ImGuiWindowFlags_NoTitleBar |
+				ImGuiWindowFlags_NoCollapse |
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoBringToFrontOnFocus |
+				ImGuiWindowFlags_NoNavFocus |
+				ImGuiWindowFlags_NoBackground;
+
+			ImGui::Begin("DockSpace", nullptr, windowFlags);
+
+			ImGui::PopStyleVar(3);
+
+			const ImGuiIO& io = ImGui::GetIO();
+			if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+				const ImGuiID dockSpaceId = ImGui::GetID("MyDockSpace");
+				ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f),
+				                 dockSpaceFlags);
+			}
+
+			ImGui::End();
+		}
+
+		static auto tint = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+		static auto bg   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+		ImGuiWindowFlags windowFlags =
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoScrollWithMouse;
+
+		if (ImGuizmo::IsUsing()) {
+			windowFlags |= ImGuiWindowFlags_NoMove;
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+		ImGui::Begin(
+			"ViewPort",
+			nullptr,
+			windowFlags
+		);
+		ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+
+		ImVec2     avail = ImGui::GetContentRegionAvail();
+		const auto ptr   = postProcessedRTV_.srvHandleGPU.ptr;
+
+		static int prevW = 0, prevH = 0;
+		int        w     = static_cast<int>(avail.x);
+		int        h     = static_cast<int>(avail.y);
+		if ((w != prevW || h != prevH) && w > 0 && h > 0) {
+			prevW = w;
+			prevH = h;
+		}
+
+		// ポインタの値とインデックスをログ出力 (デバッグ用)
+		static bool loggedOnce = false;
+		if (!loggedOnce) {
+			Console::Print(std::format(
+				               "ViewPort: srvIdx={}, srvHandleGPU.ptr=0x{:x}\n",
+				               postProcessedRTV_.srvIndex, ptr),
+			               kConTextColorWarning);
+			loggedOnce = true;
+		}
+
+		// ここで直接postProcessedRTV_のSRVハンドルを使用する
+		// CopyImagePassはoffscreenRTのSRVを作成するが、それはポストプロセス前の画像
+		// ポストプロセス後の画像は既にpostProcessedRTV_のSRVとして利用可能
+
+		// 一度だけログを出力
+		static bool loggedSrvOnce = false;
+		if (!loggedSrvOnce) {
+			Console::Print(std::format(
+				               "Using postProcessedRTV SRV: idx={}, handle=0x{:x}\n",
+				               postProcessedRTV_.srvIndex, ptr),
+			               kConTextColorWarning);
+			loggedSrvOnce = true;
+		}
+
+		if (ptr) {
+			// リソースからテクスチャの幅と高さを取得
+			auto        desc      = postProcessedRTV_.rtv->GetDesc();
+			const float texWidth  = static_cast<float>(desc.Width);
+			const float texHeight = static_cast<float>(desc.Height);
+
+			const float availAspect = avail.x / avail.y;
+			const float texAspect   = texWidth / texHeight;
+
+			ImVec2 drawSize = avail;
+			if (availAspect > texAspect) {
+				drawSize.x = avail.y * texAspect;
+			} else {
+				drawSize.y = avail.x / texAspect;
+			}
+
+			float titleBarHeight = ImGui::GetCurrentWindow()->
+				TitleBarHeight;
+
+			ImVec2 offset = {
+				(avail.x - drawSize.x) * 0.5f,
+				(avail.y - drawSize.y) * 0.5f + titleBarHeight
+			};
+			ImGui::SetCursorPos(offset);
+
+			ImVec2 viewportScreenPos = ImGui::GetCursorScreenPos();
+
+			ImGui::ImageWithBg(
+				ptr, // postProcessedRTV_のSRVを直接使用
+				drawSize,
+				ImVec2(0, 0), ImVec2(1, 1),
+				bg, tint
+			);
+
+			viewportLT   = {viewportScreenPos.x, viewportScreenPos.y};
+			viewportSize = {drawSize.x, drawSize.y};
+		}
+		ImGui::End();
+		ImGui::PopStyleVar();
+#endif
+
 		if (editor_) {
 			editor_->Update(EngineTimer::GetDeltaTime());
 		}
+
+		copyImagePass_->Update(EngineTimer::GetDeltaTime());
 	} else {
 		sceneManager_->Update(EngineTimer::GetScaledDeltaTime());
+		viewportLT   = Vec2::zero;
+		viewportSize = {
+			static_cast<float>(wm_->GetMainWindow()->GetClientWidth()),
+			static_cast<float>(wm_->GetMainWindow()->GetClientHeight())
+		};
 	}
-
-#ifdef _DEBUG
-	DebugHud::Update();
-#endif
 
 	InputSystem::Update();
 
-	//-------------------------------------------------------------------------
-	// --- PreRender↓ ---
-	renderer_->PreRender();
-	//-------------------------------------------------------------------------
+#ifdef _DEBUG
+	Console::Update();
+	DebugHud::Update();
+#endif
+
+	offscreenRenderPassTargets_.bClearColor =
+		ConVarManager::GetConVar("r_clear")->GetValueAsBool();
+
+
+	//ConVarManager::GetConVar("w_title")->SetValueFromString(std::to_string(EngineTimer::GetFrameCount()));
 
 #ifdef _DEBUG
 	Debug::Update();
 #endif
 	CameraManager::Update(EngineTimer::GetDeltaTime());
 
+	//-------------------------------------------------------------------------
+	// --- PreRender↓ ---
+	renderer_->PreRender();
+	//-------------------------------------------------------------------------
+
+	renderer_->SetViewportAndScissor(
+		static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Width),
+		offscreenRTV_.rtv->GetDesc().Height
+	);
+	renderer_->BeginRenderPass(offscreenRenderPassTargets_);
 	if (IsEditorMode()) {
 		lineCommon_->Render();
 		Debug::Draw();
@@ -182,31 +691,139 @@ void Engine::Update() {
 		sceneManager_->Render();
 	}
 
+	// バリアを設定
+	D3D12_RESOURCE_BARRIER barrier = {};
+	barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource   = offscreenRTV_.rtv.Get();
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+	renderer_->GetCommandList()->ResourceBarrier(1, &barrier);
+
+	if (IsEditorMode()) {
+		// エディターモード時はポストプロセス用RTVに描画
+		renderer_->BeginRenderPass(postProcessedRenderPassTargets_);
+		renderer_->SetViewportAndScissor(
+			static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Width),
+			offscreenRTV_.rtv->GetDesc().Height
+		);
+		copyImagePass_->Execute(
+			renderer_->GetCommandList(),
+			offscreenRTV_.rtv.Get(),
+			postProcessedRTV_.rtvHandle
+		);
+
+		// バリアを設定
+		D3D12_RESOURCE_BARRIER postBarrier = {};
+		postBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		postBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		postBarrier.Transition.pResource = postProcessedRTV_.rtv.Get();
+		postBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		postBarrier.Transition.StateAfter =
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		renderer_->GetCommandList()->ResourceBarrier(1, &postBarrier);
+
+		// CopyImagePass実行後にSRVを再作成して最新の内容を反映
+		if (srvManager_) {
+			// SRVを再作成
+			srvManager_->CreateSRVForTexture2D(
+				postProcessedRTV_.srvIndex,
+				postProcessedRTV_.rtv.Get(),
+				postProcessedRTV_.rtv->GetDesc().Format,
+				1
+			);
+
+			// GPUハンドルを再取得
+			postProcessedRTV_.srvHandleGPU = srvManager_->
+				GetGPUDescriptorHandle(
+					postProcessedRTV_.srvIndex);
+		}
+	} else {
+		// ゲーム時はスワップチェーンに直接描画
+		renderer_->BeginSwapChainRenderPass();
+		renderer_->SetViewportAndScissor(
+			WindowManager::GetMainWindow()->GetClientWidth(),
+			WindowManager::GetMainWindow()->GetClientHeight()
+		);
+		copyImagePass_->Execute(
+			renderer_->GetCommandList(),
+			offscreenRTV_.rtv.Get(),
+			renderer_->GetSwapChainRenderTargetView()
+		);
+	}
+
 	//------------------------------------------------------------------------
 	// --- PostRender↓ ---
+	if (IsEditorMode()) {
+		renderer_->BeginSwapChainRenderPass();
+	}
+
 #ifdef _DEBUG
 	imGuiManager_->EndFrame();
 #endif
-	renderer_->PostRender();
-	//-------------------------------------------------------------------------
 
-	time_->EndFrame();
+	// バリアを元に戻す
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+	barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	renderer_->GetCommandList()->ResourceBarrier(1, &barrier);
+
+	if (IsEditorMode()) {
+		// postProcessedRTV_ のバリアを戻す
+		D3D12_RESOURCE_BARRIER postBarrier = {};
+		postBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		postBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		postBarrier.Transition.pResource = postProcessedRTV_.rtv.Get();
+		postBarrier.Transition.StateBefore =
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		postBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		renderer_->GetCommandList()->ResourceBarrier(1, &postBarrier);
+	}
+
+	if (loadFilePath_) {
+		BaseScene* currentScene = sceneManager_->
+		                          GetCurrentScene().
+		                          get();
+		ResourceManager* resourceManager =
+			GetResourceManager();
+		if (resourceManager) {
+			entityLoader_->LoadScene(
+				loadFilePath_.value(), currentScene,
+				resourceManager);
+			Console::Print(
+				"Scene imported from: " + loadFilePath_.value());
+		} else {
+			Console::Print(
+				"Import failed: ResourceManager not found.");
+		}
+
+		loadFilePath_.reset(); // ロード後はリセット
+	}
+
+	renderer_->PostRender();
 }
 
 void Engine::Shutdown() const {
-
-	resourceManager_->Shutdown();
+	renderer_->WaitPreviousFrame();
 
 	Debug::Shutdown();
+
+	copyImagePass_->Shutdown();
+
+	TexManager::GetInstance()->Shutdown();
+
+	particleManager_->Shutdown();
+	particleManager_.reset();
 
 	renderer_->Shutdown();
 
 #ifdef _DEBUG
-	// ImGuiManagerのシャットダウンは最後に行う
 	if (imGuiManager_) {
 		imGuiManager_->Shutdown();
 	}
 #endif
+	resourceManager_->Shutdown();
+	resourceManager_.reset();
 }
 
 void Engine::RegisterConsoleCommandsAndVariables() {
@@ -218,48 +835,80 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 		"toggleeditor",
 		[]([[maybe_unused]] const std::vector<std::string>& args) {
 			bIsEditorMode_ = !bIsEditorMode_;
-			Console::Print("Editor mode is now " + std::to_string(bIsEditorMode_) + "\n", kConsoleColorNormal);
+			Console::Print(
+				"Editor mode is now " + std::to_string(bIsEditorMode_) + "\n",
+				kConFgColorDark);
 		},
 		"Toggle editor mode."
 	);
 
+	// シーン切り替えコマンドの登録
+	RegisterSceneCommands();
+
 	// コンソール変数を登録
+	ConVarManager::RegisterConVar<bool>("r_vulkanenabled", false,
+	                                    "Enable Vulkan renderer",
+	                                    ConVarFlags::ConVarFlags_Notify);
 	ConVarManager::RegisterConVar<int>(
-		"cl_showpos", 1, "Draw current position at top of screen (1 = meter, 2 = hammer)"
+		"cl_showpos", 1,
+		"Draw current position at top of screen (1 = meter, 2 = hammer)"
 	);
-	ConVarManager::RegisterConVar<int>("cl_showfps", 2, "Draw fps meter (1 = fps, 2 = smooth)");
-	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps, "Frame rate limiter");
-	ConVarManager::RegisterConVar<std::string>("name", "unnamed", "Current user name", ConVarFlags::ConVarFlags_Notify);
-	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName());
-	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f, "Mouse sensitivity.");
-	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f, "Prescale the clock by this amount.");
-	ConVarManager::RegisterConVar<float>("sv_gravity", 800.0f, "World gravity.");
+	ConVarManager::RegisterConVar<int>("cl_showfps", 2,
+	                                   "Draw fps meter (1 = fps, 2 = smooth)");
+	ConVarManager::RegisterConVar<int>("cl_fpsmax", kMaxFps,
+	                                   "Frame rate limiter");
+	ConVarManager::RegisterConVar<std::string>("name", "unnamed",
+	                                           "Current user name",
+	                                           ConVarFlags::ConVarFlags_Notify);
+	Console::SubmitCommand("name " + WindowsUtils::GetWindowsUserName(), true);
+	ConVarManager::RegisterConVar<float>("sensitivity", 2.0f,
+	                                     "Mouse sensitivity.");
+	ConVarManager::RegisterConVar<float>("host_timescale", 1.0f,
+	                                     "Prescale the clock by this amount.");
+	// World
+	ConVarManager::RegisterConVar<
+		float>("sv_gravity", 800.0f, "World gravity.");
 	ConVarManager::RegisterConVar<float>(
-		"sv_maxvelocity", 3500.0f, "Maximum speed any ballistically moving object is allowed to attain per axis."
+		"sv_maxvelocity",
+		3500.0f,
+		"Maximum speed any ballistically moving object is allowed to attain per axis."
 	);
-	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f, "Linear acceleration amount (old value is 5.6)");
+
+	// Player
+	ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f,
+	                                     "Linear acceleration amount (old value is 5.6)");
 	ConVarManager::RegisterConVar<float>("sv_airaccelerate", 12.0f);
-	ConVarManager::RegisterConVar<float>("sv_maxspeed", 320.0f, "Maximum speed a player can move.");
-	ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f, "Minimum stopping speed when on ground.");
-	ConVarManager::RegisterConVar<float>("sv_friction", 4.0f, "World friction.");
+	ConVarManager::RegisterConVar<float>("sv_maxspeed", 800.0f,
+	                                     "Maximum speed a player can move.");
+	ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f,
+	                                     "Minimum stopping speed when on ground.");
+	ConVarManager::RegisterConVar<
+		float>("sv_friction", 4.0f, "World friction.");
 
 	// デバッグ用にエンティティのaxisを表示するためのコンソール変数
 	ConVarManager::RegisterConVar<int>("ent_axis", 0, "Show entity axis");
 
 	// デフォルトのバインド
-	Console::SubmitCommand("bind esc togglelockcursor");
-	Console::SubmitCommand("bind w +forward");
-	Console::SubmitCommand("bind s +back");
-	Console::SubmitCommand("bind a +moveleft");
-	Console::SubmitCommand("bind d +moveright");
-	Console::SubmitCommand("bind e +moveup");
-	Console::SubmitCommand("bind q +movedown");
-	Console::SubmitCommand("bind space +jump");
-	Console::SubmitCommand("bind mouse1 +attack1");
-	Console::SubmitCommand("bind mouse2 +attack2");
-	Console::SubmitCommand("bind mousewheelup +invprev");
-	Console::SubmitCommand("bind mousewheeldown +invnext");
-	Console::SubmitCommand("bind f1 toggleeditor");
+	Console::SubmitCommand("bind esc togglelockcursor", true);
+	Console::SubmitCommand("bind w +forward", true);
+	Console::SubmitCommand("bind s +back", true);
+	Console::SubmitCommand("bind a +moveleft", true);
+	Console::SubmitCommand("bind d +moveright", true);
+	Console::SubmitCommand("bind e +moveup", true);
+	Console::SubmitCommand("bind q +movedown", true);
+	Console::SubmitCommand("bind c +crouch", true);
+	Console::SubmitCommand("bind space +jump", true);
+	Console::SubmitCommand("bind mouse1 +attack1", true);
+	Console::SubmitCommand("bind mouse2 +attack2", true);
+	Console::SubmitCommand("bind r +reload", true);
+	Console::SubmitCommand("bind mousewheelup +invprev", true);
+	Console::SubmitCommand("bind mousewheeldown +invnext", true);
+	Console::SubmitCommand("bind f1 toggleeditor", true);
+
+	Console::SubmitCommand("bind q +bounds", true);
+	Console::SubmitCommand("bind t +translate", true);
+	Console::SubmitCommand("bind e +scale", true);
+	Console::SubmitCommand("bind tab +toggleGizmo", true);
 }
 
 void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
@@ -274,12 +923,69 @@ void Engine::CheckEditorMode() {
 	}
 }
 
-bool Engine::bWishShutdown_ = false;
-std::unique_ptr<D3D12> Engine::renderer_ = nullptr;
-std::unique_ptr<ResourceManager> Engine::resourceManager_ = nullptr;
+void Engine::ChangeScene(const std::string& sceneName) {
+	if (GetSceneManager() && sceneName != "") {
+		GetSceneManager()->ChangeScene(sceneName);
+	}
+}
+
+std::shared_ptr<BaseScene> Engine::GetCurrentScene() {
+	if (GetSceneManager()) {
+		return GetSceneManager()->GetCurrentScene();
+	}
+	return nullptr;
+}
+
+void Engine::ToggleScenes() {
+	if (!GetSceneManager()) {
+		return;
+	}
+
+	auto currentScene = GetSceneManager()->GetCurrentScene();
+
+	// 現在のシーンに基づいて切り替え
+	if (dynamic_cast<GameScene*>(currentScene.get())) {
+		GetSceneManager()->ChangeScene("EmptyScene");
+		Console::Print("Switched to Empty Scene");
+	} else {
+		GetSceneManager()->ChangeScene("GameScene");
+		Console::Print("Switched to Game Scene");
+	}
+}
+
+void Engine::RegisterSceneCommands() {
+	// シーン切り替え用のキーバインディングを設定
+	InputSystem::BindKey("F1", "toggle_scene");
+
+	// シーン切り替えコマンドの登録
+	ConCommand::RegisterCommand("scene_toggle",
+	                            [](const std::vector<std::string>&) {
+		                            ToggleScenes();
+	                            }, "Toggle between Game and Empty scenes");
+
+	ConCommand::RegisterCommand("scene_game",
+	                            [](const std::vector<std::string>&) {
+		                            ChangeScene("GameScene");
+	                            }, "Switch to Game Scene");
+
+	ConCommand::RegisterCommand("scene_empty",
+	                            [](const std::vector<std::string>&) {
+		                            ChangeScene("EmptyScene");
+	                            }, "Switch to Empty Scene");
+}
+
+bool                             Engine::bWishShutdown_ = false;
+std::unique_ptr<D3D12>           Engine::renderer_;
+std::unique_ptr<ResourceManager> Engine::resourceManager_;
+std::unique_ptr<ParticleManager> Engine::particleManager_;
+std::unique_ptr<SrvManager>      Engine::srvManager_;
+std::shared_ptr<SceneManager>    Engine::sceneManager_;
+
+Vec2 Engine::viewportLT   = Vec2::zero;
+Vec2 Engine::viewportSize = Vec2::zero;
 
 #ifdef _DEBUG
-bool Engine::bIsEditorMode_ = false;
+bool Engine::bIsEditorMode_ = true;
 #else
 bool Engine::bIsEditorMode_ = false;
 #endif

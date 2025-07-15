@@ -1,9 +1,12 @@
 #pragma once
 
+#include <SrvManager.h>
+#include <ResourceSystem/Animation/AnimationManager.h>
 #include <ResourceSystem/Material/MaterialManager.h>
 #include <ResourceSystem/Mesh/MeshManager.h>
 #include <ResourceSystem/Shader/ShaderManager.h>
-#include <ResourceSystem/Texture/TextureManager.h>
+#include <TextureManager/TexManager.h>
+
 
 class ResourceManager {
 public:
@@ -13,18 +16,19 @@ public:
 	void Init() const;
 	void Shutdown();
 
-	[[nodiscard]] ShaderResourceViewManager* GetShaderResourceViewManager() const;
-	[[nodiscard]] TextureManager* GetTextureManager() const;
-	[[nodiscard]] ShaderManager* GetShaderManager() const;
-	[[nodiscard]] MaterialManager* GetMaterialManager() const;
-	[[nodiscard]] MeshManager* GetMeshManager() const;
+	[[nodiscard]] SrvManager*       GetSrvManager() const;
+	[[nodiscard]] TexManager*       GetTexManager() const;
+	[[nodiscard]] ShaderManager*    GetShaderManager() const;
+	[[nodiscard]] MaterialManager*  GetMaterialManager() const;
+	[[nodiscard]] MeshManager*      GetMeshManager() const;
+	[[nodiscard]] AnimationManager* GetAnimationManager() const;
 
 private:
 	D3D12* d3d12_;
 
-	std::unique_ptr<ShaderResourceViewManager> srvManager_;
-	std::unique_ptr<TextureManager> textureManager_;
-	std::unique_ptr<ShaderManager> shaderManager_;
-	std::unique_ptr<MaterialManager> materialManager_;
-	std::unique_ptr<MeshManager> meshManager_;
+	std::unique_ptr<SrvManager>       srvManager_;
+	std::unique_ptr<ShaderManager>    shaderManager_;
+	std::unique_ptr<MaterialManager>  materialManager_;
+	std::unique_ptr<MeshManager>      meshManager_;
+	std::unique_ptr<AnimationManager> animationManager_;
 };

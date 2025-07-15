@@ -10,13 +10,28 @@ Component::~Component() {
 // 基底ではオーナーを設定します
 //-----------------------------------------------------------------------------
 void Component::OnAttach(Entity& owner) {
-	this->owner_ = &owner;
+	this->mOwner = &owner;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: エンティティからデタッチされるときに呼び出されます
+// 基底ではオーナーをnullptrに設定します
+//-----------------------------------------------------------------------------
+void Component::OnDetach() {
+	this->mOwner = nullptr;
+}
+
+void Component::PrePhysics([[maybe_unused]] float deltaTime) {
+}
+
+void Component::PostPhysics([[maybe_unused]] float deltaTime) {
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 描画処理のあるコンポーネントはこの関数をオーバーライドします
 //-----------------------------------------------------------------------------
-void Component::Render([[maybe_unused]] ID3D12GraphicsCommandList* commandList) {
+void Component::Render(
+	[[maybe_unused]] ID3D12GraphicsCommandList* commandList) {
 }
 
 //-----------------------------------------------------------------------------
@@ -27,5 +42,5 @@ bool Component::IsEditorOnly() const {
 }
 
 Entity* Component::GetOwner() const {
-	return owner_;
+	return mOwner;
 }

@@ -1,6 +1,5 @@
 #include "Object3D.h"
 
-#include "../Camera/Camera.h"
 #include "../SubSystem/Console/Console.h"
 #include "../Lib/Math/Vector/Vec3.h"
 #include "../Lib/Math/Vector/Vec4.h"
@@ -10,6 +9,10 @@
 #include "../Renderer/ConstantBuffer.h"
 #include "Object3DCommon.h"
 #include "Camera/CameraManager.h"
+
+#include "ImGuiManager/ImGuiManager.h"
+
+#include "Renderer/D3D12.h"
 
 //-----------------------------------------------------------------------------
 // Purpose : 初期化します

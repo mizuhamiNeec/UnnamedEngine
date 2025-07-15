@@ -14,46 +14,57 @@
 
 #include "Physics/PhysicsEngine.h"
 
-CharacterMovement::~CharacterMovement() {}
+CharacterMovement::~CharacterMovement() {
+}
 
 void CharacterMovement::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
+	mTransform = mOwner->GetTransform();
 }
 
-void CharacterMovement::Update(float deltaTime) {
-	deltaTime_ = deltaTime;
-	position_ = transform_->GetLocalPos();
+void CharacterMovement::Update(const float deltaTime) {
+	mPosition = mTransform->GetLocalPos();
 
 	Move();
+	
+	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f,
+	                 Vec4::yellow);
 
-	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f, Vec4::yellow);
-	Debug::DrawCapsule(transform_->GetWorldPos(), Quaternion::Euler(Vec3::zero), Math::HtoM(73.0f), Math::HtoM(33.0f * 0.5f), isGrounded_ ? Vec4::green : Vec4::red);
+	constexpr float capsuleRadiusScale = 0.5f;
+	Debug::DrawCapsule(mTransform->GetWorldPos(), Quaternion::Euler(Vec3::zero),
+	                   Math::HtoM(kDefaultHeightHU),
+	                   Math::HtoM(kDefaultWidthHU * capsuleRadiusScale),
+	                   bIsGrounded ? Vec4::green : Vec4::red);
 }
 
-void CharacterMovement::DrawInspectorImGui() {}
+void CharacterMovement::DrawInspectorImGui() {
+}
 
-void CharacterMovement::Move() {}
+void CharacterMovement::Move() {
+}
 
 void CharacterMovement::ApplyHalfGravity() {
-	const float gravity = ConVarManager::GetConVar("sv_gravity")->GetValueAsFloat();
-	velocity_.y -= Math::HtoM(gravity) * 0.5f * deltaTime_;
+	const float gravity = ConVarManager::GetConVar("sv_gravity")->
+		GetValueAsFloat();
+	mVelocity.y -= Math::HtoM(gravity) * 0.5f * deltaTime;
 }
 
-void CharacterMovement::ApplyFriction() {
+void CharacterMovement::ApplyFriction(const float fricValue) {
 	Vec3 vel = Math::MtoH(velocity_);
 
-	vel.y = 0.0f;
+	vel.y       = 0.0f;
 	float speed = vel.Length();
 	if (speed < 0.1f) {
 		return;
 	}
 
 	float drop = 0.0f;
-	if (isGrounded_) {
-		float friction = ConVarManager::GetConVar("sv_friction")->GetValueAsFloat();
-		float stopspeed = ConVarManager::GetConVar("sv_stopspeed")->GetValueAsFloat();
-		float control = speed < stopspeed ? stopspeed : speed;
-		drop = control * friction * deltaTime_;
+	if (bIsGrounded) {
+		const float friction  = fricValue;
+		const float stopspeed = ConVarManager::GetConVar("sv_stopspeed")->
+			GetValueAsFloat();
+		const float control = speed < stopspeed ? stopspeed : speed;
+		drop                = control * friction * deltaTime_;
 	}
 
 	float newspeed = speed - drop;
@@ -62,31 +73,39 @@ void CharacterMovement::ApplyFriction() {
 
 	if (newspeed != speed) {
 		newspeed /= speed;
-		velocity_ *= newspeed;
+		mVelocity *= newspeed;
 	}
 }
 
-
-bool CharacterMovement::CheckGrounded() const {
-	ColliderComponent* collider = owner_->GetComponent<ColliderComponent>();
+bool CharacterMovement::CheckGrounded() {
+	auto* collider = mOwner->GetComponent<ColliderComponent>();
 	if (!collider) {
-		Console::Print(
-			"CharacterMovement::CheckGrounded() : ColliderComponent is not attached to the owner entity.",
-			Vec4::yellow,
-			Channel::Physics
-		);
 		return false;
 	}
 
-	Vec3 currentPosition = transform_->GetWorldPos();
-	Vec3 direction = Vec3::down;
-	float distance = Math::HtoM(4.0f); // 少し下方にキャスト
-	Vec3 halfSize = collider->GetBoundingBox().GetSize();
+	// 足元判定の開始位置。自分自身との衝突を避けるために少し上にオフセット
+	Vec3 pos = mTransform->GetWorldPos();
+	pos.y += Math::HtoM(2.0f);
 
-	std::vector<HitResult> hits = collider->BoxCast(currentPosition, direction, distance, halfSize);
+	constexpr float castDist = 0.01f;
+	// ColliderComponentに実装してあるBoxCastを利用
+	auto hitResults = collider->BoxCast(
+		pos,
+		Vec3::down,
+		castDist,
+		{
+			collider->GetBoundingBox().GetHalfSize().x,
+			Math::HtoM(2.0f),
+			collider->GetBoundingBox().GetHalfSize().z
+		}
+	);
 
-	for (const auto& hit : hits) {
-		if (hit.isHit && hit.hitNormal.y > 0.7f) { // 上向きの法線
+	//Debug::DrawRay(pos, Vec3::down * rayDistance, Vec4::red);
+
+	// 各HitResultをチェックし、上向きの法線なら接地
+	for (const auto& hit : hitResults) {
+		if (hit.isHit && hit.hitNormal.y > 0.7f) {
+			mGroundNormal = hit.hitNormal;
 			return true;
 		}
 	}
@@ -94,129 +113,57 @@ bool CharacterMovement::CheckGrounded() const {
 	return false;
 }
 
-Vec3 CharacterMovement::CollideAndSlide(const Vec3& vel, const Vec3& pos, int depth) {
-	vel, pos, depth;
-
-	auto* collider = owner_->GetComponent<ColliderComponent>();
-	if (!collider) {
-		Console::Print(
-			"CharacterMovement::CollideAndSlide() : ColliderComponent is not attached to the owner entity.",
-			Vec4::yellow,
-			Channel::Physics
-		);
-		return Vec3::zero;
-	}
-
-	constexpr int kMaxBounces = 4;
-	constexpr float kMinMoveDistance = 0.01f;
-	constexpr float kPushOffset = 0.003f;
-
-	// 速度に時間を掛けて実際の移動量を計算
-	Vec3 remainingVelocity = velocity_ * deltaTime_;
-	Vec3 currentPosition = transform_->GetWorldPos();
-
-	for (int i = 0; i < kMaxBounces && remainingVelocity.Length() > kMinMoveDistance; ++i) {
-		// BoxCastで衝突判定
-		std::vector<HitResult> hits = collider->BoxCast(
-			currentPosition,
-			remainingVelocity.Normalized(),
-			remainingVelocity.Length(),
-			collider->GetBoundingBox().GetHalfSize()
-		);
-
-		if (hits.empty()) {
-			// 衝突がない場合は移動を適用
-			currentPosition += remainingVelocity;
-			break;
-		}
-
-		// 最も近い衝突点を見つける
-		float nearestDist = FLT_MAX;
-		HitResult* nearestHit = nullptr;
-
-		for (auto& hit : hits) {
-			float dist = (hit.hitPos - currentPosition).Length();
-			if (dist < nearestDist) {
-				nearestDist = dist;
-				nearestHit = &hit;
-			}
-		}
-
-		if (nearestHit) {
-			// 衝突面に沿って滑らせる
-			Vec3 normal = nearestHit->hitNormal;
-
-			// 面に沿った移動ベクトルを計算
-			float backoffScale = remainingVelocity.Dot(normal);
-			Vec3 slideVector = remainingVelocity - (normal * backoffScale);
-
-			// 衝突位置まで移動 + 微小オフセット
-			currentPosition = nearestHit->hitPos + (normal * kPushOffset);
-
-			// 残りの移動量を更新
-			remainingVelocity = slideVector;
-
-			// 上向きの法線との衝突で接地判定
-			if (normal.y > 0.7f) {
-				isGrounded_ = true;
-			}
-		}
-	}
-
-	// 最終位置を適用
-	transform_->SetWorldPos(currentPosition);
-	// 実際の速度を保持（deltaTimeで割って元のスケールに戻す）
-	velocity_ = remainingVelocity / deltaTime_;
-
-	return Vec3::zero;
-}
-
-void CharacterMovement::Accelerate(const Vec3 dir, const float speed, const float accel) {
+void CharacterMovement::Accelerate(const Vec3  dir, const float speed,
+                                   const float accel) {
 	float currentspeed = Math::MtoH(velocity_).Dot(dir);
-	float addspeed = speed - currentspeed;
+	float addspeed     = speed - currentspeed;
 
 	if (addspeed <= 0.0f) {
 		return;
 	}
 
 	float accelspeed = accel * deltaTime_ * speed;
-	accelspeed = min(accelspeed, addspeed);
-	velocity_ += Math::HtoM(accelspeed) * dir;
+	accelspeed       = (std::min)(accelspeed, addspeed);
+	mVelocity += Math::HtoM(accelspeed) * dir;
 }
 
-void CharacterMovement::AirAccelerate(const Vec3 dir, const float speed, const float accel) {
+void CharacterMovement::AirAccelerate(const Vec3  dir, const float speed,
+                                      const float accel) {
 	float wishspd = speed;
 
-	wishspd = min(wishspd, 30.0f);
-	float currentspeed = Math::MtoH(velocity_).Dot(dir);
-	float addspeed = wishspd - currentspeed;
+	wishspd            = (std::min)(wishspd, 30.0f);
+	float currentspeed = Math::MtoH(mVelocity).Dot(dir);
+	float addspeed     = wishspd - currentspeed;
 
 	if (addspeed <= 0.0f) {
 		return;
 	}
 
 	float accelspeed = accel * deltaTime_ * speed;
-	accelspeed = min(accelspeed, addspeed);
-	velocity_ += Math::HtoM(accelspeed) * dir;
+	accelspeed       = (std::min)(accelspeed, addspeed);
+	mVelocity += Math::HtoM(accelspeed) * dir;
 }
 
 bool CharacterMovement::IsGrounded() const {
-	return isGrounded_;
+	return bIsGrounded;
 }
 
 void CharacterMovement::CheckVelocity() {
 	for (int i = 0; i < 3; ++i) {
-		std::string name = ConVarManager::GetConVar("name")->GetValueAsString();
-		float maxVel = ConVarManager::GetConVar("sv_maxvelocity")->GetValueAsFloat();
-
-		if (velocity_[i] > Math::HtoM(maxVel)) {
-			velocity_[i] = Math::HtoM(maxVel);
-		} else if (velocity_[i] < -Math::HtoM(maxVel)) {
-			velocity_[i] = -Math::HtoM(maxVel);
+		if (mVelocity[i] > maxVel) {
+			mVelocity[i] = maxVel;
+		} else if (mVelocity[i] < -maxVel) {
+			mVelocity[i] = -maxVel;
 		}
 	}
 }
 
 Vec3 CharacterMovement::GetVelocity() const {
-	return velocity_;
+	return mVelocity;
+}
+
+Vec3 CharacterMovement::GetHeadPos() const {
+	constexpr float headOffset = 9.0f;
+	return mTransform->GetWorldPos() + Vec3::up * Math::HtoM(
+		mCurrentHeightHU - headOffset);
 }

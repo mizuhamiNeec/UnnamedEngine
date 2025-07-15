@@ -7,13 +7,13 @@
 void MeshColliderComponent::OnAttach(Entity& owner) {
 	ColliderComponent::OnAttach(owner);
 
-	if (auto* smr = owner_->GetComponent<StaticMeshRenderer>()) {
+	if (auto* smr = mOwner->GetComponent<StaticMeshRenderer>()) {
 		meshRenderer_ = smr;
 		BuildTriangleList();
 	} else {
 		Console::Print(
-			owner_->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
-			kConsoleColorWarning,
+			mOwner->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
+			kConTextColorWarning,
 			Channel::Physics
 		);
 	}
@@ -38,8 +38,8 @@ void MeshColliderComponent::DrawInspectorImGui() {
 AABB MeshColliderComponent::GetBoundingBox() const {
 	if (!meshRenderer_) {
 		Console::Print(
-			owner_->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
-			kConsoleColorWarning,
+			mOwner->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
+			kConTextColorWarning,
 			Channel::Physics
 		);
 		return AABB(Vec3::zero, Vec3::zero);
@@ -72,6 +72,13 @@ bool MeshColliderComponent::IsDynamic() {
 
 std::vector<Triangle> MeshColliderComponent::GetTriangles() {
 	return triangles_;
+}
+
+StaticMesh* MeshColliderComponent::GetStaticMesh() const {
+	if (meshRenderer_) {
+		return meshRenderer_->GetStaticMesh();
+	}
+	return nullptr;
 }
 
 void MeshColliderComponent::BuildTriangleList() {

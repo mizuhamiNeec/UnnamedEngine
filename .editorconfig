@@ -1,2 +1,4 @@
-[*.{cpp,h,hlsl,hlsli}]
+﻿root = true
+
+[*.{c++,cc,cpp,cppm,cxx,h,h++,hh,hlsl,hlsli,hlslinc,hpp,hxx,inl,ipp,ixx,tlh,tli}]
 charset = utf-8

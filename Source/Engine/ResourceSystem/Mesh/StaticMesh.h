@@ -15,7 +15,10 @@ public:
 	void AddSubMesh(std::unique_ptr<SubMesh> subMesh);
 	const std::vector<std::unique_ptr<SubMesh>>& GetSubMeshes() const;
 	std::string GetName() const;
-	std::vector<Triangle> GetPolygons();
+	std::vector<Triangle> GetPolygons() const;
+
+	AABB GetBoundingBox() const;
+	void BuildBVH() const;
 
 	void Render(ID3D12GraphicsCommandList* commandList) const;
 

@@ -5,11 +5,12 @@
 #include <d3dcompiler.h>
 #include <dxcapi.h>
 #include <SubSystem/Console/Console.h>
-#include <Lib/Utils/StrUtils.h>
+#include <Lib/Utils/StrUtil.h>
 
 #ifndef DFCC_DXIL
 #define DFCC_DXIL MAKEFOURCC('D', 'X', 'I', 'L')
 #endif	
+#include <format>
 
 
 //-----------------------------------------------------------------------------
@@ -28,7 +29,7 @@ Shader::Shader(
 	if (FAILED(hr)) {
 		Console::Print(
 			"DxcUtilsインスタンスの作成に失敗しました\n",
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::RenderSystem
 		);
 		return;
@@ -39,7 +40,7 @@ Shader::Shader(
 	if (FAILED(hr)) {
 		Console::Print(
 			"DxcCompilerインスタンスの作成に失敗しました\n",
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::RenderSystem
 		);
 		return;
@@ -47,7 +48,7 @@ Shader::Shader(
 	hr = dxcUtils_->CreateDefaultIncludeHandler(&includeHandler_);
 	if (FAILED(hr)) {
 		Console::Print(
-			"IncludeHandlerの作成に失敗しました\n", kConsoleColorError,
+			"IncludeHandlerの作成に失敗しました\n", kConTextColorError,
 			Channel::RenderSystem
 		);
 		return;
@@ -109,11 +110,11 @@ UINT Shader::GetResourceRegister(const std::string& resourceName) const {
 	// リソースが見つからなかった
 	Console::Print(
 		"リソースが見つかりません: " + resourceName + "\n",
-		kConsoleColorError,
+		kConTextColorError,
 		Channel::RenderSystem
 	);
 
-	return 0;
+	return 0xffffffff;
 }
 
 const std::unordered_map<std::string, ResourceInfo>& Shader::GetResourceRegisterMap() const {
@@ -122,6 +123,24 @@ const std::unordered_map<std::string, ResourceInfo>& Shader::GetResourceRegister
 
 std::string Shader::GetName() {
 	return name_;
+}
+
+UINT Shader::GetResourceParameterIndex(const std::string& resourceName) {
+	auto it = resourceParameterIndices_.find(resourceName);
+	if (it != resourceParameterIndices_.end()) {
+		return it->second;
+	}
+
+	Console::Print(
+		"リソースが見つかりません: " + resourceName + "\n",
+		kConTextColorError,
+		Channel::RenderSystem
+	);
+	return UINT_MAX;
+}
+
+void Shader::SetResourceParameterIndex(const std::string& resourceName, const UINT index) {
+	resourceParameterIndices_[resourceName] = index;
 }
 
 void Shader::Release() {
@@ -162,7 +181,7 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 	std::string& entryPoint,
 	const std::string& profile
 ) {
-	std::wstring wFilePath = StrUtils::ToWString(filePath);
+	std::wstring wFilePath = StrUtil::ToWString(filePath);
 	// HLSLファイルを読み込む
 	IDxcBlobEncoding* shaderSource = nullptr;
 	HRESULT hr = dxcUtils_->LoadFile(
@@ -171,7 +190,7 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 	if (FAILED(hr)) {
 		Console::Print(
 			"HLSLファイルの読み込みに失敗しました",
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::RenderSystem
 		);
 		return nullptr;
@@ -181,8 +200,8 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 	shaderSourceBuffer.Size = shaderSource->GetBufferSize();
 	shaderSourceBuffer.Encoding = DXC_CP_UTF8;
 
-	const std::wstring wEntryPoint = StrUtils::ToWString(entryPoint);
-	const std::wstring wProfile = StrUtils::ToWString(profile);
+	const std::wstring wEntryPoint = StrUtil::ToWString(entryPoint);
+	const std::wstring wProfile = StrUtil::ToWString(profile);
 	// コンパイルする
 	LPCWSTR arguments[] = {
 		wFilePath.c_str(), // コンパイル対象のhlslファイル名
@@ -206,7 +225,7 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 	if (FAILED(hr)) {
 		Console::Print(
 			"DXCの起動に失敗しました\n",
-			kConsoleColorError,
+			kConTextColorError,
 			Channel::RenderSystem
 		);
 		assert(SUCCEEDED(hr));
@@ -219,7 +238,7 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 	);
 	if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
 		Console::Print(
-			shaderError->GetStringPointer(), kConsoleColorError,
+			shaderError->GetStringPointer(), kConTextColorError,
 			Channel::RenderSystem
 		);
 		assert(false);
@@ -233,14 +252,14 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 	assert(SUCCEEDED(hr));
 	// 成功したらログを出す
 	Console::Print(
-		StrUtils::ToString(
+		StrUtil::ToString(
 			std::format(
 				L"コンパイル成功! path: {}, profile: {}\n",
 				wFilePath,
 				wProfile
 			)
 		),
-		kConsoleColorCompleted,
+		kConTextColorCompleted,
 		Channel::RenderSystem
 	);
 
@@ -253,41 +272,41 @@ ComPtr<IDxcBlob> Shader::CompileShader(
 
 void Shader::ReflectShaderBlob(const ComPtr<IDxcBlob>& shaderBlob, ShaderType shaderType) {
 	if (!shaderBlob) {
-		Console::Print("shaderBlobがnullです\n", kConsoleColorError, Channel::RenderSystem);
+		Console::Print("shaderBlobがnullです\n", kConTextColorError, Channel::RenderSystem);
 		return;
 	}
 
 	ComPtr<IDxcContainerReflection> containerReflection;
 	HRESULT hr = DxcCreateInstance(CLSID_DxcContainerReflection, IID_PPV_ARGS(&containerReflection));
 	if (FAILED(hr)) {
-		Console::Print("DXCリフレクションの作成に失敗しました\n", kConsoleColorError, Channel::RenderSystem);
+		Console::Print("DXCリフレクションの作成に失敗しました\n", kConTextColorError, Channel::RenderSystem);
 		return;
 	}
 
 	hr = containerReflection->Load(shaderBlob.Get());
 	if (FAILED(hr)) {
-		Console::Print("シェーダーバイナリの読み込みに失敗しました\n", kConsoleColorError, Channel::RenderSystem);
+		Console::Print("シェーダーバイナリの読み込みに失敗しました\n", kConTextColorError, Channel::RenderSystem);
 		return;
 	}
 
 	UINT32 dxilPartIndex;
 	hr = containerReflection->FindFirstPartKind(DFCC_DXIL, &dxilPartIndex);
 	if (FAILED(hr)) {
-		Console::Print("DXILパートの検索に失敗しました\n", kConsoleColorError, Channel::RenderSystem);
+		Console::Print("DXILパートの検索に失敗しました\n", kConTextColorError, Channel::RenderSystem);
 		return;
 	}
 
 	ComPtr<ID3D12ShaderReflection> reflector;
 	hr = containerReflection->GetPartReflection(dxilPartIndex, IID_PPV_ARGS(&reflector));
 	if (FAILED(hr)) {
-		Console::Print("シェーダーリフレクションの作成に失敗しました\n", kConsoleColorError, Channel::RenderSystem);
+		Console::Print("シェーダーリフレクションの作成に失敗しました\n", kConTextColorError, Channel::RenderSystem);
 		return;
 	}
 
 	D3D12_SHADER_DESC shaderDesc;
 	hr = reflector->GetDesc(&shaderDesc);
 	if (FAILED(hr)) {
-		Console::Print("シェーダー記述子の取得に失敗しました\n", kConsoleColorError, Channel::RenderSystem);
+		Console::Print("シェーダー記述子の取得に失敗しました\n", kConTextColorError, Channel::RenderSystem);
 		return;
 	}
 
@@ -330,7 +349,7 @@ void Shader::ReflectShaderBlob(const ComPtr<IDxcBlob>& shaderBlob, ShaderType sh
 					static_cast<int>(info.type),
 					static_cast<int>(info.visibility)
 				),
-				kConsoleColorCompleted,
+				kConTextColorCompleted,
 				Channel::RenderSystem
 			);
 		}
@@ -352,40 +371,6 @@ void Shader::ReflectShaderBlob(const ComPtr<IDxcBlob>& shaderBlob, ShaderType sh
 			resourceRegisterMap_[name] = info;
 		}
 	}
-
-	//// 定数バッファの解析
-	//for (UINT i = 0; i < shaderDesc.ConstantBuffers; i++) {
-	//	ID3D12ShaderReflectionConstantBuffer* cb = reflector->GetConstantBufferByIndex(i);
-	//	D3D12_SHADER_BUFFER_DESC bufferDesc;
-	//	hr = cb->GetDesc(&bufferDesc);
-	//	if (SUCCEEDED(hr)) {
-	//		std::string name = "CB_" + std::string(bufferDesc.Name);
-	//		resourceRegisterMap_[name] = { i, D3D12_SHADER_VISIBILITY_ALL };
-	//		Console::Print(
-	//			std::format("定数バッファを検出: {} (register b{})\n", name, i),
-	//			kConsoleColorCompleted,
-	//			Channel::RenderSystem
-	//		);
-	//	}
-	//}
-
-	//// バインドリソースの解析
-	//for (UINT i = 0; i < shaderDesc.BoundResources; i++) {
-	//	D3D12_SHADER_INPUT_BIND_DESC bindDesc;
-	//	hr = reflector->GetResourceBindingDesc(i, &bindDesc);
-	//	if (SUCCEEDED(hr)) {
-	//		std::string name = bindDesc.Name;
-	//		if (bindDesc.Type == D3D_SIT_TEXTURE) {
-	//			name = "TEX_" + name;
-	//		}
-	//		resourceRegisterMap_[name] = bindDesc.BindPoint;
-	//		Console::Print(
-	//			std::format("リソースを検出: {} (register {})\n", name, bindDesc.BindPoint),
-	//			kConsoleColorCompleted,
-	//			Channel::RenderSystem
-	//		);
-	//	}
-	//}
 }
 
 void Shader::ReflectShaderResources() {
@@ -398,6 +383,29 @@ void Shader::ReflectShaderResources() {
 	if (geometryShaderBlob_) {
 		ReflectShaderBlob(geometryShaderBlob_, ShaderType::GeometryShader);
 	}
+}
+
+std::vector<std::string> Shader::GetTextureSlots() const {
+    std::vector<std::string> textureSlots;
+    
+    // リソースマップからテクスチャに関連するリソース名を抽出
+    for (const auto& [resourceName, info] : resourceRegisterMap_) {
+        // テクスチャっぽいリソース名を抽出（baseColorTextureなど）
+        if (resourceName.find("Texture") != std::string::npos || 
+            resourceName.find("Map") != std::string::npos ||
+            info.type == D3D_SIT_TEXTURE) {
+            textureSlots.push_back(resourceName);
+        }
+    }
+    
+    // デフォルトのテクスチャスロット名を追加（存在しなかった場合）
+    if (textureSlots.empty()) {
+        // もし特別にリストアップされていない場合は、一般的なテクスチャスロット名を返す
+        textureSlots.push_back("gMainTexture");
+        textureSlots.push_back("gBaseColorTexture");
+    }
+    
+    return textureSlots;
 }
 
 ComPtr<IDxcUtils> Shader::dxcUtils_ = nullptr;

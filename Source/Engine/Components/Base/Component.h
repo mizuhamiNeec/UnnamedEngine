@@ -13,8 +13,12 @@ public:
 	virtual ~Component();
 
 	virtual void OnAttach(Entity& owner);
+	virtual void OnDetach();
 
+	virtual void PrePhysics(float deltaTime);
 	virtual void Update(float deltaTime) = 0;
+	virtual void PostPhysics(float deltaTime);
+	
 	virtual void Render(ID3D12GraphicsCommandList* commandList);
 
 	virtual void DrawInspectorImGui() = 0;
@@ -25,5 +29,5 @@ public:
 	[[nodiscard]] virtual Entity* GetOwner() const;
 
 protected:
-	Entity* owner_ = nullptr;
+	Entity* mOwner = nullptr;
 };

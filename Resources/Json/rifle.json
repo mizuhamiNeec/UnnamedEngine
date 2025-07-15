@@ -1,0 +1,10 @@
+﻿{
+  "name": "rifle",
+  "max_ammo": 9999999999,
+  "clip_size": 9999999999,
+  "fire_rate": 0.1,
+  "reload_time": 3.7,
+  "damage": 120,
+  "primary_module": "hitscan",
+  "projectile_speed": 55.0
+}

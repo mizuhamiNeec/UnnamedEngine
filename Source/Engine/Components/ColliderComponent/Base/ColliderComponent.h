@@ -2,6 +2,8 @@
 #include <Components/Base/Component.h>
 #include <SubSystem/Console/Console.h>
 
+#include "Physics/Physics.h"
+
 class PhysicsEngine;
 
 struct HitResult;
@@ -25,6 +27,14 @@ public:
 		float distance,
 		const Vec3& halfSize
 	) const;
+
+	[[nodiscard]] std::vector<HitResult> RayCast(
+		const Vec3& start,
+		const Vec3& direction,
+		float distance
+	) const;
+
+	PhysicsEngine* GetPhysicsEngine() const;
 
 protected:
 	PhysicsEngine* physicsEngine_ = nullptr;

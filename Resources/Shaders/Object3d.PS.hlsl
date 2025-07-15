@@ -1,185 +1,138 @@
 #include "Object3d.hlsli"
 
-struct Material
-{
-    float4 color;
-    int enableLighting;
-    float4x4 uvTransform;
-    float shininess;
-    float3 specularColor; // 鏡面反射色
+struct Material {
+	float4 baseColor;
+	float  metallic;
+	float  roughness;
+	float3 emissive;
 };
 
-struct DirectionalLight
-{
-    float4 color; //!< ライトの色
-    float3 direction; //!< ライトの向き
-    float intensity; //!< 輝度
+struct DirectionalLight {
+	float4 color;
+	float3 direction;
+	float  intensity;
 };
 
-struct PointLight
-{
-    float4 color; //!< ライトの色
-    float3 position; //!< ライトの位置
-    float intensity; //!< 輝度
-    float radius; //!< ライトの届く最大距離
-    float decay; //!< 減衰率
+struct Camera {
+	float3 worldPosition;
 };
 
-struct SpotLight
-{
-    float4 color; //!< ライトの色
-    float3 position; //!< ライトの位置
-    float intensity; //!< 輝度
-    float3 direction; //!< スポットライトの方向
-    float distance; //!< ライトの届く最大距離
-    float decay; //!< 減衰率
-    float cosAngle; //!< スポットライトの余弦
-    float cosFalloffStart;
+ConstantBuffer<Material>         gMaterial : register(b1);
+ConstantBuffer<DirectionalLight> gDirectionalLight : register(b2);
+ConstantBuffer<Camera>           gCamera : register(b3);
+Texture2D                        gBaseColorTexture : register(t0);
+TextureCube                      gEnvironmentTexture : register(t1);
+//Texture2D brdfLUT : register(t2); // 🌟 BRDF LUT（スクリーンスペース用）
+SamplerState gSampler : register(s0);
+
+struct PixelShaderOutput {
+	float4 color : SV_TARGET0;
 };
 
-struct Camera
-{
-    float3 worldPosition; //!< カメラの位置
-};
+// Schlick-IBL向けのFresnel式
+float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
+	return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+}
 
-ConstantBuffer<Material> gMaterial : register(b0);
-ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);
-ConstantBuffer<Camera> gCamera : register(b2);
-ConstantBuffer<PointLight> gPointLight : register(b3);
-ConstantBuffer<SpotLight> gSpotLight : register(b4);
-Texture2D diffuseTexture : register(t0);
-SamplerState samplerState : register(s0);
+// SchlickのFresnel項
+float3 FresnelSchlick(float cosTheta, float3 F0) {
+	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
 
-struct PixelShaderOutput
-{
-    float4 color : SV_TARGET0;
-};
+// GGX 法線分布関数（NDF）
+float NormalDistribution_GGX(float NdotH, float roughness) {
+	float a      = roughness * roughness;
+	float a2     = a * a;
+	float NdotH2 = NdotH * NdotH;
+	float denom  = (NdotH2 * (a2 - 1.0) + 1.0);
+	return a2 / (3.141592 * denom * denom);
+}
 
-PixelShaderOutput PSMain(VertexShaderOutput input)
-{
-    PixelShaderOutput output;
+// Smith-Schlickの幾何減衰項（G）
+float Geometry_SmithGGX(float NdotV, float NdotL, float roughness) {
+	float r   = roughness + 1.0;
+	float k   = (r * r) / 8.0;
+	float G_V = NdotV / (NdotV * (1.0 - k) + k);
+	float G_L = NdotL / (NdotL * (1.0 - k) + k);
+	return G_V * G_L;
+}
 
-	// UV変換とテクスチャサンプリング
-    float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
-    //float4 transformedUV = float4(input.texcoord, 0.0f, 1.0f);
-    float4 textureColor = diffuseTexture.Sample(samplerState, transformedUV.xy);
+PixelShaderOutput PSMain(VertexShaderOutput input) {
+	PixelShaderOutput output;
 
-	// ライティング
-    if (gMaterial.enableLighting != 0)
-    {
-        float3 toEye = normalize(gCamera.worldPosition - input.worldPosition);
+ // テクスチャサンプリング
+    float4 baseColor = gBaseColorTexture.Sample(gSampler, input.texcoord) * 
+                      gMaterial.baseColor;
+    float  metallic  = gMaterial.metallic;
+    float  roughness = max(gMaterial.roughness, 0.05);
+    float3 emissive  = gMaterial.emissive;
 
-		//---------------------------------------------------------------------
-		// Purpose: Directional Light
-		//---------------------------------------------------------------------
-        float3 diffuseDirectionalLight = float3(0.0f, 0.0f, 0.0f);
-        float3 specularDirectionalLight = float3(0.0f, 0.0f, 0.0f);
-		{
-            float cosThetaDir = saturate(dot(input.normal, -gDirectionalLight.direction));
-            float3 halfVectorDir = normalize(-gDirectionalLight.direction + toEye);
-            float NDotHDir = dot(normalize(input.normal), halfVectorDir);
-            float specularPowDir = pow(saturate(NDotHDir), gMaterial.shininess);
+    float3 N = normalize(input.normal);
+    float3 V = normalize(gCamera.worldPosition - input.worldPosition);
+    float3 R = reflect(-V, N);
+    
+    float NdotV = saturate(dot(N, V));
+    float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor.rgb, metallic);
 
-            diffuseDirectionalLight =
-				gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb *
-				cosThetaDir * gDirectionalLight.intensity;
+    // 環境光の強度を上げて影を明るく
+    static const float environmentIntensity = 2.0f;
+    // アンビエントライトを追加（影の部分を明るくする）
+    static const float3 ambientLight = float3(0.15, 0.15, 0.18); // 薄い青みがかった環境光
 
-            specularDirectionalLight =
-				gMaterial.specularColor * gDirectionalLight.color.rgb *
-				gDirectionalLight.intensity * specularPowDir;
-        }
+    // IBL
+    float3 irradiance = gEnvironmentTexture.Sample(gSampler, N).rgb * 
+                       environmentIntensity;
 
-		//---------------------------------------------------------------------
-		// Purpose: Point Light
-		//---------------------------------------------------------------------
-        float3 diffusePointLight = float3(0.0f, 0.0f, 0.0f);
-        float3 specularPointLight = float3(0.0f, 0.0f, 0.0f);
-		{
-            float3 pointLightDirection = gPointLight.position - input.worldPosition;
-            float distance = length(pointLightDirection);
-            pointLightDirection = normalize(pointLightDirection);
+    const float MAX_REFLECTION_LOD = 4.0f;
+    float mipLevel = roughness * MAX_REFLECTION_LOD;
+    float3 prefiltered = gEnvironmentTexture.SampleLevel(gSampler, R, mipLevel).rgb * 
+                        environmentIntensity;
 
-            float attenuationFactor = pow(saturate(-distance / gPointLight.radius + 1.0), gPointLight.decay);
+    // IBLのFresnel項は視線方向と法線を使用
+    float3 F_IBL = FresnelSchlickRoughness(NdotV, F0, roughness);
+    
+    // IBLの拡散反射と鏡面反射の調整
+    float3 diffuseIBL = irradiance * baseColor.rgb * (1.0 - metallic);
+    float3 specularIBL = prefiltered * F_IBL;
 
-            float cosThetaPoint = saturate(dot(input.normal, pointLightDirection));
-            diffusePointLight =
-				gMaterial.color.rgb * textureColor.rgb * gPointLight.color.rgb *
-				cosThetaPoint * gPointLight.intensity * attenuationFactor;
+    // 反射を強化（特に金属表面で）
+    float reflectionStrength = lerp(0.1, 1.0, metallic); // 金属度に応じた反射強度
+    reflectionStrength *= (1.0 - roughness * 0.8); // ラフネスで反射を減衰
+    
+    // 環境マップからの直接反射（よりクリアな反射）
+    float3 environmentReflection = gEnvironmentTexture.SampleLevel(gSampler, R, 0).rgb;
+    float3 clearReflection = environmentReflection * F_IBL * reflectionStrength * environmentIntensity;
 
-            float3 halfVectorPoint = normalize(pointLightDirection + toEye);
-            float NDotHPoint = dot(normalize(input.normal), halfVectorPoint);
-            float specularPowPoint = pow(NDotHPoint, gMaterial.shininess);
+    // ラフネスが高いほどspecularIBLを弱める（元のコード）
+    float specularFactor = (1.0 - roughness) * (0.5 + 0.5 * metallic);
+    specularIBL *= specularFactor;
 
-            specularPointLight =
-				gMaterial.specularColor * gPointLight.color.rgb *
-				gPointLight.intensity * specularPowPoint * attenuationFactor;
-        }
+    // Directional Light
+    float3 L = normalize(-gDirectionalLight.direction);
+    float3 H = normalize(V + L);
 
-		//---------------------------------------------------------------------
-		// Purpose: Spot Light
-		//---------------------------------------------------------------------
-        float3 diffuseSpotLight = float3(0.0f, 0.0f, 0.0f);
-        float3 specularSpotLight = float3(0.0f, 0.0f, 0.0f);
-		{
-			// スポットライトの位置と方向を計算
-            float3 spotLightDirection = gSpotLight.position - input.worldPosition;
-            float distance = length(spotLightDirection);
-            spotLightDirection = normalize(spotLightDirection);
+    float NdotL = saturate(dot(N, L));
+    float NdotH = saturate(dot(N, H));
+    float HdotV = saturate(dot(H, V));
 
-			// スポットライトの照射角度（余弦値）
-            float spotCosTheta = dot(-spotLightDirection, gSpotLight.direction);
+    float3 F = FresnelSchlick(HdotV, F0);
+    float  D = NormalDistribution_GGX(NdotH, roughness);
+    float  G = Geometry_SmithGGX(NdotV, NdotL, roughness);
 
-			// falloffFactorの計算
-			// cosFalloffStart と cosAngle の間で減衰を適用
-            float falloffFactor = saturate(
-				(spotCosTheta - gSpotLight.cosAngle) / (gSpotLight.cosFalloffStart - gSpotLight.cosAngle)
-			);
+    float3 specular = (D * F * G) / max(4.0 * NdotV * NdotL, 0.001);
+    float3 diffuse  = (1.0 - F) * baseColor.rgb * (1.0 - metallic) / 3.141592;
 
-			// 距離に基づく減衰
-            float spotAttenuation = pow(saturate(-distance / gSpotLight.distance + 1.0), gSpotLight.decay);
+    float3 lightColor = gDirectionalLight.color.rgb * gDirectionalLight.intensity;
+    float3 radiance = lightColor * NdotL;
 
-			// 最終的な減衰
-            spotAttenuation *= falloffFactor;
+    float3 directLight = (diffuse + specular) * radiance;
 
-			// 法線との角度を計算
-            float cosThetaSpot = saturate(dot(input.normal, spotLightDirection));
+    // アンビエントライトを追加して影の部分を明るく
+    float3 ambientContribution = ambientLight * baseColor.rgb * (1.0 - metallic * 0.5);
 
-			// 拡散反射成分
-            diffuseSpotLight =
-				gMaterial.color.rgb * textureColor.rgb * gSpotLight.color.rgb *
-				cosThetaSpot * gSpotLight.intensity * spotAttenuation;
-
-			// 鏡面反射成分
-            float3 halfVectorSpot = normalize(spotLightDirection + toEye);
-            float NDotHSpot = dot(normalize(input.normal), halfVectorSpot);
-            float specularPowSpot = pow(NDotHSpot, gMaterial.shininess);
-
-            specularSpotLight =
-				gMaterial.specularColor * gSpotLight.color.rgb *
-				gSpotLight.intensity * specularPowSpot * spotAttenuation;
-        }
-
-        //色の合成
-
-        output.color.rgb =
-			diffuseDirectionalLight + specularDirectionalLight +
-			diffusePointLight + specularPointLight +
-			diffuseSpotLight + specularSpotLight;
-
-		// 色の合成
-        output.color.rgb =
-			diffuseDirectionalLight + specularDirectionalLight;
-        output.color.a = gMaterial.color.a * textureColor.a;
-    }
-    else
-    {
-		// ライティング無効時
-        output.color = gMaterial.color * textureColor;
-        output.color.a = gMaterial.color.a * textureColor.a;
-    }
-
-	// sRGBへの変換（オプション）
-	// output.color.rgb = pow(output.color.rgb, 1 / 2.2);
+    // 出力（アンビエントライト + クリアな環境反射を追加）
+    output.color.rgb = diffuseIBL + specularIBL + directLight + ambientContribution + clearReflection + emissive;
+    output.color.a   = baseColor.a;
 
     return output;
 }

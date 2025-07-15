@@ -13,7 +13,10 @@ void ConVarManager::ToggleConVar(const std::string& name) {
 	auto it = conVars_.find(name);
 	if (it != conVars_.end()) {
 		it->second->Toggle();
+		return;
 	}
+
+	Console::Print("ConVar not found: " + name, kConTextColorError, Channel::Console);
 }
 
 std::vector<IConVar*> ConVarManager::GetAllConVars() {
@@ -21,7 +24,7 @@ std::vector<IConVar*> ConVarManager::GetAllConVars() {
 	std::vector<IConVar*> conVarArray;
 	conVarArray.reserve(conVars_.size());
 	for (const auto& pair : conVars_) {
-		conVarArray.push_back(pair.second.get());
+		conVarArray.emplace_back(pair.second.get());
 	}
 	return conVarArray;
 }

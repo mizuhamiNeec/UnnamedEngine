@@ -4,6 +4,7 @@
 #include <Lib/Math/Vector/Vec2.h>
 
 struct Quaternion;
+struct Vec4;
 
 struct Vec3 final {
 	float x, y, z;
@@ -41,6 +42,8 @@ struct Vec3 final {
 	Vec3 ClampLength(float minVec, float maxVec);
 	Vec3 Reflect(const Vec3& normal) const;
 
+	Vec3 Abs();
+
 	Vec3 TransformDirection(const Quaternion& rotation) const;
 
 	/* ---------------- 演算子 ---------------- */
@@ -72,6 +75,7 @@ struct Vec3 final {
 	/* ---------------- その他 ---------------- */
 	std::string ToString() const;
 	bool operator!=(const Vec3& rhs) const;
+	bool operator==(const Vec3& vec3) const;
 
 	static Vec3 Min(Vec3 lhs, Vec3 rhs);
 	static Vec3 Max(Vec3 lhs, Vec3 rhs);

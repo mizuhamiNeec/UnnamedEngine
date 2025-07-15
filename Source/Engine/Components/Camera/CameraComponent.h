@@ -11,35 +11,37 @@ public:
 
 	void OnAttach(Entity& owner) override;
 	void Update(float deltaTime) override;
+	void Render(ID3D12GraphicsCommandList* commandList) override;
+
 	void DrawInspectorImGui() override;
 
 	float& GetFovVertical();
-	void SetFovVertical(const float& newFovVertical);
+	void   SetFovVertical(const float& newFovVertical);
 
 	float& GetZNear();
-	void SetNearZ(const float& newNearZ);
+	void   SetNearZ(const float& newNearZ);
 
 	float& GetZFar();
-	void SetFarZ(const float& newFarZ);
+	void   SetFarZ(const float& newFarZ);
 
 	Mat4& GetViewProjMat();
 	Mat4& GetViewMat();
 	Mat4& GetProjMat();
 
 	float& GetAspectRatio();
-	void SetAspectRatio(float newAspectRatio);
+	void   SetAspectRatio(float newAspectRatio);
+	void SetViewMat(const Mat4& mat4);
 
 private:
 	TransformComponent* transform_ = nullptr;
 
-	float fov_ = 90.0f * Math::deg2Rad;
+	float fov_         = 90.0f * Math::deg2Rad;
 	float aspectRatio_ = 0.0f;
-	float zNear_ = 0.25f;
-	float zFar_ = 65536.0f;
+	float zNear_       = 0x.1p1f;
+	float zFar_        = 0x61A8p0f;
 
 	Mat4 worldMat_;
 	Mat4 viewMat_;
 	Mat4 projMat_;
 	Mat4 viewProjMat_;
 };
-

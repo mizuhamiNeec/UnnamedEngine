@@ -1,14 +1,17 @@
 #include "Editor.h"
 
+#include <Engine.h>
+#include <Camera/CameraManager.h>
 #include <Debug/Debug.h>
-
+#include <ImGuiManager/Icons.h>
+#include <Input/InputSystem.h>
 #include <Lib/Timer/EngineTimer.h>
+#include <Lib/Utils/StrUtil.h>
+#include <SubSystem/Console/ConVarManager.h>
+#include <Window/WindowManager.h>
 
-#include "Camera/CameraManager.h"
-#include "ImGuiManager/Icons.h"
-#include "Input/InputSystem.h"
-#include "SubSystem/Console/ConVarManager.h"
-#include "Lib/Utils/StrUtils.h"
+#include "ImGuiManager/ImGuiWidgets.h"
+#include "ImGuizmo/ImGuizmo.h"
 
 #ifdef _DEBUG
 #include <imgui_internal.h>
@@ -21,14 +24,18 @@ Editor::Editor(SceneManager& sceneManager) : sceneManager_(sceneManager) {
 
 void Editor::Init() {
 	// カメラの作成
-	cameraEntity_ = std::make_unique<Entity>("editorcamera");
-	cameraEntity_->GetTransform()->SetLocalPos(Vec3::forward * -5.0f + Vec3::up * 2.0f);
-	cameraEntity_->GetTransform()->SetLocalRot(Quaternion::Euler(Vec3::right * 15.0f * Math::deg2Rad));
+	cameraEntity_ = std::make_unique<Entity>("editorCamera",
+	                                         EntityType::EditorOnly);
+	cameraEntity_->GetTransform()->SetLocalPos(
+		Vec3::forward * -5.0f + Vec3::up * 2.0f);
+	cameraEntity_->GetTransform()->SetLocalRot(
+		Quaternion::Euler(Vec3::right * 15.0f * Math::deg2Rad));
 
 	// 生ポインタを取得
-	CameraComponent* rawCameraPtr = cameraEntity_->AddComponent<CameraComponent>();
+	CameraComponent* rawCameraPtr = cameraEntity_->AddComponent<
+		CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
-	std::shared_ptr<CameraComponent> camera = std::shared_ptr<CameraComponent>(
+	auto camera = std::shared_ptr<CameraComponent>(
 		rawCameraPtr, [](CameraComponent*) {
 		}
 	);
@@ -37,29 +44,23 @@ void Editor::Init() {
 	CameraManager::AddCamera(camera);
 	// アクティブカメラに設定
 	CameraManager::SetActiveCamera(camera);
+
+	sceneManager_.GetCurrentScene()->AddEntity(std::move(cameraEntity_).get());
 }
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
-	// グリッドの表示
-	DrawGrid(
-		gridSize_,
-		gridRange_,
-		{ 0.28f, 0.28f, 0.28f, 1.0f },
-		{ 0.39f, 0.2f, 0.02f, 1.0f },
-		{ 0.0f, 0.39f, 0.39f, 1.0f },
-		{ 0.39f, 0.39f, 0.39f, 1.0f },
-		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
-		2048.0f
-	);
+	if (auto currentScene = sceneManager_.GetCurrentScene()) {
+		currentScene->Update(EngineTimer::GetScaledDeltaTime());
+	}
 
 #ifdef _DEBUG
 	// カメラの操作
 	static float moveSpd = 4.0f;
 
-	static bool firstReset = true; // 初回リセットフラグ
+	static bool firstReset   = true; // 初回リセットフラグ
 	static bool cursorHidden = false;
 
-	static bool bOpenPopup = false; // ポップアップ表示フラグ
+	static bool  bOpenPopup = false; // ポップアップ表示フラグ
 	static float popupTimer = 0.0f;
 
 	if (InputSystem::IsPressed("attack2")) {
@@ -72,22 +73,26 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 		if (!firstReset) {
 			// 回転
-			float sensitivity = ConVarManager::GetConVar("sensitivity")->GetValueAsFloat();
+			float sensitivity = ConVarManager::GetConVar("sensitivity")->
+				GetValueAsFloat();
 			float m_pitch = 0.022f;
-			float m_yaw = 0.022f;
-			float min = -89.0f;
-			float max = 89.0f;
+			float m_yaw   = 0.022f;
+			float min     = -89.0f;
+			float max     = 89.0f;
 
-			static Vec3 rot_ = cameraEntity_->GetTransform()->GetLocalRot().ToEulerAngles();
+			static Vec3 rot_ = cameraEntity_->GetTransform()->GetLocalRot().
+			                                  ToEulerAngles();
 
 			rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
 			rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
 
-			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad, max * Math::deg2Rad);
+			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad,
+			                    max * Math::deg2Rad);
 
-			cameraEntity_->GetTransform()->SetWorldRot(Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
+			cameraEntity_->GetTransform()->SetWorldRot(
+				Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
 
-			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
+			Vec3 moveInput = {0.0f, 0.0f, 0.0f};
 
 			if (InputSystem::IsPressed("forward")) {
 				moveInput.z += 1.0f;
@@ -116,16 +121,18 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			moveInput.Normalize();
 
 			Quaternion camRot = cameraEntity_->GetTransform()->GetWorldRot();
-			Vec3 cameraForward = camRot * Vec3::forward;
-			Vec3 cameraRight = camRot * Vec3::right;
-			Vec3 cameraUp = camRot * Vec3::up;
+			Vec3       cameraForward = camRot * Vec3::forward;
+			Vec3       cameraRight = camRot * Vec3::right;
+			Vec3       cameraUp = camRot * Vec3::up;
 
 			if (InputSystem::IsTriggered("invprev")) {
-				moveSpd += 4.0f;
+				moveSpd *= 2.0f;
+				moveSpd = RoundToNearestPowerOfTwo(moveSpd);
 			}
 
 			if (InputSystem::IsTriggered("invnext")) {
-				moveSpd -= 4.0f;
+				moveSpd *= 0.5f;
+				moveSpd = RoundToNearestPowerOfTwo(moveSpd);
 			}
 
 			static float oldMoveSpd = 0.0f;
@@ -139,15 +146,21 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			oldMoveSpd = moveSpd;
 
 			cameraEntity_->GetTransform()->SetWorldPos(
-				cameraEntity_->GetTransform()->GetWorldPos() + (cameraForward * moveInput.z + cameraRight * moveInput.x + cameraUp * moveInput.y) *
+				cameraEntity_->GetTransform()->GetWorldPos() + (cameraForward *
+					moveInput.z + cameraRight * moveInput.x + cameraUp *
+					moveInput.y) *
 				moveSpd * EngineTimer::GetScaledDeltaTime()
 			);
 		}
 		// カーソルをウィンドウの中央にリセット
 		POINT centerCursorPos = {
-			static_cast<LONG>(Window::GetClientWidth() / 2), static_cast<LONG>(Window::GetClientHeight() / 2)
+			static_cast<LONG>(WindowManager::GetMainWindow()->GetClientWidth() /
+				2),
+			static_cast<LONG>(WindowManager::GetMainWindow()->GetClientHeight()
+				/ 2)
 		};
-		ClientToScreen(Window::GetWindowHandle(), &centerCursorPos); // クライアント座標をスクリーン座標に変換
+		ClientToScreen(WindowManager::GetMainWindow()->GetWindowHandle(),
+		               &centerCursorPos); // クライアント座標をスクリーン座標に変換
 		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
 
 		firstReset = false; // 初回リセット完了
@@ -162,10 +175,10 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
 	if (bOpenPopup) {
 		// ビューポートのサイズと位置を取得
-		ImGuiViewport* viewport = ImGui::GetMainViewport();
-		ImVec2 viewportPos = viewport->Pos;
-		ImVec2 viewportSize = viewport->Size;
-		auto windowSize = ImVec2(256.0f, 32.0f);
+		ImGuiViewport* viewport     = ImGui::GetMainViewport();
+		ImVec2         viewportPos  = viewport->Pos;
+		ImVec2         viewportSize = viewport->Size;
+		auto           windowSize   = ImVec2(256.0f, 32.0f);
 
 		// ウィンドウの中央下部位置を計算
 		ImVec2 windowPos(
@@ -199,14 +212,18 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 		ImGui::SetCursorPos(
 			ImVec2(
-				(windowSize.x - ImGui::CalcTextSize((StrUtils::ConvertToUtf8(0xe9e4) + std::format(" {:.2f}", moveSpd)).c_str()).x) * 0.5f,
+				(windowSize.x - ImGui::CalcTextSize(
+					(StrUtil::ConvertToUtf8(0xe9e4) + std::format(
+						" {:.2f}", moveSpd)).c_str()).x) * 0.5f,
 				(windowSize.y - ImGui::GetFontSize()) * 0.5f
 			)
 		);
-		ImGui::Text((StrUtils::ConvertToUtf8(0xe9e4) + " %.2f").c_str(), moveSpd);
+		ImGui::Text((StrUtil::ConvertToUtf8(0xe9e4) + " %.2f").c_str(),
+		            moveSpd);
 
 		// 一定時間経過後にポップアップをフェードアウトして閉じる
-		popupTimer += EngineTimer::GetDeltaTime(); // ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
+		popupTimer += EngineTimer::GetDeltaTime();
+		// ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
 		if (popupTimer >= 3.0f) {
 			ImGui::CloseCurrentPopup();
 			bOpenPopup = false;
@@ -217,45 +234,45 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		ImGui::PopStyleVar();
 	}
 
-	cameraEntity_->Update(deltaTime);
+	//cameraEntity_->Update(deltaTime);
 
-#endif
-
-#ifdef _DEBUG
 	ImGui::ShowDemoWindow();
-
-	if (ImGui::BeginMainMenuBar()) {
-		if (ImGui::BeginMenu("File")) {
-			ImGui::EndMenu();
-		}
-		if (ImGui::BeginMenu("Edit")) {
-			if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
-			if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
-			ImGui::Separator();
-			if (ImGui::MenuItem("Cut", "CTRL+X")) {}
-			if (ImGui::MenuItem("Copy", "CTRL+C")) {}
-			if (ImGui::MenuItem("Paste", "CTRL+V")) {}
-			ImGui::EndMenu();
-		}
-		ImGui::EndMainMenuBar();
-	}
 
 	// アウトライナウィンドウの開始
 	if (ImGui::Begin("Outliner")) {
+		if (ImGui::Button("Add Entity")) {
+			scene_->AddEntity(
+				new Entity("New Entity"));
+		}
+
 		// テーブルの開始
-		if (ImGui::BeginTable("OutlinerTable", 3,
+		if (ImGui::BeginTable(
+			"OutlinerTable", 3,
 			ImGuiTableFlags_NoBordersInBody |
 			ImGuiTableFlags_SizingFixedFit |
-			ImGuiTableFlags_RowBg)
-			) {
-
+			ImGuiTableFlags_RowBg
+		)) {
 			// カラムの設定
-			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide | ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed, 30.0f);
-			ImGui::TableSetupColumn("Active", ImGuiTableColumnFlags_WidthFixed, 30.0f);
+			ImGui::TableSetupColumn(
+				"Name",
+				ImGuiTableColumnFlags_NoHide |
+				ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed,
+			                        30.0f);
+			ImGui::TableSetupColumn("Active", ImGuiTableColumnFlags_WidthFixed,
+			                        30.0f);
 
 			// 再帰的にエンティティを表示する関数
-			std::function<void(Entity*)> drawEntityNode = [&](Entity* entity) {
+			std::function<void(Entity*)> drawEntityNode =
+				[&](Entity* entity) {
+				if (!entity) {
+					return;
+				}
+
+				if (entity->GetName().empty()) {
+					return;
+				}
+
 				ImGui::PushID(entity);
 
 				ImGui::TableNextRow();
@@ -275,34 +292,80 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				}
 
 				ImGui::AlignTextToFramePadding();
-				bool nodeOpen = ImGui::TreeNodeEx(entity->GetName().c_str(), flags);
+				bool nodeOpen = ImGui::TreeNodeEx(
+					(StrUtil::ConvertToUtf8(kIconObject) +
+						" " +
+						entity->GetName())
+					.c_str(),
+					flags
+				);
 
-				if (ImGui::IsItemClicked()) {
+				// 左クリックで選択
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
 					selectedEntity_ = entity;
 				}
+
+				// 右クリックでコンテキストメニュー
+				if (ImGui::BeginPopupContextItem("EntityContextMenu")) {
+					if (entity != cameraEntity_.get()) {
+						// エディタカメラは削除不可
+						if (ImGui::MenuItem("Delete")) {
+							if (auto currentScene = sceneManager_.
+								GetCurrentScene()) {
+								// SceneクラスにRemoveEntityメソッドが実装されていると仮定
+								currentScene->RemoveEntity(entity);
+								if (selectedEntity_ == entity) {
+									selectedEntity_ = nullptr; // 選択を解除
+								}
+								ImGui::EndPopup(); // ポップアップを閉じる
+
+								// TreeNodeExが開かれていた場合、TreePopを呼び出してバランスを取る
+								if (nodeOpen) {
+									ImGui::TreePop();
+								}
+								ImGui::PopID();
+								// ImGui::PushID(entity) でプッシュしたIDをポップ
+								return; // 早期リターン
+							}
+						}
+					} else {
+						ImGui::TextDisabled("Cannot delete editor camera");
+					}
+					ImGui::EndPopup();
+				}
+
 
 				// Visible アイコン
 				ImGui::TableNextColumn();
 				bool visible = entity->IsVisible();
 
 				// アイコンのサイズを一時的に変更
-				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));  // アイコン間のスペースを調整
-				float originalScale = ImGui::GetFont()->Scale;
-				ImGui::GetFont()->Scale = 1.2f;  // スケールを1.2倍に
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+				// アイコン間のスペースを調整
+				float originalScale     = ImGui::GetFont()->Scale;
+				ImGui::GetFont()->Scale = 1.2f; // スケールを1.2倍に
 				ImGui::PushFont(ImGui::GetFont());
 
-				ImGui::PushStyleColor(ImGuiCol_Text, visible ?
-					ImGui::GetStyleColorVec4(ImGuiCol_Text) :
-					ImVec4(0.5f, 0.5f, 0.5f, 0.5f));
+				ImGui::PushStyleColor(
+					ImGuiCol_Text,
+					visible
+						? ImGui::GetStyleColorVec4(ImGuiCol_Text)
+						: ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
+				);
 
 				// アイコンを中央に配置
-				float iconWidth = ImGui::CalcTextSize(StrUtils::ConvertToUtf8(kIconVisibility).c_str()).x;
+				float iconWidth = ImGui::CalcTextSize(
+					StrUtil::ConvertToUtf8(kIconVisibility).c_str()).x;
 				float columnWidth = ImGui::GetColumnWidth();
-				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (columnWidth - iconWidth) * 0.5f);
+				ImGui::SetCursorPosX(
+					ImGui::GetCursorPosX() + (columnWidth - iconWidth) * 0.5f);
 
-				if (ImGui::Selectable(StrUtils::ConvertToUtf8(visible ?
-					kIconVisibility : kIconVisibilityOff).c_str(), false,
-					ImGuiSelectableFlags_DontClosePopups)) {
+				if (ImGui::Selectable(
+					StrUtil::ConvertToUtf8(
+						visible ? kIconVisibility : kIconVisibilityOff
+					).c_str(), false,
+					ImGuiSelectableFlags_DontClosePopups
+				)) {
 					entity->SetVisible(!visible);
 				}
 
@@ -320,23 +383,48 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				}
 
 				if (nodeOpen) {
-					for (auto& child : entity->GetChildren()) {
-						drawEntityNode(child);
+					// 子エンティティを処理する前に、現在のエンティティが削除されていないか確認
+					// (上記の削除処理でreturnしているため、基本的にはここは通らないはずだが念のため)
+					bool entityStillExists = false;
+					if (auto currentScene = sceneManager_.GetCurrentScene()) {
+						for (const auto& e : currentScene->GetEntities()) {
+							if (e == entity) {
+								entityStillExists = true;
+								break;
+							}
+						}
+					}
+
+					if (entityStillExists) {
+						// GetChildren() が返すコンテナのコピーに対してループする方が安全な場合がある
+						// ここでは元の実装に従う
+						auto children = entity->GetChildren();
+						// コピーを取得する方が安全かもしれない
+						for (auto& child : children) {
+							// childが削除される可能性も考慮すると、さらに堅牢なイテレーションが必要
+							drawEntityNode(child);
+						}
 					}
 					ImGui::TreePop();
 				}
-
 				ImGui::PopID();
-				};
+			};
 
 			// ルートエンティティから開始
-			auto entities = scene_->GetEntities();
-			for (auto& entity : entities) {
-				if (entity->GetParent() == nullptr) {
-					drawEntityNode(entity);
+			// シーンからエンティティリストを取得する際、削除操作中にイテレータが無効になることを避けるため、
+			// リストのコピーに対して操作を行うか、削除を遅延させるなどの対策が必要になる場合がある。
+			// ここではGetCurrentScene()->GetEntities()が安全なコピーまたは参照を返すと仮定する。
+			if (scene_) {
+				// scene_が有効か確認
+				auto entities = scene_->GetEntities();
+				// 削除操作があるため、コピーを取得することを検討
+				for (auto& entity : entities) {
+					if (entity && entity->GetParent() == nullptr) {
+						// entityがnullでないことも確認
+						drawEntityNode(entity);
+					}
 				}
 			}
-
 			ImGui::EndTable();
 		}
 	}
@@ -386,7 +474,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			selectedEntity_->GetTransform()->DrawInspectorImGui();
 
 			// コンポーネントの一覧表示と編集
-			const auto& components = selectedEntity_->GetComponents<Component>();
+			const auto& components = selectedEntity_->GetComponents<
+				Component>();
 			for (const auto& component : components) {
 				if (component) {
 					component->DrawInspectorImGui();
@@ -396,24 +485,104 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	}
 	ImGui::End();
 
-
 	if (ImGui::Begin("World Settings")) {
 		ImGui::Text("Grid Size");
-		ImGui::SliderFloat("##GridSize", &gridSize_, 0.125f, 64.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+		ImGui::SliderFloat("##GridSize", &gridSize_, 0.125f, 64.0f, "%.3f",
+		                   ImGuiSliderFlags_Logarithmic);
 		ImGui::Text("Grid Range");
-		ImGui::SliderFloat("##GridRange", &gridRange_, 128.0f, 16384.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+		ImGui::SliderFloat("##GridRange", &gridRange_, 128.0f, 16384.0f, "%.3f",
+		                   ImGuiSliderFlags_Logarithmic);
 	}
 	ImGui::End();
+
+	Vec2 vLT   = Engine::GetViewportLT();
+	Vec2 vSize = Engine::GetViewportSize();
+	ImGuizmo::SetRect(
+		vLT.x, vLT.y,
+		vSize.x, vSize.y
+	);
+
+	auto camera = CameraManager::GetActiveCamera();
+	Mat4 view   = camera->GetViewMat();
+	Mat4 proj   = camera->GetProjMat();
+
+	if (selectedEntity_) {
+		Mat4 worldMat = selectedEntity_->GetTransform()->GetLocalMat();
+
+		static ImGuizmo::MODE      mode      = ImGuizmo::MODE::LOCAL;
+		static ImGuizmo::OPERATION operation = ImGuizmo::OPERATION::TRANSLATE;
+
+		static bool bIsWorldMode = true;
+		if (InputSystem::IsTriggered("toggleGizmo")) {
+			bIsWorldMode = !bIsWorldMode;
+		}
+
+		if (bIsWorldMode) {
+			mode = ImGuizmo::MODE::WORLD;
+		} else {
+			mode = ImGuizmo::MODE::LOCAL;
+		}
+
+		auto snapValue = Vec3(gridSize_, gridSize_, gridSize_);
+
+		if (InputSystem::IsTriggered("bounds")) {
+			operation = ImGuizmo::OPERATION::BOUNDS;
+		}
+
+		if (InputSystem::IsTriggered("translate")) {
+			operation = ImGuizmo::OPERATION::TRANSLATE;
+			snapValue = Math::HtoM(Vec3(gridSize_, gridSize_, gridSize_));
+		}
+		if (InputSystem::IsTriggered("rotate")) {
+			operation = ImGuizmo::OPERATION::ROTATE;
+			snapValue = {
+				angleSnap_ * Math::deg2Rad,
+				angleSnap_ * Math::deg2Rad,
+				angleSnap_ * Math::deg2Rad
+			}; // ラジアンに変換
+		}
+		if (InputSystem::IsTriggered("scale")) {
+			operation = ImGuizmo::OPERATION::SCALE;
+			snapValue = Math::HtoM(Vec3(gridSize_, gridSize_, gridSize_));
+		}
+
+		bIsManipulating_ = ImGuizmo::Manipulate(
+			*view.m,
+			*proj.m,
+			operation,
+			mode,
+			*worldMat.m,
+			nullptr,
+			&snapValue.x
+		);
+
+		if (bIsManipulating_) {
+			selectedEntity_->GetTransform()->SetLocalPos(
+				worldMat.GetTranslate()
+			);
+			selectedEntity_->GetTransform()->SetLocalRot(
+				Quaternion::Euler(worldMat.GetRotate()).Inverse()
+			);
+			selectedEntity_->GetTransform()->SetLocalScale(
+				worldMat.GetScale()
+			);
+		}
+	}
+
+
 #endif
 
 #ifdef _DEBUG
-	auto viewport = static_cast<ImGuiViewportP*>(static_cast<void*>(ImGui::GetMainViewport()));
-	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings |
+	auto viewport = static_cast<ImGuiViewportP*>(static_cast<void*>(
+		ImGui::GetMainViewport()));
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar |
+		ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_MenuBar;
 
 	ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.0f);
 
-	if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down, 38, window_flags)) {
+	if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down,
+	                                38, window_flags)) {
 		if (ImGui::BeginMenuBar()) {
 			ImGui::PopStyleVar();
 
@@ -423,17 +592,18 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			// アングルスナップ
 			{
 				const float windowHeight = ImGui::GetWindowSize().y;
-				const char* items[] = {
-					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°", "22.5°", "30°", "45°", "90°"
+				const char* items[]      = {
+					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°",
+					"22.5°", "30°", "45°", "90°"
 				};
-				static int itemCurrentIndex = 6;
-				const char* comboLabel = items[itemCurrentIndex];
+				static int  itemCurrentIndex = 6;
+				const char* comboLabel       = items[itemCurrentIndex];
 
 				ImGui::Text("Angle: ");
 
 				// 垂直中央に配置
 				float comboHeight = ImGui::GetFrameHeight();
-				float offsetY = (windowHeight - comboHeight) * 0.5f;
+				float offsetY     = (windowHeight - comboHeight) * 0.5f;
 				ImGui::SetCursorPosY(offsetY);
 
 				// コンボボックスの幅をステータスバーの幅に合わせて調整
@@ -443,6 +613,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 						const bool isSelected = (itemCurrentIndex == n);
 						if (ImGui::Selectable(items[n], isSelected)) {
 							itemCurrentIndex = n;
+							angleSnap_       = std::stof(
+								items[itemCurrentIndex]);
 						}
 						if (isSelected) {
 							ImGui::SetItemDefaultFocus();
@@ -456,22 +628,29 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			// グリッドスナップ
 			{
 				const float windowHeight = ImGui::GetWindowSize().y;
-				const char* items[] = { "0.125", "0.25", "0.5", "1", "2", "4", "8", "16", "32", "64", "128", "256", "512" };
-				static int itemCurrentIndex = 2;
-				const char* comboLabel = items[itemCurrentIndex];
+				const char* items[]      = {
+					"0.125", "0.25", "0.5", "1", "2", "4", "8", "16", "32",
+					"64", "128", "256", "512"
+				};
+				static int  itemCurrentIndex = 9;
+				const char* comboLabel       = items[itemCurrentIndex];
 				ImGui::Text("Grid: ");
 				// 垂直中央に配置
 				float comboHeight = ImGui::GetFrameHeight();
-				float offsetY = (windowHeight - comboHeight) * 0.5f;
+				float offsetY     = (windowHeight - comboHeight) * 0.5f;
 				ImGui::SetCursorPosY(offsetY);
 
 				// コンボボックスの幅をステータスバーの幅に合わせて調整
 				ImGui::PushItemWidth(statusBarWidth * 0.2f);
+				ImGui::PushID("GridCombo"); // IDの衝突を避けるためにプッシュ
+
 				if (ImGui::BeginCombo("##grid", comboLabel)) {
 					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
 						const bool isSelected = (itemCurrentIndex == n);
 						if (ImGui::Selectable(items[n], isSelected)) {
 							itemCurrentIndex = n;
+							// 選択された文字列を浮動小数点数に変換してgridSize_に設定
+							gridSize_ = std::stof(items[itemCurrentIndex]);
 						}
 						if (isSelected) {
 							ImGui::SetItemDefaultFocus();
@@ -479,6 +658,20 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 					}
 					ImGui::EndCombo();
 				}
+
+				// コンボボックスにマウスオーバーしている時にホイールで操作
+				if (ImGui::IsItemHovered()) {
+					float wheel = ImGui::GetIO().MouseWheel;
+					if (wheel != 0.0f) {
+						itemCurrentIndex -= static_cast<int>(wheel);
+						itemCurrentIndex = std::clamp(
+							itemCurrentIndex, 0, IM_ARRAYSIZE(items) - 1);
+						// 選択された文字列を浮動小数点数に変換してgridSize_に設定
+						gridSize_ = std::stof(items[itemCurrentIndex]);
+					}
+				}
+
+				ImGui::PopID();
 				ImGui::PopItemWidth();
 			}
 
@@ -488,86 +681,262 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	}
 #endif
 
-	if (auto currentScene = sceneManager_.GetCurrentScene()) {
-		currentScene->Update(EngineTimer::GetDeltaTime());
-	}
+	// グリッドの表示
+	DrawGrid(
+		gridSize_,
+		gridRange_,
+		{0.28f, 0.28f, 0.28f, 1.0f},
+		{0.39f, 0.2f, 0.02f, 1.0f},
+		{0.0f, 0.39f, 0.39f, 1.0f},
+		{0.39f, 0.39f, 0.39f, 1.0f},
+		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
+		gridSize_ * 32.0f
+	);
 }
 
 void Editor::Render() const {
 	if (auto currentScene = sceneManager_.GetCurrentScene()) {
 		currentScene->Render();
+		cameraEntity_->Render(Engine::GetRenderer()->GetCommandList());
 	}
+}
+
+void Editor::ShowDockSpace() {
+	static bool* p_open;
+
+	// READ THIS !!!
+	// TL;DR; this demo is more complicated than what most users you would normally use.
+	// If we remove all options we are showcasing, this demo would become:
+	//     void ShowExampleAppDockSpace()
+	//     {
+	//         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+	//     }
+	// In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
+	// In this specific demo, we are not using DockSpaceOverViewport() because:
+	// - (1) we allow the host window to be floating/moveable instead of filling the viewport (when opt_fullscreen == false)
+	// - (2) we allow the host window to have padding (when opt_padding == true)
+	// - (3) we expose many flags and need a way to have them visible.
+	// - (4) we have a local menu bar in the host window (vs. you could use BeginMainMenuBar() + DockSpaceOverViewport()
+	//      in your code, but we don't here because we allow the window to be floating)
+
+	static bool               opt_fullscreen  = true;
+	static bool               opt_padding     = false;
+	static ImGuiDockNodeFlags dockspace_flags =
+		ImGuiDockNodeFlags_PassthruCentralNode;
+
+	// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+	// because it would be confusing to have two docking targets within each others.
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar |
+		ImGuiWindowFlags_NoDocking;
+	if (opt_fullscreen) {
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->WorkPos);
+		ImGui::SetNextWindowSize(viewport->WorkSize);
+		ImGui::SetNextWindowViewport(viewport->ID);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		window_flags |= ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove;
+		window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus |
+			ImGuiWindowFlags_NoNavFocus;
+	} else {
+		dockspace_flags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
+	}
+
+	// When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
+	// and handle the pass-thru hole, so we ask Begin() to not render a background.
+	if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+		window_flags |= ImGuiWindowFlags_NoBackground;
+
+	// Important: note that we proceed even if Begin() returns false (aka window is collapsed).
+	// This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
+	// all active windows docked into it will lose their parent and become undocked.
+	// We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
+	// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+	if (!opt_padding)
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	ImGui::Begin("DockSpace Demo", p_open, window_flags);
+	if (!opt_padding)
+		ImGui::PopStyleVar();
+
+	if (opt_fullscreen)
+		ImGui::PopStyleVar(2);
+
+	// Submit the DockSpace
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+		ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+	}
+
+	if (ImGui::BeginMenuBar()) {
+		// if (ImGui::BeginMenu("File")) {
+		// 	ImGui::EndMenu();
+		// }
+		// if (ImGui::BeginMenu("Edit")) {
+		// 	if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+		// 	if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+		// 	ImGui::Separator();
+		// 	if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+		// 	if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+		// 	if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+		// 	ImGui::EndMenu();
+		// }
+
+		if (ImGui::BeginMenu("Options")) {
+			// Disabling fullscreen would allow the window to be moved to the front of other windows,
+			// which we can't undo at the moment without finer window depth/z control.
+			ImGui::MenuItem("Fullscreen", nullptr, &opt_fullscreen);
+			ImGui::MenuItem("Padding", nullptr, &opt_padding);
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Flag: NoDockingOverCentralNode", "",
+			                    (dockspace_flags &
+				                    ImGuiDockNodeFlags_NoDockingOverCentralNode)
+			                    != 0)) {
+				dockspace_flags ^= ImGuiDockNodeFlags_NoDockingOverCentralNode;
+			}
+			if (ImGui::MenuItem("Flag: NoDockingSplit", "",
+			                    (dockspace_flags &
+				                    ImGuiDockNodeFlags_NoDockingSplit) != 0)) {
+				dockspace_flags ^= ImGuiDockNodeFlags_NoDockingSplit;
+			}
+			if (ImGui::MenuItem("Flag: NoUndocking", "",
+			                    (dockspace_flags &
+				                    ImGuiDockNodeFlags_NoUndocking) != 0)) {
+				dockspace_flags ^= ImGuiDockNodeFlags_NoUndocking;
+			}
+			if (ImGui::MenuItem("Flag: NoResize", "",
+			                    (dockspace_flags & ImGuiDockNodeFlags_NoResize)
+			                    != 0)) {
+				dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
+			}
+			if (ImGui::MenuItem("Flag: AutoHideTabBar", "",
+			                    (dockspace_flags &
+				                    ImGuiDockNodeFlags_AutoHideTabBar) != 0)) {
+				dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
+			}
+			if (ImGui::MenuItem("Flag: PassthruCentralNode", "",
+			                    (dockspace_flags &
+				                    ImGuiDockNodeFlags_PassthruCentralNode) !=
+			                    0, opt_fullscreen)) {
+				dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
+			}
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Close", nullptr, false, p_open != nullptr)) {
+				*p_open = false;
+			}
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMenuBar();
+	}
+
+	ImGui::End();
 }
 
 void Editor::DrawGrid(
-	const float gridSize, const float range, const Vec4& color, const Vec4& majorColor,
-	const Vec4& axisColor, const Vec4& minorColor, const Vec3& cameraPosition, const float drawRadius
+	const float gridSize, const float range, const Vec4& color,
+	const Vec4& majorColor,
+	const Vec4& axisColor, const Vec4& minorColor, const Vec3& cameraPosition,
+	const float drawRadius
 ) {
-	constexpr float majorInterval = 1024.0f;
 	const float minorInterval = gridSize * 8.0f;
 
-	// Squared radius for performance
+	// 描画範囲の二乗を事前計算
 	const float drawRadiusSq = drawRadius * drawRadius;
 
-	// Draw vertical grid lines (along X-axis)
-	for (float x = -range; x <= range; x += gridSize) {
-		Vec4 lineColor = color;
+	// カメラ位置のXとZを事前に取得
+	const float cameraPosX = cameraPosition.x;
+	const float cameraPosZ = cameraPosition.z;
 
-		if (fmod(x, majorInterval) == 0) {
-			lineColor = majorColor;  // 主要なグリッド線
-		} else if (fmod(x, minorInterval) == 0) {
-			lineColor = minorColor; // 細かいグリッド線
-		}
+	// 範囲内のグリッドラインを計算
+	const int   numLines = static_cast<int>((range * 2) / gridSize) + 1;
+	const float startX   = -range;
+	const float startZ   = -range;
 
-		if (x == 0) {
-			lineColor = axisColor;  // 軸線
-		}
+	for (int i = 0; i < numLines; ++i) {
+		constexpr float majorInterval = 1024.0f;
+		float           x             = startX + i * gridSize;
+		float           z             = startZ + i * gridSize;
 
-		if (fmod(x, majorInterval) == 0 || x == 0) {
-			// 主要線・軸線は常に最大範囲で描画
-			Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range), lineColor);
-		} else {
-			// 細かいグリッド線は円形範囲内のみ描画
-			float distToLineSq = powf(cameraPosition.x - x, 2);
-			if (distToLineSq <= drawRadiusSq) {
-				float maxZ = sqrt(drawRadiusSq - distToLineSq);
-				Debug::DrawLine(
-					Vec3(x, 0, cameraPosition.z - maxZ),
-					Vec3(x, 0, cameraPosition.z + maxZ),
-					lineColor
-				);
+		// 垂直線（X軸に沿った線）の描画
+		{
+			Vec4 lineColor = color;
+
+			if (std::fmod(x, majorInterval) == 0.0f) {
+				lineColor = majorColor; // 主要なグリッド線
+			} else if (std::fmod(x, minorInterval) == 0.0f) {
+				lineColor = minorColor; // 細かいグリッド線
+			}
+
+			if (x == 0.0f) {
+				lineColor = axisColor; // 軸線
+			}
+
+			if (std::fmod(x, majorInterval) == 0.0f || x == 0.0f) {
+				// 主要線・軸線は常に最大範囲で描画
+				Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range),
+				                lineColor);
+			} else {
+				// 細かいグリッド線は円形範囲内のみ描画
+				float distToLineSq = (cameraPosX - x) * (cameraPosX - x);
+				if (distToLineSq <= drawRadiusSq) {
+					float maxZ = std::sqrt(drawRadiusSq - distToLineSq);
+					Debug::DrawLine(
+						Vec3(x, 0, cameraPosZ - maxZ),
+						Vec3(x, 0, cameraPosZ + maxZ),
+						lineColor
+					);
+				}
 			}
 		}
-	}
 
-	// Draw horizontal grid lines (along Z-axis)
-	for (float z = -range; z <= range; z += gridSize) {
-		Vec4 lineColor = color;
+		// 水平線（Z軸に沿った線）の描画
+		{
+			Vec4 lineColor = color;
 
-		if (fmod(z, majorInterval) == 0) {
-			lineColor = majorColor;  // 主要なグリッド線
-		} else if (fmod(z, minorInterval) == 0) {
-			lineColor = minorColor; // 細かいグリッド線
-		}
+			if (std::fmod(z, majorInterval) == 0.0f) {
+				lineColor = majorColor; // 主要なグリッド線
+			} else if (std::fmod(z, minorInterval) == 0.0f) {
+				lineColor = minorColor; // 細かいグリッド線
+			}
 
-		if (z == 0) {
-			lineColor = axisColor;  // 軸線
-		}
+			if (z == 0.0f) {
+				lineColor = axisColor; // 軸線
+			}
 
-		if (fmod(z, majorInterval) == 0 || z == 0) {
-			// 主要線・軸線は常に最大範囲で描画
-			Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z), lineColor);
-		} else {
-			// 細かいグリッド線は円形範囲内のみ描画
-			float distToLineSq = powf(cameraPosition.z - z, 2);
-			if (distToLineSq <= drawRadiusSq) {
-				float maxX = sqrt(drawRadiusSq - distToLineSq);
-				Debug::DrawLine(
-					Vec3(cameraPosition.x - maxX, 0, z),
-					Vec3(cameraPosition.x + maxX, 0, z),
-					lineColor
-				);
+			if (std::fmod(z, majorInterval) == 0.0f || z == 0.0f) {
+				// 主要線・軸線は常に最大範囲で描画
+				Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z),
+				                lineColor);
+			} else {
+				// 細かいグリッド線は円形範囲内のみ描画
+				float distToLineSq = (cameraPosZ - z) * (cameraPosZ - z);
+				if (distToLineSq <= drawRadiusSq) {
+					float maxX = std::sqrt(drawRadiusSq - distToLineSq);
+					Debug::DrawLine(
+						Vec3(cameraPosX - maxX, 0, z),
+						Vec3(cameraPosX + maxX, 0, z),
+						lineColor
+					);
+				}
 			}
 		}
 	}
 }
+
+float Editor::RoundToNearestPowerOfTwo(const float value) {
+	float lowerPowerOfTwo = std::pow(2.0f, std::floor(std::log2(value)));
+	float upperPowerOfTwo = std::pow(2.0f, std::ceil(std::log2(value)));
+
+	if (value - lowerPowerOfTwo < upperPowerOfTwo - value) {
+		return lowerPowerOfTwo;
+	}
+	return upperPowerOfTwo;
+}
+
+bool Editor::bIsManipulating_ = false;

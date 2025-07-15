@@ -3,7 +3,7 @@
 #include <Physics/PhysicsEngine.h>
 
 std::vector<HitResult> ColliderComponent::BoxCast(
-	const Vec3& start, const Vec3& direction, float distance, const Vec3& halfSize
+	const Vec3& start, const Vec3& direction, const float distance, const Vec3& halfSize
 ) const {
 	if (physicsEngine_) {
 		return physicsEngine_->BoxCast(start, direction, distance, halfSize);
@@ -11,8 +11,25 @@ std::vector<HitResult> ColliderComponent::BoxCast(
 
 	Console::Print(
 		"PhysicsEngineがnullptrです\n",
-		kConsoleColorError,
+		kConTextColorError,
 		Channel::Physics
 	);
 	return {};
+}
+
+std::vector<HitResult> ColliderComponent::RayCast(const Vec3& start, const Vec3& direction, float distance) const {
+	if (physicsEngine_) {
+		return physicsEngine_->RayCast(start, direction, distance);
+	}
+
+	Console::Print(
+		"PhysicsEngineがnullptrです\n",
+		kConTextColorError,
+		Channel::Physics
+	);
+	return {};
+}
+
+PhysicsEngine* ColliderComponent::GetPhysicsEngine() const {
+	return physicsEngine_;
 }
