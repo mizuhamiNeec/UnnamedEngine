@@ -13,25 +13,25 @@
 #endif
 
 void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, const std::string& fileName) {
-	this->modelCommon_ = modelCommon;
+	this->mModelCommon = modelCommon;
 
-	modelData_ = LoadObjFile(directoryPath, fileName);
+	mModelData = LoadObjFile(directoryPath, fileName);
 
 	// 頂点バッファ modelData_を突っ込む
-	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(
-		modelCommon_->GetD3D12()->GetDevice(),
-		sizeof(Vertex) * modelData_.vertices.size(),
-		modelData_.vertices.data()
+	mVertexBuffer = std::make_unique<VertexBuffer<Vertex>>(
+		mModelCommon->GetD3D12()->GetDevice(),
+		sizeof(Vertex) * mModelData.vertices.size(),
+		mModelData.vertices.data()
 	);
 
 	// マテリアル定数バッファ
-	materialConstantBuffer_ = std::make_unique<ConstantBuffer>(modelCommon_->GetD3D12()->GetDevice(), sizeof(Material), "ModelMaterial");
-	materialData_ = materialConstantBuffer_->GetPtr<Material>();
-	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
-	materialData_->enableLighting = true;
-	materialData_->uvTransform = Mat4::identity;
-	materialData_->shininess = 128.0f;
-	materialData_->specularColor = Vec3(0.25f, 0.25f, 0.25f); // 灰色
+	mMaterialConstantBuffer = std::make_unique<ConstantBuffer>(mModelCommon->GetD3D12()->GetDevice(), sizeof(Material), "ModelMaterial");
+	mMaterialData = mMaterialConstantBuffer->GetPtr<Material>();
+	mMaterialData->color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
+	mMaterialData->enableLighting = true;
+	mMaterialData->uvTransform = Mat4::identity;
+	mMaterialData->shininess = 128.0f;
+	mMaterialData->specularColor = Vec3(0.25f, 0.25f, 0.25f); // 灰色
 
 	//// テクスチャのファイルパスが空ではなかったら
 	//if (!modelData_.material.textureFilePath.empty()) {
@@ -47,10 +47,10 @@ void Model::Init(ModelCommon* modelCommon, const std::string& directoryPath, con
 void Model::ImGuiDraw() const {
 #ifdef _DEBUG
 	if (ImGui::Begin("Material Editor")) {
-		ImGui::ColorEdit4("Color", &materialData_->color.x); // 色の編集
-		ImGui::DragInt("Enable Lighting", &materialData_->enableLighting, 1, 0, 1); // ライティングの有効化
-		ImGui::SliderFloat("Shininess", &materialData_->shininess, 0.0f, 128.0f); // シャイニネスの編集
-		ImGui::ColorEdit3("Specular Color", &materialData_->specularColor.x); // スペキュラカラーの編集
+		ImGui::ColorEdit4("Color", &mMaterialData->color.x); // 色の編集
+		ImGui::DragInt("Enable Lighting", &mMaterialData->enableLighting, 1, 0, 1); // ライティングの有効化
+		ImGui::SliderFloat("Shininess", &mMaterialData->shininess, 0.0f, 128.0f); // シャイニネスの編集
+		ImGui::ColorEdit3("Specular Color", &mMaterialData->specularColor.x); // スペキュラカラーの編集
 	}
 	ImGui::End();
 #endif
@@ -58,12 +58,12 @@ void Model::ImGuiDraw() const {
 
 void Model::Draw() const {
 	// VertexBufferViewを設定
-	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer_->View();
-	modelCommon_->GetD3D12()->GetCommandList()->IASetVertexBuffers(0, 1, &vbView);
+	D3D12_VERTEX_BUFFER_VIEW vbView = mVertexBuffer->View();
+	mModelCommon->GetD3D12()->GetCommandList()->IASetVertexBuffers(0, 1, &vbView);
 
 	// マテリアルの定数バッファの設定
-	modelCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
-		0, materialConstantBuffer_->GetAddress()
+	mModelCommon->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(
+		0, mMaterialConstantBuffer->GetAddress()
 	);
 
 	//// SRVのDescriptorTableの先頭を設定
@@ -72,7 +72,7 @@ void Model::Draw() const {
 	//);
 
 	// 描画
-	modelCommon_->GetD3D12()->GetCommandList()->DrawInstanced(static_cast<UINT>(modelData_.vertices.size()), 1, 0, 0);
+	mModelCommon->GetD3D12()->GetCommandList()->DrawInstanced(static_cast<UINT>(mModelData.vertices.size()), 1, 0, 0);
 }
 
 MaterialData Model::LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
