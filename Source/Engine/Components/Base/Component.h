@@ -2,7 +2,7 @@
 
 #include <d3d12.h>
 
-class TransformComponent;
+class SceneComponent;
 class Entity;
 
 //-----------------------------------------------------------------------------
@@ -31,5 +31,5 @@ public:
 
 protected:
 	Entity*             mOwner     = nullptr;
-	TransformComponent* mTransform = nullptr;
+	SceneComponent* mTransform = nullptr;
 };
