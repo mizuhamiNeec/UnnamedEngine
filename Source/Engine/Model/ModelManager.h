@@ -9,27 +9,24 @@ class Model;
 
 class ModelManager {
 public:
-	// シングルトンインスタンスの取得
 	static ModelManager* GetInstance();
+	
+	void                 Init(D3D12* d3d12);
+	static void          Shutdown();
 
-	// 初期化
-	void Init(D3D12* d3d12);
-	// 終了
-	static void Shutdown();
-
-	void LoadModel(const std::string& filePath);
-	Model* FindModel(const std::string& filePath) const;
+	void                 LoadModel(const std::string& filePath);
+	[[nodiscard]] Model* FindModel(const std::string& filePath) const;
 
 private:
-	static ModelManager* instance_;
+	static ModelManager* mInstance;
 
-	ModelCommon* modelCommon_ = nullptr;
+	ModelCommon* mModelCommon = nullptr;
 
 	// モデルデータ
-	std::map<std::string, std::unique_ptr<Model>> models_;
+	std::map<std::string, std::unique_ptr<Model>> mModels;
 
-	ModelManager() = default;
-	~ModelManager() = default;
-	ModelManager(ModelManager&) = delete;
+	ModelManager()                         = default;
+	~ModelManager()                        = default;
+	ModelManager(ModelManager&)            = delete;
 	ModelManager& operator=(ModelManager&) = delete;
 };
