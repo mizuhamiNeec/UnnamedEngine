@@ -21,10 +21,17 @@ void Component::OnDetach() {
 	this->mOwner = nullptr;
 }
 
+void Component::PrePhysics([[maybe_unused]] float deltaTime) {
+}
+
+void Component::PostPhysics([[maybe_unused]] float deltaTime) {
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 描画処理のあるコンポーネントはこの関数をオーバーライドします
 //-----------------------------------------------------------------------------
-void Component::Render([[maybe_unused]] ID3D12GraphicsCommandList* commandList) {
+void Component::Render(
+	[[maybe_unused]] ID3D12GraphicsCommandList* commandList) {
 }
 
 //-----------------------------------------------------------------------------
