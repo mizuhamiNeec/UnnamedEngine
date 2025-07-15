@@ -6,10 +6,9 @@
 #include <ResourceSystem/RootSignature/RootSignature2.h>
 #include <TextureManager/TexManager.h>
 
-#include "Renderer/ConstantBuffer.h"
+#include <Renderer/ConstantBuffer.h>
 
 struct MatParam;
-using Microsoft::WRL::ComPtr;
 
 class Texture;
 class Shader;
@@ -20,13 +19,14 @@ public:
 
 	void SetTexture(const std::string& name, const std::string& filePath);
 	void SetConstantBuffer(UINT shaderRegister, ID3D12Resource* buffer);
-	
-	// メッシュ名の設定・取得
-	void SetMeshName(const std::string& meshName);
-	std::string GetMeshName() const;
-	std::string GetFullName() const; // メッシュ名_マテリアル名 を返す
 
-	void Apply(ID3D12GraphicsCommandList* commandList, const std::string& meshName = "");
+	// メッシュ名の設定・取得
+	void                      SetMeshName(const std::string& meshName);
+	[[nodiscard]] std::string GetMeshName() const;
+	[[nodiscard]] std::string GetFullName() const; // メッシュ名_マテリアル名 を返す
+
+	void Apply(ID3D12GraphicsCommandList* commandList,
+	           const std::string&         meshName = "");
 
 	ID3D12PipelineState* GetOrCreatePipelineState(
 		ID3D12Device*                             device,
@@ -39,7 +39,7 @@ public:
 	void Shutdown();
 
 	[[nodiscard]] const std::string& GetName() const;
-	[[nodiscard]] Shader*            GetShader() const { return shader_; }
+	[[nodiscard]] Shader*            GetShader() const { return mShader; }
 	[[nodiscard]] const std::unordered_map<std::string, std::string>&
 	GetTextures() const;
 
@@ -47,16 +47,19 @@ private:
 	static std::string GenerateBufferKey(D3D12_SHADER_VISIBILITY visibility,
 	                                     UINT                    bindPoint);
 
-	std::string name_;   // マテリアルの名前
-	std::string meshName_; // 関連付けられたメッシュの名前
-	Shader*     shader_; // シェーダ
+	std::string mName;    // マテリアルの名前
+	std::string mEshName; // 関連付けられたメッシュの名前
+	Shader*     mShader;  // シェーダ
 
-	ComPtr<ID3D12PipelineState> pipelineState_; // キャッシュされたパイプラインステート
-	ComPtr<ID3D12RootSignature> rootSignature_; // キャッシュされたルートシグネチャ
-	std::unordered_map<std::string, std::string> textures_; // テクスチャ 名前とファイルパスのペア
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState;
+	// キャッシュされたパイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
+	// キャッシュされたルートシグネチャ
+	std::unordered_map<std::string, std::string> mTextures;
+	// テクスチャ 名前とファイルパスのペア
 
-	std::unordered_map<std::string, ID3D12Resource*> constantBuffers_;
+	std::unordered_map<std::string, ID3D12Resource*> mConstantBuffers;
 	// 定数バッファ キーはシェーダーステージ_レジスタ番号
 
-	RootSignature2 rootSignatureBuilder_;
+	RootSignature2 mRootSignatureBuilder;
 };

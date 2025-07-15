@@ -153,7 +153,7 @@ std::vector<int> StrUtil::ParseVersion(const std::string& version) {
 	std::string item;
 
 	while (std::getline(ss, item, '.')) {
-		result.push_back(std::stoi(item));
+		result.emplace_back(std::stoi(item));
 	}
 
 	return result;

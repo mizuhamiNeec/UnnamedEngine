@@ -8,7 +8,7 @@ void MeshColliderComponent::OnAttach(Entity& owner) {
 	ColliderComponent::OnAttach(owner);
 
 	if (auto* smr = mOwner->GetComponent<StaticMeshRenderer>()) {
-		meshRenderer_ = smr;
+		mEshRenderer = smr;
 		BuildTriangleList();
 	} else {
 		Console::Print(
@@ -25,9 +25,9 @@ void MeshColliderComponent::Update(float deltaTime) {
 
 void MeshColliderComponent::DrawInspectorImGui() {
 	if (ImGui::CollapsingHeader("MeshColliderComponent", ImGuiTreeNodeFlags_DefaultOpen)) {
-		if (meshRenderer_) {
-			ImGui::Text("StaticMeshRenderer: %s", meshRenderer_->GetStaticMesh()->GetName().c_str());
-			ImGui::Text("PolyCount: %d", meshRenderer_->GetStaticMesh()->GetPolygons().size());
+		if (mEshRenderer) {
+			ImGui::Text("StaticMeshRenderer: %s", mEshRenderer->GetStaticMesh()->GetName().c_str());
+			ImGui::Text("PolyCount: %d", mEshRenderer->GetStaticMesh()->GetPolygons().size());
 		} else {
 			ImGui::Text("StaticMeshRenderer: None");
 		}
@@ -36,7 +36,7 @@ void MeshColliderComponent::DrawInspectorImGui() {
 }
 
 AABB MeshColliderComponent::GetBoundingBox() const {
-	if (!meshRenderer_) {
+	if (!mEshRenderer) {
 		Console::Print(
 			mOwner->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
 			kConTextColorWarning,
@@ -44,7 +44,7 @@ AABB MeshColliderComponent::GetBoundingBox() const {
 		);
 		return AABB(Vec3::zero, Vec3::zero);
 	}
-	const auto& polygons = meshRenderer_->GetStaticMesh()->GetPolygons();
+	const auto& polygons = mEshRenderer->GetStaticMesh()->GetPolygons();
 	if (polygons.empty()) {
 		return AABB(Vec3::zero, Vec3::zero);
 	}
@@ -71,22 +71,22 @@ bool MeshColliderComponent::IsDynamic() {
 }
 
 std::vector<Triangle> MeshColliderComponent::GetTriangles() {
-	return triangles_;
+	return mTriangles;
 }
 
 StaticMesh* MeshColliderComponent::GetStaticMesh() const {
-	if (meshRenderer_) {
-		return meshRenderer_->GetStaticMesh();
+	if (mEshRenderer) {
+		return mEshRenderer->GetStaticMesh();
 	}
 	return nullptr;
 }
 
 void MeshColliderComponent::BuildTriangleList() {
-	auto* mesh = meshRenderer_->GetStaticMesh();
+	auto* mesh = mEshRenderer->GetStaticMesh();
 	if (!mesh) {
 		return;
 	}
 
-	triangles_.clear();
-	triangles_ = mesh->GetPolygons();
+	mTriangles.clear();
+	mTriangles = mesh->GetPolygons();
 }

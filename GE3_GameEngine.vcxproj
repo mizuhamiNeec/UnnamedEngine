@@ -162,9 +162,6 @@
     <ClCompile Include="Source\Engine\ResourceSystem\Shader\DefaultShader.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Shader\Shader.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Shader\ShaderManager.cpp" />
-    <ClCompile Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.cpp" />
-    <ClCompile Include="Source\Engine\ResourceSystem\Texture\Texture.cpp" />
-    <ClCompile Include="Source\Engine\ResourceSystem\Texture\TextureManager.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\ConCommand.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\Console.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\ConVar.cpp" />
@@ -187,8 +184,7 @@
     <ClCompile Include="Source\Engine\Lib\Math\Vector\Vec4.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleManager.cpp" />
     <ClCompile Include="Source\Engine\Particle\ParticleObject.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp" />
-    <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\Transform\SceneComponent.cpp" />
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp" />
     <ClCompile Include="Source\Engine\Assets\Asset\TextureAsset.cpp" />
     <ClCompile Include="Source\Engine\Window\WindowManager.cpp" />
@@ -239,7 +235,6 @@
     <ClCompile Include="Source\Engine\Renderer\IndexBuffer.cpp" />
     <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp" />
     <ClCompile Include="Source\Engine\Renderer\ConstantBuffer.cpp" />
-    <ClCompile Include="Source\Engine\Renderer\RootSignature.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_demo.cpp" />
     <ClCompile Include="Source\Externals\ImGui\imgui_draw.cpp" />
@@ -308,9 +303,6 @@
     <ClInclude Include="Source\Engine\ResourceSystem\Shader\DefaultShader.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Shader\Shader.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Shader\ShaderManager.h" />
-    <ClInclude Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.h" />
-    <ClInclude Include="Source\Engine\ResourceSystem\Texture\Texture.h" />
-    <ClInclude Include="Source\Engine\ResourceSystem\Texture\TextureManager.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\ConCommand.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\Console.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\ConVar.h" />
@@ -335,8 +327,7 @@
     <ClInclude Include="Source\Engine\Particle\ParticleEmitter.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleManager.h" />
     <ClInclude Include="Source\Engine\Particle\ParticleObject.h" />
-    <ClInclude Include="Source\Engine\Renderer\StructuredBuffer.h" />
-    <ClInclude Include="Source\Engine\Components\Transform\TransformComponent.h" />
+    <ClInclude Include="Source\Engine\Components\Transform\SceneComponent.h" />
     <ClInclude Include="Source\Engine\ImGuiManager\Icons.h" />
     <ClInclude Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.h" />
     <ClInclude Include="Source\Engine\Assets\Asset\TextureAsset.h" />
@@ -368,7 +359,6 @@
     <ClInclude Include="Source\Engine\Renderer\IndexBuffer.h" />
     <ClInclude Include="Source\Engine\Renderer\PipelineState.h" />
     <ClInclude Include="Source\Engine\Renderer\ConstantBuffer.h" />
-    <ClInclude Include="Source\Engine\Renderer\RootSignature.h" />
     <ClInclude Include="Source\Engine\Lib\Structs\Structs.h" />
     <ClInclude Include="Source\Externals\ImGui\imconfig.h" />
     <ClInclude Include="Source\Externals\ImGui\imgui.h" />

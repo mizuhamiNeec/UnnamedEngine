@@ -18,7 +18,7 @@ public:
 	virtual bool IsDynamic() = 0;
 
 	void SetPhysicsEngine(PhysicsEngine* physicsEngine) {
-		physicsEngine_ = physicsEngine;
+		mPhysicsEngine = physicsEngine;
 	}
 
 	[[nodiscard]] std::vector<HitResult> BoxCast(
@@ -37,5 +37,5 @@ public:
 	PhysicsEngine* GetPhysicsEngine() const;
 
 protected:
-	PhysicsEngine* physicsEngine_ = nullptr;
+	PhysicsEngine* mPhysicsEngine = nullptr;
 };

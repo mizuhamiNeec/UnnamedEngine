@@ -1,6 +1,6 @@
 #pragma once
 #include <Components/Base/Component.h>
-#include <Components/Transform/TransformComponent.h>
+#include <Components/Transform/SceneComponent.h>
 
 #include <Lib/Math/MathLib.h>
 #include <Lib/Math/Matrix/Mat4.h>
@@ -30,18 +30,16 @@ public:
 
 	float& GetAspectRatio();
 	void   SetAspectRatio(float newAspectRatio);
-	void SetViewMat(const Mat4& mat4);
+	void   SetViewMat(const Mat4& mat4);
 
 private:
-	TransformComponent* transform_ = nullptr;
+	float mFov         = 90.0f * Math::deg2Rad;
+	float mAspectRatio = 0.0f;
+	float mZNear       = 0x.1p1f;
+	float mZFar        = 0x61A8p0f;
 
-	float fov_         = 90.0f * Math::deg2Rad;
-	float aspectRatio_ = 0.0f;
-	float zNear_       = 0x.1p1f;
-	float zFar_        = 0x61A8p0f;
-
-	Mat4 worldMat_;
-	Mat4 viewMat_;
-	Mat4 projMat_;
-	Mat4 viewProjMat_;
+	Mat4 mWorldMat;
+	Mat4 mViewMat;
+	Mat4 mProjMat;
+	Mat4 mViewProjMat;
 };

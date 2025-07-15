@@ -5,12 +5,12 @@
 #include <string>
 #include <vector>
 
-#include "../Math/Matrix/Mat4.h"
-#include "../Math/Vector/Vec2.h"
-#include "../Math/Vector/Vec3.h"
-#include "../Math/Vector/Vec4.h"
+#include <Animation/Node.h>
 
-#include "Animation/Node.h"
+#include <Lib/Math/Matrix/Mat4.h>
+#include <Lib/Math/Vector/Vec2.h>
+#include <Lib/Math/Vector/Vec3.h>
+#include <Lib/Math/Vector/Vec4.h>
 
 struct Vertex {
 	Vec4 position; // 座標
@@ -26,10 +26,10 @@ private:
 
 // スキニング用の頂点構造体
 struct SkinnedVertex {
-	Vec4 position;    // 座標
-	Vec2 uv;          // テクスチャ座標
-	Vec3 normal;      // 法線
-	Vec4 boneWeights; // ボーンウェイト（最大4つ）
+	Vec4     position;       // 座標
+	Vec2     uv;             // テクスチャ座標
+	Vec3     normal;         // 法線
+	Vec4     boneWeights;    // ボーンウェイト（最大4つ）
 	uint32_t boneIndices[4]; // ボーンインデックス（最大4つ）
 
 	static const D3D12_INPUT_LAYOUT_DESC inputLayout;

@@ -24,25 +24,25 @@ PipelineState::PipelineState(
 	blendDesc.RenderTarget[0].RenderTargetWriteMask =
 		D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	rasterizerDesc.CullMode = cullMode; // 裏面(時計回り)を表示しない
-	rasterizerDesc.FillMode = fillMode; // 三角形の中を塗りつぶす
+	mRasterizerDesc.CullMode = cullMode; // 裏面(時計回り)を表示しない
+	mRasterizerDesc.FillMode = fillMode; // 三角形の中を塗りつぶす
 
 	// ステートの設定
-	desc_.BlendState = blendDesc; // BlendState
-	desc_.RasterizerState = rasterizerDesc; // RasterizerState
+	mDesc.BlendState = blendDesc; // BlendState
+	mDesc.RasterizerState = mRasterizerDesc; // RasterizerState
 	// 書き込むRTVの情報
-	desc_.NumRenderTargets = 1;
-	desc_.RTVFormats[0] = kBufferFormat;
+	mDesc.NumRenderTargets = 1;
+	mDesc.RTVFormats[0] = kBufferFormat;
 	// 利用するトポロジ(形状)のタイプ。三角形
-	desc_.PrimitiveTopologyType = topologyType;
+	mDesc.PrimitiveTopologyType = topologyType;
 	// どのように画面に色を打ち込むかの設定(気にしなくて良い)
-	desc_.SampleDesc.Count = 1;
-	desc_.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-	desc_.DepthStencilState = depthStencilDesc;
-	desc_.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+	mDesc.SampleDesc.Count = 1;
+	mDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+	mDesc.DepthStencilState = depthStencilDesc;
+	mDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
 	// DXCの初期化
-	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils_));
+	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&mDxcUtils));
 	if (FAILED(hr)) {
 		Console::Print(
 			"Failed to create DxcUtils instance\n", {
@@ -52,7 +52,7 @@ PipelineState::PipelineState(
 		return;
 	}
 
-	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler_));
+	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&mDxcCompiler));
 	if (FAILED(hr)) {
 		Console::Print(
 			"Failed to create DxcCompiler instance\n", {
@@ -62,7 +62,7 @@ PipelineState::PipelineState(
 		return;
 	}
 
-	hr = dxcUtils_->CreateDefaultIncludeHandler(&includeHandler_);
+	hr = mDxcUtils->CreateDefaultIncludeHandler(&mIncludeHandler);
 	if (FAILED(hr)) {
 		Console::Print(
 			"Failed to create default include handler\n", {
@@ -74,37 +74,37 @@ PipelineState::PipelineState(
 }
 
 void PipelineState::SetInputLayout(const D3D12_INPUT_LAYOUT_DESC layout) {
-	desc_.InputLayout = layout; // InputLayout
+	mDesc.InputLayout = layout; // InputLayout
 }
 
 void PipelineState::SetRootSignature(ID3D12RootSignature* rootSignature) {
-	desc_.pRootSignature = rootSignature; // RootSignature
+	mDesc.pRootSignature = rootSignature; // RootSignature
 }
 
-void PipelineState::SetVS(const std::wstring& filePath) {
-	vsBlob = CompileShader(
-		filePath, L"vs_6_0", dxcUtils_.Get(), dxcCompiler_.Get(),
-		includeHandler_.Get()
+void PipelineState::SetVertexShader(const std::wstring& filePath) {
+	mVsBlob = CompileShader(
+		filePath, L"vs_6_0", mDxcUtils.Get(), mDxcCompiler.Get(),
+		mIncludeHandler.Get()
 	);
-	assert(vsBlob != nullptr);
+	assert(mVsBlob != nullptr);
 
-	desc_.VS = {
-		.pShaderBytecode = vsBlob->GetBufferPointer(),
-		.BytecodeLength = vsBlob->
+	mDesc.VS = {
+		.pShaderBytecode = mVsBlob->GetBufferPointer(),
+		.BytecodeLength = mVsBlob->
 		GetBufferSize()
 	}; // VertexShader
 }
 
-void PipelineState::SetPS(const std::wstring& filePath) {
-	psBlob = CompileShader(
-		filePath, L"ps_6_0", dxcUtils_.Get(), dxcCompiler_.Get(),
-		includeHandler_.Get()
+void PipelineState::SetPixelShader(const std::wstring& filePath) {
+	mPsBlob = CompileShader(
+		filePath, L"ps_6_0", mDxcUtils.Get(), mDxcCompiler.Get(),
+		mIncludeHandler.Get()
 	);
-	assert(psBlob != nullptr);
+	assert(mPsBlob != nullptr);
 
-	desc_.PS = {
-		.pShaderBytecode = psBlob->GetBufferPointer(),
-		.BytecodeLength = psBlob->
+	mDesc.PS = {
+		.pShaderBytecode = mPsBlob->GetBufferPointer(),
+		.BytecodeLength = mPsBlob->
 		GetBufferSize()
 	}; // PixelShader
 }
@@ -188,7 +188,7 @@ IDxcBlob* PipelineState::CompileShader(
 
 void PipelineState::Create(ID3D12Device* device) {
 	const HRESULT hr = device->CreateGraphicsPipelineState(
-		&desc_, IID_PPV_ARGS(pipelineState.ReleaseAndGetAddressOf())
+		&mDesc, IID_PPV_ARGS(mPipelineState.ReleaseAndGetAddressOf())
 	);
 	assert(SUCCEEDED(hr));
 	if (SUCCEEDED(hr)) {
@@ -260,20 +260,20 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 	default: break;
 	}
 	blendDesc.RenderTarget[0] = rtBlendDesc;
-	desc_.BlendState = blendDesc;
-	currentBlendMode = blendMode;
+	mDesc.BlendState = blendDesc;
+	mCurrentBlendMode = blendMode;
 }
 
 auto PipelineState::GetBlendMode() const -> BlendMode {
-	return currentBlendMode;
+	return mCurrentBlendMode;
 }
 
 auto PipelineState::Get() const -> ID3D12PipelineState* {
-	return pipelineState.Get();
+	return mPipelineState.Get();
 }
 
 void PipelineState::SetDepthWriteMask(
 	const D3D12_DEPTH_WRITE_MASK depthWriteMask
 ) {
-	desc_.DepthStencilState.DepthWriteMask = depthWriteMask;
+	mDesc.DepthStencilState.DepthWriteMask = depthWriteMask;
 }

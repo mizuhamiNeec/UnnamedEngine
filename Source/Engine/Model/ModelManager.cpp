@@ -6,32 +6,32 @@
 #include "../Renderer/ConstantBuffer.h"
 #include "../Renderer/VertexBuffer.h"
 
-ModelManager* ModelManager::instance_ = nullptr;
+ModelManager* ModelManager::mInstance = nullptr;
 
 // HACK : 要修正
 // TODO : シングルトンは悪!!
 ModelManager* ModelManager::GetInstance() {
-	if (instance_ == nullptr)
+	if (mInstance == nullptr)
 	{
-		instance_ = new ModelManager;
+		mInstance = new ModelManager;
 	}
-	return instance_;
+	return mInstance;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 初期化します
 //-----------------------------------------------------------------------------
 void ModelManager::Init(D3D12* d3d12) {
-	modelCommon_ = new ModelCommon;
-	modelCommon_->Init(d3d12);
+	mModelCommon = new ModelCommon;
+	mModelCommon->Init(d3d12);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: シャットダウンします
 //-----------------------------------------------------------------------------
 void ModelManager::Shutdown() {
-	delete instance_;
-	instance_ = nullptr;
+	delete mInstance;
+	mInstance = nullptr;
 }
 
 //-----------------------------------------------------------------------------
@@ -39,7 +39,7 @@ void ModelManager::Shutdown() {
 //-----------------------------------------------------------------------------
 void ModelManager::LoadModel(const std::string& filePath) {
 	// 読み込み済みモデルを検索
-	if (models_.contains(filePath))
+	if (mModels.contains(filePath))
 	{
 		// 読み込み済みなら早期return
 		return;
@@ -47,10 +47,10 @@ void ModelManager::LoadModel(const std::string& filePath) {
 
 	// モデルの生成とファイルの読み込み、初期化
 	auto model = std::make_unique<Model>();
-	model->Init(modelCommon_, "./Resources/Models/", filePath);
+	model->Init(mModelCommon, "./Resources/Models/", filePath);
 
 	// モデルをmapコンテナに格納する
-	models_.insert(std::make_pair(filePath, std::move(model)));
+	mModels.insert(std::make_pair(filePath, std::move(model)));
 }
 
 //-----------------------------------------------------------------------------
@@ -58,10 +58,10 @@ void ModelManager::LoadModel(const std::string& filePath) {
 //-----------------------------------------------------------------------------
 Model* ModelManager::FindModel(const std::string& filePath) const {
 	// 読み込み済みモデルを検索
-	if (models_.contains(filePath))
+	if (mModels.contains(filePath))
 	{
 		// 読み込みモデルを戻り値としてreturn
-		return models_.at(filePath).get();
+		return mModels.at(filePath).get();
 	}
 
 	// ファイル名一致なし

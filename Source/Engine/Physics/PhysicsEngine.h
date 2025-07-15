@@ -7,8 +7,6 @@
 
 #include <Physics/Physics.h>
 
-#include "Components/Weapon/base/WeaponComponent.h"
-
 class ColliderComponent;
 
 struct HitResult {
@@ -68,19 +66,21 @@ private:
 
 	struct DynamicMeshData {
 		std::vector<Triangle>     localTriangles;
-		const TransformComponent* transform = nullptr;
+		const SceneComponent* transform = nullptr;
 	};
 
-	std::unordered_map<ColliderComponent*, StaticMeshData>  staticMeshes_;
-	std::unordered_map<ColliderComponent*, DynamicMeshData> dynamicMeshes_;
+	std::unordered_map<ColliderComponent*, StaticMeshData>  mStaticMeshes;
+	std::unordered_map<ColliderComponent*, DynamicMeshData> mDynamicMeshes;
 
-	std::unordered_map<ColliderComponent*, int> colliderNodeIds_;
 	// コライダーとノードのIDマップ
+	std::unordered_map<ColliderComponent*, int> mColliderNodeIds;
 
-	DynamicBVH staticBVH_;  // 静的オブジェクト用BVH
-	DynamicBVH dynamicBVH_; // 動的オブジェクト用BVH
+	DynamicBVH mStaticBVH;  // 静的オブジェクト用BVH
+	DynamicBVH mDynamicBVH; // 動的オブジェクト用BVH
 
-	std::unordered_set<Entity*>     registeredEntities_; // 登録されたエンティティを追跡
-	std::vector<ColliderComponent*> colliderComponents_;
+	// 登録されたエンティティを追跡
+	std::unordered_set<Entity*> mRegisteredEntities;
+
 	// 登録されたコライダーコンポーネントのリスト
+	std::vector<ColliderComponent*> mColliderComponents;
 };

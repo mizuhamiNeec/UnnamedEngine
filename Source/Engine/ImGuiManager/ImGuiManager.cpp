@@ -18,8 +18,8 @@
 
 ImGuiManager::ImGuiManager(D3D12*            renderer,
                            const SrvManager* srvManager) :
-	renderer_(renderer),
-	srvManager_(srvManager) {
+	mRenderer(renderer),
+	mSrvManager(srvManager) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 
@@ -73,15 +73,15 @@ ImGuiManager::ImGuiManager(D3D12*            renderer,
 
 	// ImGuiの初期化
 	ImGui_ImplDX12_InitInfo init_info      = {};
-	init_info.Device                       = renderer_->GetDevice();
+	init_info.Device                       = mRenderer->GetDevice();
 	init_info.NumFramesInFlight            = kFrameBufferCount;
 	init_info.RTVFormat                    = DXGI_FORMAT_R8G8B8A8_UNORM;
-	init_info.SrvDescriptorHeap            = srvManager_->GetDescriptorHeap();
-	init_info.CommandQueue                 = renderer_->GetCommandQueue();
+	init_info.SrvDescriptorHeap            = mSrvManager->GetDescriptorHeap();
+	init_info.CommandQueue                 = mRenderer->GetCommandQueue();
 	init_info.LegacySingleSrvCpuDescriptor =
-		srvManager_->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
+		mSrvManager->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
 	init_info.LegacySingleSrvGpuDescriptor =
-		srvManager_->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
+		mSrvManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart();
 
 	ImGui_ImplDX12_Init(&init_info);
 }
@@ -99,26 +99,26 @@ void ImGuiManager::EndFrame() {
 
 	// レンダーターゲットとして使用されたテクスチャリソースをすべてSRV状態に遷移
 	// これによりImGuiのマルチビューポートでも安全にテクスチャとして使用できる
-	ID3D12DescriptorHeap* imGuiHeap = srvManager_->GetDescriptorHeap();
-	renderer_->GetCommandList()->SetDescriptorHeaps(1, &imGuiHeap);
+	ID3D12DescriptorHeap* imGuiHeap = mSrvManager->GetDescriptorHeap();
+	mRenderer->GetCommandList()->SetDescriptorHeaps(1, &imGuiHeap);
 
 	// メインウィンドウのImGuiコンテンツを描画
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(),
-	                              renderer_->GetCommandList());
+	                              mRenderer->GetCommandList());
 
 	// マルチビューポートの更新前に、すべてのコマンドを確実にフラッシュする
-	renderer_->GetCommandList()->Close();
-	ID3D12CommandList* cmdLists[] = {renderer_->GetCommandList()};
-	renderer_->GetCommandQueue()->ExecuteCommandLists(1, cmdLists);
+	mRenderer->GetCommandList()->Close();
+	ID3D12CommandList* cmdLists[] = {mRenderer->GetCommandList()};
+	mRenderer->GetCommandQueue()->ExecuteCommandLists(1, cmdLists);
 
-	renderer_->WaitPreviousFrame();
+	mRenderer->WaitPreviousFrame();
 
 	// マルチビューポート用のレンダリング（新しいコマンドリストが内部で作成される）
 	ImGui::UpdatePlatformWindows();
 	ImGui::RenderPlatformWindowsDefault();
 
 	// 新しいコマンドリストを作成して作業を続行
-	renderer_->ResetCommandList();
+	mRenderer->ResetCommandList();
 
 	ImGui::EndFrame();
 }
@@ -128,7 +128,7 @@ void ImGuiManager::Shutdown() {
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
-	srvHeap_.Reset();
+	mSrvHeap.Reset();
 }
 
 void ImGuiManager::Recreate() const {
@@ -141,12 +141,12 @@ void ImGuiManager::Recreate() const {
 
 	// 3. DX12バックエンドを再初期化（ディスクリプタヒープ等を渡す）
 	ImGui_ImplDX12_Init(
-		renderer_->GetDevice(),
+		mRenderer->GetDevice(),
 		kFrameBufferCount,
 		kBufferFormat,
-		srvManager_->GetDescriptorHeap(),
-		srvManager_->GetCPUDescriptorHandle(0),
-		srvManager_->GetGPUDescriptorHandle(0)
+		mSrvManager->GetDescriptorHeap(),
+		mSrvManager->GetCPUDescriptorHandle(0),
+		mSrvManager->GetGPUDescriptorHandle(0)
 	);
 
 	// 4. デバイスオブジェクト再作成
@@ -270,8 +270,8 @@ bool ImGuiManager::EditTransform(Transform& transform, const float& vSpeed) {
 	return isEditing;
 }
 
-bool ImGuiManager::EditTransform(TransformComponent& transform,
-                                 const float&        vSpeed) {
+bool ImGuiManager::EditTransform(SceneComponent& transform,
+                                 const float&    vSpeed) {
 	bool       isEditing  = false;
 	Vec3       localPos   = transform.GetLocalPos();
 	Quaternion localRot   = transform.GetLocalRot();
@@ -466,8 +466,8 @@ bool ImGuiManager::IconButton(const char*   icon, const char* label,
 		)
 	);
 
-	float defaultFontSize   = ImGui::GetFont()->Scale;
-	ImGui::GetFont()->Scale = 0.8f;
+	const float defaultFontSize = ImGui::GetFont()->Scale;
+	ImGui::GetFont()->Scale     = 0.8f;
 	ImGui::PushFont(ImGui::GetFont());
 	ImGui::Text("%s", label);
 	ImGui::GetFont()->Scale = defaultFontSize;

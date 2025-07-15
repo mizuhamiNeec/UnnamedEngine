@@ -15,8 +15,8 @@ CubeMap::CubeMap(
 	ID3D12Device*          device,
 	SrvManager*            srvManager,
 	const std::string_view path
-) : device_(device), srvManager_(srvManager) {
-	texturePath_ = path;
+) : mVertexData({}), mDevice(device), mSrvManager(srvManager) {
+	mTexturePath = path;
 	Init();
 }
 
@@ -24,37 +24,37 @@ void CubeMap::Init() {
 	// キューブマップ用の頂点を作る
 	constexpr float size = 100.0f;
 	// +X
-	vertexData_[0] = {{size, size, -size, 1.0f}};
-	vertexData_[1] = {{size, size, size, 1.0f}};
-	vertexData_[2] = {{size, -size, size, 1.0f}};
-	vertexData_[3] = {{size, -size, -size, 1.0f}};
+	mVertexData[0] = {.position = {size, size, -size, 1.0f}};
+	mVertexData[1] = {.position = {size, size, size, 1.0f}};
+	mVertexData[2] = {.position = {size, -size, size, 1.0f}};
+	mVertexData[3] = {.position = {size, -size, -size, 1.0f}};
 	// -X
-	vertexData_[4] = {{-size, size, size, 1.0f}};
-	vertexData_[5] = {{-size, size, -size, 1.0f}};
-	vertexData_[6] = {{-size, -size, -size, 1.0f}};
-	vertexData_[7] = {{-size, -size, size, 1.0f}};
+	mVertexData[4] = {.position = {-size, size, size, 1.0f}};
+	mVertexData[5] = {.position = {-size, size, -size, 1.0f}};
+	mVertexData[6] = {.position = {-size, -size, -size, 1.0f}};
+	mVertexData[7] = {.position = {-size, -size, size, 1.0f}};
 	// +Y
-	vertexData_[8]  = {{-size, size, size, 1.0f}};
-	vertexData_[9]  = {{size, size, size, 1.0f}};
-	vertexData_[10] = {{size, size, -size, 1.0f}};
-	vertexData_[11] = {{-size, size, -size, 1.0f}};
+	mVertexData[8]  = {.position = {-size, size, size, 1.0f}};
+	mVertexData[9]  = {.position = {size, size, size, 1.0f}};
+	mVertexData[10] = {.position = {size, size, -size, 1.0f}};
+	mVertexData[11] = {.position = {-size, size, -size, 1.0f}};
 	// -Y
-	vertexData_[12] = {{-size, -size, -size, 1.0f}};
-	vertexData_[13] = {{size, -size, -size, 1.0f}};
-	vertexData_[14] = {{size, -size, size, 1.0f}};
-	vertexData_[15] = {{-size, -size, size, 1.0f}};
+	mVertexData[12] = {.position = {-size, -size, -size, 1.0f}};
+	mVertexData[13] = {.position = {size, -size, -size, 1.0f}};
+	mVertexData[14] = {.position = {size, -size, size, 1.0f}};
+	mVertexData[15] = {.position = {-size, -size, size, 1.0f}};
 	// +Z
-	vertexData_[16] = {{size, size, size, 1.0f}};
-	vertexData_[17] = {{-size, size, size, 1.0f}};
-	vertexData_[18] = {{-size, -size, size, 1.0f}};
-	vertexData_[19] = {{size, -size, size, 1.0f}};
+	mVertexData[16] = {.position = {size, size, size, 1.0f}};
+	mVertexData[17] = {.position = {-size, size, size, 1.0f}};
+	mVertexData[18] = {.position = {-size, -size, size, 1.0f}};
+	mVertexData[19] = {.position = {size, -size, size, 1.0f}};
 	// -Z
-	vertexData_[20] = {{-size, size, -size, 1.0f}};
-	vertexData_[21] = {{size, size, -size, 1.0f}};
-	vertexData_[22] = {{size, -size, -size, 1.0f}};
-	vertexData_[23] = {{-size, -size, -size, 1.0f}};
+	mVertexData[20] = {.position = {-size, size, -size, 1.0f}};
+	mVertexData[21] = {.position = {size, size, -size, 1.0f}};
+	mVertexData[22] = {.position = {size, -size, -size, 1.0f}};
+	mVertexData[23] = {.position = {-size, -size, -size, 1.0f}};
 
-	indexData_ = {
+	mIndexData = {
 		0, 1, 2, 0, 2, 3,       // +X
 		4, 5, 6, 4, 6, 7,       // -X
 		8, 9, 10, 8, 10, 11,    // +Y
@@ -63,30 +63,30 @@ void CubeMap::Init() {
 		20, 21, 22, 20, 22, 23  // -Z
 	};
 
-	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(
-		device_, sizeof(Vertex) * vertexData_.size(), vertexData_.data());
-	indexBuffer_ = std::make_unique<IndexBuffer>(
-		device_, sizeof(uint32_t) * indexData_.size(), indexData_.data());
+	mVertexBuffer = std::make_unique<VertexBuffer<Vertex>>(
+		mDevice, sizeof(Vertex) * mVertexData.size(), mVertexData.data());
+	mIndexBuffer = std::make_unique<IndexBuffer>(
+		mDevice, sizeof(uint32_t) * mIndexData.size(), mIndexData.data());
 
 
 	CreateRootSignature();
 	CreatePipelineStateObject();
 
-	transformationCB_ = std::make_unique<ConstantBuffer>(
-		device_, sizeof(TransformationMatrix), "CubeMap Transformation");
+	mTransformationCb = std::make_unique<ConstantBuffer>(
+		mDevice, sizeof(TransformationMatrix), "CubeMap Transformation");
 
-	materialCB_ = std::make_unique<ConstantBuffer>(
-		device_, sizeof(Object3D::Material), "CubeMap Material");
+	mMaterialCb = std::make_unique<ConstantBuffer>(
+		mDevice, sizeof(Object3D::Material), "CubeMap Material");
 
 	// TransformationMatrixとMaterialの実体をメンバとして保持
-	transformationMatrixInstance_ = {};
-	materialInstance_             = {};
+	mTransformationMatrixInstance = {};
+	mMaterialInstance             = {};
 
 	// ポインタを実体に向ける
-	transformationMatrix_ = &transformationMatrixInstance_;
-	material_             = &materialInstance_;
+	mTransformationMatrix = &mTransformationMatrixInstance;
+	mMaterial             = &mMaterialInstance;
 
-	materialInstance_.color = Vec4::one;
+	mMaterialInstance.color = Vec4::one;
 }
 
 void CubeMap::Update([[maybe_unused]] const float deltaTime) {
@@ -96,60 +96,48 @@ void CubeMap::Update([[maybe_unused]] const float deltaTime) {
 		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate()
 	);
 
-	transformationMatrixInstance_.world = world;
-	transformationMatrixInstance_.wvp   =
-		transformationMatrixInstance_.world *
+	mTransformationMatrixInstance.world = world;
+	mTransformationMatrixInstance.wvp   =
+		mTransformationMatrixInstance.world *
 		CameraManager::GetActiveCamera()->GetViewMat() *
 		CameraManager::GetActiveCamera()->GetProjMat();
 }
 
-void CubeMap::Render(ID3D12GraphicsCommandList* commandList) {
+void CubeMap::Render(ID3D12GraphicsCommandList* commandList) const {
 	// TransformationMatrixの更新
 	memcpy(
-		transformationCB_->GetPtr(),
-		transformationMatrix_, // → *transformationMatrix_ に修正
+		mTransformationCb->GetPtr(),
+		mTransformationMatrix, // → *transformationMatrix_ に修正
 		sizeof(TransformationMatrix)
 	);
 
 	// マテリアルの更新
 	memcpy(
-		materialCB_->GetPtr(),
-		material_, // → *material_ に修正
+		mMaterialCb->GetPtr(),
+		mMaterial, // → *material_ に修正
 		sizeof(Object3D::Material)
 	);
 
-	commandList->SetPipelineState(pipelineState.Get());
-	commandList->SetGraphicsRootSignature(rootSignature.Get());
+	commandList->SetPipelineState(mPipelineState.Get());
+	commandList->SetGraphicsRootSignature(mRootSignature.Get());
 
 	ID3D12DescriptorHeap* heaps[] = {
-		srvManager_->GetDescriptorHeap(),
+		mSrvManager->GetDescriptorHeap(),
 	};
 	commandList->SetDescriptorHeaps(_countof(heaps), heaps);
 
-	// SRV登録
-	// D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	// srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // テクスチャのフォーマットに合わせる
-	// srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-	// srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	// srvDesc.TextureCube.MostDetailedMip = 0;
-	// srvDesc.TextureCube.MipLevels = UINT_MAX;
-	// srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
-	// DescriptorHandles handles = shaderSrvManager->RegisterShaderResourceView(
-	// 	cubeMapTex.Get(), srvDesc);
-	//
-
 	// ルートパラメータでSRVとCBVをバインド
 	commandList->SetGraphicsRootDescriptorTable(
-		0, TexManager::GetInstance()->GetSrvHandleGPU(texturePath_)
+		0, TexManager::GetInstance()->GetSrvHandleGPU(mTexturePath)
 	); // t0
 	commandList->SetGraphicsRootConstantBufferView(
-		1, transformationCB_->GetAddress()); // b0: TransformationMatrix
+		1, mTransformationCb->GetAddress()); // b0: TransformationMatrix
 	commandList->SetGraphicsRootConstantBufferView(
-		2, materialCB_->GetAddress()); // b1: Material
+		2, mMaterialCb->GetAddress()); // b1: Material
 
 	// 頂点・インデックスバッファのセット
-	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer_->View();
-	D3D12_INDEX_BUFFER_VIEW  ibView = indexBuffer_->View();
+	const D3D12_VERTEX_BUFFER_VIEW vbView = mVertexBuffer->View();
+	const D3D12_INDEX_BUFFER_VIEW  ibView = mIndexBuffer->View();
 	commandList->IASetVertexBuffers(0, 1, &vbView);
 	commandList->IASetIndexBuffer(&ibView);
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -220,15 +208,15 @@ void CubeMap::CreateRootSignature() {
 		&desc, &signatureBlob, &errorBlob);
 	assert(SUCCEEDED(hr));
 
-	hr = device_->CreateRootSignature(
+	hr = mDevice->CreateRootSignature(
 		0, signatureBlob->GetBufferPointer(),
-		signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
+		signatureBlob->GetBufferSize(), IID_PPV_ARGS(&mRootSignature));
 
 	assert(SUCCEEDED(hr));
 }
 
 void CubeMap::CreatePipelineStateObject() {
-	D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {
+	const D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {
 		.DepthEnable = true, // 比較はするのでDepth自体は有効
 		.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO,
 		// 全ピクセルがz=1に出力されるので、わざわざ書き込む必要がない
@@ -243,12 +231,12 @@ void CubeMap::CreatePipelineStateObject() {
 	};
 
 	pso.SetInputLayout(Vertex::inputLayout);
-	pso.SetRootSignature(rootSignature.Get());
-	pso.SetVS(L"./Resources/Shaders/Skybox.VS.hlsl");
-	pso.SetPS(L"./Resources/Shaders/Skybox.PS.hlsl");
+	pso.SetRootSignature(mRootSignature.Get());
+	pso.SetVertexShader(L"./Resources/Shaders/Skybox.VS.hlsl");
+	pso.SetPixelShader(L"./Resources/Shaders/Skybox.PS.hlsl");
 	pso.SetBlendMode(kBlendModeNone);
 
-	pso.Create(device_);
+	pso.Create(mDevice);
 
-	pipelineState = pso.Get();
+	mPipelineState = pso.Get();
 }

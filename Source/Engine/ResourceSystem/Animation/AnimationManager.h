@@ -50,5 +50,5 @@ private:
 	// アニメーション名/アニメーション
 
 	// アニメーション読み込みのヘルパー関数
-	Animation LoadSingleAnimation(aiAnimation* animationAssimp);
+	static Animation LoadSingleAnimation(const aiAnimation* animationAssimp);
 };

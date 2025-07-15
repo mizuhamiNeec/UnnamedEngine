@@ -7,17 +7,17 @@
 
 #include <algorithm>
 
-double EngineTimer::deltaTime_ = 0;
-double EngineTimer::totalTime_ = 0;
-uint64_t EngineTimer::frameCount_ = 0;
+double EngineTimer::mDeltaTime = 0;
+double EngineTimer::mTotalTime = 0;
+uint64_t EngineTimer::mFrameCount = 0;
 
-EngineTimer::EngineTimer() : startTime_(Clock::now()),
-lastFrameTime_(Clock::now()) {
+EngineTimer::EngineTimer() : mStartTime(Clock::now()),
+mLastFrameTime(Clock::now()) {
 }
 
 void EngineTimer::StartFrame() {
 	// フレーム開始時刻を記録
-	frameStartTime_ = Clock::now();
+	mFrameStartTime = Clock::now();
 
 	//#ifdef _DEBUG
 	//	// 前フレームの経過時間（deltaTime_）を用いてデバッグ表示する場合、
@@ -53,7 +53,7 @@ void EngineTimer::EndFrame() {
 
 		// 現在時刻を取得し、フレーム処理にかかった時間を計算
 		TimePoint currentTime = Clock::now();
-		const double frameProcessingTime = std::chrono::duration<double>(currentTime - frameStartTime_).count();
+		const double frameProcessingTime = std::chrono::duration<double>(currentTime - mFrameStartTime).count();
 
 		// 次フレームまでの残り時間を計算
 		double remainingTime = frameLimitDuration - frameProcessingTime;
@@ -65,7 +65,7 @@ void EngineTimer::EndFrame() {
 			}
 
 			// 忙待ちで正確なタイミングに補正
-			while (std::chrono::duration<double>(Clock::now() - frameStartTime_).count() < frameLimitDuration) {
+			while (std::chrono::duration<double>(Clock::now() - mFrameStartTime).count() < frameLimitDuration) {
 				// Busy wait
 			}
 		}
@@ -73,16 +73,16 @@ void EngineTimer::EndFrame() {
 
 	// フレーム終了時刻を記録し、次回のdeltaTime_を更新
 	TimePoint frameEndTime = Clock::now();
-	deltaTime_ = std::chrono::duration<double>(frameEndTime - frameStartTime_).count();
-	lastFrameTime_ = frameEndTime;
+	mDeltaTime = std::chrono::duration<double>(frameEndTime - mFrameStartTime).count();
+	mLastFrameTime = frameEndTime;
 
-	++frameCount_;
+	++mFrameCount;
 }
 
 float EngineTimer::ScaledDelta() {
 	const auto timeScaleConVar = ConVarManager::GetConVar("host_timescale");
 	const double timeScale = timeScaleConVar->GetValueAsDouble();
-	return static_cast<float>(deltaTime_ * timeScale);
+	return static_cast<float>(mDeltaTime * timeScale);
 }
 
 void EngineTimer::SetTimeScale(const float& scale) {
@@ -91,25 +91,25 @@ void EngineTimer::SetTimeScale(const float& scale) {
 
 float EngineTimer::GetDeltaTime() {
 	// スパイク防止
-	deltaTime_ = std::min<double>(deltaTime_, 1.0f / 60.0f);
+	mDeltaTime = std::min<double>(mDeltaTime, 1.0f / 60.0f);
 
-	return static_cast<float>(deltaTime_);
+	return static_cast<float>(mDeltaTime);
 }
 
 float EngineTimer::GetScaledDeltaTime() {
-	return static_cast<float>(deltaTime_) * GetTimeScale();
+	return static_cast<float>(mDeltaTime) * GetTimeScale();
 }
 
 double EngineTimer::GetDeltaTimeDouble() {
-	return deltaTime_;
+	return mDeltaTime;
 }
 
 double EngineTimer::GetScaledDeltaTimeDouble() {
-	return deltaTime_ * GetTimeScale();
+	return mDeltaTime * GetTimeScale();
 }
 
 float EngineTimer::GetTotalTime() {
-	return static_cast<float>(totalTime_);
+	return static_cast<float>(mTotalTime);
 }
 
 float EngineTimer::GetTimeScale() {
@@ -117,7 +117,7 @@ float EngineTimer::GetTimeScale() {
 }
 
 uint64_t EngineTimer::GetFrameCount() {
-	return frameCount_;
+	return mFrameCount;
 }
 
 int EngineTimer::GetDay() {
@@ -137,7 +137,7 @@ int EngineTimer::GetSecond() {
 }
 
 int EngineTimer::GetMillisecond() {
-	return static_cast<int>(totalTime_ * 100.0);
+	return static_cast<int>(mTotalTime * 100.0);
 }
 
 /// <summary>

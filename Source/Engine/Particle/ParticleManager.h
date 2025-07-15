@@ -7,11 +7,10 @@
 #include <Lib/Structs/Structs.h>
 
 #include <Renderer/ConstantBuffer.h>
+#include <Renderer/IndexBuffer.h>
 #include <Renderer/PipelineState.h>
 #include <Renderer/RootSignatureManager.h>
 #include <Renderer/VertexBuffer.h>
-
-#include "Renderer/IndexBuffer.h"
 
 class SrvManager;
 class CameraComponent;
@@ -52,15 +51,15 @@ public:
 
 	void Emit(const std::string& name, const Vec3& pos, const uint32_t& count);
 
-	D3D12* GetD3D12() const;
+	[[nodiscard]] D3D12* GetD3D12() const;
 
 	// Getter
-	CameraComponent*             GetDefaultCamera() const;
-	SrvManager*                  GetSrvManager() const;
-	const VertexBuffer<Vertex>*  GetVertexBuffer();
-	const IndexBuffer*           GetIndexBuffer();
-	const std::vector<Vertex>&   GetVertices();
-	const std::vector<uint32_t>& GetIndices();
+	[[nodiscard]] CameraComponent* GetDefaultCamera() const;
+	[[nodiscard]] SrvManager*      GetSrvManager() const;
+	const VertexBuffer<Vertex>*    GetVertexBuffer();
+	const IndexBuffer*             GetIndexBuffer();
+	const std::vector<Vertex>&     GetVertices();
+	const std::vector<uint32_t>&   GetIndices();
 
 	void CreateParticleGroup(const std::string& name,
 	                         const std::string& textureFilePath);
@@ -78,17 +77,17 @@ private:
 	};
 
 	// ユーザがつけるグループ名をキーとして、グループを複数持てるようにする
-	std::unordered_map<std::string, ParticleGroup> particleGroups_;
+	std::unordered_map<std::string, ParticleGroup> mParticleGroups;
 
-	std::vector<std::string> registeredGroupNames_;
+	std::vector<std::string> mRegisteredGroupNames;
 
-	D3D12*                                d3d12_                = nullptr;
-	std::unique_ptr<RootSignatureManager> rootSignatureManager_ = nullptr;
-	SrvManager*                           srvManager_           = nullptr;
-	std::unique_ptr<PipelineState>        pipelineState_        = nullptr;
-	CameraComponent*                      defaultCamera_        = nullptr;
+	D3D12*                                mRenderer                = nullptr;
+	std::unique_ptr<RootSignatureManager> mRootSignatureManager = nullptr;
+	SrvManager*                           mSrvManager           = nullptr;
+	std::unique_ptr<PipelineState>        mPipelineState        = nullptr;
+	CameraComponent*                      mDefaultCamera        = nullptr;
 
-	uint32_t kNumMaxInstance = 16385; // 最大インスタンス数
+	uint32_t mKNumMaxInstance = 16385; // 最大インスタンス数
 
-	std::unordered_map<ParticleMeshType, MeshData> meshData_;
+	std::unordered_map<ParticleMeshType, MeshData> mEshData;
 };

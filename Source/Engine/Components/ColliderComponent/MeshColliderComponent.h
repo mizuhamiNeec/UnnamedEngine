@@ -17,11 +17,11 @@ public:
 	bool IsDynamic() override;
 	std::vector<Triangle> GetTriangles();
 
-	StaticMesh* GetStaticMesh() const;
+	[[nodiscard]] StaticMesh* GetStaticMesh() const;
 
 private:
 	void BuildTriangleList();
-	StaticMeshRenderer* meshRenderer_ = nullptr;
-	std::vector<Triangle> triangles_;
+	StaticMeshRenderer* mEshRenderer = nullptr;
+	std::vector<Triangle> mTriangles;
 };
 

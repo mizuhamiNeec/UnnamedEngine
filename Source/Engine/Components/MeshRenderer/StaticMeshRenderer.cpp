@@ -19,13 +19,13 @@ struct MatParam {
 StaticMeshRenderer::~StaticMeshRenderer() {
 	mTransformationMatrixConstantBuffer.reset();
 	mTransformationMatrix = nullptr;
-	mTransform            = nullptr;
+	mScene            = nullptr;
 	mStaticMesh           = nullptr;
 }
 
 void StaticMeshRenderer::OnAttach(Entity& owner) {
 	MeshRenderer::OnAttach(owner);
-	mTransform = mOwner->GetTransform();
+	mScene = mOwner->GetTransform();
 
 	mTransformationMatrixConstantBuffer = std::make_unique<ConstantBuffer>(
 		Engine::GetRenderer()->GetDevice(),
@@ -37,7 +37,7 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 	mTransformationMatrix->wvp                   = Mat4::identity;
 	mTransformationMatrix->world                 = Mat4::identity;
 	mTransformationMatrix->worldInverseTranspose = Mat4::identity;
-	
+
 	{
 		mMatParamCBV = std::make_unique<ConstantBuffer>(
 			Engine::GetRenderer()->GetDevice(),
@@ -116,7 +116,7 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 		Material* material = subMesh->GetMaterial();
 		if (material && material != currentlyBoundMaterial) {
 			// VS用のトランスフォーム (b0)
-			if (const auto* transform = mTransform) {
+			if (const auto* transform = mScene) {
 				const Mat4 worldMat = Mat4::Affine(
 					transform->GetWorldScale(),
 					transform->GetWorldRot().ToEulerAngles(),
@@ -145,7 +145,7 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 				                                        "gMaterial");
 			material->SetConstantBuffer(materialRegister,
 			                            mMatParamCBV->GetResource());
-			
+
 			const UINT dirLightRegister = material->GetShader()->
 			                                        GetResourceRegister(
 				                                        "gDirectionalLight");
@@ -159,12 +159,12 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 				                                      "gCamera");
 			if (cameraRegister < 0xffffffff) {
 				mCameraData->worldPosition = CameraManager::GetActiveCamera()->
-				                            GetViewMat().Inverse().
-				                            GetTranslate();
+				                             GetViewMat().Inverse().
+				                             GetTranslate();
 				material->SetConstantBuffer(cameraRegister,
 				                            mCameraCb->GetResource());
 			}
-			
+
 			// マテリアルのApply（すべてのテクスチャがディスクリプタテーブルでバインドされる）
 			std::string meshName = mStaticMesh
 				                       ? mStaticMesh->GetName()
@@ -181,7 +181,7 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 			if (lastDot != std::string::npos) {
 				meshName = meshName.substr(0, lastDot);
 			}
-			
+
 			material->Apply(commandList, meshName);
 
 			// デバッグ用：テクスチャスロット確認のみ
@@ -204,18 +204,6 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 		// サブメッシュの描画
 		subMesh->Render(commandList);
 	}
-}
-
-void MatrixEdit(const std::string& label, Mat4& mat) {
-	ImGui::Text(label.c_str());
-	ImGui::DragFloat4((label + "##" + std::to_string(0)).c_str(), &mat.m[0][0],
-	                  0.01f);
-	ImGui::DragFloat4((label + "##" + std::to_string(1)).c_str(), &mat.m[1][0],
-	                  0.01f);
-	ImGui::DragFloat4((label + "##" + std::to_string(2)).c_str(), &mat.m[2][0],
-	                  0.01f);
-	ImGui::DragFloat4((label + "##" + std::to_string(3)).c_str(), &mat.m[3][0],
-	                  0.01f);
 }
 
 void StaticMeshRenderer::DrawInspectorImGui() {
@@ -264,9 +252,11 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 			                 0.01f);
 			ImGui::DragFloat3("Direction##Spot", &mSpotLightData->direction.x,
 			                  0.01f);
-			ImGui::DragFloat("Distance##Spot", &mSpotLightData->distance, 0.01f);
+			ImGui::DragFloat("Distance##Spot", &mSpotLightData->distance,
+			                 0.01f);
 			ImGui::DragFloat("Decay##Spot", &mSpotLightData->decay, 0.01f);
-			ImGui::DragFloat("CosAngle##Spot", &mSpotLightData->cosAngle, 0.01f);
+			ImGui::DragFloat("CosAngle##Spot", &mSpotLightData->cosAngle,
+			                 0.01f);
 			ImGui::DragFloat("CosFalloff##Spot",
 			                 &mSpotLightData->cosFalloffStart, 0.01f);
 

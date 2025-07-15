@@ -1929,7 +1929,7 @@ void Console::PrintTypeError(const std::string& type) {
 //-----------------------------------------------------------------------------
 void Console::AddCommandHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
-	consoleTexts_.push_back(
+	consoleTexts_.emplace_back(
 		Text(
 			"> " + command + "\n",
 			kConTextColorExecute,

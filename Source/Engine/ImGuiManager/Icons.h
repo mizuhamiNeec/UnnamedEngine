@@ -1,6 +1,6 @@
 #pragma once
 
-static const char* kIconSpace = " "; // スペース
+static auto kIconSpace = " "; // スペース(アイコンなし)
 
 constexpr uint32_t kIconPower    = 0xE8AC;
 constexpr uint32_t kIconSettings = 0xE8B8; // 設定

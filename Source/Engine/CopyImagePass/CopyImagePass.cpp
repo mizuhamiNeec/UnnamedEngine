@@ -13,11 +13,11 @@
 CopyImagePass::CopyImagePass(
 	ID3D12Device* device,
 	SrvManager*   srvManager
-) : srvManager_(srvManager),
-    device_(device) {
+) : mSrvManager(srvManager),
+    mDevice(device) {
 	// SrvManagerの有効性をチェック
-	assert(srvManager_ != nullptr && "SrvManager is null");
-	assert(device_ != nullptr && "Device is null");
+	assert(mSrvManager != nullptr && "SrvManager is null");
+	assert(mDevice != nullptr && "Device is null");
 	
 	Init();
 }
@@ -29,8 +29,8 @@ void CopyImagePass::Init() {
 	CreatePipelineState();
 
 	// SrvManagerが有効であることを確認してからSRVインデックスを確保
-	assert(srvManager_ != nullptr && "SrvManager is null in Init()");
-	srvIndex_ = srvManager_->AllocateForTexture(); // テクスチャ用SRVのインデックスを確保
+	assert(mSrvManager != nullptr && "SrvManager is null in Init()");
+	mSrvIndex = mSrvManager->AllocateForTexture(); // テクスチャ用SRVのインデックスを確保
 
 	D3D12_HEAP_PROPERTIES props = {};
 	props.Type                  = D3D12_HEAP_TYPE_UPLOAD;
@@ -45,10 +45,10 @@ void CopyImagePass::Init() {
 	desc.SampleDesc.Count = 1;
 	desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-	HRESULT hr = device_->CreateCommittedResource(
+	HRESULT hr = mDevice->CreateCommittedResource(
 		&props, D3D12_HEAP_FLAG_NONE, &desc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr, IID_PPV_ARGS(&postProcessParamsCB_)
+		nullptr, IID_PPV_ARGS(&mPostProcessParamsCb)
 	);
 	if (FAILED(hr)) {
 		assert(SUCCEEDED(hr));
@@ -59,23 +59,23 @@ void CopyImagePass::Update([[maybe_unused]] const float deltaTime) {
 #ifdef _DEBUG
 	ImGui::Begin("PostProcess");
 	if (ImGui::CollapsingHeader("Simple Bloom")) {
-		ImGui::DragFloat("Bloom Strength", &postProcessParams_.bloomStrength,
+		ImGui::DragFloat("Bloom Strength", &mPostProcessParams.bloomStrength,
 		                 0.01f, 0.0f, 10.0f);
-		ImGui::DragFloat("Bloom Threshold", &postProcessParams_.bloomThreshold,
+		ImGui::DragFloat("Bloom Threshold", &mPostProcessParams.bloomThreshold,
 		                 0.01f, 0.0f, 10.0f);
 	}
 
 	if (ImGui::CollapsingHeader("Vignette")) {
 		ImGui::DragFloat("Vignette Strength",
-		                 &postProcessParams_.vignetteStrength, 0.01f, 0.0f,
+		                 &mPostProcessParams.vignetteStrength, 0.01f, 0.0f,
 		                 10.0f);
-		ImGui::DragFloat("Vignette Radius", &postProcessParams_.vignetteRadius,
+		ImGui::DragFloat("Vignette Radius", &mPostProcessParams.vignetteRadius,
 		                 0.01f, 0.0f, 10.0f);
 	}
 
 	if (ImGui::CollapsingHeader("Chromatic Aberration")) {
 		ImGui::DragFloat("Chromatic Aberration Strength",
-		                 &postProcessParams_.chromaticAberration, 0.01f, 0.0f,
+		                 &mPostProcessParams.chromaticAberration, 0.01f, 0.0f,
 		                 10.0f);
 	}
 
@@ -89,22 +89,22 @@ void CopyImagePass::Execute(
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv
 ) {
 	// SrvManagerの有効性を再チェック
-	assert(srvManager_ != nullptr && "SrvManager is null in Execute");
+	assert(mSrvManager != nullptr && "SrvManager is null in Execute");
 	
 	void*   pData = nullptr;
-	HRESULT hr    = postProcessParamsCB_->Map(0, nullptr, &pData);
+	HRESULT hr    = mPostProcessParamsCb->Map(0, nullptr, &pData);
 	if (FAILED(hr)) {
 		assert(SUCCEEDED(hr));
 		return;
 	}
-	memcpy(pData, &postProcessParams_, sizeof(PostProcessParams));
-	postProcessParamsCB_->Unmap(0, nullptr);
+	memcpy(pData, &mPostProcessParams, sizeof(PostProcessParams));
+	mPostProcessParamsCb->Unmap(0, nullptr);
 
-	commandList->SetPipelineState(pipelineState.Get());
-	commandList->SetGraphicsRootSignature(rootSignature.Get());
+	commandList->SetPipelineState(mPipelineState.Get());
+	commandList->SetGraphicsRootSignature(mRootSignature.Get());
 
 	// ディスクリプターヒープの有効性をチェック
-	ID3D12DescriptorHeap* descriptorHeap = srvManager_->GetDescriptorHeap();
+	ID3D12DescriptorHeap* descriptorHeap = mSrvManager->GetDescriptorHeap();
 	if (descriptorHeap != nullptr) {
 		ID3D12DescriptorHeap* heaps[] = {
 			descriptorHeap
@@ -133,20 +133,20 @@ void CopyImagePass::Execute(
 	const auto srcFormat = srcTexture->GetDesc().Format;
 	
 	// SRV作成
-	srvManager_->CreateSRVForTexture2D(
-		srvIndex_,
+	mSrvManager->CreateSRVForTexture2D(
+		mSrvIndex,
 		srcTexture,
 		srcFormat,
 		srcTexture->GetDesc().MipLevels
 	);
 
 	// GPUハンドルの取得とデバッグ情報出力
-	const auto gpuHandle = srvManager_->GetGPUDescriptorHandle(srvIndex_);
+	const auto gpuHandle = mSrvManager->GetGPUDescriptorHandle(mSrvIndex);
 	
 	static bool loggedOnce = false;
 	if (!loggedOnce) {
 		Console::Print(std::format("CopyImagePass: srvIdx={}, format={}, handle=0x{:x}\n", 
-			srvIndex_, static_cast<int>(srcFormat), gpuHandle.ptr), kConTextColorGray);
+			mSrvIndex, static_cast<int>(srcFormat), gpuHandle.ptr), kConTextColorGray);
 		loggedOnce = true;
 	}
 
@@ -155,7 +155,7 @@ void CopyImagePass::Execute(
 		0, gpuHandle); // SRV
 	//
 	commandList->SetGraphicsRootConstantBufferView(
-		1, postProcessParamsCB_->GetGPUVirtualAddress()); // CBV
+		1, mPostProcessParamsCb->GetGPUVirtualAddress()); // CBV
 
 	// フルスクリーン三角形の頂点バッファ: ここは外部でセットでも可
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -218,9 +218,9 @@ void CopyImagePass::CreateRootSignature() {
 		&desc, &signatureBlob, &errorBlob);
 	assert(SUCCEEDED(hr));
 
-	hr = device_->CreateRootSignature(
+	hr = mDevice->CreateRootSignature(
 		0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(),
-		IID_PPV_ARGS(&rootSignature)
+		IID_PPV_ARGS(&mRootSignature)
 	);
 	assert(SUCCEEDED(hr));
 }
@@ -245,12 +245,12 @@ void CopyImagePass::CreatePipelineState() {
 		depthStencilDesc
 	};
 	pso.SetInputLayout(inputLayout);
-	pso.SetRootSignature(rootSignature.Get());
-	pso.SetVS(L"./Resources/Shaders/CopyImage.VS.hlsl");
-	pso.SetPS(L"./Resources/Shaders/CopyImage.PS.hlsl");
+	pso.SetRootSignature(mRootSignature.Get());
+	pso.SetVertexShader(L"./Resources/Shaders/CopyImage.VS.hlsl");
+	pso.SetPixelShader(L"./Resources/Shaders/CopyImage.PS.hlsl");
 	pso.SetBlendMode(kBlendModeNone);
 
-	pso.Create(device_);
+	pso.Create(mDevice);
 
-	pipelineState = pso.Get();
+	mPipelineState = pso.Get();
 }

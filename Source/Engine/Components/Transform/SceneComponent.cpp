@@ -1,4 +1,4 @@
-#include "TransformComponent.h"
+#include "SceneComponent.h"
 
 #include <Debug/Debug.h>
 
@@ -6,46 +6,46 @@
 
 #include <ImGuiManager/ImGuiManager.h>
 
-void TransformComponent::Update([[maybe_unused]] float deltaTime) {
+void SceneComponent::Update([[maybe_unused]] float deltaTime) {
 }
 
-const Vec3& TransformComponent::GetLocalPos() const {
+const Vec3& SceneComponent::GetLocalPos() const {
 	return position_;
 }
 
-void TransformComponent::SetLocalPos(const Vec3& newPosition) {
+void SceneComponent::SetLocalPos(const Vec3& newPosition) {
 	position_ = newPosition;
 	MarkDirty();
 }
 
-const Quaternion& TransformComponent::GetLocalRot() const {
+const Quaternion& SceneComponent::GetLocalRot() const {
 	return rotation_;
 }
 
-void TransformComponent::SetLocalRot(const Quaternion& newRotation) {
+void SceneComponent::SetLocalRot(const Quaternion& newRotation) {
 	rotation_ = newRotation.Normalized();
 	MarkDirty();
 }
 
-const Vec3& TransformComponent::GetLocalScale() const {
+const Vec3& SceneComponent::GetLocalScale() const {
 	return scale_;
 }
 
-void TransformComponent::SetLocalScale(const Vec3& newScale) {
+void SceneComponent::SetLocalScale(const Vec3& newScale) {
 	scale_ = newScale;
 	MarkDirty();
 }
 
-Vec3 TransformComponent::GetWorldPos() const {
+Vec3 SceneComponent::GetWorldPos() const {
 	if (mOwner && mOwner->GetParent()) {
-		if (const TransformComponent* parentTransform = mOwner->GetParent()->
+		if (const SceneComponent* parentTransform = mOwner->GetParent()->
 			GetTransform()) {
 			// 親のワールド情報を取得
 			const Vec3       parentPos = parentTransform->GetWorldPos();
 			const Quaternion parentRot = parentTransform->GetWorldRot();
 
 			// ローカル位置を親の回転で変換
-			Vec3 rotatedPos = parentRot * position_;
+			const Vec3 rotatedPos = parentRot * position_;
 
 			// 親の位置を加算
 			return parentPos + rotatedPos;
@@ -54,9 +54,9 @@ Vec3 TransformComponent::GetWorldPos() const {
 	return position_;
 }
 
-Quaternion TransformComponent::GetWorldRot() const {
+Quaternion SceneComponent::GetWorldRot() const {
 	if (mOwner && mOwner->GetParent()) {
-		if (const TransformComponent* parentTransform = mOwner->GetParent()->
+		if (const SceneComponent* parentTransform = mOwner->GetParent()->
 			GetTransform()) {
 			return parentTransform->GetWorldRot() * rotation_;
 		}
@@ -64,9 +64,9 @@ Quaternion TransformComponent::GetWorldRot() const {
 	return rotation_;
 }
 
-Vec3 TransformComponent::GetWorldScale() const {
+Vec3 SceneComponent::GetWorldScale() const {
 	if (mOwner->GetParent()) {
-		if (const TransformComponent* parentTransform = mOwner->GetParent()->
+		if (const SceneComponent* parentTransform = mOwner->GetParent()->
 			GetTransform()) {
 			return parentTransform->GetWorldScale() * scale_;
 		}
@@ -74,9 +74,9 @@ Vec3 TransformComponent::GetWorldScale() const {
 	return scale_;
 }
 
-void TransformComponent::SetWorldPos(const Vec3& newPosition) {
+void SceneComponent::SetWorldPos(const Vec3& newPosition) {
 	if (mOwner->GetParent()) {
-		if (const TransformComponent* parentTransform = mOwner->GetParent()->
+		if (const SceneComponent* parentTransform = mOwner->GetParent()->
 			GetTransform()) {
 			// 親の逆行列を用いてワールド座標をローカル座標に変換
 			const Mat4 parentWorldMat = parentTransform->GetWorldMat();
@@ -91,9 +91,9 @@ void TransformComponent::SetWorldPos(const Vec3& newPosition) {
 	MarkDirty();
 }
 
-void TransformComponent::SetWorldRot(const Quaternion& newRotation) {
+void SceneComponent::SetWorldRot(const Quaternion& newRotation) {
 	if (mOwner->GetParent()) {
-		if (const TransformComponent* parentTransform = mOwner->GetParent()->
+		if (const SceneComponent* parentTransform = mOwner->GetParent()->
 			GetTransform()) {
 			// 親の回転を取得
 			Quaternion parentRot = parentTransform->GetWorldRot();
@@ -108,9 +108,9 @@ void TransformComponent::SetWorldRot(const Quaternion& newRotation) {
 	MarkDirty();
 }
 
-void TransformComponent::SetWorldScale(const Vec3& newScale) {
+void SceneComponent::SetWorldScale(const Vec3& newScale) {
 	if (mOwner->GetParent()) {
-		if (const TransformComponent* parentTransform = mOwner->GetParent()->
+		if (const SceneComponent* parentTransform = mOwner->GetParent()->
 			GetTransform()) {
 			const Vec3 parentScale = parentTransform->GetWorldScale();
 			scale_                 = newScale / parentScale; // 親スケールとの比率を設定
@@ -122,16 +122,16 @@ void TransformComponent::SetWorldScale(const Vec3& newScale) {
 	MarkDirty();
 }
 
-const Mat4& TransformComponent::GetLocalMat() const {
+const Mat4& SceneComponent::GetLocalMat() const {
 	if (isDirty_) {
 		RecalculateMat();
 	}
 	return localMat_;
 }
 
-Mat4 TransformComponent::GetWorldMat() const {
+Mat4 SceneComponent::GetWorldMat() const {
 	if (mOwner && mOwner->GetParent()) {
-		if (const TransformComponent* parentTransform = mOwner->GetParent()->
+		if (const SceneComponent* parentTransform = mOwner->GetParent()->
 			GetTransform()) {
 			return parentTransform->GetWorldMat() * GetLocalMat();
 		}
@@ -139,7 +139,7 @@ Mat4 TransformComponent::GetWorldMat() const {
 	return GetLocalMat();
 }
 
-void TransformComponent::DrawInspectorImGui() {
+void SceneComponent::DrawInspectorImGui() {
 #ifdef _DEBUG
 	ImGuiManager::EditTransform(*this, 0.1f);
 #endif
@@ -148,7 +148,7 @@ void TransformComponent::DrawInspectorImGui() {
 //-----------------------------------------------------------------------------
 // Purpose: 行列を更新する必要がある場合に呼び出します。
 //-----------------------------------------------------------------------------
-void TransformComponent::MarkDirty() const {
+void SceneComponent::MarkDirty() const {
 	isDirty_ = true;
 	for (const auto& child : mOwner->GetChildren()) {
 		if (const auto* childTransform = child->GetTransform()) {
@@ -157,19 +157,19 @@ void TransformComponent::MarkDirty() const {
 	}
 }
 
-Entity* TransformComponent::GetOwner() const {
+Entity* SceneComponent::GetOwner() const {
 	return mOwner;
 }
 
-bool TransformComponent::IsDirty() const {
+bool SceneComponent::IsDirty() const {
 	return isDirty_;
 }
 
-void TransformComponent::SetIsDirty(const bool newIsDirty) const {
+void SceneComponent::SetIsDirty(const bool newIsDirty) const {
 	isDirty_ = newIsDirty;
 }
 
-void TransformComponent::RecalculateMat() const {
+void SceneComponent::RecalculateMat() const {
 	const Mat4 S = Mat4::Scale(scale_);
 	const Mat4 R = Mat4::FromQuaternion(rotation_);
 	const Mat4 T = Mat4::Translate(position_);

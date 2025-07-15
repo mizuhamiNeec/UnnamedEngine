@@ -7,18 +7,18 @@ AnimationComponent::~AnimationComponent() {
 
 AnimationComponent::AnimationComponent(
 	Animation animation
-) : animation_(std::move(animation)) {
+) : mAnimation(std::move(animation)) {
 	// アニメーションのノード名を初期化 初期は最初のノード名を設定
-	currentNodeName_ = animation_.nodeNames.empty()
+	mCurrentNodeName = mAnimation.nodeNames.empty()
 		                   ? ""
-		                   : animation_.nodeNames[0];
+		                   : mAnimation.nodeNames[0];
 }
 
 void AnimationComponent::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
-	transform_ = owner.GetTransform();
-	if (bIsAutoPlay_) {
-		bIsPlaying_ = true;
+	mScene = owner.GetTransform();
+	if (mIsAutoPlay) {
+		mIsPlaying = true;
 	}
 }
 
@@ -27,57 +27,57 @@ void AnimationComponent::OnDetach() {
 }
 
 void AnimationComponent::Update(const float deltaTime) {
-	if (bIsPlaying_) {
-		animationTime += deltaTime;
-		if (bIsLooping_) {
+	if (mIsPlaying) {
+		mAnimationTime += deltaTime;
+		if (mIsLooping) {
 			// 最後まで行ったらリピート再生
-			animationTime = std::fmod(animationTime, animation_.duration);
+			mAnimationTime = std::fmod(mAnimationTime, mAnimation.duration);
 		}
 		
 		// 現在選択されているノードのアニメーションを再生
-		if (!currentNodeName_.empty() && 
-		    animation_.nodeAnimations.find(currentNodeName_) != animation_.nodeAnimations.end()) {
+		if (!mCurrentNodeName.empty() && 
+		    mAnimation.nodeAnimations.contains(mCurrentNodeName)) {
 			
-			NodeAnimation& nodeAnimation = animation_.nodeAnimations[currentNodeName_];
-			
-			Vec3 translate = CalculateValue(
+			NodeAnimation& nodeAnimation = mAnimation.nodeAnimations[mCurrentNodeName];
+
+			const Vec3 translate = CalculateValue(
 				nodeAnimation.translate.keyFrames,
-				animationTime
+				mAnimationTime
 			);
-			Quaternion rotate = CalculateValue(
+			const Quaternion rotate = CalculateValue(
 				nodeAnimation.rotate.keyFrames,
-				animationTime
+				mAnimationTime
 			);
-			Vec3 scale = CalculateValue(
+			const Vec3 scale = CalculateValue(
 				nodeAnimation.scale.keyFrames,
-				animationTime
+				mAnimationTime
 			);
 
 			// 適用
-			transform_->SetLocalPos(translate);
-			transform_->SetLocalRot(rotate);
-			transform_->SetLocalScale(scale);
+			mScene->SetLocalPos(translate);
+			mScene->SetLocalRot(rotate);
+			mScene->SetLocalScale(scale);
 		}
 		// デフォルトのフォールバック（既存のコード）
-		else if (animation_.nodeAnimations.find("AnimatedCube") != animation_.nodeAnimations.end()) {
-			NodeAnimation& rootNodeAnimation = animation_.nodeAnimations["AnimatedCube"];
+		else if (mAnimation.nodeAnimations.find("AnimatedCube") != mAnimation.nodeAnimations.end()) {
+			NodeAnimation& rootNodeAnimation = mAnimation.nodeAnimations["AnimatedCube"];
 			Vec3 translate = CalculateValue(
 				rootNodeAnimation.translate.keyFrames,
-				animationTime
+				mAnimationTime
 			);
 			Quaternion rotate = CalculateValue(
 				rootNodeAnimation.rotate.keyFrames,
-				animationTime
+				mAnimationTime
 			);
 			Vec3 scale = CalculateValue(
 				rootNodeAnimation.scale.keyFrames,
-				animationTime
+				mAnimationTime
 			);
 
 			// 適用
-			transform_->SetLocalPos(translate);
-			transform_->SetLocalRot(rotate);
-			transform_->SetLocalScale(scale);
+			mScene->SetLocalPos(translate);
+			mScene->SetLocalRot(rotate);
+			mScene->SetLocalScale(scale);
 		}
 	}
 }
@@ -88,11 +88,11 @@ void AnimationComponent::Render(ID3D12GraphicsCommandList* commandList) {
 
 void AnimationComponent::DrawInspectorImGui() {
 	if (ImGui::CollapsingHeader("Animation Component")) {
-		if (ImGui::BeginCombo("NodeName", currentNodeName_.c_str())) {
-			for (const auto& nodeName : animation_.nodeNames) {
-				bool isSelected = (currentNodeName_ == nodeName);
+		if (ImGui::BeginCombo("NodeName", mCurrentNodeName.c_str())) {
+			for (const auto& nodeName : mAnimation.nodeNames) {
+				bool isSelected = (mCurrentNodeName == nodeName);
 				if (ImGui::Selectable(nodeName.c_str(), isSelected)) {
-					currentNodeName_ = nodeName;
+					mCurrentNodeName = nodeName;
 				}
 				if (isSelected) {
 					ImGui::SetItemDefaultFocus();
@@ -101,9 +101,9 @@ void AnimationComponent::DrawInspectorImGui() {
 			ImGui::EndCombo();
 		}
 
-		ImGui::Checkbox("Auto Play", &bIsAutoPlay_);
-		ImGui::Checkbox("Playing", &bIsPlaying_);
-		ImGui::Checkbox("Looping", &bIsLooping_);
-		ImGui::Text("Animation Time: %.2f", animationTime);
+		ImGui::Checkbox("Auto Play", &mIsAutoPlay);
+		ImGui::Checkbox("Playing", &mIsPlaying);
+		ImGui::Checkbox("Looping", &mIsLooping);
+		ImGui::Text("Animation Time: %.2f", mAnimationTime);
 	}
 }

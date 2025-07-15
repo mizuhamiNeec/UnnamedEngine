@@ -7,7 +7,7 @@
 #include <utility>
 
 #include <Components/Base/Component.h>
-#include <Components/Transform/TransformComponent.h>
+#include <Components/Transform/SceneComponent.h>
 
 enum class EntityType {
 	RuntimeOnly, // ゲーム中のみ
@@ -18,10 +18,10 @@ enum class EntityType {
 class Entity {
 public:
 	explicit Entity(std::string name, const EntityType& type = EntityType::RuntimeOnly) :
-		mTransform(std::make_unique<TransformComponent>()),
+		mScene(std::make_unique<SceneComponent>()),
 		mEntityType(type),
 		mName(std::move(name)) {
-		mTransform->OnAttach(*this);
+		mScene->OnAttach(*this);
 	}
 
 	~Entity();
@@ -32,7 +32,7 @@ public:
 	[[nodiscard]] EntityType GetType() const;
 	void SetType(const EntityType& type);
 
-	[[nodiscard]] TransformComponent* GetTransform() const;
+	[[nodiscard]] SceneComponent* GetTransform() const;
 
 	[[nodiscard]] bool IsActive() const;
 	void SetActive(bool active);
@@ -69,7 +69,7 @@ private:
 	Entity* mParent = nullptr;
 	std::vector<Entity*> mChildren;
 
-	std::unique_ptr<TransformComponent> mTransform;
+	std::unique_ptr<SceneComponent> mScene;
 	std::vector<std::unique_ptr<Component>> mComponents;
 	EntityType mEntityType; // エンティティの種類
 	std::string mName; // エンティティの名前

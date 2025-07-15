@@ -9,7 +9,7 @@
 class StaticMeshRenderer;
 
 EntityLoader::~EntityLoader() {
-	for (auto ent : loadedEntities_) {
+	for (auto ent : loaded_entities) {
 		if (ent) {
 			delete ent; // Entityの削除
 		}
@@ -17,7 +17,7 @@ EntityLoader::~EntityLoader() {
 }
 
 void EntityLoader::ApplyTransform(
-	Entity*          e,
+	const Entity*    e,
 	const Transform& t
 ) {
 	e->GetTransform()->SetLocalPos(t.pos);
@@ -25,11 +25,11 @@ void EntityLoader::ApplyTransform(
 	e->GetTransform()->SetLocalScale(t.scale);
 }
 
-Vec3 ToEnginePos(const Vec3& v) {
+static Vec3 ToEnginePos(const Vec3& v) {
 	return {v.x, v.z, v.y};
 }
 
-Quaternion ToEngineQuat(const Quaternion& q) {
+static Quaternion ToEngineQuat(const Quaternion& q) {
 	return {
 		q.x,
 		-q.z,
@@ -38,11 +38,11 @@ Quaternion ToEngineQuat(const Quaternion& q) {
 	};
 }
 
-Vec3 ToBlenderPos(const Vec3& v) {
+static Vec3 ToBlenderPos(const Vec3& v) {
 	return {v.x, v.z, v.y}; // y成分の符号を修正
 }
 
-Quaternion ToBlenderQuat(const Quaternion& q) {
+static Quaternion ToBlenderQuat(const Quaternion& q) {
 	return {
 		q.x, -q.z, -q.y, q.w // 変更なし (既に正しい逆変換)
 	};
@@ -80,7 +80,7 @@ Entity* EntityLoader::LoadNode(
 	ApplyTransform(e, t);
 
 	if (j.contains("file_name")) {
-		auto renderer = e->AddComponent<StaticMeshRenderer>();
+		const auto renderer = e->AddComponent<StaticMeshRenderer>();
 
 		if (
 			resourceManager->GetMeshManager()->LoadMeshFromFile(
@@ -113,7 +113,7 @@ void EntityLoader::LoadScene(
 	json root;
 	std::ifstream(filePath) >> root;
 	for (auto& obj : root.at("objects")) {
-		loadedEntities_.emplace_back(
+		loaded_entities.emplace_back(
 			LoadNode(nullptr, obj, scene, resourceManager)
 		);
 	}
@@ -144,7 +144,7 @@ void EntityLoader::SaveScene(
 
 json EntityLoader::SaveNode(
 	Entity* e
-) const {
+) {
 	const auto* tf  = e->GetTransform();
 	Vec3        pos = ToBlenderPos(tf->GetLocalPos());
 	Quaternion  q   = tf->GetLocalRot();
@@ -168,10 +168,6 @@ json EntityLoader::SaveNode(
 			j["file_name"] = m->GetStaticMesh()->GetName();
 		}
 	}
-
-	// if (auto c = e->GetComponent<ColliderComponent>()) {
-	// 	
-	// }
 
 	if (!e->GetChildren().empty()) {
 		j["children"] = json::array();

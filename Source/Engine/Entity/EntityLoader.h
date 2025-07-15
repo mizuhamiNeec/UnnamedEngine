@@ -19,17 +19,17 @@ public:
 		Vec3       scale;
 	};
 
-	void ApplyTransform(Entity* e, const Transform& t);
+	static void ApplyTransform(const Entity* e, const Transform& t);
 
-	Entity* LoadNode(Entity* parent, const json& j, BaseScene* scene,
-	                 ResourceManager*
-	                 resourceManager);
+	static Entity* LoadNode(Entity* parent, const json& j, BaseScene* scene,
+	                        ResourceManager*
+	                        resourceManager);
 
 	void LoadScene(const std::string& filePath, BaseScene* scene,
 	               ResourceManager*   resourceManager);
 
-	void SaveScene(const std::string& path, BaseScene* scene) const;
-	json SaveNode(Entity* e) const;
+	void        SaveScene(const std::string& path, BaseScene* scene) const;
+	static json SaveNode(Entity* e);
 
-	std::vector<Entity*> loadedEntities_;
+	std::vector<Entity*> loaded_entities;
 };

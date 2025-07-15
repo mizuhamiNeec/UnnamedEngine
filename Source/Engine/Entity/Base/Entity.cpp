@@ -30,14 +30,14 @@ void Entity::Update(const float deltaTime) {
 	}
 
 	// 必須コンポーネントの更新
-	if (!mTransform.get()) {
+	if (!mScene.get()) {
 		Console::Print(
 			std::format("Entity '{}' has no TransformComponent!", GetName()),
 			Vec4(1, 0, 0, 1), Channel::General);
 		return;
 	}
 
-	mTransform->Update(deltaTime);
+	mScene->Update(deltaTime);
 
 	for (const auto& component : mComponents) {
 		if (component->IsEditorOnly() /* && !bIsInEditor*/) {
@@ -153,8 +153,8 @@ void Entity::SetType(const EntityType& type) {
 	mEntityType = type;
 }
 
-TransformComponent* Entity::GetTransform() const {
-	return mTransform.get();
+SceneComponent* Entity::GetTransform() const {
+	return mScene.get();
 }
 
 bool Entity::IsActive() const {
@@ -195,10 +195,10 @@ void Entity::SetParent(Entity* newParent) {
 	Quaternion currentWorldRot;
 	Vec3       currentWorldScale;
 
-	if (mTransform) {
-		currentWorldPos = mTransform->GetWorldPos();
-		currentWorldRot = mTransform->GetWorldRot();
-		currentWorldScale = mTransform->GetWorldScale();
+	if (mScene) {
+		currentWorldPos = mScene->GetWorldPos();
+		currentWorldRot = mScene->GetWorldRot();
+		currentWorldScale = mScene->GetWorldScale();
 	}
 
 	// 既存の親から削除
@@ -213,7 +213,7 @@ void Entity::SetParent(Entity* newParent) {
 	mParent = newParent;
 
 	// トランスフォームの更新
-	if (mTransform) {
+	if (mScene) {
 		if (mParent && mParent->GetTransform()) {
 			// 親のワールド変換を取得
 			Vec3 parentWorldPos = mParent->GetTransform()->GetWorldPos();
@@ -233,21 +233,21 @@ void Entity::SetParent(Entity* newParent) {
 			// スケールの計算
 			Vec3 localScale = currentWorldScale / parentWorldScale;
 
-			mTransform->SetLocalPos(localPos);
-			mTransform->SetLocalRot(localRot);
-			mTransform->SetLocalScale(localScale);
+			mScene->SetLocalPos(localPos);
+			mScene->SetLocalRot(localRot);
+			mScene->SetLocalScale(localScale);
 		} else {
-			mTransform->SetWorldPos(currentWorldPos);
-			mTransform->SetWorldRot(currentWorldRot);
-			mTransform->SetWorldScale(currentWorldScale);
+			mScene->SetWorldPos(currentWorldPos);
+			mScene->SetWorldRot(currentWorldRot);
+			mScene->SetWorldScale(currentWorldScale);
 		}
 
-		mTransform->MarkDirty();
+		mScene->MarkDirty();
 
 		// 子のトランスフォーム更新
 		for (auto* child : mChildren) {
-			if (child->mTransform) {
-				child->mTransform->MarkDirty();
+			if (child->mScene) {
+				child->mScene->MarkDirty();
 			}
 		}
 	}

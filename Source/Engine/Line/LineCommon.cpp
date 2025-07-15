@@ -8,7 +8,7 @@
 // Purpose : LineCommonを初期化します
 //-----------------------------------------------------------------------------
 void LineCommon::Init(D3D12* d3d12) {
-	this->d3d12_ = d3d12;
+	this->mRenderer = d3d12;
 	Console::Print("LineCommon : Lineを初期化します。\n", kConTextColorWait,
 	               Channel::Engine);
 	CreateGraphicsPipeline();
@@ -20,7 +20,7 @@ void LineCommon::Init(D3D12* d3d12) {
 // Purpose : LineCommonをシャットダウンします
 //-----------------------------------------------------------------------------
 void LineCommon::Shutdown() const {
-	rootSignatureManager_->Shutdown();
+	mRootSignatureManager->Shutdown();
 }
 
 //-----------------------------------------------------------------------------
@@ -28,8 +28,8 @@ void LineCommon::Shutdown() const {
 //-----------------------------------------------------------------------------
 void LineCommon::CreateRootSignature() {
 	// RootSignatureManagerのインスタンスを作成
-	rootSignatureManager_ = std::make_unique<RootSignatureManager>(
-		d3d12_->GetDevice());
+	mRootSignatureManager = std::make_unique<RootSignatureManager>(
+		mRenderer->GetDevice());
 
 	// ルートパラメーターを作成
 	std::vector<D3D12_ROOT_PARAMETER> rootParameters(1);
@@ -40,14 +40,14 @@ void LineCommon::CreateRootSignature() {
 	// レジスタ番号0とバインド。b0の0と一致する。もしb11と紐づけたいなら11となる
 
 	// ルートシグネチャを作成
-	rootSignatureManager_->CreateRootSignature(
+	mRootSignatureManager->CreateRootSignature(
 		"Line",
 		rootParameters,
 		nullptr, // 今回サンプラーは使用しない
 		0
 	);
 
-	if (rootSignatureManager_->Get("Line")) {
+	if (mRootSignatureManager->Get("Line")) {
 		Console::Print("LineCommon : ルートシグネチャの生成に成功.\n", kConTextColorCompleted,
 		               Channel::Engine);
 	}
@@ -60,20 +60,20 @@ void LineCommon::CreateGraphicsPipeline() {
 	CreateRootSignature();
 
 	// パイプラインステートを作成
-	pipelineState_ = PipelineState(D3D12_CULL_MODE_BACK, D3D12_FILL_MODE_SOLID,
+	mPipelineState = PipelineState(D3D12_CULL_MODE_BACK, D3D12_FILL_MODE_SOLID,
 	                               D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE);
-	pipelineState_.SetInputLayout(LineVertex::inputLayout);
-	pipelineState_.SetRootSignature(rootSignatureManager_->Get("Line"));
+	mPipelineState.SetInputLayout(LineVertex::inputLayout);
+	mPipelineState.SetRootSignature(mRootSignatureManager->Get("Line"));
 
-	pipelineState_.SetDepthWriteMask(D3D12_DEPTH_WRITE_MASK_ALL);
-	pipelineState_.SetBlendMode(kBlendModeNone);
+	mPipelineState.SetDepthWriteMask(D3D12_DEPTH_WRITE_MASK_ALL);
+	mPipelineState.SetBlendMode(kBlendModeNone);
 
 	// シェーダーのファイルパスを設定
-	pipelineState_.SetVS(L"./Resources/Shaders/Line.VS.hlsl");
-	pipelineState_.SetPS(L"./Resources/Shaders/Line.PS.hlsl");
-	pipelineState_.Create(d3d12_->GetDevice());
+	mPipelineState.SetVertexShader(L"./Resources/Shaders/Line.VS.hlsl");
+	mPipelineState.SetPixelShader(L"./Resources/Shaders/Line.PS.hlsl");
+	mPipelineState.Create(mRenderer->GetDevice());
 
-	if (pipelineState_.Get()) {
+	if (mPipelineState.Get()) {
 		Console::Print("LineCommon : パイプラインステートの作成に成功.\n",
 		               kConTextColorCompleted, Channel::Engine);
 	}
@@ -83,16 +83,16 @@ void LineCommon::CreateGraphicsPipeline() {
 // Purpose : 共通描画設定
 //-----------------------------------------------------------------------------
 void LineCommon::Render() const {
-	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
-	d3d12_->GetCommandList()->SetGraphicsRootSignature(
-		rootSignatureManager_->Get("Line"));
-	d3d12_->GetCommandList()->IASetPrimitiveTopology(
+	mRenderer->GetCommandList()->SetPipelineState(mPipelineState.Get());
+	mRenderer->GetCommandList()->SetGraphicsRootSignature(
+		mRootSignatureManager->Get("Line"));
+	mRenderer->GetCommandList()->IASetPrimitiveTopology(
 		D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose : レンダラを取得します
 //-----------------------------------------------------------------------------
-D3D12* LineCommon::GetD3D12() const {
-	return d3d12_;
+D3D12* LineCommon::GetRenderer() const {
+	return mRenderer;
 }

@@ -7,8 +7,8 @@
 IndexBuffer::IndexBuffer(
 	const Microsoft::WRL::ComPtr<ID3D12Device>& device, const size_t size,
 	const void*                                 pInitData
-) : size_(size) {
-	device_ = device;
+) : mSize(size) {
+	mDevice = device;
 
 	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
 	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD; // UploadHeapを使う
@@ -29,30 +29,30 @@ IndexBuffer::IndexBuffer(
 		&resourceDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
-		IID_PPV_ARGS(buffer_.GetAddressOf())
+		IID_PPV_ARGS(mBuffer.GetAddressOf())
 	);
 
 	assert(SUCCEEDED(hr));
 
-	view_.BufferLocation = buffer_->GetGPUVirtualAddress();
-	view_.Format         = DXGI_FORMAT_R32_UINT;
+	mView.BufferLocation = mBuffer->GetGPUVirtualAddress();
+	mView.Format         = DXGI_FORMAT_R32_UINT;
 
 	if (pInitData != nullptr) {
 		void* ptr = nullptr;
-		hr        = buffer_->Map(0, nullptr, &ptr);
+		hr        = mBuffer->Map(0, nullptr, &ptr);
 		assert(SUCCEEDED(hr));
 
 		memcpy(ptr, pInitData, size);
-		buffer_->Unmap(0, nullptr);
+		mBuffer->Unmap(0, nullptr);
 	}
 
-	buffer_->SetName(L"IndexBuffer");
+	mBuffer->SetName(L"IndexBuffer");
 }
 
 D3D12_INDEX_BUFFER_VIEW IndexBuffer::View() {
-	view_.SizeInBytes    = static_cast<UINT>(size_); // すでにバイト数になっている
-	view_.BufferLocation = buffer_->GetGPUVirtualAddress();
-	return view_;
+	mView.SizeInBytes    = static_cast<UINT>(mSize); // すでにバイト数になっている
+	mView.BufferLocation = mBuffer->GetGPUVirtualAddress();
+	return mView;
 }
 
 //-----------------------------------------------------------------------------
@@ -60,28 +60,28 @@ D3D12_INDEX_BUFFER_VIEW IndexBuffer::View() {
 //-----------------------------------------------------------------------------
 void IndexBuffer::Update(const void* pInitData, const size_t size) const {
 	assert(pInitData != nullptr);
-	assert(size <= size_);
+	assert(size <= mSize);
 
 	void*                    ptr = nullptr;
-	[[maybe_unused]] HRESULT hr  = buffer_->Map(0, nullptr, &ptr);
+	[[maybe_unused]] HRESULT hr  = mBuffer->Map(0, nullptr, &ptr);
 	assert(SUCCEEDED(hr));
 
 	memcpy(ptr, pInitData, size);
-	buffer_->Unmap(0, nullptr);
+	mBuffer->Unmap(0, nullptr);
 }
 
 size_t IndexBuffer::GetSize() const {
-	return size_;
+	return mSize;
 }
 
 std::vector<uint32_t>& IndexBuffer::GetIndices() const {
-	indices_.resize(size_ / sizeof(uint32_t));
+	mIndices.resize(mSize / sizeof(uint32_t));
 	void*                    ptr = nullptr;
-	[[maybe_unused]] HRESULT hr  = buffer_->Map(0, nullptr, &ptr);
+	[[maybe_unused]] HRESULT hr  = mBuffer->Map(0, nullptr, &ptr);
 	assert(SUCCEEDED(hr));
 
-	memcpy(indices_.data(), ptr, size_);
-	buffer_->Unmap(0, nullptr);
+	memcpy(mIndices.data(), ptr, mSize);
+	mBuffer->Unmap(0, nullptr);
 
-	return indices_;
+	return mIndices;
 }

@@ -7,17 +7,15 @@
 
 class Editor {
 public:
-	explicit Editor(SceneManager& sceneManager);
-
-private:
-	void Init();
+	explicit Editor(SceneManager* sceneManager);
+	void     Init();
 
 public:
 	void Update(float deltaTime);
 	void Render() const;
 
 	static bool IsManipulating() {
-		return bIsManipulating_;
+		return mIsManipulating;
 	}
 
 private:
@@ -31,19 +29,19 @@ private:
 
 	static float RoundToNearestPowerOfTwo(float value);
 
-	SceneManager& sceneManager_; // シーンマネージャ
+	SceneManager* mSceneManager; // 持ってきたやつ
 
-	std::shared_ptr<BaseScene> scene_;          // 現在編集中のシーン
-	Entity*                    selectedEntity_; // 選択中のエンティティ
+	std::shared_ptr<BaseScene> mScene;          // 現在編集中のシーン
+	Entity*                    mSelectedEntity; // 選択中のエンティティ
 
 	// エディターのカメラ
-	std::unique_ptr<Entity>          cameraEntity_;
-	std::shared_ptr<CameraComponent> camera_;
+	std::unique_ptr<Entity>          mCameraEntity;
+	std::shared_ptr<CameraComponent> mCamera;
 
-	float gridSize_  = 64.0f;
-	float gridRange_ = 16384.0f;
+	float mGridSize  = 64.0f;
+	float mGridRange = 16384.0f;
 
-	float angleSnap_ = 15.0f;
+	float mAngleSnap = 15.0f;
 
-	static bool bIsManipulating_;
+	static bool mIsManipulating;
 };

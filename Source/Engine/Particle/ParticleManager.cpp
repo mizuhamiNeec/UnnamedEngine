@@ -17,12 +17,12 @@
 #include "TextureManager/TexManager.h"
 
 void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
-	d3d12_      = d3d12;
-	srvManager_ = srvManager;
+	mRenderer   = d3d12;
+	mSrvManager = srvManager;
 	Console::Print("ParticleManager : ParticleCommonを初期化します。\n",
 	               kConTextColorWait, Channel::Engine);
 	// 頂点データの生成
-	std::vector<Vertex> vertices_ = {
+	std::vector<Vertex> vertices = {
 		{{1.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, Vec3::forward},
 		{{-1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, Vec3::forward},
 		{{1.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, Vec3::forward},
@@ -31,21 +31,16 @@ void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
 		{{-1.0f, -1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, Vec3::forward}
 	};
 
-	std::vector<uint32_t> indices = {
+	const std::vector<uint32_t> indices = {
 		0, 1, 2,
 		1, 5, 2
 	};
 
-	//
-	// auto ringVertices = GenerateRingVertices(0.5f, 1.0f, 64);
-	//
-	// auto ringIndices = GenerateRingIndices(64);
-
-	RegisterMesh(ParticleMeshType::Quad, vertices_, indices);
+	RegisterMesh(ParticleMeshType::Quad, vertices, indices);
 
 	CreateGraphicsPipeline();
 
-	particleGroups_.clear();
+	mParticleGroups.clear();
 
 	Console::Print("ParticleManager : ParticleCommonの初期化が完了しました。\n",
 	               kConTextColorCompleted, Channel::Engine);
@@ -56,26 +51,26 @@ void ParticleManager::Shutdown() {
 	               kConTextColorWait, Channel::Engine);
 
 	// ルートシグネチャの解放
-	if (rootSignatureManager_) {
-		rootSignatureManager_.reset();
+	if (mRootSignatureManager) {
+		mRootSignatureManager.reset();
 	}
 
 	// パイプラインステートの開放
-	if (pipelineState_) {
-		pipelineState_.reset();
+	if (mPipelineState) {
+		mPipelineState.reset();
 	}
 
-	for (auto name : registeredGroupNames_) {
-		particleGroups_[name].instancingResource.reset();
+	for (auto name : mRegisteredGroupNames) {
+		mParticleGroups[name].instancingResource.reset();
 	}
 
-	meshData_[ParticleMeshType::Quad].vertexBuffer.reset();
-	meshData_[ParticleMeshType::Quad].indexBuffer.reset();
+	mEshData[ParticleMeshType::Quad].vertexBuffer.reset();
+	mEshData[ParticleMeshType::Quad].indexBuffer.reset();
 
-	meshData_[ParticleMeshType::Ring].vertexBuffer.reset();
-	meshData_[ParticleMeshType::Ring].indexBuffer.reset();
+	mEshData[ParticleMeshType::Ring].vertexBuffer.reset();
+	mEshData[ParticleMeshType::Ring].indexBuffer.reset();
 
-	meshData_.clear();
+	mEshData.clear();
 
 	Console::Print("ParticleManager : ParticleCommonの終了が完了しました。\n",
 	               kConTextColorCompleted, Channel::Engine);
@@ -83,8 +78,8 @@ void ParticleManager::Shutdown() {
 
 void ParticleManager::CreateRootSignature() {
 	//  RootSignatureManagerのインスタンスを作成
-	rootSignatureManager_ = std::make_unique<RootSignatureManager>(
-		d3d12_->GetDevice());
+	mRootSignatureManager = std::make_unique<RootSignatureManager>(
+		mRenderer->GetDevice());
 
 	D3D12_DESCRIPTOR_RANGE descriptorRange[1];
 	descriptorRange[0] = {
@@ -145,12 +140,12 @@ void ParticleManager::CreateRootSignature() {
 	};
 
 	// ルートシグネチャを作成
-	rootSignatureManager_->CreateRootSignature(
+	mRootSignatureManager->CreateRootSignature(
 		"ParticleManager", rootParameters, staticSamplers,
 		_countof(staticSamplers)
 	);
 
-	if (rootSignatureManager_->Get("ParticleManager")) {
+	if (mRootSignatureManager->Get("ParticleManager")) {
 		Console::Print("ParticleManager : ルートシグネチャの生成に成功.\n",
 		               kConTextColorCompleted, Channel::Engine);
 	}
@@ -165,28 +160,28 @@ void ParticleManager::CreateGraphicsPipeline() {
 	// depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 	// depthStencilDesc.StencilEnable = FALSE;
 
-	pipelineState_ = std::make_unique<PipelineState>(
+	mPipelineState = std::make_unique<PipelineState>(
 		D3D12_CULL_MODE_NONE, D3D12_FILL_MODE_SOLID,
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-	pipelineState_->SetInputLayout(Vertex::inputLayout);
-	pipelineState_->SetRootSignature(
-		rootSignatureManager_->Get("ParticleManager"));
-	pipelineState_->SetBlendMode(kBlendModeAdd);
-	pipelineState_->SetDepthWriteMask(D3D12_DEPTH_WRITE_MASK_ZERO);
+	mPipelineState->SetInputLayout(Vertex::inputLayout);
+	mPipelineState->SetRootSignature(
+		mRootSignatureManager->Get("ParticleManager"));
+	mPipelineState->SetBlendMode(kBlendModeAdd);
+	mPipelineState->SetDepthWriteMask(D3D12_DEPTH_WRITE_MASK_ZERO);
 
-	pipelineState_->SetVS(L"./Resources/Shaders/Particle.VS.hlsl");
-	pipelineState_->SetPS(L"./Resources/Shaders/Particle.PS.hlsl");
-	pipelineState_->Create(d3d12_->GetDevice());
+	mPipelineState->SetVertexShader(L"./Resources/Shaders/Particle.VS.hlsl");
+	mPipelineState->SetPixelShader(L"./Resources/Shaders/Particle.PS.hlsl");
+	mPipelineState->Create(mRenderer->GetDevice());
 
-	if (pipelineState_->Get()) {
+	if (mPipelineState->Get()) {
 		Console::Print("ParticleManager: パイプラインの作成に成功しました。\n",
 		               kConTextColorCompleted, Channel::Engine);
 	}
 }
 
-void ParticleManager::Update(float deltaTime) {
+void ParticleManager::Update(const float deltaTime) {
 	// すべてのパーティクルグループについて処理する
-	for (auto& particleGroup : particleGroups_ | std::views::values) {
+	for (auto& particleGroup : mParticleGroups | std::views::values) {
 		// グループ内のすべてのパーティクルについて処理する
 		particleGroup.particles.remove_if(
 			[&](Particle& particle) {
@@ -212,20 +207,20 @@ void ParticleManager::Render() {
 	const Mat4 projection = CameraManager::GetActiveCamera()->GetProjMat();
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = {
-		srvManager_->GetDescriptorHeap()
+		mSrvManager->GetDescriptorHeap()
 	};
-	d3d12_->GetCommandList()->SetDescriptorHeaps(
+	mRenderer->GetCommandList()->SetDescriptorHeaps(
 		_countof(descriptorHeaps), descriptorHeaps);
 
-	d3d12_->GetCommandList()->SetGraphicsRootSignature(
-		rootSignatureManager_->Get("ParticleManager"));
-	d3d12_->GetCommandList()->SetPipelineState(pipelineState_->Get());
+	mRenderer->GetCommandList()->SetGraphicsRootSignature(
+		mRootSignatureManager->Get("ParticleManager"));
+	mRenderer->GetCommandList()->SetPipelineState(mPipelineState->Get());
 	// プリミティブトポロジを設定
-	d3d12_->GetCommandList()->IASetPrimitiveTopology(
+	mRenderer->GetCommandList()->IASetPrimitiveTopology(
 		D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	// すべてのパーティクルグループについて
 	// テクスチャのSRVのDescriptorTableを設定
-	for (auto& particleGroup : particleGroups_ | std::views::values) {
+	for (auto& particleGroup : mParticleGroups | std::views::values) {
 		// グループ内のすべてのパーティクルについて処理する
 		for (auto& particle : particleGroup.particles) {
 			// ワールド行列を計算
@@ -245,26 +240,26 @@ void ParticleManager::Render() {
 			}
 		}
 
-		d3d12_->GetCommandList()->SetGraphicsRootDescriptorTable(
+		mRenderer->GetCommandList()->SetGraphicsRootDescriptorTable(
 			2, TexManager::GetInstance()->GetSrvHandleGPU(
 				particleGroup.materialData.textureFilePath)
 		);
 		// インスタンシングデータのSRVのDescriptorTableを設定
-		d3d12_->GetCommandList()->SetGraphicsRootDescriptorTable(
-			1, srvManager_->GetGPUDescriptorHandle(particleGroup.srvIndex)
+		mRenderer->GetCommandList()->SetGraphicsRootDescriptorTable(
+			1, mSrvManager->GetGPUDescriptorHandle(particleGroup.srvIndex)
 		);
 
 		// VBVとIBVを設定
 		auto&                    meshData = GetMeshData(particleGroup.meshType);
 		D3D12_VERTEX_BUFFER_VIEW vbView   = meshData.vertexBuffer->View();
-		d3d12_->GetCommandList()->IASetVertexBuffers(0, 1, &vbView);
+		mRenderer->GetCommandList()->IASetVertexBuffers(0, 1, &vbView);
 
 		// インデックスバッファを設定
 		D3D12_INDEX_BUFFER_VIEW ibView = meshData.indexBuffer->View();
-		d3d12_->GetCommandList()->IASetIndexBuffer(&ibView);
+		mRenderer->GetCommandList()->IASetIndexBuffer(&ibView);
 
 		// インデックスを使って描画
-		d3d12_->GetCommandList()->DrawIndexedInstanced(
+		mRenderer->GetCommandList()->DrawIndexedInstanced(
 			static_cast<UINT>(meshData.indices.size()),
 			particleGroup.numInstance,
 			0, 0, 0
@@ -308,18 +303,18 @@ std::vector<Vertex> ParticleManager::GenerateRingVertices(
 	return vertices;
 }
 
-std::vector<uint32_t> ParticleManager::GenerateRingIndices(int segments) {
+std::vector<uint32_t> ParticleManager::GenerateRingIndices(const int segments) {
 	std::vector<uint32_t> indices;
 	for (int i = 0; i < segments; ++i) {
-		int next = (i + 1) % segments;
+		const int next = (i + 1) % segments;
 		// 2つのトライアングル
-		indices.push_back(i * 2);     // outer
-		indices.push_back(i * 2 + 1); // inner
-		indices.push_back(next * 2);  // next outer
+		indices.emplace_back(i * 2);     // outer
+		indices.emplace_back(i * 2 + 1); // inner
+		indices.emplace_back(next * 2);  // next outer
 
-		indices.push_back(next * 2);     // next outer
-		indices.push_back(i * 2 + 1);    // inner
-		indices.push_back(next * 2 + 1); // next inner
+		indices.emplace_back(next * 2);     // next outer
+		indices.emplace_back(i * 2 + 1);    // inner
+		indices.emplace_back(next * 2 + 1); // next inner
 	}
 	return indices;
 }
@@ -332,34 +327,34 @@ void ParticleManager::RegisterMesh(const ParticleMeshType       meshType,
 	meshData.indices  = indices;
 
 	meshData.vertexBuffer = std::make_unique<VertexBuffer<Vertex>>(
-		d3d12_->GetDevice(),
+		mRenderer->GetDevice(),
 		static_cast<uint32_t>(vertices.size()) * sizeof(Vertex),
 		vertices.data()
 	);
 
 	meshData.indexBuffer = std::make_unique<IndexBuffer>(
-		d3d12_->GetDevice(),
+		mRenderer->GetDevice(),
 		static_cast<uint32_t>(indices.size()) * sizeof(uint32_t),
 		indices.data()
 	);
 
-	meshData_[meshType] = std::move(meshData);
+	mEshData[meshType] = std::move(meshData);
 }
 
 MeshData& ParticleManager::GetMeshData(ParticleMeshType type) {
-	return meshData_[type];
+	return mEshData[type];
 }
 
 void ParticleManager::Emit(const std::string& name, const Vec3& pos,
                            const uint32_t&    count) {
 	// パーティクルグループが存在しない場合は新規作成
-	if (!particleGroups_.contains(name)) {
-		particleGroups_[name] = ParticleGroup();
+	if (!mParticleGroups.contains(name)) {
+		mParticleGroups[name] = ParticleGroup();
 	}
 
 	// 指定された数のパーティクルを追加
 	for (uint32_t i = 0; i < count; ++i) {
-		particleGroups_[name].particles.push_back(
+		mParticleGroups[name].particles.emplace_back(
 			ParticleObject::MakeNewParticle(
 				pos, ParticleObject::GenerateConeVelocity(30.0f), Vec3::zero,
 				Vec3::zero, Vec4::white, Vec4::white, Vec3::one, Vec3::one)
@@ -368,7 +363,7 @@ void ParticleManager::Emit(const std::string& name, const Vec3& pos,
 }
 
 D3D12* ParticleManager::GetD3D12() const {
-	return d3d12_;
+	return mRenderer;
 }
 
 CameraComponent* ParticleManager::GetDefaultCamera() const {
@@ -376,7 +371,7 @@ CameraComponent* ParticleManager::GetDefaultCamera() const {
 }
 
 SrvManager* ParticleManager::GetSrvManager() const {
-	return srvManager_;
+	return mSrvManager;
 }
 
 const VertexBuffer<Vertex>* ParticleManager::GetVertexBuffer() {
@@ -398,33 +393,33 @@ const std::vector<uint32_t>& ParticleManager::GetIndices() {
 void ParticleManager::CreateParticleGroup(const std::string& name,
                                           const std::string& textureFilePath) {
 	// 登録済みの名前かチェックしてアサート
-	assert(!particleGroups_.contains(name));
+	assert(!mParticleGroups.contains(name));
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
-	particleGroups_[name] = ParticleGroup();
+	mParticleGroups[name] = ParticleGroup();
 	// 新たなパーティクルグループのマテリアルデータにテクスチャファイルパスを設定
-	particleGroups_[name].materialData.textureFilePath = textureFilePath;
+	mParticleGroups[name].materialData.textureFilePath = textureFilePath;
 	// テクスチャを読み込む
 	TexManager::GetInstance()->LoadTexture(textureFilePath);
 	// マテリアルデータにテクスチャのSRVインデックスを記録
-	particleGroups_[name].materialData.textureIndex = TexManager::GetInstance()
+	mParticleGroups[name].materialData.textureIndex = TexManager::GetInstance()
 		->GetTextureIndexByFilePath(
 			textureFilePath
 		);
 	// インスタンシング用リソースの生成
-	particleGroups_[name].instancingResource = std::make_unique<ConstantBuffer>(
-		d3d12_->GetDevice(),
-		sizeof(ParticleForGPU) * kNumMaxInstance,
+	mParticleGroups[name].instancingResource = std::make_unique<ConstantBuffer>(
+		mRenderer->GetDevice(),
+		sizeof(ParticleForGPU) * mKNumMaxInstance,
 		"ParticleInstancingResource"
 	);
 	// インスタンシング用にSRVを確保してSRVインデックスを記録
-	particleGroups_[name].srvIndex = srvManager_->AllocateForStructuredBuffer();
+	mParticleGroups[name].srvIndex = mSrvManager->AllocateForStructuredBuffer();
 	// SRV生成(StructuredBuffer用設定)
-	srvManager_->CreateSRVForStructuredBuffer(
-		particleGroups_[name].srvIndex,
-		particleGroups_[name].instancingResource->GetResource(),
-		kNumMaxInstance,
+	mSrvManager->CreateSRVForStructuredBuffer(
+		mParticleGroups[name].srvIndex,
+		mParticleGroups[name].instancingResource->GetResource(),
+		mKNumMaxInstance,
 		sizeof(ParticleForGPU)
 	);
 
-	registeredGroupNames_.emplace_back(name);
+	mRegisteredGroupNames.emplace_back(name);
 }

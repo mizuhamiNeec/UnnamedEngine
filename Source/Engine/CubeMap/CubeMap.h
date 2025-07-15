@@ -17,31 +17,31 @@ public:
 	void Update(const float deltaTime);
 	void Render(
 		ID3D12GraphicsCommandList* commandList
-	);
+	) const;
 
 private:
 	void Init();
 	void CreateRootSignature();
 	void CreatePipelineStateObject();
 
-	std::array<Vertex, 24>                vertexData_;
-	std::array<uint32_t, 36>              indexData_;
-	std::unique_ptr<VertexBuffer<Vertex>> vertexBuffer_;
-	std::unique_ptr<IndexBuffer>          indexBuffer_;
+	std::array<Vertex, 24>                mVertexData;
+	std::array<uint32_t, 36>              mIndexData;
+	std::unique_ptr<VertexBuffer<Vertex>> mVertexBuffer;
+	std::unique_ptr<IndexBuffer>          mIndexBuffer;
 
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature;
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
-	ID3D12Device*                               device_;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState;
+	ID3D12Device*                               mDevice;
 
-	std::unique_ptr<ConstantBuffer> transformationCB_;
-	std::unique_ptr<ConstantBuffer> materialCB_;
+	std::unique_ptr<ConstantBuffer> mTransformationCb;
+	std::unique_ptr<ConstantBuffer> mMaterialCb;
 
-	TransformationMatrix* transformationMatrix_;
-	Object3D::Material*   material_;
+	TransformationMatrix* mTransformationMatrix;
+	Object3D::Material*   mMaterial;
 
-	TransformationMatrix transformationMatrixInstance_;
-	Object3D::Material   materialInstance_;
-	std::string          texturePath_;
+	TransformationMatrix mTransformationMatrixInstance;
+	Object3D::Material   mMaterialInstance;
+	std::string          mTexturePath;
 
-	SrvManager* srvManager_ = nullptr;
+	SrvManager* mSrvManager = nullptr;
 };

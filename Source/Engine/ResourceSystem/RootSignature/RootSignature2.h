@@ -5,16 +5,18 @@
 #include <wrl.h>
 
 struct RootSignatureDesc;
-using Microsoft::WRL::ComPtr;
 
 class RootSignature2 {
 public:
 	RootSignature2() = default;
 
-	void AddConstantBuffer(UINT shaderRegister, D3D12_SHADER_VISIBILITY visibility, UINT registerSpace = 0);
+	void AddConstantBuffer(UINT                    shaderRegister,
+	                       D3D12_SHADER_VISIBILITY visibility,
+	                       UINT                    registerSpace = 0);
 	void AddShaderResourceView(UINT shaderRegister, UINT registerSpace = 0);
 	void AddUnorderedAccessView(UINT shaderRegister, UINT registerSpace = 0);
-	void AddDescriptorTable(const D3D12_DESCRIPTOR_RANGE* ranges, UINT numRanges);
+	void AddDescriptorTable(const D3D12_DESCRIPTOR_RANGE* ranges,
+	                        UINT                          numRanges);
 	void AddStaticSampler(const D3D12_STATIC_SAMPLER_DESC& samplerDesc);
 	void AddRootParameter(const D3D12_ROOT_PARAMETER1& param1);
 
@@ -26,9 +28,9 @@ public:
 	void Release();
 
 private:
-	std::vector<D3D12_ROOT_PARAMETER> rootParameters_;
-	std::vector<std::vector<D3D12_DESCRIPTOR_RANGE>> descriptorTableRanges_;
-	std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplers_;
-	ComPtr<ID3D12RootSignature> rootSignature_;
-	D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc_;
+	std::vector<D3D12_ROOT_PARAMETER>                mRootParameters;
+	std::vector<std::vector<D3D12_DESCRIPTOR_RANGE>> mDescriptorTableRanges;
+	std::vector<D3D12_STATIC_SAMPLER_DESC>           mStaticSamplers;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature>      mRootSignature;
+	D3D12_ROOT_SIGNATURE_DESC                        mRootSignatureDesc;
 };

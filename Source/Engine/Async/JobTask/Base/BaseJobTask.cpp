@@ -29,7 +29,7 @@ void BaseJobTask::NotifyDependents() {
 //-----------------------------------------------------------------------------
 void BaseJobTask::AddDependent(const std::shared_ptr<BaseJobTask>& dependent) {
 	std::lock_guard lock(mDependentsMutex_);
-	mDependents_.push_back(dependent);
+	mDependents_.emplace_back(dependent);
 }
 
 //-----------------------------------------------------------------------------

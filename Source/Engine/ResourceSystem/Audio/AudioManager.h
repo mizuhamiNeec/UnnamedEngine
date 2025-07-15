@@ -5,8 +5,6 @@
 #include <wrl.h>
 #include <ResourceSystem/Audio/Audio.h>
 
-using Microsoft::WRL::ComPtr;
-
 class AudioManager {
 public:
 	AudioManager();
@@ -20,8 +18,8 @@ public:
 	void StopAll();
 
 private:
-	ComPtr<IXAudio2> xAudio2_;
-	IXAudio2MasteringVoice* masterVoice_ = nullptr;
-	std::unordered_map<std::string, std::shared_ptr<Audio>> audioCache_;
+	Microsoft::WRL::ComPtr<IXAudio2> mXAudio2;
+	IXAudio2MasteringVoice* mAsterVoice = nullptr;
+	std::unordered_map<std::string, std::shared_ptr<Audio>> mAudioCache;
 };
 

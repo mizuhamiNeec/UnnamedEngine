@@ -15,11 +15,11 @@ public:
 
 private:
 
-	Microsoft::WRL::ComPtr<ID3D12Device> device_;
-	Microsoft::WRL::ComPtr<ID3D12Resource> buffer_;
-	D3D12_INDEX_BUFFER_VIEW view_;
+	Microsoft::WRL::ComPtr<ID3D12Device> mDevice;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mBuffer;
+	D3D12_INDEX_BUFFER_VIEW mView;
 
-	size_t size_ = 0;
+	size_t mSize = 0;
 
-	mutable std::vector<uint32_t> indices_;
+	mutable std::vector<uint32_t> mIndices;
 };

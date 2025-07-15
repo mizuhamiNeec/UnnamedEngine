@@ -13,11 +13,11 @@ CameraRotator::~CameraRotator() {
 
 void CameraRotator::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
-	transform_ = mOwner->GetTransform();
+	mScene = mOwner->GetTransform();
 
 	// 初期回転を取得
-	pitch_ = transform_->GetLocalRot().ToEulerAngles().x;
-	yaw_   = transform_->GetLocalRot().ToEulerAngles().y;
+	mPitch = mScene->GetLocalRot().ToEulerAngles().x;
+	mYaw   = mScene->GetLocalRot().ToEulerAngles().y;
 
 	ConVarManager::RegisterConVar("m_pitch", 0.022f, "Mouse pitch factor.");
 	ConVarManager::RegisterConVar("m_yaw", 0.022f, "Mouse yaw factor.");
@@ -39,27 +39,27 @@ void CameraRotator::Update([[maybe_unused]] float deltaTime) {
 	const float cl_pitchup = ConVarManager::GetConVar("cl_pitchup")->
 		GetValueAsFloat();
 
-	pitch_ += delta.y * sensitivity * m_pitch;
-	yaw_ += delta.x * sensitivity * m_yaw;
+	mPitch += delta.y * sensitivity * m_pitch;
+	mYaw += delta.x * sensitivity * m_yaw;
 
 	// ピッチをクランプ（上下回転の制限）
-	pitch_ = std::clamp(pitch_, -cl_pitchup, cl_pitchdown);
+	mPitch = std::clamp(mPitch, -cl_pitchup, cl_pitchdown);
 
 	// クォータニオンを生成（回転順序: ヨー → ピッチ）
 	Quaternion yawRotation = Quaternion::AxisAngle(
-		Vec3::up, yaw_ * Math::deg2Rad);
+		Vec3::up, mYaw * Math::deg2Rad);
 	Quaternion pitchRotation = Quaternion::AxisAngle(
-		Vec3::right, pitch_ * Math::deg2Rad);
+		Vec3::right, mPitch * Math::deg2Rad);
 
 	// 回転を合成して設定
 	Quaternion finalRotation = yawRotation * pitchRotation;
-	transform_->SetLocalRot(finalRotation);
+	mScene->SetLocalRot(finalRotation);
 }
 
 void CameraRotator::DrawInspectorImGui() {
 	if (ImGui::CollapsingHeader("Camera Rotator",
 	                            ImGuiTreeNodeFlags_DefaultOpen)) {
-		ImGui::Text("Pitch: %.2f", pitch_);
-		ImGui::Text("Yaw: %.2f", yaw_);
+		ImGui::Text("Pitch: %.2f", mPitch);
+		ImGui::Text("Yaw: %.2f", mYaw);
 	}
 }

@@ -3,11 +3,12 @@
 
 class MeshRenderer : public Component {
 public:
-	MeshRenderer() = default;
-	virtual ~MeshRenderer() = default;
+	MeshRenderer()           = default;
+	~MeshRenderer() override = default;
 
 	// 更新処理: 必要に応じてオーバーライドしてください
-	virtual void Update([[maybe_unused]] float deltaTime) override {}
+	virtual void Update([[maybe_unused]] float deltaTime) override {
+	}
 
 	// 描画処理: オーバーライドしやがれください
 	virtual void Render(ID3D12GraphicsCommandList* commandList) override = 0;
@@ -18,4 +19,3 @@ public:
 protected:
 	virtual void BindTransform(ID3D12GraphicsCommandList* commandList) = 0;
 };
-

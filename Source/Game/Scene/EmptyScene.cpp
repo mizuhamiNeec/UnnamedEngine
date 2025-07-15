@@ -10,10 +10,10 @@ EmptyScene::~EmptyScene() {
 }
 
 void EmptyScene::Init() {
-	renderer_   = Engine::GetRenderer();
-	srvManager_ = Engine::GetSrvManager();
+	mRenderer   = Engine::GetRenderer();
+	mSrvManager = Engine::GetSrvManager();
 
-	resourceManager_ = Engine::GetResourceManager();
+	mResourceManager = Engine::GetResourceManager();
 
 	{
 		TexManager::GetInstance()->LoadTexture(
@@ -21,9 +21,9 @@ void EmptyScene::Init() {
 		);
 
 		// キューブマップのみ初期化
-		cubeMap_ = std::make_unique<CubeMap>(
-			renderer_->GetDevice(),
-			srvManager_,
+		mCubeMap = std::make_unique<CubeMap>(
+			mRenderer->GetDevice(),
+			mSrvManager,
 			"./Resources/Textures/wave.dds"
 		);
 	}
@@ -34,29 +34,29 @@ void EmptyScene::Init() {
 
 	//"./Resources/Models/man/man.gltf"
 	//"./Resources/Models/human/sneakWalk.gltf"
-	resourceManager_->GetMeshManager()->LoadSkeletalMeshFromFile(
+	mResourceManager->GetMeshManager()->LoadSkeletalMeshFromFile(
 		"./Resources/Models/man/man.gltf"
 	);
 
-	skeletalMeshEntity_ = std::make_unique<Entity>("SkeletalMeshEntity");
-	auto sklMesh = skeletalMeshEntity_->AddComponent<SkeletalMeshRenderer>();
+	mSkeletalMeshEntity = std::make_unique<Entity>("SkeletalMeshEntity");
+	auto sklMesh = mSkeletalMeshEntity->AddComponent<SkeletalMeshRenderer>();
 
-	auto skeletalMesh = resourceManager_->GetMeshManager()->GetSkeletalMesh(
+	auto skeletalMesh = mResourceManager->GetMeshManager()->GetSkeletalMesh(
 		"./Resources/Models/man/man.gltf"
 	);
 	sklMesh->SetSkeletalMesh(skeletalMesh);
 
-	AddEntity(skeletalMeshEntity_.get());
+	AddEntity(mSkeletalMeshEntity.get());
 
 	Console::Print("EmptyScene initialized");
 }
 
 void EmptyScene::Update(float deltaTime) {
 	// 基本的な更新処理
-	cubeMap_->Update(deltaTime);
+	mCubeMap->Update(deltaTime);
 
 	// シーン内のすべてのエンティティを更新
-	for (auto entity : entities_) {
+	for (auto entity : mEntities) {
 		if (entity->IsActive()) {
 			entity->Update(deltaTime);
 		}
@@ -65,19 +65,19 @@ void EmptyScene::Update(float deltaTime) {
 
 void EmptyScene::Render() {
 	// キューブマップの描画のみ実行
-	if (cubeMap_) {
-		cubeMap_->Render(renderer_->GetCommandList());
+	if (mCubeMap) {
+		mCubeMap->Render(mRenderer->GetCommandList());
 	}
 
 	// シーン内のすべてのエンティティを描画
-	for (auto entity : entities_) {
+	for (auto entity : mEntities) {
 		if (entity->IsActive()) {
-			entity->Render(renderer_->GetCommandList());
+			entity->Render(mRenderer->GetCommandList());
 		}
 	}
 }
 
 void EmptyScene::Shutdown() {
 	// リソースの解放
-	cubeMap_.reset();
+	mCubeMap.reset();
 }

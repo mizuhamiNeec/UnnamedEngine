@@ -2,6 +2,7 @@
 
 #include <d3d12.h>
 
+class SceneComponent;
 class Entity;
 
 //-----------------------------------------------------------------------------
@@ -18,7 +19,7 @@ public:
 	virtual void PrePhysics(float deltaTime);
 	virtual void Update(float deltaTime) = 0;
 	virtual void PostPhysics(float deltaTime);
-	
+
 	virtual void Render(ID3D12GraphicsCommandList* commandList);
 
 	virtual void DrawInspectorImGui() = 0;
@@ -29,5 +30,6 @@ public:
 	[[nodiscard]] virtual Entity* GetOwner() const;
 
 protected:
-	Entity* mOwner = nullptr;
+	Entity*             mOwner     = nullptr;
+	SceneComponent* mScene = nullptr;
 };

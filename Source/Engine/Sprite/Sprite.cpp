@@ -15,39 +15,77 @@ Sprite::~Sprite() = default;
 //-----------------------------------------------------------------------------
 // Purpose : スプライトを初期化します
 //-----------------------------------------------------------------------------
-void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath) {
-	this->spriteCommon_ = spriteCommon;
+void Sprite::Init(SpriteCommon*      spriteCommon,
+                  const std::string& textureFilePath) {
+	this->spriteCommon_    = spriteCommon;
 	this->textureFilePath_ = textureFilePath;
 
 	// 各トランスフォームに初期値を設定
-	transform_ = { {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
-	uvTransform_ = { {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f} };
+	transform_ = {
+		.scale = {1.0f, 1.0f, 1.0f},
+		.rotate = {0.0f, 0.0f, 0.0f},
+		.translate = {0.0f, 0.0f, 0.0f}
+	};
+	uvTransform_ = {
+		.scale = {1.0f, 1.0f, 1.0f},
+		.rotate = {0.0f, 0.0f, 0.0f},
+		.translate = {0.0f, 0.0f, 0.0f}
+	};
 
-	// 頂点リソースにデータを書き込む
-	vertices_.push_back({ {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} }); // 左下
-	vertices_.push_back({ {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }); // 左上
-	vertices_.push_back({ {1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} }); // 右下
-	vertices_.push_back({ {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }); // 左上
-	vertices_.push_back({ {1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }); // 右上
-	vertices_.push_back({ {1.0f, 1.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} }); // 右下
+	// 頂点リソースにデータを書き込む	
+	vertices_.emplace_back(
+		Vec4(0.0f, 1.0f, 0.0f, 1.0f),
+		Vec2(0.0f, 1.0f),
+		Vec3(0.0f, 0.0f, -1.0f)
+	); // 左下
+	vertices_.emplace_back(
+		Vec4(0.0f, 0.0f, 0.0f, 1.0f),
+		Vec2(0.0f, 0.0f),
+		Vec3(0.0f, 0.0f, -1.0f)
+	); // 左上
+	vertices_.emplace_back(
+		Vec4(1.0f, 1.0f, 0.0f, 1.0f),
+		Vec2(1.0f, 1.0f),
+		Vec3(0.0f, 0.0f, -1.0f)
+	); // 右下
+	vertices_.emplace_back(
+		Vec4(0.0f, 0.0f, 0.0f, 1.0f),
+		Vec2(0.0f, 0.0f),
+		Vec3(0.0f, 0.0f, -1.0f)
+	); // 左上
+	vertices_.emplace_back(
+		Vec4(1.0f, 0.0f, 0.0f, 1.0f),
+		Vec2(1.0f, 0.0f),
+		Vec3(0.0f, 0.0f, -1.0f)
+	); // 右上
+	vertices_.emplace_back(
+		Vec4(1.0f, 1.0f, 0.0f, 1.0f),
+		Vec2(1.0f, 1.0f),
+		Vec3(0.0f, 0.0f, -1.0f)
+	); // 右下
 
 	// インデックスバッファの作成
-	indexBuffer_ = std::make_unique<IndexBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(indices), indices);
+	indexBuffer_ = std::make_unique<IndexBuffer>(
+		spriteCommon_->GetD3D12()->GetDevice(), sizeof(indices), indices);
 
 	// 頂点バッファの作成
 	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(
-		spriteCommon_->GetD3D12()->GetDevice(), sizeof(Vertex) * kSpriteVertexCount, vertices_.data()
+		spriteCommon_->GetD3D12()->GetDevice(),
+		sizeof(Vertex) * kSpriteVertexCount, vertices_.data()
 	);
 
 	// 定数バッファ
-	materialResource_ = std::make_unique<ConstantBuffer>(spriteCommon_->GetD3D12()->GetDevice(), sizeof(Material), "SpriteMaterial");
-	materialData_ = materialResource_->GetPtr<Material>();
-	materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	materialResource_ = std::make_unique<ConstantBuffer>(
+		spriteCommon_->GetD3D12()->GetDevice(), sizeof(Material),
+		"SpriteMaterial");
+	materialData_                 = materialResource_->GetPtr<Material>();
+	materialData_->color          = {1.0f, 1.0f, 1.0f, 1.0f};
 	materialData_->enableLighting = false;
-	materialData_->uvTransform = Mat4::identity;
+	materialData_->uvTransform    = Mat4::identity;
 
 	transformation_ = std::make_unique<ConstantBuffer>(
-		spriteCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix), "SpriteTransformation"
+		spriteCommon_->GetD3D12()->GetDevice(), sizeof(TransformationMatrix),
+		"SpriteTransformation"
 	);
 	transformationMatrixData_ = transformation_->GetPtr<TransformationMatrix>();
 	transformationMatrixData_->wvp = Mat4::identity;
@@ -55,42 +93,37 @@ void Sprite::Init(SpriteCommon* spriteCommon, const std::string& textureFilePath
 
 	AdjustTextureSize();
 
-	Console::Print("スプライトの初期化に成功しました。\n", kConTextColorCompleted, Channel::Engine);
+	Console::Print("スプライトの初期化に成功しました。\n", kConTextColorCompleted,
+	               Channel::Engine);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose : スプライトの更新処理
 //-----------------------------------------------------------------------------
 void Sprite::Update() {
-	float left = -anchorPoint_.x;
-	float right = 1.0f - anchorPoint_.x;
-	float top = -anchorPoint_.y;
+	float left   = -anchorPoint_.x;
+	float right  = 1.0f - anchorPoint_.x;
+	float top    = -anchorPoint_.y;
 	float bottom = 1.0f - anchorPoint_.y;
 
 	// 左右反転
 	if (isFlipX_) {
-		left = -left;
+		left  = -left;
 		right = -right;
 	}
 	// 上下反転
 	if (isFlipY_) {
-		top = -top;
+		top    = -top;
 		bottom = -bottom;
 	}
 
-	/*const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureFilePath_);
-	float texLeft = textureLeftTop.x / static_cast<float>(metadata.width);
-	float texRight = (textureLeftTop.x + textureSize.x) / static_cast<float>(metadata.width);
-	float texTop = textureLeftTop.y / static_cast<float>(metadata.height);
-	float texBottom = (textureLeftTop.y + textureSize.y) / static_cast<float>(metadata.height);*/
-
 	// すべての頂点を更新
-	vertices_[0].position = Vec4(left, bottom, 0.0f, 1.0f);   // 左下
-	vertices_[1].position = Vec4(left, top, 0.0f, 1.0f);      // 左上
-	vertices_[2].position = Vec4(right, bottom, 0.0f, 1.0f);  // 右下
-	vertices_[3].position = Vec4(left, top, 0.0f, 1.0f);      // 左上
-	vertices_[4].position = Vec4(right, top, 0.0f, 1.0f);     // 右上
-	vertices_[5].position = Vec4(right, bottom, 0.0f, 1.0f);  // 右下 (追加)
+	vertices_[0].position = Vec4(left, bottom, 0.0f, 1.0f);  // 左下
+	vertices_[1].position = Vec4(left, top, 0.0f, 1.0f);     // 左上
+	vertices_[2].position = Vec4(right, bottom, 0.0f, 1.0f); // 右下
+	vertices_[3].position = Vec4(left, top, 0.0f, 1.0f);     // 左上
+	vertices_[4].position = Vec4(right, top, 0.0f, 1.0f);    // 右上
+	vertices_[5].position = Vec4(right, bottom, 0.0f, 1.0f); // 右下 (追加)
 
 	//// すべてのUV座標を更新
 	//vertices_[0].uv = { texLeft, texBottom };   // 左下
@@ -106,29 +139,34 @@ void Sprite::Update() {
 //-----------------------------------------------------------------------------
 void Sprite::Draw() const {
 	{
-		vertexBuffer_->Update(vertices_.data(), sizeof(Vertex) * vertices_.size());
+		vertexBuffer_->Update(vertices_.data(),
+		                      sizeof(Vertex) * vertices_.size());
 		indexBuffer_->Update(indices, sizeof(uint16_t) * kSpriteVertexCount);
 
 		// uvTransformから行列を作成
 		Mat4 uvTransformMat = Mat4::Scale(uvTransform_.scale);
 		uvTransformMat = uvTransformMat * Mat4::RotateZ(uvTransform_.rotate.z);
-		uvTransformMat = uvTransformMat * Mat4::Translate(uvTransform_.translate);
+		uvTransformMat = uvTransformMat * Mat4::Translate(
+			uvTransform_.translate);
 		// 設定
 		materialData_->uvTransform = uvTransformMat;
 
 		// 各種行列を作成
-		Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate, transform_.translate);
-		Mat4 viewMat = Mat4::identity;
-		Mat4 projMat = Mat4::MakeOrthographicMat(
-			0.0f, 
-			0.0f, 
-			static_cast<float>(WindowManager::GetMainWindow()->GetClientWidth()),
-			static_cast<float>(WindowManager::GetMainWindow()->GetClientHeight()),
-			0.0f, 
+		const Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate,
+		                                   transform_.translate);
+		const Mat4 viewMat = Mat4::identity;
+		const Mat4 projMat = Mat4::MakeOrthographicMat(
+			0.0f,
+			0.0f,
+			static_cast<float>(WindowManager::GetMainWindow()->
+				GetClientWidth()),
+			static_cast<float>(WindowManager::GetMainWindow()->
+				GetClientHeight()),
+			0.0f,
 			100.0f
 		);
 
-		TransformationMatrix worldViewProjectionMatrixSprite = {
+		const TransformationMatrix worldViewProjectionMatrixSprite = {
 			worldMat * viewMat * projMat,
 			worldMat,
 		};
@@ -137,24 +175,26 @@ void Sprite::Draw() const {
 	}
 
 	// 頂点バッファの設定
-	D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer_->View();
-	spriteCommon_->GetD3D12()->GetCommandList()->IASetVertexBuffers(0, 1, &vbView);
+	const D3D12_VERTEX_BUFFER_VIEW vbView = vertexBuffer_->View();
+	spriteCommon_->GetD3D12()->GetCommandList()->IASetVertexBuffers(
+		0, 1, &vbView);
 
 	// 定数バッファの設定
-	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResource_->GetAddress());
-	spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootConstantBufferView(1, transformation_->GetAddress());
-
-	// SRVを設定
-	//spriteCommon_->GetD3D12()->GetCommandList()->SetGraphicsRootDescriptorTable(
-	//	2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_)
-	//);
+	spriteCommon_->GetD3D12()->GetCommandList()->
+	               SetGraphicsRootConstantBufferView(
+		               0, materialResource_->GetAddress());
+	spriteCommon_->GetD3D12()->GetCommandList()->
+	               SetGraphicsRootConstantBufferView(
+		               1, transformation_->GetAddress());
 
 	// インデックスバッファの設定
-	D3D12_INDEX_BUFFER_VIEW indexBufferView = indexBuffer_->View();
-	spriteCommon_->GetD3D12()->GetCommandList()->IASetIndexBuffer(&indexBufferView);
+	const D3D12_INDEX_BUFFER_VIEW indexBufferView = indexBuffer_->View();
+	spriteCommon_->GetD3D12()->GetCommandList()->IASetIndexBuffer(
+		&indexBufferView);
 
 	// 描画
-	spriteCommon_->GetD3D12()->GetCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
+	spriteCommon_->GetD3D12()->GetCommandList()->DrawIndexedInstanced(
+		6, 1, 0, 0, 0);
 }
 
 void Sprite::ChangeTexture(const std::string& textureFilePath) {
@@ -199,11 +239,11 @@ bool Sprite::GetIsFlipY() const {
 }
 
 Vec2 Sprite::GetUvPos() {
-	return { uvTransform_.translate.x, uvTransform_.translate.y };
+	return {uvTransform_.translate.x, uvTransform_.translate.y};
 }
 
 Vec2 Sprite::GetUvSize() {
-	return { uvTransform_.scale.x, uvTransform_.scale.y };
+	return {uvTransform_.scale.x, uvTransform_.scale.y};
 }
 
 float Sprite::GetUvRot() const {
@@ -263,13 +303,6 @@ void Sprite::SetUvRot(const float& newRot) {
 }
 
 void Sprite::AdjustTextureSize() {
-	// テクスチャメタデータを取得
-	//const DirectX::TexMetadata& metadata = TextureManager::GetInstance()->GetMetaData(textureFilePath_);
-
-	// 画像サイズをテクスチャサイズに合わせる
-	/*textureSize.x = static_cast<float>(metadata.width);
-	textureSize.y = static_cast<float>(metadata.height);*/
-
 	transform_.scale.x = textureSize.x;
 	transform_.scale.y = textureSize.y;
 }

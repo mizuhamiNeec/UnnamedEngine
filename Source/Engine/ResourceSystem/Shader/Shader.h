@@ -6,8 +6,6 @@
 #include <unordered_map>
 #include <wrl.h>
 
-using Microsoft::WRL::ComPtr;
-
 struct ResourceInfo {
 	UINT bindPoint;
 	D3D12_SHADER_VISIBILITY visibility;
@@ -29,46 +27,46 @@ public:
 		const std::string& gsPath = ""
 	);
 
-	ComPtr<IDxcBlob> GetVertexShaderBlob();
-	ComPtr<IDxcBlob> GetPixelShaderBlob();
-	ComPtr<IDxcBlob> GetGeometryShaderBlob();
+	Microsoft::WRL::ComPtr<IDxcBlob> GetVertexShaderBlob();
+	Microsoft::WRL::ComPtr<IDxcBlob> GetPixelShaderBlob();
+	Microsoft::WRL::ComPtr<IDxcBlob> GetGeometryShaderBlob();
 
-	UINT GetResourceRegister(const std::string& resourceName) const;
-	const std::unordered_map<std::string, ResourceInfo>& GetResourceRegisterMap() const;
+	[[nodiscard]] UINT GetResourceRegister(const std::string& resourceName) const;
+	[[nodiscard]] const std::unordered_map<std::string, ResourceInfo>& GetResourceRegisterMap() const;
 	std::string GetName();
 	UINT GetResourceParameterIndex(const std::string& resourceName);
 	void SetResourceParameterIndex(const std::string& resourceName, UINT index);
 	
 	// テクスチャスロット名のリストを取得
-	std::vector<std::string> GetTextureSlots() const;
+	[[nodiscard]] std::vector<std::string> GetTextureSlots() const;
 
 	void Release();
 	static void ReleaseStaticResources();
 
 private:
-	static ComPtr<IDxcBlob> CompileShader(
+	static Microsoft::WRL::ComPtr<IDxcBlob> CompileShader(
 		const std::string& filePath,
 		const std::string& entryPoint,
 		const std::string& profile
 	);
 
-	void ReflectShaderBlob(const ComPtr<IDxcBlob>& shaderBlob, ShaderType shaderType);
+	void ReflectShaderBlob(const Microsoft::WRL::ComPtr<IDxcBlob>& shaderBlob, ShaderType shaderType);
 	void ReflectShaderResources();
 
-	ComPtr<IDxcBlob> vertexShaderBlob_;
-	ComPtr<IDxcBlob> pixelShaderBlob_;
-	ComPtr<IDxcBlob> geometryShaderBlob_;
+	Microsoft::WRL::ComPtr<IDxcBlob> mVertexShaderBlob;
+	Microsoft::WRL::ComPtr<IDxcBlob> mPixelShaderBlob;
+	Microsoft::WRL::ComPtr<IDxcBlob> mGeometryShaderBlob;
 
-	static ComPtr<IDxcUtils> dxcUtils_;
-	static ComPtr<IDxcCompiler3> dxcCompiler_;
-	static ComPtr<IDxcIncludeHandler> includeHandler_;
+	static Microsoft::WRL::ComPtr<IDxcUtils> mDxcUtils;
+	static Microsoft::WRL::ComPtr<IDxcCompiler3> mDxcCompiler;
+	static Microsoft::WRL::ComPtr<IDxcIncludeHandler> mIncludeHandler;
 
-	std::string name_;
+	std::string mName;
 
 	// リソース名とレジスタ番号のマップ
-	std::unordered_map<std::string, ResourceInfo> resourceRegisterMap_;
+	std::unordered_map<std::string, ResourceInfo> mResourceRegisterMap;
 
 	// リソース名とパラメータインデックスのマップ
-	std::unordered_map<std::string, UINT> resourceParameterIndices_;
+	std::unordered_map<std::string, UINT> mResourceParameterIndices;
 };
 

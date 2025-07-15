@@ -3,17 +3,17 @@
 #include "Lib/Math/Random/Random.h"
 
 ExplosionEffect::~ExplosionEffect() {
-	if (explosionParticleObject) {
-		explosionParticleObject->Shutdown();
-		explosionParticleObject.reset();
+	if (mExplosionParticleObject) {
+		mExplosionParticleObject->Shutdown();
+		mExplosionParticleObject.reset();
 	}
 }
 
 void ExplosionEffect::Init(ParticleManager*   particleManager,
                            const std::string& texturePath) {
-	explosionParticleObject = std::make_unique<ParticleObject>();
-	explosionParticleObject->Init(particleManager, texturePath);
-	explosionParticleObject->SetBillboardType(BillboardType::XZ);
+	mExplosionParticleObject = std::make_unique<ParticleObject>();
+	mExplosionParticleObject->Init(particleManager, texturePath);
+	mExplosionParticleObject->SetBillboardType(BillboardType::XZ);
 }
 
 void ExplosionEffect::TriggerExplosion(const Vec3& position,
@@ -26,26 +26,26 @@ void ExplosionEffect::TriggerExplosion(const Vec3& position,
 		float randomSpeed = Random::FloatRange(5.0f, 15.0f);
 		Vec3  velocity    = normal + randomDir * randomSpeed;
 
-		explosionParticleObject->EmitParticlesAtPosition(
+		mExplosionParticleObject->EmitParticlesAtPosition(
 			position,
 			0,
 			coneAngle,
 			Vec3::one * 10.0f,
 			Vec3::down * 9.81f,
 			velocity,
-			1, startColor_, endColor_, Vec3::one * 4.0f, Vec3::zero
+			1, mStartColor, mEndColor, Vec3::one * 4.0f, Vec3::zero
 		);
 	}
 }
 
 void ExplosionEffect::Update(float deltaTime) {
-	if (explosionParticleObject) {
-		explosionParticleObject->Update(deltaTime);
+	if (mExplosionParticleObject) {
+		mExplosionParticleObject->Update(deltaTime);
 	}
 }
 
 void ExplosionEffect::Draw() const {
-	if (explosionParticleObject) {
-		explosionParticleObject->Draw();
+	if (mExplosionParticleObject) {
+		mExplosionParticleObject->Draw();
 	}
 }

@@ -56,5 +56,5 @@ public:
 	static void Shutdown();
 
 private:
-	static std::unique_ptr<Line> line_;
+	static std::unique_ptr<Line> mLine;
 };
