@@ -18,9 +18,9 @@
 //-----------------------------------------------------------------------------
 
 Material::Material(std::string name, Shader* shader) :
-	name_(std::move(name)),
-	shader_(shader), pipelineState_(nullptr), rootSignature_(nullptr) {
-	Console::Print("マテリアルを作成しました: " + name_ + "\n", kConTextColorCompleted,
+	mName(std::move(name)),
+	mShader(shader), mPipelineState(nullptr), mRootSignature(nullptr) {
+	Console::Print("マテリアルを作成しました: " + mName + "\n", kConTextColorCompleted,
 	               Channel::ResourceSystem);
 
 	InitializeRootSignature();
@@ -30,13 +30,13 @@ void Material::SetTexture(const std::string& name,
                           const std::string& filePath) {
 	// テクスチャを読み込み
 	if (!filePath.empty()) {
-		textures_[name] = filePath;
+		mTextures[name] = filePath;
 
 		// デバッグログ出力
 		Console::Print(
 			std::format(
 				"Material::SetTexture: マテリアル {} のスロット {} にテクスチャ {} を設定しました\n",
-				name_, name, filePath),
+				mName, name, filePath),
 			kConTextColorCompleted,
 			Channel::ResourceSystem
 		);
@@ -44,7 +44,7 @@ void Material::SetTexture(const std::string& name,
 		Console::Print(
 			std::format(
 				"Material::SetTexture: マテリアル {} のスロット {} に空のテクスチャパスが指定されました\n",
-				name_, name),
+				mName, name),
 			kConTextColorError,
 			Channel::ResourceSystem
 		);
@@ -54,18 +54,18 @@ void Material::SetTexture(const std::string& name,
 void Material::SetConstantBuffer(const UINT      shaderRegister,
                                  ID3D12Resource* buffer) {
 	// シェーダーからリソース情報を取得
-	for (const auto& [bindPoint, visibility, type] : shader_->
+	for (const auto& [bindPoint, visibility, type] : mShader->
 	     GetResourceRegisterMap() | std::views::values) {
 		if (type == D3D_SIT_CBUFFER && bindPoint == shaderRegister) {
 			// シェーダーステージとレジスタ番号からキーを生成
 			std::string key       = GenerateBufferKey(visibility, bindPoint);
-			constantBuffers_[key] = buffer;
+			mConstantBuffers[key] = buffer;
 		}
 	}
 }
 
 void Material::Apply(ID3D12GraphicsCommandList* commandList, const std::string& meshName) {
-	if (!shader_) {
+	if (!mShader) {
 		Console::Print("シェーダが設定されていません。\n", kConTextColorError,
 		               Channel::ResourceSystem);
 		return;
@@ -121,7 +121,7 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList, const std::string& 
 	desc.pRootSignature        = rootSignature;
 	
 	// シェーダー名に基づいて適切な入力レイアウトを選択
-	if (shader_->GetName() == "DefaultSkinnedShader") {
+	if (mShader->GetName() == "DefaultSkinnedShader") {
 		desc.InputLayout = SkinnedVertex::inputLayout;
 	} else {
 		desc.InputLayout = Vertex::inputLayout;
@@ -144,15 +144,15 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList, const std::string& 
 
 	// 定数バッファをバインド
 	UINT parameterIndex = 0; // ルートパラメータのインデックスを追跡
-	for (const auto& [bindPoint, visibility, type] : shader_->
+	for (const auto& [bindPoint, visibility, type] : mShader->
 	     GetResourceRegisterMap() | std::views::values) {
 		if (type == D3D_SIT_CBUFFER) {
 			// キーを生成
 			std::string key = GenerateBufferKey(visibility, bindPoint);
 
 			// 対応する定数バッファを検索
-			auto it = constantBuffers_.find(key);
-			if (it != constantBuffers_.end() && it->second) {
+			auto it = mConstantBuffers.find(key);
+			if (it != mConstantBuffers.end() && it->second) {
 				commandList->SetGraphicsRootConstantBufferView(
 					parameterIndex,
 					it->second->GetGPUVirtualAddress()
@@ -169,10 +169,10 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList, const std::string& 
 	commandList->SetDescriptorHeaps(1, descriptorHeaps);
 
 	// テクスチャのディスクリプタテーブルバインド（シンプルなオフセット調整）
-	if (!textures_.empty()) {
+	if (!mTextures.empty()) {
 		// まず定数バッファの数をカウント
 		UINT cbvCount = 0;
-		for (const auto& info : shader_->GetResourceRegisterMap() | std::views::values) {
+		for (const auto& info : mShader->GetResourceRegisterMap() | std::views::values) {
 			if (info.type == D3D_SIT_CBUFFER) {
 				cbvCount++;
 			}
@@ -184,9 +184,9 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList, const std::string& 
 		// シェーダーレジスタ順序（t0, t1, t2, ...）でテクスチャを並べる
 		std::map<UINT, std::pair<std::string, std::string>> texturesByRegister;
 		
-		for (const auto& [name, filePath] : textures_) {
+		for (const auto& [name, filePath] : mTextures) {
 			if (!filePath.empty()) {
-				const auto& resourceMap = shader_->GetResourceRegisterMap();
+				const auto& resourceMap = mShader->GetResourceRegisterMap();
 				auto        it          = resourceMap.find(name);
 				if (it != resourceMap.end()) {
 					const ResourceInfo& resourceInfo = it->second;
@@ -257,21 +257,21 @@ ID3D12PipelineState* Material::GetOrCreatePipelineState(
 	ID3D12Device* device, const D3D12_GRAPHICS_PIPELINE_STATE_DESC& baseDesc,
 	const std::string& meshName
 ) {
-	if (!shader_) {
+	if (!mShader) {
 		Console::Print("シェーダーが設定されていません\n", kConTextColorError,
 		               Channel::ResourceSystem);
 		return nullptr;
 	}
 
 	// キャッシュされたパイプラインステートがあれば返す
-	if (pipelineState_) {
-		return pipelineState_.Get();
+	if (mPipelineState) {
+		return mPipelineState.Get();
 	}
 
 	// パイプラインステートの作成時にキーを生成：メッシュ名_マテリアル名_PSO
 	std::string psoKey;
 	if (!meshName.empty()) {
-		psoKey = meshName + "_" + name_ + "_PSO";
+		psoKey = meshName + "_" + mName + "_PSO";
 	} else {
 		// GetFullName()を使用してメッシュ名が設定されている場合はそれを使用
 		psoKey = GetFullName() + "_PSO";
@@ -295,34 +295,34 @@ ID3D12PipelineState* Material::GetOrCreatePipelineState(
 	desc.pRootSignature = rootSig;
 
 	// シェーダーの設定
-	if (shader_->GetVertexShaderBlob()) {
+	if (mShader->GetVertexShaderBlob()) {
 		desc.VS = {
-			shader_->GetVertexShaderBlob()->GetBufferPointer(),
-			shader_->GetVertexShaderBlob()->GetBufferSize()
+			mShader->GetVertexShaderBlob()->GetBufferPointer(),
+			mShader->GetVertexShaderBlob()->GetBufferSize()
 		};
 	}
-	if (shader_->GetPixelShaderBlob()) {
+	if (mShader->GetPixelShaderBlob()) {
 		desc.PS = {
-			shader_->GetPixelShaderBlob()->GetBufferPointer(),
-			shader_->GetPixelShaderBlob()->GetBufferSize()
+			mShader->GetPixelShaderBlob()->GetBufferPointer(),
+			mShader->GetPixelShaderBlob()->GetBufferSize()
 		};
 	}
 
 	// パイプラインステートの取得または作成
-	pipelineState_ = PipelineManager::GetOrCreatePipelineState(
+	mPipelineState = PipelineManager::GetOrCreatePipelineState(
 		device, psoKey, desc);
-	return pipelineState_.Get();
+	return mPipelineState.Get();
 }
 
 ID3D12RootSignature* Material::GetOrCreateRootSignature(
 	[[maybe_unused]] ID3D12Device* device) {
-	if (!rootSignature_) {
+	if (!mRootSignature) {
 		// ルートシグネチャがない場合は作成
-		std::string       key  = shader_->GetName();
+		std::string       key  = mShader->GetName();
 		RootSignatureDesc desc = {};
 
 		// シェーダーリソースマップからリソースを解析
-		const auto& resourceMap = shader_->GetResourceRegisterMap();
+		const auto& resourceMap = mShader->GetResourceRegisterMap();
 		std::vector<D3D12_DESCRIPTOR_RANGE> srvRanges;
 
 		// リソースの分類とルートパラメータの追加
@@ -421,44 +421,44 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature(
 		desc.flags =
 			D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-		rootSignature_ =
+		mRootSignature =
 			RootSignatureManager2::GetOrCreateRootSignature(key, desc)->Get();
 	}
-	return rootSignature_.Get();
+	return mRootSignature.Get();
 }
 
 void Material::InitializeRootSignature() const {
-	if (!shader_) {
+	if (!mShader) {
 		Console::Print("シェーダーが設定されていません\n", kConTextColorError,
 		               Channel::ResourceSystem);
 	}
 }
 
 void Material::Shutdown() {
-	rootSignature_.Reset();
-	pipelineState_.Reset();
+	mRootSignature.Reset();
+	mPipelineState.Reset();
 }
 
-const std::string& Material::GetName() const { return name_; }
+const std::string& Material::GetName() const { return mName; }
 
 const std::unordered_map<std::string, std::string>&
 Material::GetTextures() const {
-	return textures_;
+	return mTextures;
 }
 
 void Material::SetMeshName(const std::string& meshName) {
-	meshName_ = meshName;
+	mEshName = meshName;
 }
 
 std::string Material::GetMeshName() const {
-	return meshName_;
+	return mEshName;
 }
 
 std::string Material::GetFullName() const {
-	if (!meshName_.empty()) {
-		return meshName_ + "_" + name_;
+	if (!mEshName.empty()) {
+		return mEshName + "_" + mName;
 	}
-	return name_;
+	return mName;
 }
 
 std::string Material::GenerateBufferKey(D3D12_SHADER_VISIBILITY visibility,
