@@ -45,12 +45,9 @@ constexpr uint32_t kTextureEndIndex = 1536;      // テクスチャ用SRVの終�
 constexpr uint32_t kStructuredBufferStartIndex = 1536; // ストラクチャードバッファ用SRVの開始インデックス
 constexpr uint32_t kStructuredBufferEndIndex = 2048;   // ストラクチャードバッファ用SRVの終了インデックス（2047まで使用可）
 
-// 以前の定義を削除
-//constexpr uint32_t kSrvIndexTop = 1; // ImGuiで0番を使用するため、1番から使用
 constexpr uint32_t kMaxFps = 360;  // フレームレートの上限
 
 // バッファのフォーマット
-//constexpr DXGI_FORMAT kBufferFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 constexpr DXGI_FORMAT kBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM; // 8bit RGBA
 
 //-----------------------------------------------------------------------------
@@ -58,8 +55,3 @@ constexpr DXGI_FORMAT kBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM; // 8bit RGBA
 //-----------------------------------------------------------------------------
 constexpr float kFovMax = 179.999f * Math::deg2Rad;
 constexpr float kFovMin = 0.0001f;
-
-//-----------------------------------------------------------------------------
-// Purpose : テクスチャマネージャー
-//-----------------------------------------------------------------------------
-// kSrvIndexTop は上部で定義済み（重複削除）
