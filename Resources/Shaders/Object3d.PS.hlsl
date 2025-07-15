@@ -74,7 +74,10 @@ PixelShaderOutput PSMain(VertexShaderOutput input) {
     float NdotV = saturate(dot(N, V));
     float3 F0 = lerp(float3(0.04, 0.04, 0.04), baseColor.rgb, metallic);
 
-    static const float environmentIntensity = 1.5f; // 強度を下げる
+    // 環境光の強度を上げて影を明るく
+    static const float environmentIntensity = 2.0f;
+    // アンビエントライトを追加（影の部分を明るくする）
+    static const float3 ambientLight = float3(0.15, 0.15, 0.18); // 薄い青みがかった環境光
 
     // IBL
     float3 irradiance = gEnvironmentTexture.Sample(gSampler, N).rgb * 
@@ -92,7 +95,15 @@ PixelShaderOutput PSMain(VertexShaderOutput input) {
     float3 diffuseIBL = irradiance * baseColor.rgb * (1.0 - metallic);
     float3 specularIBL = prefiltered * F_IBL;
 
-    // ラフネスが高いほどspecularIBLを弱める
+    // 反射を強化（特に金属表面で）
+    float reflectionStrength = lerp(0.1, 1.0, metallic); // 金属度に応じた反射強度
+    reflectionStrength *= (1.0 - roughness * 0.8); // ラフネスで反射を減衰
+    
+    // 環境マップからの直接反射（よりクリアな反射）
+    float3 environmentReflection = gEnvironmentTexture.SampleLevel(gSampler, R, 0).rgb;
+    float3 clearReflection = environmentReflection * F_IBL * reflectionStrength * environmentIntensity;
+
+    // ラフネスが高いほどspecularIBLを弱める（元のコード）
     float specularFactor = (1.0 - roughness) * (0.5 + 0.5 * metallic);
     specularIBL *= specularFactor;
 
@@ -116,8 +127,11 @@ PixelShaderOutput PSMain(VertexShaderOutput input) {
 
     float3 directLight = (diffuse + specular) * radiance;
 
-    // 出力
-    output.color.rgb = diffuseIBL + specularIBL + directLight + emissive;
+    // アンビエントライトを追加して影の部分を明るく
+    float3 ambientContribution = ambientLight * baseColor.rgb * (1.0 - metallic * 0.5);
+
+    // 出力（アンビエントライト + クリアな環境反射を追加）
+    output.color.rgb = diffuseIBL + specularIBL + directLight + ambientContribution + clearReflection + emissive;
     output.color.a   = baseColor.a;
 
     return output;
