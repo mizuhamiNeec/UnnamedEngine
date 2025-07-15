@@ -5,8 +5,7 @@
 #include "Input/InputSystem.h"
 #include "Lib/Math/MathLib.h"
 
-WeaponSway::~WeaponSway() {
-}
+WeaponSway::~WeaponSway() = default;
 
 void WeaponSway::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
@@ -16,25 +15,23 @@ void WeaponSway::Update([[maybe_unused]] const float deltaTime) {
 	// マウスの移動量を取得
 	Vec2 delta = InputSystem::GetMouseDelta();
 
-	TransformComponent* transform = mOwner->GetTransform();
-
 	mPitch += delta.y * mSwayAmount * deltaTime;
 	mYaw += delta.x * mSwayAmount * deltaTime;
 
 	mPitch = std::lerp(mPitch, 0.0f, mAttenuation * deltaTime); // ピッチの減衰
 	mYaw   = std::lerp(mYaw, 0.0f, mAttenuation * deltaTime);   // ヨーの減衰
 
-	Quaternion pitch = Quaternion::AxisAngle(Vec3::right, mPitch);
-	Quaternion yaw   = Quaternion::AxisAngle(Vec3::up, mYaw);
+	const Quaternion pitch = Quaternion::AxisAngle(Vec3::right, mPitch);
+	const Quaternion yaw   = Quaternion::AxisAngle(Vec3::up, mYaw);
 
-	Quaternion finalRotation = yaw * pitch;
+	const Quaternion finalRotation = yaw * pitch;
 
-	transform->SetLocalPos(delta * 0.0001f); // 武器の位置をマウスの移動量に基づいて調整
+	mTransform->SetLocalPos(delta * 0.0001f); // 武器の位置をマウスの移動量に基づいて調整
 
 	// クォータニオンに変換してセット
-	transform->SetLocalRot(finalRotation);
-	transform->SetLocalPos(
-		Math::Lerp(transform->GetLocalPos(),
+	mTransform->SetLocalRot(finalRotation);
+	mTransform->SetLocalPos(
+		Math::Lerp(mTransform->GetLocalPos(),
 		           Vec3::zero,
 		           (mAttenuation * 0.5f) * deltaTime)); // 武器の位置調整
 }
