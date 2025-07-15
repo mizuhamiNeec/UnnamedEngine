@@ -18,10 +18,10 @@ enum class EntityType {
 class Entity {
 public:
 	explicit Entity(std::string name, const EntityType& type = EntityType::RuntimeOnly) :
-		mTransform(std::make_unique<SceneComponent>()),
+		mScene(std::make_unique<SceneComponent>()),
 		mEntityType(type),
 		mName(std::move(name)) {
-		mTransform->OnAttach(*this);
+		mScene->OnAttach(*this);
 	}
 
 	~Entity();
@@ -69,7 +69,7 @@ private:
 	Entity* mParent = nullptr;
 	std::vector<Entity*> mChildren;
 
-	std::unique_ptr<SceneComponent> mTransform;
+	std::unique_ptr<SceneComponent> mScene;
 	std::vector<std::unique_ptr<Component>> mComponents;
 	EntityType mEntityType; // エンティティの種類
 	std::string mName; // エンティティの名前

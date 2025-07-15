@@ -18,10 +18,10 @@ CameraComponent::~CameraComponent() = default;
 void CameraComponent::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
 	// 親からTransformComponentを取得
-	mTransform = mOwner->GetTransform();
+	mScene = mOwner->GetTransform();
 
 	mAspectRatio = 16.0f / 9.0f;
-	mWorldMat    = mTransform->GetWorldMat();
+	mWorldMat    = mScene->GetWorldMat();
 	mViewMat     = mWorldMat.Inverse();
 	mProjMat     = Mat4::PerspectiveFovMat(mFov, mAspectRatio, mZNear, mZFar);
 	mViewProjMat = mViewMat * mProjMat;
@@ -33,9 +33,9 @@ void CameraComponent::OnAttach(Entity& owner) {
 void CameraComponent::Update([[maybe_unused]] float deltaTime) {
 	// 変更があった場合のみ更新
 	//	if (transform_->IsDirty()) {
-	const Vec3&       pos   = mTransform->GetWorldPos();
-	const Vec3&       scale = mTransform->GetWorldScale();
-	const Quaternion& rot   = mTransform->GetWorldRot();
+	const Vec3&       pos   = mScene->GetWorldPos();
+	const Vec3&       scale = mScene->GetWorldScale();
+	const Quaternion& rot   = mScene->GetWorldRot();
 
 	const Mat4 S = Mat4::Scale(scale);
 	const Mat4 R = Mat4::FromQuaternion(rot);
@@ -46,7 +46,7 @@ void CameraComponent::Update([[maybe_unused]] float deltaTime) {
 	mProjMat     = Mat4::PerspectiveFovMat(mFov, mAspectRatio, mZNear, mZFar);
 	mViewProjMat = mViewMat * mProjMat;
 
-	mTransform->SetIsDirty(false);
+	mScene->SetIsDirty(false);
 }
 
 //-----------------------------------------------------------------------------

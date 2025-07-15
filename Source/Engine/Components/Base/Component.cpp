@@ -13,7 +13,7 @@ Component::~Component() {
 //-----------------------------------------------------------------------------
 void Component::OnAttach(Entity& owner) {
 	this->mOwner     = &owner;
-	this->mTransform = owner.GetTransform();
+	this->mScene = owner.GetTransform();
 }
 
 //-----------------------------------------------------------------------------

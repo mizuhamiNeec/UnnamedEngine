@@ -32,7 +32,7 @@ SkeletalMeshRenderer::~SkeletalMeshRenderer() {
 
 void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 	MeshRenderer::OnAttach(owner);
-	mTransform = mOwner->GetTransform();
+	mScene = mOwner->GetTransform();
 
 	// 変換行列用の定数バッファ
 	mTransformationMatrixConstantBuffer = std::make_unique<ConstantBuffer>(
@@ -159,7 +159,7 @@ void SkeletalMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 		Material* material = subMesh->GetMaterial();
 		if (material && material != currentlyBoundMaterial) {
 			// VS用のトランスフォーム (b0)
-			if (const auto* transform = mTransform) {
+			if (const auto* transform = mScene) {
 				const Mat4 worldMat = Mat4::Affine(
 					transform->GetWorldScale(),
 					transform->GetWorldRot().ToEulerAngles(),

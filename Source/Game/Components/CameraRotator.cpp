@@ -13,11 +13,11 @@ CameraRotator::~CameraRotator() {
 
 void CameraRotator::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
-	mTransform = mOwner->GetTransform();
+	mScene = mOwner->GetTransform();
 
 	// 初期回転を取得
-	mPitch = mTransform->GetLocalRot().ToEulerAngles().x;
-	mYaw   = mTransform->GetLocalRot().ToEulerAngles().y;
+	mPitch = mScene->GetLocalRot().ToEulerAngles().x;
+	mYaw   = mScene->GetLocalRot().ToEulerAngles().y;
 
 	ConVarManager::RegisterConVar("m_pitch", 0.022f, "Mouse pitch factor.");
 	ConVarManager::RegisterConVar("m_yaw", 0.022f, "Mouse yaw factor.");
@@ -53,7 +53,7 @@ void CameraRotator::Update([[maybe_unused]] float deltaTime) {
 
 	// 回転を合成して設定
 	Quaternion finalRotation = yawRotation * pitchRotation;
-	mTransform->SetLocalRot(finalRotation);
+	mScene->SetLocalRot(finalRotation);
 }
 
 void CameraRotator::DrawInspectorImGui() {

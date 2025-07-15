@@ -33,7 +33,7 @@ void PlayerMovement::OnAttach(Entity& owner) {
 
 	// 初期化処理
 	// トランスフォームコンポーネントを取得
-	mTransform = mOwner->GetTransform();
+	mScene = mOwner->GetTransform();
 
 	mSpeed   = 290.0f;
 	mJumpVel = 350.0f;
@@ -76,7 +76,7 @@ void PlayerMovement::ProcessInput() {
 
 void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	mDeltaTime = deltaTime;
-	mPosition  = mTransform->GetLocalPos();
+	mPosition  = mScene->GetLocalPos();
 
 	// 入力処理
 	ProcessInput();
@@ -93,7 +93,7 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 		mCurrentHeightHu = kDefaultHeightHU;
 	}
 
-	Vec3 oldWorldPos = mTransform->GetWorldPos();
+	Vec3 oldWorldPos = mScene->GetWorldPos();
 	CollideAndSlide(mVelocity * mDeltaTime);
 
 	Move();
@@ -108,19 +108,19 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	UpdateCameraShake(mDeltaTime);
 
 	// デバッグ描画
-	Debug::DrawArrow(mTransform->GetWorldPos(), mVelocity, Vec4::yellow);
+	Debug::DrawArrow(mScene->GetWorldPos(), mVelocity, Vec4::yellow);
 
 	const float width  = Math::HtoM(mCurrentWidthHu);
 	const float height = Math::HtoM(mCurrentHeightHu);
 	Debug::DrawBox(
-		mTransform->GetWorldPos() + (Vec3::up * height * 0.5f),
+		mScene->GetWorldPos() + (Vec3::up * height * 0.5f),
 		Quaternion::Euler(Vec3::zero),
 		Vec3(width, height, width),
 		mIsGrounded ? Vec4::green : Vec4::blue);
-	Debug::DrawRay(mTransform->GetWorldPos(), mWishdir, Vec4::cyan);
+	Debug::DrawRay(mScene->GetWorldPos(), mWishdir, Vec4::cyan);
 
 	// position_.y = std::max<float>(position_.y, 0.0f);
-	mTransform->SetLocalPos(mPosition);
+	mScene->SetLocalPos(mPosition);
 
 	// カメラの前方ベクトルを取得し、XZ平面に投影して正規化
 	auto camera        = CameraManager::GetActiveCamera();
@@ -595,7 +595,7 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 	const float     stepMaxHeight = 0.3f;     // 床とみなす最大段差(必要に応じて調整)
 
 	Vec3 remainingDisp = desiredDisplacement;
-	Vec3 currentPos    = mTransform->GetWorldPos() + collider->GetOffset();
+	Vec3 currentPos    = mScene->GetWorldPos() + collider->GetOffset();
 	Vec3 finalVelocity = mVelocity;
 	Vec3 averageNormal = Vec3::zero;
 	int  hitCount      = 0;

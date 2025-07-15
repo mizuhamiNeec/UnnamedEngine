@@ -19,22 +19,22 @@ CharacterMovement::~CharacterMovement() {
 
 void CharacterMovement::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
-	mTransform = mOwner->GetTransform();
+	mScene = mOwner->GetTransform();
 }
 
 void CharacterMovement::Update(const float deltaTime) {
 	mDeltaTime = deltaTime;
-	mPosition  = mTransform->GetLocalPos();
+	mPosition  = mScene->GetLocalPos();
 
 	Move();
 	
-	Debug::DrawArrow(mTransform->GetWorldPos(), mVelocity * 0.25f,
+	Debug::DrawArrow(mScene->GetWorldPos(), mVelocity * 0.25f,
 	                 Vec4::yellow);
 
 	const float width  = Math::HtoM(mCurrentWidthHu);
 	const float height = Math::HtoM(mCurrentHeightHu);
 	Debug::DrawBox(
-		mTransform->GetWorldPos() + (Vec3::up * height * 0.5f),
+		mScene->GetWorldPos() + (Vec3::up * height * 0.5f),
 		Quaternion::Euler(Vec3::zero),
 		Vec3(width, height, width),
 		mIsGrounded ? Vec4::green : Vec4::red);
@@ -87,7 +87,7 @@ bool CharacterMovement::CheckGrounded() {
 	}
 
 	// 足元判定の開始位置。自分自身との衝突を避けるために少し上にオフセット
-	Vec3 pos = mTransform->GetWorldPos();
+	Vec3 pos = mScene->GetWorldPos();
 	pos.y += Math::HtoM(2.0f);
 
 	constexpr float castDist = 0.01f;
@@ -170,6 +170,6 @@ Vec3 CharacterMovement::GetVelocity() const {
 }
 
 Vec3 CharacterMovement::GetHeadPos() const {
-	return mTransform->GetWorldPos() + Vec3::up * Math::HtoM(
+	return mScene->GetWorldPos() + Vec3::up * Math::HtoM(
 		mCurrentHeightHu - 9.0f);
 }

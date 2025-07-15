@@ -31,5 +31,5 @@ public:
 
 protected:
 	Entity*             mOwner     = nullptr;
-	SceneComponent* mTransform = nullptr;
+	SceneComponent* mScene = nullptr;
 };

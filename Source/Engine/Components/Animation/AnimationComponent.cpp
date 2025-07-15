@@ -16,7 +16,7 @@ AnimationComponent::AnimationComponent(
 
 void AnimationComponent::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
-	mTransform = owner.GetTransform();
+	mScene = owner.GetTransform();
 	if (mIsAutoPlay) {
 		mIsPlaying = true;
 	}
@@ -54,9 +54,9 @@ void AnimationComponent::Update(const float deltaTime) {
 			);
 
 			// 適用
-			mTransform->SetLocalPos(translate);
-			mTransform->SetLocalRot(rotate);
-			mTransform->SetLocalScale(scale);
+			mScene->SetLocalPos(translate);
+			mScene->SetLocalRot(rotate);
+			mScene->SetLocalScale(scale);
 		}
 		// デフォルトのフォールバック（既存のコード）
 		else if (mAnimation.nodeAnimations.find("AnimatedCube") != mAnimation.nodeAnimations.end()) {
@@ -75,9 +75,9 @@ void AnimationComponent::Update(const float deltaTime) {
 			);
 
 			// 適用
-			mTransform->SetLocalPos(translate);
-			mTransform->SetLocalRot(rotate);
-			mTransform->SetLocalScale(scale);
+			mScene->SetLocalPos(translate);
+			mScene->SetLocalRot(rotate);
+			mScene->SetLocalScale(scale);
 		}
 	}
 }

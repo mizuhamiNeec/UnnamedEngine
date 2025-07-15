@@ -19,13 +19,13 @@ struct MatParam {
 StaticMeshRenderer::~StaticMeshRenderer() {
 	mTransformationMatrixConstantBuffer.reset();
 	mTransformationMatrix = nullptr;
-	mTransform            = nullptr;
+	mScene            = nullptr;
 	mStaticMesh           = nullptr;
 }
 
 void StaticMeshRenderer::OnAttach(Entity& owner) {
 	MeshRenderer::OnAttach(owner);
-	mTransform = mOwner->GetTransform();
+	mScene = mOwner->GetTransform();
 
 	mTransformationMatrixConstantBuffer = std::make_unique<ConstantBuffer>(
 		Engine::GetRenderer()->GetDevice(),
@@ -116,7 +116,7 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 		Material* material = subMesh->GetMaterial();
 		if (material && material != currentlyBoundMaterial) {
 			// VS用のトランスフォーム (b0)
-			if (const auto* transform = mTransform) {
+			if (const auto* transform = mScene) {
 				const Mat4 worldMat = Mat4::Affine(
 					transform->GetWorldScale(),
 					transform->GetWorldRot().ToEulerAngles(),
