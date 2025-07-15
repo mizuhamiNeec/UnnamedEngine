@@ -1,22 +1,27 @@
 #pragma once
 #include <Editor.h>
 #include <memory>
-#include <ImGuiManager/ImGuiManager.h>
-#include <Lib/Timer/EngineTimer.h>
-#include <Line/LineCommon.h>
-#include <Model/ModelCommon.h>
-#include <ResourceSystem/Manager/ResourceManager.h>
-#include <Scene/Base/BaseScene.h>
-#include <SceneManager/SceneFactory.h>
-#include <SceneManager/SceneManager.h>
-#include <Window/WindowManager.h>
 #include <SrvManager.h>
 
-#include "CopyImagePass/CopyImagePass.h"
-#include "CubeMap/CubeMap.h"
+#include <CopyImagePass/CopyImagePass.h>
 
-#include "Scene/GameScene.h"
-#include "Scene/EmptyScene.h"
+#include <ImGuiManager/ImGuiManager.h>
+
+#include <Lib/Timer/EngineTimer.h>
+
+#include <Line/LineCommon.h>
+
+#include <Model/ModelCommon.h>
+
+#include <ResourceSystem/Manager/ResourceManager.h>
+
+#include <Scene/GameScene.h>
+#include <Scene/Base/BaseScene.h>
+
+#include <SceneManager/SceneFactory.h>
+#include <SceneManager/SceneManager.h>
+
+#include <Window/WindowManager.h>
 
 class Console;
 class D3D12;
@@ -28,27 +33,27 @@ public:
 	void Run();
 
 	[[nodiscard]] static bool IsEditorMode() {
-		return bIsEditorMode_;
+		return mIsEditorMode;
 	}
 
 	[[nodiscard]] static D3D12* GetRenderer() {
-		return renderer_.get();
+		return mRenderer.get();
 	}
 
 	[[nodiscard]] static ResourceManager* GetResourceManager() {
-		return resourceManager_.get();
+		return mResourceManager.get();
 	}
 
 	[[nodiscard]] static ParticleManager* GetParticleManager() {
-		return particleManager_.get();
+		return mParticleManager.get();
 	}
 
 	[[nodiscard]] static SrvManager* GetSrvManager() {
-		return srvManager_.get();
+		return mSrvManager.get();
 	}
 
 	[[nodiscard]] static SceneManager* GetSceneManager() {
-		return sceneManager_.get();
+		return mSceneManager.get();
 	}
 
 	// シーン管理
@@ -73,49 +78,49 @@ private:
 
 	void CheckEditorMode();
 
-	std::unique_ptr<WindowManager> wm_;
+	std::unique_ptr<WindowManager> mWindowManager;
 
-	static std::unique_ptr<SrvManager>      srvManager_;
-	static std::unique_ptr<ResourceManager> resourceManager_;
+	static std::unique_ptr<SrvManager>      mSrvManager;
+	static std::unique_ptr<ResourceManager> mResourceManager;
 
-	std::unique_ptr<EngineTimer> time_;
+	std::unique_ptr<EngineTimer> mTime;
 
-	static std::unique_ptr<D3D12> renderer_;
+	static std::unique_ptr<D3D12> mRenderer;
 #ifdef _DEBUG
-	std::unique_ptr<ImGuiManager> imGuiManager_;
+	std::unique_ptr<ImGuiManager> mImGuiManager;
 #endif
-	static std::unique_ptr<ParticleManager> particleManager_;
+	static std::unique_ptr<ParticleManager> mParticleManager;
 
-	std::unique_ptr<CopyImagePass> copyImagePass_;
+	std::unique_ptr<CopyImagePass> mCopyImagePass;
 
-	std::unique_ptr<SpriteCommon>   spriteCommon_;
-	std::unique_ptr<Object3DCommon> object3DCommon_;
-	std::unique_ptr<ModelCommon>    modelCommon_;
-	std::unique_ptr<LineCommon>     lineCommon_;
+	std::unique_ptr<SpriteCommon>   mSpriteCommon;
+	std::unique_ptr<Object3DCommon> mObject3DCommon;
+	std::unique_ptr<ModelCommon>    mModelCommon;
+	std::unique_ptr<LineCommon>     mLineCommon;
 
-	std::unique_ptr<SceneFactory>        sceneFactory_;
-	static std::shared_ptr<SceneManager> sceneManager_;
+	std::unique_ptr<SceneFactory>        mSceneFactory;
+	static std::shared_ptr<SceneManager> mSceneManager;
 
-	std::unique_ptr<Editor> editor_; // エディター
+	std::unique_ptr<Editor> mEditor; // エディター
 
-	std::unique_ptr<Console> console_;
+	std::unique_ptr<Console> mConsole;
 
-	std::optional<std::string> loadFilePath_; // シーンロードキュー
+	std::optional<std::string> mLoadFilePath; // シーンロードキュー
 
-	std::unique_ptr<EntityLoader> entityLoader_;
+	std::unique_ptr<EntityLoader> mEntityLoader;
 
-	RenderTargetTexture offscreenRTV_;
-	DepthStencilTexture offscreenDSV_;
-	RenderPassTargets   offscreenRenderPassTargets_;
+	RenderTargetTexture mOffscreenRtv;
+	DepthStencilTexture mOffscreenDsv;
+	RenderPassTargets   mOffscreenRenderPassTargets;
 
-	RenderTargetTexture postProcessedRTV_;
-	DepthStencilTexture postProcessedDSV_;
-	RenderPassTargets   postProcessedRenderPassTargets_;
+	RenderTargetTexture mPostProcessedRtv;
+	DepthStencilTexture mPostProcessedDsv;
+	RenderPassTargets   mPostProcessedRenderPassTargets;
 
-	static Vec2 viewportLT;
-	static Vec2 viewportSize;
+	static Vec2 mViewportLt;
+	static Vec2 mViewportSize;
 
-	static bool bIsEditorMode_; // エディターモードか?
+	static bool mIsEditorMode; // エディターモードか?
 
-	static bool bWishShutdown_; // 終了したいか?
+	static bool mWishShutdown; // 終了したいか?
 };
