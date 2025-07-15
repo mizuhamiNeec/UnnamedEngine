@@ -1,10 +1,10 @@
 ﻿#pragma once
 
+#include <cstdint>
 #include <d3d12.h>
 #include <wrl.h>
 
-#include "SrvManager.h"
-
+class SrvManager;
 class ShaderResourceViewManager;
 
 struct PostProcessParams {
@@ -31,22 +31,22 @@ public:
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv
 	);
 
-	void Shutdown() { device_ = nullptr; }
+	void Shutdown() { mDevice = nullptr; }
 	
 	// SRVインデックスを取得するメソッドを追加
-	uint32_t GetSrvIndex() const { return srvIndex_; }
+	uint32_t GetSrvIndex() const { return mSrvIndex; }
 
 private:
 	void CreateRootSignature();
 	void CreatePipelineState();
 
-	SrvManager* srvManager_ = nullptr;
-	uint32_t    srvIndex_   = 0;
+	SrvManager* mSrvManager = nullptr;
+	uint32_t    mSrvIndex   = 0;
 
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature;
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> pipelineState;
-	ID3D12Device*                               device_;
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState;
+	ID3D12Device*                               mDevice;
 
-	PostProcessParams                      postProcessParams_;
-	Microsoft::WRL::ComPtr<ID3D12Resource> postProcessParamsCB_;
+	PostProcessParams                      mPostProcessParams;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mPostProcessParamsCb;
 };
