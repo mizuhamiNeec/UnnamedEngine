@@ -9,9 +9,9 @@
 //-----------------------------------------------------------------------------
 // すべてのエンティティが持っているコンポーネントです
 //-----------------------------------------------------------------------------
-class TransformComponent : public Component {
+class SceneComponent : public Component {
 public:
-	TransformComponent() : position_(Vec3::zero),
+	SceneComponent() : position_(Vec3::zero),
 		rotation_(Quaternion::identity),
 		scale_(Vec3::one),
 		localMat_(Mat4::identity),
