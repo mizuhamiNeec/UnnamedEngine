@@ -11,7 +11,7 @@
 #else
 #endif
 
-class TransformComponent;
+class SceneComponent;
 class ShaderResourceViewManager;
 
 class ImGuiManager {
@@ -29,7 +29,7 @@ public:
 	static void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered,
 	                                  const ImVec4& bgActive);
 	static bool EditTransform(Transform& transform, const float& vSpeed);
-	static bool EditTransform(TransformComponent& transform,
+	static bool EditTransform(SceneComponent& transform,
 	                          const float&        vSpeed);
 	static bool DragVec3(const std::string& name, Vec3& v, const float& vSpeed,
 	                     const char*        format);
@@ -43,7 +43,7 @@ public:
 #endif
 
 private:
-	D3D12*                       renderer_   = nullptr;
-	const SrvManager*            srvManager_ = nullptr;
-	ComPtr<ID3D12DescriptorHeap> srvHeap_;
+	D3D12*                       mRenderer   = nullptr;
+	const SrvManager*            mSrvManager = nullptr;
+	ComPtr<ID3D12DescriptorHeap> mSrvHeap;
 };
