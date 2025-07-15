@@ -238,6 +238,13 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 			isCubeMap = isCubeMap || (metadata.miscFlags &
 				DirectX::TEX_MISC_TEXTURECUBE);
 
+			// デバッグログでキューブマップ判定を出力
+			Console::Print(std::format(
+				               "LoadTexture: {} - forceCubeMap: {}, metadata.miscFlags: 0x{:x}, isCubeMap: {}\n",
+				               filePath, forceCubeMap, metadata.miscFlags,
+				               isCubeMap),
+			               kConTextColorCompleted);
+
 			// メタデータを取得したら改めて読み込み
 			hr = DirectX::LoadFromDDSFile(filePathW.c_str(),
 			                              DirectX::DDS_FLAGS_NONE, nullptr,
@@ -257,9 +264,9 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 		// デフォルトテクスチャの読み込み
 		filePathW = StrUtil::ToWString("./Resources/Textures/uvChecker.png");
 		hr        = DirectX::LoadFromWICFile(filePathW.c_str(),
-		                              DirectX::WIC_FLAGS_FORCE_SRGB,
-		                              nullptr,
-		                              image);
+		                                     DirectX::WIC_FLAGS_FORCE_SRGB,
+		                                     nullptr,
+		                                     image);
 		assert(SUCCEEDED(hr)); // デフォルトのテクスチャも読み込めなかった場合はエラー
 		isCubeMap = false;     // デフォルトテクスチャはキューブマップではない
 	}
@@ -285,7 +292,6 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 	textureData.filePath = filePath;
 	textureData.metadata = mipImages.GetMetadata();
 	textureData.resource = CreateTextureResource(textureData.metadata);
-	textureData.isCubeMap = isCubeMap; // キューブマップフラグを保存
 
 	ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(
 		textureData.resource, mipImages);
@@ -328,8 +334,9 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 
 	// キューブマップの場合は専用のSRV作成メソッドを呼び出す
 	if (isCubeMap) {
-		Console::Print(std::format("LoadTexture: {} をキューブマップとしてSRVを作成します\n", filePath),
-		               kConTextColorCompleted);
+		Console::Print(
+			std::format("LoadTexture: {} をキューブマップとしてSRVを作成します\n", filePath),
+			kConTextColorCompleted);
 		mSrvManager->CreateSRVForTextureCube(
 			textureData.srvIndex,
 			textureData.resource,
@@ -337,8 +344,9 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 			static_cast<UINT>(textureData.metadata.mipLevels)
 		);
 	} else {
-		Console::Print(std::format("LoadTexture: {} をTexture2DとしてSRVを作成します\n", filePath),
-		               kConTextColorCompleted);
+		Console::Print(
+			std::format("LoadTexture: {} をTexture2DとしてSRVを作成します\n", filePath),
+			kConTextColorCompleted);
 		mSrvManager->CreateSRVForTexture2D(
 			textureData.srvIndex,
 			textureData.resource.Get(),

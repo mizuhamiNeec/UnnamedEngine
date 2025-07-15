@@ -31,7 +31,7 @@ public:
 	TextureData* GetTextureData(const std::string& filePath);
 
 	// SRVインデックスの開始番号
-	uint32_t GetTextureIndexByFilePath(const std::string& filePath) const;
+	[[nodiscard]] uint32_t GetTextureIndexByFilePath(const std::string& filePath) const;
 
 	// テクスチャ番号からGPUハンドルを取得
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(const std::string& filePath);
