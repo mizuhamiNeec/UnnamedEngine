@@ -8,16 +8,16 @@
 class StaticMeshRenderer : public MeshRenderer {
 public:
 	StaticMeshRenderer() = default;
-	virtual ~StaticMeshRenderer();
+	~StaticMeshRenderer() override;
 
 	void OnAttach(Entity& owner) override;
 
 	// 描画処理
-	virtual void Render(ID3D12GraphicsCommandList* commandList) override;
+	void Render(ID3D12GraphicsCommandList* commandList) override;
 	// インスペクターの描画
-	virtual void DrawInspectorImGui() override;
+	void DrawInspectorImGui() override;
 
-	StaticMesh* GetStaticMesh() const;
+	[[nodiscard]] StaticMesh* GetStaticMesh() const;
 	void SetStaticMesh(StaticMesh* staticMesh);
 
 protected:

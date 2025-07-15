@@ -72,8 +72,7 @@ private:
 	bool showBoneDebug_ = false; // デバッグモードではない場合はfalse
 #endif
 
-	// ライティング用の定数バッファ
-	// TODO: 消す予定
+	// ライティング用の定数
 	std::unique_ptr<ConstantBuffer> matparamCBV;
 	MatParam*                       materialData = nullptr;
 
