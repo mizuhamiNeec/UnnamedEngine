@@ -162,9 +162,6 @@
     <ClCompile Include="Source\Engine\ResourceSystem\Shader\DefaultShader.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Shader\Shader.cpp" />
     <ClCompile Include="Source\Engine\ResourceSystem\Shader\ShaderManager.cpp" />
-    <ClCompile Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.cpp" />
-    <ClCompile Include="Source\Engine\ResourceSystem\Texture\Texture.cpp" />
-    <ClCompile Include="Source\Engine\ResourceSystem\Texture\TextureManager.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\ConCommand.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\Console.cpp" />
     <ClCompile Include="Source\Engine\SubSystem\Console\ConVar.cpp" />
@@ -308,9 +305,6 @@
     <ClInclude Include="Source\Engine\ResourceSystem\Shader\DefaultShader.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Shader\Shader.h" />
     <ClInclude Include="Source\Engine\ResourceSystem\Shader\ShaderManager.h" />
-    <ClInclude Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.h" />
-    <ClInclude Include="Source\Engine\ResourceSystem\Texture\Texture.h" />
-    <ClInclude Include="Source\Engine\ResourceSystem\Texture\TextureManager.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\ConCommand.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\Console.h" />
     <ClInclude Include="Source\Engine\SubSystem\Console\ConVar.h" />
