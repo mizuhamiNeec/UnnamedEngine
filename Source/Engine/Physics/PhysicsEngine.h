@@ -66,7 +66,7 @@ private:
 
 	struct DynamicMeshData {
 		std::vector<Triangle>     localTriangles;
-		const TransformComponent* transform = nullptr;
+		const SceneComponent* transform = nullptr;
 	};
 
 	std::unordered_map<ColliderComponent*, StaticMeshData>  mStaticMeshes;
