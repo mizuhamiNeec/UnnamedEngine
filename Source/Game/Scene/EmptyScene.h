@@ -13,8 +13,8 @@ public:
 	void Shutdown() override;
 
 private:
-	D3D12*                   renderer_ = nullptr;
-	std::unique_ptr<CubeMap> cubeMap_;
+	D3D12*                   mRenderer = nullptr;
+	std::unique_ptr<CubeMap> mCubeMap;
 
-	std::unique_ptr<Entity> skeletalMeshEntity_;
+	std::unique_ptr<Entity> mSkeletalMeshEntity;
 };
