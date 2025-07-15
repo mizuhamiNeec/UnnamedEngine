@@ -156,7 +156,7 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 static float kEdgeAngleThreshold = 0.2f; // エッジ判定の閾値
 
 void PlayerMovement::DrawInspectorImGui() {
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	if (ImGui::CollapsingHeader("PlayerMovement",
 	                            ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGuiWidgets::DragVec3(
@@ -196,7 +196,7 @@ void PlayerMovement::DrawInspectorImGui() {
 			                        GetValueAsFloat();
 		ImGui::Text("Current Friction: %.4f", currentFriction);
 	}
-	#endif
+#endif
 }
 
 Vec3 ProjectOnPlane(const Vec3& vector, const Vec3& normal) {
@@ -312,7 +312,8 @@ void PlayerMovement::Move() {
 				// しゃがみボタンを押し続けている場合は速度条件のみで判断
 				else if (mWishCrouch) {
 					// 速度が著しく低下した場合のみ終了
-					if (Math::MtoH(mVelocity).Length() < mSlideMinSpeed * 0.3f) {
+					if (Math::MtoH(mVelocity).Length() < mSlideMinSpeed *
+						0.3f) {
 						shouldEndSlide = true;
 					}
 				}
@@ -371,7 +372,7 @@ void PlayerMovement::Move() {
 			// ジャンプキーが離された場合、二段ジャンプのフラグをリセット
 			mJumpKeyWasReleased = true;
 		} else if (mCanDoubleJump && !mDoubleJumped && mJumpKeyWasReleased) {
-			mVelocity.y    = Math::HtoM(mJumpVel);
+			mVelocity.y   = Math::HtoM(mJumpVel);
 			mDoubleJumped = true;
 
 			StartCameraShake(1.0f, 0.01f, 0.005f, Vec3::up, 0.025f, 0.5f,
@@ -588,10 +589,10 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		return;
 	}
 
-	const int       kMaxBounces   = 16;      // 最大反射回数
-	constexpr float kEpsilon      = 0.0075f; // 衝突判定の許容値
-	constexpr float kPushOut      = 0.015f;  // 押し出し量
-	const float     stepMaxHeight = 0.3f;    // 床とみなす最大段差(必要に応じて調整)
+	const int       kMaxBounces   = 16;       // 最大反射回数
+	constexpr float kEpsilon      = 0.00001f; // 衝突判定の許容値
+	constexpr float kPushOut      = 0.015f;   // 押し出し量
+	const float     stepMaxHeight = 0.3f;     // 床とみなす最大段差(必要に応じて調整)
 
 	Vec3 remainingDisp = desiredDisplacement;
 	Vec3 currentPos    = mTransform->GetWorldPos() + collider->GetOffset();
