@@ -330,9 +330,6 @@
     <ClInclude Include="Source\Engine\Components\MeshRenderer\Base\MeshRenderer.h">
       <Filter>Source\Engine\Components\MeshRenderer\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Components\Transform\TransformComponent.h">
-      <Filter>Source\Engine\Components\Transform</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Debug\Debug.h">
       <Filter>Source\Engine\Debug</Filter>
     </ClInclude>
@@ -444,13 +441,7 @@
     <ClInclude Include="Source\Engine\Renderer\Renderer.h">
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Renderer\RootSignature.h">
-      <Filter>Source\Engine\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\RootSignatureManager.h">
-      <Filter>Source\Engine\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Renderer\StructuredBuffer.h">
       <Filter>Source\Engine\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Renderer\VertexBuffer.h">
@@ -500,15 +491,6 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\ResourceSystem\Shader\ShaderManager.h">
       <Filter>Source\Engine\ResourceSystem\Shader</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.h">
-      <Filter>Source\Engine\ResourceSystem\SRV</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\ResourceSystem\Texture\Texture.h">
-      <Filter>Source\Engine\ResourceSystem\Texture</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\ResourceSystem\Texture\TextureManager.h">
-      <Filter>Source\Engine\ResourceSystem\Texture</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\SceneManager\SceneFactory.h">
       <Filter>Source\Engine\SceneManager</Filter>
@@ -600,6 +582,15 @@
     <ClInclude Include="Source\Game\Components\Weapon\base\WeaponComponent.h" />
     <ClInclude Include="Source\Game\Components\Weapon\WeaponSway.h" />
     <ClInclude Include="Source\Engine\Lib\Utils\StrUtil.h" />
+    <ClInclude Include="Source\Engine\Animation\Animation.h" />
+    <ClInclude Include="Source\Engine\Animation\KeyFrame.h" />
+    <ClInclude Include="Source\Engine\Animation\Node.h" />
+    <ClInclude Include="Source\Engine\Components\Animation\AnimationComponent.h" />
+    <ClInclude Include="Source\Engine\Components\MeshRenderer\SkeletalMeshRenderer.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Animation\AnimationManager.h" />
+    <ClInclude Include="Source\Engine\ResourceSystem\Mesh\SkeletalMesh.h" />
+    <ClInclude Include="Source\Engine\Components\Transform\SceneComponent.h" />
+    <ClInclude Include="Source\Game\Scene\EmptyScene.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\WinMain.cpp">
@@ -646,9 +637,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Components\MeshRenderer\StaticMeshRenderer.cpp">
       <Filter>Source\Engine\Components\MeshRenderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Components\Transform\TransformComponent.cpp">
-      <Filter>Source\Engine\Components\Transform</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Debug\Debug.cpp">
       <Filter>Source\Engine\Debug</Filter>
@@ -749,13 +737,7 @@
     <ClCompile Include="Source\Engine\Renderer\PipelineState.cpp">
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Renderer\RootSignature.cpp">
-      <Filter>Source\Engine\Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\RootSignatureManager.cpp">
-      <Filter>Source\Engine\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Renderer\StructuredBuffer.cpp">
       <Filter>Source\Engine\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Renderer\VertexBuffer.cpp">
@@ -805,15 +787,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\ResourceSystem\Shader\ShaderManager.cpp">
       <Filter>Source\Engine\ResourceSystem\Shader</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\ResourceSystem\SRV\ShaderResourceViewManager.cpp">
-      <Filter>Source\Engine\ResourceSystem\SRV</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\ResourceSystem\Texture\Texture.cpp">
-      <Filter>Source\Engine\ResourceSystem\Texture</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\ResourceSystem\Texture\TextureManager.cpp">
-      <Filter>Source\Engine\ResourceSystem\Texture</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\SceneManager\SceneFactory.cpp">
       <Filter>Source\Engine\SceneManager</Filter>
@@ -895,6 +868,15 @@
     <ClCompile Include="Source\Externals\ImGui\imgui_impl_dx12.cpp">
       <Filter>Source\Externals\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Animation\Animation.cpp" />
+    <ClCompile Include="Source\Engine\Animation\KeyFrame.cpp" />
+    <ClCompile Include="Source\Engine\Animation\Node.cpp" />
+    <ClCompile Include="Source\Engine\Components\Animation\AnimationComponent.cpp" />
+    <ClCompile Include="Source\Engine\Components\MeshRenderer\SkeletalMeshRenderer.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Animation\AnimationManager.cpp" />
+    <ClCompile Include="Source\Engine\ResourceSystem\Mesh\SkeletalMesh.cpp" />
+    <ClCompile Include="Source\Engine\Components\Transform\SceneComponent.cpp" />
+    <ClCompile Include="Source\Game\Scene\EmptyScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
@@ -918,6 +900,9 @@
     <None Include="Resources\Shaders\Skybox.PS.hlsl" />
     <None Include="Resources\Shaders\Skybox.VS.hlsl" />
     <None Include="Resources\Shaders\Skybox.hlsli" />
+    <None Include="Resources\Shaders\SkinnedObject3d.hlsli" />
+    <None Include="Resources\Shaders\SkinnedObject3d.PS.hlsl" />
+    <None Include="Resources\Shaders\SkinnedObject3d.VS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Source\Externals\ImGui\LICENSE.txt" />

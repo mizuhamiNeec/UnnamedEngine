@@ -64,9 +64,9 @@ private:
 	bool             mIsLooping      = true;
 
 #ifdef _DEBUG
-	bool mShowBoneDebug = true; // デバッグモードの場合はtrue
+	bool mShowBoneDebug = true;
 #else
-	bool showBoneDebug_ = false; // デバッグモードではない場合はfalse
+	bool mShowBoneDebug = false;
 #endif
 
 	// ライティング用の定数

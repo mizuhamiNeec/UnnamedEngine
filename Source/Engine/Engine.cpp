@@ -912,5 +912,5 @@ Vec2 Engine::mViewportSize = Vec2::zero;
 #ifdef _DEBUG
 bool Engine::mIsEditorMode = true;
 #else
-bool Engine::bIsEditorMode_ = false;
+bool Engine::mIsEditorMode = false;
 #endif
