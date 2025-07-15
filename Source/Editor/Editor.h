@@ -31,7 +31,6 @@ private:
 
 	static float RoundToNearestPowerOfTwo(float value);
 
-private:
 	SceneManager& sceneManager_; // シーンマネージャ
 
 	std::shared_ptr<BaseScene> scene_;          // 現在編集中のシーン

@@ -35,7 +35,7 @@ void Editor::Init() {
 	CameraComponent* rawCameraPtr = cameraEntity_->AddComponent<
 		CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
-	std::shared_ptr<CameraComponent> camera = std::shared_ptr<CameraComponent>(
+	auto camera = std::shared_ptr<CameraComponent>(
 		rawCameraPtr, [](CameraComponent*) {
 		}
 	);
@@ -50,7 +50,7 @@ void Editor::Init() {
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
 	if (auto currentScene = sceneManager_.GetCurrentScene()) {
-		currentScene->Update(EngineTimer::GetDeltaTime());
+		currentScene->Update(EngineTimer::GetScaledDeltaTime());
 	}
 
 #ifdef _DEBUG
@@ -523,7 +523,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			mode = ImGuizmo::MODE::LOCAL;
 		}
 
-		Vec3 snapValue = Vec3(gridSize_, gridSize_, gridSize_);
+		auto snapValue = Vec3(gridSize_, gridSize_, gridSize_);
 
 		if (InputSystem::IsTriggered("bounds")) {
 			operation = ImGuizmo::OPERATION::BOUNDS;
@@ -825,7 +825,7 @@ void Editor::ShowDockSpace() {
 			}
 			ImGui::Separator();
 
-			if (ImGui::MenuItem("Close", nullptr, false, p_open != NULL)) {
+			if (ImGui::MenuItem("Close", nullptr, false, p_open != nullptr)) {
 				*p_open = false;
 			}
 
