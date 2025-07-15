@@ -683,7 +683,7 @@ Skeleton MeshManager::LoadSkeleton(const aiScene* scene) {
 					}
 				}
 
-				skeleton.bones.push_back(newBone);
+				skeleton.bones.emplace_back(newBone);
 				skeleton.boneMap[boneName] = boneIndex;
 				boneIndexMap[boneName]     = boneIndex;
 
@@ -794,7 +794,7 @@ Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 			keyframe.time = static_cast<float>(key.mTime / aiAnim->
 				mTicksPerSecond);
 			keyframe.value = Vec3(key.mValue.x, key.mValue.y, key.mValue.z);
-			nodeAnimation.translate.keyFrames.push_back(keyframe);
+			nodeAnimation.translate.keyFrames.emplace_back(keyframe);
 		}
 
 		// 回転
@@ -810,7 +810,7 @@ Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 				key.mValue.z,
 				key.mValue.w
 			);
-			nodeAnimation.rotate.keyFrames.push_back(keyframe);
+			nodeAnimation.rotate.keyFrames.emplace_back(keyframe);
 		}
 
 		// スケール
@@ -820,11 +820,11 @@ Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 			keyframe.time = static_cast<float>(key.mTime / aiAnim->
 				mTicksPerSecond);
 			keyframe.value = Vec3(key.mValue.x, key.mValue.y, key.mValue.z);
-			nodeAnimation.scale.keyFrames.push_back(keyframe);
+			nodeAnimation.scale.keyFrames.emplace_back(keyframe);
 		}
 
 		animation.nodeAnimations[nodeName] = nodeAnimation;
-		animation.nodeNames.push_back(nodeName);
+		animation.nodeNames.emplace_back(nodeName);
 	}
 
 	return animation;
