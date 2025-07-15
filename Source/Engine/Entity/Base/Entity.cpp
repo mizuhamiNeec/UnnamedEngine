@@ -153,7 +153,7 @@ void Entity::SetType(const EntityType& type) {
 	mEntityType = type;
 }
 
-TransformComponent* Entity::GetTransform() const {
+SceneComponent* Entity::GetTransform() const {
 	return mTransform.get();
 }
 
