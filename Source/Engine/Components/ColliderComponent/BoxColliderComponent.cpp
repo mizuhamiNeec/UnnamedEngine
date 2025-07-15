@@ -1,6 +1,6 @@
 #include "BoxColliderComponent.h"
 
-#include <Components/Transform/TransformComponent.h>
+#include <Components/Transform/SceneComponent.h>
 
 #include "Debug/Debug.h"
 
