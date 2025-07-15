@@ -13,7 +13,6 @@
 
 #include "Lib/DebugHud/DebugHud.h"
 
-// TODO: 後で消す Object3Dシェーダーとはおさらばじゃ!!
 struct MatParam {
 	Vec4  baseColor;
 	float metallic;

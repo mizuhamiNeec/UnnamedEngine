@@ -8,7 +8,6 @@
 #include <Renderer/ConstantBuffer.h>
 #include <ResourceSystem/Mesh/StaticMesh.h>
 
-// TODO: 後で消す Object3Dシェーダーとはおさらばじゃ!!
 struct MatParam {
 	Vec4  baseColor;
 	float metallic;
