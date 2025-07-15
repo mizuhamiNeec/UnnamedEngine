@@ -33,7 +33,7 @@ void PlayerMovement::OnAttach(Entity& owner) {
 
 	// 初期化処理
 	// トランスフォームコンポーネントを取得
-	transform_ = mOwner->GetTransform();
+	mTransform = mOwner->GetTransform();
 
 	mSpeed   = 290.0f;
 	mJumpVel = 350.0f;
@@ -45,82 +45,82 @@ void PlayerMovement::ProcessInput() {
 	//-------------------------------------------------------------------------
 	// 移動入力
 	//-------------------------------------------------------------------------
-	moveInput_ = {0.0f, 0.0f, 0.0f};
+	mMoveInput = {0.0f, 0.0f, 0.0f};
 
 	if (InputSystem::IsPressed("forward")) {
-		moveInput_.z += 1.0f;
+		mMoveInput.z += 1.0f;
 	}
 
 	if (InputSystem::IsPressed("back")) {
-		moveInput_.z -= 1.0f;
+		mMoveInput.z -= 1.0f;
 	}
 
 	if (InputSystem::IsPressed("moveright")) {
-		moveInput_.x += 1.0f;
+		mMoveInput.x += 1.0f;
 	}
 
 	if (InputSystem::IsPressed("moveleft")) {
-		moveInput_.x -= 1.0f;
+		mMoveInput.x -= 1.0f;
 	}
 
 	if (InputSystem::IsPressed("crouch")) {
-		bWishCrouch = true;
+		mWishCrouch = true;
 	}
 
 	if (InputSystem::IsReleased("crouch")) {
-		bWishCrouch = false;
+		mWishCrouch = false;
 	}
 
-	moveInput_.Normalize();
+	mMoveInput.Normalize();
 }
 
 void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
-	deltaTime_ = deltaTime;
-	position_  = transform_->GetLocalPos();
+	mDeltaTime = deltaTime;
+	mPosition  = mTransform->GetLocalPos();
 
 	// 入力処理
 	ProcessInput();
 
 	// 前回状態を保存
-	bWasGrounded        = bIsGrounded;
-	previousSlideState_ = slideState;
+	mWasGrounded        = mIsGrounded;
+	mPreviousSlideState = mSlideState;
 
-	if (bWishCrouch && !bIsCrouching) {
-		bIsCrouching     = true;
-		mCurrentHeightHU = kDefaultHeightHU * 0.5f;
-	} else if (!bWishCrouch && bIsCrouching) {
-		bIsCrouching     = false;
-		mCurrentHeightHU = kDefaultHeightHU;
+	if (mWishCrouch && !mIsCrouching) {
+		mIsCrouching     = true;
+		mCurrentHeightHu = kDefaultHeightHU * 0.5f;
+	} else if (!mWishCrouch && mIsCrouching) {
+		mIsCrouching     = false;
+		mCurrentHeightHu = kDefaultHeightHU;
 	}
 
-	Vec3 oldWorldPos = transform_->GetWorldPos();
-	CollideAndSlide(velocity_ * deltaTime_);
+	Vec3 oldWorldPos = mTransform->GetWorldPos();
+	CollideAndSlide(mVelocity * mDeltaTime);
 
 	Move();
 
 	// スライディング開始の検出とイベント実行
-	if (slideState == Sliding && previousSlideState_ != Sliding) {
+	if (mSlideState == Sliding && mPreviousSlideState != Sliding) {
 		// スライディング開始時のカメラシェイク（初回のみ）
 		StartCameraShake(0.4f, 0.03f, 5.0f, Vec3::forward, 0.015f, 3.5f,
 		                 Vec3::right);
 	}
 
-	UpdateCameraShake(deltaTime_);
+	UpdateCameraShake(mDeltaTime);
 
 	// デバッグ描画
-	Debug::DrawArrow(transform_->GetWorldPos(), velocity_, Vec4::yellow);
+	Debug::DrawArrow(mTransform->GetWorldPos(), mVelocity, Vec4::yellow);
 
-	const float width  = Math::HtoM(mCurrentWidthHU);
-	const float height = Math::HtoM(mCurrentHeightHU);
+	const float width  = Math::HtoM(mCurrentWidthHu);
+	const float height = Math::HtoM(mCurrentHeightHu);
 	Debug::DrawBox(
-		transform_->GetWorldPos() + (Vec3::up * height * 0.5f),
+		mTransform->GetWorldPos() + (Vec3::up * height * 0.5f),
 		Quaternion::Euler(Vec3::zero),
 		Vec3(width, height, width),
-		bIsGrounded ? Vec4::green : Vec4::blue);
-	Debug::DrawRay(transform_->GetWorldPos(), wishdir_, Vec4::cyan);
+		mIsGrounded ? Vec4::green : Vec4::blue);
+	Debug::DrawRay(mTransform->GetWorldPos(), mWishdir, Vec4::cyan);
 
 	// position_.y = std::max<float>(position_.y, 0.0f);
-	transform_->SetLocalPos(position_);
+	mTransform->SetLocalPos(mPosition);
 
 	// カメラの前方ベクトルを取得し、XZ平面に投影して正規化
 	auto camera        = CameraManager::GetActiveCamera();
@@ -161,7 +161,7 @@ void PlayerMovement::DrawInspectorImGui() {
 	                            ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGuiWidgets::DragVec3(
 			"Velocity",
-			velocity_,
+			mVelocity,
 			Vec3::zero,
 			0.1f,
 			"%.2f m/s"
@@ -171,27 +171,27 @@ void PlayerMovement::DrawInspectorImGui() {
 
 		ImGui::Separator();
 		ImGui::Text("State Info:");
-		ImGui::Text("IsGrounded: %s", bIsGrounded ? "Yes" : "No");
-		ImGui::Text("WasGrounded: %s", bWasGrounded ? "Yes" : "No");
+		ImGui::Text("IsGrounded: %s", mIsGrounded ? "Yes" : "No");
+		ImGui::Text("WasGrounded: %s", mWasGrounded ? "Yes" : "No");
 
 		const char* slideStateStr =
-			slideState == NotSliding
+			mSlideState == NotSliding
 				? "Not Sliding"
-				: (slideState == Sliding ? "Sliding" : "Recovery");
+				: (mSlideState == Sliding ? "Sliding" : "Recovery");
 
 		const char* prevSlideStateStr =
-			previousSlideState_ == NotSliding
+			mPreviousSlideState == NotSliding
 				? "Not Sliding"
-				: (previousSlideState_ == Sliding ? "Sliding" : "Recovery");
+				: (mPreviousSlideState == Sliding ? "Sliding" : "Recovery");
 
 		ImGui::Text("Slide State: %s (Prev: %s)", slideStateStr,
 		            prevSlideStateStr);
 		ImGui::Text("State Changed: %s",
-		            (slideState != previousSlideState_) ? "Yes" : "No");
+		            (mSlideState != mPreviousSlideState) ? "Yes" : "No");
 
 		// 現在適用されている摩擦値の表示
-		float currentFriction = slideState == Sliding
-			                        ? slideFriction
+		float currentFriction = mSlideState == Sliding
+			                        ? mSlideFriction
 			                        : ConVarManager::GetConVar("sv_friction")->
 			                        GetValueAsFloat();
 		ImGui::Text("Current Friction: %.4f", currentFriction);
@@ -210,23 +210,23 @@ Vec3 GetMoveDirection(const Vec3& forward, const Vec3& groundNormal) {
 
 void PlayerMovement::Move() {
 	// 前回のフレームの接地状態を保存
-	bWasGrounded        = bIsGrounded;
-	previousSlideState_ = slideState;
+	mWasGrounded        = mIsGrounded;
+	mPreviousSlideState = mSlideState;
 
-	if (!bIsGrounded) {
+	if (!mIsGrounded) {
 		ApplyHalfGravity();
 	}
 
-	bIsGrounded = CheckGrounded();
+	mIsGrounded = CheckGrounded();
 
-	if (!bWasGrounded && bIsGrounded) {
+	if (!mWasGrounded && mIsGrounded) {
 		// 着地処理
 
 		// スライド状態でない場合のみ通常摩擦に設定
-		if (slideState != Sliding) {
+		if (mSlideState != Sliding) {
 			// 着地時の衝撃が大きい場合のみカメラシェイク
-			if (velocity_.y < -Math::HtoM(200.0f)) {
-				float landingForce = -velocity_.y / Math::HtoM(350.0f);
+			if (mVelocity.y < -Math::HtoM(200.0f)) {
+				float landingForce = -mVelocity.y / Math::HtoM(350.0f);
 				// 正規化された着地の強さ
 				StartCameraShake(0.2f, landingForce * 0.05f, 10.0f, Vec3::down,
 				                 landingForce * 0.02f, 8.0f, Vec3::forward);
@@ -239,39 +239,39 @@ void PlayerMovement::Move() {
 	// }
 
 	// スライディング開始条件チェック
-	if (bIsGrounded && bWishCrouch && slideState == NotSliding) {
-		float currentSpeed = Math::MtoH(velocity_).Length();
-		if (currentSpeed > slideMinSpeed) {
+	if (mIsGrounded && mWishCrouch && mSlideState == NotSliding) {
+		float currentSpeed = Math::MtoH(mVelocity).Length();
+		if (currentSpeed > mSlideMinSpeed) {
 			// スライディング開始
-			slideState = Sliding;
-			slideTimer = 0.0f;
+			mSlideState = Sliding;
+			mSlideTimer = 0.0f;
 
 			// しゃがみ状態設定
-			bIsCrouching     = true;
-			mCurrentHeightHU = kDefaultHeightHU * 0.5f;
+			mIsCrouching     = true;
+			mCurrentHeightHu = kDefaultHeightHU * 0.5f;
 
 			// スライド方向を現在の速度方向に設定
-			mSlideDir = velocity_.Normalized();
+			mSlideDir = mVelocity.Normalized();
 
 			// 前方向に加速
-			velocity_ += mSlideDir * slideBoost;
+			mVelocity += mSlideDir * mSlideBoost;
 
 			// 下方向への力を加えて斜面を下りやすくする
-			velocity_.y -= Math::HtoM(slideDownForce) * deltaTime_;
+			mVelocity.y -= Math::HtoM(mSlideDownForce) * mDeltaTime;
 		}
 	} else
 	// スライディング中の処理
-		if (slideState == Sliding) {
-			slideTimer += deltaTime_;
+		if (mSlideState == Sliding) {
+			mSlideTimer += mDeltaTime;
 
 			// スライディング中は専用の摩擦を適用
-			ApplyFriction(slideFriction);
+			ApplyFriction(mSlideFriction);
 
 			// スライディング中は下方向への力を継続的に適用
-			velocity_.y -= Math::HtoM(slideDownForce) * deltaTime_;
+			mVelocity.y -= Math::HtoM(mSlideDownForce) * mDeltaTime;
 
 			// カメラ方向と現在のスライド方向を加味して方向を調整（段階的に）
-			if (!moveInput_.IsZero()) {
+			if (!mMoveInput.IsZero()) {
 				Vec3 cameraForward = CameraManager::GetActiveCamera()->
 				                     GetViewMat().Inverse().GetForward();
 				cameraForward.y = 0.0f;
@@ -279,40 +279,40 @@ void PlayerMovement::Move() {
 				Vec3 cameraRight = Vec3::up.Cross(cameraForward).Normalized();
 
 				// 入力に基づいて方向を計算
-				Vec3 inputDir = (cameraForward * moveInput_.z) + (cameraRight *
-					moveInput_.x);
+				Vec3 inputDir = (cameraForward * mMoveInput.z) + (cameraRight *
+					mMoveInput.x);
 				inputDir.y = 0.0f;
 				inputDir.Normalize();
 
 				// スライド方向を徐々に入力方向へ補間（スライド中は制限付き）
 				float turnSpeed = 0.2f; // スライド中の方向転換の強さ
 				mSlideDir       = Math::Lerp(mSlideDir, inputDir,
-				                             turnSpeed * deltaTime_);
+				                             turnSpeed * mDeltaTime);
 				mSlideDir.Normalize();
 
 				// 方向調整の度に若干減速させる
-				float currentSpeed = velocity_.Length();
-				velocity_          = mSlideDir * (currentSpeed * 0.98f);
+				float currentSpeed = mVelocity.Length();
+				mVelocity          = mSlideDir * (currentSpeed * 0.98f);
 			}
 
 			// スライディング終了条件（改良版）- 最小スライド時間を導入
-			if (slideTimer >= kMinSlideTime) {
+			if (mSlideTimer >= kMinSlideTime) {
 				// 最小スライド時間以上経過している場合のみ終了条件を考慮
 				bool shouldEndSlide = false;
 
-				if (slideTimer >= maxSlideTime) {
+				if (mSlideTimer >= mAxSlideTime) {
 					// 最大スライド時間を超えた場合は終了
 					shouldEndSlide = true;
 				}
 
 				// 接地していない場合は終了
-				if (!bWasGrounded) {
+				if (!mWasGrounded) {
 					shouldEndSlide = true;
 				}
 				// しゃがみボタンを押し続けている場合は速度条件のみで判断
-				else if (bWishCrouch) {
+				else if (mWishCrouch) {
 					// 速度が著しく低下した場合のみ終了
-					if (Math::MtoH(velocity_).Length() < slideMinSpeed * 0.3f) {
+					if (Math::MtoH(mVelocity).Length() < mSlideMinSpeed * 0.3f) {
 						shouldEndSlide = true;
 					}
 				}
@@ -322,22 +322,22 @@ void PlayerMovement::Move() {
 				}
 
 				if (shouldEndSlide) {
-					slideState         = SlideRecovery;
-					slideRecoveryTimer = 0.0f;
+					mSlideState         = SlideRecovery;
+					mSlideRecoveryTimer = 0.0f;
 				}
 			}
 		}
 		// スライド回復中の処理
-		else if (slideState == SlideRecovery) {
-			slideRecoveryTimer += deltaTime_;
+		else if (mSlideState == SlideRecovery) {
+			mSlideRecoveryTimer += mDeltaTime;
 
 			// スライド回復中は新たなスライドを開始できないようにする
 			// 回復時間が経過したら立ち上がる
-			if (slideRecoveryTimer >= slideRecoveryTime) {
-				slideState = NotSliding;
-				if (!bWishCrouch) {
-					bIsCrouching     = false;
-					mCurrentHeightHU = kDefaultHeightHU;
+			if (mSlideRecoveryTimer >= mSlideRecoveryTime) {
+				mSlideState = NotSliding;
+				if (!mWishCrouch) {
+					mIsCrouching     = false;
+					mCurrentHeightHu = kDefaultHeightHU;
 				}
 			}
 
@@ -350,29 +350,29 @@ void PlayerMovement::Move() {
 		}
 
 	// ジャンプ処理 - スライド状態をリセット
-	if (bIsGrounded && InputSystem::IsPressed("+jump")) {
-		velocity_.y = Math::HtoM(mJumpVel);
-		bIsGrounded = false; // ジャンプ中は接地判定を解除
+	if (mIsGrounded && InputSystem::IsPressed("+jump")) {
+		mVelocity.y = Math::HtoM(mJumpVel);
+		mIsGrounded = false; // ジャンプ中は接地判定を解除
 
 		// ジャンプ時にスライド状態をリセット
-		if (slideState != NotSliding) {
-			slideState = NotSliding;
+		if (mSlideState != NotSliding) {
+			mSlideState = NotSliding;
 		}
 
-		bCanDoubleJump_      = true;
-		bDoubleJumped_       = false;
-		bJumpKeyWasReleased_ = false;
+		mCanDoubleJump      = true;
+		mDoubleJumped       = false;
+		mJumpKeyWasReleased = false;
 
 		// ジャンプ時のカメラシェイクを開始
 		StartCameraShake(1.0f, 0.01f, 0.005f, Vec3::up, 0.025f, 0.5f,
 		                 Vec3::right);
-	} else if (!bIsGrounded) {
+	} else if (!mIsGrounded) {
 		if (!InputSystem::IsPressed("+jump")) {
 			// ジャンプキーが離された場合、二段ジャンプのフラグをリセット
-			bJumpKeyWasReleased_ = true;
-		} else if (bCanDoubleJump_ && !bDoubleJumped_ && bJumpKeyWasReleased_) {
-			velocity_.y    = Math::HtoM(mJumpVel);
-			bDoubleJumped_ = true;
+			mJumpKeyWasReleased = true;
+		} else if (mCanDoubleJump && !mDoubleJumped && mJumpKeyWasReleased) {
+			mVelocity.y    = Math::HtoM(mJumpVel);
+			mDoubleJumped = true;
 
 			StartCameraShake(1.0f, 0.01f, 0.005f, Vec3::up, 0.025f, 0.5f,
 			                 Vec3::right);
@@ -393,7 +393,7 @@ void PlayerMovement::Move() {
 	Vec3 cameraRight = Vec3::up.Cross(cameraForward).Normalized();
 
 	// 入力に基づいて移動方向を計算
-	Vec3 wishvel = (cameraForward * moveInput_.z) + (cameraRight * moveInput_.
+	Vec3 wishvel = (cameraForward * mMoveInput.z) + (cameraRight * mMoveInput.
 		x);
 	wishvel.y = 0.0f;
 
@@ -401,35 +401,35 @@ void PlayerMovement::Move() {
 		wishvel.Normalize();
 	}
 
-	if (bWasGrounded) {
-		wishdir_        = wishvel;
-		float wishspeed = wishdir_.Length() * mSpeed;
+	if (mWasGrounded) {
+		mWishdir        = wishvel;
+		float wishspeed = mWishdir.Length() * mSpeed;
 		float maxspeed  = ConVarManager::GetConVar("sv_maxspeed")->
 			GetValueAsFloat();
 		if (wishspeed > maxspeed) {
 			wishvel *= maxspeed / wishspeed;
 		}
 
-		Accelerate(wishdir_, wishspeed,
+		Accelerate(mWishdir, wishspeed,
 		           ConVarManager::GetConVar(
 			           "sv_accelerate")->GetValueAsFloat());
 
 		//// 地面にいたらベロシティを地面の法線方向に投影
 		//velocity_ = velocity_ - (normal_ * velocity_.Dot(normal_));
 	} else {
-		wishdir_        = wishvel;
-		float wishspeed = wishdir_.Length() * mSpeed;
+		mWishdir        = wishvel;
+		float wishspeed = mWishdir.Length() * mSpeed;
 		float maxspeed  = ConVarManager::GetConVar("sv_maxspeed")->
 			GetValueAsFloat();
 		if (wishspeed > maxspeed) {
 			wishvel *= maxspeed / wishspeed;
 		}
-		AirAccelerate(wishdir_, wishspeed,
+		AirAccelerate(mWishdir, wishspeed,
 		              ConVarManager::GetConVar("sv_airaccelerate")->
 		              GetValueAsFloat());
 	}
 
-	if (!bIsGrounded) {
+	if (!mIsGrounded) {
 		ApplyHalfGravity();
 	}
 
@@ -437,11 +437,11 @@ void PlayerMovement::Move() {
 }
 
 void PlayerMovement::SetIsGrounded(const bool cond) {
-	bIsGrounded = cond;
+	mIsGrounded = cond;
 }
 
 void PlayerMovement::SetVelocity(const Vec3 newVel) {
-	velocity_ = newVel;
+	mVelocity = newVel;
 }
 
 Vec3 PlayerMovement::GetHeadPos() const {
@@ -455,73 +455,73 @@ void PlayerMovement::StartCameraShake(
 	float       rotationFrequency,
 	const Vec3& rotationAxis) {
 	// 既存のシェイクがアクティブな場合は蓄積
-	if (cameraShake_.isActive) {
+	if (mCameraShake.isActive) {
 		// 残り時間の長い方を採用
-		cameraShake_.duration = (std::max)(
-			cameraShake_.duration - cameraShake_.currentTime, duration);
+		mCameraShake.duration = (std::max)(
+			mCameraShake.duration - mCameraShake.currentTime, duration);
 
 		// 振幅を加算（最大値を超えないよう制限）
-		cameraShake_.baseAmplitude += amplitude;
-		cameraShake_.amplitude = (std::min)(cameraShake_.baseAmplitude,
-		                                    cameraShake_.maxAmplitude);
+		mCameraShake.baseAmplitude += amplitude;
+		mCameraShake.amplitude = (std::min)(mCameraShake.baseAmplitude,
+		                                    mCameraShake.maxAmplitude);
 
 		// 回転振幅を加算（最大値を超えないよう制限）
-		cameraShake_.baseRotationAmplitude += rotationAmplitude;
-		cameraShake_.rotationAmplitude = (std::min)(
-			cameraShake_.baseRotationAmplitude,
-			cameraShake_.maxRotationAmplitude);
+		mCameraShake.baseRotationAmplitude += rotationAmplitude;
+		mCameraShake.rotationAmplitude = (std::min)(
+			mCameraShake.baseRotationAmplitude,
+			mCameraShake.maxRotationAmplitude);
 
 		// 周波数は高い方を優先
-		cameraShake_.frequency = (std::max)(cameraShake_.frequency, frequency);
-		cameraShake_.rotationFrequency = (std::max)(
-			cameraShake_.rotationFrequency, rotationFrequency);
+		mCameraShake.frequency = (std::max)(mCameraShake.frequency, frequency);
+		mCameraShake.rotationFrequency = (std::max)(
+			mCameraShake.rotationFrequency, rotationFrequency);
 
 		// 方向と回転軸は平均化して正規化
-		cameraShake_.direction = (cameraShake_.direction + direction).
+		mCameraShake.direction = (mCameraShake.direction + direction).
 			Normalized();
-		cameraShake_.rotationAxis = (cameraShake_.rotationAxis + rotationAxis).
+		mCameraShake.rotationAxis = (mCameraShake.rotationAxis + rotationAxis).
 			Normalized();
 	} else {
 		// 新規シェイクの場合は普通に初期化
-		cameraShake_.duration      = duration;
-		cameraShake_.currentTime   = 0.0f;
-		cameraShake_.amplitude     = amplitude;
-		cameraShake_.baseAmplitude = amplitude;
-		cameraShake_.frequency     = frequency;
-		cameraShake_.direction     = direction.Normalized();
+		mCameraShake.duration      = duration;
+		mCameraShake.currentTime   = 0.0f;
+		mCameraShake.amplitude     = amplitude;
+		mCameraShake.baseAmplitude = amplitude;
+		mCameraShake.frequency     = frequency;
+		mCameraShake.direction     = direction.Normalized();
 
 		// 回転揺れパラメータの設定
-		cameraShake_.rotationAmplitude     = rotationAmplitude;
-		cameraShake_.baseRotationAmplitude = rotationAmplitude;
-		cameraShake_.rotationFrequency     = rotationFrequency;
-		cameraShake_.rotationAxis          = rotationAxis.Normalized();
+		mCameraShake.rotationAmplitude     = rotationAmplitude;
+		mCameraShake.baseRotationAmplitude = rotationAmplitude;
+		mCameraShake.rotationFrequency     = rotationFrequency;
+		mCameraShake.rotationAxis          = rotationAxis.Normalized();
 
 		// 最大値の設定（調整可能）
-		cameraShake_.maxAmplitude         = 0.1f;  // 適切な最大振幅
-		cameraShake_.maxRotationAmplitude = 0.05f; // 適切な最大回転振幅
+		mCameraShake.maxAmplitude         = 0.1f;  // 適切な最大振幅
+		mCameraShake.maxRotationAmplitude = 0.05f; // 適切な最大回転振幅
 	}
 
-	cameraShake_.isActive = true;
+	mCameraShake.isActive = true;
 }
 
 void PlayerMovement::UpdateCameraShake(const float deltaTime) {
-	if (!cameraShake_.isActive) {
+	if (!mCameraShake.isActive) {
 		return;
 	}
 
-	cameraShake_.currentTime += deltaTime;
+	mCameraShake.currentTime += deltaTime;
 
 	// 揺れの終了判定
-	if (cameraShake_.currentTime >= cameraShake_.duration) {
-		cameraShake_.isActive = false;
+	if (mCameraShake.currentTime >= mCameraShake.duration) {
+		mCameraShake.isActive = false;
 		// シェイク終了時にベース値をリセット
-		cameraShake_.baseAmplitude         = 0.0f;
-		cameraShake_.baseRotationAmplitude = 0.0f;
+		mCameraShake.baseAmplitude         = 0.0f;
+		mCameraShake.baseRotationAmplitude = 0.0f;
 		return;
 	}
 
 	// 時間経過に応じた減衰係数（終了に近づくほど揺れが小さくなる）
-	float dampingFactor = 1.0f - (cameraShake_.currentTime / cameraShake_.
+	float dampingFactor = 1.0f - (mCameraShake.currentTime / mCameraShake.
 		duration);
 
 	// イージング関数で開始・終了をスムーズに
@@ -532,29 +532,29 @@ void PlayerMovement::UpdateCameraShake(const float deltaTime) {
 	//float currentAmplitude = cameraShake_.amplitude * easedDamping;
 
 	// 現在の回転振幅に減衰を適用
-	float rotAmount = cameraShake_.rotationAmplitude * easedDamping;
+	float rotAmount = mCameraShake.rotationAmplitude * easedDamping;
 
 	float rotNoise1 = std::sin(
-		cameraShake_.currentTime * cameraShake_.rotationFrequency * 12.0f +
+		mCameraShake.currentTime * mCameraShake.rotationFrequency * 12.0f +
 		0.5f);
 	float rotNoise2 = std::cos(
-		cameraShake_.currentTime * cameraShake_.rotationFrequency * 9.0f +
+		mCameraShake.currentTime * mCameraShake.rotationFrequency * 9.0f +
 		1.2f);
 	float rotNoise3 = std::sin(
-		cameraShake_.currentTime * cameraShake_.rotationFrequency * 6.0f +
+		mCameraShake.currentTime * mCameraShake.rotationFrequency * 6.0f +
 		2.7f);
 
 	// 主軸と直交する軸を計算
 	Vec3 perpAxis1, perpAxis2;
-	if (std::abs(cameraShake_.rotationAxis.Dot(Vec3::up)) < 0.9f) {
-		perpAxis1 = Vec3::up.Cross(cameraShake_.rotationAxis).Normalized();
+	if (std::abs(mCameraShake.rotationAxis.Dot(Vec3::up)) < 0.9f) {
+		perpAxis1 = Vec3::up.Cross(mCameraShake.rotationAxis).Normalized();
 	} else {
-		perpAxis1 = Vec3::forward.Cross(cameraShake_.rotationAxis).Normalized();
+		perpAxis1 = Vec3::forward.Cross(mCameraShake.rotationAxis).Normalized();
 	}
-	perpAxis2 = cameraShake_.rotationAxis.Cross(perpAxis1).Normalized();
+	perpAxis2 = mCameraShake.rotationAxis.Cross(perpAxis1).Normalized();
 
 	// 各エンティティに揺れを適用
-	for (const auto& entityInfo : shakeEntities_) {
+	for (const auto& entityInfo : mShakeEntities) {
 		if (!entityInfo.entity) continue;
 
 		// カメラのトランスフォーム取得
@@ -569,7 +569,7 @@ void PlayerMovement::UpdateCameraShake(const float deltaTime) {
 			// 3つの軸それぞれに回転揺れを適用
 			Quaternion rotShake = Quaternion::identity;
 			rotShake            = rotShake * Quaternion::AxisAngle(
-				cameraShake_.rotationAxis, entityRotAmount * rotNoise1);
+				mCameraShake.rotationAxis, entityRotAmount * rotNoise1);
 			rotShake = rotShake * Quaternion::AxisAngle(
 				perpAxis1, entityRotAmount * 0.7f * rotNoise2);
 			rotShake = rotShake * Quaternion::AxisAngle(
@@ -584,7 +584,7 @@ void PlayerMovement::UpdateCameraShake(const float deltaTime) {
 void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 	auto* collider = mOwner->GetComponent<BoxColliderComponent>();
 	if (!collider) {
-		position_ += desiredDisplacement;
+		mPosition += desiredDisplacement;
 		return;
 	}
 
@@ -594,8 +594,8 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 	const float     stepMaxHeight = 0.3f;    // 床とみなす最大段差(必要に応じて調整)
 
 	Vec3 remainingDisp = desiredDisplacement;
-	Vec3 currentPos    = transform_->GetWorldPos() + collider->GetOffset();
-	Vec3 finalVelocity = velocity_;
+	Vec3 currentPos    = mTransform->GetWorldPos() + collider->GetOffset();
+	Vec3 finalVelocity = mVelocity;
 	Vec3 averageNormal = Vec3::zero;
 	int  hitCount      = 0;
 
@@ -661,7 +661,7 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 				stepMaxHeight) {
 				remainingDisp = slide;
 				mGroundNormal = hitNormal;
-				bIsGrounded   = true;
+				mIsGrounded   = true;
 			} else {
 				Vec3 reflection = remainingDisp - 2.0f * hitNormal *
 					remainingDisp.Dot(hitNormal);
@@ -677,6 +677,6 @@ void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
 		// }
 	}
 
-	position_ = currentPos - collider->GetOffset();
-	velocity_ = finalVelocity;
+	mPosition = currentPos - collider->GetOffset();
+	mVelocity = finalVelocity;
 }

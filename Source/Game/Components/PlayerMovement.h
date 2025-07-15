@@ -6,8 +6,6 @@
 
 #include <Lib/Math/Vector/Vec3.h>
 
-#include "Lib/Math/Quaternion/Quaternion.h"
-
 class TransformComponent;
 
 class PlayerMovement : public CharacterMovement {
@@ -30,7 +28,7 @@ public:
 		if (!ent) return;
 
 		// 既に存在する場合は強度を更新
-		for (auto& info : shakeEntities_) {
+		for (auto& info : mShakeEntities) {
 			if (info.entity == ent) {
 				info.rotationMultiplier = rotationMultiplier;
 				return;
@@ -41,7 +39,7 @@ public:
 		EntityShakeInfo info;
 		info.entity             = ent;
 		info.rotationMultiplier = rotationMultiplier;
-		shakeEntities_.push_back(info);
+		mShakeEntities.push_back(info);
 	}
 
 	void StartCameraShake(float duration, float amplitude, float frequency,
@@ -49,31 +47,31 @@ public:
 	                      float rotationFrequency, const Vec3& rotationAxis);
 
 private:
-	Vec3 moveInput_ = Vec3::zero;
-	Vec3 wishdir_   = Vec3::zero;
+	Vec3 mMoveInput = Vec3::zero;
+	Vec3 mWishdir   = Vec3::zero;
 	
-	bool  bCanDoubleJump_      = false;
-	bool  bDoubleJumped_       = false;
-	float doubleJumpVelocity_  = 300.0f; // 二段ジャンプの速度
-	bool  bJumpKeyWasReleased_ = true;
-	
+	bool  mCanDoubleJump      = false;
+	bool  mDoubleJumped       = false;
+	bool  mJumpKeyWasReleased = true;
+	float mDoubleJumpVelocity  = 300.0f; // 二段ジャンプの速度
+
 	enum SlideState {
 		NotSliding,
 		Sliding,
 		SlideRecovery
 	};
 
-	SlideState slideState         = NotSliding;
-	SlideState previousSlideState_ = NotSliding; // 前回のスライド状態
-	float      slideTimer         = 0.0f;
-	float      slideRecoveryTimer = 0.0f;
+	SlideState mSlideState         = NotSliding;
+	SlideState mPreviousSlideState = NotSliding; // 前回のスライド状態
+	float      mSlideTimer         = 0.0f;
+	float      mSlideRecoveryTimer = 0.0f;
 
-	const float slideMinSpeed     = 180.0f; // スライドを維持するための最小速度
-	const float slideBoost        = 1.5f;   // スライド中の加速量
-	const float slideFriction     = 0.25f;  // スライド中の摩擦係数
-	const float maxSlideTime      = 1.0f;   // スライドの最大維持時間(秒)
-	const float slideRecoveryTime = 0.5f;   // スライド後の回復時間(秒)
-	const float slideDownForce    = 150.0f; // スライド中の下方向への力
+	const float mSlideMinSpeed     = 180.0f; // スライドを維持するための最小速度
+	const float mSlideBoost        = 1.5f;   // スライド中の加速量
+	const float mSlideFriction     = 0.25f;  // スライド中の摩擦係数
+	const float mAxSlideTime      = 1.0f;   // スライドの最大維持時間(秒)
+	const float mSlideRecoveryTime = 0.5f;   // スライド後の回復時間(秒)
+	const float mSlideDownForce    = 150.0f; // スライド中の下方向への力
 	const float kMinSlideTime     = 0.5f;   // 最小スライド時間（秒）
 
 	Vec3 mSlideDir = Vec3::zero; // スライド中の方向ベクトル
@@ -97,14 +95,14 @@ private:
 		float maxRotationAmplitude;  // 最大回転振幅
 	};
 
-	CameraShake cameraShake_;
+	CameraShake mCameraShake;
 
 	struct EntityShakeInfo {
 		Entity* entity             = nullptr;
 		float   rotationMultiplier = 1.0f; // 回転の倍率
 	};
 
-	std::vector<EntityShakeInfo> shakeEntities_;
+	std::vector<EntityShakeInfo> mShakeEntities;
 	
 	void ProcessInput();
 	void UpdateCameraShake(float deltaTime);
