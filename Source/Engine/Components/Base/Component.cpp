@@ -1,5 +1,7 @@
 #include "Component.h"
 
+#include "Entity/Base/Entity.h"
+
 Component::Component() = default;
 
 Component::~Component() {
@@ -10,7 +12,8 @@ Component::~Component() {
 // 基底ではオーナーを設定します
 //-----------------------------------------------------------------------------
 void Component::OnAttach(Entity& owner) {
-	this->mOwner = &owner;
+	this->mOwner     = &owner;
+	this->mTransform = owner.GetTransform();
 }
 
 //-----------------------------------------------------------------------------
