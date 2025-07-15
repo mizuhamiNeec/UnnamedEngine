@@ -93,7 +93,7 @@ private:
 	std::unique_ptr<ModelCommon>    modelCommon_;
 	std::unique_ptr<LineCommon>     lineCommon_;
 
-	std::unique_ptr<SceneFactory> sceneFactory_;
+	std::unique_ptr<SceneFactory>        sceneFactory_;
 	static std::shared_ptr<SceneManager> sceneManager_;
 
 	std::unique_ptr<Editor> editor_; // エディター
