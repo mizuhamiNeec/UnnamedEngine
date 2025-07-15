@@ -2,7 +2,7 @@
 
 #include <Components/ColliderComponent/Base/ColliderComponent.h>
 
-class TransformComponent;
+class SceneComponent;
 
 class BoxColliderComponent : public ColliderComponent {
 public:
@@ -27,7 +27,7 @@ public:
 	// bool CheckCollision(const ColliderComponent& other) const override;
 
 private:
-	TransformComponent* transform_ = nullptr;
+	SceneComponent* transform_ = nullptr;
 
 	Vec3 size_ = Vec3::one;
 	Vec3 offset_ = Vec3::zero;
