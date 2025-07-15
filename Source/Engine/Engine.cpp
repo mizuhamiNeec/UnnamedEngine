@@ -544,8 +544,8 @@ void Engine::Update() {
 			ImGui::End();
 		}
 
-		static ImVec4 tint = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-		static ImVec4 bg   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+		static auto tint = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+		static auto bg   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 
 		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoScrollbar |
@@ -626,7 +626,7 @@ void Engine::Update() {
 			ImVec2 viewportScreenPos = ImGui::GetCursorScreenPos();
 
 			ImGui::ImageWithBg(
-				(ImTextureID)ptr, // postProcessedRTV_のSRVを直接使用
+				ptr, // postProcessedRTV_のSRVを直接使用
 				drawSize,
 				ImVec2(0, 0), ImVec2(1, 1),
 				bg, tint
@@ -678,7 +678,7 @@ void Engine::Update() {
 
 	renderer_->SetViewportAndScissor(
 		static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Width),
-		static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Height)
+		offscreenRTV_.rtv->GetDesc().Height
 	);
 	renderer_->BeginRenderPass(offscreenRenderPassTargets_);
 	if (IsEditorMode()) {
@@ -706,7 +706,7 @@ void Engine::Update() {
 		renderer_->BeginRenderPass(postProcessedRenderPassTargets_);
 		renderer_->SetViewportAndScissor(
 			static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Width),
-			static_cast<uint32_t>(offscreenRTV_.rtv->GetDesc().Height)
+			offscreenRTV_.rtv->GetDesc().Height
 		);
 		copyImagePass_->Execute(
 			renderer_->GetCommandList(),
@@ -785,7 +785,7 @@ void Engine::Update() {
 		                          GetCurrentScene().
 		                          get();
 		ResourceManager* resourceManager =
-			Engine::GetResourceManager();
+			GetResourceManager();
 		if (resourceManager) {
 			entityLoader_->LoadScene(
 				loadFilePath_.value(), currentScene,
@@ -960,17 +960,17 @@ void Engine::RegisterSceneCommands() {
 	// シーン切り替えコマンドの登録
 	ConCommand::RegisterCommand("scene_toggle",
 	                            [](const std::vector<std::string>&) {
-		                            Engine::ToggleScenes();
+		                            ToggleScenes();
 	                            }, "Toggle between Game and Empty scenes");
 
 	ConCommand::RegisterCommand("scene_game",
 	                            [](const std::vector<std::string>&) {
-		                            Engine::ChangeScene("GameScene");
+		                            ChangeScene("GameScene");
 	                            }, "Switch to Game Scene");
 
 	ConCommand::RegisterCommand("scene_empty",
 	                            [](const std::vector<std::string>&) {
-		                            Engine::ChangeScene("EmptyScene");
+		                            ChangeScene("EmptyScene");
 	                            }, "Switch to Empty Scene");
 }
 
