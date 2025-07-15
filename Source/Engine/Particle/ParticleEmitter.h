@@ -13,7 +13,7 @@ public:
 	void Emit();
 
 private:
-	ParticleManager* particleManager_;
-	std::string groupName_;
-	Emitter emitter_;
+	ParticleManager* mParticleManager;
+	std::string mGroupName;
+	Emitter mEmitter;
 };
