@@ -38,15 +38,15 @@ public:
 	void SafeReloadWorldMesh();
 
 private:
-	D3D12* renderer_ = nullptr;
+	D3D12* mRenderer = nullptr;
 
-	std::unique_ptr<CubeMap> cubeMap_;
+	std::unique_ptr<CubeMap> mCubeMap;
 
-	std::unique_ptr<Entity> cameraRoot_;
-	CameraRotator*          cameraRotator_ = nullptr;
+	std::unique_ptr<Entity> mCameraRoot;
+	CameraRotator*          mCameraRotator = nullptr;
 
-	std::unique_ptr<Entity>          camera_;
-	std::shared_ptr<CameraComponent> cameraComponent_;
+	std::unique_ptr<Entity>          mCamera;
+	std::shared_ptr<CameraComponent> mCameraComponent;
 
 	std::unique_ptr<Entity>             mEntWorldMesh;
 	std::shared_ptr<StaticMeshRenderer> mWorldMeshRenderer;
@@ -67,16 +67,16 @@ private:
 	Vec3 mTeleportTriggerMax;    // ボックスの最大点
 	bool mTeleportActive = true; // テレポートの有効/無効状態
 
-	std::unique_ptr<EntityLoader> entityLoader_;
+	std::unique_ptr<EntityLoader> mEntityLoader;
 
-	std::unique_ptr<PhysicsEngine> physicsEngine_;
+	std::unique_ptr<PhysicsEngine> mPhysicsEngine;
 
 	std::unique_ptr<ParticleEmitter> mParticleEmitter;
 
 	std::unique_ptr<ParticleObject> mParticleObject;
 
-	std::unique_ptr<WindEffect>      windEffect_;
-	std::unique_ptr<ExplosionEffect> explosionEffect_;
+	std::unique_ptr<WindEffect>      mWindEffect;
+	std::unique_ptr<ExplosionEffect> mExplosionEffect;
 
 	// 遅延読み込み用フラグ
 	bool mPendingMeshReload = false;

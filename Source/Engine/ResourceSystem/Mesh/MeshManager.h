@@ -51,14 +51,14 @@ private:
 	void LoadAnimations(const aiScene* scene, SkeletalMesh* skeletalMesh);
 	Animation LoadAnimation(const aiAnimation* aiAnim);
 
-	TexManager*      texManager_      = nullptr;
-	ShaderManager*   shaderManager_   = nullptr;
-	MaterialManager* materialManager_ = nullptr;
-	D3D12*           renderer_        = nullptr;
+	TexManager*      mTexManager      = nullptr;
+	ShaderManager*   mShaderManager   = nullptr;
+	MaterialManager* mMaterialManager = nullptr;
+	D3D12*           mRenderer        = nullptr;
+	ID3D12Device*    mDevice          = nullptr;
 
-	ComPtr<ID3D12Device>                                         device_;
-	std::unordered_map<std::string, std::unique_ptr<StaticMesh>> staticMeshes_;
-	std::unordered_map<std::string, std::unique_ptr<SubMesh>>    subMeshes_;
+	std::unordered_map<std::string, std::unique_ptr<StaticMesh>> mStaticMeshes;
+	std::unordered_map<std::string, std::unique_ptr<SubMesh>>    mSubMeshes;
 	std::unordered_map<std::string, std::unique_ptr<SkeletalMesh>>
-	skeletalMeshes_;
+	mSkeletalMeshes;
 };

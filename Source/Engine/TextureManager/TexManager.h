@@ -50,10 +50,10 @@ private:
 
 private:
 	// テクスチャデータ
-	std::unordered_map<std::string, TextureData> textureData_;
+	std::unordered_map<std::string, TextureData> mTextureData;
 
-	D3D12*      renderer_;
-	SrvManager* srvManager_;
+	D3D12*      mRenderer;
+	SrvManager* mSrvManager;
 
 	static D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(
 		ID3D12DescriptorHeap* descriptorHeap,
@@ -63,7 +63,7 @@ private:
 		uint32_t              descriptorSize, uint32_t index);
 
 private:
-	static TexManager* instance_;
+	static TexManager* mInstance;
 
 	TexManager()                       = default;
 	~TexManager()                      = default;
