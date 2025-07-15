@@ -11,15 +11,11 @@
 #include <Lib/Math/MathLib.h>
 #include <Lib/Math/Random/Random.h>
 #include <Lib/Timer/EngineTimer.h>
-#include <Model/ModelManager.h>
-#include <Object3D/Object3D.h>
 #include <Particle/ParticleManager.h>
 #include <Physics/Physics.h>
 #include <Sprite/SpriteCommon.h>
 #include <SubSystem/Console/ConVarManager.h>
 #include <format>
-#include <thread>
-#include <chrono>
 
 #include "Assets/Manager/AssetManager.h"
 #include "ImGuiManager/ImGuiWidgets.h"
@@ -40,33 +36,6 @@ GameScene::~GameScene() {
 }
 
 void GameScene::Init() {
-	{
-		// size_t workerCount = (std::thread::hardware_concurrency() > 1)
-		// 	                     ? std::thread::hardware_concurrency() - 1
-		// 	                     : 1;
-		// JobSystem jobSystem("AssetLoad", workerCount);
-		//
-		// AssetManager assetManager(jobSystem);
-		//
-		// std::shared_ptr<TextureAsset> texture;
-		//
-		// for (int i = 0; i < 10; ++i) {
-		// 	auto textureFuture = jobSystem.SubmitJob(
-		// 		0, [&assetManager, i]() -> std::shared_ptr<TextureAsset> {
-		// 			return assetManager.LoadAsset<TextureAsset>(
-		// 				"texture" + std::to_string(i));
-		// 		}
-		// 	);
-		//
-		// 	// なんかする
-		// 	texture = textureFuture.get();
-		// }
-		//
-		// Console::Print("Loaded asset : " + texture->GetID());
-		//
-		// assetManager.PrintCacheStatus();
-	}
-
 	mRenderer        = Engine::GetRenderer();
 	resourceManager_ = Engine::GetResourceManager();
 	srvManager_      = Engine::GetSrvManager();
@@ -81,7 +50,7 @@ void GameScene::Init() {
 	);
 
 	TexManager::GetInstance()->LoadTexture(
-		"./Resources/Textures/wave.dds"
+		"./Resources/Textures/wave.dds", true
 	);
 
 	TexManager::GetInstance()->LoadTexture(
@@ -271,7 +240,7 @@ void GameScene::Update(const float deltaTime) {
 		mPendingMeshReload = true;
 		Console::Print("Mesh reload requested...", kConFgColorGreen);
 	}
-	
+
 	if (mPendingMeshReload) {
 		static bool reloadNextFrame = false;
 		if (reloadNextFrame) {
@@ -623,7 +592,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	// メッシュをリロード
 	const std::string meshPath      = "./Resources/Models/reflectionTest.obj";
 	bool              reloadSuccess = resourceManager_->GetMeshManager()->
-		ReloadMeshFromFile(meshPath);
+	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
@@ -696,7 +665,7 @@ void GameScene::SafeReloadWorldMesh() {
 	// メッシュをリロード
 	const std::string meshPath      = "./Resources/Models/reflectionTest.obj";
 	bool              reloadSuccess = resourceManager_->GetMeshManager()->
-		ReloadMeshFromFile(meshPath);
+	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
