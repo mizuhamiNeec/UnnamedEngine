@@ -3,8 +3,6 @@
 #include <Entity/Base/Entity.h>
 #include <Renderer/ConstantBuffer.h>
 #include <ResourceSystem/Mesh/SkeletalMesh.h>
-#include <ResourceSystem/Material/MaterialInstance.h>
-#include <Components/Animation/AnimationComponent.h>
 
 // ボーン変換行列用の定数バッファ構造体
 struct BoneMatrices {
@@ -15,80 +13,79 @@ struct BoneMatrices {
 class SkeletalMeshRenderer : public MeshRenderer {
 public:
 	SkeletalMeshRenderer() = default;
-	virtual ~SkeletalMeshRenderer();
+	~SkeletalMeshRenderer() override;
 
 	void OnAttach(Entity& owner) override;
 	void Update(float deltaTime) override;
 
 	// 描画処理
-	virtual void Render(ID3D12GraphicsCommandList* commandList) override;
+	void Render(ID3D12GraphicsCommandList* commandList) override;
 	// インスペクターの描画
-	virtual void DrawInspectorImGui() override;
+	void DrawInspectorImGui() override;
 
-	SkeletalMesh* GetSkeletalMesh() const;
-	void          SetSkeletalMesh(SkeletalMesh* skeletalMesh);
+	[[nodiscard]] SkeletalMesh* GetSkeletalMesh() const;
+	void                        SetSkeletalMesh(SkeletalMesh* skeletalMesh);
 
 	// アニメーション制御
-	void  PlayAnimation(const std::string& animationName, bool loop = true);
-	void  StopAnimation();
-	void  PauseAnimation();
-	void  ResumeAnimation();
-	void  SetAnimationSpeed(float speed);
-	bool  IsAnimationPlaying() const;
-	float GetAnimationTime() const;
+	void PlayAnimation(const std::string& animationName, bool loop = true);
+	void StopAnimation();
+	void PauseAnimation();
+	void ResumeAnimation();
+	void SetAnimationSpeed(float speed);
+	[[nodiscard]] bool IsAnimationPlaying() const;
+	[[nodiscard]] float GetAnimationTime() const;
 
 protected:
 	void BindTransform(ID3D12GraphicsCommandList* commandList) override;
 	void UpdateBoneMatrices();
-	void CalculateNodeTransform(const Node&      node, const Mat4& parentTransform,
+	void CalculateNodeTransform(const Node& node, const Mat4& parentTransform,
 	                            const Animation* animation,
-	                            float            animationTime);
+	                            float animationTime);
 
 	void DrawBoneHierarchy(const Node& node, const Mat4& parentTransform);
 	void DrawBoneDebug();
 
 private:
-	std::unique_ptr<ConstantBuffer> transformationMatrixConstantBuffer_;
-	TransformationMatrix*           transformationMatrix_ = nullptr;
+	std::unique_ptr<ConstantBuffer> mTransformationMatrixConstantBuffer;
+	TransformationMatrix*           mTransformationMatrix = nullptr;
 
 	// ボーン変換行列用の定数バッファ
-	std::unique_ptr<ConstantBuffer> boneMatricesConstantBuffer_;
-	BoneMatrices*                   boneMatrices_ = nullptr;
+	std::unique_ptr<ConstantBuffer> mBoneMatricesConstantBuffer;
+	BoneMatrices*                   mBoneMatrices = nullptr;
 
-	TransformComponent* transform_    = nullptr;
-	SkeletalMesh*       skeletalMesh_ = nullptr;
+	SkeletalMesh* mSkeletalMesh = nullptr;
 
 	// アニメーション制御
-	const Animation* currentAnimation_ = nullptr;
-	std::string      currentAnimationName_;
-	float            animationTime_  = 0.0f;
-	float            animationSpeed_ = 1.0f;
-	bool             isPlaying_      = false;
-	bool             isLooping_      = true;
+	const Animation* mCurrentAnimation = nullptr;
+	std::string      mCurrentAnimationName;
+	float            mAnimationTime  = 0.0f;
+	float            mAnimationSpeed = 1.0f;
+	bool             mIsPlaying      = false;
+	bool             mIsLooping      = true;
 
 #ifdef _DEBUG
-	bool showBoneDebug_ = true; // デバッグモードの場合はtrue
+	bool mShowBoneDebug = true; // デバッグモードの場合はtrue
 #else
 	bool showBoneDebug_ = false; // デバッグモードではない場合はfalse
 #endif
 
 	// ライティング用の定数
-	std::unique_ptr<ConstantBuffer> matparamCBV;
-	MatParam*                       materialData = nullptr;
+	std::unique_ptr<ConstantBuffer> mMatParamCBV;
+	MatParam*                       mMaterialData = nullptr;
 
 	// b1
-	std::unique_ptr<ConstantBuffer> directionalLightCB;
-	DirectionalLight*               directionalLightData = nullptr;
+	std::unique_ptr<ConstantBuffer> mDirectionalLightCb;
+	DirectionalLight*               mDirectionalLightData = nullptr;
 
 	// b2
-	std::unique_ptr<ConstantBuffer> cameraCB;
-	CameraForGPU*                   cameraData = nullptr;
+	std::unique_ptr<ConstantBuffer> mCameraCb;
+	CameraForGPU*                   mCameraData = nullptr;
 
 	// b3
-	std::unique_ptr<ConstantBuffer> pointLightCB;
-	PointLight*                     pointLightData = nullptr;
+	std::unique_ptr<ConstantBuffer> mPointLightCb;
+	PointLight*                     mPointLightData = nullptr;
 
 	// b4
-	std::unique_ptr<ConstantBuffer> spotLightCB;
-	SpotLight*                      spotLightData = nullptr;
+	std::unique_ptr<ConstantBuffer> mSpotLightCb;
+	SpotLight*                      mSpotLightData = nullptr;
 };
