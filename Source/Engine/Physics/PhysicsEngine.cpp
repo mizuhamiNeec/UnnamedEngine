@@ -12,33 +12,32 @@
 #include <SubSystem/Console/Console.h>
 
 void PhysicsEngine::Init() {
-	dynamicBVH_.Clear();
-	staticBVH_.Clear();
-	registeredEntities_.clear();
-	colliderComponents_.clear();
-	staticMeshes_.clear();
-	dynamicMeshes_.clear();
+	mDynamicBVH.Clear();
+	mStaticBVH.Clear();
+	mRegisteredEntities.clear();
+	mColliderComponents.clear();
+	mStaticMeshes.clear();
+	mDynamicMeshes.clear();
 }
 
 void PhysicsEngine::Update([[maybe_unused]] float deltaTime) {
-	for (auto collider : colliderComponents_) {
+	for (auto collider : mColliderComponents) {
 		if (!collider) {
-			colliderComponents_.erase(
-				std::ranges::remove(colliderComponents_,
-					collider).begin(),
-				colliderComponents_.end()
+			mColliderComponents.erase(
+				std::ranges::remove(mColliderComponents,
+				                    collider).begin(),
+				mColliderComponents.end()
 			);
 		}
 	}
 	UpdateBVH();
-
 
 	// TODO: 物理シミュレーション(やる気が出たら)
 }
 
 void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) {
 	// 既に登録されているか、エンティティがnullptrの場合は登録しない
-	if (!entity || registeredEntities_.contains(entity)) {
+	if (!entity || mRegisteredEntities.contains(entity)) {
 		Console::Print(
 			"エンティティが登録済みかnullptrです\n",
 			kConTextColorWarning,
@@ -61,7 +60,7 @@ void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) {
 	}
 
 	if (auto* meshCollider = dynamic_cast<MeshColliderComponent*>(collider)) {
-		const auto* transform = entity->GetTransform();
+		const auto*                  transform = entity->GetTransform();
 		const std::vector<Triangle>& triangles = meshCollider->GetTriangles();
 
 		if (isStatic) {
@@ -74,7 +73,7 @@ void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) {
 			meshData.localBVH.Clear();
 			for (size_t i = 0; i < triangles.size(); ++i) {
 				// 三角形をワールド空間に変換
-				Triangle worldTri = { Vec3::zero, Vec3::zero, Vec3::zero };
+				Triangle worldTri = {Vec3::zero, Vec3::zero, Vec3::zero};
 				worldTri.v0 = Mat4::Transform(triangles[i].v0, worldMatrix);
 				worldTri.v1 = Mat4::Transform(triangles[i].v1, worldMatrix);
 				worldTri.v2 = Mat4::Transform(triangles[i].v2, worldMatrix);
@@ -87,38 +86,38 @@ void PhysicsEngine::RegisterEntity(Entity* entity, bool isStatic) {
 
 			// メッシュ全体のAABBを計算
 			meshData.worldBounds = FromTriangles(meshData.worldTriangles);
-			staticMeshes_.emplace(collider, std::move(meshData));
+			mStaticMeshes.emplace(collider, std::move(meshData));
 		} else {
 			// 動的メッシュはローカルのまま登録
 			DynamicMeshData meshData;
 			meshData.localTriangles = triangles;
-			meshData.transform = transform;
-			dynamicMeshes_.emplace(collider, std::move(meshData));
+			meshData.transform      = transform;
+			mDynamicMeshes.emplace(collider, std::move(meshData));
 		}
 	}
 
 	collider->SetPhysicsEngine(this);
 
 	// コライダーコンポーネントとエンティティを登録
-	colliderComponents_.emplace_back(collider);
-	registeredEntities_.insert(entity);
+	mColliderComponents.emplace_back(collider);
+	mRegisteredEntities.insert(entity);
 
 	// コライダーのAABBを取得
 	AABB aabb = collider->GetBoundingBox();
 
 	// インデックスを取得（新たに追加されたコライダーの位置）
-	int colliderIndex = static_cast<int>(colliderComponents_.size()) - 1;
+	int colliderIndex = static_cast<int>(mColliderComponents.size()) - 1;
 
 	// BVHにAABBとコライダーのポインタを登録
 	int nodeId = -1;
 	if (isStatic) {
-		nodeId = staticBVH_.InsertObject(aabb, colliderIndex);
+		nodeId = mStaticBVH.InsertObject(aabb, colliderIndex);
 	} else {
-		nodeId = dynamicBVH_.InsertObject(aabb, colliderIndex);
+		nodeId = mDynamicBVH.InsertObject(aabb, colliderIndex);
 	}
 
 	// コライダーとnodeIdのマップを保存
-	colliderNodeIds_[collider] = nodeId;
+	mColliderNodeIds[collider] = nodeId;
 }
 
 void PhysicsEngine::UnregisterEntity(Entity* entity) {
@@ -131,7 +130,7 @@ void PhysicsEngine::UnregisterEntity(Entity* entity) {
 		return;
 	}
 
-	if (!registeredEntities_.contains(entity)) {
+	if (!mRegisteredEntities.contains(entity)) {
 		Console::Print(
 			"エンティティが登録されていないかnullptrです\n",
 			kConTextColorWarning,
@@ -155,25 +154,25 @@ void PhysicsEngine::UnregisterEntity(Entity* entity) {
 
 	if (auto* meshCollider = dynamic_cast<MeshColliderComponent*>(collider)) {
 		// 静的/動的メッシュデータの削除
-		staticMeshes_.erase(meshCollider);
-		dynamicMeshes_.erase(meshCollider);
+		mStaticMeshes.erase(meshCollider);
+		mDynamicMeshes.erase(meshCollider);
 	}
 
 	// コライダーからNodeIDを取得
-	auto it = colliderNodeIds_.find(collider);
-	if (it != colliderNodeIds_.end()) {
+	const auto it = mColliderNodeIds.find(collider);
+	if (it != mColliderNodeIds.end()) {
 		int nodeId = it->second;
 
 		// BVHからオブジェクトを削除
-		staticBVH_.RemoveObject(nodeId);
-		dynamicBVH_.RemoveObject(nodeId);
+		mStaticBVH.RemoveObject(nodeId);
+		mDynamicBVH.RemoveObject(nodeId);
 
-		colliderNodeIds_.erase(it);
+		mColliderNodeIds.erase(it);
 	}
 
 	// 登録リストから削除
-	std::erase(colliderComponents_, collider);
-	registeredEntities_.erase(entity);
+	std::erase(mColliderComponents, collider);
+	mRegisteredEntities.erase(entity);
 }
 
 std::vector<HitResult> PhysicsEngine::BoxCast(
@@ -194,56 +193,52 @@ std::vector<HitResult> PhysicsEngine::BoxCast(
 	AABB endBox(endPos - halfSize, endPos + halfSize);
 
 	// スイープ軌跡のAABB（開始AABBと終了AABBの包囲）
-	AABB sweepBox = {
+	AABB sweepBox    = {
 		sweepBox.min = Vec3::Min(startBox.min, endBox.min),
 		sweepBox.max = Vec3::Max(startBox.max, endBox.max)
 	};
 
 	Debug::DrawBox(startBox.GetCenter(), Quaternion::identity,
-		startBox.GetSize(), Vec4::brown);
-// Debug::DrawBox(endBox.GetCenter(), Quaternion::identity, endBox.GetSize(), Vec4::orange);
+	               startBox.GetSize(), Vec4::brown);
 
-// BVHから重なり候補のインデックスを取得（static/dynamicともに）
+	// BVHから重なり候補のインデックスを取得（static/dynamicともに）
 	std::vector<int> candidateIndices;
 	auto             addCandidates = [&](const std::vector<int>& indices) {
 		for (int idx : indices) {
 			candidateIndices.emplace_back(idx);
 		}
-		};
-	addCandidates(staticBVH_.QueryOverlaps(sweepBox));
-	addCandidates(dynamicBVH_.QueryOverlaps(sweepBox));
+	};
+	addCandidates(mStaticBVH.QueryOverlaps(sweepBox));
+	addCandidates(mDynamicBVH.QueryOverlaps(sweepBox));
 
 	// 重複インデックスを削除
 	std::unordered_set uniqueCandidates(candidateIndices.begin(),
-		candidateIndices.end());
+	                                    candidateIndices.end());
 	candidateIndices.assign(uniqueCandidates.begin(), uniqueCandidates.end());
 
 	// 衝突判定を行う
 	constexpr int steps = 4;
-	float         dt = distance / steps;
+	float         dt    = distance / steps;
 	for (int i = 0; i <= steps; i++) {
-		float t = i * dt;
+		float t      = i * dt;
 		Vec3  curPos = start + dir * t;
 		AABB  currentBox(curPos - halfSize, curPos + halfSize);
 
 		// 各候補オブジェクトに対して
 		for (int idx : candidateIndices) {
-			ColliderComponent* collider = colliderComponents_[idx];
-			Entity* entity = collider->GetOwner();
+			ColliderComponent* collider = mColliderComponents[idx];
+			Entity*            entity   = collider->GetOwner();
 
-			MeshColliderComponent* meshCollider = dynamic_cast<
-				MeshColliderComponent*>(collider);
+			auto meshCollider = dynamic_cast<MeshColliderComponent*>(collider);
 			if (meshCollider) {
-				// MeshColliderの場合、各三角形との衝突判定
 				const auto& triangles = meshCollider->GetTriangles();
-				// 三角形リスト取得（実装依存）
 				for (const auto& tri : triangles) {
 					HitResult hr;
 					if (IntersectAABBWithTriangle(currentBox, tri, hr)) {
 						// 衝突があった場合、tの値をヒット距離として設定
 						hr.dist = t;
-						// 現在位置を衝突点として採用（より詳細な衝突点計算は各自で実装）
-						hr.hitPos = curPos;
+						// TODO: より正確なヒット位置を計算する
+						hr.hitPos    = curPos;
 						hr.hitEntity = entity;
 
 						Debug::DrawTriangle(tri, Vec4::cyan);
@@ -251,96 +246,74 @@ std::vector<HitResult> PhysicsEngine::BoxCast(
 					}
 				}
 			}
-			// ※他のコライダータイプがある場合は、ここに処理を追加
 		}
 	}
 
 	// 衝突結果を開始点からの距離順にソート
 	std::ranges::sort(hitResults, [](const HitResult& a, const HitResult& b) {
 		return a.dist < b.dist;
-		});
+	});
 	return hitResults;
 }
 
 std::vector<HitResult> PhysicsEngine::RayCast(const Vec3& start,
-	const Vec3& direction,
-	const float distance) {
+                                              const Vec3& direction,
+                                              const float distance) {
 	std::vector<HitResult> hitResults;
 	// 正規化された方向と終了点
-	Vec3 dir = direction.Normalized();
-	Vec3 endPos = start + dir * distance;
+	const Vec3 dir    = direction.Normalized();
+	const Vec3 endPos = start + dir * distance;
 
 	// レイのAABBを作成(開始点と終了点の各軸のmin/max)
-	Vec3 aabbMin = Vec3::Min(start, endPos);
-	Vec3 aabbMax = Vec3::Max(start, endPos);
-	AABB sweepBox(aabbMin, aabbMax);
+	const Vec3 aabbMin = Vec3::Min(start, endPos);
+	const Vec3 aabbMax = Vec3::Max(start, endPos);
+	const AABB sweepBox(aabbMin, aabbMax);
 
 	// BVHからオーバーラップ候補を取得
-	auto dynamicOverlaps = dynamicBVH_.QueryOverlaps(sweepBox);
-	auto staticOverlaps = staticBVH_.QueryOverlaps(sweepBox);
+	const auto dynamicOverlaps = mDynamicBVH.QueryOverlaps(sweepBox);
+	const auto staticOverlaps  = mStaticBVH.QueryOverlaps(sweepBox);
 
 	// 各MeshColliderに対してレイキャストを処理
 	auto processRaycastOnMesh = [&](ColliderComponent* collider,
-		const bool         isStatic) {
-			if (!collider) {
-				return;
-			}
+	                                const bool         isStatic) {
+		if (!collider) {
+			return;
+		}
 
-			// 静的メッシュ
-			if (isStatic) {
-				auto it = staticMeshes_.find(collider);
-				if (it != staticMeshes_.end()) {
-					const auto& triangles = it->second.worldTriangles;
-					for (const auto& tri : triangles) {
-						float time;
-						if (Physics::RayIntersectsTriangle(start, dir, tri, time) &&
-							time <= distance) {
-							HitResult hit;
-							hit.isHit = true;
-							hit.dist = time;
-							hit.hitPos = start + dir * time;
-							hit.hitNormal = tri.GetNormal();
-							hit.hitEntity = collider->GetOwner();
-							hitResults.emplace_back(hit);
-							Debug::DrawTriangle(tri, Vec4::cyan);
-						}
+		// 静的メッシュ
+		if (isStatic) {
+			const auto it = mStaticMeshes.find(collider);
+			if (it != mStaticMeshes.end()) {
+				const auto& triangles = it->second.worldTriangles;
+				for (const auto& tri : triangles) {
+					float time;
+					if (Physics::RayIntersectsTriangle(start, dir, tri, time) &&
+						time <= distance) {
+						HitResult hit;
+						hit.isHit     = true;
+						hit.dist      = time;
+						hit.hitPos    = start + dir * time;
+						hit.hitNormal = tri.GetNormal();
+						hit.hitEntity = collider->GetOwner();
+						hitResults.emplace_back(hit);
+						Debug::DrawTriangle(tri, Vec4::cyan);
 					}
 				}
 			}
-			// 動的メッシュ
-			else {
-				// auto it = dynamicMeshes_.find(collider);
-				// if (it != dynamicMeshes_.end()) {
-				//	const auto& meshData = it->second;
-				//	// transform->TransformPoint() が存在する前提でローカル座標をワールドに変換
-				//	for (const auto& localTri : meshData.localTriangles) {
-				//		Triangle worldTri(
-				//			meshData.transform->TransformPoint(tri.v0),
-				//			meshData.transform->TransformPoint(tri.v1),
-				//			meshData.transform->TransformPoint(tri.v2));
-				//		float time;
-				//		if (RayIntersectsTriangle(start, dir, worldTri, time) && time <= distance) {
-				//			HitResult hit;
-				//			hit.isHit = true;
-				//			hit.dist = time;
-				//			hit.hitPos = start + dir * time;
-				//			hit.hitNormal = worldTri.GetNormal();
-				//			hit.hitEntity = collider->GetOwner();
-				//			hitResults.push_back(hit);
-				//		}
-				//	}
-				// }
-			}
-		};
+		}
+		// 動的メッシュ
+		else {
+		}
+	};
 
-		// 動的オブジェクトの処理
+	// 動的オブジェクトの処理
 	for (int i : dynamicOverlaps) {
-		ColliderComponent* collider = colliderComponents_[i];
+		ColliderComponent* collider = mColliderComponents[i];
 		processRaycastOnMesh(collider, false);
 	}
 	// 静的オブジェクトの処理
 	for (int i : staticOverlaps) {
-		ColliderComponent* collider = colliderComponents_[i];
+		ColliderComponent* collider = mColliderComponents[i];
 		processRaycastOnMesh(collider, true);
 	}
 
@@ -357,7 +330,7 @@ bool PhysicsEngine::IntersectAABBWithTriangle(
 	const AABB& aabb, const Triangle& triangle, HitResult& outHit
 ) {
 	// AABBの中心と半径を取得
-	Vec3 aabbCenter = aabb.GetCenter();
+	Vec3 aabbCenter   = aabb.GetCenter();
 	Vec3 aabbHalfSize = aabb.GetHalfSize();
 
 	// 三角形の頂点をAABBのローカル座標系に変換
@@ -372,12 +345,12 @@ bool PhysicsEngine::IntersectAABBWithTriangle(
 
 	// テスト1: AABBの各軸に対する投影
 	for (int i = 0; i < 3; ++i) {
-		float r = aabbHalfSize[i];
-		float p0 = v0[i];
-		float p1 = v1[i];
-		float p2 = v2[i];
-		float minP = (std::min)({ p0, p1, p2 });
-		float maxP = (std::max)({ p0, p1, p2 });
+		float r    = aabbHalfSize[i];
+		float p0   = v0[i];
+		float p1   = v1[i];
+		float p2   = v2[i];
+		float minP = (std::min)({p0, p1, p2});
+		float maxP = (std::max)({p0, p1, p2});
 		if (minP > r || maxP < -r) {
 			return false; // 分離軸発見
 		}
@@ -415,11 +388,12 @@ bool PhysicsEngine::IntersectAABBWithTriangle(
 	}
 
 	// よくここまで来たな...喜べ衝突だ!
-	outHit.isHit = true;
+	outHit.isHit     = true;
 	outHit.hitNormal = normal;
 
 	// 衝突点の計算
-	Vec3 closestPoint = ClosestPointOnTriangleToPoint(Vec3::zero, triangle);
+	const Vec3 closestPoint = ClosestPointOnTriangleToPoint(
+		Vec3::zero, triangle);
 	outHit.hitPos = aabbCenter + closestPoint; // AABBのローカル座標からワールド座標へ
 
 	Debug::DrawRay(
@@ -432,7 +406,7 @@ bool PhysicsEngine::IntersectAABBWithTriangle(
 	outHit.depth = penetration.Length();
 
 	// その他の情報を設定
-	outHit.dist = outHit.depth; // 距離 = 深さとして扱う
+	outHit.dist      = outHit.depth; // 距離 = 深さとして扱う
 	outHit.hitEntity = nullptr;      // 必要に応じて設定
 
 	return true;
@@ -461,8 +435,8 @@ Vec3 PhysicsEngine::ClosestPointOnTriangleToPoint(
 
 	// パラメータを計算
 	float det = a * c - b * b;
-	float s = b * e - c * d;
-	float t = b * d - a * e;
+	float s   = b * e - c * d;
+	float t   = b * d - a * e;
 
 	// 三角形の外部にある場合の修正
 	if (s + t <= det) {
@@ -501,7 +475,7 @@ Vec3 PhysicsEngine::ClosestPointOnTriangleToPoint(
 }
 
 Vec3 PhysicsEngine::ClosestPointOnAABBToPoint(const Vec3& point,
-	const AABB& aabb) {
+                                              const AABB& aabb) {
 	Vec3 closestPoint = point;
 
 	Vec3 min = aabb.GetCenter() - aabb.GetHalfSize();
@@ -516,7 +490,7 @@ Vec3 PhysicsEngine::ClosestPointOnAABBToPoint(const Vec3& point,
 }
 
 void PhysicsEngine::UpdateBVH() {
-	for (auto* collider : colliderComponents_) {
+	for (auto* collider : mColliderComponents) {
 		if (!collider) {
 			break;
 		}
@@ -524,32 +498,25 @@ void PhysicsEngine::UpdateBVH() {
 		// 動的コライダーの更新処理
 		if (collider->IsDynamic()) {
 			AABB aabb = collider->GetBoundingBox();
-			auto it = colliderNodeIds_.find(collider);
-			if (it != colliderNodeIds_.end()) {
+			auto it   = mColliderNodeIds.find(collider);
+			if (it != mColliderNodeIds.end()) {
 				int nodeId = it->second;
 				// BVHからオブジェクトを削除
-				dynamicBVH_.RemoveObject(nodeId);
+				mDynamicBVH.RemoveObject(nodeId);
 				// BVHにオブジェクトを再登録
-				nodeId = dynamicBVH_.InsertObject(aabb, nodeId);
-				colliderNodeIds_[collider] = nodeId;
+				nodeId = mDynamicBVH.InsertObject(aabb, nodeId);
+				mColliderNodeIds[collider] = nodeId;
 			}
 		}
 	}
 
-	staticBVH_.DrawBvh(Vec4::magenta);
-	// dynamicBVH_.DrawBvh(Vec4::cyan);
+	mStaticBVH.DrawBvh(Vec4::magenta);
 
-	// 追加: 現在参照中のBVHノードのみを描画
-	for (const auto& [collider, nodeId] : colliderNodeIds_) {
-		AABB nodeAABB = { Vec3::zero, Vec3::zero };
-		nodeAABB = staticMeshes_[collider].localBVH.GetNodeAABB(nodeId);
-		/*if (collider->IsDynamic()) {
-			nodeAABB = dynamicBVH_.GetNodeAABB(nodeId);
-		} else {
-			nodeAABB = staticBVH_.GetNodeAABB(nodeId);
-		}*/
+	for (const auto& [collider, nodeId] : mColliderNodeIds) {
+		AABB nodeAABB = {Vec3::zero, Vec3::zero};
+		nodeAABB      = mStaticMeshes[collider].localBVH.GetNodeAABB(nodeId);
 		Debug::DrawBox(nodeAABB.GetCenter(), Quaternion::identity,
-			nodeAABB.GetSize(), Vec4::yellow);
+		               nodeAABB.GetSize(), Vec4::yellow);
 	}
 }
 
