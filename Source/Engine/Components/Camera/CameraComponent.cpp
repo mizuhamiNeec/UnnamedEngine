@@ -15,7 +15,7 @@ CameraComponent::~CameraComponent() {
 void CameraComponent::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
 	// 親からTransformComponentを取得
-	transform_ = owner_->GetTransform();
+	transform_ = mOwner->GetTransform();
 
 	aspectRatio_ = 16.0f / 9.0f;
 	worldMat_    = transform_->GetWorldMat();

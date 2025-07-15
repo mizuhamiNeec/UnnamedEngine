@@ -13,7 +13,7 @@ CameraRotator::~CameraRotator() {
 
 void CameraRotator::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
-	transform_ = owner_->GetTransform();
+	transform_ = mOwner->GetTransform();
 
 	// 初期回転を取得
 	pitch_ = transform_->GetLocalRot().ToEulerAngles().x;

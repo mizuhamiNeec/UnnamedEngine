@@ -16,7 +16,7 @@ void WeaponSway::Update([[maybe_unused]] const float deltaTime) {
 	// マウスの移動量を取得
 	Vec2 delta = InputSystem::GetMouseDelta();
 
-	TransformComponent* transform = owner_->GetTransform();
+	TransformComponent* transform = mOwner->GetTransform();
 
 	mPitch += delta.y * mSwayAmount * deltaTime;
 	mYaw += delta.x * mSwayAmount * deltaTime;

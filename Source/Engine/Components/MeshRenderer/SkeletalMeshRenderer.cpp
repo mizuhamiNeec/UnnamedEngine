@@ -34,7 +34,7 @@ SkeletalMeshRenderer::~SkeletalMeshRenderer() {
 
 void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 	MeshRenderer::OnAttach(owner);
-	transform_ = owner_->GetTransform();
+	transform_ = mOwner->GetTransform();
 
 	// 変換行列用の定数バッファ
 	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
