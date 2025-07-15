@@ -30,7 +30,7 @@ public:
 		if (!ent) return;
 
 		// 既に存在する場合は強度を更新
-		for (auto& info : mShakeEntities) {
+		for (auto& info : shakeEntities_) {
 			if (info.entity == ent) {
 				info.rotationMultiplier = rotationMultiplier;
 				return;
@@ -41,7 +41,7 @@ public:
 		EntityShakeInfo info;
 		info.entity             = ent;
 		info.rotationMultiplier = rotationMultiplier;
-		mShakeEntities.push_back(info);
+		shakeEntities_.push_back(info);
 	}
 
 	void StartCameraShake(float duration, float amplitude, float frequency,
@@ -97,29 +97,16 @@ private:
 		float maxRotationAmplitude;  // 最大回転振幅
 	};
 
-	CameraShake mCameraShake;
+	CameraShake cameraShake_;
 
 	struct EntityShakeInfo {
 		Entity* entity             = nullptr;
 		float   rotationMultiplier = 1.0f; // 回転の倍率
 	};
 
-
-	bool  bCanDoubleJump_      = false;
-	bool  bDoubleJumped_       = false;
-	float mDoubleJumpVelocity  = 300.0f; // 二段ジャンプの速度
-	bool  bJumpKeyWasReleased_ = true;
-
-
-	SlideState  mPreviousSlideState = NotSliding; // 前回のスライド状態
-	const float kMinSlideTime       = 0.5f;       // 最小スライド時間（秒）
-
-	std::vector<EntityShakeInfo> mShakeEntities;
-
+	std::vector<EntityShakeInfo> shakeEntities_;
+	
+	void ProcessInput();
 	void UpdateCameraShake(float deltaTime);
 	void CollideAndSlide(const Vec3& desiredDisplacement);
-
-	// プレイヤーの移動入力
-	Vec3 mMoveInput = Vec3::zero;
-	Vec3 mWishdir   = Vec3::zero;
 };
