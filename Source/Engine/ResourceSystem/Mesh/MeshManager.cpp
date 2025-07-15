@@ -17,9 +17,8 @@
 #include <assimp/postprocess.h>
 #include <assimp/postprocess.h>
 
-void MeshManager::Init(const ComPtr<ID3D12Device>& device,
-                       ShaderManager*              shaderManager,
-                       MaterialManager*            materialManager) {
+void MeshManager::Init(ID3D12Device*    device, ShaderManager* shaderManager,
+                       MaterialManager* materialManager) {
 	Console::Print(
 		"MeshManager を初期化しています...\n",
 		kConTextColorGray,
@@ -415,11 +414,12 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 	return subMesh.release();
 }
 
-// スケルタルメッシュ専用の処理関数
-SubMesh* MeshManager::ProcessSkeletalMesh(const aiMesh*      mesh,
-                                          const aiScene*     scene,
-                                          SkeletalMesh*      skeletalMesh,
-                                          const aiMatrix4x4& transform) {
+SubMesh* MeshManager::ProcessSkeletalMesh(
+	const aiMesh*      mesh,
+	const aiScene*     scene,
+	SkeletalMesh*      skeletalMesh,
+	const aiMatrix4x4& transform
+) {
 	std::vector<SkinnedVertex> vertices;
 	std::vector<uint32_t>      indices;
 
@@ -568,22 +568,21 @@ SubMesh* MeshManager::ProcessSkeletalMesh(const aiMesh*      mesh,
 	               kConTextColorGray, Channel::ResourceSystem);
 
 	// マテリアルの設定
-	Material* material = nullptr;
-	if (mesh->mMaterialIndex >= 0) {
-		const aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
-		const std::string materialName = aiMat->GetName().C_Str();
+	Material*         material     = nullptr;
+	const aiMaterial* aiMat        = scene->mMaterials[mesh->mMaterialIndex];
+	const std::string materialName = aiMat->GetName().C_Str();
 
-		// メッシュ名を取得（ファイルパスからファイル名のみを抽出）
-		std::string meshName  = skeletalMesh->GetName();
-		size_t      lastSlash = meshName.find_last_of("/\\");
-		if (lastSlash != std::string::npos) {
-			meshName = meshName.substr(lastSlash + 1);
-		}
-		// 拡張子を削除
-		size_t lastDot = meshName.find_last_of('.');
-		if (lastDot != std::string::npos) {
-			meshName = meshName.substr(0, lastDot);
-		}
+	// メッシュ名を取得（ファイルパスからファイル名のみを抽出）
+	std::string meshName  = skeletalMesh->GetName();
+	size_t      lastSlash = meshName.find_last_of("/\\");
+	if (lastSlash != std::string::npos) {
+		meshName = meshName.substr(lastSlash + 1);
+	}
+	// 拡張子を削除
+	size_t lastDot = meshName.find_last_of('.');
+	if (lastDot != std::string::npos) {
+		meshName = meshName.substr(0, lastDot);
+	}
 
 	// マテリアルの作成またはキャッシュから取得（メッシュ名を含む一意キーで管理）
 	material = mMaterialManager->GetOrCreateMaterial(
@@ -592,46 +591,46 @@ SubMesh* MeshManager::ProcessSkeletalMesh(const aiMesh*      mesh,
 		meshName
 	);
 
-		Console::Print(
-			std::format(
-				"MeshManager: スケルタルメッシュマテリアル割り当て - メッシュ: {}, マテリアル: {} (フルネーム: {})\n",
-				meshName, materialName, material->GetFullName()),
-			kConTextColorCompleted,
-			Channel::ResourceSystem
-		);
+	Console::Print(
+		std::format(
+			"MeshManager: スケルタルメッシュマテリアル割り当て - メッシュ: {}, マテリアル: {} (フルネーム: {})\n",
+			meshName, materialName, material->GetFullName()),
+		kConTextColorCompleted,
+		Channel::ResourceSystem
+	);
 
-		// テクスチャの設定
-		aiString texturePath;
-		if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) ==
-			AI_SUCCESS) {
-			// モデルのディレクトリパスを取得
-			std::filesystem::path modelPath(skeletalMesh->GetName());
-			std::filesystem::path modelDir = modelPath.parent_path();
+	// テクスチャの設定
+	aiString texturePath;
+	if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) ==
+		AI_SUCCESS) {
+		// モデルのディレクトリパスを取得
+		std::filesystem::path modelPath(skeletalMesh->GetName());
+		std::filesystem::path modelDir = modelPath.parent_path();
 
-			// texturePath.C_Str() の値からテクスチャパスを作成
-			const char* texturePathStr = texturePath.C_Str();
-			if (texturePathStr && strlen(texturePathStr) > 0) {
-				// テクスチャパスを結合して完全なパスを作成
-				std::filesystem::path texPath(texturePathStr);
-				std::filesystem::path fullTexturePath = modelDir / texPath;
+		// texturePath.C_Str() の値からテクスチャパスを作成
+		const char* texturePathStr = texturePath.C_Str();
+		if (texturePathStr && strlen(texturePathStr) > 0) {
+			// テクスチャパスを結合して完全なパスを作成
+			std::filesystem::path texPath(texturePathStr);
+			std::filesystem::path fullTexturePath = modelDir / texPath;
 
-				// 旧TexManagerを使用してテクスチャを読み込み
-				TexManager::GetInstance()->
-					LoadTexture(fullTexturePath.string());
-				material->SetTexture("gBaseColorTexture",
-				                     fullTexturePath.string());
-			}
-		} else {
-			// エラーテクスチャのパスを設定（必要に応じて実装）
+			TexManager::GetInstance()->
+				LoadTexture(fullTexturePath.string());
 			material->SetTexture("gBaseColorTexture",
-			                     "./Resources/Textures/uvChecker.png");
+			                     fullTexturePath.string());
 		}
-
-		// 環境マップテクスチャの設定
-		TexManager::GetInstance()->LoadTexture("./Resources/Textures/wave.dds");
-		material->SetTexture("gEnvironmentTexture",
-		                     "./Resources/Textures/wave.dds");
+	} else {
+		// エラーテクスチャのパスを設定（必要に応じて実装）
+		material->SetTexture("gBaseColorTexture",
+		                     "./Resources/Textures/uvChecker.png");
 	}
+
+	// 環境マップテクスチャの設定
+	TexManager::GetInstance()->LoadTexture("./Resources/Textures/wave.dds");
+	material->SetTexture(
+		"gEnvironmentTexture",
+		"./Resources/Textures/wave.dds"
+	);
 
 	auto subMesh = std::make_unique<SubMesh>(mDevice, mesh->mName.C_Str());
 	subMesh->SetSkinnedVertexBuffer(vertices);
@@ -642,7 +641,6 @@ SubMesh* MeshManager::ProcessSkeletalMesh(const aiMesh*      mesh,
 	return subMesh.release();
 }
 
-// スケルトン読み込み関数
 Skeleton MeshManager::LoadSkeleton(const aiScene* scene) {
 	Skeleton skeleton;
 
@@ -668,15 +666,15 @@ Skeleton MeshManager::LoadSkeleton(const aiScene* scene) {
 			std::string   boneName = bone->mName.C_Str();
 
 			// 既に処理されたボーンかチェック
-			if (boneIndexMap.find(boneName) == boneIndexMap.end()) {
+			if (!boneIndexMap.contains(boneName)) {
 				Bone newBone;
 				newBone.name = boneName;
 				newBone.id   = boneIndex;
 
-				// オフセット行列をMat4に変換
-				// Assimpの行列は列優先なので、転置して行優先に変換
+				// Assimpの行列は列優先なので、転置して行優先に変換する
 				const aiMatrix4x4& offsetMatrix = bone->mOffsetMatrix;
 
+				// TODO: Transpose関数で良くね?
 				for (int row = 0; row < 4; ++row) {
 					for (int col = 0; col < 4; ++col) {
 						// 転置して格納（列優先→行優先）
@@ -719,7 +717,6 @@ Skeleton MeshManager::LoadSkeleton(const aiScene* scene) {
 	return skeleton;
 }
 
-// ノード読み込み関数
 Node MeshManager::LoadNode(const aiNode* aiNode) {
 	Node node;
 	node.name = aiNode->mName.C_Str();
@@ -727,12 +724,15 @@ Node MeshManager::LoadNode(const aiNode* aiNode) {
 	// 変換行列を設定
 	const aiMatrix4x4& transform = aiNode->mTransformation;
 
+	// TODO: Transpose関数で良くね?
 	for (int row = 0; row < 4; ++row) {
 		for (int col = 0; col < 4; ++col) {
 			// オフセット行列と同様に転置して格納（列優先→行優先）
 			node.localMat.m[row][col] = transform[col][row];
 		}
 	}
+
+	// node.localMat = node.localMat.Transpose();
 
 	aiVector3D   translation, scaling;
 	aiQuaternion rotation;
@@ -748,7 +748,7 @@ Node MeshManager::LoadNode(const aiNode* aiNode) {
 	);
 	node.transform.scale = Vec3(scaling.x, scaling.y, scaling.z);
 
-	// 子ノードを再帰的に読み込み
+	// 再起
 	for (uint32_t i = 0; i < aiNode->mNumChildren; ++i) {
 		node.children.emplace_back(LoadNode(aiNode->mChildren[i]));
 	}
@@ -756,7 +756,6 @@ Node MeshManager::LoadNode(const aiNode* aiNode) {
 	return node;
 }
 
-// アニメーション読み込み関数
 void MeshManager::LoadAnimations(const aiScene* scene,
                                  SkeletalMesh*  skeletalMesh) {
 	for (uint32_t i = 0; i < scene->mNumAnimations; ++i) {
@@ -776,7 +775,6 @@ void MeshManager::LoadAnimations(const aiScene* scene,
 	}
 }
 
-// アニメーション読み込み関数
 Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 	Animation animation;
 	animation.duration = static_cast<float>(aiAnim->mDuration / aiAnim->
@@ -789,18 +787,17 @@ Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 
 		NodeAnimation nodeAnimation;
 
-		// 位置キーフレーム
+		// 位置
 		for (uint32_t j = 0; j < nodeAnim->mNumPositionKeys; ++j) {
 			const aiVectorKey& key = nodeAnim->mPositionKeys[j];
 			KeyframeVec3       keyframe;
 			keyframe.time = static_cast<float>(key.mTime / aiAnim->
 				mTicksPerSecond);
-			// 位置キーフレーム（Assimpの左手座標系変換に依存）
 			keyframe.value = Vec3(key.mValue.x, key.mValue.y, key.mValue.z);
 			nodeAnimation.translate.keyFrames.push_back(keyframe);
 		}
 
-		// 回転キーフレーム
+		// 回転
 		for (uint32_t j = 0; j < nodeAnim->mNumRotationKeys; ++j) {
 			const aiQuatKey&   key = nodeAnim->mRotationKeys[j];
 			KeyframeQuaternion keyframe;
@@ -816,7 +813,7 @@ Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 			nodeAnimation.rotate.keyFrames.push_back(keyframe);
 		}
 
-		// スケールキーフレーム
+		// スケール
 		for (uint32_t j = 0; j < nodeAnim->mNumScalingKeys; ++j) {
 			const aiVectorKey& key = nodeAnim->mScalingKeys[j];
 			KeyframeVec3       keyframe;
