@@ -5,8 +5,8 @@
 std::vector<HitResult> ColliderComponent::BoxCast(
 	const Vec3& start, const Vec3& direction, const float distance, const Vec3& halfSize
 ) const {
-	if (physicsEngine_) {
-		return physicsEngine_->BoxCast(start, direction, distance, halfSize);
+	if (mPhysicsEngine) {
+		return mPhysicsEngine->BoxCast(start, direction, distance, halfSize);
 	}
 
 	Console::Print(
@@ -18,8 +18,8 @@ std::vector<HitResult> ColliderComponent::BoxCast(
 }
 
 std::vector<HitResult> ColliderComponent::RayCast(const Vec3& start, const Vec3& direction, float distance) const {
-	if (physicsEngine_) {
-		return physicsEngine_->RayCast(start, direction, distance);
+	if (mPhysicsEngine) {
+		return mPhysicsEngine->RayCast(start, direction, distance);
 	}
 
 	Console::Print(
@@ -31,5 +31,5 @@ std::vector<HitResult> ColliderComponent::RayCast(const Vec3& start, const Vec3&
 }
 
 PhysicsEngine* ColliderComponent::GetPhysicsEngine() const {
-	return physicsEngine_;
+	return mPhysicsEngine;
 }
