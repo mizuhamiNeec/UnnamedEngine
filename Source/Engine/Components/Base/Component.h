@@ -15,7 +15,10 @@ public:
 	virtual void OnAttach(Entity& owner);
 	virtual void OnDetach();
 
+	virtual void PrePhysics(float deltaTime);
 	virtual void Update(float deltaTime) = 0;
+	virtual void PostPhysics(float deltaTime);
+	
 	virtual void Render(ID3D12GraphicsCommandList* commandList);
 
 	virtual void DrawInspectorImGui() = 0;
