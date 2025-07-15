@@ -14,13 +14,13 @@ public:
 
 	virtual void Move();
 	void         ApplyHalfGravity();
-	void         ApplyFriction(float fricValue);
+	void         ApplyFriction(float frictionValue);
 	bool         CheckGrounded();
 
 	void Accelerate(Vec3 dir, float speed, float accel);
 	void AirAccelerate(Vec3 dir, float speed, float accel);
 
-	bool IsGrounded() const;
+	[[nodiscard]] bool IsGrounded() const;
 
 	void CheckVelocity();
 
@@ -29,24 +29,22 @@ public:
 	[[nodiscard]] virtual Vec3 GetHeadPos() const;
 
 protected:
-	TransformComponent* transform_ = nullptr;
-	
-	float deltaTime_ = 0.0f;
-	Vec3 position_ = Vec3::zero;
-	Vec3 velocity_ = Vec3::zero;
-	
+	float mDeltaTime = 0.0f;
+	Vec3  mPosition  = Vec3::zero;
+	Vec3  mVelocity  = Vec3::zero;
+
 	float mSpeed   = 0.0f;
 	float mJumpVel = 0.0f;
-	
-	bool bIsGrounded   = false;
-	bool bWasGrounded  = false;
+
+	bool mIsGrounded   = false;
+	bool mWasGrounded  = false;
 	Vec3 mGroundNormal = Vec3::zero;
-	
+
 	const float kDefaultHeightHU = 73.0f;
 	const float kDefaultWidthHU  = 33.0f;
-	float mCurrentHeightHU = 73.0f;
-	float mCurrentWidthHU  = 33.0f;
-	
-	bool bWishCrouch  = false;
-	bool bIsCrouching = false;
+	float       mCurrentHeightHu = 73.0f;
+	float       mCurrentWidthHu  = 33.0f;
+
+	bool mWishCrouch  = false;
+	bool mIsCrouching = false;
 };

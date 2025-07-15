@@ -19,25 +19,25 @@ CharacterMovement::~CharacterMovement() {
 
 void CharacterMovement::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
-	transform_ = mOwner->GetTransform();
+	mTransform = mOwner->GetTransform();
 }
 
 void CharacterMovement::Update(const float deltaTime) {
-	deltaTime_ = deltaTime;
-	position_  = transform_->GetLocalPos();
+	mDeltaTime = deltaTime;
+	mPosition  = mTransform->GetLocalPos();
 
 	Move();
 	
-	Debug::DrawArrow(transform_->GetWorldPos(), velocity_ * 0.25f,
+	Debug::DrawArrow(mTransform->GetWorldPos(), mVelocity * 0.25f,
 	                 Vec4::yellow);
 
-	const float width  = Math::HtoM(mCurrentWidthHU);
-	const float height = Math::HtoM(mCurrentHeightHU);
+	const float width  = Math::HtoM(mCurrentWidthHu);
+	const float height = Math::HtoM(mCurrentHeightHu);
 	Debug::DrawBox(
-		transform_->GetWorldPos() + (Vec3::up * height * 0.5f),
+		mTransform->GetWorldPos() + (Vec3::up * height * 0.5f),
 		Quaternion::Euler(Vec3::zero),
 		Vec3(width, height, width),
-		bIsGrounded ? Vec4::green : Vec4::red);
+		mIsGrounded ? Vec4::green : Vec4::red);
 }
 
 void CharacterMovement::DrawInspectorImGui() {
@@ -49,11 +49,11 @@ void CharacterMovement::Move() {
 void CharacterMovement::ApplyHalfGravity() {
 	const float gravity = ConVarManager::GetConVar("sv_gravity")->
 		GetValueAsFloat();
-	velocity_.y -= Math::HtoM(gravity) * 0.5f * deltaTime_;
+	mVelocity.y -= Math::HtoM(gravity) * 0.5f * mDeltaTime;
 }
 
-void CharacterMovement::ApplyFriction(const float fricValue) {
-	Vec3 vel = Math::MtoH(velocity_);
+void CharacterMovement::ApplyFriction(const float frictionValue) {
+	Vec3 vel = Math::MtoH(mVelocity);
 
 	vel.y       = 0.0f;
 	float speed = vel.Length();
@@ -62,12 +62,12 @@ void CharacterMovement::ApplyFriction(const float fricValue) {
 	}
 
 	float drop = 0.0f;
-	if (bIsGrounded) {
-		const float friction  = fricValue;
+	if (mIsGrounded) {
+		const float friction  = frictionValue;
 		const float stopspeed = ConVarManager::GetConVar("sv_stopspeed")->
 			GetValueAsFloat();
 		const float control = speed < stopspeed ? stopspeed : speed;
-		drop                = control * friction * deltaTime_;
+		drop                = control * friction * mDeltaTime;
 	}
 
 	float newspeed = speed - drop;
@@ -76,7 +76,7 @@ void CharacterMovement::ApplyFriction(const float fricValue) {
 
 	if (newspeed != speed) {
 		newspeed /= speed;
-		velocity_ *= newspeed;
+		mVelocity *= newspeed;
 	}
 }
 
@@ -87,7 +87,7 @@ bool CharacterMovement::CheckGrounded() {
 	}
 
 	// 足元判定の開始位置。自分自身との衝突を避けるために少し上にオフセット
-	Vec3 pos = transform_->GetWorldPos();
+	Vec3 pos = mTransform->GetWorldPos();
 	pos.y += Math::HtoM(2.0f);
 
 	constexpr float castDist = 0.01f;
@@ -118,16 +118,16 @@ bool CharacterMovement::CheckGrounded() {
 
 void CharacterMovement::Accelerate(const Vec3  dir, const float speed,
                                    const float accel) {
-	float currentspeed = Math::MtoH(velocity_).Dot(dir);
+	float currentspeed = Math::MtoH(mVelocity).Dot(dir);
 	float addspeed     = speed - currentspeed;
 
 	if (addspeed <= 0.0f) {
 		return;
 	}
 
-	float accelspeed = accel * deltaTime_ * speed;
+	float accelspeed = accel * mDeltaTime * speed;
 	accelspeed       = (std::min)(accelspeed, addspeed);
-	velocity_ += Math::HtoM(accelspeed) * dir;
+	mVelocity += Math::HtoM(accelspeed) * dir;
 }
 
 void CharacterMovement::AirAccelerate(const Vec3  dir, const float speed,
@@ -135,20 +135,20 @@ void CharacterMovement::AirAccelerate(const Vec3  dir, const float speed,
 	float wishspd = speed;
 
 	wishspd            = (std::min)(wishspd, 30.0f);
-	float currentspeed = Math::MtoH(velocity_).Dot(dir);
+	float currentspeed = Math::MtoH(mVelocity).Dot(dir);
 	float addspeed     = wishspd - currentspeed;
 
 	if (addspeed <= 0.0f) {
 		return;
 	}
 
-	float accelspeed = accel * deltaTime_ * speed;
+	float accelspeed = accel * mDeltaTime * speed;
 	accelspeed       = (std::min)(accelspeed, addspeed);
-	velocity_ += Math::HtoM(accelspeed) * dir;
+	mVelocity += Math::HtoM(accelspeed) * dir;
 }
 
 bool CharacterMovement::IsGrounded() const {
-	return bIsGrounded;
+	return mIsGrounded;
 }
 
 void CharacterMovement::CheckVelocity() {
@@ -157,19 +157,19 @@ void CharacterMovement::CheckVelocity() {
 		float       maxVel = ConVarManager::GetConVar("sv_maxvelocity")->
 			GetValueAsFloat();
 
-		if (velocity_[i] > Math::HtoM(maxVel)) {
-			velocity_[i] = Math::HtoM(maxVel);
-		} else if (velocity_[i] < -Math::HtoM(maxVel)) {
-			velocity_[i] = -Math::HtoM(maxVel);
+		if (mVelocity[i] > Math::HtoM(maxVel)) {
+			mVelocity[i] = Math::HtoM(maxVel);
+		} else if (mVelocity[i] < -Math::HtoM(maxVel)) {
+			mVelocity[i] = -Math::HtoM(maxVel);
 		}
 	}
 }
 
 Vec3 CharacterMovement::GetVelocity() const {
-	return velocity_;
+	return mVelocity;
 }
 
 Vec3 CharacterMovement::GetHeadPos() const {
-	return transform_->GetWorldPos() + Vec3::up * Math::HtoM(
-		mCurrentHeightHU - 9.0f);
+	return mTransform->GetWorldPos() + Vec3::up * Math::HtoM(
+		mCurrentHeightHu - 9.0f);
 }
