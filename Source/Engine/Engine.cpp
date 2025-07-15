@@ -29,7 +29,6 @@
 #include <Renderer/D3D12.h>
 
 #include <SubSystem/Console/Console.h>
-#include <SubSystem/Console/Console.h>
 #include <SubSystem/Console/ConVarManager.h>
 
 #include <TextureManager/TexManager.h>
@@ -37,6 +36,8 @@
 #include <Window/EditorWindow.h>
 #include <Window/MainWindow.h>
 #include <Window/WindowsUtils.h>
+
+#include "Scene/EmptyScene.h"
 
 #include "SubSystem/Console/ConCommand.h"
 
@@ -117,9 +118,6 @@ void Engine::ResizeOffscreenRenderTextures(
 
 	// GPUの処理が終わるまで待つ
 	mRenderer->Flush();
-	//renderer_->WaitPreviousFrame();
-
-	// renderer_->Resize(width, height);
 
 	mRenderer->ResetOffscreenRenderTextures();
 
@@ -163,8 +161,6 @@ void Engine::ResizeOffscreenRenderTextures(
 	mPostProcessedRenderPassTargets.pRTVs   = &mPostProcessedRtv.rtvHandle;
 	mPostProcessedRenderPassTargets.numRTVs = 1;
 	mPostProcessedRenderPassTargets.pDSV    = &mPostProcessedDsv.dsvHandle;
-
-	//renderer_->SetViewportAndScissor(width, height);
 }
 
 Vec2 Engine::GetViewportLT() {
@@ -360,11 +356,6 @@ void Engine::Update() {
 	if (bPrevEditorMode != mIsEditorMode) {
 		CheckEditorMode();
 		bPrevEditorMode = mIsEditorMode;
-	}
-
-	// シーン切り替え入力の処理
-	if (InputSystem::IsTriggered("toggle_scene")) {
-		ToggleScenes();
 	}
 
 	/* ----------- 更新処理 ---------- */
@@ -574,30 +565,6 @@ void Engine::Update() {
 			prevH = h;
 		}
 
-		// ポインタの値とインデックスをログ出力 (デバッグ用)
-		static bool loggedOnce = false;
-		if (!loggedOnce) {
-			Console::Print(std::format(
-				               "ViewPort: srvIdx={}, srvHandleGPU.ptr=0x{:x}\n",
-				               mPostProcessedRtv.srvIndex, ptr),
-			               kConTextColorWarning);
-			loggedOnce = true;
-		}
-
-		// ここで直接postProcessedRTV_のSRVハンドルを使用する
-		// CopyImagePassはoffscreenRTのSRVを作成するが、それはポストプロセス前の画像
-		// ポストプロセス後の画像は既にpostProcessedRTV_のSRVとして利用可能
-
-		// 一度だけログを出力
-		static bool loggedSrvOnce = false;
-		if (!loggedSrvOnce) {
-			Console::Print(std::format(
-				               "Using postProcessedRTV SRV: idx={}, handle=0x{:x}\n",
-				               mPostProcessedRtv.srvIndex, ptr),
-			               kConTextColorWarning);
-			loggedSrvOnce = true;
-		}
-
 		if (ptr) {
 			// リソースからテクスチャの幅と高さを取得
 			auto        desc      = mPostProcessedRtv.rtv->GetDesc();
@@ -648,8 +615,10 @@ void Engine::Update() {
 		mSceneManager->Update(EngineTimer::GetScaledDeltaTime());
 		mViewportLt   = Vec2::zero;
 		mViewportSize = {
-			static_cast<float>(mWindowManager->GetMainWindow()->GetClientWidth()),
-			static_cast<float>(mWindowManager->GetMainWindow()->GetClientHeight())
+			static_cast<float>(mWindowManager->GetMainWindow()->
+			                                   GetClientWidth()),
+			static_cast<float>(mWindowManager->GetMainWindow()->
+			                                   GetClientHeight())
 		};
 	}
 
@@ -662,9 +631,6 @@ void Engine::Update() {
 
 	mOffscreenRenderPassTargets.bClearColor =
 		ConVarManager::GetConVar("r_clear")->GetValueAsBool();
-
-
-	//ConVarManager::GetConVar("w_title")->SetValueFromString(std::to_string(EngineTimer::GetFrameCount()));
 
 #ifdef _DEBUG
 	Debug::Update();
@@ -842,9 +808,6 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 		"Toggle editor mode."
 	);
 
-	// シーン切り替えコマンドの登録
-	RegisterSceneCommands();
-
 	// コンソール変数を登録
 	ConVarManager::RegisterConVar<bool>("r_vulkanenabled", false,
 	                                    "Enable Vulkan renderer",
@@ -936,50 +899,12 @@ std::shared_ptr<BaseScene> Engine::GetCurrentScene() {
 	return nullptr;
 }
 
-void Engine::ToggleScenes() {
-	if (!GetSceneManager()) {
-		return;
-	}
-
-	auto currentScene = GetSceneManager()->GetCurrentScene();
-
-	// 現在のシーンに基づいて切り替え
-	if (dynamic_cast<GameScene*>(currentScene.get())) {
-		GetSceneManager()->ChangeScene("EmptyScene");
-		Console::Print("Switched to Empty Scene");
-	} else {
-		GetSceneManager()->ChangeScene("GameScene");
-		Console::Print("Switched to Game Scene");
-	}
-}
-
-void Engine::RegisterSceneCommands() {
-	// シーン切り替え用のキーバインディングを設定
-	InputSystem::BindKey("F1", "toggle_scene");
-
-	// シーン切り替えコマンドの登録
-	ConCommand::RegisterCommand("scene_toggle",
-	                            [](const std::vector<std::string>&) {
-		                            ToggleScenes();
-	                            }, "Toggle between Game and Empty scenes");
-
-	ConCommand::RegisterCommand("scene_game",
-	                            [](const std::vector<std::string>&) {
-		                            ChangeScene("GameScene");
-	                            }, "Switch to Game Scene");
-
-	ConCommand::RegisterCommand("scene_empty",
-	                            [](const std::vector<std::string>&) {
-		                            ChangeScene("EmptyScene");
-	                            }, "Switch to Empty Scene");
-}
-
-bool                             Engine::mWishShutdown = false;
-std::unique_ptr<D3D12>           Engine::mRenderer;
-std::unique_ptr<ResourceManager> Engine::mResourceManager;
-std::unique_ptr<ParticleManager> Engine::mParticleManager;
-std::unique_ptr<SrvManager>      Engine::mSrvManager;
-std::shared_ptr<SceneManager>    Engine::mSceneManager;
+bool                             Engine::mWishShutdown    = false;
+std::unique_ptr<D3D12>           Engine::mRenderer        = nullptr;
+std::unique_ptr<ResourceManager> Engine::mResourceManager = nullptr;
+std::unique_ptr<ParticleManager> Engine::mParticleManager = nullptr;
+std::unique_ptr<SrvManager>      Engine::mSrvManager      = nullptr;
+std::shared_ptr<SceneManager>    Engine::mSceneManager    = nullptr;
 
 Vec2 Engine::mViewportLt   = Vec2::zero;
 Vec2 Engine::mViewportSize = Vec2::zero;
