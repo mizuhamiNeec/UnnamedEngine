@@ -12,8 +12,8 @@
 
 class MeshManager {
 public:
-	void Init(const ComPtr<ID3D12Device>& device, ShaderManager* shaderManager,
-	          MaterialManager*            materialManager
+	void Init(ID3D12Device*    device, ShaderManager* shaderManager,
+	          MaterialManager* materialManager
 	);
 	void Shutdown();
 
@@ -38,18 +38,19 @@ private:
 
 	SubMesh* ProcessMesh(const aiMesh* mesh, const aiScene* scene,
 	                     StaticMesh* staticMesh, const aiMatrix4x4& transform);
-	
+
 	// スケルタルメッシュ専用の処理関数
-	SubMesh* ProcessSkeletalMesh(const aiMesh* mesh, const aiScene* scene,
-	                             SkeletalMesh* skeletalMesh, const aiMatrix4x4& transform);
-	
+	SubMesh* ProcessSkeletalMesh(const aiMesh*      mesh, const aiScene* scene,
+	                             SkeletalMesh*      skeletalMesh,
+	                             const aiMatrix4x4& transform);
+
 	// スケルトン読み込み関数
-	Skeleton LoadSkeleton(const aiScene* scene);
-	Node LoadNode(const aiNode* aiNode);
-	
+	static Skeleton    LoadSkeleton(const aiScene* scene);
+	static Node LoadNode(const aiNode* aiNode);
+
 	// アニメーション読み込み関数
-	void LoadAnimations(const aiScene* scene, SkeletalMesh* skeletalMesh);
-	Animation LoadAnimation(const aiAnimation* aiAnim);
+	static void             LoadAnimations(const aiScene* scene, SkeletalMesh* skeletalMesh);
+	static Animation LoadAnimation(const aiAnimation* aiAnim);
 
 	TexManager*      mTexManager      = nullptr;
 	ShaderManager*   mShaderManager   = nullptr;
