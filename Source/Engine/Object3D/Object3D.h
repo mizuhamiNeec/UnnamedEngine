@@ -2,10 +2,10 @@
 
 #include <memory>
 
-#include "../Lib/Math/Matrix/Mat4.h"
-#include "../Lib/Math/Vector/Vec4.h"
-#include "../Lib/Structs/Structs.h"
-#include "../Model/Model.h"
+#include <Lib/Math/Matrix/Mat4.h>
+#include <Lib/Math/Vector/Vec4.h>
+#include <Lib/Structs/Structs.h>
+#include <Model/Model.h>
 
 class Camera;
 class CameraComponent;
@@ -16,87 +16,71 @@ class Object3DCommon;
 
 class Object3D {
 public:
-    // マテリアル
-    struct Material {
-        Vec4    color;
-        int32_t enableLighting;
-        float   padding[3];
-        Mat4    uvTransform;
-    };
+	// マテリアル
+	struct Material {
+		Vec4    color;
+		int32_t enableLighting;
+		float   padding[3];
+		Mat4    uvTransform;
+	};
 
-    // 座標変換行列データ
-    struct TransformationMatrix {
-        Mat4 wvp;
-        Mat4 world;
-        Mat4 worldInverseTranspose;
-    };
+	// 座標変換行列データ
+	struct TransformationMatrix {
+		Mat4 wvp;
+		Mat4 world;
+		Mat4 worldInverseTranspose;
+	};
 
-    // 指向性ライト
-    struct DirectionalLight {
-        Vec4  color;
-        Vec3  direction;
-        float intensity;
-    };
+	// 指向性ライト
+	struct DirectionalLight {
+		Vec4  color;
+		Vec3  direction;
+		float intensity;
+	};
 
-    void Init(Object3DCommon* object3DCommon);
-    void Update();
-    void Draw() const;
+	void Init(Object3DCommon* object3DCommon);
+	void Update();
+	void Draw() const;
 
-    // Setter
-    void SetModel(Model* model);
-    void SetModel(const std::string& filePath);
+	// Setter
+	void SetModel(Model* model);
+	void SetModel(const std::string& filePath);
 
-    void SetCamera(CameraComponent* camera) {
-        this->camera_ = camera;
-    }
+	void SetCamera(CameraComponent* camera) {
+		this->mCamera = camera;
+	}
 
-    void SetScale(const Vec3& scale) {
-        transform_.scale = scale;
-    }
+	void SetScale(const Vec3& scale);
+	void SetRot(const Vec3& newRot);
+	void SetPos(const Vec3& newPos);
 
-    void SetRot(const Vec3& newRot) {
-        transform_.rotate = newRot;
-    }
-
-    void SetPos(const Vec3& newPos) {
-        transform_.translate = newPos;
-    }
-
-    // Getter
-    const Vec3& GetScale() const {
-        return transform_.scale;
-    }
-
-    const Vec3& GetRot() const {
-        return transform_.rotate;
-    }
-
-    const Vec3& GetPos() const {
-        return transform_.translate;
-    }
+	// Getter
+	[[nodiscard]] const Vec3& GetScale() const;
+	[[nodiscard]] const Vec3& GetRot() const;
+	[[nodiscard]] const Vec3& GetPos() const;
 
 private:
-    CameraComponent* camera_ = nullptr;
+	CameraComponent* mCamera = nullptr;
 
-    Object3DCommon* object3DCommon_ = nullptr;
+	Object3DCommon* mObject3DCommon = nullptr;
 
-    Model* model_ = nullptr;
+	Model* mModel = nullptr;
 
-    Transform transform_ = {
-        {1.0f, 1.0f, 1.0f},
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f}
-    };
+	Transform mTransform = {
+		{1.0f, 1.0f, 1.0f},
+		{0.0f, 0.0f, 0.0f},
+		{0.0f, 0.0f, 0.0f}
+	};
 
-    TransformationMatrix* transformationMatrixData_ = nullptr; // 座標変換行列のポインタ
-    DirectionalLight*     directionalLightData_ = nullptr; // 指向性ライトのポインタ
-    CameraForGPU*         cameraForGPU_ = nullptr; // カメラのポインタ
-    PointLight*           pointLightData_ = nullptr; // ポイントライトのポインタ????
-    SpotLight*            spotLightData_ = nullptr; // スポットライトのポインタ
+	TransformationMatrix* mTransformationMatrixData = nullptr; // 座標変換行列のポインタ
+	DirectionalLight*     mDirectionalLightData = nullptr; // 指向性ライトのポインタ
+	CameraForGPU*         mCameraForGPU = nullptr; // カメラのポインタ
+	PointLight*           mPointLightData = nullptr; // ポイントライトのポインタ????
+	SpotLight*            mSpotLightData = nullptr; // スポットライトのポインタ
 
-    std::unique_ptr<ConstantBuffer> transformationMatrixConstantBuffer_;
-    std::unique_ptr<ConstantBuffer> directionalLightConstantBuffer_;
-    std::unique_ptr<ConstantBuffer> cameraConstantBuffer_;
-    std::unique_ptr<ConstantBuffer> pointLightConstantBuffer_;
-    std::unique_ptr<ConstantBuffer> spotLightConstantBuffer_;
+	std::unique_ptr<ConstantBuffer> mTransformationMatrixConstantBuffer;
+	std::unique_ptr<ConstantBuffer> mDirectionalLightConstantBuffer;
+	std::unique_ptr<ConstantBuffer> mCameraConstantBuffer;
+	std::unique_ptr<ConstantBuffer> mPointLightConstantBuffer;
+	std::unique_ptr<ConstantBuffer> mSpotLightConstantBuffer;
 };
