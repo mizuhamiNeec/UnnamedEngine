@@ -1,11 +1,11 @@
 #include <Scene/Base/BaseScene.h>
 
 std::vector<Entity*>& BaseScene::GetEntities() {
-	return entities_;
+	return mEntities;
 }
 
 void BaseScene::AddEntity(Entity* entity) {
-	entities_.emplace_back(entity);
+	mEntities.emplace_back(entity);
 }
 
 void BaseScene::RemoveEntity(Entity* entity) {
@@ -16,9 +16,9 @@ void BaseScene::RemoveEntity(Entity* entity) {
 		RemoveEntity(child);
 	}
 
-	entities_.erase(
-		std::ranges::remove(entities_, entity).begin(),
-		entities_.end()
+	mEntities.erase(
+		std::ranges::remove(mEntities, entity).begin(),
+		mEntities.end()
 	);
 
 	delete entity;
@@ -26,6 +26,6 @@ void BaseScene::RemoveEntity(Entity* entity) {
 
 Entity* BaseScene::CreateEntity(const std::string& value) {
 	auto newEntity = new Entity(value);
-	entities_.emplace_back(newEntity);
+	mEntities.emplace_back(newEntity);
 	return newEntity;
 }

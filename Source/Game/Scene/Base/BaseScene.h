@@ -1,13 +1,17 @@
 #pragma once
 
+#include <Entity/EntityLoader.h>
 #include <Entity/Base/Entity.h>
-#include <Model/ModelCommon.h>
-#include <Object3D/Object3DCommon.h>
-#include <Particle/ParticleManager.h>
-#include <ResourceSystem/Manager/ResourceManager.h>
-#include <Sprite/SpriteCommon.h>
 
-#include "Entity/EntityLoader.h"
+#include <Model/ModelCommon.h>
+
+#include <Object3D/Object3DCommon.h>
+
+#include <Particle/ParticleManager.h>
+
+#include <ResourceSystem/Manager/ResourceManager.h>
+
+#include <Sprite/SpriteCommon.h>
 
 class Engine;
 class EngineTimer;
@@ -23,25 +27,25 @@ public:
 	virtual std::vector<Entity*>& GetEntities();
 	virtual void                  AddEntity(Entity* entity);
 
-	virtual void SetEditorMode(bool isEditorMode) {
-		isEditorMode_ = isEditorMode;
+	virtual void SetEditorMode(const bool isEditorMode) {
+		mIsEditorMode = isEditorMode;
 	}
 
-	virtual bool IsEditorMode() const { return isEditorMode_; }
+	[[nodiscard]] virtual bool IsEditorMode() const { return mIsEditorMode; }
 	void         RemoveEntity(Entity* entity);
 	Entity*      CreateEntity(const std::string& value);
 
 protected:
-	std::vector<Entity*> entities_; // シーンに存在するエンティティ
+	std::vector<Entity*> mEntities; // シーンに存在するエンティティ
 
-	bool isEditorMode_ = false; // エディターモードか?
+	bool mIsEditorMode = false; // エディターモードか?
 
-	ResourceManager* resourceManager_ = nullptr;
+	ResourceManager* mResourceManager = nullptr;
 
-	SpriteCommon*    spriteCommon_    = nullptr;
-	ParticleManager* particleManager_ = nullptr;
-	Object3DCommon*  object3DCommon_  = nullptr;
-	ModelCommon*     modelCommon_     = nullptr;
-	SrvManager*      srvManager_      = nullptr;
-	EngineTimer*     timer_           = nullptr;
+	SpriteCommon*    mSpriteCommon    = nullptr;
+	ParticleManager* mParticleManager = nullptr;
+	Object3DCommon*  mObject3DCommon  = nullptr;
+	ModelCommon*     mModelCommon     = nullptr;
+	SrvManager*      mSrvManager      = nullptr;
+	EngineTimer*     mTimer           = nullptr;
 };
