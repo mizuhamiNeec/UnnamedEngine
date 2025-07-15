@@ -18,10 +18,10 @@ enum class EntityType {
 class Entity {
 public:
 	explicit Entity(std::string name, const EntityType& type = EntityType::RuntimeOnly) :
-		transform_(std::make_unique<TransformComponent>()),
-		entityType_(type),
-		name_(std::move(name)) {
-		transform_->OnAttach(*this);
+		mTransform(std::make_unique<TransformComponent>()),
+		mEntityType(type),
+		mName(std::move(name)) {
+		mTransform->OnAttach(*this);
 	}
 
 	~Entity();
@@ -66,13 +66,13 @@ public:
 	void RemoveAllComponents();
 
 private:
-	Entity* parent_ = nullptr;
-	std::vector<Entity*> children_;
+	Entity* mParent = nullptr;
+	std::vector<Entity*> mChildren;
 
-	std::unique_ptr<TransformComponent> transform_;
-	std::vector<std::unique_ptr<Component>> components_;
-	EntityType entityType_; // エンティティの種類
-	std::string name_; // エンティティの名前
+	std::unique_ptr<TransformComponent> mTransform;
+	std::vector<std::unique_ptr<Component>> mComponents;
+	EntityType mEntityType; // エンティティの種類
+	std::string mName; // エンティティの名前
 
 	bool bIsActive_ = true; // Updateを呼ぶかどうか
 	bool bIsVisible_ = true; // 描画を行うかどうか
@@ -83,14 +83,14 @@ T* Entity::AddComponent(Args &&...args) {
 	static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
 	auto component = std::make_unique<T>(std::forward<Args>(args)...);
 	T* rawPtr = component.get();
-	components_.emplace_back(std::move(component));
+	mComponents.emplace_back(std::move(component));
 	rawPtr->OnAttach(*this);
 	return rawPtr;
 }
 
 template <typename T>
 T* Entity::GetComponent() {
-	for (const auto& component : components_) {
+	for (const auto& component : mComponents) {
 		if (auto* castedComponent = dynamic_cast<T*>(component.get())) {
 			return castedComponent;
 		}
@@ -102,7 +102,7 @@ template <typename T>
 std::vector<T*> Entity::GetComponents() {
 	static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
 	std::vector<T*> result;
-	for (const auto& component : components_) {
+	for (const auto& component : mComponents) {
 		if (auto castedComponent = dynamic_cast<T*>(component.get())) {
 			result.emplace_back(castedComponent);
 		}
@@ -113,7 +113,7 @@ std::vector<T*> Entity::GetComponents() {
 template <typename T>
 bool Entity::HasComponent() const {
 	static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
-	for (const auto& component : components_) {
+	for (const auto& component : mComponents) {
 		if (dynamic_cast<T*>(component.get())) {
 			return true;
 		}
@@ -124,11 +124,11 @@ bool Entity::HasComponent() const {
 template <typename T>
 bool Entity::RemoveComponent() {
 	static_assert(std::is_base_of_v<Component, T>, "T must derive from Component");
-	for (auto it = components_.begin(); it != components_.end(); ++it) {
+	for (auto it = mComponents.begin(); it != mComponents.end(); ++it) {
 		if (auto* castedComponent = dynamic_cast<T*>(it->get())) {
 			// コンポーネントを削除する前にOnDetachを呼ぶ
 			castedComponent->OnDetach();
-			components_.erase(it);
+			mComponents.erase(it);
 			return true; // 最初に見つかったコンポーネントを削除
 		}
 	}

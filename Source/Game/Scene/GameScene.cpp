@@ -35,7 +35,7 @@ GameScene::~GameScene() {
 	particleManager_ = nullptr;
 	object3DCommon_  = nullptr;
 	modelCommon_     = nullptr;
-	physicsEngine_   = nullptr;
+	mPhysicsEngine   = nullptr;
 	timer_           = nullptr;
 }
 
@@ -67,7 +67,7 @@ void GameScene::Init() {
 		// assetManager.PrintCacheStatus();
 	}
 
-	renderer_        = Engine::GetRenderer();
+	mRenderer        = Engine::GetRenderer();
 	resourceManager_ = Engine::GetResourceManager();
 	srvManager_      = Engine::GetSrvManager();
 
@@ -100,8 +100,8 @@ void GameScene::Init() {
 	resourceManager_->GetMeshManager()->LoadMeshFromFile(
 		"./Resources/Models/weapon.obj");
 
-	cubeMap_ = std::make_unique<CubeMap>(
-		renderer_->GetDevice(),
+	mCubeMap = std::make_unique<CubeMap>(
+		mRenderer->GetDevice(),
 		srvManager_,
 		"./Resources/Textures/wave.dds"
 	);
@@ -122,15 +122,15 @@ void GameScene::Init() {
 #pragma endregion
 
 #pragma region 物理エンジン
-	physicsEngine_ = std::make_unique<PhysicsEngine>();
-	physicsEngine_->Init();
+	mPhysicsEngine = std::make_unique<PhysicsEngine>();
+	mPhysicsEngine->Init();
 #pragma endregion
 
 #pragma region エンティティ
-	camera_ = std::make_unique<Entity>("camera");
-	AddEntity(camera_.get());
+	mCamera = std::make_unique<Entity>("camera");
+	AddEntity(mCamera.get());
 	// 生ポインタを取得
-	CameraComponent* rawCameraPtr = camera_->AddComponent<CameraComponent>();
+	CameraComponent* rawCameraPtr = mCamera->AddComponent<CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
 	const auto camera = std::shared_ptr<CameraComponent>(
 		rawCameraPtr, [](CameraComponent*) {
@@ -152,7 +152,7 @@ void GameScene::Init() {
 		}
 	);
 	mPlayerMovement->SetVelocity(Vec3::forward * 1.0f);
-	mPlayerMovement->AddCameraShakeEntity(camera_.get());
+	mPlayerMovement->AddCameraShakeEntity(mCamera.get());
 	BoxColliderComponent* rawPlayerCollider = mEntPlayer->AddComponent<
 		BoxColliderComponent>();
 	mPlayerCollider = std::shared_ptr<BoxColliderComponent>(
@@ -207,17 +207,17 @@ void GameScene::Init() {
 	AddEntity(mEntWorldMesh.get());
 
 	// カメラの親エンティティ
-	cameraRoot_ = std::make_unique<Entity>("cameraRoot");
+	mCameraRoot = std::make_unique<Entity>("cameraRoot");
 	//cameraRoot_->SetParent(entPlayer_.get());
-	cameraRoot_->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
-	cameraRotator_ = cameraRoot_->AddComponent<CameraRotator>();
-	AddEntity(cameraRoot_.get());
+	mCameraRoot->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
+	mCameraRotator = mCameraRoot->AddComponent<CameraRotator>();
+	AddEntity(mCameraRoot.get());
 
 	// cameraRootにアタッチ
-	camera_->SetParent(cameraRoot_.get());
-	camera_->GetTransform()->SetLocalPos(Vec3::zero); // FPS
+	mCamera->SetParent(mCameraRoot.get());
+	mCamera->GetTransform()->SetLocalPos(Vec3::zero); // FPS
 
-	mEntShakeRoot->SetParent(camera_.get());
+	mEntShakeRoot->SetParent(mCamera.get());
 
 	mEntWeapon->SetParent(mEntShakeRoot.get());
 	mEntShakeRoot->GetTransform()->SetLocalPos(Vec3(0.08f, -0.1f, 0.18f));
@@ -226,14 +226,14 @@ void GameScene::Init() {
 #pragma endregion
 
 	// 風
-	windEffect_ = std::make_unique<WindEffect>();
-	windEffect_->Init(Engine::GetParticleManager(), mPlayerMovement.get());
+	mWindEffect = std::make_unique<WindEffect>();
+	mWindEffect->Init(Engine::GetParticleManager(), mPlayerMovement.get());
 
 	// 爆発
-	explosionEffect_ = std::make_unique<ExplosionEffect>();
-	explosionEffect_->Init(Engine::GetParticleManager(),
+	mExplosionEffect = std::make_unique<ExplosionEffect>();
+	mExplosionEffect->Init(Engine::GetParticleManager(),
 	                       "./Resources/Textures/smoke.png");
-	explosionEffect_->SetColorGradient(
+	mExplosionEffect->SetColorGradient(
 		Vec4(0.78f, 0.29f, 0.05f, 1.0f), Vec4(0.04f, 0.04f, 0.05f, 1.0f));
 
 #pragma region コンソール変数/コマンド
@@ -244,12 +244,12 @@ void GameScene::Init() {
 
 	CameraManager::SetActiveCamera(camera);
 
-	physicsEngine_->RegisterEntity(mEntWorldMesh.get(), true);
+	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
 
 	// 物理エンジンにプレイヤーエンティティを登録
-	physicsEngine_->RegisterEntity(mEntPlayer.get());
+	mPhysicsEngine->RegisterEntity(mEntPlayer.get());
 
-	physicsEngine_->RegisterEntity(mEntWeapon.get());
+	mPhysicsEngine->RegisterEntity(mEntWeapon.get());
 
 	Console::SubmitCommand(
 		"sv_airaccelerate 100000000000000000"
@@ -283,9 +283,9 @@ void GameScene::Update(const float deltaTime) {
 		}
 	}
 
-	physicsEngine_->Update(deltaTime);
+	mPhysicsEngine->Update(deltaTime);
 	//
-	cameraRoot_->GetTransform()->SetWorldPos(mPlayerMovement->GetHeadPos());
+	mCameraRoot->GetTransform()->SetWorldPos(mPlayerMovement->GetHeadPos());
 	// cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
 	// camera_->Update(EngineTimer::GetScaledDeltaTime());
 
@@ -306,7 +306,7 @@ void GameScene::Update(const float deltaTime) {
 		Vec3 hitNormal = mWeaponComponent->GetHitNormal();
 
 		// 爆発エフェクト
-		explosionEffect_->TriggerExplosion(hitPos + hitNormal * 2.0f, hitNormal,
+		mExplosionEffect->TriggerExplosion(hitPos + hitNormal * 2.0f, hitNormal,
 		                                   32, 30.0f);
 
 		// プレイヤーの位置と爆心地の距離を計算
@@ -463,10 +463,10 @@ void GameScene::Update(const float deltaTime) {
 		//mParticleEmitter->Emit();
 	}
 
-	windEffect_->Update(EngineTimer::ScaledDelta());
-	explosionEffect_->Update(EngineTimer::ScaledDelta());
+	mWindEffect->Update(EngineTimer::ScaledDelta());
+	mExplosionEffect->Update(EngineTimer::ScaledDelta());
 
-	cubeMap_->Update(deltaTime);
+	mCubeMap->Update(deltaTime);
 
 #ifdef _DEBUG
 	// レティクルの描画
@@ -542,20 +542,20 @@ void GameScene::Update(const float deltaTime) {
 }
 
 void GameScene::Render() {
-	cubeMap_->Render(
-		renderer_->GetCommandList()
+	mCubeMap->Render(
+		mRenderer->GetCommandList()
 	);
 
 	for (auto entity : entities_) {
 		if (entity) {
-			entity->Render(renderer_->GetCommandList());
+			entity->Render(mRenderer->GetCommandList());
 		}
 	}
 
 	Engine::GetParticleManager()->Render();
 	mParticleObject->Draw();
-	windEffect_->Draw();
-	explosionEffect_->Draw();
+	mWindEffect->Draw();
+	mExplosionEffect->Draw();
 }
 
 void GameScene::Shutdown() {
@@ -566,8 +566,8 @@ void GameScene::ReloadWorldMesh() {
 	Console::Print("Starting world mesh reload...", kConFgColorGreen);
 
 	// リロード開始前にGPU処理の完了を待機
-	if (renderer_) {
-		renderer_->WaitPreviousFrame();
+	if (mRenderer) {
+		mRenderer->WaitPreviousFrame();
 		Console::Print("Initial GPU sync before mesh reload", kConFgColorGreen);
 	}
 
@@ -602,7 +602,7 @@ void GameScene::RecreateWorldMeshEntity() {
 
 	// 古いエンティティを物理エンジンから登録解除
 	if (mEntWorldMesh) {
-		physicsEngine_->UnregisterEntity(mEntWorldMesh.get());
+		mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
 		RemoveEntity(mEntWorldMesh.get());
 		Console::Print("Removed old world mesh entity", kConTextColorWarning);
 
@@ -614,8 +614,8 @@ void GameScene::RecreateWorldMeshEntity() {
 	}
 
 	// GPU処理の完了を待機（テクスチャロード前の同期）
-	if (renderer_) {
-		renderer_->WaitPreviousFrame();
+	if (mRenderer) {
+		mRenderer->WaitPreviousFrame();
 		Console::Print("Waited for GPU completion before entity recreation",
 		               kConFgColorGreen);
 	}
@@ -631,8 +631,8 @@ void GameScene::RecreateWorldMeshEntity() {
 	}
 
 	// GPU処理の完了を再度待機（テクスチャロード後の同期）
-	if (renderer_) {
-		renderer_->WaitPreviousFrame();
+	if (mRenderer) {
+		mRenderer->WaitPreviousFrame();
 		Console::Print("Waited for GPU completion after mesh reload",
 		               kConFgColorGreen);
 	}
@@ -662,7 +662,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	AddEntity(mEntWorldMesh.get());
 
 	// 物理エンジンに登録
-	physicsEngine_->RegisterEntity(mEntWorldMesh.get(), true);
+	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
 
 	Console::Print("World mesh entity recreation completed!", kConFgColorGreen);
 }
@@ -676,7 +676,7 @@ void GameScene::SafeReloadWorldMesh() {
 	}
 
 	// 物理エンジンからエンティティの登録を解除
-	physicsEngine_->UnregisterEntity(mEntWorldMesh.get());
+	mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
 	Console::Print("Unregistered entity from physics engine",
 	               kConTextColorWarning);
 
@@ -687,8 +687,8 @@ void GameScene::SafeReloadWorldMesh() {
 	}
 
 	// GPU処理の完了を待機（テクスチャロード前の同期）
-	if (renderer_) {
-		renderer_->WaitPreviousFrame();
+	if (mRenderer) {
+		mRenderer->WaitPreviousFrame();
 		Console::Print("Waited for GPU completion before mesh reload",
 		               kConFgColorGreen);
 	}
@@ -702,13 +702,13 @@ void GameScene::SafeReloadWorldMesh() {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
 		// 失敗した場合は元のコンポーネントを復元
 		mEntWorldMesh->AddComponent<MeshColliderComponent>();
-		physicsEngine_->RegisterEntity(mEntWorldMesh.get(), true);
+		mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
 		return;
 	}
 
 	// GPU処理の完了を再度待機（テクスチャロード後の同期）
-	if (renderer_) {
-		renderer_->WaitPreviousFrame();
+	if (mRenderer) {
+		mRenderer->WaitPreviousFrame();
 		Console::Print("Waited for GPU completion after mesh reload",
 		               kConFgColorGreen);
 	}
@@ -730,7 +730,7 @@ void GameScene::SafeReloadWorldMesh() {
 	Console::Print("Added new MeshColliderComponent", kConFgColorGreen);
 
 	// 物理エンジンに再登録
-	physicsEngine_->RegisterEntity(mEntWorldMesh.get(), true);
+	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
 	Console::Print("Re-registered entity to physics engine", kConFgColorGreen);
 
 	Console::Print("Safe world mesh reload completed!", kConFgColorGreen);

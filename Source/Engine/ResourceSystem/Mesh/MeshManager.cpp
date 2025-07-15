@@ -25,9 +25,9 @@ void MeshManager::Init(const ComPtr<ID3D12Device>& device,
 		kConTextColorGray,
 		Channel::ResourceSystem
 	);
-	device_          = device;
-	shaderManager_   = shaderManager;
-	materialManager_ = materialManager;
+	mDevice          = device;
+	mShaderManager   = shaderManager;
+	mMaterialManager = materialManager;
 }
 
 void MeshManager::Shutdown() {
@@ -37,7 +37,7 @@ void MeshManager::Shutdown() {
 		Channel::ResourceSystem
 	);
 
-	for (auto& snd : subMeshes_ | std::views::values) {
+	for (auto& snd : mSubMeshes | std::views::values) {
 		Console::Print(
 			"MeshMgr: " + snd->GetName() + "\n",
 			Vec4::white,
@@ -46,9 +46,9 @@ void MeshManager::Shutdown() {
 		snd->ReleaseResource();
 		snd.reset();
 	}
-	subMeshes_.clear();
+	mSubMeshes.clear();
 
-	for (auto& snd : staticMeshes_ | std::views::values) {
+	for (auto& snd : mStaticMeshes | std::views::values) {
 		if (snd) {
 			Console::Print(
 				"MeshMgr: Releasing " + snd->GetName() + "\n",
@@ -58,12 +58,12 @@ void MeshManager::Shutdown() {
 			snd->ReleaseResource();
 		}
 	}
-	staticMeshes_.clear();
+	mStaticMeshes.clear();
 
-	device_          = nullptr;
-	texManager_      = nullptr;
-	shaderManager_   = nullptr;
-	materialManager_ = nullptr;
+	mDevice          = nullptr;
+	mTexManager      = nullptr;
+	mShaderManager   = nullptr;
+	mMaterialManager = nullptr;
 }
 
 bool MeshManager::LoadMeshFromFile(const std::string& filePath) {
@@ -103,19 +103,19 @@ bool MeshManager::ReloadMeshFromFile(const std::string& filePath) {
 	               kConTextColorWarning, Channel::ResourceSystem);
 
 	// 既存のメッシュを削除
-	auto it = staticMeshes_.find(filePath);
-	if (it != staticMeshes_.end()) {
+	auto it = mStaticMeshes.find(filePath);
+	if (it != mStaticMeshes.end()) {
 		Console::Print("既存のメッシュを削除しました: " + filePath + "\n",
 		               kConTextColorWarning, Channel::ResourceSystem);
-		staticMeshes_.erase(it);
+		mStaticMeshes.erase(it);
 	}
 
 	// 関連するサブメッシュも削除（メッシュ名をキーとして検索）
-	for (auto subMeshIt = subMeshes_.begin(); subMeshIt != subMeshes_.end();) {
+	for (auto subMeshIt = mSubMeshes.begin(); subMeshIt != mSubMeshes.end();) {
 		if (subMeshIt->first.find(filePath) != std::string::npos) {
 			Console::Print("関連するサブメッシュを削除しました: " + subMeshIt->first + "\n",
 			               kConTextColorWarning, Channel::ResourceSystem);
-			subMeshIt = subMeshes_.erase(subMeshIt);
+			subMeshIt = mSubMeshes.erase(subMeshIt);
 		} else {
 			++subMeshIt;
 		}
@@ -137,18 +137,18 @@ bool MeshManager::ReloadMeshFromFile(const std::string& filePath) {
 
 
 StaticMesh* MeshManager::GetStaticMesh(const std::string& name) const {
-	const auto it = staticMeshes_.find(name);
-	return it != staticMeshes_.end() ? it->second.get() : nullptr;
+	const auto it = mStaticMeshes.find(name);
+	return it != mStaticMeshes.end() ? it->second.get() : nullptr;
 }
 
 StaticMesh* MeshManager::CreateStaticMesh(const std::string& name) {
-	const auto it = staticMeshes_.find(name);
-	if (it != staticMeshes_.end()) {
+	const auto it = mStaticMeshes.find(name);
+	if (it != mStaticMeshes.end()) {
 		return it->second.get();
 	}
-	auto mesh           = std::make_unique<StaticMesh>(name);
-	auto meshPtr        = mesh.get();
-	staticMeshes_[name] = std::move(mesh);
+	auto       mesh     = std::make_unique<StaticMesh>(name);
+	const auto meshPtr  = mesh.get();
+	mStaticMeshes[name] = std::move(mesh);
 	return meshPtr;
 }
 
@@ -199,31 +199,31 @@ bool MeshManager::LoadSkeletalMeshFromFile(const std::string& filePath) {
 }
 
 SkeletalMesh* MeshManager::GetSkeletalMesh(const std::string& name) const {
-	return skeletalMeshes_.contains(name)
-		       ? skeletalMeshes_.at(name).get()
+	return mSkeletalMeshes.contains(name)
+		       ? mSkeletalMeshes.at(name).get()
 		       : nullptr;
 }
 
 SkeletalMesh* MeshManager::CreateSkeletalMesh(const std::string& name) {
-	const auto it = skeletalMeshes_.find(name);
-	if (it != skeletalMeshes_.end()) {
+	const auto it = mSkeletalMeshes.find(name);
+	if (it != mSkeletalMeshes.end()) {
 		return it->second.get();
 	}
 	auto mesh             = std::make_unique<SkeletalMesh>(name);
 	auto meshPtr          = mesh.get();
-	skeletalMeshes_[name] = std::move(mesh);
+	mSkeletalMeshes[name] = std::move(mesh);
 	return meshPtr;
 }
 
 
 SubMesh* MeshManager::CreateSubMesh(const std::string& name) {
-	const auto it = subMeshes_.find(name);
-	if (it != subMeshes_.end()) {
+	const auto it = mSubMeshes.find(name);
+	if (it != mSubMeshes.end()) {
 		return it->second.get();
 	}
-	auto subMesh     = std::make_unique<SubMesh>(device_, name);
+	auto subMesh     = std::make_unique<SubMesh>(mDevice, name);
 	auto subMeshPtr  = subMesh.get();
-	subMeshes_[name] = std::move(subMesh);
+	mSubMeshes[name] = std::move(subMesh);
 	return subMeshPtr;
 }
 
@@ -359,9 +359,9 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 		}
 
 		// マテリアルの作成またはキャッシュから取得（メッシュ名を含む一意キーで管理）
-		material = materialManager_->GetOrCreateMaterial(
+		material = mMaterialManager->GetOrCreateMaterial(
 			materialName,
-			DefaultShader::CreateDefaultShader(shaderManager_),
+			DefaultShader::CreateDefaultShader(mShaderManager),
 			meshName
 		);
 
@@ -406,7 +406,7 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 		                     "./Resources/Textures/wave.dds");
 	}
 
-	auto subMesh = std::make_unique<SubMesh>(device_, mesh->mName.C_Str());
+	auto subMesh = std::make_unique<SubMesh>(mDevice, mesh->mName.C_Str());
 	subMesh->SetVertexBuffer(vertices);
 	subMesh->SetIndexBuffer(indices);
 	if (material) {
@@ -585,12 +585,12 @@ SubMesh* MeshManager::ProcessSkeletalMesh(const aiMesh*      mesh,
 			meshName = meshName.substr(0, lastDot);
 		}
 
-		// マテリアルの作成またはキャッシュから取得（メッシュ名を含む一意キーで管理）
-		material = materialManager_->GetOrCreateMaterial(
-			materialName,
-			DefaultShader::CreateDefaultSkinnedShader(shaderManager_),
-			meshName
-		);
+	// マテリアルの作成またはキャッシュから取得（メッシュ名を含む一意キーで管理）
+	material = mMaterialManager->GetOrCreateMaterial(
+		materialName,
+		DefaultShader::CreateDefaultSkinnedShader(mShaderManager),
+		meshName
+	);
 
 		Console::Print(
 			std::format(
@@ -633,7 +633,7 @@ SubMesh* MeshManager::ProcessSkeletalMesh(const aiMesh*      mesh,
 		                     "./Resources/Textures/wave.dds");
 	}
 
-	auto subMesh = std::make_unique<SubMesh>(device_, mesh->mName.C_Str());
+	auto subMesh = std::make_unique<SubMesh>(mDevice, mesh->mName.C_Str());
 	subMesh->SetSkinnedVertexBuffer(vertices);
 	subMesh->SetIndexBuffer(indices);
 	if (material) {

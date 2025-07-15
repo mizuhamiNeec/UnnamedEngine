@@ -30,16 +30,16 @@ void Entity::Update(const float deltaTime) {
 	}
 
 	// 必須コンポーネントの更新
-	if (!transform_.get()) {
+	if (!mTransform.get()) {
 		Console::Print(
 			std::format("Entity '{}' has no TransformComponent!", GetName()),
 			Vec4(1, 0, 0, 1), Channel::General);
 		return;
 	}
 
-	transform_->Update(deltaTime);
+	mTransform->Update(deltaTime);
 
-	for (const auto& component : components_) {
+	for (const auto& component : mComponents) {
 		if (component->IsEditorOnly() /* && !bIsInEditor*/) {
 			continue; // エディター専用のコンポーネントはゲーム中には更新しない
 		}
@@ -120,7 +120,7 @@ void Entity::Update(const float deltaTime) {
 
 	if (!GetChildren().empty()) {
 		// 子のエンティティの更新
-		for (const auto& child : children_) {
+		for (const auto& child : mChildren) {
 			if (child) {
 				child->Update(deltaTime);
 			}
@@ -133,28 +133,28 @@ void Entity::Render(ID3D12GraphicsCommandList* commandList) const {
 		return;
 	}
 
-	for (const auto& component : components_) {
+	for (const auto& component : mComponents) {
 		if (component->IsEditorOnly() /* && !bIsInEditor*/) {
 			continue; // エディター専用のコンポーネントはゲーム中には描画しない
 		}
 		component->Render(commandList);
 	}
 	// 子エンティティの描画
-	for (const auto& child : children_) {
+	for (const auto& child : mChildren) {
 		child->Render(commandList);
 	}
 }
 
 EntityType Entity::GetType() const {
-	return entityType_;
+	return mEntityType;
 }
 
 void Entity::SetType(const EntityType& type) {
-	entityType_ = type;
+	mEntityType = type;
 }
 
 TransformComponent* Entity::GetTransform() const {
-	return transform_.get();
+	return mTransform.get();
 }
 
 bool Entity::IsActive() const {
@@ -179,14 +179,14 @@ void Entity::SetParent(Entity* newParent) {
 	while (check) {
 		if (check == this) {
 			Console::Print(
-				std::format("Entity '{}': Circular parenting detected!", name_),
+				std::format("Entity '{}': Circular parenting detected!", mName),
 				Vec4(1, 0, 0, 1), Channel::General);
 			return;
 		}
-		check = check->parent_;
+		check = check->mParent;
 	}
 
-	if (parent_ == newParent) {
+	if (mParent == newParent) {
 		return; // 変更なし
 	}
 
@@ -195,30 +195,30 @@ void Entity::SetParent(Entity* newParent) {
 	Quaternion currentWorldRot;
 	Vec3       currentWorldScale;
 
-	if (transform_) {
-		currentWorldPos = transform_->GetWorldPos();
-		currentWorldRot = transform_->GetWorldRot();
-		currentWorldScale = transform_->GetWorldScale();
+	if (mTransform) {
+		currentWorldPos = mTransform->GetWorldPos();
+		currentWorldRot = mTransform->GetWorldRot();
+		currentWorldScale = mTransform->GetWorldScale();
 	}
 
 	// 既存の親から削除
-	if (parent_) {
-		auto it = std::ranges::find(parent_->children_, this);
-		if (it != parent_->children_.end()) {
-			parent_->children_.erase(it);
+	if (mParent) {
+		auto it = std::ranges::find(mParent->mChildren, this);
+		if (it != mParent->mChildren.end()) {
+			mParent->mChildren.erase(it);
 		}
 	}
 
 	// 新しい親を設定
-	parent_ = newParent;
+	mParent = newParent;
 
 	// トランスフォームの更新
-	if (transform_) {
-		if (parent_ && parent_->GetTransform()) {
+	if (mTransform) {
+		if (mParent && mParent->GetTransform()) {
 			// 親のワールド変換を取得
-			Vec3 parentWorldPos = parent_->GetTransform()->GetWorldPos();
-			Quaternion parentWorldRot = parent_->GetTransform()->GetWorldRot();
-			Vec3 parentWorldScale = parent_->GetTransform()->GetWorldScale();
+			Vec3 parentWorldPos = mParent->GetTransform()->GetWorldPos();
+			Quaternion parentWorldRot = mParent->GetTransform()->GetWorldRot();
+			Vec3 parentWorldScale = mParent->GetTransform()->GetWorldScale();
 
 			// 位置の計算
 			Vec3 localPos = currentWorldPos - parentWorldPos;
@@ -233,62 +233,62 @@ void Entity::SetParent(Entity* newParent) {
 			// スケールの計算
 			Vec3 localScale = currentWorldScale / parentWorldScale;
 
-			transform_->SetLocalPos(localPos);
-			transform_->SetLocalRot(localRot);
-			transform_->SetLocalScale(localScale);
+			mTransform->SetLocalPos(localPos);
+			mTransform->SetLocalRot(localRot);
+			mTransform->SetLocalScale(localScale);
 		} else {
-			transform_->SetWorldPos(currentWorldPos);
-			transform_->SetWorldRot(currentWorldRot);
-			transform_->SetWorldScale(currentWorldScale);
+			mTransform->SetWorldPos(currentWorldPos);
+			mTransform->SetWorldRot(currentWorldRot);
+			mTransform->SetWorldScale(currentWorldScale);
 		}
 
-		transform_->MarkDirty();
+		mTransform->MarkDirty();
 
 		// 子のトランスフォーム更新
-		for (auto* child : children_) {
-			if (child->transform_) {
-				child->transform_->MarkDirty();
+		for (auto* child : mChildren) {
+			if (child->mTransform) {
+				child->mTransform->MarkDirty();
 			}
 		}
 	}
 
 	// 新しい親の子リストに追加
-	if (parent_) {
-		parent_->children_.emplace_back(this);
+	if (mParent) {
+		mParent->mChildren.emplace_back(this);
 	}
 }
 
 Entity* Entity::GetParent() const {
-	return parent_;
+	return mParent;
 }
 
 const std::vector<Entity*>& Entity::GetChildren() const {
-	return children_;
+	return mChildren;
 }
 
 void Entity::AddChild(Entity* child) {
-	if (std::ranges::find(children_, child) == children_.end()) {
-		children_.emplace_back(child);
+	if (std::ranges::find(mChildren, child) == mChildren.end()) {
+		mChildren.emplace_back(child);
 		child->SetParent(this);
 	}
 }
 
 void Entity::RemoveChild(Entity* child) {
-	auto it = std::ranges::remove(children_, child).begin();
-	if (it != children_.end()) {
-		children_.erase(it);
+	auto it = std::ranges::remove(mChildren, child).begin();
+	if (it != mChildren.end()) {
+		mChildren.erase(it);
 		child->SetParent(nullptr);
 	}
 }
 
 std::string& Entity::GetName() {
-	return name_;
+	return mName;
 }
 
 void Entity::SetName(const std::string& name) {
-	name_ = name;
+	mName = name;
 }
 
 void Entity::RemoveAllComponents() {
-	components_.clear();
+	mComponents.clear();
 }

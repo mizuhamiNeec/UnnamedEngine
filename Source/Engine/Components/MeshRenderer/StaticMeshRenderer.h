@@ -24,29 +24,27 @@ protected:
 	void BindTransform(ID3D12GraphicsCommandList* commandList) override;
 
 private:
-	std::unique_ptr<ConstantBuffer> transformationMatrixConstantBuffer_;
-	TransformationMatrix* transformationMatrix_ = nullptr;
+	std::unique_ptr<ConstantBuffer> mTransformationMatrixConstantBuffer;
+	TransformationMatrix* mTransformationMatrix = nullptr;
 
-	TransformComponent* transform_ = nullptr;
-	StaticMesh* staticMesh_ = nullptr;
-
-	// TODO: 消す予定
-	std::unique_ptr<ConstantBuffer> matparamCBV;
-	MatParam* materialData = nullptr;
+	TransformComponent* mTransform = nullptr;
+	StaticMesh* mStaticMesh = nullptr;
+	std::unique_ptr<ConstantBuffer> mMatParamCBV;
+	MatParam* mMaterialData = nullptr;
 
 	// b1
-	std::unique_ptr<ConstantBuffer> directionalLightCB;
-	DirectionalLight* directionalLightData = nullptr;
+	std::unique_ptr<ConstantBuffer> mDirectionalLightCb;
+	DirectionalLight* mDirectionalLightData = nullptr;
 
 	// b2
-	std::unique_ptr<ConstantBuffer> cameraCB;
-	CameraForGPU* cameraData = nullptr;
+	std::unique_ptr<ConstantBuffer> mCameraCb;
+	CameraForGPU* mCameraData = nullptr;
 
 	// b3
-	std::unique_ptr<ConstantBuffer> pointLightCB;
-	PointLight* pointLightData = nullptr;
+	std::unique_ptr<ConstantBuffer> mPointLightCb;
+	PointLight* mPointLightData = nullptr;
 
 	// b4
-	std::unique_ptr<ConstantBuffer> spotLightCB;
-	SpotLight* spotLightData = nullptr;
+	std::unique_ptr<ConstantBuffer> mSpotLightCb;
+	SpotLight* mSpotLightData = nullptr;
 };

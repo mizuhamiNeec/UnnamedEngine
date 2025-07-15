@@ -83,50 +83,50 @@ public: // メンバ関数
 	void SetViewportAndScissor(uint32_t width, uint32_t height);
 
 private:
-	D3DResourceLeakChecker d3dResourceLeakChecker_;
+	D3DResourceLeakChecker mD3dResourceLeakChecker;
 
 	// 持ってきたやつ
-	BaseWindow* window_     = nullptr;
-	SrvManager* srvManager_ = nullptr;
+	BaseWindow* mWindow     = nullptr;
+	SrvManager* mSrvManager = nullptr;
 
 	// メンバ変数
 	// 1. デバイス・ファクトリ・スワップチェーン
-	ComPtr<ID3D12Device>    device_;
-	ComPtr<IDXGIFactory7>   dxgiFactory_;
-	ComPtr<IDXGISwapChain4> swapChain_;
+	ComPtr<ID3D12Device>    mDevice;
+	ComPtr<IDXGIFactory7>   mDxgiFactory;
+	ComPtr<IDXGISwapChain4> mSwapChain;
 
 	// 2. コマンドキュー・アロケータ・リスト
-	ComPtr<ID3D12CommandQueue>        commandQueue_;
-	ComPtr<ID3D12CommandAllocator>    commandAllocator_;
-	ComPtr<ID3D12GraphicsCommandList> commandList_;
+	ComPtr<ID3D12CommandAllocator>    mCommandAllocator;
+	ComPtr<ID3D12CommandQueue>        mCommandQueue;
+	ComPtr<ID3D12GraphicsCommandList> mCommandList;
 
 	// 3. ディスクリプタヒープ
-	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap_;
-	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap_;
+	ComPtr<ID3D12DescriptorHeap> mRtvDescriptorHeap;
+	ComPtr<ID3D12DescriptorHeap> mDsvDescriptorHeap;
 
 	// 4. レンダーターゲット・深度ステンシル
-	std::vector<ComPtr<ID3D12Resource>>      renderTargets_;
-	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandlesSwapChain_;
-	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandlesOffscreen_;
-	ComPtr<ID3D12Resource>                   depthStencilResource_;
-	DepthStencilTexture                      defaultDepthStencilTexture_;
+	std::vector<ComPtr<ID3D12Resource>>      mRenderTargets;
+	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> mRtvHandlesSwapChain;
+	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> mRtvHandlesOffscreen;
+	ComPtr<ID3D12Resource>                   mDepthStencilResource;
+	DepthStencilTexture                      mDefaultDepthStencilTexture;
 
 	// 5. フェンス等の同期
-	ComPtr<ID3D12Fence> fence_;
-	uint64_t            fenceValue_ = 0;
-	HANDLE              fenceEvent_ = nullptr;
-	UINT                frameIndex_ = 0;
+	ComPtr<ID3D12Fence> mFence;
+	uint64_t            mFenceValue = 0;
+	HANDLE              mFenceEvent = nullptr;
+	UINT                mFrameIndex = 0;
 
 	// 6. その他
-	D3D12_RESOURCE_BARRIER barrier_ = {};
+	D3D12_RESOURCE_BARRIER mBarrier = {};
 
-	D3D12_VIEWPORT viewport_    = {};
-	D3D12_RECT     scissorRect_ = {};
+	D3D12_VIEWPORT mViewport    = {};
+	D3D12_RECT     mScissorRect = {};
 
-	uint32_t descriptorSizeRTV = 0;
-	uint32_t descriptorSizeDSV = 0;
+	uint32_t mDescriptorSizeRtv = 0;
+	uint32_t mDescriptorSizeDsv = 0;
 
-	uint32_t currentDSVIndex_ = 0;
+	uint32_t mCurrentDsvIndex = 0;
 
 	// メンバ関数
 	//------------------------------------------------------------------------
@@ -155,40 +155,40 @@ public:
 	// -----------------------------------------------------------------------
 	// Accessor
 	// -----------------------------------------------------------------------
-	ID3D12Device* GetDevice() const {
-		return device_.Get();
+	[[nodiscard]] ID3D12Device* GetDevice() const {
+		return mDevice.Get();
 	}
 
-	ID3D12GraphicsCommandList* GetCommandList() const {
-		return commandList_.Get();
+	[[nodiscard]] ID3D12GraphicsCommandList* GetCommandList() const {
+		return mCommandList.Get();
 	}
 
-	ID3D12CommandQueue* GetCommandQueue() const {
-		return commandQueue_.Get();
+	[[nodiscard]] ID3D12CommandQueue* GetCommandQueue() const {
+		return mCommandQueue.Get();
 	}
 
-	size_t GetBackBufferCount() const {
-		return renderTargets_.size();
+	[[nodiscard]] size_t GetBackBufferCount() const {
+		return mRenderTargets.size();
 	}
 
-	IDXGISwapChain4* GetSwapChain() const {
-		return swapChain_.Get();
+	[[nodiscard]] IDXGISwapChain4* GetSwapChain() const {
+		return mSwapChain.Get();
 	}
 
-	ID3D12Fence* GetFence() const {
-		return fence_.Get();
+	[[nodiscard]] ID3D12Fence* GetFence() const {
+		return mFence.Get();
 	}
 
-	ID3D12CommandAllocator* GetCommandAllocator() const {
-		return commandAllocator_.Get();
+	[[nodiscard]] ID3D12CommandAllocator* GetCommandAllocator() const {
+		return mCommandAllocator.Get();
 	}
 
-	uint64_t GetFenceValue() const {
-		return fenceValue_;
+	[[nodiscard]] uint64_t GetFenceValue() const {
+		return mFenceValue;
 	}
 
 	void SetFenceValue(const uint64_t newValue) {
-		fenceValue_ = newValue;
+		mFenceValue = newValue;
 	}
 
 	//------------------------------------------------------------------------

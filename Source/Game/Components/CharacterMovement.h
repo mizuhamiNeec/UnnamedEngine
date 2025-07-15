@@ -29,12 +29,11 @@ public:
 	[[nodiscard]] virtual Vec3 GetHeadPos() const;
 
 protected:
-	TransformComponent* transform_ = nullptr;
-	
-	float deltaTime_ = 0.0f;
-	Vec3 position_ = Vec3::zero;
-	Vec3 velocity_ = Vec3::zero;
-	
+	TransformComponent* mTransform = nullptr;
+
+	Vec3 mPosition = Vec3::zero;
+	Vec3 mVelocity = Vec3::zero;
+
 	float mSpeed   = 0.0f;
 	float mJumpVel = 0.0f;
 	
@@ -49,4 +48,23 @@ protected:
 	
 	bool bWishCrouch  = false;
 	bool bIsCrouching = false;
+
+	enum SlideState {
+		NotSliding,
+		Sliding,
+		SlideRecovery
+	};
+
+	SlideState mSlideState         = NotSliding;
+	float      mSlideTimer         = 0.0f;
+	float      mSlideRecoveryTimer = 0.0f;
+
+	const float mSlideMinSpeed     = 180.0f; // スライドを維持するための最小速度
+	const float mSlideBoost        = 1.5f;   // スライド中の加速量
+	const float mSlideFriction     = 0.25f;  // スライド中の摩擦係数
+	const float mMaxSlideTime      = 1.0f;   // スライドの最大維持時間(秒)
+	const float mSlideRecoveryTime = 0.5f;   // スライド後の回復時間(秒)
+	const float mSlideDownForce    = 150.0f; // スライド中の下方向への力
+
+	Vec3 mSlideDir = Vec3::zero; // スライド中の方向ベクトル
 };
