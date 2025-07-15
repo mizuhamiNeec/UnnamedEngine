@@ -18,6 +18,9 @@
 #include <format>
 
 #include "Assets/Manager/AssetManager.h"
+
+#include "Components/ColliderComponent/MeshColliderComponent.h"
+
 #include "ImGuiManager/ImGuiWidgets.h"
 #include "TextureManager/TexManager.h"
 
@@ -26,19 +29,19 @@ constexpr Vec4 kConFgColorGreen   = Vec4(0.0f, 1.0f, 0.0f, 1.0f);
 constexpr Vec4 kConFgColorWarning = Vec4(1.0f, 1.0f, 0.0f, 1.0f);
 
 GameScene::~GameScene() {
-	resourceManager_ = nullptr;
-	spriteCommon_    = nullptr;
-	particleManager_ = nullptr;
-	object3DCommon_  = nullptr;
-	modelCommon_     = nullptr;
+	mResourceManager = nullptr;
+	mSpriteCommon    = nullptr;
+	mParticleManager = nullptr;
+	mObject3DCommon  = nullptr;
+	mModelCommon     = nullptr;
 	mPhysicsEngine   = nullptr;
-	timer_           = nullptr;
+	mTimer           = nullptr;
 }
 
 void GameScene::Init() {
 	mRenderer        = Engine::GetRenderer();
-	resourceManager_ = Engine::GetResourceManager();
-	srvManager_      = Engine::GetSrvManager();
+	mResourceManager = Engine::GetResourceManager();
+	mSrvManager      = Engine::GetSrvManager();
 
 #pragma region テクスチャ読み込み
 	TexManager::GetInstance()->LoadTexture(
@@ -63,15 +66,15 @@ void GameScene::Init() {
 #pragma endregion
 
 #pragma region 3Dオブジェクト類
-	resourceManager_->GetMeshManager()->LoadMeshFromFile(
+	mResourceManager->GetMeshManager()->LoadMeshFromFile(
 		"./Resources/Models/reflectionTest.obj");
 
-	resourceManager_->GetMeshManager()->LoadMeshFromFile(
+	mResourceManager->GetMeshManager()->LoadMeshFromFile(
 		"./Resources/Models/weapon.obj");
 
 	mCubeMap = std::make_unique<CubeMap>(
 		mRenderer->GetDevice(),
-		srvManager_,
+		mSrvManager,
 		"./Resources/Textures/wave.dds"
 	);
 #pragma endregion
@@ -149,7 +152,7 @@ void GameScene::Init() {
 	mEntWeapon->AddComponent<BoxColliderComponent>();
 
 	mWeaponMeshRenderer->SetStaticMesh(
-		resourceManager_->GetMeshManager()->GetStaticMesh(
+		mResourceManager->GetMeshManager()->GetStaticMesh(
 			"./Resources/Models/weapon.obj"));
 	WeaponSway* rawWeaponSway = mEntWeapon->AddComponent<WeaponSway>();
 	mWeaponSway               = std::shared_ptr<WeaponSway>(
@@ -170,7 +173,7 @@ void GameScene::Init() {
 		}
 	);
 	smRenderer->SetStaticMesh(
-		resourceManager_->GetMeshManager()->GetStaticMesh(
+		mResourceManager->GetMeshManager()->GetStaticMesh(
 			"./Resources/Models/reflectionTest.obj"));
 	mEntWorldMesh->AddComponent<MeshColliderComponent>();
 	AddEntity(mEntWorldMesh.get());
@@ -502,7 +505,7 @@ void GameScene::Update(const float deltaTime) {
 
 
 	// エンティティの更新（安全にコピーしてからループ）
-	auto entitiesCopy = entities_;
+	auto entitiesCopy = mEntities;
 	for (auto entity : entitiesCopy) {
 		if (entity && !entity->GetParent()) {
 			entity->Update(deltaTime);
@@ -515,7 +518,7 @@ void GameScene::Render() {
 		mRenderer->GetCommandList()
 	);
 
-	for (auto entity : entities_) {
+	for (auto entity : mEntities) {
 		if (entity) {
 			entity->Render(mRenderer->GetCommandList());
 		}
@@ -591,7 +594,7 @@ void GameScene::RecreateWorldMeshEntity() {
 
 	// メッシュをリロード
 	const std::string meshPath      = "./Resources/Models/reflectionTest.obj";
-	bool              reloadSuccess = resourceManager_->GetMeshManager()->
+	bool              reloadSuccess = mResourceManager->GetMeshManager()->
 	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
@@ -616,7 +619,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	);
 
 	// 新しいメッシュを設定
-	StaticMesh* newMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
+	StaticMesh* newMesh = mResourceManager->GetMeshManager()->GetStaticMesh(
 		meshPath);
 	if (newMesh) {
 		mWorldMeshRenderer->SetStaticMesh(newMesh);
@@ -664,7 +667,7 @@ void GameScene::SafeReloadWorldMesh() {
 
 	// メッシュをリロード
 	const std::string meshPath      = "./Resources/Models/reflectionTest.obj";
-	bool              reloadSuccess = resourceManager_->GetMeshManager()->
+	bool              reloadSuccess = mResourceManager->GetMeshManager()->
 	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
@@ -683,7 +686,7 @@ void GameScene::SafeReloadWorldMesh() {
 	}
 
 	// 新しいメッシュをレンダラーに設定
-	StaticMesh* newMesh = resourceManager_->GetMeshManager()->GetStaticMesh(
+	StaticMesh* newMesh = mResourceManager->GetMeshManager()->GetStaticMesh(
 		meshPath);
 	if (newMesh && mWorldMeshRenderer) {
 		mWorldMeshRenderer->SetStaticMesh(newMesh);
