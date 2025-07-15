@@ -13,6 +13,8 @@
 #include <Physics/PhysicsEngine.h>
 #include <Scene/Base/BaseScene.h>
 
+#include "Components/Weapon/base/WeaponComponent.h"
+
 class EnemyMovement;
 class CameraRotator;
 class CameraSystem;
