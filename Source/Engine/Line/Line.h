@@ -1,13 +1,15 @@
 #pragma once
 
-#include "LineCommon.h"
-#include "../Lib/Math/Matrix/Mat4.h"
-#include "../Lib/Math/Vector/Vec3.h"
-#include "../Lib/Math/Vector/Vec4.h"
-#include "../Renderer/ConstantBuffer.h"
-#include "../Renderer/D3D12.h"
-#include "../Renderer/IndexBuffer.h"
-#include "../Renderer/VertexBuffer.h"
+#include <Lib/Math/Matrix/Mat4.h>
+#include <Lib/Math/Vector/Vec3.h>
+#include <Lib/Math/Vector/Vec4.h>
+
+#include <Line/LineCommon.h>
+
+#include <Renderer/ConstantBuffer.h>
+#include <Renderer/D3D12.h>
+#include <Renderer/IndexBuffer.h>
+#include <Renderer/VertexBuffer.h>
 
 struct TransformationMatrix;
 constexpr size_t kMaxLineCount = 256;
@@ -41,16 +43,16 @@ private:
 	void UpdateBuffer();
 
 	//-------------------------------------------------------------------------
-	LineCommon* lineCommon_ = nullptr;
+	LineCommon* mLineCommon = nullptr;
 
-	std::vector<LineVertex> lineVertices_;
-	std::vector<uint32_t> lineIndices_;
+	std::vector<LineVertex> mLineVertices;
+	std::vector<uint32_t> mLineIndices;
 
-	std::unique_ptr<VertexBuffer<LineVertex>> vertexBuffer_;
-	std::unique_ptr<IndexBuffer> indexBuffer_;
+	std::unique_ptr<VertexBuffer<LineVertex>> mVertexBuffer;
+	std::unique_ptr<IndexBuffer> mIndexBuffer;
 
-	TransformationMatrix* transformationMatrixData_ = nullptr; // 座標変換行列のポインタ
-	std::unique_ptr<ConstantBuffer> transformationMatrixConstantBuffer_;
+	TransformationMatrix* mTransformationMatrixData = nullptr; // 座標変換行列のポインタ
+	std::unique_ptr<ConstantBuffer> mTransformationMatrixConstantBuffer;
 
-	bool isDirty_ = true; // バッファ更新の必要があるか?
+	bool mIsDirty = true; // バッファ更新の必要があるか?
 };
