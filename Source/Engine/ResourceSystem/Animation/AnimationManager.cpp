@@ -58,7 +58,7 @@ std::vector<Animation> AnimationManager::LoadAllAnimationsFromFile(const std::st
 		
 		// キャッシュに保存
 		animations_[animationKey] = animation;
-		animations.push_back(animation);
+		animations.emplace_back(animation);
 	}
 	
 	// ファイルのアニメーション名リストをキャッシュ
@@ -115,7 +115,7 @@ std::vector<std::string> AnimationManager::GetAnimationNamesFromFile(const std::
 	
 	for (uint32_t animIndex = 0; animIndex < aScene->mNumAnimations; ++animIndex) {
 		aiAnimation* animationAssimp = aScene->mAnimations[animIndex];
-		animationNames.push_back(std::string(animationAssimp->mName.C_Str()));
+		animationNames.emplace_back(std::string(animationAssimp->mName.C_Str()));
 	}
 	
 	// キャッシュに保存
@@ -124,7 +124,7 @@ std::vector<std::string> AnimationManager::GetAnimationNamesFromFile(const std::
 	return animationNames;
 }
 
-Animation AnimationManager::LoadSingleAnimation(aiAnimation* animationAssimp) {
+Animation AnimationManager::LoadSingleAnimation(const aiAnimation* animationAssimp) {
 	Animation animation;
 	animation.duration = static_cast<float>(
 		animationAssimp->mDuration / animationAssimp->mTicksPerSecond
