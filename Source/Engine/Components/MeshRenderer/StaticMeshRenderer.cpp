@@ -26,7 +26,7 @@ StaticMeshRenderer::~StaticMeshRenderer() {
 
 void StaticMeshRenderer::OnAttach(Entity& owner) {
 	MeshRenderer::OnAttach(owner);
-	transform_ = owner_->GetTransform();
+	mTransform = mOwner->GetTransform();
 
 	transformationMatrixConstantBuffer_ = std::make_unique<ConstantBuffer>(
 		Engine::GetRenderer()->GetDevice(),

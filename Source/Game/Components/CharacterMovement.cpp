@@ -19,7 +19,7 @@ CharacterMovement::~CharacterMovement() {
 
 void CharacterMovement::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
-	transform_ = owner_->GetTransform();
+	mTransform = mOwner->GetTransform();
 }
 
 void CharacterMovement::Update(const float deltaTime) {
@@ -81,7 +81,7 @@ void CharacterMovement::ApplyFriction(const float fricValue) {
 }
 
 bool CharacterMovement::CheckGrounded() {
-	auto* collider = owner_->GetComponent<ColliderComponent>();
+	auto* collider = mOwner->GetComponent<ColliderComponent>();
 	if (!collider) {
 		return false;
 	}

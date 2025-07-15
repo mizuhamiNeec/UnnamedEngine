@@ -21,7 +21,7 @@ public:
 	void DrawInspectorImGui() override;
 
 	[[nodiscard]] bool    IsEditorOnly() const override { return false; }
-	[[nodiscard]] Entity* GetOwner() const override { return owner_; }
+	[[nodiscard]] Entity* GetOwner() const override { return mOwner; }
 
 private:
 	Animation animation_;

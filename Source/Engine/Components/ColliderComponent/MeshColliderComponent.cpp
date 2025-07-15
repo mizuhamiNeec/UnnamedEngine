@@ -7,12 +7,12 @@
 void MeshColliderComponent::OnAttach(Entity& owner) {
 	ColliderComponent::OnAttach(owner);
 
-	if (auto* smr = owner_->GetComponent<StaticMeshRenderer>()) {
+	if (auto* smr = mOwner->GetComponent<StaticMeshRenderer>()) {
 		meshRenderer_ = smr;
 		BuildTriangleList();
 	} else {
 		Console::Print(
-			owner_->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
+			mOwner->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
 			kConTextColorWarning,
 			Channel::Physics
 		);
@@ -38,7 +38,7 @@ void MeshColliderComponent::DrawInspectorImGui() {
 AABB MeshColliderComponent::GetBoundingBox() const {
 	if (!meshRenderer_) {
 		Console::Print(
-			owner_->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
+			mOwner->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
 			kConTextColorWarning,
 			Channel::Physics
 		);

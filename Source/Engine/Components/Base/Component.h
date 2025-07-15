@@ -26,5 +26,5 @@ public:
 	[[nodiscard]] virtual Entity* GetOwner() const;
 
 protected:
-	Entity* owner_ = nullptr;
+	Entity* mOwner = nullptr;
 };

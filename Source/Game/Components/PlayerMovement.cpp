@@ -31,9 +31,24 @@ PlayerMovement::~PlayerMovement() {
 void PlayerMovement::OnAttach(Entity& owner) {
 	CharacterMovement::OnAttach(owner);
 
-	// プレイヤー固有の初期化処理
+	// 初期化処理
+	// トランスフォームコンポーネントを取得
+	mTransform = mOwner->GetTransform();
+
 	mSpeed   = 290.0f;
 	mJumpVel = 350.0f;
+
+	// BoxColliderComponentの初期サイズを設定
+	auto* collider = mOwner->GetComponent<BoxColliderComponent>();
+	if (collider) {
+		float heightInMeters = Math::HtoM(mCurrentHeightHU);
+		float widthInMeters  = Math::HtoM(mCurrentWidthHU);
+		collider->SetSize(Vec3(widthInMeters, heightInMeters, widthInMeters));
+
+		// 初期オフセット設定（当たり判定の中心を足元から高さの半分上に）
+		float offsetY = heightInMeters * 0.5f;
+		collider->SetOffset(Vec3(0.0f, offsetY, 0.0f));
+	}
 
 	// Console::SubmitCommand("sv_gravity 0");
 }
@@ -109,7 +124,7 @@ void PlayerMovement::Update([[maybe_unused]] const float deltaTime) {
 	auto camera        = CameraManager::GetActiveCamera();
 	Vec3 cameraForward = camera->GetViewMat().Inverse().GetForward();
 
-	auto* collider = owner_->GetComponent<ColliderComponent>();
+	auto* collider = mOwner->GetComponent<ColliderComponent>();
 
 	if (!collider) {
 		Console::Print(
@@ -565,7 +580,7 @@ void PlayerMovement::UpdateCameraShake(const float deltaTime) {
 }
 
 void PlayerMovement::CollideAndSlide(const Vec3& desiredDisplacement) {
-	auto* collider = owner_->GetComponent<BoxColliderComponent>();
+	auto* collider = mOwner->GetComponent<BoxColliderComponent>();
 	if (!collider) {
 		position_ += desiredDisplacement;
 		return;
