@@ -1,16 +1,9 @@
+#include <pch.h>
+
 #include <cwchar>
-#include <windows.h>
+#include <Windows.h>
 #include <DbgHelp.h>
 #pragma comment(lib, "DbgHelp.lib")
-
-//#include <Public/Core/Console/Log.h>
-
-#include <format>
-#include <string>
-
-#include <utils/UnnamedMacro.h>
-
-#include "StrUtil.h"
 
 int LogAssertionFailure(
 	const char* expr,
@@ -80,7 +73,7 @@ void WriteDump(EXCEPTION_POINTERS* ep) {
 	SYSTEMTIME st;
 	GetLocalTime(&st);
 	wchar_t filename[64];
-	swprintf_s(filename, 64, L"crash_%04d%02d%02d_%02d%02d%02d.dmp",
+	swprintf_s(filename, 64, L"crash_%04d-%02d-%02d_%02d-%02d-%02d.dmp",
 	           st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
 
 	HANDLE hFile = CreateFileW(
