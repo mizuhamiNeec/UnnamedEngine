@@ -1,6 +1,4 @@
 #pragma once
-#include <algorithm>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -9,7 +7,7 @@ public:
 	static std::string ToString(const std::wstring& string);
 	static std::string ToString(const wchar_t* string);
 
-	static std::wstring               ToWString(const std::string& string);
+	static std::wstring ToWString(const std::string& string);
 
 	static std::string ToLowerCase(const std::string& input);
 
