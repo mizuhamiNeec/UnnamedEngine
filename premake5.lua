@@ -42,7 +42,6 @@ function ConfigurationSettings()
         defines { "NDEBUG" }
         optimize "On"
         runtime "Release"
-
     filter {}
 end
 
@@ -52,6 +51,11 @@ function WindowsPlatformSettings()
         defines { "NOMINMAX" }
         defines { "WIN32_LEAN_AND_MEAN" }
     filter {}
+end
+
+function PCHSettings()
+	pchheader "pch.h"
+	pchsource "src/public/pch.cpp"
 end
 
 workspace(ENGINE_NAME)
