@@ -62,7 +62,6 @@ group "Engine"
         kind "WindowedApp"
         CommonSettings()
         WarningSettings()
-        WindowsPlatformSettings()
         ConfigurationSettings()
 
         targetdir(path.join(BIN_DIR, outputdir, "%{prj.name}"))
@@ -81,5 +80,5 @@ group "Engine"
             "src/public",
             "src/shared",
         }
-
-        
+	
+		filter {}
