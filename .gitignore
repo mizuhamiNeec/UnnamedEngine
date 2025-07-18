@@ -370,3 +370,5 @@ imgui.ini
 /ClassDiagram.cd
 .github/copilot-instructions.md
 /Resources/Models/Positive
+
+*.dmp

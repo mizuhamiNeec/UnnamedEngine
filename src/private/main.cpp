@@ -1,8 +1,5 @@
-#include <cstdint>
-#include <cstdlib>
+#include <pch.h>
 #include <Windows.h>
-
-#include "utils/UnnamedMacro.h"
 
 namespace {
 	bool gWishClose = false;
@@ -19,11 +16,8 @@ namespace {
 			return 0;
 
 		case WM_PAINT: {
-			// ENGINE UPDATE
-
 			if (gWishClose) {
 				// Shutdown Engine
-				UASSERT(!hWnd && "問答無用でクラッシュさせるね!慈悲はないよ!");
 				DestroyWindow(hWnd);
 				gWishClose = false;
 			}
@@ -43,15 +37,17 @@ namespace {
 constexpr uint32_t kWindowWidth  = 1280;
 constexpr uint32_t kWindowHeight = 720;
 
-int APIENTRY wWinMain(const HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
+int WINAPI wWinMain(
+	const HINSTANCE hInstance,
+	HINSTANCE,
+	const PWSTR,
+	const int) {
 	LeakChecker;
-	int* leak;
-	leak = new int[100]; // これはメモリリークを引き起こすためのダミーコード
 
 	WNDCLASS wc      = {};
 	wc.lpfnWndProc   = WndProc;
 	wc.hInstance     = hInstance;
-	wc.lpszClassName = L"UnnamedEngineWindowClass";
+	wc.lpszClassName = L"EngineWindowClass";
 	RegisterClass(&wc);
 
 	RECT wrc = {
@@ -63,7 +59,7 @@ int APIENTRY wWinMain(const HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
 	const HWND hWnd = CreateWindowEx(
 		0,
 		wc.lpszClassName,
-		L"Unnamed Engine",
+		L"Unnamed Window",
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		wrc.right - wrc.left,
