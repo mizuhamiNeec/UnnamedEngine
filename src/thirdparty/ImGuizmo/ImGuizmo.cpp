@@ -31,6 +31,8 @@
 #include "imgui_internal.h"
 #include "ImGuizmo.h"
 
+#include <crtdbg.h>
+
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <malloc.h>
 #endif
