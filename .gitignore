@@ -372,3 +372,7 @@ imgui.ini
 /Resources/Models/Positive
 
 *.dmp
+*.sln
+/obj/
+*.vcxproj
+*.vcxproj.filters
