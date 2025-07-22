@@ -1,4 +1,4 @@
-﻿#include <engine/public/Animation/Animation.h>
+#include <engine/public/Animation/Animation.h>
 #include <engine/public/Components/Animation/AnimationComponent.h>
 #include <engine/public/Entity/Entity.h>
 
@@ -14,8 +14,8 @@ AnimationComponent::AnimationComponent(
 ) : mAnimation(std::move(animation)) {
 	// アニメーションのノード名を初期化 初期は最初のノード名を設定
 	mCurrentNodeName = mAnimation.nodeNames.empty()
-		                   ? ""
-		                   : mAnimation.nodeNames[0];
+		? ""
+		: mAnimation.nodeNames[0];
 }
 
 void AnimationComponent::OnAttach(Entity& owner) {
@@ -93,6 +93,7 @@ void AnimationComponent::Render(ID3D12GraphicsCommandList* commandList) {
 }
 
 void AnimationComponent::DrawInspectorImGui() {
+#ifdef _DEBUG
 	if (ImGui::CollapsingHeader("Animation Component")) {
 		if (ImGui::BeginCombo("NodeName", mCurrentNodeName.c_str())) {
 			for (const auto& nodeName : mAnimation.nodeNames) {
@@ -112,4 +113,5 @@ void AnimationComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Looping", &mIsLooping);
 		ImGui::Text("Animation Time: %.2f", mAnimationTime);
 	}
+#endif	
 }

@@ -1,72 +1,60 @@
 ﻿#pragma once
+#include <cstdint>
+#include <string>
 
-//-----------------------------------------------------------------------------
-// x86_64 専用 TODO: やる気と時間ができたら他のアーキテクチャに対応する
-//-----------------------------------------------------------------------------
+struct Quaternion;
+#include <math/public/Vec2.h>
 
-#pragma warning(push)
-#pragma warning(disable : 4201) // warning C4201: nonstandard extension used: nameless struct/union
-
-
-struct Vec2;
-struct Vec4;
-
-struct alignas(16) Vec3 {
-	union {
-		// w はパディング用
-		struct {
-			float x, y, z, w;
-		};
-
-		__m128 simd;
-	};
+struct Vec3 final {
+	float x, y, z;
 
 	static const Vec3 zero;
 	static const Vec3 one;
-	static const Vec3 up;
-	static const Vec3 down;
 	static const Vec3 right;
 	static const Vec3 left;
+	static const Vec3 up;
+	static const Vec3 down;
 	static const Vec3 forward;
 	static const Vec3 backward;
-	static const Vec3 min;
 	static const Vec3 max;
-	static const Vec3 infinity;
+	static const Vec3 min;
 
-	Vec3(float x, float y, float z);
-	Vec3();
-	explicit Vec3(const float& value);
-	explicit Vec3(const Vec2& vec2);
-	explicit Vec3(Vec4& vec4);
-	explicit Vec3(const __m128& v);
+	constexpr Vec3() : Vec3(0.0f, 0.0f, 0.0f) {
+	}
 
-	//---------------------------------------------------------------------
-	// Functions
-	//---------------------------------------------------------------------
-	[[nodiscard]] float Length() const;
-	[[nodiscard]] float SqrLength() const;
-	[[nodiscard]] float Distance(const Vec3& other) const;
-	[[nodiscard]] float Dot(const Vec3& other) const;
-	[[nodiscard]] Vec3  Cross(const Vec3& other) const;
+	constexpr
+	Vec3(const float x, const float y, const float z) : x(x), y(y), z(z) {
+	}
 
-	void               Normalize();
-	[[nodiscard]] Vec3 Normalized() const;
+	explicit constexpr Vec3(const float scalar) : x(scalar), y(scalar),
+	                                              z(scalar) {
+	}
 
-	[[nodiscard]] Vec3 Clamp(Vec3 clampMin, Vec3 clampMax) const;
-	[[nodiscard]] Vec3 ClampLength(float clampMin, float clampMax) const;
+	constexpr Vec3(const Vec2 vec2) : x(vec2.x), y(vec2.y), z(0.0f) {
+	}
 
-	[[nodiscard]] Vec3 Reflect(const Vec3& normal) const;
+	/* ---------------- 関数類 ---------------- */
+	float Length() const;
+	float SqrLength() const;
+	float Distance(const Vec3& other) const;
+	float Dot(const Vec3& other) const;
+	Vec3  Cross(const Vec3& other) const;
 
-	[[nodiscard]] const char* ToString() const;
+	bool IsZero(float tolerance = 1e-6f) const;
+	bool IsParallel(const Vec3& other) const;
+
+	void Normalize();
+	Vec3 Normalized() const;
+
+	Vec3 Clamp(Vec3 minVec, Vec3 maxVec) const;
+	Vec3 ClampLength(float minVec, float maxVec);
+	Vec3 Reflect(const Vec3& normal) const;
 
 	Vec3 Abs();
 
-	bool IsZero(float threshold = 0.0001f) const;
-	bool IsParallel(Vec3 dir) const;
+	Vec3 TransformDirection(const Quaternion& rotation) const;
 
-	//---------------------------------------------------------------------
-	// Operators
-	//---------------------------------------------------------------------
+	/* ---------------- 演算子 ---------------- */
 	float&       operator[](uint32_t index);
 	const float& operator[](uint32_t index) const;
 
@@ -74,13 +62,13 @@ struct alignas(16) Vec3 {
 
 	Vec3 operator+(const Vec3& rhs) const;
 	Vec3 operator-(const Vec3& rhs) const;
-	Vec3 operator*(const Vec3& rhs) const;
-	Vec3 operator/(const Vec3& rhs) const;
+	Vec3 operator*(float rhs) const;
+	Vec3 operator/(float rhs) const;
 
 	Vec3 operator+(const float& rhs) const;
 	Vec3 operator-(const float& rhs) const;
-	Vec3 operator*(const float& rhs) const;
-	Vec3 operator/(const float& rhs) const;
+	Vec3 operator*(const Vec3& rhs) const;
+	Vec3 operator/(const Vec3& rhs) const;
 
 	friend Vec3 operator+(float lhs, const Vec3& rhs);
 	friend Vec3 operator-(float lhs, const Vec3& rhs);
@@ -89,13 +77,14 @@ struct alignas(16) Vec3 {
 
 	Vec3& operator+=(const Vec3& rhs);
 	Vec3& operator-=(const Vec3& rhs);
-	Vec3& operator*=(const Vec3& rhs);
-	Vec3& operator/=(const Vec3& rhs);
+	Vec3& operator*=(float rhs);
+	Vec3& operator/=(float rhs);
 
-	Vec3& operator+=(const float& rhs);
-	Vec3& operator-=(const float& rhs);
-	Vec3& operator*=(const float& rhs);
-	Vec3& operator/=(const float& rhs);
+	/* ---------------- その他 ---------------- */
+	std::string ToString() const;
+	bool        operator!=(const Vec3& rhs) const;
+	bool        operator==(const Vec3& vec3) const;
 
-	bool operator!=(const Vec3& rhs) const;
+	static Vec3 Min(Vec3 lhs, Vec3 rhs);
+	static Vec3 Max(Vec3 lhs, Vec3 rhs);
 };

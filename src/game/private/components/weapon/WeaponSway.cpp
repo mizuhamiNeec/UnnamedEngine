@@ -1,4 +1,4 @@
-﻿#ifdef _DEBUG
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -21,10 +21,10 @@ void WeaponSway::Update([[maybe_unused]] const float deltaTime) {
 	mYaw += delta.x * mSwayAmount * deltaTime;
 
 	mPitch = std::lerp(mPitch, 0.0f, mAttenuation * deltaTime); // ピッチの減衰
-	mYaw   = std::lerp(mYaw, 0.0f, mAttenuation * deltaTime);   // ヨーの減衰
+	mYaw = std::lerp(mYaw, 0.0f, mAttenuation * deltaTime);   // ヨーの減衰
 
 	const Quaternion pitch = Quaternion::AxisAngle(Vec3::right, mPitch);
-	const Quaternion yaw   = Quaternion::AxisAngle(Vec3::up, mYaw);
+	const Quaternion yaw = Quaternion::AxisAngle(Vec3::up, mYaw);
 
 	const Quaternion finalRotation = yaw * pitch;
 
@@ -34,8 +34,8 @@ void WeaponSway::Update([[maybe_unused]] const float deltaTime) {
 	mScene->SetLocalRot(finalRotation);
 	mScene->SetLocalPos(
 		Math::Lerp(mScene->GetLocalPos(),
-		           Vec3::zero,
-		           (mAttenuation * 0.5f) * deltaTime)); // 武器の位置調整
+			Vec3::zero,
+			(mAttenuation * 0.5f) * deltaTime)); // 武器の位置調整
 }
 
 void WeaponSway::Render(ID3D12GraphicsCommandList* commandList) {
@@ -43,6 +43,7 @@ void WeaponSway::Render(ID3D12GraphicsCommandList* commandList) {
 }
 
 void WeaponSway::DrawInspectorImGui() {
+#ifdef _DEBUG
 	if (ImGui::CollapsingHeader(
 		"Weapon Sway", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("Pitch: %.2f, Yaw: %.2f", mPitch, mYaw);
@@ -50,6 +51,7 @@ void WeaponSway::DrawInspectorImGui() {
 		ImGui::DragFloat("SwayAmount", &mSwayAmount, 0.01f);
 		ImGui::DragFloat("Attenuation", &mAttenuation, 0.01f, 0.0f, 10.0f);
 	}
+#endif
 }
 
 Entity* WeaponSway::GetOwner() const {

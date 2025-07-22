@@ -11,7 +11,8 @@ void MeshColliderComponent::OnAttach(Entity& owner) {
 	if (auto* smr = mOwner->GetComponent<StaticMeshRenderer>()) {
 		mMeshRenderer = smr;
 		BuildTriangleList();
-	} else {
+	}
+	else {
 		Console::Print(
 			mOwner->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
 			kConTextColorWarning,
@@ -25,15 +26,18 @@ void MeshColliderComponent::Update(float deltaTime) {
 }
 
 void MeshColliderComponent::DrawInspectorImGui() {
+#ifdef _DEBUG
 	if (ImGui::CollapsingHeader("MeshColliderComponent", ImGuiTreeNodeFlags_DefaultOpen)) {
 		if (mMeshRenderer) {
 			ImGui::Text("StaticMeshRenderer: %s", mMeshRenderer->GetStaticMesh()->GetName().c_str());
 			ImGui::Text("PolyCount: %d", mMeshRenderer->GetStaticMesh()->GetPolygons().size());
-		} else {
+		}
+		else {
 			ImGui::Text("StaticMeshRenderer: None");
 		}
 		ImGui::Separator();
 	}
+#endif
 }
 
 AABB MeshColliderComponent::GetBoundingBox() const {

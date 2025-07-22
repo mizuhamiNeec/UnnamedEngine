@@ -11,8 +11,8 @@
 #include <engine/public/Window/WindowManager.h>
 #include <engine/public/Window/WindowsUtils.h>
 
-ImGuiManager::ImGuiManager(D3D12*            renderer,
-                           const SrvManager* srvManager) :
+ImGuiManager::ImGuiManager(D3D12* renderer,
+	const SrvManager* srvManager) :
 	mRenderer(renderer),
 	mSrvManager(srvManager) {
 	IMGUI_CHECKVERSION();
@@ -24,15 +24,15 @@ ImGuiManager::ImGuiManager(D3D12*            renderer,
 	io.ConfigFlags |= ImGuiConfigFlags_IsSRGB;
 
 	// 少し角丸に
-	ImGuiStyle* style     = &ImGui::GetStyle();
+	ImGuiStyle* style = &ImGui::GetStyle();
 	style->WindowRounding = 8;
-	style->FrameRounding  = 4;
+	style->FrameRounding = 4;
 
 	ImFontConfig imFontConfig;
-	imFontConfig.OversampleH      = 1;
-	imFontConfig.OversampleV      = 1;
-	imFontConfig.PixelSnapH       = true;
-	imFontConfig.SizePixels       = 18;
+	imFontConfig.OversampleH = 1;
+	imFontConfig.OversampleV = 1;
+	imFontConfig.PixelSnapH = true;
+	imFontConfig.SizePixels = 18;
 	imFontConfig.GlyphMinAdvanceX = 2.0f;
 
 	// Ascii
@@ -51,7 +51,7 @@ ImGuiManager::ImGuiManager(D3D12*            renderer,
 	// ??? 何故かベースラインがずれるので補正
 	imFontConfig.GlyphOffset = ImVec2(0.0f, 5.0f);
 
-	static constexpr ImWchar iconRanges[] = {0xe003, 0xf8ff, 0};
+	static constexpr ImWchar iconRanges[] = { 0xe003, 0xf8ff, 0 };
 	io.Fonts->AddFontFromFileTTF(
 		R"(.\Resources\Fonts\MaterialSymbolsRounded_Filled_28pt-Regular.ttf)",
 		24.0f, &imFontConfig, iconRanges
@@ -60,19 +60,20 @@ ImGuiManager::ImGuiManager(D3D12*            renderer,
 	// テーマの設定
 	if (WindowsUtils::IsAppDarkTheme()) {
 		StyleColorsDark();
-	} else {
+	}
+	else {
 		StyleColorsLight();
 	}
 
 	ImGui_ImplWin32_Init(OldWindowManager::GetMainWindow()->GetWindowHandle());
 
 	// ImGuiの初期化
-	ImGui_ImplDX12_InitInfo init_info      = {};
-	init_info.Device                       = mRenderer->GetDevice();
-	init_info.NumFramesInFlight            = kFrameBufferCount;
-	init_info.RTVFormat                    = DXGI_FORMAT_R8G8B8A8_UNORM;
-	init_info.SrvDescriptorHeap            = mSrvManager->GetDescriptorHeap();
-	init_info.CommandQueue                 = mRenderer->GetCommandQueue();
+	ImGui_ImplDX12_InitInfo init_info = {};
+	init_info.Device = mRenderer->GetDevice();
+	init_info.NumFramesInFlight = kFrameBufferCount;
+	init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	init_info.SrvDescriptorHeap = mSrvManager->GetDescriptorHeap();
+	init_info.CommandQueue = mRenderer->GetCommandQueue();
 	init_info.LegacySingleSrvCpuDescriptor =
 		mSrvManager->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
 	init_info.LegacySingleSrvGpuDescriptor =
@@ -99,11 +100,11 @@ void ImGuiManager::EndFrame() {
 
 	// メインウィンドウのImGuiコンテンツを描画
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(),
-	                              mRenderer->GetCommandList());
+		mRenderer->GetCommandList());
 
 	// マルチビューポートの更新前に、すべてのコマンドを確実にフラッシュする
 	mRenderer->GetCommandList()->Close();
-	ID3D12CommandList* cmdLists[] = {mRenderer->GetCommandList()};
+	ID3D12CommandList* cmdLists[] = { mRenderer->GetCommandList() };
 	mRenderer->GetCommandQueue()->ExecuteCommandLists(1, cmdLists);
 
 	mRenderer->WaitPreviousFrame();
@@ -149,66 +150,66 @@ void ImGuiManager::Recreate() const {
 }
 
 void ImGuiManager::StyleColorsDark() {
-	ImGuiStyle& style  = ImGui::GetStyle();
-	ImVec4*     colors = style.Colors;
+	ImGuiStyle& style = ImGui::GetStyle();
+	ImVec4* colors = style.Colors;
 
-	colors[ImGuiCol_WindowBg]              = ImVec4(0.14f, 0.14f, 0.14f, 0.94f);
-	colors[ImGuiCol_Border]                = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-	colors[ImGuiCol_FrameBg]               = ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
-	colors[ImGuiCol_FrameBgHovered]        = ImVec4(0.24f, 0.24f, 0.24f, 1.0f);
-	colors[ImGuiCol_FrameBgActive]         = ImVec4(0.26f, 0.26f, 0.26f, 1.0f);
-	colors[ImGuiCol_TitleBg]               = ImVec4(0.14f, 0.14f, 0.14f, 1.0f);
-	colors[ImGuiCol_TitleBgActive]         = ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
-	colors[ImGuiCol_TitleBgCollapsed]      = ImVec4(0.14f, 0.14f, 0.14f, 1.0f);
-	colors[ImGuiCol_Button]                = ImVec4(0.20f, 0.20f, 0.20f, 1.0f);
-	colors[ImGuiCol_ButtonHovered]         = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
-	colors[ImGuiCol_ButtonActive]          = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
-	colors[ImGuiCol_Header]                = ImVec4(0.23f, 0.23f, 0.23f, 1.0f);
-	colors[ImGuiCol_HeaderHovered]         = ImVec4(0.28f, 0.28f, 0.28f, 1.0f);
-	colors[ImGuiCol_HeaderActive]          = ImVec4(0.32f, 0.32f, 0.32f, 1.0f);
-	colors[ImGuiCol_ResizeGrip]            = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
-	colors[ImGuiCol_ResizeGripHovered]     = ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
-	colors[ImGuiCol_ResizeGripActive]      = ImVec4(0.55f, 0.55f, 0.55f, 1.0f);
-	colors[ImGuiCol_ScrollbarBg]           = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
-	colors[ImGuiCol_ScrollbarGrab]         = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
-	colors[ImGuiCol_ScrollbarGrabHovered]  = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
-	colors[ImGuiCol_ScrollbarGrabActive]   = ImVec4(0.40f, 0.40f, 0.40f, 1.0f);
-	colors[ImGuiCol_Text]                  = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
-	colors[ImGuiCol_TextDisabled]          = ImVec4(0.50f, 0.50f, 0.50f, 1.0f);
-	colors[ImGuiCol_CheckMark]             = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
-	colors[ImGuiCol_MenuBarBg]             = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
-	colors[ImGuiCol_SliderGrab]            = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
-	colors[ImGuiCol_SliderGrabActive]      = ImVec4(0.89f, 0.57f, 0.19f, 1.00f);
-	colors[ImGuiCol_SeparatorHovered]      = ImVec4(0.89f, 0.49f, 0.02f, 0.78f);
-	colors[ImGuiCol_SeparatorActive]       = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
-	colors[ImGuiCol_TabHovered]            = ImVec4(0.20f, 0.20f, 0.20f, 0.81f);
-	colors[ImGuiCol_Tab]                   = ImVec4(0.25f, 0.25f, 0.25f, 0.86f);
-	colors[ImGuiCol_TabSelected]           = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
-	colors[ImGuiCol_TabSelectedOverline]   = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
-	colors[ImGuiCol_TabDimmed]             = ImVec4(0.18f, 0.18f, 0.18f, 0.97f);
-	colors[ImGuiCol_TabDimmedSelected]     = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
-	colors[ImGuiCol_DockingPreview]        = ImVec4(0.89f, 0.49f, 0.02f, 0.70f);
-	colors[ImGuiCol_TextLink]              = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
-	colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.17f, 0.17f, 0.17f, 0.86f);
-	colors[ImGuiCol_NavCursor]             = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
+	colors[ImGuiCol_WindowBg] = ImVec4(0.14f, 0.14f, 0.14f, 0.94f);
+	colors[ImGuiCol_Border] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+	colors[ImGuiCol_FrameBg] = ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
+	colors[ImGuiCol_FrameBgHovered] = ImVec4(0.24f, 0.24f, 0.24f, 1.0f);
+	colors[ImGuiCol_FrameBgActive] = ImVec4(0.26f, 0.26f, 0.26f, 1.0f);
+	colors[ImGuiCol_TitleBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.0f);
+	colors[ImGuiCol_TitleBgActive] = ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
+	colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.14f, 0.14f, 0.14f, 1.0f);
+	colors[ImGuiCol_Button] = ImVec4(0.20f, 0.20f, 0.20f, 1.0f);
+	colors[ImGuiCol_ButtonHovered] = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
+	colors[ImGuiCol_ButtonActive] = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
+	colors[ImGuiCol_Header] = ImVec4(0.23f, 0.23f, 0.23f, 1.0f);
+	colors[ImGuiCol_HeaderHovered] = ImVec4(0.28f, 0.28f, 0.28f, 1.0f);
+	colors[ImGuiCol_HeaderActive] = ImVec4(0.32f, 0.32f, 0.32f, 1.0f);
+	colors[ImGuiCol_ResizeGrip] = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
+	colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
+	colors[ImGuiCol_ResizeGripActive] = ImVec4(0.55f, 0.55f, 0.55f, 1.0f);
+	colors[ImGuiCol_ScrollbarBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+	colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
+	colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
+	colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.40f, 0.40f, 0.40f, 1.0f);
+	colors[ImGuiCol_Text] = ImVec4(0.71f, 0.71f, 0.71f, 1.0f);
+	colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.0f);
+	colors[ImGuiCol_CheckMark] = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
+	colors[ImGuiCol_MenuBarBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+	colors[ImGuiCol_SliderGrab] = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
+	colors[ImGuiCol_SliderGrabActive] = ImVec4(0.89f, 0.57f, 0.19f, 1.00f);
+	colors[ImGuiCol_SeparatorHovered] = ImVec4(0.89f, 0.49f, 0.02f, 0.78f);
+	colors[ImGuiCol_SeparatorActive] = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
+	colors[ImGuiCol_TabHovered] = ImVec4(0.20f, 0.20f, 0.20f, 0.81f);
+	colors[ImGuiCol_Tab] = ImVec4(0.25f, 0.25f, 0.25f, 0.86f);
+	colors[ImGuiCol_TabSelected] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+	colors[ImGuiCol_TabSelectedOverline] = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
+	colors[ImGuiCol_TabDimmed] = ImVec4(0.18f, 0.18f, 0.18f, 0.97f);
+	colors[ImGuiCol_TabDimmedSelected] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+	colors[ImGuiCol_DockingPreview] = ImVec4(0.89f, 0.49f, 0.02f, 0.70f);
+	colors[ImGuiCol_TextLink] = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
+	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.17f, 0.17f, 0.17f, 0.86f);
+	colors[ImGuiCol_NavCursor] = ImVec4(0.89f, 0.49f, 0.02f, 1.00f);
 	colors[ImGuiCol_NavWindowingHighlight] = ImVec4(0.89f, 0.49f, 0.02f, 0.70f);
-	colors[ImGuiCol_NavWindowingDimBg]     = ImVec4(0.17f, 0.17f, 0.17f, 0.86f);
-	colors[ImGuiCol_ModalWindowDimBg]      = ImVec4(0.17f, 0.17f, 0.17f, 0.86f);
+	colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.17f, 0.17f, 0.17f, 0.86f);
+	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.17f, 0.17f, 0.17f, 0.86f);
 
-	style.GrabMinSize   = 8.0f;
+	style.GrabMinSize = 8.0f;
 	style.ScrollbarSize = 16.0f;
 
-	style.WindowRounding    = 4.0f;
-	style.FrameRounding     = 4.0f;
-	style.GrabRounding      = 4.0f;
+	style.WindowRounding = 4.0f;
+	style.FrameRounding = 4.0f;
+	style.GrabRounding = 4.0f;
 	style.ScrollbarRounding = 8.0f;
-	style.TabRounding       = 0.0f;
+	style.TabRounding = 0.0f;
 
 	style.WindowBorderSize = 1.0f;
-	style.FrameBorderSize  = 0.0f;
+	style.FrameBorderSize = 0.0f;
 
-	style.ItemSpacing   = ImVec2(8, 8);
-	style.FramePadding  = ImVec2(8, 8);
+	style.ItemSpacing = ImVec2(8, 8);
+	style.FramePadding = ImVec2(8, 8);
 	style.WindowPadding = ImVec2(8, 8);
 
 	style.SeparatorTextBorderSize = 2.0f;
@@ -223,18 +224,18 @@ void ImGuiManager::StyleColorsLight() {
 }
 
 void ImGuiManager::PushStyleColorForDrag(const ImVec4& bg,
-                                         const ImVec4& bgHovered,
-                                         const ImVec4& bgActive) {
+	const ImVec4& bgHovered,
+	const ImVec4& bgActive) {
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, bg);
 	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, bgHovered);
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, bgActive);
 }
 
 bool ImGuiManager::EditTransform(SceneComponent& transform,
-                                 const float&    vSpeed) {
-	bool       isEditing  = false;
-	Vec3       localPos   = transform.GetLocalPos();
-	Quaternion localRot   = transform.GetLocalRot();
+	const float& vSpeed) {
+	bool       isEditing = false;
+	Vec3       localPos = transform.GetLocalPos();
+	Quaternion localRot = transform.GetLocalRot();
 	Vec3       localScale = transform.GetLocalScale();
 
 	if (ImGui::CollapsingHeader(
@@ -255,12 +256,12 @@ bool ImGuiManager::EditTransform(SceneComponent& transform,
 		// Rotation 編集
 		Vec3 eulerDegrees = localRot.ToEulerDegrees();
 		if (ImGuiWidgets::DragVec3(
-				"Rotation",
-				eulerDegrees,
-				Vec3::zero,
-				vSpeed * 10.0f,
-				"%.3f")
-		) {
+			"Rotation",
+			eulerDegrees,
+			Vec3::zero,
+			vSpeed * 10.0f,
+			"%.3f")
+			) {
 			// 編集された Euler 角を Quaternion に変換
 			localRot = Quaternion::EulerDegrees(eulerDegrees);
 			transform.SetLocalRot(localRot);
@@ -269,12 +270,12 @@ bool ImGuiManager::EditTransform(SceneComponent& transform,
 
 		// Scale 編集
 		if (ImGuiWidgets::DragVec3(
-				"Scale",
-				localScale,
-				Vec3::one,
-				vSpeed,
-				"%.3f")
-		) {
+			"Scale",
+			localScale,
+			Vec3::one,
+			vSpeed,
+			"%.3f")
+			) {
 			transform.SetLocalScale(localScale);
 			isEditing = true;
 		}
@@ -282,8 +283,8 @@ bool ImGuiManager::EditTransform(SceneComponent& transform,
 	return isEditing;
 }
 
-bool ImGuiManager::DragVec3(const std::string& name, Vec3&         v,
-                            const float&       vSpeed, const char* format) {
+bool ImGuiManager::DragVec3(const std::string& name, Vec3& v,
+	const float& vSpeed, const char* format) {
 	// 編集中かどうか
 	bool isEditing = false;
 
@@ -293,17 +294,17 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3&         v,
 	// 幅を取得
 	const float width = ImGui::GetCurrentContext()->Style.ItemInnerSpacing.x;
 
-	constexpr ImVec4 xBg        = {0.72f, 0.11f, 0.11f, 0.75f};
-	constexpr ImVec4 xBgHovered = {0.83f, 0.18f, 0.18f, 0.75f};
-	constexpr ImVec4 xBgActive  = {0.96f, 0.26f, 0.21f, 0.75f};
+	constexpr ImVec4 xBg = { 0.72f, 0.11f, 0.11f, 0.75f };
+	constexpr ImVec4 xBgHovered = { 0.83f, 0.18f, 0.18f, 0.75f };
+	constexpr ImVec4 xBgActive = { 0.96f, 0.26f, 0.21f, 0.75f };
 
-	constexpr ImVec4 yBg        = {0.11f, 0.37f, 0.13f, 0.75f};
-	constexpr ImVec4 yBgHovered = {0.22f, 0.56f, 0.24f, 0.75f};
-	constexpr ImVec4 yBgActive  = {0.3f, 0.69f, 0.31f, 0.75f};
+	constexpr ImVec4 yBg = { 0.11f, 0.37f, 0.13f, 0.75f };
+	constexpr ImVec4 yBgHovered = { 0.22f, 0.56f, 0.24f, 0.75f };
+	constexpr ImVec4 yBgActive = { 0.3f, 0.69f, 0.31f, 0.75f };
 
-	constexpr ImVec4 zBg        = {0.05f, 0.28f, 0.63f, 0.75f};
-	constexpr ImVec4 zBgHovered = {0.1f, 0.46f, 0.82f, 0.75f};
-	constexpr ImVec4 zBgActive  = {0.13f, 0.59f, 0.95f, 0.75f};
+	constexpr ImVec4 zBg = { 0.05f, 0.28f, 0.63f, 0.75f };
+	constexpr ImVec4 zBgHovered = { 0.1f, 0.46f, 0.82f, 0.75f };
+	constexpr ImVec4 zBgActive = { 0.13f, 0.59f, 0.95f, 0.75f };
 
 	// 幅を決定
 	ImGui::PushMultiItemsWidths(components, ImGui::CalcItemWidth());
@@ -313,7 +314,7 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3&         v,
 	ImGui::PushID("X");
 	PushStyleColorForDrag(xBg, xBgHovered, xBgActive);
 	isEditing |= ImGui::DragFloat(("##X" + name).c_str(), &v.x, vSpeed, 0.0f,
-	                              0.0f, format);
+		0.0f, format);
 	ImGui::PopStyleColor(components);
 	ImGui::PopID();
 	ImGui::SameLine(0, width);
@@ -321,7 +322,7 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3&         v,
 	ImGui::PushID("Y");
 	PushStyleColorForDrag(yBg, yBgHovered, yBgActive);
 	isEditing |= ImGui::DragFloat(("##Y" + name).c_str(), &v.y, vSpeed, 0.0f,
-	                              0.0f, format);
+		0.0f, format);
 	ImGui::PopStyleColor(components);
 	ImGui::PopID();
 	ImGui::SameLine(0, width);
@@ -329,7 +330,7 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3&         v,
 	ImGui::PushID("Z");
 	PushStyleColorForDrag(zBg, zBgHovered, zBgActive);
 	isEditing |= ImGui::DragFloat(("##Z" + name).c_str(), &v.z, vSpeed, 0.0f,
-	                              0.0f, format);
+		0.0f, format);
 	ImGui::PopStyleColor(components);
 	ImGui::PopID();
 	ImGui::SameLine(0, width);
@@ -344,9 +345,9 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3&         v,
 }
 
 void ImGuiManager::TextOutlined(
-	ImDrawList*   drawList,
+	ImDrawList* drawList,
 	const ImVec2& pos,
-	const char*   text,
+	const char* text,
 	const ImVec4  textColor,
 	const ImVec4  outlineColor,
 	const float   outlineSize
@@ -356,16 +357,16 @@ void ImGuiManager::TextOutlined(
 	ImVec2 clientPos = ImVec2(windowPos.x + pos.x, windowPos.y + pos.y);
 
 	ImU32 outlineCol = ImGui::ColorConvertFloat4ToU32(outlineColor);
-	ImU32 textCol    = ImGui::ColorConvertFloat4ToU32(textColor);
+	ImU32 textCol = ImGui::ColorConvertFloat4ToU32(textColor);
 
 	drawList->AddText(ImVec2(clientPos.x - outlineSize, clientPos.y),
-	                  outlineCol, text);
+		outlineCol, text);
 	drawList->AddText(ImVec2(clientPos.x + outlineSize, clientPos.y),
-	                  outlineCol, text);
+		outlineCol, text);
 	drawList->AddText(ImVec2(clientPos.x, clientPos.y - outlineSize),
-	                  outlineCol, text);
+		outlineCol, text);
 	drawList->AddText(ImVec2(clientPos.x, clientPos.y + outlineSize),
-	                  outlineCol, text);
+		outlineCol, text);
 	drawList->AddText(
 		ImVec2(clientPos.x - outlineSize, clientPos.y - outlineSize),
 		outlineCol, text);
@@ -381,8 +382,8 @@ void ImGuiManager::TextOutlined(
 	drawList->AddText(clientPos, textCol, text);
 }
 
-bool ImGuiManager::IconButton(const char*   icon, const char* label,
-                              const ImVec2& size) {
+bool ImGuiManager::IconButton(const char* icon, const char* label,
+	const ImVec2& size) {
 	// ボタンのサイズを計算
 	const ImVec2 iconSize = ImGui::CalcTextSize(icon);
 	// フォントサイズを小さくしてラベルサイズを計算
@@ -427,7 +428,7 @@ bool ImGuiManager::IconButton(const char*   icon, const char* label,
 	);
 
 	const float defaultFontSize = ImGui::GetFont()->Scale;
-	ImGui::GetFont()->Scale     = 0.8f;
+	ImGui::GetFont()->Scale = 0.8f;
 	ImGui::PushFont(ImGui::GetFont());
 	ImGui::Text("%s", label);
 	ImGui::GetFont()->Scale = defaultFontSize;
@@ -435,6 +436,4 @@ bool ImGuiManager::IconButton(const char*   icon, const char* label,
 
 	return pressed;
 }
-#else
-void ImGuiManager::Shutdown() {}
 #endif

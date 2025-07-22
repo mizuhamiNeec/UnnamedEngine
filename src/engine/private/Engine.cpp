@@ -53,23 +53,28 @@ bool Engine::Init() {
 	                                           StrUtil::ToString(
 		                                           GetCommandLineW()),
 	                                           "Command line arguments");
-
+	// メインビューポート用ウィンドウの作成
 	auto gameWindow = std::make_unique<MainWindow>();
 
-	WindowInfo wInfo = {};
-	wInfo.title      = "GameWindow";
-	wInfo.width      = kClientWidth;
-	wInfo.height     = kClientHeight;
-	wInfo.style      = WS_OVERLAPPEDWINDOW;
-	wInfo.exStyle    = 0;
-	wInfo.hInstance  = GetModuleHandle(nullptr);
-	wInfo.className  = "GameWindowClassName";
+	WindowInfo gameWindowInfo = {
+		.title = "GameWindow",
+		.width = kClientWidth,
+		.height = kClientHeight,
+		.style = WS_OVERLAPPEDWINDOW,
+		.exStyle = 0,
+		.hInstance = GetModuleHandle(nullptr),
+		.className = "gameWindowClassName"
+	};
 
-
-	if (gameWindow->Create(wInfo)) {
+	if (gameWindow->Create(gameWindowInfo)) {
 		mWindowManager->AddWindow(std::move(gameWindow));
 	} else {
-		UASSERT(false && "Failed to create main window");
+		Console::Print(
+			"Failed to create main window.\n",
+			kConTextColorError,
+			Channel::Engine
+		);
+		return false;
 	}
 
 	mRenderer = std::make_unique<D3D12>(mWindowManager->GetMainWindow());
@@ -218,7 +223,7 @@ bool Engine::Init() {
 	CheckEditorMode();
 
 	hr = mRenderer->GetCommandList()->Close();
-	UASSERT(SUCCEEDED(hr));
+	assert(SUCCEEDED(hr));
 
 	//-----------------------------------------------------------------------------
 	// Purpose: 新エンジン
@@ -243,6 +248,7 @@ void Engine::Update() {
 	//-----------------------------------------------------------------------------
 	// Purpose: 旧エンジン
 	//-----------------------------------------------------------------------------
+	mTime->StartFrame();
 #ifdef _DEBUG
 	ImGuiManager::NewFrame();
 	ImGuizmo::BeginFrame();
@@ -666,6 +672,8 @@ void Engine::Update() {
 
 	mRenderer->PostRender();
 
+	mTime->EndFrame();
+
 	//-----------------------------------------------------------------------------
 	// Purpose: 新エンジン
 	//-----------------------------------------------------------------------------
@@ -893,23 +901,30 @@ void Engine::RegisterConsoleCommandsAndVariables() {
 	Console::SubmitCommand("bind tab +toggleGizmo", true);
 }
 
-void Engine::Quit(const std::vector<std::string>& args) {
-	args;
-}
-
-void Engine::SetEditorMode(const std::vector<std::string>& args) {
-	args;
+void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
+	mWishShutdown = true;
 }
 
 void Engine::CheckEditorMode() {
+	if (mIsEditorMode) {
+		mEditor = std::make_unique<Editor>(mSceneManager.get());
+	} else {
+		mEditor.reset();
+	}
 }
 
-std::unique_ptr<SrvManager>      Engine::mSrvManager      = nullptr;
-std::unique_ptr<ResourceManager> Engine::mResourceManager = nullptr;
-std::unique_ptr<D3D12>           Engine::mRenderer        = nullptr;
-std::unique_ptr<ParticleManager> Engine::mParticleManager = nullptr;
-std::shared_ptr<SceneManager>    Engine::mSceneManager    = nullptr;
-Vec2                             Engine::mViewportLT      = Vec2::zero;
-Vec2                             Engine::mViewportSize    = Vec2::zero;
-bool                             Engine::mIsEditorMode    = false;
 bool                             Engine::mWishShutdown    = false;
+std::unique_ptr<D3D12>           Engine::mRenderer        = nullptr;
+std::unique_ptr<ResourceManager> Engine::mResourceManager = nullptr;
+std::unique_ptr<ParticleManager> Engine::mParticleManager = nullptr;
+std::unique_ptr<SrvManager>      Engine::mSrvManager      = nullptr;
+std::shared_ptr<SceneManager>    Engine::mSceneManager    = nullptr;
+
+Vec2 Engine::mViewportLT   = Vec2::zero;
+Vec2 Engine::mViewportSize = Vec2::zero;
+
+#ifdef _DEBUG
+bool Engine::mIsEditorMode = true;
+#else
+bool Engine::mIsEditorMode = false;
+#endif

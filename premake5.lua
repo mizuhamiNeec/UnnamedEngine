@@ -111,18 +111,6 @@ group "Engine"
 		excludes {
 			"src/thirdparty/**",
 		}
-	
-		files {
-			"src/thirdparty/ImGui/imgui.cpp",
-			"src/thirdparty/ImGui/imgui_draw.cpp",
-			"src/thirdparty/ImGui/imgui_widgets.cpp",
-			"src/thirdparty/ImGui/imgui_tables.cpp",
-			"src/thirdparty/ImGui/imgui_demo.cpp",
-			"src/thirdparty/ImGui/imgui_impl_dx12.cpp",
-			"src/thirdparty/ImGui/imgui_impl_win32.cpp",
-			
-			"src/thirdparty/ImGuizmo/ImGuizmo.cpp",
-		}
 
         includedirs {
             "src/",
@@ -148,6 +136,17 @@ group "Engine"
 	    links {
 			"src/thirdparty/assimp/lib/Debug/assimp-vc143-mdd.lib",
 		}
+		files {
+        	"src/thirdparty/ImGui/imgui.cpp",
+    	    "src/thirdparty/ImGui/imgui_draw.cpp",
+    	    "src/thirdparty/ImGui/imgui_widgets.cpp",
+    	    "src/thirdparty/ImGui/imgui_tables.cpp",
+    	    "src/thirdparty/ImGui/imgui_demo.cpp",
+    	    "src/thirdparty/ImGui/imgui_impl_dx12.cpp",
+    	    "src/thirdparty/ImGui/imgui_impl_win32.cpp",
+    	
+    	    "src/thirdparty/ImGuizmo/ImGuizmo.cpp",
+    	}
 	
         filter "configurations:Develop"
         links {
@@ -160,5 +159,10 @@ group "Engine"
 		}
             
         filter {}
+	
+		postbuildcommands {
+            'copy /Y "$(WindowsSdkDir)bin\\$(TargetPlatformVersion)\\x64\\dxcompiler.dll" "%{cfg.targetdir}\\dxcompiler.dll"',
+            'copy /Y "$(WindowsSdkDir)bin\\$(TargetPlatformVersion)\\x64\\dxil.dll" "%{cfg.targetdir}\\dxil.dll"'
+        }
 	
 		filter {}

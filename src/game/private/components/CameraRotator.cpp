@@ -13,7 +13,7 @@ void CameraRotator::OnAttach(Entity& owner) {
 
 	// 初期回転を取得
 	mPitch = mScene->GetLocalRot().ToEulerAngles().x;
-	mYaw   = mScene->GetLocalRot().ToEulerAngles().y;
+	mYaw = mScene->GetLocalRot().ToEulerAngles().y;
 
 	ConVarManager::RegisterConVar("m_pitch", 0.022f, "Mouse pitch factor.");
 	ConVarManager::RegisterConVar("m_yaw", 0.022f, "Mouse yaw factor.");
@@ -53,9 +53,11 @@ void CameraRotator::Update([[maybe_unused]] float deltaTime) {
 }
 
 void CameraRotator::DrawInspectorImGui() {
+#ifdef _DEBUG
 	if (ImGui::CollapsingHeader("Camera Rotator",
-	                            ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("Pitch: %.2f", mPitch);
 		ImGui::Text("Yaw: %.2f", mYaw);
 	}
+#endif
 }

@@ -16,7 +16,7 @@ bool OldWindowManager::ProcessMessage() {
 	bool quit = false;
 
 	// 全体のメッセージループ
-	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+	while (PeekMessage(&msg, windows_[0]->GetWindowHandle(), 0, 0, PM_REMOVE)) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 		if (msg.message == WM_QUIT) {

@@ -1,83 +1,61 @@
 #pragma once
 
-#include <xmmintrin.h>
 #include <initializer_list>
 
-#pragma warning(push)
-#pragma warning(disable : 4201) // warning C4201: nonstandard extension used: nameless struct/union
-
-
-
-struct Vec3;
 struct Mat4;
+#include <math/public/Vec3.h>
 
-struct alignas(16) Vec4 {
-	union {
-		struct {
-			float x, y, z, w;
-		};
-
-		__m128 simd;
-	};
-
-	static const Vec4 zero;
-	static const Vec4 one;
-
-	// RGB BW
-	static const Vec4 red;
-	static const Vec4 green;
-	static const Vec4 blue;
-	static const Vec4 white;
-	static const Vec4 black;
-
-	static const Vec4 yellow;
-	static const Vec4 cyan;
-	static const Vec4 magenta;
-	static const Vec4 gray;
-	static const Vec4 lightGray;
-	static const Vec4 darkGray;
-	static const Vec4 orange;
-	static const Vec4 purple;
-	static const Vec4 brown;
-
-
-	constexpr Vec4() : x(0), y(0), z(0), w(0) {
+struct Vec4 final {
+	constexpr Vec4(const float x = 0.0f, const float y = 0.0f,
+	               const float z = 0.0f, const float w = 0.0f) : x(x),
+		y(y),
+		z(z),
+		w(w) {
 	}
 
-	constexpr Vec4(const float& x, const float& y, const float& z,
-	               const float& w)
-		: x(x), y(y), z(z), w(w) {
+	constexpr Vec4(const Vec3 vec3, const float w) : x(vec3.x),
+		y(vec3.y),
+		z(vec3.z),
+		w(w) {
 	}
 
-	explicit Vec4(const Vec3& vec3, const float& w = 1.0f);
-
-	constexpr Vec4(
-		const std::initializer_list<float>& list
-	)
-		:
-		x(0), y(0), z(0), w(0) {
+	constexpr Vec4(const std::initializer_list<float> list) {
 		auto it = list.begin();
-		if (list.size() > 0) x = *it++;
-		if (list.size() > 1) y = *it++;
-		if (list.size() > 2) z = *it++;
-		if (list.size() > 3) w = *it++;
+		x       = (it != list.end()) ? *it++ : 0.0f;
+		y       = (it != list.end()) ? *it++ : 0.0f;
+		z       = (it != list.end()) ? *it++ : 0.0f;
+		w       = (it != list.end()) ? *it++ : 0.0f;
 	}
 
-	explicit Vec4(
-		const __m128& v
-	);
+	float       x, y, z, w;
+	static Vec4 one;
+	static Vec4 zero;
 
-	[[nodiscard]] const char* ToString() const;
+	static Vec4 red;
+	static Vec4 green;
+	static Vec4 blue;
+	static Vec4 white;
+	static Vec4 black;
+	static Vec4 yellow;
+	static Vec4 cyan;
+	static Vec4 magenta;
+	static Vec4 gray;
+	static Vec4 lightGray;
+	static Vec4 darkGray;
+	static Vec4 orange;
+	static Vec4 purple;
+	static Vec4 brown;
 
-	//-------------------------------------------------------------------------
-	// Operators
-	//-------------------------------------------------------------------------
-	Vec4 operator+(const Vec4& vec4) const;
-	Vec4 operator-(const Vec4& vec4) const;
-	Vec4 operator*(const Vec4& vec4) const;
-	Vec4 operator/(const Vec4& vec4) const;
+	constexpr float&       operator[](int index);
+	constexpr const float& operator[](int index) const;
 
 	Vec4 operator*(const Mat4& mat4) const;
-	Vec4 operator*(float scalar) const;
-	Vec4 operator/(float scalar) const;
+	Vec4 operator*(float rhs) const;
+	Vec4 operator+(const Vec4& vec4) const;
+	Vec4 operator/(float rhs) const;
 };
+
+#ifdef _DEBUG
+#include <imgui.h>
+ImVec4 ToImVec4(const Vec4& vec);
+#endif

@@ -32,10 +32,10 @@ private:
 
 	static float RoundToNearestPowerOfTwo(float value);
 
-	SceneManager* mSceneManager; // 持ってきたやつ
+	SceneManager* mSceneManager = nullptr; // 持ってきたやつ
 
-	std::shared_ptr<BaseScene> mScene;          // 現在編集中のシーン
-	Entity*                    mSelectedEntity; // 選択中のエンティティ
+	std::shared_ptr<BaseScene> mScene;                    // 現在編集中のシーン
+	Entity*                    mSelectedEntity = nullptr; // 選択中のエンティティ
 
 	// エディターのカメラ
 	std::unique_ptr<Entity>          mCameraEntity;

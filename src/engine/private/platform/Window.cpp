@@ -92,11 +92,11 @@ LRESULT Window::WndProc(
 	}
 
 	case WM_PAINT: {
-		InvalidateRect(hWnd, nullptr, FALSE);
+		//InvalidateRect(hWnd, nullptr, FALSE);
 		return 0;
 	}
 	case WM_SIZE: {
-		InvalidateRect(hWnd, nullptr, FALSE);
+		//InvalidateRect(hWnd, nullptr, FALSE);
 		return 0;
 	}
 

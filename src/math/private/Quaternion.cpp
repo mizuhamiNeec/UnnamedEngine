@@ -1,7 +1,7 @@
+#include <math/public/MathLib.h>
+
 #include <algorithm>
 #include <cmath>
-
-#include <math/public/MathLib.h>
 
 const Quaternion Quaternion::identity = Quaternion(0, 0, 0, 1);
 

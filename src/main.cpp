@@ -13,14 +13,23 @@ int WINAPI wWinMain(
 	_CrtSetDbgFlag( // リークチェック
 		_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF
 	);
-	const auto app    = std::make_unique<Win32App>(hInstance);
+	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+	//const auto app    = std::make_unique<Win32App>(hInstance);
 	const auto engine = std::make_unique<Engine>();
-	if (!app->Init()) { UASSERT(false && "Failed to initialize Win32App"); }
+	//if (!app->Init()) { UASSERT(false && "Failed to initialize Win32App"); }
 	if (!engine->Init()) { UASSERT(false && "Failed to initialize Engine"); }
-	while (Win32App::PollEvents()) {
+	while (true) {
+		if (OldWindowManager::ProcessMessage()) {
+			break;
+		}
 		engine->Update();
+		// if (Win32App::PollEvents()) {
+		// 	break;
+		// }
 	}
 	engine->Shutdown();
-	app->Shutdown();
+	//app->Shutdown();
+	CoUninitialize();
 	return EXIT_SUCCESS;
 }

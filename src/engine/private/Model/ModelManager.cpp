@@ -1,10 +1,8 @@
-#include "../../public/Model/ModelManager.h"
-
-#include "../../public/Model/Model.h"
-#include "../../public/Model/ModelCommon.h"
-
-#include "engine/public/renderer/ConstantBuffer.h"
-#include "engine/public/renderer/VertexBuffer.h"
+#include <engine/public/Model/Model.h>
+#include <engine/public/Model/ModelCommon.h>
+#include <engine/public/Model/ModelManager.h>
+#include <engine/public/renderer/ConstantBuffer.h>
+#include <engine/public/renderer/VertexBuffer.h>
 
 ModelManager* ModelManager::mInstance = nullptr;
 
