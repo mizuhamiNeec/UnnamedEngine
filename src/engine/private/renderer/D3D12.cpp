@@ -55,8 +55,6 @@ D3D12::D3D12(BaseWindow* window) : mWindow(window) {
 
 D3D12::~D3D12() {
 	CloseHandle(mFenceEvent);
-	Console::Print("アリーヴェ帰ルチ! (さよナランチャ\n", kConTextColorCompleted,
-	               Channel::Engine);
 }
 
 void D3D12::Init() {

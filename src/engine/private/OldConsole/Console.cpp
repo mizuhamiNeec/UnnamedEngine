@@ -836,12 +836,34 @@ void Console::ShowConsoleText() {
 #ifdef _DEBUG
 	std::lock_guard lock(mutex_);
 
+	const size_t kMaxConsoleLines = 100000;
+	// まずconsoleTexts_のサイズ上限をチェックし、超えていたらクリア
+	if (consoleTexts_.size() > kMaxConsoleLines) {
+		Print("Console buffer overflow, clearing buffer.\n", kConTextColorError, Channel::Console);
+		consoleTexts_.clear();
+	}
+
 	// 60FPSを超えない頻度でバッファを更新
 	const size_t currentFrame = EngineTimer::GetFrameCount();
 	if (currentFrame - displayState_.lastUpdateFrame > 1) {
 		displayState_.buffer = consoleTexts_;
 		displayState_.selected.resize(displayState_.buffer.size(), false);
 		displayState_.lastUpdateFrame = currentFrame;
+	}
+
+	// displayState_.bufferのサイズ上限もチェック
+	if (displayState_.buffer.size() > kMaxConsoleLines)
+	{
+		Print("Console buffer overflow, clearing buffer.\n", kConTextColorError, Channel::Console);
+		displayState_.buffer.clear();
+	}
+	if (displayState_.buffer.size() > kMaxConsoleLines)
+	{
+		Print("Console buffer still too large after clear.\n", kConTextColorError, Channel::Console);
+	}
+	else
+	{
+		displayState_.selected.resize(displayState_.buffer.size(), false);
 	}
 
 	// 入力フィールドとボタンの高さを取得
@@ -963,8 +985,13 @@ void Console::ShowConsoleText() {
 		// Ctrl+C でコピー
 		if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_C)) {
 			std::string copiedText;
+			constexpr size_t kMaxCopyLength = 1024 * 1024; // 1MBまで
 			for (size_t i = 0; i < displayState_.buffer.size(); ++i) {
 				if (displayState_.selected[i]) {
+					if (copiedText.size() + displayState_.buffer[i].text.size() > kMaxCopyLength) {
+						copiedText += "\n... (copy truncated) ...";
+						break;
+					}
 					copiedText += displayState_.buffer[i].text;
 				}
 			}
@@ -1050,8 +1077,13 @@ void Console::ShowContextMenu() {
 		if (ImGui::MenuItem(
 			(StrUtil::ConvertToUtf8(kIconCopy) + " Copy Selected").c_str())) {
 			std::string copiedText;
+			constexpr size_t kMaxCopyLength = 1024 * 1024; // 1MBまで
 			for (size_t i = 0; i < displayState_.buffer.size(); ++i) {
 				if (displayState_.selected[i]) {
+					if (copiedText.size() + displayState_.buffer[i].text.size() > kMaxCopyLength) {
+						copiedText += "\n... (copy truncated) ...";
+						break;
+					}
 					copiedText += displayState_.buffer[i].text;
 				}
 			}
