@@ -20,5 +20,8 @@ private:
 	D3D12*                   mRenderer = nullptr;
 	std::unique_ptr<CubeMap> mCubeMap;
 
-	std::unique_ptr<Entity> mSkeletalMeshEntity;
+	std::unique_ptr<Entity> mEntSkeletalMesh;
+	std::unique_ptr<Entity> mEntPlayer;
+
+	std::unique_ptr<Entity> mEntCamera;
 };

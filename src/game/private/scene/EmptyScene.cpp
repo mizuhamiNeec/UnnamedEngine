@@ -1,9 +1,11 @@
-
 #include "game/public/scene/EmptyScene.h"
 
 #include "engine/public/Engine.h"
+#include "engine/public/Camera/CameraManager.h"
 #include "engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h"
 #include "engine/public/TextureManager/TexManager.h"
+
+#include "game/public/components/PlayerMovement.h"
 
 EmptyScene::~EmptyScene() {
 	// クリーンアップ処理
@@ -38,15 +40,36 @@ void EmptyScene::Init() {
 		"./Resources/Models/man/man.gltf"
 	);
 
-	mSkeletalMeshEntity = std::make_unique<Entity>("SkeletalMeshEntity");
-	auto sklMesh = mSkeletalMeshEntity->AddComponent<SkeletalMeshRenderer>();
+	mEntSkeletalMesh = std::make_unique<Entity>("SkeletalMeshEntity");
+	auto sklMesh     = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
 
 	auto skeletalMesh = mResourceManager->GetMeshManager()->GetSkeletalMesh(
 		"./Resources/Models/man/man.gltf"
 	);
 	sklMesh->SetSkeletalMesh(skeletalMesh);
 
-	AddEntity(mSkeletalMeshEntity.get());
+	AddEntity(mEntSkeletalMesh.get());
+
+	mEntPlayer    = std::make_unique<Entity>("PlayerEntity");
+	auto movement = mEntPlayer->AddComponent<PlayerMovement>();
+	movement;
+
+	mEntSkeletalMesh->SetParent(mEntPlayer.get());
+
+	AddEntity(mEntPlayer.get());
+
+	mEntCamera = std::make_unique<Entity>("CameraEntity");
+	// 生ポインタを取得
+	CameraComponent* rawCameraPtr = mEntCamera->AddComponent<CameraComponent>();
+	// 生ポインタを std::shared_ptr に変換
+	const auto camera = std::shared_ptr<CameraComponent>(
+		rawCameraPtr, [](CameraComponent*) {
+		}
+	);
+	CameraManager::AddCamera(camera);
+
+	mEntCamera->SetParent(mEntPlayer.get());
+	AddEntity(mEntCamera.get());
 
 	Console::Print("EmptyScene initialized");
 }
