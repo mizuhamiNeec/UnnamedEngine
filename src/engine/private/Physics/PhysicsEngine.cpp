@@ -508,11 +508,8 @@ void PhysicsEngine::UpdateBVH() {
 
 	mStaticBVH.DrawBvh(Vec4::magenta);
 
-	for (const auto& [collider, nodeId] : mColliderNodeIds) {
-		AABB nodeAABB = {Vec3::zero, Vec3::zero};
-		nodeAABB      = mStaticMeshes[collider].localBVH.GetNodeAABB(nodeId);
-		Debug::DrawBox(nodeAABB.GetCenter(), Quaternion::identity,
-		               nodeAABB.GetSize(), Vec4::yellow);
+	for (const auto& [collider, meshData] : mStaticMeshes) {
+		//meshData.localBVH.DrawBvh(Vec4::brown);
 	}
 }
 
