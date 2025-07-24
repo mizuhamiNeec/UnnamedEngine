@@ -32,7 +32,7 @@ void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 
 	// 変換行列用の定数バッファ
 	mTransformationMatrixConstantBuffer = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(TransformationMatrix),
 		"SkeletalMeshTransformation"
 	);
@@ -44,7 +44,7 @@ void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 
 	// ボーン変換行列用の定数バッファ
 	mBoneMatricesConstantBuffer = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(BoneMatrices),
 		"BoneMatrices"
 	);
@@ -58,7 +58,7 @@ void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 	// TODO: 消す予定
 	{
 		mMatParamCBV = std::make_unique<ConstantBuffer>(
-			Engine::GetRenderer()->GetDevice(),
+			Unnamed::Engine::GetRenderer()->GetDevice(),
 			sizeof(MatParam),
 			"MatParam"
 		);
@@ -71,7 +71,7 @@ void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 	}
 
 	mDirectionalLightCb = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(DirectionalLight),
 		"DirectionalLight"
 	);
@@ -81,7 +81,7 @@ void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 	mDirectionalLightData->intensity = 8.0f;
 
 	mCameraCb = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(CameraForGPU),
 		"Camera"
 	);
@@ -89,7 +89,7 @@ void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 	mCameraData->worldPosition = Vec3::zero;
 
 	mPointLightCb = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(PointLight),
 		"PointLight"
 	);
@@ -101,7 +101,7 @@ void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 	mPointLightData->decay     = 1.0f;
 
 	mSpotLightCb = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(SpotLight),
 		"SpotLight"
 	);
@@ -626,7 +626,7 @@ void SkeletalMeshRenderer::DrawBoneHierarchy(
 			Debug::DrawLine(parentPos, nodePos, {0.8f, 0.8f, 0.2f, 1.0f});
 			{
 				const Vec3 worldPos   = nodePos;
-				Vec2       screenSize = Engine::GetViewportSize();
+				Vec2       screenSize = Unnamed::Engine::GetViewportSize();
 
 				const Vec3 cameraPos = CameraManager::GetActiveCamera()->
 				                       GetViewMat().
@@ -656,7 +656,7 @@ void SkeletalMeshRenderer::DrawBoneHierarchy(
 #ifdef _DEBUG
 					//auto   viewport  = ImGui::GetMainViewport();
 					ImVec2 screenPos = {
-						Engine::GetViewportLT().x, Engine::GetViewportLT().y
+						Unnamed::Engine::GetViewportLT().x, Unnamed::Engine::GetViewportLT().y
 					};
 					ImGui::SetNextWindowPos(screenPos);
 					ImGui::SetNextWindowSize({screenSize.x, screenSize.y});

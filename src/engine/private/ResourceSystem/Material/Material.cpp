@@ -68,7 +68,7 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList, const std::string& 
 
 	// ルートシグネチャの取得と設定
 	auto rootSignature = GetOrCreateRootSignature(
-		Engine::GetRenderer()->GetDevice());
+		Unnamed::Engine::GetRenderer()->GetDevice());
 	if (!rootSignature) {
 		Console::Print("ルートシグネチャが設定されていません。\n", kConTextColorError,
 		               Channel::ResourceSystem);
@@ -122,7 +122,7 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList, const std::string& 
 		desc.InputLayout = Vertex::inputLayout;
 	}
 
-	auto pso = GetOrCreatePipelineState(Engine::GetRenderer()->GetDevice(),
+	auto pso = GetOrCreatePipelineState(Unnamed::Engine::GetRenderer()->GetDevice(),
 	                                    desc, meshName);
 	if (!pso) {
 		Console::Print("パイプラインステートが作成されていません。\n", kConTextColorError,
@@ -159,7 +159,7 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList, const std::string& 
 
 	// ディスクリプタヒープを設定
 	ID3D12DescriptorHeap* descriptorHeaps[] = {
-		Engine::GetSrvManager()->GetDescriptorHeap()
+		Unnamed::Engine::GetSrvManager()->GetDescriptorHeap()
 	};
 	commandList->SetDescriptorHeaps(1, descriptorHeaps);
 
@@ -216,7 +216,7 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList, const std::string& 
 			uint32_t adjustedSrvIndex = (firstSrvIndex > 0) ? firstSrvIndex - 1 : firstSrvIndex;
 			
 			// そのSRVインデックスからGPUハンドルを計算
-			D3D12_GPU_DESCRIPTOR_HANDLE handle = Engine::GetSrvManager()->GetGPUDescriptorHandle(adjustedSrvIndex);
+			D3D12_GPU_DESCRIPTOR_HANDLE handle = Unnamed::Engine::GetSrvManager()->GetGPUDescriptorHandle(adjustedSrvIndex);
 
 			// Console::Print(
 			// 	std::format(

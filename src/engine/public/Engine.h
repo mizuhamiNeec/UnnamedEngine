@@ -23,128 +23,130 @@
 
 #include <game/public/scene/base/BaseScene.h>
 
-#include <math/public/mathlib.h>
+#include "subsystem/console/interface/IConsole.h"
 
-class Engine {
-public:
-	Engine();
-	~Engine();
+namespace Unnamed {
+	class Engine {
+	public:
+		Engine();
+		~Engine();
 
-	bool Init();
-	void Update();
-	void Shutdown() const;
+		bool Init();
+		void Update();
+		void Shutdown() const;
 
-	//-------------------------------------------------------------------------
-	// Purpose: 旧エンジン
-	//-------------------------------------------------------------------------
+		//-------------------------------------------------------------------------
+		// Purpose: 旧エンジン
+		//-------------------------------------------------------------------------
 
-	//
-	// TODO: staticで取得するのはやめる
-	//
+		//
+		// TODO: staticで取得するのはやめる
+		//
 
-	static bool IsEditorMode() {
-		return mIsEditorMode;
-	}
-
-	static D3D12* GetRenderer() {
-		return mRenderer.get();
-	}
-
-	static ResourceManager* GetResourceManager() {
-		return mResourceManager.get();
-	}
-
-	static ParticleManager* GetParticleManager() {
-		return mParticleManager.get();
-	}
-
-	static SrvManager* GetSrvManager() {
-		return mSrvManager.get();
-	}
-
-	static SceneManager* GetSceneManager() {
-		return mSceneManager.get();
-	}
-
-	// TODO: エンジンでやるべきじゃない
-	static void ChangeScene(const std::string& sceneName) {
-		if (GetSceneManager() && sceneName != "") {
-			GetSceneManager()->ChangeScene(sceneName);
+		static bool IsEditorMode() {
+			return mIsEditorMode;
 		}
-	}
 
-	static std::shared_ptr<BaseScene> GetCurrentScene() {
-		if (GetSceneManager()) {
-			return GetSceneManager()->GetCurrentScene();
+		static D3D12* GetRenderer() {
+			return mRenderer.get();
 		}
-	}
 
-	void OnResize(uint32_t width, uint32_t height);
-	void ResizeOffscreenRenderTextures(uint32_t width, uint32_t height);
+		static ResourceManager* GetResourceManager() {
+			return mResourceManager.get();
+		}
 
-	static Vec2 GetViewportLT() {
-		return mViewportLT;
-	}
+		static ParticleManager* GetParticleManager() {
+			return mParticleManager.get();
+		}
 
-	static Vec2 GetViewportSize() {
-		return mViewportSize;
-	}
+		static SrvManager* GetSrvManager() {
+			return mSrvManager.get();
+		}
 
-	static void RegisterConsoleCommandsAndVariables();
-	static void Quit(const std::vector<std::string>& args = {});
-	static void SetEditorMode(const std::vector<std::string>& args = {});
-	void        CheckEditorMode();
+		static SceneManager* GetSceneManager() {
+			return mSceneManager.get();
+		}
 
-private:
-	std::unique_ptr<OldWindowManager> mWindowManager;
+		// TODO: エンジンでやるべきじゃない
+		static void ChangeScene(const std::string& sceneName) {
+			if (GetSceneManager() && sceneName != "") {
+				GetSceneManager()->ChangeScene(sceneName);
+			}
+		}
 
-	static std::unique_ptr<SrvManager>      mSrvManager;
-	static std::unique_ptr<ResourceManager> mResourceManager;
+		static std::shared_ptr<BaseScene> GetCurrentScene() {
+			if (GetSceneManager()) {
+				return GetSceneManager()->GetCurrentScene();
+			}
+		}
 
-	std::unique_ptr<EngineTimer> mTime;
+		void OnResize(uint32_t width, uint32_t height);
+		void ResizeOffscreenRenderTextures(uint32_t width, uint32_t height);
 
-	static std::unique_ptr<D3D12> mRenderer;
+		static Vec2 GetViewportLT() {
+			return mViewportLT;
+		}
+
+		static Vec2 GetViewportSize() {
+			return mViewportSize;
+		}
+
+		static void RegisterConsoleCommandsAndVariables();
+		static void Quit(const std::vector<std::string>& args = {});
+		static void SetEditorMode(const std::vector<std::string>& args = {});
+		void        CheckEditorMode();
+
+	private:
+		std::unique_ptr<OldWindowManager> mWindowManager;
+
+		static std::unique_ptr<SrvManager>      mSrvManager;
+		static std::unique_ptr<ResourceManager> mResourceManager;
+
+		std::unique_ptr<EngineTimer> mTime;
+
+		static std::unique_ptr<D3D12> mRenderer;
 #ifdef _DEBUG
-	std::unique_ptr<ImGuiManager> mImGuiManager;
+		std::unique_ptr<ImGuiManager> mImGuiManager;
 #endif
 
-	static std::unique_ptr<ParticleManager> mParticleManager;
+		static std::unique_ptr<ParticleManager> mParticleManager;
 
-	std::unique_ptr<CopyImagePass> mCopyImagePass;
+		std::unique_ptr<CopyImagePass> mCopyImagePass;
 
-	std::unique_ptr<SpriteCommon>   mSpriteCommon;
-	std::unique_ptr<Object3DCommon> mObject3DCommon;
-	std::unique_ptr<ModelCommon>    mModelCommon;
-	std::unique_ptr<LineCommon>     mLineCommon;
+		std::unique_ptr<SpriteCommon>   mSpriteCommon;
+		std::unique_ptr<Object3DCommon> mObject3DCommon;
+		std::unique_ptr<ModelCommon>    mModelCommon;
+		std::unique_ptr<LineCommon>     mLineCommon;
 
-	std::unique_ptr<SceneFactory> mSceneFactory;
+		std::unique_ptr<SceneFactory> mSceneFactory;
 
-	static std::shared_ptr<SceneManager> mSceneManager;
+		static std::shared_ptr<SceneManager> mSceneManager;
 
-	std::unique_ptr<Editor>  mEditor;
-	std::unique_ptr<Console> mConsole;
+		std::unique_ptr<Editor>  mEditor;
+		std::unique_ptr<Console> mConsole;
 
-	std::optional<std::string> mLoadFilePath;
+		std::optional<std::string> mLoadFilePath;
 
-	std::unique_ptr<EntityLoader> mEntityLoader;
+		std::unique_ptr<EntityLoader> mEntityLoader;
 
-	RenderTargetTexture mOffscreenRtv;
-	DepthStencilTexture mOffscreenDsv;
-	RenderPassTargets   mOffscreenRenderPassTargets;
+		RenderTargetTexture mOffscreenRtv;
+		DepthStencilTexture mOffscreenDsv;
+		RenderPassTargets   mOffscreenRenderPassTargets;
 
-	RenderTargetTexture mPostProcessedRtv;
-	DepthStencilTexture mPostProcessedDsv;
-	RenderPassTargets   mPostProcessedRenderPassTargets;
+		RenderTargetTexture mPostProcessedRtv;
+		DepthStencilTexture mPostProcessedDsv;
+		RenderPassTargets   mPostProcessedRenderPassTargets;
 
-	static Vec2 mViewportLT;
-	static Vec2 mViewportSize;
-	static bool mIsEditorMode;
-	static bool mWishShutdown;
+		static Vec2 mViewportLT;
+		static Vec2 mViewportSize;
+		static bool mIsEditorMode;
+		static bool mWishShutdown;
 
-public:
-	//-------------------------------------------------------------------------
-	// Purpose: 新エンジン 
-	//-------------------------------------------------------------------------
-private:
-	std::vector<std::unique_ptr<ISubsystem>> mSubsystems;
-};
+	public:
+		//-------------------------------------------------------------------------
+		// Purpose: 新エンジン 
+		//-------------------------------------------------------------------------
+	private:
+		std::vector<std::unique_ptr<ISubsystem>> mSubsystems;
+	};
+}

@@ -18,6 +18,8 @@
 #include <game/public/components/weapon/base/WeaponComponent.h>
 #include <game/public/scene/base/BaseScene.h>
 
+#include "engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h"
+
 class D3D12;
 class EnemyMovement;
 class CameraRotator;
@@ -41,7 +43,7 @@ private:
 
 	std::unique_ptr<CubeMap> mCubeMap;
 
-	std::unique_ptr<Entity> mCameraRoot;
+	std::unique_ptr<Entity> mEntCameraRoot;
 	CameraRotator*          mCameraRotator = nullptr;
 
 	std::unique_ptr<Entity>          mCamera;
@@ -60,6 +62,9 @@ private:
 	std::shared_ptr<WeaponSway>         mWeaponSway;
 
 	std::unique_ptr<Entity> mEntShakeRoot;
+
+	std::unique_ptr<Entity>               mEntSkeletalMesh;
+	std::shared_ptr<SkeletalMeshRenderer> mSkeletalMeshRenderer;
 
 	// テレポートトリガー用のAABB
 	Vec3 mTeleportTriggerMin;    // ボックスの最小点

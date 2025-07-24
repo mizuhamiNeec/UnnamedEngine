@@ -265,20 +265,23 @@ void D3D12::BeginRenderPass(const RenderPassTargets& targets) const {
 		targets.pDSV
 	);
 
-	if (targets.bClearColor) {
-		FLOAT clearColor[4] = {
-			targets.clearColor.x,
-			targets.clearColor.y,
-			targets.clearColor.z,
-			targets.clearColor.w
-		};
-		for (uint32_t i = 0; i < targets.numRTVs; ++i) {
-			mCommandList->ClearRenderTargetView(
-				targets.pRTVs[i],
-				clearColor,
-				0,
-				nullptr
-			);
+	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
+		if (targets.bClearColor) {
+
+			FLOAT clearColor[4] = {
+				targets.clearColor.x,
+				targets.clearColor.y,
+				targets.clearColor.z,
+				targets.clearColor.w
+			};
+			for (uint32_t i = 0; i < targets.numRTVs; ++i) {
+				mCommandList->ClearRenderTargetView(
+					targets.pRTVs[i],
+					clearColor,
+					0,
+					nullptr
+				);
+			}
 		}
 	}
 

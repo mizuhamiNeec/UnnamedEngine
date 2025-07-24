@@ -16,7 +16,7 @@ int WINAPI wWinMain(
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
 	//const auto app    = std::make_unique<Win32App>(hInstance);
-	const auto engine = std::make_unique<Engine>();
+	const auto engine = std::make_unique<Unnamed::Engine>();
 	//if (!app->Init()) { UASSERT(false && "Failed to initialize Win32App"); }
 	if (!engine->Init()) { UASSERT(false && "Failed to initialize Engine"); }
 	while (true) {

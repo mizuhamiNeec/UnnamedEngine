@@ -16,8 +16,8 @@ struct MatParam {
 StaticMeshRenderer::~StaticMeshRenderer() {
 	mTransformationMatrixConstantBuffer.reset();
 	mTransformationMatrix = nullptr;
-	mScene = nullptr;
-	mStaticMesh = nullptr;
+	mScene                = nullptr;
+	mStaticMesh           = nullptr;
 }
 
 void StaticMeshRenderer::OnAttach(Entity& owner) {
@@ -25,74 +25,74 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 	mScene = mOwner->GetTransform();
 
 	mTransformationMatrixConstantBuffer = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(TransformationMatrix),
 		"StaticMeshTransformation"
 	);
 	mTransformationMatrix = mTransformationMatrixConstantBuffer->GetPtr<
 		TransformationMatrix>();
-	mTransformationMatrix->wvp = Mat4::identity;
-	mTransformationMatrix->world = Mat4::identity;
+	mTransformationMatrix->wvp                   = Mat4::identity;
+	mTransformationMatrix->world                 = Mat4::identity;
 	mTransformationMatrix->worldInverseTranspose = Mat4::identity;
 
 	{
 		mMatParamCBV = std::make_unique<ConstantBuffer>(
-			Engine::GetRenderer()->GetDevice(),
+			Unnamed::Engine::GetRenderer()->GetDevice(),
 			sizeof(MatParam),
 			"MatParam"
 		);
 
-		mMaterialData = mMatParamCBV->GetPtr<MatParam>();
-		mMaterialData->baseColor = { 0.5f, 0.5f, 0.5f, 1.0f };
-		mMaterialData->metallic = 0.25f;
+		mMaterialData            = mMatParamCBV->GetPtr<MatParam>();
+		mMaterialData->baseColor = {0.5f, 0.5f, 0.5f, 1.0f};
+		mMaterialData->metallic  = 0.25f;
 		mMaterialData->roughness = 0.5f;
-		mMaterialData->emissive = { 0.0f, 0.0f, 0.0f };
+		mMaterialData->emissive  = {0.0f, 0.0f, 0.0f};
 	}
 
 	mDirectionalLightCb = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(DirectionalLight),
 		"DirectionalLight"
 	);
 	mDirectionalLightData = mDirectionalLightCb->GetPtr<DirectionalLight>();
-	mDirectionalLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	mDirectionalLightData->direction = { -0.2f, -0.9f, 0.25f };
+	mDirectionalLightData->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	mDirectionalLightData->direction = {-0.2f, -0.9f, 0.25f};
 	mDirectionalLightData->intensity = 8.0f;
 
 	mCameraCb = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(CameraForGPU),
 		"Camera"
 	);
-	mCameraData = mCameraCb->GetPtr<CameraForGPU>();
+	mCameraData                = mCameraCb->GetPtr<CameraForGPU>();
 	mCameraData->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().
 		GetTranslate();
 
 	mPointLightCb = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(PointLight),
 		"PointLight"
 	);
-	mPointLightData = mPointLightCb->GetPtr<PointLight>();
-	mPointLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	mPointLightData->position = { 0.0f, 4.0f, 0.0f };
+	mPointLightData            = mPointLightCb->GetPtr<PointLight>();
+	mPointLightData->color     = {1.0f, 1.0f, 1.0f, 1.0f};
+	mPointLightData->position  = {0.0f, 4.0f, 0.0f};
 	mPointLightData->intensity = 1.0f;
-	mPointLightData->radius = 1.0f;
-	mPointLightData->decay = 1.0f;
+	mPointLightData->radius    = 1.0f;
+	mPointLightData->decay     = 1.0f;
 
 	mSpotLightCb = std::make_unique<ConstantBuffer>(
-		Engine::GetRenderer()->GetDevice(),
+		Unnamed::Engine::GetRenderer()->GetDevice(),
 		sizeof(SpotLight),
 		"SpotLight"
 	);
-	mSpotLightData = mSpotLightCb->GetPtr<SpotLight>();
-	mSpotLightData->color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	mSpotLightData->position = { 0.0f, 4.0f, 0.0f };
-	mSpotLightData->intensity = 1.0f;
-	mSpotLightData->direction = { 0.0f, -1.0f, 0.0f };
-	mSpotLightData->distance = 8.0f;
-	mSpotLightData->decay = 2.0f;
-	mSpotLightData->cosAngle = 0.5f;
+	mSpotLightData                  = mSpotLightCb->GetPtr<SpotLight>();
+	mSpotLightData->color           = {1.0f, 1.0f, 1.0f, 1.0f};
+	mSpotLightData->position        = {0.0f, 4.0f, 0.0f};
+	mSpotLightData->intensity       = 1.0f;
+	mSpotLightData->direction       = {0.0f, -1.0f, 0.0f};
+	mSpotLightData->distance        = 8.0f;
+	mSpotLightData->decay           = 2.0f;
+	mSpotLightData->cosAngle        = 0.5f;
 	mSpotLightData->cosFalloffStart = 0.5f;
 }
 
@@ -100,7 +100,7 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 	// メッシュが存在しない場合は描画をスキップ
 	if (!mStaticMesh) {
 		Console::Print("StaticMeshRenderer::Render - メッシュがnullです\n",
-			kConTextColorError, Channel::RenderSystem);
+		               kConTextColorError, Channel::RenderSystem);
 		return;
 	}
 
@@ -123,8 +123,8 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 					GetViewProjMat();
 				Mat4 worldViewProjMat = worldMat * viewProjMat;
 
-				mTransformationMatrix->wvp = worldViewProjMat;
-				mTransformationMatrix->world = worldMat;
+				mTransformationMatrix->wvp                   = worldViewProjMat;
+				mTransformationMatrix->world                 = worldMat;
 				mTransformationMatrix->worldInverseTranspose = worldMat.
 					Inverse().Transpose();
 
@@ -132,40 +132,40 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 				const UINT vsTransformRegister = material->GetShader()->
 					GetResourceRegister("gTransformationMatrix");
 				material->SetConstantBuffer(vsTransformRegister,
-					mTransformationMatrixConstantBuffer
-					->GetResource());
+				                            mTransformationMatrixConstantBuffer
+				                            ->GetResource());
 			}
 
 			// PS用の各種パラメータ
 			const UINT materialRegister = material->GetShader()->
-				GetResourceRegister(
-					"gMaterial");
+			                                        GetResourceRegister(
+				                                        "gMaterial");
 			material->SetConstantBuffer(materialRegister,
-				mMatParamCBV->GetResource());
+			                            mMatParamCBV->GetResource());
 
 			const UINT dirLightRegister = material->GetShader()->
-				GetResourceRegister(
-					"gDirectionalLight");
+			                                        GetResourceRegister(
+				                                        "gDirectionalLight");
 			if (dirLightRegister < 0xffffffff) {
 				material->SetConstantBuffer(dirLightRegister,
-					mDirectionalLightCb->GetResource());
+				                            mDirectionalLightCb->GetResource());
 			}
 
 			const UINT cameraRegister = material->GetShader()->
-				GetResourceRegister(
-					"gCamera");
+			                                      GetResourceRegister(
+				                                      "gCamera");
 			if (cameraRegister < 0xffffffff) {
 				mCameraData->worldPosition = CameraManager::GetActiveCamera()->
-					GetViewMat().Inverse().
-					GetTranslate();
+				                             GetViewMat().Inverse().
+				                             GetTranslate();
 				material->SetConstantBuffer(cameraRegister,
-					mCameraCb->GetResource());
+				                            mCameraCb->GetResource());
 			}
 
 			// マテリアルのApply（すべてのテクスチャがディスクリプタテーブルでバインドされる）
 			std::string meshName = mStaticMesh
-				? mStaticMesh->GetName()
-				: "UnknownMesh";
+				                       ? mStaticMesh->GetName()
+				                       : "UnknownMesh";
 
 			// ファイルパスからファイル名のみを抽出
 			size_t lastSlash = meshName.find_last_of("/\\");
@@ -189,8 +189,7 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 			}
 
 			currentlyBoundMaterial = material;
-		}
-		else if (!material) {
+		} else if (!material) {
 			Console::Print(
 				"サブメッシュにマテリアルが設定されていません\n",
 				kConTextColorError,
@@ -208,7 +207,7 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 #ifdef _DEBUG
 	// 子クラスのインスペクターUIの描画
 	if (ImGui::CollapsingHeader("StaticMeshRenderer",
-		ImGuiTreeNodeFlags_DefaultOpen)) {
+	                            ImGuiTreeNodeFlags_DefaultOpen)) {
 		if (mStaticMesh) {
 			ImGui::Text("MatParams");
 			ImGui::ColorEdit4("BaseColor", &mMaterialData->baseColor.x);
@@ -220,44 +219,44 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 
 			ImGui::Text("DirectionalLight");
 			ImGui::ColorEdit4("Color##Directional",
-				&mDirectionalLightData->color.x);
+			                  &mDirectionalLightData->color.x);
 			if (ImGui::DragFloat3("Direction##Directional",
-				&mDirectionalLightData->direction.x, 0.01f)) {
+			                      &mDirectionalLightData->direction.x, 0.01f)) {
 				mDirectionalLightData->direction.Normalize();
 			}
 			ImGui::DragFloat("Intensity##Directional",
-				&mDirectionalLightData->intensity, 0.01f);
+			                 &mDirectionalLightData->intensity, 0.01f);
 
 			ImGui::Text("CameraForGPU");
 			ImGui::Text("World Position: %f, %f, %f",
-				mCameraData->worldPosition.x,
-				mCameraData->worldPosition.y,
-				mCameraData->worldPosition.z);
+			            mCameraData->worldPosition.x,
+			            mCameraData->worldPosition.y,
+			            mCameraData->worldPosition.z);
 
 			ImGui::Text("PointLight");
 			ImGui::ColorEdit4("Color##Point", &mPointLightData->color.x);
 			ImGui::DragFloat3("Position##Point", &mPointLightData->position.x,
-				0.01f);
+			                  0.01f);
 			ImGui::DragFloat("Intensity##Point", &mPointLightData->intensity,
-				0.01f);
+			                 0.01f);
 			ImGui::DragFloat("Radius##Point", &mPointLightData->radius, 0.01f);
 			ImGui::DragFloat("Decay##Point", &mPointLightData->decay, 0.01f);
 
 			ImGui::Text("SpotLight");
 			ImGui::ColorEdit4("Color##Spot", &mSpotLightData->color.x);
 			ImGui::DragFloat3("Position##Spot", &mSpotLightData->position.x,
-				0.01f);
+			                  0.01f);
 			ImGui::DragFloat("Intensity##Spot", &mSpotLightData->intensity,
-				0.01f);
+			                 0.01f);
 			ImGui::DragFloat3("Direction##Spot", &mSpotLightData->direction.x,
-				0.01f);
+			                  0.01f);
 			ImGui::DragFloat("Distance##Spot", &mSpotLightData->distance,
-				0.01f);
+			                 0.01f);
 			ImGui::DragFloat("Decay##Spot", &mSpotLightData->decay, 0.01f);
 			ImGui::DragFloat("CosAngle##Spot", &mSpotLightData->cosAngle,
-				0.01f);
+			                 0.01f);
 			ImGui::DragFloat("CosFalloff##Spot",
-				&mSpotLightData->cosFalloffStart, 0.01f);
+			                 &mSpotLightData->cosFalloffStart, 0.01f);
 
 			ImGui::Text("Name: %s", mStaticMesh->GetName().c_str());
 
@@ -287,7 +286,7 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 									uint32_t textureIndex = texManager->
 										GetTextureIndexByFilePath(filePath);
 									ImGui::Text("テクスチャインデックス: %u",
-										textureIndex);
+									            textureIndex);
 
 									// テクスチャのプレビューを表示
 									D3D12_GPU_DESCRIPTOR_HANDLE handle =
@@ -310,12 +309,10 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 													height));
 											ImGui::Text(
 												"フォーマット: %d", metadata.format);
-										}
-										catch (...) {
+										} catch (...) {
 											ImGui::Text("メタデータ取得エラー");
 										}
-									}
-									else {
+									} else {
 										ImGui::Text("テクスチャのGPUハンドルが無効です");
 										// テクスチャロード試行
 										if (ImGui::Button("テクスチャ再ロード")) {
@@ -325,8 +322,7 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 									ImGui::TreePop();
 								}
 							}
-						}
-						else {
+						} else {
 							ImGui::Text("テクスチャなし");
 						}
 						ImGui::TreePop();
@@ -335,7 +331,7 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 			}
 		}
 	}
-#endif	
+#endif
 }
 
 StaticMesh* StaticMeshRenderer::GetStaticMesh() const {

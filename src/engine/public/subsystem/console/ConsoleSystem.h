@@ -1,18 +1,33 @@
 ﻿#pragma once
 #include <engine/public/subsystem/console/interface/IConsole.h>
 #include <engine/public/subsystem/interface/ISubsystem.h>
+#include <engine/public/utils/container/RingBuffer.h>
 
-class ConsoleSystem final : public ISubsystem, public IConsole {
-public:
-	~ConsoleSystem() override;
+namespace Unnamed {
+	constexpr uint32_t kConsoleBufferSize = 1024;
 
-	bool Init() override;
-	void Update(float deltaTime) override;
-	void Shutdown() override;
+	struct ConsoleLogText {
+		LogLevel    level;
+		std::string channel;
+		std::string message;
+	};
 
-	[[nodiscard]] const std::string_view GetName() const override;
+	class ConsoleSystem final : public ISubsystem, public IConsole {
+	public:
+		~ConsoleSystem() override;
 
-	void Msg(std::string_view message) override;
+		// ISubsystem
+		bool Init() override;
+		void Update(float deltaTime) override;
+		void Shutdown() override;
 
-private:
-};
+		[[nodiscard]] const std::string_view GetName() const override;
+
+		// IConsole
+		void Print(LogLevel         level, std::string_view channel,
+		           std::string_view message) override;
+
+	private:
+		RingBuffer<ConsoleLogText, kConsoleBufferSize> mLogBuffer;
+	};
+}

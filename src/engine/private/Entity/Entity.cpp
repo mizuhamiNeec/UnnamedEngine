@@ -45,7 +45,7 @@ void Entity::Update(const float deltaTime) {
 
 	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
 		Vec3 worldPos   = GetTransform()->GetWorldPos();
-		Vec2 screenSize = Engine::GetViewportSize();
+		Vec2 screenSize = Unnamed::Engine::GetViewportSize();
 
 		Debug::DrawAxis(worldPos,
 		                GetTransform()->GetWorldRot());
@@ -77,7 +77,7 @@ void Entity::Update(const float deltaTime) {
 #ifdef _DEBUG
 			//auto   viewport  = ImGui::GetMainViewport();
 			ImVec2 screenPos = {
-				Engine::GetViewportLT().x, Engine::GetViewportLT().y
+				Unnamed::Engine::GetViewportLT().x, Unnamed::Engine::GetViewportLT().y
 			};
 			ImGui::SetNextWindowPos(screenPos);
 			ImGui::SetNextWindowSize({screenSize.x, screenSize.y});
@@ -242,7 +242,7 @@ void Entity::SetParent(Entity* newParent) {
 		mScene->MarkDirty();
 
 		// 子のトランスフォーム更新
-		for (auto* child : mChildren) {
+		for (const auto* child : mChildren) {
 			if (child->mScene) {
 				child->mScene->MarkDirty();
 			}

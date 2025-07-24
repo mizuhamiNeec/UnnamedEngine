@@ -1,6 +1,9 @@
-﻿#include <public/Core/Console/UnnamedConCommandBase.h>
+﻿#include <pch.h>
 
-namespace Core {
+#include <engine/public/subsystem/console/base/UnnamedConCommandBase.h>
+#include <engine/public/subsystem/console/ConsoleFlags.h>
+
+namespace Unnamed {
 	const char* ToString(FCVAR e) {
 		switch (e) {
 		case FCVAR::NONE: return "NONE";
@@ -53,11 +56,11 @@ namespace Core {
 			mFlags = static_cast<FCVAR>(static_cast<int>(mFlags) & ~static_cast<
 				int>(flag));
 		} else {
-			UnnamedConsole::Warning(
-				"ConCommand",
-				"存在しないフラグを削除しようとしました: {}",
-				ToString(flag)
-			);
+			// Log::Warning(
+			// 	"ConCommand",
+			// 	"存在しないフラグを削除しようとしました: {}",
+			// 	ToString(flag)
+			// );
 		}
 	}
 

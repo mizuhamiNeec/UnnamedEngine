@@ -1,8 +1,7 @@
 ﻿#pragma once
 #include <cstdint>
-#include <string>
 
-namespace Core {
+namespace Unnamed {
 	enum class FCVAR : uint32_t {
 		//--------Shared-------------------------------------------------------
 		NONE = 0, // フラグなし
@@ -37,32 +36,4 @@ namespace Core {
 	FCVAR& operator|=(FCVAR& lhs, const FCVAR& rhs);
 	bool   operator&(const FCVAR& lhs, const FCVAR& rhs);
 	bool   operator!=(const FCVAR& lhs, const FCVAR& rhs);
-
-	//-----------------------------------------------------------------------------
-	// Purpose: コンソールコマンドの基本クラス
-	//-----------------------------------------------------------------------------
-	class UnnamedConCommandBase {
-	public:
-		UnnamedConCommandBase(
-			const std::string_view& name, const std::string_view& description,
-			const FCVAR             flags = FCVAR::NONE
-		) : mName(name), mDescription(description), mFlags(flags) {
-		}
-
-		virtual ~UnnamedConCommandBase() = default;
-
-		[[nodiscard]] virtual bool IsCommand() const = 0;
-
-		[[nodiscard]] bool HasFlags(const FCVAR& flags) const;
-		void               AddFlag(const FCVAR& flag);
-		void               RemoveFlag(const FCVAR& flag);
-
-		[[nodiscard]] std::string_view GetName() const;
-		[[nodiscard]] std::string_view GetDescription() const;
-
-	protected:
-		std::string mName;
-		std::string mDescription;
-		FCVAR       mFlags;
-	};
 }

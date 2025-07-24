@@ -1,6 +1,6 @@
-﻿#include <public/Core/Console/UnnamedConVarBase.h>
+﻿#include <engine/public/subsystem/console/base/UnnamedConVarBase.h>
 
-namespace Core {
+namespace Unnamed {
 	bool UnnamedConVarBase::IsCommand() const {
 		return false; // 変数はコマンドじゃあないッ!
 	}

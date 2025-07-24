@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include <public/Core/Console/UnnamedConCommandBase.h>
+#include <engine/public/subsystem/console/base/UnnamedConCommandBase.h>
 
-namespace Core {
+namespace Unnamed {
 	class UnnamedConVarBase : public UnnamedConCommandBase {
 	public:
 		// 基底クラスのコンストラクタを呼び出す この書き方知らんかった...

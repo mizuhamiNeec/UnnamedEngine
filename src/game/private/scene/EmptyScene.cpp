@@ -12,10 +12,10 @@ EmptyScene::~EmptyScene() {
 }
 
 void EmptyScene::Init() {
-	mRenderer   = Engine::GetRenderer();
-	mSrvManager = Engine::GetSrvManager();
+	mRenderer   = Unnamed::Engine::GetRenderer();
+	mSrvManager = Unnamed::Engine::GetSrvManager();
 
-	mResourceManager = Engine::GetResourceManager();
+	mResourceManager = Unnamed::Engine::GetResourceManager();
 
 	{
 		TexManager::GetInstance()->LoadTexture(
@@ -80,7 +80,7 @@ void EmptyScene::Update(float deltaTime) {
 
 	// シーン内のすべてのエンティティを更新
 	for (auto entity : mEntities) {
-		if (entity->IsActive()) {
+		if (entity->IsActive() && !entity->GetParent()) {
 			entity->Update(deltaTime);
 		}
 	}
