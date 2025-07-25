@@ -267,7 +267,6 @@ void D3D12::BeginRenderPass(const RenderPassTargets& targets) const {
 
 	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
 		if (targets.bClearColor) {
-
 			FLOAT clearColor[4] = {
 				targets.clearColor.x,
 				targets.clearColor.y,

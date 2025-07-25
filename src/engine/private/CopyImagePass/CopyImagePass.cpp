@@ -8,14 +8,14 @@
 
 #ifdef _DEBUG
 #include <imgui.h>
-#endif	
+#endif
 
 
 CopyImagePass::CopyImagePass(
 	ID3D12Device* device,
-	SrvManager* srvManager
+	SrvManager*   srvManager
 ) : mSrvManager(srvManager),
-mDevice(device) {
+    mDevice(device) {
 	// SrvManagerの有効性をチェック
 	assert(mSrvManager != nullptr && "SrvManager is null");
 	assert(mDevice != nullptr && "Device is null");
@@ -34,7 +34,7 @@ void CopyImagePass::Init() {
 	mSrvIndex = mSrvManager->AllocateForTexture(); // テクスチャ用SRVのインデックスを確保
 
 	D3D12_HEAP_PROPERTIES props = {};
-	props.Type = D3D12_HEAP_TYPE_UPLOAD;
+	props.Type                  = D3D12_HEAP_TYPE_UPLOAD;
 
 	D3D12_RESOURCE_DESC desc = {};
 	desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -61,39 +61,37 @@ void CopyImagePass::Update([[maybe_unused]] const float deltaTime) {
 	ImGui::Begin("PostProcess");
 	if (ImGui::CollapsingHeader("Simple Bloom")) {
 		ImGui::DragFloat("Bloom Strength", &mPostProcessParams.bloomStrength,
-			0.01f, 0.0f, 10.0f);
+		                 0.01f, 0.0f, 10.0f);
 		ImGui::DragFloat("Bloom Threshold", &mPostProcessParams.bloomThreshold,
-			0.01f, 0.0f, 10.0f);
+		                 0.01f, 0.0f, 10.0f);
 	}
 
 	if (ImGui::CollapsingHeader("Vignette")) {
 		ImGui::DragFloat("Vignette Strength",
-			&mPostProcessParams.vignetteStrength, 0.01f, 0.0f,
-			10.0f);
+		                 &mPostProcessParams.vignetteStrength, 0.01f, 0.0f,
+		                 10.0f);
 		ImGui::DragFloat("Vignette Radius", &mPostProcessParams.vignetteRadius,
-			0.01f, 0.0f, 10.0f);
+		                 0.01f, 0.0f, 10.0f);
 	}
 
 	if (ImGui::CollapsingHeader("Chromatic Aberration")) {
 		ImGui::DragFloat("Chromatic Aberration Strength",
-			&mPostProcessParams.chromaticAberration, 0.01f, 0.0f,
-			10.0f);
+		                 &mPostProcessParams.chromaticAberration, 0.01f, 0.0f,
+		                 10.0f);
 	}
 
 	ImGui::End();
 #endif
 }
 
-void CopyImagePass::Execute(
-	ID3D12GraphicsCommandList* commandList,
-	ID3D12Resource* srcTexture,
-	D3D12_CPU_DESCRIPTOR_HANDLE rtv
-) {
+void CopyImagePass::Execute(const PostProcessContext& context) {
+	ID3D12GraphicsCommandList* commandList = context.commandList;
+
 	// SrvManagerの有効性を再チェック
 	assert(mSrvManager != nullptr && "SrvManager is null in Execute");
 
-	void* pData = nullptr;
-	HRESULT hr = mPostProcessParamsCb->Map(0, nullptr, &pData);
+	void*   pData = nullptr;
+	HRESULT hr    = mPostProcessParamsCb->Map(0, nullptr, &pData);
 	if (FAILED(hr)) {
 		assert(SUCCEEDED(hr));
 		return;
@@ -111,15 +109,14 @@ void CopyImagePass::Execute(
 			descriptorHeap
 		};
 		commandList->SetDescriptorHeaps(_countof(heaps), heaps);
-	}
-	else {
+	} else {
 		// ディスクリプターヒープがnullの場合、エラーログを出力
 		assert(false && "SrvManager's descriptor heap is null in Execute");
 		return;
 	}
 
 	// RTVセット
-	commandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
+	commandList->OMSetRenderTargets(1, &context.outRtv, FALSE, nullptr);
 
 	// 2. SRV登録＆ハンドル取得
 	// D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -132,14 +129,14 @@ void CopyImagePass::Execute(
 	// srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
 	// フォーマット情報のデバッグ出力
-	const auto srcFormat = srcTexture->GetDesc().Format;
+	const auto srcFormat = context.inputTexture->GetDesc().Format;
 
 	// SRV作成
 	mSrvManager->CreateSRVForTexture2D(
 		mSrvIndex,
-		srcTexture,
+		context.inputTexture,
 		srcFormat,
-		srcTexture->GetDesc().MipLevels
+		context.inputTexture->GetDesc().MipLevels
 	);
 
 	// GPUハンドルの取得とデバッグ情報出力
@@ -147,8 +144,10 @@ void CopyImagePass::Execute(
 
 	static bool loggedOnce = false;
 	if (!loggedOnce) {
-		Console::Print(std::format("CopyImagePass: srvIdx={}, format={}, handle=0x{:x}\n",
-			mSrvIndex, static_cast<int>(srcFormat), gpuHandle.ptr), kConTextColorGray);
+		Console::Print(std::format(
+			               "CopyImagePass: srvIdx={}, format={}, handle=0x{:x}\n",
+			               mSrvIndex, static_cast<int>(srcFormat),
+			               gpuHandle.ptr), kConTextColorGray);
 		loggedOnce = true;
 	}
 
@@ -167,17 +166,17 @@ void CopyImagePass::Execute(
 }
 
 void CopyImagePass::CreateRootSignature() {
-	D3D12_DESCRIPTOR_RANGE1 range = {};
-	range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range.NumDescriptors = 1;
-	range.BaseShaderRegister = 0;
-	range.RegisterSpace = 0;
+	D3D12_DESCRIPTOR_RANGE1 range           = {};
+	range.RangeType                         = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	range.NumDescriptors                    = 1;
+	range.BaseShaderRegister                = 0;
+	range.RegisterSpace                     = 0;
 	range.OffsetInDescriptorsFromTableStart =
 		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 	range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
 
 	D3D12_ROOT_PARAMETER1 rootParameters[2] = {};
-	rootParameters[0].ParameterType =
+	rootParameters[0].ParameterType         =
 		D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
@@ -205,12 +204,12 @@ void CopyImagePass::CreateRootSignature() {
 	staticSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc = {};
-	desc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-	desc.Desc_1_1.NumParameters = 2;
-	desc.Desc_1_1.pParameters = rootParameters;
-	desc.Desc_1_1.NumStaticSamplers = 1;
-	desc.Desc_1_1.pStaticSamplers = &staticSampler;
-	desc.Desc_1_1.Flags =
+	desc.Version                             = D3D_ROOT_SIGNATURE_VERSION_1_1;
+	desc.Desc_1_1.NumParameters              = 2;
+	desc.Desc_1_1.pParameters                = rootParameters;
+	desc.Desc_1_1.NumStaticSamplers          = 1;
+	desc.Desc_1_1.pStaticSamplers            = &staticSampler;
+	desc.Desc_1_1.Flags                      =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
 	Microsoft::WRL::ComPtr<ID3DBlob> signatureBlob;
@@ -230,8 +229,8 @@ void CopyImagePass::CreateRootSignature() {
 void CopyImagePass::CreatePipelineState() {
 	// 頂点には何もデータを入力しない
 	D3D12_INPUT_LAYOUT_DESC inputLayout = {};
-	inputLayout.pInputElementDescs = nullptr;
-	inputLayout.NumElements = 0;
+	inputLayout.pInputElementDescs      = nullptr;
+	inputLayout.NumElements             = 0;
 
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {
 		.DepthEnable = false, // 全画面に対してなにか処理を施したいだけだから、比較も書き込みも必要ないのでDepth自体不要

@@ -655,9 +655,10 @@ void SkeletalMeshRenderer::DrawBoneHierarchy(
 				if (!bIsOffscreen) {
 #ifdef _DEBUG
 					//auto   viewport  = ImGui::GetMainViewport();
-					ImVec2 screenPos = {
-						Unnamed::Engine::GetViewportLT().x, Unnamed::Engine::GetViewportLT().y
-					};
+					// ImVec2 screenPos = {
+					// 	Unnamed::Engine::GetViewportLT().x, Unnamed::Engine::GetViewportLT().y
+					// };
+					ImVec2 screenPos = ImGui::GetMainViewport()->Pos;
 					ImGui::SetNextWindowPos(screenPos);
 					ImGui::SetNextWindowSize({screenSize.x, screenSize.y});
 					ImGui::SetNextWindowBgAlpha(0.0f); // 背景を透明にする

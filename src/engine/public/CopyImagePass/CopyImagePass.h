@@ -4,6 +4,8 @@
 #include <d3d12.h>
 #include <wrl.h>
 
+#include <engine/public/postprocess/IPostProcess.h>
+
 class SrvManager;
 class ShaderResourceViewManager;
 
@@ -16,23 +18,20 @@ struct PostProcessParams {
 	float padding[3]; // 16バイト
 };
 
-class CopyImagePass {
+class CopyImagePass : public IPostProcess {
 public:
 	CopyImagePass(ID3D12Device* device, SrvManager* srvManager);
 	~CopyImagePass();
 
 	void Init();
 
-	void Update(const float deltaTime);
+	void Update(const float deltaTime) override;
 
-	void Execute(
-		ID3D12GraphicsCommandList*  commandList,
-		ID3D12Resource*             srcTexture,
-		D3D12_CPU_DESCRIPTOR_HANDLE rtv
-	);
+	void Execute(const PostProcessContext& context) override;
 
-	void Shutdown() { mDevice = nullptr; }
-	
+	void Shutdown() {
+	}
+
 	// SRVインデックスを取得するメソッドを追加
 	uint32_t GetSrvIndex() const { return mSrvIndex; }
 
