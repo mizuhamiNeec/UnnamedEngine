@@ -12,7 +12,7 @@ on:
 
 env:
   # リポジトリのルートディレクトリを起点としたソリューションファイルのパス
-  SOLUTION_FILE_PATH: GE3_GameEngine.sln
+  SOLUTION_FILE_PATH: Unnamed.sln
   # Visual Studio の構成(DEBUG / Release)
   CONFIGURATION: Release
 
@@ -23,6 +23,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup premake
+        uses: abel0b/setup-premake@v2.4
+        with:
+          version: "5.0.0-beta7"
+          path: ./
+
+      - name: Show files in the current directory
+        run: ls ./
+
+      - name: Compile my project
+        run: premake5 vs2022
+
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
         with:
