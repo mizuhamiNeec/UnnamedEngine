@@ -126,8 +126,8 @@ void Object3DCommon::CreateGraphicsPipeline() {
 	pipelineState_.SetBlendMode(kBlendModeNormal);
 
 	// シェーダーのファイルパスを設定
-	pipelineState_.SetVertexShader(L"./Resources/Shaders/Object3d.VS.hlsl");
-	pipelineState_.SetPixelShader(L"./Resources/Shaders/Object3d.PS.hlsl");
+	pipelineState_.SetVertexShader(L"./resources/shaders/Object3d.VS.hlsl");
+	pipelineState_.SetPixelShader(L"./resources/shaders/Object3d.PS.hlsl");
 	pipelineState_.Create(d3d12_->GetDevice());
 }
 

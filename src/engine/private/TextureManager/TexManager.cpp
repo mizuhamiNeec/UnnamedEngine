@@ -256,7 +256,7 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 		Console::Print(std::format("ERROR : Failed to Load {}\n",
 		                           filePath));
 		// デフォルトテクスチャの読み込み
-		filePathW = StrUtil::ToWString("./Resources/Textures/uvChecker.png");
+		filePathW = StrUtil::ToWString("./resources/textures/uvChecker.png");
 		hr        = DirectX::LoadFromWICFile(filePathW.c_str(),
 		                              DirectX::WIC_FLAGS_FORCE_SRGB,
 		                              nullptr,

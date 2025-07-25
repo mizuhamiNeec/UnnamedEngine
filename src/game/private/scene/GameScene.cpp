@@ -30,19 +30,19 @@ void GameScene::Init() {
 
 #pragma region テクスチャ読み込み
 	TexManager::GetInstance()->LoadTexture(
-		"./Resources/Textures/dev_measure.png"
+		"./resources/textures/dev_measure.png"
 	);
 
 	TexManager::GetInstance()->LoadTexture(
-		"./Resources/Textures/uvChecker.png"
+		"./resources/textures/uvChecker.png"
 	);
 
 	TexManager::GetInstance()->LoadTexture(
-		"./Resources/Textures/wave.dds", true
+		"./resources/textures/wave.dds", true
 	);
 
 	TexManager::GetInstance()->LoadTexture(
-		"./Resources/Textures/smoke.png"
+		"./resources/textures/smoke.png"
 	);
 
 #pragma endregion
@@ -52,33 +52,33 @@ void GameScene::Init() {
 
 #pragma region 3Dオブジェクト類
 	mResourceManager->GetMeshManager()->LoadMeshFromFile(
-		"./Resources/Models/reflectionTest.obj");
+		"./resources/models/reflectionTest.obj");
 
 	mResourceManager->GetMeshManager()->LoadMeshFromFile(
-		"./Resources/Models/weapon.obj");
+		"./resources/models/weapon.obj");
 
 	mCubeMap = std::make_unique<CubeMap>(
 		mRenderer->GetDevice(),
 		mSrvManager,
-		"./Resources/Textures/wave.dds"
+		"./resources/textures/wave.dds"
 	);
 
 	mResourceManager->GetMeshManager()->LoadSkeletalMeshFromFile(
-		"./Resources/Models/man/man.gltf"
+		"./resources/models/man/man.gltf"
 	);
 #pragma endregion
 
 #pragma region パーティクル類
 	// パーティクルグループの作成
 	Unnamed::Engine::GetParticleManager()->CreateParticleGroup(
-		"wind", "./Resources/Textures/circle.png");
+		"wind", "./resources/textures/circle.png");
 
 	mParticleEmitter = std::make_unique<ParticleEmitter>();
 	mParticleEmitter->Init(Unnamed::Engine::GetParticleManager(), "wind");
 
 	mParticleObject = std::make_unique<ParticleObject>();
 	mParticleObject->Init(Unnamed::Engine::GetParticleManager(),
-	                      "./Resources/Textures/circle.png");
+	                      "./resources/textures/circle.png");
 
 #pragma endregion
 
@@ -132,7 +132,7 @@ void GameScene::Init() {
 		}
 	);
 	WeaponComponent* rawWeaponComponent = mEntWeapon->AddComponent<
-		WeaponComponent>("./Resources/Json/rifle.json");
+		WeaponComponent>("./resources/json/rifle.json");
 	mWeaponComponent = std::shared_ptr<WeaponComponent>(
 		rawWeaponComponent, [](WeaponComponent*) {
 		}
@@ -142,7 +142,7 @@ void GameScene::Init() {
 
 	mWeaponMeshRenderer->SetStaticMesh(
 		mResourceManager->GetMeshManager()->GetStaticMesh(
-			"./Resources/Models/weapon.obj"));
+			"./resources/models/weapon.obj"));
 	WeaponSway* rawWeaponSway = mEntWeapon->AddComponent<WeaponSway>();
 	mWeaponSway               = std::shared_ptr<WeaponSway>(
 		rawWeaponSway, [](WeaponSway*) {
@@ -163,7 +163,7 @@ void GameScene::Init() {
 	);
 	smRenderer->SetStaticMesh(
 		mResourceManager->GetMeshManager()->GetStaticMesh(
-			"./Resources/Models/reflectionTest.obj"));
+			"./resources/models/reflectionTest.obj"));
 	mEntWorldMesh->AddComponent<MeshColliderComponent>();
 	AddEntity(mEntWorldMesh.get());
 
@@ -189,7 +189,7 @@ void GameScene::Init() {
 	auto sklMesh     = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
 
 	auto skeletalMesh = mResourceManager->GetMeshManager()->GetSkeletalMesh(
-		"./Resources/Models/man/man.gltf"
+		"./resources/models/man/man.gltf"
 	);
 	sklMesh->SetSkeletalMesh(skeletalMesh);
 
@@ -208,7 +208,7 @@ void GameScene::Init() {
 	// 爆発
 	mExplosionEffect = std::make_unique<ExplosionEffect>();
 	mExplosionEffect->Init(Unnamed::Engine::GetParticleManager(),
-	                       "./Resources/Textures/smoke.png");
+	                       "./resources/textures/smoke.png");
 	mExplosionEffect->SetColorGradient(
 		Vec4(0.78f, 0.29f, 0.05f, 1.0f), Vec4(0.04f, 0.04f, 0.05f, 1.0f));
 
@@ -599,7 +599,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	}
 
 	// メッシュをリロード
-	const std::string meshPath      = "./Resources/Models/reflectionTest.obj";
+	const std::string meshPath      = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
 	                                       ReloadMeshFromFile(meshPath);
 
@@ -673,7 +673,7 @@ void GameScene::SafeReloadWorldMesh() {
 	}
 
 	// メッシュをリロード
-	const std::string meshPath      = "./Resources/Models/reflectionTest.obj";
+	const std::string meshPath      = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
 	                                       ReloadMeshFromFile(meshPath);
 

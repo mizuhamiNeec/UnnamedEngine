@@ -19,32 +19,32 @@ void EmptyScene::Init() {
 
 	{
 		TexManager::GetInstance()->LoadTexture(
-			"./Resources/Textures/wave.dds", true
+			"./resources/textures/wave.dds", true
 		);
 
 		// キューブマップのみ初期化
 		mCubeMap = std::make_unique<CubeMap>(
 			mRenderer->GetDevice(),
 			mSrvManager,
-			"./Resources/Textures/wave.dds"
+			"./resources/textures/wave.dds"
 		);
 	}
 
 	TexManager::GetInstance()->LoadTexture(
-		"./Resources/Textures/uvChecker.png"
+		"./resources/textures/uvChecker.png"
 	);
 
 	//"./Resources/Models/man/man.gltf"
 	//"./Resources/Models/human/sneakWalk.gltf"
 	mResourceManager->GetMeshManager()->LoadSkeletalMeshFromFile(
-		"./Resources/Models/man/man.gltf"
+		"./resources/models/man/man.gltf"
 	);
 
 	mEntSkeletalMesh = std::make_unique<Entity>("SkeletalMeshEntity");
 	auto sklMesh     = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
 
 	auto skeletalMesh = mResourceManager->GetMeshManager()->GetSkeletalMesh(
-		"./Resources/Models/man/man.gltf"
+		"./resources/models/man/man.gltf"
 	);
 	sklMesh->SetSkeletalMesh(skeletalMesh);
 

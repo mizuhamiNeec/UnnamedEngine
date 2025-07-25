@@ -248,8 +248,8 @@ void CopyImagePass::CreatePipelineState() {
 	};
 	pso.SetInputLayout(inputLayout);
 	pso.SetRootSignature(mRootSignature.Get());
-	pso.SetVertexShader(L"./Resources/Shaders/CopyImage.VS.hlsl");
-	pso.SetPixelShader(L"./Resources/Shaders/CopyImage.PS.hlsl");
+	pso.SetVertexShader(L"./resources/shaders/CopyImage.VS.hlsl");
+	pso.SetPixelShader(L"./resources/shaders/CopyImage.PS.hlsl");
 	pso.SetBlendMode(kBlendModeNone);
 
 	pso.Create(mDevice);

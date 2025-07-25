@@ -166,8 +166,8 @@ void ParticleManager::CreateGraphicsPipeline() {
 	mPipelineState->SetBlendMode(kBlendModeAdd);
 	mPipelineState->SetDepthWriteMask(D3D12_DEPTH_WRITE_MASK_ZERO);
 
-	mPipelineState->SetVertexShader(L"./Resources/Shaders/Particle.VS.hlsl");
-	mPipelineState->SetPixelShader(L"./Resources/Shaders/Particle.PS.hlsl");
+	mPipelineState->SetVertexShader(L"./resources/shaders/Particle.VS.hlsl");
+	mPipelineState->SetPixelShader(L"./resources/shaders/Particle.PS.hlsl");
 	mPipelineState->Create(mRenderer->GetDevice());
 
 	if (mPipelineState->Get()) {
