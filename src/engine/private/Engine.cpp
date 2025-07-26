@@ -12,19 +12,23 @@
 #include <engine/public/ImGui/Icons.h>
 #include <engine/public/ImGui/ImGuiWidgets.h>
 #include <engine/public/Input/InputSystem.h>
+#include <engine/public/OldConsole/ConCommand.h>
 #include <engine/public/OldConsole/ConVarManager.h>
+#include <engine/public/postprocess/PPBloom.h>
+#include <engine/public/postprocess/PPVignette.h>
 #include <engine/public/renderer/SrvManager.h>
 #include <engine/public/subsystem/console/ConsoleSystem.h>
 #include <engine/public/subsystem/interface/ServiceLocator.h>
 #include <engine/public/TextureManager/TexManager.h>
 #include <engine/public/Timer/EngineTimer.h>
 #include <engine/public/Window/MainWindow.h>
+#include <engine/public/Window/WindowsUtils.h>
 
 #include <game/public/scene/EmptyScene.h>
 #include <game/public/scene/GameScene.h>
 
-#include "engine/public/OldConsole/ConCommand.h"
-#include "engine/public/Window/WindowsUtils.h"
+#include "engine/public/postprocess/PPChromaticAberration.h"
+#include "engine/public/postprocess/PPRadialBlur.h"
 
 constexpr Vec4 offscreenClearColor = Vec4(0.25f, 0.25f, 0.25f, 1.0f);
 
@@ -179,6 +183,45 @@ namespace Unnamed {
 
 		mPostChain.emplace_back(
 			std::make_unique<CopyImagePass>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
+		);
+
+		mPostChain.emplace_back(
+			std::make_unique<PPBloom>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
+		);
+
+		mPostChain.emplace_back(
+			std::make_unique<PPBloom>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
+		);
+
+		reinterpret_cast<PPBloom*>(
+			mPostChain.back().get()
+		)->SetStrength(0.0f);
+
+		mPostChain.emplace_back(
+			std::make_unique<PPVignette>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
+		);
+
+		mPostChain.emplace_back(
+			std::make_unique<PPChromaticAberration>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
+		);
+
+		mPostChain.emplace_back(
+			std::make_unique<PPRadialBlur>(
 				mRenderer->GetDevice(),
 				mSrvManager.get()
 			)
@@ -545,9 +588,17 @@ namespace Unnamed {
 				mEditor->Update(EngineTimer::GetDeltaTime());
 			}
 
-			for (auto& postProcess : mPostChain) {
-				postProcess->Update(EngineTimer::GetDeltaTime());
+			ImGui::Begin("Post Process");
+			for (int i = 0; i < mPostChain.size(); ++i) {
+				if (i == 2) {
+					continue;
+				}
+				auto& postProcess = mPostChain[i];
+				if (postProcess) {
+					postProcess->Update(EngineTimer::GetDeltaTime());
+				}
 			}
+			ImGui::End();
 		} else {
 			mSceneManager->Update(EngineTimer::GetScaledDeltaTime());
 			mViewportLT   = Vec2::zero;
@@ -605,6 +656,11 @@ namespace Unnamed {
 
 		mRenderer->GetCommandList()->ResourceBarrier(1, &barrier);
 
+		auto* radialBlur = dynamic_cast<PPRadialBlur*>(mPostChain[5].get());
+		if (radialBlur) {
+			radialBlur->SetBlurStrength(blurStrength);
+		}
+
 		// ポストプロセスを適用するRTV
 		ID3D12Resource* postProcessTarget = mOffscreenRtv.rtv.Get();
 		for (auto& pass : mPostChain) {
@@ -620,6 +676,46 @@ namespace Unnamed {
 			auto&          dest = mPingRtv[next];
 
 			if (IsEditorMode()) {
+				// mRenderer->BeginRenderPass(
+				// 	{
+				// 		&dest.rtvHandle,
+				// 		1,
+				// 		&mPostProcessedDsv.dsvHandle,
+				// 		offscreenClearColor,
+				// 		1.0f,
+				// 		0,
+				// 		true,
+				// 		true
+				// 	}
+				// );
+				mRenderer->SetViewportAndScissor(
+					static_cast<uint32_t>(mOffscreenRtv.rtv->GetDesc().Width),
+					mOffscreenRtv.rtv->GetDesc().Height
+				);
+			} else {
+				//mRenderer->BeginSwapChainRenderPass();
+				mRenderer->SetViewportAndScissor(
+					OldWindowManager::GetMainWindow()->GetClientWidth(),
+					OldWindowManager::GetMainWindow()->GetClientHeight()
+				);
+			}
+
+			const bool isLastPass = (&pass == &mPostChain.back());
+
+			D3D12_CPU_DESCRIPTOR_HANDLE outRtvHandle{};
+
+			if (isLastPass && !IsEditorMode()) {
+				// ゲーム
+				if (!bSwapchainPassBegun) {
+					mRenderer->BeginSwapChainRenderPass();
+					mRenderer->SetViewportAndScissor(
+						OldWindowManager::GetMainWindow()->GetClientWidth(),
+						OldWindowManager::GetMainWindow()->GetClientHeight());
+					bSwapchainPassBegun = true;
+				}
+
+				outRtvHandle = mRenderer->GetSwapChainRenderTargetView();
+			} else {
 				mRenderer->BeginRenderPass(
 					{
 						&dest.rtvHandle,
@@ -636,13 +732,9 @@ namespace Unnamed {
 					static_cast<uint32_t>(mOffscreenRtv.rtv->GetDesc().Width),
 					mOffscreenRtv.rtv->GetDesc().Height
 				);
-			} else {
-				mRenderer->BeginSwapChainRenderPass();
-				mRenderer->SetViewportAndScissor(
-					OldWindowManager::GetMainWindow()->GetClientWidth(),
-					OldWindowManager::GetMainWindow()->GetClientHeight()
-				);
+				outRtvHandle = dest.rtvHandle;
 			}
+
 
 			if (IsEditorMode()) {
 				// CopyImagePass実行後にSRVを再作成して最新の内容を反映
@@ -671,10 +763,10 @@ namespace Unnamed {
 				pass->Execute(context);
 			} else {
 				PostProcessContext context = {};
-				context.commandList = mRenderer->GetCommandList();
-				context.inputTexture = postProcessTarget;
-				context.outRtv = mRenderer->GetSwapChainRenderTargetView();
-				context.width = OldWindowManager::GetMainWindow()->
+				context.commandList        = mRenderer->GetCommandList();
+				context.inputTexture       = postProcessTarget;
+				context.outRtv             = outRtvHandle;
+				context.width              = OldWindowManager::GetMainWindow()->
 					GetClientWidth();
 				context.height = OldWindowManager::GetMainWindow()->
 					GetClientHeight();
@@ -685,59 +777,6 @@ namespace Unnamed {
 			postProcessTarget = dest.rtv.Get();
 			mPingIndex        = next;
 		}
-
-		// if (IsEditorMode()) {
-		// 	// エディターモード時はポストプロセス用RTVに描画
-		// 	mRenderer->BeginRenderPass(mPostProcessedRenderPassTargets);
-		// 	mRenderer->SetViewportAndScissor(
-		// 		static_cast<uint32_t>(mOffscreenRtv.rtv->GetDesc().Width),
-		// 		mOffscreenRtv.rtv->GetDesc().Height
-		// 	);
-		// 	mCopyImagePass->Execute(
-		// 		mRenderer->GetCommandList(),
-		// 		mOffscreenRtv.rtv.Get(),
-		// 		mPostProcessedRtv.rtvHandle
-		// 	);
-		//
-		// 	// バリアを設定
-		// 	D3D12_RESOURCE_BARRIER postBarrier = {};
-		// 	postBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		// 	postBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		// 	postBarrier.Transition.pResource = mPostProcessedRtv.rtv.Get();
-		// 	postBarrier.Transition.StateBefore =
-		// 		D3D12_RESOURCE_STATE_RENDER_TARGET;
-		// 	postBarrier.Transition.StateAfter =
-		// 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		// 	mRenderer->GetCommandList()->ResourceBarrier(1, &postBarrier);
-		//
-		// 	// CopyImagePass実行後にSRVを再作成して最新の内容を反映
-		// 	if (mSrvManager) {
-		// 		// SRVを再作成
-		// 		mSrvManager->CreateSRVForTexture2D(
-		// 			mPostProcessedRtv.srvIndex,
-		// 			mPostProcessedRtv.rtv.Get(),
-		// 			mPostProcessedRtv.rtv->GetDesc().Format,
-		// 			1
-		// 		);
-		//
-		// 		// GPUハンドルを再取得
-		// 		mPostProcessedRtv.srvHandleGPU = mSrvManager->
-		// 			GetGPUDescriptorHandle(
-		// 				mPostProcessedRtv.srvIndex);
-		// 	}
-		// } else {
-		// 	// ゲーム時はスワップチェーンに直接描画
-		// 	mRenderer->BeginSwapChainRenderPass();
-		// 	mRenderer->SetViewportAndScissor(
-		// 		OldWindowManager::GetMainWindow()->GetClientWidth(),
-		// 		OldWindowManager::GetMainWindow()->GetClientHeight()
-		// 	);
-		// 	mCopyImagePass->Execute(
-		// 		mRenderer->GetCommandList(),
-		// 		mOffscreenRtv.rtv.Get(),
-		// 		mRenderer->GetSwapChainRenderTargetView()
-		// 	);
-		// }
 
 		//------------------------------------------------------------------------
 		// --- PostRender↓ ---
@@ -1068,6 +1107,7 @@ namespace Unnamed {
 	std::unique_ptr<ParticleManager> Engine::mParticleManager = nullptr;
 	std::unique_ptr<SrvManager>      Engine::mSrvManager      = nullptr;
 	std::shared_ptr<SceneManager>    Engine::mSceneManager    = nullptr;
+	float                            Engine::blurStrength     = 0.0f;
 
 	Vec2 Engine::mViewportLT   = Vec2::zero;
 	Vec2 Engine::mViewportSize = Vec2::zero;

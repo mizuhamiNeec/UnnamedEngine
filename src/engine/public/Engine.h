@@ -95,6 +95,8 @@ namespace Unnamed {
 		static void SetEditorMode(const std::vector<std::string>& args = {});
 		void        CheckEditorMode();
 
+		static float blurStrength;
+
 	private:
 		std::unique_ptr<OldWindowManager> mWindowManager;
 
@@ -131,6 +133,7 @@ namespace Unnamed {
 		RenderTargetTexture                        mPingRtv[2];
 		uint32_t                                   mPingIndex = 0;
 		std::vector<std::unique_ptr<IPostProcess>> mPostChain;
+		bool                                       bSwapchainPassBegun = false;
 
 		RenderTargetTexture mOffscreenRtv;
 		DepthStencilTexture mOffscreenDsv;
