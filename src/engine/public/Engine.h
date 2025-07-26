@@ -13,6 +13,7 @@
 #include <engine/public/Object3D/Object3DCommon.h>
 #include <engine/public/OldConsole/Console.h>
 #include <engine/public/particle/ParticleManager.h>
+#include <engine/public/postprocess/IPostProcess.h>
 #include <engine/public/renderer/D3D12.h>
 #include <engine/public/ResourceSystem/Manager/ResourceManager.h>
 #include <engine/public/SceneManager/SceneFactory.h>
@@ -22,8 +23,6 @@
 #include <engine/public/Window/WindowManager.h>
 
 #include <game/public/scene/base/BaseScene.h>
-
-#include "subsystem/console/interface/IConsole.h"
 
 namespace Unnamed {
 	class Engine {
@@ -96,6 +95,8 @@ namespace Unnamed {
 		static void SetEditorMode(const std::vector<std::string>& args = {});
 		void        CheckEditorMode();
 
+		static float blurStrength;
+
 	private:
 		std::unique_ptr<OldWindowManager> mWindowManager;
 
@@ -128,6 +129,11 @@ namespace Unnamed {
 		std::optional<std::string> mLoadFilePath;
 
 		std::unique_ptr<EntityLoader> mEntityLoader;
+
+		RenderTargetTexture                        mPingRtv[2];
+		uint32_t                                   mPingIndex = 0;
+		std::vector<std::unique_ptr<IPostProcess>> mPostChain;
+		bool                                       bSwapchainPassBegun = false;
 
 		RenderTargetTexture mOffscreenRtv;
 		DepthStencilTexture mOffscreenDsv;

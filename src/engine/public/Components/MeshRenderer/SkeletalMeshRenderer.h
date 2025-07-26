@@ -68,7 +68,7 @@ private:
 	bool             mIsLooping      = true;
 
 #ifdef _DEBUG
-	bool mShowBoneDebug = true;
+	bool mShowBoneDebug = false;
 #else
 	bool mShowBoneDebug = false;
 #endif

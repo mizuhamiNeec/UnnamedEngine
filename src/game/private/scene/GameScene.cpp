@@ -203,7 +203,8 @@ void GameScene::Init() {
 
 	// 風
 	mWindEffect = std::make_unique<WindEffect>();
-	mWindEffect->Init(Unnamed::Engine::GetParticleManager(), mPlayerMovement.get());
+	mWindEffect->Init(Unnamed::Engine::GetParticleManager(),
+	                  mPlayerMovement.get());
 
 	// 爆発
 	mExplosionEffect = std::make_unique<ExplosionEffect>();
@@ -307,6 +308,9 @@ void GameScene::Update(const float deltaTime) {
 			Vec3::right
 		);
 	}
+
+	Unnamed::Engine::blurStrength = mPlayerMovement->GetVelocity().Length() *
+		0.01f;
 	// mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
 	// mWeaponSway->Update(EngineTimer::GetScaledDeltaTime());
 	//
@@ -601,7 +605,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	// メッシュをリロード
 	const std::string meshPath      = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-	                                       ReloadMeshFromFile(meshPath);
+		ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
@@ -675,7 +679,7 @@ void GameScene::SafeReloadWorldMesh() {
 	// メッシュをリロード
 	const std::string meshPath      = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-	                                       ReloadMeshFromFile(meshPath);
+		ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);

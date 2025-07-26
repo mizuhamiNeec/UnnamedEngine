@@ -12,19 +12,23 @@
 #include <engine/public/ImGui/Icons.h>
 #include <engine/public/ImGui/ImGuiWidgets.h>
 #include <engine/public/Input/InputSystem.h>
+#include <engine/public/OldConsole/ConCommand.h>
 #include <engine/public/OldConsole/ConVarManager.h>
+#include <engine/public/postprocess/PPBloom.h>
+#include <engine/public/postprocess/PPVignette.h>
 #include <engine/public/renderer/SrvManager.h>
 #include <engine/public/subsystem/console/ConsoleSystem.h>
 #include <engine/public/subsystem/interface/ServiceLocator.h>
 #include <engine/public/TextureManager/TexManager.h>
 #include <engine/public/Timer/EngineTimer.h>
 #include <engine/public/Window/MainWindow.h>
+#include <engine/public/Window/WindowsUtils.h>
 
 #include <game/public/scene/EmptyScene.h>
 #include <game/public/scene/GameScene.h>
 
-#include "engine/public/OldConsole/ConCommand.h"
-#include "engine/public/Window/WindowsUtils.h"
+#include "engine/public/postprocess/PPChromaticAberration.h"
+#include "engine/public/postprocess/PPRadialBlur.h"
 
 constexpr Vec4 offscreenClearColor = Vec4(0.25f, 0.25f, 0.25f, 1.0f);
 
@@ -43,7 +47,8 @@ namespace Unnamed {
 		ConVarManager::RegisterConVar<bool>("verbose", true,
 		                                    "Enable verbose logging");
 #else
-	ConVarManager::RegisterConVar<bool>("verbose", false, "Enable verbose logging");
+		ConVarManager::RegisterConVar<bool>("verbose", false,
+		                                    "Enable verbose logging");
 #endif
 		Console::Print("command line arguments:\n", kConTextColorGray,
 		               Channel::CommandLine);
@@ -125,6 +130,20 @@ namespace Unnamed {
 			kBufferFormat
 		);
 
+		mPingRtv[0] = mRenderer->CreateRenderTargetTexture(
+			mWindowManager->GetMainWindow()->GetClientWidth(),
+			mWindowManager->GetMainWindow()->GetClientHeight(),
+			offscreenClearColor,
+			kBufferFormat
+		);
+
+		mPingRtv[1] = mRenderer->CreateRenderTargetTexture(
+			mWindowManager->GetMainWindow()->GetClientWidth(),
+			mWindowManager->GetMainWindow()->GetClientHeight(),
+			offscreenClearColor,
+			kBufferFormat
+		);
+
 		mOffscreenDsv = mRenderer->CreateDepthStencilTexture(
 			mWindowManager->GetMainWindow()->GetClientWidth(),
 			mWindowManager->GetMainWindow()->GetClientHeight(),
@@ -162,8 +181,50 @@ namespace Unnamed {
 		mPostProcessedRenderPassTargets.bClearColor = true;
 		mPostProcessedRenderPassTargets.bClearDepth = true;
 
-		mCopyImagePass = std::make_unique<CopyImagePass>(
-			mRenderer->GetDevice(), mSrvManager.get()
+		mPostChain.emplace_back(
+			std::make_unique<CopyImagePass>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
+		);
+
+		mPostChain.emplace_back(
+			std::make_unique<PPBloom>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
+		);
+
+		mPostChain.emplace_back(
+			std::make_unique<PPBloom>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
+		);
+
+		reinterpret_cast<PPBloom*>(
+			mPostChain.back().get()
+		)->SetStrength(0.0f);
+
+		mPostChain.emplace_back(
+			std::make_unique<PPVignette>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
+		);
+
+		mPostChain.emplace_back(
+			std::make_unique<PPChromaticAberration>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
+		);
+
+		mPostChain.emplace_back(
+			std::make_unique<PPRadialBlur>(
+				mRenderer->GetDevice(),
+				mSrvManager.get()
+			)
 		);
 
 		//// モデル
@@ -245,6 +306,12 @@ namespace Unnamed {
 		//-----------------------------------------------------------------------------
 		// Purpose: 旧エンジン
 		//-----------------------------------------------------------------------------
+
+		// ウィンドウが閉じられた場合は終了 TODO: きたないので直そう
+		if (mWishShutdown) {
+			DestroyWindow(mWindowManager->GetMainWindow()->GetWindowHandle());
+		}
+
 		mTime->StartFrame();
 #ifdef _DEBUG
 		ImGuiManager::NewFrame();
@@ -466,7 +533,7 @@ namespace Unnamed {
 			ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
 
 			ImVec2     avail = ImGui::GetContentRegionAvail();
-			const auto ptr   = mPostProcessedRtv.srvHandleGPU.ptr;
+			const auto ptr   = mPingRtv[mPingIndex].srvHandleGPU.ptr;
 
 			static int prevW = 0, prevH = 0;
 			int        w     = static_cast<int>(avail.x);
@@ -478,7 +545,7 @@ namespace Unnamed {
 
 			if (ptr) {
 				// リソースからテクスチャの幅と高さを取得
-				auto        desc      = mPostProcessedRtv.rtv->GetDesc();
+				auto        desc      = mPingRtv[mPingIndex].rtv->GetDesc();
 				const float texWidth  = static_cast<float>(desc.Width);
 				const float texHeight = static_cast<float>(desc.Height);
 
@@ -521,7 +588,17 @@ namespace Unnamed {
 				mEditor->Update(EngineTimer::GetDeltaTime());
 			}
 
-			mCopyImagePass->Update(EngineTimer::GetDeltaTime());
+			ImGui::Begin("Post Process");
+			for (int i = 0; i < mPostChain.size(); ++i) {
+				if (i == 2) {
+					continue;
+				}
+				auto& postProcess = mPostChain[i];
+				if (postProcess) {
+					postProcess->Update(EngineTimer::GetDeltaTime());
+				}
+			}
+			ImGui::End();
 		} else {
 			mSceneManager->Update(EngineTimer::GetScaledDeltaTime());
 			mViewportLT   = Vec2::zero;
@@ -540,14 +617,14 @@ namespace Unnamed {
 		DebugHud::Update();
 #endif
 
-		mOffscreenRenderPassTargets.bClearColor =
-			ConVarManager::GetConVar("r_clear")->GetValueAsBool();
 
 #ifdef _DEBUG
 		Debug::Update();
 #endif
 		CameraManager::Update(EngineTimer::GetDeltaTime());
 
+		mOffscreenRenderPassTargets.bClearColor =
+			ConVarManager::GetConVar("r_clear")->GetValueAsBool();
 		//-------------------------------------------------------------------------
 		// --- PreRender↓ ---
 		mRenderer->PreRender();
@@ -568,7 +645,7 @@ namespace Unnamed {
 			mSceneManager->Render();
 		}
 
-		// バリアを設定
+		// 先にバリアを設定
 		D3D12_RESOURCE_BARRIER barrier = {};
 		barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -579,57 +656,126 @@ namespace Unnamed {
 
 		mRenderer->GetCommandList()->ResourceBarrier(1, &barrier);
 
-		if (IsEditorMode()) {
-			// エディターモード時はポストプロセス用RTVに描画
-			mRenderer->BeginRenderPass(mPostProcessedRenderPassTargets);
-			mRenderer->SetViewportAndScissor(
-				static_cast<uint32_t>(mOffscreenRtv.rtv->GetDesc().Width),
-				mOffscreenRtv.rtv->GetDesc().Height
+		auto* radialBlur = dynamic_cast<PPRadialBlur*>(mPostChain[5].get());
+		if (radialBlur) {
+			radialBlur->SetBlurStrength(blurStrength);
+		}
+
+		// ポストプロセスを適用するRTV
+		ID3D12Resource* postProcessTarget = mOffscreenRtv.rtv.Get();
+		for (auto& pass : mPostChain) {
+			const uint32_t w = static_cast<uint32_t>(
+				postProcessTarget->GetDesc().
+				                   Width
 			);
-			mCopyImagePass->Execute(
-				mRenderer->GetCommandList(),
-				mOffscreenRtv.rtv.Get(),
-				mPostProcessedRtv.rtvHandle
+			const uint32_t h = static_cast<uint32_t>(
+				postProcessTarget->GetDesc().Height
 			);
 
-			// バリアを設定
-			D3D12_RESOURCE_BARRIER postBarrier = {};
-			postBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			postBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			postBarrier.Transition.pResource = mPostProcessedRtv.rtv.Get();
-			postBarrier.Transition.StateBefore =
-				D3D12_RESOURCE_STATE_RENDER_TARGET;
-			postBarrier.Transition.StateAfter =
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			mRenderer->GetCommandList()->ResourceBarrier(1, &postBarrier);
+			const uint32_t next = mPingIndex ^ 1; // 次のインデックス
+			auto&          dest = mPingRtv[next];
 
-			// CopyImagePass実行後にSRVを再作成して最新の内容を反映
-			if (mSrvManager) {
-				// SRVを再作成
-				mSrvManager->CreateSRVForTexture2D(
-					mPostProcessedRtv.srvIndex,
-					mPostProcessedRtv.rtv.Get(),
-					mPostProcessedRtv.rtv->GetDesc().Format,
-					1
+			if (IsEditorMode()) {
+				// mRenderer->BeginRenderPass(
+				// 	{
+				// 		&dest.rtvHandle,
+				// 		1,
+				// 		&mPostProcessedDsv.dsvHandle,
+				// 		offscreenClearColor,
+				// 		1.0f,
+				// 		0,
+				// 		true,
+				// 		true
+				// 	}
+				// );
+				mRenderer->SetViewportAndScissor(
+					static_cast<uint32_t>(mOffscreenRtv.rtv->GetDesc().Width),
+					mOffscreenRtv.rtv->GetDesc().Height
 				);
-
-				// GPUハンドルを再取得
-				mPostProcessedRtv.srvHandleGPU = mSrvManager->
-					GetGPUDescriptorHandle(
-						mPostProcessedRtv.srvIndex);
+			} else {
+				//mRenderer->BeginSwapChainRenderPass();
+				mRenderer->SetViewportAndScissor(
+					OldWindowManager::GetMainWindow()->GetClientWidth(),
+					OldWindowManager::GetMainWindow()->GetClientHeight()
+				);
 			}
-		} else {
-			// ゲーム時はスワップチェーンに直接描画
-			mRenderer->BeginSwapChainRenderPass();
-			mRenderer->SetViewportAndScissor(
-				OldWindowManager::GetMainWindow()->GetClientWidth(),
-				OldWindowManager::GetMainWindow()->GetClientHeight()
-			);
-			mCopyImagePass->Execute(
-				mRenderer->GetCommandList(),
-				mOffscreenRtv.rtv.Get(),
-				mRenderer->GetSwapChainRenderTargetView()
-			);
+
+			const bool isLastPass = (&pass == &mPostChain.back());
+
+			D3D12_CPU_DESCRIPTOR_HANDLE outRtvHandle{};
+
+			if (isLastPass && !IsEditorMode()) {
+				// ゲーム
+				if (!bSwapchainPassBegun) {
+					mRenderer->BeginSwapChainRenderPass();
+					mRenderer->SetViewportAndScissor(
+						OldWindowManager::GetMainWindow()->GetClientWidth(),
+						OldWindowManager::GetMainWindow()->GetClientHeight());
+					bSwapchainPassBegun = true;
+				}
+
+				outRtvHandle = mRenderer->GetSwapChainRenderTargetView();
+			} else {
+				mRenderer->BeginRenderPass(
+					{
+						&dest.rtvHandle,
+						1,
+						&mPostProcessedDsv.dsvHandle,
+						offscreenClearColor,
+						1.0f,
+						0,
+						true,
+						true
+					}
+				);
+				mRenderer->SetViewportAndScissor(
+					static_cast<uint32_t>(mOffscreenRtv.rtv->GetDesc().Width),
+					mOffscreenRtv.rtv->GetDesc().Height
+				);
+				outRtvHandle = dest.rtvHandle;
+			}
+
+
+			if (IsEditorMode()) {
+				// CopyImagePass実行後にSRVを再作成して最新の内容を反映
+				if (mSrvManager) {
+					// SRVを再作成
+					mSrvManager->CreateSRVForTexture2D(
+						mPostProcessedRtv.srvIndex,
+						mPostProcessedRtv.rtv.Get(),
+						mPostProcessedRtv.rtv->GetDesc().Format,
+						1
+					);
+
+					// GPUハンドルを再取得
+					mPostProcessedRtv.srvHandleGPU = mSrvManager->
+						GetGPUDescriptorHandle(
+							mPostProcessedRtv.srvIndex);
+				}
+
+				PostProcessContext context = {};
+				context.commandList        = mRenderer->GetCommandList();
+				context.inputTexture       = postProcessTarget;
+				context.outRtv             = dest.rtvHandle;
+				context.width              = w;
+				context.height             = h;
+
+				pass->Execute(context);
+			} else {
+				PostProcessContext context = {};
+				context.commandList        = mRenderer->GetCommandList();
+				context.inputTexture       = postProcessTarget;
+				context.outRtv             = outRtvHandle;
+				context.width              = OldWindowManager::GetMainWindow()->
+					GetClientWidth();
+				context.height = OldWindowManager::GetMainWindow()->
+					GetClientHeight();
+
+				pass->Execute(context);
+			}
+
+			postProcessTarget = dest.rtv.Get();
+			mPingIndex        = next;
 		}
 
 		//------------------------------------------------------------------------
@@ -744,6 +890,8 @@ namespace Unnamed {
 
 		mOffscreenRtv = {};
 		mOffscreenDsv = {};
+		mPingRtv[0]   = {};
+		mPingRtv[1]   = {};
 
 		mPostProcessedRtv = {};
 		mPostProcessedDsv = {};
@@ -756,6 +904,18 @@ namespace Unnamed {
 		mOffscreenDsv = mRenderer->CreateDepthStencilTexture(
 			width, height,
 			DXGI_FORMAT_D32_FLOAT
+		);
+
+		mPingRtv[0] = mRenderer->CreateRenderTargetTexture(
+			width, height,
+			offscreenClearColor,
+			kBufferFormat
+		);
+
+		mPingRtv[1] = mRenderer->CreateRenderTargetTexture(
+			width, height,
+			offscreenClearColor,
+			kBufferFormat
 		);
 
 		mPostProcessedRtv = mRenderer->CreateRenderTargetTexture(
@@ -811,6 +971,18 @@ namespace Unnamed {
 		mOffscreenDsv = mRenderer->CreateDepthStencilTexture(
 			width, height,
 			DXGI_FORMAT_D32_FLOAT
+		);
+
+		mPingRtv[0] = mRenderer->CreateRenderTargetTexture(
+			width, height,
+			offscreenClearColor,
+			kBufferFormat
+		);
+
+		mPingRtv[1] = mRenderer->CreateRenderTargetTexture(
+			width, height,
+			offscreenClearColor,
+			kBufferFormat
 		);
 
 		mPostProcessedRtv = mRenderer->CreateRenderTargetTexture(
@@ -935,6 +1107,7 @@ namespace Unnamed {
 	std::unique_ptr<ParticleManager> Engine::mParticleManager = nullptr;
 	std::unique_ptr<SrvManager>      Engine::mSrvManager      = nullptr;
 	std::shared_ptr<SceneManager>    Engine::mSceneManager    = nullptr;
+	float                            Engine::blurStrength     = 0.0f;
 
 	Vec2 Engine::mViewportLT   = Vec2::zero;
 	Vec2 Engine::mViewportSize = Vec2::zero;
@@ -942,6 +1115,6 @@ namespace Unnamed {
 #ifdef _DEBUG
 	bool Engine::mIsEditorMode = true;
 #else
-bool Engine::mIsEditorMode = false;
+	bool Engine::mIsEditorMode = false;
 #endif
 }
