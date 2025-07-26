@@ -9,15 +9,6 @@
 class SrvManager;
 class ShaderResourceViewManager;
 
-struct PostProcessParams {
-	float bloomStrength       = 2.0f;
-	float bloomThreshold      = 0.0f;
-	float vignetteStrength    = 0.9f;
-	float vignetteRadius      = 0.0f;
-	float chromaticAberration = 0.02f;
-	float padding[3]; // 16バイト
-};
-
 class CopyImagePass : public IPostProcess {
 public:
 	CopyImagePass(ID3D12Device* device, SrvManager* srvManager);
@@ -25,7 +16,7 @@ public:
 
 	void Init();
 
-	void Update(const float deltaTime) override;
+	void Update(float deltaTime) override;
 
 	void Execute(const PostProcessContext& context) override;
 
@@ -45,7 +36,4 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> mPipelineState;
 	ID3D12Device*                               mDevice;
-
-	PostProcessParams                      mPostProcessParams;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mPostProcessParamsCb;
 };
