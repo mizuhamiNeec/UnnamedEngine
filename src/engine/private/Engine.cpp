@@ -312,7 +312,6 @@ namespace Unnamed {
 			DestroyWindow(mWindowManager->GetMainWindow()->GetWindowHandle());
 		}
 
-		mGameTime->StartFrame();
 #ifdef _DEBUG
 		ImGuiManager::NewFrame();
 		ImGuizmo::BeginFrame();
