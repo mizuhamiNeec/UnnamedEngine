@@ -1,6 +1,6 @@
 ﻿#include <engine/public/OldConsole/ConVarManager.h>
-#include <engine/public/time/FrameLimiter.h>
-#include <engine/public/time/GameTime.h>
+#include <engine/public/subsystem/time/FrameLimiter.h>
+#include <engine/public/subsystem/time/GameTime.h>
 #include <engine/public/utils/Properties.h>
 
 FrameLimiter::FrameLimiter(GameTime* gameTime) :
@@ -21,7 +21,7 @@ void FrameLimiter::SetTargetFPS(const double targetFPS) {
 
 void FrameLimiter::Limit() {
 	CheckConVarValue();
-	
+
 	// 制限が設定されていない場合は何もしない
 	if (mTargetFrameDuration == Clock::duration::zero()) {
 		return;
