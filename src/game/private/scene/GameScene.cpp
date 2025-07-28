@@ -11,7 +11,7 @@
 #include "engine/public/Input/InputSystem.h"
 #include "engine/public/OldConsole/ConVarManager.h"
 #include "engine/public/TextureManager/TexManager.h"
-#include "engine/public/Timer/EngineTimer.h"
+#include "engine/public/time/EngineTimer.h"
 
 GameScene::~GameScene() {
 	mResourceManager = nullptr;
