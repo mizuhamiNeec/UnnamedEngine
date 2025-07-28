@@ -3,7 +3,7 @@
 
 #include <engine/public/Components/Camera/CameraComponent.h>
 #include <engine/public/Entity/Entity.h>
-#include <engine/public/Timer/GameTime.h>
+#include <engine/public/time/GameTime.h>
 
 #include <game/public/scene/base/BaseScene.h>
 
