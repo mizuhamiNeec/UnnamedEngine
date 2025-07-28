@@ -1,13 +1,13 @@
 #include <algorithm>
 
 #include <engine/public/OldConsole/ConVarManager.h>
-#include <engine/public/Timer/GameTime.h>
+#include <engine/public/time/GameTime.h>
 
 GameTime::GameTime() :
 	mStartTime(Clock::now()),
 	mLastFrameTime(Clock::now()),
-	mDeltaTime(0),
-	mScaledDeltaTime(0),
+	mDeltaTime(1.0 / 60.0),
+	mScaledDeltaTime(1.0 / 60.0),
 	mTotalTime(0),
 	mFrameCount(0) {
 	// コンソール変数の登録
