@@ -443,8 +443,8 @@ void GameScene::Update(const float deltaTime) {
 		//mParticleEmitter->Emit();
 	}
 
-	mWindEffect->Update(EngineTimer::ScaledDelta());
-	mExplosionEffect->Update(EngineTimer::ScaledDelta());
+	mWindEffect->Update(deltaTime);
+	mExplosionEffect->Update(deltaTime);
 
 	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
 		mCubeMap->Update(deltaTime);
@@ -605,7 +605,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	// メッシュをリロード
 	const std::string meshPath      = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-		ReloadMeshFromFile(meshPath);
+	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
@@ -679,7 +679,7 @@ void GameScene::SafeReloadWorldMesh() {
 	// メッシュをリロード
 	const std::string meshPath      = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-		ReloadMeshFromFile(meshPath);
+	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
