@@ -2,11 +2,12 @@
 
 #include <chrono>
 
+/// @brief ゲームの時間を管理するクラス
 class GameTime {
 public:
 	GameTime();
 
-	void StartFrame();
+	//void StartFrame();
 	void EndFrame();
 
 	// Getter
@@ -21,18 +22,16 @@ public:
 	[[nodiscard]] float    TimeScale();
 	[[nodiscard]] uint64_t FrameCount() const;
 
-	// Setter
-	void SetTimeScale(const float& scale);
-
 private:
-	using Clock     = std::chrono::high_resolution_clock;
+	using Clock     = std::chrono::steady_clock;
 	using TimePoint = Clock::time_point;
 
 	TimePoint mStartTime;
 	TimePoint mLastFrameTime;
 	TimePoint mFrameStartTime;
 
-	double mDeltaTime; // 前回のフレームから経過した時間
+	double mDeltaTime;
+	double mScaledDeltaTime;
 	double mTotalTime; // エンジンの起動から経過した時間
 
 	uint64_t mFrameCount; // フレーム数

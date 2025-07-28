@@ -7,6 +7,7 @@ GameTime::GameTime() :
 	mStartTime(Clock::now()),
 	mLastFrameTime(Clock::now()),
 	mDeltaTime(0),
+	mScaledDeltaTime(0),
 	mTotalTime(0),
 	mFrameCount(0) {
 	// コンソール変数の登録
@@ -17,19 +18,27 @@ GameTime::GameTime() :
 	);
 }
 
-void GameTime::StartFrame() {
-	// フレーム開始時刻を記録
-	mFrameStartTime = Clock::now();
-}
-
 void GameTime::EndFrame() {
-	// フレーム終了時刻を記録し、次回のdeltaTime_を更新
+	// フレーム終了時刻を記録
 	TimePoint frameEndTime = Clock::now();
-	mDeltaTime = std::chrono::duration<double>(frameEndTime - mFrameStartTime).
-		count();
-	mLastFrameTime = frameEndTime;
 
+	// デルタ計算
+	mDeltaTime = std::chrono::duration<double>(
+		frameEndTime - mFrameStartTime
+	).count();
+
+	// タイムスケールを取得
+	mTimeScale = ConVarManager::GetConVar(
+		"host_timescale"
+	)->GetValueAsFloat();
+
+	// 各値を更新
+	mTotalTime += mDeltaTime;
+	mScaledDeltaTime = mDeltaTime * mTimeScale;
 	++mFrameCount;
+
+	// 次の開始時刻として記録
+	mFrameStartTime = frameEndTime;
 }
 
 template <typename T>
@@ -40,7 +49,7 @@ T GameTime::DeltaTime() {
 
 template <typename T>
 T GameTime::ScaledDeltaTime() {
-	return static_cast<T>(mDeltaTime * TimeScale());
+	return static_cast<T>(mScaledDeltaTime * TimeScale());
 }
 
 template double GameTime::DeltaTime<double>();
@@ -48,24 +57,20 @@ template float  GameTime::DeltaTime<float>();
 template double GameTime::ScaledDeltaTime<double>();
 template float  GameTime::ScaledDeltaTime<float>();
 
+/// @brief ゲームの起動から経過した時間を取得します。
+/// @return ゲームの起動から経過した時間（秒単位）
 double GameTime::TotalTime() const {
 	return static_cast<float>(mTotalTime);
 }
 
+/// @brief ゲームの時間スケールを取得します。
+/// @return ゲームの時間スケール
 float GameTime::TimeScale() {
-	return ConVarManager::GetConVar(
-		"host_timescale"
-	)->GetValueAsFloat();
+	return mTimeScale;
 }
 
+/// @brief 現在のフレーム数を取得します。
+/// @return 現在のフレーム数
 uint64_t GameTime::FrameCount() const {
 	return mFrameCount;
-}
-
-void GameTime::SetTimeScale(const float& scale) {
-	ConVarManager::GetConVar(
-		"host_timescale"
-	)->SetValueFromString(
-		std::to_string(scale)
-	);
 }
