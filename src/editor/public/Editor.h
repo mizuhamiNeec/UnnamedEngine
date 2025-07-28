@@ -3,14 +3,16 @@
 
 #include <engine/public/Components/Camera/CameraComponent.h>
 #include <engine/public/Entity/Entity.h>
+#include <engine/public/Timer/GameTime.h>
 
 #include <game/public/scene/base/BaseScene.h>
 
+class GameTime;
 class SceneManager;
 
 class Editor {
 public:
-	explicit Editor(SceneManager* sceneManager);
+	explicit Editor(SceneManager* sceneManager, GameTime* gameTime);
 	void     Init();
 
 public:
@@ -32,16 +34,18 @@ private:
 
 	static float RoundToNearestPowerOfTwo(float value);
 
-	SceneManager* mSceneManager = nullptr; // 持ってきたやつ
+	// 持ってきたやつ
+	SceneManager* mSceneManager = nullptr;
+	GameTime* mGameTime = nullptr;
 
 	std::shared_ptr<BaseScene> mScene;                    // 現在編集中のシーン
-	Entity*                    mSelectedEntity = nullptr; // 選択中のエンティティ
+	Entity* mSelectedEntity = nullptr; // 選択中のエンティティ
 
 	// エディターのカメラ
 	std::unique_ptr<Entity>          mCameraEntity;
 	std::shared_ptr<CameraComponent> mCamera;
 
-	float mGridSize  = 64.0f;
+	float mGridSize = 64.0f;
 	float mGridRange = 16384.0f;
 
 	float mAngleSnap = 15.0f;
