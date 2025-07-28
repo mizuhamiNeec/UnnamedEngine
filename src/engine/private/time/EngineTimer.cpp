@@ -1,4 +1,4 @@
-  #include <engine/public/Timer/EngineTimer.h>
+  #include <engine/public/time/EngineTimer.h>
 
 #include <algorithm>
 
@@ -43,7 +43,7 @@ void EngineTimer::StartFrame() {
 }
 
 void EngineTimer::EndFrame() {
-	const auto fpsMaxConVar = ConVarManager::GetConVar("cl_fpsmax");
+	const auto fpsMaxConVar = ConVarManager::GetConVar("fps_max");
 	const double fpsLimit = fpsMaxConVar->GetValueAsDouble();
 	if (fpsLimit > 0) {
 		const double frameLimitDuration = 1.0 / fpsLimit;
