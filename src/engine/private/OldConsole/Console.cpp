@@ -1,3 +1,5 @@
+#include <pch.h>
+
 #include <algorithm>
 #include <filesystem>
 #include <format>
@@ -10,6 +12,7 @@
 #include <engine/public/OldConsole/ConCommand.h>
 #include <engine/public/OldConsole/Console.h>
 #include <engine/public/OldConsole/ConVarManager.h>
+#include <engine/public/subsystem/time/SystemClock.h>
 #include <engine/public/utils/IniParser.h>
 #include <engine/public/Window/WindowManager.h>
 #include <engine/public/Window/WindowsUtils.h>
@@ -33,7 +36,7 @@ Console::Console() {
 		logFile_.open("console.log", std::ios::out | std::ios::binary);
 		if (logFile_.is_open()) {
 			// ヘッダーを書き込む
-			const auto  now    = EngineTimer::GetNow();
+			const auto now = SystemClock::GetDateTime(SystemClock::StartTime());
 			std::string header = std::format(
 				"//-----------------------------------------------------------------------------\n"
 				"// BuildDate: {}-{}\n"
@@ -526,7 +529,8 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	const std::string prompt = WindowsUtils::GetWindowsUserName() + "@" +
 		WindowsUtils::GetWindowsComputerName();
 
-	const DateTime dateTime = EngineTimer::GetUpDateTime();
+	const DateTime dateTime =
+		SystemClock::GetDateTime(SystemClock::StartTime());
 
 	std::vector<std::string> uptimeParts;
 	if (dateTime.day > 0) {
