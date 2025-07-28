@@ -20,7 +20,7 @@
 #include <engine/public/subsystem/console/ConsoleSystem.h>
 #include <engine/public/subsystem/interface/ServiceLocator.h>
 #include <engine/public/TextureManager/TexManager.h>
-#include <engine/public/Timer/EngineTimer.h>
+#include <engine/public/time/EngineTimer.h>
 #include <engine/public/Window/MainWindow.h>
 #include <engine/public/Window/WindowsUtils.h>
 
@@ -262,7 +262,8 @@ namespace Unnamed {
 		);
 		assert(SUCCEEDED(hr));
 
-		mGameTime = std::make_unique<GameTime>();
+		mGameTime     = std::make_unique<GameTime>();
+		mFrameLimiter = std::make_unique<FrameLimiter>(mGameTime.get());
 
 		//-------------------------------------------------------------------------
 		// すべての初期化が完了
@@ -829,6 +830,8 @@ namespace Unnamed {
 		mRenderer->PostRender();
 
 		mGameTime->EndFrame();
+		mFrameLimiter->Limit();
+
 
 		//-----------------------------------------------------------------------------
 		// Purpose: 新エンジン
@@ -1038,8 +1041,8 @@ namespace Unnamed {
 		);
 		ConVarManager::RegisterConVar<int>("cl_showfps", 2,
 		                                   "Draw fps meter (1 = fps, 2 = smooth)");
-		ConVarManager::RegisterConVar<int>("cl_fpsmax", kFpsMax,
-		                                   "Frame rate limiter");
+		ConVarManager::RegisterConVar<int>("fps_max", kDefaultFpsMax,
+		                                      "Frame rate limiter");
 		ConVarManager::RegisterConVar<std::string>("name", "unnamed",
 		                                           "Current user name",
 		                                           ConVarFlags::ConVarFlags_Notify);

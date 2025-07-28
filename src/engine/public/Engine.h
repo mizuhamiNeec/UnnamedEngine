@@ -20,10 +20,12 @@
 #include <engine/public/SceneManager/SceneManager.h>
 #include <engine/public/Sprite/SpriteCommon.h>
 #include <engine/public/subsystem/interface/ISubsystem.h>
-#include <engine/public/Timer/GameTime.h>
+#include <engine/public/time/GameTime.h>
 #include <engine/public/Window/WindowManager.h>
 
 #include <game/public/scene/base/BaseScene.h>
+
+#include "time/FrameLimiter.h"
 
 namespace Unnamed {
 	class Engine {
@@ -109,7 +111,8 @@ namespace Unnamed {
 		static std::unique_ptr<SrvManager>      mSrvManager;
 		static std::unique_ptr<ResourceManager> mResourceManager;
 
-		std::unique_ptr<GameTime> mGameTime;
+		std::unique_ptr<GameTime>     mGameTime;
+		std::unique_ptr<FrameLimiter> mFrameLimiter;
 
 		static std::unique_ptr<D3D12> mRenderer;
 #ifdef _DEBUG
