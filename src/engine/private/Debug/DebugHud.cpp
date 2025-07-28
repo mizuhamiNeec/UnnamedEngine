@@ -3,7 +3,7 @@
 #include "engine/public/ImGui/ImGuiManager.h"
 #include "engine/public/ImGui/ImGuiUtil.h"
 #include "engine/public/OldConsole/ConVarManager.h"
-#include "engine/public/Timer/GameTime.h"
+#include "engine/public/time/GameTime.h"
 
 void DebugHud::Update(const float deltaTime) {
 	ShowFrameRate(deltaTime);
