@@ -262,7 +262,7 @@ namespace Unnamed {
 		);
 		assert(SUCCEEDED(hr));
 
-		mTime = std::make_unique<EngineTimer>();
+		mGameTime = std::make_unique<GameTime>();
 
 		//-------------------------------------------------------------------------
 		// すべての初期化が完了
@@ -312,7 +312,7 @@ namespace Unnamed {
 			DestroyWindow(mWindowManager->GetMainWindow()->GetWindowHandle());
 		}
 
-		mTime->StartFrame();
+		mGameTime->StartFrame();
 #ifdef _DEBUG
 		ImGuiManager::NewFrame();
 		ImGuizmo::BeginFrame();
@@ -585,7 +585,7 @@ namespace Unnamed {
 #endif
 
 			if (mEditor) {
-				mEditor->Update(EngineTimer::GetDeltaTime());
+				mEditor->Update(mGameTime->DeltaTime<float>());
 			}
 
 			ImGui::Begin("Post Process");
@@ -595,12 +595,12 @@ namespace Unnamed {
 				}
 				auto& postProcess = mPostChain[i];
 				if (postProcess) {
-					postProcess->Update(EngineTimer::GetDeltaTime());
+					postProcess->Update(mGameTime->DeltaTime<float>());
 				}
 			}
 			ImGui::End();
 		} else {
-			mSceneManager->Update(EngineTimer::GetScaledDeltaTime());
+			mSceneManager->Update(mGameTime->ScaledDeltaTime<float>());
 			mViewportLT   = Vec2::zero;
 			mViewportSize = {
 				static_cast<float>(mWindowManager->GetMainWindow()->
@@ -614,14 +614,14 @@ namespace Unnamed {
 
 #ifdef _DEBUG
 		Console::Update();
-		DebugHud::Update();
+		DebugHud::Update(mGameTime->ScaledDeltaTime<float>());
 #endif
 
 
 #ifdef _DEBUG
 		Debug::Update();
 #endif
-		CameraManager::Update(EngineTimer::GetDeltaTime());
+		CameraManager::Update(mGameTime->ScaledDeltaTime<float>());
 
 		mOffscreenRenderPassTargets.bClearColor =
 			ConVarManager::GetConVar("r_clear")->GetValueAsBool();
@@ -829,7 +829,7 @@ namespace Unnamed {
 
 		mRenderer->PostRender();
 
-		mTime->EndFrame();
+		mGameTime->EndFrame();
 
 		//-----------------------------------------------------------------------------
 		// Purpose: 新エンジン
@@ -873,6 +873,13 @@ namespace Unnamed {
 				subsystem->Shutdown();
 			}
 		}
+	}
+
+	std::shared_ptr<BaseScene> Engine::GetCurrentScene() {
+		if (GetSceneManager()) {
+			return GetSceneManager()->GetCurrentScene();
+		}
+		UASSERT(false && "SceneManager is not initialized.");
 	}
 
 	void Engine::OnResize(const uint32_t width, const uint32_t height) {
@@ -1041,8 +1048,6 @@ namespace Unnamed {
 		                       true);
 		ConVarManager::RegisterConVar<float>("sensitivity", 2.0f,
 		                                     "Mouse sensitivity.");
-		ConVarManager::RegisterConVar<float>("host_timescale", 1.0f,
-		                                     "Prescale the clock by this amount.");
 		// World
 		ConVarManager::RegisterConVar<
 			float>("sv_gravity", 800.0f, "World gravity.");
@@ -1095,7 +1100,10 @@ namespace Unnamed {
 
 	void Engine::CheckEditorMode() {
 		if (mIsEditorMode) {
-			mEditor = std::make_unique<Editor>(mSceneManager.get());
+			mEditor = std::make_unique<Editor>(
+				mSceneManager.get(),
+				mGameTime.get()
+			);
 		} else {
 			mEditor.reset();
 		}

@@ -20,6 +20,7 @@
 #include <engine/public/SceneManager/SceneManager.h>
 #include <engine/public/Sprite/SpriteCommon.h>
 #include <engine/public/subsystem/interface/ISubsystem.h>
+#include <engine/public/Timer/GameTime.h>
 #include <engine/public/Window/WindowManager.h>
 
 #include <game/public/scene/base/BaseScene.h>
@@ -77,12 +78,7 @@ namespace Unnamed {
 		}
 
 		// DEPRECATED: 旧エンジンクラス
-		static std::shared_ptr<BaseScene> GetCurrentScene() {
-			if (GetSceneManager()) {
-				return GetSceneManager()->GetCurrentScene();
-			}
-			UASSERT(false && "SceneManager is not initialized.");
-		}
+		static std::shared_ptr<BaseScene> GetCurrentScene();
 
 		// DEPRECATED: 旧エンジンクラス
 		static Vec2 GetViewportLT() {
@@ -113,7 +109,7 @@ namespace Unnamed {
 		static std::unique_ptr<SrvManager>      mSrvManager;
 		static std::unique_ptr<ResourceManager> mResourceManager;
 
-		std::unique_ptr<EngineTimer> mTime;
+		std::unique_ptr<GameTime> mGameTime;
 
 		static std::unique_ptr<D3D12> mRenderer;
 #ifdef _DEBUG
