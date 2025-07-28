@@ -1,38 +1,17 @@
 #pragma once
 
 #include <chrono>
-#include <cstdint>
 
-struct DateTime {
-	int year;
-	int month;
-	int day;
-	int hour;
-	int minute;
-	int second;
-	int millisecond;
-};
+#include <engine/public/structs/DateTime.h>
 
 class EngineTimer {
 public:
 	EngineTimer();
-
+	
 	void StartFrame();
 	void EndFrame();
 
-	static float ScaledDelta();
-
-	// Setter
-	static void SetTimeScale(const float& scale);
-
 	// Getter
-	[[nodiscard]] static float    GetDeltaTime();
-	[[nodiscard]] static float    GetScaledDeltaTime();
-	[[nodiscard]] static double   GetDeltaTimeDouble();
-	[[nodiscard]] static double   GetScaledDeltaTimeDouble();
-	[[nodiscard]] static float    GetTotalTime();
-	[[nodiscard]] static float    GetTimeScale();
-	[[nodiscard]] static uint64_t GetFrameCount();
 	[[nodiscard]] static DateTime GetUpDateTime();
 	[[nodiscard]] static DateTime GetNow();
 

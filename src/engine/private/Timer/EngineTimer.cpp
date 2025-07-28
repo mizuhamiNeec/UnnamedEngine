@@ -1,4 +1,4 @@
-#include <engine/public/Timer/EngineTimer.h>
+  #include <engine/public/Timer/EngineTimer.h>
 
 #include <algorithm>
 
@@ -74,47 +74,6 @@ void EngineTimer::EndFrame() {
 	mLastFrameTime = frameEndTime;
 
 	++mFrameCount;
-}
-
-float EngineTimer::ScaledDelta() {
-	const auto timeScaleConVar = ConVarManager::GetConVar("host_timescale");
-	const double timeScale = timeScaleConVar->GetValueAsDouble();
-	return static_cast<float>(mDeltaTime * timeScale);
-}
-
-void EngineTimer::SetTimeScale(const float& scale) {
-	ConVarManager::GetConVar("host_timescale")->SetValueFromString(std::to_string(scale));
-}
-
-float EngineTimer::GetDeltaTime() {
-	// スパイク防止
-	mDeltaTime = std::min<double>(mDeltaTime, 1.0f / 60.0f);
-
-	return static_cast<float>(mDeltaTime);
-}
-
-float EngineTimer::GetScaledDeltaTime() {
-	return static_cast<float>(mDeltaTime) * GetTimeScale();
-}
-
-double EngineTimer::GetDeltaTimeDouble() {
-	return mDeltaTime;
-}
-
-double EngineTimer::GetScaledDeltaTimeDouble() {
-	return mDeltaTime * GetTimeScale();
-}
-
-float EngineTimer::GetTotalTime() {
-	return static_cast<float>(mTotalTime);
-}
-
-float EngineTimer::GetTimeScale() {
-	return ConVarManager::GetConVar("host_timescale")->GetValueAsFloat();
-}
-
-uint64_t EngineTimer::GetFrameCount() {
-	return mFrameCount;
 }
 
 int EngineTimer::GetDay() {
