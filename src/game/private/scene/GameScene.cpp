@@ -1,17 +1,16 @@
-#include <game/public/scene/GameScene.h>
-
 #include <format>
 
-#include "engine/public/Engine.h"
-#include "engine/public/Camera/CameraManager.h"
-#include "engine/public/Components/ColliderComponent/MeshColliderComponent.h"
-#include "engine/public/Debug/Debug.h"
-#include "engine/public/Debug/DebugHud.h"
-#include "engine/public/ImGui/ImGuiUtil.h"
-#include "engine/public/Input/InputSystem.h"
-#include "engine/public/OldConsole/ConVarManager.h"
-#include "engine/public/TextureManager/TexManager.h"
-#include "engine/public/time/EngineTimer.h"
+#include <engine/public/Engine.h>
+#include <engine/public/Camera/CameraManager.h>
+#include <engine/public/Components/ColliderComponent/MeshColliderComponent.h>
+#include <engine/public/Debug/Debug.h>
+#include <engine/public/Debug/DebugHud.h>
+#include <engine/public/ImGui/ImGuiUtil.h>
+#include <engine/public/Input/InputSystem.h>
+#include <engine/public/OldConsole/ConVarManager.h>
+#include <engine/public/TextureManager/TexManager.h>
+
+#include <game/public/scene/GameScene.h>
 
 GameScene::~GameScene() {
 	mResourceManager = nullptr;
