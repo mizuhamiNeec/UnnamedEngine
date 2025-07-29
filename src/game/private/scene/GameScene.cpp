@@ -185,7 +185,11 @@ void GameScene::Init() {
 
 
 	mEntSkeletalMesh = std::make_unique<Entity>("SkeletalMeshEntity");
-	auto sklMesh     = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
+	auto sklMesh = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
+	mSkeletalMeshRenderer = std::shared_ptr<SkeletalMeshRenderer>(
+		sklMesh, [](SkeletalMeshRenderer*) {
+		}
+	);
 
 	auto skeletalMesh = mResourceManager->GetMeshManager()->GetSkeletalMesh(
 		"./resources/models/man/man.gltf"
@@ -195,6 +199,8 @@ void GameScene::Init() {
 	AddEntity(mEntSkeletalMesh.get());
 
 	mEntSkeletalMesh->SetParent(mEntCameraRoot.get());
+	mEntSkeletalMesh->GetTransform()->SetLocalPos(
+		mEntSkeletalMesh->GetTransform()->GetLocalPos() + Vec3::up * -0.2f);
 	mEntSkeletalMesh->GetTransform()->SetLocalRot(
 		Quaternion::EulerDegrees(0.0f, 180.0f, 0.0f));
 
@@ -307,6 +313,10 @@ void GameScene::Update(const float deltaTime) {
 			Vec3::right
 		);
 	}
+
+	mSkeletalMeshRenderer->SetAnimationSpeed(
+		mPlayerMovement->GetVelocity().Length() * 0.1f
+	);
 
 	Unnamed::Engine::blurStrength = mPlayerMovement->GetVelocity().Length() *
 		0.01f;
