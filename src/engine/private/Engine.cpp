@@ -204,7 +204,7 @@ namespace Unnamed {
 
 		reinterpret_cast<PPBloom*>(
 			mPostChain.back().get()
-		)->SetStrength(0.0f);
+		)->SetStrength(0.0f); // 奇数個のポストプロセスは適応されない不具合があるのでダミー
 
 		mPostChain.emplace_back(
 			std::make_unique<PPVignette>(
@@ -226,18 +226,6 @@ namespace Unnamed {
 				mSrvManager.get()
 			)
 		);
-
-		//// モデル
-		//modelCommon_ = std::make_unique<ModelCommon>();
-		//modelCommon_->Init(renderer_.get());
-
-		// オブジェクト3D
-		/*object3DCommon_ = std::make_unique<Object3DCommon>();
-		object3DCommon_->Init(renderer_.get());*/
-
-		//// スプライト
-		//spriteCommon_ = std::make_unique<SpriteCommon>();
-		//spriteCommon_->Init(renderer_.get());
 
 		TexManager::GetInstance()->Init(mRenderer.get(), mSrvManager.get());
 
@@ -283,13 +271,7 @@ namespace Unnamed {
 		// Purpose: 新エンジン
 		//-----------------------------------------------------------------------------
 		mSubsystems.emplace_back(std::make_unique<ConsoleSystem>());
-		ServiceLocator::Register<ConsoleSystem>(
-			dynamic_cast<ConsoleSystem*>(mSubsystems.back().get())
-		);
 		mSubsystems.emplace_back(std::make_unique<TimeSystem>());
-		ServiceLocator::Register<TimeSystem>(
-			dynamic_cast<TimeSystem*>(mSubsystems.back().get())
-		);
 
 		for (auto& subsystem : mSubsystems) {
 			if (subsystem->Init()) {
@@ -306,7 +288,6 @@ namespace Unnamed {
 
 		mConsoleSystem = ServiceLocator::Get<ConsoleSystem>();
 		mTimeSystem    = ServiceLocator::Get<TimeSystem>();
-
 
 		//-----------------------------------------------------------------------------
 		// エディターの初期化
@@ -802,6 +783,18 @@ namespace Unnamed {
 			mRenderer->BeginSwapChainRenderPass();
 		}
 
+		//-----------------------------------------------------------------------------
+		// Purpose: 新エンジン
+		//-----------------------------------------------------------------------------
+
+		for (auto& subsystem : mSubsystems) {
+			subsystem->Update(mTimeSystem->GetGameTime()->DeltaTime<float>());
+		}
+
+		for (auto& subsystem : mSubsystems) {
+			subsystem->Render();
+		}
+
 #ifdef _DEBUG
 		mImGuiManager->EndFrame();
 #endif
@@ -848,10 +841,6 @@ namespace Unnamed {
 		mRenderer->PostRender();
 
 		mTimeSystem->EndFrame();
-
-		//-----------------------------------------------------------------------------
-		// Purpose: 新エンジン
-		//-----------------------------------------------------------------------------
 	}
 
 	void Engine::Shutdown() const {
