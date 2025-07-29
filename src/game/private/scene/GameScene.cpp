@@ -1,17 +1,16 @@
-#include <game/public/scene/GameScene.h>
-
 #include <format>
 
-#include "engine/public/Engine.h"
-#include "engine/public/Camera/CameraManager.h"
-#include "engine/public/Components/ColliderComponent/MeshColliderComponent.h"
-#include "engine/public/Debug/Debug.h"
-#include "engine/public/Debug/DebugHud.h"
-#include "engine/public/ImGui/ImGuiUtil.h"
-#include "engine/public/Input/InputSystem.h"
-#include "engine/public/OldConsole/ConVarManager.h"
-#include "engine/public/TextureManager/TexManager.h"
-#include "engine/public/Timer/EngineTimer.h"
+#include <engine/public/Engine.h>
+#include <engine/public/Camera/CameraManager.h>
+#include <engine/public/Components/ColliderComponent/MeshColliderComponent.h>
+#include <engine/public/Debug/Debug.h>
+#include <engine/public/Debug/DebugHud.h>
+#include <engine/public/ImGui/ImGuiUtil.h>
+#include <engine/public/Input/InputSystem.h>
+#include <engine/public/OldConsole/ConVarManager.h>
+#include <engine/public/TextureManager/TexManager.h>
+
+#include <game/public/scene/GameScene.h>
 
 GameScene::~GameScene() {
 	mResourceManager = nullptr;
@@ -443,8 +442,8 @@ void GameScene::Update(const float deltaTime) {
 		//mParticleEmitter->Emit();
 	}
 
-	mWindEffect->Update(EngineTimer::ScaledDelta());
-	mExplosionEffect->Update(EngineTimer::ScaledDelta());
+	mWindEffect->Update(deltaTime);
+	mExplosionEffect->Update(deltaTime);
 
 	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
 		mCubeMap->Update(deltaTime);
@@ -605,7 +604,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	// メッシュをリロード
 	const std::string meshPath      = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-		ReloadMeshFromFile(meshPath);
+	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
@@ -679,7 +678,7 @@ void GameScene::SafeReloadWorldMesh() {
 	// メッシュをリロード
 	const std::string meshPath      = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-		ReloadMeshFromFile(meshPath);
+	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);

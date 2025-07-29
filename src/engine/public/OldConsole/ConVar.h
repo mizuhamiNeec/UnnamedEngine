@@ -264,7 +264,7 @@ public:
 				value_ = buffer;
 			}
 		} else {
-			ImGui::InputText(name_.c_str(), &value_);
+			//ImGui::InputText(name_.c_str(), &value_);
 		}
 #endif
 	}

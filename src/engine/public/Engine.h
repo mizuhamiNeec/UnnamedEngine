@@ -24,7 +24,11 @@
 
 #include <game/public/scene/base/BaseScene.h>
 
+class TimeSystem;
+
 namespace Unnamed {
+	class ConsoleSystem;
+
 	class Engine {
 	public:
 		Engine();
@@ -77,12 +81,7 @@ namespace Unnamed {
 		}
 
 		// DEPRECATED: 旧エンジンクラス
-		static std::shared_ptr<BaseScene> GetCurrentScene() {
-			if (GetSceneManager()) {
-				return GetSceneManager()->GetCurrentScene();
-			}
-			UASSERT(false && "SceneManager is not initialized.");
-		}
+		static std::shared_ptr<BaseScene> GetCurrentScene();
 
 		// DEPRECATED: 旧エンジンクラス
 		static Vec2 GetViewportLT() {
@@ -112,8 +111,6 @@ namespace Unnamed {
 
 		static std::unique_ptr<SrvManager>      mSrvManager;
 		static std::unique_ptr<ResourceManager> mResourceManager;
-
-		std::unique_ptr<EngineTimer> mTime;
 
 		static std::unique_ptr<D3D12> mRenderer;
 #ifdef _DEBUG
@@ -164,5 +161,7 @@ namespace Unnamed {
 		//---------------------------------------------------------------------
 	private:
 		std::vector<std::unique_ptr<ISubsystem>> mSubsystems;
+		ConsoleSystem*                           mConsoleSystem = nullptr;
+		TimeSystem*                              mTimeSystem    = nullptr;
 	};
 }

@@ -1,27 +1,28 @@
 #include <pch.h>
+
 #include <editor/public/Editor.h>
 
+#include <engine/public/Engine.h>
+#include <engine/public/Camera/CameraManager.h>
+#include <engine/public/Components/Base/Component.h>
+#include <engine/public/Debug/Debug.h>
+#include <engine/public/ImGui/Icons.h>
+#include <engine/public/Input/InputSystem.h>
+#include <engine/public/OldConsole/ConVarManager.h>
 #include <engine/public/SceneManager/SceneManager.h>
+#include <engine/public/utils/StrUtil.h>
+#include <engine/public/Window/WindowManager.h>
 
 #include <math/public/MathLib.h>
 
-#include "engine/public/Engine.h"
-#include "engine/public/Camera/CameraManager.h"
-#include "engine/public/Components/Base/Component.h"
-#include "engine/public/Debug/Debug.h"
-#include "engine/public/Input/InputSystem.h"
-#include "engine/public/OldConsole/ConVarManager.h"
-#include "engine/public/Timer/EngineTimer.h"
-#include "engine/public/utils/StrUtil.h"
-#include "engine/public/Window/WindowManager.h"
-#include "engine/public/ImGui/Icons.h"
-
 #ifdef _DEBUG
 #include <imgui_internal.h>
+// ImGuizmoのインクルードはImGuiより後
 #include <ImGuizmo.h>
 #endif
 
-Editor::Editor(SceneManager* sceneManager) : mSceneManager(sceneManager) {
+Editor::Editor(SceneManager* sceneManager, GameTime* gameTime)
+	: mSceneManager(sceneManager), mGameTime(gameTime) {
 	mScene = mSceneManager->GetCurrentScene();
 	Init();
 }
@@ -54,7 +55,7 @@ void Editor::Init() {
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
 	if (auto currentScene = mSceneManager->GetCurrentScene()) {
-		currentScene->Update(EngineTimer::GetScaledDeltaTime());
+		currentScene->Update(mGameTime->ScaledDeltaTime<float>());
 	}
 
 #ifdef _DEBUG
@@ -153,7 +154,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				mCameraEntity->GetTransform()->GetWorldPos() + (cameraForward *
 					moveInput.z + cameraRight * moveInput.x + cameraUp *
 					moveInput.y) *
-				moveSpd * EngineTimer::GetScaledDeltaTime()
+				moveSpd * mGameTime->ScaledDeltaTime<float>()
 			);
 		}
 		// カーソルをウィンドウの中央にリセット
@@ -228,8 +229,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		            moveSpd);
 
 		// 一定時間経過後にポップアップをフェードアウトして閉じる
-		popupTimer += EngineTimer::GetDeltaTime();
 		// ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
+		popupTimer += deltaTime;
 		if (popupTimer >= 3.0f) {
 			ImGui::CloseCurrentPopup();
 			bOpenPopup = false;
@@ -239,8 +240,6 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		ImGui::End();
 		ImGui::PopStyleVar();
 	}
-
-	//cameraEntity_->Update(deltaTime);
 
 	ImGui::ShowDemoWindow();
 

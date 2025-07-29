@@ -6,7 +6,7 @@
             "type": "shell",
             "command": "msbuild",
             "args": [
-                "GE3_GameEngine.sln",
+                "Unnamed.sln",
                 "/p:Configuration=Debug",
                 "/p:Platform=x64"
             ],
@@ -21,7 +21,7 @@
             "type": "shell",
             "command": "msbuild",
             "args": [
-                "GE3_GameEngine.sln",
+                "Unnamed.sln",
                 "/p:Configuration=Release",
                 "/p:Platform=x64"
             ],
