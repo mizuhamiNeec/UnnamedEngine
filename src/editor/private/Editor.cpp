@@ -30,7 +30,7 @@ Editor::Editor(SceneManager* sceneManager, GameTime* gameTime)
 void Editor::Init() {
 	// カメラの作成
 	mCameraEntity = std::make_unique<Entity>("editorCamera",
-		EntityType::EditorOnly);
+	                                         EntityType::EditorOnly);
 	mCameraEntity->GetTransform()->SetLocalPos(
 		Vec3::forward * -5.0f + Vec3::up * 2.0f);
 	mCameraEntity->GetTransform()->SetLocalRot(
@@ -64,7 +64,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// カメラの操作
 	static float moveSpd = 4.0f;
 
-	static bool firstReset = true; // 初回リセットフラグ
+	static bool firstReset   = true; // 初回リセットフラグ
 	static bool cursorHidden = false;
 
 	static bool  bOpenPopup = false; // ポップアップ表示フラグ
@@ -83,23 +83,23 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			float sensitivity = ConVarManager::GetConVar("sensitivity")->
 				GetValueAsFloat();
 			float m_pitch = 0.022f;
-			float m_yaw = 0.022f;
-			float min = -89.0f;
-			float max = 89.0f;
+			float m_yaw   = 0.022f;
+			float min     = -89.0f;
+			float max     = 89.0f;
 
 			static Vec3 rot_ = mCameraEntity->GetTransform()->GetLocalRot().
-				ToEulerAngles();
+			                                  ToEulerAngles();
 
 			rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
 			rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
 
 			rot_.y = std::clamp(rot_.y, min * Math::deg2Rad,
-				max * Math::deg2Rad);
+			                    max * Math::deg2Rad);
 
 			mCameraEntity->GetTransform()->SetWorldRot(
 				Quaternion::Euler(Vec3::up * rot_.x + Vec3::right * rot_.y));
 
-			Vec3 moveInput = { 0.0f, 0.0f, 0.0f };
+			Vec3 moveInput = {0.0f, 0.0f, 0.0f};
 
 			if (InputSystem::IsPressed("forward")) {
 				moveInput.z += 1.0f;
@@ -169,12 +169,11 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				/ 2)
 		};
 		ClientToScreen(OldWindowManager::GetMainWindow()->GetWindowHandle(),
-			&centerCursorPos); // クライアント座標をスクリーン座標に変換
+		               &centerCursorPos); // クライアント座標をスクリーン座標に変換
 		SetCursorPos(centerCursorPos.x, centerCursorPos.y);
 
 		firstReset = false; // 初回リセット完了
-	}
-	else {
+	} else {
 		if (cursorHidden) {
 			ShowCursor(TRUE); // カーソルを表示する
 			cursorHidden = false;
@@ -185,10 +184,11 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
 	if (bOpenPopup) {
 		// ビューポートのサイズと位置を取得
-		ImGuiViewport* viewport = ImGui::GetMainViewport();
-		ImVec2         viewportPos = viewport->Pos;
-		ImVec2         viewportSize = viewport->Size;
-		auto           windowSize = ImVec2(256.0f, 32.0f);
+		auto   lt           = Unnamed::Engine::GetViewportLT();
+		auto   size         = Unnamed::Engine::GetViewportSize();
+		ImVec2 viewportPos  = {lt.x, lt.y};
+		ImVec2 viewportSize = {size.x, size.y};
+		auto   windowSize   = ImVec2(256.0f, 32.0f);
 
 		// ウィンドウの中央下部位置を計算
 		ImVec2 windowPos(
@@ -229,7 +229,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			)
 		);
 		ImGui::Text((StrUtil::ConvertToUtf8(0xe9e4) + " %.2f").c_str(),
-			moveSpd);
+		            moveSpd);
 
 		// 一定時間経過後にポップアップをフェードアウトして閉じる
 		// ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
@@ -266,161 +266,160 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 				ImGuiTableColumnFlags_NoHide |
 				ImGuiTableColumnFlags_WidthStretch);
 			ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed,
-				30.0f);
+			                        30.0f);
 			ImGui::TableSetupColumn("Active", ImGuiTableColumnFlags_WidthFixed,
-				30.0f);
+			                        30.0f);
 
 			// 再帰的にエンティティを表示する関数
 			std::function<void(Entity*)>
 				drawEntityNode =
-				[&](Entity* entity) {
-				if (!entity) {
-					return;
-				}
+					[&](Entity* entity) {
+					if (!entity) {
+						return;
+					}
 
-				if (entity->GetName().empty()) {
-					return;
-				}
+					if (entity->GetName().empty()) {
+						return;
+					}
 
-				ImGui::PushID(entity);
+					ImGui::PushID(entity);
 
-				ImGui::TableNextRow();
-				ImGui::TableNextColumn();
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
 
-				// エンティティ名とツリー構造
-				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
-					ImGuiTreeNodeFlags_SpanAvailWidth |
-					ImGuiTreeNodeFlags_AllowItemOverlap |
-					ImGuiTreeNodeFlags_DefaultOpen;
+					// エンティティ名とツリー構造
+					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
+						ImGuiTreeNodeFlags_SpanAvailWidth |
+						ImGuiTreeNodeFlags_AllowItemOverlap |
+						ImGuiTreeNodeFlags_DefaultOpen;
 
-				if (entity->GetChildren().empty()) {
-					flags |= ImGuiTreeNodeFlags_Leaf;
-				}
-				if (entity == mSelectedEntity) {
-					flags |= ImGuiTreeNodeFlags_Selected;
-				}
+					if (entity->GetChildren().empty()) {
+						flags |= ImGuiTreeNodeFlags_Leaf;
+					}
+					if (entity == mSelectedEntity) {
+						flags |= ImGuiTreeNodeFlags_Selected;
+					}
 
-				ImGui::AlignTextToFramePadding();
-				bool nodeOpen = ImGui::TreeNodeEx(
-					(StrUtil::ConvertToUtf8(kIconObject) +
-						" " +
-						entity->GetName())
-					.c_str(),
-					flags
-				);
+					ImGui::AlignTextToFramePadding();
+					bool nodeOpen = ImGui::TreeNodeEx(
+						(StrUtil::ConvertToUtf8(kIconObject) +
+							" " +
+							entity->GetName())
+						.c_str(),
+						flags
+					);
 
-				// 左クリックで選択
-				if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-					mSelectedEntity = entity;
-				}
+					// 左クリックで選択
+					if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+						mSelectedEntity = entity;
+					}
 
-				// 右クリックでコンテキストメニュー
-				if (ImGui::BeginPopupContextItem("EntityContextMenu")) {
-					if (entity != mCameraEntity.get()) {
-						// エディタカメラは削除不可
-						if (ImGui::MenuItem("Delete")) {
-							if (auto currentScene = mSceneManager->
-								GetCurrentScene()) {
-								// SceneクラスにRemoveEntityメソッドが実装されていると仮定
-								currentScene->RemoveEntity(entity);
-								if (mSelectedEntity == entity) {
-									mSelectedEntity = nullptr; // 選択を解除
+					// 右クリックでコンテキストメニュー
+					if (ImGui::BeginPopupContextItem("EntityContextMenu")) {
+						if (entity != mCameraEntity.get()) {
+							// エディタカメラは削除不可
+							if (ImGui::MenuItem("Delete")) {
+								if (auto currentScene = mSceneManager->
+									GetCurrentScene()) {
+									// SceneクラスにRemoveEntityメソッドが実装されていると仮定
+									currentScene->RemoveEntity(entity);
+									if (mSelectedEntity == entity) {
+										mSelectedEntity = nullptr; // 選択を解除
+									}
+									ImGui::EndPopup(); // ポップアップを閉じる
+
+									// TreeNodeExが開かれていた場合、TreePopを呼び出してバランスを取る
+									if (nodeOpen) {
+										ImGui::TreePop();
+									}
+									ImGui::PopID();
+									// ImGui::PushID(entity) でプッシュしたIDをポップ
+									return; // 早期リターン
 								}
-								ImGui::EndPopup(); // ポップアップを閉じる
+							}
+						} else {
+							ImGui::TextDisabled("Cannot delete editor camera");
+						}
+						ImGui::EndPopup();
+					}
 
-								// TreeNodeExが開かれていた場合、TreePopを呼び出してバランスを取る
-								if (nodeOpen) {
-									ImGui::TreePop();
+
+					// Visible アイコン
+					ImGui::TableNextColumn();
+					bool visible = entity->IsVisible();
+
+					// アイコンのサイズを一時的に変更
+					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+					                    ImVec2(0, 0));
+					// アイコン間のスペースを調整
+					float originalScale     = ImGui::GetFont()->Scale;
+					ImGui::GetFont()->Scale = 1.2f; // スケールを1.2倍に
+					ImGui::PushFont(ImGui::GetFont());
+
+					ImGui::PushStyleColor(
+						ImGuiCol_Text,
+						visible
+							? ImGui::GetStyleColorVec4(ImGuiCol_Text)
+							: ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
+					);
+
+					// アイコンを中央に配置
+					float iconWidth = ImGui::CalcTextSize(
+						StrUtil::ConvertToUtf8(kIconVisibility).c_str()).x;
+					float columnWidth = ImGui::GetColumnWidth();
+					ImGui::SetCursorPosX(
+						ImGui::GetCursorPosX() + (columnWidth - iconWidth) *
+						0.5f);
+
+					if (ImGui::Selectable(
+						StrUtil::ConvertToUtf8(
+							visible ? kIconVisibility : kIconVisibilityOff
+						).c_str(), false,
+						ImGuiSelectableFlags_DontClosePopups
+					)) {
+						entity->SetVisible(!visible);
+					}
+
+					// スタイルを元に戻す
+					ImGui::PopStyleColor();
+					ImGui::GetFont()->Scale = originalScale;
+					ImGui::PopFont();
+					ImGui::PopStyleVar();
+
+					// Active チェックボックス
+					ImGui::TableNextColumn();
+					bool active = entity->IsActive();
+					if (ImGui::Checkbox("##Active", &active)) {
+						entity->SetActive(active);
+					}
+
+					if (nodeOpen) {
+						// 子エンティティを処理する前に、現在のエンティティが削除されていないか確認
+						// (上記の削除処理でreturnしているため、基本的にはここは通らないはずだが念のため)
+						bool entityStillExists = false;
+						if (auto currentScene = mSceneManager->
+							GetCurrentScene()) {
+							for (const auto& e : currentScene->GetEntities()) {
+								if (e == entity) {
+									entityStillExists = true;
+									break;
 								}
-								ImGui::PopID();
-								// ImGui::PushID(entity) でプッシュしたIDをポップ
-								return; // 早期リターン
 							}
 						}
-					}
-					else {
-						ImGui::TextDisabled("Cannot delete editor camera");
-					}
-					ImGui::EndPopup();
-				}
 
-
-				// Visible アイコン
-				ImGui::TableNextColumn();
-				bool visible = entity->IsVisible();
-
-				// アイコンのサイズを一時的に変更
-				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
-					ImVec2(0, 0));
-				// アイコン間のスペースを調整
-				float originalScale = ImGui::GetFont()->Scale;
-				ImGui::GetFont()->Scale = 1.2f; // スケールを1.2倍に
-				ImGui::PushFont(ImGui::GetFont());
-
-				ImGui::PushStyleColor(
-					ImGuiCol_Text,
-					visible
-					? ImGui::GetStyleColorVec4(ImGuiCol_Text)
-					: ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
-				);
-
-				// アイコンを中央に配置
-				float iconWidth = ImGui::CalcTextSize(
-					StrUtil::ConvertToUtf8(kIconVisibility).c_str()).x;
-				float columnWidth = ImGui::GetColumnWidth();
-				ImGui::SetCursorPosX(
-					ImGui::GetCursorPosX() + (columnWidth - iconWidth) *
-					0.5f);
-
-				if (ImGui::Selectable(
-					StrUtil::ConvertToUtf8(
-						visible ? kIconVisibility : kIconVisibilityOff
-					).c_str(), false,
-					ImGuiSelectableFlags_DontClosePopups
-				)) {
-					entity->SetVisible(!visible);
-				}
-
-				// スタイルを元に戻す
-				ImGui::PopStyleColor();
-				ImGui::GetFont()->Scale = originalScale;
-				ImGui::PopFont();
-				ImGui::PopStyleVar();
-
-				// Active チェックボックス
-				ImGui::TableNextColumn();
-				bool active = entity->IsActive();
-				if (ImGui::Checkbox("##Active", &active)) {
-					entity->SetActive(active);
-				}
-
-				if (nodeOpen) {
-					// 子エンティティを処理する前に、現在のエンティティが削除されていないか確認
-					// (上記の削除処理でreturnしているため、基本的にはここは通らないはずだが念のため)
-					bool entityStillExists = false;
-					if (auto currentScene = mSceneManager->
-						GetCurrentScene()) {
-						for (const auto& e : currentScene->GetEntities()) {
-							if (e == entity) {
-								entityStillExists = true;
-								break;
+						if (entityStillExists) {
+							// GetChildren() が返すコンテナのコピーに対してループする方が安全な場合がある
+							// ここでは元の実装に従う
+							auto children = entity->GetChildren();
+							// コピーを取得する方が安全かもしれない
+							for (auto& child : children) {
+								// childが削除される可能性も考慮すると、さらに堅牢なイテレーションが必要
+								drawEntityNode(child);
 							}
 						}
+						ImGui::TreePop();
 					}
-
-					if (entityStillExists) {
-						// GetChildren() が返すコンテナのコピーに対してループする方が安全な場合がある
-						// ここでは元の実装に従う
-						auto children = entity->GetChildren();
-						// コピーを取得する方が安全かもしれない
-						for (auto& child : children) {
-							// childが削除される可能性も考慮すると、さらに堅牢なイテレーションが必要
-							drawEntityNode(child);
-						}
-					}
-					ImGui::TreePop();
-				}
-				ImGui::PopID();
+					ImGui::PopID();
 				};
 
 			// ルートエンティティから開始
@@ -464,7 +463,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	ImGui::BeginChild("Tabs", ImVec2(512, 0), true);
 	for (int i = 0; i < IM_ARRAYSIZE(tabNames); i++) {
 		// ボタンまたは選択可能なアイテムとしてタブを表現
-		if (ImGui::Selectable((StrUtil::ConvertToUtf8(kIconTerminal) + tabNames[i]).c_str(), selectedTab == i)) {
+		if (ImGui::Selectable(
+			(StrUtil::ConvertToUtf8(kIconTerminal) + tabNames[i]).c_str(),
+			selectedTab == i)) {
 			selectedTab = i; // タブを切り替える
 		}
 	}
@@ -501,14 +502,14 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	if (ImGui::Begin("World Settings")) {
 		ImGui::Text("Grid Size");
 		ImGui::SliderFloat("##GridSize", &mGridSize, 0.125f, 64.0f, "%.3f",
-			ImGuiSliderFlags_Logarithmic);
+		                   ImGuiSliderFlags_Logarithmic);
 		ImGui::Text("Grid Range");
 		ImGui::SliderFloat("##GridRange", &mGridRange, 128.0f, 16384.0f, "%.3f",
-			ImGuiSliderFlags_Logarithmic);
+		                   ImGuiSliderFlags_Logarithmic);
 	}
 	ImGui::End();
 
-	Vec2 vLT = Unnamed::Engine::GetViewportLT();
+	Vec2 vLT   = Unnamed::Engine::GetViewportLT();
 	Vec2 vSize = Unnamed::Engine::GetViewportSize();
 	ImGuizmo::SetRect(
 		vLT.x, vLT.y,
@@ -516,13 +517,13 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	);
 
 	auto camera = CameraManager::GetActiveCamera();
-	Mat4 view = camera->GetViewMat();
-	Mat4 proj = camera->GetProjMat();
+	Mat4 view   = camera->GetViewMat();
+	Mat4 proj   = camera->GetProjMat();
 
 	if (mSelectedEntity) {
 		Mat4 worldMat = mSelectedEntity->GetTransform()->GetLocalMat();
 
-		static ImGuizmo::MODE      mode = ImGuizmo::MODE::LOCAL;
+		static ImGuizmo::MODE      mode      = ImGuizmo::MODE::LOCAL;
 		static ImGuizmo::OPERATION operation = ImGuizmo::OPERATION::TRANSLATE;
 
 		static bool bIsWorldMode = true;
@@ -532,8 +533,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 		if (bIsWorldMode) {
 			mode = ImGuizmo::MODE::WORLD;
-		}
-		else {
+		} else {
 			mode = ImGuizmo::MODE::LOCAL;
 		}
 
@@ -596,7 +596,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	ImGui::PushStyleVarY(ImGuiStyleVar_FramePadding, 10.0f);
 
 	if (ImGui::BeginViewportSideBar("##MainStatusBar", viewport, ImGuiDir_Down,
-		38, window_flags)) {
+	                                38, window_flags)) {
 		if (ImGui::BeginMenuBar()) {
 			ImGui::PopStyleVar();
 
@@ -606,18 +606,18 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			// アングルスナップ
 			{
 				const float windowHeight = ImGui::GetWindowSize().y;
-				const char* items[] = {
+				const char* items[]      = {
 					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°",
 					"22.5°", "30°", "45°", "90°"
 				};
 				static int  itemCurrentIndex = 6;
-				const char* comboLabel = items[itemCurrentIndex];
+				const char* comboLabel       = items[itemCurrentIndex];
 
 				ImGui::Text("Angle: ");
 
 				// 垂直中央に配置
 				float comboHeight = ImGui::GetFrameHeight();
-				float offsetY = (windowHeight - comboHeight) * 0.5f;
+				float offsetY     = (windowHeight - comboHeight) * 0.5f;
 				ImGui::SetCursorPosY(offsetY);
 
 				// コンボボックスの幅をステータスバーの幅に合わせて調整
@@ -627,7 +627,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 						const bool isSelected = (itemCurrentIndex == n);
 						if (ImGui::Selectable(items[n], isSelected)) {
 							itemCurrentIndex = n;
-							mAngleSnap = std::stof(
+							mAngleSnap       = std::stof(
 								items[itemCurrentIndex]);
 						}
 						if (isSelected) {
@@ -642,16 +642,16 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			// グリッドスナップ
 			{
 				const float windowHeight = ImGui::GetWindowSize().y;
-				const char* items[] = {
+				const char* items[]      = {
 					"0.125", "0.25", "0.5", "1", "2", "4", "8", "16", "32",
 					"64", "128", "256", "512"
 				};
 				static int  itemCurrentIndex = 9;
-				const char* comboLabel = items[itemCurrentIndex];
+				const char* comboLabel       = items[itemCurrentIndex];
 				ImGui::Text("Grid: ");
 				// 垂直中央に配置
 				float comboHeight = ImGui::GetFrameHeight();
-				float offsetY = (windowHeight - comboHeight) * 0.5f;
+				float offsetY     = (windowHeight - comboHeight) * 0.5f;
 				ImGui::SetCursorPosY(offsetY);
 
 				// コンボボックスの幅をステータスバーの幅に合わせて調整
@@ -699,10 +699,10 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	DrawGrid(
 		mGridSize,
 		mGridRange,
-		{ 0.28f, 0.28f, 0.28f, 1.0f },
-		{ 0.39f, 0.2f, 0.02f, 1.0f },
-		{ 0.0f, 0.39f, 0.39f, 1.0f },
-		{ 0.39f, 0.39f, 0.39f, 1.0f },
+		{0.28f, 0.28f, 0.28f, 1.0f},
+		{0.39f, 0.2f, 0.02f, 1.0f},
+		{0.0f, 0.39f, 0.39f, 1.0f},
+		{0.39f, 0.39f, 0.39f, 1.0f},
 		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
 		mGridSize * 32.0f
 	);
@@ -719,8 +719,8 @@ void Editor::ShowDockSpace() {
 #ifdef _DEBUG
 	static bool* p_open;
 
-	static bool               opt_fullscreen = true;
-	static bool               opt_padding = false;
+	static bool               opt_fullscreen  = true;
+	static bool               opt_padding     = false;
 	static ImGuiDockNodeFlags dockspace_flags =
 		ImGuiDockNodeFlags_PassthruCentralNode;
 
@@ -740,8 +740,7 @@ void Editor::ShowDockSpace() {
 			ImGuiWindowFlags_NoMove;
 		window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus |
 			ImGuiWindowFlags_NoNavFocus;
-	}
-	else {
+	} else {
 		dockspace_flags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
 	}
 
@@ -785,35 +784,35 @@ void Editor::ShowDockSpace() {
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("Flag: NoDockingOverCentralNode", "",
-				(dockspace_flags &
-					ImGuiDockNodeFlags_NoDockingOverCentralNode)
-				!= 0)) {
+			                    (dockspace_flags &
+				                    ImGuiDockNodeFlags_NoDockingOverCentralNode)
+			                    != 0)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_NoDockingOverCentralNode;
 			}
 			if (ImGui::MenuItem("Flag: NoDockingSplit", "",
-				(dockspace_flags &
-					ImGuiDockNodeFlags_NoDockingSplit) != 0)) {
+			                    (dockspace_flags &
+				                    ImGuiDockNodeFlags_NoDockingSplit) != 0)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_NoDockingSplit;
 			}
 			if (ImGui::MenuItem("Flag: NoUndocking", "",
-				(dockspace_flags &
-					ImGuiDockNodeFlags_NoUndocking) != 0)) {
+			                    (dockspace_flags &
+				                    ImGuiDockNodeFlags_NoUndocking) != 0)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_NoUndocking;
 			}
 			if (ImGui::MenuItem("Flag: NoResize", "",
-				(dockspace_flags & ImGuiDockNodeFlags_NoResize)
-				!= 0)) {
+			                    (dockspace_flags & ImGuiDockNodeFlags_NoResize)
+			                    != 0)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
 			}
 			if (ImGui::MenuItem("Flag: AutoHideTabBar", "",
-				(dockspace_flags &
-					ImGuiDockNodeFlags_AutoHideTabBar) != 0)) {
+			                    (dockspace_flags &
+				                    ImGuiDockNodeFlags_AutoHideTabBar) != 0)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
 			}
 			if (ImGui::MenuItem("Flag: PassthruCentralNode", "",
-				(dockspace_flags &
-					ImGuiDockNodeFlags_PassthruCentralNode) !=
-				0, opt_fullscreen)) {
+			                    (dockspace_flags &
+				                    ImGuiDockNodeFlags_PassthruCentralNode) !=
+			                    0, opt_fullscreen)) {
 				dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
 			}
 			ImGui::Separator();
@@ -849,13 +848,13 @@ void Editor::DrawGrid(
 
 	// 範囲内のグリッドラインを計算
 	const int   numLines = static_cast<int>((range * 2) / gridSize) + 1;
-	const float startX = -range;
-	const float startZ = -range;
+	const float startX   = -range;
+	const float startZ   = -range;
 
 	for (int i = 0; i < numLines; ++i) {
 		constexpr float majorInterval = 1024.0f;
-		float           x = startX + i * gridSize;
-		float           z = startZ + i * gridSize;
+		float           x             = startX + i * gridSize;
+		float           z             = startZ + i * gridSize;
 
 		// 垂直線（X軸に沿った線）の描画
 		{
@@ -863,8 +862,7 @@ void Editor::DrawGrid(
 
 			if (std::fmod(x, majorInterval) == 0.0f) {
 				lineColor = majorColor; // 主要なグリッド線
-			}
-			else if (std::fmod(x, minorInterval) == 0.0f) {
+			} else if (std::fmod(x, minorInterval) == 0.0f) {
 				lineColor = minorColor; // 細かいグリッド線
 			}
 
@@ -875,9 +873,8 @@ void Editor::DrawGrid(
 			if (std::fmod(x, majorInterval) == 0.0f || x == 0.0f) {
 				// 主要線・軸線は常に最大範囲で描画
 				Debug::DrawLine(Vec3(x, 0, -range), Vec3(x, 0, range),
-					lineColor);
-			}
-			else {
+				                lineColor);
+			} else {
 				// 細かいグリッド線は円形範囲内のみ描画
 				float distToLineSq = (cameraPosX - x) * (cameraPosX - x);
 				if (distToLineSq <= drawRadiusSq) {
@@ -897,8 +894,7 @@ void Editor::DrawGrid(
 
 			if (std::fmod(z, majorInterval) == 0.0f) {
 				lineColor = majorColor; // 主要なグリッド線
-			}
-			else if (std::fmod(z, minorInterval) == 0.0f) {
+			} else if (std::fmod(z, minorInterval) == 0.0f) {
 				lineColor = minorColor; // 細かいグリッド線
 			}
 
@@ -909,9 +905,8 @@ void Editor::DrawGrid(
 			if (std::fmod(z, majorInterval) == 0.0f || z == 0.0f) {
 				// 主要線・軸線は常に最大範囲で描画
 				Debug::DrawLine(Vec3(-range, 0, z), Vec3(range, 0, z),
-					lineColor);
-			}
-			else {
+				                lineColor);
+			} else {
 				// 細かいグリッド線は円形範囲内のみ描画
 				float distToLineSq = (cameraPosZ - z) * (cameraPosZ - z);
 				if (distToLineSq <= drawRadiusSq) {
