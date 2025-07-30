@@ -44,6 +44,7 @@ private:
 	// エディターのカメラ
 	std::unique_ptr<Entity>          mCameraEntity;
 	std::shared_ptr<CameraComponent> mCamera;
+	Entity*                          mCameraEntityRaw;
 
 	float mGridSize  = 64.0f;
 	float mGridRange = 16384.0f;
