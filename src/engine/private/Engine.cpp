@@ -21,6 +21,7 @@
 #include <engine/public/postprocess/PPVignette.h>
 #include <engine/public/renderer/SrvManager.h>
 #include <engine/public/subsystem/console/ConsoleSystem.h>
+#include <engine/public/subsystem/console/Log.h>
 #include <engine/public/subsystem/interface/ServiceLocator.h>
 #include <engine/public/subsystem/time/TimeSystem.h>
 #include <engine/public/TextureManager/TexManager.h>
@@ -40,9 +41,32 @@ namespace Unnamed {
 	}
 
 	bool Engine::Init() {
-		//-----------------------------------------------------------------------------
+		//---------------------------------------------------------------------
+		// Purpose: 新エンジン
+		//---------------------------------------------------------------------
+		mSubsystems.emplace_back(std::make_unique<ConsoleSystem>());
+		mSubsystems.emplace_back(std::make_unique<TimeSystem>());
+
+		for (auto& subsystem : mSubsystems) {
+			if (subsystem->Init()) {
+				std::string name = std::string(subsystem->GetName());
+				SpecialMsg(
+					LogLevel::Success,
+					"Engine",
+					"Subsystem initialized: {}",
+					subsystem->GetName()
+				);
+			} else {
+				UASSERT(false && "Failed to initialize subsystem");
+			}
+		}
+
+		mConsoleSystem = ServiceLocator::Get<ConsoleSystem>();
+		mTimeSystem    = ServiceLocator::Get<TimeSystem>();
+
+		//---------------------------------------------------------------------
 		// Purpose: 旧エンジン
-		//-----------------------------------------------------------------------------
+		//---------------------------------------------------------------------
 #ifdef _DEBUG
 		ConVarManager::RegisterConVar<bool>("verbose", true,
 		                                    "Enable verbose logging");
@@ -50,11 +74,8 @@ namespace Unnamed {
 		ConVarManager::RegisterConVar<bool>("verbose", false,
 			"Enable verbose logging");
 #endif
-		Console::Print("command line arguments:\n", kConTextColorGray,
-		               Channel::CommandLine);
-		Console::Print(StrUtil::ToString(GetCommandLineW()) + "\n",
-		               kConTextColorGray,
-		               Channel::CommandLine);
+		Msg("CommandLine", "command line arguments:\n{}",
+		    StrUtil::ToString(GetCommandLineW()));
 		ConVarManager::RegisterConVar<std::string>("launchargs",
 		                                           StrUtil::ToString(
 			                                           GetCommandLineW()),
@@ -75,11 +96,7 @@ namespace Unnamed {
 		if (gameWindow->Create(gameWindowInfo)) {
 			mWindowManager->AddWindow(std::move(gameWindow));
 		} else {
-			Console::Print(
-				"Failed to create main window.\n",
-				kConTextColorError,
-				Channel::Engine
-			);
+			Fatal("Engine", "Failed to create main window.");
 			return false;
 		}
 
@@ -100,7 +117,8 @@ namespace Unnamed {
 
 		// コマンドライン引数をコンソールに送信
 		Console::SubmitCommand(
-			ConVarManager::GetConVar("launchargs")->GetValueAsString());
+			ConVarManager::GetConVar("launchargs")->GetValueAsString()
+		);
 
 		mResourceManager = std::make_unique<ResourceManager>(mRenderer.get());
 
@@ -268,28 +286,6 @@ namespace Unnamed {
 		mSceneManager->ChangeScene("EmptyScene");
 
 		//-----------------------------------------------------------------------------
-		// Purpose: 新エンジン
-		//-----------------------------------------------------------------------------
-		mSubsystems.emplace_back(std::make_unique<ConsoleSystem>());
-		mSubsystems.emplace_back(std::make_unique<TimeSystem>());
-
-		for (auto& subsystem : mSubsystems) {
-			if (subsystem->Init()) {
-				std::string name = std::string(subsystem->GetName());
-				Console::Print(
-					"Subsystem initialized: " + name + "\n",
-					kConTextColorCompleted,
-					Channel::Engine
-				);
-			} else {
-				UASSERT(false && "Failed to initialize subsystem");
-			}
-		}
-
-		mConsoleSystem = ServiceLocator::Get<ConsoleSystem>();
-		mTimeSystem    = ServiceLocator::Get<TimeSystem>();
-
-		//-----------------------------------------------------------------------------
 		// エディターの初期化
 		CheckEditorMode();
 
@@ -402,8 +398,10 @@ namespace Unnamed {
 									mLoadFilePath = ofn.lpstrFile;
 								}
 							} else {
-								Console::Print(
-									"Import failed: No active scene found.");
+								Error(
+									"ImportScene",
+									"Import failed: No active scene found."
+								);
 							}
 						}
 
@@ -443,12 +441,18 @@ namespace Unnamed {
 									std::string filePath = ofn.lpstrFile;
 									mEntityLoader->
 										SaveScene(filePath, currentScene);
-									Console::Print(
-										"Scene exported to: " + filePath);
+									SpecialMsg(
+										LogLevel::Success,
+										"SceneExport",
+										"Scene exported to: {}",
+										filePath
+									);
 								}
 							} else {
-								Console::Print(
-									"Export failed: No active scene found.");
+								Error(
+									"SceneExport",
+									"Export failed: No active scene found."
+								);
 							}
 						}
 
@@ -675,18 +679,6 @@ namespace Unnamed {
 			auto&          dest = mPingRtv[next];
 
 			if (IsEditorMode()) {
-				// mRenderer->BeginRenderPass(
-				// 	{
-				// 		&dest.rtvHandle,
-				// 		1,
-				// 		&mPostProcessedDsv.dsvHandle,
-				// 		offscreenClearColor,
-				// 		1.0f,
-				// 		0,
-				// 		true,
-				// 		true
-				// 	}
-				// );
 				mRenderer->SetViewportAndScissor(
 					static_cast<uint32_t>(mOffscreenRtv.rtv->GetDesc().Width),
 					mOffscreenRtv.rtv->GetDesc().Height
@@ -828,11 +820,11 @@ namespace Unnamed {
 				mEntityLoader->LoadScene(
 					mLoadFilePath.value(), currentScene,
 					resourceManager);
-				Console::Print(
-					"Scene imported from: " + mLoadFilePath.value());
-			} else {
-				Console::Print(
-					"Import failed: ResourceManager not found.");
+				Msg(
+					"Engine",
+					"Scene imported from: {}",
+					mLoadFilePath.value()
+				);
 			}
 
 			mLoadFilePath.reset(); // ロード後はリセット
@@ -868,8 +860,11 @@ namespace Unnamed {
 		mResourceManager->Shutdown();
 		mResourceManager.reset();
 
-		Console::Print("アリーヴェ帰ルチ! (さよナランチャ\n", kConTextColorCompleted,
-		               Channel::Engine);
+		SpecialMsg(
+			LogLevel::Success,
+			"Engine",
+			"アリーヴェ帰ルチ! (さよナランチャ"
+		);
 
 		//-----------------------------------------------------------------------------
 		// Purpose: 新エンジン
@@ -1028,10 +1023,11 @@ namespace Unnamed {
 			"toggleeditor",
 			[]([[maybe_unused]] const std::vector<std::string>& args) {
 				mIsEditorMode = !mIsEditorMode;
-				Console::Print(
-					"Editor mode is now " + std::to_string(mIsEditorMode) +
-					"\n",
-					kConFgColorDark);
+				Warning(
+					"Engine",
+					"Editor mode is now {}",
+					std::to_string(mIsEditorMode)
+				);
 			},
 			"Toggle editor mode."
 		);
