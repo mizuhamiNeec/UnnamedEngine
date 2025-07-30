@@ -1,11 +1,8 @@
 #include "game/public/scene/EmptyScene.h"
 
 #include "engine/public/Engine.h"
-#include "engine/public/Camera/CameraManager.h"
 #include "engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h"
 #include "engine/public/TextureManager/TexManager.h"
-
-#include "game/public/components/PlayerMovement.h"
 
 EmptyScene::~EmptyScene() {
 	// クリーンアップ処理
@@ -22,56 +19,12 @@ void EmptyScene::Init() {
 			"./resources/textures/wave.dds", true
 		);
 
-		// キューブマップのみ初期化
 		mCubeMap = std::make_unique<CubeMap>(
 			mRenderer->GetDevice(),
 			mSrvManager,
 			"./resources/textures/wave.dds"
 		);
 	}
-
-	TexManager::GetInstance()->LoadTexture(
-		"./resources/textures/uvChecker.png"
-	);
-
-	//"./Resources/Models/man/man.gltf"
-	//"./Resources/Models/human/sneakWalk.gltf"
-	mResourceManager->GetMeshManager()->LoadSkeletalMeshFromFile(
-		"./resources/models/man/man.gltf"
-	);
-
-	mEntSkeletalMesh = std::make_unique<Entity>("SkeletalMeshEntity");
-	auto sklMesh     = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
-
-	auto skeletalMesh = mResourceManager->GetMeshManager()->GetSkeletalMesh(
-		"./resources/models/man/man.gltf"
-	);
-	sklMesh->SetSkeletalMesh(skeletalMesh);
-
-	AddEntity(mEntSkeletalMesh.get());
-
-	mEntPlayer    = std::make_unique<Entity>("PlayerEntity");
-	auto movement = mEntPlayer->AddComponent<PlayerMovement>();
-	movement;
-
-	mEntSkeletalMesh->SetParent(mEntPlayer.get());
-
-	AddEntity(mEntPlayer.get());
-
-	mEntCamera = std::make_unique<Entity>("CameraEntity");
-	// 生ポインタを取得
-	CameraComponent* rawCameraPtr = mEntCamera->AddComponent<CameraComponent>();
-	// 生ポインタを std::shared_ptr に変換
-	const auto camera = std::shared_ptr<CameraComponent>(
-		rawCameraPtr, [](CameraComponent*) {
-		}
-	);
-	CameraManager::AddCamera(camera);
-
-	mEntCamera->SetParent(mEntPlayer.get());
-	AddEntity(mEntCamera.get());
-
-	Console::Print("EmptyScene initialized");
 }
 
 void EmptyScene::Update(float deltaTime) {
@@ -87,12 +40,10 @@ void EmptyScene::Update(float deltaTime) {
 }
 
 void EmptyScene::Render() {
-	// キューブマップの描画のみ実行
 	if (mCubeMap) {
 		mCubeMap->Render(mRenderer->GetCommandList());
 	}
 
-	// シーン内のすべてのエンティティを描画
 	for (auto entity : mEntities) {
 		if (entity->IsActive()) {
 			entity->Render(mRenderer->GetCommandList());
@@ -101,6 +52,4 @@ void EmptyScene::Render() {
 }
 
 void EmptyScene::Shutdown() {
-	// リソースの解放
-	mCubeMap.reset();
 }
