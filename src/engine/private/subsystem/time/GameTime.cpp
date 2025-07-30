@@ -49,7 +49,9 @@ T GameTime::DeltaTime() {
 
 template <typename T>
 T GameTime::ScaledDeltaTime() {
-	return static_cast<T>(mScaledDeltaTime * TimeScale());
+	const double clamped = std::min(mScaledDeltaTime * TimeScale(),
+	                                (1.0 / 60.0) * TimeScale());
+	return static_cast<T>(clamped);
 }
 
 template double GameTime::DeltaTime<double>();
