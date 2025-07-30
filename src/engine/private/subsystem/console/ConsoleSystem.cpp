@@ -3,22 +3,15 @@
 #include <iostream>
 
 #include <engine/public/subsystem/console/ConsoleSystem.h>
+#include <engine/public/subsystem/console/Log.h>
 #include <engine/public/subsystem/interface/ServiceLocator.h>
 #include <engine/public/subsystem/time/SystemClock.h>
-
-#include "engine/public/subsystem/console/Log.h"
 
 namespace Unnamed {
 	ConsoleSystem::~ConsoleSystem() = default;
 
 	bool ConsoleSystem::Init() {
 		ServiceLocator::Register<ConsoleSystem>(this);
-
-		Msg(
-			"ConsoleSystem",
-			"Console System Initialized!"
-		);
-
 #ifdef _DEBUG
 		mConsoleUI = std::make_unique<ConsoleUI>(this);
 #endif
@@ -27,40 +20,6 @@ namespace Unnamed {
 	}
 
 	void ConsoleSystem::Update(float) {
-		DateTime datetime = SystemClock::GetDateTime(SystemClock::Now());
-		Msg(
-			"Test",
-			"{}-{}/{}-{}:{}:{}-{}",
-			datetime.year,
-			datetime.month,
-			datetime.day,
-			datetime.hour,
-			datetime.minute,
-			datetime.second,
-			datetime.millisecond
-		);
-		// DevMsg(
-		// 	"Test",
-		// 	"this is a dev console text!!"
-		// );
-		// Warning(
-		// 	"Test",
-		// 	"this is a warning console text!!"
-		// );
-		// Error(
-		// 	"Test",
-		// 	"this is a error console text!!"
-		// );
-		// Fatal(
-		// 	"Test",
-		// 	"this is a fatal console text!!"
-		// );
-		// SpecialMsg(
-		// 	Unnamed::LogLevel::Success,
-		// 	"Test",
-		// 	"this is a special console text!!"
-		// );
-
 #ifdef _DEBUG
 		mConsoleUI->Show();
 #endif

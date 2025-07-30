@@ -1,11 +1,12 @@
 ﻿#pragma once
 
+#include <memory>
+
 #include <engine/public/structs/DateTime.h>
+#include <engine/public/subsystem/console/ConsoleUI.h>
 #include <engine/public/subsystem/console/interface/IConsole.h>
 #include <engine/public/subsystem/interface/ISubsystem.h>
 #include <engine/public/utils/container/RingBuffer.h>
-
-#include "ConsoleUI.h"
 
 namespace Unnamed {
 	constexpr uint32_t kConsoleBufferSize = 1024;
