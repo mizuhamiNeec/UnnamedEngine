@@ -452,13 +452,6 @@ void GameScene::Update(const float deltaTime) {
 		//mParticleEmitter->Emit();
 	}
 
-	mWindEffect->Update(deltaTime);
-	mExplosionEffect->Update(deltaTime);
-
-	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
-		mCubeMap->Update(deltaTime);
-	}
-
 #ifdef _DEBUG
 	// レティクルの描画
 	ImVec2 windowCenter = ImVec2(
@@ -526,6 +519,13 @@ void GameScene::Update(const float deltaTime) {
 		if (entity && !entity->GetParent()) {
 			entity->Update(deltaTime);
 		}
+	}
+
+	mWindEffect->Update(deltaTime);
+	mExplosionEffect->Update(deltaTime);
+
+	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
+		mCubeMap->Update(deltaTime);
 	}
 }
 
