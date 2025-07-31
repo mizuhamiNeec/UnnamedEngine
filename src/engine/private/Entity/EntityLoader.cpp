@@ -128,6 +128,9 @@ void EntityLoader::SaveScene(
 
 	for (auto* e : scene->GetEntities()) {
 		if (e->GetParent() == nullptr) {
+			if (e->GetName() == "editorCamera") {
+				continue;
+			}
 			rootEntities.emplace_back(e);
 		}
 	}
