@@ -70,7 +70,19 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	static bool  bOpenPopup = false; // ポップアップ表示フラグ
 	static float popupTimer = 0.0f;
 
-	if (InputSystem::IsPressed("attack2")) {
+	auto   lt           = Unnamed::Engine::GetViewportLT();
+	auto   size         = Unnamed::Engine::GetViewportSize();
+	ImVec2 viewportPos  = {lt.x, lt.y};
+	ImVec2 viewportSize = {size.x, size.y};
+	auto   mousePos     = ImGui::GetMousePos();
+
+	bool bIsInsideViewport =
+		mousePos.x >= viewportPos.x &&
+		mousePos.x <= viewportPos.x + viewportSize.x &&
+		mousePos.y >= viewportPos.y &&
+		mousePos.y <= viewportPos.y + viewportSize.y;
+
+	if (InputSystem::IsPressed("attack2") && bIsInsideViewport) {
 		if (!cursorHidden) {
 			ShowCursor(FALSE); // カーソルを非表示にする
 			cursorHidden = true;
@@ -183,12 +195,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 	// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
 	if (bOpenPopup) {
-		// ビューポートのサイズと位置を取得
-		auto   lt           = Unnamed::Engine::GetViewportLT();
-		auto   size         = Unnamed::Engine::GetViewportSize();
-		ImVec2 viewportPos  = {lt.x, lt.y};
-		ImVec2 viewportSize = {size.x, size.y};
-		auto   windowSize   = ImVec2(256.0f, 32.0f);
+		auto windowSize = ImVec2(256.0f, 32.0f);
 
 		// ウィンドウの中央下部位置を計算
 		ImVec2 windowPos(
@@ -255,10 +262,11 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 		// テーブルの開始
 		if (ImGui::BeginTable(
-			"OutlinerTable", 3,
-			ImGuiTableFlags_NoBordersInBody |
-			ImGuiTableFlags_SizingFixedFit |
-			ImGuiTableFlags_RowBg
+			"OutlinerTable", 3
+			//ImGuiTableFlags_NoBordersInBody |
+			//ImGuiTableFlags_SizingFixedFit 
+			// ImGuiTableFlags_RowBg |
+			// ImGuiTableFlags_BordersInnerH 
 		)) {
 			// カラムの設定
 			ImGui::TableSetupColumn(
@@ -268,7 +276,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed,
 			                        30.0f);
 			ImGui::TableSetupColumn("Active", ImGuiTableColumnFlags_WidthFixed,
-			                        30.0f);
+			                        38.0f);
 
 			// 再帰的にエンティティを表示する関数
 			std::function<void(Entity*)>
@@ -443,41 +451,41 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	ImGui::End();
 #endif
 
-	// タブの名前
-	static const char* tabNames[] = {
-		"Test",
-		"いい感じのヘッダー",
-		"Physics",
-		"Audio",
-		"Input"
-	};
-	static int selectedTab = 0; // 現在選択中のタブインデックス
-
-	// 縦方向のレイアウトを作成
-	ImGui::Begin("Vertical Tabs Example");
-
-	// タブ用の列を分割
-	ImGui::Columns(2, nullptr, false);
-
-	// タブのリスト (左側の列)
-	ImGui::BeginChild("Tabs", ImVec2(512, 0), true);
-	for (int i = 0; i < IM_ARRAYSIZE(tabNames); i++) {
-		// ボタンまたは選択可能なアイテムとしてタブを表現
-		if (ImGui::Selectable(
-			(StrUtil::ConvertToUtf8(kIconTerminal) + tabNames[i]).c_str(),
-			selectedTab == i)) {
-			selectedTab = i; // タブを切り替える
-		}
-	}
-	ImGui::EndChild();
-
-	// コンテンツ表示エリア (右側の列)
-	ImGui::NextColumn();
-	ImGui::BeginChild("Content", ImVec2(0, 0), false);
-	ImGui::Text("Content for tab: %s", tabNames[selectedTab]);
-	ImGui::EndChild();
-
-	ImGui::End();
+	// // タブの名前
+	// static const char* tabNames[] = {
+	// 	"Test",
+	// 	"いい感じのヘッダー",
+	// 	"Physics",
+	// 	"Audio",
+	// 	"Input"
+	// };
+	// static int selectedTab = 0; // 現在選択中のタブインデックス
+	//
+	// // 縦方向のレイアウトを作成
+	// ImGui::Begin("Vertical Tabs Example");
+	//
+	// // タブ用の列を分割
+	// ImGui::Columns(2, nullptr, false);
+	//
+	// // タブのリスト (左側の列)
+	// ImGui::BeginChild("Tabs", ImVec2(512, 0), true);
+	// for (int i = 0; i < IM_ARRAYSIZE(tabNames); i++) {
+	// 	// ボタンまたは選択可能なアイテムとしてタブを表現
+	// 	if (ImGui::Selectable(
+	// 		(StrUtil::ConvertToUtf8(kIconTerminal) + tabNames[i]).c_str(),
+	// 		selectedTab == i)) {
+	// 		selectedTab = i; // タブを切り替える
+	// 	}
+	// }
+	// ImGui::EndChild();
+	//
+	// // コンテンツ表示エリア (右側の列)
+	// ImGui::NextColumn();
+	// ImGui::BeginChild("Content", ImVec2(0, 0), false);
+	// ImGui::Text("Content for tab: %s", tabNames[selectedTab]);
+	// ImGui::EndChild();
+	//
+	// ImGui::End();
 
 	// インスペクタ
 #ifdef _DEBUG
@@ -558,6 +566,14 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		if (InputSystem::IsTriggered("scale")) {
 			operation = ImGuizmo::OPERATION::SCALE;
 			snapValue = Math::HtoM(Vec3(mGridSize, mGridSize, mGridSize));
+		}
+
+		if (operation == ImGuizmo::OPERATION::ROTATE) {
+			snapValue = Vec3(
+				mAngleSnap,
+				mAngleSnap,
+				mAngleSnap
+			); // ラジアンに変換
 		}
 
 		mIsManipulating = ImGuizmo::Manipulate(
