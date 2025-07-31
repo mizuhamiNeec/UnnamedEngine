@@ -31,7 +31,7 @@
 #include <game/public/scene/EmptyScene.h>
 #include <game/public/scene/GameScene.h>
 
-constexpr Vec4 offscreenClearColor = Vec4(0.25f, 0.25f, 0.25f, 1.0f);
+constexpr Vec4 offscreenClearColor = Vec4(0.025f, 0.025f, 0.025f, 1.0f);
 
 namespace Unnamed {
 	Engine::Engine() {
@@ -283,7 +283,7 @@ namespace Unnamed {
 		mSceneFactory->RegisterScene<GameScene>("GameScene");
 		mSceneFactory->RegisterScene<EmptyScene>("EmptyScene");
 		// シーンの初期化
-		mSceneManager->ChangeScene("EmptyScene");
+		mSceneManager->ChangeScene("GameScene");
 
 		//-----------------------------------------------------------------------------
 		// エディターの初期化
@@ -348,6 +348,7 @@ namespace Unnamed {
 					}
 
 					if (ImGuiWidgets::BeginMainMenu("File")) {
+						ImGui::BeginDisabled();
 						if (ImGui::MenuItemEx(
 							"Save",
 							StrUtil::ConvertToUtf8(kIconSave).c_str())) {
@@ -358,6 +359,7 @@ namespace Unnamed {
 							                      kIconSaveAs).
 						                      c_str())) {
 						}
+						ImGui::EndDisabled();
 
 						ImGui::Separator();
 
@@ -458,12 +460,14 @@ namespace Unnamed {
 
 						ImGui::Separator();
 
+						ImGui::BeginDisabled();
 						if (ImGui::MenuItemEx(
 								"Exit",
 								StrUtil::ConvertToUtf8(kIconPower).c_str())
 						) {
 							Console::SubmitCommand("quit");
 						}
+						ImGui::EndDisabled();
 						ImGui::EndMenu();
 					}
 
@@ -1091,9 +1095,10 @@ namespace Unnamed {
 		Console::SubmitCommand("bind mousewheeldown +invnext", true);
 		Console::SubmitCommand("bind f1 toggleeditor", true);
 
-		Console::SubmitCommand("bind q +bounds", true);
-		Console::SubmitCommand("bind t +translate", true);
-		Console::SubmitCommand("bind e +scale", true);
+		Console::SubmitCommand("bind 4 +bounds", true);
+		Console::SubmitCommand("bind 1 +translate", true);
+		Console::SubmitCommand("bind 2 +rotate", true);
+		Console::SubmitCommand("bind 3 +scale", true);
 		Console::SubmitCommand("bind tab +toggleGizmo", true);
 	}
 
