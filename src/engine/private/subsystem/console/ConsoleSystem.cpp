@@ -46,9 +46,9 @@ namespace Unnamed {
 		mLogBuffer.Push(logText);
 
 		std::string out =
-			"[ " +
+			"[" +
 			std::string(channel) +
-			" ] " +
+			"] " +
 			std::string(message);
 
 		// コンソールの出力
