@@ -29,7 +29,7 @@ void EmptyScene::Init() {
 
 void EmptyScene::Update(float deltaTime) {
 	// 基本的な更新処理
-	mCubeMap->Update(deltaTime);
+	//mCubeMap->Update(deltaTime);
 
 	// シーン内のすべてのエンティティを更新
 	for (auto entity : mEntities) {
@@ -40,9 +40,9 @@ void EmptyScene::Update(float deltaTime) {
 }
 
 void EmptyScene::Render() {
-	if (mCubeMap) {
-		mCubeMap->Render(mRenderer->GetCommandList());
-	}
+	// if (mCubeMap) {
+	// 	mCubeMap->Render(mRenderer->GetCommandList());
+	// }
 
 	for (auto entity : mEntities) {
 		if (entity->IsActive()) {
