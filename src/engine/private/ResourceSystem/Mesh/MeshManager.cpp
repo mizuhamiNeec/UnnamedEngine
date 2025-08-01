@@ -1,4 +1,3 @@
-
 #include "engine/public/ResourceSystem/Mesh/MeshManager.h"
 
 #include <codecvt>
@@ -401,7 +400,8 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 		}
 
 		// 環境マップテクスチャの設定
-		TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds");
+		TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds",
+		                                       true);
 		material->SetTexture("gEnvironmentTexture",
 		                     "./resources/textures/wave.dds");
 	}
@@ -627,7 +627,8 @@ SubMesh* MeshManager::ProcessSkeletalMesh(
 	}
 
 	// 環境マップテクスチャの設定
-	TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds");
+	TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds",
+	                                       true);
 	material->SetTexture(
 		"gEnvironmentTexture",
 		"./resources/textures/wave.dds"

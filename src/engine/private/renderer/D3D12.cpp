@@ -25,7 +25,7 @@ constexpr Vec4 kClearColorSwapChain = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
 D3D12::D3D12(BaseWindow* window) : mWindow(window) {
 #ifdef _DEBUG
-	//EnableDebugLayer();
+	EnableDebugLayer();
 #endif
 	CreateDevice();
 
