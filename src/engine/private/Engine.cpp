@@ -70,7 +70,7 @@ namespace Unnamed {
 		                                    "Enable verbose logging");
 #else
 		ConVarManager::RegisterConVar<bool>("verbose", false,
-			"Enable verbose logging");
+		                                    "Enable verbose logging");
 #endif
 		Msg("CommandLine", "command line arguments:\n{}",
 		    StrUtil::ToString(GetCommandLineW()));
@@ -590,6 +590,7 @@ namespace Unnamed {
 				mEditor->Update(mTimeSystem->GetGameTime()->DeltaTime<float>());
 			}
 
+#ifdef _DEBUG
 			ImGui::Begin("Post Process");
 			for (int i = 0; i < mPostChain.size(); ++i) {
 				if (i == 2) {
@@ -602,6 +603,7 @@ namespace Unnamed {
 				}
 			}
 			ImGui::End();
+#endif
 		} else {
 			mSceneManager->Update(
 				mTimeSystem->GetGameTime()->ScaledDeltaTime<float>());

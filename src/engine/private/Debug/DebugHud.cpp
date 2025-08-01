@@ -9,7 +9,7 @@ void DebugHud::Update(const float deltaTime) {
 	ShowPlayerInfo();
 }
 
-void DebugHud::ShowFrameRate(const float deltaTime) {
+void DebugHud::ShowFrameRate([[maybe_unused]] const float deltaTime) {
 #ifdef _DEBUG
 	const int flag = ConVarManager::GetConVar("cl_showfps")->GetValueAsInt();
 
