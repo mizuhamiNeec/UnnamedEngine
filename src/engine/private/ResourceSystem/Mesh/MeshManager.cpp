@@ -400,8 +400,9 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 		}
 
 		// 環境マップテクスチャの設定
+		// シェーダーがTexture2Dを期待している場合は、forceCubeMapをfalseにする
 		TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds",
-		                                       true);
+		                                       false);
 		material->SetTexture("gEnvironmentTexture",
 		                     "./resources/textures/wave.dds");
 	}
