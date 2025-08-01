@@ -37,7 +37,7 @@ void PPBloom::Init() {
 		&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr, IID_PPV_ARGS(&mBloomCb));
-	assert(SUCCEEDED(hr));
+	UASSERT(SUCCEEDED(hr));
 }
 
 void PPBloom::Update(float) {
