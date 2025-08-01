@@ -19,7 +19,7 @@ void PPVignette::Init() {
 	CreatePipelineState();
 
 	// SRV スロット確保
-	mSrvIndex = mSrvMgr->AllocateForTexture();
+	mSrvIndex = mSrvMgr->AllocateForTexture2D();
 
 	// CB (16 byte aligned)
 	D3D12_RESOURCE_DESC cbDesc = {};

@@ -1,4 +1,4 @@
-﻿#include <cassert>
+#include <cassert>
 #include <engine/public/postprocess/PPRadialBlur.h>
 #include <engine/public/renderer/PipelineState.h>
 #include <engine/public/renderer/SrvManager.h>
@@ -19,7 +19,7 @@ void PPRadialBlur::Init() {
 	CreateRootSignature();
 	CreatePipelineState();
 
-	mSrvIndex = mSrvMgr->AllocateForTexture();
+	mSrvIndex = mSrvMgr->AllocateForTexture2D();
 
 	// CB (256B アライン)
 	D3D12_RESOURCE_DESC cbDesc = {};

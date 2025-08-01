@@ -315,7 +315,7 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 	intermediateResource.Reset();
 
 	// SRV確保（テクスチャ用専用Allocateを使用）
-	textureData.srvIndex     = mSrvManager->AllocateForTexture();
+	textureData.srvIndex     = mSrvManager->AllocateForTexture2D();
 	textureData.srvHandleCPU = mSrvManager->GetCPUDescriptorHandle(
 		textureData.srvIndex);
 	textureData.srvHandleGPU = mSrvManager->GetGPUDescriptorHandle(
