@@ -39,6 +39,15 @@ public:
 
 	const DirectX::TexMetadata& GetMetaData(const std::string& filePath) const;
 
+	// テクスチャリソースを取得
+	Microsoft::WRL::ComPtr<ID3D12Resource> GetTextureResource(const std::string& filePath) const;
+	
+	// テクスチャのSRVインデックスを取得（GetTextureIndexByFilePathのエイリアス）
+	uint32_t GetTextureSrvIndex(const std::string& filePath) const;
+	
+	// テクスチャのSRVインデックスを更新（Material.cppで連続スロット再配置時に使用）
+	void UpdateTextureSrvIndex(const std::string& filePath, uint32_t newSrvIndex);
+
 private:
 	[[nodiscard]] Microsoft::WRL::ComPtr<ID3D12Resource> UploadTextureData(
 		const Microsoft::WRL::ComPtr<ID3D12Resource>& texture,
