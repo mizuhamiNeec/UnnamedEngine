@@ -1,10 +1,10 @@
 #pragma once
 #include <memory>
 
-#include <game/public/scene/base/BaseScene.h>
-
 #include <engine/public/CubeMap/CubeMap.h>
-#include <engine/public/Entity/Entity.h>
+#include <engine/public/uphysics/UPhysics.h>
+
+#include <game/public/scene/base/BaseScene.h>
 
 class D3D12;
 
@@ -19,4 +19,8 @@ public:
 private:
 	D3D12*                   mRenderer = nullptr;
 	std::unique_ptr<CubeMap> mCubeMap;
+
+	std::unique_ptr<UPhysics::Engine> mPhysicsEngine;
+
+	std::unique_ptr<Entity> mMeshEntity;
 };
