@@ -18,7 +18,7 @@ GameScene::~GameScene() {
 	mParticleManager = nullptr;
 	mObject3DCommon  = nullptr;
 	mModelCommon     = nullptr;
-	mPhysicsEngine   = nullptr;
+	mUPhysicsEngine  = nullptr;
 	mTimer           = nullptr;
 }
 
@@ -82,8 +82,10 @@ void GameScene::Init() {
 #pragma endregion
 
 #pragma region 物理エンジン
-	mPhysicsEngine = std::make_unique<PhysicsEngine>();
-	mPhysicsEngine->Init();
+	// mPhysicsEngine = std::make_unique<PhysicsEngine>();
+	// mPhysicsEngine->Init();
+	mUPhysicsEngine = std::make_unique<UPhysics::Engine>();
+	mUPhysicsEngine->Init();
 #pragma endregion
 
 #pragma region エンティティ
@@ -226,12 +228,13 @@ void GameScene::Init() {
 
 	CameraManager::SetActiveCamera(camera);
 
-	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	//	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 
-	// 物理エンジンにプレイヤーエンティティを登録
-	mPhysicsEngine->RegisterEntity(mEntPlayer.get());
-
-	mPhysicsEngine->RegisterEntity(mEntWeapon.get());
+	// // 物理エンジンにプレイヤーエンティティを登録
+	// mPhysicsEngine->RegisterEntity(mEntPlayer.get());
+	//
+	// mPhysicsEngine->RegisterEntity(mEntWeapon.get());
 
 	Console::SubmitCommand(
 		"sv_airaccelerate 100000000000000000"
@@ -265,8 +268,6 @@ void GameScene::Update(const float deltaTime) {
 		}
 	}
 
-	mPhysicsEngine->Update(deltaTime);
-	//
 	mEntCameraRoot->GetTransform()->SetWorldPos(mPlayerMovement->GetHeadPos());
 	// cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
 	// camera_->Update(EngineTimer::GetScaledDeltaTime());
@@ -527,6 +528,8 @@ void GameScene::Update(const float deltaTime) {
 	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
 		mCubeMap->Update(deltaTime);
 	}
+
+	mUPhysicsEngine->Update(deltaTime);
 }
 
 void GameScene::Render() {
@@ -593,7 +596,8 @@ void GameScene::RecreateWorldMeshEntity() {
 
 	// 古いエンティティを物理エンジンから登録解除
 	if (mEntWorldMesh) {
-		mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+		//mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+		mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
 		RemoveEntity(mEntWorldMesh.get());
 		Console::Print("Removed old world mesh entity", kConTextColorWarning);
 
@@ -653,7 +657,8 @@ void GameScene::RecreateWorldMeshEntity() {
 	AddEntity(mEntWorldMesh.get());
 
 	// 物理エンジンに登録
-	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	//	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 
 	Console::Print("World mesh entity recreation completed!",
 	               kConTextColorCompleted);
@@ -668,7 +673,8 @@ void GameScene::SafeReloadWorldMesh() {
 	}
 
 	// 物理エンジンからエンティティの登録を解除
-	mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+	//mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+	mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
 	Console::Print("Unregistered entity from physics engine",
 	               kConTextColorWarning);
 
@@ -694,7 +700,8 @@ void GameScene::SafeReloadWorldMesh() {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
 		// 失敗した場合は元のコンポーネントを復元
 		mEntWorldMesh->AddComponent<MeshColliderComponent>();
-		mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+		//mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+		mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 		return;
 	}
 
@@ -722,7 +729,8 @@ void GameScene::SafeReloadWorldMesh() {
 	Console::Print("Added new MeshColliderComponent", kConTextColorCompleted);
 
 	// 物理エンジンに再登録
-	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	//mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 	Console::Print("Re-registered entity to physics engine",
 	               kConTextColorCompleted);
 

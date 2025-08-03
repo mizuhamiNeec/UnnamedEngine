@@ -19,6 +19,7 @@
 #include <game/public/scene/base/BaseScene.h>
 
 #include "engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h"
+#include "engine/public/uphysics/UPhysics.h"
 
 class D3D12;
 class EnemyMovement;
@@ -73,7 +74,8 @@ private:
 
 	std::unique_ptr<EntityLoader> mEntityLoader;
 
-	std::unique_ptr<PhysicsEngine> mPhysicsEngine;
+	//std::unique_ptr<PhysicsEngine> mPhysicsEngine;
+	std::unique_ptr<UPhysics::Engine> mUPhysicsEngine;
 
 	std::unique_ptr<ParticleEmitter> mParticleEmitter;
 
