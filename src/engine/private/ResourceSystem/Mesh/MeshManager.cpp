@@ -15,6 +15,7 @@
 #include "engine/public/OldConsole/Console.h"
 #include "engine/public/ResourceSystem/Material/MaterialManager.h"
 #include "engine/public/ResourceSystem/Shader/DefaultShader.h"
+#include "engine/public/subsystem/console/Log.h"
 #include "engine/public/TextureManager/TexManager.h"
 
 void MeshManager::Init(ID3D12Device*    device, ShaderManager* shaderManager,
@@ -69,7 +70,6 @@ bool MeshManager::LoadMeshFromFile(const std::string& filePath) {
 	Assimp::Importer importer;
 	const aiScene*   scene = importer.ReadFile(
 		filePath,
-		aiProcess_Triangulate |
 		aiProcess_FlipUVs |
 		aiProcess_ConvertToLeftHanded
 	);
@@ -249,6 +249,14 @@ void MeshManager::ProcessStaticMeshNode(const aiNode*  node,
 			ProcessMesh(mesh, scene, staticMesh, transform));
 		staticMesh->AddSubMesh(std::move(subMesh));
 	}
+
+	Msg(
+		"MeshManager",
+		"Node: {} - メッシュ数: {}, 子ノード数: {}",
+		node->mName.C_Str(),
+		node->mNumMeshes,
+		node->mNumChildren
+	);
 
 	for (uint32_t childIndex = 0; childIndex < node->mNumChildren; ++
 	     childIndex) {
