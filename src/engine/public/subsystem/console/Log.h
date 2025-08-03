@@ -1,6 +1,7 @@
 #pragma once
 #include <format>
 #include <string_view>
+#include <iostream>
 
 #include <engine/public/subsystem/console/ConsoleSystem.h>
 #include <engine/public/subsystem/interface/ServiceLocator.h>
@@ -12,7 +13,17 @@ void Msg(
 	const std::format_string<Args...> format, Args&&... args
 ) {
 	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
-	UASSERT(console && "ConsoleSystem is not initialized.");
+	if (!console) {
+		// ServiceLocatorが無効な場合は標準出力に直接出力
+		const std::string s = std::format(format, std::forward<Args>(args)...);
+		std::string out = "[" + std::string(channel) + "] " + s;
+		std::cout << out << "\n";
+#ifdef _WIN32
+		OutputDebugStringA(out.data());
+		OutputDebugStringA("\n");
+#endif
+		return;
+	}
 
 	const std::string s = std::format(format, std::forward<Args>(args)...);
 
@@ -29,7 +40,17 @@ void DevMsg(
 	const std::format_string<Args...> format, Args&&... args
 ) {
 	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
-	UASSERT(console && "ConsoleSystem is not initialized.");
+	if (!console) {
+		// ServiceLocatorが無効な場合は標準出力に直接出力
+		const std::string s = std::format(format, std::forward<Args>(args)...);
+		std::string out = "[" + std::string(channel) + "][DEV] " + s;
+		std::cout << out << "\n";
+#ifdef _WIN32
+		OutputDebugStringA(out.data());
+		OutputDebugStringA("\n");
+#endif
+		return;
+	}
 
 	const std::string s = std::format(format, std::forward<Args>(args)...);
 
@@ -46,7 +67,17 @@ void Warning(
 	const std::format_string<Args...> format, Args&&... args
 ) {
 	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
-	UASSERT(console && "ConsoleSystem is not initialized.");
+	if (!console) {
+		// ServiceLocatorが無効な場合は標準出力に直接出力
+		const std::string s = std::format(format, std::forward<Args>(args)...);
+		std::string out = "[" + std::string(channel) + "][WARNING] " + s;
+		std::cout << out << "\n";
+#ifdef _WIN32
+		OutputDebugStringA(out.data());
+		OutputDebugStringA("\n");
+#endif
+		return;
+	}
 
 	const std::string s = std::format(format, std::forward<Args>(args)...);
 
@@ -63,7 +94,17 @@ void Error(
 	const std::format_string<Args...> format, Args&&... args
 ) {
 	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
-	UASSERT(console && "ConsoleSystem is not initialized.");
+	if (!console) {
+		// ServiceLocatorが無効な場合は標準出力に直接出力
+		const std::string s = std::format(format, std::forward<Args>(args)...);
+		std::string out = "[" + std::string(channel) + "][ERROR] " + s;
+		std::cout << out << "\n";
+#ifdef _WIN32
+		OutputDebugStringA(out.data());
+		OutputDebugStringA("\n");
+#endif
+		return;
+	}
 
 	const std::string s = std::format(format, std::forward<Args>(args)...);
 
@@ -80,7 +121,17 @@ void Fatal(
 	const std::format_string<Args...> format, Args&&... args
 ) {
 	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
-	UASSERT(console && "ConsoleSystem is not initialized.");
+	if (!console) {
+		// ServiceLocatorが無効な場合は標準出力に直接出力
+		const std::string s = std::format(format, std::forward<Args>(args)...);
+		std::string out = "[" + std::string(channel) + "][FATAL] " + s;
+		std::cout << out << "\n";
+#ifdef _WIN32
+		OutputDebugStringA(out.data());
+		OutputDebugStringA("\n");
+#endif
+		return;
+	}
 
 	const std::string s = std::format(format, std::forward<Args>(args)...);
 
@@ -97,7 +148,17 @@ void SpecialMsg(
 	const std::format_string<Args...> format, Args&&...                 args
 ) {
 	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
-	UASSERT(console && "ConsoleSystem is not initialized.");
+	if (!console) {
+		// ServiceLocatorが無効な場合は標準出力に直接出力
+		const std::string s = std::format(format, std::forward<Args>(args)...);
+		std::string out = "[" + std::string(channel) + "][SPECIAL] " + s;
+		std::cout << out << "\n";
+#ifdef _WIN32
+		OutputDebugStringA(out.data());
+		OutputDebugStringA("\n");
+#endif
+		return;
+	}
 
 	const std::string s = std::format(format, std::forward<Args>(args)...);
 
