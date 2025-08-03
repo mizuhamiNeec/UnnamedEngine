@@ -343,6 +343,11 @@ std::vector<int> DynamicBVH::QueryOverlaps(const AABB& queryBox) const {
 	std::stack<int> stack;
 	stack.push(rootNode_);
 
+#ifdef _DEBUG
+	// デバッグモードでは参照されたノードのパスを記録
+	std::vector<int> referencedNodes;
+#endif
+
 	while (!stack.empty()) {
 		const int nodeId = stack.top();
 		stack.pop();
@@ -356,6 +361,11 @@ std::vector<int> DynamicBVH::QueryOverlaps(const AABB& queryBox) const {
 			continue;
 		}
 
+#ifdef _DEBUG
+		// デバッグモードでは参照されたノードを記録
+		referencedNodes.push_back(nodeId);
+#endif
+
 		if (node.isLeaf) {
 			overlappingObjects.emplace_back(node.objectIndex);
 		} else {
@@ -363,6 +373,13 @@ std::vector<int> DynamicBVH::QueryOverlaps(const AABB& queryBox) const {
 			stack.push(node.rightChild);
 		}
 	}
+
+#ifdef _DEBUG
+	// デバッグモードでは参照されたすべてのノードのパスを描画
+	for (int nodeId : referencedNodes) {
+		DrawNodeToRootPath(nodeId, Vec4::cyan);
+	}
+#endif
 
 	return overlappingObjects;
 }
@@ -460,6 +477,50 @@ void DynamicBVH::DrawBvhNode(const int nodeId, const Vec4& color) const {
 
 void DynamicBVH::DrawBvh(const Vec4& color) const {
 	DrawBvhNode(rootNode_, color);
+}
+
+void DynamicBVH::DrawNodeToRootPath(int nodeId, const Vec4& color) const {
+	if (nodeId < 0 || nodeId >= static_cast<int>(nodes_.size())) {
+		return;
+	}
+
+	std::shared_lock lock(bvhMutex_);
+	
+	// 指定されたノードから親ノードまでのパスを辿る
+	int currentNodeId = nodeId;
+	int depth = 0;
+	
+	while (currentNodeId != -1) {
+		const BVHNode& currentNode = nodes_[currentNodeId];
+		
+		// 深度に応じて色を変化させる（リーフノードは赤、ルートに近づくにつれて青）
+		Vec4 nodeColor = color;
+		float depthRatio = static_cast<float>(depth) / 10.0f; // 最大10階層まで想定
+		nodeColor.x = std::max(0.2f, 1.0f - depthRatio); // 赤成分
+		nodeColor.z = std::min(1.0f, 0.2f + depthRatio); // 青成分
+		
+		// ノードのAABBを描画
+		Debug::DrawBox(
+			currentNode.boundingBox.GetCenter(), 
+			Quaternion::identity,
+			currentNode.boundingBox.GetHalfSize() * 2.0f, 
+			nodeColor
+		);
+		
+		// 親ノードがある場合、親との接続線を描画
+		if (currentNode.parent != -1 && currentNode.parent < static_cast<int>(nodes_.size())) {
+			const BVHNode& parentNode = nodes_[currentNode.parent];
+			Debug::DrawLine(
+				currentNode.boundingBox.GetCenter(),
+				parentNode.boundingBox.GetCenter(),
+				Vec4::yellow
+			);
+		}
+		
+		// 次の親ノードへ
+		currentNodeId = currentNode.parent;
+		depth++;
+	}
 }
 
 void DynamicBVH::DrawObjects(const Vec4& color) const {

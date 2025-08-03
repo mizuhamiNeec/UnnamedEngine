@@ -75,6 +75,7 @@ public:
 	void DrawBvhNode(int nodeId, const Vec4& color) const;
 	void DrawBvh(const Vec4& color) const;
 	void DrawObjects(const Vec4& color) const;
+	void DrawNodeToRootPath(int nodeId, const Vec4& color) const;
 
 	[[nodiscard]] AABB GetNodeAABB(int nodeId) const;
 
