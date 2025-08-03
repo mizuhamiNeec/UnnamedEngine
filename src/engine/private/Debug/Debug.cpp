@@ -285,8 +285,10 @@ void Debug::DrawSphere(
 	}
 }
 
-void Debug::DrawBox(const Vec3& position, const Quaternion& orientation,
-                    Vec3        size, const Vec4&           color) {
+void Debug::DrawBox(
+	const Vec3& position, const Quaternion& orientation,
+	Vec3        size, const Vec4&           color
+) {
 	const Vec3 offsetX = orientation * Vec3::right * size.x * 0.5f;
 	const Vec3 offsetY = orientation * Vec3::up * size.y * 0.5f;
 	const Vec3 offsetZ = orientation * Vec3::forward * size.z * 0.5f;
