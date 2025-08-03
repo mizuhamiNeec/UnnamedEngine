@@ -19,8 +19,7 @@ public:
 	[[nodiscard]] StaticMesh* GetStaticMesh() const;
 
 private:
-	void BuildTriangleList();
-	StaticMeshRenderer* mMeshRenderer = nullptr;
+	void                  BuildTriangleList();
+	StaticMeshRenderer*   mMeshRenderer = nullptr;
 	std::vector<Triangle> mTriangles;
 };
-
