@@ -17,7 +17,8 @@ namespace UPhysics {
 		// なんかする
 	}
 
-	void Engine::Update(float) {
+	void Engine::Update(float) const {
+#ifdef _DEBUG
 		const auto camera = CameraManager::GetActiveCamera();
 		if (camera) {
 			Mat4 invView = camera->GetViewMat().Inverse();
@@ -25,12 +26,12 @@ namespace UPhysics {
 			Vec3 dir     = invView.GetForward();
 
 			dir.Normalize();
-			Ray ray = {
-				start,
-				dir,
-				1.0f / dir,
-				0.0f,
-				1e30f
+			const Ray ray = {
+				.start = start,
+				.dir = dir,
+				.invDir = 1.0f / dir,
+				.tMin = 0.0f,
+				.tMax = 1e30f
 			};
 
 			Debug::DrawAxis(
@@ -56,9 +57,10 @@ namespace UPhysics {
 				);
 			}
 
-			Box box    = {};
-			box.center = start;
-			box.half   = Vec3::one * 0.5f;
+			const Box box = {
+				.center = start,
+				.half = Vec3::one * 0.5f
+			};
 			if (BoxCast(box, dir, 65536.0f, &hit)) {
 				ImGui::Begin("Hit");
 				ImGui::End();
@@ -85,6 +87,7 @@ namespace UPhysics {
 				);
 			}
 		}
+#endif
 	}
 
 	/// @brief エンティティを登録する関数
@@ -120,7 +123,7 @@ namespace UPhysics {
 
 			std::vector<Triangle> triangles;
 
-			// UPhysics::Triangleに変換 TODO: すべてのTrinagleをUPhysics::Triangleに変更する
+			// UPhysics::Triangleに変換 TODO: すべてのTriangleをUPhysics::Triangleに変更する
 			for (auto tri : tris) {
 				tri.v0 += transform->GetLocalPos();
 				tri.v1 += transform->GetLocalPos();
@@ -151,11 +154,11 @@ namespace UPhysics {
 			// メンバに突っ込む
 			mBVHs.emplace_back(
 				RegisteredBVH{
-					std::move(nodes),
-					std::move(triIndices),
-					triStart,
-					triCount,
-					entity
+					.nodes = std::move(nodes),
+					.triIndices = std::move(triIndices),
+					.triStart = triStart,
+					.triCount = triCount,
+					.owner = entity
 				}
 			);
 			mTriangles.insert(
@@ -163,10 +166,17 @@ namespace UPhysics {
 				triangles.begin(),
 				triangles.end()
 			);
+
+			DevMsg(
+				"UPhysics",
+				"Registered entity '{}' with {} triangles.",
+				subMesh->GetName(),
+				subMesh->GetPolygons().size()
+			);
 		}
 	}
 
-	void Engine::UnregisterEntity(Entity* entity) {
+	void Engine::UnregisterEntity(const Entity* entity) {
 		if (mBVHs.empty()) {
 			return;
 		}
@@ -176,40 +186,37 @@ namespace UPhysics {
 		};
 		std::vector<DelRange> ranges;
 
-		mBVHs.erase(
-			std::remove_if(
-				mBVHs.begin(), mBVHs.end(),
-				[&](const RegisteredBVH& bvh) {
-					if (bvh.owner != entity) {
-						return false;
-					}
-					ranges.emplace_back(bvh.triStart, bvh.triCount);
-					return true;
+		std::erase_if(
+			mBVHs,
+			[&](const RegisteredBVH& bvh) {
+				if (bvh.owner != entity) {
+					return false;
 				}
-			),
-			mBVHs.end()
+				ranges.emplace_back(bvh.triStart, bvh.triCount);
+				return true;
+			}
 		);
 
 		if (ranges.empty()) {
 			return;
 		}
 
-		std::sort(ranges.begin(), ranges.end(), [](auto& a, auto& b) {
+		std::ranges::sort(ranges, [](auto& a, auto& b) {
 			return a.start > b.start;
 		});
 
-		for (auto& r : ranges) {
+		for (auto& [start, count] : ranges) {
 			mTriangles.erase(
-				mTriangles.begin() + r.start,
-				mTriangles.begin() + r.start + r.count
+				mTriangles.begin() + static_cast<long long>(start),
+				mTriangles.begin() + static_cast<long long>(start + count)
 			);
 
 			for (auto& bvh : mBVHs) {
-				if (bvh.triStart > r.start) {
-					bvh.triStart -= r.count;
+				if (bvh.triStart > start) {
+					bvh.triStart -= count;
 					for (uint32_t& id : bvh.triIndices) {
-						if (id >= r.start) {
-							id -= static_cast<uint32_t>(r.count);
+						if (id >= start) {
+							id -= static_cast<uint32_t>(count);
 						}
 					}
 				}
@@ -228,167 +235,33 @@ namespace UPhysics {
 	bool Engine::BoxCast(
 		const Box&  box,
 		const Vec3& dir,
-		float       length,
+		const float length,
 		Hit*        outHit
-	) {
-		/* 1) 方向を正規化し、実距離を分離 */
+	) const {
 		Vec3  dirN = dir;
 		float len  = length;
 
 		float dirLen = dirN.Length();
 		if (dirLen > 1e-6f) {
-			// 非ゼロなら正規化
 			dirN /= dirLen;
-			/* もし rawDir が「移動ベクトル」なら距離を上書き */
-			if (fabs(len - dirLen) < 1e-4f) // 呼び出し側が同じ値を渡している場合
-				len = dirLen;               // → len=|rawDir|
+			if (fabs(len - dirLen) < 1e-4f)
+				len = dirLen;
 		} else {
 			return false; // ゼロ方向なら衝突無し
 		}
 
-		/* 2) キャスターをセット */
 		UPhysics::BoxCast caster;
 		caster.box  = box;
-		caster.half = box.half; // ← ExpandNode 用
+		caster.half = box.half;
 
-		/* 3) CastBVH は dirN + len で呼ぶ */
-		return CastBVH(caster,
-		               box.center,
-		               dirN, // ★ 正規化済み
-		               len,  // ★ 実距離
-		               outHit,
-		               mBVHs, mTriangles);
-
-		// if (mBVHs.empty()) {
-		// 	return false;
-		// }
-		// Ray ray;
-		// ray.start  = box.center;
-		// ray.dir    = dir;
-		// ray.invDir = Vec3(
-		// 	dir.x != 0.0f ? 1.0f / dir.x : 1e30f,
-		// 	dir.y != 0.0f ? 1.0f / dir.y : 1e30f,
-		// 	dir.z != 0.0f ? 1.0f / dir.z : 1e30f
-		// );
-		// ray.tMin = 0.0f;
-		// ray.tMax = length;
-		//
-		// float    closest = ray.tMax;
-		// uint32_t hitTri  = UINT32_MAX;
-		// Vec3     hitNormal;
-		//
-		// // とりあえずBVHのルートと交差するか見る
-		// std::vector<const RegisteredBVH*> filtered;
-		// for (const auto& bvh : mBVHs) {
-		// 	AABB grown = bvh.nodes[0].bounds;
-		// 	grown.min -= box.half;
-		// 	grown.max += box.half;
-		//
-		// 	float temp = ray.tMax;
-		// 	if (RayVsAABB(ray, grown, temp)) {
-		// 		filtered.emplace_back(&bvh);
-		// 	}
-		// }
-		//
-		// float bestTOI = 1.0f; // 最も近い衝突のTOI
-		//
-		// uint32_t stack[64];
-		//
-		// for (const auto* bvh : filtered) {
-		// 	int sp      = 0;
-		// 	stack[sp++] = 0; // ルート
-		//
-		// 	while (sp) {
-		// 		const uint32_t  index = stack[--sp];
-		// 		const FlatNode& node  = bvh->nodes[index];
-		//
-		// 		// とりあえず使用されるBVHを描画しておく
-		// 		Vec3       center = (node.bounds.min + node.bounds.max) * 0.5f;
-		// 		const Vec3 size   = node.bounds.max - node.bounds.min;
-		// 		Debug::DrawBox(
-		// 			center,
-		// 			Quaternion::identity,
-		// 			size,
-		// 			Vec4::orange
-		// 		);
-		//
-		// 		AABB grown = node.bounds;
-		// 		grown.min -= box.half;
-		// 		grown.max += box.half;
-		//
-		// 		float tBox = closest;
-		//
-		// 		if (!RayVsAABB(ray, grown, tBox)) {
-		// 			continue;
-		// 		}
-		//
-		// 		if (node.primCount == 0) {
-		// 			// 左の子のAABBを拡張
-		// 			AABB grownLeft = bvh->nodes[node.leftFirst].bounds;
-		// 			grownLeft.min -= box.half;
-		// 			grownLeft.max += box.half;
-		//
-		// 			// 右の子のAABBを拡張
-		// 			AABB grownRight = bvh->nodes[node.rightFirst].bounds;
-		// 			grownRight.min -= box.half;
-		// 			grownRight.max += box.half;
-		//
-		// 			float tBoxLeft = closest, tBoxRight = closest;
-		// 			bool  hitLeft  = RayVsAABB(ray, grownLeft, tBoxLeft);
-		// 			bool  hitRight = RayVsAABB(ray, grownRight, tBoxRight);
-		//
-		// 			if (hitLeft && hitRight) {
-		// 				if (tBoxLeft < tBoxRight) {
-		// 					stack[sp++] = node.rightFirst;
-		// 					stack[sp++] = node.leftFirst;
-		// 				} else {
-		// 					stack[sp++] = node.leftFirst;
-		// 					stack[sp++] = node.rightFirst;
-		// 				}
-		// 			} else if (hitLeft) {
-		// 				stack[sp++] = node.leftFirst;
-		// 			} else if (hitRight) {
-		// 				stack[sp++] = node.rightFirst;
-		// 			}
-		// 		} else {
-		// 			uint32_t first = node.leftFirst;
-		// 			for (uint32_t i = 0; i < node.primCount; ++i) {
-		// 				uint32_t triIndex = bvh->triIndices[first + i];
-		// 				float    toi;
-		// 				Vec3     normal;
-		//
-		// 				if (
-		// 					SweptAabbVsTriSAT(
-		// 						box, dir * length,
-		// 						mTriangles[triIndex],
-		// 						toi,
-		// 						normal
-		// 					)
-		// 				) {
-		// 					if (toi < bestTOI) {
-		// 						bestTOI   = toi;
-		// 						closest   = toi;
-		// 						hitTri    = triIndex;
-		// 						hitNormal = normal;
-		// 					}
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-		// }
-		//
-		// if (hitTri == UINT32_MAX) {
-		// 	return false;
-		// }
-		//
-		// if (outHit) {
-		// 	outHit->t        = bestTOI * length;
-		// 	outHit->pos      = ray.start + ray.dir * outHit->t;
-		// 	outHit->normal   = hitNormal;
-		// 	outHit->triIndex = hitTri;
-		// }
-		//
-		// return true;
+		return CastBVH(
+			caster,
+			box.center,
+			dirN,
+			len,
+			outHit,
+			mBVHs, mTriangles
+		);
 	}
 
 	void Engine::AddGlobalOffset(

@@ -10,10 +10,10 @@ namespace UPhysics {
 	class Engine {
 	public:
 		void Init();
-		void Update(float deltaTime);
+		void Update(float deltaTime) const;
 
 		void RegisterEntity(Entity* entity);
-		void UnregisterEntity(Entity* entity);
+		void UnregisterEntity(const Entity* entity);
 
 		bool RayCast(
 			const Ray& ray,
@@ -24,7 +24,7 @@ namespace UPhysics {
 			const Box&  box,
 			const Vec3& dir,
 			float       length, Hit* outHit
-		);
+		) const;
 
 	private:
 		template <class CastType>
