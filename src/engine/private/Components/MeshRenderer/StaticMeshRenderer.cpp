@@ -44,8 +44,8 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 
 		mMaterialData            = mMatParamCBV->GetPtr<MatParam>();
 		mMaterialData->baseColor = {0.5f, 0.5f, 0.5f, 1.0f};
-		mMaterialData->metallic  = 0.25f;
-		mMaterialData->roughness = 0.85f;
+		mMaterialData->metallic  = 0.7f;
+		mMaterialData->roughness = 1.0f;
 		mMaterialData->emissive  = {0.0f, 0.0f, 0.0f};
 	}
 
