@@ -2,7 +2,7 @@
 #include <engine/public/uphysics/ShapeCast.h>
 
 namespace UPhysics {
-	struct BoxCast : ShapeCast {
+	struct BoxCast final : ShapeCast {
 		[[nodiscard]] AABB ExpandNode(const AABB& nodeBounds) const override;
 
 		bool TestTriangle(
@@ -11,7 +11,7 @@ namespace UPhysics {
 			float           length,
 			float&          outTOI,
 			Vec3&           outNormal
-		) const;
+		) const override;
 
 		Box  box;
 		Vec3 half = box.half;

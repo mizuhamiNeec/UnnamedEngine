@@ -12,7 +12,7 @@ namespace UPhysics {
 	bool BoxCast::TestTriangle(
 		const Triangle& triangle,
 		const Vec3&     dir,
-		float           length,
+		const float     length,
 		float&          outTOI,
 		Vec3&           outNormal
 	) const {
