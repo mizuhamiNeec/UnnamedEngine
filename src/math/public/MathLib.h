@@ -30,6 +30,10 @@ namespace Math {
 		bool&       outIsOffscreen, float& outAngle
 	);
 
+	Vec3 ProjectOnPlane(const Vec3& vector, const Vec3& normal);
+
+	Vec3 GetMoveDirection(const Vec3& forward, const Vec3& groundNormal);
+
 	Vec3 Lerp(const Vec3& a, const Vec3& b, float t);
 	Vec3 Min(Vec3 a, Vec3 b);
 	Vec3 Max(Vec3 a, Vec3 b);
