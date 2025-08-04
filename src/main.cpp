@@ -29,7 +29,9 @@ int WINAPI wWinMain(
 		// }
 	}
 	engine->Shutdown();
+
 	//app->Shutdown();
+	
 	CoUninitialize();
 	return EXIT_SUCCESS;
 }
