@@ -1,24 +1,16 @@
-﻿
+﻿#include <fstream>
 
-#include "engine/public/Entity/EntityLoader.h"
+#include <engine/public/Components/MeshRenderer/StaticMeshRenderer.h>
+#include <engine/public/Entity/Entity.h>
+#include <engine/public/Entity/EntityLoader.h>
+#include <engine/public/ResourceSystem/Manager/ResourceManager.h>
 
-#include <fstream>
-
-#include "engine/public/Components/MeshRenderer/StaticMeshRenderer.h"
-#include "engine/public/Entity/Entity.h"
-#include "engine/public/ResourceSystem/Manager/ResourceManager.h"
-
-#include "game/public/scene/base/BaseScene.h"
+#include <game/public/scene/base/BaseScene.h>
 
 
 class StaticMeshRenderer;
 
 EntityLoader::~EntityLoader() {
-	for (auto ent : loaded_entities) {
-		if (ent) {
-			delete ent; // Entityの削除
-		}
-	}
 }
 
 void EntityLoader::ApplyTransform(
@@ -118,7 +110,7 @@ void EntityLoader::LoadScene(
 	json root;
 	std::ifstream(filePath) >> root;
 	for (auto& obj : root.at("objects")) {
-		loaded_entities.emplace_back(
+		mLoadedEntities.emplace_back(
 			LoadNode(nullptr, obj, scene, resourceManager)
 		);
 	}
@@ -136,6 +128,9 @@ void EntityLoader::SaveScene(
 
 	for (auto* e : scene->GetEntities()) {
 		if (e->GetParent() == nullptr) {
+			if (e->GetName() == "editorCamera") {
+				continue;
+			}
 			rootEntities.emplace_back(e);
 		}
 	}

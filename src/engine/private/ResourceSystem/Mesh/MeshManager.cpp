@@ -1,4 +1,3 @@
-
 #include "engine/public/ResourceSystem/Mesh/MeshManager.h"
 
 #include <codecvt>
@@ -16,6 +15,7 @@
 #include "engine/public/OldConsole/Console.h"
 #include "engine/public/ResourceSystem/Material/MaterialManager.h"
 #include "engine/public/ResourceSystem/Shader/DefaultShader.h"
+#include "engine/public/subsystem/console/Log.h"
 #include "engine/public/TextureManager/TexManager.h"
 
 void MeshManager::Init(ID3D12Device*    device, ShaderManager* shaderManager,
@@ -70,7 +70,6 @@ bool MeshManager::LoadMeshFromFile(const std::string& filePath) {
 	Assimp::Importer importer;
 	const aiScene*   scene = importer.ReadFile(
 		filePath,
-		aiProcess_Triangulate |
 		aiProcess_FlipUVs |
 		aiProcess_ConvertToLeftHanded
 	);
@@ -251,6 +250,14 @@ void MeshManager::ProcessStaticMeshNode(const aiNode*  node,
 		staticMesh->AddSubMesh(std::move(subMesh));
 	}
 
+	Msg(
+		"MeshManager",
+		"Node: {} - メッシュ数: {}, 子ノード数: {}",
+		node->mName.C_Str(),
+		node->mNumMeshes,
+		node->mNumChildren
+	);
+
 	for (uint32_t childIndex = 0; childIndex < node->mNumChildren; ++
 	     childIndex) {
 		ProcessStaticMeshNode(node->mChildren[childIndex], scene, staticMesh);
@@ -401,7 +408,9 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 		}
 
 		// 環境マップテクスチャの設定
-		TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds");
+		// シェーダーがTexture2Dを期待している場合は、forceCubeMapをfalseにする
+		TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds",
+		                                       false);
 		material->SetTexture("gEnvironmentTexture",
 		                     "./resources/textures/wave.dds");
 	}
@@ -627,7 +636,8 @@ SubMesh* MeshManager::ProcessSkeletalMesh(
 	}
 
 	// 環境マップテクスチャの設定
-	TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds");
+	TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds",
+	                                       true);
 	material->SetTexture(
 		"gEnvironmentTexture",
 		"./resources/textures/wave.dds"

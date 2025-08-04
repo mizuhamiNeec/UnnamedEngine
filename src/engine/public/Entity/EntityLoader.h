@@ -1,5 +1,4 @@
-﻿
-#pragma once
+﻿#pragma once
 #include <math/public/MathLib.h>
 #include "math/public/Quaternion.h"
 
@@ -24,14 +23,15 @@ public:
 	static void ApplyTransform(const Entity* e, const Transform& t);
 
 	static Entity* LoadNode(Entity* parent, const json& j, BaseScene* scene,
-							ResourceManager*
-							resourceManager);
+	                        ResourceManager*
+	                        resourceManager);
 
 	void LoadScene(const std::string& filePath, BaseScene* scene,
-				   ResourceManager*   resourceManager);
+	               ResourceManager*   resourceManager);
 
 	void        SaveScene(const std::string& path, BaseScene* scene) const;
 	static json SaveNode(Entity* e);
 
-	std::vector<Entity*> loaded_entities;
+private:
+	std::vector<std::shared_ptr<Entity>> mLoadedEntities;
 };

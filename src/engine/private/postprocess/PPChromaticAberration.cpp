@@ -1,4 +1,4 @@
-﻿#include <cassert>
+#include <cassert>
 
 #include <engine/public/postprocess/PPChromaticAberration.h>
 #include <engine/public/renderer/PipelineState.h>
@@ -19,7 +19,7 @@ void PPChromaticAberration::Init() {
 	CreateRootSignature();
 	CreatePipelineState();
 
-	mSrvIndex = mSrvMgr->AllocateForTexture();
+	mSrvIndex = mSrvMgr->AllocateForTexture2D();
 
 	D3D12_RESOURCE_DESC cbDesc = {};
 	cbDesc.Dimension           = D3D12_RESOURCE_DIMENSION_BUFFER;

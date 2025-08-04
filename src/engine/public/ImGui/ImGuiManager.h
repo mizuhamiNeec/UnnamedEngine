@@ -11,6 +11,7 @@ class SrvManager;
 class D3D12;
 class SceneComponent;
 class ShaderResourceViewManager;
+struct Vec3;
 
 class ImGuiManager {
 public:

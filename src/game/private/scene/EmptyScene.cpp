@@ -1,15 +1,12 @@
 #include "game/public/scene/EmptyScene.h"
 
 #include "engine/public/Engine.h"
-#include "engine/public/Camera/CameraManager.h"
+#include "engine/public/Components/ColliderComponent/MeshColliderComponent.h"
 #include "engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h"
+#include "engine/public/Components/MeshRenderer/StaticMeshRenderer.h"
 #include "engine/public/TextureManager/TexManager.h"
 
-#include "game/public/components/PlayerMovement.h"
-
-EmptyScene::~EmptyScene() {
-	// クリーンアップ処理
-}
+EmptyScene::~EmptyScene() = default;
 
 void EmptyScene::Init() {
 	mRenderer   = Unnamed::Engine::GetRenderer();
@@ -22,7 +19,6 @@ void EmptyScene::Init() {
 			"./resources/textures/wave.dds", true
 		);
 
-		// キューブマップのみ初期化
 		mCubeMap = std::make_unique<CubeMap>(
 			mRenderer->GetDevice(),
 			mSrvManager,
@@ -30,53 +26,40 @@ void EmptyScene::Init() {
 		);
 	}
 
-	TexManager::GetInstance()->LoadTexture(
-		"./resources/textures/uvChecker.png"
+	mMeshEntity = std::make_unique<Entity>(
+		"meshEntity",
+		EntityType::Shared
 	);
 
-	//"./Resources/Models/man/man.gltf"
-	//"./Resources/Models/human/sneakWalk.gltf"
-	mResourceManager->GetMeshManager()->LoadSkeletalMeshFromFile(
-		"./resources/models/man/man.gltf"
+	mResourceManager->GetMeshManager()->LoadMeshFromFile(
+		"./resources/models/reflectionTest.obj"
 	);
 
-	mEntSkeletalMesh = std::make_unique<Entity>("SkeletalMeshEntity");
-	auto sklMesh     = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
-
-	auto skeletalMesh = mResourceManager->GetMeshManager()->GetSkeletalMesh(
-		"./resources/models/man/man.gltf"
+	auto meshRenderer = mMeshEntity->AddComponent<StaticMeshRenderer>();
+	meshRenderer->SetStaticMesh(
+		mResourceManager->GetMeshManager()->GetStaticMesh(
+			"./resources/models/reflectionTest.obj"
+		)
 	);
-	sklMesh->SetSkeletalMesh(skeletalMesh);
 
-	AddEntity(mEntSkeletalMesh.get());
-
-	mEntPlayer    = std::make_unique<Entity>("PlayerEntity");
-	auto movement = mEntPlayer->AddComponent<PlayerMovement>();
-	movement;
-
-	mEntSkeletalMesh->SetParent(mEntPlayer.get());
-
-	AddEntity(mEntPlayer.get());
-
-	mEntCamera = std::make_unique<Entity>("CameraEntity");
-	// 生ポインタを取得
-	CameraComponent* rawCameraPtr = mEntCamera->AddComponent<CameraComponent>();
-	// 生ポインタを std::shared_ptr に変換
-	const auto camera = std::shared_ptr<CameraComponent>(
-		rawCameraPtr, [](CameraComponent*) {
-		}
+	[[maybe_unused]] auto meshCollider = mMeshEntity->AddComponent<
+		MeshColliderComponent>();
+	mMeshEntity->GetTransform()->SetLocalPos(
+		Vec3::one * 16.0f
 	);
-	CameraManager::AddCamera(camera);
 
-	mEntCamera->SetParent(mEntPlayer.get());
-	AddEntity(mEntCamera.get());
+	AddEntity(mMeshEntity.get());
 
-	Console::Print("EmptyScene initialized");
+	mPhysicsEngine = std::make_unique<UPhysics::Engine>();
+	mPhysicsEngine->Init();
+
+	mPhysicsEngine->RegisterEntity(mMeshEntity.get());
 }
 
-void EmptyScene::Update(float deltaTime) {
+void EmptyScene::Update(const float deltaTime) {
 	// 基本的な更新処理
-	mCubeMap->Update(deltaTime);
+	//mCubeMap->Update(deltaTime);
+
 
 	// シーン内のすべてのエンティティを更新
 	for (auto entity : mEntities) {
@@ -84,15 +67,15 @@ void EmptyScene::Update(float deltaTime) {
 			entity->Update(deltaTime);
 		}
 	}
+
+	mPhysicsEngine->Update(deltaTime);
 }
 
 void EmptyScene::Render() {
-	// キューブマップの描画のみ実行
-	if (mCubeMap) {
-		mCubeMap->Render(mRenderer->GetCommandList());
-	}
+	// if (mCubeMap) {
+	// 	mCubeMap->Render(mRenderer->GetCommandList());
+	// }
 
-	// シーン内のすべてのエンティティを描画
 	for (auto entity : mEntities) {
 		if (entity->IsActive()) {
 			entity->Render(mRenderer->GetCommandList());
@@ -101,6 +84,4 @@ void EmptyScene::Render() {
 }
 
 void EmptyScene::Shutdown() {
-	// リソースの解放
-	mCubeMap.reset();
 }

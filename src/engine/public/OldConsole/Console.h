@@ -182,6 +182,7 @@ private:
 	void        StartConsoleThread();
 	static void LogToFileAsync(const std::string& message);
 
+	static uint64_t                          mFrameCount;
 	static std::mutex                        mutex_;
 	static std::queue<std::function<void()>> taskQueue_;
 	static std::condition_variable           cv_;

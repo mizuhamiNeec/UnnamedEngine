@@ -59,8 +59,21 @@ public: // メンバ関数
 	[[nodiscard]] RenderTargetTexture CreateRenderTargetTexture(
 		uint32_t    width, uint32_t height, Vec4 clearColor,
 		DXGI_FORMAT format = kBufferFormat);
+	
+	// リサイズ時用：古いSRVインデックスを返却して新しいものを作成
+	// 使用例: newRtv = CreateRenderTargetTexture(w, h, clearColor, oldRtv.srvIndex);
+	[[nodiscard]] RenderTargetTexture CreateRenderTargetTexture(
+		uint32_t    width, uint32_t height, Vec4 clearColor,
+		uint32_t    oldSrvIndex, DXGI_FORMAT format = kBufferFormat);
+	
 	[[nodiscard]] DepthStencilTexture CreateDepthStencilTexture(
 		uint32_t    width, uint32_t height,
+		DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT);
+	
+	// リサイズ時用：古いSRVインデックスを返却して新しいものを作成
+	// 使用例: newDsv = CreateDepthStencilTexture(w, h, oldDsv.srvIndex);
+	[[nodiscard]] DepthStencilTexture CreateDepthStencilTexture(
+		uint32_t    width, uint32_t height, uint32_t oldSrvIndex,
 		DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT);
 	void BeginRenderPass(const RenderPassTargets& targets) const;
 

@@ -1,17 +1,16 @@
-#include <game/public/scene/GameScene.h>
-
 #include <format>
 
-#include "engine/public/Engine.h"
-#include "engine/public/Camera/CameraManager.h"
-#include "engine/public/Components/ColliderComponent/MeshColliderComponent.h"
-#include "engine/public/Debug/Debug.h"
-#include "engine/public/Debug/DebugHud.h"
-#include "engine/public/ImGui/ImGuiUtil.h"
-#include "engine/public/Input/InputSystem.h"
-#include "engine/public/OldConsole/ConVarManager.h"
-#include "engine/public/TextureManager/TexManager.h"
-#include "engine/public/Timer/EngineTimer.h"
+#include <engine/public/Engine.h>
+#include <engine/public/Camera/CameraManager.h>
+#include <engine/public/Components/ColliderComponent/MeshColliderComponent.h>
+#include <engine/public/Debug/Debug.h>
+#include <engine/public/Debug/DebugHud.h>
+#include <engine/public/ImGui/ImGuiUtil.h>
+#include <engine/public/Input/InputSystem.h>
+#include <engine/public/OldConsole/ConVarManager.h>
+#include <engine/public/TextureManager/TexManager.h>
+
+#include <game/public/scene/GameScene.h>
 
 GameScene::~GameScene() {
 	mResourceManager = nullptr;
@@ -19,7 +18,7 @@ GameScene::~GameScene() {
 	mParticleManager = nullptr;
 	mObject3DCommon  = nullptr;
 	mModelCommon     = nullptr;
-	mPhysicsEngine   = nullptr;
+	mUPhysicsEngine  = nullptr;
 	mTimer           = nullptr;
 }
 
@@ -83,8 +82,10 @@ void GameScene::Init() {
 #pragma endregion
 
 #pragma region 物理エンジン
-	mPhysicsEngine = std::make_unique<PhysicsEngine>();
-	mPhysicsEngine->Init();
+	// mPhysicsEngine = std::make_unique<PhysicsEngine>();
+	// mPhysicsEngine->Init();
+	mUPhysicsEngine = std::make_unique<UPhysics::Engine>();
+	mUPhysicsEngine->Init();
 #pragma endregion
 
 #pragma region エンティティ
@@ -106,14 +107,15 @@ void GameScene::Init() {
 	// プレイヤー
 	mEntPlayer = std::make_unique<Entity>("player");
 	mEntPlayer->GetTransform()->SetLocalPos(Vec3::up * 4.0f); // 1m上に配置
-	PlayerMovement* rawPlayerMovement = mEntPlayer->AddComponent<
-		PlayerMovement>();
-	mPlayerMovement = std::shared_ptr<PlayerMovement>(
-		rawPlayerMovement, [](PlayerMovement*) {
+	PlayerMovementUPhysics* rawPlayerMovement = mEntPlayer->AddComponent<
+		PlayerMovementUPhysics>();
+	mPlayerMovementUPhysics = std::shared_ptr<PlayerMovementUPhysics>(
+		rawPlayerMovement, [](PlayerMovementUPhysics*) {
 		}
 	);
-	mPlayerMovement->SetVelocity(Vec3::forward * 1.0f);
-	mPlayerMovement->AddCameraShakeEntity(mCamera.get());
+	mPlayerMovementUPhysics->SetVelocity(Vec3::forward * 1.0f);
+	mPlayerMovementUPhysics->AddCameraShakeEntity(mCamera.get());
+	mPlayerMovementUPhysics->SetUPhysicsEngine(mUPhysicsEngine.get());
 	BoxColliderComponent* rawPlayerCollider = mEntPlayer->AddComponent<
 		BoxColliderComponent>();
 	mPlayerCollider = std::shared_ptr<BoxColliderComponent>(
@@ -151,7 +153,7 @@ void GameScene::Init() {
 	AddEntity(mEntWeapon.get());
 
 	mEntShakeRoot = std::make_unique<Entity>("shakeRoot");
-	mPlayerMovement->AddCameraShakeEntity(mEntShakeRoot.get(), 3.0f);
+	mPlayerMovementUPhysics->AddCameraShakeEntity(mEntShakeRoot.get(), 3.0f);
 
 	// テスト用メッシュ
 	mEntWorldMesh                  = std::make_unique<Entity>("testMesh");
@@ -186,7 +188,11 @@ void GameScene::Init() {
 
 
 	mEntSkeletalMesh = std::make_unique<Entity>("SkeletalMeshEntity");
-	auto sklMesh     = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
+	auto sklMesh = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
+	mSkeletalMeshRenderer = std::shared_ptr<SkeletalMeshRenderer>(
+		sklMesh, [](SkeletalMeshRenderer*) {
+		}
+	);
 
 	auto skeletalMesh = mResourceManager->GetMeshManager()->GetSkeletalMesh(
 		"./resources/models/man/man.gltf"
@@ -196,6 +202,8 @@ void GameScene::Init() {
 	AddEntity(mEntSkeletalMesh.get());
 
 	mEntSkeletalMesh->SetParent(mEntCameraRoot.get());
+	mEntSkeletalMesh->GetTransform()->SetLocalPos(
+		mEntSkeletalMesh->GetTransform()->GetLocalPos() + Vec3::up * -0.2f);
 	mEntSkeletalMesh->GetTransform()->SetLocalRot(
 		Quaternion::EulerDegrees(0.0f, 180.0f, 0.0f));
 
@@ -204,7 +212,7 @@ void GameScene::Init() {
 	// 風
 	mWindEffect = std::make_unique<WindEffect>();
 	mWindEffect->Init(Unnamed::Engine::GetParticleManager(),
-	                  mPlayerMovement.get());
+	                  mPlayerMovementUPhysics.get());
 
 	// 爆発
 	mExplosionEffect = std::make_unique<ExplosionEffect>();
@@ -221,12 +229,13 @@ void GameScene::Init() {
 
 	CameraManager::SetActiveCamera(camera);
 
-	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	//	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 
-	// 物理エンジンにプレイヤーエンティティを登録
-	mPhysicsEngine->RegisterEntity(mEntPlayer.get());
-
-	mPhysicsEngine->RegisterEntity(mEntWeapon.get());
+	// // 物理エンジンにプレイヤーエンティティを登録
+	// mPhysicsEngine->RegisterEntity(mEntPlayer.get());
+	//
+	// mPhysicsEngine->RegisterEntity(mEntWeapon.get());
 
 	Console::SubmitCommand(
 		"sv_airaccelerate 100000000000000000"
@@ -260,9 +269,8 @@ void GameScene::Update(const float deltaTime) {
 		}
 	}
 
-	mPhysicsEngine->Update(deltaTime);
-	//
-	mEntCameraRoot->GetTransform()->SetWorldPos(mPlayerMovement->GetHeadPos());
+	mEntCameraRoot->GetTransform()->SetWorldPos(
+		mPlayerMovementUPhysics->GetHeadPos());
 	// cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
 	// camera_->Update(EngineTimer::GetScaledDeltaTime());
 
@@ -273,43 +281,66 @@ void GameScene::Update(const float deltaTime) {
 		mWeaponComponent->ReleaseTrigger();
 	}
 	if (InputSystem::IsPressed("+reload")) {
-		mEntPlayer->GetTransform()->SetWorldPos(Vec3::zero);
+		mEntPlayer->GetTransform()->SetWorldPos(Vec3::up * 2.0f);
 	}
 
 	//mEntWeapon->Update(EngineTimer::GetScaledDeltaTime());
 	//mWeaponComponent->Update(EngineTimer::GetScaledDeltaTime());
 	if (mWeaponComponent->HasFiredThisFrame()) {
-		Vec3 hitPos    = mWeaponComponent->GetHitPosition();
-		Vec3 hitNormal = mWeaponComponent->GetHitNormal();
+		auto camera = CameraManager::GetActiveCamera();
+		auto cameraForward = camera->GetViewMat().Inverse().GetForward();
+		UPhysics::Ray ray = {
+			camera->GetViewMat().Inverse().GetTranslate(),
+			cameraForward,
+			1.0f / cameraForward,
+			0.0f,
+			100.0f
+		};
+		UPhysics::Hit hit;
 
-		// 爆発エフェクト
-		mExplosionEffect->TriggerExplosion(hitPos + hitNormal * 2.0f, hitNormal,
-		                                   32, 30.0f);
-
-		// プレイヤーの位置と爆心地の距離を計算
-		Vec3  playerPos   = mEntPlayer->GetTransform()->GetWorldPos();
-		float blastRadius = Math::HtoM(512);     // 球状ゾーンの半径（例: 5m）
-		float blastPower  = Math::HtoM(1024.0f); // 吹き飛ばしの強さ
-
-		Vec3  toPlayer = playerPos - hitPos;
-		float distance = toPlayer.Length();
-
-		if (distance < blastRadius && distance > 0.5f) {
-			Vec3  forceDir = toPlayer.Normalized();
-			float force    = blastPower * (1.0f - (distance / blastRadius));
-			// プレイヤーに吹き飛ばしベクトルを加える
-			mPlayerMovement->SetVelocity(
-				mPlayerMovement->GetVelocity() + forceDir * force);
-		}
-
-		// カメラシェイク
-		mPlayerMovement->StartCameraShake(
-			0.1f, 0.1f, 5.0f, Vec3::forward, 0.025f, 3.0f,
-			Vec3::right
+		bool isHit = mUPhysicsEngine->RayCast(
+			ray,
+			&hit
 		);
+		if (isHit) {
+			Vec3 hitPos    = hit.pos;
+			Vec3 hitNormal = hit.normal;
+
+			// 爆発エフェクト
+			mExplosionEffect->TriggerExplosion(hitPos + hitNormal * 2.0f,
+			                                   hitNormal,
+			                                   32, 30.0f);
+
+			// プレイヤーの位置と爆心地の距離を計算
+			Vec3  playerPos   = mEntPlayer->GetTransform()->GetWorldPos();
+			float blastRadius = Math::HtoM(512);     // 球状ゾーンの半径（例: 5m）
+			float blastPower  = Math::HtoM(1024.0f); // 吹き飛ばしの強さ
+
+			Vec3  toPlayer = playerPos - hitPos;
+			float distance = toPlayer.Length();
+
+			if (distance < blastRadius && distance > 0.5f) {
+				Vec3  forceDir = toPlayer.Normalized();
+				float force    = blastPower * (1.0f - (distance / blastRadius));
+				// プレイヤーに吹き飛ばしベクトルを加える
+				mPlayerMovementUPhysics->SetVelocity(
+					mPlayerMovementUPhysics->GetVelocity() + forceDir * force);
+			}
+
+			// カメラシェイク
+			mPlayerMovementUPhysics->StartCameraShake(
+				0.1f, 0.1f, 5.0f, Vec3::forward, 0.025f, 3.0f,
+				Vec3::right
+			);
+		}
 	}
 
-	Unnamed::Engine::blurStrength = mPlayerMovement->GetVelocity().Length() *
+	mSkeletalMeshRenderer->SetAnimationSpeed(
+		mPlayerMovementUPhysics->GetVelocity().Length() * 0.1f
+	);
+
+	Unnamed::Engine::blurStrength = mPlayerMovementUPhysics->GetVelocity().
+		Length() *
 		0.01f;
 	// mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
 	// mWeaponSway->Update(EngineTimer::GetScaledDeltaTime());
@@ -359,7 +390,7 @@ void GameScene::Update(const float deltaTime) {
 			camRot.x * Math::rad2Deg,
 			camRot.y * Math::rad2Deg,
 			camRot.z * Math::rad2Deg,
-			Math::MtoH(mPlayerMovement->GetVelocity().Length())
+			Math::MtoH(mPlayerMovementUPhysics->GetVelocity().Length())
 		);
 
 		//Console::Print(text);
@@ -443,13 +474,6 @@ void GameScene::Update(const float deltaTime) {
 		//mParticleEmitter->Emit();
 	}
 
-	mWindEffect->Update(EngineTimer::ScaledDelta());
-	mExplosionEffect->Update(EngineTimer::ScaledDelta());
-
-	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
-		mCubeMap->Update(deltaTime);
-	}
-
 #ifdef _DEBUG
 	// レティクルの描画
 	ImVec2 windowCenter = ImVec2(
@@ -518,6 +542,15 @@ void GameScene::Update(const float deltaTime) {
 			entity->Update(deltaTime);
 		}
 	}
+
+	mWindEffect->Update(deltaTime);
+	mExplosionEffect->Update(deltaTime);
+
+	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
+		mCubeMap->Update(deltaTime);
+	}
+
+	mUPhysicsEngine->Update(deltaTime);
 }
 
 void GameScene::Render() {
@@ -584,7 +617,8 @@ void GameScene::RecreateWorldMeshEntity() {
 
 	// 古いエンティティを物理エンジンから登録解除
 	if (mEntWorldMesh) {
-		mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+		//mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+		mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
 		RemoveEntity(mEntWorldMesh.get());
 		Console::Print("Removed old world mesh entity", kConTextColorWarning);
 
@@ -605,7 +639,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	// メッシュをリロード
 	const std::string meshPath      = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-		ReloadMeshFromFile(meshPath);
+	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
@@ -644,7 +678,8 @@ void GameScene::RecreateWorldMeshEntity() {
 	AddEntity(mEntWorldMesh.get());
 
 	// 物理エンジンに登録
-	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	//	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 
 	Console::Print("World mesh entity recreation completed!",
 	               kConTextColorCompleted);
@@ -659,7 +694,8 @@ void GameScene::SafeReloadWorldMesh() {
 	}
 
 	// 物理エンジンからエンティティの登録を解除
-	mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+	//mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+	mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
 	Console::Print("Unregistered entity from physics engine",
 	               kConTextColorWarning);
 
@@ -679,13 +715,14 @@ void GameScene::SafeReloadWorldMesh() {
 	// メッシュをリロード
 	const std::string meshPath      = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-		ReloadMeshFromFile(meshPath);
+	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
 		// 失敗した場合は元のコンポーネントを復元
 		mEntWorldMesh->AddComponent<MeshColliderComponent>();
-		mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+		//mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+		mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 		return;
 	}
 
@@ -713,7 +750,8 @@ void GameScene::SafeReloadWorldMesh() {
 	Console::Print("Added new MeshColliderComponent", kConTextColorCompleted);
 
 	// 物理エンジンに再登録
-	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	//mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
+	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 	Console::Print("Re-registered entity to physics engine",
 	               kConTextColorCompleted);
 

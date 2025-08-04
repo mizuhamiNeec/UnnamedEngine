@@ -31,7 +31,7 @@ void CopyImagePass::Init() {
 
 	// SrvManagerが有効であることを確認してからSRVインデックスを確保
 	assert(mSrvManager != nullptr && "SrvManager is null in Init()");
-	mSrvIndex = mSrvManager->AllocateForTexture(); // テクスチャ用SRVのインデックスを確保
+	mSrvIndex = mSrvManager->AllocateForTexture2D(); // テクスチャ用SRVのインデックスを確保
 }
 
 void CopyImagePass::Update([[maybe_unused]] const float deltaTime) {

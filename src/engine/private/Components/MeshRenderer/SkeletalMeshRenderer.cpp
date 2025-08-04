@@ -7,6 +7,7 @@
 #include "engine/public/Entity/Entity.h"
 #include "engine/public/ImGui/ImGuiUtil.h"
 #include "engine/public/ResourceSystem/Shader/Shader.h"
+#include "engine/public/subsystem/console/Log.h"
 #include "engine/public/TextureManager/TexManager.h"
 
 struct MatParam {
@@ -18,6 +19,7 @@ struct MatParam {
 };
 
 SkeletalMeshRenderer::~SkeletalMeshRenderer() {
+	ReleaseComputeShaderResources();
 	mTransformationMatrixConstantBuffer.reset();
 	mBoneMatricesConstantBuffer.reset();
 	mTransformationMatrix = nullptr;
@@ -65,8 +67,8 @@ void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 
 		mMaterialData            = mMatParamCBV->GetPtr<MatParam>();
 		mMaterialData->baseColor = {0.5f, 0.5f, 0.5f, 1.0f};
-		mMaterialData->metallic  = 0.25f;
-		mMaterialData->roughness = 0.5f;
+		mMaterialData->metallic  = 0.7f;
+		mMaterialData->roughness = 1.0f;
 		mMaterialData->emissive  = {0.0f, 0.0f, 0.0f};
 	}
 
@@ -144,6 +146,11 @@ void SkeletalMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 		Console::Print("SkeletalMeshRenderer::Render - メッシュがnullです\n",
 		               kConTextColorError, Channel::RenderSystem);
 		return;
+	}
+
+	// コンピュートシェーダーでスキニング処理を実行
+	if (mUseComputeShaderSkinning) {
+		PerformComputeShaderSkinning(commandList);
 	}
 
 	// 現在バインドされているマテリアルを追跡
@@ -252,6 +259,19 @@ void SkeletalMeshRenderer::DrawInspectorImGui() {
 	// 子クラスのインスペクターUIの描画
 	if (ImGui::CollapsingHeader("SkeletalMeshRenderer",
 	                            ImGuiTreeNodeFlags_DefaultOpen)) {
+		// コンピュートシェーダー制御
+		ImGui::Separator();
+		ImGui::Text("Skinning Method");
+		bool useComputeShader = mUseComputeShaderSkinning;
+		if (ImGui::Checkbox("Use Compute Shader Skinning", &useComputeShader)) {
+			SetUseComputeShaderSkinning(useComputeShader);
+		}
+		if (mUseComputeShaderSkinning) {
+			ImGui::TextColored(ImVec4{0.0f, 1.0f, 0.0f, 1.0f}, "GPU Compute Skinning Active");
+		} else {
+			ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.0f, 1.0f}, "CPU/Vertex Shader Skinning Active");
+		}
+		
 		if (mSkeletalMesh) {
 			ImGui::Checkbox("Show Bone Debug", &mShowBoneDebug);
 
@@ -482,11 +502,16 @@ void SkeletalMeshRenderer::PlayAnimation(const std::string& animationName,
 		mIsPlaying            = true;
 		mAnimationTime        = 0.0f;
 
-		Console::Print("アニメーション再生開始: " + animationName + "\n",
-		               kConTextColorCompleted, Channel::RenderSystem);
+		Msg(
+			"SkeletalMeshRenderer",
+			"アニメーション再生開始: {}",
+			animationName
+		);
 	} else {
-		Console::Print("アニメーションが見つかりません: " + animationName + "\n",
-		               kConTextColorError, Channel::RenderSystem);
+		Error("SkeletalMeshRenderer",
+		      "アニメーションが見つかりません: {}",
+		      animationName
+		);
 	}
 }
 
@@ -711,4 +736,49 @@ void SkeletalMeshRenderer::DrawBoneDebug() {
 
 	const Skeleton& skeleton = mSkeletalMesh->GetSkeleton();
 	DrawBoneHierarchy(skeleton.rootNode, Mat4::identity);
+}
+
+void SkeletalMeshRenderer::SetUseComputeShaderSkinning(bool enable) {
+	if (mUseComputeShaderSkinning != enable) {
+		mUseComputeShaderSkinning = enable;
+
+		if (enable) {
+			InitializeComputeShaderResources();
+		} else {
+			ReleaseComputeShaderResources();
+		}
+	}
+}
+
+bool SkeletalMeshRenderer::IsUsingComputeShaderSkinning() const {
+	return mUseComputeShaderSkinning;
+}
+
+void SkeletalMeshRenderer::PerformComputeShaderSkinning(
+	ID3D12GraphicsCommandList* commandList
+) {
+	commandList;
+
+	// if (!mSkinningComputeShader || !mSkeletalMesh) {
+	// 	return;
+	// }
+
+	Msg("SkeletalMeshRenderer", "コンピュートシェーダーでスキニング処理を実行中...");
+}
+
+void SkeletalMeshRenderer::InitializeComputeShaderResources() {
+	if (!mSkeletalMesh) {
+		return;
+	}
+
+	Msg("SkeletalMeshRenderer", "コンピュートシェーダー用リソースを初期化中...");
+}
+
+void SkeletalMeshRenderer::ReleaseComputeShaderResources() {
+	mInputVertexBuffer.Reset();
+	mOutputVertexBuffer.Reset();
+	mTransformedVertexBuffer.Reset();
+	//mSkinningComputeShader.reset();
+
+	Msg("SkeletalMeshRenderer", "コンピュートシェーダー用リソースを解放しました");
 }

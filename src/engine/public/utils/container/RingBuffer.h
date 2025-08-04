@@ -35,6 +35,11 @@ public:
 	[[nodiscard]] bool   Empty() const { return mSize == 0; }
 	[[nodiscard]] bool   Full() const { return mSize == Capacity; }
 
+	[[nodiscard]] size_t LastWrittenIndex() const {
+		std::lock_guard lock(mMutex);
+		return (mHead + Capacity - 1) % Capacity;
+	}
+
 	class Iterator {
 	public:
 		Iterator(const RingBuffer* buffer, size_t index, size_t count):

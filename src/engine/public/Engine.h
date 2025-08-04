@@ -24,7 +24,11 @@
 
 #include <game/public/scene/base/BaseScene.h>
 
+class TimeSystem;
+
 namespace Unnamed {
+	class ConsoleSystem;
+
 	class Engine {
 	public:
 		Engine();
@@ -34,76 +38,88 @@ namespace Unnamed {
 		void Update();
 		void Shutdown() const;
 
-		//-------------------------------------------------------------------------
-		// Purpose: 旧エンジン
-		//-------------------------------------------------------------------------
+		//---------------------------------------------------------------------
+		// Purpose: 新エンジンクラス
+		//---------------------------------------------------------------------
+	private:
+		std::vector<std::unique_ptr<ISubsystem>> mSubsystems;
+		ConsoleSystem*                           mConsoleSystem = nullptr;
+		TimeSystem*                              mTimeSystem    = nullptr;
 
-		//
-		// TODO: staticで取得するのはやめる
-		//
+	public:
+		//---------------------------------------------------------------------
+		// Purpose: 旧エンジンクラス
+		//---------------------------------------------------------------------
 
+		// DEPRECATED: 旧エンジンクラス
 		static bool IsEditorMode() {
 			return mIsEditorMode;
 		}
 
+		// DEPRECATED: 旧エンジンクラス
 		static D3D12* GetRenderer() {
 			return mRenderer.get();
 		}
 
+		// DEPRECATED: 旧エンジンクラス
 		static ResourceManager* GetResourceManager() {
 			return mResourceManager.get();
 		}
 
+		// DEPRECATED: 旧エンジンクラス
 		static ParticleManager* GetParticleManager() {
 			return mParticleManager.get();
 		}
 
+		// DEPRECATED: 旧エンジンクラス
 		static SrvManager* GetSrvManager() {
 			return mSrvManager.get();
 		}
 
+		// DEPRECATED: 旧エンジンクラス
 		static SceneManager* GetSceneManager() {
 			return mSceneManager.get();
 		}
 
 		// TODO: エンジンでやるべきじゃない
+		// DEPRECATED: 旧エンジンクラス
 		static void ChangeScene(const std::string& sceneName) {
 			if (GetSceneManager() && sceneName != "") {
 				GetSceneManager()->ChangeScene(sceneName);
 			}
 		}
 
-		static std::shared_ptr<BaseScene> GetCurrentScene() {
-			if (GetSceneManager()) {
-				return GetSceneManager()->GetCurrentScene();
-			}
-		}
+		// DEPRECATED: 旧エンジンクラス
+		static std::shared_ptr<BaseScene> GetCurrentScene();
 
-		void OnResize(uint32_t width, uint32_t height);
-		void ResizeOffscreenRenderTextures(uint32_t width, uint32_t height);
-
+		// DEPRECATED: 旧エンジンクラス
 		static Vec2 GetViewportLT() {
 			return mViewportLT;
 		}
 
+		// DEPRECATED: 旧エンジンクラス
 		static Vec2 GetViewportSize() {
 			return mViewportSize;
 		}
+
+		// DEPRECATED: 旧エンジンクラス
+		static float blurStrength;
+
+
+		void OnResize(uint32_t width, uint32_t height);
+		void ResizeOffscreenRenderTextures(uint32_t width, uint32_t height);
+
 
 		static void RegisterConsoleCommandsAndVariables();
 		static void Quit(const std::vector<std::string>& args = {});
 		static void SetEditorMode(const std::vector<std::string>& args = {});
 		void        CheckEditorMode();
 
-		static float blurStrength;
-
 	private:
 		std::unique_ptr<OldWindowManager> mWindowManager;
 
 		static std::unique_ptr<SrvManager>      mSrvManager;
 		static std::unique_ptr<ResourceManager> mResourceManager;
-
-		std::unique_ptr<EngineTimer> mTime;
 
 		static std::unique_ptr<D3D12> mRenderer;
 #ifdef _DEBUG
@@ -147,12 +163,5 @@ namespace Unnamed {
 		static Vec2 mViewportSize;
 		static bool mIsEditorMode;
 		static bool mWishShutdown;
-
-	public:
-		//-------------------------------------------------------------------------
-		// Purpose: 新エンジン 
-		//-------------------------------------------------------------------------
-	private:
-		std::vector<std::unique_ptr<ISubsystem>> mSubsystems;
 	};
 }

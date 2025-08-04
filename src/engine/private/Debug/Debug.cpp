@@ -4,15 +4,11 @@
 #include "engine/public/Camera/CameraManager.h"
 
 void Debug::DrawLine(const Vec3& a, const Vec3& b, const Vec4& color) {
-	if (Unnamed::Engine::IsEditorMode()) {
-		mLine->AddLine(a, b, color);
-	}
+	mLine->AddLine(a, b, color);
 }
 
 void Debug::DrawRay(const Vec3& position, const Vec3& dir, const Vec4& color) {
-	if (Unnamed::Engine::IsEditorMode()) {
-		mLine->AddLine(position, position + dir, color);
-	}
+	mLine->AddLine(position, position + dir, color);
 }
 
 void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {
@@ -285,8 +281,10 @@ void Debug::DrawSphere(
 	}
 }
 
-void Debug::DrawBox(const Vec3& position, const Quaternion& orientation,
-                    Vec3        size, const Vec4&           color) {
+void Debug::DrawBox(
+	const Vec3& position, const Quaternion& orientation,
+	Vec3        size, const Vec4&           color
+) {
 	const Vec3 offsetX = orientation * Vec3::right * size.x * 0.5f;
 	const Vec3 offsetY = orientation * Vec3::up * size.y * 0.5f;
 	const Vec3 offsetZ = orientation * Vec3::forward * size.z * 0.5f;

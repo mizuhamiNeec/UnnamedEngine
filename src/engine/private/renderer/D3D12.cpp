@@ -837,7 +837,23 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource(
 
 RenderTargetTexture D3D12::CreateRenderTargetTexture(
 	uint32_t width, uint32_t height, Vec4 clearColor, DXGI_FORMAT format) {
+	// 新規作成の場合は無効なインデックス（0）を渡す
+	return CreateRenderTargetTexture(width, height, clearColor, 0, format);
+}
+
+RenderTargetTexture D3D12::CreateRenderTargetTexture(
+	uint32_t width, uint32_t height, Vec4 clearColor, uint32_t oldSrvIndex, DXGI_FORMAT format) {
 	RenderTargetTexture result = {};
+
+	// 古いSRVインデックスがある場合は返却
+	if (oldSrvIndex != 0 && mSrvManager) {
+		mSrvManager->DeallocateTexture2D(oldSrvIndex);
+		Console::Print(
+			std::format("[D3D12] CreateRenderTargetTexture - 古いSRVインデックス {}を返却しました\n", oldSrvIndex),
+			kConTextColorCompleted,
+			Channel::RenderSystem
+		);
+	}
 
 	// ディスクリプタ
 	D3D12_RESOURCE_DESC desc = {};
@@ -895,7 +911,7 @@ RenderTargetTexture D3D12::CreateRenderTargetTexture(
 	// SRVを作成
 	if (mSrvManager) {
 		// SRVのインデックスを確保（テクスチャ用）
-		result.srvIndex = mSrvManager->AllocateForTexture();
+		result.srvIndex = mSrvManager->AllocateForTexture2D();
 
 		// SRVを作成
 		mSrvManager->CreateSRVForTexture2D(
@@ -955,7 +971,23 @@ RenderTargetTexture D3D12::CreateRenderTargetTexture(
 
 DepthStencilTexture D3D12::CreateDepthStencilTexture(
 	uint32_t width, uint32_t height, DXGI_FORMAT format) {
+	// 新規作成の場合は無効なインデックス（0）を渡す
+	return CreateDepthStencilTexture(width, height, 0, format);
+}
+
+DepthStencilTexture D3D12::CreateDepthStencilTexture(
+	uint32_t width, uint32_t height, uint32_t oldSrvIndex, DXGI_FORMAT format) {
 	DepthStencilTexture result = {};
+
+	// 古いSRVインデックスがある場合は返却
+	if (oldSrvIndex != 0 && mSrvManager) {
+		mSrvManager->DeallocateTexture2D(oldSrvIndex);
+		Console::Print(
+			std::format("[D3D12] CreateDepthStencilTexture - 古いSRVインデックス {}を返却しました\n", oldSrvIndex),
+			kConTextColorCompleted,
+			Channel::RenderSystem
+		);
+	}
 
 	// 1. デプスバッファリソース作成
 	result.dsv = CreateDepthStencilTextureResource(width, height, format);

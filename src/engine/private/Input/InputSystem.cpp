@@ -28,9 +28,9 @@ void InputSystem::Init() {
 
 	if (!RegisterRawInputDevices(rid, 2, sizeof(RAWINPUTDEVICE))) {
 		MessageBox(nullptr, L"Failed to register raw input devices", L"Error",
-				   MB_OK);
+		           MB_OK);
 		Console::Print("Failed to register raw input devices\n",
-					   kConTextColorError, Channel::InputSystem);
+		               kConTextColorError, Channel::InputSystem);
 	}
 
 	ConCommand::RegisterCommand(
@@ -38,7 +38,7 @@ void InputSystem::Init() {
 		[](const std::vector<std::string>& args) {
 			if (args.size() < 2) {
 				Console::Print("Usage: bind <key> <command>\n",
-							   kConTextColorWarning, Channel::InputSystem);
+				               kConTextColorWarning, Channel::InputSystem);
 				return;
 			}
 			std::string key     = args[0];
@@ -53,7 +53,7 @@ void InputSystem::Init() {
 		[](const std::vector<std::string>& args) {
 			if (args.size() < 1) {
 				Console::Print("Usage: unbind <key>\n", kConTextColorWarning,
-							   Channel::InputSystem);
+				               Channel::InputSystem);
 				return;
 			}
 			std::string key = args[0];
@@ -98,7 +98,7 @@ void InputSystem::Update() {
 void InputSystem::ProcessInput(const long lParam) {
 	UINT dwSize = 0;
 	GetRawInputData(reinterpret_cast<HRAWINPUT>(static_cast<LPARAM>(lParam)),
-					RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER));
+	                RID_INPUT, nullptr, &dwSize, sizeof(RAWINPUTHEADER));
 
 	auto lpb = std::make_unique<BYTE[]>(dwSize);
 	if (GetRawInputData(
@@ -298,9 +298,11 @@ void InputSystem::CheckMouseCursorLock() {
 	if (mMouseLock) {
 		// カーソルをウィンドウの中央にリセット
 		const POINT centerCursorPos = {
-			static_cast<LONG>(OldWindowManager::GetMainWindow()->GetClientWidth() /
+			static_cast<LONG>(OldWindowManager::GetMainWindow()->
+				GetClientWidth() /
 				2),
-			static_cast<LONG>(OldWindowManager::GetMainWindow()->GetClientWidth() /
+			static_cast<LONG>(OldWindowManager::GetMainWindow()->
+				GetClientHeight() /
 				2)
 		};
 
@@ -312,9 +314,9 @@ void InputSystem::CheckMouseCursorLock() {
 			rect.right  = centerCursorPos.x + 1;
 			rect.bottom = centerCursorPos.y + 1;
 			ClientToScreen(OldWindowManager::GetMainWindow()->GetWindowHandle(),
-						   reinterpret_cast<LPPOINT>(&rect));
+			               reinterpret_cast<LPPOINT>(&rect));
 			ClientToScreen(OldWindowManager::GetMainWindow()->GetWindowHandle(),
-						   reinterpret_cast<LPPOINT>(&rect) + 1);
+			               reinterpret_cast<LPPOINT>(&rect) + 1);
 			ClipCursor(&rect);
 		}
 
@@ -364,11 +366,11 @@ void InputSystem::UpdateMouseButtonState(
 std::string InputSystem::GetKeyName(const UINT virtualKey) {
 	char name[256];
 	if (GetKeyNameTextA(MapVirtualKey(virtualKey, MAPVK_VK_TO_VSC) << 16, name,
-						sizeof(name))) {
+	                    sizeof(name))) {
 		return std::string(name);
 	}
 	Console::Print(std::format("キーの名前を取得できませんでした: {}\n", virtualKey),
-				   kConTextColorError, Channel::InputSystem);
+	               kConTextColorError, Channel::InputSystem);
 	return "Unknown";
 }
 

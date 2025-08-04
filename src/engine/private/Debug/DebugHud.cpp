@@ -1,16 +1,15 @@
-#include "engine/public/Debug/DebugHud.h"
+#include <engine/public/Debug/DebugHud.h>
+#include <engine/public/ImGui/ImGuiManager.h>
+#include <engine/public/ImGui/ImGuiUtil.h>
+#include <engine/public/OldConsole/ConVarManager.h>
+#include <engine/public/subsystem/time/GameTime.h>
 
-#include "engine/public/ImGui/ImGuiManager.h"
-#include "engine/public/ImGui/ImGuiUtil.h"
-#include "engine/public/OldConsole/ConVarManager.h"
-#include "engine/public/Timer/EngineTimer.h"
-
-void DebugHud::Update() {
-	ShowFrameRate();
+void DebugHud::Update(const float deltaTime) {
+	ShowFrameRate(deltaTime);
 	ShowPlayerInfo();
 }
 
-void DebugHud::ShowFrameRate() {
+void DebugHud::ShowFrameRate([[maybe_unused]] const float deltaTime) {
 #ifdef _DEBUG
 	const int flag = ConVarManager::GetConVar("cl_showfps")->GetValueAsInt();
 
@@ -39,7 +38,7 @@ void DebugHud::ShowFrameRate() {
 	std::string text;
 	float       fps;
 	if (flag == 1) {
-		fps = 1.0f / EngineTimer::GetScaledDeltaTime();
+		fps = 1.0f / deltaTime;
 	}
 	if (flag == 2) {
 		const ImGuiIO io = ImGui::GetIO();

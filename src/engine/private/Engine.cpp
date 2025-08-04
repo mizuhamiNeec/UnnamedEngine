@@ -2,6 +2,7 @@
 
 #ifdef _DEBUG
 #include <imgui_internal.h>
+// ImGuizmoのインクルードはImGuiより後
 #include <ImGuizmo.h>
 #endif
 
@@ -15,34 +16,55 @@
 #include <engine/public/OldConsole/ConCommand.h>
 #include <engine/public/OldConsole/ConVarManager.h>
 #include <engine/public/postprocess/PPBloom.h>
+#include <engine/public/postprocess/PPChromaticAberration.h>
+#include <engine/public/postprocess/PPRadialBlur.h>
 #include <engine/public/postprocess/PPVignette.h>
 #include <engine/public/renderer/SrvManager.h>
 #include <engine/public/subsystem/console/ConsoleSystem.h>
+#include <engine/public/subsystem/console/Log.h>
 #include <engine/public/subsystem/interface/ServiceLocator.h>
+#include <engine/public/subsystem/time/TimeSystem.h>
 #include <engine/public/TextureManager/TexManager.h>
-#include <engine/public/Timer/EngineTimer.h>
 #include <engine/public/Window/MainWindow.h>
 #include <engine/public/Window/WindowsUtils.h>
 
 #include <game/public/scene/EmptyScene.h>
 #include <game/public/scene/GameScene.h>
 
-#include "engine/public/postprocess/PPChromaticAberration.h"
-#include "engine/public/postprocess/PPRadialBlur.h"
-
-constexpr Vec4 offscreenClearColor = Vec4(0.25f, 0.25f, 0.25f, 1.0f);
+constexpr Vec4 offscreenClearColor = Vec4(0.025f, 0.025f, 0.025f, 1.0f);
 
 namespace Unnamed {
-	Engine::Engine() {
-	}
+	Engine::Engine() = default;
 
-	Engine::~Engine() {
-	}
+	Engine::~Engine() = default;
 
 	bool Engine::Init() {
-		//-----------------------------------------------------------------------------
+		//---------------------------------------------------------------------
+		// Purpose: 新エンジン
+		//---------------------------------------------------------------------
+		mSubsystems.emplace_back(std::make_unique<ConsoleSystem>());
+		mSubsystems.emplace_back(std::make_unique<TimeSystem>());
+
+		for (auto& subsystem : mSubsystems) {
+			if (subsystem->Init()) {
+				std::string name = std::string(subsystem->GetName());
+				SpecialMsg(
+					LogLevel::Success,
+					"Engine",
+					"Subsystem initialized: {}",
+					subsystem->GetName()
+				);
+			} else {
+				UASSERT(false && "Failed to initialize subsystem");
+			}
+		}
+
+		mConsoleSystem = ServiceLocator::Get<ConsoleSystem>();
+		mTimeSystem    = ServiceLocator::Get<TimeSystem>();
+
+		//---------------------------------------------------------------------
 		// Purpose: 旧エンジン
-		//-----------------------------------------------------------------------------
+		//---------------------------------------------------------------------
 #ifdef _DEBUG
 		ConVarManager::RegisterConVar<bool>("verbose", true,
 		                                    "Enable verbose logging");
@@ -50,11 +72,8 @@ namespace Unnamed {
 		ConVarManager::RegisterConVar<bool>("verbose", false,
 		                                    "Enable verbose logging");
 #endif
-		Console::Print("command line arguments:\n", kConTextColorGray,
-		               Channel::CommandLine);
-		Console::Print(StrUtil::ToString(GetCommandLineW()) + "\n",
-		               kConTextColorGray,
-		               Channel::CommandLine);
+		Msg("CommandLine", "command line arguments:\n{}",
+		    StrUtil::ToString(GetCommandLineW()));
 		ConVarManager::RegisterConVar<std::string>("launchargs",
 		                                           StrUtil::ToString(
 			                                           GetCommandLineW()),
@@ -75,11 +94,7 @@ namespace Unnamed {
 		if (gameWindow->Create(gameWindowInfo)) {
 			mWindowManager->AddWindow(std::move(gameWindow));
 		} else {
-			Console::Print(
-				"Failed to create main window.\n",
-				kConTextColorError,
-				Channel::Engine
-			);
+			Fatal("Engine", "Failed to create main window.");
 			return false;
 		}
 
@@ -100,7 +115,8 @@ namespace Unnamed {
 
 		// コマンドライン引数をコンソールに送信
 		Console::SubmitCommand(
-			ConVarManager::GetConVar("launchargs")->GetValueAsString());
+			ConVarManager::GetConVar("launchargs")->GetValueAsString()
+		);
 
 		mResourceManager = std::make_unique<ResourceManager>(mRenderer.get());
 
@@ -113,7 +129,7 @@ namespace Unnamed {
 			mSrvManager.get());
 		mRenderer->Init();
 
-		mSrvManager->Allocate();
+		mSrvManager->AllocateForTexture2D();
 
 #ifdef _DEBUG
 		mImGuiManager = std::make_unique<ImGuiManager>(
@@ -204,7 +220,7 @@ namespace Unnamed {
 
 		reinterpret_cast<PPBloom*>(
 			mPostChain.back().get()
-		)->SetStrength(0.0f);
+		)->SetStrength(0.0f); // 奇数個のポストプロセスは適応されない不具合があるのでダミー
 
 		mPostChain.emplace_back(
 			std::make_unique<PPVignette>(
@@ -226,18 +242,6 @@ namespace Unnamed {
 				mSrvManager.get()
 			)
 		);
-
-		//// モデル
-		//modelCommon_ = std::make_unique<ModelCommon>();
-		//modelCommon_->Init(renderer_.get());
-
-		// オブジェクト3D
-		/*object3DCommon_ = std::make_unique<Object3DCommon>();
-		object3DCommon_->Init(renderer_.get());*/
-
-		//// スプライト
-		//spriteCommon_ = std::make_unique<SpriteCommon>();
-		//spriteCommon_->Init(renderer_.get());
 
 		TexManager::GetInstance()->Init(mRenderer.get(), mSrvManager.get());
 
@@ -262,8 +266,6 @@ namespace Unnamed {
 		);
 		assert(SUCCEEDED(hr));
 
-		mTime = std::make_unique<EngineTimer>();
-
 		//-------------------------------------------------------------------------
 		// すべての初期化が完了
 		//-------------------------------------------------------------------------
@@ -281,23 +283,12 @@ namespace Unnamed {
 		// シーンの初期化
 		mSceneManager->ChangeScene("GameScene");
 
+		//-----------------------------------------------------------------------------
 		// エディターの初期化
 		CheckEditorMode();
 
 		hr = mRenderer->GetCommandList()->Close();
 		assert(SUCCEEDED(hr));
-
-		//-----------------------------------------------------------------------------
-		// Purpose: 新エンジン
-		//-----------------------------------------------------------------------------
-		mSubsystems.emplace_back(std::make_unique<ConsoleSystem>());
-
-		for (auto& subsystem : mSubsystems) {
-			if (subsystem->Init()) {
-			} else {
-				UASSERT(false && "Failed to initialize subsystem");
-			}
-		}
 
 		return true;
 	}
@@ -312,7 +303,6 @@ namespace Unnamed {
 			DestroyWindow(mWindowManager->GetMainWindow()->GetWindowHandle());
 		}
 
-		mTime->StartFrame();
 #ifdef _DEBUG
 		ImGuiManager::NewFrame();
 		ImGuizmo::BeginFrame();
@@ -356,6 +346,7 @@ namespace Unnamed {
 					}
 
 					if (ImGuiWidgets::BeginMainMenu("File")) {
+						ImGui::BeginDisabled();
 						if (ImGui::MenuItemEx(
 							"Save",
 							StrUtil::ConvertToUtf8(kIconSave).c_str())) {
@@ -366,6 +357,7 @@ namespace Unnamed {
 							                      kIconSaveAs).
 						                      c_str())) {
 						}
+						ImGui::EndDisabled();
 
 						ImGui::Separator();
 
@@ -406,8 +398,10 @@ namespace Unnamed {
 									mLoadFilePath = ofn.lpstrFile;
 								}
 							} else {
-								Console::Print(
-									"Import failed: No active scene found.");
+								Error(
+									"ImportScene",
+									"Import failed: No active scene found."
+								);
 							}
 						}
 
@@ -447,23 +441,31 @@ namespace Unnamed {
 									std::string filePath = ofn.lpstrFile;
 									mEntityLoader->
 										SaveScene(filePath, currentScene);
-									Console::Print(
-										"Scene exported to: " + filePath);
+									SpecialMsg(
+										LogLevel::Success,
+										"SceneExport",
+										"Scene exported to: {}",
+										filePath
+									);
 								}
 							} else {
-								Console::Print(
-									"Export failed: No active scene found.");
+								Error(
+									"SceneExport",
+									"Export failed: No active scene found."
+								);
 							}
 						}
 
 						ImGui::Separator();
 
+						ImGui::BeginDisabled();
 						if (ImGui::MenuItemEx(
 								"Exit",
 								StrUtil::ConvertToUtf8(kIconPower).c_str())
 						) {
 							Console::SubmitCommand("quit");
 						}
+						ImGui::EndDisabled();
 						ImGui::EndMenu();
 					}
 
@@ -585,9 +587,10 @@ namespace Unnamed {
 #endif
 
 			if (mEditor) {
-				mEditor->Update(EngineTimer::GetDeltaTime());
+				mEditor->Update(mTimeSystem->GetGameTime()->DeltaTime<float>());
 			}
 
+#ifdef _DEBUG
 			ImGui::Begin("Post Process");
 			for (int i = 0; i < mPostChain.size(); ++i) {
 				if (i == 2) {
@@ -595,12 +598,15 @@ namespace Unnamed {
 				}
 				auto& postProcess = mPostChain[i];
 				if (postProcess) {
-					postProcess->Update(EngineTimer::GetDeltaTime());
+					postProcess->Update(
+						mTimeSystem->GetGameTime()->DeltaTime<float>());
 				}
 			}
 			ImGui::End();
+#endif
 		} else {
-			mSceneManager->Update(EngineTimer::GetScaledDeltaTime());
+			mSceneManager->Update(
+				mTimeSystem->GetGameTime()->ScaledDeltaTime<float>());
 			mViewportLT   = Vec2::zero;
 			mViewportSize = {
 				static_cast<float>(mWindowManager->GetMainWindow()->
@@ -614,14 +620,15 @@ namespace Unnamed {
 
 #ifdef _DEBUG
 		Console::Update();
-		DebugHud::Update();
+		DebugHud::Update(mTimeSystem->GetGameTime()->ScaledDeltaTime<float>());
 #endif
 
 
 #ifdef _DEBUG
 		Debug::Update();
 #endif
-		CameraManager::Update(EngineTimer::GetDeltaTime());
+		CameraManager::Update(
+			mTimeSystem->GetGameTime()->ScaledDeltaTime<float>());
 
 		mOffscreenRenderPassTargets.bClearColor =
 			ConVarManager::GetConVar("r_clear")->GetValueAsBool();
@@ -636,14 +643,17 @@ namespace Unnamed {
 		);
 		mRenderer->BeginRenderPass(mOffscreenRenderPassTargets);
 		if (IsEditorMode()) {
-			mLineCommon->Render();
-			Debug::Draw();
 			if (mEditor) {
 				mEditor->Render();
 			}
 		} else {
 			mSceneManager->Render();
 		}
+
+#ifdef _DEBUG
+		mLineCommon->Render();
+		Debug::Draw();
+#endif
 
 		// 先にバリアを設定
 		D3D12_RESOURCE_BARRIER barrier = {};
@@ -676,18 +686,6 @@ namespace Unnamed {
 			auto&          dest = mPingRtv[next];
 
 			if (IsEditorMode()) {
-				// mRenderer->BeginRenderPass(
-				// 	{
-				// 		&dest.rtvHandle,
-				// 		1,
-				// 		&mPostProcessedDsv.dsvHandle,
-				// 		offscreenClearColor,
-				// 		1.0f,
-				// 		0,
-				// 		true,
-				// 		true
-				// 	}
-				// );
 				mRenderer->SetViewportAndScissor(
 					static_cast<uint32_t>(mOffscreenRtv.rtv->GetDesc().Width),
 					mOffscreenRtv.rtv->GetDesc().Height
@@ -784,6 +782,18 @@ namespace Unnamed {
 			mRenderer->BeginSwapChainRenderPass();
 		}
 
+		//-----------------------------------------------------------------------------
+		// Purpose: 新エンジン
+		//-----------------------------------------------------------------------------
+
+		for (auto& subsystem : mSubsystems) {
+			subsystem->Update(mTimeSystem->GetGameTime()->DeltaTime<float>());
+		}
+
+		for (auto& subsystem : mSubsystems) {
+			subsystem->Render();
+		}
+
 #ifdef _DEBUG
 		mImGuiManager->EndFrame();
 #endif
@@ -817,11 +827,11 @@ namespace Unnamed {
 				mEntityLoader->LoadScene(
 					mLoadFilePath.value(), currentScene,
 					resourceManager);
-				Console::Print(
-					"Scene imported from: " + mLoadFilePath.value());
-			} else {
-				Console::Print(
-					"Import failed: ResourceManager not found.");
+				Msg(
+					"Engine",
+					"Scene imported from: {}",
+					mLoadFilePath.value()
+				);
 			}
 
 			mLoadFilePath.reset(); // ロード後はリセット
@@ -829,11 +839,7 @@ namespace Unnamed {
 
 		mRenderer->PostRender();
 
-		mTime->EndFrame();
-
-		//-----------------------------------------------------------------------------
-		// Purpose: 新エンジン
-		//-----------------------------------------------------------------------------
+		mTimeSystem->EndFrame();
 	}
 
 	void Engine::Shutdown() const {
@@ -861,8 +867,11 @@ namespace Unnamed {
 		mResourceManager->Shutdown();
 		mResourceManager.reset();
 
-		Console::Print("アリーヴェ帰ルチ! (さよナランチャ\n", kConTextColorCompleted,
-		               Channel::Engine);
+		SpecialMsg(
+			LogLevel::Success,
+			"Engine",
+			"アリーヴェ帰ルチ! (さよナランチャ"
+		);
 
 		//-----------------------------------------------------------------------------
 		// Purpose: 新エンジン
@@ -873,6 +882,13 @@ namespace Unnamed {
 				subsystem->Shutdown();
 			}
 		}
+	}
+
+	std::shared_ptr<BaseScene> Engine::GetCurrentScene() {
+		if (GetSceneManager()) {
+			return GetSceneManager()->GetCurrentScene();
+		}
+		UASSERT(false && "SceneManager is not initialized.");
 	}
 
 	void Engine::OnResize(const uint32_t width, const uint32_t height) {
@@ -888,44 +904,42 @@ namespace Unnamed {
 		mPostProcessedRtv.rtv.Reset();
 		mPostProcessedDsv.dsv.Reset();
 
-		mOffscreenRtv = {};
-		mOffscreenDsv = {};
-		mPingRtv[0]   = {};
-		mPingRtv[1]   = {};
-
-		mPostProcessedRtv = {};
-		mPostProcessedDsv = {};
-
 		mOffscreenRtv = mRenderer->CreateRenderTargetTexture(
 			width, height,
 			offscreenClearColor,
+			mOffscreenRtv.srvIndex,
 			kBufferFormat
 		);
 		mOffscreenDsv = mRenderer->CreateDepthStencilTexture(
 			width, height,
+			mOffscreenDsv.srvIndex,
 			DXGI_FORMAT_D32_FLOAT
 		);
 
 		mPingRtv[0] = mRenderer->CreateRenderTargetTexture(
 			width, height,
 			offscreenClearColor,
+			mPingRtv[0].srvIndex,
 			kBufferFormat
 		);
 
 		mPingRtv[1] = mRenderer->CreateRenderTargetTexture(
 			width, height,
 			offscreenClearColor,
+			mPingRtv[1].srvIndex,
 			kBufferFormat
 		);
 
 		mPostProcessedRtv = mRenderer->CreateRenderTargetTexture(
 			width, height,
 			offscreenClearColor,
+			mPostProcessedRtv.srvIndex,
 			kBufferFormat
 		);
 
 		mPostProcessedDsv = mRenderer->CreateDepthStencilTexture(
 			width, height,
+			mPostProcessedDsv.srvIndex,
 			DXGI_FORMAT_D32_FLOAT
 		);
 
@@ -1014,10 +1028,11 @@ namespace Unnamed {
 			"toggleeditor",
 			[]([[maybe_unused]] const std::vector<std::string>& args) {
 				mIsEditorMode = !mIsEditorMode;
-				Console::Print(
-					"Editor mode is now " + std::to_string(mIsEditorMode) +
-					"\n",
-					kConFgColorDark);
+				Warning(
+					"Engine",
+					"Editor mode is now {}",
+					std::to_string(mIsEditorMode)
+				);
 			},
 			"Toggle editor mode."
 		);
@@ -1032,7 +1047,7 @@ namespace Unnamed {
 		);
 		ConVarManager::RegisterConVar<int>("cl_showfps", 2,
 		                                   "Draw fps meter (1 = fps, 2 = smooth)");
-		ConVarManager::RegisterConVar<int>("cl_fpsmax", kFpsMax,
+		ConVarManager::RegisterConVar<int>("fps_max", kDefaultFpsMax,
 		                                   "Frame rate limiter");
 		ConVarManager::RegisterConVar<std::string>("name", "unnamed",
 		                                           "Current user name",
@@ -1041,8 +1056,6 @@ namespace Unnamed {
 		                       true);
 		ConVarManager::RegisterConVar<float>("sensitivity", 2.0f,
 		                                     "Mouse sensitivity.");
-		ConVarManager::RegisterConVar<float>("host_timescale", 1.0f,
-		                                     "Prescale the clock by this amount.");
 		// World
 		ConVarManager::RegisterConVar<
 			float>("sv_gravity", 800.0f, "World gravity.");
@@ -1083,9 +1096,10 @@ namespace Unnamed {
 		Console::SubmitCommand("bind mousewheeldown +invnext", true);
 		Console::SubmitCommand("bind f1 toggleeditor", true);
 
-		Console::SubmitCommand("bind q +bounds", true);
-		Console::SubmitCommand("bind t +translate", true);
-		Console::SubmitCommand("bind e +scale", true);
+		Console::SubmitCommand("bind 4 +bounds", true);
+		Console::SubmitCommand("bind 1 +translate", true);
+		Console::SubmitCommand("bind 2 +rotate", true);
+		Console::SubmitCommand("bind 3 +scale", true);
 		Console::SubmitCommand("bind tab +toggleGizmo", true);
 	}
 
@@ -1095,7 +1109,10 @@ namespace Unnamed {
 
 	void Engine::CheckEditorMode() {
 		if (mIsEditorMode) {
-			mEditor = std::make_unique<Editor>(mSceneManager.get());
+			mEditor = std::make_unique<Editor>(
+				mSceneManager.get(),
+				mTimeSystem->GetGameTime()
+			);
 		} else {
 			mEditor.reset();
 		}

@@ -24,6 +24,18 @@ void SrvManager::Init(D3D12* d3d12) {
 	// ディスクリプタ1個分のサイズを取得して記録
 	descriptorSize_ = d3d12_->GetDevice()->GetDescriptorHandleIncrementSize(
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	// 使用状況管理配列の初期化
+	usedTexture2DIndices_.resize(kTexture2DEndIndex - kTexture2DStartIndex, false);
+	usedTextureCubeIndices_.resize(kTextureCubeEndIndex - kTextureCubeStartIndex, false);
+	usedTextureArrayIndices_.resize(kTextureArrayEndIndex - kTextureArrayStartIndex, false);
+	usedStructuredBufferIndices_.resize(kStructuredBufferEndIndex - kStructuredBufferStartIndex, false);
+
+	Console::Print(
+		"[SrvManager] フリーリスト方式でSRV管理を初期化しました\n",
+		kConTextColorCompleted,
+		Channel::RenderSystem
+	);
 }
 
 void SrvManager::PreDraw() const {
@@ -61,15 +73,6 @@ void SrvManager::CreateSRVForStructuredBuffer(uint32_t srvIndex,
                                               ID3D12Resource* pResource,
                                               UINT numElements,
                                               UINT structureByteStride) const {
-	// デバッグログ：ストラクチャードバッファSRV作成状況
-	Console::Print(
-		std::format(
-			"[SrvManager] CreateSRVForStructuredBuffer - srvIndex: {}, numElements: {}, structureByteStride: {}\n",
-			srvIndex, numElements, structureByteStride),
-		kConTextColorCompleted,
-		Channel::RenderSystem
-	);
-
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -131,23 +134,6 @@ void SrvManager::SetGraphicsRootDescriptorTable(const UINT rootParameterIndex,
 	d3d12_->GetCommandList()->SetGraphicsRootDescriptorTable(
 		rootParameterIndex, handle);
 
-	// フレーム単位で一定数の詳細ログのみ出力（大量のログを避けるため）
-	static int logCountThisFrame = 0;
-	static int maxLogsPerFrame   = 10;
-
-	if (logCountThisFrame < maxLogsPerFrame) {
-		// フレームあたり最大10件のログに制限
-		// デバッグログ出力（テクスチャ問題調査用）
-		Console::Print(
-			std::format(
-				"[SrvManager] SRVバインド実行: rootParameter={}, srvIndex={}, handle={}\n",
-				rootParameterIndex, srvIndex, handle.ptr),
-			kConTextColorCompleted,
-			Channel::RenderSystem
-		);
-		logCountThisFrame++;
-	}
-
 	// 問題のテクスチャインデックスを監視 - これは常に出力
 	if (srvIndex == 0) {
 		Console::Print(
@@ -169,33 +155,76 @@ uint32_t SrvManager::Allocate() {
 	// 次回のために番号を1進める
 	useIndex_++;
 
-	// デバッグログ：SRVインデックス割り当て状況を出力
-	Console::Print(
-		std::format(
-			"[SrvManager] Allocate - Allocated SRV index: {}, Next useIndex_: {}\n",
-			index, useIndex_),
-		kConTextColorCompleted,
-		Channel::RenderSystem
-	);
-
 	// 上で記録した番号をreturn
 	return index;
 }
 
-uint32_t SrvManager::AllocateForTexture() {
-	// テクスチャ用インデックス範囲の上限チェック
-	assert(textureIndex_ < kTextureEndIndex);
+uint32_t SrvManager::AllocateForTexture2D() {
+	uint32_t index;
+
+	// フリーリストに返却されたインデックスがあるかチェック
+	if (!freeTexture2DIndices_.empty()) {
+		// 再利用可能なインデックスを取得
+		index = freeTexture2DIndices_.front();
+		freeTexture2DIndices_.pop();
+	} else {
+		// 2Dテクスチャ用インデックス範囲の上限チェック
+		assert(texture2DIndex_ < kTexture2DEndIndex);
+
+		// 新しいインデックスを割り当て
+		index = texture2DIndex_;
+		texture2DIndex_++;
+	}
+
+	// 使用状況を記録
+	size_t arrayIndex = index - kTexture2DStartIndex;
+	if (arrayIndex < usedTexture2DIndices_.size()) {
+		usedTexture2DIndices_[arrayIndex] = true;
+	}
+
+	return index;
+}
+
+uint32_t SrvManager::AllocateForTextureCube() {
+	uint32_t index;
+
+	// フリーリストに返却されたインデックスがあるかチェック
+	if (!freeTextureCubeIndices_.empty()) {
+		// 再利用可能なインデックスを取得
+		index = freeTextureCubeIndices_.front();
+		freeTextureCubeIndices_.pop();
+	} else {
+		// キューブマップテクスチャ用インデックス範囲の上限チェック
+		assert(textureCubeIndex_ < kTextureCubeEndIndex);
+
+		// 新しいインデックスを割り当て
+		index = textureCubeIndex_;
+		textureCubeIndex_++;
+	}
+
+	// 使用状況を記録
+	size_t arrayIndex = index - kTextureCubeStartIndex;
+	if (arrayIndex < usedTextureCubeIndices_.size()) {
+		usedTextureCubeIndices_[arrayIndex] = true;
+	}
+
+	return index;
+}
+
+uint32_t SrvManager::AllocateForTextureArray() {
+	// テクスチャ配列用インデックス範囲の上限チェック
+	assert(textureArrayIndex_ < kTextureArrayEndIndex);
 
 	// return する番号を一旦記録しておく
-	const uint32_t index = textureIndex_;
+	const uint32_t index = textureArrayIndex_;
 	// 次回のために番号を1進める
-	textureIndex_++;
+	textureArrayIndex_++;
 
-	// デバッグログ：テクスチャ用SRVインデックス割り当て状況を出力
+	// デバッグログ：テクスチャ配列用SRVインデックス割り当て状況を出力
 	Console::Print(
 		std::format(
-			"[SrvManager] AllocateForTexture - Allocated texture SRV index: {}, Next textureIndex_: {}\n",
-			index, textureIndex_),
+			"[SrvManager] AllocateForTextureArray - Allocated texture array SRV index: {}, Next textureArrayIndex_: {}\n",
+			index, textureArrayIndex_),
 		kConTextColorCompleted,
 		Channel::RenderSystem
 	);
@@ -205,34 +234,93 @@ uint32_t SrvManager::AllocateForTexture() {
 }
 
 uint32_t SrvManager::AllocateForStructuredBuffer() {
-	// ストラクチャードバッファ用インデックス範囲の上限チェック
-	assert(structuredBufferIndex_ < kStructuredBufferEndIndex);
+	uint32_t index;
 
-	// return する番号を一旦記録しておく
-	const uint32_t index = structuredBufferIndex_;
-	// 次回のために番号を1進める
-	structuredBufferIndex_++;
+	// フリーリストに返却されたインデックスがあるかチェック
+	if (!freeStructuredBufferIndices_.empty()) {
+		// 再利用可能なインデックスを取得
+		index = freeStructuredBufferIndices_.front();
+		freeStructuredBufferIndices_.pop();
+		
+		Console::Print(
+			std::format(
+				"[SrvManager] AllocateForStructuredBuffer - Reused structured buffer SRV index: {} (from free list)\n",
+				index),
+			kConTextColorCompleted,
+			Channel::RenderSystem
+		);
+	} else {
+		// ストラクチャードバッファ用インデックス範囲の上限チェック
+		assert(structuredBufferIndex_ < kStructuredBufferEndIndex);
 
-	// デバッグログ：ストラクチャードバッファ用SRVインデックス割り当て状況を出力
-	Console::Print(
-		std::format(
-			"[SrvManager] AllocateForStructuredBuffer - Allocated structured buffer SRV index: {}, Next structuredBufferIndex_: {}\n",
-			index, structuredBufferIndex_),
-		kConTextColorCompleted,
-		Channel::RenderSystem
-	);
+		// 新しいインデックスを割り当て
+		index = structuredBufferIndex_;
+		structuredBufferIndex_++;
 
-	// 上で記録した番号をreturn
+		Console::Print(
+			std::format(
+				"[SrvManager] AllocateForStructuredBuffer - Allocated new structured buffer SRV index: {}, Next structuredBufferIndex_: {}\n",
+				index, structuredBufferIndex_),
+			kConTextColorCompleted,
+			Channel::RenderSystem
+		);
+	}
+
+	// 使用状況を記録
+	size_t arrayIndex = index - kStructuredBufferStartIndex;
+	if (arrayIndex < usedStructuredBufferIndices_.size()) {
+		usedStructuredBufferIndices_[arrayIndex] = true;
+	}
+
 	return index;
 }
 
-uint32_t SrvManager::AllocateConsecutiveTextureSlots(uint32_t count) {
-	// 連続したテクスチャスロットが確保できるかチェック
-	if (textureIndex_ + count > kTextureEndIndex) {
+uint32_t SrvManager::AllocateConsecutiveTexture2DSlots(uint32_t count) {
+	// 連続した2Dテクスチャスロットが確保できるかチェック
+	if (texture2DIndex_ + count > kTexture2DEndIndex) {
 		Console::Print(
 			std::format(
-				"[SrvManager] エラー: 連続した{}個のテクスチャスロットを確保できません（現在のインデックス: {}）\n",
-				count, textureIndex_),
+				"[SrvManager] 警告: 連続した{}個の2Dテクスチャスロットを確保できません（現在のインデックス: {}）\n"
+				"           代替として最初から再割り当てします\n",
+				count, texture2DIndex_),
+			kConTextColorWarning,
+			Channel::RenderSystem
+		);
+		
+		// 代替案：最初から再割り当て（デバッグ用の一時的な対処）
+		// 本来はフリーリストから連続スロットを探すか、より適切な管理が必要
+		uint32_t startIndex = kTexture2DStartIndex;
+		
+		// 使用可能な連続スロットがあるかチェック
+		if (startIndex + count <= kTexture2DEndIndex) {
+			return startIndex;
+		} else {
+			Console::Print(
+				std::format(
+					"[SrvManager] エラー: 連続した{}個のスロットは利用できません\n",
+					count),
+				kConTextColorError,
+				Channel::RenderSystem
+			);
+			return 0; // エラー値
+		}
+	}
+
+	// 開始インデックスを記録
+	uint32_t startIndex = texture2DIndex_;
+	// インデックスを進める
+	texture2DIndex_ += count;
+
+	return startIndex;
+}
+
+uint32_t SrvManager::AllocateConsecutiveTextureCubeSlots(uint32_t count) {
+	// 連続したキューブマップテクスチャスロットが確保できるかチェック
+	if (textureCubeIndex_ + count > kTextureCubeEndIndex) {
+		Console::Print(
+			std::format(
+				"[SrvManager] エラー: 連続した{}個のキューブマップテクスチャスロットを確保できません（現在のインデックス: {}）\n",
+				count, textureCubeIndex_),
 			kConTextColorError,
 			Channel::RenderSystem
 		);
@@ -240,18 +328,180 @@ uint32_t SrvManager::AllocateConsecutiveTextureSlots(uint32_t count) {
 	}
 
 	// 開始インデックスを記録
-	uint32_t startIndex = textureIndex_;
+	uint32_t startIndex = textureCubeIndex_;
 	// インデックスを進める
-	textureIndex_ += count;
+	textureCubeIndex_ += count;
 
 	Console::Print(
-		std::format("[SrvManager] 連続した{}個のテクスチャスロットを確保: {}-{}\n",
+		std::format("[SrvManager] 連続した{}個のキューブマップテクスチャスロットを確保: {}-{}\n",
 		            count, startIndex, startIndex + count - 1),
 		kConTextColorCompleted,
 		Channel::RenderSystem
 	);
 
 	return startIndex;
+}
+
+// 互換性のためのメソッド - AllocateForTexture2Dにリダイレクト
+uint32_t SrvManager::AllocateForTexture() {
+	return AllocateForTexture2D();
+}
+
+// 互換性のためのメソッド - AllocateConsecutiveTexture2DSlotsにリダイレクト  
+uint32_t SrvManager::AllocateConsecutiveTextureSlots(uint32_t count) {
+	return AllocateConsecutiveTexture2DSlots(count);
+}
+
+//-----------------------------------------------------------------------------
+// インデックス返却メソッド（フリーリスト方式）
+//-----------------------------------------------------------------------------
+void SrvManager::DeallocateTexture2D(uint32_t index) {
+	// 範囲チェック
+	if (index < kTexture2DStartIndex || index >= kTexture2DEndIndex) {
+		Console::Print(
+			std::format("[SrvManager] エラー: 無効な2Dテクスチャインデックス {}を返却しようとしました\n", index),
+			kConTextColorError,
+			Channel::RenderSystem
+		);
+		return;
+	}
+
+	// 使用状況をクリア
+	size_t arrayIndex = index - kTexture2DStartIndex;
+	if (arrayIndex < usedTexture2DIndices_.size()) {
+		if (!usedTexture2DIndices_[arrayIndex]) {
+			Console::Print(
+				std::format("[SrvManager] 警告: 未使用の2Dテクスチャインデックス {}を返却しようとしました\n", index),
+				kConTextColorWarning,
+				Channel::RenderSystem
+			);
+			return;
+		}
+		usedTexture2DIndices_[arrayIndex] = false;
+	}
+
+	// フリーリストに追加
+	freeTexture2DIndices_.push(index);
+
+	Console::Print(
+		std::format("[SrvManager] 2Dテクスチャインデックス {}を返却しました（フリーリストサイズ: {}）\n", 
+		            index, freeTexture2DIndices_.size()),
+		kConTextColorCompleted,
+		Channel::RenderSystem
+	);
+}
+
+void SrvManager::DeallocateTextureCube(uint32_t index) {
+	// 範囲チェック
+	if (index < kTextureCubeStartIndex || index >= kTextureCubeEndIndex) {
+		Console::Print(
+			std::format("[SrvManager] エラー: 無効なキューブマップインデックス {}を返却しようとしました\n", index),
+			kConTextColorError,
+			Channel::RenderSystem
+		);
+		return;
+	}
+
+	// 使用状況をクリア
+	size_t arrayIndex = index - kTextureCubeStartIndex;
+	if (arrayIndex < usedTextureCubeIndices_.size()) {
+		if (!usedTextureCubeIndices_[arrayIndex]) {
+			Console::Print(
+				std::format("[SrvManager] 警告: 未使用のキューブマップインデックス {}を返却しようとしました\n", index),
+				kConTextColorWarning,
+				Channel::RenderSystem
+			);
+			return;
+		}
+		usedTextureCubeIndices_[arrayIndex] = false;
+	}
+
+	// フリーリストに追加
+	freeTextureCubeIndices_.push(index);
+
+	Console::Print(
+		std::format("[SrvManager] キューブマップインデックス {}を返却しました（フリーリストサイズ: {}）\n", 
+		            index, freeTextureCubeIndices_.size()),
+		kConTextColorCompleted,
+		Channel::RenderSystem
+	);
+}
+
+void SrvManager::DeallocateStructuredBuffer(uint32_t index) {
+	// 範囲チェック
+	if (index < kStructuredBufferStartIndex || index >= kStructuredBufferEndIndex) {
+		Console::Print(
+			std::format("[SrvManager] エラー: 無効なストラクチャードバッファインデックス {}を返却しようとしました\n", index),
+			kConTextColorError,
+			Channel::RenderSystem
+		);
+		return;
+	}
+
+	// 使用状況をクリア
+	size_t arrayIndex = index - kStructuredBufferStartIndex;
+	if (arrayIndex < usedStructuredBufferIndices_.size()) {
+		if (!usedStructuredBufferIndices_[arrayIndex]) {
+			Console::Print(
+				std::format("[SrvManager] 警告: 未使用のストラクチャードバッファインデックス {}を返却しようとしました\n", index),
+				kConTextColorWarning,
+				Channel::RenderSystem
+			);
+			return;
+		}
+		usedStructuredBufferIndices_[arrayIndex] = false;
+	}
+
+	// フリーリストに追加
+	freeStructuredBufferIndices_.push(index);
+
+	Console::Print(
+		std::format("[SrvManager] ストラクチャードバッファインデックス {}を返却しました（フリーリストサイズ: {}）\n", 
+		            index, freeStructuredBufferIndices_.size()),
+		kConTextColorCompleted,
+		Channel::RenderSystem
+	);
+}
+
+// 互換性のためのメソッド
+void SrvManager::DeallocateTexture(uint32_t index) {
+	DeallocateTexture2D(index);
+}
+
+void SrvManager::DeallocateTextureArray(uint32_t index) {
+	// 範囲チェック
+	if (index < kTextureArrayStartIndex || index >= kTextureArrayEndIndex) {
+		Console::Print(
+			std::format("[SrvManager] エラー: 無効なテクスチャ配列インデックス {}を返却しようとしました\n", index),
+			kConTextColorError,
+			Channel::RenderSystem
+		);
+		return;
+	}
+
+	// 使用状況をクリア
+	size_t arrayIndex = index - kTextureArrayStartIndex;
+	if (arrayIndex < usedTextureArrayIndices_.size()) {
+		if (!usedTextureArrayIndices_[arrayIndex]) {
+			Console::Print(
+				std::format("[SrvManager] 警告: 未使用のテクスチャ配列インデックス {}を返却しようとしました\n", index),
+				kConTextColorWarning,
+				Channel::RenderSystem
+			);
+			return;
+		}
+		usedTextureArrayIndices_[arrayIndex] = false;
+	}
+
+	// フリーリストに追加
+	freeTextureArrayIndices_.push(index);
+
+	Console::Print(
+		std::format("[SrvManager] テクスチャ配列インデックス {}を返却しました（フリーリストサイズ: {}）\n", 
+		            index, freeTextureArrayIndices_.size()),
+		kConTextColorCompleted,
+		Channel::RenderSystem
+	);
 }
 
 ID3D12DescriptorHeap* SrvManager::GetDescriptorHeap() const {

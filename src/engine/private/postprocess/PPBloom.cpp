@@ -1,4 +1,4 @@
-﻿#include <cassert>
+#include <cassert>
 
 #include <engine/public/OldConsole/Console.h>
 #include <engine/public/postprocess/PPBloom.h>
@@ -20,7 +20,7 @@ void PPBloom::Init() {
 	CreateRootSignature();
 	CreatePipelineState();
 
-	mSrvIndex = mSrvManager->AllocateForTexture();
+	mSrvIndex = mSrvManager->AllocateForTexture2D();
 
 	D3D12_HEAP_PROPERTIES heapProps = {D3D12_HEAP_TYPE_UPLOAD};
 	D3D12_RESOURCE_DESC   desc      = {};
@@ -37,7 +37,7 @@ void PPBloom::Init() {
 		&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr, IID_PPV_ARGS(&mBloomCb));
-	assert(SUCCEEDED(hr));
+	UASSERT(SUCCEEDED(hr));
 }
 
 void PPBloom::Update(float) {

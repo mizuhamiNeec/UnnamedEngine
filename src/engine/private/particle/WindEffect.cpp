@@ -10,6 +10,7 @@
 #include "engine/public/particle/ParticleObject.h"
 
 #include "game/public/components/PlayerMovement.h"
+#include "game/public/components/PlayerMovementUPhysics.h"
 
 #include "math/public/random/Random.h"
 
@@ -21,7 +22,7 @@ WindEffect::~WindEffect() {
 }
 
 void WindEffect::Init([[maybe_unused]] ParticleManager* particleManager,
-                      PlayerMovement*                   playerMovement) {
+                      PlayerMovementUPhysics*                   playerMovement) {
 	mPlayerMovement = playerMovement;
 
 	// 風パーティクル用のオブジェクト初期化

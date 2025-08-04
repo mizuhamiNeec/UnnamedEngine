@@ -189,7 +189,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource> TexManager::UploadTextureData(
 	barrier.Transition.pResource   = texture.Get();
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-	barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_GENERIC_READ;
+	barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 	mRenderer->GetCommandList()->ResourceBarrier(1, &barrier);
 
 	return intermediateResource;
@@ -202,8 +202,6 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 
 	// 読み込み済みテクスチャを検索
 	if (mTextureData.contains(filePath)) {
-		Console::Print(std::format("LoadTexture: {} は既に読み込み済みです\n",
-		                           filePath));
 		return; // 読み込み済みなら早期リターン
 	}
 
@@ -231,13 +229,6 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 			// キューブマップかどうかをチェック
 			isCubeMap = isCubeMap || (metadata.miscFlags &
 				DirectX::TEX_MISC_TEXTURECUBE);
-
-			// デバッグログでキューブマップ判定を出力
-			Console::Print(std::format(
-				               "LoadTexture: {} - forceCubeMap: {}, metadata.miscFlags: 0x{:x}, isCubeMap: {}\n",
-				               filePath, forceCubeMap, metadata.miscFlags,
-				               isCubeMap),
-			               kConTextColorCompleted);
 
 			// メタデータを取得したら改めて読み込み
 			hr = DirectX::LoadFromDDSFile(filePathW.c_str(),
@@ -314,23 +305,20 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 	// リソース解放
 	intermediateResource.Reset();
 
-	// SRV確保（テクスチャ用専用Allocateを使用）
-	textureData.srvIndex     = mSrvManager->AllocateForTexture();
+	// SRV確保（テクスチャタイプに応じて適切なAllocateを使用）
+	if (isCubeMap) {
+		textureData.srvIndex = mSrvManager->AllocateForTextureCube();
+	} else {
+		textureData.srvIndex = mSrvManager->AllocateForTexture2D();
+	}
+	
 	textureData.srvHandleCPU = mSrvManager->GetCPUDescriptorHandle(
 		textureData.srvIndex);
 	textureData.srvHandleGPU = mSrvManager->GetGPUDescriptorHandle(
 		textureData.srvIndex);
 
-	// SRV割り当て情報をログ出力
-	Console::Print(std::format("LoadTexture: {} にSRVインデックス {} を割り当て\n",
-	                           filePath, textureData.srvIndex),
-	               kConTextColorCompleted);
-
 	// キューブマップの場合は専用のSRV作成メソッドを呼び出す
 	if (isCubeMap) {
-		Console::Print(
-			std::format("LoadTexture: {} をキューブマップとしてSRVを作成します\n", filePath),
-			kConTextColorCompleted);
 		mSrvManager->CreateSRVForTextureCube(
 			textureData.srvIndex,
 			textureData.resource,
@@ -338,9 +326,6 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 			static_cast<UINT>(textureData.metadata.mipLevels)
 		);
 	} else {
-		Console::Print(
-			std::format("LoadTexture: {} をTexture2DとしてSRVを作成します\n", filePath),
-			kConTextColorCompleted);
 		mSrvManager->CreateSRVForTexture2D(
 			textureData.srvIndex,
 			textureData.resource.Get(),
@@ -466,10 +451,6 @@ uint32_t TexManager::GetTextureIndexByFilePath(
 	// 再検索
 	it = mTextureData.find(filePath);
 	if (it != mTextureData.end()) {
-		Console::Print(std::format(
-			               "GetTextureIndexByFilePath: 自動ロード後に見つかりました: {} -> インデックス {}",
-			               filePath, it->second.srvIndex),
-		               kConTextColorCompleted);
 		return it->second.srvIndex;
 	}
 
@@ -551,4 +532,58 @@ D3D12_GPU_DESCRIPTOR_HANDLE TexManager::GetSrvHandleGPU(
 
 uint32_t TexManager::GetLoadedTextureCount() const {
 	return static_cast<uint32_t>(mTextureData.size());
+}
+
+Microsoft::WRL::ComPtr<ID3D12Resource> TexManager::GetTextureResource(const std::string& filePath) const {
+	// まず完全なパスで検索
+	auto it = mTextureData.find(filePath);
+	if (it != mTextureData.end()) {
+		return it->second.resource;
+	}
+
+	// ファイル名のみで検索（パスの違いを無視）
+	std::string filename = filePath;
+	size_t lastSlash = filePath.find_last_of("/\\");
+	if (lastSlash != std::string::npos) {
+		filename = filePath.substr(lastSlash + 1);
+	}
+
+	// ファイル名で検索
+	for (const auto& [path, data] : mTextureData) {
+		std::string currentFilename = path;
+		size_t currentLastSlash = path.find_last_of("/\\");
+		if (currentLastSlash != std::string::npos) {
+			currentFilename = path.substr(currentLastSlash + 1);
+		}
+
+		if (currentFilename == filename) {
+			return data.resource;
+		}
+	}
+
+	// 見つからない場合はnullptrを返す
+	Console::Print(
+		std::format("GetTextureResource: テクスチャリソースが見つかりません: {}", filePath),
+		kConTextColorError);
+	return nullptr;
+}
+
+uint32_t TexManager::GetTextureSrvIndex(const std::string& filePath) const {
+	// GetTextureIndexByFilePathのエイリアス
+	return GetTextureIndexByFilePath(filePath);
+}
+
+void TexManager::UpdateTextureSrvIndex(const std::string& filePath, uint32_t newSrvIndex) {
+	auto it = mTextureData.find(filePath);
+	if (it != mTextureData.end()) {
+		it->second.srvIndex = newSrvIndex;
+	} else {
+		Console::Print(
+			std::format(
+				"TexManager::UpdateTextureSrvIndex: エラー - テクスチャ {} が見つかりません\n",
+				filePath),
+			kConTextColorError,
+			Channel::General
+		);
+	}
 }
