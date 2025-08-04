@@ -643,14 +643,17 @@ namespace Unnamed {
 		);
 		mRenderer->BeginRenderPass(mOffscreenRenderPassTargets);
 		if (IsEditorMode()) {
-			mLineCommon->Render();
-			Debug::Draw();
 			if (mEditor) {
 				mEditor->Render();
 			}
 		} else {
 			mSceneManager->Render();
 		}
+
+#ifdef _DEBUG
+		mLineCommon->Render();
+		Debug::Draw();
+#endif
 
 		// 先にバリアを設定
 		D3D12_RESOURCE_BARRIER barrier = {};
