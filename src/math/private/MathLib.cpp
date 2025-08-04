@@ -111,6 +111,15 @@ namespace Math {
 		return screenPos;
 	}
 
+	Vec3 ProjectOnPlane(const Vec3& vector, const Vec3& normal) {
+		return vector - normal * vector.Dot(normal);
+	}
+
+	Vec3 GetMoveDirection(const Vec3& forward, const Vec3& groundNormal) {
+		Vec3 projectedForward = ProjectOnPlane(forward, groundNormal);
+		return projectedForward.Normalized();
+	}
+
 	Vec3 Lerp(const Vec3& a, const Vec3& b, float t) {
 		return a * (1.0f - t) + b * t;
 	}
@@ -135,12 +144,12 @@ namespace Math {
 		return a * (1.0f - t) + b * t;
 	}
 
-float DeltaAngle(const float current, const float target) {
-	float delta = std::fmod(target - current, 2.0f * pi);
-	if (delta > pi) delta -= 2.0f * pi;
-	if (delta < -pi) delta += 2.0f * pi;
-	return delta;
-}
+	float DeltaAngle(const float current, const float target) {
+		float delta = std::fmod(target - current, 2.0f * pi);
+		if (delta > pi) delta -= 2.0f * pi;
+		if (delta < -pi) delta += 2.0f * pi;
+		return delta;
+	}
 
 	float CubicBezier(const float t, const Vec2 p1, const Vec2 p2) {
 		if (t <= 0.0f) return 0.0f;
