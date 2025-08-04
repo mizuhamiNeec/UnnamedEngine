@@ -3,9 +3,7 @@
 
 namespace UPhysics {
 	struct RayCast final : ShapeCast {
-		[[nodiscard]] AABB ExpandNode(const AABB& nodeBounds) const override {
-			return nodeBounds;
-		}
+		[[nodiscard]] AABB ExpandNode(const AABB& nodeBounds) const override;
 
 		bool TestTriangle(
 			const Triangle& tri,
@@ -13,7 +11,7 @@ namespace UPhysics {
 			float           length,
 			float&          toi,
 			Vec3&           normal
-		) const;
+		) const override;
 
 		Vec3 start;
 		Vec3 invDir;
