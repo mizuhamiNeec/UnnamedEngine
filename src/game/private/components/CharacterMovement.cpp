@@ -5,6 +5,7 @@
 #include "engine/public/Entity/Entity.h"
 #include "engine/public/OldConsole/ConVarManager.h"
 #include "engine/public/Physics/PhysicsEngine.h"
+#include "engine/public/uphysics/UPhysics.h"
 
 CharacterMovement::~CharacterMovement() {
 }
@@ -73,38 +74,45 @@ void CharacterMovement::ApplyFriction(const float frictionValue) {
 }
 
 bool CharacterMovement::CheckGrounded() {
-	auto* collider = mOwner->GetComponent<ColliderComponent>();
-	if (!collider) {
+	if (!mUPhysicsEngine)
 		return false;
-	}
 
-	// 足元判定の開始位置。自分自身との衝突を避けるために少し上にオフセット
-	Vec3 pos = mScene->GetWorldPos();
-	pos.y += Math::HtoM(2.0f);
+	auto* collider = mOwner->GetComponent<ColliderComponent>();
+	if (!collider)
+		return false;
 
-	constexpr float castDist = 0.01f;
-	// ColliderComponentに実装してあるBoxCastを利用
-	auto hitResults = collider->BoxCast(
-		pos,
-		Vec3::down,
-		castDist,
-		{
-			collider->GetBoundingBox().GetHalfSize().x,
-			Math::HtoM(2.0f),
-			collider->GetBoundingBox().GetHalfSize().z
-		}
-	);
+	/* 開始位置を 2 Hammer Unit (= 2HU) 上げて、自分のコライダーとの干渉を避ける */
+	Vec3 startPos = mScene->GetWorldPos();
+	startPos.y += Math::HtoM(2.0f); // 2HU → m
 
-	//Debug::DrawRay(pos, Vec3::down * rayDistance, Vec4::red);
+	constexpr float kCastDistHU = 1.0f; // 1HU = 1 Hammer Unit
+	const float     kCastDist   = Math::HtoM(kCastDistHU); // → m
+	const Vec3      kCastDir    = Vec3::down; // (0, -1, 0)
 
-	// 各HitResultをチェックし、上向きの法線なら接地
-	for (const auto& hit : hitResults) {
-		if (hit.isHit && hit.hitNormal.y > 0.7f) {
-			mGroundNormal = hit.hitNormal;
+	/* UPhysics::Box を組み立てる（高さは 2HU 分） */
+	UPhysics::Box box;
+	box.center = startPos;
+	box.half   = {
+		collider->GetBoundingBox().GetHalfSize().x,
+		Math::HtoM(2.0f), // 2HU → m
+		collider->GetBoundingBox().GetHalfSize().z
+	};
+
+	/* BoxCast */
+	UPhysics::Hit hit{};
+	bool hasHit = mUPhysicsEngine->BoxCast(box, kCastDir, kCastDist, &hit);
+
+	if (hasHit) {
+		// hit.t が 0‥1 比率の場合は距離へ換算
+		float hitDistance = hit.t * kCastDist; // 距離返す仕様なら “*kCastDist” を削除
+
+		// 接地条件：法線が十分上向き & ヒット距離がキャスト範囲内
+		if (hit.normal.y > 0.7f &&
+			hitDistance <= kCastDist + 1e-6f) {
+			mGroundNormal = hit.normal;
 			return true;
 		}
 	}
-
 	return false;
 }
 
@@ -164,4 +172,8 @@ Vec3 CharacterMovement::GetVelocity() const {
 Vec3 CharacterMovement::GetHeadPos() const {
 	return mScene->GetWorldPos() + Vec3::up * Math::HtoM(
 		mCurrentHeightHu - 9.0f);
+}
+
+void CharacterMovement::SetUPhysicsEngine(UPhysics::Engine* uPhysicsEngine) {
+	mUPhysicsEngine = uPhysicsEngine;
 }

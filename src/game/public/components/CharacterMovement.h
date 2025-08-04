@@ -4,6 +4,10 @@
 
 #include <engine/public/Components/Base/Component.h>
 
+namespace UPhysics {
+	class Engine;
+}
+
 class SceneComponent;
 
 class CharacterMovement : public Component {
@@ -29,7 +33,11 @@ public:
 
 	[[nodiscard]] virtual Vec3 GetHeadPos() const;
 
+	void SetUPhysicsEngine(UPhysics::Engine* uPhysicsEngine);
+
 protected:
+	UPhysics::Engine* mUPhysicsEngine = nullptr;
+
 	float mDeltaTime = 0.0f;
 	Vec3  mPosition  = Vec3::zero;
 	Vec3  mVelocity  = Vec3::zero;

@@ -1,11 +1,10 @@
+#ifdef _DEBUG
 #include <string>
 
 #include <engine/public/subsystem/console/ConsoleUI.h>
 #include <engine/public/subsystem/console/Log.h>
 
-#ifdef _DEBUG
 #include <imgui.h>
-#endif
 
 namespace Unnamed {
 	ConsoleUI::ConsoleUI(
@@ -71,3 +70,4 @@ namespace Unnamed {
 		}
 	}
 }
+#endif

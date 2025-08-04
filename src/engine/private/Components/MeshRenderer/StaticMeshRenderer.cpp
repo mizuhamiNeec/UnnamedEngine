@@ -44,8 +44,8 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 
 		mMaterialData            = mMatParamCBV->GetPtr<MatParam>();
 		mMaterialData->baseColor = {0.5f, 0.5f, 0.5f, 1.0f};
-		mMaterialData->metallic  = 0.25f;
-		mMaterialData->roughness = 0.5f;
+		mMaterialData->metallic  = 0.7f;
+		mMaterialData->roughness = 1.0f;
 		mMaterialData->emissive  = {0.0f, 0.0f, 0.0f};
 	}
 
@@ -65,8 +65,7 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 		"Camera"
 	);
 	mCameraData                = mCameraCb->GetPtr<CameraForGPU>();
-	mCameraData->worldPosition = CameraManager::GetActiveCamera()->GetViewMat().
-		GetTranslate();
+	mCameraData->worldPosition = Vec3::zero;
 
 	mPointLightCb = std::make_unique<ConstantBuffer>(
 		Unnamed::Engine::GetRenderer()->GetDevice(),

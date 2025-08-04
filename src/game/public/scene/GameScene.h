@@ -11,14 +11,16 @@
 #include <engine/public/particle/ParticleEmitter.h>
 #include <engine/public/particle/ParticleObject.h>
 #include <engine/public/particle/WindEffect.h>
-#include <engine/public/Physics/PhysicsEngine.h>
 
 #include <game/public/components/PlayerMovement.h>
 #include <game/public/components/weapon/WeaponSway.h>
 #include <game/public/components/weapon/base/WeaponComponent.h>
 #include <game/public/scene/base/BaseScene.h>
 
-#include "engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h"
+#include <engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h>
+#include <engine/public/uphysics/UPhysics.h>
+
+#include "game/public/components/PlayerMovementUPhysics.h"
 
 class D3D12;
 class EnemyMovement;
@@ -54,6 +56,7 @@ private:
 
 	std::unique_ptr<Entity>               mEntPlayer;
 	std::shared_ptr<PlayerMovement>       mPlayerMovement;
+	std::shared_ptr<PlayerMovementUPhysics> mPlayerMovementUPhysics;
 	std::shared_ptr<BoxColliderComponent> mPlayerCollider;
 
 	std::unique_ptr<Entity>             mEntWeapon;
@@ -73,7 +76,8 @@ private:
 
 	std::unique_ptr<EntityLoader> mEntityLoader;
 
-	std::unique_ptr<PhysicsEngine> mPhysicsEngine;
+	//std::unique_ptr<PhysicsEngine> mPhysicsEngine;
+	std::unique_ptr<UPhysics::Engine> mUPhysicsEngine;
 
 	std::unique_ptr<ParticleEmitter> mParticleEmitter;
 

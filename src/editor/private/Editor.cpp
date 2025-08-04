@@ -56,10 +56,6 @@ void Editor::Init() {
 }
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
-	if (auto currentScene = mSceneManager->GetCurrentScene()) {
-		currentScene->Update(mGameTime->ScaledDeltaTime<float>());
-	}
-
 #ifdef _DEBUG
 	// カメラの操作
 	static float moveSpd = 4.0f;
@@ -722,6 +718,10 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
 		mGridSize * 32.0f
 	);
+
+	if (auto currentScene = mSceneManager->GetCurrentScene()) {
+		currentScene->Update(mGameTime->ScaledDeltaTime<float>());
+	}
 }
 
 void Editor::Render() const {

@@ -39,6 +39,15 @@ namespace Unnamed {
 		void Shutdown() const;
 
 		//---------------------------------------------------------------------
+		// Purpose: 新エンジンクラス
+		//---------------------------------------------------------------------
+	private:
+		std::vector<std::unique_ptr<ISubsystem>> mSubsystems;
+		ConsoleSystem*                           mConsoleSystem = nullptr;
+		TimeSystem*                              mTimeSystem    = nullptr;
+
+	public:
+		//---------------------------------------------------------------------
 		// Purpose: 旧エンジンクラス
 		//---------------------------------------------------------------------
 
@@ -154,14 +163,5 @@ namespace Unnamed {
 		static Vec2 mViewportSize;
 		static bool mIsEditorMode;
 		static bool mWishShutdown;
-
-	public:
-		//---------------------------------------------------------------------
-		// Purpose: 新エンジンクラス
-		//---------------------------------------------------------------------
-	private:
-		std::vector<std::unique_ptr<ISubsystem>> mSubsystems;
-		ConsoleSystem*                           mConsoleSystem = nullptr;
-		TimeSystem*                              mTimeSystem    = nullptr;
 	};
 }

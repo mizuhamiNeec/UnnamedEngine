@@ -3,6 +3,8 @@
 #include <engine/public/renderer/PipelineState.h>
 #include <engine/public/renderer/SrvManager.h>
 
+#include "engine/public/utils/UnnamedMacro.h"
+
 #ifdef _DEBUG
 #include <imgui.h>
 #endif
@@ -41,7 +43,7 @@ void PPVignette::Init() {
 		&hp, D3D12_HEAP_FLAG_NONE, &cbDesc,
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr, IID_PPV_ARGS(&mParamsCb));
-	assert(SUCCEEDED(hr) && "Failed to create constant buffer resource");
+	UASSERT(SUCCEEDED(hr) && "Failed to create constant buffer resource");
 }
 
 void PPVignette::Update(float) {

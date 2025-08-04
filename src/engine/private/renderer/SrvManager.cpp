@@ -73,15 +73,6 @@ void SrvManager::CreateSRVForStructuredBuffer(uint32_t srvIndex,
                                               ID3D12Resource* pResource,
                                               UINT numElements,
                                               UINT structureByteStride) const {
-	// デバッグログ：ストラクチャードバッファSRV作成状況
-	Console::Print(
-		std::format(
-			"[SrvManager] CreateSRVForStructuredBuffer - srvIndex: {}, numElements: {}, structureByteStride: {}\n",
-			srvIndex, numElements, structureByteStride),
-		kConTextColorCompleted,
-		Channel::RenderSystem
-	);
-
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -143,23 +134,6 @@ void SrvManager::SetGraphicsRootDescriptorTable(const UINT rootParameterIndex,
 	d3d12_->GetCommandList()->SetGraphicsRootDescriptorTable(
 		rootParameterIndex, handle);
 
-	// フレーム単位で一定数の詳細ログのみ出力（大量のログを避けるため）
-	static int logCountThisFrame = 0;
-	static int maxLogsPerFrame   = 10;
-
-	if (logCountThisFrame < maxLogsPerFrame) {
-		// フレームあたり最大10件のログに制限
-		// デバッグログ出力（テクスチャ問題調査用）
-		Console::Print(
-			std::format(
-				"[SrvManager] SRVバインド実行: rootParameter={}, srvIndex={}, handle={}\n",
-				rootParameterIndex, srvIndex, handle.ptr),
-			kConTextColorCompleted,
-			Channel::RenderSystem
-		);
-		logCountThisFrame++;
-	}
-
 	// 問題のテクスチャインデックスを監視 - これは常に出力
 	if (srvIndex == 0) {
 		Console::Print(
@@ -181,15 +155,6 @@ uint32_t SrvManager::Allocate() {
 	// 次回のために番号を1進める
 	useIndex_++;
 
-	// デバッグログ：SRVインデックス割り当て状況を出力
-	Console::Print(
-		std::format(
-			"[SrvManager] Allocate - Allocated SRV index: {}, Next useIndex_: {}\n",
-			index, useIndex_),
-		kConTextColorCompleted,
-		Channel::RenderSystem
-	);
-
 	// 上で記録した番号をreturn
 	return index;
 }
@@ -202,14 +167,6 @@ uint32_t SrvManager::AllocateForTexture2D() {
 		// 再利用可能なインデックスを取得
 		index = freeTexture2DIndices_.front();
 		freeTexture2DIndices_.pop();
-		
-		Console::Print(
-			std::format(
-				"[SrvManager] AllocateForTexture2D - Reused 2D texture SRV index: {} (from free list)\n",
-				index),
-			kConTextColorCompleted,
-			Channel::RenderSystem
-		);
 	} else {
 		// 2Dテクスチャ用インデックス範囲の上限チェック
 		assert(texture2DIndex_ < kTexture2DEndIndex);
@@ -217,14 +174,6 @@ uint32_t SrvManager::AllocateForTexture2D() {
 		// 新しいインデックスを割り当て
 		index = texture2DIndex_;
 		texture2DIndex_++;
-
-		Console::Print(
-			std::format(
-				"[SrvManager] AllocateForTexture2D - Allocated new 2D texture SRV index: {}, Next texture2DIndex_: {}\n",
-				index, texture2DIndex_),
-			kConTextColorCompleted,
-			Channel::RenderSystem
-		);
 	}
 
 	// 使用状況を記録
@@ -244,14 +193,6 @@ uint32_t SrvManager::AllocateForTextureCube() {
 		// 再利用可能なインデックスを取得
 		index = freeTextureCubeIndices_.front();
 		freeTextureCubeIndices_.pop();
-		
-		Console::Print(
-			std::format(
-				"[SrvManager] AllocateForTextureCube - Reused cube texture SRV index: {} (from free list)\n",
-				index),
-			kConTextColorCompleted,
-			Channel::RenderSystem
-		);
 	} else {
 		// キューブマップテクスチャ用インデックス範囲の上限チェック
 		assert(textureCubeIndex_ < kTextureCubeEndIndex);
@@ -259,14 +200,6 @@ uint32_t SrvManager::AllocateForTextureCube() {
 		// 新しいインデックスを割り当て
 		index = textureCubeIndex_;
 		textureCubeIndex_++;
-
-		Console::Print(
-			std::format(
-				"[SrvManager] AllocateForTextureCube - Allocated new cube texture SRV index: {}, Next textureCubeIndex_: {}\n",
-				index, textureCubeIndex_),
-			kConTextColorCompleted,
-			Channel::RenderSystem
-		);
 	}
 
 	// 使用状況を記録
@@ -347,25 +280,36 @@ uint32_t SrvManager::AllocateConsecutiveTexture2DSlots(uint32_t count) {
 	if (texture2DIndex_ + count > kTexture2DEndIndex) {
 		Console::Print(
 			std::format(
-				"[SrvManager] エラー: 連続した{}個の2Dテクスチャスロットを確保できません（現在のインデックス: {}）\n",
+				"[SrvManager] 警告: 連続した{}個の2Dテクスチャスロットを確保できません（現在のインデックス: {}）\n"
+				"           代替として最初から再割り当てします\n",
 				count, texture2DIndex_),
-			kConTextColorError,
+			kConTextColorWarning,
 			Channel::RenderSystem
 		);
-		return 0; // エラー値
+		
+		// 代替案：最初から再割り当て（デバッグ用の一時的な対処）
+		// 本来はフリーリストから連続スロットを探すか、より適切な管理が必要
+		uint32_t startIndex = kTexture2DStartIndex;
+		
+		// 使用可能な連続スロットがあるかチェック
+		if (startIndex + count <= kTexture2DEndIndex) {
+			return startIndex;
+		} else {
+			Console::Print(
+				std::format(
+					"[SrvManager] エラー: 連続した{}個のスロットは利用できません\n",
+					count),
+				kConTextColorError,
+				Channel::RenderSystem
+			);
+			return 0; // エラー値
+		}
 	}
 
 	// 開始インデックスを記録
 	uint32_t startIndex = texture2DIndex_;
 	// インデックスを進める
 	texture2DIndex_ += count;
-
-	Console::Print(
-		std::format("[SrvManager] 連続した{}個の2Dテクスチャスロットを確保: {}-{}\n",
-		            count, startIndex, startIndex + count - 1),
-		kConTextColorCompleted,
-		Channel::RenderSystem
-	);
 
 	return startIndex;
 }
