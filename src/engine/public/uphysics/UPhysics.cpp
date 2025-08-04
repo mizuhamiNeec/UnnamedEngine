@@ -5,11 +5,13 @@
 #include <engine/public/Components/Camera/CameraComponent.h>
 #include <engine/public/Components/ColliderComponent/MeshColliderComponent.h>
 #include <engine/public/Debug/Debug.h>
+#include <engine/public/Entity/Entity.h>
 #include <engine/public/ResourceSystem/Mesh/StaticMesh.h>
 #include <engine/public/subsystem/console/Log.h>
 #include <engine/public/uphysics/BoxCast.h>
 #include <engine/public/uphysics/Primitives.h>
 #include <engine/public/uphysics/RayCast.h>
+#include <engine/public/uphysics/SphereCast.h>
 #include <engine/public/uphysics/UPhysics.h>
 
 namespace UPhysics {
@@ -57,35 +59,63 @@ namespace UPhysics {
 				);
 			}
 
-			const Box box = {
-				.center = start,
-				.half = Vec3::one * 0.5f
-			};
-			if (BoxCast(box, dir, 65536.0f, &hit)) {
-				ImGui::Begin("Hit");
-				ImGui::End();
-				Debug::DrawBox(
-					hit.pos,
-					Quaternion::identity,
-					box.half * 2.0f,
-					Vec4::blue
-				);
-				Debug::DrawBox(
-					box.center + dir * hit.t,
-					Quaternion::identity,
-					box.half * 2.0f,
-					Vec4::green
-				);
-				Debug::DrawAxis(
-					hit.pos,
-					Quaternion::identity
-				);
-				Debug::DrawRay(
-					hit.pos,
-					hit.normal,
-					Vec4::magenta
-				);
-			}
+			// const Box box = {
+			// 	.center = start,
+			// 	.half = Vec3::one * 0.5f
+			// };
+			// if (BoxCast(box, dir, 65536.0f, &hit)) {
+			// 	ImGui::Begin("Hit");
+			// 	ImGui::End();
+			// 	Debug::DrawBox(
+			// 		hit.pos,
+			// 		Quaternion::identity,
+			// 		box.half * 2.0f,
+			// 		Vec4::blue
+			// 	);
+			// 	Debug::DrawBox(
+			// 		box.center + dir * hit.t,
+			// 		Quaternion::identity,
+			// 		box.half * 2.0f,
+			// 		Vec4::green
+			// 	);
+			// 	Debug::DrawAxis(
+			// 		hit.pos,
+			// 		Quaternion::identity
+			// 	);
+			// 	Debug::DrawRay(
+			// 		hit.pos,
+			// 		hit.normal,
+			// 		Vec4::magenta
+			// 	);
+			// }
+			//
+			//
+			// if (
+			// 	SphereCast(
+			// 		start,
+			// 		0.5f,
+			// 		dir,
+			// 		65536.0f,
+			// 		&hit
+			// 	)
+			// ) {
+			// 	Debug::DrawSphere(
+			// 		hit.pos,
+			// 		Quaternion::identity,
+			// 		0.5f,
+			// 		Vec4::purple,
+			// 		4
+			// 	);
+			// 	Debug::DrawAxis(
+			// 		hit.pos,
+			// 		Quaternion::identity
+			// 	);
+			// 	Debug::DrawRay(
+			// 		hit.pos,
+			// 		hit.normal,
+			// 		Vec4::magenta
+			// 	);
+			// }
 		}
 #endif
 	}
@@ -262,6 +292,109 @@ namespace UPhysics {
 			outHit,
 			mBVHs, mTriangles
 		);
+	}
+
+	bool Engine::SphereCast(
+		const Vec3& start,
+		float       radius,
+		const Vec3& dir,
+		const float length,
+		Hit*        outHit
+	) const {
+		UPhysics::SphereCast cast;
+		cast.center = start;
+		cast.radius = radius;
+
+		return CastBVH(cast, start, dir, length, outHit, mBVHs, mTriangles);
+	}
+
+	bool Engine::BoxOverlap(
+		const Box& box,
+		Hit*       outHit
+	) const {
+		if (mBVHs.empty() || mTriangles.empty()) {
+			return false;
+		}
+
+		// ブロードフェーズ：ボックスのAABBと各BVHのルートAABBの重なりをチェック
+		std::vector<const RegisteredBVH*> filtered;
+		AABB boxAABB;
+		boxAABB.min = box.center - box.half;
+		boxAABB.max = box.center + box.half;
+
+		for (const auto& bvh : mBVHs) {
+			const AABB& rootBounds = bvh.nodes[0].bounds;
+			// AABB同士の重なり判定
+			if (boxAABB.max.x >= rootBounds.min.x && boxAABB.min.x <= rootBounds.max.x &&
+				boxAABB.max.y >= rootBounds.min.y && boxAABB.min.y <= rootBounds.max.y &&
+				boxAABB.max.z >= rootBounds.min.z && boxAABB.min.z <= rootBounds.max.z) {
+				filtered.emplace_back(&bvh);
+			}
+		}
+
+		if (filtered.empty()) {
+			return false;
+		}
+
+		// ナローフェーズ：詳細な重なり判定
+		float    minPenetration = FLT_MAX;
+		uint32_t hitTri         = UINT32_MAX;
+		Vec3     hitNormal;
+		Vec3     hitPos;
+		uint32_t stack[64];
+
+		for (auto* bvh : filtered) {
+			int sp      = 0;
+			stack[sp++] = 0; // ルートノードからスタート
+
+			while (sp) {
+				const uint32_t index = stack[--sp];
+				const auto&    node  = bvh->nodes[index];
+
+				// ノードのAABBとボックスの重なり判定
+				if (!(boxAABB.max.x >= node.bounds.min.x && boxAABB.min.x <= node.bounds.max.x &&
+					  boxAABB.max.y >= node.bounds.min.y && boxAABB.min.y <= node.bounds.max.y &&
+					  boxAABB.max.z >= node.bounds.min.z && boxAABB.min.z <= node.bounds.max.z)) {
+					continue; // 重なりなし
+				}
+
+				if (node.primCount == 0) {
+					// 内部ノード：子ノードをスタックに追加
+					stack[sp++] = node.leftFirst;
+					stack[sp++] = node.rightFirst;
+				} else {
+					// 葉ノード：三角形との詳細判定
+					uint32_t first = node.leftFirst;
+					for (uint32_t i = 0; i < node.primCount; ++i) {
+						uint32_t triIdx = bvh->triIndices[first + i];
+						const Triangle& tri = mTriangles[triIdx];
+
+						Vec3  separationAxis;
+						float penetrationDepth;
+						if (BoxVsTriangleOverlap(box, tri, separationAxis, penetrationDepth)) {
+							if (penetrationDepth < minPenetration) {
+								minPenetration = penetrationDepth;
+								hitTri         = triIdx;
+								hitNormal      = separationAxis;
+								hitPos         = box.center - separationAxis * penetrationDepth * 0.5f;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (hitTri == UINT32_MAX) {
+			return false; // 重なりなし
+		}
+
+		if (outHit) {
+			outHit->t        = 0.0f; // オーバーラップなので距離は0
+			outHit->pos      = hitPos;
+			outHit->normal   = hitNormal;
+			outHit->triIndex = hitTri;
+		}
+		return true;
 	}
 
 	void Engine::AddGlobalOffset(
