@@ -107,14 +107,15 @@ void GameScene::Init() {
 	// プレイヤー
 	mEntPlayer = std::make_unique<Entity>("player");
 	mEntPlayer->GetTransform()->SetLocalPos(Vec3::up * 4.0f); // 1m上に配置
-	PlayerMovement* rawPlayerMovement = mEntPlayer->AddComponent<
-		PlayerMovement>();
-	mPlayerMovement = std::shared_ptr<PlayerMovement>(
-		rawPlayerMovement, [](PlayerMovement*) {
+	PlayerMovementUPhysics* rawPlayerMovement = mEntPlayer->AddComponent<
+		PlayerMovementUPhysics>();
+	mPlayerMovementUPhysics = std::shared_ptr<PlayerMovementUPhysics>(
+		rawPlayerMovement, [](PlayerMovementUPhysics*) {
 		}
 	);
-	mPlayerMovement->SetVelocity(Vec3::forward * 1.0f);
-	mPlayerMovement->AddCameraShakeEntity(mCamera.get());
+	mPlayerMovementUPhysics->SetVelocity(Vec3::forward * 1.0f);
+	mPlayerMovementUPhysics->AddCameraShakeEntity(mCamera.get());
+	mPlayerMovementUPhysics->SetUPhysicsEngine(mUPhysicsEngine.get());
 	BoxColliderComponent* rawPlayerCollider = mEntPlayer->AddComponent<
 		BoxColliderComponent>();
 	mPlayerCollider = std::shared_ptr<BoxColliderComponent>(
@@ -152,7 +153,7 @@ void GameScene::Init() {
 	AddEntity(mEntWeapon.get());
 
 	mEntShakeRoot = std::make_unique<Entity>("shakeRoot");
-	mPlayerMovement->AddCameraShakeEntity(mEntShakeRoot.get(), 3.0f);
+	mPlayerMovementUPhysics->AddCameraShakeEntity(mEntShakeRoot.get(), 3.0f);
 
 	// テスト用メッシュ
 	mEntWorldMesh                  = std::make_unique<Entity>("testMesh");
@@ -211,7 +212,7 @@ void GameScene::Init() {
 	// 風
 	mWindEffect = std::make_unique<WindEffect>();
 	mWindEffect->Init(Unnamed::Engine::GetParticleManager(),
-	                  mPlayerMovement.get());
+	                  mPlayerMovementUPhysics.get());
 
 	// 爆発
 	mExplosionEffect = std::make_unique<ExplosionEffect>();
@@ -268,7 +269,8 @@ void GameScene::Update(const float deltaTime) {
 		}
 	}
 
-	mEntCameraRoot->GetTransform()->SetWorldPos(mPlayerMovement->GetHeadPos());
+	mEntCameraRoot->GetTransform()->SetWorldPos(
+		mPlayerMovementUPhysics->GetHeadPos());
 	// cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
 	// camera_->Update(EngineTimer::GetScaledDeltaTime());
 
@@ -279,47 +281,66 @@ void GameScene::Update(const float deltaTime) {
 		mWeaponComponent->ReleaseTrigger();
 	}
 	if (InputSystem::IsPressed("+reload")) {
-		mEntPlayer->GetTransform()->SetWorldPos(Vec3::zero);
+		mEntPlayer->GetTransform()->SetWorldPos(Vec3::up * 2.0f);
 	}
 
 	//mEntWeapon->Update(EngineTimer::GetScaledDeltaTime());
 	//mWeaponComponent->Update(EngineTimer::GetScaledDeltaTime());
 	if (mWeaponComponent->HasFiredThisFrame()) {
-		Vec3 hitPos    = mWeaponComponent->GetHitPosition();
-		Vec3 hitNormal = mWeaponComponent->GetHitNormal();
+		auto camera = CameraManager::GetActiveCamera();
+		auto cameraForward = camera->GetViewMat().Inverse().GetForward();
+		UPhysics::Ray ray = {
+			camera->GetViewMat().Inverse().GetTranslate(),
+			cameraForward,
+			1.0f / cameraForward,
+			0.0f,
+			100.0f
+		};
+		UPhysics::Hit hit;
 
-		// 爆発エフェクト
-		mExplosionEffect->TriggerExplosion(hitPos + hitNormal * 2.0f, hitNormal,
-		                                   32, 30.0f);
-
-		// プレイヤーの位置と爆心地の距離を計算
-		Vec3  playerPos   = mEntPlayer->GetTransform()->GetWorldPos();
-		float blastRadius = Math::HtoM(512);     // 球状ゾーンの半径（例: 5m）
-		float blastPower  = Math::HtoM(1024.0f); // 吹き飛ばしの強さ
-
-		Vec3  toPlayer = playerPos - hitPos;
-		float distance = toPlayer.Length();
-
-		if (distance < blastRadius && distance > 0.5f) {
-			Vec3  forceDir = toPlayer.Normalized();
-			float force    = blastPower * (1.0f - (distance / blastRadius));
-			// プレイヤーに吹き飛ばしベクトルを加える
-			mPlayerMovement->SetVelocity(
-				mPlayerMovement->GetVelocity() + forceDir * force);
-		}
-
-		// カメラシェイク
-		mPlayerMovement->StartCameraShake(
-			0.1f, 0.1f, 5.0f, Vec3::forward, 0.025f, 3.0f,
-			Vec3::right
+		bool isHit = mUPhysicsEngine->RayCast(
+			ray,
+			&hit
 		);
+		if (isHit) {
+			Vec3 hitPos    = hit.pos;
+			Vec3 hitNormal = hit.normal;
+
+			// 爆発エフェクト
+			mExplosionEffect->TriggerExplosion(hitPos + hitNormal * 2.0f,
+			                                   hitNormal,
+			                                   32, 30.0f);
+
+			// プレイヤーの位置と爆心地の距離を計算
+			Vec3  playerPos   = mEntPlayer->GetTransform()->GetWorldPos();
+			float blastRadius = Math::HtoM(512);     // 球状ゾーンの半径（例: 5m）
+			float blastPower  = Math::HtoM(1024.0f); // 吹き飛ばしの強さ
+
+			Vec3  toPlayer = playerPos - hitPos;
+			float distance = toPlayer.Length();
+
+			if (distance < blastRadius && distance > 0.5f) {
+				Vec3  forceDir = toPlayer.Normalized();
+				float force    = blastPower * (1.0f - (distance / blastRadius));
+				// プレイヤーに吹き飛ばしベクトルを加える
+				mPlayerMovementUPhysics->SetVelocity(
+					mPlayerMovementUPhysics->GetVelocity() + forceDir * force);
+			}
+
+			// カメラシェイク
+			mPlayerMovementUPhysics->StartCameraShake(
+				0.1f, 0.1f, 5.0f, Vec3::forward, 0.025f, 3.0f,
+				Vec3::right
+			);
+		}
 	}
 
 	mSkeletalMeshRenderer->SetAnimationSpeed(
-		mPlayerMovement->GetVelocity().Length() * 0.1f
+		mPlayerMovementUPhysics->GetVelocity().Length() * 0.1f
 	);
 
-	Unnamed::Engine::blurStrength = mPlayerMovement->GetVelocity().Length() *
+	Unnamed::Engine::blurStrength = mPlayerMovementUPhysics->GetVelocity().
+		Length() *
 		0.01f;
 	// mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
 	// mWeaponSway->Update(EngineTimer::GetScaledDeltaTime());
@@ -369,7 +390,7 @@ void GameScene::Update(const float deltaTime) {
 			camRot.x * Math::rad2Deg,
 			camRot.y * Math::rad2Deg,
 			camRot.z * Math::rad2Deg,
-			Math::MtoH(mPlayerMovement->GetVelocity().Length())
+			Math::MtoH(mPlayerMovementUPhysics->GetVelocity().Length())
 		);
 
 		//Console::Print(text);
