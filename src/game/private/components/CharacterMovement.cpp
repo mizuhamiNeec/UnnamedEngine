@@ -74,46 +74,44 @@ void CharacterMovement::ApplyFriction(const float frictionValue) {
 }
 
 bool CharacterMovement::CheckGrounded() {
-	if (!mUPhysicsEngine)
-		return false;
-
+	if (!mUPhysicsEngine) return false;
 	auto* collider = mOwner->GetComponent<ColliderComponent>();
-	if (!collider)
-		return false;
+	if (!collider) return false;
 
-	/* 開始位置を 2 Hammer Unit (= 2HU) 上げて、自分のコライダーとの干渉を避ける */
+	constexpr float kStepHu  = 18.0f; // Source 系デフォルト段差
+	constexpr float kEpsHu   = 2.0f;  // 余白
+	constexpr float kBlendHz = 20.0f; // 法線追従速度
+	const float     castDist = Math::HtoM(kStepHu + kEpsHu);
+
+	// キャスト開始位置＝足元を kStepHu 持ち上げた所
 	Vec3 startPos = mScene->GetWorldPos();
-	startPos.y += Math::HtoM(2.0f); // 2HU → m
+	startPos.y += Math::HtoM(kStepHu);
 
-	constexpr float kCastDistHU = 1.0f; // 1HU = 1 Hammer Unit
-	const float     kCastDist   = Math::HtoM(kCastDistHU); // → m
-	const Vec3      kCastDir    = Vec3::down; // (0, -1, 0)
-
-	/* UPhysics::Box を組み立てる（高さは 2HU 分） */
 	UPhysics::Box box;
 	box.center = startPos;
 	box.half   = {
-		collider->GetBoundingBox().GetHalfSize().x,
-		Math::HtoM(2.0f), // 2HU → m
-		collider->GetBoundingBox().GetHalfSize().z
+		collider->GetBoundingBox().GetHalfSize().x + Math::HtoM(1.0f),
+		Math::HtoM(kStepHu),
+		collider->GetBoundingBox().GetHalfSize().z + Math::HtoM(1.0f)
 	};
 
-	/* BoxCast */
 	UPhysics::Hit hit{};
-	bool hasHit = mUPhysicsEngine->BoxCast(box, kCastDir, kCastDist, &hit);
+	if (!mUPhysicsEngine->BoxCast(box, Vec3::down, castDist, &hit))
+		return false;
 
-	if (hasHit) {
-		// hit.t が 0‥1 比率の場合は距離へ換算
-		float hitDistance = hit.t * kCastDist; // 距離返す仕様なら “*kCastDist” を削除
+	if (hit.normal.y < 0.7f) // 傾斜が急すぎる
+		return false;
 
-		// 接地条件：法線が十分上向き & ヒット距離がキャスト範囲内
-		if (hit.normal.y > 0.7f &&
-			hitDistance <= kCastDist + 1e-6f) {
-			mGroundNormal = hit.normal;
-			return true;
-		}
-	}
-	return false;
+	// 法線を時間的にブレンドして滑らかに
+	float a       = 1.0f - std::exp(-kBlendHz * mDeltaTime);
+	mGroundNormal = Math::Lerp(mGroundNormal, hit.normal, a).Normalized();
+
+	// 足元にスナップ（省きたい場合はコメントアウト）
+	Vec3 pos = mScene->GetWorldPos();
+	pos.y    = hit.pos.y;
+	mScene->SetWorldPos(pos);
+
+	return true;
 }
 
 void CharacterMovement::Accelerate(const Vec3  dir, const float speed,
