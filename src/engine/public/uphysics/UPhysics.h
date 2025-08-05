@@ -38,6 +38,12 @@ namespace UPhysics {
 			Hit*       outHit
 		) const;
 
+		int BoxOverlap(
+			const Box& box,
+			Hit*       outHit,
+			int        maxHits
+		) const;
+
 	private:
 		template <class CastType>
 		static bool CastBVH(

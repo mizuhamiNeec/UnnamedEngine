@@ -318,16 +318,19 @@ namespace UPhysics {
 
 		// ブロードフェーズ：ボックスのAABBと各BVHのルートAABBの重なりをチェック
 		std::vector<const RegisteredBVH*> filtered;
-		AABB boxAABB;
+		AABB                              boxAABB;
 		boxAABB.min = box.center - box.half;
 		boxAABB.max = box.center + box.half;
 
 		for (const auto& bvh : mBVHs) {
 			const AABB& rootBounds = bvh.nodes[0].bounds;
 			// AABB同士の重なり判定
-			if (boxAABB.max.x >= rootBounds.min.x && boxAABB.min.x <= rootBounds.max.x &&
-				boxAABB.max.y >= rootBounds.min.y && boxAABB.min.y <= rootBounds.max.y &&
-				boxAABB.max.z >= rootBounds.min.z && boxAABB.min.z <= rootBounds.max.z) {
+			if (boxAABB.max.x >= rootBounds.min.x && boxAABB.min.x <= rootBounds
+				.max.x &&
+				boxAABB.max.y >= rootBounds.min.y && boxAABB.min.y <= rootBounds
+				.max.y &&
+				boxAABB.max.z >= rootBounds.min.z && boxAABB.min.z <= rootBounds
+				.max.z) {
 				filtered.emplace_back(&bvh);
 			}
 		}
@@ -352,9 +355,12 @@ namespace UPhysics {
 				const auto&    node  = bvh->nodes[index];
 
 				// ノードのAABBとボックスの重なり判定
-				if (!(boxAABB.max.x >= node.bounds.min.x && boxAABB.min.x <= node.bounds.max.x &&
-					  boxAABB.max.y >= node.bounds.min.y && boxAABB.min.y <= node.bounds.max.y &&
-					  boxAABB.max.z >= node.bounds.min.z && boxAABB.min.z <= node.bounds.max.z)) {
+				if (!(boxAABB.max.x >= node.bounds.min.x && boxAABB.min.x <=
+					node.bounds.max.x &&
+					boxAABB.max.y >= node.bounds.min.y && boxAABB.min.y <= node.
+					bounds.max.y &&
+					boxAABB.max.z >= node.bounds.min.z && boxAABB.min.z <= node.
+					bounds.max.z)) {
 					continue; // 重なりなし
 				}
 
@@ -366,17 +372,22 @@ namespace UPhysics {
 					// 葉ノード：三角形との詳細判定
 					uint32_t first = node.leftFirst;
 					for (uint32_t i = 0; i < node.primCount; ++i) {
-						uint32_t triIdx = bvh->triIndices[first + i];
-						const Triangle& tri = mTriangles[triIdx];
+						uint32_t        triIdx = bvh->triIndices[first + i];
+						const Triangle& tri    = mTriangles[triIdx];
 
 						Vec3  separationAxis;
 						float penetrationDepth;
-						if (BoxVsTriangleOverlap(box, tri, separationAxis, penetrationDepth)) {
+						if (BoxVsTriangleOverlap(
+							box, tri, separationAxis, penetrationDepth)) {
 							if (penetrationDepth < minPenetration) {
 								minPenetration = penetrationDepth;
-								hitTri         = triIdx;
-								hitNormal      = separationAxis;
-								hitPos         = box.center - separationAxis * penetrationDepth * 0.5f;
+								hitTri = triIdx;
+								hitNormal = separationAxis; // already outward
+								hitPos = box.center + hitNormal * (std::min(
+									{
+										box.half.x, box.half.y,
+										box.half.z
+									}) - penetrationDepth * 0.5f);
 							}
 						}
 					}
@@ -389,12 +400,104 @@ namespace UPhysics {
 		}
 
 		if (outHit) {
-			outHit->t        = 0.0f; // オーバーラップなので距離は0
+			outHit->t        = 1.0f;           // sweep 用でないので 1
+			outHit->depth    = minPenetration; // ← depth をセット
 			outHit->pos      = hitPos;
 			outHit->normal   = hitNormal;
 			outHit->triIndex = hitTri;
 		}
 		return true;
+	}
+
+	int Engine::BoxOverlap(
+		const Box& box,
+		Hit*       outHits,
+		int        maxHits
+	) const {
+		int hitCount = 0;
+		if (mBVHs.empty() || mTriangles.empty() || maxHits <= 0) {
+			return hitCount;
+		}
+
+		// ブロードフェーズ：ボックスのAABBと各BVHのルートAABBの重なりをチェック
+		std::vector<const RegisteredBVH*> filtered;
+		AABB                              boxAABB;
+		boxAABB.min = box.center - box.half;
+		boxAABB.max = box.center + box.half;
+
+		for (const auto& bvh : mBVHs) {
+			const AABB& rootBounds = bvh.nodes[0].bounds;
+			// AABB同士の重なり判定
+			if (boxAABB.max.x >= rootBounds.min.x && boxAABB.min.x <= rootBounds
+				.max.x &&
+				boxAABB.max.y >= rootBounds.min.y && boxAABB.min.y <= rootBounds
+				.max.y &&
+				boxAABB.max.z >= rootBounds.min.z && boxAABB.min.z <= rootBounds
+				.max.z) {
+				filtered.emplace_back(&bvh);
+			}
+		}
+
+		if (filtered.empty()) {
+			return hitCount; // 重なりなし
+		}
+
+		// ナローフェーズ：詳細な重なり判定
+		uint32_t stack[64];
+
+		for (auto* bvh : filtered) {
+			int sp      = 0;
+			stack[sp++] = 0; // ルートノードからスタート
+
+			while (sp && hitCount < maxHits) {
+				const uint32_t index = stack[--sp];
+				const auto&    node  = bvh->nodes[index];
+
+				// ノードのAABBとボックスの重なり判定
+				if (!(boxAABB.max.x >= node.bounds.min.x && boxAABB.min.x <=
+					node.bounds.max.x &&
+					boxAABB.max.y >= node.bounds.min.y && boxAABB.min.y <= node.
+					bounds.max.y &&
+					boxAABB.max.z >= node.bounds.min.z && boxAABB.min.z <= node.
+					bounds.max.z)) {
+					continue; // 重なりなし
+				}
+
+				if (node.primCount == 0) {
+					// 内部ノード：子ノードをスタックに追加
+					stack[sp++] = node.leftFirst;
+					stack[sp++] = node.rightFirst;
+				} else {
+					// 葉ノード：三角形との詳細判定
+					uint32_t first = node.leftFirst;
+					for (uint32_t i = 0; i < node.primCount && hitCount <
+					     maxHits; ++i) {
+						uint32_t        triIdx = bvh->triIndices[first + i];
+						const Triangle& tri    = mTriangles[triIdx];
+
+						Vec3  separationAxis;
+						float penetrationDepth;
+						if (BoxVsTriangleOverlap(
+							box, tri, separationAxis, penetrationDepth)) {
+							Hit tmpHit;
+							tmpHit.t     = 1.0f;
+							tmpHit.depth = penetrationDepth;
+							tmpHit.pos   = box.center + separationAxis * (
+								std::min({
+									box.half.x, box.half.y, box.half.z
+								}) - penetrationDepth * 0.5f);
+							tmpHit.normal   = separationAxis;
+							tmpHit.triIndex = triIdx;
+
+							outHits[hitCount] = tmpHit;
+							hitCount++;
+						}
+					}
+				}
+			}
+		}
+
+		return hitCount;
 	}
 
 	void Engine::AddGlobalOffset(
