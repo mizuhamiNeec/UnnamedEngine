@@ -209,7 +209,7 @@ void PlayerMovementUPhysics::Move() {
 		ApplyHalfGravity();
 	}
 
-	mIsGrounded = CheckGrounded();
+	//mIsGrounded = CheckGrounded();
 
 	if (!mWasGrounded && mIsGrounded) {
 		// 着地処理
@@ -225,10 +225,6 @@ void PlayerMovementUPhysics::Move() {
 			}
 		}
 	}
-
-	// if (isGrounded_ && velocity_.y < 0.0f) {
-	//	velocity_.y = 0.0f; // 落下中のみリセット
-	// }
 
 	// スライディング開始条件チェック
 	if (mIsGrounded && mWishCrouch && mSlideState
@@ -577,70 +573,195 @@ void PlayerMovementUPhysics::UpdateCameraShake(const float deltaTime) {
 	}
 }
 
-void PlayerMovementUPhysics::CollideAndSlide(const Vec3& disp) {
-	auto* col = mOwner->GetComponent<BoxColliderComponent>();
+// -----------------------------------------------------------------------------
+// PlayerMovementUPhysics::CollideAndSlide
+// -----------------------------------------------------------------------------
+// 目的 : 「スタックしない & 複数面スライド」の衝突応答
+// 引数 : desiredDisplacement … このフレーム中に進みたいワールド座標差分
+// 前提 : mDeltaTime で割ると “本来の速度 (m/s)” になる
+// -----------------------------------------------------------------------------
+void PlayerMovementUPhysics::CollideAndSlide(const Vec3& desiredDisplacement) {
+	BoxColliderComponent* col = mOwner->GetComponent<BoxColliderComponent>();
 	if (!col || !mUPhysicsEngine) {
-		mPosition += disp;
+		mPosition += desiredDisplacement;
 		return;
 	}
 
-	constexpr int kMaxPlanes = 5; // ← Source Engine と同数
-	constexpr int kMaxIters  = 8;
+	// ---------------------------------------------------------------------
+	// 定数定義
+	// ---------------------------------------------------------------------
+	constexpr int   kMaxPlanes     = 5;      // 同時に考慮する面の最大数
+	constexpr int   kMaxIters      = 4;      // 1フレームで許す再試行回数
+	constexpr float kPushOutHU     = 1.0f;   // めり込み押し出し量 (HammerUnit)
+	constexpr float kEpsHU         = 0.2f;   // 浮動小数の誤差吸収用 ε
+	constexpr float kStopSpeed     = 0.1f;   // これ未満なら停止とみなす (m/s)
+	constexpr float kPlaneMergeCos = 0.997f; // ≒5°5
+	constexpr float kWalkableCos   = 0.7f;   // 床判定 (≈45°)
+	constexpr float kNormalBlendHz = 20.0f;
+	const float     kStepMaxM      = Math::HtoM(18.0f); // 18HU
+	constexpr float kEdgeCos       = 0.02f;
 
-	constexpr float kEpsHU     = 0.25f; // 0.2 HU ≈ 5 mm
-	constexpr float kPushOutHU = 0.25f; // 1.0 HU ≈ 2.5 cm
 
-	const float kEps     = Math::HtoM(kEpsHU);
-	const float kPushOut = Math::HtoM(kPushOutHU);
+	// ---------------------------------------------------------------------
+	// 初期データ
+	// ---------------------------------------------------------------------
+	const Vec3 boxHalf = col->GetBoundingBox().GetHalfSize();
+	const Vec3 offset  = col->GetOffset();
 
+	Vec3 curPos = mScene->GetWorldPos() + offset;
+	Vec3 curVel = desiredDisplacement / mDeltaTime; // m/s
 	Vec3 planes[kMaxPlanes];
-	int  nPlanes = 0;
+	int  numPlanes = 0;
 
-	Vec3 pos     = mScene->GetWorldPos() + col->GetOffset();
-	Vec3 vel     = disp; // 今フレームで消費したい “速度”
-	Vec3 boxHalf = col->GetBoundingBox().GetHalfSize();
+	//-------------------------------------------------------------------------
+	// 面の法線を追加するためのラムダ関数
+	//-------------------------------------------------------------------------
+	auto PushPlane = [&](const Vec3& n) {
+		for (int i = 0; i < numPlanes; ++i) {
+			if (planes[i].Dot(n) > kPlaneMergeCos) {
+				return; // ほぼ同じ → 捨てる
+			}
+		}
+		if (numPlanes < kMaxPlanes) planes[numPlanes++] = n;
+	};
 
-	for (int iter = 0; iter < kMaxIters && vel.SqrLength() > kEps * kEps; ++
-	     iter) {
-		// ── Sweep (BoxCast) ─────────────────────────
-		UPhysics::Box box{pos, boxHalf};
-		UPhysics::Hit hit{};
-		float         moveLen = vel.Length();
-		Vec3          moveDir = vel / moveLen;
+	// ---------------------------------------------------------------------
+	// 0. すでにめり込んでいる場合は押し出す
+	// ---------------------------------------------------------------------
+	{
+		UPhysics::Box startBox{.center = curPos, .half = boxHalf};
+		UPhysics::Hit overlapHit{};
+		if (mUPhysicsEngine->BoxOverlap(startBox, &overlapHit)) {
+			// Source では ResolvePenetration と呼ばれる処理
+			curPos += overlapHit.normal * (overlapHit.depth + Math::HtoM(
+				kPushOutHU));
+		}
+	}
 
-		if (!mUPhysicsEngine->BoxCast(box, moveDir, moveLen, &hit)) {
-			pos += vel;
+	// ---------------------------------------------------------------------
+	// 1. Sweep → Hit → 速度クリップ → 残り距離で再試行 … を最大 kMaxIters 回
+	// ---------------------------------------------------------------------
+	float remainingTime = mDeltaTime;
+
+	for (int iter = 0; iter < kMaxIters && remainingTime > 0.0f; ++iter) {
+		// 今回移動したい距離と方向
+		Vec3  moveDelta = curVel * remainingTime;
+		float moveDist  = moveDelta.Length();
+
+		if (moveDist < kStopSpeed * remainingTime) {
+			// ほぼ停止
 			break;
 		}
 
-		// ── 1) ヒット点まで進む（ε 手前） ─────────────
-		float travel = std::max(hit.t * moveLen - kEps, 0.f);
-		pos += moveDir * travel;
+		Vec3 dir = moveDelta / moveDist; // 正規化方向
 
-		// ── 2) めり込み保険 ─────────────────────────
-		if (hit.t * moveLen < kEps) pos += hit.normal * kPushOut;
+		// Sweep
+		UPhysics::Box castBox{.center = curPos, .half = boxHalf};
+		UPhysics::Hit hit{};
+		bool          hasHit = mUPhysicsEngine->BoxCast(
+			castBox, dir, moveDist + Math::HtoM(kEpsHU),
+			&hit
+		);
+		if (!hasHit) {
+			// 衝突なし。残り距離すべて進んで終了
+			curPos += moveDelta;
+			break;
+		}
 
-		// ── 3) 法線スタックへ追加（重複チェック付き） ──
-		bool already = false;
-		for (int i = 0; i < nPlanes; ++i)
-			if (hit.normal.Dot(planes[i]) > 0.99f) {
-				already = true;
-				break;
+		// 1-a. 衝突手前まで進む
+		float travel = std::max(hit.t * moveDist - Math::HtoM(kEpsHU), 0.0f);
+		curPos += dir * travel;
+
+		// -------------------------------------------------------------
+		// 1-b. 段差チェック
+		// -------------------------------------------------------------
+		bool canStep =
+			hit.normal.y > kWalkableCos &&
+			hit.pos.y <= curPos.y + kStepMaxM;
+		if (canStep) {
+			Vec3 horizontal = curVel - Vec3::up * curVel.y;
+			curPos += horizontal * remainingTime; // 水平分だけ上げる
+			mGroundNormal = hit.normal;
+			mIsGrounded   = true;
+			break; // 早期終了
+		}
+
+		// -------------------------------------------------------------
+		// 1-c. エッジ平均法線を生成
+		// -------------------------------------------------------------
+		PushPlane(hit.normal);
+		numPlanes = std::max(numPlanes, 1); // 1 枚も無い事態を防ぐ
+
+		UPhysics::Hit nearHits[4];
+		int           nh = mUPhysicsEngine->BoxOverlap(
+			{.center = curPos, .half = boxHalf},
+			nearHits, 4); // ← 戻り値でヒット数取得
+
+		Vec3 avgN = Vec3::zero;
+		for (int i = 0; i < nh; ++i) {
+			avgN += nearHits[i].normal;
+		}
+		
+		if (nh > 1 && (avgN / static_cast<float>(nh)).Dot(hit.normal) <
+			kEdgeCos) {
+			PushPlane((avgN / static_cast<float>(nh)).Normalized());
+		}
+
+		// 1-d. ClipVelocity
+		//      v' = v - n * (v·n)  ― すべての面
+		for (int i = 0; i < numPlanes; ++i) {
+			float into = curVel.Dot(planes[i]);
+			if (into < 0.0f) {
+				curVel -= planes[i] * into;
 			}
-		if (!already && nPlanes < kMaxPlanes) planes[nPlanes++] = hit.normal;
+		}
+
+		// 交差する「歩けない」面が 2 枚以上ある場合、エッジ方向へ投影
+		if (numPlanes >= 2) {
+			// 交差エッジ方向は面法線のクロス積
+			Vec3 dirEdge = planes[0].Cross(planes[1]);
+			if (!dirEdge.IsZero()) {
+				dirEdge.Normalize();
+				// エッジに投影
+				curVel = dirEdge * curVel.Dot(dirEdge);
+			}
+		}
+
+		// 速度が潰れたら停止
+		if (curVel.SqrLength() < kStopSpeed * kStopSpeed) {
+			curVel = Vec3::zero;
+			break;
+		}
+
+		// このフレームで残った時間を再計算
+		remainingTime = (1.0f - hit.t) * remainingTime;
 	}
 
-	// ── 4) 速度を全法線で“まとめて”クリップ ────────
-	for (int i = 0; i < nPlanes; ++i) {
-		float d = vel.Dot(planes[i]);
-		if (d < 0.f) vel -= planes[i] * d; // 法線成分を除去
+	// ---------------------------------------------------------------------
+	// 2. 位置と速度を確定
+	// ---------------------------------------------------------------------
+	mPosition = curPos - offset;
+
+	// 新たな Ground 判定
+	bool thisFrameGrounded = false;
+	for (int i = 0; i < numPlanes; ++i) {
+		if (planes[i].y >= kWalkableCos) {
+			thisFrameGrounded = true;
+			// Exp-Lerp で 20Hz 収束 (Δt 毎)
+			float a       = 1.0f - std::exp(-kNormalBlendHz * mDeltaTime);
+			mGroundNormal = Math::Lerp(mGroundNormal, planes[i], a).
+				Normalized();
+			break;
+		}
 	}
 
-	// ── 5) 位置・速度を反映 ─────────────────────────
-	mPosition = pos - col->GetOffset();
-	if (mDeltaTime > 0.f) {
-		mVelocity = vel / mDeltaTime;
-	} else {
-		mVelocity = Vec3::zero;
+	// 速度を “平均床面” にプロジェクション
+	if (thisFrameGrounded) {
+		curVel -= mGroundNormal * curVel.Dot(mGroundNormal);
 	}
+
+	mVelocity = curVel;
+
+	// grounded フラグを次へ
+	mIsGrounded = thisFrameGrounded;
 }

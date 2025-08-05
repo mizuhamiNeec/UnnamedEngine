@@ -49,8 +49,9 @@ public:
 	                      float rotationFrequency, const Vec3& rotationAxis);
 
 private:
-	Vec3 mMoveInput = Vec3::zero;
-	Vec3 mWishdir   = Vec3::zero;
+	Vec3 mMoveInput       = Vec3::zero;
+	Vec3 mWishdir         = Vec3::zero;
+	Vec3 mPrevHitVelocity = Vec3::up;
 
 	bool  mCanDoubleJump      = false;
 	bool  mDoubleJumped       = false;
