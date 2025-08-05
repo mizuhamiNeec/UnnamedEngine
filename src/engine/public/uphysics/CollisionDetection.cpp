@@ -354,95 +354,76 @@ namespace UPhysics {
 	bool BoxVsTriangleOverlap(
 		const Box&      box,
 		const Triangle& tri,
-		Vec3&           outSeparationAxis,
-		float&          outPenetrationDepth
-	) {
-		/* ---------- 1. 基本量 ---------- */
-		const Vec3 C = box.center;
-		const Vec3 H = box.half;
-
-		/* ---------- 2. 13 軸を列挙（SweptAabbVsTriSATと同様） ---------- */
+		Vec3&           outNormal,
+		float&          outDepth) {
+		// 1) テストする軸 13 本
 		Vec3 axes[13];
-		int  axisCount = 0;
+		int  axisCnt = 0;
 
-		/* 2-1 三角形法線 */
-		Vec3 triNormal = (tri.v1 - tri.v0).Cross(tri.v2 - tri.v0);
-		if (triNormal.Dot(triNormal) > 1e-8f) {
-			axes[axisCount++] = triNormal.Normalized();
+		// (a) ボックスのローカル軸
+		axes[axisCnt++] = Vec3::right;
+		axes[axisCnt++] = Vec3::up;
+		axes[axisCnt++] = Vec3::forward;
+
+		// (b) 三角形の面法線
+		Vec3 triN = (tri.v1 - tri.v0).Cross(tri.v2 - tri.v0);
+		if (!triN.IsZero()) {
+			triN.Normalize();
+			axes[axisCnt++] = triN;
 		}
 
-		/* 2-2 ボックス軸 (世界 XYZ) */
-		axes[axisCount++] = {1, 0, 0};
-		axes[axisCount++] = {0, 1, 0};
-		axes[axisCount++] = {0, 0, 1};
-
-		/* 2-3 triEdge × boxAxis (交叉積) */
-		Vec3 e0          = tri.v1 - tri.v0;
-		Vec3 e1          = tri.v2 - tri.v1;
-		Vec3 e2          = tri.v0 - tri.v2;
-		Vec3 triEdges[3] = {e0, e1, e2};
-		for (Vec3 e : triEdges) {
-			if (e.Dot(e) < 1e-10f) continue; // degenerate
-			Vec3 n0 = e.Cross(Vec3::right).Normalized();
-			Vec3 n1 = e.Cross(Vec3::up).Normalized();
-			Vec3 n2 = e.Cross(Vec3::forward).Normalized();
-			if (n0.Dot(n0) > 1e-6f) axes[axisCount++] = n0;
-			if (n1.Dot(n1) > 1e-6f) axes[axisCount++] = n1;
-			if (n2.Dot(n2) > 1e-6f) axes[axisCount++] = n2;
-		}
-
-		float maxPenetration  = -FLT_MAX;
-		Vec3  bestAxis{0, 0, 0};
-		bool  foundOverlap    = true;
-
-		/* ---------- 3. 各軸で重なり判定 ---------- */
-		for (int a = 0; a < axisCount; ++a) {
-			Vec3 A = axes[a];
-			if (A.Dot(A) < 1e-8f) continue; // 0 ベクトルはスキップ
-
-			/* ボックス：中心投影 ± radius */
-			float projC  = C.Dot(A);
-			float rBox   = fabsf(A.x) * H.x + fabsf(A.y) * H.y + fabsf(A.z) * H.z;
-			float minBox = projC - rBox;
-			float maxBox = projC + rBox;
-
-			/* 三角形：3頂点投影 min/max */
-			float v0     = tri.v0.Dot(A);
-			float v1     = tri.v1.Dot(A);
-			float v2     = tri.v2.Dot(A);
-			float minTri = std::min(v0, std::min(v1, v2));
-			float maxTri = std::max(v0, std::max(v1, v2));
-
-			/* 分離判定 */
-			if (maxBox < minTri || minBox > maxTri) {
-				foundOverlap = false;
-				break; // 分離軸が見つかった場合、重なりなし
-			}
-
-			/* 侵入深度を計算 */
-			float penetration1 = maxBox - minTri; // ボックスが三角形に侵入している深度
-			float penetration2 = maxTri - minBox; // 三角形がボックスに侵入している深度
-			float penetration  = std::min(penetration1, penetration2);
-
-			/* 最小侵入深度を追跡 */
-			if (penetration > maxPenetration) {
-				maxPenetration = penetration;
-				bestAxis       = A;
-				// 侵入方向を適切に設定
-				if (penetration1 < penetration2) {
-					bestAxis = -bestAxis; // ボックスを押し戻す方向
+		// (c) エッジ × ボックス軸
+		Vec3 triEdges[3] = {tri.v1 - tri.v0, tri.v2 - tri.v1, tri.v0 - tri.v2};
+		for (int e = 0; e < 3; ++e) {
+			for (int a = 0; a < 3; ++a) {
+				Vec3 axis = triEdges[e].Cross(axes[a]);
+				if (!axis.IsZero()) {
+					axis.Normalize();
+					axes[axisCnt++] = axis;
 				}
 			}
 		}
 
-		if (!foundOverlap) {
-			return false; // 重なりなし
+		// 2) 各軸で投影レンジを比べ、最小オーバラップを記録
+		float bestDepth = FLT_MAX;
+		Vec3  bestAxis  = Vec3::zero;
+
+		for (int i = 0; i < axisCnt; ++i) {
+			const Vec3& ax = axes[i];
+
+			// Box（中心 + half）の投影
+			float boxCenter = ax.Dot(box.center);
+			float boxExtent = std::abs(ax.x) * box.half.x +
+				std::abs(ax.y) * box.half.y +
+				std::abs(ax.z) * box.half.z;
+			float boxMin = boxCenter - boxExtent;
+			float boxMax = boxCenter + boxExtent;
+
+			// Triangle
+			float triMin = ax.Dot(tri.v0);
+			float triMax = triMin;
+			float d1     = ax.Dot(tri.v1);
+			float d2     = ax.Dot(tri.v2);
+			triMin       = std::min({triMin, d1, d2});
+			triMax       = std::max({triMax, d1, d2});
+
+			// オーバラップ量（符号付き）
+			float overlap = std::min(boxMax, triMax) - std::max(boxMin, triMin);
+			if (overlap < 0.0f) {
+				return false; // 分離軸発見 → 衝突無し
+			}
+
+			if (overlap < bestDepth) {
+				bestDepth = overlap;
+				bestAxis  = ax;
+			}
 		}
 
-		/* ---------- 4. 結果を設定 ---------- */
-		outSeparationAxis    = bestAxis.Normalized();
-		outPenetrationDepth  = maxPenetration;
-
-		return true; // 重なりあり
+		// 3) bestAxis 方向へ押し出し
+		outNormal = (triN.Dot(box.center - tri.v0) > 0.0f)
+			            ? bestAxis
+			            : -bestAxis;
+		outDepth = bestDepth;
+		return true;
 	}
 }
