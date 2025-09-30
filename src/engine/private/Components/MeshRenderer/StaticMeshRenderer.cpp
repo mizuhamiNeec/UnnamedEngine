@@ -43,8 +43,8 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 		);
 
 		mMaterialData            = mMatParamCBV->GetPtr<MatParam>();
-		mMaterialData->baseColor = {0.5f, 0.5f, 0.5f, 1.0f};
-		mMaterialData->metallic  = 0.7f;
+		mMaterialData->baseColor = {0.09f, 0.09f, 0.09f, 1.0f};
+		mMaterialData->metallic  = 0.2f;
 		mMaterialData->roughness = 1.0f;
 		mMaterialData->emissive  = {0.0f, 0.0f, 0.0f};
 	}
@@ -295,7 +295,8 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 											"GPU Handle: %llu", handle.ptr);
 										ImGui::Image(
 											(ImTextureID)handle.ptr,
-											ImVec2(150, 150));
+											ImVec2(150, 150)
+										);
 
 										// メタデータ情報があれば表示
 										try {
