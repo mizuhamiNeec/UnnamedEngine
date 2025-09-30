@@ -19,6 +19,7 @@ namespace Math {
 	constexpr float pi      = std::numbers::pi_v<float>; // π
 	constexpr float deg2Rad = pi / 180.0f;               // 度からラジアンへの変換
 	constexpr float rad2Deg = 180.0f / pi;               // ラジアンから度への変換
+	constexpr float eps     = FLT_EPSILON;
 
 	//-------------------------------------------------------------------------
 	// 関数
