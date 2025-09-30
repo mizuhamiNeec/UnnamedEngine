@@ -1,6 +1,6 @@
 ﻿#include <pch.h>
 
-#include <engine/public/subsystem/console/base/UnnamedConCommandBase.h>
+#include <engine/public/subsystem/console/concommand/base/UnnamedConCommandBase.h>
 #include <engine/public/subsystem/console/ConsoleFlags.h>
 
 namespace Unnamed {
