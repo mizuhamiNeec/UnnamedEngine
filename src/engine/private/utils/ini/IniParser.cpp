@@ -1,15 +1,15 @@
-
-#include <engine/public/utils/IniParser.h>
-
 #include <fstream>
 
 #include <engine/public/OldConsole/Console.h>
+#include <engine/public/utils/ini/IniParser.h>
 
-std::unordered_map<std::string, std::unordered_map<std::string, std::string>> IniParser::ParseIniFile(
+std::unordered_map<std::string, std::unordered_map<std::string, std::string>>
+IniParser::ParseIniFile(
 	const std::string& filePath
 ) {
-	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> iniData;
-	std::ifstream inputFile(filePath);
+	std::unordered_map<std::string, std::unordered_map<
+		                   std::string, std::string>> iniData;
+	std::ifstream                                     inputFile(filePath);
 	if (!inputFile.is_open()) {
 		Console::Print("ファイルを開けませんでした: " + filePath + "\n", kConTextColorError);
 		return iniData;
@@ -33,8 +33,8 @@ std::unordered_map<std::string, std::unordered_map<std::string, std::string>> In
 		// キーと値の分割
 		size_t equalsPos = line.find('=');
 		if (equalsPos != std::string::npos) {
-			std::string key = Trim(line.substr(0, equalsPos));
-			std::string value = Trim(line.substr(equalsPos + 1));
+			std::string key              = Trim(line.substr(0, equalsPos));
+			std::string value            = Trim(line.substr(equalsPos + 1));
 			iniData[currentSection][key] = value;
 		}
 	}
@@ -44,7 +44,7 @@ std::unordered_map<std::string, std::unordered_map<std::string, std::string>> In
 
 std::string IniParser::Trim(const std::string& str) {
 	size_t first = str.find_first_not_of(" \t\r\n");
-	size_t last = str.find_last_not_of(" \t\r\n");
+	size_t last  = str.find_last_not_of(" \t\r\n");
 	if (first == std::string::npos || last == std::string::npos) {
 		return "";
 	}
