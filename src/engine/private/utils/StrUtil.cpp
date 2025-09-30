@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <pch.h>
 
 #include <sstream>
@@ -101,6 +102,9 @@ std::string StrUtil::Join(
 	return result;
 }
 
+/// @brief 軸を表す整数(0,1,2)を文字列に変換します
+/// @param i 軸を表す整数(0,1,2)
+/// @return 軸を表す文字列("X","Y","Z")
 std::string StrUtil::DescribeAxis(const int& i) {
 	switch (i) {
 	case 0:
@@ -114,6 +118,9 @@ std::string StrUtil::DescribeAxis(const int& i) {
 	}
 }
 
+/// @brief UnicodeコードポイントをUTF-8に変換します
+/// @param codePoint Unicodeコードポイント
+/// @return UTF-8文字列
 std::string StrUtil::ConvertToUtf8(const uint32_t codePoint) {
 	std::string utf8String;
 
@@ -151,4 +158,16 @@ std::vector<int> StrUtil::ParseVersion(const std::string& version) {
 	}
 
 	return result;
+}
+
+/// @brief ファイルパスから拡張子(小文字)を取得します
+/// @param str ファイルパス
+/// @return 拡張子(小文字)
+std::string StrUtil::ToLowerExt(const std::string_view& str) {
+	std::string e = std::filesystem::path(std::string(str)).extension().
+		string();
+	for (auto& c : e) {
+		c = static_cast<std::string::value_type>(std::tolower(c));
+	}
+	return e;
 }
