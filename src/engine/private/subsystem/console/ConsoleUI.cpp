@@ -9,7 +9,7 @@
 namespace Unnamed {
 	ConsoleUI::ConsoleUI(
 		ConsoleSystem* consoleSystem
-	): mConsoleSystem(consoleSystem) {
+	) : mConsoleSystem(consoleSystem) {
 	}
 
 	/// @brief コンソールUIを表示します。
@@ -19,13 +19,38 @@ namespace Unnamed {
 		for (auto buffer : mConsoleSystem->GetLogBuffer()) {
 			PushLogTextColor(buffer);
 
-			std::string text = "[ " + buffer.channel + " ] " + buffer.
-				message;
+			std::string text;
+			if (!buffer.channel.empty()) {
+				text = "[" + buffer.channel + "] " + buffer.message;
+			} else {
+				text = buffer.message;
+			}
 
 			ImGui::Text(text.c_str());
 
 			ImGui::PopStyleColor();
 		}
+
+		char                inputBuffer[256] = "";
+		ImGuiInputTextFlags flags            =
+			ImGuiInputTextFlags_EnterReturnsTrue |
+			ImGuiInputTextFlags_CallbackCompletion |
+			ImGuiInputTextFlags_CallbackHistory |
+			ImGuiInputTextFlags_CallbackEdit |
+			ImGuiInputTextFlags_CallbackResize;
+
+		if (
+			ImGui::InputText(
+				"##Input",
+				inputBuffer,
+				IM_ARRAYSIZE(inputBuffer),
+				flags,
+				InputTextCallback
+			)
+		) {
+			Msg("Input", "{}", inputBuffer);
+		}
+
 		ImGui::End();
 	}
 
@@ -68,6 +93,28 @@ namespace Unnamed {
 			                      ToImVec4(kConTextColorSuccess));
 			break;
 		}
+	}
+
+	int ConsoleUI::InputTextCallback(ImGuiInputTextCallbackData* data) {
+		switch (data->EventFlag) {
+		case ImGuiInputTextFlags_CallbackCompletion: {
+			Msg("callback", "completion");
+		}
+		break;
+
+		case ImGuiInputTextFlags_CallbackHistory:
+			Msg("callback", "history");
+			break;
+
+		case ImGuiInputTextFlags_CallbackEdit:
+			Msg("callback", "edit");
+			break;
+
+		case ImGuiInputTextFlags_CallbackResize:
+			break;
+		default: ;
+		}
+		return 0;
 	}
 }
 #endif
