@@ -1,5 +1,6 @@
 ﻿#pragma once
-#include <engine/public/subsystem/console/base/UnnamedConCommandBase.h>
+
+#include <engine/public/subsystem/console/concommand/base/UnnamedConCommandBase.h>
 
 namespace Unnamed {
 	class UnnamedConVarBase : public UnnamedConCommandBase {
