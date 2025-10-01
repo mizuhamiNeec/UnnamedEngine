@@ -21,7 +21,7 @@ void ShadeMaterial(in MatIn IN, out MatOut OUT) {
 	float3 tex    = texColor.rgb;
 	float  rough  = gExtra[0].x;
 	float3 emi    = gExtra[1].rgb;
-	float3 lit = lerp(tex * 0.6, tex, saturate(1 - gMetallic));
-	OUT.baseColor =  lit * gBaseColor.rgb * IN.vertexColor.rgb;
+	float3 lit    = lerp(tex * 0.6, tex, saturate(1 - gMetallic));
+	OUT.baseColor = lit * gBaseColor.rgb * IN.normal.rgb;
 	OUT.metallic  = gMetallic;
 }

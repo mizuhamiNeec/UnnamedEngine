@@ -225,6 +225,23 @@ namespace Unnamed {
 		rootParams.frameCB    = 2;
 		rootParams.objectCB   = 3;
 
+		static const D3D12_INPUT_ELEMENT_DESC kStdMeshLayout[] = {
+			{
+				"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+				D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
+			},
+			{
+				"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
+				D3D12_APPEND_ALIGNED_ELEMENT,
+				D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
+			},
+			{
+				"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+				D3D12_APPEND_ALIGNED_ELEMENT,
+				D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
+			},
+		};
+
 		// PSO
 		PipelineDesc pd  = {};
 		pd.rootSignature = root;
@@ -234,7 +251,7 @@ namespace Unnamed {
 				D3D12_APPEND_ALIGNED_ELEMENT
 			},
 			{
-				"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+				"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT,
 				D3D12_APPEND_ALIGNED_ELEMENT
 			},
 			{

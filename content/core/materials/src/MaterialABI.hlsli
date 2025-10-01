@@ -25,7 +25,7 @@ SamplerState gLinearWrap : register(s0);
 
 struct MatIn {
 	float2 uv;
-	float3 vertexColor;
+	float3 normal;
 };
 
 struct MatOut {

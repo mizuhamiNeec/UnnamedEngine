@@ -83,18 +83,19 @@ namespace Unnamed {
 		}
 
 		ss << R"(
-struct VSIn { float3 pos:POSITION; float3 col:COLOR; float2 uv:TEXCOORD0; };
+struct VSIn { float3 pos:POSITION; float3 nrm:NORMAL; float2 uv:TEXCOORD0; };
 struct VSOut {
 	float4 pos:SV_POSITION;
-	float3 col:COLOR; 
+	float3 nrmWS:TEXCOORD1; 
 	float2 uv:TEXCOORD0;
 };
 VSOut VSMain(VSIn i) {
 	VSOut o;
 	float4 wpos = mul(float4(i.pos,1), gWorld);
-	o.pos = mul(wpos, gViewProj);
-	o.col = i.col;
-	o.uv = i.uv;
+	o.pos   = mul(wpos, gViewProj);
+	float3 nWS = mul(float4(i.nrm,0), gWorld).xyz;
+	o.nrmWS = normalize(nWS);
+	o.uv    = i.uv;
 	return o;
 }
 )";
@@ -106,7 +107,7 @@ VSOut VSMain(VSIn i) {
 float4 PSMain(VSOut i) : SV_Target {
 	MatIn IN;
 	IN.uv = i.uv;
-	IN.vertexColor = i.col;
+	IN.normal = i.nrmWS;
 	MatOut OUT;
 	ShadeMaterial(IN, OUT);
 	return float4(OUT.baseColor, 1);
