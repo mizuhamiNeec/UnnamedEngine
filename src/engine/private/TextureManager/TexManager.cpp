@@ -9,7 +9,7 @@
 #include <engine/public/renderer/D3D12.h>
 #include <engine/public/renderer/SrvManager.h>
 #include <engine/public/TextureManager/TexManager.h>
-#include <engine/public/utils/Properties.h>
+#include <runtime/core/Properties.h>
 
 TexManager* TexManager::mInstance = nullptr;
 
