@@ -107,14 +107,14 @@ group "Engine"
             "src/**.cpp",
             "src/**.h",
             "src/**.cpp",
-            "resources/shaders/**.hlsl",
-            "resources/shaders/**.hlsli",
+            "content/**.hlsl",
+            "content/**.hlsli",
         }
 	
-		filter { "files:resources/shaders/**.hlsl" }
+		filter { "files:content/**.hlsl" }
 			flags { "ExcludeFromBuild" }
 			
-		filter { "files:resources/shaders/**.hlsli" }
+		filter { "files:content/**.hlsli" }
 			flags { "ExcludeFromBuild" }
 			
 		filter {}
