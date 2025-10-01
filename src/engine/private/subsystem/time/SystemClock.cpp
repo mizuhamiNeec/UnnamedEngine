@@ -1,13 +1,13 @@
 #include <engine/public/subsystem/time/SystemClock.h>
 
 void SystemClock::Init() {
-	if (sStartTime.time_since_epoch().count() == 0) {
-		sStartTime = SysClock::now();
+	if (mStartTime.time_since_epoch().count() == 0) {
+		mStartTime = SysClock::now();
 	}
 }
 
 SystemClock::TimePoint SystemClock::StartTime() {
-	return sStartTime;
+	return mStartTime;
 }
 
 SystemClock::TimePoint SystemClock::Now() {
@@ -15,11 +15,11 @@ SystemClock::TimePoint SystemClock::Now() {
 }
 
 double SystemClock::UpTime() {
-	if (sStartTime.time_since_epoch().count() == 0) {
+	if (mStartTime.time_since_epoch().count() == 0) {
 		return 0.0;
 	}
 	using namespace std::chrono;
-	return duration<double>(SysClock::now() - sStartTime).count();
+	return duration<double>(SysClock::now() - mStartTime).count();
 }
 
 std::string SystemClock::ToString(const TimePoint& tp) {
@@ -90,4 +90,4 @@ DateTime SystemClock::GetDateTime(const TimePoint& tp) {
 	};
 }
 
-std::chrono::time_point<std::chrono::system_clock> SystemClock::sStartTime;
+std::chrono::time_point<std::chrono::system_clock> SystemClock::mStartTime;

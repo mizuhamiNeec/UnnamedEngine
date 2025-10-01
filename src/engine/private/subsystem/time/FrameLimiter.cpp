@@ -1,7 +1,7 @@
-﻿#include <engine/public/OldConsole/ConVarManager.h>
+#include <engine/public/OldConsole/ConVarManager.h>
 #include <engine/public/subsystem/time/FrameLimiter.h>
 #include <engine/public/subsystem/time/GameTime.h>
-#include <engine/public/utils/Properties.h>
+#include <runtime/core/Properties.h>
 
 FrameLimiter::FrameLimiter(GameTime* gameTime) :
 	mGameTime(gameTime) {
@@ -19,6 +19,10 @@ void FrameLimiter::SetTargetFPS(const double targetFPS) {
 	}
 }
 
+void FrameLimiter::BeginFrame() {
+	mFrameStart = Clock::now();
+}
+
 void FrameLimiter::Limit() {
 	CheckConVarValue();
 
@@ -29,28 +33,29 @@ void FrameLimiter::Limit() {
 
 	using namespace std::chrono;
 
-	const double frameSecond  = mGameTime->DeltaTime<double>();
-	const double targetSecond = duration<double>(mTargetFrameDuration).count();
-	const double waitSecond   = targetSecond - frameSecond;
+	auto now = Clock::now();
 
-	// フレーム時間が目標時間を超えている場合は待機しない
-	if (waitSecond <= 0.0) {
+	auto elapsed = now - mFrameStart;
+
+	if (elapsed >= mTargetFrameDuration) {
 		return;
 	}
 
-	const auto waitDuration = duration<double>(waitSecond);
+	auto remaining = mTargetFrameDuration - elapsed;
 
 	// 大まかにスリープする
-	constexpr auto spinThreshold = milliseconds(2);
-	if (waitDuration > spinThreshold) {
-		std::this_thread::sleep_for(waitDuration - spinThreshold);
+	constexpr auto spinThreshold = milliseconds(10);
+	if (remaining > spinThreshold) {
+		std::this_thread::sleep_for(remaining - spinThreshold);
 	}
 
-	const auto endTime = Clock::now() + waitDuration;
-	while (Clock::now() < endTime);
+	const auto endTime = mFrameStart + mTargetFrameDuration;
+	while (Clock::now() < endTime) {
+		std::this_thread::yield();
+	}
 }
 
 void FrameLimiter::CheckConVarValue() {
-	double targetFPS = ConVarManager::GetConVar("fps_max")->GetValueAsDouble();
+	double targetFPS = 1000; // TODO: コンソール変数に置き換え
 	SetTargetFPS(targetFPS);
 }
