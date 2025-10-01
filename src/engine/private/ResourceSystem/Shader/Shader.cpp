@@ -1,3 +1,7 @@
+#include <pch.h>
+
+//-----------------------------------------------------------------------------
+
 #include <cassert>
 #include <d3d12shader.h>
 #include <d3dcompiler.h>
@@ -11,7 +15,6 @@
 #include <format>
 
 #include "engine/public/OldConsole/Console.h"
-#include "engine/public/utils/StrUtil.h"
 
 
 //-----------------------------------------------------------------------------

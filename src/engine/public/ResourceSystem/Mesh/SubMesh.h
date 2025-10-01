@@ -1,11 +1,12 @@
 #pragma once
 #include <d3d12.h>
 #include <string>
-#include <engine/public/Physics/Physics.h>
 #include <engine/public/renderer/IndexBuffer.h>
 #include <engine/public/renderer/Structs.h>
 #include <engine/public/Renderer/VertexBuffer.h>
 #include <engine/public/ResourceSystem/Material/Material.h>
+
+#include "engine/public/uprimitive/UPrimitives.h"
 
 class SubMesh {
 public:
@@ -24,12 +25,9 @@ public:
 
 	void Render(ID3D12GraphicsCommandList* commandList) const;
 
-	void                  ReleaseResource();
-	std::vector<Triangle> GetPolygons() const;
-
-	void              BuildBVH();
-	const DynamicBVH& GetBVH() const;
-
+	void                           ReleaseResource();
+	std::vector<Unnamed::Triangle> GetPolygons() const;
+	
 private:
 	std::string                                  name_;
 	Microsoft::WRL::ComPtr<ID3D12Device>         device_;
@@ -38,6 +36,4 @@ private:
 	std::unique_ptr<IndexBuffer>                 indexBuffer_;
 	Material*                                    material_      = nullptr;
 	bool                                         isSkinnedMesh_ = false;
-
-	DynamicBVH localBVH_;
 };

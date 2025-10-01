@@ -1,8 +1,11 @@
+#include <pch.h>
+
+//-----------------------------------------------------------------------------
+
 #include <ranges>
 
 #include <engine/public/OldConsole/Console.h>
 #include <engine/public/ResourceSystem/Pipeline/PipelineManager.h>
-#include <engine/public/utils/StrUtil.h>
 
 size_t PipelineManager::CalculatePSOHash(
 	const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc) {
