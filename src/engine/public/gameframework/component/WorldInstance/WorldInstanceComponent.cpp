@@ -1,7 +1,7 @@
 ﻿#include "WorldInstanceComponent.h"
 
-#include <engine/public/utils/json/JsonReader.h>
-#include <engine/public/utils/json/JsonWriter.h>
+#include <core/json/JsonReader.h>
+#include <core/json/JsonWriter.h>
 
 namespace Unnamed {
 	void WorldInstanceComponent::OnAttached() {
