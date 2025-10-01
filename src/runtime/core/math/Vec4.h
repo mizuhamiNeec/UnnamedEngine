@@ -3,7 +3,7 @@
 #include <initializer_list>
 
 struct Mat4;
-#include <math/public/Vec3.h>
+#include <runtime/core/math/Vec3.h>
 
 struct Vec4 final {
 	constexpr Vec4(const float x = 0.0f, const float y = 0.0f,

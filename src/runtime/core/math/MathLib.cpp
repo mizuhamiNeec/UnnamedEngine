@@ -1,6 +1,6 @@
 #include <pch.h>
 
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 #include <engine/public/Camera/CameraManager.h>
 #include <engine/public/Components/Camera/CameraComponent.h>

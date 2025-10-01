@@ -1,12 +1,9 @@
-#include <pch.h>
-
-#include "math/public/random/Random.h"
+#include <runtime/core/math/Math.h>
+#include <runtime/core/math/random/Random.h>
 
 #include <mutex>
 #include <random>
 #include <utility>
-
-#include <math/public/Vec3.h>
 
 // 静的メンバ変数の定義
 std::mt19937_64 Random::randomEngine_{std::random_device{}()}; // 初期化リストでシード値を設定

@@ -5,12 +5,14 @@
 #include <numbers>
 #include <xmmintrin.h>
 
-#include <math/public/Vec2.h>
-#include <math/public/Vec3.h>
-#include <math/public/Vec4.h>
+#include <runtime/core/math/Vec2.h>
+#include <runtime/core/math/Vec3.h>
+#include <runtime/core/math/Vec4.h>
 
-#include <math/public/Mat4.h>
-#include <math/public/Quaternion.h>
+#include <runtime/core/math/Mat4.h>
+#include <runtime/core/math/Quaternion.h>
+
+#include <runtime/core/math/random/Random.h>
 
 namespace Math {
 	//-------------------------------------------------------------------------

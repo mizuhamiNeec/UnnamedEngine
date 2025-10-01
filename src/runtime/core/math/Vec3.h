@@ -3,7 +3,7 @@
 #include <string>
 
 struct Quaternion;
-#include <math/public/Vec2.h>
+#include <runtime/core/math/Vec2.h>
 
 struct Vec3 final {
 	float x, y, z;
