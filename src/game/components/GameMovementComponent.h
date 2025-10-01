@@ -1,8 +1,8 @@
 ﻿#pragma once
 #include "engine/public/Components/base/Component.h"
-#include "engine/public/uphysics/Primitives.h"
+#include "engine/public/uphysics/PhysicsTypes.h"
 
-#include "math/public/Vec3.h"
+#include <runtime/core/math/Math.h>
 
 namespace UPhysics {
 	class Engine;
