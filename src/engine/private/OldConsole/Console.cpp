@@ -15,9 +15,10 @@
 #include <engine/public/OldConsole/Console.h>
 #include <engine/public/OldConsole/ConVarManager.h>
 #include <engine/public/subsystem/time/SystemClock.h>
-#include <engine/public/utils/ini/IniParser.h>
 #include <engine/public/Window/WindowManager.h>
 #include <engine/public/Window/WindowsUtils.h>
+
+#include "core/ini/IniParser.h"
 
 #include "engine/public/ImGui/ImGuiWidgets.h"
 
