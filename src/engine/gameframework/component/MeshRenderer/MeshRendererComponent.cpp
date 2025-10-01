@@ -7,6 +7,8 @@
 
 #include "core/json/JsonReader.h"
 
+#include "engine/VertexFormats.h"
+
 #include "runtime/assets/core/UAssetManager.h"
 
 namespace Unnamed {
@@ -67,28 +69,37 @@ namespace Unnamed {
 			const auto* m = renderResourceManager->GetAssetManager()->Get<
 				MeshAssetData>(meshAsset);
 			if (!m || m->positions.empty() || m->indices.empty()) {
-				Warning(kChannel, "Invalid mesh asset: {}", meshAsset);
+				Error(
+					kChannel,
+					"Mesh asset is invalid: {}",
+					renderResourceManager->GetAssetManager()->Meta(meshAsset).
+					                       name.c_str()
+				);
 				return false;
 			}
 
-			struct V {
-				Vec3 p;
-				Vec4 c;
-				Vec2 uv;
-			};
-			std::vector<V> verts(m->positions.size());
-			for (size_t i = 0; i < verts.size(); ++i) {
-				verts[i].p  = m->positions[i];
-				verts[i].c  = m->color0[i];
-				verts[i].uv = m->uv0[i];
+			const auto vcount = m->positions.size();
+
+			std::vector<VertexPNUV> verts(vcount);
+
+			for (size_t i = 0; i < vcount; ++i) {
+				verts[i].position = m->positions[i];
+				verts[i].normal   = m->normals[i];
+				verts[i].uv       = m->uv0[i];
 			}
 
 			renderResourceManager->CreateStaticVertexBuffer(
-				verts.data(), sizeof(V) * verts.size(), sizeof(V), mesh.vb
+				verts.data(),
+				verts.size() * sizeof(VertexPNUV),
+				sizeof(VertexPNUV),
+				mesh.vb
 			);
+
 			renderResourceManager->CreateStaticIndexBuffer(
-				m->indices.data(), sizeof(uint32_t) * m->indices.size(),
-				DXGI_FORMAT_R32_UINT, mesh.ib
+				m->indices.data(),
+				m->indices.size() * sizeof(uint32_t),
+				DXGI_FORMAT_R32_UINT,
+				mesh.ib
 			);
 
 			mesh.indexCount = static_cast<uint32_t>(m->indices.size());
