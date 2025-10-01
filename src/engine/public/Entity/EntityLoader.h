@@ -1,6 +1,5 @@
 ﻿#pragma once
-#include <math/public/MathLib.h>
-#include "math/public/Quaternion.h"
+#include <runtime/core/math/Math.h>
 
 #include <json.hpp>
 
