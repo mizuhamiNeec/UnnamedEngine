@@ -6,24 +6,24 @@
 #include <engine/public/subsystem/time/GameTime.h>
 #include <engine/public/subsystem/time/SystemClock.h>
 
-class TimeSystem : public ISubsystem {
-public:
-	~TimeSystem() override;
+namespace Unnamed {
+	class TimeSystem : public ISubsystem {
+	public:
+		~TimeSystem() override;
 
-	bool Init() override;
-	void Update(float deltaTime) override;
-	void Render() override;
+		bool Init() override;
 
-	void EndFrame();
-	void Shutdown() override;
+		void BeginFrame() const;
+		void EndFrame() const;
 
-	[[nodiscard]] const std::string_view GetName() const override;
+		[[nodiscard]] const std::string_view GetName() const override;
 
-	GameTime*     GetGameTime() const;
-	FrameLimiter* GetFrameLimiter() const;
+		[[nodiscard]] GameTime*     GetGameTime() const;
+		[[nodiscard]] FrameLimiter* GetFrameLimiter() const;
 
-private:
-	std::unique_ptr<GameTime>     mGameTime;
-	std::unique_ptr<FrameLimiter> mFrameLimiter;
-	std::unique_ptr<SystemClock>  mSystemClock;
-};
+	private:
+		std::unique_ptr<GameTime>     mGameTime;
+		std::unique_ptr<FrameLimiter> mFrameLimiter;
+		std::unique_ptr<SystemClock>  mSystemClock;
+	};
+}

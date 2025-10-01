@@ -1814,8 +1814,8 @@ IMGUIZMO_NAMESPACE {
 					ImVec2 ortogonalDir(dir.y, -dir.x); // Perpendicular vector
 					ImVec2 a(worldDirSSpace + dir);
 					drawList->AddTriangleFilled(worldDirSSpace - dir,
-					                            a + ortogonalDir,
-					                            a - ortogonalDir,
+					                            a + ortogonalDir * 0.5f,
+					                            a - ortogonalDir * 0.5f,
 					                            colors[i + 1]);
 					// Arrow head end
 

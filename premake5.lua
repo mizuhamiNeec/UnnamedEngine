@@ -58,7 +58,7 @@ function WindowsPlatformSettings()
     filter "system:windows"
         systemversion "latest"
         defines { "NOMINMAX" }
-        defines { "WIN32_LEAN_AND_MEAN" }
+        -- defines { "WIN32_LEAN_AND_MEAN" }
     filter {}
 end
 
@@ -97,6 +97,7 @@ group "Engine"
         WarningSettings()
         ConfigurationSettings()
         UnnamedSettings()
+        WindowsPlatformSettings()
 
         targetdir(path.join(BIN_DIR, outputdir, "%{prj.name}"))
         objdir(path.join(INT_DIR, outputdir, "%{prj.name}"))
@@ -106,7 +107,17 @@ group "Engine"
             "src/**.cpp",
             "src/**.h",
             "src/**.cpp",
+            "resources/shaders/**.hlsl",
+            "resources/shaders/**.hlsli",
         }
+	
+		filter { "files:resources/shaders/**.hlsl" }
+			flags { "ExcludeFromBuild" }
+			
+		filter { "files:resources/shaders/**.hlsli" }
+			flags { "ExcludeFromBuild" }
+			
+		filter {}
 	
 		excludes {
 			"src/thirdparty/**",

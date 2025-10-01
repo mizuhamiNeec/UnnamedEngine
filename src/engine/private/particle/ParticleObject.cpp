@@ -9,7 +9,7 @@
 #include "engine/public/renderer/SrvManager.h"
 #include "engine/public/TextureManager/TexManager.h"
 
-#include "math/public/random/Random.h"
+#include <runtime/core/math/Math.h>
 
 void ParticleObject::Init(ParticleManager*   particleCommon,
                           const std::string& textureFilePath) {

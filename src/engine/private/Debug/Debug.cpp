@@ -245,7 +245,7 @@ void Debug::DrawSphere(
 	if (radius <= 0) {
 		radius = 0.01f;
 	}
-	segments = max(segments, 2);
+	segments = std::max(segments, 2);
 
 	const int doubleSegments = segments * 2;
 
@@ -316,9 +316,9 @@ void Debug::DrawCylinder(
 	const Vec3 localRight   = orientation * Vec3::right;
 	const Vec3 localForward = orientation * Vec3::forward;
 
-	const Vec3 basePositionOffset = drawFromBase
-		                                ? Vec3::zero
-		                                : (localUp * height * 0.5f);
+	const Vec3 basePositionOffset = drawFromBase ?
+		                                Vec3::zero :
+		                                (localUp * height * 0.5f);
 	const Vec3 basePosition = position - basePositionOffset;
 	const Vec3 topPosition  = basePosition + localUp * height;
 
@@ -349,9 +349,9 @@ void Debug::DrawCapsule(
 	const Quaternion arcOrientation = orientation * Quaternion::Euler(
 		0, 90.0f * Math::deg2Rad, 0);
 
-	const Vec3 basePositionOffset = drawFromBase
-		                                ? Vec3::zero
-		                                : (localUp * height * 0.5f);
+	const Vec3 basePositionOffset = drawFromBase ?
+		                                Vec3::zero :
+		                                (localUp * height * 0.5f);
 	const Vec3 baseArcPosition = position + localUp * rad - basePositionOffset;
 	DrawArc(180, 360, baseArcPosition, orientation, rad, color);
 	DrawArc(180, 360, baseArcPosition, arcOrientation, rad, color);
@@ -394,10 +394,10 @@ void Debug::DrawCapsule(const Vec3& start, const Vec3& end, const float& radius,
 	DrawCylinder(start, orientation, length, radius, color, true);
 }
 
-void Debug::DrawTriangle(const Triangle& triangle, const Vec4 vec4) {
-	DrawLine(triangle.GetVertex(0), triangle.GetVertex(1), vec4);
-	DrawLine(triangle.GetVertex(1), triangle.GetVertex(2), vec4);
-	DrawLine(triangle.GetVertex(2), triangle.GetVertex(0), vec4);
+void Debug::DrawTriangle(const Unnamed::Triangle& triangle, const Vec4 vec4) {
+	DrawLine(triangle.v0, triangle.v1, vec4);
+	DrawLine(triangle.v1, triangle.v2, vec4);
+	DrawLine(triangle.v2, triangle.v0, vec4);
 }
 
 void Debug::Init(LineCommon* lineCommon) {

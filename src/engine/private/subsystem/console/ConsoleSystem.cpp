@@ -2,6 +2,7 @@
 //-----------------------------------------------------------------------------
 #include <iostream>
 
+#include <engine/public/OldConsole/Console.h>
 #include <engine/public/subsystem/console/ConsoleSystem.h>
 #include <engine/public/subsystem/console/Log.h>
 #include <engine/public/subsystem/console/concommand/base/UnnamedConCommandBase.h>
@@ -32,7 +33,6 @@ namespace Unnamed {
 #ifdef _DEBUG
 		mConsoleUI = std::make_unique<ConsoleUI>(this);
 #endif
-
 		return true;
 	}
 
@@ -61,7 +61,6 @@ namespace Unnamed {
 		logText.message   = message;
 		logText.timeStamp = SystemClock::GetDateTime(SystemClock::Now());
 		mLogBuffer.Push(logText);
-
 
 		std::string out;
 		if (!logText.channel.empty()) {

@@ -1,6 +1,7 @@
-#include "engine/public/platform/Window.h"
-
 #include <pch.h>
+
+#include <engine/public/platform/Window.h>
+
 
 Window::Window(
 	const WindowDesc& desc, const HINSTANCE hInstance,
@@ -73,7 +74,7 @@ LRESULT Window::WndProc(
 		);
 	}
 
-	// これでウィンドウのポインタを取得できるらしい! やったね!
+	//	これでウィンドウのポインタを取得できるらしい! やったね!
 	// Window* self = reinterpret_cast<Window*>(
 	// 	GetWindowLongPtrW(
 	// 		hWnd, GWLP_USERDATA
@@ -92,12 +93,10 @@ LRESULT Window::WndProc(
 	}
 
 	case WM_PAINT: {
-		//InvalidateRect(hWnd, nullptr, FALSE);
-		return 0;
+		break;
 	}
 	case WM_SIZE: {
-		//InvalidateRect(hWnd, nullptr, FALSE);
-		return 0;
+		break;
 	}
 
 	// TODO: メッセージを他のサブシステムに横流しする

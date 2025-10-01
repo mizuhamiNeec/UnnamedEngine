@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-#include "engine/public/structs/DateTime.h"
+#include <engine/public/time/DateTime.h>
 
 class SystemClock {
 public:
@@ -29,5 +29,5 @@ public:
 	[[nodiscard]] static DateTime GetDateTime(const TimePoint& tp);
 
 private:
-	static TimePoint sStartTime;
+	static TimePoint mStartTime;
 };

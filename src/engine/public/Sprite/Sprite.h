@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 #include "engine/public/renderer/ConstantBuffer.h"
 

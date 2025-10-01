@@ -10,8 +10,6 @@
 #include <engine/public/Components/Base/Component.h>
 #include <engine/public/Components/Transform/SceneComponent.h>
 
-#include <game/public/components/CameraRotator.h>
-
 enum class EntityType {
 	RuntimeOnly, // ゲーム中のみ
 	EditorOnly,  // エディターのみ
@@ -30,7 +28,9 @@ public:
 
 	~Entity();
 
+	void PrePhysics(float deltaTime) const;
 	void Update(float deltaTime);
+	void PostPhysics(float deltaTime) const;
 	void Render(ID3D12GraphicsCommandList* commandList) const;
 
 	[[nodiscard]] EntityType GetType() const;

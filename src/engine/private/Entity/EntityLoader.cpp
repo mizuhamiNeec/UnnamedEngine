@@ -5,7 +5,7 @@
 #include <engine/public/Entity/EntityLoader.h>
 #include <engine/public/ResourceSystem/Manager/ResourceManager.h>
 
-#include <game/public/scene/base/BaseScene.h>
+#include "game/scene/base/BaseScene.h"
 
 
 class StaticMeshRenderer;

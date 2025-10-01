@@ -15,6 +15,7 @@ public:
 
 	void SetTargetFPS(double targetFPS);
 
+	void BeginFrame();
 	void Limit();
 
 private:
@@ -25,5 +26,6 @@ private:
 
 	GameTime* mGameTime = nullptr;
 
-	Clock::duration mTargetFrameDuration;
+	Clock::duration   mTargetFrameDuration;
+	Clock::time_point mFrameStart;
 };

@@ -1,8 +1,6 @@
 #include <pch.h>
 
-#include <engine/public/Engine.h>
-#include <engine/public/platform/Win32App.h>
-
+#include <engine/public/uengine/UEngine.h>
 
 int WINAPI wWinMain(
 	[[maybe_unused]] const HINSTANCE hInstance,
@@ -15,23 +13,24 @@ int WINAPI wWinMain(
 	);
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
-	//const auto app    = std::make_unique<Win32App>(hInstance);
-	const auto engine = std::make_unique<Unnamed::Engine>();
-	//if (!app->Init()) { UASSERT(false && "Failed to initialize Win32App"); }
-	if (!engine->Init()) { UASSERT(false && "Failed to initialize Engine"); }
-	while (true) {
-		if (OldWindowManager::ProcessMessage()) {
-			break;
-		}
-		engine->Update();
-		// if (Win32App::PollEvents()) {
-		// 	break;
-		// }
-	}
-	engine->Shutdown();
+	const auto uEngine = std::make_unique<Unnamed::UEngine>();
+	uEngine->Run();
 
-	//app->Shutdown();
-	
+	// const auto engine = std::make_unique<Unnamed::Engine>();
+
+	//if (!engine->Init()) { UASSERT(false && "Failed to initialize Engine"); }
+	// while (!Win32App::PollEvents()) {
+	// 	// auto context = device->BeginFrame();
+	// 	//
+	// 	// device->EndFrame(context);
+	//
+	// 	// if (OldWindowManager::ProcessMessage()) {
+	// 	// 	break;
+	// 	// }
+	// 	// engine->Update();
+	// }
+
+	//	engine->Shutdown();
 	CoUninitialize();
 	return EXIT_SUCCESS;
 }

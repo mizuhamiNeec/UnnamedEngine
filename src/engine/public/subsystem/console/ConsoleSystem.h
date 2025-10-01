@@ -3,11 +3,11 @@
 #include <memory>
 #include <unordered_map>
 
-#include <engine/public/structs/DateTime.h>
+#include <engine/public/time/DateTime.h>
 #include <engine/public/subsystem/console/ConsoleUI.h>
 #include <engine/public/subsystem/console/interface/IConsole.h>
 #include <engine/public/subsystem/interface/ISubsystem.h>
-#include <engine/public/utils/container/RingBuffer.h>
+#include <core/containers/RingBuffer.h>
 
 namespace Unnamed {
 	class UnnamedConCommandBase;

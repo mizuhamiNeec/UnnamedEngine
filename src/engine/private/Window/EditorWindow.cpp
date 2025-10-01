@@ -1,10 +1,15 @@
+#include <pch.h>
+
+//-----------------------------------------------------------------------------
+
 #include "engine/public/Window/EditorWindow.h"
 
 #include "engine/public/OldConsole/Console.h"
-#include "engine/public/utils/StrUtil.h"
 #include "engine/public/Window/WindowManager.h"
 #include "engine/public/Window/base/BaseWindow.h"
-EditorWindow::EditorWindow() {}
+
+EditorWindow::EditorWindow() {
+}
 
 EditorWindow::~EditorWindow() {
 	CloseWindow(hWnd_);
@@ -13,46 +18,50 @@ EditorWindow::~EditorWindow() {
 bool EditorWindow::Create(const WindowInfo info) {
 	this->info_ = info;
 
-	WNDCLASSEX wc = {};
-	wc.cbSize = sizeof(WNDCLASSEX);
-	wc.style = CS_HREDRAW | CS_VREDRAW;
-	wc.lpfnWndProc = StaticWindowProc;
-	wc.hInstance = info_.hInstance;
-	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	WNDCLASSEX wc    = {};
+	wc.cbSize        = sizeof(WNDCLASSEX);
+	wc.style         = CS_HREDRAW | CS_VREDRAW;
+	wc.lpfnWndProc   = StaticWindowProc;
+	wc.hInstance     = info_.hInstance;
+	wc.hCursor       = LoadCursor(nullptr, IDC_ARROW);
 	wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(WHITE_BRUSH));
-	wc.lpszMenuName = nullptr;
+	wc.lpszMenuName  = nullptr;
 	wc.lpszClassName = StrUtil::ToWString(info_.className).c_str();
-	wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
-	wc.hIconSm = LoadIcon(info_.hInstance, IDI_APPLICATION);
+	wc.hIcon         = LoadIcon(nullptr, IDI_APPLICATION);
+	wc.hIconSm       = LoadIcon(info_.hInstance, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc)) {
 		Console::Print(
-			"Failed to register window class. Error: " + std::to_string(GetLastError()) + "\n",
+			"Failed to register window class. Error: " + std::to_string(
+				GetLastError()) + "\n",
 			kConTextColorError
 		);
 		return false;
 	}
 
-	RECT wrc{ 0, 0, static_cast<LONG>(info_.width), static_cast<LONG>(info_.height) };
+	RECT wrc{
+		0, 0, static_cast<LONG>(info_.width), static_cast<LONG>(info_.height)
+	};
 
 	AdjustWindowRectEx(&wrc, info_.style, false, info_.exStyle);
 
 	hWnd_ = CreateWindowEx(
 		info_.exStyle, // 拡張ウィンドウスタイル
 		wc.lpszClassName,
-		StrUtil::ToWString(info_.title).c_str(), // ウィンドウタイトル
-		info_.style, // ウィンドウスタイル
-		CW_USEDEFAULT, CW_USEDEFAULT, // ウィンドウの初期位置
-		wrc.right - wrc.left, // ウィンドウの幅
-		wrc.bottom - wrc.top, // ウィンドウの高さ
+		StrUtil::ToWString(info_.title).c_str(),              // ウィンドウタイトル
+		info_.style,                                          // ウィンドウスタイル
+		CW_USEDEFAULT, CW_USEDEFAULT,                         // ウィンドウの初期位置
+		wrc.right - wrc.left,                                 // ウィンドウの幅
+		wrc.bottom - wrc.top,                                 // ウィンドウの高さ
 		OldWindowManager::GetMainWindow()->GetWindowHandle(), // このウィンドウの親
-		nullptr, // メニュー
+		nullptr,                                              // メニュー
 		wc.hInstance,
 		this
 	);
 
 	if (!hWnd_) {
-		Console::Print("Failed to create window.\n", kConTextColorError, Channel::Engine);
+		Console::Print("Failed to create window.\n", kConTextColorError,
+		               Channel::Engine);
 		return false;
 	}
 
@@ -64,7 +73,8 @@ bool EditorWindow::Create(const WindowInfo info) {
 	// このウィンドウにフォーカス
 	SetFocus(hWnd_);
 
-	Console::Print("Complete create MainWindow.\n", kConTextColorCompleted, Channel::Engine);
+	Console::Print("Complete create MainWindow.\n", kConTextColorCompleted,
+	               Channel::Engine);
 
 	return true;
 }
@@ -86,6 +96,7 @@ void EditorWindow::SetResizeCallback(ResizeCallback callback) {
 	resizeCallback_ = std::move(callback);
 }
 
-LRESULT EditorWindow::WindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
+LRESULT EditorWindow::WindowProc(const HWND   hWnd, const UINT     msg,
+                                 const WPARAM wParam, const LPARAM lParam) {
 	return DefWindowProc(hWnd, msg, wParam, lParam);
 }

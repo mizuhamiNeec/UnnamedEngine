@@ -6,7 +6,7 @@
 
 namespace UPhysics {
 	bool RayVsAABB(
-		const Ray& ray, const AABB& aabb,
+		const Unnamed::Ray& ray, const Unnamed::AABB& aabb,
 		float&     tMaxOut
 	) {
 		float tMin = ray.tMin;
@@ -14,12 +14,12 @@ namespace UPhysics {
 
 		for (int i = 0; i < 3; ++i) {
 			if (fabs(ray.dir[i]) < 1e-8f) {
-				if (ray.start[i] < aabb.min[i] || ray.start[i] > aabb.max[i])
+				if (ray.origin[i] < aabb.min[i] || ray.origin[i] > aabb.max[i])
 					return false;
 			} else {
 				const float invD = 1.0f / ray.dir[i];
-				float       t1   = (aabb.min[i] - ray.start[i]) * invD;
-				float       t2   = (aabb.max[i] - ray.start[i]) * invD;
+				float       t1   = (aabb.min[i] - ray.origin[i]) * invD;
+				float       t2   = (aabb.max[i] - ray.origin[i]) * invD;
 				if (t1 > t2) std::swap(t1, t2);
 				tMin    = t1 > tMin ? t1 : tMin;
 				tMaxOut = t2 < tMaxOut ? t2 : tMaxOut;
@@ -31,7 +31,7 @@ namespace UPhysics {
 	}
 
 	bool TriangleVsRay(
-		const Triangle& triangle, const Ray& ray,
+		const Unnamed::Triangle& triangle, const Unnamed::Ray& ray,
 		float&          tHit, Vec3&          outNormal
 	) {
 		constexpr float kEpsilon = 1e-6f;
@@ -45,7 +45,7 @@ namespace UPhysics {
 		}
 		float invDet = 1.0f / det;
 
-		Vec3  s = ray.start - triangle.v0;
+		Vec3  s = ray.origin - triangle.v0;
 		float u = s.Dot(p) * invDet;
 		if (u < 0.0f || u > 1.0f) {
 			return false;
@@ -69,15 +69,15 @@ namespace UPhysics {
 	}
 
 	bool SweptAabbVsTriSAT(
-		const Box&      box0,
+		const Unnamed::Box&      box0,
 		const Vec3&     delta,
-		const Triangle& tri,
+		const Unnamed::Triangle& tri,
 		float&          outTOI,
 		Vec3&           outNrm
 	) {
 		/* ---------- 1. 基本量 ---------- */
 		const Vec3 C0 = box0.center;
-		const Vec3 H  = box0.half;
+		const Vec3 H  = box0.halfSize;
 		const Vec3 V  = delta; // 世界ベロシティ
 
 		/* ---------- 2. 13 軸を列挙 ---------- */
@@ -169,7 +169,7 @@ namespace UPhysics {
 		const Vec3&     center,
 		float           radius,
 		const Vec3&     delta,
-		const Triangle& tri,
+		const Unnamed::Triangle& tri,
 		float&          outTOI,
 		Vec3&           outNormal
 	) {
@@ -330,7 +330,7 @@ namespace UPhysics {
 		float           halfHeight,
 		float           radius,
 		const Vec3&     delta,
-		const Triangle& tri,
+		const Unnamed::Triangle& tri,
 		float&          outTOI,
 		Vec3&           outNormal
 	) {
@@ -343,7 +343,7 @@ namespace UPhysics {
 		const Vec3&     b,
 		float           radius,
 		const Vec3&     delta,
-		const Triangle& tri,
+		const Unnamed::Triangle& tri,
 		float&          outTOI,
 		Vec3&           outNormal
 	) {
@@ -352,8 +352,8 @@ namespace UPhysics {
 	}
 
 	bool BoxVsTriangleOverlap(
-		const Box&      box,
-		const Triangle& tri,
+		const Unnamed::Box&      box,
+		const Unnamed::Triangle& tri,
 		Vec3&           outNormal,
 		float&          outDepth) {
 		// 1) テストする軸 13 本
@@ -393,9 +393,9 @@ namespace UPhysics {
 
 			// Box（中心 + half）の投影
 			float boxCenter = ax.Dot(box.center);
-			float boxExtent = std::abs(ax.x) * box.half.x +
-				std::abs(ax.y) * box.half.y +
-				std::abs(ax.z) * box.half.z;
+			float boxExtent = std::abs(ax.x) * box.halfSize.x +
+				std::abs(ax.y) * box.halfSize.y +
+				std::abs(ax.z) * box.halfSize.z;
 			float boxMin = boxCenter - boxExtent;
 			float boxMax = boxCenter + boxExtent;
 

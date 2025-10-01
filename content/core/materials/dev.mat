@@ -1,0 +1,25 @@
+{
+    "name": "dev",
+    "programBody": "./content/core/materials/src/UserMat.hlsl",
+    "programMeta": "./content/core/materials/src/UserMat.hlsl.meta.json",
+    "textures": {
+        "MainTex": "./content/core/textures/error.png"
+    },
+    "floats": {
+        "Metallic": 0.2,
+        "Roughness": 100,
+        "Opacity": 0.6,
+        "EmissiveStrength": 0
+    },
+    "float4s": {
+        "BaseColor": [
+            1, 1, 1, 1
+        ],
+        "Emissive": [
+            0.0, 0.1, 0.1, 0.0
+        ]
+    },
+    "defines": [
+        "USE_SOMETHING=1"
+    ]
+}

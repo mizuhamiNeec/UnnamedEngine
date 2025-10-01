@@ -1,3 +1,7 @@
+#include <pch.h>
+
+//-----------------------------------------------------------------------------
+
 #include "engine/public/renderer/PipelineState.h"
 
 #include <cassert>
@@ -9,18 +13,18 @@
 #include <string>
 
 #include <engine/public/OldConsole/Console.h>
-#include <engine/public/utils/Properties.h>
-#include <engine/public/utils/StrUtil.h>
+#include <runtime/core/Properties.h>
+#include <runtime/core/math/Math.h>
 
 PipelineState::PipelineState() = default;
 
 PipelineState::PipelineState(
-	const D3D12_CULL_MODE cullMode,
-	const D3D12_FILL_MODE fillMode,
+	const D3D12_CULL_MODE               cullMode,
+	const D3D12_FILL_MODE               fillMode,
 	const D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType,
-	const D3D12_DEPTH_STENCIL_DESC& depthStencilDesc
+	const D3D12_DEPTH_STENCIL_DESC&     depthStencilDesc
 ) {
-	D3D12_BLEND_DESC blendDesc = {};
+	D3D12_BLEND_DESC blendDesc                      = {};
 	blendDesc.RenderTarget[0].RenderTargetWriteMask =
 		D3D12_COLOR_WRITE_ENABLE_ALL;
 
@@ -28,18 +32,18 @@ PipelineState::PipelineState(
 	mRasterizerDesc.FillMode = fillMode; // 三角形の中を塗りつぶす
 
 	// ステートの設定
-	mDesc.BlendState = blendDesc; // BlendState
+	mDesc.BlendState      = blendDesc;       // BlendState
 	mDesc.RasterizerState = mRasterizerDesc; // RasterizerState
 	// 書き込むRTVの情報
 	mDesc.NumRenderTargets = 1;
-	mDesc.RTVFormats[0] = kBufferFormat;
+	mDesc.RTVFormats[0]    = kBufferFormat;
 	// 利用するトポロジ(形状)のタイプ。三角形
 	mDesc.PrimitiveTopologyType = topologyType;
 	// どのように画面に色を打ち込むかの設定(気にしなくて良い)
-	mDesc.SampleDesc.Count = 1;
-	mDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+	mDesc.SampleDesc.Count  = 1;
+	mDesc.SampleMask        = D3D12_DEFAULT_SAMPLE_MASK;
 	mDesc.DepthStencilState = depthStencilDesc;
-	mDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+	mDesc.DSVFormat         = DXGI_FORMAT_D32_FLOAT;
 
 	// DXCの初期化
 	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&mDxcUtils));
@@ -111,7 +115,7 @@ void PipelineState::SetPixelShader(const std::wstring& filePath) {
 
 IDxcBlob* PipelineState::CompileShader(
 	const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils,
-	IDxcCompiler3* dxcCompiler,
+	IDxcCompiler3*      dxcCompiler,
 	IDxcIncludeHandler* includeHandler
 ) {
 	/* 1. hlslファイルを読む */
@@ -121,28 +125,28 @@ IDxcBlob* PipelineState::CompileShader(
 	// 読めなかったら止める
 	assert(SUCCEEDED(hr));
 	// 読み込んだファイルの内容を設定する
-	DxcBuffer shaderSourceBuffer {};
-	shaderSourceBuffer.Ptr = shaderSource->GetBufferPointer();
-	shaderSourceBuffer.Size = shaderSource->GetBufferSize();
+	DxcBuffer shaderSourceBuffer{};
+	shaderSourceBuffer.Ptr      = shaderSource->GetBufferPointer();
+	shaderSourceBuffer.Size     = shaderSource->GetBufferSize();
 	shaderSourceBuffer.Encoding = DXC_CP_UTF8; // UTF8の文字コードであることを通知
 
 	/* 2. Compileする */
 	LPCWSTR arguments[] = {
-		filePath.c_str(), // コンパイル対象のhlslファイル名
-		L"-E", L"main", // エントリーポイントの指定。基本的にmain以外にはしない
-		L"-T", profile, // ShaderProfileの設定
+		filePath.c_str(),         // コンパイル対象のhlslファイル名
+		L"-E", L"main",           // エントリーポイントの指定。基本的にmain以外にはしない
+		L"-T", profile,           // ShaderProfileの設定
 		L"-Zi", L"-Qembed_debug", // デバッグ用の情報を埋め込む
-		L"-Od", // 最適化を外しておく
-		L"-Zpr", // メモリレイアウトは行優先
+		L"-Od",                   // 最適化を外しておく
+		L"-Zpr",                  // メモリレイアウトは行優先
 	};
 
 	// 実際にShaderをコンパイルする
 	IDxcResult* shaderResult = nullptr;
-	hr = dxcCompiler->Compile(
-		&shaderSourceBuffer, // 読み込んだファイル
-		arguments, // コンパイルオプション
-		_countof(arguments), // コンパイルオプションの数
-		includeHandler, // includeが含まれた諸々
+	hr                       = dxcCompiler->Compile(
+		&shaderSourceBuffer,        // 読み込んだファイル
+		arguments,                  // コンパイルオプション
+		_countof(arguments),        // コンパイルオプションの数
+		includeHandler,             // includeが含まれた諸々
 		IID_PPV_ARGS(&shaderResult) // コンパイル結果
 	);
 
@@ -166,7 +170,7 @@ IDxcBlob* PipelineState::CompileShader(
 	/* 4. Compile結果を受け取って返す */
 	// コンパイル結果から実行用のバイナリ部分を取得
 	IDxcBlob* shaderBlob = nullptr;
-	hr = shaderResult->GetOutput(
+	hr                   = shaderResult->GetOutput(
 		DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr
 	);
 	assert(SUCCEEDED(hr));
@@ -200,68 +204,68 @@ void PipelineState::Create(ID3D12Device* device) {
 }
 
 void PipelineState::SetBlendMode(const BlendMode blendMode) {
-	D3D12_BLEND_DESC blendDesc = {};
-	blendDesc.AlphaToCoverageEnable = FALSE;
-	blendDesc.IndependentBlendEnable = FALSE;
+	D3D12_BLEND_DESC blendDesc                 = {};
+	blendDesc.AlphaToCoverageEnable            = FALSE;
+	blendDesc.IndependentBlendEnable           = FALSE;
 	D3D12_RENDER_TARGET_BLEND_DESC rtBlendDesc = {};
-	rtBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	rtBlendDesc.RenderTargetWriteMask          = D3D12_COLOR_WRITE_ENABLE_ALL;
 
 	switch (blendMode) {
 	case kBlendModeNone: // 不透明
 		rtBlendDesc.BlendEnable = FALSE;
-	// ブレンドしないので値の設定不要
+		// ブレンドしないので値の設定不要
 		break;
 	case kBlendModeNormal: // アルファブレンド
 		rtBlendDesc.BlendEnable = TRUE;
-		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-		rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
+		rtBlendDesc.SrcBlend       = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.DestBlend      = D3D12_BLEND_INV_SRC_ALPHA;
+		rtBlendDesc.BlendOp        = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha  = D3D12_BLEND_ZERO;
 		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.BlendOpAlpha   = D3D12_BLEND_OP_ADD;
 		break;
 	case kBlendModeAdd: // 加算
 		rtBlendDesc.BlendEnable = TRUE;
-		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		rtBlendDesc.DestBlend = D3D12_BLEND_ONE;
-		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-			rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
-    		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlend       = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.DestBlend      = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOp        = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha  = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOpAlpha   = D3D12_BLEND_OP_ADD;
 		break;
 	case kBlendModeSubtract: // 減算
 		rtBlendDesc.BlendEnable = TRUE;
-		rtBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-		rtBlendDesc.DestBlend = D3D12_BLEND_ONE;
-		rtBlendDesc.BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;
-				rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
-        		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlend       = D3D12_BLEND_SRC_ALPHA;
+		rtBlendDesc.DestBlend      = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOp        = D3D12_BLEND_OP_REV_SUBTRACT;
+		rtBlendDesc.SrcBlendAlpha  = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOpAlpha   = D3D12_BLEND_OP_ADD;
 		break;
 	case kBlendModeMultiply: // 乗算
 		rtBlendDesc.BlendEnable = TRUE;
-		rtBlendDesc.SrcBlend = D3D12_BLEND_DEST_COLOR;
-		rtBlendDesc.DestBlend = D3D12_BLEND_ZERO;
-		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-			rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
-    		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlend       = D3D12_BLEND_DEST_COLOR;
+		rtBlendDesc.DestBlend      = D3D12_BLEND_ZERO;
+		rtBlendDesc.BlendOp        = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha  = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOpAlpha   = D3D12_BLEND_OP_ADD;
 		break;
 	case kBlendModeScreen: // スクリーン（発光）
 		rtBlendDesc.BlendEnable = TRUE;
-		rtBlendDesc.SrcBlend = D3D12_BLEND_ONE;
-		rtBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_COLOR;
-		rtBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
-			rtBlendDesc.SrcBlendAlpha = D3D12_BLEND_ZERO;
-    		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
-		rtBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlend       = D3D12_BLEND_ONE;
+		rtBlendDesc.DestBlend      = D3D12_BLEND_INV_SRC_COLOR;
+		rtBlendDesc.BlendOp        = D3D12_BLEND_OP_ADD;
+		rtBlendDesc.SrcBlendAlpha  = D3D12_BLEND_ZERO;
+		rtBlendDesc.DestBlendAlpha = D3D12_BLEND_ONE;
+		rtBlendDesc.BlendOpAlpha   = D3D12_BLEND_OP_ADD;
 		break;
 	case kCountOfBlendMode:
 	default: break;
 	}
 	blendDesc.RenderTarget[0] = rtBlendDesc;
-	mDesc.BlendState = blendDesc;
-	mCurrentBlendMode = blendMode;
+	mDesc.BlendState          = blendDesc;
+	mCurrentBlendMode         = blendMode;
 }
 
 auto PipelineState::GetBlendMode() const -> BlendMode {

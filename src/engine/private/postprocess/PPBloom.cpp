@@ -1,10 +1,13 @@
+#include <pch.h>
+
+//-----------------------------------------------------------------------------
+
 #include <cassert>
 
 #include <engine/public/OldConsole/Console.h>
 #include <engine/public/postprocess/PPBloom.h>
 #include <engine/public/renderer/PipelineState.h>
 #include <engine/public/renderer/SrvManager.h>
-#include <engine/public/utils/UnnamedMacro.h>
 
 #ifdef _DEBUG
 #include <imgui.h>

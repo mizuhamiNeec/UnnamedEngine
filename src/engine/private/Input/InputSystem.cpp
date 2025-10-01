@@ -1,12 +1,14 @@
+#include <pch.h>
+
+//-----------------------------------------------------------------------------
+
 #include <format>
 #include <ranges>
 
 #include <engine/public/Input/InputSystem.h>
 #include <engine/public/OldConsole/ConCommand.h>
 #include <engine/public/OldConsole/Console.h>
-#include <engine/public/utils/StrUtil.h>
-
-#include "engine/public/Window/WindowManager.h"
+#include <engine/public/Window/WindowManager.h>
 
 //-----------------------------------------------------------------------------
 // Purpose: インプットシステムの初期化を行います

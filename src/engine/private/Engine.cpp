@@ -21,15 +21,14 @@
 #include <engine/public/postprocess/PPVignette.h>
 #include <engine/public/renderer/SrvManager.h>
 #include <engine/public/subsystem/console/ConsoleSystem.h>
-#include <engine/public/subsystem/console/Log.h>
 #include <engine/public/subsystem/interface/ServiceLocator.h>
 #include <engine/public/subsystem/time/TimeSystem.h>
 #include <engine/public/TextureManager/TexManager.h>
 #include <engine/public/Window/MainWindow.h>
 #include <engine/public/Window/WindowsUtils.h>
 
-#include <game/public/scene/EmptyScene.h>
-#include <game/public/scene/GameScene.h>
+#include "game/scene/EmptyScene.h"
+#include "game/scene/GameScene.h"
 
 #include "engine/public/subsystem/console/concommand/UnnamedConCommand.h"
 #include "engine/public/subsystem/console/concommand/UnnamedConVar.h"

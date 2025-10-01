@@ -18,10 +18,10 @@ bool Win32App::PollEvents() {
 	MSG msg = {};
 	while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
 		if (msg.message == WM_QUIT) {
-			return false;
+			return true; // アプリケーション終了
 		}
 		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
+		DispatchMessageW(&msg); // 各ウィンドウのWndProcに処理を委譲
 	}
-	return true;
+	return false; // アプリケーション続行
 }
