@@ -1,22 +1,23 @@
-#include "engine/public/ResourceSystem/Mesh/MeshManager.h"
+#include <pch.h>
+
+//-----------------------------------------------------------------------------
 
 #include <codecvt>
 #include <filesystem>
+#include <format>
 #include <iostream>
 #include <ranges>
 #include <string>
-#include <format>
-
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/postprocess.h>
 
-#include "engine/public/OldConsole/Console.h"
-#include "engine/public/ResourceSystem/Material/MaterialManager.h"
-#include "engine/public/ResourceSystem/Shader/DefaultShader.h"
-#include "engine/public/subsystem/console/Log.h"
-#include "engine/public/TextureManager/TexManager.h"
+#include <engine/public/OldConsole/Console.h>
+#include <engine/public/ResourceSystem/Material/MaterialManager.h>
+#include <engine/public/ResourceSystem/Mesh/MeshManager.h>
+#include <engine/public/ResourceSystem/Shader/DefaultShader.h>
+#include <engine/public/TextureManager/TexManager.h>
 
 void MeshManager::Init(ID3D12Device*    device, ShaderManager* shaderManager,
                        MaterialManager* materialManager) {
@@ -198,9 +199,9 @@ bool MeshManager::LoadSkeletalMeshFromFile(const std::string& filePath) {
 }
 
 SkeletalMesh* MeshManager::GetSkeletalMesh(const std::string& name) const {
-	return mSkeletalMeshes.contains(name)
-		       ? mSkeletalMeshes.at(name).get()
-		       : nullptr;
+	return mSkeletalMeshes.contains(name) ?
+		       mSkeletalMeshes.at(name).get() :
+		       nullptr;
 }
 
 SkeletalMesh* MeshManager::CreateSkeletalMesh(const std::string& name) {

@@ -186,13 +186,13 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList,
 						};
 					}
 				} else {
-					Console::Print(
-						std::format(
-							"Material::Apply: 警告 - シェーダーにテクスチャ {} が見つかりません\n",
-							name),
-						kConTextColorWarning,
-						Channel::ResourceSystem
-					);
+					// Console::Print(
+					// 	std::format(
+					// 		"Material::Apply: 警告 - シェーダーにテクスチャ {} が見つかりません\n",
+					// 		name),
+					// 	kConTextColorWarning,
+					// 	Channel::ResourceSystem
+					// );
 				}
 			}
 		}

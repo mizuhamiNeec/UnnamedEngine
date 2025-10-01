@@ -245,7 +245,7 @@ void Debug::DrawSphere(
 	if (radius <= 0) {
 		radius = 0.01f;
 	}
-	segments = max(segments, 2);
+	segments = std::max(segments, 2);
 
 	const int doubleSegments = segments * 2;
 

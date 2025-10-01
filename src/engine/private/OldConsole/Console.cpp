@@ -1,5 +1,7 @@
 #include <pch.h>
 
+//-----------------------------------------------------------------------------
+
 #include <algorithm>
 #include <filesystem>
 #include <format>
@@ -13,9 +15,11 @@
 #include <engine/public/OldConsole/Console.h>
 #include <engine/public/OldConsole/ConVarManager.h>
 #include <engine/public/subsystem/time/SystemClock.h>
-#include <engine/public/utils/IniParser.h>
+#include <engine/public/utils/ini/IniParser.h>
 #include <engine/public/Window/WindowManager.h>
 #include <engine/public/Window/WindowsUtils.h>
+
+#include "engine/public/ImGui/ImGuiWidgets.h"
 
 using SetThreadDescriptionFunc = HRESULT(WINAPI*)(HANDLE, PCWSTR);
 
@@ -134,7 +138,7 @@ void Console::Update() {
 			}
 		}
 
-		if (ImGuiManager::IconButton(
+		if (ImGuiWidgets::IconButton(
 			StrUtil::ConvertToUtf8(kIconTerminal).c_str(), "ConVar",
 			{48.0f, 48.0f})) {
 			bShowConVarHelper_ = !bShowConVarHelper_;
@@ -378,9 +382,9 @@ void Console::Print(
 
 	// ログへの書き込み
 	if (ConVarManager::GetConVar("verbose")->GetValueAsBool()) {
-		std::string channelStr = (channel != Channel::None)
-			                         ? "[" + ToString(channel) + "] "
-			                         : "";
+		std::string channelStr = (channel != Channel::None) ?
+			                         "[" + ToString(channel) + "] " :
+			                         "";
 		OutputDebugString(StrUtil::ToWString(channelStr + message).c_str());
 		LogToFileAsync(channelStr + message);
 	}
@@ -391,25 +395,25 @@ void Console::Print(
 		taskQueue_.emplace([message, color, channel] {
 			std::string       msg        = message;
 			const bool        hasNewLine = !msg.empty() && msg.back() == '\n';
-			const std::string baseMsg    = hasNewLine
-				                            ? msg.substr(0, msg.size() - 1)
-				                            : msg;
+			const std::string baseMsg    = hasNewLine ?
+				                            msg.substr(0, msg.size() - 1) :
+				                            msg;
 
 #ifdef _DEBUG
 			if (!consoleTexts_.empty()) {
 				const std::string lastMsg = consoleTexts_.back().text;
 				const bool lastHasNewLine = !lastMsg.empty() && lastMsg.back()
 					== '\n';
-				const std::string lastBaseMsg = lastHasNewLine
-					                                ? lastMsg.substr(
-						                                0, lastMsg.size() - 1)
-					                                : lastMsg;
+				const std::string lastBaseMsg = lastHasNewLine ?
+					                                lastMsg.substr(
+						                                0, lastMsg.size() - 1) :
+					                                lastMsg;
 
 				const size_t      bracketPos = lastBaseMsg.find(" [x");
 				const std::string lastBaseMsgWithoutCount =
-					(bracketPos != std::string::npos)
-						? lastBaseMsg.substr(0, bracketPos)
-						: lastBaseMsg;
+					(bracketPos != std::string::npos) ?
+						lastBaseMsg.substr(0, bracketPos) :
+						lastBaseMsg;
 
 				if (baseMsg == lastBaseMsgWithoutCount && lastMsg != "]\n") {
 					UpdateRepeatCount(baseMsg, hasNewLine, channel, color);
@@ -581,9 +585,9 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	// 結合処理
 	for (size_t i = 0; i < maxRows; ++i) {
 		constexpr size_t padding  = 5;
-		std::string      leftPart = (i < asciiArt.size())
-			                       ? asciiArt[i]
-			                       : std::string(asciiWidth, ' ');
+		std::string      leftPart = (i < asciiArt.size()) ?
+			                       asciiArt[i] :
+			                       std::string(asciiWidth, ' ');
 		std::string rightPart = (i < info.size()) ? info[i] : "";
 		combined.emplace_back(leftPart + std::string(padding, ' ') + rightPart);
 	}
@@ -701,7 +705,7 @@ void Console::SuggestPopup(
 	ImGui::SetNextWindowPos(pos);
 	ImGui::SetNextWindowSize(size);
 	ImGui::Begin("suggestPopup", nullptr, flags);
-	ImGui::PushAllowKeyboardFocus(false);
+	ImGui::SetKeyboardFocusHere();
 
 	for (size_t i = 0; i < kConsoleSuggestLineCount; ++i) {
 		size_t test = ConVarManager::GetAllConVars().size();
@@ -727,7 +731,6 @@ void Console::SuggestPopup(
 		}
 	}
 
-	ImGui::PopAllowKeyboardFocus();
 	ImGui::PopStyleVar();
 	ImGui::End();
 }
@@ -1713,11 +1716,9 @@ std::string Console::FormatColorForIni(const Vec4& color) {
 
 	// 各float値をバイト配列に変換
 	for (int i = 0; i < 4; ++i) {
-		float component = i == 0
-			                  ? color.x
-			                  : (i == 1
-				                     ? color.y
-				                     : (i == 2 ? color.z : color.w));
+		float component = i == 0 ?
+			                  color.x :
+			                  (i == 1 ? color.y : (i == 2 ? color.z : color.w));
 		uint32_t val = *reinterpret_cast<const uint32_t*>(&component);
 
 		bytes[i * 4]     = static_cast<uint8_t>(val & 0xFF);
@@ -2224,12 +2225,10 @@ void Console::ConsoleUpdateAsync() const {
 				} catch (const std::length_error& e) {
 					Print(std::string("Length error in task: ") + e.what() +
 					      "\n", kConTextColorError, Channel::Console);
-				}
-				catch (const std::exception& e) {
+				} catch (const std::exception& e) {
 					Print(std::string("Task exception: ") + e.what() + "\n",
 					      kConTextColorError, Channel::Console);
-				}
-				catch (...) {
+				} catch (...) {
 					Print("Task exception: Unknown error\n", kConTextColorError,
 					      Channel::Console);
 				}
@@ -2241,8 +2240,7 @@ void Console::ConsoleUpdateAsync() const {
 	} catch (const std::exception& e) {
 		Print(std::string("ConsoleUpdateAsync exception: ") + e.what() + "\n",
 		      kConTextColorError, Channel::Console);
-	}
-	catch (...) {
+	} catch (...) {
 		Print("ConsoleUpdateAsync exception: Unknown error\n",
 		      kConTextColorError, Channel::Console);
 	}

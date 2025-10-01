@@ -4,6 +4,8 @@
 #include <engine/public/OldConsole/ConVarManager.h>
 #include <engine/public/subsystem/time/GameTime.h>
 
+#include "engine/public/Engine.h"
+
 void DebugHud::Update(const float deltaTime) {
 	ShowFrameRate(deltaTime);
 	ShowPlayerInfo();
@@ -29,12 +31,10 @@ void DebugHud::ShowFrameRate([[maybe_unused]] const float deltaTime) {
 		ImGuiWindowFlags_NoFocusOnAppearing |
 		ImGuiWindowFlags_NoNav;
 
-	auto windowPos = ImVec2(0.0f, 128.0f);
-
-	windowPos.x = ImGui::GetMainViewport()->Pos.x + windowPos.x;
-	windowPos.y = ImGui::GetMainViewport()->Pos.y + windowPos.y;
-
+	const auto viewportLt = Unnamed::Engine::GetViewportLT();
+	const auto windowPos  = ImVec2(viewportLt.x, viewportLt.y + 128.0f);
 	ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+
 	std::string text;
 	float       fps;
 	if (flag == 1) {
