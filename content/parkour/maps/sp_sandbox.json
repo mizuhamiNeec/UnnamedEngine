@@ -1,0 +1,67 @@
+﻿{
+  "name": "warehouse",
+  "settings": {
+    "gravity": [
+      0.0,
+      800.0,
+      0.0
+    ]
+  },
+  "entities": [
+    {
+      "name": "Crate",
+      "components": [
+        {
+          "type": "Transform",
+          "pos": [
+            0,
+            0,
+            0
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "type": "MeshRenderer",
+          "mesh": "./resources/models/error.obj",
+          "material": "./resources/materials/tri.mat"
+        }
+      ]
+    },
+    {
+      "name": "SubLevel",
+      "components": [
+        {
+          "type": "Transform",
+          "pos": [
+            0,
+            0,
+            0
+          ],
+          "rot": [
+            0,
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "type": "WorldInstance",
+          "world": "./resources/levels/test.json"
+        }
+      ]
+    }
+  ]
+}
