@@ -4,8 +4,9 @@
 #include "engine/public/Debug/Debug.h"
 #include "engine/public/Entity/Entity.h"
 #include "engine/public/OldConsole/ConVarManager.h"
-#include "engine/public/Physics/PhysicsEngine.h"
-#include "engine/public/uphysics/UPhysics.h"
+#include "engine/public/uphysics/PhysicsTypes.h"
+
+#include "runtime/physics/core/UPhysics.h"
 
 CharacterMovement::~CharacterMovement() {
 }
@@ -91,11 +92,11 @@ bool CharacterMovement::CheckGrounded() {
 
 	/* UPhysics::Box を組み立てる（高さは 2HU 分） */
 	Unnamed::Box box;
-	box.center = startPos;
-	box.halfSize   = {
-		collider->GetBoundingBox().GetHalfSize().x,
+	box.center   = startPos;
+	box.halfSize = {
+		32.0f,
 		Math::HtoM(2.0f), // 2HU → m
-		collider->GetBoundingBox().GetHalfSize().z
+		32.0f
 	};
 
 	/* BoxCast */
