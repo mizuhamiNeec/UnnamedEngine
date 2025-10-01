@@ -7,11 +7,9 @@
 #include "engine/public/particle/ParticleManager.h"
 #include "engine/public/particle/ParticleObject.h"
 
-#include "game/public/components/GameMovementComponent.h"
-#include "game/public/components/PlayerMovement.h"
-#include "game/public/components/PlayerMovementUPhysics.h"
+#include <runtime/core/math/Math.h>
 
-#include "math/public/random/Random.h"
+#include "game/components/GameMovementComponent.h"
 
 WindEffect::~WindEffect() {
 	if (mWindParticle) {
