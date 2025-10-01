@@ -3,7 +3,7 @@
     "programBody": "./content/core/materials/src/UserMat.hlsl",
     "programMeta": "./content/core/materials/src/UserMat.hlsl.meta.json",
     "textures": {
-        "MainTex": "./content/core/textures/error.png"
+        "MainTex": "./content/core/textures/dev_measure.png"
     },
     "floats": {
         "Metallic": 0.2,
