@@ -1,10 +1,10 @@
 #include <game/components/CharacterMovement.h>
 
-#include <engine/public/Components/ColliderComponent/Base/ColliderComponent.h>
-#include <engine/public/Debug/Debug.h>
-#include <engine/public/Entity/Entity.h>
-#include <engine/public/OldConsole/ConVarManager.h>
-#include <engine/public/uphysics/PhysicsTypes.h>
+#include <engine/Components/ColliderComponent/Base/ColliderComponent.h>
+#include <engine/Debug/Debug.h>
+#include <engine/Entity/Entity.h>
+#include <engine/OldConsole/ConVarManager.h>
+#include <engine/uphysics/PhysicsTypes.h>
 
 #include <runtime/physics/core/UPhysics.h>
 

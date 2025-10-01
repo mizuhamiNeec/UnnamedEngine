@@ -4,8 +4,8 @@
 #include <imgui.h>
 #endif
 
-#include <engine/public/Components/Transform/SceneComponent.h>
-#include <engine/public/Input/InputSystem.h>
+#include <engine/Components/Transform/SceneComponent.h>
+#include <engine/Input/InputSystem.h>
 
 WeaponSway::~WeaponSway() = default;
 

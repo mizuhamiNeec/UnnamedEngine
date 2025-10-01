@@ -4,7 +4,7 @@
 #include <deque>
 #include <unordered_map>
 
-#include <engine/public/urenderer/GraphicsDevice.h>
+#include <engine/urenderer/GraphicsDevice.h>
 
 #include <runtime/assets/core/UAssetID.h>
 

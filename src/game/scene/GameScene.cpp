@@ -2,22 +2,22 @@
 
 #include <format>
 
-#include <engine/public/Engine.h>
-#include <engine/public/Camera/CameraManager.h>
-#include <engine/public/Components/ColliderComponent/MeshColliderComponent.h>
-#include <engine/public/Debug/Debug.h>
-#include <engine/public/Debug/DebugHud.h>
-#include <engine/public/ImGui/ImGuiUtil.h>
-#include <engine/public/Input/InputSystem.h>
-#include <engine/public/OldConsole/ConVarManager.h>
-#include <engine/public/TextureManager/TexManager.h>
+#include <engine/Engine.h>
+#include <engine/Camera/CameraManager.h>
+#include <engine/Components/ColliderComponent/MeshColliderComponent.h>
+#include <engine/Debug/Debug.h>
+#include <engine/Debug/DebugHud.h>
+#include <engine/ImGui/ImGuiUtil.h>
+#include <engine/Input/InputSystem.h>
+#include <engine/OldConsole/ConVarManager.h>
+#include <engine/TextureManager/TexManager.h>
 
 #include "core/guidgenerator/GUIDGenerator.h"
 #include "core/json/JsonWriter.h"
 
-#include "engine/public/gameframework/component/Transform/TransformComponent.h"
-#include "engine/public/gameframework/entity/UEntity/UEntity.h"
-#include "engine/public/subsystem/console/Log.h"
+#include "engine/gameframework/component/Transform/TransformComponent.h"
+#include "engine/gameframework/entity/UEntity/UEntity.h"
+#include "engine/subsystem/console/Log.h"
 
 #include "game/components/CameraRotator.h"
 

@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "engine/public/Components/base/Component.h"
-#include "engine/public/uphysics/PhysicsTypes.h"
+#include "engine/Components/base/Component.h"
+#include "engine/uphysics/PhysicsTypes.h"
 
 #include <runtime/core/math/Math.h>
 

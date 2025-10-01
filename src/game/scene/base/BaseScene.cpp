@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <engine/public/Entity/Entity.h>
+#include <engine/Entity/Entity.h>
 
 std::vector<Entity*>& BaseScene::GetEntities() {
 	return mEntities;

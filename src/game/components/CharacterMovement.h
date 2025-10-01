@@ -2,7 +2,7 @@
 
 #include <runtime/core/math/Math.h>
 
-#include <engine/public/Components/Base/Component.h>
+#include <engine/Components/Base/Component.h>
 
 namespace UPhysics {
 	class Engine;

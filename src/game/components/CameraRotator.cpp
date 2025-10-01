@@ -1,8 +1,8 @@
 #include "CameraRotator.h"
 
-#include <engine/public/Entity/Entity.h>
-#include <engine/public/Input/InputSystem.h>
-#include <engine/public/OldConsole/ConVarManager.h>
+#include <engine/Entity/Entity.h>
+#include <engine/Input/InputSystem.h>
+#include <engine/OldConsole/ConVarManager.h>
 
 CameraRotator::~CameraRotator() {
 }

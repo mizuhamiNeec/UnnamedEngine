@@ -6,8 +6,8 @@
 
 #include <filesystem>
 
-#include <engine/public/uprogrambuilder/UProgramBuilder.h>
-#include <engine/public/urenderer/GraphicsDevice.h>
+#include <engine/uprogrambuilder/UProgramBuilder.h>
+#include <engine/urenderer/GraphicsDevice.h>
 
 #include <runtime/assets/core/UAssetManager.h>
 #include <runtime/render/resources/ShaderLibrary.h>

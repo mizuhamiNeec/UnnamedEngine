@@ -2,7 +2,7 @@
 #include <memory>
 #include <string>
 
-#include <engine/public/Components/base/Component.h>
+#include <engine/Components/base/Component.h>
 
 #include <runtime/core/math/Math.h>
 

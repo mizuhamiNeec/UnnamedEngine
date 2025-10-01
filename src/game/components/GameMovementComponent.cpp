@@ -2,14 +2,14 @@
 
 #include <algorithm>
 
-#include <engine/public/Camera/CameraManager.h>
-#include <engine/public/Components/Camera/CameraComponent.h>
-#include <engine/public/Components/Transform/SceneComponent.h>
-#include <engine/public/Debug/Debug.h>
-#include <engine/public/ImGui/ImGuiWidgets.h>
-#include <engine/public/Input/InputSystem.h>
-#include <engine/public/OldConsole/ConVarManager.h>
-#include <engine/public/subsystem/console/Log.h>
+#include <engine/Camera/CameraManager.h>
+#include <engine/Components/Camera/CameraComponent.h>
+#include <engine/Components/Transform/SceneComponent.h>
+#include <engine/Debug/Debug.h>
+#include <engine/ImGui/ImGuiWidgets.h>
+#include <engine/Input/InputSystem.h>
+#include <engine/OldConsole/ConVarManager.h>
+#include <engine/subsystem/console/Log.h>
 
 GameMovementComponent::~GameMovementComponent() = default;
 

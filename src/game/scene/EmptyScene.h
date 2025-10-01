@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include <engine/public/CubeMap/CubeMap.h>
+#include <engine/CubeMap/CubeMap.h>
 
 #include <game/scene/base/BaseScene.h>
 

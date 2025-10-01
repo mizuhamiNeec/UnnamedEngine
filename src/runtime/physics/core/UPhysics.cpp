@@ -3,17 +3,17 @@
 #include <pch.h>
 #include <vector>
 
-#include <engine/public/Camera/CameraManager.h>
-#include <engine/public/Components/Camera/CameraComponent.h>
-#include <engine/public/Components/ColliderComponent/MeshColliderComponent.h>
-#include <engine/public/Debug/Debug.h>
-#include <engine/public/Entity/Entity.h>
-#include <engine/public/ResourceSystem/Mesh/StaticMesh.h>
-#include <engine/public/subsystem/console/Log.h>
-#include <engine/public/uphysics/BoxCast.h>
-#include <engine/public/uphysics/PhysicsTypes.h>
-#include <engine/public/uphysics/RayCast.h>
-#include <engine/public/uphysics/SphereCast.h>
+#include <engine/Camera/CameraManager.h>
+#include <engine/Components/Camera/CameraComponent.h>
+#include <engine/Components/ColliderComponent/MeshColliderComponent.h>
+#include <engine/Debug/Debug.h>
+#include <engine/Entity/Entity.h>
+#include <engine/ResourceSystem/Mesh/StaticMesh.h>
+#include <engine/subsystem/console/Log.h>
+#include <engine/uphysics/BoxCast.h>
+#include <engine/uphysics/PhysicsTypes.h>
+#include <engine/uphysics/RayCast.h>
+#include <engine/uphysics/SphereCast.h>
 
 namespace UPhysics {
 	void Engine::Init() {

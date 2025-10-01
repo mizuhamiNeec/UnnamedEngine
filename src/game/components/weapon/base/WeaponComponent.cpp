@@ -3,9 +3,9 @@
 #include <fstream>
 #include <json.hpp>
 
-#include <engine/public/Components/Camera/CameraComponent.h>
-#include <engine/public/OldConsole/Console.h>
-#include <engine/public/Camera/CameraManager.h>
+#include <engine/Components/Camera/CameraComponent.h>
+#include <engine/OldConsole/Console.h>
+#include <engine/Camera/CameraManager.h>
 
 using json = nlohmann::json;
 

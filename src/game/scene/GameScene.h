@@ -1,17 +1,17 @@
 #pragma once
 #include <memory>
 
-#include <engine/public/Components/Camera/CameraComponent.h>
-#include <engine/public/Components/ColliderComponent/BoxColliderComponent.h>
-#include <engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h>
-#include <engine/public/Components/MeshRenderer/StaticMeshRenderer.h>
-#include <engine/public/CubeMap/CubeMap.h>
-#include <engine/public/Entity/Entity.h>
-#include <engine/public/Entity/EntityLoader.h>
-#include <engine/public/particle/ExplosionEffect.h>
-#include <engine/public/particle/ParticleEmitter.h>
-#include <engine/public/particle/ParticleObject.h>
-#include <engine/public/particle/WindEffect.h>
+#include <engine/Components/Camera/CameraComponent.h>
+#include <engine/Components/ColliderComponent/BoxColliderComponent.h>
+#include <engine/Components/MeshRenderer/SkeletalMeshRenderer.h>
+#include <engine/Components/MeshRenderer/StaticMeshRenderer.h>
+#include <engine/CubeMap/CubeMap.h>
+#include <engine/Entity/Entity.h>
+#include <engine/Entity/EntityLoader.h>
+#include <engine/particle/ExplosionEffect.h>
+#include <engine/particle/ParticleEmitter.h>
+#include <engine/particle/ParticleObject.h>
+#include <engine/particle/WindEffect.h>
 #include <runtime/physics/core/UPhysics.h>
 
 #include "base/BaseScene.h"

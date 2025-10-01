@@ -2,8 +2,8 @@
 
 #include <runtime/core/math/Math.h>
 
-#include <engine/public/Camera/CameraManager.h>
-#include <engine/public/Components/Camera/CameraComponent.h>
+#include <engine/Camera/CameraManager.h>
+#include <engine/Components/Camera/CameraComponent.h>
 
 namespace Math {
 	Vec2 Lerp(const Vec2& a, const Vec2& b, float t) {

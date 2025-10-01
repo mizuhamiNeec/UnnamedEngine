@@ -10,9 +10,9 @@
 
 #include <d3dx12.h>
 
-#include <engine/public/subsystem/console/Log.h>
-#include <engine/public/urenderer/GraphicsDevice.h>
-#include <engine/public/uuploadarena/UploadArena.h>
+#include <engine/subsystem/console/Log.h>
+#include <engine/urenderer/GraphicsDevice.h>
+#include <engine/uuploadarena/UploadArena.h>
 
 namespace Unnamed {
 	using namespace Microsoft::WRL;

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include <engine/public/Components/Base/Component.h>
+#include <engine/Components/Base/Component.h>
 
 //-----------------------------------------------------------------------------
 // ViewModelを揺らすやつ

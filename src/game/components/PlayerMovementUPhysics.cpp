@@ -3,17 +3,17 @@
 #include <algorithm>
 #include <pch.h>
 
-#include <engine/public/Camera/CameraManager.h>
-#include <engine/public/Components/Camera/CameraComponent.h>
-#include <engine/public/Components/ColliderComponent/BoxColliderComponent.h>
-#include <engine/public/Components/ColliderComponent/Base/ColliderComponent.h>
-#include <engine/public/Debug/Debug.h>
-#include <engine/public/Entity/Entity.h>
-#include <engine/public/ImGui/ImGuiWidgets.h>
-#include <engine/public/Input/InputSystem.h>
-#include <engine/public/OldConsole/Console.h>
-#include <engine/public/OldConsole/ConVarManager.h>
-#include <engine/public/uphysics/PhysicsTypes.h>
+#include <engine/Camera/CameraManager.h>
+#include <engine/Components/Camera/CameraComponent.h>
+#include <engine/Components/ColliderComponent/BoxColliderComponent.h>
+#include <engine/Components/ColliderComponent/Base/ColliderComponent.h>
+#include <engine/Debug/Debug.h>
+#include <engine/Entity/Entity.h>
+#include <engine/ImGui/ImGuiWidgets.h>
+#include <engine/Input/InputSystem.h>
+#include <engine/OldConsole/Console.h>
+#include <engine/OldConsole/ConVarManager.h>
+#include <engine/uphysics/PhysicsTypes.h>
 
 #include <runtime/physics/core/UPhysics.h>
 

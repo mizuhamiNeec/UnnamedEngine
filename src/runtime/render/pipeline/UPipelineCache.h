@@ -3,7 +3,7 @@
 #include <d3d12.h>
 #include <d3dx12.h>
 
-#include <engine/public/urootsignaturecache/RootSignatureCache.h>
+#include <engine/urootsignaturecache/RootSignatureCache.h>
 
 #include "runtime/render/resources/ShaderLibrary.h"
 

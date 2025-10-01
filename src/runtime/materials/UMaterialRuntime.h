@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include <engine/public/urootsignaturecache/RootSignatureCache.h>
+#include <engine/urootsignaturecache/RootSignatureCache.h>
 
 #include <runtime/core/math/Math.h>
 

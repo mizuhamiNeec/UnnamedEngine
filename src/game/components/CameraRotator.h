@@ -1,5 +1,5 @@
 #pragma once
-#include <engine/public/Components/base/Component.h>
+#include <engine/Components/base/Component.h>
 
 class SceneComponent;
 

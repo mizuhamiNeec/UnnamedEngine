@@ -1,6 +1,6 @@
 #include <pch.h>
 
-#include <engine/public/uengine/UEngine.h>
+#include <engine/uengine/UEngine.h>
 
 int WINAPI wWinMain(
 	[[maybe_unused]] const HINSTANCE hInstance,

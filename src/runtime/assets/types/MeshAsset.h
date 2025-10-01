@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <vector>
 
-#include <engine/public/uprimitive/UPrimitives.h>
+#include <engine/uprimitive/UPrimitives.h>
 
 namespace Unnamed {
 	struct MeshSubmesh {

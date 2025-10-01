@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <engine/public/Entity/Entity.h>
+#include <engine/Entity/Entity.h>
 
 class SrvManager;
 class ModelCommon;

@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include <engine/public/Debug/Debug.h>
-#include <engine/public/uphysics/BVH.h>
-#include <engine/public/uphysics/BVHBuilder.h>
-#include <engine/public/uphysics/CollisionDetection.h>
+#include <engine/Debug/Debug.h>
+#include <engine/uphysics/BVH.h>
+#include <engine/uphysics/BVHBuilder.h>
+#include <engine/uphysics/CollisionDetection.h>
 
 namespace UPhysics {
 	// 物理エンジン
