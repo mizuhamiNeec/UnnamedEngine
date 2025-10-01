@@ -3,10 +3,10 @@
 
 namespace UPhysics {
 	struct SphereCast final : ShapeCast {
-		[[nodiscard]] AABB ExpandNode(const AABB& nodeBounds) const override;
+		[[nodiscard]] Unnamed::AABB ExpandNode(const Unnamed::AABB& nodeBounds) const override;
 
 		bool TestTriangle(
-			const Triangle& triangle,
+			const Unnamed::Triangle& triangle,
 			const Vec3&     dir,
 			float           length,
 			float&          outTOI,

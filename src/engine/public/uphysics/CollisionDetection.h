@@ -1,21 +1,21 @@
 ﻿#pragma once
-#include <engine/public/uphysics/Primitives.h>
+#include <engine/public/uphysics/PhysicsTypes.h>
 
 namespace UPhysics {
 	bool RayVsAABB(
-		const Ray& ray, const AABB& aabb,
-		float&     tMaxOut
+		const Unnamed::Ray& ray, const Unnamed::AABB& aabb,
+		float&              tMaxOut
 	);
 
 	bool TriangleVsRay(
-		const Triangle& triangle, const Ray& ray,
+		const Unnamed::Triangle& triangle, const Unnamed::Ray& ray,
 		float&          tHit, Vec3&          outNormal
 	);
 
 	bool SweptAabbVsTriSAT(
-		const Box&      box0,
+		const Unnamed::Box&      box0,
 		const Vec3&     delta, // 速度 * dt
-		const Triangle& tri,
+		const Unnamed::Triangle& tri,
 		float&          outTOI,
 		Vec3&           outNrm
 	);
@@ -24,7 +24,7 @@ namespace UPhysics {
 		const Vec3&     center,
 		float           radius,
 		const Vec3&     delta,
-		const Triangle& tri,
+		const Unnamed::Triangle& tri,
 		float&          outTOI,
 		Vec3&           outNormal
 	);
@@ -34,7 +34,7 @@ namespace UPhysics {
 		float           halfHeight,
 		float           radius,
 		const Vec3&     delta,
-		const Triangle& tri,
+		const Unnamed::Triangle& tri,
 		float&          outTOI,
 		Vec3&           outNormal
 	);
@@ -44,15 +44,15 @@ namespace UPhysics {
 		const Vec3&     b,
 		float           radius,
 		const Vec3&     delta,
-		const Triangle& tri,
+		const Unnamed::Triangle& tri,
 		float&          outTOI,
 		Vec3&           outNormal
 	);
 
 	// Overlap detection functions
 	bool BoxVsTriangleOverlap(
-		const Box&      box,
-		const Triangle& tri,
+		const Unnamed::Box&      box,
+		const Unnamed::Triangle& tri,
 		Vec3&           outSeparationAxis,
 		float&          outPenetrationDepth
 	);

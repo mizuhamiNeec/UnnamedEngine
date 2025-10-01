@@ -3,7 +3,7 @@
 #include "CollisionDetection.h"
 
 namespace UPhysics {
-	AABB SphereCast::ExpandNode(const AABB& nodeBounds) const {
+	Unnamed::AABB SphereCast::ExpandNode(const Unnamed::AABB& nodeBounds) const {
 		const Vec3 r = Vec3(radius);
 		// わずかなマージンを追加して数値誤差を防ぐ
 		const Vec3 margin = Vec3(1e-6f);
@@ -14,7 +14,7 @@ namespace UPhysics {
 	}
 
 	bool SphereCast::TestTriangle(
-		const Triangle& triangle,
+		const Unnamed::Triangle& triangle,
 		const Vec3&     dir,
 		float           length,
 		float&          outTOI,

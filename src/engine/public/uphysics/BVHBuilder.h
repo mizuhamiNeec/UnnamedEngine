@@ -1,12 +1,12 @@
 ﻿#pragma once
 #include <vector>
 
-#include <engine/public/uphysics/Primitives.h>
+#include <engine/public/uphysics/PhysicsTypes.h>
 
 namespace UPhysics {
 	// フラットノード
 	struct FlatNode {
-		AABB     bounds;
+		Unnamed::AABB     bounds;
 		uint32_t leftFirst;
 		uint32_t rightFirst;
 		uint16_t primCount;
@@ -15,7 +15,7 @@ namespace UPhysics {
 	class BVHBuilder {
 	public:
 		void Build(
-			const std::vector<Triangle>& triangles,
+			const std::vector<Unnamed::Triangle>& triangles,
 			std::vector<FlatNode>&       outNodes,
 			std::vector<uint32_t>&       outTriIndices,
 			uint32_t                     leafSize = 4
