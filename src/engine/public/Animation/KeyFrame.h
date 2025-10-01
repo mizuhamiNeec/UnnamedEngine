@@ -1,8 +1,7 @@
 ﻿
 #pragma once
 #include <vector>
-#include <math/public/MathLib.h>
-#include "math/public/Quaternion.h"
+#include <runtime/core/math/Math.h>
 
 template <typename T>
 struct Keyframe {
