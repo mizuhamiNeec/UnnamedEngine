@@ -28,41 +28,39 @@ namespace Unnamed {
 			for (auto buffer : mConsoleSystem->GetLogBuffer()) {
 				PushLogTextColor(buffer);
 
-			std::string text;
-			if (!buffer.channel.empty()) {
-				text = "[" + buffer.channel + "] " + buffer.message;
-			} else {
-				text = buffer.message;
-			}
+				std::string text;
+				if (!buffer.channel.empty()) {
+					text = "[" + buffer.channel + "] " + buffer.message;
+				} else {
+					text = buffer.message;
+				}
 
 				ImGui::Text(text.c_str());
 
 				ImGui::PopStyleColor();
 			}
+			char                inputBuffer[256] = "";
+			ImGuiInputTextFlags flags            =
+				ImGuiInputTextFlags_EnterReturnsTrue |
+				ImGuiInputTextFlags_CallbackCompletion |
+				ImGuiInputTextFlags_CallbackHistory |
+				ImGuiInputTextFlags_CallbackEdit |
+				ImGuiInputTextFlags_CallbackResize;
+
+			if (
+				ImGui::InputText(
+					"##Input",
+					inputBuffer,
+					IM_ARRAYSIZE(inputBuffer),
+					flags,
+					InputTextCallback
+				)
+			) {
+				Msg("Input", "{}", inputBuffer);
+			}
+
 			ImGui::End();
 		}
-
-		char                inputBuffer[256] = "";
-		ImGuiInputTextFlags flags            =
-			ImGuiInputTextFlags_EnterReturnsTrue |
-			ImGuiInputTextFlags_CallbackCompletion |
-			ImGuiInputTextFlags_CallbackHistory |
-			ImGuiInputTextFlags_CallbackEdit |
-			ImGuiInputTextFlags_CallbackResize;
-
-		if (
-			ImGui::InputText(
-				"##Input",
-				inputBuffer,
-				IM_ARRAYSIZE(inputBuffer),
-				flags,
-				InputTextCallback
-			)
-		) {
-			Msg("Input", "{}", inputBuffer);
-		}
-
-		ImGui::End();
 	}
 
 	/// @brief コンソールログのテキストの色を設定します。
