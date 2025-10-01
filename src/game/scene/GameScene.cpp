@@ -42,19 +42,19 @@ void GameScene::Init() {
 
 #pragma region テクスチャ読み込み
 	TexManager::GetInstance()->LoadTexture(
-		"./resources/textures/dev_measure.png"
+		"./content/core/textures/dev_measure.png"
 	);
 
 	TexManager::GetInstance()->LoadTexture(
-		"./resources/textures/uvChecker.png"
+		"./content/core/textures/uvChecker.png"
 	);
 
 	TexManager::GetInstance()->LoadTexture(
-		"./resources/textures/wave.dds", true
+		"./content/core/textures/wave.dds", true
 	);
 
 	TexManager::GetInstance()->LoadTexture(
-		"./resources/textures/smoke.png"
+		"./content/core/textures/smoke.png"
 	);
 
 #pragma endregion
@@ -64,10 +64,10 @@ void GameScene::Init() {
 
 #pragma region 3Dオブジェクト類
 	mResourceManager->GetMeshManager()->LoadMeshFromFile(
-		"./resources/models/reflectionTest.obj");
+		"./content/core/models/reflectionTest.obj");
 
 	mResourceManager->GetMeshManager()->LoadMeshFromFile(
-		"./resources/models/weapon.obj");
+		"./content/core/models/weapon.obj");
 
 	mCubeMap = std::make_unique<CubeMap>(
 		mRenderer->GetDevice(),
@@ -76,7 +76,7 @@ void GameScene::Init() {
 	);
 
 	mResourceManager->GetMeshManager()->LoadSkeletalMeshFromFile(
-		"./resources/models/man/man.gltf"
+		"./content/parkour/models/man/man.gltf"
 	);
 #pragma endregion
 
@@ -147,7 +147,7 @@ void GameScene::Init() {
 		}
 	);
 	WeaponComponent* rawWeaponComponent = mEntWeapon->AddComponent<
-		WeaponComponent>("./resources/weapons/rifle.json");
+		WeaponComponent>("./content/parkour/scripts/weapon_handgun.json");
 	mWeaponComponent = std::shared_ptr<WeaponComponent>(
 		rawWeaponComponent, [](WeaponComponent*) {
 		}
