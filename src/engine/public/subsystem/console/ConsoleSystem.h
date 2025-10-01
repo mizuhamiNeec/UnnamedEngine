@@ -1,6 +1,7 @@
-﻿#pragma once
+#pragma once
 
 #include <memory>
+#include <unordered_map>
 
 #include <engine/public/time/DateTime.h>
 #include <engine/public/subsystem/console/ConsoleUI.h>
@@ -9,6 +10,8 @@
 #include <core/containers/RingBuffer.h>
 
 namespace Unnamed {
+	class UnnamedConCommandBase;
+	class UnnamedConVarBase;
 	constexpr uint32_t kConsoleBufferSize = 1024;
 
 	struct ConsoleLogText {
@@ -17,6 +20,18 @@ namespace Unnamed {
 		std::string message;
 		DateTime    timeStamp;
 	};
+
+	enum class EXEC_FLAG {
+		NONE,
+		SILENT,
+		FROM_ENGINE,
+		FROM_USER,
+		FROM_CONSOLE,
+	};
+
+	EXEC_FLAG operator |=(EXEC_FLAG& lhs, const EXEC_FLAG& rhs);
+	bool      operator&(EXEC_FLAG lhs, EXEC_FLAG rhs);
+
 
 	class ConsoleSystem final : public ISubsystem, public IConsole {
 	public:
@@ -37,8 +52,31 @@ namespace Unnamed {
 		void Print(LogLevel         level, std::string_view channel,
 		           std::string_view message) override;
 
+		void RegisterConCommand(UnnamedConCommandBase* conCommand);
+
+		void RegisterConVar(UnnamedConVarBase* conVar);
+
+		void ExecuteCommand(
+			const std::string& command,
+			EXEC_FLAG          flag = EXEC_FLAG::FROM_ENGINE
+		);
+
+		void Test();
+
+	private:
+		static std::vector<std::string> SplitCommands(
+			const std::string_view& command
+		);
+		static std::vector<std::string> Tokenize(
+			const std::string_view& command
+		);
+		static std::string TrimSpaces(const std::string& string);
+
 	private:
 		RingBuffer<ConsoleLogText, kConsoleBufferSize> mLogBuffer;
+
+		std::unordered_map<std::string, UnnamedConCommandBase*> mConCommands;
+		std::unordered_map<std::string, UnnamedConVarBase*>     mConVars;
 
 #ifdef _DEBUG
 		std::unique_ptr<ConsoleUI> mConsoleUI;

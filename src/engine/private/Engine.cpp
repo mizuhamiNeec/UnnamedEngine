@@ -30,6 +30,10 @@
 #include "game/scene/EmptyScene.h"
 #include "game/scene/GameScene.h"
 
+#include "engine/public/subsystem/console/concommand/UnnamedConCommand.h"
+#include "engine/public/subsystem/console/concommand/UnnamedConVar.h"
+#include "engine/public/subsystem/console/concommand/base/UnnamedConCommandBase.h"
+
 constexpr Vec4 offscreenClearColor = Vec4(0.025f, 0.025f, 0.025f, 1.0f);
 
 namespace Unnamed {
@@ -60,6 +64,49 @@ namespace Unnamed {
 
 		mConsoleSystem = ServiceLocator::Get<ConsoleSystem>();
 		mTimeSystem    = ServiceLocator::Get<TimeSystem>();
+
+		static UnnamedConVar cv_test(
+			"test",
+			Math::pi,
+			FCVAR::NONE
+		);
+
+		static UnnamedConVar<std::string> cv_test1(
+			"test1",
+			"くぁｗせｄｒｆｔｇｙふじこｌｐ；＠：「」",
+			FCVAR::NONE
+		);
+
+		static UnnamedConVar cv_test2(
+			"test2",
+			false,
+			FCVAR::NONE
+		);
+		static UnnamedConVar cv_test3(
+			"test3",
+			65535,
+			FCVAR::NONE
+		);
+		static UnnamedConVar cv_test4(
+			"test4",
+			DBL_MAX,
+			FCVAR::NONE
+		);
+
+		static UnnamedConCommand con_test(
+			"なんかするコマンド",
+			[]([[maybe_unused]] std::vector<std::string> args) {
+				Msg("Test", "へっへっへっへっへっへ");
+				return true;
+			},
+			"なんかします。",
+			FCVAR::NONE
+		);
+
+		mConsoleSystem->Test();
+		mConsoleSystem->ExecuteCommand(
+			"なんかするコマンド;なんかするコマンド;なんかするコマンド;なんかするコマンド;なんかするコマンド;なんかするコマンド;なんかするコマンド;なんかするコマンド;;;;;;;;;;;;;;;;;;"
+		);
 
 		//---------------------------------------------------------------------
 		// Purpose: 旧エンジン
