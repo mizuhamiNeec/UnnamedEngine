@@ -1,10 +1,11 @@
 ﻿#include "DebugDumpShader.h"
 
 #include <d3d12shader.h>
+#pragma comment(lib, "d3dcompiler.lib")
 #include <d3dcompiler.h>
 #include <string>
 
-#include "engine/public/subsystem/console/Log.h"
+#include <engine/public/subsystem/console/Log.h>
 
 namespace Unnamed {
 	static const char* ResClassName(D3D_SHADER_INPUT_TYPE t) {
