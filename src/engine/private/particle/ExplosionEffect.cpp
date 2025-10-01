@@ -1,7 +1,6 @@
 ﻿#include <engine/public/particle/ExplosionEffect.h>
 
-#include <math/public/Vec3.h>
-#include <math/public/random/Random.h>
+#include <runtime/core/math/Math.h>
 
 ExplosionEffect::~ExplosionEffect() {
 	if (mExplosionParticleObject) {

@@ -1,0 +1,21 @@
+{
+  "textures": [
+    "MainTex"
+  ],
+  "params": {
+    "Roughness": {
+      "type": "float",
+      "default": 0.4,
+      "slot": 0
+    },
+    "Emissive": {
+      "type": "float3",
+      "default": [
+        1,
+        1,
+        1
+      ],
+      "slot": 1
+    }
+  }
+}

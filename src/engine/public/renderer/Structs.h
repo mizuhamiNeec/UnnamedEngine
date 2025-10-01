@@ -4,7 +4,7 @@
 #include <d3d12.h>
 #include <string>
 #include <vector>
-#include "math/public/Vec4.h"
+#include <runtime/core/math/Math.h>
 #include <engine/public/Animation/Node.h>
 
 struct Vertex {

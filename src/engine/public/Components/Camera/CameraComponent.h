@@ -1,7 +1,7 @@
 #pragma once
 
 #include <engine/public/Components/base/Component.h>
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 class CameraComponent : public Component {
 public:

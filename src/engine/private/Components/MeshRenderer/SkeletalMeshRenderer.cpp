@@ -1,3 +1,7 @@
+#include <pch.h>
+
+//-----------------------------------------------------------------------------
+
 #include <engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h>
 
 #include "engine/public/Engine.h"
@@ -7,7 +11,6 @@
 #include "engine/public/Entity/Entity.h"
 #include "engine/public/ImGui/ImGuiUtil.h"
 #include "engine/public/ResourceSystem/Shader/Shader.h"
-#include "engine/public/subsystem/console/Log.h"
 #include "engine/public/TextureManager/TexManager.h"
 
 struct MatParam {

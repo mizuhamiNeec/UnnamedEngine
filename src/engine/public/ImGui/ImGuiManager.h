@@ -15,11 +15,13 @@ struct Vec3;
 
 class ImGuiManager {
 public:
-	ImGuiManager(D3D12* renderer, const SrvManager* srvManager);
+	ImGuiManager(D3D12* renderer, SrvManager* srvManager);
 	static void NewFrame();
 	void        EndFrame();
 	void        Shutdown();
 	void        Recreate() const;
+
+	SrvManager* GetSrvManager() const { return mSrvManager; }
 
 #ifdef _DEBUG
 	static void StyleColorsDark();
@@ -36,12 +38,14 @@ public:
 		ImVec4      textColor, ImVec4       outlineColor,
 		float       outlineSize = 1.0f
 	);
-	static bool IconButton(const char*   icon, const char* label,
-	                       const ImVec2& size = ImVec2(0, 0));
 #endif
 
 private:
+#ifdef _DEBUG
+	const ImWchar* GetGlyphRangesJapanese();
+#endif
+
 	D3D12*                                       mRenderer   = nullptr;
-	const SrvManager*                            mSrvManager = nullptr;
+	SrvManager*                                  mSrvManager = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mSrvHeap;
 };

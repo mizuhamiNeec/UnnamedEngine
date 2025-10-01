@@ -1,14 +1,14 @@
-Write-Host "プロジェクトを生成しています..."
+Write-Host "Generating projects..."
 
 try {
     premake5.exe vs2022
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "Premake5 の実行が完了しました。"
-    } else {
-        Write-Host "Premake5 の実行中にエラーが発生しました。"
+        Write-Host "Premake5 execution completed."
+        } else {
+        Write-Host "An error occurred during Premake5 execution."
         exit 1
     }
 } catch {
-    Write-Host "premake5.exe の実行に失敗しました。最新版のpremakeをダウンロードしてシステム環境変数にPATHを追加してください。"
+    Write-Host "Failed to execute premake5.exe. Please download the latest version of premake and add it to your system PATH."
     exit 1
 }

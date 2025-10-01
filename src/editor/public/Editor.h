@@ -5,7 +5,7 @@
 #include <engine/public/Entity/Entity.h>
 #include <engine/public/subsystem/time/GameTime.h>
 
-#include <game/public/scene/base/BaseScene.h>
+#include "game/scene/base/BaseScene.h"
 
 class GameTime;
 class SceneManager;
@@ -24,8 +24,6 @@ public:
 	}
 
 private:
-	void ShowDockSpace();
-
 	static void DrawGrid(
 		float gridSize, float range, const Vec4& color, const Vec4& majorColor,
 		const Vec4& axisColor, const Vec4& minorColor,

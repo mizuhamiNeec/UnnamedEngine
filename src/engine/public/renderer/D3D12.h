@@ -6,9 +6,7 @@
 
 #include <wrl/client.h>
 
-#include <math/public/MathLib.h>
-
-#include "engine/public/utils/Properties.h"
+#include <runtime/core/Properties.h>
 #include "engine/public/Window/Base/BaseWindow.h"
 
 class SrvManager;

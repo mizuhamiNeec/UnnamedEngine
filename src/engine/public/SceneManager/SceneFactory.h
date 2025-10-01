@@ -3,7 +3,7 @@
 #include <string>
 #include <functional>
 
-#include <game/public/scene/base/BaseScene.h>
+#include <game/scene/base/BaseScene.h>
 
 class SceneFactory {
 public:

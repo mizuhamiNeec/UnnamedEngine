@@ -1,6 +1,8 @@
 #pragma once
 #include <engine/public/Components/ColliderComponent/Base/ColliderComponent.h>
 
+#include "engine/public/uprimitive/UPrimitives.h"
+
 class StaticMesh;
 class StaticMeshRenderer;
 struct AABB;
@@ -11,15 +13,14 @@ public:
 	void Update(float deltaTime) override;
 	void DrawInspectorImGui() override;
 
-	[[nodiscard]] AABB GetBoundingBox() const override;
 	bool CheckCollision(const ColliderComponent* other) const override;
 	bool IsDynamic() override;
-	std::vector<Triangle> GetTriangles();
+	std::vector<Unnamed::Triangle> GetTriangles();
 
 	[[nodiscard]] StaticMesh* GetStaticMesh() const;
 
 private:
-	void                  BuildTriangleList();
-	StaticMeshRenderer*   mMeshRenderer = nullptr;
-	std::vector<Triangle> mTriangles;
+	void                           BuildTriangleList();
+	StaticMeshRenderer*            mMeshRenderer = nullptr;
+	std::vector<Unnamed::Triangle> mTriangles;
 };

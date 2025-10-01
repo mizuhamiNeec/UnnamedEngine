@@ -2,8 +2,8 @@
 //-----------------------------------------------------------------------------
 #include <iostream>
 
+#include <engine/public/OldConsole/Console.h>
 #include <engine/public/subsystem/console/ConsoleSystem.h>
-#include <engine/public/subsystem/console/Log.h>
 #include <engine/public/subsystem/interface/ServiceLocator.h>
 #include <engine/public/subsystem/time/SystemClock.h>
 
@@ -15,7 +15,6 @@ namespace Unnamed {
 #ifdef _DEBUG
 		mConsoleUI = std::make_unique<ConsoleUI>(this);
 #endif
-
 		return true;
 	}
 
@@ -45,16 +44,24 @@ namespace Unnamed {
 		logText.timeStamp = SystemClock::GetDateTime(SystemClock::Now());
 		mLogBuffer.Push(logText);
 
-		std::string out =
-			"[" +
-			std::string(channel) +
-			"] " +
-			std::string(message);
+		std::string out;
+
+		// レベル・チャンネルがNoneの場合はチャンネル名を出力しない
+		if (level != LogLevel::None && channel != "None") {
+			out =
+				"[" +
+				std::string(channel) +
+				"] " +
+				std::string(message);
+		} else {
+			out =
+				std::string(message);
+		}
 
 		// コンソールの出力
 		std::cout << out << "\n";
 
-		// Visual Studioの出力
+		// VSの出力
 		OutputDebugStringA(out.data());
 		OutputDebugStringA("\n");
 	}

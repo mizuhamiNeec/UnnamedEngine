@@ -2,19 +2,19 @@
 #include <engine/public/uphysics/RayCast.h>
 
 namespace UPhysics {
-	AABB RayCast::ExpandNode(const AABB& nodeBounds) const {
+	Unnamed::AABB RayCast::ExpandNode(const Unnamed::AABB& nodeBounds) const {
 		return nodeBounds;
 	}
 
 	bool RayCast::TestTriangle(
-		const Triangle& tri,
+		const Unnamed::Triangle& tri,
 		const Vec3&     dir,
 		const float     length,
 		float&          toi,
 		Vec3&           normal
 	) const {
 		float     t   = length;
-		const Ray ray = {
+		const Unnamed::Ray ray = {
 			start,
 			dir,
 			invDir,

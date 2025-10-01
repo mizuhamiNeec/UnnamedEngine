@@ -11,8 +11,7 @@ void MeshColliderComponent::OnAttach(Entity& owner) {
 	if (auto* smr = mOwner->GetComponent<StaticMeshRenderer>()) {
 		mMeshRenderer = smr;
 		BuildTriangleList();
-	}
-	else {
+	} else {
 		Console::Print(
 			mOwner->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
 			kConTextColorWarning,
@@ -27,12 +26,14 @@ void MeshColliderComponent::Update(float deltaTime) {
 
 void MeshColliderComponent::DrawInspectorImGui() {
 #ifdef _DEBUG
-	if (ImGui::CollapsingHeader("MeshColliderComponent", ImGuiTreeNodeFlags_DefaultOpen)) {
+	if (ImGui::CollapsingHeader("MeshColliderComponent",
+	                            ImGuiTreeNodeFlags_DefaultOpen)) {
 		if (mMeshRenderer) {
-			ImGui::Text("StaticMeshRenderer: %s", mMeshRenderer->GetStaticMesh()->GetName().c_str());
-			ImGui::Text("PolyCount: %d", mMeshRenderer->GetStaticMesh()->GetPolygons().size());
-		}
-		else {
+			ImGui::Text("StaticMeshRenderer: %s",
+			            mMeshRenderer->GetStaticMesh()->GetName().c_str());
+			ImGui::Text("PolyCount: %d",
+			            mMeshRenderer->GetStaticMesh()->GetPolygons().size());
+		} else {
 			ImGui::Text("StaticMeshRenderer: None");
 		}
 		ImGui::Separator();
@@ -40,33 +41,8 @@ void MeshColliderComponent::DrawInspectorImGui() {
 #endif
 }
 
-AABB MeshColliderComponent::GetBoundingBox() const {
-	if (!mMeshRenderer) {
-		Console::Print(
-			mOwner->GetName() + " は StaticMeshRenderer がアタッチされていません\n",
-			kConTextColorWarning,
-			Channel::Physics
-		);
-		return AABB(Vec3::zero, Vec3::zero);
-	}
-	const auto& polygons = mMeshRenderer->GetStaticMesh()->GetPolygons();
-	if (polygons.empty()) {
-		return AABB(Vec3::zero, Vec3::zero);
-	}
-	Vec3 min = polygons[0].v0;
-	Vec3 max = polygons[0].v0;
-	for (const auto& tri : polygons) {
-		min = Math::Min(min, tri.v0);
-		min = Math::Min(min, tri.v1);
-		min = Math::Min(min, tri.v2);
-		max = Math::Max(max, tri.v0);
-		max = Math::Max(max, tri.v1);
-		max = Math::Max(max, tri.v2);
-	}
-	return AABB(min, max);
-}
-
-bool MeshColliderComponent::CheckCollision(const ColliderComponent* other) const {
+bool MeshColliderComponent::CheckCollision(
+	const ColliderComponent* other) const {
 	other;
 	return false;
 }
@@ -75,7 +51,7 @@ bool MeshColliderComponent::IsDynamic() {
 	return false;
 }
 
-std::vector<Triangle> MeshColliderComponent::GetTriangles() {
+std::vector<Unnamed::Triangle> MeshColliderComponent::GetTriangles() {
 	return mTriangles;
 }
 

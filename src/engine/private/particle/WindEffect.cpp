@@ -1,5 +1,3 @@
-
-
 #include "engine/public/particle/WindEffect.h"
 
 #include "engine/public/Camera/CameraManager.h"
@@ -9,10 +7,9 @@
 #include "engine/public/particle/ParticleManager.h"
 #include "engine/public/particle/ParticleObject.h"
 
-#include "game/public/components/PlayerMovement.h"
-#include "game/public/components/PlayerMovementUPhysics.h"
+#include <runtime/core/math/Math.h>
 
-#include "math/public/random/Random.h"
+#include "game/components/GameMovementComponent.h"
 
 WindEffect::~WindEffect() {
 	if (mWindParticle) {
@@ -22,7 +19,7 @@ WindEffect::~WindEffect() {
 }
 
 void WindEffect::Init([[maybe_unused]] ParticleManager* particleManager,
-                      PlayerMovementUPhysics*                   playerMovement) {
+                      GameMovementComponent*            playerMovement) {
 	mPlayerMovement = playerMovement;
 
 	// 風パーティクル用のオブジェクト初期化
@@ -36,7 +33,7 @@ void WindEffect::Update([[maybe_unused]] const float deltaTime) {
 	}
 
 	// プレイヤーの速度ベクトル
-	const Vec3  playerVelocity = mPlayerMovement->GetVelocity();
+	const Vec3  playerVelocity = mPlayerMovement->Velocity();
 	const float playerSpeed    = playerVelocity.Length();
 
 	// 速度が閾値を超えている場合のみエフェクトを表示
@@ -54,7 +51,8 @@ void WindEffect::Update([[maybe_unused]] const float deltaTime) {
 		// 次のエミッションまでの時間を計算
 
 		// 時間が経過したらパーティクルを放出
-		if (float emissionInterval = 1.0f / currentEmissionRate; mEmissionTimer >= emissionInterval) {
+		if (float emissionInterval = 1.0f / currentEmissionRate; mEmissionTimer
+			>= emissionInterval) {
 			mEmissionTimer = 0.0f;
 
 			// 進行方向から来るように位置生成
@@ -68,7 +66,8 @@ void WindEffect::Update([[maybe_unused]] const float deltaTime) {
 				mMinSpeed);
 
 			// 放出するパーティクルの数（速度が速いほど多く）
-			const uint32_t particleCount = static_cast<uint32_t>(1 + speedFactor * 3);
+			const uint32_t particleCount = static_cast<uint32_t>(1 + speedFactor
+				* 3);
 
 			// パーティクルを放出
 			mWindParticle->EmitParticlesAtPosition(
@@ -107,10 +106,11 @@ Vec3 WindEffect::GetRandomPositionInPlayerDirection() const {
 	const float aspectRatio = camera->GetAspectRatio();
 
 	// プレイヤー位置
-	const Vec3 playerPos = mPlayerMovement->GetOwner()->GetTransform()->GetWorldPos();
+	const Vec3 playerPos = mPlayerMovement->GetOwner()->GetTransform()->
+	                                        GetWorldPos();
 
 	// 進行方向ベクトル
-	Vec3 moveDir = mPlayerMovement->GetVelocity().Normalized();
+	Vec3 moveDir = mPlayerMovement->Velocity().Normalized();
 	if (moveDir.Length() < 0.01f) {
 		moveDir = camera->GetViewMat().Inverse().GetForward(); // ほぼ静止時はカメラ前方でも
 	}

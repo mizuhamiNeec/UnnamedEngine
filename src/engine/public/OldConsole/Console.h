@@ -10,7 +10,7 @@
 #include <thread>
 #include <vector>
 
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 constexpr Vec4 kConBgColorDark = Vec4(0.2f, 0.2f, 0.2f, 0.5f);    // ダークモードの背景色
 constexpr Vec4 kConFgColorDark = Vec4(0.71f, 0.71f, 0.72f, 1.0f); // ダークモードの前景色

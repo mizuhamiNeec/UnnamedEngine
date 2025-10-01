@@ -2,7 +2,7 @@
 
 namespace UPhysics {
 	void BVHBuilder::Build(
-		const std::vector<Triangle>& triangles,
+		const std::vector<Unnamed::Triangle>& triangles,
 		std::vector<FlatNode>&       outNodes,
 		std::vector<uint32_t>&       outTriIndices,
 		const uint32_t               leafSize
@@ -13,7 +13,7 @@ namespace UPhysics {
 		mTriIndices.resize(n);
 
 		for (size_t i = 0; i < n; ++i) {
-			const Triangle& t    = triangles[i];
+			const Unnamed::Triangle& t    = triangles[i];
 			TriInfo&        info = mTriInfos[i];
 			info.bounds.Expand(t.v0);
 			info.bounds.Expand(t.v1);
@@ -39,7 +39,7 @@ namespace UPhysics {
 		uint32_t nodeIndex = static_cast<uint32_t>(mNodes.size());
 		mNodes.emplace_back(node);
 
-		AABB bounds = {};
+		Unnamed::AABB bounds = {};
 		for (uint32_t i = start; i < end; ++i) {
 			bounds.Expand(mTriInfos[mTriIndices[i]].bounds);
 		}
@@ -78,12 +78,12 @@ namespace UPhysics {
 	) {
 		const int kBucket = 12;
 		struct Bucket {
-			AABB     bounds;
+			Unnamed::AABB     bounds;
 			uint32_t count = 0;
 		};
 		Bucket buckets[kBucket] = {};
 
-		AABB centerBounds = {};
+		Unnamed::AABB centerBounds = {};
 		for (uint32_t i = start; i < end; ++i) {
 			centerBounds.Expand(mTriInfos[mTriIndices[i]].center);
 		}
@@ -102,12 +102,12 @@ namespace UPhysics {
 
 		// 前方後方累積でコストを計算a
 		float    cost[kBucket - 1];
-		AABB     left[kBucket - 1];
-		AABB     right[kBucket - 1];
+		Unnamed::AABB     left[kBucket - 1];
+		Unnamed::AABB     right[kBucket - 1];
 		uint32_t leftCount[kBucket - 1];
 		uint32_t rightCount[kBucket - 1];
 
-		AABB     t;
+		Unnamed::AABB     t;
 		uint32_t c = 0;
 		for (int i = 0; i < kBucket - 1; ++i) {
 			t.Expand(buckets[i].bounds);

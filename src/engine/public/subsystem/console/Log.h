@@ -5,33 +5,55 @@
 
 #include <engine/public/subsystem/console/ConsoleSystem.h>
 #include <engine/public/subsystem/interface/ServiceLocator.h>
-#include <engine/public/utils/UnnamedMacro.h>
+#include <core/UnnamedMacro.h>
+
+void Print(
+	Unnamed::LogLevel level,
+	std::string_view  channel,
+	std::string_view  message
+);
+
+inline void Print(
+	const Unnamed::LogLevel level,
+	const std::string_view  channel,
+	const std::string_view  message
+) {
+	std::string out;
+
+	// レベル・チャンネルがNoneの場合はチャンネル名を出力しない
+	if (level != Unnamed::LogLevel::None && channel != "None") {
+		out =
+			"[" +
+			std::string(channel) +
+			"] " +
+			std::string(message);
+	} else {
+		out =
+			std::string(message);
+	}
+
+	// コンソールの出力
+	std::cout << out << "\n";
+
+	// VSの出力
+	OutputDebugStringA(out.data());
+	OutputDebugStringA("\n");
+}
 
 template <typename... Args>
 void Msg(
 	const std::string_view&           channel,
 	const std::format_string<Args...> format, Args&&... args
 ) {
-	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	auto*             console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	const std::string s = std::format(format, std::forward<Args>(args)...);
 	if (!console) {
-		// ServiceLocatorが無効な場合は標準出力に直接出力
-		const std::string s = std::format(format, std::forward<Args>(args)...);
-		std::string out = "[" + std::string(channel) + "] " + s;
-		std::cout << out << "\n";
-#ifdef _WIN32
-		OutputDebugStringA(out.data());
-		OutputDebugStringA("\n");
-#endif
+		// ServiceLocator無効時のフォールバック
+		Print(Unnamed::LogLevel::Info, channel, s);
 		return;
 	}
 
-	const std::string s = std::format(format, std::forward<Args>(args)...);
-
-	console->Print(
-		Unnamed::LogLevel::Info,
-		channel,
-		s
-	);
+	console->Print(Unnamed::LogLevel::Info, channel, s);
 }
 
 template <typename... Args>
@@ -39,26 +61,15 @@ void DevMsg(
 	const std::string_view&           channel,
 	const std::format_string<Args...> format, Args&&... args
 ) {
-	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	auto*             console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	const std::string s = std::format(format, std::forward<Args>(args)...);
 	if (!console) {
-		// ServiceLocatorが無効な場合は標準出力に直接出力
-		const std::string s = std::format(format, std::forward<Args>(args)...);
-		std::string out = "[" + std::string(channel) + "][DEV] " + s;
-		std::cout << out << "\n";
-#ifdef _WIN32
-		OutputDebugStringA(out.data());
-		OutputDebugStringA("\n");
-#endif
+		// ServiceLocator無効時のフォールバック
+		Print(Unnamed::LogLevel::Dev, channel, s);
 		return;
 	}
 
-	const std::string s = std::format(format, std::forward<Args>(args)...);
-
-	console->Print(
-		Unnamed::LogLevel::Dev,
-		channel,
-		s
-	);
+	console->Print(Unnamed::LogLevel::Dev, channel, s);
 }
 
 template <typename... Args>
@@ -66,26 +77,15 @@ void Warning(
 	const std::string_view&           channel,
 	const std::format_string<Args...> format, Args&&... args
 ) {
-	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	auto*             console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	const std::string s = std::format(format, std::forward<Args>(args)...);
 	if (!console) {
-		// ServiceLocatorが無効な場合は標準出力に直接出力
-		const std::string s = std::format(format, std::forward<Args>(args)...);
-		std::string out = "[" + std::string(channel) + "][WARNING] " + s;
-		std::cout << out << "\n";
-#ifdef _WIN32
-		OutputDebugStringA(out.data());
-		OutputDebugStringA("\n");
-#endif
+		// ServiceLocator無効時のフォールバック
+		Print(Unnamed::LogLevel::Warning, channel, s);
 		return;
 	}
 
-	const std::string s = std::format(format, std::forward<Args>(args)...);
-
-	console->Print(
-		Unnamed::LogLevel::Warning,
-		channel,
-		s
-	);
+	console->Print(Unnamed::LogLevel::Warning, channel, s);
 }
 
 template <typename... Args>
@@ -93,26 +93,15 @@ void Error(
 	const std::string_view&           channel,
 	const std::format_string<Args...> format, Args&&... args
 ) {
-	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	auto*             console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	const std::string s = std::format(format, std::forward<Args>(args)...);
 	if (!console) {
-		// ServiceLocatorが無効な場合は標準出力に直接出力
-		const std::string s = std::format(format, std::forward<Args>(args)...);
-		std::string out = "[" + std::string(channel) + "][ERROR] " + s;
-		std::cout << out << "\n";
-#ifdef _WIN32
-		OutputDebugStringA(out.data());
-		OutputDebugStringA("\n");
-#endif
+		// ServiceLocator無効時のフォールバック
+		Print(Unnamed::LogLevel::Error, channel, s);
 		return;
 	}
 
-	const std::string s = std::format(format, std::forward<Args>(args)...);
-
-	console->Print(
-		Unnamed::LogLevel::Error,
-		channel,
-		s
-	);
+	console->Print(Unnamed::LogLevel::Error, channel, s);
 }
 
 template <typename... Args>
@@ -120,26 +109,15 @@ void Fatal(
 	const std::string_view&           channel,
 	const std::format_string<Args...> format, Args&&... args
 ) {
-	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	auto*             console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	const std::string s = std::format(format, std::forward<Args>(args)...);
 	if (!console) {
-		// ServiceLocatorが無効な場合は標準出力に直接出力
-		const std::string s = std::format(format, std::forward<Args>(args)...);
-		std::string out = "[" + std::string(channel) + "][FATAL] " + s;
-		std::cout << out << "\n";
-#ifdef _WIN32
-		OutputDebugStringA(out.data());
-		OutputDebugStringA("\n");
-#endif
+		// ServiceLocator無効時のフォールバック
+		Print(Unnamed::LogLevel::Fatal, channel, s);
 		return;
 	}
 
-	const std::string s = std::format(format, std::forward<Args>(args)...);
-
-	console->Print(
-		Unnamed::LogLevel::Fatal,
-		channel,
-		s
-	);
+	console->Print(Unnamed::LogLevel::Fatal, channel, s);
 }
 
 template <typename... Args>
@@ -147,24 +125,13 @@ void SpecialMsg(
 	const Unnamed::LogLevel           logLevel, const std::string_view& channel,
 	const std::format_string<Args...> format, Args&&...                 args
 ) {
-	auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	auto*             console = ServiceLocator::Get<Unnamed::ConsoleSystem>();
+	const std::string s = std::format(format, std::forward<Args>(args)...);
 	if (!console) {
-		// ServiceLocatorが無効な場合は標準出力に直接出力
-		const std::string s = std::format(format, std::forward<Args>(args)...);
-		std::string out = "[" + std::string(channel) + "][SPECIAL] " + s;
-		std::cout << out << "\n";
-#ifdef _WIN32
-		OutputDebugStringA(out.data());
-		OutputDebugStringA("\n");
-#endif
+		// ServiceLocator無効時のフォールバック
+		Print(logLevel, channel, s);
 		return;
 	}
 
-	const std::string s = std::format(format, std::forward<Args>(args)...);
-
-	console->Print(
-		logLevel,
-		channel,
-		s
-	);
+	console->Print(logLevel, channel, s);
 }

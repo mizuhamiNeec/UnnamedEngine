@@ -3,17 +3,17 @@
 
 namespace UPhysics {
 	struct BoxCast final : ShapeCast {
-		[[nodiscard]] AABB ExpandNode(const AABB& nodeBounds) const override;
+		[[nodiscard]] Unnamed::AABB ExpandNode(const Unnamed::AABB& nodeBounds) const override;
 
 		bool TestTriangle(
-			const Triangle& triangle,
+			const Unnamed::Triangle& triangle,
 			const Vec3&     dir,
 			float           length,
 			float&          outTOI,
 			Vec3&           outNormal
 		) const override;
 
-		Box  box;
-		Vec3 half = box.half;
+		Unnamed::Box  box;
+		Vec3 half = box.halfSize;
 	};
 }

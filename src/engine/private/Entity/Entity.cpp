@@ -21,13 +21,35 @@ Entity::~Entity() {
 	}*/
 }
 
+void Entity::PrePhysics(float deltaTime) const {
+	if (!bIsActive_) {
+		return;
+	}
+
+	for (const auto& component : mComponents) {
+		if (component->IsEditorOnly() /* && !bIsInEditor*/) {
+			continue; // エディター専用のコンポーネントはゲーム中には更新しない
+		}
+		component->PrePhysics(deltaTime);
+	}
+
+	if (!GetChildren().empty()) {
+		// 子のエンティティの更新
+		for (const auto& child : mChildren) {
+			if (child) {
+				child->PrePhysics(deltaTime);
+			}
+		}
+	}
+}
+
 void Entity::Update(const float deltaTime) {
 	if (!bIsActive_) {
 		return;
 	}
 
 	// 必須コンポーネントの更新
-	if (!mScene.get()) {
+	if (!mScene) {
 		Console::Print(
 			std::format("Entity '{}' has no TransformComponent!", GetName()),
 			Vec4(1, 0, 0, 1), Channel::General);
@@ -77,7 +99,8 @@ void Entity::Update(const float deltaTime) {
 #ifdef _DEBUG
 			//auto   viewport  = ImGui::GetMainViewport();
 			ImVec2 screenPos = {
-				Unnamed::Engine::GetViewportLT().x, Unnamed::Engine::GetViewportLT().y
+				Unnamed::Engine::GetViewportLT().x,
+				Unnamed::Engine::GetViewportLT().y
 			};
 			ImGui::SetNextWindowPos(screenPos);
 			ImGui::SetNextWindowSize({screenSize.x, screenSize.y});
@@ -120,6 +143,28 @@ void Entity::Update(const float deltaTime) {
 		for (const auto& child : mChildren) {
 			if (child) {
 				child->Update(deltaTime);
+			}
+		}
+	}
+}
+
+void Entity::PostPhysics(float deltaTime) const {
+	if (!bIsActive_) {
+		return;
+	}
+
+	for (const auto& component : mComponents) {
+		if (component->IsEditorOnly() /* && !bIsInEditor*/) {
+			continue; // エディター専用のコンポーネントはゲーム中には更新しない
+		}
+		component->PostPhysics(deltaTime);
+	}
+
+	if (!GetChildren().empty()) {
+		// 子のエンティティの更新
+		for (const auto& child : mChildren) {
+			if (child) {
+				child->PostPhysics(deltaTime);
 			}
 		}
 	}
