@@ -20,11 +20,8 @@
 #include <engine/public/SceneManager/SceneManager.h>
 #include <engine/public/Sprite/SpriteCommon.h>
 #include <engine/public/subsystem/interface/ISubsystem.h>
+#include <engine/public/subsystem/time/TimeSystem.h>
 #include <engine/public/Window/WindowManager.h>
-
-#include <game/public/scene/base/BaseScene.h>
-
-class TimeSystem;
 
 namespace Unnamed {
 	class ConsoleSystem;
