@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <iterator>
 
+#include <engine/subsystem/input/device/mouse/MouseDevice.h>
+
 
 namespace Unnamed {
 	std::optional<InputKey> KeyNameTable::FromString(
@@ -12,6 +14,11 @@ namespace Unnamed {
 		const std::unordered_map<std::string, InputKey>& map = NameToKey();
 		const auto it = map.find(Normalize(name));
 		if (it == map.end()) {
+			Fatal(
+				"KeyNameTable",
+				"InputKey '{}' is not found.",
+				name.data()
+			);
 			return std::nullopt;
 		}
 		return it->second;
@@ -108,7 +115,7 @@ namespace Unnamed {
 
 		// System, Modifier, Other
 
-		// 特殊キー (※は非推奨 キーボードによっては存在しないキー・特殊な人のキーボード)
+		// 特殊キー ( ※は非推奨 キーボードによっては存在しないキー・特殊な人のキーボード
 		KEY("escape", KEYBOARD, VK_ESCAPE),
 		KEY("tab", KEYBOARD, VK_TAB),
 		KEY("capslock", KEYBOARD, VK_CAPITAL),  // CapsLock(※
@@ -162,11 +169,13 @@ namespace Unnamed {
 		//---------------------------------------------------------------------
 		// マウス
 		//---------------------------------------------------------------------
-		KEY("mouse1", MOUSE, VK_LBUTTON),  // 左ボタン
-		KEY("mouse2", MOUSE, VK_RBUTTON),  // 右ボタン
-		KEY("mouse3", MOUSE, VK_MBUTTON),  // 中央ボタン
-		KEY("mouse4", MOUSE, VK_XBUTTON1), // サイドボタン1 手前
-		KEY("mouse5", MOUSE, VK_XBUTTON2), // サイドボタン2 奥
+		KEY("mouse1", MOUSE, VK_LBUTTON),           // 左ボタン
+		KEY("mouse2", MOUSE, VK_RBUTTON),           // 右ボタン
+		KEY("mouse3", MOUSE, VK_MBUTTON),           // 中央ボタン
+		KEY("mouse4", MOUSE, VK_XBUTTON1),          // サイドボタン1 手前
+		KEY("mouse5", MOUSE, VK_XBUTTON2),          // サイドボタン2 奥
+		KEY("mousewheelup", MOUSE, VM_WHEEL_UP),    // ホイール上
+		KEY("mousewheeldown", MOUSE, VM_WHEEL_DOWN) // ホイール下
 	};
 
 	const std::unordered_map<InputKey, std::string_view, KeyHash>

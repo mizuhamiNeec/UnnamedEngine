@@ -12,14 +12,16 @@
 #include <engine/subsystem/input/device/base/BaseInputDevice.h>
 
 enum : uint8_t {
-	VM_1     = VK_LBUTTON,  // 左ボタン
-	VM_2     = VK_RBUTTON,  // 右ボタン
-	VM_3     = VK_MBUTTON,  // 中央ボタン
-	VM_4     = VK_XBUTTON1, // サイドボタン1 手前
-	VM_5     = VK_XBUTTON2, // サイドボタン2 奥
-	VM_X     = 100,         // カーソルX軸
-	VM_Y     = 101,         // カーソルY軸
-	VM_WHEEL = 102,         // ホイール
+	VM_1          = VK_LBUTTON,  // 左ボタン
+	VM_2          = VK_RBUTTON,  // 右ボタン
+	VM_3          = VK_MBUTTON,  // 中央ボタン
+	VM_4          = VK_XBUTTON1, // サイドボタン1 手前
+	VM_5          = VK_XBUTTON2, // サイドボタン2 奥
+	VM_X          = 100,         // カーソルX軸
+	VM_Y          = 101,         // カーソルY軸
+	VM_WHEEL      = 102,         // ホイール
+	VM_WHEEL_UP   = 103,         // ホイール上
+	VM_WHEEL_DOWN = 104,         // ホイール下
 };
 
 namespace Unnamed {
@@ -46,8 +48,9 @@ namespace Unnamed {
 
 	private:
 		std::unordered_map<uint32_t, bool> mButtonStates;
-		int                                mDeltaX     = 0;
-		int                                mDeltaY     = 0;
-		int                                mWheelDelta = 0;
+		int                                mDeltaX         = 0;
+		int                                mDeltaY         = 0;
+		int                                mWheelDelta     = 0;
+		int                                mWheelRemainder = 0;
 	};
 }

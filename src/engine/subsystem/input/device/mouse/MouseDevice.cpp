@@ -60,7 +60,20 @@ namespace Unnamed {
 		mDeltaY += mouseData.lLastY;
 		// ホイール
 		if (mouseData.usButtonFlags & RI_MOUSE_WHEEL) {
-			mWheelDelta += GET_WHEEL_DELTA_WPARAM(mouseData.usButtonData);
+			const SHORT wheelData = static_cast<SHORT>(mouseData.usButtonData);
+			mWheelRemainder += wheelData;
+			if (wheelData > 0) {
+				mButtonStates[VM_WHEEL_UP]   = true;
+				mButtonStates[VM_WHEEL_DOWN] = false;
+			} else if (wheelData < 0) {
+				mButtonStates[VM_WHEEL_DOWN] = true;
+				mButtonStates[VM_WHEEL_UP]   = false;
+			}
+			const int clicks = mWheelRemainder / WHEEL_DELTA;
+			if (clicks != 0) {
+				mWheelDelta += clicks;
+				mWheelRemainder -= clicks * WHEEL_DELTA;
+			}
 		}
 	}
 
@@ -97,7 +110,9 @@ namespace Unnamed {
 			{.device = InputDeviceType::MOUSE, .code = VM_5},
 			{.device = InputDeviceType::MOUSE, .code = VM_X},
 			{.device = InputDeviceType::MOUSE, .code = VM_Y},
-			{.device = InputDeviceType::MOUSE, .code = VM_WHEEL}
+			{.device = InputDeviceType::MOUSE, .code = VM_WHEEL},
+			{.device = InputDeviceType::MOUSE, .code = VM_WHEEL_UP},
+			{.device = InputDeviceType::MOUSE, .code = VM_WHEEL_DOWN}
 		};
 	}
 
@@ -107,11 +122,17 @@ namespace Unnamed {
 
 	void MouseDevice::ResetStates() {
 		mButtonStates.clear();
+		mDeltaX         = 0;
+		mDeltaY         = 0;
+		mWheelDelta     = 0;
+		mWheelRemainder = 0;
 	}
 
 	void MouseDevice::ResetDelta() {
 		mDeltaX     = 0;
 		mDeltaY     = 0;
 		mWheelDelta = 0;
+		mButtonStates[VM_WHEEL_UP]   = false;
+		mButtonStates[VM_WHEEL_DOWN] = false;
 	}
 }
