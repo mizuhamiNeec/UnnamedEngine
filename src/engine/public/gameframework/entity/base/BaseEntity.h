@@ -15,7 +15,7 @@ namespace Unnamed {
 	class BaseEntity {
 	public:
 		explicit BaseEntity(std::string name);
-		virtual  ~BaseEntity() = default;
+		virtual  ~BaseEntity();
 
 		//---------------------------------------------------------------------
 		// 純粋仮想関数
@@ -70,17 +70,28 @@ namespace Unnamed {
 			return nullptr;
 		}
 
+		template <typename ComponentType, typename... Args>
+		[[nodiscard]] ComponentType* GetOrAddComponent(Args&&... args) {
+			if (auto* component = GetComponent<ComponentType>()) {
+				return component;
+			}
+			return AddComponent<ComponentType>(std::forward<Args>(args)...);
+		}
+
 		void RemoveComponent(BaseComponent* component) {
-			auto it = std::remove_if(
-				mComponents.begin(),
-				mComponents.end(),
-				[component](const std::unique_ptr<BaseComponent>& comp) {
+			if (!component) return;
+
+			const auto it = std::ranges::find_if(
+				mComponents,
+				[component](
+				const std::unique_ptr<BaseComponent>& comp) {
 					return comp.get() == component;
 				}
 			);
+
 			if (it != mComponents.end()) {
-				(*it)->OnDetached(); // 取り外し時の処理を呼び出す
-				mComponents.erase(it, mComponents.end());
+				(*it)->OnDetached();
+				mComponents.erase(it);
 			}
 		}
 
@@ -90,6 +101,11 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] std::string_view GetName() const;
+		void                           SetName(std::string& name);
+
+		[[nodiscard]] bool IsEditorOnly() const noexcept;
+
+		[[nodiscard]] uint64_t GetId() const noexcept;
 
 	protected:
 		std::string mName;                 // 名前
