@@ -12,7 +12,7 @@
 #include <engine/public/SceneManager/SceneManager.h>
 #include <engine/public/Window/WindowManager.h>
 
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 #include <engine/public/ImGui/ImGuiWidgets.h>
 
