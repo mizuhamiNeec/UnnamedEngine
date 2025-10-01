@@ -1,9 +1,11 @@
+#include <pch.h>
+
+//-----------------------------------------------------------------------------
+
 #include <cassert>
 #include <engine/public/postprocess/PPVignette.h>
 #include <engine/public/renderer/PipelineState.h>
 #include <engine/public/renderer/SrvManager.h>
-
-#include "engine/public/utils/UnnamedMacro.h"
 
 #ifdef _DEBUG
 #include <imgui.h>
