@@ -2,9 +2,8 @@
 
 #include <fstream>
 #include <ios>
+#include <json.hpp>
 #include <sstream>
-
-#include <engine/public/utils/json/JsonReader.h>
 
 namespace Unnamed {
 	static std::string ReadTextFile(const std::string& path) {
