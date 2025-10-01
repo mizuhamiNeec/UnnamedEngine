@@ -1,7 +1,8 @@
+#include "BaseScene.h"
+
 #include <vector>
 
 #include <engine/public/Entity/Entity.h>
-#include <game/public/scene/base/BaseScene.h>
 
 std::vector<Entity*>& BaseScene::GetEntities() {
 	return mEntities;
