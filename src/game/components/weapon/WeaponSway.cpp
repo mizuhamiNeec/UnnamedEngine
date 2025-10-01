@@ -1,11 +1,11 @@
+#include "WeaponSway.h"
+
 #ifdef _DEBUG
 #include <imgui.h>
 #endif
 
 #include <engine/public/Components/Transform/SceneComponent.h>
 #include <engine/public/Input/InputSystem.h>
-
-#include <game/public/components/weapon/WeaponSway.h>
 
 WeaponSway::~WeaponSway() = default;
 

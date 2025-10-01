@@ -4,7 +4,7 @@
 
 #include <engine/public/Components/base/Component.h>
 
-#include <math/public/Vec3.h>
+#include <runtime/core/math/Math.h>
 
 class Entity;
 
@@ -65,7 +65,7 @@ private:
 
 	Vec3 mHitPosition = Vec3::zero; // ヒット位置
 	Vec3 mHitNormal   = Vec3::zero; // ヒット面の法線
-	bool mIsHit        = false;      // ヒットしたかどうか
+	bool mIsHit       = false;      // ヒットしたかどうか
 };
 
 // //-----------------------------------------------------------------------------

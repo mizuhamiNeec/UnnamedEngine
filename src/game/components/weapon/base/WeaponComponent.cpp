@@ -1,5 +1,3 @@
-
-
 #include "game/public/components/weapon/base/WeaponComponent.h"
 
 #include <fstream>
@@ -11,7 +9,7 @@
 #include "engine/public/Debug/Debug.h"
 #include "engine/public/Entity/Entity.h"
 #include "engine/public/OldConsole/Console.h"
-#include "engine/public/Physics/PhysicsEngine.h"
+#include "engine/public/uphysics/PhysicsTypes.h"
 
 using json = nlohmann::json;
 
@@ -21,14 +19,14 @@ std::unique_ptr<WeaponData> WeaponData::LoadFromJson(
 	json          j;
 	file >> j;
 
-	auto d = std::make_unique<WeaponData>();
-	d->name = j["name"].get<std::string>();
-	d->maxAmmo = j["max_ammo"];
-	d->clipSize = j["clip_size"];
-	d->fireRate = j["fire_rate"];
-	d->reloadTime = j["reload_time"];
-	d->damage = j["damage"];
-	d->primaryModule = j["primary_module"];
+	auto d             = std::make_unique<WeaponData>();
+	d->name            = j["name"].get<std::string>();
+	d->maxAmmo         = j["max_ammo"];
+	d->clipSize        = j["clip_size"];
+	d->fireRate        = j["fire_rate"];
+	d->reloadTime      = j["reload_time"];
+	d->damage          = j["damage"];
+	d->primaryModule   = j["primary_module"];
 	d->projectileSpeed = j.value("projectile_speed", 0.0f);
 	return d;
 }
@@ -36,50 +34,49 @@ std::unique_ptr<WeaponData> WeaponData::LoadFromJson(
 //-----------------------------------------------------------------------------
 // HitscanModule
 //-----------------------------------------------------------------------------
-void HitscanModule::Execute(Entity& entity) {
+void HitscanModule::Execute([[maybe_unused]] Entity& entity) {
 	const auto camera = CameraManager::GetActiveCamera();
-	const Vec3 eye = camera->GetViewMat().Inverse().GetTranslate();
-	const Vec3 fwd = camera->GetViewMat().Inverse().GetForward();
+	const Vec3 eye    = camera->GetViewMat().Inverse().GetTranslate();
+	const Vec3 fwd    = camera->GetViewMat().Inverse().GetForward();
 
-	const auto* collider = entity.GetComponent<BoxColliderComponent>();
+	//const auto* collider = entity.GetComponent<BoxColliderComponent>();
 
-	auto result = collider->RayCast(
-		eye,
-		fwd,
-		Math::HtoM(65535.0f) // 最大距離を65535HUに設定
-	);
-
-	if (!result.empty()) {
-		const auto hit = *std::ranges::min_element(result,
-			[](const HitResult& a,
-				const HitResult& b) {
-					return a.dist < b.dist;
-			});
-
-		if (!hit.hitEntity) {
-			// ヒットしたエンティティがない場合は何もしない
-			mIsHit = false;
-			return;
-		}
-
-		if (hit.isHit) {
-			Debug::DrawRay(eye, fwd * hit.dist, Vec4::red);
-			Debug::DrawBox(hit.hitPos, Quaternion::identity,
-				Vec3(0.1f, 0.1f, 0.1f), Vec4::green);
-			Debug::DrawAxis(hit.hitPos, Quaternion::identity);
-			Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
-
-			//hit.hitEntity->SetActive(false); // ヒットしたエンティティを非アクティブにする
-			mHitPosition = hit.hitPos;    // ヒット位置を保存
-			mHitNormal = hit.hitNormal; // ヒット面の法線を保存
-			mIsHit = true;
-		}
-
-		Console::Print("Hitscan Fired!\n");
-	}
-	else {
-		mIsHit = false; // ヒットしなかった場合はフラグをリセット
-	}
+	// auto result = collider->RayCast(
+	// 	eye,
+	// 	fwd,
+	// 	Math::HtoM(65535.0f) // 最大距離を65535HUに設定
+	// );
+	//
+	// if (!result.empty()) {
+	// 	const auto hit = *std::ranges::min_element(result,
+	// 	                                           [](const UPhysics::Hit& a,
+	// 	                                           const UPhysics::Hit&    b) {
+	// 		                                           return a.t < b.t;
+	// 	                                           });
+	//
+	// 	if (!hit.hitEntity) {
+	// 		// ヒットしたエンティティがない場合は何もしない
+	// 		mIsHit = false;
+	// 		return;
+	// 	}
+	//
+	// 	if (hit.isHit) {
+	// 		Debug::DrawRay(eye, fwd * hit.dist, Vec4::red);
+	// 		Debug::DrawBox(hit.hitPos, Quaternion::identity,
+	// 		               Vec3(0.1f, 0.1f, 0.1f), Vec4::green);
+	// 		Debug::DrawAxis(hit.hitPos, Quaternion::identity);
+	// 		Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
+	//
+	// 		//hit.hitEntity->SetActive(false); // ヒットしたエンティティを非アクティブにする
+	// 		mHitPosition = hit.hitPos;    // ヒット位置を保存
+	// 		mHitNormal   = hit.hitNormal; // ヒット面の法線を保存
+	// 		mIsHit       = true;
+	// 	}
+	//
+	// 	Console::Print("Hitscan Fired!\n");
+	// } else {
+	// 	mIsHit = false; // ヒットしなかった場合はフラグをリセット
+	// }
 }
 
 void HitscanModule::Update([[maybe_unused]] const float& deltaTime) {
@@ -88,7 +85,6 @@ void HitscanModule::Update([[maybe_unused]] const float& deltaTime) {
 void HitscanModule::DrawInspectorImGui() {
 }
 
-
 namespace {
 	std::unique_ptr<IWeaponModule> CreateModule(const WeaponData& d) {
 		if (d.primaryModule == "hitscan") {
@@ -96,7 +92,7 @@ namespace {
 		}
 		// ここに他のモジュールの作成処理を追加
 		Console::Print("Unknown weapon module: " + d.primaryModule,
-			Vec4::red, Channel::Game);
+		               Vec4::red, Channel::Game);
 		return nullptr;
 	}
 }
@@ -129,14 +125,14 @@ WeaponComponent::WeaponComponent(const std::string& weaponJsonPath) :
 	mWeaponData(WeaponData::LoadFromJson(weaponJsonPath)) {
 	if (!mWeaponData) {
 		Console::Print("WeaponComponent: Failed to load weapon data from "
-			"JSON file: " + weaponJsonPath,
-			Vec4::red, Channel::Game);
+		               "JSON file: " + weaponJsonPath,
+		               Vec4::red, Channel::Game);
 		return;
 	}
 
 	mPrimaryModule = CreateModule(*mWeaponData);
-	mCurrentAmmo = mWeaponData->maxAmmo;
-	mCurrentClip = mWeaponData->clipSize;
+	mCurrentAmmo   = mWeaponData->maxAmmo;
+	mCurrentClip   = mWeaponData->clipSize;
 }
 
 void WeaponComponent::OnAttach(Entity& owner) {
@@ -165,7 +161,7 @@ void WeaponComponent::Update([[maybe_unused]] float deltaTime) {
 	if (mTriggerHeld && CanFire()) {
 		mPrimaryModule->Execute(*GetOwner());
 		--mCurrentClip;
-		mTimeSinceShot = 0.0f;
+		mTimeSinceShot  = 0.0f;
 		mFiredThisFrame = true; // 今フレームで発射した
 	}
 }
@@ -183,7 +179,7 @@ void WeaponComponent::PullTrigger() {
 	if (CanFire()) {
 		mPrimaryModule->Execute(*GetOwner());
 		--mCurrentClip;
-		mTimeSinceShot = 0.0f;
+		mTimeSinceShot  = 0.0f;
 		mFiredThisFrame = true; // 今フレームで発射した
 	}
 }
