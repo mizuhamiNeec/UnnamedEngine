@@ -1,6 +1,8 @@
-﻿#include <pch.h>
+﻿#include "PlayerMovementUPhysics.h"
 
 #include <algorithm>
+#include <pch.h>
+
 #include <engine/public/Camera/CameraManager.h>
 #include <engine/public/Components/Camera/CameraComponent.h>
 #include <engine/public/Components/ColliderComponent/BoxColliderComponent.h>
@@ -11,10 +13,9 @@
 #include <engine/public/Input/InputSystem.h>
 #include <engine/public/OldConsole/Console.h>
 #include <engine/public/OldConsole/ConVarManager.h>
-#include <engine/public/Physics/PhysicsEngine.h>
-#include <engine/public/uphysics/UPhysics.h>
-#include <engine/public/uphysics/Primitives.h>
-#include <game/public/components/PlayerMovementUPhysics.h>
+#include <engine/public/uphysics/PhysicsTypes.h>
+
+#include <runtime/physics/core/UPhysics.h>
 
 class ColliderComponent;
 
@@ -128,7 +129,7 @@ void PlayerMovementUPhysics::Update([[maybe_unused]] const float deltaTime) {
 		);
 	} else {
 		Unnamed::Ray ray;
-		ray.origin  = camera->GetViewMat().Inverse().GetTranslate();
+		ray.origin = camera->GetViewMat().Inverse().GetTranslate();
 		ray.dir    = cameraForward;
 		ray.invDir = Vec3(
 			cameraForward.x != 0.0f ? 1.0f / cameraForward.x : FLT_MAX,
@@ -598,12 +599,12 @@ void PlayerMovementUPhysics::CollideAndSlide(const Vec3& disp) {
 
 	Vec3 pos     = mScene->GetWorldPos() + col->GetOffset();
 	Vec3 vel     = disp; // 今フレームで消費したい “速度”
-	Vec3 boxHalf = col->GetBoundingBox().GetHalfSize();
+	Vec3 boxHalf = {32.0f, kDefaultHeightHU, 32.0f};
 
 	for (int iter = 0; iter < kMaxIters && vel.SqrLength() > kEps * kEps; ++
 	     iter) {
 		// ── Sweep (BoxCast) ─────────────────────────
-		Unnamed::Box box{pos, boxHalf};
+		Unnamed::Box  box{pos, boxHalf};
 		UPhysics::Hit hit{};
 		float         moveLen = vel.Length();
 		Vec3          moveDir = vel / moveLen;

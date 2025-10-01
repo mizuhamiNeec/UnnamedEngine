@@ -2,11 +2,7 @@
 
 #include <vector>
 
-#include <game/public/components/CharacterMovement.h>
-
-#include <math/public/MathLib.h>
-
-#include "engine/public/uphysics/UPhysics.h"
+#include <game/components/CharacterMovement.h>
 
 class SceneComponent;
 
