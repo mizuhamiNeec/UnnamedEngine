@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include <engine/public/OldConsole/Console.h>
-#include <engine/public/utils/ini/IniParser.h>
+#include "IniParser.h"
 
 std::unordered_map<std::string, std::unordered_map<std::string, std::string>>
 IniParser::ParseIniFile(

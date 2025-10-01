@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 /// @class JsonWriter
 /// @brief JSON構築用ユーティリティ (オブジェクト/配列のネストサポート)

@@ -1,7 +1,7 @@
 #include <pch.h>
-
 #include <cwchar>
 #include <DbgHelp.h>
+
 #pragma comment(lib, "DbgHelp.lib")
 
 void CheckMemoryLeaksAndNotify() {
@@ -21,20 +21,7 @@ int LogAssertionFailure(
 	const int   line,
 	const char* func
 ) {
-	expr;
-	file;
-	line;
-	func;
-	// Core::Fatal(
-	// 	"UnnamedAssert",
-	// 	"Assertion failed: {}\n File: {}\n Line: {}\n Function: {}",
-	// 	expr,
-	// 	file,
-	// 	std::to_string(line),
-	// 	func
-	// );
-
-	std::string message =
+	const std::string message =
 		std::format(
 			"Assertion failed: {}\nFile: {}\nLine: {}\nFunction: {}",
 			expr,
@@ -42,6 +29,15 @@ int LogAssertionFailure(
 			std::to_string(line),
 			func
 		);
+
+	Fatal(
+		"UASSERT",
+		"Assertion failed: {}\nFile: {}\nLine: {}\nFunction: {}",
+		expr,
+		file,
+		std::to_string(line),
+		func
+	);
 
 	auto messageW = StrUtil::ToWString(message);
 
@@ -110,10 +106,10 @@ void WriteDump(EXCEPTION_POINTERS* ep) {
 
 		CloseHandle(hFile);
 	} else {
-		// Core::Fatal(
-		// 	"WriteDump",
-		// 	"Failed to create dump file: {}",
-		// 	std::to_string(GetLastError())
-		// );
+		Fatal(
+			"WriteDump",
+			"Failed to create dump file: {}",
+			std::to_string(GetLastError())
+		);
 	}
 }
