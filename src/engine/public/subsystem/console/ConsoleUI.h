@@ -1,5 +1,5 @@
 #pragma once
-#include <math/public/Vec4.h>
+#include <runtime/core/math/Vec4.h>
 
 namespace Unnamed {
 	class ConsoleSystem;
@@ -20,11 +20,13 @@ namespace Unnamed {
 	public:
 		explicit ConsoleUI(ConsoleSystem* consoleSystem);
 
-		void Show();
+		void Show() const;
 
 	private:
 		static void PushLogTextColor(const struct ConsoleLogText& buffer);
 
 		ConsoleSystem* mConsoleSystem;
+
+		bool bIsImGuiInitialized = false;
 	};
 }

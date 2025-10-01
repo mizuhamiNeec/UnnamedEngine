@@ -1,32 +1,42 @@
 #ifdef _DEBUG
+#include <pch.h>
 #include <string>
 
 #include <engine/public/subsystem/console/ConsoleUI.h>
-#include <engine/public/subsystem/console/Log.h>
 
 #include <imgui.h>
 
 namespace Unnamed {
 	ConsoleUI::ConsoleUI(
 		ConsoleSystem* consoleSystem
-	): mConsoleSystem(consoleSystem) {
+	) : mConsoleSystem(consoleSystem) {
+		if (ImGui::GetCurrentContext()) {
+			bIsImGuiInitialized = true;
+		} else {
+			Warning(
+				"ConsoleUI",
+				"ImGuiが初期化されていないため、コンソールUIは表示されません。"
+			);
+		}
 	}
 
 	/// @brief コンソールUIを表示します。
 	/// @details ImGuiのコンテキスト内で呼び出してください。
-	void ConsoleUI::Show() {
-		ImGui::Begin("Console##ConsoleSystem");
-		for (auto buffer : mConsoleSystem->GetLogBuffer()) {
-			PushLogTextColor(buffer);
+	void ConsoleUI::Show() const {
+		if (bIsImGuiInitialized) {
+			ImGui::Begin("Console##ConsoleSystem");
+			for (auto buffer : mConsoleSystem->GetLogBuffer()) {
+				PushLogTextColor(buffer);
 
-			std::string text = "[ " + buffer.channel + " ] " + buffer.
-				message;
+				std::string text = "[ " + buffer.channel + " ] " + buffer.
+					message;
 
-			ImGui::Text(text.c_str());
+				ImGui::Text(text.c_str());
 
-			ImGui::PopStyleColor();
+				ImGui::PopStyleColor();
+			}
+			ImGui::End();
 		}
-		ImGui::End();
 	}
 
 	/// @brief コンソールログのテキストの色を設定します。
