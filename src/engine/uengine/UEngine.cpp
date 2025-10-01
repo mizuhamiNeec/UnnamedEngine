@@ -256,7 +256,7 @@ namespace Unnamed {
 			UASSERT(ok && "Failed to build material.");
 
 			const auto meshAsset = mAssetManager->LoadFromFile(
-				"./content/core/models/error.obj", UASSET_TYPE::MESH
+				"./content/core/models/ShaderBall.obj", UASSET_TYPE::MESH
 			);
 			mAssetManager->AddRef(meshAsset);
 
@@ -351,7 +351,6 @@ namespace Unnamed {
 			static float speed = 1.0f;
 
 			speed += mInputSystem->Axis1D("wheel");
-			Msg(kChannelNone, "Speed: {}", speed);
 
 			pitch += delta.y * sensitivity * m_pitch;
 			yaw += delta.x * sensitivity * m_yaw;
