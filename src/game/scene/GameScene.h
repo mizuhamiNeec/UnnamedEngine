@@ -12,13 +12,13 @@
 #include <engine/public/particle/ParticleEmitter.h>
 #include <engine/public/particle/ParticleObject.h>
 #include <engine/public/particle/WindEffect.h>
-#include <engine/public/uphysics/UPhysics.h>
+#include <runtime/physics/core/UPhysics.h>
 
-#include <game/public/components/GameMovementComponent.h>
-#include <game/public/components/PlayerMovement.h>
-#include <game/public/components/weapon/WeaponSway.h>
-#include <game/public/components/weapon/base/WeaponComponent.h>
-#include <game/public/scene/base/BaseScene.h>
+#include "base/BaseScene.h"
+
+#include "game/components/GameMovementComponent.h"
+#include "game/components/weapon/WeaponSway.h"
+#include "game/components/weapon/base/WeaponComponent.h"
 
 class D3D12;
 class EnemyMovement;
@@ -53,7 +53,6 @@ private:
 	std::shared_ptr<StaticMeshRenderer> mWorldMeshRenderer;
 
 	std::unique_ptr<Entity>                mEntPlayer;
-	std::shared_ptr<PlayerMovement>        mPlayerMovement;
 	std::shared_ptr<GameMovementComponent> mGameMovementComponent;
 	std::shared_ptr<BoxColliderComponent>  mPlayerCollider;
 

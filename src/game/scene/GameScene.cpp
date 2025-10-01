@@ -1,3 +1,5 @@
+#include "GameScene.h"
+
 #include <format>
 
 #include <engine/public/Engine.h>
@@ -9,15 +11,15 @@
 #include <engine/public/Input/InputSystem.h>
 #include <engine/public/OldConsole/ConVarManager.h>
 #include <engine/public/TextureManager/TexManager.h>
-#include <engine/public/uphysics/UPhysics.h>
 
-#include <game/public/scene/GameScene.h>
+#include "core/guidgenerator/GUIDGenerator.h"
+#include "core/json/JsonWriter.h"
 
 #include "engine/public/gameframework/component/Transform/TransformComponent.h"
 #include "engine/public/gameframework/entity/UEntity/UEntity.h"
 #include "engine/public/subsystem/console/Log.h"
-#include "engine/public/utils/json/JsonWriter.h"
-#include "engine/public/utils/guidgenerator/GUIDGenerator.h"
+
+#include "game/components/CameraRotator.h"
 
 namespace Unnamed {
 	class UEntity;
@@ -524,13 +526,13 @@ void GameScene::Update(const float deltaTime) {
 		Console::Print("テレポートしました！");
 	}
 
-	AABB teleportTriggerAABB(
+	Unnamed::AABB teleportTriggerAABB(
 		mTeleportTriggerMin, mTeleportTriggerMax);
 
 	Debug::DrawBox(
-		teleportTriggerAABB.GetCenter(),
+		teleportTriggerAABB.Center(),
 		Quaternion::identity,
-		teleportTriggerAABB.GetSize(),
+		teleportTriggerAABB.Size(),
 		Vec4(1.0f, 0.0f, 0.0f, 0.5f) // 赤色、半透明
 	);
 
