@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <dxgiformat.h>
 #include <string>
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 //-----------------------------------------------------------------------------
 // Engine
