@@ -3,6 +3,7 @@
 
 #include <engine/public/Components/Camera/CameraComponent.h>
 #include <engine/public/Components/ColliderComponent/BoxColliderComponent.h>
+#include <engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h>
 #include <engine/public/Components/MeshRenderer/StaticMeshRenderer.h>
 #include <engine/public/CubeMap/CubeMap.h>
 #include <engine/public/Entity/Entity.h>
@@ -11,16 +12,13 @@
 #include <engine/public/particle/ParticleEmitter.h>
 #include <engine/public/particle/ParticleObject.h>
 #include <engine/public/particle/WindEffect.h>
+#include <engine/public/uphysics/UPhysics.h>
 
+#include <game/public/components/GameMovementComponent.h>
 #include <game/public/components/PlayerMovement.h>
 #include <game/public/components/weapon/WeaponSway.h>
 #include <game/public/components/weapon/base/WeaponComponent.h>
 #include <game/public/scene/base/BaseScene.h>
-
-#include <engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h>
-#include <engine/public/uphysics/UPhysics.h>
-
-#include "game/public/components/PlayerMovementUPhysics.h"
 
 class D3D12;
 class EnemyMovement;
@@ -54,10 +52,10 @@ private:
 	std::unique_ptr<Entity>             mEntWorldMesh;
 	std::shared_ptr<StaticMeshRenderer> mWorldMeshRenderer;
 
-	std::unique_ptr<Entity>               mEntPlayer;
-	std::shared_ptr<PlayerMovement>       mPlayerMovement;
-	std::shared_ptr<PlayerMovementUPhysics> mPlayerMovementUPhysics;
-	std::shared_ptr<BoxColliderComponent> mPlayerCollider;
+	std::unique_ptr<Entity>                mEntPlayer;
+	std::shared_ptr<PlayerMovement>        mPlayerMovement;
+	std::shared_ptr<GameMovementComponent> mGameMovementComponent;
+	std::shared_ptr<BoxColliderComponent>  mPlayerCollider;
 
 	std::unique_ptr<Entity>             mEntWeapon;
 	std::shared_ptr<WeaponComponent>    mWeaponComponent;

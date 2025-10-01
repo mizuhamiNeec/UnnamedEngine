@@ -9,8 +9,19 @@
 #include <engine/public/Input/InputSystem.h>
 #include <engine/public/OldConsole/ConVarManager.h>
 #include <engine/public/TextureManager/TexManager.h>
+#include <engine/public/uphysics/UPhysics.h>
 
 #include <game/public/scene/GameScene.h>
+
+#include "engine/public/gameframework/component/Transform/TransformComponent.h"
+#include "engine/public/gameframework/entity/UEntity/UEntity.h"
+#include "engine/public/subsystem/console/Log.h"
+#include "engine/public/utils/json/JsonWriter.h"
+#include "engine/public/utils/guidgenerator/GUIDGenerator.h"
+
+namespace Unnamed {
+	class UEntity;
+}
 
 GameScene::~GameScene() {
 	mResourceManager = nullptr;
@@ -107,15 +118,15 @@ void GameScene::Init() {
 	// プレイヤー
 	mEntPlayer = std::make_unique<Entity>("player");
 	mEntPlayer->GetTransform()->SetLocalPos(Vec3::up * 4.0f); // 1m上に配置
-	PlayerMovementUPhysics* rawPlayerMovement = mEntPlayer->AddComponent<
-		PlayerMovementUPhysics>();
-	mPlayerMovementUPhysics = std::shared_ptr<PlayerMovementUPhysics>(
-		rawPlayerMovement, [](PlayerMovementUPhysics*) {
+	GameMovementComponent* rawPlayerMovement = mEntPlayer->AddComponent<
+		GameMovementComponent>();
+	mGameMovementComponent = std::shared_ptr<GameMovementComponent>(
+		rawPlayerMovement, [](GameMovementComponent*) {
 		}
 	);
-	mPlayerMovementUPhysics->SetVelocity(Vec3::forward * 1.0f);
-	mPlayerMovementUPhysics->AddCameraShakeEntity(mCamera.get());
-	mPlayerMovementUPhysics->SetUPhysicsEngine(mUPhysicsEngine.get());
+	//mPlayerMovementUPhysics->SetVelocity(Vec3::forward * 1.0f);
+	//mPlayerMovementUPhysics->AddCameraShakeEntity(mCamera.get());
+	mGameMovementComponent->SetUPhysicsEngine(mUPhysicsEngine.get());
 	BoxColliderComponent* rawPlayerCollider = mEntPlayer->AddComponent<
 		BoxColliderComponent>();
 	mPlayerCollider = std::shared_ptr<BoxColliderComponent>(
@@ -134,7 +145,7 @@ void GameScene::Init() {
 		}
 	);
 	WeaponComponent* rawWeaponComponent = mEntWeapon->AddComponent<
-		WeaponComponent>("./resources/json/rifle.json");
+		WeaponComponent>("./resources/weapons/rifle.json");
 	mWeaponComponent = std::shared_ptr<WeaponComponent>(
 		rawWeaponComponent, [](WeaponComponent*) {
 		}
@@ -153,7 +164,7 @@ void GameScene::Init() {
 	AddEntity(mEntWeapon.get());
 
 	mEntShakeRoot = std::make_unique<Entity>("shakeRoot");
-	mPlayerMovementUPhysics->AddCameraShakeEntity(mEntShakeRoot.get(), 3.0f);
+	//mPlayerMovementUPhysics->AddCameraShakeEntity(mEntShakeRoot.get(), 3.0f);
 
 	// テスト用メッシュ
 	mEntWorldMesh                  = std::make_unique<Entity>("testMesh");
@@ -212,7 +223,7 @@ void GameScene::Init() {
 	// 風
 	mWindEffect = std::make_unique<WindEffect>();
 	mWindEffect->Init(Unnamed::Engine::GetParticleManager(),
-	                  mPlayerMovementUPhysics.get());
+	                  mGameMovementComponent.get());
 
 	// 爆発
 	mExplosionEffect = std::make_unique<ExplosionEffect>();
@@ -249,6 +260,68 @@ void GameScene::Init() {
 	Vec3 triggerSize(Vec3::one * 13.0048f * 2.0f);     // トリガーのサイズ
 	mTeleportTriggerMin = triggerCenter - triggerSize * 0.5f;
 	mTeleportTriggerMax = triggerCenter + triggerSize * 0.5f;
+
+	{
+		auto testEntity = std::make_unique<
+			Unnamed::UEntity>("TestEntity");
+
+		auto testRootEntity = std::make_unique<
+			Unnamed::UEntity>("TestRootEntity");
+
+		auto transform = testEntity->AddComponent<
+			Unnamed::TransformComponent>();
+
+		auto testRootTransform = testRootEntity->AddComponent<
+			Unnamed::TransformComponent>();
+
+		transform->SetParent(testRootTransform);
+
+		testRootTransform->SetPosition(Vec3(114.0f, 514.0f, 1919.0f));
+		testRootTransform->SetRotation(
+			Quaternion::EulerDegrees(0.0f, 45.0f, 0.0f)
+		);
+		testRootTransform->SetScale(Vec3(1.0f, 1.0f, 1.0f));
+
+		transform->SetPosition(Vec3(123.0f, -456.0f, 789.0f));
+		transform->SetRotation(Quaternion::EulerDegrees(0.0f, 90.0f, 0.0f));
+		transform->SetScale(Vec3(1.0f, 2.0f, 3.0f));
+
+		Msg(
+			testEntity->GetName(),
+			"TransformComponent のデータ: \n {} {} {},\n {} {} {},\n {} {} {}",
+			transform->Position().x,
+			transform->Position().y,
+			transform->Position().z,
+			transform->Rotation().ToEulerAngles().x,
+			transform->Rotation().ToEulerAngles().y,
+			transform->Rotation().ToEulerAngles().z,
+			transform->Scale().x,
+			transform->Scale().y,
+			transform->Scale().z
+		);
+
+		JsonWriter writer("test");
+
+		writer.BeginObject();
+		transform->Serialize(writer);
+		writer.EndObject();
+
+		Msg(
+			"JsonWriter",
+			"TransformComponent のシリアライズ結果: \n{}",
+			writer.ToString()
+		);
+
+		auto guidGenerator = std::make_unique<
+			GuidGenerator>(GuidGenerator::MODE::RANDOM64);
+		for (int i = 0; i < 128; ++i) {
+			Msg(
+				"GuidGenerator",
+				"Generated GUID: {}",
+				guidGenerator->Alloc()
+			);
+		}
+	}
 }
 
 void GameScene::Update(const float deltaTime) {
@@ -270,7 +343,7 @@ void GameScene::Update(const float deltaTime) {
 	}
 
 	mEntCameraRoot->GetTransform()->SetWorldPos(
-		mPlayerMovementUPhysics->GetHeadPos());
+		mGameMovementComponent->GetHeadPos());
 	// cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
 	// camera_->Update(EngineTimer::GetScaledDeltaTime());
 
@@ -289,7 +362,7 @@ void GameScene::Update(const float deltaTime) {
 	if (mWeaponComponent->HasFiredThisFrame()) {
 		auto camera = CameraManager::GetActiveCamera();
 		auto cameraForward = camera->GetViewMat().Inverse().GetForward();
-		UPhysics::Ray ray = {
+		Unnamed::Ray ray = {
 			camera->GetViewMat().Inverse().GetTranslate(),
 			cameraForward,
 			1.0f / cameraForward,
@@ -323,23 +396,27 @@ void GameScene::Update(const float deltaTime) {
 				Vec3  forceDir = toPlayer.Normalized();
 				float force    = blastPower * (1.0f - (distance / blastRadius));
 				// プレイヤーに吹き飛ばしベクトルを加える
-				mPlayerMovementUPhysics->SetVelocity(
-					mPlayerMovementUPhysics->GetVelocity() + forceDir * force);
+				mGameMovementComponent->SetVelocity(
+					mGameMovementComponent->Velocity() + forceDir * force);
 			}
 
 			// カメラシェイク
-			mPlayerMovementUPhysics->StartCameraShake(
-				0.1f, 0.1f, 5.0f, Vec3::forward, 0.025f, 3.0f,
-				Vec3::right
-			);
+			// mGameMovementComponent->StartCameraShake(
+			// 	0.1f, 0.1f, 5.0f, Vec3::forward, 0.025f, 3.0f,
+			// 	Vec3::right
+			// );
 		}
 	}
 
+	auto horizontalplayervel = Vec3(mGameMovementComponent->Velocity().x,
+	                                0.0f,
+	                                mGameMovementComponent->Velocity().z);
+
 	mSkeletalMeshRenderer->SetAnimationSpeed(
-		mPlayerMovementUPhysics->GetVelocity().Length() * 0.1f
+		horizontalplayervel.Length() * 0.1f
 	);
 
-	Unnamed::Engine::blurStrength = mPlayerMovementUPhysics->GetVelocity().
+	Unnamed::Engine::blurStrength = mGameMovementComponent->Velocity().
 		Length() *
 		0.01f;
 	// mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
@@ -352,8 +429,10 @@ void GameScene::Update(const float deltaTime) {
 
 #ifdef _DEBUG
 #pragma region cl_showpos
-	if (int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsString() !=
-		"0") {
+	if (
+		int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsInt();
+		flag != 0
+	) {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
 		constexpr ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
@@ -364,9 +443,8 @@ void GameScene::Update(const float deltaTime) {
 			ImGuiWindowFlags_NoDocking |
 			ImGuiWindowFlags_NoFocusOnAppearing |
 			ImGuiWindowFlags_NoNav;
-		ImVec2 windowPos = ImVec2(0.0f, 128.0f + 16.0f);
-		windowPos.x      = ImGui::GetMainViewport()->Pos.x + windowPos.x;
-		windowPos.y      = ImGui::GetMainViewport()->Pos.y + windowPos.y;
+		auto viewportLt = Unnamed::Engine::GetViewportLT();
+		auto windowPos  = ImVec2(viewportLt.x, viewportLt.y + 128.0f + 16.0f);
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
 		Mat4 invViewMat = Mat4::identity;
@@ -375,11 +453,13 @@ void GameScene::Update(const float deltaTime) {
 				Inverse();
 		}
 
-		Vec3       camPos = invViewMat.GetTranslate();
+		Vec3 camPos = invViewMat.GetTranslate();
+		if (flag == 2) {
+			camPos = Math::MtoH(camPos);
+		}
 		const Vec3 camRot = invViewMat.ToQuaternion().ToEulerAngles();
 
 		// テキストのサイズを取得
-		//ImGuiIO io = ImGui::GetIO();
 		std::string text = std::format(
 			"name: {}\n"
 			"pos : {:.2f} {:.2f} {:.2f}\n"
@@ -390,7 +470,7 @@ void GameScene::Update(const float deltaTime) {
 			camRot.x * Math::rad2Deg,
 			camRot.y * Math::rad2Deg,
 			camRot.z * Math::rad2Deg,
-			Math::MtoH(mPlayerMovementUPhysics->GetVelocity().Length())
+			Math::MtoH(mGameMovementComponent->Velocity().Length())
 		);
 
 		//Console::Print(text);
@@ -402,7 +482,7 @@ void GameScene::Update(const float deltaTime) {
 		// 余白を追加
 		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
 
-		ImGui::Begin("cl_showpos", nullptr, windowFlags);
+		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
 
 		ImVec2      textPos     = ImGui::GetCursorPos();
 		ImDrawList* drawList    = ImGui::GetWindowDrawList();
@@ -470,10 +550,6 @@ void GameScene::Update(const float deltaTime) {
 	Unnamed::Engine::GetParticleManager()->Update(deltaTime);
 	mParticleEmitter->Update(deltaTime);
 
-	if (InputSystem::IsTriggered("attack1")) {
-		//mParticleEmitter->Emit();
-	}
-
 #ifdef _DEBUG
 	// レティクルの描画
 	ImVec2 windowCenter = ImVec2(
@@ -537,12 +613,6 @@ void GameScene::Update(const float deltaTime) {
 	);
 #endif
 
-	for (auto entity : mEntities) {
-		if (entity && !entity->GetParent()) {
-			entity->Update(deltaTime);
-		}
-	}
-
 	mWindEffect->Update(deltaTime);
 	mExplosionEffect->Update(deltaTime);
 
@@ -550,7 +620,24 @@ void GameScene::Update(const float deltaTime) {
 		mCubeMap->Update(deltaTime);
 	}
 
+	for (auto entity : mEntities) {
+		if (entity && !entity->GetParent()) {
+			entity->PrePhysics(deltaTime);
+		}
+	}
+
+	for (auto entity : mEntities) {
+		if (entity && !entity->GetParent()) {
+			entity->Update(deltaTime);
+		}
+	}
 	mUPhysicsEngine->Update(deltaTime);
+
+	for (auto entity : mEntities) {
+		if (entity && !entity->GetParent()) {
+			entity->PostPhysics(deltaTime);
+		}
+	}
 }
 
 void GameScene::Render() {
