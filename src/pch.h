@@ -21,8 +21,8 @@
 // Unnamed
 //-----------------------------------------------------------------------------
 #include <engine/public/subsystem/console/Log.h>
-#include <engine/public/utils/UnnamedMacro.h>
-#include <engine/public/utils/string/StrUtil.h>
+#include <core/UnnamedMacro.h>
+#include <core/string/StrUtil.h>
 
 //-----------------------------------------------------------------------------
 // STD
