@@ -98,19 +98,22 @@ namespace Unnamed {
 		RenderView   mView = {};
 
 		/// @brief レンダリングするアイテムの情報
-		struct Item {
+		struct RenderItem {
 			Mat4              world;
 			MeshGPU*          mesh;
 			UMaterialRuntime* material;
+
+			float                depthVS     = 0.0f;
+			AssetID              psoId       = 0;
+			AssetID              materialKey = 0;
+			ID3D12RootSignature* rsPtr       = nullptr;
 		};
 
-		std::vector<Item> mItems;
+		std::vector<RenderItem> mItems;
 
 		TempCB                    mFrameCB;
 		D3D12_GPU_VIRTUAL_ADDRESS mFrameCBVA = 0;
 		std::vector<TempCB>       mObjectCBs;
-
-		ID3D12RootSignature* mLastRS = nullptr;
 
 		LastSubmit mLastSubmit;
 	};

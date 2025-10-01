@@ -1,4 +1,5 @@
 ﻿#include <pch.h>
+#include <unordered_set>
 
 #include <engine/gameframework/component/MeshRenderer/MeshRendererComponent.h>
 #include <engine/gameframework/world/UWorld.h>
@@ -13,7 +14,7 @@ namespace Unnamed {
 		RenderResourceManager* renderResourceManager,
 		ShaderLibrary*         shaderLibrary,
 		RootSignatureCache*    rootSignatureCache,
-		UPipelineCache*         pipelineCache
+		UPipelineCache*        pipelineCache
 	) : mGraphicsDevice(graphicsDevice),
 	    mRenderResourceManager(renderResourceManager),
 	    mShaderLibrary(shaderLibrary),
@@ -59,6 +60,18 @@ namespace Unnamed {
 
 	void URenderSubsystem::RenderWorld(const UWorld& world) {
 		Collect(world, Mat4::identity);
+		std::ranges::sort(
+			mItems,
+			[](const RenderItem& a, const RenderItem& b) {
+				if (a.psoId != b.psoId) {
+					return a.psoId < b.psoId;
+				}
+				if (a.materialKey != b.materialKey) {
+					return a.materialKey < b.materialKey;
+				}
+				return a.depthVS < b.depthVS;
+			}
+		);
 		DrawItems();
 	}
 
@@ -68,6 +81,12 @@ namespace Unnamed {
 		auto buffer = mGraphicsDevice->GetFrameBuffer(mContext.backIndex);
 		mTransient[mContext.backIndex].fence = buffer.fence;
 		mTransient[mContext.backIndex].fenceValue = buffer.fenceValue;
+	}
+
+	float ComputeViewDepth(const Mat4& world, const Mat4& view) {
+		const Vec4 p = Vec4::black;
+		const Vec4 v = p * world * view;
+		return v.z;
 	}
 
 	void URenderSubsystem::Collect(const UWorld& world, const Mat4& parent) {
@@ -84,13 +103,19 @@ namespace Unnamed {
 					)
 				) {
 					const Mat4 worldMat = parent * tr->WorldMat();
-					mItems.emplace_back(
-						Item{
-							.world = worldMat,
-							.mesh = &mr->mesh,
-							.material = &mr->material
-						}
-					);
+
+					RenderItem it{};
+					it.world    = worldMat;
+					it.material = &mr->material;
+					it.mesh     = &mr->mesh;
+
+					it.depthVS = ComputeViewDepth(it.world, mView.view);
+
+					it.psoId = mr->material.pso.id;
+					it.materialKey = mr->materialAsset;
+					it.rsPtr = mRootSignatureCache->Get(it.material->root);
+
+					mItems.emplace_back(std::move(it));
 				}
 			}
 		}
@@ -113,20 +138,25 @@ namespace Unnamed {
 			static_cast<UINT>(heaps.size()), heaps.data()
 		);
 
-		mLastRS = nullptr;
+		ID3D12RootSignature* lastRS  = nullptr;
+		uint32_t             lastPSO = 0;
+		uint32_t             lastMat = UINT32_MAX;
 
 		for (auto& it : mItems) {
-			auto* rs  = mRootSignatureCache->Get(it.material->root);
-			auto* pso = mPipelineCache->Get(it.material->pso);
+			if (it.psoId != lastPSO || it.rsPtr != lastRS) {
+				cmd->SetGraphicsRootSignature(it.rsPtr);
+				cmd->SetPipelineState(mPipelineCache->Get({it.psoId}));
+				lastPSO = it.psoId;
+				lastRS  = it.rsPtr;
+			}
 
-			// 1 ルート/PSO
-			cmd->SetGraphicsRootSignature(rs);
-			cmd->SetPipelineState(pso);
-
-			// マテリアルの適用
-			it.material->Apply(
-				cmd, mRenderResourceManager, mContext.backIndex, 0.0f
-			);
+			// マテリアル切り替え時に適用
+			if (it.materialKey != lastMat) {
+				it.material->Apply(
+					cmd, mRenderResourceManager, mContext.backIndex, 0.0f
+				);
+				lastMat = it.materialKey;
+			}
 
 			mContext.cmd->SetGraphicsRootConstantBufferView(
 				it.material->rootParams.frameCB, mFrameCB.gpu
@@ -160,6 +190,22 @@ namespace Unnamed {
 				cmd->DrawInstanced(3, 1, 0, 0);
 			}
 		}
+
+		DevMsg(
+			"Render",
+			"items={} uniquePSO={} uniqueMat={}",
+			mItems.size(),
+			static_cast<unsigned>([&] {
+				std::unordered_set<uint32_t> s;
+				for (const auto& x : mItems) s.insert(x.psoId);
+				return s.size();
+			}()),
+			static_cast<unsigned>([&] {
+				std::unordered_set<uint32_t> s;
+				for (const auto& x : mItems) s.insert(x.materialKey);
+				return s.size();
+			}())
+		);
 	}
 
 	D3D12_GPU_VIRTUAL_ADDRESS URenderSubsystem::UploadCB(
