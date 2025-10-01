@@ -1,15 +1,11 @@
-#include "game/public/components/weapon/base/WeaponComponent.h"
+#include "WeaponComponent.h"
 
 #include <fstream>
 #include <json.hpp>
 
-#include "engine/public/Camera/CameraManager.h"
-#include "engine/public/Components/Camera/CameraComponent.h"
-#include "engine/public/Components/ColliderComponent/BoxColliderComponent.h"
-#include "engine/public/Debug/Debug.h"
-#include "engine/public/Entity/Entity.h"
-#include "engine/public/OldConsole/Console.h"
-#include "engine/public/uphysics/PhysicsTypes.h"
+#include <engine/public/Components/Camera/CameraComponent.h>
+#include <engine/public/OldConsole/Console.h>
+#include <engine/public/Camera/CameraManager.h>
 
 using json = nlohmann::json;
 
