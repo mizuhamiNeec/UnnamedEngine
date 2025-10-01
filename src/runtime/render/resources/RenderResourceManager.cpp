@@ -1,7 +1,8 @@
-﻿#include <engine/public/urenderer/renderresourcemanager/RenderResourceManager.h>
+﻿#include <core/memory/MemUtil.h>
 
-#include "runtime/assets/core/UAssetManager.h"
-#include "runtime/assets/types/TextureAsset.h"
+#include <runtime/assets/core/UAssetManager.h>
+#include <runtime/assets/types/TextureAsset.h>
+#include <runtime/render/resources/RenderResourceManager.h>
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -11,7 +12,6 @@
 
 #include <engine/public/subsystem/console/Log.h>
 #include <engine/public/urenderer/GraphicsDevice.h>
-#include <engine/public/utils/memory/MemUtil.h>
 #include <engine/public/uuploadarena/UploadArena.h>
 
 namespace Unnamed {
