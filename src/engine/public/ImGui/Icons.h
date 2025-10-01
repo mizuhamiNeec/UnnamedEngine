@@ -9,7 +9,7 @@ constexpr uint32_t kIconArrowForward = 0xe5c8; // ロゴ(仮)
 
 constexpr uint32_t kIconTerminal = 0xEB8E; // ターミナル
 
-constexpr uint32_t kIconObject = 0xEA24; // エンティティ
+constexpr uint32_t kIconEntity = 0xEA24; // エンティティ
 
 constexpr uint32_t kIconTimer = 0xE425; // タイマー
 
@@ -32,6 +32,13 @@ constexpr uint32_t kIconVisibilityOff = 0xE8F5; // Off
 constexpr uint32_t kIconPlay  = 0xE037; // プレイ
 constexpr uint32_t kIconPause = 0xE034; // ポーズ
 constexpr uint32_t kIconStop  = 0xE047; // ストップ
+
+constexpr uint32_t kIconVertex = 0xEBC7; // 頂点
+constexpr uint32_t kIconEdge   = 0xE922; // エッジ
+constexpr uint32_t kIconFace   = 0xE86B; // 面
+constexpr uint32_t kIconMesh   = 0xE3EC; // メッシュ
+constexpr uint32_t kIconObject = 0xE3B4; // オブジェクト
+constexpr uint32_t kIconGroup  = 0xE574; // グループ
 
 constexpr uint32_t kIconSelect = 0xF82F; // 選択
 constexpr uint32_t kIconMove   = 0xF71E; // 移動

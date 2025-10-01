@@ -4,11 +4,11 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 #include <engine/public/ImGui/Icons.h>
 
-#include <engine/public/utils/Properties.h>
+#include <runtime/core/Properties.h>
 
 namespace ImGuiWidgets {
 	void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered,
