@@ -1,6 +1,6 @@
 #pragma once
 
-#include <math/public/mathlib.h>
+#include <runtime/core/math/Math.h>
 #include <engine/public/renderer/Structs.h>
 #include <engine/public/Model/Model.h>
 #include <engine/public/Model/ModelCommon.h>
