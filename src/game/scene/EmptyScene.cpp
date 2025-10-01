@@ -1,10 +1,10 @@
-#include "game/public/scene/EmptyScene.h"
+#include "EmptyScene.h"
 
 #include "engine/public/Engine.h"
-#include "engine/public/Components/ColliderComponent/MeshColliderComponent.h"
-#include "engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h"
-#include "engine/public/Components/MeshRenderer/StaticMeshRenderer.h"
-#include "engine/public/TextureManager/TexManager.h"
+#include <engine/public/Components/ColliderComponent/MeshColliderComponent.h>
+#include <engine/public/Components/MeshRenderer/SkeletalMeshRenderer.h>
+#include <engine/public/Components/MeshRenderer/StaticMeshRenderer.h>
+#include <engine/public/TextureManager/TexManager.h>
 
 EmptyScene::~EmptyScene() = default;
 

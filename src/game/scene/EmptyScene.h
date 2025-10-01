@@ -2,9 +2,10 @@
 #include <memory>
 
 #include <engine/public/CubeMap/CubeMap.h>
-#include <engine/public/uphysics/UPhysics.h>
 
-#include <game/public/scene/base/BaseScene.h>
+#include <game/scene/base/BaseScene.h>
+
+#include <runtime/physics/core/UPhysics.h>
 
 class D3D12;
 
