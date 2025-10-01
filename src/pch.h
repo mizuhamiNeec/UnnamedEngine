@@ -3,8 +3,8 @@
 #ifndef _CRTDBG_MAP_ALLOC
 #define _CRTDBG_MAP_ALLOC
 #endif
-#include <cstdlib>
 #include <crtdbg.h>
+#include <cstdlib>
 
 #ifdef _DEBUG
 #define NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -20,16 +20,17 @@
 //-----------------------------------------------------------------------------
 // Unnamed
 //-----------------------------------------------------------------------------
-#include <engine/public/utils/StrUtil.h>
+#include <engine/public/subsystem/console/Log.h>
 #include <engine/public/utils/UnnamedMacro.h>
+#include <engine/public/utils/string/StrUtil.h>
 
 //-----------------------------------------------------------------------------
 // STD
 //-----------------------------------------------------------------------------
 #include <algorithm>
-#include <cstdlib>
 #include <cstdint>
+#include <cstdlib>
 #include <format>
+#include <malloc.h>
 #include <stdexcept>
 #include <string>
-#include <malloc.h>
