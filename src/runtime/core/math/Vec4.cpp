@@ -1,4 +1,4 @@
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 Vec4 Vec4::one  = Vec4(1.0f, 1.0f, 1.0f, 1.0f);
 Vec4 Vec4::zero = Vec4(0.0f, 0.0f, 0.0f, 0.0f);

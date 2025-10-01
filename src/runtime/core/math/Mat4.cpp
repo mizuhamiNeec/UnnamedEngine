@@ -1,11 +1,10 @@
-#include <math/public/MathLib.h>
+#include <pch.h>
+
+#include <runtime/core/math/Math.h>
 
 #include <cassert>
 #include <cmath>
 #include <format>
-
-#include "engine/public/OldConsole/Console.h"
-#include "engine/public/utils/StrUtil.h"
 
 Mat4::Mat4() {
 	for (int i = 0; i < 4; ++i) {
@@ -168,8 +167,7 @@ Mat4 Mat4::Inverse() const {
 	const float det = Determinant();
 
 	if (det == 0.0f) {
-		Console::Print("Mat4 : 行列式がゼロのため、逆行列は存在しません。\n", kConTextColorError,
-		               Channel::Engine);
+		Error("Mat4", "行列式がゼロのため、逆行列は存在しません。");
 		return result;
 	}
 
@@ -240,17 +238,6 @@ Mat4 Mat4::Transpose() const {
 			{m[0][3], m[1][3], m[2][3], m[3][3]}
 		}
 	};
-}
-
-void Mat4::LogMat4(const std::string& matName) {
-	std::wstring result;
-	for (float (&i)[4] : m) {
-		for (float& j : i) {
-			result += std::format(L"{:.2f} ", j);
-		}
-		result += L"\n";
-	}
-	Console::Print(matName + "\n" + StrUtil::ToString(result));
 }
 
 Mat4 Mat4::Translate(const Vec3& translate) {

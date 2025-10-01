@@ -1,5 +1,4 @@
-﻿#include <math/public/mathlib.h>
-
+﻿#include <runtime/core/math/Math.h>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
