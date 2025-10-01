@@ -1,3 +1,7 @@
+#include <pch.h>
+
+//-----------------------------------------------------------------------------
+
 #include <cassert>
 #include <d3d12.h>
 #include <d3dx12.h>
@@ -12,7 +16,6 @@
 #include <engine/public/OldConsole/ConVarManager.h>
 #include <engine/public/renderer/D3D12.h>
 #include <engine/public/renderer/SrvManager.h>
-#include <engine/public/utils/StrUtil.h>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
