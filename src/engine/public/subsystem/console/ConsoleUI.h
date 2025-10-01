@@ -25,7 +25,9 @@ namespace Unnamed {
 	private:
 		static void PushLogTextColor(const struct ConsoleLogText& buffer);
 
+#ifdef _DEBUG
 		static int InputTextCallback(ImGuiInputTextCallbackData* data);
+#endif
 
 		ConsoleSystem* mConsoleSystem;
 
