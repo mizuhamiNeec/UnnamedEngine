@@ -1,5 +1,5 @@
 #pragma once
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 #include <engine/public/Line/LineCommon.h>
 
