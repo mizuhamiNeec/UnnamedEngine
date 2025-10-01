@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <math/public/MathLib.h>
+#include <runtime/core/math/Math.h>
 
 class InputSystem {
 public:
