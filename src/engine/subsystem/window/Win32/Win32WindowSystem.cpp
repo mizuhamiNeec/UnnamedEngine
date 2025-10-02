@@ -103,9 +103,7 @@ LRESULT Win32WindowSystem::WndProc(
 	auto*      w  = it != mHWndMap.end() ? it->second : nullptr;
 
 	if (mPlatformEvents) {
-		if (mPlatformEvents->DispatchMessage(hWnd, msg, wParam, lParam)) {
-			return 0;
-		}
+		mPlatformEvents->DispatchMessage(hWnd, msg, wParam, lParam);
 	}
 
 	switch (msg) {
