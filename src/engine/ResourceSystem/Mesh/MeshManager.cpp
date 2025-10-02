@@ -405,15 +405,15 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 		} else {
 			// エラーテクスチャのパスを設定（必要に応じて実装）
 			material->SetTexture("gBaseColorTexture",
-			                     "./resources/textures/uvChecker.png");
+			                     "./content/core/textures/uvChecker.png");
 		}
 
 		// 環境マップテクスチャの設定
 		// シェーダーがTexture2Dを期待している場合は、forceCubeMapをfalseにする
-		TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds",
+		TexManager::GetInstance()->LoadTexture("./content/core/textures/wave.dds",
 		                                       false);
 		material->SetTexture("gEnvironmentTexture",
-		                     "./resources/textures/wave.dds");
+		                     "./content/core/textures/wave.dds");
 	}
 
 	auto subMesh = std::make_unique<SubMesh>(mDevice, mesh->mName.C_Str());
@@ -633,15 +633,15 @@ SubMesh* MeshManager::ProcessSkeletalMesh(
 	} else {
 		// エラーテクスチャのパスを設定（必要に応じて実装）
 		material->SetTexture("gBaseColorTexture",
-		                     "./resources/textures/uvChecker.png");
+		                     "./content/core/textures/uvChecker.png");
 	}
 
 	// 環境マップテクスチャの設定
-	TexManager::GetInstance()->LoadTexture("./resources/textures/wave.dds",
+	TexManager::GetInstance()->LoadTexture("./content/core/textures/wave.dds",
 	                                       true);
 	material->SetTexture(
 		"gEnvironmentTexture",
-		"./resources/textures/wave.dds"
+		"./content/core/textures/wave.dds"
 	);
 
 	auto subMesh = std::make_unique<SubMesh>(mDevice, mesh->mName.C_Str());
