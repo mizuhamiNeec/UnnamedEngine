@@ -27,18 +27,18 @@ namespace Unnamed {
 
 GameScene::~GameScene() {
 	mResourceManager = nullptr;
-	mSpriteCommon    = nullptr;
+	mSpriteCommon = nullptr;
 	mParticleManager = nullptr;
-	mObject3DCommon  = nullptr;
-	mModelCommon     = nullptr;
-	mUPhysicsEngine  = nullptr;
-	mTimer           = nullptr;
+	mObject3DCommon = nullptr;
+	mModelCommon = nullptr;
+	mUPhysicsEngine = nullptr;
+	mTimer = nullptr;
 }
 
 void GameScene::Init() {
-	mRenderer        = Unnamed::Engine::GetRenderer();
+	mRenderer = Unnamed::Engine::GetRenderer();
 	mResourceManager = Unnamed::Engine::GetResourceManager();
-	mSrvManager      = Unnamed::Engine::GetSrvManager();
+	mSrvManager = Unnamed::Engine::GetSrvManager();
 
 #pragma region テクスチャ読み込み
 	TexManager::GetInstance()->LoadTexture(
@@ -72,7 +72,7 @@ void GameScene::Init() {
 	mCubeMap = std::make_unique<CubeMap>(
 		mRenderer->GetDevice(),
 		mSrvManager,
-		"./resources/textures/wave.dds"
+		"./content/core/textures/wave.dds"
 	);
 
 	mResourceManager->GetMeshManager()->LoadSkeletalMeshFromFile(
@@ -90,7 +90,7 @@ void GameScene::Init() {
 
 	mParticleObject = std::make_unique<ParticleObject>();
 	mParticleObject->Init(Unnamed::Engine::GetParticleManager(),
-	                      "./resources/textures/circle.png");
+		"./resources/textures/circle.png");
 
 #pragma endregion
 
@@ -139,7 +139,7 @@ void GameScene::Init() {
 	mPlayerCollider->SetOffset(Math::HtoM(Vec3::up * 73.0f * 0.5f));
 	AddEntity(mEntPlayer.get());
 
-	mEntWeapon                         = std::make_unique<Entity>("weapon");
+	mEntWeapon = std::make_unique<Entity>("weapon");
 	StaticMeshRenderer* weaponRenderer = mEntWeapon->AddComponent<
 		StaticMeshRenderer>();
 	mWeaponMeshRenderer = std::shared_ptr<StaticMeshRenderer>(
@@ -157,9 +157,9 @@ void GameScene::Init() {
 
 	mWeaponMeshRenderer->SetStaticMesh(
 		mResourceManager->GetMeshManager()->GetStaticMesh(
-			"./resources/models/weapon.obj"));
+			"./content/core/models/weapon.obj"));
 	WeaponSway* rawWeaponSway = mEntWeapon->AddComponent<WeaponSway>();
-	mWeaponSway               = std::shared_ptr<WeaponSway>(
+	mWeaponSway = std::shared_ptr<WeaponSway>(
 		rawWeaponSway, [](WeaponSway*) {
 		}
 	);
@@ -169,7 +169,7 @@ void GameScene::Init() {
 	//mPlayerMovementUPhysics->AddCameraShakeEntity(mEntShakeRoot.get(), 3.0f);
 
 	// テスト用メッシュ
-	mEntWorldMesh                  = std::make_unique<Entity>("testMesh");
+	mEntWorldMesh = std::make_unique<Entity>("testMesh");
 	StaticMeshRenderer* smRenderer = mEntWorldMesh->AddComponent<
 		StaticMeshRenderer>();
 	mWorldMeshRenderer = std::shared_ptr<StaticMeshRenderer>(
@@ -178,7 +178,7 @@ void GameScene::Init() {
 	);
 	smRenderer->SetStaticMesh(
 		mResourceManager->GetMeshManager()->GetStaticMesh(
-			"./resources/models/reflectionTest.obj"));
+			"./content/core/models/reflectionTest.obj"));
 	mEntWorldMesh->AddComponent<MeshColliderComponent>();
 	AddEntity(mEntWorldMesh.get());
 
@@ -208,7 +208,7 @@ void GameScene::Init() {
 	);
 
 	auto skeletalMesh = mResourceManager->GetMeshManager()->GetSkeletalMesh(
-		"./resources/models/man/man.gltf"
+		"./content/parkour/models/man/man.gltf"
 	);
 	sklMesh->SetSkeletalMesh(skeletalMesh);
 
@@ -225,12 +225,12 @@ void GameScene::Init() {
 	// 風
 	mWindEffect = std::make_unique<WindEffect>();
 	mWindEffect->Init(Unnamed::Engine::GetParticleManager(),
-	                  mGameMovementComponent.get());
+		mGameMovementComponent.get());
 
 	// 爆発
 	mExplosionEffect = std::make_unique<ExplosionEffect>();
 	mExplosionEffect->Init(Unnamed::Engine::GetParticleManager(),
-	                       "./resources/textures/smoke.png");
+		"./content/core/textures/smoke.png");
 	mExplosionEffect->SetColorGradient(
 		Vec4(0.78f, 0.29f, 0.05f, 1.0f), Vec4(0.04f, 0.04f, 0.05f, 1.0f));
 
@@ -338,8 +338,9 @@ void GameScene::Update(const float deltaTime) {
 		if (reloadNextFrame) {
 			ReloadWorldMesh();
 			mPendingMeshReload = false;
-			reloadNextFrame    = false;
-		} else {
+			reloadNextFrame = false;
+		}
+		else {
 			reloadNextFrame = true;
 		}
 	}
@@ -378,28 +379,28 @@ void GameScene::Update(const float deltaTime) {
 			&hit
 		);
 		if (isHit) {
-			Vec3 hitPos    = hit.pos;
+			Vec3 hitPos = hit.pos;
 			Vec3 hitNormal = hit.normal;
 
 			// 爆発エフェクト
 			mExplosionEffect->TriggerExplosion(hitPos + hitNormal * 2.0f,
-			                                   hitNormal,
-			                                   32, 30.0f);
+				hitNormal,
+				32, 30.0f);
 
 			// プレイヤーの位置と爆心地の距離を計算
-			Vec3  playerPos   = mEntPlayer->GetTransform()->GetWorldPos();
+			Vec3  playerPos = mEntPlayer->GetTransform()->GetWorldPos();
 			float blastRadius = Math::HtoM(512);     // 球状ゾーンの半径（例: 5m）
-			float blastPower  = Math::HtoM(1024.0f); // 吹き飛ばしの強さ
+			float blastPower = Math::HtoM(1024.0f); // 吹き飛ばしの強さ
 
 			Vec3  toPlayer = playerPos - hitPos;
 			float distance = toPlayer.Length();
 
 			if (distance < blastRadius && distance > 0.5f) {
 				Vec3  forceDir = toPlayer.Normalized();
-				float force    = blastPower * (1.0f - (distance / blastRadius));
+				float force = blastPower * (1.0f - (distance / blastRadius));
 				// プレイヤーに吹き飛ばしベクトルを加える
 				mGameMovementComponent->SetVelocity(
-					mGameMovementComponent->Velocity() + forceDir * force);
+					mGameMovementComponent->GetVelocity() + forceDir * force);
 			}
 
 			// カメラシェイク
@@ -410,15 +411,15 @@ void GameScene::Update(const float deltaTime) {
 		}
 	}
 
-	auto horizontalplayervel = Vec3(mGameMovementComponent->Velocity().x,
-	                                0.0f,
-	                                mGameMovementComponent->Velocity().z);
+	auto horizontalplayervel = Vec3(mGameMovementComponent->GetVelocity().x,
+		0.0f,
+		mGameMovementComponent->GetVelocity().z);
 
 	mSkeletalMeshRenderer->SetAnimationSpeed(
 		horizontalplayervel.Length() * 0.1f
 	);
 
-	Unnamed::Engine::blurStrength = mGameMovementComponent->Velocity().
+	Unnamed::Engine::blurStrength = mGameMovementComponent->GetVelocity().
 		Length() *
 		0.01f;
 	// mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
@@ -434,8 +435,8 @@ void GameScene::Update(const float deltaTime) {
 	if (
 		int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsInt();
 		flag != 0
-	) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+		) {
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
 		constexpr ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_NoBackground |
 			ImGuiWindowFlags_NoTitleBar |
@@ -446,7 +447,7 @@ void GameScene::Update(const float deltaTime) {
 			ImGuiWindowFlags_NoFocusOnAppearing |
 			ImGuiWindowFlags_NoNav;
 		auto viewportLt = Unnamed::Engine::GetViewportLT();
-		auto windowPos  = ImVec2(viewportLt.x, viewportLt.y + 128.0f + 16.0f);
+		auto windowPos = ImVec2(viewportLt.x, viewportLt.y + 128.0f + 16.0f);
 		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
 		Mat4 invViewMat = Mat4::identity;
@@ -472,7 +473,7 @@ void GameScene::Update(const float deltaTime) {
 			camRot.x * Math::rad2Deg,
 			camRot.y * Math::rad2Deg,
 			camRot.z * Math::rad2Deg,
-			Math::MtoH(mGameMovementComponent->Velocity().Length())
+			Math::MtoH(mGameMovementComponent->GetVelocity().Length())
 		);
 
 		//Console::Print(text);
@@ -486,8 +487,8 @@ void GameScene::Update(const float deltaTime) {
 
 		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
 
-		ImVec2      textPos     = ImGui::GetCursorPos();
-		ImDrawList* drawList    = ImGui::GetWindowDrawList();
+		ImVec2      textPos = ImGui::GetCursorPos();
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		float       outlineSize = 1.0f;
 
 		ImGuiManager::TextOutlined(
@@ -563,11 +564,11 @@ void GameScene::Update(const float deltaTime) {
 	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 
 	// レティクルの設定
-	const ImVec4 reticleColor     = ImVec4(1.0f, 1.0f, 1.0f, 0.8f); // 白色、少し透明
-	const ImVec4 outlineColor     = ImVec4(0.0f, 0.0f, 0.0f, 0.5f); // 黒の縁取り
-	const float  lineLength       = 10.0f;                          // 線の長さ
-	const float  gapSize          = 3.0f;                           // 中心の隙間
-	const float  lineThickness    = 1.5f;                           // 線の太さ
+	const ImVec4 reticleColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f); // 白色、少し透明
+	const ImVec4 outlineColor = ImVec4(0.0f, 0.0f, 0.0f, 0.5f); // 黒の縁取り
+	const float  lineLength = 10.0f;                          // 線の長さ
+	const float  gapSize = 3.0f;                           // 中心の隙間
+	const float  lineThickness = 1.5f;                           // 線の太さ
 	const float  outlineThickness = 0.5f;                           // 縁取りの太さ
 
 	// 内側の線を描画（横線）
@@ -672,30 +673,34 @@ void GameScene::ReloadWorldMesh() {
 	if (mRenderer) {
 		mRenderer->WaitPreviousFrame();
 		Console::Print("Initial GPU sync before mesh reload",
-		               kConTextColorCompleted);
+			kConTextColorCompleted);
 	}
 
 	try {
 		// まず安全な方法を試す
 		SafeReloadWorldMesh();
-	} catch (const std::exception& e) {
+	}
+	catch (const std::exception& e) {
 		Console::Print(std::string("Safe reload failed: ") + e.what(),
-		               kConTextColorError);
+			kConTextColorError);
 		Console::Print("Attempting full entity recreation...",
-		               kConTextColorWarning);
+			kConTextColorWarning);
 		try {
 			RecreateWorldMeshEntity();
-		} catch (...) {
+		}
+		catch (...) {
 			Console::Print("Full recreation also failed!", kConTextColorError);
 		}
-	} catch (...) {
+	}
+	catch (...) {
 		Console::Print("Unknown exception during safe reload",
-		               kConTextColorError);
+			kConTextColorError);
 		Console::Print("Attempting full entity recreation...",
-		               kConTextColorWarning);
+			kConTextColorWarning);
 		try {
 			RecreateWorldMeshEntity();
-		} catch (...) {
+		}
+		catch (...) {
 			Console::Print("Full recreation also failed!", kConTextColorError);
 		}
 	}
@@ -722,13 +727,13 @@ void GameScene::RecreateWorldMeshEntity() {
 	if (mRenderer) {
 		mRenderer->WaitPreviousFrame();
 		Console::Print("Waited for GPU completion before entity recreation",
-		               kConTextColorCompleted);
+			kConTextColorCompleted);
 	}
 
 	// メッシュをリロード
-	const std::string meshPath      = "./resources/models/reflectionTest.obj";
+	const std::string meshPath = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-	                                       ReloadMeshFromFile(meshPath);
+		ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
@@ -739,11 +744,11 @@ void GameScene::RecreateWorldMeshEntity() {
 	if (mRenderer) {
 		mRenderer->WaitPreviousFrame();
 		Console::Print("Waited for GPU completion after mesh reload",
-		               kConTextColorCompleted);
+			kConTextColorCompleted);
 	}
 
 	// 新しいエンティティを作成
-	mEntWorldMesh                  = std::make_unique<Entity>("worldMesh");
+	mEntWorldMesh = std::make_unique<Entity>("worldMesh");
 	StaticMeshRenderer* smRenderer = mEntWorldMesh->AddComponent<
 		StaticMeshRenderer>();
 	mWorldMeshRenderer = std::shared_ptr<StaticMeshRenderer>(
@@ -757,7 +762,8 @@ void GameScene::RecreateWorldMeshEntity() {
 	if (newMesh) {
 		mWorldMeshRenderer->SetStaticMesh(newMesh);
 		Console::Print("Set new mesh to new entity", kConTextColorCompleted);
-	} else {
+	}
+	else {
 		Console::Print("Failed to get new mesh!", kConTextColorError);
 		return;
 	}
@@ -771,7 +777,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 
 	Console::Print("World mesh entity recreation completed!",
-	               kConTextColorCompleted);
+		kConTextColorCompleted);
 }
 
 void GameScene::SafeReloadWorldMesh() {
@@ -786,7 +792,7 @@ void GameScene::SafeReloadWorldMesh() {
 	//mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
 	mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
 	Console::Print("Unregistered entity from physics engine",
-	               kConTextColorWarning);
+		kConTextColorWarning);
 
 	// MeshColliderComponentを削除
 	if (mEntWorldMesh->HasComponent<MeshColliderComponent>()) {
@@ -798,13 +804,13 @@ void GameScene::SafeReloadWorldMesh() {
 	if (mRenderer) {
 		mRenderer->WaitPreviousFrame();
 		Console::Print("Waited for GPU completion before mesh reload",
-		               kConTextColorCompleted);
+			kConTextColorCompleted);
 	}
 
 	// メッシュをリロード
-	const std::string meshPath      = "./resources/models/reflectionTest.obj";
+	const std::string meshPath = "./resources/models/reflectionTest.obj";
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-	                                       ReloadMeshFromFile(meshPath);
+		ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
@@ -819,7 +825,7 @@ void GameScene::SafeReloadWorldMesh() {
 	if (mRenderer) {
 		mRenderer->WaitPreviousFrame();
 		Console::Print("Waited for GPU completion after mesh reload",
-		               kConTextColorCompleted);
+			kConTextColorCompleted);
 	}
 
 	// 新しいメッシュをレンダラーに設定
@@ -828,9 +834,10 @@ void GameScene::SafeReloadWorldMesh() {
 	if (newMesh && mWorldMeshRenderer) {
 		mWorldMeshRenderer->SetStaticMesh(newMesh);
 		Console::Print("Set new mesh to renderer", kConTextColorCompleted);
-	} else {
+	}
+	else {
 		Console::Print("Failed to get new mesh or renderer!",
-		               kConTextColorError);
+			kConTextColorError);
 		return;
 	}
 
@@ -842,7 +849,7 @@ void GameScene::SafeReloadWorldMesh() {
 	//mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
 	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 	Console::Print("Re-registered entity to physics engine",
-	               kConTextColorCompleted);
+		kConTextColorCompleted);
 
 	Console::Print("Safe world mesh reload completed!", kConTextColorCompleted);
 }
