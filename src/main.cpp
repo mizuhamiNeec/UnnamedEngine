@@ -35,7 +35,6 @@ int WINAPI wWinMain(
 		uEngine->Run();
 	}
 
-
 	CoUninitialize();
 	return EXIT_SUCCESS;
 }
