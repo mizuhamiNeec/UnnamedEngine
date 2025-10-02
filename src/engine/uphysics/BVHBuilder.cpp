@@ -18,7 +18,7 @@ namespace UPhysics {
 			info.bounds.Expand(t.v0);
 			info.bounds.Expand(t.v1);
 			info.bounds.Expand(t.v2);
-			info.center    = t.v0 + t.v1 + t.v2 / 3.0f;
+			info.center    = (t.v0 + t.v1 + t.v2) / 3.0f;
 			info.triIndex  = static_cast<uint32_t>(i);
 			mTriIndices[i] = static_cast<uint32_t>(i);
 		}
