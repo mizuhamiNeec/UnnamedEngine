@@ -1,4 +1,4 @@
-﻿#include "UPhysics.h"
+#include "UPhysics.h"
 
 #include <pch.h>
 #include <vector>
@@ -25,8 +25,8 @@ namespace UPhysics {
 		const auto camera = CameraManager::GetActiveCamera();
 		if (camera) {
 			Mat4 invView = camera->GetViewMat().Inverse();
-			Vec3 start   = invView.GetTranslate();
-			Vec3 dir     = invView.GetForward();
+			Vec3 start = invView.GetTranslate();
+			Vec3 dir = invView.GetForward();
 
 			dir.Normalize();
 			const Unnamed::Ray ray = {
@@ -59,64 +59,6 @@ namespace UPhysics {
 					Vec4::magenta
 				);
 			}
-
-			// const Box box = {
-			// 	.center = start,
-			// 	.half = Vec3::one * 0.5f
-			// };
-			// if (BoxCast(box, dir, 65536.0f, &hit)) {
-			// 	ImGui::Begin("Hit");
-			// 	ImGui::End();
-			// 	Debug::DrawBox(
-			// 		hit.pos,
-			// 		Quaternion::identity,
-			// 		box.half * 2.0f,
-			// 		Vec4::blue
-			// 	);
-			// 	Debug::DrawBox(
-			// 		box.center + dir * hit.t,
-			// 		Quaternion::identity,
-			// 		box.half * 2.0f,
-			// 		Vec4::green
-			// 	);
-			// 	Debug::DrawAxis(
-			// 		hit.pos,
-			// 		Quaternion::identity
-			// 	);
-			// 	Debug::DrawRay(
-			// 		hit.pos,
-			// 		hit.normal,
-			// 		Vec4::magenta
-			// 	);
-			// }
-			//
-			//
-			// if (
-			// 	SphereCast(
-			// 		start,
-			// 		0.5f,
-			// 		dir,
-			// 		65536.0f,
-			// 		&hit
-			// 	)
-			// ) {
-			// 	Debug::DrawSphere(
-			// 		hit.pos,
-			// 		Quaternion::identity,
-			// 		0.5f,
-			// 		Vec4::purple,
-			// 		4
-			// 	);
-			// 	Debug::DrawAxis(
-			// 		hit.pos,
-			// 		Quaternion::identity
-			// 	);
-			// 	Debug::DrawRay(
-			// 		hit.pos,
-			// 		hit.normal,
-			// 		Vec4::magenta
-			// 	);
-			// }
 		}
 #endif
 	}
@@ -148,7 +90,7 @@ namespace UPhysics {
 
 		for (
 			const auto& subMesh : meshCollider->GetStaticMesh()->GetSubMeshes()
-		) {
+			) {
 			auto tris = subMesh->GetPolygons();
 
 
@@ -234,7 +176,7 @@ namespace UPhysics {
 
 		std::ranges::sort(ranges, [](auto& a, auto& b) {
 			return a.start > b.start;
-		});
+			});
 
 		for (auto& [start, count] : ranges) {
 			mTriangles.erase(
@@ -257,32 +199,33 @@ namespace UPhysics {
 
 	bool Engine::RayCast(const Unnamed::Ray& ray, Hit* outHit) const {
 		UPhysics::RayCast cast;
-		cast.start  = ray.origin;
+		cast.start = ray.origin;
 		cast.invDir = ray.invDir;
 		return CastBVH(cast, ray.origin, ray.dir, ray.tMax, outHit, mBVHs,
-		               mTriangles);
+			mTriangles);
 	}
 
 	bool Engine::BoxCast(
-		const Unnamed::Box&  box,
+		const Unnamed::Box& box,
 		const Vec3& dir,
-		const float length,
-		Hit*        outHit
+		const float         length,
+		Hit* outHit
 	) const {
 		Vec3  dirN = dir;
-		float len  = length;
+		float len = length;
 
 		float dirLen = dirN.Length();
 		if (dirLen > 1e-6f) {
 			dirN /= dirLen;
 			if (fabs(len - dirLen) < 1e-4f)
 				len = dirLen;
-		} else {
+		}
+		else {
 			return false; // ゼロ方向なら衝突無し
 		}
 
 		UPhysics::BoxCast caster;
-		caster.box  = box;
+		caster.box = box;
 		caster.half = box.halfSize;
 
 		return CastBVH(
@@ -300,7 +243,7 @@ namespace UPhysics {
 		float       radius,
 		const Vec3& dir,
 		const float length,
-		Hit*        outHit
+		Hit* outHit
 	) const {
 		UPhysics::SphereCast cast;
 		cast.center = start;
@@ -311,7 +254,7 @@ namespace UPhysics {
 
 	bool Engine::BoxOverlap(
 		const Unnamed::Box& box,
-		Hit*       outHit
+		Hit* outHit
 	) const {
 		if (mBVHs.empty() || mTriangles.empty()) {
 			return false;
@@ -319,7 +262,7 @@ namespace UPhysics {
 
 		// ブロードフェーズ：ボックスのAABBと各BVHのルートAABBの重なりをチェック
 		std::vector<const RegisteredBVH*> filtered;
-		Unnamed::AABB                              boxAABB;
+		Unnamed::AABB                     boxAABB;
 		boxAABB.min = box.center - box.halfSize;
 		boxAABB.max = box.center + box.halfSize;
 
@@ -342,18 +285,18 @@ namespace UPhysics {
 
 		// ナローフェーズ：詳細な重なり判定
 		float    minPenetration = FLT_MAX;
-		uint32_t hitTri         = UINT32_MAX;
+		uint32_t hitTri = UINT32_MAX;
 		Vec3     hitNormal;
 		Vec3     hitPos;
 		uint32_t stack[64];
 
 		for (auto* bvh : filtered) {
-			int sp      = 0;
+			int sp = 0;
 			stack[sp++] = 0; // ルートノードからスタート
 
 			while (sp) {
 				const uint32_t index = stack[--sp];
-				const auto&    node  = bvh->nodes[index];
+				const auto& node = bvh->nodes[index];
 
 				// ノードのAABBとボックスの重なり判定
 				if (!(boxAABB.max.x >= node.bounds.min.x && boxAABB.min.x <=
@@ -369,12 +312,13 @@ namespace UPhysics {
 					// 内部ノード：子ノードをスタックに追加
 					stack[sp++] = node.leftFirst;
 					stack[sp++] = node.rightFirst;
-				} else {
+				}
+				else {
 					// 葉ノード：三角形との詳細判定
 					uint32_t first = node.leftFirst;
 					for (uint32_t i = 0; i < node.primCount; ++i) {
-						uint32_t        triIdx = bvh->triIndices[first + i];
-						const Unnamed::Triangle& tri    = mTriangles[triIdx];
+						uint32_t triIdx = bvh->triIndices[first + i];
+						const Unnamed::Triangle& tri = mTriangles[triIdx];
 
 						Vec3  separationAxis;
 						float penetrationDepth;
@@ -401,10 +345,10 @@ namespace UPhysics {
 		}
 
 		if (outHit) {
-			outHit->t        = 1.0f;           // sweep 用でないので 1
-			outHit->depth    = minPenetration; // ← depth をセット
-			outHit->pos      = hitPos;
-			outHit->normal   = hitNormal;
+			outHit->t = 1.0f;           // sweep 用でないので 1
+			outHit->depth = minPenetration; // ← depth をセット
+			outHit->pos = hitPos;
+			outHit->normal = hitNormal;
 			outHit->triIndex = hitTri;
 		}
 		return true;
@@ -412,8 +356,8 @@ namespace UPhysics {
 
 	int Engine::BoxOverlap(
 		const Unnamed::Box& box,
-		Hit*       outHits,
-		int        maxHits
+		Hit* outHits,
+		int                 maxHits
 	) const {
 		int hitCount = 0;
 		if (mBVHs.empty() || mTriangles.empty() || maxHits <= 0) {
@@ -422,7 +366,7 @@ namespace UPhysics {
 
 		// ブロードフェーズ：ボックスのAABBと各BVHのルートAABBの重なりをチェック
 		std::vector<const RegisteredBVH*> filtered;
-		Unnamed::AABB                              boxAABB;
+		Unnamed::AABB                     boxAABB;
 		boxAABB.min = box.center - box.halfSize;
 		boxAABB.max = box.center + box.halfSize;
 
@@ -447,12 +391,12 @@ namespace UPhysics {
 		uint32_t stack[64];
 
 		for (auto* bvh : filtered) {
-			int sp      = 0;
+			int sp = 0;
 			stack[sp++] = 0; // ルートノードからスタート
 
 			while (sp && hitCount < maxHits) {
 				const uint32_t index = stack[--sp];
-				const auto&    node  = bvh->nodes[index];
+				const auto& node = bvh->nodes[index];
 
 				// ノードのAABBとボックスの重なり判定
 				if (!(boxAABB.max.x >= node.bounds.min.x && boxAABB.min.x <=
@@ -468,26 +412,28 @@ namespace UPhysics {
 					// 内部ノード：子ノードをスタックに追加
 					stack[sp++] = node.leftFirst;
 					stack[sp++] = node.rightFirst;
-				} else {
+				}
+				else {
 					// 葉ノード：三角形との詳細判定
 					uint32_t first = node.leftFirst;
 					for (uint32_t i = 0; i < node.primCount && hitCount <
-					     maxHits; ++i) {
-						uint32_t        triIdx = bvh->triIndices[first + i];
-						const Unnamed::Triangle& tri    = mTriangles[triIdx];
+						maxHits; ++i) {
+						uint32_t triIdx = bvh->triIndices[first + i];
+						const Unnamed::Triangle& tri = mTriangles[triIdx];
 
 						Vec3  separationAxis;
 						float penetrationDepth;
 						if (BoxVsTriangleOverlap(
 							box, tri, separationAxis, penetrationDepth)) {
 							Hit tmpHit;
-							tmpHit.t     = 1.0f;
+							tmpHit.t = 1.0f;
 							tmpHit.depth = penetrationDepth;
-							tmpHit.pos   = box.center + separationAxis * (
+							tmpHit.pos = box.center + separationAxis * (
 								std::min({
-									box.halfSize.x, box.halfSize.y, box.halfSize.z
-								}) - penetrationDepth * 0.5f);
-							tmpHit.normal   = separationAxis;
+									box.halfSize.x, box.halfSize.y,
+									box.halfSize.z
+									}) - penetrationDepth * 0.5f);
+							tmpHit.normal = separationAxis;
 							tmpHit.triIndex = triIdx;
 
 							outHits[hitCount] = tmpHit;
