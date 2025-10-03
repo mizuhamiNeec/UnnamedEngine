@@ -10,6 +10,7 @@
 #include <runtime/core/math/Math.h>
 
 #include "game/components/GameMovementComponent.h"
+#include "game/components/Movement.h"
 
 WindEffect::~WindEffect() {
 	if (mWindParticle) {
@@ -19,7 +20,7 @@ WindEffect::~WindEffect() {
 }
 
 void WindEffect::Init([[maybe_unused]] ParticleManager* particleManager,
-	GameMovementComponent* playerMovement) {
+                      Movement*                         playerMovement) {
 	mPlayerMovement = playerMovement;
 
 	// 風パーティクル用のオブジェクト初期化
@@ -34,7 +35,7 @@ void WindEffect::Update([[maybe_unused]] const float deltaTime) {
 
 	// プレイヤーの速度ベクトル
 	const Vec3  playerVelocity = mPlayerMovement->GetVelocity();
-	const float playerSpeed = playerVelocity.Length();
+	const float playerSpeed    = playerVelocity.Length();
 
 	// 速度が閾値を超えている場合のみエフェクトを表示
 	if (playerSpeed > mSpeedThreshold) {
@@ -107,7 +108,7 @@ Vec3 WindEffect::GetRandomPositionInPlayerDirection() const {
 
 	// プレイヤー位置
 	const Vec3 playerPos = mPlayerMovement->GetOwner()->GetTransform()->
-		GetWorldPos();
+	                                        GetWorldPos();
 
 	// 進行方向ベクトル
 	Vec3 moveDir = mPlayerMovement->GetVelocity().Normalized();
@@ -117,13 +118,13 @@ Vec3 WindEffect::GetRandomPositionInPlayerDirection() const {
 
 	// 進行方向に直交するベクトルを算出
 	const Vec3 right = Vec3::up.Cross(moveDir).Normalized();
-	const Vec3 up = moveDir.Cross(right).Normalized();
+	const Vec3 up    = moveDir.Cross(right).Normalized();
 
 	// ランダムな位置を進行方向側に生成
 	const float randomAngle = Random::FloatRange(
-		0.0f, std::numbers::pi_v<float> *2.0f);
+		0.0f, std::numbers::pi_v<float> * 2.0f);
 	const float randomDistance = Random::FloatRange(6.0f, 24.0f);
-	const float randomHeight = Random::FloatRange(-4.0f, 8.0f);
+	const float randomHeight   = Random::FloatRange(-4.0f, 8.0f);
 
 	// 横方向はアスペクト比に対応
 	const float horizontalScale = aspectRatio;
