@@ -1115,7 +1115,7 @@ namespace Unnamed {
 		ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f,
 		                                     "Linear acceleration amount (old value is 5.6)");
 		ConVarManager::RegisterConVar<float>("sv_airaccelerate", 12.0f);
-		ConVarManager::RegisterConVar<float>("sv_maxspeed", 800.0f,
+		ConVarManager::RegisterConVar<float>("sv_maxspeed", 320.0f,
 		                                     "Maximum speed a player can move.");
 		ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f,
 		                                     "Minimum stopping speed when on ground.");
