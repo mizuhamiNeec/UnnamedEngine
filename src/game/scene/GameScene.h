@@ -1,29 +1,28 @@
 #pragma once
 #include <memory>
 
-#include <engine/Components/Camera/CameraComponent.h>
 #include <engine/Components/ColliderComponent/BoxColliderComponent.h>
 #include <engine/Components/MeshRenderer/SkeletalMeshRenderer.h>
 #include <engine/Components/MeshRenderer/StaticMeshRenderer.h>
 #include <engine/CubeMap/CubeMap.h>
 #include <engine/Entity/Entity.h>
-#include <engine/Entity/EntityLoader.h>
 #include <engine/particle/ExplosionEffect.h>
 #include <engine/particle/ParticleEmitter.h>
 #include <engine/particle/ParticleObject.h>
 #include <engine/particle/WindEffect.h>
 #include <runtime/physics/core/UPhysics.h>
 
-#include "base/BaseScene.h"
-
-#include "game/components/GameMovementComponent.h"
-#include "game/components/weapon/WeaponSway.h"
-#include "game/components/weapon/base/WeaponComponent.h"
+#include <game/components/weapon/WeaponSway.h>
+#include <game/components/weapon/base/WeaponComponent.h>
+#include <game/scene/base/BaseScene.h>
+#include <game/components/Movement.h>
 
 class D3D12;
 class EnemyMovement;
 class CameraRotator;
 class CameraSystem;
+class CameraComponent;
+class IConVar;
 
 class GameScene : public BaseScene {
 public:
@@ -39,6 +38,34 @@ public:
 	void SafeReloadWorldMesh();
 
 private:
+	void LoadCoreTextures() const;
+	void InitializeCubeMap();
+	void InitializeParticles();
+	void InitializeEffects();
+	void InitializePhysics();
+	void InitializeCamera();
+	void InitializePlayer();
+	void InitializeWeapon();
+	void InitializeWorldMesh();
+	void InitializeCameraRoot();
+	void InitializeShakeRoot();
+	void InitializeSkeletalMesh();
+	void ConfigureEntityHierarchy();
+	void ConfigureConsole();
+	void InitializeTeleportTrigger();
+
+	void HandleMeshReload();
+	void SyncCameraRoot() const;
+	void HandleWeaponInput();
+	void HandleWeaponFire(const std::shared_ptr<CameraComponent>& camera);
+	void UpdateSkeletalAnimation();
+	void UpdatePostProcessing(float deltaTime);
+	void UpdateTeleport();
+	void UpdateParticlesAndEffects(float deltaTime);
+	void UpdateEntities(float deltaTime);
+#ifdef _DEBUG
+	void DrawDebugHud(const std::shared_ptr<CameraComponent>& camera) const;
+#endif
 	D3D12* mRenderer = nullptr;
 
 	std::unique_ptr<CubeMap> mCubeMap;
@@ -46,15 +73,13 @@ private:
 	std::unique_ptr<Entity> mEntCameraRoot;
 	CameraRotator*          mCameraRotator = nullptr;
 
-	std::unique_ptr<Entity>          mCamera;
-	std::shared_ptr<CameraComponent> mCameraComponent;
+	std::unique_ptr<Entity> mCamera;
 
 	std::unique_ptr<Entity>             mEntWorldMesh;
 	std::shared_ptr<StaticMeshRenderer> mWorldMeshRenderer;
 
-	std::unique_ptr<Entity>                mEntPlayer;
-	std::shared_ptr<GameMovementComponent> mGameMovementComponent;
-	std::shared_ptr<BoxColliderComponent>  mPlayerCollider;
+	std::unique_ptr<Entity>   mEntPlayer;
+	std::shared_ptr<Movement> mMovementComponent;
 
 	std::unique_ptr<Entity>             mEntWeapon;
 	std::shared_ptr<WeaponComponent>    mWeaponComponent;
@@ -71,8 +96,6 @@ private:
 	Vec3 mTeleportTriggerMax;    // ボックスの最大点
 	bool mTeleportActive = true; // テレポートの有効/無効状態
 
-	std::unique_ptr<EntityLoader> mEntityLoader;
-
 	//std::unique_ptr<PhysicsEngine> mPhysicsEngine;
 	std::unique_ptr<UPhysics::Engine> mUPhysicsEngine;
 
@@ -85,4 +108,9 @@ private:
 
 	// 遅延読み込み用フラグ
 	bool mPendingMeshReload = false;
+	bool mMeshReloadArmed   = false;
+
+	IConVar* mShowPosConVar = nullptr;
+	IConVar* mNameConVar    = nullptr;
+	IConVar* mClearConVar   = nullptr;
 };
