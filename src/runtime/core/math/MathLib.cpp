@@ -75,9 +75,9 @@ namespace Math {
 			screenPos.y > screenSize.y - margin
 		) {
 			outIsOffscreen      = true;
-			Vec2 clampDirection = viewSpace.z < 0.0f
-				                      ? Vec2(viewSpace.x, -viewSpace.y)
-				                      : direction;
+			Vec2 clampDirection = viewSpace.z < 0.0f ?
+				                      Vec2(viewSpace.x, -viewSpace.y) :
+				                      direction;
 
 			const float length =
 				std::hypot(clampDirection.x, clampDirection.y);
@@ -191,19 +191,8 @@ namespace Math {
 		return CubicBezier(t, Vec2(p1, p2), Vec2(p3, p4));
 	}
 
-	Vec3 HtoM(const Vec3& vec) {
-		return vec * 0.0254f;
-	}
-
-	float HtoM(const float val) {
-		return val * 0.0254f;
-	}
-
-	Vec3 MtoH(const Vec3& vec) {
-		return vec * 39.3701f;
-	}
-
-	float MtoH(const float val) {
-		return val * 39.3701f;
-	}
+	Vec3  HtoM(const Vec3& vec) { return vec * 0.0254f; }
+	float HtoM(const float val) { return val * 0.0254f; }
+	Vec3  MtoH(const Vec3& vec) { return vec * 39.3701f; }
+	float MtoH(const float val) { return val * 39.3701f; }
 }
