@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 #include <engine/Debug/Debug.h>
 #include <engine/uphysics/BVH.h>
 #include <engine/uphysics/BVHBuilder.h>
@@ -16,13 +17,13 @@ namespace UPhysics {
 
 		bool RayCast(
 			const Unnamed::Ray& ray,
-			Hit* outHit
+			Hit*                outHit
 		) const;
 
 		bool BoxCast(
 			const Unnamed::Box& box,
-			const Vec3& dir,
-			float       length, Hit* outHit
+			const Vec3&         dir,
+			float               length, Hit* outHit
 		) const;
 
 		bool SphereCast(
@@ -30,45 +31,52 @@ namespace UPhysics {
 			float       radius,
 			const Vec3& dir,
 			float       length,
-			Hit* outHit
+			Hit*        outHit
 		) const;
 
 		bool BoxOverlap(
 			const Unnamed::Box& box,
-			Hit* outHit
+			Hit*                outHit
 		) const;
 
 		int BoxOverlap(
 			const Unnamed::Box& box,
-			Hit* outHit,
-			int        maxHits
+			Hit*                outHit,
+			int                 maxHits
 		) const;
 
 	private:
 		template <class CastType>
 		static bool CastBVH(
-			const CastType& cast,
-			const Vec3& start,
-			const Vec3& dir,
-			float                             length,
-			Hit* outHit,
-			const std::vector<RegisteredBVH>& bvhSet,
+			const CastType&                       cast,
+			const Vec3&                           start,
+			const Vec3&                           dir,
+			float                                 length,
+			Hit*                                  outHit,
+			const std::vector<RegisteredBVH>&     bvhSet,
 			const std::vector<Unnamed::Triangle>& allTriangles
 		) {
 			// まずは各BVHのルートのAABBとレイが交差するかを確認
 			// してなきゃ意味ないからね! これが噂のブロードフェーズ!
 			std::vector<const RegisteredBVH*> filtered;
-			const Unnamed::Ray                         broadRay = {
+			const Unnamed::Ray                broadRay = {
 				.origin = start,
 				.dir = dir,
 				.invDir = Vec3::one / dir,
 				.tMin = 0.0f,
 				.tMax = length
 			};
+			Vec3 dirNormalized = dir;
+			const float dirLenSq = dirNormalized.SqrLength();
+			if (dirLenSq > 1e-12f) {
+				dirNormalized /= std::sqrt(dirLenSq);
+			} else {
+				dirNormalized = Vec3::zero;
+			}
 
 			for (const auto& bvh : bvhSet) {
-				Unnamed::AABB  root = cast.ExpandNode(bvh.nodes[0].bounds);
-				float t = length;
+				Unnamed::AABB root = cast.ExpandNode(bvh.nodes[0].bounds);
+				float         t    = length;
 				if (RayVsAABB(broadRay, root, t)) {
 					filtered.emplace_back(&bvh);
 				}
@@ -82,18 +90,18 @@ namespace UPhysics {
 			// 本格的に探索する
 			// 一番近い衝突のTOI (TOI: Time of Impact 衝突までの時間[0.0f ～ 1.0f])
 			float    bestTOI = 1.0f;
-			uint32_t hitTri = UINT32_MAX; // ヒットした三角形のインデックス
+			uint32_t hitTri  = UINT32_MAX; // ヒットした三角形のインデックス
 			Vec3     hitNormal;            // ヒットした法線
 			uint32_t stack[64];            // スタックを使ってBVHを探索(深さ優先探索)
 
 			// ブロードフェーズで検知されたBVHを探索する
 			for (auto* bvh : filtered) {
-				int sp = 0;
+				int sp      = 0;
 				stack[sp++] = 0; // ルートノードからスタート
 
 				while (sp) {
 					const uint32_t index = stack[--sp];
-					const auto& node = bvh->nodes[index];
+					const auto&    node  = bvh->nodes[index];
 
 #ifdef _DEBUG
 					Vec3 center = (node.bounds.min + node.bounds.max) *
@@ -109,15 +117,15 @@ namespace UPhysics {
 
 					// 現在の最良TOIを使った早期終了
 					Unnamed::Ray pruneRay = broadRay;
-					pruneRay.tMax = bestTOI * length;
-					float tBox = bestTOI * length;
+					pruneRay.tMax         = bestTOI * length;
+					float tBox            = bestTOI * length;
 					if (
 						!RayVsAABB(
 							pruneRay,
 							cast.ExpandNode(node.bounds),
 							tBox
 						)
-						) {
+					) {
 						continue; // 残念!
 					}
 
@@ -125,8 +133,7 @@ namespace UPhysics {
 						// 近い子ノードを探索する
 						stack[sp++] = node.leftFirst;
 						stack[sp++] = node.rightFirst;
-					}
-					else {
+					} else {
 						uint32_t first = node.leftFirst;
 						for (uint32_t i = 0; i < node.primCount; ++i) {
 							uint32_t triIdx = bvh->triIndices[first + i];
@@ -136,8 +143,8 @@ namespace UPhysics {
 								allTriangles[triIdx], dir, length,
 								toi, nrm)) {
 								if (toi < bestTOI) {
-									bestTOI = toi;
-									hitTri = triIdx;
+									bestTOI   = toi;
+									hitTri    = triIdx;
 									hitNormal = nrm;
 									// TOIが更新されたら、より厳しい早期終了を設定
 									pruneRay.tMax = bestTOI * length;
@@ -152,20 +159,34 @@ namespace UPhysics {
 				return false; // 残念!
 			}
 			if (outHit) {
-				outHit->t = bestTOI * length;
-				outHit->pos = start + dir * outHit->t;
-				outHit->normal = hitNormal;
+				Vec3 finalNormal = hitNormal;
+				const float nLenSq = finalNormal.SqrLength();
+				if (nLenSq > 1e-12f) {
+					finalNormal /= std::sqrt(nLenSq);
+				} else {
+					finalNormal = Vec3::up;
+				}
+				const float hitDistance = bestTOI * length;
+				outHit->t        = hitDistance;
+				outHit->normal   = finalNormal;
+				outHit->pos      = cast.ComputeImpactPoint(
+					start,
+					dirNormalized,
+					length,
+					bestTOI,
+					finalNormal
+				);
 				outHit->triIndex = hitTri;
 			}
 			return true;
 		}
 
 		static void AddGlobalOffset(std::vector<uint32_t>& indices,
-			uint32_t               base);
+		                            uint32_t               base);
 
 		std::vector<Unnamed::Triangle> mTriangles;
-		std::vector<FlatNode> mNodes;
-		std::vector<uint32_t> mTriIndices;
+		std::vector<FlatNode>          mNodes;
+		std::vector<uint32_t>          mTriIndices;
 
 		std::vector<RegisteredBVH> mBVHs;
 	};
