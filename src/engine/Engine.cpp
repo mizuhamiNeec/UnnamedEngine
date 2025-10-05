@@ -1121,6 +1121,10 @@ namespace Unnamed {
 		                                     "Minimum stopping speed when on ground.");
 		ConVarManager::RegisterConVar<
 			float>("sv_friction", 4.0f, "World friction.");
+		ConVarManager::RegisterConVar<float>("sv_stepsize", 18.0f,
+		                                     "Maximum step height.");
+		ConVarManager::RegisterConVar<float>("sv_overbounce", 1.05f,
+		                                     "Overbounce factor.");
 
 		// デバッグ用にエンティティのaxisを表示するためのコンソール変数
 		ConVarManager::RegisterConVar<int>("ent_axis", 0, "Show entity axis");
