@@ -221,28 +221,7 @@ void CameraAnimator::UpdateLandingAnimation(float dt) {
 			mLandingActive    = true;
 			mLandingAnimTime  = 0.0f;
 			mLandingIntensity = std::min(1.0f, verticalSpeed / 10.0f);
-#ifdef _DEBUG
-			Console::Print(std::format(
-				"[CameraAnimator] Landing animation started! Speed: {:.2f}, Intensity: {:.2f}\n",
-				verticalSpeed, mLandingIntensity));
-#endif
-		} else {
-#ifdef _DEBUG
-			Console::Print(std::format(
-				"[CameraAnimator] Landing too slow. Speed: {:.2f} < MinSpeed: {:.2f}\n",
-				verticalSpeed, kLandingMinSpeed));
-#endif
 		}
-	} else {
-#ifdef _DEBUG
-		static int debugCounter = 0;
-		if (debugCounter++ % 60 == 0) {
-			// 60フレームに1回
-			Console::Print(std::format(
-				"[CameraAnimator] No landing detected. JustLanded: {}\n",
-				mMovement->JustLanded()));
-		}
-#endif
 	}
 
 	// 着地アニメーション進行
