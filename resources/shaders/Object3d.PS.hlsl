@@ -188,14 +188,13 @@ PixelShaderOutput PSMain(VertexShaderOutput input) {
 	float3 finalColor = diffuse + rimColor + ambient + gMaterial.emissive;
 
     // --- フォグ ---
-    // 奥に行くほど青みがかって暗くなるように
     float  distance    = length(gCamera.worldPosition - input.worldPosition);
-    float  fogStart    = 0.0;
-    float  fogEnd      = 150.0;
-    float3 fogColor    = float3(0.1, 0.15, 0.25); // 青みがかった暗い色
+    float  fogStart    = 6.5024f;
+    float  fogEnd      = 416.1536f;
+    float3 fogColor    = float3(0.23f, 0.26f, 0.28f);
     float  fogFactor   = saturate((distance - fogStart) / (fogEnd - fogStart));
     
-    finalColor = lerp(finalColor, fogColor, fogFactor);
+    finalColor = lerp(finalColor, fogColor, fogFactor * 0.5f);
 
 	output.color.rgb = finalColor;
 	output.color.a   = baseColor.a;
