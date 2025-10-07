@@ -16,7 +16,14 @@ int WINAPI wWinMain(
 	);
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
-	if (std::wcsstr(lpCmdLine, L"-old") != nullptr) {
+	const bool startNewEngine = (lpCmdLine != nullptr) && (std::wcsstr(
+		lpCmdLine, L"-new") != nullptr);
+
+	if (startNewEngine) {
+		const auto uEngine = std::make_unique<Unnamed::UEngine>();
+		uEngine->Run();
+	} else {
+		// デフォルトは従来の古いエンジン
 		const auto engine = std::make_unique<Unnamed::Engine>();
 
 		if (!engine->Init()) {
@@ -30,9 +37,6 @@ int WINAPI wWinMain(
 		}
 
 		engine->Shutdown();
-	} else {
-		const auto uEngine = std::make_unique<Unnamed::UEngine>();
-		uEngine->Run();
 	}
 
 	CoUninitialize();
