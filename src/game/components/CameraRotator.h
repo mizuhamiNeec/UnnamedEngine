@@ -18,4 +18,13 @@ private:
 	float mYaw   = 0.0f;
 
 	bool isMouseLocked_ = true;
+	
+	// Animation offsets (added by CameraAnimator or other components)
+	float mAnimationPitchOffset = 0.0f; // degrees
+	float mAnimationRollOffset = 0.0f;  // degrees
+
+public:
+	// Setters for animation offsets
+	void SetAnimationPitchOffset(float pitch) { mAnimationPitchOffset = pitch; }
+	void SetAnimationRollOffset(float roll) { mAnimationRollOffset = roll; }
 };

@@ -41,14 +41,16 @@ void CameraRotator::Update([[maybe_unused]] float deltaTime) {
 	// ピッチをクランプ（上下回転の制限）
 	mPitch = std::clamp(mPitch, -cl_pitchup, cl_pitchdown);
 
-	// クォータニオンを生成（回転順序: ヨー → ピッチ）
+	// クォータニオンを生成（回転順序: ヨー → ピッチ → ロール）
 	Quaternion yawRotation = Quaternion::AxisAngle(
 		Vec3::up, mYaw * Math::deg2Rad);
 	Quaternion pitchRotation = Quaternion::AxisAngle(
-		Vec3::right, mPitch * Math::deg2Rad);
+		Vec3::right, (mPitch + mAnimationPitchOffset) * Math::deg2Rad);
+	Quaternion rollRotation = Quaternion::AxisAngle(
+		Vec3::forward, mAnimationRollOffset * Math::deg2Rad);
 
-	// 回転を合成して設定
-	Quaternion finalRotation = yawRotation * pitchRotation;
+	// 回転を合成して設定（アニメーションオフセットを含む）
+	Quaternion finalRotation = yawRotation * pitchRotation * rollRotation;
 	mScene->SetLocalRot(finalRotation);
 }
 
