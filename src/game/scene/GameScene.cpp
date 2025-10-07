@@ -38,7 +38,7 @@ namespace {
 	constexpr char kWorldMeshInitialPath[] =
 		"./content/core/models/reflectionTest.obj";
 	constexpr char kWorldMeshReloadPath[] =
-		"./resources/models/reflectionTest.obj";
+		"./content/core/models/reflectionTest.obj";
 	constexpr char kAirAccelerateCommand[] =
 		"sv_airaccelerate 100000000000000000";
 	constexpr char  kMeshReloadBindCommand[] = "bind f5 +f5";
