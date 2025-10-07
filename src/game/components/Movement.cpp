@@ -296,14 +296,6 @@ void Movement::ProcessMovement(float dt) {
 	if (!mData.wasGroundedLastFrame && mData.isGrounded && !mData.isWallRunning
 		&& !mData.isSliding) {
 		mData.justLanded = true;
-		// lastLandingVelocityYは既に上で保存済み
-#ifdef _DEBUG
-		// デバッグ: 着地検出
-		float speed = std::abs(mData.lastLandingVelocityY);
-		Console::Print(std::format(
-			"[Movement] Landing detected! VelocityY: {:.2f}, Speed: {:.2f}\n",
-			mData.lastLandingVelocityY, speed));
-#endif
 	} else {
 		mData.justLanded = false;
 	}
