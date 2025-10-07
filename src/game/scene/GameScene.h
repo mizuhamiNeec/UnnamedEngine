@@ -16,6 +16,7 @@
 #include <game/components/weapon/base/WeaponComponent.h>
 #include <game/scene/base/BaseScene.h>
 #include <game/components/Movement.h>
+#include <game/components/CameraAnimator.h>
 
 class D3D12;
 class EnemyMovement;
@@ -87,6 +88,7 @@ private:
 	std::shared_ptr<WeaponSway>         mWeaponSway;
 
 	std::unique_ptr<Entity> mEntShakeRoot;
+	std::shared_ptr<CameraAnimator> mCameraAnimator;
 
 	std::unique_ptr<Entity>               mEntSkeletalMesh;
 	std::shared_ptr<SkeletalMeshRenderer> mSkeletalMeshRenderer;

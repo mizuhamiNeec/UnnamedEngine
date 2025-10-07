@@ -326,6 +326,14 @@ void GameScene::InitializeCameraRoot() {
 
 void GameScene::InitializeShakeRoot() {
 	mEntShakeRoot = std::make_unique<Entity>("shakeRoot");
+	
+	// CameraAnimatorコンポーネントを追加
+	auto* animator = mEntShakeRoot->AddComponent<CameraAnimator>();
+	mCameraAnimator = AdoptComponent(animator);
+	
+	if (mCameraAnimator && mMovementComponent && mCameraRotator) {
+		mCameraAnimator->Init(mMovementComponent.get(), mCameraRotator);
+	}
 }
 
 void GameScene::InitializeSkeletalMesh() {
@@ -350,19 +358,23 @@ void GameScene::InitializeSkeletalMesh() {
 }
 
 void GameScene::ConfigureEntityHierarchy() {
-	if (mCamera && mEntCameraRoot) {
-		mCamera->SetParent(mEntCameraRoot.get());
+	// 階層構造: CameraRoot -> ShakeRoot -> Camera -> Weapon
+	// ShakeRootがカメラの親になることで、シェイクがカメラに伝わる
+	
+	if (mEntShakeRoot && mEntCameraRoot) {
+		mEntShakeRoot->SetParent(mEntCameraRoot.get());
+		mEntShakeRoot->GetTransform()->SetLocalPos(Vec3::zero);
+		AddEntity(mEntShakeRoot.get()); // ShakeRootをシーンに追加
+	}
+	
+	if (mCamera && mEntShakeRoot) {
+		mCamera->SetParent(mEntShakeRoot.get());
 		mCamera->GetTransform()->SetLocalPos(Vec3::zero);
 	}
 
-	if (mEntShakeRoot && mCamera) {
-		mEntShakeRoot->SetParent(mCamera.get());
-		mEntShakeRoot->GetTransform()->SetLocalPos(kShakeRootOffset);
-	}
-
-	if (mEntWeapon && mEntShakeRoot) {
-		mEntWeapon->SetParent(mEntShakeRoot.get());
-		mEntWeapon->GetTransform()->SetLocalPos(Vec3::zero);
+	if (mEntWeapon && mCamera) {
+		mEntWeapon->SetParent(mCamera.get());
+		mEntWeapon->GetTransform()->SetLocalPos(kShakeRootOffset);
 	}
 
 	if (mEntSkeletalMesh && mEntCameraRoot) {
