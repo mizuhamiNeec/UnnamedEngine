@@ -362,11 +362,6 @@ DirectXGame/imgui.ini
 
 .idea/
 imgui.ini
-/Build/GE3_GameEngine/Debug
-/GE3_GameEngine/Intermediate/Debug
-/GE3_GameEngine/Intermediate/Release
-/Build/GE3_GameEngine/Release
-/Intermediate/GE3_GameEngine
 /ClassDiagram.cd
 .github/copilot-instructions.md
 /Resources/Models/Positive
