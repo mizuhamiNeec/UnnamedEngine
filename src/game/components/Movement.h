@@ -21,7 +21,6 @@ inline const char* ToString(MOVEMENT_STATE e) {
 	return "unknown";
 }
 
-// --- Data container ----------------------------------------------------------
 struct MovementData {
 	MovementData(float width, float height)
 		: currentWidth(width), currentHeight(height) {

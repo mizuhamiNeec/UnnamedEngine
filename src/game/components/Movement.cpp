@@ -136,12 +136,12 @@ void Movement::ProcessInput() {
 // Step-wise movement
 // ----------------------------------------------------------------------------
 void Movement::ProcessMovement(float dt) {
-	// --- Height (crouch/stand) with ceiling check ---------------------------
+	// --- しゃがんでいるかで高さを決定 -------------------------------------------
 	float targetHU = mData.wishCrouch ?
 		                 mData.crouchHeight :
 		                 mData.defaultHeight;
 	if (targetHU > mData.currentHeight) {
-		// 立ち上がる：頭上に空きがあるか確かめる
+		// 立てるかチェック
 		Vec3         posFeet = mScene->GetWorldPos();
 		Unnamed::Box test    = {
 			.center = posFeet + Vec3::up * Math::HtoM(targetHU * 0.5f),
@@ -151,15 +151,19 @@ void Movement::ProcessMovement(float dt) {
 			})
 		};
 		UPhysics::Hit ov{};
-		bool          blocked = (mUPhysicsEngine && mUPhysicsEngine->BoxOverlap(
-			test, &ov));
-		mData.currentHeight = blocked ? mData.currentHeight : targetHU;
+		const bool    blocked = mUPhysicsEngine && mUPhysicsEngine->BoxOverlap(
+			test, &ov);
+		mData.currentHeight =
+			blocked ?
+				mData.currentHeight :
+				std::lerp(mData.currentHeight, targetHU, 15.0f * dt);
 	} else {
-		// しゃがみ：常に縮めてOK
-		mData.currentHeight = targetHU;
+		// しゃがみ
+		mData.currentHeight =
+			std::lerp(mData.currentHeight, targetHU, 15.0f * dt);
 	}
 
-	// --- Refresh hull for latest height -------------------------------------
+	// --- 高さを再計算 ---------------------------------------------------------
 	RefreshHullFromTransform();
 
 	// --- Refresh grounded cache BEFORE jump ---------------------------------
@@ -1197,16 +1201,11 @@ void Movement::TryStartSlide() {
 
 	// 速度キャップを適用（スライドホップの無限加速を防ぐ）
 	float speedCapM = Math::HtoM(kSlideHopSpeedCap);
-	if (boostedSpeed > speedCapM) {
-		boostedSpeed = speedCapM;
-	}
+	boostedSpeed    = std::min(boostedSpeed, speedCapM);
 
 	float originalY  = mData.velocity.y;
 	mData.velocity   = mData.slideDirection * boostedSpeed;
 	mData.velocity.y = originalY; // Y軸は維持
-
-	// ハルサイズをクロウチに変更
-	mData.currentHeight = mData.crouchHeight;
 }
 
 void Movement::UpdateSlide(float dt) {
@@ -1249,10 +1248,10 @@ void Movement::EndSlide() {
 
 	// ハルサイズを元に戻す
 	if (mData.isGrounded) {
-		mData.currentHeight = mData.defaultHeight;
+		//mData.currentHeight = mData.defaultHeight;
 		mData.state         = MOVEMENT_STATE::GROUND;
 	} else {
-		mData.currentHeight = mData.defaultHeight;
+		//mData.currentHeight = mData.defaultHeight;
 		mData.state         = MOVEMENT_STATE::AIR;
 	}
 }
