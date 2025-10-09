@@ -425,9 +425,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 					ImGui::PushStyleColor(
 						ImGuiCol_Text,
-						visible
-							? ImGui::GetStyleColorVec4(ImGuiCol_Text)
-							: ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
+						visible ?
+							ImGui::GetStyleColorVec4(ImGuiCol_Text) :
+							ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
 					);
 
 					// アイコンを中央に配置
@@ -723,6 +723,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			{
 				constexpr float iconScale = 0.75f;
 
+				ImGui::BeginDisabled();
+
 				ImGuiWidgets::IconButton(
 					StrUtil::ConvertToUtf8(kIconVertex).c_str(), "Vertices",
 					toolbarIconSize,
@@ -775,6 +777,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 					ImGuiDir_Right
 				);
 			}
+
+			ImGui::EndDisabled();
 
 			ImGui::End();
 		}
