@@ -25,7 +25,7 @@ void WindEffect::Init([[maybe_unused]] ParticleManager* particleManager,
 
 	// 風パーティクル用のオブジェクト初期化
 	mWindParticle = std::make_unique<ParticleObject>();
-	mWindParticle->Init(particleManager, "./resources/textures/circle.png");
+	mWindParticle->Init(particleManager, "./content/core/textures/circle.png");
 }
 
 void WindEffect::Update([[maybe_unused]] const float deltaTime) {

@@ -153,8 +153,8 @@ void PPVignette::CreatePipelineState() {
 	};
 	pso.SetRootSignature(mRootSig.Get());
 	pso.SetInputLayout({});
-	pso.SetVertexShader(L"./resources/shaders/Vignette.VS.hlsl");
-	pso.SetPixelShader(L"./resources/shaders/Vignette.PS.hlsl");
+	pso.SetVertexShader(L"./content/core/shaders/Vignette.VS.hlsl");
+	pso.SetPixelShader(L"./content/core/shaders/Vignette.PS.hlsl");
 	pso.SetBlendMode(kBlendModeNone);
 	pso.Create(mDevice);
 	mPSO = pso.Get();

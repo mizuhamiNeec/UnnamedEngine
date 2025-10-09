@@ -29,7 +29,7 @@ namespace {
 	constexpr char kSmokeTexturePath[] =
 		"./content/core/textures/smoke.png";
 	constexpr char kWindParticleTexturePath[] =
-		"./resources/textures/circle.png";
+		"./content/core/textures/circle.png";
 	constexpr char kWeaponMeshPath[]   = "./content/core/models/weapon.obj";
 	constexpr char kWeaponScriptPath[] =
 		"./content/parkour/scripts/weapon_handgun.json";

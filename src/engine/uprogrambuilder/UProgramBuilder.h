@@ -21,7 +21,7 @@ namespace Unnamed {
 		std::string bodyPath; // 実装
 		std::string metaPath; // JSON
 		std::vector<std::string> defines;
-		std::string abiInclude = "./resources/shaders/MaterialABI.hlsli";
+		std::string abiInclude = "./content/core/shaders/MaterialABI.hlsli";
 	};
 
 	class UProgramBuilder {

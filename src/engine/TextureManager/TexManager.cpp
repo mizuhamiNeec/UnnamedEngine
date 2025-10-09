@@ -256,7 +256,7 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 			filePath, hr
 		);
 		// デフォルトテクスチャの読み込み
-		filePathW = StrUtil::ToWString("./resources/textures/error.png");
+		filePathW = StrUtil::ToWString("./content/core/textures/error.png");
 		hr        = DirectX::LoadFromWICFile(
 			filePathW.c_str(),
 			DirectX::WIC_FLAGS_FORCE_SRGB,

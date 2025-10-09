@@ -228,8 +228,8 @@ void CubeMap::CreatePipelineStateObject() {
 
 	pso.SetInputLayout(Vertex::inputLayout);
 	pso.SetRootSignature(mRootSignature.Get());
-	pso.SetVertexShader(L"./resources/shaders/Skybox.VS.hlsl");
-	pso.SetPixelShader(L"./resources/shaders/Skybox.PS.hlsl");
+	pso.SetVertexShader(L"./content/core/shaders/Skybox.VS.hlsl");
+	pso.SetPixelShader(L"./content/core/shaders/Skybox.PS.hlsl");
 	pso.SetBlendMode(kBlendModeNone);
 
 	pso.Create(mDevice);

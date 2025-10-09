@@ -72,8 +72,8 @@ void LineCommon::CreateGraphicsPipeline() {
 	mPipelineState.SetBlendMode(kBlendModeNone);
 
 	// シェーダーのファイルパスを設定
-	mPipelineState.SetVertexShader(L"./resources/shaders/Line.VS.hlsl");
-	mPipelineState.SetPixelShader(L"./resources/shaders/Line.PS.hlsl");
+	mPipelineState.SetVertexShader(L"./content/core/shaders/Line.VS.hlsl");
+	mPipelineState.SetPixelShader(L"./content/core/shaders/Line.PS.hlsl");
 	mPipelineState.Create(mRenderer->GetDevice());
 
 	if (mPipelineState.Get()) {

@@ -3,15 +3,15 @@
 #include <engine/ResourceSystem/Shader/ShaderManager.h>
 
 const std::string DefaultShader::kDefaultVSPath =
-	"./resources/shaders/Object3d.VS.hlsl";
+	"./content/core/shaders/Object3d.VS.hlsl";
 const std::string DefaultShader::kDefaultPSPath =
-	"./resources/shaders/Object3d.PS.hlsl";
+	"./content/core/shaders/Object3d.PS.hlsl";
 const std::string DefaultShader::kDefaultShaderName = "DefaultShader";
 
 const std::string DefaultShader::kDefaultSkinnedVSPath =
-	"./resources/shaders/SkinnedObject3d.VS.hlsl";
+	"./content/core/shaders/SkinnedObject3d.VS.hlsl";
 const std::string DefaultShader::kDefaultSkinnedPSPath =
-	"./resources/shaders/SkinnedObject3d.PS.hlsl";
+	"./content/core/shaders/SkinnedObject3d.PS.hlsl";
 const std::string DefaultShader::kDefaultSkinnedShaderName =
 	"DefaultSkinnedShader";
 

@@ -109,9 +109,9 @@ void SpriteCommon::CreateGraphicsPipeline() {
 
 	// シェーダーのファイルパスを設定
 	pipelineState_.SetVertexShader(
-		L"./resources/shaders/SpriteCommon.VS.hlsl");
+		L"./content/core/shaders/SpriteCommon.VS.hlsl");
 	pipelineState_.SetPixelShader(
-		L"./resources/shaders/SpriteCommon.PS.hlsl");
+		L"./content/core/shaders/SpriteCommon.PS.hlsl");
 	pipelineState_.SetBlendMode(kBlendModeNormal);
 	pipelineState_.Create(d3d12_->GetDevice());
 
