@@ -73,24 +73,24 @@ struct MovementData {
 	float wallRunTime           = 0.0f;
 	float timeSinceLastWallRun  = 0.0f;
 	Vec3  lastWallRunNormal     = Vec3::zero;
-	bool  wallRunJumpWasPressed = false; // ウォールラン開始時にジャンプが押されていたか
+	bool  wallRunJumpWasPressed = false; // ウォールラン開始時にジャンプが押されていたか?
 
 	// Double jump
-	bool hasDoubleJump     = true;  // ダブルジャンプが使用可能か
+	bool hasDoubleJump     = true;  // ダブルジャンプが使用可能か?
 	bool lastFrameWishJump = false; // 前フレームのジャンプ入力状態
 
 	// Slide
-	bool  isSliding      = false;      // スライディング中か
+	bool  isSliding      = false;      // スライディング中か?
 	Vec3  slideDirection = Vec3::zero; // スライディング方向
 	float slideTime      = 0.0f;       // スライディング経過時間
-	
+
 	// Landing detection
-	bool  wasGroundedLastFrame = false; // 前フレームの接地状態
+	bool  wasGroundedLastFrame = false; // 前フレームの接地していたか?
 	float lastLandingVelocityY = 0.0f;  // 着地時の垂直速度
-	bool  justLanded           = false; // 今フレーム着地したか
+	bool  justLanded           = false; // 今フレーム着地したか?
 };
 
-// --- Component ---------------------------------------------------------------
+// --- Component --------------------------------------------------------------
 class Movement : public Component {
 public:
 	void OnAttach(Entity& owner) override;
@@ -102,18 +102,18 @@ public:
 
 	void DrawInspectorImGui() override;
 
-	Vec3& GetVelocity();
-	Vec3  GetHeadPos() const;
-	void  SetVelocity(const Vec3& v);
-	
+	Vec3&              GetVelocity();
+	[[nodiscard]] Vec3 GetHeadPos() const;
+	void               SetVelocity(const Vec3& v);
+
 	// Getters for camera animation
-	bool  IsGrounded() const { return mData.isGrounded; }
-	bool  IsWallRunning() const { return mData.isWallRunning; }
-	bool  IsSliding() const { return mData.isSliding; }
-	bool  HasDoubleJump() const { return mData.hasDoubleJump; }
-	Vec3  GetWallRunNormal() const { return mData.wallRunNormal; }
-	bool  JustLanded() const { return mData.justLanded; }
-	float GetLastLandingVelocityY() const { return mData.lastLandingVelocityY; }
+	[[nodiscard]] bool  IsGrounded() const;
+	[[nodiscard]] bool  IsWallRunning() const;
+	[[nodiscard]] bool  IsSliding() const;
+	[[nodiscard]] bool  HasDoubleJump() const;
+	[[nodiscard]] Vec3  GetWallRunNormal() const;
+	[[nodiscard]] bool  JustLanded() const;
+	[[nodiscard]] float GetLastLandingVelocityY() const;
 
 private:
 	// high-level
@@ -169,6 +169,7 @@ private:
 	static constexpr int   kMaxClipPlanes  = 5;
 	static constexpr float kFracEps        = 1e-4f;
 	static constexpr float kAirSpeedCap    = 30.0f;
+	static constexpr float kJumpVelocityHu = 300.0f; // HU/s
 
 	float StepHeightM() const { return Math::HtoM(kStepHeightHU); }
 	float CastSkinM() const { return Math::HtoM(kCastSkinHU); }

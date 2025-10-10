@@ -1,22 +1,15 @@
 #include "Movement.h"
 
+#include <algorithm>
+#include <cmath>
 #include <engine/Camera/CameraManager.h>
 #include <engine/Components/Camera/CameraComponent.h>
 #include <engine/Components/Transform/SceneComponent.h>
 #include <engine/ImGui/ImGuiWidgets.h>
 #include <engine/OldConsole/ConVarManager.h>
-#include <algorithm>
-#include <cmath>
 
 #include "engine/Input/InputSystem.h"
 
-namespace {
-	constexpr float kJumpVelocityHu = 300.0f; // HU/s
-}
-
-// ----------------------------------------------------------------------------
-// Lifecycle
-// ----------------------------------------------------------------------------
 void Movement::OnAttach(Entity& owner) { Component::OnAttach(owner); }
 
 void Movement::Init(UPhysics::Engine* uphysics, const MovementData& md) {
@@ -35,19 +28,9 @@ void Movement::Init(UPhysics::Engine* uphysics, const MovementData& md) {
 	RefreshHullFromTransform();
 }
 
-void Movement::PrePhysics(float dt) {
-	(void)dt;
+void Movement::PrePhysics(float) {
 	ProcessInput();
-}
-
-void Movement::Update(float dt) {
-	// const float maxStep = 1.0f / 120.0f;
-	// int         steps   = std::max(1, (int)std::ceil(dt / maxStep));
-	// float       subdt   = dt / steps;
-	// for (int i = 0; i < steps; ++i) ;
-
-	ProcessMovement(dt);
-
+	
 	Debug::DrawBox(
 		mData.hull.center,
 		Quaternion::identity,
@@ -56,12 +39,18 @@ void Movement::Update(float dt) {
 	);
 }
 
+void Movement::Update(float dt) {
+	// const float maxStep = 1.0f / 100.0f; // 256Hz相当
+	// int         steps   = std::max(1, (int)std::ceil(dt / maxStep));
+	// float       subdt   = dt / steps;
+	// for (int i = 0; i < steps; ++i)
+	ProcessMovement(dt);
+}
+
 void Movement::PostPhysics(float) {
 }
 
-// ----------------------------------------------------------------------------
-// Debug UI
-// ----------------------------------------------------------------------------
+/// @brief インスペクタ内のImGui描画
 void Movement::DrawInspectorImGui() {
 #ifdef _DEBUG
 	if (ImGui::CollapsingHeader("Movement", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -93,9 +82,6 @@ void Movement::DrawInspectorImGui() {
 #endif
 }
 
-// ----------------------------------------------------------------------------
-// Public accessors
-// ----------------------------------------------------------------------------
 Vec3& Movement::GetVelocity() { return mData.velocity; }
 
 Vec3 Movement::GetHeadPos() const {
@@ -106,9 +92,23 @@ Vec3 Movement::GetHeadPos() const {
 
 void Movement::SetVelocity(const Vec3& v) { mData.velocity = v; }
 
-// ----------------------------------------------------------------------------
-// Input
-// ----------------------------------------------------------------------------
+bool Movement::IsGrounded() const { return mData.isGrounded; }
+
+bool Movement::IsWallRunning() const { return mData.isWallRunning; }
+
+bool Movement::IsSliding() const { return mData.isSliding; }
+
+bool Movement::HasDoubleJump() const { return mData.hasDoubleJump; }
+
+Vec3 Movement::GetWallRunNormal() const { return mData.wallRunNormal; }
+
+bool Movement::JustLanded() const { return mData.justLanded; }
+
+float Movement::GetLastLandingVelocityY() const {
+	return mData.lastLandingVelocityY;
+}
+
+/// @brief 入力処理
 void Movement::ProcessInput() {
 	mData.vecMoveInput = Vec2::zero;
 	if (InputSystem::IsPressed("forward")) mData.vecMoveInput.y += 1.0f;
@@ -1122,17 +1122,13 @@ void Movement::EndWallrun() {
 	mData.timeSinceLastWallRun = 0.0f;
 }
 
-void Movement::Wallrun(float wishspeed, float dt) {
-	// Wallrun中の動き（Titanfall 2本家の挺動）
-	// Wキーで加速、押してないと摩擦で減速
-
-	Vec3 wishdir = mData.wallRunDirection;
-
+void Movement::Wallrun(const float wishspeed, const float dt) {
+	const Vec3 wishdir = mData.wallRunDirection;
 	// 前進入力があるか
 	if (mData.vecMoveInput.y > 0) {
 		// 加速
-		float currentSpeed = Math::MtoH(mData.velocity.Dot(wishdir));
-		float addSpeed     = wishspeed * 1.2f - currentSpeed;
+		const float currentSpeed = Math::MtoH(mData.velocity.Dot(wishdir));
+		const float addSpeed     = wishspeed * 1.2f - currentSpeed;
 
 		if (addSpeed > 0) {
 			float accel = ConVarManager::GetConVar("sv_airaccelerate")->
@@ -1144,10 +1140,10 @@ void Movement::Wallrun(float wishspeed, float dt) {
 		// 前進入力がない場合は摩擦で減速
 		float speed = Math::MtoH(mData.velocity.Length());
 		if (speed > 0.1f) {
-			float fric = ConVarManager::GetConVar("sv_friction")->
+			const float fric = ConVarManager::GetConVar("sv_friction")->
 				GetValueAsFloat();
-			float drop = speed * fric * dt * 0.5f; // 壁では摩擦が弱め
-			float news = std::max(0.0f, speed - drop);
+			const float drop = speed * fric * dt * 0.5f; // 壁では摩擦が弱め
+			const float news = std::max(0.0f, speed - drop);
 			if (news != speed && speed > 0) {
 				mData.velocity *= (news / speed);
 			}
@@ -1155,28 +1151,24 @@ void Movement::Wallrun(float wishspeed, float dt) {
 	}
 
 	// 壁に向かう速度成分を除去
-	float intoWall = mData.velocity.Dot(-mData.wallRunNormal);
+	const float intoWall = mData.velocity.Dot(-mData.wallRunNormal);
 	if (intoWall > 0) {
 		mData.velocity += mData.wallRunNormal * intoWall;
 	}
 
 	// 壁に軽く吸い付く力を追加（本家の感覚）
-	float pullForce = Math::HtoM(80.0f); // 80 HU/s
+	const float pullForce = Math::HtoM(80.0f); // 80 HU/s
 	mData.velocity += -mData.wallRunNormal * pullForce * dt;
 }
-
-// =============================================================================
-// Slide
-// =============================================================================
 
 bool Movement::CanSlide() const {
 	if (!mData.isGrounded) return false;
 	if (!mData.wishCrouch) return false;
 
 	// 水平速度が十分にあるか
-	Vec3 vel_horz = mData.velocity;
-	vel_horz.y    = 0;
-	float speed   = Math::MtoH(vel_horz.Length());
+	Vec3 velHorizontal = mData.velocity;
+	velHorizontal.y    = 0;
+	const float speed  = Math::MtoH(velHorizontal.Length());
 
 	return speed >= kSlideMinSpeed;
 }
@@ -1185,30 +1177,30 @@ void Movement::TryStartSlide() {
 	if (!CanSlide()) return;
 
 	// 現在の移動方向をスライディング方向として記録
-	Vec3 vel_horz = mData.velocity;
-	vel_horz.y    = 0;
+	Vec3 velHorz = mData.velocity;
+	velHorz.y    = 0;
 
-	if (vel_horz.IsZero()) return;
+	if (velHorz.IsZero()) return;
 
-	mData.slideDirection = vel_horz.Normalized();
+	mData.slideDirection = velHorz.Normalized();
 	mData.isSliding      = true;
 	mData.slideTime      = 0.0f;
 	mData.state          = MOVEMENT_STATE::SLIDE;
 
 	// スライディング開始時に小さなブースト
-	float currentSpeed = vel_horz.Length();
-	float boostedSpeed = currentSpeed + Math::HtoM(kSlideBoostSpeed);
+	const float currentSpeed = velHorz.Length();
+	float       boostedSpeed = currentSpeed + Math::HtoM(kSlideBoostSpeed);
 
 	// 速度キャップを適用（スライドホップの無限加速を防ぐ）
-	float speedCapM = Math::HtoM(kSlideHopSpeedCap);
-	boostedSpeed    = std::min(boostedSpeed, speedCapM);
+	const float speedCapM = Math::HtoM(kSlideHopSpeedCap);
+	boostedSpeed          = std::min(boostedSpeed, speedCapM);
 
-	float originalY  = mData.velocity.y;
-	mData.velocity   = mData.slideDirection * boostedSpeed;
-	mData.velocity.y = originalY; // Y軸は維持
+	const float originalY = mData.velocity.y;
+	mData.velocity        = mData.slideDirection * boostedSpeed;
+	mData.velocity.y      = originalY; // Y軸は維持
 }
 
-void Movement::UpdateSlide(float dt) {
+void Movement::UpdateSlide(const float dt) {
 	mData.slideTime += dt;
 
 	// 最大時間を超えたら終了
@@ -1249,10 +1241,10 @@ void Movement::EndSlide() {
 	// ハルサイズを元に戻す
 	if (mData.isGrounded) {
 		//mData.currentHeight = mData.defaultHeight;
-		mData.state         = MOVEMENT_STATE::GROUND;
+		mData.state = MOVEMENT_STATE::GROUND;
 	} else {
 		//mData.currentHeight = mData.defaultHeight;
-		mData.state         = MOVEMENT_STATE::AIR;
+		mData.state = MOVEMENT_STATE::AIR;
 	}
 }
 
