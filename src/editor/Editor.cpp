@@ -113,401 +113,6 @@ void Editor::Init() {
 }
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
-#ifdef _DEBUG
-	// カメラの操作
-	{
-		static float moveSpd = 4.0f;
-
-		static bool firstReset   = true; // 初回リセットフラグ
-		static bool cursorHidden = false;
-
-		static bool  bOpenPopup = false; // ポップアップ表示フラグ
-		static float popupTimer = 0.0f;
-
-		auto   lt           = Unnamed::Engine::GetViewportLT();
-		auto   size         = Unnamed::Engine::GetViewportSize();
-		ImVec2 viewportPos  = {lt.x, lt.y};
-		ImVec2 viewportSize = {size.x, size.y};
-		auto   mousePos     = ImGui::GetMousePos();
-
-		bool bIsInsideViewport =
-			mousePos.x >= viewportPos.x &&
-			mousePos.x <= viewportPos.x + viewportSize.x &&
-			mousePos.y >= viewportPos.y &&
-			mousePos.y <= viewportPos.y + viewportSize.y;
-
-		if (InputSystem::IsPressed("attack2") && bIsInsideViewport) {
-			if (!cursorHidden) {
-				ShowCursor(FALSE); // カーソルを非表示にする
-				cursorHidden = true;
-			}
-
-			Vec2 delta = InputSystem::GetMouseDelta();
-
-			if (!firstReset) {
-				// 回転
-				float sensitivity = ConVarManager::GetConVar("sensitivity")->
-					GetValueAsFloat();
-				float m_pitch = 0.022f;
-				float m_yaw   = 0.022f;
-				float min     = -89.0f;
-				float max     = 89.0f;
-
-				static Vec3 rot_ = mCameraEntity->GetTransform()->GetLocalRot().
-				                                  ToEulerAngles();
-
-				rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
-				rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
-
-				rot_.y = std::clamp(rot_.y, min * Math::deg2Rad,
-				                    max * Math::deg2Rad);
-
-				mCameraEntity->GetTransform()->SetWorldRot(
-					Quaternion::Euler(
-						Vec3::up * rot_.x + Vec3::right * rot_.y));
-
-				Vec3 moveInput = {0.0f, 0.0f, 0.0f};
-
-				if (InputSystem::IsPressed("forward")) {
-					moveInput.z += 1.0f;
-				}
-
-				if (InputSystem::IsPressed("back")) {
-					moveInput.z -= 1.0f;
-				}
-
-				if (InputSystem::IsPressed("moveright")) {
-					moveInput.x += 1.0f;
-				}
-
-				if (InputSystem::IsPressed("moveleft")) {
-					moveInput.x -= 1.0f;
-				}
-
-				if (InputSystem::IsPressed("moveup")) {
-					moveInput.y += 1.0f;
-				}
-
-				if (InputSystem::IsPressed("movedown")) {
-					moveInput.y -= 1.0f;
-				}
-
-				moveInput.Normalize();
-
-				Quaternion camRot = mCameraEntity->GetTransform()->
-				                                   GetWorldRot();
-				Vec3 cameraForward = camRot * Vec3::forward;
-				Vec3 cameraRight   = camRot * Vec3::right;
-				Vec3 cameraUp      = camRot * Vec3::up;
-
-				if (InputSystem::IsTriggered("invprev")) {
-					moveSpd *= 2.0f;
-					moveSpd = RoundToNearestPowerOfTwo(moveSpd);
-				}
-
-				if (InputSystem::IsTriggered("invnext")) {
-					moveSpd *= 0.5f;
-					moveSpd = RoundToNearestPowerOfTwo(moveSpd);
-				}
-
-				static float oldMoveSpd = 0.0f;
-				if (moveSpd != oldMoveSpd) {
-					bOpenPopup = true;
-					popupTimer = 0.0f;
-				}
-
-				moveSpd = std::clamp(moveSpd, 0.125f, 65535.0f);
-
-				oldMoveSpd = moveSpd;
-
-				mCameraEntity->GetTransform()->SetWorldPos(
-					mCameraEntity->GetTransform()->GetWorldPos() + (
-						cameraForward *
-						moveInput.z + cameraRight * moveInput.x + cameraUp *
-						moveInput.y) *
-					moveSpd * mGameTime->ScaledDeltaTime<float>()
-				);
-			}
-			// カーソルをウィンドウの中央にリセット
-			POINT centerCursorPos = {
-				static_cast<LONG>(OldWindowManager::GetMainWindow()->
-					GetClientWidth() /
-					2),
-				static_cast<LONG>(OldWindowManager::GetMainWindow()->
-					GetClientHeight()
-					/ 2)
-			};
-			ClientToScreen(OldWindowManager::GetMainWindow()->GetWindowHandle(),
-			               &centerCursorPos); // クライアント座標をスクリーン座標に変換
-			SetCursorPos(centerCursorPos.x, centerCursorPos.y);
-
-			firstReset = false; // 初回リセット完了
-		} else {
-			if (cursorHidden) {
-				ShowCursor(TRUE); // カーソルを表示する
-				cursorHidden = false;
-			}
-			firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
-		}
-
-		float iconScale = 0.75f;
-		// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
-		if (bOpenPopup) {
-			auto windowSize = ImVec2(256.0f, 32.0f);
-
-			// ウィンドウの中央下部位置を計算
-			ImVec2 windowPos(
-				viewportPos.x + (viewportSize.x) * 0.5f,
-				viewportPos.y + (viewportSize.y) * iconScale
-			);
-
-			// ウィンドウの位置を調整
-			windowPos.x -= windowSize.x * 0.5f;
-			windowPos.y -= windowSize.y * 0.5f;
-
-			// ウィンドウの位置を設定
-			ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-			ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
-
-			// ウィンドウを角丸に
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 16.0f);
-			// タイトルバーを非表示
-
-			ImGui::Begin(
-				"##move speed",
-				nullptr,
-				ImGuiWindowFlags_NoTitleBar |
-				ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove |
-				ImGuiWindowFlags_NoSavedSettings |
-				ImGuiWindowFlags_NoBringToFrontOnFocus |
-				ImGuiWindowFlags_NoFocusOnAppearing |
-				ImGuiWindowFlags_NoScrollbar
-			);
-
-			ImGui::SetCursorPos(
-				ImVec2(
-					(windowSize.x - ImGui::CalcTextSize(
-						(StrUtil::ConvertToUtf8(0xe9e4) + std::format(
-							" {:.2f}", moveSpd)).c_str()).x) * 0.5f,
-					(windowSize.y - ImGui::GetFontSize()) * 0.5f
-				)
-			);
-			ImGui::Text((StrUtil::ConvertToUtf8(0xe9e4) + " %.2f").c_str(),
-			            moveSpd);
-
-			// 一定時間経過後にポップアップをフェードアウトして閉じる
-			// ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
-			popupTimer += deltaTime;
-			if (popupTimer >= 3.0f) {
-				ImGui::CloseCurrentPopup();
-				bOpenPopup = false;
-				popupTimer = 0.0f;
-			}
-
-			ImGui::End();
-			ImGui::PopStyleVar();
-		}
-	}
-
-	ImGui::ShowDemoWindow();
-
-	// アウトライナウィンドウの開始
-	if (ImGui::Begin("Outliner")) {
-		if (ImGui::Button("Add Entity")) {
-			mScene->AddEntity(
-				new Entity("New Entity"));
-		}
-
-		// テーブルの開始
-		if (ImGui::BeginTable(
-			"OutlinerTable", 3
-			//ImGuiTableFlags_NoBordersInBody |
-			//ImGuiTableFlags_SizingFixedFit 
-			// ImGuiTableFlags_RowBg |
-			// ImGuiTableFlags_BordersInnerH 
-		)) {
-			// カラムの設定
-			ImGui::TableSetupColumn(
-				"Name",
-				ImGuiTableColumnFlags_NoHide |
-				ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed,
-			                        30.0f);
-			ImGui::TableSetupColumn("Active", ImGuiTableColumnFlags_WidthFixed,
-			                        38.0f);
-
-			// 再帰的にエンティティを表示する関数
-			std::function<void(Entity*)>
-				drawEntityNode =
-					[&](Entity* entity) {
-					if (!entity) {
-						return;
-					}
-
-					if (entity->GetName().empty()) {
-						return;
-					}
-
-					ImGui::PushID(entity);
-
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-
-					// エンティティ名とツリー構造
-					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
-						ImGuiTreeNodeFlags_SpanAvailWidth |
-						ImGuiTreeNodeFlags_AllowOverlap |
-						ImGuiTreeNodeFlags_DefaultOpen;
-
-					if (entity->GetChildren().empty()) {
-						flags |= ImGuiTreeNodeFlags_Leaf;
-					}
-					if (entity == mSelectedEntity) {
-						flags |= ImGuiTreeNodeFlags_Selected;
-					}
-
-					ImGui::AlignTextToFramePadding();
-					bool nodeOpen = ImGui::TreeNodeEx(
-						(StrUtil::ConvertToUtf8(kIconEntity) +
-							" " +
-							entity->GetName())
-						.c_str(),
-						flags
-					);
-
-					// 左クリックで選択
-					if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-						mSelectedEntity = entity;
-					}
-
-					// 右クリックでコンテキストメニュー
-					if (ImGui::BeginPopupContextItem("EntityContextMenu")) {
-						if (entity != mCameraEntity.get()) {
-							// エディタカメラは削除不可
-							if (ImGui::MenuItem("Delete")) {
-								if (auto currentScene = mSceneManager->
-									GetCurrentScene()) {
-									// SceneクラスにRemoveEntityメソッドが実装されていると仮定
-									currentScene->RemoveEntity(entity);
-									if (mSelectedEntity == entity) {
-										mSelectedEntity = nullptr; // 選択を解除
-									}
-									ImGui::EndPopup(); // ポップアップを閉じる
-
-									// TreeNodeExが開かれていた場合、TreePopを呼び出してバランスを取る
-									if (nodeOpen) {
-										ImGui::TreePop();
-									}
-									ImGui::PopID();
-									// ImGui::PushID(entity) でプッシュしたIDをポップ
-									return; // 早期リターン
-								}
-							}
-						} else {
-							ImGui::TextDisabled("Cannot delete editor camera");
-						}
-						ImGui::EndPopup();
-					}
-
-
-					// Visible アイコン
-					ImGui::TableNextColumn();
-					bool visible = entity->IsVisible();
-
-					// アイコンのサイズを一時的に変更
-					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
-					                    ImVec2(0, 0));
-					// // アイコン間のスペースを調整
-					// float originalScale     = ImGui::GetFont()->Scale;
-					// ImGui::GetFont()->Scale = 1.2f; // スケールを1.2倍に
-					// ImGui::PushFont(ImGui::GetFont());
-
-					ImGui::PushStyleColor(
-						ImGuiCol_Text,
-						visible ?
-							ImGui::GetStyleColorVec4(ImGuiCol_Text) :
-							ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
-					);
-
-					// アイコンを中央に配置
-					float iconWidth = ImGui::CalcTextSize(
-						StrUtil::ConvertToUtf8(kIconVisibility).c_str()).x;
-					float columnWidth = ImGui::GetColumnWidth();
-					ImGui::SetCursorPosX(
-						ImGui::GetCursorPosX() + (columnWidth - iconWidth) *
-						0.5f);
-
-					if (ImGui::Selectable(
-						StrUtil::ConvertToUtf8(
-							visible ? kIconVisibility : kIconVisibilityOff
-						).c_str(), false,
-						ImGuiSelectableFlags_NoAutoClosePopups
-					)) {
-						entity->SetVisible(!visible);
-					}
-
-					// スタイルを元に戻す
-					ImGui::PopStyleColor();
-					ImGui::PopStyleVar();
-
-					// Active チェックボックス
-					ImGui::TableNextColumn();
-					bool active = entity->IsActive();
-					if (ImGui::Checkbox("##Active", &active)) {
-						entity->SetActive(active);
-					}
-
-					if (nodeOpen) {
-						// 子エンティティを処理する前に、現在のエンティティが削除されていないか確認
-						// (上記の削除処理でreturnしているため、基本的にはここは通らないはずだが念のため)
-						bool entityStillExists = false;
-						if (auto currentScene = mSceneManager->
-							GetCurrentScene()) {
-							for (const auto& e : currentScene->GetEntities()) {
-								if (e == entity) {
-									entityStillExists = true;
-									break;
-								}
-							}
-						}
-
-						if (entityStillExists) {
-							// GetChildren() が返すコンテナのコピーに対してループする方が安全な場合がある
-							// ここでは元の実装に従う
-							auto children = entity->GetChildren();
-							// コピーを取得する方が安全かもしれない
-							for (auto& child : children) {
-								// childが削除される可能性も考慮すると、さらに堅牢なイテレーションが必要
-								drawEntityNode(child);
-							}
-						}
-						ImGui::TreePop();
-					}
-					ImGui::PopID();
-				};
-
-			// ルートエンティティから開始
-			// シーンからエンティティリストを取得する際、削除操作中にイテレータが無効になることを避けるため、
-			// リストのコピーに対して操作を行うか、削除を遅延させるなどの対策が必要になる場合がある。
-			// ここではGetCurrentScene()->GetEntities()が安全なコピーまたは参照を返すと仮定する。
-			if (mScene) {
-				// scene_が有効か確認
-				auto entities = mScene->GetEntities();
-				// 削除操作があるため、コピーを取得することを検討
-				for (auto& entity : entities) {
-					if (entity && entity->GetParent() == nullptr) {
-						// entityがnullでないことも確認
-						drawEntityNode(entity);
-					}
-				}
-			}
-			ImGui::EndTable();
-		}
-	}
-	ImGui::End();
-#endif
-
 	// // タブの名前
 	// static const char* tabNames[] = {
 	// 	"Test",
@@ -995,12 +600,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		mGridSize * 32.0f
 	);
 
-	if (auto currentScene = mSceneManager->GetCurrentScene()) {
-		currentScene->Update(mGameTime->ScaledDeltaTime<float>());
-	}
-
 #ifdef _DEBUG
-	// ギズモの操作はエンティティの更新が終わった後に行う
+	// ギズモの操作はエンティティの更新前に行う
 	Vec2 vLT   = Unnamed::Engine::GetViewportLT();
 	Vec2 vSize = Unnamed::Engine::GetViewportSize();
 	ImGuizmo::SetRect(
@@ -1082,6 +683,405 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			);
 		}
 	}
+#endif
+
+	if (auto currentScene = mSceneManager->GetCurrentScene()) {
+		currentScene->Update(mGameTime->ScaledDeltaTime<float>());
+	}
+
+#ifdef _DEBUG
+	// カメラの操作
+	{
+		static float moveSpd = 4.0f;
+
+		static bool firstReset   = true; // 初回リセットフラグ
+		static bool cursorHidden = false;
+
+		static bool  bOpenPopup = false; // ポップアップ表示フラグ
+		static float popupTimer = 0.0f;
+
+		auto   lt           = Unnamed::Engine::GetViewportLT();
+		auto   size         = Unnamed::Engine::GetViewportSize();
+		ImVec2 viewportPos  = {lt.x, lt.y};
+		ImVec2 viewportSize = {size.x, size.y};
+		auto   mousePos     = ImGui::GetMousePos();
+
+		bool bIsInsideViewport =
+			mousePos.x >= viewportPos.x &&
+			mousePos.x <= viewportPos.x + viewportSize.x &&
+			mousePos.y >= viewportPos.y &&
+			mousePos.y <= viewportPos.y + viewportSize.y;
+
+		if (InputSystem::IsPressed("attack2") && bIsInsideViewport) {
+			if (!cursorHidden) {
+				ShowCursor(FALSE); // カーソルを非表示にする
+				cursorHidden = true;
+			}
+
+			Vec2 delta = InputSystem::GetMouseDelta();
+
+			if (!firstReset) {
+				// 回転
+				float sensitivity = ConVarManager::GetConVar("sensitivity")->
+					GetValueAsFloat();
+				float m_pitch = 0.022f;
+				float m_yaw   = 0.022f;
+				float min     = -89.0f;
+				float max     = 89.0f;
+
+				static Vec3 rot_ = mCameraEntity->GetTransform()->GetLocalRot().
+				                                  ToEulerAngles();
+
+				rot_.y += delta.y * sensitivity * m_pitch * Math::deg2Rad;
+				rot_.x += delta.x * sensitivity * m_yaw * Math::deg2Rad;
+
+				rot_.y = std::clamp(rot_.y, min * Math::deg2Rad,
+				                    max * Math::deg2Rad);
+
+				mCameraEntity->GetTransform()->SetWorldRot(
+					Quaternion::Euler(
+						Vec3::up * rot_.x + Vec3::right * rot_.y));
+
+				Vec3 moveInput = {0.0f, 0.0f, 0.0f};
+
+				if (InputSystem::IsPressed("forward")) {
+					moveInput.z += 1.0f;
+				}
+
+				if (InputSystem::IsPressed("back")) {
+					moveInput.z -= 1.0f;
+				}
+
+				if (InputSystem::IsPressed("moveright")) {
+					moveInput.x += 1.0f;
+				}
+
+				if (InputSystem::IsPressed("moveleft")) {
+					moveInput.x -= 1.0f;
+				}
+
+				if (InputSystem::IsPressed("moveup")) {
+					moveInput.y += 1.0f;
+				}
+
+				if (InputSystem::IsPressed("movedown")) {
+					moveInput.y -= 1.0f;
+				}
+
+				moveInput.Normalize();
+
+				Quaternion camRot = mCameraEntity->GetTransform()->
+				                                   GetWorldRot();
+				Vec3 cameraForward = camRot * Vec3::forward;
+				Vec3 cameraRight   = camRot * Vec3::right;
+				Vec3 cameraUp      = camRot * Vec3::up;
+
+				if (InputSystem::IsTriggered("invprev")) {
+					moveSpd *= 2.0f;
+					moveSpd = RoundToNearestPowerOfTwo(moveSpd);
+				}
+
+				if (InputSystem::IsTriggered("invnext")) {
+					moveSpd *= 0.5f;
+					moveSpd = RoundToNearestPowerOfTwo(moveSpd);
+				}
+
+				static float oldMoveSpd = 0.0f;
+				if (moveSpd != oldMoveSpd) {
+					bOpenPopup = true;
+					popupTimer = 0.0f;
+				}
+
+				moveSpd = std::clamp(moveSpd, 0.125f, 65535.0f);
+
+				oldMoveSpd = moveSpd;
+
+				mCameraEntity->GetTransform()->SetWorldPos(
+					mCameraEntity->GetTransform()->GetWorldPos() + (
+						cameraForward *
+						moveInput.z + cameraRight * moveInput.x + cameraUp *
+						moveInput.y) *
+					moveSpd * mGameTime->ScaledDeltaTime<float>()
+				);
+			}
+			// カーソルをウィンドウの中央にリセット
+			POINT centerCursorPos = {
+				static_cast<LONG>(OldWindowManager::GetMainWindow()->
+					GetClientWidth() /
+					2),
+				static_cast<LONG>(OldWindowManager::GetMainWindow()->
+					GetClientHeight()
+					/ 2)
+			};
+			ClientToScreen(OldWindowManager::GetMainWindow()->GetWindowHandle(),
+			               &centerCursorPos); // クライアント座標をスクリーン座標に変換
+			SetCursorPos(centerCursorPos.x, centerCursorPos.y);
+
+			firstReset = false; // 初回リセット完了
+		} else {
+			if (cursorHidden) {
+				ShowCursor(TRUE); // カーソルを表示する
+				cursorHidden = false;
+			}
+			firstReset = true; // マウスボタンが離されたら初回リセットフラグをリセット
+		}
+
+		float iconScale = 0.75f;
+		// 移動速度が変更されたらImGuiで現在の移動速度をポップアップで表示
+		if (bOpenPopup) {
+			auto windowSize = ImVec2(256.0f, 32.0f);
+
+			// ウィンドウの中央下部位置を計算
+			ImVec2 windowPos(
+				viewportPos.x + (viewportSize.x) * 0.5f,
+				viewportPos.y + (viewportSize.y) * iconScale
+			);
+
+			// ウィンドウの位置を調整
+			windowPos.x -= windowSize.x * 0.5f;
+			windowPos.y -= windowSize.y * 0.5f;
+
+			// ウィンドウの位置を設定
+			ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+			ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+
+			// ウィンドウを角丸に
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 16.0f);
+			// タイトルバーを非表示
+
+			ImGui::Begin(
+				"##move speed",
+				nullptr,
+				ImGuiWindowFlags_NoTitleBar |
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoSavedSettings |
+				ImGuiWindowFlags_NoBringToFrontOnFocus |
+				ImGuiWindowFlags_NoFocusOnAppearing |
+				ImGuiWindowFlags_NoScrollbar
+			);
+
+			ImGui::SetCursorPos(
+				ImVec2(
+					(windowSize.x - ImGui::CalcTextSize(
+						(StrUtil::ConvertToUtf8(0xe9e4) + std::format(
+							" {:.2f}", moveSpd)).c_str()).x) * 0.5f,
+					(windowSize.y - ImGui::GetFontSize()) * 0.5f
+				)
+			);
+			ImGui::Text((StrUtil::ConvertToUtf8(0xe9e4) + " %.2f").c_str(),
+			            moveSpd);
+
+			// 一定時間経過後にポップアップをフェードアウトして閉じる
+			// ゲーム内ではないのでScaledDeltaTimeではなくDeltaTimeを使用
+			popupTimer += deltaTime;
+			if (popupTimer >= 3.0f) {
+				ImGui::CloseCurrentPopup();
+				bOpenPopup = false;
+				popupTimer = 0.0f;
+			}
+
+			ImGui::End();
+			ImGui::PopStyleVar();
+		}
+	}
+
+	ImGui::ShowDemoWindow();
+
+	// アウトライナウィンドウの開始
+	if (ImGui::Begin("Outliner")) {
+		if (ImGui::Button("Add Entity")) {
+			mScene->AddEntity(
+				new Entity("New Entity"));
+		}
+
+		// テーブルの開始
+		if (ImGui::BeginTable(
+			"OutlinerTable", 3
+			//ImGuiTableFlags_NoBordersInBody |
+			//ImGuiTableFlags_SizingFixedFit 
+			// ImGuiTableFlags_RowBg |
+			// ImGuiTableFlags_BordersInnerH 
+		)) {
+			// カラムの設定
+			ImGui::TableSetupColumn(
+				"Name",
+				ImGuiTableColumnFlags_NoHide |
+				ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed,
+			                        30.0f);
+			ImGui::TableSetupColumn("Active", ImGuiTableColumnFlags_WidthFixed,
+			                        38.0f);
+
+			// 再帰的にエンティティを表示する関数
+			std::function<void(Entity*)>
+				drawEntityNode =
+					[&](Entity* entity) {
+					if (!entity) {
+						return;
+					}
+
+					if (entity->GetName().empty()) {
+						return;
+					}
+
+					ImGui::PushID(entity);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+
+					// エンティティ名とツリー構造
+					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
+						ImGuiTreeNodeFlags_SpanAvailWidth |
+						ImGuiTreeNodeFlags_AllowOverlap |
+						ImGuiTreeNodeFlags_DefaultOpen;
+
+					if (entity->GetChildren().empty()) {
+						flags |= ImGuiTreeNodeFlags_Leaf;
+					}
+					if (entity == mSelectedEntity) {
+						flags |= ImGuiTreeNodeFlags_Selected;
+					}
+
+					ImGui::AlignTextToFramePadding();
+					bool nodeOpen = ImGui::TreeNodeEx(
+						(StrUtil::ConvertToUtf8(kIconEntity) +
+							" " +
+							entity->GetName())
+						.c_str(),
+						flags
+					);
+
+					// 左クリックで選択
+					if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+						mSelectedEntity = entity;
+					}
+
+					// 右クリックでコンテキストメニュー
+					if (ImGui::BeginPopupContextItem("EntityContextMenu")) {
+						if (entity != mCameraEntity.get()) {
+							// エディタカメラは削除不可
+							if (ImGui::MenuItem("Delete")) {
+								if (auto currentScene = mSceneManager->
+									GetCurrentScene()) {
+									// SceneクラスにRemoveEntityメソッドが実装されていると仮定
+									currentScene->RemoveEntity(entity);
+									if (mSelectedEntity == entity) {
+										mSelectedEntity = nullptr; // 選択を解除
+									}
+									ImGui::EndPopup(); // ポップアップを閉じる
+
+									// TreeNodeExが開かれていた場合、TreePopを呼び出してバランスを取る
+									if (nodeOpen) {
+										ImGui::TreePop();
+									}
+									ImGui::PopID();
+									// ImGui::PushID(entity) でプッシュしたIDをポップ
+									return; // 早期リターン
+								}
+							}
+						} else {
+							ImGui::TextDisabled("Cannot delete editor camera");
+						}
+						ImGui::EndPopup();
+					}
+
+
+					// Visible アイコン
+					ImGui::TableNextColumn();
+					bool visible = entity->IsVisible();
+
+					// アイコンのサイズを一時的に変更
+					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+					                    ImVec2(0, 0));
+					// // アイコン間のスペースを調整
+					// float originalScale     = ImGui::GetFont()->Scale;
+					// ImGui::GetFont()->Scale = 1.2f; // スケールを1.2倍に
+					// ImGui::PushFont(ImGui::GetFont());
+
+					ImGui::PushStyleColor(
+						ImGuiCol_Text,
+						visible ?
+							ImGui::GetStyleColorVec4(ImGuiCol_Text) :
+							ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
+					);
+
+					// アイコンを中央に配置
+					float iconWidth = ImGui::CalcTextSize(
+						StrUtil::ConvertToUtf8(kIconVisibility).c_str()).x;
+					float columnWidth = ImGui::GetColumnWidth();
+					ImGui::SetCursorPosX(
+						ImGui::GetCursorPosX() + (columnWidth - iconWidth) *
+						0.5f);
+
+					if (ImGui::Selectable(
+						StrUtil::ConvertToUtf8(
+							visible ? kIconVisibility : kIconVisibilityOff
+						).c_str(), false,
+						ImGuiSelectableFlags_NoAutoClosePopups
+					)) {
+						entity->SetVisible(!visible);
+					}
+
+					// スタイルを元に戻す
+					ImGui::PopStyleColor();
+					ImGui::PopStyleVar();
+
+					// Active チェックボックス
+					ImGui::TableNextColumn();
+					bool active = entity->IsActive();
+					if (ImGui::Checkbox("##Active", &active)) {
+						entity->SetActive(active);
+					}
+
+					if (nodeOpen) {
+						// 子エンティティを処理する前に、現在のエンティティが削除されていないか確認
+						// (上記の削除処理でreturnしているため、基本的にはここは通らないはずだが念のため)
+						bool entityStillExists = false;
+						if (auto currentScene = mSceneManager->
+							GetCurrentScene()) {
+							for (const auto& e : currentScene->GetEntities()) {
+								if (e == entity) {
+									entityStillExists = true;
+									break;
+								}
+							}
+						}
+
+						if (entityStillExists) {
+							// GetChildren() が返すコンテナのコピーに対してループする方が安全な場合がある
+							// ここでは元の実装に従う
+							auto children = entity->GetChildren();
+							// コピーを取得する方が安全かもしれない
+							for (auto& child : children) {
+								// childが削除される可能性も考慮すると、さらに堅牢なイテレーションが必要
+								drawEntityNode(child);
+							}
+						}
+						ImGui::TreePop();
+					}
+					ImGui::PopID();
+				};
+
+			// ルートエンティティから開始
+			// シーンからエンティティリストを取得する際、削除操作中にイテレータが無効になることを避けるため、
+			// リストのコピーに対して操作を行うか、削除を遅延させるなどの対策が必要になる場合がある。
+			// ここではGetCurrentScene()->GetEntities()が安全なコピーまたは参照を返すと仮定する。
+			if (mScene) {
+				// scene_が有効か確認
+				auto entities = mScene->GetEntities();
+				// 削除操作があるため、コピーを取得することを検討
+				for (auto& entity : entities) {
+					if (entity && entity->GetParent() == nullptr) {
+						// entityがnullでないことも確認
+						drawEntityNode(entity);
+					}
+				}
+			}
+			ImGui::EndTable();
+		}
+	}
+	ImGui::End();
 #endif
 }
 
