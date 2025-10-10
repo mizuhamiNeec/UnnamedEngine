@@ -55,6 +55,7 @@ namespace {
 	constexpr float kBlurScale                 = 0.01f;
 	constexpr float kBlastRadiusHu             = 512.0f;
 	constexpr float kBlastPowerHu              = 1024.0f;
+	constexpr float kPlayerCameraForwardOffset = 0.25f;
 
 	template <typename T>
 	std::shared_ptr<T> AdoptComponent(T* raw) {
@@ -326,11 +327,11 @@ void GameScene::InitializeCameraRoot() {
 
 void GameScene::InitializeShakeRoot() {
 	mEntShakeRoot = std::make_unique<Entity>("shakeRoot");
-	
+
 	// CameraAnimatorコンポーネントを追加
-	auto* animator = mEntShakeRoot->AddComponent<CameraAnimator>();
+	auto* animator  = mEntShakeRoot->AddComponent<CameraAnimator>();
 	mCameraAnimator = AdoptComponent(animator);
-	
+
 	if (mCameraAnimator && mMovementComponent && mCameraRotator) {
 		mCameraAnimator->Init(mMovementComponent.get(), mCameraRotator);
 	}
@@ -360,13 +361,13 @@ void GameScene::InitializeSkeletalMesh() {
 void GameScene::ConfigureEntityHierarchy() {
 	// 階層構造: CameraRoot -> ShakeRoot -> Camera -> Weapon
 	// ShakeRootがカメラの親になることで、シェイクがカメラに伝わる
-	
+
 	if (mEntShakeRoot && mEntCameraRoot) {
 		mEntShakeRoot->SetParent(mEntCameraRoot.get());
 		mEntShakeRoot->GetTransform()->SetLocalPos(Vec3::zero);
 		AddEntity(mEntShakeRoot.get()); // ShakeRootをシーンに追加
 	}
-	
+
 	if (mCamera && mEntShakeRoot) {
 		mCamera->SetParent(mEntShakeRoot.get());
 		mCamera->GetTransform()->SetLocalPos(Vec3::zero);
