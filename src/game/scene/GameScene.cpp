@@ -1,28 +1,67 @@
 #include "GameScene.h"
 
+#include <array>
 #include <format>
+#include <limits>
+#include <string>
 
 #include <engine/Engine.h>
 #include <engine/Camera/CameraManager.h>
+#include <engine/Components/Camera/CameraComponent.h>
 #include <engine/Components/ColliderComponent/MeshColliderComponent.h>
 #include <engine/Debug/Debug.h>
 #include <engine/Debug/DebugHud.h>
 #include <engine/ImGui/ImGuiUtil.h>
 #include <engine/Input/InputSystem.h>
 #include <engine/OldConsole/ConVarManager.h>
+#include <engine/subsystem/console/Log.h>
 #include <engine/TextureManager/TexManager.h>
 
-#include "core/guidgenerator/GUIDGenerator.h"
-#include "core/json/JsonWriter.h"
+#include <game/components/CameraRotator.h>
 
-#include "engine/gameframework/component/Transform/TransformComponent.h"
-#include "engine/gameframework/entity/UEntity/UEntity.h"
-#include "engine/subsystem/console/Log.h"
+namespace {
+	constexpr char kDevMeasureTexturePath[] =
+		"./content/core/textures/dev_measure.png";
+	constexpr char kUvCheckerTexturePath[] =
+		"./content/core/textures/uvChecker.png";
+	constexpr char kWaveTexturePath[] =
+		"./content/core/textures/wave.dds";
+	constexpr char kSmokeTexturePath[] =
+		"./content/core/textures/smoke.png";
+	constexpr char kWindParticleTexturePath[] =
+		"./content/core/textures/circle.png";
+	constexpr char kWeaponMeshPath[]   = "./content/core/models/weapon.obj";
+	constexpr char kWeaponScriptPath[] =
+		"./content/parkour/scripts/weapon_handgun.json";
+	constexpr char kSkeletalMeshPath[] =
+		"./content/parkour/models/man/man.gltf";
+	constexpr char kWorldMeshInitialPath[] =
+		"./content/core/models/reflectionTest.obj";
+	constexpr char kWorldMeshReloadPath[] =
+		"./content/core/models/reflectionTest.obj";
+	constexpr char kAirAccelerateCommand[] =
+		"sv_airaccelerate 100000000000000000";
+	constexpr char  kMeshReloadBindCommand[] = "bind f5 +f5";
+	const Vec3      kShakeRootOffset(0.08f, -0.1f, 0.18f);
+	constexpr float kCameraRootHeight  = 1.7f;
+	constexpr float kPlayerSpawnHeight = 4.0f;
+	const Vec3      kTeleportTriggerCenter(19.5072f, -29.2608f, 260.096f);
+	const Vec3      kTeleportTriggerExtent(Vec3::one * 13.0048f);
+	constexpr float kTeleportReenableBuffer    = 1.0f;
+	constexpr float kExplosionNormalOffset     = 2.0f;
+	constexpr int   kExplosionParticleCount    = 32;
+	constexpr float kExplosionParticleLifetime = 30.0f;
+	constexpr float kBlastMinSafeDistance      = 0.5f;
+	constexpr float kBlurScale                 = 0.01f;
+	constexpr float kBlastRadiusHu             = 512.0f;
+	constexpr float kBlastPowerHu              = 1024.0f;
+	constexpr float kPlayerCameraForwardOffset = 0.25f;
 
-#include "game/components/CameraRotator.h"
-
-namespace Unnamed {
-	class UEntity;
+	template <typename T>
+	std::shared_ptr<T> AdoptComponent(T* raw) {
+		return std::shared_ptr<T>(raw, [](T*) {
+		});
+	}
 }
 
 GameScene::~GameScene() {
@@ -40,314 +79,362 @@ void GameScene::Init() {
 	mResourceManager = Unnamed::Engine::GetResourceManager();
 	mSrvManager      = Unnamed::Engine::GetSrvManager();
 
-#pragma region テクスチャ読み込み
-	TexManager::GetInstance()->LoadTexture(
-		"./resources/textures/dev_measure.png"
-	);
+	LoadCoreTextures();
+	InitializeCubeMap();
+	InitializeParticles();
+	InitializePhysics();
+	InitializeCamera();
+	InitializePlayer();
+	InitializeWeapon();
+	InitializeWorldMesh();
+	InitializeCameraRoot();
+	InitializeShakeRoot();
+	InitializeSkeletalMesh();
+	ConfigureEntityHierarchy();
+	InitializeEffects();
+	ConfigureConsole();
+	InitializeTeleportTrigger();
+}
 
-	TexManager::GetInstance()->LoadTexture(
-		"./resources/textures/uvChecker.png"
-	);
+void GameScene::Update(const float deltaTime) {
+	HandleMeshReload();
+	SyncCameraRoot();
+	HandleWeaponInput();
 
-	TexManager::GetInstance()->LoadTexture(
-		"./resources/textures/wave.dds", true
-	);
+	const auto camera = CameraManager::GetActiveCamera();
+	HandleWeaponFire(camera);
+	UpdateSkeletalAnimation();
+	UpdatePostProcessing(deltaTime);
+	UpdateTeleport();
+	UpdateParticlesAndEffects(deltaTime);
+	UpdateEntities(deltaTime);
 
-	TexManager::GetInstance()->LoadTexture(
-		"./resources/textures/smoke.png"
-	);
+#ifdef _DEBUG
+	DrawDebugHud(camera);
+#endif
+}
 
-#pragma endregion
+void GameScene::Render() {
+	if (!mRenderer) {
+		return;
+	}
 
-#pragma region スプライト類
-#pragma endregion
+	auto* commandList = mRenderer->GetCommandList();
 
-#pragma region 3Dオブジェクト類
-	mResourceManager->GetMeshManager()->LoadMeshFromFile(
-		"./resources/models/reflectionTest.obj");
+	if (mClearConVar && mClearConVar->GetValueAsBool() && mCubeMap) {
+		mCubeMap->Render(commandList);
+	}
 
-	mResourceManager->GetMeshManager()->LoadMeshFromFile(
-		"./resources/models/weapon.obj");
-
-	mCubeMap = std::make_unique<CubeMap>(
-		mRenderer->GetDevice(),
-		mSrvManager,
-		"./resources/textures/wave.dds"
-	);
-
-	mResourceManager->GetMeshManager()->LoadSkeletalMeshFromFile(
-		"./resources/models/man/man.gltf"
-	);
-#pragma endregion
-
-#pragma region パーティクル類
-	// パーティクルグループの作成
-	Unnamed::Engine::GetParticleManager()->CreateParticleGroup(
-		"wind", "./resources/textures/circle.png");
-
-	mParticleEmitter = std::make_unique<ParticleEmitter>();
-	mParticleEmitter->Init(Unnamed::Engine::GetParticleManager(), "wind");
-
-	mParticleObject = std::make_unique<ParticleObject>();
-	mParticleObject->Init(Unnamed::Engine::GetParticleManager(),
-	                      "./resources/textures/circle.png");
-
-#pragma endregion
-
-#pragma region 物理エンジン
-	// mPhysicsEngine = std::make_unique<PhysicsEngine>();
-	// mPhysicsEngine->Init();
-	mUPhysicsEngine = std::make_unique<UPhysics::Engine>();
-	mUPhysicsEngine->Init();
-#pragma endregion
-
-#pragma region エンティティ
-	mCamera = std::make_unique<Entity>("camera");
-	AddEntity(mCamera.get());
-	// 生ポインタを取得
-	CameraComponent* rawCameraPtr = mCamera->AddComponent<CameraComponent>();
-	// 生ポインタを std::shared_ptr に変換
-	const auto camera = std::shared_ptr<CameraComponent>(
-		rawCameraPtr, [](CameraComponent*) {
+	for (auto entity : mEntities) {
+		if (entity) {
+			entity->Render(commandList);
 		}
-	);
+	}
 
-	// カメラを CameraManager に追加
-	CameraManager::AddCamera(camera);
-	// アクティブカメラに設定
-	CameraManager::SetActiveCamera(camera);
+	if (auto* particleManager = Unnamed::Engine::GetParticleManager()) {
+		particleManager->Render();
+	}
 
-	// プレイヤー
-	mEntPlayer = std::make_unique<Entity>("player");
-	mEntPlayer->GetTransform()->SetLocalPos(Vec3::up * 4.0f); // 1m上に配置
-	GameMovementComponent* rawPlayerMovement = mEntPlayer->AddComponent<
-		GameMovementComponent>();
-	mGameMovementComponent = std::shared_ptr<GameMovementComponent>(
-		rawPlayerMovement, [](GameMovementComponent*) {
+	if (mParticleObject) {
+		mParticleObject->Draw();
+	}
+
+	if (mWindEffect) {
+		mWindEffect->Draw();
+	}
+
+	if (mExplosionEffect) {
+		mExplosionEffect->Draw();
+	}
+}
+
+void GameScene::LoadCoreTextures() const {
+	auto* texManager = TexManager::GetInstance();
+	if (!texManager) {
+		return;
+	}
+
+	struct TextureRequest {
+		const char* path    = nullptr;
+		bool        useSrgb = false;
+	};
+
+	const std::array<TextureRequest, 4> requests{
+		{
+			{kDevMeasureTexturePath, false},
+			{kUvCheckerTexturePath, false},
+			{kWaveTexturePath, true},
+			{kSmokeTexturePath, false},
 		}
-	);
-	//mPlayerMovementUPhysics->SetVelocity(Vec3::forward * 1.0f);
-	//mPlayerMovementUPhysics->AddCameraShakeEntity(mCamera.get());
-	mGameMovementComponent->SetUPhysicsEngine(mUPhysicsEngine.get());
-	BoxColliderComponent* rawPlayerCollider = mEntPlayer->AddComponent<
-		BoxColliderComponent>();
-	mPlayerCollider = std::shared_ptr<BoxColliderComponent>(
-		rawPlayerCollider, [](BoxColliderComponent*) {
+	};
+
+	for (const auto& request : requests) {
+		if (!request.path) {
+			continue;
 		}
-	);
-	mPlayerCollider->SetSize(Math::HtoM(Vec3(33.0f, 73.0f, 33.0f)));
-	mPlayerCollider->SetOffset(Math::HtoM(Vec3::up * 73.0f * 0.5f));
-	AddEntity(mEntPlayer.get());
 
-	mEntWeapon                         = std::make_unique<Entity>("weapon");
-	StaticMeshRenderer* weaponRenderer = mEntWeapon->AddComponent<
-		StaticMeshRenderer>();
-	mWeaponMeshRenderer = std::shared_ptr<StaticMeshRenderer>(
-		weaponRenderer, [](StaticMeshRenderer*) {
-		}
-	);
-	WeaponComponent* rawWeaponComponent = mEntWeapon->AddComponent<
-		WeaponComponent>("./resources/weapons/rifle.json");
-	mWeaponComponent = std::shared_ptr<WeaponComponent>(
-		rawWeaponComponent, [](WeaponComponent*) {
-		}
-	);
-
-	mEntWeapon->AddComponent<BoxColliderComponent>();
-
-	mWeaponMeshRenderer->SetStaticMesh(
-		mResourceManager->GetMeshManager()->GetStaticMesh(
-			"./resources/models/weapon.obj"));
-	WeaponSway* rawWeaponSway = mEntWeapon->AddComponent<WeaponSway>();
-	mWeaponSway               = std::shared_ptr<WeaponSway>(
-		rawWeaponSway, [](WeaponSway*) {
-		}
-	);
-	AddEntity(mEntWeapon.get());
-
-	mEntShakeRoot = std::make_unique<Entity>("shakeRoot");
-	//mPlayerMovementUPhysics->AddCameraShakeEntity(mEntShakeRoot.get(), 3.0f);
-
-	// テスト用メッシュ
-	mEntWorldMesh                  = std::make_unique<Entity>("testMesh");
-	StaticMeshRenderer* smRenderer = mEntWorldMesh->AddComponent<
-		StaticMeshRenderer>();
-	mWorldMeshRenderer = std::shared_ptr<StaticMeshRenderer>(
-		smRenderer, [](StaticMeshRenderer*) {
-		}
-	);
-	smRenderer->SetStaticMesh(
-		mResourceManager->GetMeshManager()->GetStaticMesh(
-			"./resources/models/reflectionTest.obj"));
-	mEntWorldMesh->AddComponent<MeshColliderComponent>();
-	AddEntity(mEntWorldMesh.get());
-
-	// カメラの親エンティティ
-	mEntCameraRoot = std::make_unique<Entity>("cameraRoot");
-	//cameraRoot_->SetParent(entPlayer_.get());
-	mEntCameraRoot->GetTransform()->SetLocalPos(Vec3::up * 1.7f);
-	mCameraRotator = mEntCameraRoot->AddComponent<CameraRotator>();
-	AddEntity(mEntCameraRoot.get());
-
-	// cameraRootにアタッチ
-	mCamera->SetParent(mEntCameraRoot.get());
-	mCamera->GetTransform()->SetLocalPos(Vec3::zero); // FPS
-
-	mEntShakeRoot->SetParent(mCamera.get());
-
-	mEntWeapon->SetParent(mEntShakeRoot.get());
-	mEntShakeRoot->GetTransform()->SetLocalPos(Vec3(0.08f, -0.1f, 0.18f));
-	mEntWeapon->GetTransform()->SetLocalPos(Vec3::zero);
-
-
-	mEntSkeletalMesh = std::make_unique<Entity>("SkeletalMeshEntity");
-	auto sklMesh = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
-	mSkeletalMeshRenderer = std::shared_ptr<SkeletalMeshRenderer>(
-		sklMesh, [](SkeletalMeshRenderer*) {
-		}
-	);
-
-	auto skeletalMesh = mResourceManager->GetMeshManager()->GetSkeletalMesh(
-		"./resources/models/man/man.gltf"
-	);
-	sklMesh->SetSkeletalMesh(skeletalMesh);
-
-	AddEntity(mEntSkeletalMesh.get());
-
-	mEntSkeletalMesh->SetParent(mEntCameraRoot.get());
-	mEntSkeletalMesh->GetTransform()->SetLocalPos(
-		mEntSkeletalMesh->GetTransform()->GetLocalPos() + Vec3::up * -0.2f);
-	mEntSkeletalMesh->GetTransform()->SetLocalRot(
-		Quaternion::EulerDegrees(0.0f, 180.0f, 0.0f));
-
-#pragma endregion
-
-	// 風
-	mWindEffect = std::make_unique<WindEffect>();
-	mWindEffect->Init(Unnamed::Engine::GetParticleManager(),
-	                  mGameMovementComponent.get());
-
-	// 爆発
-	mExplosionEffect = std::make_unique<ExplosionEffect>();
-	mExplosionEffect->Init(Unnamed::Engine::GetParticleManager(),
-	                       "./resources/textures/smoke.png");
-	mExplosionEffect->SetColorGradient(
-		Vec4(0.78f, 0.29f, 0.05f, 1.0f), Vec4(0.04f, 0.04f, 0.05f, 1.0f));
-
-#pragma region コンソール変数/コマンド
-#pragma endregion
-
-#pragma region メッシュレンダラー
-#pragma endregion
-
-	CameraManager::SetActiveCamera(camera);
-
-	//	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
-	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
-
-	// // 物理エンジンにプレイヤーエンティティを登録
-	// mPhysicsEngine->RegisterEntity(mEntPlayer.get());
-	//
-	// mPhysicsEngine->RegisterEntity(mEntWeapon.get());
-
-	Console::SubmitCommand(
-		"sv_airaccelerate 100000000000000000"
-	);
-
-	// F5キーをバインド
-	Console::SubmitCommand("bind f5 +f5", true);
-
-	// テレポートトリガー領域の設定
-	Vec3 triggerCenter(19.5072f, -29.2608f, 260.096f); // トリガーの中心位置
-	Vec3 triggerSize(Vec3::one * 13.0048f * 2.0f);     // トリガーのサイズ
-	mTeleportTriggerMin = triggerCenter - triggerSize * 0.5f;
-	mTeleportTriggerMax = triggerCenter + triggerSize * 0.5f;
-
-	{
-		auto testEntity = std::make_unique<
-			Unnamed::UEntity>("TestEntity");
-
-		auto testRootEntity = std::make_unique<
-			Unnamed::UEntity>("TestRootEntity");
-
-		auto transform = testEntity->AddComponent<
-			Unnamed::TransformComponent>();
-
-		auto testRootTransform = testRootEntity->AddComponent<
-			Unnamed::TransformComponent>();
-
-		transform->SetParent(testRootTransform);
-
-		testRootTransform->SetPosition(Vec3(114.0f, 514.0f, 1919.0f));
-		testRootTransform->SetRotation(
-			Quaternion::EulerDegrees(0.0f, 45.0f, 0.0f)
-		);
-		testRootTransform->SetScale(Vec3(1.0f, 1.0f, 1.0f));
-
-		transform->SetPosition(Vec3(123.0f, -456.0f, 789.0f));
-		transform->SetRotation(Quaternion::EulerDegrees(0.0f, 90.0f, 0.0f));
-		transform->SetScale(Vec3(1.0f, 2.0f, 3.0f));
-
-		Msg(
-			testEntity->GetName(),
-			"TransformComponent のデータ: \n {} {} {},\n {} {} {},\n {} {} {}",
-			transform->Position().x,
-			transform->Position().y,
-			transform->Position().z,
-			transform->Rotation().ToEulerAngles().x,
-			transform->Rotation().ToEulerAngles().y,
-			transform->Rotation().ToEulerAngles().z,
-			transform->Scale().x,
-			transform->Scale().y,
-			transform->Scale().z
-		);
-
-		JsonWriter writer("test");
-
-		writer.BeginObject();
-		transform->Serialize(writer);
-		writer.EndObject();
-
-		Msg(
-			"JsonWriter",
-			"TransformComponent のシリアライズ結果: \n{}",
-			writer.ToString()
-		);
-
-		auto guidGenerator = std::make_unique<
-			GuidGenerator>(GuidGenerator::MODE::RANDOM64);
-		for (int i = 0; i < 128; ++i) {
-			Msg(
-				"GuidGenerator",
-				"Generated GUID: {}",
-				guidGenerator->Alloc()
-			);
+		if (request.useSrgb) {
+			texManager->LoadTexture(request.path, true);
+		} else {
+			texManager->LoadTexture(request.path);
 		}
 	}
 }
 
-void GameScene::Update(const float deltaTime) {
-	// F5キーでメッシュリロードをリクエスト
-	if (InputSystem::IsTriggered("+f5")) {
-		mPendingMeshReload = true;
-		Console::Print("Mesh reload requested...", kConTextColorCompleted);
+void GameScene::InitializeCubeMap() {
+	if (!mRenderer || !mSrvManager) {
+		return;
 	}
 
-	if (mPendingMeshReload) {
-		static bool reloadNextFrame = false;
-		if (reloadNextFrame) {
-			ReloadWorldMesh();
-			mPendingMeshReload = false;
-			reloadNextFrame    = false;
-		} else {
-			reloadNextFrame = true;
+	mCubeMap = std::make_unique<CubeMap>(
+		mRenderer->GetDevice(),
+		mSrvManager,
+		kWaveTexturePath
+	);
+}
+
+void GameScene::InitializeParticles() {
+	auto* particleManager = Unnamed::Engine::GetParticleManager();
+	if (!particleManager) {
+		return;
+	}
+
+	particleManager->CreateParticleGroup("wind", kWindParticleTexturePath);
+
+	mParticleEmitter = std::make_unique<ParticleEmitter>();
+	mParticleEmitter->Init(particleManager, "wind");
+
+	mParticleObject = std::make_unique<ParticleObject>();
+	mParticleObject->Init(particleManager, kWindParticleTexturePath);
+}
+
+void GameScene::InitializeEffects() {
+	auto* particleManager = Unnamed::Engine::GetParticleManager();
+	if (!particleManager) {
+		return;
+	}
+
+	if (mMovementComponent) {
+		mWindEffect = std::make_unique<WindEffect>();
+		mWindEffect->Init(particleManager, mMovementComponent.get());
+	}
+
+	mExplosionEffect = std::make_unique<ExplosionEffect>();
+	mExplosionEffect->Init(particleManager, kSmokeTexturePath);
+	mExplosionEffect->SetColorGradient(
+		Vec4(0.78f, 0.29f, 0.05f, 1.0f),
+		Vec4(0.04f, 0.04f, 0.05f, 1.0f)
+	);
+}
+
+void GameScene::InitializePhysics() {
+	mUPhysicsEngine = std::make_unique<UPhysics::Engine>();
+	mUPhysicsEngine->Init();
+}
+
+void GameScene::InitializeCamera() {
+	mCamera = std::make_unique<Entity>("camera");
+	AddEntity(mCamera.get());
+
+	auto* rawCamera = mCamera->AddComponent<CameraComponent>();
+	if (!rawCamera) {
+		return;
+	}
+
+	const auto camera = AdoptComponent(rawCamera);
+	CameraManager::AddCamera(camera);
+	CameraManager::SetActiveCamera(camera);
+}
+
+void GameScene::InitializePlayer() {
+	mEntPlayer = std::make_unique<Entity>("player");
+	mEntPlayer->GetTransform()->SetLocalPos(Vec3::up * kPlayerSpawnHeight);
+
+	auto* movement     = mEntPlayer->AddComponent<Movement>();
+	mMovementComponent = AdoptComponent(movement);
+
+	const auto moveData = MovementData(
+		32.0f, 72.0f
+	);
+
+	if (mMovementComponent && mUPhysicsEngine) {
+		mMovementComponent->Init(mUPhysicsEngine.get(), moveData);
+	}
+
+	AddEntity(mEntPlayer.get());
+}
+
+void GameScene::InitializeWeapon() {
+	auto* meshManager = mResourceManager ?
+		                    mResourceManager->GetMeshManager() :
+		                    nullptr;
+	if (meshManager) {
+		meshManager->LoadMeshFromFile(kWeaponMeshPath);
+	}
+
+	mEntWeapon          = std::make_unique<Entity>("weapon");
+	auto* renderer      = mEntWeapon->AddComponent<StaticMeshRenderer>();
+	mWeaponMeshRenderer = AdoptComponent(renderer);
+	if (mWeaponMeshRenderer && meshManager) {
+		if (auto* mesh = meshManager->GetStaticMesh(kWeaponMeshPath)) {
+			mWeaponMeshRenderer->SetStaticMesh(mesh);
 		}
 	}
 
+	auto* weaponComponent = mEntWeapon->AddComponent<WeaponComponent>(
+		kWeaponScriptPath);
+	mWeaponComponent = AdoptComponent(weaponComponent);
+
+	mEntWeapon->AddComponent<BoxColliderComponent>();
+
+	auto* weaponSway = mEntWeapon->AddComponent<WeaponSway>();
+	mWeaponSway      = AdoptComponent(weaponSway);
+
+	AddEntity(mEntWeapon.get());
+}
+
+void GameScene::InitializeWorldMesh() {
+	auto* meshManager = mResourceManager ?
+		                    mResourceManager->GetMeshManager() :
+		                    nullptr;
+	if (meshManager) {
+		meshManager->LoadMeshFromFile(kWorldMeshInitialPath);
+	}
+
+	mEntWorldMesh      = std::make_unique<Entity>("worldMesh");
+	auto* renderer     = mEntWorldMesh->AddComponent<StaticMeshRenderer>();
+	mWorldMeshRenderer = AdoptComponent(renderer);
+	if (mWorldMeshRenderer && meshManager) {
+		if (auto* mesh = meshManager->GetStaticMesh(kWorldMeshInitialPath)) {
+			mWorldMeshRenderer->SetStaticMesh(mesh);
+		}
+	}
+
+	mEntWorldMesh->AddComponent<MeshColliderComponent>();
+	AddEntity(mEntWorldMesh.get());
+
+	if (mUPhysicsEngine) {
+		mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
+	}
+}
+
+void GameScene::InitializeCameraRoot() {
+	mEntCameraRoot = std::make_unique<Entity>("cameraRoot");
+	mEntCameraRoot->GetTransform()->SetLocalPos(Vec3::up * kCameraRootHeight);
+	mCameraRotator = mEntCameraRoot->AddComponent<CameraRotator>();
+	AddEntity(mEntCameraRoot.get());
+}
+
+void GameScene::InitializeShakeRoot() {
+	mEntShakeRoot = std::make_unique<Entity>("shakeRoot");
+
+	// CameraAnimatorコンポーネントを追加
+	auto* animator  = mEntShakeRoot->AddComponent<CameraAnimator>();
+	mCameraAnimator = AdoptComponent(animator);
+
+	if (mCameraAnimator && mMovementComponent && mCameraRotator) {
+		mCameraAnimator->Init(mMovementComponent.get(), mCameraRotator);
+	}
+}
+
+void GameScene::InitializeSkeletalMesh() {
+	auto* meshManager = mResourceManager ?
+		                    mResourceManager->GetMeshManager() :
+		                    nullptr;
+	if (meshManager) {
+		meshManager->LoadSkeletalMeshFromFile(kSkeletalMeshPath);
+	}
+
+	mEntSkeletalMesh = std::make_unique<Entity>("SkeletalMeshEntity");
+	auto* renderer = mEntSkeletalMesh->AddComponent<SkeletalMeshRenderer>();
+	mSkeletalMeshRenderer = AdoptComponent(renderer);
+
+	if (mSkeletalMeshRenderer && meshManager) {
+		if (auto* mesh = meshManager->GetSkeletalMesh(kSkeletalMeshPath)) {
+			mSkeletalMeshRenderer->SetSkeletalMesh(mesh);
+		}
+	}
+
+	AddEntity(mEntSkeletalMesh.get());
+}
+
+void GameScene::ConfigureEntityHierarchy() {
+	// 階層構造: CameraRoot -> ShakeRoot -> Camera -> Weapon
+	// ShakeRootがカメラの親になることで、シェイクがカメラに伝わる
+
+	if (mEntShakeRoot && mEntCameraRoot) {
+		mEntShakeRoot->SetParent(mEntCameraRoot.get());
+		mEntShakeRoot->GetTransform()->SetLocalPos(Vec3::zero);
+		AddEntity(mEntShakeRoot.get()); // ShakeRootをシーンに追加
+	}
+
+	if (mCamera && mEntShakeRoot) {
+		mCamera->SetParent(mEntShakeRoot.get());
+		mCamera->GetTransform()->SetLocalPos(Vec3::zero);
+	}
+
+	if (mEntWeapon && mCamera) {
+		mEntWeapon->SetParent(mCamera.get());
+		mEntWeapon->GetTransform()->SetLocalPos(kShakeRootOffset);
+	}
+
+	if (mEntSkeletalMesh && mEntCameraRoot) {
+		auto* transform = mEntSkeletalMesh->GetTransform();
+		transform->SetLocalPos(transform->GetLocalPos() + Vec3::up * -0.2f);
+		transform->SetLocalRot(Quaternion::EulerDegrees(0.0f, 180.0f, 0.0f));
+		mEntSkeletalMesh->SetParent(mEntCameraRoot.get());
+	}
+}
+
+void GameScene::ConfigureConsole() {
+	Console::SubmitCommand(kAirAccelerateCommand);
+	Console::SubmitCommand(kMeshReloadBindCommand, true);
+
+	mShowPosConVar = ConVarManager::GetConVar("cl_showpos");
+	mNameConVar    = ConVarManager::GetConVar("name");
+	mClearConVar   = ConVarManager::GetConVar("r_clear");
+}
+
+void GameScene::InitializeTeleportTrigger() {
+	const Vec3 triggerSize = kTeleportTriggerExtent * 2.0f;
+	mTeleportTriggerMin    = kTeleportTriggerCenter - triggerSize * 0.5f;
+	mTeleportTriggerMax    = kTeleportTriggerCenter + triggerSize * 0.5f;
+	mTeleportActive        = true;
+}
+
+void GameScene::HandleMeshReload() {
+	if (InputSystem::IsTriggered("+f5")) {
+		mPendingMeshReload = true;
+		mMeshReloadArmed   = false;
+		Console::Print("Mesh reload requested...", kConTextColorCompleted);
+	}
+
+	if (!mPendingMeshReload) {
+		return;
+	}
+
+	if (mMeshReloadArmed) {
+		ReloadWorldMesh();
+		mPendingMeshReload = false;
+		mMeshReloadArmed   = false;
+	} else {
+		mMeshReloadArmed = true;
+	}
+}
+
+void GameScene::SyncCameraRoot() const {
+	if (!mEntCameraRoot || !mMovementComponent) {
+		return;
+	}
+
 	mEntCameraRoot->GetTransform()->SetWorldPos(
-		mGameMovementComponent->GetHeadPos());
-	// cameraRoot_->Update(EngineTimer::GetScaledDeltaTime());
-	// camera_->Update(EngineTimer::GetScaledDeltaTime());
+		mMovementComponent->GetHeadPos());
+}
+
+void GameScene::HandleWeaponInput() {
+	if (!mWeaponComponent) {
+		return;
+	}
 
 	if (InputSystem::IsPressed("+attack1")) {
 		mWeaponComponent->PullTrigger();
@@ -355,160 +442,108 @@ void GameScene::Update(const float deltaTime) {
 	if (InputSystem::IsReleased("+attack1")) {
 		mWeaponComponent->ReleaseTrigger();
 	}
-	if (InputSystem::IsPressed("+reload")) {
+	if (InputSystem::IsPressed("+reload") && mEntPlayer) {
 		mEntPlayer->GetTransform()->SetWorldPos(Vec3::up * 2.0f);
 	}
+}
 
-	//mEntWeapon->Update(EngineTimer::GetScaledDeltaTime());
-	//mWeaponComponent->Update(EngineTimer::GetScaledDeltaTime());
-	if (mWeaponComponent->HasFiredThisFrame()) {
-		auto camera = CameraManager::GetActiveCamera();
-		auto cameraForward = camera->GetViewMat().Inverse().GetForward();
-		Unnamed::Ray ray = {
-			camera->GetViewMat().Inverse().GetTranslate(),
-			cameraForward,
-			1.0f / cameraForward,
-			0.0f,
-			100.0f
-		};
-		UPhysics::Hit hit;
-
-		bool isHit = mUPhysicsEngine->RayCast(
-			ray,
-			&hit
-		);
-		if (isHit) {
-			Vec3 hitPos    = hit.pos;
-			Vec3 hitNormal = hit.normal;
-
-			// 爆発エフェクト
-			mExplosionEffect->TriggerExplosion(hitPos + hitNormal * 2.0f,
-			                                   hitNormal,
-			                                   32, 30.0f);
-
-			// プレイヤーの位置と爆心地の距離を計算
-			Vec3  playerPos   = mEntPlayer->GetTransform()->GetWorldPos();
-			float blastRadius = Math::HtoM(512);     // 球状ゾーンの半径（例: 5m）
-			float blastPower  = Math::HtoM(1024.0f); // 吹き飛ばしの強さ
-
-			Vec3  toPlayer = playerPos - hitPos;
-			float distance = toPlayer.Length();
-
-			if (distance < blastRadius && distance > 0.5f) {
-				Vec3  forceDir = toPlayer.Normalized();
-				float force    = blastPower * (1.0f - (distance / blastRadius));
-				// プレイヤーに吹き飛ばしベクトルを加える
-				mGameMovementComponent->SetVelocity(
-					mGameMovementComponent->Velocity() + forceDir * force);
-			}
-
-			// カメラシェイク
-			// mGameMovementComponent->StartCameraShake(
-			// 	0.1f, 0.1f, 5.0f, Vec3::forward, 0.025f, 3.0f,
-			// 	Vec3::right
-			// );
-		}
+void GameScene::HandleWeaponFire(
+	const std::shared_ptr<CameraComponent>& camera) {
+	if (!mWeaponComponent || !mWeaponComponent->HasFiredThisFrame() || !
+		mUPhysicsEngine) {
+		return;
 	}
 
-	auto horizontalplayervel = Vec3(mGameMovementComponent->Velocity().x,
-	                                0.0f,
-	                                mGameMovementComponent->Velocity().z);
+	if (!camera) {
+		return;
+	}
 
-	mSkeletalMeshRenderer->SetAnimationSpeed(
-		horizontalplayervel.Length() * 0.1f
+	Mat4       inverseView = camera->GetViewMat().Inverse();
+	const Vec3 origin      = inverseView.GetTranslate();
+	const Vec3 direction   = inverseView.GetForward();
+
+	const Vec3 invDirection(
+		direction.x != 0.0f ?
+			1.0f / direction.x :
+			std::numeric_limits<float>::infinity(),
+		direction.y != 0.0f ?
+			1.0f / direction.y :
+			std::numeric_limits<float>::infinity(),
+		direction.z != 0.0f ?
+			1.0f / direction.z :
+			std::numeric_limits<float>::infinity()
 	);
 
-	Unnamed::Engine::blurStrength = mGameMovementComponent->Velocity().
-		Length() *
-		0.01f;
-	// mWeaponMeshRenderer->Update(EngineTimer::GetScaledDeltaTime());
-	// mWeaponSway->Update(EngineTimer::GetScaledDeltaTime());
-	//
-	// mEntPlayer->Update(EngineTimer::GetScaledDeltaTime());
-	// mEntShakeRoot->Update(EngineTimer::GetScaledDeltaTime());
-	//
-	// mEntWorldMesh->Update(deltaTime);
+	Unnamed::Ray ray{};
+	ray.origin = origin;
+	ray.dir    = direction;
+	ray.invDir = invDirection;
+	ray.tMin   = 0.0f;
+	ray.tMax   = 100.0f;
 
-#ifdef _DEBUG
-#pragma region cl_showpos
-	if (
-		int flag = ConVarManager::GetConVar("cl_showpos")->GetValueAsInt();
-		flag != 0
-	) {
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
-		constexpr ImGuiWindowFlags windowFlags =
-			ImGuiWindowFlags_NoBackground |
-			ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoDocking |
-			ImGuiWindowFlags_NoFocusOnAppearing |
-			ImGuiWindowFlags_NoNav;
-		auto viewportLt = Unnamed::Engine::GetViewportLT();
-		auto windowPos  = ImVec2(viewportLt.x, viewportLt.y + 128.0f + 16.0f);
-		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
-
-		Mat4 invViewMat = Mat4::identity;
-		if (CameraManager::GetActiveCamera()) {
-			invViewMat = CameraManager::GetActiveCamera()->GetViewMat().
-				Inverse();
-		}
-
-		Vec3 camPos = invViewMat.GetTranslate();
-		if (flag == 2) {
-			camPos = Math::MtoH(camPos);
-		}
-		const Vec3 camRot = invViewMat.ToQuaternion().ToEulerAngles();
-
-		// テキストのサイズを取得
-		std::string text = std::format(
-			"name: {}\n"
-			"pos : {:.2f} {:.2f} {:.2f}\n"
-			"rot : {:.2f} {:.2f} {:.2f}\n"
-			"vel : {:.2f}\n",
-			ConVarManager::GetConVar("name")->GetValueAsString(),
-			camPos.x, camPos.y, camPos.z,
-			camRot.x * Math::rad2Deg,
-			camRot.y * Math::rad2Deg,
-			camRot.z * Math::rad2Deg,
-			Math::MtoH(mGameMovementComponent->Velocity().Length())
-		);
-
-		//Console::Print(text);
-
-		ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
-
-		// ウィンドウサイズをテキストサイズに基づいて設定
-		ImVec2 windowSize = ImVec2(textSize.x + 20.0f, textSize.y + 20.0f);
-		// 余白を追加
-		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
-
-		ImGui::Begin("##cl_showpos", nullptr, windowFlags);
-
-		ImVec2      textPos     = ImGui::GetCursorPos();
-		ImDrawList* drawList    = ImGui::GetWindowDrawList();
-		float       outlineSize = 1.0f;
-
-		ImGuiManager::TextOutlined(
-			drawList,
-			textPos,
-			text.c_str(),
-			ImGuiUtil::ToImVec4(kDebugHudTextColor),
-			ImGuiUtil::ToImVec4(kDebugHudOutlineColor),
-			outlineSize
-		);
-
-		ImGui::PopStyleVar();
-		ImGui::End();
+	UPhysics::Hit hit{};
+	if (!mUPhysicsEngine->RayCast(ray, &hit)) {
+		return;
 	}
-#pragma endregion
-#endif
 
-	// プレイヤーの位置を取得
-	Vec3 playerPos = mEntPlayer->GetTransform()->GetWorldPos();
+	if (mExplosionEffect) {
+		mExplosionEffect->TriggerExplosion(
+			hit.pos + hit.normal * kExplosionNormalOffset,
+			hit.normal,
+			kExplosionParticleCount,
+			kExplosionParticleLifetime
+		);
+	}
 
-	// AABBの内部にいるかチェック
+	if (!mEntPlayer || !mMovementComponent) {
+		return;
+	}
+
+	const Vec3  playerPos   = mEntPlayer->GetTransform()->GetWorldPos();
+	const float blastRadius = Math::HtoM(kBlastRadiusHu);
+	const float blastPower  = Math::HtoM(kBlastPowerHu);
+	const Vec3  toPlayer    = playerPos - hit.pos;
+	const float distance    = toPlayer.Length();
+
+	if (distance < blastRadius && distance > kBlastMinSafeDistance) {
+		const Vec3  forceDir = toPlayer.Normalized();
+		const float force    = blastPower * (1.0f - (distance / blastRadius));
+		mMovementComponent->SetVelocity(
+			mMovementComponent->GetVelocity() + forceDir * force);
+	}
+}
+
+void GameScene::UpdateSkeletalAnimation() {
+	if (!mSkeletalMeshRenderer || !mMovementComponent) {
+		return;
+	}
+
+	const Vec3 velocity = mMovementComponent->GetVelocity();
+	const Vec3 horizontalVelocity(velocity.x, 0.0f, velocity.z);
+	mSkeletalMeshRenderer->
+		SetAnimationSpeed(horizontalVelocity.Length() * 0.1f);
+}
+
+void GameScene::UpdatePostProcessing(float deltaTime) {
+	const float blurStrength = mMovementComponent ?
+		                           mMovementComponent->GetVelocity().
+		                           Length() * kBlurScale :
+		                           0.0f;
+
+	Unnamed::Engine::blurStrength = blurStrength;
+
+	if (mClearConVar && mClearConVar->GetValueAsBool() && mCubeMap) {
+		mCubeMap->Update(deltaTime);
+	}
+}
+
+void GameScene::UpdateTeleport() {
+	if (!mEntPlayer) {
+		return;
+	}
+
+	const Vec3 playerPos = mEntPlayer->GetTransform()->GetWorldPos();
+
 	if (mTeleportActive &&
 		playerPos.x >= mTeleportTriggerMin.x && playerPos.x <=
 		mTeleportTriggerMax.x &&
@@ -516,112 +551,53 @@ void GameScene::Update(const float deltaTime) {
 		mTeleportTriggerMax.y &&
 		playerPos.z >= mTeleportTriggerMin.z && playerPos.z <=
 		mTeleportTriggerMax.z) {
-		// プレイヤーを原点にテレポート
 		mEntPlayer->GetTransform()->SetWorldPos(Vec3::zero);
-
-		// 連続テレポートを防ぐための一時的な無効化（オプション）
 		mTeleportActive = false;
-
-		// デバッグ情報の出力
 		Console::Print("テレポートしました！");
 	}
 
-	Unnamed::AABB teleportTriggerAABB(
-		mTeleportTriggerMin, mTeleportTriggerMax);
-
+	Unnamed::AABB teleportTriggerAABB(mTeleportTriggerMin, mTeleportTriggerMax);
 	Debug::DrawBox(
 		teleportTriggerAABB.Center(),
 		Quaternion::identity,
 		teleportTriggerAABB.Size(),
-		Vec4(1.0f, 0.0f, 0.0f, 0.5f) // 赤色、半透明
+		Vec4(1.0f, 0.0f, 0.0f, 0.5f)
 	);
 
-	// テレポート機能の再有効化（一定時間後または条件付きで）
 	if (!mTeleportActive) {
-		// 例: プレイヤーがトリガー領域から十分離れたら再度有効化
-		if (playerPos.x < mTeleportTriggerMin.x - 1.0f || playerPos.x >
-			mTeleportTriggerMax.x + 1.0f ||
-			playerPos.y < mTeleportTriggerMin.y - 1.0f || playerPos.y >
-			mTeleportTriggerMax.y + 1.0f ||
-			playerPos.z < mTeleportTriggerMin.z - 1.0f || playerPos.z >
-			mTeleportTriggerMax.z + 1.0f) {
+		const bool outside =
+			playerPos.x < mTeleportTriggerMin.x - kTeleportReenableBuffer ||
+			playerPos.x > mTeleportTriggerMax.x + kTeleportReenableBuffer ||
+			playerPos.y < mTeleportTriggerMin.y - kTeleportReenableBuffer ||
+			playerPos.y > mTeleportTriggerMax.y + kTeleportReenableBuffer ||
+			playerPos.z < mTeleportTriggerMin.z - kTeleportReenableBuffer ||
+			playerPos.z > mTeleportTriggerMax.z + kTeleportReenableBuffer;
+
+		if (outside) {
 			mTeleportActive = true;
 		}
 	}
+}
 
-	Unnamed::Engine::GetParticleManager()->Update(deltaTime);
-	mParticleEmitter->Update(deltaTime);
-
-#ifdef _DEBUG
-	// レティクルの描画
-	ImVec2 windowCenter = ImVec2(
-		ImGui::GetMainViewport()->Pos.x + ImGui::GetMainViewport()->Size.x *
-		0.5f,
-		ImGui::GetMainViewport()->Pos.y + ImGui::GetMainViewport()->Size.y *
-		0.5f);
-
-	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
-
-	// レティクルの設定
-	const ImVec4 reticleColor     = ImVec4(1.0f, 1.0f, 1.0f, 0.8f); // 白色、少し透明
-	const ImVec4 outlineColor     = ImVec4(0.0f, 0.0f, 0.0f, 0.5f); // 黒の縁取り
-	const float  lineLength       = 10.0f;                          // 線の長さ
-	const float  gapSize          = 3.0f;                           // 中心の隙間
-	const float  lineThickness    = 1.5f;                           // 線の太さ
-	const float  outlineThickness = 0.5f;                           // 縁取りの太さ
-
-	// 内側の線を描画（横線）
-	drawList->AddLine(
-		ImVec2(windowCenter.x - lineLength - gapSize, windowCenter.y),
-		ImVec2(windowCenter.x - gapSize, windowCenter.y),
-		ImGui::ColorConvertFloat4ToU32(reticleColor),
-		lineThickness
-	);
-	drawList->AddLine(
-		ImVec2(windowCenter.x + gapSize, windowCenter.y),
-		ImVec2(windowCenter.x + lineLength + gapSize, windowCenter.y),
-		ImGui::ColorConvertFloat4ToU32(reticleColor),
-		lineThickness
-	);
-
-	// 内側の線を描画（縦線）
-	drawList->AddLine(
-		ImVec2(windowCenter.x, windowCenter.y - lineLength - gapSize),
-		ImVec2(windowCenter.x, windowCenter.y - gapSize),
-		ImGui::ColorConvertFloat4ToU32(reticleColor),
-		lineThickness
-	);
-	drawList->AddLine(
-		ImVec2(windowCenter.x, windowCenter.y + gapSize),
-		ImVec2(windowCenter.x, windowCenter.y + lineLength + gapSize),
-		ImGui::ColorConvertFloat4ToU32(reticleColor),
-		lineThickness
-	);
-
-	// 縁取り（中心に小さな点）
-	drawList->AddCircle(
-		windowCenter,
-		2.0f,
-		ImGui::ColorConvertFloat4ToU32(outlineColor),
-		0,
-		outlineThickness + lineThickness
-	);
-
-	// 中心点
-	drawList->AddCircleFilled(
-		windowCenter,
-		1.0f,
-		ImGui::ColorConvertFloat4ToU32(reticleColor)
-	);
-#endif
-
-	mWindEffect->Update(deltaTime);
-	mExplosionEffect->Update(deltaTime);
-
-	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
-		mCubeMap->Update(deltaTime);
+void GameScene::UpdateParticlesAndEffects(float deltaTime) {
+	if (auto* particleManager = Unnamed::Engine::GetParticleManager()) {
+		particleManager->Update(deltaTime);
 	}
 
+	if (mParticleEmitter) {
+		mParticleEmitter->Update(deltaTime);
+	}
+
+	if (mWindEffect) {
+		mWindEffect->Update(deltaTime);
+	}
+
+	if (mExplosionEffect) {
+		mExplosionEffect->Update(deltaTime);
+	}
+}
+
+void GameScene::UpdateEntities(float deltaTime) {
 	for (auto entity : mEntities) {
 		if (entity && !entity->GetParent()) {
 			entity->PrePhysics(deltaTime);
@@ -633,7 +609,10 @@ void GameScene::Update(const float deltaTime) {
 			entity->Update(deltaTime);
 		}
 	}
-	mUPhysicsEngine->Update(deltaTime);
+
+	if (mUPhysicsEngine) {
+		mUPhysicsEngine->Update(deltaTime);
+	}
 
 	for (auto entity : mEntities) {
 		if (entity && !entity->GetParent()) {
@@ -642,24 +621,138 @@ void GameScene::Update(const float deltaTime) {
 	}
 }
 
-void GameScene::Render() {
-	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
-		mCubeMap->Render(
-			mRenderer->GetCommandList()
-		);
-	}
+#ifdef _DEBUG
+void GameScene::DrawDebugHud(
+	const std::shared_ptr<CameraComponent>& camera) const {
+	if (mShowPosConVar) {
+		const int flag = mShowPosConVar->GetValueAsInt();
+		if (flag != 0) {
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
+			constexpr ImGuiWindowFlags windowFlags =
+				ImGuiWindowFlags_NoBackground |
+				ImGuiWindowFlags_NoTitleBar |
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoSavedSettings |
+				ImGuiWindowFlags_NoDocking |
+				ImGuiWindowFlags_NoFocusOnAppearing |
+				ImGuiWindowFlags_NoNav;
 
-	for (auto entity : mEntities) {
-		if (entity) {
-			entity->Render(mRenderer->GetCommandList());
+			auto         viewportLt = Unnamed::Engine::GetViewportLT();
+			const ImVec2 windowPos(viewportLt.x, viewportLt.y + 128.0f + 16.0f);
+			ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+
+			Mat4 inverseView = Mat4::identity;
+			if (camera) {
+				inverseView = camera->GetViewMat().Inverse();
+			}
+
+			Vec3 cameraPosition = inverseView.GetTranslate();
+			if (flag == 2) {
+				cameraPosition = Math::MtoH(cameraPosition);
+			}
+			const Vec3 cameraRotation = inverseView.ToQuaternion().
+			                                        ToEulerAngles();
+
+			const std::string name = mNameConVar ?
+				                         mNameConVar->GetValueAsString() :
+				                         std::string("unknown");
+
+			const std::string text = std::format(
+				"name: {}\n"
+				"pos : {:.2f} {:.2f} {:.2f}\n"
+				"rot : {:.2f} {:.2f} {:.2f}\n"
+				"vel : {:.2f}\n",
+				name,
+				cameraPosition.x, cameraPosition.y, cameraPosition.z,
+				cameraRotation.x * Math::rad2Deg,
+				cameraRotation.y * Math::rad2Deg,
+				cameraRotation.z * Math::rad2Deg,
+				mMovementComponent ?
+					Math::MtoH(mMovementComponent->GetVelocity().Length()) :
+					0.0f
+			);
+
+			const ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
+			ImGui::SetNextWindowSize({textSize.x + 20.0f, textSize.y + 20.0f},
+			                         ImGuiCond_Always);
+
+			ImGui::Begin("##cl_showpos", nullptr, windowFlags);
+			ImDrawList*  drawList = ImGui::GetWindowDrawList();
+			const ImVec2 textPos  = ImGui::GetCursorPos();
+
+			ImGuiManager::TextOutlined(
+				drawList,
+				textPos,
+				text.c_str(),
+				ImGuiUtil::ToImVec4(kDebugHudTextColor),
+				ImGuiUtil::ToImVec4(kDebugHudOutlineColor),
+				1.0f
+			);
+
+			ImGui::PopStyleVar();
+			ImGui::End();
 		}
 	}
 
-	Unnamed::Engine::GetParticleManager()->Render();
-	mParticleObject->Draw();
-	mWindEffect->Draw();
-	mExplosionEffect->Draw();
+	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	if (!viewport) {
+		return;
+	}
+
+	const ImVec2 windowCenter(
+		viewport->Pos.x + viewport->Size.x * 0.5f,
+		viewport->Pos.y + viewport->Size.y * 0.5f
+	);
+
+	ImDrawList*     drawList = ImGui::GetBackgroundDrawList();
+	const ImVec4    reticleColor(1.0f, 1.0f, 1.0f, 0.8f);
+	const ImVec4    outlineColor(0.0f, 0.0f, 0.0f, 0.5f);
+	constexpr float lineLength       = 10.0f;
+	constexpr float gapSize          = 3.0f;
+	constexpr float lineThickness    = 1.5f;
+	constexpr float outlineThickness = 0.5f;
+
+	drawList->AddLine(
+		{windowCenter.x - lineLength - gapSize, windowCenter.y},
+		{windowCenter.x - gapSize, windowCenter.y},
+		ImGui::ColorConvertFloat4ToU32(reticleColor),
+		lineThickness
+	);
+	drawList->AddLine(
+		{windowCenter.x + gapSize, windowCenter.y},
+		{windowCenter.x + lineLength + gapSize, windowCenter.y},
+		ImGui::ColorConvertFloat4ToU32(reticleColor),
+		lineThickness
+	);
+	drawList->AddLine(
+		{windowCenter.x, windowCenter.y - lineLength - gapSize},
+		{windowCenter.x, windowCenter.y - gapSize},
+		ImGui::ColorConvertFloat4ToU32(reticleColor),
+		lineThickness
+	);
+	drawList->AddLine(
+		{windowCenter.x, windowCenter.y + gapSize},
+		{windowCenter.x, windowCenter.y + lineLength + gapSize},
+		ImGui::ColorConvertFloat4ToU32(reticleColor),
+		lineThickness
+	);
+
+	drawList->AddCircle(
+		windowCenter,
+		2.0f,
+		ImGui::ColorConvertFloat4ToU32(outlineColor),
+		0,
+		outlineThickness + lineThickness
+	);
+
+	drawList->AddCircleFilled(
+		windowCenter,
+		1.0f,
+		ImGui::ColorConvertFloat4ToU32(reticleColor)
+	);
 }
+#endif
 
 void GameScene::Shutdown() {
 	//cubeMap_.reset();
@@ -706,8 +799,9 @@ void GameScene::RecreateWorldMeshEntity() {
 
 	// 古いエンティティを物理エンジンから登録解除
 	if (mEntWorldMesh) {
-		//mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
-		mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+		if (mUPhysicsEngine) {
+			mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+		}
 		RemoveEntity(mEntWorldMesh.get());
 		Console::Print("Removed old world mesh entity", kConTextColorWarning);
 
@@ -726,7 +820,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	}
 
 	// メッシュをリロード
-	const std::string meshPath      = "./resources/models/reflectionTest.obj";
+	const std::string meshPath      = kWorldMeshReloadPath;
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
 	                                       ReloadMeshFromFile(meshPath);
 
@@ -746,10 +840,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	mEntWorldMesh                  = std::make_unique<Entity>("worldMesh");
 	StaticMeshRenderer* smRenderer = mEntWorldMesh->AddComponent<
 		StaticMeshRenderer>();
-	mWorldMeshRenderer = std::shared_ptr<StaticMeshRenderer>(
-		smRenderer, [](StaticMeshRenderer*) {
-		}
-	);
+	mWorldMeshRenderer = AdoptComponent(smRenderer);
 
 	// 新しいメッシュを設定
 	StaticMesh* newMesh = mResourceManager->GetMeshManager()->GetStaticMesh(
@@ -768,7 +859,9 @@ void GameScene::RecreateWorldMeshEntity() {
 
 	// 物理エンジンに登録
 	//	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
-	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
+	if (mUPhysicsEngine) {
+		mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
+	}
 
 	Console::Print("World mesh entity recreation completed!",
 	               kConTextColorCompleted);
@@ -783,8 +876,9 @@ void GameScene::SafeReloadWorldMesh() {
 	}
 
 	// 物理エンジンからエンティティの登録を解除
-	//mPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
-	mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+	if (mUPhysicsEngine) {
+		mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+	}
 	Console::Print("Unregistered entity from physics engine",
 	               kConTextColorWarning);
 
@@ -802,7 +896,7 @@ void GameScene::SafeReloadWorldMesh() {
 	}
 
 	// メッシュをリロード
-	const std::string meshPath      = "./resources/models/reflectionTest.obj";
+	const std::string meshPath      = kWorldMeshReloadPath;
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
 	                                       ReloadMeshFromFile(meshPath);
 
@@ -810,8 +904,9 @@ void GameScene::SafeReloadWorldMesh() {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
 		// 失敗した場合は元のコンポーネントを復元
 		mEntWorldMesh->AddComponent<MeshColliderComponent>();
-		//mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
-		mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
+		if (mUPhysicsEngine) {
+			mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
+		}
 		return;
 	}
 
@@ -839,8 +934,9 @@ void GameScene::SafeReloadWorldMesh() {
 	Console::Print("Added new MeshColliderComponent", kConTextColorCompleted);
 
 	// 物理エンジンに再登録
-	//mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
-	mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
+	if (mUPhysicsEngine) {
+		mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
+	}
 	Console::Print("Re-registered entity to physics engine",
 	               kConTextColorCompleted);
 

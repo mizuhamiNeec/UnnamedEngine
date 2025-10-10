@@ -2,6 +2,9 @@
 
 #include <engine/uengine/UEngine.h>
 
+#include "engine/Engine.h"
+#include "engine/platform/Win32App.h"
+
 int WINAPI wWinMain(
 	[[maybe_unused]] const HINSTANCE hInstance,
 	[[maybe_unused]] HINSTANCE       hPrevInstance,
@@ -13,24 +16,29 @@ int WINAPI wWinMain(
 	);
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
-	const auto uEngine = std::make_unique<Unnamed::UEngine>();
-	uEngine->Run();
+	const bool startNewEngine = (lpCmdLine != nullptr) && (std::wcsstr(
+		lpCmdLine, L"-new") != nullptr);
 
-	// const auto engine = std::make_unique<Unnamed::Engine>();
+	if (startNewEngine) {
+		const auto uEngine = std::make_unique<Unnamed::UEngine>();
+		uEngine->Run();
+	} else {
+		// デフォルトは従来の古いエンジン
+		const auto engine = std::make_unique<Unnamed::Engine>();
 
-	//if (!engine->Init()) { UASSERT(false && "Failed to initialize Engine"); }
-	// while (!Win32App::PollEvents()) {
-	// 	// auto context = device->BeginFrame();
-	// 	//
-	// 	// device->EndFrame(context);
-	//
-	// 	// if (OldWindowManager::ProcessMessage()) {
-	// 	// 	break;
-	// 	// }
-	// 	// engine->Update();
-	// }
+		if (!engine->Init()) {
+			UASSERT(false && "Failed to initialize Engine");
+		}
+		while (!Win32App::PollEvents()) {
+			if (OldWindowManager::ProcessMessage()) {
+				break;
+			}
+			engine->Update();
+		}
 
-	//	engine->Shutdown();
+		engine->Shutdown();
+	}
+
 	CoUninitialize();
 	return EXIT_SUCCESS;
 }

@@ -149,8 +149,8 @@ void PPChromaticAberration::CreatePipelineState() {
 	};
 	pso.SetRootSignature(mRootSig.Get());
 	pso.SetInputLayout({});
-	pso.SetVertexShader(L"./resources/shaders/ChromaticAberration.VS.hlsl");
-	pso.SetPixelShader(L"./resources/shaders/ChromaticAberration.PS.hlsl");
+	pso.SetVertexShader(L"./content/core/shaders/ChromaticAberration.VS.hlsl");
+	pso.SetPixelShader(L"./content/core/shaders/ChromaticAberration.PS.hlsl");
 	pso.SetBlendMode(kBlendModeNone);
 	pso.Create(mDevice);
 	mPSO = pso.Get();

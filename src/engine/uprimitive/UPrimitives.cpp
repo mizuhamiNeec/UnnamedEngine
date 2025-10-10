@@ -1,4 +1,4 @@
-﻿#include "UPrimitives.h"
+#include "UPrimitives.h"
 
 namespace Unnamed {
 	void AABB::Expand(const Vec3& point) {
@@ -12,7 +12,7 @@ namespace Unnamed {
 	}
 
 	Vec3 AABB::Center() const {
-		return min + max * 0.5f;
+		return (min + max) * 0.5f;
 	}
 
 	float AABB::SurfaceArea() const {

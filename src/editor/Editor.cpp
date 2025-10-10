@@ -113,6 +113,582 @@ void Editor::Init() {
 }
 
 void Editor::Update([[maybe_unused]] const float deltaTime) {
+	// // タブの名前
+	// static const char* tabNames[] = {
+	// 	"Test",
+	// 	"いい感じのヘッダー",
+	// 	"Physics",
+	// 	"Audio",
+	// 	"Input"
+	// };
+	// static int selectedTab = 0; // 現在選択中のタブインデックス
+	//
+	// // 縦方向のレイアウトを作成
+	// ImGui::Begin("Vertical Tabs Example");
+	//
+	// // タブ用の列を分割
+	// ImGui::Columns(2, nullptr, false);
+	//
+	// // タブのリスト (左側の列)
+	// ImGui::BeginChild("Tabs", ImVec2(512, 0), true);
+	// for (int i = 0; i < IM_ARRAYSIZE(tabNames); i++) {
+	// 	// ボタンまたは選択可能なアイテムとしてタブを表現
+	// 	if (ImGui::Selectable(
+	// 		(StrUtil::ConvertToUtf8(kIconTerminal) + tabNames[i]).c_str(),
+	// 		selectedTab == i)) {
+	// 		selectedTab = i; // タブを切り替える
+	// 	}
+	// }
+	// ImGui::EndChild();
+	//
+	// // コンテンツ表示エリア (右側の列)
+	// ImGui::NextColumn();
+	// ImGui::BeginChild("Content", ImVec2(0, 0), false);
+	// ImGui::Text("Content for tab: %s", tabNames[selectedTab]);
+	// ImGui::EndChild();
+	//
+	// ImGui::End();
+
+	// インスペクタ
+#ifdef _DEBUG
+	if (ImGui::Begin("Inspector")) {
+		if (mSelectedEntity) {
+			ImGui::Text("Name: %s", mSelectedEntity->GetName().c_str());
+
+			mSelectedEntity->GetTransform()->DrawInspectorImGui();
+
+			// コンポーネントの一覧表示と編集
+			const auto& components = mSelectedEntity->GetComponents<
+				Component>();
+			for (const auto& component : components) {
+				if (component) {
+					component->DrawInspectorImGui();
+				}
+			}
+		}
+	}
+	ImGui::End();
+
+	if (ImGui::Begin("World Settings")) {
+		ImGui::Text("Grid Size");
+		ImGui::SliderFloat("##GridSize", &mGridSize, 0.125f, 64.0f, "%.3f",
+		                   ImGuiSliderFlags_Logarithmic);
+		ImGui::Text("Grid Range");
+		ImGui::SliderFloat("##GridRange", &mGridRange, 128.0f, 16384.0f, "%.3f",
+		                   ImGuiSliderFlags_Logarithmic);
+	}
+	ImGui::End();
+#endif
+
+#ifdef _DEBUG
+	{
+		ImGui::Begin("WidgetsTest");
+
+		ImGui::BeginGroup();
+		ImGui::Text("Hello there");
+		ImGui::Button("Button Inside");
+		static Vec3 vec3(0.0f, 0.0f, 0.0f);
+		ImGuiWidgets::DragVec3("Vec3", vec3, Vec3::zero, 0.1f, "%.2f");
+		ImGui::EndGroup();
+
+		ImGui::End();
+	}
+
+	// TODO: アウトライナに使おう
+	{
+		ImGui::Begin("TreeTable");
+
+		const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
+
+		static ImGuiTableFlags table_flags = ImGuiTableFlags_BordersV |
+			ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_Resizable |
+			ImGuiTableFlags_RowBg | ImGuiTableFlags_NoBordersInBody;
+
+		static ImGuiTreeNodeFlags tree_node_flags_base =
+			ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_DefaultOpen |
+			ImGuiTreeNodeFlags_DrawLinesFull;
+
+		if (ImGui::BeginTable("3ways", 3, table_flags)) {
+			// The first column will use the default _WidthStretch when ScrollX is Off and _WidthFixed when ScrollX is On
+			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+			ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed,
+			                        TEXT_BASE_WIDTH * 12.0f);
+			ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed,
+			                        TEXT_BASE_WIDTH * 18.0f);
+			ImGui::TableHeadersRow();
+
+			// Simple storage to output a fake file-system.
+			struct MyTreeNode {
+				const char* name;
+				const char* type;
+				int         size;
+				int         childIdx;
+				int         childCount;
+
+				static void DisplayNode(const MyTreeNode* node,
+				                        const MyTreeNode* all_nodes) {
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					const bool is_folder = (node->childCount > 0);
+
+					ImGuiTreeNodeFlags node_flags = tree_node_flags_base;
+					if (node != &all_nodes[0]) {
+						node_flags &= ~ImGuiTreeNodeFlags_LabelSpanAllColumns;
+						// Only demonstrate this on the root node.
+					}
+
+					if (is_folder) {
+						bool open = ImGui::TreeNodeEx(node->name, node_flags);
+						if ((node_flags &
+							ImGuiTreeNodeFlags_LabelSpanAllColumns) == 0) {
+							ImGui::TableNextColumn();
+							ImGui::TextDisabled("--");
+							ImGui::TableNextColumn();
+							ImGui::TextUnformatted(node->type);
+						}
+						if (open) {
+							for (int child_n = 0; child_n < node->childCount;
+							     child_n++) {
+								DisplayNode(
+									&all_nodes[node->childIdx + child_n],
+									all_nodes);
+							}
+							ImGui::TreePop();
+						}
+					} else {
+						ImGui::TreeNodeEx(node->name,
+						                  node_flags | ImGuiTreeNodeFlags_Leaf |
+						                  ImGuiTreeNodeFlags_Bullet |
+						                  ImGuiTreeNodeFlags_NoTreePushOnOpen);
+						ImGui::TableNextColumn();
+						ImGui::Text("%d", node->size);
+						ImGui::TableNextColumn();
+						ImGui::TextUnformatted(node->type);
+					}
+				}
+			};
+			static const MyTreeNode nodes[] =
+			{
+				{"Root with Long Name", "Folder", -1, 1, 3},            // 0
+				{"Music", "Folder", -1, 4, 2},                          // 1
+				{"Textures", "Folder", -1, 6, 3},                       // 2
+				{"desktop.ini", "System file", 1024, -1, -1},           // 3
+				{"File1_a.wav", "Audio file", 123000, -1, -1},          // 4
+				{"File1_b.wav", "Audio file", 456000, -1, -1},          // 5
+				{"Image001.png", "Image file", 203128, -1, -1},         // 6
+				{"Copy of Image001.png", "Image file", 203256, -1, -1}, // 7
+				{"Copy of Image001 (Final2).png", "Image file", 203512, -1, -1},
+				// 8
+			};
+
+			MyTreeNode::DisplayNode(&nodes[0], nodes);
+
+			ImGui::EndTable();
+		}
+
+		ImGui::End();
+	}
+#endif
+
+#ifdef _DEBUG
+	ImVec2 windowPadding = ImGui::GetStyle().WindowPadding;
+	ImVec2 framePadding  = ImGui::GetStyle().FramePadding;
+	ImVec2 itemSpacing   = ImGui::GetStyle().ItemSpacing;
+
+	// 上側のツールバー
+	{
+		constexpr ImGuiWindowFlags flags =
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoScrollWithMouse |
+			ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoFocusOnAppearing |
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+		// 横長にする
+		constexpr auto toolbarIconSize = ImVec2(
+			96.0f,
+			32.0f
+		);
+
+
+		//		ImGui::SetNextWindowBgAlpha(1.0f);
+		if (
+			ImGui::BeginViewportSideBar(
+				"##TopToolbar",
+				ImGui::GetMainViewport(),
+				ImGuiDir_Up,
+				toolbarIconSize.y + windowPadding.y * 2.0f,
+				flags
+			)
+		) {
+			// 選択
+			{
+				constexpr float iconScale = 0.75f;
+
+				ImGui::BeginDisabled();
+
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconVertex).c_str(), "Vertices",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				);
+
+				ImGui::SameLine();
+
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconEdge).c_str(), "Edges",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				);
+
+				ImGui::SameLine();
+
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconFace).c_str(), "Faces",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				);
+
+				ImGui::SameLine();
+
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconMesh).c_str(), "Meshes",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				);
+
+				ImGui::SameLine();
+
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconObject).c_str(), "Objects",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				);
+
+				ImGui::SameLine();
+
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconGroup).c_str(), "Groups",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				);
+			}
+
+			ImGui::EndDisabled();
+
+			ImGui::End();
+		}
+	}
+
+	// 左側のツールバー
+	{
+		constexpr ImGuiWindowFlags flags =
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoFocusOnAppearing |
+			ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+		constexpr float iconSize  = 40; // アイコンのサイズを設定
+		constexpr float iconScale = 0.75f;
+
+		const ImVec2 toolbarIconSize = ImVec2(iconSize, iconSize);
+
+		ImGui::SetNextWindowBgAlpha(1.0f);
+		if (
+			ImGui::BeginViewportSideBar(
+				"##LeftToolbar",
+				ImGui::GetMainViewport(),
+				ImGuiDir_Left,
+				toolbarIconSize.x + windowPadding.x * 2.0f,
+				flags
+			)
+		) {
+			// ツールバー
+			{
+				ImGui::BeginDisabled();
+
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconSelect).c_str(), "",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_None
+				);
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconMove).c_str(), "",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_None
+				);
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconRotate).c_str(), "",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_None
+				);
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconScale).c_str(), "",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_None
+				);
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconPivot).c_str(), "",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_None
+				);
+
+				ImGui::Separator();
+
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconObject).c_str(), "",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_None
+				);
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconNANKABOX).c_str(), "",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_None
+				);
+
+				ImGuiWidgets::IconButton(
+					StrUtil::ConvertToUtf8(kIconTexture).c_str(),
+					"",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_None
+				);
+
+				ImGui::EndDisabled();
+			}
+			ImGui::End();
+		}
+	}
+
+	if (
+		ImGui::BeginViewportSideBar(
+			"##MainStatusBar",
+			ImGui::GetMainViewport(),
+			ImGuiDir_Down,
+			0.0f,
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_MenuBar
+		)
+	) {
+		if (ImGui::BeginMenuBar()) {
+			//ImGui::PopStyleVar();
+
+			// ステータスバーの幅を取得
+			float statusBarWidth = ImGui::GetWindowWidth();
+
+			// アングルスナップ
+			{
+				const float windowHeight = ImGui::GetWindowSize().y;
+				const char* items[]      = {
+					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°",
+					"22.5°", "30°", "45°", "90°"
+				};
+				static int  itemCurrentIndex = 6;
+				const char* comboLabel       = items[itemCurrentIndex];
+
+				ImGui::Text("Angle: ");
+
+				// 垂直中央に配置
+				float comboHeight = ImGui::GetFrameHeight();
+				float offsetY     = (windowHeight - comboHeight) * 0.5f;
+				ImGui::SetCursorPosY(offsetY);
+
+				// コンボボックスの幅をステータスバーの幅に合わせて調整
+				ImGui::PushItemWidth(statusBarWidth * 0.2f);
+				if (ImGui::BeginCombo("##angle", comboLabel)) {
+					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
+						const bool isSelected = (itemCurrentIndex == n);
+						if (ImGui::Selectable(items[n], isSelected)) {
+							itemCurrentIndex = n;
+							mAngleSnap       = std::stof(
+								items[itemCurrentIndex]);
+						}
+						if (isSelected) {
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+				ImGui::PopItemWidth();
+			}
+
+			// グリッドスナップ
+			{
+				const float windowHeight = ImGui::GetWindowSize().y;
+				const char* items[]      = {
+					"0.125", "0.25", "0.5", "1", "2", "4", "8", "16", "32",
+					"64", "128", "256", "512"
+				};
+				static int  itemCurrentIndex = 9;
+				const char* comboLabel       = items[itemCurrentIndex];
+				ImGui::Text("Grid: ");
+				// 垂直中央に配置
+				float comboHeight = ImGui::GetFrameHeight();
+				float offsetY     = (windowHeight - comboHeight) * 0.5f;
+				ImGui::SetCursorPosY(offsetY);
+
+				// コンボボックスの幅をステータスバーの幅に合わせて調整
+				ImGui::PushItemWidth(statusBarWidth * 0.2f);
+				ImGui::PushID("GridCombo"); // IDの衝突を避けるためにプッシュ
+
+				if (ImGui::BeginCombo("##grid", comboLabel)) {
+					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
+						const bool isSelected = (itemCurrentIndex == n);
+						if (ImGui::Selectable(items[n], isSelected)) {
+							itemCurrentIndex = n;
+							// 選択された文字列を浮動小数点数に変換してgridSize_に設定
+							mGridSize = std::stof(items[itemCurrentIndex]);
+						}
+						if (isSelected) {
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+
+				// コンボボックスにマウスオーバーしている時にホイールで操作
+				if (ImGui::IsItemHovered()) {
+					float wheel = ImGui::GetIO().MouseWheel;
+					if (wheel != 0.0f) {
+						itemCurrentIndex -= static_cast<int>(wheel);
+						itemCurrentIndex = std::clamp(
+							itemCurrentIndex, 0, IM_ARRAYSIZE(items) - 1);
+						// 選択された文字列を浮動小数点数に変換してgridSize_に設定
+						mGridSize = std::stof(items[itemCurrentIndex]);
+					}
+				}
+
+				ImGui::PopID();
+				ImGui::PopItemWidth();
+			}
+
+			ImGui::EndMenuBar();
+		}
+		ImGui::End();
+	}
+#endif
+
+	// グリッドの表示
+	DrawGrid(
+		mGridSize,
+		mGridRange,
+		{0.28f, 0.28f, 0.28f, 1.0f},
+		{0.39f, 0.2f, 0.02f, 1.0f},
+		{0.0f, 0.39f, 0.39f, 1.0f},
+		{0.39f, 0.39f, 0.39f, 1.0f},
+		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
+		mGridSize * 32.0f
+	);
+
+#ifdef _DEBUG
+	// ギズモの操作はエンティティの更新前に行う
+	Vec2 vLT   = Unnamed::Engine::GetViewportLT();
+	Vec2 vSize = Unnamed::Engine::GetViewportSize();
+	ImGuizmo::SetRect(
+		vLT.x, vLT.y,
+		vSize.x, vSize.y
+	);
+
+	auto camera = CameraManager::GetActiveCamera();
+	Mat4 view   = camera->GetViewMat();
+	Mat4 proj   = camera->GetProjMat();
+
+	if (mSelectedEntity) {
+		Mat4 worldMat = mSelectedEntity->GetTransform()->GetLocalMat();
+
+		static ImGuizmo::MODE      mode      = ImGuizmo::MODE::LOCAL;
+		static ImGuizmo::OPERATION operation = ImGuizmo::OPERATION::TRANSLATE;
+
+		static bool bIsWorldMode = true;
+		if (InputSystem::IsTriggered("toggleGizmo")) {
+			bIsWorldMode = !bIsWorldMode;
+		}
+
+		if (bIsWorldMode) {
+			mode = ImGuizmo::MODE::WORLD;
+		} else {
+			mode = ImGuizmo::MODE::LOCAL;
+		}
+
+		auto snapValue = Vec3(mGridSize, mGridSize, mGridSize);
+
+		if (InputSystem::IsTriggered("bounds")) {
+			operation = ImGuizmo::OPERATION::BOUNDS;
+		}
+
+		if (InputSystem::IsTriggered("translate")) {
+			operation = ImGuizmo::OPERATION::TRANSLATE;
+			snapValue = Math::HtoM(Vec3(mGridSize, mGridSize, mGridSize));
+		}
+		if (InputSystem::IsTriggered("rotate")) {
+			operation = ImGuizmo::OPERATION::ROTATE;
+			snapValue = {
+				mAngleSnap * Math::deg2Rad,
+				mAngleSnap * Math::deg2Rad,
+				mAngleSnap * Math::deg2Rad
+			}; // ラジアンに変換
+		}
+		if (InputSystem::IsTriggered("scale")) {
+			operation = ImGuizmo::OPERATION::SCALE;
+			snapValue = Math::HtoM(Vec3(mGridSize, mGridSize, mGridSize));
+		}
+
+		if (operation == ImGuizmo::OPERATION::ROTATE) {
+			snapValue = Vec3(
+				mAngleSnap,
+				mAngleSnap,
+				mAngleSnap
+			); // ラジアンに変換
+		}
+
+		mIsManipulating = ImGuizmo::Manipulate(
+			*view.m,
+			*proj.m,
+			operation,
+			mode,
+			*worldMat.m,
+			nullptr,
+			&snapValue.x
+		);
+
+		if (mIsManipulating) {
+			mSelectedEntity->GetTransform()->SetLocalPos(
+				worldMat.GetTranslate()
+			);
+			mSelectedEntity->GetTransform()->SetLocalRot(
+				Quaternion::Euler(worldMat.GetRotate()).Inverse()
+			);
+			mSelectedEntity->GetTransform()->SetLocalScale(
+				worldMat.GetScale()
+			);
+		}
+	}
+#endif
+
+	if (auto currentScene = mSceneManager->GetCurrentScene()) {
+		currentScene->Update(mGameTime->ScaledDeltaTime<float>());
+	}
+
 #ifdef _DEBUG
 	// カメラの操作
 	{
@@ -425,9 +1001,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 					ImGui::PushStyleColor(
 						ImGuiCol_Text,
-						visible
-							? ImGui::GetStyleColorVec4(ImGuiCol_Text)
-							: ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
+						visible ?
+							ImGui::GetStyleColorVec4(ImGuiCol_Text) :
+							ImVec4(0.5f, 0.5f, 0.5f, 0.5f)
 					);
 
 					// アイコンを中央に配置
@@ -506,578 +1082,6 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		}
 	}
 	ImGui::End();
-#endif
-
-	// // タブの名前
-	// static const char* tabNames[] = {
-	// 	"Test",
-	// 	"いい感じのヘッダー",
-	// 	"Physics",
-	// 	"Audio",
-	// 	"Input"
-	// };
-	// static int selectedTab = 0; // 現在選択中のタブインデックス
-	//
-	// // 縦方向のレイアウトを作成
-	// ImGui::Begin("Vertical Tabs Example");
-	//
-	// // タブ用の列を分割
-	// ImGui::Columns(2, nullptr, false);
-	//
-	// // タブのリスト (左側の列)
-	// ImGui::BeginChild("Tabs", ImVec2(512, 0), true);
-	// for (int i = 0; i < IM_ARRAYSIZE(tabNames); i++) {
-	// 	// ボタンまたは選択可能なアイテムとしてタブを表現
-	// 	if (ImGui::Selectable(
-	// 		(StrUtil::ConvertToUtf8(kIconTerminal) + tabNames[i]).c_str(),
-	// 		selectedTab == i)) {
-	// 		selectedTab = i; // タブを切り替える
-	// 	}
-	// }
-	// ImGui::EndChild();
-	//
-	// // コンテンツ表示エリア (右側の列)
-	// ImGui::NextColumn();
-	// ImGui::BeginChild("Content", ImVec2(0, 0), false);
-	// ImGui::Text("Content for tab: %s", tabNames[selectedTab]);
-	// ImGui::EndChild();
-	//
-	// ImGui::End();
-
-	// インスペクタ
-#ifdef _DEBUG
-	if (ImGui::Begin("Inspector")) {
-		if (mSelectedEntity) {
-			ImGui::Text("Name: %s", mSelectedEntity->GetName().c_str());
-
-			mSelectedEntity->GetTransform()->DrawInspectorImGui();
-
-			// コンポーネントの一覧表示と編集
-			const auto& components = mSelectedEntity->GetComponents<
-				Component>();
-			for (const auto& component : components) {
-				if (component) {
-					component->DrawInspectorImGui();
-				}
-			}
-		}
-	}
-	ImGui::End();
-
-	if (ImGui::Begin("World Settings")) {
-		ImGui::Text("Grid Size");
-		ImGui::SliderFloat("##GridSize", &mGridSize, 0.125f, 64.0f, "%.3f",
-		                   ImGuiSliderFlags_Logarithmic);
-		ImGui::Text("Grid Range");
-		ImGui::SliderFloat("##GridRange", &mGridRange, 128.0f, 16384.0f, "%.3f",
-		                   ImGuiSliderFlags_Logarithmic);
-	}
-	ImGui::End();
-#endif
-
-#ifdef _DEBUG
-	{
-		ImGui::Begin("WidgetsTest");
-
-		ImGui::BeginGroup();
-		ImGui::Text("Hello there");
-		ImGui::Button("Button Inside");
-		static Vec3 vec3(0.0f, 0.0f, 0.0f);
-		ImGuiWidgets::DragVec3("Vec3", vec3, Vec3::zero, 0.1f, "%.2f");
-		ImGui::EndGroup();
-
-		ImGui::End();
-	}
-
-	// TODO: アウトライナに使おう
-	{
-		ImGui::Begin("TreeTable");
-
-		const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
-
-		static ImGuiTableFlags table_flags = ImGuiTableFlags_BordersV |
-			ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_Resizable |
-			ImGuiTableFlags_RowBg | ImGuiTableFlags_NoBordersInBody;
-
-		static ImGuiTreeNodeFlags tree_node_flags_base =
-			ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_DefaultOpen |
-			ImGuiTreeNodeFlags_DrawLinesFull;
-
-		if (ImGui::BeginTable("3ways", 3, table_flags)) {
-			// The first column will use the default _WidthStretch when ScrollX is Off and _WidthFixed when ScrollX is On
-			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
-			ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed,
-			                        TEXT_BASE_WIDTH * 12.0f);
-			ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed,
-			                        TEXT_BASE_WIDTH * 18.0f);
-			ImGui::TableHeadersRow();
-
-			// Simple storage to output a fake file-system.
-			struct MyTreeNode {
-				const char* name;
-				const char* type;
-				int         size;
-				int         childIdx;
-				int         childCount;
-
-				static void DisplayNode(const MyTreeNode* node,
-				                        const MyTreeNode* all_nodes) {
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					const bool is_folder = (node->childCount > 0);
-
-					ImGuiTreeNodeFlags node_flags = tree_node_flags_base;
-					if (node != &all_nodes[0]) {
-						node_flags &= ~ImGuiTreeNodeFlags_LabelSpanAllColumns;
-						// Only demonstrate this on the root node.
-					}
-
-					if (is_folder) {
-						bool open = ImGui::TreeNodeEx(node->name, node_flags);
-						if ((node_flags &
-							ImGuiTreeNodeFlags_LabelSpanAllColumns) == 0) {
-							ImGui::TableNextColumn();
-							ImGui::TextDisabled("--");
-							ImGui::TableNextColumn();
-							ImGui::TextUnformatted(node->type);
-						}
-						if (open) {
-							for (int child_n = 0; child_n < node->childCount;
-							     child_n++) {
-								DisplayNode(
-									&all_nodes[node->childIdx + child_n],
-									all_nodes);
-							}
-							ImGui::TreePop();
-						}
-					} else {
-						ImGui::TreeNodeEx(node->name,
-						                  node_flags | ImGuiTreeNodeFlags_Leaf |
-						                  ImGuiTreeNodeFlags_Bullet |
-						                  ImGuiTreeNodeFlags_NoTreePushOnOpen);
-						ImGui::TableNextColumn();
-						ImGui::Text("%d", node->size);
-						ImGui::TableNextColumn();
-						ImGui::TextUnformatted(node->type);
-					}
-				}
-			};
-			static const MyTreeNode nodes[] =
-			{
-				{"Root with Long Name", "Folder", -1, 1, 3},            // 0
-				{"Music", "Folder", -1, 4, 2},                          // 1
-				{"Textures", "Folder", -1, 6, 3},                       // 2
-				{"desktop.ini", "System file", 1024, -1, -1},           // 3
-				{"File1_a.wav", "Audio file", 123000, -1, -1},          // 4
-				{"File1_b.wav", "Audio file", 456000, -1, -1},          // 5
-				{"Image001.png", "Image file", 203128, -1, -1},         // 6
-				{"Copy of Image001.png", "Image file", 203256, -1, -1}, // 7
-				{"Copy of Image001 (Final2).png", "Image file", 203512, -1, -1},
-				// 8
-			};
-
-			MyTreeNode::DisplayNode(&nodes[0], nodes);
-
-			ImGui::EndTable();
-		}
-
-		ImGui::End();
-	}
-#endif
-
-#ifdef _DEBUG
-	ImVec2 windowPadding = ImGui::GetStyle().WindowPadding;
-	ImVec2 framePadding  = ImGui::GetStyle().FramePadding;
-	ImVec2 itemSpacing   = ImGui::GetStyle().ItemSpacing;
-
-	// 上側のツールバー
-	{
-		constexpr ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoScrollWithMouse |
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoFocusOnAppearing |
-			ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-		// 横長にする
-		constexpr auto toolbarIconSize = ImVec2(
-			96.0f,
-			32.0f
-		);
-
-
-		//		ImGui::SetNextWindowBgAlpha(1.0f);
-		if (
-			ImGui::BeginViewportSideBar(
-				"##TopToolbar",
-				ImGui::GetMainViewport(),
-				ImGuiDir_Up,
-				toolbarIconSize.y + windowPadding.y * 2.0f,
-				flags
-			)
-		) {
-			// 選択
-			{
-				constexpr float iconScale = 0.75f;
-
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconVertex).c_str(), "Vertices",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_Right
-				);
-
-				ImGui::SameLine();
-
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconEdge).c_str(), "Edges",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_Right
-				);
-
-				ImGui::SameLine();
-
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconFace).c_str(), "Faces",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_Right
-				);
-
-				ImGui::SameLine();
-
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconMesh).c_str(), "Meshes",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_Right
-				);
-
-				ImGui::SameLine();
-
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconObject).c_str(), "Objects",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_Right
-				);
-
-				ImGui::SameLine();
-
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconGroup).c_str(), "Groups",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_Right
-				);
-			}
-
-			ImGui::End();
-		}
-	}
-
-	// 左側のツールバー
-	{
-		constexpr ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoFocusOnAppearing |
-			ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-		constexpr float iconSize  = 40; // アイコンのサイズを設定
-		constexpr float iconScale = 0.75f;
-
-		const ImVec2 toolbarIconSize = ImVec2(iconSize, iconSize);
-
-		ImGui::SetNextWindowBgAlpha(1.0f);
-		if (
-			ImGui::BeginViewportSideBar(
-				"##LeftToolbar",
-				ImGui::GetMainViewport(),
-				ImGuiDir_Left,
-				toolbarIconSize.x + windowPadding.x * 2.0f,
-				flags
-			)
-		) {
-			// ツールバー
-			{
-				ImGui::BeginDisabled();
-
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconSelect).c_str(), "",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_None
-				);
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconMove).c_str(), "",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_None
-				);
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconRotate).c_str(), "",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_None
-				);
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconScale).c_str(), "",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_None
-				);
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconPivot).c_str(), "",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_None
-				);
-
-				ImGui::Separator();
-
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconObject).c_str(), "",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_None
-				);
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconNANKABOX).c_str(), "",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_None
-				);
-
-				ImGuiWidgets::IconButton(
-					StrUtil::ConvertToUtf8(kIconTexture).c_str(),
-					"",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_None
-				);
-
-				ImGui::EndDisabled();
-			}
-			ImGui::End();
-		}
-	}
-
-	if (
-		ImGui::BeginViewportSideBar(
-			"##MainStatusBar",
-			ImGui::GetMainViewport(),
-			ImGuiDir_Down,
-			0.0f,
-			ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_MenuBar
-		)
-	) {
-		if (ImGui::BeginMenuBar()) {
-			//ImGui::PopStyleVar();
-
-			// ステータスバーの幅を取得
-			float statusBarWidth = ImGui::GetWindowWidth();
-
-			// アングルスナップ
-			{
-				const float windowHeight = ImGui::GetWindowSize().y;
-				const char* items[]      = {
-					"0.25°", "0.5°", "1°", "5°", "5.625°", "11.25°", "15°",
-					"22.5°", "30°", "45°", "90°"
-				};
-				static int  itemCurrentIndex = 6;
-				const char* comboLabel       = items[itemCurrentIndex];
-
-				ImGui::Text("Angle: ");
-
-				// 垂直中央に配置
-				float comboHeight = ImGui::GetFrameHeight();
-				float offsetY     = (windowHeight - comboHeight) * 0.5f;
-				ImGui::SetCursorPosY(offsetY);
-
-				// コンボボックスの幅をステータスバーの幅に合わせて調整
-				ImGui::PushItemWidth(statusBarWidth * 0.2f);
-				if (ImGui::BeginCombo("##angle", comboLabel)) {
-					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
-						const bool isSelected = (itemCurrentIndex == n);
-						if (ImGui::Selectable(items[n], isSelected)) {
-							itemCurrentIndex = n;
-							mAngleSnap       = std::stof(
-								items[itemCurrentIndex]);
-						}
-						if (isSelected) {
-							ImGui::SetItemDefaultFocus();
-						}
-					}
-					ImGui::EndCombo();
-				}
-				ImGui::PopItemWidth();
-			}
-
-			// グリッドスナップ
-			{
-				const float windowHeight = ImGui::GetWindowSize().y;
-				const char* items[]      = {
-					"0.125", "0.25", "0.5", "1", "2", "4", "8", "16", "32",
-					"64", "128", "256", "512"
-				};
-				static int  itemCurrentIndex = 9;
-				const char* comboLabel       = items[itemCurrentIndex];
-				ImGui::Text("Grid: ");
-				// 垂直中央に配置
-				float comboHeight = ImGui::GetFrameHeight();
-				float offsetY     = (windowHeight - comboHeight) * 0.5f;
-				ImGui::SetCursorPosY(offsetY);
-
-				// コンボボックスの幅をステータスバーの幅に合わせて調整
-				ImGui::PushItemWidth(statusBarWidth * 0.2f);
-				ImGui::PushID("GridCombo"); // IDの衝突を避けるためにプッシュ
-
-				if (ImGui::BeginCombo("##grid", comboLabel)) {
-					for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
-						const bool isSelected = (itemCurrentIndex == n);
-						if (ImGui::Selectable(items[n], isSelected)) {
-							itemCurrentIndex = n;
-							// 選択された文字列を浮動小数点数に変換してgridSize_に設定
-							mGridSize = std::stof(items[itemCurrentIndex]);
-						}
-						if (isSelected) {
-							ImGui::SetItemDefaultFocus();
-						}
-					}
-					ImGui::EndCombo();
-				}
-
-				// コンボボックスにマウスオーバーしている時にホイールで操作
-				if (ImGui::IsItemHovered()) {
-					float wheel = ImGui::GetIO().MouseWheel;
-					if (wheel != 0.0f) {
-						itemCurrentIndex -= static_cast<int>(wheel);
-						itemCurrentIndex = std::clamp(
-							itemCurrentIndex, 0, IM_ARRAYSIZE(items) - 1);
-						// 選択された文字列を浮動小数点数に変換してgridSize_に設定
-						mGridSize = std::stof(items[itemCurrentIndex]);
-					}
-				}
-
-				ImGui::PopID();
-				ImGui::PopItemWidth();
-			}
-
-			ImGui::EndMenuBar();
-		}
-		ImGui::End();
-	}
-#endif
-
-	// グリッドの表示
-	DrawGrid(
-		mGridSize,
-		mGridRange,
-		{0.28f, 0.28f, 0.28f, 1.0f},
-		{0.39f, 0.2f, 0.02f, 1.0f},
-		{0.0f, 0.39f, 0.39f, 1.0f},
-		{0.39f, 0.39f, 0.39f, 1.0f},
-		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
-		mGridSize * 32.0f
-	);
-
-	if (auto currentScene = mSceneManager->GetCurrentScene()) {
-		currentScene->Update(mGameTime->ScaledDeltaTime<float>());
-	}
-
-#ifdef _DEBUG
-	// ギズモの操作はエンティティの更新が終わった後に行う
-	Vec2 vLT   = Unnamed::Engine::GetViewportLT();
-	Vec2 vSize = Unnamed::Engine::GetViewportSize();
-	ImGuizmo::SetRect(
-		vLT.x, vLT.y,
-		vSize.x, vSize.y
-	);
-
-	auto camera = CameraManager::GetActiveCamera();
-	Mat4 view   = camera->GetViewMat();
-	Mat4 proj   = camera->GetProjMat();
-
-	if (mSelectedEntity) {
-		Mat4 worldMat = mSelectedEntity->GetTransform()->GetLocalMat();
-
-		static ImGuizmo::MODE      mode      = ImGuizmo::MODE::LOCAL;
-		static ImGuizmo::OPERATION operation = ImGuizmo::OPERATION::TRANSLATE;
-
-		static bool bIsWorldMode = true;
-		if (InputSystem::IsTriggered("toggleGizmo")) {
-			bIsWorldMode = !bIsWorldMode;
-		}
-
-		if (bIsWorldMode) {
-			mode = ImGuizmo::MODE::WORLD;
-		} else {
-			mode = ImGuizmo::MODE::LOCAL;
-		}
-
-		auto snapValue = Vec3(mGridSize, mGridSize, mGridSize);
-
-		if (InputSystem::IsTriggered("bounds")) {
-			operation = ImGuizmo::OPERATION::BOUNDS;
-		}
-
-		if (InputSystem::IsTriggered("translate")) {
-			operation = ImGuizmo::OPERATION::TRANSLATE;
-			snapValue = Math::HtoM(Vec3(mGridSize, mGridSize, mGridSize));
-		}
-		if (InputSystem::IsTriggered("rotate")) {
-			operation = ImGuizmo::OPERATION::ROTATE;
-			snapValue = {
-				mAngleSnap * Math::deg2Rad,
-				mAngleSnap * Math::deg2Rad,
-				mAngleSnap * Math::deg2Rad
-			}; // ラジアンに変換
-		}
-		if (InputSystem::IsTriggered("scale")) {
-			operation = ImGuizmo::OPERATION::SCALE;
-			snapValue = Math::HtoM(Vec3(mGridSize, mGridSize, mGridSize));
-		}
-
-		if (operation == ImGuizmo::OPERATION::ROTATE) {
-			snapValue = Vec3(
-				mAngleSnap,
-				mAngleSnap,
-				mAngleSnap
-			); // ラジアンに変換
-		}
-
-		mIsManipulating = ImGuizmo::Manipulate(
-			*view.m,
-			*proj.m,
-			operation,
-			mode,
-			*worldMat.m,
-			nullptr,
-			&snapValue.x
-		);
-
-		if (mIsManipulating) {
-			mSelectedEntity->GetTransform()->SetLocalPos(
-				worldMat.GetTranslate()
-			);
-			mSelectedEntity->GetTransform()->SetLocalRot(
-				Quaternion::Euler(worldMat.GetRotate()).Inverse()
-			);
-			mSelectedEntity->GetTransform()->SetLocalScale(
-				worldMat.GetScale()
-			);
-		}
-	}
 #endif
 }
 

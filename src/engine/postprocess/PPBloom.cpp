@@ -163,8 +163,8 @@ void PPBloom::CreatePipelineState() {
 
 	pso.SetRootSignature(mRootSignature.Get());
 	pso.SetInputLayout({});
-	pso.SetVertexShader(L"./resources/shaders/Bloom.VS.hlsl");
-	pso.SetPixelShader(L"./resources/shaders/Bloom.PS.hlsl");
+	pso.SetVertexShader(L"./content/core/shaders/Bloom.VS.hlsl");
+	pso.SetPixelShader(L"./content/core/shaders/Bloom.PS.hlsl");
 	pso.SetBlendMode(kBlendModeNone);
 
 	pso.Create(mDevice);

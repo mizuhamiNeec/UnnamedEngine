@@ -65,49 +65,6 @@ namespace Unnamed {
 		mConsoleSystem = ServiceLocator::Get<ConsoleSystem>();
 		mTimeSystem    = ServiceLocator::Get<TimeSystem>();
 
-		static UnnamedConVar cv_test(
-			"test",
-			Math::pi,
-			FCVAR::NONE
-		);
-
-		static UnnamedConVar<std::string> cv_test1(
-			"test1",
-			"くぁｗせｄｒｆｔｇｙふじこｌｐ；＠：「」",
-			FCVAR::NONE
-		);
-
-		static UnnamedConVar cv_test2(
-			"test2",
-			false,
-			FCVAR::NONE
-		);
-		static UnnamedConVar cv_test3(
-			"test3",
-			65535,
-			FCVAR::NONE
-		);
-		static UnnamedConVar cv_test4(
-			"test4",
-			DBL_MAX,
-			FCVAR::NONE
-		);
-
-		static UnnamedConCommand con_test(
-			"なんかするコマンド",
-			[]([[maybe_unused]] std::vector<std::string> args) {
-				Msg("Test", "へっへっへっへっへっへ");
-				return true;
-			},
-			"なんかします。",
-			FCVAR::NONE
-		);
-
-		mConsoleSystem->Test();
-		mConsoleSystem->ExecuteCommand(
-			"なんかするコマンド;なんかするコマンド;なんかするコマンド;なんかするコマンド;なんかするコマンド;なんかするコマンド;なんかするコマンド;なんかするコマンド;;;;;;;;;;;;;;;;;;"
-		);
-
 		//---------------------------------------------------------------------
 		// Purpose: 旧エンジン
 		//---------------------------------------------------------------------
@@ -1115,12 +1072,16 @@ namespace Unnamed {
 		ConVarManager::RegisterConVar<float>("sv_accelerate", 10.0f,
 		                                     "Linear acceleration amount (old value is 5.6)");
 		ConVarManager::RegisterConVar<float>("sv_airaccelerate", 12.0f);
-		ConVarManager::RegisterConVar<float>("sv_maxspeed", 800.0f,
+		ConVarManager::RegisterConVar<float>("sv_maxspeed", 320.0f,
 		                                     "Maximum speed a player can move.");
 		ConVarManager::RegisterConVar<float>("sv_stopspeed", 100.0f,
 		                                     "Minimum stopping speed when on ground.");
 		ConVarManager::RegisterConVar<
 			float>("sv_friction", 4.0f, "World friction.");
+		ConVarManager::RegisterConVar<float>("sv_stepsize", 18.0f,
+		                                     "Maximum step height.");
+		ConVarManager::RegisterConVar<float>("sv_overbounce", 1.05f,
+		                                     "Overbounce factor.");
 
 		// デバッグ用にエンティティのaxisを表示するためのコンソール変数
 		ConVarManager::RegisterConVar<int>("ent_axis", 0, "Show entity axis");

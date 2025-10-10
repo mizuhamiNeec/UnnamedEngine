@@ -9,7 +9,6 @@ class Object3DCommon;
 class ParticleManager;
 class SpriteCommon;
 class ResourceManager;
-class Engine;
 class EngineTimer;
 
 class BaseScene {

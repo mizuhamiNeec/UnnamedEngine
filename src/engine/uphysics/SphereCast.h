@@ -13,6 +13,20 @@ namespace UPhysics {
 			Vec3&           outNormal
 		) const override;
 
+		bool OverlapAtStart(
+			const Unnamed::Triangle& triangle,
+			float&          depth,
+			Vec3&           normal
+		) const override;
+
+		Vec3 ComputeImpactPoint(
+			const Vec3& start,
+			const Vec3& dirNormalized,
+			float       length,
+			float       toi,
+			const Vec3& normal
+		) const override;
+
 		Vec3  center;
 		float radius;
 	};

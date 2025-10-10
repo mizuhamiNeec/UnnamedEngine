@@ -13,6 +13,12 @@ namespace UPhysics {
 			Vec3&           normal
 		) const override;
 
+		bool OverlapAtStart(
+			const Unnamed::Triangle& tri,
+			float&          depth,
+			Vec3&           normal
+		) const override;
+
 		Vec3 start;
 		Vec3 invDir;
 	};

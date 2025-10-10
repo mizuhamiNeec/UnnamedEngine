@@ -78,6 +78,9 @@ project "DirectXTex"
 	ConfigurationSettings()
 	CommonSettings()
 	
+	targetdir(path.join(BIN_DIR, outputdir, "%{prj.name}"))
+	objdir(path.join(INT_DIR, outputdir, "%{prj.name}"))
+	
 	files {
 		"src/thirdparty/DirectXTex/*.h",
 		"src/thirdparty/DirectXTex/*.cpp",

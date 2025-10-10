@@ -149,8 +149,8 @@ void PPRadialBlur::CreatePipelineState() {
 	};
 	pso.SetRootSignature(mRootSig.Get());
 	pso.SetInputLayout({});
-	pso.SetVertexShader(L"./resources/shaders/RadialBlur.VS.hlsl");
-	pso.SetPixelShader(L"./resources/shaders/RadialBlur.PS.hlsl");
+	pso.SetVertexShader(L"./content/core/shaders/RadialBlur.VS.hlsl");
+	pso.SetPixelShader(L"./content/core/shaders/RadialBlur.PS.hlsl");
 	pso.SetBlendMode(kBlendModeNone);
 	pso.Create(mDevice);
 	mPso = pso.Get();

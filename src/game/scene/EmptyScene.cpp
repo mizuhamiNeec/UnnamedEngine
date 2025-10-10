@@ -9,20 +9,22 @@
 EmptyScene::~EmptyScene() = default;
 
 void EmptyScene::Init() {
-	mRenderer   = Unnamed::Engine::GetRenderer();
+	mRenderer = Unnamed::Engine::GetRenderer();
 	mSrvManager = Unnamed::Engine::GetSrvManager();
 
 	mResourceManager = Unnamed::Engine::GetResourceManager();
 
 	{
+		TexManager::GetInstance()->LoadTexture("./content/core/textures/uvChecker.png", false);
+
 		TexManager::GetInstance()->LoadTexture(
-			"./resources/textures/wave.dds", true
+			"./content/core/textures/wave.dds", true
 		);
 
 		mCubeMap = std::make_unique<CubeMap>(
 			mRenderer->GetDevice(),
 			mSrvManager,
-			"./resources/textures/wave.dds"
+			"./content/core/textures/wave.dds"
 		);
 	}
 
@@ -32,13 +34,13 @@ void EmptyScene::Init() {
 	);
 
 	mResourceManager->GetMeshManager()->LoadMeshFromFile(
-		"./resources/models/reflectionTest.obj"
+		"./content/core/models/reflectionTest.obj"
 	);
 
 	auto meshRenderer = mMeshEntity->AddComponent<StaticMeshRenderer>();
 	meshRenderer->SetStaticMesh(
 		mResourceManager->GetMeshManager()->GetStaticMesh(
-			"./resources/models/reflectionTest.obj"
+			"./content/core/models/reflectionTest.obj"
 		)
 	);
 
@@ -58,7 +60,7 @@ void EmptyScene::Init() {
 
 void EmptyScene::Update(const float deltaTime) {
 	// 基本的な更新処理
-	//mCubeMap->Update(deltaTime);
+	mCubeMap->Update(deltaTime);
 
 
 	// シーン内のすべてのエンティティを更新
@@ -72,9 +74,9 @@ void EmptyScene::Update(const float deltaTime) {
 }
 
 void EmptyScene::Render() {
-	// if (mCubeMap) {
-	// 	mCubeMap->Render(mRenderer->GetCommandList());
-	// }
+	if (mCubeMap) {
+		mCubeMap->Render(mRenderer->GetCommandList());
+	}
 
 	for (auto entity : mEntities) {
 		if (entity->IsActive()) {

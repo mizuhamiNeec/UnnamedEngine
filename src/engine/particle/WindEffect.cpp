@@ -10,6 +10,7 @@
 #include <runtime/core/math/Math.h>
 
 #include "game/components/GameMovementComponent.h"
+#include "game/components/Movement.h"
 
 WindEffect::~WindEffect() {
 	if (mWindParticle) {
@@ -19,12 +20,12 @@ WindEffect::~WindEffect() {
 }
 
 void WindEffect::Init([[maybe_unused]] ParticleManager* particleManager,
-                      GameMovementComponent*            playerMovement) {
+                      Movement*                         playerMovement) {
 	mPlayerMovement = playerMovement;
 
 	// 風パーティクル用のオブジェクト初期化
 	mWindParticle = std::make_unique<ParticleObject>();
-	mWindParticle->Init(particleManager, "./resources/textures/circle.png");
+	mWindParticle->Init(particleManager, "./content/core/textures/circle.png");
 }
 
 void WindEffect::Update([[maybe_unused]] const float deltaTime) {
@@ -33,7 +34,7 @@ void WindEffect::Update([[maybe_unused]] const float deltaTime) {
 	}
 
 	// プレイヤーの速度ベクトル
-	const Vec3  playerVelocity = mPlayerMovement->Velocity();
+	const Vec3  playerVelocity = mPlayerMovement->GetVelocity();
 	const float playerSpeed    = playerVelocity.Length();
 
 	// 速度が閾値を超えている場合のみエフェクトを表示
@@ -110,7 +111,7 @@ Vec3 WindEffect::GetRandomPositionInPlayerDirection() const {
 	                                        GetWorldPos();
 
 	// 進行方向ベクトル
-	Vec3 moveDir = mPlayerMovement->Velocity().Normalized();
+	Vec3 moveDir = mPlayerMovement->GetVelocity().Normalized();
 	if (moveDir.Length() < 0.01f) {
 		moveDir = camera->GetViewMat().Inverse().GetForward(); // ほぼ静止時はカメラ前方でも
 	}

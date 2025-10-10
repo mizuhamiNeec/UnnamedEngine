@@ -28,8 +28,8 @@ namespace Unnamed {
 	};
 
 	struct AABB {
-		Vec3 min = Vec3(FLT_MIN);
-		Vec3 max = Vec3(FLT_MAX);
+		Vec3 min = Vec3(FLT_MAX);
+		Vec3 max = Vec3(-FLT_MAX);
 
 		void Expand(const Vec3& point);
 		void Expand(const AABB& aabb);

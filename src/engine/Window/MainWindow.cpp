@@ -39,17 +39,18 @@ bool MainWindow::Create(const WindowInfo info) {
 	}
 	timeBeginPeriod(1); // システムタイマーの分解能を上げる
 
-	WNDCLASSEX wc    = {};
-	wc.cbSize        = sizeof(WNDCLASSEX);
-	wc.style         = CS_HREDRAW | CS_VREDRAW;
-	wc.lpfnWndProc   = StaticWindowProc;
-	wc.hInstance     = info_.hInstance;
-	wc.hCursor       = LoadCursor(nullptr, IDC_ARROW);
-	wc.hbrBackground = GetSysColorBrush(COLOR_BACKGROUND);
-	wc.lpszMenuName  = nullptr;
-	wc.lpszClassName = StrUtil::ToWString(info_.className).c_str();
-	wc.hIcon         = LoadIcon(nullptr, IDI_APPLICATION);
-	wc.hIconSm       = LoadIcon(info_.hInstance, IDI_APPLICATION);
+	WNDCLASSEX wc           = {};
+	wc.cbSize               = sizeof(WNDCLASSEX);
+	wc.style                = CS_HREDRAW | CS_VREDRAW;
+	wc.lpfnWndProc          = StaticWindowProc;
+	wc.hInstance            = info_.hInstance;
+	wc.hCursor              = LoadCursor(nullptr, IDC_ARROW);
+	wc.hbrBackground        = GetSysColorBrush(COLOR_BACKGROUND);
+	wc.lpszMenuName         = nullptr;
+	std::wstring classNameW = StrUtil::ToWString(info_.className);
+	wc.lpszClassName        = classNameW.c_str();
+	wc.hIcon                = LoadIcon(nullptr, IDI_APPLICATION);
+	wc.hIconSm              = LoadIcon(info_.hInstance, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc)) {
 		Console::Print(

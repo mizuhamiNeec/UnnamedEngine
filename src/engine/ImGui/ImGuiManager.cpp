@@ -37,14 +37,14 @@ ImGuiManager::ImGuiManager(D3D12*      renderer,
 
 	// Ascii
 	io.Fonts->AddFontFromFileTTF(
-		R"(.\Resources\Fonts\JetBrainsMono.ttf)", 16.0f, &imFontConfig,
+		R"(.\content\core\fonts\JetBrainsMono.ttf)", 16.0f, &imFontConfig,
 		io.Fonts->GetGlyphRangesDefault()
 	);
 	imFontConfig.MergeMode = true;
 
 	// 日本語フォールバック
 	io.Fonts->AddFontFromFileTTF(
-		R"(.\Resources\Fonts\NotoSansJP.ttf)", 16.0f, &imFontConfig,
+		R"(.\content\core\fonts\NotoSansJP.ttf)", 16.0f, &imFontConfig,
 		GetGlyphRangesJapanese()
 	);
 
@@ -53,7 +53,7 @@ ImGuiManager::ImGuiManager(D3D12*      renderer,
 
 	static constexpr ImWchar iconRanges[] = {0xe003, 0xf8ff, 0};
 	io.Fonts->AddFontFromFileTTF(
-		R"(.\Resources\Fonts\MaterialSymbolsRounded_Filled_28pt-Regular.ttf)",
+		R"(.\content\core\fonts\MaterialSymbolsRounded_Filled_28pt-Regular.ttf)",
 		24.0f, &imFontConfig, iconRanges
 	);
 

@@ -63,7 +63,7 @@ D3D12::~D3D12() {
 void D3D12::Init() {
 	ConVarManager::RegisterConVar<bool>("r_clear", true, "Clear the screen",
 	                                    ConVarFlags::ConVarFlags_Notify);
-	ConVarManager::RegisterConVar<int>("r_vsync", 0, "Enable VSync",
+	ConVarManager::RegisterConVar<int>("r_vsync", 1, "Enable VSync",
 	                                   ConVarFlags::ConVarFlags_Notify);
 }
 

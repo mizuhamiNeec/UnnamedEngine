@@ -10,14 +10,15 @@ namespace Unnamed {
 	ConsoleUI::ConsoleUI(
 		ConsoleSystem* consoleSystem
 	) : mConsoleSystem(consoleSystem) {
-		if (ImGui::GetCurrentContext()) {
-			bIsImGuiInitialized = true;
-		} else {
-			Warning(
-				"ConsoleUI",
-				"ImGuiが初期化されていないため、コンソールUIは表示されません。"
-			);
-		}
+		//bIsImGuiInitialized = true;
+		// if (ImGui::GetCurrentContext() != nullptr) {
+		// 	
+		// } else {
+		// 	Warning(
+		// 		"ConsoleUI",
+		// 		"ImGuiが初期化されていないため、コンソールUIは表示されません。"
+		// 	);
+		// }
 	}
 
 	/// @brief コンソールUIを表示します。

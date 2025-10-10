@@ -1,4 +1,5 @@
-﻿#pragma once
+#pragma once
+#include <cmath>
 #include <engine/Debug/Debug.h>
 #include <engine/uphysics/BVH.h>
 #include <engine/uphysics/BVHBuilder.h>
@@ -16,13 +17,13 @@ namespace UPhysics {
 
 		bool RayCast(
 			const Unnamed::Ray& ray,
-			Hit*       outHit
+			Hit*                outHit
 		) const;
 
 		bool BoxCast(
-			const Unnamed::Box&  box,
-			const Vec3& dir,
-			float       length, Hit* outHit
+			const Unnamed::Box& box,
+			const Vec3&         dir,
+			float               length, Hit* outHit
 		) const;
 
 		bool SphereCast(
@@ -35,40 +36,47 @@ namespace UPhysics {
 
 		bool BoxOverlap(
 			const Unnamed::Box& box,
-			Hit*       outHit
+			Hit*                outHit
 		) const;
 
 		int BoxOverlap(
 			const Unnamed::Box& box,
-			Hit*       outHit,
-			int        maxHits
+			Hit*                outHit,
+			int                 maxHits
 		) const;
 
 	private:
 		template <class CastType>
 		static bool CastBVH(
-			const CastType&                   cast,
-			const Vec3&                       start,
-			const Vec3&                       dir,
-			float                             length,
-			Hit*                              outHit,
-			const std::vector<RegisteredBVH>& bvhSet,
-			const std::vector<Unnamed::Triangle>&      allTriangles
+			const CastType&                       cast,
+			const Vec3&                           start,
+			const Vec3&                           dir,
+			float                                 length,
+			Hit*                                  outHit,
+			const std::vector<RegisteredBVH>&     bvhSet,
+			const std::vector<Unnamed::Triangle>& allTriangles
 		) {
 			// まずは各BVHのルートのAABBとレイが交差するかを確認
 			// してなきゃ意味ないからね! これが噂のブロードフェーズ!
 			std::vector<const RegisteredBVH*> filtered;
-			const Unnamed::Ray                         broadRay = {
+			const Unnamed::Ray                broadRay = {
 				.origin = start,
 				.dir = dir,
 				.invDir = Vec3::one / dir,
 				.tMin = 0.0f,
 				.tMax = length
 			};
+			Vec3 dirNormalized = dir;
+			const float dirLenSq = dirNormalized.SqrLength();
+			if (dirLenSq > 1e-12f) {
+				dirNormalized /= std::sqrt(dirLenSq);
+			} else {
+				dirNormalized = Vec3::zero;
+			}
 
 			for (const auto& bvh : bvhSet) {
-				Unnamed::AABB  root = cast.ExpandNode(bvh.nodes[0].bounds);
-				float t    = length;
+				Unnamed::AABB root = cast.ExpandNode(bvh.nodes[0].bounds);
+				float         t    = length;
 				if (RayVsAABB(broadRay, root, t)) {
 					filtered.emplace_back(&bvh);
 				}
@@ -96,7 +104,6 @@ namespace UPhysics {
 					const auto&    node  = bvh->nodes[index];
 
 #ifdef _DEBUG
-					// 2秒に1回程度
 					Vec3 center = (node.bounds.min + node.bounds.max) *
 						0.5f;
 					const Vec3 size = node.bounds.max - node.bounds.min;
@@ -109,9 +116,9 @@ namespace UPhysics {
 #endif
 
 					// 現在の最良TOIを使った早期終了
-					Unnamed::Ray pruneRay  = broadRay;
-					pruneRay.tMax = bestTOI * length;
-					float tBox    = bestTOI * length;
+					Unnamed::Ray pruneRay = broadRay;
+					pruneRay.tMax         = bestTOI * length;
+					float tBox            = bestTOI * length;
 					if (
 						!RayVsAABB(
 							pruneRay,
@@ -152,9 +159,23 @@ namespace UPhysics {
 				return false; // 残念!
 			}
 			if (outHit) {
-				outHit->t        = bestTOI * length;
-				outHit->pos      = start + dir * outHit->t;
-				outHit->normal   = hitNormal;
+				Vec3 finalNormal = hitNormal;
+				const float nLenSq = finalNormal.SqrLength();
+				if (nLenSq > 1e-12f) {
+					finalNormal /= std::sqrt(nLenSq);
+				} else {
+					finalNormal = Vec3::up;
+				}
+				const float hitDistance = bestTOI * length;
+				outHit->t        = hitDistance;
+				outHit->normal   = finalNormal;
+				outHit->pos      = cast.ComputeImpactPoint(
+					start,
+					dirNormalized,
+					length,
+					bestTOI,
+					finalNormal
+				);
 				outHit->triIndex = hitTri;
 			}
 			return true;
@@ -164,8 +185,8 @@ namespace UPhysics {
 		                            uint32_t               base);
 
 		std::vector<Unnamed::Triangle> mTriangles;
-		std::vector<FlatNode> mNodes;
-		std::vector<uint32_t> mTriIndices;
+		std::vector<FlatNode>          mNodes;
+		std::vector<uint32_t>          mTriIndices;
 
 		std::vector<RegisteredBVH> mBVHs;
 	};
