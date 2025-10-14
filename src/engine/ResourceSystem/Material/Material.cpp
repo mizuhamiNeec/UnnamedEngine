@@ -477,23 +477,23 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature(
 			param.DescriptorTable.pDescriptorRanges = srvRanges.data();
 			desc.parameters.emplace_back(param);
 
-			// サンプラーの追加
-			D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
-			samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-			samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			samplerDesc.MipLODBias = 0;
-			samplerDesc.MaxAnisotropy = 0;
-			samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-			samplerDesc.BorderColor =
-				D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-			samplerDesc.MinLOD           = 0.0f;
-			samplerDesc.MaxLOD           = D3D12_FLOAT32_MAX;
-			samplerDesc.ShaderRegister   = 0;
-			samplerDesc.RegisterSpace    = 0;
-			samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-			desc.samplers.emplace_back(samplerDesc);
+		// サンプラーの追加
+		D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+		samplerDesc.Filter = D3D12_FILTER_ANISOTROPIC;
+		samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		samplerDesc.MipLODBias = 0;
+		samplerDesc.MaxAnisotropy = 16;
+		samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+		samplerDesc.BorderColor =
+			D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+		samplerDesc.MinLOD           = 0.0f;
+		samplerDesc.MaxLOD           = D3D12_FLOAT32_MAX;
+		samplerDesc.ShaderRegister   = 0;
+		samplerDesc.RegisterSpace    = 0;
+		samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		desc.samplers.emplace_back(samplerDesc);
 		}
 
 		// INPUT_LAYOUTフラグを設定
