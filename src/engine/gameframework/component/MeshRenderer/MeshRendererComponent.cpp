@@ -65,49 +65,20 @@ namespace Unnamed {
 			material.RealizeGPU(renderResourceManager, cmd);
 		}
 
-		if (mesh.vb.handle.id == 0 && meshAsset != kInvalidAssetID) {
-			const auto* m = renderResourceManager->GetAssetManager()->Get<
-				MeshAssetData>(meshAsset);
-			if (!m || m->positions.empty() || m->indices.empty()) {
+		// メッシュの取得（共有機構を使用）
+		if (!meshHandle.IsValid() && meshAsset != kInvalidAssetID) {
+			meshHandle = renderResourceManager->AcquireMesh(meshAsset);
+			if (!meshHandle.IsValid()) {
 				Error(
 					kChannel,
-					"Mesh asset is invalid: {}",
-					renderResourceManager->GetAssetManager()->Meta(meshAsset).
-					                       name.c_str()
+					"Failed to acquire mesh: {}",
+					renderResourceManager->GetAssetManager()->Meta(meshAsset).name.c_str()
 				);
 				return false;
 			}
-
-			const auto vcount = m->positions.size();
-
-			std::vector<VertexPNUV> verts(vcount);
-
-			for (size_t i = 0; i < vcount; ++i) {
-				verts[i].position = m->positions[i];
-				verts[i].normal   = m->normals[i];
-				verts[i].uv       = m->uv0[i];
-			}
-
-			renderResourceManager->CreateStaticVertexBuffer(
-				verts.data(),
-				verts.size() * sizeof(VertexPNUV),
-				sizeof(VertexPNUV),
-				mesh.vb
-			);
-
-			renderResourceManager->CreateStaticIndexBuffer(
-				m->indices.data(),
-				m->indices.size() * sizeof(uint32_t),
-				DXGI_FORMAT_R32_UINT,
-				mesh.ib
-			);
-
-			mesh.indexCount = static_cast<uint32_t>(m->indices.size());
-			mesh.firstIndex = 0;
-			mesh.baseVertex = 0;
 		}
 
-		mGPUReady = mesh.vb.handle.id != 0 && mesh.ib.handle.id != 0;
+		mGPUReady = meshHandle.IsValid();
 
 		return mGPUReady;
 	}
@@ -116,6 +87,13 @@ namespace Unnamed {
 		RenderResourceManager* renderResourceManager
 	) {
 		material.InvalidateGPU(renderResourceManager, nullptr, 0);
+		
+		// メッシュの解放
+		if (meshHandle.IsValid()) {
+			renderResourceManager->ReleaseMesh(meshHandle, nullptr, 0);
+			meshHandle = {};
+		}
+		
 		mGPUReady = false;
 	}
 }

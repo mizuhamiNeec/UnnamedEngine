@@ -19,8 +19,8 @@ namespace Unnamed {
 		AssetID meshAsset     = kInvalidAssetID;
 		AssetID materialAsset = kInvalidAssetID;
 
-		MeshGPU          mesh     = {};
-		UMaterialRuntime material = {};
+		MeshHandle       meshHandle = {};  // 共有メッシュのハンドル
+		UMaterialRuntime material   = {};
 
 		// MeshRendererComponent
 		[[nodiscard]] std::string_view GetComponentName() const override {
