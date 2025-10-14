@@ -534,8 +534,10 @@ namespace Unnamed {
 	}
 
 	FrameContext GraphicsDevice::BeginFrame(const Vec4 clearColor) const {
+		const uint32_t waitIndex = (mBackBufferIndex + 1) % kFrameBufferCount;
+		WaitGPU(waitIndex);
+
 		auto& frameContext = mFrameContexts[mBackBufferIndex];
-		WaitGPU(mBackBufferIndex);
 
 		THROW(frameContext.commandAllocator->Reset());
 		THROW(

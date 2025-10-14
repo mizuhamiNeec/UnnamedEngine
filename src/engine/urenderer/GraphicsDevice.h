@@ -10,14 +10,11 @@
 #include <runtime/core/Properties.h>
 
 #include <runtime/core/math/Math.h>
+#include <runtime/render/types/RenderTypes.h>
 
 #include <wrl/client.h>
 
 namespace Unnamed {
-	struct BufferHandle {
-		uint32_t id = 0;
-	};
-
 	struct DescriptorHandle {
 		uint32_t                    index = UINT32_MAX;
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu   = {};
