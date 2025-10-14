@@ -4,6 +4,8 @@
 
 #include <engine/gameframework/component/Camera/UCameraComponent.h>
 #include <engine/gameframework/component/MeshRenderer/MeshRendererComponent.h>
+#include <engine/gameframework/component/Rotator/RotatorComponent.h>
+#include <engine/gameframework/component/Transform/TransformComponent.h>
 #include <engine/subsystem/console/ConsoleSystem.h>
 #include <engine/subsystem/input/KeyNameTable.h>
 #include <engine/subsystem/input/UInputSystem.h>
@@ -20,8 +22,6 @@
 #include <runtime/assets/loaders/MeshLoader.h>
 #include <runtime/assets/loaders/RawLoader.h>
 #include <runtime/assets/loaders/ShaderLoader.h>
-
-#include "engine/gameframework/component/Transform/TransformComponent.h"
 
 namespace Unnamed {
 	constexpr std::string_view kChannel = "Engine";
@@ -158,6 +158,25 @@ namespace Unnamed {
 				-1.0f
 			);
 
+			auto q = KeyNameTable::FromString("q");
+			mInputSystem->BindAxis1D(
+				"vertical",
+				{
+					.device = q->device,
+					.code = q->code
+				},
+				-1.0f
+			);
+			auto e = KeyNameTable::FromString("e");
+			mInputSystem->BindAxis1D(
+				"vertical",
+				{
+					.device = e->device,
+					.code = e->code
+				},
+				1.0f
+			);
+
 			mInputSystem->BindAxis2D(
 				"mouse",
 				{
@@ -203,7 +222,7 @@ namespace Unnamed {
 		mUploadArena = std::make_unique<UploadArena>();
 		mUploadArena->Init(
 			mGraphicsDevice->Device(),
-			128ull * 1024 * 1024 // 128MB/Frame
+			16ull * 1024 * 1024 // 128MB/Frame
 		);
 
 		// RRMの作成と初期化
@@ -226,6 +245,7 @@ namespace Unnamed {
 			mGraphicsDevice.get(), mRootSignatureCache.get()
 		);
 
+		// RenderSubsystemの作成と初期化、サービスロケーターに登録
 		mSubsystems.emplace_back(
 			std::make_unique<URenderSubsystem>(
 				mGraphicsDevice.get(),
@@ -239,7 +259,7 @@ namespace Unnamed {
 		mRenderer = ServiceLocator::Get<URenderSubsystem>();
 		mRenderer->Init();
 
-		mWorld = std::make_unique<UWorld>("Main");
+		mWorld = std::make_unique<UWorld>("Sandbox");
 
 		{
 			mr.materialAsset = mAssetManager->LoadFromFile(
@@ -260,15 +280,34 @@ namespace Unnamed {
 			);
 			mAssetManager->AddRef(meshAsset);
 
-			auto* e            = mWorld->SpawnEmpty("OBJ");
-			auto* tr           = e->GetOrAddComponent<TransformComponent>();
-			auto* meshRenderer = e->GetOrAddComponent<MeshRendererComponent>();
+			// グリッドでエンティティをスポーン
+			constexpr int   rows    = 32;
+			constexpr int   cols    = 32;
+			constexpr float spacing = 4.0f;
+			constexpr float offsetX = (cols - 1) * spacing * 0.5f;
+			constexpr float offsetZ = (rows - 1) * spacing * 0.5f;
 
-			meshRenderer->meshAsset     = meshAsset;
-			meshRenderer->material      = mr;
-			meshRenderer->materialAsset = mr.materialAsset;
+			for (int i = 0; i < rows; ++i) {
+				for (int j = 0; j < cols; ++j) {
+					std::string name = "Entity_" + std::to_string(i) + "_" +
+						std::to_string(j);
+					auto* entity = mWorld->SpawnEmpty(name);
+					auto* tr = entity->GetOrAddComponent<TransformComponent>();
+					auto* meshRenderer = entity->GetOrAddComponent<
+						MeshRendererComponent>();
+					auto* rotator = entity->GetOrAddComponent<
+						RotatorComponent>();
+					rotator->SetRotationRate(Vec3::up * 15.0f);
 
-			tr->SetPosition(Vec3::forward * 4.0f);
+					meshRenderer->meshAsset     = meshAsset;
+					meshRenderer->material      = mr;
+					meshRenderer->materialAsset = mr.materialAsset;
+
+					const float x = static_cast<float>(j) * spacing - offsetX;
+					const float z = static_cast<float>(i) * spacing - offsetZ;
+					tr->SetPosition(Vec3(x, 0.0f, z));
+				}
+			}
 		}
 
 		{
@@ -372,10 +411,14 @@ namespace Unnamed {
 			auto mat     = mCameraTransform->WorldMat();
 			auto forward = mat.GetForward();
 			auto right   = mat.GetRight();
+			auto up      = mat.GetUp();
 
 			prevPos += forward * mInputSystem->Axis2D("move").y * speed *
 				deltaTime;
 			prevPos += right * mInputSystem->Axis2D("move").x * speed *
+				deltaTime;
+
+			prevPos += up * mInputSystem->Axis1D("vertical") * speed *
 				deltaTime;
 
 			mCameraTransform->SetPosition(prevPos);
