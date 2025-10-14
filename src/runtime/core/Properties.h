@@ -24,7 +24,7 @@ constexpr float kTitleBarH = 24.0f;
 //-----------------------------------------------------------------------------
 // Renderer
 //-----------------------------------------------------------------------------
-constexpr uint32_t kFrameBufferCount     = 3;
+constexpr uint32_t kFrameBufferCount     = 2;  // ダブルバッファリング
 constexpr uint32_t kMaxRenderTargetCount = 16;   // レンダーターゲットの最大数
 constexpr uint32_t kMaxSrvCount          = 8192; // SRVの最大数（大幅に増加）
 constexpr uint32_t kSrvIndexTop          = 1;    // ImGuiで0番を使用するため、1番から使用
