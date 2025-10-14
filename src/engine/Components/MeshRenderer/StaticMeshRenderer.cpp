@@ -275,18 +275,18 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 							auto texManager = TexManager::GetInstance();
 
 							for (const auto& [name, filePath] : textures) {
-								// テクスチャ情報をより詳細に表示
-								if (ImGui::TreeNode(
-									(name + ": " + filePath).c_str())) {
-									ImGui::Text("Slot名: %s", name.c_str());
-									ImGui::Text("ファイルパス: %s", filePath.c_str());
+					// テクスチャ情報をより詳細に表示
+					if (ImGui::TreeNode(
+						(name + ": " + filePath).c_str())) {
+						ImGui::Text("Slot名: %s", name.c_str());
+						ImGui::Text("ファイルパス: %s", filePath.c_str());
 
-									// テクスチャインデックス情報を表示
-									uint32_t textureIndex = texManager->
-										GetTextureIndexByFilePath(filePath);
-									ImGui::Text("テクスチャインデックス: %u",
-									            textureIndex);
-
+						// テクスチャインデックス情報を表示
+						uint32_t textureIndex = texManager->
+							GetTextureIndexByFilePath(filePath);
+						ImGui::Text("テクスチャインデックス: %u",
+						            textureIndex);
+						
 									// テクスチャのプレビューを表示
 									D3D12_GPU_DESCRIPTOR_HANDLE handle =
 										texManager->GetSrvHandleGPU(filePath);

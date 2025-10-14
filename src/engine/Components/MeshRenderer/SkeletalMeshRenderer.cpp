@@ -224,9 +224,9 @@ void SkeletalMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 			}
 
 			// マテリアルのApply（すべてのテクスチャがディスクリプタテーブルでバインドされる）
-			std::string meshName = mSkeletalMesh
-				                       ? mSkeletalMesh->GetName()
-				                       : "UnknownSkeletalMesh";
+			std::string meshName = mSkeletalMesh ?
+				                       mSkeletalMesh->GetName() :
+				                       "UnknownSkeletalMesh";
 
 			// ファイルパスからファイル名のみを抽出
 			size_t lastSlash = meshName.find_last_of("/\\");
@@ -270,11 +270,13 @@ void SkeletalMeshRenderer::DrawInspectorImGui() {
 			SetUseComputeShaderSkinning(useComputeShader);
 		}
 		if (mUseComputeShaderSkinning) {
-			ImGui::TextColored(ImVec4{0.0f, 1.0f, 0.0f, 1.0f}, "GPU Compute Skinning Active");
+			ImGui::TextColored(ImVec4{0.0f, 1.0f, 0.0f, 1.0f},
+			                   "GPU Compute Skinning Active");
 		} else {
-			ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.0f, 1.0f}, "CPU/Vertex Shader Skinning Active");
+			ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.0f, 1.0f},
+			                   "CPU/Vertex Shader Skinning Active");
 		}
-		
+
 		if (mSkeletalMesh) {
 			ImGui::Checkbox("Show Bone Debug", &mShowBoneDebug);
 
@@ -325,10 +327,10 @@ void SkeletalMeshRenderer::DrawInspectorImGui() {
 						            mCurrentAnimation->duration);
 
 						// アニメーション時間スライダー
-						float normalizedTime = mCurrentAnimation->duration > 0
-							                       ? mAnimationTime /
-							                       mCurrentAnimation->duration
-							                       : 0.0f;
+						float normalizedTime = mCurrentAnimation->duration > 0 ?
+							                       mAnimationTime /
+							                       mCurrentAnimation->duration :
+							                       0.0f;
 						if (ImGui::SliderFloat("Progress", &normalizedTime,
 						                       0.0f,
 						                       1.0f)) {
@@ -539,6 +541,10 @@ void SkeletalMeshRenderer::SetAnimationSpeed(float speed) {
 
 bool SkeletalMeshRenderer::IsAnimationPlaying() const {
 	return mIsPlaying;
+}
+
+void SkeletalMeshRenderer::SetAnimationTime(const float t) {
+	mAnimationTime = t;
 }
 
 float SkeletalMeshRenderer::GetAnimationTime() const {
