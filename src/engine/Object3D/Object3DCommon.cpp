@@ -94,11 +94,14 @@ void Object3DCommon::CreateRootSignature() {
 
 	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {
 		{
-			.Filter = D3D12_FILTER_ANISOTROPIC,          // バイリニアフィルタ
+			.Filter = D3D12_FILTER_ANISOTROPIC,          // 異方性フィルタ
 			.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP, // 0~1の範囲外をリピート
 			.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
 			.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+			.MipLODBias = 0.0f,
+			.MaxAnisotropy = 16,                              // 異方性フィルタリングの最大サンプル数
 			.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER,    // 比較しない
+			.MinLOD = 0.0f,
 			.MaxLOD = D3D12_FLOAT32_MAX,                      // ありったけのMipmapを使う
 			.ShaderRegister = 0,                              // レジスタ番号0を使う
 			.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL // PixelShaderで使う
