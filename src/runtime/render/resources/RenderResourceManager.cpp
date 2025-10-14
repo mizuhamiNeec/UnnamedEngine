@@ -2,7 +2,10 @@
 
 #include <runtime/assets/core/UAssetManager.h>
 #include <runtime/assets/types/TextureAsset.h>
+#include <runtime/assets/types/MeshAsset.h>
 #include <runtime/render/resources/RenderResourceManager.h>
+
+#include <engine/VertexFormats.h>
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -505,6 +508,10 @@ namespace Unnamed {
 		return total;
 	}
 
+	UploadArena* RenderResourceManager::GetUploadArena() const {
+		return mArena;
+	}
+
 	bool RenderResourceManager::CreateStaticVertexBuffer(
 		const void* data, const size_t bytes, const UINT stride, GpuVB& out
 	) const {
@@ -625,5 +632,199 @@ namespace Unnamed {
 		texture.format    = desc.Format;
 
 		return true;
+	}
+
+	MeshHandle RenderResourceManager::AcquireMesh(const AssetID meshAsset) {
+		std::scoped_lock lock(mMutex);
+
+		// すでに実体化しているか確認
+		if (auto it = mAssetToMesh.find(meshAsset); it != mAssetToMesh.end()) {
+			auto h = it->second;
+			if (h.id < mMeshes.size() && mMeshes[h.id].alive && 
+			    mMeshes[h.id].gen == h.gen) {
+				mMeshes[h.id].refs++;
+				Msg(
+					kChannel,
+					"Mesh cache hit: AssetID={}, refs={}",
+					meshAsset,
+					mMeshes[h.id].refs
+				);
+				return h;
+			}
+			// 古い/壊れている場合は作り直す
+		}
+
+		// アセットデータ取得
+		const auto* meshData = mAssetManager->Get<MeshAssetData>(meshAsset);
+		if (!meshData || meshData->positions.empty() || meshData->indices.empty()) {
+			Warning(
+				kChannel,
+				"Failed to get mesh asset data. AssetID={}",
+				meshAsset
+			);
+			return {};
+		}
+
+		// スロットの確保
+		uint32_t index;
+		if (!mFreeMeshList.empty()) {
+			index = mFreeMeshList.back();
+			mFreeMeshList.pop_back();
+			UASSERT(index < mMeshes.size());
+		} else {
+			index = static_cast<uint32_t>(mMeshes.size());
+			mMeshes.emplace_back();
+		}
+
+		auto& gpuMesh = mMeshes[index];
+		gpuMesh.alive = true;
+		gpuMesh.gen++;
+		gpuMesh.refs        = 1;
+		gpuMesh.sourceAsset = meshAsset;
+
+		// 頂点データの構築
+		const auto vcount = meshData->positions.size();
+		std::vector<VertexPNUV> verts(vcount);
+
+		for (size_t i = 0; i < vcount; ++i) {
+			verts[i].position = meshData->positions[i];
+			verts[i].normal   = meshData->normals[i];
+			verts[i].uv       = meshData->uv0[i];
+		}
+
+		// 頂点バッファ作成
+		const size_t vbSize = verts.size() * sizeof(VertexPNUV);
+		if (!CreateStaticVertexBuffer(
+			verts.data(),
+			vbSize,
+			sizeof(VertexPNUV),
+			gpuMesh.mesh.vb
+		)) {
+			Warning(kChannel, "Failed to create vertex buffer");
+			gpuMesh.alive = false;
+			mFreeMeshList.push_back(index);
+			return {};
+		}
+
+		// インデックスバッファ作成
+		const size_t ibSize = meshData->indices.size() * sizeof(uint32_t);
+		if (!CreateStaticIndexBuffer(
+			meshData->indices.data(),
+			ibSize,
+			DXGI_FORMAT_R32_UINT,
+			gpuMesh.mesh.ib
+		)) {
+			Warning(kChannel, "Failed to create index buffer");
+			gpuMesh.alive = false;
+			mFreeMeshList.push_back(index);
+			return {};
+		}
+
+		gpuMesh.mesh.indexCount = static_cast<uint32_t>(meshData->indices.size());
+		gpuMesh.mesh.firstIndex = 0;
+		gpuMesh.mesh.baseVertex = 0;
+		gpuMesh.vramBytes       = vbSize + ibSize;
+
+		MeshHandle handle = {index, gpuMesh.gen};
+		mAssetToMesh[meshAsset] = handle;
+
+		Msg(
+			kChannel,
+			"Mesh created: AssetID={}, VB={}KB, IB={}KB, Total={}KB",
+			meshAsset,
+			vbSize / 1024,
+			ibSize / 1024,
+			gpuMesh.vramBytes / 1024
+		);
+
+		return handle;
+	}
+
+	void RenderResourceManager::ReleaseMesh(
+		const MeshHandle handle,
+		ID3D12Fence*     fence,
+		const uint64_t   value
+	) {
+		std::scoped_lock lock(mMutex);
+
+		if (handle.id >= mMeshes.size()) {
+			return;
+		}
+
+		auto& gpuMesh = mMeshes[handle.id];
+		if (!gpuMesh.alive || gpuMesh.gen != handle.gen) {
+			return;
+		}
+
+		if (gpuMesh.refs > 0) {
+			gpuMesh.refs--;
+		}
+
+		Msg(
+			kChannel,
+			"Mesh released: AssetID={}, refs={}",
+			gpuMesh.sourceAsset,
+			gpuMesh.refs
+		);
+
+		// まだ参照がある場合は何もしない
+		if (gpuMesh.refs > 0) {
+			return;
+		}
+
+		// 参照が0になったらリタイア待ちに
+		if (fence) {
+			gpuMesh.retireFence  = fence;
+			gpuMesh.retireValue = value;
+		} else {
+			// フェンスがない場合は即座に解放
+			gpuMesh.alive = false;
+			mFreeMeshList.push_back(handle.id);
+
+			// マップから削除
+			for (auto it = mAssetToMesh.begin(); it != mAssetToMesh.end();) {
+				if (it->second.id == handle.id && it->second.gen == handle.gen) {
+					it = mAssetToMesh.erase(it);
+				} else {
+					++it;
+				}
+			}
+
+			Msg(
+				kChannel,
+				"Mesh freed immediately: AssetID={}",
+				gpuMesh.sourceAsset
+			);
+		}
+	}
+
+	const MeshGPU* RenderResourceManager::GetMesh(const MeshHandle handle) const {
+		std::scoped_lock lock(mMutex);
+
+		if (handle.id >= mMeshes.size()) {
+			return nullptr;
+		}
+
+		const auto& gpuMesh = mMeshes[handle.id];
+		if (!gpuMesh.alive || gpuMesh.gen != handle.gen) {
+			return nullptr;
+		}
+
+		return &gpuMesh.mesh;
+	}
+
+	uint32_t RenderResourceManager::MeshRefCount(const MeshHandle handle) const {
+		std::scoped_lock lock(mMutex);
+
+		if (handle.id >= mMeshes.size()) {
+			return 0;
+		}
+
+		const auto& gpuMesh = mMeshes[handle.id];
+		if (!gpuMesh.alive || gpuMesh.gen != handle.gen) {
+			return 0;
+		}
+
+		return gpuMesh.refs;
 	}
 }

@@ -10,6 +10,8 @@
 
 #include <wrl/client.h>
 
+#include <runtime/render/types/RenderTypes.h>
+
 namespace Unnamed {
 	class GraphicsDevice;
 	class UAssetManager;
@@ -20,6 +22,8 @@ namespace Unnamed {
 		uint32_t           gen = 0; // テクスチャの世代
 		[[nodiscard]] bool IsValid() const { return id != UINT32_MAX; }
 	};
+
+	// MeshHandleはRenderTypes.hで定義済み
 
 	class RenderResourceManager {
 	public:
@@ -55,15 +59,7 @@ namespace Unnamed {
 		[[nodiscard]] uint32_t GpuRefCount(TextureHandle handle) const;
 		[[nodiscard]] size_t   VramUsageBytes() const;
 
-		struct GpuVB {
-			BufferHandle handle;
-			UINT         stride = 0;
-		};
-
-		struct GpuIB {
-			BufferHandle handle;
-			DXGI_FORMAT  format = DXGI_FORMAT_R32_UINT;
-		};
+		UploadArena* GetUploadArena() const;
 
 		bool CreateStaticVertexBuffer(
 			const void* data, size_t bytes, UINT stride, GpuVB& out
@@ -77,6 +73,11 @@ namespace Unnamed {
 		                      const GpuVB&               vb) const;
 		void BindIndexBuffer(ID3D12GraphicsCommandList* cmd,
 		                     const GpuIB&               ib) const;
+
+		MeshHandle AcquireMesh(AssetID meshAsset);
+		void ReleaseMesh(MeshHandle handle, ID3D12Fence* fence, uint64_t value);
+		const MeshGPU* GetMesh(MeshHandle handle) const;
+		[[nodiscard]] uint32_t MeshRefCount(MeshHandle handle) const;
 
 	private:
 		struct GpuTexture {
@@ -93,6 +94,18 @@ namespace Unnamed {
 			uint32_t    h           = 0;
 			DXGI_FORMAT format      = DXGI_FORMAT_R8G8B8A8_UNORM;
 			size_t      vramBytes   = 0;
+		};
+
+		struct GpuMesh {
+			MeshGPU                             mesh;
+			uint32_t                            refs        = 0;
+			Microsoft::WRL::ComPtr<ID3D12Fence> retireFence;
+			uint64_t                            retireValue = 0;
+			bool                                alive       = false;
+			uint32_t                            gen         = 1;
+
+			AssetID sourceAsset = kInvalidAssetID;
+			size_t  vramBytes   = 0; // VB + IB のサイズ
 		};
 
 	private:
@@ -135,5 +148,9 @@ namespace Unnamed {
 		};
 
 		std::deque<PendingMipUpload> mDeferredMipUploads;
+
+		std::vector<GpuMesh>                     mMeshes;
+		std::vector<uint32_t>                    mFreeMeshList;
+		std::unordered_map<AssetID, MeshHandle>  mAssetToMesh;
 	};
 }
