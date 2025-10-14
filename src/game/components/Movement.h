@@ -160,16 +160,16 @@ private:
 	// params (Source 寄り)
 	static constexpr float kStepHeightHU   = 18.0f; // 72HUハルに対して既定
 	static constexpr float kCastSkinHU     = 0.25f;
-	static constexpr float kSkinHU         = 0.20f;
+	static constexpr float kSkinHU         = 0.25f;
 	static constexpr float kRestOffsetHU   = 0.75f;
-	static constexpr float kMaxAdhesionHU  = 4.0f;
+	static constexpr float kMaxAdhesionHU  = 2.0f;  // 接地維持の最大距離
 	static constexpr float kSnapVyMax      = 1.0f;  // m/s
 	static constexpr float kGroundEnterDeg = 45.0f; // 接地“になる”
 	static constexpr float kGroundExitDeg  = 47.0f; // 接地“やめる”
 	static constexpr int   kMaxClipPlanes  = 5;
 	static constexpr float kFracEps        = 1e-4f;
 	static constexpr float kAirSpeedCap    = 30.0f;
-	static constexpr float kJumpVelocityHu = 300.0f; // HU/s
+	static constexpr float kJumpVelocityHu = 400.0f; // HU/s
 
 	float StepHeightM() const { return Math::HtoM(kStepHeightHU); }
 	float CastSkinM() const { return Math::HtoM(kCastSkinHU); }
@@ -199,8 +199,7 @@ private:
 	static constexpr float kWallrunVerticalDamping   = 0.3f; // 地上ジャンプからの垂直速度減衰
 
 	// Double jump
-	static constexpr float kDoubleJumpVelocityHu = 268.3281572999747f;
-	// HU/s (Titanfall 2相当)
+	static constexpr float kDoubleJumpVelocityHu = 300.0f;
 
 	// Slide
 	void                   TryStartSlide();
