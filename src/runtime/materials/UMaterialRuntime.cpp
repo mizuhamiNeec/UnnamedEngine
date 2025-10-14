@@ -19,12 +19,12 @@ namespace Unnamed {
 
 	static D3D12_SAMPLER_DESC LinerWrap() {
 		D3D12_SAMPLER_DESC s = {};
-		s.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		s.Filter = D3D12_FILTER_ANISOTROPIC;
 		s.AddressU = s.AddressV = s.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 		s.MinLOD = 0.0f;
 		s.MaxLOD = D3D12_FLOAT32_MAX;
 		s.MipLODBias = 0.0f;
-		s.MaxAnisotropy = 1;
+		s.MaxAnisotropy = 16;
 		s.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 		return s;
 	}
@@ -206,14 +206,14 @@ namespace Unnamed {
 		s0.space             = 0;
 		rs.staticSamplers.emplace_back(s0);
 
-		for (auto param : rs.params) {
-			Msg(
-				kChannel,
-				"Params: Kind({}), {}",
-				static_cast<int>(param.kind),
-				param.cbvRegister
-			);
-		}
+		// for (auto param : rs.params) {
+		// 	Msg(
+		// 		kChannel,
+		// 		"Params: Kind({}), {}",
+		// 		static_cast<int>(param.kind),
+		// 		param.cbvRegister
+		// 	);
+		// }
 
 		root = rootSignatureCache->GetOrCreate(rs);
 		if (root.id == UINT32_MAX) {
@@ -245,20 +245,19 @@ namespace Unnamed {
 		// PSO
 		PipelineDesc pd  = {};
 		pd.rootSignature = root;
-		pd.inputLayout   = {
-			{
-				"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
-				D3D12_APPEND_ALIGNED_ELEMENT
-			},
-			{
-				"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT,
-				D3D12_APPEND_ALIGNED_ELEMENT
-			},
-			{
-				"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,
-				D3D12_APPEND_ALIGNED_ELEMENT
-			}
-		};
+		pd.inputLayout.clear();
+
+		pd.inputLayout.reserve(std::size(kStdMeshLayout));
+		for (const auto& e : kStdMeshLayout) {
+			pd.inputLayout.push_back(
+				InputElement{
+					e.SemanticName,
+					e.SemanticIndex,
+					e.Format,
+					e.AlignedByteOffset
+				}
+			);
+		}
 
 		pd.depth                = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 		pd.depth.DepthEnable    = TRUE;
@@ -486,14 +485,10 @@ namespace Unnamed {
 
 			if (mMainTexMipCount > 1) {
 				mipIdx = std::clamp(
-					static_cast<int>(
-						std::lround(
-							static_cast<int>(cb.ForceMipNorm) * (
-								mMainTexMipCount - 1))
-					),
-					0,
-					static_cast<int>(mMainTexMipCount) - 1
-				);
+					static_cast<int>(std::lround(
+						cb.ForceMipNorm * static_cast<float>(mMainTexMipCount -
+							1))),
+					0, static_cast<int>(mMainTexMipCount) - 1);
 			} else {
 				mipIdx = 0;
 			}
@@ -517,7 +512,9 @@ namespace Unnamed {
 		memcpy(mCBMapped + offset, &cb, sizeof(cb));
 
 		const auto gpuVA = mCB->GetGPUVirtualAddress() + offset;
-		commandList->SetGraphicsRootConstantBufferView(1, gpuVA);
+		commandList->SetGraphicsRootConstantBufferView(
+			rootParams.materialCB, gpuVA
+		);
 	}
 
 	void UMaterialRuntime::Release(
