@@ -34,7 +34,7 @@ namespace {
 	constexpr char kWeaponScriptPath[] =
 		"./content/parkour/scripts/weapon_handgun.json";
 	constexpr char kSkeletalMeshPath[] =
-		"./content/parkour/models/man/man.gltf";
+		"./content/parkour/models/hand/hand.gltf";
 	constexpr char kWorldMeshInitialPath[] =
 		"./content/core/models/reflectionTest.obj";
 	constexpr char kWorldMeshReloadPath[] =
@@ -47,15 +47,15 @@ namespace {
 	constexpr float kPlayerSpawnHeight = 4.0f;
 	const Vec3      kTeleportTriggerCenter(19.5072f, -29.2608f, 260.096f);
 	const Vec3      kTeleportTriggerExtent(Vec3::one * 13.0048f);
-	constexpr float kTeleportReenableBuffer    = 1.0f;
-	constexpr float kExplosionNormalOffset     = 2.0f;
-	constexpr int   kExplosionParticleCount    = 32;
-	constexpr float kExplosionParticleLifetime = 30.0f;
-	constexpr float kBlastMinSafeDistance      = 0.5f;
-	constexpr float kBlurScale                 = 0.01f;
-	constexpr float kBlastRadiusHu             = 512.0f;
-	constexpr float kBlastPowerHu              = 1024.0f;
-	constexpr float kPlayerCameraForwardOffset = 0.25f;
+	constexpr float kTeleportReenableBuffer      = 1.0f;
+	constexpr float kExplosionNormalOffset       = 2.0f;
+	constexpr int   kExplosionParticleCount      = 32;
+	constexpr float kExplosionParticleLifetime   = 30.0f;
+	constexpr float kBlastMinSafeDistance        = 0.5f;
+	constexpr float kBlurScale                   = 0.01f;
+	constexpr float kBlastRadiusHu               = 512.0f;
+	constexpr float kBlastPowerHu                = 1024.0f;
+	constexpr float kPlayerCameraForwardOffsetHU = 4.0f;
 
 	template <typename T>
 	std::shared_ptr<T> AdoptComponent(T* raw) {
@@ -354,14 +354,12 @@ void GameScene::InitializeSkeletalMesh() {
 			mSkeletalMeshRenderer->SetSkeletalMesh(mesh);
 		}
 	}
+	mSkeletalMeshRenderer->PlayAnimation("Sprint", true);
 
 	AddEntity(mEntSkeletalMesh.get());
 }
 
 void GameScene::ConfigureEntityHierarchy() {
-	// 階層構造: CameraRoot -> ShakeRoot -> Camera -> Weapon
-	// ShakeRootがカメラの親になることで、シェイクがカメラに伝わる
-
 	if (mEntShakeRoot && mEntCameraRoot) {
 		mEntShakeRoot->SetParent(mEntCameraRoot.get());
 		mEntShakeRoot->GetTransform()->SetLocalPos(Vec3::zero);
@@ -380,7 +378,8 @@ void GameScene::ConfigureEntityHierarchy() {
 
 	if (mEntSkeletalMesh && mEntCameraRoot) {
 		auto* transform = mEntSkeletalMesh->GetTransform();
-		transform->SetLocalPos(transform->GetLocalPos() + Vec3::up * -0.2f);
+		transform->SetLocalPos(
+			Vec3(0.0f, transform->GetLocalPos().y - 0.05f, -0.08f));
 		transform->SetLocalRot(Quaternion::EulerDegrees(0.0f, 180.0f, 0.0f));
 		mEntSkeletalMesh->SetParent(mEntCameraRoot.get());
 	}
@@ -514,14 +513,25 @@ void GameScene::HandleWeaponFire(
 }
 
 void GameScene::UpdateSkeletalAnimation() {
-	if (!mSkeletalMeshRenderer || !mMovementComponent) {
+	if (
+		!mSkeletalMeshRenderer ||
+		!mMovementComponent
+	) {
 		return;
+	}
+
+	// 設置していない場合は非表示
+	if (!mMovementComponent->IsGrounded()) {
+		mEntSkeletalMesh->SetVisible(false);
+		mSkeletalMeshRenderer->SetAnimationTime(0.67f * 0.25f);
+	} else {
+		mEntSkeletalMesh->SetVisible(true);
 	}
 
 	const Vec3 velocity = mMovementComponent->GetVelocity();
 	const Vec3 horizontalVelocity(velocity.x, 0.0f, velocity.z);
 	mSkeletalMeshRenderer->
-		SetAnimationSpeed(horizontalVelocity.Length() * 0.1f);
+		SetAnimationSpeed(horizontalVelocity.Length() * 0.15f);
 }
 
 void GameScene::UpdatePostProcessing(float deltaTime) {
