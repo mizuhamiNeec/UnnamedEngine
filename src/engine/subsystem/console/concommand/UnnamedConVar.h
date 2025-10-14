@@ -70,13 +70,14 @@ namespace Unnamed {
 			return mValue;
 		}
 
+		OnChange onChangeCallback;
+
 	private:
 		void RegisterSelf();
 
 	private:
 		T                  mValue;
 		T                  mDefaultValue;
-		OnChange           mOnChangeCallback;
 		T                  mMinValue;
 		T                  mMaxValue;
 		bool               mHasMinValue = false;
@@ -89,9 +90,9 @@ namespace Unnamed {
 		const std::string_view& name, const T& defaultValue,
 		const FCVAR&            flags
 	) : UnnamedConVarBase(name, "", flags),
+	    onChangeCallback({}),
 	    mValue(defaultValue),
 	    mDefaultValue(defaultValue),
-	    mOnChangeCallback({}),
 	    mMinValue(T()),
 	    mMaxValue(T()),
 	    mHasMinValue(false),
@@ -103,12 +104,12 @@ namespace Unnamed {
 	UnnamedConVar<T>::UnnamedConVar(
 		const std::string_view& name,
 		const T&                defaultValue,
-		FCVAR                   flags,
+		const FCVAR             flags,
 		const std::string_view& description
 	) : UnnamedConVarBase(name, description, flags),
+	    onChangeCallback({}),
 	    mValue(defaultValue),
 	    mDefaultValue(defaultValue),
-	    mOnChangeCallback({}),
 	    mMinValue(T()),
 	    mMaxValue(T()),
 	    mHasMinValue(false),
@@ -120,14 +121,14 @@ namespace Unnamed {
 	UnnamedConVar<T>::UnnamedConVar(
 		const std::string_view& name,
 		const T&                defaultValue,
-		FCVAR                   flags,
+		const FCVAR             flags,
 		const std::string_view& description,
 		const bool&             bMin, const T& minValue,
 		const bool&             bMax, const T& maxValue
 	) : UnnamedConVarBase(name, description, flags),
+	    onChangeCallback({}),
 	    mValue(defaultValue),
 	    mDefaultValue(defaultValue),
-	    mOnChangeCallback({}),
 	    mMinValue(minValue),
 	    mMaxValue(maxValue),
 	    mHasMinValue(bMin),
@@ -139,13 +140,13 @@ namespace Unnamed {
 	UnnamedConVar<T>::UnnamedConVar(
 		const std::string_view& name,
 		const T&                defaultValue,
-		FCVAR                   flags,
+		const FCVAR             flags,
 		const std::string_view& description,
 		const OnChange&         onValueChange
 	) : UnnamedConVarBase(name, description, flags),
+	    onChangeCallback(onValueChange),
 	    mValue(defaultValue),
 	    mDefaultValue(defaultValue),
-	    mOnChangeCallback(onValueChange),
 	    mMinValue(T()),
 	    mMaxValue(T()),
 	    mHasMinValue(false),
@@ -157,15 +158,15 @@ namespace Unnamed {
 	UnnamedConVar<T>::UnnamedConVar(
 		const std::string_view& name,
 		const T&                defaultValue,
-		FCVAR                   flags,
+		const FCVAR             flags,
 		const std::string_view& description,
 		const bool&             bMin, const T& minValue,
 		const bool&             bMax, const T& maxValue,
 		const OnChange&         onValueChange
 	) : UnnamedConVarBase(name, description, flags),
+	    onChangeCallback(onValueChange),
 	    mValue(defaultValue),
 	    mDefaultValue(defaultValue),
-	    mOnChangeCallback(onValueChange),
 	    mMinValue(minValue),
 	    mMaxValue(maxValue),
 	    mHasMinValue(bMin),
@@ -180,7 +181,7 @@ namespace Unnamed {
 	UnnamedConVar<T>& UnnamedConVar<T>::operator=(const T& value) {
 		if (mValue != value) {
 			mValue = value;
-			if (mOnChangeCallback) {
+			if (onChangeCallback) {
 				mOnChangeCallback(mValue);
 			}
 		}
@@ -189,7 +190,7 @@ namespace Unnamed {
 
 	template <typename T>
 	void UnnamedConVar<T>::RegisterSelf() {
-		auto console = ServiceLocator::Get<ConsoleSystem>();
+		const auto console = ServiceLocator::Get<ConsoleSystem>();
 		if (!console) {
 			Error(
 				"ConVar",
@@ -213,5 +214,49 @@ namespace Unnamed {
 			mMinValue,
 			mMaxValue
 		);
+	}
+
+	enum class CONVAR_TYPE {
+		NONE,
+		BOOL,
+		INT,
+		FLOAT,
+		DOUBLE,
+		STRING,
+		VEC3,
+	};
+
+	namespace {
+		const char* ToString(const CONVAR_TYPE e) {
+			switch (e) {
+			case CONVAR_TYPE::NONE: return "NONE";
+			case CONVAR_TYPE::BOOL: return "BOOL";
+			case CONVAR_TYPE::INT: return "INT";
+			case CONVAR_TYPE::FLOAT: return "FLOAT";
+			case CONVAR_TYPE::STRING: return "STRING";
+			case CONVAR_TYPE::VEC3: return "VEC3";
+			default: return "unknown";
+			}
+		}
+
+		CONVAR_TYPE GetConVarType(UnnamedConVarBase* var) {
+			auto type = CONVAR_TYPE::NONE;
+
+			if (dynamic_cast<UnnamedConVar<bool>*>(var)) {
+				type = CONVAR_TYPE::BOOL;
+			} else if (dynamic_cast<UnnamedConVar<int>*>(var)) {
+				type = CONVAR_TYPE::INT;
+			} else if (dynamic_cast<UnnamedConVar<float>*>(var)) {
+				type = CONVAR_TYPE::FLOAT;
+			} else if (dynamic_cast<UnnamedConVar<double>*>(var)) {
+				type = CONVAR_TYPE::DOUBLE;
+			} else if (dynamic_cast<UnnamedConVar<std::string>*>(var)) {
+				type = CONVAR_TYPE::STRING;
+			} else if (dynamic_cast<UnnamedConVar<Vec3>*>(var)) {
+				type = CONVAR_TYPE::VEC3;
+			}
+
+			return type;
+		}
 	}
 }

@@ -167,6 +167,83 @@ namespace Unnamed {
 
 			// 変数の場合
 			if (foundVar) {
+				auto* var = mConVars[tokens[0]];
+
+				// CVarの形を取得
+				auto cvarType = GetConVarType(var);
+
+				// 引数がある場合は値を設定
+				if (!args.empty()) {
+					switch (cvarType) {
+					case CONVAR_TYPE::BOOL:
+						if (auto* cBool = dynamic_cast<UnnamedConVar<bool>*>(
+							var)) {
+							cBool->SetValue(
+								args[0] == "true" ||
+								args[0] == "1" ||
+								args[0] == "on"
+							);
+						}
+						break;
+					case CONVAR_TYPE::INT:
+						if (
+							auto* ci = dynamic_cast<UnnamedConVar<int>*>(var)
+						) {
+							ci->SetValue(std::stoi(args[0]));
+						}
+						break;
+					case CONVAR_TYPE::FLOAT:
+						if (
+							auto* cf = dynamic_cast<UnnamedConVar<float>*>(var)
+						) {
+							cf->SetValue(std::stof(args[0]));
+						}
+						break;
+					case CONVAR_TYPE::DOUBLE:
+						if (
+							auto* cd = dynamic_cast<UnnamedConVar<double>*>(var)
+						) {
+							cd->SetValue(std::stod(args[0]));
+						}
+						break;
+					case CONVAR_TYPE::STRING:
+						if (
+							auto* cs = dynamic_cast<UnnamedConVar<std::string>*>
+								(var)
+						) {
+							cs->SetValue(args[0]);
+						}
+						break;
+					case CONVAR_TYPE::VEC3:
+						// Vec3の場合は3つの引数が必要
+						if (args.size() >= 3) {
+							if (
+								auto* cv3 = dynamic_cast<UnnamedConVar<Vec3>*>(
+									var)
+							) {
+								bool ok = false;
+								// 各引数が数字に変換できるか確認
+								for (const auto& arg : args) {
+									ok &= StrUtil::IsFloat(arg);
+								}
+
+								if (ok) {
+									cv3->SetValue(
+										Vec3(
+											std::stof(args[0]),
+											std::stof(args[1]),
+											std::stof(args[2])
+										)
+									);
+								}
+							}
+						}
+						break;
+					}
+				}
+
+				// if (var->onExecute(args)) {
+				// }
 			}
 		}
 	}
