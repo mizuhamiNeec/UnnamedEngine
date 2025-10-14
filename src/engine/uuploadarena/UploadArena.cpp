@@ -12,8 +12,10 @@ namespace Unnamed {
 	bool UploadArena::Init(ID3D12Device* device, const uint64_t sizePerFrame) {
 		mFrames = std::max<uint32_t>(1, kFrameBufferCount);
 
-		// 最低64KB
-		mSizePerFrame = std::max<uint64_t>(sizePerFrame, 64ull * 1024);
+		// 最低64KB、256Bアライン
+		uint64_t cap  = std::max<uint64_t>(sizePerFrame, 64ull * 1024);
+		cap           = (cap + 255ull) & ~255ull; // 256Bにアライン
+		mSizePerFrame = cap;
 
 		const uint64_t              total = mSizePerFrame * mFrames;
 		const D3D12_HEAP_PROPERTIES hp    = {D3D12_HEAP_TYPE_UPLOAD};
