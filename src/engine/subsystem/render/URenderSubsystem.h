@@ -1,9 +1,10 @@
-﻿#pragma once
+#pragma once
 
 #include <d3d12.h>
 
 #include <engine/urenderer/GraphicsDevice.h>
 
+#include <runtime/assets/core/UAssetID.h>
 #include <runtime/core/math/Math.h>
 #include <runtime/render/types/RenderTypes.h>
 
@@ -83,7 +84,7 @@ namespace Unnamed {
 		std::array<TransientBin, kFrameInFlight> mTransient;
 
 		D3D12_GPU_VIRTUAL_ADDRESS UploadCB(
-			const void* src, size_t bytes, TempCB& out
+			const void* src, size_t bytes
 		) const;
 
 	private:
@@ -100,7 +101,7 @@ namespace Unnamed {
 		/// @brief レンダリングするアイテムの情報
 		struct RenderItem {
 			Mat4              world;
-			MeshGPU*          mesh;
+			MeshHandle        meshHandle;  // 共有メッシュのハンドル
 			UMaterialRuntime* material;
 
 			float                depthVS     = 0.0f;
@@ -111,9 +112,7 @@ namespace Unnamed {
 
 		std::vector<RenderItem> mItems;
 
-		TempCB                    mFrameCB;
 		D3D12_GPU_VIRTUAL_ADDRESS mFrameCBVA = 0;
-		std::vector<TempCB>       mObjectCBs;
 
 		LastSubmit mLastSubmit;
 	};

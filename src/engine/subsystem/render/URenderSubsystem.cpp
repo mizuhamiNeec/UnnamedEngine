@@ -1,14 +1,24 @@
-﻿#include <pch.h>
+#include <pch.h>
 #include <unordered_set>
 
 #include <engine/gameframework/component/MeshRenderer/MeshRendererComponent.h>
+#include <engine/gameframework/component/Transform/TransformComponent.h>
 #include <engine/gameframework/world/UWorld.h>
 #include <engine/subsystem/interface/ServiceLocator.h>
 #include <engine/subsystem/render/URenderSubsystem.h>
 
-#include "engine/gameframework/component/Transform/TransformComponent.h"
+#include "engine/uuploadarena/UploadArena.h"
 
 namespace Unnamed {
+	namespace {
+		float ComputeViewDepth(const Mat4& world, const Mat4& view) {
+			const Vec4 worldPos = Vec4(world.m[3][0], world.m[3][1],
+			                           world.m[3][2], 1.0f);
+			const Vec4 viewPos = worldPos * view;
+			return viewPos.z;
+		}
+	}
+
 	URenderSubsystem::URenderSubsystem(
 		GraphicsDevice*        graphicsDevice,
 		RenderResourceManager* renderResourceManager,
@@ -30,20 +40,30 @@ namespace Unnamed {
 	void URenderSubsystem::BeginFrame() {
 		mItems.clear();
 
-		for (auto& bin : mTransient) {
-			if (bin.fence && bin.fence->GetCompletedValue() >= bin.fenceValue) {
-				bin.keep.clear();
-				bin.fence.Reset();
-				bin.fenceValue = 0;
+		for (auto& [keep, fence, fenceValue] : mTransient) {
+			if (fence && fence->GetCompletedValue() >= fenceValue) {
+				keep.clear();
+				fence.Reset();
+				fenceValue = 0;
 			}
 		}
 
 		mContext = mGraphicsDevice->BeginFrame();
 
-		auto& bin = mTransient[mContext.backIndex];
-		bin.keep.clear();
-		bin.fence.Reset();
-		bin.fenceValue = 0;
+		const bool ok = mRenderResourceManager->GetUploadArena()->BeginFrame(
+			mContext.backIndex);
+		if (!ok) {
+			auto fb = mGraphicsDevice->GetFrameBuffer(mContext.backIndex);
+			fb.fence->SetEventOnCompletion(fb.fenceValue, fb.event);
+			WaitForSingleObject(fb.event, INFINITE);
+			mRenderResourceManager->GetUploadArena()->BeginFrame(
+				mContext.backIndex);
+		}
+
+		auto& [keep, fence, fenceValue] = mTransient[mContext.backIndex];
+		keep.clear();
+		fence.Reset();
+		fenceValue = 0;
 
 		FrameCBData f;
 		f = {
@@ -53,9 +73,7 @@ namespace Unnamed {
 			.cameraPos = mView.cameraPos,
 			.time = 0.0f
 		};
-		UploadCB(&f, sizeof(f), mFrameCB);
-		mFrameCBVA = mFrameCB.gpu;
-		bin.keep.emplace_back(mFrameCB.resource);
+		mFrameCBVA = UploadCB(&f, sizeof(f));
 	}
 
 	void URenderSubsystem::RenderWorld(const UWorld& world) {
@@ -69,9 +87,27 @@ namespace Unnamed {
 				if (a.materialKey != b.materialKey) {
 					return a.materialKey < b.materialKey;
 				}
-				return a.depthVS < b.depthVS;
+				return a.depthVS < b.depthVS; // Front to Back (不透明用)
 			}
 		);
+
+		// デバッグ: 描画順序を確認（最初の10個だけ）
+		static bool logged = false;
+		if (!logged && !mItems.empty()) {
+			DevMsg("Render", "=== Draw Order (first 10) ===");
+			for (size_t i = 0; i < std::min<size_t>(10, mItems.size()); ++i) {
+				DevMsg(
+					"Render",
+					"[{}] depth={:.2f}, pso={}, mat={}",
+					i,
+					mItems[i].depthVS,
+					mItems[i].psoId,
+					mItems[i].materialKey
+				);
+			}
+			logged = true;
+		}
+
 		DrawItems();
 	}
 
@@ -81,19 +117,16 @@ namespace Unnamed {
 		auto buffer = mGraphicsDevice->GetFrameBuffer(mContext.backIndex);
 		mTransient[mContext.backIndex].fence = buffer.fence;
 		mTransient[mContext.backIndex].fenceValue = buffer.fenceValue;
-	}
-
-	float ComputeViewDepth(const Mat4& world, const Mat4& view) {
-		const Vec4 p = Vec4::black;
-		const Vec4 v = p * world * view;
-		return v.z;
+		mRenderResourceManager->FlushUploads(
+			buffer.fence.Get(), buffer.fenceValue
+		);
 	}
 
 	void URenderSubsystem::Collect(const UWorld& world, const Mat4& parent) {
 		for (auto& e : world.Entities()) {
 			if (!e) { continue; }
-			auto* tr = e->GetComponent<TransformComponent>();
-			auto* mr = e->GetComponent<MeshRendererComponent>();
+			const auto* tr = e->GetComponent<TransformComponent>();
+			auto*       mr = e->GetComponent<MeshRendererComponent>();
 			if (tr && mr) {
 				if (
 					mr->EnsureGPU(
@@ -102,12 +135,12 @@ namespace Unnamed {
 						mPipelineCache, mContext.cmd
 					)
 				) {
-					const Mat4 worldMat = parent * tr->WorldMat();
+					const Mat4 worldMat = tr->WorldMat() * parent;
 
 					RenderItem it{};
-					it.world    = worldMat;
-					it.material = &mr->material;
-					it.mesh     = &mr->mesh;
+					it.world      = worldMat;
+					it.material   = &mr->material;
+					it.meshHandle = mr->meshHandle; // 共有メッシュのハンドル
 
 					it.depthVS = ComputeViewDepth(it.world, mView.view);
 
@@ -120,10 +153,12 @@ namespace Unnamed {
 			}
 		}
 
-		for (auto& cw : world.Children()) {
-			Mat4 p = parent;
-			if (cw.parentTransform) { p = p * cw.parentTransform->WorldMat(); }
-			if (cw.world) { Collect(*cw.world, p); }
+		for (const auto& child : world.Children()) {
+			const auto& worldPtr        = child.world;
+			const auto& parentTransform = child.parentTransform;
+			Mat4        p               = parent;
+			if (parentTransform) { p = parentTransform->WorldMat() * p; }
+			if (worldPtr) { Collect(*worldPtr, p); }
 		}
 	}
 
@@ -138,28 +173,32 @@ namespace Unnamed {
 			static_cast<UINT>(heaps.size()), heaps.data()
 		);
 
-		ID3D12RootSignature* lastRS  = nullptr;
-		uint32_t             lastPSO = 0;
-		uint32_t             lastMat = UINT32_MAX;
+		const ID3D12RootSignature* lastRs  = nullptr;
+		uint32_t                   lastPso = 0;
+		uint32_t                   lastMat = UINT32_MAX;
 
 		for (auto& it : mItems) {
-			if (it.psoId != lastPSO || it.rsPtr != lastRS) {
+			if (it.psoId != lastPso || it.rsPtr != lastRs) {
 				cmd->SetGraphicsRootSignature(it.rsPtr);
 				cmd->SetPipelineState(mPipelineCache->Get({it.psoId}));
-				lastPSO = it.psoId;
-				lastRS  = it.rsPtr;
+				lastPso = it.psoId;
+				lastRs  = it.rsPtr;
+				// ルートシグネチャが変わったら同じマテリアルでもう一度適用
+				it.material->Apply(cmd, mRenderResourceManager,
+				                   mContext.backIndex, 0.0f);
+				lastMat = it.materialKey;
 			}
 
-			// マテリアル切り替え時に適用
-			if (it.materialKey != lastMat) {
+			// マテリアル変更時に適用
+			else if (it.materialKey != lastMat) {
 				it.material->Apply(
 					cmd, mRenderResourceManager, mContext.backIndex, 0.0f
 				);
 				lastMat = it.materialKey;
 			}
 
-			mContext.cmd->SetGraphicsRootConstantBufferView(
-				it.material->rootParams.frameCB, mFrameCB.gpu
+			cmd->SetGraphicsRootConstantBufferView(
+				it.material->rootParams.frameCB, mFrameCBVA
 			);
 
 			// オブジェクトコンスタントバッファ
@@ -167,94 +206,50 @@ namespace Unnamed {
 				.world = it.world,
 				.worldInverseTranspose = it.world.Inverse().Transpose()
 			};
-			TempCB objCB;
-			UploadCB(&o, sizeof(o), objCB);
-			UASSERT(objCB.gpu != 0 && (objCB.gpu & 0xFF) == 0);
+			D3D12_GPU_VIRTUAL_ADDRESS objCbGpu = UploadCB(&o, sizeof(o));
+			UASSERT(objCbGpu != 0 && (objCbGpu & 0xFF) == 0);
 			cmd->SetGraphicsRootConstantBufferView(
-				it.material->rootParams.objectCB, objCB.gpu);
-			mTransient[mContext.backIndex].keep.emplace_back(objCB.resource);
+				it.material->rootParams.objectCB, objCbGpu);
 
-			mRenderResourceManager->BindVertexBuffer(cmd, it.mesh->vb);
-			mRenderResourceManager->BindIndexBuffer(cmd, it.mesh->ib);
+			// 共有メッシュから実際のメッシュデータを取得
+			const MeshGPU* mesh = mRenderResourceManager->
+				GetMesh(it.meshHandle);
+			if (!mesh) {
+				continue; // メッシュが無効な場合はスキップ
+			}
+
+			mRenderResourceManager->BindVertexBuffer(cmd, mesh->vb);
+			mRenderResourceManager->BindIndexBuffer(cmd, mesh->ib);
 			cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-			if (it.mesh->indexCount > 0) {
+			if (mesh->indexCount > 0) {
 				cmd->DrawIndexedInstanced(
-					it.mesh->indexCount,
+					mesh->indexCount,
 					1,
-					it.mesh->firstIndex,
-					it.mesh->baseVertex,
+					mesh->firstIndex,
+					mesh->baseVertex,
 					0
 				);
 			} else {
 				cmd->DrawInstanced(3, 1, 0, 0);
 			}
 		}
-
-		DevMsg(
-			"Render",
-			"items={} uniquePSO={} uniqueMat={}",
-			mItems.size(),
-			static_cast<unsigned>([&] {
-				std::unordered_set<uint32_t> s;
-				for (const auto& x : mItems) s.insert(x.psoId);
-				return s.size();
-			}()),
-			static_cast<unsigned>([&] {
-				std::unordered_set<uint32_t> s;
-				for (const auto& x : mItems) s.insert(x.materialKey);
-				return s.size();
-			}())
-		);
 	}
 
 	D3D12_GPU_VIRTUAL_ADDRESS URenderSubsystem::UploadCB(
-		const void* src, const size_t bytes, TempCB& out
+		const void* src, const size_t bytes
 	) const {
 		const size_t aligned = (bytes + 255) & ~static_cast<size_t>(255);
-		auto*        dev     = mGraphicsDevice->Device();
-
-		D3D12_HEAP_PROPERTIES heapProps;
-		heapProps = {
-			.Type = D3D12_HEAP_TYPE_UPLOAD,
-			.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-			.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-			.CreationNodeMask = 1,
-			.VisibleNodeMask = 1
-		};
-
-		D3D12_RESOURCE_DESC desc;
-		desc = D3D12_RESOURCE_DESC{
-			.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
-			.Alignment = 0,
-			.Width = aligned,
-			.Height = 1,
-			.DepthOrArraySize = 1,
-			.MipLevels = 1,
-			.Format = DXGI_FORMAT_UNKNOWN,
-			.SampleDesc = {1, 0},
-			.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-			.Flags = D3D12_RESOURCE_FLAG_NONE
-		};
-
-		out.resource.Reset();
-		THROW(
-			dev->CreateCommittedResource(
-				&heapProps, D3D12_HEAP_FLAG_NONE,
-				&desc,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&out.resource)
-			)
-		);
-
-		void*                 ptr   = nullptr;
-		constexpr D3D12_RANGE range = {0, 0};
-		THROW(out.resource->Map(0, &range, &ptr));
-		memcpy(ptr, src, bytes);
-		out.resource->Unmap(0, nullptr);
-
-		out.gpu = out.resource->GetGPUVirtualAddress();
-		return out.gpu;
+		const auto   slice = mRenderResourceManager->GetUploadArena()->Allocate(
+			aligned, 256);
+		if (!slice.cpu) {
+			// 足りないときのフォールバック（警告だけ出して早期 return でもOK）
+			Warning("Render",
+			        "UploadArena capacity exceeded (size={}, frame={})",
+			        aligned, mContext.backIndex);
+			return 0;
+		}
+		std::memcpy(slice.cpu, src, bytes);
+		return slice.gpuVirtualAddress;
 	}
 }
