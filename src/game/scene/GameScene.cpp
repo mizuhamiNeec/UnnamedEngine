@@ -520,8 +520,25 @@ void GameScene::UpdateSkeletalAnimation() {
 		return;
 	}
 
-	// 設置していない場合は非表示
-	if (!mMovementComponent->IsGrounded()) {
+	// プレイヤーが前に進んでいるかチェック
+	Mat4 cameraInvViewMat = CameraManager::GetActiveCamera()->GetViewMat().
+		Inverse();
+	Vec3 forward = cameraInvViewMat.GetForward();
+	forward.y    = 0.0f; // 上下成分は無視
+	forward.Normalize();
+	const float dot = forward.Dot(
+		mMovementComponent->GetVelocity().Normalized());
+	constexpr float kMovingForwardThreshold = 0.125f;
+	const bool      movingForward           = dot > kMovingForwardThreshold;
+
+	// 設置していない || ジャンプしたい || しゃがみ中 || ウォールラン中 || 前に進んでいない場合は非表示
+	if (
+		!mMovementComponent->IsGrounded() ||
+		mMovementComponent->WishJump() ||
+		mMovementComponent->IsSliding() ||
+		mMovementComponent->IsWallRunning() ||
+		!movingForward
+	) {
 		mEntSkeletalMesh->SetVisible(false);
 		mSkeletalMeshRenderer->SetAnimationTime(0.67f * 0.25f);
 	} else {
