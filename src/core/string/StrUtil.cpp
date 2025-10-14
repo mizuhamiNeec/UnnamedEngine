@@ -169,3 +169,12 @@ std::string StrUtil::ToLowerExt(const std::string_view& str) {
 	}
 	return e;
 }
+
+bool StrUtil::IsFloat(const std::string& str) {
+	try {
+		[[maybe_unused]] auto d = std::stof(str);
+		return true;
+	} catch (...) {
+		return false;
+	}
+}

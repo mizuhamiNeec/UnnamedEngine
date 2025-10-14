@@ -23,4 +23,6 @@ public:
 	static std::vector<int> ParseVersion(const std::string& version);
 
 	static std::string ToLowerExt(const std::string_view& str);
+
+	static bool IsFloat(const std::string& str);
 };
