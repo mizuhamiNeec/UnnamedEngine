@@ -9,8 +9,7 @@
 
 #include <runtime/core/math/Math.h>
 
-#include "game/components/GameMovementComponent.h"
-#include "game/components/Movement.h"
+#include "game/components/player/MovementComponent.h"
 
 WindEffect::~WindEffect() {
 	if (mWindParticle) {
@@ -20,7 +19,7 @@ WindEffect::~WindEffect() {
 }
 
 void WindEffect::Init([[maybe_unused]] ParticleManager* particleManager,
-                      Movement*                         playerMovement) {
+                      MovementComponent*                         playerMovement) {
 	mPlayerMovement = playerMovement;
 
 	// 風パーティクル用のオブジェクト初期化

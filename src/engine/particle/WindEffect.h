@@ -4,23 +4,20 @@
 
 #include <engine/particle/ParticleObject.h>
 
-#include "game/components/Movement.h"
-
-class Movement;
-class PlayerMovementUPhysics;
+#include <game/components/player/MovementComponent.h>
 
 class WindEffect {
 public:
 	~WindEffect();
 
 	void Init(ParticleManager* particleManager,
-	          Movement*        playerMovement);
+	          MovementComponent*        playerMovement);
 	void Update(float deltaTime);
 	void Draw() const;
 
 private:
 	std::unique_ptr<ParticleObject> mWindParticle;
-	Movement*                       mPlayerMovement = nullptr;
+	MovementComponent*                       mPlayerMovement = nullptr;
 
 	// エフェクトのパラメータ
 	float mMinEmissionRate = 0.0f;        // 最小エミッション率
