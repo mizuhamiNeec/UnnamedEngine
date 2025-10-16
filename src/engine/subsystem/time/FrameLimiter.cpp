@@ -26,7 +26,6 @@ void FrameLimiter::BeginFrame() {
 void FrameLimiter::Limit() {
 	CheckConVarValue();
 
-	// 制限が設定されていない場合は何もしない
 	if (mTargetFrameDuration == Clock::duration::zero()) {
 		return;
 	}
@@ -56,6 +55,6 @@ void FrameLimiter::Limit() {
 }
 
 void FrameLimiter::CheckConVarValue() {
-	double targetFPS = 1000; // TODO: コンソール変数に置き換え
+	double targetFPS = 10000; // TODO: コンソール変数に置き換え
 	SetTargetFPS(targetFPS);
 }
