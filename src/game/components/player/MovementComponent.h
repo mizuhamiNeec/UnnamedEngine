@@ -3,7 +3,7 @@
 #include <runtime/core/math/Math.h>
 #include <runtime/physics/core/UPhysics.h>
 
-// --- Movement state ----------------------------------------------------------
+// ステート
 enum class MOVEMENT_STATE {
 	GROUND,
 	AIR,
@@ -11,26 +11,28 @@ enum class MOVEMENT_STATE {
 	SLIDE,
 };
 
-inline const char* ToString(MOVEMENT_STATE e) {
-	switch (e) {
-	case MOVEMENT_STATE::GROUND: return "GROUND";
-	case MOVEMENT_STATE::AIR: return "AIR";
-	case MOVEMENT_STATE::WALL_RUN: return "WALL_RUN";
-	case MOVEMENT_STATE::SLIDE: return "SLIDE";
+namespace {
+	const char* ToString(const MOVEMENT_STATE e) {
+		switch (e) {
+		case MOVEMENT_STATE::GROUND: return "GROUND";
+		case MOVEMENT_STATE::AIR: return "AIR";
+		case MOVEMENT_STATE::WALL_RUN: return "WALL_RUN";
+		case MOVEMENT_STATE::SLIDE: return "SLIDE";
+		}
+		return "unknown";
 	}
-	return "unknown";
 }
 
 struct MovementData {
 	MovementData(float width, float height)
-		: currentWidth(width), currentHeight(height) {
-		defaultHeight = height;
-		crouchHeight  = height * 0.75f;
+		: currentWidthHu(width), currentHeightHu(height) {
+		defaultHeightHu = height;
+		crouchHeightHu  = height * 0.75f;
 	}
 
-	MovementData() : currentWidth(32.0f), currentHeight(72.0f) {
-		defaultHeight = currentHeight;
-		crouchHeight  = currentHeight * 0.75f;
+	MovementData() : currentWidthHu(32.0f), currentHeightHu(72.0f) {
+		defaultHeightHu = currentHeightHu;
+		crouchHeightHu  = currentHeightHu * 0.75f;
 	}
 
 	// Input
@@ -46,12 +48,12 @@ struct MovementData {
 
 	// Hull
 	Unnamed::Box hull{};
-	float        currentWidth{};  // HU
-	float        currentHeight{}; // HU
-	float        defaultHeight{}; // HU
-	float        crouchHeight{};  // HU
+	float        currentWidthHu{};
+	float        currentHeightHu{};
+	float        defaultHeightHu{};
+	float        crouchHeightHu{};
 
-	// Movement params (HU/s 相当のcvarと併用)
+	// MovementComponent params (HU/s 相当のcvarと併用)
 	float crouchSpeed  = 63.3f;
 	float walkSpeed    = 150.0f;
 	float sprintSpeed  = 320.0f;
@@ -60,6 +62,9 @@ struct MovementData {
 	// Ground cache
 	Vec3  lastGroundNormal = Vec3::up;
 	float lastGroundDistM  = 0.0f;
+
+	float groundEnterSlopeThreshold = 0.707f;
+	float groundLeaveSlopeThreshold = 0.7f;
 
 	// Stuck detection
 	Vec3  lastPosition = Vec3::zero;
@@ -90,8 +95,7 @@ struct MovementData {
 	bool  justLanded           = false; // 今フレーム着地したか?
 };
 
-// --- Component --------------------------------------------------------------
-class Movement : public Component {
+class MovementComponent : public Component {
 public:
 	void OnAttach(Entity& owner) override;
 	void Init(UPhysics::Engine* uphysics, const MovementData& md);
@@ -108,6 +112,7 @@ public:
 
 	// Getters for camera animation
 	[[nodiscard]] bool  IsGrounded() const;
+	[[nodiscard]] bool  WishJump() const;
 	[[nodiscard]] bool  IsWallRunning() const;
 	[[nodiscard]] bool  IsSliding() const;
 	[[nodiscard]] bool  HasDoubleJump() const;
@@ -116,15 +121,14 @@ public:
 	[[nodiscard]] float GetLastLandingVelocityY() const;
 
 private:
-	// high-level
+	// 高レベル
 	void ProcessInput();
 	void ProcessMovement(float dt);
 
-	// modes
+	// 各移動モード
 	void Ground(float wishspeed, float dt);
 	void Air(float wishspeed, float dt);
 	void Slide(float wishspeed, float dt);
-
 
 	// forces
 	void ApplyHalfGravity(float dt);
@@ -132,40 +136,20 @@ private:
 	void Accelerate(Vec3 dir, float speed, float accel, float dt);
 	void AirAccelerate(Vec3 dir, float speed, float accel, float dt);
 
-	// core move
-	void MoveCollideAndSlide(float dt);
-
-	// low-level traces
-	bool SlideMove(float dt, Vec3& inOutVel, Vec3& outPos);
-
-	// ground helpers
-	bool GroundProbe(float probeDownMeters, Vec3& outN, float& outDownDist);
-	bool IsWalkable(const Vec3& n, bool wasGrounded) const;
-
-	// step helpers
-	bool TryStepMove(float dt, Vec3& ioVel, Vec3& outPos);
-	bool StepDownToGround(Vec3& ioPos, Vec3& ioVel, float maxDownM,
-	                      Vec3* outGroundN = nullptr);
-
-	// misc
-	static Vec3 ClipVelocity(const Vec3& v, const Vec3& n, float overbounce);
-	static Vec3 ProjectOntoPlane(const Vec3& v, const Vec3& n);
-
-	void StayOnGround(Vec3& ioVel, Vec3& ioPos); // 上げない・下だけ
-	bool RefreshGroundCache(float probeLenM);
-	void RefreshHullFromTransform();
-	bool SweepNoTimeWithSkin(const Vec3& delta, float skinM, Vec3& outPos);
+	void UpdateHullDimensions();
 	void CheckForNaNAndClamp();
 
-	// params (Source 寄り)
+	// Collision & response (Source-style)
+	void MoveWithCollisions(float dt);
+
+	// params
 	static constexpr float kStepHeightHU   = 18.0f; // 72HUハルに対して既定
 	static constexpr float kCastSkinHU     = 0.25f;
 	static constexpr float kSkinHU         = 0.25f;
 	static constexpr float kRestOffsetHU   = 0.75f;
-	static constexpr float kMaxAdhesionHU  = 2.0f;  // 接地維持の最大距離
-	static constexpr float kSnapVyMax      = 1.0f;  // m/s
-	static constexpr float kGroundEnterDeg = 45.0f; // 接地“になる”
-	static constexpr float kGroundExitDeg  = 47.0f; // 接地“やめる”
+	static constexpr float kMaxAdhesionHU  = 2.0f; // 接地維持の最大距離
+	static constexpr float kSnapVyMax      = 1.0f; // m/s
+	static constexpr int   kMaxBumps       = 8;    // 最大衝突回数（Source準拠）
 	static constexpr int   kMaxClipPlanes  = 5;
 	static constexpr float kFracEps        = 1e-4f;
 	static constexpr float kAirSpeedCap    = 30.0f;
