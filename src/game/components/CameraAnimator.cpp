@@ -1,5 +1,5 @@
 #include "CameraAnimator.h"
-#include "Movement.h"
+#include "player/MovementComponent.h"
 #include "CameraRotator.h"
 #include <engine/Entity/Entity.h>
 #include <engine/ImGui/ImGuiUtil.h>
@@ -57,8 +57,8 @@ void CameraAnimator::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
 }
 
-void CameraAnimator::Init(Movement*      movementComponent,
-                          CameraRotator* cameraRotator) {
+void CameraAnimator::Init(MovementComponent* movementComponent,
+                          CameraRotator*     cameraRotator) {
 	mMovement      = movementComponent;
 	mCameraRotator = cameraRotator;
 }

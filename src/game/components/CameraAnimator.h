@@ -2,7 +2,7 @@
 #include <engine/Components/base/Component.h>
 #include <runtime/core/math/Math.h>
 
-class Movement;
+class MovementComponent;
 class CameraRotator;
 
 // カメラアニメーション用のコンポーネント
@@ -10,7 +10,7 @@ class CameraRotator;
 class CameraAnimator : public Component {
 public:
 	void OnAttach(Entity& owner) override;
-	void Init(Movement* movementComponent, CameraRotator* cameraRotator);
+	void Init(MovementComponent* movementComponent, CameraRotator* cameraRotator);
 	void Update(float dt) override;
 	void DrawInspectorImGui() override;
 
@@ -22,7 +22,7 @@ private:
 	void UpdateLandingAnimation(float dt);
 	void ApplyShakeAndTilt(float dt);
 
-	Movement* mMovement = nullptr;
+	MovementComponent* mMovement = nullptr;
 
 	// Jump animation
 	bool  mWasInAir           = false;
