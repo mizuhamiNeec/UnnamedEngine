@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 
-#include <engine/Components/ColliderComponent/BoxColliderComponent.h>
 #include <engine/Components/MeshRenderer/SkeletalMeshRenderer.h>
 #include <engine/Components/MeshRenderer/StaticMeshRenderer.h>
 #include <engine/CubeMap/CubeMap.h>
@@ -15,7 +14,7 @@
 #include <game/components/weapon/WeaponSway.h>
 #include <game/components/weapon/base/WeaponComponent.h>
 #include <game/scene/base/BaseScene.h>
-#include <game/components/Movement.h>
+#include <game/components/player/MovementComponent.h>
 #include <game/components/CameraAnimator.h>
 
 class D3D12;
@@ -39,6 +38,7 @@ public:
 	void SafeReloadWorldMesh();
 
 private:
+	void RegisterConVars();
 	void LoadCoreTextures() const;
 	void InitializeCubeMap();
 	void InitializeParticles();
@@ -67,6 +67,8 @@ private:
 #ifdef _DEBUG
 	void DrawDebugHud(const std::shared_ptr<CameraComponent>& camera) const;
 #endif
+
+private:
 	D3D12* mRenderer = nullptr;
 
 	std::unique_ptr<CubeMap> mCubeMap;
@@ -80,25 +82,24 @@ private:
 	std::shared_ptr<StaticMeshRenderer> mWorldMeshRenderer;
 
 	std::unique_ptr<Entity>   mEntPlayer;
-	std::shared_ptr<Movement> mMovementComponent;
+	std::shared_ptr<MovementComponent> mMovementComponent;
 
 	std::unique_ptr<Entity>             mEntWeapon;
 	std::shared_ptr<WeaponComponent>    mWeaponComponent;
 	std::shared_ptr<StaticMeshRenderer> mWeaponMeshRenderer;
 	std::shared_ptr<WeaponSway>         mWeaponSway;
 
-	std::unique_ptr<Entity> mEntShakeRoot;
+	std::unique_ptr<Entity>         mEntShakeRoot;
 	std::shared_ptr<CameraAnimator> mCameraAnimator;
 
 	std::unique_ptr<Entity>               mEntSkeletalMesh;
 	std::shared_ptr<SkeletalMeshRenderer> mSkeletalMeshRenderer;
 
-	// テレポートトリガー用のAABB
+	// テレポート用AABB
 	Vec3 mTeleportTriggerMin;    // ボックスの最小点
 	Vec3 mTeleportTriggerMax;    // ボックスの最大点
 	bool mTeleportActive = true; // テレポートの有効/無効状態
 
-	//std::unique_ptr<PhysicsEngine> mPhysicsEngine;
 	std::unique_ptr<UPhysics::Engine> mUPhysicsEngine;
 
 	std::unique_ptr<ParticleEmitter> mParticleEmitter;

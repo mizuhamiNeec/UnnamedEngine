@@ -19,6 +19,8 @@
 
 #include <game/components/CameraRotator.h>
 
+#include "engine/Components/ColliderComponent/BoxColliderComponent.h"
+
 namespace {
 	constexpr char kDevMeasureTexturePath[] =
 		"./content/core/textures/dev_measure.png";
@@ -148,6 +150,16 @@ void GameScene::Render() {
 	}
 }
 
+void GameScene::RegisterConVars() {
+	ConVarManager::RegisterConVar("sv_ducktime", 1000.0f, "ms");
+	ConVarManager::RegisterConVar("sv_jumptime", 510.0f,
+	                              "ms approx - based on the 21 unit height jump");
+	ConVarManager::RegisterConVar("sv_jumpheight", 21.0f, "units");
+	ConVarManager::RegisterConVar("sv_timetounduck", 0.2f * 1000.0f, "ms");
+	ConVarManager::RegisterConVar("sv_timetounduckinv",
+	                              1000.0f - 0.2f * 1000.0f, "ms");
+}
+
 void GameScene::LoadCoreTextures() const {
 	auto* texManager = TexManager::GetInstance();
 	if (!texManager) {
@@ -250,7 +262,7 @@ void GameScene::InitializePlayer() {
 	mEntPlayer = std::make_unique<Entity>("player");
 	mEntPlayer->GetTransform()->SetLocalPos(Vec3::up * kPlayerSpawnHeight);
 
-	auto* movement     = mEntPlayer->AddComponent<Movement>();
+	auto* movement     = mEntPlayer->AddComponent<MovementComponent>();
 	mMovementComponent = AdoptComponent(movement);
 
 	const auto moveData = MovementData(
@@ -849,7 +861,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	// メッシュをリロード
 	const std::string meshPath      = kWorldMeshReloadPath;
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-	                                       ReloadMeshFromFile(meshPath);
+		ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
@@ -925,7 +937,7 @@ void GameScene::SafeReloadWorldMesh() {
 	// メッシュをリロード
 	const std::string meshPath      = kWorldMeshReloadPath;
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-	                                       ReloadMeshFromFile(meshPath);
+		ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
