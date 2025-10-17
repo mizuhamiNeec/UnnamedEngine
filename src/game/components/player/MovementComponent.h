@@ -63,9 +63,6 @@ struct MovementData {
 	Vec3  lastGroundNormal = Vec3::up;
 	float lastGroundDistM  = 0.0f;
 
-	float groundEnterSlopeThreshold = 0.707f;
-	float groundLeaveSlopeThreshold = 0.7f;
-
 	// Stuck detection
 	Vec3  lastPosition = Vec3::zero;
 	float stuckTime    = 0.0f;
@@ -154,6 +151,19 @@ private:
 	static constexpr float kFracEps        = 1e-4f;
 	static constexpr float kAirSpeedCap    = 30.0f;
 	static constexpr float kJumpVelocityHu = 400.0f; // HU/s
+	static constexpr float kGroundEnterNY  = 0.7f;   // 着地許可
+	static constexpr float kGroundExitNY   = 0.72f;  // 接地維持
+	
+	// 面法線の「同一扱い」閾値（cosθ）。0.999 ≒ 2.6°
+	static constexpr float kPlaneSameCos   = 0.999f;
+
+	// ヒット直後に必ず進める最小前進量（m）
+	static constexpr float kTinyAdvanceM = 0.0002f;
+
+	// “抜け”やバタつきを抑えるオーバークリップ係数（Source準拠）
+	static constexpr float kOverclip     = 1.001f;  // 通常
+	static constexpr float kSurfOverclip = 1.001f;   // サーフ/急斜面時はやや強め
+
 
 	float StepHeightM() const { return Math::HtoM(kStepHeightHU); }
 	float CastSkinM() const { return Math::HtoM(kCastSkinHU); }
@@ -181,6 +191,8 @@ private:
 	static constexpr float kWallrunSameWallCooldown  = 1.0f; // seconds
 	static constexpr bool  kWallrunDetachOnSideInput = true; // 左右入力で離脱するか
 	static constexpr float kWallrunVerticalDamping   = 0.3f; // 地上ジャンプからの垂直速度減衰
+	static constexpr float kWallrunCameraDetachAngle = 0.5f;
+	// カメラが壁から離れる角度閾値（cos60°）
 
 	// Double jump
 	static constexpr float kDoubleJumpVelocityHu = 300.0f;
