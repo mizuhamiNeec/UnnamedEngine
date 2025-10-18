@@ -339,7 +339,7 @@ namespace Unnamed {
 					                      ImVec4(0.13f, 0.5f, 1.0f, 1.0f));
 
 					if (ImGuiWidgets::BeginMainMenu(
-						StrUtil::ConvertToUtf8(kIconArrowForward).c_str())) {
+						StrUtil::ConvertToUtf8(kIconArrowBack).c_str())) {
 						ImGui::PopStyleColor();
 						if (ImGui::MenuItemEx(
 							("About " + std::string(ENGINE_NAME)).c_str(),
