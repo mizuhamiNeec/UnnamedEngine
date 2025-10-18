@@ -66,8 +66,8 @@ namespace UPhysics {
 				.tMin = 0.0f,
 				.tMax = length
 			};
-			Vec3 dirNormalized = dir;
-			const float dirLenSq = dirNormalized.SqrLength();
+			Vec3        dirNormalized = dir;
+			const float dirLenSq      = dirNormalized.SqrLength();
 			if (dirLenSq > 1e-12f) {
 				dirNormalized /= std::sqrt(dirLenSq);
 			} else {
@@ -76,7 +76,7 @@ namespace UPhysics {
 
 			for (const auto& bvh : bvhSet) {
 				Unnamed::AABB root = cast.ExpandNode(bvh.nodes[0].bounds);
-				float         t    = length;
+				float         t    = 1.0f;
 				if (RayVsAABB(broadRay, root, t)) {
 					filtered.emplace_back(&bvh);
 				}
@@ -118,7 +118,7 @@ namespace UPhysics {
 					// 現在の最良TOIを使った早期終了
 					Unnamed::Ray pruneRay = broadRay;
 					pruneRay.tMax         = bestTOI * length;
-					float tBox            = bestTOI * length;
+					float tBox            = bestTOI;
 					if (
 						!RayVsAABB(
 							pruneRay,
@@ -159,17 +159,16 @@ namespace UPhysics {
 				return false; // 残念!
 			}
 			if (outHit) {
-				Vec3 finalNormal = hitNormal;
-				const float nLenSq = finalNormal.SqrLength();
+				Vec3        finalNormal = hitNormal;
+				const float nLenSq      = finalNormal.SqrLength();
 				if (nLenSq > 1e-12f) {
 					finalNormal /= std::sqrt(nLenSq);
 				} else {
 					finalNormal = Vec3::up;
 				}
-				const float hitDistance = bestTOI * length;
-				outHit->t        = hitDistance;
-				outHit->normal   = finalNormal;
-				outHit->pos      = cast.ComputeImpactPoint(
+				outHit->t      = bestTOI;
+				outHit->normal = finalNormal;
+				outHit->pos    = cast.ComputeImpactPoint(
 					start,
 					dirNormalized,
 					length,
