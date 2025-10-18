@@ -127,7 +127,6 @@ private:
 	void Air(float wishspeed, float dt);
 	void Slide(float wishspeed, float dt);
 
-	// forces
 	void ApplyHalfGravity(float dt);
 	void Friction(float dt);
 	void Accelerate(Vec3 dir, float speed, float accel, float dt);
@@ -136,46 +135,15 @@ private:
 	void UpdateHullDimensions();
 	void CheckForNaNAndClamp();
 
-	// Collision & response (Source-style)
-	void MoveWithCollisions(float dt);
-
 	// params
-	static constexpr float kStepHeightHU   = 18.0f; // 72HUハルに対して既定
 	static constexpr float kCastSkinHU     = 0.25f;
 	static constexpr float kSkinHU         = 0.25f;
-	static constexpr float kRestOffsetHU   = 0.75f;
-	static constexpr float kMaxAdhesionHU  = 2.0f; // 接地維持の最大距離
-	static constexpr float kSnapVyMax      = 1.0f; // m/s
-	static constexpr int   kMaxBumps       = 8;    // 最大衝突回数（Source準拠）
-	static constexpr int   kMaxClipPlanes  = 5;
-	static constexpr float kFracEps        = 1e-4f;
 	static constexpr float kAirSpeedCap    = 30.0f;
 	static constexpr float kJumpVelocityHu = 400.0f; // HU/s
-	static constexpr float kGroundEnterNY  = 0.7f;   // 着地許可
-	static constexpr float kGroundExitNY   = 0.72f;  // 接地維持
-	
-	// 面法線の「同一扱い」閾値（cosθ）。0.999 ≒ 2.6°
-	static constexpr float kPlaneSameCos   = 0.999f;
+	static constexpr float kStepHeightHu   = 18.0f;  // HU
 
-	// ヒット直後に必ず進める最小前進量（m）
-	static constexpr float kTinyAdvanceM = 0.0002f;
-
-	// “抜け”やバタつきを抑えるオーバークリップ係数（Source準拠）
-	static constexpr float kOverclip     = 1.001f;  // 通常
-	static constexpr float kSurfOverclip = 1.001f;   // サーフ/急斜面時はやや強め
-
-
-	float StepHeightM() const { return Math::HtoM(kStepHeightHU); }
 	float CastSkinM() const { return Math::HtoM(kCastSkinHU); }
 	float SkinM() const { return Math::HtoM(kSkinHU); }
-	float RestOffsetM() const { return Math::HtoM(kRestOffsetHU); }
-	float MaxAdhesionM() const { return Math::HtoM(kMaxAdhesionHU); }
-
-	// Stuck detection
-	void                   DetectAndResolveStuck(float dt);
-	static constexpr float kStuckThreshold     = 0.01f; // m/s
-	static constexpr float kStuckTimeThreshold = 0.5f;  // seconds
-	static constexpr float kStuckEscapeForce   = 5.0f;  // m/s upward
 
 	// Wallrun
 	void                   Wallrun(float wishspeed, float dt);
