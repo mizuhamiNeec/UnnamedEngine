@@ -5,7 +5,7 @@ static auto kIconSpace = " "; // スペース(アイコンなし)
 constexpr uint32_t kIconPower    = 0xE8AC;
 constexpr uint32_t kIconSettings = 0xE8B8; // 設定
 
-constexpr uint32_t kIconArrowForward = 0xe5c8; // ロゴ(仮)
+constexpr uint32_t kIconArrowBack = 0xE5C4; // ロゴ(仮)
 
 constexpr uint32_t kIconTerminal = 0xEB8E; // ターミナル
 
