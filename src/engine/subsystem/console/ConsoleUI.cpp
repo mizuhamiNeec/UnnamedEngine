@@ -10,7 +10,7 @@ namespace Unnamed {
 	ConsoleUI::ConsoleUI(
 		ConsoleSystem* consoleSystem
 	) : mConsoleSystem(consoleSystem) {
-		//bIsImGuiInitialized = true;
+		bIsImGuiInitialized = true;
 		// if (ImGui::GetCurrentContext() != nullptr) {
 		// 	
 		// } else {
