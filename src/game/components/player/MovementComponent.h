@@ -3,12 +3,14 @@
 #include <runtime/core/math/Math.h>
 #include <runtime/physics/core/UPhysics.h>
 
-// ステート
+/**
+ * @brief プレイヤーの移動状態
+ */
 enum class MOVEMENT_STATE {
-	GROUND,
-	AIR,
-	WALL_RUN,
-	SLIDE,
+	GROUND,   ///< 地面に接地している
+	AIR,      ///< 空中にいる
+	WALL_RUN, ///< 壁走り中
+	SLIDE,    ///< スライド中
 };
 
 namespace {
@@ -23,13 +25,25 @@ namespace {
 	}
 }
 
+/**
+ * @brief プレイヤーの移動データ構造体
+ * @details プレイヤーの速度、状態、入力などの移動に関する全ての情報を保持します
+ */
 struct MovementData {
+	/**
+	 * @brief コンストラクタ
+	 * @param width プレイヤーの幅
+	 * @param height プレイヤーの高さ
+	 */
 	MovementData(float width, float height)
 		: currentWidthHu(width), currentHeightHu(height) {
 		defaultHeightHu = height;
 		crouchHeightHu  = height * 0.75f;
 	}
 
+	/**
+	 * @brief デフォルトコンストラクタ
+	 */
 	MovementData() : currentWidthHu(32.0f), currentHeightHu(72.0f) {
 		defaultHeightHu = currentHeightHu;
 		crouchHeightHu  = currentHeightHu * 0.75f;
