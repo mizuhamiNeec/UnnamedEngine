@@ -7,16 +7,30 @@
 #include <memory>
 #include <fstream>
 
-/// @class JsonReader
+/**
+ * @brief JSON読み込みクラス
+ * @details JSON形式のデータを読み込み、型安全にアクセスするためのラッパークラスです
+ */
 class JsonReader final {
 public:
+	/**
+	 * @brief デフォルトコンストラクタ
+	 */
 	JsonReader() = default;
 
+	/**
+	 * @brief JSONオブジェクトから初期化するコンストラクタ
+	 * @param root JSONルートオブジェクト
+	 */
 	explicit JsonReader(const nlohmann::json& root)
 		: mStorage(std::make_shared<nlohmann::json>(root)),
 		  mNode(mStorage.get()), mValid(true) {
 	}
 
+	/**
+	 * @brief ファイルパスから読み込むコンストラクタ
+	 * @param path JSONファイルのパス
+	 */
 	explicit JsonReader(const std::string& path) {
 		std::ifstream ifs(path);
 		if (!ifs) {
