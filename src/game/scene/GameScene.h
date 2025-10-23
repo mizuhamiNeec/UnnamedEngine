@@ -24,9 +24,20 @@ class CameraSystem;
 class CameraComponent;
 class IConVar;
 
+/**
+ * @brief メインゲームシーンクラス
+ * @details プレイヤー、敵、武器などのゲームプレイ要素を管理します
+ */
 class GameScene : public BaseScene {
 public:
+	/**
+	 * @brief デストラクタ
+	 */
 	~GameScene() override;
+	
+	/**
+	 * @brief シーンの初期化
+	 */
 	void Init() override;
 	void Update(float deltaTime) override;
 	void Render() override;

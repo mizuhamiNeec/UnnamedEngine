@@ -5,13 +5,35 @@
 class MovementComponent;
 class CameraRotator;
 
-// カメラアニメーション用のコンポーネント
-// ジャンプ、スライディング、ウォールランなどの動きに応じてカメラを演出
+/**
+ * @brief カメラアニメーション用のコンポーネント
+ * @details ジャンプ、スライディング、ウォールランなどの動きに応じてカメラを演出します。
+ *          Titanfall 2スタイルの動的なカメラ表現を実現します。
+ */
 class CameraAnimator : public Component {
 public:
+	/**
+	 * @brief エンティティにアタッチされた際に呼ばれる
+	 * @param owner 所有者エンティティ
+	 */
 	void OnAttach(Entity& owner) override;
+	
+	/**
+	 * @brief コンポーネントの初期化
+	 * @param movementComponent 移動コンポーネントへの参照
+	 * @param cameraRotator カメラ回転コンポーネントへの参照
+	 */
 	void Init(MovementComponent* movementComponent, CameraRotator* cameraRotator);
+	
+	/**
+	 * @brief 毎フレーム更新処理を行う
+	 * @param dt 前フレームからの経過時間
+	 */
 	void Update(float dt) override;
+	
+	/**
+	 * @brief ImGuiインスペクタ用のUI描画
+	 */
 	void DrawInspectorImGui() override;
 
 private:

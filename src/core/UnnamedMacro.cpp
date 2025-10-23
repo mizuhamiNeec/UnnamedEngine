@@ -4,6 +4,10 @@
 
 #pragma comment(lib, "DbgHelp.lib")
 
+/**
+ * @brief メモリリークを検出してユーザーに通知する
+ * @details メモリリークが検出された場合、メッセージボックスで警告を表示します
+ */
 void CheckMemoryLeaksAndNotify() {
 	if (_CrtDumpMemoryLeaks()) {
 		MessageBoxW(
@@ -15,6 +19,15 @@ void CheckMemoryLeaksAndNotify() {
 	}
 }
 
+/**
+ * @brief アサーション失敗時のログ出力とエラーダイアログ表示を行う
+ * @param expr 失敗した式の文字列表現
+ * @param file ファイル名
+ * @param line 行番号
+ * @param func 関数名
+ * @return 常に0を返す
+ * @details デバッグモードでは中止/再試行/無視を選択可能、リリースモードではOKのみ表示します
+ */
 int LogAssertionFailure(
 	const char* expr,
 	const char* file,
@@ -75,6 +88,11 @@ int LogAssertionFailure(
 	return 0;
 }
 
+/**
+ * @brief 例外発生時にミニダンプファイルを作成する
+ * @param ep 例外ポインタ（nullptrの場合は現在の状態をダンプ）
+ * @details タイムスタンプ付きのダンプファイル名で現在のディレクトリに保存します
+ */
 void WriteDump(EXCEPTION_POINTERS* ep) {
 	SYSTEMTIME st;
 	GetLocalTime(&st);

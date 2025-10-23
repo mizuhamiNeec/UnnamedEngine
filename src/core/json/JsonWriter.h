@@ -6,8 +6,11 @@
 
 #include <runtime/core/math/Math.h>
 
-/// @class JsonWriter
-/// @brief JSON構築用ユーティリティ (オブジェクト/配列のネストサポート)
+/**
+ * @brief JSON書き込みクラス
+ * @details JSON形式のデータを構築し、ファイルに保存するためのクラスです。
+ *          オブジェクトと配列のネストをサポートします。
+ */
 class JsonWriter final {
 	// ルート JSON 値
 	nlohmann::json mRoot;
@@ -29,12 +32,37 @@ class JsonWriter final {
 	void BeginContainerInternal(nlohmann::json value);
 
 public:
+	/**
+	 * @brief コンストラクタ
+	 * @param path 出力ファイルパス
+	 */
 	explicit JsonWriter(std::string path);
+	
+	/**
+	 * @brief オブジェクトの開始
+	 */
 	void     BeginObject();
+	
+	/**
+	 * @brief オブジェクトの終了
+	 */
 	void     EndObject();
+	
+	/**
+	 * @brief 配列の開始
+	 */
 	void     BeginArray();
+	
+	/**
+	 * @brief 配列の終了
+	 */
 	void     EndArray();
-	void     Key(const std::string& key) const; // オブジェクト用キー
+	
+	/**
+	 * @brief オブジェクトのキーを設定する
+	 * @param key キー名
+	 */
+	void     Key(const std::string& key) const;
 
 	template <typename T>
 	void Write(const T& value) {
@@ -65,6 +93,15 @@ public:
 			"Current JSON container is neither object nor array");
 	}
 
-	bool                           Save() const;     // ファイルへ保存
-	[[nodiscard]] std::string_view ToString() const; // 文字列取得 (必要時 dump)
+	/**
+	 * @brief ファイルに保存する
+	 * @return 成功した場合true
+	 */
+	bool                           Save() const;
+	
+	/**
+	 * @brief JSON文字列を取得する
+	 * @return JSON文字列
+	 */
+	[[nodiscard]] std::string_view ToString() const;
 };
