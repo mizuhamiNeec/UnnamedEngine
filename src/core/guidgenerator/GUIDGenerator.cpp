@@ -2,6 +2,11 @@
 
 #include <array>
 
+/**
+ * @brief GuidGeneratorのコンストラクタ
+ * @param m 生成モード
+ * @details シーケンシャルモードの場合、乱数生成器を初期化します
+ */
 GuidGenerator::GuidGenerator(const MODE m) : mMode(m) {
 	if (mMode == MODE::SEQUENTIAL) {
 		std::random_device rd;
@@ -10,6 +15,11 @@ GuidGenerator::GuidGenerator(const MODE m) : mMode(m) {
 	}
 }
 
+/**
+ * @brief 新しいGUIDを割り当てる
+ * @return 生成された64ビットGUID
+ * @details シーケンシャルモードでは連番、ランダムモードでは乱数を生成します
+ */
 uint64_t GuidGenerator::Alloc() {
 	switch (mMode) {
 	case MODE::SEQUENTIAL:
