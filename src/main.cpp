@@ -1,29 +1,33 @@
 #include <pch.h>
 
+#include <engine/Engine.h>
+#include <engine/platform/Win32App.h>
 #include <engine/uengine/UEngine.h>
 
-#include "engine/Engine.h"
-#include "engine/platform/Win32App.h"
-
+/// @brief エントリーポイント 
+/// @param hInstance 
+/// @param hPrevInstance 
+/// @param lpCmdLine  
+/// @param nShowCmd 
+/// @return 終了コード
 int WINAPI wWinMain(
 	[[maybe_unused]] const HINSTANCE hInstance,
 	[[maybe_unused]] HINSTANCE       hPrevInstance,
 	[[maybe_unused]] const PWSTR     lpCmdLine,
 	[[maybe_unused]] const int       nShowCmd
 ) {
-	_CrtSetDbgFlag( // リークチェック
-		_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF
-	);
-	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+	// リークチェック
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	[[maybe_unused]] HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
-	const bool startNewEngine = (lpCmdLine != nullptr) && (std::wcsstr(
-		lpCmdLine, L"-new") != nullptr);
+	// デフォルトは旧エンジン. 引数があったら新しい方を起動する
+	const bool startNewEngine =
+		lpCmdLine != nullptr && std::wcsstr(lpCmdLine, L"-new") != nullptr;
 
 	if (startNewEngine) {
 		const auto uEngine = std::make_unique<Unnamed::UEngine>();
 		uEngine->Run();
 	} else {
-		// デフォルトは従来の古いエンジン
 		const auto engine = std::make_unique<Unnamed::Engine>();
 
 		if (!engine->Init()) {

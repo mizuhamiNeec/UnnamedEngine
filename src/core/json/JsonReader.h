@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <json.hpp>
 #include <optional>
 #include <string_view>
@@ -7,30 +7,24 @@
 #include <memory>
 #include <fstream>
 
-/**
- * @brief JSON読み込みクラス
- * @details JSON形式のデータを読み込み、型安全にアクセスするためのラッパークラスです
- */
+/// @brief JSON読み込みクラス
+/// @details JSON形式のデータを読み込み、型安全にアクセスするためのラッパークラスです
 class JsonReader final {
 public:
-	/**
-	 * @brief デフォルトコンストラクタ
-	 */
+	
+	/// @brief デフォルトコンストラクタ
 	JsonReader() = default;
 
-	/**
-	 * @brief JSONオブジェクトから初期化するコンストラクタ
-	 * @param root JSONルートオブジェクト
-	 */
+
+	/// @brief JSONオブジェクトから初期化するコンストラクタ
+	/// @param root JSONルートオブジェクト
 	explicit JsonReader(const nlohmann::json& root)
 		: mStorage(std::make_shared<nlohmann::json>(root)),
-		  mNode(mStorage.get()), mValid(true) {
+		mNode(mStorage.get()), mValid(true) {
 	}
 
-	/**
-	 * @brief ファイルパスから読み込むコンストラクタ
-	 * @param path JSONファイルのパス
-	 */
+	/// @brief ファイルパスから読み込むコンストラクタ
+	/// @param path JSONファイルのパス
 	explicit JsonReader(const std::string& path) {
 		std::ifstream ifs(path);
 		if (!ifs) {
@@ -40,11 +34,12 @@ public:
 		try {
 			mStorage = std::make_shared<nlohmann::json>();
 			ifs >> *mStorage;
-			mNode  = mStorage.get();
+			mNode = mStorage.get();
 			mValid = true;
-		} catch (...) {
+		}
+		catch (...) {
 			mStorage.reset();
-			mNode  = nullptr;
+			mNode = nullptr;
 			mValid = false;
 		}
 	}
@@ -54,7 +49,7 @@ public:
 	[[nodiscard]] bool Has(const std::string_view& key) const {
 		return mNode && mNode->is_object() && mNode->contains(key);
 	}
-	
+
 	// operator[] (オブジェクトキー)
 	JsonReader operator[](const std::string_view& key) const {
 		if (!Has(key)) { return {}; }
@@ -74,7 +69,7 @@ public:
 		if (!mNode || !mNode->is_array()) { return 0; }
 		return mNode->size();
 	}
-	
+
 	std::string GetString() const {
 		if (!mNode) { return {}; }
 		if (mNode->is_string()) { return mNode->get<std::string>(); }
@@ -82,7 +77,7 @@ public:
 		if (mNode->is_number()) { return mNode->dump(); }
 		return {};
 	}
-	
+
 	float GetFloat() const {
 		if (!mNode) { return 0.f; }
 		if (mNode->is_number_float() || mNode->is_number_integer() || mNode->
@@ -105,15 +100,16 @@ public:
 
 	// 配列ラッパを返す (UWorld::LoadFromJson では GetArray() の戻りに対し [i] / GetFloat を呼ぶ)
 	JsonReader GetArray() const { return *this; }
-	
+
 	template <typename T>
 	std::optional<T> Read(const std::string_view& key) const {
 		if (!Has(key)) { return std::nullopt; }
-		try { return (*mNode)[std::string(key)].get<T>(); } catch (...) {
+		try { return (*mNode)[std::string(key)].get<T>(); }
+		catch (...) {
 			return std::nullopt;
 		}
 	}
-	
+
 	template <typename T>
 	std::vector<T> ReadArray(const std::string_view& key) const {
 		std::vector<T> out;
@@ -122,7 +118,8 @@ public:
 		if (!j.is_array()) { return out; }
 		out.reserve(j.size());
 		for (auto& v : j) {
-			try { out.emplace_back(v.get<T>()); } catch (...) {
+			try { out.emplace_back(v.get<T>()); }
+			catch (...) {
 				/* skip */
 			}
 		}
@@ -131,12 +128,12 @@ public:
 
 private:
 	JsonReader(std::shared_ptr<nlohmann::json> storage,
-	           const nlohmann::json*           node, const bool valid)
+		const nlohmann::json* node, const bool valid)
 		: mStorage(std::move(storage)), mNode(node),
-		  mValid(valid && node != nullptr) {
+		mValid(valid&& node != nullptr) {
 	}
 
 	std::shared_ptr<nlohmann::json> mStorage;
-	const nlohmann::json*           mNode{nullptr};
-	bool                            mValid{false};
+	const nlohmann::json* mNode{ nullptr };
+	bool                            mValid{ false };
 };

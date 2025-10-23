@@ -26,6 +26,7 @@
 namespace Unnamed {
 	class ConsoleSystem;
 
+
 	class Engine {
 	public:
 		Engine();
@@ -40,8 +41,8 @@ namespace Unnamed {
 		//---------------------------------------------------------------------
 	private:
 		std::vector<std::unique_ptr<ISubsystem>> mSubsystems;
-		ConsoleSystem*                           mConsoleSystem = nullptr;
-		TimeSystem*                              mTimeSystem    = nullptr;
+		ConsoleSystem* mConsoleSystem = nullptr;
+		TimeSystem* mTimeSystem = nullptr;
 
 	public:
 		//---------------------------------------------------------------------
