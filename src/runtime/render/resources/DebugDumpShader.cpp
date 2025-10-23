@@ -85,7 +85,8 @@ namespace Unnamed {
 				     r) {
 					auto& rg = p.DescriptorTable.pDescriptorRanges[r];
 					if (rg.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV) {
-						const UINT end = (rg.NumDescriptors == UINT(-1)) ?
+						const UINT end = (rg.NumDescriptors == static_cast<UINT>
+							                 (-1)) ?
 							                 0xffffffffu :
 							                 (rg.BaseShaderRegister + rg.
 								                 NumDescriptors);
@@ -124,8 +125,8 @@ namespace Unnamed {
 						"[{}] MISSING CBV b{} space{} (stage={})",
 						tag ? tag : "", bd.BindPoint, bd.Space,
 						(stage == D3D12_SHADER_VISIBILITY_VERTEX ?
-							 "VS" :
-							 "PS")
+							"VS" :
+							"PS")
 					);
 
 					ok = false;

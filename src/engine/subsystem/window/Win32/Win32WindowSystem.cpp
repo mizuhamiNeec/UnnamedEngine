@@ -5,8 +5,11 @@
 #include <engine/subsystem/window/Win32/Win32WindowSystem.h>
 #include <engine/Window/WindowsUtils.h>
 
+/// @brief Unnamed エンジン名前空間
 Win32WindowSystem::~Win32WindowSystem() = default;
 
+/// @brief 初期化
+/// @return 初期化成功ならtrue
 bool Win32WindowSystem::Init() {
 	mHInstance = GetModuleHandle(nullptr);
 	RegisterClassOnce();
@@ -14,6 +17,8 @@ bool Win32WindowSystem::Init() {
 	return true;
 }
 
+/// @brief 更新
+///	@param deltaTime デルタタイム
 void Win32WindowSystem::Update(float) {
 	MSG msg;
 	while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
@@ -27,17 +32,23 @@ void Win32WindowSystem::Update(float) {
 	}
 }
 
+/// @brief シャットダウン
 void Win32WindowSystem::Shutdown() {
 	mHWndMap.clear();
 	mWindows.clear();
 }
 
+/// @brief プラットフォームイベントを登録します
+/// @param events 登録するプラットフォームイベントインターフェース
 void Win32WindowSystem::RegisterPlatformEvent(
 	Unnamed::IPlatformEvents* events
 ) {
 	mPlatformEvents = events;
 }
 
+/// @brief 新しいウィンドウを作成します
+/// @param windowInfo ウィンドウ情報
+/// @return 作成されたウィンドウのポインタ
 IWindow* Win32WindowSystem::CreateNewWindow(
 	const IWindow::WindowInfo& windowInfo
 ) {
@@ -66,23 +77,34 @@ IWindow* Win32WindowSystem::CreateNewWindow(
 	return rawPtr;
 }
 
+/// @brief 登録されているウィンドウのリストを取得します
+/// @return ウィンドウのリスト
 const std::vector<std::unique_ptr<IWindow>>&
 Win32WindowSystem::GetWindows() const {
 	return mWindows;
 }
 
+/// @brief すべてのウィンドウが閉じられたかどうかを取得します
+/// @return すべてのウィンドウが閉じられたならtrue
 bool Win32WindowSystem::AllClosed() const {
 	if (mWindows.empty()) {
 		return true;
 	}
-	for (auto& window : mWindows) {
-		if (!window->ShouldClose()) {
-			return false;
-		}
+	if (
+		!std::ranges::all_of(
+			mWindows,
+			[](const auto& window) {
+				return window->ShouldClose();
+			}
+		)
+	) {
+		return false;
 	}
 	return true;
 }
 
+/// @brief ウィンドウが非アクティブかどうかを取得します
+/// @return ウィンドウが非アクティブならtrue
 bool Win32WindowSystem::IsInactiveWindow() {
 	if (mWindows.empty()) {
 		return true;
@@ -95,6 +117,12 @@ bool Win32WindowSystem::IsInactiveWindow() {
 	return true;
 }
 
+/// @brief ウィンドウプロシージャ
+/// @param hWnd ウィンドウハンドル
+/// @param msg メッセージ
+/// @param wParam WPARAM
+/// @param lParam LPARAM
+/// @return 処理結果
 LRESULT Win32WindowSystem::WndProc(
 	const HWND   hWnd, const UINT     msg,
 	const WPARAM wParam, const LPARAM lParam
@@ -161,6 +189,7 @@ LRESULT Win32WindowSystem::WndProc(
 	return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
+/// @brief ウィンドウクラスを一度だけ登録します
 void Win32WindowSystem::RegisterClassOnce() {
 	if (mRegistered) {
 		return;

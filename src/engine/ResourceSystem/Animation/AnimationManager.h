@@ -7,6 +7,7 @@
 
 struct aiAnimation;
 
+/// @brief アニメーションマネージャークラス
 class AnimationManager {
 public:
 	void Init();

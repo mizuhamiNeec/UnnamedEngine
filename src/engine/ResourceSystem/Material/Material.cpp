@@ -12,6 +12,9 @@
 #include <engine/ResourceSystem/Shader/Shader.h>
 #include <engine/TextureManager/TexManager.h>
 
+/// @brief コンストラクタ
+/// @param name マテリアル名
+/// @param shader シェーダへのポインタ
 Material::Material(std::string name, Shader* shader) :
 	mName(std::move(name)),
 	mShader(shader), mPipelineState(nullptr), mRootSignature(nullptr) {
@@ -21,6 +24,9 @@ Material::Material(std::string name, Shader* shader) :
 	InitializeRootSignature();
 }
 
+/// @brief テクスチャを設定します
+/// @param name テクスチャスロット名
+/// @param filePath テクスチャファイルパス
 void Material::SetTexture(const std::string& name,
                           const std::string& filePath) {
 	// テクスチャを読み込み
@@ -46,6 +52,9 @@ void Material::SetTexture(const std::string& name,
 	}
 }
 
+/// @brief 定数バッファを設定します
+/// @param shaderRegister シェーダーレジスタ番号
+/// @param buffer 定数バッファリソースへのポインタ
 void Material::SetConstantBuffer(const UINT      shaderRegister,
                                  ID3D12Resource* buffer) {
 	// シェーダーからリソース情報を取得
@@ -59,6 +68,9 @@ void Material::SetConstantBuffer(const UINT      shaderRegister,
 	}
 }
 
+/// @brief マテリアルを適用します
+/// @param commandList コマンドリストへのポインタ
+/// @param meshName メッシュ名
 void Material::Apply(ID3D12GraphicsCommandList* commandList,
                      const std::string&         meshName) {
 	if (!mShader) {
@@ -125,12 +137,6 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList,
 	}
 	commandList->SetPipelineState(pso);
 
-	/*Console::Print(
-		"マテリアルを適用しました: " + name_ + "\n",
-		kConTextColorCompleted,
-		Channel::ResourceSystem
-	);*/
-
 	// 定数バッファをバインド
 	UINT parameterIndex = 0; // ルートパラメータのインデックスを追跡
 	for (const auto& [bindPoint, visibility, type] : mShader->
@@ -168,9 +174,6 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList,
 			}
 		}
 
-		// テクスチャのディスクリプタテーブルは全てのCBVの後
-		//		UINT tableIndex = cbvCount;
-
 		// シェーダーレジスタ順序（t0, t1, t2, ...）でテクスチャを並べる
 		std::map<UINT, std::pair<std::string, std::string>> texturesByRegister;
 
@@ -185,76 +188,80 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList,
 							name, filePath
 						};
 					}
-				} else {
-					// Console::Print(
-					// 	std::format(
-					// 		"Material::Apply: 警告 - シェーダーにテクスチャ {} が見つかりません\n",
-					// 		name),
-					// 	kConTextColorWarning,
-					// 	Channel::ResourceSystem
-					// );
 				}
 			}
 		}
 
 		// テクスチャの合計数を計算
 		UINT totalTextureCount = static_cast<UINT>(texturesByRegister.size());
-		
+
 		if (totalTextureCount > 0) {
 			auto srvManager = Unnamed::Engine::GetSrvManager();
 			auto texManager = TexManager::GetInstance();
-			
+
 			// テクスチャの組み合わせキーを生成（再利用判定用）
 			std::string textureComboKey;
-			for (const auto& [registerIndex, textureInfo] : texturesByRegister) {
+			for (const auto& [registerIndex, textureInfo] :
+			     texturesByRegister) {
 				const auto& [textureName, filePath] = textureInfo;
 				textureComboKey += filePath + "|";
 			}
-			
+
 			// 既存の連続SRVスロットが使用可能かチェック
 			static std::map<std::string, uint32_t> textureCombinationCache;
-			uint32_t consecutiveStartIndex = 0;
-			bool reusingExisting = false;
-			
+			uint32_t                               consecutiveStartIndex = 0;
+			bool                                   reusingExisting = false;
+
 			auto cacheIt = textureCombinationCache.find(textureComboKey);
 			if (cacheIt != textureCombinationCache.end()) {
 				// 既存の組み合わせを再利用
 				consecutiveStartIndex = cacheIt->second;
-				reusingExisting = true;
+				reusingExisting       = true;
 			} else {
 				// 新しい連続スロットを確保
-				consecutiveStartIndex = srvManager->AllocateConsecutiveTexture2DSlots(totalTextureCount);
+				consecutiveStartIndex = srvManager->
+					AllocateConsecutiveTexture2DSlots(totalTextureCount);
 				if (consecutiveStartIndex != 0) {
-					textureCombinationCache[textureComboKey] = consecutiveStartIndex;
+					textureCombinationCache[textureComboKey] =
+						consecutiveStartIndex;
 				}
 			}
-			
+
 			if (consecutiveStartIndex != 0) {
 				// シェーダーの期待に合わせてテクスチャを配置
 				// t0 = Texture2D (BaseColor), t1 = TextureCube (Environment)
-				std::vector<std::pair<UINT, std::pair<std::string, std::string>>> texture2DList;
-				std::vector<std::pair<UINT, std::pair<std::string, std::string>>> textureCubeList;
-				
+				std::vector<std::pair<
+					UINT, std::pair<std::string, std::string>>> texture2DList;
+				std::vector<std::pair<
+					UINT, std::pair<std::string, std::string>>> textureCubeList;
+
 				// テクスチャタイプ別に分類
-				for (const auto& [registerIndex, textureInfo] : texturesByRegister) {
+				for (const auto& [registerIndex, textureInfo] :
+				     texturesByRegister) {
 					const auto& [textureName, filePath] = textureInfo;
 					auto textureData = texManager->GetTextureData(filePath);
-					
+
 					if (textureData) {
-						bool isCubeMap = (textureData->metadata.miscFlags & DirectX::TEX_MISC_TEXTURECUBE) != 0;
-						
+						bool isCubeMap = (textureData->metadata.miscFlags &
+							DirectX::TEX_MISC_TEXTURECUBE) != 0;
+
 						if (isCubeMap) {
-							textureCubeList.push_back({registerIndex, textureInfo});
+							textureCubeList.push_back({
+								registerIndex, textureInfo
+							});
 						} else {
-							texture2DList.push_back({registerIndex, textureInfo});
+							texture2DList.push_back(
+								{registerIndex, textureInfo});
 						}
 					}
 				}
-				
+
 				// Nsightでのインデックスズレを考慮して逆順で配置を試行
 				// TextureCube -> Texture2D の順で配置（通常とは逆）
-				std::vector<std::pair<UINT, std::pair<std::string, std::string>>> nsightOrderedTextures;
-				
+				std::vector<std::pair<
+						UINT, std::pair<std::string, std::string>>>
+					nsightOrderedTextures;
+
 				// t1にTextureCubeを配置（インデックス0）
 				for (const auto& item : textureCubeList) {
 					nsightOrderedTextures.push_back(item);
@@ -263,61 +270,74 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList,
 				for (const auto& item : texture2DList) {
 					nsightOrderedTextures.push_back(item);
 				}
-				
+
 				// 各テクスチャを連続したスロットに配置（Nsight観察順）
 				// キャッシュされた組み合わせの場合はSRV作成をスキップ
 				if (!reusingExisting) {
 					for (size_t i = 0; i < nsightOrderedTextures.size(); ++i) {
-						const auto& [registerIndex, textureInfo] = nsightOrderedTextures[i];
+						const auto& [registerIndex, textureInfo] =
+							nsightOrderedTextures[i];
 						const auto& [textureName, filePath] = textureInfo;
-						uint32_t newSrvIndex = consecutiveStartIndex + static_cast<uint32_t>(i);
-						
+						uint32_t    newSrvIndex = consecutiveStartIndex +
+							static_cast<uint32_t>(i);
+
 						// テクスチャタイプを再確認
 						auto textureData = texManager->GetTextureData(filePath);
 						if (textureData) {
-							bool isCubeMap = (textureData->metadata.miscFlags & DirectX::TEX_MISC_TEXTURECUBE) != 0;
-							
+							bool isCubeMap = (textureData->metadata.miscFlags &
+								DirectX::TEX_MISC_TEXTURECUBE) != 0;
+
 							// 既存のテクスチャリソースを取得
-							auto textureResource = texManager->GetTextureResource(filePath);
+							auto textureResource = texManager->
+								GetTextureResource(filePath);
 							if (textureResource) {
 								// 連続スロットに適切なSRVを作成
 								if (isCubeMap) {
-									srvManager->CreateSRVForTextureCube(newSrvIndex, textureResource, DXGI_FORMAT_UNKNOWN, 1);
+									srvManager->CreateSRVForTextureCube(
+										newSrvIndex, textureResource,
+										DXGI_FORMAT_UNKNOWN, 1);
 								} else {
-									srvManager->CreateSRVForTexture2D(newSrvIndex, textureResource.Get(), DXGI_FORMAT_UNKNOWN, 1);
+									srvManager->CreateSRVForTexture2D(
+										newSrvIndex, textureResource.Get(),
+										DXGI_FORMAT_UNKNOWN, 1);
 								}
-								
+
 								// TexManagerのマッピングを更新
-								texManager->UpdateTextureSrvIndex(filePath, newSrvIndex);
+								texManager->UpdateTextureSrvIndex(
+									filePath, newSrvIndex);
 							}
 						}
 					}
 				} else {
 					// キャッシュ再利用の場合、TexManagerのマッピングだけ更新
 					for (size_t i = 0; i < nsightOrderedTextures.size(); ++i) {
-						const auto& [registerIndex, textureInfo] = nsightOrderedTextures[i];
+						const auto& [registerIndex, textureInfo] =
+							nsightOrderedTextures[i];
 						const auto& [textureName, filePath] = textureInfo;
-						uint32_t newSrvIndex = consecutiveStartIndex + static_cast<uint32_t>(i);
-						
+						uint32_t    newSrvIndex = consecutiveStartIndex +
+							static_cast<uint32_t>(i);
+
 						// TexManagerのマッピングを更新
-						texManager->UpdateTextureSrvIndex(filePath, newSrvIndex);
+						texManager->
+							UpdateTextureSrvIndex(filePath, newSrvIndex);
 					}
 				}
-				
+
 				// ルートシグネチャの構造に基づいてテクスチャディスクリプタテーブルのインデックスを計算
 				const auto& resourceMap = mShader->GetResourceRegisterMap();
-				UINT constantBufferCount = 0;
+				UINT        constantBufferCount = 0;
 				for (const auto& [name, resourceInfo] : resourceMap) {
 					if (resourceInfo.type == D3D_SIT_CBUFFER) {
 						constantBufferCount++;
 					}
 				}
-				
+
 				// テクスチャディスクリプタテーブルは定数バッファの後
 				// （定数バッファ数に関係なく、すべての定数バッファの後にディスクリプタテーブルが配置される）
 				UINT textureTableRootParameterIndex = constantBufferCount;
-				
-				srvManager->SetGraphicsRootDescriptorTable(textureTableRootParameterIndex, consecutiveStartIndex);
+
+				srvManager->SetGraphicsRootDescriptorTable(
+					textureTableRootParameterIndex, consecutiveStartIndex);
 			} else {
 				Console::Print(
 					std::format(
@@ -331,6 +351,11 @@ void Material::Apply(ID3D12GraphicsCommandList* commandList,
 	}
 }
 
+/// @brief パイプラインステートを取得または作成します
+/// @param device D3D12デバイスへのポインタ
+/// @param baseDesc ベースのパイプラインステート記述子
+/// @param meshName メッシュ名
+/// @return 取得または作成されたパイプラインステートへのポインタ
 ID3D12PipelineState* Material::GetOrCreatePipelineState(
 	ID3D12Device* device, const D3D12_GRAPHICS_PIPELINE_STATE_DESC& baseDesc,
 	const std::string& meshName
@@ -392,6 +417,9 @@ ID3D12PipelineState* Material::GetOrCreatePipelineState(
 	return mPipelineState.Get();
 }
 
+/// @brief ルートシグネチャを取得または作成します
+/// @param device D3D12デバイスへのポインタ
+/// @return 取得または作成されたルートシグネチャへのポイン
 ID3D12RootSignature* Material::GetOrCreateRootSignature(
 	[[maybe_unused]] ID3D12Device* device) {
 	if (!mRootSignature) {
@@ -477,23 +505,23 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature(
 			param.DescriptorTable.pDescriptorRanges = srvRanges.data();
 			desc.parameters.emplace_back(param);
 
-		// サンプラーの追加
-		D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
-		samplerDesc.Filter = D3D12_FILTER_ANISOTROPIC;
-		samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-		samplerDesc.MipLODBias = 0;
-		samplerDesc.MaxAnisotropy = 16;
-		samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-		samplerDesc.BorderColor =
-			D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-		samplerDesc.MinLOD           = 0.0f;
-		samplerDesc.MaxLOD           = D3D12_FLOAT32_MAX;
-		samplerDesc.ShaderRegister   = 0;
-		samplerDesc.RegisterSpace    = 0;
-		samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-		desc.samplers.emplace_back(samplerDesc);
+			// サンプラーの追加
+			D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+			samplerDesc.Filter = D3D12_FILTER_ANISOTROPIC;
+			samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			samplerDesc.MipLODBias = 0;
+			samplerDesc.MaxAnisotropy = 16;
+			samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+			samplerDesc.BorderColor =
+				D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+			samplerDesc.MinLOD           = 0.0f;
+			samplerDesc.MaxLOD           = D3D12_FLOAT32_MAX;
+			samplerDesc.ShaderRegister   = 0;
+			samplerDesc.RegisterSpace    = 0;
+			samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+			desc.samplers.emplace_back(samplerDesc);
 		}
 
 		// INPUT_LAYOUTフラグを設定
@@ -506,6 +534,7 @@ ID3D12RootSignature* Material::GetOrCreateRootSignature(
 	return mRootSignature.Get();
 }
 
+/// @brief ルートシグネチャを初期化します
 void Material::InitializeRootSignature() const {
 	if (!mShader) {
 		Console::Print("シェーダーが設定されていません\n", kConTextColorError,
@@ -513,26 +542,37 @@ void Material::InitializeRootSignature() const {
 	}
 }
 
+/// @brief マテリアルをシャットダウンします
 void Material::Shutdown() {
 	mRootSignature.Reset();
 	mPipelineState.Reset();
 }
 
+/// @brief マテリアル名を取得します
+/// @return マテリアル名の参照
 const std::string& Material::GetName() const { return mName; }
 
+/// @brief テクスチャマップを取得します
+/// @return テクスチャマップの参照
 const std::unordered_map<std::string, std::string>&
 Material::GetTextures() const {
 	return mTextures;
 }
 
+/// @brief メッシュ名を設定します
+/// @param meshName メッシュ名
 void Material::SetMeshName(const std::string& meshName) {
 	mEshName = meshName;
 }
 
+/// @brief メッシュ名を取得します
+/// @return メッシュ名
 std::string Material::GetMeshName() const {
 	return mEshName;
 }
 
+/// @brief フルネーム（メッシュ名_マテリアル名）を取得します
+/// @return フルネーム
 std::string Material::GetFullName() const {
 	if (!mEshName.empty()) {
 		return mEshName + "_" + mName;
@@ -540,6 +580,10 @@ std::string Material::GetFullName() const {
 	return mName;
 }
 
+/// @brief 定数バッファ用のキーを生成します
+/// @param visibility シェーダーの可視性
+/// @param bindPoint バインドポイント（レジスタ番号）
+/// @return 生成されたキー文字列
 std::string Material::GenerateBufferKey(D3D12_SHADER_VISIBILITY visibility,
                                         UINT                    bindPoint) {
 	std::string key;

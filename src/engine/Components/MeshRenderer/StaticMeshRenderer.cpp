@@ -13,6 +13,7 @@ struct MatParam {
 	Vec3  emissive;
 };
 
+/// @brief デストラクタ
 StaticMeshRenderer::~StaticMeshRenderer() {
 	mTransformationMatrixConstantBuffer.reset();
 	mTransformationMatrix = nullptr;
@@ -20,6 +21,8 @@ StaticMeshRenderer::~StaticMeshRenderer() {
 	mStaticMesh           = nullptr;
 }
 
+/// @brief コンポーネントがエンティティにアタッチされたときの初期化処理
+/// @param owner 所有するエンティティ
 void StaticMeshRenderer::OnAttach(Entity& owner) {
 	MeshRenderer::OnAttach(owner);
 	mScene = mOwner->GetTransform();
@@ -95,6 +98,8 @@ void StaticMeshRenderer::OnAttach(Entity& owner) {
 	mSpotLightData->cosFalloffStart = 0.5f;
 }
 
+/// @brief メッシュの描画処理
+///	@param commandList コマンドリスト
 void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 	// メッシュが存在しない場合は描画をスキップ
 	if (!mStaticMesh) {
@@ -162,9 +167,9 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 			}
 
 			// マテリアルのApply（すべてのテクスチャがディスクリプタテーブルでバインドされる）
-			std::string meshName = mStaticMesh
-				                       ? mStaticMesh->GetName()
-				                       : "UnknownMesh";
+			std::string meshName = mStaticMesh ?
+				                       mStaticMesh->GetName() :
+				                       "UnknownMesh";
 
 			// ファイルパスからファイル名のみを抽出
 			size_t lastSlash = meshName.find_last_of("/\\");
@@ -202,6 +207,7 @@ void StaticMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 	}
 }
 
+/// @brief インスペクターUIの描画
 void StaticMeshRenderer::DrawInspectorImGui() {
 #ifdef _DEBUG
 	// 子クラスのインスペクターUIの描画
@@ -275,18 +281,18 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 							auto texManager = TexManager::GetInstance();
 
 							for (const auto& [name, filePath] : textures) {
-					// テクスチャ情報をより詳細に表示
-					if (ImGui::TreeNode(
-						(name + ": " + filePath).c_str())) {
-						ImGui::Text("Slot名: %s", name.c_str());
-						ImGui::Text("ファイルパス: %s", filePath.c_str());
+								// テクスチャ情報をより詳細に表示
+								if (ImGui::TreeNode(
+									(name + ": " + filePath).c_str())) {
+									ImGui::Text("Slot名: %s", name.c_str());
+									ImGui::Text("ファイルパス: %s", filePath.c_str());
 
-						// テクスチャインデックス情報を表示
-						uint32_t textureIndex = texManager->
-							GetTextureIndexByFilePath(filePath);
-						ImGui::Text("テクスチャインデックス: %u",
-						            textureIndex);
-						
+									// テクスチャインデックス情報を表示
+									uint32_t textureIndex = texManager->
+										GetTextureIndexByFilePath(filePath);
+									ImGui::Text("テクスチャインデックス: %u",
+									            textureIndex);
+
 									// テクスチャのプレビューを表示
 									D3D12_GPU_DESCRIPTOR_HANDLE handle =
 										texManager->GetSrvHandleGPU(filePath);
@@ -294,7 +300,7 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 										ImGui::Text(
 											"GPU Handle: %llu", handle.ptr);
 										ImGui::Image(
-											(ImTextureID)handle.ptr,
+											handle.ptr,
 											ImVec2(150, 150)
 										);
 
@@ -334,14 +340,20 @@ void StaticMeshRenderer::DrawInspectorImGui() {
 #endif
 }
 
+/// @brief スタティックメッシュを取得
+/// @return スタティックメッシュのポインタ
 StaticMesh* StaticMeshRenderer::GetStaticMesh() const {
 	return mStaticMesh;
 }
 
+/// @brief スタティックメッシュを設定
+/// @param staticMesh スタティックメッシュのポインタ
 void StaticMeshRenderer::SetStaticMesh(StaticMesh* staticMesh) {
 	mStaticMesh = staticMesh;
 }
 
+/// @brief トランスフォームのバインド
+/// @param commandList コマンドリスト
 void StaticMeshRenderer::BindTransform(ID3D12GraphicsCommandList* commandList) {
 	commandList;
 }

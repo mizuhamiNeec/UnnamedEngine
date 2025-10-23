@@ -22,6 +22,7 @@ struct TransformedVertex {
 	Vec3 worldPosition;
 };
 
+/// @brief スケルタルメッシュレンダラーコンポーネント
 class SkeletalMeshRenderer : public MeshRenderer {
 public:
 	SkeletalMeshRenderer() = default;
@@ -39,13 +40,13 @@ public:
 	void                        SetSkeletalMesh(SkeletalMesh* skeletalMesh);
 
 	// アニメーション制御
-	void                PlayAnimation(const std::string& animationName, bool loop = true);
-	void                StopAnimation();
-	void                PauseAnimation();
-	void                ResumeAnimation();
-	void                SetAnimationSpeed(float speed);
-	[[nodiscard]] bool  IsAnimationPlaying() const;
-	
+	void PlayAnimation(const std::string& animationName, bool loop = true);
+	void StopAnimation();
+	void PauseAnimation();
+	void ResumeAnimation();
+	void SetAnimationSpeed(float speed);
+	[[nodiscard]] bool IsAnimationPlaying() const;
+
 	void                SetAnimationTime(float t);
 	[[nodiscard]] float GetAnimationTime() const;
 

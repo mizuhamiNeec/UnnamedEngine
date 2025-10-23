@@ -2,6 +2,8 @@
 
 
 namespace Unnamed {
+	/// @brief コンストラクタ
+	/// @param hWnd ウィンドウハンドル
 	MouseDevice::MouseDevice(const HWND hWnd) {
 		RAWINPUTDEVICE rid;
 		rid.usUsagePage = 0x01;
@@ -12,11 +14,15 @@ namespace Unnamed {
 		RegisterRawInputDevices(&rid, 1, sizeof(rid));
 	}
 
+	/// @brief デストラクタ
 	MouseDevice::~MouseDevice() = default;
 
+	/// @brief 更新処理
 	void MouseDevice::Update() {
 	}
 
+	/// @brief 生の入力を処理する
+	/// @param raw 生の入力データ
 	void MouseDevice::HandleRawInput(const RAWINPUT& raw) {
 		if (raw.header.dwType != RIM_TYPEMOUSE) {
 			return;
@@ -77,6 +83,9 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief キーの状態を取得する
+	/// @param key 入力キー
+	/// @return 押されているかどうか
 	bool MouseDevice::GetKeyState(const InputKey& key) const {
 		if (key.device != InputDeviceType::MOUSE) {
 			return false;
@@ -85,6 +94,9 @@ namespace Unnamed {
 		return it != mButtonStates.end() ? it->second : false;
 	}
 
+	/// @brief アナログ値を取得する
+	/// @param key 入力キー
+	/// @return アナログ値
 	float MouseDevice::GetAnalogValue(const InputKey& key) const {
 		if (key.device != InputDeviceType::MOUSE) {
 			return 0.0f;
@@ -101,6 +113,8 @@ namespace Unnamed {
 		return 0.0f;
 	}
 
+	/// @brief サポートされているキーのリストを取得する
+	/// @return サポートされているキーのベクター
 	std::vector<InputKey> MouseDevice::GetSupportedKeys() const {
 		return {
 			{.device = InputDeviceType::MOUSE, .code = VM_1},
@@ -116,10 +130,13 @@ namespace Unnamed {
 		};
 	}
 
+	/// @brief デバイスの種類を取得する
+	/// @return デバイスの種類
 	InputDeviceType MouseDevice::GetDeviceType() const {
 		return InputDeviceType::MOUSE;
 	}
 
+	/// @brief 状態をリセットする
 	void MouseDevice::ResetStates() {
 		mButtonStates.clear();
 		mDeltaX         = 0;
@@ -128,10 +145,11 @@ namespace Unnamed {
 		mWheelRemainder = 0;
 	}
 
+	/// @brief デルタ値をリセットする
 	void MouseDevice::ResetDelta() {
-		mDeltaX     = 0;
-		mDeltaY     = 0;
-		mWheelDelta = 0;
+		mDeltaX                      = 0;
+		mDeltaY                      = 0;
+		mWheelDelta                  = 0;
 		mButtonStates[VM_WHEEL_UP]   = false;
 		mButtonStates[VM_WHEEL_DOWN] = false;
 	}

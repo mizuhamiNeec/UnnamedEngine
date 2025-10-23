@@ -31,48 +31,6 @@ std::unique_ptr<WeaponData> WeaponData::LoadFromJson(
 // HitscanModule
 //-----------------------------------------------------------------------------
 void HitscanModule::Execute([[maybe_unused]] Entity& entity) {
-	const auto camera = CameraManager::GetActiveCamera();
-	const Vec3 eye    = camera->GetViewMat().Inverse().GetTranslate();
-	const Vec3 fwd    = camera->GetViewMat().Inverse().GetForward();
-
-	//const auto* collider = entity.GetComponent<BoxColliderComponent>();
-
-	// auto result = collider->RayCast(
-	// 	eye,
-	// 	fwd,
-	// 	Math::HtoM(65535.0f) // 最大距離を65535HUに設定
-	// );
-	//
-	// if (!result.empty()) {
-	// 	const auto hit = *std::ranges::min_element(result,
-	// 	                                           [](const UPhysics::Hit& a,
-	// 	                                           const UPhysics::Hit&    b) {
-	// 		                                           return a.t < b.t;
-	// 	                                           });
-	//
-	// 	if (!hit.hitEntity) {
-	// 		// ヒットしたエンティティがない場合は何もしない
-	// 		mIsHit = false;
-	// 		return;
-	// 	}
-	//
-	// 	if (hit.isHit) {
-	// 		Debug::DrawRay(eye, fwd * hit.dist, Vec4::red);
-	// 		Debug::DrawBox(hit.hitPos, Quaternion::identity,
-	// 		               Vec3(0.1f, 0.1f, 0.1f), Vec4::green);
-	// 		Debug::DrawAxis(hit.hitPos, Quaternion::identity);
-	// 		Debug::DrawRay(hit.hitPos, hit.hitNormal, Vec4::magenta);
-	//
-	// 		//hit.hitEntity->SetActive(false); // ヒットしたエンティティを非アクティブにする
-	// 		mHitPosition = hit.hitPos;    // ヒット位置を保存
-	// 		mHitNormal   = hit.hitNormal; // ヒット面の法線を保存
-	// 		mIsHit       = true;
-	// 	}
-	//
-	// 	Console::Print("Hitscan Fired!\n");
-	// } else {
-	// 	mIsHit = false; // ヒットしなかった場合はフラグをリセット
-	// }
 }
 
 void HitscanModule::Update([[maybe_unused]] const float& deltaTime) {

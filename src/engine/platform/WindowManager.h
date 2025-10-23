@@ -21,6 +21,6 @@ public:
 
 private:
 	HINSTANCE                            mHInstance;
-	std::atomic<uint32_t>                mNextWindowId = { 1 };
+	std::atomic<uint32_t>                mNextWindowId = {1};
 	std::unordered_map<uint32_t, Window> mWindows;
 };

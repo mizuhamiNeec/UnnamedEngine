@@ -22,13 +22,14 @@ namespace Unnamed {
 
 	const char* ToString(LogLevel e);
 
+	/// @brief コンソールインターフェースクラス
 	class IConsole {
 	public:
 		virtual      ~IConsole() = default;
 		virtual void Print(
-			LogLevel level,
-			std::string_view channel,
-			std::string_view message,
+			LogLevel             level,
+			std::string_view     channel,
+			std::string_view     message,
 			std::source_location location
 		) = 0;
 	};

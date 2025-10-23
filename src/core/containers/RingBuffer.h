@@ -9,7 +9,6 @@
 template <typename T, size_t Capacity>
 class RingBuffer {
 public:
-
 	/// @brief デフォルトコンストラクタ
 	RingBuffer() : mHead(0), mTail(0), mSize(0) {
 	}
@@ -23,12 +22,11 @@ public:
 		std::lock_guard lock(mMutex);
 		if (mSize == Capacity) {
 			mTail = (mTail + 1) % Capacity;
-		}
-		else {
+		} else {
 			++mSize;
 		}
 		mBuffer[mHead] = value;
-		mHead = (mHead + 1) % Capacity;
+		mHead          = (mHead + 1) % Capacity;
 		return true;
 	}
 
@@ -41,7 +39,7 @@ public:
 		if (mSize == 0) {
 			return false;
 		}
-		out = mBuffer[mTail];
+		out   = mBuffer[mTail];
 		mTail = (mTail + 1) % Capacity;
 		--mSize;
 		return true;
@@ -55,12 +53,12 @@ public:
 
 	/// @brief バッファが空かどうかを判定する
 	/// @return 空の場合true
-	[[nodiscard]] bool   Empty() const { return mSize == 0; }
+	[[nodiscard]] bool Empty() const { return mSize == 0; }
 
 
 	/// @brief バッファが満杯かどうかを判定する
 	/// @return 満杯の場合true
-	[[nodiscard]] bool   Full() const { return mSize == Capacity; }
+	[[nodiscard]] bool Full() const { return mSize == Capacity; }
 
 
 	/// @brief 最後に書き込まれた要素のインデックスを取得する
@@ -73,7 +71,6 @@ public:
 	/// @brief リングバッファのイテレータクラス
 	class Iterator {
 	public:
-
 		/// @brief イテレータのコンストラクタ
 		/// @param buffer 対象のリングバッファ
 		/// @param index 開始インデックス

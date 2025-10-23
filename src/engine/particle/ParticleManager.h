@@ -22,6 +22,7 @@ enum class ParticleMeshType {
 	Ring,
 };
 
+/// @brief メッシュデータ構造体
 struct MeshData {
 	std::vector<Vertex>                   vertices;
 	std::vector<uint32_t>                 indices;
@@ -29,6 +30,7 @@ struct MeshData {
 	std::unique_ptr<IndexBuffer>          indexBuffer;
 };
 
+/// @brief パーティクルマネージャークラス
 class ParticleManager {
 public:
 	void Init(D3D12* d3d12, SrvManager* srvManager);

@@ -1,16 +1,21 @@
 #include <engine/Window/WindowManager.h>
 
-OldWindowManager::OldWindowManager() {
-};
+/// @brief コンストラクタ
+OldWindowManager::OldWindowManager() = default;
 
+/// @brief デストラクタ
 OldWindowManager::~OldWindowManager() {
 	ClearWindows();
 }
 
+/// @brief ウィンドウを追加する
+/// @param window ウィンドウポインタ
 void OldWindowManager::AddWindow(std::unique_ptr<BaseWindow> window) {
 	windows_.emplace_back(std::move(window));
 }
 
+/// @brief メッセージを処理する
+/// @return 終了するならtrueを返す
 bool OldWindowManager::ProcessMessage() {
 	MSG  msg  = {};
 	bool quit = false;
@@ -35,14 +40,19 @@ bool OldWindowManager::ProcessMessage() {
 	return quit;
 }
 
+/// @brief メインウィンドウを取得する
+/// @return メインウィンドウポインタ
 BaseWindow* OldWindowManager::GetMainWindow() {
 	return windows_.empty() ? nullptr : windows_[0].get();
 }
 
+/// @brief ウィンドウをすべてクリアする
 void OldWindowManager::ClearWindows() {
 	windows_.clear();
 }
 
+/// @brief ウィンドウリストを取得する
+/// @return ウィンドウリスト
 const std::vector<std::unique_ptr<BaseWindow>>& OldWindowManager::GetWindows() {
 	return windows_;
 }

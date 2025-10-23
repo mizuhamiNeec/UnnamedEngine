@@ -14,6 +14,10 @@
 namespace Unnamed {
 	constexpr std::string_view kChannel = "DirectXTexTextureLoader";
 
+	/// @brief 指定されたパスのファイルがロード可能かを判定します
+	/// @param path ファイルパス
+	/// @param outType ロード可能な場合のアセットタイプの出力先
+	/// @return ロード可能な場合true
 	bool DirectXTexTextureLoader::CanLoad(
 		std::string_view path,
 		UASSET_TYPE*     outType
@@ -34,6 +38,9 @@ namespace Unnamed {
 		return ok;
 	}
 
+	/// @brief 指定されたパスのテクスチャをロードします
+	/// @param path ファイルパス
+	/// @return ロード結果
 	LoadResult DirectXTexTextureLoader::Load(
 		const std::string& path
 	) {
@@ -108,7 +115,7 @@ namespace Unnamed {
 			TextureMip   mip = {};
 			mip.width        = static_cast<uint32_t>(im->width);
 			mip.height       = static_cast<uint32_t>(im->height);
-			mip.rowPitch     = size_t(mip.width) * 4; // RGBA8
+			mip.rowPitch     = static_cast<size_t>(mip.width) * 4; // RGBA8
 			mip.bytes.resize(mip.rowPitch * mip.height);
 
 			for (uint32_t y = 0; y < mip.height; ++y) {

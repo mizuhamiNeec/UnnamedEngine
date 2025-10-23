@@ -8,15 +8,19 @@
 #include "engine/OldConsole/Console.h"
 
 namespace {
-	// パーリンノイズ用のユーティリティ関数
+	/// @brief フェード関数
+	/// @param t 入力値
+	/// @return フェード後の値
 	float Fade(float t) {
 		return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
 	}
 
-	float Lerp(float a, float b, float t) {
-		return a + t * (b - a);
-	}
-
+	/// @brief 勾配関数
+	/// @param hash ハッシュ値
+	/// @param x x座標
+	/// @param y y座標
+	/// @param z z座標
+	/// @return 勾配値
 	float Grad(int hash, float x, float y, float z) {
 		int   h = hash & 15;
 		float u = h < 8 ? x : y;
@@ -53,16 +57,26 @@ namespace {
 	};
 }
 
+/// @brief エンティティにアタッチされたときの処理
+/// @param owner 所有エンティティ
 void CameraAnimator::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
 }
 
+/// @brief 初期化
+/// @param movementComponent MovementComponentへのポインタ
+/// @param cameraRotator CameraRotatorへのポインタ
 void CameraAnimator::Init(MovementComponent* movementComponent,
                           CameraRotator*     cameraRotator) {
 	mMovement      = movementComponent;
 	mCameraRotator = cameraRotator;
 }
 
+/// @brief パーリンノイズを計算する
+/// @param x x座標
+/// @param y y座標
+/// @param z z座標
+/// @return ノイズ値
 float CameraAnimator::PerlinNoise(float x, float y, float z) const {
 	int X = static_cast<int>(std::floor(x)) & 255;
 	int Y = static_cast<int>(std::floor(y)) & 255;
@@ -89,16 +103,16 @@ float CameraAnimator::PerlinNoise(float x, float y, float z) const {
 	int BA = p[B] + Z;
 	int BB = p[B + 1] + Z;
 
-	return Lerp(
-		Lerp(
-			Lerp(Grad(p[AA], x, y, z), Grad(p[BA], x - 1, y, z), u),
-			Lerp(Grad(p[AB], x, y - 1, z), Grad(p[BB], x - 1, y - 1, z), u),
+	return std::lerp(
+		std::lerp(
+			std::lerp(Grad(p[AA], x, y, z), Grad(p[BA], x - 1, y, z), u),
+			std::lerp(Grad(p[AB], x, y - 1, z), Grad(p[BB], x - 1, y - 1, z), u),
 			v
 		),
-		Lerp(
-			Lerp(Grad(p[AA + 1], x, y, z - 1), Grad(p[BA + 1], x - 1, y, z - 1),
+		std::lerp(
+			std::lerp(Grad(p[AA + 1], x, y, z - 1), Grad(p[BA + 1], x - 1, y, z - 1),
 			     u),
-			Lerp(Grad(p[AB + 1], x, y - 1, z - 1),
+			std::lerp(Grad(p[AB + 1], x, y - 1, z - 1),
 			     Grad(p[BB + 1], x - 1, y - 1, z - 1), u),
 			v
 		),
@@ -106,6 +120,8 @@ float CameraAnimator::PerlinNoise(float x, float y, float z) const {
 	);
 }
 
+/// @brief 更新
+/// @param dt デルタタイム
 void CameraAnimator::Update(float dt) {
 	if (!mMovement) return;
 
@@ -117,6 +133,8 @@ void CameraAnimator::Update(float dt) {
 	ApplyShakeAndTilt(dt);
 }
 
+/// @brief ジャンプアニメーションの更新
+/// @param dt デルタタイム
 void CameraAnimator::UpdateJumpAnimation(float dt) {
 	if (!mMovement) return;
 
@@ -136,6 +154,8 @@ void CameraAnimator::UpdateJumpAnimation(float dt) {
 	mWasInAir = isInAir;
 }
 
+/// @brief ダブルジャンプアニメーションの更新
+/// @param dt デルタタイム
 void CameraAnimator::UpdateDoubleJumpAnimation(float dt) {
 	if (!mMovement) return;
 
@@ -154,6 +174,8 @@ void CameraAnimator::UpdateDoubleJumpAnimation(float dt) {
 	mHadDoubleJump = hasDoubleJump;
 }
 
+/// @brief スライドアニメーションの更新
+/// @param dt デルタタイム
 void CameraAnimator::UpdateSlideAnimation(float dt) {
 	if (!mMovement) return;
 
@@ -178,6 +200,8 @@ void CameraAnimator::UpdateSlideAnimation(float dt) {
 	mWasSliding = isSliding;
 }
 
+/// @brief ウォールランアニメーションの更新
+/// @param dt デルタタイム
 void CameraAnimator::UpdateWallrunAnimation(float dt) {
 	if (!mMovement) return;
 
@@ -208,6 +232,8 @@ void CameraAnimator::UpdateWallrunAnimation(float dt) {
 	mWasWallRunning = isWallRunning;
 }
 
+/// @brief 着地アニメーションの更新
+/// @param dt デルタタイム
 void CameraAnimator::UpdateLandingAnimation(float dt) {
 	if (!mMovement) return;
 
@@ -233,6 +259,8 @@ void CameraAnimator::UpdateLandingAnimation(float dt) {
 	}
 }
 
+/// @brief シェイクと傾きを適用する
+/// @param dt デルタタイム
 void CameraAnimator::ApplyShakeAndTilt(float dt) {
 	if (!mScene) return;
 
@@ -378,6 +406,7 @@ void CameraAnimator::ApplyShakeAndTilt(float dt) {
 	}
 }
 
+/// @brief ImGuiでインスペクターを描画する（デバッグ用）
 void CameraAnimator::DrawInspectorImGui() {
 #ifdef _DEBUG
 	ImGui::Text("Camera Animator");

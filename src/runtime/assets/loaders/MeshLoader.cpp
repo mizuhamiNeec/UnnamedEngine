@@ -16,6 +16,11 @@ namespace Unnamed {
 	static constexpr std::string_view kChannel = "MeshLoader";
 
 	namespace {
+		/// @brief 頂点ストリームを追加します
+		/// @param out 出力先のメッシュアセットデータ
+		/// @param m assimpのメッシュデータ
+		/// @param filipV V座標を反転するかどうか
+		/// @return 追加した頂点の開始インデックス
 		uint32_t AppendVertexStreams(
 			MeshAssetData& out, const aiMesh* m, const bool filipV
 		) {
@@ -61,6 +66,10 @@ namespace Unnamed {
 			return base;
 		}
 
+		/// @brief インデックスを追加します
+		/// @param out 出力先のメッシュアセットデータ
+		/// @param m assimpのメッシュデータ
+		/// @param baseVertex 追加した頂点の開始インデックス
 		void AppendIndices(MeshAssetData& out, const aiMesh* m,
 		                   uint32_t       baseVertex) {
 			const uint32_t baseIndex = static_cast<uint32_t>(out.indices.
@@ -91,7 +100,13 @@ namespace Unnamed {
 			out.submeshes.emplace_back(submesh);
 		}
 
-		static void AccumulateSkinning(
+		/// @brief スキニング情報を蓄積します
+		/// @param m assimpのメッシュデータ
+		/// @param jointMap ジョイント名からインデックスへのマップ
+		/// @param out 出力先のメッシュアセットデータ
+		/// @param baseVertex 追加した頂点の開始インデックス
+		/// @param maxWeights 頂点あたりの最大ウェイト数
+		void AccumulateSkinning(
 			const aiMesh*                              m,
 			std::unordered_map<std::string, uint32_t>& jointMap,
 			MeshAssetData&                             out,
@@ -180,7 +195,12 @@ namespace Unnamed {
 			}
 		}
 
-		static void AppendMorphTargets(
+		/// @brief モーフターゲットを追加します
+		/// @param m assimpのメッシュデータ
+		/// @param out 出力先のメッシュアセットデータ
+		/// @param baseVertex 追加した頂点の開始インデックス
+		/// @param eps 変化量の閾値
+		void AppendMorphTargets(
 			const aiMesh*  m,
 			MeshAssetData& out,
 			uint32_t       baseVertex,
@@ -239,6 +259,10 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief 指定されたパスのファイルをロード可能かどうかを判定します
+	/// @param path ファイルのパス
+	/// @param outType ロード可能な場合にそのアセットタイプを格納するポインタ（省略可能）
+	/// @return ロード可能な場合はtrueを返します
 	bool MeshLoader::CanLoad(
 		const std::string_view path, UASSET_TYPE* outType
 	) const {
@@ -255,6 +279,9 @@ namespace Unnamed {
 		return ok;
 	}
 
+	/// @brief 指定されたパスのファイルをロードします
+	/// @param path ファイルのパス
+	/// @return ロード結果
 	LoadResult MeshLoader::Load(const std::string& path) {
 		LoadResult    r   = {};
 		MeshAssetData out = {};
@@ -278,8 +305,8 @@ namespace Unnamed {
 				kChannel,
 				"Assimp failed: {}",
 				imp.GetErrorString() ?
-					imp.GetErrorString() :
-					"unknown error."
+				imp.GetErrorString() :
+				"unknown error."
 			);
 			return r;
 		}

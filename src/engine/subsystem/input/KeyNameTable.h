@@ -7,12 +7,14 @@
 #include <engine/subsystem/input/device/base/BaseInputDevice.h>
 
 namespace Unnamed {
+	/// @brief 入力キー構造体のハッシュ関数
 	struct KeyHash {
 		size_t operator()(const InputKey& key) const noexcept {
 			return static_cast<size_t>(key.device) << 24 ^ key.code;
 		}
 	};
 
+	/// @brief キー名変換テーブルクラス
 	class KeyNameTable {
 	public:
 		static std::optional<InputKey> FromString(std::string_view);

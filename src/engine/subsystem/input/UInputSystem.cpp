@@ -11,14 +11,15 @@
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "InputSystem";
 
-	UInputSystem::~UInputSystem() {
-	}
+	UInputSystem::~UInputSystem() = default;
 
+	/// @brief 初期化
 	bool UInputSystem::Init() {
 		ServiceLocator::Register<UInputSystem>(this);
 		return true;
 	}
 
+	/// @brief 更新
 	void UInputSystem::Update(float) {
 		for (const auto& inputDevice : mDevices) {
 			inputDevice->Update();
@@ -139,13 +140,17 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief シャットダウン
 	const std::string_view UInputSystem::GetName() const {
 		return "InputSystem";
 	}
 
-	//-------------------------------------------------------------------------
-	// Purpose: Win32 メッセージを受け取ったときに呼び出されます
-	//-------------------------------------------------------------------------
+	/// @brief Win32メッセージの処理
+	/// @param hWnd ウィンドウハンドル
+	/// @param msg メッセージID
+	/// @param wParam メッセージのWPARAM
+	/// @param lParam メッセージのLPARAM
+	/// @return メッセージが処理された場合はtrue、そうでない場合はfalse
 	bool UInputSystem::OnWin32Message(
 		[[maybe_unused]] HWND hWnd,
 		UINT                  msg,
@@ -196,12 +201,17 @@ namespace Unnamed {
 		return false;
 	}
 
+	/// @brief 入力デバイスを登録します
+	/// @param device 登録する入力デバイスの共有ポインタ
 	void UInputSystem::RegisterDevice(
 		const std::shared_ptr<BaseInputDevice>& device
 	) {
 		mDevices.emplace_back(device);
 	}
 
+	/// @brief アクションをキーにバインドします
+	/// @param action アクション名
+	/// @param key 入力キー
 	void UInputSystem::BindAction(
 		const std::string& action,
 		const InputKey&    key
@@ -218,6 +228,10 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief 1D軸をキーにバインドします
+	/// @param axis 軸名
+	/// @param key 入力キー
+	/// @param scale スケール
 	void UInputSystem::BindAxis1D(
 		const std::string& axis,
 		const InputKey&    key,
@@ -236,6 +250,11 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief 2D軸をキーにバインドします
+	/// @param axis 軸名
+	/// @param key 入力キー
+	/// @param axisType 軸タイプ（X軸またはY軸）
+	/// @param scale スケール
 	void UInputSystem::BindAxis2D(const std::string& axis, const InputKey& key,
 	                              const INPUT_AXIS&  axisType,
 	                              const float&       scale) {
@@ -260,9 +279,9 @@ namespace Unnamed {
 		);
 	}
 
-	//-----------------------------------------------------------------------------
-	// Purpose: コンソールから送信されたアクションを処理します
-	//-----------------------------------------------------------------------------
+	/// @brief コンソールアクションの処理
+	/// @param action アクション名
+	/// @param pressed 押下状態
 	void UInputSystem::HandleConsoleAction(
 		const std::string& action,
 		const bool&        pressed
@@ -276,9 +295,9 @@ namespace Unnamed {
 		}
 	}
 
-	//-----------------------------------------------------------------------------
-	// Purpose: 指定したアクションが押された瞬間に true を返します
-	//-----------------------------------------------------------------------------
+	/// @brief 指定したアクションが押された瞬間に true を返します
+	/// @param action アクション名
+	/// @return 押された瞬間に true
 	bool UInputSystem::IsPressed(const std::string& action) const {
 		const auto it = mActionStates.find(action);
 		if (it == mActionStates.end()) {
@@ -292,9 +311,9 @@ namespace Unnamed {
 		return it != mActionStates.end() && it->second.bIsPressed;
 	}
 
-	//-----------------------------------------------------------------------------
-	// Purpose: 指定したアクションが押されてから離されるまでの間に true を返します
-	//-----------------------------------------------------------------------------
+	/// @brief 指定したアクションが押された瞬間に true を返します
+	/// @param action アクション名
+	/// @return 押された瞬間に true
 	bool UInputSystem::IsHeld(const std::string& action) const {
 		const auto it = mActionStates.find(action);
 		if (it == mActionStates.end()) {
@@ -308,6 +327,9 @@ namespace Unnamed {
 		return it != mActionStates.end() && it->second.bIsHeld;
 	}
 
+	/// @brief 指定したアクションが離された瞬間に true を返します
+	/// @param action アクション名
+	/// @return 離された瞬間に true
 	bool UInputSystem::IsReleased(const std::string& action) const {
 		const auto it = mActionStates.find(action);
 		if (it == mActionStates.end()) {
@@ -321,6 +343,9 @@ namespace Unnamed {
 		return it != mActionStates.end() && it->second.bIsReleased;
 	}
 
+	/// @brief 指定した1D軸の値を取得します
+	/// @param axis 軸名
+	/// @return 軸の値
 	float UInputSystem::Axis1D(const std::string& axis) const {
 		const auto it = mAxisStates1D.find(axis);
 		if (it == mAxisStates1D.end()) {
@@ -334,6 +359,9 @@ namespace Unnamed {
 		return it != mAxisStates1D.end() ? it->second.value : 0.0f;
 	}
 
+	/// @brief 指定した2D軸の値を取得します
+	/// @param axis 軸名
+	/// @return 軸の値
 	Vec2 UInputSystem::Axis2D(const std::string& axis) const {
 		const auto it = mAxisStates2D.find(axis);
 		if (it == mAxisStates2D.end()) {
@@ -347,6 +375,7 @@ namespace Unnamed {
 		return it != mAxisStates2D.end() ? it->second.value : Vec2::zero;
 	}
 
+	/// @brief 入力状態をリセットします
 	void UInputSystem::ResetInputStates() {
 		DevMsg(
 			kChannel,
@@ -389,6 +418,8 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief RAW Inputの処理
+	/// @param rawInput RAW Inputデータ
 	void UInputSystem::OnRawInput(const RAWINPUT& rawInput) {
 		for (auto& device : mDevices) {
 			if (device->GetDeviceType() == InputDeviceType::KEYBOARD) {
@@ -403,6 +434,9 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief ハードウェアキーの状態を取得します
+	/// @param key 入力キー
+	/// @return 押下中ならtrue
 	bool UInputSystem::GetHardwareKeyState(const InputKey& key) const {
 		for (const auto& device : mDevices) {
 			if (device->GetDeviceType() == key.device) {
@@ -417,6 +451,9 @@ namespace Unnamed {
 		return false;
 	}
 
+	/// @brief アナログ値を取得します
+	/// @param key 入力キー
+	/// @return アナログ値
 	float UInputSystem::GetAnalogValue(const InputKey& key) const {
 		for (const auto& device : mDevices) {
 			if (device->GetDeviceType() == key.device) {
@@ -426,6 +463,9 @@ namespace Unnamed {
 		return 0.0f;
 	}
 
+	/// @brief 仮想キーコードからキー名を取得します
+	/// @param virtualKey 仮想キーコード
+	/// @return キー名
 	std::string UInputSystem::GetKeyName(const UINT& virtualKey) {
 		char name[256];
 		if (

@@ -5,7 +5,6 @@ class JsonWriter;
 class JsonReader;
 
 namespace Unnamed {
-	/// @class BaseComponent
 	/// @brief コンポーネントはエンティティに取り付けられるオブジェクトです。
 	/// 取り付けられたエンティティにどの用に振る舞わせるかを定義します。
 	class BaseComponent {

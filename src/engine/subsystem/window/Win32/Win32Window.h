@@ -11,6 +11,7 @@
 
 #include <engine/subsystem/window/interface/IWindow.h>
 
+/// @brief Win32ウィンドウクラス
 class Win32Window : public IWindow {
 public:
 	// IWindow

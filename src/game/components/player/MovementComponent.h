@@ -30,62 +30,47 @@ namespace {
  * @details プレイヤーの速度、状態、入力などの移動に関する全ての情報を保持します
  */
 struct MovementData {
-	/**
-	 * @brief コンストラクタ
-	 * @param width プレイヤーの幅
-	 * @param height プレイヤーの高さ
-	 */
-	MovementData(float width, float height)
-		: currentWidthHu(width), currentHeightHu(height) {
-		defaultHeightHu = height;
-		crouchHeightHu  = height * 0.75f;
-	}
 
-	/**
-	 * @brief デフォルトコンストラクタ
-	 */
-	MovementData() : currentWidthHu(32.0f), currentHeightHu(72.0f) {
-		defaultHeightHu = currentHeightHu;
-		crouchHeightHu  = currentHeightHu * 0.75f;
-	}
+	MovementData(float width, float height);
+	MovementData();
 
-	// Input
+	// 入力
 	Vec2 vecMoveInput  = Vec2::zero;
 	Vec3 wishDirection = Vec3::zero;
 	bool wishJump      = false;
 	bool wishCrouch    = false;
 
-	// State
+	// ステート
 	MOVEMENT_STATE state      = MOVEMENT_STATE::AIR;
 	Vec3           velocity   = Vec3::zero;
 	bool           isGrounded = false;
 
-	// Hull
+	// ハル
 	Unnamed::Box hull{};
 	float        currentWidthHu{};
 	float        currentHeightHu{};
 	float        defaultHeightHu{};
 	float        crouchHeightHu{};
 
-	// MovementComponent params (HU/s 相当のcvarと併用)
+	// 地上での速度
 	float crouchSpeed  = 63.3f;
 	float walkSpeed    = 150.0f;
 	float sprintSpeed  = 320.0f;
 	float currentSpeed = sprintSpeed;
 
-	// Ground cache
+	// 接地検知
 	Vec3  lastGroundNormal = Vec3::up;
 	float lastGroundDistM  = 0.0f;
 
 	float groundEnterSlopeThreshold = 0.707f;
 	float groundLeaveSlopeThreshold = 0.7f;
 
-	// Stuck detection
+	// スタック検知
 	Vec3  lastPosition = Vec3::zero;
 	float stuckTime    = 0.0f;
 	bool  isStuck      = false;
 
-	// Wallrun
+	// ウォールラン
 	bool  isWallRunning         = false;
 	Vec3  wallRunNormal         = Vec3::zero;
 	Vec3  wallRunDirection      = Vec3::zero;
@@ -94,16 +79,16 @@ struct MovementData {
 	Vec3  lastWallRunNormal     = Vec3::zero;
 	bool  wallRunJumpWasPressed = false; // ウォールラン開始時にジャンプが押されていたか?
 
-	// Double jump
+	// ダブルジャンプ
 	bool hasDoubleJump     = true;  // ダブルジャンプが使用可能か?
 	bool lastFrameWishJump = false; // 前フレームのジャンプ入力状態
 
-	// Slide
+	// スライディング
 	bool  isSliding      = false;      // スライディング中か?
 	Vec3  slideDirection = Vec3::zero; // スライディング方向
 	float slideTime      = 0.0f;       // スライディング経過時間
 
-	// Landing detection
+	// 着地検知
 	bool  wasGroundedLastFrame = false; // 前フレームの接地していたか?
 	float lastLandingVelocityY = 0.0f;  // 着地時の垂直速度
 	bool  justLanded           = false; // 今フレーム着地したか?
@@ -153,35 +138,44 @@ private:
 	void UpdateHullDimensions();
 	void CheckForNaNAndClamp();
 
-	// Collision & response (Source-style)
+	// 衝突応答
 	void MoveWithCollisions(float dt);
 
 	// params
-	static constexpr float kStepHeightHU   = 18.0f; // 72HUハルに対して既定
-	static constexpr float kCastSkinHU     = 0.25f;
-	static constexpr float kSkinHU         = 0.25f;
-	static constexpr float kRestOffsetHU   = 0.75f;
-	static constexpr float kMaxAdhesionHU  = 2.0f; // 接地維持の最大距離
+	static constexpr float kStepHeightHu   = 18.0f; // HL2 Def
+	static constexpr float kCastSkinHu     = 0.25f;
+	static constexpr float kSkinHu         = 0.25f;
+	static constexpr float kRestOffsetHu   = 0.75f;
+	static constexpr float kMaxAdhesionHu  = 2.0f; // 接地維持の最大距離
 	static constexpr float kSnapVyMax      = 1.0f; // m/s
-	static constexpr int   kMaxBumps       = 8;    // 最大衝突回数（Source準拠）
+	static constexpr int   kMaxBumps       = 8;    // 最大衝突回数
 	static constexpr int   kMaxClipPlanes  = 5;
 	static constexpr float kFracEps        = 1e-4f;
 	static constexpr float kAirSpeedCap    = 30.0f;
 	static constexpr float kJumpVelocityHu = 400.0f; // HU/s
 
-	float StepHeightM() const { return Math::HtoM(kStepHeightHU); }
-	float CastSkinM() const { return Math::HtoM(kCastSkinHU); }
-	float SkinM() const { return Math::HtoM(kSkinHU); }
-	float RestOffsetM() const { return Math::HtoM(kRestOffsetHU); }
-	float MaxAdhesionM() const { return Math::HtoM(kMaxAdhesionHU); }
+	[[nodiscard]] static float StepHeightM() {
+		return Math::HtoM(kStepHeightHu);
+	}
 
-	// Stuck detection
+	[[nodiscard]] static float CastSkinM() { return Math::HtoM(kCastSkinHu); }
+	[[nodiscard]] static float SkinM() { return Math::HtoM(kSkinHu); }
+
+	[[nodiscard]] static float RestOffsetM() {
+		return Math::HtoM(kRestOffsetHu);
+	}
+
+	[[nodiscard]] static float MaxAdhesionM() {
+		return Math::HtoM(kMaxAdhesionHu);
+	}
+
+	// スタック検知
 	void                   DetectAndResolveStuck(float dt);
 	static constexpr float kStuckThreshold     = 0.01f; // m/s
 	static constexpr float kStuckTimeThreshold = 0.5f;  // seconds
 	static constexpr float kStuckEscapeForce   = 5.0f;  // m/s upward
 
-	// Wallrun
+	// ウォールラン
 	void                   Wallrun(float wishspeed, float dt);
 	bool                   TryStartWallrun();
 	void                   UpdateWallrun(float dt);
@@ -196,22 +190,21 @@ private:
 	static constexpr bool  kWallrunDetachOnSideInput = true; // 左右入力で離脱するか
 	static constexpr float kWallrunVerticalDamping   = 0.3f; // 地上ジャンプからの垂直速度減衰
 
-	// Double jump
+	// ダブルジャンプ
 	static constexpr float kDoubleJumpVelocityHu = 300.0f;
 
-	// Slide
+	// スライディング
 	void                   TryStartSlide();
 	void                   UpdateSlide(float dt);
 	void                   EndSlide();
 	bool                   CanSlide() const;
-	static constexpr float kSlideMinSpeed    = 200.0f; // HU/s - スライディング開始最低速度
-	static constexpr float kSlideMaxTime     = 20.0f; // seconds - 最大スライディング時間
-	static constexpr float kSlideFriction    = 100.0f; // HU/s^2 - スライディング摩擦（低い）
-	static constexpr float kSlideBoostSpeed  = 4.0f; // HU/s - 開始時のブースト
-	static constexpr float kSlideStopSpeed   = 50.0f; // HU/s - この速度以下で自動終了
+	static constexpr float kSlideMinSpeed    = 200.0f;  // HU/s - スライディング開始最低速度
+	static constexpr float kSlideMaxTime     = 20.0f;   // seconds - 最大スライディング時間
+	static constexpr float kSlideFriction    = 100.0f;  // HU/s^2 - スライディング摩擦
+	static constexpr float kSlideBoostSpeed  = 4.0f;    // HU/s - 開始ブースト
+	static constexpr float kSlideStopSpeed   = 50.0f;   // HU/s - この速度以下で自動終了
 	static constexpr float kSlideHopSpeedCap = 2000.0f; // HU/s - スライドホップの速度上限
 
-private:
 	UPhysics::Engine* mUPhysicsEngine = nullptr;
 	MovementData      mData;
 };

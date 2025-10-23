@@ -7,16 +7,21 @@
 
 #include "engine/OldConsole/Console.h"
 
+/// @brief 初期化
 void AnimationManager::Init() {
 	// 特に何もしない
 }
 
+/// @brief シャットダウン
 void AnimationManager::Shutdown() {
 	// アニメーションのキャッシュをクリア
 	animations_.clear();
 	fileAnimationNames_.clear();
 }
 
+/// @brief 名前でアニメーションを取得
+/// @param name アニメーション名
+/// @return アニメーション
 Animation AnimationManager::GetAnimation(const std::string& name) const {
 	auto it = animations_.find(name);
 	if (it != animations_.end()) {
@@ -28,6 +33,9 @@ Animation AnimationManager::GetAnimation(const std::string& name) const {
 	return {}; // 見つからなかった場合は空のアニメーションを返す
 }
 
+/// @brief アニメーションファイルからアニメーションを読み込む
+/// @param filePath ファイルパス
+/// @return アニメーション	
 Animation AnimationManager::LoadAnimationFile(const std::string& filePath) {
 	// キャッシュしているものがあったらそれを返す
 	auto it = animations_.find(filePath);
@@ -50,94 +58,118 @@ Animation AnimationManager::LoadAnimationFile(const std::string& filePath) {
 	return animation;
 }
 
-std::vector<Animation> AnimationManager::LoadAllAnimationsFromFile(const std::string& filePath) {
+/// @brief アニメーションファイルから全てのアニメーションを読み込む
+/// @param filePath ファイルパス
+/// @return アニメーションリスト
+std::vector<Animation> AnimationManager::LoadAllAnimationsFromFile(
+	const std::string& filePath) {
 	std::vector<Animation> animations;
-	
+
 	Assimp::Importer importer;
-	const aiScene* aScene = importer.ReadFile(filePath.c_str(), 0);
+	const aiScene*   aScene = importer.ReadFile(filePath.c_str(), 0);
 	assert(aScene && "Failed to load animation file");
 	assert(aScene->mNumAnimations != 0 && "No animations found in the file");
-	
+
 	// ファイル内のアニメーション名をキャッシュ
 	std::vector<std::string> animationNames;
-	
-	for (uint32_t animIndex = 0; animIndex < aScene->mNumAnimations; ++animIndex) {
+
+	for (uint32_t animIndex = 0; animIndex < aScene->mNumAnimations; ++
+	     animIndex) {
 		aiAnimation* animationAssimp = aScene->mAnimations[animIndex];
-		Animation animation = LoadSingleAnimation(animationAssimp);
-		
+		Animation    animation       = LoadSingleAnimation(animationAssimp);
+
 		// アニメーションに名前をつける
-		std::string animationKey = filePath + "::" + std::string(animationAssimp->mName.C_Str());
+		std::string animationKey = filePath + "::" + std::string(
+			animationAssimp->mName.C_Str());
 		animationNames.emplace_back(animationAssimp->mName.C_Str());
-		
+
 		// キャッシュに保存
 		animations_[animationKey] = animation;
 		animations.emplace_back(animation);
 	}
-	
+
 	// ファイルのアニメーション名リストをキャッシュ
 	fileAnimationNames_[filePath] = animationNames;
-	
+
 	return animations;
 }
 
-Animation AnimationManager::LoadAnimationByName(const std::string& filePath, const std::string& animationName) {
+/// @brief 名前でアニメーションを読み込む
+/// @param filePath ファイルパス
+/// @param animationName アニメーション名
+/// @return アニメーション
+Animation AnimationManager::LoadAnimationByName(const std::string& filePath,
+                                                const std::string&
+                                                animationName) {
 	// キャッシュを確認
 	const std::string animationKey = filePath + "::" + animationName;
-	auto it = animations_.find(animationKey);
+	auto              it           = animations_.find(animationKey);
 	if (it != animations_.end()) {
 		return it->second;
 	}
-	
+
 	Assimp::Importer importer;
-	const aiScene* aScene = importer.ReadFile(filePath.c_str(), 0);
+	const aiScene*   aScene = importer.ReadFile(filePath.c_str(), 0);
 	assert(aScene && "Failed to load animation file");
 	assert(aScene->mNumAnimations != 0 && "No animations found in the file");
-	
+
 	// 指定された名前のアニメーションを探す
-	for (uint32_t animIndex = 0; animIndex < aScene->mNumAnimations; ++animIndex) {
+	for (uint32_t animIndex = 0; animIndex < aScene->mNumAnimations; ++
+	     animIndex) {
 		aiAnimation* animationAssimp = aScene->mAnimations[animIndex];
 		if (std::string(animationAssimp->mName.C_Str()) == animationName) {
 			Animation animation = LoadSingleAnimation(animationAssimp);
-			
+
 			// キャッシュに保存
 			animations_[animationKey] = animation;
 			return animation;
 		}
 	}
-	
+
 	Console::Print(
-		std::format("指定されたアニメーションが見つかりませんでした: {} in {}", animationName, filePath)
+		std::format("指定されたアニメーションが見つかりませんでした: {} in {}", animationName,
+		            filePath)
 	);
 	return {};
 }
 
-std::vector<std::string> AnimationManager::GetAnimationNamesFromFile(const std::string& filePath) {
+/// @brief アニメーションファイルからアニメーション名のリストを取得
+/// @param filePath ファイルパス
+/// @return アニメーション名リスト
+std::vector<std::string> AnimationManager::GetAnimationNamesFromFile(
+	const std::string& filePath) {
 	// キャッシュを確認
 	auto it = fileAnimationNames_.find(filePath);
 	if (it != fileAnimationNames_.end()) {
 		return it->second;
 	}
-	
+
 	std::vector<std::string> animationNames;
-	
+
 	Assimp::Importer importer;
-	const aiScene* aScene = importer.ReadFile(filePath.c_str(), 0);
+	const aiScene*   aScene = importer.ReadFile(filePath.c_str(), 0);
 	if (!aScene || aScene->mNumAnimations == 0) {
 		return animationNames;
 	}
-	
-	for (uint32_t animIndex = 0; animIndex < aScene->mNumAnimations; ++animIndex) {
+
+	for (uint32_t animIndex = 0; animIndex < aScene->mNumAnimations; ++
+	     animIndex) {
 		aiAnimation* animationAssimp = aScene->mAnimations[animIndex];
-		animationNames.emplace_back(std::string(animationAssimp->mName.C_Str()));
+		animationNames.
+			emplace_back(std::string(animationAssimp->mName.C_Str()));
 	}
-	
+
 	// キャッシュに保存
 	fileAnimationNames_[filePath] = animationNames;
-	
+
 	return animationNames;
 }
 
-Animation AnimationManager::LoadSingleAnimation(const aiAnimation* animationAssimp) {
+/// @brief Assimpのアニメーションデータからアニメーションを読み込む
+/// @param animationAssimp Assimpのアニメーションデータ
+/// @return アニメーション
+Animation AnimationManager::LoadSingleAnimation(
+	const aiAnimation* animationAssimp) {
 	Animation animation;
 	animation.duration = static_cast<float>(
 		animationAssimp->mDuration / animationAssimp->mTicksPerSecond

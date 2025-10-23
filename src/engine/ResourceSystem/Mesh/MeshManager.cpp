@@ -19,6 +19,10 @@
 #include <engine/ResourceSystem/Shader/DefaultShader.h>
 #include <engine/TextureManager/TexManager.h>
 
+/// @brief 初期化
+/// @param device D3D12デバイスへのポインタ
+/// @param shaderManager シェーダマネージャーへのポインタ
+/// @param materialManager マテリアルマネージャーへのポインタ
 void MeshManager::Init(ID3D12Device*    device, ShaderManager* shaderManager,
                        MaterialManager* materialManager) {
 	Console::Print(
@@ -31,6 +35,7 @@ void MeshManager::Init(ID3D12Device*    device, ShaderManager* shaderManager,
 	mMaterialManager = materialManager;
 }
 
+/// @brief シャットダウン
 void MeshManager::Shutdown() {
 	Console::Print(
 		"MeshManager を終了しています...\n",
@@ -67,6 +72,9 @@ void MeshManager::Shutdown() {
 	mMaterialManager = nullptr;
 }
 
+/// @brief メッシュファイルからメッシュを読み込む
+/// @param filePath ファイルパス
+/// @return 成功したらtrue、失敗したらfalse
 bool MeshManager::LoadMeshFromFile(const std::string& filePath) {
 	Assimp::Importer importer;
 	const aiScene*   scene = importer.ReadFile(
@@ -98,6 +106,9 @@ bool MeshManager::LoadMeshFromFile(const std::string& filePath) {
 	return true;
 }
 
+/// @brief メッシュファイルからメッシュをリロードする
+/// @param filePath ファイルパス
+/// @return 成功したらtrue、失敗したらfalse
 bool MeshManager::ReloadMeshFromFile(const std::string& filePath) {
 	Console::Print("メッシュをリロードしています: " + filePath + "\n",
 	               kConTextColorWarning, Channel::ResourceSystem);
@@ -135,12 +146,17 @@ bool MeshManager::ReloadMeshFromFile(const std::string& filePath) {
 	return result;
 }
 
-
+/// @brief 名前でスタティックメッシュを取得
+/// @param name メッシュ名
+/// @return スタティックメッシュへのポインタ（見つからなければnullptr）
 StaticMesh* MeshManager::GetStaticMesh(const std::string& name) const {
 	const auto it = mStaticMeshes.find(name);
 	return it != mStaticMeshes.end() ? it->second.get() : nullptr;
 }
 
+/// @brief スタティックメッシュを作成
+/// @param name メッシュ名
+/// @return 作成されたスタティックメッシュへのポインタ
 StaticMesh* MeshManager::CreateStaticMesh(const std::string& name) {
 	const auto it = mStaticMeshes.find(name);
 	if (it != mStaticMeshes.end()) {
@@ -152,6 +168,9 @@ StaticMesh* MeshManager::CreateStaticMesh(const std::string& name) {
 	return meshPtr;
 }
 
+/// @brief メッシュファイルからスケルタルメッシュを読み込む
+/// @param filePath ファイルパス
+/// @return 成功したらtrue、失敗したらfalse
 bool MeshManager::LoadSkeletalMeshFromFile(const std::string& filePath) {
 	Assimp::Importer importer;
 	const aiScene*   scene = importer.ReadFile(
@@ -198,12 +217,18 @@ bool MeshManager::LoadSkeletalMeshFromFile(const std::string& filePath) {
 	return true;
 }
 
+/// @brief 名前でスケルタルメッシュを取得
+/// @param name メッシュ名
+/// @return スケルタルメッシュへのポインタ（見つからなければnullptr）
 SkeletalMesh* MeshManager::GetSkeletalMesh(const std::string& name) const {
 	return mSkeletalMeshes.contains(name) ?
 		       mSkeletalMeshes.at(name).get() :
 		       nullptr;
 }
 
+/// @brief スケルタルメッシュを作成
+/// @param name メッシュ名
+/// @return 作成されたスケルタルメッシュへのポインタ
 SkeletalMesh* MeshManager::CreateSkeletalMesh(const std::string& name) {
 	const auto it = mSkeletalMeshes.find(name);
 	if (it != mSkeletalMeshes.end()) {
@@ -215,7 +240,9 @@ SkeletalMesh* MeshManager::CreateSkeletalMesh(const std::string& name) {
 	return meshPtr;
 }
 
-
+/// @brief サブメッシュを作成
+/// @param name サブメッシュ名
+/// @return 作成されたサブメッシュへのポインタ
 SubMesh* MeshManager::CreateSubMesh(const std::string& name) {
 	const auto it = mSubMeshes.find(name);
 	if (it != mSubMeshes.end()) {
@@ -227,6 +254,10 @@ SubMesh* MeshManager::CreateSubMesh(const std::string& name) {
 	return subMeshPtr;
 }
 
+/// @brief スタティックメッシュノードを処理します
+/// @param node ノード
+/// @param scene シーン
+/// @param staticMesh スタティックメッシュへのポインタ
 void MeshManager::ProcessStaticMeshNode(const aiNode*  node,
                                         const aiScene* scene,
                                         StaticMesh*    staticMesh) {
@@ -245,8 +276,8 @@ void MeshManager::ProcessStaticMeshNode(const aiNode*  node,
 			               Channel::ResourceSystem);
 			continue;
 		}
-		const aiMesh* mesh = scene->mMeshes[node->mMeshes[meshIndex]];
-		std::unique_ptr<SubMesh> subMesh = std::unique_ptr<SubMesh>(
+		const aiMesh* mesh    = scene->mMeshes[node->mMeshes[meshIndex]];
+		auto          subMesh = std::unique_ptr<SubMesh>(
 			ProcessMesh(mesh, scene, staticMesh, transform));
 		staticMesh->AddSubMesh(std::move(subMesh));
 	}
@@ -265,6 +296,10 @@ void MeshManager::ProcessStaticMeshNode(const aiNode*  node,
 	}
 }
 
+/// @brief スケルタルメッシュノードを処理します
+/// @param node ノード
+/// @param scene シーン
+/// @param skeletalMesh スケルタルメッシュへのポインタ
 void MeshManager::ProcessSkeletalMeshNode(
 	aiNode*        node,
 	const aiScene* scene,
@@ -285,8 +320,8 @@ void MeshManager::ProcessSkeletalMeshNode(
 			               Channel::ResourceSystem);
 			continue;
 		}
-		const aiMesh* mesh = scene->mMeshes[node->mMeshes[meshIndex]];
-		std::unique_ptr<SubMesh> subMesh = std::unique_ptr<SubMesh>(
+		const aiMesh* mesh    = scene->mMeshes[node->mMeshes[meshIndex]];
+		auto          subMesh = std::unique_ptr<SubMesh>(
 			ProcessSkeletalMesh(mesh, scene, skeletalMesh, transform));
 		skeletalMesh->AddSubMesh(std::move(subMesh));
 	}
@@ -298,6 +333,12 @@ void MeshManager::ProcessSkeletalMeshNode(
 	}
 }
 
+/// @brief メッシュを処理します
+/// @param mesh Assimpのメッシュデータ
+/// @param scene Assimpのシーンデータ
+/// @param staticMesh スタティックメッシュへのポインタ
+/// @param transform ノードの変換行列
+/// @return 作成されたサブメッシュへのポインタ
 SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
                                   StaticMesh*        staticMesh,
                                   const aiMatrix4x4& transform) {
@@ -410,8 +451,9 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 
 		// 環境マップテクスチャの設定
 		// シェーダーがTexture2Dを期待している場合は、forceCubeMapをfalseにする
-		TexManager::GetInstance()->LoadTexture("./content/core/textures/wave.dds",
-		                                       false);
+		TexManager::GetInstance()->LoadTexture(
+			"./content/core/textures/wave.dds",
+			false);
 		material->SetTexture("gEnvironmentTexture",
 		                     "./content/core/textures/wave.dds");
 	}
@@ -425,6 +467,12 @@ SubMesh* MeshManager::ProcessMesh(const aiMesh*      mesh, const aiScene* scene,
 	return subMesh.release();
 }
 
+/// @brief スケルタルメッシュを処理します
+/// @param mesh Assimpのメッシュデータ
+/// @param scene Assimpのシーンデータ
+/// @param skeletalMesh スケルタルメッシュへのポインタ
+/// @param transform ノードの変換行列
+/// @return 作成されたサブメッシュへのポインタ
 SubMesh* MeshManager::ProcessSkeletalMesh(
 	const aiMesh*      mesh,
 	const aiScene*     scene,
@@ -653,6 +701,9 @@ SubMesh* MeshManager::ProcessSkeletalMesh(
 	return subMesh.release();
 }
 
+/// @brief スケルトンを読み込む
+/// @param scene Assimpのシーンデータ
+/// @return 読み込まれたスケルトンデータ
 Skeleton MeshManager::LoadSkeleton(const aiScene* scene) {
 	Skeleton skeleton;
 
@@ -729,6 +780,9 @@ Skeleton MeshManager::LoadSkeleton(const aiScene* scene) {
 	return skeleton;
 }
 
+/// @brief ノードを読み込む
+/// @param aiNode Assimpのノードデータ
+/// @return 読み込まれたノードデータ
 Node MeshManager::LoadNode(const aiNode* aiNode) {
 	Node node;
 	node.name = aiNode->mName.C_Str();
@@ -768,6 +822,9 @@ Node MeshManager::LoadNode(const aiNode* aiNode) {
 	return node;
 }
 
+/// @brief アニメーションを読み込む
+/// @param scene Assimpのシーンデータ
+/// @param skeletalMesh スケルタルメッシュへのポインタ
 void MeshManager::LoadAnimations(const aiScene* scene,
                                  SkeletalMesh*  skeletalMesh) {
 	for (uint32_t i = 0; i < scene->mNumAnimations; ++i) {
@@ -787,6 +844,9 @@ void MeshManager::LoadAnimations(const aiScene* scene,
 	}
 }
 
+/// @brief アニメーションを読み込む
+/// @param aiAnim Assimpのアニメーションデータ
+/// @return 読み込まれたアニメーションデータ
 Animation MeshManager::LoadAnimation(const aiAnimation* aiAnim) {
 	Animation animation;
 	animation.duration = static_cast<float>(aiAnim->mDuration / aiAnim->

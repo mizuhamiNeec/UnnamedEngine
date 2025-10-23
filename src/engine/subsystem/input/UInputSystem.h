@@ -11,6 +11,7 @@
 
 #include <engine/subsystem/interface/ISubsystem.h>
 
+/// @brief 入力キー構造体
 template <>
 struct std::hash<Unnamed::InputKey> {
 	size_t operator()(const Unnamed::InputKey& key) const noexcept {
@@ -20,12 +21,14 @@ struct std::hash<Unnamed::InputKey> {
 };
 
 namespace Unnamed {
+	/// @brief 入力アクション状態構造体
 	struct InputActionState {
 		bool bIsPressed  = false;
 		bool bIsHeld     = false;
 		bool bIsReleased = false;
 	};
 
+	/// @brief 1D入力軸状態構造体
 	struct InputAxisState1D {
 		float value = 0.0f;
 	};
@@ -34,6 +37,7 @@ namespace Unnamed {
 		X, Y
 	};
 
+	/// @brief 2D入力軸状態構造体
 	struct InputAxisState2D {
 		Vec2 value = Vec2::zero;
 	};
@@ -44,6 +48,7 @@ namespace Unnamed {
 		AXIS_2D
 	};
 
+	/// @brief 入力バインディング構造体
 	struct InputBinding {
 		InputKey     key;
 		BINDING_TYPE type;
@@ -54,6 +59,7 @@ namespace Unnamed {
 		INPUT_AXIS axis    = INPUT_AXIS::X;
 	};
 
+	/// @brief 入力システムクラス
 	class UInputSystem final : public ISubsystem, public IWin32MsgListener {
 	public:
 		~UInputSystem() override;

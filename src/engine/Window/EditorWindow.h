@@ -1,6 +1,7 @@
 #pragma once
 #include <engine/Window/Base/BaseWindow.h>
 
+/// @brief エディタウィンドウクラス
 class EditorWindow final : public BaseWindow {
 public:
 	EditorWindow();
@@ -10,5 +11,6 @@ public:
 	void SetResizeCallback(ResizeCallback callback) override;
 
 protected:
-	LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+	LRESULT WindowProc(HWND   hWnd, UINT msg, WPARAM wParam,
+	                   LPARAM lParam) override;
 };

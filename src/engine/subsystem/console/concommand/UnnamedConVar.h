@@ -6,6 +6,7 @@
 #include <engine/subsystem/interface/ServiceLocator.h>
 
 namespace Unnamed {
+	/// @brief 名前なしコンソール変数クラス
 	template <typename T>
 	class UnnamedConVar : public UnnamedConVarBase {
 	public:
@@ -66,7 +67,7 @@ namespace Unnamed {
 			mValue = value;
 		}
 
-		T GetValue() const {
+		[[nodiscard]] T GetValue() const {
 			return mValue;
 		}
 
@@ -75,7 +76,6 @@ namespace Unnamed {
 	private:
 		void RegisterSelf();
 
-	private:
 		T                  mValue;
 		T                  mDefaultValue;
 		T                  mMinValue;
@@ -85,6 +85,10 @@ namespace Unnamed {
 		UnnamedConVarBase* mParent      = nullptr; // 登録されている親のConVarBaseポインタ
 	};
 
+	/// @brief 名前なしコンソール変数クラスの実装
+	/// @param name 変数名
+	/// @param defaultValue デフォルト値
+	/// @param flags フラグ
 	template <typename T>
 	UnnamedConVar<T>::UnnamedConVar(
 		const std::string_view& name, const T& defaultValue,
@@ -100,6 +104,11 @@ namespace Unnamed {
 		RegisterSelf();
 	}
 
+	/// @brief 名前なしコンソール変数クラスの実装
+	/// @param name 変数名
+	/// @param defaultValue デフォルト値
+	/// @param flags フラグ
+	/// @param description 説明文
 	template <typename T>
 	UnnamedConVar<T>::UnnamedConVar(
 		const std::string_view& name,
@@ -117,6 +126,15 @@ namespace Unnamed {
 		RegisterSelf();
 	}
 
+	/// @brief 名前なしコンソール変数クラスの実装
+	/// @param name 変数名
+	/// @param defaultValue デフォルト値
+	/// @param flags フラグ
+	/// @param description 説明文
+	/// @param bMin 最小値制限の有無
+	/// @param minValue 最小値
+	/// @param bMax 最大値制限の有無
+	/// @param maxValue 最大値
 	template <typename T>
 	UnnamedConVar<T>::UnnamedConVar(
 		const std::string_view& name,
@@ -136,6 +154,12 @@ namespace Unnamed {
 		RegisterSelf();
 	}
 
+	/// @brief 名前なしコンソール変数クラスの実装
+	/// @param name 変数名
+	/// @param defaultValue デフォルト値
+	/// @param flags フラグ
+	/// @param description 説明文
+	/// @param onValueChange 値変更時コールバック
 	template <typename T>
 	UnnamedConVar<T>::UnnamedConVar(
 		const std::string_view& name,
@@ -154,6 +178,16 @@ namespace Unnamed {
 		RegisterSelf();
 	}
 
+	/// @brief 名前なしコンソール変数クラスの実装
+	/// @param name 変数名
+	/// @param defaultValue デフォルト値
+	/// @param flags フラグ
+	/// @param description 説明文
+	/// @param bMin 最小値制限の有無
+	/// @param minValue 最小値
+	/// @param bMax 最大値制限の有無
+	/// @param maxValue 最大値
+	/// @param onValueChange 値変更時コールバック
 	template <typename T>
 	UnnamedConVar<T>::UnnamedConVar(
 		const std::string_view& name,
@@ -174,9 +208,13 @@ namespace Unnamed {
 		RegisterSelf();
 	}
 
+	/// @brief デストラクタ
 	template <typename T>
 	UnnamedConVar<T>::~UnnamedConVar() = default;
 
+	/// @brief 代入演算子のオーバーロード
+	/// @param value 代入する値
+	/// @return 自身の参照
 	template <typename T>
 	UnnamedConVar<T>& UnnamedConVar<T>::operator=(const T& value) {
 		if (mValue != value) {
@@ -188,6 +226,7 @@ namespace Unnamed {
 		return *this;
 	}
 
+	/// @brief 自身をコンソールシステムに登録します
 	template <typename T>
 	void UnnamedConVar<T>::RegisterSelf() {
 		const auto console = ServiceLocator::Get<ConsoleSystem>();
@@ -227,6 +266,7 @@ namespace Unnamed {
 	};
 
 	namespace {
+		/// @brief CONVAR_TYPEを文字列に変換します
 		const char* ToString(const CONVAR_TYPE e) {
 			switch (e) {
 			case CONVAR_TYPE::NONE: return "NONE";
@@ -239,6 +279,7 @@ namespace Unnamed {
 			}
 		}
 
+		/// @brief UnnamedConVarBaseからCONVAR_TYPEを取得します
 		CONVAR_TYPE GetConVarType(UnnamedConVarBase* var) {
 			auto type = CONVAR_TYPE::NONE;
 

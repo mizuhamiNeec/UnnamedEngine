@@ -273,9 +273,10 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 	DirectX::ScratchImage convertedImage = {};
 	const DirectX::TexMetadata& srcMetadata = image.GetMetadata();
 	DXGI_FORMAT targetFormat = DirectX::MakeSRGB(srcMetadata.format);
-	
+
 	// フォーマットが変換可能で、かつSRGBでない場合は変換
-	if (targetFormat != srcMetadata.format && targetFormat != DXGI_FORMAT_UNKNOWN) {
+	if (targetFormat != srcMetadata.format && targetFormat !=
+		DXGI_FORMAT_UNKNOWN) {
 		hr = DirectX::Convert(
 			image.GetImages(),
 			image.GetImageCount(),
@@ -285,14 +286,15 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 			DirectX::TEX_THRESHOLD_DEFAULT,
 			convertedImage
 		);
-		
+
 		if (SUCCEEDED(hr)) {
 			image = std::move(convertedImage);
 		} else {
 			DevMsg(
 				GetName(),
 				"SRGB変換に失敗したため、元のフォーマットを使用します: {} (元: {}, 変換先: {})",
-				filePath, static_cast<int>(srcMetadata.format), static_cast<int>(targetFormat)
+				filePath, static_cast<int>(srcMetadata.format),
+				static_cast<int>(targetFormat)
 			);
 		}
 	}
@@ -394,6 +396,9 @@ void TexManager::LoadTexture(const std::string& filePath, bool forceCubeMap) {
 	textureData.resource->SetName(StrUtil::ToWString(filePath).c_str());
 }
 
+/// @brief ファイルパスからテクスチャデータを取得します
+/// @param filePath テクスチャファイルのパス
+/// @return テクスチャデータへのポインタ（存在しない場合はnullptr）
 TexManager::TextureData* TexManager::GetTextureData(
 	const std::string& filePath) {
 	// ファイルパスを完全な相対パスに変換
@@ -593,10 +598,15 @@ D3D12_GPU_DESCRIPTOR_HANDLE TexManager::GetSrvHandleGPU(
 	return {};
 }
 
+/// @brief 読み込まれているテクスチャの数を取得します
+/// @return 読み込まれているテクスチャの数
 uint32_t TexManager::GetLoadedTextureCount() const {
 	return static_cast<uint32_t>(mTextureData.size());
 }
 
+/// @brief テクスチャリソースを取得します
+/// @param filePath テクスチャファイルのパス
+/// @return テクスチャリソース
 Microsoft::WRL::ComPtr<ID3D12Resource> TexManager::GetTextureResource(
 	const std::string& filePath) const {
 	// まず完全なパスで検索
@@ -633,10 +643,16 @@ Microsoft::WRL::ComPtr<ID3D12Resource> TexManager::GetTextureResource(
 	return nullptr; // 見つからない場合はnullptrを返す
 }
 
+/// @brief テクスチャのSRVインデックスを取得します
+/// @param filePath テクスチャファイルのパス
+/// @return テクスチャのSRVインデックス
 uint32_t TexManager::GetTextureSrvIndex(const std::string& filePath) const {
 	return GetTextureIndexByFilePath(filePath);
 }
 
+/// @brief テクスチャのSRVインデックスを更新します
+/// @param filePath テクスチャファイルのパス
+/// @param newSrvIndex 新しいSRVインデックス
 void TexManager::UpdateTextureSrvIndex(
 	const std::string& filePath,
 	const uint32_t     newSrvIndex

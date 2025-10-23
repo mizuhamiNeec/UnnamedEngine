@@ -15,6 +15,7 @@ class ConstantBuffer;
 struct Vertex;
 class Object3DCommon;
 
+/// @brief 3Dオブジェクトクラス
 class Object3D {
 public:
 	// マテリアル

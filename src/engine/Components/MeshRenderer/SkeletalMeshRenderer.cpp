@@ -21,6 +21,7 @@ struct MatParam {
 	Vec3  emissive;
 };
 
+/// @brief デストラクタ
 SkeletalMeshRenderer::~SkeletalMeshRenderer() {
 	ReleaseComputeShaderResources();
 	mTransformationMatrixConstantBuffer.reset();
@@ -31,6 +32,8 @@ SkeletalMeshRenderer::~SkeletalMeshRenderer() {
 	mCurrentAnimation     = nullptr;
 }
 
+/// @brief コンポーネントがエンティティにアタッチされたときの初期化処理
+/// @param owner 所有するエンティティ
 void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 	MeshRenderer::OnAttach(owner);
 	mScene = mOwner->GetTransform();
@@ -121,6 +124,8 @@ void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 	mSpotLightData->cosFalloffStart = 0.5f;
 }
 
+/// @brief 毎フレームの更新処理
+/// @param deltaTime 前フレームからの経過時間（秒）
 void SkeletalMeshRenderer::Update(float deltaTime) {
 	if (mIsPlaying && mCurrentAnimation) {
 		mAnimationTime += deltaTime * mAnimationSpeed;
@@ -143,6 +148,8 @@ void SkeletalMeshRenderer::Update(float deltaTime) {
 	}
 }
 
+/// @brief 描画処理
+/// @param commandList 描画コマンドリスト
 void SkeletalMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 	// メッシュが存在しない場合は描画をスキップ
 	if (!mSkeletalMesh) {
@@ -257,6 +264,7 @@ void SkeletalMeshRenderer::Render(ID3D12GraphicsCommandList* commandList) {
 	}
 }
 
+/// @brief インスペクターUIの描画
 void SkeletalMeshRenderer::DrawInspectorImGui() {
 #ifdef _DEBUG
 	// 子クラスのインスペクターUIの描画
@@ -460,7 +468,7 @@ void SkeletalMeshRenderer::DrawInspectorImGui() {
 										ImGui::Text(
 											"GPU Handle: %llu", handle.ptr);
 										ImGui::Image(
-											(ImTextureID)handle.ptr,
+											handle.ptr,
 											ImVec2(150, 150));
 									}
 									ImGui::TreePop();
@@ -478,10 +486,14 @@ void SkeletalMeshRenderer::DrawInspectorImGui() {
 #endif
 }
 
+/// @brief スケルタルメッシュを取得
+/// @return スケルタルメッシュのポインタ
 SkeletalMesh* SkeletalMeshRenderer::GetSkeletalMesh() const {
 	return mSkeletalMesh;
 }
 
+/// @brief スケルタルメッシュを設定
+/// @param skeletalMesh スケルタルメッシュのポインタ
 void SkeletalMeshRenderer::SetSkeletalMesh(SkeletalMesh* skeletalMesh) {
 	mSkeletalMesh = skeletalMesh;
 
@@ -495,6 +507,9 @@ void SkeletalMeshRenderer::SetSkeletalMesh(SkeletalMesh* skeletalMesh) {
 	}
 }
 
+/// @brief アニメーションを再生
+/// @param animationName 再生するアニメーションの名前
+/// @param loop ループ再生するかどうか
 void SkeletalMeshRenderer::PlayAnimation(const std::string& animationName,
                                          bool               loop) {
 	if (!mSkeletalMesh) return;
@@ -520,42 +535,56 @@ void SkeletalMeshRenderer::PlayAnimation(const std::string& animationName,
 	}
 }
 
+/// @brief アニメーションを停止
 void SkeletalMeshRenderer::StopAnimation() {
 	mIsPlaying     = false;
 	mAnimationTime = 0.0f;
 }
 
+/// @brief アニメーションを一時停止
 void SkeletalMeshRenderer::PauseAnimation() {
 	mIsPlaying = false;
 }
 
+/// @brief アニメーションを再開
 void SkeletalMeshRenderer::ResumeAnimation() {
 	if (mCurrentAnimation) {
 		mIsPlaying = true;
 	}
 }
 
+/// @brief アニメーションの再生速度を設定
+/// @param speed 再生速度（1.0が通常速度）
 void SkeletalMeshRenderer::SetAnimationSpeed(float speed) {
 	mAnimationSpeed = speed;
 }
 
+/// @brief アニメーションが再生中かどうかを取得
+/// @return 再生中ならtrue、停止中ならfalse
 bool SkeletalMeshRenderer::IsAnimationPlaying() const {
 	return mIsPlaying;
 }
 
+/// @brief アニメーションの現在の再生時間を設定
+/// @param t 再生時間（秒）
 void SkeletalMeshRenderer::SetAnimationTime(const float t) {
 	mAnimationTime = t;
 }
 
+/// @brief アニメーションの現在の再生時間を取得
+/// @return 再生時間（秒）
 float SkeletalMeshRenderer::GetAnimationTime() const {
 	return mAnimationTime;
 }
 
+/// @brief 変換行列をバインド
+/// @param commandList 描画コマンドリスト
 void SkeletalMeshRenderer::BindTransform(
 	ID3D12GraphicsCommandList* commandList) {
 	commandList;
 }
 
+/// @brief ボーン変換行列を更新
 void SkeletalMeshRenderer::UpdateBoneMatrices() {
 	if (!mSkeletalMesh || !mCurrentAnimation) return;
 
@@ -571,14 +600,18 @@ void SkeletalMeshRenderer::UpdateBoneMatrices() {
 	                       mAnimationTime);
 }
 
+/// @brief ノードの変換行列を計算し、ボーン行列を更新
+/// @param node 現在のノード
+/// @param parentTransform 親ノードの変換行列
+/// @param animation 適用するアニメーションデータ
+/// @param animationTime アニメーションの現在の時間	
 void SkeletalMeshRenderer::CalculateNodeTransform(
-	const Node&      node, const Mat4& parentTransform,
-	const Animation* animation, float  animationTime) {
+	const Node&      node, const Mat4&      parentTransform,
+	const Animation* animation, const float animationTime) {
 	Mat4 nodeTransform = node.localMat;
 
 	// アニメーションデータがある場合は適用
-	if (animation && animation->nodeAnimations.find(node.name) != animation->
-		nodeAnimations.end()) {
+	if (animation && animation->nodeAnimations.contains(node.name)) {
 		const NodeAnimation& nodeAnim = animation->nodeAnimations.at(node.name);
 
 		Vec3 translation = CalculateValue(nodeAnim.translate.keyFrames,
@@ -618,6 +651,9 @@ void SkeletalMeshRenderer::CalculateNodeTransform(
 	}
 }
 
+/// @brief ボーン階層をデバッグ描画
+/// @param node 現在のノード
+/// @param parentTransform 親ノードの変換行列
 void SkeletalMeshRenderer::DrawBoneHierarchy(
 	const Node& node,
 	const Mat4& parentTransform
@@ -740,6 +776,7 @@ void SkeletalMeshRenderer::DrawBoneHierarchy(
 	}
 }
 
+/// @brief ボーン階層をデバッグ描画開始
 void SkeletalMeshRenderer::DrawBoneDebug() {
 	if (!mSkeletalMesh) return;
 
@@ -747,7 +784,9 @@ void SkeletalMeshRenderer::DrawBoneDebug() {
 	DrawBoneHierarchy(skeleton.rootNode, Mat4::identity);
 }
 
-void SkeletalMeshRenderer::SetUseComputeShaderSkinning(bool enable) {
+/// @brief コンピュートシェーダースキニングの使用設定
+/// @param enable trueで有効化、falseで無効化
+void SkeletalMeshRenderer::SetUseComputeShaderSkinning(const bool enable) {
 	if (mUseComputeShaderSkinning != enable) {
 		mUseComputeShaderSkinning = enable;
 
@@ -759,10 +798,14 @@ void SkeletalMeshRenderer::SetUseComputeShaderSkinning(bool enable) {
 	}
 }
 
+/// @brief コンピュートシェーダースキニングの使用状態を取得
+/// @return trueなら使用中、falseなら未使用
 bool SkeletalMeshRenderer::IsUsingComputeShaderSkinning() const {
 	return mUseComputeShaderSkinning;
 }
 
+/// @brief コンピュートシェーダーでスキニング処理を実行
+/// @param commandList 描画コマンドリスト
 void SkeletalMeshRenderer::PerformComputeShaderSkinning(
 	ID3D12GraphicsCommandList* commandList
 ) {
@@ -775,6 +818,7 @@ void SkeletalMeshRenderer::PerformComputeShaderSkinning(
 	Msg("SkeletalMeshRenderer", "コンピュートシェーダーでスキニング処理を実行中...");
 }
 
+/// @brief コンピュートシェーダー用リソースを初期化
 void SkeletalMeshRenderer::InitializeComputeShaderResources() {
 	if (!mSkeletalMesh) {
 		return;
@@ -783,6 +827,7 @@ void SkeletalMeshRenderer::InitializeComputeShaderResources() {
 	Msg("SkeletalMeshRenderer", "コンピュートシェーダー用リソースを初期化中...");
 }
 
+/// @brief コンピュートシェーダー用リソースを解放
 void SkeletalMeshRenderer::ReleaseComputeShaderResources() {
 	mInputVertexBuffer.Reset();
 	mOutputVertexBuffer.Reset();

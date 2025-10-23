@@ -7,6 +7,9 @@
 #include <engine/OldConsole/Console.h>
 #include <engine/ResourceSystem/Pipeline/PipelineManager.h>
 
+/// @brief PSOのハッシュ値を計算します
+/// @param desc パイプラインステートの記述子
+/// @return 計算されたハッシュ値
 size_t PipelineManager::CalculatePSOHash(
 	const D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc) {
 	constexpr std::hash<size_t> hasher;
@@ -37,9 +40,9 @@ size_t PipelineManager::CalculatePSOHash(
 	hash ^= hasher(static_cast<size_t>(desc.DepthStencilState.DepthWriteMask))
 		<< 7;
 	hash ^= hasher(static_cast<size_t>(desc.DepthStencilState.DepthFunc)) << 8;
-	hash ^= hasher(static_cast<size_t>(desc.NumRenderTargets)) << 9;
-	hash ^= hasher(static_cast<size_t>(desc.SampleDesc.Count)) << 10;
-	hash ^= hasher(static_cast<size_t>(desc.SampleMask)) << 11;
+	hash ^= hasher(desc.NumRenderTargets) << 9;
+	hash ^= hasher(desc.SampleDesc.Count) << 10;
+	hash ^= hasher(desc.SampleMask) << 11;
 	hash ^= hasher(static_cast<size_t>(desc.PrimitiveTopologyType)) << 12;
 	hash ^= hasher(static_cast<size_t>(desc.DSVFormat)) << 13;
 	hash ^= hasher(static_cast<size_t>(desc.RTVFormats[0])) << 14;
@@ -47,6 +50,11 @@ size_t PipelineManager::CalculatePSOHash(
 	return hash;
 }
 
+/// @brief パイプラインステートを取得または作成します
+/// @param device D3D12デバイスへのポインタ
+/// @param key パイプラインステートのキー
+/// @param desc パイプラインステートの記述子
+/// @return 取得または作成されたパイプラインステートへのポインタ
 ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 	ID3D12Device*                             device,
 	const std::string&                        key,
@@ -118,6 +126,7 @@ ID3D12PipelineState* PipelineManager::GetOrCreatePipelineState(
 	return pipelineState.Get();
 }
 
+/// @brief シャットダウン
 void PipelineManager::Shutdown() {
 	Console::Print("Pipeline Manager を終了しています...\n", kConTextColorWait,
 	               Channel::ResourceSystem);

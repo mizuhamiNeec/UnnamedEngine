@@ -6,10 +6,12 @@
 #include <runtime/core/math/Math.h>
 
 namespace Unnamed {
+	/// @brief GPUバッファハンドル
 	struct BufferHandle {
 		uint32_t id = 0;
 	};
 
+	/// @brief メッシュハンドル
 	struct MeshHandle {
 		uint32_t           id  = UINT32_MAX;
 		uint32_t           gen = 0;
@@ -24,16 +26,19 @@ namespace Unnamed {
 		Vec3 cameraPos;
 	};
 
+	/// @brief GPU上の頂点バッファ情報
 	struct GpuVB {
 		BufferHandle handle;
 		uint32_t     stride = 0;
 	};
 
+	/// @brief GPU上のインデックスバッファ情報
 	struct GpuIB {
 		BufferHandle handle;
 		DXGI_FORMAT  format = DXGI_FORMAT_R32_UINT;
 	};
 
+	/// @brief GPU上のメッシュ情報
 	struct MeshGPU {
 		GpuVB    vb;
 		GpuIB    ib;
@@ -41,5 +46,4 @@ namespace Unnamed {
 		uint32_t firstIndex = 0;
 		int32_t  baseVertex = 0;
 	};
-
 }

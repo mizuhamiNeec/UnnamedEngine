@@ -4,9 +4,7 @@
 #include <engine/subsystem/console/ConsoleFlags.h>
 
 namespace Unnamed {
-	//-----------------------------------------------------------------------------
-	// Purpose: コンソールコマンドの基本クラス
-	//-----------------------------------------------------------------------------
+	/// @brief 名前なしコンソールコマンド/変数基底クラス
 	class UnnamedConCommandBase {
 	public:
 		UnnamedConCommandBase(

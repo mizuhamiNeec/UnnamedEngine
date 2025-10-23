@@ -11,14 +11,24 @@
 
 namespace Unnamed {
 	namespace {
+		/// @brief ワールド行列とビュー行列からビュー空間での深度を計算します
+		/// @param world ワールド行列
+		/// @param view ビュー行列
+		/// @return ビュー空間での深度値
 		float ComputeViewDepth(const Mat4& world, const Mat4& view) {
-			const Vec4 worldPos = Vec4(world.m[3][0], world.m[3][1],
+			const auto worldPos = Vec4(world.m[3][0], world.m[3][1],
 			                           world.m[3][2], 1.0f);
 			const Vec4 viewPos = worldPos * view;
 			return viewPos.z;
 		}
 	}
 
+	/// @brief コンストラクタ
+	/// @param graphicsDevice グラフィックスデバイス
+	/// @param renderResourceManager レンダーリソースマネージャ
+	/// @param shaderLibrary シェーダーライブラリ
+	/// @param rootSignatureCache ルートシグネチャキャッシュ
+	/// @param pipelineCache パイプラインキャッシュ
 	URenderSubsystem::URenderSubsystem(
 		GraphicsDevice*        graphicsDevice,
 		RenderResourceManager* renderResourceManager,
@@ -33,10 +43,13 @@ namespace Unnamed {
 		ServiceLocator::Register<URenderSubsystem>(this);
 	}
 
+	/// @brief 初期化
+	/// @return 初期化成功ならtrue
 	bool URenderSubsystem::Init() {
 		return true;
 	}
 
+	/// @brief フレーム開始処理
 	void URenderSubsystem::BeginFrame() {
 		mItems.clear();
 
@@ -76,6 +89,8 @@ namespace Unnamed {
 		mFrameCBVA = UploadCB(&f, sizeof(f));
 	}
 
+	/// @brief ワールドのレンダリング
+	/// @param world レンダリングするワールド
 	void URenderSubsystem::RenderWorld(const UWorld& world) {
 		Collect(world, Mat4::identity);
 		std::ranges::sort(
@@ -111,6 +126,7 @@ namespace Unnamed {
 		DrawItems();
 	}
 
+	/// @brief フレーム終了処理
 	void URenderSubsystem::EndFrame() {
 		mGraphicsDevice->EndFrame(mContext);
 
@@ -122,6 +138,9 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief ワールドからレンダリングアイテムを収集します
+	/// @param world ワールド
+	/// @param parent 親の変換行列
 	void URenderSubsystem::Collect(const UWorld& world, const Mat4& parent) {
 		for (auto& e : world.Entities()) {
 			if (!e) { continue; }
@@ -162,6 +181,7 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief レンダリングアイテムを描画します
 	void URenderSubsystem::DrawItems() {
 		auto* cmd = mContext.cmd;
 
@@ -236,6 +256,10 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief 定数バッファをアップロードします
+	/// @param src コピー元データ
+	/// @param bytes コピーするバイト数
+	/// @return GPU仮想アドレス
 	D3D12_GPU_VIRTUAL_ADDRESS URenderSubsystem::UploadCB(
 		const void* src, const size_t bytes
 	) const {

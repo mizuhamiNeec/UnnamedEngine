@@ -3,6 +3,7 @@
 #include <engine/OldConsole/ConVarManager.h>
 #include <engine/subsystem/time/GameTime.h>
 
+/// @brief コンストラクタ
 GameTime::GameTime() :
 	mStartTime(Clock::now()),
 	mLastFrameTime(Clock::now()),
@@ -18,6 +19,7 @@ GameTime::GameTime() :
 	);
 }
 
+/// @brief フレーム開始時の処理を行います。
 void GameTime::EndFrame() {
 	// フレーム終了時刻を記録
 	TimePoint frameEndTime = Clock::now();
@@ -41,12 +43,18 @@ void GameTime::EndFrame() {
 	mFrameStartTime = frameEndTime;
 }
 
+/// @brief 前フレームからの経過時間を取得します。
+/// @tparam T 返却型（floatまたはdouble）
+/// @return 前フレームからの経過時間（秒単位）
 template <typename T>
 T GameTime::DeltaTime() {
 	const double clamped = std::min(mDeltaTime, 1.0 / 60.0);
 	return static_cast<T>(clamped);
 }
 
+/// @brief タイムスケールが適用された前フレームからの経過時間を取得します。
+/// @tparam T 返却型（floatまたはdouble）
+/// @return タイムスケールが適用された前フレームからの経過時間（秒単位）
 template <typename T>
 T GameTime::ScaledDeltaTime() {
 	const double clamped = std::min(mScaledDeltaTime * TimeScale(),

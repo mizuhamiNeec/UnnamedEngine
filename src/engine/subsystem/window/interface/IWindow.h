@@ -3,6 +3,7 @@
 
 class IWindow {
 public:
+	/// @brief ウィンドウ情報構造体
 	struct WindowInfo {
 		std::string title           = "Unnamed Window";
 		uint32_t    clWidth         = 1280;

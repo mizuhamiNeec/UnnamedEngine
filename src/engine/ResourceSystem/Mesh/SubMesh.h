@@ -8,6 +8,7 @@
 
 #include "engine/uprimitive/UPrimitives.h"
 
+/// @brief サブメッシュクラス
 class SubMesh {
 public:
 	SubMesh(const Microsoft::WRL::ComPtr<ID3D12Device>& device,
@@ -27,7 +28,7 @@ public:
 
 	void                           ReleaseResource();
 	std::vector<Unnamed::Triangle> GetPolygons() const;
-	
+
 private:
 	std::string                                  name_;
 	Microsoft::WRL::ComPtr<ID3D12Device>         device_;

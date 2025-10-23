@@ -15,6 +15,7 @@ namespace Unnamed {
 		SAMPLER
 	};
 
+	/// @brief レンジ記述子
 	struct RangeDesc {
 		RangeType type;
 		UINT      baseRegister;
@@ -22,6 +23,7 @@ namespace Unnamed {
 		UINT      space = 0;
 	};
 
+	/// @brief ルートパラメータ記述子
 	struct RootParamDesc {
 		enum class Kind { TABLE, ROOT_CBV, ROOT32_BIT_CONST };
 
@@ -38,12 +40,14 @@ namespace Unnamed {
 		UINT constSpace    = 0;
 	};
 
+	/// @brief スタティックサンプラー記述子
 	struct StaticSamplerDesc {
 		D3D12_SAMPLER_DESC desc;
 		UINT               reg;
 		UINT               space = 0;
 	};
 
+	/// @brief ルートシグネチャ記述子
 	struct RootSignatureDesc {
 		std::vector<RootParamDesc>     params;
 		std::vector<StaticSamplerDesc> staticSamplers;
@@ -54,23 +58,26 @@ namespace Unnamed {
 			D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 	};
 
+	/// @brief ルートシグネチャハンドル
 	struct RootSignatureHandle {
 		uint32_t id = UINT32_MAX;
 	};
 
+	/// @brief ルートシグネチャキャッシュクラス
 	class RootSignatureCache {
 	public:
-		explicit RootSignatureCache(GraphicsDevice* graphicsDevice);
+		explicit            RootSignatureCache(GraphicsDevice* graphicsDevice);
 		RootSignatureHandle GetOrCreate(const RootSignatureDesc& desc);
-		ID3D12RootSignature* Get(RootSignatureHandle handle) const;
+		[[nodiscard]] ID3D12RootSignature*
+		Get(RootSignatureHandle handle) const;
 		D3D12_ROOT_SIGNATURE_DESC& GetDesc(RootSignatureHandle rootSignature);
 
 	private:
 		static size_t Hash(const RootSignatureDesc& desc);
 
-	private:
 		GraphicsDevice* mGraphicsDevice = nullptr;
 
+		/// @brief ルートシグネチャエントリ
 		struct Entry {
 			size_t                                      hash;
 			Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature;

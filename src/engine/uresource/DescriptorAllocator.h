@@ -7,6 +7,7 @@
 #include <wrl/client.h>
 
 namespace Unnamed {
+	/// @brief ディスクリプタアロケータクラス
 	class DescriptorAllocator {
 	public:
 		~DescriptorAllocator() = default;

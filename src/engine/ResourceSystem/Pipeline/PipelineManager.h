@@ -5,6 +5,7 @@
 #include <wrl/client.h>
 #include <unordered_map>
 
+/// @brief パイプラインマネージャークラス
 class PipelineManager {
 public:
 	static size_t CalculatePSOHash(

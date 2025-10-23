@@ -2,15 +2,15 @@
 #include <d3d12.h>
 #include <string>
 #include <unordered_map>
-#include <wrl.h>
 
-#include <engine/ResourceSystem/RootSignature/RootSignature2.h>
+#include "engine/ResourceSystem/RootSignature/RootSignature2.h"
 
 struct MatParam;
 
 class Texture;
 class Shader;
 
+/// @brief マテリアルクラス
 class Material {
 public:
 	Material(std::string name, Shader* shader);

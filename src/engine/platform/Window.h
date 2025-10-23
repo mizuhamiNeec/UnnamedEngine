@@ -10,6 +10,7 @@
 #endif
 #include <Windows.h>
 
+/// @brief ウィンドウの説明構造体
 struct WindowDesc {
 	std::string title;
 	uint32_t    width  = 1280;
@@ -17,6 +18,7 @@ struct WindowDesc {
 	DWORD       style  = WS_OVERLAPPEDWINDOW;
 };
 
+/// @brief ウィンドウクラス
 class Window {
 public:
 	Window(const WindowDesc& desc, HINSTANCE hInstance, uint32_t wndId);
@@ -28,8 +30,8 @@ public:
 	void Show(int cmdShow = SW_SHOWDEFAULT) const;
 
 private:
-	static LRESULT CALLBACK  WndProc(HWND, UINT, WPARAM, LPARAM);
-	static constexpr auto kClassName = L"WindowClass";
+	static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+	static constexpr auto   kClassName = L"WindowClass";
 
 	HWND     mHWnd;
 	uint32_t mWndId;

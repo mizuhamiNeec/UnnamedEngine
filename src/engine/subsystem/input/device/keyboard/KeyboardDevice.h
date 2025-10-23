@@ -11,6 +11,7 @@
 #include <unordered_map>
 
 namespace Unnamed {
+	/// @brief キーボードデバイスクラス
 	class KeyboardDevice final : public BaseInputDevice {
 	public:
 		explicit KeyboardDevice(HWND hWnd);

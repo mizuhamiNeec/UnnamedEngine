@@ -34,13 +34,13 @@ public:
 	/// brief コンストラクタ
 	/// param path 出力ファイルパス
 	explicit JsonWriter(std::string path);
-	
+
 	/// @brief オブジェクトの開始
 	void BeginObject();
-	
+
 	/// @brief オブジェクトの終了
 	void EndObject();
-	
+
 	/// @brief 配列の開始
 	void BeginArray();
 

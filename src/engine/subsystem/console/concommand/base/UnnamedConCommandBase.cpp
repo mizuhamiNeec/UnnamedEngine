@@ -4,6 +4,9 @@
 #include <engine/subsystem/console/ConsoleFlags.h>
 
 namespace Unnamed {
+	/// @brief FCVAR列挙型を文字列に変換します。
+	/// @param e 変換するFCVAR値
+	/// @return 変換された文字列
 	const char* ToString(FCVAR e) {
 		switch (e) {
 		case FCVAR::NONE: return "NONE";
@@ -23,15 +26,18 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief FCVAR列挙型のビットごとのOR演算子
 	FCVAR& operator|=(FCVAR& lhs, const FCVAR& rhs) {
 		lhs = static_cast<FCVAR>(static_cast<int>(lhs) | static_cast<int>(rhs));
 		return lhs;
 	}
 
+	/// @brief FCVAR列挙型のビットごとのAND演算子
 	bool operator&(const FCVAR& lhs, const FCVAR& rhs) {
 		return (static_cast<int>(lhs) & static_cast<int>(rhs)) != 0;
 	}
 
+	/// @brief FCVAR列挙型の等価比較演算子
 	bool operator!=(const FCVAR& lhs, const FCVAR& rhs) {
 		return static_cast<int>(lhs) != static_cast<int>(rhs);
 	}
@@ -56,11 +62,11 @@ namespace Unnamed {
 			mFlags = static_cast<FCVAR>(static_cast<int>(mFlags) & ~static_cast<
 				int>(flag));
 		} else {
-			// Log::Warning(
-			// 	"ConCommand",
-			// 	"存在しないフラグを削除しようとしました: {}",
-			// 	ToString(flag)
-			// );
+			Warning(
+				"ConCommand",
+				"フラグ '{}' は設定されていません。削除できません。\n",
+				ToString(flag)
+			);
 		}
 	}
 

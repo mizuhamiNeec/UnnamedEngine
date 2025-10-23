@@ -3,6 +3,7 @@
 #include <engine/subsystem/console/interface/IConsole.h>
 
 namespace Unnamed {
+	/// @brief ログレベルを文字列に変換します
 	const char* ToString(const LogLevel e) {
 		switch (e) {
 		case LogLevel::None: return "None";

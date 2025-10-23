@@ -21,24 +21,24 @@ public:
 	/**
 	 * @brief 仮想デストラクタ
 	 */
-	virtual      ~BaseScene() = default;
-	
+	virtual ~BaseScene() = default;
+
 	/**
 	 * @brief シーンの初期化処理
 	 */
 	virtual void Init() = 0;
-	
+
 	/**
 	 * @brief エンティティとコンポーネントの更新処理
 	 * @param deltaTime 前フレームからの経過時間
 	 */
 	virtual void Update(float deltaTime) = 0;
-	
+
 	/**
 	 * @brief シーンとコンポーネントの描画処理
 	 */
 	virtual void Render() = 0;
-	
+
 	/**
 	 * @brief シーンの終了処理
 	 */
@@ -49,12 +49,12 @@ public:
 	 * @return エンティティリストへの参照
 	 */
 	virtual std::vector<Entity*>& GetEntities();
-	
+
 	/**
 	 * @brief シーンにエンティティを追加する
 	 * @param entity 追加するエンティティ
 	 */
-	virtual void                  AddEntity(Entity* entity);
+	virtual void AddEntity(Entity* entity);
 
 	/**
 	 * @brief エディターモードを設定する
@@ -69,19 +69,19 @@ public:
 	 * @return エディターモードの場合true
 	 */
 	[[nodiscard]] virtual bool IsEditorMode() const { return mIsEditorMode; }
-	
+
 	/**
 	 * @brief シーンからエンティティを削除する
 	 * @param entity 削除するエンティティ
 	 */
-	void                       RemoveEntity(Entity* entity);
-	
+	void RemoveEntity(Entity* entity);
+
 	/**
 	 * @brief 新しいエンティティを作成する
 	 * @param value エンティティ名
 	 * @return 作成されたエンティティへのポインタ
 	 */
-	Entity*                    CreateEntity(const std::string& value);
+	Entity* CreateEntity(const std::string& value);
 
 protected:
 	std::vector<Entity*> mEntities; // シーンに存在するエンティティ

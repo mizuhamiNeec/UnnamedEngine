@@ -15,18 +15,21 @@
 #include <wrl/client.h>
 
 namespace Unnamed {
+	/// @brief ディスクリプタハンドル
 	struct DescriptorHandle {
 		uint32_t                    index = UINT32_MAX;
 		D3D12_CPU_DESCRIPTOR_HANDLE cpu   = {};
 		D3D12_GPU_DESCRIPTOR_HANDLE gpu   = {};
 	};
 
+	/// @brief フレームコンテキスト
 	struct FrameContext {
 		ID3D12GraphicsCommandList* cmd       = nullptr;
 		ID3D12CommandAllocator*    alloc     = nullptr;
 		uint32_t                   backIndex = 0;
 	};
 
+	/// @brief グラフィックスデバイス情報
 	struct GraphicsDeviceInfo {
 		void*    hWnd;
 		uint32_t width;
@@ -34,7 +37,9 @@ namespace Unnamed {
 		bool     bEnableDebug;
 	};
 
+	/// @brief グラフィックスデバイスクラス
 	class GraphicsDevice {
+		/// @brief フレームごとのリソース
 		struct PerFrame {
 			Microsoft::WRL::ComPtr<ID3D12CommandAllocator>    commandAllocator;
 			Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
@@ -62,7 +67,7 @@ namespace Unnamed {
 		BufferHandle CreateVertexBuffer(const void* data, size_t bytes);
 
 		BufferHandle CreateIndexBuffer(
-			const void* data, size_t bytes, DXGI_FORMAT format
+			const void* data, size_t bytes
 		);
 
 		void BindVertexBuffer(
@@ -104,7 +109,6 @@ namespace Unnamed {
 		void CreateDepthBuffers(UINT width, UINT height);
 		void DestroyDepthBuffers();
 
-	private:
 		struct DefferedFree {
 			uint32_t index;
 			uint64_t fence;
@@ -139,6 +143,7 @@ namespace Unnamed {
 		// 深度バッファ
 		static constexpr DXGI_FORMAT kDepthFormat = DXGI_FORMAT_D32_FLOAT;
 
+		// 深度バッファ
 		struct DepthBuffer {
 			Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 			D3D12_CPU_DESCRIPTOR_HANDLE            dsv = {};

@@ -11,6 +11,7 @@
 struct TransformationMatrix;
 constexpr size_t kMaxLineCount = 256;
 
+/// @brief ライン描画用の頂点構造体
 struct LineVertex {
 	Vec3 pos;
 	Vec4 color;
@@ -22,6 +23,7 @@ private:
 	static const D3D12_INPUT_ELEMENT_DESC inputElements[inputElementCount];
 };
 
+/// @brief ライン描画クラス
 class Line {
 	// 座標変換行列データ
 	struct TransformationMatrix {

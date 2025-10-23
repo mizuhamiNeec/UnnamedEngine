@@ -13,6 +13,9 @@
 //-----------------------------------------------------------------------------
 // Purpose: インプットシステムの初期化を行います
 //-----------------------------------------------------------------------------
+/**
+ * @brief 入力システムを初期化する
+ */
 void InputSystem::Init() {
 	RAWINPUTDEVICE rid[2];
 
@@ -45,7 +48,7 @@ void InputSystem::Init() {
 			}
 			std::string key     = args[0];
 			std::string command = args[1];
-			InputSystem::BindKey(key, command);
+			BindKey(key, command);
 		},
 		"Bind a key to a command."
 	);
@@ -59,7 +62,7 @@ void InputSystem::Init() {
 				return;
 			}
 			std::string key = args[0];
-			InputSystem::UnbindKey(key);
+			UnbindKey(key);
 		},
 		"Unbind a key."
 	);
@@ -67,7 +70,7 @@ void InputSystem::Init() {
 	ConCommand::RegisterCommand(
 		"unbindall",
 		[]([[maybe_unused]] const std::vector<std::string>& args) {
-			InputSystem::UnbindAll();
+			UnbindAll();
 		},
 		"Unbind all keys."
 	);
@@ -83,6 +86,9 @@ void InputSystem::Init() {
 	mMouseLock = false;
 }
 
+/**
+ * @brief 入力状態を更新する
+ */
 void InputSystem::Update() {
 	CheckMouseCursorLock();
 
@@ -97,6 +103,10 @@ void InputSystem::Update() {
 	mOuseDelta = Vec2::zero;
 }
 
+/**
+ * @brief 生の入力データを処理する
+ * @param lParam Win32メッセージのlParam
+ */
 void InputSystem::ProcessInput(const long lParam) {
 	UINT dwSize = 0;
 	GetRawInputData(reinterpret_cast<HRAWINPUT>(static_cast<LPARAM>(lParam)),
@@ -202,11 +212,20 @@ void InputSystem::ProcessInput(const long lParam) {
 	}
 }
 
+/**
+ * @brief マウスの移動量を取得する
+ * @return マウスの移動量（ピクセル）
+ */
 Vec2 InputSystem::GetMouseDelta() {
 	Vec2 delta = mOuseDelta;
 	return delta;
 }
 
+/**
+ * @brief コマンドがトリガーされたかを判定する
+ * @param command コマンド名
+ * @return トリガーされた場合true
+ */
 bool InputSystem::IsTriggered(const std::string& command) {
 	// +プレフィックスの処理
 	std::string baseCommand = command;
@@ -216,6 +235,11 @@ bool InputSystem::IsTriggered(const std::string& command) {
 	return mTriggeredCommands[baseCommand];
 }
 
+/**
+ * @brief コマンドが押されているかを判定する
+ * @param command コマンド名
+ * @return 押されている場合true
+ */
 bool InputSystem::IsPressed(const std::string& command) {
 	// +プレフィックスの処理
 	std::string baseCommand = command;
@@ -225,6 +249,11 @@ bool InputSystem::IsPressed(const std::string& command) {
 	return mPressedCommands[baseCommand];
 }
 
+/**
+ * @brief コマンドが離されたかを判定する
+ * @param command コマンド名
+ * @return 離された場合true
+ */
 bool InputSystem::IsReleased(const std::string& command) {
 	// +プレフィックスの処理
 	std::string baseCommand = command;
@@ -234,18 +263,35 @@ bool InputSystem::IsReleased(const std::string& command) {
 	return mReleasedCommands[baseCommand];
 }
 
+/**
+ * @brief キーにコマンドをバインドする
+ * @param key キー名
+ * @param command コマンド名
+ */
 void InputSystem::BindKey(const std::string& key, const std::string& command) {
 	mKeyBindings[key] = command;
 }
 
+/**
+ * @brief キーのバインドを解除する
+ * @param key キー名
+ */
 void InputSystem::UnbindKey(const std::string& key) {
 	mKeyBindings.erase(key);
 }
 
+/**
+ * @brief すべてのバインドを解除する
+ */
 void InputSystem::UnbindAll() {
 	mKeyBindings.clear();
 }
 
+/**
+ * @brief コマンドを実行する
+ * @param command コマンド名
+ * @param isDown キーが押された場合true、離された場合false
+ */
 void InputSystem::ExecuteCommand(const std::string& command, bool isDown) {
 	// +/- プレフィックスの解析
 	std::string baseCommand   = command;
@@ -281,6 +327,9 @@ void InputSystem::ExecuteCommand(const std::string& command, bool isDown) {
 	}
 }
 
+/**
+ * @brief すべてのキー状態をリセットする
+ */
 void InputSystem::ResetAllKeys() {
 	mPressedCommands.clear();
 	mTriggeredCommands.clear();
@@ -291,9 +340,9 @@ void InputSystem::ResetAllKeys() {
 	mCursorHidden = false;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: マウスカーソルの表示/非表示を切り替えます。カーソルの固定も行います。
-//-----------------------------------------------------------------------------
+/**
+ * @brief マウスカーソルのロック状態を確認する
+ */
 void InputSystem::CheckMouseCursorLock() {
 	static int cursorCount = 0; // カーソル表示カウンタを追跡
 

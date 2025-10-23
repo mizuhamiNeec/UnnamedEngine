@@ -3,6 +3,8 @@
 #include <ranges>
 
 namespace Unnamed {
+	/// @brief コンストラクタ
+	/// @param hWnd ウィンドウハンドル
 	KeyboardDevice::KeyboardDevice(const HWND hWnd) {
 		RAWINPUTDEVICE keyboardRid;
 		keyboardRid.usUsagePage = 0x01;
@@ -12,8 +14,11 @@ namespace Unnamed {
 		RegisterRawInputDevices(&keyboardRid, 1, sizeof(keyboardRid));
 	}
 
+	/// @brief デストラクタ
 	KeyboardDevice::~KeyboardDevice() = default;
 
+	/// @brief 生の入力を処理する
+	/// @param raw 生の入力データ
 	void KeyboardDevice::HandleRawInput(const RAWINPUT& raw) {
 		if (raw.header.dwType != RIM_TYPEKEYBOARD) {
 			return;
@@ -53,9 +58,13 @@ namespace Unnamed {
 		mKeyStates[vk]     = bIsDown;
 	}
 
+	/// @brief デバイスの状態を更新する
 	void KeyboardDevice::Update() {
 	}
 
+	/// @brief 指定したキーの状態を取得する
+	/// @param key 入力キー
+	/// @return キーが押されているかどうか
 	bool KeyboardDevice::GetKeyState(const InputKey& key) const {
 		if (key.device != InputDeviceType::KEYBOARD) {
 			return false;
@@ -64,6 +73,9 @@ namespace Unnamed {
 		return it != mKeyStates.end() ? it->second : false;
 	}
 
+	/// @brief 指定したキーのアナログ値を取得する
+	/// @param key 入力キー
+	/// @return アナログ値
 	float KeyboardDevice::GetAnalogValue(const InputKey& key) const {
 		if (key.device != InputDeviceType::KEYBOARD) {
 			return 0.0f;
@@ -72,6 +84,8 @@ namespace Unnamed {
 		return it != mKeyStates.end() && it->second ? 1.0f : 0.0f;
 	}
 
+	/// @brief サポートされているキーのリストを取得する
+	/// @return サポートされているキーのベクター
 	std::vector<InputKey> KeyboardDevice::GetSupportedKeys() const {
 		std::vector<InputKey> supportedKeys;
 		for (const auto& key : mKeyStates | std::views::keys) {
@@ -80,10 +94,13 @@ namespace Unnamed {
 		return supportedKeys;
 	}
 
+	/// @brief デバイスタイプを取得する
+	/// @return デバイスタイプ
 	InputDeviceType KeyboardDevice::GetDeviceType() const {
 		return InputDeviceType::KEYBOARD;
 	}
 
+	/// @brief キー状態をリセットする
 	void KeyboardDevice::ResetStates() {
 		mKeyStates.clear();
 	}

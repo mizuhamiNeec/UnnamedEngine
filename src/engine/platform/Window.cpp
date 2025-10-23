@@ -2,7 +2,7 @@
 
 #include <engine/platform/Window.h>
 
-
+/// @brief コンストラクタ
 Window::Window(
 	const WindowDesc& desc, const HINSTANCE hInstance,
 	const uint32_t    wndId
@@ -45,6 +45,7 @@ Window::Window(
 	}
 }
 
+/// @brief デストラクタ
 Window::~Window() {
 	if (mHWnd) {
 		DestroyWindow(mHWnd);
@@ -53,15 +54,27 @@ Window::~Window() {
 	}
 }
 
+/// @brief ウィンドウハンドルを取得します
+/// @return ウィンドウハンドル
 HWND Window::GetHWnd() const { return mHWnd; }
 
+/// @brief ウィンドウIDを取得します
+/// @return ウィンドウID
 uint32_t Window::GetID() const { return mWndId; }
 
+/// @brief ウィンドウを表示します
+/// @param cmdShow 表示コマンド
 void Window::Show(const int cmdShow) const {
 	ShowWindow(mHWnd, cmdShow);
 	UpdateWindow(mHWnd);
 }
 
+/// @brief ウィンドウプロシージャ
+/// @param hWnd ウィンドウハンドル
+/// @param msg メッセージ
+/// @param wParam メッセージの追加情報1
+/// @param lParam メッセージの追加情報2
+/// @return 処理結果
 LRESULT Window::WndProc(
 	const HWND   hWnd, const UINT     msg,
 	const WPARAM wParam, const LPARAM lParam

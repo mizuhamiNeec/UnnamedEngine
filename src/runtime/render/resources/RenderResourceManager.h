@@ -17,14 +17,14 @@ namespace Unnamed {
 	class UAssetManager;
 	class UploadArena;
 
+	/// @brief テクスチャハンドル構造体
 	struct TextureHandle {
 		uint32_t           id  = UINT32_MAX;
 		uint32_t           gen = 0; // テクスチャの世代
 		[[nodiscard]] bool IsValid() const { return id != UINT32_MAX; }
 	};
-
-	// MeshHandleはRenderTypes.hで定義済み
-
+	
+	/// @brief レンダーリソースマネージャークラス
 	class RenderResourceManager {
 	public:
 		explicit RenderResourceManager(
@@ -98,7 +98,7 @@ namespace Unnamed {
 
 		struct GpuMesh {
 			MeshGPU                             mesh;
-			uint32_t                            refs        = 0;
+			uint32_t                            refs = 0;
 			Microsoft::WRL::ComPtr<ID3D12Fence> retireFence;
 			uint64_t                            retireValue = 0;
 			bool                                alive       = false;
@@ -108,7 +108,6 @@ namespace Unnamed {
 			size_t  vramBytes   = 0; // VB + IB のサイズ
 		};
 
-	private:
 		bool UploadRGBA8_1Mip(
 			GpuTexture&                texture,
 			const void*                pixels,
@@ -117,7 +116,6 @@ namespace Unnamed {
 			ID3D12GraphicsCommandList* commandList
 		) const;
 
-	private:
 		GraphicsDevice*                            mGd           = nullptr;
 		UAssetManager*                             mAssetManager = nullptr;
 		UploadArena*                               mArena        = nullptr;
@@ -149,8 +147,8 @@ namespace Unnamed {
 
 		std::deque<PendingMipUpload> mDeferredMipUploads;
 
-		std::vector<GpuMesh>                     mMeshes;
-		std::vector<uint32_t>                    mFreeMeshList;
-		std::unordered_map<AssetID, MeshHandle>  mAssetToMesh;
+		std::vector<GpuMesh>                    mMeshes;
+		std::vector<uint32_t>                   mFreeMeshList;
+		std::unordered_map<AssetID, MeshHandle> mAssetToMesh;
 	};
 }

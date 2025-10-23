@@ -5,6 +5,7 @@
 
 #include <game/scene/base/BaseScene.h>
 
+/// @brief シーンファクトリークラス
 class SceneFactory {
 public:
 	template <typename T>

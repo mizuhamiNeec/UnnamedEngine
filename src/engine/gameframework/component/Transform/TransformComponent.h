@@ -46,9 +46,9 @@ namespace Unnamed {
 	private:
 		void MarkDirty(); // 変化が合った場合のみ行列を更新する
 
-		Vec3       mLocalPos = Vec3::zero;
-		Quaternion mLocalRot = Quaternion::identity;
-		Vec3       mLocalScale    = Vec3::one;
+		Vec3       mLocalPos   = Vec3::zero;
+		Quaternion mLocalRot   = Quaternion::identity;
+		Vec3       mLocalScale = Vec3::one;
 
 		Mat4 mWorldMat = Mat4::identity;
 

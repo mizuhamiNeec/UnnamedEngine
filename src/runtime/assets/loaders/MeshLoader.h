@@ -2,6 +2,7 @@
 #include "interface/IAssetLoader.h"
 
 namespace Unnamed {
+	/// @brief メッシュアセットローダークラス
 	class MeshLoader : public IAssetLoader {
 	public:
 		bool CanLoad(

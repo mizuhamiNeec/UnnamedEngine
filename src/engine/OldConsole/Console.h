@@ -12,30 +12,30 @@
 
 #include <runtime/core/math/Math.h>
 
-constexpr Vec4 kConBgColorDark = Vec4(0.2f, 0.2f, 0.2f, 0.5f);    // ダークモードの背景色
-constexpr Vec4 kConFgColorDark = Vec4(0.71f, 0.71f, 0.72f, 1.0f); // ダークモードの前景色
+constexpr auto kConBgColorDark = Vec4(0.2f, 0.2f, 0.2f, 0.5f);    // ダークモードの背景色
+constexpr auto kConFgColorDark = Vec4(0.71f, 0.71f, 0.72f, 1.0f); // ダークモードの前景色
 
-constexpr Vec4 kConBgColorLight = Vec4(0.94f, 0.94f, 0.94f, 1.0f); // ライトモードの背景色
-constexpr Vec4 kConFgColorLight = Vec4(0.0f, 0.0f, 0.0f, 1.0f);    // ライトモードの前景色
+constexpr auto kConBgColorLight = Vec4(0.94f, 0.94f, 0.94f, 1.0f); // ライトモードの背景色
+constexpr auto kConFgColorLight = Vec4(0.0f, 0.0f, 0.0f, 1.0f);    // ライトモードの前景色
 
-constexpr Vec4 kConHelperColorLabelBg = Vec4(0.0f, 0.0f, 0.0f, 0.5f);
+constexpr auto kConHelperColorLabelBg = Vec4(0.0f, 0.0f, 0.0f, 0.5f);
 // ヘルパーのラベル背景色
 
-constexpr Vec4 kConTextColorGray = Vec4(0.77f, 0.74f, 0.66f, 1.0f); // グレーテキストの色
-constexpr Vec4 kConTextColorExecute = Vec4(0.8f, 1.0f, 1.0f, 1.0f);
+constexpr auto kConTextColorGray = Vec4(0.77f, 0.74f, 0.66f, 1.0f); // グレーテキストの色
+constexpr auto kConTextColorExecute = Vec4(0.8f, 1.0f, 1.0f, 1.0f);
 // コマンド実行テキストの色
-constexpr Vec4 kConTextColorWarning = Vec4(1.0f, 1.0f, 0.0f, 1.0f); // 警告テキストの色
-constexpr Vec4 kConTextColorError   = Vec4(1.0f, 0.0f, 0.0f, 1.0f); // エラーテキストの色
-constexpr Vec4 kConTextColorWait    = Vec4(0.93f, 0.79f, 0.09f, 1.0f);
+constexpr auto kConTextColorWarning = Vec4(1.0f, 1.0f, 0.0f, 1.0f); // 警告テキストの色
+constexpr auto kConTextColorError   = Vec4(1.0f, 0.0f, 0.0f, 1.0f); // エラーテキストの色
+constexpr auto kConTextColorWait    = Vec4(0.93f, 0.79f, 0.09f, 1.0f);
 // 待ち状態テキストの色
-constexpr Vec4 kConTextColorCompleted = Vec4(0.48f, 0.76f, 0.26f, 1.0f);
+constexpr auto kConTextColorCompleted = Vec4(0.48f, 0.76f, 0.26f, 1.0f);
 // 完了テキストの色
 
-constexpr Vec4 kConsoleColorBool   = Vec4(0.58f, 0.0f, 0.0f, 1.0f);
-constexpr Vec4 kConsoleColorInt    = Vec4(0.12f, 0.89f, 0.69f, 1.0f);
-constexpr Vec4 kConsoleColorFloat  = Vec4(0.22f, 0.84f, 0.0f, 1.0f);
-constexpr Vec4 kConsoleColorString = Vec4(0.99f, 0.0f, 0.83f, 1.0f);
-constexpr Vec4 kConsoleColorVec3   = Vec4(1.0f, 0.79f, 0.14f, 1.0f);
+constexpr auto kConsoleColorBool   = Vec4(0.58f, 0.0f, 0.0f, 1.0f);
+constexpr auto kConsoleColorInt    = Vec4(0.12f, 0.89f, 0.69f, 1.0f);
+constexpr auto kConsoleColorFloat  = Vec4(0.22f, 0.84f, 0.0f, 1.0f);
+constexpr auto kConsoleColorString = Vec4(0.99f, 0.0f, 0.83f, 1.0f);
+constexpr auto kConsoleColorVec3   = Vec4(1.0f, 0.79f, 0.14f, 1.0f);
 
 constexpr uint32_t kInputBufferSize     = 0x1000; // コンソールが一度に送信できるバッファの数
 constexpr uint32_t kConsoleMaxLineCount = 0x800;  // コンソールに表示される最大行数
@@ -82,13 +82,17 @@ enum class Channel {
 	Developer, // 開発者向け
 };
 
+/// @brief コンソールクラス
+/// OBSOLETE: システムとUIがくっついていて良くない。新しいコンソールへ移行中
 class Console {
+	/// @brief コンソールに表示するテキストの構造体
 	struct Text {
 		std::string text;
 		Vec4        color;
 		Channel     channel;
 	};
 
+	/// @brief サジェストポップアップの状態構造体
 	struct SuggestPopupState {
 		bool bPopupOpen;        // ポップアップが開いているか?
 		bool bSelectionChanged; // 選択された要素が変更されたか?
@@ -225,6 +229,7 @@ private:
 	static size_t editingElementIndex_; // 編集中の要素
 	static size_t selectedPageIndex_;   // 選択されているページ
 
+	/// @brief グリッド要素の構造体
 	struct GridElement {
 		enum class Type {
 			None,
@@ -239,6 +244,7 @@ private:
 		std::string description;
 	};
 
+	/// @brief コンソールページの構造体
 	struct Page {
 		std::string name; // ページ名
 		struct Grid {

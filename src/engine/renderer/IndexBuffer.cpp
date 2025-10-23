@@ -3,6 +3,7 @@
 
 #include <engine/renderer/IndexBuffer.h>
 
+/// @brief コンストラクタ
 IndexBuffer::IndexBuffer(
 	const Microsoft::WRL::ComPtr<ID3D12Device>& device, const size_t size,
 	const void*                                 pInitData
@@ -48,15 +49,17 @@ IndexBuffer::IndexBuffer(
 	mBuffer->SetName(L"IndexBuffer");
 }
 
+/// @brief インデックスバッファビューの取得します
+/// @return インデックスバッファビュー
 D3D12_INDEX_BUFFER_VIEW IndexBuffer::View() {
 	mView.SizeInBytes    = static_cast<UINT>(mSize); // すでにバイト数になっている
 	mView.BufferLocation = mBuffer->GetGPUVirtualAddress();
 	return mView;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: インデックスバッファの更新.
-//-----------------------------------------------------------------------------
+/// @brief インデックスバッファの内容を更新します
+/// @param pInitData 更新データへのポインタ
+/// @param size 更新データのサイズ (バイト数)
 void IndexBuffer::Update(const void* pInitData, const size_t size) const {
 	assert(pInitData != nullptr);
 	assert(size <= mSize);
@@ -69,10 +72,14 @@ void IndexBuffer::Update(const void* pInitData, const size_t size) const {
 	mBuffer->Unmap(0, nullptr);
 }
 
+/// @brief インデックスバッファのサイズを取得します
+/// @return インデックスバッファのサイズ (バイト数)
 size_t IndexBuffer::GetSize() const {
 	return mSize;
 }
 
+/// @brief インデックスバッファの内容を取得します
+/// @return インデックスデータのベクターへの参照
 std::vector<uint32_t>& IndexBuffer::GetIndices() const {
 	mIndices.resize(mSize / sizeof(uint32_t));
 	void*                    ptr = nullptr;

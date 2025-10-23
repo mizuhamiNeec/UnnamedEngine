@@ -3,6 +3,9 @@
 #include <assimp/matrix4x4.h>
 #include <assimp/scene.h>
 
+/// @brief aiNodeからNodeへ変換
+/// @param node aiNodeポインタ
+/// @return Node構造体
 Node ReadNode(const aiNode* node) {
 	Node        result;
 	aiMatrix4x4 localMat = node->mTransformation;

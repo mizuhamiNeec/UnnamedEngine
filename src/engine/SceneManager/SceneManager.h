@@ -2,36 +2,18 @@
 
 #include <engine/SceneManager/SceneFactory.h>
 
+/// @brief シーンマネージャークラス
 class SceneManager {
 public:
-	explicit SceneManager(SceneFactory& factory) : factory_(factory) {
-	}
+	explicit SceneManager(SceneFactory& factory);
 
-	void ChangeScene(const std::string& name) {
-		if (std::shared_ptr<BaseScene> newScene = factory_.CreateScene(name)) {
-			if (currentScene_) {
-				currentScene_->Shutdown();
-			}
-			currentScene_ = newScene;
-			currentScene_->Init();
-		}
-	}
+	void ChangeScene(const std::string& name);
 
-	void Update(const float deltaTime) const {
-		if (currentScene_) {
-			currentScene_->Update(deltaTime);
-		}
-	}
+	void Update(const float deltaTime) const;
 
-	void Render() const {
-		if (currentScene_) {
-			currentScene_->Render();
-		}
-	}
+	void Render() const;
 
-	std::shared_ptr<BaseScene> GetCurrentScene() const {
-		return currentScene_;
-	}
+	std::shared_ptr<BaseScene> GetCurrentScene() const;
 
 private:
 	SceneFactory&              factory_;

@@ -2,28 +2,17 @@
 #include <typeindex>
 #include <unordered_map>
 
+/// @brief サービスロケーターマップクラス
 class ServiceLocatorMap {
 public:
-	static ServiceLocatorMap& Get() {
-		static ServiceLocatorMap instance;
-		return instance;
-	}
-
-	std::unordered_map<std::type_index, void*>& GetMap() {
-		return mMap;
-	}
-
-	[[nodiscard]] bool IsValid() const {
-		return !mDestroyed;
-	}
-
-	~ServiceLocatorMap() {
-		mDestroyed = true;
-	}
+	static ServiceLocatorMap&                   Get();
+	std::unordered_map<std::type_index, void*>& GetMap();
+	[[nodiscard]] bool                          IsValid() const;
+	~ServiceLocatorMap();
 
 private:
 	std::unordered_map<std::type_index, void*> mMap;
-	bool mDestroyed = false;
+	bool                                       mDestroyed = false;
 };
 
 /// @class ServiceLocator
@@ -31,6 +20,9 @@ private:
 /// @details サービスロケーターは、アプリケーション全体で共有されるサービスのインスタンスを管理します。
 class ServiceLocator {
 public:
+	/// @brief サービスを登録します
+	/// @tparam T サービスの型
+	/// @param instance サービスのインスタンスへのポインタ
 	template <typename T>
 	static void Register(T* instance) {
 		auto& mapInstance = ServiceLocatorMap::Get();
@@ -39,6 +31,9 @@ public:
 		}
 	}
 
+	/// @brief サービスを取得します
+	/// @tparam T サービスの型
+	/// @return サービスのインスタンスへのポインタ、存在しない場合はnullptr
 	template <typename T>
 	static T* Get() {
 		auto& mapInstance = ServiceLocatorMap::Get();
@@ -47,6 +42,8 @@ public:
 		}
 
 		const auto it = mapInstance.GetMap().find(typeid(T));
-		return (it != mapInstance.GetMap().end()) ? static_cast<T*>(it->second) : nullptr;
+		return (it != mapInstance.GetMap().end()) ?
+			       static_cast<T*>(it->second) :
+			       nullptr;
 	}
 };

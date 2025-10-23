@@ -12,7 +12,9 @@
 #include "engine/renderer/SrvManager.h"
 #include "engine/TextureManager/TexManager.h"
 
-
+/// @brief ParticleManagerを初期化します
+/// @param d3d12 D3D12レンダラーへのポインタ
+/// @param srvManager SRVマネージャーへのポインタ
 void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
 	mRenderer   = d3d12;
 	mSrvManager = srvManager;
@@ -43,6 +45,7 @@ void ParticleManager::Init(D3D12* d3d12, SrvManager* srvManager) {
 	               kConTextColorCompleted, Channel::Engine);
 }
 
+/// @brief ParticleManagerをシャットダウンします
 void ParticleManager::Shutdown() {
 	Console::Print("ParticleManager : ParticleCommonを終了します。\n",
 	               kConTextColorWait, Channel::Engine);
@@ -73,6 +76,7 @@ void ParticleManager::Shutdown() {
 	               kConTextColorCompleted, Channel::Engine);
 }
 
+/// @brief ルートシグネチャを作成します
 void ParticleManager::CreateRootSignature() {
 	//  RootSignatureManagerのインスタンスを作成
 	mRootSignatureManager = std::make_unique<RootSignatureManager>(
@@ -148,6 +152,7 @@ void ParticleManager::CreateRootSignature() {
 	}
 }
 
+/// @brief グラフィックスパイプラインを作成します
 void ParticleManager::CreateGraphicsPipeline() {
 	CreateRootSignature();
 
@@ -176,6 +181,8 @@ void ParticleManager::CreateGraphicsPipeline() {
 	}
 }
 
+///	@brief パーティクルを更新します
+///	@param deltaTime 前フレームからの経過時間
 void ParticleManager::Update(const float deltaTime) {
 	// すべてのパーティクルグループについて処理する
 	for (auto& particleGroup : mParticleGroups | std::views::values) {
@@ -198,6 +205,7 @@ void ParticleManager::Update(const float deltaTime) {
 	}
 }
 
+/// @brief パーティクルを描画します
 void ParticleManager::Render() {
 	// ビルボード行列の計算
 	const Mat4 view       = CameraManager::GetActiveCamera()->GetViewMat();
@@ -264,6 +272,11 @@ void ParticleManager::Render() {
 	}
 }
 
+/// @brief リング形状の頂点データを生成します
+/// @param innerRadius 内側の半径
+/// @param outerRadius 外側の半径
+/// @param segments セグメント数
+/// @return 生成された頂点データのベクター	
 std::vector<Vertex> ParticleManager::GenerateRingVertices(
 	float innerRadius, float outerRadius, int segments) {
 	std::vector<Vertex> vertices;
@@ -274,9 +287,10 @@ std::vector<Vertex> ParticleManager::GenerateRingVertices(
 	Vec3 normal = Vec3::forward;
 
 	for (int i = 0; i < segments; ++i) {
-		float theta = 2.0f * 3.14159265f * (float)i / (float)segments;
-		float cosT  = cos(theta);
-		float sinT  = sin(theta);
+		float theta = 2.0f * 3.14159265f * static_cast<float>(i) / static_cast<
+			float>(segments);
+		float cosT = cos(theta);
+		float sinT = sin(theta);
 
 		// UV座標の計算
 		float u = static_cast<float>(i) / segments;
@@ -300,6 +314,9 @@ std::vector<Vertex> ParticleManager::GenerateRingVertices(
 	return vertices;
 }
 
+/// @brief リング形状のインデックスデータを生成します
+/// @param segments セグメント数
+/// @return 生成されたインデックスデータのベクター	
 std::vector<uint32_t> ParticleManager::GenerateRingIndices(const int segments) {
 	std::vector<uint32_t> indices;
 	for (int i = 0; i < segments; ++i) {
@@ -316,6 +333,10 @@ std::vector<uint32_t> ParticleManager::GenerateRingIndices(const int segments) {
 	return indices;
 }
 
+/// @brief メッシュデータを登録します
+/// @param meshType メッシュタイプ
+/// @param vertices 頂点データのベクター
+/// @param indices インデックスデータのベクター
 void ParticleManager::RegisterMesh(const ParticleMeshType       meshType,
                                    std::vector<Vertex>&         vertices,
                                    const std::vector<uint32_t>& indices) {
@@ -338,10 +359,17 @@ void ParticleManager::RegisterMesh(const ParticleMeshType       meshType,
 	mEshData[meshType] = std::move(meshData);
 }
 
+/// @brief メッシュデータを取得します
+/// @param type メッシュタイプ
+/// @return メッシュデータへの参照
 MeshData& ParticleManager::GetMeshData(ParticleMeshType type) {
 	return mEshData[type];
 }
 
+/// @brief パーティクルを放出します
+/// @param name パーティクルグループの名前
+/// @param pos 放出位置
+/// @param count 放出するパーティクルの数
 void ParticleManager::Emit(const std::string& name, const Vec3& pos,
                            const uint32_t&    count) {
 	// パーティクルグループが存在しない場合は新規作成
@@ -359,34 +387,51 @@ void ParticleManager::Emit(const std::string& name, const Vec3& pos,
 	}
 }
 
+/// @brief D3D12レンダラーへのポインタを取得します
+/// @return D3D12レンダラーへのポインタ	
 D3D12* ParticleManager::GetD3D12() const {
 	return mRenderer;
 }
 
+/// @brief デフォルトカメラコンポーネントを取得します
+/// @return デフォルトカメラコンポーネントへのポインタ
 CameraComponent* ParticleManager::GetDefaultCamera() const {
 	return CameraManager::GetActiveCamera().get();
 }
 
+/// @brief SRVマネージャーへのポインタを取得します
+/// @return SRVマネージャーへのポインタ
 SrvManager* ParticleManager::GetSrvManager() const {
 	return mSrvManager;
 }
 
+/// @brief 頂点バッファを取得します
+/// @return 頂点バッファへのポインタ
 const VertexBuffer<Vertex>* ParticleManager::GetVertexBuffer() {
 	return GetMeshData(ParticleMeshType::Quad).vertexBuffer.get();
 }
 
+/// @brief インデックスバッファを取得します
+/// @return インデックスバッファへのポインタ
 const IndexBuffer* ParticleManager::GetIndexBuffer() {
 	return GetMeshData(ParticleMeshType::Quad).indexBuffer.get();
 }
 
+/// @brief 頂点データのベクターを取得します
+/// @return 頂点データのベクターへの参照
 const std::vector<Vertex>& ParticleManager::GetVertices() {
 	return GetMeshData(ParticleMeshType::Quad).vertices;
 }
 
+/// @brief インデックスデータのベクターを取得します
+/// @return インデックスデータのベクターへの参照
 const std::vector<uint32_t>& ParticleManager::GetIndices() {
 	return GetMeshData(ParticleMeshType::Quad).indices;
 }
 
+/// @brief パーティクルグループを作成します
+/// @param name パーティクルグループの名前
+/// @param textureFilePath テクスチャファイルのパス
 void ParticleManager::CreateParticleGroup(const std::string& name,
                                           const std::string& textureFilePath) {
 	// 登録済みの名前かチェックしてアサート

@@ -12,9 +12,8 @@
 #include "engine/Object3D/Object3DCommon.h"
 #include "engine/renderer/ConstantBuffer.h"
 #include "engine/renderer/D3D12.h"
-//-----------------------------------------------------------------------------
-// Purpose : 初期化します
-//-----------------------------------------------------------------------------
+/// @brief Object3Dクラスの初期化
+/// @param object3DCommon Object3DCommonクラスへのポインタ
 void Object3D::Init(Object3DCommon* object3DCommon) {
 	// 引数で受け取ってメンバ変数に記録する
 	this->mObject3DCommon = object3DCommon;
@@ -80,6 +79,7 @@ void Object3D::Init(Object3DCommon* object3DCommon) {
 	mSpotLightData->cosAngle  = 0.5f;
 }
 
+/// @brief Object3Dクラスの更新
 void Object3D::Update() {
 #ifdef _DEBUG
 	ImGui::Begin("Object3D");
@@ -123,6 +123,7 @@ void Object3D::Update() {
 #endif
 }
 
+/// @brief Object3Dクラスの描画
 void Object3D::Draw() const {
 	Mat4 worldMat = Mat4::Affine(
 		mTransform.scale,
@@ -178,35 +179,51 @@ void Object3D::Draw() const {
 	}
 }
 
+/// @brief モデルをセットする
+/// @param model モデルへのポインタ
 void Object3D::SetModel(Model* model) {
 	this->mModel = model;
 }
 
+/// @brief モデルをセットする
+/// @param filePath モデルファイルのパス
 void Object3D::SetModel(const std::string& filePath) {
 	// モデルを検索してセットする
 	mModel = ModelManager::GetInstance()->FindModel(filePath);
 }
 
+/// @brief スケールをセットする
+/// @param scale スケールベクトル
 void Object3D::SetScale(const Vec3& scale) {
 	mTransform.scale = scale;
 }
 
+/// @brief 回転をセットする
+/// @param newRot 回転ベクトル（オイラー角、ラジアン）
 void Object3D::SetRot(const Vec3& newRot) {
 	mTransform.rotate = newRot;
 }
 
+/// @brief 位置をセットする
+/// @param newPos 位置ベクトル
 void Object3D::SetPos(const Vec3& newPos) {
 	mTransform.translate = newPos;
 }
 
+/// @brief スケールを取得する
+/// @return スケールベクトルの参照
 const Vec3& Object3D::GetScale() const {
 	return mTransform.scale;
 }
 
+/// @brief 回転を取得する
+/// @return 回転ベクトルの参照
 const Vec3& Object3D::GetRot() const {
 	return mTransform.rotate;
 }
 
+/// @brief 位置を取得する
+/// @return 位置ベクトルの参照
 const Vec3& Object3D::GetPos() const {
 	return mTransform.translate;
 }

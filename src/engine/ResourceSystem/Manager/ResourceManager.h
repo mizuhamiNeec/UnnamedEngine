@@ -7,6 +7,7 @@
 
 class TexManager;
 
+/// @brief リソースマネージャークラス
 class ResourceManager {
 public:
 	ResourceManager(D3D12* d3d12);

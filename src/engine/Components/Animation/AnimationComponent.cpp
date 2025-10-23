@@ -6,18 +6,23 @@
 #include <imgui.h>
 #endif
 
+/// @brief アニメーションコンポーネントのデストラクタ
 AnimationComponent::~AnimationComponent() {
 }
 
+/// @brief アニメーションコンポーネントのコンストラクタ
+/// @param animation アニメーションデータ
 AnimationComponent::AnimationComponent(
 	Animation animation
 ) : mAnimation(std::move(animation)) {
 	// アニメーションのノード名を初期化 初期は最初のノード名を設定
-	mCurrentNodeName = mAnimation.nodeNames.empty()
-		? ""
-		: mAnimation.nodeNames[0];
+	mCurrentNodeName = mAnimation.nodeNames.empty() ?
+		                   "" :
+		                   mAnimation.nodeNames[0];
 }
 
+/// @brief エンティティにアタッチされたときに呼ばれる
+/// @param owner 所有するエンティティ
 void AnimationComponent::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
 	mScene = owner.GetTransform();
@@ -26,10 +31,13 @@ void AnimationComponent::OnAttach(Entity& owner) {
 	}
 }
 
+/// @brief エンティティからデタッチされたときに呼ばれる
 void AnimationComponent::OnDetach() {
 	Component::OnDetach();
 }
 
+/// @brief アニメーションコンポーネントの更新
+/// @param deltaTime 前フレームからの経過時間
 void AnimationComponent::Update(const float deltaTime) {
 	if (mIsPlaying) {
 		mAnimationTime += deltaTime;
@@ -63,8 +71,7 @@ void AnimationComponent::Update(const float deltaTime) {
 			mScene->SetLocalScale(scale);
 		}
 		// デフォルトのフォールバック（既存のコード）
-		else if (mAnimation.nodeAnimations.find("AnimatedCube") != mAnimation.
-			nodeAnimations.end()) {
+		else if (mAnimation.nodeAnimations.contains("AnimatedCube")) {
 			NodeAnimation& rootNodeAnimation = mAnimation.nodeAnimations[
 				"AnimatedCube"];
 			Vec3 translate = CalculateValue(
@@ -88,10 +95,13 @@ void AnimationComponent::Update(const float deltaTime) {
 	}
 }
 
+/// @brief アニメーションコンポーネントのレンダリング
+/// @param commandList コマンドリスト
 void AnimationComponent::Render(ID3D12GraphicsCommandList* commandList) {
 	Component::Render(commandList);
 }
 
+/// @brief ImGuiでインスペクターを描画
 void AnimationComponent::DrawInspectorImGui() {
 #ifdef _DEBUG
 	if (ImGui::CollapsingHeader("Animation Component")) {
@@ -113,5 +123,5 @@ void AnimationComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Looping", &mIsLooping);
 		ImGui::Text("Animation Time: %.2f", mAnimationTime);
 	}
-#endif	
+#endif
 }

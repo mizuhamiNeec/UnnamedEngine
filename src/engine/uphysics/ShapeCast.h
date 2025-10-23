@@ -2,6 +2,7 @@
 #include <engine/uphysics/PhysicsTypes.h>
 
 namespace UPhysics {
+	/// @brief 形状キャストインターフェース
 	struct ShapeCast {
 		virtual                             ~ShapeCast() = default;
 		[[nodiscard]] virtual Unnamed::AABB ExpandNode(

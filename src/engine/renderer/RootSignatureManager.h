@@ -8,10 +8,10 @@
 
 using namespace Microsoft::WRL;
 
+/// @brief ルートシグネチャマネージャークラス
 class RootSignatureManager {
 public:
-	RootSignatureManager(ID3D12Device* device) : device_(device) {
-	}
+	RootSignatureManager(ID3D12Device* device);
 
 	bool CreateRootSignature(
 		const std::string&                       name,

@@ -24,6 +24,7 @@
 
 using SetThreadDescriptionFunc = HRESULT(WINAPI*)(HANDLE, PCWSTR);
 
+/// @brief コンソールクラスのコンストラクタ
 Console::Console() {
 	bStopThread_ = false;
 
@@ -73,10 +74,12 @@ Console::Console() {
 	SubmitCommand("bind ` toggleconsole", true);
 }
 
+/// @brief コンソールクラスのデストラクタ
 Console::~Console() {
 	Shutdown();
 }
 
+/// @brief コンソールを更新します
 void Console::Update() {
 #ifdef _DEBUG
 	mFrameCount++;
@@ -165,6 +168,7 @@ void Console::Update() {
 #endif
 }
 
+/// @brief コンソールをシャットダウンします
 void Console::Shutdown() {
 	{
 		std::lock_guard lock(mutex_);
@@ -193,11 +197,9 @@ void Console::Shutdown() {
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: コマンドを送信/実行します
-// - command (const std::string&) : コマンド
-// - bSilent (bool) : コマンドを実行した際にログに出力しないかどうか
-//-----------------------------------------------------------------------------
+/// @brief コマンドを送信/実行します
+/// @param command コマンド文字列
+/// @param bSilent コマンドを実行した際にログに出力しないかどうか
 void Console::SubmitCommand([[maybe_unused]] const std::string& command,
                             const bool                          bSilent) {
 	std::string trimmedCommand = TrimSpaces(command);
@@ -365,13 +367,10 @@ void Console::SubmitCommand([[maybe_unused]] const std::string& command,
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: コンソールにテキストを出力します
-// - message (std::string): 出力するテキスト
-// - color (Vec4): テキストの色
-// - channel (Channel): チャンネル
-// Return: void
-//-----------------------------------------------------------------------------
+/// @brief コンソールにテキストを出力します
+/// @param message 出力するテキスト
+/// @param color テキストの色
+/// @param channel チャンネル
 void Console::Print(
 	[[maybe_unused]] const std::string& message,
 	[[maybe_unused]] const Vec4&        color,
@@ -431,18 +430,17 @@ void Console::Print(
 	cv_.notify_one();
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 開発者を叱ります
-//-----------------------------------------------------------------------------
+/// @brief 開発者を叱ります
+/// @param message メッセージ
+/// @param channel チャンネル
 void Console::PrintNullptr(const std::string& message, const Channel& channel) {
 	Print("ぬるぽ >> " + message + "\n", kConTextColorError, channel);
 	Print("ｶﾞｯ\n", kConTextColorWarning, channel);
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: チャンネルを文字列に変換します
-// - channel (Channel): チャンネル
-//-----------------------------------------------------------------------------
+/// @brief チャンネルを文字列に変換します
+/// @param channel チャンネル
+/// @return 文字列に変換されたチャンネル
 std::string Console::ToString(const Channel channel) {
 	switch (channel) {
 	case Channel::None: return "";
@@ -467,9 +465,8 @@ std::string Console::ToString(const Channel channel) {
 	return "unknown";
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: コンソールの表示/非表示を切り替えます
-//-----------------------------------------------------------------------------
+/// @brief コンソールの表示/非表示を切り替えます
+/// @param args コマンド引数
 void Console::ToggleConsole(
 	[[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
@@ -477,9 +474,8 @@ void Console::ToggleConsole(
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: すべてのコンソール出力をクリアします
-//-----------------------------------------------------------------------------
+/// @brief コンソールのテキストをクリアします
+/// @param args コマンド引数
 void Console::Clear([[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
 	consoleTexts_.clear();         // コンソールのテキストをクリア
@@ -495,9 +491,8 @@ void Console::Clear([[maybe_unused]] const std::vector<std::string>& args) {
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: ヘルプを表示します
-//-----------------------------------------------------------------------------
+/// @brief ヘルプを表示します
+/// @param args コマンド引数
 void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
 #ifdef _DEBUG
 	ConCommand::Help();
@@ -508,9 +503,8 @@ void Console::Help([[maybe_unused]] const std::vector<std::string>& args) {
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: システム情報を表示します
-//-----------------------------------------------------------------------------
+/// @brief システム情報を表示します
+/// @param args コマンド引数
 void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	std::vector<std::string> asciiArt = {
 		"                   <<<<<<<<                  ",
@@ -599,13 +593,14 @@ void Console::NeoFetch([[maybe_unused]] const std::vector<std::string>& args) {
 	}
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 入力された文字列をエコーします
-//-----------------------------------------------------------------------------
+/// @brief 引数をそのままコンソールに出力します
+/// @param args コマンド引数
 void Console::Echo(const std::vector<std::string>& args) {
 	Print(StrUtil::Join(args, " ") + "\n", kConFgColorDark, Channel::Console);
 }
 
+/// @brief コンソールのバッファを取得します
+/// @return コンソールのバッファ
 std::vector<std::string> Console::GetBuffer() {
 #ifdef _DEBUG
 	return messageBuffer_;
@@ -615,6 +610,8 @@ std::vector<std::string> Console::GetBuffer() {
 }
 
 #ifdef _DEBUG
+/// @brief 入力に基づいてサジェストを更新します
+/// @param input 現在の入力文字列
 void Console::UpdateSuggestions(const std::string& input) {
 	suggestions_.clear();
 
@@ -644,9 +641,7 @@ void Console::UpdateSuggestions(const std::string& input) {
 #endif
 
 #ifdef _DEBUG
-//-----------------------------------------------------------------------------
-// Purpose: サジェストポップアップを表示します
-//-----------------------------------------------------------------------------
+/// @brief サジェストポップアップを表示します
 void Console::ShowSuggestPopup() {
 	if (suggestions_.empty()) {
 		return;
@@ -689,6 +684,11 @@ void Console::ShowSuggestPopup() {
 #endif
 
 #ifdef _DEBUG
+/// @brief サジェストポップアップを表示します
+/// @param state サジェストポップアップの状態
+/// @param pos ポップアップの位置
+/// @param size ポップアップのサイズ
+/// @param isFocused ポップアップがフォーカスされているかどうか
 void Console::SuggestPopup(
 	[[maybe_unused]] SuggestPopupState& state, const ImVec2&         pos,
 	const ImVec2&                       size, [[maybe_unused]] bool& isFocused
@@ -738,9 +738,9 @@ void Console::SuggestPopup(
 #endif
 
 #ifdef _DEBUG
-//-----------------------------------------------------------------------------
-// Purpose: InputTextからのイベントを処理します。
-//-----------------------------------------------------------------------------
+/// @brief 入力テキストのコールバック関数
+/// @param data コールバックデータ
+/// @return 0を返します
 int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 	switch (data->EventFlag) {
 	case ImGuiInputTextFlags_CallbackCompletion: {
@@ -788,9 +788,7 @@ int Console::InputTextCallback(ImGuiInputTextCallbackData* data) {
 }
 #endif
 
-//-----------------------------------------------------------------------------
-// Purpose: メニューバーを表示します
-//-----------------------------------------------------------------------------
+/// @brief コンソールのメニューバーを表示します
 void Console::ShowMenuBar() {
 #ifdef _DEBUG
 	if (ImGui::BeginMenuBar()) {
@@ -818,14 +816,12 @@ void Console::ShowMenuBar() {
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: コンソールのテキストを表示します
-//-----------------------------------------------------------------------------
+/// @brief コンソールのテキスト部分を表示します
 void Console::ShowConsoleText() {
 #ifdef _DEBUG
 	std::lock_guard lock(mutex_);
 
-	const size_t kMaxConsoleLines = 100000;
+	constexpr size_t kMaxConsoleLines = 100000;
 	// まずconsoleTexts_のサイズ上限をチェックし、超えていたらクリア
 	if (consoleTexts_.size() > kMaxConsoleLines) {
 		Print("Console buffer overflow, clearing buffer.\n", kConTextColorError,
@@ -988,9 +984,7 @@ void Console::ShowConsoleText() {
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: コンソールの本体を表示します
-//-----------------------------------------------------------------------------
+/// @brief コンソールの本文部分を表示します
 void Console::ShowConsoleBody() {
 #ifdef _DEBUG
 	ImGui::PushStyleColor(ImGuiCol_Border, {0.0f, 0.0f, 0.0f, 0.0f});
@@ -1048,6 +1042,7 @@ void Console::ShowConsoleBody() {
 #endif
 }
 
+/// @brief コンソールのコンテキストメニューを表示します
 void Console::ShowContextMenu() {
 #ifdef _DEBUG
 	ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 8.0f);
@@ -1091,6 +1086,7 @@ void Console::ShowContextMenu() {
 #endif
 }
 
+/// @brief コンソールの「About」ポップアップを表示します
 void Console::ShowAbout() {
 #ifdef _DEBUG
 	ImGui::OpenPopup(
@@ -1146,6 +1142,7 @@ void Console::ShowAbout() {
 #endif
 }
 
+/// @brief ConVarヘルパーウィンドウを表示します
 void Console::ShowConVarHelper() {
 #ifdef _DEBUG
 	if (!bShowConVarHelper_) {
@@ -1315,7 +1312,7 @@ void Console::ShowConVarHelper() {
 							"Cell ({}, {})", col, row);
 
 						// ボタンのサイズをセルの幅と高さに合わせる
-						ImVec2 cellSize = ImVec2(columnWidth, cellHeight);
+						auto cellSize = ImVec2(columnWidth, cellHeight);
 
 						if (element.type == GridElement::Type::None) {
 							// 要素がない場合は見えないボタンを配置してコンテキストメニューを有効にする
@@ -1449,6 +1446,7 @@ void Console::ShowConVarHelper() {
 #endif
 }
 
+/// @brief グリッド要素を新しいサイズに再配置します
 void Console::RearrangeGridElements([[maybe_unused]] const uint32_t newWidth,
                                     [[maybe_unused]] const uint32_t newHeight) {
 #ifdef _DEBUG
@@ -1474,6 +1472,8 @@ void Console::RearrangeGridElements([[maybe_unused]] const uint32_t newWidth,
 #endif
 }
 
+/// @brief 指定した行に新しい行を挿入します
+/// @param row 挿入する行のインデックス
 void Console::InsertRow([[maybe_unused]] const uint32_t row) {
 #ifdef _DEBUG
 	auto& grid     = pages_[selectedPageIndex_].grid;
@@ -1488,6 +1488,8 @@ void Console::InsertRow([[maybe_unused]] const uint32_t row) {
 #endif
 }
 
+/// @brief 指定した行を削除します
+/// @param row 削除する行のインデックス
 void Console::DeleteRow([[maybe_unused]] const uint32_t row) {
 #ifdef _DEBUG
 	auto& grid     = pages_[selectedPageIndex_].grid;
@@ -1502,6 +1504,7 @@ void Console::DeleteRow([[maybe_unused]] const uint32_t row) {
 #endif
 }
 
+/// @brief ページをINIファイルからインポートします
 void Console::ImportPage() {
 #ifdef _DEBUG
 	// カレントディレクトリを保存
@@ -1611,6 +1614,7 @@ void Console::ImportPage() {
 #endif
 }
 
+/// @brief ページをINIファイルにエクスポートします
 void Console::ExportPage() {
 #ifdef _DEBUG
 	// カレントディレクトリを保存
@@ -1711,6 +1715,9 @@ void Console::ExportPage() {
 #endif
 }
 
+///	@brief Vec4の色情報をINIファイル用の文字列にフォーマットします
+/// @param color フォーマットする色
+/// @return フォーマットされた文字列
 std::string Console::FormatColorForIni(const Vec4& color) {
 	// Vec4の各要素をバイト配列に変換
 	uint8_t bytes[16];
@@ -1740,6 +1747,9 @@ std::string Console::FormatColorForIni(const Vec4& color) {
 	return ss.str();
 }
 
+/// @brief キー文字列をトークンに分割します
+/// @param key 分割するキー文字列
+/// @return トークンのベクター
 std::vector<std::string> Console::TokenizeKey(const std::string& key) {
 	std::vector<std::string> tokens;
 	std::stringstream        ss(key);
@@ -1752,6 +1762,9 @@ std::vector<std::string> Console::TokenizeKey(const std::string& key) {
 	return tokens;
 }
 
+/// @brief INIファイルから読み込んだ色情報の文字列をVec4に変換します
+/// @param color 変換する色情報の文字列
+/// @return 変換されたVec4の色
 Vec4 Console::ParseColor(const std::string& color) {
 	// 1. 括弧内の内容を取得
 	size_t start = color.find('(');
@@ -1838,6 +1851,7 @@ Vec4 Console::ParseColor(const std::string& color) {
 	return Vec4(components[0], components[1], components[2], components[3]);
 }
 
+///	@brief グリッド要素の編集ポップアップを表示します
 void Console::ShowElementEditPopup() {
 #ifdef _DEBUG
 	if (!bShowElementPopup_) {
@@ -1849,7 +1863,7 @@ void Console::ShowElementEditPopup() {
 		ImGuiWindowFlags_NoMove;
 
 	// ビューポート中心に表示
-	ImVec2 size   = ImVec2(400, 200);
+	auto   size   = ImVec2(400, 200);
 	ImVec2 center = ImGui::GetMainViewport()->GetCenter();
 	ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 	ImGui::SetNextWindowSize(size);
@@ -1919,11 +1933,9 @@ void Console::ShowElementEditPopup() {
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: InputSystemにコマンドを送信します
-// - command (std::string): 送信するコマンド
-// Return: コマンドが有効か?
-//-----------------------------------------------------------------------------
+/// @brief InputSystemにコマンドを送信します
+/// @param command 送信するコマンド
+/// @return コマンドが有効か?
 bool Console::ProcessInputCommand(const std::string& command) {
 	if (command.empty() || (command[0] != '+' && command[0] != '-')) {
 		return false;
@@ -1933,12 +1945,10 @@ bool Console::ProcessInputCommand(const std::string& command) {
 	return true;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 型が一致しているか確認します
-// - value (std::string): 確認する値
-// - type (std::string): 確認する型
-// Return: 型が一致しているか?
-//-----------------------------------------------------------------------------
+/// @brief 指定された値が指定された型に変換可能かを検証します
+/// @param value 検証する値の文字列
+/// @param type 期待される型 ("int", "float", "bool")
+/// @return 変換可能であれば true、そうでなければ false
 bool Console::ValidateType(const std::string& value, const std::string& type) {
 	try {
 		if (type == "int") {
@@ -1955,19 +1965,15 @@ bool Console::ValidateType(const std::string& value, const std::string& type) {
 	}
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 型変換エラーを表示します
-// - type (std::string): エラーが発生した型
-//-----------------------------------------------------------------------------
+/// @brief 型変換エラーをコンソールに表示します
+/// @param type エラーが発生した型
 void Console::PrintTypeError(const std::string& type) {
 	Print("CVAR型変換エラー: 指定された型が無効です。\n", kConTextColorError, Channel::Console);
 	Print("期待される型: " + type + "\n", GetConVarTypeColor(type), Channel::Console);
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: コマンド履歴に追加します
-// - command (std::string): 履歴に追加するコマンド
-//-----------------------------------------------------------------------------
+/// @brief コマンド履歴にコマンドを追加します
+/// @param command 追加するコマンド文字列
 void Console::AddCommandHistory([[maybe_unused]] const std::string& command) {
 #ifdef _DEBUG
 	consoleTexts_.emplace_back(
@@ -1980,12 +1986,11 @@ void Console::AddCommandHistory([[maybe_unused]] const std::string& command) {
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: リピートカウントを更新
-// - message (std::string): メッセージ
-// - hasNewLine (bool): 改行が含まれているか
-// - color (Vec4): テキストの色
-//-----------------------------------------------------------------------------
+/// @brief リピートカウントを更新します
+/// @param message メッセージ文字列
+/// @param hasNewLine 改行が含まれているか
+/// @param channel チャンネル
+/// @param color テキストの色
 void Console::UpdateRepeatCount(
 	[[maybe_unused]] const std::string& message,
 	[[maybe_unused]] const bool         hasNewLine,
@@ -2020,9 +2025,7 @@ void Console::UpdateRepeatCount(
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 最下部までスクロールされている場合は自動スクロールします
-//-----------------------------------------------------------------------------
+/// @brief 最下部までスクロールされている場合は自動スクロールします
 void Console::CheckScroll() {
 #ifdef _DEBUG
 	if (bWishScrollToBottom_ && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
@@ -2037,9 +2040,7 @@ void Console::CheckScroll() {
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 行数をチェックして最大行数を超えた場合は削除します
-//-----------------------------------------------------------------------------
+/// @brief 行数をチェックし、必要に応じて削除やキャパシティ調整を行います
 void Console::CheckLineCountAsync() {
 	std::lock_guard lock(mutex_);
 #ifdef _DEBUG
@@ -2087,6 +2088,9 @@ void Console::CheckLineCountAsync() {
 #endif
 }
 
+/// @brief ConVarの型に対応する色を取得します
+/// @param type 取得する型 ("bool", "int", "float", "Vec3", "string")
+/// @return 対応する色のVec4
 Vec4 Console::GetConVarTypeColor(const std::string& type) {
 	if (type == "bool") {
 		return kConsoleColorBool;
@@ -2106,9 +2110,9 @@ Vec4 Console::GetConVarTypeColor(const std::string& type) {
 	return kConFgColorDark;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 文字列の余分な空白を削除します
-//-----------------------------------------------------------------------------
+/// @brief 文字列の前後の空白をトリムします
+/// @param string トリムする文字列
+/// @return トリムされた文字列
 std::string Console::TrimSpaces(const std::string& string) {
 	const size_t start = string.find_first_not_of(" \t\n\r");
 	const size_t end   = string.find_last_not_of(" \t\n\r");
@@ -2120,9 +2124,9 @@ std::string Console::TrimSpaces(const std::string& string) {
 	return string.substr(start, end - start + 1);
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: コマンドをトークン化します
-//-----------------------------------------------------------------------------
+/// @brief コマンド文字列をトークンに分割します
+/// @param command 分割するコマンド文字列
+/// @return トークンのベクター
 std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 	std::istringstream       stream(command);
 	std::vector<std::string> tokens;
@@ -2135,9 +2139,9 @@ std::vector<std::string> Console::TokenizeCommand(const std::string& command) {
 	return tokens;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: コマンドをセミコロンで分割します
-//-----------------------------------------------------------------------------
+/// @brief セミコロンで区切られた複数のコマンドを分割します
+/// @param command 分割するコマンド文字列
+/// @return 分割されたコマンドのベクター
 std::vector<std::string> Console::SplitCommands(const std::string& command) {
 	std::vector<std::string> result;
 	std::string              current;
@@ -2161,6 +2165,9 @@ std::vector<std::string> Console::SplitCommands(const std::string& command) {
 	return result;
 }
 
+/// @brief フィルタリングされたインデックスを実際のインデックスに変換します
+/// @param filteredIndex フィルタリングされたインデックス
+/// @return 実際のインデックス、該当なしの場合は SIZE_MAX
 size_t Console::FilteredToActualIndex(
 	[[maybe_unused]] const int filteredIndex) {
 #ifdef _DEBUG
@@ -2180,6 +2187,8 @@ size_t Console::FilteredToActualIndex(
 	return SIZE_MAX; // 該当なし
 }
 
+/// @brief ログバッファをファイルにフラッシュします
+/// @param buffer フラッシュするメッセージのベクター
 void Console::FlushLogBuffer(
 	[[maybe_unused]] const std::vector<std::string>& buffer) {
 #ifdef _DEBUG
@@ -2196,9 +2205,7 @@ void Console::FlushLogBuffer(
 #endif
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: コンソールスレッドを非同期で更新します
-//-----------------------------------------------------------------------------
+/// @brief コンソールの非同期更新を行います
 void Console::ConsoleUpdateAsync() const {
 	try {
 		while (!bStopThread_) {
@@ -2247,9 +2254,7 @@ void Console::ConsoleUpdateAsync() const {
 	}
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: コンソールスレッドを開始します
-//-----------------------------------------------------------------------------
+/// @brief コンソールスレッドを開始します
 void Console::StartConsoleThread() {
 	consoleThread_ = std::thread(&Console::ConsoleUpdateAsync, this);
 
@@ -2270,9 +2275,8 @@ void Console::StartConsoleThread() {
 	}
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 非同期でログをファイルに書き込みます
-//-----------------------------------------------------------------------------
+/// @brief メッセージを非同期でファイルにログします
+/// @param message ログするメッセージ文字列
 void Console::LogToFileAsync([[maybe_unused]] const std::string& message) {
 #ifdef _DEBUG
 	{

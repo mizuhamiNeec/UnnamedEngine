@@ -2,6 +2,7 @@
 
 #include <engine/Window/Base/BaseWindow.h>
 
+/// @brief メインウィンドウクラス
 class MainWindow final : public BaseWindow {
 public:
 	MainWindow() = default;

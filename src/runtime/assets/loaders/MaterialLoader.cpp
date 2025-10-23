@@ -13,10 +13,16 @@
 namespace Unnamed {
 	constexpr std::string_view kChannel = "MaterialLoader";
 
+	/// @brief コンストラクタ
+	/// @param assetManager アセットマネージャーへの参照
 	MaterialLoader::MaterialLoader(UAssetManager* assetManager)
 		: mAssetManager(assetManager) {
 	}
 
+	/// @brief 指定されたパスのファイルがロード可能かどうかを判定する
+	/// @param path ファイルパス
+	/// @param outType ロード可能な場合のアセットタイプの出力先
+	/// @return ロード可能な場合true
 	bool MaterialLoader::CanLoad(
 		const std::string_view path, UASSET_TYPE* outType
 	) const {
@@ -28,6 +34,9 @@ namespace Unnamed {
 		return ok;
 	}
 
+	/// @brief 指定されたパスのファイルをロードする
+	/// @param path ファイルパス
+	/// @return ロード結果
 	LoadResult MaterialLoader::Load(const std::string& path) {
 		LoadResult result = {};
 
@@ -68,8 +77,8 @@ namespace Unnamed {
 		// シェーダー
 		if (json.contains("shader")) {
 			if (json["shader"].is_string()) {
-				std::string shaderPath = json["shader"].get<std::string>();
-				AssetID     sid        = mAssetManager->LoadFromFile(
+				auto    shaderPath = json["shader"].get<std::string>();
+				AssetID sid        = mAssetManager->LoadFromFile(
 					shaderPath, UASSET_TYPE::SHADER
 				);
 				m.shader = sid;

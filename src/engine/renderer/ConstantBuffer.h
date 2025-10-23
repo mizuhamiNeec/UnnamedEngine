@@ -4,6 +4,7 @@
 #include <xstring>
 #include <wrl/client.h>
 
+/// @brief 定数バッファクラス
 class ConstantBuffer {
 public:
 	ConstantBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device,

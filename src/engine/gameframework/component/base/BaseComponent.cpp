@@ -44,6 +44,7 @@ namespace Unnamed {
 	}
 
 	/// @brief 所有者を設定します。
+	/// @param owner このコンポーネントの所有者
 	void BaseComponent::SetOwner(BaseEntity* owner) {
 		mOwner = owner; // 所有者を設定
 	}

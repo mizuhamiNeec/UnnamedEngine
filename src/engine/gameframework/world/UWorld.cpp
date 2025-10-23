@@ -9,6 +9,8 @@
 #include <engine/gameframework/component/WorldInstance/WorldInstanceComponent.h>
 
 namespace Unnamed {
+	/// @brief コンストラクタ
+	/// @param name ワールドの名前
 	UWorld::UWorld(std::string name) : mName(std::move(name)) {
 		// JsonWriter writer("./test.json");
 		//
@@ -37,8 +39,12 @@ namespace Unnamed {
 		// writer.Save();
 	}
 
+	/// @brief デストラクタ
 	UWorld::~UWorld() = default;
 
+	/// @brief 空のエンティティを生成します。
+	/// @param name エンティティの名前
+	/// @return 生成されたエンティティのポインタ
 	UEntity* UWorld::SpawnEmpty(const std::string& name) {
 		auto  e   = std::make_unique<UEntity>(name);
 		auto* ptr = e.get();
@@ -46,6 +52,8 @@ namespace Unnamed {
 		return ptr;
 	}
 
+	/// @brief 指定したIDのエンティティを破棄します。
+	/// @param entityID 破棄するエンティティのID
 	void UWorld::DestroyEntity(uint64_t entityID) {
 		std::erase_if(
 			mEntities,
@@ -53,6 +61,8 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief ワールド内のすべてのエンティティを更新します。
+	/// @param deltaTime 前のフレームからの経過時間（秒）
 	void UWorld::Tick(const float deltaTime) {
 		for (const auto& e : mEntities) {
 			if (!e) { continue; }
@@ -69,16 +79,21 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief ワールド内のすべてのエンティティのレンダリング前処理を行います。
 	void UWorld::PreRender() {
 		for (auto& e : mEntities) { if (e) { e->OnPreRender(); } }
 		for (auto& cw : mChildren) if (cw.world) { cw.world->PreRender(); }
 	}
 
+	/// @brief ワールド内のすべてのエンティティのレンダリング後処理を行います。
 	void UWorld::PostRender() {
 		for (auto& e : mEntities) { if (e) { e->OnPostRender(); } }
 		for (auto& cw : mChildren) if (cw.world) { cw.world->PostRender(); }
 	}
 
+	/// @brief ワールドの状態をJSONファイルに保存します。
+	/// @param path 保存先のファイルパス
+	/// @return 保存に成功した場合はtrue、失敗した場合はfalse
 	bool UWorld::SaveToJson(const std::string& path) {
 		JsonWriter w(path);
 		w.BeginObject();
@@ -137,9 +152,14 @@ namespace Unnamed {
 		return w.Save();
 	}
 
+	/// @brief JSONファイルからワールドの状態を読み込みます。
+	/// @param path 読み込むファイルパス
+	/// @param assetManager アセットマネージャのポインタ
+	/// @return 読み込みに成功した場合はtrue、失敗した場合はfalse
 	bool UWorld::LoadFromJson(
-		const std::string& path, UAssetManager*
+		const std::string& path, const UAssetManager* assetManager
 	) {
+		(void)assetManager;
 		const JsonReader r(path);
 		if (!r.Valid()) { return false; }
 		if (r.Has("name")) { mName = r["name"].GetString(); }
@@ -192,6 +212,8 @@ namespace Unnamed {
 		return true;
 	}
 
+	/// @brief ワールド内のメインカメラコンポーネントを取得します。
+	/// @return メインカメラコンポーネントのポインタ、存在しない場合はnullptr
 	UCameraComponent* UWorld::MainCamera() {
 		for (const auto& e : mEntities) {
 			if (!e) { continue; }
@@ -204,6 +226,9 @@ namespace Unnamed {
 		return nullptr;
 	}
 
+	/// @brief 子ワールドを追加します。
+	/// @param sub 追加する子ワールドのユニークポインタ
+	/// @param parentTransform 親エンティティのTransformコンポーネントのポインタ
 	void UWorld::AddChildWorld(
 		std::unique_ptr<UWorld> sub, TransformComponent* parentTransform
 	) {

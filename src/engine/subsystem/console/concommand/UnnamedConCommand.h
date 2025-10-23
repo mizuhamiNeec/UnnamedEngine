@@ -4,6 +4,7 @@
 #include <engine/subsystem/console/concommand/base/UnnamedConVarBase.h>
 
 namespace Unnamed {
+	/// @brief 名前なしコンソールコマンドクラス
 	class UnnamedConCommand : public UnnamedConVarBase {
 	public:
 		// コールバック[引数: トークン化されたコマンド]

@@ -25,6 +25,7 @@ constexpr D3D12_DEPTH_STENCIL_DESC defaultDepthStencilDesc = {
 	.StencilEnable = FALSE
 };
 
+/// @brief パイプラインステートクラス
 class PipelineState {
 public:
 	PipelineState();

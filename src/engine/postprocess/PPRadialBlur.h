@@ -5,14 +5,14 @@
 
 class SrvManager;
 
-// ── パラメータ（CBV）──────────────────────
+/// @brief 放射状ブラーのパラメータ構造体
 struct RadialBlurParams {
-	float blurStrength = 0.2f;  // 0=無効, 1=最大
+	float blurStrength = 0.2f; // 0=無効, 1=最大
 	float blurRadius   = 0.5f; // 0.0=center, 1.0=edge
 	float padding[2];
 };
 
-// ── ポストプロセスクラス ────────────────
+/// @brief 放射状ブラーのポストプロセスクラス
 class PPRadialBlur final : public IPostProcess {
 public:
 	PPRadialBlur(ID3D12Device* device, SrvManager* srvMgr);

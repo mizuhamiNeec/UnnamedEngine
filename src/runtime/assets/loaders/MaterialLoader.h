@@ -5,6 +5,7 @@
 namespace Unnamed {
 	class UAssetManager;
 
+	/// @brief マテリアルアセットローダークラス
 	class MaterialLoader : public IAssetLoader {
 	public:
 		explicit MaterialLoader(UAssetManager* assetManager);

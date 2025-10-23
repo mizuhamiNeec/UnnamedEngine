@@ -6,6 +6,9 @@
 #include <sstream>
 
 namespace Unnamed {
+	/// @brief テキストファイルを読み込みます
+	/// @param path ファイルパス
+	/// @return ファイル内容の文字列（失敗した場合は空文字列を返す）
 	static std::string ReadTextFile(const std::string& path) {
 		const std::ifstream ifs(path, std::ios::binary);
 		if (!ifs) {
@@ -16,6 +19,10 @@ namespace Unnamed {
 		return ss.str();
 	}
 
+	/// @brief FNV-1a 64ビットハッシュ関数
+	/// @param data データポインタ
+	/// @param size データサイズ
+	/// @return ハッシュ値
 	static uint64_t FNV1a64(const void* data, const size_t size) {
 		const auto p = static_cast<const uint8_t*>(data);
 		uint64_t   h = 1469598103934665603ull;
@@ -26,6 +33,11 @@ namespace Unnamed {
 		return h;
 	}
 
+	/// @brief プログラムをビルドします（ボディファイルから）
+	/// @param input ビルド入力情報
+	/// @param out 出力プログラム情報
+	/// @param errMsg エラーメッセージ出力先（nullptr可能）
+	/// @return ビルド成功ならtrue
 	bool UProgramBuilder::BuildFromBody(
 		const ProgramBuildInput& input,
 		GeneratedProgram&        out,

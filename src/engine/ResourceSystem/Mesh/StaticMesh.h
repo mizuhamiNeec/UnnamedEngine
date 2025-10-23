@@ -8,6 +8,7 @@
 struct Triangle;
 struct AABB;
 
+/// @brief 静的メッシュクラス
 class StaticMesh {
 public:
 	StaticMesh(std::string name) : name_(std::move(name)) {

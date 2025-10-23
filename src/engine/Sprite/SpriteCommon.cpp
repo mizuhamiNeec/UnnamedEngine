@@ -7,9 +7,8 @@
 #include <engine/Sprite/Sprite.h>
 #include <engine/Sprite/SpriteCommon.h>
 
-//-----------------------------------------------------------------------------
-// Purpose: SpriteCommonを初期化します
-//-----------------------------------------------------------------------------
+/// @brief SpriteCommonを初期化します
+/// @param d3d12 D3D12クラスへのポインタ
 void SpriteCommon::Init(D3D12* d3d12) {
 	d3d12_ = d3d12;
 	Console::Print("SpriteCommon : SpriteCommonを初期化します。\n", kConTextColorWait,
@@ -19,13 +18,12 @@ void SpriteCommon::Init(D3D12* d3d12) {
 	               kConTextColorCompleted, Channel::Engine);
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: SpriteCommonをシャットダウンします
-//-----------------------------------------------------------------------------
+/// @brief SpriteCommonをシャットダウンします
 void SpriteCommon::Shutdown() const {
 	rootSignatureManager_->Shutdown();
 }
 
+/// @brief ルートシグネチャを作成します
 void SpriteCommon::CreateRootSignature() {
 	//  RootSignatureManagerのインスタンスを作成
 	rootSignatureManager_ = std::make_unique<RootSignatureManager>(
@@ -94,6 +92,7 @@ void SpriteCommon::CreateRootSignature() {
 	}
 }
 
+/// @brief グラフィックスパイプラインを作成します
 void SpriteCommon::CreateGraphicsPipeline() {
 	CreateRootSignature();
 
@@ -121,6 +120,7 @@ void SpriteCommon::CreateGraphicsPipeline() {
 	}
 }
 
+/// @brief グラフィックスパイプラインをレンダリングに適用します
 void SpriteCommon::Render() const {
 	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
 	d3d12_->GetCommandList()->SetGraphicsRootSignature(

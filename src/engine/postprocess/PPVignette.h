@@ -5,12 +5,14 @@
 
 class SrvManager;
 
+/// @brief ヴィネットエフェクトのパラメータ構造体
 struct VignetteParams {
 	float vignetteStrength = 0.9f;
 	float vignetteRadius   = 0.0f;
-	float padding[2];              // 16‑byte align
+	float padding[2]; // 16‑byte align
 };
 
+/// @brief ヴィネットポストプロセスクラス
 class PPVignette final : public IPostProcess {
 public:
 	PPVignette(ID3D12Device* device, SrvManager* srvManager);
@@ -27,7 +29,7 @@ private:
 	ID3D12Device*                               mDevice   = nullptr;
 	SrvManager*                                 mSrvMgr   = nullptr;
 	uint32_t                                    mSrvIndex = 0;
-	VignetteParams                              mParams   {};
+	VignetteParams                              mParams{};
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSig;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> mPSO;
 	Microsoft::WRL::ComPtr<ID3D12Resource>      mParamsCb;

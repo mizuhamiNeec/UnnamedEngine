@@ -11,6 +11,10 @@
 #include <runtime/core/Properties.h>
 
 namespace ImGuiWidgets {
+	/// @brief Dragウィジェット用のスタイルカラーをプッシュします。
+	/// @param bg 通常時の背景色
+	/// @param bgHovered ホバー時の背景色
+	/// @param bgActive アクティブ時の背景色
 	void PushStyleColorForDrag(const ImVec4& bg, const ImVec4& bgHovered,
 	                           const ImVec4& bgActive) {
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, bg);
@@ -18,6 +22,13 @@ namespace ImGuiWidgets {
 		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, bgActive);
 	}
 
+	/// @brief Vec3型のドラッグウィジェットを表示します。
+	/// @param name ウィジェットのラベル
+	/// @param value 編集するVec3型の値への参照
+	/// @param defaultValue リセット時のデフォルト値
+	/// @param vSpeed ドラッグ操作の速度
+	/// @param format 表示フォーマット
+	/// @return 値が変更された場合にtrueを返します。
 	bool DragVec3(const std::string& name, Vec3&                value,
 	              const Vec3&        defaultValue, const float& vSpeed,
 	              const char*        format) {
@@ -131,6 +142,13 @@ namespace ImGuiWidgets {
 		return valueChanged;
 	}
 
+	/// @brief Cubic Bézier曲線の編集ウィジェットを表示します。
+	/// @param label ウィジェットのラベル
+	/// @param p0 コントロールポイント1のX座標への参照
+	/// @param p1 コントロールポイント1のY座標への参照
+	/// @param p2 コントロールポイント2のX座標への参照
+	/// @param p3 コントロールポイント2のY座標への参照
+	/// @return 値が変更された場合にtrueを返します。
 	bool EditCubicBezier(const std::string& label, float& p0, float& p1,
 	                     float&             p2, float&    p3) {
 		// ドラッグ中か?
@@ -185,11 +203,11 @@ namespace ImGuiWidgets {
 		}
 
 		// 各コントロールポイントのキャンバス上の位置を計算
-		ImVec2 cp1 = ImVec2(
+		auto cp1 = ImVec2(
 			canvasPos.x + controlPoints[0] * canvasSize.x,
 			canvasPos.y + (1.0f - controlPoints[1]) * canvasSize.y
 		);
-		ImVec2 cp2 = ImVec2(
+		auto cp2 = ImVec2(
 			canvasPos.x + controlPoints[2] * canvasSize.x,
 			canvasPos.y + (1.0f - controlPoints[3]) * canvasSize.y
 		);
@@ -254,6 +272,13 @@ namespace ImGuiWidgets {
 		return bIsDraggingCp1 || bIsDraggingCp2;
 	}
 
+	/// @brief アイコン付きボタンウィジェットを表示します。
+	/// @param icon アイコン文字列（フォントアイコン）
+	/// @param label ラベル文字列（省略可能）
+	/// @param size ボタンのサイズ（(0,0)で自動調整）
+	/// @param iconScale アイコンのスケーリング（高さに対する比率）
+	/// @param labelDir ラベルの配置方向
+	/// @return ボタンが押された場合にtrueを返します。
 	bool IconButton(
 		const char*    icon,
 		const char*    label,
@@ -378,6 +403,10 @@ namespace ImGuiWidgets {
 		return pressed;
 	}
 
+	/// @brief アイコン付きメニューアイテムを表示します。
+	/// @param icon アイコン文字列（フォントアイコン）
+	/// @param label ラベル文字列
+	/// @return メニューアイテムが選択された場合にtrueを返します
 	bool MenuItemWithIcon(const char* icon, const char* label) {
 		std::string ret;
 		if (icon && icon[0] != '\0') {
@@ -388,6 +417,10 @@ namespace ImGuiWidgets {
 		return ImGui::MenuItem(ret.c_str());
 	}
 
+	/// @brief メインメニュー用のBeginMenuを開始します。
+	///	@param label メニューラベル
+	/// @param enabled メニューが有効かどうか
+	/// @return メニューが開かれた場合にtrueを返します。
 	bool BeginMainMenu(const char* label, bool enabled) {
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
 		                    ImVec2(ImGui::GetStyle().FramePadding.x,

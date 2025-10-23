@@ -31,7 +31,7 @@ public:
 	 * @param deltaTime 前フレームからの経過時間
 	 */
 	void Update(float deltaTime) override;
-	
+
 	/**
 	 * @brief 描画処理を行う
 	 * @param commandList DirectX 12のコマンドリスト

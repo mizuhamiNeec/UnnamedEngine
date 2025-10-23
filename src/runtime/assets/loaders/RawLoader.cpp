@@ -8,6 +8,9 @@
 #include <fstream>
 
 namespace Unnamed {
+	/// @brief テキストファイルを読み込み、内容を文字列として返します
+	/// @param path ファイルパス
+	/// @return ファイル内容の文字列
 	static std::string ReadTextFile(const std::string& path) {
 		const std::ifstream ifs(path, std::ios::binary);
 		if (!ifs) {
@@ -18,6 +21,10 @@ namespace Unnamed {
 		return ss.str();
 	}
 
+	/// @brief 指定されたパスのファイルがこのローダーで読み込めるかを判定します
+	/// @param path ファイルパス
+	/// @param outType 読み込める場合に設定されるアセットの型
+	/// @return 読み込める場合true
 	bool RawLoader::CanLoad(
 		const std::string_view path,
 		UASSET_TYPE*           outType
@@ -36,6 +43,9 @@ namespace Unnamed {
 		return ok;
 	}
 
+	/// @brief 指定されたパスのファイルを読み込みます
+	/// @param path ファイルパス
+	/// @return 読み込み結果
 	LoadResult RawLoader::Load(const std::string& path) {
 		LoadResult result = {};
 

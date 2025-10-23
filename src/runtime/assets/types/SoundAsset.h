@@ -3,6 +3,7 @@
 #include <vector>
 
 namespace Unnamed {
+	/// @brief サウンドアセットデータ構造体
 	struct SoundAssetData {
 		std::vector<uint8_t> bytes;
 		uint32_t             sampleRate = 0;

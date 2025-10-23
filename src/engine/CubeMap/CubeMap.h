@@ -8,6 +8,7 @@
 
 class SrvManager;
 
+/// @brief キューブマップクラス
 class CubeMap {
 public:
 	CubeMap(
@@ -16,7 +17,7 @@ public:
 		std::string_view path
 	);
 
-	void Update(const float deltaTime);
+	void Update(float deltaTime);
 	void Render(
 		ID3D12GraphicsCommandList* commandList
 	) const;

@@ -9,6 +9,8 @@
 class SrvManager;
 class D3D12;
 
+/// @class TexManager
+/// @brief テクスチャマネージャークラス
 class TexManager {
 	// テクスチャ1枚分のデータ
 	struct TextureData {
@@ -23,7 +25,7 @@ class TexManager {
 public:
 	static TexManager* GetInstance();
 
-	void        Init(::D3D12* renderer, SrvManager* srvManager);
+	void        Init(D3D12* renderer, SrvManager* srvManager);
 	static void Shutdown();
 
 	void LoadTexture(const std::string& filePath, bool forceCubeMap = false);
@@ -63,7 +65,6 @@ private:
 		return "TexManager";
 	}
 
-private:
 	// テクスチャデータ
 	std::unordered_map<std::string, TextureData> mTextureData;
 
@@ -77,7 +78,6 @@ private:
 		ID3D12DescriptorHeap* descriptorHeap,
 		uint32_t              descriptorSize, uint32_t index);
 
-private:
 	static TexManager* mInstance;
 
 	TexManager()                       = default;

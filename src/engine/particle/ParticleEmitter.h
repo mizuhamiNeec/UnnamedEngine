@@ -5,6 +5,7 @@
 
 class ParticleManager;
 
+/// @brief パーティクルエミッタークラス
 class ParticleEmitter {
 public:
 	void Init(ParticleManager* manager, const std::string& groupName);
@@ -14,6 +15,6 @@ public:
 
 private:
 	ParticleManager* mParticleManager;
-	std::string mGroupName;
-	Emitter mEmitter;
+	std::string      mGroupName;
+	Emitter          mEmitter;
 };

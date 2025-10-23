@@ -7,7 +7,6 @@ struct Mat4;
 
 /**
  * @brief 4次元ベクトル構造体
- * @details 4D座標、色（RGBA）、同次座標などを表現するための数学構造体です
  */
 struct Vec4 final {
 	/**
@@ -48,8 +47,8 @@ struct Vec4 final {
 	}
 
 	float       x, y, z, w;
-	static Vec4 one;     ///< 単位ベクトル (1, 1, 1, 1)
-	static Vec4 zero;    ///< ゼロベクトル (0, 0, 0, 0)
+	static Vec4 one;  ///< 単位ベクトル (1, 1, 1, 1)
+	static Vec4 zero; ///< ゼロベクトル (0, 0, 0, 0)
 
 	static Vec4 red;       ///< 赤色 (1, 0, 0, 1)
 	static Vec4 green;     ///< 緑色 (0, 1, 0, 1)

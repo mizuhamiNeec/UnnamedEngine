@@ -4,6 +4,7 @@
 #include <engine/subsystem/interface/ISubsystem.h>
 #include <engine/subsystem/window/interface/IWindow.h>
 
+/// @brief ウィンドウシステムインターフェースクラス
 class IWindowSystem : public ISubsystem {
 public:
 	// ISubsystem

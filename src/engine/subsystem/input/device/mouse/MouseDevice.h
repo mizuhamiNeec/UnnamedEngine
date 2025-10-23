@@ -25,6 +25,7 @@ enum : uint8_t {
 };
 
 namespace Unnamed {
+	/// @brief マウスデバイスクラス
 	class MouseDevice : public BaseInputDevice {
 	public:
 		explicit MouseDevice(HWND hWnd);

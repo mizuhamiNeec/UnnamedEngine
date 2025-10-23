@@ -7,12 +7,13 @@ class D3D12;
 class ModelCommon;
 class Model;
 
+/// @brief モデル管理クラス
 class ModelManager {
 public:
 	static ModelManager* GetInstance();
-	
-	void                 Init(D3D12* d3d12);
-	static void          Shutdown();
+
+	void        Init(D3D12* d3d12);
+	static void Shutdown();
 
 	void                 LoadModel(const std::string& filePath);
 	[[nodiscard]] Model* FindModel(const std::string& filePath) const;

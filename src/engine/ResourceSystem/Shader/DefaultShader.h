@@ -4,6 +4,7 @@
 #include <engine/ResourceSystem/Shader/Shader.h>
 #include <engine/ResourceSystem/Shader/ShaderManager.h>
 
+/// @brief デフォルトシェーダクラス
 class DefaultShader {
 public:
 	static const std::string kDefaultVSPath;

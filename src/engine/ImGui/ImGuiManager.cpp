@@ -11,6 +11,9 @@
 #include <engine/Window/WindowManager.h>
 #include <engine/Window/WindowsUtils.h>
 
+/// @brief ImGuiマネージャーのコンストラクタ
+/// @param renderer D3D12レンダラーへのポインタ
+/// @param srvManager SRVマネージャーへのポインタ
 ImGuiManager::ImGuiManager(D3D12*      renderer,
                            SrvManager* srvManager) :
 	mRenderer(renderer),
@@ -101,6 +104,7 @@ ImGuiManager::ImGuiManager(D3D12*      renderer,
 	ImGui_ImplDX12_Init(&init_info);
 }
 
+/// @brief ImGuiの新しいフレームを開始します。
 void ImGuiManager::NewFrame() {
 	// ImGuiの新しいフレームを開始
 	ImGui_ImplDX12_NewFrame();
@@ -108,6 +112,7 @@ void ImGuiManager::NewFrame() {
 	ImGui::NewFrame();
 }
 
+/// @brief ImGuiのフレームを終了し、描画コマンドを発行します。
 void ImGuiManager::EndFrame() {
 	// ImGuiのフレームを終了しレンダリング準備
 	ImGui::Render();
@@ -138,6 +143,7 @@ void ImGuiManager::EndFrame() {
 	ImGui::EndFrame();
 }
 
+/// @brief ImGuiをシャットダウンし、リソースを解放します。
 void ImGuiManager::Shutdown() {
 	ImGui::DestroyPlatformWindows();
 	ImGui_ImplDX12_Shutdown();
@@ -146,6 +152,7 @@ void ImGuiManager::Shutdown() {
 	mSrvHeap.Reset();
 }
 
+/// @brief ImGuiのダークテーマスタイルを設定します。
 void ImGuiManager::StyleColorsDark() {
 	ImGuiStyle& style  = ImGui::GetStyle();
 	ImVec4*     colors = style.Colors;
@@ -226,6 +233,7 @@ void ImGuiManager::StyleColorsDark() {
 	style.CellPadding = ImVec2(4, 4);
 }
 
+/// @brief ImGuiのバックエンドを再作成します。
 void ImGuiManager::Recreate() const {
 	// 1. ImGuiのDX12/Win32バックエンドを完全にシャットダウン
 	ImGui_ImplDX12_Shutdown();
@@ -236,11 +244,11 @@ void ImGuiManager::Recreate() const {
 
 	// 3. DX12バックエンドを再初期化（ディスクリプタヒープ等を渡す）
 	ImGui_ImplDX12_InitInfo init_info = {};
-	init_info.Device                  = mRenderer->GetDevice();
-	init_info.NumFramesInFlight       = kFrameBufferCount;
-	init_info.RTVFormat               = kBufferFormat; // スワップチェーン用には非SRGBフォーマットを使用
-	init_info.SrvDescriptorHeap       = mSrvManager->GetDescriptorHeap();
-	init_info.CommandQueue            = mRenderer->GetCommandQueue();
+	init_info.Device = mRenderer->GetDevice();
+	init_info.NumFramesInFlight = kFrameBufferCount;
+	init_info.RTVFormat = kBufferFormat; // スワップチェーン用には非SRGBフォーマットを使用
+	init_info.SrvDescriptorHeap = mSrvManager->GetDescriptorHeap();
+	init_info.CommandQueue = mRenderer->GetCommandQueue();
 
 	ImGui_ImplDX12_Init(&init_info);
 
@@ -248,10 +256,15 @@ void ImGuiManager::Recreate() const {
 	ImGui_ImplDX12_CreateDeviceObjects();
 }
 
+/// @brief ImGuiのライトテーマスタイルを設定します。
 void ImGuiManager::StyleColorsLight() {
 	ImGui::StyleColorsLight();
 }
 
+///	@brief Drag用のスタイルカラーをプッシュします。
+/// @param bg 通常時の背景色
+/// @param bgHovered ホバー時の背景色
+/// @param bgActive アクティブ時の背景色
 void ImGuiManager::PushStyleColorForDrag(const ImVec4& bg,
                                          const ImVec4& bgHovered,
                                          const ImVec4& bgActive) {
@@ -260,6 +273,9 @@ void ImGuiManager::PushStyleColorForDrag(const ImVec4& bg,
 	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, bgActive);
 }
 
+/// @brief Transformコンポーネントの編集ウィジェットを表示します。
+/// @param transform 編集するTransformコンポーネントへの参照
+/// @param vSpeed ドラッグ操作の速度
 bool ImGuiManager::EditTransform(SceneComponent& transform,
                                  const float&    vSpeed) {
 	bool       isEditing  = false;
@@ -312,6 +328,12 @@ bool ImGuiManager::EditTransform(SceneComponent& transform,
 	return isEditing;
 }
 
+/// @brief Vec3型の値をドラッグで編集するウィジェットを表示します。
+/// @param name ウィジェットの名前
+/// @param v 編集するVec3型の参照
+/// @param vSpeed ドラッグ操作の速度
+/// @param format 表示フォーマット
+/// @return 編集された場合はtrueを返す
 bool ImGuiManager::DragVec3(const std::string& name, Vec3&         v,
                             const float&       vSpeed, const char* format) {
 	// 編集中かどうか
@@ -373,6 +395,13 @@ bool ImGuiManager::DragVec3(const std::string& name, Vec3&         v,
 	return isEditing;
 }
 
+/// @brief アウトライン付きのテキストを描画します。
+/// @param drawList 描画リストへのポインタ
+/// @param pos テキストの位置
+/// @param text 描画するテキスト
+/// @param textColor テキストの色
+/// @param outlineColor アウトラインの色
+/// @param outlineSize アウトラインのサイズ
 void ImGuiManager::TextOutlined(
 	ImDrawList*   drawList,
 	const ImVec2& pos,
@@ -383,7 +412,7 @@ void ImGuiManager::TextOutlined(
 ) {
 	// クライアント領域の左上座標を取得
 	ImVec2 windowPos = ImGui::GetWindowPos();
-	ImVec2 clientPos = ImVec2(windowPos.x + pos.x, windowPos.y + pos.y);
+	auto   clientPos = ImVec2(windowPos.x + pos.x, windowPos.y + pos.y);
 
 	ImU32 outlineCol = ImGui::ColorConvertFloat4ToU32(outlineColor);
 	ImU32 textCol    = ImGui::ColorConvertFloat4ToU32(textColor);
@@ -411,6 +440,8 @@ void ImGuiManager::TextOutlined(
 	drawList->AddText(clientPos, textCol, text);
 }
 
+/// @brief 日本語のグリフ範囲を取得します。
+/// @return 日本語のグリフ範囲へのポインタ
 const ImWchar* ImGuiManager::GetGlyphRangesJapanese() {
 	// 2999 ideograms code points for Japanese
 	// - 2136 Joyo (meaning "for regular use" or "for common use") Kanji code points

@@ -10,7 +10,7 @@
 class GuidGenerator {
 public:
 	/// @brief GUID生成モード	
-	enum class MODE { 
+	enum class MODE {
 		SEQUENTIAL, ///< シーケンシャル（連番）モード
 		RANDOM64    ///< 64ビットランダムモード
 	};

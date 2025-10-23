@@ -9,6 +9,7 @@
 
 class D3D12;
 
+/// @brief SRVマネージャークラス
 class SrvManager {
 public:
 	void Init(D3D12* d3d12);

@@ -11,6 +11,7 @@
 
 #include "game/components/player/MovementComponent.h"
 
+/// @brief デストラクタ
 WindEffect::~WindEffect() {
 	if (mWindParticle) {
 		mWindParticle->Shutdown();
@@ -18,8 +19,11 @@ WindEffect::~WindEffect() {
 	}
 }
 
+/// @brief 風エフェクトを初期化します
+/// @param particleManager パーティクルマネージャーへのポインタ
+/// @param playerMovement プレイヤーの移動コンポーネントへのポインタ
 void WindEffect::Init([[maybe_unused]] ParticleManager* particleManager,
-                      MovementComponent*                         playerMovement) {
+                      MovementComponent*                playerMovement) {
 	mPlayerMovement = playerMovement;
 
 	// 風パーティクル用のオブジェクト初期化
@@ -27,6 +31,8 @@ void WindEffect::Init([[maybe_unused]] ParticleManager* particleManager,
 	mWindParticle->Init(particleManager, "./content/core/textures/circle.png");
 }
 
+/// @brief 風エフェクトを更新します
+/// @param deltaTime 前のフレームからの経過時間	
 void WindEffect::Update([[maybe_unused]] const float deltaTime) {
 	if (!mPlayerMovement || !mWindParticle) {
 		return;
@@ -90,12 +96,15 @@ void WindEffect::Update([[maybe_unused]] const float deltaTime) {
 	mWindParticle->Update(deltaTime);
 }
 
+/// @brief 風エフェクトを描画します
 void WindEffect::Draw() const {
 	if (mWindParticle) {
 		mWindParticle->Draw();
 	}
 }
 
+/// @brief プレイヤーの進行方向に基づいてランダムな位置を取得します
+/// @return ランダムな位置ベクター
 Vec3 WindEffect::GetRandomPositionInPlayerDirection() const {
 	auto camera = CameraManager::GetActiveCamera();
 	if (!camera || !mPlayerMovement) {

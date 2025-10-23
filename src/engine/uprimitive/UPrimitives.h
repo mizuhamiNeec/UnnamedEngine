@@ -2,6 +2,7 @@
 #include <runtime/core/math/Math.h>
 
 namespace Unnamed {
+	/// @brief レイ構造体
 	struct Ray {
 		Vec3  origin;         // Origin
 		Vec3  dir;            // Direction
@@ -10,11 +11,13 @@ namespace Unnamed {
 		float tMax = FLT_MAX; // Maximum distance
 	};
 
+	/// @brief 線分構造体
 	struct Line {
 		Vec3 start = Vec3::zero;
 		Vec3 end   = Vec3::right;
 	};
 
+	/// @brief 三角形構造体
 	struct Triangle {
 		Vec3 v0 = Vec3(-0.86603f, -0.5f, 0.0f);
 		Vec3 v1 = Vec3(0.86603f, -0.5f, 0.0f);
@@ -22,11 +25,13 @@ namespace Unnamed {
 		// 0.86603 = sin(60°)
 	};
 
+	/// @brief ボックス構造体
 	struct Box {
 		Vec3 center   = Vec3::zero;
 		Vec3 halfSize = Vec3::one * 0.5f;
 	};
 
+	/// @brief 軸平行境界ボックス構造体
 	struct AABB {
 		Vec3 min = Vec3(FLT_MAX);
 		Vec3 max = Vec3(-FLT_MAX);
@@ -42,11 +47,13 @@ namespace Unnamed {
 		[[nodiscard]] Vec3 Size() const;
 	};
 
+	/// @brief 球構造体
 	struct Sphere {
 		Vec3  center = Vec3::zero;
 		float radius = 0.5f;
 	};
 
+	/// @brief カプセル構造体
 	struct Capsule {
 		Vec3  start  = Vec3::down * 0.5f;
 		Vec3  end    = Vec3::up * 0.5f;

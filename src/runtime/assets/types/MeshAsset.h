@@ -5,6 +5,7 @@
 #include <engine/uprimitive/UPrimitives.h>
 
 namespace Unnamed {
+	/// @brief メッシュのサブメッシュ情報
 	struct MeshSubmesh {
 		uint32_t indexOffset   = 0;
 		uint32_t indexCount    = 0;
@@ -12,6 +13,7 @@ namespace Unnamed {
 		AABB     aabb;
 	};
 
+	/// @brief メッシュのスキニング情報
 	struct MeshSkin {
 		std::vector<std::string> jointNames;
 		std::vector<Mat4>        invBind;
@@ -20,6 +22,7 @@ namespace Unnamed {
 		std::vector<std::array<float, 4>>    weights;
 	};
 
+	/// @brief メッシュのモーフターゲット情報
 	struct MeshMorphTarget {
 		std::string name;
 
@@ -27,6 +30,7 @@ namespace Unnamed {
 		std::vector<Vec3> normals;
 	};
 
+	/// @brief メッシュアセットのデータ構造体
 	struct MeshAssetData {
 		std::vector<uint8_t> bytes;
 

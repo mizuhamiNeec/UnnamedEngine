@@ -11,6 +11,9 @@
 
 #include <runtime/core/math/Math.h>
 
+/// @brief パーティクルオブジェクトを初期化します
+/// @param particleCommon パーティクルマネージャーへのポインタ
+/// @param textureFilePath テクスチャファイルのパス
 void ParticleObject::Init(ParticleManager*   particleCommon,
                           const std::string& textureFilePath) {
 	this->mParticleCommon  = particleCommon;
@@ -75,6 +78,8 @@ void ParticleObject::Init(ParticleManager*   particleCommon,
 	mEmitter.size          = Vec3::one; // エミッターのサイズを初期化
 }
 
+/// @brief パーティクルオブジェクトを更新します
+/// @param deltaTime 前のフレームからの経過時間
 void ParticleObject::Update(const float deltaTime) {
 	static int   shapeType = 0;
 	static float coneAngle = 45.0f;
@@ -288,6 +293,7 @@ void ParticleObject::Update(const float deltaTime) {
 	}
 }
 
+/// @brief パーティクルオブジェクトを描画します
 void ParticleObject::Draw() const {
 	// 頂点バッファの設定
 	const D3D12_VERTEX_BUFFER_VIEW vbView = mParticleCommon->GetVertexBuffer()->
@@ -325,6 +331,7 @@ void ParticleObject::Draw() const {
 	);
 }
 
+/// @brief パーティクルオブジェクトをシャットダウンします
 void ParticleObject::Shutdown() {
 	if (mAterialResource) {
 		mAterialResource.reset();
@@ -337,6 +344,16 @@ void ParticleObject::Shutdown() {
 	}
 }
 
+/// @brief 新しいパーティクルを作成します
+/// @param pos 初期位置
+/// @param vel 初期速度
+/// @param drag 抗力
+/// @param gravity 重力
+/// @param startColor 開始色
+/// @param endColor 終了色
+/// @param startSize 開始サイズ
+/// @param endSize 終了サイズ
+/// @return 作成されたパーティクル
 Particle ParticleObject::MakeNewParticle(
 	const Vec3& pos,
 	const Vec3& vel,
@@ -379,6 +396,18 @@ Particle ParticleObject::MakeNewParticle(
 	return particle;
 }
 
+/// @brief パーティクルを放出します
+/// @param emitter エミッター情報
+/// @param shapeType 形状タイプ
+/// @param coneAngle コーン角度
+/// @param drag 抗力
+/// @param gravity 重力
+/// @param velocity 初期速度
+/// @param startColor 開始色
+/// @param endColor 終了色
+/// @param startSize 開始サイズ
+/// @param endSize 終了サイズ
+/// @return 放出されたパーティクルのリスト
 std::list<Particle> ParticleObject::Emit(
 	const Emitter& emitter, int shapeType, [[maybe_unused]] float coneAngle,
 	[[maybe_unused]] const Vec3& drag, const Vec3& gravity,
@@ -400,10 +429,16 @@ std::list<Particle> ParticleObject::Emit(
 	return particles;
 }
 
+/// @brief カメラを設定します
+/// @param newCamera 新しいカメラコンポーネントへのポインタ
 void ParticleObject::SetCamera(CameraComponent* newCamera) {
 	mCamera = newCamera;
 }
 
+/// @brief エミッター位置からパーティクルの初期位置を生成します
+/// @param emitterPosition エミッターの位置
+/// @param shapeType 形状タイプ
+/// @return 生成されたパーティクルの初期位置
 Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition,
                                       int         shapeType) const {
 	switch (shapeType) {
@@ -427,6 +462,9 @@ Vec3 ParticleObject::GeneratePosition(const Vec3& emitterPosition,
 	}
 }
 
+/// @brief コーン形状の初期速度を生成します
+/// @param coneAngle コーンの角度（度数法）
+/// @return 生成された初期速度ベクトル	
 Vec3 ParticleObject::GenerateConeVelocity(float coneAngle) {
 	// コーンの中心方向（例としてY軸正方向）
 	Vec3 coneDirection = Vec3::up;
@@ -464,6 +502,18 @@ Vec3 ParticleObject::GenerateConeVelocity(float coneAngle) {
 	return randomDir * speed;
 }
 
+/// @brief 指定した位置にパーティクルを放出します
+/// @param position 放出位置
+/// @param shapeType 形状タイプ
+/// @param coneAngle コーン角度
+/// @param drag 抗力
+/// @param gravity 重力
+/// @param velocity 初期速度
+/// @param count 放出するパーティクル数
+/// @param startColor 開始色
+/// @param endColor 終了色
+/// @param startSize 開始サイズ
+/// @param endSize 終了サイズ	
 void ParticleObject::EmitParticlesAtPosition(
 	const Vec3&    position,
 	const int      shapeType,

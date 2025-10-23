@@ -17,6 +17,7 @@
 namespace Unnamed {
 	constexpr std::string_view kChannel = "UMaterialRuntime";
 
+	/// @brief リニアフィルタ、ラップモードのサンプラ
 	static D3D12_SAMPLER_DESC LinerWrap() {
 		D3D12_SAMPLER_DESC s = {};
 		s.Filter = D3D12_FILTER_ANISOTROPIC;
@@ -29,6 +30,7 @@ namespace Unnamed {
 		return s;
 	}
 
+	/// @brief マテリアル定数バッファデータ構造体
 	struct MaterialCBData {
 		Vec4     BaseColor; // 16
 		float    Metallic;  // 4
@@ -38,6 +40,13 @@ namespace Unnamed {
 		Vec4     Extra[14];
 	};
 
+	/// @brief マテリアルのランタイムクラスでCPU側のビルドを行います
+	/// @param assetManager アセットマネージャー
+	/// @param shaderLibrary シェーダーライブラリ
+	/// @param rootSignatureCache ルートシグネチャキャッシュ
+	/// @param pipelineCache パイプラインキャッシュ
+	/// @param graphicsDevice グラフィックスデバイス
+	/// @return ビルドに成功した場合trueを返します
 	bool UMaterialRuntime::BuildCPU(
 		UAssetManager*      assetManager,
 		ShaderLibrary*      shaderLibrary,
@@ -225,7 +234,7 @@ namespace Unnamed {
 		rootParams.frameCB    = 2;
 		rootParams.objectCB   = 3;
 
-		static const D3D12_INPUT_ELEMENT_DESC kStdMeshLayout[] = {
+		static constexpr D3D12_INPUT_ELEMENT_DESC kStdMeshLayout[] = {
 			{
 				"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
 				D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
@@ -354,6 +363,10 @@ namespace Unnamed {
 		return true;
 	}
 
+	/// @brief マテリアルのランタイムクラスでGPU側の実体化を行います
+	/// @param renderResourceManager レンダーリソースマネージャー
+	/// @param commandList コマンドリスト
+	/// @return 実体化に成功した場合trueを返します
 	bool UMaterialRuntime::RealizeGPU(
 		RenderResourceManager*     renderResourceManager,
 		ID3D12GraphicsCommandList* commandList
@@ -382,6 +395,10 @@ namespace Unnamed {
 		return ok;
 	}
 
+	/// @brief マテリアルのランタイムクラスでGPU側の無効化を行います
+	/// @param renderResourceManager レンダーリソースマネージャー
+	/// @param fence フェンス
+	/// @param value フェンス値
 	void UMaterialRuntime::InvalidateGPU(
 		RenderResourceManager* renderResourceManager,
 		ID3D12Fence*           fence,
@@ -400,6 +417,8 @@ namespace Unnamed {
 		mGPUReady = false;
 	}
 
+	/// @brief 監視しているファイルの変更を検出します
+	/// @return 変更があった場合のリロードマスクを返します
 	uint32_t UMaterialRuntime::DetectChanges() {
 		uint32_t mask = RELOAD_NONE;
 		for (auto& w : mWatchedFiles) {
@@ -422,8 +441,8 @@ namespace Unnamed {
 					"HotReload: {} changed ({})\n",
 					w.path,
 					w.type == WatchType::TEXTURE ?
-						"TEXTURE" :
-						"Shader/Mat"
+					"TEXTURE" :
+					"Shader/Mat"
 				);
 
 				switch (w.type) {
@@ -448,8 +467,15 @@ namespace Unnamed {
 		return mask;
 	}
 
+	/// @brief マテリアルがGPU側で準備完了しているかどうかを取得します
+	/// @return 準備完了している場合trueを返します
 	bool UMaterialRuntime::IsGPUReady() const { return mGPUReady; }
 
+	/// @brief マテリアルを適用します
+	/// @param commandList コマンドリスト
+	/// @param renderResourceManager レンダーリソースマネージャー
+	/// @param backIndex バックバッファインデックス
+	/// @param timeSec 経過時間（秒）
 	void UMaterialRuntime::Apply(
 		ID3D12GraphicsCommandList*   commandList,
 		const RenderResourceManager* renderResourceManager,
@@ -517,6 +543,10 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief マテリアルのランタイムクラスでリソースを解放します
+	/// @param renderResourceManager レンダーリソースマネージャー
+	/// @param fence フェンス
+	/// @param value フェンス値
 	void UMaterialRuntime::Release(
 		RenderResourceManager* renderResourceManager,
 		ID3D12Fence*           fence,
@@ -536,6 +566,11 @@ namespace Unnamed {
 		mGraphicsDevice = nullptr;
 	}
 
+	/// @brief ファイルのサイズと最終更新日時を取得します
+	/// @param path ファイルのパス
+	/// @param size ファイルサイズの出力先
+	/// @param mtime 最終更新日時の出力先
+	/// @return 取得に成功した場合trueを返します
 	bool UMaterialRuntime::StartFile(
 		const std::string& path, uint64_t& size, std::time_t& mtime
 	) {
@@ -557,10 +592,15 @@ namespace Unnamed {
 		return true;
 	}
 
+	/// @brief 監視しているファイルをクリアします
 	void UMaterialRuntime::ClearWatch() {
 		mWatchedFiles.clear();
 	}
 
+	/// @brief ファイルの監視を追加します
+	/// @param assetManager アセットマネージャー
+	/// @param id 監視するアセットID
+	/// @param type 監視するファイルの種類
 	void UMaterialRuntime::AddWatch(
 		const UAssetManager* assetManager, const AssetID id,
 		const WatchType      type

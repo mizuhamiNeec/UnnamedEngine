@@ -9,10 +9,11 @@
 class SrvManager;
 class ShaderResourceViewManager;
 
+/// @brief 画像コピー用のポストプロセスパス
 class CopyImagePass : public IPostProcess {
 public:
 	CopyImagePass(ID3D12Device* device, SrvManager* srvManager);
-	~CopyImagePass();
+	~CopyImagePass() override;
 
 	void Init();
 

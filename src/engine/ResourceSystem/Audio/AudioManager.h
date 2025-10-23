@@ -6,6 +6,7 @@
 
 #include "Audio.h"
 
+/// @brief オーディオマネージャークラス
 class AudioManager {
 public:
 	AudioManager();
@@ -15,12 +16,11 @@ public:
 	void Shutdown();
 
 	std::shared_ptr<Audio> GetAudio(const std::string& filePath);
-	void UnloadAudio(const std::string& filePath);
-	void StopAll();
+	void                   UnloadAudio(const std::string& filePath);
+	void                   StopAll();
 
 private:
 	Microsoft::WRL::ComPtr<IXAudio2> mXAudio2;
 	IXAudio2MasteringVoice* mAsterVoice = nullptr;
 	std::unordered_map<std::string, std::shared_ptr<Audio>> mAudioCache;
 };
-

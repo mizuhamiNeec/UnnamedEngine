@@ -3,13 +3,16 @@
 #include <unordered_map>
 #include <engine/ResourceSystem/Shader/Shader.h>
 
+/// @brief シェーダーマネージャークラス
 class ShaderManager {
 public:
-	Shader* LoadShader(const std::string& name, const std::string& vsPath, const std::string& psPath, const std::string& gsPath = "");
+	Shader* LoadShader(const std::string& name, const std::string& vsPath,
+	                   const std::string& psPath,
+	                   const std::string& gsPath = "");
 	Shader* GetShader(const std::string& name);
-	void Init();
-	void Shutdown();
+	void    Init();
+	void    Shutdown();
+
 private:
 	std::unordered_map<std::string, std::unique_ptr<Shader>> shaders_;
 };
-

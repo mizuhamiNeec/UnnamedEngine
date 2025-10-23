@@ -1,26 +1,31 @@
-
 #include <engine/renderer/ConstantBuffer.h>
 
 #include <cassert>
 #include <string>
 
-ConstantBuffer::ConstantBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, const size_t size, std::string name): mName(
+/// @brief コンストラクタ
+/// @param device D3D12デバイスへの参照
+/// @param size バッファサイズ
+/// @param name バッファ名
+ConstantBuffer::ConstantBuffer(
+	const Microsoft::WRL::ComPtr<ID3D12Device>& device, const size_t size,
+	std::string                                 name) : mName(
 	std::move(name)
 ) {
-	size_t align = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+	size_t align       = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
 	UINT64 sizeAligned = (size + (align - 1)) & ~(align - 1);
 
 	D3D12_HEAP_PROPERTIES uploadHeapProperties = {};
-	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+	uploadHeapProperties.Type                  = D3D12_HEAP_TYPE_UPLOAD;
 
 	D3D12_RESOURCE_DESC resourceDesc = {};
 	// バッファリソース。テクスチャの場合はまた別の設定をする
 	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	resourceDesc.Width = sizeAligned; // リソースのサイズ
+	resourceDesc.Width     = sizeAligned; // リソースのサイズ
 	// バッファの場合はこれらは1にする決まり
-	resourceDesc.Height = 1;
+	resourceDesc.Height           = 1;
 	resourceDesc.DepthOrArraySize = 1;
-	resourceDesc.MipLevels = 1;
+	resourceDesc.MipLevels        = 1;
 	resourceDesc.SampleDesc.Count = 1;
 	// バッファの場合はこれにする決まり
 	resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
@@ -42,27 +47,36 @@ ConstantBuffer::ConstantBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& devic
 	mBuffer->SetName(std::wstring(name.begin(), name.end()).c_str());
 
 	mDesc.BufferLocation = mBuffer->GetGPUVirtualAddress();
-	mDesc.SizeInBytes = static_cast<UINT>(sizeAligned);
+	mDesc.SizeInBytes    = static_cast<UINT>(sizeAligned);
 }
 
+/// @brief デストラクタ
 ConstantBuffer::~ConstantBuffer() {
 	if (mBuffer) {
 		mBuffer->Unmap(0, nullptr);
 	}
 }
 
+/// @brief バッファのGPU仮想アドレスを取得します
+/// @return GPU仮想アドレス
 D3D12_GPU_VIRTUAL_ADDRESS ConstantBuffer::GetAddress() const {
 	return mDesc.BufferLocation;
 }
 
+/// @brief 定数バッファビューの記述子を取得します
+/// @return 定数バッファビューの記述子
 D3D12_CONSTANT_BUFFER_VIEW_DESC ConstantBuffer::ViewDesc() const {
 	return mDesc;
 }
 
+/// @brief バッファのCPU仮想アドレスを取得します
+/// @return CPU仮想アドレス
 void* ConstantBuffer::GetPtr() const {
 	return mAppedPtr;
 }
 
+/// @brief バッファリソースを取得します
+/// @return バッファリソースへのポインタ
 ID3D12Resource* ConstantBuffer::GetResource() const {
 	return mBuffer.Get();
 }

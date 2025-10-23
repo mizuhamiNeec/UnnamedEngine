@@ -6,39 +6,32 @@
 
 ModelManager* ModelManager::mInstance = nullptr;
 
-// HACK : 要修正
-// TODO : シングルトンは悪!!
+/// @brief ModelManagerのインスタンスを取得します
 ModelManager* ModelManager::GetInstance() {
-	if (mInstance == nullptr)
-	{
+	if (mInstance == nullptr) {
 		mInstance = new ModelManager;
 	}
 	return mInstance;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 初期化します
-//-----------------------------------------------------------------------------
+/// @brief モデルマネージャーを初期化します
+/// @param d3d12 D3D12レンダラーへのポインタ
 void ModelManager::Init(D3D12* d3d12) {
 	mModelCommon = new ModelCommon;
 	mModelCommon->Init(d3d12);
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: シャットダウンします
-//-----------------------------------------------------------------------------
+/// @brief モデルマネージャーをシャットダウンします
 void ModelManager::Shutdown() {
 	delete mInstance;
 	mInstance = nullptr;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: モデルをロードします
-//-----------------------------------------------------------------------------
+/// @brief モデルを読み込みます
+/// @param filePath モデルファイルのパス
 void ModelManager::LoadModel(const std::string& filePath) {
 	// 読み込み済みモデルを検索
-	if (mModels.contains(filePath))
-	{
+	if (mModels.contains(filePath)) {
 		// 読み込み済みなら早期return
 		return;
 	}
@@ -51,13 +44,12 @@ void ModelManager::LoadModel(const std::string& filePath) {
 	mModels.insert(std::make_pair(filePath, std::move(model)));
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: モデルを検索します
-//-----------------------------------------------------------------------------
+/// @brief モデルを検索します
+/// @param filePath モデルファイルのパス
+/// @return 見つかったモデルへのポインタ、見つからなかった場合はnullptr
 Model* ModelManager::FindModel(const std::string& filePath) const {
 	// 読み込み済みモデルを検索
-	if (mModels.contains(filePath))
-	{
+	if (mModels.contains(filePath)) {
 		// 読み込みモデルを戻り値としてreturn
 		return mModels.at(filePath).get();
 	}

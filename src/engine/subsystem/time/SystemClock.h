@@ -4,6 +4,7 @@
 
 #include <engine/time/DateTime.h>
 
+/// @brief システムクロッククラス
 class SystemClock {
 public:
 	using SysClock  = std::chrono::system_clock;

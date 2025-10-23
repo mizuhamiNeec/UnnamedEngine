@@ -7,6 +7,7 @@
 #include <engine/subsystem/time/SystemClock.h>
 
 namespace Unnamed {
+	/// @brief 時間管理システムクラス
 	class TimeSystem : public ISubsystem {
 	public:
 		~TimeSystem() override;

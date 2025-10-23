@@ -5,12 +5,14 @@
 
 class SrvManager;
 
+/// @brief クロマティックアバレーションのパラメータ構造体
 struct CAParams {
 	float strength = 0.02f; // ずらし幅
-	float blend      = 0.5f;
+	float blend    = 0.5f;
 	float padding[2]; // パディング
 };
 
+/// @brief クロマティックアバレーションポストプロセスクラス
 class PPChromaticAberration final : public IPostProcess {
 public:
 	PPChromaticAberration(ID3D12Device* device, SrvManager* srvMgr);

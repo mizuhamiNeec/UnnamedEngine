@@ -6,8 +6,10 @@
 #include <wrl/client.h>
 
 namespace Unnamed {
+	/// @brief アップロードアリーナクラス
 	class UploadArena {
 	public:
+		/// @brief スライス構造体
 		struct Slice {
 			void*                     cpu               = nullptr; // 書き込み先
 			D3D12_GPU_VIRTUAL_ADDRESS gpuVirtualAddress = 0;
@@ -27,7 +29,6 @@ namespace Unnamed {
 		[[nodiscard]] uint32_t Frames() const { return mFrames; }
 
 	private:
-
 		Microsoft::WRL::ComPtr<ID3D12Resource> mBuffer;
 		uint8_t*                               mMapped                = nullptr;
 		uint64_t                               mBaseGPUVirtualAddress = 0;

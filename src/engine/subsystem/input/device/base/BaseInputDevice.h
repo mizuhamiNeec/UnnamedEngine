@@ -9,6 +9,7 @@ namespace Unnamed {
 		GAMEPAD
 	};
 
+	/// @brief 入力キー構造体
 	struct InputKey {
 		InputDeviceType device;
 		uint32_t        code;
@@ -18,6 +19,7 @@ namespace Unnamed {
 		}
 	};
 
+	/// @brief 入力デバイス基底クラス
 	class BaseInputDevice {
 	public:
 		virtual      ~BaseInputDevice() = default;

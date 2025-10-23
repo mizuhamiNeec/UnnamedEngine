@@ -1,5 +1,4 @@
-﻿
-#pragma once
+﻿#pragma once
 #include <vector>
 #include <runtime/core/math/Math.h>
 #include <engine/Animation/KeyFrame.h>

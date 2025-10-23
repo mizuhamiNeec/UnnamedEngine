@@ -11,6 +11,10 @@
 namespace Unnamed {
 	constexpr std::string_view kChannel = "ShaderLoader";
 
+	/// @brief 指定されたパスのファイルがロード可能かどうかを判定します
+	/// @param path 判定するファイルのパス
+	/// @param outType 判定結果のアセット型（nullptrの場合は設定しない）
+	/// @return ロード可能な場合true
 	bool ShaderLoader::CanLoad(
 		std::string_view path, UASSET_TYPE* outType
 	) const {
@@ -27,6 +31,9 @@ namespace Unnamed {
 		return ok;
 	}
 
+	/// @brief 指定されたパスのファイルをロードします
+	/// @param path ロードするファイルのパス
+	/// @return ロード結果
 	LoadResult ShaderLoader::Load(const std::string& path) {
 		LoadResult      result = {};
 		ShaderAssetData s      = {};
@@ -84,6 +91,9 @@ namespace Unnamed {
 		return result;
 	}
 
+	/// @brief ファイル名からシェーダーステージのキーを推測します
+	/// @param path ファイルのパス
+	/// @return シェーダーステージのキー（例: "VS", "PS"）、不明な場合は空文字列
 	std::string ShaderLoader::GuessStageKeyFromFilename(
 		const std::string& path
 	) {
@@ -117,6 +127,9 @@ namespace Unnamed {
 		return {};
 	}
 
+	/// @brief HLSLソースコードから#includeディレクティブを抽出します
+	/// @param src HLSLソースコード
+	/// @return 抽出されたインクルードファイル名のリスト
 	std::vector<std::string> ShaderLoader::ExtractIncludes(
 		const std::string& src
 	) {

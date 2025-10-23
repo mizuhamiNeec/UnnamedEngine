@@ -9,11 +9,11 @@ struct Vec3;
 //-----------------------------------------------------------------------------
 class Random final {
 public:
-	static int IntRange(const int& min = 0, const int& max = 1);
+	static int   IntRange(const int& min = 0, const int& max = 1);
 	static float FloatRange(const float& min = 0.0f, const float& max = 1.0f);
-	static Vec3 Vec3Range(const Vec3& min, const Vec3& max);
+	static Vec3  Vec3Range(const Vec3& min, const Vec3& max);
 
 private:
 	static std::mt19937_64 randomEngine_;
-	static std::mutex mtx_; // スレッドセーフ
+	static std::mutex      mtx_; // スレッドセーフ
 };

@@ -3,6 +3,7 @@
 #include <d3d12.h>
 #include <cstdint>
 
+/// @brief ポストプロセスコンテキスト構造体
 struct PostProcessContext {
 	ID3D12GraphicsCommandList*  commandList;  // コマンドリスト
 	ID3D12Resource*             inputTexture; // 適用するテクスチャ
@@ -12,6 +13,7 @@ struct PostProcessContext {
 };
 
 
+/// @brief ポストプロセスインターフェースクラス
 class IPostProcess {
 public:
 	virtual ~IPostProcess() = default;

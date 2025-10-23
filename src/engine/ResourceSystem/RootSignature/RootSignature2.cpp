@@ -1,5 +1,3 @@
-
-
 #include "engine/ResourceSystem/RootSignature/RootSignature2.h"
 
 #include <sstream>
@@ -7,6 +5,10 @@
 #include "engine/OldConsole/Console.h"
 #include "engine/ResourceSystem/RootSignature/RootSignatureManager2.h"
 
+/// @brief 定数バッファを追加します
+/// @param shaderRegister シェーダーレジスタ番号
+/// @param visibility シェーダーの可視性
+/// @param registerSpace レジスタスペース番号
 void RootSignature2::AddConstantBuffer(const UINT shaderRegister,
                                        const D3D12_SHADER_VISIBILITY visibility,
                                        const UINT registerSpace) {
@@ -18,6 +20,9 @@ void RootSignature2::AddConstantBuffer(const UINT shaderRegister,
 	mRootParameters.emplace_back(param);
 }
 
+/// @brief シェーダーリソースビューを追加します
+/// @param shaderRegister シェーダーレジスタ番号
+/// @param registerSpace レジスタスペース番号
 void RootSignature2::AddShaderResourceView(const UINT shaderRegister,
                                            const UINT registerSpace) {
 	D3D12_ROOT_PARAMETER param;
@@ -28,6 +33,9 @@ void RootSignature2::AddShaderResourceView(const UINT shaderRegister,
 	mRootParameters.emplace_back(param);
 }
 
+/// @brief アンオーダードアクセスビューを追加します
+/// @param shaderRegister シェーダーレジスタ番号
+/// @param registerSpace レジスタスペース番号	
 void RootSignature2::AddUnorderedAccessView(const UINT shaderRegister,
                                             const UINT registerSpace) {
 	D3D12_ROOT_PARAMETER param;
@@ -38,6 +46,9 @@ void RootSignature2::AddUnorderedAccessView(const UINT shaderRegister,
 	mRootParameters.emplace_back(param);
 }
 
+/// @brief ディスクリプタテーブルを追加します
+/// @param ranges ディスクリプタ範囲の配列へのポインタ
+/// @param numRanges ディスクリプタ範囲の数
 void RootSignature2::AddDescriptorTable(const D3D12_DESCRIPTOR_RANGE* ranges,
                                         const UINT numRanges) {
 	D3D12_ROOT_PARAMETER param;
@@ -53,11 +64,15 @@ void RootSignature2::AddDescriptorTable(const D3D12_DESCRIPTOR_RANGE* ranges,
 	mRootParameters.emplace_back(param);
 }
 
+/// @brief スタティックサンプラーを追加します
+/// @param samplerDesc スタティックサンプラーの記述子
 void RootSignature2::AddStaticSampler(
 	const D3D12_STATIC_SAMPLER_DESC& samplerDesc) {
 	mStaticSamplers.emplace_back(samplerDesc);
 }
 
+/// @brief ルートパラメータを追加します
+/// @param param1 ルートパラメータの記述子 (D3D12_ROOT_PARAMETER1)
 void RootSignature2::AddRootParameter(const D3D12_ROOT_PARAMETER1& param1) {
 	D3D12_ROOT_PARAMETER param = {};
 	param.ParameterType        = param1.ParameterType;
@@ -104,6 +119,9 @@ void RootSignature2::AddRootParameter(const D3D12_ROOT_PARAMETER1& param1) {
 	mRootParameters.emplace_back(param);
 }
 
+/// @brief ルートシグネチャを初期化します
+/// @param device D3D12デバイスへのポインタ
+/// @param desc ルートシグネチャの記述子
 void RootSignature2::Init(ID3D12Device* device, const RootSignatureDesc& desc) {
 	mRootSignatureDesc.NumParameters = static_cast<UINT>(desc.parameters.
 		size());
@@ -150,6 +168,8 @@ void RootSignature2::Init(ID3D12Device* device, const RootSignatureDesc& desc) {
 	}
 }
 
+/// @brief ルートシグネチャを構築します
+/// @param device D3D12デバイスへのポインタ
 void RootSignature2::Build(ID3D12Device* device) {
 	D3D12_ROOT_SIGNATURE_DESC desc;
 	desc.NumParameters = static_cast<UINT>(mRootParameters.size());
@@ -165,8 +185,8 @@ void RootSignature2::Build(ID3D12Device* device) {
 		               Channel::ResourceSystem);
 	}
 
-	 Microsoft::WRL::ComPtr < ID3DBlob > serializeRootSig;
-	 Microsoft::WRL::ComPtr < ID3DBlob > errorBlob;
+	Microsoft::WRL::ComPtr<ID3DBlob> serializeRootSig;
+	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
 
 	HRESULT hr = D3D12SerializeRootSignature(
 		&desc,
@@ -208,6 +228,8 @@ void RootSignature2::Build(ID3D12Device* device) {
 	}
 }
 
+/// @brief ルートシグネチャを取得します
+/// @return ルートシグネチャへのポインタ
 ID3D12RootSignature* RootSignature2::Get() const {
 	if (mRootSignature) {
 		return mRootSignature.Get();
@@ -223,10 +245,12 @@ ID3D12RootSignature* RootSignature2::Get() const {
 	return nullptr;
 }
 
+/// @brief スタティックサンプラーが存在するか確認します
 bool RootSignature2::HasStaticSampler() const {
 	return !mStaticSamplers.empty();
 }
 
+/// @brief ルートシグネチャを解放します
 void RootSignature2::Release() {
 	if (mRootSignature) {
 		mRootSignature.Reset();

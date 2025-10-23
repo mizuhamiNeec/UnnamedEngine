@@ -10,67 +10,87 @@
 #include <functional>
 #include <string>
 
+/// ウィンドウ情報構造体
 struct WindowInfo {
-	std::string title = "Unnamed Window";
-	uint32_t width = 300;
-	uint32_t height = 400;
-	DWORD style = WS_OVERLAPPEDWINDOW;
-	DWORD exStyle = 0;
-	HINSTANCE hInstance = nullptr;
+	std::string title     = "Unnamed Window";
+	uint32_t    width     = 300;
+	uint32_t    height    = 400;
+	DWORD       style     = WS_OVERLAPPEDWINDOW;
+	DWORD       exStyle   = 0;
+	HINSTANCE   hInstance = nullptr;
 	std::string className = "Unnamed WindowClass";
 };
 
-
+/// @brief ベースウィンドウクラス
 class BaseWindow {
 public:
 	using ResizeCallback = std::function<void(uint32_t width, uint32_t height)>;
 
+	/// @brief デストラクタ
 	virtual ~BaseWindow() {
-		if (hWnd_) {
-			SetWindowLongPtr(hWnd_, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(nullptr));
-			DestroyWindow(hWnd_);
-			hWnd_ = nullptr;
+		if (mHWnd) {
+			SetWindowLongPtr(mHWnd, GWLP_USERDATA,
+			                 reinterpret_cast<LONG_PTR>(nullptr));
+			DestroyWindow(mHWnd);
+			mHWnd = nullptr;
 		}
 	}
 
+	/// @brief ウィンドウを作成する
+	/// @param info ウィンドウ情報
+	/// @return 成功したらtrueを返す
 	virtual bool Create(WindowInfo info) = 0;
+
+	/// @brief メッセージを処理する
+	/// @return 続行するならtrueを返す
 	virtual bool ProcessMessage() = 0;
 
+	/// @brief リサイズコールバックを設定する
+	/// @param callback コールバック関数
 	virtual void SetResizeCallback(ResizeCallback callback) = 0;
 
-	HWND GetWindowHandle() const {
-		return hWnd_;
+	/// @brief ウィンドウハンドルを取得する
+	/// @return ウィンドウハンドル
+	[[nodiscard]] HWND GetWindowHandle() const {
+		return mHWnd;
 	}
 
-	uint32_t GetClientWidth() const {
-		return info_.width;
+	/// @brief クライアント幅を取得する
+	/// @return クライアント幅
+	[[nodiscard]] uint32_t GetClientWidth() const {
+		return mInfo.width;
 	}
 
-	uint32_t GetClientHeight() const {
-		return info_.height;
+	/// @brief クライアント高さを取得する
+	/// @return クライアント高さ
+	[[nodiscard]] uint32_t GetClientHeight() const {
+		return mInfo.height;
 	}
 
 protected:
-	static LRESULT StaticWindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) {
-		BaseWindow* pThis = nullptr;
+	static LRESULT StaticWindowProc(const HWND   hWnd, const UINT     msg,
+	                                const WPARAM wParam, const LPARAM lParam) {
+		BaseWindow* pThis;
 		if (msg == WM_NCCREATE) {
 			auto pCreate = reinterpret_cast<LPCREATESTRUCT>(lParam);
-			pThis = static_cast<BaseWindow*>(pCreate->lpCreateParams);
-			SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis));
-			pThis->hWnd_ = hWnd;
+			pThis        = static_cast<BaseWindow*>(pCreate->lpCreateParams);
+			SetWindowLongPtr(hWnd, GWLP_USERDATA,
+			                 reinterpret_cast<LONG_PTR>(pThis));
+			pThis->mHWnd = hWnd;
 		} else {
-			pThis = reinterpret_cast<BaseWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+			pThis = reinterpret_cast<BaseWindow*>(GetWindowLongPtr(
+				hWnd, GWLP_USERDATA));
 		}
 		if (pThis) {
 			return pThis->WindowProc(hWnd, msg, wParam, lParam);
 		}
 		return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
-	virtual LRESULT WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) = 0;
 
-	HWND hWnd_ = nullptr;
+	virtual LRESULT WindowProc(HWND   hWnd, UINT msg, WPARAM wParam,
+	                           LPARAM lParam) = 0;
 
-	WindowInfo info_;
-
-	ResizeCallback resizeCallback_;
+	HWND           mHWnd = nullptr;
+	WindowInfo     mInfo;
+	ResizeCallback mResizeCallback;
 };

@@ -10,7 +10,7 @@
 #include <imgui.h>
 #endif
 
-
+/// @brief コンストラクタ
 CopyImagePass::CopyImagePass(
 	ID3D12Device* device,
 	SrvManager*   srvManager
@@ -23,8 +23,10 @@ CopyImagePass::CopyImagePass(
 	Init();
 }
 
+/// @brief デストラクタ
 CopyImagePass::~CopyImagePass() = default;
 
+/// @brief 初期化
 void CopyImagePass::Init() {
 	CreateRootSignature();
 	CreatePipelineState();
@@ -34,9 +36,13 @@ void CopyImagePass::Init() {
 	mSrvIndex = mSrvManager->AllocateForTexture2D(); // テクスチャ用SRVのインデックスを確保
 }
 
+/// @brief 更新
+/// @param deltaTime 前回フレームからの経過時間（秒）
 void CopyImagePass::Update([[maybe_unused]] const float deltaTime) {
 }
 
+/// @brief 実行
+/// @param context ポストプロセスコンテキスト
 void CopyImagePass::Execute(const PostProcessContext& context) {
 	ID3D12GraphicsCommandList* commandList = context.commandList;
 
@@ -95,6 +101,7 @@ void CopyImagePass::Execute(const PostProcessContext& context) {
 	commandList->DrawInstanced(3, 1, 0, 0);
 }
 
+/// @brief ルートシグネチャの作成
 void CopyImagePass::CreateRootSignature() {
 	D3D12_DESCRIPTOR_RANGE1 range           = {};
 	range.RangeType                         = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -142,8 +149,8 @@ void CopyImagePass::CreateRootSignature() {
 	desc.Desc_1_1.Flags                      =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-	Microsoft::WRL::ComPtr<ID3DBlob> signatureBlob;
-	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+	ComPtr<ID3DBlob> signatureBlob;
+	ComPtr<ID3DBlob> errorBlob;
 
 	HRESULT hr = D3D12SerializeVersionedRootSignature(
 		&desc, &signatureBlob, &errorBlob);
@@ -156,6 +163,7 @@ void CopyImagePass::CreateRootSignature() {
 	assert(SUCCEEDED(hr));
 }
 
+/// @brief パイプラインステートの作成
 void CopyImagePass::CreatePipelineState() {
 	// 頂点には何もデータを入力しない
 	D3D12_INPUT_LAYOUT_DESC inputLayout = {};

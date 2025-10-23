@@ -6,12 +6,14 @@
 
 class SrvManager;
 
+/// @brief ブルームエフェクトのパラメータ構造体
 struct BloomParams {
 	float bloomStrength  = 2.0f;
 	float bloomThreshold = 0.0f;
 	float padding[2]; // パディング
 };
 
+/// @brief ブルームポストプロセスクラス
 class PPBloom : public IPostProcess {
 public:
 	PPBloom(ID3D12Device* device, SrvManager* srvManager);

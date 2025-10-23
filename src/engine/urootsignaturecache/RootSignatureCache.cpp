@@ -12,10 +12,16 @@
 namespace Unnamed {
 	constexpr std::string_view kChannel = "RootSignatureCache";
 
+	/// @brief ハッシュ値を組み合わせる
+	/// @param h 組み合わせるハッシュ値
+	/// @param v 新しいハッシュ値
 	static void HashCombine(size_t& h, const size_t v) {
 		h ^= v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
 	}
 
+	/// @brief RangeTypeをD3D12_DESCRIPTOR_RANGE_TYPEに変換する
+	/// @param type RangeType
+	/// @return D3D12_DESCRIPTOR_RANGE_TYPE
 	static D3D12_DESCRIPTOR_RANGE_TYPE ToD3D(const RangeType type) {
 		switch (type) {
 		case RangeType::SRV: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -26,10 +32,15 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief コンストラクタ
+	/// @param graphicsDevice グラフィックスデバイス
 	RootSignatureCache::RootSignatureCache(GraphicsDevice* graphicsDevice) :
 		mGraphicsDevice(graphicsDevice) {
 	}
 
+	/// @brief ルートシグネチャを取得または作成する
+	/// @param desc ルートシグネチャ記述子
+	/// @return ルートシグネチャハンドル
 	RootSignatureHandle RootSignatureCache::GetOrCreate(
 		const RootSignatureDesc& desc
 	) {
@@ -154,6 +165,9 @@ namespace Unnamed {
 		return RootSignatureHandle{index};
 	}
 
+	/// @brief ルートシグネチャを取得する
+	/// @param handle ルートシグネチャハンドル
+	/// @return ルートシグネチャ
 	ID3D12RootSignature* RootSignatureCache::Get(
 		const RootSignatureHandle handle) const {
 		if (handle.id >= mEntries.size()) {
@@ -162,11 +176,17 @@ namespace Unnamed {
 		return mEntries[handle.id].rootSignature.Get();
 	}
 
+	/// @brief ルートシグネチャ記述子を取得する
+	/// @param rootSignature ルートシグネチャハンドル
+	/// @return ルートシグネチャ記述子
 	D3D12_ROOT_SIGNATURE_DESC& RootSignatureCache::GetDesc(
 		const RootSignatureHandle rootSignature) {
 		return mEntries[rootSignature.id].rootSignatureDesc;
 	}
 
+	/// @brief ルートシグネチャ記述子のハッシュ値を計算する
+	/// @param desc ルートシグネチャ記述子
+	/// @return ハッシュ値
 	size_t RootSignatureCache::Hash(const RootSignatureDesc& desc) {
 		std::hash<uint64_t> hash;
 		size_t              h = hash(desc.flags);

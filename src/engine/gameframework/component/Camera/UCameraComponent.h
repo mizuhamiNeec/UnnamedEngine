@@ -6,6 +6,7 @@
 namespace Unnamed {
 	class TransformComponent;
 
+	/// @brief カメラコンポーネント
 	class UCameraComponent : public BaseComponent {
 	public:
 		static Mat4        View(const TransformComponent* transformComponent);

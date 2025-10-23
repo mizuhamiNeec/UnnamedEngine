@@ -7,21 +7,20 @@ struct Quaternion;
 
 /**
  * @brief 3次元ベクトル構造体
- * @details 3D座標、方向、速度などを表現するための基本的な数学構造体です
  */
 struct Vec3 final {
 	float x, y, z;
 
-	static const Vec3 zero;      ///< ゼロベクトル (0, 0, 0)
-	static const Vec3 one;       ///< 単位ベクトル (1, 1, 1)
-	static const Vec3 right;     ///< 右方向 (1, 0, 0)
-	static const Vec3 left;      ///< 左方向 (-1, 0, 0)
-	static const Vec3 up;        ///< 上方向 (0, 1, 0)
-	static const Vec3 down;      ///< 下方向 (0, -1, 0)
-	static const Vec3 forward;   ///< 前方向 (0, 0, 1)
-	static const Vec3 backward;  ///< 後方向 (0, 0, -1)
-	static const Vec3 max;       ///< 最大値
-	static const Vec3 min;       ///< 最小値
+	static const Vec3 zero;     ///< ゼロベクトル (0, 0, 0)
+	static const Vec3 one;      ///< 単位ベクトル (1, 1, 1)
+	static const Vec3 right;    ///< 右方向 (1, 0, 0)
+	static const Vec3 left;     ///< 左方向 (-1, 0, 0)
+	static const Vec3 up;       ///< 上方向 (0, 1, 0)
+	static const Vec3 down;     ///< 下方向 (0, -1, 0)
+	static const Vec3 forward;  ///< 前方向 (0, 0, 1)
+	static const Vec3 backward; ///< 後方向 (0, 0, -1)
+	static const Vec3 max;      ///< 最大値
+	static const Vec3 min;      ///< 最小値
 
 	/**
 	 * @brief デフォルトコンストラクタ
@@ -60,33 +59,33 @@ struct Vec3 final {
 	 * @return ベクトルの長さ
 	 */
 	float Length() const;
-	
+
 	/**
 	 * @brief ベクトルの長さの2乗を取得する
 	 * @return ベクトルの長さの2乗
 	 */
 	float SqrLength() const;
-	
+
 	/**
 	 * @brief 他のベクトルとの距離を計算する
 	 * @param other 対象ベクトル
 	 * @return 2点間の距離
 	 */
 	float Distance(const Vec3& other) const;
-	
+
 	/**
 	 * @brief 内積を計算する
 	 * @param other 対象ベクトル
 	 * @return 内積の値
 	 */
 	float Dot(const Vec3& other) const;
-	
+
 	/**
 	 * @brief 外積を計算する
 	 * @param other 対象ベクトル
 	 * @return 外積ベクトル
 	 */
-	Vec3  Cross(const Vec3& other) const;
+	Vec3 Cross(const Vec3& other) const;
 
 	/**
 	 * @brief ゼロベクトルかどうかを判定する
@@ -94,7 +93,7 @@ struct Vec3 final {
 	 * @return ゼロベクトルの場合true
 	 */
 	bool IsZero(float tolerance = 1e-6f) const;
-	
+
 	/**
 	 * @brief 他のベクトルと平行かどうかを判定する
 	 * @param other 対象ベクトル
@@ -106,7 +105,7 @@ struct Vec3 final {
 	 * @brief このベクトルを正規化する
 	 */
 	void Normalize();
-	
+
 	/**
 	 * @brief 正規化されたベクトルを取得する
 	 * @return 正規化されたベクトル
@@ -120,7 +119,7 @@ struct Vec3 final {
 	 * @return クランプされたベクトル
 	 */
 	Vec3 Clamp(Vec3 minVec, Vec3 maxVec) const;
-	
+
 	/**
 	 * @brief ベクトルの長さを範囲内にクランプする
 	 * @param minVec 最小長
@@ -128,7 +127,7 @@ struct Vec3 final {
 	 * @return クランプされたベクトル
 	 */
 	Vec3 ClampLength(float minVec, float maxVec);
-	
+
 	/**
 	 * @brief 法線ベクトルに対する反射ベクトルを計算する
 	 * @param normal 法線ベクトル

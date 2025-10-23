@@ -3,6 +3,7 @@
 #include <engine/gameframework/world/UWorld.h>
 
 namespace Unnamed {
+	/// @brief エンティティ内にサブワールドを埋め込めるコンポーネント。
 	class WorldInstanceComponent : public BaseComponent {
 	public:
 		std::string             worldPath;
@@ -15,7 +16,7 @@ namespace Unnamed {
 		void Serialize(JsonWriter& writer) const override;
 		void Deserialize(const JsonReader& reader) override;
 
-		bool LoadAndAtatch(UAssetManager* am, TransformComponent* parent);
+		bool LoadAndAttach(UAssetManager* am, TransformComponent* parent);
 
 		[[nodiscard]] std::string_view GetComponentName() const override;
 	};

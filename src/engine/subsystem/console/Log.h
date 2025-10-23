@@ -7,8 +7,11 @@
 #include <engine/subsystem/interface/ServiceLocator.h>
 #include <core/UnnamedMacro.h>
 
-namespace
-{
+namespace {
+	/// @brief メッセージを出力します（フォールバック用）
+	/// @param level ログレベル
+	/// @param channel チャンネル名
+	/// @param message メッセージ本文
 	void Print(
 		const Unnamed::LogLevel level,
 		const std::string_view  channel,
@@ -17,7 +20,8 @@ namespace
 		std::string out;
 
 		// レベル・チャンネルが空の場合はチャンネル名を出力しない
-		if (level != Unnamed::LogLevel::None && !Unnamed::kChannelNone.empty()) {
+		if (level != Unnamed::LogLevel::None && !Unnamed::kChannelNone.
+			empty()) {
 			out =
 				"[" +
 				std::string(channel) +
@@ -35,20 +39,32 @@ namespace
 		OutputDebugStringA("\n");
 	}
 
+	/// @brief パスからベースネームを取得します
+	/// @param path ファイルパス
+	/// @return ベースネーム
 	constexpr std::string_view BaseName(std::string_view path) {
 		const size_t pos1 = path.find_last_of('/');
 		const size_t pos2 = path.find_last_of('\\');
-		const size_t pos = (pos1 == std::string_view::npos) ? pos2
-			: (pos2 == std::string_view::npos) ? pos1
-			: std::max(pos1, pos2);
+		const size_t pos  = (pos1 == std::string_view::npos) ?
+			                   pos2 :
+			                   (pos2 == std::string_view::npos) ?
+			                   pos1 :
+			                   std::max(pos1, pos2);
 		return (pos == std::string_view::npos) ? path : path.substr(pos + 1);
 	}
 
+	/// @brief コアログ出力関数
+	/// @tparam Args フォーマット引数の型パック
+	/// @param level ログレベル
+	/// @param channel チャンネル名
+	/// @param location ソース位置情報
+	/// @param fmt フォーマット文字列
+	/// @param args フォーマット引数
 	template <typename... Args>
 	void LogCore(
-		const Unnamed::LogLevel level,
-		const std::string_view& channel,
-		const std::source_location location,
+		const Unnamed::LogLevel           level,
+		const std::string_view&           channel,
+		const std::source_location        location,
 		const std::format_string<Args...> fmt, Args&&... args
 	) {
 		auto* console = ServiceLocator::Get<Unnamed::ConsoleSystem>();

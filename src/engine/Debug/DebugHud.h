@@ -6,6 +6,7 @@ class GameTime;
 constexpr Vec4 kDebugHudTextColor    = {0.71f, 0.71f, 0.71f, 1.0f};
 constexpr Vec4 kDebugHudOutlineColor = {0.0f, 0.0f, 0.0f, 0.75f};
 
+/// @brief デバッグ用HUD表示クラス
 class DebugHud {
 public:
 	explicit DebugHud(GameTime* time) : mTime(time) {

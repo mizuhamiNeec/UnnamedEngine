@@ -8,13 +8,20 @@
 #include "runtime/render/resources/DebugDumpShader.h"
 
 namespace Unnamed {
+	/// @brief ハッシュ値を組み合わせます
+	/// @param h 元のハッシュ値
+	/// @param v 組み合わせるハッシュ値
 	static void HashCombine(size_t& h, const size_t v) {
 		h ^= v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
 	}
 
+	/// @brief メモリブロックのハッシュ値を計算します
+	/// @param p メモリブロックの先頭ポインタ
+	/// @param n メモリブロックのサイズ（バイト数）
+	/// @return ハッシュ値
 	static size_t MemHash(const void* p, size_t n) {
-		const uint8_t* s = static_cast<const uint8_t*>(p);
-		size_t         h = 14695981039346656037ULL;
+		auto   s = static_cast<const uint8_t*>(p);
+		size_t h = 14695981039346656037ULL;
 		for (size_t i = 0; i < n; ++i) {
 			h ^= s[i];
 			h *= 1099511628211ULL;
@@ -22,12 +29,18 @@ namespace Unnamed {
 		return h;
 	}
 
+	/// @brief コンストラクタ
+	/// @param graphicsDevice グラフィックスデバイスへの参照
+	/// @param rootSignatureCache ルートシグネチャキャッシュへの参照
 	UPipelineCache::UPipelineCache(
 		GraphicsDevice* graphicsDevice, RootSignatureCache* rootSignatureCache
 	) : mGraphicsDevice(graphicsDevice),
 	    mRootSignatureCache(rootSignatureCache) {
 	}
 
+	/// @brief パイプラインステートオブジェクトを取得または作成します
+	/// @param desc パイプラインステートの記述子
+	/// @return パイプラインステートオブジェクトのハンドル
 	PsoHandle UPipelineCache::GetOrCreate(const PipelineDesc& desc) {
 		if (!desc.vs || !desc.ps || !desc.vs->blob || !desc.ps->blob) {
 			return {};
@@ -106,6 +119,9 @@ namespace Unnamed {
 		return PsoHandle{index};
 	}
 
+	/// @brief パイプラインステートオブジェクトを取得します
+	/// @param handle パイプラインステートオブジェクトのハンドル
+	/// @return パイプラインステートオブジェクトへのポインタ、存在しない場合はnullptr
 	ID3D12PipelineState* UPipelineCache::Get(const PsoHandle handle) const {
 		if (handle.id >= mEntries.size()) {
 			return nullptr;
@@ -113,6 +129,9 @@ namespace Unnamed {
 		return mEntries[handle.id].pso.Get();
 	}
 
+	/// @brief パイプライン記述子のハッシュ値を計算します
+	/// @param desc パイプライン記述子
+	/// @return ハッシュ値
 	size_t UPipelineCache::Hash(const PipelineDesc& desc) {
 		constexpr std::hash<uint64_t>    hashInt;
 		constexpr std::hash<std::string> hashString;

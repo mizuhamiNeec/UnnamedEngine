@@ -13,6 +13,9 @@ namespace fs = std::filesystem;
 namespace Unnamed {
 	constexpr std::string_view kChannel = "UAssetManager";
 
+	/// @brief UASSET_TYPEを文字列に変換します
+	/// @param e 変換するUASSET_TYPE
+	/// @return 変換後の文字列
 	const char* ToString(const UASSET_TYPE e) {
 		switch (e) {
 		case UASSET_TYPE::UNKNOWN: return "UNKNOWN";
@@ -25,6 +28,7 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief コンストラクタ
 	UAssetManager::UAssetManager() = default;
 
 	/// @brief アセットローダーを登録します
@@ -92,6 +96,11 @@ namespace Unnamed {
 		return id;
 	}
 
+	/// @brief ランタイムアセットを作成します
+	/// @param type アセットの型
+	/// @param name アセットの名前
+	/// @param payload アセットのペイロード
+	/// @param dependencies アセットの依存関係
 	template <class T>
 	AssetID UAssetManager::CreateRuntimeAsset(
 		const UASSET_TYPE           type,
@@ -111,22 +120,22 @@ namespace Unnamed {
 		SetDependencies(id, dependencies);
 		return id;
 	}
-
+	
 	template AssetID UAssetManager::CreateRuntimeAsset<TextureAssetData>(
 		UASSET_TYPE, std::string,
 		TextureAssetData&&, const std::vector<AssetID>&
 	);
-
+	
 	template AssetID UAssetManager::CreateRuntimeAsset<ShaderAssetData>(
 		UASSET_TYPE, std::string,
 		ShaderAssetData&&, const std::vector<AssetID>&
 	);
-
+	
 	template AssetID UAssetManager::CreateRuntimeAsset<MaterialAssetData>(
 		UASSET_TYPE, std::string,
 		MaterialAssetData&&, const std::vector<AssetID>&
 	);
-
+	
 	template AssetID UAssetManager::CreateRuntimeAsset<MeshAssetData>(
 		UASSET_TYPE, std::string,
 		MeshAssetData&&, const std::vector<AssetID>&
@@ -137,6 +146,8 @@ namespace Unnamed {
 		SoundAssetData&&, const std::vector<AssetID>&
 	);
 
+	/// @brief アセットの参照カウントを増加させます
+	/// @param id アセットID
 	void UAssetManager::AddRef(const AssetID id) {
 		std::scoped_lock lock(mMutex);
 		if (id == kInvalidAssetID || id >= mNextID) {
@@ -145,6 +156,8 @@ namespace Unnamed {
 		mNodes[id].meta.strongRefs++;
 	}
 
+	/// @brief アセットの参照カウントを減少させます
+	/// @param id アセットID
 	void UAssetManager::Release(const AssetID id) {
 		std::scoped_lock lock(mMutex);
 		if (id == kInvalidAssetID || id >= mNextID) {
@@ -156,6 +169,9 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief アセットの依存関係を設定します
+	/// @param id アセットID
+	/// @param dependencies 依存関係のアセットIDリスト
 	void UAssetManager::SetDependencies(
 		AssetID                     id,
 		const std::vector<AssetID>& dependencies
@@ -184,12 +200,18 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief アセットのメタデータを取得します
+	/// @param id アセットID
+	/// @return アセットのメタデータへの参照
 	const AssetMetaData& UAssetManager::Meta(const AssetID id) const {
 		std::scoped_lock lock(mMutex);
 		UASSERT(id < mNextID);
 		return mNodes[id].meta;
 	}
 
+	/// @brief アセットのペイロードを取得します
+	/// @param id アセットID
+	/// @return アセットのペイロードへのポインタ（型が異なる場合はnullptr）
 	template <class T>
 	const T* UAssetManager::Get(const AssetID id) const {
 		std::scoped_lock lock(mMutex);
@@ -216,6 +238,9 @@ namespace Unnamed {
 		AssetID id
 	) const;
 
+	/// @brief アセットの依存関係を取得します
+	/// @param id アセットID
+	/// @return 依存関係のアセットIDリストへの参照
 	const std::vector<AssetID>& UAssetManager::Dependencies(
 		const AssetID id) const {
 		std::scoped_lock lock(mMutex);
@@ -223,6 +248,9 @@ namespace Unnamed {
 		return mNodes[id].dependencies;
 	}
 
+	/// @brief アセットを参照しているアセットのリストを取得します
+	/// @param id アセットID
+	/// @return 参照しているアセットIDリストへの参照
 	const std::vector<AssetID>& UAssetManager::Dependents(
 		const AssetID id) const {
 		std::scoped_lock lock(mMutex);
@@ -230,6 +258,9 @@ namespace Unnamed {
 		return mNodes[id].dependents;
 	}
 
+	/// @brief アセットを再読み込みします
+	/// @param id アセットID
+	/// @return 成功したらtrueを返す
 	bool UAssetManager::Reload(const AssetID id) {
 		std::scoped_lock lock(mMutex);
 		if (id == kInvalidAssetID || id >= mNextID) {
@@ -268,11 +299,15 @@ namespace Unnamed {
 		return false;
 	}
 
-	void UAssetManager::SubscribeReload(ReloadCallback callback) {
+	/// @brief アセット再読み込みのコールバックを登録します
+	/// @param callback コールバック関数
+	void UAssetManager::RegisterReload(ReloadCallback callback) {
 		std::scoped_lock lock(mMutex);
 		mReloadCallbacks.emplace_back(std::move(callback));
 	}
 
+	/// @brief 参照されていないアセットをアンロードします
+	/// @return アンロードしたアセットの数
 	size_t UAssetManager::UnloadUnused() {
 		std::scoped_lock lock(mMutex);
 		size_t           freed = 0;
@@ -304,18 +339,26 @@ namespace Unnamed {
 		return freed;
 	}
 
+	/// @brief パスからアセットIDを検索します
+	/// @param path アセットのパス
+	/// @return アセットID（見つからなかった場合はkInvalidAssetID）
 	AssetID UAssetManager::FindByPath(const std::string_view path) const {
 		std::scoped_lock lock(mMutex);
 		const auto       it = mPathToID.find(std::string(path));
 		return it != mPathToID.end() ? it->second : kInvalidAssetID;
 	}
 
+	/// @brief 名前からアセットIDを検索します
+	/// @param name アセットの名前
+	/// @return アセットID（見つからなかった場合はkInvalidAssetID）
 	AssetID UAssetManager::FindByName(const std::string_view name) const {
 		std::scoped_lock lock(mMutex);
 		const auto       it = mNameToID.find(std::string(name));
 		return it != mNameToID.end() ? it->second : kInvalidAssetID;
 	}
 
+	/// @brief すべてのアセットIDを取得します
+	/// @return アセットIDのリスト
 	std::vector<AssetID> UAssetManager::AllAssets() const {
 		std::scoped_lock     lock(mMutex);
 		std::vector<AssetID> ids;
@@ -326,6 +369,8 @@ namespace Unnamed {
 		return ids;
 	}
 
+	/// @brief 新しいアセットIDを割り当てます
+	/// @return 割り当てられたアセットID
 	AssetID UAssetManager::AllocateID() {
 		// 0は無効
 		if (mNextID >= mNodes.size()) {
@@ -334,6 +379,10 @@ namespace Unnamed {
 		return mNextID++;
 	}
 
+	/// @brief パスからアセットスロットを検索または作成します
+	/// @param path アセットのパス
+	/// @param type アセットの型
+	/// @return アセットID
 	AssetID UAssetManager::FindOrCreateSlotByPath(
 		const std::string& path,
 		const UASSET_TYPE  type
@@ -357,6 +406,8 @@ namespace Unnamed {
 		return id;
 	}
 
+	/// @brief 指定したアセットを参照しているアセット情報を再構築します
+	/// @param id アセットID
 	void UAssetManager::RebuildDependents(AssetID id) {
 		std::scoped_lock lock(mMutex);
 		if (id == kInvalidAssetID || id >= mNextID) {
@@ -380,6 +431,7 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief すべてのアセットの参照情報を再構築します
 	void UAssetManager::RebuildAllDependents() {
 		std::scoped_lock lock(mMutex);
 		for (AssetID i = 1; i < mNextID; ++i) {
@@ -395,6 +447,9 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief パスを正規化します（バックスラッシュをスラッシュに変換）
+	/// @param path 正規化するパス
+	/// @return 正規化後のパス
 	std::string UAssetManager::NormalizePath(std::string path) {
 		for (auto& c : path) {
 			if (c == '\\') {

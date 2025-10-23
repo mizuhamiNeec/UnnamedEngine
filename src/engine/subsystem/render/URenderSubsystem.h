@@ -19,12 +19,14 @@ namespace Unnamed {
 	class UPipelineCache;
 	class UWorld;
 
+	/// @brief フレームコンテキスト構造体
 	struct LastSubmit {
 		Microsoft::WRL::ComPtr<ID3D12Fence> fence;
-		uint64_t                            value = 0;
-		bool                                valid = false;
+		uint64_t            value = 0;
+		bool                valid = false;
 	};
 
+	/// @brief レンダーサブシステムクラス
 	class URenderSubsystem : public ISubsystem {
 	public:
 		URenderSubsystem(
@@ -70,8 +72,8 @@ namespace Unnamed {
 		};
 
 		struct TempCB {
-			Microsoft::WRL::ComPtr<ID3D12Resource> resource;
-			D3D12_GPU_VIRTUAL_ADDRESS              gpu = 0;
+			Microsoft::WRL::ComPtr<ID3D12Resource>    resource;
+			D3D12_GPU_VIRTUAL_ADDRESS gpu = 0;
 		};
 
 		struct TransientBin {
@@ -87,7 +89,6 @@ namespace Unnamed {
 			const void* src, size_t bytes
 		) const;
 
-	private:
 		GraphicsDevice*        mGraphicsDevice        = nullptr;
 		RenderResourceManager* mRenderResourceManager = nullptr;
 		ShaderLibrary*         mShaderLibrary         = nullptr;
@@ -101,7 +102,7 @@ namespace Unnamed {
 		/// @brief レンダリングするアイテムの情報
 		struct RenderItem {
 			Mat4              world;
-			MeshHandle        meshHandle;  // 共有メッシュのハンドル
+			MeshHandle        meshHandle; // 共有メッシュのハンドル
 			UMaterialRuntime* material;
 
 			float                depthVS     = 0.0f;

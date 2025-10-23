@@ -1,4 +1,3 @@
-
 #include "engine/Sprite/Sprite.h"
 
 #include "engine/Sprite/SpriteCommon.h"
@@ -6,16 +5,15 @@
 
 #include "engine/renderer/D3D12.h"
 #include "engine/Window/WindowManager.h"
-//-----------------------------------------------------------------------------
-// Purpose : デストラクタ
-//-----------------------------------------------------------------------------
+
+/// @brief スプライトのインデックスデータ
 Sprite::~Sprite() = default;
 
-//-----------------------------------------------------------------------------
-// Purpose : スプライトを初期化します
-//-----------------------------------------------------------------------------
+/// @brief スプライトの初期化
+/// @param spriteCommon スプライト共通情報へのポインタ
+/// @param textureFilePath テクスチャファイルパス
 void Sprite::Init(SpriteCommon*      spriteCommon,
-				  const std::string& textureFilePath) {
+                  const std::string& textureFilePath) {
 	this->spriteCommon_    = spriteCommon;
 	this->textureFilePath_ = textureFilePath;
 
@@ -93,12 +91,10 @@ void Sprite::Init(SpriteCommon*      spriteCommon,
 	AdjustTextureSize();
 
 	Console::Print("スプライトの初期化に成功しました。\n", kConTextColorCompleted,
-				   Channel::Engine);
+	               Channel::Engine);
 }
 
-//-----------------------------------------------------------------------------
-// Purpose : スプライトの更新処理
-//-----------------------------------------------------------------------------
+/// @brief スプライトの頂点情報を更新
 void Sprite::Update() {
 	float left   = -anchorPoint_.x;
 	float right  = 1.0f - anchorPoint_.x;
@@ -133,13 +129,11 @@ void Sprite::Update() {
 	//vertices_[5].uv = { texRight, texBottom };  // 右下 (追加)
 }
 
-//-----------------------------------------------------------------------------
-// Purpose : スプライトの描画処理
-//-----------------------------------------------------------------------------
+/// @brief スプライトの描画
 void Sprite::Draw() const {
 	{
 		vertexBuffer_->Update(vertices_.data(),
-							  sizeof(Vertex) * vertices_.size());
+		                      sizeof(Vertex) * vertices_.size());
 		indexBuffer_->Update(indices, sizeof(uint16_t) * kSpriteVertexCount);
 
 		// uvTransformから行列を作成
@@ -152,7 +146,7 @@ void Sprite::Draw() const {
 
 		// 各種行列を作成
 		const Mat4 worldMat = Mat4::Affine(transform_.scale, transform_.rotate,
-										   transform_.translate);
+		                                   transform_.translate);
 		const Mat4 viewMat = Mat4::identity;
 		const Mat4 projMat = Mat4::MakeOrthographicMat(
 			0.0f,
@@ -180,11 +174,11 @@ void Sprite::Draw() const {
 
 	// 定数バッファの設定
 	spriteCommon_->GetD3D12()->GetCommandList()->
-				   SetGraphicsRootConstantBufferView(
-					   0, materialResource_->GetAddress());
+	               SetGraphicsRootConstantBufferView(
+		               0, materialResource_->GetAddress());
 	spriteCommon_->GetD3D12()->GetCommandList()->
-				   SetGraphicsRootConstantBufferView(
-					   1, transformation_->GetAddress());
+	               SetGraphicsRootConstantBufferView(
+		               1, transformation_->GetAddress());
 
 	// インデックスバッファの設定
 	const D3D12_INDEX_BUFFER_VIEW indexBufferView = indexBuffer_->View();
@@ -196,111 +190,150 @@ void Sprite::Draw() const {
 		6, 1, 0, 0, 0);
 }
 
+/// @brief スプライトのテクスチャを変更
+/// @param textureFilePath テクスチャファイルパス
 void Sprite::ChangeTexture(const std::string& textureFilePath) {
 	// テクスチャのパスを変更
 	this->textureFilePath_ = textureFilePath;
 }
 
+/// @brief 座標の取得
 Vec3 Sprite::GetPos() const {
 	return transform_.translate;
 }
 
+/// @brief 回転の取得
 Vec3 Sprite::GetRot() const {
 	return transform_.rotate;
 }
 
+/// @brief サイズの取得
 Vec3 Sprite::GetSize() const {
 	return transform_.scale;
 }
 
+/// @brief アンカーポイントの取得
 Vec2 Sprite::GetAnchorPoint() const {
 	return anchorPoint_;
 }
 
+/// @brief 色の取得
 Vec4 Sprite::GetColor() const {
 	return materialData_->color;
 }
 
+/// @brief テクスチャの左上座標の取得
 Vec2 Sprite::GetTextureLeftTop() const {
 	return textureLeftTop;
 }
 
+/// @brief テクスチャサイズの取得
 Vec2 Sprite::GetTextureSize() const {
 	return textureSize;
 }
 
+/// @brief X反転しているか取得
 bool Sprite::GetIsFlipX() const {
 	return isFlipX_;
 }
 
+/// @brief Y反転しているか取得
 bool Sprite::GetIsFlipY() const {
 	return isFlipY_;
 }
 
+/// @brief UV座標の取得
 Vec2 Sprite::GetUvPos() {
 	return {uvTransform_.translate.x, uvTransform_.translate.y};
 }
 
+/// @brief UVサイズの取得
 Vec2 Sprite::GetUvSize() {
 	return {uvTransform_.scale.x, uvTransform_.scale.y};
 }
 
+/// @brief UV回転の取得
 float Sprite::GetUvRot() const {
 	return uvTransform_.rotate.z;
 }
 
+/// @brief 座標の設定
+/// @param newPos 新しい座標
 void Sprite::SetPos(const Vec3& newPos) {
 	transform_.translate = newPos;
 }
 
+/// @brief 回転の設定
+/// @param newRot 新しい回転
 void Sprite::SetRot(const Vec3& newRot) {
 	transform_.rotate = newRot;
 }
 
+/// @brief サイズの設定
+/// @param newSize 新しいサイズ
 void Sprite::SetSize(const Vec3& newSize) {
 	transform_.scale = newSize;
 }
 
+/// @brief アンカーポイントの設定
+/// @param anchorPoint 新しいアンカーポイント
 void Sprite::SetAnchorPoint(const Vec2& anchorPoint) {
 	this->anchorPoint_ = anchorPoint;
 }
 
+/// @brief 色の設定
+/// @param color 新しい色
 void Sprite::SetColor(const Vec4 color) const {
 	materialData_->color = color;
 }
 
+/// @brief X反転の設定
+/// @param isFlipX X反転フラグ
 void Sprite::SetIsFlipX(const bool isFlipX) {
 	isFlipX_ = isFlipX;
 }
 
+/// @brief Y反転の設定
+/// @param isFlipY Y反転フラグ
 void Sprite::SetIsFlipY(const bool isFlipY) {
 	isFlipY_ = isFlipY;
 }
 
+/// @brief テクスチャの左上座標の設定
+/// @param newTextureLeftTop 新しいテクスチャ左上座標
 void Sprite::SetTextureLeftTop(const Vec2& newTextureLeftTop) {
 	this->textureLeftTop = newTextureLeftTop;
 }
 
+/// @brief テクスチャサイズの設定
+/// @param newTextureSize 新しいテクスチャサイズ
 void Sprite::SetTextureSize(const Vec2& newTextureSize) {
 	this->textureSize = newTextureSize;
 }
 
+/// @brief UV座標の設定
+/// @param newPos 新しいUV座標
 void Sprite::SetUvPos(const Vec2& newPos) {
 	for (uint32_t i = 0; i < 2; ++i) {
 		uvTransform_.translate[i] = newPos[i];
 	}
 }
 
+/// @brief UVサイズの設定
+/// @param newSize 新しいUVサイズ
 void Sprite::SetUvSize(const Vec2& newSize) {
 	for (uint32_t i = 0; i < 2; ++i) {
 		uvTransform_.scale[i] = newSize[i];
 	}
 }
 
+/// @brief UV回転の設定
+/// @param newRot 新しいUV回転
 void Sprite::SetUvRot(const float& newRot) {
 	uvTransform_.rotate.z = newRot;
 }
 
+/// @brief テクスチャサイズに合わせてスプライトのサイズを調整
 void Sprite::AdjustTextureSize() {
 	transform_.scale.x = textureSize.x;
 	transform_.scale.y = textureSize.y;

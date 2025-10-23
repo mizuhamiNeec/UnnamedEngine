@@ -5,19 +5,20 @@
 
 #include <wrl/client.h>
 
+/// @brief インデックスバッファクラス
 class IndexBuffer {
 public:
-	IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, size_t size, const void* pInitData);
+	IndexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, size_t size,
+	            const void*                                 pInitData);
 	D3D12_INDEX_BUFFER_VIEW View();
-	void Update(const void* pInitData, size_t size) const;
-	size_t GetSize() const;
-	std::vector<uint32_t>& GetIndices() const;
+	void                    Update(const void* pInitData, size_t size) const;
+	size_t                  GetSize() const;
+	std::vector<uint32_t>&  GetIndices() const;
 
 private:
-
-	Microsoft::WRL::ComPtr<ID3D12Device> mDevice;
+	Microsoft::WRL::ComPtr<ID3D12Device>   mDevice;
 	Microsoft::WRL::ComPtr<ID3D12Resource> mBuffer;
-	D3D12_INDEX_BUFFER_VIEW mView;
+	D3D12_INDEX_BUFFER_VIEW                mView;
 
 	size_t mSize = 0;
 

@@ -1,20 +1,25 @@
 ﻿#include <engine/uphysics/BVHBuilder.h>
 
 namespace UPhysics {
+	/// @brief BVH構築
+	/// @param triangles 三角形リスト
+	/// @param outNodes 出力ノードリスト
+	/// @param outTriIndices 出力三角形インデックスリスト
+	/// @param leafSize リーフノードあたりの最大三角形数
 	void BVHBuilder::Build(
 		const std::vector<Unnamed::Triangle>& triangles,
-		std::vector<FlatNode>&       outNodes,
-		std::vector<uint32_t>&       outTriIndices,
-		const uint32_t               leafSize
+		std::vector<FlatNode>&                outNodes,
+		std::vector<uint32_t>&                outTriIndices,
+		const uint32_t&                        leafSize
 	) {
 		mLeafSize = leafSize;
-		size_t n  = triangles.size();
+		const size_t n  = triangles.size();
 		mTriInfos.resize(n);
 		mTriIndices.resize(n);
 
 		for (size_t i = 0; i < n; ++i) {
 			const Unnamed::Triangle& t    = triangles[i];
-			TriInfo&        info = mTriInfos[i];
+			TriInfo&                 info = mTriInfos[i];
 			info.bounds.Expand(t.v0);
 			info.bounds.Expand(t.v1);
 			info.bounds.Expand(t.v2);
@@ -31,9 +36,14 @@ namespace UPhysics {
 		outTriIndices = std::move(mTriIndices);
 	}
 
+	/// @brief BVHノードを再帰的に構築します
+	/// @param start 三角形インデックスリストの開始位置
+	/// @param end 三角形インデックスリストの終了位置
+	/// @param depth 現在の深度
+	/// @return ノードインデックス
 	uint32_t BVHBuilder::Recurse(
-		uint32_t start, uint32_t end,
-		int      depth
+		const uint32_t& start, const uint32_t& end,
+		const int&      depth
 	) {
 		FlatNode node      = {};
 		uint32_t nodeIndex = static_cast<uint32_t>(mNodes.size());
@@ -45,7 +55,7 @@ namespace UPhysics {
 		}
 		mNodes[nodeIndex].bounds = bounds;
 
-		uint32_t triCount = end - start;
+		const uint32_t triCount = end - start;
 		if (triCount <= mLeafSize) {
 			mNodes[nodeIndex].leftFirst = start;
 			mNodes[nodeIndex].primCount = static_cast<uint16_t>(triCount);
@@ -53,8 +63,8 @@ namespace UPhysics {
 		}
 
 		// ノードの分割
-		int      axis = bounds.LongestAxis();
-		uint32_t mid;
+		const int axis = bounds.LongestAxis();
+		uint32_t  mid;
 		SAHSplit(start, end, axis, mid);
 
 		// 分割失敗
@@ -72,14 +82,19 @@ namespace UPhysics {
 		return nodeIndex;
 	}
 
+	/// @brief SAHによるノード分割
+	/// @param start 三角形インデックスリストの開始位置
+	/// @param end 三角形インデックスリストの終了位置
+	/// @param axis 分割軸
+	/// @param outMid 出力ミッドインデックス
 	void BVHBuilder::SAHSplit(
-		uint32_t start, uint32_t end,
-		int      axis, uint32_t& outMid
+		const uint32_t& start, const uint32_t& end,
+		const int&      axis, uint32_t&        outMid
 	) {
-		const int kBucket = 12;
+		static constexpr int kBucket = 12;
 		struct Bucket {
-			Unnamed::AABB     bounds;
-			uint32_t count = 0;
+			Unnamed::AABB bounds;
+			uint32_t      count = 0;
 		};
 		Bucket buckets[kBucket] = {};
 
@@ -88,27 +103,30 @@ namespace UPhysics {
 			centerBounds.Expand(mTriInfos[mTriIndices[i]].center);
 		}
 
-		float minC  = (&centerBounds.min.x)[axis];
-		float maxC  = (&centerBounds.max.x)[axis];
-		float scale = (maxC - minC > 1e-5f) ? (kBucket / (maxC - minC)) : 0.0f;
+		const float minC  = (&centerBounds.min.x)[axis];
+		const float maxC  = (&centerBounds.max.x)[axis];
+		const float scale = (maxC - minC > 1e-5f) ?
+			                    (kBucket / (maxC - minC)) :
+			                    0.0f;
 
 		// バケットに三角形を振り分け
 		for (uint32_t i = start; i < end; ++i) {
-			float c = (&mTriInfos[mTriIndices[i]].center.x)[axis];
-			int b = std::min(kBucket - 1, static_cast<int>((c - minC) * scale));
+			const float c = (&mTriInfos[mTriIndices[i]].center.x)[axis];
+			const int   b = std::min(kBucket - 1,
+			                       static_cast<int>((c - minC) * scale));
 			buckets[b].bounds.Expand(mTriInfos[mTriIndices[i]].bounds);
 			buckets[b].count++;
 		}
 
 		// 前方後方累積でコストを計算a
-		float    cost[kBucket - 1];
-		Unnamed::AABB     left[kBucket - 1];
-		Unnamed::AABB     right[kBucket - 1];
-		uint32_t leftCount[kBucket - 1];
-		uint32_t rightCount[kBucket - 1];
+		float         cost[kBucket - 1];
+		Unnamed::AABB left[kBucket - 1];
+		Unnamed::AABB right[kBucket - 1];
+		uint32_t      leftCount[kBucket - 1];
+		uint32_t      rightCount[kBucket - 1];
 
-		Unnamed::AABB     t;
-		uint32_t c = 0;
+		Unnamed::AABB t;
+		uint32_t      c = 0;
 		for (int i = 0; i < kBucket - 1; ++i) {
 			t.Expand(buckets[i].bounds);
 			c += buckets[i].count;
@@ -125,26 +143,28 @@ namespace UPhysics {
 		}
 		for (int i = 0; i < kBucket - 1; ++i) {
 			cost[i] = 0.125f +
-				(leftCount[i]
-					 ? left[i].SurfaceArea() * static_cast<float>(leftCount[i])
-					 : 0.0f) +
-				(rightCount[i]
-					 ? right[i].SurfaceArea() * static_cast<float>(rightCount[
-						 i])
-					 : 0.0f);
+				(leftCount[i] ?
+					 left[i].SurfaceArea() * static_cast<float>(leftCount[i]) :
+					 0.0f) +
+				(rightCount[i] ?
+					 right[i].SurfaceArea() * static_cast<float>(rightCount[
+						 i]) :
+					 0.0f);
 		}
 
 		// 最小コストのバケットをMidにする
-		int   best     = int(std::min_element(cost, cost + kBucket - 1) - cost);
-		float splitPos = minC + static_cast<float>(best + 1) / scale;
+		const int best = static_cast<int>(std::min_element(
+				cost, cost + kBucket - 1) -
+			cost);
+		const float splitPos = minC + static_cast<float>(best + 1) / scale;
 
-		size_t mid_raw = std::partition(
+		const size_t midRaw = std::partition(
 			mTriIndices.begin() + start,
 			mTriIndices.begin() + end,
 			[&](const uint32_t index) {
 				return (&mTriInfos[index].center.x)[axis] < splitPos;
 			}
 		) - mTriIndices.begin();
-		outMid = static_cast<uint32_t>(mid_raw); // 明示的キャストで警告回避
+		outMid = static_cast<uint32_t>(midRaw); // 明示的キャストで警告回避
 	}
 }

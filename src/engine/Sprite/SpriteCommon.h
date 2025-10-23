@@ -6,6 +6,7 @@
 
 class D3D12;
 
+/// @brief スプライト共通クラス
 class SpriteCommon {
 public:
 	void Init(D3D12* d3d12);
@@ -21,7 +22,7 @@ public:
 	}
 
 private:
-	D3D12* d3d12_ = nullptr;
+	D3D12*                                d3d12_                = nullptr;
 	std::unique_ptr<RootSignatureManager> rootSignatureManager_ = nullptr;
-	PipelineState pipelineState_;
+	PipelineState                         pipelineState_;
 };

@@ -4,6 +4,7 @@
 #include "IPlatformEvents.h"
 
 namespace Unnamed {
+	/// @brief プラットフォームイベント実装クラス
 	class PlatformEventsImpl : public IPlatformEvents {
 	public:
 		bool AddListener(IWin32MsgListener* listener) override;

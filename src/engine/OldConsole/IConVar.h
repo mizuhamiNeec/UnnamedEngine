@@ -1,17 +1,18 @@
 #pragma once
 #include <string>
 
+/// @brief コンソール変数インターフェースクラス
 class IConVar {
 public:
 	virtual ~IConVar() = default;
 
-	[[nodiscard]] virtual std::string GetValueAsString() const = 0;
-	[[nodiscard]] virtual float GetValueAsFloat() const = 0;
-	[[nodiscard]] virtual double GetValueAsDouble() const = 0;
-	[[nodiscard]] virtual int GetValueAsInt() const = 0;
-	[[nodiscard]] virtual bool GetValueAsBool() const = 0;
-	[[nodiscard]] virtual Vec3 GetValueAsVec3() const = 0;
-	[[nodiscard]] virtual std::string GetTypeAsString() const = 0;
+	[[nodiscard]] virtual std::string        GetValueAsString() const = 0;
+	[[nodiscard]] virtual float              GetValueAsFloat() const = 0;
+	[[nodiscard]] virtual double             GetValueAsDouble() const = 0;
+	[[nodiscard]] virtual int                GetValueAsInt() const = 0;
+	[[nodiscard]] virtual bool               GetValueAsBool() const = 0;
+	[[nodiscard]] virtual Vec3               GetValueAsVec3() const = 0;
+	[[nodiscard]] virtual std::string        GetTypeAsString() const = 0;
 	[[nodiscard]] virtual const std::string& GetName() const = 0;
 	[[nodiscard]] virtual const std::string& GetHelp() const = 0;
 

@@ -3,6 +3,9 @@
 #include <engine/subsystem/console/Log.h>
 
 namespace Unnamed {
+	/// @brief シェーダービジビリティの名前を取得する
+	/// @param v シェーダービジビリティ
+	/// @return 名前文字列
 	static constexpr std::string_view VisName(const D3D12_SHADER_VISIBILITY v) {
 		switch (v) {
 		case D3D12_SHADER_VISIBILITY_ALL: return "ALL";
@@ -15,6 +18,10 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief ルートシグネチャ記述子の妥当性を検証してログ出力する
+	/// @param d ルートシグネチャ記述子
+	/// @param tag タグ文字列
+	/// @return 妥当ならtrueを返す
 	static bool ValidateDescAndLog(const D3D12_ROOT_SIGNATURE_DESC& d,
 	                               std::string_view                 tag) {
 		constexpr std::string_view kChannel = "RSDump";
@@ -45,6 +52,9 @@ namespace Unnamed {
 		return true;
 	}
 
+	/// @brief ルートシグネチャ記述子をダンプする
+	/// @param d ルートシグネチャ記述子
+	/// @param tag タグ文字列
 	void DumpRootSignatureDesc(const D3D12_ROOT_SIGNATURE_DESC& d,
 	                           std::string_view                 tag) {
 		constexpr std::string_view kChannel = "RSDump";

@@ -2,6 +2,7 @@
 #include "interface/IAssetLoader.h"
 
 namespace Unnamed {
+	/// @brief RAWファイルローダー
 	class RawLoader : public IAssetLoader {
 	public:
 		bool CanLoad(

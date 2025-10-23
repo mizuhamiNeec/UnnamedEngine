@@ -9,7 +9,7 @@
 GuidGenerator::GuidGenerator(const MODE m) : mMode(m) {
 	if (mMode == MODE::SEQUENTIAL) {
 		std::random_device rd;
-		std::array         seed{ rd(), rd() };
+		std::array         seed{rd(), rd()};
 		mRng.seed(*reinterpret_cast<uint64_t*>(seed.data()));
 	}
 }

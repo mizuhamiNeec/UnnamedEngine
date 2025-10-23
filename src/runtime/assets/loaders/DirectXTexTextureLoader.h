@@ -2,6 +2,7 @@
 #include "interface/IAssetLoader.h"
 
 namespace Unnamed {
+	/// @brief DirectXTexを使用したテクスチャローダークラス
 	class DirectXTexTextureLoader : public IAssetLoader {
 	public:
 		bool CanLoad(

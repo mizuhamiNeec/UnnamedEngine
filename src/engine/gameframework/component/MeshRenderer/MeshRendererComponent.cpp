@@ -14,18 +14,24 @@
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "MeshRendererComponent";
 
+	/// @brief メッシュレンダラーコンポーネントがアタッチされたときの処理
 	void MeshRendererComponent::OnAttached() {
 		BaseComponent::OnAttached();
 	}
 
+	/// @brief メッシュレンダラーコンポーネントがデタッチされたときの処理
 	void MeshRendererComponent::OnDetached() {
 		BaseComponent::OnDetached();
 	}
 
+	/// @brief シリアライズ
+	/// @param writer JSONライター
 	void MeshRendererComponent::Serialize(JsonWriter& writer) const {
 		(void)writer;
 	}
 
+	/// @brief デシリアライズ
+	/// @param reader JSONリーダー
 	void MeshRendererComponent::Deserialize(const JsonReader& reader) {
 		if (reader.Has("mesh")) {
 			// TODO: AssetManagerからロード
@@ -35,6 +41,14 @@ namespace Unnamed {
 		}
 	}
 
+	///	 @brief GPUリソースの確保
+	/// @param graphicsDevice グラフィックスデバイス
+	/// @param renderResourceManager レンダーリソースマネージャー
+	/// @param shaderLibrary シェーダーライブラリ
+	/// @param rootSignatureCache ルートシグネチャキャッシュ
+	/// @param pipelineCache パイプラインキャッシュ
+	/// @param cmd コマンドリスト
+	/// @return GPUリソースが確保できたらtrue
 	bool MeshRendererComponent::EnsureGPU(
 		GraphicsDevice*            graphicsDevice,
 		RenderResourceManager*     renderResourceManager,
@@ -72,7 +86,8 @@ namespace Unnamed {
 				Error(
 					kChannel,
 					"Failed to acquire mesh: {}",
-					renderResourceManager->GetAssetManager()->Meta(meshAsset).name.c_str()
+					renderResourceManager->GetAssetManager()->Meta(meshAsset).
+					name.c_str()
 				);
 				return false;
 			}
@@ -83,17 +98,19 @@ namespace Unnamed {
 		return mGPUReady;
 	}
 
+	///	@brief GPUリソースの解放
+	/// @param renderResourceManager レンダーリソースマネージャー
 	void MeshRendererComponent::InvalidateGPU(
 		RenderResourceManager* renderResourceManager
 	) {
 		material.InvalidateGPU(renderResourceManager, nullptr, 0);
-		
+
 		// メッシュの解放
 		if (meshHandle.IsValid()) {
 			renderResourceManager->ReleaseMesh(meshHandle, nullptr, 0);
 			meshHandle = {};
 		}
-		
+
 		mGPUReady = false;
 	}
 }

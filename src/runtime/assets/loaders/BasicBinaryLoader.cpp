@@ -4,9 +4,13 @@
 #include <fstream>
 
 namespace Unnamed {
+	/// @brief 指定されたパスのファイルがロード可能かどうかを判定します
+	/// @param path ファイルパス
+	/// @param outType ロード可能な場合、そのアセットタイプを格納するポインタ（省略可能）
+	/// @return ロード可能な場合trueを返します
 	bool BasicBinaryLoader::CanLoad(
 		const std::string_view path,
-		UASSET_TYPE*     outType
+		UASSET_TYPE*           outType
 	) const {
 		std::string ext;
 		{
@@ -35,6 +39,9 @@ namespace Unnamed {
 		return type != UASSET_TYPE::UNKNOWN;
 	}
 
+	/// @brief 指定されたパスのファイルをロードします
+	/// @param path ファイルパス
+	/// @return ロード結果
 	LoadResult BasicBinaryLoader::Load(
 		const std::string& path
 	) {

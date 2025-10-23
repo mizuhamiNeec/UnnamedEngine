@@ -4,11 +4,11 @@
 #include <engine/platform/Win32App.h>
 #include <engine/uengine/UEngine.h>
 
-/// @brief エントリーポイント 
-/// @param hInstance 
-/// @param hPrevInstance 
-/// @param lpCmdLine  
-/// @param nShowCmd 
+/// @brief エントリーポイント
+/// @param hInstance インスタンスハンドル
+/// @param hPrevInstance 以前のインスタンスハンドル（未使用）
+/// @param lpCmdLine コマンドライン引数
+/// @param nShowCmd ウィンドウ表示オプション（未使用）
 /// @return 終了コード
 int WINAPI wWinMain(
 	[[maybe_unused]] const HINSTANCE hInstance,

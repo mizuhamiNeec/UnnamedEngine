@@ -11,13 +11,15 @@ namespace Unnamed {
 		FLOAT,
 		FLOAT4
 	};
-
+	
+	/// @brief マテリアルパラメータの構造体
 	struct MaterialParam {
 		ParamType            type = ParamType::FLOAT4;
 		std::array<float, 4> v    = {0, 0, 0, 0};
 		int                  slot = -1;
 	};
 
+	/// @brief マテリアルアセットのデータ構造体
 	struct MaterialAssetData {
 		std::unordered_map<std::string, float>                floatParams;
 		std::unordered_map<std::string, std::array<float, 4>> float4Params;

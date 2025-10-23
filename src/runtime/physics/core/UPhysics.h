@@ -6,7 +6,7 @@
 #include <engine/uphysics/CollisionDetection.h>
 
 namespace UPhysics {
-	// 物理エンジン
+	/// @brief 物理エンジン
 	class Engine {
 	public:
 		void Init();
@@ -66,8 +66,8 @@ namespace UPhysics {
 				.tMin = 0.0f,
 				.tMax = length
 			};
-			Vec3 dirNormalized = dir;
-			const float dirLenSq = dirNormalized.SqrLength();
+			Vec3        dirNormalized = dir;
+			const float dirLenSq      = dirNormalized.SqrLength();
 			if (dirLenSq > 1e-12f) {
 				dirNormalized /= std::sqrt(dirLenSq);
 			} else {
@@ -159,17 +159,17 @@ namespace UPhysics {
 				return false; // 残念!
 			}
 			if (outHit) {
-				Vec3 finalNormal = hitNormal;
-				const float nLenSq = finalNormal.SqrLength();
+				Vec3        finalNormal = hitNormal;
+				const float nLenSq      = finalNormal.SqrLength();
 				if (nLenSq > 1e-12f) {
 					finalNormal /= std::sqrt(nLenSq);
 				} else {
 					finalNormal = Vec3::up;
 				}
 				const float hitDistance = bestTOI * length;
-				outHit->t        = hitDistance;
-				outHit->normal   = finalNormal;
-				outHit->pos      = cast.ComputeImpactPoint(
+				outHit->t               = hitDistance;
+				outHit->normal          = finalNormal;
+				outHit->pos             = cast.ComputeImpactPoint(
 					start,
 					dirNormalized,
 					length,

@@ -17,6 +17,11 @@ namespace Unnamed {
 
 	using namespace Microsoft::WRL;
 
+	/// @brief HLSLソースコードをコンパイルしてDXILバイナリを取得します
+	/// @param src HLSLソースコード
+	/// @param key シェーダーバリアントキー
+	/// @param virtualName 仮想ファイル名（デバッグ用、nullptrの場合は "Generated.hlsl"）
+	/// @return コンパイルされたDXILバイナリのBlob
 	ComPtr<IDxcBlob> CompileHLSL(
 		const std::string&      src,
 		const ShaderVariantKey& key,
@@ -112,10 +117,16 @@ namespace Unnamed {
 		return shaderBlob;
 	}
 
+	/// @brief ハッシュ値を組み合わせます
+	/// @param h 組み合わせるハッシュ値
+	/// @param v 組み合わせる値のハッシュ値
 	void HashCombine(size_t& h, const size_t v) {
 		h ^= v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
 	}
 
+	/// @brief コンストラクタ
+	/// @param graphicsDevice グラフィックスデバイス
+	/// @param assetManager アセットマネージャー
 	ShaderLibrary::ShaderLibrary(
 		GraphicsDevice* graphicsDevice, UAssetManager* assetManager
 	) : mGraphicsDevice(graphicsDevice), mAssetManager(assetManager) {
@@ -123,6 +134,9 @@ namespace Unnamed {
 		UASSERT(assetManager);
 	}
 
+	/// @brief シェーダーバリアントキーに基づいてシェーダーを取得またはコンパイルします
+	/// @param key シェーダーバリアントキー
+	/// @return シェーダーブロブへのポインタ。取得またはコンパイルに失敗した場合はnullptr。
 	const ShaderBlob* ShaderLibrary::GetOrCompile(
 		const ShaderVariantKey& key
 	) {
@@ -153,6 +167,11 @@ namespace Unnamed {
 		return &mCache[hash].shaderBlob;
 	}
 
+	/// @brief HLSLソースコードからシェーダーを取得またはコンパイルします
+	/// @param hlsl HLSLソースコード
+	/// @param key シェーダーバリアントキー
+	/// @param virtualName 仮想ファイル名（デバッグ用、nullptrの場合は "Generated.hlsl"）
+	/// @return シェーダーブロブへのポインタ。取得またはコンパイルに失敗した場合はnullptr。
 	const ShaderBlob* ShaderLibrary::GetOrCompileFromString(
 		const std::string&      hlsl,
 		const ShaderVariantKey& key,
@@ -187,20 +206,9 @@ namespace Unnamed {
 		return &mCache[h].shaderBlob;
 	}
 
-	// TODO: 使わないなら消そう
-	void ShaderLibrary::InvalidateByAsset([[maybe_unused]] AssetID asset) {
-		std::vector<size_t> toRemove;
-		toRemove.reserve(mCache.size());
-		for (const auto& h : mCache | std::views::keys) {
-			// e から asset を辿れないので、現設計では完全消去が簡単。
-			// より厳密にするなら hash に asset も埋めていたので、hash 再構成でもok.
-			toRemove.emplace_back(h);
-		}
-		for (auto h : toRemove) {
-			mCache.erase(h);
-		}
-	}
-
+	/// @brief シェーダーバリアントキーのハッシュ値を計算します
+	/// @param key シェーダーバリアントキー
+	/// @return ハッシュ値
 	size_t ShaderLibrary::Hash(const ShaderVariantKey& key) {
 		constexpr std::hash<std::string> hashString;
 		constexpr std::hash<uint64_t>    hashUint64;

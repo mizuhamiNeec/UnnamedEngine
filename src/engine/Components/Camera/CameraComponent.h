@@ -3,6 +3,8 @@
 #include <engine/Components/base/Component.h>
 #include <runtime/core/math/Math.h>
 
+/// @brief カメラコンポーネント
+/// @details カメラです。
 class CameraComponent : public Component {
 public:
 	~CameraComponent() override;

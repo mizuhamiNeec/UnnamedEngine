@@ -6,6 +6,7 @@
 
 struct RootSignatureDesc;
 
+/// @brief ルートシグネチャクラス（バージョン2）
 class RootSignature2 {
 public:
 	RootSignature2() = default;

@@ -21,6 +21,7 @@ enum class BillboardType {
 	All   // 全方向にビルボード
 };
 
+/// @brief パーティクルオブジェクトクラス
 class ParticleObject {
 public:
 	~ParticleObject() = default;

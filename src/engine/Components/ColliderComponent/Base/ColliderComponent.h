@@ -6,6 +6,7 @@ class PhysicsEngine;
 
 struct HitResult;
 
+/// @brief すべてのコライダーコンポーネントの基底クラス
 class ColliderComponent : public Component {
 public:
 	void Update(float deltaTime) override = 0;
@@ -18,7 +19,7 @@ public:
 		mPhysicsEngine = physicsEngine;
 	}
 
-	PhysicsEngine* GetPhysicsEngine() const;
+	[[nodiscard]] PhysicsEngine* GetPhysicsEngine() const;
 
 protected:
 	PhysicsEngine* mPhysicsEngine = nullptr;

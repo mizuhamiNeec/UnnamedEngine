@@ -11,12 +11,16 @@
 #include <imgui.h>
 #endif
 
+/// @brief コンストラクタ
+/// @param device D3D12デバイスへのポインタ
+/// @param srvMgr SRVマネージャーへのポインタ
 PPVignette::PPVignette(ID3D12Device* device, SrvManager* srvMgr)
 	: mDevice(device), mSrvMgr(srvMgr) {
 	assert(mDevice && mSrvMgr);
 	Init();
 }
 
+/// @brief 初期化処理
 void PPVignette::Init() {
 	// RootSig / PSO
 	CreateRootSignature();
@@ -48,6 +52,8 @@ void PPVignette::Init() {
 	UASSERT(SUCCEEDED(hr) && "Failed to create constant buffer resource");
 }
 
+/// @brief 更新処理
+/// @param deltaTime 前のフレームからの経過時間
 void PPVignette::Update(float) {
 #ifdef _DEBUG
 	if (ImGui::CollapsingHeader("Vignette", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -61,6 +67,8 @@ void PPVignette::Update(float) {
 #endif
 }
 
+/// @brief 実行処理
+/// @param ctx ポストプロセスコンテキスト
 void PPVignette::Execute(const PostProcessContext& ctx) {
 	// ── CB 更新 ──────────────────────────────
 	void* p;
@@ -93,7 +101,7 @@ void PPVignette::Execute(const PostProcessContext& ctx) {
 	cmd->DrawInstanced(3, 1, 0, 0);
 }
 
-// ───────────────────────────────────────────
+/// @brief ルートシグネチャを作成します
 void PPVignette::CreateRootSignature() {
 	D3D12_DESCRIPTOR_RANGE1 range = {
 		.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
@@ -134,13 +142,14 @@ void PPVignette::CreateRootSignature() {
 		}
 	};
 
-	Microsoft::WRL::ComPtr<ID3DBlob> sig, err;
+	ComPtr<ID3DBlob> sig, err;
 	D3D12SerializeVersionedRootSignature(&desc, &sig, &err);
 	mDevice->CreateRootSignature(
 		0, sig->GetBufferPointer(), sig->GetBufferSize(),
 		IID_PPV_ARGS(&mRootSig));
 }
 
+///	@brief パイプラインステートを作成します
 void PPVignette::CreatePipelineState() {
 	D3D12_DEPTH_STENCIL_DESC ds = {
 		.DepthEnable = FALSE, .StencilEnable = FALSE

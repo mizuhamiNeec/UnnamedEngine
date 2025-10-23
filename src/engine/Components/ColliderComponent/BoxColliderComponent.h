@@ -4,6 +4,7 @@
 
 class SceneComponent;
 
+/// @brief 箱型コライダーコンポーネント
 class BoxColliderComponent : public ColliderComponent {
 public:
 	BoxColliderComponent();

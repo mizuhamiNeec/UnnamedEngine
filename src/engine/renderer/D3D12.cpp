@@ -24,8 +24,10 @@
 
 using namespace Microsoft::WRL;
 
-constexpr Vec4 kClearColorSwapChain = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+constexpr auto kClearColorSwapChain = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
+/// @brief コンストラクタ
+/// @param window ウィンドウへのポインタ
 D3D12::D3D12(BaseWindow* window) : mWindow(window) {
 #ifdef _DEBUG
 	//EnableDebugLayer();
@@ -56,10 +58,12 @@ D3D12::D3D12(BaseWindow* window) : mWindow(window) {
 	               Channel::Engine);
 }
 
+/// @brief デストラクタ
 D3D12::~D3D12() {
 	CloseHandle(mFenceEvent);
 }
 
+/// @brief 初期化
 void D3D12::Init() {
 	ConVarManager::RegisterConVar<bool>("r_clear", true, "Clear the screen",
 	                                    ConVarFlags::ConVarFlags_Notify);
@@ -67,6 +71,7 @@ void D3D12::Init() {
 	                                   ConVarFlags::ConVarFlags_Notify);
 }
 
+/// @brief シャットダウン
 void D3D12::Shutdown() {
 	PrepareForShutdown();
 
@@ -156,11 +161,14 @@ void D3D12::Shutdown() {
 	}
 }
 
+/// @brief シェーダーリソースビュー管理者を設定します
+/// @param srvManager シェーダーリソースビュー管理者へのポインタ
 void D3D12::SetShaderResourceViewManager(
 	SrvManager* srvManager) {
 	mSrvManager = srvManager;
 }
 
+/// @brief レンダーターゲットと深度ステンシルバッファをクリアします
 void D3D12::ClearColorAndDepth() {
 	auto dsvHandle = mDefaultDepthStencilTexture.dsvHandle;
 
@@ -181,7 +189,7 @@ void D3D12::ClearColorAndDepth() {
 	);
 
 	if (ConVarManager::GetConVar("r_clear")->GetValueAsBool()) {
-		const float clearColor[] = {
+		constexpr float clearColor[] = {
 			kClearColorSwapChain.x,
 			kClearColorSwapChain.y,
 			kClearColorSwapChain.z,
@@ -202,6 +210,7 @@ void D3D12::ClearColorAndDepth() {
 	);
 }
 
+/// @brief レンダリング前の準備を行います
 void D3D12::PreRender() {
 	//WaitPreviousFrame();
 
@@ -233,6 +242,7 @@ void D3D12::PreRender() {
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
 }
 
+/// @brief レンダリング後の処理を行います
 void D3D12::PostRender() {
 	//-------------------------------------------------------------------------
 	// 描画終了 ↑
@@ -260,6 +270,8 @@ void D3D12::PostRender() {
 	WaitPreviousFrame(); // 前のフレームを待つ
 }
 
+/// @brief レンダーパスを開始します
+/// @param targets レンダーパスのターゲット情報
 void D3D12::BeginRenderPass(const RenderPassTargets& targets) const {
 	mCommandList->OMSetRenderTargets(
 		targets.numRTVs,
@@ -302,14 +314,18 @@ void D3D12::BeginRenderPass(const RenderPassTargets& targets) const {
 	// commandList_->RSSetScissorRects(1, &scissorRect_);
 }
 
+/// @brief スワップチェーンのレンダーパスを開始します
 void D3D12::BeginSwapChainRenderPass() {
 	ClearColorAndDepth();
 }
 
+/// @brief スワップチェーンのレンダータゲットビューを取得します
+/// @return スワップチェーンのレンダータゲットビューのハンドル
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetSwapChainRenderTargetView() const {
 	return mRtvHandlesSwapChain[mFrameIndex];
 }
 
+/// @brief コマンドリストをリセットします
 void D3D12::ResetCommandList() {
 	// 前のコマンドリストの実行が完了するのを待つ
 	WaitPreviousFrame();
@@ -323,11 +339,13 @@ void D3D12::ResetCommandList() {
 
 	hr = mCommandList->Reset(mCommandAllocator.Get(), nullptr);
 	if (FAILED(hr)) {
-		// エラー処理
-		return;
 	}
 }
 
+/// @brief アップロードヒープメモリにデータを書き込みます
+/// @param resource 書き込み先のリソース
+/// @param size 書き込むデータのサイズ（バイト単位）
+/// @param data 書き込むデータへのポインタ
 void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource,
                                     const uint32_t  size, const void* data) {
 	void*   mapped;
@@ -338,6 +356,7 @@ void D3D12::WriteToUploadHeapMemory(ID3D12Resource* resource,
 	}
 }
 
+/// @brief 前のフレームの処理が完了するまで待機します
 void D3D12::WaitPreviousFrame() {
 	mFenceValue++; // Fenceの値を更新
 
@@ -362,6 +381,7 @@ void D3D12::WaitPreviousFrame() {
 	}
 }
 
+/// @brief コマンドキューをフラッシュします
 void D3D12::Flush() {
 	UINT64 fenceValue = ++mFenceValue;
 	mCommandQueue->Signal(mFence.Get(), fenceValue);
@@ -373,6 +393,9 @@ void D3D12::Flush() {
 	}
 }
 
+/// @brief 画面サイズの変更を処理します
+/// @param width 新しい幅
+/// @param height 新しい高さ
 void D3D12::Resize(const uint32_t width, const uint32_t height) {
 	if (width == 0 || height == 0) {
 		return;
@@ -429,11 +452,15 @@ void D3D12::Resize(const uint32_t width, const uint32_t height) {
 	//	window_->GetClientHeight());
 }
 
+/// @brief オフスクリーンレンダーテクスチャのリセット
 void D3D12::ResetOffscreenRenderTextures() {
 	mRtvHandlesOffscreen.clear();
 	mCurrentDsvIndex = 0;
 }
 
+/// @brief ビューポートとシザー矩形を設定します
+/// @param width ビューポートの幅
+/// @param height ビューポートの高さ
 void D3D12::SetViewportAndScissor(const uint32_t width, const uint32_t height) {
 	mViewport.TopLeftX = 0;
 	mViewport.TopLeftY = 0;
@@ -452,6 +479,7 @@ void D3D12::SetViewportAndScissor(const uint32_t width, const uint32_t height) {
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
 }
 
+/// @brief デバッグレイヤーを有効化します
 void D3D12::EnableDebugLayer() {
 	ID3D12Debug6* debugController;
 
@@ -462,6 +490,7 @@ void D3D12::EnableDebugLayer() {
 	}
 }
 
+/// @brief D3D12デバイスを生成します
 void D3D12::CreateDevice() {
 	// ファクトリーの生成
 	HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(&mDxgiFactory));
@@ -518,6 +547,7 @@ void D3D12::CreateDevice() {
 	mDevice->SetName(L"DX12Device");
 }
 
+/// @brief 情報キューの重大度に応じたブレークポイントを設定します
 void D3D12::SetInfoQueueBreakOnSeverity() const {
 	ComPtr<ID3D12InfoQueue> infoQueue;
 	if (SUCCEEDED(mDevice->QueryInterface(IID_PPV_ARGS(&infoQueue)))) {
@@ -548,6 +578,7 @@ void D3D12::SetInfoQueueBreakOnSeverity() const {
 	}
 }
 
+/// @brief コマンドキューを生成します
 void D3D12::CreateCommandQueue() {
 	// コマンドキューの生成
 	constexpr D3D12_COMMAND_QUEUE_DESC commandQueueDesc = {
@@ -564,6 +595,7 @@ void D3D12::CreateCommandQueue() {
 	mCommandQueue->SetName(L"DX12CommandQueue");
 }
 
+/// @brief スワップチェーンを生成します
 void D3D12::CreateSwapChain() {
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.BufferCount           = kFrameBufferCount;
@@ -601,6 +633,7 @@ void D3D12::CreateSwapChain() {
 	}
 }
 
+/// @brief ディスクリプタヒープを生成します
 void D3D12::CreateDescriptorHeaps() {
 	// DescriptorSizeを取得しておく
 	mDescriptorSizeRtv = mDevice->GetDescriptorHandleIncrementSize(
@@ -617,6 +650,7 @@ void D3D12::CreateDescriptorHeaps() {
 	                                          kMaxRenderTargetCount, false);
 }
 
+/// @brief レンダーターゲットビューを生成します
 void D3D12::CreateRTV() {
 	// いらないリソースを解放
 	for (auto& rtv : mRenderTargets) {
@@ -649,6 +683,7 @@ void D3D12::CreateRTV() {
 	}
 }
 
+/// @brief デプスステンシルビューを生成します
 void D3D12::CreateDSV() {
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.NumDescriptors             = 128; // 必要なディスクリプタ数
@@ -670,6 +705,7 @@ void D3D12::CreateDSV() {
 	mCurrentDsvIndex = 0;
 }
 
+/// @brief コマンドアロケーターを生成します
 void D3D12::CreateCommandAllocator() {
 	const HRESULT hr = mDevice->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&mCommandAllocator)
@@ -680,6 +716,7 @@ void D3D12::CreateCommandAllocator() {
 	}
 }
 
+/// @brief コマンドリストを生成します
 void D3D12::CreateCommandList() {
 	// コマンドリストの作成
 	HRESULT hr = mDevice->CreateCommandList(
@@ -714,6 +751,7 @@ void D3D12::CreateCommandList() {
 	}
 }
 
+/// @brief フェンスを生成します
 void D3D12::CreateFence() {
 	if (const HRESULT hr = mDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
 	                                            IID_PPV_ARGS(&mFence))) {
@@ -725,6 +763,7 @@ void D3D12::CreateFence() {
 	assert(mFenceEvent != nullptr);
 }
 
+/// @brief ビューポートとシザー矩形を設定します
 void D3D12::SetViewportAndScissor() {
 	// Viewport
 	mViewport.TopLeftX = 0;
@@ -741,6 +780,7 @@ void D3D12::SetViewportAndScissor() {
 	mScissorRect.bottom = static_cast<LONG>(mWindow->GetClientHeight());
 }
 
+/// @brief デバイスが失われた場合の処理を行います
 void D3D12::HandleDeviceLost() {
 	mDevice.Reset();
 
@@ -748,9 +788,7 @@ void D3D12::HandleDeviceLost() {
 	CreateDevice();
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: シャットダウンに備えて準備を行います
-//-----------------------------------------------------------------------------
+/// @brief シャットダウン前の準備を行います
 void D3D12::PrepareForShutdown() const {
 	if (mSwapChain) {
 		BOOL isFullScreen = FALSE;
@@ -762,6 +800,11 @@ void D3D12::PrepareForShutdown() const {
 	}
 }
 
+/// @brief ディスクリプタヒープを生成します
+/// @param heapType ヒープのタイプ
+/// @param numDescriptors ディスクリプタの数
+/// @param shaderVisible シェーダーから見えるかどうか
+/// @return 生成されたディスクリプタヒープへのスマートポインタ
 ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(
 	const D3D12_DESCRIPTOR_HEAP_TYPE heapType, const UINT numDescriptors,
 	const bool                       shaderVisible
@@ -784,6 +827,11 @@ ComPtr<ID3D12DescriptorHeap> D3D12::CreateDescriptorHeap(
 	return descriptorHeap;
 }
 
+/// @brief 指定したディスクリプタヒープからCPUディスクリプタハンドルを取得します
+/// @param descriptorHeap ディスクリプタヒープへのポインタ
+/// @param descriptorSize ディスクリプタのサイズ
+/// @param index 取得するディスクリプタのインデックス
+/// @return 取得したCPUディスクリプタハンドル
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetCPUDescriptorHandle(
 	ID3D12DescriptorHeap* descriptorHeap, const uint32_t descriptorSize,
 	const uint32_t        index
@@ -794,6 +842,11 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12::GetCPUDescriptorHandle(
 	return handleCPU;
 }
 
+/// @brief 深度ステンシルテクスチャを生成します
+/// @param width テクスチャの幅
+/// @param height テクスチャの高さ
+/// @param format テクスチャのフォーマット
+/// @return 生成された深度ステンシルテクスチャ情報
 ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource(
 	uint32_t width, uint32_t height, DXGI_FORMAT format) const {
 	// 生成するResourceの設定
@@ -838,21 +891,36 @@ ComPtr<ID3D12Resource> D3D12::CreateDepthStencilTextureResource(
 	return resource;
 }
 
+/// @brief 深度ステンシルテクスチャを生成します
+/// @param width テクスチャの幅
+/// @param height テクスチャの高さ
+/// @param format テクスチャのフォーマット
+/// @return 生成された深度ステンシルテクスチャ情報
 RenderTargetTexture D3D12::CreateRenderTargetTexture(
 	uint32_t width, uint32_t height, Vec4 clearColor, DXGI_FORMAT format) {
 	// 新規作成の場合は無効なインデックス（0）を渡す
 	return CreateRenderTargetTexture(width, height, clearColor, 0, format);
 }
 
+/// @brief 深度ステンシルテクスチャを生成します
+/// @param width テクスチャの幅
+/// @param height テクスチャの高さ
+/// @param clearColor クリアカラー
+/// @param oldSrvIndex 古いSRVインデックス（返却する場合）
+/// @param format テクスチャのフォーマット
+/// @return 生成された深度ステンシルテクスチャ情報
 RenderTargetTexture D3D12::CreateRenderTargetTexture(
-	uint32_t width, uint32_t height, Vec4 clearColor, uint32_t oldSrvIndex, DXGI_FORMAT format) {
+	uint32_t    width, uint32_t height, Vec4 clearColor, uint32_t oldSrvIndex,
+	DXGI_FORMAT format) {
 	RenderTargetTexture result = {};
 
 	// 古いSRVインデックスがある場合は返却
 	if (oldSrvIndex != 0 && mSrvManager) {
 		mSrvManager->DeallocateTexture2D(oldSrvIndex);
 		Console::Print(
-			std::format("[D3D12] CreateRenderTargetTexture - 古いSRVインデックス {}を返却しました\n", oldSrvIndex),
+			std::format(
+				"[D3D12] CreateRenderTargetTexture - 古いSRVインデックス {}を返却しました\n",
+				oldSrvIndex),
 			kConTextColorCompleted,
 			Channel::RenderSystem
 		);
@@ -972,12 +1040,23 @@ RenderTargetTexture D3D12::CreateRenderTargetTexture(
 	return result;
 }
 
+/// @brief 深度ステンシルテクスチャを生成します
+/// @param width テクスチャの幅
+/// @param height テクスチャの高さ
+/// @param format テクスチャのフォーマット
+/// @return 生成された深度ステンシルテクスチャ情報
 DepthStencilTexture D3D12::CreateDepthStencilTexture(
 	uint32_t width, uint32_t height, DXGI_FORMAT format) {
 	// 新規作成の場合は無効なインデックス（0）を渡す
 	return CreateDepthStencilTexture(width, height, 0, format);
 }
 
+/// @brief 深度ステンシルテクスチャを生成します
+/// @param width テクスチャの幅
+/// @param height テクスチャの高さ
+/// @param oldSrvIndex 古いSRVインデックス（返却する場合）
+/// @param format テクスチャのフォーマット
+/// @return 生成された深度ステンシルテクスチャ情報
 DepthStencilTexture D3D12::CreateDepthStencilTexture(
 	uint32_t width, uint32_t height, uint32_t oldSrvIndex, DXGI_FORMAT format) {
 	DepthStencilTexture result = {};
@@ -986,7 +1065,9 @@ DepthStencilTexture D3D12::CreateDepthStencilTexture(
 	if (oldSrvIndex != 0 && mSrvManager) {
 		mSrvManager->DeallocateTexture2D(oldSrvIndex);
 		Console::Print(
-			std::format("[D3D12] CreateDepthStencilTexture - 古いSRVインデックス {}を返却しました\n", oldSrvIndex),
+			std::format(
+				"[D3D12] CreateDepthStencilTexture - 古いSRVインデックス {}を返却しました\n",
+				oldSrvIndex),
 			kConTextColorCompleted,
 			Channel::RenderSystem
 		);
@@ -1017,6 +1098,8 @@ DepthStencilTexture D3D12::CreateDepthStencilTexture(
 	return result;
 }
 
+/// @brief 新しいRTVハンドルを割り当てます
+/// @return 割り当てられたRTVハンドル
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12::AllocateNewRTVHandle() {
 	// ディスクリプタヒープのサイズを取得
 	uint32_t index = kFrameBufferCount + static_cast<uint32_t>(
@@ -1031,6 +1114,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12::AllocateNewRTVHandle() {
 	return handle;
 }
 
+/// @brief D3Dリソースリークチェッカーのデストラクタ
 D3DResourceLeakChecker::~D3DResourceLeakChecker() {
 	// リソースリークチェック
 	ComPtr<IDXGIDebug> debug;

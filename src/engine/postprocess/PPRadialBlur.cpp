@@ -7,14 +7,14 @@
 #include <imgui.h>
 #endif
 
-// ── ctor ──────────────────────────────────
+/// @brief コンストラクタ
 PPRadialBlur::PPRadialBlur(ID3D12Device* device, SrvManager* srvMgr)
 	: mDevice(device), mSrvMgr(srvMgr) {
 	assert(mDevice && mSrvMgr);
 	Init();
 }
 
-// ── Init() ────────────────────────────────
+/// @brief 初期化
 void PPRadialBlur::Init() {
 	CreateRootSignature();
 	CreatePipelineState();
@@ -42,7 +42,8 @@ void PPRadialBlur::Init() {
 		nullptr, IID_PPV_ARGS(&mParamsCb));
 }
 
-// ── Update() ──────────────────────────────
+/// @brief 更新
+/// @param deltaTime 前のフレームからの経過時間 
 void PPRadialBlur::Update(float) {
 #ifdef _DEBUG
 	if (ImGui::CollapsingHeader("Radial Blur",
@@ -55,7 +56,8 @@ void PPRadialBlur::Update(float) {
 #endif
 }
 
-// ── Execute() ─────────────────────────────
+/// @brief 実行
+/// @param ctx ポストプロセスコンテキスト
 void PPRadialBlur::Execute(const PostProcessContext& ctx) {
 	// CB 更新
 	void* p;
@@ -88,7 +90,7 @@ void PPRadialBlur::Execute(const PostProcessContext& ctx) {
 	cmd->DrawInstanced(3, 1, 0, 0);
 }
 
-// ── RootSignature ─────────────────────────
+/// @brief ルートシグネチャーの作成
 void PPRadialBlur::CreateRootSignature() {
 	D3D12_DESCRIPTOR_RANGE1 range = {
 		.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
@@ -129,14 +131,14 @@ void PPRadialBlur::CreateRootSignature() {
 		}
 	};
 
-	Microsoft::WRL::ComPtr<ID3DBlob> sig, err;
+	ComPtr<ID3DBlob> sig, err;
 	D3D12SerializeVersionedRootSignature(&desc, &sig, &err);
 	mDevice->CreateRootSignature(
 		0, sig->GetBufferPointer(), sig->GetBufferSize(),
 		IID_PPV_ARGS(&mRootSig));
 }
 
-// ── PSO ───────────────────────────────────
+/// @brief パイプラインステートの作成
 void PPRadialBlur::CreatePipelineState() {
 	D3D12_DEPTH_STENCIL_DESC ds = {
 		.DepthEnable = FALSE, .StencilEnable = FALSE

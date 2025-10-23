@@ -44,10 +44,10 @@ namespace {
 	constexpr char kAirAccelerateCommand[] =
 		"sv_airaccelerate 100000000000000000";
 	constexpr char  kMeshReloadBindCommand[] = "bind f5 +f5";
-	const Vec3      kShakeRootOffset(0.08f, -0.1f, 0.18f);
+	constexpr Vec3  kShakeRootOffset(0.08f, -0.1f, 0.18f);
 	constexpr float kCameraRootHeight  = 1.7f;
 	constexpr float kPlayerSpawnHeight = 4.0f;
-	const Vec3      kTeleportTriggerCenter(19.5072f, -29.2608f, 260.096f);
+	constexpr Vec3  kTeleportTriggerCenter(19.5072f, -29.2608f, 260.096f);
 	const Vec3      kTeleportTriggerExtent(Vec3::one * 13.0048f);
 	constexpr float kTeleportReenableBuffer      = 1.0f;
 	constexpr float kExplosionNormalOffset       = 2.0f;
@@ -66,6 +66,7 @@ namespace {
 	}
 }
 
+/// @brief コンストラクタ
 GameScene::~GameScene() {
 	mResourceManager = nullptr;
 	mSpriteCommon    = nullptr;
@@ -76,6 +77,7 @@ GameScene::~GameScene() {
 	mTimer           = nullptr;
 }
 
+/// @brief 初期化
 void GameScene::Init() {
 	mRenderer        = Unnamed::Engine::GetRenderer();
 	mResourceManager = Unnamed::Engine::GetResourceManager();
@@ -98,6 +100,8 @@ void GameScene::Init() {
 	InitializeTeleportTrigger();
 }
 
+/// @brief 更新
+/// @param deltaTime 経過時間
 void GameScene::Update(const float deltaTime) {
 	HandleMeshReload();
 	SyncCameraRoot();
@@ -116,13 +120,14 @@ void GameScene::Update(const float deltaTime) {
 #endif
 }
 
+/// @brief 描画
 void GameScene::Render() {
 	if (!mRenderer) {
 		return;
 	}
 
 	auto* commandList = mRenderer->GetCommandList();
-	
+
 	if (mClearConVar && mClearConVar->GetValueAsBool() && mCubeMap) {
 		mCubeMap->Render(commandList);
 	}
@@ -150,6 +155,7 @@ void GameScene::Render() {
 	}
 }
 
+/// @brief コンソール変数の登録
 void GameScene::RegisterConVars() {
 	ConVarManager::RegisterConVar("sv_ducktime", 1000.0f, "ms");
 	ConVarManager::RegisterConVar("sv_jumptime", 510.0f,
@@ -160,6 +166,7 @@ void GameScene::RegisterConVars() {
 	                              1000.0f - 0.2f * 1000.0f, "ms");
 }
 
+/// @brief コアテクスチャの読み込み
 void GameScene::LoadCoreTextures() const {
 	auto* texManager = TexManager::GetInstance();
 	if (!texManager) {
@@ -171,7 +178,7 @@ void GameScene::LoadCoreTextures() const {
 		bool        useSrgb = false;
 	};
 
-	const std::array<TextureRequest, 4> requests{
+	constexpr std::array<TextureRequest, 4> requests{
 		{
 			{kDevMeasureTexturePath, false},
 			{kUvCheckerTexturePath, false},
@@ -193,6 +200,7 @@ void GameScene::LoadCoreTextures() const {
 	}
 }
 
+/// @brief キューブマップの初期化
 void GameScene::InitializeCubeMap() {
 	if (!mRenderer || !mSrvManager) {
 		return;
@@ -205,6 +213,7 @@ void GameScene::InitializeCubeMap() {
 	);
 }
 
+/// @brief パーティクルの初期化
 void GameScene::InitializeParticles() {
 	auto* particleManager = Unnamed::Engine::GetParticleManager();
 	if (!particleManager) {
@@ -220,6 +229,7 @@ void GameScene::InitializeParticles() {
 	mParticleObject->Init(particleManager, kWindParticleTexturePath);
 }
 
+/// @brief エフェクトの初期化
 void GameScene::InitializeEffects() {
 	auto* particleManager = Unnamed::Engine::GetParticleManager();
 	if (!particleManager) {
@@ -239,11 +249,13 @@ void GameScene::InitializeEffects() {
 	);
 }
 
+/// @brief 物理エンジンの初期化
 void GameScene::InitializePhysics() {
 	mUPhysicsEngine = std::make_unique<UPhysics::Engine>();
 	mUPhysicsEngine->Init();
 }
 
+/// @brief カメラの初期化
 void GameScene::InitializeCamera() {
 	mCamera = std::make_unique<Entity>("camera");
 	AddEntity(mCamera.get());
@@ -258,6 +270,7 @@ void GameScene::InitializeCamera() {
 	CameraManager::SetActiveCamera(camera);
 }
 
+/// @brief プレイヤーの初期化
 void GameScene::InitializePlayer() {
 	mEntPlayer = std::make_unique<Entity>("player");
 	mEntPlayer->GetTransform()->SetLocalPos(Vec3::up * kPlayerSpawnHeight);
@@ -276,6 +289,7 @@ void GameScene::InitializePlayer() {
 	AddEntity(mEntPlayer.get());
 }
 
+/// @brief 武器の初期化
 void GameScene::InitializeWeapon() {
 	auto* meshManager = mResourceManager ?
 		                    mResourceManager->GetMeshManager() :
@@ -305,6 +319,7 @@ void GameScene::InitializeWeapon() {
 	AddEntity(mEntWeapon.get());
 }
 
+/// @brief ワールドメッシュの初期化
 void GameScene::InitializeWorldMesh() {
 	auto* meshManager = mResourceManager ?
 		                    mResourceManager->GetMeshManager() :
@@ -330,6 +345,7 @@ void GameScene::InitializeWorldMesh() {
 	}
 }
 
+/// @brief カメラルートの初期化
 void GameScene::InitializeCameraRoot() {
 	mEntCameraRoot = std::make_unique<Entity>("cameraRoot");
 	mEntCameraRoot->GetTransform()->SetLocalPos(Vec3::up * kCameraRootHeight);
@@ -337,6 +353,7 @@ void GameScene::InitializeCameraRoot() {
 	AddEntity(mEntCameraRoot.get());
 }
 
+/// @brief シェイクルートの初期化
 void GameScene::InitializeShakeRoot() {
 	mEntShakeRoot = std::make_unique<Entity>("shakeRoot");
 
@@ -349,6 +366,7 @@ void GameScene::InitializeShakeRoot() {
 	}
 }
 
+/// @brief スケルタルメッシュの初期化
 void GameScene::InitializeSkeletalMesh() {
 	auto* meshManager = mResourceManager ?
 		                    mResourceManager->GetMeshManager() :
@@ -371,6 +389,7 @@ void GameScene::InitializeSkeletalMesh() {
 	AddEntity(mEntSkeletalMesh.get());
 }
 
+/// @brief エンティティ階層の設定
 void GameScene::ConfigureEntityHierarchy() {
 	if (mEntShakeRoot && mEntCameraRoot) {
 		mEntShakeRoot->SetParent(mEntCameraRoot.get());
@@ -397,6 +416,7 @@ void GameScene::ConfigureEntityHierarchy() {
 	}
 }
 
+/// @brief コンソールの設定
 void GameScene::ConfigureConsole() {
 	Console::SubmitCommand(kAirAccelerateCommand);
 	Console::SubmitCommand(kMeshReloadBindCommand, true);
@@ -406,6 +426,7 @@ void GameScene::ConfigureConsole() {
 	mClearConVar   = ConVarManager::GetConVar("r_clear");
 }
 
+/// @brief テレポートトリガーの初期化
 void GameScene::InitializeTeleportTrigger() {
 	const Vec3 triggerSize = kTeleportTriggerExtent * 2.0f;
 	mTeleportTriggerMin    = kTeleportTriggerCenter - triggerSize * 0.5f;
@@ -413,6 +434,7 @@ void GameScene::InitializeTeleportTrigger() {
 	mTeleportActive        = true;
 }
 
+/// @brief メッシュリロードの処理
 void GameScene::HandleMeshReload() {
 	if (InputSystem::IsTriggered("+f5")) {
 		mPendingMeshReload = true;
@@ -433,6 +455,7 @@ void GameScene::HandleMeshReload() {
 	}
 }
 
+/// @brief カメラルートの同期
 void GameScene::SyncCameraRoot() const {
 	if (!mEntCameraRoot || !mMovementComponent) {
 		return;
@@ -442,6 +465,7 @@ void GameScene::SyncCameraRoot() const {
 		mMovementComponent->GetHeadPos());
 }
 
+/// @brief 武器入力の処理
 void GameScene::HandleWeaponInput() {
 	if (!mWeaponComponent) {
 		return;
@@ -458,6 +482,7 @@ void GameScene::HandleWeaponInput() {
 	}
 }
 
+/// @brief 武器発射の処理
 void GameScene::HandleWeaponFire(
 	const std::shared_ptr<CameraComponent>& camera) {
 	if (!mWeaponComponent || !mWeaponComponent->HasFiredThisFrame() || !
@@ -524,6 +549,7 @@ void GameScene::HandleWeaponFire(
 	}
 }
 
+/// @brief スケルタルアニメーションの更新
 void GameScene::UpdateSkeletalAnimation() {
 	if (
 		!mSkeletalMeshRenderer ||
@@ -563,6 +589,7 @@ void GameScene::UpdateSkeletalAnimation() {
 		SetAnimationSpeed(horizontalVelocity.Length() * 0.15f);
 }
 
+/// @brief ポストプロセッシングの更新
 void GameScene::UpdatePostProcessing(float deltaTime) {
 	const float blurStrength = mMovementComponent ?
 		                           mMovementComponent->GetVelocity().
@@ -576,6 +603,7 @@ void GameScene::UpdatePostProcessing(float deltaTime) {
 	}
 }
 
+/// @brief テレポートの更新
 void GameScene::UpdateTeleport() {
 	if (!mEntPlayer) {
 		return;
@@ -618,6 +646,8 @@ void GameScene::UpdateTeleport() {
 	}
 }
 
+/// @brief パーティクルとエフェクトの更新
+/// @param deltaTime 経過時間
 void GameScene::UpdateParticlesAndEffects(float deltaTime) {
 	if (auto* particleManager = Unnamed::Engine::GetParticleManager()) {
 		particleManager->Update(deltaTime);
@@ -636,6 +666,8 @@ void GameScene::UpdateParticlesAndEffects(float deltaTime) {
 	}
 }
 
+/// @brief エンティティの更新
+/// @param deltaTime 経過時間
 void GameScene::UpdateEntities(float deltaTime) {
 	for (auto* entity : mEntities) {
 		if (entity && !entity->GetParent()) {
@@ -661,6 +693,7 @@ void GameScene::UpdateEntities(float deltaTime) {
 }
 
 #ifdef _DEBUG
+/// @brief デバッグHUDの描画
 void GameScene::DrawDebugHud(
 	const std::shared_ptr<CameraComponent>& camera) const {
 	if (mShowPosConVar) {
@@ -744,13 +777,13 @@ void GameScene::DrawDebugHud(
 		viewport->Pos.y + viewport->Size.y * 0.5f
 	);
 
-	ImDrawList*     drawList = ImGui::GetBackgroundDrawList();
-	const ImVec4    reticleColor(1.0f, 1.0f, 1.0f, 0.8f);
-	const ImVec4    outlineColor(0.0f, 0.0f, 0.0f, 0.5f);
-	constexpr float lineLength       = 10.0f;
-	constexpr float gapSize          = 3.0f;
-	constexpr float lineThickness    = 1.5f;
-	constexpr float outlineThickness = 0.5f;
+	ImDrawList*      drawList = ImGui::GetBackgroundDrawList();
+	constexpr ImVec4 reticleColor(1.0f, 1.0f, 1.0f, 0.8f);
+	constexpr ImVec4 outlineColor(0.0f, 0.0f, 0.0f, 0.5f);
+	constexpr float  lineLength       = 10.0f;
+	constexpr float  gapSize          = 3.0f;
+	constexpr float  lineThickness    = 1.5f;
+	constexpr float  outlineThickness = 0.5f;
 
 	drawList->AddLine(
 		{windowCenter.x - lineLength - gapSize, windowCenter.y},
@@ -793,10 +826,11 @@ void GameScene::DrawDebugHud(
 }
 #endif
 
+/// @brief シャットダウン
 void GameScene::Shutdown() {
-	//cubeMap_.reset();
 }
 
+/// @brief ワールドメッシュのリロード
 void GameScene::ReloadWorldMesh() {
 	Console::Print("Starting world mesh reload...", kConTextColorCompleted);
 
@@ -833,6 +867,7 @@ void GameScene::ReloadWorldMesh() {
 	}
 }
 
+/// @brief ワールドメッシュエンティティの再作成
 void GameScene::RecreateWorldMeshEntity() {
 	Console::Print("Recreating world mesh entity...", kConTextColorCompleted);
 
@@ -861,7 +896,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	// メッシュをリロード
 	const std::string meshPath      = kWorldMeshReloadPath;
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-		ReloadMeshFromFile(meshPath);
+	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);
@@ -906,6 +941,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	               kConTextColorCompleted);
 }
 
+/// @brief 安全なワールドメッシュのリロード
 void GameScene::SafeReloadWorldMesh() {
 	Console::Print("Safe reloading world mesh...", kConTextColorCompleted);
 
@@ -937,7 +973,7 @@ void GameScene::SafeReloadWorldMesh() {
 	// メッシュをリロード
 	const std::string meshPath      = kWorldMeshReloadPath;
 	bool              reloadSuccess = mResourceManager->GetMeshManager()->
-		ReloadMeshFromFile(meshPath);
+	                                       ReloadMeshFromFile(meshPath);
 
 	if (!reloadSuccess) {
 		Console::Print("Failed to reload mesh!", kConTextColorError);

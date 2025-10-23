@@ -11,6 +11,7 @@
 namespace Unnamed {
 	struct IWin32MsgListener;
 
+	/// @brief プラットフォームイベントインターフェースクラス
 	struct IPlatformEvents {
 		virtual bool AddListener(IWin32MsgListener* listener) = 0;
 		virtual void RemoveListener(IWin32MsgListener* listener) = 0;

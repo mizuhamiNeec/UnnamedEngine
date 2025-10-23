@@ -16,18 +16,29 @@
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "Console";
 
+	/// @brief EXEC_FLAGのOR演算子オーバーロード
+	/// @param lhs 左辺
+	/// @param rhs 右辺
+	/// @return 演算結果
 	EXEC_FLAG operator|=(EXEC_FLAG& lhs, const EXEC_FLAG& rhs) {
 		lhs = static_cast<EXEC_FLAG>(static_cast<int>(lhs) | static_cast<int>(
 			rhs));
 		return lhs;
 	}
 
+	/// @brief EXEC_FLAGのAND演算子オーバーロード
+	/// @param lhs 左辺
+	/// @param rhs 右辺
+	/// @return 演算結果
 	bool operator&(EXEC_FLAG lhs, EXEC_FLAG rhs) {
 		return (static_cast<int>(lhs) & static_cast<int>(rhs)) != 0;
 	}
 
+	/// @brief コンソールシステムのデストラクタ
 	ConsoleSystem::~ConsoleSystem() = default;
 
+	/// @brief コンソールシステムの初期化
+	/// @return 初期化成功ならtrue
 	bool ConsoleSystem::Init() {
 		ServiceLocator::Register<ConsoleSystem>(this);
 #ifdef _DEBUG
@@ -36,39 +47,48 @@ namespace Unnamed {
 		return true;
 	}
 
+	/// @brief コンソールシステムの更新
+	/// @param deltaTime 前フレームからの経過時間（秒）
 	void ConsoleSystem::Update(float) {
 #ifdef _DEBUG
 		mConsoleUI->Show();
 #endif
 	}
 
+	/// @brief コンソールシステムのシャットダウン
 	void ConsoleSystem::Shutdown() {
 	}
 
+	/// @brief コンソールシステムの名前を取得します
+	/// @return コンソールシステムの名前
 	const std::string_view ConsoleSystem::GetName() const {
 		return "Console";
 	}
 
+	/// @brief コンソールにログを出力します
+	/// @param level ログレベル
+	/// @param channel チャンネル名
+	/// @param message メッセージ
+	/// @param location ソースコードの位置情報
 	void ConsoleSystem::Print(
-		const LogLevel         level,
-		const std::string_view channel,
-		const std::string_view message,
+		const LogLevel             level,
+		const std::string_view     channel,
+		const std::string_view     message,
 		const std::source_location location
 	) {
 		// ログメッセージをバッファに追加
 		ConsoleLogText logText;
-		logText.level = level;
-		logText.channel = channel;
-		logText.message = message;
+		logText.level     = level;
+		logText.channel   = channel;
+		logText.message   = message;
 		logText.timeStamp = SystemClock::GetDateTime(SystemClock::Now());
-		logText.location = location;
+		logText.location  = location;
 		mLogBuffer.Push(logText);
 
 		std::string out;
 		if (!logText.channel.empty()) {
 			out = "[" + logText.channel + "] " + logText.message;
-		}
-		else {
+		} else {
 			out = logText.message;
 		}
 
@@ -80,6 +100,8 @@ namespace Unnamed {
 		OutputDebugStringW(StrUtil::ToWString("\n").c_str());
 	}
 
+	/// @brief コンソールコマンドを登録します
+	/// @param conCommand 登録するコマンドへのポインタ
 	void ConsoleSystem::RegisterConCommand(UnnamedConCommandBase* conCommand) {
 		mConCommands[std::string(conCommand->GetName())] = conCommand;
 
@@ -90,6 +112,8 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief コンソール変数を登録します
+	/// @param conVar 登録する変数へのポインタ
 	void ConsoleSystem::RegisterConVar(UnnamedConVarBase* conVar) {
 		mConVars[std::string(conVar->GetName())] = conVar;
 
@@ -123,8 +147,7 @@ namespace Unnamed {
 
 		if (flag & EXEC_FLAG::SILENT) {
 			// TODO 
-		}
-		else {
+		} else {
 			// 送信内容をコンソールに表示
 			SpecialMsg(
 				LogLevel::Execute,
@@ -143,13 +166,13 @@ namespace Unnamed {
 			const std::vector        args(tokens.begin() + 1, tokens.end());
 
 			const bool foundCommand = mConCommands.contains(tokens[0]);
-			const bool foundVar = mConVars.contains(tokens[0]);
+			const bool foundVar     = mConVars.contains(tokens[0]);
 
 			// コマンドの場合
 			if (foundCommand) {
 				const auto* cmd = reinterpret_cast<UnnamedConCommand*>(
 					mConCommands[tokens[0]]
-					);
+				);
 
 				// コールバックを実行
 				if (cmd->onExecute(args)) {
@@ -157,8 +180,7 @@ namespace Unnamed {
 					if (cmd->onComplete) {
 						cmd->onComplete();
 					}
-				}
-				else {
+				} else {
 					// 失敗したらとりあえず説明を出しておく
 					SpecialMsg(
 						LogLevel::None,
@@ -193,29 +215,29 @@ namespace Unnamed {
 					case CONVAR_TYPE::INT:
 						if (
 							auto* ci = dynamic_cast<UnnamedConVar<int>*>(var)
-							) {
+						) {
 							ci->SetValue(std::stoi(args[0]));
 						}
 						break;
 					case CONVAR_TYPE::FLOAT:
 						if (
 							auto* cf = dynamic_cast<UnnamedConVar<float>*>(var)
-							) {
+						) {
 							cf->SetValue(std::stof(args[0]));
 						}
 						break;
 					case CONVAR_TYPE::DOUBLE:
 						if (
 							auto* cd = dynamic_cast<UnnamedConVar<double>*>(var)
-							) {
+						) {
 							cd->SetValue(std::stod(args[0]));
 						}
 						break;
 					case CONVAR_TYPE::STRING:
 						if (
 							auto* cs = dynamic_cast<UnnamedConVar<std::string>*>
-							(var)
-							) {
+								(var)
+						) {
 							cs->SetValue(args[0]);
 						}
 						break;
@@ -225,7 +247,7 @@ namespace Unnamed {
 							if (
 								auto* cv3 = dynamic_cast<UnnamedConVar<Vec3>*>(
 									var)
-								) {
+							) {
 								bool ok = false;
 								// 各引数が数字に変換できるか確認
 								for (const auto& arg : args) {
@@ -253,6 +275,9 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief コンソール変数の型を取得します
+	/// @param conVar 変数へのポインタ
+	/// @return 変数の型
 	void ConsoleSystem::Test() {
 		for (auto conVar : mConVars) {
 			DevMsg(kChannel, "ConVar: {}", conVar.first);
@@ -260,28 +285,27 @@ namespace Unnamed {
 			if (auto* cbool = dynamic_cast<UnnamedConVar<bool>*>(conVar.
 				second)) {
 				DevMsg(kChannel, "Value: {}", static_cast<bool>(*cbool));
-			}
-			else if (auto* cint = dynamic_cast<UnnamedConVar<int>*>(
+			} else if (auto* cint = dynamic_cast<UnnamedConVar<int>*>(
 				conVar.second)) {
 				DevMsg(kChannel, "Value: {}", static_cast<int>(*cint));
-			}
-			else if (auto* cfloat = dynamic_cast<UnnamedConVar<float>*>(conVar
+			} else if (auto* cfloat = dynamic_cast<UnnamedConVar<float>*>(conVar
 				.second)) {
 				DevMsg(kChannel, "Value: {}", static_cast<float>(*cfloat));
-			}
-			else if (auto* convarDouble = dynamic_cast<UnnamedConVar<double>*>
+			} else if (auto* convarDouble = dynamic_cast<UnnamedConVar<double>*>
 				(conVar.second)) {
 				DevMsg(kChannel, "Value: {}",
-					static_cast<double>(*convarDouble));
-			}
-			else if (auto* convarString = dynamic_cast<UnnamedConVar<
+				       static_cast<double>(*convarDouble));
+			} else if (auto* convarString = dynamic_cast<UnnamedConVar<
 				std::string>*>(conVar.second)) {
 				DevMsg(kChannel, "Value: {}",
-					static_cast<std::string>(*convarString));
+				       static_cast<std::string>(*convarString));
 			}
 		}
 	}
 
+	/// @brief コマンド文字列を分割します
+	/// @param command コマンド文字列
+	/// @return 分割されたコマンドのベクター
 	std::vector<std::string> ConsoleSystem::SplitCommands(
 		const std::string_view& command
 	) {
@@ -292,12 +316,10 @@ namespace Unnamed {
 			if (ch == '"') {
 				inQuotes = !inQuotes;
 				current += ch;
-			}
-			else if (ch == ';' && !inQuotes) {
+			} else if (ch == ';' && !inQuotes) {
 				result.emplace_back(current);
 				current.clear();
-			}
-			else {
+			} else {
 				current += ch;
 			}
 		}
@@ -309,10 +331,13 @@ namespace Unnamed {
 		return result;
 	}
 
+	/// @brief コマンド文字列をトークンに分割します
+	/// @param command コマンド文字列
+	/// @return トークンのベクター
 	std::vector<std::string> ConsoleSystem::Tokenize(
 		const std::string_view& command
 	) {
-		std::istringstream       stream{ std::string(command) };
+		std::istringstream       stream{std::string(command)};
 		std::vector<std::string> tokens;
 		std::string              token;
 
@@ -323,9 +348,12 @@ namespace Unnamed {
 		return tokens;
 	}
 
+	/// @brief 文字列の前後の空白をトリムします
+	/// @param string 対象の文字列
+	/// @return トリムされた文字列
 	std::string ConsoleSystem::TrimSpaces(const std::string& string) {
 		const size_t start = string.find_first_not_of(" \t\n\r");
-		const size_t end = string.find_last_not_of(" \t\n\r");
+		const size_t end   = string.find_last_not_of(" \t\n\r");
 
 		if (start == std::string::npos || end == std::string::npos) {
 			return "";

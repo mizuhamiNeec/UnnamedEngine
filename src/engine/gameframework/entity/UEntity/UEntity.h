@@ -2,6 +2,7 @@
 #include <engine/gameframework/entity/base/BaseEntity.h>
 
 namespace Unnamed {
+	/// @brief 汎用エンティティクラス
 	class UEntity : public BaseEntity {
 	public:
 		using BaseEntity::BaseEntity;
@@ -19,7 +20,5 @@ namespace Unnamed {
 		void OnPostRender() const override;
 
 		void OnDestroy() override;
-
-	private:
 	};
 }

@@ -8,6 +8,7 @@
 #include "runtime/render/resources/ShaderLibrary.h"
 
 namespace Unnamed {
+	/// @brief パイプラインの入力要素定義
 	struct InputElement {
 		const char* semantic;
 		UINT        index;
@@ -15,6 +16,7 @@ namespace Unnamed {
 		UINT        offset;
 	};
 
+	/// @brief パイプラインステートオブジェクトの記述子
 	struct PipelineDesc {
 		RootSignatureHandle       rootSignature;
 		std::vector<InputElement> inputLayout;
@@ -23,8 +25,10 @@ namespace Unnamed {
 		DXGI_FORMAT               dsv    = DXGI_FORMAT_UNKNOWN;
 
 		D3D12_BLEND_DESC      blend      = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-		D3D12_RASTERIZER_DESC rasterizer = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-		D3D12_DEPTH_STENCIL_DESC depth = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+		D3D12_RASTERIZER_DESC rasterizer = CD3DX12_RASTERIZER_DESC(
+			D3D12_DEFAULT);
+		D3D12_DEPTH_STENCIL_DESC depth = CD3DX12_DEPTH_STENCIL_DESC(
+			D3D12_DEFAULT);
 
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE topology =
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -37,10 +41,12 @@ namespace Unnamed {
 		//const ShaderBlob* gs = nullptr;
 	};
 
+	/// @brief パイプラインステートオブジェクトのハンドル
 	struct PsoHandle {
 		uint32_t id = UINT32_MAX;
 	};
 
+	/// @brief パイプラインキャッシュクラス
 	class UPipelineCache {
 	public:
 		explicit UPipelineCache(
@@ -53,7 +59,6 @@ namespace Unnamed {
 	private:
 		static size_t Hash(const PipelineDesc& desc);
 
-	private:
 		GraphicsDevice*     mGraphicsDevice;
 		RootSignatureCache* mRootSignatureCache;
 

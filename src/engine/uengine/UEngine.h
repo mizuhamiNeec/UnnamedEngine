@@ -16,6 +16,7 @@ class TimeSystem;
 namespace Unnamed {
 	class UInputSystem;
 
+	/// @brief エンジンクラス
 	class UEngine {
 	public:
 		UEngine();
@@ -28,7 +29,6 @@ namespace Unnamed {
 		void Tick();
 		void Shutdown() const;
 
-	private:
 		std::vector<std::unique_ptr<ISubsystem>> mSubsystems;
 
 		std::unique_ptr<PlatformEventsImpl> mPlatformEvents;

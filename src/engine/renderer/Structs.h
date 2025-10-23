@@ -1,4 +1,3 @@
-
 #pragma once
 #include <cstdint>
 #include <d3d12.h>
@@ -7,6 +6,7 @@
 #include <runtime/core/math/Math.h>
 #include <engine/Animation/Node.h>
 
+/// @brief 頂点構造体
 struct Vertex {
 	Vec4 position; // 座標
 	Vec2 uv;       // テクスチャ座標
@@ -19,7 +19,7 @@ private:
 	static const D3D12_INPUT_ELEMENT_DESC inputElements[inputElementCount];
 };
 
-// スキニング用の頂点構造体
+/// @brief スキニング頂点構造体
 struct SkinnedVertex {
 	Vec4     position;       // 座標
 	Vec2     uv;             // テクスチャ座標
@@ -34,12 +34,14 @@ private:
 	static const D3D12_INPUT_ELEMENT_DESC inputElements[inputElementCount];
 };
 
+/// @brief 変換行列構造体
 struct TransformationMatrix {
 	Mat4 wvp;                   // ワールドビュープロジェクション
 	Mat4 world;                 // ワールド
 	Mat4 worldInverseTranspose; // ワールドの逆転置
 };
 
+/// @brief パーティクル構造体（GPU送信用）
 struct ParticleForGPU {
 	Mat4  wvp;
 	Mat4  world;
@@ -49,23 +51,27 @@ struct ParticleForGPU {
 	float uvFrame;
 };
 
+/// @brief マテリアルデータ構造体
 struct MaterialData {
 	std::string textureFilePath;
 	uint32_t    textureIndex = 0;
 };
 
+/// @brief モデルデータ構造体
 struct ModelData {
 	std::vector<Vertex> vertices;
 	MaterialData        material;
 	Node                rootNode;
 };
 
+/// @brief スキニングモデルデータ構造体
 struct DirectionalLight {
 	Vec4  color;     //!< ライトの色
 	Vec3  direction; //!< ライトの向き
 	float intensity; //!< 輝度
 };
 
+/// @brief スキニングモデルデータ構造体
 struct PointLight {
 	Vec4  color;     //!< ライトの色
 	Vec3  position;  //!< ライトの位置
@@ -75,6 +81,7 @@ struct PointLight {
 	float padding[2];
 };
 
+/// @brief スキニングモデルデータ構造体
 struct SpotLight {
 	Vec4  color;     //!< ライトの色
 	Vec3  position;  //!< ライトの位置
@@ -87,17 +94,19 @@ struct SpotLight {
 	float padding[2];
 };
 
+/// @brief トランスフォーム構造体
 struct Transform {
 	Vec3 scale;
 	Vec3 rotate;
 	Vec3 translate;
 };
 
-// カメラの座標をGPUへ送る用
+/// @brief カメラ構造体（GPU送信用） 
 struct CameraForGPU {
 	Vec3 worldPosition;
 };
 
+/// @brief パーティクル構造体
 struct Particle {
 	Transform transform;
 	Vec3      vel;
@@ -118,14 +127,16 @@ struct Particle {
 	float rotationSpeed   = 0.0f;
 };
 
+/// @brief エミッタ構造体
 struct Emitter {
 	Transform transform;     // エミッタのトランスフォーム
-	uint32_t        count;         // 発生数
-	float           frequency;     // 発生頻度
-	float           frequencyTime; // 頻度用時刻
-	Vec3            size;          // エミッターのサイズ
+	uint32_t  count;         // 発生数
+	float     frequency;     // 発生頻度
+	float     frequencyTime; // 頻度用時刻
+	Vec3      size;          // エミッターのサイズ
 };
 
+/// @brief 加速度フィールド構造体
 struct AccelerationField {
 	Vec3 acceleration; // 加速度
 	//AABB area; // 範囲

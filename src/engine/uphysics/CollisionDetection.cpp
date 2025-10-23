@@ -5,9 +5,14 @@
 #include <assimp/mesh.h>
 
 namespace UPhysics {
+	/// @brief レイとAABBの交差判定を行います
+	/// @param ray 判定するレイ
+	/// @param aabb 判定するAABB
+	/// @param tMaxOut レイがAABBに衝突するまでの距離を格納する出力変数
+	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool RayVsAABB(
 		const Unnamed::Ray& ray, const Unnamed::AABB& aabb,
-		float&     tMaxOut
+		float&              tMaxOut
 	) {
 		float tMin = ray.tMin;
 		tMaxOut    = ray.tMax;
@@ -30,9 +35,15 @@ namespace UPhysics {
 		return true;
 	}
 
+	/// @brief レイと三角形の交差判定を行います（Möller–Trumboreアルゴリズム）
+	/// @param triangle 判定する三角形
+	/// @param ray 判定するレイ
+	/// @param tHit 衝突点までの距離を格納する出力変数
+	/// @param outNormal 衝突点の法線を格納する出力変数
+	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool TriangleVsRay(
 		const Unnamed::Triangle& triangle, const Unnamed::Ray& ray,
-		float&          tHit, Vec3&          outNormal
+		float&                   tHit, Vec3&                   outNormal
 	) {
 		constexpr float kEpsilon = 1e-6f;
 		const Vec3      e1       = triangle.v1 - triangle.v0;
@@ -68,12 +79,19 @@ namespace UPhysics {
 		return true;
 	}
 
+	/// @brief スイープAABBと三角形の連続衝突判定を行います（SAT）
+	/// @param box0 判定するAABBの初期位置
+	/// @param delta AABBの移動ベクトル
+	/// @param tri 判定する三角形
+	/// @param outTOI 衝突までの時間を格納する出力変数（0.0〜1.0）
+	/// @param outNrm 衝突時の法線を格納する出力変数
+	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool SweptAabbVsTriSAT(
 		const Unnamed::Box&      box0,
-		const Vec3&     delta,
+		const Vec3&              delta,
 		const Unnamed::Triangle& tri,
-		float&          outTOI,
-		Vec3&           outNrm
+		float&                   outTOI,
+		Vec3&                    outNrm
 	) {
 		/* ---------- 1. 基本量 ---------- */
 		const Vec3 C0 = box0.center;
@@ -165,13 +183,21 @@ namespace UPhysics {
 	}
 
 	// NOT WORKING YET
+	/// @brief スイープ球と三角形の連続衝突判定を行います（SAT）
+	/// @param center 判定する球の中心位置
+	/// @param radius 球の半径
+	/// @param delta 球の移動ベクトル
+	/// @param tri 判定する三角形
+	/// @param outTOI 衝突までの時間を格納する出力変数（0.0〜1.0）
+	/// @param outNormal 衝突時の法線を格納する出力変数
+	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool SweptSphereVsTriSAT(
-		const Vec3&     center,
-		float           radius,
-		const Vec3&     delta,
+		const Vec3&              center,
+		float                    radius,
+		const Vec3&              delta,
 		const Unnamed::Triangle& tri,
-		float&          outTOI,
-		Vec3&           outNormal
+		float&                   outTOI,
+		Vec3&                    outNormal
 	) {
 		/* ---------- 1. 基本量 ---------- */
 		const Vec3 C0 = center;
@@ -324,38 +350,61 @@ namespace UPhysics {
 		return true;
 	}
 
-
+	/// @brief スイープ円柱と三角形の連続衝突判定を行います（SAT）
+	/// @param base 円柱の底面中心位置
+	/// @param halfHeight 円柱の半高さ
+	/// @param radius 円柱の半径
+	/// @param delta 円柱の移動ベクトル
+	/// @param tri 判定する三角形
+	/// @param outTOI 衝突までの時間を格納する出力変数（0.0〜1.0）
+	/// @param outNormal 衝突時の法線を格納する出力変数
+	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool SweptCylinderVsTriSAT(
-		const Vec3&     base,
-		float           halfHeight,
-		float           radius,
-		const Vec3&     delta,
+		const Vec3&              base,
+		float                    halfHeight,
+		float                    radius,
+		const Vec3&              delta,
 		const Unnamed::Triangle& tri,
-		float&          outTOI,
-		Vec3&           outNormal
+		float&                   outTOI,
+		Vec3&                    outNormal
 	) {
 		base, halfHeight, radius, delta, tri, outTOI, outNormal;
 		return false;
 	}
 
+	/// @brief スイープカプセルと三角形の連続衝突判定を行います（SAT）
+	/// @param a カプセルの一端点位置
+	/// @param b カプセルの他端点位置
+	/// @param radius カプセルの半径
+	/// @param delta カプセルの移動ベクトル
+	/// @param tri 判定する三角形
+	/// @param outTOI 衝突までの時間を格納する出力変数（0.0〜1.0）
+	/// @param outNormal 衝突時の法線を格納する出力変数
+	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool SweptCapsuleVsTriSAT(
-		const Vec3&     a,
-		const Vec3&     b,
-		float           radius,
-		const Vec3&     delta,
+		const Vec3&              a,
+		const Vec3&              b,
+		float                    radius,
+		const Vec3&              delta,
 		const Unnamed::Triangle& tri,
-		float&          outTOI,
-		Vec3&           outNormal
+		float&                   outTOI,
+		Vec3&                    outNormal
 	) {
 		a, b, radius, delta, tri, outTOI, outNormal;
 		return false;
 	}
 
+	/// @brief ボックスと三角形の静的衝突判定を行います（SAT）
+	/// @param box 判定するボックス
+	/// @param tri 判定する三角形
+	/// @param outNormal 衝突時の法線を格納する出力変数
+	/// @param outDepth 衝突の貫入深度を格納する出力変数
+	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool BoxVsTriangleOverlap(
 		const Unnamed::Box&      box,
 		const Unnamed::Triangle& tri,
-		Vec3&           outNormal,
-		float&          outDepth) {
+		Vec3&                    outNormal,
+		float&                   outDepth) {
 		// 1) テストする軸 13 本
 		Vec3 axes[13];
 		int  axisCnt = 0;
@@ -374,9 +423,9 @@ namespace UPhysics {
 
 		// (c) エッジ × ボックス軸
 		Vec3 triEdges[3] = {tri.v1 - tri.v0, tri.v2 - tri.v1, tri.v0 - tri.v2};
-		for (int e = 0; e < 3; ++e) {
+		for (auto triEdge : triEdges) {
 			for (int a = 0; a < 3; ++a) {
-				Vec3 axis = triEdges[e].Cross(axes[a]);
+				Vec3 axis = triEdge.Cross(axes[a]);
 				if (!axis.IsZero()) {
 					axis.Normalize();
 					axes[axisCnt++] = axis;
@@ -420,9 +469,9 @@ namespace UPhysics {
 		}
 
 		// 3) bestAxis 方向へ押し出し
-		outNormal = (triN.Dot(box.center - tri.v0) > 0.0f)
-			            ? bestAxis
-			            : -bestAxis;
+		outNormal = (triN.Dot(box.center - tri.v0) > 0.0f) ?
+			            bestAxis :
+			            -bestAxis;
 		outDepth = bestDepth;
 		return true;
 	}

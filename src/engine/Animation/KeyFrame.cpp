@@ -2,6 +2,10 @@
 
 #include "engine/OldConsole/Console.h"
 
+/// キーフレームから指定された時刻の値を計算する
+/// @param keyframes キーフレームの配列
+/// @param time 時刻 
+/// @return 計算された値 
 Vec3 CalculateValue(const std::vector<KeyframeVec3>& keyframes, float time) {
 	//assert(!keyframes.empty() && "Keyframes must not be empty");
 	if (keyframes.empty()) {
@@ -36,8 +40,12 @@ Vec3 CalculateValue(const std::vector<KeyframeVec3>& keyframes, float time) {
 	return keyframes.rbegin()->value;
 }
 
+/// @brief クォータニオンのキーフレームから指定された時刻の値を計算する
+/// @param keyframes キーフレームの配列
+/// @param time 時刻
+/// @return 計算された値
 Quaternion CalculateValue(const std::vector<KeyframeQuaternion>& keyframes,
-	float time) {
+                          float                                  time) {
 	//assert(!keyframes.empty() && "Keyframes must not be empty");
 	if (keyframes.empty()) {
 		Console::Print(

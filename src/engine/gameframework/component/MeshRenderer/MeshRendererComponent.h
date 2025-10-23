@@ -14,12 +14,13 @@ namespace Unnamed {
 	class UPipelineCache;
 	class GraphicsDevice;
 
+	/// @brief メッシュレンダラーコンポーネント
 	class MeshRendererComponent : public BaseComponent {
 	public:
 		AssetID meshAsset     = kInvalidAssetID;
 		AssetID materialAsset = kInvalidAssetID;
 
-		MeshHandle       meshHandle = {};  // 共有メッシュのハンドル
+		MeshHandle       meshHandle = {}; // 共有メッシュのハンドル
 		UMaterialRuntime material   = {};
 
 		// MeshRendererComponent
@@ -32,7 +33,7 @@ namespace Unnamed {
 			RenderResourceManager* renderResourceManager,
 			ShaderLibrary*         shaderLibrary,
 			RootSignatureCache*    rootSignatureCache,
-			UPipelineCache*         pipelineCache, ID3D12GraphicsCommandList* cmd
+			UPipelineCache*        pipelineCache, ID3D12GraphicsCommandList* cmd
 		);
 
 		void InvalidateGPU(RenderResourceManager* renderResourceManager);

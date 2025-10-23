@@ -7,8 +7,6 @@ class CameraRotator;
 
 /**
  * @brief カメラアニメーション用のコンポーネント
- * @details ジャンプ、スライディング、ウォールランなどの動きに応じてカメラを演出します。
- *          Titanfall 2スタイルの動的なカメラ表現を実現します。
  */
 class CameraAnimator : public Component {
 public:
@@ -17,20 +15,21 @@ public:
 	 * @param owner 所有者エンティティ
 	 */
 	void OnAttach(Entity& owner) override;
-	
+
 	/**
 	 * @brief コンポーネントの初期化
 	 * @param movementComponent 移動コンポーネントへの参照
 	 * @param cameraRotator カメラ回転コンポーネントへの参照
 	 */
-	void Init(MovementComponent* movementComponent, CameraRotator* cameraRotator);
-	
+	void Init(MovementComponent* movementComponent,
+	          CameraRotator*     cameraRotator);
+
 	/**
 	 * @brief 毎フレーム更新処理を行う
 	 * @param dt 前フレームからの経過時間
 	 */
 	void Update(float dt) override;
-	
+
 	/**
 	 * @brief ImGuiインスペクタ用のUI描画
 	 */
@@ -46,42 +45,42 @@ private:
 
 	MovementComponent* mMovement = nullptr;
 
-	// Jump animation
+	// ジャンプアニメーション
 	bool  mWasInAir           = false;
 	float mJumpAnimTime       = 0.0f;
 	float mDoubleJumpAnimTime = 0.0f;
 	bool  mHadDoubleJump      = true;
 
-	// Slide animation
+	// スライディングアニメーション
 	bool  mWasSliding      = false;
 	float mSlideAnimTime   = 0.0f;
 	float mSlideEntrySpeed = 0.0f;
 
-	// Wallrun animation
+	// ウォールランアニメーション
 	bool  mWasWallRunning  = false;
 	float mWallrunAnimTime = 0.0f;
 	float mWallrunSide     = 0.0f; // -1 = left, +1 = right
 
-	// Landing animation
+	// 着地アニメーション
 	bool  mLandingActive    = false;
 	float mLandingAnimTime  = 0.0f;
 	float mLandingIntensity = 0.0f;
 
-	// Current shake/tilt values
+	// 現在のシェイク/傾き値
 	Vec3  mCurrentShake = Vec3::zero;
 	float mCurrentRoll  = 0.0f; // Z軸回転（傾き）
 	float mCurrentPitch = 0.0f; // X軸回転（上下）
-	
-	// Reference to CameraRotator for applying rotation offsets
+
+	// 借り物
 	CameraRotator* mCameraRotator = nullptr;
-	
-	// Perlin noise time accumulator
+
+	// パーリンノイズ用の時間変数
 	float mNoiseTime = 0.0f;
-	
-	// Helper function for Perlin noise
+
+	// パーリンノイズ生成
 	float PerlinNoise(float x, float y, float z) const;
 
-	// Animation parameters (Titanfall 2 style)
+	//
 	static constexpr float kJumpShakeAmount   = 0.07f;
 	static constexpr float kJumpShakeDuration = 0.2f;
 
@@ -92,7 +91,7 @@ private:
 	static constexpr float kSlideShakeAmount = 0.01f;
 	static constexpr float kSlideRollSpeed   = 15.0f; // より速く傾く
 
-	static constexpr float kWallrunRollAmount  = 5.0f; // degrees
+	static constexpr float kWallrunRollAmount  = 5.0f;  // degrees
 	static constexpr float kWallrunRollSpeed   = 20.0f; // より速く傾く
 	static constexpr float kWallrunShakeAmount = 0.008f;
 
@@ -100,10 +99,11 @@ private:
 	static constexpr float kLandingShakeDuration = 0.25f;
 	static constexpr float kLandingMinSpeed      = 3.0f; // m/s
 	static constexpr float kLandingPitchAmount   = 4.0f; // degrees - 着地時に下を向く
-	
-	// Jump pitch animation
-	static constexpr float kJumpPitchAmount       = 3.0f; // degrees - ジャンプ時に上を向く
-	static constexpr float kDoubleJumpPitchAmount = 5.0f; // degrees - ダブルジャンプ時にさらに上を向く
+
+	static constexpr float kJumpPitchAmount = 3.0f; // degrees - ジャンプ時に上を向く
+
+	// degrees - ダブルジャンプ時にさらに上を向く
+	static constexpr float kDoubleJumpPitchAmount = 5.0f;
 
 	static constexpr float kShakeFrequency = 15.0f;
 };

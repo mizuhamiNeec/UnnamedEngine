@@ -1,4 +1,3 @@
-
 #include "Object3DCommon.h"
 
 #include "engine/OldConsole/Console.h"
@@ -9,26 +8,21 @@
 
 #include "engine/renderer/D3D12.h"
 
-//-----------------------------------------------------------------------------
-// Purpose : Object3DCommonを初期化します
-//-----------------------------------------------------------------------------
+/// @brief Object3DCommonを初期化します
+/// @param d3d12 D3D12レンダラーへのポインタ
 void Object3DCommon::Init(D3D12* d3d12) {
 	this->d3d12_ = d3d12;
 	CreateGraphicsPipeline();
 	Console::Print("Object3DCommon : Object3dの初期化が完了しました。\n",
-				   kConTextColorCompleted);
+	               kConTextColorCompleted);
 }
 
-//-----------------------------------------------------------------------------
-// Purpose : Object3DCommonをシャットダウンします
-//-----------------------------------------------------------------------------
+/// @brief Object3DCommonをシャットダウンします
 void Object3DCommon::Shutdown() const {
 	rootSignatureManager_->Shutdown();
 }
 
-//-----------------------------------------------------------------------------
-// Purpose : ルートシグネチャを作成します
-//-----------------------------------------------------------------------------
+/// @brief ルートシグネチャを作成します
 void Object3DCommon::CreateRootSignature() {
 	// RootSignatureManagerのインスタンスを作成
 	rootSignatureManager_ = std::make_unique<RootSignatureManager>(
@@ -99,8 +93,8 @@ void Object3DCommon::CreateRootSignature() {
 			.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
 			.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP,
 			.MipLODBias = 0.0f,
-			.MaxAnisotropy = 16,                              // 異方性フィルタリングの最大サンプル数
-			.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER,    // 比較しない
+			.MaxAnisotropy = 16,                           // 異方性フィルタリングの最大サンプル数
+			.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER, // 比較しない
 			.MinLOD = 0.0f,
 			.MaxLOD = D3D12_FLOAT32_MAX,                      // ありったけのMipmapを使う
 			.ShaderRegister = 0,                              // レジスタ番号0を使う
@@ -110,19 +104,17 @@ void Object3DCommon::CreateRootSignature() {
 
 	// ルートシグネチャを作成
 	rootSignatureManager_->CreateRootSignature("Object3d", rootParameters,
-											   staticSamplers,
-											   _countof(staticSamplers));
+	                                           staticSamplers,
+	                                           _countof(staticSamplers));
 }
 
-//-----------------------------------------------------------------------------
-// Purpose : パイプラインを作成します
-//-----------------------------------------------------------------------------
+/// @brief グラフィックスパイプラインを作成します
 void Object3DCommon::CreateGraphicsPipeline() {
 	CreateRootSignature();
 
 	// パイプラインステートを作成
 	pipelineState_ = PipelineState(D3D12_CULL_MODE_BACK, D3D12_FILL_MODE_SOLID,
-								   D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+	                               D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 	pipelineState_.SetInputLayout(Vertex::inputLayout);
 	pipelineState_.SetRootSignature(rootSignatureManager_->Get("Object3d"));
 
@@ -135,9 +127,7 @@ void Object3DCommon::CreateGraphicsPipeline() {
 	pipelineState_.Create(d3d12_->GetDevice());
 }
 
-//-----------------------------------------------------------------------------
-// Purpose : 共通描画設定
-//-----------------------------------------------------------------------------
+/// @brief Object3Dの描画を行います
 void Object3DCommon::Render() const {
 	d3d12_->GetCommandList()->SetPipelineState(pipelineState_.Get());
 	d3d12_->GetCommandList()->SetGraphicsRootSignature(
@@ -146,10 +136,12 @@ void Object3DCommon::Render() const {
 		D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
+/// @brief D3D12レンダラーへのポインタを取得します
 D3D12* Object3DCommon::GetD3D12() const {
 	return d3d12_;
 }
 
+/// @brief デフォルトカメラを取得します
 CameraComponent* Object3DCommon::GetDefaultCamera() {
 	return CameraManager::GetActiveCamera().get();
 }

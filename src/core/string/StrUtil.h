@@ -14,7 +14,7 @@ public:
 	 * @return マルチバイト文字列
 	 */
 	static std::string ToString(const std::wstring& string);
-	
+
 	/**
 	 * @brief ワイド文字列をマルチバイト文字列に変換する
 	 * @param string ワイド文字列ポインタ

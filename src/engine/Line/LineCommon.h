@@ -8,6 +8,7 @@ class Camera;
 class CameraComponent;
 class D3D12;
 
+/// @brief ライン描画の共通クラス
 class LineCommon {
 public:
 	void Init(D3D12* d3d12);

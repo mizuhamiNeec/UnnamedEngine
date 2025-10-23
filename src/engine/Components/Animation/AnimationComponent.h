@@ -4,6 +4,8 @@
 
 class SceneComponent;
 
+/// @brief アニメーションコンポーネント
+/// アニメーションを再生するコンポーネント
 class AnimationComponent : public Component {
 public:
 	~AnimationComponent() override;

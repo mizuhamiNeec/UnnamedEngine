@@ -14,6 +14,7 @@ constexpr uint32_t kSpriteVertexCount = 6;
 
 class SpriteCommon;
 
+/// @brief スプライトクラス
 class Sprite final {
 public:
 	~Sprite();

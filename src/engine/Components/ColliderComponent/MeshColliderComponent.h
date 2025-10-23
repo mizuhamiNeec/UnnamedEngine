@@ -7,6 +7,7 @@ class StaticMesh;
 class StaticMeshRenderer;
 struct AABB;
 
+/// @brief 静的メッシュのコライダーコンポーネント
 class MeshColliderComponent : public ColliderComponent {
 public:
 	void OnAttach(Entity& owner) override;

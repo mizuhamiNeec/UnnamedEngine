@@ -6,7 +6,7 @@
 #include <engine/gameframework/component/base/BaseComponent.h>
 
 namespace Unnamed {
-	// TODO: 従来版を取り除いたらEntityに名前変更
+	// TODO: 旧Entityを取り除いたらEntityに名前変更
 
 	/// @class BaseEntity
 	/// @brief エンティティはゲームの基本オブジェクトです。
@@ -20,25 +20,45 @@ namespace Unnamed {
 		//---------------------------------------------------------------------
 		// 純粋仮想関数
 		//---------------------------------------------------------------------
+		/// @brief エンティティが登録されたときに呼び出されます。
 		virtual void OnRegister() = 0;
+		/// @brief エンティティが登録された後に呼び出されます。
 		virtual void PostRegister() = 0;
 
+		/// @brief 物理演算の前に呼び出されます。
+		/// @param deltaTime 前のフレームからの経過時間（秒）
 		virtual void PrePhysicsTick(float deltaTime) = 0;
+		/// @brief 毎フレーム呼び出されます。
+		/// @param deltaTime 前のフレームからの経過時間（秒）
 		virtual void Tick(float deltaTime) = 0;
+		/// @brief 物理演算の後に呼び出されます。
+		/// @param deltaTime 前のフレームからの経過時間（秒）
 		virtual void PostPhysicsTick(float deltaTime) = 0;
 
+		/// @brief レンダリングの前に呼び出されます。
 		virtual void OnPreRender() const = 0;
+		/// @brief レンダリング時に呼び出されます。
 		virtual void OnRender() const = 0;
+		/// @brief レンダリングの後に呼び出されます。
 		virtual void OnPostRender() const = 0;
 
+		/// @brief エディターのティック時に呼び出されます。
+		/// @param deltaTime 前のフレームからの経過時間（秒）
 		virtual void OnEditorTick(float deltaTime);
+		/// @brief エディターのレンダリング時に呼び出されます。
 		virtual void OnEditorRender() const;
 
+		/// @brief エンティティが破棄されるときに呼び出されます。
 		virtual void OnDestroy() = 0;
 
 		//---------------------------------------------------------------------
 		// 関数
 		//---------------------------------------------------------------------
+		/// @brief コンポーネントを追加します。
+		/// @tparam ComponentType 追加するコンポーネントの型
+		/// @tparam Args コンポーネントのコンストラクタに渡す引数の型
+		/// @param args コンポーネントのコンストラクタに渡す引数
+		/// @return 追加されたコンポーネントのポインタ
 		template <typename ComponentType, typename... Args>
 		[[nodiscard]] ComponentType* AddComponent(Args&&... args) {
 			static_assert(
@@ -54,6 +74,9 @@ namespace Unnamed {
 			return static_cast<ComponentType*>(mComponents.back().get());
 		}
 
+		/// @brief 指定した型のコンポーネントを取得します。
+		/// @tparam ComponentType 取得するコンポーネントの型
+		/// @return 取得したコンポーネントのポインタ。存在しない場合は nullptr。
 		template <typename ComponentType>
 		[[nodiscard]] ComponentType* GetComponent() {
 			static_assert(
@@ -70,6 +93,11 @@ namespace Unnamed {
 			return nullptr;
 		}
 
+		/// @brief 指定した型のコンポーネントを取得するか、存在しない場合は新たに追加します。
+		/// @tparam ComponentType 取得または追加するコンポーネントの型
+		/// @tparam Args コンポーネントのコンストラクタに渡す引数の型
+		/// @param args コンポーネントのコンストラクタに渡す引数
+		/// @return 取得または追加されたコンポーネントのポインタ
 		template <typename ComponentType, typename... Args>
 		[[nodiscard]] ComponentType* GetOrAddComponent(Args&&... args) {
 			if (auto* component = GetComponent<ComponentType>()) {
@@ -78,6 +106,8 @@ namespace Unnamed {
 			return AddComponent<ComponentType>(std::forward<Args>(args)...);
 		}
 
+		/// @brief コンポーネントを削除します。
+		/// @param component 削除するコンポーネントのポインタ
 		void RemoveComponent(BaseComponent* component) {
 			if (!component) return;
 
@@ -95,6 +125,8 @@ namespace Unnamed {
 			}
 		}
 
+		/// @brief 所有しているコンポーネントのリストを取得します。
+		/// @return コンポーネントのリスト
 		[[nodiscard]] const std::vector<std::unique_ptr<BaseComponent>>&
 		GetComponents() const {
 			return mComponents;

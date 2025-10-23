@@ -21,6 +21,7 @@ namespace Unnamed {
 	constexpr std::string_view kChannel = "GraphicsDevice";
 
 	namespace {
+		/// @brief COMオブジェクトのQueryInterfaceを簡易化するテンプレート関数 
 		template <typename T, typename U>
 		ComPtr<T> QueryInterface(const ComPtr<U>& base) {
 			ComPtr<T> result;
@@ -29,105 +30,11 @@ namespace Unnamed {
 			}
 			return nullptr;
 		}
-
-		// 仮実装
-		ComPtr<IDxcBlob> CompileShaderFromString(
-			const std::string& source,
-			const std::string& entryPoint,
-			const std::string& profile
-		) {
-			ComPtr<IDxcUtils>          dxcUtils;
-			ComPtr<IDxcCompiler3>      dxcCompiler;
-			ComPtr<IDxcIncludeHandler> includeHandler;
-			HRESULT                    hr = DxcCreateInstance(CLSID_DxcUtils,
-			                               IID_PPV_ARGS(&dxcUtils));
-			if (FAILED(hr)) {
-				Warning(kChannel, "Failed to create DxcUtils.");
-				return nullptr;
-			}
-			hr = DxcCreateInstance(CLSID_DxcCompiler,
-			                       IID_PPV_ARGS(&dxcCompiler));
-			if (FAILED(hr)) {
-				Warning(kChannel, "Failed to create DxcCompiler.");
-				return nullptr;
-			}
-			hr = dxcUtils->CreateDefaultIncludeHandler(&includeHandler);
-			if (FAILED(hr)) {
-				Warning(kChannel, "Failed to create include handler.");
-				return nullptr;
-			}
-
-
-			ComPtr<IDxcBlobEncoding> sourceBlob;
-			hr = dxcUtils->CreateBlobFromPinned(
-				source.c_str(),
-				static_cast<UINT32>(source.size()),
-				CP_UTF8,
-				&sourceBlob
-			);
-			if (FAILED(hr)) {
-				Warning(kChannel, "Failed to create source blob.");
-				return nullptr;
-			}
-
-			DxcBuffer shaderSourceBuffer;
-			shaderSourceBuffer.Ptr      = sourceBlob->GetBufferPointer();
-			shaderSourceBuffer.Size     = sourceBlob->GetBufferSize();
-			shaderSourceBuffer.Encoding = DXC_CP_UTF8;
-
-			const std::wstring wEntryPoint = StrUtil::ToWString(entryPoint);
-			const std::wstring wProfile    = StrUtil::ToWString(profile);
-
-			LPCWSTR arguments[] = {
-				L"-E", wEntryPoint.c_str(),      // エントリーポイントの指定。
-				L"-T", wProfile.c_str(),         // ShaderProfileの設定
-				DXC_ARG_DEBUG, L"-Qembed_debug", // デバッグ用の情報を埋め込む
-				DXC_ARG_SKIP_OPTIMIZATIONS,      // 最適化を外しておく
-				DXC_ARG_PACK_MATRIX_ROW_MAJOR,   // 行列のメモリレイアウトは行優先
-			};
-
-			ComPtr<IDxcResult> shaderResult;
-			hr = dxcCompiler->Compile(
-				&shaderSourceBuffer,        // 読み込んだファイル
-				arguments,                  // コンパイルオプション
-				_countof(arguments),        // コンパイルオプションの数
-				includeHandler.Get(),       // includeが含まれた諸々
-				IID_PPV_ARGS(&shaderResult) // コンパイル結果
-			);
-
-			if (FAILED(hr)) {
-				Fatal(kChannel, "Failed to launch DXC.");
-				UASSERT(SUCCEEDED(hr));
-			}
-
-			ComPtr<IDxcBlobUtf8> shaderError;
-			shaderResult->GetOutput(
-				DXC_OUT_ERRORS, IID_PPV_ARGS(&shaderError), nullptr
-			);
-			if (shaderError != nullptr && shaderError->GetStringLength() != 0) {
-				Fatal(
-					kChannel,
-					"{}",
-					shaderError->GetStringPointer()
-				);
-				UASSERT(false);
-			}
-
-			ComPtr<IDxcBlob> shaderBlob;
-			hr = shaderResult->GetOutput(
-				DXC_OUT_OBJECT, IID_PPV_ARGS(&shaderBlob), nullptr
-			);
-			UASSERT(SUCCEEDED(hr));
-			Msg(
-				kChannel,
-				"Shader compile success: entryPoint='{}', profile='{}'",
-				entryPoint, profile
-			);
-
-			return shaderBlob;
-		}
 	}
 
+	/// @brief 初期化
+	/// @param info グラフィックスデバイス情報
+	/// @return 成功したらtrueを返す
 	bool GraphicsDevice::Init(GraphicsDeviceInfo info) {
 		mInfo = info;
 
@@ -147,7 +54,8 @@ namespace Unnamed {
 				Msg(kChannel, "D3D12 GPU-based validation enabled.");
 			} else {
 				Warning(
-					kChannel, "D3D12 GPU-based validation is not available."
+					kChannel,
+					"D3D12 GPU-based validation is not available."
 				);
 			}
 
@@ -173,11 +81,7 @@ namespace Unnamed {
 				Warning(kChannel, "D3D12 automatic naming is not available.");
 			}
 
-			SpecialMsg(
-				LogLevel::Success,
-				kChannel,
-				"Debug Layer enabled."
-			);
+			SpecialMsg(LogLevel::Success, kChannel, "Debug Layer enabled.");
 		}
 
 		if (info.bEnableDebug) {
@@ -185,9 +89,7 @@ namespace Unnamed {
 			if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug)))) {
 				debug->EnableDebugLayer();
 			} else {
-				Warning(
-					"GraphicsDevice", "Debug layer is not available."
-				);
+				Warning("GraphicsDevice", "Debug layer is not available.");
 			}
 		}
 
@@ -277,10 +179,7 @@ namespace Unnamed {
 				}
 				UASSERT(adapter != nullptr && "No suitable adapter found.");
 			} else {
-				Msg(
-					kChannel,
-					"それはちょっとねぇ、世間は許してくrえゃすぇんよ"
-				);
+				Msg(kChannel, "それはちょっとねぇ、世間は許してくrえゃすぇんよ");
 				UASSERT(false && "IDXGIFactory6 is not supported.");
 			}
 
@@ -478,8 +377,10 @@ namespace Unnamed {
 				);
 				auto index          = mRtvAllocator->Allocate();
 				mBackBuffers[i].rtv = mRtvAllocator->CPUHandle(index);
-				mDevice->CreateRenderTargetView(mBackBuffers[i].resource.Get(),
-				                                nullptr, mBackBuffers[i].rtv);
+				mDevice->CreateRenderTargetView(
+					mBackBuffers[i].resource.Get(),
+					nullptr, mBackBuffers[i].rtv
+				);
 			}
 
 			for (UINT i = 0; i < kFrameBufferCount; ++i) {
@@ -524,8 +425,9 @@ namespace Unnamed {
 		return true;
 	}
 
+	/// @brief シャットダウン
 	void GraphicsDevice::Shutdown() {
-		for (auto& frameContext : mFrameContexts) {
+		for (const auto& frameContext : mFrameContexts) {
 			if (frameContext.event) {
 				CloseHandle(frameContext.event);
 			}
@@ -533,6 +435,9 @@ namespace Unnamed {
 		mBuffers.clear();
 	}
 
+	/// @brief フレームの開始
+	/// @param clearColor クリアカラー
+	/// @return フレームコンテキスト
 	FrameContext GraphicsDevice::BeginFrame(const Vec4 clearColor) const {
 		const uint32_t waitIndex = (mBackBufferIndex + 1) % kFrameBufferCount;
 		WaitGPU(waitIndex);
@@ -547,16 +452,14 @@ namespace Unnamed {
 			)
 		);
 
-		D3D12_RESOURCE_BARRIER barrier;
-		barrier.Type                 = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Flags                = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource = mBackBuffers[mBackBufferIndex].resource.
-			Get();
-		barrier.Transition.Subresource =
-			D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-		barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		frameContext.commandList->ResourceBarrier(1, &barrier);
+		D3D12_RESOURCE_BARRIER rb;
+		rb.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		rb.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		rb.Transition.pResource = mBackBuffers[mBackBufferIndex].resource.Get();
+		rb.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		rb.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+		rb.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		frameContext.commandList->ResourceBarrier(1, &rb);
 
 		auto& bb = mBackBuffers[mBackBufferIndex];
 		auto& db = mDepthBuffers[mBackBufferIndex];
@@ -568,6 +471,7 @@ namespace Unnamed {
 			clearColor.x, clearColor.y, clearColor.z, clearColor.w
 		};
 		color;
+		// TODO: クリアするかを選べるようにする
 		frameContext.commandList->ClearRenderTargetView(
 			bb.rtv, color, 0, nullptr
 		);
@@ -599,17 +503,17 @@ namespace Unnamed {
 		};
 	}
 
+	/// @brief フレームの終了
+	/// @param ctx フレームコンテキスト
 	void GraphicsDevice::EndFrame(const FrameContext& ctx) {
-		D3D12_RESOURCE_BARRIER barrier;
-		barrier.Type                 = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-		barrier.Flags                = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource = mBackBuffers[ctx.backIndex].resource.
-			Get();
-		barrier.Transition.Subresource =
-			D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-		barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
-		ctx.cmd->ResourceBarrier(1, &barrier);
+		D3D12_RESOURCE_BARRIER rb;
+		rb.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		rb.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		rb.Transition.pResource   = mBackBuffers[ctx.backIndex].resource.Get();
+		rb.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		rb.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		rb.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
+		ctx.cmd->ResourceBarrier(1, &rb);
 
 		THROW(ctx.cmd->Close());
 		ID3D12CommandList* commandLists[] = {ctx.cmd};
@@ -633,13 +537,17 @@ namespace Unnamed {
 		mBackBufferIndex = mSwapChain->GetCurrentBackBufferIndex();
 	}
 
+	/// @brief フレームバッファを取得する
+	/// @param frameIndex フレームインデックス
+	/// @return フレームごとのリソース
 	GraphicsDevice::PerFrame GraphicsDevice::GetFrameBuffer(
 		const uint32_t frameIndex
 	) const {
 		return mFrameContexts[frameIndex];
 	}
 
-	/// 即時コンテキストを取得する。呼び出しごとにコマンドアロケータとコマンドリストがリセットされる。
+	/// @brief 即時コマンドリストの開始
+	/// @return フレームコンテキスト
 	FrameContext GraphicsDevice::BeginImmediateFrame() const {
 		WaitGPU(mBackBufferIndex);
 		auto& frameContext = mFrameContexts[mBackBufferIndex];
@@ -664,6 +572,10 @@ namespace Unnamed {
 		};
 	}
 
+	/// @brief 頂点バッファの作成
+	/// @param data バッファデータ
+	/// @param bytes バッファサイズ(バイト数)
+	/// @return バッファハンドル
 	BufferHandle GraphicsDevice::CreateVertexBuffer(
 		const void*  data,
 		const size_t bytes
@@ -673,15 +585,24 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief インデックスバッファの作成
+	/// @param data バッファデータ
+	/// @param bytes バッファサイズ(バイト数)
+	/// @return バッファハンドル
 	BufferHandle GraphicsDevice::CreateIndexBuffer(
 		const void*  data,
-		const size_t bytes,
-		DXGI_FORMAT) {
+		const size_t bytes
+	) {
 		return CreateStaticBuffer(
 			data, bytes, D3D12_RESOURCE_STATE_INDEX_BUFFER
 		);
 	}
 
+	/// @brief 頂点バッファのバインド
+	/// @param commandList コマンドリスト
+	/// @param bufferHandle バッファハンドル
+	/// @param stride ストライド
+	/// @param offset オフセット
 	void GraphicsDevice::BindVertexBuffer(
 		ID3D12GraphicsCommandList* commandList,
 		const BufferHandle         bufferHandle,
@@ -698,6 +619,11 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief インデックスバッファのバインド
+	/// @param commandList コマンドリスト
+	/// @param bufferHandle バッファハンドル
+	/// @param format フォーマット
+	/// @param offset オフセット
 	void GraphicsDevice::BindIndexBuffer(
 		ID3D12GraphicsCommandList* commandList,
 		const BufferHandle         bufferHandle,
@@ -712,6 +638,11 @@ namespace Unnamed {
 		commandList->IASetIndexBuffer(&view);
 	}
 
+	/// @brief インデックス付き描画
+	/// @param commandList コマンドリスト
+	/// @param indexCount インデックス数
+	/// @param start 開始インデックス
+	/// @param baseVertexLocation ベース頂点位置
 	void GraphicsDevice::DrawIndexed(
 		ID3D12GraphicsCommandList* commandList,
 		const UINT                 indexCount,
@@ -723,85 +654,76 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief デバイスの取得
+	/// @return D3D12デバイス
 	ID3D12Device* GraphicsDevice::Device() const noexcept {
 		return mDevice.Get();
 	}
 
+	/// @brief スワップチェーンの取得
+	/// @return スワップチェーン
 	IDXGISwapChain4* GraphicsDevice::SwapChain() const noexcept {
 		return mSwapChain.Get();
 	}
 
+	/// @brief SRVアロケータの取得
+	/// @return SRVアロケータ
 	DescriptorAllocator* GraphicsDevice::GetSrvAllocator() const {
 		return mSrvAllocator.get();
 	}
 
+	/// @brief サンプラーアロケータの取得
+	/// @return サンプラーアロケータ
 	DescriptorAllocator* GraphicsDevice::GetSamplerAllocator() const {
 		return mSamplerAllocator.get();
 	}
 
+	/// @brief RTVアロケータの取得
+	/// @return RTVアロケータ
 	DescriptorAllocator* GraphicsDevice::GetRtvAllocator() const {
 		return mRtvAllocator.get();
 	}
 
+	/// @brief DSVアロケータの取得
+	/// @return DSVアロケータ
 	DescriptorAllocator* GraphicsDevice::GetDsvAllocator() const {
 		return mDsvAllocator.get();
 	}
 
-	static D3D12_PLACED_SUBRESOURCE_FOOTPRINT LayoutForTex2D(
-		ID3D12Device* device,
-		DXGI_FORMAT   format,
-		uint32_t      w, uint32_t h,
-		uint32_t      mipCount
-	) {
-		D3D12_RESOURCE_DESC desc = {};
-		desc.Dimension           = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		desc.Format              = format;
-		desc.Width               = w;
-		desc.Height              = h;
-		desc.DepthOrArraySize    = 1;
-		desc.MipLevels           = static_cast<UINT16>(mipCount);
-		desc.SampleDesc.Count    = 1;
-
-		UINT64                             totalSize = 0;
-		UINT                               numRows   = 0;
-		UINT64                             rowSize   = 0;
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT footPrint = {};
-
-		device->GetCopyableFootprints(
-			&desc,
-			0,
-			1,
-			0,
-			&footPrint,
-			&numRows,
-			&rowSize,
-			&totalSize
-		);
-
-		return footPrint;
-	}
-
+	/// @brief GPUの完了を待つ
+	/// @param frameIndex フレームインデックス
 	void GraphicsDevice::WaitGPU(const uint32_t frameIndex) const {
-		auto& frameContext = mFrameContexts[frameIndex];
-		if (frameContext.fence->GetCompletedValue() < frameContext.fenceValue) {
+		const auto& [
+			commandAllocator,
+			commandList,
+			fence,
+			event,
+			fenceValue
+		] = mFrameContexts[frameIndex];
+		if (fence->GetCompletedValue() < fenceValue) {
 			THROW(
-				frameContext.fence->SetEventOnCompletion(
-					frameContext.fenceValue, frameContext.event
+				fence->SetEventOnCompletion(
+					fenceValue, event
 				)
 			);
-			WaitForSingleObject(frameContext.event, INFINITE);
+			WaitForSingleObject(event, INFINITE);
 		}
 	}
 
+	/// @brief 静的バッファの作成
+	/// @param data バッファデータ
+	/// @param bytes バッファサイズ(バイト数)
+	/// @param initState 初期リソース状態
+	/// @return バッファハンドル
 	BufferHandle GraphicsDevice::CreateStaticBuffer(
 		const void*                 data,
 		const size_t                bytes,
 		const D3D12_RESOURCE_STATES initState
 	) {
-		BufferHandle handle = {static_cast<uint32_t>(mBuffers.size())};
+		const BufferHandle handle = {static_cast<uint32_t>(mBuffers.size())};
 		mBuffers.emplace_back();
-		auto& buffer = mBuffers.back();
-		buffer.size  = bytes;
+		auto& [resource, size] = mBuffers.back();
+		size                   = bytes;
 
 		D3D12_HEAP_PROPERTIES heap = {};
 		heap.Type                  = D3D12_HEAP_TYPE_DEFAULT;
@@ -823,7 +745,7 @@ namespace Unnamed {
 				&resourceDesc,
 				D3D12_RESOURCE_STATE_COPY_DEST,
 				nullptr,
-				IID_PPV_ARGS(&buffer.resource)
+				IID_PPV_ARGS(&resource)
 			)
 		);
 
@@ -857,7 +779,7 @@ namespace Unnamed {
 			IID_PPV_ARGS(&tempCmdList)));
 
 		tempCmdList->CopyBufferRegion(
-			buffer.resource.Get(),
+			resource.Get(),
 			0,
 			upload.Get(),
 			0,
@@ -867,7 +789,7 @@ namespace Unnamed {
 		D3D12_RESOURCE_BARRIER barrier;
 		barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 		barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		barrier.Transition.pResource   = buffer.resource.Get();
+		barrier.Transition.pResource   = resource.Get();
 		barrier.Transition.Subresource =
 			D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
@@ -894,7 +816,11 @@ namespace Unnamed {
 		return handle;
 	}
 
-	void GraphicsDevice::CreateDepthBuffers(UINT width, UINT height) {
+	/// @brief 深度バッファの作成
+	/// @param width 横幅
+	/// @param height 縦幅
+	void GraphicsDevice::CreateDepthBuffers(const UINT width,
+	                                        const UINT height) {
 		DestroyDepthBuffers();
 
 		// DSV ディスクリプタ生成
@@ -930,7 +856,7 @@ namespace Unnamed {
 			);
 
 			// DSV
-			auto dsvIndex        = mDsvAllocator->Allocate();
+			const auto dsvIndex  = mDsvAllocator->Allocate();
 			mDepthBuffers[i].dsv = mDsvAllocator->CPUHandle(dsvIndex);
 
 			D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
@@ -944,10 +870,11 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief 深度バッファの破棄
 	void GraphicsDevice::DestroyDepthBuffers() {
-		for (auto& buffer : mDepthBuffers) {
-			buffer.resource.Reset();
-			buffer.dsv = {};
+		for (auto& [resource, dsv] : mDepthBuffers) {
+			resource.Reset();
+			dsv = {};
 		}
 	}
 }

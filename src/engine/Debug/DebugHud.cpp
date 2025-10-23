@@ -6,11 +6,15 @@
 
 #include "engine/Engine.h"
 
+/// @brief 更新処理
+/// @param deltaTime 前フレームからの経過時間（秒）
 void DebugHud::Update(const float deltaTime) {
 	ShowFrameRate(deltaTime);
 	ShowPlayerInfo();
 }
 
+/// @brief フレームレート表示
+/// @param deltaTime 前フレームからの経過時間（秒）
 void DebugHud::ShowFrameRate([[maybe_unused]] const float deltaTime) {
 #ifdef _DEBUG
 	const int flag = ConVarManager::GetConVar("cl_showfps")->GetValueAsInt();
@@ -60,7 +64,7 @@ void DebugHud::ShowFrameRate([[maybe_unused]] const float deltaTime) {
 
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-	const float outlineSize = 1.0f;
+	constexpr float outlineSize = 1.0f;
 
 	ImVec4 textColor = ImGuiUtil::ToImVec4(kConTextColorError);
 	if (fps >= 59.9f) {
@@ -84,5 +88,6 @@ void DebugHud::ShowFrameRate([[maybe_unused]] const float deltaTime) {
 #endif
 }
 
+/// @brief プレイヤー情報表示
 void DebugHud::ShowPlayerInfo() {
 }

@@ -3,18 +3,29 @@
 #include "engine/Camera/CameraManager.h"
 #include "engine/Engine.h"
 
+/// @brief 線を描画
+/// @param a 線の始点
+/// @param b 線の終点
+/// @param color 線の色
 void Debug::DrawLine(const Vec3& a, const Vec3& b, const Vec4& color) {
 	if (Unnamed::Engine::IsEditorMode()) {
 		mLine->AddLine(a, b, color);
 	}
 }
 
+/// @brief レイを描画
+/// @param position レイの始点
+/// @param dir レイの方向と長さ
+/// @param color レイの色
 void Debug::DrawRay(const Vec3& position, const Vec3& dir, const Vec4& color) {
 	if (Unnamed::Engine::IsEditorMode()) {
 		mLine->AddLine(position, position + dir, color);
-	} 
+	}
 }
 
+/// @brief 軸を描画
+/// @param position 軸の位置
+/// @param orientation 軸の向き
 void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {
 	Mat4 viewMat   = CameraManager::GetActiveCamera()->GetViewMat().Inverse();
 	Vec3 cameraPos = viewMat.GetTranslate();
@@ -46,6 +57,12 @@ void Debug::DrawAxis(const Vec3& position, const Quaternion& orientation) {
 	DrawRay(position, forward, Vec4::blue);
 }
 
+/// @brief 円を描画
+/// @param position 円の中心位置
+/// @param rotation 円の向き
+/// @param radius 円の半径
+/// @param color 円の色
+/// @param segments 円の分割数
 void Debug::DrawCircle(
 	const Vec3&     position, const Quaternion& rotation, const float& radius,
 	const Vec4&     color,
@@ -94,6 +111,16 @@ void Debug::DrawCircle(
 	}
 }
 
+/// @brief 円弧を描画
+/// @param startAngle 開始角度（度数法）
+/// @param endAngle 終了角度（度数法）
+/// @param position 円弧の中心位置
+/// @param orientation 円弧の向き
+/// @param radius 円弧の半径
+/// @param color 円弧の色
+/// @param drawChord 弦を描画するかどうか
+/// @param drawSector 扇形の辺を描画するかどうか
+/// @param arcSegments 円弧の分割数
 void Debug::DrawArc(
 	const float&      startAngle, const float& endAngle, const Vec3& position,
 	const Quaternion& orientation, const float& radius, const Vec4& color,
@@ -159,6 +186,11 @@ void Debug::DrawArc(
 	}
 }
 
+/// @brief 矢印を描画
+/// @param position 矢印の始点
+/// @param direction 矢印の方向と長さ
+/// @param color 矢印の色
+/// @param headSize 矢印の頭の大きさ
 void Debug::DrawArrow(
 	const Vec3& position, const Vec3& direction,
 	const Vec4& color,
@@ -194,6 +226,12 @@ void Debug::DrawArrow(
 	DrawLine(end, arrowRight, color);
 }
 
+/// @brief 四角形を描画
+/// @param pointA 四角形の頂点A
+/// @param pointB 四角形の頂点B
+/// @param pointC 四角形の頂点C
+/// @param pointD 四角形の頂点D
+/// @param color 四角形の色
 void Debug::DrawQuad(
 	const Vec3& pointA, const Vec3& pointB, const Vec3& pointC,
 	const Vec3& pointD, const Vec4& color
@@ -204,6 +242,11 @@ void Debug::DrawQuad(
 	DrawLine(pointD, pointA, color);
 }
 
+/// @brief 四角形を描画
+/// @param position 四角形の中心位置
+/// @param orientation 四角形の向き
+/// @param extent 四角形の幅と高さ
+/// @param color 四角形の色
 void Debug::DrawRect(const Vec3& position, const Quaternion& orientation,
                      const Vec2& extent, const Vec4&         color) {
 	const Vec3 rightOffset = Vec3::right * extent.x * 0.5f;
@@ -223,6 +266,12 @@ void Debug::DrawRect(const Vec3& position, const Quaternion& orientation,
 	);
 }
 
+/// @brief 四角形を描画
+/// @param point1 四角形の一方の頂点（ローカル座標系）
+/// @param point2 四角形のもう一方の頂点（ローカル座標系）
+/// @param origin 四角形の原点位置（ワールド座標系）
+/// @param orientation 四角形の向き
+/// @param color 四角形の色
 void Debug::DrawRect(
 	const Vec2&       point1, const Vec2& point2, const Vec3& origin,
 	const Quaternion& orientation,
@@ -242,6 +291,12 @@ void Debug::DrawRect(
 	DrawQuad(pointA, pointB, pointC, pointD, color);
 }
 
+/// @brief 球を描画
+/// @param position 球の中心位置
+/// @param orientation 球の向き
+/// @param radius 球の半径
+/// @param color 球の色
+/// @param segments 球の分割数
 void Debug::DrawSphere(
 	const Vec3& position, const Quaternion& orientation, float radius,
 	const Vec4& color, int                  segments
@@ -285,6 +340,11 @@ void Debug::DrawSphere(
 	}
 }
 
+/// @brief 箱を描画
+/// @param position 箱の中心位置
+/// @param orientation 箱の向き
+/// @param size 箱のサイズ
+/// @param color 箱の色
 void Debug::DrawBox(
 	const Vec3& position, const Quaternion& orientation,
 	Vec3        size, const Vec4&           color
@@ -311,6 +371,13 @@ void Debug::DrawBox(
 	         color);
 }
 
+/// @brief 円柱を描画
+/// @param position 円柱の中心位置
+/// @param orientation 円柱の向き
+/// @param height 円柱の高さ
+/// @param radius 円柱の半径
+/// @param color 円柱の色
+/// @param drawFromBase 底面から描画するかどうか
 void Debug::DrawCylinder(
 	const Vec3&  position, const Quaternion& orientation, const float& height,
 	const float& radius, const Vec4&         color,
@@ -343,6 +410,13 @@ void Debug::DrawCylinder(
 	DrawCircle(topPosition, circleOrientation, radius, color, 32);
 }
 
+/// @brief カプセルを描画
+/// @param position カプセルの中心位置
+/// @param orientation カプセルの向き
+/// @param height カプセルの高さ
+/// @param radius カプセルの半径
+/// @param color カプセルの色
+/// @param drawFromBase 底面から描画するかどうか
 void Debug::DrawCapsule(
 	const Vec3&  position, const Quaternion& orientation, const float& height,
 	const float& radius, const Vec4&         color,
@@ -370,6 +444,11 @@ void Debug::DrawCapsule(
 	DrawArc(0, 180, topArcPosition, arcOrientation, rad, color);
 }
 
+/// @brief カプセルを描画
+/// @param start カプセルの始点
+/// @param end カプセルの終点
+/// @param radius カプセルの半径
+/// @param color カプセルの色
 void Debug::DrawCapsule(const Vec3& start, const Vec3& end, const float& radius,
                         const Vec4& color) {
 	// 始点から終点へのベクトルと長さを計算
@@ -398,23 +477,31 @@ void Debug::DrawCapsule(const Vec3& start, const Vec3& end, const float& radius,
 	DrawCylinder(start, orientation, length, radius, color, true);
 }
 
-void Debug::DrawTriangle(const Unnamed::Triangle& triangle, const Vec4 vec4) {
-	DrawLine(triangle.v0, triangle.v1, vec4);
-	DrawLine(triangle.v1, triangle.v2, vec4);
-	DrawLine(triangle.v2, triangle.v0, vec4);
+/// @brief 三角形を描画
+/// @param triangle 描画する三角形
+/// @param color 三角形の色
+void Debug::DrawTriangle(const Unnamed::Triangle& triangle, const Vec4 color) {
+	DrawLine(triangle.v0, triangle.v1, color);
+	DrawLine(triangle.v1, triangle.v2, color);
+	DrawLine(triangle.v2, triangle.v0, color);
 }
 
+/// @brief デバッグ描画の初期化
+/// @param lineCommon 線描画共通設定
 void Debug::Init(LineCommon* lineCommon) {
 	mLine = std::make_unique<Line>(lineCommon);
 }
 
+/// @brief 毎フレーム更新
 void Debug::Update() {
 }
 
+/// @brief 描画
 void Debug::Draw() {
 	mLine->Draw();
 }
 
+/// @brief デバッグ描画の終了処理
 void Debug::Shutdown() {
 	mLine.reset();
 }

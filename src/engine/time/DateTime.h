@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+/// @brief 日付時間構造体
 struct DateTime {
 	int year;
 	int month;

@@ -10,12 +10,12 @@
 class GameTime;
 class SceneManager;
 
+/// @brief エディタークラス
 class Editor {
 public:
 	explicit Editor(SceneManager* sceneManager, GameTime* gameTime);
 	void     Init();
 
-public:
 	void Update(float deltaTime);
 	void Render() const;
 

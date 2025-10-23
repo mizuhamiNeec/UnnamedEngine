@@ -3,6 +3,17 @@
 #include <engine/renderer/RootSignatureManager.h>
 #include <engine/OldConsole/Console.h>
 
+/// @brief コンストラクタ
+/// @param device D3D12デバイスへのポインタ
+RootSignatureManager::RootSignatureManager(ID3D12Device* device): device_(device) {
+}
+
+/// @brief ルートシグネチャを作成します
+/// @param name ルートシグネチャの名前
+/// @param rootParameters ルートパラメータの配列
+/// @param staticSamplers 静的サンプラーの配列
+/// @param numStaticSamplers 静的サンプラーの数
+/// @return 作成に成功した場合はtrue、失敗した場合はfalse
 bool RootSignatureManager::CreateRootSignature(
 	const std::string&                       name,
 	const std::vector<D3D12_ROOT_PARAMETER>& rootParameters,
@@ -51,6 +62,7 @@ bool RootSignatureManager::CreateRootSignature(
 	return true;
 }
 
+/// @brief 終了処理を行います
 void RootSignatureManager::Shutdown() {
 	rootSignatures_.clear();
 }

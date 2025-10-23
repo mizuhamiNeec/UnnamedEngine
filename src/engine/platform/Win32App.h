@@ -1,6 +1,7 @@
 #pragma once
 #include <engine/platform/WindowManager.h>
 
+/// @brief Win32アプリケーションクラス
 class Win32App {
 public:
 	explicit Win32App(const HINSTANCE hInstance)
@@ -11,10 +12,8 @@ public:
 	void Shutdown();
 
 	static bool PollEvents();
-
-	WindowManager& Windows() {
-		return mWindowManager;
-	}
+	
+	WindowManager& Windows();
 
 private:
 	HINSTANCE     mHInstance = {};

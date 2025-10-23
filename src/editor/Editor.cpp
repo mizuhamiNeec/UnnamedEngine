@@ -22,12 +22,16 @@
 #include <ImGuizmo.h>
 #endif
 
+/// @brief コンストラクタ
+/// @param sceneManager シーンマネージャーへのポインタ
+/// @param gameTime ゲームタイムへのポインタ
 Editor::Editor(SceneManager* sceneManager, GameTime* gameTime)
 	: mSceneManager(sceneManager), mGameTime(gameTime) {
 	mScene = mSceneManager->GetCurrentScene();
 	Init();
 }
 
+/// @brief エディターの初期化
 void Editor::Init() {
 	// カメラの作成
 	mCameraEntity = std::make_unique<Entity>("editorCamera",
@@ -112,6 +116,7 @@ void Editor::Init() {
 #endif
 }
 
+/// @brief エディターの更新
 void Editor::Update([[maybe_unused]] const float deltaTime) {
 	// // タブの名前
 	// static const char* tabNames[] = {
@@ -403,7 +408,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		constexpr float iconSize  = 40; // アイコンのサイズを設定
 		constexpr float iconScale = 0.75f;
 
-		const ImVec2 toolbarIconSize = ImVec2(iconSize, iconSize);
+		constexpr auto toolbarIconSize = ImVec2(iconSize, iconSize);
 
 		ImGui::SetNextWindowBgAlpha(1.0f);
 		if (
@@ -1085,6 +1090,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 #endif
 }
 
+/// @brief エディタのレンダリング処理
 void Editor::Render() const {
 	if (auto currentScene = mSceneManager->GetCurrentScene()) {
 		currentScene->Render();
@@ -1092,6 +1098,15 @@ void Editor::Render() const {
 	}
 }
 
+/// @brief グリッドを描画する
+/// @param gridSize グリッドの間隔
+/// @param range グリッドの描画範囲（中心からの距離）
+/// @param color グリッドの基本色
+/// @param majorColor 主要なグリッド線の色
+/// @param axisColor 軸線の色
+/// @param minorColor 細かいグリッド線の色
+/// @param cameraPosition カメラの位置
+/// @param drawRadius 描画する円形範囲の半径
 void Editor::DrawGrid(
 	const float gridSize, const float range, const Vec4& color,
 	const Vec4& majorColor,
@@ -1183,9 +1198,12 @@ void Editor::DrawGrid(
 	}
 }
 
+/// @brief 指定した値に最も近い2のべき乗を返す
+/// @param value 入力値
+/// @return 最も近い2のべき乗
 float Editor::RoundToNearestPowerOfTwo(const float value) {
-	float lowerPowerOfTwo = std::pow(2.0f, std::floor(std::log2(value)));
-	float upperPowerOfTwo = std::pow(2.0f, std::ceil(std::log2(value)));
+	const float lowerPowerOfTwo = std::pow(2.0f, std::floor(std::log2(value)));
+	const float upperPowerOfTwo = std::pow(2.0f, std::ceil(std::log2(value)));
 
 	if (value - lowerPowerOfTwo < upperPowerOfTwo - value) {
 		return lowerPowerOfTwo;

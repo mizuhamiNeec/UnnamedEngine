@@ -11,24 +11,28 @@
 
 class SrvManager;
 
+/// @brief D3Dリソースリークチェッカー
 struct D3DResourceLeakChecker {
 	~D3DResourceLeakChecker();
 };
 
+/// @brief バッファフォーマット
 struct RenderTargetTexture {
-	Microsoft::WRL::ComPtr<ID3D12Resource>      rtv;
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
-	D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU;
-	uint32_t                    srvIndex;
+	Microsoft::WRL::ComPtr<ID3D12Resource> rtv;
+	D3D12_CPU_DESCRIPTOR_HANDLE            rtvHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE            srvHandleGPU;
+	uint32_t                               srvIndex;
 };
 
+/// @brief 深度ステンシルテクスチャ構造体
 struct DepthStencilTexture {
-	Microsoft::WRL::ComPtr<ID3D12Resource>      dsv;
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle;
-	D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU;
-	uint32_t                    srvIndex;
+	Microsoft::WRL::ComPtr<ID3D12Resource> dsv;
+	D3D12_CPU_DESCRIPTOR_HANDLE            dsvHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE            srvHandleGPU;
+	uint32_t                               srvIndex;
 };
 
+/// @brief レンダーパスターゲット構造体
 struct RenderPassTargets {
 	D3D12_CPU_DESCRIPTOR_HANDLE* pRTVs; // 複数可
 	UINT                         numRTVs;
@@ -40,6 +44,7 @@ struct RenderPassTargets {
 	bool                         bClearDepth; // 深度クリアするか?
 };
 
+/// @brief D3D12レンダラークラス
 class D3D12 {
 public: // メンバ関数
 	D3D12(BaseWindow* window);
@@ -57,17 +62,17 @@ public: // メンバ関数
 	[[nodiscard]] RenderTargetTexture CreateRenderTargetTexture(
 		uint32_t    width, uint32_t height, Vec4 clearColor,
 		DXGI_FORMAT format = kBufferFormat);
-	
+
 	// リサイズ時用：古いSRVインデックスを返却して新しいものを作成
 	// 使用例: newRtv = CreateRenderTargetTexture(w, h, clearColor, oldRtv.srvIndex);
 	[[nodiscard]] RenderTargetTexture CreateRenderTargetTexture(
-		uint32_t    width, uint32_t height, Vec4 clearColor,
-		uint32_t    oldSrvIndex, DXGI_FORMAT format = kBufferFormat);
-	
+		uint32_t width, uint32_t          height, Vec4 clearColor,
+		uint32_t oldSrvIndex, DXGI_FORMAT format = kBufferFormat);
+
 	[[nodiscard]] DepthStencilTexture CreateDepthStencilTexture(
 		uint32_t    width, uint32_t height,
 		DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT);
-	
+
 	// リサイズ時用：古いSRVインデックスを返却して新しいものを作成
 	// 使用例: newDsv = CreateDepthStencilTexture(w, h, oldDsv.srvIndex);
 	[[nodiscard]] DepthStencilTexture CreateDepthStencilTexture(
@@ -81,7 +86,7 @@ public: // メンバ関数
 	void ResetCommandList();
 
 	static void WriteToUploadHeapMemory(ID3D12Resource* resource, uint32_t size,
-		const void* data);
+	                                    const void*     data);
 
 	void WaitPreviousFrame();
 	void Flush();
@@ -97,7 +102,7 @@ private:
 
 	// 持ってきたやつ
 	SrvManager* mSrvManager = nullptr;
-	BaseWindow* mWindow = nullptr;
+	BaseWindow* mWindow     = nullptr;
 
 	// メンバ変数
 	// 1. デバイス・ファクトリ・スワップチェーン
@@ -115,22 +120,22 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvDescriptorHeap;
 
 	// 4. レンダーターゲット・深度ステンシル
-	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>>      mRenderTargets;
+	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> mRenderTargets;
 	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> mRtvHandlesSwapChain;
 	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> mRtvHandlesOffscreen;
-	Microsoft::WRL::ComPtr<ID3D12Resource>                   mDepthStencilResource;
-	DepthStencilTexture                      mDefaultDepthStencilTexture;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilResource;
+	DepthStencilTexture mDefaultDepthStencilTexture;
 
 	// 5. フェンス等の同期
 	Microsoft::WRL::ComPtr<ID3D12Fence> mFence;
-	uint64_t            mFenceValue = 0;
-	HANDLE              mFenceEvent = nullptr;
-	UINT                mFrameIndex = 0;
+	uint64_t                            mFenceValue = 0;
+	HANDLE                              mFenceEvent = nullptr;
+	UINT                                mFrameIndex = 0;
 
 	// 6. その他
 	D3D12_RESOURCE_BARRIER mBarrier = {};
 
-	D3D12_VIEWPORT mViewport = {};
+	D3D12_VIEWPORT mViewport    = {};
 	D3D12_RECT     mScissorRect = {};
 
 	uint32_t mDescriptorSizeRtv = 0;
@@ -143,7 +148,7 @@ private:
 	// 初期化関連
 	//------------------------------------------------------------------------
 	static
-		void EnableDebugLayer();
+	void EnableDebugLayer();
 	void CreateDevice();
 	void SetInfoQueueBreakOnSeverity() const;
 	void CreateCommandQueue();
@@ -204,7 +209,8 @@ public:
 	//------------------------------------------------------------------------
 	// 汎用関数
 	//------------------------------------------------------------------------
-	[[nodiscard]] Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(
+	[[nodiscard]] Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>
+	CreateDescriptorHeap(
 		D3D12_DESCRIPTOR_HEAP_TYPE heapType, UINT numDescriptors,
 		bool                       shaderVisible
 	) const;
@@ -214,7 +220,8 @@ private:
 		ID3D12DescriptorHeap* descriptorHeap,
 		uint32_t              descriptorSize, uint32_t index
 	);
-	[[nodiscard]] Microsoft::WRL::ComPtr<ID3D12Resource> CreateDepthStencilTextureResource(
+	[[nodiscard]] Microsoft::WRL::ComPtr<ID3D12Resource>
+	CreateDepthStencilTextureResource(
 		uint32_t width, uint32_t height, DXGI_FORMAT format) const;
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(
 		ID3D12DescriptorHeap* descriptorHeap,

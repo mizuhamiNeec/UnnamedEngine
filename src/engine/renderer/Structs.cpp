@@ -1,4 +1,3 @@
-
 #include "engine/renderer/Structs.h"
 
 #include <dxgiformat.h>

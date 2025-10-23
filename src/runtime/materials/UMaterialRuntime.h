@@ -11,6 +11,7 @@
 namespace Unnamed {
 	class ShaderLibrary;
 
+	/// @brief テクスチャパラメータの構造体
 	struct TextureParam {
 		std::string   name;
 		AssetID       asset = kInvalidAssetID;
@@ -21,6 +22,7 @@ namespace Unnamed {
 		MAT, PROGRAM_BODY, PROGRAM_META, TEXTURE
 	};
 
+	/// @brief 監視対象ファイルの情報
 	struct WatchedFile {
 		AssetID     id = kInvalidAssetID;
 		std::string path;
@@ -35,6 +37,7 @@ namespace Unnamed {
 		RELOAD_TEXTURE = 1 << 1,
 	};
 
+	/// @brief ランタイムマテリアル構造体
 	struct UMaterialRuntime {
 		AssetID             materialAsset = kInvalidAssetID;
 		RootSignatureHandle root          = {};
@@ -49,12 +52,11 @@ namespace Unnamed {
 
 		RootParamIndices rootParams;
 
-	public:
 		bool BuildCPU(
 			UAssetManager*      assetManager,
 			ShaderLibrary*      shaderLibrary,
 			RootSignatureCache* rootSignatureCache,
-			UPipelineCache*      pipelineCache,
+			UPipelineCache*     pipelineCache,
 			GraphicsDevice*     graphicsDevice
 		);
 
@@ -111,7 +113,6 @@ namespace Unnamed {
 		void AddWatch(const UAssetManager* assetManager, AssetID id,
 		              WatchType            type);
 
-	private:
 		struct TextureSlot {
 			std::string   name;
 			AssetID       asset  = kInvalidAssetID;

@@ -26,7 +26,7 @@
 namespace Unnamed {
 	class ConsoleSystem;
 
-
+	/// @brief エンジンクラス
 	class Engine {
 	public:
 		Engine();
@@ -41,8 +41,8 @@ namespace Unnamed {
 		//---------------------------------------------------------------------
 	private:
 		std::vector<std::unique_ptr<ISubsystem>> mSubsystems;
-		ConsoleSystem* mConsoleSystem = nullptr;
-		TimeSystem* mTimeSystem = nullptr;
+		ConsoleSystem*                           mConsoleSystem = nullptr;
+		TimeSystem*                              mTimeSystem    = nullptr;
 
 	public:
 		//---------------------------------------------------------------------
@@ -79,17 +79,6 @@ namespace Unnamed {
 			return mSceneManager.get();
 		}
 
-		// TODO: エンジンでやるべきじゃない
-		// DEPRECATED: 旧エンジンクラス
-		static void ChangeScene(const std::string& sceneName) {
-			if (GetSceneManager() && sceneName != "") {
-				GetSceneManager()->ChangeScene(sceneName);
-			}
-		}
-
-		// DEPRECATED: 旧エンジンクラス
-		static std::shared_ptr<BaseScene> GetCurrentScene();
-
 		// DEPRECATED: 旧エンジンクラス
 		static Vec2 GetViewportLT() {
 			return mViewportLT;
@@ -110,7 +99,6 @@ namespace Unnamed {
 
 		static void RegisterConsoleCommandsAndVariables();
 		static void Quit(const std::vector<std::string>& args = {});
-		static void SetEditorMode(const std::vector<std::string>& args = {});
 		void        CheckEditorMode();
 
 	private:

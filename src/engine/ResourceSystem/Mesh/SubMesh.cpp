@@ -2,15 +2,21 @@
 
 #include "engine/OldConsole/Console.h"
 
+/// @brief コンストラクタ
+/// @param device D3D12デバイスへのCOMポインタ
+/// @param name サブメッシュ名
 SubMesh::SubMesh(const Microsoft::WRL::ComPtr<ID3D12Device>& device,
                  std::string                                 name) :
 	name_(std::move(name)),
 	device_(device) {
 }
 
+/// @brief デストラクタ
 SubMesh::~SubMesh() {
 }
 
+/// @brief 頂点バッファを設定します
+/// @param vertices 頂点データのベクター
 void SubMesh::SetVertexBuffer(const std::vector<Vertex>& vertices) {
 	size_t size   = vertices.size() * sizeof(Vertex);
 	vertexBuffer_ = std::make_unique<VertexBuffer<Vertex>>(
@@ -18,6 +24,8 @@ void SubMesh::SetVertexBuffer(const std::vector<Vertex>& vertices) {
 	isSkinnedMesh_ = false;
 }
 
+/// @brief スキニング頂点バッファを設定します
+/// @param vertices スキニング頂点データのベクター
 void SubMesh::SetSkinnedVertexBuffer(
 	const std::vector<SkinnedVertex>& vertices) {
 	size_t size          = vertices.size() * sizeof(SkinnedVertex);
@@ -26,19 +34,29 @@ void SubMesh::SetSkinnedVertexBuffer(
 	isSkinnedMesh_ = true;
 }
 
+/// @brief インデックスバッファを設定します
+/// @param indices インデックスデータのベクター
 void SubMesh::SetIndexBuffer(const std::vector<uint32_t>& indices) {
 	size_t size  = indices.size() * sizeof(uint32_t);
 	indexBuffer_ = std::make_unique<IndexBuffer>(device_, size, indices.data());
 }
 
+/// @brief マテリアルを取得します
+/// @return マテリアルへのポインタ
 Material* SubMesh::GetMaterial() const { return material_; }
 
+/// @brief マテリアルを設定します
+/// @param material マテリアルへのポインタ
 void SubMesh::SetMaterial(Material* material) { material_ = material; }
 
+/// @brief サブメッシュ名を取得します
+/// @return サブメッシュ名への参照
 std::string& SubMesh::GetName() {
 	return name_;
 }
 
+/// @brief サブメッシュ名を取得します
+/// @return サブメッシュ名
 void SubMesh::Render(ID3D12GraphicsCommandList* commandList) const {
 	// 頂点バッファとインデックスバッファを設定
 	if (isSkinnedMesh_) {
@@ -69,6 +87,7 @@ void SubMesh::Render(ID3D12GraphicsCommandList* commandList) const {
 		0);
 }
 
+/// @brief リソースを解放します
 void SubMesh::ReleaseResource() {
 	if (vertexBuffer_) {
 		vertexBuffer_.reset();
@@ -83,6 +102,7 @@ void SubMesh::ReleaseResource() {
 	material_ = nullptr;
 }
 
+/// @brief ポリゴン情報を取得します
 std::vector<Unnamed::Triangle> SubMesh::GetPolygons() const {
 	std::vector<Unnamed::Triangle> polygons;
 	if (!indexBuffer_) {

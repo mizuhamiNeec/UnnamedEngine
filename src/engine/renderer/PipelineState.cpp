@@ -16,8 +16,14 @@
 #include <runtime/core/Properties.h>
 #include <runtime/core/math/Math.h>
 
+/// @brief 定数定義
 PipelineState::PipelineState() = default;
 
+/// @brief コンストラクタ
+/// @param cullMode カリングモード
+/// @param fillMode 塗りつぶしモード
+/// @param topologyType トポロジタイプ
+/// @param depthStencilDesc 深度ステンシルステートの説明構造体
 PipelineState::PipelineState(
 	const D3D12_CULL_MODE               cullMode,
 	const D3D12_FILL_MODE               fillMode,
@@ -77,14 +83,20 @@ PipelineState::PipelineState(
 	}
 }
 
+/// @brief インプットレイアウトの設定
+/// @param layout インプットレイアウトの説明構造体
 void PipelineState::SetInputLayout(const D3D12_INPUT_LAYOUT_DESC layout) {
 	mDesc.InputLayout = layout; // InputLayout
 }
 
+/// @brief ルートシグネチャの設定
+/// @param rootSignature ルートシグネチャへのポインタ
 void PipelineState::SetRootSignature(ID3D12RootSignature* rootSignature) {
 	mDesc.pRootSignature = rootSignature; // RootSignature
 }
 
+/// @brief 頂点シェーダーの設定
+/// @param filePath 頂点シェーダーのファイルパス
 void PipelineState::SetVertexShader(const std::wstring& filePath) {
 	mVsBlob = CompileShader(
 		filePath, L"vs_6_0", mDxcUtils.Get(), mDxcCompiler.Get(),
@@ -99,6 +111,8 @@ void PipelineState::SetVertexShader(const std::wstring& filePath) {
 	}; // VertexShader
 }
 
+/// @brief ピクセルシェーダーの設定
+/// @param filePath ピクセルシェーダーのファイルパス
 void PipelineState::SetPixelShader(const std::wstring& filePath) {
 	mPsBlob = CompileShader(
 		filePath, L"ps_6_0", mDxcUtils.Get(), mDxcCompiler.Get(),
@@ -113,6 +127,13 @@ void PipelineState::SetPixelShader(const std::wstring& filePath) {
 	}; // PixelShader
 }
 
+/// @brief シェーダーのコンパイル
+/// @param filePath シェーダーファイルのパス
+/// @param profile シェーダープロファイル
+/// @param dxcUtils DXCユーティリティへのポインタ
+/// @param dxcCompiler DXCコンパイラへのポインタ
+/// @param includeHandler インクルードハンドラへのポインタ
+/// @return コンパイルされたシェーダーブロブへのポインタ
 IDxcBlob* PipelineState::CompileShader(
 	const std::wstring& filePath, const wchar_t* profile, IDxcUtils* dxcUtils,
 	IDxcCompiler3*      dxcCompiler,
@@ -190,6 +211,8 @@ IDxcBlob* PipelineState::CompileShader(
 	return shaderBlob;
 }
 
+/// @brief パイプラインステートの作成
+/// @param device D3D12デバイスへのポインタ
 void PipelineState::Create(ID3D12Device* device) {
 	const HRESULT hr = device->CreateGraphicsPipelineState(
 		&mDesc, IID_PPV_ARGS(mPipelineState.ReleaseAndGetAddressOf())
@@ -203,6 +226,8 @@ void PipelineState::Create(ID3D12Device* device) {
 	}
 }
 
+/// @brief ブレンドモードの設定
+/// @param blendMode ブレンドモード
 void PipelineState::SetBlendMode(const BlendMode blendMode) {
 	D3D12_BLEND_DESC blendDesc                 = {};
 	blendDesc.AlphaToCoverageEnable            = FALSE;
@@ -268,14 +293,18 @@ void PipelineState::SetBlendMode(const BlendMode blendMode) {
 	mCurrentBlendMode         = blendMode;
 }
 
-auto PipelineState::GetBlendMode() const -> BlendMode {
+/// @brief 現在のブレンドモードを取得
+BlendMode PipelineState::GetBlendMode() const {
 	return mCurrentBlendMode;
 }
 
-auto PipelineState::Get() const -> ID3D12PipelineState* {
+/// @brief パイプラインステートの取得
+ID3D12PipelineState* PipelineState::Get() const {
 	return mPipelineState.Get();
 }
 
+/// @brief 深度書き込みマスクの設定
+/// @param depthWriteMask 深度書き込みマスク
 void PipelineState::SetDepthWriteMask(
 	const D3D12_DEPTH_WRITE_MASK depthWriteMask
 ) {

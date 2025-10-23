@@ -9,6 +9,6 @@ struct EngineDesc {
 	std::string version;
 
 	~EngineDesc() {
-		windowHandle = nullptr; 
+		windowHandle = nullptr;
 	}
 };

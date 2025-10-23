@@ -6,6 +6,8 @@
 
 #include "engine/OldConsole/Console.h"
 
+/// @brief SRVマネージャーの初期化
+/// @param d3d12 D3D12クラスへのポインタ
 void SrvManager::Init(D3D12* d3d12) {
 	// 引数で受け取ってメンバ変数に記録する
 	d3d12_ = d3d12;
@@ -42,6 +44,7 @@ void SrvManager::Init(D3D12* d3d12) {
 	);
 }
 
+/// @brief 描画前の準備
 void SrvManager::PreDraw() const {
 	// 描画用のDescriptorHeapの設定
 	ID3D12DescriptorHeap* descriptorHeaps[] = {descriptorHeap_.Get()};
@@ -49,9 +52,11 @@ void SrvManager::PreDraw() const {
 		_countof(descriptorHeaps), descriptorHeaps);
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: SRV生成(テクスチャ用)
-//-----------------------------------------------------------------------------
+/// @brief SRV生成(Texture2D用)
+/// @param srvIndex SRVインデックス
+/// @param pResource リソースへのポインタ
+/// @param format フォーマット
+/// @param mipLevels ミップレベル数
 void SrvManager::CreateSRVForTexture2D(uint32_t srvIndex,
                                        ID3D12Resource* pResource,
                                        DXGI_FORMAT format,
@@ -70,9 +75,11 @@ void SrvManager::CreateSRVForTexture2D(uint32_t srvIndex,
 		pResource, &srvDesc, GetCPUDescriptorHandle(srvIndex));
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: SRV生成(Structured Buffer用)
-//-----------------------------------------------------------------------------
+/// @brief SRV生成(StructuredBuffer用)
+/// @param srvIndex SRVインデックス
+/// @param pResource リソースへのポインタ
+/// @param numElements 要素数
+/// @param structureByteStride 構造体のバイトサイズ
 void SrvManager::CreateSRVForStructuredBuffer(uint32_t srvIndex,
                                               ID3D12Resource* pResource,
                                               UINT numElements,
@@ -100,6 +107,11 @@ void SrvManager::CreateSRVForStructuredBuffer(uint32_t srvIndex,
 		pResource, &srvDesc, GetCPUDescriptorHandle(srvIndex));
 }
 
+/// @brief SRV生成(TextureCube用)
+/// @param index SRVインデックス
+/// @param resource リソースへのスマートポインタ
+/// @param format フォーマット
+/// @param mipLevels ミップレベル数
 void SrvManager::CreateSRVForTextureCube(
 	uint32_t                               index,
 	Microsoft::WRL::ComPtr<ID3D12Resource> resource,
@@ -121,6 +133,9 @@ void SrvManager::CreateSRVForTextureCube(
 	);
 }
 
+/// @brief グラフィックスパイプライン用にSRVをバインドします
+/// @param rootParameterIndex ルートパラメータのインデックス
+/// @param srvIndex SRVインデックス
 void SrvManager::SetGraphicsRootDescriptorTable(const UINT rootParameterIndex,
                                                 const uint32_t srvIndex) const {
 	// インデックスが有効範囲内かチェック
@@ -150,6 +165,8 @@ void SrvManager::SetGraphicsRootDescriptorTable(const UINT rootParameterIndex,
 	}
 }
 
+/// @brief SRVインデックスを1つ割り当てます
+/// @return 割り当てられたSRVインデックス
 uint32_t SrvManager::Allocate() {
 	// 上限に達していないかチェックしてassert
 	assert(useIndex_ < kMaxSrvCount);
@@ -163,6 +180,8 @@ uint32_t SrvManager::Allocate() {
 	return index;
 }
 
+/// @brief 2Dテクスチャ用SRVインデックスを1つ割り当てます
+/// @return 割り当てられた2Dテクスチャ用SRVインデックス
 uint32_t SrvManager::AllocateForTexture2D() {
 	uint32_t index;
 
@@ -189,6 +208,8 @@ uint32_t SrvManager::AllocateForTexture2D() {
 	return index;
 }
 
+/// @brief キューブマップテクスチャ用SRVインデックスを1つ割り当てます
+/// @return 割り当てられたキューブマップテクスチャ用SRVインデックス
 uint32_t SrvManager::AllocateForTextureCube() {
 	uint32_t index;
 
@@ -215,6 +236,8 @@ uint32_t SrvManager::AllocateForTextureCube() {
 	return index;
 }
 
+/// @brief テクスチャ配列用SRVインデックスを1つ割り当てます
+/// @return 割り当てられたテクスチャ配列用SRVインデックス
 uint32_t SrvManager::AllocateForTextureArray() {
 	// テクスチャ配列用インデックス範囲の上限チェック
 	assert(textureArrayIndex_ < kTextureArrayEndIndex);
@@ -237,6 +260,8 @@ uint32_t SrvManager::AllocateForTextureArray() {
 	return index;
 }
 
+/// @brief ストラクチャードバッファ用SRVインデックスを1つ割り当てます
+/// @return 割り当てられたストラクチャードバッファ用SRVインデックス
 uint32_t SrvManager::AllocateForStructuredBuffer() {
 	uint32_t index;
 
@@ -279,6 +304,9 @@ uint32_t SrvManager::AllocateForStructuredBuffer() {
 	return index;
 }
 
+/// @brief 連続した2Dテクスチャ用SRVインデックスを複数割り当てます
+/// @param count 割り当てるインデックスの数
+/// @return 割り当てられた最初の2Dテクスチャ用SRVインデックス
 uint32_t SrvManager::AllocateConsecutiveTexture2DSlots(uint32_t count) {
 	// 連続した2Dテクスチャスロットが確保できるかチェック
 	if (texture2DIndex_ + count > kTexture2DEndIndex) {
@@ -298,16 +326,15 @@ uint32_t SrvManager::AllocateConsecutiveTexture2DSlots(uint32_t count) {
 		// 使用可能な連続スロットがあるかチェック
 		if (startIndex + count <= kTexture2DEndIndex) {
 			return startIndex;
-		} else {
-			Console::Print(
-				std::format(
-					"[SrvManager] エラー: 連続した{}個のスロットは利用できません\n",
-					count),
-				kConTextColorError,
-				Channel::RenderSystem
-			);
-			return 0; // エラー値
 		}
+		Console::Print(
+			std::format(
+				"[SrvManager] エラー: 連続した{}個のスロットは利用できません\n",
+				count),
+			kConTextColorError,
+			Channel::RenderSystem
+		);
+		return 0; // エラー値
 	}
 
 	// 開始インデックスを記録
@@ -318,6 +345,9 @@ uint32_t SrvManager::AllocateConsecutiveTexture2DSlots(uint32_t count) {
 	return startIndex;
 }
 
+/// @brief 連続したキューブマップテクスチャ用SRVインデックスを複数割り当てます
+/// @param count 割り当てるインデックスの数
+/// @return 割り当てられた最初のキューブマップテクスチャ用SRVインデックス
 uint32_t SrvManager::AllocateConsecutiveTextureCubeSlots(uint32_t count) {
 	// 連続したキューブマップテクスチャスロットが確保できるかチェック
 	if (textureCubeIndex_ + count > kTextureCubeEndIndex) {
@@ -346,19 +376,21 @@ uint32_t SrvManager::AllocateConsecutiveTextureCubeSlots(uint32_t count) {
 	return startIndex;
 }
 
-// 互換性のためのメソッド - AllocateForTexture2Dにリダイレクト
+/// @brief Allocate2DTextureにリダイレクト
+/// @return 割り当てられた2Dテクスチャ用SRVインデックス
 uint32_t SrvManager::AllocateForTexture() {
 	return AllocateForTexture2D();
 }
 
-// 互換性のためのメソッド - AllocateConsecutiveTexture2DSlotsにリダイレクト  
+/// @brief AllocateConsecutiveTexture2DSlotsにリダイレクト
+/// @param count 割り当てるインデックスの数
+/// @return 割り当てられた最初の2Dテクスチャ用SRVインデックス
 uint32_t SrvManager::AllocateConsecutiveTextureSlots(uint32_t count) {
 	return AllocateConsecutiveTexture2DSlots(count);
 }
 
-//-----------------------------------------------------------------------------
-// インデックス返却メソッド（フリーリスト方式）
-//-----------------------------------------------------------------------------
+/// @brief 2Dテクスチャ用SRVインデックスを返却します
+/// @param index 返却する2Dテクスチャ用SRVインデックス
 void SrvManager::DeallocateTexture2D(uint32_t index) {
 	// 範囲チェック
 	if (index < kTexture2DStartIndex || index >= kTexture2DEndIndex) {
@@ -398,6 +430,8 @@ void SrvManager::DeallocateTexture2D(uint32_t index) {
 	);
 }
 
+/// @brief キューブマップテクスチャ用SRVインデックスを返却します
+/// @param index 返却するキューブマップテクスチャ用SRVインデックス
 void SrvManager::DeallocateTextureCube(uint32_t index) {
 	// 範囲チェック
 	if (index < kTextureCubeStartIndex || index >= kTextureCubeEndIndex) {
@@ -437,6 +471,8 @@ void SrvManager::DeallocateTextureCube(uint32_t index) {
 	);
 }
 
+/// @brief ストラクチャードバッファ用SRVインデックスを返却します
+/// @param index 返却するストラクチャードバッファ用SRVインデックス
 void SrvManager::DeallocateStructuredBuffer(uint32_t index) {
 	// 範囲チェック
 	if (index < kStructuredBufferStartIndex || index >=
@@ -479,11 +515,14 @@ void SrvManager::DeallocateStructuredBuffer(uint32_t index) {
 	);
 }
 
-// 互換性のためのメソッド
+/// @brief DeallocateTexture2Dにリダイレクト
+/// @param index 返却する2Dテクスチャ用SRVインデックス
 void SrvManager::DeallocateTexture(uint32_t index) {
 	DeallocateTexture2D(index);
 }
 
+/// @brief テクスチャ配列用SRVインデックスを返却します
+/// @param index 返却するテクスチャ配列用SRVインデックス
 void SrvManager::DeallocateTextureArray(uint32_t index) {
 	// 範囲チェック
 	if (index < kTextureArrayStartIndex || index >= kTextureArrayEndIndex) {
@@ -523,6 +562,8 @@ void SrvManager::DeallocateTextureArray(uint32_t index) {
 	);
 }
 
+/// @brief ディスクリプタヒープを取得します
+/// @return ディスクリプタヒープへのポインタ
 ID3D12DescriptorHeap* SrvManager::GetDescriptorHeap() const {
 	assert(
 		descriptorHeap_ != nullptr &&
@@ -530,6 +571,9 @@ ID3D12DescriptorHeap* SrvManager::GetDescriptorHeap() const {
 	return descriptorHeap_.Get();
 }
 
+/// @brief CPUディスクリプタハンドルを取得します
+/// @param index 取得するディスクリプタのインデックス
+/// @return 取得したCPUディスクリプタハンドル
 D3D12_CPU_DESCRIPTOR_HANDLE SrvManager::GetCPUDescriptorHandle(
 	const uint32_t index) const {
 	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap_->
@@ -538,6 +582,9 @@ D3D12_CPU_DESCRIPTOR_HANDLE SrvManager::GetCPUDescriptorHandle(
 	return handleCPU;
 }
 
+/// @brief GPUディスクリプタハンドルを取得します
+/// @param index 取得するディスクリプタのインデックス
+/// @return 取得したGPUディスクリプタハンドル
 D3D12_GPU_DESCRIPTOR_HANDLE SrvManager::GetGPUDescriptorHandle(
 	const uint32_t index) const {
 	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap_->
@@ -546,6 +593,9 @@ D3D12_GPU_DESCRIPTOR_HANDLE SrvManager::GetGPUDescriptorHandle(
 	return handleGPU;
 }
 
+/// @brief CPUディスクリプタハンドルからインデックスを取得します
+/// @param cpuHandle CPUディスクリプタハンドル
+/// @return 取得したインデックス
 uint32_t SrvManager::GetIndexFromCPUHandle(
 	const D3D12_CPU_DESCRIPTOR_HANDLE& cpuHandle
 ) const {
@@ -559,6 +609,9 @@ uint32_t SrvManager::GetIndexFromCPUHandle(
 	return index;
 }
 
+/// @brief GPUディスクリプタハンドルからインデックスを取得します
+/// @param gpuHandle GPUディスクリプタハンドル
+/// @return 取得したインデックス
 uint32_t SrvManager::GetIndexFromGPUHandle(
 	const D3D12_GPU_DESCRIPTOR_HANDLE& gpuHandle
 ) const {
@@ -572,6 +625,8 @@ uint32_t SrvManager::GetIndexFromGPUHandle(
 	return index;
 }
 
+/// @brief まだSRVインデックスを割り当て可能かどうかを取得します
+/// @return 割り当て可能ならtrue、上限に達しているならfalse
 bool SrvManager::CanAllocate() const {
 	return useIndex_ < kMaxSrvCount;
 }

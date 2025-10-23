@@ -10,6 +10,7 @@
 #include "WorldSettings.h"
 
 namespace Unnamed {
+	/// @brief ゲーム内のすべてのエンティティとその状態を管理するクラスです。
 	class UWorld {
 	public:
 		explicit UWorld(std::string name = "World");
@@ -32,7 +33,7 @@ namespace Unnamed {
 
 		bool SaveToJson(const std::string& path);
 		bool LoadFromJson(
-			const std::string& path, class UAssetManager* assetManager
+			const std::string& path, const class UAssetManager* assetManager
 		);
 
 		class UCameraComponent* MainCamera();

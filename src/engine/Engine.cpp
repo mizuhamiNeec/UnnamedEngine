@@ -34,13 +34,17 @@
 #include "engine/subsystem/console/concommand/UnnamedConVar.h"
 #include "engine/subsystem/console/concommand/base/UnnamedConCommandBase.h"
 
-constexpr Vec4 offscreenClearColor = Vec4(0.025f, 0.025f, 0.025f, 1.0f);
+constexpr auto offscreenClearColor = Vec4(0.025f, 0.025f, 0.025f, 1.0f);
 
 namespace Unnamed {
+	/// @brief コンストラクタ
 	Engine::Engine() = default;
 
+	/// @brief デストラクタ
 	Engine::~Engine() = default;
 
+	/// @brief 初期化
+	/// @return 成功したらtrueを返す
 	bool Engine::Init() {
 		//---------------------------------------------------------------------
 		// Purpose: 新エンジン
@@ -50,7 +54,7 @@ namespace Unnamed {
 
 		for (auto& subsystem : mSubsystems) {
 			if (subsystem->Init()) {
-				std::string name = std::string(subsystem->GetName());
+				auto name = std::string(subsystem->GetName());
 				SpecialMsg(
 					LogLevel::Success,
 					"Engine",
@@ -296,6 +300,7 @@ namespace Unnamed {
 		return true;
 	}
 
+	/// @brief 更新
 	void Engine::Update() {
 		mTimeSystem->BeginFrame();
 
@@ -683,9 +688,7 @@ namespace Unnamed {
 				postProcessTarget->GetDesc().
 				                   Width
 			);
-			const uint32_t h = static_cast<uint32_t>(
-				postProcessTarget->GetDesc().Height
-			);
+			const uint32_t h = postProcessTarget->GetDesc().Height;
 
 			const uint32_t next = mPingIndex ^ 1; // 次のインデックス
 			auto&          dest = mPingRtv[next];
@@ -847,6 +850,7 @@ namespace Unnamed {
 		mTimeSystem->EndFrame();
 	}
 
+	/// @brief シャットダウン
 	void Engine::Shutdown() const {
 		//-----------------------------------------------------------------------------
 		// Purpose: 旧エンジン
@@ -889,13 +893,9 @@ namespace Unnamed {
 		}
 	}
 
-	std::shared_ptr<BaseScene> Engine::GetCurrentScene() {
-		if (GetSceneManager()) {
-			return GetSceneManager()->GetCurrentScene();
-		}
-		UASSERT(false && "SceneManager is not initialized.");
-	}
-
+	/// @brief ウィンドウリサイズ時の処理
+	/// @param width 幅
+	/// @param height 高さ
 	void Engine::OnResize(const uint32_t width, const uint32_t height) {
 		if (width == 0 || height == 0) {
 			return;
@@ -957,6 +957,9 @@ namespace Unnamed {
 		mPostProcessedRenderPassTargets.pDSV    = &mPostProcessedDsv.dsvHandle;
 	}
 
+	/// @brief オフスクリーンレンダーテクスチャのリサイズ
+	/// @param width 幅
+	/// @param height 高さ
 	void Engine::ResizeOffscreenRenderTextures(
 		const uint32_t width,
 		const uint32_t height
@@ -1024,6 +1027,7 @@ namespace Unnamed {
 		mPostProcessedRenderPassTargets.pDSV    = &mPostProcessedDsv.dsvHandle;
 	}
 
+	/// @brief コンソールコマンドと変数の登録
 	void Engine::RegisterConsoleCommandsAndVariables() {
 		// コンソールコマンドを登録
 		ConCommand::RegisterCommand("exit", Quit, "Exit the engine.");
@@ -1112,10 +1116,13 @@ namespace Unnamed {
 		Console::SubmitCommand("bind tab +toggleGizmo", true);
 	}
 
+	/// @brief エンジン終了コマンド
+	/// @param args 引数
 	void Engine::Quit([[maybe_unused]] const std::vector<std::string>& args) {
 		mWishShutdown = true;
 	}
 
+	/// @brief エディターモードの確認と切り替え
 	void Engine::CheckEditorMode() {
 		if (mIsEditorMode) {
 			mEditor = std::make_unique<Editor>(

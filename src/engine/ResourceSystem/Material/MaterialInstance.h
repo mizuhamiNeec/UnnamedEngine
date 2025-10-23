@@ -7,6 +7,7 @@
 
 class SrvManager;
 
+/// @brief マテリアルインスタンスクラス
 class MaterialInstance {
 public:
 	void SetTexture(const std::string& slot, const std::string& texturePath) {
@@ -22,6 +23,7 @@ public:
 		UINT                            rootParameterIndex,
 		SrvManager*                     srvManager,
 		const std::vector<std::string>& textureOrder);
+
 private:
 	std::unordered_map<std::string, std::string> textureSlots_;
 };

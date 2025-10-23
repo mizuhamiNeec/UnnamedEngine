@@ -1,5 +1,3 @@
-
-
 #include "engine/ResourceSystem/Manager/ResourceManager.h"
 
 #include "engine/OldConsole/Console.h"
@@ -8,6 +6,8 @@
 #include "engine/ResourceSystem/RootSignature/RootSignatureManager2.h"
 #include "engine/TextureManager/TexManager.h"
 
+/// @brief コンストラクタ
+/// @param d3d12 D3D12クラスへのポインタ
 ResourceManager::ResourceManager(D3D12* d3d12) :
 	d3d12_(d3d12),
 	srvManager_(nullptr),
@@ -21,6 +21,7 @@ ResourceManager::ResourceManager(D3D12* d3d12) :
 	animationManager_ = std::make_unique<AnimationManager>();
 }
 
+/// @brief 初期化
 void ResourceManager::Init() const {
 	Console::Print("ResourceManager を初期化しています...\n", kConTextColorWait,
 	               Channel::ResourceSystem);
@@ -39,12 +40,13 @@ void ResourceManager::Init() const {
 	               Channel::ResourceSystem);
 }
 
+/// @brief 終了処理
 void ResourceManager::Shutdown() {
 	Console::Print(
 		"ResourceManager を終了しています...\n", kConTextColorWait,
 		Channel::ResourceSystem
 	);
-	
+
 	// 全てのリソースマネージャーを終了
 
 	if (animationManager_) {
@@ -72,26 +74,38 @@ void ResourceManager::Shutdown() {
 	RootSignatureManager2::Shutdown();
 }
 
+/// @brief SrvManagerを取得
+/// @return SrvManagerへのポインタ
 SrvManager* ResourceManager::GetSrvManager() const {
 	return srvManager_.get();
 }
 
+/// @brief TexManagerを取得
+/// @return TexManagerへのポインタ
 TexManager* ResourceManager::GetTexManager() const {
 	return TexManager::GetInstance();
 }
 
+/// @brief MeshManagerを取得
+/// @return MeshManagerへのポインタ
 MeshManager* ResourceManager::GetMeshManager() const {
 	return meshManager_.get();
 }
 
+/// @brief AnimationManagerを取得
+/// @return AnimationManagerへのポインタ
 AnimationManager* ResourceManager::GetAnimationManager() const {
 	return animationManager_.get();
 }
 
+/// @brief MaterialManagerを取得
+/// @return MaterialManagerへのポインタ
 MaterialManager* ResourceManager::GetMaterialManager() const {
 	return materialManager_.get();
 }
 
+/// @brief ShaderManagerを取得
+/// @return ShaderManagerへのポインタ
 ShaderManager* ResourceManager::GetShaderManager() const {
 	return shaderManager_.get();
 }

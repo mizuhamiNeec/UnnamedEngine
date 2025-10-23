@@ -4,6 +4,8 @@
 
 class CameraComponent;
 
+/// @brief カメラ管理クラス
+/// @note 複数のカメラを管理し、アクティブなカメラを切り替える機能を提供する
 class CameraManager {
 public:
 	static void AddCamera(const std::shared_ptr<CameraComponent>& camera);

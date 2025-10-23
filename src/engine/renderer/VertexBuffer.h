@@ -5,10 +5,12 @@
 #include <wrl.h>
 #include <vector>
 
+/// @brief 頂点バッファクラス
 template <typename VertexType>
 class VertexBuffer {
 public:
-	VertexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device, size_t size,
+	VertexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device,
+	             size_t size,
 	             const VertexType* pInitData);
 	[[nodiscard]] D3D12_VERTEX_BUFFER_VIEW View() const;
 	void Update(const VertexType* pInitData, size_t size);
@@ -16,16 +18,21 @@ public:
 	std::vector<VertexType> GetVertices() const;
 
 private:
-	Microsoft::WRL::ComPtr<ID3D12Device>     mDevice;
-	Microsoft::WRL::ComPtr<ID3D12Resource>   mBuffer;
-	D3D12_VERTEX_BUFFER_VIEW mView;
-	size_t                   mSize = 0;
+	Microsoft::WRL::ComPtr<ID3D12Device>   mDevice;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mBuffer;
+	D3D12_VERTEX_BUFFER_VIEW               mView;
+	size_t                                 mSize = 0;
 };
 
+/// @brief コンストラクタ
+/// @param device D3D12デバイスへの参照
+/// @param size バッファサイズ (バイト数)
+/// @param pInitData 初期データへのポインタ
 template <typename VertexType>
-VertexBuffer<VertexType>::VertexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device>& device,
-                                       const size_t                size,
-                                       const VertexType*           pInitData) :
+VertexBuffer<VertexType>::VertexBuffer(
+	const Microsoft::WRL::ComPtr<ID3D12Device>& device,
+	const size_t                                size,
+	const VertexType*                           pInitData) :
 	mDevice(device),
 	mSize(size) {
 	// リソース用のヒープを設定
@@ -70,11 +77,16 @@ VertexBuffer<VertexType>::VertexBuffer(const Microsoft::WRL::ComPtr<ID3D12Device
 	mBuffer->SetName(L"VertexBuffer");
 }
 
+/// @brief 頂点バッファビューの取得します
+/// @return 頂点バッファビュー
 template <typename VertexType>
 D3D12_VERTEX_BUFFER_VIEW VertexBuffer<VertexType>::View() const {
 	return mView;
 }
 
+/// @brief 頂点バッファの内容を更新します
+/// @param pInitData 更新データへのポインタ
+/// @param size 更新データのサイズ (バイト数)
 template <typename VertexType>
 void VertexBuffer<
 	VertexType>::Update(const VertexType* pInitData, size_t size) {
@@ -89,11 +101,15 @@ void VertexBuffer<
 	}
 }
 
+/// @brief 頂点バッファのサイズを取得します
+/// @return 頂点バッファのサイズ (バイト数)
 template <typename VertexType>
 size_t VertexBuffer<VertexType>::GetSize() const {
 	return mSize;
 }
 
+/// @brief 頂点バッファの内容を取得します
+/// @return 頂点データのベクター
 template <typename VertexType>
 std::vector<VertexType> VertexBuffer<VertexType>::GetVertices() const {
 	std::vector<VertexType> vertices(mSize / sizeof(VertexType));

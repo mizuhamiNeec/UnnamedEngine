@@ -11,6 +11,7 @@ struct CameraForGPU;
 struct PointLight;
 struct SpotLight;
 
+/// @brief スタティックメッシュレンダラーコンポーネント
 class StaticMeshRenderer : public MeshRenderer {
 public:
 	StaticMeshRenderer() = default;

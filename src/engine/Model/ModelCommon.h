@@ -2,6 +2,7 @@
 
 class D3D12;
 
+/// @brief モデル共通クラス
 class ModelCommon {
 public:
 	void Init(D3D12* d3d12);

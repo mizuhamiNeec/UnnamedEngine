@@ -9,6 +9,7 @@ namespace Unnamed {
 	struct IPlatformEvents;
 }
 
+/// @brief Win32ウィンドウシステムクラス
 class Win32WindowSystem : public IWindowSystem {
 public:
 	~Win32WindowSystem() override;
@@ -40,7 +41,6 @@ public:
 private:
 	void RegisterClassOnce();
 
-private:
 	HINSTANCE   mHInstance  = {};
 	std::string mClassName  = "UnnamedWindowClass";
 	bool        mRegistered = false;

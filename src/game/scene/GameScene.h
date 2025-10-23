@@ -30,14 +30,8 @@ class IConVar;
  */
 class GameScene : public BaseScene {
 public:
-	/**
-	 * @brief デストラクタ
-	 */
 	~GameScene() override;
 	
-	/**
-	 * @brief シーンの初期化
-	 */
 	void Init() override;
 	void Update(float deltaTime) override;
 	void Render() override;
@@ -79,7 +73,6 @@ private:
 	void DrawDebugHud(const std::shared_ptr<CameraComponent>& camera) const;
 #endif
 
-private:
 	D3D12* mRenderer = nullptr;
 
 	std::unique_ptr<CubeMap> mCubeMap;
@@ -92,7 +85,7 @@ private:
 	std::unique_ptr<Entity>             mEntWorldMesh;
 	std::shared_ptr<StaticMeshRenderer> mWorldMeshRenderer;
 
-	std::unique_ptr<Entity>   mEntPlayer;
+	std::unique_ptr<Entity>            mEntPlayer;
 	std::shared_ptr<MovementComponent> mMovementComponent;
 
 	std::unique_ptr<Entity>             mEntWeapon;

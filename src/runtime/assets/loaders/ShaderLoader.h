@@ -3,6 +3,7 @@
 #include <runtime/assets/core/UAssetManager.h>
 
 namespace Unnamed {
+	/// @brief シェーダーローダー
 	class ShaderLoader : public IAssetLoader {
 	public:
 		explicit ShaderLoader(UAssetManager* assetManager)
@@ -19,7 +20,6 @@ namespace Unnamed {
 		static std::string GuessStageKeyFromFilename(const std::string& path);
 		static std::vector<std::string> ExtractIncludes(const std::string& src);
 
-	private:
 		UAssetManager* mAssetManager;
 	};
 }

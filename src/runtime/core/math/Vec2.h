@@ -2,7 +2,6 @@
 #include <cstdint>
 
 /// @brief 2次元ベクトル構造体
-/// @details 2D座標や方向を表現するための基本的な数学構造体です
 struct Vec2 final {
 	float x, y;
 
@@ -14,9 +13,9 @@ struct Vec2 final {
 	static const Vec2 down;  /// 下方向 (0, -1)
 
 
-	///  @brief コンストラクタ
-	///  @param x X成分（デフォルト: 0.0f）
-	///  @param y Y成分（デフォルト: 0.0f）
+	/// @brief コンストラクタ
+	/// @param x X成分（デフォルト: 0.0f）
+	/// @param y Y成分（デフォルト: 0.0f）
 	constexpr Vec2(const float x = 0.0f, const float y = 0.0f) : x(x), y(y) {
 	}
 

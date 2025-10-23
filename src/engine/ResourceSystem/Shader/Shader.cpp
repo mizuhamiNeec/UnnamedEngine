@@ -16,13 +16,11 @@
 
 #include "engine/OldConsole/Console.h"
 
-
-//-----------------------------------------------------------------------------
-// Purpose: コンストラクタ
-// - vsPath (const std::string&): 頂点シェーダーファイルパス
-// - psPath (const std::string&): ピクセルシェーダーファイルパス
-// - gsPath (const std::string&): ジオメトリシェーダーファイルパス
-//-----------------------------------------------------------------------------
+/// @brief コンストラクタ
+/// @param name シェーダー名
+/// @param vsPath 頂点シェーダーファイルパス
+/// @param psPath ピクセルシェーダーファイルパス
+/// @param gsPath ジオメトリシェーダーファイルパス
 Shader::Shader(
 	std::string        name, const std::string&   vsPath,
 	const std::string& psPath, const std::string& gsPath
@@ -84,27 +82,24 @@ Shader::Shader(
 	ReflectShaderResources();
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 頂点シェーダーバイナリを取得します
-//-----------------------------------------------------------------------------
+/// @brief デストラクタ
 Microsoft::WRL::ComPtr<IDxcBlob> Shader::GetVertexShaderBlob() {
 	return mVertexShaderBlob;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: ピクセルシェーダーバイナリを取得します
-//-----------------------------------------------------------------------------
+/// @brief ピクセルシェーダーバイナリを取得します
 Microsoft::WRL::ComPtr<IDxcBlob> Shader::GetPixelShaderBlob() {
 	return mPixelShaderBlob;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: ジオメトリシェーダーバイナリを取得します
-//-----------------------------------------------------------------------------
+/// @brief ジオメトリシェーダーバイナリを取得します
 Microsoft::WRL::ComPtr<IDxcBlob> Shader::GetGeometryShaderBlob() {
 	return mGeometryShaderBlob;
 }
 
+/// @brief リソースのレジスタ番号を取得します
+/// @param resourceName リソース名
+/// @return レジスタ番号。見つからなかった場合は0xffffffffを返す
 UINT Shader::GetResourceRegister(const std::string& resourceName) const {
 	auto it = mResourceRegisterMap.find(resourceName);
 	if (it != mResourceRegisterMap.end()) {
@@ -121,15 +116,20 @@ UINT Shader::GetResourceRegister(const std::string& resourceName) const {
 	return 0xffffffff;
 }
 
+/// @brief リソースのレジスタマップを取得します
 const std::unordered_map<std::string, ResourceInfo>&
 Shader::GetResourceRegisterMap() const {
 	return mResourceRegisterMap;
 }
 
+/// @brief シェーダー名を取得します
 std::string Shader::GetName() {
 	return mName;
 }
 
+/// @brief リソースパラメータのインデックスを取得します
+/// @param resourceName リソース名
+/// @return リソースパラメータのインデックス。見つからなかった場合はUINT_MAXを返す
 UINT Shader::GetResourceParameterIndex(const std::string& resourceName) {
 	auto it = mResourceParameterIndices.find(resourceName);
 	if (it != mResourceParameterIndices.end()) {
@@ -144,11 +144,15 @@ UINT Shader::GetResourceParameterIndex(const std::string& resourceName) {
 	return UINT_MAX;
 }
 
+/// @brief リソースパラメータのインデックスを設定します
+/// @param resourceName リソース名
+/// @param index リソースパラメータのインデックス
 void Shader::SetResourceParameterIndex(const std::string& resourceName,
                                        const UINT         index) {
 	mResourceParameterIndices[resourceName] = index;
 }
 
+/// @brief シェーダーリソースを解放します
 void Shader::Release() {
 	if (mVertexShaderBlob) {
 		mVertexShaderBlob.Reset();
@@ -163,6 +167,7 @@ void Shader::Release() {
 	mResourceRegisterMap.clear();
 }
 
+/// @brief スタティックリソースを解放します
 void Shader::ReleaseStaticResources() {
 	if (mIncludeHandler) {
 		mIncludeHandler.Reset();
@@ -175,13 +180,11 @@ void Shader::ReleaseStaticResources() {
 	}
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: シェーダーをコンパイルします
-// - filePath (const std::string&): ファイルパス
-// - entryPoint (const std::string&): エントリーポイント
-// - profile (const std::string&): プロファイル
-// Return: コンパイルされたバイナリ
-//-----------------------------------------------------------------------------
+/// @brief シェーダーをコンパイルする
+/// @param filePath HLSLファイルのパス
+/// @param entryPoint エントリーポイント名
+/// @param profile シェーダープロファイル
+/// @return コンパイルされたシェーダーバイナリのBlob
 Microsoft::WRL::ComPtr<IDxcBlob> Shader::CompileShader(
 	const std::string& filePath, const
 	std::string&       entryPoint,
@@ -276,6 +279,9 @@ Microsoft::WRL::ComPtr<IDxcBlob> Shader::CompileShader(
 	return shaderBlob;
 }
 
+/// @brief シェーダーバイナリをリフレクトしてリソース情報を取得する
+/// @param shaderBlob シェーダーバイナリのBlob
+/// @param shaderType シェーダーステージの種類
 void Shader::ReflectShaderBlob(
 	const Microsoft::WRL::ComPtr<IDxcBlob>& shaderBlob,
 	ShaderType                              shaderType) {
@@ -390,6 +396,7 @@ void Shader::ReflectShaderBlob(
 	}
 }
 
+/// @brief シェーダーリソースをリフレクトして情報を取得する
 void Shader::ReflectShaderResources() {
 	if (mVertexShaderBlob) {
 		ReflectShaderBlob(mVertexShaderBlob, ShaderType::VertexShader);
@@ -402,6 +409,8 @@ void Shader::ReflectShaderResources() {
 	}
 }
 
+/// @brief テクスチャスロット名のリストを取得する
+/// @return テクスチャスロット名のベクター
 std::vector<std::string> Shader::GetTextureSlots() const {
 	std::vector<std::string> textureSlots;
 

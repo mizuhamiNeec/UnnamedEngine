@@ -9,6 +9,7 @@ using json = nlohmann::json;
 class Entity;
 class BaseScene;
 
+/// @brief エンティティローダー
 class EntityLoader {
 public:
 	~EntityLoader();

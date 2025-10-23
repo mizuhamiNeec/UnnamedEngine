@@ -32,9 +32,11 @@ const D3D12_INPUT_ELEMENT_DESC LineVertex::inputElements[] = {
 
 const D3D12_INPUT_LAYOUT_DESC LineVertex::inputLayout = {
 	inputElements,
-	LineVertex::inputElementCount
+	inputElementCount
 };
 
+/// @brief Lineクラスのコンストラクタ
+/// @param lineCommon LineCommonクラスへのポインタ
 Line::Line(LineCommon* lineCommon) {
 	mLineCommon                       = lineCommon;
 	constexpr size_t vertexBufferSize = kMaxLineCount * 2 * sizeof(LineVertex);
@@ -62,6 +64,10 @@ Line::Line(LineCommon* lineCommon) {
 
 static std::mutex lineMutex;
 
+/// @brief ラインを追加する
+/// @param start ラインの開始点
+/// @param end ラインの終了点
+/// @param color ラインの色
 void Line::AddLine(const Vec3& start, const Vec3& end, const Vec4& color) {
 	std::lock_guard lock(lineMutex);
 
@@ -78,6 +84,7 @@ void Line::AddLine(const Vec3& start, const Vec3& end, const Vec4& color) {
 	mIsDirty = true; // バッファを更新する
 }
 
+/// @brief 頂点バッファとインデックスバッファを更新する
 void Line::UpdateBuffer() {
 	// 更新の必要がない、またはデータが空の場合は終了
 	if (!mIsDirty || mLineVertices.empty()) {
@@ -109,13 +116,14 @@ void Line::UpdateBuffer() {
 
 	// バッファを更新
 	mVertexBuffer->Update(mLineVertices.data(),
-						  mLineVertices.size() * sizeof(LineVertex));
+	                      mLineVertices.size() * sizeof(LineVertex));
 	mIndexBuffer->Update(mLineIndices.data(),
-						 mLineIndices.size() * sizeof(uint32_t));
+	                     mLineIndices.size() * sizeof(uint32_t));
 
 	mIsDirty = false; // バッファは最新状態
 }
 
+/// @brief ラインを描画する
 void Line::Draw() {
 	if (mIsDirty) {
 		UpdateBuffer();
@@ -131,8 +139,8 @@ void Line::Draw() {
 	mTransformationMatrixData->wvp = viewProjMat;
 
 	mLineCommon->GetRenderer()->GetCommandList()->
-				 SetGraphicsRootConstantBufferView(
-					 0, mTransformationMatrixConstantBuffer->GetAddress());
+	             SetGraphicsRootConstantBufferView(
+		             0, mTransformationMatrixConstantBuffer->GetAddress());
 
 	const D3D12_VERTEX_BUFFER_VIEW vbView = mVertexBuffer->View();
 	const D3D12_INDEX_BUFFER_VIEW  ibView = mIndexBuffer->View();

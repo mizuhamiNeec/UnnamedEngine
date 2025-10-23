@@ -4,6 +4,7 @@
 #include <runtime/assets/core/UAsset.h>
 
 namespace Unnamed {
+	/// @brief アセットローダーインターフェース
 	class IAssetLoader {
 	public:
 		virtual      ~IAssetLoader() = default;

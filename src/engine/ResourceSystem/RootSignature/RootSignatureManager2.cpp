@@ -1,11 +1,10 @@
-
-
 #include <ranges>
 
 #include <engine/ResourceSystem/RootSignature/RootSignature2.h>
 #include <engine/ResourceSystem/RootSignature/RootSignatureManager2.h>
 
-RootSignature2* RootSignatureManager2::GetOrCreateRootSignature(const std::string& key, const RootSignatureDesc& desc) {
+RootSignature2* RootSignatureManager2::GetOrCreateRootSignature(
+	const std::string& key, const RootSignatureDesc& desc) {
 	// 既に作成済みのルートシグネチャがあるか確認
 	if (rootSignatures_.contains(key)) {
 		return rootSignatures_[key].get();
@@ -42,5 +41,6 @@ void RootSignatureManager2::Shutdown() {
 	device_ = nullptr;
 }
 
-std::unordered_map<std::string, std::unique_ptr<RootSignature2>> RootSignatureManager2::rootSignatures_;
+std::unordered_map<std::string, std::unique_ptr<RootSignature2>>
+RootSignatureManager2::rootSignatures_;
 ID3D12Device* RootSignatureManager2::device_ = nullptr;

@@ -48,13 +48,13 @@ public:
 	 * @param entity エンティティ
 	 */
 	virtual void Execute(Entity& entity) = 0;
-	
+
 	/**
 	 * @brief 更新処理
 	 * @param deltaTime 前フレームからの経過時間
 	 */
 	virtual void Update(const float& deltaTime) = 0;
-	
+
 	/**
 	 * @brief ImGuiインスペクタ用のUI描画
 	 */
@@ -101,28 +101,6 @@ private:
 	bool mIsHit       = false;      // ヒットしたかどうか
 };
 
-// //-----------------------------------------------------------------------------
-// // 近接攻撃
-// //-----------------------------------------------------------------------------
-// class MeleeModule final : public IWeaponModule {
-// public:
-// 	explicit MeleeModule(
-// 		const float& range, const float& damage) :
-// 		mRange(range),
-// 		mDamage(damage) {
-// 	}
-//
-// 	~MeleeModule() override;
-// 	void Execute(Entity& entity) override;
-// 	void Update(const float& deltaTime) override;
-// 	void DrawInspectorImGui() override;
-//
-// private:
-// 	float mRange;  // 攻撃範囲 [HU]
-// 	float mDamage; // 攻撃力
-// };
-
-
 /**
  * @brief 武器コンポーネント
  * @details エンティティに武器機能を追加するコンポーネント。
@@ -146,13 +124,13 @@ public:
 	 * @param owner 所有者エンティティ
 	 */
 	void OnAttach(Entity& owner) override;
-	
+
 	/**
 	 * @brief 毎フレーム更新処理を行う
 	 * @param deltaTime 前フレームからの経過時間
 	 */
 	void Update(float deltaTime) override;
-	
+
 	/**
 	 * @brief ImGuiインスペクタ用のUI描画
 	 */
@@ -161,18 +139,18 @@ public:
 	/**
 	 * @brief トリガーを引く（発射開始）
 	 */
-	void               PullTrigger();
-	
+	void PullTrigger();
+
 	/**
 	 * @brief トリガーを離す（発射停止）
 	 */
-	void               ReleaseTrigger();
-	
+	void ReleaseTrigger();
+
 	/**
 	 * @brief リロードを開始する
 	 */
-	void               Reload();
-	
+	void Reload();
+
 	/**
 	 * @brief 発射可能かどうかを判定する
 	 * @return 発射可能な場合true
@@ -183,8 +161,8 @@ public:
 	 * @brief ヒット位置を取得する
 	 * @return ヒット位置
 	 */
-	[[nodiscard]] Vec3  GetHitPosition() const;
-	
+	[[nodiscard]] Vec3 GetHitPosition() const;
+
 	/**
 	 * @brief ヒット面の法線を取得する
 	 * @return ヒット面の法線

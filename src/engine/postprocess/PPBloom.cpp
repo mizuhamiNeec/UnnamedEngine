@@ -13,12 +13,16 @@
 #include <imgui.h>
 #endif
 
+/// @brief コンストラクタ
+/// @param device D3D12デバイスへのポインタ
+/// @param srvManager SRVマネージャーへのポインタ
 PPBloom::PPBloom(ID3D12Device* device, SrvManager* srvManager)
 	: mDevice(device), mSrvManager(srvManager) {
 	assert(mDevice && mSrvManager);
 	Init();
 }
 
+/// @brief 初期化処理
 void PPBloom::Init() {
 	CreateRootSignature();
 	CreatePipelineState();
@@ -43,6 +47,8 @@ void PPBloom::Init() {
 	UASSERT(SUCCEEDED(hr));
 }
 
+/// @brief 更新処理
+/// @param deltaTime 前のフレームからの経過時間 (秒)
 void PPBloom::Update(float) {
 #ifdef _DEBUG
 	if (ImGui::CollapsingHeader("Bloom Settings",
@@ -57,6 +63,8 @@ void PPBloom::Update(float) {
 #endif
 }
 
+/// @brief エフェクトの実行
+/// @param context ポストプロセスコンテキスト
 void PPBloom::Execute(const PostProcessContext& context) {
 	auto* cmd = context.commandList;
 
@@ -91,6 +99,7 @@ void PPBloom::Execute(const PostProcessContext& context) {
 	cmd->DrawInstanced(3, 1, 0, 0);
 }
 
+/// @brief ルートシグネチャの作成
 void PPBloom::CreateRootSignature() {
 	D3D12_DESCRIPTOR_RANGE1 range = {
 		.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
@@ -136,8 +145,8 @@ void PPBloom::CreateRootSignature() {
 		}
 	};
 
-	Microsoft::WRL::ComPtr<ID3DBlob> sigBlob, errBlob;
-	HRESULT                          hr =
+	ComPtr<ID3DBlob> sigBlob, errBlob;
+	HRESULT          hr =
 		D3D12SerializeVersionedRootSignature(&desc, &sigBlob, &errBlob);
 	assert(SUCCEEDED(hr));
 	hr = mDevice->CreateRootSignature(0, sigBlob->GetBufferPointer(),
@@ -146,6 +155,7 @@ void PPBloom::CreateRootSignature() {
 	assert(SUCCEEDED(hr));
 }
 
+/// @brief パイプラインステートの作成
 void PPBloom::CreatePipelineState() {
 	D3D12_DEPTH_STENCIL_DESC depth = {
 		.DepthEnable = FALSE,

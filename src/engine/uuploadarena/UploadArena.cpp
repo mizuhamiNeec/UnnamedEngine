@@ -9,6 +9,10 @@
 namespace Unnamed {
 	constexpr std::string_view kChannel = "UploadArena";
 
+	/// @brief 初期化
+	/// @param device デバイス
+	/// @param sizePerFrame フレームあたりのサイズ
+	/// @return 成功したらtrueを返す
 	bool UploadArena::Init(ID3D12Device* device, const uint64_t sizePerFrame) {
 		mFrames = std::max<uint32_t>(1, kFrameBufferCount);
 
@@ -17,17 +21,17 @@ namespace Unnamed {
 		cap           = (cap + 255ull) & ~255ull; // 256Bにアライン
 		mSizePerFrame = cap;
 
-		const uint64_t              total = mSizePerFrame * mFrames;
-		const D3D12_HEAP_PROPERTIES hp    = {D3D12_HEAP_TYPE_UPLOAD};
-		D3D12_RESOURCE_DESC         rd    = {};
-		rd.Dimension                      = D3D12_RESOURCE_DIMENSION_BUFFER;
-		rd.Width                          = total;
-		rd.Height                         = 1;
-		rd.DepthOrArraySize               = 1;
-		rd.MipLevels                      = 1;
-		rd.Format                         = DXGI_FORMAT_UNKNOWN;
-		rd.SampleDesc                     = {.Count = 1, .Quality = 0};
-		rd.Layout                         = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		const uint64_t                  total = mSizePerFrame * mFrames;
+		constexpr D3D12_HEAP_PROPERTIES hp    = {D3D12_HEAP_TYPE_UPLOAD};
+		D3D12_RESOURCE_DESC             rd    = {};
+		rd.Dimension                          = D3D12_RESOURCE_DIMENSION_BUFFER;
+		rd.Width                              = total;
+		rd.Height                             = 1;
+		rd.DepthOrArraySize                   = 1;
+		rd.MipLevels                          = 1;
+		rd.Format                             = DXGI_FORMAT_UNKNOWN;
+		rd.SampleDesc                         = {.Count = 1, .Quality = 0};
+		rd.Layout                             = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
 		if (
 			FAILED(
@@ -58,6 +62,7 @@ namespace Unnamed {
 		return true;
 	}
 
+	/// @brief シャットダウン
 	void UploadArena::Shutdown() {
 		if (mBuffer) {
 			mBuffer->Unmap(0, nullptr);
@@ -73,6 +78,9 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief フレームの開始
+	/// @param backIndex バックバッファのインデックス
+	/// @return 使用可能ならtrueを返す
 	bool UploadArena::BeginFrame(const uint32_t backIndex) {
 		mCurrentFrame = backIndex % mFrames;
 
@@ -87,6 +95,10 @@ namespace Unnamed {
 		return true;
 	}
 
+	/// @brief フレームの提出通知
+	/// @param backIndex バックバッファのインデックス
+	/// @param fence フェンス
+	/// @param value フェンス値
 	void UploadArena::OnFrameSubmitted(
 		const uint32_t backIndex, ID3D12Fence* fence, const uint64_t value
 	) {
@@ -95,6 +107,10 @@ namespace Unnamed {
 		mRetireFenceValues[frameIndex] = value;
 	}
 
+	/// @brief メモリを割り当てる
+	/// @param size サイズ
+	/// @param alignment アラインメント
+	/// @return スライス
 	UploadArena::Slice UploadArena::Allocate(
 		const uint64_t size, const uint64_t alignment
 	) {

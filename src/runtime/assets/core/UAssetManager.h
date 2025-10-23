@@ -52,7 +52,7 @@ namespace Unnamed {
 		const std::vector<AssetID>& Dependents(AssetID id) const;
 
 		bool Reload(AssetID id);
-		void SubscribeReload(ReloadCallback callback);
+		void RegisterReload(ReloadCallback callback);
 
 		size_t UnloadUnused();
 
@@ -78,7 +78,6 @@ namespace Unnamed {
 
 		static std::string NormalizePath(std::string path);
 
-	private:
 		mutable std::recursive_mutex mMutex;
 		std::vector<Node>            mNodes;
 		AssetID                      mNextID = 1;

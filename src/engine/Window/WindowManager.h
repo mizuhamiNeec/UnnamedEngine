@@ -3,6 +3,7 @@
 
 #include "Base/BaseWindow.h"
 
+/// @brief 旧ウィンドウマネージャークラス
 class OldWindowManager {
 public:
 	OldWindowManager();
@@ -12,11 +13,10 @@ public:
 
 	[[nodiscard]] static bool ProcessMessage();
 
-	static BaseWindow* GetMainWindow();
-	static void ClearWindows();
+	static BaseWindow*                                     GetMainWindow();
+	static void                                            ClearWindows();
 	static const std::vector<std::unique_ptr<BaseWindow>>& GetWindows();
 
 private:
 	static std::vector<std::unique_ptr<BaseWindow>> windows_;
 };
-

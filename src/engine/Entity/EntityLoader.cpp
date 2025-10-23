@@ -10,9 +10,13 @@
 
 class StaticMeshRenderer;
 
+/// @brief デストラクタ
 EntityLoader::~EntityLoader() {
 }
 
+/// @brief エンティティに変換を適用する
+/// @param e エンティティ
+/// @param t 変換情報
 void EntityLoader::ApplyTransform(
 	const Entity*    e,
 	const Transform& t
@@ -22,10 +26,16 @@ void EntityLoader::ApplyTransform(
 	e->GetTransform()->SetLocalScale(t.scale);
 }
 
+/// @brief Blender座標系からエンジン座標系への変換
+/// @param v Blender座標系の位置ベクトル
+/// @return エンジン座標系の位置ベクトル
 static Vec3 ToEnginePos(const Vec3& v) {
 	return {v.x, v.z, v.y};
 }
 
+/// @brief Blender座標系からエンジン座標系への変換
+/// @param q Blender座標系のクォータニオン
+/// @return エンジン座標系のクォータニオン
 static Quaternion ToEngineQuat(const Quaternion& q) {
 	return {
 		q.x,
@@ -35,16 +45,28 @@ static Quaternion ToEngineQuat(const Quaternion& q) {
 	};
 }
 
+/// @brief エンジン座標系からBlender座標系への変換
+/// @param v エンジン座標系の位置ベクトル
+/// @return Blender座標系の位置ベクトル
 static Vec3 ToBlenderPos(const Vec3& v) {
 	return {v.x, v.z, v.y}; // y成分の符号を修正
 }
 
+/// @brief エンジン座標系からBlender座標系への変換
+/// @param q エンジン座標系のクォータニオン
+/// @return Blender座標系のクォータニオン
 static Quaternion ToBlenderQuat(const Quaternion& q) {
 	return {
 		q.x, -q.z, -q.y, q.w // 変更なし (既に正しい逆変換)
 	};
 }
 
+/// @brief ノードを読み込む
+/// @param parent 親エンティティ
+/// @param j JSONオブジェクト
+/// @param scene シーン
+/// @param resourceManager リソースマネージャー
+/// @return 読み込んだエンティティ
 Entity* EntityLoader::LoadNode(
 	Entity*          parent,
 	const json&      j,
@@ -102,6 +124,10 @@ Entity* EntityLoader::LoadNode(
 	return e;
 }
 
+/// @brief シーンを読み込む
+/// @param filePath ファイルパス
+/// @param scene シーン
+/// @param resourceManager リソースマネージャー
 void EntityLoader::LoadScene(
 	const std::string& filePath,
 	BaseScene*         scene,
@@ -116,6 +142,9 @@ void EntityLoader::LoadScene(
 	}
 }
 
+/// @brief シーンを保存する
+/// @param path ファイルパス
+/// @param scene シーン	
 void EntityLoader::SaveScene(
 	const std::string& path,
 	BaseScene*         scene
@@ -142,6 +171,9 @@ void EntityLoader::SaveScene(
 	std::ofstream(path) << root.dump(4);
 }
 
+/// @brief ノードを保存する
+/// @param e エンティティ
+/// @return JSONオブジェクト	
 json EntityLoader::SaveNode(
 	Entity* e
 ) {

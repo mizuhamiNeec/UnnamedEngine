@@ -5,6 +5,7 @@
 
 #include "engine/uprimitive/UPrimitives.h"
 
+/// @brief デバッグ描画クラス
 class Debug {
 public:
 	static void DrawLine(const Vec3& a, const Vec3& b, const Vec4& color);
@@ -53,7 +54,7 @@ public:
 		const Vec3& start, const Vec3& end, const float& radius,
 		const Vec4& color
 	);
-	static void DrawTriangle(const Unnamed::Triangle& triangle, Vec4 vec4);
+	static void DrawTriangle(const Unnamed::Triangle& triangle, Vec4 color);
 
 	static void Init(LineCommon* lineCommon);
 	static void Update();

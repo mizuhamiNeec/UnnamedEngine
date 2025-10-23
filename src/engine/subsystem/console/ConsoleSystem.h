@@ -15,11 +15,12 @@ namespace Unnamed {
 	class UnnamedConVarBase;
 	constexpr uint32_t kConsoleBufferSize = 1024;
 
+	/// @brief コンソールログテキスト構造体
 	struct ConsoleLogText {
-		LogLevel    level;
-		std::string channel;
-		std::string message;
-		DateTime    timeStamp;
+		LogLevel             level;
+		std::string          channel;
+		std::string          message;
+		DateTime             timeStamp;
 		std::source_location location;
 	};
 
@@ -34,7 +35,7 @@ namespace Unnamed {
 	EXEC_FLAG operator |=(EXEC_FLAG& lhs, const EXEC_FLAG& rhs);
 	bool      operator&(EXEC_FLAG lhs, EXEC_FLAG rhs);
 
-
+	/// @brief コンソールシステムクラス
 	class ConsoleSystem final : public ISubsystem, public IConsole {
 	public:
 		~ConsoleSystem() override;
@@ -51,8 +52,9 @@ namespace Unnamed {
 			return mLogBuffer;
 		}
 
-		void Print(LogLevel level, std::string_view channel,
-		           std::string_view message, std::source_location location) override;
+		void Print(LogLevel             level, std::string_view channel,
+		           std::string_view     message,
+		           std::source_location location) override;
 
 		void RegisterConCommand(UnnamedConCommandBase* conCommand);
 
@@ -74,7 +76,6 @@ namespace Unnamed {
 		);
 		static std::string TrimSpaces(const std::string& string);
 
-	private:
 		RingBuffer<ConsoleLogText, kConsoleBufferSize> mLogBuffer;
 
 		std::unordered_map<std::string, UnnamedConCommandBase*> mConCommands;

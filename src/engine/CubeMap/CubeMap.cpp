@@ -7,6 +7,7 @@
 #include "engine/renderer/SrvManager.h"
 #include "engine/TextureManager/TexManager.h"
 
+/// @brief コンストラクタ
 CubeMap::CubeMap(
 	ID3D12Device*          device,
 	SrvManager*            srvManager,
@@ -16,6 +17,7 @@ CubeMap::CubeMap(
 	Init();
 }
 
+/// @brief 初期化
 void CubeMap::Init() {
 	// キューブマップ用の頂点を作る
 	constexpr float size = 100.0f;
@@ -85,6 +87,8 @@ void CubeMap::Init() {
 	mMaterialInstance.color = Vec4::one;
 }
 
+/// @brief 毎フレーム更新
+/// @param deltaTime 前フレームからの経過時間（秒）
 void CubeMap::Update([[maybe_unused]] const float deltaTime) {
 	const Mat4 world = Mat4::Affine(
 		Vec3::one,
@@ -99,6 +103,8 @@ void CubeMap::Update([[maybe_unused]] const float deltaTime) {
 		CameraManager::GetActiveCamera()->GetProjMat();
 }
 
+/// @brief 描画
+/// @param commandList コマンドリスト
 void CubeMap::Render(ID3D12GraphicsCommandList* commandList) const {
 	// TransformationMatrixの更新
 	memcpy(
@@ -141,6 +147,7 @@ void CubeMap::Render(ID3D12GraphicsCommandList* commandList) const {
 	commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 }
 
+/// @brief ルートシグネチャの作成
 void CubeMap::CreateRootSignature() {
 	D3D12_DESCRIPTOR_RANGE1 range           = {};
 	range.RangeType                         = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -211,8 +218,9 @@ void CubeMap::CreateRootSignature() {
 	assert(SUCCEEDED(hr));
 }
 
+/// @brief パイプラインステートオブジェクトの作成
 void CubeMap::CreatePipelineStateObject() {
-	const D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {
+	constexpr D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {
 		.DepthEnable = true, // 比較はするのでDepth自体は有効
 		.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO,
 		// 全ピクセルがz=1に出力されるので、わざわざ書き込む必要がない

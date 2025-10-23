@@ -26,10 +26,13 @@
 namespace Unnamed {
 	constexpr std::string_view kChannel = "Engine";
 
+	/// @brief コンストラクタ
 	UEngine::UEngine() = default;
 
+	/// @brief デストラクタ
 	UEngine::~UEngine() = default;
 
+	/// @brief メインループを実行します
 	void UEngine::Run() {
 		Init();
 		Tick();
@@ -38,6 +41,7 @@ namespace Unnamed {
 
 	UMaterialRuntime mr;
 
+	/// @brief 初期化
 	void UEngine::Init() {
 		Msg(kChannel, "Hello!");
 		// サブシステムの作成
@@ -362,6 +366,7 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief メインループのティック
 	void UEngine::Tick() {
 		while (!mWindowSystem->AllClosed()) {
 			mTime->BeginFrame();
@@ -379,11 +384,11 @@ namespace Unnamed {
 			Vec2 delta = mInputSystem->Axis2D("mouse");
 
 			// 感度と回転値を計算
-			const float sensitivity  = 1.25f;
-			const float m_pitch      = 0.022f;
-			const float m_yaw        = 0.022f;
-			const float cl_pitchdown = 89.0f;
-			const float cl_pitchup   = 89.0f;
+			constexpr float sensitivity  = 1.25f;
+			constexpr float m_pitch      = 0.022f;
+			constexpr float m_yaw        = 0.022f;
+			constexpr float cl_pitchdown = 89.0f;
+			constexpr float cl_pitchup   = 89.0f;
 
 			static float pitch = 0.0f;
 			static float yaw   = 0.0f;
@@ -519,6 +524,7 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief シャットダウン
 	void UEngine::Shutdown() const {
 		mPlatformEvents->RemoveListener(mInputSystem);
 

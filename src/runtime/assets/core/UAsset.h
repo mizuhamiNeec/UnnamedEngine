@@ -13,6 +13,7 @@
 #include <runtime/assets/types/TextureAsset.h>
 
 namespace Unnamed {
+	/// @brief ファイルのスタンプ情報
 	struct FileStamp {
 		std::chrono::system_clock::time_point lastWrite   = {};
 		uint64_t                              sizeInBytes = 0;
@@ -35,6 +36,7 @@ namespace Unnamed {
 	// monostate: 空の状態
 	//-------------------------------------------------------------------------
 
+	/// @brief アセットのペイロードデータ
 	using AssetPayload = std::variant<
 		std::monostate,
 		TextureAssetData,
@@ -45,6 +47,7 @@ namespace Unnamed {
 		RawFileAssetData
 	>;
 
+	/// @brief アセットのメタデータ
 	struct AssetMetaData {
 		UASSET_TYPE type = UASSET_TYPE::UNKNOWN;
 		std::string name;           // 表示名
@@ -55,6 +58,7 @@ namespace Unnamed {
 		bool        loaded     = false;
 	};
 
+	/// @brief アセットのロード結果
 	struct LoadResult {
 		AssetPayload         payload;
 		std::vector<AssetID> dependencies; // パースして見つかった依存

@@ -2,6 +2,7 @@
 
 #include <runtime/core/math/Math.h>
 
+/// @brief デストラクタ
 ExplosionEffect::~ExplosionEffect() {
 	if (mExplosionParticleObject) {
 		mExplosionParticleObject->Shutdown();
@@ -9,6 +10,9 @@ ExplosionEffect::~ExplosionEffect() {
 	}
 }
 
+/// @brief 爆発エフェクトを初期化します
+/// @param particleManager パーティクルマネージャーへのポインタ
+/// @param texturePath パーティクルテクスチャのパス
 void ExplosionEffect::Init(ParticleManager*   particleManager,
                            const std::string& texturePath) {
 	mExplosionParticleObject = std::make_unique<ParticleObject>();
@@ -16,6 +20,11 @@ void ExplosionEffect::Init(ParticleManager*   particleManager,
 	mExplosionParticleObject->SetBillboardType(BillboardType::XZ);
 }
 
+/// @brief 爆発エフェクトをトリガーします
+/// @param position 爆発位置
+/// @param normal 爆発の法線ベクトル
+/// @param particleCount 発生させるパーティクル数
+/// @param coneAngle パーティクルの放出角度
 void ExplosionEffect::TriggerExplosion(const Vec3& position,
                                        const Vec3& normal,
                                        uint32_t    particleCount,
@@ -38,12 +47,15 @@ void ExplosionEffect::TriggerExplosion(const Vec3& position,
 	}
 }
 
+/// @brief 爆発エフェクトを更新します
+/// @param deltaTime 前のフレームからの経過時間
 void ExplosionEffect::Update(float deltaTime) const {
 	if (mExplosionParticleObject) {
 		mExplosionParticleObject->Update(deltaTime);
 	}
 }
 
+/// @brief 爆発エフェクトを描画します
 void ExplosionEffect::Draw() const {
 	if (mExplosionParticleObject) {
 		mExplosionParticleObject->Draw();

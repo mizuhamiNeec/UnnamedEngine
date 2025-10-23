@@ -13,6 +13,7 @@ class SceneComponent;
 class ShaderResourceViewManager;
 struct Vec3;
 
+/// @brief ImGuiの管理クラス
 class ImGuiManager {
 public:
 	ImGuiManager(D3D12* renderer, SrvManager* srvManager);

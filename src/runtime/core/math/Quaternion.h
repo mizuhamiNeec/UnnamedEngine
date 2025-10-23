@@ -4,8 +4,6 @@ struct Vec3;
 
 /**
  * @brief クォータニオン（四元数）構造体
- * @details 3D空間での回転を表現するための数学構造体です。
- *          オイラー角のジンバルロック問題を回避できます。
  */
 struct Quaternion {
 	float x, y, z, w;
@@ -16,7 +14,7 @@ struct Quaternion {
 	 * @brief デフォルトコンストラクタ
 	 */
 	Quaternion();
-	
+
 	/**
 	 * @brief コンストラクタ
 	 * @param x X成分
@@ -25,7 +23,7 @@ struct Quaternion {
 	 * @param w W成分
 	 */
 	Quaternion(float x, float y, float z, float w);
-	
+
 	/**
 	 * @brief 軸と角度から生成するコンストラクタ
 	 * @param axis 回転軸
@@ -39,40 +37,40 @@ struct Quaternion {
 	/**
 	 * @brief このクォータニオンを正規化する
 	 */
-	void              Normalize();
-	
+	void Normalize();
+
 	/**
 	 * @brief 正規化されたクォータニオンを取得する
 	 * @return 正規化されたクォータニオン
 	 */
-	Quaternion        Normalized() const;
-	
+	Quaternion Normalized() const;
+
 	/**
 	 * @brief 共役クォータニオンを取得する
 	 * @return 共役クォータニオン
 	 */
-	Quaternion        Conjugate() const;
-	
+	Quaternion Conjugate() const;
+
 	/**
 	 * @brief 逆クォータニオンを取得する
 	 * @return 逆クォータニオン
 	 */
-	Quaternion        Inverse() const;
-	
+	Quaternion Inverse() const;
+
 	/**
 	 * @brief 軸と角度に変換する
 	 * @param outAxis 出力：回転軸
 	 * @param outAngle 出力：回転角
 	 */
-	void              ToAxisAngle(Vec3& outAxis, float& outAngle) const;
-	
+	void ToAxisAngle(Vec3& outAxis, float& outAngle) const;
+
 	/**
 	 * @brief オイラー角（ラジアン）からクォータニオンを生成する
 	 * @param eulerRad オイラー角（ラジアン）
 	 * @return クォータニオン
 	 */
 	static Quaternion Euler(const Vec3& eulerRad);
-	
+
 	/**
 	 * @brief オイラー角（ラジアン）からクォータニオンを生成する
 	 * @param x X軸回転（ラジアン）
@@ -81,14 +79,14 @@ struct Quaternion {
 	 * @return クォータニオン
 	 */
 	static Quaternion Euler(const float& x, const float& y, const float& z);
-	
+
 	/**
 	 * @brief オイラー角（度数法）からクォータニオンを生成する
 	 * @param eulerDeg オイラー角（度数法）
 	 * @return クォータニオン
 	 */
 	static Quaternion EulerDegrees(const Vec3& eulerDeg);
-	
+
 	/**
 	 * @brief オイラー角（度数法）からクォータニオンを生成する
 	 * @param x X軸回転（度数法）
@@ -98,7 +96,7 @@ struct Quaternion {
 	 */
 	static Quaternion EulerDegrees(const float& x, const float& y,
 	                               const float& z);
-	
+
 	/**
 	 * @brief 軸と角度からクォータニオンを生成する
 	 * @param axis 回転軸
@@ -106,7 +104,7 @@ struct Quaternion {
 	 * @return クォータニオン
 	 */
 	static Quaternion AxisAngle(const Vec3& axis, const float& angleDeg);
-	
+
 	/**
 	 * @brief 前方向と上方向から回転を生成する
 	 * @param forward 前方向ベクトル
@@ -115,7 +113,7 @@ struct Quaternion {
 	 */
 	static Quaternion LookRotation(const Vec3& forward,
 	                               const Vec3& up = Vec3::up);
-	
+
 	/**
 	 * @brief 線形補間を行う
 	 * @param a 開始クォータニオン
@@ -124,7 +122,7 @@ struct Quaternion {
 	 * @return 補間されたクォータニオン
 	 */
 	static Quaternion Lerp(const Quaternion& a, const Quaternion& b, float t);
-	
+
 	/**
 	 * @brief 球面線形補間を行う
 	 * @param a 開始クォータニオン
@@ -133,50 +131,50 @@ struct Quaternion {
 	 * @return 補間されたクォータニオン
 	 */
 	static Quaternion Slerp(const Quaternion& a, const Quaternion& b, float t);
-	
+
 	/**
 	 * @brief オイラー角（ラジアン）に変換する
 	 * @return オイラー角（ラジアン）
 	 */
-	Vec3              ToEulerAngles() const;
-	
+	Vec3 ToEulerAngles() const;
+
 	/**
 	 * @brief オイラー角（度数法）に変換する
 	 * @return オイラー角（度数法）
 	 */
-	Vec3              ToEulerDegrees() const;
-	
+	Vec3 ToEulerDegrees() const;
+
 	/**
 	 * @brief 回転軸を取得する
 	 * @return 回転軸ベクトル
 	 */
-	Vec3              GetAxis() const;
-	
+	Vec3 GetAxis() const;
+
 	/**
 	 * @brief ベクトルを回転する
 	 * @param vec3 対象ベクトル
 	 * @return 回転後のベクトル
 	 */
-	Vec3              RotateVector(Vec3 vec3) const;
-	
+	Vec3 RotateVector(Vec3 vec3) const;
+
 	/**
 	 * @brief 指定軸周りの回転角を取得する
 	 * @param axis 回転軸
 	 * @return 回転角
 	 */
-	float             GetRotationAroundAxis(const Vec3& axis) const;
-	
+	float GetRotationAroundAxis(const Vec3& axis) const;
+
 	/**
 	 * @brief 回転角（ラジアン）を取得する
 	 * @return 回転角（ラジアン）
 	 */
-	float             GetAngle() const;
-	
+	float GetAngle() const;
+
 	/**
 	 * @brief 回転角（度数法）を取得する
 	 * @return 回転角（度数法）
 	 */
-	float             GetAngleDegrees() const;
+	float GetAngleDegrees() const;
 
 	//-------------------------------------------------------------------------
 	// Operator

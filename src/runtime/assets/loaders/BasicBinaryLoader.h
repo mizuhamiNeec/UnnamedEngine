@@ -4,6 +4,7 @@
 #include <runtime/assets/loaders/interface/IAssetLoader.h>
 
 namespace Unnamed {
+	/// @brief 基本的なバイナリファイルローダー
 	class BasicBinaryLoader : public IAssetLoader {
 	public:
 		bool CanLoad(

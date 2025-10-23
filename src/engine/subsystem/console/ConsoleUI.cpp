@@ -7,13 +7,8 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-// テキストの選択・コピー
-// Enter・Submitボタンで送信
-// チャンネルでソート
-// 
-
 namespace Unnamed {
-	static constexpr const char* kSubmitButtonText = " Submit ";
+	static constexpr auto kSubmitButtonText = " Submit ";
 
 	static constexpr ImGuiWindowFlags kWindowFlags =
 		ImGuiWindowFlags_NoScrollWithMouse |
@@ -26,35 +21,30 @@ namespace Unnamed {
 		ImGuiInputTextFlags_CallbackEdit |
 		ImGuiInputTextFlags_CallbackResize;
 
+	/// @brief コンストラクタ
 	ConsoleUI::ConsoleUI(
 		ConsoleSystem* consoleSystem
 	) : mConsoleSystem(consoleSystem) {
 		bIsImGuiInitialized = true;
-		// if (ImGui::GetCurrentContext() != nullptr) {
-		// 	
-		// } else {
-		// 	Warning(
-		// 		"ConsoleUI",
-		// 		"ImGuiが初期化されていないため、コンソールUIは表示されません。"
-		// 	);
-		// }
 	}
 
 	/// @brief コンソールUIを表示します。
 	/// @details ImGuiのコンテキスト内で呼び出し
-	void ConsoleUI::Show()
-	{
+	void ConsoleUI::Show() {
 		if (bIsImGuiInitialized) {
 			ImGui::Begin("Console##ConsoleUI", nullptr, kWindowFlags);
 
-			ImGuiChildFlags childFlags = ImGuiChildFlags_ResizeX | ImGuiChildFlags_FrameStyle;
+			ImGuiChildFlags childFlags = ImGuiChildFlags_ResizeX |
+				ImGuiChildFlags_FrameStyle;
 
 			// このウィンドウで使えるサイズを取得
 			auto region = ImGui::GetWindowContentRegionMax();
 
-			float childHeight = region.y - ImGui::GetFrameHeightWithSpacing() * 2.0f;
+			float childHeight = region.y - ImGui::GetFrameHeightWithSpacing() *
+				2.0f;
 
-			ImGui::BeginChild("Output##ConsoleUI", ImVec2(region.x * 0.5f, childHeight), childFlags);
+			ImGui::BeginChild("Output##ConsoleUI",
+			                  ImVec2(region.x * 0.5f, childHeight), childFlags);
 
 			static ConsoleLogText selection;
 
@@ -64,13 +54,11 @@ namespace Unnamed {
 				std::string text;
 				if (!buffer.channel.empty()) {
 					text = "[" + buffer.channel + "] " + buffer.message;
-				}
-				else {
+				} else {
 					text = buffer.message;
 				}
 
-				if (ImGui::Selectable(text.c_str()))
-				{
+				if (ImGui::Selectable(text.c_str())) {
 					selection = buffer;
 				}
 
@@ -81,7 +69,9 @@ namespace Unnamed {
 
 			ImGui::SameLine();
 
-			ImGui::BeginChild("About##ConsoleUI", ImVec2(0, childHeight), ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_FrameStyle);
+			ImGui::BeginChild("About##ConsoleUI", ImVec2(0, childHeight),
+			                  ImGuiChildFlags_AlwaysUseWindowPadding |
+			                  ImGuiChildFlags_FrameStyle);
 
 			std::string bufferInfo = std::format(
 				"File: {}\nLine: {}\nFunc: {}",
@@ -104,16 +94,20 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief 入力テキストボックスを描画します。
 	void ConsoleUI::DrawInputText() {
-		auto style = ImGui::GetStyle();
-		auto spacing = style.WindowPadding;
+		auto style        = ImGui::GetStyle();
+		auto spacing      = style.WindowPadding;
 		auto framePadding = style.FramePadding;
-		auto itemSpacing = style.ItemSpacing;
+		auto itemSpacing  = style.ItemSpacing;
 
 		auto submitTextWidth = ImGui::CalcTextSize(kSubmitButtonText);
 
 		ImVec2 size = {
-			std::max(ImGui::GetWindowContentRegionMax().x - spacing.x - submitTextWidth.x - framePadding.x * 2.0f - itemSpacing.x, 0.0f),
+			std::max(
+				ImGui::GetWindowContentRegionMax().x - spacing.x -
+				submitTextWidth.x - framePadding.x * 2.0f - itemSpacing.x,
+				0.0f),
 			ImGui::GetFrameHeightWithSpacing() - spacing.y
 		};
 
@@ -128,9 +122,9 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief 送信ボタンを描画します。
 	void ConsoleUI::DrawSubmitButton() {
 		if (ImGui::Button(kSubmitButtonText)) {
-
 		}
 	}
 
@@ -151,31 +145,31 @@ namespace Unnamed {
 			break;
 		case LogLevel::Dev:
 			ImGui::PushStyleColor(ImGuiCol_Text,
-				ToImVec4(kConTextColorDev));
+			                      ToImVec4(kConTextColorDev));
 			break;
 		case LogLevel::Warning:
 			ImGui::PushStyleColor(ImGuiCol_Text,
-				ToImVec4(kConTextColorWarn));
+			                      ToImVec4(kConTextColorWarn));
 			break;
 		case LogLevel::Error:
 			ImGui::PushStyleColor(ImGuiCol_Text,
-				ToImVec4(kConTextColorError));
+			                      ToImVec4(kConTextColorError));
 			break;
 		case LogLevel::Fatal:
 			ImGui::PushStyleColor(ImGuiCol_Text,
-				ToImVec4(kConTextColorFatal));
+			                      ToImVec4(kConTextColorFatal));
 			break;
 		case LogLevel::Execute:
 			ImGui::PushStyleColor(ImGuiCol_Text,
-				ToImVec4(kConTextColorExec));
+			                      ToImVec4(kConTextColorExec));
 			break;
 		case LogLevel::Waiting:
 			ImGui::PushStyleColor(ImGuiCol_Text,
-				ToImVec4(kConTextColorWait));
+			                      ToImVec4(kConTextColorWait));
 			break;
 		case LogLevel::Success:
 			ImGui::PushStyleColor(ImGuiCol_Text,
-				ToImVec4(kConTextColorSuccess));
+			                      ToImVec4(kConTextColorSuccess));
 			break;
 		}
 	}
@@ -186,7 +180,7 @@ namespace Unnamed {
 		case ImGuiInputTextFlags_CallbackCompletion: {
 			Msg("callback", "completion");
 		}
-												   break;
+		break;
 
 		case ImGuiInputTextFlags_CallbackHistory:
 			Msg("callback", "history");
@@ -198,7 +192,7 @@ namespace Unnamed {
 
 		case ImGuiInputTextFlags_CallbackResize:
 			break;
-		default:;
+		default: ;
 		}
 		return 0;
 	}

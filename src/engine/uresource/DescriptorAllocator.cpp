@@ -7,6 +7,9 @@ namespace Unnamed {
 	constexpr std::string_view kChannel = "DescriptorAllocator";
 
 	namespace {
+		/// @brief シェーダー可視かどうかを判定
+		/// @param type デスクリプタヒープタイプ
+		/// @return シェーダー可視ならtrueを返す
 		bool CanShaderVisible(
 			const D3D12_DESCRIPTOR_HEAP_TYPE type
 		) {
@@ -15,12 +18,17 @@ namespace Unnamed {
 		}
 	}
 
-	auto DescriptorAllocator::Init(
+	/// @brief 初期化
+	/// @param device デバイス
+	/// @param type デスクリプタヒープタイプ
+	/// @param numDescriptors デスクリプタ数
+	/// @param shaderVisible シェーダー可視フラグ
+	void DescriptorAllocator::Init(
 		ID3D12Device*                    device,
 		const D3D12_DESCRIPTOR_HEAP_TYPE type,
 		const uint32_t                   numDescriptors,
 		const bool                       shaderVisible
-	) -> void {
+	) {
 		UASSERT(device != nullptr);
 		mDevice = device;
 		mType   = type;
@@ -61,6 +69,8 @@ namespace Unnamed {
 		);
 	}
 
+	/// @brief デスクリプタを割り当てる
+	/// @return 割り当てられたデスクリプタのインデックス
 	uint32_t DescriptorAllocator::Allocate() {
 		if (mFreeList.empty()) {
 			UASSERT(
@@ -72,6 +82,8 @@ namespace Unnamed {
 		return index;
 	}
 
+	/// @brief デスクリプタを解放する
+	/// @param index 解放するデスクリプタのインデックス
 	void DescriptorAllocator::Free(uint32_t index) {
 		if (index == UINT32_MAX || index >= mCapacity) {
 #ifdef _DEBUG
@@ -90,6 +102,9 @@ namespace Unnamed {
 		}
 	}
 
+	/// @brief CPUデスクリプタハンドルを取得する
+	/// @param index デスクリプタのインデックス
+	/// @return CPUデスクリプタハンドル
 	D3D12_CPU_DESCRIPTOR_HANDLE DescriptorAllocator::CPUHandle(
 		const uint32_t index
 	) const {
@@ -101,6 +116,9 @@ namespace Unnamed {
 		return base;
 	}
 
+	/// @brief GPUデスクリプタハンドルを取得する
+	/// @param index デスクリプタのインデックス
+	/// @return GPUデスクリプタハンドル
 	D3D12_GPU_DESCRIPTOR_HANDLE DescriptorAllocator::GPUHandle(
 		const uint32_t index
 	) const {
@@ -114,22 +132,33 @@ namespace Unnamed {
 		return base;
 	}
 
+	/// @brief デスクリプタヒープを取得する
+	/// @return デスクリプタヒープ
 	ID3D12DescriptorHeap* DescriptorAllocator::GetHeap() const {
 		return mHeap.Get();
 	}
 
+	/// @brief デスクリプタアロケータの容量を取得する
+	/// @return デスクリプタアロケータの容量
 	uint32_t DescriptorAllocator::Capacity() const { return mCapacity; }
 
+	/// @brief 空きデスクリプタ数を取得する
+	/// @return 空きデスクリプタ数
 	uint32_t DescriptorAllocator::NumFree() const {
 		return static_cast<uint32_t>(mFreeList.size());
 	}
 
+	/// @brief シェーダー可視かどうかを取得する
+	/// @return シェーダー可視ならtrueを返す
 	bool DescriptorAllocator::IsShaderVisible() const { return mShaderVisible; }
 
+	/// @brief デスクリプタヒープタイプを取得する
+	/// @return デスクリプタヒープタイプ
 	D3D12_DESCRIPTOR_HEAP_TYPE DescriptorAllocator::Type() const {
 		return mType;
 	}
 
+	/// @brief アロケータをリセットする
 	void DescriptorAllocator::Reset() {
 		mFreeList.clear();
 		mFreeList.resize(mCapacity);

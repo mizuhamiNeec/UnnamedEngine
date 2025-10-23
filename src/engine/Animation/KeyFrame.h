@@ -1,5 +1,4 @@
-﻿
-#pragma once
+﻿#pragma once
 #include <vector>
 #include <runtime/core/math/Math.h>
 
@@ -18,4 +17,4 @@ Vec3 CalculateValue(
 );
 
 Quaternion CalculateValue(const std::vector<KeyframeQuaternion>& keyframes,
-						  float                                  time);
+                          float                                  time);
