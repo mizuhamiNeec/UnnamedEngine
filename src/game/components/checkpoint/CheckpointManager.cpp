@@ -116,7 +116,7 @@ void CheckpointManager::RespawnAtLastCheckpoint() {
 		);
 	} else {
 		Console::Print(
-			"Respawning at start position...",
+			"Respawning at start position...\n",
 			Vec4(1.0f, 1.0f, 0.0f, 1.0f)
 		);
 	}

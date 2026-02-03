@@ -24,7 +24,7 @@ public:
 	static void UnbindAll();
 	static void ExecuteCommand(const std::string& command, bool isDown);
 	static void ResetAllKeys();
-	static void CheckMouseCursorLock();
+	static void CheckMouseCursorLock(HWND hwnd, int32_t x, int32_t y);
 
 private:
 	static void UpdateMouseButtonState(

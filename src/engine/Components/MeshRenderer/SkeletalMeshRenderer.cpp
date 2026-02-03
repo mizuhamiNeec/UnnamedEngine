@@ -39,7 +39,7 @@ void SkeletalMeshRenderer::OnAttach(Entity& owner) {
 	mScene = mOwner->GetTransform();
 
 	auto* engine = Unnamed::EngineServices::Get();
-	
+
 	// 変換行列用の定数バッファ
 	mTransformationMatrixConstantBuffer = std::make_unique<ConstantBuffer>(
 		engine->GetRendererInstance()->GetDevice(),
@@ -510,7 +510,8 @@ void SkeletalMeshRenderer::DrawInspectorImGui() {
 						const auto& textures = material->GetTextures();
 						if (!textures.empty()) {
 							ImGui::Text("Textures:");
-							auto* texManager = Unnamed::EngineServices::Get()->GetTexManagerInstance();
+							auto* texManager = Unnamed::EngineServices::Get()->
+								GetTexManagerInstance();
 							if (!texManager) {
 								ImGui::Text("TexManager is null");
 								ImGui::TreePop();
@@ -662,14 +663,6 @@ void SkeletalMeshRenderer::TransitionToAnimation(
 		mNextAnimationTime  = 0.0f; // 新しい遷移先は0から開始
 		mIsTransitioning    = true;
 		mIsPlaying          = true;
-
-		Msg(
-			"SkeletalMeshRenderer",
-			"アニメーション遷移開始: {} -> {} ({}秒)",
-			mCurrentAnimationName,
-			animationName,
-			transitionTime
-		);
 	} else {
 		Error(
 			"SkeletalMeshRenderer",
@@ -973,7 +966,8 @@ void SkeletalMeshRenderer::DrawBoneHierarchy(
 			DebugDraw::DrawLine(parentPos, nodePos, {0.8f, 0.8f, 0.2f, 1.0f});
 			{
 				const Vec3 worldPos   = nodePos;
-				Vec2       screenSize = Unnamed::EngineServices::Get()->GetViewportSizeInstance();
+				Vec2       screenSize = Unnamed::EngineServices::Get()->
+					GetViewportSizeInstance();
 
 				const Vec3 cameraPos = CameraManager::GetActiveCamera()->
 				                       GetViewMat().

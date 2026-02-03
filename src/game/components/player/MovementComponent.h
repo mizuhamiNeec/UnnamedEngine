@@ -2,11 +2,13 @@
 #include <engine/Components/base/Component.h>
 #include <runtime/core/math/Math.h>
 #include <runtime/physics/core/UPhysics.h>
+#include <memory>
 
 namespace Unnamed {
 	class ConsoleSystem;
 }
 
+class Audio;
 class AABBCollider;
 
 /**
@@ -235,4 +237,9 @@ private:
 	Unnamed::Box            mHull;
 	MovementData            mData;
 	Unnamed::ConsoleSystem* mConsoleSystem = nullptr;
+
+	std::shared_ptr<Audio> mFootstepAudio;
+	std::shared_ptr<Audio> mLandAudio;
+	float                  mStepDistance    = 0.0f;
+	static constexpr float kStepIntervalM = 2.0f; // 足音の間隔(メートル)
 };

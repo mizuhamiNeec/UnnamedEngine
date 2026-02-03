@@ -1,6 +1,16 @@
 # Blender 5.0.1 MTL File: 'None'
 # www.blender.org
 
+newmtl materials/dev/dev_measuregeneric01c.vmat
+Ns 50.000011
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd ../../../core/textures/dev_measuregray.png
+
 newmtl materials/dev/primary_red.vmat
 Ns 50.000011
 Ka 1.000000 1.000000 1.000000
@@ -21,7 +31,7 @@ d 1.000000
 illum 2
 map_Kd ../../../core/textures/dev_measure.png
 
-newmtl materials/models/props/de_train/hr_t/modern_lights_lng_a/emissive.vmat
+newmtl materials/models/editor/spot.vmat
 Ns 50.000011
 Ka 1.000000 1.000000 1.000000
 Ks 1.000000 1.000000 1.000000
@@ -29,4 +39,4 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd ../../../core/textures/dev_measuregray.png
+map_Kd ../../../../../../Softwares/Steam/steamapps/common/Counter-Strike Global Offensive/game/bin/win64/materials/models/editor/light_spot_color_psd_67849a44.vtex

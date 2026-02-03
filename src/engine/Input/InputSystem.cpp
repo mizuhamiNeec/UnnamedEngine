@@ -97,8 +97,6 @@ void InputSystem::Init() {
  * @brief 入力状態を更新する
  */
 void InputSystem::Update() {
-	CheckMouseCursorLock();
-
 	// トリガー/リリース状態のクリア
 	mTriggeredCommands.clear();
 	mReleasedCommands.clear();
@@ -358,37 +356,26 @@ void InputSystem::ResetAllKeys() {
 /**
  * @brief マウスカーソルのロック状態を確認する
  */
-void InputSystem::CheckMouseCursorLock() {
+void InputSystem::CheckMouseCursorLock(HWND hwnd, int32_t x, int32_t y) {
 	static int cursorCount = 0; // カーソル表示カウンタを追跡
 
 	if (mMouseLock) {
-		// // カーソルをウィンドウの中央にリセット
-		// const POINT centerCursorPos = {
-		// 	static_cast<LONG>(OldWindowManager::GetMainWindow()->
-		// 	                  GetClientWidth() /
-		// 	                  2),
-		// 	static_cast<LONG>(OldWindowManager::GetMainWindow()->
-		// 	                  GetClientHeight() /
-		// 	                  2)
-		// };
-		//
-		// if (OldWindowManager::GetMainWindow()->GetWindowHandle() ==
-		//     GetForegroundWindow()) {
-		// 	RECT rect;
-		// 	rect.left   = centerCursorPos.x;
-		// 	rect.top    = centerCursorPos.y;
-		// 	rect.right  = centerCursorPos.x + 1;
-		// 	rect.bottom = centerCursorPos.y + 1;
-		// 	ClientToScreen(
-		// 		OldWindowManager::GetMainWindow()->GetWindowHandle(),
-		// 		reinterpret_cast<LPPOINT>(&rect)
-		// 	);
-		// 	ClientToScreen(
-		// 		OldWindowManager::GetMainWindow()->GetWindowHandle(),
-		// 		reinterpret_cast<LPPOINT>(&rect) + 1
-		// 	);
-		// 	ClipCursor(&rect);
-		// }
+		// カーソルを引数の位置に移動
+		const POINT centerCursorPos = {
+			static_cast<LONG>(x),
+			static_cast<LONG>(y)
+		};
+
+		if (hwnd == GetForegroundWindow()) {
+			RECT rect;
+			rect.left   = centerCursorPos.x;
+			rect.top    = centerCursorPos.y;
+			rect.right  = centerCursorPos.x + 1;
+			rect.bottom = centerCursorPos.y + 1;
+			ClientToScreen(hwnd, reinterpret_cast<LPPOINT>(&rect));
+			ClientToScreen(hwnd, reinterpret_cast<LPPOINT>(&rect) + 1);
+			ClipCursor(&rect);
+		}
 
 		// カーソルを非表示にする
 		while (cursorCount >= 0) { cursorCount = ShowCursor(FALSE); }

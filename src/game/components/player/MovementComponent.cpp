@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdlib>
 
 #include <engine/Camera/CameraManager.h>
 #include <engine/Components/Camera/CameraComponent.h>
@@ -14,6 +15,9 @@
 #include <engine/OldConsole/ConVarManager.h>
 
 #include "engine/unnamed/subsystem/console/concommand/UnnamedConVar.h"
+
+#include <engine/Engine.h>
+#include <engine/ResourceSystem/Audio/AudioManager.h>
 
 static constexpr std::string_view kChannel = "MovementComponent";
 
@@ -46,6 +50,13 @@ void MovementComponent::OnAttach(Entity& owner) {
 	mConsoleSystem = ServiceLocator::Get<Unnamed::ConsoleSystem>();
 
 	if (!mConsoleSystem) { Error(kChannel, "ConsoleSystemを取得できませんでした。"); }
+
+	if (auto* engine = ServiceLocator::Get<Unnamed::Engine>()) {
+		if (auto* audioMgr = engine->GetAudioManagerInstance()) {
+			mFootstepAudio = audioMgr->GetAudio("./content/parkour/sounds/se/footstep/Robot_Footstep_Single_v3_02.wav");
+			mLandAudio     = audioMgr->GetAudio("./content/parkour/sounds/se/footstep/Robot_Footstep_Single_v2_01.wav");
+		}
+	}
 }
 
 /// @brief 初期化
@@ -444,6 +455,12 @@ void MovementComponent::ProcessMovement(const float dt) {
 			mData.state         = MOVEMENT_STATE::AIR;
 			mData.hasDoubleJump = true;
 
+			if (mFootstepAudio) {
+				mFootstepAudio->SetPitch(1.0f);
+				mFootstepAudio->SetVolume(0.15f);
+				mFootstepAudio->Play();
+			}
+
 			mData.jumpSnapDisableTime  = kJumpSnapDisableTime;
 			mData.wasGroundedLastFrame = false;
 
@@ -467,6 +484,12 @@ void MovementComponent::ProcessMovement(const float dt) {
 				                 kWallrunJumpForce
 			                 );
 
+			if (mFootstepAudio) {
+				mFootstepAudio->SetPitch(1.0f);
+				mFootstepAudio->SetVolume(0.15f);
+				mFootstepAudio->Play();
+			}
+
 			mData.hasDoubleJump = true; // ウォールランジャンプでダブルジャンプリセット
 
 			mData.jumpSnapDisableTime  = kJumpSnapDisableTime;
@@ -478,6 +501,11 @@ void MovementComponent::ProcessMovement(const float dt) {
 			mData.velocity.y          = Math::HtoM(kDoubleJumpVelocityHu);
 			mData.hasDoubleJump       = false; // 使用済み
 			mData.jumpSnapDisableTime = kJumpSnapDisableTime;
+			if (mFootstepAudio) {
+				mFootstepAudio->SetPitch(1.2f);
+				mFootstepAudio->SetVolume(0.15f);
+				mFootstepAudio->Play();
+			}
 		}
 	} else {
 		// ジャンプキーが離されたらフラグをリセット
@@ -540,8 +568,45 @@ void MovementComponent::ProcessMovement(const float dt) {
 
 	// 前フレームで空中、今フレームで地上 = 着地
 	if (!mData.wasGroundedLastFrame && mData.isGrounded && !mData.isWallRunning
-	    && !mData.isSliding) { mData.justLanded = true; } else {
+	    && !mData.isSliding) {
+		mData.justLanded = true;
+		if (mLandAudio) {
+			mLandAudio->SetPitch(1.0f);
+			mLandAudio->SetVolume(0.2f);
+			mLandAudio->Play();
+		}
+	} else {
 		mData.justLanded = false;
+	}
+
+	// 足音処理
+	if ((mData.isGrounded || mData.isWallRunning) && !mData.isSliding) {
+		float speedM = 0.0f;
+		if (mData.isGrounded) {
+			Vec3 velHorz = mData.velocity;
+			velHorz.y    = 0.0f;
+			speedM       = velHorz.Length();
+		} else if (mData.isWallRunning) {
+			// ウォールラン中は全速度を考慮
+			speedM = mData.velocity.Length();
+		}
+
+		if (speedM > 0.1f) {
+			mStepDistance += speedM * dt;
+			if (mStepDistance >= kStepIntervalM) {
+				mStepDistance = 0.0f;
+				if (mFootstepAudio) {
+					// ピッチ変化
+					const float randomPitch = 0.95f + (rand() % 10) * 0.01f;
+					mFootstepAudio->SetPitch(randomPitch);
+					mFootstepAudio->SetVolume(0.125f);
+					mFootstepAudio->Play();
+				}
+			}
+		}
+	} else {
+		// 空中などは距離リセット（お好みで）
+		mStepDistance = 0.0f;
 	}
 
 	CheckForNaNAndClamp(); // NaNチェックと速度クランプ

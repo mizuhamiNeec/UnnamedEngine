@@ -44,13 +44,7 @@ void Entity::Update(const float deltaTime) {
 	if (!mIsActive) { return; }
 
 	// 必須コンポーネントの更新
-	if (!mScene) {
-		Console::Print(
-			std::format("Entity '{}' has no TransformComponent!", GetName()),
-			Vec4(1, 0, 0, 1), Channel::General
-		);
-		return;
-	}
+	if (!mScene) { return; }
 
 	mScene->Update(deltaTime);
 
@@ -64,8 +58,9 @@ void Entity::Update(const float deltaTime) {
 	if (ConVarManager::GetConVar("ent_axis")->GetValueAsBool()) {
 		Vec3 worldPos   = GetTransform()->GetWorldPos();
 		Vec2 screenSize = Unnamed::EngineServices::Get() ?
-			               Unnamed::EngineServices::Get()->GetViewportSizeInstance() :
-			               Vec2{};
+			                  Unnamed::EngineServices::Get()->
+			                  GetViewportSizeInstance() :
+			                  Vec2{};
 
 		DebugDraw::DrawAxis(
 			worldPos,
@@ -97,9 +92,10 @@ void Entity::Update(const float deltaTime) {
 #ifdef _DEBUG
 			//auto   viewport  = ImGui::GetMainViewport();
 			auto viewportLt = Unnamed::EngineServices::Get() ?
-			                    Unnamed::EngineServices::Get()->GetViewportLTInstance() :
-			                    Vec2{};
-			ImVec2 screenPos = { viewportLt.x, viewportLt.y };
+				                  Unnamed::EngineServices::Get()->
+				                  GetViewportLTInstance() :
+				                  Vec2{};
+			ImVec2 screenPos = {viewportLt.x, viewportLt.y};
 			ImGui::SetNextWindowPos(screenPos);
 			ImGui::SetNextWindowSize({screenSize.x, screenSize.y});
 			ImGui::SetNextWindowBgAlpha(0.0f); // 背景を透明にする

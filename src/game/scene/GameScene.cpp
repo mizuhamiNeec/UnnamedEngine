@@ -151,10 +151,10 @@ void GameScene::Init() {
 		"./content/parkour/sounds/bgm/Run.wav"
 	);
 
-	//#ifndef _DEBUG
+	#ifndef _DEBUG
 	run->Play(true);
 	run->SetVolume(0.125f);
-	//#endif
+	#endif
 
 	mWind = mAudioManager->GetAudio(
 		"./content/parkour/sounds/amb/wind.wav"
@@ -313,15 +313,15 @@ void GameScene::Render() {
 
 	if (mSpriteCommon) { mSpriteCommon->Render(); }
 
-	if (mNextCheckpointSprite) {
-		if (mGoalEntity) {
-			auto* goal = mGoalEntity->GetComponent<GoalComponent>();
-			if (goal && goal->IsReached()) { return; }
-		}
-		mNextCheckpointSprite->Draw();
-	}
-
-	if (mNextCheckpointArrowSprite) { mNextCheckpointArrowSprite->Draw(); }
+	// if (mNextCheckpointSprite) {
+	// 	if (mGoalEntity) {
+	// 		auto* goal = mGoalEntity->GetComponent<GoalComponent>();
+	// 		if (goal && goal->IsReached()) { return; }
+	// 	}
+	// 	mNextCheckpointSprite->Draw();
+	// }
+	//
+	// if (mNextCheckpointArrowSprite) { mNextCheckpointArrowSprite->Draw(); }
 
 	if (mPendingReturnToTitle) { mPendingReturnToTitle = false; }
 }

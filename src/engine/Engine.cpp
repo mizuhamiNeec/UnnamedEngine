@@ -279,6 +279,13 @@ namespace Unnamed {
 
 		mConsoleSystem->Update(deltaTime);
 
+		auto viewportCenter =
+			GetViewportLTInstance() + GetViewportSizeInstance() * 0.5f;
+		InputSystem::CheckMouseCursorLock(
+			mWindowManager->GetMainWindow()->GetWindowHandle(),
+			static_cast<int32_t>(viewportCenter.x),
+			static_cast<int32_t>(viewportCenter.y)
+		);
 		InputSystem::Update();
 
 #ifdef _DEBUG
@@ -309,8 +316,10 @@ namespace Unnamed {
 		mRenderer->BeginRenderPass(offscreenTargets);
 
 #ifdef _DEBUG
-		mLineCommon->Render();
-		DebugDraw::Draw();
+		if (mIsEditorMode) {
+			mLineCommon->Render();
+			DebugDraw::Draw();
+		}
 #endif
 
 		if (mModeState) { mModeState->Render(*this); }
@@ -426,7 +435,7 @@ namespace Unnamed {
 		mInputSystem->Shutdown();
 		mConsoleSystem->Shutdown();
 		mTimeSystem->Shutdown();
-		
+
 		SpecialMsg(
 			LogLevel::Success,
 			"Engine",
@@ -566,18 +575,18 @@ namespace Unnamed {
 	void Engine::DestroyEditor() { mEditor.reset(); }
 
 	void Engine::SetViewportToMainWindow() {
-		mViewportLT = Vec2::zero;
+		mViewportLT   = Vec2::zero;
 		mViewportSize = {
 			static_cast<float>(mWindowManager->GetMainWindow()->
-											   GetClientWidth()),
+			                                   GetClientWidth()),
 			static_cast<float>(mWindowManager->GetMainWindow()->
-											   GetClientHeight())
+			                                   GetClientHeight())
 		};
 	}
 
 	void Engine::SetViewportFromEditor(float x, float y, float w, float h) {
-		mViewportLT = { x, y };
-		mViewportSize = { w, h };
+		mViewportLT   = {x, y};
+		mViewportSize = {w, h};
 	}
 
 	bool                             Engine::mWishShutdown    = false;
@@ -589,7 +598,7 @@ namespace Unnamed {
 	std::unique_ptr<SpriteCommon>    Engine::mSpriteCommon    = nullptr;
 	std::shared_ptr<SceneManager>    Engine::mSceneManager    = nullptr;
 
-	Vec2 Engine::mViewportLT = Vec2::zero;
+	Vec2 Engine::mViewportLT   = Vec2::zero;
 	Vec2 Engine::mViewportSize = Vec2::zero;
 
 	std::optional<std::string> Engine::mPendingSceneChange = std::nullopt;
