@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <mutex>
 #include <string>
 
 /// @brief コンソールコマンドクラス
@@ -27,4 +28,5 @@ private:
 	static std::unordered_map<
 		std::string, std::pair<CommandCallback, std::string>
 	> mCommands;
+	static std::mutex mMutex;
 };

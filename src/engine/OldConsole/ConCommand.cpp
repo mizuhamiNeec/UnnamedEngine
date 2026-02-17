@@ -23,13 +23,17 @@ void ConCommand::RegisterCommand(
 	const std::string&     name,
 	const CommandCallback& callback,
 	const std::string&     help
-) { mCommands[name] = {callback, help}; }
+) {
+	std::lock_guard lock(mMutex);
+	mCommands[name] = {callback, help};
+}
 
 /// @brief コンソールコマンドを実行します
 /// @param command コマンド文字列
 /// @return コマンドが見つかり実行された場合はtrue、そうでなければfalse
 bool ConCommand::ExecuteCommand(const std::string& command) {
-	auto tokens = TokenizeCommand(command);
+	std::lock_guard lock(mMutex);
+	auto            tokens = TokenizeCommand(command);
 	if (tokens.empty()) { return false; }
 
 	const auto& cmdName = tokens[0];
@@ -47,7 +51,10 @@ bool ConCommand::ExecuteCommand(const std::string& command) {
 /// @brief 登録されている全てのコマンドを取得します
 /// @return コマンド名とコールバック関数、ヘルプテキストのペアのマップ
 std::unordered_map<std::string, std::pair<CommandCallback, std::string>>
-ConCommand::GetCommands() { return mCommands; }
+ConCommand::GetCommands() {
+	std::lock_guard lock(mMutex);
+	return mCommands;
+}
 
 /// @brief ヘルプを表示します
 void ConCommand::Help() {
@@ -74,3 +81,4 @@ ConCommand::TokenizeCommand(const std::string& command) {
 std::unordered_map<std::string, std::pair<
 	                   ConCommand::CommandCallback, std::string>>
 ConCommand::mCommands;
+std::mutex ConCommand::mMutex;
