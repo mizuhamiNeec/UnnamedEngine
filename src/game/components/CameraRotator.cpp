@@ -26,6 +26,20 @@ void CameraRotator::OnAttach(Entity& owner) {
 	ConVarManager::RegisterConVar("m_yaw", 0.022f, "Mouse yaw factor.");
 	ConVarManager::RegisterConVar("cl_pitchup", 89.0f);
 	ConVarManager::RegisterConVar("cl_pitchdown", 89.0f);
+
+	// スティック設定
+	ConVarManager::RegisterConVar(
+		"joy_response_curve", 10.0f, "Stick response curve."
+	);
+	ConVarManager::RegisterConVar(
+		"joy_outer_threshold", 0.90f, "Stick outer threshold."
+	);
+	ConVarManager::RegisterConVar(
+		"joy_turning_extra_yaw", 0.0f, "Extra yaw speed."
+	);
+	ConVarManager::RegisterConVar(
+		"joy_turning_extra_pitch", 0.0f, "Extra pitch speed."
+	);
 }
 
 /**
@@ -47,8 +61,56 @@ void CameraRotator::Update([[maybe_unused]] float deltaTime) {
 	const float cl_pitchup = ConVarManager::GetConVar("cl_pitchup")->
 		GetValueAsFloat();
 
+	// スティック設定の取得
+	const float joy_curve = ConVarManager::GetConVar("joy_response_curve")->
+		GetValueAsFloat();
+	const float joy_threshold = ConVarManager::GetConVar("joy_outer_threshold")
+		->
+		GetValueAsFloat();
+	const float joy_extra_yaw = ConVarManager::GetConVar(
+			"joy_turning_extra_yaw"
+		)->
+		GetValueAsFloat();
+	const float joy_extra_pitch = ConVarManager::GetConVar(
+		"joy_turning_extra_pitch"
+	)->GetValueAsFloat();
+
+	// マウス入力の適用
 	mPitch += delta.y * sensitivity * m_pitch;
 	mYaw   += delta.x * sensitivity * m_yaw;
+
+	// スティック入力の取得
+	Vec2  rightStick = InputSystem::GetRightStick(0);
+	float stickMag   = rightStick.Length();
+
+	if (stickMag > 0.0f) {
+		// マグニチュードをクリップ
+		stickMag        = std::min(stickMag, 1.0f);
+		float exponent  = 1.0f + (joy_curve / 10.0f);
+		float curvedMag = std::pow(stickMag, exponent);
+
+		Vec2 stickDir    = rightStick.Normalized();
+		Vec2 curvedStick = stickDir * curvedMag;
+
+		float extraYaw   = 0.0f;
+		float extraPitch = 0.0f;
+		if (stickMag >= joy_threshold) {
+			extraYaw   = joy_extra_yaw * std::abs(stickDir.x);
+			extraPitch = joy_extra_pitch * std::abs(stickDir.y);
+		}
+
+		float finalPitchInput = (curvedStick.y * sensitivity * m_pitch * 50.0f)
+		                        + (extraPitch * std::copysign(
+			                           1.0f, curvedStick.y
+		                           ) * 75.0f);
+		float finalYawInput = (curvedStick.x * sensitivity * m_yaw * 50.0f) + (
+			                      extraYaw * std::copysign(
+				                      1.0f, curvedStick.x
+			                      ) * 75.0f);
+
+		mPitch -= finalPitchInput;
+		mYaw   += finalYawInput;
+	}
 
 	// ピッチをクランプ（上下回転の制限）
 	mPitch = std::clamp(mPitch, -cl_pitchup, cl_pitchdown);
