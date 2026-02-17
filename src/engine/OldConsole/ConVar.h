@@ -2,6 +2,7 @@
 #include <format>
 #include <sstream>
 #include <string>
+#include <mutex>
 
 #include "Console.h"
 #include "IConVar.h"
@@ -50,6 +51,7 @@ public:
 	/// @brief 型を文字列として取得します
 	/// @return 型の文字列表現
 	[[nodiscard]] std::string GetTypeAsString() const override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_same_v<T, bool>) return "bool";
 		else if constexpr (std::is_same_v<T, int>) return "int";
 		else if constexpr (std::is_same_v<T, float>) return "float";
@@ -61,6 +63,7 @@ public:
 	/// @brief 値を文字列として取得します
 	/// @return 文字列としての値
 	[[nodiscard]] std::string GetValueAsString() const override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_same_v<T, std::string>) { return mValue; } else if
 		constexpr (std::is_same_v<T, Vec3>) {
 			return std::format("{} {} {}", mValue.x, mValue.y, mValue.z);
@@ -80,6 +83,7 @@ public:
 	/// @brief 値をfloat型として取得します
 	/// @return float型の値
 	[[nodiscard]] float GetValueAsFloat() const override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_same_v<T, float>) { return mValue; } else if
 		constexpr (std::is_arithmetic_v<T>) {
 			return static_cast<float>(mValue);
@@ -93,6 +97,7 @@ public:
 	/// @brief 値をdouble型として取得します
 	/// @return double型の値
 	[[nodiscard]] double GetValueAsDouble() const override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_same_v<T, double>) { return mValue; } else if
 		constexpr (std::is_arithmetic_v<T>) {
 			return static_cast<double>(mValue);
@@ -106,6 +111,7 @@ public:
 	/// @brief 値をint型として取得します
 	/// @return int型の値
 	[[nodiscard]] int GetValueAsInt() const override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_same_v<T, int>) { return mValue; } else if
 		constexpr (std::is_arithmetic_v<
 			T>) { return static_cast<int>(mValue); } else {
@@ -116,6 +122,7 @@ public:
 	/// @brief 値をbool型として取得します
 	/// @return bool型の値
 	[[nodiscard]] bool GetValueAsBool() const override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_same_v<T, bool>) { return mValue; } else if
 		constexpr (std::is_arithmetic_v<T>) { return mValue != 0; } else {
 			throw std::runtime_error("Unsupported type for conversion to bool");
@@ -125,6 +132,7 @@ public:
 	/// @brief 値をVec3型として取得します
 	/// @return Vec3型の値
 	[[nodiscard]] Vec3 GetValueAsVec3() const override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_same_v<T, Vec3>) { return mValue; } else {
 			throw std::runtime_error("Unsupported type for conversion to Vec3");
 		}
@@ -133,6 +141,7 @@ public:
 	/// @brief 文字列から値を設定します
 	/// @param valueStr 設定する値の文字列
 	void SetValueFromString(const std::string& valueStr) override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_same_v<
 			T, bool>) {
 			SetValue(valueStr == "true" || valueStr == "1");
@@ -169,6 +178,7 @@ public:
 	/// @brief float型の値から設定します
 	/// @param newValue 設定するfloat型の値
 	void SetValueFromFloat(const float newValue) override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_convertible_v<float, T>) {
 			SetValue(static_cast<T>(newValue));
 		} else { PrintConvertErrorMessage(); }
@@ -177,6 +187,7 @@ public:
 	/// @brief double型の値から設定します
 	/// @param newValue 設定するdouble型の値
 	void SetValueFromDouble(const double newValue) override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_convertible_v<double, T>) {
 			if constexpr (std::is_same_v<T, float>) {
 				SetValue(static_cast<T>(static_cast<float>(newValue)));
@@ -188,6 +199,7 @@ public:
 
 	/// @brief int型の値から設定します
 	void SetValueFromInt(const int newValue) override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_convertible_v<int, T>) {
 			if constexpr (std::is_same_v<T, float>) {
 				SetValue(static_cast<T>(static_cast<float>(newValue)));
@@ -201,6 +213,7 @@ public:
 
 	/// @brief bool型の値から設定します
 	void SetValueFromBool(const bool newValue) override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_same_v<T, bool>) { SetValue(newValue); } else {
 			PrintConvertErrorMessage();
 		}
@@ -210,11 +223,16 @@ public:
 	[[nodiscard]] ConVarFlags GetFlags() const { return mFlags; }
 
 	/// @brief 値を取得します
-	T GetValue() const { return mValue; }
+	T GetValue() const {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
+		return mValue;
+	}
+
 
 	/// @brief 値を設定します
 	/// @param newValue 設定する新しい値
 	void SetValue(const T& newValue) {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		mValue = newValue;
 
 		if (HasFlags(mFlags, ConVarFlags::ConVarFlags_Notify)) {
@@ -234,6 +252,7 @@ public:
 
 	/// @brief 値をトグル（切り替え）します
 	void Toggle() override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 		if constexpr (std::is_same_v<T, bool>) { SetValue(!mValue); } else if
 		constexpr (std::is_same_v<T, int>) {
 			if (mValue == 0) { mValue = 1; } else { mValue = 0; }
@@ -248,6 +267,7 @@ public:
 
 	/// @brief ImGuiでCVarを描画します
 	void DrawImGui() override {
+		std::lock_guard<std::recursive_mutex> lock(mMutex);
 #ifdef _DEBUG
 		if constexpr (std::is_same_v<
 			T, bool>) { ImGui::Checkbox(mName.c_str(), &mValue); } else if
@@ -291,4 +311,5 @@ private:
 	float       mFMin = 0.0f;
 	bool        mBMax = false;
 	float       mFMax = 0.0f;
+	mutable std::recursive_mutex mMutex;
 };
