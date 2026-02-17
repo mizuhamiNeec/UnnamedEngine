@@ -6,6 +6,7 @@
 #include <string>
 
 #include <engine/Engine.h>
+#include <engine/EngineServices.h>
 #include <engine/Camera/CameraManager.h>
 #include <engine/Components/Camera/CameraComponent.h>
 #include <engine/Components/ColliderComponent/AABBCollider.h>
@@ -17,7 +18,6 @@
 #include <engine/OldConsole/ConVarManager.h>
 #include <engine/ResourceSystem/Audio/AudioManager.h>
 #include <engine/TextureManager/TexManager.h>
-#include <engine/EngineServices.h>
 #include <engine/unnamed/subsystem/console/Log.h>
 
 #include <game/components/CameraRotator.h>
@@ -151,10 +151,10 @@ void GameScene::Init() {
 		"./content/parkour/sounds/bgm/Run.wav"
 	);
 
-	#ifndef _DEBUG
+#ifndef _DEBUG
 	run->Play(true);
 	run->SetVolume(0.125f);
-	#endif
+#endif
 
 	mWind = mAudioManager->GetAudio(
 		"./content/parkour/sounds/amb/wind.wav"
@@ -170,7 +170,7 @@ void GameScene::Init() {
 /// @param deltaTime 経過時間
 void GameScene::Update(const float deltaTime) {
 	HandleMeshReload();
-
+	
 	if (InputSystem::IsTriggered("escape")) { QueueReturnToTitle(); }
 
 	// ファンを物理エンジンから登録解除
@@ -202,8 +202,9 @@ void GameScene::Update(const float deltaTime) {
 		Vec2  screenPos;
 
 		Vec2 clientSize = Unnamed::EngineServices::Get() ?
-			                 Unnamed::EngineServices::Get()->GetViewportSizeInstance() :
-			                 Vec2{};
+			                  Unnamed::EngineServices::Get()->
+			                  GetViewportSizeInstance() :
+			                  Vec2{};
 
 		Vec2 viewportSize = clientSize;
 
@@ -343,7 +344,7 @@ void GameScene::RegisterConVars() {
 
 /// @brief コアテクスチャの読み込み
 void GameScene::LoadCoreTextures() const {
-	auto* engine = Unnamed::EngineServices::Get();
+	auto* engine     = Unnamed::EngineServices::Get();
 	auto* texManager = engine ? engine->GetTexManagerInstance() : nullptr;
 	if (!texManager) { return; }
 
@@ -378,7 +379,7 @@ void GameScene::LoadCoreTextures() const {
 /// @brief キューブマップの初期化
 void GameScene::InitializeCubeMap() {
 	if (!mRenderer || !mSrvManager) { return; }
-	auto* engine = Unnamed::EngineServices::Get();
+	auto* engine     = Unnamed::EngineServices::Get();
 	auto* texManager = engine ? engine->GetTexManagerInstance() : nullptr;
 	if (!texManager) { return; }
 
@@ -392,8 +393,10 @@ void GameScene::InitializeCubeMap() {
 
 /// @brief パーティクルの初期化
 void GameScene::InitializeParticles() {
-	auto* engine = Unnamed::EngineServices::Get();
-	auto* particleManager = engine ? engine->GetParticleManagerInstance() : nullptr;
+	auto* engine          = Unnamed::EngineServices::Get();
+	auto* particleManager = engine ?
+		                        engine->GetParticleManagerInstance() :
+		                        nullptr;
 	if (!particleManager) { return; }
 
 	particleManager->CreateParticleGroup("wind", kWindParticleTexturePath);
@@ -407,8 +410,10 @@ void GameScene::InitializeParticles() {
 
 /// @brief エフェクトの初期化
 void GameScene::InitializeEffects() {
-	auto* engine = Unnamed::EngineServices::Get();
-	auto* particleManager = engine ? engine->GetParticleManagerInstance() : nullptr;
+	auto* engine          = Unnamed::EngineServices::Get();
+	auto* particleManager = engine ?
+		                        engine->GetParticleManagerInstance() :
+		                        nullptr;
 	if (!particleManager) { return; }
 
 	if (mMovementComponent) {
@@ -783,8 +788,12 @@ void GameScene::SyncCameraRoot() const {
 void GameScene::HandleWeaponInput() {
 	if (!mWeaponComponent) { return; }
 
-	if (InputSystem::IsPressed("+attack1")) { mWeaponComponent->PullTrigger(); }
-	if (InputSystem::IsReleased("+attack1")) {
+	float trigger = InputSystem::GetRightTrigger(0);
+
+	if (InputSystem::IsPressed("+attack1") || trigger > 0.1f) {
+		mWeaponComponent->PullTrigger();
+	}
+	if (InputSystem::IsReleased("+attack1") || trigger <= 0.1f) {
 		mWeaponComponent->ReleaseTrigger();
 	}
 	if (InputSystem::IsPressed("+reload") && mEntPlayer) {
@@ -1091,8 +1100,9 @@ void GameScene::DrawDebugHud(
 				ImGuiWindowFlags_NoNav;
 
 			auto viewportLt = Unnamed::EngineServices::Get() ?
-			                    Unnamed::EngineServices::Get()->GetViewportLTInstance() :
-			                    Vec2{};
+				                  Unnamed::EngineServices::Get()->
+				                  GetViewportLTInstance() :
+				                  Vec2{};
 			const ImVec2 windowPos(viewportLt.x, viewportLt.y + 128.0f + 16.0f);
 			ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
 
