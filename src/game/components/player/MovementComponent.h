@@ -97,6 +97,9 @@ struct MovementData {
 	float lastLandingVelocityY = 0.0f;  // 着地時の垂直速度
 	bool  justLanded           = false; // 今フレーム着地したか?
 	float jumpSnapDisableTime  = 0.0f;
+
+	// 入力強度
+	float moveInputIntensity = 0.0f;
 };
 
 class MovementComponent : public Component {

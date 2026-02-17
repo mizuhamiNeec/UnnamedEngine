@@ -53,8 +53,12 @@ void MovementComponent::OnAttach(Entity& owner) {
 
 	if (auto* engine = ServiceLocator::Get<Unnamed::Engine>()) {
 		if (auto* audioMgr = engine->GetAudioManagerInstance()) {
-			mFootstepAudio = audioMgr->GetAudio("./content/parkour/sounds/se/footstep/Robot_Footstep_Single_v3_02.wav");
-			mLandAudio     = audioMgr->GetAudio("./content/parkour/sounds/se/footstep/Robot_Footstep_Single_v2_01.wav");
+			mFootstepAudio = audioMgr->GetAudio(
+				"./content/parkour/sounds/se/footstep/Robot_Footstep_Single_v3_02.wav"
+			);
+			mLandAudio = audioMgr->GetAudio(
+				"./content/parkour/sounds/se/footstep/Robot_Footstep_Single_v2_01.wav"
+			);
 		}
 	}
 }
@@ -257,8 +261,19 @@ void MovementComponent::ProcessInput() {
 	if (InputSystem::IsPressed("back")) mData.vecMoveInput.y -= 1.0f;
 	if (InputSystem::IsPressed("moveright")) mData.vecMoveInput.x += 1.0f;
 	if (InputSystem::IsPressed("moveleft")) mData.vecMoveInput.x -= 1.0f;
+
+	Vec2 leftStick     = InputSystem::GetLeftStick(0);
+	mData.vecMoveInput += leftStick; // アナログスティック入力を足す。後でノーマライズするから問題🍐
+
 	const float sqrLen = mData.vecMoveInput.SqrLength();
-	if (sqrLen > 1.0f) mData.vecMoveInput *= 1.0f / std::sqrt(sqrLen);
+	if (sqrLen > 1.0f) {
+		mData.vecMoveInput *= 1.0f / std::sqrt(sqrLen);
+		mData.moveInputIntensity = 1.0f;
+	} else if (sqrLen > 1e-6f) {
+		mData.moveInputIntensity = std::sqrt(sqrLen);
+	} else {
+		mData.moveInputIntensity = 0.0f;
+	}
 
 	Vec3 wish = Vec3::zero;
 	if (const auto cam = CameraManager::GetActiveCamera()) {
@@ -326,20 +341,13 @@ void MovementComponent::ProcessMovement(const float dt) {
 
 				// 回転による速度（プレイヤー位置での接線速度）
 				if (dt > 0.0f) {
-					// 1. プレイヤーの現在位置を取得
 					Vec3 playerWorldPos = mScene->GetWorldPos();
 
-					// 2. 前フレームのプラットフォーム基準でのプレイヤーの相対位置（ローカル座標）を計算
-					//    Rel = Inv(Rot_Old) * (Pos_Player - Pos_Origin_Old)
 					Vec3 localPos = mLastGroundRotation.Inverse() * (
 						                playerWorldPos - mLastGroundPosition);
 
-					// 3. その相対位置が、現在のプラットフォーム座標系でどこにあるべきかを計算
-					//    Pos_Target = Pos_Origin_New + Rot_New * Rel
 					Vec3 targetWorldPos = currentPos + currentRot * localPos;
 
-					// 4. その差分を移動速度とする
-					//    これにより、円弧に沿った正確な位置への移動ベクトル（中心へ向かう成分含む）が得られる
 					Vec3 totalDisplacement = targetWorldPos - playerWorldPos;
 					mSurfaceVelocity       = totalDisplacement / dt;
 				}
@@ -431,7 +439,7 @@ void MovementComponent::ProcessMovement(const float dt) {
 
 	const float wishspeed = mData.wishDirection.IsZero() ?
 		                        0.0f :
-		                        mData.currentSpeed;
+		                        mData.currentSpeed * mData.moveInputIntensity;
 
 	mData.timeSinceLastWallRun += dt;
 	if (!mData.isGrounded && !mData.isWallRunning && CanWallrun()) {
@@ -464,6 +472,8 @@ void MovementComponent::ProcessMovement(const float dt) {
 			mData.jumpSnapDisableTime  = kJumpSnapDisableTime;
 			mData.wasGroundedLastFrame = false;
 
+			InputSystem::AddVibration(0, 0.3f, 0.3f, 0.1f);
+
 			if (mData.isSliding) { EndSlide(); }
 		} else if (mData.isWallRunning && !mData.wallRunJumpWasPressed) {
 			// Wallrun jump: キーを一度離してから再度押した場合のみ
@@ -494,6 +504,9 @@ void MovementComponent::ProcessMovement(const float dt) {
 
 			mData.jumpSnapDisableTime  = kJumpSnapDisableTime;
 			mData.wasGroundedLastFrame = false; // 念のため追加
+
+			InputSystem::AddVibration(0, 0.3f, 0.3f, 0.1f);
+
 			EndWallrun();
 		} else if (!mData.isGrounded && !mData.isWallRunning && mData.
 		           hasDoubleJump && jumpPressed) {
@@ -506,6 +519,8 @@ void MovementComponent::ProcessMovement(const float dt) {
 				mFootstepAudio->SetVolume(0.15f);
 				mFootstepAudio->Play();
 			}
+
+			InputSystem::AddVibration(0, 0.3f, 0.3f, 0.1f);
 		}
 	} else {
 		// ジャンプキーが離されたらフラグをリセット
@@ -575,9 +590,11 @@ void MovementComponent::ProcessMovement(const float dt) {
 			mLandAudio->SetVolume(0.2f);
 			mLandAudio->Play();
 		}
-	} else {
-		mData.justLanded = false;
-	}
+
+		InputSystem::AddVibration(
+			0, 0.3f, 0.2f, 0.25f
+		);
+	} else { mData.justLanded = false; }
 
 	// 足音処理
 	if ((mData.isGrounded || mData.isWallRunning) && !mData.isSliding) {
@@ -605,7 +622,7 @@ void MovementComponent::ProcessMovement(const float dt) {
 			}
 		}
 	} else {
-		// 空中などは距離リセット（お好みで）
+		// 空中などは距離リセット
 		mStepDistance = 0.0f;
 	}
 
