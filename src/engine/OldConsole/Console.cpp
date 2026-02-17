@@ -404,6 +404,8 @@ void Console::Print(
 		std::lock_guard lock(mMutex);
 		mTaskQueue.emplace(
 			[message, color, channel] {
+				std::lock_guard lock(mMutex);
+
 				std::string msg = message;
 				const bool hasNewLine = !msg.empty() && msg.back() == '\n';
 				const std::string baseMsg = hasNewLine ?
