@@ -2,12 +2,17 @@
 
 //-----------------------------------------------------------------------------
 
+#include <algorithm>
+#include <cmath>
 #include <format>
 #include <ranges>
 
 #include <engine/Input/InputSystem.h>
 #include <engine/OldConsole/ConCommand.h>
 #include <engine/OldConsole/Console.h>
+
+#include <Xinput.h>
+#pragma comment(lib, "Xinput9_1_0.lib")
 
 //-----------------------------------------------------------------------------
 // Purpose: インプットシステムの初期化を行います
@@ -91,12 +96,20 @@ void InputSystem::Init() {
 	);
 
 	mMouseLock = false;
+
+	// タイマー初期化
+	mLastUpdateTime = std::chrono::steady_clock::now();
 }
 
 /**
  * @brief 入力状態を更新する
  */
 void InputSystem::Update() {
+	// デルタタイム計算
+	auto  now = std::chrono::steady_clock::now();
+	float dt = std::chrono::duration<float>(now - mLastUpdateTime).count();
+	mLastUpdateTime = now;
+
 	// トリガー/リリース状態のクリア
 	mTriggeredCommands.clear();
 	mReleasedCommands.clear();
@@ -106,6 +119,132 @@ void InputSystem::Update() {
 
 	// マウスの移動量をリセット
 	mMouseDelta = Vec2::zero;
+
+	// コントローラー入力の更新
+	for (DWORD i = 0; i < XUSER_MAX_COUNT; ++i) {
+		XINPUT_STATE state;
+		ZeroMemory(&state, sizeof(XINPUT_STATE));
+
+		if (XInputGetState(i, &state) == ERROR_SUCCESS) {
+			mGamepadStates[i].isConnected = true;
+			WORD oldButtons = mGamepadStates[i].buttons;
+			WORD newButtons = state.Gamepad.wButtons;
+			mGamepadStates[i].buttons = newButtons;
+
+			// デッドゾーン処理と正規化
+			auto ApplyDeadzone =
+				[](SHORT value, SHORT deadzone) -> float {
+				if (std::abs(value) < deadzone) { return 0.0f; }
+				return (value > 0 ? value - deadzone : value + deadzone) /
+				       (32767.0f - deadzone);
+			};
+
+			mGamepadStates[i].leftStickX = ApplyDeadzone(
+				state.Gamepad.sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
+			);
+			mGamepadStates[i].leftStickY = ApplyDeadzone(
+				state.Gamepad.sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE
+			);
+			mGamepadStates[i].rightStickX = ApplyDeadzone(
+				state.Gamepad.sThumbRX, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE
+			);
+			mGamepadStates[i].rightStickY = ApplyDeadzone(
+				state.Gamepad.sThumbRY, XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE
+			);
+
+			mGamepadStates[i].leftTrigger =
+				state.Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ?
+					state.Gamepad.bLeftTrigger / 255.0f :
+					0.0f;
+			mGamepadStates[i].rightTrigger =
+				state.Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ?
+					state.Gamepad.bRightTrigger / 255.0f :
+					0.0f;
+
+			// ボタン入力の更新
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_DPAD_UP, "gp_dpad_up"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_DPAD_DOWN, "gp_dpad_down"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_DPAD_LEFT, "gp_dpad_left"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_DPAD_RIGHT,
+				"gp_dpad_right"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_START, "gp_start"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_BACK, "gp_back"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_LEFT_THUMB,
+				"gp_left_thumb"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_RIGHT_THUMB,
+				"gp_right_thumb"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_LEFT_SHOULDER,
+				"gp_left_shoulder"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_RIGHT_SHOULDER,
+				"gp_right_shoulder"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_A, "gp_a"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_B, "gp_b"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_X, "gp_x"
+			);
+			UpdateGamepadButtonState(
+				oldButtons, newButtons, XINPUT_GAMEPAD_Y, "gp_y"
+			);
+		} else { mGamepadStates[i].isConnected = false; }
+	}
+
+	// 振動（同時再生・加算方式）
+	for (int i = 0; i < XUSER_MAX_COUNT; ++i) {
+		float totalLeft  = 0.0f;
+		float totalRight = 0.0f;
+
+		// 有効な振動エフェクトを走査して加算
+		for (auto it = mActiveVibrations[i].begin();
+		     it != mActiveVibrations[i].end();) {
+			
+			// 時間経過 (duration < 0 は無限再生扱いにする場合はここを調整するが
+			// 今回は SetVibration で FLT_MAX をセットする運用とする)
+			it->duration -= dt;
+
+			if (it->duration <= 0.0f) {
+				it = mActiveVibrations[i].erase(it);
+			} else {
+				totalLeft += it->leftMotor;
+				totalRight += it->rightMotor;
+				++it;
+			}
+		}
+
+		// 値をクランプして適用
+		XINPUT_VIBRATION vibration;
+		ZeroMemory(&vibration, sizeof(XINPUT_VIBRATION));
+		vibration.wLeftMotorSpeed = static_cast<WORD>(
+			std::clamp(totalLeft, 0.0f, 1.0f) * 65535
+		);
+		vibration.wRightMotorSpeed = static_cast<WORD>(
+			std::clamp(totalRight, 0.0f, 1.0f) * 65535
+		);
+		XInputSetState(i, &vibration);
+	}
 }
 
 /**
@@ -357,8 +496,6 @@ void InputSystem::ResetAllKeys() {
  * @brief マウスカーソルのロック状態を確認する
  */
 void InputSystem::CheckMouseCursorLock(HWND hwnd, int32_t x, int32_t y) {
-	static int cursorCount = 0; // カーソル表示カウンタを追跡
-
 	if (mMouseLock) {
 		// カーソルを引数の位置に移動
 		const POINT centerCursorPos = {
@@ -378,14 +515,28 @@ void InputSystem::CheckMouseCursorLock(HWND hwnd, int32_t x, int32_t y) {
 		}
 
 		// カーソルを非表示にする
-		while (cursorCount >= 0) { cursorCount = ShowCursor(FALSE); }
-		mCursorHidden = true;
+		if (!mCursorHidden) {
+			int count  = ShowCursor(FALSE);
+			int safety = 0;
+			while (count >= 0 && safety < 100) {
+				count = ShowCursor(FALSE);
+				safety++;
+			}
+			mCursorHidden = true;
+		}
 	} else {
 		ClipCursor(nullptr); // カーソルのクリッピングを解除
 
 		// カーソルを表示する
-		while (cursorCount < 0) { cursorCount = ShowCursor(TRUE); }
-		mCursorHidden = false;
+		if (mCursorHidden) {
+			int count  = ShowCursor(TRUE);
+			int safety = 0;
+			while (count < 0 && safety < 100) {
+				count = ShowCursor(TRUE);
+				safety++;
+			}
+			mCursorHidden = false;
+		}
 	}
 }
 
@@ -416,6 +567,109 @@ void InputSystem::UpdateMouseButtonState(
 	}
 }
 
+void InputSystem::UpdateGamepadButtonState(
+	WORD oldButtons, WORD newButtons, WORD targetFlag,
+	const std::string& buttonName
+) {
+	bool wasPressed = (oldButtons & targetFlag) != 0;
+	bool isPressed  = (newButtons & targetFlag) != 0;
+
+	// 状態変化がない場合は何もしない (キーボードの状態を保護)
+	if (wasPressed == isPressed) { return; }
+
+	if (mKeyBindings.contains(buttonName)) {
+		const std::string cmd = mKeyBindings[buttonName];
+		if (cmd[0] == '+') {
+			std::string baseCmd = cmd.substr(1);
+			if (isPressed) {
+				mTriggeredCommands[baseCmd] = true;
+				mPressedCommands[baseCmd]   = true;
+			} else {
+				// ここでは「最後に操作したデバイス」が優先される挙動になる
+				// キーボードを押しながらコントローラーAを押して、離すと解除される
+				mPressedCommands[baseCmd]  = false;
+				mReleasedCommands[baseCmd] = true;
+			}
+		} else {
+			// プレフィックスなしコマンド (押した瞬間のみ)
+			if (isPressed) {
+				mTriggeredCommands[cmd] = true;
+				Console::SubmitCommand(cmd);
+			}
+		}
+	}
+}
+
+/**
+ * @brief コントローラーの振動を追加する（同時再生・加算）
+ * @param padIndex コントローラーインデックス (0-3)
+ * @param leftMotor 左モーターの強度 (0.0 - 1.0)
+ * @param rightMotor 右モーターの強度 (0.0 - 1.0)
+ * @param duration 振動時間 (秒)
+ */
+void InputSystem::AddVibration(
+	int padIndex, float leftMotor, float rightMotor, float duration
+) {
+	if (padIndex < 0 || padIndex >= XUSER_MAX_COUNT) { return; }
+	if (!mGamepadStates[padIndex].isConnected) { return; }
+
+	VibrationEffect effect;
+	effect.leftMotor  = leftMotor;
+	effect.rightMotor = rightMotor;
+	effect.duration   = duration;
+	mActiveVibrations[padIndex].push_back(effect);
+}
+
+/**
+ * @brief コントローラーの振動を設定する (即時反映・他を停止)
+ * @param padIndex コントローラーインデックス (0-3)
+ * @param leftMotor 左モーターの強度 (0.0 - 1.0)
+ * @param rightMotor 右モーターの強度 (0.0 - 1.0)
+ */
+void InputSystem::SetVibration(
+	int padIndex, float leftMotor, float rightMotor
+) {
+	if (padIndex < 0 || padIndex >= XUSER_MAX_COUNT) { return; }
+	if (!mGamepadStates[padIndex].isConnected) { return; }
+
+	// リストをクリアして強制設定（無限時間のエフェクトとして追加）
+	mActiveVibrations[padIndex].clear();
+
+	if (leftMotor > 0.0f || rightMotor > 0.0f) {
+		VibrationEffect effect;
+		effect.leftMotor  = leftMotor;
+		effect.rightMotor = rightMotor;
+		effect.duration   = FLT_MAX; // 無限
+		mActiveVibrations[padIndex].push_back(effect);
+	}
+	// 0,0 の場合はクリアされた時点で停止扱いになるので追加不要
+}
+
+Vec2 InputSystem::GetLeftStick(int padIndex) {
+	if (padIndex < 0 || padIndex >= XUSER_MAX_COUNT) { return Vec2::zero; }
+	return Vec2(
+		mGamepadStates[padIndex].leftStickX, mGamepadStates[padIndex].leftStickY
+	);
+}
+
+Vec2 InputSystem::GetRightStick(int padIndex) {
+	if (padIndex < 0 || padIndex >= XUSER_MAX_COUNT) { return Vec2::zero; }
+	return Vec2(
+		mGamepadStates[padIndex].rightStickX,
+		mGamepadStates[padIndex].rightStickY
+	);
+}
+
+float InputSystem::GetLeftTrigger(int padIndex) {
+	if (padIndex < 0 || padIndex >= XUSER_MAX_COUNT) { return 0.0f; }
+	return mGamepadStates[padIndex].leftTrigger;
+}
+
+float InputSystem::GetRightTrigger(int padIndex) {
+	if (padIndex < 0 || padIndex >= XUSER_MAX_COUNT) { return 0.0f; }
+	return mGamepadStates[padIndex].rightTrigger;
+}
+
 std::string InputSystem::GetKeyName(const UINT virtualKey) {
 	char name[256];
 	if (GetKeyNameTextA(
@@ -438,5 +692,8 @@ InputSystem::mCommandStates;
 std::unordered_map<std::string, bool> InputSystem::mTriggeredCommands;
 std::unordered_map<std::string, bool> InputSystem::mPressedCommands;
 std::unordered_map<std::string, bool> InputSystem::mReleasedCommands;
-bool                                  InputSystem::mMouseLock    = false;
-bool                                  InputSystem::mCursorHidden = false;
+InputSystem::GamepadState InputSystem::mGamepadStates[4];
+std::vector<InputSystem::VibrationEffect> InputSystem::mActiveVibrations[4];
+std::chrono::steady_clock::time_point InputSystem::mLastUpdateTime;
+bool InputSystem::mMouseLock = false;
+bool InputSystem::mCursorHidden = false;
