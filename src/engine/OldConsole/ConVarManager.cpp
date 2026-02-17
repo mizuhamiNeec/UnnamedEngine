@@ -16,7 +16,8 @@ IConVar* ConVarManager::GetConVar(const std::string& name) {
 /// @brief コンソール変数の値をトグル（切り替え）します
 /// @param name コンソール変数の名前
 void ConVarManager::ToggleConVar(const std::string& name) {
-	auto it = mConVars.find(name);
+	std::lock_guard lock(mMutex);
+	auto            it = mConVars.find(name);
 	if (it != mConVars.end()) {
 		it->second->Toggle();
 		return;
