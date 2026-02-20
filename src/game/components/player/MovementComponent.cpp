@@ -95,7 +95,11 @@ void MovementComponent::Init(
 
 /// @brief 物理演算前の更新
 /// @param deltaTime 経過時間
-void MovementComponent::PrePhysics(float) {
+void MovementComponent::PrePhysics(float) {}
+
+/// @brief 更新
+/// @param dt 経過時間
+void MovementComponent::Update(const float dt) {
 	ProcessInput();
 
 	DebugDraw::DrawBox(
@@ -110,11 +114,8 @@ void MovementComponent::PrePhysics(float) {
 		Vec4::yellow,
 		0.05f
 	);
+	ProcessMovement(dt);
 }
-
-/// @brief 更新
-/// @param dt 経過時間
-void MovementComponent::Update(const float dt) { ProcessMovement(dt); }
 
 /// @brief 物理演算後の更新
 /// @param deltaTime 経過時間
@@ -267,13 +268,11 @@ void MovementComponent::ProcessInput() {
 
 	const float sqrLen = mData.vecMoveInput.SqrLength();
 	if (sqrLen > 1.0f) {
-		mData.vecMoveInput *= 1.0f / std::sqrt(sqrLen);
+		mData.vecMoveInput       *= 1.0f / std::sqrt(sqrLen);
 		mData.moveInputIntensity = 1.0f;
 	} else if (sqrLen > 1e-6f) {
 		mData.moveInputIntensity = std::sqrt(sqrLen);
-	} else {
-		mData.moveInputIntensity = 0.0f;
-	}
+	} else { mData.moveInputIntensity = 0.0f; }
 
 	Vec3 wish = Vec3::zero;
 	if (const auto cam = CameraManager::GetActiveCamera()) {
