@@ -9,11 +9,6 @@
  */
 CameraRotator::~CameraRotator() {}
 
-/**
- * @brief エンティティにアタッチされた際の初期化処理
- * @param owner 所有者エンティティ
- * @details トランスフォームを取得し、初期回転値とコンソール変数を設定します
- */
 void CameraRotator::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
 	mScene = mOwner->GetTransform();
@@ -42,13 +37,8 @@ void CameraRotator::OnAttach(Entity& owner) {
 	);
 }
 
-/**
- * @brief 毎フレームのカメラ回転更新処理
- * @param deltaTime 前フレームからの経過時間（未使用）
- * @details マウス入力に基づいてカメラの向きを更新し、アニメーションオフセットを適用します
- */
-void CameraRotator::Update([[maybe_unused]] float deltaTime) {
-	Vec2 delta = InputSystem::GetMouseDelta();
+void CameraRotator::PrePhysics(float) {
+	const Vec2 delta = InputSystem::GetMouseDelta();
 
 	// 感度と回転値を計算
 	const float sensitivity = ConVarManager::GetConVar("sensitivity")->
@@ -102,11 +92,11 @@ void CameraRotator::Update([[maybe_unused]] float deltaTime) {
 		float finalPitchInput = (curvedStick.y * sensitivity * m_pitch * 50.0f)
 		                        + (extraPitch * std::copysign(
 			                           1.0f, curvedStick.y
-		                           ) * 75.0f);
+		                           ) * 120.0f);
 		float finalYawInput = (curvedStick.x * sensitivity * m_yaw * 50.0f) + (
 			                      extraYaw * std::copysign(
 				                      1.0f, curvedStick.x
-			                      ) * 75.0f);
+			                      ) * 120.0f);
 
 		mPitch -= finalPitchInput;
 		mYaw   += finalYawInput;
@@ -130,6 +120,8 @@ void CameraRotator::Update([[maybe_unused]] float deltaTime) {
 	Quaternion finalRotation = yawRotation * pitchRotation * rollRotation;
 	mScene->SetLocalRot(finalRotation);
 }
+
+void CameraRotator::Update(float) {}
 
 /**
  * @brief ImGuiインスペクタでの表示処理
