@@ -10,6 +10,7 @@ namespace Unnamed {
 
 class Audio;
 class AABBCollider;
+class KinematicCollisionResolver;
 
 /**
  * @brief プレイヤーの移動状態
@@ -128,112 +129,70 @@ public:
 	[[nodiscard]] float GetLastLandingVelocityY() const;
 	[[nodiscard]] bool  IsDucking() const;
 
-private:
-	// 高レベル
-	void ProcessInput();
-	void ProcessMovement(float dt);
+	// ウォールラン・スライド制御（Stateから呼ばれる）
+	bool TryStartWallrun();
+	void UpdateWallrun(float dt);
+	void EndWallrun();
+	bool CanWallrun() const;
 
-	// 各移動モード
-	void Ground(float wishspeed, float dt);
-	void Air(float wishspeed, float dt);
-	void Slide(float wishspeed, float dt);
-
-	// forces
-	void ApplyHalfGravity(float dt);
-	void Friction(float amount, float dt);
-	void Accelerate(Vec3 dir, float speed, float accel, float dt);
-	void AirAccelerate(Vec3 dir, float speed, float accel, float dt);
+	void TryStartSlide();
+	void UpdateSlide(float dt);
+	void EndSlide();
+	bool CanSlide() const;
 
 	void UpdateHullDimensions();
 	void CheckForNaNAndClamp();
 
-	void ResolvePenetration();
+	UPhysics::Engine* GetPhysicsEngine() const { return mUPhysicsEngine; }
+	Unnamed::Box&     GetHull() { return mHull; }
+	MovementData&     GetData() { return mData; }
 
-	// 衝突応答
-	void MoveWithCollisions(float dt);
+	// 動的地形
+	Vec3       mSurfaceVelocity      = Vec3::zero;
+	Entity*    mLastGroundEntity     = nullptr;
+	Vec3       mLastGroundPosition   = Vec3::zero;
+	Quaternion mLastGroundRotation   = Quaternion::identity;
+	Vec3       mRelativeVelocity     = Vec3::zero;
+	bool       mWasOnMovingSurface   = false;
 
-	static Vec3 ClipVelocity(
-		const Vec3& vel, const Vec3& normal, float overbounce
-	);
-	int SlideMove(Vec3& position, Vec3& velocity, float timeTotal);
-	void StepMove(Vec3& position, Vec3& velocity, float timeTotal);
-	bool GroundCheck(Vec3& position);
-	[[nodiscard]] Unnamed::Box BuildHullAtFeet(const Vec3& feetPos) const;
+private:
+	void ProcessInput();
+	void ProcessMovement(float dt);
+	void ProcessJump(bool isOnMovingSurface);
+	void ProcessLanding();
+	void ProcessFootstep(float dt);
+	void UpdateMovingSurface(float dt, Entity*& currentGroundEntity, bool& isOnMovingSurface);
+	void UpdateCrouch(float dt);
 
-	// params
-	static constexpr float kStepHeightHu        = 18.0f; // HL2 Default
-	static constexpr float kCastSkinHu          = 0.5f;
-	static constexpr float kSkinHu              = 1.0f;
-	static constexpr float kRestOffsetHu        = 0.75f;
-	static constexpr float kMaxAdhesionHu       = 2.0f; // 接地維持の最大距離
-	static constexpr float kSnapVyMax           = 1.0f; // m/s
-	static constexpr int   kMaxBumps            = 8;    // 最大衝突回数
-	static constexpr int   kMaxClipPlanes       = 5;
-	static constexpr float kFracEps             = 0.01f;
-	static constexpr float kAirSpeedCap         = 30.0f;
-	static constexpr float kJumpVelocityHu      = 400.0f; // HU/s
-	static constexpr float kJumpSnapDisableTime = 0.5f;   // seconds
-
-	[[nodiscard]] static float StepHeightM() {
-		return Math::HtoM(kStepHeightHu);
-	}
-
-	[[nodiscard]] static float CastSkinM() { return Math::HtoM(kCastSkinHu); }
-	[[nodiscard]] static float SkinM() { return Math::HtoM(kSkinHu); }
-
-	[[nodiscard]] static float RestOffsetM() {
-		return Math::HtoM(kRestOffsetHu);
-	}
-
-	[[nodiscard]] static float MaxAdhesionM() {
-		return Math::HtoM(kMaxAdhesionHu);
-	}
-
-	// スタック検知
-	void                   DetectAndResolveStuck(float dt);
-	static constexpr float kStuckThreshold     = 0.01f; // m/s
-	static constexpr float kStuckTimeThreshold = 0.5f;  // seconds
-	static constexpr float kStuckEscapeForce   = 5.0f;  // m/s upward
-
-	// ウォールラン
-	void                   Wallrun(float wishspeed, float dt);
-	bool                   TryStartWallrun();
-	void                   UpdateWallrun(float dt);
-	void                   EndWallrun();
-	bool                   CanWallrun() const;
-	static constexpr float kWallrunMinSpeed          = 200.0f; // HU/s
-	static constexpr float kWallrunMaxTime           = 2.5f; // seconds
-	static constexpr float kWallrunGravityScale      = 0.1f; // 重力軽減（小さいほど軽い）
-	static constexpr float kWallrunJumpForce         = 350.0f; // HU/s
-	static constexpr float kWallrunCooldown          = 0.1f; // seconds
-	static constexpr float kWallrunSameWallCooldown  = 1.0f; // seconds
-	static constexpr bool  kWallrunDetachOnSideInput = true; // 左右入力で離脱するか
-	static constexpr float kWallrunVerticalDamping   = 0.3f; // 地上ジャンプからの垂直速度減衰
+	// ウォールラン定数
+	static constexpr float kWallrunMinSpeed         = 200.0f; // HU/s
+	static constexpr float kWallrunMaxTime          = 2.5f;   // seconds
+	static constexpr float kWallrunGravityScale     = 0.1f;
+	static constexpr float kWallrunJumpForce        = 350.0f; // HU/s
+	static constexpr float kWallrunCooldown         = 0.1f;   // seconds
+	static constexpr float kWallrunSameWallCooldown = 1.0f;   // seconds
+	static constexpr bool  kWallrunDetachOnSideInput = true;
+	static constexpr float kWallrunVerticalDamping  = 0.3f;
 
 	// ダブルジャンプ
 	static constexpr float kDoubleJumpVelocityHu = 300.0f;
 
-	// スライディング
-	void                   TryStartSlide();
-	void                   UpdateSlide(float dt);
-	void                   EndSlide();
-	bool                   CanSlide() const;
-	static constexpr float kSlideMinSpeed     = 200.0f; // HU/s - スライディング開始最低速度
-	static constexpr float kSlideMaxTime      = 20.0f; // seconds - 最大スライディング時間
-	static constexpr float kSlideAcceleration = 4.0f; // HU/s^2 - スライド加速度
-	static constexpr float kSlideFriction     = 0.75f; // HU/s^2 - スライディング摩擦
-	static constexpr float kSlideBoostSpeed   = 50.0f; // HU/s - 開始ブースト
-	static constexpr float kSlideStopSpeed    = 50.0f; // HU/s - この速度以下で自動終了
-	static constexpr float kSlideHopSpeedCap  = 2000.0f; // HU/s - スライドホップの速度上限
+	// ジャンプ
+	static constexpr float kJumpVelocityHu      = 400.0f; // HU/s
+	static constexpr float kJumpSnapDisableTime  = 0.5f;  // seconds
 
-	// 動的地形
-	Vec3 mSurfaceVelocity = Vec3::zero; // 接触した地形の速度
-	Entity* mLastGroundEntity = nullptr; // 前フレームで接触していた床のエンティティ
-	Vec3 mLastGroundPosition = Vec3::zero; // 前フレームの床の位置
-	Quaternion mLastGroundRotation = Quaternion::identity; // 前フレームの床の回転
-	Vec3 mRelativeVelocity = Vec3::zero; // 床に対する相対速度
-	bool mWasOnMovingSurface = false; // 前フレームで動く床にいたか
-	static constexpr float kDynamicCheckSkinHu = 8.0f; // 
+	// スライディング定数
+	static constexpr float kSlideMinSpeed    = 200.0f;  // HU/s
+	static constexpr float kSlideMaxTime     = 20.0f;   // seconds
+	static constexpr float kSlideBoostSpeed  = 50.0f;   // HU/s
+	static constexpr float kSlideStopSpeed   = 50.0f;   // HU/s
+	static constexpr float kSlideHopSpeedCap = 2000.0f; // HU/s
+
+	// 動的地形定数
+	static constexpr float kDynamicCheckSkinHu = 8.0f;
+
+	// 足音定数
+	static constexpr float kStepIntervalM = 2.0f;
 
 	UPhysics::Engine*       mUPhysicsEngine = nullptr;
 	AABBCollider*           mCollider       = nullptr;
@@ -241,8 +200,9 @@ private:
 	MovementData            mData;
 	Unnamed::ConsoleSystem* mConsoleSystem = nullptr;
 
+	std::unique_ptr<KinematicCollisionResolver> mCollisionResolver;
+
 	std::shared_ptr<Audio> mFootstepAudio;
 	std::shared_ptr<Audio> mLandAudio;
-	float                  mStepDistance    = 0.0f;
-	static constexpr float kStepIntervalM = 2.0f; // 足音の間隔(メートル)
+	float                  mStepDistance = 0.0f;
 };
