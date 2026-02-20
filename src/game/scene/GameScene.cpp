@@ -25,6 +25,7 @@
 #include <game/components/checkpoint/CheckpointComponent.h>
 #include <game/components/checkpoint/CheckpointManager.h>
 #include <game/components/checkpoint/GoalComponent.h>
+#include <game/components/player/KinematicCollisionResolver.h>
 
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 
