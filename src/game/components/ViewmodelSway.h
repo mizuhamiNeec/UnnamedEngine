@@ -25,6 +25,8 @@ public:
 	 */
 	void OnAttach(Entity& owner) override;
 
+	void PrePhysics(float deltaTime) override;
+	
 	/**
 	 * @brief 毎フレーム更新処理を行う
 	 * @param deltaTime 前フレームからの経過時間

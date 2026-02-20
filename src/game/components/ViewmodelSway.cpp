@@ -11,7 +11,7 @@ ViewmodelSway::~ViewmodelSway() = default;
 
 void ViewmodelSway::OnAttach(Entity& owner) { Component::OnAttach(owner); }
 
-void ViewmodelSway::Update([[maybe_unused]] const float deltaTime) {
+void ViewmodelSway::PrePhysics(float deltaTime) {
 	// マウスの移動量を取得
 	Vec2 delta = InputSystem::GetMouseDelta();
 
@@ -39,9 +39,9 @@ void ViewmodelSway::Update([[maybe_unused]] const float deltaTime) {
 	); // 武器の位置調整
 }
 
-void ViewmodelSway::Render(ID3D12GraphicsCommandList* commandList) {
-	Component::Render(commandList);
-}
+void ViewmodelSway::Update(const float) {}
+
+void ViewmodelSway::Render(ID3D12GraphicsCommandList*) {}
 
 void ViewmodelSway::DrawInspectorImGui() {
 #ifdef _DEBUG
