@@ -170,7 +170,7 @@ void GameScene::Init() {
 /// @param deltaTime 経過時間
 void GameScene::Update(const float deltaTime) {
 	HandleMeshReload();
-	
+
 	if (InputSystem::IsTriggered("escape")) { QueueReturnToTitle(); }
 
 	// ファンを物理エンジンから登録解除
@@ -471,9 +471,7 @@ void GameScene::InitializePlayer() {
 	auto* movement     = mEntPlayer->AddComponent<MovementComponent>();
 	mMovementComponent = AdoptComponent(movement);
 
-	const auto moveData = MovementData(
-		32.0f, 72.0f
-	);
+	const MovementData moveData(32.0f, 72.0f);
 
 	if (mMovementComponent && mUPhysicsEngine) {
 		mMovementComponent->Init(mUPhysicsEngine.get(), moveData);
