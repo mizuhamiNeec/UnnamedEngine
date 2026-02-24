@@ -1,5 +1,6 @@
 #include "CameraAnimator.h"
 #include <cmath>
+#include <algorithm>
 #include <engine/Entity/Entity.h>
 #include <engine/ImGui/ImGuiUtil.h>
 #include "CameraRotator.h"
@@ -126,6 +127,18 @@ float CameraAnimator::PerlinNoise(float x, float y, float z) const {
 	);
 }
 
+/// @brief 物理演算前の更新（CameraRotatorの回転計算前にカメラ位置を反映する）
+/// @param dt デルタタイム
+void CameraAnimator::PrePhysics(float) {
+	if (!mMovement || !mScene) return;
+
+	// Vault中のカメラオフセットをCameraRotatorの回転計算前に反映する。
+	// オフセット値自体はUpdate側で計算済みなので、ここでは適用のみ。
+	if (mVaultCameraOffset.SqrLength() > 1e-8f) {
+		mScene->SetLocalPos(mCurrentShake + mVaultCameraOffset);
+	}
+}
+
 /// @brief 更新
 /// @param dt デルタタイム
 void CameraAnimator::Update(float dt) {
@@ -136,6 +149,8 @@ void CameraAnimator::Update(float dt) {
 	UpdateSlideAnimation(dt);
 	UpdateWallrunAnimation(dt);
 	UpdateLandingAnimation(dt);
+	UpdateBlinkAnimation(dt);
+	UpdateVaultAnimation(dt);
 	ApplyShakeAndTilt(dt);
 }
 
@@ -228,6 +243,23 @@ void CameraAnimator::UpdateWallrunAnimation(float dt) {
 		mWallrunAnimTime = std::max(0.0f, mWallrunAnimTime - dt * 5.0f);
 	}
 
+	// ウォールラン中のカメラYawを進行方向に向ける
+	if (mCameraRotator) {
+		if (isWallRunning) {
+			Vec3 wallRunDir = mMovement->GetWallRunDirection();
+			wallRunDir.y = 0.0f;
+			if (!wallRunDir.IsZero()) {
+				wallRunDir.Normalize();
+				// atan2でYaw角を計算（度数法）
+				float targetYaw = std::atan2(wallRunDir.x, wallRunDir.z)
+				                * Math::rad2Deg;
+				mCameraRotator->SetWallrunYawTarget(targetYaw, true);
+			}
+		} else {
+			mCameraRotator->SetWallrunYawTarget(0.0f, false);
+		}
+	}
+
 	mWasWallRunning = isWallRunning;
 }
 
@@ -254,6 +286,84 @@ void CameraAnimator::UpdateLandingAnimation(float dt) {
 		mLandingAnimTime += dt;
 		if (mLandingAnimTime >= kLandingShakeDuration) {
 			mLandingActive = false;
+		}
+	}
+}
+
+/// @brief ブリンクアニメーションの更新
+/// @param dt デルタタイム
+void CameraAnimator::UpdateBlinkAnimation(float dt) {
+	if (!mMovement) { return; }
+
+	if (mMovement->ConsumeBlinkTriggered()) {
+		mBlinkActive = true;
+		mBlinkAnimTime = 0.0f;
+	}
+
+	if (!mBlinkActive) {
+		mBlinkFovOffset = 0.0f;
+		return;
+	}
+
+	mBlinkAnimTime += dt;
+	const float t = std::clamp(mBlinkAnimTime / kBlinkFovDuration, 0.0f, 1.0f);
+
+	if (t < 0.5f) {
+		mBlinkFovOffset = std::lerp(0.0f, kBlinkFovAmount, t * 2.0f);
+	} else {
+		mBlinkFovOffset = std::lerp(kBlinkFovAmount, 0.0f, (t - 0.5f) * 2.0f);
+	}
+
+	if (mBlinkAnimTime >= kBlinkFovDuration) {
+		mBlinkActive = false;
+		mBlinkFovOffset = 0.0f;
+	}
+}
+
+/// @brief ヴォールトカメラアニメーションの更新
+/// @param dt デルタタイム
+/// @details ハルは着地位置に即テレポートするため、カメラのみベジェ曲線で
+///          開始位置から着地位置へスムーズに補間する
+void CameraAnimator::UpdateVaultAnimation(float dt) {
+	if (!mMovement) {
+		mVaultCameraOffset = Vec3::zero;
+		return;
+	}
+
+	if (mMovement->IsSpeedVaulting()) {
+		const float t = mMovement->GetVaultProgress();
+
+		// ベジェ曲線上のカメラがあるべきワールド位置を計算
+		const Vec3 startPos = mMovement->GetVaultStartPos();
+		const Vec3 apexPos  = mMovement->GetVaultApexPos();
+		const Vec3 endPos   = mMovement->GetVaultEndPos();
+
+		const float omt = 1.0f - t;
+		Vec3 bezierPos = startPos * (omt * omt)
+		               + apexPos  * (2.0f * omt * t)
+		               + endPos   * (t * t);
+
+		// カメラの目標ワールド位置はベジェ曲線上の位置 + ヘッドオフセット
+		Vec3 headOffset = mMovement->GetHeadPos() - mMovement->GetOwner()->GetTransform()->GetWorldPos();
+		Vec3 desiredWorldPos = bezierPos + headOffset;
+
+		// cameraRootの現在のワールド位置との差をローカルオフセットに変換
+		if (mScene && mOwner && mOwner->GetParent()) {
+			if (const auto* parentTransform = mOwner->GetParent()->GetTransform()) {
+				Vec3 cameraRootWorldPos = parentTransform->GetWorldPos();
+				Vec3 worldOffset = desiredWorldPos - cameraRootWorldPos;
+				Quaternion parentWorldRot = parentTransform->GetWorldRot();
+				mVaultCameraOffset = parentWorldRot.Inverse().RotateVector(worldOffset);
+			}
+		}
+	} else {
+		// Vault終了後はオフセットをスムーズに0に戻す
+		const float decay = 1.0f - std::exp(-dt * 15.0f);
+		mVaultCameraOffset = mVaultCameraOffset * (1.0f - decay);
+
+		// 十分小さくなったらゼロに
+		if (mVaultCameraOffset.SqrLength() < 1e-8f) {
+			mVaultCameraOffset = Vec3::zero;
 		}
 	}
 }
@@ -384,6 +494,16 @@ void CameraAnimator::ApplyShakeAndTilt(float dt) {
 		}
 	}
 
+	// === ブリンクシェイク ===
+	if (mBlinkActive) {
+		const float t = std::clamp(mBlinkAnimTime / kBlinkFovDuration, 0.0f, 1.0f);
+		const float intensity = (1.0f - t) * kBlinkShakeAmount;
+		const float noiseX = PerlinNoise(mNoiseTime * 18.0f, 1.0f, 0.0f);
+		const float noiseY = PerlinNoise(1.0f, mNoiseTime * 18.0f, 0.0f);
+		shake.x += noiseX * intensity;
+		shake.y += noiseY * intensity;
+	}
+
 	// === シェイク、ロール、ピッチを適用 ===
 	// 現在の値にスムーズに補間
 	float smoothFactor = 1.0f - std::exp(-dt * 10.0f);
@@ -396,8 +516,8 @@ void CameraAnimator::ApplyShakeAndTilt(float dt) {
 	// トランスフォームに適用（シェイクのみ、回転はCameraRotatorに委譲）
 	auto* transform = mScene;
 	if (transform) {
-		// シェイク（位置オフセット）
-		transform->SetLocalPos(mCurrentShake);
+		// シェイク（位置オフセット）+ ヴォールトカメラオフセット
+		transform->SetLocalPos(mCurrentShake + mVaultCameraOffset);
 	}
 
 	// CameraRotatorにピッチとロールのオフセットを渡す

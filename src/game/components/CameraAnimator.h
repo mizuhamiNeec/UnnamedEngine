@@ -2,6 +2,8 @@
 #include <engine/Components/base/Component.h>
 #include <runtime/core/math/Math.h>
 
+#include "engine/Components/Transform/SceneComponent.h"
+
 class MovementComponent;
 class CameraRotator;
 
@@ -30,7 +32,25 @@ public:
 	 * @brief 毎フレーム更新処理を行う
 	 * @param dt 前フレームからの経過時間
 	 */
+	void PrePhysics(float dt) override;
 	void Update(float dt) override;
+
+	[[nodiscard]] float GetBlinkFovOffsetDeg() const noexcept {
+		return mBlinkFovOffset;
+	}
+
+	/// @brief Vault開始時にカメラオフセットを即座に設定する
+	/// @param offset ローカル空間でのオフセット
+	void SetVaultCameraOffset(const Vec3& offset) {
+		mVaultCameraOffset = offset;
+	}
+
+	/// @brief 現在のVaultカメラオフセットを即座にLocalPosに反映する
+	void ApplyVaultOffsetImmediate() {
+		if (mScene) {
+			mScene->SetLocalPos(mCurrentShake + mVaultCameraOffset);
+		}
+	}
 
 	/**
 	 * @brief ImGuiインスペクタ用のUI描画
@@ -43,6 +63,8 @@ private:
 	void UpdateSlideAnimation(float dt);
 	void UpdateWallrunAnimation(float dt);
 	void UpdateLandingAnimation(float dt);
+	void UpdateBlinkAnimation(float dt);
+	void UpdateVaultAnimation(float dt);
 	void ApplyShakeAndTilt(float dt);
 
 	MovementComponent* mMovement = nullptr;
@@ -67,6 +89,14 @@ private:
 	bool  mLandingActive    = false;
 	float mLandingAnimTime  = 0.0f;
 	float mLandingIntensity = 0.0f;
+
+	// ブリンクアニメーション
+	bool  mBlinkActive   = false;
+	float mBlinkAnimTime = 0.0f;
+	float mBlinkFovOffset = 0.0f;
+
+	// ヴォールトカメラアニメーション
+	Vec3  mVaultCameraOffset = Vec3::zero; // カメラ位置オフセット
 
 	// 現在のシェイク/傾き値
 	Vec3  mCurrentShake = Vec3::zero;
@@ -107,6 +137,11 @@ private:
 
 	// degrees - ダブルジャンプ時にさらに上を向く
 	static constexpr float kDoubleJumpPitchAmount = 7.0f;
+
+	// ブリンクFOV
+	static constexpr float kBlinkFovAmount   = 20.0f; // degrees
+	static constexpr float kBlinkFovDuration = 0.05f;
+	static constexpr float kBlinkShakeAmount = 0.06f;
 
 	static constexpr float kShakeFrequency = 15.0f;
 };
