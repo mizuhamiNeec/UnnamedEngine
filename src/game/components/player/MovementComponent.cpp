@@ -19,7 +19,10 @@
 #include <engine/Engine.h>
 #include <engine/ResourceSystem/Audio/AudioManager.h>
 
+#include <game/components/CameraAnimator.h>
+
 #include "KinematicCollisionResolver.h"
+#include "PlayerInputController.h"
 #include "states/AirMove.h"
 #include "states/GroundMove.h"
 #include "states/PlayerMovementStateMachine.h"
@@ -48,6 +51,9 @@ MovementData::MovementData() : currentWidthHu(32.0f),
 /// @param owner 所有エンティティ
 void MovementComponent::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
+	if (!mInputController) {
+		mInputController = std::make_shared<HumanPlayerInputController>();
+	}
 	// AABBコライダーを取得
 	mCollider = owner.GetComponent<AABBCollider>();
 
@@ -66,6 +72,10 @@ void MovementComponent::OnAttach(Entity& owner) {
 			mLandAudio = audioMgr->GetAudio(
 				"./content/parkour/sounds/se/footstep/Robot_Footstep_Single_v2_01.wav"
 			);
+			mBlinkAudio = audioMgr->GetAudio(
+				"./content/parkour/sounds/se/whoosh.wav"
+			);
+			if (mBlinkAudio) { mBlinkAudio->SetVolume(0.3f); }
 		}
 	}
 }
@@ -206,6 +216,16 @@ void MovementComponent::DrawInspectorImGui() {
 			);
 		}
 
+		// Speed Vault info
+		if (mVaultActive) {
+			ImGui::TextColored(
+				{1.0f, 0.8f, 0.0f, 1.0f}, "SPEED VAULT! (%.2fs / %.2fs)",
+				mVaultTime, kVaultDurationSec
+			);
+		} else if (mVaultCooldown > 0.0f) {
+			ImGui::Text("Vault Cooldown: %.2fs", mVaultCooldown);
+		}
+
 		if (mData.isStuck) {
 			ImGui::TextColored(
 				{1.0f, 0.0f, 0.0f, 1.0f}, "STUCK! (%.2fs)",
@@ -233,6 +253,74 @@ Vec3 MovementComponent::GetHeadPos() const {
 /// @param v 速度ベクトル
 void MovementComponent::SetVelocity(const Vec3& v) { mData.velocity = v; }
 
+void MovementComponent::ApplyReplayVaultState(
+	const bool isSpeedVaulting,
+	const float vaultProgress,
+	const Vec3& vaultStartPos,
+	const Vec3& vaultApexPos,
+	const Vec3& vaultEndPos
+) {
+	const bool wasVaultActive = mVaultActive;
+
+	if (!isSpeedVaulting) {
+		mVaultActive = false;
+		return;
+	}
+
+	mVaultActive   = true;
+	mVaultStartPos = vaultStartPos;
+	mVaultApexPos  = vaultApexPos;
+	mVaultEndPos   = vaultEndPos;
+	mVaultTime = std::clamp(vaultProgress, 0.0f, 1.0f) * kVaultDurationSec;
+	mData.state      = MOVEMENT_STATE::SPEED_VAULT;
+	mData.isGrounded = false;
+
+	// 通常実装のVault開始時と同様に、開始フレームだけカメラオフセットを即時反映する。
+	if (!wasVaultActive && mCameraAnimator) {
+		auto* animOwner = mCameraAnimator->GetOwner();
+		if (animOwner && animOwner->GetParent()) {
+			auto* parentTransform = animOwner->GetParent()->GetTransform();
+			if (parentTransform) {
+				const Vec3 landingFeetPos = mScene->GetWorldPos();
+				const Vec3 headOffset     = GetHeadPos() - landingFeetPos;
+				const Vec3 desiredWorldPos = mVaultStartPos + headOffset;
+				const Vec3 cameraRootPos   = parentTransform->GetWorldPos();
+				const Vec3 worldOffset     = desiredWorldPos - cameraRootPos;
+				const Quaternion parentRot = parentTransform->GetWorldRot();
+				const Vec3 localOffset = parentRot.Inverse().RotateVector(worldOffset);
+				mCameraAnimator->SetVaultCameraOffset(localOffset);
+				mCameraAnimator->ApplyVaultOffsetImmediate();
+			}
+		}
+	}
+}
+
+void MovementComponent::SetInputController(
+	std::shared_ptr<IPlayerInputController> controller
+) {
+	mInputController = std::move(controller);
+	if (!mInputController) {
+		mInputController = std::make_shared<HumanPlayerInputController>();
+	}
+}
+
+void MovementComponent::ApplySpeedBoost(
+	const float multiplier, const float durationSec
+) {
+	if (multiplier <= 1.0f || durationSec <= 0.0f) { return; }
+
+	mData.speedBoostMultiplier = std::max(
+		mData.speedBoostMultiplier, multiplier
+	);
+	mData.speedBoostTimeSec = std::max(mData.speedBoostTimeSec, durationSec);
+}
+
+bool MovementComponent::ConsumeBlinkTriggered() {
+	const bool triggered = mBlinkTriggered;
+	mBlinkTriggered      = false;
+	return triggered;
+}
+
 /// @brief 接地しているかを取得する
 /// @return 接地しているならtrueを返す
 bool MovementComponent::IsGrounded() const { return mData.isGrounded; }
@@ -257,6 +345,10 @@ bool MovementComponent::HasDoubleJump() const { return mData.hasDoubleJump; }
 /// @return 壁走りの法線ベクトル
 Vec3 MovementComponent::GetWallRunNormal() const { return mData.wallRunNormal; }
 
+/// @brief 壁走りの進行方向を取得する
+/// @return 壁走りの進行方向ベクトル
+Vec3 MovementComponent::GetWallRunDirection() const { return mData.wallRunDirection; }
+
 /// @brief 接地した直後かを取得する
 /// @return 接地直後ならtrueを返す
 bool MovementComponent::JustLanded() const { return mData.justLanded; }
@@ -271,14 +363,10 @@ bool MovementComponent::IsDucking() const { return mData.wishCrouch; }
 
 /// @brief 入力処理
 void MovementComponent::ProcessInput() {
-	mData.vecMoveInput = Vec2::zero;
-	if (InputSystem::IsPressed("forward")) mData.vecMoveInput.y += 1.0f;
-	if (InputSystem::IsPressed("back")) mData.vecMoveInput.y -= 1.0f;
-	if (InputSystem::IsPressed("moveright")) mData.vecMoveInput.x += 1.0f;
-	if (InputSystem::IsPressed("moveleft")) mData.vecMoveInput.x -= 1.0f;
-
-	Vec2 leftStick     = InputSystem::GetLeftStick(0);
-	mData.vecMoveInput += leftStick; // アナログスティック入力を足す。後でノーマライズするから問題🍐
+	PlayerInputFrame frame = mInputController ?
+		                         mInputController->SampleInput() :
+		                         HumanPlayerInputController().SampleInput();
+	mData.vecMoveInput      = frame.moveInput;
 
 	const float sqrLen = mData.vecMoveInput.SqrLength();
 	if (sqrLen > 1.0f) {
@@ -303,8 +391,9 @@ void MovementComponent::ProcessInput() {
 		}
 	}
 	mData.wishDirection = wish;
-	mData.wishJump      = InputSystem::IsPressed("jump");
-	mData.wishCrouch    = InputSystem::IsPressed("duck");
+	mData.wishJump      = frame.wishJump;
+	mData.wishCrouch    = frame.wishCrouch;
+	mData.wishBlink     = frame.wishBlink;
 }
 
 /// @brief 移動処理
@@ -312,6 +401,26 @@ void MovementComponent::ProcessInput() {
 void MovementComponent::ProcessMovement(const float dt) {
 	// ジャンプスナップ無効時間の更新
 	if (mData.jumpSnapDisableTime > 0.0f) { mData.jumpSnapDisableTime -= dt; }
+
+	if (mBlinkCooldownSec > 0.0f) {
+		mBlinkCooldownSec = std::max(0.0f, mBlinkCooldownSec - dt);
+	}
+
+	if (mVaultCooldown > 0.0f) {
+		mVaultCooldown = std::max(0.0f, mVaultCooldown - dt);
+	}
+
+	// Speed Vault中は位置補間のみ行う
+	if (UpdateSpeedVault(dt)) { return; }
+
+	if (UpdateBlinkMove(dt)) { return; }
+
+	if (mData.speedBoostTimeSec > 0.0f) {
+		mData.speedBoostTimeSec = std::max(0.0f, mData.speedBoostTimeSec - dt);
+		if (mData.speedBoostTimeSec == 0.0f) {
+			mData.speedBoostMultiplier = 1.0f;
+		}
+	}
 
 	// 動く床の速度計算
 	Entity* currentGroundEntity = nullptr;
@@ -327,9 +436,12 @@ void MovementComponent::ProcessMovement(const float dt) {
 	// ヒットボックス更新
 	UpdateHullDimensions();
 
-	mData.currentSpeed = mData.wishCrouch ?
-		                     mData.crouchSpeed :
-		                     mData.sprintSpeed;
+	HandleBlink();
+
+	const float baseSpeed = mData.wishCrouch ?
+		                        mData.crouchSpeed :
+		                        mData.sprintSpeed;
+	mData.currentSpeed = baseSpeed * mData.speedBoostMultiplier;
 
 	// スライド判定
 	if (mData.isGrounded && !mData.isSliding && CanSlide()) { TryStartSlide(); }
@@ -337,6 +449,13 @@ void MovementComponent::ProcessMovement(const float dt) {
 
 	// ウォールラン判定
 	mData.timeSinceLastWallRun += dt;
+
+	// スピードヴォールト判定（空中で前方の低い壁を乗り越える）
+	if (!mData.isGrounded && !mData.isSliding && !mData.isWallRunning
+	    && CanSpeedVault()) {
+		if (TryStartSpeedVault()) { return; }
+	}
+
 	if (!mData.isGrounded && !mData.isWallRunning && CanWallrun()) {
 		TryStartWallrun();
 	}
@@ -436,7 +555,9 @@ void MovementComponent::ProcessJump(const bool isOnMovingSurface) {
 			Vec3 awayDir = mData.wallRunNormal * 0.7f + Vec3::up * 1.0f;
 			awayDir.Normalize();
 
-			mData.velocity = forwardVel + awayDir * Math::HtoM(kWallrunJumpForce);
+			mData.velocity = forwardVel + awayDir * Math::HtoM(
+				                 kWallrunJumpForce
+			                 );
 
 			if (mFootstepAudio) {
 				mFootstepAudio->SetPitch(1.0f);
@@ -466,9 +587,7 @@ void MovementComponent::ProcessJump(const bool isOnMovingSurface) {
 
 			InputSystem::AddVibration(0, 0.3f, 0.3f, 0.1f);
 		}
-	} else {
-		if (mData.isWallRunning) { mData.wallRunJumpWasPressed = false; }
-	}
+	} else { if (mData.isWallRunning) { mData.wallRunJumpWasPressed = false; } }
 }
 
 /// @brief 着地検知と処理
@@ -494,9 +613,7 @@ void MovementComponent::ProcessFootstep(const float dt) {
 			Vec3 velHorz = mData.velocity;
 			velHorz.y    = 0.0f;
 			speedM       = velHorz.Length();
-		} else if (mData.isWallRunning) {
-			speedM = mData.velocity.Length();
-		}
+		} else if (mData.isWallRunning) { speedM = mData.velocity.Length(); }
 
 		if (speedM > 0.1f) {
 			mStepDistance += speedM * dt;
@@ -510,18 +627,16 @@ void MovementComponent::ProcessFootstep(const float dt) {
 				}
 			}
 		}
-	} else {
-		mStepDistance = 0.0f;
-	}
+	} else { mStepDistance = 0.0f; }
 }
 
 /// @brief 動く床の速度計算
 void MovementComponent::UpdateMovingSurface(
 	const float dt, Entity*& currentGroundEntity, bool& isOnMovingSurface
 ) {
-	mSurfaceVelocity          = Vec3::zero;
-	currentGroundEntity       = nullptr;
-	isOnMovingSurface         = false;
+	mSurfaceVelocity    = Vec3::zero;
+	currentGroundEntity = nullptr;
+	isOnMovingSurface   = false;
 
 	Unnamed::Box extendedHull = {
 		.center   = mHull.center,
@@ -551,12 +666,14 @@ void MovementComponent::UpdateMovingSurface(
 			Quaternion currentRot = transform->GetWorldRot();
 
 			if (mLastGroundEntity == currentGroundEntity) {
-				const Vec3 linearVelocity = (currentPos - mLastGroundPosition) / dt;
+				const Vec3 linearVelocity =
+					(currentPos - mLastGroundPosition) / dt;
 
 				if (dt > 0.0f) {
 					Vec3 playerWorldPos = mScene->GetWorldPos();
 					Vec3 localPos       = mLastGroundRotation.Inverse() * (
-						                      playerWorldPos - mLastGroundPosition);
+						                      playerWorldPos -
+						                      mLastGroundPosition);
 					Vec3 targetWorldPos    = currentPos + currentRot * localPos;
 					Vec3 totalDisplacement = targetWorldPos - playerWorldPos;
 					mSurfaceVelocity       = totalDisplacement / dt;
@@ -564,7 +681,8 @@ void MovementComponent::UpdateMovingSurface(
 
 #ifdef _DEBUG
 				DebugDraw::DrawArrow(
-					mScene->GetWorldPos(), mSurfaceVelocity * 0.5f, Vec4::cyan, 0.05f
+					mScene->GetWorldPos(), mSurfaceVelocity * 0.5f, Vec4::cyan,
+					0.05f
 				);
 				if (linearVelocity.SqrLength() > 0.0001f) {
 					DebugDraw::DrawArrow(
@@ -582,9 +700,7 @@ void MovementComponent::UpdateMovingSurface(
 			mLastGroundRotation = currentRot;
 			mLastGroundEntity   = currentGroundEntity;
 		}
-	} else {
-		mLastGroundEntity = nullptr;
-	}
+	} else { mLastGroundEntity = nullptr; }
 
 	mWasOnMovingSurface = isOnMovingSurface;
 }
@@ -615,7 +731,9 @@ void MovementComponent::UpdateCrouch(const float dt) {
 				mData.currentHeightHu :
 				std::lerp(mData.currentHeightHu, targetHU, 15.0f * dt);
 	} else {
-		mData.currentHeightHu = std::lerp(mData.currentHeightHu, targetHU, 15.0f * dt);
+		mData.currentHeightHu = std::lerp(
+			mData.currentHeightHu, targetHU, 15.0f * dt
+		);
 	}
 }
 
@@ -675,7 +793,6 @@ bool MovementComponent::CanWallrun() const {
 	                         velocity.z * mData.velocity.z;
 	const float minSpeedM = Math::HtoM(kWallrunMinSpeed);
 	if (velHorzSqr < minSpeedM * minSpeedM) return false;
-
 	if (mData.timeSinceLastWallRun < kWallrunCooldown) return false;
 	if (mData.isGrounded) { return false; }
 	return true;
@@ -707,6 +824,15 @@ bool MovementComponent::TryStartWallrun() {
 
 			if (std::abs(wallNormal.y) > 0.2f) continue;
 
+			// 速度方向が壁に対して垂直すぎたら走らない
+			Vec3 velHorz = mData.velocity;
+			velHorz.y    = 0;
+			if (!velHorz.IsZero()) {
+				Vec3  velDir = velHorz.Normalized();
+				float dot    = std::abs(velDir.Dot(wallNormal));
+				if (dot > kWallrunMaxNormalDot) continue;
+			}
+
 			if (mData.timeSinceLastWallRun < kWallrunSameWallCooldown &&
 			    wallNormal.Dot(mData.lastWallRunNormal) > 0.9f) { continue; }
 
@@ -717,8 +843,7 @@ bool MovementComponent::TryStartWallrun() {
 
 			mData.wallRunJumpWasPressed = mData.wishJump;
 			mData.hasDoubleJump         = true;
-
-			Vec3 velHorz       = mData.velocity;
+			
 			velHorz.y          = 0;
 			float currentSpeed = velHorz.Length();
 
@@ -729,16 +854,12 @@ bool MovementComponent::TryStartWallrun() {
 			float alongSpeed = velHorz.Dot(mData.wallRunDirection);
 			if (std::abs(alongSpeed) > 1e-3f) {
 				mData.velocity = mData.wallRunDirection * std::abs(alongSpeed);
-			} else {
-				mData.velocity = mData.wallRunDirection * currentSpeed;
-			}
+			} else { mData.velocity = mData.wallRunDirection * currentSpeed; }
 
 			float originalY = mData.velocity.y;
 			if (originalY > 0) {
 				mData.velocity.y = originalY * kWallrunVerticalDamping;
-			} else if (originalY < 0) {
-				mData.velocity.y = originalY * 0.3f;
-			}
+			} else if (originalY < 0) { mData.velocity.y = originalY * 0.3f; }
 
 			float boostAmount = Math::HtoM(50.0f);
 			mData.velocity    += mData.wallRunDirection * boostAmount;
@@ -759,7 +880,7 @@ void MovementComponent::UpdateWallrun(float dt) {
 	}
 
 	if (mUPhysicsEngine) {
-		const float   checkDistance = Math::HtoM(
+		const float checkDistance = Math::HtoM(
 			mData.currentWidthHu * 0.5f + 20.0f
 		);
 		UPhysics::Hit hit{};
@@ -878,13 +999,43 @@ void MovementComponent::TryStartSlide() {
 void MovementComponent::UpdateSlide(const float dt) {
 	mData.slideTime += dt;
 
-	if (mData.slideTime >= kSlideMaxTime) { EndSlide(); return; }
-	if (!mData.isGrounded) { EndSlide(); return; }
+	if (mData.slideTime >= kSlideMaxTime) {
+		EndSlide();
+		return;
+	}
+	if (!mData.isGrounded) {
+		EndSlide();
+		return;
+	}
+
+	// 斜面に沿った重力の影響を適用
+	// 地面の法線を使い、重力ベクトルを斜面に投影して加速/減速する
+	{
+		const Vec3 groundNormal = mData.lastGroundNormal;
+		// 地面が水平でない場合のみ斜面重力を適用
+		if (groundNormal.y < 0.999f && groundNormal.y > 0.0f) {
+			const float gravity = Math::HtoM(
+				ConVarManager::GetConVar("sv_gravity")->GetValueAsFloat()
+			);
+
+			// 重力ベクトルを斜面に投影
+			// slopeGravity = gravity - (gravity · normal) * normal
+			const Vec3 gravityVec  = Vec3::down * gravity;
+			const float dotGN      = gravityVec.Dot(groundNormal);
+			const Vec3 slopeForce  = (gravityVec - groundNormal * dotGN)
+			                       * kSlideGravityScale;
+
+			mData.velocity += slopeForce * dt;
+		}
+	}
 
 	Vec3 velHoriz = mData.velocity;
 	velHoriz.y    = 0;
 	float speed   = Math::MtoH(velHoriz.Length());
-	if (speed < kSlideStopSpeed) { EndSlide(); return; }
+	if (speed < kSlideStopSpeed) {
+		EndSlide();
+		return;
+	}
 
 	if (!mData.wishCrouch) { EndSlide(); }
 }
@@ -901,3 +1052,417 @@ void MovementComponent::EndSlide() {
 		mData.state = MOVEMENT_STATE::AIR;
 	}
 }
+
+bool MovementComponent::UpdateBlinkMove(const float dt) {
+	if (!mBlinkMoveActive) { return false; }
+
+	mBlinkMoveTime += dt;
+	const float t  = std::clamp(
+		mBlinkMoveTime / kBlinkMoveDurationSec, 0.0f, 1.0f
+	);
+	const Vec3 newPos = Math::Lerp(mBlinkStartPos, mBlinkTargetPos, t);
+	mScene->SetWorldPos(newPos);
+	UpdateHullDimensions();
+
+	if (t >= 1.0f) { mBlinkMoveActive = false; }
+
+	return true;
+}
+
+/// @brief ブリンク処理
+void MovementComponent::HandleBlink() {
+	if (!mData.wishBlink || mBlinkCooldownSec > 0.0f || mBlinkMoveActive) {
+		return;
+	}
+
+	const auto camera = CameraManager::GetActiveCamera();
+	if (!camera) { return; }
+
+	Vec3 dir             = camera->GetViewMat().Inverse().GetForward();
+	const float dirLenSq = dir.SqrLength();
+	if (dirLenSq < 1e-6f) { return; }
+	dir *= 1.0f / std::sqrt(dirLenSq);
+
+	const Vec3 startPos = mScene->GetWorldPos();
+	const Vec3 desiredDisplacement = dir * Math::HtoM(kBlinkDistanceHu);
+	Vec3 resolvedPos = startPos + desiredDisplacement;
+
+	if (mCollisionResolver) {
+		if (!mCollisionResolver->CollideAndSlide(
+			startPos,
+			desiredDisplacement,
+			resolvedPos
+		)) {
+			return;
+		}
+	}
+
+	const Vec3 displacement = resolvedPos - startPos;
+	if (displacement.SqrLength() <= 1e-8f) { return; }
+
+	const float verticalSpeed   = mData.velocity.y;
+	Vec3        horizontalVel   = mData.velocity;
+	horizontalVel.y             = 0.0f;
+	const float horizontalSpeed = horizontalVel.Length();
+
+	Vec3  horizontalDir   = displacement;
+	horizontalDir.y       = 0.0f;
+	const float horizLenSq = horizontalDir.SqrLength();
+	if (horizLenSq > 1e-6f && horizontalSpeed > 0.0f) {
+		horizontalDir *= 1.0f / std::sqrt(horizLenSq);
+		mData.velocity = horizontalDir * horizontalSpeed;
+		mData.velocity.y = verticalSpeed;
+	}
+
+	mBlinkStartPos   = startPos;
+	mBlinkTargetPos  = resolvedPos;
+	mBlinkMoveTime   = 0.0f;
+	mBlinkMoveActive = true;
+
+	UpdateHullDimensions();
+
+	mData.isGrounded          = false;
+	mData.state               = MOVEMENT_STATE::AIR;
+	mData.jumpSnapDisableTime = kJumpSnapDisableTime;
+
+	mBlinkCooldownSec = kBlinkCooldownSec;
+	mBlinkTriggered   = true;
+	if (mBlinkAudio) { mBlinkAudio->Play(); }
+}
+
+// ======================================
+// スピードヴォールト（壁乗り越え）
+// ======================================
+
+/// @brief スピードヴォールト可能かを判定する
+bool MovementComponent::CanSpeedVault() const {
+	if (mData.isGrounded) return false;  // 空中でのみ発動
+	if (mData.wishCrouch) return false;
+	if (mVaultCooldown > 0.0f) return false;
+	if (mVaultActive) return false;
+
+	// 前方入力チェック（前に向かって進もうとしているとき限定）
+	if (mData.vecMoveInput.y < 0.5f) return false;
+
+	return true;
+}
+
+/// @brief スピードヴォールトを開始しようとする
+/// @return 開始成功ならtrue
+bool MovementComponent::TryStartSpeedVault() {
+	if (!mUPhysicsEngine) return false;
+
+	// カメラの前方方向を取得（水平）
+	const auto cam = CameraManager::GetActiveCamera();
+	if (!cam) return false;
+
+	Vec3 forward = cam->GetViewMat().Inverse().GetForward();
+	forward.y = 0.0f;
+	const float fLen = forward.Length();
+	if (fLen < 1e-6f) return false;
+	forward *= 1.0f / fLen;
+
+	const Vec3  feetPos       = mScene->GetWorldPos();
+	const float halfWidthM    = Math::HtoM(mData.currentWidthHu * 0.5f);
+	const float playerHeightM = Math::HtoM(mData.currentHeightHu);
+	const float checkDistM    = Math::HtoM(kVaultForwardCheckHu);
+	const float maxVaultHeightM = Math::HtoM(kVaultMaxHeightHu);
+
+	// 1) 前方にBoxCastして壁を検出（空中なので足元〜腰付近）
+	Unnamed::Box forwardProbe = {
+		.center   = feetPos + Vec3::up * (playerHeightM * 0.25f),
+		.halfSize = { halfWidthM, playerHeightM * 0.25f, halfWidthM }
+	};
+
+	UPhysics::Hit wallHit{};
+	float distToWall = 0.0f;
+	bool  wallFound  = false;
+
+	// まずBoxCastで前方に壁があるか確認
+	if (mUPhysicsEngine->BoxCast(
+		forwardProbe, forward, checkDistM + halfWidthM, &wallHit
+	)) {
+		Vec3 wallNormal = wallHit.normal.Normalized();
+		if (std::abs(wallNormal.y) > 0.3f) return false; // 斜面は対象外
+		distToWall = std::max(0.0f, wallHit.t);
+		wallFound  = true;
+	}
+
+	// BoxCastで見つからなかった場合、すでに壁に密着している可能性がある
+	// → Overlapで確認
+	if (!wallFound) {
+		UPhysics::Hit overlapHit{};
+		if (mUPhysicsEngine->BoxOverlap(forwardProbe, &overlapHit)) {
+			Vec3 wallNormal = overlapHit.normal.Normalized();
+			if (std::abs(wallNormal.y) > 0.3f) return false;
+			distToWall = 0.0f;
+			wallFound  = true;
+		}
+	}
+
+	if (!wallFound) return false; // 前方に壁がない
+
+	// 2) 壁の上端を特定するため、上方向にプローブを移動させながらチェック
+	//    ステップ的に上に移動し、前方に壁がなくなった高さを特定
+	float wallTopHeightM = 0.0f;
+	bool  foundTop = false;
+
+	// 小さなプローブで段階的にチェック
+	const float probeStepM  = Math::HtoM(8.0f);   // 8HUステップ
+	const float probeSizeM  = Math::HtoM(4.0f);    // 小さなプローブ
+
+	// 空中なので足元付近からチェック開始（足元より少し下も含む）
+	const float startCheckM = -Math::HtoM(16.0f);
+
+	for (float testHeight = startCheckM;
+	     testHeight <= maxVaultHeightM + probeStepM;
+	     testHeight += probeStepM) {
+		Unnamed::Box topProbe = {
+			.center   = feetPos + Vec3::up * testHeight,
+			.halfSize = { probeSizeM, probeSizeM, probeSizeM }
+		};
+
+		UPhysics::Hit topHit{};
+		if (!mUPhysicsEngine->BoxCast(
+			topProbe, forward, checkDistM + halfWidthM * 2.0f, &topHit
+		)) {
+			// この高さでは前方に障害物なし → 壁の上端はこの高さ以下
+			wallTopHeightM = testHeight;
+			foundTop = true;
+			break;
+		}
+	}
+
+	if (!foundTop) return false; // 壁が高すぎる
+
+	// 壁の上端がプレイヤーの最大ヴォールト高さを超えていないか確認
+	if (wallTopHeightM > maxVaultHeightM) return false;
+
+	// 壁の上面が概ね上方向を向いているか確認
+	// 壁上端の少し上から下方向にBoxCastして上面の法線を取得
+	{
+		Vec3 surfaceCheckPos = feetPos + forward * (distToWall + halfWidthM)
+		                     + Vec3::up * (wallTopHeightM + Math::HtoM(8.0f));
+		Unnamed::Box surfaceProbe = {
+			.center   = surfaceCheckPos,
+			.halfSize = { probeSizeM, probeSizeM, probeSizeM }
+		};
+		UPhysics::Hit surfaceHit{};
+		if (mUPhysicsEngine->BoxCast(
+			surfaceProbe, Vec3::down, Math::HtoM(16.0f), &surfaceHit
+		)) {
+			// 上面の法線が歩行可能な角度でなければ中止
+			if (surfaceHit.normal.y < mData.groundNormalY) return false;
+		}
+	}
+
+	// 3) 壁の向こう側に着地スペースがあるか確認
+	// 壁の上端の少し上で前方にBoxCastし、壁の厚さを測定する
+	float wallThicknessM = 0.0f;
+	{
+		Vec3 thicknessCheckPos = feetPos + Vec3::up * (wallTopHeightM - probeStepM);
+		Unnamed::Box thicknessProbe = {
+			.center   = thicknessCheckPos,
+			.halfSize = { probeSizeM, probeSizeM, probeSizeM }
+		};
+		UPhysics::Hit thicknessHit{};
+		float thicknessCheckDist = Math::HtoM(256.0f);
+		if (mUPhysicsEngine->BoxCast(
+			thicknessProbe, forward, thicknessCheckDist, &thicknessHit
+		)) {
+			// 壁の裏面にヒット → distToWall からこのヒット距離までが壁の厚さ
+			wallThicknessM = thicknessHit.t + probeSizeM * 2.0f;
+		} else {
+			// 裏面が見つからない → 壁の厚さ不明、安全側で推定
+			wallThicknessM = halfWidthM * 2.0f;
+		}
+	}
+
+	// 壁の向こう側のオフセット = 壁面まで + 壁の厚さ + プレイヤー半幅 + マージン
+	const float overWallOffsetM = std::max(
+		distToWall + wallThicknessM + halfWidthM + Math::HtoM(8.0f),
+		halfWidthM * 3.0f + Math::HtoM(8.0f)
+	);
+
+	// 壁の向こう側の位置（壁の上端の高さ）
+	Vec3 overWallPos = feetPos + forward * overWallOffsetM
+	                 + Vec3::up * (wallTopHeightM + Math::HtoM(4.0f));
+
+	// 向こう側から下方向にレイキャストして着地点を探す
+	Unnamed::Box landingProbe = {
+		.center   = overWallPos,
+		.halfSize = { halfWidthM, Math::HtoM(2.0f), halfWidthM }
+	};
+
+	UPhysics::Hit landHit{};
+	const float   dropCheckDistM = maxVaultHeightM + Math::HtoM(32.0f);
+	if (!mUPhysicsEngine->BoxCast(
+		landingProbe, Vec3::down, dropCheckDistM, &landHit
+	)) {
+		return false; // 着地点が見つからない → 崖の可能性、中止
+	}
+
+	// 着地点の法線が歩行可能か確認
+	if (landHit.normal.y < mData.groundNormalY) return false;
+
+	// 着地位置（足元）
+	Vec3 landingFeetPos = overWallPos + Vec3::down * landHit.t;
+
+	// 着地位置が開始位置より下にならないよう制限（上方向のみのVault）
+	if (landingFeetPos.y < feetPos.y) {
+		landingFeetPos.y = feetPos.y;
+	}
+
+	// 着地位置でプレイヤーのハルが重なりなしか確認
+	Unnamed::Box landingHull = mCollisionResolver->BuildHullAtFeet(landingFeetPos);
+	UPhysics::Hit overlapHit{};
+	if (mUPhysicsEngine->BoxOverlap(landingHull, &overlapHit)) {
+		return false; // 着地位置にスペースがない
+	}
+
+	// 着地位置から壁側に向かってBoxCastし、壁の裏面でないことを確認
+	// 壁の表面の法線が自分の方を向いていなければ裏側にいる
+	{
+		Unnamed::Box backCheckProbe = {
+			.center   = landingFeetPos + Vec3::up * (playerHeightM * 0.5f),
+			.halfSize = { probeSizeM, playerHeightM * 0.5f, probeSizeM }
+		};
+		UPhysics::Hit backHit{};
+		if (mUPhysicsEngine->BoxCast(
+			backCheckProbe, -forward, overWallOffsetM, &backHit
+		)) {
+			// 壁にヒットした場合、法線がforwardと同じ方向(=裏側の面)なら中止
+			float dot = backHit.normal.Dot(forward);
+			if (dot > 0.3f) {
+				return false; // 壁の裏面が見えている → 裏側にテレポートしてしまう
+			}
+		}
+	}
+
+	// 4) ヴォールト開始！
+	const float apexForwardM = std::max(halfWidthM, distToWall * 0.5f);
+	Vec3 apexPos = feetPos + forward * apexForwardM
+	             + Vec3::up * (wallTopHeightM + Math::HtoM(8.0f));
+
+	mVaultStartPos    = feetPos;
+	mVaultApexPos     = apexPos;
+	mVaultEndPos      = landingFeetPos;
+	mVaultPreVelocity = mData.velocity;
+	mVaultTime        = 0.0f;
+	mVaultActive      = true;
+
+	// ハルを即座に着地位置にテレポート（めり込み防止）
+	mScene->SetWorldPos(landingFeetPos);
+	UpdateHullDimensions();
+
+	// テレポート直後にカメラオフセットを即時適用（1フレームのカメラジャンプ防止）
+	// cameraRootはまだテレポート前のHeadPosにいるため、
+	// ベジェt=0(=feetPos)のカメラ位置を保つためのオフセットを設定
+	if (mCameraAnimator) {
+		auto* animOwner = mCameraAnimator->GetOwner();
+		if (animOwner && animOwner->GetParent()) {
+			auto* parentTransform = animOwner->GetParent()->GetTransform();
+			if (parentTransform) {
+				Vec3 headOffset      = GetHeadPos() - landingFeetPos;
+				Vec3 desiredWorldPos = feetPos + headOffset;
+				Vec3 cameraRootPos   = parentTransform->GetWorldPos();
+				Vec3 worldOffset     = desiredWorldPos - cameraRootPos;
+				Quaternion parentRot = parentTransform->GetWorldRot();
+				Vec3 localOffset     = parentRot.Inverse().RotateVector(worldOffset);
+
+				mCameraAnimator->SetVaultCameraOffset(localOffset);
+				mCameraAnimator->ApplyVaultOffsetImmediate();
+			}
+		}
+	}
+
+	mData.isGrounded          = false;
+	mData.state               = MOVEMENT_STATE::SPEED_VAULT;
+	mData.jumpSnapDisableTime = kJumpSnapDisableTime;
+
+	if (mFootstepAudio) {
+		mFootstepAudio->SetPitch(1.1f);
+		mFootstepAudio->SetVolume(0.15f);
+		mFootstepAudio->Play();
+	}
+
+	InputSystem::AddVibration(0, 0.2f, 0.2f, 0.15f);
+
+#ifdef _DEBUG
+	DebugDraw::DrawBox(
+		landingHull.center, Quaternion::identity,
+		landingHull.halfSize * 2.0f, Vec4::green
+	);
+#endif
+
+	return true;
+}
+
+/// @brief スピードヴォールト中の位置補間更新
+/// @param dt 経過時間
+/// @return ヴォールト中ならtrue
+bool MovementComponent::UpdateSpeedVault(const float dt) {
+	if (!mVaultActive) return false;
+
+	mVaultTime += dt;
+	const float t = std::clamp(mVaultTime / kVaultDurationSec, 0.0f, 1.0f);
+
+#ifdef _DEBUG
+	DebugDraw::DrawLine(mVaultStartPos, mVaultApexPos, Vec4::yellow);
+	DebugDraw::DrawLine(mVaultApexPos, mVaultEndPos, Vec4::yellow);
+#endif
+
+	if (t >= 1.0f) {
+		EndSpeedVault();
+	}
+
+	return true;
+}
+
+/// @brief スピードヴォールト終了処理
+void MovementComponent::EndSpeedVault() {
+	mVaultActive = false;
+
+	// 水平速度を維持（垂直速度は0にリセット）
+	Vec3 horizontalVel = mVaultPreVelocity;
+	horizontalVel.y    = 0.0f;
+	float horizontalSpeed = horizontalVel.Length();
+
+	// 着地方向に速度を向ける
+	Vec3 vaultDir = mVaultEndPos - mVaultStartPos;
+	vaultDir.y    = 0.0f;
+	const float vaultDirLen = vaultDir.Length();
+
+	// 速度がほぼ0だった場合（壁密着からのヴォールト等）、最低速度を付与
+	const float minExitSpeedM = Math::HtoM(kVaultMinSpeedHu);
+	if (horizontalSpeed < minExitSpeedM) {
+		horizontalSpeed = minExitSpeedM;
+	}
+
+	if (vaultDirLen > 1e-6f) {
+		vaultDir *= 1.0f / vaultDirLen;
+		mData.velocity   = vaultDir * horizontalSpeed;
+		mData.velocity.y = 0.0f;
+	} else {
+		mData.velocity   = mData.wishDirection * horizontalSpeed;
+		mData.velocity.y = 0.0f;
+	}
+
+	mData.isGrounded    = true;
+	mData.state         = MOVEMENT_STATE::GROUND;
+	mData.hasDoubleJump = true;
+
+	mVaultCooldown = kVaultCooldownSec;
+}
+
+/// @brief スピードヴォールト中かを取得する
+/// @return スピードヴォールト中ならtrue
+bool MovementComponent::IsSpeedVaulting() const { return mVaultActive; }
+
+/// @brief スピードヴォールトの進行度を取得する
+/// @return 進行度 (0.0〜1.0)、Vault中でなければ1.0
+float MovementComponent::GetVaultProgress() const {
+	if (!mVaultActive) return 1.0f;
+	return std::clamp(mVaultTime / kVaultDurationSec, 0.0f, 1.0f);
+}
+

@@ -19,6 +19,17 @@ public:
 	/// @param dt 経過時間
 	void MoveWithCollisions(float dt);
 
+	/// @brief ブリンク用: 任意の移動ベクトルをCollideAndSlideで解決する
+	/// @param startPos 開始位置
+	/// @param displacement 目的の移動量
+	/// @param outPos 解決後の位置
+	/// @return 実際に移動できたか
+	bool CollideAndSlide(
+		const Vec3& startPos,
+		const Vec3& displacement,
+		Vec3&       outPos
+	);
+
 	/// @brief MovementComponent::UpdateHullDimensions から呼ばれ、ハルの同期を行う
 	void SyncHullFromComponent();
 
@@ -35,15 +46,17 @@ private:
 	SceneComponent*   mScene         = nullptr;
 	Unnamed::Box*     mHull          = nullptr;
 
-	static constexpr float kStepHeightHu    = 18.0f; // HL2 Default
-	static constexpr float kCastSkinHu      = 0.5f;
-	static constexpr float kSkinHu          = 1.0f;
+	static constexpr float kStepHeightHu    = 18.0f;  // HL2 Default
+	static constexpr float kCastSkinHu      = 0.5f;   // キャスト距離拡張マージン
+	static constexpr float kSkinHu          = 1.0f;    // 衝突面からの停止距離
 	static constexpr float kRestOffsetHu    = 0.75f;
-	static constexpr float kMaxAdhesionHu   = 2.0f; // 接地維持の最大距離
-	static constexpr float kSnapVyMax       = 1.0f; // m/s
-	static constexpr int   kMaxBumps        = 8;    // 最大衝突回数
-	static constexpr int   kMaxClipPlanes   = 5;
-	static constexpr float kFracEps         = 0.01f;
+	static constexpr float kMaxAdhesionHu   = 2.0f;   // 接地維持の最大距離
+	static constexpr float kSnapVyMax       = 1.0f;   // m/s
+	static constexpr int   kMaxBumps        = 8;      // 最大バウンド数
+	static constexpr int   kMaxClipPlanes   = 5;      // MAX_CLIP_PLANES
+	static constexpr float kOverbounce      = 1.0f;   // overbounce
+	static constexpr int   kMaxDepushIter   = 4;      // 貫通解消の最大反復
+	static constexpr int   kMaxDepushHits   = 32;     // BoxOverlap 最大ヒット数
 
 	// スタック検知
 	static constexpr float kStuckThreshold     = 0.01f; // m/s

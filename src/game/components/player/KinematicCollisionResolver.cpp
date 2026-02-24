@@ -18,6 +18,21 @@ KinematicCollisionResolver::KinematicCollisionResolver(
 	  mScene(sceneComponent),
 	  mHull(hull) {}
 
+bool KinematicCollisionResolver::CollideAndSlide(
+	const Vec3& startPos,
+	const Vec3& displacement,
+	Vec3&       outPos
+) {
+	outPos = startPos + displacement;
+	if (!mPhysicsEngine) { return !displacement.IsZero(); }
+
+	Vec3 position = startPos;
+	Vec3 velocity = displacement;
+	SlideMove(position, velocity, 1.0f);
+	outPos = position;
+	return (outPos - startPos).SqrLength() > 1e-8f;
+}
+
 void KinematicCollisionResolver::UpdateEntityHullDimensions() {
 	// 足元原点
 	*mHull = {
@@ -46,6 +61,7 @@ void KinematicCollisionResolver::MoveWithCollisions(const float dt) {
 		return;
 	}
 
+	// 移動前に既存の貫通を解消
 	ResolvePenetration();
 
 	Vec3 position = mScene->GetWorldPos();
@@ -60,6 +76,7 @@ void KinematicCollisionResolver::MoveWithCollisions(const float dt) {
 		SlideMove(position, velocity, dt);
 	}
 
+	// 接地チェック
 	bool isGrounded = GroundCheck(position);
 
 	mScene->SetWorldPos(position);
@@ -67,8 +84,11 @@ void KinematicCollisionResolver::MoveWithCollisions(const float dt) {
 	mData->isGrounded = isGrounded;
 
 	UpdateEntityHullDimensions();
+
+	// 移動後の貫通解消
 	ResolvePenetration();
 
+	// 接地中に下向き速度をゼロに
 	if (mData->isGrounded && mData->velocity.y < 0.0f) {
 		mData->velocity.y = 0.0f;
 	}
@@ -146,182 +166,252 @@ Unnamed::Box KinematicCollisionResolver::BuildHullAtFeet(const Vec3& feetPos) co
 void KinematicCollisionResolver::ResolvePenetration() {
 	if (!mPhysicsEngine) return;
 
-	constexpr int kMaxIterations = 4;
-	for (int iter = 0; iter < kMaxIterations; ++iter) {
-		UPhysics::Hit hit{};
-
-		if (!mPhysicsEngine->BoxOverlap(*mHull, &hit)) {
-			break;
-		}
-
-		if (!hit.hitEntity) break;
-
-		auto* otherCollider = hit.hitEntity->GetComponent<AABBCollider>();
-		if (!otherCollider) break;
-
-		Vec3 otherMin, otherMax;
-		{
-			auto [localMin, localMax] = otherCollider->AABB();
-			Vec3 offset   = otherCollider->Offset();
-			Vec3 otherPos = hit.hitEntity->GetTransform()->GetWorldPos();
-			otherMin      = otherPos + offset + localMin;
-			otherMax      = otherPos + offset + localMax;
-		}
-
-		Vec3 myMin = mHull->center - mHull->halfSize;
-		Vec3 myMax = mHull->center + mHull->halfSize;
-
-		float overlapX = std::min(myMax.x, otherMax.x) - std::max(myMin.x, otherMin.x);
-		float overlapY = std::min(myMax.y, otherMax.y) - std::max(myMin.y, otherMin.y);
-		float overlapZ = std::min(myMax.z, otherMax.z) - std::max(myMin.z, otherMin.z);
-
-		if (overlapX <= 0 || overlapY <= 0 || overlapZ <= 0) break;
-
-		float minOverlap = overlapX;
-		auto  pushDir    = Vec3(1, 0, 0);
-
-		if (overlapY < minOverlap) {
-			minOverlap = overlapY;
-			pushDir    = Vec3(0, 1, 0);
-		}
-		if (overlapZ < minOverlap) {
-			minOverlap = overlapZ;
-			pushDir    = Vec3(0, 0, 1);
-		}
-
-		Vec3 otherCenter = (otherMin + otherMax) * 0.5f;
-		Vec3 myCenter    = mHull->center;
-
-		float dirCheck = (myCenter - otherCenter).Dot(pushDir);
-		if (dirCheck < 0) { pushDir = -pushDir; }
-
-		Vec3 separation = pushDir * (minOverlap + 0.001f);
-
-		mScene->SetWorldPos(mScene->GetWorldPos() + separation);
+	for (int iter = 0; iter < kMaxDepushIter; ++iter) {
 		UpdateEntityHullDimensions();
 
-		float velProjected = mData->velocity.Dot(pushDir);
-		if (velProjected < 0) { mData->velocity -= pushDir * velProjected; }
+		UPhysics::Hit hits[kMaxDepushHits];
+		int hitCount = mPhysicsEngine->BoxOverlap(*mHull, hits, kMaxDepushHits);
+		if (hitCount == 0) break;
+
+		Vec3 totalPush = Vec3::zero;
+		bool anyPush   = false;
+
+		for (int i = 0; i < hitCount; ++i) {
+			const UPhysics::Hit& h = hits[i];
+			if (h.depth <= 0.0f) continue;
+
+			Vec3 normal = h.normal;
+			if (normal.SqrLength() < 1e-12f) continue;
+			normal.Normalize();
+
+			float pushDist = h.depth + SkinM();
+
+			// 既に同じ方向に十分押し出し済みなら省略
+			float projected = totalPush.Dot(normal);
+			if (projected >= pushDist) continue;
+
+			float remaining = pushDist - std::max(0.0f, projected);
+			totalPush       = totalPush + normal * remaining;
+			anyPush         = true;
+		}
+
+		if (!anyPush) break;
+
+		mScene->SetWorldPos(mScene->GetWorldPos() + totalPush);
+		UpdateEntityHullDimensions();
+
+		// 速度補正: 押し出し方向に対して速度が「めり込む方向」なら除去
+		Vec3 pushDir = totalPush.Normalized();
+		float velIntoWall = mData->velocity.Dot(pushDir);
+		if (velIntoWall < 0.0f) {
+			mData->velocity = mData->velocity - pushDir * velIntoWall;
+		}
 	}
 }
 
 int KinematicCollisionResolver::SlideMove(Vec3& position, Vec3& velocity, const float timeTotal) {
-	float timeLeft = std::max(0.0f, timeTotal);
+	int   blocked   = 0;
+	int   numplanes = 0;
+	float timeLeft  = timeTotal;
+
+	Vec3 primalVelocity = velocity;
 
 	std::array<Vec3, kMaxClipPlanes> planes{};
-	int                              numplanes = 0;
 
-	for (int bumpcount = 0; bumpcount < kMaxBumps && timeLeft > 0.0f; ++bumpcount) {
-		Unnamed::Box box = BuildHullAtFeet(position);
+	for (int bumpcount = 0; bumpcount < kMaxBumps; ++bumpcount) {
+		if (velocity.SqrLength() < 1e-12f) break;
 
 		Vec3  move    = velocity * timeLeft;
 		float moveLen = move.Length();
-		if (moveLen <= 1e-7f) break;
+		if (moveLen < 1e-7f) break;
 
-		Vec3  dir     = move / moveLen;
-		float castLen = moveLen + CastSkinM();
+		Vec3 dir = move / moveLen;
 
+		Unnamed::Box  box = BuildHullAtFeet(position);
 		UPhysics::Hit hit{};
-		if (!mPhysicsEngine->BoxCast(box, dir, castLen, &hit)) {
+
+		if (!mPhysicsEngine->BoxCast(box, dir, moveLen + CastSkinM(), &hit)) {
+			// 衝突なし — 全距離移動して終了
 			position += move;
 			break;
 		}
 
-		const float travel  = std::clamp(hit.t, 0.0f, castLen);
-		const float allowed = std::min(moveLen, std::max(0.0f, travel - SkinM()));
-		float       usedFrac = (moveLen > 1e-7f) ? (allowed / moveLen) : 1.0f;
-		usedFrac             = std::clamp(usedFrac, kFracEps, 1.0f);
+		// allsolid — 完全に固体内
+		if (hit.allsolid) {
+			velocity = Vec3::zero;
+			return 4;
+		}
 
-		position += dir * allowed;
-		timeLeft *= (1.0f - usedFrac);
+		// ─── 前進距離を計算 ───
+		// hit.t = 実距離(m)。面から SkinM() 手前で止まる。moveLen を上限に。
+		float allowed = std::min(moveLen, std::max(0.0f, hit.t - SkinM()));
 
+		if (allowed > 1e-7f) {
+			position += dir * allowed;
+			// 前進に成功したら面リストをリセット（新しい位置で再出発）
+			numplanes = 0;
+		}
+
+		// startSolid で進めなかった場合、法線方向に押し出す
+		if (hit.startSolid && allowed <= 1e-7f) {
+			Vec3 pushNormal = hit.normal;
+			if (pushNormal.SqrLength() > 1e-12f) {
+				pushNormal.Normalize();
+				position += pushNormal * SkinM();
+			}
+		}
+
+		// 残り時間を消費
+		float frac = (moveLen > 1e-7f) ? (allowed / moveLen) : 1.0f;
+		timeLeft  *= (1.0f - std::clamp(frac, 0.0f, 1.0f));
+		if (timeLeft < 1e-7f) break;
+
+		// 法線を正規化
 		Vec3 normal = hit.normal;
-		if (!normal.IsZero()) normal.Normalize();
+		if (normal.SqrLength() > 1e-12f) normal.Normalize();
 
-		int i;
-		for (i = 0; i < numplanes; i++) {
+		// blocked フラグ
+		if (normal.y > mData->groundNormalY) blocked |= 1;
+		if (std::fabs(normal.y) <= mData->groundNormalY) blocked |= 2;
+
+		// ─── 同一面チェック ───
+		bool duplicatePlane = false;
+		for (int i = 0; i < numplanes; ++i) {
 			if (planes[i].Dot(normal) > 0.99f) {
-				velocity += normal;
+				// 同じ面にもう一度当たった。速度を面からクリップしてやり直す。
+				velocity = ClipVelocity(velocity, normal, kOverbounce);
+				duplicatePlane = true;
 				break;
 			}
 		}
-		if (i < numplanes) continue;
+		if (duplicatePlane) continue;
 
-		if (numplanes < kMaxClipPlanes) { planes[numplanes++] = normal; }
+		if (numplanes >= kMaxClipPlanes) {
+			velocity = Vec3::zero;
+			break;
+		}
+		planes[numplanes++] = normal;
 
+		// ─── クリッピング ───
 		if (numplanes == 1) {
-			velocity = ClipVelocity(velocity, planes[0], 1.0f);
+			// 面が1枚 — シンプルにクリップ
+			velocity = ClipVelocity(velocity, planes[0], kOverbounce);
 		} else {
-			int j;
-			for (j = 0; j < numplanes; j++) {
-				velocity = ClipVelocity(velocity, planes[j], 1.0f);
+			// 複数面: 現在のvelocityをクリップし、全面と整合する解を探す
+			Vec3 clipped;
+			int  i;
+			for (i = 0; i < numplanes; ++i) {
+				clipped = ClipVelocity(velocity, planes[i], kOverbounce);
 
-				int k;
-				for (k = 0; k < numplanes; k++) {
-					if (k == j) continue;
-					if (velocity.Dot(planes[k]) < 0) break;
+				bool valid = true;
+				for (int j = 0; j < numplanes; ++j) {
+					if (j == i) continue;
+					if (clipped.Dot(planes[j]) < 0.0f) {
+						valid = false;
+						break;
+					}
 				}
-				if (k == numplanes) break;
+				if (valid) break;
 			}
 
-			if (j == numplanes) {
-				if (numplanes != 2) {
+			if (i == numplanes) {
+				if (numplanes == 2) {
+					// 2面の交線に沿って滑る
+					Vec3 creaseDir = planes[0].Cross(planes[1]);
+					float cLen = creaseDir.Length();
+					if (cLen > 1e-7f) {
+						creaseDir = creaseDir / cLen;
+						velocity = creaseDir * velocity.Dot(creaseDir);
+					} else {
+						velocity = Vec3::zero;
+						break;
+					}
+				} else {
 					velocity = Vec3::zero;
 					break;
 				}
-				Vec3 planeDir = planes[0].Cross(planes[1]);
-				planeDir.Normalize();
-				velocity = planeDir * velocity.Dot(planeDir);
+			} else {
+				velocity = clipped;
 			}
+		}
+
+		// dead-stop: クリップ後の速度が元の方向と逆転したら停止
+		if (velocity.Dot(primalVelocity) < 0.0f) {
+			velocity = Vec3::zero;
+			break;
 		}
 	}
 
-	return numplanes;
+	return blocked;
 }
 
 void KinematicCollisionResolver::StepMove(Vec3& position, Vec3& velocity, const float timeTotal) {
-	const Vec3 startPos = position;
-	const Vec3 startVel = velocity;
+	// PM_StepMove
+	// 1) まず通常のSlideMoveを試す (baseline)
+	const Vec3 savedPos = position;
+	const Vec3 savedVel = velocity;
 
 	SlideMove(position, velocity, timeTotal);
 
-	Vec3  down    = position;
-	float downVel = velocity.y;
+	const Vec3  downPos = position;
+	const Vec3  downVel = velocity;
 
-	position = startPos;
-	velocity = startVel;
+	// 2) ステップ移動を試す
+	position = savedPos;
+	velocity = savedVel;
 
-	position += Vec3::up * StepHeightM();
+	// 上方向にステップ高さだけ持ち上げる (BoxCastで天井衝突チェック)
+	{
+		Unnamed::Box  boxUp = BuildHullAtFeet(position);
+		UPhysics::Hit upHit{};
+		float         stepUp = StepHeightM();
 
-	Unnamed::Box  boxUp = BuildHullAtFeet(position);
-	UPhysics::Hit ov{};
-	if (mPhysicsEngine->BoxOverlap(boxUp, &ov)) {
-		position   = down;
-		velocity.y = downVel;
-		return;
-	}
-
-	SlideMove(position, velocity, timeTotal);
-
-	Unnamed::Box  boxAt = BuildHullAtFeet(position);
-	UPhysics::Hit downHit{};
-	if (mPhysicsEngine->BoxCast(
-		boxAt, -Vec3::up,
-		StepHeightM() + RestOffsetM(), &downHit
-	)) {
-		const float threshold = mData->groundNormalY;
-		if (downHit.normal.y >= threshold) {
-			float drop = std::max(0.0f, downHit.t - RestOffsetM());
-			position   += -Vec3::up * drop;
+		if (mPhysicsEngine->BoxCast(boxUp, Vec3::up, stepUp + SkinM(), &upHit)) {
+			// 天井に当たった場合、上昇可能な分だけ上げる
+			float allowed = std::max(0.0f, upHit.t - SkinM());
+			if (allowed < SkinM()) {
+				// ほぼ上に移動できない → baseline結果を使う
+				position = downPos;
+				velocity = downVel;
+				return;
+			}
+			position += Vec3::up * allowed;
+		} else {
+			position += Vec3::up * stepUp;
 		}
 	}
 
-	const float downDist = (Vec3(down.x - startPos.x,     0.0f, down.z - startPos.z)).Length();
-	const float upDist   = (Vec3(position.x - startPos.x, 0.0f, position.z - startPos.z)).Length();
+	// 持ち上げた位置でSlideMove
+	SlideMove(position, velocity, timeTotal);
 
-	if (downDist >= upDist) {
-		position   = down;
-		velocity.y = downVel;
+	// 下方向にステップ高さ + 少し余分に降ろす (元の高さ + ステップ分)
+	{
+		Unnamed::Box  boxDown = BuildHullAtFeet(position);
+		UPhysics::Hit downHit{};
+		float         stepDown = StepHeightM() + RestOffsetM();
+
+		if (mPhysicsEngine->BoxCast(boxDown, Vec3::down, stepDown, &downHit)) {
+			// 何かに当たったら、歩行可能面かどうかに関わらず降ろす
+			// （浮いたままになるのを防ぐ）
+			float drop = std::max(0.0f, downHit.t - SkinM());
+			position += Vec3::down * drop;
+		}
+	}
+
+	// 水平距離で比較: ステップ移動のほうが遠くに行けた場合のみ採用
+	auto horizDistSq = [](const Vec3& a, const Vec3& b) -> float {
+		float dx = a.x - b.x;
+		float dz = a.z - b.z;
+		return dx * dx + dz * dz;
+	};
+
+	const float downDistSq = horizDistSq(downPos, savedPos);
+	const float upDistSq   = horizDistSq(position, savedPos);
+
+	if (downDistSq >= upDistSq) {
+		// ステップ移動の利点なし → baseline結果を使う
+		position = downPos;
+		velocity = downVel;
 	}
 }
 
@@ -355,10 +445,16 @@ bool KinematicCollisionResolver::GroundCheck(Vec3& position) {
 }
 
 Vec3 KinematicCollisionResolver::ClipVelocity(const Vec3& vel, const Vec3& normal, float overbounce) {
+	// PM_ClipVelocity
+	// backoff = DotProduct(in, normal) * overbounce
+	// out[i] = in[i] - normal[i] * backoff
 	const float backoff = vel.Dot(normal) * overbounce;
 	Vec3        out     = vel - normal * backoff;
-	if (std::fabs(out.x) < 1e-7f) out.x = 0.0f;
-	if (std::fabs(out.y) < 1e-7f) out.y = 0.0f;
-	if (std::fabs(out.z) < 1e-7f) out.z = 0.0f;
+
+	// 微小値をゼロに丸める (STOP_EPSILON = 0.1 HU/s 相当)
+	constexpr float kStopEps = 1e-6f; // メートル単位の微小値
+	if (std::fabs(out.x) < kStopEps) out.x = 0.0f;
+	if (std::fabs(out.y) < kStopEps) out.y = 0.0f;
+	if (std::fabs(out.z) < kStopEps) out.z = 0.0f;
 	return out;
 }
