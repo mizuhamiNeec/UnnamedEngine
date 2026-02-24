@@ -1,7 +1,6 @@
 #pragma once
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 #include <editor/Editor.h>
@@ -59,6 +58,9 @@ namespace Unnamed {
 		static void RegisterConsoleCommandsAndVariables();
 		static void Quit(const std::vector<std::string>& args = {});
 		void        CheckEditorMode();
+
+		/// @brief シーン遷移をリクエストする（遅延実行される）
+		static void RequestSceneChange(const std::string& name);
 
 		/// @brief エディターインスタンスの取得
 		Editor* GetEditor() const { return mEditor.get(); }
@@ -141,7 +143,6 @@ namespace Unnamed {
 		static std::unique_ptr<AudioManager> mAudioManager;
 
 		static std::shared_ptr<SceneManager> mSceneManager;
-		static std::optional<std::string>    mPendingSceneChange;
 
 		static Vec2 mViewportLT;
 		static Vec2 mViewportSize;

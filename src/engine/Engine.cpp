@@ -1,5 +1,7 @@
 #include <pch.h>
 
+#include "game/scene/TestScene.h"
+
 #ifdef _DEBUG
 #include <imgui_internal.h>
 // ImGuizmoのインクルードはImGuiより後! いいね!?
@@ -31,6 +33,7 @@
 #include <engine/unnamed/subsystem/interface/ServiceLocator.h>
 #include <engine/unnamed/subsystem/time/TimeSystem.h>
 #include <engine/Window/WindowsUtils.h>
+#include <game/replay/ReplayManager.h>
 #include <game/scene/GameScene.h>
 
 #include "Platform/Win32App.h"
@@ -136,6 +139,7 @@ namespace Unnamed {
 		InputSystem::Init();
 
 		RegisterConsoleCommandsAndVariables();
+		ReplayManager::Get().Initialize();
 
 		// 各マネージャーの初期化
 		mResourceManager = std::make_unique<ResourceManager>(mRenderer.get());
@@ -238,8 +242,9 @@ namespace Unnamed {
 		mSceneManager = std::make_shared<SceneManager>(*mSceneFactory);
 		// ゲームシーンを登録
 		mSceneFactory->RegisterScene<GameScene>("GameScene");
-		// シーンの初期化
-		mSceneManager->ChangeScene("GameScene");
+		mSceneFactory->RegisterScene<TestScene>( "TestScene");
+		// シーンの初期化（タイトル相当のTestSceneから開始）
+		mSceneManager->ChangeScene("TestScene");
 
 		//---------------------------------------------------------------------
 		// エディターの初期化
@@ -368,15 +373,27 @@ namespace Unnamed {
 
 		if (mIsEditorMode && mSrvManager) {
 			auto& postRtv = mRenderTargets.GetPostProcessedRtv();
-			mSrvManager->CreateSRVForTexture2D(
-				postRtv.srvIndex,
-				postRtv.rtv.Get(),
-				postRtv.rtv->GetDesc().Format,
-				1
-			);
-			postRtv.srvHandleGPU = mSrvManager->GetGPUDescriptorHandle(
-				postRtv.srvIndex
-			);
+			
+			static ID3D12Resource* sLastPostRtvResource = nullptr;
+			static DXGI_FORMAT     sLastPostFormat      = DXGI_FORMAT_UNKNOWN;
+
+			ID3D12Resource* currentResource = postRtv.rtv.Get();
+			DXGI_FORMAT     currentFormat   = postRtv.rtv ? postRtv.rtv->GetDesc().Format : DXGI_FORMAT_UNKNOWN;
+
+			if (currentResource != nullptr &&
+			    (sLastPostRtvResource != currentResource || sLastPostFormat != currentFormat || postRtv.srvHandleGPU.ptr == 0)) {
+				mSrvManager->CreateSRVForTexture2D(
+					postRtv.srvIndex,
+					currentResource,
+					currentFormat,
+					1
+				);
+				postRtv.srvHandleGPU = mSrvManager->GetGPUDescriptorHandle(
+					postRtv.srvIndex
+				);
+				sLastPostRtvResource = currentResource;
+				sLastPostFormat      = currentFormat;
+			}
 		}
 
 		//---------------------------------------------------------------------
@@ -409,11 +426,19 @@ namespace Unnamed {
 
 		mRenderer->PostRender();
 
+		// フレーム末尾でシーンマネージャーに遷移要求があれば処理する
+		if (mSceneManager) { mSceneManager->ProcessPendingSceneChange(); }
+
 		mTimeSystem->EndFrame();
 	}
 
 	/// @brief シャットダウン
 	void Engine::Shutdown() const {
+		if (mSceneManager) {
+			mSceneManager->ShutdownCurrentScene();
+			mSceneManager.reset();
+		}
+
 		mRenderer->WaitPreviousFrame();
 
 		DebugDraw::Shutdown();
@@ -471,6 +496,21 @@ namespace Unnamed {
 		// コンソールコマンドを登録
 		ConCommand::RegisterCommand("exit", Quit, "Exit the engine.");
 		ConCommand::RegisterCommand("quit", Quit, "Exit the engine.");
+
+		// シーン遷移コマンド
+		ConCommand::RegisterCommand(
+			"map",
+			[](const std::vector<std::string>& args) {
+				if (args.empty()) {
+					if (mSceneManager) {
+						Msg("Engine", "Current map: {}", mSceneManager->GetCurrentSceneName());
+					}
+					return;
+				}
+				RequestSceneChange(args[0]);
+			},
+			"Change map. Usage: map <name>"
+		);
 
 #ifdef _DEBUG
 		ConCommand::RegisterCommand(
@@ -574,6 +614,10 @@ namespace Unnamed {
 
 	void Engine::DestroyEditor() { mEditor.reset(); }
 
+	void Engine::RequestSceneChange(const std::string& name) {
+		if (mSceneManager) { mSceneManager->RequestSceneChange(name); }
+	}
+
 	void Engine::SetViewportToMainWindow() {
 		mViewportLT   = Vec2::zero;
 		mViewportSize = {
@@ -600,8 +644,6 @@ namespace Unnamed {
 
 	Vec2 Engine::mViewportLT   = Vec2::zero;
 	Vec2 Engine::mViewportSize = Vec2::zero;
-
-	std::optional<std::string> Engine::mPendingSceneChange = std::nullopt;
 
 #ifdef _DEBUG
 	bool Engine::mIsEditorMode = true;
