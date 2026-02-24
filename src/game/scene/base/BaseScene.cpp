@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <engine/Engine.h>
 #include <engine/Entity/Entity.h>
 
 std::vector<Entity*> BaseScene::GetEntities() { return mEntities; }
@@ -27,3 +28,8 @@ Entity* BaseScene::CreateEntity(const std::string& value) {
 	mEntities.emplace_back(newEntity);
 	return newEntity;
 }
+
+void BaseScene::RequestSceneChange(const std::string& sceneName) {
+	Unnamed::Engine::RequestSceneChange(sceneName);
+}
+

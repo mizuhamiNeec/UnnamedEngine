@@ -84,6 +84,12 @@ public:
 	 */
 	Entity* CreateEntity(const std::string& value);
 
+	/**
+	 * @brief シーン遷移をリクエストする（遅延実行される）
+	 * @param sceneName 遷移先のシーン名
+	 */
+	static void RequestSceneChange(const std::string& sceneName);
+
 protected:
 	std::vector<Entity*> mEntities; // シーンに存在するエンティティ
 
