@@ -4,6 +4,8 @@
 /// @brief カメラを追加する
 /// @param camera 追加するカメラコンポーネントの共有ポインタ
 void CameraManager::AddCamera(const std::shared_ptr<CameraComponent>& camera) {
+	if (!camera) { return; }
+	if (std::ranges::find(mCameras, camera) != mCameras.end()) { return; }
 	mCameras.emplace_back(camera);
 }
 
@@ -11,7 +13,11 @@ void CameraManager::AddCamera(const std::shared_ptr<CameraComponent>& camera) {
 /// @param camera 削除するカメラコンポーネントの共有ポインタ
 void CameraManager::RemoveCamera(
 	const std::shared_ptr<CameraComponent>& camera
-) { std::erase(mCameras, camera); }
+) {
+	if (!camera) { return; }
+	std::erase(mCameras, camera);
+	if (mActiveCamera == camera) { mActiveCamera.reset(); }
+}
 
 /// @brief アクティブなカメラを設定する
 /// @param camera アクティブにするカメラコンポーネントの共有ポインタ
@@ -61,6 +67,9 @@ size_t CameraManager::GetActiveCameraIndex() {
 /// @brief アクティブなカメラを取得する
 /// @return アクティブなカメラコンポーネントの共有ポインタ
 std::shared_ptr<CameraComponent> CameraManager::GetActiveCamera() {
+	if (!mActiveCamera && !mCameras.empty()) {
+		mActiveCamera = mCameras.front();
+	}
 	return mActiveCamera;
 }
 
@@ -74,3 +83,10 @@ void CameraManager::Update(const float deltaTime) {
 
 std::vector<std::shared_ptr<CameraComponent>> CameraManager::mCameras;
 std::shared_ptr<CameraComponent> CameraManager::mActiveCamera = nullptr;
+
+/// @brief 全カメラをクリアする（シーン遷移時用）
+void CameraManager::Clear() {
+	mActiveCamera.reset();
+	mCameras.clear();
+}
+

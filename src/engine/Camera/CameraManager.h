@@ -18,6 +18,9 @@ public:
 	static std::shared_ptr<CameraComponent> GetActiveCamera();
 	static void Update(float deltaTime);
 
+	/// @brief 全カメラをクリアする（シーン遷移時用）
+	static void Clear();
+
 private:
 	static std::vector<std::shared_ptr<CameraComponent>> mCameras;
 	static std::shared_ptr<CameraComponent>              mActiveCamera;
