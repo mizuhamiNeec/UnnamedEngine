@@ -24,7 +24,7 @@ enum class BillboardType {
 /// @brief パーティクルオブジェクトクラス
 class ParticleObject {
 public:
-	~ParticleObject() = default;
+	~ParticleObject();
 
 	void Init(
 		ParticleManager*   particleCommon,

@@ -1,17 +1,19 @@
-#include <engine/Camera/CameraManager.h>
-#include <engine/Components/Camera/CameraComponent.h>
-#include <engine/Debug/DebugDraw.h>
-#include <engine/ImGui/ImGuiManager.h>
-#include <engine/ImGui/ImGuiUtil.h>
-#include <engine/particle/ParticleManager.h>
-#include <engine/particle/ParticleObject.h>
-#include <engine/renderer/D3D12.h>
-#include <engine/renderer/SrvManager.h>
-#include <engine/Engine.h>
-#include <engine/TextureManager/TexManager.h>
-#include <engine/EngineServices.h>
+#include "engine/particle/ParticleObject.h"
+
+#include "engine/Engine.h"
+#include "engine/EngineServices.h"
+#include "engine/Camera/CameraManager.h"
+#include "engine/Components/Camera/CameraComponent.h"
+#include "engine/Debug/DebugDraw.h"
+#include "engine/ImGui/ImGuiUtil.h"
+#include "engine/particle/ParticleManager.h"
+#include "engine/renderer/D3D12.h"
+#include "engine/renderer/SrvManager.h"
+#include "engine/TextureManager/TexManager.h"
 
 #include <runtime/core/math/Math.h>
+
+ParticleObject::~ParticleObject() { Shutdown(); }
 
 /// @brief パーティクルオブジェクトを初期化します
 /// @param particleCommon パーティクルマネージャーへのポインタ
@@ -73,7 +75,7 @@ void ParticleObject::Init(
 		mSrvIndex,
 		mInstancingResource->GetResource(), // ID3D12Resource* 型のリソース
 		kNumMaxInstance,                    // 要素数
-		sizeof(TransformationMatrix)        // 構造体のバイトサイズ
+		sizeof(ParticleForGPU)              // 構造体のバイトサイズ
 	);
 
 	mEmitter.count         = 3;
@@ -363,9 +365,19 @@ void ParticleObject::Draw() const {
 
 /// @brief パーティクルオブジェクトをシャットダウンします
 void ParticleObject::Shutdown() {
+	if (mSrvManager && mSrvIndex != 0) {
+		mSrvManager->DeallocateStructuredBuffer(mSrvIndex);
+		mSrvIndex = 0;
+	}
+	mParticles.clear();
+	mInstancingData = nullptr;
+	mMaterialData   = nullptr;
 	if (mMaterialResource) { mMaterialResource.reset(); }
 	if (mInstancingResource) { mInstancingResource.reset(); }
 	if (mIndexBuffer) { mIndexBuffer.reset(); }
+	mParticleCommon = nullptr;
+	mSrvManager     = nullptr;
+	mCamera         = nullptr;
 }
 
 /// @brief 新しいパーティクルを作成します

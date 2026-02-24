@@ -1,7 +1,11 @@
+#include <pch.h>
+
 #include <ranges>
 
 #include <engine/particle/ParticleManager.h>
 
+#include "engine/Engine.h"
+#include "engine/EngineServices.h"
 #include "engine/Camera/CameraManager.h"
 #include "engine/Components/Camera/CameraComponent.h"
 #include "engine/OldConsole/Console.h"
@@ -10,8 +14,6 @@
 #include "engine/renderer/PipelineState.h"
 #include "engine/renderer/RootSignatureManager.h"
 #include "engine/renderer/SrvManager.h"
-#include "engine/Engine.h"
-#include "engine/EngineServices.h"
 
 /// @brief ParticleManagerを初期化します
 /// @param d3d12 D3D12レンダラーへのポインタ
@@ -66,9 +68,27 @@ void ParticleManager::Shutdown() {
 	// パイプラインステートの開放
 	if (mPipelineState) { mPipelineState.reset(); }
 
-	for (auto name : mRegisteredGroupNames) {
-		mParticleGroups[name].instancingResource.reset();
+	// グループごとのGPUリソース/SRVの解放
+	for (const auto& name : mRegisteredGroupNames) {
+		auto it = mParticleGroups.find(name);
+		if (it == mParticleGroups.end()) {
+			continue;
+		}
+
+		// StructuredBuffer SRV を返却（確保した場合のみ）
+		if (mSrvManager != nullptr && it->second.srvIndex != 0) {
+			mSrvManager->DeallocateStructuredBuffer(it->second.srvIndex);
+			it->second.srvIndex = 0;
+		}
+
+		it->second.instancingResource.reset();
+		it->second.instancingData = nullptr;
+		it->second.particles.clear();
+		it->second.numInstance = 0;
 	}
+
+	mRegisteredGroupNames.clear();
+	mParticleGroups.clear();
 
 	mMeshData[ParticleMeshType::Quad].vertexBuffer.reset();
 	mMeshData[ParticleMeshType::Quad].indexBuffer.reset();
@@ -246,8 +266,17 @@ void ParticleManager::Render() {
 	// すべてのパーティクルグループについて
 	// テクスチャのSRVのDescriptorTableを設定
 	for (auto& particleGroup : mParticleGroups | std::views::values) {
+		particleGroup.instancingData = reinterpret_cast<ParticleForGPU*>(
+			particleGroup.instancingResource ? particleGroup.instancingResource->GetPtr() : nullptr
+		);
+
+		uint32_t writtenInstances = 0;
+
 		// グループ内のすべてのパーティクルについて処理する
 		for (auto& particle : particleGroup.particles) {
+			if (writtenInstances >= mKNumMaxInstance) {
+				break;
+			}
 			// ワールド行列を計算
 			const Mat4 world = Mat4::Translate(particle.transform.translate) *
 			                   Mat4::FromQuaternion(
@@ -262,8 +291,11 @@ void ParticleManager::Render() {
 				particleGroup.instancingData->world = world;
 				particleGroup.instancingData->color = particle.color;
 				++particleGroup.instancingData;
+				++writtenInstances;
 			}
 		}
+
+		particleGroup.numInstance = writtenInstances;
 
 		mRenderer->GetCommandList()->SetGraphicsRootDescriptorTable(
 			2, mTexManager->GetSrvHandleGPU(
@@ -315,7 +347,7 @@ std::vector<Vertex> ParticleManager::GenerateRingVertices(
 		float sinT = sin(theta);
 
 		// UV座標の計算
-		float u = static_cast<float>(i) / segments;
+		float u = static_cast<float>(i) / static_cast<float>(segments);
 
 		// 内側の頂点
 		float x_in = cosT * innerRadius;
@@ -402,20 +434,36 @@ void ParticleManager::Emit(
 	const std::string& name, const Vec3& pos,
 	const uint32_t&    count
 ) {
-	// パーティクルグループが存在しない場合は新規作成
-	if (!mParticleGroups.contains(name)) {
-		mParticleGroups[name] = ParticleGroup();
+	// 既存グループ限定：存在しない場合は発生させない
+	auto it = mParticleGroups.find(name);
+	if (it == mParticleGroups.end()) {
+		return;
 	}
+	ParticleGroup& group = it->second;
+
+	// 最大数を超えないように生成数をクランプ
+	// ※ list::size() はO(n)になり得るので、まず numInstance を優先して使う
+	const uint32_t current = group.numInstance;
+	if (current >= mKNumMaxInstance) {
+		return;
+	}
+	const uint32_t toEmit = std::min(count, mKNumMaxInstance - current);
 
 	// 指定された数のパーティクルを追加
-	for (uint32_t i = 0; i < count; ++i) {
-		mParticleGroups[name].particles.emplace_back(
+	for (uint32_t i = 0; i < toEmit; ++i) {
+		group.particles.emplace_back(
 			ParticleObject::MakeNewParticle(
 				pos, ParticleObject::GenerateConeVelocity(30.0f), Vec3::zero,
 				Vec3::zero, Vec4::white, Vec4::white, Vec3::one, Vec3::one
 			)
 		);
 	}
+
+	// 描画時の最大インスタンス数と整合を取る
+	group.numInstance = std::min<uint32_t>(
+		static_cast<uint32_t>(group.particles.size()),
+		mKNumMaxInstance
+	);
 }
 
 /// @brief D3D12レンダラーへのポインタを取得します
@@ -463,8 +511,21 @@ void ParticleManager::CreateParticleGroup(
 	const std::string& name,
 	const std::string& textureFilePath
 ) {
-	// 登録済みの名前かチェックしてアサート
-	assert(!mParticleGroups.contains(name));
+	if (name.empty()) { return; }
+
+	// 同名グループが既に存在する場合はGPUリソースを解放して再作成する
+	if (auto it = mParticleGroups.find(name); it != mParticleGroups.end()) {
+		if (mSrvManager != nullptr && it->second.srvIndex != 0) {
+			mSrvManager->DeallocateStructuredBuffer(it->second.srvIndex);
+			it->second.srvIndex = 0;
+		}
+
+		it->second.instancingResource.reset();
+		it->second.instancingData = nullptr;
+		it->second.particles.clear();
+		it->second.numInstance = 0;
+	}
+
 	// 新たな空のパーティクルグループを作成し、コンテナに登録
 	mParticleGroups[name] = ParticleGroup();
 	// 新たなパーティクルグループのマテリアルデータにテクスチャファイルパスを設定
@@ -492,5 +553,8 @@ void ParticleManager::CreateParticleGroup(
 		sizeof(ParticleForGPU)
 	);
 
-	mRegisteredGroupNames.emplace_back(name);
+	if (std::ranges::find(mRegisteredGroupNames, name) ==
+	    mRegisteredGroupNames.end()) {
+		mRegisteredGroupNames.emplace_back(name);
+	}
 }
