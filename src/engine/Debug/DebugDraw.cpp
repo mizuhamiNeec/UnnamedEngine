@@ -295,6 +295,10 @@ void DebugDraw::DrawSphere(
 	segments = std::max(segments, 2);
 
 	const int doubleSegments = segments * 2;
+	
+	const size_t estimatedLineCount = static_cast<size_t>(doubleSegments) *
+		static_cast<size_t>(2 * segments - 1);
+	mLine->ReserveLines(estimatedLineCount);
 
 	const float meridianStep = 180.0f / static_cast<float>(segments);
 
