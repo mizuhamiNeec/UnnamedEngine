@@ -2,7 +2,9 @@
 
 #include <d3d12.h>
 
+#include <algorithm>
 #include <mutex>
+
 #include "engine/Camera/CameraManager.h"
 
 #include "engine/Components/Camera/CameraComponent.h"
@@ -54,6 +56,10 @@ Line::Line(LineCommon* lineCommon) {
 		nullptr
 	);
 
+	// バッファ上限に合わせて先に確保して再確保を抑える
+	mLineVertices.reserve(kMaxLineCount * 2);
+	mLineIndices.reserve(kMaxLineCount * 2);
+
 	mTransformationMatrixConstantBuffer = std::make_unique<ConstantBuffer>(
 		mLineCommon->GetRenderer()->GetDevice(), sizeof(TransformationMatrix),
 		"LineTransformation"
@@ -71,38 +77,76 @@ static std::mutex lineMutex;
 /// @param end ラインの終了点
 /// @param color ラインの色
 void Line::AddLine(const Vec3 start, const Vec3 end, const Vec4& color) {
+#ifndef _DEBUG
+	return;
+#endif
+
 	std::lock_guard lock(lineMutex);
 
-	// 頂点を追加
-	const uint32_t startIndex = static_cast<uint32_t>(mLineVertices.size());
+	mLineSegments.Push(LineSegment{
+		.start = LineVertex{start, color},
+		.end   = LineVertex{end, color}
+	});
 
-	// インデックスを正確に追加 (最後の2つのインデックスのみを追加)
-	mLineVertices.emplace_back(LineVertex(start, color));
-	mLineVertices.emplace_back(LineVertex(end, color));
+	mIsDirty = true;
+}
 
-	mLineIndices.emplace_back(startIndex);     // 開始頂点
-	mLineIndices.emplace_back(startIndex + 1); // 終了頂点
+void Line::ReserveLines(const size_t lineCount) {
+	std::lock_guard lock(lineMutex);
+	// 1ライン = 頂点2つ + インデックス2つ
+	const size_t clamped = std::min(lineCount, kMaxLineCount);
+	mLineVertices.reserve(clamped * 2);
+	mLineIndices.reserve(clamped * 2);
+}
 
-	mIsDirty = true; // バッファを更新する
+void Line::Clear() {
+	std::lock_guard lock(lineMutex);
+	mLineSegments.Clear();
+	mLineVertices.clear();
+	mLineIndices.clear();
+	mIsDirty = true;
 }
 
 /// @brief 頂点バッファとインデックスバッファを更新する
 void Line::UpdateBuffer() {
-	// 更新の必要がない、またはデータが空の場合は終了
-	if (!mIsDirty || mLineVertices.empty()) { return; }
+	std::lock_guard lock(lineMutex);
+
+	mLineVertices.clear();
+	mLineIndices.clear();
+
+	mLineVertices.reserve(kMaxLineCount * 2);
+	mLineIndices.reserve(kMaxLineCount * 2);
+
+	for (const auto& segment : mLineSegments) {
+		const uint32_t startIndex = static_cast<uint32_t>(mLineVertices.size());
+		mLineVertices.emplace_back(segment.start);
+		mLineVertices.emplace_back(segment.end);
+		mLineIndices.emplace_back(startIndex);
+		mLineIndices.emplace_back(startIndex + 1);
+	}
+
+	if (mLineVertices.empty()) {
+		mIsDirty = false;
+		return;
+	}
 
 	// 必要なサイズを正確に計算
-	const size_t requiredVertexBufferSize = sizeof(LineVertex) * mLineVertices.
-	                                        size();
-	const size_t requiredIndexBufferSize = sizeof(uint32_t) * mLineIndices.
-	                                       size();
+	const size_t requiredVertexBufferSize =
+		sizeof(LineVertex) * mLineVertices.size();
+	const size_t requiredIndexBufferSize =
+		sizeof(uint32_t) * mLineIndices.size();
 
-	// バッファが不足している場合は再作成
+	auto grow = [](size_t required) {
+		const size_t grown = static_cast<size_t>(
+			                     static_cast<double>(required) * 1.5) + 256;
+		return std::max(required, grown);
+	};
+
 	if (mVertexBuffer->GetSize() < requiredVertexBufferSize) {
 		Console::Print("Line: VertexBufferを再作成します。\n", kConTextColorWarning);
 		mVertexBuffer = std::make_unique<VertexBuffer<LineVertex>>(
 			mLineCommon->GetRenderer()->GetDevice(),
-			requiredVertexBufferSize,
+			grow(requiredVertexBufferSize),
 			nullptr
 		);
 	}
@@ -111,20 +155,13 @@ void Line::UpdateBuffer() {
 		Console::Print("Line: IndexBufferを再作成します。\n", kConTextColorWarning);
 		mIndexBuffer = std::make_unique<IndexBuffer>(
 			mLineCommon->GetRenderer()->GetDevice(),
-			requiredIndexBufferSize,
+			grow(requiredIndexBufferSize),
 			nullptr
 		);
 	}
 
-	// バッファを更新
-	mVertexBuffer->Update(
-		mLineVertices.data(),
-		mLineVertices.size() * sizeof(LineVertex)
-	);
-	mIndexBuffer->Update(
-		mLineIndices.data(),
-		mLineIndices.size() * sizeof(uint32_t)
-	);
+	mVertexBuffer->Update(mLineVertices.data(), requiredVertexBufferSize);
+	mIndexBuffer->Update(mLineIndices.data(), requiredIndexBufferSize);
 
 	mIsDirty = false; // バッファは最新状態
 }
@@ -157,13 +194,12 @@ void Line::Draw() {
 	mLineCommon->Render();
 
 	mLineCommon->GetRenderer()->GetCommandList()->DrawIndexedInstanced(
-		static_cast<UINT>(mLineIndices.size()), // インデックス数
-		1,                                      // インスタンス数
-		0,                                      // 開始インデックス位置
-		0,                                      // ベース頂点位置
-		0                                       // 開始インスタンス位置
+		static_cast<UINT>(mLineIndices.size()),
+		1,
+		0,
+		0,
+		0
 	);
 
-	mLineVertices.clear();
-	mLineIndices.clear();
+	Clear();
 }

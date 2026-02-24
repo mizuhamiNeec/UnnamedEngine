@@ -8,8 +8,10 @@
 #include <engine/renderer/IndexBuffer.h>
 #include <engine/renderer/VertexBuffer.h>
 
+#include <core/unnamed/containers/RingBuffer.h>
+
 struct TransformationMatrix;
-constexpr size_t kMaxLineCount = 256;
+constexpr size_t kMaxLineCount = 65536;
 
 /// @brief ライン描画用の頂点構造体
 struct LineVertex {
@@ -21,6 +23,11 @@ struct LineVertex {
 private:
 	static constexpr int                  inputElementCount = 2;
 	static const D3D12_INPUT_ELEMENT_DESC inputElements[inputElementCount];
+};
+
+struct LineSegment {
+	LineVertex start;
+	LineVertex end;
 };
 
 /// @brief ライン描画クラス
@@ -38,11 +45,17 @@ public:
 	void AddLine(Vec3 start, Vec3 end, const Vec4& color);
 	void Draw();
 
+	void ReserveLines(size_t lineCount);
+
+	void Clear();
+
 private:
 	void UpdateBuffer();
 
 	//-------------------------------------------------------------------------
 	LineCommon* mLineCommon = nullptr;
+
+	Unnamed::RingBuffer<LineSegment, kMaxLineCount> mLineSegments;
 
 	std::vector<LineVertex> mLineVertices;
 	std::vector<uint32_t>   mLineIndices;
