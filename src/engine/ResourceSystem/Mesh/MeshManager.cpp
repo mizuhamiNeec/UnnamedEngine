@@ -80,6 +80,9 @@ void MeshManager::Shutdown() {
 /// @param filePath ファイルパス
 /// @return 成功したらtrue、失敗したらfalse
 bool MeshManager::LoadMeshFromFile(const std::string& filePath) {
+	// 既に読み込み済みなら再処理しない（重複サブメッシュ蓄積を防ぐ）
+	if (mStaticMeshes.contains(filePath)) { return true; }
+
 	Assimp::Importer importer;
 	const aiScene*   scene = importer.ReadFile(
 		filePath,
@@ -189,6 +192,9 @@ StaticMesh* MeshManager::CreateStaticMesh(const std::string& name) {
 /// @param filePath ファイルパス
 /// @return 成功したらtrue、失敗したらfalse
 bool MeshManager::LoadSkeletalMeshFromFile(const std::string& filePath) {
+	// 既に読み込み済みなら再処理しない（重複サブメッシュ蓄積を防ぐ）
+	if (mSkeletalMeshes.contains(filePath)) { return true; }
+
 	Assimp::Importer importer;
 	const aiScene*   scene = importer.ReadFile(
 		filePath,
