@@ -16,12 +16,19 @@ CheckpointComponent::CheckpointComponent(
 	: mOrder(order),
 	  mRespawnPosition(respawnPosition) {}
 
+CheckpointComponent::~CheckpointComponent() = default;
+
 void CheckpointComponent::OnAttach(Entity& owner) {
 	Component::OnAttach(owner);
 	mCollider = owner.GetComponent<AABBCollider>();
 
 	// CheckpointManagerに登録
 	CheckpointManager::RegisterCheckpoint(this);
+}
+
+void CheckpointComponent::OnDetach() {
+	CheckpointManager::UnregisterCheckpoint(this);
+	Component::OnDetach();
 }
 
 void CheckpointComponent::Update(float) {

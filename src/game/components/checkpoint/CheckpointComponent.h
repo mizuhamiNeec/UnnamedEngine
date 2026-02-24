@@ -12,8 +12,10 @@ class AABBCollider;
 class CheckpointComponent : public Component {
 public:
 	explicit CheckpointComponent(int order, const Vec3& respawnPosition);
+	~CheckpointComponent() override;
 
 	void OnAttach(Entity& owner) override;
+	void OnDetach() override;
 	void Update(float deltaTime) override;
 	void DrawInspectorImGui() override;
 

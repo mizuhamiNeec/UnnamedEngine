@@ -14,8 +14,10 @@ Entity* CheckpointManager::sPlayer = nullptr;
 std::map<int, CheckpointComponent*> CheckpointManager::sCheckpoints;
 CheckpointComponent* CheckpointManager::sLastActivatedCheckpoint = nullptr;
 int CheckpointManager::sNextExpectedOrder = 0;
+bool CheckpointManager::sIsInitialized     = false;
 
 void CheckpointManager::Initialize() {
+	sIsInitialized           = true;
 	sPlayer = nullptr;
 	sCheckpoints.clear();
 	sLastActivatedCheckpoint = nullptr;
@@ -23,6 +25,7 @@ void CheckpointManager::Initialize() {
 }
 
 void CheckpointManager::Shutdown() {
+	sIsInitialized           = false;
 	sPlayer = nullptr;
 	sCheckpoints.clear();
 	sLastActivatedCheckpoint = nullptr;
@@ -34,17 +37,22 @@ void CheckpointManager::SetPlayer(Entity* player) { sPlayer = player; }
 Entity* CheckpointManager::GetPlayer() { return sPlayer; }
 
 void CheckpointManager::RegisterCheckpoint(CheckpointComponent* checkpoint) {
-	if (!checkpoint) { return; }
+	if (!sIsInitialized || !checkpoint) { return; }
 
 	const int order     = checkpoint->GetOrder();
 	sCheckpoints[order] = checkpoint;
 }
 
 void CheckpointManager::UnregisterCheckpoint(CheckpointComponent* checkpoint) {
-	if (!checkpoint) { return; }
+	if (!sIsInitialized || !checkpoint) { return; }
 
-	const int order = checkpoint->GetOrder();
-	if (sCheckpoints.contains(order)) { sCheckpoints.erase(order); }
+	for (auto it = sCheckpoints.begin(); it != sCheckpoints.end();) {
+		if (it->second == checkpoint) {
+			it = sCheckpoints.erase(it);
+		} else {
+			++it;
+		}
+	}
 
 	if (sLastActivatedCheckpoint == checkpoint) {
 		sLastActivatedCheckpoint = nullptr;

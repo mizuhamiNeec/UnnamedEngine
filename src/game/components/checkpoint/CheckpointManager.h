@@ -64,4 +64,5 @@ private:
 	// order -> checkpoint
 	static CheckpointComponent* sLastActivatedCheckpoint;
 	static int                  sNextExpectedOrder;
+	static bool                 sIsInitialized;
 };
