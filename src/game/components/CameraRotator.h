@@ -1,5 +1,6 @@
 #pragma once
 #include <engine/Components/base/Component.h>
+#include <runtime/core/math/Math.h>
 
 class SceneComponent;
 
@@ -38,6 +39,17 @@ public:
 	/// @param roll ロールオフセット（度数法）
 	void SetAnimationRollOffset(float roll) { mAnimationRollOffset = roll; }
 
+	/// @brief ウォールラン中のカメラYaw目標を設定する
+	/// @param yaw 目標ヨー角（度数法）
+	/// @param active ウォールラン中かどうか
+	void SetWallrunYawTarget(float yaw, bool active) {
+		mWallrunYawTarget = yaw;
+		mWallrunYawActive = active;
+	}
+
+	void SetLookAnglesDegrees(float pitch, float yaw);
+	[[nodiscard]] Vec2 GetLookAnglesDegrees() const;
+
 private:
 	float mPitch = 0.0f;
 	float mYaw   = 0.0f;
@@ -45,4 +57,14 @@ private:
 	// アニメーションオフセット(リコイルや揺れなど)
 	float mAnimationPitchOffset = 0.0f; // degrees
 	float mAnimationRollOffset  = 0.0f; // degrees
+
+	// ウォールランYaw補間
+	float mWallrunYawTarget = 0.0f;
+	bool  mWallrunYawActive = false;
+	static constexpr float kWallrunYawLerpSpeed = 5.0f; // 補間速度
+
+	// リプレイ再生時の外部角度入力（1tickのみ適用）
+	bool  mExternalLookPending = false;
+	float mExternalPitchDeg    = 0.0f;
+	float mExternalYawDeg      = 0.0f;
 };

@@ -3,6 +3,7 @@
 #include <engine/Entity/Entity.h>
 #include <engine/Input/InputSystem.h>
 #include <engine/OldConsole/ConVarManager.h>
+#include <runtime/core/math/Math.h>
 
 /**
  * @brief デストラクタ
@@ -37,9 +38,15 @@ void CameraRotator::OnAttach(Entity& owner) {
 	);
 }
 
-void CameraRotator::PrePhysics(float) {
-	const Vec2 delta = InputSystem::GetMouseDelta();
+void CameraRotator::SetLookAnglesDegrees(const float pitch, const float yaw) {
+	mExternalPitchDeg    = pitch;
+	mExternalYawDeg      = yaw;
+	mExternalLookPending = true;
+}
 
+Vec2 CameraRotator::GetLookAnglesDegrees() const { return {mPitch, mYaw}; }
+
+void CameraRotator::PrePhysics(const float deltaTime) {
 	// 感度と回転値を計算
 	const float sensitivity = ConVarManager::GetConVar("sensitivity")->
 		GetValueAsFloat();
@@ -65,41 +72,57 @@ void CameraRotator::PrePhysics(float) {
 		"joy_turning_extra_pitch"
 	)->GetValueAsFloat();
 
-	// マウス入力の適用
-	mPitch += delta.y * sensitivity * m_pitch;
-	mYaw   += delta.x * sensitivity * m_yaw;
+	if (mExternalLookPending) {
+		mPitch               = mExternalPitchDeg;
+		mYaw                 = mExternalYawDeg;
+		mExternalLookPending = false;
+	} else {
+		const Vec2 delta = InputSystem::GetMouseDelta();
 
-	// スティック入力の取得
-	Vec2  rightStick = InputSystem::GetRightStick(0);
-	float stickMag   = rightStick.Length();
+		// マウス入力の適用
+		mPitch += delta.y * sensitivity * m_pitch;
+		mYaw   += delta.x * sensitivity * m_yaw;
 
-	if (stickMag > 0.0f) {
-		// マグニチュードをクリップ
-		stickMag        = std::min(stickMag, 1.0f);
-		float exponent  = 1.0f + (joy_curve / 10.0f);
-		float curvedMag = std::pow(stickMag, exponent);
+		// スティック入力の取得
+		Vec2  rightStick = InputSystem::GetRightStick(0);
+		float stickMag   = rightStick.Length();
 
-		Vec2 stickDir    = rightStick.Normalized();
-		Vec2 curvedStick = stickDir * curvedMag;
+		if (stickMag > 0.0f) {
+			// マグニチュードをクリップ
+			stickMag        = std::min(stickMag, 1.0f);
+			float exponent  = 1.0f + (joy_curve / 10.0f);
+			float curvedMag = std::pow(stickMag, exponent);
 
-		float extraYaw   = 0.0f;
-		float extraPitch = 0.0f;
-		if (stickMag >= joy_threshold) {
-			extraYaw   = joy_extra_yaw * std::abs(stickDir.x);
-			extraPitch = joy_extra_pitch * std::abs(stickDir.y);
+			Vec2 stickDir    = rightStick.Normalized();
+			Vec2 curvedStick = stickDir * curvedMag;
+
+			float extraYaw   = 0.0f;
+			float extraPitch = 0.0f;
+			if (stickMag >= joy_threshold) {
+				extraYaw   = joy_extra_yaw * std::abs(stickDir.x);
+				extraPitch = joy_extra_pitch * std::abs(stickDir.y);
+			}
+
+			float finalPitchInput =
+				(curvedStick.y * sensitivity * m_pitch * 50.0f)
+				+ (extraPitch * std::copysign(1.0f, curvedStick.y) * 120.0f);
+			float finalYawInput =
+				(curvedStick.x * sensitivity * m_yaw * 50.0f)
+				+ (extraYaw * std::copysign(1.0f, curvedStick.x) * 120.0f);
+
+			mPitch -= finalPitchInput;
+			mYaw   += finalYawInput;
 		}
 
-		float finalPitchInput = (curvedStick.y * sensitivity * m_pitch * 50.0f)
-		                        + (extraPitch * std::copysign(
-			                           1.0f, curvedStick.y
-		                           ) * 120.0f);
-		float finalYawInput = (curvedStick.x * sensitivity * m_yaw * 50.0f) + (
-			                      extraYaw * std::copysign(
-				                      1.0f, curvedStick.x
-			                      ) * 120.0f);
-
-		mPitch -= finalPitchInput;
-		mYaw   += finalYawInput;
+		// ウォールラン中のYawをスムーズに進行方向へ補間
+		if (mWallrunYawActive) {
+			// DeltaAngleはラジアンなのでラジアンに変換して計算
+			float currentRad = mYaw * Math::deg2Rad;
+			float targetRad  = mWallrunYawTarget * Math::deg2Rad;
+			float deltaRad   = Math::DeltaAngle(currentRad, targetRad);
+			float deltaDeg   = deltaRad * Math::rad2Deg;
+			mYaw += deltaDeg * std::min(1.0f, kWallrunYawLerpSpeed * deltaTime);
+		}
 	}
 
 	// ピッチをクランプ（上下回転の制限）
