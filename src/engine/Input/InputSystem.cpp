@@ -252,6 +252,8 @@ void InputSystem::Update() {
  * @param lParam Win32メッセージのlParam
  */
 void InputSystem::ProcessInput(const long lParam) {
+	if (mReplayInputActive) { return; }
+
 	UINT dwSize = 0;
 	GetRawInputData(
 		reinterpret_cast<HRAWINPUT>(static_cast<LPARAM>(lParam)),
@@ -369,8 +371,8 @@ void InputSystem::ProcessInput(const long lParam) {
  * @return マウスの移動量（ピクセル）
  */
 Vec2 InputSystem::GetMouseDelta() {
-	Vec2 delta = mMouseDelta;
-	return delta;
+	if (mReplayInputActive) { return mReplayInputState.mouseDelta; }
+	return mMouseDelta;
 }
 
 /// @brief マウスの位置を取得する
@@ -388,6 +390,13 @@ bool InputSystem::IsTriggered(const std::string& command) {
 	if (!command.empty() && command[0] == '+') {
 		baseCommand = command.substr(1);
 	}
+	if (mReplayInputActive) {
+		if (const auto it = mReplayInputState.triggered.find(baseCommand);
+		    it != mReplayInputState.triggered.end()) {
+			return it->second;
+		}
+		return false;
+	}
 	return mTriggeredCommands[baseCommand];
 }
 
@@ -402,6 +411,13 @@ bool InputSystem::IsPressed(const std::string& command) {
 	if (!command.empty() && command[0] == '+') {
 		baseCommand = command.substr(1);
 	}
+	if (mReplayInputActive) {
+		if (const auto it = mReplayInputState.pressed.find(baseCommand);
+		    it != mReplayInputState.pressed.end()) {
+			return it->second;
+		}
+		return false;
+	}
 	return mPressedCommands[baseCommand];
 }
 
@@ -415,6 +431,13 @@ bool InputSystem::IsReleased(const std::string& command) {
 	std::string baseCommand = command;
 	if (!command.empty() && command[0] == '+') {
 		baseCommand = command.substr(1);
+	}
+	if (mReplayInputActive) {
+		if (const auto it = mReplayInputState.released.find(baseCommand);
+		    it != mReplayInputState.released.end()) {
+			return it->second;
+		}
+		return false;
 	}
 	return mReleasedCommands[baseCommand];
 }
@@ -646,6 +669,7 @@ void InputSystem::SetVibration(
 }
 
 Vec2 InputSystem::GetLeftStick(int padIndex) {
+	if (mReplayInputActive) { return mReplayInputState.leftStick; }
 	if (padIndex < 0 || padIndex >= XUSER_MAX_COUNT) { return Vec2::zero; }
 	return Vec2(
 		mGamepadStates[padIndex].leftStickX, mGamepadStates[padIndex].leftStickY
@@ -653,6 +677,7 @@ Vec2 InputSystem::GetLeftStick(int padIndex) {
 }
 
 Vec2 InputSystem::GetRightStick(int padIndex) {
+	if (mReplayInputActive) { return mReplayInputState.rightStick; }
 	if (padIndex < 0 || padIndex >= XUSER_MAX_COUNT) { return Vec2::zero; }
 	return Vec2(
 		mGamepadStates[padIndex].rightStickX,
@@ -661,13 +686,25 @@ Vec2 InputSystem::GetRightStick(int padIndex) {
 }
 
 float InputSystem::GetLeftTrigger(int padIndex) {
+	if (mReplayInputActive) { return mReplayInputState.leftTrigger; }
 	if (padIndex < 0 || padIndex >= XUSER_MAX_COUNT) { return 0.0f; }
 	return mGamepadStates[padIndex].leftTrigger;
 }
 
 float InputSystem::GetRightTrigger(int padIndex) {
+	if (mReplayInputActive) { return mReplayInputState.rightTrigger; }
 	if (padIndex < 0 || padIndex >= XUSER_MAX_COUNT) { return 0.0f; }
 	return mGamepadStates[padIndex].rightTrigger;
+}
+
+void InputSystem::SetReplayInputState(const ReplayInputState& state) {
+	mReplayInputState  = state;
+	mReplayInputActive = true;
+}
+
+void InputSystem::ClearReplayInputState() {
+	mReplayInputState  = ReplayInputState{};
+	mReplayInputActive = false;
 }
 
 std::string InputSystem::GetKeyName(const UINT virtualKey) {
@@ -697,3 +734,5 @@ std::vector<InputSystem::VibrationEffect> InputSystem::mActiveVibrations[4];
 std::chrono::steady_clock::time_point InputSystem::mLastUpdateTime;
 bool InputSystem::mMouseLock = false;
 bool InputSystem::mCursorHidden = false;
+bool InputSystem::mReplayInputActive = false;
+InputSystem::ReplayInputState InputSystem::mReplayInputState = {};

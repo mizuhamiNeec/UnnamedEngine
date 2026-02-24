@@ -14,6 +14,17 @@
  */
 class InputSystem {
 public:
+	struct ReplayInputState {
+		std::unordered_map<std::string, bool> triggered;
+		std::unordered_map<std::string, bool> pressed;
+		std::unordered_map<std::string, bool> released;
+		Vec2                                  mouseDelta   = Vec2::zero;
+		Vec2                                  leftStick    = Vec2::zero;
+		Vec2                                  rightStick   = Vec2::zero;
+		float                                 leftTrigger  = 0.0f;
+		float                                 rightTrigger = 0.0f;
+	};
+
 	static void Init();
 	static void Update();
 	static void ProcessInput(long lParam);
@@ -28,6 +39,8 @@ public:
 	static void ExecuteCommand(const std::string& command, bool isDown);
 	static void ResetAllKeys();
 	static void CheckMouseCursorLock(HWND hwnd, int32_t x, int32_t y);
+	static void SetReplayInputState(const ReplayInputState& state);
+	static void ClearReplayInputState();
 
 
 	// コントローラー関連
@@ -94,4 +107,6 @@ private:
 	static std::chrono::steady_clock::time_point mLastUpdateTime;
 	static bool mMouseLock; // マウスのロック
 	static bool mCursorHidden; // カーソルが非表示か
+	static bool             mReplayInputActive;
+	static ReplayInputState mReplayInputState;
 };
