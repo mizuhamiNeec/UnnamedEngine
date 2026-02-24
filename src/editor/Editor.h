@@ -15,6 +15,7 @@ class EntityLoader;
 class Editor {
 public:
 	Editor(SceneManager* sceneManager, GameTime* gameTime);
+	~Editor();
 	void Init();
 
 	void DrawMenuBars();
@@ -26,6 +27,8 @@ public:
 	static bool IsManipulating();
 
 private:
+	void ActivateEditorCamera() const;
+
 #ifdef _DEBUG
 	void DrawInspector() const;
 	void DrawOutliner();

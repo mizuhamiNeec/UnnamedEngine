@@ -38,6 +38,18 @@ Editor::Editor(SceneManager* sceneManager, GameTime* gameTime)
 	Init();
 }
 
+Editor::~Editor() {
+	CameraManager::RemoveCamera(mCamera);
+	mCamera.reset();
+	mCameraEntityRaw = nullptr;
+}
+
+void Editor::ActivateEditorCamera() const {
+	if (!mCamera) { return; }
+	CameraManager::AddCamera(mCamera);
+	CameraManager::SetActiveCamera(mCamera);
+}
+
 /// @brief エディターの初期化
 void Editor::Init() {
 	// カメラの作成
@@ -56,17 +68,17 @@ void Editor::Init() {
 	CameraComponent* rawCameraPtr = mCameraEntity->AddComponent<
 		CameraComponent>();
 	// 生ポインタを std::shared_ptr に変換
-	auto camera = std::shared_ptr<CameraComponent>(
+	mCamera = std::shared_ptr<CameraComponent>(
 		rawCameraPtr, [](CameraComponent*) {}
 	);
 
 	// カメラを CameraManager に追加
-	CameraManager::AddCamera(camera);
-	// アクティブカメラに設定
-	CameraManager::SetActiveCamera(camera);
+	ActivateEditorCamera();
 
 	auto* camRaw = mCameraEntity.get();
-	mSceneManager->GetCurrentScene()->AddEntity(std::move(mCameraEntity.get()));
+	if (auto scene = mSceneManager->GetCurrentScene()) {
+		scene->AddEntity(mCameraEntity.get());
+	}
 	mCameraEntityRaw = camRaw;
 
 #ifdef _DEBUG
@@ -153,15 +165,39 @@ void Editor::DrawMenuBars() {
 
 /// @brief エディターの更新
 void Editor::Update([[maybe_unused]] const float deltaTime) {
+	if (!mSceneManager) { return; }
+
+	const auto currentScene = mSceneManager->GetCurrentScene();
+	if (mScene != currentScene) {
+		mScene          = currentScene;
+		mSelectedEntity = nullptr;
+	}
+
+	if (mScene && mCameraEntity) {
+		bool hasEditorCamera = false;
+		for (auto* entity : mScene->GetEntities()) {
+			if (entity == mCameraEntity.get()) {
+				hasEditorCamera = true;
+				break;
+			}
+		}
+
+		if (!hasEditorCamera) { mScene->AddEntity(mCameraEntity.get()); }
+	}
+
+	// シーン遷移直後などでアクティブカメラが無い場合のみ Editor カメラを復帰させる
+	if (!CameraManager::GetActiveCamera()) { ActivateEditorCamera(); }
+
 	// シーンのインポート処理
 	if (mLoadFilePath) {
-		BaseScene* currentScene = mSceneManager->GetCurrentScene().get();
 		if (currentScene && mEntityLoader) {
-			auto* engine = Unnamed::EngineServices::Get();
-			auto* resourceManager = engine ? engine->GetResourceManagerInstance() : nullptr;
+			auto* engine          = Unnamed::EngineServices::Get();
+			auto* resourceManager = engine ?
+				                        engine->GetResourceManagerInstance() :
+				                        nullptr;
 			if (resourceManager) {
 				mEntityLoader->LoadScene(
-					mLoadFilePath.value(), currentScene,
+					mLoadFilePath.value(), currentScene.get(),
 					resourceManager
 				);
 				Msg(
@@ -232,6 +268,9 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		ed_gridminorcolor_b->GetValue()
 	);
 
+	auto activeCamera = CameraManager::GetActiveCamera();
+	if (!activeCamera) { return; }
+
 	// グリッドの表示
 	DrawGrid(
 		mGridSize,
@@ -240,23 +279,22 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		majorLineColor,
 		axisLineColor,
 		minorLineColor,
-		CameraManager::GetActiveCamera()->GetViewMat().Inverse().GetTranslate(),
+		activeCamera->GetViewMat().Inverse().GetTranslate(),
 		mGridSize * 128.0f
 	);
 
 #ifdef _DEBUG
 	// ギズモの操作はエンティティの更新前に行う
 	auto* engine = Unnamed::EngineServices::Get();
-	Vec2 vLT   = engine ? engine->GetViewportLTInstance() : Vec2{};
-	Vec2 vSize = engine ? engine->GetViewportSizeInstance() : Vec2{};
+	Vec2  vLT    = engine ? engine->GetViewportLTInstance() : Vec2{};
+	Vec2  vSize  = engine ? engine->GetViewportSizeInstance() : Vec2{};
 	ImGuizmo::SetRect(
 		vLT.x, vLT.y,
 		vSize.x, vSize.y
 	);
 
-	auto camera = CameraManager::GetActiveCamera();
-	Mat4 view   = camera->GetViewMat();
-	Mat4 proj   = camera->GetProjMat();
+	Mat4 view = activeCamera->GetViewMat();
+	Mat4 proj = activeCamera->GetProjMat();
 
 	if (mSelectedEntity) {
 		Mat4 worldMat = mSelectedEntity->GetTransform()->GetLocalMat();
@@ -328,7 +366,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 	}
 #endif
 
-	if (auto currentScene = mSceneManager->GetCurrentScene()) {
+	if (mSceneManager->GetCurrentScene()) {
 		currentScene->Update(mGameTime->ScaledDeltaTime<float>());
 	}
 
@@ -343,12 +381,12 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 		static bool  bOpenPopup = false; // ポップアップ表示フラグ
 		static float popupTimer = 0.0f;
 
-		auto* engine2 = Unnamed::EngineServices::Get();
-		auto   lt           = engine2 ? engine2->GetViewportLTInstance() : Vec2{};
-		auto   size         = engine2 ? engine2->GetViewportSizeInstance() : Vec2{};
-		ImVec2 viewportPos  = {lt.x, lt.y};
+		auto*  engine2 = Unnamed::EngineServices::Get();
+		auto   lt = engine2 ? engine2->GetViewportLTInstance() : Vec2{};
+		auto   size = engine2 ? engine2->GetViewportSizeInstance() : Vec2{};
+		ImVec2 viewportPos = {lt.x, lt.y};
 		ImVec2 viewportSize = {size.x, size.y};
-		auto   mousePos     = ImGui::GetMousePos();
+		auto   mousePos = ImGui::GetMousePos();
 
 		bool bIsInsideViewport =
 			mousePos.x >= viewportPos.x &&
@@ -357,6 +395,8 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 			mousePos.y <= viewportPos.y + viewportSize.y;
 
 		if (InputSystem::IsPressed("attack2") && bIsInsideViewport) {
+			ActivateEditorCamera();
+
 			if (!cursorHidden) {
 				ShowCursor(FALSE); // カーソルを非表示にする
 				cursorHidden = true;
@@ -442,7 +482,7 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 					moveSpd * mGameTime->ScaledDeltaTime<float>()
 				);
 			}
-			
+
 			// カーソルをウィンドウの中央にリセット
 			POINT centerCursorPos = {
 				static_cast<LONG>(OldWindowManager::GetMainWindow()->
@@ -540,10 +580,12 @@ void Editor::Update([[maybe_unused]] const float deltaTime) {
 
 /// @brief エディタのレンダリング処理
 void Editor::Render() const {
+	if (!mSceneManager) { return; }
+
 	if (auto currentScene = mSceneManager->GetCurrentScene()) {
 		currentScene->Render();
 		if (auto* engine3 = Unnamed::EngineServices::Get()) {
-			if (auto* r = engine3->GetRendererInstance()) {
+			if (auto* r = engine3->GetRendererInstance(); r && mCameraEntity) {
 				mCameraEntity->Render(r->GetCommandList());
 			}
 		}
@@ -581,7 +623,7 @@ void Editor::DrawInspector() const {
 /// @brief アウトライナウィンドウを描画します
 void Editor::DrawOutliner() {
 	if (ImGui::Begin("Outliner")) {
-		if (ImGui::Button("Add Entity")) {
+		if (ImGui::Button("Add Entity") && mScene) {
 			mScene->AddEntity(NEW Entity("New Entity"));
 		}
 
@@ -1027,6 +1069,9 @@ void Editor::DrawTopBar() {
 				iconScale,
 				ImGuiDir_Right
 			);
+
+			ImGui::SameLine();
+			if (ImGui::Button("EditorCam")) { ActivateEditorCamera(); }
 		}
 
 		ImGui::EndDisabled();
