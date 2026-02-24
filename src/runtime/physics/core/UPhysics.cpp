@@ -69,6 +69,16 @@ namespace UPhysics {
 	/// @details メッシュコライダーを持ったエンティティを登録します
 	/// @param entity 登録するエンティティ(旧)
 	void Engine::RegisterEntity(Entity* entity) {
+		if (!entity) { return; }
+		
+		const bool alreadyRegistered = std::ranges::any_of(
+			mBVHs,
+			[&](const RegisteredBVH& bvh) { return bvh.owner == entity; }
+		);
+		if (alreadyRegistered) {
+			UnregisterEntity(entity);
+		}
+
 		auto meshCollider = entity->GetComponent<MeshColliderComponent>();
 		if (!meshCollider) {
 			Warning(
