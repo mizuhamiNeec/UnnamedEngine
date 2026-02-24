@@ -13,13 +13,7 @@
 #endif
 
 Entity::~Entity() {
-	/*if (auto* collider = GetComponent<ColliderComponent>()) {
-		if (collider) {
-			if (collider->GetPhysicsEngine()) {
-				collider->GetPhysicsEngine()->UnregisterEntity(this);
-			}
-		}
-	}*/
+	RemoveAllComponents();
 }
 
 void Entity::PrePhysics(float deltaTime) const {
@@ -290,4 +284,9 @@ std::string& Entity::GetName() { return mName; }
 
 void Entity::SetName(const std::string& name) { mName = name; }
 
-void Entity::RemoveAllComponents() { mComponents.clear(); }
+void Entity::RemoveAllComponents() {
+	for (const auto& component : mComponents) {
+		if (component) { component->OnDetach(); }
+	}
+	mComponents.clear();
+}
