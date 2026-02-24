@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <memory>
 
 #include <engine/Components/MeshRenderer/SkeletalMeshRenderer.h>
@@ -26,6 +27,7 @@ class CameraRotator;
 class CameraSystem;
 class CameraComponent;
 class IConVar;
+struct ReplayUserCmdFrame;
 
 /**
  * @brief メインゲームシーンクラス
@@ -45,6 +47,12 @@ public:
 	void RecreateWorldMeshEntity();
 	void SafeReloadWorldMesh();
 
+	void SetDemoPlaybackEnabled(bool enabled);
+	[[nodiscard]] bool IsDemoPlaybackEnabled() const;
+	[[nodiscard]] MovementComponent* GetMovementComponent() const;
+	[[nodiscard]] CameraRotator* GetCameraRotator() const;
+	void ApplyReplayAuthoritativeState(const ReplayUserCmdFrame& frame);
+
 private:
 	void RegisterConVars();
 	void LoadCoreTextures() const;
@@ -60,6 +68,8 @@ private:
 	void InitializeCameraRoot();
 	void InitializeShakeRoot();
 	void InitializeSkeletalMesh();
+	void InitializeJumpPad();
+	void InitializeSpeedBoostArea();
 	void ConfigureEntityHierarchy();
 	void ConfigureConsole();
 	void InitializeTeleportTrigger();
@@ -75,6 +85,7 @@ private:
 	void UpdatePostProcessing(float deltaTime);
 	void UpdateTeleport();
 	void UpdateParticlesAndEffects(float deltaTime);
+	void UpdateReplayRecording(float deltaTime);
 	void UpdateEntities(float deltaTime);
 	void QueueReturnToTitle();
 
@@ -113,6 +124,11 @@ private:
 	std::unique_ptr<Entity>             mFanEntity;
 	std::shared_ptr<StaticMeshRenderer> mFanMeshRenderer;
 
+	std::unique_ptr<Entity> mJumpPadEntity;
+	std::unique_ptr<Entity> mJumpPadEntity2;
+	std::unique_ptr<Entity> mSpeedBoostAreaEntity;
+	std::unique_ptr<Entity> mSpeedBoostAreaEntity2;
+
 	// テレポート用AABB
 	Vec3 mTeleportTriggerMin;    // ボックスの最小点
 	Vec3 mTeleportTriggerMax;    // ボックスの最大点
@@ -139,6 +155,10 @@ private:
 	bool mPendingMeshReload    = false;
 	bool mMeshReloadArmed      = false;
 	bool mPendingReturnToTitle = false;
+	bool mIsDemoPlayback       = false;
+	float mRecordingTickAccumulatorSec = 0.0f;
+	float mFanMovePhase = 100.0f;
+	uint32_t mPendingReplayEdgeButtons = 0u;
 
 	IConVar* mShowPosConVar = nullptr;
 	IConVar* mNameConVar    = nullptr;

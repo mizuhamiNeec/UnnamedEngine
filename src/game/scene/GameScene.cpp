@@ -1,6 +1,8 @@
 #include "GameScene.h"
 
+#include <algorithm>
 #include <array>
+#include <cstdint>
 #include <format>
 #include <limits>
 #include <string>
@@ -21,11 +23,15 @@
 #include <engine/unnamed/subsystem/console/Log.h>
 
 #include <game/components/CameraRotator.h>
+#include <game/components/JumpPadComponent.h>
 #include <game/components/RotateComponent.h>
+#include <game/components/SpeedBoostAreaComponent.h>
+#include <game/components/player/PlayerInputController.h>
 #include <game/components/checkpoint/CheckpointComponent.h>
 #include <game/components/checkpoint/CheckpointManager.h>
 #include <game/components/checkpoint/GoalComponent.h>
 #include <game/components/player/KinematicCollisionResolver.h>
+#include <game/replay/ReplayManager.h>
 
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 
@@ -80,26 +86,44 @@ namespace {
 	constexpr float kBlastRadiusHu               = 512.0f;
 	constexpr float kBlastPowerHu                = 1024.0f;
 	constexpr float kPlayerCameraForwardOffsetHU = 4.0f;
+	constexpr float kJumpPadBoostVelocityHu      = 800.0f;
+	constexpr Vec3  kJumpPadPosition(10.0f, 0.0f, 6.0f);
+	constexpr Vec3  kJumpPadPosition2(34.0f, 0.0f, -12.0f);
+	constexpr float kJumpPadWidthHu  = 128.0f;
+	constexpr float kJumpPadHeightHu = 64.0f;
+	constexpr float kJumpPadDepthHu  = 128.0f;
+
+	constexpr float kSpeedBoostMultiplier  = 1.5f;
+	constexpr float kSpeedBoostDurationSec = 3.0f;
+	constexpr Vec3  kSpeedBoostPosition(14.0f, 0.0f, 12.0f);
+	constexpr Vec3  kSpeedBoostPosition2(42.0f, 0.0f, 18.0f);
+	constexpr float kSpeedBoostWidthHu  = 192.0f;
+	constexpr float kSpeedBoostHeightHu = 48.0f;
+	constexpr float kSpeedBoostDepthHu  = 192.0f;
 
 	template <typename T>
 	std::shared_ptr<T> AdoptComponent(T* raw) {
 		return std::shared_ptr<T>(raw, [](T*) {});
 	}
+
+	constexpr uint32_t kDefaultReplayTickRate = 66;
+	constexpr int      kReplayCatchUpSteps    = 8;
 }
 
-/// @brief コンストラクタ
+/// @brief デストラクタ
 GameScene::~GameScene() {
-	mResourceManager = nullptr;
-	mSpriteCommon    = nullptr;
-	mParticleManager = nullptr;
-	mObject3DCommon  = nullptr;
-	mModelCommon     = nullptr;
-	mUPhysicsEngine  = nullptr;
-	mTimer           = nullptr;
+	// Shutdown() が呼ばれていない場合に備えて安全にクリア
+	if (mUPhysicsEngine || mCamera || mEntPlayer) {
+		Shutdown();
+	}
 }
 
 /// @brief 初期化
 void GameScene::Init() {
+	mRecordingTickAccumulatorSec = 0.0f;
+	mPendingReplayEdgeButtons    = 0u;
+	mFanMovePhase                = 100.0f;
+
 	// 各種マネージャーの取得
 	auto* engine = Unnamed::EngineServices::Get();
 	UASSERT(engine && "Engine instance not registered");
@@ -120,6 +144,8 @@ void GameScene::Init() {
 	InitializePhysics();
 	InitializeCamera();
 	InitializePlayer();
+	InitializeJumpPad();
+	InitializeSpeedBoostArea();
 	InitializeWorldMesh();
 	InitializeFanMesh();
 	InitializeCameraRoot();
@@ -167,19 +193,68 @@ void GameScene::Init() {
 	mTimer->StartGame();
 }
 
+void GameScene::SetDemoPlaybackEnabled(const bool enabled) {
+	mIsDemoPlayback = enabled;
+}
+
+bool GameScene::IsDemoPlaybackEnabled() const { return mIsDemoPlayback; }
+
+MovementComponent* GameScene::GetMovementComponent() const {
+	return mMovementComponent.get();
+}
+
+CameraRotator* GameScene::GetCameraRotator() const { return mCameraRotator; }
+
+void GameScene::ApplyReplayAuthoritativeState(const ReplayUserCmdFrame& frame) {
+	const bool wasSpeedVaulting = mMovementComponent ?
+		                              mMovementComponent->IsSpeedVaulting() :
+		                              false;
+
+	if (frame.hasAuthoritativeState && mEntPlayer) {
+		mEntPlayer->GetTransform()->SetWorldPos(
+			Vec3(frame.playerPosX, frame.playerPosY, frame.playerPosZ)
+		);
+	}
+
+	if (mMovementComponent) {
+		if (frame.hasAuthoritativeState) {
+			mMovementComponent->SetVelocity(
+				Vec3(frame.playerVelX, frame.playerVelY, frame.playerVelZ)
+			);
+		}
+		if (frame.hasVaultState) {
+			mMovementComponent->ApplyReplayVaultState(
+				frame.isSpeedVaulting,
+				frame.vaultProgress,
+				Vec3(frame.vaultStartX, frame.vaultStartY, frame.vaultStartZ),
+				Vec3(frame.vaultApexX, frame.vaultApexY, frame.vaultApexZ),
+				Vec3(frame.vaultEndX, frame.vaultEndY, frame.vaultEndZ)
+			);
+		}
+	}
+
+	const bool enteredSpeedVault =
+		frame.hasVaultState && frame.isSpeedVaulting && !wasSpeedVaulting;
+	if (!enteredSpeedVault) { SyncCameraRoot(); }
+
+	// リプレイ補正後のトランスフォームを同フレーム描画へ反映する。
+	if (const auto camera = CameraManager::GetActiveCamera()) {
+		camera->Update(0.0f);
+	}
+}
+
 /// @brief 更新
 /// @param deltaTime 経過時間
 void GameScene::Update(const float deltaTime) {
 	HandleMeshReload();
 
-	if (InputSystem::IsTriggered("escape")) { QueueReturnToTitle(); }
+	if (!mIsDemoPlayback && (GetAsyncKeyState(VK_BACK) & 0x0001) != 0) {
+		QueueReturnToTitle();
+	}
 
 	// ファンを物理エンジンから登録解除
 	if (mUPhysicsEngine) {
 		mUPhysicsEngine->UnregisterEntity(mFanEntity.get());
-	}
-	if (mFanEntity->HasComponent<MeshColliderComponent>()) {
-		mFanEntity->RemoveComponent<MeshColliderComponent>();
 	}
 
 	SyncCameraRoot();
@@ -193,6 +268,7 @@ void GameScene::Update(const float deltaTime) {
 	UpdateTeleport();
 	UpdateParticlesAndEffects(deltaTime);
 	UpdateEntities(deltaTime);
+	UpdateReplayRecording(deltaTime);
 
 	auto* nextCheckpoint = CheckpointManager::GetNextCheckpoint();
 	auto* goal           = mGoalEntity->GetComponent<GoalComponent>();
@@ -314,18 +390,6 @@ void GameScene::Render() {
 	if (mExplosionEffect) { mExplosionEffect->Draw(); }
 
 	if (mSpriteCommon) { mSpriteCommon->Render(); }
-
-	// if (mNextCheckpointSprite) {
-	// 	if (mGoalEntity) {
-	// 		auto* goal = mGoalEntity->GetComponent<GoalComponent>();
-	// 		if (goal && goal->IsReached()) { return; }
-	// 	}
-	// 	mNextCheckpointSprite->Draw();
-	// }
-	//
-	// if (mNextCheckpointArrowSprite) { mNextCheckpointArrowSprite->Draw(); }
-
-	if (mPendingReturnToTitle) { mPendingReturnToTitle = false; }
 }
 
 /// @brief コンソール変数の登録
@@ -550,8 +614,11 @@ void GameScene::InitializeFanMesh() {
 	}
 
 	mFanEntity->AddComponent<RotateComponent>();
+	mFanEntity->AddComponent<MeshColliderComponent>();
 
 	AddEntity(mFanEntity.get());
+
+	if (mUPhysicsEngine) { mUPhysicsEngine->RegisterEntity(mFanEntity.get()); }
 }
 
 /// @brief カメラルートの初期化
@@ -572,6 +639,7 @@ void GameScene::InitializeShakeRoot() {
 
 	if (mCameraAnimator && mMovementComponent && mCameraRotator) {
 		mCameraAnimator->Init(mMovementComponent.get(), mCameraRotator);
+		mMovementComponent->SetCameraAnimator(mCameraAnimator.get());
 	}
 }
 
@@ -602,6 +670,67 @@ void GameScene::InitializeSkeletalMesh() {
 	AddEntity(mEntSkeletalMesh.get());
 }
 
+/// @brief ジャンプパッドの初期化
+void GameScene::InitializeJumpPad() {
+	mJumpPadEntity = std::make_unique<Entity>("JumpPad");
+	mJumpPadEntity->GetTransform()->SetWorldPos(kJumpPadPosition);
+
+	const float width  = Math::HtoM(kJumpPadWidthHu);
+	const float height = Math::HtoM(kJumpPadHeightHu);
+	const float depth  = Math::HtoM(kJumpPadDepthHu);
+
+	Unnamed::AABB aabb(
+		Vec3(-width * 0.5f, 0.0f, -depth * 0.5f),
+		Vec3(width * 0.5f, height, depth * 0.5f)
+	);
+	mJumpPadEntity->AddComponent<AABBCollider>(aabb, Vec3::zero);
+
+	mJumpPadEntity->AddComponent<JumpPadComponent>(
+		kJumpPadBoostVelocityHu
+	);
+
+	AddEntity(mJumpPadEntity.get());
+
+	mJumpPadEntity2 = std::make_unique<Entity>("JumpPad2");
+	mJumpPadEntity2->GetTransform()->SetWorldPos(kJumpPadPosition2);
+	mJumpPadEntity2->AddComponent<AABBCollider>(aabb, Vec3::zero);
+	mJumpPadEntity2->AddComponent<JumpPadComponent>(
+		kJumpPadBoostVelocityHu
+	);
+	AddEntity(mJumpPadEntity2.get());
+}
+
+void GameScene::InitializeSpeedBoostArea() {
+	mSpeedBoostAreaEntity = std::make_unique<Entity>("SpeedBoostArea");
+	mSpeedBoostAreaEntity->GetTransform()->SetWorldPos(kSpeedBoostPosition);
+
+	const float width  = Math::HtoM(kSpeedBoostWidthHu);
+	const float height = Math::HtoM(kSpeedBoostHeightHu);
+	const float depth  = Math::HtoM(kSpeedBoostDepthHu);
+
+	Unnamed::AABB aabb(
+		Vec3(-width * 0.5f, 0.0f, -depth * 0.5f),
+		Vec3(width * 0.5f, height, depth * 0.5f)
+	);
+	mSpeedBoostAreaEntity->AddComponent<AABBCollider>(aabb, Vec3::zero);
+
+	mSpeedBoostAreaEntity->AddComponent<SpeedBoostAreaComponent>(
+		kSpeedBoostMultiplier,
+		kSpeedBoostDurationSec
+	);
+
+	AddEntity(mSpeedBoostAreaEntity.get());
+
+	mSpeedBoostAreaEntity2 = std::make_unique<Entity>("SpeedBoostArea2");
+	mSpeedBoostAreaEntity2->GetTransform()->SetWorldPos(kSpeedBoostPosition2);
+	mSpeedBoostAreaEntity2->AddComponent<AABBCollider>(aabb, Vec3::zero);
+	mSpeedBoostAreaEntity2->AddComponent<SpeedBoostAreaComponent>(
+		kSpeedBoostMultiplier,
+		kSpeedBoostDurationSec
+	);
+	AddEntity(mSpeedBoostAreaEntity2.get());
+}
+
 /// @brief エンティティ階層の設定
 void GameScene::ConfigureEntityHierarchy() {
 	if (mEntShakeRoot && mEntCameraRoot) {
@@ -627,6 +756,8 @@ void GameScene::ConfigureEntityHierarchy() {
 
 		mEntWeapon->SetParent(mEntViewmodelRoot.get());
 		mEntWeapon->GetTransform()->SetLocalPos(kShakeRootOffset);
+
+		mEntViewmodelRoot->SetParent(mEntShakeRoot.get());
 	}
 }
 
@@ -946,6 +1077,10 @@ void GameScene::UpdatePlayer(const float deltaTime) {
 		targetFov = defaultFov;
 	}
 
+	if (mCameraAnimator) {
+		targetFov += mCameraAnimator->GetBlinkFovOffsetDeg();
+	}
+
 	targetFov = std::lerp(currentFov, targetFov, deltaTime * 10.0f);
 
 	CameraManager::GetActiveCamera()->SetFovVertical(targetFov * Math::deg2Rad);
@@ -1038,6 +1173,93 @@ void GameScene::UpdateParticlesAndEffects(float deltaTime) {
 	if (mExplosionEffect) { mExplosionEffect->Update(deltaTime); }
 }
 
+void GameScene::UpdateReplayRecording(const float deltaTime) {
+	auto& replayManager = ReplayManager::Get();
+	if (mIsDemoPlayback || !replayManager.IsRecording()) {
+		mRecordingTickAccumulatorSec = 0.0f;
+		mPendingReplayEdgeButtons    = 0u;
+		return;
+	}
+
+	const uint32_t tickRate = replayManager.GetRecordingTickRateOrDefault(
+		kDefaultReplayTickRate
+	);
+	const float fixedTickSec = 1.0f / static_cast<float>(tickRate);
+	mRecordingTickAccumulatorSec += deltaTime;
+	if (InputSystem::IsTriggered("blink")) {
+		mPendingReplayEdgeButtons |= ReplayButton_Blink;
+	}
+
+	HumanPlayerInputController inputSampler;
+	const PlayerInputFrame sampledInput = inputSampler.SampleInput();
+
+	const Vec2 lookAngles = mCameraRotator ?
+		                        mCameraRotator->GetLookAnglesDegrees() :
+		                        Vec2::zero;
+
+	int stepCount = 0;
+	while (mRecordingTickAccumulatorSec >= fixedTickSec &&
+	       stepCount < kReplayCatchUpSteps) {
+		ReplayUserCmdFrame frame;
+		frame.moveX        = std::clamp(sampledInput.moveInput.x, -1.0f, 1.0f);
+		frame.moveY        = std::clamp(sampledInput.moveInput.y, -1.0f, 1.0f);
+		frame.viewPitchDeg = lookAngles.x;
+		frame.viewYawDeg   = lookAngles.y;
+		if (mEntPlayer && mMovementComponent) {
+			const Vec3 playerPos = mEntPlayer->GetTransform()->GetWorldPos();
+			const Vec3 playerVel = mMovementComponent->GetVelocity();
+			frame.hasAuthoritativeState = true;
+			frame.playerPosX            = playerPos.x;
+			frame.playerPosY            = playerPos.y;
+			frame.playerPosZ            = playerPos.z;
+			frame.playerVelX            = playerVel.x;
+			frame.playerVelY            = playerVel.y;
+			frame.playerVelZ            = playerVel.z;
+
+			frame.hasVaultState   = true;
+			frame.isSpeedVaulting = mMovementComponent->IsSpeedVaulting();
+			frame.vaultProgress   = mMovementComponent->GetVaultProgress();
+			const Vec3 vaultStart = mMovementComponent->GetVaultStartPos();
+			const Vec3 vaultApex  = mMovementComponent->GetVaultApexPos();
+			const Vec3 vaultEnd   = mMovementComponent->GetVaultEndPos();
+			frame.vaultStartX = vaultStart.x;
+			frame.vaultStartY = vaultStart.y;
+			frame.vaultStartZ = vaultStart.z;
+			frame.vaultApexX  = vaultApex.x;
+			frame.vaultApexY  = vaultApex.y;
+			frame.vaultApexZ  = vaultApex.z;
+			frame.vaultEndX   = vaultEnd.x;
+			frame.vaultEndY   = vaultEnd.y;
+			frame.vaultEndZ   = vaultEnd.z;
+		}
+
+		if (sampledInput.wishJump) {
+			frame.buttons |= ReplayButton_Jump;
+		}
+		if (sampledInput.wishCrouch) {
+			frame.buttons |= ReplayButton_Crouch;
+		}
+		if ((mPendingReplayEdgeButtons & ReplayButton_Blink) != 0u) {
+			frame.buttons |= ReplayButton_Blink;
+			mPendingReplayEdgeButtons &= ~ReplayButton_Blink;
+		}
+		if (InputSystem::IsPressed("+attack1")) {
+			frame.buttons |= ReplayButton_Attack1;
+		}
+		if (InputSystem::IsPressed("+reload")) {
+			frame.buttons |= ReplayButton_Reload;
+		}
+
+		replayManager.CaptureRecordingTick(frame);
+		mRecordingTickAccumulatorSec -= fixedTickSec;
+		++stepCount;
+	}
+
+	if (stepCount >= kReplayCatchUpSteps) {
+		mRecordingTickAccumulatorSec = 0.0f;
+	}
+}
+
 /// @brief エンティティの更新
 /// @param deltaTime 経過時間
 void GameScene::UpdateEntities(float deltaTime) {
@@ -1048,22 +1270,18 @@ void GameScene::UpdateEntities(float deltaTime) {
 
 	// ファンをSinCosで移動させる
 	if (mFanEntity) {
-		static float moveSpeed = 100.0f;
-
 		const auto newPos = Vec3(
-			std::sin(moveSpeed) * 20.0f,
+			std::sin(mFanMovePhase) * 20.0f,
 			mFanEntity->GetTransform()->GetWorldPos().y,
 			mFanEntity->GetTransform()->GetWorldPos().z
 		);
 
-		moveSpeed += deltaTime;
+		mFanMovePhase += deltaTime;
 
 		mFanEntity->GetTransform()->SetWorldPos(newPos);
-	}
 
-	// 回転が適用された後に再登録
-	mFanEntity->AddComponent<MeshColliderComponent>();
-	if (mUPhysicsEngine) { mUPhysicsEngine->RegisterEntity(mFanEntity.get()); }
+		if (mUPhysicsEngine) { mUPhysicsEngine->RegisterEntity(mFanEntity.get()); }
+	}
 
 	// 物理更新
 	for (auto* entity : mEntities) {
@@ -1222,8 +1440,92 @@ void GameScene::DrawDebugHud(
 
 /// @brief シャットダウン
 void GameScene::Shutdown() {
-	// CheckpointManagerをシャットダウン
+	// 先にCheckpointManagerを停止し、以降のコンポーネント破棄中に
+	// Register/Unregisterが動かないようにする
 	CheckpointManager::Shutdown();
+
+	// オーディオの停止
+	if (mWind) {
+		mWind->Stop();
+		mWind.reset();
+	}
+
+	// エフェクトの破棄
+	mExplosionEffect.reset();
+	mWindEffect.reset();
+
+	// パーティクルの破棄
+	mParticleObject.reset();
+	mParticleEmitter.reset();
+
+	// スプライトの破棄
+	mNextCheckpointArrowSprite.reset();
+	mNextCheckpointSprite.reset();
+
+	// 物理エンジンからエンティティを登録解除してから破棄
+	if (mUPhysicsEngine) {
+		if (mEntWorldMesh) { mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get()); }
+		if (mFanEntity)    { mUPhysicsEngine->UnregisterEntity(mFanEntity.get()); }
+	}
+
+	// エンティティリストをクリア（BaseScene側の生ポインタリスト）
+	// unique_ptr で管理されているエンティティは delete しない
+	mEntities.clear();
+
+	// 各エンティティの破棄（unique_ptr で管理）
+	// ※ CheckpointComponent / GoalComponent は Entity 破棄時にデストラクタで
+	//    CheckpointManager::UnregisterCheckpoint() を呼ぶ
+	mGoalEntity.reset();
+	mCheckpointEntities.clear();
+	mSpeedBoostAreaEntity2.reset();
+	mSpeedBoostAreaEntity.reset();
+	mJumpPadEntity2.reset();
+	mJumpPadEntity.reset();
+	mFanEntity.reset();
+	mEntSkeletalMesh.reset();
+	mEntViewmodelRoot.reset();
+	mEntShakeRoot.reset();
+	mEntWeapon.reset();
+	mEntWorldMesh.reset();
+	mEntPlayer.reset();
+	mEntCameraRoot.reset();
+	mCamera.reset();
+
+	// コンポーネントの shared_ptr を解放
+	mSkeletalMeshRenderer.reset();
+	mFanMeshRenderer.reset();
+	mWorldMeshRenderer.reset();
+	mWeaponMeshRenderer.reset();
+	mWeaponComponent.reset();
+	mMovementComponent.reset();
+	mCameraAnimator.reset();
+	mCameraRotator = nullptr;
+
+	// 物理エンジンの破棄
+	mUPhysicsEngine.reset();
+
+	// キューブマップの破棄
+	mCubeMap.reset();
+
+	// マネージャーポインタのクリア
+	mResourceManager = nullptr;
+	mSpriteCommon    = nullptr;
+	mParticleManager = nullptr;
+	mObject3DCommon  = nullptr;
+	mModelCommon     = nullptr;
+	mSrvManager      = nullptr;
+	mAudioManager    = nullptr;
+	mRenderer        = nullptr;
+	mTimer           = nullptr;
+
+	// ConVarポインタのクリア
+	mShowPosConVar = nullptr;
+	mNameConVar    = nullptr;
+	mClearConVar   = nullptr;
+
+	mRecordingTickAccumulatorSec = 0.0f;
+	mPendingReplayEdgeButtons    = 0u;
+	mFanMovePhase                = 100.0f;
 }
 
 /// @brief ワールドメッシュのリロード
@@ -1339,7 +1641,6 @@ void GameScene::RecreateWorldMeshEntity() {
 	AddEntity(mEntWorldMesh.get());
 
 	// 物理エンジンに登録
-	//	mPhysicsEngine->RegisterEntity(mEntWorldMesh.get(), true);
 	if (mUPhysicsEngine) {
 		mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 	}
@@ -1442,4 +1743,6 @@ void GameScene::QueueReturnToTitle() {
 	if (mPendingReturnToTitle) { return; }
 
 	mPendingReturnToTitle = true;
+	// シーン遷移をリクエスト（フレーム末尾で実行される）
+	RequestSceneChange("TestScene");
 }
