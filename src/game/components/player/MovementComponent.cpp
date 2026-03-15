@@ -31,6 +31,27 @@
 
 static constexpr std::string_view kChannel = "MovementComponent";
 
+namespace {
+bool TryGetActiveCameraForward(Vec3& outForward, const bool horizontalOnly) {
+	const auto cam = CameraManager::GetActiveCamera();
+	if (!cam) { return false; }
+
+	Vec3 forward = Vec3::forward;
+	if (auto* owner = cam->GetOwner()) {
+		if (auto* transform = owner->GetTransform()) {
+			forward = transform->GetWorldRot() * Vec3::forward;
+		} else { forward = cam->GetViewMat().Inverse().GetForward(); }
+	} else { forward = cam->GetViewMat().Inverse().GetForward(); }
+
+	if (horizontalOnly) { forward.y = 0.0f; }
+	const float lenSq = forward.SqrLength();
+	if (lenSq <= 1.0e-8f) { return false; }
+
+	outForward = forward * (1.0f / std::sqrt(lenSq));
+	return true;
+}
+} // namespace
+
 /// @brief コンストラクタ
 /// @param width プレイヤーの幅
 /// @param height プレイヤーの高さ
@@ -377,18 +398,14 @@ void MovementComponent::ProcessInput() {
 	} else { mData.moveInputIntensity = 0.0f; }
 
 	Vec3 wish = Vec3::zero;
-	if (const auto cam = CameraManager::GetActiveCamera()) {
-		Vec3 f           = cam->GetViewMat().Inverse().GetForward();
-		f.y              = 0.0f;
-		const float fLen = f.Length();
-		if (fLen > 1e-6f) {
-			f *= 1.0f / fLen;
-			const Vec3 r = Vec3::up.Cross(f).Normalized();
-			wish = f * mData.vecMoveInput.y + r * mData.vecMoveInput.x;
-			wish.y = 0.0f;
-			const float wishLen = wish.Length();
-			if (wishLen > 1e-6f) wish *= 1.0f / wishLen;
-		}
+	Vec3 camForward = Vec3::zero;
+	if (TryGetActiveCameraForward(camForward, true)) {
+		const Vec3 r = Vec3::up.Cross(camForward).Normalized();
+		wish         = camForward * mData.vecMoveInput.y +
+		       r * mData.vecMoveInput.x;
+		wish.y       = 0.0f;
+		const float wishLen = wish.Length();
+		if (wishLen > 1e-6f) wish *= 1.0f / wishLen;
 	}
 	mData.wishDirection = wish;
 	mData.wishJump      = frame.wishJump;
@@ -805,12 +822,8 @@ bool MovementComponent::TryStartWallrun() {
 	const auto cam = CameraManager::GetActiveCamera();
 	if (!cam) return false;
 
-	Vec3 f           = cam->GetViewMat().Inverse().GetForward();
-	f.y              = 0;
-	const float fLen = f.Length();
-	if (fLen < 1e-6f) return false;
-
-	const Vec3 camForward = f * (1.0f / fLen);
+	Vec3 camForward = Vec3::zero;
+	if (!TryGetActiveCameraForward(camForward, true)) { return false; }
 	const Vec3 right      = Vec3::up.Cross(camForward).Normalized();
 
 	const Vec3  checkDirections[] = {right, -right};
@@ -900,19 +913,14 @@ void MovementComponent::UpdateWallrun(float dt) {
 		mData.wallRunNormal = (mData.wallRunNormal * 0.8f + newNormal * 0.2f).
 			Normalized();
 
-		if (const auto cam = CameraManager::GetActiveCamera()) {
-			Vec3 camForward = cam->GetViewMat().Inverse().GetForward();
-			camForward.y = 0;
-			const float camForwardLen = camForward.Length();
-			if (camForwardLen > 1e-6f) {
-				camForward        *= 1.0f / camForwardLen;
-				Vec3 projectedDir = Math::ProjectOnPlane(
-					camForward, mData.wallRunNormal
-				);
-				const float projLen = projectedDir.Length();
-				if (projLen > 1e-6f) {
-					mData.wallRunDirection = projectedDir * (1.0f / projLen);
-				}
+		Vec3 camForward = Vec3::zero;
+		if (TryGetActiveCameraForward(camForward, true)) {
+			Vec3 projectedDir = Math::ProjectOnPlane(
+				camForward, mData.wallRunNormal
+			);
+			const float projLen = projectedDir.Length();
+			if (projLen > 1e-6f) {
+				mData.wallRunDirection = projectedDir * (1.0f / projLen);
 			}
 		}
 	}
@@ -928,19 +936,14 @@ void MovementComponent::UpdateWallrun(float dt) {
 	}
 
 	if (kWallrunDetachOnSideInput && std::abs(mData.vecMoveInput.x) > 0.5f) {
-		if (const auto cam = CameraManager::GetActiveCamera()) {
-			Vec3 f           = cam->GetViewMat().Inverse().GetForward();
-			f.y              = 0;
-			const float fLen = f.Length();
-			if (fLen > 1e-6f) {
-				const Vec3  camForward = f * (1.0f / fLen);
-				const Vec3  camRight   = Vec3::up.Cross(camForward).Normalized();
-				const float wallSide   = camRight.Dot(mData.wallRunNormal);
+		Vec3 camForward = Vec3::zero;
+		if (TryGetActiveCameraForward(camForward, true)) {
+			const Vec3  camRight = Vec3::up.Cross(camForward).Normalized();
+			const float wallSide = camRight.Dot(mData.wallRunNormal);
 
-				if ((wallSide > 0 && mData.vecMoveInput.x > 0.5f) ||
-				    (wallSide < 0 && mData.vecMoveInput.x < -0.5f)) {
-					EndWallrun();
-				}
+			if ((wallSide > 0 && mData.vecMoveInput.x > 0.5f) ||
+			    (wallSide < 0 && mData.vecMoveInput.x < -0.5f)) {
+				EndWallrun();
 			}
 		}
 	}
@@ -1078,10 +1081,8 @@ void MovementComponent::HandleBlink() {
 	const auto camera = CameraManager::GetActiveCamera();
 	if (!camera) { return; }
 
-	Vec3 dir             = camera->GetViewMat().Inverse().GetForward();
-	const float dirLenSq = dir.SqrLength();
-	if (dirLenSq < 1e-6f) { return; }
-	dir *= 1.0f / std::sqrt(dirLenSq);
+	Vec3 dir = Vec3::zero;
+	if (!TryGetActiveCameraForward(dir, false)) { return; }
 
 	const Vec3 startPos = mScene->GetWorldPos();
 	const Vec3 desiredDisplacement = dir * Math::HtoM(kBlinkDistanceHu);
@@ -1156,11 +1157,8 @@ bool MovementComponent::TryStartSpeedVault() {
 	const auto cam = CameraManager::GetActiveCamera();
 	if (!cam) return false;
 
-	Vec3 forward = cam->GetViewMat().Inverse().GetForward();
-	forward.y = 0.0f;
-	const float fLen = forward.Length();
-	if (fLen < 1e-6f) return false;
-	forward *= 1.0f / fLen;
+	Vec3 forward = Vec3::zero;
+	if (!TryGetActiveCameraForward(forward, true)) { return false; }
 
 	const Vec3  feetPos       = mScene->GetWorldPos();
 	const float halfWidthM    = Math::HtoM(mData.currentWidthHu * 0.5f);
