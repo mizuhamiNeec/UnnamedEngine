@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <format>
 #include <limits>
@@ -21,6 +22,7 @@
 #include <engine/ResourceSystem/Audio/AudioManager.h>
 #include <engine/TextureManager/TexManager.h>
 #include <engine/unnamed/subsystem/console/Log.h>
+#include <runtime/core/math/Math.h>
 
 #include <game/components/CameraRotator.h>
 #include <game/components/JumpPadComponent.h>
@@ -51,11 +53,19 @@ namespace {
 	constexpr char kArrowTexturePath[] =
 		"./content/parkour/textures/arrow.png";
 	constexpr char kDigitsAtlasPath[] =
-		"./content/parkour/textures/uvChecker.png";
+		"./content/parkour/textures/digits.png";
+	constexpr char kCountdownStartTexturePath[] =
+		"./content/parkour/textures/start.png";
 	constexpr char kColonTexturePath[] =
 		"./content/parkour/textures/colon.png";
 	constexpr char kDotTexturePath[] =
 		"./content/parkour/textures/dot.png";
+	constexpr char kFadeOverlayTexturePath[] =
+		"./content/parkour/textures/title_overlay.png";
+	constexpr char kCountdownCountSePath[] =
+		"./content/parkour/sounds/se/count.wav";
+	constexpr char kCountdownStartSePath[] =
+		"./content/parkour/sounds/se/start.wav";
 	constexpr char kWindParticleTexturePath[] =
 		"./content/core/textures/circle.png";
 	constexpr char kWeaponMeshPath[]   = "./content/core/models/weapon.obj";
@@ -108,21 +118,110 @@ namespace {
 
 	constexpr uint32_t kDefaultReplayTickRate = 66;
 	constexpr int      kReplayCatchUpSteps    = 8;
+
+	enum class CutsceneMotionType {
+		Pan,
+		Dolly,
+		PanDolly
+	};
+
+	struct CutsceneShot {
+		Vec3               startPos    = Vec3::zero;
+		Vec3               endPos      = Vec3::zero;
+		Vec3               startLook   = Vec3::forward;
+		Vec3               endLook     = Vec3::forward;
+		float              durationSec = 0.0f;
+		CutsceneMotionType motion      = CutsceneMotionType::PanDolly;
+	};
+
+	constexpr std::array<CutsceneShot, 4> kOpeningCutsceneShots{
+		{
+			{
+				.startPos    = Vec3(0.0f, 4.0f, 0.0f),
+				.endPos      = Vec3(0.0f, 4.0f, 40.0f),
+				.startLook   = Vec3(0.0f, 3.0f, 50.0f),
+				.endLook     = Vec3(0.0f, 3.0f, 50.0f),
+				.durationSec = 3.0f,
+				.motion      = CutsceneMotionType::PanDolly
+			},
+			{
+				.startPos    = Vec3(-52.0f, 8.0f, 118.0f),
+				.endPos      = Vec3(-52.0f, 8.0f, 118.0f),
+				.startLook   = Vec3(-28.0f, 1.0f, 140.0f),
+				.endLook     = Vec3(-100.0f, 1.0f, 119.0f),
+				.durationSec = 4.0f,
+				.motion      = CutsceneMotionType::PanDolly
+			},
+			{
+				.startPos    = Vec3(-113.794f, 75.0f, 92.0f),
+				.endPos      = Vec3(-113.794f, 75.0f, 5.0f),
+				.startLook   = Vec3(-113.794f, 0.0f, 92.5f),
+				.endLook     = Vec3(-113.794f, 0.0f, 5.5f),
+				.durationSec = 3.0f,
+				.motion      = CutsceneMotionType::PanDolly
+			},
+			{
+				.startPos    = Vec3(0.0f, 6.0f, 0.0f),
+				.endPos      = Vec3(0.0f, 3.626f, 0.0f),
+				.startLook   = Vec3(0.0f, 6.0f, 1.0f),
+				.endLook     = Vec3(0.0f, 3.626f, 1.0f),
+				.durationSec = 0.5f,
+				.motion      = CutsceneMotionType::PanDolly
+			}
+		}
+	};
+
+	constexpr float kOpeningCountdownDigitDurationSec = 1.0f;
+	constexpr float kOpeningCountdownStartDurationSec = 0.8f;
+	constexpr float kOpeningShotFadeOutSec            = 0.25f;
+	constexpr float kOpeningShotFadeInSec             = 0.25f;
+	constexpr float kCountdownAtlasHeightPx           = 64.0f;
+	constexpr float kCountdownDigitWidthPx            = 64.0f;
+
+	float EvaluateCutsceneEase(const float t) {
+		return Math::CubicBezier(
+			std::clamp(t, 0.0f, 1.0f), 0.2f, 0.0f, 0.0f, 1.0f
+		);
+	}
+
+	std::string FormatRaceTime(const double totalSeconds) {
+		const double clampedSec    = std::max(0.0, totalSeconds);
+		const int    totalCentisec = static_cast<int>(std::floor(
+			clampedSec * 100.0
+		));
+		const int minutes      = totalCentisec / (60 * 100);
+		const int seconds      = (totalCentisec / 100) % 60;
+		const int centiseconds = totalCentisec % 100;
+		return std::format("{:02}:{:02}.{:02}", minutes, seconds, centiseconds);
+	}
 }
 
 /// @brief デストラクタ
 GameScene::~GameScene() {
 	// Shutdown() が呼ばれていない場合に備えて安全にクリア
-	if (mUPhysicsEngine || mCamera || mEntPlayer) {
-		Shutdown();
-	}
+	if (mUPhysicsEngine || mCamera || mEntPlayer) { Shutdown(); }
 }
 
 /// @brief 初期化
 void GameScene::Init() {
-	mRecordingTickAccumulatorSec = 0.0f;
-	mPendingReplayEdgeButtons    = 0u;
-	mFanMovePhase                = 100.0f;
+	mRecordingTickAccumulatorSec  = 0.0f;
+	mPendingReplayEdgeButtons     = 0u;
+	mFanMovePhase                 = 100.0f;
+	mOpeningPhase                 = OpeningPhase::Gameplay;
+	mOpeningShotIndex             = 0;
+	mOpeningShotElapsedSec        = 0.0f;
+	mOpeningShotFadeElapsedSec    = 0.0f;
+	mCountdownElapsedSec          = 0.0f;
+	mOpeningFadeAlpha             = 0.0f;
+	mOpeningFixedLookAngles       = Vec2::zero;
+	mOpeningPlayerLookAngles      = Vec2::zero;
+	mOpeningShotFadeActive        = false;
+	mOpeningShotFadeSwapped       = false;
+	mLastCountdownCueStep         = -1;
+	mOpeningGameplayStarted       = false;
+	mGameplayPresentationStarted  = false;
+	mLastActivatedCheckpointCount = 0;
+	mCheckpointSplits.clear();
 
 	// 各種マネージャーの取得
 	auto* engine = Unnamed::EngineServices::Get();
@@ -174,23 +273,291 @@ void GameScene::Init() {
 	);
 	mNextCheckpointArrowSprite->SetAnchorPoint({0.5f, 0.5f});
 
-	const auto run = mAudioManager->GetAudio(
+	mCountdownDigitSprite = std::make_unique<Sprite>();
+	mCountdownDigitSprite->Init(
+		mSpriteCommon,
+		kDigitsAtlasPath
+	);
+	mCountdownDigitSprite->SetAnchorPoint({0.5f, 0.5f});
+	mCountdownDigitSprite->SetTextureLeftTop({0.0f, 0.0f});
+	mCountdownDigitSprite->SetTextureSize(
+		{kCountdownDigitWidthPx, kCountdownAtlasHeightPx}
+	);
+	mCountdownDigitBaseSize = mCountdownDigitSprite->GetSize();
+
+	mCountdownStartSprite = std::make_unique<Sprite>();
+	mCountdownStartSprite->Init(
+		mSpriteCommon,
+		kCountdownStartTexturePath
+	);
+	mCountdownStartSprite->SetAnchorPoint({0.5f, 0.5f});
+	mCountdownStartBaseSize = mCountdownStartSprite->GetSize();
+
+	mOpeningFadeSprite = std::make_unique<Sprite>();
+	mOpeningFadeSprite->Init(
+		mSpriteCommon,
+		kFadeOverlayTexturePath
+	);
+	mOpeningFadeSprite->SetAnchorPoint({0.0f, 0.0f});
+	mOpeningFadeAlpha = 0.0f;
+	UpdateOpeningFadeSprite();
+
+	for (std::size_t i = 0; i < mRaceTimerSprites.size(); ++i) {
+		mRaceTimerSprites[i]        = std::make_unique<Sprite>();
+		const bool  useDigitTexture = (i != 2 && i != 5);
+		const char* texturePath     = useDigitTexture ?
+			                              kDigitsAtlasPath :
+			                              (i == 2 ?
+				                               kColonTexturePath :
+				                               kDotTexturePath);
+		mRaceTimerSprites[i]->Init(mSpriteCommon, texturePath);
+		mRaceTimerSprites[i]->SetAnchorPoint({0.0f, 0.0f});
+		if (useDigitTexture) {
+			mRaceTimerSprites[i]->SetTextureLeftTop({0.0f, 0.0f});
+			mRaceTimerSprites[i]->SetTextureSize(
+				{kCountdownDigitWidthPx, kCountdownAtlasHeightPx}
+			);
+			mRaceTimerDigitBaseSize = mRaceTimerSprites[i]->GetSize();
+		} else if (i == 2) {
+			mRaceTimerColonBaseSize = mRaceTimerSprites[i]->GetSize();
+		} else { mRaceTimerDotBaseSize = mRaceTimerSprites[i]->GetSize(); }
+	}
+	HideRaceTimerSprites();
+
+	mRun = mAudioManager->GetAudio(
 		"./content/parkour/sounds/bgm/Run.wav"
 	);
-
-#ifndef _DEBUG
-	run->Play(true);
-	run->SetVolume(0.125f);
-#endif
 
 	mWind = mAudioManager->GetAudio(
 		"./content/parkour/sounds/amb/wind.wav"
 	);
-	mWind->Play(true);
-	mWind->SetVolume(1.0f);
+	mCountdownCountSe = mAudioManager->GetAudio(kCountdownCountSePath);
+	mCountdownStartSe = mAudioManager->GetAudio(kCountdownStartSePath);
 
-	// ゲームタイマー開始
-	mTimer->StartGame();
+	if (!mIsDemoPlayback && mEntSkeletalMesh) {
+		mEntSkeletalMesh->SetVisible(false);
+	}
+
+	if (mIsDemoPlayback) {
+		SetPlayerGameplayActive(true);
+		mOpeningPhase                 = OpeningPhase::Gameplay;
+		mOpeningFadeAlpha             = 0.0f;
+		mOpeningShotFadeActive        = false;
+		mOpeningShotFadeSwapped       = false;
+		mOpeningShotFadeElapsedSec    = 0.0f;
+		mLastCountdownCueStep         = -1;
+		mOpeningGameplayStarted       = true;
+		mLastActivatedCheckpointCount = 0;
+		mCheckpointSplits.clear();
+		if (mTimer) { mTimer->StartGame(); }
+		StartGameplayPresentation();
+	} else {
+		SetPlayerGameplayActive(false);
+		mOpeningPhase              = OpeningPhase::Tour;
+		mOpeningFadeAlpha          = 0.0f;
+		mOpeningShotFadeActive     = false;
+		mOpeningShotFadeSwapped    = false;
+		mOpeningShotFadeElapsedSec = 0.0f;
+		mLastCountdownCueStep      = -1;
+		mOpeningGameplayStarted    = false;
+		mOpeningShotIndex          = 0;
+		mOpeningShotElapsedSec     = 0.0f;
+		mCountdownElapsedSec       = 0.0f;
+		if (mCameraRotator) {
+			mOpeningPlayerLookAngles = mCameraRotator->GetLookAnglesDegrees();
+		}
+		if (!kOpeningCutsceneShots.empty()) {
+			const CutsceneShot& firstShot = kOpeningCutsceneShots[0];
+			ApplyOpeningCameraPose(firstShot.startPos, firstShot.startLook);
+		}
+	}
+}
+
+/// @brief 更新
+/// @param deltaTime 経過時間
+void GameScene::Update(const float deltaTime) {
+	HandleMeshReload();
+
+	if (!mIsDemoPlayback && (InputSystem::IsTriggered("backtotitle"))) {
+		QueueReturnToTitle();
+	}
+
+	// ファンを物理エンジンから登録解除
+	if (mUPhysicsEngine) {
+		mUPhysicsEngine->UnregisterEntity(mFanEntity.get());
+	}
+
+	bool openingActive = IsOpeningSequenceActive();
+	if (!mIsDemoPlayback && mOpeningPhase != OpeningPhase::Gameplay) {
+		UpdateOpeningSequence(deltaTime);
+		openingActive = IsOpeningSequenceActive();
+	}
+
+	const auto camera = CameraManager::GetActiveCamera();
+	if (!openingActive) {
+		SyncCameraRoot();
+		HandleWeaponInput();
+		HandleWeaponFire(camera);
+		UpdateSkeletalAnimation();
+		UpdatePlayer(deltaTime);
+		UpdateTeleport();
+		UpdateReplayRecording(deltaTime);
+
+		auto* nextCheckpoint = CheckpointManager::GetNextCheckpoint();
+		auto* goal           = mGoalEntity ?
+			                       mGoalEntity->GetComponent<
+				                       GoalComponent>() :
+			                       nullptr;
+
+		if (goal && !goal->IsReached()) {
+			bool  isOutOfScreen = false;
+			float angle         = 0.0f;
+			Vec2  screenPos;
+
+			Vec2 clientSize = Unnamed::EngineServices::Get() ?
+				                  Unnamed::EngineServices::Get()->
+				                  GetViewportSizeInstance() :
+				                  Vec2{};
+
+			Vec2 viewportSize = clientSize;
+
+			if (nextCheckpoint) {
+				screenPos = Math::WorldToScreen(
+					nextCheckpoint->GetOwner()->GetTransform()->GetWorldPos(),
+					viewportSize,
+					true,
+					100.0f,
+					isOutOfScreen,
+					angle
+				);
+			} else {
+				// 次のチェックポイントがない場合はゴールに向かう
+				screenPos = Math::WorldToScreen(
+					goal->GetOwner()->GetTransform()->GetWorldPos(),
+					viewportSize,
+					true,
+					100.0f,
+					isOutOfScreen,
+					angle
+				);
+			}
+
+			// 画面中心からの距離に応じて透明度を変化させる
+			{
+				const Vec2  center   = viewportSize * 0.5f;
+				const Vec2  toCenter = screenPos - center;
+				const float dist     = std::sqrt(
+					toCenter.x * toCenter.x + toCenter.y * toCenter.y
+				);
+
+				const float maxDist = std::max(
+					1.0f, std::sqrt(center.x * center.x + center.y * center.y)
+				);
+				const float t     = std::clamp(dist / maxDist, 0.0f, 1.0f);
+				const float alpha = std::lerp(0.025f, 1.0f, t);
+
+				mNextCheckpointSprite->SetColor(Vec4(1.0f, 1.0f, 1.0f, alpha));
+			}
+
+			mNextCheckpointSprite->SetPos(
+				screenPos
+			);
+
+			mNextCheckpointArrowSprite->SetPos(screenPos);
+			if (isOutOfScreen) {
+				mNextCheckpointArrowSprite->SetRot(Vec3::forward * angle);
+			} else { mNextCheckpointArrowSprite->SetPos(Vec3::min); }
+		} else { CheckpointManager::ResetAllCheckpoints(); }
+	} else {
+		if (mNextCheckpointSprite) { mNextCheckpointSprite->SetPos(Vec3::min); }
+		if (mNextCheckpointArrowSprite) {
+			mNextCheckpointArrowSprite->SetPos(Vec3::min);
+		}
+	}
+
+	UpdatePostProcessing(deltaTime);
+	UpdateParticlesAndEffects(deltaTime);
+	UpdateEntities(deltaTime);
+
+	if (mNextCheckpointSprite) { mNextCheckpointSprite->Update(); }
+	if (mNextCheckpointArrowSprite) { mNextCheckpointArrowSprite->Update(); }
+	UpdateCheckpointSplits();
+	UpdateRaceTimerSprites();
+	DrawGameplayHud();
+	UpdateOpeningFadeSprite();
+
+#ifdef _DEBUG
+	// チェックポイントのデバッグ表示
+	if (!openingActive && !mCheckpointEntities.empty()) {
+		constexpr Vec4 lineColor(0.0f, 1.0f, 0.0f, 1.0f); // 緑色
+
+		// 順番に隣接するチェックポイント同士を結ぶ
+		for (size_t i = 0; i + 1 < mCheckpointEntities.size(); ++i) {
+			auto* a = mCheckpointEntities[i].get();
+			auto* b = mCheckpointEntities[i + 1].get();
+			if (!a || !b) { continue; }
+			const Vec3 posA = a->GetTransform()->GetWorldPos();
+			const Vec3 posB = b->GetTransform()->GetWorldPos();
+			DebugDraw::DrawLine(posA, posB, lineColor);
+		}
+
+		// 最後のチェックポイントからゴールへ繋ぐ
+		auto* last = mCheckpointEntities.back().get();
+		if (last && mGoalEntity) {
+			const Vec3 posLast = last->GetTransform()->GetWorldPos();
+			const Vec3 posGoal = mGoalEntity->GetTransform()->GetWorldPos();
+			DebugDraw::DrawLine(posLast, posGoal, lineColor);
+		}
+	}
+	DrawDebugHud(camera);
+#endif
+}
+
+/// @brief 描画
+void GameScene::Render() {
+	if (!mRenderer) { return; }
+
+	auto* commandList = mRenderer->GetCommandList();
+
+	if (mClearConVar && mClearConVar->GetValueAsBool() && mCubeMap) {
+		mCubeMap->Render(commandList);
+	}
+
+	for (const auto* entity : mEntities) {
+		if (entity) { entity->Render(commandList); }
+	}
+
+	if (auto* engine = Unnamed::EngineServices::Get()) {
+		if (auto* particleManager = engine->GetParticleManagerInstance()) {
+			particleManager->Render();
+		}
+	}
+
+	if (mParticleObject) { mParticleObject->Draw(); }
+
+	if (mWindEffect) { mWindEffect->Draw(); }
+
+	if (mExplosionEffect) { mExplosionEffect->Draw(); }
+
+	if (mSpriteCommon) { mSpriteCommon->Render(); }
+
+	if (!IsOpeningSequenceActive()) {
+		if (mNextCheckpointSprite) { mNextCheckpointSprite->Draw(); }
+		if (mNextCheckpointArrowSprite) { mNextCheckpointArrowSprite->Draw(); }
+		if (!mIsDemoPlayback) {
+			for (const auto& timerSprite : mRaceTimerSprites) {
+				if (timerSprite) { timerSprite->Draw(); }
+			}
+		}
+	}
+
+	if (mOpeningPhase == OpeningPhase::Countdown) {
+		if (mCountdownDigitSprite) { mCountdownDigitSprite->Draw(); }
+		if (mCountdownStartSprite) { mCountdownStartSprite->Draw(); }
+	}
+	if (mOpeningFadeSprite && mOpeningFadeAlpha > 0.0f) {
+		mOpeningFadeSprite->Draw();
+	}
 }
 
 void GameScene::SetDemoPlaybackEnabled(const bool enabled) {
@@ -243,155 +610,6 @@ void GameScene::ApplyReplayAuthoritativeState(const ReplayUserCmdFrame& frame) {
 	}
 }
 
-/// @brief 更新
-/// @param deltaTime 経過時間
-void GameScene::Update(const float deltaTime) {
-	HandleMeshReload();
-
-	if (!mIsDemoPlayback && (GetAsyncKeyState(VK_BACK) & 0x0001) != 0) {
-		QueueReturnToTitle();
-	}
-
-	// ファンを物理エンジンから登録解除
-	if (mUPhysicsEngine) {
-		mUPhysicsEngine->UnregisterEntity(mFanEntity.get());
-	}
-
-	SyncCameraRoot();
-	HandleWeaponInput();
-
-	const auto camera = CameraManager::GetActiveCamera();
-	HandleWeaponFire(camera);
-	UpdateSkeletalAnimation();
-	UpdatePlayer(deltaTime);
-	UpdatePostProcessing(deltaTime);
-	UpdateTeleport();
-	UpdateParticlesAndEffects(deltaTime);
-	UpdateEntities(deltaTime);
-	UpdateReplayRecording(deltaTime);
-
-	auto* nextCheckpoint = CheckpointManager::GetNextCheckpoint();
-	auto* goal           = mGoalEntity->GetComponent<GoalComponent>();
-
-	if (!goal->IsReached()) {
-		bool  isOutOfScreen = false;
-		float angle         = 0.0f;
-		Vec2  screenPos;
-
-		Vec2 clientSize = Unnamed::EngineServices::Get() ?
-			                  Unnamed::EngineServices::Get()->
-			                  GetViewportSizeInstance() :
-			                  Vec2{};
-
-		Vec2 viewportSize = clientSize;
-
-		if (nextCheckpoint) {
-			screenPos = Math::WorldToScreen(
-				nextCheckpoint->GetOwner()->GetTransform()->GetWorldPos(),
-				viewportSize,
-				true,
-				100.0f,
-				isOutOfScreen,
-				angle
-			);
-		} else {
-			// 次のチェックポイントがない場合はゴールに向かう
-			screenPos = Math::WorldToScreen(
-				goal->GetOwner()->GetTransform()->GetWorldPos(),
-				viewportSize,
-				true,
-				100.0f,
-				isOutOfScreen,
-				angle
-			);
-		}
-
-		// 画面中心からの距離に応じて透明度を変化させる
-		{
-			const Vec2  center   = viewportSize * 0.5f;
-			const Vec2  toCenter = screenPos - center;
-			const float dist     = std::sqrt(
-				toCenter.x * toCenter.x + toCenter.y * toCenter.y
-			);
-
-			const float maxDist = std::max(
-				1.0f, std::sqrt(center.x * center.x + center.y * center.y)
-			);
-			const float t     = std::clamp(dist / maxDist, 0.0f, 1.0f);
-			const float alpha = std::lerp(0.025f, 1.0f, t);
-
-			mNextCheckpointSprite->SetColor(Vec4(1.0f, 1.0f, 1.0f, alpha));
-		}
-
-		mNextCheckpointSprite->SetPos(
-			screenPos
-		);
-
-		mNextCheckpointArrowSprite->SetPos(screenPos);
-		if (isOutOfScreen) {
-			mNextCheckpointArrowSprite->SetRot(Vec3::forward * angle);
-		} else { mNextCheckpointArrowSprite->SetPos(Vec3::min); }
-	} else { CheckpointManager::ResetAllCheckpoints(); }
-
-	mNextCheckpointSprite->Update();
-	mNextCheckpointArrowSprite->Update();
-
-#ifdef _DEBUG
-	// チェックポイントのデバッグ表示
-	if (!mCheckpointEntities.empty()) {
-		constexpr Vec4 lineColor(0.0f, 1.0f, 0.0f, 1.0f); // 緑色
-
-		// 順番に隣接するチェックポイント同士を結ぶ
-		for (size_t i = 0; i + 1 < mCheckpointEntities.size(); ++i) {
-			auto* a = mCheckpointEntities[i].get();
-			auto* b = mCheckpointEntities[i + 1].get();
-			if (!a || !b) { continue; }
-			const Vec3 posA = a->GetTransform()->GetWorldPos();
-			const Vec3 posB = b->GetTransform()->GetWorldPos();
-			DebugDraw::DrawLine(posA, posB, lineColor);
-		}
-
-		// 最後のチェックポイントからゴールへ繋ぐ
-		auto* last = mCheckpointEntities.back().get();
-		if (last && mGoalEntity) {
-			const Vec3 posLast = last->GetTransform()->GetWorldPos();
-			const Vec3 posGoal = mGoalEntity->GetTransform()->GetWorldPos();
-			DebugDraw::DrawLine(posLast, posGoal, lineColor);
-		}
-	}
-	DrawDebugHud(camera);
-#endif
-}
-
-/// @brief 描画
-void GameScene::Render() {
-	if (!mRenderer) { return; }
-
-	auto* commandList = mRenderer->GetCommandList();
-
-	if (mClearConVar && mClearConVar->GetValueAsBool() && mCubeMap) {
-		mCubeMap->Render(commandList);
-	}
-
-	for (const auto* entity : mEntities) {
-		if (entity) { entity->Render(commandList); }
-	}
-
-	if (auto* engine = Unnamed::EngineServices::Get()) {
-		if (auto* particleManager = engine->GetParticleManagerInstance()) {
-			particleManager->Render();
-		}
-	}
-
-	if (mParticleObject) { mParticleObject->Draw(); }
-
-	if (mWindEffect) { mWindEffect->Draw(); }
-
-	if (mExplosionEffect) { mExplosionEffect->Draw(); }
-
-	if (mSpriteCommon) { mSpriteCommon->Render(); }
-}
-
 /// @brief コンソール変数の登録
 void GameScene::RegisterConVars() {
 	ConVarManager::RegisterConVar("sv_ducktime", 1000.0f, "ms");
@@ -414,30 +632,28 @@ void GameScene::LoadCoreTextures() const {
 	if (!texManager) { return; }
 
 	struct TextureRequest {
-		const char* path    = nullptr;
-		bool        useSrgb = false;
+		const char* path = nullptr;
 	};
 
-	constexpr std::array<TextureRequest, 9> requests{
+	constexpr std::array<TextureRequest, 11> requests{
 		{
-			{kDevMeasureTexturePath, false},
-			{kUvCheckerTexturePath, false},
-			{kWaveTexturePath, true},
-			{kSmokeTexturePath, false},
-			{kPingTexturePath, false},
-			{kArrowTexturePath, false},
-			{kDigitsAtlasPath, true},
-			{kColonTexturePath, true},
-			{kDotTexturePath, true},
+			{kDevMeasureTexturePath},
+			{kUvCheckerTexturePath},
+			{kWaveTexturePath},
+			{kSmokeTexturePath},
+			{kPingTexturePath},
+			{kArrowTexturePath},
+			{kDigitsAtlasPath},
+			{kColonTexturePath},
+			{kDotTexturePath},
+			{kCountdownStartTexturePath},
+			{kFadeOverlayTexturePath},
 		}
 	};
 
 	for (const auto& request : requests) {
 		if (!request.path) { continue; }
-
-		if (request.useSrgb) {
-			texManager->LoadTexture(request.path, true);
-		} else { texManager->LoadTexture(request.path); }
+		texManager->LoadTexture(request.path);
 	}
 }
 
@@ -941,9 +1157,21 @@ void GameScene::HandleWeaponFire(
 
 	if (!camera) { return; }
 
-	Mat4       inverseView = camera->GetViewMat().Inverse();
-	const Vec3 origin      = inverseView.GetTranslate();
-	const Vec3 direction   = inverseView.GetForward();
+	Vec3 origin    = Vec3::zero;
+	Vec3 direction = Vec3::forward;
+	if (auto* owner = camera->GetOwner()) {
+		if (auto* transform = owner->GetTransform()) {
+			origin    = transform->GetWorldPos();
+			direction = transform->GetWorldRot() * Vec3::forward;
+		}
+	} else {
+		Mat4 inverseView = camera->GetViewMat().Inverse();
+		origin           = inverseView.GetTranslate();
+		direction        = inverseView.GetForward();
+	}
+	if (direction.SqrLength() > 1.0e-8f) { direction.Normalize(); } else {
+		direction = Vec3::forward;
+	}
 
 	const Vec3 invDirection(
 		direction.x != 0.0f ?
@@ -1001,11 +1229,18 @@ void GameScene::UpdateSkeletalAnimation() {
 	) { return; }
 
 	// プレイヤーが前に進んでいるかチェック
-	Mat4 cameraInvViewMat = CameraManager::GetActiveCamera()->GetViewMat().
-		Inverse();
-	Vec3 forward = cameraInvViewMat.GetForward();
-	forward.y    = 0.0f; // 上下成分は無視
-	forward.Normalize();
+	Vec3 forward = Vec3::forward;
+	if (const auto camera = CameraManager::GetActiveCamera()) {
+		if (auto* owner = camera->GetOwner()) {
+			if (auto* transform = owner->GetTransform()) {
+				forward = transform->GetWorldRot() * Vec3::forward;
+			}
+		} else { forward = camera->GetViewMat().Inverse().GetForward(); }
+	}
+	forward.y = 0.0f; // 上下成分は無視
+	if (forward.SqrLength() > 1.0e-8f) { forward.Normalize(); } else {
+		forward = Vec3::forward;
+	}
 	const float dot = forward.Dot(
 		mMovementComponent->GetVelocity().Normalized()
 	);
@@ -1184,14 +1419,14 @@ void GameScene::UpdateReplayRecording(const float deltaTime) {
 	const uint32_t tickRate = replayManager.GetRecordingTickRateOrDefault(
 		kDefaultReplayTickRate
 	);
-	const float fixedTickSec = 1.0f / static_cast<float>(tickRate);
+	const float fixedTickSec     = 1.0f / static_cast<float>(tickRate);
 	mRecordingTickAccumulatorSec += deltaTime;
 	if (InputSystem::IsTriggered("blink")) {
 		mPendingReplayEdgeButtons |= ReplayButton_Blink;
 	}
 
 	HumanPlayerInputController inputSampler;
-	const PlayerInputFrame sampledInput = inputSampler.SampleInput();
+	const PlayerInputFrame     sampledInput = inputSampler.SampleInput();
 
 	const Vec2 lookAngles = mCameraRotator ?
 		                        mCameraRotator->GetLookAnglesDegrees() :
@@ -1209,12 +1444,12 @@ void GameScene::UpdateReplayRecording(const float deltaTime) {
 			const Vec3 playerPos = mEntPlayer->GetTransform()->GetWorldPos();
 			const Vec3 playerVel = mMovementComponent->GetVelocity();
 			frame.hasAuthoritativeState = true;
-			frame.playerPosX            = playerPos.x;
-			frame.playerPosY            = playerPos.y;
-			frame.playerPosZ            = playerPos.z;
-			frame.playerVelX            = playerVel.x;
-			frame.playerVelY            = playerVel.y;
-			frame.playerVelZ            = playerVel.z;
+			frame.playerPosX = playerPos.x;
+			frame.playerPosY = playerPos.y;
+			frame.playerPosZ = playerPos.z;
+			frame.playerVelX = playerVel.x;
+			frame.playerVelY = playerVel.y;
+			frame.playerVelZ = playerVel.z;
 
 			frame.hasVaultState   = true;
 			frame.isSpeedVaulting = mMovementComponent->IsSpeedVaulting();
@@ -1222,25 +1457,21 @@ void GameScene::UpdateReplayRecording(const float deltaTime) {
 			const Vec3 vaultStart = mMovementComponent->GetVaultStartPos();
 			const Vec3 vaultApex  = mMovementComponent->GetVaultApexPos();
 			const Vec3 vaultEnd   = mMovementComponent->GetVaultEndPos();
-			frame.vaultStartX = vaultStart.x;
-			frame.vaultStartY = vaultStart.y;
-			frame.vaultStartZ = vaultStart.z;
-			frame.vaultApexX  = vaultApex.x;
-			frame.vaultApexY  = vaultApex.y;
-			frame.vaultApexZ  = vaultApex.z;
-			frame.vaultEndX   = vaultEnd.x;
-			frame.vaultEndY   = vaultEnd.y;
-			frame.vaultEndZ   = vaultEnd.z;
+			frame.vaultStartX     = vaultStart.x;
+			frame.vaultStartY     = vaultStart.y;
+			frame.vaultStartZ     = vaultStart.z;
+			frame.vaultApexX      = vaultApex.x;
+			frame.vaultApexY      = vaultApex.y;
+			frame.vaultApexZ      = vaultApex.z;
+			frame.vaultEndX       = vaultEnd.x;
+			frame.vaultEndY       = vaultEnd.y;
+			frame.vaultEndZ       = vaultEnd.z;
 		}
 
-		if (sampledInput.wishJump) {
-			frame.buttons |= ReplayButton_Jump;
-		}
-		if (sampledInput.wishCrouch) {
-			frame.buttons |= ReplayButton_Crouch;
-		}
+		if (sampledInput.wishJump) { frame.buttons |= ReplayButton_Jump; }
+		if (sampledInput.wishCrouch) { frame.buttons |= ReplayButton_Crouch; }
 		if ((mPendingReplayEdgeButtons & ReplayButton_Blink) != 0u) {
-			frame.buttons |= ReplayButton_Blink;
+			frame.buttons             |= ReplayButton_Blink;
 			mPendingReplayEdgeButtons &= ~ReplayButton_Blink;
 		}
 		if (InputSystem::IsPressed("+attack1")) {
@@ -1280,7 +1511,9 @@ void GameScene::UpdateEntities(float deltaTime) {
 
 		mFanEntity->GetTransform()->SetWorldPos(newPos);
 
-		if (mUPhysicsEngine) { mUPhysicsEngine->RegisterEntity(mFanEntity.get()); }
+		if (mUPhysicsEngine) {
+			mUPhysicsEngine->RegisterEntity(mFanEntity.get());
+		}
 	}
 
 	// 物理更新
@@ -1295,6 +1528,520 @@ void GameScene::UpdateEntities(float deltaTime) {
 	for (auto* entity : mEntities) {
 		if (entity && !entity->GetParent()) { entity->PostPhysics(deltaTime); }
 	}
+}
+
+void GameScene::UpdateOpeningSequence(const float deltaTime) {
+	if (mIsDemoPlayback || mOpeningPhase == OpeningPhase::Gameplay) { return; }
+
+	switch (mOpeningPhase) {
+		case OpeningPhase::Tour: {
+			if (InputSystem::IsTriggered("jump")) {
+				EnterOpeningCountdown();
+				return;
+			}
+			UpdateOpeningCameraTour(deltaTime);
+			return;
+		}
+		case OpeningPhase::Countdown: {
+			UpdateOpeningCountdown(deltaTime);
+			return;
+		}
+		case OpeningPhase::Gameplay:
+		default: return;
+	}
+}
+
+void GameScene::UpdateOpeningCameraTour(const float deltaTime) {
+	if (kOpeningCutsceneShots.empty()) {
+		mOpeningFadeAlpha = 0.0f;
+		EnterOpeningCountdown();
+		return;
+	}
+
+	const CutsceneShot& shot     = kOpeningCutsceneShots[mOpeningShotIndex];
+	const float         duration = std::max(0.01f, shot.durationSec);
+	mOpeningShotElapsedSec       += deltaTime;
+
+	const float rawT = std::clamp(
+		mOpeningShotElapsedSec / duration, 0.0f, 1.0f
+	);
+	const float easedT = EvaluateCutsceneEase(rawT);
+
+	Vec3 cameraPos = shot.startPos;
+	Vec3 lookAtPos = shot.startLook;
+	switch (shot.motion) {
+		case CutsceneMotionType::Pan: lookAtPos = Math::Lerp(
+			                              shot.startLook, shot.endLook, easedT
+		                              );
+			break;
+		case CutsceneMotionType::Dolly: cameraPos = Math::Lerp(
+			                                shot.startPos, shot.endPos, easedT
+		                                );
+			break;
+		case CutsceneMotionType::PanDolly: cameraPos = Math::Lerp(
+			                                   shot.startPos, shot.endPos,
+			                                   easedT
+		                                   );
+			lookAtPos = Math::Lerp(shot.startLook, shot.endLook, easedT);
+			break;
+	}
+
+	ApplyOpeningCameraPose(cameraPos, lookAtPos);
+
+	const bool hasNextShot = (mOpeningShotIndex + 1 < kOpeningCutsceneShots.
+	                          size());
+	if (hasNextShot && !mOpeningShotFadeSwapped) {
+		const float fadeOutDuration = std::max(0.01f, kOpeningShotFadeOutSec);
+		const float fadeOutStartSec = std::max(
+			0.0f, duration - fadeOutDuration
+		);
+		if (mOpeningShotElapsedSec >= fadeOutStartSec) {
+			const float fadeOutT = std::clamp(
+				(mOpeningShotElapsedSec - fadeOutStartSec) / fadeOutDuration,
+				0.0f,
+				1.0f
+			);
+			mOpeningShotFadeActive = true;
+			mOpeningFadeAlpha      = EvaluateCutsceneEase(fadeOutT);
+		} else if (!mOpeningShotFadeActive) { mOpeningFadeAlpha = 0.0f; }
+	}
+
+	if (rawT >= 1.0f) {
+		if (hasNextShot) {
+			++mOpeningShotIndex;
+			mOpeningShotElapsedSec  = 0.0f;
+			mOpeningShotFadeActive  = true;
+			mOpeningShotFadeSwapped = true;
+			mOpeningFadeAlpha       = 1.0f;
+
+			const CutsceneShot& nextShot = kOpeningCutsceneShots[
+				mOpeningShotIndex];
+			ApplyOpeningCameraPose(nextShot.startPos, nextShot.startLook);
+		} else {
+			mOpeningFadeAlpha = 0.0f;
+			EnterOpeningCountdown();
+		}
+	}
+
+	if (mOpeningShotFadeActive && mOpeningShotFadeSwapped) {
+		const float fadeInDuration = std::max(0.01f, kOpeningShotFadeInSec);
+		const float fadeInT        = std::clamp(
+			mOpeningShotElapsedSec / fadeInDuration, 0.0f, 1.0f
+		);
+		mOpeningFadeAlpha = 1.0f - EvaluateCutsceneEase(fadeInT);
+		if (fadeInT >= 1.0f) {
+			mOpeningFadeAlpha          = 0.0f;
+			mOpeningShotFadeActive     = false;
+			mOpeningShotFadeSwapped    = false;
+			mOpeningShotFadeElapsedSec = 0.0f;
+		}
+	}
+}
+
+void GameScene::UpdateOpeningCountdown(const float deltaTime) {
+	mCountdownElapsedSec += deltaTime;
+	UpdateOpeningCountdownAudio();
+	const float digitTotalDuration = kOpeningCountdownDigitDurationSec * 3.0f;
+	if (!mOpeningGameplayStarted && mCountdownElapsedSec >=
+	    digitTotalDuration) { StartGameplayFromCountdown(); }
+	if (!mOpeningGameplayStarted && mCameraRotator) {
+		mCameraRotator->SetLookAnglesDegrees(
+			mOpeningFixedLookAngles.x,
+			mOpeningFixedLookAngles.y
+		);
+	}
+	UpdateOpeningCountdownSprites();
+
+	const float totalDuration = digitTotalDuration +
+	                            kOpeningCountdownStartDurationSec;
+	if (mCountdownElapsedSec >= totalDuration) { CompleteOpeningSequence(); }
+}
+
+void GameScene::UpdateOpeningCountdownAudio() {
+	const float digitTotalDuration = kOpeningCountdownDigitDurationSec * 3.0f;
+	const float totalDuration      = digitTotalDuration +
+	                                 kOpeningCountdownStartDurationSec;
+
+	int cueStep = -1;
+	if (mCountdownElapsedSec < digitTotalDuration) {
+		const int digit = 3 - static_cast<int>(
+			                  mCountdownElapsedSec /
+			                  kOpeningCountdownDigitDurationSec
+		                  );
+		cueStep = std::clamp(digit, 1, 3);
+	} else if (mCountdownElapsedSec < totalDuration) { cueStep = 0; }
+
+	if (cueStep == mLastCountdownCueStep) { return; }
+	mLastCountdownCueStep = cueStep;
+
+	if (cueStep >= 1) {
+		if (mCountdownCountSe) { mCountdownCountSe->Play(false); }
+	} else if (cueStep == 0) {
+		if (mCountdownStartSe) { mCountdownStartSe->Play(false); }
+	}
+}
+
+void GameScene::StartGameplayFromCountdown() {
+	if (mOpeningGameplayStarted) { return; }
+	mOpeningGameplayStarted = true;
+	SetPlayerGameplayActive(true);
+	if (mTimer) { mTimer->StartGame(); }
+	StartGameplayPresentation();
+	mLastActivatedCheckpointCount = 0;
+	mCheckpointSplits.clear();
+}
+
+void GameScene::StartGameplayPresentation() {
+	if (mGameplayPresentationStarted) { return; }
+	mGameplayPresentationStarted = true;
+
+	if (mRun) {
+		mRun->Play(true);
+		mRun->SetVolume(0.125f);
+	}
+	if (mWind) {
+		mWind->Play(true);
+		mWind->SetVolume(1.0f);
+	}
+
+	if (mEntSkeletalMesh) { mEntSkeletalMesh->SetVisible(true); }
+	UpdateSkeletalAnimation();
+}
+
+void GameScene::UpdateOpeningCountdownSprites() const {
+	if (!mCountdownDigitSprite || !mCountdownStartSprite) { return; }
+
+	const Vec2 viewport = Unnamed::EngineServices::Get() ?
+		                      Unnamed::EngineServices::Get()->
+		                      GetViewportSizeInstance() :
+		                      Vec2(1280.0f, 720.0f);
+	const float viewW   = std::max(1.0f, viewport.x);
+	const float viewH   = std::max(1.0f, viewport.y);
+	const float centerX = viewW * 0.5f;
+	const float centerY = viewH * 0.44f;
+
+	const float digitBaseWidth = std::max(
+		1.0f, mCountdownDigitBaseSize.x * 0.1f
+	);
+	const float digitBaseHeight = std::max(1.0f, mCountdownDigitBaseSize.y);
+	const float digitTarget     = std::clamp(
+		std::min(viewW, viewH) * 0.24f, 96.0f, 320.0f
+	);
+	const float digitScale = digitTarget / std::max(
+		                         digitBaseWidth, digitBaseHeight
+	                         );
+
+	float startScale =
+		std::clamp(
+			viewW * 0.42f / std::max(1.0f, mCountdownStartBaseSize.x), 0.45f,
+			1.45f
+		);
+	float       startWidth  = mCountdownStartBaseSize.x * startScale;
+	float       startHeight = mCountdownStartBaseSize.y * startScale;
+	const float startY      = centerY + digitTarget * 0.05f;
+
+	const float digitTotalDuration = kOpeningCountdownDigitDurationSec * 3.0f;
+	if (mCountdownElapsedSec < digitTotalDuration) {
+		const int digit = 3 - static_cast<int>(
+			                  mCountdownElapsedSec /
+			                  kOpeningCountdownDigitDurationSec);
+		const float phase = std::clamp(
+			mCountdownElapsedSec - std::floor(mCountdownElapsedSec),
+			0.0f,
+			1.0f
+		);
+
+		const float pulseScale = 1.0f + (1.0f - phase) * 0.24f;
+		const float alpha      = std::clamp(1.0f - phase * 0.75f, 0.0f, 1.0f);
+		mCountdownDigitSprite->SetPos({centerX, centerY, 91.0f});
+		mCountdownDigitSprite->SetSize(
+			{
+				digitBaseWidth * digitScale * pulseScale,
+				digitBaseHeight * digitScale * pulseScale,
+				1.0f
+			}
+		);
+		const float digitIndex = std::clamp(
+			static_cast<float>(digit), 0.0f, 9.0f
+		);
+		mCountdownDigitSprite->SetTextureLeftTop(
+			{digitIndex * kCountdownDigitWidthPx, 0.0f}
+		);
+		mCountdownDigitSprite->SetTextureSize(
+			{kCountdownDigitWidthPx, kCountdownAtlasHeightPx}
+		);
+		mCountdownDigitSprite->SetColor({1.0f, 1.0f, 1.0f, alpha});
+
+		mCountdownStartSprite->SetPos({centerX, startY, 91.0f});
+		mCountdownStartSprite->SetSize({startWidth, startHeight, 1.0f});
+		mCountdownStartSprite->SetColor({1.0f, 1.0f, 1.0f, 0.0f});
+	} else {
+		const float phase = std::clamp(
+			(mCountdownElapsedSec - digitTotalDuration) /
+			kOpeningCountdownStartDurationSec,
+			0.0f,
+			1.0f
+		);
+		const float alpha = std::sin(phase * Math::pi);
+		const float pulse = 1.0f + 0.08f * std::sin(phase * Math::pi);
+		startWidth        *= pulse;
+		startHeight       *= pulse;
+
+		mCountdownDigitSprite->SetPos({centerX, centerY, 91.0f});
+		mCountdownDigitSprite->SetSize(
+			{
+				digitBaseWidth * digitScale,
+				digitBaseHeight * digitScale,
+				1.0f
+			}
+		);
+		mCountdownDigitSprite->SetColor({1.0f, 1.0f, 1.0f, 0.0f});
+
+		mCountdownStartSprite->SetPos({centerX, startY, 91.0f});
+		mCountdownStartSprite->SetSize({startWidth, startHeight, 1.0f});
+		mCountdownStartSprite->SetColor({1.0f, 1.0f, 1.0f, alpha});
+	}
+
+	mCountdownDigitSprite->Update();
+	mCountdownStartSprite->Update();
+}
+
+void GameScene::UpdateOpeningFadeSprite() {
+	if (!mOpeningFadeSprite) { return; }
+
+	const Vec2 viewport = Unnamed::EngineServices::Get() ?
+		                      Unnamed::EngineServices::Get()->
+		                      GetViewportSizeInstance() :
+		                      Vec2(1280.0f, 720.0f);
+	const float viewW = std::max(1.0f, viewport.x);
+	const float viewH = std::max(1.0f, viewport.y);
+	const float alpha = std::clamp(mOpeningFadeAlpha, 0.0f, 1.0f);
+
+	mOpeningFadeSprite->SetPos({0.0f, 0.0f, 95.0f});
+	mOpeningFadeSprite->SetSize({viewW, viewH, 1.0f});
+	mOpeningFadeSprite->SetColor({0.0f, 0.0f, 0.0f, alpha});
+	mOpeningFadeSprite->Update();
+}
+
+void GameScene::UpdateCheckpointSplits() {
+	if (mIsDemoPlayback || !mTimer || IsOpeningSequenceActive()) { return; }
+
+	const int activatedCount = CheckpointManager::GetActivatedCheckpointCount();
+	if (activatedCount > mLastActivatedCheckpointCount) {
+		const double checkpointTime = mTimer->TotalTime();
+		if (const auto* checkpoint =
+			CheckpointManager::GetLastActivatedCheckpoint()) {
+			const int  order = checkpoint->GetOrder();
+			const auto dupIt = std::ranges::find_if(
+				mCheckpointSplits,
+				[order](const CheckpointSplitEntry& entry) {
+					return entry.order == order;
+				}
+			);
+			if (dupIt == mCheckpointSplits.end()) {
+				mCheckpointSplits.push_back({order, checkpointTime});
+			}
+		}
+	}
+
+	mLastActivatedCheckpointCount = activatedCount;
+}
+
+void GameScene::HideRaceTimerSprites() {
+	for (auto& sprite : mRaceTimerSprites) {
+		if (!sprite) { continue; }
+		sprite->SetPos(Vec3::min);
+		sprite->SetColor({1.0f, 1.0f, 1.0f, 0.0f});
+		sprite->Update();
+	}
+}
+
+void GameScene::UpdateRaceTimerSprites() {
+	if (mIsDemoPlayback || !mTimer || IsOpeningSequenceActive()) {
+		HideRaceTimerSprites();
+		return;
+	}
+
+	const Vec2 viewport = Unnamed::EngineServices::Get() ?
+		                      Unnamed::EngineServices::Get()->
+		                      GetViewportSizeInstance() :
+		                      Vec2(1280.0f, 720.0f);
+	const float viewH = std::max(1.0f, viewport.y);
+
+	const float timerHeight = std::clamp(viewH * 0.05f, 24.0f, 56.0f);
+	const float digitWidth  = timerHeight * (
+		                          kCountdownDigitWidthPx /
+		                          kCountdownAtlasHeightPx);
+	const float colonAspect = mRaceTimerColonBaseSize.y > 0.0f ?
+		                          mRaceTimerColonBaseSize.x /
+		                          mRaceTimerColonBaseSize.y :
+		                          0.5f;
+	const float dotAspect = mRaceTimerDotBaseSize.y > 0.0f ?
+		                        mRaceTimerDotBaseSize.x / mRaceTimerDotBaseSize.
+		                        y :
+		                        0.35f;
+	const float colonWidth = timerHeight * std::max(0.2f, colonAspect);
+	const float dotWidth   = timerHeight * std::max(0.15f, dotAspect);
+	const float spacing    = 0.0f;
+
+	const std::string    timeText = FormatRaceTime(mTimer->TotalTime());
+	std::array<float, 8> glyphWidths{};
+	std::array<float, 8> glyphAdvances{};
+	float                totalWidth = 0.0f;
+	for (std::size_t i = 0; i < mRaceTimerSprites.size(); ++i) {
+		const bool isDigitSlot = (i != 2 && i != 5);
+		if (isDigitSlot) {
+			glyphWidths[i]   = digitWidth;
+			glyphAdvances[i] = digitWidth * 0.84f;
+		} else if (i == 2) {
+			glyphWidths[i]   = colonWidth;
+			glyphAdvances[i] = colonWidth * 0.9f;
+		} else {
+			glyphWidths[i]   = dotWidth;
+			glyphAdvances[i] = dotWidth * 0.95f;
+		}
+		totalWidth += glyphAdvances[i];
+	}
+	totalWidth += spacing * static_cast<float>(mRaceTimerSprites.size() - 1);
+
+	float       cursorX = std::max(0.0f, (viewport.x - totalWidth) * 0.5f);
+	const float posY    = std::clamp(viewH * 0.035f, 12.0f, 28.0f);
+	for (std::size_t i = 0; i < mRaceTimerSprites.size(); ++i) {
+		auto* sprite = mRaceTimerSprites[i].get();
+		if (!sprite) { continue; }
+
+		const bool  isDigitSlot = (i != 2 && i != 5);
+		const float glyphWidth  = glyphWidths[i];
+		if (isDigitSlot) {
+			const char ch    = i < timeText.size() ? timeText[i] : '0';
+			const int  digit = (ch >= '0' && ch <= '9') ? (ch - '0') : 0;
+			sprite->SetTextureLeftTop(
+				{static_cast<float>(digit) * kCountdownDigitWidthPx, 0.0f}
+			);
+			sprite->SetTextureSize(
+				{kCountdownDigitWidthPx, kCountdownAtlasHeightPx}
+			);
+		}
+
+		sprite->SetPos({cursorX, posY, 92.0f});
+		sprite->SetSize({glyphWidth, timerHeight, 1.0f});
+		sprite->SetColor({1.0f, 1.0f, 1.0f, 1.0f});
+		sprite->Update();
+		cursorX += glyphAdvances[i] + spacing;
+	}
+}
+
+void GameScene::DrawGameplayHud() const {
+	if (mIsDemoPlayback || !mTimer || IsOpeningSequenceActive()) { return; }
+
+#ifdef _DEBUG
+	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	if (!viewport) { return; }
+
+	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+	if (!drawList) { return; }
+
+	const float timerHeight = std::clamp(
+		viewport->Size.y * 0.05f, 24.0f, 56.0f
+	);
+	const ImVec2 basePos(
+		viewport->Pos.x + 28.0f,
+		viewport->Pos.y + 24.0f + timerHeight + 12.0f
+	);
+	float y = basePos.y;
+	for (const CheckpointSplitEntry& split : mCheckpointSplits) {
+		const std::string splitText = std::format(
+			"CP{}   {}",
+			split.order + 1,
+			FormatRaceTime(split.timeSec)
+		);
+		ImGuiUtil::TextOutlined(
+			drawList,
+			ImVec2(basePos.x, y),
+			splitText.c_str(),
+			ImVec4(0.82f, 0.95f, 1.0f, 0.98f),
+			ImVec4(0.0f, 0.0f, 0.0f, 0.85f),
+			1.0f
+		);
+		y += ImGui::GetFontSize() * 1.2f;
+	}
+#endif
+}
+
+void GameScene::EnterOpeningCountdown() {
+	mOpeningPhase              = OpeningPhase::Countdown;
+	mCountdownElapsedSec       = 0.0f;
+	mOpeningShotElapsedSec     = 0.0f;
+	mOpeningShotFadeElapsedSec = 0.0f;
+	mOpeningFadeAlpha          = 0.0f;
+	mOpeningShotFadeActive     = false;
+	mOpeningShotFadeSwapped    = false;
+	mLastCountdownCueStep      = -1;
+	mOpeningGameplayStarted    = false;
+
+	if (mCountdownDigitSprite) {
+		mCountdownDigitSprite->SetTextureLeftTop({0.0f, 0.0f});
+		mCountdownDigitSprite->SetTextureSize(
+			{kCountdownDigitWidthPx, kCountdownAtlasHeightPx}
+		);
+	}
+	SyncCameraRoot();
+	if (mCameraRotator) {
+		mCameraRotator->SetLookAnglesDegrees(
+			mOpeningPlayerLookAngles.x,
+			mOpeningPlayerLookAngles.y
+		);
+		mOpeningFixedLookAngles = mOpeningPlayerLookAngles;
+	}
+	UpdateOpeningCountdownAudio();
+	UpdateOpeningCountdownSprites();
+}
+
+void GameScene::CompleteOpeningSequence() {
+	if (mOpeningPhase == OpeningPhase::Gameplay) { return; }
+
+	mOpeningPhase              = OpeningPhase::Gameplay;
+	mOpeningFadeAlpha          = 0.0f;
+	mOpeningShotFadeActive     = false;
+	mOpeningShotFadeSwapped    = false;
+	mOpeningShotFadeElapsedSec = 0.0f;
+	mOpeningGameplayStarted    = true;
+	SetPlayerGameplayActive(true);
+	StartGameplayPresentation();
+	SyncCameraRoot();
+	mOpeningFixedLookAngles = Vec2::zero;
+}
+
+void GameScene::ApplyOpeningCameraPose(
+	const Vec3& cameraPos, const Vec3& lookAtPos
+) {
+	if (!mEntCameraRoot) { return; }
+
+	mEntCameraRoot->GetTransform()->SetWorldPos(cameraPos);
+
+	Vec3 viewDir = lookAtPos - cameraPos;
+	if (viewDir.SqrLength() <= 1.0e-8f) { return; }
+	viewDir.Normalize();
+
+	const Quaternion lookRotation = Quaternion::LookRotation(viewDir, Vec3::up);
+	const Vec3       eulerDegrees = lookRotation.ToEulerDegrees();
+	if (mCameraRotator) {
+		mCameraRotator->SetLookAnglesDegrees(eulerDegrees.x, eulerDegrees.y);
+	} else { mEntCameraRoot->GetTransform()->SetWorldRot(lookRotation); }
+}
+
+bool GameScene::IsOpeningSequenceActive() const {
+	if (mIsDemoPlayback || mOpeningPhase == OpeningPhase::Gameplay) {
+		return false;
+	}
+	if (mOpeningPhase == OpeningPhase::Countdown && mOpeningGameplayStarted) {
+		return false;
+	}
+	return true;
+}
+
+void GameScene::SetPlayerGameplayActive(const bool active) const {
+	if (mEntPlayer) { mEntPlayer->SetActive(active); }
 }
 
 #ifdef _DEBUG
@@ -1428,13 +2175,6 @@ void GameScene::DrawDebugHud(
 		1.0f,
 		ImGui::ColorConvertFloat4ToU32(reticleColor)
 	);
-
-	if (ImGui::Begin("Time")) {
-		auto time = mTimer->TotalTime();
-
-		ImGui::Text(std::format("TotalTime: {:.2f}s", time).c_str());
-	}
-	ImGui::End();
 }
 #endif
 
@@ -1449,6 +2189,10 @@ void GameScene::Shutdown() {
 		mWind->Stop();
 		mWind.reset();
 	}
+	if (mRun) {
+		mRun->Stop();
+		mRun.reset();
+	}
 
 	// エフェクトの破棄
 	mExplosionEffect.reset();
@@ -1459,13 +2203,19 @@ void GameScene::Shutdown() {
 	mParticleEmitter.reset();
 
 	// スプライトの破棄
+	mOpeningFadeSprite.reset();
+	mCountdownStartSprite.reset();
+	mCountdownDigitSprite.reset();
+	for (auto& timerSprite : mRaceTimerSprites) { timerSprite.reset(); }
 	mNextCheckpointArrowSprite.reset();
 	mNextCheckpointSprite.reset();
 
 	// 物理エンジンからエンティティを登録解除してから破棄
 	if (mUPhysicsEngine) {
-		if (mEntWorldMesh) { mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get()); }
-		if (mFanEntity)    { mUPhysicsEngine->UnregisterEntity(mFanEntity.get()); }
+		if (mEntWorldMesh) {
+			mUPhysicsEngine->UnregisterEntity(mEntWorldMesh.get());
+		}
+		if (mFanEntity) { mUPhysicsEngine->UnregisterEntity(mFanEntity.get()); }
 	}
 
 	// エンティティリストをクリア（BaseScene側の生ポインタリスト）
@@ -1523,9 +2273,23 @@ void GameScene::Shutdown() {
 	mNameConVar    = nullptr;
 	mClearConVar   = nullptr;
 
-	mRecordingTickAccumulatorSec = 0.0f;
-	mPendingReplayEdgeButtons    = 0u;
-	mFanMovePhase                = 100.0f;
+	mRecordingTickAccumulatorSec  = 0.0f;
+	mPendingReplayEdgeButtons     = 0u;
+	mFanMovePhase                 = 100.0f;
+	mOpeningPhase                 = OpeningPhase::Gameplay;
+	mOpeningShotIndex             = 0;
+	mOpeningShotElapsedSec        = 0.0f;
+	mOpeningShotFadeElapsedSec    = 0.0f;
+	mCountdownElapsedSec          = 0.0f;
+	mOpeningFadeAlpha             = 0.0f;
+	mOpeningFixedLookAngles       = Vec2::zero;
+	mOpeningPlayerLookAngles      = Vec2::zero;
+	mOpeningShotFadeActive        = false;
+	mOpeningShotFadeSwapped       = false;
+	mOpeningGameplayStarted       = false;
+	mGameplayPresentationStarted  = false;
+	mLastActivatedCheckpointCount = 0;
+	mCheckpointSplits.clear();
 }
 
 /// @brief ワールドメッシュのリロード

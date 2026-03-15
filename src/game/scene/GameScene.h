@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 
@@ -87,6 +89,23 @@ private:
 	void UpdateParticlesAndEffects(float deltaTime);
 	void UpdateReplayRecording(float deltaTime);
 	void UpdateEntities(float deltaTime);
+	void UpdateOpeningSequence(float deltaTime);
+	void UpdateOpeningCameraTour(float deltaTime);
+	void UpdateOpeningCountdown(float deltaTime);
+	void UpdateOpeningCountdownAudio();
+	void StartGameplayFromCountdown();
+	void StartGameplayPresentation();
+	void UpdateOpeningCountdownSprites() const;
+	void UpdateOpeningFadeSprite();
+	void UpdateCheckpointSplits();
+	void UpdateRaceTimerSprites();
+	void HideRaceTimerSprites();
+	void DrawGameplayHud() const;
+	void EnterOpeningCountdown();
+	void CompleteOpeningSequence();
+	void ApplyOpeningCameraPose(const Vec3& cameraPos, const Vec3& lookAtPos);
+	[[nodiscard]] bool IsOpeningSequenceActive() const;
+	void SetPlayerGameplayActive(bool active) const;
 	void QueueReturnToTitle();
 
 #ifdef _DEBUG
@@ -148,14 +167,51 @@ private:
 
 	std::unique_ptr<Sprite> mNextCheckpointSprite;
 	std::unique_ptr<Sprite> mNextCheckpointArrowSprite;
+	std::unique_ptr<Sprite> mCountdownDigitSprite;
+	std::unique_ptr<Sprite> mCountdownStartSprite;
+	std::unique_ptr<Sprite> mOpeningFadeSprite;
+	std::array<std::unique_ptr<Sprite>, 8> mRaceTimerSprites;
+
+	Vec3 mCountdownDigitBaseSize = Vec3::one;
+	Vec3 mCountdownStartBaseSize = Vec3::one;
+	Vec3 mRaceTimerDigitBaseSize = Vec3::one;
+	Vec3 mRaceTimerColonBaseSize = Vec3::one;
+	Vec3 mRaceTimerDotBaseSize   = Vec3::one;
+	struct CheckpointSplitEntry {
+		int    order   = 0;
+		double timeSec = 0.0;
+	};
+	std::vector<CheckpointSplitEntry> mCheckpointSplits;
+	int                               mLastActivatedCheckpointCount = 0;
 
 	std::shared_ptr<Audio> mWind;
+	std::shared_ptr<Audio> mRun;
+	std::shared_ptr<Audio> mCountdownCountSe;
+	std::shared_ptr<Audio> mCountdownStartSe;
 
 	// 遅延読み込み用フラグ
 	bool mPendingMeshReload    = false;
 	bool mMeshReloadArmed      = false;
 	bool mPendingReturnToTitle = false;
 	bool mIsDemoPlayback       = false;
+	enum class OpeningPhase {
+		Tour,
+		Countdown,
+		Gameplay
+	};
+	OpeningPhase mOpeningPhase = OpeningPhase::Gameplay;
+	std::size_t  mOpeningShotIndex       = 0;
+	float        mOpeningShotElapsedSec  = 0.0f;
+	float        mOpeningShotFadeElapsedSec = 0.0f;
+	float        mCountdownElapsedSec    = 0.0f;
+	float        mOpeningFadeAlpha       = 0.0f;
+	Vec2         mOpeningFixedLookAngles = Vec2::zero;
+	Vec2         mOpeningPlayerLookAngles = Vec2::zero;
+	bool         mOpeningShotFadeActive   = false;
+	bool         mOpeningShotFadeSwapped  = false;
+	int          mLastCountdownCueStep    = -1;
+	bool         mOpeningGameplayStarted  = false;
+	bool         mGameplayPresentationStarted = false;
 	float mRecordingTickAccumulatorSec = 0.0f;
 	float mFanMovePhase = 100.0f;
 	uint32_t mPendingReplayEdgeButtons = 0u;
