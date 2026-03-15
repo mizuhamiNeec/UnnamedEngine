@@ -1,9 +1,12 @@
 #pragma once
 
+#include <array>
+#include <memory>
 #include <optional>
 #include <string>
 
 #include <engine/SceneManager/SceneFactory.h>
+#include <engine/Sprite/Sprite.h>
 
 /// @brief シーンマネージャークラス
 class SceneManager {
@@ -22,7 +25,7 @@ public:
 	/// @brief 現在シーンを終了して破棄する（エンジン終了時向け）
 	void ShutdownCurrentScene();
 
-	void Update(float deltaTime) const;
+	void Update(float deltaTime);
 
 	void Render() const;
 
@@ -32,8 +35,29 @@ public:
 	[[nodiscard]] const std::string& GetCurrentSceneName() const { return mCurrentSceneName; }
 
 private:
+	enum class TransitionPhase {
+		None,
+		Exit,
+		Enter
+	};
+
+	void EnsureTransitionSprites();
+	void UpdateTransitionOverlay();
+	void DrawTransitionOverlay() const;
+	void BeginSceneTransition(const std::string& name);
+	bool IsTransitionActive() const;
+
 	SceneFactory&              mFactory;
 	std::shared_ptr<BaseScene> mCurrentScene;
 	std::string                mCurrentSceneName;
 	std::optional<std::string> mPendingSceneName;
+	std::optional<std::string> mTransitionTargetSceneName;
+
+	TransitionPhase mTransitionPhase         = TransitionPhase::None;
+	float           mTransitionElapsedSec    = 0.0f;
+	float           mTransitionCoverProgress = 0.0f;
+	bool            mPendingTransitionSwap   = false;
+
+	std::unique_ptr<Sprite>            mTransitionBackdropSprite;
+	std::array<std::unique_ptr<Sprite>, 4> mTransitionPanelSprites;
 };

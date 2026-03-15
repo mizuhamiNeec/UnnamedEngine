@@ -1,4 +1,4 @@
-# Blender 5.0.1 MTL File: 'None'
+# Blender 5.0.1 MTL File: 'Test.blend'
 # www.blender.org
 
 newmtl materials/dev/dev_measuregeneric01c.vmat
@@ -39,4 +39,4 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd ../../../../../../Softwares/Steam/steamapps/common/Counter-Strike Global Offensive/game/bin/win64/materials/models/editor/light_spot_color_psd_67849a44.vtex
+map_Kd ../../../../../../../Softwares/Steam/steamapps/common/Counter-Strike Global Offensive/game/bin/win64/materials/models/editor/light_spot_color_psd_67849a44.vtex
