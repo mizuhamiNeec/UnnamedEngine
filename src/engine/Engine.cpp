@@ -242,9 +242,13 @@ namespace Unnamed {
 		mSceneManager = std::make_shared<SceneManager>(*mSceneFactory);
 		// ゲームシーンを登録
 		mSceneFactory->RegisterScene<GameScene>("GameScene");
-		mSceneFactory->RegisterScene<TestScene>( "TestScene");
+		mSceneFactory->RegisterScene<TestScene>("TestScene");
 		// シーンの初期化（タイトル相当のTestSceneから開始）
+#ifdef _DEBUG
+		mSceneManager->ChangeScene("GameScene");
+#else
 		mSceneManager->ChangeScene("TestScene");
+#endif
 
 		//---------------------------------------------------------------------
 		// エディターの初期化
@@ -373,15 +377,19 @@ namespace Unnamed {
 
 		if (mIsEditorMode && mSrvManager) {
 			auto& postRtv = mRenderTargets.GetPostProcessedRtv();
-			
+
 			static ID3D12Resource* sLastPostRtvResource = nullptr;
 			static DXGI_FORMAT     sLastPostFormat      = DXGI_FORMAT_UNKNOWN;
 
 			ID3D12Resource* currentResource = postRtv.rtv.Get();
-			DXGI_FORMAT     currentFormat   = postRtv.rtv ? postRtv.rtv->GetDesc().Format : DXGI_FORMAT_UNKNOWN;
+			DXGI_FORMAT     currentFormat   = postRtv.rtv ?
+				                                  postRtv.rtv->GetDesc().
+				                                  Format :
+				                                  DXGI_FORMAT_UNKNOWN;
 
 			if (currentResource != nullptr &&
-			    (sLastPostRtvResource != currentResource || sLastPostFormat != currentFormat || postRtv.srvHandleGPU.ptr == 0)) {
+			    (sLastPostRtvResource != currentResource || sLastPostFormat !=
+			     currentFormat || postRtv.srvHandleGPU.ptr == 0)) {
 				mSrvManager->CreateSRVForTexture2D(
 					postRtv.srvIndex,
 					currentResource,
@@ -503,7 +511,10 @@ namespace Unnamed {
 			[](const std::vector<std::string>& args) {
 				if (args.empty()) {
 					if (mSceneManager) {
-						Msg("Engine", "Current map: {}", mSceneManager->GetCurrentSceneName());
+						Msg(
+							"Engine", "Current map: {}",
+							mSceneManager->GetCurrentSceneName()
+						);
 					}
 					return;
 				}
