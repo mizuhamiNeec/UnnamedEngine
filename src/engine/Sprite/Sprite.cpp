@@ -1,5 +1,7 @@
 #include "engine/Sprite/Sprite.h"
 
+#include <algorithm>
+
 #include "engine/OldConsole/Console.h"
 #include "engine/Sprite/SpriteCommon.h"
 
@@ -110,15 +112,24 @@ void Sprite::Update() {
 	float top    = -mAnchorPoint.y;
 	float bottom = 1.0f - mAnchorPoint.y;
 
+	const float textureWidth = std::max(1.0f, mTextureResourceSize.x);
+	const float textureHeight = std::max(1.0f, mTextureResourceSize.y);
+	float texLeft = mTextureLeftTop.x / textureWidth;
+	float texTop = mTextureLeftTop.y / textureHeight;
+	float texRight = (mTextureLeftTop.x + mTextureSize.x) / textureWidth;
+	float texBottom = (mTextureLeftTop.y + mTextureSize.y) / textureHeight;
+
 	// 左右反転
 	if (mIsFlipX) {
 		left  = -left;
 		right = -right;
+		std::swap(texLeft, texRight);
 	}
 	// 上下反転
 	if (mIsFlipY) {
 		top    = -top;
 		bottom = -bottom;
+		std::swap(texTop, texBottom);
 	}
 
 	// すべての頂点を更新
@@ -129,13 +140,13 @@ void Sprite::Update() {
 	mVertices[4].position = Vec4(right, top, 0.0f, 1.0f);    // 右上
 	mVertices[5].position = Vec4(right, bottom, 0.0f, 1.0f); // 右下 (追加)
 
-	//// すべてのUV座標を更新
-	//vertices_[0].uv = { texLeft, texBottom };   // 左下
-	//vertices_[1].uv = { texLeft, texTop };      // 左上
-	//vertices_[2].uv = { texRight, texBottom };  // 右下
-	//vertices_[3].uv = { texLeft, texTop };      // 左上
-	//vertices_[4].uv = { texRight, texTop };     // 右上
-	//vertices_[5].uv = { texRight, texBottom };  // 右下 (追加)
+	// すべてのUV座標を更新
+	mVertices[0].uv = {texLeft, texBottom};  // 左下
+	mVertices[1].uv = {texLeft, texTop};     // 左上
+	mVertices[2].uv = {texRight, texBottom}; // 右下
+	mVertices[3].uv = {texLeft, texTop};     // 左上
+	mVertices[4].uv = {texRight, texTop};    // 右上
+	mVertices[5].uv = {texRight, texBottom}; // 右下
 }
 
 /// @brief スプライトの描画
@@ -157,6 +168,17 @@ void Sprite::Draw() const {
 		mMaterialData->uvTransform = uvTransformMat;
 
 		// 各種行列を作成
+		Vec2 viewportSize = Vec2::zero;
+		if (auto* engine = Unnamed::EngineServices::Get()) {
+			viewportSize = engine->GetViewportSizeInstance();
+		}
+		if (viewportSize.x <= 0.0f || viewportSize.y <= 0.0f) {
+			viewportSize = {
+				static_cast<float>(OldWindowManager::GetMainWindow()->GetClientWidth()),
+				static_cast<float>(OldWindowManager::GetMainWindow()->GetClientHeight())
+			};
+		}
+
 		const Mat4 worldMat = Mat4::Affine(
 			mTransform.scale, mTransform.rotate,
 			mTransform.translate
@@ -165,10 +187,8 @@ void Sprite::Draw() const {
 		const Mat4 projMat = Mat4::MakeOrthographicMat(
 			0.0f,
 			0.0f,
-			static_cast<float>(OldWindowManager::GetMainWindow()->
-				GetClientWidth()),
-			static_cast<float>(OldWindowManager::GetMainWindow()->
-				GetClientHeight()),
+			viewportSize.x,
+			viewportSize.y,
 			0.0f,
 			100.0f
 		);
@@ -331,7 +351,7 @@ void Sprite::AdjustTextureSize() {
 	if (auto* engine = Unnamed::EngineServices::Get()) {
 		auto* texManager = engine->GetTexManagerInstance();
 		if (!texManager) { return; }
-		mTextureSize = {
+		mTextureResourceSize = {
 			static_cast<float>(texManager->GetMetaData(
 				mTextureFilePath
 			).width),
@@ -341,6 +361,8 @@ void Sprite::AdjustTextureSize() {
 		};
 	}
 
-	mTransform.scale.x = mTextureSize.x;
-	mTransform.scale.y = mTextureSize.y;
+	mTextureLeftTop     = Vec2::zero;
+	mTextureSize        = mTextureResourceSize;
+	mTransform.scale.x  = mTextureResourceSize.x;
+	mTransform.scale.y  = mTextureResourceSize.y;
 }

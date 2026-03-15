@@ -81,6 +81,7 @@ private:
 	// テクスチャ左上座標
 	Vec2 mTextureLeftTop = {0.0f, 0.0f};
 	Vec2 mTextureSize    = {100.0f, 100.0f};
+	Vec2 mTextureResourceSize = {1.0f, 1.0f};
 
 	// テクスチャ番号
 	std::string mTextureFilePath;
