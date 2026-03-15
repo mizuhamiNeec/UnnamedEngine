@@ -102,11 +102,16 @@ void SpriteCommon::CreateRootSignature() {
 void SpriteCommon::CreateGraphicsPipeline() {
 	CreateRootSignature();
 
+	D3D12_DEPTH_STENCIL_DESC spriteDepthDesc = defaultDepthStencilDesc;
+	spriteDepthDesc.DepthEnable              = FALSE;
+	spriteDepthDesc.DepthWriteMask           = D3D12_DEPTH_WRITE_MASK_ZERO;
+
 	// パイプラインステートを作成
 	mPipelineState = PipelineState(
 		D3D12_CULL_MODE_NONE,
 		D3D12_FILL_MODE_SOLID,
-		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE
+		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+		spriteDepthDesc
 	);
 	mPipelineState.SetInputLayout(Vertex::inputLayout);
 	mPipelineState.SetRootSignature(
