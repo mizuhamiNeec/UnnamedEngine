@@ -75,6 +75,8 @@ namespace {
 		"./content/parkour/models/hand/hand.gltf";
 	constexpr char kFanMeshPath[] =
 		"./content/core/models/fan.obj";
+	constexpr char kRotateMeshPath[] =
+		"./content/parkour/models/map/rotate.obj";
 	constexpr char kWorldMeshInitialPath[] =
 		"./content/parkour/models/map/sp_city.obj";
 	constexpr char kWorldMeshReloadPath[] =
@@ -114,6 +116,16 @@ namespace {
 	template <typename T>
 	std::shared_ptr<T> AdoptComponent(T* raw) {
 		return std::shared_ptr<T>(raw, [](T*) {});
+	}
+
+	void ReRegisterRotateMeshes(
+		UPhysics::Engine* physics, const Entity* e1, const Entity* e2,
+		const Entity*     e3
+	) {
+		if (!physics) { return; }
+		if (e1) { physics->RegisterEntity(const_cast<Entity*>(e1)); }
+		if (e2) { physics->RegisterEntity(const_cast<Entity*>(e2)); }
+		if (e3) { physics->RegisterEntity(const_cast<Entity*>(e3)); }
 	}
 
 	constexpr uint32_t kDefaultReplayTickRate = 66;
@@ -247,6 +259,7 @@ void GameScene::Init() {
 	InitializeSpeedBoostArea();
 	InitializeWorldMesh();
 	InitializeFanMesh();
+	InitializeRotateMesh();
 	InitializeCameraRoot();
 	InitializeShakeRoot();
 	InitializeSkeletalMesh();
@@ -385,6 +398,9 @@ void GameScene::Update(const float deltaTime) {
 	// ファンを物理エンジンから登録解除
 	if (mUPhysicsEngine) {
 		mUPhysicsEngine->UnregisterEntity(mFanEntity.get());
+		mUPhysicsEngine->UnregisterEntity(mRotateMesh1.get());
+		mUPhysicsEngine->UnregisterEntity(mRotateMesh2.get());
+		mUPhysicsEngine->UnregisterEntity(mRotateMesh3.get());
 	}
 
 	bool openingActive = IsOpeningSequenceActive();
@@ -835,6 +851,86 @@ void GameScene::InitializeFanMesh() {
 	AddEntity(mFanEntity.get());
 
 	if (mUPhysicsEngine) { mUPhysicsEngine->RegisterEntity(mFanEntity.get()); }
+}
+
+void GameScene::InitializeRotateMesh() {
+	auto* meshManager = mResourceManager ?
+		                    mResourceManager->GetMeshManager() :
+		                    nullptr;
+
+	if (meshManager) { meshManager->LoadMeshFromFile(kRotateMeshPath); }
+
+	mRotateMesh1          = std::make_unique<Entity>("rotateMesh1");
+	auto* rotateRenderer1 = mRotateMesh1->AddComponent<StaticMeshRenderer>();
+	mRotateMeshRenderer1  = AdoptComponent(rotateRenderer1);
+	if (mRotateMeshRenderer1 && meshManager) {
+		if (auto* mesh = meshManager->GetStaticMesh(kRotateMeshPath)) {
+			mRotateMeshRenderer1->SetStaticMesh(mesh);
+		}
+	}
+
+	mRotateMesh1->GetTransform()->SetWorldPos(
+		Vec3(
+			-78.029f,
+			-77.6224f,
+			-136.55f
+		)
+	);
+
+	mRotateMesh2          = std::make_unique<Entity>("rotateMesh2");
+	auto* rotateRenderer2 = mRotateMesh2->AddComponent<StaticMeshRenderer>();
+	mRotateMeshRenderer2  = AdoptComponent(rotateRenderer2);
+	if (mRotateMeshRenderer2 && meshManager) {
+		if (auto* mesh = meshManager->GetStaticMesh(kRotateMeshPath)) {
+			mRotateMeshRenderer2->SetStaticMesh(mesh);
+		}
+	}
+
+	mRotateMesh2->GetTransform()->SetWorldPos(
+		Vec3(
+			-78.0288f,
+			-77.6224f,
+			-182.067f
+		)
+	);
+
+	mRotateMesh3          = std::make_unique<Entity>("rotateMesh3");
+	auto* rotateRenderer3 = mRotateMesh3->AddComponent<StaticMeshRenderer>();
+	mRotateMeshRenderer3  = AdoptComponent(rotateRenderer3);
+	if (mRotateMeshRenderer3 && meshManager) {
+		if (auto* mesh = meshManager->GetStaticMesh(kRotateMeshPath)) {
+			mRotateMeshRenderer3->SetStaticMesh(mesh);
+		}
+	}
+
+	mRotateMesh3->GetTransform()->SetWorldPos(
+		Vec3(
+			-78.0288f,
+			-77.6224f,
+			-227.584f
+		)
+	);
+
+	auto* rotate1 = mRotateMesh1->AddComponent<RotateComponent>();
+	rotate1->SetRotationRate(Vec3::up * 90.0f);
+	auto* rotate2 = mRotateMesh2->AddComponent<RotateComponent>();
+	rotate2->SetRotationRate(Vec3::up * -90.0f);
+
+	mRotateMesh3->AddComponent<RotateComponent>();
+
+	mRotateMesh1->AddComponent<MeshColliderComponent>();
+	mRotateMesh2->AddComponent<MeshColliderComponent>();
+	mRotateMesh3->AddComponent<MeshColliderComponent>();
+
+	AddEntity(mRotateMesh1.get());
+	AddEntity(mRotateMesh2.get());
+	AddEntity(mRotateMesh3.get());
+
+	if (mUPhysicsEngine) {
+		mUPhysicsEngine->RegisterEntity(mRotateMesh1.get());
+		mUPhysicsEngine->RegisterEntity(mRotateMesh2.get());
+		mUPhysicsEngine->RegisterEntity(mRotateMesh3.get());
+	}
 }
 
 /// @brief カメラルートの初期化
@@ -1516,6 +1612,14 @@ void GameScene::UpdateEntities(float deltaTime) {
 		}
 	}
 
+	if (mRotateMesh1 && mRotateMesh2 && mRotateMesh3) {
+		if (mUPhysicsEngine) {
+			mUPhysicsEngine->RegisterEntity(mRotateMesh1.get());
+			mUPhysicsEngine->RegisterEntity(mRotateMesh2.get());
+			mUPhysicsEngine->RegisterEntity(mRotateMesh3.get());
+		}
+	}
+
 	// 物理更新
 	for (auto* entity : mEntities) {
 		if (entity && !entity->GetParent()) { entity->Update(deltaTime); }
@@ -1847,15 +1951,6 @@ void GameScene::UpdateCheckpointSplits() {
 	mLastActivatedCheckpointCount = activatedCount;
 }
 
-void GameScene::HideRaceTimerSprites() {
-	for (auto& sprite : mRaceTimerSprites) {
-		if (!sprite) { continue; }
-		sprite->SetPos(Vec3::min);
-		sprite->SetColor({1.0f, 1.0f, 1.0f, 0.0f});
-		sprite->Update();
-	}
-}
-
 void GameScene::UpdateRaceTimerSprites() {
 	if (mIsDemoPlayback || !mTimer || IsOpeningSequenceActive()) {
 		HideRaceTimerSprites();
@@ -1928,6 +2023,15 @@ void GameScene::UpdateRaceTimerSprites() {
 		sprite->SetColor({1.0f, 1.0f, 1.0f, 1.0f});
 		sprite->Update();
 		cursorX += glyphAdvances[i] + spacing;
+	}
+}
+
+void GameScene::HideRaceTimerSprites() {
+	for (auto& sprite : mRaceTimerSprites) {
+		if (!sprite) { continue; }
+		sprite->SetPos(Vec3::min);
+		sprite->SetColor({1.0f, 1.0f, 1.0f, 0.0f});
+		sprite->Update();
 	}
 }
 
@@ -2409,6 +2513,14 @@ void GameScene::RecreateWorldMeshEntity() {
 		mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 	}
 
+	// 回転メッシュも物理エンジンに再登録（ワールド再生成で内部配列が変わる可能性に備える）
+	ReRegisterRotateMeshes(
+		mUPhysicsEngine.get(),
+		mRotateMesh1.get(),
+		mRotateMesh2.get(),
+		mRotateMesh3.get()
+	);
+
 	Console::Print(
 		"World mesh entity recreation completed!",
 		kConTextColorCompleted
@@ -2495,6 +2607,14 @@ void GameScene::SafeReloadWorldMesh() {
 	if (mUPhysicsEngine) {
 		mUPhysicsEngine->RegisterEntity(mEntWorldMesh.get());
 	}
+
+	// 回転メッシュも物理エンジンに再登録（ワールドの再登録後に実行しておく）
+	ReRegisterRotateMeshes(
+		mUPhysicsEngine.get(),
+		mRotateMesh1.get(),
+		mRotateMesh2.get(),
+		mRotateMesh3.get()
+	);
 	Console::Print(
 		"Re-registered entity to physics engine",
 		kConTextColorCompleted

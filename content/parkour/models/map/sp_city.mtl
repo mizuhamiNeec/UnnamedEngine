@@ -9,7 +9,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd ../../../core/textures/dev_measuregray.png
+map_Kd ../../../../../../UnnamedEngine/content/core/textures/dev_measuregray.png
 
 newmtl materials/dev/primary_red.vmat
 Ns 50.000011
@@ -19,7 +19,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd ../../../core/textures/error.png
+map_Kd ../../../../../../UnnamedEngine/content/core/textures/error.png
 
 newmtl materials/dev/reflectivity_30.vmat
 Ns 50.000011
@@ -29,7 +29,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd ../../../core/textures/dev_measure.png
+map_Kd ../../../../../../UnnamedEngine/content/core/textures/dev_measure.png
 
 newmtl materials/models/editor/spot.vmat
 Ns 50.000011

@@ -67,6 +67,7 @@ private:
 	void InitializeWeapon();
 	void InitializeWorldMesh();
 	void InitializeFanMesh();
+	void InitializeRotateMesh();
 	void InitializeCameraRoot();
 	void InitializeShakeRoot();
 	void InitializeSkeletalMesh();
@@ -143,6 +144,14 @@ private:
 	std::unique_ptr<Entity>             mFanEntity;
 	std::shared_ptr<StaticMeshRenderer> mFanMeshRenderer;
 
+	std::unique_ptr<Entity> mRotateMesh1;
+	std::unique_ptr<Entity> mRotateMesh2;
+	std::unique_ptr<Entity> mRotateMesh3;
+
+	std::shared_ptr<StaticMeshRenderer> mRotateMeshRenderer1;
+	std::shared_ptr<StaticMeshRenderer> mRotateMeshRenderer2;
+	std::shared_ptr<StaticMeshRenderer> mRotateMeshRenderer3;
+
 	std::unique_ptr<Entity> mJumpPadEntity;
 	std::unique_ptr<Entity> mJumpPadEntity2;
 	std::unique_ptr<Entity> mSpeedBoostAreaEntity;
@@ -165,11 +174,11 @@ private:
 	std::vector<std::unique_ptr<Entity>> mCheckpointEntities;
 	std::unique_ptr<Entity>              mGoalEntity;
 
-	std::unique_ptr<Sprite> mNextCheckpointSprite;
-	std::unique_ptr<Sprite> mNextCheckpointArrowSprite;
-	std::unique_ptr<Sprite> mCountdownDigitSprite;
-	std::unique_ptr<Sprite> mCountdownStartSprite;
-	std::unique_ptr<Sprite> mOpeningFadeSprite;
+	std::unique_ptr<Sprite>                mNextCheckpointSprite;
+	std::unique_ptr<Sprite>                mNextCheckpointArrowSprite;
+	std::unique_ptr<Sprite>                mCountdownDigitSprite;
+	std::unique_ptr<Sprite>                mCountdownStartSprite;
+	std::unique_ptr<Sprite>                mOpeningFadeSprite;
 	std::array<std::unique_ptr<Sprite>, 8> mRaceTimerSprites;
 
 	Vec3 mCountdownDigitBaseSize = Vec3::one;
@@ -177,10 +186,12 @@ private:
 	Vec3 mRaceTimerDigitBaseSize = Vec3::one;
 	Vec3 mRaceTimerColonBaseSize = Vec3::one;
 	Vec3 mRaceTimerDotBaseSize   = Vec3::one;
+
 	struct CheckpointSplitEntry {
 		int    order   = 0;
 		double timeSec = 0.0;
 	};
+
 	std::vector<CheckpointSplitEntry> mCheckpointSplits;
 	int                               mLastActivatedCheckpointCount = 0;
 
@@ -194,27 +205,29 @@ private:
 	bool mMeshReloadArmed      = false;
 	bool mPendingReturnToTitle = false;
 	bool mIsDemoPlayback       = false;
+
 	enum class OpeningPhase {
 		Tour,
 		Countdown,
 		Gameplay
 	};
-	OpeningPhase mOpeningPhase = OpeningPhase::Gameplay;
-	std::size_t  mOpeningShotIndex       = 0;
-	float        mOpeningShotElapsedSec  = 0.0f;
-	float        mOpeningShotFadeElapsedSec = 0.0f;
-	float        mCountdownElapsedSec    = 0.0f;
-	float        mOpeningFadeAlpha       = 0.0f;
-	Vec2         mOpeningFixedLookAngles = Vec2::zero;
-	Vec2         mOpeningPlayerLookAngles = Vec2::zero;
-	bool         mOpeningShotFadeActive   = false;
-	bool         mOpeningShotFadeSwapped  = false;
-	int          mLastCountdownCueStep    = -1;
-	bool         mOpeningGameplayStarted  = false;
+
+	OpeningPhase mOpeningPhase                = OpeningPhase::Gameplay;
+	std::size_t  mOpeningShotIndex            = 0;
+	float        mOpeningShotElapsedSec       = 0.0f;
+	float        mOpeningShotFadeElapsedSec   = 0.0f;
+	float        mCountdownElapsedSec         = 0.0f;
+	float        mOpeningFadeAlpha            = 0.0f;
+	Vec2         mOpeningFixedLookAngles      = Vec2::zero;
+	Vec2         mOpeningPlayerLookAngles     = Vec2::zero;
+	bool         mOpeningShotFadeActive       = false;
+	bool         mOpeningShotFadeSwapped      = false;
+	int          mLastCountdownCueStep        = -1;
+	bool         mOpeningGameplayStarted      = false;
 	bool         mGameplayPresentationStarted = false;
-	float mRecordingTickAccumulatorSec = 0.0f;
-	float mFanMovePhase = 100.0f;
-	uint32_t mPendingReplayEdgeButtons = 0u;
+	float        mRecordingTickAccumulatorSec = 0.0f;
+	float        mFanMovePhase                = 100.0f;
+	uint32_t     mPendingReplayEdgeButtons    = 0u;
 
 	IConVar* mShowPosConVar = nullptr;
 	IConVar* mNameConVar    = nullptr;
