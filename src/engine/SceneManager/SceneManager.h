@@ -19,6 +19,9 @@ public:
 	/// @brief シーン遷移をリクエストする（遅延実行される）
 	void RequestSceneChange(const std::string& name);
 
+	/// @brief 現在シーンの再読込をリクエストする（遅延実行される）
+	void RequestCurrentSceneReload();
+
 	/// @brief ペンディング中のシーン遷移を処理する（Engine::Tick末尾で呼ぶ）
 	void ProcessPendingSceneChange();
 
@@ -52,6 +55,7 @@ private:
 	std::string                mCurrentSceneName;
 	std::optional<std::string> mPendingSceneName;
 	std::optional<std::string> mTransitionTargetSceneName;
+	bool                       mPendingCurrentSceneReload = false;
 
 	TransitionPhase mTransitionPhase         = TransitionPhase::None;
 	float           mTransitionElapsedSec    = 0.0f;

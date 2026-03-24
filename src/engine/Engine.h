@@ -62,6 +62,9 @@ namespace Unnamed {
 		/// @brief シーン遷移をリクエストする（遅延実行される）
 		static void RequestSceneChange(const std::string& name);
 
+		/// @brief 現在シーンの再読込をリクエストする（遅延実行される）
+		static void RequestCurrentSceneReload();
+
 		/// @brief エディターインスタンスの取得
 		Editor* GetEditor() const { return mEditor.get(); }
 

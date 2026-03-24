@@ -90,6 +90,11 @@ public:
 	 */
 	static void RequestSceneChange(const std::string& sceneName);
 
+	/**
+	 * @brief 現在シーンの再読込をリクエストする（遅延実行される）
+	 */
+	static void RequestCurrentSceneReload();
+
 protected:
 	std::vector<Entity*> mEntities; // シーンに存在するエンティティ
 

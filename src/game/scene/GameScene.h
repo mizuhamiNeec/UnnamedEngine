@@ -102,10 +102,17 @@ private:
 	void UpdateRaceTimerSprites();
 	void HideRaceTimerSprites();
 	void DrawGameplayHud() const;
+	void StartSelfDestructGameOver();
+	void UpdateGameOverSequence(float deltaTime);
+	void UpdateGameOverOverlaySprite();
+	void ResetGameOverState();
+	void UpdateReturnToTitleTransition(float deltaTime);
+	[[nodiscard]] bool IsReturnToTitleTransitionActive() const;
 	void EnterOpeningCountdown();
 	void CompleteOpeningSequence();
 	void ApplyOpeningCameraPose(const Vec3& cameraPos, const Vec3& lookAtPos);
 	[[nodiscard]] bool IsOpeningSequenceActive() const;
+	[[nodiscard]] bool IsGameOverSequenceActive() const;
 	void SetPlayerGameplayActive(bool active) const;
 	void QueueReturnToTitle();
 
@@ -146,7 +153,6 @@ private:
 
 	std::unique_ptr<Entity> mRotateMesh1;
 	std::unique_ptr<Entity> mRotateMesh2;
-	std::unique_ptr<Entity> mRotateMesh3;
 
 	std::shared_ptr<StaticMeshRenderer> mRotateMeshRenderer1;
 	std::shared_ptr<StaticMeshRenderer> mRotateMeshRenderer2;
@@ -201,10 +207,12 @@ private:
 	std::shared_ptr<Audio> mCountdownStartSe;
 
 	// 遅延読み込み用フラグ
-	bool mPendingMeshReload    = false;
-	bool mMeshReloadArmed      = false;
-	bool mPendingReturnToTitle = false;
-	bool mIsDemoPlayback       = false;
+	bool  mPendingMeshReload           = false;
+	bool  mMeshReloadArmed             = false;
+	bool  mPendingReturnToTitle        = false;
+	bool  mReturnToTitleRequestSent    = false;
+	float mReturnToTitleFadeElapsedSec = 0.0f;
+	bool  mIsDemoPlayback              = false;
 
 	enum class OpeningPhase {
 		Tour,
@@ -212,24 +220,39 @@ private:
 		Gameplay
 	};
 
-	OpeningPhase mOpeningPhase                = OpeningPhase::Gameplay;
-	std::size_t  mOpeningShotIndex            = 0;
-	float        mOpeningShotElapsedSec       = 0.0f;
-	float        mOpeningShotFadeElapsedSec   = 0.0f;
-	float        mCountdownElapsedSec         = 0.0f;
-	float        mOpeningFadeAlpha            = 0.0f;
-	Vec2         mOpeningFixedLookAngles      = Vec2::zero;
-	Vec2         mOpeningPlayerLookAngles     = Vec2::zero;
-	bool         mOpeningShotFadeActive       = false;
-	bool         mOpeningShotFadeSwapped      = false;
-	int          mLastCountdownCueStep        = -1;
-	bool         mOpeningGameplayStarted      = false;
-	bool         mGameplayPresentationStarted = false;
-	float        mRecordingTickAccumulatorSec = 0.0f;
-	float        mFanMovePhase                = 100.0f;
-	uint32_t     mPendingReplayEdgeButtons    = 0u;
+	enum class GameOverPhase {
+		None,
+		RedBlink,
+		BlackFade,
+		HoldBlack,
+		ReloadRequested
+	};
 
-	IConVar* mShowPosConVar = nullptr;
-	IConVar* mNameConVar    = nullptr;
-	IConVar* mClearConVar   = nullptr;
+	OpeningPhase  mOpeningPhase                = OpeningPhase::Gameplay;
+	std::size_t   mOpeningShotIndex            = 0;
+	float         mOpeningShotElapsedSec       = 0.0f;
+	float         mOpeningShotFadeElapsedSec   = 0.0f;
+	float         mCountdownElapsedSec         = 0.0f;
+	float         mOpeningFadeAlpha            = 0.0f;
+	Vec2          mOpeningFixedLookAngles      = Vec2::zero;
+	Vec2          mOpeningPlayerLookAngles     = Vec2::zero;
+	bool          mOpeningShotFadeActive       = false;
+	bool          mOpeningShotFadeSwapped      = false;
+	int           mLastCountdownCueStep        = -1;
+	bool          mOpeningGameplayStarted      = false;
+	bool          mGameplayPresentationStarted = false;
+	float         mRecordingTickAccumulatorSec = 0.0f;
+	float         mFanMovePhase                = 100.0f;
+	uint32_t      mPendingReplayEdgeButtons    = 0u;
+	GameOverPhase mGameOverPhase               = GameOverPhase::None;
+	float         mGameOverPhaseElapsedSec     = 0.0f;
+	int           mGameOverBlinkCount          = 0;
+	bool          mGameOverReloadRequested     = false;
+	Vec4          mGameOverOverlayColor        = Vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+	IConVar*                mShowPosConVar = nullptr;
+	IConVar*                mNameConVar    = nullptr;
+	IConVar*                mClearConVar   = nullptr;
+	std::unique_ptr<Sprite> mGameOverOverlaySprite;
+	std::shared_ptr<Audio>  mDenySe;
 };

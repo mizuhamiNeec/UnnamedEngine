@@ -83,7 +83,8 @@ namespace {
 		"./content/parkour/models/map/sp_city.obj";
 	constexpr char kAirAccelerateCommand[] =
 		"sv_airaccelerate 100000000000000000";
-	constexpr char  kMeshReloadBindCommand[] = "bind f5 +f5";
+	constexpr char  kMeshReloadBindCommand[]   = "bind f5 +f5";
+	constexpr char  kSelfDestructBindCommand[] = "bind k +selfdestruct_test";
 	constexpr Vec3  kShakeRootOffset(0.08f, -0.1f, 0.18f);
 	constexpr float kCameraRootHeight  = 1.7f;
 	constexpr float kPlayerSpawnHeight = 2.0f;
@@ -119,13 +120,11 @@ namespace {
 	}
 
 	void ReRegisterRotateMeshes(
-		UPhysics::Engine* physics, const Entity* e1, const Entity* e2,
-		const Entity*     e3
+		UPhysics::Engine* physics, const Entity* e1, const Entity* e2
 	) {
 		if (!physics) { return; }
 		if (e1) { physics->RegisterEntity(const_cast<Entity*>(e1)); }
 		if (e2) { physics->RegisterEntity(const_cast<Entity*>(e2)); }
-		if (e3) { physics->RegisterEntity(const_cast<Entity*>(e3)); }
 	}
 
 	constexpr uint32_t kDefaultReplayTickRate = 66;
@@ -185,10 +184,19 @@ namespace {
 
 	constexpr float kOpeningCountdownDigitDurationSec = 1.0f;
 	constexpr float kOpeningCountdownStartDurationSec = 0.8f;
-	constexpr float kOpeningShotFadeOutSec            = 0.25f;
-	constexpr float kOpeningShotFadeInSec             = 0.25f;
-	constexpr float kCountdownAtlasHeightPx           = 64.0f;
-	constexpr float kCountdownDigitWidthPx            = 64.0f;
+	constexpr float kOpeningShotFadeOutSec = 0.25f;
+	constexpr float kOpeningShotFadeInSec = 0.25f;
+	constexpr float kCountdownAtlasHeightPx = 64.0f;
+	constexpr float kCountdownDigitWidthPx = 64.0f;
+	constexpr float kGameOverBlinkOnSec = 0.06f;
+	constexpr float kGameOverBlinkOffSec = 0.05f;
+	constexpr int   kGameOverBlinkCount = 2;
+	constexpr float kGameOverBlinkAlpha = 0.3f;
+	constexpr Vec3  kGameOverBlinkColor = Vec3(0.175f, 0.01f, 0.01f);
+	constexpr float kGameOverBlackFadeDurationSec = 0.55f;
+	constexpr float kGameOverHoldBlackDurationSec = 0.20f;
+	constexpr float kRunBgmBaseVolume = 0.20f;
+	constexpr float kReturnToTitleBgmFadeDurationSec = 0.35f;
 
 	float EvaluateCutsceneEase(const float t) {
 		return Math::CubicBezier(
@@ -234,6 +242,9 @@ void GameScene::Init() {
 	mGameplayPresentationStarted  = false;
 	mLastActivatedCheckpointCount = 0;
 	mCheckpointSplits.clear();
+	mPendingReturnToTitle        = false;
+	mReturnToTitleRequestSent    = false;
+	mReturnToTitleFadeElapsedSec = 0.0f;
 
 	// 各種マネージャーの取得
 	auto* engine = Unnamed::EngineServices::Get();
@@ -315,6 +326,15 @@ void GameScene::Init() {
 	mOpeningFadeAlpha = 0.0f;
 	UpdateOpeningFadeSprite();
 
+	mGameOverOverlaySprite = std::make_unique<Sprite>();
+	mGameOverOverlaySprite->Init(
+		mSpriteCommon,
+		kFadeOverlayTexturePath
+	);
+	mGameOverOverlaySprite->SetAnchorPoint({0.0f, 0.0f});
+	ResetGameOverState();
+	UpdateGameOverOverlaySprite();
+
 	for (std::size_t i = 0; i < mRaceTimerSprites.size(); ++i) {
 		mRaceTimerSprites[i]        = std::make_unique<Sprite>();
 		const bool  useDigitTexture = (i != 2 && i != 5);
@@ -346,6 +366,9 @@ void GameScene::Init() {
 	);
 	mCountdownCountSe = mAudioManager->GetAudio(kCountdownCountSePath);
 	mCountdownStartSe = mAudioManager->GetAudio(kCountdownStartSePath);
+	mDenySe           = mAudioManager->GetAudio(
+		"./content/parkour/sounds/se/deny.wav"
+	);
 
 	if (!mIsDemoPlayback && mEntSkeletalMesh) {
 		mEntSkeletalMesh->SetVisible(false);
@@ -384,33 +407,57 @@ void GameScene::Init() {
 			ApplyOpeningCameraPose(firstShot.startPos, firstShot.startLook);
 		}
 	}
+
+	if (mRun) {
+		mRun->Play(true);
+		mRun->SetVolume(kRunBgmBaseVolume);
+	}
 }
 
 /// @brief 更新
 /// @param deltaTime 経過時間
 void GameScene::Update(const float deltaTime) {
-	HandleMeshReload();
-
-	if (!mIsDemoPlayback && (InputSystem::IsTriggered("backtotitle"))) {
-		QueueReturnToTitle();
-	}
+	bool       gameOverActive      = IsGameOverSequenceActive();
+	const bool returnToTitleActive = IsReturnToTitleTransitionActive();
+	if (!gameOverActive && !returnToTitleActive) { HandleMeshReload(); }
 
 	// ファンを物理エンジンから登録解除
 	if (mUPhysicsEngine) {
 		mUPhysicsEngine->UnregisterEntity(mFanEntity.get());
 		mUPhysicsEngine->UnregisterEntity(mRotateMesh1.get());
 		mUPhysicsEngine->UnregisterEntity(mRotateMesh2.get());
-		mUPhysicsEngine->UnregisterEntity(mRotateMesh3.get());
 	}
 
 	bool openingActive = IsOpeningSequenceActive();
-	if (!mIsDemoPlayback && mOpeningPhase != OpeningPhase::Gameplay) {
+	if (!gameOverActive && !mIsDemoPlayback &&
+	    mOpeningPhase != OpeningPhase::Gameplay) {
 		UpdateOpeningSequence(deltaTime);
 		openingActive = IsOpeningSequenceActive();
 	}
 
+	if (!gameOverActive && !mIsDemoPlayback && !openingActive &&
+	    !returnToTitleActive &&
+	    InputSystem::IsTriggered("+selfdestruct_test")) {
+		StartSelfDestructGameOver();
+		gameOverActive = IsGameOverSequenceActive();
+	}
+
+	if (!gameOverActive && !mIsDemoPlayback &&
+	    !returnToTitleActive &&
+	    InputSystem::IsTriggered("backtotitle")) { QueueReturnToTitle(); }
+	if (!gameOverActive && returnToTitleActive) {
+		UpdateReturnToTitleTransition(deltaTime);
+	}
+
 	const auto camera = CameraManager::GetActiveCamera();
-	if (!openingActive) {
+	if (gameOverActive) {
+		if (mNextCheckpointSprite) { mNextCheckpointSprite->SetPos(Vec3::min); }
+		if (mNextCheckpointArrowSprite) {
+			mNextCheckpointArrowSprite->SetPos(Vec3::min);
+		}
+		HideRaceTimerSprites();
+		UpdateGameOverSequence(deltaTime);
+	} else if (!openingActive) {
 		SyncCameraRoot();
 		HandleWeaponInput();
 		HandleWeaponFire(camera);
@@ -493,7 +540,7 @@ void GameScene::Update(const float deltaTime) {
 
 	UpdatePostProcessing(deltaTime);
 	UpdateParticlesAndEffects(deltaTime);
-	UpdateEntities(deltaTime);
+	if (!gameOverActive) { UpdateEntities(deltaTime); }
 
 	if (mNextCheckpointSprite) { mNextCheckpointSprite->Update(); }
 	if (mNextCheckpointArrowSprite) { mNextCheckpointArrowSprite->Update(); }
@@ -501,10 +548,11 @@ void GameScene::Update(const float deltaTime) {
 	UpdateRaceTimerSprites();
 	DrawGameplayHud();
 	UpdateOpeningFadeSprite();
+	UpdateGameOverOverlaySprite();
 
 #ifdef _DEBUG
 	// チェックポイントのデバッグ表示
-	if (!openingActive && !mCheckpointEntities.empty()) {
+	if (!gameOverActive && !openingActive && !mCheckpointEntities.empty()) {
 		constexpr Vec4 lineColor(0.0f, 1.0f, 0.0f, 1.0f); // 緑色
 
 		// 順番に隣接するチェックポイント同士を結ぶ
@@ -558,8 +606,8 @@ void GameScene::Render() {
 	if (mSpriteCommon) { mSpriteCommon->Render(); }
 
 	if (!IsOpeningSequenceActive()) {
-		if (mNextCheckpointSprite) { mNextCheckpointSprite->Draw(); }
-		if (mNextCheckpointArrowSprite) { mNextCheckpointArrowSprite->Draw(); }
+		// if (mNextCheckpointSprite) { mNextCheckpointSprite->Draw(); }
+		// if (mNextCheckpointArrowSprite) { mNextCheckpointArrowSprite->Draw(); }
 		if (!mIsDemoPlayback) {
 			for (const auto& timerSprite : mRaceTimerSprites) {
 				if (timerSprite) { timerSprite->Draw(); }
@@ -574,6 +622,8 @@ void GameScene::Render() {
 	if (mOpeningFadeSprite && mOpeningFadeAlpha > 0.0f) {
 		mOpeningFadeSprite->Draw();
 	}
+	if (mGameOverOverlaySprite &&
+	    mGameOverOverlayColor.w > 0.0f) { mGameOverOverlaySprite->Draw(); }
 }
 
 void GameScene::SetDemoPlaybackEnabled(const bool enabled) {
@@ -894,42 +944,20 @@ void GameScene::InitializeRotateMesh() {
 		)
 	);
 
-	mRotateMesh3          = std::make_unique<Entity>("rotateMesh3");
-	auto* rotateRenderer3 = mRotateMesh3->AddComponent<StaticMeshRenderer>();
-	mRotateMeshRenderer3  = AdoptComponent(rotateRenderer3);
-	if (mRotateMeshRenderer3 && meshManager) {
-		if (auto* mesh = meshManager->GetStaticMesh(kRotateMeshPath)) {
-			mRotateMeshRenderer3->SetStaticMesh(mesh);
-		}
-	}
-
-	mRotateMesh3->GetTransform()->SetWorldPos(
-		Vec3(
-			-78.0288f,
-			-77.6224f,
-			-227.584f
-		)
-	);
-
 	auto* rotate1 = mRotateMesh1->AddComponent<RotateComponent>();
 	rotate1->SetRotationRate(Vec3::up * 90.0f);
 	auto* rotate2 = mRotateMesh2->AddComponent<RotateComponent>();
 	rotate2->SetRotationRate(Vec3::up * -90.0f);
 
-	mRotateMesh3->AddComponent<RotateComponent>();
-
 	mRotateMesh1->AddComponent<MeshColliderComponent>();
 	mRotateMesh2->AddComponent<MeshColliderComponent>();
-	mRotateMesh3->AddComponent<MeshColliderComponent>();
 
 	AddEntity(mRotateMesh1.get());
 	AddEntity(mRotateMesh2.get());
-	AddEntity(mRotateMesh3.get());
 
 	if (mUPhysicsEngine) {
 		mUPhysicsEngine->RegisterEntity(mRotateMesh1.get());
 		mUPhysicsEngine->RegisterEntity(mRotateMesh2.get());
-		mUPhysicsEngine->RegisterEntity(mRotateMesh3.get());
 	}
 }
 
@@ -1077,6 +1105,7 @@ void GameScene::ConfigureEntityHierarchy() {
 void GameScene::ConfigureConsole() {
 	Console::SubmitCommand(kAirAccelerateCommand);
 	Console::SubmitCommand(kMeshReloadBindCommand, true);
+	Console::SubmitCommand(kSelfDestructBindCommand, true);
 
 	mShowPosConVar = ConVarManager::GetConVar("cl_showpos");
 	mNameConVar    = ConVarManager::GetConVar("name");
@@ -1612,11 +1641,10 @@ void GameScene::UpdateEntities(float deltaTime) {
 		}
 	}
 
-	if (mRotateMesh1 && mRotateMesh2 && mRotateMesh3) {
+	if (mRotateMesh1 && mRotateMesh2) {
 		if (mUPhysicsEngine) {
 			mUPhysicsEngine->RegisterEntity(mRotateMesh1.get());
 			mUPhysicsEngine->RegisterEntity(mRotateMesh2.get());
-			mUPhysicsEngine->RegisterEntity(mRotateMesh3.get());
 		}
 	}
 
@@ -1799,10 +1827,6 @@ void GameScene::StartGameplayPresentation() {
 	if (mGameplayPresentationStarted) { return; }
 	mGameplayPresentationStarted = true;
 
-	if (mRun) {
-		mRun->Play(true);
-		mRun->SetVolume(0.125f);
-	}
 	if (mWind) {
 		mWind->Play(true);
 		mWind->SetVolume(1.0f);
@@ -1928,7 +1952,8 @@ void GameScene::UpdateOpeningFadeSprite() {
 }
 
 void GameScene::UpdateCheckpointSplits() {
-	if (mIsDemoPlayback || !mTimer || IsOpeningSequenceActive()) { return; }
+	if (mIsDemoPlayback || !mTimer || IsOpeningSequenceActive() ||
+	    IsGameOverSequenceActive()) { return; }
 
 	const int activatedCount = CheckpointManager::GetActivatedCheckpointCount();
 	if (activatedCount > mLastActivatedCheckpointCount) {
@@ -1952,7 +1977,8 @@ void GameScene::UpdateCheckpointSplits() {
 }
 
 void GameScene::UpdateRaceTimerSprites() {
-	if (mIsDemoPlayback || !mTimer || IsOpeningSequenceActive()) {
+	if (mIsDemoPlayback || !mTimer || IsOpeningSequenceActive() ||
+	    IsGameOverSequenceActive()) {
 		HideRaceTimerSprites();
 		return;
 	}
@@ -2036,7 +2062,8 @@ void GameScene::HideRaceTimerSprites() {
 }
 
 void GameScene::DrawGameplayHud() const {
-	if (mIsDemoPlayback || !mTimer || IsOpeningSequenceActive()) { return; }
+	if (mIsDemoPlayback || !mTimer || IsOpeningSequenceActive() ||
+	    IsGameOverSequenceActive()) { return; }
 
 #ifdef _DEBUG
 	const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -2070,6 +2097,179 @@ void GameScene::DrawGameplayHud() const {
 		y += ImGui::GetFontSize() * 1.2f;
 	}
 #endif
+}
+
+void GameScene::StartSelfDestructGameOver() {
+	if (mIsDemoPlayback || IsOpeningSequenceActive() ||
+	    IsGameOverSequenceActive()) { return; }
+
+	mGameOverPhase           = GameOverPhase::RedBlink;
+	mGameOverPhaseElapsedSec = 0.0f;
+	mGameOverBlinkCount      = 0;
+	mGameOverReloadRequested = false;
+	mGameOverOverlayColor    = Vec4(
+		kGameOverBlinkColor.x,
+		kGameOverBlinkColor.y,
+		kGameOverBlinkColor.z,
+		0.0f
+	);
+
+	if (mDenySe) { mDenySe->Play(false); }
+
+	if (mNextCheckpointSprite) { mNextCheckpointSprite->SetPos(Vec3::min); }
+	if (mNextCheckpointArrowSprite) {
+		mNextCheckpointArrowSprite->SetPos(Vec3::min);
+	}
+	HideRaceTimerSprites();
+}
+
+void GameScene::UpdateGameOverSequence(const float deltaTime) {
+	if (!IsGameOverSequenceActive()) { return; }
+
+	mGameOverPhaseElapsedSec += std::max(0.0f, deltaTime);
+
+	constexpr float kGameOverRedBlinkTotalSec =
+		static_cast<float>(kGameOverBlinkCount) *
+		(kGameOverBlinkOnSec + kGameOverBlinkOffSec);
+	constexpr float kGameOverBgmFadeTotalSec =
+		kGameOverRedBlinkTotalSec + kGameOverBlackFadeDurationSec;
+
+	auto applyRunFade = [this](const float progress) {
+		if (!mRun) { return; }
+		const float clamped = std::clamp(progress, 0.0f, 1.0f);
+		mRun->SetVolume(std::lerp(kRunBgmBaseVolume, 0.0f, clamped));
+	};
+
+	switch (mGameOverPhase) {
+		case GameOverPhase::None: {
+			mGameOverOverlayColor = Vec4(0.0f, 0.0f, 0.0f, 0.0f);
+			applyRunFade(0.0f);
+			return;
+		}
+		case GameOverPhase::RedBlink: {
+			const float cycleDuration =
+				kGameOverBlinkOnSec + kGameOverBlinkOffSec;
+			if (cycleDuration <= 0.0f) {
+				mGameOverPhase           = GameOverPhase::BlackFade;
+				mGameOverPhaseElapsedSec = 0.0f;
+				mGameOverOverlayColor    = Vec4(0.0f, 0.0f, 0.0f, 0.0f);
+				break;
+			}
+
+			const int completedCycles = static_cast<int>(
+				mGameOverPhaseElapsedSec / cycleDuration
+			);
+			mGameOverBlinkCount = completedCycles;
+			if (completedCycles >= kGameOverBlinkCount) {
+				mGameOverPhase           = GameOverPhase::BlackFade;
+				mGameOverPhaseElapsedSec = 0.0f;
+				mGameOverOverlayColor    = Vec4(0.0f, 0.0f, 0.0f, 0.0f);
+				break;
+			}
+
+			const float phaseTime = std::fmod(
+				mGameOverPhaseElapsedSec, cycleDuration
+			);
+			const bool blinkOn    = phaseTime < kGameOverBlinkOnSec;
+			mGameOverOverlayColor = Vec4(
+				kGameOverBlinkColor.x,
+				kGameOverBlinkColor.y,
+				kGameOverBlinkColor.z,
+				blinkOn ? kGameOverBlinkAlpha : 0.0f
+			);
+			applyRunFade(mGameOverPhaseElapsedSec / kGameOverBgmFadeTotalSec);
+			break;
+		}
+		case GameOverPhase::BlackFade: {
+			const float t = std::clamp(
+				mGameOverPhaseElapsedSec /
+				std::max(0.01f, kGameOverBlackFadeDurationSec),
+				0.0f,
+				1.0f
+			);
+			mGameOverOverlayColor = Vec4(
+				0.0f,
+				0.0f,
+				0.0f,
+				EvaluateCutsceneEase(t)
+			);
+			applyRunFade(
+				(kGameOverRedBlinkTotalSec + mGameOverPhaseElapsedSec) /
+				kGameOverBgmFadeTotalSec
+			);
+			if (t >= 1.0f) {
+				mGameOverPhase           = GameOverPhase::HoldBlack;
+				mGameOverPhaseElapsedSec = 0.0f;
+				mGameOverOverlayColor    = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			}
+			break;
+		}
+		case GameOverPhase::HoldBlack: {
+			mGameOverOverlayColor = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			applyRunFade(1.0f);
+			if (mGameOverPhaseElapsedSec >= kGameOverHoldBlackDurationSec &&
+			    !mGameOverReloadRequested) {
+				mGameOverReloadRequested = true;
+				mGameOverPhase           = GameOverPhase::ReloadRequested;
+				RequestCurrentSceneReload();
+			}
+			break;
+		}
+		case GameOverPhase::ReloadRequested: {
+			mGameOverOverlayColor = Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			applyRunFade(1.0f);
+			break;
+		}
+	}
+}
+
+void GameScene::UpdateGameOverOverlaySprite() {
+	if (!mGameOverOverlaySprite) { return; }
+
+	const Vec2 viewport = Unnamed::EngineServices::Get() ?
+		                      Unnamed::EngineServices::Get()->
+		                      GetViewportSizeInstance() :
+		                      Vec2(1280.0f, 720.0f);
+	const float viewW = std::max(1.0f, viewport.x);
+	const float viewH = std::max(1.0f, viewport.y);
+	Vec4        color = mGameOverOverlayColor;
+	color.w           = std::clamp(color.w, 0.0f, 1.0f);
+
+	mGameOverOverlaySprite->SetPos({0.0f, 0.0f, 96.0f});
+	mGameOverOverlaySprite->SetSize({viewW, viewH, 1.0f});
+	mGameOverOverlaySprite->SetColor(color);
+	mGameOverOverlaySprite->Update();
+}
+
+void GameScene::ResetGameOverState() {
+	mGameOverPhase           = GameOverPhase::None;
+	mGameOverPhaseElapsedSec = 0.0f;
+	mGameOverBlinkCount      = 0;
+	mGameOverReloadRequested = false;
+	mGameOverOverlayColor    = Vec4(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+void GameScene::UpdateReturnToTitleTransition(const float deltaTime) {
+	if (!IsReturnToTitleTransitionActive()) { return; }
+
+	mReturnToTitleFadeElapsedSec += std::max(0.0f, deltaTime);
+	const float fadeT            = std::clamp(
+		mReturnToTitleFadeElapsedSec /
+		std::max(0.01f, kReturnToTitleBgmFadeDurationSec),
+		0.0f,
+		1.0f
+	);
+
+	if (mRun) { mRun->SetVolume(std::lerp(kRunBgmBaseVolume, 0.0f, fadeT)); }
+
+	if (fadeT >= 1.0f && !mReturnToTitleRequestSent) {
+		mReturnToTitleRequestSent = true;
+		RequestSceneChange("TestScene");
+	}
+}
+
+bool GameScene::IsReturnToTitleTransitionActive() const {
+	return mPendingReturnToTitle && !mReturnToTitleRequestSent;
 }
 
 void GameScene::EnterOpeningCountdown() {
@@ -2142,6 +2342,10 @@ bool GameScene::IsOpeningSequenceActive() const {
 		return false;
 	}
 	return true;
+}
+
+bool GameScene::IsGameOverSequenceActive() const {
+	return mGameOverPhase != GameOverPhase::None;
 }
 
 void GameScene::SetPlayerGameplayActive(const bool active) const {
@@ -2297,6 +2501,10 @@ void GameScene::Shutdown() {
 		mRun->Stop();
 		mRun.reset();
 	}
+	if (mDenySe) {
+		mDenySe->Stop();
+		mDenySe.reset();
+	}
 
 	// エフェクトの破棄
 	mExplosionEffect.reset();
@@ -2307,6 +2515,7 @@ void GameScene::Shutdown() {
 	mParticleEmitter.reset();
 
 	// スプライトの破棄
+	mGameOverOverlaySprite.reset();
 	mOpeningFadeSprite.reset();
 	mCountdownStartSprite.reset();
 	mCountdownDigitSprite.reset();
@@ -2394,6 +2603,10 @@ void GameScene::Shutdown() {
 	mGameplayPresentationStarted  = false;
 	mLastActivatedCheckpointCount = 0;
 	mCheckpointSplits.clear();
+	mPendingReturnToTitle        = false;
+	mReturnToTitleRequestSent    = false;
+	mReturnToTitleFadeElapsedSec = 0.0f;
+	ResetGameOverState();
 }
 
 /// @brief ワールドメッシュのリロード
@@ -2517,8 +2730,7 @@ void GameScene::RecreateWorldMeshEntity() {
 	ReRegisterRotateMeshes(
 		mUPhysicsEngine.get(),
 		mRotateMesh1.get(),
-		mRotateMesh2.get(),
-		mRotateMesh3.get()
+		mRotateMesh2.get()
 	);
 
 	Console::Print(
@@ -2612,8 +2824,7 @@ void GameScene::SafeReloadWorldMesh() {
 	ReRegisterRotateMeshes(
 		mUPhysicsEngine.get(),
 		mRotateMesh1.get(),
-		mRotateMesh2.get(),
-		mRotateMesh3.get()
+		mRotateMesh2.get()
 	);
 	Console::Print(
 		"Re-registered entity to physics engine",
@@ -2626,7 +2837,7 @@ void GameScene::SafeReloadWorldMesh() {
 void GameScene::QueueReturnToTitle() {
 	if (mPendingReturnToTitle) { return; }
 
-	mPendingReturnToTitle = true;
-	// シーン遷移をリクエスト（フレーム末尾で実行される）
-	RequestSceneChange("TestScene");
+	mPendingReturnToTitle        = true;
+	mReturnToTitleRequestSent    = false;
+	mReturnToTitleFadeElapsedSec = 0.0f;
 }

@@ -33,3 +33,7 @@ void BaseScene::RequestSceneChange(const std::string& sceneName) {
 	Unnamed::Engine::RequestSceneChange(sceneName);
 }
 
+void BaseScene::RequestCurrentSceneReload() {
+	Unnamed::Engine::RequestCurrentSceneReload();
+}
+

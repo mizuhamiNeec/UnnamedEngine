@@ -127,9 +127,9 @@ void InputSystem::Update() {
 
 		if (XInputGetState(i, &state) == ERROR_SUCCESS) {
 			mGamepadStates[i].isConnected = true;
-			WORD oldButtons = mGamepadStates[i].buttons;
-			WORD newButtons = state.Gamepad.wButtons;
-			mGamepadStates[i].buttons = newButtons;
+			WORD oldButtons               = mGamepadStates[i].buttons;
+			WORD newButtons               = state.Gamepad.wButtons;
+			mGamepadStates[i].buttons     = newButtons;
 
 			// デッドゾーン処理と正規化
 			auto ApplyDeadzone =
@@ -228,7 +228,7 @@ void InputSystem::Update() {
 			if (it->duration <= 0.0f) {
 				it = mActiveVibrations[i].erase(it);
 			} else {
-				totalLeft += it->leftMotor;
+				totalLeft  += it->leftMotor;
 				totalRight += it->rightMotor;
 				++it;
 			}
@@ -392,7 +392,7 @@ bool InputSystem::IsTriggered(const std::string& command) {
 	}
 	if (mReplayInputActive) {
 		if (const auto it = mReplayInputState.triggered.find(baseCommand);
-		    it != mReplayInputState.triggered.end()) {
+			it != mReplayInputState.triggered.end()) {
 			return it->second;
 		}
 		return false;
@@ -413,7 +413,7 @@ bool InputSystem::IsPressed(const std::string& command) {
 	}
 	if (mReplayInputActive) {
 		if (const auto it = mReplayInputState.pressed.find(baseCommand);
-		    it != mReplayInputState.pressed.end()) {
+			it != mReplayInputState.pressed.end()) {
 			return it->second;
 		}
 		return false;
@@ -434,7 +434,7 @@ bool InputSystem::IsReleased(const std::string& command) {
 	}
 	if (mReplayInputActive) {
 		if (const auto it = mReplayInputState.released.find(baseCommand);
-		    it != mReplayInputState.released.end()) {
+			it != mReplayInputState.released.end()) {
 			return it->second;
 		}
 		return false;
@@ -563,64 +563,14 @@ void InputSystem::CheckMouseCursorLock(HWND hwnd, int32_t x, int32_t y) {
 	}
 }
 
-void InputSystem::UpdateMouseButtonState(
-	const USHORT buttonFlags, const std::string& buttonName,
-	const USHORT buttonDownFlag, const USHORT    buttonUpFlag
-) {
-	if (buttonFlags & buttonDownFlag) {
-		if (mKeyBindings.contains(buttonName)) {
-			const std::string cmd = mKeyBindings[buttonName];
-			if (cmd[0] == '+') {
-				std::string baseCmd         = cmd.substr(1);
-				mTriggeredCommands[baseCmd] = true;
-				mPressedCommands[baseCmd]   = true; // 長押し状態を設定
-			}
-		}
-	}
-
-	if (buttonFlags & buttonUpFlag) {
-		if (mKeyBindings.contains(buttonName)) {
-			const std::string cmd = mKeyBindings[buttonName];
-			if (cmd[0] == '+') {
-				std::string baseCmd        = cmd.substr(1);
-				mPressedCommands[baseCmd]  = false; // 長押し状態を解除
-				mReleasedCommands[baseCmd] = true;
-			}
-		}
-	}
+void InputSystem::SetReplayInputState(const ReplayInputState& state) {
+	mReplayInputState  = state;
+	mReplayInputActive = true;
 }
 
-void InputSystem::UpdateGamepadButtonState(
-	WORD oldButtons, WORD newButtons, WORD targetFlag,
-	const std::string& buttonName
-) {
-	bool wasPressed = (oldButtons & targetFlag) != 0;
-	bool isPressed  = (newButtons & targetFlag) != 0;
-
-	// 状態変化がない場合は何もしない (キーボードの状態を保護)
-	if (wasPressed == isPressed) { return; }
-
-	if (mKeyBindings.contains(buttonName)) {
-		const std::string cmd = mKeyBindings[buttonName];
-		if (cmd[0] == '+') {
-			std::string baseCmd = cmd.substr(1);
-			if (isPressed) {
-				mTriggeredCommands[baseCmd] = true;
-				mPressedCommands[baseCmd]   = true;
-			} else {
-				// ここでは「最後に操作したデバイス」が優先される挙動になる
-				// キーボードを押しながらコントローラーAを押して、離すと解除される
-				mPressedCommands[baseCmd]  = false;
-				mReleasedCommands[baseCmd] = true;
-			}
-		} else {
-			// プレフィックスなしコマンド (押した瞬間のみ)
-			if (isPressed) {
-				mTriggeredCommands[cmd] = true;
-				Console::SubmitCommand(cmd);
-			}
-		}
-	}
+void InputSystem::ClearReplayInputState() {
+	mReplayInputState  = ReplayInputState{};
+	mReplayInputActive = false;
 }
 
 /**
@@ -697,14 +647,64 @@ float InputSystem::GetRightTrigger(int padIndex) {
 	return mGamepadStates[padIndex].rightTrigger;
 }
 
-void InputSystem::SetReplayInputState(const ReplayInputState& state) {
-	mReplayInputState  = state;
-	mReplayInputActive = true;
+void InputSystem::UpdateMouseButtonState(
+	const USHORT buttonFlags, const std::string& buttonName,
+	const USHORT buttonDownFlag, const USHORT    buttonUpFlag
+) {
+	if (buttonFlags & buttonDownFlag) {
+		if (mKeyBindings.contains(buttonName)) {
+			const std::string cmd = mKeyBindings[buttonName];
+			if (cmd[0] == '+') {
+				std::string baseCmd         = cmd.substr(1);
+				mTriggeredCommands[baseCmd] = true;
+				mPressedCommands[baseCmd]   = true; // 長押し状態を設定
+			}
+		}
+	}
+
+	if (buttonFlags & buttonUpFlag) {
+		if (mKeyBindings.contains(buttonName)) {
+			const std::string cmd = mKeyBindings[buttonName];
+			if (cmd[0] == '+') {
+				std::string baseCmd        = cmd.substr(1);
+				mPressedCommands[baseCmd]  = false; // 長押し状態を解除
+				mReleasedCommands[baseCmd] = true;
+			}
+		}
+	}
 }
 
-void InputSystem::ClearReplayInputState() {
-	mReplayInputState  = ReplayInputState{};
-	mReplayInputActive = false;
+void InputSystem::UpdateGamepadButtonState(
+	WORD               oldButtons, WORD newButtons, WORD targetFlag,
+	const std::string& buttonName
+) {
+	bool wasPressed = (oldButtons & targetFlag) != 0;
+	bool isPressed  = (newButtons & targetFlag) != 0;
+
+	// 状態変化がない場合は何もしない (キーボードの状態を保護)
+	if (wasPressed == isPressed) { return; }
+
+	if (mKeyBindings.contains(buttonName)) {
+		const std::string cmd = mKeyBindings[buttonName];
+		if (cmd[0] == '+') {
+			std::string baseCmd = cmd.substr(1);
+			if (isPressed) {
+				mTriggeredCommands[baseCmd] = true;
+				mPressedCommands[baseCmd]   = true;
+			} else {
+				// ここでは「最後に操作したデバイス」が優先される挙動になる
+				// キーボードを押しながらコントローラーAを押して、離すと解除される
+				mPressedCommands[baseCmd]  = false;
+				mReleasedCommands[baseCmd] = true;
+			}
+		} else {
+			// プレフィックスなしコマンド (押した瞬間のみ)
+			if (isPressed) {
+				mTriggeredCommands[cmd] = true;
+				Console::SubmitCommand(cmd);
+			}
+		}
+	}
 }
 
 std::string InputSystem::GetKeyName(const UINT virtualKey) {
@@ -723,16 +723,16 @@ std::string InputSystem::GetKeyName(const UINT virtualKey) {
 Vec2 InputSystem::mMouseDelta    = Vec2::zero;
 Vec2 InputSystem::mMousePosition = Vec2::zero;
 
-std::unordered_map<std::string, std::string> InputSystem::mKeyBindings;
 std::unordered_map<std::string, InputSystem::CommandState>
 InputSystem::mCommandStates;
-std::unordered_map<std::string, bool> InputSystem::mTriggeredCommands;
-std::unordered_map<std::string, bool> InputSystem::mPressedCommands;
-std::unordered_map<std::string, bool> InputSystem::mReleasedCommands;
-InputSystem::GamepadState InputSystem::mGamepadStates[4];
-std::vector<InputSystem::VibrationEffect> InputSystem::mActiveVibrations[4];
-std::chrono::steady_clock::time_point InputSystem::mLastUpdateTime;
-bool InputSystem::mMouseLock = false;
-bool InputSystem::mCursorHidden = false;
+std::unordered_map<std::string, std::string> InputSystem::mKeyBindings;
+std::unordered_map<std::string, bool>        InputSystem::mTriggeredCommands;
+std::unordered_map<std::string, bool>        InputSystem::mPressedCommands;
+std::unordered_map<std::string, bool>        InputSystem::mReleasedCommands;
+InputSystem::GamepadState                    InputSystem::mGamepadStates[4];
+std::vector<InputSystem::VibrationEffect>    InputSystem::mActiveVibrations[4];
+std::chrono::steady_clock::time_point        InputSystem::mLastUpdateTime;
+bool                                         InputSystem::mMouseLock    = false;
+bool                                         InputSystem::mCursorHidden = false;
 bool InputSystem::mReplayInputActive = false;
 InputSystem::ReplayInputState InputSystem::mReplayInputState = {};

@@ -629,6 +629,10 @@ namespace Unnamed {
 		if (mSceneManager) { mSceneManager->RequestSceneChange(name); }
 	}
 
+	void Engine::RequestCurrentSceneReload() {
+		if (mSceneManager) { mSceneManager->RequestCurrentSceneReload(); }
+	}
+
 	void Engine::SetViewportToMainWindow() {
 		mViewportLT   = Vec2::zero;
 		mViewportSize = {

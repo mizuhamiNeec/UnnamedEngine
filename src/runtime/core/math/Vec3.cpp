@@ -52,7 +52,9 @@ Vec3 Vec3::Cross(const Vec3& other) const {
 }
 
 bool Vec3::IsZero(const float tolerance) const {
-	return std::fabs(x) < tolerance && std::fabs(y) < tolerance;
+	return std::fabs(x) < tolerance &&
+		   std::fabs(y) < tolerance &&
+		   std::fabs(z) < tolerance;
 }
 
 bool Vec3::IsParallel(const Vec3& other) const {

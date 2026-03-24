@@ -71,8 +71,10 @@ void SceneManager::ChangeScene(const std::string& name) {
 void SceneManager::RequestSceneChange(const std::string& name) {
 	if (name.empty()) { return; }
 
+	if (name != mCurrentSceneName) { mPendingCurrentSceneReload = false; }
+
 	if (name == mCurrentSceneName && !IsTransitionActive() &&
-	    !mPendingTransitionSwap) {
+	    !mPendingTransitionSwap && !mPendingCurrentSceneReload) {
 		DevMsg(
 			"SceneManager",
 			"Ignored scene change request to current scene: {}",
@@ -105,6 +107,14 @@ void SceneManager::RequestSceneChange(const std::string& name) {
 	Msg("SceneManager", "Scene change requested: {}", name);
 }
 
+void SceneManager::RequestCurrentSceneReload() {
+	if (!mCurrentScene) { return; }
+
+	mPendingSceneName          = mCurrentSceneName;
+	mPendingCurrentSceneReload = true;
+	Msg("SceneManager", "Current scene reload requested: {}", mCurrentSceneName);
+}
+
 /// @brief ペンディング中のシーン遷移を処理します
 void SceneManager::ProcessPendingSceneChange() {
 	if (mPendingTransitionSwap && mTransitionTargetSceneName.has_value()) {
@@ -123,7 +133,10 @@ void SceneManager::ProcessPendingSceneChange() {
 	std::string sceneName = *mPendingSceneName;
 	mPendingSceneName.reset();
 
-	if (sceneName == mCurrentSceneName) { return; }
+	const bool reloadCurrentScene =
+		mPendingCurrentSceneReload && sceneName == mCurrentSceneName;
+	if (sceneName == mCurrentSceneName && !reloadCurrentScene) { return; }
+	mPendingCurrentSceneReload = false;
 
 	if (!mCurrentScene) {
 		ChangeScene(sceneName);
@@ -137,6 +150,7 @@ void SceneManager::ShutdownCurrentScene() {
 	mPendingSceneName.reset();
 	mTransitionTargetSceneName.reset();
 	mPendingTransitionSwap   = false;
+	mPendingCurrentSceneReload = false;
 	mTransitionPhase         = TransitionPhase::None;
 	mTransitionElapsedSec    = 0.0f;
 	mTransitionCoverProgress = 0.0f;
