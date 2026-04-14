@@ -77574,6 +77574,7 @@ File Path: src/game/core/presentation/editor/EventPresentationEditorGraphUi.cpp
 #include <cstring>
 #include <unordered_set>
 
+#ifdef _DEBUG
 #include <imgui.h>
 
 namespace Unnamed {
@@ -79353,6 +79354,8 @@ namespace Unnamed {
 	}
 }
 
+#endif
+
 
 ============================================================
 File Path: src/game/core/presentation/editor/EventPresentationEditorGraphUi.h
@@ -79360,7 +79363,6 @@ File Path: src/game/core/presentation/editor/EventPresentationEditorGraphUi.h
 #pragma once
 
 #include <cstdint>
-#include <cstddef>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -81946,7 +81948,9 @@ namespace Unnamed {
 		return kIconArticle;
 	}
 
+#ifdef _DEBUG
 	void ConsoleScriptComponent::DrawInspectorImGui() {}
+#endif
 
 	void ConsoleScriptComponent::Deserialize(const JsonReader& reader) {
 		const JsonReader attached = reader["attached"];
