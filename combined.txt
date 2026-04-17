@@ -592,8 +592,15 @@
     └──         └── ├── CourseProgressHudComponent.cpp
     └──         └── └── CourseProgressHudComponent.h
     └──         ├── cutscene/
+    └──         └── ├── GameStartCutsceneComponent.cpp
+    └──         └── ├── GameStartCutsceneComponent.h
     └──         └── ├── SequenceCutsceneComponent.cpp
     └──         └── └── SequenceCutsceneComponent.h
+    └──         ├── title/
+    └──         └── ├── TitleBootstrapComponent.cpp
+    └──         └── ├── TitleBootstrapComponent.h
+    └──         └── ├── TitleFlowComponent.cpp
+    └──         └── └── TitleFlowComponent.h
     └──         └── trigger/
     └──             ├── CheckpointComponent.cpp
     └──             ├── CheckpointComponent.h
@@ -9831,6 +9838,7 @@ File Path: src/engine/Engine.cpp
 #include "Engine.h"
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <pch.h>
 
@@ -9853,6 +9861,7 @@ File Path: src/engine/Engine.cpp
 #include <core/assets/loader/SoundAssetLoader.h>
 #include <core/assets/loader/TextureLoaderDirectXTex.h>
 #include <core/assets/loader/UiDocumentAssetLoader.h>
+#include <core/string/StrUtil.h>
 
 #include <engine/editor/EditorRuntime.h>
 #include <engine/Platform/PlatformEventsImpl.h>
@@ -9876,6 +9885,7 @@ File Path: src/engine/Engine.cpp
 #include <engine/unnamed/subsystem/terminal/TerminalSystem.h>
 #include <engine/unnamed/subsystem/time/SystemClock.h>
 #include <engine/unnamed/subsystem/time/TimeSystem.h>
+#include <engine/world/EditorWorld.h>
 #include <engine/world/GameWorld.h>
 #include <engine/world/World.h>
 #include <game/core/replay/DemoManager.h>
@@ -10153,7 +10163,7 @@ namespace Unnamed {
 			);
 			if (World* runtimeWorld = mUEditorRuntime->GetRuntimeWorld()) {
 				runtimeWorld->LoadSceneFromFile(
-					"./content/parkour/scenes/game.json"
+					"./content/parkour/scenes/title.json"
 				);
 			}
 
@@ -10163,7 +10173,7 @@ namespace Unnamed {
 #endif
 		} else {
 			auto& world = SwitchWorld<GameWorld>();
-			world.LoadSceneFromFile("./content/parkour/scenes/game.json");
+			world.LoadSceneFromFile("./content/parkour/scenes/title.json");
 		}
 
 		// ユーザー名をコンソール変数に設定
@@ -10264,6 +10274,18 @@ namespace Unnamed {
 
 		// ワールドの固定シミュレーション更新 + 描画フレーム更新
 		if (runtimeWorld) {
+			{
+				// シーン遷移はフレーム先頭でまとめて適用し、更新ループ中の差し替えを避けます。
+				Profiler::ScopeTimer scope(
+					mProfiler.get(), "World.ProcessPendingSceneTransition"
+				);
+				if (World* transitionTarget = ResolveSceneTransitionTargetWorld(
+					runtimeWorld
+				)) {
+					transitionTarget->ProcessPendingSceneTransition();
+				}
+			}
+
 			static constexpr uint32_t kMaxFixedTicksPerFrame = 16u;
 
 			const uint32_t tickRate = mDemoManager ?
@@ -10390,6 +10412,16 @@ namespace Unnamed {
 	/// @brief シャットダウン
 	void Engine::Shutdown() {
 		mQuitCommand.reset();
+		mMapCommand.reset();
+		mReloadSceneCommand.reset();
+		mPostFxSetCommand.reset();
+		mPostFxEnableCommand.reset();
+		mPostFxClearParamCommand.reset();
+		mPostFxClearPassCommand.reset();
+		mPostFxResetCommand.reset();
+		mPostFxListCommand.reset();
+		mPostFxChainCommand.reset();
+		mPostFxChainReloadCommand.reset();
 #ifdef _DEBUG
 		mToggleEditorCommand.reset();
 		mToggleFullscreenCommand.reset();
@@ -10451,6 +10483,86 @@ namespace Unnamed {
 
 	/// @brief コンソールコマンドと変数の登録
 	void Engine::RegisterConsoleCommandsAndVariables() {
+		auto TryParseFloat = [](const std::string_view text, float& outValue) {
+			const char* begin     = text.data();
+			const char* end       = text.data() + text.size();
+			auto        [ptr, ec] = std::from_chars(begin, end, outValue);
+			if (ec == std::errc() && ptr == end) {
+				return true;
+			}
+			try {
+				size_t consumed = 0;
+				outValue        = std::stof(std::string(text), &consumed);
+				return consumed == text.size();
+			} catch (...) {
+				return false;
+			}
+		};
+
+		auto ParseBool = [](const std::string_view text, bool& outValue) {
+			const std::string lower = StrUtil::ToLowerCase(std::string(text));
+			if (
+				lower == "1" ||
+				lower == "true" ||
+				lower == "on" ||
+				lower == "yes"
+			) {
+				outValue = true;
+				return true;
+			}
+			if (
+				lower == "0" ||
+				lower == "false" ||
+				lower == "off" ||
+				lower == "no"
+			) {
+				outValue = false;
+				return true;
+			}
+			return false;
+		};
+
+		auto ParseVec4 = [&](const std::vector<std::string>& args, Vec4& outValue) {
+			if (args.size() != 4) {
+				return false;
+			}
+			float values[4] = {};
+			for (size_t i = 0; i < 4; ++i) {
+				if (!TryParseFloat(args[i], values[i])) {
+					return false;
+				}
+			}
+			outValue = Vec4(values[0], values[1], values[2], values[3]);
+			return true;
+		};
+
+		const auto queueSceneTransition = [this](const std::string& rawPath) {
+			World* runtimeWorld = GetWorld();
+			if (!runtimeWorld) {
+				Warning("Engine", "Scene transition failed: runtime world is null.");
+				return false;
+			}
+
+			World* transitionTarget = ResolveSceneTransitionTargetWorld(
+				runtimeWorld
+			);
+			if (!transitionTarget) {
+				Warning("Engine", "Scene transition failed: transition target world is null.");
+				return false;
+			}
+
+			const std::string normalizedPath = StrUtil::NormalizePath(
+				StrUtil::TrimSpaces(rawPath)
+			);
+			if (normalizedPath.empty()) {
+				Warning("Engine", "Scene transition failed: path is empty.");
+				return false;
+			}
+
+			transitionTarget->RequestSceneTransition(normalizedPath);
+			return true;
+		};
+
 		mQuitCommand = std::make_unique<ConCommand>(
 			"quit",
 			[this](const std::vector<std::string>&) {
@@ -10460,6 +10572,49 @@ namespace Unnamed {
 			"Quit the engine."
 		);
 
+		mMapCommand = std::make_unique<ConCommand>(
+			"map",
+			[queueSceneTransition](const std::vector<std::string>& args) {
+				if (args.empty()) {
+					Warning("Engine", "Usage: map <scenePath>");
+					return false;
+				}
+
+				// 引数を1つのパスとして扱い、空白を含むケースも吸収します。
+				return queueSceneTransition(StrUtil::Join(args, " "));
+			},
+			"Queue a scene transition. Usage: map <scenePath>"
+		);
+
+		mReloadSceneCommand = std::make_unique<ConCommand>(
+			"reloadscene",
+			[this, queueSceneTransition](const std::vector<std::string>&) {
+				World* runtimeWorld = GetWorld();
+				if (!runtimeWorld) {
+					Warning("Engine", "Reload failed: runtime world is null.");
+					return false;
+				}
+
+				World* transitionTarget = ResolveSceneTransitionTargetWorld(
+					runtimeWorld
+				);
+				if (!transitionTarget) {
+					Warning("Engine", "Reload failed: transition target world is null.");
+					return false;
+				}
+
+				const std::string loadedPath = std::string(
+					transitionTarget->GetLoadedScenePath()
+				);
+				if (loadedPath.empty()) {
+					Warning("Engine", "Reload failed: no loaded scene path.");
+					return false;
+				}
+
+				return queueSceneTransition(loadedPath);
+			},
+			"Reload current scene."
+		);
 #ifdef _DEBUG
 		mToggleEditorCommand = std::make_unique<ConCommand>(
 			"toggleeditor",
@@ -10479,6 +10634,15 @@ namespace Unnamed {
 			"Toggle editor viewport/swapchain presentation mode."
 		);
 #endif
+	}
+
+	World* Engine::ResolveSceneTransitionTargetWorld(World* runtimeWorld) const {
+#ifdef _DEBUG
+		if (auto* editorWorld = dynamic_cast<EditorWorld*>(runtimeWorld)) {
+			return editorWorld->GetRuntimeSceneWorld();
+		}
+#endif
+		return runtimeWorld;
 	}
 
 	void Engine::ToggleFullscreen() const {
@@ -10506,12 +10670,12 @@ namespace Unnamed {
 		TWorld* raw = newWorld.get();
 		raw->SetServices(
 			{
-				.console = mConsoleSystem.get(),
-				.inputSystem = mInputSystem.get(),
-				.profiler = mProfiler.get(),
+				.console      = mConsoleSystem.get(),
+				.inputSystem  = mInputSystem.get(),
+				.profiler     = mProfiler.get(),
 				.assetManager = mAssetManager.get(),
-				.demoManager = mDemoManager.get(),
-				.audioSystem = mAudioSystem.get()
+				.demoManager  = mDemoManager.get(),
+				.audioSystem  = mAudioSystem.get()
 			}
 		);
 
@@ -10592,6 +10756,13 @@ namespace Unnamed {
 		/// @brief コンソールコマンドとコンソール変数を登録します。
 		void RegisterConsoleCommandsAndVariables();
 
+		/// @brief シーン遷移処理の対象となるワールドを解決します。
+		/// @param runtimeWorld 現在の実行対象ワールド
+		/// @return 実際にシーン遷移を適用するワールド
+		[[nodiscard]] World* ResolveSceneTransitionTargetWorld(
+			World* runtimeWorld
+		) const;
+
 		/// @brief フルスクリーンの切り替えを行います。
 		void ToggleFullscreen() const;
 
@@ -10637,6 +10808,16 @@ namespace Unnamed {
 		std::unique_ptr<ConCommand> mQuitCommand;
 		std::unique_ptr<ConCommand> mToggleEditorCommand;
 		std::unique_ptr<ConCommand> mToggleFullscreenCommand;
+		std::unique_ptr<ConCommand> mMapCommand;
+		std::unique_ptr<ConCommand> mReloadSceneCommand;
+		std::unique_ptr<ConCommand> mPostFxSetCommand;
+		std::unique_ptr<ConCommand> mPostFxEnableCommand;
+		std::unique_ptr<ConCommand> mPostFxClearParamCommand;
+		std::unique_ptr<ConCommand> mPostFxClearPassCommand;
+		std::unique_ptr<ConCommand> mPostFxResetCommand;
+		std::unique_ptr<ConCommand> mPostFxListCommand;
+		std::unique_ptr<ConCommand> mPostFxChainCommand;
+		std::unique_ptr<ConCommand> mPostFxChainReloadCommand;
 
 
 		std::unique_ptr<Render::RenderFrameContext> mRenderFrameContext;
@@ -15698,12 +15879,14 @@ File Path: src/engine/editor/LevelEditorTool.cpp
 #include "EditorNotification.h"
 
 #include "core/io/json/JsonReader.h"
+#include "core/string/StrUtil.h"
 
 #include "engine/platform/Window.h"
 #include "engine/platform/WindowManager.h"
 #include "engine/render/Renderer.h"
 #include "engine/scene/SceneSerializer.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
+#include "engine/unnamed/subsystem/console/Log.h"
 #include "engine/unnamed/subsystem/console/concommand/ConVar.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 #include "engine/world/EditorWorld.h"
@@ -15711,6 +15894,61 @@ File Path: src/engine/editor/LevelEditorTool.cpp
 #include "thirdparty/ImGuizmo/ImGuizmo.h"
 
 namespace Unnamed {
+	namespace {
+		[[nodiscard]] Vec2 ResolveSceneRenderExtentForInput(
+			const Render::SceneViewRenderMode& request
+		) {
+			uint32_t width = std::max(1u, request.viewportPanelWidth);
+			uint32_t height = std::max(1u, request.viewportPanelHeight);
+
+			switch (request.mode) {
+				case Render::SCENE_RENDER_MODE::FIT_VIEWPORT: {
+					break;
+				}
+				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_16X9: {
+					if (width * 9 > height * 16) {
+						width = height * 16 / 9;
+					} else {
+						height = width * 9 / 16;
+					}
+					break;
+				}
+				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_4X3: {
+					if (width * 3 > height * 4) {
+						width = height * 4 / 3;
+					} else {
+						height = width * 3 / 4;
+					}
+					break;
+				}
+				case Render::SCENE_RENDER_MODE::HD_720P: {
+					width  = 1280;
+					height = 720;
+					break;
+				}
+				case Render::SCENE_RENDER_MODE::FHD_1080P: {
+					width  = 1920;
+					height = 1080;
+					break;
+				}
+				default: {
+					break;
+				}
+			}
+
+			width  = std::clamp(width, 2u, 8192u);
+			height = std::clamp(height, 2u, 8192u);
+			if ((width & 1u) != 0u) {
+				--width;
+			}
+			if ((height & 1u) != 0u) {
+				--height;
+			}
+
+			return Vec2(static_cast<float>(width), static_cast<float>(height));
+		}
+	}
+
 	LevelEditorTool::LevelEditorTool(
 		WindowManager& windowManager,
 		ImGuiLayer&    imGuiLayer
@@ -15872,6 +16110,15 @@ namespace Unnamed {
 				if (const Window* window = mWindowManager.FindWindowById(
 					mWindowManager.GetMainWindowId()
 				)) {
+					Vec2 virtualViewportSize = mViewportSize;
+					if (const auto outputIt = mViewOutputs.find(mActiveViewportViewKey);
+						outputIt != mViewOutputs.end()) {
+						virtualViewportSize = Vec2(
+							std::max(1.0f, outputIt->second.size.x),
+							std::max(1.0f, outputIt->second.size.y)
+						);
+					}
+
 					POINT viewportClientTopLeft = {
 						static_cast<LONG>(mViewportPosition.x),
 						static_cast<LONG>(mViewportPosition.y)
@@ -15882,7 +16129,8 @@ namespace Unnamed {
 							static_cast<float>(viewportClientTopLeft.x),
 							static_cast<float>(viewportClientTopLeft.y)
 						),
-						mViewportSize
+						mViewportSize,
+						virtualViewportSize
 					);
 
 					if (mViewportLookActive) {
@@ -15927,6 +16175,9 @@ namespace Unnamed {
 			}
 			const Render::SceneViewRenderMode sceneRequest =
 				BuildSceneViewModeForSize(width, height);
+			const Vec2 runtimeViewportSize = ResolveSceneRenderExtentForInput(
+				sceneRequest
+			);
 
 			const auto input = mInputSystem;
 			mEditorWorld.SetEditorCameraLookEnabled(
@@ -15936,22 +16187,16 @@ namespace Unnamed {
 				if (const Window* window = mWindowManager.FindWindowById(
 					mWindowManager.GetMainWindowId()
 				)) {
+					// 投影座標と一致させるため、実レンダー解像度を入力ビューポートとして扱います。
 					input->SetMouseClientViewportRect(
 						Vec2::zero,
-						Vec2(
-							width,
-							height
-						)
+						runtimeViewportSize
 					);
 					input->SetMouseCursorLockClientPosition(
 						window->GetHwnd(),
 						{
-							static_cast<float>(sceneRequest.viewportPanelWidth)
-							*
-							0.5f,
-							static_cast<float>(sceneRequest.viewportPanelHeight)
-							*
-							0.5f
+							runtimeViewportSize.x * 0.5f,
+							runtimeViewportSize.y * 0.5f
 						}
 					);
 				} else {
@@ -15963,6 +16208,10 @@ namespace Unnamed {
 
 		ImGui::SetNextWindowDockID(dockSpaceId, ImGuiCond_FirstUseEver);
 		DrawProfilerWindow();
+
+		if (mPresentMode == EDITOR_PRESENT_MODE::VIEWPORT_PANEL) {
+			DrawStatusBar();
+		}
 
 		mNotification->Update(deltaTime);
 		ImGui::End();
@@ -16171,11 +16420,11 @@ namespace Unnamed {
 		return mEditorWorld.IsPlaying();
 	}
 
-	void LevelEditorTool::StartPlayInEditor() {
+	void LevelEditorTool::StartPlayInEditor() const {
 		mEditorWorld.StartPlayInEditor();
 	}
 
-	void LevelEditorTool::StopPlayInEditor() {
+	void LevelEditorTool::StopPlayInEditor() const {
 		mEditorWorld.StopPlayInEditor();
 	}
 
@@ -16351,6 +16600,48 @@ namespace Unnamed {
 		return true;
 	}
 
+	bool LevelEditorTool::LoadSceneFromPath(const std::string& path) {
+		const std::string normalizedPath = StrUtil::NormalizePath(
+			StrUtil::TrimSpaces(path)
+		);
+		if (normalizedPath.empty()) {
+			return false;
+		}
+
+		// 再生中はプレイワールドを停止し、編集ワールドへロード
+		if (mEditorWorld.IsPlaying()) {
+			mEditorWorld.StopPlayInEditor();
+		}
+
+		if (!mEditorWorld.LoadSceneFromFile(normalizedPath.c_str())) {
+			Warning(
+				"LevelEditorTool",
+				"Failed to load scene: {}",
+				normalizedPath
+			);
+			if (mNotification) {
+				mNotification->PushNotification(
+					"Scene Load Failed",
+					normalizedPath,
+					NOTIFY_TYPE::ERR
+				);
+			}
+			return false;
+		}
+
+		mSelectedEntityId = 0;
+		Msg("LevelEditorTool", "Scene loaded: {}", normalizedPath);
+		if (mNotification) {
+			mNotification->PushNotification(
+				"Scene Loaded",
+				normalizedPath,
+				NOTIFY_TYPE::INFO
+			);
+		}
+
+		return true;
+	}
+
 	ViewportCameraBinding LevelEditorTool::ResolveViewportBinding(
 		const std::string_view viewKey
 	) const {
@@ -16416,6 +16707,11 @@ namespace Unnamed {
 		QUAD   = 1,
 	};
 
+	enum class EDITOR_GRID_SNAP_UNIT : uint8_t {
+		METER = 0,
+		HU    = 1,
+	};
+
 	class LevelEditorTool final : public IEditorTool {
 	public:
 		LevelEditorTool(WindowManager& windowManager, ImGuiLayer& imGuiLayer);
@@ -16439,13 +16735,13 @@ namespace Unnamed {
 		[[nodiscard]] bool IsOpen() const override;
 		void SetOpen(bool open) override;
 
-		void TogglePresentMode();
+		void                              TogglePresentMode();
 		[[nodiscard]] EDITOR_PRESENT_MODE GetPresentMode() const;
-		[[nodiscard]] bool IsPlaying() const;
-		void StartPlayInEditor();
-		void StopPlayInEditor();
-		[[nodiscard]] bool IsProfilerWindowOpen() const;
-		void SetProfilerWindowOpen(bool open);
+		[[nodiscard]] bool                IsPlaying() const;
+		void                              StartPlayInEditor() const;
+		void                              StopPlayInEditor() const;
+		[[nodiscard]] bool                IsProfilerWindowOpen() const;
+		void                              SetProfilerWindowOpen(bool open);
 
 		static constexpr std::string_view kViewScenePerspective =
 			"tool.level.scene.perspective";
@@ -16497,6 +16793,11 @@ namespace Unnamed {
 		[[nodiscard]] Entity* GetSelectedEntity() const;
 		bool SaveSceneAs(const std::string& path);
 
+		/// @brief 指定パスのシーンをエディターワールドへロードします。
+		/// @param path ロードするシーンパス
+		/// @return ロードに成功した場合はtrue
+		bool LoadSceneFromPath(const std::string& path);
+
 		[[nodiscard]] ViewportCameraBinding ResolveViewportBinding(
 			std::string_view viewKey
 		) const;
@@ -16521,6 +16822,7 @@ namespace Unnamed {
 		Vec2 mViewportPosition = Vec2::zero;
 		Vec2 mViewportSize = Vec2::zero;
 		Vec2 mLastViewportSize = Vec2(kClientWidth, kClientHeight);
+		std::array<char, 512> mOpenScenePathBuffer = {};
 		float mViewportPanelWidth = kClientWidth;
 		float mViewportPanelHeight = kClientHeight;
 		bool mViewportSizeChangedThisFrame = false;
@@ -16530,6 +16832,7 @@ namespace Unnamed {
 		std::unique_ptr<EditorNotification> mNotification;
 
 		float mGridSnap = 64.0f;
+		EDITOR_GRID_SNAP_UNIT mGridSnapUnit = EDITOR_GRID_SNAP_UNIT::METER;
 		float mAngleSnapDegree = 15.0f;
 		float mCameraSpeedPopupTimer = 0.0f;
 		bool mShowProfilerWindow = false;
@@ -16548,11 +16851,16 @@ File Path: src/engine/editor/LevelEditorToolChrome.cpp
 #ifdef _DEBUG
 #include "LevelEditorTool.h"
 
+#include <algorithm>
 #include <array>
+#include <cmath>
+#include <filesystem>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <utility>
+#include <vector>
 
+#include "core/math/Math.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
@@ -16561,6 +16869,80 @@ File Path: src/engine/editor/LevelEditorToolChrome.cpp
 #include "engine/world/EditorWorld.h"
 
 namespace Unnamed {
+	namespace {
+		/// @brief 固定長バッファへ文字列を安全にコピーします。
+		/// @param outBuffer コピー先バッファ
+		/// @param value コピー元文字列
+		void SetPathBuffer(
+			std::array<char, 512>& outBuffer,
+			const std::string_view value
+		) {
+			outBuffer.fill('\0');
+			if (outBuffer.size() <= 1) {
+				return;
+			}
+
+			const size_t copyLength = std::min(
+				outBuffer.size() - 1,
+				value.size()
+			);
+			std::copy_n(value.data(), copyLength, outBuffer.data());
+			outBuffer[copyLength] = '\0';
+		}
+
+		/// @brief `./content/**/scenes/*.json` からシーン候補を収集します。
+		/// @return ロード可能なシーンパス一覧
+		[[nodiscard]] std::vector<std::string> CollectSceneCandidates() {
+			namespace fs = std::filesystem;
+
+			std::vector<std::string> scenePaths = {};
+			std::error_code          ec         = {};
+			const fs::path           contentRoot("./content");
+			if (!fs::exists(contentRoot, ec)) {
+				return scenePaths;
+			}
+
+			fs::recursive_directory_iterator it(
+				contentRoot,
+				fs::directory_options::skip_permission_denied,
+				ec
+			);
+			const fs::recursive_directory_iterator endIt;
+			for (; it != endIt; it.increment(ec)) {
+				if (ec) {
+					ec.clear();
+					continue;
+				}
+				if (!it->is_regular_file(ec)) {
+					continue;
+				}
+
+				const std::string normalizedPath = StrUtil::NormalizePath(
+					it->path().generic_string()
+				);
+				if (
+					normalizedPath.find("/scenes/") == std::string::npos ||
+					!StrUtil::HasExtension(normalizedPath, ".json")
+				) {
+					continue;
+				}
+
+				if (it->path().is_relative()) {
+					scenePaths.emplace_back("./" + normalizedPath);
+				} else {
+					scenePaths.emplace_back(normalizedPath);
+				}
+			}
+
+			std::ranges::sort(scenePaths);
+			scenePaths.erase(
+				std::unique(scenePaths.begin(), scenePaths.end()),
+				scenePaths.end()
+			);
+			return scenePaths;
+		}
+	}
+
 	//-------------------------------------------------------------------------
 	// Chromeは某ブラウザではなく、UIの外枠という意味なのじゃ。
 	//-------------------------------------------------------------------------
@@ -16580,6 +16962,73 @@ namespace Unnamed {
 
 				if (ImGui::MenuItem("Save As (sandbox.json)")) {
 					SaveSceneAs("./content/core/scenes/sandbox.json");
+				}
+
+				ImGui::Separator();
+
+				if (ImGui::BeginMenu("Open Scene")) {
+					static std::vector<std::string> sSceneCandidates = {};
+					if (sSceneCandidates.empty()) {
+						sSceneCandidates = CollectSceneCandidates();
+					}
+
+					if (ImGui::MenuItem("Refresh Scene List")) {
+						sSceneCandidates = CollectSceneCandidates();
+					}
+
+					ImGui::Separator();
+
+					constexpr size_t maxQuickOpenCount = 24;
+					const size_t quickOpenCount = std::min(
+						sSceneCandidates.size(),
+						maxQuickOpenCount
+					);
+					if (quickOpenCount == 0) {
+						ImGui::TextDisabled(
+							"No scenes found in ./content/**/scenes/*.json"
+						);
+					} else {
+						for (size_t i = 0; i < quickOpenCount; ++i) {
+							const std::string& scenePath = sSceneCandidates[i];
+							if (!ImGui::MenuItem(scenePath.c_str())) {
+								continue;
+							}
+							SetPathBuffer(mOpenScenePathBuffer, scenePath);
+							(void)LoadSceneFromPath(scenePath);
+						}
+						if (sSceneCandidates.size() > quickOpenCount) {
+							ImGui::TextDisabled(
+								"... %zu more scenes (use path field below)",
+								sSceneCandidates.size() - quickOpenCount
+							);
+						}
+					}
+
+					ImGui::Separator();
+
+					const std::string defaultPath = currentPath.empty() ?
+						                                "./content/core/scenes/sandbox.json" :
+						                                currentPath;
+					if (mOpenScenePathBuffer[0] == '\0') {
+						SetPathBuffer(mOpenScenePathBuffer, defaultPath);
+					}
+
+					ImGui::SetNextItemWidth(360.0f);
+					ImGui::InputText(
+						"Path",
+						mOpenScenePathBuffer.data(),
+						mOpenScenePathBuffer.size()
+					);
+
+					if (ImGui::Button("Load")) {
+						(void)LoadSceneFromPath(mOpenScenePathBuffer.data());
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Use Current")) {
+						SetPathBuffer(mOpenScenePathBuffer, defaultPath);
+					}
+
+					ImGui::EndMenu();
 				}
 
 				ImGui::Separator();
@@ -16749,27 +17198,79 @@ namespace Unnamed {
 
 			// グリッドスナップ
 			{
-				constexpr std::array items = {
+				constexpr std::array kGridSnapValues = {
+					0.125f, 0.25f, 0.5f,
+					1.0f, 2.0f, 4.0f, 8.0f,
+					16.0f, 32.0f, 64.0f, 128.0f,
+					256.0f, 512.0f, 1024.0f
+				};
+				constexpr std::array kGridSnapLabels = {
 					"0.125", "0.25", "0.5",
 					"1", "2", "4", "8",
 					"16", "32", "64", "128",
 					"256", "512", "1024"
 				};
-				static uint32_t itemCurrentIndex = 9u; // デフォルトは64
-				const char*     comboLabel       = items[itemCurrentIndex];
+
+				auto FindNearestGridSnapIndex = [](const float valueInCurrentUnit) {
+					uint32_t nearestIndex = 0u;
+					float    nearestDiff  =
+						std::abs(valueInCurrentUnit - kGridSnapValues[0]);
+					for (uint32_t i = 1u; i < kGridSnapValues.size(); ++i) {
+						const float diff =
+							std::abs(valueInCurrentUnit - kGridSnapValues[i]);
+						if (diff < nearestDiff) {
+							nearestDiff  = diff;
+							nearestIndex = i;
+						}
+					}
+					return nearestIndex;
+				};
+
+				const bool showHu = mGridSnapUnit == EDITOR_GRID_SNAP_UNIT::HU;
+				const float gridSnapInCurrentUnit =
+					showHu ? Math::MtoH(mGridSnap) : mGridSnap;
+				uint32_t itemCurrentIndex = FindNearestGridSnapIndex(
+					gridSnapInCurrentUnit
+				);
+				const auto& labels = kGridSnapLabels;
+				const char* comboLabel = labels[itemCurrentIndex];
 
 				ImGui::Text("Grid: ");
 
 				ImGui::SameLine();
+				ImGui::PushItemWidth(statusBarWidth * 0.1f);
+				if (ImGui::BeginCombo("##gridSnapUnit", showHu ? "Hu" : "m")) {
+					const bool meterSelected =
+						mGridSnapUnit == EDITOR_GRID_SNAP_UNIT::METER;
+					if (ImGui::Selectable("m", meterSelected)) {
+						mGridSnapUnit = EDITOR_GRID_SNAP_UNIT::METER;
+					}
+					if (meterSelected) {
+						ImGui::SetItemDefaultFocus();
+					}
+
+					const bool huSelected =
+						mGridSnapUnit == EDITOR_GRID_SNAP_UNIT::HU;
+					if (ImGui::Selectable("Hu", huSelected)) {
+						mGridSnapUnit = EDITOR_GRID_SNAP_UNIT::HU;
+					}
+					if (huSelected) {
+						ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+				ImGui::PopItemWidth();
+
+				ImGui::SameLine();
 
 				// コンボボックスの幅をステータスバーの幅に合わせて調整
-				ImGui::PushItemWidth(statusBarWidth * 0.2f);
+				ImGui::PushItemWidth(statusBarWidth * 0.16f);
 				ImGui::PushID("GridSnapCombo");
 				if (ImGui::BeginCombo("##gridSnap", comboLabel)) {
-					for (int n = 0; n < items.size(); ++n) {
+					for (int n = 0; n < labels.size(); ++n) {
 						const bool isSelected =
 							std::cmp_equal(itemCurrentIndex, n);
-						if (ImGui::Selectable(items[n], isSelected)) {
+						if (ImGui::Selectable(labels[n], isSelected)) {
 							itemCurrentIndex = n;
 						}
 						if (isSelected) {
@@ -16778,13 +17279,15 @@ namespace Unnamed {
 					}
 					ImGui::EndCombo();
 				}
-				constexpr auto size = static_cast<uint32_t>(items.size());
+				const auto size = static_cast<uint32_t>(labels.size());
 				ImGuiWidgets::HandleHoveredComboMenuMouseWheelScroll(
 					itemCurrentIndex, size
 
 				);
-				// 選択された文字列を浮動小数点数に変換してgridSnapに設定
-				mGridSnap = std::stof(items[itemCurrentIndex]);
+				const float selectedGridSnap = kGridSnapValues[itemCurrentIndex];
+				mGridSnap = showHu ?
+					Math::HtoM(selectedGridSnap) :
+					selectedGridSnap;
 				ImGui::PopID();
 				ImGui::PopItemWidth();
 			}
@@ -18144,7 +18647,8 @@ namespace Unnamed {
 		ImGuizmo::SetDrawlist();
 		ImGuizmo::SetRect(imagePos.x, imagePos.y, drawWidth, drawHeight);
 
-		const bool  useSnap = sOperation != ImGuizmo::SCALE;
+		const bool  useSnap = (sOperation != ImGuizmo::SCALE) &&
+			(ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl));
 		const float snap[3] = {
 			sOperation == ImGuizmo::ROTATE ? mAngleSnapDegree : mGridSnap,
 			sOperation == ImGuizmo::ROTATE ? mAngleSnapDegree : mGridSnap,
@@ -18162,15 +18666,30 @@ namespace Unnamed {
 				useSnap ? snap : nullptr
 			)
 		) {
-			const Mat4 editedWorld = world;
-			Mat4       localMat    = editedWorld;
+			Mat4 localMat = world;
+			if (const TransformComponent* parent = transform->GetParent()) {
+				// ImGuizmo が編集したワールド行列を、親基準のローカル行列へ戻す
+				localMat = world * parent->GetWorldMat().Inverse();
+			}
 
-			const Vec3 localScale  = localMat.GetScale();
-			const Mat4 rotationMat = localMat;
+			float translation[3] = {};
+			float rotation[3]    = {};
+			float scale[3]       = {};
+			ImGuizmo::DecomposeMatrixToComponents(
+				*localMat.m,
+				translation,
+				rotation,
+				scale
+			);
 
-			transform->SetPosition(localMat.GetTranslate());
-			transform->SetRotation(rotationMat.ToQuaternion());
-			transform->SetScale(localScale);
+			transform->SetPosition(
+				Vec3(translation[0], translation[1], translation[2])
+			);
+			transform->SetRotation(
+				Quaternion::EulerDegrees(Vec3(rotation[0], rotation[1], rotation[2]))
+			);
+			transform->SetScale(Vec3(scale[0], scale[1], scale[2]));
+			transform->RequestInterpolationResync();
 		}
 	}
 
@@ -18565,10 +19084,8 @@ namespace Unnamed {
 				fitPos.x + fitWidth, fitPos.y + fitHeight
 			);
 
-			ImGui::InvisibleButton(
-				(std::string("##") + std::string(viewKey)).c_str(),
-				ImVec2(drawWidth, drawHeight)
-			);
+			// ImGuizmo のドラッグ入力を奪わないよう、ここはレイアウト確保のみ行う
+			ImGui::Dummy(ImVec2(drawWidth, drawHeight));
 			ImDrawList* drawList = ImGui::GetWindowDrawList();
 			drawList->AddRectFilled(
 				panePos,
@@ -29902,6 +30419,23 @@ namespace Unnamed::Render {
 			}
 			if (key == "gamma") {
 				outParams.scalar1.w = value;
+				return;
+			}
+			// FXAA向けのパラメータ名を直接受け付ける。
+			if (key == "edgethreshold") {
+				outParams.scalar0.x = value;
+				return;
+			}
+			if (key == "edgethresholdmin") {
+				outParams.scalar0.y = value;
+				return;
+			}
+			if (key == "subpixelblending" || key == "subpix") {
+				outParams.scalar0.z = value;
+				return;
+			}
+			if (key == "maxspan") {
+				outParams.scalar0.w = value;
 				return;
 			}
 
@@ -55704,8 +56238,12 @@ namespace Unnamed {
 
 		console->Print(level, channel, body, location);
 
-		// エラー以上のレベルのメッセージはエディタ通知も出す
+		// 警告以上のレベルのメッセージはエディタ通知も出す
 		switch (level) {
+			case LogLevel::Warning: console->ExecuteCommand(
+					"notify warning 2 Warning | " + body,
+					EXEC_FLAG::FROM_CONSOLE | EXEC_FLAG::SILENT
+				);
 			case LogLevel::Error: console->ExecuteCommand(
 					"notify error 2 Error | " + body,
 					EXEC_FLAG::FROM_CONSOLE | EXEC_FLAG::SILENT
@@ -55993,7 +56531,7 @@ namespace Unnamed {
 ============================================================
 File Path: src/engine/unnamed/subsystem/console/builtin/BuiltInConVars.cpp
 ============================================================
-﻿#include "BuiltInConVars.h"
+#include "BuiltInConVars.h"
 
 #include <engine/unnamed/subsystem/console/concommand/ConVar.h>
 
@@ -56225,6 +56763,46 @@ namespace Unnamed {
 			1,
 			true,
 			10000
+		);
+		static ConVar<int> cl_title_mode(
+			"cl_title_mode", 0, FCVAR::ARCHIVE,
+			"Enable title flow mode. 0 = gameplay, 1 = title."
+		);
+		static ConVar<std::string> cl_title_demo_path(
+			"cl_title_demo_path",
+			"./content/parkour/replay/title_demo.udemo",
+			FCVAR::ARCHIVE,
+			"Demo path used by title background playback."
+		);
+		static ConVar<float> cl_title_fade_out_sec(
+			"cl_title_fade_out_sec",
+			0.22f,
+			FCVAR::ARCHIVE,
+			"Fade-out duration when title demo loop restarts.",
+			true,
+			0.01f,
+			true,
+			10.0f
+		);
+		static ConVar<float> cl_title_fade_in_sec(
+			"cl_title_fade_in_sec",
+			0.24f,
+			FCVAR::ARCHIVE,
+			"Fade-in duration after title demo loop restart.",
+			true,
+			0.01f,
+			true,
+			10.0f
+		);
+		static ConVar<float> cl_title_start_transition_sec(
+			"cl_title_start_transition_sec",
+			0.30f,
+			FCVAR::ARCHIVE,
+			"Fade-out duration before transitioning from title to gameplay.",
+			true,
+			0.01f,
+			true,
+			10.0f
 		);
 
 		//---------------------------------------------------------------------
@@ -58008,7 +58586,19 @@ namespace Unnamed {
 		const Vec2& origin,
 		const Vec2& size
 	) {
+		SetMouseClientViewportRect(origin, size, size);
+	}
+
+	void InputSystem::SetMouseClientViewportRect(
+		const Vec2& origin,
+		const Vec2& size,
+		const Vec2& virtualSize
+	) {
 		if (size.x <= 0.0f || size.y <= 0.0f) {
+			ClearMouseClientViewportRectOverride();
+			return;
+		}
+		if (virtualSize.x <= 0.0f || virtualSize.y <= 0.0f) {
 			ClearMouseClientViewportRectOverride();
 			return;
 		}
@@ -58019,12 +58609,17 @@ namespace Unnamed {
 			std::max(1.0f, size.x),
 			std::max(1.0f, size.y)
 		);
+		mMouseViewportVirtualSize = Vec2(
+			std::max(1.0f, virtualSize.x),
+			std::max(1.0f, virtualSize.y)
+		);
 	}
 
 	void InputSystem::ClearMouseClientViewportRectOverride() {
 		mMouseViewportRectOverride = false;
 		mMouseViewportOrigin       = Vec2::zero;
 		mMouseViewportSizeOverride = Vec2::zero;
+		mMouseViewportVirtualSize  = Vec2::zero;
 	}
 
 	Vec2 InputSystem::GetMouseClientPosition() const {
@@ -58032,19 +58627,31 @@ namespace Unnamed {
 			return mMouseClientPosition;
 		}
 
-		return Vec2(
+		Vec2 localPos = Vec2(
 			mMouseClientPosition.x - mMouseViewportOrigin.x,
 			mMouseClientPosition.y - mMouseViewportOrigin.y
 		);
+		if (
+			mMouseViewportSizeOverride.x > 0.0f &&
+			mMouseViewportSizeOverride.y > 0.0f &&
+			mMouseViewportVirtualSize.x > 0.0f &&
+			mMouseViewportVirtualSize.y > 0.0f
+		) {
+			localPos.x *=
+				mMouseViewportVirtualSize.x / mMouseViewportSizeOverride.x;
+			localPos.y *=
+				mMouseViewportVirtualSize.y / mMouseViewportSizeOverride.y;
+		}
+		return localPos;
 	}
 
 	Vec2 InputSystem::GetMouseClientViewportSize() const {
 		if (
 			mMouseViewportRectOverride &&
-			mMouseViewportSizeOverride.x > 0.0f &&
-			mMouseViewportSizeOverride.y > 0.0f
+			mMouseViewportVirtualSize.x > 0.0f &&
+			mMouseViewportVirtualSize.y > 0.0f
 		) {
-			return mMouseViewportSizeOverride;
+			return mMouseViewportVirtualSize;
 		}
 		return mMouseClientViewportSize;
 	}
@@ -58469,6 +59076,11 @@ namespace Unnamed {
 		void SetMouseCursorLockClientPosition(HWND hwnd, const Vec2& clientPos);
 		void ClearMouseCursorLockAnchor();
 		void SetMouseClientViewportRect(const Vec2& origin, const Vec2& size);
+		void SetMouseClientViewportRect(
+			const Vec2& origin,
+			const Vec2& size,
+			const Vec2& virtualSize
+		);
 		void ClearMouseClientViewportRectOverride();
 
 		[[nodiscard]] Vec2 GetMouseClientPosition() const;
@@ -58535,6 +59147,7 @@ namespace Unnamed {
 		bool mMouseViewportRectOverride = false;
 		Vec2 mMouseViewportOrigin       = Vec2::zero;
 		Vec2 mMouseViewportSizeOverride = Vec2::zero;
+		Vec2 mMouseViewportVirtualSize  = Vec2::zero;
 		std::array<bool, 5> mMouseButtonDown = {};
 		std::array<bool, 5> mMouseButtonPressed = {};
 		std::array<bool, 5> mMouseButtonReleased = {};
@@ -61462,6 +62075,8 @@ File Path: src/engine/world/GameWorld.cpp
 ============================================================
 #include "GameWorld.h"
 
+#include "core/string/StrUtil.h"
+
 #include "engine/render/frame/RenderFrameInputs.h"
 #include "engine/scene/SceneSerializer.h"
 
@@ -61510,6 +62125,12 @@ namespace Unnamed {
 				return false;
 			}
 
+			const auto beforeUnload = std::chrono::steady_clock::now();
+			UnloadScene();
+			const auto afterUnload = std::chrono::steady_clock::now();
+
+			// GUIDが同じシーンへ遷移しても物理登録が競合しないよう、
+			// 旧シーン解除後に新シーンをロードします。
 			auto       newScene = std::make_unique<Scene>();
 			newScene->SetWorld(this);
 			const bool loadOk   = SceneSerializer::LoadFromFile(
@@ -61519,12 +62140,12 @@ namespace Unnamed {
 				return false;
 			}
 
-			const auto beforeUnload = std::chrono::steady_clock::now();
-			UnloadScene();
-			const auto afterUnload = std::chrono::steady_clock::now();
-
 			World::SetScene(std::move(newScene));
 			const auto afterSetScene = std::chrono::steady_clock::now();
+
+			// Base World と同等に、現在ロード中のシーンパスとフックを更新します。
+			mLoadedScenePath = StrUtil::NormalizePath(path);
+			OnSceneLoaded();
 
 			Msg(
 				"GameWorld",
@@ -62543,6 +63164,10 @@ namespace Unnamed {
 			return false;
 		}
 
+		// GUIDが重複するシーン間遷移でも、旧シーンのDetachが新シーン登録を消さないよう
+		// 先に旧シーンをアンロードしてから新シーンをロードします。
+		UnloadScene();
+
 		auto newScene = std::make_unique<Scene>();
 		newScene->SetWorld(this);
 		const bool ok = SceneSerializer::LoadFromFile(
@@ -62552,7 +63177,6 @@ namespace Unnamed {
 			return false;
 		}
 
-		UnloadScene();
 		SetScene(std::move(newScene));
 		mLoadedScenePath = StrUtil::NormalizePath(path);
 		OnSceneLoaded();
@@ -62570,6 +63194,44 @@ namespace Unnamed {
 			return false;
 		}
 		return SceneSerializer::SaveToFile(*mScene, path);
+	}
+
+	void World::RequestSceneTransition(const std::string_view path) {
+		const std::string normalizedPath = StrUtil::NormalizePath(
+			StrUtil::TrimSpaces(std::string(path))
+		);
+		if (normalizedPath.empty()) {
+			Warning(kChannel, "Scene transition was ignored because path is empty.");
+			return;
+		}
+
+		// 実行中のシーン更新中に即時ロードしないため、次の安全地点まで保留します。
+		mPendingSceneTransitionPath = normalizedPath;
+		Msg(
+			kChannel,
+			"Queued scene transition to: {}",
+			mPendingSceneTransitionPath
+		);
+	}
+
+	void World::ProcessPendingSceneTransition() {
+		if (mPendingSceneTransitionPath.empty()) {
+			return;
+		}
+
+		// 再入時に同じ要求を処理しないよう、先に保留値を取り出します。
+		const std::string requestedPath = std::move(mPendingSceneTransitionPath);
+		mPendingSceneTransitionPath.clear();
+
+		if (LoadSceneFromFile(requestedPath.c_str())) {
+			return;
+		}
+
+		Error(
+			kChannel,
+			"Scene transition failed: {}",
+			requestedPath
+		);
 	}
 
 	void World::UnloadScene() {
@@ -63250,14 +63912,11 @@ File Path: src/engine/world/World.h
 ============================================================
 #pragma once
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 #include "core/guidgenerator/GuidGenerator.h"
-#include "core/math/Vec4.h"
 
 #include "engine/render/frame/RenderFrameInputs.h"
 #include "engine/world/GameplayCueBus.h"
@@ -63352,6 +64011,14 @@ namespace Unnamed {
 
 		/// @brief 現在のシーンをアンロードします。
 		virtual void UnloadScene();
+
+		/// @brief シーン遷移を次の安全なタイミングで実行するようリクエストします。
+		/// @param path 遷移先シーンのファイルパス
+		void RequestSceneTransition(std::string_view path);
+
+		/// @brief 保留中のシーン遷移を処理します。
+		/// @details エンジンのフレーム先頭など、安全なタイミングで呼び出してください。
+		void ProcessPendingSceneTransition();
 
 		/// @brief レンダリングフレームの入力を埋めます。
 		virtual void FillRenderFrameInputs(
@@ -63498,6 +64165,7 @@ namespace Unnamed {
 		GameplayCueBus                   mGameplayCueBus;
 		GuidGenerator                    mGuidGenerator;   // GUIDジェネレーター
 		std::string                      mLoadedScenePath; // ロードされたシーンのファイルパス
+		std::string                      mPendingSceneTransitionPath; // 保留中のシーン遷移先
 		WorldTime                        mTime;            // ワールドの時間情報
 		WorldDebugDraw                   mDebugDraw;
 		std::vector<Render::ScreenSpriteInput> mDebugScreenSprites;
@@ -64039,6 +64707,7 @@ namespace Unnamed {
 	void WorldDebugDraw::FlushToRenderFrameInputs(
 		Render::RenderFrameInputs& inputs
 	) {
+#ifdef _DEBUG
 		auto& lines = inputs.debugDraw.lines;
 		lines.clear();
 		lines.reserve(mPendingLines.size());
@@ -64051,6 +64720,8 @@ namespace Unnamed {
 				}
 			);
 		}
+#endif
+		(void)inputs;
 		mPendingLines.clear();
 	}
 }
@@ -82087,23 +82758,110 @@ File Path: src/game/core/script/ConsoleScriptComponent.cpp
 ============================================================
 ﻿#include "ConsoleScriptComponent.h"
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstring>
+
+#ifdef _DEBUG
+#include <imgui.h>
+#endif
+
+#include "core/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
+#include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
-#include "engine/unnamed/subsystem/console/ConsoleScriptParser.h"
+#include "engine/unnamed/subsystem/console/ConsoleSystem.h"
+#include "engine/unnamed/subsystem/console/Log.h"
+#include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 
 namespace Unnamed {
+	namespace {
+		constexpr std::string_view kChannel = "ConsoleScriptComponent";
+
+		constexpr const char* kAttachCommandsKey = "attachCommands";
+		constexpr const char* kDetachCommandsKey = "detachCommands";
+
+#ifdef _DEBUG
+		template <size_t N>
+		bool EditCommandInput(const char* label, std::string& value) {
+			std::array<char, N> buffer = {};
+			const size_t        copyLen = std::min(value.size(), buffer.size() - 1);
+			if (copyLen > 0) {
+				std::memcpy(buffer.data(), value.data(), copyLen);
+			}
+			if (!ImGui::InputText(label, buffer.data(), buffer.size())) {
+				return false;
+			}
+			value = buffer.data();
+			return true;
+		}
+
+		void DrawCommandListInspector(
+			const char*               label,
+			std::vector<std::string>& commands
+		) {
+			ImGui::PushID(label);
+			ImGui::SeparatorText(label);
+
+			if (ImGui::Button("Add Command")) {
+				commands.emplace_back();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Clear Commands")) {
+				commands.clear();
+			}
+
+			for (size_t i = 0; i < commands.size(); ++i) {
+				ImGui::PushID(static_cast<int>(i));
+				std::string& command = commands[i];
+				EditCommandInput<512>("##Command", command);
+				ImGui::SameLine();
+				if (ImGui::Button("Remove")) {
+					commands.erase(commands.begin() + static_cast<ptrdiff_t>(i));
+					ImGui::PopID();
+					break;
+				}
+				ImGui::PopID();
+			}
+			ImGui::PopID();
+		}
+#endif
+
+		void ReadCommandArray(
+			const JsonReader&          node,
+			std::vector<std::string>& outCommands
+		) {
+			outCommands.clear();
+			if (!node.Valid() || !node.IsArray()) {
+				return;
+			}
+
+			const JsonReader commandArray = node.GetArray();
+			for (size_t i = 0; i < commandArray.Size(); ++i) {
+				const JsonReader commandNode = commandArray[i];
+				if (!commandNode.Valid()) {
+					continue;
+				}
+				std::string command = StrUtil::TrimSpaces(commandNode.GetString(""));
+				if (command.empty()) {
+					continue;
+				}
+				outCommands.emplace_back(std::move(command));
+			}
+		}
+	}
+
 	void ConsoleScriptComponent::OnAttached() {
 		BaseComponent::OnAttached();
-
-		ConsoleScriptParser parser(mOnAttachedScriptPath);
+		ExecutePhaseCommands(mOnAttachCommands, "Attach");
 	}
 
 	void ConsoleScriptComponent::OnDetached() {
 		BaseComponent::OnDetached();
-
-		ConsoleScriptParser parser(mOnDetachedScriptPath);
+		ExecutePhaseCommands(mOnDetachCommands, "Detach");
 	}
 
 	std::string_view ConsoleScriptComponent::GetStableName() const {
@@ -82119,26 +82877,68 @@ namespace Unnamed {
 	}
 
 #ifdef _DEBUG
-	void ConsoleScriptComponent::DrawInspectorImGui() {}
+	void ConsoleScriptComponent::DrawInspectorImGui() {
+		DrawCommandListInspector("On Attach", mOnAttachCommands);
+		DrawCommandListInspector("On Detach", mOnDetachCommands);
+	}
 #endif
 
 	void ConsoleScriptComponent::Deserialize(const JsonReader& reader) {
-		const JsonReader attached = reader["attached"];
-		if (attached.Valid()) {
-			mOnAttachedScriptPath = attached.GetString();
-		}
-		const JsonReader detached = reader["detached"];
-		if (detached.Valid()) {
-			mOnDetachedScriptPath = detached.GetString();
-		}
+		ReadCommandArray(reader[kAttachCommandsKey], mOnAttachCommands);
+		ReadCommandArray(reader[kDetachCommandsKey], mOnDetachCommands);
 	}
 
 	void ConsoleScriptComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("attached");
-		writer.Write(mOnAttachedScriptPath);
-		writer.Key("detached");
-		writer.Write(mOnDetachedScriptPath);
+		writer.Key(kAttachCommandsKey);
+		writer.BeginArray();
+		for (const std::string& command : mOnAttachCommands) {
+			const std::string trimmed = StrUtil::TrimSpaces(command);
+			if (trimmed.empty()) {
+				continue;
+			}
+			writer.Write(trimmed);
+		}
+		writer.EndArray();
+
+		writer.Key(kDetachCommandsKey);
+		writer.BeginArray();
+		for (const std::string& command : mOnDetachCommands) {
+			const std::string trimmed = StrUtil::TrimSpaces(command);
+			if (trimmed.empty()) {
+				continue;
+			}
+			writer.Write(trimmed);
+		}
+		writer.EndArray();
 	}
+
+	void ConsoleScriptComponent::ExecutePhaseCommands(
+		const std::vector<std::string>& commands,
+		const char*                     phaseName
+	) const {
+		ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
+		if (!console) {
+			Warning(
+				kChannel,
+				"{} command execution skipped: ConsoleSystem is not available.",
+				phaseName
+			);
+			return;
+		}
+
+		for (const std::string& rawCommand : commands) {
+			const std::string command = StrUtil::TrimSpaces(rawCommand);
+			if (command.empty()) {
+				continue;
+			}
+
+			// 実行順を維持し、フェーズごとのトレースを残す。
+			DevMsg(kChannel, "{} execute: {}", phaseName, command);
+			console->ExecuteCommand(command, EXEC_FLAG::FROM_ENGINE);
+		}
+	}
+
+	REGISTER_COMPONENT(ConsoleScriptComponent);
 }
 
 
@@ -82147,30 +82947,50 @@ File Path: src/game/core/script/ConsoleScriptComponent.h
 ============================================================
 ﻿#pragma once
 #include <string>
+#include <vector>
 
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 
 namespace Unnamed {
+	/// @brief Attach/Detach時にコンソールコマンドを実行するコンポーネントです。
+	/// @details 各配列要素は1行1コマンドとして扱われ、配列順で実行されます。
 	class ConsoleScriptComponent : public BaseComponent {
 	public:
+		/// @brief コンポーネントAttach時に登録済みコマンドを実行します。
 		void OnAttached() override;
+
+		/// @brief コンポーネントDetach時に登録済みコマンドを実行します。
 		void OnDetached() override;
 
+		/// @brief 永続的に識別可能なコンポーネント名を返します。
 		[[nodiscard]] std::string_view GetStableName() const override;
+
+		/// @brief エディタ表示用コンポーネント名を返します。
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
+		/// @brief コンポーネントアイコンIDを返します。
 		[[nodiscard]] uint32_t GetIcon() const override;
 
 #ifdef	_DEBUG
+		/// @brief Debugビルド時にInspectorからコマンド配列を編集します。
 		void DrawInspectorImGui() override;
 #endif
 
+		/// @brief JSONからAttach/Detachコマンド配列を読み込みます。
 		void Deserialize(const JsonReader& reader) override;
+
+		/// @brief Attach/Detachコマンド配列をJSONへ保存します。
 		void Serialize(JsonWriter& writer) const override;
 
 	private:
-		std::string mOnAttachedScriptPath;
-		std::string mOnDetachedScriptPath;
+		/// @brief 指定フェーズのコマンド配列を順序どおりに実行します。
+		void ExecutePhaseCommands(
+			const std::vector<std::string>& commands,
+			const char*                     phaseName
+		) const;
+
+		std::vector<std::string> mOnAttachCommands;
+		std::vector<std::string> mOnDetachCommands;
 	};
 }
 
@@ -83445,11 +84265,11 @@ namespace Unnamed {
 			}
 		}
 
-		//const float smoothedFraction = EaseInOutSpline(mDuckViewFraction);
-		const float eyeHeightHu = Math::Lerp(
+		const float smoothedFraction = EaseInOutSpline(mDuckViewFraction);
+		const float eyeHeightHu      = Math::Lerp(
 			mStandViewHeightHu,
 			mDuckViewHeightHu,
-			10.0f * stepSeconds
+			smoothedFraction
 		);
 		const float currentHalfHeightHu = std::max(
 			0.0f,
@@ -83468,8 +84288,8 @@ namespace Unnamed {
 			mDuckViewSmoothedLocalY = targetLocalY;
 		} else {
 			const bool  raisingView = localDelta > 0.0f;
-			const float transitionSec = raisingView ? mDuckViewTimeToDuckSec :
-				                         mDuckViewTimeToUnduckSec;
+			const float transitionSec = raisingView ? mDuckViewTimeToUnduckSec :
+				                         mDuckViewTimeToDuckSec;
 			const float alpha = transitionSec <= 1.0e-6f ?
 				                    1.0f :
 				                    std::clamp(stepSeconds / transitionSec, 0.0f, 1.0f);
@@ -86371,6 +87191,8 @@ namespace Unnamed {
 		[[nodiscard]] float Clamp01(const float value) {
 			return std::clamp(value, 0.0f, 1.0f);
 		}
+
+		constexpr float kMinGuideAlpha = 0.25f;
 	}
 
 	bool BuildCourseHudProjection(
@@ -86459,7 +87281,8 @@ namespace Unnamed {
 
 		outResult.screenPositionPx = screenPositionPx;
 		outResult.vectorFromCenter = toCenter;
-		outResult.alpha            = std::lerp(0.025f, 1.0f, distanceT);
+		// 中心付近でも完全には消えないよう、最小アルファを確保します。
+		outResult.alpha            = std::lerp(kMinGuideAlpha, 1.0f, distanceT);
 		outResult.arrowRotationRad = std::atan2(toCenter.x, -toCenter.y);
 		outResult.outOfScreen      = outOfScreen;
 		return true;
@@ -87714,13 +88537,21 @@ namespace Unnamed {
 		}
 
 		// 絶対ピクセル指定で追従させるため、原点アンカー + 中心ピボットに揃えます。
+		// 投影座標は画面全体基準なので、親基準のローカル座標へ変換します。
+		Vec2 localCenterPx = centerPx;
+		if (Gui::UiWidget* parent = widget->GetParent()) {
+			const Gui::Rect& parentRect = parent->GetGlobalRect();
+			localCenterPx.x -= parentRect.x;
+			localCenterPx.y -= parentRect.y;
+		}
+
 		transform->SetAnchors(Gui::Anchors{});
 		transform->SetMargins(Gui::Margins{});
 		transform->SetPivot(Gui::Pivot{.x = 0.5f, .y = 0.5f});
 		transform->SetRect(
 			Gui::Rect{
-				.x = centerPx.x,
-				.y = centerPx.y,
+				.x = localCenterPx.x,
+				.y = localCenterPx.y,
 				.width = sizePx,
 				.height = sizePx
 			}
@@ -87826,6 +88657,1446 @@ namespace Unnamed {
 		// 所有しない参照です。毎Tick再解決するため raw pointer を使用します。
 		CourseProgressComponent* mCourseProgress = nullptr;
 		UiCanvasComponent*       mUiCanvas       = nullptr;
+	};
+}
+
+
+============================================================
+File Path: src/game/parkour/components/cutscene/GameStartCutsceneComponent.cpp
+============================================================
+#include "GameStartCutsceneComponent.h"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstring>
+#include <ranges>
+
+#ifdef _DEBUG
+#include <imgui.h>
+#endif
+
+#include "core/ComponentRegistry.h"
+#include "core/io/json/JsonReader.h"
+#include "core/io/json/JsonWriter.h"
+#include "core/math/Math.h"
+#include "core/math/Quaternion.h"
+
+#include "engine/ImGui/Icons.h"
+#include "engine/gui/Rect.h"
+#include "engine/gui/UiRoot.h"
+#include "engine/gui/UiWidget.h"
+#include "engine/gui/components/UiTextureComponent.h"
+#include "engine/gui/components/UiTransformComponent.h"
+#include "engine/scene/Scene.h"
+#include "engine/unnamed/framework/components/TransformComponent.h"
+#include "engine/unnamed/framework/components/audio/AudioSourceComponent.h"
+#include "engine/unnamed/framework/components/ui/UiCanvasComponent.h"
+#include "engine/unnamed/framework/entity/Entity.h"
+#include "engine/unnamed/subsystem/input/InputSystem.h"
+#include "engine/world/World.h"
+
+#include "game/core/components/CameraRotatorComponent.h"
+#include "game/core/replay/DemoManager.h"
+
+namespace Unnamed {
+	namespace {
+		constexpr float kMinDurationSec = 0.01f;
+
+#ifdef _DEBUG
+		template <size_t N>
+		void DrawStringInput(const char* label, std::string& value) {
+			std::array<char, N> buffer = {};
+			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
+			if (copyLen > 0) {
+				std::memcpy(buffer.data(), value.data(), copyLen);
+			}
+			if (ImGui::InputText(label, buffer.data(), buffer.size())) {
+				value = buffer.data();
+			}
+		}
+#endif
+	}
+
+	void GameStartCutsceneComponent::OnAttached() {
+		StartSequence();
+	}
+
+	void GameStartCutsceneComponent::OnTick(const float deltaTime) {
+		if (!mSequenceActive || mPhase == PHASE::GAMEPLAY) {
+			return;
+		}
+
+		const float clampedDelta = std::max(0.0f, deltaTime);
+		switch (mPhase) {
+			case PHASE::TOUR: TickTour(clampedDelta); break;
+			case PHASE::COUNTDOWN: TickCountdown(clampedDelta); break;
+			case PHASE::GAMEPLAY:
+			default: break;
+		}
+	}
+
+	void GameStartCutsceneComponent::OnEditorTick(const float) {
+		DrawShotDebugAxes();
+	}
+
+	void GameStartCutsceneComponent::OnDetached() {
+		RestoreLockTargets();
+		HideAllCutsceneWidgets();
+
+		mSequenceActive        = false;
+		mHasSavedGameplayPose  = false;
+		mHasCountdownFixedPose = false;
+		mPhase                 = PHASE::GAMEPLAY;
+		mLastCountdownCueStep  = -1;
+		mGameplayControlReleased = false;
+
+		// シーン破棄中は Scene::FindEntity が安全に使えないため、再解決せずにキャッシュだけ破棄します。
+		ClearResolvedBindings();
+	}
+
+	void GameStartCutsceneComponent::DrawShotDebugAxes() const {
+		World* world = GetWorld();
+		if (!world) {
+			return;
+		}
+
+		auto& debugDraw = world->GetDebugDraw();
+		for (const ShotSpec& shot : mShots) {
+			const auto drawShotAxis = [&debugDraw](
+				const Vec3& cameraPos,
+				const Vec3& lookAtPos,
+				const float axisLength
+			) {
+				Vec3 forward = lookAtPos - cameraPos;
+				if (forward.IsZero()) {
+					forward = Vec3::forward;
+				} else {
+					forward.Normalize();
+				}
+
+				// 視線と平行になりにくいアップ候補を選び、安定した直交基底を作ります。
+				const Vec3 worldUp =
+					std::abs(forward.Dot(Vec3::up)) > 0.99f ?
+						Vec3::forward :
+						Vec3::up;
+				Vec3 right = worldUp.Cross(forward);
+				if (right.IsZero()) {
+					right = Vec3::right;
+				} else {
+					right.Normalize();
+				}
+				Vec3 up = forward.Cross(right);
+				if (up.IsZero()) {
+					up = Vec3::up;
+				} else {
+					up.Normalize();
+				}
+
+				debugDraw.DrawAxis(
+					cameraPos,
+					right * axisLength,
+					up * axisLength,
+					forward * axisLength
+				);
+			};
+
+			// 各ショットの開始点/終了点の両方を可視化して、座標調整をしやすくします。
+			constexpr float kAxisLength = 1.5f;
+			drawShotAxis(shot.startPos, shot.startLook, kAxisLength);
+			drawShotAxis(shot.endPos, shot.endLook, kAxisLength);
+		}
+	}
+
+	std::string_view GameStartCutsceneComponent::GetStableName() const {
+		return "parkour.GameStartCutscene";
+	}
+
+	std::string_view GameStartCutsceneComponent::GetComponentName() const {
+		return "GameStartCutscene";
+	}
+
+	uint32_t GameStartCutsceneComponent::GetIcon() const {
+		return kIconVideoCam;
+	}
+
+#ifdef _DEBUG
+	void GameStartCutsceneComponent::DrawInspectorImGui() {
+		ImGui::InputScalar(
+			"Camera Root Entity Guid",
+			ImGuiDataType_U64,
+			&mCameraRootEntityGuid
+		);
+		ImGui::InputScalar(
+			"Camera Rotator Component Guid",
+			ImGuiDataType_U64,
+			&mCameraRotatorComponentGuid
+		);
+		ImGui::InputScalar(
+			"Hud Canvas Entity Guid",
+			ImGuiDataType_U64,
+			&mHudCanvasEntityGuid
+		);
+		ImGui::InputScalar(
+			"Count Audio Source Guid",
+			ImGuiDataType_U64,
+			&mCountAudioSourceGuid
+		);
+		ImGui::InputScalar(
+			"Start Audio Source Guid",
+			ImGuiDataType_U64,
+			&mStartAudioSourceGuid
+		);
+
+		DrawStringInput<64>("Skip Action", mSkipAction);
+		DrawStringInput<64>("Digit Widget Name", mCountdownDigitWidgetName);
+		DrawStringInput<64>("Start Widget Name", mCountdownStartWidgetName);
+		DrawStringInput<64>("Fade Widget Name", mFadeOverlayWidgetName);
+
+		ImGui::DragFloat("Fade Out Seconds", &mFadeOutSeconds, 0.01f, 0.01f, 3.0f);
+		ImGui::DragFloat("Fade In Seconds", &mFadeInSeconds, 0.01f, 0.01f, 3.0f);
+		ImGui::DragFloat(
+			"Countdown Digit Seconds",
+			&mCountdownDigitSeconds,
+			0.01f,
+			0.01f,
+			3.0f
+		);
+		ImGui::DragFloat(
+			"Countdown Start Seconds",
+			&mCountdownStartSeconds,
+			0.01f,
+			0.01f,
+			3.0f
+		);
+
+		ImGui::SeparatorText("Shots");
+		if (ImGui::Button("Add Shot")) {
+			mShots.emplace_back();
+		}
+		for (size_t i = 0; i < mShots.size(); ++i) {
+			ImGui::PushID(static_cast<int>(i));
+			ShotSpec& shot = mShots[i];
+			ImGui::Text("Shot %llu", static_cast<unsigned long long>(i));
+			ImGui::DragFloat3("Start Pos", &shot.startPos.x, 0.1f);
+			ImGui::DragFloat3("End Pos", &shot.endPos.x, 0.1f);
+			ImGui::DragFloat3("Start Look", &shot.startLook.x, 0.1f);
+			ImGui::DragFloat3("End Look", &shot.endLook.x, 0.1f);
+			ImGui::DragFloat("Duration", &shot.durationSeconds, 0.01f, 0.01f, 20.0f);
+			if (ImGui::Button("Remove Shot")) {
+				mShots.erase(mShots.begin() + static_cast<ptrdiff_t>(i));
+				ImGui::PopID();
+				break;
+			}
+			ImGui::Separator();
+			ImGui::PopID();
+		}
+
+		ImGui::SeparatorText("Lock Targets");
+		if (ImGui::Button("Add Lock Target")) {
+			mLockTargets.emplace_back();
+		}
+		for (size_t i = 0; i < mLockTargets.size(); ++i) {
+			ImGui::PushID(1000 + static_cast<int>(i));
+			LockTargetSpec& spec = mLockTargets[i];
+			ImGui::InputScalar("Entity Guid", ImGuiDataType_U64, &spec.entityGuid);
+			DrawStringInput<96>("Component StableName", spec.componentStableName);
+			if (ImGui::Button("Remove Lock")) {
+				mLockTargets.erase(mLockTargets.begin() + static_cast<ptrdiff_t>(i));
+				ImGui::PopID();
+				break;
+			}
+			ImGui::Separator();
+			ImGui::PopID();
+		}
+	}
+#endif
+
+	void GameStartCutsceneComponent::Deserialize(const JsonReader& reader) {
+		if (const JsonReader node = reader["cameraRootEntityGuid"]; node.Valid()) {
+			mCameraRootEntityGuid = node.GetUint64();
+		}
+		if (const JsonReader node = reader["cameraRotatorComponentGuid"];
+			node.Valid()) {
+			mCameraRotatorComponentGuid = node.GetUint64();
+		}
+		if (const JsonReader node = reader["hudCanvasEntityGuid"]; node.Valid()) {
+			mHudCanvasEntityGuid = node.GetUint64();
+		}
+		if (const JsonReader node = reader["countAudioSourceGuid"]; node.Valid()) {
+			mCountAudioSourceGuid = node.GetUint64();
+		}
+		if (const JsonReader node = reader["startAudioSourceGuid"]; node.Valid()) {
+			mStartAudioSourceGuid = node.GetUint64();
+		}
+
+		mSkipAction = reader["skipAction"].GetString(mSkipAction);
+		if (mSkipAction.empty()) {
+			mSkipAction = "jump";
+		}
+
+		mCountdownDigitWidgetName = reader["countdownDigitWidgetName"].GetString(
+			mCountdownDigitWidgetName
+		);
+		mCountdownStartWidgetName = reader["countdownStartWidgetName"].GetString(
+			mCountdownStartWidgetName
+		);
+		mFadeOverlayWidgetName = reader["fadeOverlayWidgetName"].GetString(
+			mFadeOverlayWidgetName
+		);
+
+		if (const JsonReader node = reader["fadeOutSeconds"]; node.Valid()) {
+			mFadeOutSeconds = std::max(
+				kMinDurationSec,
+				node.GetFloat(mFadeOutSeconds)
+			);
+		}
+		if (const JsonReader node = reader["fadeInSeconds"]; node.Valid()) {
+			mFadeInSeconds = std::max(
+				kMinDurationSec,
+				node.GetFloat(mFadeInSeconds)
+			);
+		}
+		if (const JsonReader node = reader["countdownDigitSeconds"]; node.Valid()) {
+			mCountdownDigitSeconds = std::max(
+				kMinDurationSec,
+				node.GetFloat(mCountdownDigitSeconds)
+			);
+		}
+		if (const JsonReader node = reader["countdownStartSeconds"]; node.Valid()) {
+			mCountdownStartSeconds = std::max(
+				kMinDurationSec,
+				node.GetFloat(mCountdownStartSeconds)
+			);
+		}
+
+		if (const JsonReader shotsNode = reader["shots"]; shotsNode.Valid()) {
+			const JsonReader shotArray = shotsNode.GetArray();
+			std::vector<ShotSpec> parsedShots = {};
+			parsedShots.reserve(shotArray.Size());
+			for (size_t i = 0; i < shotArray.Size(); ++i) {
+				const JsonReader shotNode = shotArray[i];
+				if (!shotNode.Valid()) {
+					continue;
+				}
+
+				ShotSpec shot = {};
+				shot.startPos = shotNode["startPos"].GetVec3(shot.startPos);
+				shot.endPos   = shotNode["endPos"].GetVec3(shot.endPos);
+				shot.startLook = shotNode["startLook"].GetVec3(shot.startLook);
+				shot.endLook   = shotNode["endLook"].GetVec3(shot.endLook);
+				shot.durationSeconds = std::max(
+					kMinDurationSec,
+					shotNode["durationSeconds"].GetFloat(shot.durationSeconds)
+				);
+				parsedShots.emplace_back(shot);
+			}
+			if (!parsedShots.empty()) {
+				mShots = std::move(parsedShots);
+			}
+		}
+
+		if (const JsonReader lockNode = reader["lockTargets"]; lockNode.Valid()) {
+			const JsonReader lockArray = lockNode.GetArray();
+			mLockTargets.clear();
+			mLockTargets.reserve(lockArray.Size());
+			for (size_t i = 0; i < lockArray.Size(); ++i) {
+				const JsonReader item = lockArray[i];
+				if (!item.Valid()) {
+					continue;
+				}
+
+				LockTargetSpec spec = {};
+				if (const JsonReader entityNode = item["entityGuid"];
+					entityNode.Valid()) {
+					spec.entityGuid = entityNode.GetUint64();
+				}
+				spec.componentStableName = item["componentStableName"].GetString(
+					spec.componentStableName
+				);
+				if (spec.componentStableName.empty()) {
+					continue;
+				}
+				mLockTargets.emplace_back(std::move(spec));
+			}
+		}
+	}
+
+	void GameStartCutsceneComponent::Serialize(JsonWriter& writer) const {
+		writer.Key("cameraRootEntityGuid");
+		writer.Write(mCameraRootEntityGuid);
+		writer.Key("cameraRotatorComponentGuid");
+		writer.Write(mCameraRotatorComponentGuid);
+		writer.Key("hudCanvasEntityGuid");
+		writer.Write(mHudCanvasEntityGuid);
+		writer.Key("countAudioSourceGuid");
+		writer.Write(mCountAudioSourceGuid);
+		writer.Key("startAudioSourceGuid");
+		writer.Write(mStartAudioSourceGuid);
+		writer.Key("skipAction");
+		writer.Write(mSkipAction);
+
+		writer.Key("countdownDigitWidgetName");
+		writer.Write(mCountdownDigitWidgetName);
+		writer.Key("countdownStartWidgetName");
+		writer.Write(mCountdownStartWidgetName);
+		writer.Key("fadeOverlayWidgetName");
+		writer.Write(mFadeOverlayWidgetName);
+
+		writer.Key("fadeOutSeconds");
+		writer.Write(mFadeOutSeconds);
+		writer.Key("fadeInSeconds");
+		writer.Write(mFadeInSeconds);
+		writer.Key("countdownDigitSeconds");
+		writer.Write(mCountdownDigitSeconds);
+		writer.Key("countdownStartSeconds");
+		writer.Write(mCountdownStartSeconds);
+
+		writer.Key("shots");
+		writer.BeginArray();
+		for (const ShotSpec& shot : mShots) {
+			SerializeShot(writer, shot);
+		}
+		writer.EndArray();
+
+		writer.Key("lockTargets");
+		writer.BeginArray();
+		for (const LockTargetSpec& spec : mLockTargets) {
+			SerializeLockTarget(writer, spec);
+		}
+		writer.EndArray();
+	}
+
+	void GameStartCutsceneComponent::StartSequence() {
+		ResolveBindings();
+		HideAllCutsceneWidgets();
+
+		mFadeAlpha               = 0.0f;
+		mShotIndex               = 0;
+		mShotElapsedSeconds      = 0.0f;
+		mCountdownElapsedSeconds = 0.0f;
+		mShotFadeActive          = false;
+		mShotFadeSwapped         = false;
+		mLastCountdownCueStep    = -1;
+		mHasCountdownFixedPose   = false;
+		mGameplayControlReleased = false;
+		mSequenceActive          = true;
+
+		// Demo再生時は演出を完全にスキップし、入力ロックも行いません。
+		if (DemoManager* demo = GetDemoManager(); demo && demo->IsPlayback()) {
+			mHasSavedGameplayPose = false;
+			EnterGameplay();
+			return;
+		}
+
+		mHasSavedGameplayPose = false;
+		if (mCameraRootTransform) {
+			mSavedGameplayCameraPosition = mCameraRootTransform->GetPosition();
+			mHasSavedGameplayPose        = true;
+		}
+		if (mCameraRotator) {
+			mSavedGameplayLookAngles = mCameraRotator->GetLookAnglesDegrees();
+			mHasSavedGameplayPose    = true;
+		} else if (mCameraRootTransform) {
+			const Vec3 euler = mCameraRootTransform->GetRotation().ToEulerDegrees();
+			mSavedGameplayLookAngles = Vec2(euler.x, euler.y);
+			mHasSavedGameplayPose    = true;
+		}
+
+		ApplyLockTargets();
+		mPhase = PHASE::TOUR;
+		if (mShots.empty()) {
+			EnterCountdown();
+			return;
+		}
+
+		const ShotSpec& firstShot = mShots[0];
+		ApplyCameraPose(firstShot.startPos, firstShot.startLook);
+		UpdateHudWidgets();
+	}
+
+	void GameStartCutsceneComponent::TickTour(const float deltaTime) {
+		if (!mSkipAction.empty()) {
+			if (const InputSystem* input = GetInputSystem()) {
+				if (input->IsPressed(mSkipAction)) {
+					EnterCountdown();
+					return;
+				}
+			}
+		}
+
+		if (mShots.empty()) {
+			EnterCountdown();
+			return;
+		}
+
+		const ShotSpec& shot = mShots[mShotIndex];
+		const float duration = std::max(kMinDurationSec, shot.durationSeconds);
+		mShotElapsedSeconds += deltaTime;
+
+		const float rawT = std::clamp(mShotElapsedSeconds / duration, 0.0f, 1.0f);
+		const float easedT = EvaluateEase(rawT);
+		const Vec3 cameraPos = Math::Lerp(shot.startPos, shot.endPos, easedT);
+		const Vec3 lookAtPos = Math::Lerp(shot.startLook, shot.endLook, easedT);
+		ApplyCameraPose(cameraPos, lookAtPos);
+
+		const bool hasNextShot = mShotIndex + 1 < mShots.size();
+		if (hasNextShot && !mShotFadeSwapped) {
+			const float fadeOutDuration = std::max(kMinDurationSec, mFadeOutSeconds);
+			const float fadeOutStartSec = std::max(0.0f, duration - fadeOutDuration);
+			if (mShotElapsedSeconds >= fadeOutStartSec) {
+				const float fadeOutT = std::clamp(
+					(mShotElapsedSeconds - fadeOutStartSec) / fadeOutDuration,
+					0.0f,
+					1.0f
+				);
+				mShotFadeActive = true;
+				mFadeAlpha      = EvaluateEase(fadeOutT);
+			} else if (!mShotFadeActive) {
+				mFadeAlpha = 0.0f;
+			}
+		}
+
+		if (rawT >= 1.0f) {
+			if (hasNextShot) {
+				++mShotIndex;
+				mShotElapsedSeconds = 0.0f;
+				mShotFadeActive     = true;
+				mShotFadeSwapped    = true;
+				mFadeAlpha          = 1.0f;
+
+				const ShotSpec& nextShot = mShots[mShotIndex];
+				ApplyCameraPose(nextShot.startPos, nextShot.startLook);
+			} else {
+				mFadeAlpha = 0.0f;
+				EnterCountdown();
+				return;
+			}
+		}
+
+		if (mShotFadeActive && mShotFadeSwapped) {
+			const float fadeInDuration = std::max(kMinDurationSec, mFadeInSeconds);
+			const float fadeInT = std::clamp(
+				mShotElapsedSeconds / fadeInDuration,
+				0.0f,
+				1.0f
+			);
+			mFadeAlpha = 1.0f - EvaluateEase(fadeInT);
+			if (fadeInT >= 1.0f) {
+				mFadeAlpha       = 0.0f;
+				mShotFadeActive  = false;
+				mShotFadeSwapped = false;
+			}
+		}
+
+		UpdateHudWidgets();
+	}
+
+	void GameStartCutsceneComponent::TickCountdown(const float deltaTime) {
+		mCountdownElapsedSeconds += deltaTime;
+		const float digitDuration = std::max(kMinDurationSec, mCountdownDigitSeconds);
+		const float digitTotalDuration = digitDuration * 3.0f;
+		const float totalDuration = digitTotalDuration + std::max(
+			kMinDurationSec,
+			mCountdownStartSeconds
+		);
+
+		// START表示に入るタイミングでプレイヤー操作を解放します。
+		if (
+			!mGameplayControlReleased &&
+			mCountdownElapsedSeconds >= digitTotalDuration
+		) {
+			RestoreLockTargets();
+			mHasCountdownFixedPose    = false;
+			mGameplayControlReleased  = true;
+		}
+
+		// 演出中の視点ぶれを防ぐため、固定姿勢を毎フレーム再適用します。
+		if (mHasCountdownFixedPose) {
+			ApplyLookAnglesAndPosition(
+				mCountdownFixedPosition,
+				mCountdownFixedLookAngles
+			);
+		}
+
+		UpdateCountdownAudio();
+		UpdateHudWidgets();
+
+		if (mCountdownElapsedSeconds >= totalDuration) {
+			EnterGameplay();
+		}
+	}
+
+	void GameStartCutsceneComponent::EnterCountdown() {
+		mPhase                  = PHASE::COUNTDOWN;
+		mCountdownElapsedSeconds = 0.0f;
+		mShotElapsedSeconds     = 0.0f;
+		mFadeAlpha              = 0.0f;
+		mShotFadeActive         = false;
+		mShotFadeSwapped        = false;
+		mLastCountdownCueStep   = -1;
+		mGameplayControlReleased = false;
+
+		// Branch挙動に合わせ、カウント開始はプレイヤー基準姿勢へ戻します。
+		if (mHasSavedGameplayPose) {
+			ApplyLookAnglesAndPosition(
+				mSavedGameplayCameraPosition,
+				mSavedGameplayLookAngles
+			);
+			mCountdownFixedPosition   = mSavedGameplayCameraPosition;
+			mCountdownFixedLookAngles = mSavedGameplayLookAngles;
+			mHasCountdownFixedPose    = true;
+		} else if (mCameraRootTransform) {
+			mCountdownFixedPosition = mCameraRootTransform->GetPosition();
+			if (mCameraRotator) {
+				mCountdownFixedLookAngles = mCameraRotator->GetLookAnglesDegrees();
+			} else {
+				const Vec3 euler = mCameraRootTransform->GetRotation().ToEulerDegrees();
+				mCountdownFixedLookAngles = Vec2(euler.x, euler.y);
+			}
+			mHasCountdownFixedPose = true;
+		}
+
+		UpdateCountdownAudio();
+		UpdateHudWidgets();
+	}
+
+	void GameStartCutsceneComponent::EnterGameplay() {
+		mPhase                 = PHASE::GAMEPLAY;
+		mSequenceActive        = false;
+		mFadeAlpha             = 0.0f;
+		mHasCountdownFixedPose = false;
+		mGameplayControlReleased = true;
+
+		RestoreLockTargets();
+		ResolveBindings();
+		HideAllCutsceneWidgets();
+	}
+
+	void GameStartCutsceneComponent::UpdateCountdownAudio() {
+		const float digitDuration = std::max(kMinDurationSec, mCountdownDigitSeconds);
+		const float digitTotalDuration = digitDuration * 3.0f;
+		const float totalDuration = digitTotalDuration + std::max(
+			kMinDurationSec,
+			mCountdownStartSeconds
+		);
+
+		int cueStep = -1;
+		if (mCountdownElapsedSeconds < digitTotalDuration) {
+			const int digit = 3 - static_cast<int>(mCountdownElapsedSeconds / digitDuration);
+			cueStep          = std::clamp(digit, 1, 3);
+		} else if (mCountdownElapsedSeconds < totalDuration) {
+			cueStep = 0;
+		}
+
+		if (cueStep == mLastCountdownCueStep) {
+			return;
+		}
+		mLastCountdownCueStep = cueStep;
+
+		if (cueStep >= 1) {
+			if (mCountAudioSource) {
+				mCountAudioSource->Play();
+			}
+		} else if (cueStep == 0) {
+			if (mStartAudioSource) {
+				mStartAudioSource->Play();
+			}
+		}
+	}
+
+	void GameStartCutsceneComponent::UpdateHudWidgets() {
+		ResolveBindings();
+		if (!mHudCanvas || !mHudCanvas->EnsureRuntimeLoaded()) {
+			return;
+		}
+
+		UpdateFadeOverlayWidget();
+		if (mPhase == PHASE::COUNTDOWN) {
+			UpdateCountdownWidgets();
+		} else {
+			HideCountdownWidgets();
+		}
+	}
+
+	void GameStartCutsceneComponent::UpdateFadeOverlayWidget() const {
+		if (!mFadeOverlayWidget || !mFadeOverlayTexture) {
+			return;
+		}
+
+		const float alpha = std::clamp(mFadeAlpha, 0.0f, 1.0f);
+		const bool visible = alpha > 0.001f && mPhase != PHASE::GAMEPLAY;
+		mFadeOverlayWidget->SetVisible(visible);
+
+		Gui::Color color = mFadeOverlayTexture->GetColor();
+		color.r          = 0.0f;
+		color.g          = 0.0f;
+		color.b          = 0.0f;
+		color.a          = visible ? alpha : 0.0f;
+		mFadeOverlayTexture->SetColor(color);
+		mFadeOverlayWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+	}
+
+	void GameStartCutsceneComponent::UpdateCountdownWidgets() const {
+		if (
+			!mCountdownDigitWidget || !mCountdownDigitTransform ||
+			!mCountdownDigitTexture || !mCountdownStartWidget ||
+			!mCountdownStartTransform || !mCountdownStartTexture
+		) {
+			return;
+		}
+
+		Vec2 viewportSize = Vec2::zero;
+		if (!ResolveViewportSize(viewportSize)) {
+			return;
+		}
+
+		const float viewW = std::max(1.0f, viewportSize.x);
+		const float viewH = std::max(1.0f, viewportSize.y);
+		const float centerOffsetY = viewH * 0.44f - viewH * 0.5f;
+
+		const Gui::Rect digitBaseRect = mCountdownDigitTransform->GetRect();
+		const Gui::Rect startBaseRect = mCountdownStartTransform->GetRect();
+		const float digitBaseWidth = std::max(1.0f, digitBaseRect.width);
+		const float digitBaseHeight = std::max(1.0f, digitBaseRect.height);
+
+		const float digitTarget = std::clamp(
+			std::min(viewW, viewH) * 0.24f,
+			96.0f,
+			320.0f
+		);
+		const float digitScale = digitTarget / std::max(digitBaseWidth, digitBaseHeight);
+
+		const float startBaseWidth  = std::max(1.0f, startBaseRect.width);
+		const float startBaseHeight = std::max(1.0f, startBaseRect.height);
+		const float startScale = std::clamp(
+			viewW * 0.42f / startBaseWidth,
+			0.45f,
+			1.45f
+		);
+		float startWidth  = startBaseWidth * startScale;
+		float startHeight = startBaseHeight * startScale;
+		const float startOffsetY = centerOffsetY + digitTarget * 0.05f;
+
+		const float digitDuration = std::max(kMinDurationSec, mCountdownDigitSeconds);
+		const float digitTotalDuration = digitDuration * 3.0f;
+		if (mCountdownElapsedSeconds < digitTotalDuration) {
+			const int digit = 3 - static_cast<int>(mCountdownElapsedSeconds / digitDuration);
+			const float phase = std::clamp(
+				std::fmod(mCountdownElapsedSeconds, digitDuration) / digitDuration,
+				0.0f,
+				1.0f
+			);
+			const float pulseScale = 1.0f + (1.0f - phase) * 0.24f;
+			const float alpha = std::clamp(1.0f - phase * 0.75f, 0.0f, 1.0f);
+
+			mCountdownDigitWidget->SetVisible(true);
+			mCountdownDigitTransform->SetAnchors(
+				Gui::Anchors{.minX = 0.5f, .minY = 0.5f, .maxX = 0.5f, .maxY = 0.5f}
+			);
+			mCountdownDigitTransform->SetMargins(Gui::Margins{});
+			mCountdownDigitTransform->SetPivot(Gui::Pivot{.x = 0.5f, .y = 0.5f});
+			mCountdownDigitTransform->SetRect(
+				Gui::Rect{
+					.x = 0.0f,
+					.y = centerOffsetY,
+					.width = digitBaseWidth * digitScale * pulseScale,
+					.height = digitBaseHeight * digitScale * pulseScale,
+				}
+			);
+
+			const float clampedDigit = std::clamp(static_cast<float>(digit), 0.0f, 9.0f);
+			const float uvMinX       = clampedDigit * 0.1f;
+			mCountdownDigitTexture->SetUvMin(Vec2(uvMinX, 0.0f));
+			mCountdownDigitTexture->SetUvMax(Vec2(uvMinX + 0.1f, 1.0f));
+			Gui::Color digitColor = mCountdownDigitTexture->GetColor();
+			digitColor.a          = alpha;
+			mCountdownDigitTexture->SetColor(digitColor);
+			mCountdownDigitWidget->MarkDirty(
+				Gui::DIRTY_FLAGS::LAYOUT | Gui::DIRTY_FLAGS::DRAW
+			);
+
+			mCountdownStartWidget->SetVisible(false);
+			Gui::Color startColor = mCountdownStartTexture->GetColor();
+			startColor.a          = 0.0f;
+			mCountdownStartTexture->SetColor(startColor);
+			mCountdownStartWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+			return;
+		}
+
+		const float startDuration = std::max(kMinDurationSec, mCountdownStartSeconds);
+		const float phase = std::clamp(
+			(mCountdownElapsedSeconds - digitTotalDuration) / startDuration,
+			0.0f,
+			1.0f
+		);
+		const float alpha = std::sin(phase * Math::pi);
+		const float pulse = 1.0f + 0.08f * std::sin(phase * Math::pi);
+		startWidth *= pulse;
+		startHeight *= pulse;
+
+		mCountdownDigitWidget->SetVisible(false);
+		Gui::Color digitColor = mCountdownDigitTexture->GetColor();
+		digitColor.a          = 0.0f;
+		mCountdownDigitTexture->SetColor(digitColor);
+		mCountdownDigitWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+
+		mCountdownStartWidget->SetVisible(true);
+		mCountdownStartTransform->SetAnchors(
+			Gui::Anchors{.minX = 0.5f, .minY = 0.5f, .maxX = 0.5f, .maxY = 0.5f}
+		);
+		mCountdownStartTransform->SetMargins(Gui::Margins{});
+		mCountdownStartTransform->SetPivot(Gui::Pivot{.x = 0.5f, .y = 0.5f});
+		mCountdownStartTransform->SetRect(
+			Gui::Rect{
+				.x = 0.0f,
+				.y = startOffsetY,
+				.width = startWidth,
+				.height = startHeight,
+			}
+		);
+		Gui::Color startColor = mCountdownStartTexture->GetColor();
+		startColor.a          = std::clamp(alpha, 0.0f, 1.0f);
+		mCountdownStartTexture->SetColor(startColor);
+		mCountdownStartWidget->MarkDirty(
+			Gui::DIRTY_FLAGS::LAYOUT | Gui::DIRTY_FLAGS::DRAW
+		);
+	}
+
+	void GameStartCutsceneComponent::HideCountdownWidgets() const {
+		if (mCountdownDigitWidget) {
+			mCountdownDigitWidget->SetVisible(false);
+			if (mCountdownDigitTexture) {
+				Gui::Color color = mCountdownDigitTexture->GetColor();
+				color.a          = 0.0f;
+				mCountdownDigitTexture->SetColor(color);
+			}
+			mCountdownDigitWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+		}
+		if (mCountdownStartWidget) {
+			mCountdownStartWidget->SetVisible(false);
+			if (mCountdownStartTexture) {
+				Gui::Color color = mCountdownStartTexture->GetColor();
+				color.a          = 0.0f;
+				mCountdownStartTexture->SetColor(color);
+			}
+			mCountdownStartWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+		}
+	}
+
+	void GameStartCutsceneComponent::HideAllCutsceneWidgets() const {
+		HideCountdownWidgets();
+		if (mFadeOverlayWidget) {
+			mFadeOverlayWidget->SetVisible(false);
+			if (mFadeOverlayTexture) {
+				Gui::Color color = mFadeOverlayTexture->GetColor();
+				color.a          = 0.0f;
+				mFadeOverlayTexture->SetColor(color);
+			}
+			mFadeOverlayWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+		}
+	}
+
+	void GameStartCutsceneComponent::ClearResolvedBindings() {
+		mCameraRootEntity    = nullptr;
+		mCameraRootTransform = nullptr;
+		mCameraRotator       = nullptr;
+		mHudCanvas           = nullptr;
+		mCountAudioSource    = nullptr;
+		mStartAudioSource    = nullptr;
+
+		mCountdownDigitWidget    = nullptr;
+		mCountdownDigitTransform = nullptr;
+		mCountdownDigitTexture   = nullptr;
+		mCountdownStartWidget    = nullptr;
+		mCountdownStartTransform = nullptr;
+		mCountdownStartTexture   = nullptr;
+		mFadeOverlayWidget       = nullptr;
+		mFadeOverlayTexture      = nullptr;
+	}
+
+	void GameStartCutsceneComponent::ResolveBindings() {
+		ClearResolvedBindings();
+
+		Scene* scene = GetScene();
+		if (!scene) {
+			return;
+		}
+
+		if (mCameraRootEntityGuid != 0) {
+			mCameraRootEntity = scene->FindEntity(mCameraRootEntityGuid);
+		}
+		if (!mCameraRootEntity) {
+			mCameraRootEntity = GetOwner();
+		}
+		if (mCameraRootEntity) {
+			mCameraRootTransform = mCameraRootEntity->GetComponent<TransformComponent>();
+		}
+
+		auto tryResolveRotatorInEntity = [&](Entity& entity) {
+			CameraRotatorComponent* found = nullptr;
+			entity.ForEachComponent(
+				[&](BaseComponent& component) {
+					if (component.GetGuid() != mCameraRotatorComponentGuid) {
+						return true;
+					}
+					found = dynamic_cast<CameraRotatorComponent*>(&component);
+					return false;
+				}
+			);
+			return found;
+		};
+
+		if (mCameraRotatorComponentGuid != 0) {
+			if (mCameraRootEntity) {
+				mCameraRotator = tryResolveRotatorInEntity(*mCameraRootEntity);
+			}
+			if (!mCameraRotator) {
+				for (const auto& entityPtr : scene->GetEntities()) {
+					if (!entityPtr) {
+						continue;
+					}
+					mCameraRotator = tryResolveRotatorInEntity(*entityPtr);
+					if (mCameraRotator) {
+						break;
+					}
+				}
+			}
+		}
+		if (!mCameraRotator && mCameraRootEntity) {
+			mCameraRotator = mCameraRootEntity->GetComponent<CameraRotatorComponent>();
+		}
+
+		Entity* hudEntity = nullptr;
+		if (mHudCanvasEntityGuid != 0) {
+			hudEntity = scene->FindEntity(mHudCanvasEntityGuid);
+		}
+		if (!hudEntity) {
+			hudEntity = GetOwner();
+		}
+		if (hudEntity) {
+			mHudCanvas = hudEntity->GetComponent<UiCanvasComponent>();
+		}
+
+		if (mHudCanvas && mHudCanvas->EnsureRuntimeLoaded()) {
+			Gui::UiRoot* root = mHudCanvas->GetRuntimeRoot();
+			Gui::UiWidget* rootWidget = root ? root->GetRootWidget() : nullptr;
+			if (rootWidget) {
+				mCountdownDigitWidget = FindWidgetByNameRecursive(
+					rootWidget,
+					mCountdownDigitWidgetName
+				);
+				mCountdownStartWidget = FindWidgetByNameRecursive(
+					rootWidget,
+					mCountdownStartWidgetName
+				);
+				mFadeOverlayWidget = FindWidgetByNameRecursive(
+					rootWidget,
+					mFadeOverlayWidgetName
+				);
+
+				if (mCountdownDigitWidget) {
+					mCountdownDigitTransform = mCountdownDigitWidget
+						->GetOrAddComponent<Gui::UiTransformComponent>();
+					mCountdownDigitTexture = mCountdownDigitWidget
+						->GetOrAddComponent<Gui::UiTextureComponent>();
+				}
+				if (mCountdownStartWidget) {
+					mCountdownStartTransform = mCountdownStartWidget
+						->GetOrAddComponent<Gui::UiTransformComponent>();
+					mCountdownStartTexture = mCountdownStartWidget
+						->GetOrAddComponent<Gui::UiTextureComponent>();
+				}
+				if (mFadeOverlayWidget) {
+					mFadeOverlayTexture = mFadeOverlayWidget
+						->GetOrAddComponent<Gui::UiTextureComponent>();
+				}
+			}
+		}
+
+		mCountAudioSource = ResolveAudioSourceByGuid(mCountAudioSourceGuid);
+		mStartAudioSource = ResolveAudioSourceByGuid(mStartAudioSourceGuid);
+	}
+
+	void GameStartCutsceneComponent::ApplyLockTargets() {
+		RestoreLockTargets();
+		std::vector<BaseComponent*> lockedComponents = {};
+		lockedComponents.reserve(mLockTargets.size());
+
+		for (const LockTargetSpec& spec : mLockTargets) {
+			BaseComponent* target = ResolveLockTarget(spec);
+			if (!target || target == this) {
+				continue;
+			}
+			if (
+				std::ranges::find(lockedComponents, target) !=
+				lockedComponents.end()
+			) {
+				continue;
+			}
+
+			mActiveLocks.emplace_back(
+				ActiveLockState{
+					.component = target,
+					.previousActive = target->IsActive(),
+				}
+			);
+			lockedComponents.emplace_back(target);
+			target->SetActive(false);
+		}
+	}
+
+	void GameStartCutsceneComponent::RestoreLockTargets() {
+		for (const ActiveLockState& state : mActiveLocks) {
+			if (!state.component) {
+				continue;
+			}
+			state.component->SetActive(state.previousActive);
+		}
+		mActiveLocks.clear();
+	}
+
+	void GameStartCutsceneComponent::ApplyCameraPose(
+		const Vec3& cameraPos,
+		const Vec3& lookAtPos
+	) {
+		if (!mCameraRootTransform) {
+			return;
+		}
+
+		mCameraRootTransform->SetPosition(cameraPos);
+
+		Vec3 viewDir = lookAtPos - cameraPos;
+		if (viewDir.SqrLength() <= 1.0e-8f) {
+			return;
+		}
+		viewDir.Normalize();
+
+		const Quaternion lookRotation = Quaternion::LookRotation(viewDir, Vec3::up);
+		mCameraRootTransform->SetRotation(lookRotation);
+
+		if (mCameraRotator) {
+			const Vec3 eulerDegrees = lookRotation.ToEulerDegrees();
+			mCameraRotator->SetLookAnglesDegrees(eulerDegrees.x, eulerDegrees.y);
+		}
+	}
+
+	void GameStartCutsceneComponent::ApplyLookAnglesAndPosition(
+		const Vec3& position,
+		const Vec2& lookAngles
+	) {
+		if (!mCameraRootTransform) {
+			return;
+		}
+		mCameraRootTransform->SetPosition(position);
+
+		const Quaternion rotation =
+			Quaternion::AxisAngle(Vec3::up, lookAngles.y * Math::deg2Rad) *
+			Quaternion::AxisAngle(Vec3::right, lookAngles.x * Math::deg2Rad);
+		mCameraRootTransform->SetRotation(rotation);
+		if (mCameraRotator) {
+			mCameraRotator->SetLookAnglesDegrees(lookAngles.x, lookAngles.y);
+		}
+	}
+
+	BaseComponent* GameStartCutsceneComponent::ResolveLockTarget(
+		const LockTargetSpec& spec
+	) const {
+		Scene* scene = GetScene();
+		if (!scene || spec.componentStableName.empty()) {
+			return nullptr;
+		}
+
+		const auto matches = [&](BaseComponent& component) {
+			return component.GetStableName() == spec.componentStableName;
+		};
+		const auto findInEntity = [&](Entity& entity) -> BaseComponent* {
+			BaseComponent* found = nullptr;
+			entity.ForEachComponent(
+				[&](BaseComponent& component) {
+					if (!matches(component)) {
+						return true;
+					}
+					found = &component;
+					return false;
+				}
+			);
+			return found;
+		};
+
+		if (spec.entityGuid != 0) {
+			if (Entity* entity = scene->FindEntity(spec.entityGuid)) {
+				return findInEntity(*entity);
+			}
+			return nullptr;
+		}
+
+		if (Entity* owner = GetOwner()) {
+			if (BaseComponent* found = findInEntity(*owner)) {
+				return found;
+			}
+		}
+
+		for (const auto& entityPtr : scene->GetEntities()) {
+			if (!entityPtr) {
+				continue;
+			}
+			if (BaseComponent* found = findInEntity(*entityPtr)) {
+				return found;
+			}
+		}
+		return nullptr;
+	}
+
+	AudioSourceComponent* GameStartCutsceneComponent::ResolveAudioSourceByGuid(
+		const uint64_t componentGuid
+	) const {
+		if (componentGuid == 0) {
+			return nullptr;
+		}
+
+		Scene* scene = GetScene();
+		if (!scene) {
+			return nullptr;
+		}
+
+		for (const auto& entityPtr : scene->GetEntities()) {
+			if (!entityPtr) {
+				continue;
+			}
+
+			AudioSourceComponent* found = nullptr;
+			entityPtr->ForEachComponent(
+				[&](BaseComponent& component) {
+					if (component.GetGuid() != componentGuid) {
+						return true;
+					}
+					found = dynamic_cast<AudioSourceComponent*>(&component);
+					return false;
+				}
+			);
+			if (found) {
+				return found;
+			}
+		}
+		return nullptr;
+	}
+
+	bool GameStartCutsceneComponent::ResolveViewportSize(Vec2& outViewportSizePx)
+	const {
+		outViewportSizePx = Vec2::zero;
+		if (const InputSystem* input = GetInputSystem()) {
+			outViewportSizePx = input->GetMouseClientViewportSize();
+		}
+		if (outViewportSizePx.x <= 1.0f || outViewportSizePx.y <= 1.0f) {
+			outViewportSizePx = mHudCanvas ? mHudCanvas->GetPixelSize() : Vec2::zero;
+		}
+		return outViewportSizePx.x > 1.0f && outViewportSizePx.y > 1.0f;
+	}
+
+	Gui::UiWidget* GameStartCutsceneComponent::FindWidgetByNameRecursive(
+		Gui::UiWidget* root,
+		const std::string_view widgetName
+	) {
+		if (!root) {
+			return nullptr;
+		}
+		if (root->GetName() == widgetName) {
+			return root;
+		}
+
+		for (const auto& child : root->GetChildren()) {
+			if (!child) {
+				continue;
+			}
+			if (Gui::UiWidget* found = FindWidgetByNameRecursive(child.get(), widgetName)) {
+				return found;
+			}
+		}
+		for (Gui::UiWidget* child : root->GetReferenceChildren()) {
+			if (Gui::UiWidget* found = FindWidgetByNameRecursive(child, widgetName)) {
+				return found;
+			}
+		}
+		return nullptr;
+	}
+
+	void GameStartCutsceneComponent::SerializeLockTarget(
+		JsonWriter& writer,
+		const LockTargetSpec& spec
+	) {
+		writer.BeginObject();
+		writer.Key("entityGuid");
+		writer.Write(spec.entityGuid);
+		writer.Key("componentStableName");
+		writer.Write(spec.componentStableName);
+		writer.EndObject();
+	}
+
+	void GameStartCutsceneComponent::SerializeShot(
+		JsonWriter& writer,
+		const ShotSpec& shot
+	) {
+		writer.BeginObject();
+		writer.WriteVec3("startPos", shot.startPos);
+		writer.WriteVec3("endPos", shot.endPos);
+		writer.WriteVec3("startLook", shot.startLook);
+		writer.WriteVec3("endLook", shot.endLook);
+		writer.Key("durationSeconds");
+		writer.Write(shot.durationSeconds);
+		writer.EndObject();
+	}
+
+	float GameStartCutsceneComponent::EvaluateEase(const float t) {
+		return Math::CubicBezier(std::clamp(t, 0.0f, 1.0f), 0.2f, 0.0f, 0.0f, 1.0f);
+	}
+
+	REGISTER_COMPONENT(GameStartCutsceneComponent);
+}
+
+
+============================================================
+File Path: src/game/parkour/components/cutscene/GameStartCutsceneComponent.h
+============================================================
+#pragma once
+
+#include <cstdint>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include "core/math/Vec2.h"
+#include "core/math/Vec3.h"
+
+#include "engine/unnamed/framework/components/base/BaseComponent.h"
+
+namespace Unnamed {
+	class AudioSourceComponent;
+	class BaseComponent;
+	class CameraRotatorComponent;
+	class Entity;
+	class JsonReader;
+	class JsonWriter;
+	class TransformComponent;
+	class UiCanvasComponent;
+
+	namespace Gui {
+		class UiTextureComponent;
+		class UiTransformComponent;
+		class UiWidget;
+	}
+
+	/// @brief Branch版のゲーム開始演出（カメラツアー/カウントダウン/開始解放）を再現するコンポーネントです。
+	class GameStartCutsceneComponent final : public BaseComponent {
+	public:
+		/// @brief コンポーネント追加時に開始演出を初期化します。
+		void OnAttached() override;
+		/// @brief 開始演出を毎フレーム更新します。
+		void OnTick(float deltaTime) override;
+		/// @brief エディター時にショット座標のデバッグ表示を更新します。
+		void OnEditorTick(float deltaTime) override;
+		/// @brief コンポーネント破棄時にロック解除とUI非表示を保証します。
+		void OnDetached() override;
+
+		/// @brief stableName を返します。
+		[[nodiscard]] std::string_view GetStableName() const override;
+		/// @brief 表示用のコンポーネント名を返します。
+		[[nodiscard]] std::string_view GetComponentName() const override;
+		[[nodiscard]] uint32_t GetIcon() const override;
+
+#ifdef _DEBUG
+		/// @brief インスペクタ用UIを描画します。
+		void DrawInspectorImGui() override;
+#endif
+
+		/// @brief JSON から設定を読み込みます。
+		void Deserialize(const JsonReader& reader) override;
+		/// @brief 設定を JSON に書き出します。
+		void Serialize(JsonWriter& writer) const override;
+
+	private:
+		/// @brief カメラショット定義です。
+		struct ShotSpec {
+			Vec3  startPos        = Vec3::zero;
+			Vec3  endPos          = Vec3::zero;
+			Vec3  startLook       = Vec3::forward;
+			Vec3  endLook         = Vec3::forward;
+			float durationSeconds = 1.0f;
+		};
+
+		/// @brief ロック対象定義です。
+		struct LockTargetSpec {
+			uint64_t    entityGuid          = 0;
+			std::string componentStableName = "";
+		};
+
+		/// @brief 実行中のロック復帰情報です。
+		struct ActiveLockState {
+			BaseComponent* component      = nullptr;
+			bool           previousActive = true;
+		};
+
+		/// @brief 開始演出の実行フェーズです。
+		enum class PHASE : uint8_t {
+			TOUR = 0,
+			COUNTDOWN,
+			GAMEPLAY,
+		};
+
+		/// @brief 開始演出を初期化して Tour を開始します。
+		void StartSequence();
+		/// @brief Tour を更新します。
+		void TickTour(float deltaTime);
+		/// @brief Countdown を更新します。
+		void TickCountdown(float deltaTime);
+		/// @brief Tour から Countdown に遷移します。
+		void EnterCountdown();
+		/// @brief 演出完了で Gameplay に遷移します。
+		void EnterGameplay();
+
+		/// @brief Countdown のSEトリガーを更新します。
+		void UpdateCountdownAudio();
+		/// @brief 演出UIの表示状態を更新します。
+		void UpdateHudWidgets();
+		/// @brief フェードオーバーレイの表示を更新します。
+		void UpdateFadeOverlayWidget() const;
+		/// @brief 3-2-1-START 表示を更新します。
+		void UpdateCountdownWidgets() const;
+		/// @brief カウントダウンUIを非表示にします。
+		void HideCountdownWidgets() const;
+		/// @brief 演出UIをすべて非表示にします。
+		void HideAllCutsceneWidgets() const;
+
+		/// @brief カメラ/UI/Audio の参照を再解決します。
+		void ResolveBindings();
+		/// @brief 解決済み参照のキャッシュを初期化します。
+		void ClearResolvedBindings();
+		/// @brief lockTargets を無効化して入力/操作を抑止します。
+		void ApplyLockTargets();
+		/// @brief lockTargets の有効状態を復帰します。
+		void RestoreLockTargets();
+
+		/// @brief ショット姿勢を cameraRoot + cameraRotator へ適用します。
+		void ApplyCameraPose(const Vec3& cameraPos, const Vec3& lookAtPos);
+		/// @brief Countdown固定姿勢を cameraRoot + cameraRotator へ適用します。
+		void ApplyLookAnglesAndPosition(
+			const Vec3& position,
+			const Vec2& lookAngles
+		);
+
+		/// @brief lock spec から対象コンポーネントを解決します。
+		[[nodiscard]] BaseComponent* ResolveLockTarget(const LockTargetSpec& spec)
+		const;
+		/// @brief GUID から AudioSource を解決します。
+		[[nodiscard]] AudioSourceComponent* ResolveAudioSourceByGuid(
+			uint64_t componentGuid
+		) const;
+		/// @brief 画面解像度を取得します。
+		[[nodiscard]] bool ResolveViewportSize(Vec2& outViewportSizePx) const;
+
+		/// @brief ウィジェット名を再帰的に検索します。
+		[[nodiscard]] static Gui::UiWidget* FindWidgetByNameRecursive(
+			Gui::UiWidget* root,
+			std::string_view widgetName
+		);
+		/// @brief lock spec を JSON へ書き出します。
+		static void SerializeLockTarget(
+			JsonWriter& writer,
+			const LockTargetSpec& spec
+		);
+		/// @brief shot spec を JSON へ書き出します。
+		static void SerializeShot(JsonWriter& writer, const ShotSpec& shot);
+		/// @brief Branch相当の cubic-bezier 補間を返します。
+		[[nodiscard]] static float EvaluateEase(float t);
+		/// @brief エディター用にショットの軸デバッグ描画を行います。
+		void DrawShotDebugAxes() const;
+
+		uint64_t mCameraRootEntityGuid       = 0;
+		uint64_t mCameraRotatorComponentGuid = 0;
+		uint64_t mHudCanvasEntityGuid        = 0;
+		uint64_t mCountAudioSourceGuid       = 0;
+		uint64_t mStartAudioSourceGuid       = 0;
+		std::string mSkipAction = "jump";
+
+		std::string mCountdownDigitWidgetName = "OpeningCountdownDigit";
+		std::string mCountdownStartWidgetName = "OpeningCountdownStart";
+		std::string mFadeOverlayWidgetName    = "OpeningFadeOverlay";
+
+		float mFadeOutSeconds        = 0.25f;
+		float mFadeInSeconds         = 0.25f;
+		float mCountdownDigitSeconds = 1.0f;
+		float mCountdownStartSeconds = 0.8f;
+
+		std::vector<ShotSpec> mShots = {
+			{
+				.startPos = Vec3(0.0f, 4.0f, 0.0f),
+				.endPos = Vec3(0.0f, 4.0f, 40.0f),
+				.startLook = Vec3(0.0f, 3.0f, 50.0f),
+				.endLook = Vec3(0.0f, 3.0f, 50.0f),
+				.durationSeconds = 3.0f,
+			},
+			{
+				.startPos = Vec3(-52.0f, 8.0f, 118.0f),
+				.endPos = Vec3(-52.0f, 8.0f, 118.0f),
+				.startLook = Vec3(-28.0f, 1.0f, 140.0f),
+				.endLook = Vec3(-100.0f, 1.0f, 119.0f),
+				.durationSeconds = 4.0f,
+			},
+			{
+				.startPos = Vec3(-113.794f, 75.0f, 92.0f),
+				.endPos = Vec3(-113.794f, 75.0f, 5.0f),
+				.startLook = Vec3(-113.794f, 0.0f, 92.5f),
+				.endLook = Vec3(-113.794f, 0.0f, 5.5f),
+				.durationSeconds = 3.0f,
+			},
+			{
+				.startPos = Vec3(0.0f, 6.0f, 0.0f),
+				.endPos = Vec3(0.0f, 3.626f, 0.0f),
+				.startLook = Vec3(0.0f, 6.0f, 1.0f),
+				.endLook = Vec3(0.0f, 3.626f, 1.0f),
+				.durationSeconds = 0.5f,
+			},
+		};
+		std::vector<LockTargetSpec> mLockTargets = {};
+
+		PHASE mPhase = PHASE::GAMEPLAY;
+		size_t mShotIndex = 0;
+		float  mShotElapsedSeconds = 0.0f;
+		float  mCountdownElapsedSeconds = 0.0f;
+		float  mFadeAlpha = 0.0f;
+		bool   mShotFadeActive = false;
+		bool   mShotFadeSwapped = false;
+		int    mLastCountdownCueStep = -1;
+		bool   mSequenceActive = false;
+		bool   mHasSavedGameplayPose = false;
+		bool   mHasCountdownFixedPose = false;
+		bool   mGameplayControlReleased = false;
+
+		Vec3 mSavedGameplayCameraPosition = Vec3::zero;
+		Vec2 mSavedGameplayLookAngles     = Vec2::zero;
+		Vec3 mCountdownFixedPosition      = Vec3::zero;
+		Vec2 mCountdownFixedLookAngles    = Vec2::zero;
+
+		std::vector<ActiveLockState> mActiveLocks = {};
+
+		Entity*                mCameraRootEntity      = nullptr;
+		TransformComponent*    mCameraRootTransform   = nullptr;
+		CameraRotatorComponent* mCameraRotator        = nullptr;
+		UiCanvasComponent*     mHudCanvas             = nullptr;
+		AudioSourceComponent*  mCountAudioSource      = nullptr;
+		AudioSourceComponent*  mStartAudioSource      = nullptr;
+
+		Gui::UiWidget*           mCountdownDigitWidget   = nullptr;
+		Gui::UiTransformComponent* mCountdownDigitTransform = nullptr;
+		Gui::UiTextureComponent* mCountdownDigitTexture  = nullptr;
+
+		Gui::UiWidget*           mCountdownStartWidget   = nullptr;
+		Gui::UiTransformComponent* mCountdownStartTransform = nullptr;
+		Gui::UiTextureComponent* mCountdownStartTexture  = nullptr;
+
+		Gui::UiWidget*           mFadeOverlayWidget      = nullptr;
+		Gui::UiTextureComponent* mFadeOverlayTexture     = nullptr;
 	};
 }
 
@@ -88426,6 +90697,712 @@ namespace Unnamed {
 
 
 ============================================================
+File Path: src/game/parkour/components/title/TitleBootstrapComponent.cpp
+============================================================
+#include "TitleBootstrapComponent.h"
+
+#include "core/ComponentRegistry.h"
+
+#include "engine/ImGui/Icons.h"
+#include "engine/unnamed/subsystem/console/ConsoleSystem.h"
+#include "engine/world/World.h"
+
+namespace Unnamed {
+	void TitleBootstrapComponent::OnTick(const float deltaTime) {
+		(void)deltaTime;
+		if (mTriggered) {
+			return;
+		}
+
+		ConsoleSystem* console = GetConsoleSystem();
+		World*         world   = GetWorld();
+		if (!console || !world) {
+			return;
+		}
+
+		// タイトルモードを有効化してからタイトル専用ゲームシーンへ遷移します。
+		console->ExecuteCommand("cl_title_mode 1");
+		world->RequestSceneTransition("./content/parkour/scenes/title_game.json");
+		mTriggered = true;
+	}
+
+	std::string_view TitleBootstrapComponent::GetStableName() const {
+		return "parkour.TitleBootstrap";
+	}
+
+	std::string_view TitleBootstrapComponent::GetComponentName() const {
+		return "TitleBootstrap";
+	}
+
+	uint32_t TitleBootstrapComponent::GetIcon() const {
+		return kIconDesktopLandscape;
+	}
+
+	void TitleBootstrapComponent::Deserialize(const JsonReader& reader) {
+		(void)reader;
+	}
+
+	void TitleBootstrapComponent::Serialize(JsonWriter& writer) const {
+		(void)writer;
+	}
+
+	REGISTER_COMPONENT(TitleBootstrapComponent);
+}
+
+
+
+============================================================
+File Path: src/game/parkour/components/title/TitleBootstrapComponent.h
+============================================================
+#pragma once
+
+#include <string_view>
+
+#include "engine/unnamed/framework/components/base/BaseComponent.h"
+
+namespace Unnamed {
+	/// @brief タイトル起動シーンからゲームシーンへ遷移するブートストラップコンポーネントです。
+	class TitleBootstrapComponent final : public BaseComponent {
+	public:
+		/// @brief タイトル遷移処理を1回だけ実行します。
+		/// @param deltaTime 前フレームからの経過時間（秒）
+		void OnTick(float deltaTime) override;
+
+		/// @brief コンポーネントの stable name を返します。
+		[[nodiscard]] std::string_view GetStableName() const override;
+		/// @brief コンポーネントの表示名を返します。
+		[[nodiscard]] std::string_view GetComponentName() const override;
+		[[nodiscard]] uint32_t GetIcon() const override;
+
+		/// @brief JSON から設定を読み込みます。
+		void Deserialize(const JsonReader& reader) override;
+		/// @brief 設定を JSON へ書き出します。
+		void Serialize(JsonWriter& writer) const override;
+
+	private:
+		bool mTriggered = false;
+	};
+}
+
+
+
+============================================================
+File Path: src/game/parkour/components/title/TitleFlowComponent.cpp
+============================================================
+#include "TitleFlowComponent.h"
+
+#include <algorithm>
+#include <cmath>
+
+#include "core/ComponentRegistry.h"
+#include "core/io/json/JsonReader.h"
+#include "core/io/json/JsonWriter.h"
+#include "core/math/Math.h"
+
+#include "engine/ImGui/Icons.h"
+#include "engine/gui/UiRoot.h"
+#include "engine/gui/UiWidget.h"
+#include "engine/gui/components/UiButtonBehaviorComponent.h"
+#include "engine/gui/components/UiTextureComponent.h"
+#include "engine/unnamed/framework/components/ui/UiCanvasComponent.h"
+#include "engine/unnamed/framework/entity/Entity.h"
+#include "engine/unnamed/subsystem/console/ConsoleSystem.h"
+#include "engine/unnamed/subsystem/console/Log.h"
+// ReSharper disable once CppUnusedIncludeDirective
+#include "engine/unnamed/subsystem/console/concommand/ConVar.h"
+#include "engine/unnamed/subsystem/input/InputSystem.h"
+#include "engine/world/World.h"
+#include "game/core/replay/DemoManager.h"
+
+namespace Unnamed {
+	namespace {
+		constexpr std::string_view kChannel = "TitleFlow";
+
+		constexpr const char* kTitleModeCvar         = "cl_title_mode";
+		constexpr const char* kTitleDemoPathCvar     = "cl_title_demo_path";
+		constexpr const char* kDemoMismatchPolicyCvar = "demo_mismatch_policy";
+		constexpr const char* kTitleFadeOutSecCvar   = "cl_title_fade_out_sec";
+		constexpr const char* kTitleFadeInSecCvar    = "cl_title_fade_in_sec";
+		constexpr const char* kTitleStartFadeSecCvar =
+			"cl_title_start_transition_sec";
+		constexpr const char* kDefaultTitleDemoPath =
+			"./content/parkour/replay/title_demo.udemo";
+		constexpr float kDemoRetryIntervalSec = 0.75f;
+
+		float EvaluateFadeEase(const float t) {
+			return Math::CubicBezier(
+				std::clamp(t, 0.0f, 1.0f),
+				0.2f,
+				0.0f,
+				0.0f,
+				1.0f
+			);
+		}
+	}
+
+	void TitleFlowComponent::OnTick(const float deltaTime) {
+		TickTitle(deltaTime);
+	}
+
+	void TitleFlowComponent::OnEditorTick(const float deltaTime) {
+		TickTitle(deltaTime);
+	}
+
+	void TitleFlowComponent::OnDetached() {
+		ExitTitleMode();
+		BaseComponent::OnDetached();
+	}
+
+	std::string_view TitleFlowComponent::GetStableName() const {
+		return "parkour.TitleFlow";
+	}
+
+	std::string_view TitleFlowComponent::GetComponentName() const {
+		return "TitleFlow";
+	}
+
+	uint32_t TitleFlowComponent::GetIcon() const {
+		return kIconDesktopLandscape;
+	}
+
+	void TitleFlowComponent::Deserialize(const JsonReader& reader) {
+		mGameplayScenePath = reader["gameplayScenePath"].GetString(mGameplayScenePath);
+		mPlayButtonName    = reader["playButtonName"].GetString(mPlayButtonName);
+		mQuitButtonName    = reader["quitButtonName"].GetString(mQuitButtonName);
+		mPlayPromptName    = reader["playPromptName"].GetString(mPlayPromptName);
+		mFadeOverlayName   = reader["fadeOverlayName"].GetString(mFadeOverlayName);
+	}
+
+	void TitleFlowComponent::Serialize(JsonWriter& writer) const {
+		writer.Key("gameplayScenePath");
+		writer.Write(mGameplayScenePath);
+		writer.Key("playButtonName");
+		writer.Write(mPlayButtonName);
+		writer.Key("quitButtonName");
+		writer.Write(mQuitButtonName);
+		writer.Key("playPromptName");
+		writer.Write(mPlayPromptName);
+		writer.Key("fadeOverlayName");
+		writer.Write(mFadeOverlayName);
+	}
+
+	void TitleFlowComponent::TickTitle(const float deltaTime) {
+		const bool titleEnabled = IsTitleModeEnabled();
+
+		// タイトルモードの切り替え境界で初期化/後始末を行います。
+		if (!titleEnabled) {
+			if (mInitialized) {
+				ExitTitleMode();
+			}
+			return;
+		}
+		if (!mInitialized) {
+			EnterTitleMode();
+		}
+
+		ResolveUiBindings();
+		ApplyUiVisibility();
+
+		if (mQuitRequested) {
+			if (ConsoleSystem* console = GetConsoleSystem()) {
+				console->ExecuteCommand("quit");
+			}
+			mQuitRequested = false;
+		}
+
+		if (!mPlayRequested) {
+			if (const InputSystem* input = GetInputSystem()) {
+				if (input->IsPressed("jump")) {
+					mPlayRequested = true;
+				}
+			}
+		}
+		if (mPlayRequested && mPhase != PHASE::START_TRANSITION_OUT) {
+			mPhase               = PHASE::START_TRANSITION_OUT;
+			mPhaseElapsedSeconds = 0.0f;
+		}
+
+		UpdatePhase(deltaTime);
+		UpdatePlayPromptBlink(deltaTime);
+	}
+
+	bool TitleFlowComponent::IsTitleModeEnabled() const {
+		ConsoleSystem* console = GetConsoleSystem();
+		if (!console) {
+			return false;
+		}
+		return console->GetConVarValueOr<int>(kTitleModeCvar, 0) == 1;
+	}
+
+	void TitleFlowComponent::EnterTitleMode() {
+		mInitialized         = true;
+		mPlayRequested       = false;
+		mQuitRequested       = false;
+		mDemoRetrySeconds    = 0.0f;
+		mHasSavedMismatchPolicy = false;
+		mSavedMismatchPolicy.clear();
+		mPhase               = PHASE::IDLE;
+		mPhaseElapsedSeconds = 0.0f;
+		mPromptBlinkSeconds  = 0.0f;
+
+		if (Entity* owner = GetOwner()) {
+			owner->SetVisible(true);
+		}
+		if (ConsoleSystem* console = GetConsoleSystem()) {
+			// タイトル再生中はミスマッチ停止ループを防ぐため、継続ポリシーを強制します。
+			mSavedMismatchPolicy = console->GetConVarValueString(
+				kDemoMismatchPolicyCvar
+			);
+			mHasSavedMismatchPolicy = !mSavedMismatchPolicy.empty();
+			console->ExecuteCommand("demo_mismatch_policy continue");
+		}
+
+		ResolveUiBindings();
+		(void)RequestDemoPlayback();
+		SetFadeOverlayAlpha(0.0f);
+	}
+
+	void TitleFlowComponent::ExitTitleMode() {
+		mInitialized         = false;
+		mPlayRequested       = false;
+		mQuitRequested       = false;
+		mDemoRetrySeconds    = 0.0f;
+		if (mHasSavedMismatchPolicy) {
+			if (ConsoleSystem* console = GetConsoleSystem()) {
+				console->ExecuteCommand(
+					"demo_mismatch_policy " + mSavedMismatchPolicy
+				);
+			}
+		}
+		mHasSavedMismatchPolicy = false;
+		mSavedMismatchPolicy.clear();
+		mPhase               = PHASE::INACTIVE;
+		mPhaseElapsedSeconds = 0.0f;
+		mPromptBlinkSeconds  = 0.0f;
+		mActiveDemoPath.clear();
+
+		if (Entity* owner = GetOwner()) {
+			owner->SetVisible(false);
+		}
+		if (mUiCanvas) {
+			mUiCanvas->SetReceiveInput(false);
+		}
+	}
+
+	bool TitleFlowComponent::RequestDemoPlayback() {
+		DemoManager* demo = GetDemoManager();
+		if (!demo) {
+			return false;
+		}
+
+		const std::string demoPath = ResolveDemoPath();
+		if (demoPath.empty()) {
+			Warning(kChannel, "Title demo path is empty.");
+			mDemoRetrySeconds = kDemoRetryIntervalSec;
+			return false;
+		}
+
+		// 同じdemoが既に再生中なら再起動せず、そのまま維持します。
+		if (demo->IsPlayback() && demo->GetCurrentPath() == demoPath) {
+			return true;
+		}
+
+		// StartPlaybackの成否を直接参照し、失敗時の毎フレーム再実行を防ぎます。
+		if (!demo->StartPlayback(demoPath)) {
+			Warning(
+				kChannel,
+				"Failed to start title demo playback. path='{}'",
+				demoPath
+			);
+			mDemoRetrySeconds = kDemoRetryIntervalSec;
+			return false;
+		}
+
+		mDemoRetrySeconds = 0.0f;
+		mActiveDemoPath = demoPath;
+		return true;
+	}
+
+	void TitleFlowComponent::UpdatePhase(const float deltaTime) {
+		DemoManager* demo = GetDemoManager();
+
+		// 再生開始に失敗した場合は短い間隔で再試行します。
+		mDemoRetrySeconds = std::max(0.0f, mDemoRetrySeconds - deltaTime);
+
+		// タイトル待機中のみ、停止状態ならクールダウン後に再試行します。
+		if (mPhase == PHASE::IDLE &&
+		    demo &&
+		    !demo->IsPlayback() &&
+		    !demo->IsRecording() &&
+		    mDemoRetrySeconds <= 0.0f) {
+			(void)RequestDemoPlayback();
+		}
+
+		switch (mPhase) {
+			case PHASE::IDLE: {
+				SetFadeOverlayAlpha(0.0f);
+				if (demo && demo->IsPlaybackFinished()) {
+					mPhase               = PHASE::DEMO_LOOP_FADE_OUT;
+					mPhaseElapsedSeconds = 0.0f;
+				}
+				break;
+			}
+			case PHASE::DEMO_LOOP_FADE_OUT: {
+				mPhaseElapsedSeconds += deltaTime;
+				const float duration = GetSecondsCvar(
+					kTitleFadeOutSecCvar,
+					0.22f,
+					0.01f
+				);
+				const float t = std::clamp(
+					mPhaseElapsedSeconds / duration,
+					0.0f,
+					1.0f
+				);
+				SetFadeOverlayAlpha(EvaluateFadeEase(t));
+				if (t >= 1.0f) {
+					if (RequestDemoPlayback()) {
+						mPhase               = PHASE::DEMO_LOOP_FADE_IN;
+						mPhaseElapsedSeconds = 0.0f;
+					} else {
+						mPhase               = PHASE::IDLE;
+						mPhaseElapsedSeconds = 0.0f;
+						SetFadeOverlayAlpha(0.0f);
+					}
+				}
+				break;
+			}
+			case PHASE::DEMO_LOOP_FADE_IN: {
+				mPhaseElapsedSeconds += deltaTime;
+				const float duration = GetSecondsCvar(
+					kTitleFadeInSecCvar,
+					0.24f,
+					0.01f
+				);
+				const float t = std::clamp(
+					mPhaseElapsedSeconds / duration,
+					0.0f,
+					1.0f
+				);
+				SetFadeOverlayAlpha(1.0f - EvaluateFadeEase(t));
+				if (t >= 1.0f) {
+					mPhase               = PHASE::IDLE;
+					mPhaseElapsedSeconds = 0.0f;
+					SetFadeOverlayAlpha(0.0f);
+				}
+				break;
+			}
+			case PHASE::START_TRANSITION_OUT: {
+				mPhaseElapsedSeconds += deltaTime;
+				const float duration = GetSecondsCvar(
+					kTitleStartFadeSecCvar,
+					0.30f,
+					0.01f
+				);
+				const float t = std::clamp(
+					mPhaseElapsedSeconds / duration,
+					0.0f,
+					1.0f
+				);
+				SetFadeOverlayAlpha(EvaluateFadeEase(t));
+				if (t >= 1.0f) {
+					CommitStartTransition();
+				}
+				break;
+			}
+			case PHASE::INACTIVE:
+			default: break;
+		}
+	}
+
+	void TitleFlowComponent::CommitStartTransition() {
+		ConsoleSystem* console = GetConsoleSystem();
+		DemoManager*   demo    = GetDemoManager();
+		World*         world   = GetWorld();
+		if (!console || !world) {
+			return;
+		}
+
+		// シーン遷移前に再生を同期停止し、次シーンへの状態持ち越しを防ぎます。
+		if (demo && (demo->IsPlayback() || demo->IsRecording())) {
+			(void)demo->Stop();
+		}
+
+		// 遷移後にタイトル演出が再実行されないようモードを先に戻します。
+		console->ExecuteCommand("cl_title_mode 0");
+		world->RequestSceneTransition(mGameplayScenePath);
+	}
+
+	void TitleFlowComponent::ResolveUiBindings() {
+		mUiCanvas = nullptr;
+		Entity* owner = GetOwner();
+		if (!owner) {
+			return;
+		}
+
+		mUiCanvas = owner->GetComponent<UiCanvasComponent>();
+		if (!mUiCanvas || !mUiCanvas->EnsureRuntimeLoaded()) {
+			return;
+		}
+
+		Gui::UiRoot* root = mUiCanvas->GetRuntimeRoot();
+		Gui::UiWidget* rootWidget = root ? root->GetRootWidget() : nullptr;
+		if (!rootWidget) {
+			return;
+		}
+
+		mPlayButtonWidget = FindWidgetByNameRecursive(rootWidget, mPlayButtonName);
+		mQuitButtonWidget = FindWidgetByNameRecursive(rootWidget, mQuitButtonName);
+		Gui::UiWidget* playPromptWidget = FindWidgetByNameRecursive(
+			rootWidget,
+			mPlayPromptName
+		);
+		Gui::UiWidget* fadeOverlayWidget = FindWidgetByNameRecursive(
+			rootWidget,
+			mFadeOverlayName
+		);
+
+		mPlayPromptTexture = playPromptWidget ?
+			                     playPromptWidget->GetOrAddComponent<Gui::UiTextureComponent>() :
+			                     nullptr;
+		mFadeOverlayTexture = fadeOverlayWidget ?
+			                      fadeOverlayWidget->GetOrAddComponent<Gui::UiTextureComponent>() :
+			                      nullptr;
+
+		if (mPlayButtonWidget) {
+			if (auto* playBehavior = mPlayButtonWidget->GetComponent<Gui::UiButtonBehaviorComponent>()) {
+				playBehavior->SetOnClick([this]() { RequestStart(); });
+			}
+		}
+		if (mQuitButtonWidget) {
+			if (auto* quitBehavior = mQuitButtonWidget->GetComponent<Gui::UiButtonBehaviorComponent>()) {
+				quitBehavior->SetOnClick([this]() { RequestQuit(); });
+			}
+		}
+	}
+
+	Gui::UiWidget* TitleFlowComponent::FindWidgetByNameRecursive(
+		Gui::UiWidget* root,
+		const std::string_view widgetName
+	) {
+		if (!root) {
+			return nullptr;
+		}
+		if (root->GetName() == widgetName) {
+			return root;
+		}
+
+		for (const auto& child : root->GetChildren()) {
+			if (!child) {
+				continue;
+			}
+			if (Gui::UiWidget* found = FindWidgetByNameRecursive(child.get(), widgetName)) {
+				return found;
+			}
+		}
+		for (Gui::UiWidget* child : root->GetReferenceChildren()) {
+			if (Gui::UiWidget* found = FindWidgetByNameRecursive(child, widgetName)) {
+				return found;
+			}
+		}
+		return nullptr;
+	}
+
+	void TitleFlowComponent::ApplyUiVisibility() const {
+		if (Entity* owner = GetOwner()) {
+			owner->SetVisible(mInitialized);
+		}
+		if (mUiCanvas) {
+			mUiCanvas->SetReceiveInput(mInitialized);
+		}
+	}
+
+	void TitleFlowComponent::SetFadeOverlayAlpha(const float alpha) const {
+		if (!mFadeOverlayTexture) {
+			return;
+		}
+		Gui::Color color = mFadeOverlayTexture->GetColor();
+		color.a          = std::clamp(alpha, 0.0f, 1.0f);
+		mFadeOverlayTexture->SetColor(color);
+	}
+
+	void TitleFlowComponent::UpdatePlayPromptBlink(const float deltaTime) {
+		if (!mPlayPromptTexture) {
+			return;
+		}
+
+		// Idle中のみ点滅させて、遷移時は視認性を優先して固定表示にします。
+		if (mPhase != PHASE::IDLE) {
+			Gui::Color fixedColor = mPlayPromptTexture->GetColor();
+			fixedColor.a          = 1.0f;
+			mPlayPromptTexture->SetColor(fixedColor);
+			return;
+		}
+
+		mPromptBlinkSeconds += deltaTime;
+
+		const float blink = 0.5f + 0.5f * std::sin(mPromptBlinkSeconds * 4.0f);
+		Gui::Color color  = mPlayPromptTexture->GetColor();
+		color.a           = 0.45f + 0.55f * blink;
+		mPlayPromptTexture->SetColor(color);
+	}
+
+	float TitleFlowComponent::GetSecondsCvar(
+		const std::string_view name,
+		const float            fallback,
+		const float            minValue
+	) const {
+		ConsoleSystem* console = GetConsoleSystem();
+		const float value = console ?
+			                    console->GetConVarValueOr<float>(name, fallback) :
+			                    fallback;
+		return std::max(minValue, value);
+	}
+
+	std::string TitleFlowComponent::ResolveDemoPath() const {
+		ConsoleSystem* console = GetConsoleSystem();
+		std::string path = console ?
+			                   console->GetConVarValueString(kTitleDemoPathCvar) :
+			                   std::string();
+		if (path.empty()) {
+			path = kDefaultTitleDemoPath;
+		}
+		return path;
+	}
+
+	void TitleFlowComponent::RequestStart() {
+		mPlayRequested = true;
+	}
+
+	void TitleFlowComponent::RequestQuit() {
+		mQuitRequested = true;
+	}
+
+	REGISTER_COMPONENT(TitleFlowComponent);
+}
+
+
+============================================================
+File Path: src/game/parkour/components/title/TitleFlowComponent.h
+============================================================
+#pragma once
+
+#include <string>
+#include <string_view>
+
+#include "engine/unnamed/framework/components/base/BaseComponent.h"
+
+namespace Unnamed {
+	class UiCanvasComponent;
+	class JsonReader;
+	class JsonWriter;
+
+	namespace Gui {
+		class UiWidget;
+		class UiTextureComponent;
+	}
+
+	/// @brief タイトル演出（demo再生/フェード/開始遷移）を制御するコンポーネントです。
+	class TitleFlowComponent final : public BaseComponent {
+	public:
+		/// @brief タイトル演出を更新します。
+		/// @param deltaTime 前フレームからの経過時間（秒）
+		void OnTick(float deltaTime) override;
+		/// @brief エディタ中も同じタイトル演出を更新します。
+		/// @param deltaTime 前フレームからの経過時間（秒）
+		void OnEditorTick(float deltaTime) override;
+		/// @brief コンポーネント取り外し時に状態を解除します。
+		void OnDetached() override;
+
+		/// @brief コンポーネントの stable name を返します。
+		[[nodiscard]] std::string_view GetStableName() const override;
+		/// @brief コンポーネントの表示名を返します。
+		[[nodiscard]] std::string_view GetComponentName() const override;
+		[[nodiscard]] uint32_t GetIcon() const override;
+
+		/// @brief JSON から設定を読み込みます。
+		void Deserialize(const JsonReader& reader) override;
+		/// @brief 設定を JSON へ書き出します。
+		void Serialize(JsonWriter& writer) const override;
+
+	private:
+		/// @brief タイトル演出を1フレーム更新します。
+		void TickTitle(float deltaTime);
+		/// @brief タイトルモード中かどうかを判定します。
+		[[nodiscard]] bool IsTitleModeEnabled() const;
+		/// @brief タイトルモード開始時の初期化を行います。
+		void EnterTitleMode();
+		/// @brief タイトルモード終了時の後始末を行います。
+		void ExitTitleMode();
+		/// @brief タイトル用demo再生を開始します。
+		/// @return 再生開始に成功した場合はtrue
+		[[nodiscard]] bool RequestDemoPlayback();
+		/// @brief タイトル演出フェーズを更新します。
+		void UpdatePhase(float deltaTime);
+		/// @brief ゲーム開始遷移を確定します。
+		void CommitStartTransition();
+		/// @brief UI参照とクリックコールバックを解決します。
+		void ResolveUiBindings();
+		/// @brief 名前でウィジェットを再帰検索します。
+		[[nodiscard]] static Gui::UiWidget* FindWidgetByNameRecursive(
+			Gui::UiWidget* root,
+			std::string_view widgetName
+		);
+		/// @brief UI可視状態を現在のタイトルモードへ反映します。
+		void ApplyUiVisibility() const;
+		/// @brief フェードオーバーレイのアルファを更新します。
+		void SetFadeOverlayAlpha(float alpha) const;
+		/// @brief Playプロンプトの点滅を更新します。
+		void UpdatePlayPromptBlink(float deltaTime);
+		/// @brief 指定ConVarを秒値として取得します。
+		[[nodiscard]] float GetSecondsCvar(
+			std::string_view name,
+			float fallback,
+			float minValue
+		) const;
+		/// @brief タイトルdemoパスを解決します。
+		[[nodiscard]] std::string ResolveDemoPath() const;
+		/// @brief クリックイベントで開始要求を受け取ります。
+		void RequestStart();
+		/// @brief クリックイベントで終了要求を受け取ります。
+		void RequestQuit();
+
+		enum class PHASE : uint8_t {
+			INACTIVE = 0,
+			IDLE,
+			DEMO_LOOP_FADE_OUT,
+			DEMO_LOOP_FADE_IN,
+			START_TRANSITION_OUT,
+		};
+
+		std::string mGameplayScenePath = "./content/parkour/scenes/game.json";
+		std::string mPlayButtonName    = "PlayButton";
+		std::string mQuitButtonName    = "QuitButton";
+		std::string mPlayPromptName    = "PlayPromptImage";
+		std::string mFadeOverlayName   = "FadeOverlayImage";
+
+		// 所有しない参照です。ランタイムUI再生成を考慮し毎Tick再解決します。
+		UiCanvasComponent*        mUiCanvas           = nullptr;
+		Gui::UiWidget*            mPlayButtonWidget   = nullptr;
+		Gui::UiWidget*            mQuitButtonWidget   = nullptr;
+		Gui::UiTextureComponent*  mPlayPromptTexture  = nullptr;
+		Gui::UiTextureComponent*  mFadeOverlayTexture = nullptr;
+
+		PHASE       mPhase               = PHASE::INACTIVE;
+		float       mPhaseElapsedSeconds = 0.0f;
+		float       mPromptBlinkSeconds  = 0.0f;
+		bool        mInitialized         = false;
+		bool        mPlayRequested       = false;
+		bool        mQuitRequested       = false;
+		float       mDemoRetrySeconds    = 0.0f;
+		bool        mHasSavedMismatchPolicy = false;
+		std::string mActiveDemoPath;
+		std::string mSavedMismatchPolicy;
+	};
+}
+
+
+============================================================
 File Path: src/game/parkour/components/trigger/CheckpointComponent.cpp
 ============================================================
 #include "CheckpointComponent.h"
@@ -88440,8 +91417,22 @@ File Path: src/game/parkour/components/trigger/CheckpointComponent.cpp
 #include "core/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
+#include "core/math/Math.h"
 
 namespace Unnamed {
+	Vec3 CheckpointComponent::GetRespawnOffsetHu() const noexcept {
+		if (mLegacyRespawnPositionValid) {
+			return Math::MtoH(mLegacyRespawnPositionWorld - GetWorldCenter());
+		}
+		return mRespawnOffsetHu;
+	}
+
+	Vec3 CheckpointComponent::GetRespawnPosition() const noexcept {
+		return mLegacyRespawnPositionValid ?
+			       mLegacyRespawnPositionWorld :
+			       GetWorldCenter() + Math::HtoM(mRespawnOffsetHu);
+	}
+
 	void CheckpointComponent::Deserialize(const JsonReader& reader) {
 		DeserializeVolume(reader);
 		const JsonReader index = reader["index"];
@@ -88449,7 +91440,18 @@ namespace Unnamed {
 			mIndex = index.GetInt();
 		}
 
-		mRespawnPosition = reader["respawnPosition"].GetVec3(mRespawnPosition);
+		if (const JsonReader respawnOffsetHu = reader["respawnOffsetHu"];
+			respawnOffsetHu.Valid()) {
+			mRespawnOffsetHu           = respawnOffsetHu.GetVec3(mRespawnOffsetHu);
+			mLegacyRespawnPositionValid = false;
+		} else if (const JsonReader respawnPosition = reader["respawnPosition"];
+		           respawnPosition.Valid()) {
+			// 旧シーン互換: 既存のワールド座標を優先して保持します。
+			mLegacyRespawnPositionWorld = respawnPosition.GetVec3(
+				mLegacyRespawnPositionWorld
+			);
+			mLegacyRespawnPositionValid = true;
+		}
 		mCourseId        = reader["courseId"].GetString(mCourseId);
 		if (mCourseId.empty()) {
 			mCourseId = "default";
@@ -88460,7 +91462,7 @@ namespace Unnamed {
 		SerializeVolume(writer);
 		writer.Key("index");
 		writer.Write(mIndex);
-		writer.WriteVec3("respawnPosition", mRespawnPosition);
+		writer.WriteVec3("respawnOffsetHu", GetRespawnOffsetHu());
 		writer.Key("courseId");
 		writer.Write(mCourseId);
 	}
@@ -88469,7 +91471,11 @@ namespace Unnamed {
 	void CheckpointComponent::DrawInspectorImGui() {
 		DrawVolumeInspectorImGui();
 		ImGui::InputInt("Index", &mIndex);
-		ImGui::DragFloat3("Respawn Position", &mRespawnPosition.x, 1.0f);
+		Vec3 respawnOffsetHu = GetRespawnOffsetHu();
+		if (ImGui::DragFloat3("Respawn Offset (Hu)", &respawnOffsetHu.x, 1.0f)) {
+			mRespawnOffsetHu            = respawnOffsetHu;
+			mLegacyRespawnPositionValid = false;
+		}
 		std::array<char, 64> courseIdBuffer = {};
 		const size_t copyLen                = std::min(
 			mCourseId.size(),
@@ -88529,9 +91535,11 @@ namespace Unnamed {
 			return mIndex;
 		}
 
-		[[nodiscard]] Vec3 GetRespawnPosition() const noexcept {
-			return mRespawnPosition;
-		}
+		/// @brief チェックポイント中心からのリスポーンオフセット(Hu)を返します。
+		[[nodiscard]] Vec3 GetRespawnOffsetHu() const noexcept;
+
+		/// @brief 現在のワールドリスポーン位置を返します。
+		[[nodiscard]] Vec3 GetRespawnPosition() const noexcept;
 
 		/// @brief 所属コースIDを返します。
 		[[nodiscard]] const std::string& GetCourseId() const noexcept {
@@ -88540,7 +91548,9 @@ namespace Unnamed {
 
 	private:
 		int32_t mIndex           = 0;
-		Vec3    mRespawnPosition = Vec3::zero;
+		Vec3    mRespawnOffsetHu = Vec3::zero;
+		Vec3    mLegacyRespawnPositionWorld = Vec3::zero;
+		bool    mLegacyRespawnPositionValid = false;
 		std::string mCourseId    = "default";
 	};
 }
@@ -88847,11 +91857,16 @@ File Path: src/game/parkour/components/trigger/TriggerVolumeComponentBase.cpp
 #include "engine/unnamed/framework/entity/Entity.h"
 
 namespace Unnamed {
+	Vec3 TriggerVolumeComponentBase::GetLocalCenter() const noexcept {
+		return Math::HtoM(mLocalCenterHu);
+	}
+
 	Vec3 TriggerVolumeComponentBase::GetWorldCenter() const noexcept {
+		const Vec3 localCenterMeters = Math::HtoM(mLocalCenterHu);
 		if (const auto* transform = GetTransform()) {
-			return transform->GetWorldMat().TransformPoint(mLocalCenter);
+			return transform->GetWorldMat().TransformPoint(localCenterMeters);
 		}
-		return mLocalCenter;
+		return localCenterMeters;
 	}
 
 	Vec3
@@ -88862,12 +91877,21 @@ namespace Unnamed {
 	void TriggerVolumeComponentBase::DeserializeVolume(
 		const JsonReader& reader
 	) {
-		mLocalCenter = reader["localCenter"].GetVec3(mLocalCenter);
-		mExtentsHu   = reader["extentsHu"].GetVec3(mExtentsHu);
+		if (const JsonReader localCenterHu = reader["localCenterHu"];
+			localCenterHu.Valid()) {
+			mLocalCenterHu = localCenterHu.GetVec3(mLocalCenterHu);
+		} else if (const JsonReader legacyLocalCenter = reader["localCenter"];
+		           legacyLocalCenter.Valid()) {
+			// 旧シーン互換: localCenter はメートル値として読み取り、Huへ移行します。
+			mLocalCenterHu = Math::MtoH(
+				legacyLocalCenter.GetVec3(Math::HtoM(mLocalCenterHu))
+			);
+		}
+		mExtentsHu = reader["extentsHu"].GetVec3(mExtentsHu);
 	}
 
 	void TriggerVolumeComponentBase::SerializeVolume(JsonWriter& writer) const {
-		writer.WriteVec3("localCenter", mLocalCenter);
+		writer.WriteVec3("localCenterHu", mLocalCenterHu);
 		writer.WriteVec3("extentsHu", mExtentsHu);
 	}
 
@@ -88878,7 +91902,7 @@ namespace Unnamed {
 
 #ifdef _DEBUG
 	void TriggerVolumeComponentBase::DrawVolumeInspectorImGui() {
-		ImGui::DragFloat3("Local Center", &mLocalCenter.x, 1.0f);
+		ImGui::DragFloat3("Local Center HU", &mLocalCenterHu.x, 1.0f);
 		ImGui::DragFloat3("Extents HU", &mExtentsHu.x, 1.0f, 0.0f, 100000.0f);
 	}
 #endif
@@ -88901,9 +91925,13 @@ namespace Unnamed {
 
 	class TriggerVolumeComponentBase : public BaseComponent {
 	public:
-		[[nodiscard]] Vec3 GetLocalCenter() const noexcept {
-			return mLocalCenter;
+		/// @brief ローカル中心座標(Hu)を返します。
+		[[nodiscard]] Vec3 GetLocalCenterHu() const noexcept {
+			return mLocalCenterHu;
 		}
+
+		/// @brief ローカル中心座標(メートル)を返します。
+		[[nodiscard]] Vec3 GetLocalCenter() const noexcept;
 
 		[[nodiscard]] Vec3 GetExtentsHu() const noexcept {
 			return mExtentsHu;
@@ -88921,8 +91949,8 @@ namespace Unnamed {
 		void DrawVolumeInspectorImGui();
 #endif
 
-		Vec3 mLocalCenter = Vec3::zero;
-		Vec3 mExtentsHu   = Vec3(32.0f, 32.0f, 32.0f);
+		Vec3 mLocalCenterHu = Vec3::zero;
+		Vec3 mExtentsHu     = Vec3(32.0f, 32.0f, 32.0f);
 	};
 }
 
