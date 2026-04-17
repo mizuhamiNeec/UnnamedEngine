@@ -57919,6 +57919,8 @@ namespace Unnamed {
 				mMouseCursorLockOverride     = true;
 				mMouseCursorLockOverrideMode = bNewState;
 			}
+			// ロック状態に合わせて表示も同期する。
+			SetMouseCursorVisible(!bNewState);
 			if (!bNewState) {
 				ClearMouseCursorLockAnchor();
 			}
