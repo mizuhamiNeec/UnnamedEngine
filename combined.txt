@@ -357,9 +357,6 @@
     └── └── └── └── ├── editor/
     └── └── └── └── └── ├── EditorCameraComponent.cpp
     └── └── └── └── └── └── EditorCameraComponent.h
-    └── └── └── └── ├── kinematic/
-    └── └── └── └── └── ├── KinematicMoverComponent.cpp
-    └── └── └── └── └── └── KinematicMoverComponent.h
     └── └── └── └── ├── mesh/
     └── └── └── └── └── ├── SkeletalAnimationComponent.cpp
     └── └── └── └── └── ├── SkeletalAnimationComponent.h
@@ -592,15 +589,8 @@
     └──         └── ├── CourseProgressHudComponent.cpp
     └──         └── └── CourseProgressHudComponent.h
     └──         ├── cutscene/
-    └──         └── ├── GameStartCutsceneComponent.cpp
-    └──         └── ├── GameStartCutsceneComponent.h
     └──         └── ├── SequenceCutsceneComponent.cpp
     └──         └── └── SequenceCutsceneComponent.h
-    └──         ├── title/
-    └──         └── ├── TitleBootstrapComponent.cpp
-    └──         └── ├── TitleBootstrapComponent.h
-    └──         └── ├── TitleFlowComponent.cpp
-    └──         └── └── TitleFlowComponent.h
     └──         └── trigger/
     └──             ├── CheckpointComponent.cpp
     └──             ├── CheckpointComponent.h
@@ -10163,7 +10153,7 @@ namespace Unnamed {
 			);
 			if (World* runtimeWorld = mUEditorRuntime->GetRuntimeWorld()) {
 				runtimeWorld->LoadSceneFromFile(
-					"./content/parkour/scenes/title.json"
+					"./content/parkour/scenes/game.json"
 				);
 			}
 
@@ -10173,7 +10163,7 @@ namespace Unnamed {
 #endif
 		} else {
 			auto& world = SwitchWorld<GameWorld>();
-			world.LoadSceneFromFile("./content/parkour/scenes/title.json");
+			world.LoadSceneFromFile("./content/parkour/scenes/game.json");
 		}
 
 		// ユーザー名をコンソール変数に設定
@@ -15066,68 +15056,6 @@ namespace Unnamed {
 			return camera->BuildCameraInput(outCamera);
 		}
 
-		EditorViewportCameraManager::ResolvedCamera BuildOrthoCamera(
-			const ViewportCameraBindingKind kind,
-			const ViewportOrthoState&       state,
-			const float                     aspect
-		) {
-			EditorViewportCameraManager::ResolvedCamera resolved = {};
-			resolved.isOrthographic = true;
-
-			const float safeAspect = std::max(0.01f, aspect);
-			const float safeZoom   = std::max(1.0f, state.zoom);
-			const float halfHeight = safeZoom * 0.5f;
-			const float halfWidth  = halfHeight * safeAspect;
-
-			Vec3 right   = Vec3::right;
-			Vec3 up      = Vec3::up;
-			Vec3 forward = Vec3::forward;
-			switch (kind) {
-				case ViewportCameraBindingKind::EditorOrthoTop:
-					right   = Vec3::right;
-					up      = Vec3::forward;
-					forward = Vec3::down;
-					break;
-				case ViewportCameraBindingKind::EditorOrthoFront:
-					right   = Vec3::left;
-					up      = Vec3::up;
-					forward = Vec3::backward;
-					break;
-				case ViewportCameraBindingKind::EditorOrthoRight:
-					right   = Vec3::forward;
-					up      = Vec3::up;
-					forward = Vec3::left;
-					break;
-				default: break;
-			}
-
-			const Vec3 cameraPos = state.center - forward * 4096.0f;
-			Mat4       world     = Mat4::identity;
-			world.m[0][0]        = right.x;
-			world.m[0][1]        = right.y;
-			world.m[0][2]        = right.z;
-			world.m[1][0]        = up.x;
-			world.m[1][1]        = up.y;
-			world.m[1][2]        = up.z;
-			world.m[2][0]        = forward.x;
-			world.m[2][1]        = forward.y;
-			world.m[2][2]        = forward.z;
-			world.m[3][0]        = cameraPos.x;
-			world.m[3][1]        = cameraPos.y;
-			world.m[3][2]        = cameraPos.z;
-
-			resolved.input.view = world.Inverse();
-			resolved.input.proj = Mat4::MakeOrthographicMat(
-				-halfWidth, halfHeight, halfWidth, -halfHeight, 0.001f, 20000.0f
-			);
-			resolved.input.viewProj  = resolved.input.view * resolved.input.proj;
-			resolved.input.cameraPos = cameraPos;
-			resolved.input.nearZ     = 0.001f;
-			resolved.input.farZ      = 20000.0f;
-			resolved.input.depthMode = Render::PROJECTION_DEPTH_MODE::ForwardZ;
-			resolved.input.valid     = true;
-			return resolved;
-		}
 	}
 
 	void EditorViewportCameraManager::SetPaneBinding(
@@ -15147,23 +15075,6 @@ namespace Unnamed {
 		return {};
 	}
 
-	void EditorViewportCameraManager::SetOrthoState(
-		const std::string_view          viewKey,
-		const ViewportOrthoState& state
-	) {
-		mPaneOrthoStates[std::string(viewKey)] = state;
-	}
-
-	ViewportOrthoState EditorViewportCameraManager::GetOrthoState(
-		const std::string_view viewKey
-	) const {
-		if (const auto it = mPaneOrthoStates.find(std::string(viewKey));
-			it != mPaneOrthoStates.end()) {
-			return it->second;
-		}
-		return {};
-	}
-
 	EditorViewportCameraManager::ResolvedCamera
 	EditorViewportCameraManager::ResolveViewCamera(
 		EditorWorld&                         editorWorld,
@@ -15172,21 +15083,10 @@ namespace Unnamed {
 		const ViewportCameraBinding&         binding,
 		const Render::RenderCameraInput*     fallbackCamera
 	) {
+		(void)viewKey;
 		ResolvedCamera resolved = {};
 		if (fallbackCamera && fallbackCamera->valid) {
 			resolved.input = *fallbackCamera;
-		}
-
-		if (
-			binding.kind == ViewportCameraBindingKind::EditorOrthoTop ||
-			binding.kind == ViewportCameraBindingKind::EditorOrthoFront ||
-			binding.kind == ViewportCameraBindingKind::EditorOrthoRight
-		) {
-			return BuildOrthoCamera(
-				binding.kind,
-				GetOrthoState(viewKey),
-				ResolveAspectRatio(sceneViewMode)
-			);
 		}
 
 		if (binding.kind == ViewportCameraBindingKind::EditorPerspective) {
@@ -15261,12 +15161,7 @@ namespace Unnamed {
 		const Render::SceneViewRenderMode& sceneViewMode,
 		const ViewportCameraBinding&         binding
 	) {
-		if (
-			binding.kind == ViewportCameraBindingKind::EditorPerspective ||
-			binding.kind == ViewportCameraBindingKind::EditorOrthoTop ||
-			binding.kind == ViewportCameraBindingKind::EditorOrthoFront ||
-			binding.kind == ViewportCameraBindingKind::EditorOrthoRight
-		) {
+		if (binding.kind == ViewportCameraBindingKind::EditorPerspective) {
 			return;
 		}
 
@@ -15319,22 +15214,14 @@ namespace Unnamed {
 
 	enum class ViewportCameraBindingKind : uint8_t {
 		EditorPerspective = 0,
-		EditorOrthoTop    = 1,
-		EditorOrthoFront  = 2,
-		EditorOrthoRight  = 3,
-		ActiveGameCamera  = 4,
-		CameraEntity      = 5,
+		ActiveGameCamera  = 1,
+		CameraEntity      = 2,
 	};
 
 	struct ViewportCameraBinding {
 		ViewportCameraBindingKind kind = ViewportCameraBindingKind::
 			EditorPerspective;
 		uint64_t cameraEntityGuid = 0;
-	};
-
-	struct ViewportOrthoState {
-		Vec3  center = Vec3::zero;
-		float zoom   = 1024.0f;
 	};
 
 	class EditorViewportCameraManager final {
@@ -15349,14 +15236,6 @@ namespace Unnamed {
 			const ViewportCameraBinding& binding
 		);
 		[[nodiscard]] ViewportCameraBinding GetPaneBinding(
-			std::string_view viewKey
-		) const;
-
-		void SetOrthoState(
-			std::string_view          viewKey,
-			const ViewportOrthoState& state
-		);
-		[[nodiscard]] ViewportOrthoState GetOrthoState(
 			std::string_view viewKey
 		) const;
 
@@ -15376,7 +15255,6 @@ namespace Unnamed {
 
 	private:
 		std::unordered_map<std::string, ViewportCameraBinding> mPaneBindings;
-		std::unordered_map<std::string, ViewportOrthoState> mPaneOrthoStates;
 	};
 }
 
@@ -15964,27 +15842,6 @@ namespace Unnamed {
 				.cameraEntityGuid = 0
 			}
 		);
-		mCameraManager.SetPaneBinding(
-			kViewSceneTop,
-			{
-				.kind             = ViewportCameraBindingKind::EditorOrthoTop,
-				.cameraEntityGuid = 0
-			}
-		);
-		mCameraManager.SetPaneBinding(
-			kViewSceneFront,
-			{
-				.kind             = ViewportCameraBindingKind::EditorOrthoFront,
-				.cameraEntityGuid = 0
-			}
-		);
-		mCameraManager.SetPaneBinding(
-			kViewSceneRight,
-			{
-				.kind             = ViewportCameraBindingKind::EditorOrthoRight,
-				.cameraEntityGuid = 0
-			}
-		);
 	}
 
 	LevelEditorTool::~LevelEditorTool() = default;
@@ -16252,7 +16109,7 @@ namespace Unnamed {
 			view.sceneViewMode           = BuildSceneViewModeForSize(
 				width,
 				height,
-				mViewportLayoutMode == EDITOR_VIEW_LAYOUT_MODE::QUAD
+				false
 			);
 			view.output.sizeMode = Render::RENDER_VIEW_SIZE_MODE::FIXED;
 			view.output.width = view.sceneViewMode.viewportPanelWidth;
@@ -16288,71 +16145,16 @@ namespace Unnamed {
 			composedViews.end(), preservedViews.begin(), preservedViews.end()
 		);
 
-		if (mViewportLayoutMode == EDITOR_VIEW_LAYOUT_MODE::QUAD) {
-			const float paneW = std::max(1.0f, mViewportPanelWidth * 0.5f);
-			const float paneH = std::max(1.0f, mViewportPanelHeight * 0.5f);
-			const bool  fullscreenPresent =
-				mPresentMode == EDITOR_PRESENT_MODE::FULLSCREEN_SWAP_CHAIN;
-			const std::string presentKey = fullscreenPresent ?
-				                               (mActiveViewportViewKey.empty() ?
-					                                std::string(
-						                                kViewScenePerspective
-					                                ) :
-					                                mActiveViewportViewKey) :
-				                               std::string();
-			composedViews.emplace_back(
-				buildSceneView(
-					kViewScenePerspective,
-					paneW,
-					paneH,
-					ResolveViewportBinding(kViewScenePerspective),
-					true,
-					fullscreenPresent &&
-					presentKey == kViewScenePerspective
-				)
-			);
-			composedViews.emplace_back(
-				buildSceneView(
-					kViewSceneTop,
-					paneW,
-					paneH,
-					ResolveViewportBinding(kViewSceneTop),
-					true,
-					fullscreenPresent && presentKey == kViewSceneTop
-				)
-			);
-			composedViews.emplace_back(
-				buildSceneView(
-					kViewSceneFront,
-					paneW,
-					paneH,
-					ResolveViewportBinding(kViewSceneFront),
-					true,
-					fullscreenPresent && presentKey == kViewSceneFront
-				)
-			);
-			composedViews.emplace_back(
-				buildSceneView(
-					kViewSceneRight,
-					paneW,
-					paneH,
-					ResolveViewportBinding(kViewSceneRight),
-					true,
-					fullscreenPresent && presentKey == kViewSceneRight
-				)
-			);
-		} else {
-			composedViews.emplace_back(
-				buildSceneView(
-					kViewScenePerspective,
-					std::max(1.0f, mViewportPanelWidth),
-					std::max(1.0f, mViewportPanelHeight),
-					ResolveViewportBinding(kViewScenePerspective),
-					true,
-					mPresentMode == EDITOR_PRESENT_MODE::FULLSCREEN_SWAP_CHAIN
-				)
-			);
-		}
+		composedViews.emplace_back(
+			buildSceneView(
+				kViewScenePerspective,
+				std::max(1.0f, mViewportPanelWidth),
+				std::max(1.0f, mViewportPanelHeight),
+				ResolveViewportBinding(kViewScenePerspective),
+				true,
+				mPresentMode == EDITOR_PRESENT_MODE::FULLSCREEN_SWAP_CHAIN
+			)
+		);
 
 		inputs.views = std::move(composedViews);
 	}
@@ -16361,9 +16163,6 @@ namespace Unnamed {
 		std::vector<std::string>& outViewKeys
 	) const {
 		outViewKeys.emplace_back(kViewScenePerspective);
-		outViewKeys.emplace_back(kViewSceneTop);
-		outViewKeys.emplace_back(kViewSceneFront);
-		outViewKeys.emplace_back(kViewSceneRight);
 	}
 
 	void LevelEditorTool::SetViewOutput(
@@ -16702,11 +16501,6 @@ namespace Unnamed {
 		FHD1080,
 	};
 
-	enum class EDITOR_VIEW_LAYOUT_MODE : uint8_t {
-		SINGLE = 0,
-		QUAD   = 1,
-	};
-
 	enum class EDITOR_GRID_SNAP_UNIT : uint8_t {
 		METER = 0,
 		HU    = 1,
@@ -16745,12 +16539,6 @@ namespace Unnamed {
 
 		static constexpr std::string_view kViewScenePerspective =
 			"tool.level.scene.perspective";
-		static constexpr std::string_view kViewSceneTop =
-			"tool.level.scene.top";
-		static constexpr std::string_view kViewSceneFront =
-			"tool.level.scene.front";
-		static constexpr std::string_view kViewSceneRight =
-			"tool.level.scene.right";
 
 	private:
 		struct ViewOutputCache {
@@ -16783,7 +16571,7 @@ namespace Unnamed {
 			float drawWidth,
 			float drawHeight
 		);
-		void DrawViewportOverlay(float deltaTime);
+		void DrawViewportOverlay(float deltaTime) const;
 
 		void DrawSceneOutliner();
 		void DrawInspector();
@@ -16817,7 +16605,6 @@ namespace Unnamed {
 		EDITOR_PRESENT_MODE mPresentMode = EDITOR_PRESENT_MODE::VIEWPORT_PANEL;
 		EDITOR_VIEWPORT_RENDER_MODE mViewportRenderMode =
 			EDITOR_VIEWPORT_RENDER_MODE::FIT_VIEWPORT;
-		EDITOR_VIEW_LAYOUT_MODE mViewportLayoutMode = EDITOR_VIEW_LAYOUT_MODE::SINGLE;
 		std::string mActiveViewportViewKey = std::string(kViewScenePerspective);
 		Vec2 mViewportPosition = Vec2::zero;
 		Vec2 mViewportSize = Vec2::zero;
@@ -18596,8 +18383,415 @@ File Path: src/engine/editor/LevelEditorToolViewport.cpp
 #include "thirdparty/ImGuizmo/ImGuizmo.h"
 
 namespace Unnamed {
+	void LevelEditorTool::DrawViewport(const float deltaTime) {
+		if (!ImGui::Begin("Viewport")) {
+			ImGui::End();
+			return;
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+		DrawViewportTopBar();
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+		const ImVec2 avail            = ImGui::GetContentRegionAvail();
+		const float  width            = std::max(1.0f, avail.x);
+		const float  height           = std::max(1.0f, avail.y);
+		mViewportSizeChangedThisFrame =
+			std::abs(width - mLastViewportSize.x) > 0.5f ||
+			std::abs(height - mLastViewportSize.y) > 0.5f;
+		mViewportPanelWidth  = width;
+		mViewportPanelHeight = height;
+		mLastViewportSize    = Vec2(width, height);
+
+		auto DrawPane = [this](
+			const std::string_view viewKey,
+			const char*            label,
+			const float            drawWidth,
+			const float            drawHeight
+		) {
+			const ImVec2 panePos    = ImGui::GetCursorScreenPos();
+			const auto   outputIt   = mViewOutputs.find(std::string(viewKey));
+			const bool   hasOutput  = outputIt != mViewOutputs.end();
+			const Vec2   outputSize = hasOutput ?
+				                          outputIt->second.size :
+				                          Vec2(drawWidth, drawHeight);
+
+			const float safeOutputWidth  = std::max(1.0f, outputSize.x);
+			const float safeOutputHeight = std::max(1.0f, outputSize.y);
+			const float outputAspect     = safeOutputWidth / safeOutputHeight;
+
+			float fitWidth  = drawWidth;
+			float fitHeight = fitWidth / outputAspect;
+			if (fitHeight > drawHeight) {
+				fitHeight = drawHeight;
+				fitWidth  = fitHeight * outputAspect;
+			}
+			fitWidth                = std::max(1.0f, fitWidth);
+			fitHeight               = std::max(1.0f, fitHeight);
+			const float  fitOffsetX = (drawWidth - fitWidth) * 0.5f;
+			const float  fitOffsetY = (drawHeight - fitHeight) * 0.5f;
+			const auto fitPos     = ImVec2(
+				panePos.x + fitOffsetX, panePos.y + fitOffsetY
+			);
+			const auto fitMax = ImVec2(
+				fitPos.x + fitWidth, fitPos.y + fitHeight
+			);
+
+			// ImGuizmo のドラッグ入力を奪わないよう、ここはレイアウト確保のみ行う
+			ImGui::Dummy(ImVec2(drawWidth, drawHeight));
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+			drawList->AddRectFilled(
+				panePos,
+				ImVec2(panePos.x + drawWidth, panePos.y + drawHeight),
+				IM_COL32(28, 30, 36, 255),
+				8.0f
+			);
+			drawList->AddRect(
+				panePos,
+				ImVec2(panePos.x + drawWidth, panePos.y + drawHeight),
+				IM_COL32(70, 74, 86, 255),
+				8.0f
+			);
+
+			if (
+				hasOutput &&
+				outputIt->second.srvCpu.ptr != 0 &&
+				outputIt->second.textureId != 0
+			) {
+				const ImTextureID tex = mImGuiLayer.GetOrCreateTextureId(
+					outputIt->second.textureId,
+					outputIt->second.srvRevision,
+					outputIt->second.srvCpu
+				);
+				drawList->AddImage(
+					tex,
+					fitPos,
+					fitMax,
+					ImVec2(0.0f, 0.0f),
+					ImVec2(1.0f, 1.0f)
+				);
+			} else {
+				drawList->AddRect(
+					fitPos,
+					fitMax,
+					IM_COL32(130, 130, 130, 255),
+					0.0f
+				);
+			}
+
+			const ImVec2 mousePos = ImGui::GetMousePos();
+			const bool hoveredFit = mousePos.x >= fitPos.x && mousePos.x <= fitMax.x &&
+			                        mousePos.y >= fitPos.y && mousePos.y <= fitMax.y &&
+			                        ImGui::IsWindowHovered(
+				                        ImGuiHoveredFlags_AllowWhenBlockedByPopup
+			                        );
+			if (hoveredFit && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+				mActiveViewportViewKey = std::string(viewKey);
+				mViewportLookActive    = true;
+			}
+			if (
+				hoveredFit ||
+				(!mActiveViewportViewKey.empty() && mActiveViewportViewKey == viewKey)
+			) {
+				mViewportPosition = Vec2(fitPos.x, fitPos.y);
+				mViewportSize     = Vec2(fitWidth, fitHeight);
+			}
+
+			(void)hoveredFit;
+
+			drawList->AddText(
+				ImVec2(panePos.x + 8.0f, panePos.y + 8.0f),
+				IM_COL32(240, 240, 240, 255),
+				label
+			);
+
+			return std::tuple<bool, Vec2, Vec2>(
+				hoveredFit,
+				Vec2(fitPos.x, fitPos.y),
+				Vec2(fitWidth, fitHeight)
+			);
+		};
+
+		const auto [hovered, pos, size] = DrawPane(
+			kViewScenePerspective,
+			"Perspective",
+			width,
+			height
+		);
+		(void)hovered;
+		const Render::SceneViewRenderMode mode = BuildSceneViewModeForSize(
+			size.x,
+			size.y,
+			false
+		);
+		DrawViewportGizmo(
+			kViewScenePerspective, mode, pos, size.x, size.y
+		);
+
+		if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+			mViewportLookActive = false;
+		}
+
+		DrawViewportOverlay(deltaTime);
+
+		ImGui::PopStyleVar(2);
+		ImGui::End();
+	}
+
+	void LevelEditorTool::DrawViewportTopBar() {
+		const float toolbarHeight            = ImGui::GetFontSize() * 2.0f;
+		const float toolbarHeightWithPadding =
+			toolbarHeight +
+			ImGui::GetStyle().WindowPadding.y * 2.0f;
+
+		auto currentCursorPos = ImGui::GetCursorScreenPos();
+
+		ImGui::GetWindowDrawList()->AddRectFilled(
+			currentCursorPos,
+			ImVec2(
+				currentCursorPos.x + ImGui::GetContentRegionAvail().x,
+				currentCursorPos.y + ImGui::GetContentRegionAvail().y
+			),
+			ImGui::GetColorU32(ImGuiCol_ChildBg),
+			ImGui::GetStyle().ChildRounding,
+			ImDrawFlags_RoundCornersAll
+		);
+
+		ImGui::SetCursorScreenPos(
+			ImVec2(
+				currentCursorPos.x + ImGui::GetStyle().WindowPadding.x,
+				currentCursorPos.y + ImGui::GetStyle().WindowPadding.y
+			)
+		);
+
+		{
+			const auto toolbarIconSize = ImVec2(
+				toolbarHeight * 2.75f,
+				toolbarHeight
+			);
+			
+			constexpr float iconScale = 1.0f;
+			
+			if (
+				ImGuiWidgets::IconButton(
+					kIconVertex,
+					"Vertices",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				)
+			) {
+				mNotification->PushNotification(
+					"未実装",
+					"頂点選択はまだ実装されていません。",
+					NOTIFY_TYPE::WARNING,
+					10.0f
+				);
+			}
+			ImGui::SameLine();
+			ImGuiWidgets::IconButton(
+				kIconEdge, "Edges", toolbarIconSize, iconScale, ImGuiDir_Right
+			);
+			ImGui::SameLine();
+			ImGuiWidgets::IconButton(
+				kIconFace, "Faces", toolbarIconSize, iconScale, ImGuiDir_Right
+			);
+			ImGui::SameLine();
+			ImGuiWidgets::IconButton(
+				kIconMesh, "Meshes", toolbarIconSize, iconScale, ImGuiDir_Right
+			);
+			ImGui::SameLine();
+			ImGuiWidgets::IconButton(
+				kIconObject, "Object", toolbarIconSize, iconScale, ImGuiDir_Right
+			);
+			ImGui::SameLine();
+			ImGuiWidgets::IconButton(
+				kIconGroup, "Group", toolbarIconSize, iconScale, ImGuiDir_Right
+			);
+		}
+
+		ImGui::SameLine();
+		{
+			const char* viewportModeLabel = "Fit";
+			switch (mViewportRenderMode) {
+				case EDITOR_VIEWPORT_RENDER_MODE::FIT_VIEWPORT:
+					viewportModeLabel = "Fit";
+					break;
+				case EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_16_9:
+					viewportModeLabel = "16:9";
+					break;
+				case EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_4_3:
+					viewportModeLabel = "4:3";
+					break;
+				case EDITOR_VIEWPORT_RENDER_MODE::HD720:
+					viewportModeLabel = "HD";
+					break;
+				case EDITOR_VIEWPORT_RENDER_MODE::FHD1080:
+					viewportModeLabel = "FHD";
+					break;
+				default: break;
+			}
+			ImGui::SetNextItemWidth(140.0f);
+			if (ImGui::BeginCombo("RenderMode", viewportModeLabel)) {
+				if (ImGui::Selectable(
+					"Fit",
+					mViewportRenderMode ==
+					EDITOR_VIEWPORT_RENDER_MODE::FIT_VIEWPORT
+				)) {
+					mViewportRenderMode =
+						EDITOR_VIEWPORT_RENDER_MODE::FIT_VIEWPORT;
+				}
+				if (ImGui::Selectable(
+					"Fixed 16:9",
+					mViewportRenderMode ==
+					EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_16_9
+				)) {
+					mViewportRenderMode =
+						EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_16_9;
+				}
+				if (ImGui::Selectable(
+					"Fixed 4:3",
+					mViewportRenderMode ==
+					EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_4_3
+				)) {
+					mViewportRenderMode =
+						EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_4_3;
+				}
+				if (ImGui::Selectable(
+					"HD (1280x720)",
+					mViewportRenderMode ==
+					EDITOR_VIEWPORT_RENDER_MODE::HD720
+				)) {
+					mViewportRenderMode = EDITOR_VIEWPORT_RENDER_MODE::HD720;
+				}
+				if (ImGui::Selectable(
+					"FHD (1920x1080)",
+					mViewportRenderMode ==
+					EDITOR_VIEWPORT_RENDER_MODE::FHD1080
+				)) {
+					mViewportRenderMode = EDITOR_VIEWPORT_RENDER_MODE::FHD1080;
+				}
+				ImGui::EndCombo();
+			}
+
+			ImGui::SameLine();
+			auto DrawViewBindingSelector = [this]() {
+				const Scene*          scene   = GetOutlinerScene();
+				ViewportCameraBinding binding = ResolveViewportBinding(
+					kViewScenePerspective
+				);
+				auto currentKindLabel = "EditorPerspective";
+				switch (binding.kind) {
+					case ViewportCameraBindingKind::EditorPerspective:
+						currentKindLabel = "EditorPerspective";
+						break;
+					case ViewportCameraBindingKind::ActiveGameCamera:
+						currentKindLabel = "ActiveGameCamera";
+						break;
+					case ViewportCameraBindingKind::CameraEntity:
+						currentKindLabel = "CameraEntity";
+						break;
+					default: break;
+				}
+
+				ImGui::SetNextItemWidth(180.0f);
+				if (ImGui::BeginCombo("Binding", currentKindLabel)) {
+					const auto selectableKind = [&](
+						const char*                     label,
+						const ViewportCameraBindingKind kind
+					) {
+						if (ImGui::Selectable(label, binding.kind == kind)) {
+							ViewportCameraBinding next = binding;
+							next.kind                  = kind;
+							if (kind != ViewportCameraBindingKind::CameraEntity) {
+								next.cameraEntityGuid = 0;
+							}
+							mCameraManager.SetPaneBinding(kViewScenePerspective, next);
+							binding = next;
+						}
+					};
+
+					selectableKind(
+						"EditorPerspective",
+						ViewportCameraBindingKind::EditorPerspective
+					);
+					selectableKind(
+						"ActiveGameCamera",
+						ViewportCameraBindingKind::ActiveGameCamera
+					);
+					selectableKind(
+						"CameraEntity",
+						ViewportCameraBindingKind::CameraEntity
+					);
+					ImGui::EndCombo();
+				}
+
+				if (binding.kind == ViewportCameraBindingKind::CameraEntity) {
+					std::string cameraLabel = "<none>";
+					if (scene && binding.cameraEntityGuid != 0) {
+						for (const auto& entity : scene->GetEntities()) {
+							if (!entity || entity->GetGuid() != binding.cameraEntityGuid) {
+								continue;
+							}
+							cameraLabel = std::string(entity->GetName());
+							break;
+						}
+					}
+
+					ImGui::SetNextItemWidth(180.0f);
+					if (ImGui::BeginCombo("CameraEntity", cameraLabel.c_str())) {
+						if (ImGui::Selectable("<none>", binding.cameraEntityGuid == 0)) {
+							ViewportCameraBinding next = binding;
+							next.cameraEntityGuid      = 0;
+							mCameraManager.SetPaneBinding(kViewScenePerspective, next);
+							binding = next;
+						}
+						if (scene) {
+							for (const auto& entity : scene->GetEntities()) {
+								if (!entity || !entity->IsActive()) {
+									continue;
+								}
+								const auto* camera = entity->GetComponent<CameraComponent>();
+								if (
+									!camera ||
+									!camera->IsActive() ||
+									!camera->IsCameraActive()
+								) {
+									continue;
+								}
+								const bool selected =
+									entity->GetGuid() == binding.cameraEntityGuid;
+								const std::string label = std::format(
+									"{}##{}",
+									entity->GetName(),
+									entity->GetGuid()
+								);
+								if (ImGui::Selectable(label.c_str(), selected)) {
+									ViewportCameraBinding next = binding;
+									next.cameraEntityGuid = entity->GetGuid();
+									mCameraManager.SetPaneBinding(kViewScenePerspective, next);
+									binding = next;
+								}
+							}
+						}
+						ImGui::EndCombo();
+					}
+				}
+			};
+			DrawViewBindingSelector();
+
+		}
+
+		ImGui::SetCursorScreenPos(
+			{
+				currentCursorPos.x,
+				currentCursorPos.y + toolbarHeightWithPadding
+			}
+		);
+	}
+
 	void LevelEditorTool::DrawViewportGizmo(
-		const std::string_view                 viewKey,
+		const std::string_view             viewKey,
 		const Render::SceneViewRenderMode& sceneViewMode,
 		const Vec2&                        imagePos,
 		const float                        drawWidth,
@@ -18648,7 +18842,7 @@ namespace Unnamed {
 		ImGuizmo::SetRect(imagePos.x, imagePos.y, drawWidth, drawHeight);
 
 		const bool  useSnap = (sOperation != ImGuizmo::SCALE) &&
-			(ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl));
+		                      (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl));
 		const float snap[3] = {
 			sOperation == ImGuizmo::ROTATE ? mAngleSnapDegree : mGridSnap,
 			sOperation == ImGuizmo::ROTATE ? mAngleSnapDegree : mGridSnap,
@@ -18693,571 +18887,7 @@ namespace Unnamed {
 		}
 	}
 
-	void LevelEditorTool::DrawViewportTopBar() {
-		const float toolbarHeight            = ImGui::GetFontSize() * 2.0f;
-		const float toolbarHeightWithPadding =
-			toolbarHeight +
-			ImGui::GetStyle().WindowPadding.y * 2.0f;
-
-		auto currentCursorPos = ImGui::GetCursorScreenPos();
-
-		ImGui::GetWindowDrawList()->AddRectFilled(
-			currentCursorPos,
-			ImVec2(
-				currentCursorPos.x + ImGui::GetContentRegionAvail().x,
-				currentCursorPos.y + ImGui::GetContentRegionAvail().y
-			),
-			ImGui::GetColorU32(ImGuiCol_ChildBg),
-			ImGui::GetStyle().ChildRounding,
-			ImDrawFlags_RoundCornersAll
-		);
-
-		ImGui::SetCursorScreenPos(
-			ImVec2(
-				currentCursorPos.x + ImGui::GetStyle().WindowPadding.x,
-				currentCursorPos.y + ImGui::GetStyle().WindowPadding.y
-			)
-		);
-
-		const auto toolbarIconSize = ImVec2(
-			toolbarHeight * 2.75f,
-			toolbarHeight
-		);
-
-		{
-			constexpr float iconScale = 1.0f;
-			if (
-				ImGuiWidgets::IconButton(
-					kIconVertex,
-					"Vertices",
-					toolbarIconSize,
-					iconScale,
-					ImGuiDir_Right
-				)
-			) {
-				mNotification->PushNotification(
-					"未実装",
-					"頂点選択はまだ実装されていません。",
-					NOTIFY_TYPE::WARNING,
-					10.0f
-				);
-			}
-			ImGui::SameLine();
-			ImGuiWidgets::IconButton(
-				kIconEdge, "Edges", toolbarIconSize, iconScale, ImGuiDir_Right
-			);
-			ImGui::SameLine();
-			ImGuiWidgets::IconButton(
-				kIconFace, "Faces", toolbarIconSize, iconScale, ImGuiDir_Right
-			);
-			ImGui::SameLine();
-			ImGuiWidgets::IconButton(
-				kIconMesh, "Meshes", toolbarIconSize, iconScale, ImGuiDir_Right
-			);
-			ImGui::SameLine();
-			ImGuiWidgets::IconButton(
-				kIconObject, "Object", toolbarIconSize, iconScale, ImGuiDir_Right
-			);
-			ImGui::SameLine();
-			ImGuiWidgets::IconButton(
-				kIconGroup, "Group", toolbarIconSize, iconScale, ImGuiDir_Right
-			);
-		}
-
-		ImGui::SameLine();
-		{
-			const bool quadLayout = mViewportLayoutMode ==
-			                        EDITOR_VIEW_LAYOUT_MODE::QUAD;
-			const char* viewportModeLabel = "Fit";
-			if (quadLayout) {
-				viewportModeLabel = "Fit (Quad)";
-			} else {
-				switch (mViewportRenderMode) {
-					case EDITOR_VIEWPORT_RENDER_MODE::FIT_VIEWPORT:
-						viewportModeLabel = "Fit";
-						break;
-					case EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_16_9:
-						viewportModeLabel = "16:9";
-						break;
-					case EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_4_3:
-						viewportModeLabel = "4:3";
-						break;
-					case EDITOR_VIEWPORT_RENDER_MODE::HD720:
-						viewportModeLabel = "HD";
-						break;
-					case EDITOR_VIEWPORT_RENDER_MODE::FHD1080:
-						viewportModeLabel = "FHD";
-						break;
-					default: break;
-				}
-			}
-			ImGui::SetNextItemWidth(140.0f);
-			if (quadLayout) {
-				ImGui::BeginDisabled();
-			}
-			if (ImGui::BeginCombo("RenderMode", viewportModeLabel)) {
-				if (ImGui::Selectable(
-					"Fit",
-					mViewportRenderMode ==
-					EDITOR_VIEWPORT_RENDER_MODE::FIT_VIEWPORT
-				)) {
-					mViewportRenderMode =
-						EDITOR_VIEWPORT_RENDER_MODE::FIT_VIEWPORT;
-				}
-				if (ImGui::Selectable(
-					"Fixed 16:9",
-					mViewportRenderMode ==
-					EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_16_9
-				)) {
-					mViewportRenderMode =
-						EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_16_9;
-				}
-				if (ImGui::Selectable(
-					"Fixed 4:3",
-					mViewportRenderMode ==
-					EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_4_3
-				)) {
-					mViewportRenderMode =
-						EDITOR_VIEWPORT_RENDER_MODE::FIXED_ASPECT_4_3;
-				}
-				if (ImGui::Selectable(
-					"HD (1280x720)",
-					mViewportRenderMode ==
-					EDITOR_VIEWPORT_RENDER_MODE::HD720
-				)) {
-					mViewportRenderMode = EDITOR_VIEWPORT_RENDER_MODE::HD720;
-				}
-				if (ImGui::Selectable(
-					"FHD (1920x1080)",
-					mViewportRenderMode ==
-					EDITOR_VIEWPORT_RENDER_MODE::FHD1080
-				)) {
-					mViewportRenderMode = EDITOR_VIEWPORT_RENDER_MODE::FHD1080;
-				}
-				ImGui::EndCombo();
-			}
-			if (quadLayout) {
-				ImGui::EndDisabled();
-			}
-
-			ImGui::SameLine();
-			const char* layoutLabel =
-				mViewportLayoutMode == EDITOR_VIEW_LAYOUT_MODE::QUAD ?
-					"Quad" :
-					"Single";
-			ImGui::SetNextItemWidth(120.0f);
-			if (ImGui::BeginCombo("Layout", layoutLabel)) {
-				if (ImGui::Selectable(
-					"Single",
-					mViewportLayoutMode == EDITOR_VIEW_LAYOUT_MODE::SINGLE
-				)) {
-					mViewportLayoutMode = EDITOR_VIEW_LAYOUT_MODE::SINGLE;
-					mActiveViewportViewKey = std::string(kViewScenePerspective);
-				}
-				if (ImGui::Selectable(
-					"Quad",
-					mViewportLayoutMode == EDITOR_VIEW_LAYOUT_MODE::QUAD
-				)) {
-					mViewportLayoutMode = EDITOR_VIEW_LAYOUT_MODE::QUAD;
-					mActiveViewportViewKey = std::string(kViewScenePerspective);
-				}
-				ImGui::EndCombo();
-			}
-
-			auto drawViewBindingSelector = [this](
-				                              const std::string_view viewKey,
-				                              const char*            compactLabel
-			                              ) {
-				const Scene* scene = GetOutlinerScene();
-				ViewportCameraBinding binding = ResolveViewportBinding(viewKey);
-				auto setBinding = [this, viewKey](
-					                  const ViewportCameraBinding newBinding
-				                  ) {
-					mCameraManager.SetPaneBinding(viewKey, newBinding);
-				};
-
-				const char* currentKindLabel = "EditorPerspective";
-				switch (binding.kind) {
-					case ViewportCameraBindingKind::EditorPerspective:
-						currentKindLabel = "EditorPerspective";
-						break;
-					case ViewportCameraBindingKind::EditorOrthoTop:
-						currentKindLabel = "EditorOrthoTop";
-						break;
-					case ViewportCameraBindingKind::EditorOrthoFront:
-						currentKindLabel = "EditorOrthoFront";
-						break;
-					case ViewportCameraBindingKind::EditorOrthoRight:
-						currentKindLabel = "EditorOrthoRight";
-						break;
-					case ViewportCameraBindingKind::ActiveGameCamera:
-						currentKindLabel = "ActiveGameCamera";
-						break;
-					case ViewportCameraBindingKind::CameraEntity:
-						currentKindLabel = "CameraEntity";
-						break;
-					default: break;
-				}
-
-				ImGui::PushID(std::string(viewKey).c_str());
-				ImGui::SetNextItemWidth(132.0f);
-				if (ImGui::BeginCombo(compactLabel, currentKindLabel)) {
-					const auto selectableKind = [&](
-						                            const char*                    label,
-						                            const ViewportCameraBindingKind kind
-					                            ) {
-						if (ImGui::Selectable(label, binding.kind == kind)) {
-							ViewportCameraBinding next = binding;
-							next.kind                 = kind;
-							if (kind != ViewportCameraBindingKind::CameraEntity) {
-								next.cameraEntityGuid = 0;
-							}
-							setBinding(next);
-							binding = next;
-						}
-					};
-					selectableKind(
-						"EditorPerspective",
-						ViewportCameraBindingKind::EditorPerspective
-					);
-					selectableKind(
-						"EditorOrthoTop",
-						ViewportCameraBindingKind::EditorOrthoTop
-					);
-					selectableKind(
-						"EditorOrthoFront",
-						ViewportCameraBindingKind::EditorOrthoFront
-					);
-					selectableKind(
-						"EditorOrthoRight",
-						ViewportCameraBindingKind::EditorOrthoRight
-					);
-					selectableKind(
-						"ActiveGameCamera",
-						ViewportCameraBindingKind::ActiveGameCamera
-					);
-					selectableKind(
-						"CameraEntity",
-						ViewportCameraBindingKind::CameraEntity
-					);
-					ImGui::EndCombo();
-				}
-
-				if (binding.kind == ViewportCameraBindingKind::CameraEntity) {
-					std::string cameraLabel = "<none>";
-					if (scene && binding.cameraEntityGuid != 0) {
-						for (const auto& entity : scene->GetEntities()) {
-							if (!entity || entity->GetGuid() != binding.cameraEntityGuid) {
-								continue;
-							}
-							cameraLabel = std::string(entity->GetName());
-							break;
-						}
-					}
-
-					ImGui::SetNextItemWidth(132.0f);
-					if (ImGui::BeginCombo("##CameraEntity", cameraLabel.c_str())) {
-						if (ImGui::Selectable("<none>", binding.cameraEntityGuid == 0)) {
-							ViewportCameraBinding next = binding;
-							next.cameraEntityGuid = 0;
-							setBinding(next);
-							binding = next;
-						}
-						if (scene) {
-							for (const auto& entity : scene->GetEntities()) {
-								if (!entity || !entity->IsActive()) {
-									continue;
-								}
-								const auto* camera = entity->GetComponent<CameraComponent>();
-								if (
-									!camera ||
-									!camera->IsActive() ||
-									!camera->IsCameraActive()
-								) {
-									continue;
-								}
-								const bool selected =
-									entity->GetGuid() == binding.cameraEntityGuid;
-								const std::string label = std::format(
-									"{}##{}",
-									entity->GetName(),
-									entity->GetGuid()
-								);
-								if (ImGui::Selectable(label.c_str(), selected)) {
-									ViewportCameraBinding next = binding;
-									next.cameraEntityGuid      = entity->GetGuid();
-									setBinding(next);
-									binding = next;
-								}
-							}
-						}
-						ImGui::EndCombo();
-					}
-				}
-				ImGui::PopID();
-			};
-
-			if (mViewportLayoutMode == EDITOR_VIEW_LAYOUT_MODE::QUAD) {
-				ImGui::SameLine();
-				ImGui::TextUnformatted("P");
-				ImGui::SameLine();
-				drawViewBindingSelector(kViewScenePerspective, "##QuadPerspective");
-				ImGui::SameLine();
-				ImGui::TextUnformatted("T");
-				ImGui::SameLine();
-				drawViewBindingSelector(kViewSceneTop, "##QuadTop");
-				ImGui::SameLine();
-				ImGui::TextUnformatted("F");
-				ImGui::SameLine();
-				drawViewBindingSelector(kViewSceneFront, "##QuadFront");
-				ImGui::SameLine();
-				ImGui::TextUnformatted("R");
-				ImGui::SameLine();
-				drawViewBindingSelector(kViewSceneRight, "##QuadRight");
-			} else {
-				ImGui::SameLine();
-				drawViewBindingSelector(
-					kViewScenePerspective, "##SinglePerspectiveBinding"
-				);
-			}
-		}
-
-		ImGui::SetCursorScreenPos(
-			{
-				currentCursorPos.x,
-				currentCursorPos.y + toolbarHeightWithPadding
-			}
-		);
-	}
-
-	void LevelEditorTool::DrawViewport(const float deltaTime) {
-		if (!ImGui::Begin("Viewport")) {
-			ImGui::End();
-			return;
-		}
-
-		ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
-		DrawViewportTopBar();
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-
-		const ImVec2 avail  = ImGui::GetContentRegionAvail();
-		const float  width  = std::max(1.0f, avail.x);
-		const float  height = std::max(1.0f, avail.y);
-		mViewportSizeChangedThisFrame =
-			std::abs(width - mLastViewportSize.x) > 0.5f ||
-			std::abs(height - mLastViewportSize.y) > 0.5f;
-		mViewportPanelWidth  = width;
-		mViewportPanelHeight = height;
-		mLastViewportSize    = Vec2(width, height);
-
-		auto drawPane = [this](
-			                const std::string_view viewKey,
-			                const char*            label,
-			                const float            drawWidth,
-			                const float            drawHeight
-		                ) {
-			const ImVec2 panePos   = ImGui::GetCursorScreenPos();
-			const auto outputIt   = mViewOutputs.find(std::string(viewKey));
-			const bool hasOutput  = outputIt != mViewOutputs.end();
-			const Vec2 outputSize = hasOutput ?
-				                        outputIt->second.size :
-				                        Vec2(drawWidth, drawHeight);
-
-			const float safeOutputWidth  = std::max(1.0f, outputSize.x);
-			const float safeOutputHeight = std::max(1.0f, outputSize.y);
-			const float outputAspect     = safeOutputWidth / safeOutputHeight;
-
-			float fitWidth  = drawWidth;
-			float fitHeight = fitWidth / outputAspect;
-			if (fitHeight > drawHeight) {
-				fitHeight = drawHeight;
-				fitWidth  = fitHeight * outputAspect;
-			}
-			fitWidth  = std::max(1.0f, fitWidth);
-			fitHeight = std::max(1.0f, fitHeight);
-			const float fitOffsetX = (drawWidth - fitWidth) * 0.5f;
-			const float fitOffsetY = (drawHeight - fitHeight) * 0.5f;
-			const ImVec2 fitPos = ImVec2(
-				panePos.x + fitOffsetX, panePos.y + fitOffsetY
-			);
-			const ImVec2 fitMax = ImVec2(
-				fitPos.x + fitWidth, fitPos.y + fitHeight
-			);
-
-			// ImGuizmo のドラッグ入力を奪わないよう、ここはレイアウト確保のみ行う
-			ImGui::Dummy(ImVec2(drawWidth, drawHeight));
-			ImDrawList* drawList = ImGui::GetWindowDrawList();
-			drawList->AddRectFilled(
-				panePos,
-				ImVec2(panePos.x + drawWidth, panePos.y + drawHeight),
-				IM_COL32(28, 30, 36, 255),
-				8.0f
-			);
-			drawList->AddRect(
-				panePos,
-				ImVec2(panePos.x + drawWidth, panePos.y + drawHeight),
-				IM_COL32(70, 74, 86, 255),
-				8.0f
-			);
-
-			if (
-				hasOutput &&
-				outputIt->second.srvCpu.ptr != 0 &&
-				outputIt->second.textureId != 0
-			) {
-				const ImTextureID tex = mImGuiLayer.GetOrCreateTextureId(
-					outputIt->second.textureId,
-					outputIt->second.srvRevision,
-					outputIt->second.srvCpu
-				);
-				drawList->AddImage(
-					tex,
-					fitPos,
-					fitMax,
-					ImVec2(0.0f, 0.0f),
-					ImVec2(1.0f, 1.0f)
-				);
-			} else {
-				drawList->AddRect(
-					fitPos,
-					fitMax,
-					IM_COL32(130, 130, 130, 255),
-					0.0f
-				);
-			}
-
-			const ImVec2 mousePos = ImGui::GetMousePos();
-			const bool hoveredFit = mousePos.x >= fitPos.x && mousePos.x <= fitMax.x &&
-			                        mousePos.y >= fitPos.y && mousePos.y <= fitMax.y &&
-			                        ImGui::IsWindowHovered(
-			                        	ImGuiHoveredFlags_AllowWhenBlockedByPopup
-			                        );
-			if (hoveredFit && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-				mActiveViewportViewKey = std::string(viewKey);
-				mViewportLookActive    = true;
-			}
-			if (
-				hoveredFit ||
-				(!mActiveViewportViewKey.empty() && mActiveViewportViewKey == viewKey)
-			) {
-				mViewportPosition = Vec2(fitPos.x, fitPos.y);
-				mViewportSize     = Vec2(fitWidth, fitHeight);
-			}
-
-			if (hoveredFit) {
-				const ViewportCameraBinding binding = ResolveViewportBinding(viewKey);
-				const bool isOrtho =
-					binding.kind == ViewportCameraBindingKind::EditorOrthoTop ||
-					binding.kind == ViewportCameraBindingKind::EditorOrthoFront ||
-					binding.kind == ViewportCameraBindingKind::EditorOrthoRight;
-				if (isOrtho) {
-					ViewportOrthoState ortho = mCameraManager.GetOrthoState(viewKey);
-					const ImGuiIO&      io    = ImGui::GetIO();
-					if (std::abs(io.MouseWheel) > 0.0f) {
-						const float scale = std::pow(0.9f, io.MouseWheel);
-						ortho.zoom        = std::clamp(ortho.zoom * scale, 16.0f, 100000.0f);
-					}
-					if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
-						const float worldPerPixelX =
-							std::max(1.0f, ortho.zoom * (fitWidth / std::max(1.0f, fitHeight))) /
-							std::max(1.0f, fitWidth);
-						const float worldPerPixelY = ortho.zoom / std::max(1.0f, fitHeight);
-						const Vec2  dragDelta      = Vec2(io.MouseDelta.x, io.MouseDelta.y);
-
-						Vec3 rightAxis = Vec3::right;
-						Vec3 upAxis    = Vec3::up;
-						if (binding.kind == ViewportCameraBindingKind::EditorOrthoTop) {
-							rightAxis = Vec3::right;
-							upAxis    = Vec3::forward;
-						} else if (
-							binding.kind == ViewportCameraBindingKind::EditorOrthoFront
-						) {
-							rightAxis = Vec3::left;
-							upAxis    = Vec3::up;
-						} else {
-							rightAxis = Vec3::forward;
-							upAxis    = Vec3::up;
-						}
-
-						ortho.center -= rightAxis * (dragDelta.x * worldPerPixelX);
-						ortho.center += upAxis * (dragDelta.y * worldPerPixelY);
-					}
-					mCameraManager.SetOrthoState(viewKey, ortho);
-				}
-			}
-
-			drawList->AddText(
-				ImVec2(panePos.x + 8.0f, panePos.y + 8.0f),
-				IM_COL32(240, 240, 240, 255),
-				label
-			);
-
-			return std::tuple<bool, Vec2, Vec2>(
-				hoveredFit,
-				Vec2(fitPos.x, fitPos.y),
-				Vec2(fitWidth, fitHeight)
-			);
-		};
-
-		if (mViewportLayoutMode == EDITOR_VIEW_LAYOUT_MODE::QUAD) {
-			const float paneW = std::max(1.0f, width * 0.5f);
-			const float paneH = std::max(1.0f, height * 0.5f);
-			const ImVec2 baseCursor = ImGui::GetCursorPos();
-
-			struct PaneDesc {
-				std::string_view key;
-				const char*      label;
-				ImVec2           offset;
-			};
-			const PaneDesc panes[4] = {
-				{kViewScenePerspective, "Perspective", ImVec2(0.0f, 0.0f)},
-				{kViewSceneTop, "Top", ImVec2(paneW, 0.0f)},
-				{kViewSceneFront, "Front", ImVec2(0.0f, paneH)},
-				{kViewSceneRight, "Right", ImVec2(paneW, paneH)},
-			};
-
-			for (const PaneDesc& pane : panes) {
-				ImGui::SetCursorPos(
-					ImVec2(baseCursor.x + pane.offset.x, baseCursor.y + pane.offset.y)
-				);
-				const auto [hovered, pos, size] = drawPane(
-					pane.key, pane.label, paneW, paneH
-				);
-				if (mActiveViewportViewKey == pane.key) {
-					const Render::SceneViewRenderMode mode =
-						BuildSceneViewModeForSize(size.x, size.y, true);
-					DrawViewportGizmo(pane.key, mode, pos, size.x, size.y);
-				}
-				(void)hovered;
-			}
-
-			ImGui::SetCursorPos(
-				ImVec2(baseCursor.x + width, baseCursor.y + height)
-			);
-		} else {
-			const auto [hovered, pos, size] = drawPane(
-				kViewScenePerspective, "Perspective", width, height
-			);
-			(void)hovered;
-			const Render::SceneViewRenderMode mode = BuildSceneViewModeForSize(
-				size.x, size.y, false
-			);
-			DrawViewportGizmo(
-				kViewScenePerspective, mode, pos, size.x, size.y
-			);
-		}
-
-		if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
-			mViewportLookActive = false;
-		}
-
-		DrawViewportOverlay(deltaTime);
-
-		ImGui::PopStyleVar(2);
-		ImGui::End();
-	}
-
-	void LevelEditorTool::DrawViewportOverlay(const float deltaTime) {
+	void LevelEditorTool::DrawViewportOverlay(const float deltaTime) const {
 		const EditorCameraComponent* camera = mEditorWorld.GetEditorCamera();
 		if (!camera || !camera->IsMoveSpeedPopupVisible()) {
 			return;
@@ -25142,7 +24772,7 @@ namespace Unnamed::Physics {
 	/// @brief 更新
 	void Engine::Update(float) const {}
 
-	void Engine::EndFrame() {
+	void Engine::EndFrame() const {
 #ifdef _DEBUG
 		mDebugBox.clear();
 #endif
@@ -25535,6 +25165,73 @@ namespace Unnamed::Physics {
 		return outCount;
 	}
 
+	int Engine::BoxOverlapRaw(
+		const Box& box,
+		Hit*       outHits,
+		const int  maxHits
+	) const {
+		if (maxHits <= 0 || outHits == nullptr) {
+			return 0;
+		}
+
+		// 生ヒットは法線の集合を保持したいため、収集バッファを大きめに確保
+		const int        collectorCap = std::clamp(maxHits * 12, 256, 4096);
+		std::vector<Hit> collected(
+			static_cast<size_t>(collectorCap)
+		);
+
+		int collectedCount = 0;
+		collectedCount     += BoxOverlapSetRaw(
+			box,
+			collected.data() + collectedCount,
+			collectorCap - collectedCount,
+			mStaticBVHs
+		);
+		if (collectedCount < collectorCap) {
+			collectedCount += BoxOverlapSetRaw(
+				box,
+				collected.data() + collectedCount,
+				collectorCap - collectedCount,
+				mDynamicBVHs
+			);
+		}
+
+		if (collectedCount <= 0) {
+			return 0;
+		}
+		if (collectedCount > 1) {
+			std::sort(
+				collected.begin(),
+				collected.begin() + collectedCount,
+				[](const Hit& lhs, const Hit& rhs) {
+					if (lhs.depth != rhs.depth) {
+						return lhs.depth > rhs.depth;
+					}
+					if (lhs.hitEntityGuid != rhs.hitEntityGuid) {
+						return lhs.hitEntityGuid < rhs.hitEntityGuid;
+					}
+					if (lhs.triIndex != rhs.triIndex) {
+						return lhs.triIndex < rhs.triIndex;
+					}
+					if (lhs.normal.x != rhs.normal.x) {
+						return lhs.normal.x < rhs.normal.x;
+					}
+					if (lhs.normal.y != rhs.normal.y) {
+						return lhs.normal.y < rhs.normal.y;
+					}
+					if (lhs.normal.z != rhs.normal.z) {
+						return lhs.normal.z < rhs.normal.z;
+					}
+					return false;
+				}
+			);
+		}
+
+		const int outCount = std::min(maxHits, collectedCount);
+		std::copy_n(collected.data(), outCount, outHits);
+		return outCount;
+	}
+
 	// --- Static/Dynamic mesh registration ---
 	void Engine::ClearStaticMeshes() {
 		mStaticBVHs.clear();
@@ -25636,6 +25333,43 @@ namespace Unnamed::Physics {
 
 	std::vector<Box> Engine::GetDebugBVHBoxes() const {
 		return mDebugBox;
+	}
+
+	AABB Engine::ToWorldBounds(
+		const RegisteredBVH& bvh, const AABB& localBounds
+	) {
+		if (bvh.mobility == ColliderMobility::Dynamic) {
+			const Vec3 corners[8]{
+				{localBounds.min.x, localBounds.min.y, localBounds.min.z},
+				{localBounds.max.x, localBounds.min.y, localBounds.min.z},
+				{localBounds.min.x, localBounds.max.y, localBounds.min.z},
+				{localBounds.max.x, localBounds.max.y, localBounds.min.z},
+				{localBounds.min.x, localBounds.min.y, localBounds.max.z},
+				{localBounds.max.x, localBounds.min.y, localBounds.max.z},
+				{localBounds.min.x, localBounds.max.y, localBounds.max.z},
+				{localBounds.max.x, localBounds.max.y, localBounds.max.z},
+			};
+			AABB worldBounds;
+			for (const Vec3& p : corners) {
+				worldBounds.Expand(bvh.world.TransformPoint(p));
+			}
+			return worldBounds;
+		}
+		return localBounds;
+	}
+
+	Triangle Engine::ToWorldTriangle(
+		const RegisteredBVH& bvh, const uint32_t triIdx
+	) {
+		const Triangle& tri = bvh.triangles[triIdx];
+		if (bvh.mobility == ColliderMobility::Dynamic) {
+			return {
+				.v0 = bvh.world.TransformPoint(tri.v0),
+				.v1 = bvh.world.TransformPoint(tri.v1),
+				.v2 = bvh.world.TransformPoint(tri.v2),
+			};
+		}
+		return tri;
 	}
 
 	bool Engine::RemoveColliderByOwnerGuid(
@@ -25773,9 +25507,8 @@ namespace Unnamed::Physics {
 			}
 		}
 		if (filtered.size() > 1) {
-			std::sort(
-				filtered.begin(),
-				filtered.end(),
+			std::ranges::sort(
+				filtered,
 				[](const RegisteredBVH* lhs, const RegisteredBVH* rhs) {
 					return lhs->ownerGuid < rhs->ownerGuid;
 				}
@@ -25793,7 +25526,7 @@ namespace Unnamed::Physics {
 		// 一度エンティティ単位で集約してから代表ヒットを生成します。
 		std::vector<EntityOverlapAggregate> aggregates = {};
 		aggregates.reserve(filtered.size());
-		const auto findAggregate = [&aggregates](const uint64_t guid) -> int {
+		const auto FindAggregate = [&aggregates](const uint64_t guid) -> int {
 			for (int i = 0; i < static_cast<int>(aggregates.size()); ++i) {
 				if (aggregates[i].guid == guid) {
 					return i;
@@ -25855,7 +25588,7 @@ namespace Unnamed::Physics {
 						tmpHit.triIndex      = triIdx;
 						tmpHit.hitEntityGuid = bvh->ownerGuid;
 
-						int aggregateIndex = findAggregate(
+						int aggregateIndex = FindAggregate(
 							tmpHit.hitEntityGuid
 						);
 						if (aggregateIndex < 0) {
@@ -25905,9 +25638,8 @@ namespace Unnamed::Physics {
 			return 0;
 		}
 
-		std::sort(
-			aggregates.begin(),
-			aggregates.end(),
+		std::ranges::sort(
+			aggregates,
 			[](
 			const EntityOverlapAggregate& lhs, const EntityOverlapAggregate& rhs
 		) {
@@ -25934,9 +25666,8 @@ namespace Unnamed::Physics {
 		}
 
 		if (emittedHits.size() > 1) {
-			std::sort(
-				emittedHits.begin(),
-				emittedHits.end(),
+			std::ranges::sort(
+				emittedHits,
 				[](const Hit& lhs, const Hit& rhs) {
 					if (lhs.hitEntityGuid != rhs.hitEntityGuid) {
 						return lhs.hitEntityGuid < rhs.hitEntityGuid;
@@ -25968,6 +25699,109 @@ namespace Unnamed::Physics {
 		std::copy_n(emittedHits.data(), outCount, outHits);
 		return outCount;
 	}
+
+	int Engine::BoxOverlapSetRaw(
+		const Box&                        box,
+		Hit*                              outHits,
+		const int                         maxHits,
+		const std::vector<RegisteredBVH>& bvhSet
+	) {
+		if (maxHits <= 0 || outHits == nullptr || bvhSet.empty()) {
+			return 0;
+		}
+
+		AABB boxAABB;
+		boxAABB.min = box.center - box.halfSize;
+		boxAABB.max = box.center + box.halfSize;
+
+		std::vector<const RegisteredBVH*> filtered;
+		filtered.reserve(bvhSet.size());
+
+		for (const auto& bvh : bvhSet) {
+			if (bvh.nodes.empty() || bvh.triangles.empty()) {
+				continue;
+			}
+			const AABB rootBounds = ToWorldBounds(bvh, bvh.nodes[0].bounds);
+			if (IsAABBOverlap(boxAABB, rootBounds)) {
+				filtered.emplace_back(&bvh);
+			}
+		}
+		if (filtered.size() > 1) {
+			std::ranges::sort(
+				filtered,
+				[](const RegisteredBVH* lhs, const RegisteredBVH* rhs) {
+					return lhs->ownerGuid < rhs->ownerGuid;
+				}
+			);
+		}
+
+		int      outCount = 0;
+		uint32_t stack[64];
+		for (auto* bvh : filtered) {
+			int sp      = 0;
+			stack[sp++] = 0;
+
+			while (sp) {
+				const uint32_t index = stack[--sp];
+				const auto& [bounds, leftFirst, rightFirst, primCount] = bvh->
+					nodes[index];
+				const AABB nodeBounds = ToWorldBounds(*bvh, bounds);
+
+				if (!IsAABBOverlap(boxAABB, nodeBounds)) {
+					continue;
+				}
+
+				if (primCount == 0) {
+					stack[sp++] = leftFirst;
+					stack[sp++] = rightFirst;
+				} else {
+					const uint32_t first = leftFirst;
+					for (uint32_t i = 0; i < primCount; ++i) {
+						if (outCount >= maxHits) {
+							return outCount;
+						}
+
+						const uint32_t triIdx = bvh->triIndices[first + i];
+						const Triangle tri    = ToWorldTriangle(*bvh, triIdx);
+
+						Vec3  separationAxis;
+						float penetrationDepth;
+						if (!BoxVsTriangleOverlap(
+							box,
+							tri,
+							separationAxis,
+							penetrationDepth
+						)) {
+							continue;
+						}
+
+						if (separationAxis.SqrLength() > 1.0e-12f) {
+							separationAxis.Normalize();
+						}
+
+						Hit& out  = outHits[outCount++];
+						out.toi   = 1.0f;
+						out.depth = penetrationDepth;
+						out.pos   = box.center + separationAxis * (
+							            std::min(
+								            {
+									            box.halfSize.x,
+									            box.halfSize.y,
+									            box.halfSize.z
+								            }
+							            ) - penetrationDepth * 0.5f);
+						out.normal        = separationAxis;
+						out.triIndex      = triIdx;
+						out.hitEntityGuid = bvh->ownerGuid;
+						out.startSolid    = true;
+						out.allsolid      = false;
+					}
+				}
+			}
+		}
+
+		return outCount;
+	}
 }
 
 
@@ -25993,7 +25827,7 @@ namespace Unnamed::Physics {
 	public:
 		void Init();
 		void Update(float deltaTime) const;
-		void EndFrame();
+		void EndFrame() const;
 
 		/// @brief レイキャストを行う関数
 		/// @param ray レイ情報
@@ -26051,6 +25885,17 @@ namespace Unnamed::Physics {
 			int        maxHits
 		) const;
 
+		/// @brief ボックスとメッシュの重なりを集約なしで収集します。
+		/// @param box ボックス情報
+		/// @param outHits 衝突情報の出力先配列
+		/// @param maxHits 出力先配列の最大ヒット数
+		/// @return ヒットした数を返す
+		int BoxOverlapRaw(
+			const Box& box,
+			Hit*       outHits,
+			int        maxHits
+		) const;
+
 		void ClearStaticMeshes();
 		bool RegisterStaticMesh(
 			uint64_t                    ownerGuid,
@@ -26077,41 +25922,12 @@ namespace Unnamed::Physics {
 		[[nodiscard]] static AABB ToWorldBounds(
 			const RegisteredBVH& bvh,
 			const AABB&          localBounds
-		) {
-			if (bvh.mobility == ColliderMobility::Dynamic) {
-				const Vec3 corners[8]{
-					{localBounds.min.x, localBounds.min.y, localBounds.min.z},
-					{localBounds.max.x, localBounds.min.y, localBounds.min.z},
-					{localBounds.min.x, localBounds.max.y, localBounds.min.z},
-					{localBounds.max.x, localBounds.max.y, localBounds.min.z},
-					{localBounds.min.x, localBounds.min.y, localBounds.max.z},
-					{localBounds.max.x, localBounds.min.y, localBounds.max.z},
-					{localBounds.min.x, localBounds.max.y, localBounds.max.z},
-					{localBounds.max.x, localBounds.max.y, localBounds.max.z},
-				};
-				AABB worldBounds;
-				for (const Vec3& p : corners) {
-					worldBounds.Expand(bvh.world.TransformPoint(p));
-				}
-				return worldBounds;
-			}
-			return localBounds;
-		}
+		);
 
 		[[nodiscard]] static Triangle ToWorldTriangle(
 			const RegisteredBVH& bvh,
-			uint32_t             triIdx
-		) {
-			const Triangle& tri = bvh.triangles[triIdx];
-			if (bvh.mobility == ColliderMobility::Dynamic) {
-				return {
-					.v0 = bvh.world.TransformPoint(tri.v0),
-					.v1 = bvh.world.TransformPoint(tri.v1),
-					.v2 = bvh.world.TransformPoint(tri.v2),
-				};
-			}
-			return tri;
-		}
+			const uint32_t       triIdx
+		);
 
 		template <class CastType>
 		static bool CastBVH(
@@ -26157,15 +25973,15 @@ namespace Unnamed::Physics {
 			}
 
 			constexpr float startSolidToiEpsilon = 1e-6f;
-			constexpr float kOverlapDepthEpsilon = 1e-6f;
+			constexpr float overlapDepthEpsilon = 1e-6f;
 
-			float    bestTOI       = 1.0f;
+			float    bestToi       = 1.0f;
 			uint32_t hitTri        = UINT32_MAX;
 			uint64_t hitEntityGuid = 0;
 			Vec3     hitNormal;
 			Triangle hitTriangle{};
-			bool     hasHitTriangle = false;
-			float    bestStartSolidTOI       = 1.0f;
+			bool     hasHitTriangle          = false;
+			float    bestStartSolidToi       = 1.0f;
 			float    bestStartSolidDepth     = -1.0f;
 			uint32_t startSolidHitTri        = UINT32_MAX;
 			uint64_t startSolidHitEntityGuid = 0;
@@ -26173,7 +25989,7 @@ namespace Unnamed::Physics {
 			Vec3     startSolidOverlapNormal = Vec3::zero;
 			float    startSolidOverlapDepth  = 0.0f;
 			Triangle startSolidHitTriangle{};
-			bool     hasStartSolidHit        = false;
+			bool     hasStartSolidHit = false;
 
 #ifdef _DEBUG
 			struct StackItem {
@@ -26186,7 +26002,7 @@ namespace Unnamed::Physics {
 			};
 			const RegisteredBVH*   bestPathBVH = nullptr;
 			std::vector<PathEntry> bestPathData;
-			int                    bestPathLeaf = -1;
+			int                    bestPathLeaf          = -1;
 			const RegisteredBVH*   bestStartSolidPathBVH = nullptr;
 			std::vector<PathEntry> bestStartSolidPathData;
 			int                    bestStartSolidPathLeaf = -1;
@@ -26225,8 +26041,8 @@ namespace Unnamed::Physics {
 					const auto& node = bvh->nodes[index];
 
 					Ray pruneRay               = broadRay;
-					pruneRay.tMax              = bestTOI * length;
-					float      tBox            = bestTOI * length;
+					pruneRay.tMax              = bestToi * length;
+					float      tBox            = bestToi * length;
 					const AABB nodeBoundsWorld = ToWorldBounds(
 						*bvh, node.bounds
 					);
@@ -26261,8 +26077,8 @@ namespace Unnamed::Physics {
 							)) {
 								continue;
 							}
-							float overlapDepth = 0.0f;
-							Vec3  overlapNormal = Vec3::zero;
+							float      overlapDepth          = 0.0f;
+							Vec3       overlapNormal         = Vec3::zero;
 							const bool isStartSolidCandidate =
 								toi <= startSolidToiEpsilon &&
 								cast.OverlapAtStart(
@@ -26270,24 +26086,24 @@ namespace Unnamed::Physics {
 									overlapDepth,
 									overlapNormal
 								) &&
-								overlapDepth > kOverlapDepthEpsilon;
+								overlapDepth > overlapDepthEpsilon;
 							if (isStartSolidCandidate) {
 								// 開始重なりヒットは sweep の後続ヒットを隠しやすいので、
 								// 通常ヒットが見つからなかった場合のフォールバックとして保持します。
 								const bool betterStartDepth = overlapDepth >
 									bestStartSolidDepth + 1.0e-6f;
 								const bool equalStartDepth = std::abs(
-									                             overlapDepth -
-									                             bestStartSolidDepth
-								                             ) <= 1.0e-6f;
+										overlapDepth -
+										bestStartSolidDepth
+									) <= 1.0e-6f;
 								const bool betterStartToi = toi <
-								                            bestStartSolidTOI - 1.0e-6f;
+									bestStartSolidToi - 1.0e-6f;
 								if (
 									!hasStartSolidHit ||
 									betterStartDepth ||
 									(equalStartDepth && betterStartToi)
 								) {
-									bestStartSolidTOI       = toi;
+									bestStartSolidToi       = toi;
 									bestStartSolidDepth     = overlapDepth;
 									startSolidHitTri        = triIdx;
 									startSolidHitEntityGuid = bvh->ownerGuid;
@@ -26304,8 +26120,8 @@ namespace Unnamed::Physics {
 								}
 								continue;
 							}
-							if (toi < bestTOI) {
-								bestTOI        = toi;
+							if (toi < bestToi) {
+								bestToi        = toi;
 								hitTri         = triIdx;
 								hitEntityGuid  = bvh->ownerGuid;
 								hitNormal      = nrm;
@@ -26316,7 +26132,7 @@ namespace Unnamed::Physics {
 								bestPathData = traversal;
 								bestPathLeaf = currentEntry;
 #endif
-								pruneRay.tMax = bestTOI * length;
+								pruneRay.tMax = bestToi * length;
 							}
 						}
 					}
@@ -26329,7 +26145,7 @@ namespace Unnamed::Physics {
 					return false;
 				}
 				usingStartSolidFallback = true;
-				bestTOI                 = bestStartSolidTOI;
+				bestToi                 = bestStartSolidToi;
 				hitTri                  = startSolidHitTri;
 				hitEntityGuid           = startSolidHitEntityGuid;
 				hitNormal               = startSolidHitNormal;
@@ -26345,20 +26161,17 @@ namespace Unnamed::Physics {
 #ifdef _DEBUG
 			if (debugBox != nullptr) {
 				debugBox->clear();
-				if (bestPathBVH&& bestPathLeaf
-
-				
-				>=
-				0
-				)
-				{
+				if (
+					bestPathBVH &&
+					bestPathLeaf >= 0
+				) {
 					std::vector<uint32_t> pathNodes;
 					for (int cursor = bestPathLeaf; cursor >= 0;) {
 						const PathEntry& entry = bestPathData[cursor];
 						pathNodes.emplace_back(entry.nodeIndex);
 						cursor = entry.parentEntry;
 					}
-					std::reverse(pathNodes.begin(), pathNodes.end());
+					std::ranges::reverse(pathNodes);
 
 					for (const uint32_t nodeIndex : pathNodes) {
 						const AABB bounds = ToWorldBounds(
@@ -26389,7 +26202,7 @@ namespace Unnamed::Physics {
 						hitNormal = overlapNrm;
 					}
 				} else if (
-					bestTOI <= startSolidToiEpsilon ||
+					bestToi <= startSolidToiEpsilon ||
 					hitNormal.SqrLength() <= normalEpsilon
 				) {
 					startSolid = cast.OverlapAtStart(
@@ -26397,7 +26210,7 @@ namespace Unnamed::Physics {
 						overlapDepth,
 						overlapNrm
 					);
-					if (startSolid && overlapDepth <= kOverlapDepthEpsilon) {
+					if (startSolid && overlapDepth <= overlapDepthEpsilon) {
 						startSolid   = false;
 						overlapDepth = 0.0f;
 					}
@@ -26429,20 +26242,21 @@ namespace Unnamed::Physics {
 						finalNormal = Vec3::up;
 					}
 				}
-				outHit->toi    = bestTOI;
+				outHit->toi    = bestToi;
 				outHit->depth  = startSolid ? overlapDepth : 0.0f;
 				outHit->normal = finalNormal;
 				outHit->pos    = cast.ComputeImpactPoint(
 					start,
 					dirNormalized,
 					length,
-					bestTOI,
+					bestToi,
 					finalNormal
 				);
 				outHit->triIndex      = hitTri;
 				outHit->hitEntityGuid = hitEntityGuid;
 				outHit->startSolid    = startSolid;
-				outHit->allsolid      = false;
+				outHit->allsolid      = startSolid && usingStartSolidFallback &&
+				                   bestToi <= (startSolidToiEpsilon + 1.0e-6f);
 			}
 			return true;
 		}
@@ -26460,6 +26274,12 @@ namespace Unnamed::Physics {
 		);
 
 		static int BoxOverlapSet(
+			const Box&                        box,
+			Hit*                              outHits,
+			int                               maxHits,
+			const std::vector<RegisteredBVH>& bvhSet
+		);
+		static int BoxOverlapSetRaw(
 			const Box&                        box,
 			Hit*                              outHits,
 			int                               maxHits,
@@ -45778,336 +45598,6 @@ namespace Unnamed {
 
 
 ============================================================
-File Path: src/engine/unnamed/framework/components/kinematic/KinematicMoverComponent.cpp
-============================================================
-#include "KinematicMoverComponent.h"
-
-#include "../TransformComponent.h"
-
-#include "../../entity/Entity.h"
-
-#include "core/ComponentRegistry.h"
-
-#include "game/core/replay/ReplayHash.h"
-
-namespace Unnamed {
-	class TransformComponent;
-
-	const KinematicMoverState& KinematicMoverComponent::GetState() const {
-		return mState;
-	}
-
-	Vec3 KinematicMoverComponent::GetDeltaPosition() const {
-		return mState.deltaPosition;
-	}
-
-	Vec3 KinematicMoverComponent::GetLinearVelocity() const {
-		return mState.linearVelocity;
-	}
-
-	Vec3 KinematicMoverComponent::GetStepDelta(const float stepSeconds) const {
-		if (mState.wasTeleported || stepSeconds <= 0.0f ||
-		    mState.frameDeltaTime <= 0.0f) {
-			return Vec3::zero;
-		}
-
-		return mState.linearVelocity * stepSeconds;
-	}
-
-	bool KinematicMoverComponent::WasTeleported() const {
-		return mState.wasTeleported;
-	}
-
-	void KinematicMoverComponent::MarkTeleported() {
-		mState.wasTeleported = true;
-	}
-
-	void KinematicMoverComponent::OnAttached() {
-		BaseComponent::OnAttached();
-
-		auto* transform = mOwner ?
-			                  mOwner->GetComponent<TransformComponent>() :
-			                  nullptr;
-		if (!transform) {
-			return;
-		}
-
-		mState.positionPrev   = transform->GetPosition();
-		mState.positionCurr   = transform->GetPosition();
-		mState.rotationPrev   = transform->GetRotation();
-		mState.rotationCurr   = transform->GetRotation();
-		mState.linearVelocity = Vec3::zero;
-		mState.deltaPosition  = Vec3::zero;
-		mState.frameDeltaTime = 0.0f;
-		mState.wasTeleported  = false;
-	}
-
-	void KinematicMoverComponent::PrePhysicsTick(float) {
-		auto* transform = mOwner->GetComponent<TransformComponent>();
-		if (!transform) {
-			return;
-		}
-
-		mState.positionPrev = mState.positionCurr;
-		mState.rotationPrev = mState.rotationCurr;
-
-		mState.positionCurr = transform->GetPosition();
-		mState.rotationCurr = transform->GetRotation();
-
-		mState.wasTeleported = false;
-	}
-
-	void KinematicMoverComponent::OnTick(float deltaTime) {
-		BaseComponent::OnTick(deltaTime);
-
-		auto* transform = mOwner->GetComponent<TransformComponent>();
-		if (!transform) {
-			return;
-		}
-
-		mState.positionCurr = transform->GetPosition();
-		mState.rotationCurr = transform->GetRotation();
-
-		mState.deltaPosition  = mState.positionCurr - mState.positionPrev;
-		mState.frameDeltaTime = deltaTime;
-		if (deltaTime > 0.0f) {
-			mState.linearVelocity = mState.deltaPosition / deltaTime;
-		} else {
-			mState.linearVelocity = Vec3::zero;
-		}
-	}
-
-	void KinematicMoverComponent::PostPhysicsTick(float) {}
-
-	std::string_view KinematicMoverComponent::GetStableName() const {
-		return "engine.KinematicMover";
-	}
-
-	std::string_view KinematicMoverComponent::GetComponentName() const {
-		return "KinematicMover";
-	}
-
-	uint32_t KinematicMoverComponent::GetIcon() const {
-		return BaseComponent::GetIcon();
-	}
-
-#ifdef _DEBUG
-	void KinematicMoverComponent::DrawInspectorImGui() {
-		BaseComponent::DrawInspectorImGui();
-	}
-#endif
-
-	void KinematicMoverComponent::Deserialize(const JsonReader& reader) {
-		reader;
-	}
-
-	void KinematicMoverComponent::Serialize(JsonWriter& writer) const {
-		writer;
-	}
-
-	void KinematicMoverComponent::WriteReplayState(nlohmann::json& outState) const {
-		outState = nlohmann::json::object();
-		outState["positionPrev"] = nlohmann::json::array(
-			{mState.positionPrev.x, mState.positionPrev.y, mState.positionPrev.z}
-		);
-		outState["positionCurr"] = nlohmann::json::array(
-			{mState.positionCurr.x, mState.positionCurr.y, mState.positionCurr.z}
-		);
-		outState["rotationPrev"] = nlohmann::json::array(
-			{
-				mState.rotationPrev.x,
-				mState.rotationPrev.y,
-				mState.rotationPrev.z,
-				mState.rotationPrev.w
-			}
-		);
-		outState["rotationCurr"] = nlohmann::json::array(
-			{
-				mState.rotationCurr.x,
-				mState.rotationCurr.y,
-				mState.rotationCurr.z,
-				mState.rotationCurr.w
-			}
-		);
-		outState["linearVelocity"] = nlohmann::json::array(
-			{mState.linearVelocity.x, mState.linearVelocity.y, mState.linearVelocity.z}
-		);
-		outState["deltaPosition"] = nlohmann::json::array(
-			{mState.deltaPosition.x, mState.deltaPosition.y, mState.deltaPosition.z}
-		);
-		outState["frameDeltaTime"] = mState.frameDeltaTime;
-		outState["wasTeleported"]  = mState.wasTeleported;
-	}
-
-	void KinematicMoverComponent::ReadReplayState(const nlohmann::json& inState) {
-		if (!inState.is_object()) {
-			return;
-		}
-
-		if (const auto it = inState.find("positionPrev");
-			it != inState.end() && it->is_array() && it->size() == 3) {
-			mState.positionPrev = Vec3(
-				(*it)[0].get<float>(),
-				(*it)[1].get<float>(),
-				(*it)[2].get<float>()
-			);
-		}
-		if (const auto it = inState.find("positionCurr");
-			it != inState.end() && it->is_array() && it->size() == 3) {
-			mState.positionCurr = Vec3(
-				(*it)[0].get<float>(),
-				(*it)[1].get<float>(),
-				(*it)[2].get<float>()
-			);
-		}
-		if (const auto it = inState.find("rotationPrev");
-			it != inState.end() && it->is_array() && it->size() == 4) {
-			mState.rotationPrev = Quaternion(
-				(*it)[0].get<float>(),
-				(*it)[1].get<float>(),
-				(*it)[2].get<float>(),
-				(*it)[3].get<float>()
-			);
-		}
-		if (const auto it = inState.find("rotationCurr");
-			it != inState.end() && it->is_array() && it->size() == 4) {
-			mState.rotationCurr = Quaternion(
-				(*it)[0].get<float>(),
-				(*it)[1].get<float>(),
-				(*it)[2].get<float>(),
-				(*it)[3].get<float>()
-			);
-		}
-		if (const auto it = inState.find("linearVelocity");
-			it != inState.end() && it->is_array() && it->size() == 3) {
-			mState.linearVelocity = Vec3(
-				(*it)[0].get<float>(),
-				(*it)[1].get<float>(),
-				(*it)[2].get<float>()
-			);
-		}
-		if (const auto it = inState.find("deltaPosition");
-			it != inState.end() && it->is_array() && it->size() == 3) {
-			mState.deltaPosition = Vec3(
-				(*it)[0].get<float>(),
-				(*it)[1].get<float>(),
-				(*it)[2].get<float>()
-			);
-		}
-		mState.frameDeltaTime = inState.value("frameDeltaTime", mState.frameDeltaTime);
-		mState.wasTeleported  = inState.value("wasTeleported", mState.wasTeleported);
-
-		auto* transform = mOwner ? mOwner->GetComponent<TransformComponent>() : nullptr;
-		if (transform) {
-			transform->SetPosition(mState.positionCurr);
-			transform->SetRotation(mState.rotationCurr);
-		}
-	}
-
-	uint64_t KinematicMoverComponent::ComputeReplayStateHash() const {
-		uint64_t hash = ReplayHash::Begin();
-		ReplayHash::AppendFloating(hash, mState.positionPrev.x);
-		ReplayHash::AppendFloating(hash, mState.positionPrev.y);
-		ReplayHash::AppendFloating(hash, mState.positionPrev.z);
-		ReplayHash::AppendFloating(hash, mState.positionCurr.x);
-		ReplayHash::AppendFloating(hash, mState.positionCurr.y);
-		ReplayHash::AppendFloating(hash, mState.positionCurr.z);
-		ReplayHash::AppendFloating(hash, mState.rotationPrev.x);
-		ReplayHash::AppendFloating(hash, mState.rotationPrev.y);
-		ReplayHash::AppendFloating(hash, mState.rotationPrev.z);
-		ReplayHash::AppendFloating(hash, mState.rotationPrev.w);
-		ReplayHash::AppendFloating(hash, mState.rotationCurr.x);
-		ReplayHash::AppendFloating(hash, mState.rotationCurr.y);
-		ReplayHash::AppendFloating(hash, mState.rotationCurr.z);
-		ReplayHash::AppendFloating(hash, mState.rotationCurr.w);
-		ReplayHash::AppendFloating(hash, mState.linearVelocity.x);
-		ReplayHash::AppendFloating(hash, mState.linearVelocity.y);
-		ReplayHash::AppendFloating(hash, mState.linearVelocity.z);
-		ReplayHash::AppendFloating(hash, mState.deltaPosition.x);
-		ReplayHash::AppendFloating(hash, mState.deltaPosition.y);
-		ReplayHash::AppendFloating(hash, mState.deltaPosition.z);
-		ReplayHash::AppendFloating(hash, mState.frameDeltaTime);
-		ReplayHash::AppendPod(hash, mState.wasTeleported);
-		return hash;
-	}
-
-	REGISTER_COMPONENT(KinematicMoverComponent);
-}
-
-============================================================
-File Path: src/engine/unnamed/framework/components/kinematic/KinematicMoverComponent.h
-============================================================
-#pragma once
-#include <json.hpp>
-
-#include "../base/BaseComponent.h"
-
-#include "core/math/Quaternion.h"
-#include "core/math/Vec3.h"
-
-namespace Unnamed {
-	struct KinematicMoverState {
-		Vec3 positionPrev = Vec3::zero;
-		Vec3 positionCurr = Vec3::zero;
-
-		Quaternion rotationPrev = Quaternion::identity;
-		Quaternion rotationCurr = Quaternion::identity;
-
-		Vec3 linearVelocity = Vec3::zero;
-		Vec3 deltaPosition  = Vec3::zero;
-
-		float frameDeltaTime = 0.0f;
-		bool  wasTeleported  = false;
-	};
-
-	class KinematicMoverComponent : public BaseComponent {
-	public:
-		// ---- KinematicMoverComponent ---------------------------------------
-		[[nodiscard]] const KinematicMoverState& GetState() const;
-
-		[[nodiscard]] Vec3 GetDeltaPosition() const;
-
-		[[nodiscard]] Vec3 GetLinearVelocity() const;
-
-		[[nodiscard]] Vec3 GetStepDelta(float stepSeconds) const;
-
-		[[nodiscard]] bool WasTeleported() const;
-
-		void MarkTeleported();
-
-		// ---- BaseComponent -------------------------------------------------
-		void OnAttached() override;
-
-		void PrePhysicsTick(float deltaTime) override;
-		void OnTick(float deltaTime) override;
-		void PostPhysicsTick(float deltaTime) override;
-
-		[[nodiscard]] TICK_GROUP GetTickGroup() const override {
-			return TICK_GROUP::KINEMATIC_SOURCE;
-		}
-
-		[[nodiscard]] std::string_view GetStableName() const override;
-		[[nodiscard]] std::string_view GetComponentName() const override;
-
-		[[nodiscard]] uint32_t GetIcon() const override;
-
-#ifdef _DEBUG
-		void DrawInspectorImGui() override;
-#endif
-
-		void Deserialize(const JsonReader& reader) override;
-		void Serialize(JsonWriter& writer) const override;
-
-		void WriteReplayState(nlohmann::json& outState) const;
-		void ReadReplayState(const nlohmann::json& inState);
-		[[nodiscard]] uint64_t ComputeReplayStateHash() const;
-
-	private:
-		KinematicMoverState mState;
-	};
-}
-
-============================================================
 File Path: src/engine/unnamed/framework/components/mesh/SkeletalAnimationComponent.cpp
 ============================================================
 #include "SkeletalAnimationComponent.h"
@@ -50675,9 +50165,11 @@ namespace Unnamed::Physics {
 		}
 
 		// 3) bestAxis 方向へ押し出し
-		outNormal = triN.Dot(box.center - tri.v0) > 0.0f ?
-			            bestAxis :
-			            -bestAxis;
+		// 軸種別（面/辺）に依存しないよう、三角形重心を基準に符号を決めます。
+		const Vec3 triCentroid = (tri.v0 + tri.v1 + tri.v2) * (1.0f / 3.0f);
+		outNormal              = (box.center - triCentroid).Dot(bestAxis) >= 0.0f ?
+			                         bestAxis :
+			                         -bestAxis;
 		outDepth = bestDepth;
 		return true;
 	}
@@ -56746,7 +56238,7 @@ namespace Unnamed {
 			"fps_max", 360.0, FCVAR::ARCHIVE,
 			"Frame rate limiter. 0 = unlimited."
 		);
-		
+
 		static ConVar cl_interpolate(
 			"cl_interpolate", true, FCVAR::ARCHIVE,
 			"Enable Source-style render interpolation for fixed-tick simulation."
@@ -56763,46 +56255,6 @@ namespace Unnamed {
 			1,
 			true,
 			10000
-		);
-		static ConVar<int> cl_title_mode(
-			"cl_title_mode", 0, FCVAR::ARCHIVE,
-			"Enable title flow mode. 0 = gameplay, 1 = title."
-		);
-		static ConVar<std::string> cl_title_demo_path(
-			"cl_title_demo_path",
-			"./content/parkour/replay/title_demo.udemo",
-			FCVAR::ARCHIVE,
-			"Demo path used by title background playback."
-		);
-		static ConVar<float> cl_title_fade_out_sec(
-			"cl_title_fade_out_sec",
-			0.22f,
-			FCVAR::ARCHIVE,
-			"Fade-out duration when title demo loop restarts.",
-			true,
-			0.01f,
-			true,
-			10.0f
-		);
-		static ConVar<float> cl_title_fade_in_sec(
-			"cl_title_fade_in_sec",
-			0.24f,
-			FCVAR::ARCHIVE,
-			"Fade-in duration after title demo loop restart.",
-			true,
-			0.01f,
-			true,
-			10.0f
-		);
-		static ConVar<float> cl_title_start_transition_sec(
-			"cl_title_start_transition_sec",
-			0.30f,
-			FCVAR::ARCHIVE,
-			"Fade-out duration before transitioning from title to gameplay.",
-			true,
-			0.01f,
-			true,
-			10.0f
 		);
 
 		//---------------------------------------------------------------------
@@ -56906,20 +56358,36 @@ namespace Unnamed {
 			FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Disable ground snap duration immediately after jump (seconds)."
 		);
-		static ConVar sv_passivepush_contactskin(
-			"sv_passivepush_contactskin", 4.0f,
-			FCVAR::NOTIFY | FCVAR::REPLICATED,
-			"Passive push contact skin width in HU."
-		);
-		static ConVar sv_passivepush_maxdepenetrationiters(
-			"sv_passivepush_maxdepenetrationiters", 4,
-			FCVAR::NOTIFY | FCVAR::REPLICATED,
-			"Maximum depenetration iterations for passive push."
-		);
 
 		static ConVar sv_stepheight(
 			"sv_stepheight", 18.0f, FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Step height in HU."
+		);
+
+		static ConVar sv_groundprobe_distance_hu(
+			"sv_groundprobe_distance_hu", 6.0f,
+			FCVAR::NOTIFY | FCVAR::REPLICATED,
+			"Ground probe distance in HU."
+		);
+
+		static ConVar sv_move_collision_debugdraw(
+			"sv_move_collision_debugdraw", false,
+			FCVAR::CHEAT | FCVAR::REPLICATED,
+			"Draw GameMovement collision hit/recover debug overlays."
+		);
+		static ConVar sv_move_collision_debuglog(
+			"sv_move_collision_debuglog", false,
+			FCVAR::CHEAT | FCVAR::REPLICATED,
+			"Print GameMovement collision target/debug details to console."
+		);
+		static ConVar sv_move_collision_debuglog_interval(
+			"sv_move_collision_debuglog_interval", 0.15f,
+			FCVAR::CHEAT | FCVAR::REPLICATED,
+			"Minimum interval in seconds between collision debug logs.",
+			true,
+			0.01f,
+			true,
+			5.0f
 		);
 
 		// Noclip
@@ -64909,11 +64377,16 @@ namespace Unnamed {
 		constexpr float    kMinConsumedFrac = 1e-5f;
 		constexpr float    kZeroToiEpsilon = 1e-6f;
 		constexpr float    kZeroToiConsumed = 0.05f;
-		constexpr float    kZeroToiSeparateDot = 1e-3f;
+		constexpr float    kZeroToiNonBlockingDot = 1e-4f;
 		constexpr float    kTouchDepthRatio = 0.01f;
 		constexpr float    kGroundNormalY = 0.7f; // ステップダウン判定の法線の最小Y成分
 		constexpr float    kStepSelectHorizEps = 1e-8f;
 		constexpr float    kStepSelectDownEps = 1e-5f;
+		constexpr uint32_t kMaxDepenetrationIters = 6;
+		constexpr int      kDepenetrationHitBuffer = 64;
+		constexpr float    kDepenetrationDepthEpsilon = 1e-5f;
+		constexpr float    kDepenetrationMaxPushHu = 6.0f;
+		constexpr float    kProbeRadiusScale = 1.0f;
 
 		[[nodiscard]] float HitDistanceM(
 			const Physics::Hit& hit,
@@ -64935,6 +64408,23 @@ namespace Unnamed {
 	void BoxKinematicCollisionResolver::SlideMove(
 		Vec3& position, Vec3& velocity, const float timeTotal
 	) const {
+		mCollisionDebugState                = {};
+		mCollisionDebugState.startPosition  = position;
+		mCollisionDebugState.inputVelocity  = velocity;
+		const auto FinalizeDebugState = [this, &position, &velocity]() {
+			mCollisionDebugState.endPosition  = position;
+			mCollisionDebugState.outputVelocity = velocity;
+		};
+
+		// 移動開始時の開始重なりを先に解消します。
+		if (!RecoverFromPenetration(
+			position, -velocity, RECOVER_REASON::SLIDE_START
+		)) {
+			velocity = Vec3::zero;
+			FinalizeDebugState();
+			return;
+		}
+
 		int         numPlanes = 0;
 		float       timeLeft  = timeTotal;
 		const float skin      = SkinM();
@@ -64966,13 +64456,33 @@ namespace Unnamed {
 			if (!mEngine->BoxCast(
 				box, dir, castLength, &hit
 			)) {
-				// 衝突なし — 全距離移動して終了
-				position += move;
+				// sweep で見落とした終点めり込みを防ぐため、終点の重なりを再検査
+				const Vec3 targetPos = position + move;
+				if (IsHullOverlapping(targetPos, nullptr)) {
+					Vec3 recoveredPos = targetPos;
+					if (!RecoverFromPenetration(
+						recoveredPos, -dir, RECOVER_REASON::END_POSITION_OVERLAP
+					)) {
+						velocity = Vec3::zero;
+						break;
+					}
+					position = recoveredPos;
+				} else {
+					position = targetPos;
+				}
 				break;
 			}
 
 			if (hit.allsolid) {
+				RecordBlockingHit(box.center, dir, castLength, hit);
+				if (RecoverFromPenetration(
+					position, -velocity, RECOVER_REASON::HIT_ALL_SOLID
+				)) {
+					numPlanes = 0;
+					continue;
+				}
 				velocity = Vec3::zero;
+				FinalizeDebugState();
 				return;
 			}
 
@@ -65000,20 +64510,41 @@ namespace Unnamed {
 				(!hit.startSolid || shallowStartSolid) &&
 				hitDistance <= kZeroToiEpsilon &&
 				allowedDist <= kEpsilon;
-			// ゼロTOIかつ明確に離反方向の接触は「その場接触」として扱い、
-			// このbumpでは残り時間だけ消費して再キャストします。
-			// 残移動を丸ごと通すと開始重なりの壁ヒットで床ヒットを飛ばしやすくなるため避けます。
+			const float moveIntoPlane = dir.Dot(normal);
 			if (
 				zeroToiContact &&
-				dir.Dot(normal) > kZeroToiSeparateDot
+				moveIntoPlane > -kZeroToiNonBlockingDot
 			) {
-				timeLeft *= (1.0f - kZeroToiConsumed);
+				// 非侵入のゼロTOI接触（床なめ等）は進行阻害として扱わず、
+				// 少量前進して次のキャストで実ブロッキング面を探します。
+				const float touchAdvance = std::min(moveLen, skin);
+				if (touchAdvance > 1e-7f) {
+					position += dir * touchAdvance;
+				}
+				float consumedFrac = std::clamp(
+					touchAdvance / moveLen, 0.0f, 1.0f
+				);
+				consumedFrac = std::max(consumedFrac, kZeroToiConsumed);
+				timeLeft *= (1.0f - consumedFrac);
 				if (timeLeft < 1e-7f) {
 					break;
 				}
 				continue;
 			}
 
+			RecordBlockingHit(box.center, dir, castLength, hit);
+
+			if (hit.startSolid && !shallowStartSolid) {
+				if (!RecoverFromPenetration(
+					position, -normal, RECOVER_REASON::HIT_START_SOLID
+				)) {
+					velocity = Vec3::zero;
+					FinalizeDebugState();
+					return;
+				}
+				numPlanes = 0;
+				continue;
+			}
 			if (allowedDist > 1e-7f) {
 				position += dir * allowedDist;
 				// 前進に成功したら面リストをリセット（新しい位置で再出発）
@@ -65118,6 +64649,8 @@ namespace Unnamed {
 				break;
 			}
 		}
+
+		FinalizeDebugState();
 	}
 
 	void BoxKinematicCollisionResolver::StepMove(
@@ -65129,15 +64662,15 @@ namespace Unnamed {
 			return;
 		}
 
-		auto horizDistSq = [](const Vec3& a, const Vec3& b) -> float {
+		auto HorizDistSq = [](const Vec3& a, const Vec3& b) -> float {
 			float dx = a.x - b.x;
 			float dz = a.z - b.z;
 			return dx * dx + dz * dz;
 		};
 
-		const auto snapDownWalkable = [this](
+		const auto SnapDownWalkable = [this](
 			Vec3& targetPos, const float maxDrop
-		) -> bool {
+		) {
 			if (maxDrop <= 0.0f) {
 				return false;
 			}
@@ -65176,11 +64709,11 @@ namespace Unnamed {
 		SlideMove(position, velocity, timeTotal);
 		Vec3 downPos = position;
 		Vec3 downVel = velocity;
-		if (snapDownWalkable(downPos, stepHeightM) && downVel.y < 0.0f) {
+		if (SnapDownWalkable(downPos, stepHeightM) && downVel.y < 0.0f) {
 			downVel.y = 0.0f;
 		}
 
-		const float downDistSq = horizDistSq(downPos, savedPos);
+		const float downDistSq = HorizDistSq(downPos, savedPos);
 		// baselineで十分進めているときは、不要なステップアップを試さない。
 		if (downDistSq + kStepSelectHorizEps >= desiredHorizDistSq) {
 			position = downPos;
@@ -65221,14 +64754,14 @@ namespace Unnamed {
 
 		// 上げた分 + 許容ステップダウン分だけ地面へスナップを試みる。
 		const float maxDrop    = stepRise + stepHeightM;
-		const bool  upGrounded = snapDownWalkable(position, maxDrop);
+		const bool  upGrounded = SnapDownWalkable(position, maxDrop);
 		if (!upGrounded) {
 			position = downPos;
 			velocity = downVel;
 			return;
 		}
 
-		const float upDistSq       = horizDistSq(position, savedPos);
+		const float upDistSq       = HorizDistSq(position, savedPos);
 		const bool  climbedTooHigh = position.y >
 		                            (savedPos.y + stepHeightM +
 		                             kStepSelectDownEps);
@@ -65264,6 +64797,200 @@ namespace Unnamed {
 		return true;
 	}
 
+	const BoxKinematicCollisionResolver::CollisionDebugState&
+	BoxKinematicCollisionResolver::GetCollisionDebugState() const {
+		return mCollisionDebugState;
+	}
+
+	void BoxKinematicCollisionResolver::RecordBlockingHit(
+		const Vec3&        castStart,
+		const Vec3&        castDir,
+		const float        castLength,
+		const Physics::Hit& hit
+	) const {
+		mCollisionDebugState.hasBlockingHit    = true;
+		++mCollisionDebugState.blockingHitCount;
+		mCollisionDebugState.blockingCastStart = castStart;
+		mCollisionDebugState.blockingCastDir   = castDir;
+		mCollisionDebugState.blockingCastLength = castLength;
+		mCollisionDebugState.blockingHit       = hit;
+	}
+
+	bool BoxKinematicCollisionResolver::IsHullOverlapping(
+		const Vec3&   position,
+		Physics::Hit* outHit
+	) const {
+		if (!mEngine) {
+			return false;
+		}
+
+		Box box    = mHull;
+		box.center = position;
+		return mEngine->BoxOverlap(box, outHit);
+	}
+
+	bool BoxKinematicCollisionResolver::RecoverFromPenetration(
+		Vec3& position,
+		const Vec3& preferredDirection,
+		const RECOVER_REASON reason
+	) const {
+		mCollisionDebugState.recoverAttempted = true;
+		mCollisionDebugState.recoverSucceeded = false;
+		mCollisionDebugState.recoverReason    = reason;
+		mCollisionDebugState.recoverStart     = position;
+		mCollisionDebugState.recoverEnd       = position;
+		mCollisionDebugState.recoverOverlapCount = 0;
+
+		if (!mEngine) {
+			return false;
+		}
+		if (!IsHullOverlapping(position, nullptr)) {
+			mCollisionDebugState.recoverSucceeded = true;
+			mCollisionDebugState.recoverEnd       = position;
+			return true;
+		}
+
+		const float skinM = SkinM();
+		const float maxPushPerIter = Math::HtoM(kDepenetrationMaxPushHu);
+
+		Vec3 preferredDir = preferredDirection;
+		if (preferredDir.SqrLength() > kNormalEpsilon) {
+			preferredDir.Normalize();
+		} else {
+			preferredDir = Vec3::zero;
+		}
+
+		for (uint32_t iter = 0; iter < kMaxDepenetrationIters; ++iter) {
+			std::array<Physics::Hit, kDepenetrationHitBuffer> overlaps{};
+			const int overlapCount = CollectOverlaps(
+				position, mHull.halfSize, overlaps.data(), kDepenetrationHitBuffer
+			);
+			if (overlapCount <= 0) {
+				mCollisionDebugState.recoverSucceeded = true;
+				mCollisionDebugState.recoverEnd       = position;
+				return true;
+			}
+			mCollisionDebugState.recoverOverlapCount = std::min(
+				overlapCount,
+				static_cast<int>(mCollisionDebugState.recoverOverlaps.size())
+			);
+			for (int i = 0; i < mCollisionDebugState.recoverOverlapCount; ++i) {
+				mCollisionDebugState.recoverOverlaps[static_cast<size_t>(i)] =
+					overlaps[static_cast<size_t>(i)];
+			}
+
+			Vec3  pushAccum      = Vec3::zero;
+			Vec3  deepestNormal  = Vec3::zero;
+			float deepestPushLen = 0.0f;
+			for (int i = 0; i < overlapCount; ++i) {
+				Vec3 normal = overlaps[i].normal;
+				if (normal.SqrLength() <= kNormalEpsilon) {
+					continue;
+				}
+				normal.Normalize();
+
+				const float pushLen = overlaps[i].depth + skinM;
+				if (pushLen <= kDepenetrationDepthEpsilon) {
+					continue;
+				}
+
+				pushAccum += normal * pushLen;
+				if (pushLen > deepestPushLen) {
+					deepestPushLen = pushLen;
+					deepestNormal  = normal;
+				}
+			}
+
+			if (deepestPushLen <= kDepenetrationDepthEpsilon) {
+				break;
+			}
+
+			Vec3 pushDir = pushAccum.SqrLength() > kNormalEpsilon ?
+				               pushAccum.Normalized() :
+				               deepestNormal;
+			if (
+				!preferredDir.IsZero() &&
+				pushDir.Dot(preferredDir) < 0.0f
+			) {
+				pushDir += preferredDir * 0.5f;
+				if (pushDir.SqrLength() > kNormalEpsilon) {
+					pushDir.Normalize();
+				}
+			}
+
+			const float pushDist = std::clamp(
+				deepestPushLen, skinM, maxPushPerIter
+			);
+			position += pushDir * pushDist;
+			if (!IsHullOverlapping(position, nullptr)) {
+				mCollisionDebugState.recoverSucceeded = true;
+				mCollisionDebugState.recoverEnd       = position;
+				return true;
+			}
+		}
+
+		const Vec3 searchOrigin = position;
+		const std::array<Vec3, 16> probeDirs = {
+			Vec3::right,
+			Vec3::left,
+			Vec3::forward,
+			Vec3::backward,
+			Vec3::up,
+			Vec3::down,
+			(Vec3::right + Vec3::forward).Normalized(),
+			(Vec3::right + Vec3::backward).Normalized(),
+			(Vec3::left + Vec3::forward).Normalized(),
+			(Vec3::left + Vec3::backward).Normalized(),
+			(Vec3::right + Vec3::up).Normalized(),
+			(Vec3::left + Vec3::up).Normalized(),
+			(Vec3::forward + Vec3::up).Normalized(),
+			(Vec3::backward + Vec3::up).Normalized(),
+			(Vec3::right + Vec3::down).Normalized(),
+			(Vec3::left + Vec3::down).Normalized(),
+		};
+		const std::array<float, 8> probeRadiiHu = {
+			0.25f * kProbeRadiusScale,
+			0.5f * kProbeRadiusScale,
+			1.0f * kProbeRadiusScale,
+			2.0f * kProbeRadiusScale,
+			4.0f * kProbeRadiusScale,
+			8.0f * kProbeRadiusScale,
+			16.0f * kProbeRadiusScale,
+			24.0f * kProbeRadiusScale
+		};
+
+		for (const float radiusHu : probeRadiiHu) {
+			const float radiusM = Math::HtoM(radiusHu);
+
+			if (!preferredDir.IsZero()) {
+				const Vec3 preferredCandidate = searchOrigin + preferredDir *
+					radiusM;
+				if (!IsHullOverlapping(preferredCandidate, nullptr)) {
+					position = preferredCandidate;
+					mCollisionDebugState.recoverSucceeded = true;
+					mCollisionDebugState.recoverEnd       = position;
+					return true;
+				}
+			}
+
+			for (const Vec3& dir : probeDirs) {
+				const Vec3 candidate = searchOrigin + dir * radiusM;
+				if (!IsHullOverlapping(candidate, nullptr)) {
+					position = candidate;
+					mCollisionDebugState.recoverSucceeded = true;
+					mCollisionDebugState.recoverEnd       = position;
+					return true;
+				}
+			}
+		}
+
+		mCollisionDebugState.recoverSucceeded = !IsHullOverlapping(
+			position, nullptr
+		);
+		mCollisionDebugState.recoverEnd = position;
+		return mCollisionDebugState.recoverSucceeded;
+	}
+
 	int BoxKinematicCollisionResolver::CollectOverlaps(
 		const Vec3&   position,
 		const Vec3&   halfExtents,
@@ -65278,7 +65005,7 @@ namespace Unnamed {
 			.center   = position,
 			.halfSize = halfExtents
 		};
-		return mEngine->BoxOverlap(box, outHits, maxHits);
+		return mEngine->BoxOverlapRaw(box, outHits, maxHits);
 	}
 
 	float BoxKinematicCollisionResolver::CastSkinM() {
@@ -65295,12 +65022,45 @@ namespace Unnamed {
 File Path: src/game/core/collision/kinematic/BoxKinematicCollisionResolver.h
 ============================================================
 #pragma once
+#include <array>
+
 #include "base/BaseKinematicCollisionResolver.h"
 
 namespace Unnamed {
 	class BoxKinematicCollisionResolver final : public
 		BaseKinematicCollisionResolver {
 	public:
+		/// @brief 重なり復帰処理の呼び出し理由を表します。
+		enum class RECOVER_REASON : uint8_t {
+			NONE = 0,
+			SLIDE_START,
+			HIT_START_SOLID,
+			HIT_ALL_SOLID,
+			END_POSITION_OVERLAP,
+		};
+
+		struct CollisionDebugState {
+			bool          hasBlockingHit    = false;
+			uint32_t      blockingHitCount  = 0;
+			Vec3          blockingCastStart = Vec3::zero;
+			Vec3          blockingCastDir   = Vec3::zero;
+			float         blockingCastLength = 0.0f;
+			Physics::Hit  blockingHit       = {};
+
+			bool          recoverAttempted  = false;
+			bool          recoverSucceeded  = false;
+			RECOVER_REASON recoverReason    = RECOVER_REASON::NONE;
+			Vec3          recoverStart      = Vec3::zero;
+			Vec3          recoverEnd        = Vec3::zero;
+			int           recoverOverlapCount = 0;
+			std::array<Physics::Hit, 16> recoverOverlaps = {};
+
+			Vec3 startPosition = Vec3::zero;
+			Vec3 endPosition   = Vec3::zero;
+			Vec3 inputVelocity = Vec3::zero;
+			Vec3 outputVelocity = Vec3::zero;
+		};
+
 		using BaseKinematicCollisionResolver::BaseKinematicCollisionResolver;
 
 		/// @brief 衝突判定用のボックスを更新します。
@@ -65331,12 +65091,37 @@ namespace Unnamed {
 			int           maxHits
 		) const override;
 
+		/// @brief 直近の衝突応答デバッグ情報を取得します。
+		[[nodiscard]] const CollisionDebugState& GetCollisionDebugState() const;
+
 	private:
+		/// @brief スイープ衝突情報をデバッグ状態へ記録します。
+		void RecordBlockingHit(
+			const Vec3&       castStart,
+			const Vec3&       castDir,
+			float             castLength,
+			const Physics::Hit& hit
+		) const;
+
+		/// @brief 指定位置での重なりを検査します。
+		[[nodiscard]] bool IsHullOverlapping(
+			const Vec3&    position,
+			Physics::Hit*  outHit = nullptr
+		) const;
+
+		/// @brief 開始重なり時に押し出しと近傍探索で復帰を試みます。
+		[[nodiscard]] bool RecoverFromPenetration(
+			Vec3&       position,
+			const Vec3& preferredDirection,
+			RECOVER_REASON reason
+		) const;
+
 		static float CastSkinM();
 		/// @brief 接触判定で使うスキン幅を返します。
 		static float SkinM();
 
 		Box mHull;
+		mutable CollisionDebugState mCollisionDebugState = {};
 	};
 }
 
@@ -67574,7 +67359,6 @@ File Path: src/game/core/components/character/GameMovementComponent.cpp
 
 #include "engine/scene/Scene.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
-#include "engine/unnamed/framework/components/kinematic/KinematicMoverComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -67595,33 +67379,27 @@ File Path: src/game/core/components/character/GameMovementComponent.cpp
 
 namespace Unnamed {
 	namespace {
-		constexpr int kMaxPassiveOverlapHits = 64;
-
-		struct PassiveMoverInfluence {
-			uint64_t guid      = 0;
-			Vec3     stepDelta = Vec3::zero;
-		};
+		[[nodiscard]] const char* ToStringRecoverReason(
+			const BoxKinematicCollisionResolver::RECOVER_REASON reason
+		) {
+			switch (reason) {
+				case BoxKinematicCollisionResolver::RECOVER_REASON::SLIDE_START
+				: return "slide_start";
+				case
+				BoxKinematicCollisionResolver::RECOVER_REASON::HIT_START_SOLID
+				: return "hit_start_solid";
+				case
+				BoxKinematicCollisionResolver::RECOVER_REASON::HIT_ALL_SOLID
+				: return "hit_allsolid";
+				case
+				BoxKinematicCollisionResolver::RECOVER_REASON::END_POSITION_OVERLAP
+				: return "end_position_overlap";
+				default: return "none";
+			}
+		}
 	}
 
 	GameMovementComponent::~GameMovementComponent() = default;
-
-	void GameMovementComponent::TeleportAndResetMotion(
-		TransformComponent* transform,
-		const Vec3&         worldPosition
-	) {
-		if (!transform) {
-			return;
-		}
-
-		// リスポーン直後の慣性や支持床キャッシュを引きずらないように初期化します。
-		transform->SetPosition(worldPosition);
-		transform->RequestInterpolationResync();
-		mVelocity                 = Vec3::zero;
-		mGrounded                 = false;
-		mSupportCache             = {};
-		mJumpSnapDisableRemaining = 0.0f;
-		UpdateCollisionHull(transform);
-	}
 
 	void GameMovementComponent::SimulateStep(
 		TransformComponent* transform, const MovementFrameInput& input,
@@ -67630,14 +67408,15 @@ namespace Unnamed {
 		if (!transform || !mCollisionResolver || !mStateMachine) {
 			return;
 		}
+		mCollisionDebugLogCooldownSec = std::max(
+			0.0f, mCollisionDebugLogCooldownSec - stepSeconds
+		);
 
 		const bool        wasGrounded            = mSupportCache.grounded;
 		const float       preStepVerticalSpeedHu = Math::MtoH(mVelocity.y);
 		const std::string previousStateName      = StrUtil::ToLowerCase(
 			ResolvePresentationStateName()
 		);
-
-		(void)ApplyPassiveMotionStep(transform, stepSeconds);
 
 		mCurrentModeId = mStateMachine->GetCurrentModeId();
 		mActiveAbilityMask = mStateMachine->GetActiveAbilityMask();
@@ -67725,12 +67504,8 @@ namespace Unnamed {
 		if (context.isGrounded) {
 			mSupportCache.grounded              = true;
 			mSupportCache.supportEntityGuid     = context.supportEntityGuid;
-			mSupportCache.supportLinearVelocity = ResolveSupportLinearVelocity(
-				context.supportEntityGuid
-			);
-			mSupportCache.supportStepDelta = ResolveSupportStepDelta(
-				context.supportEntityGuid, stepSeconds
-			);
+			mSupportCache.supportLinearVelocity = Vec3::zero;
+			mSupportCache.supportStepDelta      = Vec3::zero;
 		} else {
 			mSupportCache.grounded              = false;
 			mSupportCache.supportEntityGuid     = 0;
@@ -67785,19 +67560,8 @@ namespace Unnamed {
 				1.0e-6f
 			);
 
-			if (mSupportCache.grounded && mSupportCache.supportEntityGuid !=
-			    0) {
-				mSupportCache.supportLinearVelocity =
-					ResolveSupportLinearVelocity(
-						mSupportCache.supportEntityGuid
-					);
-				mSupportCache.supportStepDelta = ResolveSupportStepDelta(
-					mSupportCache.supportEntityGuid, stepSeconds
-				);
-			} else {
-				mSupportCache.supportLinearVelocity = Vec3::zero;
-				mSupportCache.supportStepDelta      = Vec3::zero;
-			}
+			mSupportCache.supportLinearVelocity = Vec3::zero;
+			mSupportCache.supportStepDelta      = Vec3::zero;
 
 			UpdateCollisionHull(transform);
 			mMoveFrameInput = deterministicPacket.input;
@@ -67829,29 +67593,8 @@ namespace Unnamed {
 
 		const float stepSec = std::max(deltaTime, 1.0e-6f);
 
-		if (mSupportCache.grounded && mSupportCache.supportEntityGuid != 0) {
-			mSupportCache.supportLinearVelocity = ResolveSupportLinearVelocity(
-				mSupportCache.supportEntityGuid
-			);
-			mSupportCache.supportStepDelta = ResolveSupportStepDelta(
-				mSupportCache.supportEntityGuid, stepSec
-			);
-
-			// 動床コライダーはこの時点で当フレーム最終位置へ更新済みなので、
-			// プレイヤー追従も同フレームで一括適用して時差由来のガタつきを防ぐ。
-			const Vec3 supportFrameDelta = ResolveSupportStepDelta(
-				mSupportCache.supportEntityGuid,
-				std::max(0.0f, deltaTime)
-			);
-			if (!supportFrameDelta.IsZero()) {
-				transform->SetPosition(
-					transform->GetPosition() + supportFrameDelta
-				);
-			}
-		} else {
-			mSupportCache.supportLinearVelocity = Vec3::zero;
-			mSupportCache.supportStepDelta      = Vec3::zero;
-		}
+		mSupportCache.supportLinearVelocity = Vec3::zero;
+		mSupportCache.supportStepDelta      = Vec3::zero;
 
 		UpdateCollisionHull(transform);
 		SimulateStep(transform, mMoveFrameInput, stepSec);
@@ -67910,6 +67653,109 @@ namespace Unnamed {
 			mBoxHalfExtents * 2.0f,
 			Vec4::cyan
 		);
+
+		const bool drawCollisionDebug = mConsole &&
+		                                mConsole->GetConVarValueOr(
+			                                "sv_move_collision_debugdraw", false
+		                                );
+		const bool logCollisionDebug = mConsole &&
+		                               mConsole->GetConVarValueOr(
+			                               "sv_move_collision_debuglog", false
+		                               );
+		auto* boxResolver = dynamic_cast<BoxKinematicCollisionResolver*>(
+			mCollisionResolver.get()
+		);
+		if (!boxResolver) {
+			return;
+		}
+
+		const BoxKinematicCollisionResolver::CollisionDebugState& debugState =
+			boxResolver->GetCollisionDebugState();
+
+		if (drawCollisionDebug && debugState.hasBlockingHit) {
+			const Vec4 castColor = Vec4::orange;
+			const Vec4 hitColor  = Vec4::red;
+
+			// 衝突スイープの経路とヒット面法線を可視化します。
+			worldDebugDraw.DrawArrow(
+				debugState.blockingCastStart,
+				debugState.blockingCastDir * debugState.blockingCastLength,
+				castColor,
+				Math::HtoM(4.0f)
+			);
+			worldDebugDraw.DrawSphere(
+				debugState.blockingHit.pos,
+				Quaternion::identity,
+				Math::HtoM(2.0f),
+				hitColor,
+				10
+			);
+			worldDebugDraw.DrawArrow(
+				debugState.blockingHit.pos,
+				debugState.blockingHit.normal * Math::HtoM(14.0f),
+				hitColor,
+				Math::HtoM(2.0f)
+			);
+		}
+		if (drawCollisionDebug && debugState.recoverAttempted) {
+			const Vec4 recoverColor = debugState.recoverSucceeded ?
+				                          Vec4(0.2f, 1.0f, 0.4f, 1.0f) :
+				                          Vec4(1.0f, 0.1f, 0.1f, 1.0f);
+
+			worldDebugDraw.DrawArrow(
+				debugState.recoverStart,
+				debugState.recoverEnd - debugState.recoverStart,
+				recoverColor,
+				Math::HtoM(3.0f)
+			);
+			for (int i = 0; i < debugState.recoverOverlapCount; ++i) {
+				const Physics::Hit& overlap = debugState.recoverOverlaps[
+					static_cast<size_t>(i)
+				];
+				const float overlapLen = std::clamp(
+					overlap.depth,
+					Math::HtoM(1.0f),
+					Math::HtoM(16.0f)
+				);
+				worldDebugDraw.DrawArrow(
+					debugState.recoverStart,
+					overlap.normal * overlapLen,
+					Vec4::yellow,
+					Math::HtoM(1.5f)
+				);
+			}
+		}
+
+		if (
+			logCollisionDebug &&
+			debugState.hasBlockingHit &&
+			mCollisionDebugLogCooldownSec <= 0.0f
+		) {
+			const float logInterval = mConsole->GetConVarValueOr(
+				"sv_move_collision_debuglog_interval", 0.15f
+			);
+			const Physics::Hit& hit = debugState.blockingHit;
+			Msg(
+				"GameMovement",
+				"CollisionDebug guid={} tri={} toi={:.4f} depth={:.5f} startSolid={} allSolid={} normal=({:.3f},{:.3f},{:.3f}) hitPos=({:.3f},{:.3f},{:.3f}) recover(reason={} ok={} overlaps={})",
+				static_cast<unsigned long long>(hit.hitEntityGuid),
+				hit.triIndex,
+				hit.toi,
+				hit.depth,
+				hit.startSolid,
+				hit.allsolid,
+				hit.normal.x,
+				hit.normal.y,
+				hit.normal.z,
+				hit.pos.x,
+				hit.pos.y,
+				hit.pos.z,
+				ToStringRecoverReason(debugState.recoverReason),
+				debugState.recoverSucceeded,
+				debugState.recoverOverlapCount
+			);
+			mCollisionDebugLogCooldownSec = std::max(0.0f, logInterval);
+		}
 	}
 
 	void GameMovementComponent::OnEditorTick(float) {
@@ -67933,6 +67779,24 @@ namespace Unnamed {
 
 	std::string_view GameMovementComponent::GetComponentName() const {
 		return "GameMovement";
+	}
+
+	void GameMovementComponent::TeleportAndResetMotion(
+		TransformComponent* transform,
+		const Vec3&         worldPosition
+	) {
+		if (!transform) {
+			return;
+		}
+
+		// リスポーン直後の慣性や支持床キャッシュを引きずらないように初期化します。
+		transform->SetPosition(worldPosition);
+		transform->RequestInterpolationResync();
+		mVelocity                 = Vec3::zero;
+		mGrounded                 = false;
+		mSupportCache             = {};
+		mJumpSnapDisableRemaining = 0.0f;
+		UpdateCollisionHull(transform);
 	}
 
 	bool GameMovementComponent::UseSprintSpeedAsDefaultGroundSpeed() const {
@@ -68029,6 +67893,42 @@ namespace Unnamed {
 			mDebugLastPublishedCueValue,
 			mDebugLastPublishedCueValue2
 		);
+
+		auto* boxResolver = dynamic_cast<BoxKinematicCollisionResolver*>(
+			mCollisionResolver.get()
+		);
+		if (boxResolver) {
+			const BoxKinematicCollisionResolver::CollisionDebugState& debugState
+				=
+				boxResolver->GetCollisionDebugState();
+
+			ImGui::SeparatorText("Collision Debug");
+			ImGui::Text(
+				"BlockingHit: %s (count=%u)",
+				debugState.hasBlockingHit ? "true" : "false",
+				debugState.blockingHitCount
+			);
+			ImGui::Text(
+				"Hit guid=%llu tri=%u toi=%.4f depth=%.5f",
+				static_cast<unsigned long long>(debugState.blockingHit.
+					hitEntityGuid),
+				debugState.blockingHit.triIndex,
+				debugState.blockingHit.toi,
+				debugState.blockingHit.depth
+			);
+			ImGui::Text(
+				"Hit flags: startSolid=%s allsolid=%s",
+				debugState.blockingHit.startSolid ? "true" : "false",
+				debugState.blockingHit.allsolid ? "true" : "false"
+			);
+			ImGui::Text(
+				"Recover: attempted=%s succeeded=%s reason=%s overlaps=%d",
+				debugState.recoverAttempted ? "true" : "false",
+				debugState.recoverSucceeded ? "true" : "false",
+				ToStringRecoverReason(debugState.recoverReason),
+				debugState.recoverOverlapCount
+			);
+		}
 	}
 #endif
 
@@ -68078,6 +67978,15 @@ namespace Unnamed {
 		writer.Key("grapple");
 		writer.Write(mCapabilitySet.grapple);
 		writer.EndObject();
+	}
+
+	Vec3 GameMovementComponent::SampleSupportContactVelocity(
+		const uint64_t supportEntityGuid,
+		const Vec3&    worldPoint
+	) const {
+		(void)supportEntityGuid;
+		(void)worldPoint;
+		return Vec3::zero;
 	}
 
 	void GameMovementComponent::WriteReplayState(
@@ -68353,463 +68262,54 @@ namespace Unnamed {
 		return owner ? owner->GetComponent<TransformComponent>() : nullptr;
 	}
 
+	Vec3 GameMovementComponent::GetSupportSamplePoint(
+		const TransformComponent* transform
+	) const {
+		if (!transform) {
+			return Vec3::zero;
+		}
+
+		return transform->GetPosition() + Vec3::down * mBoxHalfExtents.y;
+	}
+
 	Vec3 GameMovementComponent::ResolveSupportLinearVelocity(
 		const uint64_t supportEntityGuid
 	) const {
-		const Entity* owner = GetOwner();
-		if (supportEntityGuid == 0 ||
-		    (owner && supportEntityGuid == owner->GetGuid())) {
-			return Vec3::zero;
-		}
+		(void)supportEntityGuid;
+		return Vec3::zero;
+	}
 
-		const World* world = GetWorld();
-		const Scene* scene = world ? world->GetScenePtr() : nullptr;
-		if (!scene) {
-			return Vec3::zero;
-		}
+	Vec3 GameMovementComponent::ResolveSupportAngularVelocity(
+		const uint64_t supportEntityGuid
+	) const {
+		(void)supportEntityGuid;
+		return Vec3::zero;
+	}
 
-		const Entity* supportEntity = scene->FindEntity(supportEntityGuid);
-		if (!supportEntity || !supportEntity->IsActive()) {
-			return Vec3::zero;
-		}
-
-		const auto* mover = supportEntity->GetComponent<
-			KinematicMoverComponent>(
-		);
-		if (!mover || mover->WasTeleported()) {
-			return Vec3::zero;
-		}
-
-		return mover->GetLinearVelocity();
+	Vec3 GameMovementComponent::ResolveSupportContactVelocity(
+		const uint64_t supportEntityGuid,
+		const Vec3&    worldPoint
+	) const {
+		(void)supportEntityGuid;
+		(void)worldPoint;
+		return Vec3::zero;
 	}
 
 	Vec3 GameMovementComponent::ResolveSupportStepDelta(
 		const uint64_t supportEntityGuid, const float stepSeconds
 	) const {
-		const Entity* owner = GetOwner();
-		if (supportEntityGuid == 0 ||
-		    (owner && supportEntityGuid == owner->GetGuid())) {
-			return Vec3::zero;
-		}
-
-		const World* world = GetWorld();
-		const Scene* scene = world ? world->GetScenePtr() : nullptr;
-		if (!scene) {
-			return Vec3::zero;
-		}
-
-		const Entity* supportEntity = scene->FindEntity(supportEntityGuid);
-		if (!supportEntity || !supportEntity->IsActive()) {
-			return Vec3::zero;
-		}
-
-		const auto* mover = supportEntity->GetComponent<
-			KinematicMoverComponent>(
-		);
-		if (!mover || mover->WasTeleported()) {
-			return Vec3::zero;
-		}
-
-		return mover->GetStepDelta(stepSeconds);
+		(void)supportEntityGuid;
+		(void)stepSeconds;
+		return Vec3::zero;
 	}
 
 	bool GameMovementComponent::ApplyPassiveMotionStep(
 		TransformComponent* transform,
 		const float         stepSeconds
 	) {
-		if (!transform || !mCollisionResolver || stepSeconds <= 0.0f) {
-			return false;
-		}
-
-		const Entity*  owner     = GetOwner();
-		const uint64_t ownerGuid = owner ? owner->GetGuid() : 0;
-		const World*   world     = GetWorld();
-		const Scene*   scene     = world ? world->GetScenePtr() : nullptr;
-		if (!scene) {
-			return false;
-		}
-
-		const auto resolveMover = [scene](
-			const uint64_t entityGuid
-		)
-			-> const KinematicMoverComponent* {
-			if (entityGuid == 0) {
-				return nullptr;
-			}
-
-			const Entity* entity = scene->FindEntity(entityGuid);
-			for (int depth = 0; entity && depth < 8; ++depth) {
-				if (!entity->IsActive()) {
-					return nullptr;
-				}
-
-				const auto* mover = entity->GetComponent<
-					KinematicMoverComponent>();
-				if (mover && !mover->WasTeleported()) {
-					return mover;
-				}
-
-				const auto* transform = entity->GetComponent<
-					TransformComponent>();
-				if (!transform || !transform->GetParent()) {
-					break;
-				}
-				entity = transform->GetParent()->GetOwner();
-			}
-			return nullptr;
-		};
-
-		const uint64_t supportGuid =
-			mSupportCache.grounded ? mSupportCache.supportEntityGuid : 0;
-		const float contactSkinHu = mConsole->GetConVarValueOr(
-			"sv_passivepush_contactskin", 4.0f
-		);
-		const float contactSkinM = Math::HtoM(std::max(0.0f, contactSkinHu));
-		const Vec3  overlapHalfExtents =
-			mBoxHalfExtents + Vec3(contactSkinM, contactSkinM, contactSkinM);
-		const float sweepExtra = contactSkinM + Math::HtoM(0.5f);
-
-		Vec3 position = transform->GetPosition();
-		std::array<Physics::Hit, kMaxPassiveOverlapHits> overlapHits{};
-		std::array<PassiveMoverInfluence, kMaxPassiveOverlapHits> influences{};
-		int influenceCount = 0;
-		const auto findInfluenceIndex = [&influences, &influenceCount](
-			const uint64_t guid
-		) -> int {
-			for (int i = 0; i < influenceCount; ++i) {
-				if (influences[i].guid == guid) {
-					return i;
-				}
-			}
-			return -1;
-		};
-		const auto tryAddInfluence =
-			[&influences, &influenceCount, &findInfluenceIndex](
-			const uint64_t guid,
-			const Vec3&    stepDelta
-		) -> void {
-			if (guid == 0 || stepDelta.SqrLength() <= 1.0e-12f) {
-				return;
-			}
-
-			const int existing = findInfluenceIndex(guid);
-			if (existing >= 0) {
-				influences[existing].stepDelta = stepDelta;
-				return;
-			}
-
-			if (influenceCount >= static_cast<int>(influences.size())) {
-				return;
-			}
-			influences[influenceCount++] = PassiveMoverInfluence{
-				.guid      = guid,
-				.stepDelta = stepDelta
-			};
-		};
-
-		const int overlapCount = mCollisionResolver->CollectOverlaps(
-			position,
-			overlapHalfExtents,
-			overlapHits.data(),
-			static_cast<int>(overlapHits.size())
-		);
-		if (overlapCount > 1) {
-			std::sort(
-				overlapHits.begin(),
-				overlapHits.begin() + overlapCount,
-				[](const Physics::Hit& lhs, const Physics::Hit& rhs) {
-					if (lhs.hitEntityGuid != rhs.hitEntityGuid) {
-						return lhs.hitEntityGuid < rhs.hitEntityGuid;
-					}
-					if (lhs.triIndex != rhs.triIndex) {
-						return lhs.triIndex < rhs.triIndex;
-					}
-					if (lhs.depth != rhs.depth) {
-						return lhs.depth > rhs.depth;
-					}
-					if (lhs.normal.x != rhs.normal.x) {
-						return lhs.normal.x < rhs.normal.x;
-					}
-					if (lhs.normal.y != rhs.normal.y) {
-						return lhs.normal.y < rhs.normal.y;
-					}
-					if (lhs.normal.z != rhs.normal.z) {
-						return lhs.normal.z < rhs.normal.z;
-					}
-					return false;
-				}
-			);
-		}
-		for (int i = 0; i < overlapCount; ++i) {
-			const Physics::Hit& hit = overlapHits[i];
-			if (hit.hitEntityGuid == 0 || hit.hitEntityGuid == ownerGuid) {
-				continue;
-			}
-
-			const auto* mover = resolveMover(hit.hitEntityGuid);
-			if (!mover) {
-				continue;
-			}
-
-			const Entity*  moverOwner = mover->GetOwner();
-			const uint64_t moverGuid  =
-				moverOwner ? moverOwner->GetGuid() : hit.hitEntityGuid;
-			if (moverGuid == 0 || moverGuid == supportGuid) {
-				continue;
-			}
-
-			const Vec3 moverStepDelta = mover->GetStepDelta(stepSeconds);
-			if (moverStepDelta.SqrLength() <= 1.0e-12f) {
-				continue;
-			}
-
-			bool pushing = true;
-			if (hit.normal.SqrLength() > 1.0e-12f) {
-				const Vec3 n = hit.normal.Normalized();
-				pushing      = moverStepDelta.Dot(n) > 1.0e-6f;
-			}
-			if (!pushing) {
-				continue;
-			}
-
-			tryAddInfluence(moverGuid, moverStepDelta);
-		}
-
-		Physics::Engine*           physics = mCollisionResolver->GetPhysics();
-		std::vector<const Entity*> orderedEntities = {};
-		orderedEntities.reserve(scene->GetEntities().size());
-		for (const auto& entityPtr : scene->GetEntities()) {
-			if (!entityPtr) {
-				continue;
-			}
-			orderedEntities.emplace_back(entityPtr.get());
-		}
-		if (orderedEntities.size() > 1) {
-			std::ranges::sort(
-				orderedEntities,
-				[](const Entity* lhs, const Entity* rhs) {
-					return lhs->GetGuid() < rhs->GetGuid();
-				}
-			);
-		}
-
-		for (const Entity* moverEntity : orderedEntities) {
-			if (!moverEntity || !moverEntity->IsActive() ||
-			    moverEntity->GetGuid() == ownerGuid) {
-				continue;
-			}
-
-			const auto* mover = moverEntity->GetComponent<
-				KinematicMoverComponent>();
-			if (!mover || mover->WasTeleported()) {
-				continue;
-			}
-
-			const uint64_t moverGuid = moverEntity->GetGuid();
-			if (moverGuid == supportGuid || findInfluenceIndex(moverGuid) >=
-			    0) {
-				continue;
-			}
-
-			const Vec3 moverStepDelta = mover->GetStepDelta(stepSeconds);
-			if (moverStepDelta.SqrLength() <= 1.0e-12f) {
-				continue;
-			}
-
-			if (!physics) {
-				continue;
-			}
-
-			const float moverDeltaLen = moverStepDelta.Length();
-			if (moverDeltaLen <= 1.0e-6f) {
-				continue;
-			}
-
-			const Vec3 castDir = (-moverStepDelta) / moverDeltaLen;
-			const float castLength = moverDeltaLen + sweepExtra;
-			const float yOffset = mBoxHalfExtents.y * 0.5f;
-			const std::array<Vec3, 3> offsets = {
-				Vec3::zero,
-				Vec3::up * yOffset,
-				Vec3::down * yOffset
-			};
-
-			bool moverWouldTouch = false;
-			for (const Vec3& offset : offsets) {
-				Physics::Hit sweepHit{};
-				const Box    sweepBox = {
-					.center   = position + offset,
-					.halfSize = overlapHalfExtents
-				};
-				if (!physics->BoxCast(
-					sweepBox,
-					castDir,
-					castLength,
-					&sweepHit
-				)) {
-					continue;
-				}
-
-				if (resolveMover(sweepHit.hitEntityGuid) == mover) {
-					moverWouldTouch = true;
-					break;
-				}
-			}
-			if (!moverWouldTouch) {
-				continue;
-			}
-
-			tryAddInfluence(moverGuid, moverStepDelta);
-		}
-
-		UpdateCollisionHull(transform);
-		bool positionChanged = false;
-		if (influenceCount > 0) {
-			std::sort(
-				influences.begin(),
-				influences.begin() + influenceCount,
-				[](
-				const PassiveMoverInfluence& lhs,
-				const PassiveMoverInfluence& rhs
-			) {
-					const float lhsLenSq = lhs.stepDelta.SqrLength();
-					const float rhsLenSq = rhs.stepDelta.SqrLength();
-					if (lhsLenSq == rhsLenSq) {
-						return lhs.guid < rhs.guid;
-					}
-					return lhsLenSq > rhsLenSq;
-				}
-			);
-
-			for (int i = 0; i < influenceCount; ++i) {
-				const Vec3 desiredDelta = influences[i].stepDelta;
-				if (desiredDelta.SqrLength() <= 1.0e-12f) {
-					continue;
-				}
-
-				const Vec3 beforePosition = position;
-				Vec3       pseudoVelocity = desiredDelta;
-				mCollisionResolver->SlideMove(position, pseudoVelocity, 1.0f);
-
-				const Vec3 appliedDelta = position - beforePosition;
-				if (!appliedDelta.IsZero(1.0e-6f)) {
-					positionChanged = true;
-				}
-
-				const Vec3 residual = desiredDelta - appliedDelta;
-				if (residual.SqrLength() > 1.0e-10f) {
-					const Vec3 blockNormal = residual.Normalized();
-					if (mVelocity.Dot(blockNormal) < 0.0f) {
-						mVelocity =
-							BaseKinematicCollisionResolver::ClipVelocity(
-								mVelocity,
-								blockNormal,
-								1.0f
-							);
-					}
-				}
-			}
-		}
-
-		int maxDepenetrationIters = mConsole->GetConVarValueOr<int>(
-			"sv_passivepush_maxdepenetrationiters", 2
-		);
-		maxDepenetrationIters = std::clamp(maxDepenetrationIters, 0, 8);
-		for (int iter = 0; iter < maxDepenetrationIters; ++iter) {
-			const int depenHitCount = mCollisionResolver->CollectOverlaps(
-				position,
-				mBoxHalfExtents,
-				overlapHits.data(),
-				static_cast<int>(overlapHits.size())
-			);
-			if (depenHitCount > 1) {
-				std::sort(
-					overlapHits.begin(),
-					overlapHits.begin() + depenHitCount,
-					[](const Physics::Hit& lhs, const Physics::Hit& rhs) {
-						if (lhs.depth != rhs.depth) {
-							return lhs.depth > rhs.depth;
-						}
-						if (lhs.hitEntityGuid != rhs.hitEntityGuid) {
-							return lhs.hitEntityGuid < rhs.hitEntityGuid;
-						}
-						if (lhs.triIndex != rhs.triIndex) {
-							return lhs.triIndex < rhs.triIndex;
-						}
-						return false;
-					}
-				);
-			}
-
-			Vec3  correctionVector = Vec3::zero;
-			Vec3  fallbackNormal   = Vec3::zero;
-			float deepestDepth     = 0.0f;
-			int   validHitCount    = 0;
-			for (int i = 0; i < depenHitCount; ++i) {
-				const Physics::Hit& hit = overlapHits[i];
-				if (hit.hitEntityGuid == 0 || hit.hitEntityGuid == ownerGuid) {
-					continue;
-				}
-
-				if (hit.normal.SqrLength() <= 1.0e-12f) {
-					continue;
-				}
-
-				const Vec3  normal     = hit.normal.Normalized();
-				const float depenDepth = std::max(
-					0.0f,
-					hit.depth - contactSkinM
-				);
-				if (depenDepth <= 1.0e-6f) {
-					continue;
-				}
-
-				correctionVector += normal * depenDepth;
-				++validHitCount;
-				if (depenDepth > deepestDepth) {
-					deepestDepth   = depenDepth;
-					fallbackNormal = normal;
-				}
-			}
-
-			if (validHitCount <= 0 || deepestDepth <= 1.0e-6f ||
-			    fallbackNormal.IsZero()) {
-				break;
-			}
-
-			Vec3 correctionDir =
-				correctionVector.SqrLength() > 1.0e-12f ?
-					correctionVector.Normalized() :
-					fallbackNormal;
-
-			if (correctionDir.IsZero()) {
-				correctionDir = fallbackNormal;
-			}
-			if (correctionDir.IsZero()) {
-				break;
-			}
-
-			const float averageDepth = correctionVector.SqrLength() > 1.0e-12f ?
-				                           correctionVector.Length() /
-				                           static_cast<float>(validHitCount) :
-				                           deepestDepth;
-			
-			const float depenBias  = Math::HtoM(0.05f);
-			
-			const float correction = std::max(
-				                         deepestDepth * 0.5f,
-				                         averageDepth
-			                         ) +
-			                         depenBias;
-			position        += correctionDir * correction;
-			positionChanged = true;
-		}
-
-		if (positionChanged) {
-			transform->SetPosition(position);
-			UpdateCollisionHull(transform);
-		}
-		return positionChanged;
+		(void)transform;
+		(void)stepSeconds;
+		return false;
 	}
 
 	void GameMovementComponent::PublishCue(
@@ -68875,7 +68375,6 @@ namespace Unnamed {
 	class TransformComponent;
 	class InputSystem;
 	class ConsoleSystem;
-	class KinematicMoverComponent;
 	template <typename T>
 	class ConVar;
 
@@ -68921,6 +68420,12 @@ namespace Unnamed {
 			const Vec3&         worldPosition
 		);
 
+		/// @brief 動的支持面の任意点速度を取得します。
+		[[nodiscard]] Vec3 SampleSupportContactVelocity(
+			uint64_t    supportEntityGuid,
+			const Vec3& worldPoint
+		) const;
+
 		virtual void WriteReplayState(nlohmann::json& outState) const;
 		virtual void ReadReplayState(const nlohmann::json& inState);
 		[[nodiscard]] virtual uint64_t ComputeReplayStateHash() const;
@@ -68952,8 +68457,18 @@ namespace Unnamed {
 		[[nodiscard]] const MovementCapabilitySet& GetCapabilitySet() const;
 
 		[[nodiscard]] TransformComponent* GetTransform() const override;
+		[[nodiscard]] Vec3 GetSupportSamplePoint(
+			const TransformComponent* transform
+		) const;
 		[[nodiscard]] Vec3                ResolveSupportLinearVelocity(
 			uint64_t supportEntityGuid
+		) const;
+		[[nodiscard]] Vec3 ResolveSupportAngularVelocity(
+			uint64_t supportEntityGuid
+		) const;
+		[[nodiscard]] Vec3 ResolveSupportContactVelocity(
+			uint64_t    supportEntityGuid,
+			const Vec3& worldPoint
 		) const;
 		[[nodiscard]] Vec3 ResolveSupportStepDelta(
 			uint64_t supportEntityGuid, float stepSeconds
@@ -68991,7 +68506,7 @@ namespace Unnamed {
 		MovementCapabilitySet     mCapabilitySet = {};
 		MOVEMENT_MODE_ID          mCurrentModeId = MOVEMENT_MODE_ID::AIR;
 		uint64_t                  mActiveAbilityMask = 0;
-		static constexpr uint32_t kMovementRuntimeVersion = 2;
+		static constexpr uint32_t kMovementRuntimeVersion = 3;
 
 #ifdef _DEBUG
 		std::string mDebugLastPublishedCueId;
@@ -68999,6 +68514,7 @@ namespace Unnamed {
 		float       mDebugLastPublishedCueValue2 = 0.0f;
 		uint64_t    mDebugPublishedCueCount      = 0;
 #endif
+		float mCollisionDebugLogCooldownSec = 0.0f;
 	};
 }
 
@@ -70054,13 +69570,11 @@ namespace Unnamed {
 		MovementContext& context,
 		const float deltaTime
 	) {
-		const float detachBiasM = Math::HtoM(kJumpDetachBiasHu) +
-			std::max(0.0f, context.supportStepDelta.y);
+		const float detachBiasM = Math::HtoM(kJumpDetachBiasHu);
 		context.transform->SetPosition(
 			context.transform->GetPosition() + Vec3::up * detachBiasM
 		);
 
-		context.velocity += context.supportLinearVelocity;
 		context.velocity.y += Math::HtoM(
 			mConsole ? mConsole->GetConVarValueOr("sv_jumpvelocity", 420.0f) : 420.0f
 		);
@@ -70080,7 +69594,7 @@ namespace Unnamed {
 		context.supportEntityGuid = 0;
 		context.supportLinearVelocity = Vec3::zero;
 		context.supportStepDelta = Vec3::zero;
-		// 旧State遷移と同じく、同tickのMode更新でジャンプ結果が上書きされないよう抑止します。
+		// 同tickのMode更新でジャンプ結果が上書きされないよう抑止します。
 		context.modeTickSuppressed = true;
 		context.SubmitTransition(
 			MOVEMENT_MODE_ID::AIR,
@@ -70320,8 +69834,7 @@ File Path: src/game/core/components/character/state/mode/AirMovementMode.cpp
 
 namespace Unnamed {
 	namespace {
-		constexpr float kGroundProbeDistanceHu = 2.0f; // 地面判定のためのプローブ距離（HU）
-		constexpr float kGroundNormalMinY      = 0.7f; // 地面と見なすための法線の最小Y成分
+		constexpr float kGroundNormalMinY = 0.7f; // 地面と見なすための法線の最小Y成分
 
 		// これ以上の上昇速度があるときは、地面に接していてもジャンプスナップを無効化する。
 		constexpr float kNonJumpVelHu = 250.0f; // デフォは140
@@ -70415,7 +69928,7 @@ namespace Unnamed {
 
 	void AirMovementMode::AirAccelerate(
 		Vec3&       currentVel,
-		Vec3        wishDir,
+		const Vec3  wishDir,
 		const float wishSpeed,
 		const float accel,
 		const float deltaTime
@@ -70455,9 +69968,17 @@ namespace Unnamed {
 			return false;
 		}
 
+		const float probeDistanceHu = mConsole ?
+			                              mConsole->GetConVarValueOr(
+				                              "sv_groundprobe_distance_hu", 6.0f
+			                              ) :
+			                              6.0f;
+
 		Physics::Hit hit{};
 		if (!resolver->ProbeGround(
-			position, Math::HtoM(kGroundProbeDistanceHu), &hit
+			position,
+			Math::HtoM(std::max(0.0f, probeDistanceHu)),
+			&hit
 		)) {
 			return false;
 		}
@@ -70532,7 +70053,6 @@ File Path: src/game/core/components/character/state/mode/GroundMovementMode.cpp
 
 namespace Unnamed {
 	namespace {
-		constexpr float kGroundProbeDistanceHu = 2.0f;
 		constexpr float kGroundNormalMinY = 0.7f;
 	}
 
@@ -70542,12 +70062,11 @@ namespace Unnamed {
 			return;
 		}
 		mConsole = console;
-		mRebaseVelocityToSupportOnFirstTick = true;
 	}
 
 	void GroundMovementMode::Tick(
 		MovementContext& context,
-		const float deltaTime
+		const float      deltaTime
 	) {
 		if (mConsole->GetConVarValueOr("noclip", false)) {
 			context.SubmitTransition(
@@ -70560,10 +70079,6 @@ namespace Unnamed {
 		}
 
 		context.isGrounded = false;
-		if (mRebaseVelocityToSupportOnFirstTick) {
-			context.velocity -= context.supportLinearVelocity;
-			mRebaseVelocityToSupportOnFirstTick = false;
-		}
 
 		Vec3 wishDir = GetWishDirHoriz(context);
 		if (!wishDir.IsZero()) {
@@ -70585,12 +70100,18 @@ namespace Unnamed {
 			);
 		}
 
-		float currentMaxSpeed = mConsole->GetConVarValueOr("sv_walkspeed", 150.0f);
+		float currentMaxSpeed = mConsole->GetConVarValueOr(
+			"sv_walkspeed", 150.0f
+		);
 		if (context.movementComponent &&
 		    context.movementComponent->UseSprintSpeedAsDefaultGroundSpeed()) {
-			currentMaxSpeed = mConsole->GetConVarValueOr("sv_sprintspeed", 320.0f);
+			currentMaxSpeed = mConsole->GetConVarValueOr(
+				"sv_sprintspeed", 320.0f
+			);
 		} else if (context.input.sprintPressed) {
-			currentMaxSpeed = mConsole->GetConVarValueOr("sv_sprintspeed", 320.0f);
+			currentMaxSpeed = mConsole->GetConVarValueOr(
+				"sv_sprintspeed", 320.0f
+			);
 		}
 		if (context.IsAbilityActive(MOVEMENT_ABILITY_SLOT::CROUCH)) {
 			currentMaxSpeed = mConsole->GetConVarValueOr("sv_duckspeed", 63.3f);
@@ -70605,10 +70126,10 @@ namespace Unnamed {
 		);
 
 		KinematicMoveQuery query = {
-			.position = context.transform->GetPosition(),
-			.velocity = context.velocity,
+			.position    = context.transform->GetPosition(),
+			.velocity    = context.velocity,
 			.halfExtents = context.halfExtents,
-			.deltaTime = deltaTime
+			.deltaTime   = deltaTime
 		};
 		context.resolver->StepMove(
 			query.position,
@@ -70622,9 +70143,9 @@ namespace Unnamed {
 
 		Physics::Hit groundHit{};
 		if (!IsGrounded(context.resolver, query.position, &groundHit)) {
-			context.supportEntityGuid = 0;
-			context.supportLinearVelocity = Vec3::zero;
-			context.supportStepDelta = Vec3::zero;
+			context.supportEntityGuid      = 0;
+			context.supportLinearVelocity  = Vec3::zero;
+			context.supportStepDelta       = Vec3::zero;
 			context.SubmitTransition(
 				MOVEMENT_MODE_ID::AIR,
 				MOVEMENT_TRANSITION_PRIORITY::MODE_SAFETY,
@@ -70634,9 +70155,9 @@ namespace Unnamed {
 			return;
 		}
 
-		context.isGrounded = true;
+		context.isGrounded        = true;
 		context.supportEntityGuid = groundHit.hitEntityGuid;
-		context.velocity.y = 0.0f;
+		context.velocity.y        = 0.0f;
 	}
 
 	void GroundMovementMode::Exit() {}
@@ -70650,14 +70171,14 @@ namespace Unnamed {
 	}
 
 	void GroundMovementMode::ApplyFriction(
-		Vec3& velocity,
+		Vec3&       velocity,
 		const float amount,
 		const float deltaTime
 	) const {
-		Vec3 velHorz = velocity;
-		velHorz.y = 0.0f;
+		Vec3 velHorz       = velocity;
+		velHorz.y          = 0.0f;
 		const float speedM = velHorz.Length();
-		const float speed = Math::MtoH(speedM);
+		const float speed  = Math::MtoH(speedM);
 		if (speed < 0.1f) {
 			return;
 		}
@@ -70665,7 +70186,7 @@ namespace Unnamed {
 		const float stop = mConsole->GetConVarValueOr("sv_stopspeed", speed);
 		const float ctrl = speed < stop ? stop : speed;
 		const float drop = ctrl * amount * deltaTime;
-		float newSpeed = std::max(0.0f, speed - drop);
+		float       newSpeed = std::max(0.0f, speed - drop);
 		if (newSpeed != speed) {
 			newSpeed /= speed;
 			velocity *= newSpeed;
@@ -70673,8 +70194,8 @@ namespace Unnamed {
 	}
 
 	void GroundMovementMode::Accelerate(
-		Vec3& currentVel,
-		Vec3 wishDir,
+		Vec3&       currentVel,
+		Vec3        wishDir,
 		const float wishSpeed,
 		const float accel,
 		const float deltaTime
@@ -70683,32 +70204,44 @@ namespace Unnamed {
 			return;
 		}
 
-		const float maxGroundSpeed = mConsole->GetConVarValueOr("sv_maxspeed", 320.0f);
+		const float maxGroundSpeed = mConsole->GetConVarValueOr(
+			"sv_maxspeed", 320.0f
+		);
 		const float wishSpd = std::min(wishSpeed, maxGroundSpeed);
 
 		Vec3 currentHorizontal = Math::MtoH(currentVel);
-		currentHorizontal.y = 0.0f;
-		const float cur = currentHorizontal.Dot(wishDir);
-		const float add = wishSpd - cur;
+		currentHorizontal.y    = 0.0f;
+		const float cur        = currentHorizontal.Dot(wishDir);
+		const float add        = wishSpd - cur;
 		if (add <= 0.0f) {
 			return;
 		}
 
 		const float acc = std::min(accel * wishSpd * deltaTime, add);
-		currentVel += Math::HtoM(acc) * wishDir;
+		currentVel      += Math::HtoM(acc) * wishDir;
 	}
 
 	bool GroundMovementMode::IsGrounded(
 		const BaseKinematicCollisionResolver* resolver,
-		const Vec3& position,
-		Physics::Hit* outHit
+		const Vec3&                           position,
+		Physics::Hit*                         outHit
 	) const {
 		if (!resolver) {
 			return false;
 		}
 
+		const float probeDistanceHu = mConsole ?
+			                              mConsole->GetConVarValueOr(
+				                              "sv_groundprobe_distance_hu", 6.0f
+			                              ) :
+			                              6.0f;
+
 		Physics::Hit hit{};
-		if (!resolver->ProbeGround(position, Math::HtoM(kGroundProbeDistanceHu), &hit)) {
+		if (!resolver->ProbeGround(
+			position,
+			Math::HtoM(std::max(0.0f, probeDistanceHu)),
+			&hit
+		)) {
 			return false;
 		}
 
@@ -70717,7 +70250,7 @@ namespace Unnamed {
 		}
 
 		return hit.startSolid || hit.allsolid || hit.normal.y >
-			kGroundNormalMinY;
+		       kGroundNormalMinY;
 	}
 }
 
@@ -70748,18 +70281,16 @@ namespace Unnamed {
 		void ApplyFriction(Vec3& velocity, float amount, float deltaTime) const;
 		void Accelerate(
 			Vec3& currentVel,
-			Vec3 wishDir,
+			Vec3  wishDir,
 			float wishSpeed,
 			float accel,
 			float deltaTime
 		) const;
 		[[nodiscard]] bool IsGrounded(
 			const BaseKinematicCollisionResolver* resolver,
-			const Vec3& position,
-			Physics::Hit* outHit = nullptr
+			const Vec3&                           position,
+			Physics::Hit*                         outHit = nullptr
 		) const;
-
-		bool mRebaseVelocityToSupportOnFirstTick = false;
 	};
 }
 
@@ -71169,6 +70700,10 @@ namespace Unnamed {
 		transform->SetRotation(transform->GetRotation() * deltaRotation);
 	}
 
+	BaseComponent::TICK_GROUP RotatorComponent::GetTickGroup() const {
+		return TICK_GROUP::EARLY;
+	}
+
 	void RotatorComponent::Deserialize(const JsonReader& reader) {
 		const JsonReader rotationRate = reader["rotationRate"];
 		if (rotationRate.Valid() && rotationRate.Size() >= 3) {
@@ -71232,6 +70767,7 @@ namespace Unnamed {
 	class RotatorComponent final : public BaseComponent {
 	public:
 		void OnTick(float deltaTime) override;
+		[[nodiscard]] TICK_GROUP GetTickGroup() const override;
 
 		[[nodiscard]] std::string_view GetStableName() const override {
 			return "game.Rotator";
@@ -82347,7 +81883,6 @@ File Path: src/game/core/replay/ReplaySerializerRegistry.cpp
 
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
-#include "engine/unnamed/framework/components/kinematic/KinematicMoverComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 
 #include "game/core/components/CameraRotatorComponent.h"
@@ -82514,33 +82049,6 @@ namespace Unnamed {
 					ReplayHash::AppendFloating(hash, scale.y);
 					ReplayHash::AppendFloating(hash, scale.z);
 					return hash;
-				}
-			}
-		);
-
-		registry.RegisterComponentSerializer(
-			{
-				.stableName = "engine.KinematicMover",
-				.writeState =
-					[](const BaseComponent& component, nlohmann::json& outState) {
-						if (const auto* typed = dynamic_cast<
-								const KinematicMoverComponent*>(&component)) {
-							typed->WriteReplayState(outState);
-						}
-					},
-				.readState =
-					[](BaseComponent& component, const nlohmann::json& inState) {
-						if (auto* typed = dynamic_cast<KinematicMoverComponent*>(
-								&component)) {
-							typed->ReadReplayState(inState);
-						}
-					},
-				.hashState = [](const BaseComponent& component) -> uint64_t {
-					if (const auto* typed = dynamic_cast<
-							const KinematicMoverComponent*>(&component)) {
-						return typed->ComputeReplayStateHash();
-					}
-					return 0ull;
 				}
 			}
 		);
@@ -85091,14 +84599,12 @@ namespace Unnamed {
 			}
 
 			const float detachBiasM =
-				Math::HtoM(kJumpDetachBiasHu) +
-				std::max(0.0f, context.supportStepDelta.y);
+				Math::HtoM(kJumpDetachBiasHu);
 
 			context.transform->SetPosition(
 				context.transform->GetPosition() + Vec3::up * detachBiasM
 			);
 
-			context.velocity   += context.supportLinearVelocity;
 			context.velocity.y += Math::HtoM(
 				console ?
 					console->GetConVarValueOr("sv_jumpvelocity", 420.0f) :
@@ -88664,1446 +88170,6 @@ namespace Unnamed {
 
 
 ============================================================
-File Path: src/game/parkour/components/cutscene/GameStartCutsceneComponent.cpp
-============================================================
-#include "GameStartCutsceneComponent.h"
-
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <cstddef>
-#include <cstring>
-#include <ranges>
-
-#ifdef _DEBUG
-#include <imgui.h>
-#endif
-
-#include "core/ComponentRegistry.h"
-#include "core/io/json/JsonReader.h"
-#include "core/io/json/JsonWriter.h"
-#include "core/math/Math.h"
-#include "core/math/Quaternion.h"
-
-#include "engine/ImGui/Icons.h"
-#include "engine/gui/Rect.h"
-#include "engine/gui/UiRoot.h"
-#include "engine/gui/UiWidget.h"
-#include "engine/gui/components/UiTextureComponent.h"
-#include "engine/gui/components/UiTransformComponent.h"
-#include "engine/scene/Scene.h"
-#include "engine/unnamed/framework/components/TransformComponent.h"
-#include "engine/unnamed/framework/components/audio/AudioSourceComponent.h"
-#include "engine/unnamed/framework/components/ui/UiCanvasComponent.h"
-#include "engine/unnamed/framework/entity/Entity.h"
-#include "engine/unnamed/subsystem/input/InputSystem.h"
-#include "engine/world/World.h"
-
-#include "game/core/components/CameraRotatorComponent.h"
-#include "game/core/replay/DemoManager.h"
-
-namespace Unnamed {
-	namespace {
-		constexpr float kMinDurationSec = 0.01f;
-
-#ifdef _DEBUG
-		template <size_t N>
-		void DrawStringInput(const char* label, std::string& value) {
-			std::array<char, N> buffer = {};
-			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLen);
-			}
-			if (ImGui::InputText(label, buffer.data(), buffer.size())) {
-				value = buffer.data();
-			}
-		}
-#endif
-	}
-
-	void GameStartCutsceneComponent::OnAttached() {
-		StartSequence();
-	}
-
-	void GameStartCutsceneComponent::OnTick(const float deltaTime) {
-		if (!mSequenceActive || mPhase == PHASE::GAMEPLAY) {
-			return;
-		}
-
-		const float clampedDelta = std::max(0.0f, deltaTime);
-		switch (mPhase) {
-			case PHASE::TOUR: TickTour(clampedDelta); break;
-			case PHASE::COUNTDOWN: TickCountdown(clampedDelta); break;
-			case PHASE::GAMEPLAY:
-			default: break;
-		}
-	}
-
-	void GameStartCutsceneComponent::OnEditorTick(const float) {
-		DrawShotDebugAxes();
-	}
-
-	void GameStartCutsceneComponent::OnDetached() {
-		RestoreLockTargets();
-		HideAllCutsceneWidgets();
-
-		mSequenceActive        = false;
-		mHasSavedGameplayPose  = false;
-		mHasCountdownFixedPose = false;
-		mPhase                 = PHASE::GAMEPLAY;
-		mLastCountdownCueStep  = -1;
-		mGameplayControlReleased = false;
-
-		// シーン破棄中は Scene::FindEntity が安全に使えないため、再解決せずにキャッシュだけ破棄します。
-		ClearResolvedBindings();
-	}
-
-	void GameStartCutsceneComponent::DrawShotDebugAxes() const {
-		World* world = GetWorld();
-		if (!world) {
-			return;
-		}
-
-		auto& debugDraw = world->GetDebugDraw();
-		for (const ShotSpec& shot : mShots) {
-			const auto drawShotAxis = [&debugDraw](
-				const Vec3& cameraPos,
-				const Vec3& lookAtPos,
-				const float axisLength
-			) {
-				Vec3 forward = lookAtPos - cameraPos;
-				if (forward.IsZero()) {
-					forward = Vec3::forward;
-				} else {
-					forward.Normalize();
-				}
-
-				// 視線と平行になりにくいアップ候補を選び、安定した直交基底を作ります。
-				const Vec3 worldUp =
-					std::abs(forward.Dot(Vec3::up)) > 0.99f ?
-						Vec3::forward :
-						Vec3::up;
-				Vec3 right = worldUp.Cross(forward);
-				if (right.IsZero()) {
-					right = Vec3::right;
-				} else {
-					right.Normalize();
-				}
-				Vec3 up = forward.Cross(right);
-				if (up.IsZero()) {
-					up = Vec3::up;
-				} else {
-					up.Normalize();
-				}
-
-				debugDraw.DrawAxis(
-					cameraPos,
-					right * axisLength,
-					up * axisLength,
-					forward * axisLength
-				);
-			};
-
-			// 各ショットの開始点/終了点の両方を可視化して、座標調整をしやすくします。
-			constexpr float kAxisLength = 1.5f;
-			drawShotAxis(shot.startPos, shot.startLook, kAxisLength);
-			drawShotAxis(shot.endPos, shot.endLook, kAxisLength);
-		}
-	}
-
-	std::string_view GameStartCutsceneComponent::GetStableName() const {
-		return "parkour.GameStartCutscene";
-	}
-
-	std::string_view GameStartCutsceneComponent::GetComponentName() const {
-		return "GameStartCutscene";
-	}
-
-	uint32_t GameStartCutsceneComponent::GetIcon() const {
-		return kIconVideoCam;
-	}
-
-#ifdef _DEBUG
-	void GameStartCutsceneComponent::DrawInspectorImGui() {
-		ImGui::InputScalar(
-			"Camera Root Entity Guid",
-			ImGuiDataType_U64,
-			&mCameraRootEntityGuid
-		);
-		ImGui::InputScalar(
-			"Camera Rotator Component Guid",
-			ImGuiDataType_U64,
-			&mCameraRotatorComponentGuid
-		);
-		ImGui::InputScalar(
-			"Hud Canvas Entity Guid",
-			ImGuiDataType_U64,
-			&mHudCanvasEntityGuid
-		);
-		ImGui::InputScalar(
-			"Count Audio Source Guid",
-			ImGuiDataType_U64,
-			&mCountAudioSourceGuid
-		);
-		ImGui::InputScalar(
-			"Start Audio Source Guid",
-			ImGuiDataType_U64,
-			&mStartAudioSourceGuid
-		);
-
-		DrawStringInput<64>("Skip Action", mSkipAction);
-		DrawStringInput<64>("Digit Widget Name", mCountdownDigitWidgetName);
-		DrawStringInput<64>("Start Widget Name", mCountdownStartWidgetName);
-		DrawStringInput<64>("Fade Widget Name", mFadeOverlayWidgetName);
-
-		ImGui::DragFloat("Fade Out Seconds", &mFadeOutSeconds, 0.01f, 0.01f, 3.0f);
-		ImGui::DragFloat("Fade In Seconds", &mFadeInSeconds, 0.01f, 0.01f, 3.0f);
-		ImGui::DragFloat(
-			"Countdown Digit Seconds",
-			&mCountdownDigitSeconds,
-			0.01f,
-			0.01f,
-			3.0f
-		);
-		ImGui::DragFloat(
-			"Countdown Start Seconds",
-			&mCountdownStartSeconds,
-			0.01f,
-			0.01f,
-			3.0f
-		);
-
-		ImGui::SeparatorText("Shots");
-		if (ImGui::Button("Add Shot")) {
-			mShots.emplace_back();
-		}
-		for (size_t i = 0; i < mShots.size(); ++i) {
-			ImGui::PushID(static_cast<int>(i));
-			ShotSpec& shot = mShots[i];
-			ImGui::Text("Shot %llu", static_cast<unsigned long long>(i));
-			ImGui::DragFloat3("Start Pos", &shot.startPos.x, 0.1f);
-			ImGui::DragFloat3("End Pos", &shot.endPos.x, 0.1f);
-			ImGui::DragFloat3("Start Look", &shot.startLook.x, 0.1f);
-			ImGui::DragFloat3("End Look", &shot.endLook.x, 0.1f);
-			ImGui::DragFloat("Duration", &shot.durationSeconds, 0.01f, 0.01f, 20.0f);
-			if (ImGui::Button("Remove Shot")) {
-				mShots.erase(mShots.begin() + static_cast<ptrdiff_t>(i));
-				ImGui::PopID();
-				break;
-			}
-			ImGui::Separator();
-			ImGui::PopID();
-		}
-
-		ImGui::SeparatorText("Lock Targets");
-		if (ImGui::Button("Add Lock Target")) {
-			mLockTargets.emplace_back();
-		}
-		for (size_t i = 0; i < mLockTargets.size(); ++i) {
-			ImGui::PushID(1000 + static_cast<int>(i));
-			LockTargetSpec& spec = mLockTargets[i];
-			ImGui::InputScalar("Entity Guid", ImGuiDataType_U64, &spec.entityGuid);
-			DrawStringInput<96>("Component StableName", spec.componentStableName);
-			if (ImGui::Button("Remove Lock")) {
-				mLockTargets.erase(mLockTargets.begin() + static_cast<ptrdiff_t>(i));
-				ImGui::PopID();
-				break;
-			}
-			ImGui::Separator();
-			ImGui::PopID();
-		}
-	}
-#endif
-
-	void GameStartCutsceneComponent::Deserialize(const JsonReader& reader) {
-		if (const JsonReader node = reader["cameraRootEntityGuid"]; node.Valid()) {
-			mCameraRootEntityGuid = node.GetUint64();
-		}
-		if (const JsonReader node = reader["cameraRotatorComponentGuid"];
-			node.Valid()) {
-			mCameraRotatorComponentGuid = node.GetUint64();
-		}
-		if (const JsonReader node = reader["hudCanvasEntityGuid"]; node.Valid()) {
-			mHudCanvasEntityGuid = node.GetUint64();
-		}
-		if (const JsonReader node = reader["countAudioSourceGuid"]; node.Valid()) {
-			mCountAudioSourceGuid = node.GetUint64();
-		}
-		if (const JsonReader node = reader["startAudioSourceGuid"]; node.Valid()) {
-			mStartAudioSourceGuid = node.GetUint64();
-		}
-
-		mSkipAction = reader["skipAction"].GetString(mSkipAction);
-		if (mSkipAction.empty()) {
-			mSkipAction = "jump";
-		}
-
-		mCountdownDigitWidgetName = reader["countdownDigitWidgetName"].GetString(
-			mCountdownDigitWidgetName
-		);
-		mCountdownStartWidgetName = reader["countdownStartWidgetName"].GetString(
-			mCountdownStartWidgetName
-		);
-		mFadeOverlayWidgetName = reader["fadeOverlayWidgetName"].GetString(
-			mFadeOverlayWidgetName
-		);
-
-		if (const JsonReader node = reader["fadeOutSeconds"]; node.Valid()) {
-			mFadeOutSeconds = std::max(
-				kMinDurationSec,
-				node.GetFloat(mFadeOutSeconds)
-			);
-		}
-		if (const JsonReader node = reader["fadeInSeconds"]; node.Valid()) {
-			mFadeInSeconds = std::max(
-				kMinDurationSec,
-				node.GetFloat(mFadeInSeconds)
-			);
-		}
-		if (const JsonReader node = reader["countdownDigitSeconds"]; node.Valid()) {
-			mCountdownDigitSeconds = std::max(
-				kMinDurationSec,
-				node.GetFloat(mCountdownDigitSeconds)
-			);
-		}
-		if (const JsonReader node = reader["countdownStartSeconds"]; node.Valid()) {
-			mCountdownStartSeconds = std::max(
-				kMinDurationSec,
-				node.GetFloat(mCountdownStartSeconds)
-			);
-		}
-
-		if (const JsonReader shotsNode = reader["shots"]; shotsNode.Valid()) {
-			const JsonReader shotArray = shotsNode.GetArray();
-			std::vector<ShotSpec> parsedShots = {};
-			parsedShots.reserve(shotArray.Size());
-			for (size_t i = 0; i < shotArray.Size(); ++i) {
-				const JsonReader shotNode = shotArray[i];
-				if (!shotNode.Valid()) {
-					continue;
-				}
-
-				ShotSpec shot = {};
-				shot.startPos = shotNode["startPos"].GetVec3(shot.startPos);
-				shot.endPos   = shotNode["endPos"].GetVec3(shot.endPos);
-				shot.startLook = shotNode["startLook"].GetVec3(shot.startLook);
-				shot.endLook   = shotNode["endLook"].GetVec3(shot.endLook);
-				shot.durationSeconds = std::max(
-					kMinDurationSec,
-					shotNode["durationSeconds"].GetFloat(shot.durationSeconds)
-				);
-				parsedShots.emplace_back(shot);
-			}
-			if (!parsedShots.empty()) {
-				mShots = std::move(parsedShots);
-			}
-		}
-
-		if (const JsonReader lockNode = reader["lockTargets"]; lockNode.Valid()) {
-			const JsonReader lockArray = lockNode.GetArray();
-			mLockTargets.clear();
-			mLockTargets.reserve(lockArray.Size());
-			for (size_t i = 0; i < lockArray.Size(); ++i) {
-				const JsonReader item = lockArray[i];
-				if (!item.Valid()) {
-					continue;
-				}
-
-				LockTargetSpec spec = {};
-				if (const JsonReader entityNode = item["entityGuid"];
-					entityNode.Valid()) {
-					spec.entityGuid = entityNode.GetUint64();
-				}
-				spec.componentStableName = item["componentStableName"].GetString(
-					spec.componentStableName
-				);
-				if (spec.componentStableName.empty()) {
-					continue;
-				}
-				mLockTargets.emplace_back(std::move(spec));
-			}
-		}
-	}
-
-	void GameStartCutsceneComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("cameraRootEntityGuid");
-		writer.Write(mCameraRootEntityGuid);
-		writer.Key("cameraRotatorComponentGuid");
-		writer.Write(mCameraRotatorComponentGuid);
-		writer.Key("hudCanvasEntityGuid");
-		writer.Write(mHudCanvasEntityGuid);
-		writer.Key("countAudioSourceGuid");
-		writer.Write(mCountAudioSourceGuid);
-		writer.Key("startAudioSourceGuid");
-		writer.Write(mStartAudioSourceGuid);
-		writer.Key("skipAction");
-		writer.Write(mSkipAction);
-
-		writer.Key("countdownDigitWidgetName");
-		writer.Write(mCountdownDigitWidgetName);
-		writer.Key("countdownStartWidgetName");
-		writer.Write(mCountdownStartWidgetName);
-		writer.Key("fadeOverlayWidgetName");
-		writer.Write(mFadeOverlayWidgetName);
-
-		writer.Key("fadeOutSeconds");
-		writer.Write(mFadeOutSeconds);
-		writer.Key("fadeInSeconds");
-		writer.Write(mFadeInSeconds);
-		writer.Key("countdownDigitSeconds");
-		writer.Write(mCountdownDigitSeconds);
-		writer.Key("countdownStartSeconds");
-		writer.Write(mCountdownStartSeconds);
-
-		writer.Key("shots");
-		writer.BeginArray();
-		for (const ShotSpec& shot : mShots) {
-			SerializeShot(writer, shot);
-		}
-		writer.EndArray();
-
-		writer.Key("lockTargets");
-		writer.BeginArray();
-		for (const LockTargetSpec& spec : mLockTargets) {
-			SerializeLockTarget(writer, spec);
-		}
-		writer.EndArray();
-	}
-
-	void GameStartCutsceneComponent::StartSequence() {
-		ResolveBindings();
-		HideAllCutsceneWidgets();
-
-		mFadeAlpha               = 0.0f;
-		mShotIndex               = 0;
-		mShotElapsedSeconds      = 0.0f;
-		mCountdownElapsedSeconds = 0.0f;
-		mShotFadeActive          = false;
-		mShotFadeSwapped         = false;
-		mLastCountdownCueStep    = -1;
-		mHasCountdownFixedPose   = false;
-		mGameplayControlReleased = false;
-		mSequenceActive          = true;
-
-		// Demo再生時は演出を完全にスキップし、入力ロックも行いません。
-		if (DemoManager* demo = GetDemoManager(); demo && demo->IsPlayback()) {
-			mHasSavedGameplayPose = false;
-			EnterGameplay();
-			return;
-		}
-
-		mHasSavedGameplayPose = false;
-		if (mCameraRootTransform) {
-			mSavedGameplayCameraPosition = mCameraRootTransform->GetPosition();
-			mHasSavedGameplayPose        = true;
-		}
-		if (mCameraRotator) {
-			mSavedGameplayLookAngles = mCameraRotator->GetLookAnglesDegrees();
-			mHasSavedGameplayPose    = true;
-		} else if (mCameraRootTransform) {
-			const Vec3 euler = mCameraRootTransform->GetRotation().ToEulerDegrees();
-			mSavedGameplayLookAngles = Vec2(euler.x, euler.y);
-			mHasSavedGameplayPose    = true;
-		}
-
-		ApplyLockTargets();
-		mPhase = PHASE::TOUR;
-		if (mShots.empty()) {
-			EnterCountdown();
-			return;
-		}
-
-		const ShotSpec& firstShot = mShots[0];
-		ApplyCameraPose(firstShot.startPos, firstShot.startLook);
-		UpdateHudWidgets();
-	}
-
-	void GameStartCutsceneComponent::TickTour(const float deltaTime) {
-		if (!mSkipAction.empty()) {
-			if (const InputSystem* input = GetInputSystem()) {
-				if (input->IsPressed(mSkipAction)) {
-					EnterCountdown();
-					return;
-				}
-			}
-		}
-
-		if (mShots.empty()) {
-			EnterCountdown();
-			return;
-		}
-
-		const ShotSpec& shot = mShots[mShotIndex];
-		const float duration = std::max(kMinDurationSec, shot.durationSeconds);
-		mShotElapsedSeconds += deltaTime;
-
-		const float rawT = std::clamp(mShotElapsedSeconds / duration, 0.0f, 1.0f);
-		const float easedT = EvaluateEase(rawT);
-		const Vec3 cameraPos = Math::Lerp(shot.startPos, shot.endPos, easedT);
-		const Vec3 lookAtPos = Math::Lerp(shot.startLook, shot.endLook, easedT);
-		ApplyCameraPose(cameraPos, lookAtPos);
-
-		const bool hasNextShot = mShotIndex + 1 < mShots.size();
-		if (hasNextShot && !mShotFadeSwapped) {
-			const float fadeOutDuration = std::max(kMinDurationSec, mFadeOutSeconds);
-			const float fadeOutStartSec = std::max(0.0f, duration - fadeOutDuration);
-			if (mShotElapsedSeconds >= fadeOutStartSec) {
-				const float fadeOutT = std::clamp(
-					(mShotElapsedSeconds - fadeOutStartSec) / fadeOutDuration,
-					0.0f,
-					1.0f
-				);
-				mShotFadeActive = true;
-				mFadeAlpha      = EvaluateEase(fadeOutT);
-			} else if (!mShotFadeActive) {
-				mFadeAlpha = 0.0f;
-			}
-		}
-
-		if (rawT >= 1.0f) {
-			if (hasNextShot) {
-				++mShotIndex;
-				mShotElapsedSeconds = 0.0f;
-				mShotFadeActive     = true;
-				mShotFadeSwapped    = true;
-				mFadeAlpha          = 1.0f;
-
-				const ShotSpec& nextShot = mShots[mShotIndex];
-				ApplyCameraPose(nextShot.startPos, nextShot.startLook);
-			} else {
-				mFadeAlpha = 0.0f;
-				EnterCountdown();
-				return;
-			}
-		}
-
-		if (mShotFadeActive && mShotFadeSwapped) {
-			const float fadeInDuration = std::max(kMinDurationSec, mFadeInSeconds);
-			const float fadeInT = std::clamp(
-				mShotElapsedSeconds / fadeInDuration,
-				0.0f,
-				1.0f
-			);
-			mFadeAlpha = 1.0f - EvaluateEase(fadeInT);
-			if (fadeInT >= 1.0f) {
-				mFadeAlpha       = 0.0f;
-				mShotFadeActive  = false;
-				mShotFadeSwapped = false;
-			}
-		}
-
-		UpdateHudWidgets();
-	}
-
-	void GameStartCutsceneComponent::TickCountdown(const float deltaTime) {
-		mCountdownElapsedSeconds += deltaTime;
-		const float digitDuration = std::max(kMinDurationSec, mCountdownDigitSeconds);
-		const float digitTotalDuration = digitDuration * 3.0f;
-		const float totalDuration = digitTotalDuration + std::max(
-			kMinDurationSec,
-			mCountdownStartSeconds
-		);
-
-		// START表示に入るタイミングでプレイヤー操作を解放します。
-		if (
-			!mGameplayControlReleased &&
-			mCountdownElapsedSeconds >= digitTotalDuration
-		) {
-			RestoreLockTargets();
-			mHasCountdownFixedPose    = false;
-			mGameplayControlReleased  = true;
-		}
-
-		// 演出中の視点ぶれを防ぐため、固定姿勢を毎フレーム再適用します。
-		if (mHasCountdownFixedPose) {
-			ApplyLookAnglesAndPosition(
-				mCountdownFixedPosition,
-				mCountdownFixedLookAngles
-			);
-		}
-
-		UpdateCountdownAudio();
-		UpdateHudWidgets();
-
-		if (mCountdownElapsedSeconds >= totalDuration) {
-			EnterGameplay();
-		}
-	}
-
-	void GameStartCutsceneComponent::EnterCountdown() {
-		mPhase                  = PHASE::COUNTDOWN;
-		mCountdownElapsedSeconds = 0.0f;
-		mShotElapsedSeconds     = 0.0f;
-		mFadeAlpha              = 0.0f;
-		mShotFadeActive         = false;
-		mShotFadeSwapped        = false;
-		mLastCountdownCueStep   = -1;
-		mGameplayControlReleased = false;
-
-		// Branch挙動に合わせ、カウント開始はプレイヤー基準姿勢へ戻します。
-		if (mHasSavedGameplayPose) {
-			ApplyLookAnglesAndPosition(
-				mSavedGameplayCameraPosition,
-				mSavedGameplayLookAngles
-			);
-			mCountdownFixedPosition   = mSavedGameplayCameraPosition;
-			mCountdownFixedLookAngles = mSavedGameplayLookAngles;
-			mHasCountdownFixedPose    = true;
-		} else if (mCameraRootTransform) {
-			mCountdownFixedPosition = mCameraRootTransform->GetPosition();
-			if (mCameraRotator) {
-				mCountdownFixedLookAngles = mCameraRotator->GetLookAnglesDegrees();
-			} else {
-				const Vec3 euler = mCameraRootTransform->GetRotation().ToEulerDegrees();
-				mCountdownFixedLookAngles = Vec2(euler.x, euler.y);
-			}
-			mHasCountdownFixedPose = true;
-		}
-
-		UpdateCountdownAudio();
-		UpdateHudWidgets();
-	}
-
-	void GameStartCutsceneComponent::EnterGameplay() {
-		mPhase                 = PHASE::GAMEPLAY;
-		mSequenceActive        = false;
-		mFadeAlpha             = 0.0f;
-		mHasCountdownFixedPose = false;
-		mGameplayControlReleased = true;
-
-		RestoreLockTargets();
-		ResolveBindings();
-		HideAllCutsceneWidgets();
-	}
-
-	void GameStartCutsceneComponent::UpdateCountdownAudio() {
-		const float digitDuration = std::max(kMinDurationSec, mCountdownDigitSeconds);
-		const float digitTotalDuration = digitDuration * 3.0f;
-		const float totalDuration = digitTotalDuration + std::max(
-			kMinDurationSec,
-			mCountdownStartSeconds
-		);
-
-		int cueStep = -1;
-		if (mCountdownElapsedSeconds < digitTotalDuration) {
-			const int digit = 3 - static_cast<int>(mCountdownElapsedSeconds / digitDuration);
-			cueStep          = std::clamp(digit, 1, 3);
-		} else if (mCountdownElapsedSeconds < totalDuration) {
-			cueStep = 0;
-		}
-
-		if (cueStep == mLastCountdownCueStep) {
-			return;
-		}
-		mLastCountdownCueStep = cueStep;
-
-		if (cueStep >= 1) {
-			if (mCountAudioSource) {
-				mCountAudioSource->Play();
-			}
-		} else if (cueStep == 0) {
-			if (mStartAudioSource) {
-				mStartAudioSource->Play();
-			}
-		}
-	}
-
-	void GameStartCutsceneComponent::UpdateHudWidgets() {
-		ResolveBindings();
-		if (!mHudCanvas || !mHudCanvas->EnsureRuntimeLoaded()) {
-			return;
-		}
-
-		UpdateFadeOverlayWidget();
-		if (mPhase == PHASE::COUNTDOWN) {
-			UpdateCountdownWidgets();
-		} else {
-			HideCountdownWidgets();
-		}
-	}
-
-	void GameStartCutsceneComponent::UpdateFadeOverlayWidget() const {
-		if (!mFadeOverlayWidget || !mFadeOverlayTexture) {
-			return;
-		}
-
-		const float alpha = std::clamp(mFadeAlpha, 0.0f, 1.0f);
-		const bool visible = alpha > 0.001f && mPhase != PHASE::GAMEPLAY;
-		mFadeOverlayWidget->SetVisible(visible);
-
-		Gui::Color color = mFadeOverlayTexture->GetColor();
-		color.r          = 0.0f;
-		color.g          = 0.0f;
-		color.b          = 0.0f;
-		color.a          = visible ? alpha : 0.0f;
-		mFadeOverlayTexture->SetColor(color);
-		mFadeOverlayWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
-	}
-
-	void GameStartCutsceneComponent::UpdateCountdownWidgets() const {
-		if (
-			!mCountdownDigitWidget || !mCountdownDigitTransform ||
-			!mCountdownDigitTexture || !mCountdownStartWidget ||
-			!mCountdownStartTransform || !mCountdownStartTexture
-		) {
-			return;
-		}
-
-		Vec2 viewportSize = Vec2::zero;
-		if (!ResolveViewportSize(viewportSize)) {
-			return;
-		}
-
-		const float viewW = std::max(1.0f, viewportSize.x);
-		const float viewH = std::max(1.0f, viewportSize.y);
-		const float centerOffsetY = viewH * 0.44f - viewH * 0.5f;
-
-		const Gui::Rect digitBaseRect = mCountdownDigitTransform->GetRect();
-		const Gui::Rect startBaseRect = mCountdownStartTransform->GetRect();
-		const float digitBaseWidth = std::max(1.0f, digitBaseRect.width);
-		const float digitBaseHeight = std::max(1.0f, digitBaseRect.height);
-
-		const float digitTarget = std::clamp(
-			std::min(viewW, viewH) * 0.24f,
-			96.0f,
-			320.0f
-		);
-		const float digitScale = digitTarget / std::max(digitBaseWidth, digitBaseHeight);
-
-		const float startBaseWidth  = std::max(1.0f, startBaseRect.width);
-		const float startBaseHeight = std::max(1.0f, startBaseRect.height);
-		const float startScale = std::clamp(
-			viewW * 0.42f / startBaseWidth,
-			0.45f,
-			1.45f
-		);
-		float startWidth  = startBaseWidth * startScale;
-		float startHeight = startBaseHeight * startScale;
-		const float startOffsetY = centerOffsetY + digitTarget * 0.05f;
-
-		const float digitDuration = std::max(kMinDurationSec, mCountdownDigitSeconds);
-		const float digitTotalDuration = digitDuration * 3.0f;
-		if (mCountdownElapsedSeconds < digitTotalDuration) {
-			const int digit = 3 - static_cast<int>(mCountdownElapsedSeconds / digitDuration);
-			const float phase = std::clamp(
-				std::fmod(mCountdownElapsedSeconds, digitDuration) / digitDuration,
-				0.0f,
-				1.0f
-			);
-			const float pulseScale = 1.0f + (1.0f - phase) * 0.24f;
-			const float alpha = std::clamp(1.0f - phase * 0.75f, 0.0f, 1.0f);
-
-			mCountdownDigitWidget->SetVisible(true);
-			mCountdownDigitTransform->SetAnchors(
-				Gui::Anchors{.minX = 0.5f, .minY = 0.5f, .maxX = 0.5f, .maxY = 0.5f}
-			);
-			mCountdownDigitTransform->SetMargins(Gui::Margins{});
-			mCountdownDigitTransform->SetPivot(Gui::Pivot{.x = 0.5f, .y = 0.5f});
-			mCountdownDigitTransform->SetRect(
-				Gui::Rect{
-					.x = 0.0f,
-					.y = centerOffsetY,
-					.width = digitBaseWidth * digitScale * pulseScale,
-					.height = digitBaseHeight * digitScale * pulseScale,
-				}
-			);
-
-			const float clampedDigit = std::clamp(static_cast<float>(digit), 0.0f, 9.0f);
-			const float uvMinX       = clampedDigit * 0.1f;
-			mCountdownDigitTexture->SetUvMin(Vec2(uvMinX, 0.0f));
-			mCountdownDigitTexture->SetUvMax(Vec2(uvMinX + 0.1f, 1.0f));
-			Gui::Color digitColor = mCountdownDigitTexture->GetColor();
-			digitColor.a          = alpha;
-			mCountdownDigitTexture->SetColor(digitColor);
-			mCountdownDigitWidget->MarkDirty(
-				Gui::DIRTY_FLAGS::LAYOUT | Gui::DIRTY_FLAGS::DRAW
-			);
-
-			mCountdownStartWidget->SetVisible(false);
-			Gui::Color startColor = mCountdownStartTexture->GetColor();
-			startColor.a          = 0.0f;
-			mCountdownStartTexture->SetColor(startColor);
-			mCountdownStartWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
-			return;
-		}
-
-		const float startDuration = std::max(kMinDurationSec, mCountdownStartSeconds);
-		const float phase = std::clamp(
-			(mCountdownElapsedSeconds - digitTotalDuration) / startDuration,
-			0.0f,
-			1.0f
-		);
-		const float alpha = std::sin(phase * Math::pi);
-		const float pulse = 1.0f + 0.08f * std::sin(phase * Math::pi);
-		startWidth *= pulse;
-		startHeight *= pulse;
-
-		mCountdownDigitWidget->SetVisible(false);
-		Gui::Color digitColor = mCountdownDigitTexture->GetColor();
-		digitColor.a          = 0.0f;
-		mCountdownDigitTexture->SetColor(digitColor);
-		mCountdownDigitWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
-
-		mCountdownStartWidget->SetVisible(true);
-		mCountdownStartTransform->SetAnchors(
-			Gui::Anchors{.minX = 0.5f, .minY = 0.5f, .maxX = 0.5f, .maxY = 0.5f}
-		);
-		mCountdownStartTransform->SetMargins(Gui::Margins{});
-		mCountdownStartTransform->SetPivot(Gui::Pivot{.x = 0.5f, .y = 0.5f});
-		mCountdownStartTransform->SetRect(
-			Gui::Rect{
-				.x = 0.0f,
-				.y = startOffsetY,
-				.width = startWidth,
-				.height = startHeight,
-			}
-		);
-		Gui::Color startColor = mCountdownStartTexture->GetColor();
-		startColor.a          = std::clamp(alpha, 0.0f, 1.0f);
-		mCountdownStartTexture->SetColor(startColor);
-		mCountdownStartWidget->MarkDirty(
-			Gui::DIRTY_FLAGS::LAYOUT | Gui::DIRTY_FLAGS::DRAW
-		);
-	}
-
-	void GameStartCutsceneComponent::HideCountdownWidgets() const {
-		if (mCountdownDigitWidget) {
-			mCountdownDigitWidget->SetVisible(false);
-			if (mCountdownDigitTexture) {
-				Gui::Color color = mCountdownDigitTexture->GetColor();
-				color.a          = 0.0f;
-				mCountdownDigitTexture->SetColor(color);
-			}
-			mCountdownDigitWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
-		}
-		if (mCountdownStartWidget) {
-			mCountdownStartWidget->SetVisible(false);
-			if (mCountdownStartTexture) {
-				Gui::Color color = mCountdownStartTexture->GetColor();
-				color.a          = 0.0f;
-				mCountdownStartTexture->SetColor(color);
-			}
-			mCountdownStartWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
-		}
-	}
-
-	void GameStartCutsceneComponent::HideAllCutsceneWidgets() const {
-		HideCountdownWidgets();
-		if (mFadeOverlayWidget) {
-			mFadeOverlayWidget->SetVisible(false);
-			if (mFadeOverlayTexture) {
-				Gui::Color color = mFadeOverlayTexture->GetColor();
-				color.a          = 0.0f;
-				mFadeOverlayTexture->SetColor(color);
-			}
-			mFadeOverlayWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
-		}
-	}
-
-	void GameStartCutsceneComponent::ClearResolvedBindings() {
-		mCameraRootEntity    = nullptr;
-		mCameraRootTransform = nullptr;
-		mCameraRotator       = nullptr;
-		mHudCanvas           = nullptr;
-		mCountAudioSource    = nullptr;
-		mStartAudioSource    = nullptr;
-
-		mCountdownDigitWidget    = nullptr;
-		mCountdownDigitTransform = nullptr;
-		mCountdownDigitTexture   = nullptr;
-		mCountdownStartWidget    = nullptr;
-		mCountdownStartTransform = nullptr;
-		mCountdownStartTexture   = nullptr;
-		mFadeOverlayWidget       = nullptr;
-		mFadeOverlayTexture      = nullptr;
-	}
-
-	void GameStartCutsceneComponent::ResolveBindings() {
-		ClearResolvedBindings();
-
-		Scene* scene = GetScene();
-		if (!scene) {
-			return;
-		}
-
-		if (mCameraRootEntityGuid != 0) {
-			mCameraRootEntity = scene->FindEntity(mCameraRootEntityGuid);
-		}
-		if (!mCameraRootEntity) {
-			mCameraRootEntity = GetOwner();
-		}
-		if (mCameraRootEntity) {
-			mCameraRootTransform = mCameraRootEntity->GetComponent<TransformComponent>();
-		}
-
-		auto tryResolveRotatorInEntity = [&](Entity& entity) {
-			CameraRotatorComponent* found = nullptr;
-			entity.ForEachComponent(
-				[&](BaseComponent& component) {
-					if (component.GetGuid() != mCameraRotatorComponentGuid) {
-						return true;
-					}
-					found = dynamic_cast<CameraRotatorComponent*>(&component);
-					return false;
-				}
-			);
-			return found;
-		};
-
-		if (mCameraRotatorComponentGuid != 0) {
-			if (mCameraRootEntity) {
-				mCameraRotator = tryResolveRotatorInEntity(*mCameraRootEntity);
-			}
-			if (!mCameraRotator) {
-				for (const auto& entityPtr : scene->GetEntities()) {
-					if (!entityPtr) {
-						continue;
-					}
-					mCameraRotator = tryResolveRotatorInEntity(*entityPtr);
-					if (mCameraRotator) {
-						break;
-					}
-				}
-			}
-		}
-		if (!mCameraRotator && mCameraRootEntity) {
-			mCameraRotator = mCameraRootEntity->GetComponent<CameraRotatorComponent>();
-		}
-
-		Entity* hudEntity = nullptr;
-		if (mHudCanvasEntityGuid != 0) {
-			hudEntity = scene->FindEntity(mHudCanvasEntityGuid);
-		}
-		if (!hudEntity) {
-			hudEntity = GetOwner();
-		}
-		if (hudEntity) {
-			mHudCanvas = hudEntity->GetComponent<UiCanvasComponent>();
-		}
-
-		if (mHudCanvas && mHudCanvas->EnsureRuntimeLoaded()) {
-			Gui::UiRoot* root = mHudCanvas->GetRuntimeRoot();
-			Gui::UiWidget* rootWidget = root ? root->GetRootWidget() : nullptr;
-			if (rootWidget) {
-				mCountdownDigitWidget = FindWidgetByNameRecursive(
-					rootWidget,
-					mCountdownDigitWidgetName
-				);
-				mCountdownStartWidget = FindWidgetByNameRecursive(
-					rootWidget,
-					mCountdownStartWidgetName
-				);
-				mFadeOverlayWidget = FindWidgetByNameRecursive(
-					rootWidget,
-					mFadeOverlayWidgetName
-				);
-
-				if (mCountdownDigitWidget) {
-					mCountdownDigitTransform = mCountdownDigitWidget
-						->GetOrAddComponent<Gui::UiTransformComponent>();
-					mCountdownDigitTexture = mCountdownDigitWidget
-						->GetOrAddComponent<Gui::UiTextureComponent>();
-				}
-				if (mCountdownStartWidget) {
-					mCountdownStartTransform = mCountdownStartWidget
-						->GetOrAddComponent<Gui::UiTransformComponent>();
-					mCountdownStartTexture = mCountdownStartWidget
-						->GetOrAddComponent<Gui::UiTextureComponent>();
-				}
-				if (mFadeOverlayWidget) {
-					mFadeOverlayTexture = mFadeOverlayWidget
-						->GetOrAddComponent<Gui::UiTextureComponent>();
-				}
-			}
-		}
-
-		mCountAudioSource = ResolveAudioSourceByGuid(mCountAudioSourceGuid);
-		mStartAudioSource = ResolveAudioSourceByGuid(mStartAudioSourceGuid);
-	}
-
-	void GameStartCutsceneComponent::ApplyLockTargets() {
-		RestoreLockTargets();
-		std::vector<BaseComponent*> lockedComponents = {};
-		lockedComponents.reserve(mLockTargets.size());
-
-		for (const LockTargetSpec& spec : mLockTargets) {
-			BaseComponent* target = ResolveLockTarget(spec);
-			if (!target || target == this) {
-				continue;
-			}
-			if (
-				std::ranges::find(lockedComponents, target) !=
-				lockedComponents.end()
-			) {
-				continue;
-			}
-
-			mActiveLocks.emplace_back(
-				ActiveLockState{
-					.component = target,
-					.previousActive = target->IsActive(),
-				}
-			);
-			lockedComponents.emplace_back(target);
-			target->SetActive(false);
-		}
-	}
-
-	void GameStartCutsceneComponent::RestoreLockTargets() {
-		for (const ActiveLockState& state : mActiveLocks) {
-			if (!state.component) {
-				continue;
-			}
-			state.component->SetActive(state.previousActive);
-		}
-		mActiveLocks.clear();
-	}
-
-	void GameStartCutsceneComponent::ApplyCameraPose(
-		const Vec3& cameraPos,
-		const Vec3& lookAtPos
-	) {
-		if (!mCameraRootTransform) {
-			return;
-		}
-
-		mCameraRootTransform->SetPosition(cameraPos);
-
-		Vec3 viewDir = lookAtPos - cameraPos;
-		if (viewDir.SqrLength() <= 1.0e-8f) {
-			return;
-		}
-		viewDir.Normalize();
-
-		const Quaternion lookRotation = Quaternion::LookRotation(viewDir, Vec3::up);
-		mCameraRootTransform->SetRotation(lookRotation);
-
-		if (mCameraRotator) {
-			const Vec3 eulerDegrees = lookRotation.ToEulerDegrees();
-			mCameraRotator->SetLookAnglesDegrees(eulerDegrees.x, eulerDegrees.y);
-		}
-	}
-
-	void GameStartCutsceneComponent::ApplyLookAnglesAndPosition(
-		const Vec3& position,
-		const Vec2& lookAngles
-	) {
-		if (!mCameraRootTransform) {
-			return;
-		}
-		mCameraRootTransform->SetPosition(position);
-
-		const Quaternion rotation =
-			Quaternion::AxisAngle(Vec3::up, lookAngles.y * Math::deg2Rad) *
-			Quaternion::AxisAngle(Vec3::right, lookAngles.x * Math::deg2Rad);
-		mCameraRootTransform->SetRotation(rotation);
-		if (mCameraRotator) {
-			mCameraRotator->SetLookAnglesDegrees(lookAngles.x, lookAngles.y);
-		}
-	}
-
-	BaseComponent* GameStartCutsceneComponent::ResolveLockTarget(
-		const LockTargetSpec& spec
-	) const {
-		Scene* scene = GetScene();
-		if (!scene || spec.componentStableName.empty()) {
-			return nullptr;
-		}
-
-		const auto matches = [&](BaseComponent& component) {
-			return component.GetStableName() == spec.componentStableName;
-		};
-		const auto findInEntity = [&](Entity& entity) -> BaseComponent* {
-			BaseComponent* found = nullptr;
-			entity.ForEachComponent(
-				[&](BaseComponent& component) {
-					if (!matches(component)) {
-						return true;
-					}
-					found = &component;
-					return false;
-				}
-			);
-			return found;
-		};
-
-		if (spec.entityGuid != 0) {
-			if (Entity* entity = scene->FindEntity(spec.entityGuid)) {
-				return findInEntity(*entity);
-			}
-			return nullptr;
-		}
-
-		if (Entity* owner = GetOwner()) {
-			if (BaseComponent* found = findInEntity(*owner)) {
-				return found;
-			}
-		}
-
-		for (const auto& entityPtr : scene->GetEntities()) {
-			if (!entityPtr) {
-				continue;
-			}
-			if (BaseComponent* found = findInEntity(*entityPtr)) {
-				return found;
-			}
-		}
-		return nullptr;
-	}
-
-	AudioSourceComponent* GameStartCutsceneComponent::ResolveAudioSourceByGuid(
-		const uint64_t componentGuid
-	) const {
-		if (componentGuid == 0) {
-			return nullptr;
-		}
-
-		Scene* scene = GetScene();
-		if (!scene) {
-			return nullptr;
-		}
-
-		for (const auto& entityPtr : scene->GetEntities()) {
-			if (!entityPtr) {
-				continue;
-			}
-
-			AudioSourceComponent* found = nullptr;
-			entityPtr->ForEachComponent(
-				[&](BaseComponent& component) {
-					if (component.GetGuid() != componentGuid) {
-						return true;
-					}
-					found = dynamic_cast<AudioSourceComponent*>(&component);
-					return false;
-				}
-			);
-			if (found) {
-				return found;
-			}
-		}
-		return nullptr;
-	}
-
-	bool GameStartCutsceneComponent::ResolveViewportSize(Vec2& outViewportSizePx)
-	const {
-		outViewportSizePx = Vec2::zero;
-		if (const InputSystem* input = GetInputSystem()) {
-			outViewportSizePx = input->GetMouseClientViewportSize();
-		}
-		if (outViewportSizePx.x <= 1.0f || outViewportSizePx.y <= 1.0f) {
-			outViewportSizePx = mHudCanvas ? mHudCanvas->GetPixelSize() : Vec2::zero;
-		}
-		return outViewportSizePx.x > 1.0f && outViewportSizePx.y > 1.0f;
-	}
-
-	Gui::UiWidget* GameStartCutsceneComponent::FindWidgetByNameRecursive(
-		Gui::UiWidget* root,
-		const std::string_view widgetName
-	) {
-		if (!root) {
-			return nullptr;
-		}
-		if (root->GetName() == widgetName) {
-			return root;
-		}
-
-		for (const auto& child : root->GetChildren()) {
-			if (!child) {
-				continue;
-			}
-			if (Gui::UiWidget* found = FindWidgetByNameRecursive(child.get(), widgetName)) {
-				return found;
-			}
-		}
-		for (Gui::UiWidget* child : root->GetReferenceChildren()) {
-			if (Gui::UiWidget* found = FindWidgetByNameRecursive(child, widgetName)) {
-				return found;
-			}
-		}
-		return nullptr;
-	}
-
-	void GameStartCutsceneComponent::SerializeLockTarget(
-		JsonWriter& writer,
-		const LockTargetSpec& spec
-	) {
-		writer.BeginObject();
-		writer.Key("entityGuid");
-		writer.Write(spec.entityGuid);
-		writer.Key("componentStableName");
-		writer.Write(spec.componentStableName);
-		writer.EndObject();
-	}
-
-	void GameStartCutsceneComponent::SerializeShot(
-		JsonWriter& writer,
-		const ShotSpec& shot
-	) {
-		writer.BeginObject();
-		writer.WriteVec3("startPos", shot.startPos);
-		writer.WriteVec3("endPos", shot.endPos);
-		writer.WriteVec3("startLook", shot.startLook);
-		writer.WriteVec3("endLook", shot.endLook);
-		writer.Key("durationSeconds");
-		writer.Write(shot.durationSeconds);
-		writer.EndObject();
-	}
-
-	float GameStartCutsceneComponent::EvaluateEase(const float t) {
-		return Math::CubicBezier(std::clamp(t, 0.0f, 1.0f), 0.2f, 0.0f, 0.0f, 1.0f);
-	}
-
-	REGISTER_COMPONENT(GameStartCutsceneComponent);
-}
-
-
-============================================================
-File Path: src/game/parkour/components/cutscene/GameStartCutsceneComponent.h
-============================================================
-#pragma once
-
-#include <cstdint>
-#include <string>
-#include <string_view>
-#include <vector>
-
-#include "core/math/Vec2.h"
-#include "core/math/Vec3.h"
-
-#include "engine/unnamed/framework/components/base/BaseComponent.h"
-
-namespace Unnamed {
-	class AudioSourceComponent;
-	class BaseComponent;
-	class CameraRotatorComponent;
-	class Entity;
-	class JsonReader;
-	class JsonWriter;
-	class TransformComponent;
-	class UiCanvasComponent;
-
-	namespace Gui {
-		class UiTextureComponent;
-		class UiTransformComponent;
-		class UiWidget;
-	}
-
-	/// @brief Branch版のゲーム開始演出（カメラツアー/カウントダウン/開始解放）を再現するコンポーネントです。
-	class GameStartCutsceneComponent final : public BaseComponent {
-	public:
-		/// @brief コンポーネント追加時に開始演出を初期化します。
-		void OnAttached() override;
-		/// @brief 開始演出を毎フレーム更新します。
-		void OnTick(float deltaTime) override;
-		/// @brief エディター時にショット座標のデバッグ表示を更新します。
-		void OnEditorTick(float deltaTime) override;
-		/// @brief コンポーネント破棄時にロック解除とUI非表示を保証します。
-		void OnDetached() override;
-
-		/// @brief stableName を返します。
-		[[nodiscard]] std::string_view GetStableName() const override;
-		/// @brief 表示用のコンポーネント名を返します。
-		[[nodiscard]] std::string_view GetComponentName() const override;
-		[[nodiscard]] uint32_t GetIcon() const override;
-
-#ifdef _DEBUG
-		/// @brief インスペクタ用UIを描画します。
-		void DrawInspectorImGui() override;
-#endif
-
-		/// @brief JSON から設定を読み込みます。
-		void Deserialize(const JsonReader& reader) override;
-		/// @brief 設定を JSON に書き出します。
-		void Serialize(JsonWriter& writer) const override;
-
-	private:
-		/// @brief カメラショット定義です。
-		struct ShotSpec {
-			Vec3  startPos        = Vec3::zero;
-			Vec3  endPos          = Vec3::zero;
-			Vec3  startLook       = Vec3::forward;
-			Vec3  endLook         = Vec3::forward;
-			float durationSeconds = 1.0f;
-		};
-
-		/// @brief ロック対象定義です。
-		struct LockTargetSpec {
-			uint64_t    entityGuid          = 0;
-			std::string componentStableName = "";
-		};
-
-		/// @brief 実行中のロック復帰情報です。
-		struct ActiveLockState {
-			BaseComponent* component      = nullptr;
-			bool           previousActive = true;
-		};
-
-		/// @brief 開始演出の実行フェーズです。
-		enum class PHASE : uint8_t {
-			TOUR = 0,
-			COUNTDOWN,
-			GAMEPLAY,
-		};
-
-		/// @brief 開始演出を初期化して Tour を開始します。
-		void StartSequence();
-		/// @brief Tour を更新します。
-		void TickTour(float deltaTime);
-		/// @brief Countdown を更新します。
-		void TickCountdown(float deltaTime);
-		/// @brief Tour から Countdown に遷移します。
-		void EnterCountdown();
-		/// @brief 演出完了で Gameplay に遷移します。
-		void EnterGameplay();
-
-		/// @brief Countdown のSEトリガーを更新します。
-		void UpdateCountdownAudio();
-		/// @brief 演出UIの表示状態を更新します。
-		void UpdateHudWidgets();
-		/// @brief フェードオーバーレイの表示を更新します。
-		void UpdateFadeOverlayWidget() const;
-		/// @brief 3-2-1-START 表示を更新します。
-		void UpdateCountdownWidgets() const;
-		/// @brief カウントダウンUIを非表示にします。
-		void HideCountdownWidgets() const;
-		/// @brief 演出UIをすべて非表示にします。
-		void HideAllCutsceneWidgets() const;
-
-		/// @brief カメラ/UI/Audio の参照を再解決します。
-		void ResolveBindings();
-		/// @brief 解決済み参照のキャッシュを初期化します。
-		void ClearResolvedBindings();
-		/// @brief lockTargets を無効化して入力/操作を抑止します。
-		void ApplyLockTargets();
-		/// @brief lockTargets の有効状態を復帰します。
-		void RestoreLockTargets();
-
-		/// @brief ショット姿勢を cameraRoot + cameraRotator へ適用します。
-		void ApplyCameraPose(const Vec3& cameraPos, const Vec3& lookAtPos);
-		/// @brief Countdown固定姿勢を cameraRoot + cameraRotator へ適用します。
-		void ApplyLookAnglesAndPosition(
-			const Vec3& position,
-			const Vec2& lookAngles
-		);
-
-		/// @brief lock spec から対象コンポーネントを解決します。
-		[[nodiscard]] BaseComponent* ResolveLockTarget(const LockTargetSpec& spec)
-		const;
-		/// @brief GUID から AudioSource を解決します。
-		[[nodiscard]] AudioSourceComponent* ResolveAudioSourceByGuid(
-			uint64_t componentGuid
-		) const;
-		/// @brief 画面解像度を取得します。
-		[[nodiscard]] bool ResolveViewportSize(Vec2& outViewportSizePx) const;
-
-		/// @brief ウィジェット名を再帰的に検索します。
-		[[nodiscard]] static Gui::UiWidget* FindWidgetByNameRecursive(
-			Gui::UiWidget* root,
-			std::string_view widgetName
-		);
-		/// @brief lock spec を JSON へ書き出します。
-		static void SerializeLockTarget(
-			JsonWriter& writer,
-			const LockTargetSpec& spec
-		);
-		/// @brief shot spec を JSON へ書き出します。
-		static void SerializeShot(JsonWriter& writer, const ShotSpec& shot);
-		/// @brief Branch相当の cubic-bezier 補間を返します。
-		[[nodiscard]] static float EvaluateEase(float t);
-		/// @brief エディター用にショットの軸デバッグ描画を行います。
-		void DrawShotDebugAxes() const;
-
-		uint64_t mCameraRootEntityGuid       = 0;
-		uint64_t mCameraRotatorComponentGuid = 0;
-		uint64_t mHudCanvasEntityGuid        = 0;
-		uint64_t mCountAudioSourceGuid       = 0;
-		uint64_t mStartAudioSourceGuid       = 0;
-		std::string mSkipAction = "jump";
-
-		std::string mCountdownDigitWidgetName = "OpeningCountdownDigit";
-		std::string mCountdownStartWidgetName = "OpeningCountdownStart";
-		std::string mFadeOverlayWidgetName    = "OpeningFadeOverlay";
-
-		float mFadeOutSeconds        = 0.25f;
-		float mFadeInSeconds         = 0.25f;
-		float mCountdownDigitSeconds = 1.0f;
-		float mCountdownStartSeconds = 0.8f;
-
-		std::vector<ShotSpec> mShots = {
-			{
-				.startPos = Vec3(0.0f, 4.0f, 0.0f),
-				.endPos = Vec3(0.0f, 4.0f, 40.0f),
-				.startLook = Vec3(0.0f, 3.0f, 50.0f),
-				.endLook = Vec3(0.0f, 3.0f, 50.0f),
-				.durationSeconds = 3.0f,
-			},
-			{
-				.startPos = Vec3(-52.0f, 8.0f, 118.0f),
-				.endPos = Vec3(-52.0f, 8.0f, 118.0f),
-				.startLook = Vec3(-28.0f, 1.0f, 140.0f),
-				.endLook = Vec3(-100.0f, 1.0f, 119.0f),
-				.durationSeconds = 4.0f,
-			},
-			{
-				.startPos = Vec3(-113.794f, 75.0f, 92.0f),
-				.endPos = Vec3(-113.794f, 75.0f, 5.0f),
-				.startLook = Vec3(-113.794f, 0.0f, 92.5f),
-				.endLook = Vec3(-113.794f, 0.0f, 5.5f),
-				.durationSeconds = 3.0f,
-			},
-			{
-				.startPos = Vec3(0.0f, 6.0f, 0.0f),
-				.endPos = Vec3(0.0f, 3.626f, 0.0f),
-				.startLook = Vec3(0.0f, 6.0f, 1.0f),
-				.endLook = Vec3(0.0f, 3.626f, 1.0f),
-				.durationSeconds = 0.5f,
-			},
-		};
-		std::vector<LockTargetSpec> mLockTargets = {};
-
-		PHASE mPhase = PHASE::GAMEPLAY;
-		size_t mShotIndex = 0;
-		float  mShotElapsedSeconds = 0.0f;
-		float  mCountdownElapsedSeconds = 0.0f;
-		float  mFadeAlpha = 0.0f;
-		bool   mShotFadeActive = false;
-		bool   mShotFadeSwapped = false;
-		int    mLastCountdownCueStep = -1;
-		bool   mSequenceActive = false;
-		bool   mHasSavedGameplayPose = false;
-		bool   mHasCountdownFixedPose = false;
-		bool   mGameplayControlReleased = false;
-
-		Vec3 mSavedGameplayCameraPosition = Vec3::zero;
-		Vec2 mSavedGameplayLookAngles     = Vec2::zero;
-		Vec3 mCountdownFixedPosition      = Vec3::zero;
-		Vec2 mCountdownFixedLookAngles    = Vec2::zero;
-
-		std::vector<ActiveLockState> mActiveLocks = {};
-
-		Entity*                mCameraRootEntity      = nullptr;
-		TransformComponent*    mCameraRootTransform   = nullptr;
-		CameraRotatorComponent* mCameraRotator        = nullptr;
-		UiCanvasComponent*     mHudCanvas             = nullptr;
-		AudioSourceComponent*  mCountAudioSource      = nullptr;
-		AudioSourceComponent*  mStartAudioSource      = nullptr;
-
-		Gui::UiWidget*           mCountdownDigitWidget   = nullptr;
-		Gui::UiTransformComponent* mCountdownDigitTransform = nullptr;
-		Gui::UiTextureComponent* mCountdownDigitTexture  = nullptr;
-
-		Gui::UiWidget*           mCountdownStartWidget   = nullptr;
-		Gui::UiTransformComponent* mCountdownStartTransform = nullptr;
-		Gui::UiTextureComponent* mCountdownStartTexture  = nullptr;
-
-		Gui::UiWidget*           mFadeOverlayWidget      = nullptr;
-		Gui::UiTextureComponent* mFadeOverlayTexture     = nullptr;
-	};
-}
-
-
-============================================================
 File Path: src/game/parkour/components/cutscene/SequenceCutsceneComponent.cpp
 ============================================================
 #include "SequenceCutsceneComponent.h"
@@ -90694,712 +88760,6 @@ namespace Unnamed {
 		std::unique_ptr<SequencePlayer>  mSequencePlayer = nullptr;
 		std::unique_ptr<EntitySequenceBinder> mEntityBinder = nullptr;
 		std::unique_ptr<UiSequenceBinder> mUiBinder = nullptr;
-	};
-}
-
-
-============================================================
-File Path: src/game/parkour/components/title/TitleBootstrapComponent.cpp
-============================================================
-#include "TitleBootstrapComponent.h"
-
-#include "core/ComponentRegistry.h"
-
-#include "engine/ImGui/Icons.h"
-#include "engine/unnamed/subsystem/console/ConsoleSystem.h"
-#include "engine/world/World.h"
-
-namespace Unnamed {
-	void TitleBootstrapComponent::OnTick(const float deltaTime) {
-		(void)deltaTime;
-		if (mTriggered) {
-			return;
-		}
-
-		ConsoleSystem* console = GetConsoleSystem();
-		World*         world   = GetWorld();
-		if (!console || !world) {
-			return;
-		}
-
-		// タイトルモードを有効化してからタイトル専用ゲームシーンへ遷移します。
-		console->ExecuteCommand("cl_title_mode 1");
-		world->RequestSceneTransition("./content/parkour/scenes/title_game.json");
-		mTriggered = true;
-	}
-
-	std::string_view TitleBootstrapComponent::GetStableName() const {
-		return "parkour.TitleBootstrap";
-	}
-
-	std::string_view TitleBootstrapComponent::GetComponentName() const {
-		return "TitleBootstrap";
-	}
-
-	uint32_t TitleBootstrapComponent::GetIcon() const {
-		return kIconDesktopLandscape;
-	}
-
-	void TitleBootstrapComponent::Deserialize(const JsonReader& reader) {
-		(void)reader;
-	}
-
-	void TitleBootstrapComponent::Serialize(JsonWriter& writer) const {
-		(void)writer;
-	}
-
-	REGISTER_COMPONENT(TitleBootstrapComponent);
-}
-
-
-
-============================================================
-File Path: src/game/parkour/components/title/TitleBootstrapComponent.h
-============================================================
-#pragma once
-
-#include <string_view>
-
-#include "engine/unnamed/framework/components/base/BaseComponent.h"
-
-namespace Unnamed {
-	/// @brief タイトル起動シーンからゲームシーンへ遷移するブートストラップコンポーネントです。
-	class TitleBootstrapComponent final : public BaseComponent {
-	public:
-		/// @brief タイトル遷移処理を1回だけ実行します。
-		/// @param deltaTime 前フレームからの経過時間（秒）
-		void OnTick(float deltaTime) override;
-
-		/// @brief コンポーネントの stable name を返します。
-		[[nodiscard]] std::string_view GetStableName() const override;
-		/// @brief コンポーネントの表示名を返します。
-		[[nodiscard]] std::string_view GetComponentName() const override;
-		[[nodiscard]] uint32_t GetIcon() const override;
-
-		/// @brief JSON から設定を読み込みます。
-		void Deserialize(const JsonReader& reader) override;
-		/// @brief 設定を JSON へ書き出します。
-		void Serialize(JsonWriter& writer) const override;
-
-	private:
-		bool mTriggered = false;
-	};
-}
-
-
-
-============================================================
-File Path: src/game/parkour/components/title/TitleFlowComponent.cpp
-============================================================
-#include "TitleFlowComponent.h"
-
-#include <algorithm>
-#include <cmath>
-
-#include "core/ComponentRegistry.h"
-#include "core/io/json/JsonReader.h"
-#include "core/io/json/JsonWriter.h"
-#include "core/math/Math.h"
-
-#include "engine/ImGui/Icons.h"
-#include "engine/gui/UiRoot.h"
-#include "engine/gui/UiWidget.h"
-#include "engine/gui/components/UiButtonBehaviorComponent.h"
-#include "engine/gui/components/UiTextureComponent.h"
-#include "engine/unnamed/framework/components/ui/UiCanvasComponent.h"
-#include "engine/unnamed/framework/entity/Entity.h"
-#include "engine/unnamed/subsystem/console/ConsoleSystem.h"
-#include "engine/unnamed/subsystem/console/Log.h"
-// ReSharper disable once CppUnusedIncludeDirective
-#include "engine/unnamed/subsystem/console/concommand/ConVar.h"
-#include "engine/unnamed/subsystem/input/InputSystem.h"
-#include "engine/world/World.h"
-#include "game/core/replay/DemoManager.h"
-
-namespace Unnamed {
-	namespace {
-		constexpr std::string_view kChannel = "TitleFlow";
-
-		constexpr const char* kTitleModeCvar         = "cl_title_mode";
-		constexpr const char* kTitleDemoPathCvar     = "cl_title_demo_path";
-		constexpr const char* kDemoMismatchPolicyCvar = "demo_mismatch_policy";
-		constexpr const char* kTitleFadeOutSecCvar   = "cl_title_fade_out_sec";
-		constexpr const char* kTitleFadeInSecCvar    = "cl_title_fade_in_sec";
-		constexpr const char* kTitleStartFadeSecCvar =
-			"cl_title_start_transition_sec";
-		constexpr const char* kDefaultTitleDemoPath =
-			"./content/parkour/replay/title_demo.udemo";
-		constexpr float kDemoRetryIntervalSec = 0.75f;
-
-		float EvaluateFadeEase(const float t) {
-			return Math::CubicBezier(
-				std::clamp(t, 0.0f, 1.0f),
-				0.2f,
-				0.0f,
-				0.0f,
-				1.0f
-			);
-		}
-	}
-
-	void TitleFlowComponent::OnTick(const float deltaTime) {
-		TickTitle(deltaTime);
-	}
-
-	void TitleFlowComponent::OnEditorTick(const float deltaTime) {
-		TickTitle(deltaTime);
-	}
-
-	void TitleFlowComponent::OnDetached() {
-		ExitTitleMode();
-		BaseComponent::OnDetached();
-	}
-
-	std::string_view TitleFlowComponent::GetStableName() const {
-		return "parkour.TitleFlow";
-	}
-
-	std::string_view TitleFlowComponent::GetComponentName() const {
-		return "TitleFlow";
-	}
-
-	uint32_t TitleFlowComponent::GetIcon() const {
-		return kIconDesktopLandscape;
-	}
-
-	void TitleFlowComponent::Deserialize(const JsonReader& reader) {
-		mGameplayScenePath = reader["gameplayScenePath"].GetString(mGameplayScenePath);
-		mPlayButtonName    = reader["playButtonName"].GetString(mPlayButtonName);
-		mQuitButtonName    = reader["quitButtonName"].GetString(mQuitButtonName);
-		mPlayPromptName    = reader["playPromptName"].GetString(mPlayPromptName);
-		mFadeOverlayName   = reader["fadeOverlayName"].GetString(mFadeOverlayName);
-	}
-
-	void TitleFlowComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("gameplayScenePath");
-		writer.Write(mGameplayScenePath);
-		writer.Key("playButtonName");
-		writer.Write(mPlayButtonName);
-		writer.Key("quitButtonName");
-		writer.Write(mQuitButtonName);
-		writer.Key("playPromptName");
-		writer.Write(mPlayPromptName);
-		writer.Key("fadeOverlayName");
-		writer.Write(mFadeOverlayName);
-	}
-
-	void TitleFlowComponent::TickTitle(const float deltaTime) {
-		const bool titleEnabled = IsTitleModeEnabled();
-
-		// タイトルモードの切り替え境界で初期化/後始末を行います。
-		if (!titleEnabled) {
-			if (mInitialized) {
-				ExitTitleMode();
-			}
-			return;
-		}
-		if (!mInitialized) {
-			EnterTitleMode();
-		}
-
-		ResolveUiBindings();
-		ApplyUiVisibility();
-
-		if (mQuitRequested) {
-			if (ConsoleSystem* console = GetConsoleSystem()) {
-				console->ExecuteCommand("quit");
-			}
-			mQuitRequested = false;
-		}
-
-		if (!mPlayRequested) {
-			if (const InputSystem* input = GetInputSystem()) {
-				if (input->IsPressed("jump")) {
-					mPlayRequested = true;
-				}
-			}
-		}
-		if (mPlayRequested && mPhase != PHASE::START_TRANSITION_OUT) {
-			mPhase               = PHASE::START_TRANSITION_OUT;
-			mPhaseElapsedSeconds = 0.0f;
-		}
-
-		UpdatePhase(deltaTime);
-		UpdatePlayPromptBlink(deltaTime);
-	}
-
-	bool TitleFlowComponent::IsTitleModeEnabled() const {
-		ConsoleSystem* console = GetConsoleSystem();
-		if (!console) {
-			return false;
-		}
-		return console->GetConVarValueOr<int>(kTitleModeCvar, 0) == 1;
-	}
-
-	void TitleFlowComponent::EnterTitleMode() {
-		mInitialized         = true;
-		mPlayRequested       = false;
-		mQuitRequested       = false;
-		mDemoRetrySeconds    = 0.0f;
-		mHasSavedMismatchPolicy = false;
-		mSavedMismatchPolicy.clear();
-		mPhase               = PHASE::IDLE;
-		mPhaseElapsedSeconds = 0.0f;
-		mPromptBlinkSeconds  = 0.0f;
-
-		if (Entity* owner = GetOwner()) {
-			owner->SetVisible(true);
-		}
-		if (ConsoleSystem* console = GetConsoleSystem()) {
-			// タイトル再生中はミスマッチ停止ループを防ぐため、継続ポリシーを強制します。
-			mSavedMismatchPolicy = console->GetConVarValueString(
-				kDemoMismatchPolicyCvar
-			);
-			mHasSavedMismatchPolicy = !mSavedMismatchPolicy.empty();
-			console->ExecuteCommand("demo_mismatch_policy continue");
-		}
-
-		ResolveUiBindings();
-		(void)RequestDemoPlayback();
-		SetFadeOverlayAlpha(0.0f);
-	}
-
-	void TitleFlowComponent::ExitTitleMode() {
-		mInitialized         = false;
-		mPlayRequested       = false;
-		mQuitRequested       = false;
-		mDemoRetrySeconds    = 0.0f;
-		if (mHasSavedMismatchPolicy) {
-			if (ConsoleSystem* console = GetConsoleSystem()) {
-				console->ExecuteCommand(
-					"demo_mismatch_policy " + mSavedMismatchPolicy
-				);
-			}
-		}
-		mHasSavedMismatchPolicy = false;
-		mSavedMismatchPolicy.clear();
-		mPhase               = PHASE::INACTIVE;
-		mPhaseElapsedSeconds = 0.0f;
-		mPromptBlinkSeconds  = 0.0f;
-		mActiveDemoPath.clear();
-
-		if (Entity* owner = GetOwner()) {
-			owner->SetVisible(false);
-		}
-		if (mUiCanvas) {
-			mUiCanvas->SetReceiveInput(false);
-		}
-	}
-
-	bool TitleFlowComponent::RequestDemoPlayback() {
-		DemoManager* demo = GetDemoManager();
-		if (!demo) {
-			return false;
-		}
-
-		const std::string demoPath = ResolveDemoPath();
-		if (demoPath.empty()) {
-			Warning(kChannel, "Title demo path is empty.");
-			mDemoRetrySeconds = kDemoRetryIntervalSec;
-			return false;
-		}
-
-		// 同じdemoが既に再生中なら再起動せず、そのまま維持します。
-		if (demo->IsPlayback() && demo->GetCurrentPath() == demoPath) {
-			return true;
-		}
-
-		// StartPlaybackの成否を直接参照し、失敗時の毎フレーム再実行を防ぎます。
-		if (!demo->StartPlayback(demoPath)) {
-			Warning(
-				kChannel,
-				"Failed to start title demo playback. path='{}'",
-				demoPath
-			);
-			mDemoRetrySeconds = kDemoRetryIntervalSec;
-			return false;
-		}
-
-		mDemoRetrySeconds = 0.0f;
-		mActiveDemoPath = demoPath;
-		return true;
-	}
-
-	void TitleFlowComponent::UpdatePhase(const float deltaTime) {
-		DemoManager* demo = GetDemoManager();
-
-		// 再生開始に失敗した場合は短い間隔で再試行します。
-		mDemoRetrySeconds = std::max(0.0f, mDemoRetrySeconds - deltaTime);
-
-		// タイトル待機中のみ、停止状態ならクールダウン後に再試行します。
-		if (mPhase == PHASE::IDLE &&
-		    demo &&
-		    !demo->IsPlayback() &&
-		    !demo->IsRecording() &&
-		    mDemoRetrySeconds <= 0.0f) {
-			(void)RequestDemoPlayback();
-		}
-
-		switch (mPhase) {
-			case PHASE::IDLE: {
-				SetFadeOverlayAlpha(0.0f);
-				if (demo && demo->IsPlaybackFinished()) {
-					mPhase               = PHASE::DEMO_LOOP_FADE_OUT;
-					mPhaseElapsedSeconds = 0.0f;
-				}
-				break;
-			}
-			case PHASE::DEMO_LOOP_FADE_OUT: {
-				mPhaseElapsedSeconds += deltaTime;
-				const float duration = GetSecondsCvar(
-					kTitleFadeOutSecCvar,
-					0.22f,
-					0.01f
-				);
-				const float t = std::clamp(
-					mPhaseElapsedSeconds / duration,
-					0.0f,
-					1.0f
-				);
-				SetFadeOverlayAlpha(EvaluateFadeEase(t));
-				if (t >= 1.0f) {
-					if (RequestDemoPlayback()) {
-						mPhase               = PHASE::DEMO_LOOP_FADE_IN;
-						mPhaseElapsedSeconds = 0.0f;
-					} else {
-						mPhase               = PHASE::IDLE;
-						mPhaseElapsedSeconds = 0.0f;
-						SetFadeOverlayAlpha(0.0f);
-					}
-				}
-				break;
-			}
-			case PHASE::DEMO_LOOP_FADE_IN: {
-				mPhaseElapsedSeconds += deltaTime;
-				const float duration = GetSecondsCvar(
-					kTitleFadeInSecCvar,
-					0.24f,
-					0.01f
-				);
-				const float t = std::clamp(
-					mPhaseElapsedSeconds / duration,
-					0.0f,
-					1.0f
-				);
-				SetFadeOverlayAlpha(1.0f - EvaluateFadeEase(t));
-				if (t >= 1.0f) {
-					mPhase               = PHASE::IDLE;
-					mPhaseElapsedSeconds = 0.0f;
-					SetFadeOverlayAlpha(0.0f);
-				}
-				break;
-			}
-			case PHASE::START_TRANSITION_OUT: {
-				mPhaseElapsedSeconds += deltaTime;
-				const float duration = GetSecondsCvar(
-					kTitleStartFadeSecCvar,
-					0.30f,
-					0.01f
-				);
-				const float t = std::clamp(
-					mPhaseElapsedSeconds / duration,
-					0.0f,
-					1.0f
-				);
-				SetFadeOverlayAlpha(EvaluateFadeEase(t));
-				if (t >= 1.0f) {
-					CommitStartTransition();
-				}
-				break;
-			}
-			case PHASE::INACTIVE:
-			default: break;
-		}
-	}
-
-	void TitleFlowComponent::CommitStartTransition() {
-		ConsoleSystem* console = GetConsoleSystem();
-		DemoManager*   demo    = GetDemoManager();
-		World*         world   = GetWorld();
-		if (!console || !world) {
-			return;
-		}
-
-		// シーン遷移前に再生を同期停止し、次シーンへの状態持ち越しを防ぎます。
-		if (demo && (demo->IsPlayback() || demo->IsRecording())) {
-			(void)demo->Stop();
-		}
-
-		// 遷移後にタイトル演出が再実行されないようモードを先に戻します。
-		console->ExecuteCommand("cl_title_mode 0");
-		world->RequestSceneTransition(mGameplayScenePath);
-	}
-
-	void TitleFlowComponent::ResolveUiBindings() {
-		mUiCanvas = nullptr;
-		Entity* owner = GetOwner();
-		if (!owner) {
-			return;
-		}
-
-		mUiCanvas = owner->GetComponent<UiCanvasComponent>();
-		if (!mUiCanvas || !mUiCanvas->EnsureRuntimeLoaded()) {
-			return;
-		}
-
-		Gui::UiRoot* root = mUiCanvas->GetRuntimeRoot();
-		Gui::UiWidget* rootWidget = root ? root->GetRootWidget() : nullptr;
-		if (!rootWidget) {
-			return;
-		}
-
-		mPlayButtonWidget = FindWidgetByNameRecursive(rootWidget, mPlayButtonName);
-		mQuitButtonWidget = FindWidgetByNameRecursive(rootWidget, mQuitButtonName);
-		Gui::UiWidget* playPromptWidget = FindWidgetByNameRecursive(
-			rootWidget,
-			mPlayPromptName
-		);
-		Gui::UiWidget* fadeOverlayWidget = FindWidgetByNameRecursive(
-			rootWidget,
-			mFadeOverlayName
-		);
-
-		mPlayPromptTexture = playPromptWidget ?
-			                     playPromptWidget->GetOrAddComponent<Gui::UiTextureComponent>() :
-			                     nullptr;
-		mFadeOverlayTexture = fadeOverlayWidget ?
-			                      fadeOverlayWidget->GetOrAddComponent<Gui::UiTextureComponent>() :
-			                      nullptr;
-
-		if (mPlayButtonWidget) {
-			if (auto* playBehavior = mPlayButtonWidget->GetComponent<Gui::UiButtonBehaviorComponent>()) {
-				playBehavior->SetOnClick([this]() { RequestStart(); });
-			}
-		}
-		if (mQuitButtonWidget) {
-			if (auto* quitBehavior = mQuitButtonWidget->GetComponent<Gui::UiButtonBehaviorComponent>()) {
-				quitBehavior->SetOnClick([this]() { RequestQuit(); });
-			}
-		}
-	}
-
-	Gui::UiWidget* TitleFlowComponent::FindWidgetByNameRecursive(
-		Gui::UiWidget* root,
-		const std::string_view widgetName
-	) {
-		if (!root) {
-			return nullptr;
-		}
-		if (root->GetName() == widgetName) {
-			return root;
-		}
-
-		for (const auto& child : root->GetChildren()) {
-			if (!child) {
-				continue;
-			}
-			if (Gui::UiWidget* found = FindWidgetByNameRecursive(child.get(), widgetName)) {
-				return found;
-			}
-		}
-		for (Gui::UiWidget* child : root->GetReferenceChildren()) {
-			if (Gui::UiWidget* found = FindWidgetByNameRecursive(child, widgetName)) {
-				return found;
-			}
-		}
-		return nullptr;
-	}
-
-	void TitleFlowComponent::ApplyUiVisibility() const {
-		if (Entity* owner = GetOwner()) {
-			owner->SetVisible(mInitialized);
-		}
-		if (mUiCanvas) {
-			mUiCanvas->SetReceiveInput(mInitialized);
-		}
-	}
-
-	void TitleFlowComponent::SetFadeOverlayAlpha(const float alpha) const {
-		if (!mFadeOverlayTexture) {
-			return;
-		}
-		Gui::Color color = mFadeOverlayTexture->GetColor();
-		color.a          = std::clamp(alpha, 0.0f, 1.0f);
-		mFadeOverlayTexture->SetColor(color);
-	}
-
-	void TitleFlowComponent::UpdatePlayPromptBlink(const float deltaTime) {
-		if (!mPlayPromptTexture) {
-			return;
-		}
-
-		// Idle中のみ点滅させて、遷移時は視認性を優先して固定表示にします。
-		if (mPhase != PHASE::IDLE) {
-			Gui::Color fixedColor = mPlayPromptTexture->GetColor();
-			fixedColor.a          = 1.0f;
-			mPlayPromptTexture->SetColor(fixedColor);
-			return;
-		}
-
-		mPromptBlinkSeconds += deltaTime;
-
-		const float blink = 0.5f + 0.5f * std::sin(mPromptBlinkSeconds * 4.0f);
-		Gui::Color color  = mPlayPromptTexture->GetColor();
-		color.a           = 0.45f + 0.55f * blink;
-		mPlayPromptTexture->SetColor(color);
-	}
-
-	float TitleFlowComponent::GetSecondsCvar(
-		const std::string_view name,
-		const float            fallback,
-		const float            minValue
-	) const {
-		ConsoleSystem* console = GetConsoleSystem();
-		const float value = console ?
-			                    console->GetConVarValueOr<float>(name, fallback) :
-			                    fallback;
-		return std::max(minValue, value);
-	}
-
-	std::string TitleFlowComponent::ResolveDemoPath() const {
-		ConsoleSystem* console = GetConsoleSystem();
-		std::string path = console ?
-			                   console->GetConVarValueString(kTitleDemoPathCvar) :
-			                   std::string();
-		if (path.empty()) {
-			path = kDefaultTitleDemoPath;
-		}
-		return path;
-	}
-
-	void TitleFlowComponent::RequestStart() {
-		mPlayRequested = true;
-	}
-
-	void TitleFlowComponent::RequestQuit() {
-		mQuitRequested = true;
-	}
-
-	REGISTER_COMPONENT(TitleFlowComponent);
-}
-
-
-============================================================
-File Path: src/game/parkour/components/title/TitleFlowComponent.h
-============================================================
-#pragma once
-
-#include <string>
-#include <string_view>
-
-#include "engine/unnamed/framework/components/base/BaseComponent.h"
-
-namespace Unnamed {
-	class UiCanvasComponent;
-	class JsonReader;
-	class JsonWriter;
-
-	namespace Gui {
-		class UiWidget;
-		class UiTextureComponent;
-	}
-
-	/// @brief タイトル演出（demo再生/フェード/開始遷移）を制御するコンポーネントです。
-	class TitleFlowComponent final : public BaseComponent {
-	public:
-		/// @brief タイトル演出を更新します。
-		/// @param deltaTime 前フレームからの経過時間（秒）
-		void OnTick(float deltaTime) override;
-		/// @brief エディタ中も同じタイトル演出を更新します。
-		/// @param deltaTime 前フレームからの経過時間（秒）
-		void OnEditorTick(float deltaTime) override;
-		/// @brief コンポーネント取り外し時に状態を解除します。
-		void OnDetached() override;
-
-		/// @brief コンポーネントの stable name を返します。
-		[[nodiscard]] std::string_view GetStableName() const override;
-		/// @brief コンポーネントの表示名を返します。
-		[[nodiscard]] std::string_view GetComponentName() const override;
-		[[nodiscard]] uint32_t GetIcon() const override;
-
-		/// @brief JSON から設定を読み込みます。
-		void Deserialize(const JsonReader& reader) override;
-		/// @brief 設定を JSON へ書き出します。
-		void Serialize(JsonWriter& writer) const override;
-
-	private:
-		/// @brief タイトル演出を1フレーム更新します。
-		void TickTitle(float deltaTime);
-		/// @brief タイトルモード中かどうかを判定します。
-		[[nodiscard]] bool IsTitleModeEnabled() const;
-		/// @brief タイトルモード開始時の初期化を行います。
-		void EnterTitleMode();
-		/// @brief タイトルモード終了時の後始末を行います。
-		void ExitTitleMode();
-		/// @brief タイトル用demo再生を開始します。
-		/// @return 再生開始に成功した場合はtrue
-		[[nodiscard]] bool RequestDemoPlayback();
-		/// @brief タイトル演出フェーズを更新します。
-		void UpdatePhase(float deltaTime);
-		/// @brief ゲーム開始遷移を確定します。
-		void CommitStartTransition();
-		/// @brief UI参照とクリックコールバックを解決します。
-		void ResolveUiBindings();
-		/// @brief 名前でウィジェットを再帰検索します。
-		[[nodiscard]] static Gui::UiWidget* FindWidgetByNameRecursive(
-			Gui::UiWidget* root,
-			std::string_view widgetName
-		);
-		/// @brief UI可視状態を現在のタイトルモードへ反映します。
-		void ApplyUiVisibility() const;
-		/// @brief フェードオーバーレイのアルファを更新します。
-		void SetFadeOverlayAlpha(float alpha) const;
-		/// @brief Playプロンプトの点滅を更新します。
-		void UpdatePlayPromptBlink(float deltaTime);
-		/// @brief 指定ConVarを秒値として取得します。
-		[[nodiscard]] float GetSecondsCvar(
-			std::string_view name,
-			float fallback,
-			float minValue
-		) const;
-		/// @brief タイトルdemoパスを解決します。
-		[[nodiscard]] std::string ResolveDemoPath() const;
-		/// @brief クリックイベントで開始要求を受け取ります。
-		void RequestStart();
-		/// @brief クリックイベントで終了要求を受け取ります。
-		void RequestQuit();
-
-		enum class PHASE : uint8_t {
-			INACTIVE = 0,
-			IDLE,
-			DEMO_LOOP_FADE_OUT,
-			DEMO_LOOP_FADE_IN,
-			START_TRANSITION_OUT,
-		};
-
-		std::string mGameplayScenePath = "./content/parkour/scenes/game.json";
-		std::string mPlayButtonName    = "PlayButton";
-		std::string mQuitButtonName    = "QuitButton";
-		std::string mPlayPromptName    = "PlayPromptImage";
-		std::string mFadeOverlayName   = "FadeOverlayImage";
-
-		// 所有しない参照です。ランタイムUI再生成を考慮し毎Tick再解決します。
-		UiCanvasComponent*        mUiCanvas           = nullptr;
-		Gui::UiWidget*            mPlayButtonWidget   = nullptr;
-		Gui::UiWidget*            mQuitButtonWidget   = nullptr;
-		Gui::UiTextureComponent*  mPlayPromptTexture  = nullptr;
-		Gui::UiTextureComponent*  mFadeOverlayTexture = nullptr;
-
-		PHASE       mPhase               = PHASE::INACTIVE;
-		float       mPhaseElapsedSeconds = 0.0f;
-		float       mPromptBlinkSeconds  = 0.0f;
-		bool        mInitialized         = false;
-		bool        mPlayRequested       = false;
-		bool        mQuitRequested       = false;
-		float       mDemoRetrySeconds    = 0.0f;
-		bool        mHasSavedMismatchPolicy = false;
-		std::string mActiveDemoPath;
-		std::string mSavedMismatchPolicy;
 	};
 }
 
