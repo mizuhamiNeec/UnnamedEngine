@@ -37,6 +37,8 @@
 └──     └── ui/
 └── src/
     ├── app/
+    └── ├── EditorMain.cpp
+    └── ├── GameMain.cpp
     └── └── main.cpp
     ├── core/
     └── ├── ComponentRegistry.cpp
@@ -192,6 +194,11 @@
     └── └──     ├── SequenceEditorTypes.h
     └── └──     ├── SequenceTimelinePanel.cpp
     └── └──     └── SequenceTimelinePanel.h
+    └── ├── game/
+    └── └── ├── IDemoService.cpp
+    └── └── ├── IDemoService.h
+    └── └── ├── IGameModule.h
+    └── └── └── IGameWorldFactory.h
     └── ├── gui/
     └── └── ├── Rect.cpp
     └── └── ├── Rect.h
@@ -639,7 +646,11 @@
     └──     └──     └── TriggerVolumeComponentBase.h
     └──     └── runtime/
     └──         ├── ParkourFlowRuntimeState.cpp
-    └──         └── ParkourFlowRuntimeState.h
+    └──         ├── ParkourFlowRuntimeState.h
+    └──         ├── ParkourGameModule.cpp
+    └──         ├── ParkourGameModule.h
+    └──         ├── ParkourGameWorld.cpp
+    └──         └── ParkourGameWorld.h
     ├── pch.cpp
     ├── pch.h
     └── thirdparty/
@@ -812,13 +823,50 @@
 
 
 ============================================================
+File Path: src/app/EditorMain.cpp
+============================================================
+#include <pch.h>
+
+#include <engine/Engine.h>
+
+#include <game/parkour/runtime/ParkourGameModule.h>
+
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
+	std::unique_ptr<Unnamed::IGameModule> gameModule =
+		Unnamed::CreateParkourGameModule();
+	Unnamed::Engine engine(*gameModule, Unnamed::RUN_MODE::EDITOR);
+	return engine.Run();
+}
+
+
+============================================================
+File Path: src/app/GameMain.cpp
+============================================================
+#include <pch.h>
+
+#include <engine/Engine.h>
+
+#include <game/parkour/runtime/ParkourGameModule.h>
+
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
+	std::unique_ptr<Unnamed::IGameModule> gameModule =
+		Unnamed::CreateParkourGameModule();
+	Unnamed::Engine engine(*gameModule, Unnamed::RUN_MODE::STANDALONE);
+	return engine.Run();
+}
+
+
+============================================================
 File Path: src/app/main.cpp
 ============================================================
 #include <pch.h>
 #include <engine/Engine.h>
+#include <game/parkour/runtime/ParkourGameModule.h>
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
-	Unnamed::Engine engine; // エンジンの作成・実行
+	std::unique_ptr<Unnamed::IGameModule> gameModule =
+		Unnamed::CreateParkourGameModule();
+	Unnamed::Engine engine(*gameModule, Unnamed::RUN_MODE::STANDALONE);
 	return engine.Run();
 }
 
@@ -11058,7 +11106,9 @@ File Path: src/engine/Engine.cpp
 #include <core/assets/loader/UiDocumentAssetLoader.h>
 #include <core/string/StrUtil.h>
 
-#include <engine/editor/EditorRuntime.h>
+#include <core/ComponentRegistry.h>
+#include <engine/game/IDemoService.h>
+#include <engine/game/IGameModule.h>
 #include <engine/Platform/PlatformEventsImpl.h>
 #include <engine/Platform/WindowManager.h>
 #include <engine/profiler/Profiler.h>
@@ -11081,10 +11131,12 @@ File Path: src/engine/Engine.cpp
 #include <engine/unnamed/subsystem/terminal/TerminalSystem.h>
 #include <engine/unnamed/subsystem/time/SystemClock.h>
 #include <engine/unnamed/subsystem/time/TimeSystem.h>
-#include <engine/world/EditorWorld.h>
-#include <engine/world/GameWorld.h>
 #include <engine/world/World.h>
-#include <game/core/replay/DemoManager.h>
+
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#include <engine/editor/EditorRuntime.h>
+#include <engine/world/EditorWorld.h>
+#endif
 
 namespace Unnamed {
 	namespace Rhi {
@@ -11092,7 +11144,9 @@ namespace Unnamed {
 		class D3D12Device;
 	}
 
-	Engine::Engine()  = default;
+	Engine::Engine(IGameModule& gameModule, const RUN_MODE runMode)
+		: mGameModule(gameModule),
+		  mRequestedRunMode(runMode) {}
 	Engine::~Engine() = default;
 
 	int Engine::Run() {
@@ -11150,7 +11204,7 @@ namespace Unnamed {
 	}
 
 	void Engine::ToggleEditorScreenMode() const {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		if (mUEditorRuntime && mIsEditorMode) {
 			mUEditorRuntime->TogglePresentMode();
 		}
@@ -11163,13 +11217,22 @@ namespace Unnamed {
 		SystemClock::Init();
 
 		ServiceLocator::Register<Engine>(this);
+		ServiceLocator::Register<IGameModule>(&mGameModule);
+
+		RUN_MODE resolvedRunMode = mRequestedRunMode;
+#if !(defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR))
+		if (resolvedRunMode == RUN_MODE::EDITOR) {
+			Warning(
+				"Engine",
+				"Editor mode is not available in this build. Falling back to standalone mode."
+			);
+			resolvedRunMode = RUN_MODE::STANDALONE;
+		}
+#endif
+		mIsEditorMode = resolvedRunMode == RUN_MODE::EDITOR;
 
 		mConfig = {
-#ifdef _DEBUG
-			.mode = RUN_MODE::EDITOR,
-#else
-			.mode = RUN_MODE::STANDALONE,
-#endif
+			.mode = resolvedRunMode,
 			.window = {
 				.title     = "Unnamed Engine",
 				.width     = 1280,
@@ -11205,8 +11268,8 @@ namespace Unnamed {
 			return false;
 		}
 
-		mDemoManager = std::make_unique<DemoManager>();
-		ServiceLocator::Register<DemoManager>(mDemoManager.get());
+		mDemoService = mGameModule.CreateDemoService();
+		ServiceLocator::Register<IDemoService>(mDemoService.get());
 
 		mAssetManager = std::make_unique<AssetManager>();
 		ServiceLocator::Register<AssetManager>(mAssetManager.get());
@@ -11323,7 +11386,19 @@ namespace Unnamed {
 		mRenderModule->Init(mConsoleSystem.get());
 		mRenderFrameContext = std::make_unique<Render::RenderFrameContext>();
 
-#ifdef _DEBUG
+		// ゲームモジュールに Engine 側サービスを公開し、初期化を委譲します。
+		EngineServices engineServices = {
+			.console = mConsoleSystem.get(),
+			.inputSystem = mInputSystem.get(),
+			.assetManager = mAssetManager.get(),
+			.profiler = mProfiler.get(),
+			.windowManager = mWindowManager.get(),
+			.demoService = mDemoService.get()
+		};
+		mGameModule.Initialize(engineServices);
+		mGameModule.RegisterGameComponents(ComponentRegistry::Get());
+
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		auto& dx     = dynamic_cast<Rhi::D3D12Device&>(*mRhiDevice);
 		mUImGuiLayer = std::make_unique<ImGuiLayer>(
 			hwnd,
@@ -11349,21 +11424,22 @@ namespace Unnamed {
 		RegisterConsoleCommandsAndVariables();
 
 		if (mConfig.mode == RUN_MODE::EDITOR) {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			mUEditorRuntime = std::make_unique<EditorRuntime>(
 				mConsoleSystem.get(),
 				mInputSystem.get(),
 				mAssetManager.get(),
-				mDemoManager.get(),
+				mDemoService.get(),
+				mGameModule,
 				mProfiler.get(),
 				*mWindowManager,
 				*mRenderModule,
 				*mUImGuiLayer
 			);
 			if (World* runtimeWorld = mUEditorRuntime->GetRuntimeWorld()) {
-				runtimeWorld->LoadSceneFromFile(
-					"./content/parkour/scenes/title.json"
-				);
+				const std::string startupScenePath =
+					mGameModule.GetDefaultStartupScenePath();
+				runtimeWorld->LoadSceneFromFile(startupScenePath.c_str());
 			}
 
 			mConsoleSystem->ExecuteCommand(
@@ -11371,8 +11447,17 @@ namespace Unnamed {
 			);
 #endif
 		} else {
-			auto& world = SwitchWorld<GameWorld>();
-			world.LoadSceneFromFile("./content/parkour/scenes/title.json");
+			std::unique_ptr<World> runtimeWorld = mGameModule.CreateRuntimeWorld(
+				BuildWorldServices()
+			);
+			if (!runtimeWorld) {
+				Error("Engine", "GameModule returned null runtime world.");
+				return false;
+			}
+			World& world = ActivateWorld(std::move(runtimeWorld));
+			const std::string startupScenePath =
+				mGameModule.GetDefaultStartupScenePath();
+			world.LoadSceneFromFile(startupScenePath.c_str());
 		}
 
 		// ユーザー名をコンソール変数に設定
@@ -11435,7 +11520,7 @@ namespace Unnamed {
 			);
 		}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		// Update内でImGuiを使えるように更新前にフレーム開始
 		if (mUImGuiLayer) {
 			Profiler::ScopeTimer scope(mProfiler.get(), "ImGui.BeginFrame");
@@ -11465,7 +11550,7 @@ namespace Unnamed {
 		}
 
 		World* runtimeWorld = mWorld.get();
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		if (mUEditorRuntime && mIsEditorMode) {
 			runtimeWorld = mUEditorRuntime->GetRuntimeWorld();
 		}
@@ -11487,18 +11572,18 @@ namespace Unnamed {
 
 			static constexpr uint32_t kMaxFixedTicksPerFrame = 16u;
 
-			const uint32_t tickRate = mDemoManager ?
-				                          mDemoManager->
+			const uint32_t tickRate = mDemoService ?
+				                          mDemoService->
 				                          GetSimulationTickRate() :
-				                          DemoManager::ResolveConfiguredTickRate();
-			const float fixedStepSeconds = DemoManager::TickStepSecondsFromRate(
+				                          IDemoService::ResolveConfiguredTickRate();
+			const float fixedStepSeconds = IDemoService::TickStepSecondsFromRate(
 				tickRate
 			);
 
-			if (mDemoManager &&
-			    (mDemoManager->IsPlayback() || mDemoManager->IsRecording())) {
+			if (mDemoService &&
+			    (mDemoService->IsPlayback() || mDemoService->IsRecording())) {
 				const uint32_t configuredTickRate =
-					DemoManager::ResolveConfiguredTickRate();
+					IDemoService::ResolveConfiguredTickRate();
 				if (configuredTickRate != tickRate &&
 				    configuredTickRate !=
 				    mLastLoggedTickrateMismatchConfigured) {
@@ -11568,7 +11653,7 @@ namespace Unnamed {
 			);
 		}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		if (mUImGuiLayer) {
 			if (mUEditorRuntime && mIsEditorMode) {
 				mUEditorRuntime->SyncViewOutputs();
@@ -11622,7 +11707,7 @@ namespace Unnamed {
 		mPostFxChainCommand.reset();
 		mPostFxChainReloadCommand.reset();
 		mSequenceRegressionRunCommand.reset();
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		mToggleEditorCommand.reset();
 		mToggleFullscreenCommand.reset();
 #endif
@@ -11631,10 +11716,10 @@ namespace Unnamed {
 			mWorld->Shutdown();
 			mWorld.reset();
 		}
-		ServiceLocator::Register<DemoManager>(nullptr);
-		mDemoManager.reset();
+		ServiceLocator::Register<IDemoService>(nullptr);
+		mDemoService.reset();
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		if (mRenderModule) {
 			mRenderModule->SetUiCallbacks({}, {});
 		}
@@ -11679,6 +11764,8 @@ namespace Unnamed {
 		if (mWindowManager) {
 			mWindowManager->Shutdown();
 		}
+
+		ServiceLocator::Register<IGameModule>(nullptr);
 	}
 
 	/// @brief コンソールコマンドと変数の登録
@@ -11844,7 +11931,7 @@ namespace Unnamed {
 			},
 			"Run fixed-tick regression tests for sequence runtime."
 		);
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		mToggleEditorCommand = std::make_unique<ConCommand>(
 			"toggleeditor",
 			[this](const std::vector<std::string>&) {
@@ -11866,7 +11953,7 @@ namespace Unnamed {
 	}
 
 	World* Engine::ResolveSceneTransitionTargetWorld(World* runtimeWorld) const {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		if (auto* editorWorld = dynamic_cast<EditorWorld*>(runtimeWorld)) {
 			return editorWorld->GetRuntimeSceneWorld();
 		}
@@ -11884,40 +11971,38 @@ namespace Unnamed {
 		}
 	}
 
-	template <class TWorld, class... Args>
-	TWorld& Engine::SwitchWorld(Args&&... args) {
-		static_assert(std::is_base_of_v<World, TWorld>);
-
+	World& Engine::ActivateWorld(std::unique_ptr<World> newWorld) {
+		if (!newWorld) {
+			Fatal("Engine", "Attempted to activate null world.");
+		}
 		if (mWorld) {
 			mWorld->Shutdown();
 			mWorld.reset();
 		}
 
-		auto newWorld = std::make_unique<TWorld>(
-			std::forward<Args>(args)...
-		);
-		TWorld* raw = newWorld.get();
-		raw->SetServices(
-			{
-				.console      = mConsoleSystem.get(),
-				.inputSystem  = mInputSystem.get(),
-				.profiler     = mProfiler.get(),
-				.assetManager = mAssetManager.get(),
-				.demoManager  = mDemoManager.get(),
-				.audioSystem  = mAudioSystem.get()
-			}
-		);
+		newWorld->SetServices(BuildWorldServices());
 
 		mWorld = std::move(newWorld);
 
 		mSimulationAccumulator = 0.0f;
 
 		mWorld->Initialize();
-		return *raw;
+		return *mWorld;
+	}
+
+	WorldServices Engine::BuildWorldServices() const noexcept {
+		WorldServices services = {};
+		services.console       = mConsoleSystem.get();
+		services.inputSystem   = mInputSystem.get();
+		services.profiler      = mProfiler.get();
+		services.assetManager  = mAssetManager.get();
+		services.demoService   = mDemoService.get();
+		services.audioSystem   = mAudioSystem.get();
+		return services;
 	}
 
 	World* Engine::GetWorld() const {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		if (mUEditorRuntime && mIsEditorMode) {
 			return mUEditorRuntime->GetRuntimeWorld();
 		}
@@ -11936,6 +12021,7 @@ File Path: src/engine/Engine.h
 #include <core/assets/AssetID.h>
 
 #include <engine/EngineConfig.h>
+#include <engine/EngineServices.h>
 
 class IPostProcess;
 class SrvManager;
@@ -11946,8 +12032,10 @@ namespace Unnamed {
 	class ImGuiLayer;
 	class ConsoleSystem;
 	class ConCommand;
-	class DemoManager;
+	class IDemoService;
+	class IGameModule;
 	class World;
+	struct WorldServices;
 
 	namespace Render {
 		class RenderModule;
@@ -11962,7 +12050,9 @@ namespace Unnamed {
 	class Engine {
 	public:
 		/// @brief コンストラクタ
-		Engine();
+		/// @param gameModule ゲーム側機能を注入するモジュール
+		/// @param runMode 実行モード
+		Engine(IGameModule& gameModule, RUN_MODE runMode);
 
 		/// @brief デストラクタ
 		~Engine();
@@ -11995,18 +12085,20 @@ namespace Unnamed {
 		/// @brief フルスクリーンの切り替えを行います。
 		void ToggleFullscreen() const;
 
-		/// @brief ワールドを切り替えます。
-		/// @tparam TWorld 切り替えるワールドの型
-		/// @tparam Args コンストラクタに渡す引数の型
-		/// @param args コンストラクタに渡す引数
-		/// @return 切り替えたワールドの参照
-		template <class TWorld, class... Args>
-		TWorld& SwitchWorld(Args&&... args);
+		/// @brief ワールドを切り替えて初期化します。
+		/// @param newWorld 切り替え先ワールド
+		/// @return 切り替えたワールド参照
+		World& ActivateWorld(std::unique_ptr<World> newWorld);
+
+		/// @brief 現在状態から WorldServices を組み立てます。
+		[[nodiscard]] WorldServices BuildWorldServices() const noexcept;
 
 		/// @brief 現在のワールドを取得します。
 		/// @return 現在のワールドの参照
 		[[nodiscard]] World* GetWorld() const;
 
+		IGameModule& mGameModule;
+		RUN_MODE     mRequestedRunMode = RUN_MODE::STANDALONE;
 		EngineConfig mConfig;
 
 		// 基本システム
@@ -12017,7 +12109,7 @@ namespace Unnamed {
 		// 基幹システム
 		std::unique_ptr<ConsoleSystem>        mConsoleSystem;
 		std::unique_ptr<class TerminalSystem> mTerminalSystem;
-		std::unique_ptr<DemoManager>          mDemoManager;
+		std::unique_ptr<IDemoService>         mDemoService;
 
 		std::unique_ptr<class TimeSystem>  mTimeSystem;
 		std::unique_ptr<class InputSystem> mInputSystem;
@@ -12028,7 +12120,7 @@ namespace Unnamed {
 
 		std::unique_ptr<World> mWorld;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		std::unique_ptr<ImGuiLayer>    mUImGuiLayer;
 		std::unique_ptr<EditorRuntime> mUEditorRuntime;
 #endif
@@ -12110,16 +12202,22 @@ File Path: src/engine/EngineServices.h
 ============================================================
 #pragma once
 
-#include <engine/unnamed/subsystem/interface/ServiceLocator.h>
-
 namespace Unnamed {
-	class Engine;
+	class ConsoleSystem;
+	class InputSystem;
+	class AssetManager;
+	class Profiler;
+	class WindowManager;
+	class IDemoService;
 
-	class EngineServices {
-	public:
-		static Engine* Get() {
-			return ServiceLocator::Get<Engine>();
-		}
+	/// @brief ゲームモジュール初期化時に渡す Engine サービス群です。
+	struct EngineServices {
+		ConsoleSystem* console = nullptr;
+		InputSystem*   inputSystem = nullptr;
+		AssetManager*  assetManager = nullptr;
+		Profiler*      profiler = nullptr;
+		WindowManager* windowManager = nullptr;
+		IDemoService*  demoService = nullptr;
 	};
 }
 
@@ -16923,7 +17021,8 @@ namespace Unnamed {
 		ConsoleSystem*        console,
 		InputSystem*          inputSystem,
 		AssetManager*         assetManager,
-		DemoManager*          demoManager,
+		IDemoService*         demoService,
+		IGameModule&          gameModule,
 		Profiler*             profiler,
 		WindowManager&        windowManager,
 		Render::RenderModule& renderModule,
@@ -16933,7 +17032,8 @@ namespace Unnamed {
 		    console,
 		    inputSystem,
 		    assetManager,
-		    demoManager,
+		    demoService,
+		    gameModule,
 		    profiler,
 		    windowManager,
 		    renderModule,
@@ -16997,7 +17097,8 @@ namespace Unnamed {
 	class World;
 	class InputSystem;
 	class AssetManager;
-	class DemoManager;
+	class IDemoService;
+	class IGameModule;
 	class Profiler;
 
 	namespace Render {
@@ -17011,7 +17112,8 @@ namespace Unnamed {
 			ConsoleSystem*        console,
 			InputSystem*          inputSystem,
 			AssetManager*         assetManager,
-			DemoManager*          demoManager,
+			IDemoService*         demoService,
+			IGameModule&          gameModule,
 			Profiler*             profiler,
 			WindowManager&        windowManager,
 			Render::RenderModule& renderModule,
@@ -17052,6 +17154,7 @@ File Path: src/engine/editor/EditorToolHost.cpp
 
 #include "core/string/StrUtil.h"
 
+#include "engine/game/IGameModule.h"
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
 #include "engine/render/RenderModule.h"
@@ -17064,7 +17167,8 @@ namespace Unnamed {
 		ConsoleSystem*        console,
 		InputSystem*          inputSystem,
 		AssetManager*         assetManager,
-		DemoManager*          demoManager,
+		IDemoService*         demoService,
+		IGameModule&          gameModule,
 		Profiler*             profiler,
 		WindowManager&        windowManager,
 		Render::RenderModule& renderModule,
@@ -17075,7 +17179,8 @@ namespace Unnamed {
 	    mConsole(console),
 	    mInputSystem(inputSystem),
 	    mAssetManager(assetManager),
-	    mDemoManager(demoManager),
+	    mDemoService(demoService),
+	    mGameModule(gameModule),
 	    mProfiler(profiler) {
 		if (!mConsole) {
 			Error(
@@ -17101,7 +17206,8 @@ namespace Unnamed {
 			.console       = mConsole,
 			.inputSystem   = mInputSystem,
 			.assetManager  = mAssetManager,
-			.demoManager   = mDemoManager,
+			.demoService   = mDemoService,
+			.gameWorldFactory = &mGameModule,
 			.profiler      = mProfiler,
 		};
 		for (auto& tool : mOwnedTools) {
@@ -17442,7 +17548,8 @@ namespace Unnamed {
 	class ConsoleSystem;
 	class InputSystem;
 	class AssetManager;
-	class DemoManager;
+	class IDemoService;
+	class IGameModule;
 	class Profiler;
 	class WindowManager;
 	class ImGuiLayer;
@@ -17461,7 +17568,8 @@ namespace Unnamed {
 			ConsoleSystem*        console,
 			InputSystem*          inputSystem,
 			AssetManager*         assetManager,
-			DemoManager*          demoManager,
+			IDemoService*         demoService,
+			IGameModule&          gameModule,
 			Profiler*             profiler,
 			WindowManager&        windowManager,
 			Render::RenderModule& renderModule,
@@ -17492,7 +17600,8 @@ namespace Unnamed {
 		ConsoleSystem* mConsole = nullptr;
 		InputSystem*   mInputSystem = nullptr;
 		AssetManager*  mAssetManager = nullptr;
-		DemoManager*   mDemoManager = nullptr;
+		IDemoService*  mDemoService = nullptr;
+		IGameModule&   mGameModule;
 		Profiler*      mProfiler = nullptr;
 
 		std::vector<std::unique_ptr<IEditorTool>> mOwnedTools;
@@ -18216,7 +18325,8 @@ namespace Unnamed {
 	class ConsoleSystem;
 	class InputSystem;
 	class AssetManager;
-	class DemoManager;
+	class IDemoService;
+	class IGameWorldFactory;
 	class Profiler;
 	class ImGuiLayer;
 	class WindowManager;
@@ -18235,7 +18345,8 @@ namespace Unnamed {
 		ConsoleSystem*       console       = nullptr;
 		InputSystem*         inputSystem   = nullptr;
 		AssetManager*        assetManager  = nullptr;
-		DemoManager*         demoManager   = nullptr;
+		IDemoService*        demoService   = nullptr;
+		IGameWorldFactory*   gameWorldFactory = nullptr;
 		Profiler*            profiler      = nullptr;
 	};
 
@@ -18396,9 +18507,10 @@ namespace Unnamed {
 				.inputSystem  = services.inputSystem,
 				.profiler     = services.profiler,
 				.assetManager = services.assetManager,
-				.demoManager  = services.demoManager
+				.demoService  = services.demoService
 			}
 		);
+		mEditorWorld.SetPlayWorldFactory(services.gameWorldFactory);
 		mConsoleSystem = services.console;
 		mInputSystem   = services.inputSystem;
 		mEditorWorld.Initialize();
@@ -24200,6 +24312,189 @@ namespace Unnamed {
 
 
 ============================================================
+File Path: src/engine/game/IDemoService.cpp
+============================================================
+#include "IDemoService.h"
+
+#include <algorithm>
+
+#include "engine/unnamed/subsystem/console/ConsoleSystem.h"
+// ReSharper disable once CppUnusedIncludeDirective
+#include "engine/unnamed/subsystem/console/concommand/ConVar.h"
+#include "engine/unnamed/subsystem/interface/ServiceLocator.h"
+
+namespace Unnamed {
+	namespace {
+		constexpr uint32_t kDefaultDemoTickRate = 66u;
+	}
+
+	uint32_t IDemoService::ResolveConfiguredTickRate() {
+		ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
+		if (!console) {
+			return kDefaultDemoTickRate;
+		}
+
+		const int rawTickRate = console->GetConVarValueOr(
+			"sv_tickrate",
+			static_cast<int>(kDefaultDemoTickRate)
+		);
+		return std::clamp(static_cast<uint32_t>(std::max(1, rawTickRate)), 1u, 1000u);
+	}
+
+	float IDemoService::TickStepSecondsFromRate(const uint32_t tickRate) {
+		const uint32_t sanitized = std::clamp(tickRate, 1u, 1000u);
+		return 1.0f / static_cast<float>(sanitized);
+	}
+}
+
+
+============================================================
+File Path: src/engine/game/IDemoService.h
+============================================================
+#pragma once
+
+#include <cstdint>
+#include <string>
+#include <string_view>
+
+namespace Unnamed {
+	class Entity;
+	struct DemoTickCommand;
+
+	/// @brief デモ録画・再生サービスの抽象インターフェースです。
+	/// @details Engine はこの抽象のみを参照し、ゲーム固有の実装を直接参照しません。
+	class IDemoService {
+	public:
+		virtual ~IDemoService() = default;
+
+		/// @brief デモ録画を開始します。
+		virtual bool StartRecording(std::string path) = 0;
+		/// @brief デモ再生を開始します。
+		virtual bool StartPlayback(std::string path) = 0;
+		/// @brief 録画または再生を停止します。
+		virtual bool Stop() = 0;
+
+		/// @brief 録画中かどうかを返します。
+		[[nodiscard]] virtual bool IsRecording() const = 0;
+		/// @brief 再生中かどうかを返します。
+		[[nodiscard]] virtual bool IsPlayback() const = 0;
+		/// @brief 再生が終了しているかどうかを返します。
+		[[nodiscard]] virtual bool IsPlaybackFinished() const = 0;
+		/// @brief 再生開始ティックを返します。
+		[[nodiscard]] virtual uint64_t GetPlaybackStartTick() const = 0;
+		/// @brief 現在扱っているデモパスを返します。
+		[[nodiscard]] virtual std::string_view GetCurrentPath() const = 0;
+		/// @brief 再生セッション番号を返します。
+		[[nodiscard]] virtual uint64_t GetPlaybackSessionSerial() const = 0;
+		/// @brief 録画セッション番号を返します。
+		[[nodiscard]] virtual uint64_t GetRecordingSessionSerial() const = 0;
+		/// @brief シミュレーションtickrateを返します。
+		[[nodiscard]] virtual uint32_t GetSimulationTickRate() const = 0;
+		/// @brief シミュレーションの固定ステップ秒数を返します。
+		[[nodiscard]] virtual float GetSimulationStepSeconds() const = 0;
+		/// @brief 現在状態の文字列表現を返します。
+		[[nodiscard]] virtual std::string BuildStatusString() const = 0;
+
+		/// @brief ライブ入力コマンドを録画へ送信します。
+		virtual void SubmitLiveCommand(const DemoTickCommand& command) = 0;
+		/// @brief 再生コマンドを消費します。
+		[[nodiscard]] virtual bool ConsumePlaybackCommand(
+			uint64_t tick,
+			uint64_t subjectEntityGuid,
+			DemoTickCommand& outCommand
+		) = 0;
+		/// @brief 再生初期スナップショットのキャプチャを行います。
+		virtual void CaptureInitialSnapshotIfNeeded(
+			const Entity& subjectEntity
+		) = 0;
+		/// @brief 再生初期スナップショットの適用を行います。
+		[[nodiscard]] virtual bool ApplyInitialSnapshotIfNeeded(
+			Entity& subjectEntity
+		) = 0;
+		/// @brief 録画または再生のスナップショット検証を行います。
+		virtual void RecordOrVerifySnapshot(
+			uint64_t tick,
+			Entity& subjectEntity
+		) = 0;
+
+		/// @brief 設定されたtickrateを解決します。
+		[[nodiscard]] static uint32_t ResolveConfiguredTickRate();
+		/// @brief tickrate から固定ステップ秒数を計算します。
+		[[nodiscard]] static float TickStepSecondsFromRate(uint32_t tickRate);
+	};
+}
+
+
+============================================================
+File Path: src/engine/game/IGameModule.h
+============================================================
+#pragma once
+
+#include <memory>
+#include <string>
+
+#include "engine/game/IGameWorldFactory.h"
+
+namespace Unnamed {
+	class World;
+	class IDemoService;
+	class ComponentRegistry;
+	struct EngineServices;
+	struct WorldServices;
+
+	/// @brief ゲーム側から Engine へ機能注入するためのモジュール抽象です。
+	class IGameModule : public IGameWorldFactory {
+	public:
+		~IGameModule() override = default;
+
+		/// @brief Engine 初期化後にゲームモジュールを初期化します。
+		virtual void Initialize(EngineServices& services) = 0;
+		/// @brief Standalone 実行用のランタイムワールドを生成します。
+		[[nodiscard]] virtual std::unique_ptr<World> CreateRuntimeWorld(
+			const WorldServices& services
+		) = 0;
+		/// @brief Demo サービス実装を生成します。
+		[[nodiscard]] virtual std::unique_ptr<IDemoService> CreateDemoService() = 0;
+		/// @brief ゲーム固有コンポーネントを登録します。
+		virtual void RegisterGameComponents(ComponentRegistry& componentRegistry) = 0;
+		/// @brief 起動時のデフォルトシーンパスを返します。
+		[[nodiscard]] virtual std::string GetDefaultStartupScenePath() const = 0;
+		/// @brief UI ドキュメントのデフォルトパスを返します。
+		/// @details Engine 側はこの値を利用し、ゲーム固有パスを直書きしません。
+		[[nodiscard]] virtual std::string GetDefaultUiDocumentPath() const {
+			return {};
+		}
+	};
+}
+
+
+============================================================
+File Path: src/engine/game/IGameWorldFactory.h
+============================================================
+#pragma once
+
+#include <memory>
+
+namespace Unnamed {
+	class World;
+	struct WorldServices;
+
+	/// @brief PIE 向けにゲームワールドを生成する抽象ファクトリです。
+	class IGameWorldFactory {
+	public:
+		virtual ~IGameWorldFactory() = default;
+
+		/// @brief Play-In-Editor 用のワールドを生成します。
+		/// @param services ワールドへ注入するサービス群
+		/// @return 生成されたワールド
+		[[nodiscard]] virtual std::unique_ptr<World> CreatePlayWorld(
+			const WorldServices& services
+		) = 0;
+	};
+}
+
+
+============================================================
 File Path: src/engine/gui/Rect.cpp
 ============================================================
 #include "Rect.h"
@@ -28444,6 +28739,7 @@ File Path: src/engine/gui/editor/GuiEditor.cpp
 #include "engine/gui/UiRoot.h"
 #include "engine/gui/UiScreenStack.h"
 #include "engine/gui/UiWidget.h"
+#include "engine/game/IGameModule.h"
 #include "engine/gui/components/UiButtonBehaviorComponent.h"
 #include "engine/gui/components/UiDigitStripComponent.h"
 #include "engine/gui/components/UiLayoutComponents.h"
@@ -28454,12 +28750,11 @@ File Path: src/engine/gui/editor/GuiEditor.cpp
 #include "engine/render/Renderer.h"
 #include "engine/ui/ImGuiLayer.h"
 #include "engine/unnamed/subsystem/console/Log.h"
+#include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 
 #ifdef _DEBUG
 namespace Unnamed::Gui {
 	namespace {
-		constexpr std::string_view kDefaultUiPath =
-			"./content/parkour/ui/MainMenu.ui.json";
 		constexpr const char* kRenamePopupId = "Rename Widget";
 
 		struct PaletteTemplate {
@@ -28501,12 +28796,18 @@ namespace Unnamed::Gui {
 
 		void EnsureContextDefaults(GuiEditorContext& context) {
 			if (context.pathBuffer[0] == '\0') {
-				std::snprintf(
-					context.pathBuffer.data(),
-					context.pathBuffer.size(),
-					"%s",
-					kDefaultUiPath.data()
-				);
+				if (const auto* gameModule = ServiceLocator::Get<IGameModule>()) {
+					const std::string defaultUiPath =
+						gameModule->GetDefaultUiDocumentPath();
+					if (!defaultUiPath.empty()) {
+						std::snprintf(
+							context.pathBuffer.data(),
+							context.pathBuffer.size(),
+							"%s",
+							defaultUiPath.c_str()
+						);
+					}
+				}
 			}
 			context.previewZoom = std::clamp(context.previewZoom, 0.25f, 4.0f);
 		}
@@ -52382,9 +52683,9 @@ namespace Unnamed {
 		return world ? world->GetAssetManager() : nullptr;
 	}
 
-	DemoManager* BaseComponent::GetDemoManager() const noexcept {
+	IDemoService* BaseComponent::GetDemoService() const noexcept {
 		World* world = GetWorld();
-		return world ? world->GetDemoManager() : nullptr;
+		return world ? world->GetDemoService() : nullptr;
 	}
 
 	AudioSystem* BaseComponent::GetAudioSystem() const noexcept {
@@ -52434,7 +52735,7 @@ namespace Unnamed {
 	class ConsoleSystem;
 	class InputSystem;
 	class AssetManager;
-	class DemoManager;
+	class IDemoService;
 	class AudioSystem;
 	class JsonWriter;
 	class JsonReader;
@@ -52541,9 +52842,9 @@ namespace Unnamed {
 		/// @return AssetManager へのポインタ。未設定時は nullptr
 		[[nodiscard]] AssetManager* GetAssetManager() const noexcept;
 
-		/// @brief このコンポーネントに紐づく DemoManager を取得します。
-		/// @return DemoManager へのポインタ。未設定時は nullptr
-		[[nodiscard]] DemoManager* GetDemoManager() const noexcept;
+		/// @brief このコンポーネントに紐づく DemoService を取得します。
+		/// @return DemoService へのポインタ。未設定時は nullptr
+		[[nodiscard]] IDemoService* GetDemoService() const noexcept;
 
 		/// @brief このコンポーネントに紐づく AudioSystem を取得します。
 		/// @return AudioSystem へのポインタ。未設定時は nullptr
@@ -56345,6 +56646,7 @@ File Path: src/engine/unnamed/framework/components/ui/UiCanvasComponent.cpp
 
 #include "engine/gui/UiDocument.h"
 #include "engine/gui/UiRoot.h"
+#include "engine/game/IGameModule.h"
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -56394,9 +56696,20 @@ namespace Unnamed {
 			}
 			return UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
 		}
+
+		std::string ResolveDefaultUiAssetPath() {
+			const auto* gameModule = ServiceLocator::Get<IGameModule>();
+			if (!gameModule) {
+				return {};
+			}
+
+			const std::string uiPath = gameModule->GetDefaultUiDocumentPath();
+			return uiPath.empty() ? std::string() : StrUtil::NormalizePath(uiPath);
+		}
 	}
 
-	UiCanvasComponent::UiCanvasComponent()  = default;
+	UiCanvasComponent::UiCanvasComponent() :
+		mUiAssetPath(ResolveDefaultUiAssetPath()) {}
 	UiCanvasComponent::~UiCanvasComponent() = default;
 
 	void UiCanvasComponent::Deserialize(const JsonReader& reader) {
@@ -56777,7 +57090,7 @@ namespace Unnamed {
 	private:
 		void InvalidateRuntime();
 
-		std::string mUiAssetPath = "./content/parkour/ui/MainMenu.ui.json";
+		std::string mUiAssetPath;
 		UI_CANVAS_SPACE_MODE mSpaceMode = UI_CANVAS_SPACE_MODE::SCREEN;
 		UI_CANVAS_BILLBOARD_DEPTH_MODE mBillboardDepthMode =
 			UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
@@ -64543,10 +64856,10 @@ File Path: src/engine/unnamed/subsystem/console/builtin/BuiltInCommands.cpp
 #include <engine/unnamed/subsystem/console/ConsoleSystem.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
 #include <engine/unnamed/subsystem/console/concommand/ConVar.h>
+#include <engine/game/IDemoService.h>
 #include <engine/unnamed/subsystem/interface/ServiceLocator.h>
 
 #include "engine/unnamed/subsystem/console/ConsoleScriptParser.h"
-#include "game/core/replay/DemoManager.h"
 
 namespace Unnamed {
 	void RegisterBuiltInCommands() {
@@ -64686,13 +64999,13 @@ namespace Unnamed {
 		static ConCommand demoRecord(
 			"demo_record",
 			[](std::vector<std::string> args) {
-				auto* demoManager = ServiceLocator::Get<DemoManager>();
-				if (!demoManager) {
-					Error(kChannelNone, "DemoManager is not available.");
+				auto* demoService = ServiceLocator::Get<IDemoService>();
+				if (!demoService) {
+					Error(kChannelNone, "DemoService is not available.");
 					return false;
 				}
 				const std::string path = args.empty() ? std::string() : args[0];
-				return demoManager->StartRecording(path);
+				return demoService->StartRecording(path);
 			},
 			"Start demo recording. Usage: demo_record [path]"
 		);
@@ -64700,16 +65013,16 @@ namespace Unnamed {
 		static ConCommand demoPlay(
 			"demo_play",
 			[](std::vector<std::string> args) {
-				auto* demoManager = ServiceLocator::Get<DemoManager>();
-				if (!demoManager) {
-					Error(kChannelNone, "DemoManager is not available.");
+				auto* demoService = ServiceLocator::Get<IDemoService>();
+				if (!demoService) {
+					Error(kChannelNone, "DemoService is not available.");
 					return false;
 				}
 				if (args.empty()) {
 					Error(kChannelNone, "Usage: demo_play <path>");
 					return false;
 				}
-				return demoManager->StartPlayback(args[0]);
+				return demoService->StartPlayback(args[0]);
 			},
 			"Start demo playback. Usage: demo_play <path>"
 		);
@@ -64717,12 +65030,12 @@ namespace Unnamed {
 		static ConCommand demoStop(
 			"demo_stop",
 			[](std::vector<std::string>) {
-				auto* demoManager = ServiceLocator::Get<DemoManager>();
-				if (!demoManager) {
-					Error(kChannelNone, "DemoManager is not available.");
+				auto* demoService = ServiceLocator::Get<IDemoService>();
+				if (!demoService) {
+					Error(kChannelNone, "DemoService is not available.");
 					return false;
 				}
-				return demoManager->Stop();
+				return demoService->Stop();
 			},
 			"Stop demo recording/playback."
 		);
@@ -64730,12 +65043,12 @@ namespace Unnamed {
 		static ConCommand demoStatus(
 			"demo_status",
 			[](std::vector<std::string>) {
-				auto* demoManager = ServiceLocator::Get<DemoManager>();
-				if (!demoManager) {
-					Error(kChannelNone, "DemoManager is not available.");
+				auto* demoService = ServiceLocator::Get<IDemoService>();
+				if (!demoService) {
+					Error(kChannelNone, "DemoService is not available.");
 					return false;
 				}
-				Msg(kChannelNone, "{}", demoManager->BuildStatusString());
+				Msg(kChannelNone, "{}", demoService->BuildStatusString());
 				return true;
 			},
 			"Show demo manager status."
@@ -69878,6 +70191,7 @@ File Path: src/engine/world/EditorWorld.cpp
 #include <algorithm>
 #include <chrono>
 
+#include "engine/game/IGameWorldFactory.h"
 #include "engine/render/frame/RenderFrameInputs.h"
 #include "engine/scene/Scene.h"
 #include "engine/scene/SceneSerializer.h"
@@ -69886,7 +70200,6 @@ File Path: src/engine/world/EditorWorld.cpp
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
-#include "engine/world/GameWorld.h"
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "EditorWorld";
@@ -69977,9 +70290,18 @@ namespace Unnamed {
 		if (mPlayWorld || !mScene) {
 			return;
 		}
+		if (!mPlayWorldFactory) {
+			Warning(kChannel, "PIE world factory is null.");
+			return;
+		}
 
-		const auto totalStart     = std::chrono::steady_clock::now();
-		auto       playWorld      = std::make_unique<GameWorld>();
+		const auto totalStart = std::chrono::steady_clock::now();
+		auto playWorld = mPlayWorldFactory->CreatePlayWorld(GetServices());
+		if (!playWorld) {
+			Warning(kChannel, "Failed to create PIE world from factory.");
+			return;
+		}
+		// 念のため、WorldServices は常に最新値を上書きします。
 		playWorld->SetServices(GetServices());
 		const auto worldInitStart = std::chrono::steady_clock::now();
 		playWorld->Initialize();
@@ -70028,6 +70350,12 @@ namespace Unnamed {
 			input->SetMouseCursorVisible(true);
 			input->ClearMouseCursorLockAnchor();
 		}
+	}
+
+	void EditorWorld::SetPlayWorldFactory(
+		IGameWorldFactory* const factory
+	) noexcept {
+		mPlayWorldFactory = factory;
 	}
 
 	void EditorWorld::FillRenderFrameInputs(
@@ -70208,7 +70536,6 @@ File Path: src/engine/world/EditorWorld.h
 #include "engine/physics/core/Physics.h"
 #include "engine/render/frame/RenderFrameInputs.h"
 #include "engine/unnamed/framework/entity/Entity.h"
-#include "engine/world/GameWorld.h"
 
 namespace Unnamed {
 	namespace Render {
@@ -70216,6 +70543,7 @@ namespace Unnamed {
 	}
 
 	class EditorCameraComponent;
+	class IGameWorldFactory;
 
 	class EditorWorld final : public World {
 	public:
@@ -70228,6 +70556,9 @@ namespace Unnamed {
 
 		void StartPlayInEditor();
 		void StopPlayInEditor();
+		/// @brief PIE 用ワールド生成ファクトリを設定します。
+		/// @param factory 設定するワールド生成ファクトリ
+		void SetPlayWorldFactory(IGameWorldFactory* factory) noexcept;
 
 		[[nodiscard]] bool IsPlaying() const {
 			return mPlayWorld != nullptr;
@@ -70270,8 +70601,9 @@ namespace Unnamed {
 			const Render::SceneViewRenderMode& request
 		);
 
-		std::unique_ptr<Entity>    mEditorEntity;
-		std::unique_ptr<GameWorld> mPlayWorld;
+		std::unique_ptr<Entity> mEditorEntity;
+		std::unique_ptr<World>  mPlayWorld;
+		IGameWorldFactory*      mPlayWorldFactory = nullptr;
 		Render::SCENE_RENDER_MODE  mLastAspectMode =
 			Render::SCENE_RENDER_MODE::FIT_VIEWPORT;
 		uint32_t mLastAspectViewportWidth  = 0;
@@ -70966,6 +71298,7 @@ File Path: src/engine/world/World.cpp
 #include "engine/gui/UiCanvasRuntime.h"
 #include "engine/gui/UiDrawCommand.h"
 #include "engine/gui/UiRoot.h"
+#include "engine/game/IDemoService.h"
 #include "engine/physics/core/Physics.h"
 #include "engine/profiler/Profiler.h"
 #include "engine/render/frame/RenderFrameContext.h"
@@ -72190,8 +72523,8 @@ namespace Unnamed {
 		return mServices.assetManager;
 	}
 
-	DemoManager* World::GetDemoManager() const noexcept {
-		return mServices.demoManager;
+	IDemoService* World::GetDemoService() const noexcept {
+		return mServices.demoService;
 	}
 
 	AudioSystem* World::GetAudioSystem() const noexcept {
@@ -72237,7 +72570,7 @@ namespace Unnamed {
 	class InputSystem;
 	class Profiler;
 	class AudioSystem;
-	class DemoManager;
+	class IDemoService;
 	class JsonReader;
 
 	namespace Render {
@@ -72262,7 +72595,7 @@ namespace Unnamed {
 		InputSystem*   inputSystem = nullptr;
 		Profiler*      profiler = nullptr;
 		AssetManager*  assetManager = nullptr;
-		DemoManager*   demoManager = nullptr;
+		IDemoService*  demoService = nullptr;
 		AudioSystem*   audioSystem = nullptr;
 	};
 
@@ -72442,8 +72775,8 @@ namespace Unnamed {
 		/// @brief AssetManager 参照を取得します。
 		[[nodiscard]] AssetManager* GetAssetManager() const noexcept;
 
-		/// @brief DemoManager 参照を取得します。
-		[[nodiscard]] DemoManager* GetDemoManager() const noexcept;
+		/// @brief DemoService 参照を取得します。
+		[[nodiscard]] IDemoService* GetDemoService() const noexcept;
 
 		/// @brief AudioSystem 参照を取得します。
 		[[nodiscard]] AudioSystem* GetAudioSystem() const noexcept;
@@ -76206,10 +76539,10 @@ File Path: src/game/core/components/character/GameMovementComponent.cpp
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 #include "engine/world/GameplayCueBus.h"
 #include "engine/world/World.h"
+#include "engine/game/IDemoService.h"
 
 #include "game/core/collision/kinematic/BoxKinematicCollisionResolver.h"
 #include "game/core/components/character/state/GameMovementStateMachine.h"
-#include "game/core/replay/DemoManager.h"
 #include "game/core/replay/ReplayHash.h"
 
 #include "state/ability/CoreMovementAbilities.h"
@@ -76408,8 +76741,8 @@ namespace Unnamed {
 			SimulateStep(transform, deterministicPacket.input, stepSeconds);
 
 			if (Entity* owner = GetOwner()) {
-				if (auto* demoManager = GetDemoManager()) {
-					demoManager->RecordOrVerifySnapshot(
+				if (auto* demoService = GetDemoService()) {
+					demoService->RecordOrVerifySnapshot(
 						deterministicPacket.tick,
 						*owner
 					);
@@ -79663,9 +79996,9 @@ File Path: src/game/core/components/controller/PlayerCharacterController.cpp
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 #include "engine/unnamed/subsystem/input/device/gamepad/GamepadDevice.h"
 #include "engine/world/World.h"
+#include "engine/game/IDemoService.h"
 
 #include "game/core/input/CharacterActionFrameInput.h"
-#include "game/core/replay/DemoManager.h"
 #include "game/core/replay/ReplayHash.h"
 
 namespace Unnamed {
@@ -79775,12 +80108,12 @@ namespace Unnamed {
 			return;
 		}
 
-		DemoManager* demoManager      = GetDemoManager();
+		IDemoService* demoManager      = GetDemoService();
 		const float  fixedTickSeconds =
 			demoManager ?
 				demoManager->GetSimulationStepSeconds() :
-				DemoManager::TickStepSecondsFromRate(
-					DemoManager::ResolveConfiguredTickRate()
+				IDemoService::TickStepSecondsFromRate(
+					IDemoService::ResolveConfiguredTickRate()
 				);
 
 		const uint64_t subjectEntityGuid = GetOwner() ?
@@ -79941,7 +80274,7 @@ namespace Unnamed {
 			return;
 		}
 
-		if (auto* demoManager = GetDemoManager();
+		if (auto* demoManager = GetDemoService();
 			demoManager && demoManager->IsPlayback()) {
 			return;
 		}
@@ -89999,20 +90332,11 @@ namespace Unnamed {
 	}
 
 	uint32_t DemoManager::ResolveConfiguredTickRate() {
-		ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
-		if (!console) {
-			return kDefaultDemoTickRate;
-		}
-		const auto tickrate = console->GetConVarValueOr(
-			"sv_tickrate",
-			static_cast<int>(kDefaultDemoTickRate)
-		);
-		return SanitizeTickRate(tickrate);
+		return IDemoService::ResolveConfiguredTickRate();
 	}
 
 	float DemoManager::TickStepSecondsFromRate(const uint32_t tickRate) {
-		const uint32_t rate = SanitizeTickRate(tickRate);
-		return 1.0f / static_cast<float>(rate);
+		return IDemoService::TickStepSecondsFromRate(tickRate);
 	}
 
 	void DemoManager::SubmitLiveCommand(const DemoTickCommand& command) {
@@ -90627,13 +90951,14 @@ File Path: src/game/core/replay/DemoManager.h
 #include <unordered_set>
 #include <vector>
 
+#include "engine/game/IDemoService.h"
 #include "DemoTypes.h"
 #include "ReplaySerializerRegistry.h"
 
 namespace Unnamed {
 	class Entity;
 
-	class DemoManager {
+	class DemoManager final : public IDemoService {
 	public:
 		/// @brief デモのモード
 		enum class MODE : uint8_t {
@@ -90652,16 +90977,16 @@ namespace Unnamed {
 		/// @brief デモの録画を開始する
 		/// @param path 録画ファイルの保存先パス
 		/// @return 録画開始に成功したか
-		bool StartRecording(std::string path);
+		bool StartRecording(std::string path) override;
 
 		/// @brief デモの再生を開始する
 		/// @param path 再生するデモファイルのパス
 		/// @return 再生開始に成功したか
-		bool StartPlayback(std::string path);
+		bool StartPlayback(std::string path) override;
 
 		/// @brief 録画または再生を停止する
 		/// @return 停止に成功したか
-		bool Stop();
+		bool Stop() override;
 
 		/// @brief 現在のモードを取得する
 		/// @return 現在のモード
@@ -90669,39 +90994,39 @@ namespace Unnamed {
 
 		/// @brief 録画中かどうか
 		/// @return 録画中であればtrue、そうでなければfalse
-		[[nodiscard]] bool IsRecording() const;
+		[[nodiscard]] bool IsRecording() const override;
 
 		/// @brief 再生中かどうか
 		/// @return 再生中であればtrue、そうでなければfalse
-		[[nodiscard]] bool IsPlayback() const;
+		[[nodiscard]] bool IsPlayback() const override;
 
 		/// @brief 再生が終了しているかどうか
 		/// @return 再生が終了していればtrue、そうでなければfalse
-		[[nodiscard]] bool IsPlaybackFinished() const;
+		[[nodiscard]] bool IsPlaybackFinished() const override;
 
 		/// @brief 再生開始からの経過ティック数を取得する
 		/// @return 再生開始からの経過ティック数
-		[[nodiscard]] uint64_t GetPlaybackStartTick() const;
+		[[nodiscard]] uint64_t GetPlaybackStartTick() const override;
 
 		/// @brief 再生開始からの経過時間（秒）を取得する
 		/// @return 再生開始からの経過時間（秒）
-		[[nodiscard]] std::string_view GetCurrentPath() const;
+		[[nodiscard]] std::string_view GetCurrentPath() const override;
 
 		/// @brief 現在の再生セッション番号を取得します。
 		/// @return StartPlayback が成功するたびに更新される番号
-		[[nodiscard]] uint64_t GetPlaybackSessionSerial() const;
+		[[nodiscard]] uint64_t GetPlaybackSessionSerial() const override;
 
 		/// @brief 現在の録画セッション番号を取得します。
 		/// @return StartRecording が成功するたびに更新される番号
-		[[nodiscard]] uint64_t GetRecordingSessionSerial() const;
+		[[nodiscard]] uint64_t GetRecordingSessionSerial() const override;
 
 		/// @brief シミュレーションのティックレートを取得する
 		/// @return シミュレーションのティックレート
-		[[nodiscard]] uint32_t GetSimulationTickRate() const;
+		[[nodiscard]] uint32_t GetSimulationTickRate() const override;
 
 		/// @brief シミュレーションのティックステップ時間（秒）を取得する
 		/// @return シミュレーションのティックステップ時間（秒）
-		[[nodiscard]] float GetSimulationStepSeconds() const;
+		[[nodiscard]] float GetSimulationStepSeconds() const override;
 
 		/// @brief 録画のティックレートを取得する
 		/// @return 録画のティックレート
@@ -90714,7 +91039,7 @@ namespace Unnamed {
 
 		/// @brief ライブコマンドを録画に追加する（録画中のみ有効）
 		/// @param command 追加するコマンド
-		void SubmitLiveCommand(const DemoTickCommand& command);
+		void SubmitLiveCommand(const DemoTickCommand& command) override;
 
 		/// @brief 再生コマンドを消費する（再生中のみ有効）
 		/// @param tick コマンドのティック
@@ -90725,28 +91050,33 @@ namespace Unnamed {
 			uint64_t         tick,
 			uint64_t         subjectEntityGuid,
 			DemoTickCommand& outCommand
-		);
+		) override;
 
 		/// @brief 再生中のエンティティに対して、必要に応じて初期スナップショットをキャプチャする
 		/// @param subjectEntity 対象のエンティティ
-		void CaptureInitialSnapshotIfNeeded(const Entity& subjectEntity);
+		void CaptureInitialSnapshotIfNeeded(const Entity& subjectEntity) override;
 
 		/// @brief 再生中のエンティティに対して、必要に応じて初期スナップショットを適用する
 		/// @param subjectEntity 対象のエンティティ
 		/// @return 初期スナップショットが適用された場合はtrue、そうでなければfalse
-		[[nodiscard]] bool ApplyInitialSnapshotIfNeeded(Entity& subjectEntity);
+		[[nodiscard]] bool ApplyInitialSnapshotIfNeeded(
+			Entity& subjectEntity
+		) override;
 
 		/// @brief 再生中のエンティティに対して、スナップショットの記録または検証を行う
 		/// @param tick 現在のティック
 		/// @param subjectEntity 対象のエンティティ
-		void RecordOrVerifySnapshot(uint64_t tick, Entity& subjectEntity);
+		void RecordOrVerifySnapshot(
+			uint64_t tick,
+			Entity& subjectEntity
+		) override;
 
 		/// @brief 録画または再生をリセットして待機状態に戻す
 		void Reset();
 
 		/// @brief 現在の状態を表す文字列を構築する
 		/// @return 現在の状態を表す文字列
-		[[nodiscard]] std::string BuildStatusString() const;
+		[[nodiscard]] std::string BuildStatusString() const override;
 
 	private:
 		/// @brief スナップショットのズレが発生した際のポリシーを解決する
@@ -99579,7 +99909,7 @@ File Path: src/game/parkour/components/title/TitleFlowComponent.cpp
 #include "engine/unnamed/subsystem/console/Log.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 #include "engine/world/World.h"
-#include "game/core/replay/DemoManager.h"
+#include "engine/game/IDemoService.h"
 #include "game/parkour/runtime/ParkourFlowRuntimeState.h"
 
 namespace Unnamed {
@@ -99735,7 +100065,7 @@ namespace Unnamed {
 		mPromptBlinkSeconds  = 0.0f;
 		mActiveDemoPath.clear();
 
-		if (DemoManager* demo = GetDemoManager()) {
+		if (IDemoService* demo = GetDemoService()) {
 			if (demo->IsPlayback() || demo->IsRecording()) {
 				(void)demo->Stop();
 			}
@@ -99756,7 +100086,7 @@ namespace Unnamed {
 	}
 
 	bool TitleFlowComponent::RequestDemoPlayback() {
-		DemoManager* demo = GetDemoManager();
+		IDemoService* demo = GetDemoService();
 		if (!demo) {
 			return false;
 		}
@@ -99792,7 +100122,7 @@ namespace Unnamed {
 	}
 
 	void TitleFlowComponent::UpdatePhase(const float deltaTime) {
-		DemoManager* demo = GetDemoManager();
+		IDemoService* demo = GetDemoService();
 
 		// 再生開始に失敗した場合は短い間隔で再試行します。
 		mDemoRetrySeconds = std::max(0.0f, mDemoRetrySeconds - deltaTime);
@@ -99870,7 +100200,7 @@ namespace Unnamed {
 	}
 
 	void TitleFlowComponent::CommitStartTransition() {
-		DemoManager* demo  = GetDemoManager();
+		IDemoService* demo  = GetDemoService();
 		World*       world = GetWorld();
 		if (!world) {
 			return;
@@ -100735,6 +101065,271 @@ namespace Unnamed::ParkourFlowRuntimeState {
 	/// @brief 開始カットシーン再生要求を1回だけ取り出して消費します。
 	/// @return 要求が存在した場合は true
 	[[nodiscard]] bool ConsumePendingGameStartCutscene();
+}
+
+
+============================================================
+File Path: src/game/parkour/runtime/ParkourGameModule.cpp
+============================================================
+#include "ParkourGameModule.h"
+
+#include "engine/physics/core/Physics.h"
+#include "engine/scene/Scene.h"
+#include "game/core/replay/DemoManager.h"
+#include "game/parkour/runtime/ParkourGameWorld.h"
+
+namespace Unnamed {
+	void ParkourGameModule::Initialize(EngineServices& services) {
+		// 現時点の Parkour モジュールでは初期化フックは予約のみです。
+		(void)services;
+	}
+
+	std::unique_ptr<World> ParkourGameModule::CreateRuntimeWorld(
+		const WorldServices& services
+	) {
+		auto world = std::make_unique<ParkourGameWorld>();
+		world->SetServices(services);
+		return world;
+	}
+
+	std::unique_ptr<World> ParkourGameModule::CreatePlayWorld(
+		const WorldServices& services
+	) {
+		auto world = std::make_unique<ParkourGameWorld>();
+		world->SetServices(services);
+		return world;
+	}
+
+	std::unique_ptr<IDemoService> ParkourGameModule::CreateDemoService() {
+		return std::make_unique<DemoManager>();
+	}
+
+	void ParkourGameModule::RegisterGameComponents(
+		ComponentRegistry& componentRegistry
+	) {
+		// コンポーネントは static 登録マクロで初期化されます。
+		(void)componentRegistry;
+	}
+
+	std::string ParkourGameModule::GetDefaultStartupScenePath() const {
+		return "./content/parkour/scenes/title.json";
+	}
+
+	std::string ParkourGameModule::GetDefaultUiDocumentPath() const {
+		return "./content/parkour/ui/MainMenu.ui.json";
+	}
+
+	std::unique_ptr<IGameModule> CreateParkourGameModule() {
+		return std::make_unique<ParkourGameModule>();
+	}
+}
+
+
+============================================================
+File Path: src/game/parkour/runtime/ParkourGameModule.h
+============================================================
+#pragma once
+
+#include "engine/game/IGameModule.h"
+
+namespace Unnamed {
+	/// @brief Parkour ゲーム向けの GameModule 実装です。
+	class ParkourGameModule final : public IGameModule {
+	public:
+		/// @brief モジュールを初期化します。
+		void Initialize(EngineServices& services) override;
+		/// @brief Standalone 向けランタイムワールドを生成します。
+		[[nodiscard]] std::unique_ptr<World> CreateRuntimeWorld(
+			const WorldServices& services
+		) override;
+		/// @brief PIE 向けワールドを生成します。
+		[[nodiscard]] std::unique_ptr<World> CreatePlayWorld(
+			const WorldServices& services
+		) override;
+		/// @brief Demo サービス実装を生成します。
+		[[nodiscard]] std::unique_ptr<IDemoService> CreateDemoService() override;
+		/// @brief ゲーム固有コンポーネントを登録します。
+		void RegisterGameComponents(ComponentRegistry& componentRegistry) override;
+		/// @brief 起動時デフォルトシーンパスを返します。
+		[[nodiscard]] std::string GetDefaultStartupScenePath() const override;
+		/// @brief UI ドキュメントのデフォルトパスを返します。
+		[[nodiscard]] std::string GetDefaultUiDocumentPath() const override;
+	};
+
+	/// @brief Parkour GameModule を生成します。
+	[[nodiscard]] std::unique_ptr<IGameModule> CreateParkourGameModule();
+}
+
+
+============================================================
+File Path: src/game/parkour/runtime/ParkourGameWorld.cpp
+============================================================
+#include "ParkourGameWorld.h"
+
+#include <chrono>
+
+#include "core/string/StrUtil.h"
+
+#include "engine/render/frame/RenderFrameInputs.h"
+#include "engine/scene/Scene.h"
+#include "engine/scene/SceneSerializer.h"
+#include "engine/unnamed/subsystem/console/Log.h"
+
+namespace Unnamed {
+	ParkourGameWorld::~ParkourGameWorld() = default;
+
+	void ParkourGameWorld::Initialize() {
+		const auto start = std::chrono::steady_clock::now();
+		World::Initialize();
+		const auto worldInitEnd = std::chrono::steady_clock::now();
+
+		Msg(
+			"ParkourGameWorld",
+			"Initialize timing: worldInit={}ms",
+			std::chrono::duration_cast<std::chrono::milliseconds>(
+				worldInitEnd - start
+			).count()
+		);
+	}
+
+	void ParkourGameWorld::Shutdown() {
+		World::Shutdown();
+	}
+
+	void ParkourGameWorld::FixedTick(const float fixedDeltaTime) {
+		World::FixedTick(fixedDeltaTime);
+	}
+
+	void ParkourGameWorld::RenderTick(
+		const float renderDeltaTime,
+		const float interpolationAlpha
+	) {
+		World::RenderTick(renderDeltaTime, interpolationAlpha);
+	}
+
+	bool ParkourGameWorld::LoadSceneFromFile(const char* path) {
+		const auto start = std::chrono::steady_clock::now();
+		const bool ok    = [&] {
+			if (!path || std::string_view(path).empty()) {
+				return false;
+			}
+
+			const auto beforeUnload = std::chrono::steady_clock::now();
+			UnloadScene();
+			const auto afterUnload = std::chrono::steady_clock::now();
+
+			// GUID が同一のシーン遷移でも競合しないよう旧シーン解除後にロードします。
+			auto       newScene = std::make_unique<Scene>();
+			newScene->SetWorld(this);
+			const bool loadOk   = SceneSerializer::LoadFromFile(
+				*newScene, path, mGuidGenerator
+			);
+			if (!loadOk) {
+				return false;
+			}
+
+			World::SetScene(std::move(newScene));
+			const auto afterSetScene = std::chrono::steady_clock::now();
+
+			mLoadedScenePath = StrUtil::NormalizePath(path);
+			OnSceneLoaded();
+
+			Msg(
+				"ParkourGameWorld",
+				"LoadSceneFromFile timing: load={}ms unload={}ms setScene={}ms total={}ms path={}",
+				std::chrono::duration_cast<std::chrono::milliseconds>(
+					beforeUnload - start
+				).count(),
+				std::chrono::duration_cast<std::chrono::milliseconds>(
+					afterUnload - beforeUnload
+				).count(),
+				std::chrono::duration_cast<std::chrono::milliseconds>(
+					afterSetScene - afterUnload
+				).count(),
+				std::chrono::duration_cast<std::chrono::milliseconds>(
+					afterSetScene - start
+				).count(),
+				std::string(path)
+			);
+			return true;
+		}();
+
+		if (!ok) {
+			const auto end = std::chrono::steady_clock::now();
+			Msg(
+				"ParkourGameWorld",
+				"LoadSceneFromFile timing: failed total={}ms path={}",
+				std::chrono::duration_cast<std::chrono::milliseconds>(
+					end - start
+				).count(),
+				path ? std::string(path) : std::string("<null>")
+			);
+		}
+		return ok;
+	}
+
+	void ParkourGameWorld::UnloadScene() {
+		if (!mScene) {
+			return;
+		}
+		World::UnloadScene();
+	}
+
+	void ParkourGameWorld::FillRenderFrameInputs(
+		Render::RenderFrameInputs&  inputs,
+		Render::RenderFrameContext& frameContext,
+		AssetManager&               assetManager
+	) {
+		World::FillRenderFrameInputs(inputs, frameContext, assetManager);
+	}
+
+	void ParkourGameWorld::SetScene(std::unique_ptr<Scene> scene) {
+		if (mScene) {
+			UnloadScene();
+		}
+		World::SetScene(std::move(scene));
+	}
+}
+
+
+============================================================
+File Path: src/game/parkour/runtime/ParkourGameWorld.h
+============================================================
+#pragma once
+
+#include "engine/world/World.h"
+
+namespace Unnamed {
+	/// @brief Parkour ゲーム向けのランタイムワールド実装です。
+	class ParkourGameWorld final : public World {
+	public:
+		/// @brief デストラクタです。
+		~ParkourGameWorld() override;
+
+		/// @brief ワールドを初期化します。
+		void Initialize() override;
+		/// @brief ワールドを終了処理します。
+		void Shutdown() override;
+		/// @brief 固定ティックを実行します。
+		void FixedTick(float fixedDeltaTime) override;
+		/// @brief 描画ティックを実行します。
+		void RenderTick(float renderDeltaTime, float interpolationAlpha) override;
+
+		/// @brief シーンファイルをロードします。
+		bool LoadSceneFromFile(const char* path) override;
+		/// @brief シーンをアンロードします。
+		void UnloadScene() override;
+
+		/// @brief レンダリング入力を構築します。
+		void FillRenderFrameInputs(
+			Render::RenderFrameInputs&  inputs,
+			Render::RenderFrameContext& frameContext,
+			AssetManager&               assetManager
+		) override;
+
+		/// @brief 現在のシーンを差し替えます。
+		void SetScene(std::unique_ptr<Scene> scene) override;
+	};
 }
 
 
