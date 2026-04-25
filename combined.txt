@@ -11122,6 +11122,7 @@ File Path: src/engine/Engine.cpp
 #include <engine/rhi/interface/IRhiDevice.h>
 #include <engine/sequence/SequenceRegressionRunner.h>
 #include <engine/ui/ImGuiLayer.h>
+#include <engine/unnamed/framework/components/collider/StaticMeshColliderComponent.h>
 #include <engine/unnamed/framework/entity/Entity.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
 #include <engine/unnamed/subsystem/input/device/gamepad/GamepadDevice.h>
@@ -11712,11 +11713,15 @@ namespace Unnamed {
 		mToggleFullscreenCommand.reset();
 #endif
 
+		if (mDemoService && (mDemoService->IsPlayback() || mDemoService->IsRecording())) {
+			(void)mDemoService->Stop();
+		}
+		ServiceLocator::Register<IDemoService>(nullptr);
+
 		if (mWorld) {
 			mWorld->Shutdown();
 			mWorld.reset();
 		}
-		ServiceLocator::Register<IDemoService>(nullptr);
 		mDemoService.reset();
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
@@ -71320,6 +71325,7 @@ File Path: src/engine/world/World.cpp
 #include "engine/unnamed/subsystem/console/Log.h"
 // ReSharper disable once CppUnusedIncludeDirective
 #include "engine/unnamed/subsystem/console/concommand/ConVar.h"
+#include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 #include "engine/unnamed/subsystem/input/device/mouse/MouseDevice.h"
 
@@ -72524,7 +72530,7 @@ namespace Unnamed {
 	}
 
 	IDemoService* World::GetDemoService() const noexcept {
-		return mServices.demoService;
+		return ServiceLocator::Get<IDemoService>();
 	}
 
 	AudioSystem* World::GetAudioSystem() const noexcept {
