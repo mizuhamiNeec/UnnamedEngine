@@ -21,6 +21,7 @@
 └── └── teamgame/
 └──     └── scenes/
 ├── docs/
+└── ├── assets/
 ├── projects/
 └── ├── ParkourGame/
 └── └── ├── config/
@@ -82983,30 +82984,46 @@ File Path: src/engine/unnamed/framework/components/TransformComponent.h
 namespace Unnamed {
 	class Scene;
 
+	/// @brief Entity の位置・回転・スケールと親子階層を管理するコンポーネントです。
 	class TransformComponent : public BaseComponent {
 	public:
 		//---------------------------------------------------------------------
-		// TransformComponent
+		// Local Transform Accessors
 		//---------------------------------------------------------------------
-
-		[[nodiscard]] Vec3                GetPosition() const noexcept;
-		[[nodiscard]] Quaternion          GetRotation() const noexcept;
-		[[nodiscard]] Vec3                GetScale() const noexcept;
-		[[nodiscard]] TransformComponent* GetParent() const noexcept;
-		[[nodiscard]] const Mat4&         GetWorldMat() const noexcept;
+		/// @brief ローカル位置を取得します。
+		[[nodiscard]] Vec3 GetPosition() const noexcept;
+		/// @brief ローカル回転を取得します。
+		[[nodiscard]] Quaternion GetRotation() const noexcept;
+		/// @brief ローカルスケールを取得します。
+		[[nodiscard]] Vec3 GetScale() const noexcept;
 
 		/// @brief 描画用のワールド行列を取得します。
 		/// @details 固定ティック補間が有効な場合は補間後の姿勢を返します。
 		[[nodiscard]] const Mat4& RenderWorldMat() const noexcept;
 
+		/// @brief シミュレーション用のワールド行列を取得します。
+		[[nodiscard]] const Mat4& GetWorldMat() const noexcept;
+
+		//---------------------------------------------------------------------
+		// Local Transform Mutators
+		//---------------------------------------------------------------------
+		/// @brief ローカル位置を設定します。
 		void SetPosition(Vec3 position) noexcept;
+		/// @brief ローカル回転を設定します。
 		void SetRotation(Quaternion rotation) noexcept;
+		/// @brief ローカルスケールを設定します。
 		void SetScale(Vec3 scale) noexcept;
 
 		/// @brief 次の固定ティック境界で補間履歴を現在値へ再同期します。
 		/// @details 物理シミュレーションのリセットや瞬間移動など、
 		/// 補間が不自然になるような大きな変化があったときに呼び出します。
 		void RequestInterpolationResync() noexcept;
+
+		//---------------------------------------------------------------------
+		// Hierarchy
+		//---------------------------------------------------------------------
+		/// @brief 親 TransformComponent を取得します。
+		[[nodiscard]] TransformComponent* GetParent() const noexcept;
 
 		/// @brief 親を設定します。
 		/// @param parent 新しい親の TransformComponent へのポインタ（nullptr で親なし）
@@ -83017,6 +83034,9 @@ namespace Unnamed {
 		/// @param scene 親を検索するシーン
 		void ResolveDeferredParent(const Scene& scene);
 
+		//---------------------------------------------------------------------
+		// Direction Vectors
+		//---------------------------------------------------------------------
 		/// @brief ワールド右方向ベクトルを返します。
 		[[nodiscard]] Vec3 Right() const noexcept;
 		/// @brief ワールド上方向ベクトルを返します。
@@ -83069,36 +83089,37 @@ namespace Unnamed {
 		/// @brief シミュレーション後のオーバーライドがあることをマークします。
 		void MarkPostSimulationOverride();
 
-		Vec3       mLocalPos   = Vec3::zero;
-		Quaternion mLocalRot   = Quaternion::identity;
-		Vec3       mLocalScale = Vec3::one;
+		// Local transform.
+		Vec3 mLocalPos = Vec3::zero;
+		Quaternion mLocalRot = Quaternion::identity;
+		Vec3 mLocalScale = Vec3::one;
 
-		Mat4         mWorldMat       = Mat4::identity;
+		// World transform (simulation/render).
+		Mat4 mWorldMat = Mat4::identity;
 		mutable Mat4 mRenderWorldMat = Mat4::identity;
 
-		TransformComponent*              mParent = nullptr;
+		// Hierarchy.
+		TransformComponent* mParent = nullptr;
 		std::vector<TransformComponent*> mChildren;
-
 		uint64_t mPendingParentEntityGuid = 0;
 
-		// 前回のトランスフォーム
-		Vec3       mInterpPrevPos   = Vec3::zero;
-		Quaternion mInterpPrevRot   = Quaternion::identity;
-		Vec3       mInterpPrevScale = Vec3::one;
+		// Interpolation samples.
+		Vec3 mInterpPrevPos = Vec3::zero;
+		Quaternion mInterpPrevRot = Quaternion::identity;
+		Vec3 mInterpPrevScale = Vec3::one;
 
-		// 現在のトランスフォーム
-		Vec3       mInterpCurrPos   = Vec3::zero;
-		Quaternion mInterpCurrRot   = Quaternion::identity;
-		Vec3       mInterpCurrScale = Vec3::one;
+		Vec3 mInterpCurrPos = Vec3::zero;
+		Quaternion mInterpCurrRot = Quaternion::identity;
+		Vec3 mInterpCurrScale = Vec3::one;
 
-		uint64_t mInterpSampleTick = 0; // 補間サンプルの固定ティックカウンタ
-
+		// Interpolation state.
+		uint64_t mInterpSampleTick = 0; // 固定ティックでの補間サンプル採取カウンタ
 		float mRenderInterpAlpha = 1.0f; // 描画補間係数（0.0f - 1.0f）
 
-		bool mInterpInitialized         = false; // 補間が初期化されているか?
-		bool mInterpResyncRequested     = false; // 再同期要求があるか?
-		bool mHasPostSimulationOverride = false; // シミュ後上書きがあるか?
-		bool mIsDirty                   = false; // 変更されたか?
+		bool mInterpInitialized = false; // 補間履歴初期化済みか
+		bool mInterpResyncRequested = false; // 補間履歴の再同期要求
+		bool mHasPostSimulationOverride = false; // シミュ後に値を上書きしたか
+		bool mIsDirty = false; // 変化があったか
 	};
 }
 
