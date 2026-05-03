@@ -358,15 +358,11 @@
 └── └── └── ├── LevelEditorToolProfiler.cpp
 └── └── └── ├── LevelEditorToolViewport.cpp
 └── └── └── └── sequence/
-└── └── └──     ├── SequenceCurvePanel.cpp
-└── └── └──     ├── SequenceCurvePanel.h
 └── └── └──     ├── SequenceEditorController.cpp
 └── └── └──     ├── SequenceEditorController.h
 └── └── └──     ├── SequenceEditorDocument.cpp
 └── └── └──     ├── SequenceEditorDocument.h
-└── └── └──     ├── SequenceEditorTypes.h
-└── └── └──     ├── SequenceTimelinePanel.cpp
-└── └── └──     └── SequenceTimelinePanel.h
+└── └── └──     └── SequenceEditorTypes.h
 └── └── ├── game/
 └── └── └── ├── GamePathResolver.cpp
 └── └── └── ├── GamePathResolver.h
@@ -1683,12 +1679,6 @@ File Path: projects/ParkourGame/runtime/game/core/collision/kinematic/base/BaseK
 #include "engine/physics/core/Physics.h"
 
 namespace Unnamed {
-	enum class COLLIDER_TYPE : uint8_t {
-		BOX,     // AABB
-		SPHERE,  // 球
-		CAPSULE, // カプセル
-	};
-
 	struct KinematicContact {
 		uint64_t hitEntityGuid = 0;
 		Vec3     normal        = Vec3::zero;
@@ -31291,7 +31281,9 @@ namespace Unnamed {
 			return path.rfind("./", 0) == 0 || path.rfind("../", 0) == 0;
 		}
 
-		[[nodiscard]] bool IsEngineRootRelativePath(const std::string_view path) {
+		[[nodiscard]] bool IsEngineRootRelativePath(
+			const std::string_view path
+		) {
 			return path.rfind("content/", 0) == 0 ||
 			       path.rfind("projects/", 0) == 0;
 		}
@@ -31477,7 +31469,7 @@ namespace Unnamed {
 
 			SpecialMsg(
 				LogLevel::Success, kChannel,
-				"Loaded asset from file: {} (ID: {})", normalizedPath, id
+				"アセットを読み込みました: {} (ID: {})", normalizedPath, id
 			);
 
 			return id;
@@ -31511,6 +31503,7 @@ namespace Unnamed {
 		std::string,
 		TextureAssetData&&,
 		const std::vector<AssetID>&
+	
 	);
 
 	template
@@ -31519,6 +31512,7 @@ namespace Unnamed {
 		std::string,
 		SequenceAssetData&&,
 		const std::vector<AssetID>&
+	
 	);
 
 	void AssetManager::AddRef(const AssetID id) {
@@ -43063,13 +43057,13 @@ namespace ImGuiWidgets {
 		const float rounding   = ImGui::GetStyle().FrameRounding;
 		const float dragWidth  = setWidth - rectWidth; // 各 DragFloat の幅
 
-		static constexpr std::array rectColors = {
+		static constexpr std::array kRectColors = {
 			IM_COL32(50, 43, 43, 255),
 			IM_COL32(43, 45, 39, 255),
 			IM_COL32(45, 48, 51, 255)
 		};
 
-		static constexpr std::array textColors = {
+		static constexpr std::array kTextColors = {
 			IM_COL32(226, 110, 110, 255),
 			IM_COL32(168, 204, 96, 255),
 			IM_COL32(132, 181, 230, 255)
@@ -43107,7 +43101,7 @@ namespace ImGuiWidgets {
 				ImGui::GetWindowDrawList()->AddRectFilled(
 					rectPos,
 					rectMax,
-					rectColors[i],
+					kRectColors[i],
 					rounding,
 					ImDrawFlags_RoundCornersLeft
 				);
@@ -43136,7 +43130,7 @@ namespace ImGuiWidgets {
 						rectPos.y + (rectHeight - iconSize.y) * 0.5f
 					);
 					ImGui::GetWindowDrawList()->AddText(
-						iconPos, textColors[i], iconResetStr.c_str()
+						iconPos, kTextColors[i], iconResetStr.c_str()
 					);
 				} else {
 					// 通常時は軸ラベルを表示
@@ -43146,7 +43140,7 @@ namespace ImGuiWidgets {
 						rectPos.y + (rectHeight - labelSize.y) * 0.5f
 					);
 					ImGui::GetWindowDrawList()->AddText(
-						labelPos, textColors[i], axisLabels[i]
+						labelPos, kTextColors[i], axisLabels[i]
 					);
 				}
 
@@ -43262,7 +43256,7 @@ namespace ImGuiWidgets {
 		const ImGuiIO& io       = ImGui::GetIO();
 		const ImVec2   mousePos = io.MousePos;
 
-		auto distance = [](const ImVec2& a, const ImVec2& b) -> float {
+		auto Distance = [](const ImVec2& a, const ImVec2& b) -> float {
 			const float dx = a.x - b.x;
 			const float dy = a.y - b.y;
 			return sqrtf(dx * dx + dy * dy);
@@ -43270,9 +43264,9 @@ namespace ImGuiWidgets {
 
 		// マウスクリック判定：クリック時、各コントロールポイントの円領域内ならドラッグ開始
 		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0)) {
-			if (distance(mousePos, cp1) <= handleRadius * 1.5f) {
+			if (Distance(mousePos, cp1) <= handleRadius * 1.5f) {
 				bIsDraggingCp1 = true;
-			} else if (distance(mousePos, cp2) <= handleRadius * 1.5f) {
+			} else if (Distance(mousePos, cp2) <= handleRadius * 1.5f) {
 				bIsDraggingCp2 = true;
 			}
 		}
@@ -43282,16 +43276,17 @@ namespace ImGuiWidgets {
 		}
 
 		// ドラッグ中なら、マウス位置に応じてコントロールポイントを更新（キャンバス座標を[0,1]に変換）
-		auto clamp = [
-			](const float v, const float lo, const float hi) -> float {
+		auto Clamp = [](
+			const float v, const float lo, const float hi
+		) -> float {
 			return v < lo ? lo : v > hi ? hi : v;
 		};
 		if (bIsDraggingCp1) {
-			const float nx = clamp(
+			const float nx = Clamp(
 				(mousePos.x - canvasPos.x) / canvasSize.x,
 				0.0f, 1.0f
 			);
-			const float ny = clamp(
+			const float ny = Clamp(
 				(mousePos.y - canvasPos.y) / canvasSize.y,
 				0.0f, 1.0f
 			);
@@ -43300,22 +43295,17 @@ namespace ImGuiWidgets {
 			controlPoints[1] = 1.0f - ny;
 		}
 		if (bIsDraggingCp2) {
-			const float nx = clamp(
+			const float nx = Clamp(
 				(mousePos.x - canvasPos.x) / canvasSize.x,
 				0.0f, 1.0f
 			);
-			const float ny = clamp(
+			const float ny = Clamp(
 				(mousePos.y - canvasPos.y) / canvasSize.y,
 				0.0f, 1.0f
 			);
 			controlPoints[2] = nx;
 			controlPoints[3] = 1.0f - ny;
 		}
-
-		p0 = controlPoints[0];
-		p1 = controlPoints[1];
-		p2 = controlPoints[2];
-		p3 = controlPoints[3];
 
 		return bIsDraggingCp1 || bIsDraggingCp2;
 	}
@@ -43579,128 +43569,129 @@ namespace ImGuiWidgets {
 		const ImGuiStyle& style = g.Style;
 
 		// Submit label or explicit size to ItemSize(), whereas ItemAdd() will submit a larger/spanning rectangle.
-		const ImGuiID id         = window->GetID(label);
-		const ImVec2  label_size = ImGui::CalcTextSize(label, NULL, true);
+		const ImGuiID id        = window->GetID(label);
+		const ImVec2  labelSize = ImGui::CalcTextSize(label, NULL, true);
 		ImVec2        size(
-			sizeArg.x != 0.0f ? sizeArg.x : label_size.x,
-			sizeArg.y != 0.0f ? sizeArg.y : label_size.y
+			sizeArg.x != 0.0f ? sizeArg.x : labelSize.x,
+			sizeArg.y != 0.0f ? sizeArg.y : labelSize.y
 		);
 		ImVec2 pos = window->DC.CursorPos;
 		pos.y      += window->DC.CurrLineTextBaseOffset;
 		ImGui::ItemSize(size, 0.0f);
 
-		const bool span_all_columns =
+		const bool spanAllColumns =
 			(flags & ImGuiSelectableFlags_SpanAllColumns) != 0;
-		const float min_x = span_all_columns ?
-			                    window->ParentWorkRect.Min.x :
-			                    pos.x;
-		const float max_x = span_all_columns ?
-			                    window->ParentWorkRect.Max.x :
-			                    window->WorkRect.Max.x;
+		const float minX = spanAllColumns ?
+			                   window->ParentWorkRect.Min.x :
+			                   pos.x;
+		const float maxX = spanAllColumns ?
+			                   window->ParentWorkRect.Max.x :
+			                   window->WorkRect.Max.x;
 		if (sizeArg.x == 0.0f || flags & ImGuiSelectableFlags_SpanAvailWidth) {
 			size.x = ImMax(
-				label_size.x, max_x - min_x
+				labelSize.x, maxX - minX
 			);
 		}
 
-		ImRect bb(min_x, pos.y, min_x + size.x, pos.y + size.y);
+		ImRect bb(minX, pos.y, minX + size.x, pos.y + size.y);
 		if ((flags & ImGuiSelectableFlags_NoPadWithHalfSpacing) == 0) {
-			const float spacing_x = span_all_columns ?
-				                        0.0f :
-				                        style.ItemSpacing.x;
-			const float spacing_y = style.ItemSpacing.y;
-			const float spacing_L = IM_TRUNC(spacing_x * 0.50f);
-			const float spacing_U = IM_TRUNC(spacing_y * 0.50f);
-			bb.Min.x              -= spacing_L;
-			bb.Min.y              -= spacing_U;
-			bb.Max.x              += spacing_x - spacing_L;
-			bb.Max.y              += spacing_y - spacing_U;
+			const float spacingX = spanAllColumns ?
+				                       0.0f :
+				                       style.ItemSpacing.x;
+			const float spacingY = style.ItemSpacing.y;
+			const float spacingL = IM_TRUNC(spacingX * 0.50f);
+			const float spacingU = IM_TRUNC(spacingY * 0.50f);
+			bb.Min.x             -= spacingL;
+			bb.Min.y             -= spacingU;
+			bb.Max.x             += spacingX - spacingL;
+			bb.Max.y             += spacingY - spacingU;
 		}
 
-		const bool disabled_item = (flags & ImGuiSelectableFlags_Disabled) != 0;
-		const ImGuiItemFlags extra_item_flags = disabled_item ?
-			                                        static_cast<ImGuiItemFlags>(
-				                                        ImGuiItemFlags_Disabled) :
-			                                        ImGuiItemFlags_None;
-		bool is_visible;
-		if (span_all_columns) {
-			const float backup_clip_rect_min_x = window->ClipRect.Min.x;
-			const float backup_clip_rect_max_x = window->ClipRect.Max.x;
+		const bool disabledItem = (flags & ImGuiSelectableFlags_Disabled) != 0;
+		const ImGuiItemFlags extraItemFlags = disabledItem ?
+			                                      static_cast<ImGuiItemFlags>(
+				                                      ImGuiItemFlags_Disabled) :
+			                                      ImGuiItemFlags_None;
+		bool isVisible;
+		if (spanAllColumns) {
+			const float backupClipRectMinX = window->ClipRect.Min.x;
+			const float backupClipRectMaxX = window->ClipRect.Max.x;
 			window->ClipRect.Min.x = window->ParentWorkRect.Min.x;
 			window->ClipRect.Max.x = window->ParentWorkRect.Max.x;
-			is_visible = ImGui::ItemAdd(bb, id, NULL, extra_item_flags);
-			window->ClipRect.Min.x = backup_clip_rect_min_x;
-			window->ClipRect.Max.x = backup_clip_rect_max_x;
+			isVisible = ImGui::ItemAdd(bb, id, NULL, extraItemFlags);
+			window->ClipRect.Min.x = backupClipRectMinX;
+			window->ClipRect.Max.x = backupClipRectMaxX;
 		} else {
-			is_visible = ImGui::ItemAdd(bb, id, NULL, extra_item_flags);
+			isVisible = ImGui::ItemAdd(bb, id, NULL, extraItemFlags);
 		}
 
-		const bool is_multi_select =
+		const bool isMultiSelect =
 			(g.LastItemData.ItemFlags & ImGuiItemFlags_IsMultiSelect) != 0;
-		if (!is_visible) {
-			if (!is_multi_select || !g.BoxSelectState.UnclipMode || !g.
+		if (!isVisible) {
+			if (!isMultiSelect || !g.BoxSelectState.UnclipMode || !g.
 			    BoxSelectState.UnclipRect.Overlaps(bb)) {
 				return false;
 			}
 		}
 
-		const bool disabled_global =
+		const bool disabledGlobal =
 			(g.CurrentItemFlags & ImGuiItemFlags_Disabled) != 0;
-		if (disabled_item && !disabled_global) {
+		if (disabledItem && !disabledGlobal) {
 			ImGui::BeginDisabled();
 		}
 
-		if (span_all_columns) {
+		if (spanAllColumns) {
 			if (g.CurrentTable) {
 				ImGui::TablePushBackgroundChannel();
-			} else if (window->DC.CurrentColumns) {
+			} else if
+			(window->DC.CurrentColumns) {
 				ImGui::PushColumnsBackground();
 			}
 			g.LastItemData.StatusFlags |= ImGuiItemStatusFlags_HasClipRect;
 			g.LastItemData.ClipRect    = window->ClipRect;
 		}
 
-		ImGuiButtonFlags button_flags = 0;
+		ImGuiButtonFlags buttonFlags = 0;
 		if (flags & ImGuiSelectableFlags_NoHoldingActiveID) {
-			button_flags |= ImGuiButtonFlags_NoHoldingActiveId;
+			buttonFlags |= ImGuiButtonFlags_NoHoldingActiveId;
 		}
 		if (flags & ImGuiSelectableFlags_NoSetKeyOwner) {
-			button_flags |= ImGuiButtonFlags_NoSetKeyOwner;
+			buttonFlags |= ImGuiButtonFlags_NoSetKeyOwner;
 		}
 		if (flags & ImGuiSelectableFlags_SelectOnClick) {
-			button_flags |= ImGuiButtonFlags_PressedOnClick;
+			buttonFlags |= ImGuiButtonFlags_PressedOnClick;
 		}
 		if (flags & ImGuiSelectableFlags_SelectOnRelease) {
-			button_flags |= ImGuiButtonFlags_PressedOnRelease;
+			buttonFlags |= ImGuiButtonFlags_PressedOnRelease;
 		}
 		if (flags & ImGuiSelectableFlags_AllowDoubleClick) {
-			button_flags |= ImGuiButtonFlags_PressedOnClickRelease |
+			buttonFlags |= ImGuiButtonFlags_PressedOnClickRelease |
 				ImGuiButtonFlags_PressedOnDoubleClick;
 		}
 		if (flags & ImGuiSelectableFlags_AllowOverlap || g.LastItemData.
 		    ItemFlags & ImGuiItemFlags_AllowOverlap) {
-			button_flags |= ImGuiButtonFlags_AllowOverlap;
+			buttonFlags |= ImGuiButtonFlags_AllowOverlap;
 		}
 
-		const bool was_selected = selected;
-		if (is_multi_select) {
-			ImGui::MultiSelectItemHeader(id, &selected, &button_flags);
+		const bool wasSelected = selected;
+		if (isMultiSelect) {
+			ImGui::MultiSelectItemHeader(id, &selected, &buttonFlags);
 		}
 
 		bool hovered, held;
 		bool pressed = ImGui::ButtonBehavior(
-			bb, id, &hovered, &held, button_flags
+			bb, id, &hovered, &held, buttonFlags
 		);
-		bool auto_selected = false;
+		bool autoSelected = false;
 
-		if (is_multi_select) {
+		if (isMultiSelect) {
 			ImGui::MultiSelectItemFooter(id, &selected, &pressed);
 		} else {
 			if (flags & ImGuiSelectableFlags_SelectOnNav && g.NavJustMovedToId
 			    != 0 && g.NavJustMovedToFocusScopeId == g.CurrentFocusScopeId) {
 				if (g.NavJustMovedToId == id && (
 					    g.NavJustMovedToKeyMods & ImGuiMod_Ctrl) == 0) {
-					selected = pressed = auto_selected = true;
+					selected = pressed = autoSelected = true;
 				}
 			}
 		}
@@ -43723,12 +43714,12 @@ namespace ImGuiWidgets {
 		}
 
 		if (selected !=
-		    was_selected) {
+		    wasSelected) {
 			g.LastItemData.StatusFlags |=
 				ImGuiItemStatusFlags_ToggledSelection;
 		}
 
-		if (is_visible) {
+		if (isVisible) {
 			const bool highlighted =
 				hovered || flags & ImGuiSelectableFlags_Highlight;
 			if (highlighted || selected) {
@@ -43742,42 +43733,43 @@ namespace ImGuiWidgets {
 				ImGui::RenderFrame(bb.Min, bb.Max, col, false, rounding);
 			}
 			if (g.NavId == id) {
-				ImGuiNavRenderCursorFlags nav_render_cursor_flags =
+				ImGuiNavRenderCursorFlags navRenderCursorFlags =
 					ImGuiNavRenderCursorFlags_Compact |
 					ImGuiNavRenderCursorFlags_NoRounding;
-				if (is_multi_select) {
-					nav_render_cursor_flags |=
+				if (isMultiSelect) {
+					navRenderCursorFlags |=
 						ImGuiNavRenderCursorFlags_AlwaysDraw;
 				}
-				ImGui::RenderNavCursor(bb, id, nav_render_cursor_flags);
+				ImGui::RenderNavCursor(bb, id, navRenderCursorFlags);
 			}
 		}
 
-		if (span_all_columns) {
+		if (spanAllColumns) {
 			if (g.CurrentTable) {
 				ImGui::TablePopBackgroundChannel();
-			} else if (window->DC.CurrentColumns) {
+			} else if
+			(window->DC.CurrentColumns) {
 				ImGui::PopColumnsBackground();
 			}
 		}
 
-		if (is_visible) {
+		if (isVisible) {
 			ImGui::RenderTextClipped(
 				pos, ImVec2(
 					ImMin(pos.x + size.x, window->WorkRect.Max.x),
 					pos.y + size.y
-				), label, NULL, &label_size, style.SelectableTextAlign, &bb
+				), label, NULL, &labelSize, style.SelectableTextAlign, &bb
 			);
 		}
 
-		if (pressed && !auto_selected && window->Flags & ImGuiWindowFlags_Popup
+		if (pressed && !autoSelected && window->Flags & ImGuiWindowFlags_Popup
 		    && !(
 			    flags & ImGuiSelectableFlags_NoAutoClosePopups) && g.
 		    LastItemData.ItemFlags & ImGuiItemFlags_AutoClosePopups) {
 			ImGui::CloseCurrentPopup();
 		}
 
-		if (disabled_item && !disabled_global) {
+		if (disabledItem && !disabledGlobal) {
 			ImGui::EndDisabled();
 		}
 
@@ -43820,39 +43812,39 @@ namespace ImGuiWidgets {
 		ImGuiContext& g = *GImGui;
 		const ImGuiStyle& style = g.Style;
 		const ImGuiID id = window->GetID(label);
-		bool menu_is_open = ImGui::IsPopupOpen(id, ImGuiPopupFlags_None);
+		bool menuIsOpen = ImGui::IsPopupOpen(id, ImGuiPopupFlags_None);
 
-		ImGuiWindowFlags window_flags =
+		ImGuiWindowFlags windowFlags =
 			ImGuiWindowFlags_ChildMenu | ImGuiWindowFlags_AlwaysAutoResize |
 			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar |
 			ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNavFocus;
 		if (window->Flags &
 		    ImGuiWindowFlags_ChildMenu) {
-			window_flags |= ImGuiWindowFlags_ChildWindow;
+			windowFlags |= ImGuiWindowFlags_ChildWindow;
 		}
 
 		if (g.MenusIdSubmittedThisFrame.contains(id)) {
-			if (menu_is_open) {
-				menu_is_open =
-					ImGui::BeginPopupMenuEx(id, label, window_flags);
+			if (menuIsOpen) {
+				menuIsOpen =
+					ImGui::BeginPopupMenuEx(id, label, windowFlags);
 			} else {
 				g.NextWindowData.ClearFlags();
 			}
-			return menu_is_open;
+			return menuIsOpen;
 		}
 
 		g.MenusIdSubmittedThisFrame.push_back(id);
 
-		ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+		ImVec2 labelSize = ImGui::CalcTextSize(label, NULL, true);
 
-		const bool menuset_is_open = IsRootOfOpenMenuSet();
-		if (menuset_is_open) {
+		const bool menusetIsOpen = IsRootOfOpenMenuSet();
+		if (menusetIsOpen) {
 			ImGui::PushItemFlag(
 				ImGuiItemFlags_NoWindowHoverableCheck, true
 			);
 		}
 
-		ImVec2 popup_pos;
+		ImVec2 popupPos;
 		ImVec2 pos = window->DC.CursorPos;
 		ImGui::PushID(label);
 		if (!enabled) {
@@ -43861,7 +43853,7 @@ namespace ImGuiWidgets {
 		const ImGuiMenuColumns* offsets = &window->DC.MenuColumns;
 		bool                    pressed;
 
-		const ImGuiSelectableFlags selectable_flags =
+		constexpr ImGuiSelectableFlags selectableFlags =
 			ImGuiSelectableFlags_NoHoldingActiveID |
 			ImGuiSelectableFlags_NoSetKeyOwner |
 			ImGuiSelectableFlags_SelectOnClick |
@@ -43871,62 +43863,62 @@ namespace ImGuiWidgets {
 			ImGui::PushStyleVarX(
 				ImGuiStyleVar_ItemSpacing, style.ItemSpacing.x * 2.0f
 			);
-			float  w = label_size.x;
-			ImVec2 text_pos(
+			float  w = labelSize.x;
+			ImVec2 textPos(
 				window->DC.CursorPos.x + offsets->OffsetLabel,
 				pos.y + window->DC.CurrLineTextBaseOffset
 			);
 			pressed = SelectableWithRounding(
-				"", menu_is_open, selectable_flags, ImVec2(w, label_size.y),
+				"", menuIsOpen, selectableFlags, ImVec2(w, labelSize.y),
 				rounding
 			);
 			ImGui::LogSetNextTextDecoration("[", "]");
-			ImGui::RenderText(text_pos, label);
+			ImGui::RenderText(textPos, label);
 			ImGui::PopStyleVar();
 			window->DC.CursorPos.x +=
 				IM_TRUNC(style.ItemSpacing.x * (-1.0f + 0.5f));
-			popup_pos = ImVec2(
+			popupPos = ImVec2(
 				pos.x - 1.0f - IM_TRUNC(style.ItemSpacing.x * 0.5f),
-				text_pos.y - style.FramePadding.y + window->MenuBarHeight
+				textPos.y - style.FramePadding.y + window->MenuBarHeight
 			);
 		} else {
-			float icon_w = (icon && icon[0]) ?
-				               ImGui::CalcTextSize(icon, NULL).x :
-				               0.0f;
-			float checkmark_w = IM_TRUNC(g.FontSize * 1.20f);
-			float min_w       = window->DC.MenuColumns.DeclColumns(
-				icon_w, label_size.x, 0.0f, checkmark_w
+			float iconW = (icon && icon[0]) ?
+				              ImGui::CalcTextSize(icon, NULL).x :
+				              0.0f;
+			float checkmarkW = IM_TRUNC(g.FontSize * 1.20f);
+			float minW       = window->DC.MenuColumns.DeclColumns(
+				iconW, labelSize.x, 0.0f, checkmarkW
 			);
-			float extra_w = ImMax(
-				0.0f, ImGui::GetContentRegionAvail().x - min_w
+			float extraW = ImMax(
+				0.0f, ImGui::GetContentRegionAvail().x - minW
 			);
-			ImVec2 text_pos(
+			ImVec2 textPos(
 				window->DC.CursorPos.x,
 				pos.y + window->DC.CurrLineTextBaseOffset
 			);
 			pressed = SelectableWithRounding(
-				"", menu_is_open,
-				selectable_flags | ImGuiSelectableFlags_SpanAvailWidth,
-				ImVec2(min_w, label_size.y),
+				"", menuIsOpen,
+				selectableFlags | ImGuiSelectableFlags_SpanAvailWidth,
+				ImVec2(minW, labelSize.y),
 				rounding
 			);
 			ImGui::LogSetNextTextDecoration("", ">");
 			ImGui::RenderText(
-				ImVec2(text_pos.x + offsets->OffsetLabel, text_pos.y), label
+				ImVec2(offsets->OffsetLabel + textPos.x, textPos.y), label
 			);
-			if (icon_w > 0.0f) {
+			if (iconW > 0.0f) {
 				ImGui::RenderText(
-					ImVec2(text_pos.x + offsets->OffsetIcon, text_pos.y), icon
+					ImVec2(offsets->OffsetIcon + textPos.x, textPos.y), icon
 				);
 			}
 			ImGui::RenderArrow(
 				window->DrawList,
 				ImVec2(
-					text_pos.x + offsets->OffsetMark + extra_w + g.FontSize *
-					0.30f, text_pos.y
+					offsets->OffsetMark + textPos.x + extraW + g.FontSize *
+					0.30f, textPos.y
 				), ImGui::GetColorU32(ImGuiCol_Text), ImGuiDir_Right
 			);
-			popup_pos = ImVec2(pos.x, text_pos.y - style.WindowPadding.y);
+			popupPos = ImVec2(pos.x, textPos.y - style.WindowPadding.y);
 		}
 		if (!enabled) {
 			ImGui::EndDisabled();
@@ -43934,92 +43926,94 @@ namespace ImGuiWidgets {
 
 		const bool hovered = (g.HoveredId == id) && enabled && !g.
 		                     NavHighlightItemUnderNav;
-		if (menuset_is_open) {
+		if (menusetIsOpen) {
 			ImGui::PopItemFlag();
 		}
 
-		bool want_open          = false;
-		bool want_open_nav_init = false;
-		bool want_close         = false;
+		bool wantOpen        = false;
+		bool wantOpenNavInit = false;
+		bool wantClose       = false;
 		if (window->DC.LayoutType == ImGuiLayoutType_Vertical) {
-			bool            moving_toward_child_menu = false;
-			ImGuiPopupData* child_popup              =
+			bool            movingTowardChildMenu = false;
+			ImGuiPopupData* childPopup            =
 				(g.BeginPopupStack.Size < g.OpenPopupStack.Size) ?
 					&g.OpenPopupStack[g.BeginPopupStack.Size] :
 					NULL; // Popup candidate (testing below)
-			ImGuiWindow* child_menu_window =
-			(child_popup && child_popup->Window && child_popup->Window->
+			ImGuiWindow* childMenuWindow =
+			(childPopup && childPopup->Window && childPopup->Window->
 			 ParentWindow == window) ?
-				child_popup->Window :
+				childPopup->Window :
 				NULL;
-			if (g.HoveredWindow == window && child_menu_window != NULL) {
-				const float ref_unit  = g.FontSize; // FIXME-DPI
-				const float child_dir =
-					(window->Pos.x < child_menu_window->Pos.x) ? 1.0f : -1.0f;
-				const ImRect next_window_rect = child_menu_window->Rect();
-				ImVec2       ta = (g.IO.MousePos - g.IO.MouseDelta);
-				ImVec2       tb = (child_dir > 0.0f) ?
-					                  next_window_rect.GetTL() :
-					                  next_window_rect.GetTR();
-				ImVec2 tc = (child_dir > 0.0f) ?
-					            next_window_rect.GetBL() :
-					            next_window_rect.GetBR();
-				const float pad_farmost_h = ImClamp(
-					ImFabs(ta.x - tb.x) * 0.30f, ref_unit * 0.5f,
-					ref_unit * 2.5f
+			if (g.HoveredWindow == window && childMenuWindow != NULL) {
+				const float refUnit  = g.FontSize; // FIXME-DPI
+				const float childDir =
+					(window->Pos.x < childMenuWindow->Pos.x) ? 1.0f : -1.0f;
+				const ImRect nextWindowRect = childMenuWindow->Rect();
+				ImVec2       ta             = (g.IO.MousePos - g.IO.MouseDelta);
+				ImVec2       tb             = (childDir > 0.0f) ?
+					                              nextWindowRect.GetTL() :
+					                              nextWindowRect.GetTR();
+				ImVec2 tc = (childDir > 0.0f) ?
+					            nextWindowRect.GetBL() :
+					            nextWindowRect.GetBR();
+				const float padFarmostH = ImClamp(
+					ImFabs(ta.x - tb.x) * 0.30f, refUnit * 0.5f,
+					refUnit * 2.5f
 				);
-				ta.x += child_dir * -0.5f;
-				tb.x += child_dir * ref_unit;
-				tc.x += child_dir * ref_unit;
+				ta.x += childDir * -0.5f;
+				tb.x += childDir * refUnit;
+				tc.x += childDir * refUnit;
 				tb.y = ta.y + ImMax(
-					       (tb.y - pad_farmost_h) - ta.y, -ref_unit * 8.0f
+					       (tb.y - padFarmostH) - ta.y, -refUnit * 8.0f
 				       );
 				tc.y = ta.y + ImMin(
-					       (tc.y + pad_farmost_h) - ta.y, +ref_unit * 8.0f
+					       (tc.y + padFarmostH) - ta.y, +refUnit * 8.0f
 				       );
-				moving_toward_child_menu = ImTriangleContainsPoint(
+				movingTowardChildMenu = ImTriangleContainsPoint(
 					ta, tb, tc, g.IO.MousePos
 				);
 			}
 
-			if (menu_is_open && !hovered && g.HoveredWindow == window && !
-			    moving_toward_child_menu && !g.NavHighlightItemUnderNav && g.
+			if (menuIsOpen && !hovered && g.HoveredWindow == window && !
+			    movingTowardChildMenu && !g.NavHighlightItemUnderNav && g.
 			    ActiveId == 0) {
-				want_close = true;
+				wantClose = true;
 			}
 
-			if (!menu_is_open && pressed) {
-				want_open = true;
-			} else if (!menu_is_open && hovered && !
-			           moving_toward_child_menu) {
-				want_open = true;
-			} else if (!menu_is_open && hovered && g.HoveredIdTimer >= 0.30f &&
-			           g.
-			           MouseStationaryTimer >= 0.30f) {
-				want_open = true;
+			if (!menuIsOpen && pressed) {
+				wantOpen = true;
+			} else if (
+				!menuIsOpen && hovered && !
+				movingTowardChildMenu) {
+				wantOpen = true;
+			} else if (
+				!menuIsOpen && hovered && g.HoveredIdTimer >= 0.30f &&
+				g.
+				MouseStationaryTimer >= 0.30f) {
+				wantOpen = true;
 			}
 			if (g.NavId == id && g.NavMoveDir == ImGuiDir_Right) {
-				want_open = want_open_nav_init = true;
+				wantOpen = wantOpenNavInit = true;
 				ImGui::NavMoveRequestCancel();
 				ImGui::SetNavCursorVisibleAfterMove();
 			}
 		} else {
-			if (menu_is_open && pressed && menuset_is_open) {
-				want_close = true;
-				want_open  = menu_is_open = false;
+			if (menuIsOpen && pressed && menusetIsOpen) {
+				wantClose = true;
+				wantOpen  = menuIsOpen = false;
 			} else if (pressed || (
-				           hovered && menuset_is_open && !menu_is_open)) {
-				want_open = true;
+				           hovered && menusetIsOpen && !menuIsOpen)) {
+				wantOpen = true;
 			} else if (g.NavId == id && g.NavMoveDir == ImGuiDir_Down) {
-				want_open = true;
+				wantOpen = true;
 				ImGui::NavMoveRequestCancel();
 			}
 		}
 
 		if (!enabled) {
-			want_close = true;
+			wantClose = true;
 		}
-		if (want_close &&
+		if (wantClose &&
 		    ImGui::IsPopupOpen(id, ImGuiPopupFlags_None)) {
 			ImGui::ClosePopupToLevel(
 				g.BeginPopupStack.Size, true
@@ -44033,31 +44027,32 @@ namespace ImGuiWidgets {
 		);
 		ImGui::PopID();
 
-		if (want_open && !menu_is_open && g.OpenPopupStack.Size > g.
+		if (wantOpen && !menuIsOpen && g.OpenPopupStack.Size > g.
 		    BeginPopupStack.Size) {
 			ImGui::OpenPopup(label);
-		} else if (want_open) {
-			menu_is_open = true;
+		} else if (
+			wantOpen) {
+			menuIsOpen = true;
 			ImGui::OpenPopup(label, ImGuiPopupFlags_NoReopen);
 		}
 
-		if (menu_is_open) {
-			ImGuiLastItemData last_item_in_parent = g.LastItemData;
-			ImGui::SetNextWindowPos(popup_pos, ImGuiCond_Always);
+		if (menuIsOpen) {
+			ImGuiLastItemData lastItemInParent = g.LastItemData;
+			ImGui::SetNextWindowPos(popupPos, ImGuiCond_Always);
 			ImGui::PushStyleVar(
 				ImGuiStyleVar_ChildRounding, style.PopupRounding
 			);
-			menu_is_open = ImGui::BeginPopupMenuEx(id, label, window_flags);
+			menuIsOpen = ImGui::BeginPopupMenuEx(id, label, windowFlags);
 			ImGui::PopStyleVar();
-			if (menu_is_open) {
-				if (want_open && want_open_nav_init && !g.NavInitRequest) {
+			if (menuIsOpen) {
+				if (wantOpen && wantOpenNavInit && !g.NavInitRequest) {
 					ImGui::FocusWindow(
 						g.CurrentWindow, ImGuiFocusRequestFlags_UnlessBelowModal
 					);
 					ImGui::NavInitWindow(g.CurrentWindow, false);
 				}
 
-				g.LastItemData = last_item_in_parent;
+				g.LastItemData = lastItemInParent;
 				if (g.HoveredWindow ==
 				    window) {
 					g.LastItemData.StatusFlags |=
@@ -44068,7 +44063,7 @@ namespace ImGuiWidgets {
 			g.NextWindowData.ClearFlags();
 		}
 
-		return menu_is_open;
+		return menuIsOpen;
 	}
 
 	/// @brief ImVec2同士の加算演算子
@@ -44112,8 +44107,8 @@ namespace ImGuiWidgets {
 		if (window->DC.LayoutType == ImGuiLayoutType_Horizontal) {
 			const float w          = labelSize.x;
 			window->DC.CursorPos.x += IM_TRUNC(style.ItemSpacing.x * 0.5f);
-			const ImVec2 text_pos(
-				offsets->OffsetLabel + window->DC.CursorPos.x,
+			const ImVec2 textPos(
+				window->DC.CursorPos.x + offsets->OffsetLabel,
 				window->DC.CursorPos.y + window->DC.CurrLineTextBaseOffset
 			);
 			ImGui::PushStyleVarX(
@@ -44126,7 +44121,7 @@ namespace ImGuiWidgets {
 			ImGui::PopStyleVar();
 			if (g.LastItemData.StatusFlags &
 			    ImGuiItemStatusFlags_Visible) {
-				ImGui::RenderText(text_pos, label);
+				ImGui::RenderText(textPos, label);
 			}
 			window->DC.CursorPos.x +=
 				IM_TRUNC(style.ItemSpacing.x * (-1.0f + 0.5f));
@@ -44170,7 +44165,7 @@ namespace ImGuiWidgets {
 					ImGui::LogSetNextTextDecoration("(", ")");
 					ImGui::RenderText(
 						textPos + ImVec2(
-							stretchW + offsets->OffsetShortcut, 0.0f
+							offsets->OffsetShortcut + stretchW, 0.0f
 						), shortcut, NULL, false
 					);
 					ImGui::PopStyleColor();
@@ -44179,7 +44174,7 @@ namespace ImGuiWidgets {
 					ImGui::RenderCheckMark(
 						window->DrawList,
 						textPos + ImVec2(
-							stretchW + offsets->OffsetMark + g.FontSize *
+							offsets->OffsetMark + stretchW + g.FontSize *
 							0.40f,
 							g.FontSize * 0.134f * 0.5f
 						), ImGui::GetColorU32(ImGuiCol_Text),
@@ -44224,11 +44219,112 @@ namespace ImGuiWidgets {
 		ImGui::Dummy(size);
 	}
 
+	void ShowAboutWindow(
+		std::string systemName, std::string version, uint32_t logo, bool& bShow
+	) {
+		const std::string text = "About " + systemName;
+
+		ImGui::OpenPopup(text.c_str());
+
+		const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(
+			center, 1, ImVec2(0.5f, 0.5f)
+		);
+
+		constexpr ImVec2 windowSize = {280.0f, 230.0f};
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
+
+		constexpr ImGuiWindowFlags flags =
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoSavedSettings;
+
+		const bool bOpen = ImGui::BeginPopupModal(
+			text.c_str(), &bShow, flags
+		);
+
+		if (bOpen) {
+			ImDrawList* dl   = ImGui::GetWindowDrawList();
+			ImFont*     font = ImGui::GetFont();
+
+			constexpr float iconSize  = 70.0f;
+			constexpr float titleSize = 24.0f;
+			constexpr float margin    = 8.0f;
+
+			// アイコンを描画
+			dl->AddText(
+				font, iconSize, ImGui::GetCursorScreenPos(),
+				ImGui::GetColorU32(ImGuiCol_Text),
+				Unnamed::StrUtil::ConvertToUtf8(logo).c_str()
+			);
+
+			// アイコン分だけ右にカーソルを移動
+			ImGui::SetCursorPosX(iconSize + margin);
+
+			// タイトルを描画
+			dl->AddText(
+				font, titleSize, ImGui::GetCursorScreenPos(),
+				ImGui::GetColorU32(ImGuiCol_Text),
+				systemName.c_str()
+			);
+
+			ImGui::Dummy({iconSize + margin, titleSize});
+
+			auto Doublespacing = [&] {
+				for (int i = 0; i < 2; ++i) {
+					ImGui::Spacing();
+				}
+				ImGui::SetCursorPosX(iconSize + margin);
+			};
+
+			Doublespacing();
+
+			ImGui::Text("Version: %s", version.c_str());
+
+			Doublespacing();
+
+			ImGui::Text(
+				"Build: %s %s", std::string(__DATE__).c_str(),
+				std::string(__TIME__).c_str()
+			);
+
+			Doublespacing();
+
+			ImGui::Text("ImGui Version: %s", ImGui::GetVersion());
+
+			Doublespacing();
+
+			// ボタンサイズとウィンドウサイズを取得
+			constexpr auto buttonSize     = ImVec2(74.0f, 24.0f);
+			const ImVec2   clientSize     = ImGui::GetWindowSize(); // サイズ
+			const ImVec2   cursorStartPos = ImGui::GetCursorPos();  // 現在のカーソル位置
+
+			// ボタンを中央に配置
+			const float buttonPosX = (clientSize.x - buttonSize.x) * 0.5f;
+			// 中央揃えのX座標
+
+			const float buttonPosY =
+				cursorStartPos.y +
+				ImGui::GetContentRegionAvail().y -
+				buttonSize.y; // 下端からの位置調整
+
+			ImGui::SetCursorPos(ImVec2(buttonPosX, buttonPosY));
+
+			if (ImGui::Button("Close", buttonSize)) {
+				bShow = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+	}
+
 	bool AssetPathPicker(
-		const char*   label,
-		std::string&  path,
-		AssetTypeMask acceptedMask,
-		const char*   helpText
+		const char*         label,
+		std::string&        path,
+		const AssetTypeMask acceptedMask,
+		const char*         helpText
 	) {
 		return Unnamed::EditorContentBrowser::DrawAssetPathPicker(
 			label,
@@ -44263,10 +44359,10 @@ namespace ImGuiWidgets {
 	inline constexpr const char* kAssetDragDropPayloadId =
 		Unnamed::EditorContentBrowser::kAssetDragDropPayloadId;
 	using AssetDragDropPayload = Unnamed::EditorContentBrowser::
-		AssetDragDropPayload;
+	AssetDragDropPayload;
 
 	[[nodiscard]] AssetTypeMask AssetTypeToMask(Unnamed::ASSET_TYPE type);
-	[[nodiscard]] bool IsAssetTypeAccepted(
+	[[nodiscard]] bool          IsAssetTypeAccepted(
 		Unnamed::ASSET_TYPE type,
 		AssetTypeMask       acceptedMask
 	);
@@ -44404,6 +44500,15 @@ namespace ImGuiWidgets {
 		float       rounding, ImDrawFlags flags = ImDrawFlags_RoundCornersAll,
 		ImVec2      uv0 = ImVec2(0, 0), ImVec2 uv1 = ImVec2(1, 1),
 		ImVec4      tintColor = ImVec4(1, 1, 1, 1)
+	);
+
+	/// @brief 「このソフトウェアについて」ウィンドウを表示します。
+	/// @param systemName システム名
+	/// @param version バージョン文字列
+	/// @param logo ロゴのコードポイント(フォントアイコン)
+	/// @param bShow ウィンドウの表示状態への参照。ウィンドウが閉じられた場合にfalseになります。
+	void ShowAboutWindow(
+		std::string systemName, std::string version, uint32_t logo, bool& bShow
 	);
 
 	/// @brief アセットパスの入力 + D&D受け入れ + ピッカー起動を行うウィジェット
@@ -46591,7 +46696,7 @@ namespace Unnamed {
 			ImVec2 childSize               = ImVec2(0.0f, 0.0f);
 		};
 
-		float CalcLineHeight(ImFont* font, float size) {
+		float CalcLineHeight(ImFont* font, const float size) {
 			if (!font) {
 				return size;
 			}
@@ -46607,13 +46712,13 @@ namespace Unnamed {
 			handle = TweenHandle();
 		}
 
-		ImU32 ApplyAlpha(ImU32 color, const float alpha) {
+		ImU32 ApplyAlpha(const ImU32 color, const float alpha) {
 			ImVec4 colorVec = ImGui::ColorConvertU32ToFloat4(color);
 			colorVec.w      *= std::clamp(alpha, 0.0f, 0.9f);
 			return ImGui::ColorConvertFloat4ToU32(colorVec);
 		}
 
-		uint32_t GetNotificationIcon(NOTIFY_TYPE type) {
+		uint32_t GetNotificationIcon(const NOTIFY_TYPE type) {
 			switch (type) {
 				case NOTIFY_TYPE::INFO: return kIconInfo;
 				case NOTIFY_TYPE::WARNING: return kIconWarning;
@@ -46623,7 +46728,7 @@ namespace Unnamed {
 			return kIconQuestionMark;
 		}
 
-		ImU32 GetNotificationIconColor(NOTIFY_TYPE type) {
+		ImU32 GetNotificationIconColor(const NOTIFY_TYPE type) {
 			switch (type) {
 				case NOTIFY_TYPE::INFO: return ImGui::ColorConvertFloat4ToU32(
 						ImVec4(0.21f, 0.45f, 0.94f, 1.0f)
@@ -46642,7 +46747,7 @@ namespace Unnamed {
 			return ImGui::GetColorU32(ImGuiCol_Text);
 		}
 
-		std::optional<NOTIFY_TYPE> TryParseNotifyType(std::string_view value) {
+		std::optional<NOTIFY_TYPE> TryParseNotifyType(const std::string_view value) {
 			const std::string lower = StrUtil::ToLowerCase(std::string(value));
 			if (lower == "info" || lower == "i") {
 				return NOTIFY_TYPE::INFO;
@@ -46660,8 +46765,8 @@ namespace Unnamed {
 		}
 
 		std::string JoinArgs(
-			const std::vector<std::string>& args, size_t beginIndex,
-			size_t                          endIndex
+			const std::vector<std::string>& args, const size_t beginIndex,
+			const size_t                          endIndex
 		) {
 			if (beginIndex >= endIndex || beginIndex >= args.size()) {
 				return {};
@@ -47395,10 +47500,10 @@ File Path: src/engine/editor/EditorToolHost.cpp
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include "GuiEditorTool.h"
+#include <core/string/StrUtil.h>
 
-#include "core/string/StrUtil.h"
-
+#include "engine/editor/EditorNotification.h"
+#include "engine/editor/GuiEditorTool.h"
 #include "engine/game/IGameModule.h"
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
@@ -47443,17 +47548,17 @@ namespace Unnamed {
 		Shutdown();
 	}
 
-	void EditorToolHost::Initialize() const {
+	void EditorToolHost::Initialize() {
 		const EditorToolServices services = {
-			.windowManager = &mWindowManager,
-			.renderModule  = &mRenderModule,
-			.imGuiLayer    = &mImGuiLayer,
-			.console       = mConsole,
-			.inputSystem   = mInputSystem,
-			.assetManager  = mAssetManager,
-			.demoService   = mDemoService,
+			.windowManager    = &mWindowManager,
+			.renderModule     = &mRenderModule,
+			.imGuiLayer       = &mImGuiLayer,
+			.console          = mConsole,
+			.inputSystem      = mInputSystem,
+			.assetManager     = mAssetManager,
+			.demoService      = mDemoService,
 			.gameWorldFactory = &mGameModule,
-			.profiler      = mProfiler,
+			.profiler         = mProfiler,
 		};
 		for (auto& tool : mOwnedTools) {
 			if (!tool) {
@@ -47461,6 +47566,8 @@ namespace Unnamed {
 			}
 			tool->Initialize(services);
 		}
+
+		mNotification = std::make_unique<EditorNotification>();
 	}
 
 	void EditorToolHost::Shutdown() {
@@ -47494,12 +47601,12 @@ namespace Unnamed {
 	}
 
 	void EditorToolHost::BuildUi(const EditorToolFrameContext& frameContext) {
-		constexpr float  kFramePadding = 12.0f; // メニューバーを高くする
-		constexpr ImVec4 kLogoColor    = ImVec4(0.13f, 0.5f, 1.0f, 1.0f);
+		constexpr float framePadding = 12.0f; // メニューバーを高くする
+		constexpr auto  logoColor    = ImVec4(0.13f, 0.5f, 1.0f, 1.0f);
 
 		// FramePadding
 		ImGui::PushStyleVar(
-			ImGuiStyleVar_FramePadding, ImVec2(kFramePadding, kFramePadding)
+			ImGuiStyleVar_FramePadding, ImVec2(framePadding, framePadding)
 		);
 
 		if (ImGui::BeginMainMenuBar()) {
@@ -47515,7 +47622,7 @@ namespace Unnamed {
 			{
 				// Text
 				ImGui::PushStyleColor(
-					ImGuiCol_Text, kLogoColor
+					ImGuiCol_Text, logoColor
 				);
 
 				// 前後にスペースを入れてアイコンをテキストとして表示
@@ -47529,7 +47636,7 @@ namespace Unnamed {
 							"About Unnamed", kIconInfo
 						)
 					) {
-						// TODO: Aboutウィンドウを表示
+						mShowAbout = true;
 					}
 					ImGui::EndMenu();
 				} else {
@@ -47600,7 +47707,7 @@ namespace Unnamed {
 				constexpr auto stopColor = ImVec4(
 					0.79f, 0.31f, 0.31f, 1.0f
 				);
-				ImVec2 available     = ImGui::GetContentRegionAvail();
+				ImVec2       available     = ImGui::GetContentRegionAvail();
 				const ImVec2 windowPadding = ImGui::GetStyle().WindowPadding;
 				ImGui::SameLine();
 
@@ -47668,7 +47775,7 @@ namespace Unnamed {
 
 			ImGui::PopStyleVar(3); // WinRound, WinBorder, WinPadding
 
-			const ImGuiID dockSpaceId = ImGui::GetID("MainEditorDockSpace");
+			const ImGuiID dockSpaceId  = ImGui::GetID("MainEditorDockSpace");
 			const ImVec2  dockNodeSize = ImGui::GetContentRegionAvail();
 			ImGui::DockSpace(
 				dockSpaceId,
@@ -47710,7 +47817,18 @@ namespace Unnamed {
 			tool->BuildUi(frameContext);
 		}
 
+		if (mShowAbout) {
+			ImGuiWidgets::ShowAboutWindow(
+				"Unnamed Engine",
+				std::string(ENGINE_VERSION),
+				kIconArrowBack,
+				mShowAbout
+			);
+		}
+
 		ImGui::ShowDemoWindow();
+
+		mNotification->Update(frameContext.deltaTime);
 	}
 
 	void EditorToolHost::CollectRenderViews(
@@ -47797,6 +47915,7 @@ File Path: src/engine/editor/EditorToolHost.h
 #include "LevelEditorTool.h"
 
 namespace Unnamed {
+	class EditorNotification;
 	class ConsoleSystem;
 	class InputSystem;
 	class AssetManager;
@@ -47829,7 +47948,7 @@ namespace Unnamed {
 		);
 		~EditorToolHost();
 
-		void Initialize() const;
+		void Initialize();
 		void Shutdown();
 		void BeginUI() const;
 		void Tick(const EditorToolFrameContext& frameContext) const;
@@ -47860,6 +47979,10 @@ namespace Unnamed {
 		std::vector<std::unique_ptr<IEditorTool>> mOwnedTools;
 		LevelEditorTool*                          mLevelTool = nullptr;
 		bool                                      mMainDockInitialized = false;
+
+		std::unique_ptr<EditorNotification> mNotification;
+		
+		bool mShowAbout = false;
 	};
 }
 
@@ -48654,15 +48777,10 @@ File Path: src/engine/editor/LevelEditorTool.cpp
 #include <imgui_internal.h>
 
 #include "EditorNotification.h"
-#include "sequence/SequenceCurvePanel.h"
-#include "sequence/SequenceEditorController.h"
-#include "sequence/SequenceTimelinePanel.h"
 
 #include "core/io/json/JsonReader.h"
 #include "core/string/StrUtil.h"
 
-#include "engine/ImGui/Icons.h"
-#include "engine/ImGui/Ui.h"
 #include "engine/platform/Window.h"
 #include "engine/platform/WindowManager.h"
 #include "engine/render/Renderer.h"
@@ -48673,6 +48791,8 @@ File Path: src/engine/editor/LevelEditorTool.cpp
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 #include "engine/world/EditorWorld.h"
 
+#include "sequence/SequenceEditorController.h"
+
 #include "thirdparty/ImGuizmo/ImGuizmo.h"
 
 namespace Unnamed {
@@ -48681,14 +48801,16 @@ namespace Unnamed {
 			WindowManager& windowManager
 		) {
 			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			Window* const  mainWindow = windowManager.FindWindowById(mainWindowId);
+			Window* const  mainWindow   = windowManager.FindWindowById(
+				mainWindowId
+			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
 				return Vec2::zero;
 			}
 
 			MONITORINFO monitorInfo = {};
 			monitorInfo.cbSize      = sizeof(monitorInfo);
-			const HMONITOR monitor = MonitorFromWindow(
+			const HMONITOR monitor  = MonitorFromWindow(
 				mainWindow->GetHwnd(), MONITOR_DEFAULTTONEAREST
 			);
 			if (!monitor || !GetMonitorInfoW(monitor, &monitorInfo)) {
@@ -48703,17 +48825,19 @@ namespace Unnamed {
 				return Vec2::zero;
 			}
 
-			return Vec2(
+			return {
 				static_cast<float>(monitorWidth),
 				static_cast<float>(monitorHeight)
-			);
+			};
 		}
 
 		[[nodiscard]] Vec2 ResolveMainWindowClientExtent(
 			WindowManager& windowManager
 		) {
 			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			Window* const  mainWindow = windowManager.FindWindowById(mainWindowId);
+			Window* const  mainWindow   = windowManager.FindWindowById(
+				mainWindowId
+			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
 				return Vec2::zero;
 			}
@@ -48723,16 +48847,16 @@ namespace Unnamed {
 				return Vec2::zero;
 			}
 
-			const int32_t clientWidth = clientRect.right - clientRect.left;
+			const int32_t clientWidth  = clientRect.right - clientRect.left;
 			const int32_t clientHeight = clientRect.bottom - clientRect.top;
 			if (clientWidth <= 0 || clientHeight <= 0) {
 				return Vec2::zero;
 			}
 
-			return Vec2(
+			return {
 				static_cast<float>(clientWidth),
 				static_cast<float>(clientHeight)
-			);
+			};
 		}
 
 		[[nodiscard]] Vec2 ResolveSceneRenderExtentForInput(
@@ -48785,7 +48909,7 @@ namespace Unnamed {
 				--height;
 			}
 
-			return Vec2(static_cast<float>(width), static_cast<float>(height));
+			return {static_cast<float>(width), static_cast<float>(height)};
 		}
 	}
 
@@ -48796,7 +48920,6 @@ namespace Unnamed {
 	    mEditorWorld(*mOwnedEditorWorld),
 	    mWindowManager(windowManager),
 	    mImGuiLayer(imGuiLayer) {
-		mNotification = std::make_unique<EditorNotification>();
 		mCameraManager.SetPaneBinding(
 			kViewScenePerspective,
 			{
@@ -48825,10 +48948,8 @@ namespace Unnamed {
 		mConsoleSystem = services.console;
 		mInputSystem   = services.inputSystem;
 		mEditorWorld.Initialize();
-		mSequenceEditorController = std::make_unique<
-			SequenceEditorController>();
-		mSequenceTimelinePanel = std::make_unique<SequenceTimelinePanel>();
-		mSequenceCurvePanel    = std::make_unique<SequenceCurvePanel>();
+		mSequenceEditorController =
+			std::make_unique<SequenceEditorController>();
 		mSequenceEditorController->Initialize(
 			mEditorWorld.GetRuntimeSceneWorld(),
 			services.assetManager
@@ -48844,8 +48965,6 @@ namespace Unnamed {
 		if (mSequenceEditorController) {
 			mSequenceEditorController->Shutdown();
 		}
-		mSequenceCurvePanel.reset();
-		mSequenceTimelinePanel.reset();
 		mSequenceEditorController.reset();
 		mEditorWorld.Shutdown();
 		mConsoleSystem = nullptr;
@@ -48887,60 +49006,41 @@ namespace Unnamed {
 		}
 
 		DrawMainMenu();
-		const ImGuiID dockSpaceId = ImGui::GetID("LevelEditorDockSpace");
-		ImGui::DockSpace(
-			dockSpaceId,
-			ImVec2(0.0f, 0.0f),
-			ImGuiDockNodeFlags_None
-		);
+		ImGuiID dockSpaceId = ImGui::GetID("EditorDockSpace");
+
 		if (!mDockInitialized) {
-			const ImVec2 dockNodeSize = ImGui::GetContentRegionAvail();
-			if (dockNodeSize.x > 1.0f && dockNodeSize.y > 1.0f) {
-				ImGui::DockBuilderRemoveNode(dockSpaceId);
-				ImGui::DockBuilderAddNode(
-					dockSpaceId,
-					ImGuiDockNodeFlags_DockSpace
-				);
-				ImGui::DockBuilderSetNodeSize(
-					dockSpaceId,
-					ImVec2(
-						std::max(1.0f, dockNodeSize.x),
-						std::max(1.0f, dockNodeSize.y)
-					)
-				);
-				ImGuiID dockMain = dockSpaceId;
-				ImGuiID dockLeft = ImGui::DockBuilderSplitNode(
-					dockMain,
-					ImGuiDir_Left,
-					0.22f,
-					nullptr,
-					&dockMain
-				);
-				ImGuiID dockRight = ImGui::DockBuilderSplitNode(
-					dockMain,
-					ImGuiDir_Right,
-					0.28f,
-					nullptr,
-					&dockMain
-				);
-				ImGuiID dockBottom = ImGui::DockBuilderSplitNode(
-					dockMain,
-					ImGuiDir_Down,
-					0.30f,
-					nullptr,
-					&dockMain
-				);
-				ImGui::DockBuilderDockWindow("Viewport", dockMain);
-				ImGui::DockBuilderDockWindow("Outliner", dockLeft);
-				ImGui::DockBuilderDockWindow("Inspector", dockRight);
-				ImGui::DockBuilderDockWindow("Profiler", dockBottom);
-				ImGui::DockBuilderDockWindow("Content Browser", dockBottom);
-				ImGui::DockBuilderDockWindow("Sequence Timeline", dockBottom);
-				ImGui::DockBuilderDockWindow("Sequence Curves", dockBottom);
-				ImGui::DockBuilderFinish(dockSpaceId);
-				mDockInitialized = true;
-			}
+			ImGui::DockBuilderRemoveNode(dockSpaceId);
+			ImGui::DockBuilderAddNode(
+				dockSpaceId, ImGuiDockNodeFlags_DockSpace
+			);
+			ImGui::DockBuilderSetNodeSize(
+				dockSpaceId, ImGui::GetMainViewport()->WorkSize
+			);
+
+			ImGuiID dockMain = dockSpaceId;
+
+			ImGuiID dockLeft = ImGui::DockBuilderSplitNode(
+				dockMain, ImGuiDir_Left, 0.22f, nullptr, &dockMain
+			);
+			ImGuiID dockRight = ImGui::DockBuilderSplitNode(
+				dockMain, ImGuiDir_Right, 0.28f, nullptr, &dockMain
+			);
+			ImGuiID dockBottom = ImGui::DockBuilderSplitNode(
+				dockMain, ImGuiDir_Down, 0.30f, nullptr, &dockMain
+			);
+
+			ImGui::DockBuilderDockWindow("Viewport", dockMain);
+			ImGui::DockBuilderDockWindow("Outliner", dockLeft);
+			ImGui::DockBuilderDockWindow("Inspector", dockRight);
+			ImGui::DockBuilderDockWindow("Profiler", dockBottom);
+			ImGui::DockBuilderDockWindow("Content Browser", dockBottom);
+
+			ImGui::DockBuilderFinish(dockSpaceId);
+
+			mDockInitialized = true;
 		}
+
+		ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f));
 
 		const float deltaTime         = frameContext.unscaledDeltaTime;
 		mViewportSizeChangedThisFrame = false;
@@ -48965,8 +49065,8 @@ namespace Unnamed {
 					}
 
 					POINT viewportClientTopLeft = {
-						static_cast<LONG>(mViewportPosition.x),
-						static_cast<LONG>(mViewportPosition.y)
+						.x = static_cast<LONG>(mViewportPosition.x),
+						.y = static_cast<LONG>(mViewportPosition.y)
 					};
 					ScreenToClient(window->GetHwnd(), &viewportClientTopLeft);
 					input->SetMouseClientViewportRect(
@@ -48980,9 +49080,9 @@ namespace Unnamed {
 
 					if (mViewportLookActive) {
 						POINT clientPoint = {
-							static_cast<LONG>(
+							.x = static_cast<LONG>(
 								mViewportPosition.x + mViewportSize.x * 0.5f),
-							static_cast<LONG>(
+							.y = static_cast<LONG>(
 								mViewportPosition.y + mViewportSize.y * 0.5f)
 						};
 						ScreenToClient(window->GetHwnd(), &clientPoint);
@@ -49009,92 +49109,8 @@ namespace Unnamed {
 			ImGui::SetNextWindowDockID(dockSpaceId, ImGuiCond_FirstUseEver);
 			DrawContentBrowser();
 			ImGui::SetNextWindowDockID(dockSpaceId, ImGuiCond_FirstUseEver);
-			DrawSequenceEditors();
 		} else {
 			SyncPresentationState();
-		}
-
-		// シーケンサーのモックアップ
-		{
-			ImGui::Begin("SequencerMock");
-
-			// シーケンサーの上のバー
-			{
-				float barHeight = 48.0f;
-
-				ImGui::BeginChild(
-					"SequencerMock_TopBar",
-					ImVec2(0.0f, barHeight),
-					false,
-					ImGuiWindowFlags_NoScrollbar
-				);
-
-				ImGui::SetCursorPos(ImVec2(16.0f, 0.0f));
-
-				const float topBarContentHeight =
-					ImGui::GetContentRegionAvail().y;
-
-				Ui::Row(
-					[&]() {
-						Ui::CenteredY(
-							[&]() {
-								Ui::Row(
-									[&]() {
-										Ui::Text("00:01:23.45");
-										Ui::Text("0/3000");
-									},
-									32.0f
-								);
-							},
-							topBarContentHeight,
-							ImGui::GetTextLineHeight()
-						);
-
-						const auto buttonSize = ImVec2(32.0f, 32.0f);
-						auto       DrawCenteredIconButton =
-							[&](const uint32_t icon, const bool emphasize) {
-							Ui::CenteredY(
-								[&]() {
-									if (emphasize) {
-										Ui::ScopedStyleColor scopedColor(
-											ImGuiCol_Button,
-											ImVec4(0.2f, 0.4f, 0.2f, 1.0f)
-										);
-										Ui::IconButton(
-											icon,
-											nullptr,
-											buttonSize
-										);
-										return;
-									}
-									Ui::IconButton(
-										icon,
-										nullptr,
-										buttonSize
-									);
-								},
-								topBarContentHeight,
-								buttonSize.y
-							);
-						};
-						Ui::Row(
-							[&]() {
-								DrawCenteredIconButton(
-									kIconSkipPrevious, false
-								);
-								DrawCenteredIconButton(kIconArrowBack2, false);
-								DrawCenteredIconButton(kIconPlay, true);
-								DrawCenteredIconButton(kIconSkipNext, false);
-							},
-							8.0f
-						);
-					}
-				);
-
-				ImGui::EndChild();
-			}
-
-			ImGui::End();
 		}
 
 		ImGui::SetNextWindowDockID(dockSpaceId, ImGuiCond_FirstUseEver);
@@ -49104,58 +49120,7 @@ namespace Unnamed {
 			DrawStatusBar();
 		}
 
-		mNotification->Update(deltaTime);
 		ImGui::End();
-	}
-
-	void LevelEditorTool::SyncPresentationState() {
-		if (mPresentMode != EDITOR_PRESENT_MODE::FULLSCREEN_SWAP_CHAIN) {
-			return;
-		}
-
-		const auto input = mInputSystem;
-		if (!input) {
-			return;
-		}
-
-		Vec2 clientExtent = ResolveMainWindowClientExtent(mWindowManager);
-		if (clientExtent.x <= 0.0f || clientExtent.y <= 0.0f) {
-			clientExtent = Vec2(
-				std::max(1.0f, mViewportPanelWidth),
-				std::max(1.0f, mViewportPanelHeight)
-			);
-		}
-
-		const Render::SceneViewRenderMode sceneRequest = BuildSceneViewModeForSize(
-			clientExtent.x,
-			clientExtent.y,
-			true
-		);
-		const Vec2 runtimeViewportSize = ResolveSceneRenderExtentForInput(
-			sceneRequest
-		);
-
-		mViewportPanelWidth  = runtimeViewportSize.x;
-		mViewportPanelHeight = runtimeViewportSize.y;
-		mLastViewportSize    = runtimeViewportSize;
-
-		mEditorWorld.SetEditorCameraLookEnabled(input->IsHeld("ed_look"));
-		input->SetMouseClientViewportRect(Vec2::zero, runtimeViewportSize);
-
-		if (const Window* window = mWindowManager.FindWindowById(
-			mWindowManager.GetMainWindowId()
-		)) {
-			input->SetMouseCursorLockClientPosition(
-				window->GetHwnd(),
-				{
-					runtimeViewportSize.x * 0.5f,
-					runtimeViewportSize.y * 0.5f
-				}
-			);
-		} else {
-			input->ClearMouseCursorLockAnchor();
-		}
-		mViewportLookActive = false;
 	}
 
 	void LevelEditorTool::CollectRenderViews(
@@ -49183,7 +49148,7 @@ namespace Unnamed {
 				Render::RENDER_VIEW_SIZE_MODE::MATCH_BACK_BUFFER;
 		}
 
-		auto buildSceneView = [this, &sourceScene](
+		auto BuildSceneView = [this, &sourceScene](
 			const std::string_view      key,
 			const float                 width,
 			const float                 height,
@@ -49234,7 +49199,7 @@ namespace Unnamed {
 			composedViews.end(), preservedViews.begin(), preservedViews.end()
 		);
 
-		Vec2 sceneTargetSize = Vec2(
+		auto sceneTargetSize = Vec2(
 			std::max(1.0f, mViewportPanelWidth),
 			std::max(1.0f, mViewportPanelHeight)
 		);
@@ -49248,7 +49213,7 @@ namespace Unnamed {
 		}
 
 		composedViews.emplace_back(
-			buildSceneView(
+			BuildSceneView(
 				kViewScenePerspective,
 				sceneTargetSize.x,
 				sceneTargetSize.y,
@@ -49317,6 +49282,57 @@ namespace Unnamed {
 
 	EDITOR_PRESENT_MODE LevelEditorTool::GetPresentMode() const {
 		return mPresentMode;
+	}
+
+	void LevelEditorTool::SyncPresentationState() {
+		if (mPresentMode != EDITOR_PRESENT_MODE::FULLSCREEN_SWAP_CHAIN) {
+			return;
+		}
+
+		const auto input = mInputSystem;
+		if (!input) {
+			return;
+		}
+
+		Vec2 clientExtent = ResolveMainWindowClientExtent(mWindowManager);
+		if (clientExtent.x <= 0.0f || clientExtent.y <= 0.0f) {
+			clientExtent = Vec2(
+				std::max(1.0f, mViewportPanelWidth),
+				std::max(1.0f, mViewportPanelHeight)
+			);
+		}
+
+		const Render::SceneViewRenderMode sceneRequest =
+			BuildSceneViewModeForSize(
+				clientExtent.x,
+				clientExtent.y,
+				true
+			);
+		const Vec2 runtimeViewportSize = ResolveSceneRenderExtentForInput(
+			sceneRequest
+		);
+
+		mViewportPanelWidth  = runtimeViewportSize.x;
+		mViewportPanelHeight = runtimeViewportSize.y;
+		mLastViewportSize    = runtimeViewportSize;
+
+		mEditorWorld.SetEditorCameraLookEnabled(input->IsHeld("ed_look"));
+		input->SetMouseClientViewportRect(Vec2::zero, runtimeViewportSize);
+
+		if (const Window* window = mWindowManager.FindWindowById(
+			mWindowManager.GetMainWindowId()
+		)) {
+			input->SetMouseCursorLockClientPosition(
+				window->GetHwnd(),
+				{
+					runtimeViewportSize.x * 0.5f,
+					runtimeViewportSize.y * 0.5f
+				}
+			);
+		} else {
+			input->ClearMouseCursorLockAnchor();
+		}
+		mViewportLookActive = false;
 	}
 
 	bool LevelEditorTool::IsPlaying() const {
@@ -49508,7 +49524,7 @@ namespace Unnamed {
 		return const_cast<Scene*>(scene)->FindEntity(mSelectedEntityId);
 	}
 
-	bool LevelEditorTool::SaveSceneAs(const std::string& path) {
+	bool LevelEditorTool::SaveSceneAs(const std::string& path) const {
 		const Scene* scene = mEditorWorld.GetEditableScene();
 		if (!scene) {
 			return false;
@@ -49539,25 +49555,15 @@ namespace Unnamed {
 				"Failed to load scene: {}",
 				normalizedPath
 			);
-			if (mNotification) {
-				mNotification->PushNotification(
-					"Scene Load Failed",
-					normalizedPath,
-					NOTIFY_TYPE::ERR
-				);
-			}
 			return false;
 		}
 
 		mSelectedEntityId = 0;
 		Msg("LevelEditorTool", "Scene loaded: {}", normalizedPath);
-		if (mNotification) {
-			mNotification->PushNotification(
-				"Scene Loaded",
-				normalizedPath,
-				NOTIFY_TYPE::INFO
-			);
-		}
+
+		mConsoleSystem->ExecuteCommand(
+			"notify info 2 LevelEditor | SceneLoaded: " + normalizedPath
+		);
 
 		return true;
 	}
@@ -49587,7 +49593,6 @@ File Path: src/engine/editor/LevelEditorTool.h
 #include <unordered_map>
 #include <vector>
 
-#include "EditorNotification.h"
 #include "EditorViewportCameraManager.h"
 #include "IEditorTool.h"
 #include "ContentBrowser.h"
@@ -49641,39 +49646,41 @@ namespace Unnamed {
 		void Tick(const EditorToolFrameContext& frameContext) override;
 		void BuildUi(const EditorToolFrameContext& frameContext) override;
 		void CollectRenderViews(Render::RenderFrameInputs& inputs) override;
-		void EnumerateViewKeys(std::vector<std::string>& outViewKeys) const override;
+		void EnumerateViewKeys(
+			std::vector<std::string>& outViewKeys
+		) const override;
 		void SetViewOutput(
-			std::string_view viewKey,
+			std::string_view               viewKey,
 			const Render::SceneOutputView& output,
-			Vec2 size
+			Vec2                           size
 		) override;
 		[[nodiscard]] std::string_view GetToolId() const override;
 		[[nodiscard]] std::string_view GetDisplayName() const override;
-		[[nodiscard]] World* GetRuntimeWorld() override;
-		[[nodiscard]] bool IsOpen() const override;
-		void SetOpen(bool open) override;
+		[[nodiscard]] World*           GetRuntimeWorld() override;
+		[[nodiscard]] bool             IsOpen() const override;
+		void                           SetOpen(bool open) override;
 
 		void                              TogglePresentMode();
 		[[nodiscard]] EDITOR_PRESENT_MODE GetPresentMode() const;
 		/// @brief PresentModeに応じた入力ビューポート状態を同期します。
-		void SyncPresentationState();
-		[[nodiscard]] bool                IsPlaying() const;
-		void                              StartPlayInEditor() const;
-		void                              StopPlayInEditor() const;
-		[[nodiscard]] bool                IsProfilerWindowOpen() const;
-		void                              SetProfilerWindowOpen(bool open);
+		void               SyncPresentationState();
+		[[nodiscard]] bool IsPlaying() const;
+		void               StartPlayInEditor() const;
+		void               StopPlayInEditor() const;
+		[[nodiscard]] bool IsProfilerWindowOpen() const;
+		void               SetProfilerWindowOpen(bool open);
 
 		static constexpr std::string_view kViewScenePerspective =
 			"tool.level.scene.perspective";
 
 	private:
 		struct ViewOutputCache {
-			D3D12_CPU_DESCRIPTOR_HANDLE srvCpu = {};
-			uint64_t srvRevision = 0;
-			uint32_t textureId = 0;
-			Vec2 size = Vec2::zero;
-			Vec2 uvMin = Vec2(0.0f, 0.0f);
-			Vec2 uvMax = Vec2(1.0f, 1.0f);
+			D3D12_CPU_DESCRIPTOR_HANDLE srvCpu      = {};
+			uint64_t                    srvRevision = 0;
+			uint32_t                    textureId   = 0;
+			Vec2                        size        = Vec2::zero;
+			Vec2                        uvMin       = Vec2(0.0f, 0.0f);
+			Vec2                        uvMax       = Vec2(1.0f, 1.0f);
 		};
 
 		static void LoadImGuizmoSettings(ConsoleSystem* console);
@@ -49681,9 +49688,9 @@ namespace Unnamed {
 		[[nodiscard]] Render::SceneViewRenderMode BuildSceneViewModeForSize(
 			float width,
 			float height,
-			bool forceFit = false
+			bool  forceFit = false
 		) const;
-		[[nodiscard]] Scene* GetOutlinerScene();
+		[[nodiscard]] Scene*       GetOutlinerScene();
 		[[nodiscard]] const Scene* GetOutlinerScene() const;
 
 		void DrawMainMenu();
@@ -49693,22 +49700,21 @@ namespace Unnamed {
 		void DrawViewport(float deltaTime);
 		void DrawViewportTopBar();
 		void DrawViewportGizmo(
-			std::string_view viewKey,
+			std::string_view                   viewKey,
 			const Render::SceneViewRenderMode& sceneViewMode,
-			const Vec2& imagePos,
-			float drawWidth,
-			float drawHeight
+			const Vec2&                        imagePos,
+			float                              drawWidth,
+			float                              drawHeight
 		);
 		void DrawViewportOverlay(float deltaTime) const;
 
 		void DrawSceneOutliner();
-		void DrawInspector();
+		void DrawInspector() const;
 		void DrawContentBrowser();
-		void DrawSequenceEditors();
 		void DrawProfilerWindow();
 
 		[[nodiscard]] Entity* GetSelectedEntity() const;
-		bool SaveSceneAs(const std::string& path);
+		bool                  SaveSceneAs(const std::string& path) const;
 
 		/// @brief 指定パスのシーンをエディターワールドへロードします。
 		/// @param path ロードするシーンパス
@@ -49720,16 +49726,16 @@ namespace Unnamed {
 		) const;
 
 		std::unique_ptr<EditorWorld> mOwnedEditorWorld;
-		EditorWorld& mEditorWorld;
-		WindowManager& mWindowManager;
-		ImGuiLayer& mImGuiLayer;
-		ConsoleSystem* mConsoleSystem = nullptr;
-		InputSystem*   mInputSystem = nullptr;
+		EditorWorld&                 mEditorWorld;
+		WindowManager&               mWindowManager;
+		ImGuiLayer&                  mImGuiLayer;
+		ConsoleSystem*               mConsoleSystem = nullptr;
+		InputSystem*                 mInputSystem   = nullptr;
 
 		EntityId mSelectedEntityId = 0;
-		bool mOpen = true;
-		bool mInitialized = false;
-		bool mDockInitialized = false;
+		bool     mOpen             = true;
+		bool     mInitialized      = false;
+		bool     mDockInitialized  = false;
 
 		EDITOR_PRESENT_MODE mPresentMode = EDITOR_PRESENT_MODE::VIEWPORT_PANEL;
 		EDITOR_VIEWPORT_RENDER_MODE mViewportRenderMode =
@@ -49745,19 +49751,15 @@ namespace Unnamed {
 		EditorViewportCameraManager mCameraManager = {};
 		std::unordered_map<std::string, ViewOutputCache> mViewOutputs;
 
-		std::unique_ptr<EditorNotification> mNotification;
-
-		float mGridSnap = 64.0f;
+		float                 mGridSnap = 64.0f;
 		EDITOR_GRID_SNAP_UNIT mGridSnapUnit = EDITOR_GRID_SNAP_UNIT::METER;
-		float mAngleSnapDegree = 15.0f;
-		float mCameraSpeedPopupTimer = 0.0f;
-		bool mShowProfilerWindow = false;
-		bool mViewportLookActive = false;
+		float                 mAngleSnapDegree = 15.0f;
+		float                 mCameraSpeedPopupTimer = 0.0f;
+		bool                  mShowProfilerWindow = false;
+		bool                  mViewportLookActive = false;
 
-		EditorContentBrowser::BrowserViewState mContentBrowserState = {};
+		EditorContentBrowser::BrowserViewState    mContentBrowserState = {};
 		std::unique_ptr<SequenceEditorController> mSequenceEditorController;
-		std::unique_ptr<SequenceTimelinePanel>    mSequenceTimelinePanel;
-		std::unique_ptr<SequenceCurvePanel>       mSequenceCurvePanel;
 	};
 }
 
@@ -50298,15 +50300,12 @@ File Path: src/engine/editor/LevelEditorToolHierarchy.cpp
 #include "core/ComponentRegistry.h"
 #include "core/string/StrUtil.h"
 
+#include "engine/editor/sequence/SequenceEditorController.h"
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiUtil.h"
 #include "engine/ImGui/ImGuiWidgets.h"
-#include "engine/editor/sequence/SequenceEditorController.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
-
-#include "sequence/SequenceCurvePanel.h"
-#include "sequence/SequenceTimelinePanel.h"
 
 namespace Unnamed {
 	namespace {
@@ -50320,7 +50319,9 @@ namespace Unnamed {
 			std::vector<ComponentRegistry::RegisteredComponentInfo> components;
 		};
 
-		bool IsValidComponentStableNameForMenu(std::string_view stableName) {
+		bool IsValidComponentStableNameForMenu(
+			const std::string_view stableName
+		) {
 			if (stableName.empty()) {
 				return false;
 			}
@@ -50492,7 +50493,7 @@ namespace Unnamed {
 		}
 
 		std::string JoinFolderPath(
-			std::string_view parent, std::string_view child
+			const std::string_view parent, const std::string_view child
 		) {
 			if (parent.empty()) {
 				return std::string(child);
@@ -50503,7 +50504,7 @@ namespace Unnamed {
 			return std::string(parent) + "/" + std::string(child);
 		}
 
-		std::string GetFolderLeafName(std::string_view folderPath) {
+		std::string GetFolderLeafName(const std::string_view folderPath) {
 			const size_t slashPos = folderPath.find_last_of('/');
 			return slashPos == std::string_view::npos ?
 				       std::string(folderPath) :
@@ -50527,7 +50528,7 @@ namespace Unnamed {
 		}
 
 		OutlinerFolderNode* EnsureFolderNode(
-			OutlinerFolderNode& root, std::string_view folderPath
+			OutlinerFolderNode& root, const std::string_view folderPath
 		) {
 			OutlinerFolderNode* node = &root;
 			for (const auto& part : SplitFolderPath(folderPath)) {
@@ -50555,7 +50556,7 @@ namespace Unnamed {
 		}
 
 		std::string MakeUniqueFolderPath(
-			const Scene& scene, std::string_view parentFolderPath
+			const Scene& scene, const std::string_view parentFolderPath
 		) {
 			const std::string parent = NormalizeFolderPath(parentFolderPath);
 			int               suffix = 0;
@@ -50621,7 +50622,7 @@ namespace Unnamed {
 			openRenamePopupRequested = true;
 		};
 
-		auto openRenameFolder = [&](std::string_view folderPath) {
+		auto openRenameFolder = [&](const std::string_view folderPath) {
 			renameEntityId   = 0;
 			renameFolderPath = std::string(folderPath);
 			std::ranges::fill(renameBuffer, '\0');
@@ -50641,7 +50642,7 @@ namespace Unnamed {
 			ImGuiTableFlags_RowBg |
 			ImGuiTableFlags_NoBordersInBodyUntilResize;
 
-		auto createEntity = [&](std::string_view folderPath) {
+		auto createEntity = [&](const std::string_view folderPath) {
 			Entity& entity = scene->CreateEntity(
 				"Entity", scene->AllocateEntityId(), false
 			);
@@ -50652,7 +50653,7 @@ namespace Unnamed {
 				entity.AddComponent<TransformComponent>();
 			mSelectedEntityId = entity.GetGuid();
 		};
-		auto createFolder = [&](std::string_view folderPath) {
+		auto createFolder = [&](const std::string_view folderPath) {
 			scene->AddFolder(MakeUniqueFolderPath(*scene, folderPath));
 		};
 
@@ -50814,7 +50815,7 @@ namespace Unnamed {
 						ImGui::AcceptDragDropPayload(
 							"OUTLINER_FOLDER"
 						)) {
-						const char* sourcePath = static_cast<const char*>(
+						auto sourcePath = static_cast<const char*>(
 							payload->Data
 						);
 						if (sourcePath) {
@@ -50931,7 +50932,7 @@ namespace Unnamed {
 								ImGui::AcceptDragDropPayload(
 									"OUTLINER_FOLDER"
 								)) {
-								const char* sourcePath = static_cast<const char
+								auto sourcePath = static_cast<const char
 									*>(
 									payload->Data
 								);
@@ -51018,7 +51019,7 @@ namespace Unnamed {
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(
 					"OUTLINER_FOLDER"
 				)) {
-					const char* sourcePath = static_cast<const char*>(payload->
+					auto sourcePath = static_cast<const char*>(payload->
 						Data);
 					if (sourcePath) {
 						pendingMoveFolderSourcePath = sourcePath;
@@ -51144,7 +51145,7 @@ namespace Unnamed {
 		ImGui::End();
 	}
 
-	void LevelEditorTool::DrawInspector() {
+	void LevelEditorTool::DrawInspector() const {
 		if (!ImGui::Begin("Inspector")) {
 			ImGui::End();
 			return;
@@ -51242,7 +51243,7 @@ namespace Unnamed {
 			}
 		);
 
-		ImGuiUtil::HeaderMenuAction pendingAction =
+		auto pendingAction =
 			ImGuiUtil::HeaderMenuAction::None;
 		BaseComponent* pendingTarget = nullptr;
 
@@ -51263,8 +51264,8 @@ namespace Unnamed {
 				!isTransform && (index + 1) < orderedComponents.size();
 			const bool canRemove = !isTransform;
 
-			bool                        componentActive = component->IsActive();
-			ImGuiUtil::HeaderMenuAction action          =
+			bool componentActive = component->IsActive();
+			auto action          =
 				ImGuiUtil::HeaderMenuAction::None;
 			const bool open = ImGuiUtil::CollapsingHeaderWithCheckbox(
 				component->GetIcon(),
@@ -51327,19 +51328,6 @@ namespace Unnamed {
 				(void)mSequenceEditorController->OpenDocument(path);
 			}
 		);
-	}
-
-	void LevelEditorTool::DrawSequenceEditors() {
-		if (
-			!mSequenceEditorController ||
-			!mSequenceTimelinePanel ||
-			!mSequenceCurvePanel
-		) {
-			return;
-		}
-
-		mSequenceTimelinePanel->Draw(*mSequenceEditorController);
-		mSequenceCurvePanel->Draw(*mSequenceEditorController);
 	}
 }
 
@@ -51587,6 +51575,8 @@ File Path: src/engine/editor/LevelEditorToolViewport.cpp
 #include <format>
 #include <imgui.h>
 
+#include <engine/unnamed/subsystem/console/ConsoleSystem.h>
+
 #include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
@@ -51618,10 +51608,12 @@ namespace Unnamed {
 			const float safePanelWidth = std::max(1.0f, panelSize.x);
 			const float safePanelHeight = std::max(1.0f, panelSize.y);
 			const float safeContentWidth = std::max(1.0f, contentLogicalSize.x);
-			const float safeContentHeight = std::max(1.0f, contentLogicalSize.y);
+			const float safeContentHeight = std::max(
+				1.0f, contentLogicalSize.y
+			);
 
-			ViewportFitResult result = {};
-			result.aspectRatio = safeContentWidth / safeContentHeight;
+			ViewportFitResult result;
+			result.aspectRatio       = safeContentWidth / safeContentHeight;
 
 			float fitWidth  = safePanelWidth;
 			float fitHeight = fitWidth / result.aspectRatio;
@@ -51630,11 +51622,11 @@ namespace Unnamed {
 				fitWidth  = fitHeight * result.aspectRatio;
 			}
 
-			fitWidth  = std::max(1.0f, fitWidth);
-			fitHeight = std::max(1.0f, fitHeight);
+			fitWidth               = std::max(1.0f, fitWidth);
+			fitHeight              = std::max(1.0f, fitHeight);
 			const float fitOffsetX = (safePanelWidth - fitWidth) * 0.5f;
 			const float fitOffsetY = (safePanelHeight - fitHeight) * 0.5f;
-			result.drawPos = Vec2(
+			result.drawPos         = Vec2(
 				panelScreenPos.x + fitOffsetX, panelScreenPos.y + fitOffsetY
 			);
 			result.drawSize = Vec2(fitWidth, fitHeight);
@@ -51672,8 +51664,8 @@ namespace Unnamed {
 			const auto   outputIt   = mViewOutputs.find(std::string(viewKey));
 			const bool   hasOutput  = outputIt != mViewOutputs.end();
 			const Vec2   outputSize = hasOutput ?
-				                        outputIt->second.size :
-				                        Vec2(drawWidth, drawHeight);
+				                          outputIt->second.size :
+				                          Vec2(drawWidth, drawHeight);
 			const ViewportFitResult fit = ComputeViewportFitResult(
 				Vec2(panePos.x, panePos.y),
 				Vec2(drawWidth, drawHeight),
@@ -51818,9 +51810,9 @@ namespace Unnamed {
 				toolbarHeight * 2.75f,
 				toolbarHeight
 			);
-			
+
 			constexpr float iconScale = 1.0f;
-			
+
 			if (
 				ImGuiWidgets::IconButton(
 					kIconVertex,
@@ -51830,11 +51822,8 @@ namespace Unnamed {
 					ImGuiDir_Right
 				)
 			) {
-				mNotification->PushNotification(
-					"未実装",
-					"頂点選択はまだ実装されていません。",
-					NOTIFY_TYPE::WARNING,
-					10.0f
+				mConsoleSystem->ExecuteCommand(
+					"notify warn 10 未実装 | 頂点選択はまだ実装されていません。"
 				);
 			}
 			ImGui::SameLine();
@@ -51851,7 +51840,8 @@ namespace Unnamed {
 			);
 			ImGui::SameLine();
 			ImGuiWidgets::IconButton(
-				kIconObject, "Object", toolbarIconSize, iconScale, ImGuiDir_Right
+				kIconObject, "Object", toolbarIconSize, iconScale,
+				ImGuiDir_Right
 			);
 			ImGui::SameLine();
 			ImGuiWidgets::IconButton(
@@ -51861,7 +51851,7 @@ namespace Unnamed {
 
 		ImGui::SameLine();
 		{
-			const char* viewportModeLabel = "Fit";
+			auto viewportModeLabel = "Fit";
 			switch (mViewportRenderMode) {
 				case EDITOR_VIEWPORT_RENDER_MODE::FIT_VIEWPORT
 				: viewportModeLabel = "Fit";
@@ -51945,7 +51935,7 @@ namespace Unnamed {
 
 				ImGui::SetNextItemWidth(180.0f);
 				if (ImGui::BeginCombo("Binding", currentKindLabel)) {
-					const auto selectableKind = [&](
+					const auto SelectableKind = [&](
 						const char*                     label,
 						const ViewportCameraBindingKind kind
 					) {
@@ -51963,15 +51953,15 @@ namespace Unnamed {
 						}
 					};
 
-					selectableKind(
+					SelectableKind(
 						"EditorPerspective",
 						ViewportCameraBindingKind::EditorPerspective
 					);
-					selectableKind(
+					SelectableKind(
 						"ActiveGameCamera",
 						ViewportCameraBindingKind::ActiveGameCamera
 					);
-					selectableKind(
+					SelectableKind(
 						"CameraEntity",
 						ViewportCameraBindingKind::CameraEntity
 					);
@@ -52267,631 +52257,6 @@ namespace Unnamed {
 		ImGui::End();
 		ImGui::PopStyleVar(2);
 	}
-}
-
-#endif
-
-
-============================================================
-File Path: src/engine/editor/sequence/SequenceCurvePanel.cpp
-============================================================
-#ifdef _DEBUG
-#include "SequenceCurvePanel.h"
-
-#include <algorithm>
-#include <array>
-#include <cfloat>
-#include <cmath>
-#include <imgui.h>
-
-#include "core/guidgenerator/GuidGenerator.h"
-
-#include "SequenceEditorController.h"
-
-namespace Unnamed {
-	namespace {
-		[[nodiscard]] uint64_t AllocateStableId() {
-			static GuidGenerator generator;
-			return generator.Alloc();
-		}
-
-		[[nodiscard]] float EvaluateCurveValue(
-			const SequenceRichCurveAssetData& curve,
-			const float                       frame
-		) {
-			if (curve.keys.empty()) {
-				return 0.0f;
-			}
-			if (curve.keys.size() == 1) {
-				return curve.keys.front().value;
-			}
-
-			if (frame <= static_cast<float>(curve.keys.front().frame)) {
-				return curve.keys.front().value;
-			}
-			if (frame >= static_cast<float>(curve.keys.back().frame)) {
-				return curve.keys.back().value;
-			}
-
-			for (size_t i = 0; i + 1 < curve.keys.size(); ++i) {
-				const SequenceFloatKeyAssetData& lhs = curve.keys[i];
-				const SequenceFloatKeyAssetData& rhs = curve.keys[i + 1];
-				const float lhsFrame = static_cast<float>(lhs.frame);
-				const float rhsFrame = static_cast<float>(rhs.frame);
-				if (frame < lhsFrame || frame > rhsFrame) {
-					continue;
-				}
-
-				const float segmentFrames = std::max(1.0f, rhsFrame - lhsFrame);
-				const float t = std::clamp(
-					(frame - lhsFrame) / segmentFrames,
-					0.0f,
-					1.0f
-				);
-				switch (lhs.interpolation) {
-					case SEQUENCE_INTERPOLATION_MODE::MODE_STEP: return lhs.value;
-					case SEQUENCE_INTERPOLATION_MODE::MODE_LINEAR: return
-							lhs.value + (rhs.value - lhs.value) * t;
-					case SEQUENCE_INTERPOLATION_MODE::MODE_CUBIC: {
-						const float t2  = t * t;
-						const float t3  = t2 * t;
-						const float h00 = 2.0f * t3 - 3.0f * t2 + 1.0f;
-						const float h10 = t3 - 2.0f * t2 + t;
-						const float h01 = -2.0f * t3 + 3.0f * t2;
-						const float h11 = t3 - t2;
-						return
-							h00 * lhs.value +
-							h10 * lhs.leaveTangent * segmentFrames +
-							h01 * rhs.value +
-							h11 * rhs.arriveTangent * segmentFrames;
-					}
-				}
-			}
-
-			return curve.keys.back().value;
-		}
-
-		[[nodiscard]] bool IsCurveTrackType(const SEQUENCE_TRACK_TYPE trackType) {
-			return
-				trackType == SEQUENCE_TRACK_TYPE::TRANSFORM ||
-				trackType == SEQUENCE_TRACK_TYPE::PROPERTY_FLOAT ||
-				trackType == SEQUENCE_TRACK_TYPE::PROPERTY_VEC3 ||
-				trackType == SEQUENCE_TRACK_TYPE::SKELETAL_CONTROL;
-		}
-
-		void EnsureDefaultChannel(
-			SequenceEditorSelection& selection,
-			const SEQUENCE_TRACK_TYPE trackType
-		) {
-			switch (trackType) {
-				case SEQUENCE_TRACK_TYPE::TRANSFORM:
-					if (
-						selection.floatChannel < SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_X ||
-						selection.floatChannel > SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_SCALE_Z
-					) {
-						selection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_X;
-					}
-					return;
-				case SEQUENCE_TRACK_TYPE::PROPERTY_FLOAT:
-					selection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::FLOAT;
-					return;
-				case SEQUENCE_TRACK_TYPE::PROPERTY_VEC3:
-					if (
-						selection.floatChannel != SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_X &&
-						selection.floatChannel != SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_Y &&
-						selection.floatChannel != SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_Z
-					) {
-						selection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_X;
-					}
-					return;
-				case SEQUENCE_TRACK_TYPE::SKELETAL_CONTROL:
-					if (
-						selection.floatChannel < SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_WEIGHT ||
-						selection.floatChannel > SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_SPEED
-					) {
-						selection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_WEIGHT;
-					}
-					return;
-				default: return;
-			}
-		}
-
-		[[nodiscard]] SequenceRichCurveAssetData* ResolveFloatChannelCurve(
-			SequenceSectionAssetData&         section,
-			const SEQUENCE_TRACK_TYPE         trackType,
-			const SEQUENCE_EDITOR_FLOAT_CHANNEL channel
-		) {
-			switch (trackType) {
-				case SEQUENCE_TRACK_TYPE::PROPERTY_FLOAT: return &section.floatCurve;
-				case SEQUENCE_TRACK_TYPE::PROPERTY_VEC3:
-					switch (channel) {
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_X: return &section.vec3XCurve;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_Y: return &section.vec3YCurve;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_Z: return &section.vec3ZCurve;
-						default: return &section.vec3XCurve;
-					}
-				case SEQUENCE_TRACK_TYPE::TRANSFORM:
-					switch (channel) {
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_X: return &section.transformPosX;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_Y: return &section.transformPosY;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_Z: return &section.transformPosZ;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_X: return &section.transformRotX;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_Y: return &section.transformRotY;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_Z: return &section.transformRotZ;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_W: return &section.transformRotW;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_SCALE_X: return &section.transformScaleX;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_SCALE_Y: return &section.transformScaleY;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_SCALE_Z: return &section.transformScaleZ;
-						default: return &section.transformPosX;
-					}
-				case SEQUENCE_TRACK_TYPE::SKELETAL_CONTROL:
-					switch (channel) {
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_WEIGHT: return &section.skeletal.weightCurve;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_PLAYBACK: return &section.skeletal.playbackCurve;
-						case SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_SPEED: return &section.skeletal.speedCurve;
-						default: return &section.skeletal.weightCurve;
-					}
-				default: return nullptr;
-			}
-		}
-
-		void DrawChannelSelector(
-			SequenceEditorSelection& selection,
-			const SEQUENCE_TRACK_TYPE trackType
-		) {
-			if (trackType == SEQUENCE_TRACK_TYPE::TRANSFORM) {
-				int channelIndex = 0;
-				switch (selection.floatChannel) {
-					case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_Y: channelIndex = 1; break;
-					case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_Z: channelIndex = 2; break;
-					case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_X: channelIndex = 3; break;
-					case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_Y: channelIndex = 4; break;
-					case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_Z: channelIndex = 5; break;
-					case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_W: channelIndex = 6; break;
-					case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_SCALE_X: channelIndex = 7; break;
-					case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_SCALE_Y: channelIndex = 8; break;
-					case SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_SCALE_Z: channelIndex = 9; break;
-					default: channelIndex = 0; break;
-				}
-				if (
-					ImGui::Combo(
-						"Channel",
-						&channelIndex,
-						"PosX\0PosY\0PosZ\0RotX\0RotY\0RotZ\0RotW\0ScaleX\0ScaleY\0ScaleZ\0"
-					)
-				) {
-					static constexpr std::array<SEQUENCE_EDITOR_FLOAT_CHANNEL, 10> kMap = {
-						SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_X,
-						SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_Y,
-						SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_Z,
-						SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_X,
-						SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_Y,
-						SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_Z,
-						SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_ROT_W,
-						SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_SCALE_X,
-						SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_SCALE_Y,
-						SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_SCALE_Z
-					};
-					selection.floatChannel = kMap[std::clamp(channelIndex, 0, 9)];
-				}
-				return;
-			}
-
-			if (trackType == SEQUENCE_TRACK_TYPE::PROPERTY_VEC3) {
-				int channelIndex = selection.floatChannel == SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_Y ? 1 :
-				                   selection.floatChannel == SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_Z ? 2 :
-				                   0;
-				if (ImGui::Combo("Channel", &channelIndex, "X\0Y\0Z\0")) {
-					selection.floatChannel = channelIndex == 1 ?
-						                         SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_Y :
-						                         (channelIndex == 2 ?
-							                          SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_Z :
-							                          SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_X);
-				}
-				return;
-			}
-
-			if (trackType == SEQUENCE_TRACK_TYPE::SKELETAL_CONTROL) {
-				int channelIndex = selection.floatChannel == SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_PLAYBACK ?
-					                   1 :
-					                   selection.floatChannel == SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_SPEED ?
-						                   2 :
-						                   0;
-				if (ImGui::Combo("Channel", &channelIndex, "Weight\0Playback\0Speed\0")) {
-					selection.floatChannel = channelIndex == 1 ?
-						                         SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_PLAYBACK :
-						                         (channelIndex == 2 ?
-							                          SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_SPEED :
-							                          SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_WEIGHT);
-				}
-				return;
-			}
-
-			selection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::FLOAT;
-		}
-	}
-
-	void SequenceCurvePanel::Draw(SequenceEditorController& controller) {
-		if (!ImGui::Begin("Sequence Curves")) {
-			ImGui::End();
-			return;
-		}
-
-		SequenceEditorDocument* document = controller.GetActiveDocument();
-		if (!document) {
-			ImGui::TextUnformatted("No sequence document selected.");
-			ImGui::End();
-			return;
-		}
-
-		SequenceAuthoringData& data      = document->GetAuthoringData();
-		SequenceEditorSelection& selection = controller.GetSelection();
-		if (
-			selection.trackIndex < 0 ||
-			selection.trackIndex >= static_cast<int32_t>(data.tracks.size())
-		) {
-			ImGui::TextUnformatted("Select a track in Sequence Timeline.");
-			ImGui::End();
-			return;
-		}
-
-		SequenceTrackAssetData& track = data.tracks[selection.trackIndex];
-		if (
-			selection.sectionIndex < 0 ||
-			selection.sectionIndex >= static_cast<int32_t>(track.sections.size())
-		) {
-			ImGui::TextUnformatted("Select a section in Sequence Timeline.");
-			ImGui::End();
-			return;
-		}
-		SequenceSectionAssetData& section = track.sections[selection.sectionIndex];
-
-		if (!IsCurveTrackType(track.trackType)) {
-			ImGui::TextUnformatted("Selected track type has no editable float curve.");
-			ImGui::End();
-			return;
-		}
-
-		EnsureDefaultChannel(selection, track.trackType);
-		DrawChannelSelector(selection, track.trackType);
-
-		SequenceRichCurveAssetData* curve = ResolveFloatChannelCurve(
-			section,
-			track.trackType,
-			selection.floatChannel
-		);
-		if (!curve) {
-			ImGui::TextUnformatted("Failed to resolve curve channel.");
-			ImGui::End();
-			return;
-		}
-
-		const int32_t trackIndex = selection.trackIndex;
-		const int32_t sectionIndex = selection.sectionIndex;
-		const SEQUENCE_EDITOR_FLOAT_CHANNEL channel = selection.floatChannel;
-
-		if (curve->channelId == 0) {
-			(void)controller.ModifyActiveDocument(
-				[=](SequenceAuthoringData& ioData) {
-					if (
-						trackIndex < 0 ||
-						trackIndex >= static_cast<int32_t>(ioData.tracks.size())
-					) {
-						return;
-					}
-					auto& localTrack = ioData.tracks[trackIndex];
-					if (
-						sectionIndex < 0 ||
-						sectionIndex >= static_cast<int32_t>(localTrack.sections.size())
-					) {
-						return;
-					}
-					auto* localCurve = ResolveFloatChannelCurve(
-						localTrack.sections[sectionIndex],
-						localTrack.trackType,
-						channel
-					);
-					if (!localCurve || localCurve->channelId != 0) {
-						return;
-					}
-					localCurve->channelId = AllocateStableId();
-				}
-			);
-		}
-
-		if (ImGui::Button("Insert Key At Playhead")) {
-			const int64_t keyFrame = static_cast<int64_t>(std::llround(
-				std::max(0.0f, controller.GetPlayheadFrame())
-			));
-			const float keyValue = EvaluateCurveValue(*curve, static_cast<float>(keyFrame));
-			(void)controller.ModifyActiveDocument(
-				[=](SequenceAuthoringData& ioData) {
-					if (
-						trackIndex < 0 ||
-						trackIndex >= static_cast<int32_t>(ioData.tracks.size())
-					) {
-						return;
-					}
-					auto& localTrack = ioData.tracks[trackIndex];
-					if (
-						sectionIndex < 0 ||
-						sectionIndex >= static_cast<int32_t>(localTrack.sections.size())
-					) {
-						return;
-					}
-					auto* localCurve = ResolveFloatChannelCurve(
-						localTrack.sections[sectionIndex],
-						localTrack.trackType,
-						channel
-					);
-					if (!localCurve) {
-						return;
-					}
-					if (localCurve->channelId == 0) {
-						localCurve->channelId = AllocateStableId();
-					}
-					for (auto& key : localCurve->keys) {
-						if (key.frame != keyFrame) {
-							continue;
-						}
-						key.value = keyValue;
-						return;
-					}
-					localCurve->keys.emplace_back(
-						SequenceFloatKeyAssetData{
-							.keyId = AllocateStableId(),
-							.frame = keyFrame,
-							.value = keyValue,
-							.arriveTangent = 0.0f,
-							.leaveTangent = 0.0f,
-							.interpolation = SEQUENCE_INTERPOLATION_MODE::MODE_LINEAR
-						}
-					);
-					std::ranges::sort(
-						localCurve->keys,
-						[](const SequenceFloatKeyAssetData& lhs, const SequenceFloatKeyAssetData& rhs) {
-							return lhs.frame < rhs.frame;
-						}
-					);
-				}
-			);
-		}
-		ImGui::SameLine();
-		if (
-			ImGui::Button("Delete Selected Key") &&
-			selection.keyIndex >= 0 &&
-			selection.keyIndex < static_cast<int32_t>(curve->keys.size())
-		) {
-			const int32_t deleteIndex = selection.keyIndex;
-			(void)controller.ModifyActiveDocument(
-				[=](SequenceAuthoringData& ioData) {
-					if (
-						trackIndex < 0 ||
-						trackIndex >= static_cast<int32_t>(ioData.tracks.size())
-					) {
-						return;
-					}
-					auto& localTrack = ioData.tracks[trackIndex];
-					if (
-						sectionIndex < 0 ||
-						sectionIndex >= static_cast<int32_t>(localTrack.sections.size())
-					) {
-						return;
-					}
-					auto* localCurve = ResolveFloatChannelCurve(
-						localTrack.sections[sectionIndex],
-						localTrack.trackType,
-						channel
-					);
-					if (
-						!localCurve ||
-						deleteIndex < 0 ||
-						deleteIndex >= static_cast<int32_t>(localCurve->keys.size())
-					) {
-						return;
-					}
-					localCurve->keys.erase(localCurve->keys.begin() + deleteIndex);
-				}
-			);
-			selection.keyIndex = -1;
-		}
-
-		ImGui::Separator();
-
-		if (!curve->keys.empty()) {
-			static constexpr int32_t kSampleCount = 128;
-			std::array<float, kSampleCount> samples = {};
-			const float minFrame = static_cast<float>(section.startFrame);
-			const float maxFrame = static_cast<float>(std::max(section.startFrame + 1, section.endFrame));
-			for (int32_t i = 0; i < kSampleCount; ++i) {
-				const float t = static_cast<float>(i) / static_cast<float>(kSampleCount - 1);
-				const float frame = minFrame + (maxFrame - minFrame) * t;
-				samples[static_cast<size_t>(i)] = EvaluateCurveValue(*curve, frame);
-			}
-			ImGui::PlotLines(
-				"##curvePreview",
-				samples.data(),
-				kSampleCount,
-				0,
-				nullptr,
-				FLT_MAX,
-				FLT_MAX,
-				ImVec2(0.0f, 180.0f)
-			);
-		} else {
-			ImGui::TextUnformatted("No keys in this curve.");
-		}
-
-		ImGui::Separator();
-		ImGui::Text("Keys: %zu", curve->keys.size());
-		for (int32_t keyIndex = 0; keyIndex < static_cast<int32_t>(curve->keys.size()); ++keyIndex) {
-			const SequenceFloatKeyAssetData& key = curve->keys[static_cast<size_t>(keyIndex)];
-			ImGui::PushID(keyIndex);
-
-			const bool selected = selection.keyIndex == keyIndex;
-			if (
-				ImGui::Selectable(
-					(std::string("Key ") + std::to_string(keyIndex) +
-					 "  F:" + std::to_string(key.frame) +
-					 "  V:" + std::to_string(key.value)).c_str(),
-					selected
-				)
-			) {
-				selection.keyIndex = keyIndex;
-			}
-			if (!selected) {
-				ImGui::PopID();
-				continue;
-			}
-
-			int frameValue = static_cast<int>(key.frame);
-			if (ImGui::InputInt("Frame", &frameValue)) {
-				const int32_t localKeyIndex = keyIndex;
-				(void)controller.ModifyActiveDocument(
-					[=](SequenceAuthoringData& ioData) {
-						auto* localCurve = ResolveFloatChannelCurve(
-							ioData.tracks[trackIndex].sections[sectionIndex],
-							ioData.tracks[trackIndex].trackType,
-							channel
-						);
-						if (
-							!localCurve ||
-							localKeyIndex < 0 ||
-							localKeyIndex >= static_cast<int32_t>(localCurve->keys.size())
-						) {
-							return;
-						}
-						localCurve->keys[localKeyIndex].frame = std::max(0, frameValue);
-						std::ranges::sort(
-							localCurve->keys,
-							[](const SequenceFloatKeyAssetData& lhs, const SequenceFloatKeyAssetData& rhs) {
-								return lhs.frame < rhs.frame;
-							}
-						);
-					}
-				);
-			}
-
-			float value = key.value;
-			if (ImGui::DragFloat("Value", &value, 0.05f)) {
-				const int32_t localKeyIndex = keyIndex;
-				(void)controller.ModifyActiveDocument(
-					[=](SequenceAuthoringData& ioData) {
-						auto* localCurve = ResolveFloatChannelCurve(
-							ioData.tracks[trackIndex].sections[sectionIndex],
-							ioData.tracks[trackIndex].trackType,
-							channel
-						);
-						if (
-							!localCurve ||
-							localKeyIndex < 0 ||
-							localKeyIndex >= static_cast<int32_t>(localCurve->keys.size())
-						) {
-							return;
-						}
-						localCurve->keys[localKeyIndex].value = value;
-					}
-				);
-			}
-
-			float arrive = key.arriveTangent;
-			if (ImGui::DragFloat("Arrive", &arrive, 0.05f)) {
-				const int32_t localKeyIndex = keyIndex;
-				(void)controller.ModifyActiveDocument(
-					[=](SequenceAuthoringData& ioData) {
-						auto* localCurve = ResolveFloatChannelCurve(
-							ioData.tracks[trackIndex].sections[sectionIndex],
-							ioData.tracks[trackIndex].trackType,
-							channel
-						);
-						if (
-							!localCurve ||
-							localKeyIndex < 0 ||
-							localKeyIndex >= static_cast<int32_t>(localCurve->keys.size())
-						) {
-							return;
-						}
-						localCurve->keys[localKeyIndex].arriveTangent = arrive;
-					}
-				);
-			}
-
-			float leave = key.leaveTangent;
-			if (ImGui::DragFloat("Leave", &leave, 0.05f)) {
-				const int32_t localKeyIndex = keyIndex;
-				(void)controller.ModifyActiveDocument(
-					[=](SequenceAuthoringData& ioData) {
-						auto* localCurve = ResolveFloatChannelCurve(
-							ioData.tracks[trackIndex].sections[sectionIndex],
-							ioData.tracks[trackIndex].trackType,
-							channel
-						);
-						if (
-							!localCurve ||
-							localKeyIndex < 0 ||
-							localKeyIndex >= static_cast<int32_t>(localCurve->keys.size())
-						) {
-							return;
-						}
-						localCurve->keys[localKeyIndex].leaveTangent = leave;
-					}
-				);
-			}
-
-			int interpolationIndex = key.interpolation == SEQUENCE_INTERPOLATION_MODE::MODE_STEP ? 0 :
-			                         key.interpolation == SEQUENCE_INTERPOLATION_MODE::MODE_CUBIC ? 2 :
-			                         1;
-			if (ImGui::Combo("Interpolation", &interpolationIndex, "Step\0Linear\0Cubic\0")) {
-				const int32_t localKeyIndex = keyIndex;
-				const SEQUENCE_INTERPOLATION_MODE interpolation =
-					interpolationIndex == 0 ? SEQUENCE_INTERPOLATION_MODE::MODE_STEP :
-					interpolationIndex == 2 ? SEQUENCE_INTERPOLATION_MODE::MODE_CUBIC :
-					                          SEQUENCE_INTERPOLATION_MODE::MODE_LINEAR;
-				(void)controller.ModifyActiveDocument(
-					[=](SequenceAuthoringData& ioData) {
-						auto* localCurve = ResolveFloatChannelCurve(
-							ioData.tracks[trackIndex].sections[sectionIndex],
-							ioData.tracks[trackIndex].trackType,
-							channel
-						);
-						if (
-							!localCurve ||
-							localKeyIndex < 0 ||
-							localKeyIndex >= static_cast<int32_t>(localCurve->keys.size())
-						) {
-							return;
-						}
-						localCurve->keys[localKeyIndex].interpolation = interpolation;
-					}
-				);
-			}
-
-			ImGui::Separator();
-			ImGui::PopID();
-		}
-
-		ImGui::End();
-	}
-}
-
-#endif
-
-
-============================================================
-File Path: src/engine/editor/sequence/SequenceCurvePanel.h
-============================================================
-#pragma once
-#ifdef _DEBUG
-
-namespace Unnamed {
-	class SequenceEditorController;
-
-	/// @brief 選択中チャンネルのカーブ編集パネルです。
-	class SequenceCurvePanel final {
-	public:
-		/// @brief カーブパネルを描画します。
-		void Draw(SequenceEditorController& controller);
-	};
 }
 
 #endif
@@ -53967,789 +53332,6 @@ namespace Unnamed {
 		int32_t                       sectionIndex  = -1;
 		SEQUENCE_EDITOR_FLOAT_CHANNEL floatChannel  = SEQUENCE_EDITOR_FLOAT_CHANNEL::NONE;
 		int32_t                       keyIndex      = -1;
-	};
-}
-
-#endif
-
-
-============================================================
-File Path: src/engine/editor/sequence/SequenceTimelinePanel.cpp
-============================================================
-#ifdef _DEBUG
-#include "SequenceTimelinePanel.h"
-
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <format>
-#include <imgui.h>
-#include <string>
-#include <vector>
-
-#include "core/guidgenerator/GuidGenerator.h"
-
-#include "SequenceEditorController.h"
-
-namespace Unnamed {
-	namespace {
-		struct TimelineRow final {
-			int32_t     trackIndex   = -1;
-			int32_t     sectionIndex = -1;
-			std::string label        = {};
-		};
-
-		[[nodiscard]] uint64_t AllocateStableId() {
-			static GuidGenerator generator;
-			return generator.Alloc();
-		}
-
-		void EnsureCurveChannelId(SequenceRichCurveAssetData& ioCurve) {
-			if (ioCurve.channelId == 0) {
-				ioCurve.channelId = AllocateStableId();
-			}
-		}
-
-		void AddOrUpdateFloatKey(
-			SequenceRichCurveAssetData& ioCurve,
-			const int64_t               frame,
-			const float                 value
-		) {
-			EnsureCurveChannelId(ioCurve);
-			for (SequenceFloatKeyAssetData& key : ioCurve.keys) {
-				if (key.frame != frame) {
-					continue;
-				}
-				key.value = value;
-				key.interpolation = SEQUENCE_INTERPOLATION_MODE::MODE_LINEAR;
-				return;
-			}
-
-			ioCurve.keys.emplace_back(
-				SequenceFloatKeyAssetData{
-					.keyId = AllocateStableId(),
-					.frame = frame,
-					.value = value,
-					.arriveTangent = 0.0f,
-					.leaveTangent = 0.0f,
-					.interpolation = SEQUENCE_INTERPOLATION_MODE::MODE_LINEAR,
-				}
-			);
-			std::ranges::sort(
-				ioCurve.keys,
-				[](const SequenceFloatKeyAssetData& lhs, const SequenceFloatKeyAssetData& rhs) {
-					return lhs.frame < rhs.frame;
-				}
-			);
-		}
-
-		[[nodiscard]] const char* TrackTypeLabel(const SEQUENCE_TRACK_TYPE type) {
-			switch (type) {
-				case SEQUENCE_TRACK_TYPE::TRANSFORM: return "Transform";
-				case SEQUENCE_TRACK_TYPE::SKELETAL_CONTROL: return "Skeletal";
-				case SEQUENCE_TRACK_TYPE::CAMERA_CUT: return "CameraCut";
-				case SEQUENCE_TRACK_TYPE::EVENT: return "Event";
-				case SEQUENCE_TRACK_TYPE::VISIBILITY: return "Visibility";
-				case SEQUENCE_TRACK_TYPE::ACTIVATION: return "Activation";
-				case SEQUENCE_TRACK_TYPE::PROPERTY_FLOAT: return "PropertyFloat";
-				case SEQUENCE_TRACK_TYPE::PROPERTY_BOOL: return "PropertyBool";
-				case SEQUENCE_TRACK_TYPE::PROPERTY_VEC3: return "PropertyVec3";
-				default: return "Unknown";
-			}
-		}
-
-		void AppendCurveFrames(
-			const SequenceRichCurveAssetData& curve,
-			std::vector<int64_t>&             outFrames
-		) {
-			for (const SequenceFloatKeyAssetData& key : curve.keys) {
-				outFrames.emplace_back(key.frame);
-			}
-		}
-
-		void AppendSectionFrames(
-			const SequenceTrackAssetData&   track,
-			const SequenceSectionAssetData& section,
-			std::vector<int64_t>&           outFrames
-		) {
-			switch (track.trackType) {
-				case SEQUENCE_TRACK_TYPE::EVENT:
-					for (const SequenceEventKeyAssetData& key : section.eventKeys) {
-						outFrames.emplace_back(key.frame);
-					}
-					break;
-				case SEQUENCE_TRACK_TYPE::CAMERA_CUT:
-					for (const SequenceCameraCutKeyAssetData& key : section.cameraCutKeys) {
-						outFrames.emplace_back(key.frame);
-					}
-					break;
-				case SEQUENCE_TRACK_TYPE::PROPERTY_BOOL:
-				case SEQUENCE_TRACK_TYPE::VISIBILITY:
-				case SEQUENCE_TRACK_TYPE::ACTIVATION:
-					for (const SequenceBoolKeyAssetData& key : section.boolKeys) {
-						outFrames.emplace_back(key.frame);
-					}
-					break;
-				case SEQUENCE_TRACK_TYPE::PROPERTY_FLOAT:
-					AppendCurveFrames(section.floatCurve, outFrames);
-					break;
-				case SEQUENCE_TRACK_TYPE::PROPERTY_VEC3:
-					AppendCurveFrames(section.vec3XCurve, outFrames);
-					AppendCurveFrames(section.vec3YCurve, outFrames);
-					AppendCurveFrames(section.vec3ZCurve, outFrames);
-					break;
-				case SEQUENCE_TRACK_TYPE::TRANSFORM:
-					AppendCurveFrames(section.transformPosX, outFrames);
-					AppendCurveFrames(section.transformPosY, outFrames);
-					AppendCurveFrames(section.transformPosZ, outFrames);
-					AppendCurveFrames(section.transformRotX, outFrames);
-					AppendCurveFrames(section.transformRotY, outFrames);
-					AppendCurveFrames(section.transformRotZ, outFrames);
-					AppendCurveFrames(section.transformRotW, outFrames);
-					AppendCurveFrames(section.transformScaleX, outFrames);
-					AppendCurveFrames(section.transformScaleY, outFrames);
-					AppendCurveFrames(section.transformScaleZ, outFrames);
-					break;
-				case SEQUENCE_TRACK_TYPE::SKELETAL_CONTROL:
-					AppendCurveFrames(section.skeletal.weightCurve, outFrames);
-					AppendCurveFrames(section.skeletal.playbackCurve, outFrames);
-					AppendCurveFrames(section.skeletal.speedCurve, outFrames);
-					break;
-			}
-		}
-
-		[[nodiscard]] std::vector<int64_t> CollectSectionKeyFrames(
-			const SequenceTrackAssetData&   track,
-			const SequenceSectionAssetData& section
-		) {
-			std::vector<int64_t> frames = {};
-			AppendSectionFrames(track, section, frames);
-			std::ranges::sort(frames);
-			frames.erase(std::unique(frames.begin(), frames.end()), frames.end());
-			return frames;
-		}
-
-		[[nodiscard]] std::string FormatTimecode(
-			const float   frame,
-			const int32_t displayRate
-		) {
-			const int64_t safeRate   = std::max<int64_t>(1, displayRate);
-			const int64_t frameInt   = std::max<int64_t>(0, static_cast<int64_t>(std::llround(frame)));
-			const int64_t totalSec   = frameInt / safeRate;
-			const int64_t minutePart = totalSec / 60;
-			const int64_t secondPart = totalSec % 60;
-			const int64_t framePart  = frameInt % safeRate;
-			return std::format("{:02}:{:02}:{:02}", minutePart, secondPart, framePart);
-		}
-
-		[[nodiscard]] int64_t ComputeMajorTickStep(const float pixelsPerFrame) {
-			static constexpr std::array<int64_t, 16> kSteps = {
-				1, 2, 5,
-				10, 20, 50,
-				100, 200, 500,
-				1000, 2000, 5000,
-				10000, 20000, 50000,
-				100000,
-			};
-
-			for (const int64_t step : kSteps) {
-				if (static_cast<float>(step) * pixelsPerFrame >= 72.0f) {
-					return step;
-				}
-			}
-			return kSteps.back();
-		}
-
-		void EnsureDefaultChannelForTrack(
-			SequenceEditorSelection&  ioSelection,
-			const SEQUENCE_TRACK_TYPE trackType
-		) {
-			switch (trackType) {
-				case SEQUENCE_TRACK_TYPE::TRANSFORM:
-					ioSelection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_X;
-					break;
-				case SEQUENCE_TRACK_TYPE::PROPERTY_FLOAT:
-					ioSelection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::FLOAT;
-					break;
-				case SEQUENCE_TRACK_TYPE::PROPERTY_VEC3:
-					ioSelection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::VEC3_X;
-					break;
-				case SEQUENCE_TRACK_TYPE::SKELETAL_CONTROL:
-					ioSelection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::SKELETAL_WEIGHT;
-					break;
-				default:
-					ioSelection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::NONE;
-					break;
-			}
-		}
-
-		[[nodiscard]] int64_t QuantizeFrame(const float frame) {
-			return static_cast<int64_t>(std::llround(std::max(0.0f, frame)));
-		}
-
-		[[nodiscard]] bool AddKeyAtPlayhead(SequenceEditorController& controller) {
-			SequenceEditorSelection selection = controller.GetSelection();
-			const SequenceEditorDocument* document = controller.GetActiveDocument();
-			if (!document) {
-				return false;
-			}
-
-			const SequenceAuthoringData& data = document->GetAuthoringData();
-			if (
-				selection.trackIndex < 0 ||
-				selection.trackIndex >= static_cast<int32_t>(data.tracks.size())
-			) {
-				return false;
-			}
-
-		const SequenceTrackAssetData& track = data.tracks[selection.trackIndex];
-		const SEQUENCE_TRACK_TYPE selectedTrackType = track.trackType;
-		if (track.sections.empty()) {
-			return false;
-		}
-			if (
-				selection.sectionIndex < 0 ||
-				selection.sectionIndex >= static_cast<int32_t>(track.sections.size())
-			) {
-				selection.sectionIndex = 0;
-			}
-
-			const int64_t frame = QuantizeFrame(controller.GetPlayheadFrame());
-			const bool modified = controller.ModifyActiveDocument(
-				[selection, frame](SequenceAuthoringData& ioData) {
-					if (
-						selection.trackIndex < 0 ||
-						selection.trackIndex >= static_cast<int32_t>(ioData.tracks.size())
-					) {
-						return;
-					}
-					SequenceTrackAssetData& localTrack = ioData.tracks[selection.trackIndex];
-					if (
-						selection.sectionIndex < 0 ||
-						selection.sectionIndex >= static_cast<int32_t>(localTrack.sections.size())
-					) {
-						return;
-					}
-					SequenceSectionAssetData& section = localTrack.sections[selection.sectionIndex];
-
-					switch (localTrack.trackType) {
-						case SEQUENCE_TRACK_TYPE::EVENT:
-							section.eventKeys.emplace_back(
-								SequenceEventKeyAssetData{
-									.keyId = AllocateStableId(),
-									.frame = frame,
-									.cueId = "sequence.event",
-									.sourceEntityGuid = 0,
-									.cueValue = 1.0f,
-									.cueValue2 = 0.0f,
-									.consoleCommand = "",
-								}
-							);
-							std::ranges::sort(
-								section.eventKeys,
-								[](const SequenceEventKeyAssetData& lhs, const SequenceEventKeyAssetData& rhs) {
-									return lhs.frame < rhs.frame;
-								}
-							);
-							break;
-						case SEQUENCE_TRACK_TYPE::PROPERTY_FLOAT:
-							AddOrUpdateFloatKey(section.floatCurve, frame, 0.0f);
-							break;
-						case SEQUENCE_TRACK_TYPE::PROPERTY_VEC3:
-							AddOrUpdateFloatKey(section.vec3XCurve, frame, 0.0f);
-							AddOrUpdateFloatKey(section.vec3YCurve, frame, 0.0f);
-							AddOrUpdateFloatKey(section.vec3ZCurve, frame, 0.0f);
-							break;
-						case SEQUENCE_TRACK_TYPE::TRANSFORM:
-							AddOrUpdateFloatKey(section.transformPosX, frame, 0.0f);
-							AddOrUpdateFloatKey(section.transformPosY, frame, 0.0f);
-							AddOrUpdateFloatKey(section.transformPosZ, frame, 0.0f);
-							break;
-						case SEQUENCE_TRACK_TYPE::PROPERTY_BOOL:
-						case SEQUENCE_TRACK_TYPE::VISIBILITY:
-						case SEQUENCE_TRACK_TYPE::ACTIVATION:
-							section.boolKeys.emplace_back(
-								SequenceBoolKeyAssetData{
-									.keyId = AllocateStableId(),
-									.frame = frame,
-									.value = true,
-								}
-							);
-							std::ranges::sort(
-								section.boolKeys,
-								[](const SequenceBoolKeyAssetData& lhs, const SequenceBoolKeyAssetData& rhs) {
-									return lhs.frame < rhs.frame;
-								}
-							);
-							break;
-						default:
-							break;
-					}
-
-					ioData.lengthFrames = std::max(ioData.lengthFrames, frame);
-				}
-			);
-			if (!modified) {
-				return false;
-			}
-
-		SequenceEditorSelection& activeSelection = controller.GetSelection();
-		EnsureDefaultChannelForTrack(activeSelection, selectedTrackType);
-		activeSelection.keyIndex = -1;
-		return true;
-	}
-	}
-
-	void SequenceTimelinePanel::Draw(SequenceEditorController& controller) {
-		if (!ImGui::Begin("Sequence Timeline")) {
-			ImGui::End();
-			return;
-		}
-
-		const auto& documents = controller.GetDocuments();
-		if (documents.empty()) {
-			ImGui::TextUnformatted(
-				"No sequence opened. Double click a .sequence.json in Content Browser."
-			);
-			ImGui::End();
-			return;
-		}
-
-		int32_t activeDocumentIndex = controller.GetActiveDocumentIndex();
-		ImGui::TextUnformatted("Document");
-		ImGui::SameLine();
-		if (ImGui::BeginCombo(
-			"##SequenceDoc",
-			activeDocumentIndex >= 0 &&
-			activeDocumentIndex < static_cast<int32_t>(documents.size()) &&
-			documents[activeDocumentIndex] ?
-				documents[activeDocumentIndex]->GetDisplayName().c_str() :
-				"<none>"
-		)) {
-			for (int32_t i = 0; i < static_cast<int32_t>(documents.size()); ++i) {
-				if (!documents[i]) {
-					continue;
-				}
-				const bool selected = i == activeDocumentIndex;
-				if (ImGui::Selectable(documents[i]->GetDisplayName().c_str(), selected)) {
-					controller.SetActiveDocumentIndex(i);
-					activeDocumentIndex = i;
-				}
-				if (selected) {
-					ImGui::SetItemDefaultFocus();
-				}
-			}
-			ImGui::EndCombo();
-		}
-
-		SequenceEditorDocument* document = controller.GetActiveDocument();
-		if (!document) {
-			ImGui::End();
-			return;
-		}
-
-		if (document->HasExternalConflict()) {
-			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 180, 90, 255));
-			ImGui::TextUnformatted("External update detected. Resolve conflict:");
-			ImGui::PopStyleColor();
-			if (ImGui::Button("Keep Local")) {
-				document->ResolveConflictKeepLocal();
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Reload Disk")) {
-				if (document->ResolveConflictReloadDisk()) {
-					controller.SetActiveDocumentIndex(activeDocumentIndex);
-				}
-			}
-			ImGui::Separator();
-		}
-
-		SequenceAuthoringData& data = document->GetAuthoringData();
-		const float maxFrame = static_cast<float>(std::max<int64_t>(1, data.lengthFrames));
-
-		if (ImGui::Button("Save")) {
-			(void)controller.SaveActiveDocument();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Undo")) {
-			(void)controller.UndoActiveDocument();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Redo")) {
-			(void)controller.RedoActiveDocument();
-		}
-
-		ImGui::Separator();
-
-		if (ImGui::Button("|<")) {
-			controller.SetPlayheadFrame(0.0f, true);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("<<")) {
-			controller.PlayPreviewBackward();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("||")) {
-			controller.PausePreview();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button(">")) {
-			controller.PlayPreview();
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("[]")) {
-			controller.StopPreview();
-		}
-
-		const float playheadFrame = controller.GetPlayheadFrame();
-		const std::string currentTimecode = FormatTimecode(playheadFrame, data.displayRate);
-		const std::string totalTimecode = FormatTimecode(maxFrame, data.displayRate);
-		ImGui::SameLine();
-		ImGui::Text(
-			"Time %s / %s  Frame %.0f / %lld",
-			currentTimecode.c_str(),
-			totalTimecode.c_str(),
-			playheadFrame,
-			data.lengthFrames
-		);
-
-		float frameInput = playheadFrame;
-		if (ImGui::DragFloat("Frame", &frameInput, 1.0f, 0.0f, maxFrame, "%.0f")) {
-			controller.SetPlayheadFrame(frameInput, true);
-		}
-
-		bool autoKey = controller.IsAutoKeyEnabled();
-		if (ImGui::Checkbox("AutoKey", &autoKey)) {
-			controller.SetAutoKeyEnabled(autoKey);
-		}
-		ImGui::SameLine();
-		bool scrubFireEvents = controller.IsScrubFireEventsEnabled();
-		if (ImGui::Checkbox("Scrub Fire Events", &scrubFireEvents)) {
-			controller.SetScrubFireEventsEnabled(scrubFireEvents);
-		}
-
-		static float sPixelsPerFrame = 0.12f;
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(180.0f);
-		(void)ImGui::SliderFloat("Zoom", &sPixelsPerFrame, 0.02f, 8.0f, "%.2f px/f");
-
-		if (ImGui::Button("Add Transform Track")) {
-			(void)controller.ModifyActiveDocument(
-				[](SequenceAuthoringData& ioData) {
-					SequenceTrackAssetData track = {};
-					track.trackId = AllocateStableId();
-					track.name = "Transform";
-					track.trackType = SEQUENCE_TRACK_TYPE::TRANSFORM;
-					track.blendMode = SEQUENCE_BLEND_MODE::MODE_ABSOLUTE;
-					track.priority = 0;
-
-					SequenceSectionAssetData section = {};
-					section.sectionId = AllocateStableId();
-					section.startFrame = 0;
-					section.endFrame = std::max<int64_t>(ioData.lengthFrames, 60);
-					section.transformPosX.channelId = AllocateStableId();
-					section.transformPosY.channelId = AllocateStableId();
-					section.transformPosZ.channelId = AllocateStableId();
-					section.transformRotX.channelId = AllocateStableId();
-					section.transformRotY.channelId = AllocateStableId();
-					section.transformRotZ.channelId = AllocateStableId();
-					section.transformRotW.channelId = AllocateStableId();
-					section.transformScaleX.channelId = AllocateStableId();
-					section.transformScaleY.channelId = AllocateStableId();
-					section.transformScaleZ.channelId = AllocateStableId();
-					track.sections.emplace_back(std::move(section));
-					ioData.tracks.emplace_back(std::move(track));
-				}
-			);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Add Event Track")) {
-			(void)controller.ModifyActiveDocument(
-				[](SequenceAuthoringData& ioData) {
-					SequenceTrackAssetData track = {};
-					track.trackId = AllocateStableId();
-					track.name = "Event";
-					track.trackType = SEQUENCE_TRACK_TYPE::EVENT;
-					track.blendMode = SEQUENCE_BLEND_MODE::MODE_ABSOLUTE;
-					track.priority = 0;
-					SequenceSectionAssetData section = {};
-					section.sectionId = AllocateStableId();
-					section.startFrame = 0;
-					section.endFrame = std::max<int64_t>(ioData.lengthFrames, 60);
-					track.sections.emplace_back(std::move(section));
-					ioData.tracks.emplace_back(std::move(track));
-				}
-			);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Add Float Track")) {
-			(void)controller.ModifyActiveDocument(
-				[](SequenceAuthoringData& ioData) {
-					SequenceTrackAssetData track = {};
-					track.trackId = AllocateStableId();
-					track.name = "PropertyFloat";
-					track.trackType = SEQUENCE_TRACK_TYPE::PROPERTY_FLOAT;
-					track.blendMode = SEQUENCE_BLEND_MODE::MODE_ABSOLUTE;
-					track.priority = 0;
-					SequenceSectionAssetData section = {};
-					section.sectionId = AllocateStableId();
-					section.startFrame = 0;
-					section.endFrame = std::max<int64_t>(ioData.lengthFrames, 60);
-					section.floatCurve.channelId = AllocateStableId();
-					track.sections.emplace_back(std::move(section));
-					ioData.tracks.emplace_back(std::move(track));
-				}
-			);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Add Key @ Playhead")) {
-			(void)AddKeyAtPlayhead(controller);
-		}
-
-		std::vector<TimelineRow> rows = {};
-		rows.reserve(data.tracks.size());
-		for (int32_t trackIndex = 0; trackIndex < static_cast<int32_t>(data.tracks.size()); ++trackIndex) {
-			const SequenceTrackAssetData& track = data.tracks[trackIndex];
-			const int32_t sectionIndex = track.sections.empty() ? -1 : 0;
-			rows.emplace_back(
-				TimelineRow{
-					.trackIndex = trackIndex,
-					.sectionIndex = sectionIndex,
-					.label = std::format("{} [{}]", track.name, TrackTypeLabel(track.trackType)),
-				}
-			);
-		}
-
-		ImGui::Separator();
-
-		const float timelinePaneHeight = std::max(180.0f, ImGui::GetContentRegionAvail().y);
-		const float leftPaneWidth = 260.0f;
-		const float rulerHeight = 28.0f;
-		const float rowHeight = 24.0f;
-		static float sSynchronizedScrollY = 0.0f;
-		static bool  sScrubbing = false;
-
-		ImGui::BeginChild(
-			"SequenceTimelineLeftPane",
-			ImVec2(leftPaneWidth, timelinePaneHeight),
-			true,
-			0
-		);
-		ImGui::SetScrollY(sSynchronizedScrollY);
-		ImGui::Dummy(ImVec2(1.0f, rulerHeight));
-		for (const TimelineRow& row : rows) {
-			const SequenceEditorSelection& selection = controller.GetSelection();
-			const bool selected =
-				selection.trackIndex == row.trackIndex &&
-				selection.sectionIndex == row.sectionIndex;
-			if (ImGui::Selectable(row.label.c_str(), selected, 0, ImVec2(-1.0f, rowHeight))) {
-				SequenceEditorSelection& mutableSelection = controller.GetSelection();
-				mutableSelection.trackIndex = row.trackIndex;
-				mutableSelection.sectionIndex = row.sectionIndex;
-				mutableSelection.keyIndex = -1;
-				if (row.trackIndex >= 0 && row.trackIndex < static_cast<int32_t>(data.tracks.size())) {
-					EnsureDefaultChannelForTrack(
-						mutableSelection,
-						data.tracks[row.trackIndex].trackType
-					);
-				}
-			}
-		}
-		if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)) {
-			sSynchronizedScrollY = ImGui::GetScrollY();
-		}
-		ImGui::EndChild();
-
-		ImGui::SameLine();
-		ImGui::BeginChild(
-			"SequenceTimelineRightPane",
-			ImVec2(0.0f, timelinePaneHeight),
-			true,
-			ImGuiWindowFlags_HorizontalScrollbar
-		);
-		ImGui::SetScrollY(sSynchronizedScrollY);
-
-		const float timelineFrames = std::max(1.0f, maxFrame);
-		const float visibleWidth = std::max(120.0f, ImGui::GetContentRegionAvail().x);
-		const float canvasWidth = std::max(visibleWidth, timelineFrames * sPixelsPerFrame + 64.0f);
-		const float logicalCanvasHeight = rulerHeight + rowHeight * static_cast<float>(rows.size());
-		const float canvasHeight = std::max(logicalCanvasHeight + 8.0f, timelinePaneHeight - 8.0f);
-
-		ImGui::InvisibleButton("##SequenceTimelineCanvas", ImVec2(canvasWidth, canvasHeight));
-		const bool canvasHovered = ImGui::IsItemHovered();
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		const ImVec2 itemMin = ImGui::GetItemRectMin();
-		const ImVec2 itemMax = ImGui::GetItemRectMax();
-
-		const float timelineOriginX = itemMin.x + 8.0f;
-		const auto FrameToX = [&](const float frame) {
-			return timelineOriginX + frame * sPixelsPerFrame;
-		};
-
-		drawList->AddRectFilled(itemMin, itemMax, IM_COL32(28, 30, 34, 255));
-		drawList->AddRectFilled(
-			itemMin,
-			ImVec2(itemMax.x, itemMin.y + rulerHeight),
-			IM_COL32(36, 40, 46, 255)
-		);
-
-		for (int32_t rowIndex = 0; rowIndex < static_cast<int32_t>(rows.size()); ++rowIndex) {
-			const float y0 = itemMin.y + rulerHeight + rowHeight * static_cast<float>(rowIndex);
-			const float y1 = y0 + rowHeight;
-			const bool  isEven = (rowIndex % 2) == 0;
-			drawList->AddRectFilled(
-				ImVec2(itemMin.x, y0),
-				ImVec2(itemMax.x, y1),
-				isEven ? IM_COL32(33, 35, 40, 255) : IM_COL32(29, 31, 36, 255)
-			);
-
-			const SequenceEditorSelection& selection = controller.GetSelection();
-			if (
-				selection.trackIndex == rows[rowIndex].trackIndex &&
-				selection.sectionIndex == rows[rowIndex].sectionIndex
-			) {
-				drawList->AddRectFilled(
-					ImVec2(itemMin.x, y0),
-					ImVec2(itemMax.x, y1),
-					IM_COL32(90, 130, 210, 50)
-				);
-			}
-		}
-
-		const int64_t majorStep = ComputeMajorTickStep(sPixelsPerFrame);
-		for (int64_t frame = 0; frame <= static_cast<int64_t>(timelineFrames) + majorStep; frame += majorStep) {
-			const float x = FrameToX(static_cast<float>(frame));
-			drawList->AddLine(
-				ImVec2(x, itemMin.y),
-				ImVec2(x, itemMin.y + logicalCanvasHeight),
-				IM_COL32(120, 125, 135, 120),
-				1.0f
-			);
-			drawList->AddText(
-				ImVec2(x + 3.0f, itemMin.y + 5.0f),
-				IM_COL32(220, 220, 220, 255),
-				std::format("{}", frame).c_str()
-			);
-		}
-
-		for (int32_t rowIndex = 0; rowIndex < static_cast<int32_t>(rows.size()); ++rowIndex) {
-			const TimelineRow& row = rows[rowIndex];
-			if (
-				row.trackIndex < 0 ||
-				row.trackIndex >= static_cast<int32_t>(data.tracks.size())
-			) {
-				continue;
-			}
-			const SequenceTrackAssetData& track = data.tracks[row.trackIndex];
-			if (
-				row.sectionIndex < 0 ||
-				row.sectionIndex >= static_cast<int32_t>(track.sections.size())
-			) {
-				continue;
-			}
-
-			const SequenceSectionAssetData& section = track.sections[row.sectionIndex];
-			const float y0 = itemMin.y + rulerHeight + rowHeight * static_cast<float>(rowIndex);
-			const float y1 = y0 + rowHeight;
-			const float sectionX0 = FrameToX(static_cast<float>(section.startFrame));
-			const float sectionX1 = FrameToX(static_cast<float>(section.endFrame));
-
-			// セクション範囲を可視化して、左の項目行と時間軸を対応させます。
-			drawList->AddRectFilled(
-				ImVec2(sectionX0, y0 + 3.0f),
-				ImVec2(sectionX1, y1 - 3.0f),
-				IM_COL32(70, 85, 115, 95),
-				3.0f
-			);
-
-			const std::vector<int64_t> keyFrames = CollectSectionKeyFrames(track, section);
-			for (const int64_t keyFrame : keyFrames) {
-				const float x = FrameToX(static_cast<float>(keyFrame));
-				const float cy = (y0 + y1) * 0.5f;
-				const float half = 4.5f;
-				drawList->AddQuadFilled(
-					ImVec2(x, cy - half),
-					ImVec2(x + half, cy),
-					ImVec2(x, cy + half),
-					ImVec2(x - half, cy),
-					IM_COL32(255, 210, 80, 255)
-				);
-			}
-		}
-
-		if (canvasHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-			const ImVec2 mousePos = ImGui::GetIO().MousePos;
-			const float localY = mousePos.y - itemMin.y;
-			if (localY >= rulerHeight) {
-				const int32_t rowIndex = static_cast<int32_t>((localY - rulerHeight) / rowHeight);
-				if (rowIndex >= 0 && rowIndex < static_cast<int32_t>(rows.size())) {
-					SequenceEditorSelection& selection = controller.GetSelection();
-					selection.trackIndex = rows[rowIndex].trackIndex;
-					selection.sectionIndex = rows[rowIndex].sectionIndex;
-					selection.keyIndex = -1;
-					if (
-						selection.trackIndex >= 0 &&
-						selection.trackIndex < static_cast<int32_t>(data.tracks.size())
-					) {
-						EnsureDefaultChannelForTrack(
-							selection,
-							data.tracks[selection.trackIndex].trackType
-						);
-					}
-				}
-			}
-			sScrubbing = true;
-		}
-		if (sScrubbing) {
-			if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-				const float scrubFrame = (ImGui::GetIO().MousePos.x - timelineOriginX) /
-				                         std::max(0.0001f, sPixelsPerFrame);
-				controller.SetPlayheadFrame(scrubFrame, true);
-			} else {
-				sScrubbing = false;
-			}
-		}
-
-		const float playheadX = FrameToX(controller.GetPlayheadFrame());
-		drawList->AddLine(
-			ImVec2(playheadX, itemMin.y),
-			ImVec2(playheadX, itemMin.y + logicalCanvasHeight),
-			IM_COL32(255, 110, 90, 255),
-			1.75f
-		);
-		drawList->AddTriangleFilled(
-			ImVec2(playheadX - 5.0f, itemMin.y + 1.0f),
-			ImVec2(playheadX + 5.0f, itemMin.y + 1.0f),
-			ImVec2(playheadX, itemMin.y + 10.0f),
-			IM_COL32(255, 110, 90, 255)
-		);
-
-		if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem)) {
-			sSynchronizedScrollY = ImGui::GetScrollY();
-		}
-		ImGui::EndChild();
-
-		ImGui::End();
-	}
-}
-
-#endif
-
-
-============================================================
-File Path: src/engine/editor/sequence/SequenceTimelinePanel.h
-============================================================
-#pragma once
-#ifdef _DEBUG
-
-namespace Unnamed {
-	class SequenceEditorController;
-
-	/// @brief Sequence Timelineドックを描画するパネルです。
-	class SequenceTimelinePanel final {
-	public:
-		/// @brief Timelineパネルを描画します。
-		void Draw(SequenceEditorController& controller);
 	};
 }
 
@@ -94033,24 +92615,24 @@ namespace Unnamed {
 File Path: src/engine/unnamed/subsystem/console/ConsoleUI.cpp
 ============================================================
 #ifdef _DEBUG
+#include <algorithm>
+#include <cctype>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <pch.h>
-#include <algorithm>
-#include <cctype>
 #include <string>
 #include <unordered_set>
+#include <utility>
 
 #include <core/math/Vec4.h>
+#include <core/string/StrUtil.h>
 
+#include <engine/Properties.h>
 #include <engine/ImGui/Icons.h>
 #include <engine/ImGui/ImGuiWidgets.h>
 #include <engine/unnamed/subsystem/console/ConsoleUI.h>
 #include <engine/unnamed/subsystem/console/ConVarHelper.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
-
-#include "core/string/StrUtil.h"
-#include "engine/Properties.h"
 
 namespace Unnamed {
 	static constexpr uint32_t kHistoryBufferSize = 64;
@@ -94113,11 +92695,10 @@ namespace Unnamed {
 	static constexpr int kMaxSuggestionDisplayCount = 8;
 
 	namespace {
-		std::string ToLowerAscii(std::string_view text) {
+		std::string ToLowerAscii(const std::string_view text) {
 			std::string lowered(text);
-			std::transform(
-				lowered.begin(),
-				lowered.end(),
+			std::ranges::transform(
+				lowered,
 				lowered.begin(),
 				[](const unsigned char c) {
 					return static_cast<char>(std::tolower(c));
@@ -94127,7 +92708,7 @@ namespace Unnamed {
 		}
 
 		size_t FindFirstCaseInsensitive(
-			std::string_view text, std::string_view query
+			const std::string_view text, const std::string_view query
 		) {
 			if (query.empty() || text.empty()) {
 				return std::string::npos;
@@ -94137,7 +92718,7 @@ namespace Unnamed {
 			return loweredText.find(loweredQuery);
 		}
 
-		int CountDisplayLines(std::string_view text) {
+		int CountDisplayLines(const std::string_view text) {
 			int count = 1;
 			for (const char c : text) {
 				if (c == '\n') {
@@ -94183,6 +92764,10 @@ namespace Unnamed {
 			return;
 		}
 
+		ImGui::SetNextWindowSizeConstraints(
+			ImVec2(320, 320), ImVec2(FLT_MAX, FLT_MAX)
+		);
+
 		const bool windowOpen = ImGui::Begin(
 			"Console##ConsoleUI",
 			&mShowConsole,
@@ -94203,7 +92788,11 @@ namespace Unnamed {
 			DrawInputTextAndSubmitButton();
 
 			if (mShowAbout) {
-				ShowAbout();
+				ImGuiWidgets::ShowAboutWindow(
+					"Unnamed Console", std::string(ENGINE_VERSION),
+					kIconTerminal,
+					mShowAbout
+				);
 			}
 		}
 
@@ -94271,11 +92860,15 @@ namespace Unnamed {
 					ImGui::TextUnformatted("ヘルプを表示します。");
 					ImGui::EndTooltip();
 				}
-				if (ImGuiWidgets::MenuItemWithIcon(
-					"About", kIconInfo, nullptr, mShowAbout
-				)) {
+
+				if (
+					ImGuiWidgets::MenuItemWithIcon(
+						"About", kIconInfo, nullptr, mShowAbout
+					)
+				) {
 					mShowAbout = true;
 				}
+
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal)) {
 					ImGui::BeginTooltip();
 					ImGui::TextUnformatted("コンソールUIについて。");
@@ -94345,8 +92938,8 @@ namespace Unnamed {
 			inputActive &&
 			!suggestionState.items.empty() &&
 			suggestionState.selectedIndex >= 0 &&
-			suggestionState.selectedIndex < static_cast<int>(
-				suggestionState.items.size()
+			std::cmp_less(
+				suggestionState.selectedIndex, suggestionState.items.size()
 			);
 
 		if (enterPressed) {
@@ -94370,95 +92963,6 @@ namespace Unnamed {
 
 		if (ImGui::Button(kSubmitButtonText)) {
 			Submit();
-		}
-	}
-
-	void ConsoleUI::ShowAbout() {
-		const std::string text =
-			"About " + std::string(ENGINE_NAME) + " Console";
-		ImGui::OpenPopup(text.c_str());
-
-		const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-		ImGui::SetNextWindowPos(
-			center, 1, ImVec2(0.5f, 0.5f)
-		);
-
-		constexpr ImVec2 windowSize = {280.0f, 230.0f};
-		ImGui::SetNextWindowSize(windowSize, ImGuiCond_FirstUseEver);
-
-		constexpr ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoCollapse |
-			ImGuiWindowFlags_NoSavedSettings;
-
-		const bool bOpen = ImGui::BeginPopupModal(
-			text.c_str(), &mShowAbout, flags
-		);
-
-		if (bOpen) {
-			ImDrawList*     dl        = ImGui::GetWindowDrawList();
-			ImFont*         font      = ImGui::GetFont();
-			constexpr float iconSize  = 70.0f;
-			constexpr float titleSize = 24.0f;
-			constexpr float margin    = 8.0f;
-			
-			// アイコンを描画
-			dl->AddText(
-				font, iconSize, ImGui::GetCursorScreenPos(),
-				ImGui::GetColorU32(ImGuiCol_Text),
-				StrUtil::ConvertToUtf8(kIconTerminal).c_str()
-			);
-
-			// アイコン分だけ右にカーソルを移動
-			ImGui::SetCursorPosX(iconSize + margin);
-
-			// タイトルを描画
-			dl->AddText(
-				font, titleSize, ImGui::GetCursorScreenPos(),
-				ImGui::GetColorU32(ImGuiCol_Text),
-				"Unnamed Console"
-			);
-
-			ImGui::Dummy({iconSize + margin, titleSize});
-
-			// ただ2回スペース空けてカーソルを移動する関数
-			auto doublespacing = [&] {
-				for (int i = 0; i < 2; ++i) {
-					ImGui::Spacing();
-				}
-				ImGui::SetCursorPosX(iconSize + margin);
-			};
-
-			doublespacing();
-			ImGui::Text("Version: %s", std::string(ENGINE_VERSION).c_str());
-			doublespacing();
-			ImGui::Text(
-				"Build: %s %s", std::string(__DATE__).c_str(),
-				std::string(__TIME__).c_str()
-			);
-			doublespacing();
-			ImGui::Text("ImGui Version: %s", ImGui::GetVersion());
-			doublespacing();
-			// ボタンサイズとウィンドウサイズを取得
-			constexpr auto buttonSize     = ImVec2(74.0f, 24.0f);
-			const ImVec2   clientSize     = ImGui::GetWindowSize(); // サイズ
-			const ImVec2   cursorStartPos = ImGui::GetCursorPos();  // 現在のカーソル位置
-			// ボタンを中央に配置
-			const float buttonPosX =
-				(clientSize.x - buttonSize.x) * 0.5f; // 中央揃えのX座標
-			const float buttonPosY =
-				cursorStartPos.y +
-				ImGui::GetContentRegionAvail().y -
-				buttonSize.y; // 下端からの位置調整
-			ImGui::SetCursorPos(ImVec2(buttonPosX, buttonPosY));
-
-			if (ImGui::Button("Close", buttonSize)) {
-				mShowAbout = false;
-				ImGui::CloseCurrentPopup();
-			}
-
-			ImGui::EndPopup();
 		}
 	}
 
@@ -94486,7 +92990,7 @@ namespace Unnamed {
 				ImGui::TextDisabled(
 					"File: %s", buffer.location.file_name()
 				);
-				ImGui::TextDisabled("Line: %d", buffer.location.line());
+				ImGui::TextDisabled("Line: %u", buffer.location.line());
 
 				if (ImGuiWidgets::MenuItemWithIcon(
 					"Open Source File",
@@ -94494,8 +92998,8 @@ namespace Unnamed {
 				)) {
 					OpenSourceFile(
 						buffer.location.file_name(),
-						buffer.location.line(),
-						buffer.location.column()
+						static_cast<int>(buffer.location.line()),
+						static_cast<int>(buffer.location.column())
 					);
 				}
 				ImGui::Separator();
@@ -94629,7 +93133,7 @@ namespace Unnamed {
 
 	void ConsoleUI::OpenSourceFile(
 		const std::string& file, int line, int column
-	) const {
+	) {
 		const std::string command = std::format(
 			"--line {} --column {} {}",
 			line,
@@ -94646,12 +93150,12 @@ namespace Unnamed {
 		);
 	}
 
-	void ConsoleUI::UpdateSuggestions(const std::string_view input) {
+	void ConsoleUI::UpdateSuggestions(const std::string_view input) const {
 		auto&       state = gConsoleUIData.suggestion;
 		std::string prevSelectedName;
 		if (
 			state.selectedIndex >= 0 &&
-			state.selectedIndex < static_cast<int>(state.items.size())
+			std::cmp_less(state.selectedIndex, state.items.size())
 		) {
 			prevSelectedName = state.items[static_cast<size_t>(state.
 					selectedIndex)].
@@ -94672,7 +93176,7 @@ namespace Unnamed {
 		}
 		if (!ctx.token.empty()) {
 			const std::string lowerToken             = ToLowerAscii(ctx.token);
-			auto              isCaseInsensitiveExact = [&](
+			auto              IsCaseInsensitiveExact = [&](
 				const std::vector<std::string>& names
 			) {
 				return std::ranges::any_of(
@@ -94683,13 +93187,11 @@ namespace Unnamed {
 				);
 			};
 
-			constexpr size_t exactCheckCount = static_cast<size_t>(
-				kMaxSuggestionDisplayCount * 2
-			);
-			const bool hasExactVar = isCaseInsensitiveExact(
+			constexpr size_t exactCheckCount = kMaxSuggestionDisplayCount * 2;
+			const bool       hasExactVar     = IsCaseInsensitiveExact(
 				mConsoleSystem->FindSimilarConVars(ctx.token, exactCheckCount)
 			);
-			const bool hasExactCmd = isCaseInsensitiveExact(
+			const bool hasExactCmd = IsCaseInsensitiveExact(
 				mConsoleSystem->FindSimilarConCommands(
 					ctx.token, exactCheckCount
 				)
@@ -94754,13 +93256,14 @@ namespace Unnamed {
 			return;
 		}
 
-		const float  rowHeight = ImGui::GetFrameHeight();
-		const float  popupH    = rowHeight * itemCount + kPopupPadding * 2.0f;
-		const ImVec2 popupPos  = ImVec2(
+		const float rowHeight = ImGui::GetFrameHeight();
+		const float popupH    =
+			rowHeight * static_cast<float>(itemCount) + kPopupPadding * 2.0f;
+		const auto popupPos = ImVec2(
 			inputLeftTop.x,
 			inputLeftTop.y - popupH - kPopupPadding
 		);
-		const ImVec2 popupSize = ImVec2(std::max(inputWidth, 200.0f), popupH);
+		const auto popupSize = ImVec2(std::max(inputWidth, 200.0f), popupH);
 
 		ImGui::SetNextWindowPos(popupPos);
 		ImGui::SetNextWindowSize(popupSize);
@@ -94875,7 +93378,7 @@ namespace Unnamed {
 					const ImVec2 secondarySize = ImGui::CalcTextSize(
 						item.secondaryText.c_str()
 					);
-					const ImVec2 secondaryPos = ImVec2(
+					const auto secondaryPos = ImVec2(
 						rowMax.x - ImGui::GetStyle().FramePadding.x -
 						secondarySize.x,
 						textY
@@ -95048,7 +93551,7 @@ namespace Unnamed {
 			kMaxSuggestionDisplayCount * 2
 		);
 
-		auto appendUnique = [&](
+		auto AppendUnique = [&](
 			const std::string& name,
 			const bool         isConVar
 		) {
@@ -95084,49 +93587,49 @@ namespace Unnamed {
 		const auto commandCandidates =
 			mConsoleSystem->FindSimilarConCommands(token, fetchCount);
 
-		auto isExactMatch = [&](const std::string& name) {
+		auto IsExactMatch = [&](const std::string& name) {
 			return !tokenText.empty() && ToLowerAscii(name) == lowerToken;
 		};
-		auto isPrefixMatch = [&](const std::string& name) {
+		auto IsPrefixMatch = [&](const std::string& name) {
 			return !tokenText.empty() &&
 			       ToLowerAscii(name).starts_with(lowerToken);
 		};
 
 		const bool hasExactVar = std::ranges::any_of(
-			varCandidates, isExactMatch
+			varCandidates, IsExactMatch
 		);
 		const bool hasExactCmd = std::ranges::any_of(
-			commandCandidates, isExactMatch
+			commandCandidates, IsExactMatch
 		);
 		const bool hasExact = hasExactVar || hasExactCmd;
 
 		const bool hasPrefixVar = std::ranges::any_of(
 			varCandidates,
-			isPrefixMatch
+			IsPrefixMatch
 		);
 		const bool hasPrefixCmd = std::ranges::any_of(
 			commandCandidates,
-			isPrefixMatch
+			IsPrefixMatch
 		);
 		const bool hasPrefix = hasPrefixVar || hasPrefixCmd;
 
-		auto appendFiltered = [&](
+		auto AppendFiltered = [&](
 			const std::vector<std::string>& names,
 			const bool                      isConVar
 		) {
 			for (const auto& name : names) {
-				if (hasExact && !isExactMatch(name)) {
+				if (hasExact && !IsExactMatch(name)) {
 					continue;
 				}
-				if (!hasExact && hasPrefix && !isPrefixMatch(name)) {
+				if (!hasExact && hasPrefix && !IsPrefixMatch(name)) {
 					continue;
 				}
-				appendUnique(name, isConVar);
+				AppendUnique(name, isConVar);
 			}
 		};
 
-		appendFiltered(varCandidates, true);
-		appendFiltered(commandCandidates, false);
+		AppendFiltered(varCandidates, true);
+		AppendFiltered(commandCandidates, false);
 
 		if (results.size() > static_cast<size_t>(kMaxSuggestionDisplayCount)) {
 			results.resize(static_cast<size_t>(kMaxSuggestionDisplayCount));
@@ -95142,7 +93645,7 @@ namespace Unnamed {
 			return 0;
 		}
 
-		auto ensureSuggestions = [&] {
+		auto EnsureSuggestions = [&] {
 			if (!gConsoleUIData.suggestion.items.empty()) {
 				return true;
 			}
@@ -95158,7 +93661,7 @@ namespace Unnamed {
 
 		switch (data->EventFlag) {
 			case ImGuiInputTextFlags_CallbackCompletion: {
-				if (!ensureSuggestions()) {
+				if (!EnsureSuggestions()) {
 					break;
 				}
 
@@ -95167,15 +93670,16 @@ namespace Unnamed {
 					break;
 				}
 
-				if (suggestionState.selectedIndex < 0) {
-					suggestionState.selectedIndex = 0;
-				}
+				suggestionState.selectedIndex = std::max(
+					suggestionState.selectedIndex, 0
+				);
 
 				const bool reverse = ImGui::GetIO().KeyShift;
-				self->MoveSuggestionSelection(reverse ? -1 : 1);
+				MoveSuggestionSelection(reverse ? -1 : 1);
 				if (
 					suggestionState.selectedIndex >= 0 &&
-					suggestionState.selectedIndex < static_cast<int>(
+					std::cmp_less(
+						suggestionState.selectedIndex,
 						suggestionState.items.size()
 					)
 				) {
@@ -95190,9 +93694,9 @@ namespace Unnamed {
 			break;
 
 			case ImGuiInputTextFlags_CallbackHistory: {
-				if (ensureSuggestions()) {
+				if (EnsureSuggestions()) {
 					if (data->EventKey == ImGuiKey_UpArrow) {
-						self->MoveSuggestionSelection(1);
+						MoveSuggestionSelection(1);
 						const auto& selected =
 							c.suggestion.items[static_cast<size_t>(
 								c.suggestion.selectedIndex
@@ -95204,7 +93708,7 @@ namespace Unnamed {
 						break;
 					}
 					if (data->EventKey == ImGuiKey_DownArrow) {
-						self->MoveSuggestionSelection(-1);
+						MoveSuggestionSelection(-1);
 						const auto& selected =
 							c.suggestion.items[static_cast<size_t>(
 								c.suggestion.selectedIndex
@@ -95344,7 +93848,7 @@ namespace Unnamed {
 
 	void ConsoleUI::DrawLogRows(
 		int& visibleIndex, bool& requestOpenContextMenu
-	) {
+	) const {
 		// 複数行ログで可変行高になるため全行を順に描画する
 		for (size_t row = 0; row < gConsoleUIData.filteredToActual.size(); ++
 		     row) {
@@ -95363,7 +93867,7 @@ namespace Unnamed {
 		const size_t actualIndex,
 		const int    visibleIndex,
 		bool&        requestOpenContextMenu
-	) {
+	) const {
 		const auto& buffer = mConsoleSystem->GetLogBuffer()[actualIndex];
 		const int   lineCount = CountDisplayLines(buffer.message);
 		const float lineHeight = ImGui::GetTextLineHeight();
@@ -95400,7 +93904,7 @@ namespace Unnamed {
 			PushTextColor(buffer);
 			const auto textColor = ImGui::GetColorU32(ImGuiCol_Text);
 			ImGui::PopStyleColor();
-			const ImVec2 textMin = ImVec2(
+			const auto textMin = ImVec2(
 				ImGui::GetItemRectMin().x + ImGui::GetStyle().FramePadding.x,
 				ImGui::GetItemRectMin().y + ImGui::GetStyle().FramePadding.y
 			);
@@ -95478,7 +93982,7 @@ namespace Unnamed {
 
 	void ConsoleUI::CopySelectedToClipboard() const {
 		std::string      copiedText;
-		constexpr size_t kMaxCopyLength = static_cast<size_t>(1024) * 1024;
+		constexpr size_t maxCopyLength = static_cast<size_t>(1024) * 1024;
 		// 1MB
 
 		for (size_t i = 0; i < mConsoleSystem->GetLogBuffer().Size(); ++i) {
@@ -95490,7 +93994,7 @@ namespace Unnamed {
 			const size_t requiredSize =
 				copiedText.size() + buffer.message.size() + 1;
 
-			if (requiredSize > kMaxCopyLength) {
+			if (requiredSize > maxCopyLength) {
 				if (!copiedText.empty() && copiedText.back() != '\n') {
 					copiedText += '\n';
 				}
@@ -95598,9 +94102,6 @@ namespace Unnamed {
 		/// @brief 入力欄と送信ボタンを描画します
 		void DrawInputTextAndSubmitButton();
 
-		/// @brief 「About」ウィンドウを表示します
-		void ShowAbout();
-
 		/// @brief コンソールのコンテキストメニューを表示します
 		void ShowContextMenu() const;
 
@@ -95618,16 +94119,16 @@ namespace Unnamed {
 		/// @param file ファイルパス
 		/// @param line 行番号
 		/// @param column 列番号
-		void OpenSourceFile(
+		static void OpenSourceFile(
 			const std::string& file, int line, int column
-		) const;
+		);
 
-		void UpdateSuggestions(std::string_view input);
+		void UpdateSuggestions(std::string_view input) const;
 		void DrawSuggestionsPopup(
 			const ImVec2& inputLeftTop, float inputWidth, bool inputActive
 		);
-		void MoveSuggestionSelection(int delta);
-		void ApplySuggestionToInputBuffer(
+		static void MoveSuggestionSelection(int delta);
+		void        ApplySuggestionToInputBuffer(
 			const std::string& suggestion, bool appendSpace = false
 		);
 		static void ApplySuggestionToCallbackBuffer(
@@ -95646,17 +94147,17 @@ namespace Unnamed {
 
 		static int InputTextCallback(ImGuiInputTextCallbackData* data);
 
-		size_t FilteredToActualIndex(int filteredIndex);
+		static size_t FilteredToActualIndex(int filteredIndex);
 
 		// 表示
 		/// @brief ログテーブル（ヘッダ+行）を描画します
 		void DrawLogTable(const ImVec2& childSize);
 		/// @brief ログ行を描画します（フィルタ/選択/右クリックも含む）
-		void DrawLogRows(int& visibleIndex, bool& requestOpenContextMenu);
+		void DrawLogRows(int& visibleIndex, bool& requestOpenContextMenu) const;
 		/// @brief 1行分の描画と入力処理を行います。描画した場合は true
 		bool DrawLogRow(
 			size_t actualIndex, int visibleIndex, bool& requestOpenContextMenu
-		);
+		) const;
 		/// @brief 選択中ログをクリップボードへコピーします（1要素=1行）
 		void CopySelectedToClipboard() const;
 		/// @brief Ctrl+C のコピー処理
@@ -95667,7 +94168,7 @@ namespace Unnamed {
 		ConsoleSystem* mConsoleSystem; // コンソールシステムへのポインタ
 
 		std::unique_ptr<ConVarHelper> mConVarHelper; // ConVarヘルパー
-		std::unique_ptr<ConCommand> mToggleConsoleCommand;
+		std::unique_ptr<ConCommand>   mToggleConsoleCommand;
 
 		bool mShowConsole      = true;  // コンソール表示フラグ
 		bool mShowAbout        = false; // Aboutウィンドウ表示フラグ
@@ -97300,12 +95801,13 @@ namespace Unnamed {
 ============================================================
 File Path: src/engine/unnamed/subsystem/input/InputSystem.cpp
 ============================================================
-#include <pch.h>
-
 #include <algorithm>
-#include <ranges>
-#include <Dbt.h>
 
+#include <pch.h>
+#include <ranges>
+
+#include <engine/unnamed/subsystem/console/ConsoleSystem.h>
+#include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
 #include <engine/unnamed/subsystem/input/InputSystem.h>
 #include <engine/unnamed/subsystem/input/KeyNameTable.h>
 #include <engine/unnamed/subsystem/input/device/gamepad/GamepadDevice.h>
@@ -97313,8 +95815,7 @@ File Path: src/engine/unnamed/subsystem/input/InputSystem.cpp
 #include <engine/unnamed/subsystem/input/device/mouse/MouseDevice.h>
 #include <engine/unnamed/subsystem/interface/ServiceLocator.h>
 
-#include "engine/unnamed/subsystem/console/ConsoleSystem.h"
-#include "engine/unnamed/subsystem/console/concommand/ConCommand.h"
+#include <Dbt.h>
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "Input";
@@ -97416,7 +95917,7 @@ namespace Unnamed {
 			"Unbind all keys."
 		);
 
-		auto toggleCursorLockHandler = [&](const std::vector<std::string>&) {
+		auto ToggleCursorLockHandler = [&](const std::vector<std::string>&) {
 			const bool bNewState = !IsMouseCursorLocked();
 			if (bNewState == mMouseCursorLockRequested) {
 				mMouseCursorLockOverride = false;
@@ -97439,13 +95940,13 @@ namespace Unnamed {
 
 		mToggleLockCursorCommand = std::make_unique<ConCommand>(
 			"togglelockcursor",
-			toggleCursorLockHandler,
+			ToggleCursorLockHandler,
 			"Toggle the cursor lock state."
 		);
 
 		mToggleCursorLockCommand = std::make_unique<ConCommand>(
 			"togglecursorlock",
-			toggleCursorLockHandler,
+			ToggleCursorLockHandler,
 			"Toggle the cursor lock state."
 		);
 
@@ -97467,16 +95968,19 @@ namespace Unnamed {
 				continue;
 			}
 
-			const auto mouseDevice = std::static_pointer_cast<MouseDevice>(device);
-			primaryMouseWindow     = mouseDevice->GetWindowHandle();
+			const auto mouseDevice = std::static_pointer_cast<MouseDevice>(
+				device
+			);
+			primaryMouseWindow = mouseDevice->GetWindowHandle();
 
-			const std::array<uint32_t, 5> mouseButtons = {
+			constexpr std::array<uint32_t, 5> mouseButtons = {
 				VM_1,
 				VM_2,
 				VM_3,
 				VM_4,
 				VM_5,
 			};
+
 			for (const uint32_t vk : mouseButtons) {
 				const int index = MouseButtonIndexFromVirtualKey(vk);
 				if (index < 0) {
@@ -97717,7 +96221,8 @@ namespace Unnamed {
 					wParam == DBT_DEVNODES_CHANGED
 				) {
 					for (const auto& device : mDevices) {
-						if (device->GetDeviceType() != InputDeviceType::GAMEPAD) {
+						if (device->GetDeviceType() !=
+						    InputDeviceType::GAMEPAD) {
 							continue;
 						}
 
@@ -97748,10 +96253,10 @@ namespace Unnamed {
 		// カーソルは必ず「表示」に寄せる。
 		if (!bActive && !bCursorVisible) {
 			// const 関数のため、表示状態そのものは変えずに OS 側だけ可視へ収束させる
-			sLastCursorVisible           = true;
-			constexpr int kMaxIterations = 32;
-			int           it             = 0;
-			while (cursorCount < 0 && it++ < kMaxIterations) {
+			sLastCursorVisible          = true;
+			constexpr int maxIterations = 32;
+			int           it            = 0;
+			while (cursorCount < 0 && it++ < maxIterations) {
 				cursorCount = ShowCursor(TRUE);
 			}
 		}
@@ -97798,20 +96303,20 @@ namespace Unnamed {
 			sLastCursorVisible = bCursorVisible;
 
 			// ShowCursor の戻り値: 0 以上なら表示、0 未満なら非表示
-			constexpr int kMaxIterations = 32;
-			int           it             = 0;
+			constexpr int maxIterations = 32;
+			int           it            = 0;
 
 			if (bCursorVisible) {
-				while (cursorCount < 0 && it++ < kMaxIterations) {
+				while (cursorCount < 0 && it++ < maxIterations) {
 					cursorCount = ShowCursor(TRUE);
 				}
 			} else {
-				while (cursorCount >= 0 && it++ < kMaxIterations) {
+				while (cursorCount >= 0 && it++ < maxIterations) {
 					cursorCount = ShowCursor(FALSE);
 				}
 			}
 
-			if (it >= kMaxIterations) {
+			if (it >= maxIterations) {
 				Warning(
 					kChannel,
 					"ShowCursor のカウントが収束しませんでした (targetVisible={}, lastCount={}).",
@@ -97834,7 +96339,7 @@ namespace Unnamed {
 		const float low,
 		const float high,
 		const float durationSec
-	) {
+	) const {
 		for (const auto& device : mDevices) {
 			if (device->GetDeviceType() != InputDeviceType::GAMEPAD) {
 				continue;
@@ -97847,7 +96352,7 @@ namespace Unnamed {
 		}
 	}
 
-	void InputSystem::StopGamepadRumble() {
+	void InputSystem::StopGamepadRumble() const {
 		for (const auto& device : mDevices) {
 			if (device->GetDeviceType() != InputDeviceType::GAMEPAD) {
 				continue;
@@ -97865,12 +96370,6 @@ namespace Unnamed {
 		if (!std::ranges::contains(commands, command)) {
 			commands.emplace_back(command);
 		}
-		DevMsg(
-			kChannel,
-			"コマンドをバインドしました: key = {}, command = '{}'",
-			KeyNameTable::ToString(key),
-			command
-		);
 	}
 
 	void InputSystem::UnbindCommand(const InputKey& key) {
@@ -98134,7 +96633,7 @@ namespace Unnamed {
 			return mMouseClientPosition;
 		}
 
-		Vec2 localPos = Vec2(
+		auto localPos = Vec2(
 			mMouseClientPosition.x - mMouseViewportOrigin.x,
 			mMouseClientPosition.y - mMouseViewportOrigin.y
 		);
@@ -98476,10 +96975,10 @@ namespace Unnamed {
 		/// @param low 低周波モータ強度 [0..1]
 		/// @param high 高周波モータ強度 [0..1]
 		/// @param durationSec 再生時間（秒）
-		void PlayGamepadRumble(float low, float high, float durationSec);
+		void PlayGamepadRumble(float low, float high, float durationSec) const;
 
 		/// @brief すべてのゲームパッドランブルを停止します
-		void StopGamepadRumble();
+		void StopGamepadRumble() const;
 
 		/// @brief コマンドをキーにバインドします
 		/// @param key バインドするキー
@@ -98593,8 +97092,12 @@ namespace Unnamed {
 		[[nodiscard]] Vec2 GetMouseClientPosition() const;
 		[[nodiscard]] Vec2 GetMouseClientViewportSize() const;
 		[[nodiscard]] bool IsMouseButtonDown(uint32_t mouseVirtualKey) const;
-		[[nodiscard]] bool WasMouseButtonPressed(uint32_t mouseVirtualKey) const;
-		[[nodiscard]] bool WasMouseButtonReleased(uint32_t mouseVirtualKey) const;
+		[[nodiscard]] bool WasMouseButtonPressed(
+			uint32_t mouseVirtualKey
+		) const;
+		[[nodiscard]] bool WasMouseButtonReleased(
+			uint32_t mouseVirtualKey
+		) const;
 
 	private:
 		[[nodiscard]] bool ResolveMouseCursorLockState() const;
@@ -98649,15 +97152,15 @@ namespace Unnamed {
 		bool            mMouseCursorLockOverrideMode = false;
 		bool            mMouseCursorVisible          = false;
 
-		Vec2 mMouseClientPosition     = Vec2::zero;
-		Vec2 mMouseClientViewportSize = Vec2::zero;
-		bool mMouseViewportRectOverride = false;
-		Vec2 mMouseViewportOrigin       = Vec2::zero;
-		Vec2 mMouseViewportSizeOverride = Vec2::zero;
-		Vec2 mMouseViewportVirtualSize  = Vec2::zero;
-		std::array<bool, 5> mMouseButtonDown = {};
-		std::array<bool, 5> mMouseButtonPressed = {};
-		std::array<bool, 5> mMouseButtonReleased = {};
+		Vec2                mMouseClientPosition       = Vec2::zero;
+		Vec2                mMouseClientViewportSize   = Vec2::zero;
+		bool                mMouseViewportRectOverride = false;
+		Vec2                mMouseViewportOrigin       = Vec2::zero;
+		Vec2                mMouseViewportSizeOverride = Vec2::zero;
+		Vec2                mMouseViewportVirtualSize  = Vec2::zero;
+		std::array<bool, 5> mMouseButtonDown           = {};
+		std::array<bool, 5> mMouseButtonPressed        = {};
+		std::array<bool, 5> mMouseButtonReleased       = {};
 
 		std::unique_ptr<ConCommand> mBindCommand;
 		std::unique_ptr<ConCommand> mUnbindCommand;
