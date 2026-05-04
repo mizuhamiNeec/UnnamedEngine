@@ -46739,7 +46739,10 @@ namespace Unnamed::EditorContentBrowser {
 ============================================================
 File Path: src/engine/editor/EditorGuiScriptPanel.cpp
 ============================================================
-﻿#include "EditorGuiScriptPanel.h"
+#ifdef _DEBUG
+#include "EditorGuiScriptPanel.h"
+
+#include <imgui.h>
 
 namespace Unnamed {
 	constexpr ImVec4 kTextColorError(1.0f, 0.35f, 0.35f, 1.0f);
@@ -46848,11 +46851,15 @@ namespace Unnamed {
 	}
 }
 
+#endif
+
 
 ============================================================
 File Path: src/engine/editor/EditorGuiScriptPanel.h
 ============================================================
-﻿#pragma once
+#pragma once
+#ifdef _DEBUG
+
 #include <core/assets/AssetManager.h>
 
 #include "engine/unnamed/subsystem/EditorLuaSystem/EditorLuaSystem.h"
@@ -46879,6 +46886,8 @@ namespace Unnamed {
 		std::string mLastError;
 	};
 }
+
+#endif
 
 
 ============================================================
@@ -96115,9 +96124,12 @@ namespace Unnamed {
 ============================================================
 File Path: src/engine/unnamed/subsystem/editorluasystem/EditorLuaSystem.cpp
 ============================================================
-﻿#include "EditorLuaSystem.h"
+#include "EditorLuaSystem.h"
 
 #include <thirdparty/lua/lua.hpp>
+#ifdef _DEBUG
+#include <imgui.h>
+#endif
 
 #include "core/assets/loader/TextureLoaderDirectXTex.h"
 
@@ -96131,13 +96143,22 @@ namespace Unnamed {
 
 		int LuaUiText(lua_State* lua) {
 			const char* text = luaL_checkstring(lua, 1);
+#ifdef _DEBUG
 			ImGui::TextUnformatted(text);
+#else
+			(void)text;
+#endif
 			return 0;
 		}
 
 		int LuaUiButton(lua_State* lua) {
-			const char* text    = luaL_checkstring(lua, 1);
-			const bool  pressed = ImGui::Button(text);
+			const char* text = luaL_checkstring(lua, 1);
+#ifdef _DEBUG
+			const bool pressed = ImGui::Button(text);
+#else
+			(void)text;
+			constexpr bool pressed = false;
+#endif
 
 			lua_pushboolean(lua, pressed);
 			return 1;
