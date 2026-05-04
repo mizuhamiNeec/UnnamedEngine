@@ -48341,6 +48341,8 @@ namespace Unnamed {
 				: return 1280.0f / 720.0f;
 				case Render::SCENE_RENDER_MODE::FHD_1080P
 				: return 1920.0f / 1080.0f;
+				case Render::SCENE_RENDER_MODE::UHD_4K
+				: return 3840.0f / 2160.0f;
 				case Render::SCENE_RENDER_MODE::FIT_VIEWPORT:
 				default: {
 					const float width = static_cast<float>(std::max(
@@ -49328,6 +49330,11 @@ namespace Unnamed {
 					height = 1080;
 					break;
 				}
+				case Render::SCENE_RENDER_MODE::UHD_4K: {
+					width  = 3840;
+					height = 2160;
+					break;
+				}
 				default: {
 					break;
 				}
@@ -49387,8 +49394,7 @@ namespace Unnamed {
 			mEditorWorld.GetRuntimeSceneWorld(),
 			services.assetManager
 		);
-		//LoadImGuizmoSettings(mConsoleSystem);
-
+		
 		auto guizmoConfig = mConsoleSystem->GetConVarAs<ConVar<std::string>>(
 			"im_guizmoconfigpath"
 		);
@@ -49842,6 +49848,8 @@ namespace Unnamed {
 			case EDITOR_VIEWPORT_RENDER_MODE::FHD1080
 			: sceneRequest.mode = Render::SCENE_RENDER_MODE::FHD_1080P;
 				break;
+			case EDITOR_VIEWPORT_RENDER_MODE::UHD4K :
+				sceneRequest.mode = Render::SCENE_RENDER_MODE::UHD_4K;
 			default: break;
 		}
 
@@ -50003,6 +50011,7 @@ namespace Unnamed {
 		FIXED_ASPECT_4_3,
 		HD720,
 		FHD1080,
+		UHD4K,
 	};
 
 	enum class EDITOR_GRID_SNAP_UNIT : uint8_t {
@@ -52012,7 +52021,7 @@ namespace Unnamed {
 			);
 
 			ViewportFitResult result;
-			result.aspectRatio       = safeContentWidth / safeContentHeight;
+			result.aspectRatio = safeContentWidth / safeContentHeight;
 
 			float fitWidth  = safePanelWidth;
 			float fitHeight = fitWidth / result.aspectRatio;
@@ -52063,8 +52072,8 @@ namespace Unnamed {
 			const auto   outputIt   = mViewOutputs.find(std::string(viewKey));
 			const bool   hasOutput  = outputIt != mViewOutputs.end();
 			const Vec2   outputSize = hasOutput ?
-				                          outputIt->second.size :
-				                          Vec2(drawWidth, drawHeight);
+				                        outputIt->second.size :
+				                        Vec2(drawWidth, drawHeight);
 			const ViewportFitResult fit = ComputeViewportFitResult(
 				Vec2(panePos.x, panePos.y),
 				Vec2(drawWidth, drawHeight),
@@ -52102,9 +52111,11 @@ namespace Unnamed {
 					outputIt->second.srvCpu
 				);
 				ImGui::SetCursorScreenPos(fitPos);
-				ImGui::Image(
+				ImGuiWidgets::ImageWithRounding(
 					tex,
 					ImVec2(fit.drawSize.x, fit.drawSize.y),
+					4.0f,
+					ImDrawFlags_RoundCornersAll,
 					ImVec2(outputIt->second.uvMin.x, outputIt->second.uvMin.y),
 					ImVec2(outputIt->second.uvMax.x, outputIt->second.uvMax.y)
 				);
@@ -52267,6 +52278,8 @@ namespace Unnamed {
 				case EDITOR_VIEWPORT_RENDER_MODE::FHD1080
 				: viewportModeLabel = "FHD";
 					break;
+				case EDITOR_VIEWPORT_RENDER_MODE::UHD4K
+				: viewportModeLabel = "UHD4K";
 				default: break;
 			}
 			ImGui::SetNextItemWidth(140.0f);
@@ -52308,6 +52321,13 @@ namespace Unnamed {
 					EDITOR_VIEWPORT_RENDER_MODE::FHD1080
 				)) {
 					mViewportRenderMode = EDITOR_VIEWPORT_RENDER_MODE::FHD1080;
+				}
+				if (ImGui::Selectable(
+					"UHD4K",
+					mViewportRenderMode ==
+					EDITOR_VIEWPORT_RENDER_MODE::UHD4K
+				)) {
+					mViewportRenderMode = EDITOR_VIEWPORT_RENDER_MODE::UHD4K;
 				}
 				ImGui::EndCombo();
 			}
@@ -63869,6 +63889,11 @@ namespace Unnamed::Render {
 				height = 1080;
 				break;
 			}
+			case SCENE_RENDER_MODE::UHD_4K: {
+				width  = 3840;
+				height = 2160;
+				break;
+			}
 			default: break;
 		}
 
@@ -63918,10 +63943,10 @@ namespace Unnamed::Render {
 		mGeometryPass.resolved        = mPipelineRegistry.GetGraphics(
 			mGeometryPass.pipeline
 		);
-		mSkyboxPass.geom.resolved     = mPipelineRegistry.GetGraphics(
+		mSkyboxPass.geom.resolved = mPipelineRegistry.GetGraphics(
 			mSkyboxPass.geom.pipeline
 		);
-		mSpritePass.geom.resolved     = mPipelineRegistry.GetGraphics(
+		mSpritePass.geom.resolved = mPipelineRegistry.GetGraphics(
 			mSpritePass.geom.pipeline
 		);
 		mBillboardPass.depthGeom.resolved = mPipelineRegistry.GetGraphics(
@@ -64094,7 +64119,6 @@ namespace Unnamed::Render {
 		state.outputTextureId  = 0;
 	}
 }
-
 
 
 ============================================================
@@ -68083,6 +68107,7 @@ namespace Unnamed::Render {
 		FIXED_ASPECT_4X3,
 		HD_720P,
 		FHD_1080P,
+		UHD_4K,
 	};
 
 	struct SceneViewRenderMode {
@@ -100285,6 +100310,8 @@ namespace Unnamed {
 				: return 1280.0f / 720.0f;
 				case Render::SCENE_RENDER_MODE::FHD_1080P
 				: return 1920.0f / 1080.0f;
+				case Render::SCENE_RENDER_MODE::UHD_4K
+				: return 3840.0f / 2160.0f;
 				case Render::SCENE_RENDER_MODE::FIT_VIEWPORT:
 				default: {
 					const uint32_t width = std::max(
@@ -100557,7 +100584,8 @@ namespace Unnamed {
 			case Render::SCENE_RENDER_MODE::FIXED_ASPECT_16X9:
 			case Render::SCENE_RENDER_MODE::FIXED_ASPECT_4X3:
 			case Render::SCENE_RENDER_MODE::HD_720P:
-			case Render::SCENE_RENDER_MODE::FHD_1080P: {
+			case Render::SCENE_RENDER_MODE::FHD_1080P:
+			case Render::SCENE_RENDER_MODE::UHD_4K: {
 				shouldUpdate = request.mode != mLastAspectMode;
 				break;
 			}
