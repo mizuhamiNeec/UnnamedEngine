@@ -359,6 +359,8 @@
 └── └── └── ├── GuiEditorTool.cpp
 └── └── └── ├── GuiEditorTool.h
 └── └── └── ├── IEditorTool.h
+└── └── └── ├── ImGuizmoConfigLoader.cpp
+└── └── └── ├── ImGuizmoConfigLoader.h
 └── └── └── ├── LevelEditorTool.cpp
 └── └── └── ├── LevelEditorTool.h
 └── └── └── ├── LevelEditorToolChrome.cpp
@@ -49090,6 +49092,113 @@ namespace Unnamed {
 
 
 ============================================================
+File Path: src/engine/editor/ImGuizmoConfigLoader.cpp
+============================================================
+﻿#include "ImGuizmoConfigLoader.h"
+
+#ifdef _DEBUG
+
+#include <core/io/json/JsonReader.h>
+
+#include <engine/unnamed/subsystem/console/ConsoleSystem.h>
+#include <engine/unnamed/subsystem/console/Log.h>
+#include <engine/unnamed/subsystem/console/concommand/ConVar.h>
+
+#include "ImGuizmo.h"
+
+namespace Unnamed {
+	static constexpr std::string_view kChannel = "GCL";
+
+	ImGuizmoConfigLoader::ImGuizmoConfigLoader(
+		std::string configPath
+	) {
+		JsonReader reader(configPath);
+		auto&      style  = ImGuizmo::GetStyle();
+		auto&      colors = style.Colors;
+
+		// Style
+		{
+			const auto rs                  = reader["style"];
+			style.TranslationLineThickness =
+				rs["translationLineThickness"].GetFloat();
+			style.TranslationLineArrowSize =
+				rs["translationLineArrowSize"].GetFloat();
+			style.RotationLineThickness =
+				rs["rotationLineThickness"].GetFloat();
+			style.RotationOuterLineThickness =
+				rs["rotationOuterLineThickness"].GetFloat();
+			style.ScaleLineThickness =
+				rs["scaleLineThickness"].GetFloat();
+			style.ScaleLineCircleSize =
+				rs["scaleLineCircleSize"].GetFloat();
+			style.HatchedAxisLineThickness =
+				rs["hatchedAxisLineThickness"].GetFloat();
+			style.CenterCircleSize =
+				rs["centerCircleSize"].GetFloat();
+		}
+
+		// Color
+		{
+			using namespace ImGuizmo;
+			auto       rc = reader["color"];
+			const auto dx = rc["directionX"].GetArray();
+			colors[DIRECTION_X] = ToImVec4(dx.GetVec4());
+			const auto dy = rc["directionY"].GetArray();
+			colors[DIRECTION_Y] = ToImVec4(dy.GetVec4());
+			const auto dz = rc["directionZ"].GetArray();
+			colors[DIRECTION_Z] = ToImVec4(dz.GetVec4());
+			const auto px = rc["planeX"].GetArray();
+			colors[PLANE_X] = ToImVec4(px.GetVec4());
+			const auto py = rc["planeY"].GetArray();
+			colors[PLANE_Y] = ToImVec4(py.GetVec4());
+			const auto pz = rc["planeZ"].GetArray();
+			colors[PLANE_Z] = ToImVec4(pz.GetVec4());
+			const auto sel = rc["selection"].GetArray();
+			colors[SELECTION] = ToImVec4(sel.GetVec4());
+			const auto inact = rc["inactive"].GetArray();
+			colors[INACTIVE] = ToImVec4(inact.GetVec4());
+			const auto tline = rc["translationLine"].GetArray();
+			colors[TRANSLATION_LINE] = ToImVec4(tline.GetVec4());
+			const auto sline = rc["scaleLine"].GetArray();
+			colors[SCALE_LINE] = ToImVec4(sline.GetVec4());
+			const auto rborder = rc["rotationUsingBorder"].GetArray();
+			colors[ROTATION_USING_BORDER] = ToImVec4(rborder.GetVec4());
+			const auto rfill = rc["rotationUsingFill"].GetArray();
+			colors[ROTATION_USING_FILL] = ToImVec4(rfill.GetVec4());
+			const auto hatch = rc["hatchedAxisLines"].GetArray();
+			colors[HATCHED_AXIS_LINES] = ToImVec4(hatch.GetVec4());
+			const auto text = rc["text"].GetArray();
+			colors[TEXT] = ToImVec4(text.GetVec4());
+			const auto textShadow = rc["textShadow"].GetArray();
+			colors[TEXT_SHADOW] = ToImVec4(textShadow.GetVec4());
+		}
+
+		// どっちが正方向かわからんくなるので禁止
+		ImGuizmo::AllowAxisFlip(false);
+	}
+}
+#endif
+
+
+============================================================
+File Path: src/engine/editor/ImGuizmoConfigLoader.h
+============================================================
+﻿#pragma once
+#include <string>
+
+#ifdef _DEBUG
+namespace Unnamed {
+	class ConsoleSystem;
+
+	class ImGuizmoConfigLoader {
+	public:
+		ImGuizmoConfigLoader(std::string configPath);
+	};
+}
+#endif
+
+
+============================================================
 File Path: src/engine/editor/LevelEditorTool.cpp
 ============================================================
 #ifdef _DEBUG
@@ -49100,6 +49209,7 @@ File Path: src/engine/editor/LevelEditorTool.cpp
 #include <imgui_internal.h>
 
 #include "EditorNotification.h"
+#include "ImGuizmoConfigLoader.h"
 
 #include "core/io/json/JsonReader.h"
 #include "core/string/StrUtil.h"
@@ -49277,7 +49387,28 @@ namespace Unnamed {
 			mEditorWorld.GetRuntimeSceneWorld(),
 			services.assetManager
 		);
-		LoadImGuizmoSettings(mConsoleSystem);
+		//LoadImGuizmoSettings(mConsoleSystem);
+
+		auto guizmoConfig = mConsoleSystem->GetConVarAs<ConVar<std::string>>(
+			"im_guizmoconfigpath"
+		);
+
+		if (guizmoConfig) {
+			ImGuizmoConfigLoader(guizmoConfig->GetValue());
+
+			SpecialMsg(
+				LogLevel::Success,
+				"LevelEditorTool",
+				"ImGuizmo settings loaded from config file: {}",
+				guizmoConfig->GetValue()
+			);
+		} else {
+			Warning(
+				"LevelEditorTool",
+				"ConVar 'im_guizmoconfigpath' not found. ImGuizmo settings will not be loaded from config file."
+			);
+		}
+
 		mInitialized = true;
 	}
 
@@ -49379,8 +49510,9 @@ namespace Unnamed {
 				)) {
 					Vec2 virtualViewportSize = mViewportSize;
 					if (const auto outputIt = mViewOutputs.find(
-						mActiveViewportViewKey
-					); outputIt != mViewOutputs.end()) {
+							mActiveViewportViewKey
+						);
+						outputIt != mViewOutputs.end()) {
 						virtualViewportSize = Vec2(
 							std::max(1.0f, outputIt->second.size.x),
 							std::max(1.0f, outputIt->second.size.y)
@@ -49678,86 +49810,6 @@ namespace Unnamed {
 		mShowProfilerWindow = open;
 	}
 
-	void LevelEditorTool::LoadImGuizmoSettings(ConsoleSystem* console) {
-		if (!console) {
-			return;
-		}
-
-		auto guizmoConfig = console->GetConVarAs<ConVar<std::string>>(
-			"im_guizmoconfigpath"
-		);
-
-		auto Vec4ToImVec4 = [](const Vec4& vec) {
-			return ImVec4(vec.x, vec.y, vec.z, vec.w);
-		};
-
-		if (guizmoConfig) {
-			JsonReader reader(guizmoConfig->GetValue());
-			auto&      style  = ImGuizmo::GetStyle();
-			auto&      colors = style.Colors;
-
-			// Style
-			{
-				const auto rs                  = reader["style"];
-				style.TranslationLineThickness =
-					rs["translationLineThickness"].GetFloat();
-				style.TranslationLineArrowSize =
-					rs["translationLineArrowSize"].GetFloat();
-				style.RotationLineThickness =
-					rs["rotationLineThickness"].GetFloat();
-				style.RotationOuterLineThickness =
-					rs["rotationOuterLineThickness"].GetFloat();
-				style.ScaleLineThickness =
-					rs["scaleLineThickness"].GetFloat();
-				style.ScaleLineCircleSize =
-					rs["scaleLineCircleSize"].GetFloat();
-				style.HatchedAxisLineThickness =
-					rs["hatchedAxisLineThickness"].GetFloat();
-				style.CenterCircleSize =
-					rs["centerCircleSize"].GetFloat();
-			}
-
-			// Color
-			{
-				using namespace ImGuizmo;
-				auto       rc = reader["color"];
-				const auto dx = rc["directionX"].GetArray();
-				colors[DIRECTION_X] = Vec4ToImVec4(dx.GetVec4());
-				const auto dy = rc["directionY"].GetArray();
-				colors[DIRECTION_Y] = Vec4ToImVec4(dy.GetVec4());
-				const auto dz = rc["directionZ"].GetArray();
-				colors[DIRECTION_Z] = Vec4ToImVec4(dz.GetVec4());
-				const auto px = rc["planeX"].GetArray();
-				colors[PLANE_X] = Vec4ToImVec4(px.GetVec4());
-				const auto py = rc["planeY"].GetArray();
-				colors[PLANE_Y] = Vec4ToImVec4(py.GetVec4());
-				const auto pz = rc["planeZ"].GetArray();
-				colors[PLANE_Z] = Vec4ToImVec4(pz.GetVec4());
-				const auto sel = rc["selection"].GetArray();
-				colors[SELECTION] = Vec4ToImVec4(sel.GetVec4());
-				const auto inact = rc["inactive"].GetArray();
-				colors[INACTIVE] = Vec4ToImVec4(inact.GetVec4());
-				const auto tline = rc["translationLine"].GetArray();
-				colors[TRANSLATION_LINE] = Vec4ToImVec4(tline.GetVec4());
-				const auto sline = rc["scaleLine"].GetArray();
-				colors[SCALE_LINE] = Vec4ToImVec4(sline.GetVec4());
-				const auto rborder = rc["rotationUsingBorder"].GetArray();
-				colors[ROTATION_USING_BORDER] = Vec4ToImVec4(rborder.GetVec4());
-				const auto rfill = rc["rotationUsingFill"].GetArray();
-				colors[ROTATION_USING_FILL] = Vec4ToImVec4(rfill.GetVec4());
-				const auto hatch = rc["hatchedAxisLines"].GetArray();
-				colors[HATCHED_AXIS_LINES] = Vec4ToImVec4(hatch.GetVec4());
-				const auto text = rc["text"].GetArray();
-				colors[TEXT] = Vec4ToImVec4(text.GetVec4());
-				const auto textShadow = rc["textShadow"].GetArray();
-				colors[TEXT_SHADOW] = Vec4ToImVec4(textShadow.GetVec4());
-			}
-
-			// どっちが正方向かわからんくなるので禁止
-			ImGuizmo::AllowAxisFlip(false);
-		}
-	}
-
 	Render::SceneViewRenderMode LevelEditorTool::BuildSceneViewModeForSize(
 		const float width, const float height, const bool forceFit
 	) const {
@@ -50006,8 +50058,6 @@ namespace Unnamed {
 			Vec2                        uvMax       = Vec2(1.0f, 1.0f);
 		};
 
-		static void LoadImGuizmoSettings(ConsoleSystem* console);
-
 		[[nodiscard]] Render::SceneViewRenderMode BuildSceneViewModeForSize(
 			float width,
 			float height,
@@ -50037,7 +50087,7 @@ namespace Unnamed {
 		void DrawProfilerWindow();
 
 		[[nodiscard]] Entity* GetSelectedEntity() const;
-		bool                  SaveSceneAs(const std::string& path) const;
+		[[nodiscard]] bool    SaveSceneAs(const std::string& path) const;
 
 		/// @brief 指定パスのシーンをエディターワールドへロードします。
 		/// @param path ロードするシーンパス
@@ -50138,11 +50188,11 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] std::string ResolveEditorSceneRootPath() {
-			constexpr std::string_view kChannel = "LevelEditorTool";
+			constexpr std::string_view kChannel           = "LevelEditorTool";
 			constexpr std::string_view kFallbackSceneRoot =
 				"./content/core/scenes";
-			static bool                sWarnedMissingModule = false;
-			static bool                sWarnedUnavailableSceneRoot = false;
+			static bool sWarnedMissingModule        = false;
+			static bool sWarnedUnavailableSceneRoot = false;
 
 			const IGameModule* gameModule = ServiceLocator::Get<IGameModule>();
 			if (!gameModule) {
@@ -50254,20 +50304,44 @@ namespace Unnamed {
 					const std::string savePath = currentPath.empty() ?
 						                             defaultScenePath :
 						                             currentPath;
-					SaveSceneAs(savePath);
+					if (SaveSceneAs(savePath)) {
+						Msg(
+							"LevelEditorTool",
+							"Scene saved successfully: {}",
+							savePath
+						);
+					} else {
+						Warning(
+							"LevelEditorTool",
+							"Failed to save scene: {}",
+							savePath
+						);
+					}
 				}
 
 				if (ImGui::MenuItem("Save As (sandbox.json)")) {
-					SaveSceneAs(defaultScenePath);
+					if (SaveSceneAs(defaultScenePath)) {
+						Msg(
+							"LevelEditorTool",
+							"Scene saved successfully: {}",
+							defaultScenePath
+						);
+					} else {
+						Warning(
+							"LevelEditorTool",
+							"Failed to save scene: {}",
+							defaultScenePath
+						);
+					}
 				}
 
 				ImGui::Separator();
 
 				if (ImGui::BeginMenu("Open Scene")) {
 					static std::vector<std::string> sSceneCandidates = {};
-					static std::string              sSceneRoot = {};
+					static std::string              sSceneRoot       = {};
 					if (sSceneRoot != sceneRoot) {
-						sSceneRoot = sceneRoot;
+						sSceneRoot       = sceneRoot;
 						sSceneCandidates = CollectSceneCandidates(sceneRoot);
 					}
 					if (sSceneCandidates.empty()) {
@@ -50281,7 +50355,7 @@ namespace Unnamed {
 					ImGui::Separator();
 
 					constexpr size_t maxQuickOpenCount = 24;
-					const size_t quickOpenCount = std::min(
+					const size_t     quickOpenCount    = std::min(
 						sSceneCandidates.size(),
 						maxQuickOpenCount
 					);
@@ -50514,7 +50588,9 @@ namespace Unnamed {
 					"256", "512", "1024"
 				};
 
-				auto FindNearestGridSnapIndex = [](const float valueInCurrentUnit) {
+				auto FindNearestGridSnapIndex = [](
+					const float valueInCurrentUnit
+				) {
 					uint32_t nearestIndex = 0u;
 					float    nearestDiff  =
 						std::abs(valueInCurrentUnit - kGridSnapValues[0]);
@@ -50529,13 +50605,13 @@ namespace Unnamed {
 					return nearestIndex;
 				};
 
-				const bool showHu = mGridSnapUnit == EDITOR_GRID_SNAP_UNIT::HU;
+				const bool  showHu = mGridSnapUnit == EDITOR_GRID_SNAP_UNIT::HU;
 				const float gridSnapInCurrentUnit =
 					showHu ? Math::MtoH(mGridSnap) : mGridSnap;
 				uint32_t itemCurrentIndex = FindNearestGridSnapIndex(
 					gridSnapInCurrentUnit
 				);
-				const auto& labels = kGridSnapLabels;
+				const auto& labels     = kGridSnapLabels;
 				const char* comboLabel = labels[itemCurrentIndex];
 
 				ImGui::Text("Grid: ");
@@ -50587,10 +50663,11 @@ namespace Unnamed {
 					itemCurrentIndex, size
 
 				);
-				const float selectedGridSnap = kGridSnapValues[itemCurrentIndex];
+				const float selectedGridSnap = kGridSnapValues[
+					itemCurrentIndex];
 				mGridSnap = showHu ?
-					Math::HtoM(selectedGridSnap) :
-					selectedGridSnap;
+					            Math::HtoM(selectedGridSnap) :
+					            selectedGridSnap;
 				ImGui::PopID();
 				ImGui::PopItemWidth();
 			}
@@ -50601,7 +50678,6 @@ namespace Unnamed {
 }
 
 #endif
-
 
 
 ============================================================
