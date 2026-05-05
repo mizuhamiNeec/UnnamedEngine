@@ -3,6 +3,7 @@ param(
     [string]$Branch = "main",
     [int]$RequiredApprovals = 1,
     [string[]]$RequiredStatusChecks = @(
+        "EngineBoundaryGuard / guard",
         "DebugBuild / build",
         "DevelopBuild / build",
         "ReleaseBuild / build"

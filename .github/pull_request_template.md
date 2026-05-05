@@ -12,6 +12,7 @@
 
 - [ ] UE 本体向け変更では `premake --games=none` で生成/ビルド確認済み
 - [ ] Game-specific 変更は対象ゲーム repo / ブランチに限定
+- [ ] UE 本体 PR で `projects/` 配下を変更していない（必要ならゲーム repo へ分離済み）
 - [ ] `game_profile.json` / `RegisterGameModule(...)` / runtime link の整合を確認
 
 ## Validation

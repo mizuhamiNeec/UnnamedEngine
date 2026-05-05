@@ -1,0 +1,64 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: EngineBoundaryGuard
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  guard:
+    runs-on: windows-2025-vs2026
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect disallowed game-path changes
+        shell: pwsh
+        run: |
+          $range = ""
+          if ("${{ github.event_name }}" -eq "pull_request") {
+            $baseRef = "${{ github.base_ref }}"
+            git fetch --no-tags origin $baseRef --depth=1
+            $range = "origin/$baseRef...HEAD"
+          } else {
+            $before = "${{ github.event.before }}"
+            $after = "${{ github.sha }}"
+            if ($before -match "^[0]+$") {
+              $range = $after
+            } else {
+              $range = "$before..$after"
+            }
+          }
+
+          Write-Host "Diff range: $range"
+          $changedFiles = @(git diff --name-only $range)
+          if ($changedFiles.Count -eq 0) {
+            Write-Host "No changed files detected."
+            exit 0
+          }
+
+          $blocked = @()
+          foreach ($path in $changedFiles) {
+            if ($path -match '^projects/') {
+              $blocked += $path
+            }
+          }
+
+          if ($blocked.Count -gt 0) {
+            Write-Host "The following game-specific paths are not allowed in UE engine-only PRs:"
+            $blocked | ForEach-Object { Write-Host " - $_" }
+            throw "Engine/game boundary violation detected. Move these changes to the game repository."
+          }
+
+          Write-Host "Engine boundary check passed."
