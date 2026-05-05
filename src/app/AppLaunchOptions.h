@@ -103,12 +103,14 @@ namespace Unnamed {
 		helpText += "  --repo-root <path>       明示的にリポジトリルートを指定してマニフェスト検索。\n";
 		helpText += "  --validate-startup-only  起動前検証のみ実行して終了。\n\n";
 		helpText += "Environment:\n";
+		helpText += "  UNNAMED_PROJECTS_ROOT=<path> projects ルートを直接指定してマニフェスト検索。\n";
 		helpText += "  UNNAMED_REPO_ROOT=<path> リポジトリルートを指定してマニフェスト検索。\n\n";
 		helpText += "マニフェスト検索の優先順位:\n";
-		helpText += "  1) --repo-root\n";
-		helpText += "  2) UNNAMED_REPO_ROOT\n";
-		helpText += "  3) Upward search from current working directory\n";
-		helpText += "  4) Upward search from executable directory\n\n";
+		helpText += "  1) UNNAMED_PROJECTS_ROOT\n";
+		helpText += "  2) --repo-root\n";
+		helpText += "  3) UNNAMED_REPO_ROOT\n";
+		helpText += "  4) Upward search from current working directory\n";
+		helpText += "  5) Upward search from executable directory\n\n";
 		helpText += "Example:\n";
 		helpText +=
 			"  UnnamedEditorApp.exe --game=TeamGame --repo-root=S:/Repositories/UnnamedEngine\n";

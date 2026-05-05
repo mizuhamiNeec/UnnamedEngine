@@ -164,6 +164,30 @@ namespace Unnamed {
 			return envPath;
 		}
 
+		[[nodiscard]] std::optional<std::filesystem::path> TryGetEnvironmentProjectsRoot() {
+			constexpr wchar_t kEnvVarName[] = L"UNNAMED_PROJECTS_ROOT";
+			const DWORD       requiredChars =
+				::GetEnvironmentVariableW(kEnvVarName, nullptr, 0);
+			if (requiredChars == 0) {
+				return std::nullopt;
+			}
+
+			std::vector<wchar_t> buffer(requiredChars, L'\0');
+			const DWORD          writtenChars = ::GetEnvironmentVariableW(
+				kEnvVarName,
+				buffer.data(),
+				requiredChars
+			);
+			if (writtenChars == 0 || writtenChars >= requiredChars) {
+				return std::nullopt;
+			}
+
+			const std::filesystem::path envPath(
+				std::wstring_view(buffer.data(), writtenChars)
+			);
+			return envPath;
+		}
+
 		[[nodiscard]] std::optional<std::filesystem::path> TryResolveRepositoryRootFromExplicitPath(
 			const std::filesystem::path& explicitPath
 		) {
@@ -497,18 +521,34 @@ namespace Unnamed {
 			}
 
 			state.defaultsRegistered = true;
-			const std::optional<RepositoryRootCandidate> resolvedRepoRoot =
-				ResolveRepositoryRootForManifestSearch(state.manifestSearch);
-			if (!resolvedRepoRoot.has_value()) {
-				Error(
-					kChannel,
-					"manifest discovery failed: repository root was not resolved."
+			std::filesystem::path projectsRoot;
+			std::string           projectsRootReason;
+			if (const auto envProjectsRoot = TryGetEnvironmentProjectsRoot();
+				envProjectsRoot.has_value()) {
+				std::error_code ec;
+				projectsRoot = std::filesystem::weakly_canonical(
+					*envProjectsRoot,
+					ec
 				);
-				return;
+				if (ec) {
+					projectsRoot = envProjectsRoot->lexically_normal();
+				}
+				projectsRootReason = "env:UNNAMED_PROJECTS_ROOT";
+			} else {
+				const std::optional<RepositoryRootCandidate> resolvedRepoRoot =
+					ResolveRepositoryRootForManifestSearch(state.manifestSearch);
+				if (!resolvedRepoRoot.has_value()) {
+					Error(
+						kChannel,
+						"manifest discovery failed: repository root was not resolved."
+					);
+					return;
+				}
+				projectsRoot = resolvedRepoRoot->root / "projects";
+				projectsRootReason =
+					"repo-root:" + resolvedRepoRoot->reason;
 			}
 
-			const std::filesystem::path projectsRoot =
-				resolvedRepoRoot->root / "projects";
 			std::error_code ec;
 			if (!std::filesystem::exists(projectsRoot, ec) || ec) {
 				Error(
@@ -548,8 +588,8 @@ namespace Unnamed {
 			DevMsg(
 				kChannel,
 				"manifest discovery root: '{}' ({}) found={} manifests",
-				resolvedRepoRoot->root.generic_string(),
-				resolvedRepoRoot->reason,
+				projectsRoot.generic_string(),
+				projectsRootReason,
 				manifestPaths.size()
 			);
 			for (const std::string& manifestPath : manifestPaths) {

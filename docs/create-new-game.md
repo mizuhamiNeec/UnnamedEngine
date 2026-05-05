@@ -4,10 +4,10 @@
 
 ## 1. 雛形生成
 
-`tools/new-game.ps1` を使います。
+`tools/newgame.ps1` を使います。
 
 ```powershell
-.\tools\new-game.ps1 -Name MyGame -Alias My
+.\tools\newgame.ps1 -Name MyGame -Alias My
 ```
 
 生成される主な内容:
@@ -27,6 +27,21 @@
    - 必要なら alias 追加
 3. （必要なら）専用 standalone app を追加
    - `TeamGameMain.cpp` 相当のエントリポイントを用意
+
+## 2.1 運用ルール（重要）
+
+- ゲーム固有アセットは `projects/<Game>/content` に配置します。
+- `game_profile.json` はプロファイル探索（`gameRoot` / `contentRoot` / `configRoot` / `aliases`）を担いますが、Runtime 実体の自動ロード機構ではありません。
+- 実行時にゲーム固有 Runtime（World / コンポーネント登録）を使うには、各 App 側で `RegisterGameModule(...)` による生成関数登録が必要です。
+- ゲーム固有コンポーネントは `IGameModule::RegisterGameComponents(...)` の明示登録を正規経路とします。`REGISTER_COMPONENT(...)` のみへ依存すると、App 側リンク構成次第で静的初期化が到達しない場合があります。
+
+根拠コード:
+- `src/app/GameModuleFactory.cpp`
+  - `CreateGameModule(...)` で `createFunction == nullptr` の場合、`DefaultGameModule` を生成
+- `src/app/EditorMain.cpp` / `src/app/GameMain.cpp` / `src/app/TeamGameMain.cpp`
+  - `RegisterGameModule(...)` で Runtime 生成関数を登録
+- `premake5.lua`
+  - `TeamGameApp` は `/WHOLEARCHIVE:TeamGameRuntime.lib` 指定がないため、明示登録経路を維持する運用が安全
 
 ## 3. 再生成とビルド
 

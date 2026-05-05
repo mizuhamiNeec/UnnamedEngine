@@ -10,6 +10,53 @@ PROJECT_FILES_DIR = path.join(BUILD_DIR, "projects")
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+newoption {
+	trigger = "games",
+	value = "LIST",
+	description = "Build game runtimes/apps (comma-separated: parkour,teamgame,all,none).",
+}
+
+function NormalizeGameToken(token)
+	if token == nil then
+		return ""
+	end
+	local normalized = string.lower(token)
+	normalized = normalized:gsub("%s+", "")
+	return normalized
+end
+
+function ShouldEnableGame(gameToken, runtimeDir)
+	local optionValue = _OPTIONS["games"]
+	local hasRuntime = os.isdir(runtimeDir)
+	if optionValue == nil or optionValue == "" then
+		return hasRuntime
+	end
+
+	local gameRequested = false
+	for token in string.gmatch(optionValue, "([^,]+)") do
+		local normalized = NormalizeGameToken(token)
+		if normalized == "all" then
+			return hasRuntime
+		end
+		if normalized == "none" then
+			return false
+		end
+		if normalized == gameToken then
+			gameRequested = true
+		end
+	end
+
+	if not gameRequested then
+		return false
+	end
+	return hasRuntime
+end
+
+PARKOUR_RUNTIME_DIR = "projects/ParkourGame/runtime"
+TEAMGAME_RUNTIME_DIR = "projects/TeamGame/runtime"
+ENABLE_PARKOUR_RUNTIME = ShouldEnableGame("parkour", PARKOUR_RUNTIME_DIR)
+ENABLE_TEAMGAME_RUNTIME = ShouldEnableGame("teamgame", TEAMGAME_RUNTIME_DIR)
+
 function UnnamedSettings()
 	defines {
 		"ENGINE_NAME=\"" .. ENGINE_NAME .. "\"",
@@ -229,25 +276,49 @@ project "UnnamedEditorRuntime"
 		defines { "UNNAMED_WITH_EDITOR" }
 filter {}
 	
-group "Games/TeamGame"
--- Phase 11: TeamGame runtime sources moved from src/game to projects/TeamGame/runtime.
-project "TeamGameRuntime"
-	kind "StaticLib"
-	CommonProjectSettings("%{prj.name}")
+if ENABLE_PARKOUR_RUNTIME then
+	group "Games/Parkour"
+	-- Phase 10: Parkour runtime sources moved from src/game to projects/ParkourGame/runtime.
+	project "ParkourRuntime"
+		kind "StaticLib"
+		CommonProjectSettings("%{prj.name}")
 
-	files {
-		"src/pch.h",
-		"src/pch.cpp",
-		"projects/TeamGame/runtime/**.h",
-		"projects/TeamGame/runtime/**.cpp",
-	}
+		files {
+			"src/pch.h",
+			"src/pch.cpp",
+			PARKOUR_RUNTIME_DIR .. "/**.h",
+			PARKOUR_RUNTIME_DIR .. "/**.cpp",
+		}
 
-	excludes {
-		"src/transplantation/**",
-	}
+		excludes {
+			"src/transplantation/**",
+		}
 
-	EngineIncludeDirs()
-	includedirs { "projects/TeamGame/runtime" }
+		EngineIncludeDirs()
+		includedirs { PARKOUR_RUNTIME_DIR }
+end
+
+if ENABLE_TEAMGAME_RUNTIME then
+	group "Games/TeamGame"
+	-- Phase 11: TeamGame runtime sources moved from src/game to projects/TeamGame/runtime.
+	project "TeamGameRuntime"
+		kind "StaticLib"
+		CommonProjectSettings("%{prj.name}")
+
+		files {
+			"src/pch.h",
+			"src/pch.cpp",
+			TEAMGAME_RUNTIME_DIR .. "/**.h",
+			TEAMGAME_RUNTIME_DIR .. "/**.cpp",
+		}
+
+		excludes {
+			"src/transplantation/**",
+		}
+
+		EngineIncludeDirs()
+		includedirs { TEAMGAME_RUNTIME_DIR }
+end
 
 group "Engine/Applications"
 project "UnnamedEditorApp"
@@ -264,49 +335,98 @@ project "UnnamedEditorApp"
 		"src/app/EditorMain.cpp",
 	}
 
+	local editorGameIncludeDirs = {}
+	local editorGameLinks = {}
+	local editorWholeArchiveLinkOptions = {}
+	local editorGameDefines = {}
+	if ENABLE_PARKOUR_RUNTIME then
+		table.insert(editorGameIncludeDirs, PARKOUR_RUNTIME_DIR)
+		table.insert(editorGameLinks, "ParkourRuntime")
+		table.insert(editorWholeArchiveLinkOptions, "/WHOLEARCHIVE:ParkourRuntime.lib")
+		table.insert(editorGameDefines, "UNNAMED_WITH_PARKOUR_RUNTIME")
+	end
+	if ENABLE_TEAMGAME_RUNTIME then
+		table.insert(editorGameIncludeDirs, TEAMGAME_RUNTIME_DIR)
+		table.insert(editorGameLinks, "TeamGameRuntime")
+		table.insert(editorWholeArchiveLinkOptions, "/WHOLEARCHIVE:TeamGameRuntime.lib")
+		table.insert(editorGameDefines, "UNNAMED_WITH_TEAMGAME_RUNTIME")
+	end
+
 	EngineIncludeDirs()
-	includedirs {
-		"projects/TeamGame/runtime",
-	}
+	includedirs(editorGameIncludeDirs)
 	links {
 		"UnnamedEngineRuntime",
 		"UnnamedEditorRuntime",
-		"TeamGameRuntime",
 		"DirectXTex",
 	}
+	links(editorGameLinks)
+	defines(editorGameDefines)
 	filter "configurations:Debug"
 		defines { "UNNAMED_WITH_EDITOR" }
 	filter {}
 	LinkAssimpByConfig()
 	CopyDxCompilerDlls()
-	linkoptions {
-		"/WHOLEARCHIVE:TeamGameRuntime.lib",
-	}
+	linkoptions(editorWholeArchiveLinkOptions)
 
-group "Games/TeamGame"
-project "TeamGameApp"
-	kind "WindowedApp"
-	CommonProjectSettings("%{prj.name}")
+if ENABLE_PARKOUR_RUNTIME then
+	group "Games/Parkour"
+	project "ParkourGameApp"
+		kind "WindowedApp"
+		CommonProjectSettings("%{prj.name}")
 
-	files {
-		"src/pch.h",
-		"src/pch.cpp",
-		"src/app/AppLaunchOptions.h",
-		"src/app/GameModuleFactory.h",
-		"src/app/GameModuleFactory.cpp",
-		"src/app/TeamGameMain.cpp",
-	}
+		files {
+			"src/pch.h",
+			"src/pch.cpp",
+			"src/app/AppLaunchOptions.h",
+			"src/app/GameModuleFactory.h",
+			"src/app/GameModuleFactory.cpp",
+			"src/app/GameMain.cpp",
+		}
 
-	EngineIncludeDirs()
-	includedirs { "projects/TeamGame/runtime" }
-	links {
-		"UnnamedEngineRuntime",
-		"TeamGameRuntime",
-		"DirectXTex",
-	}
-	filter "configurations:Debug"
-		links { "UnnamedEditorRuntime" }
-		defines { "UNNAMED_WITH_EDITOR" }
-	filter {}
-	LinkAssimpByConfig()
-	CopyDxCompilerDlls()
+		EngineIncludeDirs()
+		includedirs { PARKOUR_RUNTIME_DIR }
+		links {
+			"UnnamedEngineRuntime",
+			"ParkourRuntime",
+			"DirectXTex",
+		}
+		defines { "UNNAMED_WITH_PARKOUR_RUNTIME" }
+		filter "configurations:Debug"
+			links { "UnnamedEditorRuntime" }
+			defines { "UNNAMED_WITH_EDITOR" }
+		filter {}
+		LinkAssimpByConfig()
+		CopyDxCompilerDlls()
+		linkoptions { "/WHOLEARCHIVE:ParkourRuntime.lib" }
+end
+
+if ENABLE_TEAMGAME_RUNTIME then
+	group "Games/TeamGame"
+	project "TeamGameApp"
+		kind "WindowedApp"
+		CommonProjectSettings("%{prj.name}")
+
+		files {
+			"src/pch.h",
+			"src/pch.cpp",
+			"src/app/AppLaunchOptions.h",
+			"src/app/GameModuleFactory.h",
+			"src/app/GameModuleFactory.cpp",
+			"src/app/TeamGameMain.cpp",
+		}
+
+		EngineIncludeDirs()
+		includedirs { TEAMGAME_RUNTIME_DIR }
+		links {
+			"UnnamedEngineRuntime",
+			"TeamGameRuntime",
+			"DirectXTex",
+		}
+		defines { "UNNAMED_WITH_TEAMGAME_RUNTIME" }
+		filter "configurations:Debug"
+			links { "UnnamedEditorRuntime" }
+			defines { "UNNAMED_WITH_EDITOR" }
+		filter {}
+		LinkAssimpByConfig()
+		CopyDxCompilerDlls()
+end

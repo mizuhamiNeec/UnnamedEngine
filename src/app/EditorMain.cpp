@@ -5,33 +5,67 @@
 
 #include "AppLaunchOptions.h"
 #include "GameModuleFactory.h"
+#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
+#include "game/parkour/runtime/ParkourGameModule.h"
+#endif
+#ifdef UNNAMED_WITH_TEAMGAME_RUNTIME
 #include "game/team/runtime/TeamGameModule.h"
+#endif
 
 namespace {
 	[[nodiscard]] bool RegisterEditorRuntimeModules() {
+#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
+		if (!Unnamed::RegisterGameModule(
+			"Parkour",
+			&Unnamed::CreateParkourGameModule
+		)) {
+			Error(
+				"EditorApp",
+				"Failed to register Parkour runtime module."
+			);
+			return false;
+		}
+#endif
+#ifdef UNNAMED_WITH_TEAMGAME_RUNTIME
 		if (!Unnamed::RegisterGameModule(
 			"TeamGame",
 			&Unnamed::CreateTeamGameModule
 		)) {
 			Error(
 				"EditorApp",
-				"ゲームモジュール 'TeamGame' の登録に失敗しました。"
+				"Failed to register TeamGame runtime module."
 			);
 			return false;
 		}
+#endif
 
+#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
+		(void)Unnamed::RegisterGameModuleAlias("ParkourGame", "Parkour");
+#endif
+#ifdef UNNAMED_WITH_TEAMGAME_RUNTIME
 		(void)Unnamed::RegisterGameModuleAlias("Team", "TeamGame");
+#endif
+#if !defined(UNNAMED_WITH_PARKOUR_RUNTIME) && !defined(UNNAMED_WITH_TEAMGAME_RUNTIME)
+		Error(
+			"EditorApp",
+			"No linked game runtime module is available. Check premake game selection."
+		);
+		return false;
+#endif
 		return true;
 	}
 
 	[[nodiscard]] std::string ResolveEditorGameName(
 		const Unnamed::AppLaunchOptions& launchOptions
 	) {
-		if (
-			!launchOptions.gameName.has_value() ||
-			launchOptions.gameName->empty()
-		) {
+		if (!launchOptions.gameName.has_value() || launchOptions.gameName->empty()) {
+#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
+			return "Parkour";
+#elif defined(UNNAMED_WITH_TEAMGAME_RUNTIME)
 			return "TeamGame";
+#else
+			return {};
+#endif
 		}
 		return *launchOptions.gameName;
 	}
@@ -61,12 +95,27 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 	}
 
 	const std::string gameName = ResolveEditorGameName(launchOptions);
-	const std::unique_ptr<Unnamed::IGameModule> gameModule =
+	std::unique_ptr<Unnamed::IGameModule> gameModule =
 		Unnamed::CreateGameModule(gameName);
-
 	if (!gameModule) {
-		Fatal("EditorApp", "ゲームモジュール '{}' の生成に失敗しました。", gameName);
+#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
+		Error("EditorApp", "Unknown game profile '{}'. Fallback to Parkour", gameName);
+		gameModule = Unnamed::CreateGameModule("Parkour");
+		if (!gameModule) {
+			Fatal("EditorApp", "Failed to create fallback Parkour game module.");
+			return EXIT_FAILURE;
+		}
+#elif defined(UNNAMED_WITH_TEAMGAME_RUNTIME)
+		Error("EditorApp", "Unknown game profile '{}'. Fallback to TeamGame", gameName);
+		gameModule = Unnamed::CreateGameModule("TeamGame");
+		if (!gameModule) {
+			Fatal("EditorApp", "Failed to create fallback TeamGame game module.");
+			return EXIT_FAILURE;
+		}
+#else
+		Fatal("EditorApp", "Unknown game profile '{}'. No runtime module linked.", gameName);
 		return EXIT_FAILURE;
+#endif
 	}
 
 #ifdef _DEBUG
