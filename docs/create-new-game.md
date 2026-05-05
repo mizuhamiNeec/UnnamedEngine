@@ -39,6 +39,7 @@ UE リポジトリ内に生成する場合（検証用のみ）:
 ## 2.1 運用ルール（重要）
 
 - ゲーム固有アセットは `projects/<Game>/content` に配置します。
+- UE 本体リポジトリには `projects/<Game>/content` を置かず、ゲームrepo側 `projects` へ配置します。
 - `game_profile.json` はプロファイル探索（`gameRoot` / `contentRoot` / `configRoot` / `aliases`）を担いますが、Runtime 実体の自動ロード機構ではありません。
 - 実行時にゲーム固有 Runtime（World / コンポーネント登録）を使うには、各 App 側で `RegisterGameModule(...)` による生成関数登録が必要です。
 - ゲーム固有コンポーネントは `IGameModule::RegisterGameComponents(...)` の明示登録を正規経路とします。`REGISTER_COMPONENT(...)` のみへ依存すると、App 側リンク構成次第で静的初期化が到達しない場合があります。

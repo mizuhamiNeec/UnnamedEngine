@@ -42,7 +42,12 @@ foreach ($entry in $changedEntries) {
     $status = $tokens[0]
     $path = $tokens[1]
     if ($path -match "^projects/") {
-        if ($status -like "D*" -and $path -match "^projects/[^/]+/runtime/") {
+        if (
+            $status -like "D*" -and (
+                $path -match "^projects/[^/]+/runtime/" -or
+                $path -match "^projects/[^/]+/content/"
+            )
+        ) {
             continue
         }
         $blocked += $path

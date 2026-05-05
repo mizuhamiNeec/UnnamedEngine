@@ -69,7 +69,8 @@ $env:UNNAMED_PROJECTS_ROOT = "S:/Repositories/TD4_01/projects"
 11. **完了**: UE 側 `projects/` を読み取り専用運用へ寄せる（engine-only 既定化 + 境界ガード + pre-commit）。  
 12. **完了**: `--projects-root` / `UNNAMED_GAME_PROJECTS_ROOT` で外部 `projects` をビルド参照可能にした。  
 13. **完了**: UE リポジトリからゲーム Runtime 実体（`projects/*/runtime`）を撤去し、外部 `projects-root` 参照へ移行。  
-14. **次**: UE リポジトリからゲーム Content 実体（`projects/*/content`）の段階撤去計画を確定。  
+14. **完了**: UE リポジトリからゲーム Content 実体（`projects/*/content`）を撤去。  
+15. **次**: UE 側 `projects/*/config/game_profile.json` の扱いを決定（撤去 or 最小manifest雛形として保持）。  
 
 ## 6. UE 側 branch protection 適用手順
 
@@ -104,4 +105,4 @@ UE リポジトリで `projects/*` を誤って commit しないよう、ロー�
 ```
 
 有効化後、`projects/*` がステージされた commit は `pre-commit` でブロックされます。
-ただし分離移行のため、`projects/*/runtime/*` の削除のみは許可されます。
+ただし分離移行のため、`projects/*/runtime/*` と `projects/*/content/*` の削除のみは許可されます。
