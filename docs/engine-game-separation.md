@@ -60,7 +60,9 @@ $env:UNNAMED_PROJECTS_ROOT = "S:/Repositories/TD4_01/projects"
 6. **完了**: UE 側 CI に `Develop` 構成を追加し、`pull_request -> main` で Debug/Develop/Release を検証。  
 7. **完了**: branch protection の必須チェックを `DevelopBuild / build` まで拡張。  
 8. **完了**: UE 側に EngineBoundaryGuard CI を追加し、`projects/*` 混入を自動検出。  
-9. **次**: branch protection の必須チェックに `EngineBoundaryGuard / guard` を追加。  
+9. **完了**: branch protection の必須チェックに `EngineBoundaryGuard / guard` を追加。  
+10. **完了**: ローカル `pre-commit` フックで `projects/*` 混入を commit 前に検出。  
+11. **次**: UE 側 `projects/` を読み取り専用運用へ寄せる（追加編集は game repo 側へ限定）。  
 
 ## 6. UE 側 branch protection 適用手順
 
@@ -85,3 +87,13 @@ $env:UNNAMED_PROJECTS_ROOT = "S:/Repositories/TD4_01/projects"
 $env:GITHUB_TOKEN = "<repo admin token>"
 .\tools\apply-main-branch-protection.ps1 -Apply
 ```
+
+## 7. ローカル pre-commit ガード導入
+
+UE リポジトリで `projects/*` を誤って commit しないよう、ローカル hook を有効化できます。
+
+```powershell
+.\tools\install-engine-boundary-hook.ps1
+```
+
+有効化後、`projects/*` がステージされた commit は `pre-commit` でブロックされます。
