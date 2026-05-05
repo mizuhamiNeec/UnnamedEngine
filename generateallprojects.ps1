@@ -1,4 +1,4 @@
-Write-Host "Generating projects..."
+Write-Host "Generating projects (engine-only default: --games=none)..."
 
 $localPremakePath = Join-Path -Path $PSScriptRoot -ChildPath "premake5.exe"
 $premakeCommand = $null
@@ -21,7 +21,7 @@ if (-not $premakeCommand) {
 }
 
 try {
-    & $premakeCommand vs2026
+    & $premakeCommand --games=none vs2026
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Premake5 execution completed."

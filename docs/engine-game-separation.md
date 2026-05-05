@@ -9,6 +9,7 @@
   - `--games=parkour` : Parkour のみ
   - `--games=teamgame` : TeamGame のみ
   - `--games=none` : ゲーム非同梱（エンジンのみ）
+  - `--games` 未指定時は `none` 扱い（UE 本体では engine-only を既定化）
 - `UNNAMED_PROJECTS_ROOT` を使うと、`projects` ディレクトリをリポジトリ外から指定できます。
   - `game_profile.json` の探索先を repo ルート依存から分離できます。
 
@@ -62,7 +63,8 @@ $env:UNNAMED_PROJECTS_ROOT = "S:/Repositories/TD4_01/projects"
 8. **完了**: UE 側に EngineBoundaryGuard CI を追加し、`projects/*` 混入を自動検出。  
 9. **完了**: branch protection の必須チェックに `EngineBoundaryGuard / guard` を追加。  
 10. **完了**: ローカル `pre-commit` フックで `projects/*` 混入を commit 前に検出。  
-11. **次**: UE 側 `projects/` を読み取り専用運用へ寄せる（追加編集は game repo 側へ限定）。  
+11. **完了**: UE 側 `projects/` を読み取り専用運用へ寄せる（engine-only 既定化 + 境界ガード + pre-commit）。  
+12. **次**: UE リポジトリからゲーム実体（`projects/*/runtime` 等）を段階的に撤去し、外部 repo 参照へ完全移行。  
 
 ## 6. UE 側 branch protection 適用手順
 

@@ -9,7 +9,7 @@ namespace {
 		const Unnamed::AppLaunchOptions& launchOptions
 	) {
 		if (!launchOptions.gameName.has_value() || launchOptions.gameName->empty()) {
-			return "Parkour";
+			return {};
 		}
 		return *launchOptions.gameName;
 	}
@@ -35,13 +35,23 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 	Unnamed::RegisterDefaultGameModuleProfiles();
 
 	const std::string gameName = ResolveStandaloneGameName(launchOptions);
+	if (gameName.empty()) {
+		Error(
+			"UnnamedLauncher",
+			"No game profile was selected. Pass --game=<name> and provide manifests via UNNAMED_PROJECTS_ROOT or --repo-root."
+		);
+		return EXIT_FAILURE;
+	}
+
 	std::unique_ptr<Unnamed::IGameModule> gameModule =
 		Unnamed::CreateGameModule(gameName);
 	if (!gameModule) {
-		gameModule = Unnamed::CreateGameModule("Parkour");
-		if (!gameModule) {
-			return EXIT_FAILURE;
-		}
+		Error(
+			"UnnamedLauncher",
+			"Unknown game profile '{}'. Verify --game value and game_profile.json resolution.",
+			gameName
+		);
+		return EXIT_FAILURE;
 	}
 
 #ifdef _DEBUG

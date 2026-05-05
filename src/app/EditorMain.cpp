@@ -46,11 +46,10 @@ namespace {
 		(void)Unnamed::RegisterGameModuleAlias("Team", "TeamGame");
 #endif
 #if !defined(UNNAMED_WITH_PARKOUR_RUNTIME) && !defined(UNNAMED_WITH_TEAMGAME_RUNTIME)
-		Error(
+		Warning(
 			"EditorApp",
-			"No linked game runtime module is available. Check premake game selection."
+			"No linked game runtime module is available. Editor will run with manifest-only DefaultGameModule."
 		);
-		return false;
 #endif
 		return true;
 	}
@@ -95,27 +94,23 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 	}
 
 	const std::string gameName = ResolveEditorGameName(launchOptions);
+	if (gameName.empty()) {
+		Fatal(
+			"EditorApp",
+			"No game profile was selected. Pass --game=<name> and provide manifests via UNNAMED_PROJECTS_ROOT or --repo-root."
+		);
+		return EXIT_FAILURE;
+	}
+
 	std::unique_ptr<Unnamed::IGameModule> gameModule =
 		Unnamed::CreateGameModule(gameName);
 	if (!gameModule) {
-#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
-		Error("EditorApp", "Unknown game profile '{}'. Fallback to Parkour", gameName);
-		gameModule = Unnamed::CreateGameModule("Parkour");
-		if (!gameModule) {
-			Fatal("EditorApp", "Failed to create fallback Parkour game module.");
-			return EXIT_FAILURE;
-		}
-#elif defined(UNNAMED_WITH_TEAMGAME_RUNTIME)
-		Error("EditorApp", "Unknown game profile '{}'. Fallback to TeamGame", gameName);
-		gameModule = Unnamed::CreateGameModule("TeamGame");
-		if (!gameModule) {
-			Fatal("EditorApp", "Failed to create fallback TeamGame game module.");
-			return EXIT_FAILURE;
-		}
-#else
-		Fatal("EditorApp", "Unknown game profile '{}'. No runtime module linked.", gameName);
+		Fatal(
+			"EditorApp",
+			"Unknown game profile '{}'. Verify --game value and game_profile.json resolution.",
+			gameName
+		);
 		return EXIT_FAILURE;
-#endif
 	}
 
 #ifdef _DEBUG

@@ -14,13 +14,13 @@ git clone https://github.com/mizuhamiNeec/UnnamedEngine.git
 ## 3. `generateallprojects.ps1` を実行してプロジェクト生成
 - プロジェクト生成
 ```powershell
-./generateallprojects.ps1 # 自動的にpremake5.exeを呼び出してプロジェクト生成します
+./generateallprojects.ps1 # UE本体向けに --games=none でプロジェクト生成します
 ```
 または
 ```powershell
-./premake5.exe vs2026 # premake5.exeをプロジェクトに配置している場合
+./premake5.exe --games=none vs2026 # premake5.exeをプロジェクトに配置している場合
 
-premake5.exe vs2026 # すでに環境変数に通してある場合
+premake5.exe --games=none vs2026 # すでに環境変数に通してある場合
 ```
 
 ## 4. お好みのIDEでソリューションを開く

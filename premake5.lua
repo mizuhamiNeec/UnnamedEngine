@@ -29,7 +29,7 @@ function ShouldEnableGame(gameToken, runtimeDir)
 	local optionValue = _OPTIONS["games"]
 	local hasRuntime = os.isdir(runtimeDir)
 	if optionValue == nil or optionValue == "" then
-		return hasRuntime
+		return false
 	end
 
 	local gameRequested = false
