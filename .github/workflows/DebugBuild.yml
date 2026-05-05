@@ -16,6 +16,7 @@ env:
   # Visual Studio の構成(Debug / Develop / Release)
   CONFIGURATION: Debug
   PLATFORM: x64
+  PREMAKE_GAMES: none
 
 jobs:
   build:
@@ -37,7 +38,7 @@ jobs:
 
       - name: Generate Visual Studio 2026 project files
         shell: pwsh
-        run: .\premake5.exe vs2026
+        run: .\premake5.exe --games=$env:PREMAKE_GAMES vs2026
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v3
@@ -48,9 +49,11 @@ jobs:
         shell: pwsh
         run: |
           $projects = @(
-            ".\build\projects\UnnamedEditorApp\UnnamedEditorApp.vcxproj",
-            ".\build\projects\ParkourGameApp\ParkourGameApp.vcxproj",
-            ".\build\projects\TeamGameApp\TeamGameApp.vcxproj"
+            ".\build\projects\DirectXTex\DirectXTex.vcxproj",
+            ".\build\projects\Lua\Lua.vcxproj",
+            ".\build\projects\UnnamedEngineRuntime\UnnamedEngineRuntime.vcxproj",
+            ".\build\projects\UnnamedEditorRuntime\UnnamedEditorRuntime.vcxproj",
+            ".\build\projects\UnnamedEditorApp\UnnamedEditorApp.vcxproj"
           )
 
           foreach ($project in $projects) {
@@ -64,32 +67,12 @@ jobs:
             }
           }
 
-      - name: Startup smoke validation
+      - name: Engine smoke validation
         shell: pwsh
         run: |
-          $repoRoot = (Resolve-Path ".").Path
-
-          $checks = @(
-            @{ Exe = ".\bin\Debug-windows-x86_64\UnnamedEditorApp\UnnamedEditorApp.exe"; Args = @("--game=Parkour", "--repo-root=$repoRoot", "--validate-startup-only") },
-            @{ Exe = ".\bin\Debug-windows-x86_64\UnnamedEditorApp\UnnamedEditorApp.exe"; Args = @("--game=TeamGame", "--repo-root=$repoRoot", "--validate-startup-only") },
-            @{ Exe = ".\bin\Debug-windows-x86_64\ParkourGameApp\ParkourGameApp.exe"; Args = @("--repo-root=$repoRoot", "--validate-startup-only") },
-            @{ Exe = ".\bin\Debug-windows-x86_64\TeamGameApp\TeamGameApp.exe"; Args = @("--repo-root=$repoRoot", "--validate-startup-only") }
-          )
-
-          foreach ($entry in $checks) {
-            Write-Host "Running startup smoke: $($entry.Exe) $($entry.Args -join ' ')"
-            $exePath = (Resolve-Path $entry.Exe).Path
-            $process = Start-Process `
-              -FilePath $exePath `
-              -ArgumentList $entry.Args `
-              -Wait `
-              -PassThru `
-              -WindowStyle Hidden
-            $exitCode = $process.ExitCode
-            if ($null -eq $exitCode) {
-              $exitCode = 1
-            }
-            if ($exitCode -ne 0) {
-              throw "Startup smoke failed: $($entry.Exe) (exit=$exitCode)"
-            }
+          $editorExe = Resolve-Path ".\bin\Debug-windows-x86_64\UnnamedEditorApp\UnnamedEditorApp.exe"
+          Write-Host "Running editor help smoke: $editorExe"
+          & $editorExe --help
+          if ($LASTEXITCODE -ne 0) {
+            throw "Editor help smoke failed (exit=$LASTEXITCODE)"
           }

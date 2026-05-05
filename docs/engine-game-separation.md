@@ -25,12 +25,16 @@
 
 ```powershell
 .\premake5.exe --games=none vs2026
+# または
+.\tools\generate-engine-only.ps1
 ```
 
 TeamGame のみ有効化して生成:
 
 ```powershell
 .\premake5.exe --games=teamgame vs2026
+# または
+.\tools\generate-teamgame-only.ps1
 ```
 
 外部 `projects` ルートを指定して起動検証:
@@ -45,3 +49,11 @@ $env:UNNAMED_PROJECTS_ROOT = "S:/Repositories/TD4_01/projects"
 - `game_profile.json` は profile/path 解決の仕組みです。Runtime 実体の自動ロード機構ではありません。
 - ゲーム固有 Runtime を使うには、対象 Runtime をリンクした App 構成が必要です。
 - `RegisterGameModule(...)` 未登録のゲームは `DefaultGameModule` 扱いになり、ゲーム固有 World/コンポーネント登録は動作しません。
+
+## 5. 現状ロードマップ
+
+1. **完了**: Parkour 復旧と分離基盤導入（`--games` / `UNNAMED_PROJECTS_ROOT`）。  
+2. **完了**: UE 側 CI を engine-only（`--games=none`）へ切替。  
+3. **完了**: ガードレール追加（`CODEOWNERS` / PR テンプレート）。  
+4. **次**: `TD4_01` 側へ TeamGame 専用 CI を導入（`--games=teamgame` + startup validation）。  
+5. **次**: UE 側の branch protection で `main` 直 push 禁止、必須レビューを有効化。  
