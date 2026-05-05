@@ -2,25 +2,23 @@
 
 ├── .vscode/
 ├── content/
-└── ├── core/
-└── └── ├── cfg/
-└── └── ├── editorgui/
-└── └── ├── fonts/
-└── └── ├── materials/
-└── └── └── └── instances/
-└── └── ├── models/
-└── └── ├── postfx/
-└── └── ├── scenes/
-└── └── ├── settings/
-└── └── ├── shaders/
-└── └── └── ├── programs/
-└── └── └── └── src/
-└── └── ├── sounds/
-└── └── ├── tests/
-└── └── └── └── sequence/
-└── └── └── textures/
-└── └── teamgame/
-└──     └── scenes/
+└── └── core/
+└──     ├── cfg/
+└──     ├── editorgui/
+└──     ├── fonts/
+└──     ├── materials/
+└──     └── └── instances/
+└──     ├── models/
+└──     ├── postfx/
+└──     ├── scenes/
+└──     ├── settings/
+└──     ├── shaders/
+└──     └── ├── programs/
+└──     └── └── src/
+└──     ├── sounds/
+└──     ├── tests/
+└──     └── └── sequence/
+└──     └── textures/
 ├── docs/
 └── ├── assets/
 ├── projects/
@@ -50706,6 +50704,9 @@ File Path: src/engine/editor/LevelEditorToolHierarchy.cpp
 #include <unordered_set>
 
 #include "core/ComponentRegistry.h"
+#include "core/guidgenerator/GuidGenerator.h"
+#include "core/io/json/JsonReader.h"
+#include "core/io/json/JsonWriter.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/editor/sequence/SequenceEditorController.h"
@@ -50714,6 +50715,7 @@ File Path: src/engine/editor/LevelEditorToolHierarchy.cpp
 #include "engine/ImGui/ImGuiWidgets.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
+#include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed {
 	namespace {
@@ -50999,6 +51001,159 @@ namespace Unnamed {
 			}
 			return false;
 		}
+
+		[[nodiscard]] bool IsEntityNameUsedInFolder(
+			const Scene&            scene,
+			const std::string_view& folderPath,
+			const std::string_view& entityName
+		) {
+			for (const auto& entityPtr : scene.GetEntities()) {
+				if (!entityPtr) {
+					continue;
+				}
+
+				if (
+					entityPtr->GetFolderPath() == folderPath &&
+					entityPtr->GetName() == entityName
+				) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		[[nodiscard]] std::string BuildDuplicateEntityName(
+			const Scene& scene,
+			const Entity& source
+		) {
+			const std::string baseName =
+				std::string(source.GetName()) + " Copy";
+			if (
+				!IsEntityNameUsedInFolder(
+					scene, source.GetFolderPath(), baseName
+				)
+			) {
+				return baseName;
+			}
+
+			for (uint32_t i = 2; i < 100000; ++i) {
+				const std::string candidate =
+					std::format("{} {}", baseName, i);
+				if (
+					!IsEntityNameUsedInFolder(
+						scene, source.GetFolderPath(), candidate
+					)
+				) {
+					return candidate;
+				}
+			}
+
+			return baseName;
+		}
+
+		[[nodiscard]] bool IsComponentGuidUsed(
+			const Scene& scene,
+			const uint64_t guid
+		) {
+			if (guid == 0) {
+				return true;
+			}
+
+			for (const auto& entityPtr : scene.GetEntities()) {
+				if (!entityPtr) {
+					continue;
+				}
+
+				bool found = false;
+				entityPtr->ForEachComponent(
+					[&](const BaseComponent& component) {
+						if (component.GetGuid() != guid) {
+							return true;
+						}
+						found = true;
+						return false;
+					}
+				);
+				if (found) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		[[nodiscard]] uint64_t AllocateUniqueComponentGuid(const Scene& scene) {
+			static GuidGenerator guidGenerator;
+			for (uint32_t attempts = 0; attempts < 100000; ++attempts) {
+				const uint64_t candidate = guidGenerator.Alloc();
+				if (!IsComponentGuidUsed(scene, candidate)) {
+					return candidate;
+				}
+			}
+			return 0;
+		}
+
+		[[nodiscard]] Entity* DuplicateEntityInScene(
+			Scene& scene,
+			const Entity& source
+		) {
+			const std::string duplicatedName = BuildDuplicateEntityName(
+				scene, source
+			);
+			Entity& duplicated = scene.CreateEntity(
+				duplicatedName, scene.AllocateEntityId(), source.IsEditorOnly()
+			);
+			duplicated.SetFolderPath(source.GetFolderPath());
+			duplicated.SetActive(source.IsActive());
+			duplicated.SetVisible(source.IsVisible());
+			scene.AddFolder(source.GetFolderPath());
+
+			source.ForEachComponent(
+				[&](const BaseComponent& sourceComponent) {
+					auto newComponent = ComponentRegistry::Get().Create(
+						sourceComponent.GetStableName()
+					);
+					if (!newComponent) {
+						Warning(
+							"LevelEditorTool",
+							"DuplicateEntity: unknown component type '{}'",
+							sourceComponent.GetStableName()
+						);
+						return;
+					}
+
+					JsonWriter componentWriter("__duplicate_component__.json");
+					componentWriter.BeginObject();
+					sourceComponent.Serialize(componentWriter);
+					componentWriter.EndObject();
+					const JsonReader componentReader(componentWriter.GetRoot());
+					newComponent->Deserialize(componentReader);
+					newComponent->SetActive(sourceComponent.IsActive());
+
+					const uint64_t duplicatedComponentGuid =
+						AllocateUniqueComponentGuid(scene);
+					if (duplicatedComponentGuid == 0) {
+						Warning(
+							"LevelEditorTool",
+							"DuplicateEntity: failed to allocate component GUID for '{}'",
+							sourceComponent.GetStableName()
+						);
+					} else {
+						newComponent->SetGuid(duplicatedComponentGuid);
+					}
+
+					duplicated.AddComponentInstance(std::move(newComponent));
+				}
+			);
+
+			const auto* sourceTransform = source.GetComponent<TransformComponent>();
+			auto* duplicatedTransform = duplicated.GetComponent<TransformComponent>();
+			if (sourceTransform && duplicatedTransform && sourceTransform->GetParent()) {
+				duplicatedTransform->SetParent(sourceTransform->GetParent(), false);
+			}
+
+			return &duplicated;
+		}
 	}
 
 	void LevelEditorTool::DrawSceneOutliner() {
@@ -51119,6 +51274,7 @@ namespace Unnamed {
 			OutlinerFolderNode root = {};
 			BuildOutlinerTree(root, *scene);
 			uint64_t    pendingDeleteEntityId = 0;
+			uint64_t    pendingDuplicateEntityId = 0;
 			std::string pendingDeleteFolderPath;
 			bool        pendingCreateEntity = false;
 			bool        pendingCreateFolder = false;
@@ -51241,6 +51397,9 @@ namespace Unnamed {
 						pendingCreateFolderPath = std::string(
 							entity->GetFolderPath()
 						);
+					}
+					if (ImGui::MenuItem("Duplicate")) {
+						pendingDuplicateEntityId = entity->GetGuid();
 					}
 					if (ImGui::MenuItem("Add Folder")) {
 						pendingCreateFolder     = true;
@@ -51463,6 +51622,13 @@ namespace Unnamed {
 
 			if (pendingCreateEntity) {
 				createEntity(pendingCreateFolderPath);
+			}
+			if (pendingDuplicateEntityId != 0) {
+				if (Entity* sourceEntity = scene->FindEntity(pendingDuplicateEntityId)) {
+					if (Entity* duplicated = DuplicateEntityInScene(*scene, *sourceEntity)) {
+						mSelectedEntityId = duplicated->GetGuid();
+					}
+				}
 			}
 			if (pendingCreateFolder) {
 				createFolder(pendingCreateFolderPath);
