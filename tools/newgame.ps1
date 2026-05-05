@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Name,
-    [string]$Alias = ""
+    [string]$Alias = "",
+    [string]$ProjectsRoot = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -36,7 +37,18 @@ if ([string]::IsNullOrWhiteSpace($Alias)) {
 }
 
 $repoRoot = (Resolve-Path ".").Path
-$gameRoot = Join-Path $repoRoot "projects/$gameName"
+$resolvedProjectsRoot = ""
+if ([string]::IsNullOrWhiteSpace($ProjectsRoot)) {
+    $resolvedProjectsRoot = Join-Path $repoRoot "projects"
+} else {
+    $resolvedProjectsRoot = $ProjectsRoot
+}
+if (-not (Test-Path -LiteralPath $resolvedProjectsRoot -PathType Container)) {
+    New-Item -ItemType Directory -Force -Path $resolvedProjectsRoot | Out-Null
+}
+$resolvedProjectsRoot = (Resolve-Path $resolvedProjectsRoot).Path
+
+$gameRoot = Join-Path $resolvedProjectsRoot $gameName
 $runtimeRoot = Join-Path $gameRoot "runtime/game/$(To-LowerSnake $gameName)"
 $runtimeModuleRoot = Join-Path $runtimeRoot "runtime"
 $componentsRoot = Join-Path $runtimeRoot "components"
@@ -339,7 +351,7 @@ Write-TextFile -Path (Join-Path $runtimeModuleRoot "$registrationName.cpp") -Con
 Write-TextFile -Path (Join-Path $componentsRoot "$sampleComponentName.h") -Content $componentHeader
 Write-TextFile -Path (Join-Path $componentsRoot "$sampleComponentName.cpp") -Content $componentCpp
 
-Write-Host "Created game template for '$gameName' under projects/$gameName."
+Write-Host "Created game template for '$gameName' under $gameRoot."
 Write-Host "Next steps:"
 Write-Host "  1) Add runtime/app wiring to premake5.lua and src/app/*Main.cpp."
 Write-Host "  2) Run .\\generateallprojects.ps1"

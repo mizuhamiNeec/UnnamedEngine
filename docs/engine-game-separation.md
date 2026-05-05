@@ -12,6 +12,8 @@
   - `--games` 未指定時は `none` 扱い（UE 本体では engine-only を既定化）
 - `UNNAMED_PROJECTS_ROOT` を使うと、`projects` ディレクトリをリポジトリ外から指定できます。
   - `game_profile.json` の探索先を repo ルート依存から分離できます。
+- `premake5.lua` の `--projects-root=<path>`（または `UNNAMED_GAME_PROJECTS_ROOT`）で、
+  - ゲーム Runtime/App ビルド時の `projects` 参照先を外部 repo へ切り替えできます。
 
 ## 2. 推奨運用（最短）
 
@@ -36,6 +38,14 @@ TeamGame のみ有効化して生成:
 .\premake5.exe --games=teamgame vs2026
 # または
 .\tools\generate-teamgame-only.ps1
+```
+
+外部ゲーム repo の `projects` を使って TeamGame を生成:
+
+```powershell
+.\premake5.exe --games=teamgame --projects-root="S:/Repositories/TD4_01/projects" vs2026
+# または
+.\tools\generate-teamgame-only.ps1 -ProjectsRoot "S:/Repositories/TD4_01/projects"
 ```
 
 外部 `projects` ルートを指定して起動検証:
@@ -64,7 +74,8 @@ $env:UNNAMED_PROJECTS_ROOT = "S:/Repositories/TD4_01/projects"
 9. **完了**: branch protection の必須チェックに `EngineBoundaryGuard / guard` を追加。  
 10. **完了**: ローカル `pre-commit` フックで `projects/*` 混入を commit 前に検出。  
 11. **完了**: UE 側 `projects/` を読み取り専用運用へ寄せる（engine-only 既定化 + 境界ガード + pre-commit）。  
-12. **次**: UE リポジトリからゲーム実体（`projects/*/runtime` 等）を段階的に撤去し、外部 repo 参照へ完全移行。  
+12. **完了**: `--projects-root` / `UNNAMED_GAME_PROJECTS_ROOT` で外部 `projects` をビルド参照可能にした。  
+13. **次**: UE リポジトリからゲーム実体（`projects/*/runtime` 等）を段階的に撤去し、外部 repo 参照へ完全移行。  
 
 ## 6. UE 側 branch protection 適用手順
 

@@ -23,6 +23,11 @@ git clone https://github.com/mizuhamiNeec/UnnamedEngine.git
 premake5.exe --games=none vs2026 # すでに環境変数に通してある場合
 ```
 
+ゲームrepo側の `projects` を参照してゲーム Runtime/App まで生成する場合:
+```powershell
+premake5.exe --games=teamgame --projects-root="S:/Repositories/TD4_01/projects" vs2026
+```
+
 ## 4. お好みのIDEでソリューションを開く
 - `VisualStudio 2026` | `Rider` の場合は 生成された `.slnx` ファイルを開いてください。
 

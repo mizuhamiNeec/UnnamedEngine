@@ -15,6 +15,11 @@ newoption {
 	value = "LIST",
 	description = "Build game runtimes/apps (comma-separated: parkour,teamgame,all,none).",
 }
+newoption {
+	trigger = "projects-root",
+	value = "PATH",
+	description = "Root directory that contains game projects (e.g. S:/Repositories/TD4_01/projects).",
+}
 
 function NormalizeGameToken(token)
 	if token == nil then
@@ -52,8 +57,9 @@ function ShouldEnableGame(gameToken, runtimeDir)
 	return hasRuntime
 end
 
-PARKOUR_RUNTIME_DIR = "projects/ParkourGame/runtime"
-TEAMGAME_RUNTIME_DIR = "projects/TeamGame/runtime"
+PROJECTS_ROOT = _OPTIONS["projects-root"] or os.getenv("UNNAMED_GAME_PROJECTS_ROOT") or "projects"
+PARKOUR_RUNTIME_DIR = path.join(PROJECTS_ROOT, "ParkourGame/runtime")
+TEAMGAME_RUNTIME_DIR = path.join(PROJECTS_ROOT, "TeamGame/runtime")
 ENABLE_PARKOUR_RUNTIME = ShouldEnableGame("parkour", PARKOUR_RUNTIME_DIR)
 ENABLE_TEAMGAME_RUNTIME = ShouldEnableGame("teamgame", TEAMGAME_RUNTIME_DIR)
 

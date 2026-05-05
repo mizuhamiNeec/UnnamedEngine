@@ -1,3 +1,7 @@
+param(
+    [string]$ProjectsRoot = ""
+)
+
 Write-Host "Generating TeamGame-only projects (--games=teamgame)..."
 
 $localPremakePath = Join-Path -Path $PSScriptRoot -ChildPath "..\\premake5.exe"
@@ -19,7 +23,14 @@ if (-not $premakeCommand) {
     exit 1
 }
 
-& $premakeCommand --games=teamgame vs2026
+$premakeArgs = @("--games=teamgame")
+if (-not [string]::IsNullOrWhiteSpace($ProjectsRoot)) {
+    $premakeArgs += "--projects-root=$ProjectsRoot"
+    Write-Host "Using external projects root: $ProjectsRoot"
+}
+$premakeArgs += "vs2026"
+
+& $premakeCommand @premakeArgs
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Premake generation failed."
     exit $LASTEXITCODE

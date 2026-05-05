@@ -10,6 +10,12 @@
 .\tools\newgame.ps1 -Name MyGame -Alias My
 ```
 
+外部ゲームrepoの `projects` へ直接生成する場合:
+
+```powershell
+.\tools\newgame.ps1 -Name MyGame -Alias My -ProjectsRoot "S:/Repositories/TD4_01/projects"
+```
+
 生成される主な内容:
 - `projects/MyGame/runtime` (最小 GameModule + ComponentRegistration + SampleComponent)
 - `projects/MyGame/content/scenes/bootstrap.json`
