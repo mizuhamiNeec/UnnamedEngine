@@ -4,6 +4,7 @@ param(
     [int]$RequiredApprovals = 1,
     [string[]]$RequiredStatusChecks = @(
         "DebugBuild / build",
+        "DevelopBuild / build",
         "ReleaseBuild / build"
     ),
     [bool]$RequireCodeOwnerReviews = $true,

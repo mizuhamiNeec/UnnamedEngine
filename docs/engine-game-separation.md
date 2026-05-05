@@ -56,13 +56,15 @@ $env:UNNAMED_PROJECTS_ROOT = "S:/Repositories/TD4_01/projects"
 2. **完了**: UE 側 CI を engine-only（`--games=none`）へ切替。  
 3. **完了**: ガードレール追加（`CODEOWNERS` / PR テンプレート）。  
 4. **完了**: `TD4_01` 側へ TeamGame 専用 CI / startup validation を導入。  
-5. **次**: UE 側の branch protection を適用（`main` 直 push 禁止 + 必須レビュー + 必須CI）。  
+5. **完了**: UE 側の branch protection を適用（`main` 直 push 禁止 + 必須レビュー + 必須CI）。  
+6. **完了**: UE 側 CI に `Develop` 構成を追加し、`pull_request -> main` で Debug/Develop/Release を検証。  
+7. **次**: branch protection の必須チェックを `DevelopBuild / build` まで拡張。  
 
 ## 6. UE 側 branch protection 適用手順
 
 `tools/apply-main-branch-protection.ps1` を使うと、`main` に以下を一括適用できます。
 
-- 必須ステータスチェック: `DebugBuild / build`, `ReleaseBuild / build`
+- 必須ステータスチェック: `DebugBuild / build`, `DevelopBuild / build`, `ReleaseBuild / build`
 - 最低 1 承認レビュー
 - Code Owners レビュー必須
 - stale review dismissal

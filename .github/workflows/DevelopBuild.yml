@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: DebugBuild
+name: DevelopBuild
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ env:
   # リポジトリのルートディレクトリを起点としたソリューションファイルのパス
   SOLUTION_FILE_PATH: Unnamed.slnx
   # Visual Studio の構成(Debug / Develop / Release)
-  CONFIGURATION: Debug
+  CONFIGURATION: Develop
   PLATFORM: x64
   PREMAKE_GAMES: none
 
@@ -73,7 +73,7 @@ jobs:
       - name: Engine smoke validation
         shell: pwsh
         run: |
-          $editorExe = Resolve-Path ".\bin\Debug-windows-x86_64\UnnamedEditorApp\UnnamedEditorApp.exe"
+          $editorExe = Resolve-Path ".\bin\Develop-windows-x86_64\UnnamedEditorApp\UnnamedEditorApp.exe"
           Write-Host "Running editor help smoke: $editorExe"
           & $editorExe --help
           if ($LASTEXITCODE -ne 0) {
