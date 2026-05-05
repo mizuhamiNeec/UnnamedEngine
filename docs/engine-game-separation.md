@@ -14,6 +14,7 @@
   - `game_profile.json` の探索先を repo ルート依存から分離できます。
 - `premake5.lua` の `--projects-root=<path>`（または `UNNAMED_GAME_PROJECTS_ROOT`）で、
   - ゲーム Runtime/App ビルド時の `projects` 参照先を外部 repo へ切り替えできます。
+- UE リポジトリにはゲーム Runtime 実体を置かない運用へ移行済みです。
 
 ## 2. 推奨運用（最短）
 
@@ -32,15 +33,7 @@
 .\tools\generate-engine-only.ps1
 ```
 
-TeamGame のみ有効化して生成:
-
-```powershell
-.\premake5.exe --games=teamgame vs2026
-# または
-.\tools\generate-teamgame-only.ps1
-```
-
-外部ゲーム repo の `projects` を使って TeamGame を生成:
+TeamGame のみ有効化して生成（外部 `projects` 必須）:
 
 ```powershell
 .\premake5.exe --games=teamgame --projects-root="S:/Repositories/TD4_01/projects" vs2026
@@ -75,7 +68,8 @@ $env:UNNAMED_PROJECTS_ROOT = "S:/Repositories/TD4_01/projects"
 10. **完了**: ローカル `pre-commit` フックで `projects/*` 混入を commit 前に検出。  
 11. **完了**: UE 側 `projects/` を読み取り専用運用へ寄せる（engine-only 既定化 + 境界ガード + pre-commit）。  
 12. **完了**: `--projects-root` / `UNNAMED_GAME_PROJECTS_ROOT` で外部 `projects` をビルド参照可能にした。  
-13. **次**: UE リポジトリからゲーム実体（`projects/*/runtime` 等）を段階的に撤去し、外部 repo 参照へ完全移行。  
+13. **完了**: UE リポジトリからゲーム Runtime 実体（`projects/*/runtime`）を撤去し、外部 `projects-root` 参照へ移行。  
+14. **次**: UE リポジトリからゲーム Content 実体（`projects/*/content`）の段階撤去計画を確定。  
 
 ## 6. UE 側 branch protection 適用手順
 
@@ -110,3 +104,4 @@ UE リポジトリで `projects/*` を誤って commit しないよう、ロー�
 ```
 
 有効化後、`projects/*` がステージされた commit は `pre-commit` でブロックされます。
+ただし分離移行のため、`projects/*/runtime/*` の削除のみは許可されます。

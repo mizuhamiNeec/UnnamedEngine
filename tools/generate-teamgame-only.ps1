@@ -24,10 +24,28 @@ if (-not $premakeCommand) {
 }
 
 $premakeArgs = @("--games=teamgame")
+$resolvedProjectsRoot = ""
 if (-not [string]::IsNullOrWhiteSpace($ProjectsRoot)) {
-    $premakeArgs += "--projects-root=$ProjectsRoot"
-    Write-Host "Using external projects root: $ProjectsRoot"
+    $resolvedProjectsRoot = $ProjectsRoot
+} elseif (-not [string]::IsNullOrWhiteSpace($env:UNNAMED_GAME_PROJECTS_ROOT)) {
+    $resolvedProjectsRoot = $env:UNNAMED_GAME_PROJECTS_ROOT
 }
+
+if ([string]::IsNullOrWhiteSpace($resolvedProjectsRoot)) {
+    Write-Host "Projects root was not specified."
+    Write-Host "Pass -ProjectsRoot <path> or set UNNAMED_GAME_PROJECTS_ROOT."
+    exit 1
+}
+
+$teamGameRuntimeDir = Join-Path $resolvedProjectsRoot "TeamGame/runtime"
+if (-not (Test-Path -LiteralPath $teamGameRuntimeDir -PathType Container)) {
+    Write-Host "TeamGame runtime was not found: $teamGameRuntimeDir"
+    Write-Host "Point -ProjectsRoot to the game repository's projects directory."
+    exit 1
+}
+
+$premakeArgs += "--projects-root=$resolvedProjectsRoot"
+Write-Host "Using external projects root: $resolvedProjectsRoot"
 $premakeArgs += "vs2026"
 
 & $premakeCommand @premakeArgs

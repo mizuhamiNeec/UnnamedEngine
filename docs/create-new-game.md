@@ -6,14 +6,16 @@
 
 `tools/newgame.ps1` を使います。
 
-```powershell
-.\tools\newgame.ps1 -Name MyGame -Alias My
-```
-
-外部ゲームrepoの `projects` へ直接生成する場合:
+外部ゲームrepoの `projects` へ直接生成する（推奨）:
 
 ```powershell
 .\tools\newgame.ps1 -Name MyGame -Alias My -ProjectsRoot "S:/Repositories/TD4_01/projects"
+```
+
+UE リポジトリ内に生成する場合（検証用のみ）:
+
+```powershell
+.\tools\newgame.ps1 -Name MyGame -Alias My
 ```
 
 生成される主な内容:

@@ -16,21 +16,35 @@ $repoRootUnix = $repoRoot.Replace("\", "/")
 
 $gitBaseArgs = @("-c", "safe.directory=$repoRootUnix", "-C", $repoRoot)
 
-$changedFiles = @()
+$changedEntries = @()
 if ($Staged) {
-    $changedFiles = @(git @gitBaseArgs diff --cached --name-only)
+    $changedEntries = @(git @gitBaseArgs diff --cached --name-status)
 } else {
-    $changedFiles = @(git @gitBaseArgs diff --name-only $DiffRange)
+    $changedEntries = @(git @gitBaseArgs diff --name-status $DiffRange)
 }
 
-if ($changedFiles.Count -eq 0) {
+if ($changedEntries.Count -eq 0) {
     Write-Host "No changed files detected."
     exit 0
 }
 
 $blocked = @()
-foreach ($path in $changedFiles) {
+foreach ($entry in $changedEntries) {
+    if ([string]::IsNullOrWhiteSpace($entry)) {
+        continue
+    }
+
+    $tokens = $entry -split "`t"
+    if ($tokens.Count -lt 2) {
+        continue
+    }
+
+    $status = $tokens[0]
+    $path = $tokens[1]
     if ($path -match "^projects/") {
+        if ($status -like "D*" -and $path -match "^projects/[^/]+/runtime/") {
+            continue
+        }
         $blocked += $path
     }
 }

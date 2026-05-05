@@ -14,7 +14,7 @@
 - 既定登録: `RegisterDefaultEngineComponents(...)` で標準セットを保証
   - 実装: `src/engine/EngineComponentRegistration.cpp`
 - ゲーム固有登録: `IGameModule::RegisterGameComponents(...)` で明示登録
-  - 実装: `projects/TeamGame/runtime/game/team/runtime/TeamGameComponentRegistration.cpp`
+  - 実装例: `<projects-root>/TeamGame/runtime/game/team/runtime/TeamGameComponentRegistration.cpp`
   - 補足: `REGISTER_COMPONENT(...)` のみだとリンク構成次第で静的初期化が到達しない場合があるため、明示登録を正規経路として運用します。
 
 `stableName` は永続化キーなので、シーン JSON の `type` と完全一致が必要です。
