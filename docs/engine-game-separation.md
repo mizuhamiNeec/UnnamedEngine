@@ -55,5 +55,29 @@ $env:UNNAMED_PROJECTS_ROOT = "S:/Repositories/TD4_01/projects"
 1. **完了**: Parkour 復旧と分離基盤導入（`--games` / `UNNAMED_PROJECTS_ROOT`）。  
 2. **完了**: UE 側 CI を engine-only（`--games=none`）へ切替。  
 3. **完了**: ガードレール追加（`CODEOWNERS` / PR テンプレート）。  
-4. **次**: `TD4_01` 側へ TeamGame 専用 CI を導入（`--games=teamgame` + startup validation）。  
-5. **次**: UE 側の branch protection で `main` 直 push 禁止、必須レビューを有効化。  
+4. **完了**: `TD4_01` 側へ TeamGame 専用 CI / startup validation を導入。  
+5. **次**: UE 側の branch protection を適用（`main` 直 push 禁止 + 必須レビュー + 必須CI）。  
+
+## 6. UE 側 branch protection 適用手順
+
+`tools/apply-main-branch-protection.ps1` を使うと、`main` に以下を一括適用できます。
+
+- 必須ステータスチェック: `DebugBuild / build`, `ReleaseBuild / build`
+- 最低 1 承認レビュー
+- Code Owners レビュー必須
+- stale review dismissal
+- admins にも保護を適用
+- force push / deletion 禁止
+
+実行例（dry-run）:
+
+```powershell
+.\tools\apply-main-branch-protection.ps1
+```
+
+実行例（適用）:
+
+```powershell
+$env:GITHUB_TOKEN = "<repo admin token>"
+.\tools\apply-main-branch-protection.ps1 -Apply
+```
