@@ -5,6 +5,8 @@ param(
     [string]$OutputRoot = "",
     [switch]$IncludeMods,
     [switch]$ValidateStartup,
+    [switch]$ValidateIsolatedStartup,
+    [string]$IsolatedValidatorPath = "",
     [switch]$Force
 )
 
@@ -242,6 +244,20 @@ if ($ValidateStartup) {
     }
 }
 
+if ($ValidateIsolatedStartup) {
+    if ([string]::IsNullOrWhiteSpace($IsolatedValidatorPath)) {
+        $IsolatedValidatorPath = Join-Path $PSScriptRoot "validate-packaged-game.ps1"
+    }
+    if (-not (Test-Path -LiteralPath $IsolatedValidatorPath -PathType Leaf)) {
+        throw "isolated validator script was not found: $IsolatedValidatorPath"
+    }
+
+    & powershell -ExecutionPolicy Bypass -File $IsolatedValidatorPath -PackagedRoot $resolvedOutputRoot -AppExePath $packagedExePath -ProjectPath $packagedManifestPath -Force
+    if ($LASTEXITCODE -ne 0) {
+        throw "isolated startup validation script failed with exit code $LASTEXITCODE"
+    }
+}
+
 Write-Host "Packaged game:"
 Write-Host "  GameName        : $gameName"
 Write-Host "  Project         : $resolvedProject"
@@ -259,4 +275,7 @@ if (-not [string]::IsNullOrWhiteSpace($runtimeBinaryPackagedPath)) {
 }
 if ($ValidateStartup) {
     Write-Host "  Validation      : passed"
+}
+if ($ValidateIsolatedStartup) {
+    Write-Host "  Isolated Check  : passed"
 }

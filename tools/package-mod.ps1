@@ -163,6 +163,10 @@ Ensure-ManifestShape -Manifest $manifest -ManifestPath $manifestPath
 
 $modPackageId = [string]$manifest.id
 $modVersion = [string]$manifest.version
+$modInstallDirName = Split-Path -Leaf $resolvedModRoot
+if ([string]::IsNullOrWhiteSpace($modInstallDirName)) {
+    $modInstallDirName = Normalize-ModDirectoryName -Value $modPackageId
+}
 $modContentRootRelative = ([string]$manifest.contentRoot).Trim()
 $resolvedModContentRoot = Resolve-PathAgainstBase -BasePath $resolvedModRoot -Value $modContentRootRelative
 if (-not (Test-Path -LiteralPath $resolvedModContentRoot -PathType Container)) {
@@ -188,9 +192,11 @@ New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
 
 $baseContentRoot = Resolve-BaseContentRoot -GameRoot $resolvedGameRoot
 
-Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $stagingDir "mod_manifest.json") -Force
+$modInstallRoot = Join-Path $stagingDir $modInstallDirName
+New-Item -ItemType Directory -Force -Path $modInstallRoot | Out-Null
+Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $modInstallRoot "mod_manifest.json") -Force
 
-$targetContentRoot = Join-Path $stagingDir $modContentRootRelative
+$targetContentRoot = Join-Path $modInstallRoot $modContentRootRelative
 New-Item -ItemType Directory -Force -Path $targetContentRoot | Out-Null
 
 $copiedCount = 0
@@ -246,6 +252,7 @@ Write-Host "  GameRoot           : $resolvedGameRoot"
 Write-Host "  ModRoot            : $resolvedModRoot"
 Write-Host "  PackageId          : $modPackageId"
 Write-Host "  Version            : $modVersion"
+Write-Host "  Install Dir        : $modInstallDirName"
 Write-Host "  Format             : $Format"
 Write-Host "  Included assets    : $copiedCount"
 Write-Host "  Skipped unchanged  : $skippedUnchangedCount"
@@ -256,6 +263,7 @@ if ($Format -eq "zip") {
 }
 Write-Host ""
 Write-Host "Notes:"
+Write-Host "  - package root contains '$modInstallDirName/' (copy or extract into '<GameRoot>/mods')."
 Write-Host "  - mod_manifest.json is always included."
 if ($IncludeUnchanged) {
     Write-Host "  - unchanged files against base content are included."
