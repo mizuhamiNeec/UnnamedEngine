@@ -12,7 +12,10 @@ param(
     [string]$PackageOutputRoot = "",
     [switch]$EnableOnCreate,
     [switch]$CheckApiCompat,
+    [switch]$CheckSecurity,
     [switch]$FailOnDeprecatedApi,
+    [switch]$FailOnUnsignedSecurity,
+    [switch]$AllowExecutableModFiles,
     [switch]$IncludeUnchanged,
     [switch]$KeepPackageFolderWhenZip,
     [switch]$SkipStartupValidation,
@@ -171,11 +174,13 @@ $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $newModScript = Resolve-ToolScriptPath -ScriptName "newmod.ps1"
 $packageModScript = Resolve-ToolScriptPath -ScriptName "package-mod.ps1"
 $checkApiCompatScript = Resolve-ToolScriptPath -ScriptName "check-api-compat.ps1"
+$checkModSecurityScript = Resolve-ToolScriptPath -ScriptName "check-mod-security.ps1"
 
 $didCreate = $false
 $didEnable = $false
 $didValidate = $false
 $didPackage = $false
+$didSecurityCheck = $false
 
 if ($Action -in @("create", "all")) {
     $args = @(
@@ -202,7 +207,7 @@ if ($Action -eq "enable") {
     $didEnable = $true
 }
 
-if ($Action -in @("validate", "all") -and -not $SkipStartupValidation) {
+if ($Action -in @("validate", "all")) {
     if ($CheckApiCompat -or $Action -eq "all") {
         $compatArgs = @(
             "-GameRoot", $resolvedGameRoot
@@ -213,9 +218,26 @@ if ($Action -in @("validate", "all") -and -not $SkipStartupValidation) {
         Invoke-ToolScript -ScriptPath $checkApiCompatScript -Arguments $compatArgs
     }
 
-    $editorExe = Resolve-EditorExecutable -RepoRoot $repoRoot
-    Validate-Startup -EditorExe $editorExe -ProjectProfilePath $profilePath -WorkingDirectory $repoRoot
-    $didValidate = $true
+    if ($CheckSecurity -or $Action -eq "all") {
+        $securityArgs = @(
+            "-GameRoot", $resolvedGameRoot,
+            "-ModId", $trimmedModId
+        )
+        if ($FailOnUnsignedSecurity) {
+            $securityArgs += "-FailOnUnsigned"
+        }
+        if ($AllowExecutableModFiles) {
+            $securityArgs += "-AllowExecutableFiles"
+        }
+        Invoke-ToolScript -ScriptPath $checkModSecurityScript -Arguments $securityArgs
+        $didSecurityCheck = $true
+    }
+
+    if (-not $SkipStartupValidation) {
+        $editorExe = Resolve-EditorExecutable -RepoRoot $repoRoot
+        Validate-Startup -EditorExe $editorExe -ProjectProfilePath $profilePath -WorkingDirectory $repoRoot
+        $didValidate = $true
+    }
 }
 
 if ($Action -in @("package", "all")) {
@@ -235,6 +257,15 @@ if ($Action -in @("package", "all")) {
     }
     if ($Force) {
         $packageArgs += "-Force"
+    }
+    if ($FailOnUnsignedSecurity) {
+        $packageArgs += "-FailOnUnsigned"
+    }
+    if ($AllowExecutableModFiles) {
+        $packageArgs += "-AllowExecutableFiles"
+    }
+    if ($didSecurityCheck) {
+        $packageArgs += "-SkipSecurityCheck"
     }
 
     Invoke-ToolScript -ScriptPath $packageModScript -Arguments $packageArgs

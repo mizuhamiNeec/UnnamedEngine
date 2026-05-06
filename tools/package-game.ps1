@@ -4,6 +4,9 @@ param(
     [string]$AppExePath = "",
     [string]$OutputRoot = "",
     [switch]$IncludeMods,
+    [switch]$SkipModSecurityCheck,
+    [switch]$FailOnUnsignedMods,
+    [switch]$AllowExecutableModFiles,
     [switch]$ValidateStartup,
     [switch]$ValidateIsolatedStartup,
     [string]$IsolatedValidatorPath = "",
@@ -108,6 +111,20 @@ function Resolve-AppExecutable {
     throw "Could not auto-detect app executable '$preferredName'. Pass -AppExePath explicitly."
 }
 
+function Invoke-ToolScript {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ScriptPath,
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments
+    )
+
+    & powershell -ExecutionPolicy Bypass -File $ScriptPath @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tool script failed: $ScriptPath"
+    }
+}
+
 $resolvedProject = [System.IO.Path]::GetFullPath($Project)
 $manifest = Load-JsonObject -Path $resolvedProject
 Ensure-ManifestShape -Manifest $manifest -ManifestPath $resolvedProject
@@ -149,6 +166,24 @@ Copy-DirectoryContents -SourceDir $resolvedConfigRoot -DestinationDir $targetCon
 if ($IncludeMods) {
     $sourceModsRoot = Join-Path $resolvedGameRoot "mods"
     if (Test-Path -LiteralPath $sourceModsRoot -PathType Container) {
+        if (-not $SkipModSecurityCheck) {
+            $checkModSecurityScript = Join-Path $PSScriptRoot "check-mod-security.ps1"
+            if (-not (Test-Path -LiteralPath $checkModSecurityScript -PathType Leaf)) {
+                throw "Required script was not found: $checkModSecurityScript"
+            }
+
+            $securityArgs = @(
+                "-GameRoot", $resolvedGameRoot
+            )
+            if ($FailOnUnsignedMods) {
+                $securityArgs += "-FailOnUnsigned"
+            }
+            if ($AllowExecutableModFiles) {
+                $securityArgs += "-AllowExecutableFiles"
+            }
+            Invoke-ToolScript -ScriptPath $checkModSecurityScript -Arguments $securityArgs
+        }
+
         Copy-DirectoryContents -SourceDir $sourceModsRoot -DestinationDir (Join-Path $resolvedOutputRoot "mods")
     }
 }
@@ -267,6 +302,11 @@ Write-Host "  Content         : $targetContentRoot"
 Write-Host "  Config          : $targetConfigRoot"
 if ($IncludeMods) {
     Write-Host "  Mods            : included"
+    if ($SkipModSecurityCheck) {
+        Write-Host "  Mod Security    : skipped"
+    } else {
+        Write-Host "  Mod Security    : passed"
+    }
 } else {
     Write-Host "  Mods            : excluded"
 }

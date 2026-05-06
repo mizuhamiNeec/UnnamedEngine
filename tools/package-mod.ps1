@@ -7,6 +7,9 @@ param(
     [ValidateSet("folder", "zip")]
     [string]$Format = "folder",
     [switch]$IncludeUnchanged,
+    [switch]$SkipSecurityCheck,
+    [switch]$FailOnUnsigned,
+    [switch]$AllowExecutableFiles,
     [switch]$KeepFolderWhenZip,
     [switch]$Force
 )
@@ -141,6 +144,20 @@ function Ensure-ManifestShape {
     }
 }
 
+function Invoke-ToolScript {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ScriptPath,
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments
+    )
+
+    & powershell -ExecutionPolicy Bypass -File $ScriptPath @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tool script failed: $ScriptPath"
+    }
+}
+
 if (-not (Test-Path -LiteralPath $GameRoot -PathType Container)) {
     throw "GameRoot directory does not exist: $GameRoot"
 }
@@ -160,6 +177,26 @@ if ($null -eq $manifest) {
     throw "Failed to parse mod_manifest.json: $manifestPath"
 }
 Ensure-ManifestShape -Manifest $manifest -ManifestPath $manifestPath
+
+if (-not $SkipSecurityCheck) {
+    $checkSecurityScript = Join-Path $PSScriptRoot "check-mod-security.ps1"
+    if (-not (Test-Path -LiteralPath $checkSecurityScript -PathType Leaf)) {
+        throw "Required script was not found: $checkSecurityScript"
+    }
+
+    $securityArgs = @(
+        "-GameRoot", $resolvedGameRoot,
+        "-ModId", $trimmedModId
+    )
+    if ($FailOnUnsigned) {
+        $securityArgs += "-FailOnUnsigned"
+    }
+    if ($AllowExecutableFiles) {
+        $securityArgs += "-AllowExecutableFiles"
+    }
+
+    Invoke-ToolScript -ScriptPath $checkSecurityScript -Arguments $securityArgs
+}
 
 $modPackageId = [string]$manifest.id
 $modVersion = [string]$manifest.version
@@ -256,6 +293,11 @@ Write-Host "  Install Dir        : $modInstallDirName"
 Write-Host "  Format             : $Format"
 Write-Host "  Included assets    : $copiedCount"
 Write-Host "  Skipped unchanged  : $skippedUnchangedCount"
+if ($SkipSecurityCheck) {
+    Write-Host "  Security Check     : skipped"
+} else {
+    Write-Host "  Security Check     : passed"
+}
 if ($Format -eq "zip") {
     Write-Host "  Zip                : $zipPath"
 } else {
