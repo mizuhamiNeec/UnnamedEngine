@@ -27,6 +27,27 @@ function To-LowerSnake {
     return ($Value -replace "([a-z0-9])([A-Z])", '$1_$2').ToLowerInvariant()
 }
 
+function Get-RelativePath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BasePath,
+        [Parameter(Mandatory = $true)]
+        [string]$TargetPath
+    )
+
+    $baseFull = [System.IO.Path]::GetFullPath($BasePath)
+    if (-not $baseFull.EndsWith([System.IO.Path]::DirectorySeparatorChar)) {
+        $baseFull += [System.IO.Path]::DirectorySeparatorChar
+    }
+    $targetFull = [System.IO.Path]::GetFullPath($TargetPath)
+
+    $baseUri = New-Object System.Uri($baseFull)
+    $targetUri = New-Object System.Uri($targetFull)
+    $relativeUri = $baseUri.MakeRelativeUri($targetUri)
+    $relative = [System.Uri]::UnescapeDataString($relativeUri.ToString())
+    return ($relative -replace "/", "\")
+}
+
 $gameName = $Name.Trim()
 if ([string]::IsNullOrWhiteSpace($gameName)) {
     throw "Name must not be empty."
@@ -60,6 +81,22 @@ $registrationName = "${gameName}ComponentRegistration"
 $sampleComponentName = "${gameName}SampleComponent"
 $sampleStableName = "$(To-LowerSnake $gameName).Sample"
 $sampleDisplayName = "$gameName Sample"
+$moduleGameRootPath = "./projects/$gameName"
+$moduleContentRootPath = "./projects/$gameName/content"
+$moduleConfigRootPath = "./projects/$gameName/config"
+
+$relativeFromRepo = Get-RelativePath -BasePath $repoRoot -TargetPath $gameRoot
+if (-not $relativeFromRepo.StartsWith("..")) {
+    $relativeFromRepo = $relativeFromRepo.Replace("\", "/")
+    $moduleGameRootPath = "./$relativeFromRepo"
+    $moduleContentRootPath = "$moduleGameRootPath/content"
+    $moduleConfigRootPath = "$moduleGameRootPath/config"
+} else {
+    $normalizedAbsoluteGameRoot = $gameRoot.Replace("\", "/")
+    $moduleGameRootPath = $normalizedAbsoluteGameRoot
+    $moduleContentRootPath = "$normalizedAbsoluteGameRoot/content"
+    $moduleConfigRootPath = "$normalizedAbsoluteGameRoot/config"
+}
 
 $gameProfileJson = @"
 {
@@ -68,9 +105,9 @@ $gameProfileJson = @"
 	"aliases": [
 		"$Alias"
 	],
-	"gameRoot": "./projects/$gameName",
-	"contentRoot": "./projects/$gameName/content",
-	"configRoot": "./projects/$gameName/config",
+	"gameRoot": "..",
+	"contentRoot": "../content",
+	"configRoot": ".",
 	"defaultStartupScene": "scenes/bootstrap.json"
 }
 "@
@@ -190,9 +227,9 @@ namespace Unnamed {
 	GameModulePaths $moduleName::GetGameModulePaths() const {
 		return {
 			.gameName            = "$gameName",
-			.gameRoot            = "./projects/$gameName",
-			.contentRoot         = "./projects/$gameName/content",
-			.configRoot          = "./projects/$gameName/config",
+			.gameRoot            = "$moduleGameRootPath",
+			.contentRoot         = "$moduleContentRootPath",
+			.configRoot          = "$moduleConfigRootPath",
 			.defaultStartupScene = "scenes/bootstrap.json",
 		};
 	}
