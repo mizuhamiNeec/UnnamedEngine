@@ -37,6 +37,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 			*launchOptions.repoRootOverride
 		);
 	}
+	if (launchOptions.projectsRootOverride.has_value()) {
+		Unnamed::SetGameModuleManifestProjectsRootOverride(
+			*launchOptions.projectsRootOverride
+		);
+	}
 
 	Unnamed::RegisterDefaultGameModuleProfiles();
 
@@ -50,7 +55,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 	if (gameName.empty()) {
 		Error(
 			"UnnamedLauncher",
-			"No game profile was selected. Pass --project=<game_profile.json> or --game=<name> and provide manifest roots via UNNAMED_PROJECTS_ROOT or --repo-root."
+			"No game profile was selected. Pass --project=<game_profile.json> or --game=<name> and provide manifest roots via --projects-root, UNNAMED_PROJECTS_ROOT, or --repo-root."
 		);
 		return EXIT_FAILURE;
 	}

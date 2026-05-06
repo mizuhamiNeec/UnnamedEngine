@@ -73,6 +73,7 @@ namespace Unnamed {
 
 		struct ManifestSearchConfiguration {
 			std::optional<std::filesystem::path> explicitRepoRootOverride;
+			std::optional<std::filesystem::path> explicitProjectsRootOverride;
 			std::optional<std::filesystem::path> explicitManifestPathOverride;
 		};
 
@@ -247,6 +248,29 @@ namespace Unnamed {
 				return std::nullopt;
 			}
 			return TryFindRepositoryRoot(canonicalPath);
+		}
+
+		[[nodiscard]] std::optional<std::filesystem::path> TryResolveProjectsRootFromExplicitPath(
+			const std::filesystem::path& explicitPath
+		) {
+			std::error_code ec;
+			const std::filesystem::path canonicalPath =
+				std::filesystem::weakly_canonical(explicitPath, ec);
+			if (ec) {
+				return std::nullopt;
+			}
+
+			if (std::filesystem::is_directory(canonicalPath, ec) && !ec) {
+				if (canonicalPath.filename() == "projects") {
+					return canonicalPath;
+				}
+				const std::filesystem::path projectsChild = canonicalPath / "projects";
+				if (std::filesystem::is_directory(projectsChild, ec) && !ec) {
+					return projectsChild;
+				}
+			}
+
+			return std::nullopt;
 		}
 
 		struct RepositoryRootCandidate {
@@ -778,19 +802,41 @@ namespace Unnamed {
 			std::filesystem::path projectsRoot;
 			std::filesystem::path manifestsBaseRoot;
 			std::string           projectsRootReason;
-			if (const auto envProjectsRoot = TryGetEnvironmentProjectsRoot();
-				envProjectsRoot.has_value()) {
-				std::error_code ec;
-				projectsRoot = std::filesystem::weakly_canonical(
-					*envProjectsRoot,
-					ec
-				);
-				if (ec) {
-					projectsRoot = envProjectsRoot->lexically_normal();
+			if (state.manifestSearch.explicitProjectsRootOverride.has_value()) {
+				if (const auto resolvedProjectsRoot =
+						TryResolveProjectsRootFromExplicitPath(
+							*state.manifestSearch.explicitProjectsRootOverride
+						); resolvedProjectsRoot.has_value()) {
+					projectsRoot = *resolvedProjectsRoot;
+					manifestsBaseRoot = projectsRoot.parent_path();
+					projectsRootReason = "cli-projects-root";
+				} else {
+					Warning(
+						kChannel,
+						"ignored invalid --projects-root '{}' (expected '<...>/projects' or repository root containing 'projects').",
+						state.manifestSearch.explicitProjectsRootOverride
+							->generic_string()
+					);
 				}
-				manifestsBaseRoot = projectsRoot.parent_path();
-				projectsRootReason = "env:UNNAMED_PROJECTS_ROOT";
-			} else {
+			}
+
+			if (projectsRoot.empty()) {
+				if (const auto envProjectsRoot = TryGetEnvironmentProjectsRoot();
+					envProjectsRoot.has_value()) {
+					std::error_code ec;
+					projectsRoot = std::filesystem::weakly_canonical(
+						*envProjectsRoot,
+						ec
+					);
+					if (ec) {
+						projectsRoot = envProjectsRoot->lexically_normal();
+					}
+					manifestsBaseRoot = projectsRoot.parent_path();
+					projectsRootReason = "env:UNNAMED_PROJECTS_ROOT";
+				}
+			}
+
+			if (projectsRoot.empty()) {
 				const std::optional<RepositoryRootCandidate> resolvedRepoRoot =
 					ResolveRepositoryRootForManifestSearch(state.manifestSearch);
 				if (!resolvedRepoRoot.has_value()) {
@@ -1323,6 +1369,30 @@ namespace Unnamed {
 			DevMsg(
 				kChannel,
 				"--repo-root override was set after profile registration; reloading profiles with the updated root"
+			);
+			ReloadProfilesPreserveRuntimeBindings();
+		}
+	}
+
+	void SetGameModuleManifestProjectsRootOverride(
+		const std::filesystem::path& projectsRootPath
+	) {
+		GameModuleRegistryState& state = GetRegistryState();
+		if (projectsRootPath.empty()) {
+			DevMsg(kChannel, "ignored empty --projects-root override");
+			return;
+		}
+
+		state.manifestSearch.explicitProjectsRootOverride = projectsRootPath;
+		DevMsg(
+			kChannel,
+			"configured --projects-root override: '{}'",
+			projectsRootPath.generic_string()
+		);
+		if (state.defaultsRegistered) {
+			DevMsg(
+				kChannel,
+				"--projects-root override was set after profile registration; reloading profiles with the updated root"
 			);
 			ReloadProfilesPreserveRuntimeBindings();
 		}

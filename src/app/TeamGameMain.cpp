@@ -40,6 +40,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 			*launchOptions.repoRootOverride
 		);
 	}
+	if (launchOptions.projectsRootOverride.has_value()) {
+		Unnamed::SetGameModuleManifestProjectsRootOverride(
+			*launchOptions.projectsRootOverride
+		);
+	}
 
 	if (!RegisterTeamGameRuntimeModule()) {
 		Error("TeamGameApp", "Failed to register TeamGame game module profile.");

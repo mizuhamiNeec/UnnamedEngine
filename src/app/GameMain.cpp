@@ -40,6 +40,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 			*launchOptions.repoRootOverride
 		);
 	}
+	if (launchOptions.projectsRootOverride.has_value()) {
+		Unnamed::SetGameModuleManifestProjectsRootOverride(
+			*launchOptions.projectsRootOverride
+		);
+	}
 
 	if (!RegisterParkourRuntimeModule()) {
 		Error("ParkourGameApp", "Failed to register Parkour game module profile.");

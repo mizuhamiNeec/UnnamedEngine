@@ -21,6 +21,8 @@ namespace Unnamed {
 		std::optional<std::filesystem::path> projectManifestPath = std::nullopt;
 		/// @brief `--repo-root` で指定された repo root です。
 		std::optional<std::filesystem::path> repoRootOverride = std::nullopt;
+		/// @brief `--projects-root` で指定された projects ルートです。
+		std::optional<std::filesystem::path> projectsRootOverride = std::nullopt;
 		/// @brief `--help` / `-h` が指定されたかどうかです。
 		bool showHelp = false;
 		/// @brief 起動前検証のみ実行して終了するかどうかです。
@@ -105,17 +107,20 @@ namespace Unnamed {
 		helpText += "  --project <path>         game_profile.json を明示指定して起動対象を解決。\n";
 		helpText += "  --repo-root=<path>       明示的にリポジトリルートを指定してマニフェスト検索。\n";
 		helpText += "  --repo-root <path>       明示的にリポジトリルートを指定してマニフェスト検索。\n";
+		helpText += "  --projects-root=<path>   明示的に projects ルートを指定してマニフェスト検索。\n";
+		helpText += "  --projects-root <path>   明示的に projects ルートを指定してマニフェスト検索。\n";
 		helpText += "  --validate-startup-only  起動前検証のみ実行して終了。\n\n";
 		helpText += "Environment:\n";
 		helpText += "  UNNAMED_PROJECTS_ROOT=<path> projects ルートを直接指定してマニフェスト検索。\n";
 		helpText += "  UNNAMED_REPO_ROOT=<path> リポジトリルートを指定してマニフェスト検索。\n\n";
 		helpText += "マニフェスト検索の優先順位:\n";
 		helpText += "  1) --project\n";
-		helpText += "  2) UNNAMED_PROJECTS_ROOT\n";
-		helpText += "  3) --repo-root\n";
-		helpText += "  4) UNNAMED_REPO_ROOT\n";
-		helpText += "  5) Upward search from current working directory\n";
-		helpText += "  6) Upward search from executable directory\n\n";
+		helpText += "  2) --projects-root\n";
+		helpText += "  3) UNNAMED_PROJECTS_ROOT\n";
+		helpText += "  4) --repo-root\n";
+		helpText += "  5) UNNAMED_REPO_ROOT\n";
+		helpText += "  6) Upward search from current working directory\n";
+		helpText += "  7) Upward search from executable directory\n\n";
 		helpText += "Example:\n";
 		helpText +=
 			"  UnnamedEditorApp.exe --project=S:/Repositories/TD4_01/projects/TeamGame/config/game_profile.json\n";
@@ -135,7 +140,7 @@ namespace Unnamed {
 	}
 
 	/// @brief 現在プロセスのコマンドラインを共通ルールで解析します。
-	/// @details `--game[= ]` と `--project[= ]` と `--repo-root[= ]` と `--help/-h` に対応します。
+	/// @details `--game[= ]` と `--project[= ]` と `--projects-root[= ]` と `--repo-root[= ]` と `--help/-h` に対応します。
 	[[nodiscard]] inline AppLaunchOptions
 	ParseAppLaunchOptionsFromCommandLine() {
 		AppLaunchOptions options          = {};
@@ -225,6 +230,21 @@ namespace Unnamed {
 				continue;
 			}
 
+			if (arg.rfind(L"--projects-root=", 0) == 0) {
+				const std::wstring_view pathText = arg.substr(16);
+				if (pathText.empty() || isEmptyOrWhitespace(pathText)) {
+					appendDiagnostic(
+						"--projects-root の値が空か空白のみでした; オプションが無視されました"
+					);
+					continue;
+				}
+
+				options.projectsRootOverride = std::filesystem::path(
+					std::wstring(pathText)
+				);
+				continue;
+			}
+
 			if (arg.rfind(L"--project=", 0) == 0) {
 				const std::wstring_view pathText = arg.substr(10);
 				if (pathText.empty() || isEmptyOrWhitespace(pathText)) {
@@ -264,6 +284,18 @@ namespace Unnamed {
 				continue;
 			}
 
+			if (arg == L"--projects-root") {
+				if (i + 1 >= argc || isOptionToken(argv[i + 1])) {
+					appendDiagnostic(
+						"--projects-root の後に値がありませんでした; 期待される形式: --projects-root <path>"
+					);
+					continue;
+				}
+				options.projectsRootOverride = std::filesystem::path(argv[i + 1]);
+				++i;
+				continue;
+			}
+
 			if (arg.rfind(L"--", 0) == 0) {
 				if (arg == L"--validate-startup-only") {
 					options.validateStartupOnly = true;
@@ -298,6 +330,18 @@ namespace Unnamed {
 					"--project パスは存在しないかアクセス不能です:'" +
 					manifestPath.generic_string() +
 					"' (explicit manifest load will fail if this remains unresolved)"
+				);
+			}
+		}
+		if (options.projectsRootOverride.has_value()) {
+			std::error_code ec;
+			const std::filesystem::path& projectsRoot = *options.projectsRootOverride;
+			const bool exists = std::filesystem::exists(projectsRoot, ec);
+			if (ec || !exists) {
+				appendDiagnostic(
+					"--projects-root パスは存在しないかアクセス不能です:'" +
+					projectsRoot.generic_string() +
+					"' (manifest search will continue with fallback candidates)"
 				);
 			}
 		}

@@ -20,6 +20,10 @@ namespace Unnamed {
 	/// @details `--repo-root` など App 側引数解決結果を渡します。
 	void SetGameModuleManifestRepoRootOverride(const std::filesystem::path& repoRootPath);
 
+	/// @brief game_profile.json 探索に使う projects root を明示指定します。
+	/// @details `--projects-root` など App 側引数解決結果を渡します。
+	void SetGameModuleManifestProjectsRootOverride(const std::filesystem::path& projectsRootPath);
+
 	/// @brief 明示指定された game_profile.json パスを優先して読み込みます。
 	/// @details `--project` など App 側引数解決結果を渡します。
 	void SetGameModuleManifestPathOverride(const std::filesystem::path& manifestPath);
