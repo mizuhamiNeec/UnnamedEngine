@@ -5,6 +5,7 @@
 #include <new>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include "engine/game/IGameWorldFactory.h"
 
@@ -25,6 +26,12 @@ namespace Unnamed {
 		std::string contentRoot;
 		/// @brief 設定ファイルルートディレクトリです。
 		std::string configRoot;
+		/// @brief base マウント（低優先）の content ルート一覧です。
+		std::vector<std::string> baseContentMountRoots;
+		/// @brief dlc マウント（中優先）の content ルート一覧です。
+		std::vector<std::string> dlcContentMountRoots;
+		/// @brief mod マウント（高優先）の content ルート一覧です。
+		std::vector<std::string> modContentMountRoots;
 		/// @brief 既定の起動シーン（contentRoot 相対）です。
 		std::string defaultStartupScene;
 		/// @brief Runtime DLL のパス（gameRoot 基準または絶対）です。

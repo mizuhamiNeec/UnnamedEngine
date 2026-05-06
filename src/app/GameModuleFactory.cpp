@@ -437,6 +437,33 @@ namespace Unnamed {
 				std::filesystem::path(profile.paths.gameRoot),
 				profile.paths.runtimeBinaryPath
 			);
+			const std::filesystem::path gameRootPath(profile.paths.gameRoot);
+			const auto resolveMountRoots = [&](std::vector<std::string>& mountRoots) {
+				for (std::string& mountRoot : mountRoots) {
+					mountRoot = ResolvePathAgainstBaseRoot(gameRootPath, mountRoot);
+				}
+			};
+			resolveMountRoots(profile.paths.baseContentMountRoots);
+			resolveMountRoots(profile.paths.dlcContentMountRoots);
+			resolveMountRoots(profile.paths.modContentMountRoots);
+
+			// 互換性のため、base マウント未指定時は contentRoot を既定 base として扱う。
+			if (!profile.paths.contentRoot.empty()) {
+				if (profile.paths.baseContentMountRoots.empty()) {
+					profile.paths.baseContentMountRoots.emplace_back(
+						profile.paths.contentRoot
+					);
+				} else if (std::ranges::find(
+					               profile.paths.baseContentMountRoots,
+					               profile.paths.contentRoot
+				               ) ==
+				           profile.paths.baseContentMountRoots.end()) {
+					profile.paths.baseContentMountRoots.insert(
+						profile.paths.baseContentMountRoots.begin(),
+						profile.paths.contentRoot
+					);
+				}
+			}
 		}
 
 		[[nodiscard]] bool TryReadRequiredStringField(
@@ -501,6 +528,40 @@ namespace Unnamed {
 				return false;
 			}
 			outValue = it->get<bool>();
+			return true;
+		}
+
+		[[nodiscard]] bool TryReadOptionalStringArrayField(
+			const nlohmann::json& root,
+			const std::string_view fieldName,
+			const std::string_view manifestPath,
+			std::vector<std::string>& outValues
+		) {
+			const auto it = root.find(std::string(fieldName));
+			if (it == root.end()) {
+				return true;
+			}
+			if (!it->is_array()) {
+				DevMsg(
+					kChannel,
+					"manifest '{}' field '{}' must be a string array when provided",
+					manifestPath,
+					fieldName
+				);
+				return false;
+			}
+			for (const nlohmann::json& element : *it) {
+				if (!element.is_string()) {
+					DevMsg(
+						kChannel,
+						"manifest '{}' field '{}' contains non-string entry",
+						manifestPath,
+						fieldName
+					);
+					return false;
+				}
+				outValues.emplace_back(element.get<std::string>());
+			}
 			return true;
 		}
 
@@ -619,6 +680,40 @@ namespace Unnamed {
 					"invalid optional boolean field(s) for runtime policy";
 				return result;
 			}
+			if (const auto mountsIt = root.find("mounts");
+				mountsIt != root.end()) {
+				if (!mountsIt->is_object()) {
+					DevMsg(
+						kChannel,
+						"manifest '{}' field 'mounts' must be an object when provided",
+						manifestPath
+					);
+					result.failureReason = "invalid optional object field 'mounts'";
+					return result;
+				}
+				if (!TryReadOptionalStringArrayField(
+						*mountsIt,
+						"base",
+						manifestPath,
+						profile.paths.baseContentMountRoots
+					) ||
+					!TryReadOptionalStringArrayField(
+						*mountsIt,
+						"dlc",
+						manifestPath,
+						profile.paths.dlcContentMountRoots
+					) ||
+					!TryReadOptionalStringArrayField(
+						*mountsIt,
+						"mod",
+						manifestPath,
+						profile.paths.modContentMountRoots
+					)) {
+					result.failureReason =
+						"invalid optional string array field(s) for mounts";
+					return result;
+				}
+			}
 
 			const auto aliasesIt = root.find("aliases");
 			if (aliasesIt == root.end() || !aliasesIt->is_array()) {
@@ -725,7 +820,7 @@ namespace Unnamed {
 							manifestPath.generic_string();
 						Msg(
 							kChannel,
-							"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}' runtimeBinary='{}' requireRuntimeBinary={} preferRuntimeBinary={}",
+							"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}' runtimeBinary='{}' requireRuntimeBinary={} preferRuntimeBinary={} mounts(base={}, dlc={}, mod={})",
 							loadResult.profile->paths.gameName,
 							manifestPath.generic_string(),
 							loadResult.profile->paths.gameRoot,
@@ -734,7 +829,10 @@ namespace Unnamed {
 							loadResult.profile->paths.defaultStartupScene,
 							loadResult.profile->paths.runtimeBinaryPath,
 							loadResult.profile->paths.requireRuntimeBinary,
-							loadResult.profile->paths.preferRuntimeBinary
+							loadResult.profile->paths.preferRuntimeBinary,
+							loadResult.profile->paths.baseContentMountRoots.size(),
+							loadResult.profile->paths.dlcContentMountRoots.size(),
+							loadResult.profile->paths.modContentMountRoots.size()
 						);
 					}
 

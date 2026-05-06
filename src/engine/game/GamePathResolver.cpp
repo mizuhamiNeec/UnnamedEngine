@@ -1,6 +1,8 @@
 #include "GamePathResolver.h"
 
+#include <algorithm>
 #include <filesystem>
+#include <vector>
 
 namespace Unnamed {
 	namespace {
@@ -70,6 +72,40 @@ namespace Unnamed {
 			       .lexically_normal()
 			       .generic_string();
 		}
+
+		[[nodiscard]] std::vector<std::string> BuildContentMountRoots(
+			const GameModulePaths& paths
+		) {
+			std::vector<std::string> roots;
+			roots.reserve(
+				paths.baseContentMountRoots.size() +
+				paths.dlcContentMountRoots.size() +
+				paths.modContentMountRoots.size() + 1
+			);
+			const auto appendUniqueRoot = [&](const std::string& root) {
+				const std::string normalized = NormalizePath(root);
+				if (normalized.empty()) {
+					return;
+				}
+				if (std::ranges::find(roots, normalized) != roots.end()) {
+					return;
+				}
+				roots.emplace_back(normalized);
+			};
+			for (const std::string& root : paths.baseContentMountRoots) {
+				appendUniqueRoot(root);
+			}
+			for (const std::string& root : paths.dlcContentMountRoots) {
+				appendUniqueRoot(root);
+			}
+			for (const std::string& root : paths.modContentMountRoots) {
+				appendUniqueRoot(root);
+			}
+			if (roots.empty()) {
+				appendUniqueRoot(ResolveGameContentPath(paths, ""));
+			}
+			return roots;
+		}
 	}
 
 	std::string ResolveGameRootPath(
@@ -90,6 +126,38 @@ namespace Unnamed {
 		return ResolveAgainstRoot(contentRoot, path);
 	}
 
+	std::string ResolveGameMountedContentPath(
+		const GameModulePaths& paths,
+		std::string_view       path
+	) {
+		if (path.empty()) {
+			return ResolveGameContentPath(paths, path);
+		}
+		if (IsAbsoluteOrCurrentRelative(path)) {
+			return NormalizePath(path);
+		}
+
+		const std::vector<std::string> mountRoots = BuildContentMountRoots(paths);
+		if (mountRoots.empty()) {
+			return ResolveGameContentPath(paths, path);
+		}
+
+		std::error_code ec;
+		for (auto it = mountRoots.rbegin(); it != mountRoots.rend(); ++it) {
+			const std::string candidate = ResolveAgainstRoot(*it, path);
+			if (candidate.empty()) {
+				continue;
+			}
+
+			if (std::filesystem::exists(candidate, ec) && !ec) {
+				return candidate;
+			}
+			ec.clear();
+		}
+
+		return ResolveAgainstRoot(mountRoots.front(), path);
+	}
+
 	std::string ResolveGameConfigPath(
 		const GameModulePaths& paths,
 		std::string_view       path
@@ -107,6 +175,6 @@ namespace Unnamed {
 		if (startupScene.empty()) {
 			startupScene = paths.defaultStartupScene;
 		}
-		return ResolveGameContentPath(paths, startupScene);
+		return ResolveGameMountedContentPath(paths, startupScene);
 	}
 }

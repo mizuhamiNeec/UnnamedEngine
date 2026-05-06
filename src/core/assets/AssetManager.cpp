@@ -30,6 +30,18 @@ namespace Unnamed {
 	constexpr std::string_view kChannel = "AstMgr";
 
 	namespace {
+		enum class ContentMountLayer {
+			Base,
+			Dlc,
+			Mod,
+		};
+
+		struct ContentMountRoot {
+			std::string       rootPath;
+			ContentMountLayer layer = ContentMountLayer::Base;
+			std::size_t       order = 0;
+		};
+
 		[[nodiscard]] bool IsCurrentDirectoryRelativePath(
 			const std::string_view path
 		) {
@@ -41,6 +53,96 @@ namespace Unnamed {
 		) {
 			return path.starts_with("content/") ||
 			       path.starts_with("projects/");
+		}
+
+		[[nodiscard]] std::string ToString(const ContentMountLayer layer) {
+			switch (layer) {
+				case ContentMountLayer::Base:
+					return "base";
+				case ContentMountLayer::Dlc:
+					return "dlc";
+				case ContentMountLayer::Mod:
+					return "mod";
+			}
+			return "unknown";
+		}
+
+		[[nodiscard]] std::string JoinAndNormalizePath(
+			const std::string_view rootPath,
+			const std::string_view relativePath
+		) {
+			if (rootPath.empty()) {
+				return StrUtil::NormalizePath(std::string(relativePath));
+			}
+			return StrUtil::NormalizePath(
+				(std::filesystem::path(rootPath) / std::filesystem::path(relativePath))
+					.lexically_normal()
+					.generic_string()
+			);
+		}
+
+		void AppendMountRoots(
+			std::vector<ContentMountRoot>&      outRoots,
+			const std::vector<std::string>& mountRoots,
+			const ContentMountLayer             layer
+		) {
+			for (std::size_t i = 0; i < mountRoots.size(); ++i) {
+				const std::string normalizedRoot =
+					StrUtil::NormalizePath(mountRoots[i]);
+				if (normalizedRoot.empty()) {
+					continue;
+				}
+				if (std::ranges::find_if(
+					    outRoots,
+					    [&](const ContentMountRoot& existing) {
+						    return existing.rootPath == normalizedRoot;
+					    }
+				    ) != outRoots.end()) {
+					continue;
+				}
+				outRoots.emplace_back(ContentMountRoot{
+					.rootPath = normalizedRoot,
+					.layer = layer,
+					.order = i,
+				});
+			}
+		}
+
+		[[nodiscard]] std::vector<ContentMountRoot> BuildContentMountRoots(
+			const GameModulePaths& paths
+		) {
+			std::vector<ContentMountRoot> roots;
+			roots.reserve(
+				paths.baseContentMountRoots.size() +
+				paths.dlcContentMountRoots.size() +
+				paths.modContentMountRoots.size() + 1
+			);
+			AppendMountRoots(
+				roots,
+				paths.baseContentMountRoots,
+				ContentMountLayer::Base
+			);
+			AppendMountRoots(
+				roots,
+				paths.dlcContentMountRoots,
+				ContentMountLayer::Dlc
+			);
+			AppendMountRoots(
+				roots,
+				paths.modContentMountRoots,
+				ContentMountLayer::Mod
+			);
+			if (roots.empty()) {
+				const std::string fallbackRoot = ResolveGameContentPath(paths, "");
+				if (!fallbackRoot.empty()) {
+					roots.emplace_back(ContentMountRoot{
+						.rootPath = StrUtil::NormalizePath(fallbackRoot),
+						.layer = ContentMountLayer::Base,
+						.order = 0,
+					});
+				}
+			}
+			return roots;
 		}
 
 		[[nodiscard]] std::string ResolveAssetLoadPath(
@@ -71,12 +173,48 @@ namespace Unnamed {
 				return normalizedInput;
 			}
 
-			// contentRoot 相対として解決します。
-			const std::string resolvedPath = ResolveGameContentPath(
-				gameModule->GetGameModulePaths(),
+			const GameModulePaths gamePaths = gameModule->GetGameModulePaths();
+			const std::vector<ContentMountRoot> mountRoots =
+				BuildContentMountRoots(gamePaths);
+			if (mountRoots.empty()) {
+				const std::string resolvedPath = ResolveGameContentPath(
+					gamePaths,
+					normalizedInput
+				);
+				return resolvedPath.empty() ? normalizedInput : resolvedPath;
+			}
+
+			// 後勝ちルール: base -> dlc -> mod の順で定義し、解決時は逆順探索する。
+			std::error_code ec;
+			for (auto it = mountRoots.rbegin(); it != mountRoots.rend(); ++it) {
+				const std::string candidatePath = JoinAndNormalizePath(
+					it->rootPath,
+					normalizedInput
+				);
+				if (candidatePath.empty()) {
+					continue;
+				}
+
+				if (std::filesystem::exists(candidatePath, ec) && !ec) {
+					if (it->layer != ContentMountLayer::Base || it->order != 0) {
+						DevMsg(
+							kChannel,
+							"asset mount resolved '{}' from {} mount root '{}'",
+							normalizedInput,
+							ToString(it->layer),
+							it->rootPath
+						);
+					}
+					return candidatePath;
+				}
+				ec.clear();
+			}
+
+			// 未配置時は base の先頭を既定解決先として扱う。
+			return JoinAndNormalizePath(
+				mountRoots.front().rootPath,
 				normalizedInput
 			);
-			return resolvedPath.empty() ? normalizedInput : resolvedPath;
 		}
 
 		FileStamp ReadCurrentFileStamp(const std::string& path) {
