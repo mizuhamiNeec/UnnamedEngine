@@ -2,7 +2,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <new>
 #include <string>
+#include <type_traits>
 
 #include "engine/game/IGameWorldFactory.h"
 
@@ -117,5 +119,74 @@ namespace Unnamed {
 		return api->GetRuntimeName != nullptr &&
 		       api->CreateGameModule != nullptr &&
 		       api->DestroyGameModule != nullptr;
+	}
+
+	/// @brief Runtime API 向けに GameModule を生成します。
+	template <typename TGameModule>
+	[[nodiscard]] IGameModule* CreateRuntimeGameModuleInstance() {
+		static_assert(
+			std::is_base_of_v<IGameModule, TGameModule>,
+			"TGameModule must derive from IGameModule."
+		);
+		return new (std::nothrow) TGameModule();
+	}
+
+	/// @brief Runtime API 向けに GameModule を破棄します。
+	template <typename TGameModule>
+	void DestroyRuntimeGameModuleInstance(IGameModule* module) {
+		static_assert(
+			std::is_base_of_v<IGameModule, TGameModule>,
+			"TGameModule must derive from IGameModule."
+		);
+		delete static_cast<TGameModule*>(module);
+	}
+
+	template <typename TGameModule>
+	[[nodiscard]] const char*& RuntimeNameStorageForGameModuleType() {
+		static const char* kRuntimeName = "";
+		return kRuntimeName;
+	}
+
+	template <typename TGameModule>
+	[[nodiscard]] const char* GetRuntimeNameForGameModuleType() {
+		return RuntimeNameStorageForGameModuleType<TGameModule>();
+	}
+
+	template <typename TGameModule>
+	void SetRuntimeNameForGameModuleType(const char* runtimeName) {
+		RuntimeNameStorageForGameModuleType<TGameModule>() =
+			runtimeName == nullptr ? "" : runtimeName;
+	}
+
+	/// @brief 指定型の GameModule 用 Runtime API v1 を構築します。
+	template <typename TGameModule>
+	[[nodiscard]] const GameRuntimeApiV1* BuildGameRuntimeApiV1(
+		const char* runtimeName
+	) {
+		static_assert(
+			std::is_base_of_v<IGameModule, TGameModule>,
+			"TGameModule must derive from IGameModule."
+		);
+
+		// 同一モジュール型については最初に渡された名前を返す運用とする。
+		SetRuntimeNameForGameModuleType<TGameModule>(runtimeName);
+		static const GameRuntimeApiV1 kApi = {
+			.abiVersion = static_cast<std::uint32_t>(GameRuntimeAbiVersion::V1),
+			.structSize = static_cast<std::uint32_t>(sizeof(GameRuntimeApiV1)),
+			.reservedFlags = 0u,
+			.reserved = 0u,
+			.GetRuntimeName = &GetRuntimeNameForGameModuleType<TGameModule>,
+			.CreateGameModule = &CreateRuntimeGameModuleInstance<TGameModule>,
+			.DestroyGameModule = &DestroyRuntimeGameModuleInstance<TGameModule>,
+		};
+		return &kApi;
+	}
+
+#define UNNAMED_EXPORT_GAME_RUNTIME_API_V1(runtime_name_literal, game_module_type) \
+	UNNAMED_GAME_RUNTIME_API_EXPORT const ::Unnamed::GameRuntimeApiV1*             \
+	UnnamedGetGameRuntimeApiV1() {                                                  \
+		return ::Unnamed::BuildGameRuntimeApiV1<game_module_type>(                  \
+			runtime_name_literal                                                     \
+		);                                                                          \
 	}
 }
