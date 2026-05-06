@@ -1011,11 +1011,6 @@ namespace Unnamed {
 			const GameModulePaths&   paths
 		) {
 			const std::string canonical(canonicalName);
-			if (auto runtimeIt = state.loadedRuntimeLibraries.find(canonical);
-				runtimeIt != state.loadedRuntimeLibraries.end()) {
-				return &runtimeIt->second;
-			}
-
 			if (paths.runtimeBinaryPath.empty()) {
 				return nullptr;
 			}
@@ -1023,6 +1018,26 @@ namespace Unnamed {
 			std::error_code ec;
 			const std::filesystem::path runtimePath =
 				std::filesystem::path(paths.runtimeBinaryPath).lexically_normal();
+			if (auto runtimeIt = state.loadedRuntimeLibraries.find(canonical);
+				runtimeIt != state.loadedRuntimeLibraries.end()) {
+				const std::filesystem::path loadedRuntimePath =
+					std::filesystem::path(runtimeIt->second.runtimeBinaryPath)
+						.lexically_normal();
+				if (loadedRuntimePath == runtimePath) {
+					return &runtimeIt->second;
+				}
+
+				Msg(
+					kChannel,
+					"runtime binary path changed for game '{}': old='{}' new='{}' (reload)",
+					paths.gameName,
+					runtimeIt->second.runtimeBinaryPath,
+					runtimePath.generic_string()
+				);
+				UnloadRuntimeLibrary(runtimeIt->second);
+				state.loadedRuntimeLibraries.erase(runtimeIt);
+			}
+
 			if (!std::filesystem::exists(runtimePath, ec) || ec) {
 				Error(
 					kChannel,
@@ -1076,8 +1091,11 @@ namespace Unnamed {
 			if (!IsValidGameRuntimeApiV1(api)) {
 				Error(
 					kChannel,
-					"runtime '{}' returned invalid GameRuntimeApiV1",
-					runtimePath.generic_string()
+					"runtime '{}' returned invalid GameRuntimeApiV1 (expectedVersion={}, gotVersion={}, structSize={})",
+					runtimePath.generic_string(),
+					static_cast<std::uint32_t>(GameRuntimeAbiVersion::Current),
+					api == nullptr ? 0u : api->abiVersion,
+					api == nullptr ? 0u : api->structSize
 				);
 				::FreeLibrary(runtimeModule);
 				return nullptr;
@@ -1532,6 +1550,28 @@ namespace Unnamed {
 				true,
 				std::format("startup scene does not exist '{}'.", startupScenePath)
 			);
+		}
+
+		ec.clear();
+		if (!paths.runtimeBinaryPath.empty()) {
+			if (!std::filesystem::exists(paths.runtimeBinaryPath, ec) || ec) {
+				reportIssue(
+					true,
+					std::format(
+						"runtime binary does not exist '{}'.",
+						paths.runtimeBinaryPath
+					)
+				);
+			} else if (!std::filesystem::is_regular_file(paths.runtimeBinaryPath, ec) ||
+			           ec) {
+				reportIssue(
+					true,
+					std::format(
+						"runtime binary is not a file '{}'.",
+						paths.runtimeBinaryPath
+					)
+				);
+			}
 		}
 
 		if (validationFailed) {
