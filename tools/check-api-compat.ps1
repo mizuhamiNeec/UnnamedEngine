@@ -99,16 +99,16 @@ foreach ($modDir in Get-ChildItem -LiteralPath $modsRoot -Directory) {
     }
 
     $modId = $modDir.Name
-    if ($manifest.PSObject.Properties.Match("id")) {
+    if ($manifest.PSObject.Properties.Match("id").Count -gt 0) {
         $modId = [string]$manifest.id
     }
 
     $engineApi = ""
     $gameApi = ""
-    if ($manifest.PSObject.Properties.Match("engineApi")) {
+    if ($manifest.PSObject.Properties.Match("engineApi").Count -gt 0) {
         $engineApi = [string]$manifest.engineApi
     }
-    if ($manifest.PSObject.Properties.Match("gameApi")) {
+    if ($manifest.PSObject.Properties.Match("gameApi").Count -gt 0) {
         $gameApi = [string]$manifest.gameApi
     }
 

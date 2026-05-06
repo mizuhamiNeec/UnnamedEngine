@@ -116,13 +116,13 @@ function Update-GameProfileEnabledMods {
         throw "Failed to parse game_profile.json: $ProfilePath"
     }
 
-    if (-not $profile.PSObject.Properties.Match("mods") -or $null -eq $profile.mods) {
+    if ($profile.PSObject.Properties.Match("mods").Count -eq 0 -or $null -eq $profile.mods) {
         $profile | Add-Member -MemberType NoteProperty -Name "mods" -Value ([PSCustomObject]@{}) -Force
     }
     if (-not ($profile.mods -is [PSCustomObject])) {
         throw "game_profile.json field 'mods' must be an object to auto-enable mod."
     }
-    if (-not $profile.mods.PSObject.Properties.Match("enabled") -or $null -eq $profile.mods.enabled) {
+    if ($profile.mods.PSObject.Properties.Match("enabled").Count -eq 0 -or $null -eq $profile.mods.enabled) {
         $profile.mods | Add-Member -MemberType NoteProperty -Name "enabled" -Value @() -Force
     }
     if (-not ($profile.mods.enabled -is [System.Collections.IEnumerable])) {

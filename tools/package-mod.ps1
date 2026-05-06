@@ -97,7 +97,7 @@ function Resolve-ModRoot {
             continue
         }
 
-        if ($manifest.PSObject.Properties.Match("id") -and [string]$manifest.id -eq $RequestedModId) {
+        if ($manifest.PSObject.Properties.Match("id").Count -gt 0 -and [string]$manifest.id -eq $RequestedModId) {
             return $entry.FullName
         }
     }
@@ -117,7 +117,7 @@ function Resolve-BaseContentRoot {
         return (Resolve-PathAgainstBase -BasePath $GameRoot -Value "content")
     }
 
-    if (-not $profile.PSObject.Properties.Match("contentRoot")) {
+    if ($profile.PSObject.Properties.Match("contentRoot").Count -eq 0) {
         return (Resolve-PathAgainstBase -BasePath $GameRoot -Value "content")
     }
 
@@ -139,7 +139,7 @@ function Ensure-ManifestShape {
         }
     }
 
-    if (-not $Manifest.PSObject.Properties.Match("contentRoot") -or [string]::IsNullOrWhiteSpace([string]$Manifest.contentRoot)) {
+    if ($Manifest.PSObject.Properties.Match("contentRoot").Count -eq 0 -or [string]::IsNullOrWhiteSpace([string]$Manifest.contentRoot)) {
         $Manifest | Add-Member -MemberType NoteProperty -Name "contentRoot" -Value "content" -Force
     }
 }

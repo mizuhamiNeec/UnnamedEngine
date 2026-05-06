@@ -189,10 +189,10 @@ if ($IncludeMods) {
 }
 
 $runtimeBinaryPackagedPath = ""
-if ($manifest.PSObject.Properties.Match("runtimeBinary") -and -not [string]::IsNullOrWhiteSpace([string]$manifest.runtimeBinary)) {
+if ($manifest.PSObject.Properties.Match("runtimeBinary").Count -gt 0 -and -not [string]::IsNullOrWhiteSpace([string]$manifest.runtimeBinary)) {
     $resolvedRuntimeBinary = Resolve-PathAgainstBase -BasePath $resolvedGameRoot -Value ([string]$manifest.runtimeBinary)
     if (-not (Test-Path -LiteralPath $resolvedRuntimeBinary -PathType Leaf)) {
-        if ($manifest.PSObject.Properties.Match("requireRuntimeBinary") -and $manifest.requireRuntimeBinary) {
+        if ($manifest.PSObject.Properties.Match("requireRuntimeBinary").Count -gt 0 -and $manifest.requireRuntimeBinary) {
             throw "runtimeBinary is required but was not found: $resolvedRuntimeBinary"
         }
         Write-Warning "runtimeBinary was not found and will not be packaged: $resolvedRuntimeBinary"
@@ -226,23 +226,23 @@ $packagedManifest.contentRoot = "../content"
 $packagedManifest.configRoot = "."
 $packagedManifest.defaultStartupScene = [string]$manifest.defaultStartupScene
 
-if ($manifest.PSObject.Properties.Match("requireRuntimeBinary")) {
+if ($manifest.PSObject.Properties.Match("requireRuntimeBinary").Count -gt 0) {
     $packagedManifest.requireRuntimeBinary = [bool]$manifest.requireRuntimeBinary
 }
-if ($manifest.PSObject.Properties.Match("preferRuntimeBinary")) {
+if ($manifest.PSObject.Properties.Match("preferRuntimeBinary").Count -gt 0) {
     $packagedManifest.preferRuntimeBinary = [bool]$manifest.preferRuntimeBinary
 }
 if (-not [string]::IsNullOrWhiteSpace($runtimeBinaryPackagedPath)) {
     $packagedManifest.runtimeBinary = $runtimeBinaryPackagedPath
 }
 
-if ($manifest.PSObject.Properties.Match("mounts") -and $null -ne $manifest.mounts) {
+if ($manifest.PSObject.Properties.Match("mounts").Count -gt 0 -and $null -ne $manifest.mounts) {
     $packagedManifest.mounts = $manifest.mounts
 }
-if ($manifest.PSObject.Properties.Match("mods") -and $null -ne $manifest.mods) {
+if ($manifest.PSObject.Properties.Match("mods").Count -gt 0 -and $null -ne $manifest.mods) {
     $packagedManifest.mods = $manifest.mods
     if ($IncludeMods) {
-        if (-not $packagedManifest.mods.PSObject.Properties.Match("root")) {
+        if ($packagedManifest.mods.PSObject.Properties.Match("root").Count -eq 0) {
             $packagedManifest.mods | Add-Member -MemberType NoteProperty -Name "root" -Value "../mods" -Force
         } else {
             $packagedManifest.mods.root = "../mods"

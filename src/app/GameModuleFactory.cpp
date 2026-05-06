@@ -98,6 +98,8 @@ namespace Unnamed {
 			std::string               modsRootOverride;
 			std::vector<std::string> enabledMods;
 			std::vector<std::string> disabledMods;
+			bool                      requireSignedMods = false;
+			bool                      allowExecutableModFiles = false;
 		};
 
 		struct ModDependencySpec {
@@ -111,6 +113,8 @@ namespace Unnamed {
 			std::string                    engineApi;
 			std::string                    gameApi;
 			std::string                    contentRoot;
+			bool                           isSigned = false;
+			std::string                    signatureType;
 			std::filesystem::path          modRootPath;
 			std::filesystem::path          manifestPath;
 			std::vector<ModDependencySpec> dependencies;
@@ -1001,9 +1005,21 @@ namespace Unnamed {
 						"disabled",
 						manifestPath,
 						profile.disabledMods
+					) ||
+					!TryReadOptionalBoolField(
+						*modsIt,
+						"requireSignatures",
+						manifestPath,
+						profile.requireSignedMods
+					) ||
+					!TryReadOptionalBoolField(
+						*modsIt,
+						"allowExecutableFiles",
+						manifestPath,
+						profile.allowExecutableModFiles
 					)) {
 					result.failureReason =
-						"invalid optional string array field(s) for mods";
+						"invalid optional field(s) for mods";
 					return result;
 				}
 			}
@@ -1067,6 +1083,130 @@ namespace Unnamed {
 				outDependency.versionConstraint = versionIt->get<std::string>();
 			}
 			return !outDependency.id.empty();
+		}
+
+		[[nodiscard]] bool TryReadModSignatureMetadata(
+			const nlohmann::json& root,
+			LoadedModManifest&    outManifest,
+			std::string&          outError
+		) {
+			const auto signatureIt = root.find("signature");
+			if (signatureIt == root.end()) {
+				return true;
+			}
+			if (!signatureIt->is_object()) {
+				outError = "invalid optional object field 'signature'";
+				return false;
+			}
+
+			const auto typeIt = signatureIt->find("type");
+			if (typeIt == signatureIt->end()) {
+				outError = "missing required string field 'signature.type'";
+				return false;
+			}
+			if (!typeIt->is_string()) {
+				outError = "invalid required string field 'signature.type'";
+				return false;
+			}
+
+			std::string signatureType = typeIt->get<std::string>();
+			std::transform(
+				signatureType.begin(),
+				signatureType.end(),
+				signatureType.begin(),
+				[](unsigned char ch) { return static_cast<char>(std::tolower(ch)); }
+			);
+			outManifest.signatureType = signatureType;
+
+			if (signatureType.empty() || signatureType == "unsigned") {
+				outManifest.isSigned = false;
+				return true;
+			}
+
+			const auto valueIt = signatureIt->find("value");
+			if (valueIt == signatureIt->end() || !valueIt->is_string() ||
+			    valueIt->get<std::string>().empty()) {
+				outError =
+					"missing required non-empty string field 'signature.value'";
+				return false;
+			}
+
+			outManifest.isSigned = true;
+			return true;
+		}
+
+		[[nodiscard]] bool ContainsExecutableOrScriptFiles(
+			const LoadedModManifest& manifest,
+			std::string&             outRelativePath
+		) {
+			static constexpr std::array<std::string_view, 15>
+				kBlockedExtensions = {
+					".exe",
+					".dll",
+					".com",
+					".bat",
+					".cmd",
+					".ps1",
+					".psm1",
+					".vbs",
+					".js",
+					".jse",
+					".wsf",
+					".wsh",
+					".hta",
+					".msi",
+					".scr",
+				};
+
+			std::error_code ec;
+			for (std::filesystem::recursive_directory_iterator it(
+				     manifest.modRootPath,
+				     std::filesystem::directory_options::skip_permission_denied,
+				     ec
+			     );
+			     it != std::filesystem::recursive_directory_iterator();
+			     it.increment(ec)) {
+				if (ec) {
+					ec.clear();
+					continue;
+				}
+				if (!it->is_regular_file(ec) || ec) {
+					ec.clear();
+					continue;
+				}
+
+				std::string extension = it->path().extension().string();
+				std::transform(
+					extension.begin(),
+					extension.end(),
+					extension.begin(),
+					[](unsigned char ch) { return static_cast<char>(std::tolower(ch)); }
+				);
+				if (std::find(
+					    kBlockedExtensions.begin(),
+					    kBlockedExtensions.end(),
+					    extension
+				    ) == kBlockedExtensions.end()) {
+					continue;
+				}
+
+				std::filesystem::path relativePath = it->path().filename();
+				std::error_code       relativeEc;
+				relativePath = std::filesystem::relative(
+					it->path(),
+					manifest.modRootPath,
+					relativeEc
+				);
+				if (!relativeEc) {
+					outRelativePath = relativePath.generic_string();
+				} else {
+					outRelativePath = it->path().generic_string();
+				}
+				return true;
+			}
+
+			outRelativePath.clear();
+			return false;
 		}
 
 		[[nodiscard]] std::optional<LoadedModManifest> TryLoadModManifest(
@@ -1137,6 +1277,9 @@ namespace Unnamed {
 					}
 					manifest.dependencies.emplace_back(std::move(dep));
 				}
+			}
+			if (!TryReadModSignatureMetadata(root, manifest, outError)) {
+				return std::nullopt;
 			}
 
 			manifest.manifestPath = manifestPath;
@@ -1268,6 +1411,12 @@ namespace Unnamed {
 				FormatApiVersionSet(kSupportedGameApiVersions),
 				FormatApiVersionSet(kDeprecatedGameApiVersions)
 			);
+			Msg(
+				kChannel,
+				"mod security policy: requireSignatures={} allowExecutableFiles={}",
+				profile.requireSignedMods,
+				profile.allowExecutableModFiles
+			);
 			for (const std::string& modId : enabledModIds) {
 				if (!manifestsById.contains(modId)) {
 					Warning(
@@ -1335,6 +1484,46 @@ namespace Unnamed {
 						modId,
 						gameApiCompatibility.message
 					);
+				}
+
+				if (!modManifest.isSigned) {
+					if (profile.requireSignedMods) {
+						Warning(
+							kChannel,
+							"mod '{}' is unsigned and rejected by mods.requireSignatures policy.",
+							modId
+						);
+						hasDependencyError = true;
+					} else {
+						Warning(
+							kChannel,
+							"mod '{}' is unsigned (allowed by policy).",
+							modId
+						);
+					}
+				}
+
+				std::string blockedRelativePath;
+				if (ContainsExecutableOrScriptFiles(
+					    modManifest,
+					    blockedRelativePath
+				    )) {
+					if (profile.allowExecutableModFiles) {
+						Warning(
+							kChannel,
+							"mod '{}' contains executable/script file '{}' (allowed by policy).",
+							modId,
+							blockedRelativePath
+						);
+					} else {
+						Warning(
+							kChannel,
+							"mod '{}' contains executable/script file '{}' and is rejected by mods.allowExecutableFiles policy.",
+							modId,
+							blockedRelativePath
+						);
+						hasDependencyError = true;
+					}
 				}
 				inDegree.emplace(modId, 0);
 			}
@@ -1522,7 +1711,7 @@ namespace Unnamed {
 						ResolveAndApplyModMountRoots(*loadResult.profile);
 						Msg(
 							kChannel,
-							"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}' runtimeBinary='{}' requireRuntimeBinary={} preferRuntimeBinary={} mounts(base={}, dlc={}, mod={})",
+							"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}' runtimeBinary='{}' requireRuntimeBinary={} preferRuntimeBinary={} mounts(base={}, dlc={}, mod={}) mods(requireSignatures={}, allowExecutableFiles={})",
 							loadResult.profile->paths.gameName,
 							manifestPath.generic_string(),
 							loadResult.profile->paths.gameRoot,
@@ -1534,7 +1723,9 @@ namespace Unnamed {
 							loadResult.profile->paths.preferRuntimeBinary,
 							loadResult.profile->paths.baseContentMountRoots.size(),
 							loadResult.profile->paths.dlcContentMountRoots.size(),
-							loadResult.profile->paths.modContentMountRoots.size()
+							loadResult.profile->paths.modContentMountRoots.size(),
+							loadResult.profile->requireSignedMods,
+							loadResult.profile->allowExecutableModFiles
 						);
 					}
 
