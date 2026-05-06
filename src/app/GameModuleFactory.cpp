@@ -36,6 +36,12 @@ namespace Unnamed {
 			GameModuleCreateFunction createFunction = nullptr;
 		};
 
+		struct LoadedRuntimeLibrary {
+			HMODULE                moduleHandle = nullptr;
+			const GameRuntimeApiV1* api = nullptr;
+			std::string            runtimeBinaryPath;
+		};
+
 		struct LoadedGameProfile {
 			GameModulePaths            paths;
 			std::vector<std::string> aliases;
@@ -54,6 +60,7 @@ namespace Unnamed {
 		struct GameModuleRegistryState {
 			std::unordered_map<std::string, RegisteredGameModule> modulesByName;
 			std::unordered_map<std::string, std::string> aliasToCanonical;
+			std::unordered_map<std::string, LoadedRuntimeLibrary> loadedRuntimeLibraries;
 			ManifestSearchConfiguration manifestSearch = {};
 			bool defaultsRegistered = false;
 		};
@@ -66,6 +73,23 @@ namespace Unnamed {
 		[[nodiscard]] GameModuleRegistryState& GetRegistryState() {
 			static GameModuleRegistryState state;
 			return state;
+		}
+
+		void UnloadRuntimeLibrary(LoadedRuntimeLibrary& runtimeLibrary) {
+			if (runtimeLibrary.moduleHandle != nullptr) {
+				::FreeLibrary(runtimeLibrary.moduleHandle);
+				runtimeLibrary.moduleHandle = nullptr;
+			}
+			runtimeLibrary.api = nullptr;
+			runtimeLibrary.runtimeBinaryPath.clear();
+		}
+
+		void UnloadAllRuntimeLibraries(GameModuleRegistryState& state) {
+			for (auto& [gameName, runtimeLibrary] : state.loadedRuntimeLibraries) {
+				(void)gameName;
+				UnloadRuntimeLibrary(runtimeLibrary);
+			}
+			state.loadedRuntimeLibraries.clear();
 		}
 
 		[[nodiscard]] std::string NormalizeGameName(std::string_view value) {
@@ -366,6 +390,10 @@ namespace Unnamed {
 				baseRoot,
 				profile.paths.configRoot
 			);
+			profile.paths.runtimeBinaryPath = ResolvePathAgainstBaseRoot(
+				std::filesystem::path(profile.paths.gameRoot),
+				profile.paths.runtimeBinaryPath
+			);
 		}
 
 		[[nodiscard]] bool TryReadRequiredStringField(
@@ -494,6 +522,22 @@ namespace Unnamed {
 				return result;
 			}
 
+			if (const auto runtimeBinaryIt = root.find("runtimeBinary");
+				runtimeBinaryIt != root.end()) {
+				if (!runtimeBinaryIt->is_string()) {
+					DevMsg(
+						kChannel,
+						"manifest '{}' field 'runtimeBinary' must be a string when provided",
+						manifestPath
+					);
+					result.failureReason =
+						"invalid optional string field 'runtimeBinary'";
+					return result;
+				}
+				profile.paths.runtimeBinaryPath =
+					runtimeBinaryIt->get<std::string>();
+			}
+
 			const auto aliasesIt = root.find("aliases");
 			if (aliasesIt == root.end() || !aliasesIt->is_array()) {
 				DevMsg(
@@ -599,13 +643,14 @@ namespace Unnamed {
 							manifestPath.generic_string();
 						Msg(
 							kChannel,
-							"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}'",
+							"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}' runtimeBinary='{}'",
 							loadResult.profile->paths.gameName,
 							manifestPath.generic_string(),
 							loadResult.profile->paths.gameRoot,
 							loadResult.profile->paths.contentRoot,
 							loadResult.profile->paths.configRoot,
-							loadResult.profile->paths.defaultStartupScene
+							loadResult.profile->paths.defaultStartupScene,
+							loadResult.profile->paths.runtimeBinaryPath
 						);
 					}
 
@@ -799,6 +844,7 @@ namespace Unnamed {
 			GameModuleRegistryState& state = GetRegistryState();
 			const RuntimeBindingSnapshot snapshot =
 				TakeRuntimeBindingSnapshot(state);
+			UnloadAllRuntimeLibraries(state);
 			state.modulesByName.clear();
 			state.aliasToCanonical.clear();
 			state.defaultsRegistered = false;
@@ -899,6 +945,164 @@ namespace Unnamed {
 			}
 
 			return true;
+		}
+
+		class ImportedRuntimeGameModule final : public IGameModule {
+		public:
+			ImportedRuntimeGameModule(
+				IGameModule* rawModule,
+				void (*destroyFunction)(IGameModule*)
+			)
+				: mRawModule(rawModule)
+				, mDestroyFunction(destroyFunction) {
+			}
+
+			~ImportedRuntimeGameModule() override {
+				if (mRawModule != nullptr && mDestroyFunction != nullptr) {
+					mDestroyFunction(mRawModule);
+				}
+				mRawModule = nullptr;
+			}
+
+			void Initialize(EngineServices& services) override {
+				mRawModule->Initialize(services);
+			}
+
+			[[nodiscard]] std::unique_ptr<World> CreateRuntimeWorld(
+				const WorldServices& services
+			) override {
+				return mRawModule->CreateRuntimeWorld(services);
+			}
+
+			[[nodiscard]] std::unique_ptr<World> CreatePlayWorld(
+				const WorldServices& services
+			) override {
+				return mRawModule->CreatePlayWorld(services);
+			}
+
+			[[nodiscard]] std::unique_ptr<IDemoService> CreateDemoService() override {
+				return mRawModule->CreateDemoService();
+			}
+
+			void RegisterGameComponents(ComponentRegistry& componentRegistry) override {
+				mRawModule->RegisterGameComponents(componentRegistry);
+			}
+
+			[[nodiscard]] GameModulePaths GetGameModulePaths() const override {
+				return mRawModule->GetGameModulePaths();
+			}
+
+			[[nodiscard]] std::string GetDefaultStartupScenePath() const override {
+				return mRawModule->GetDefaultStartupScenePath();
+			}
+
+			[[nodiscard]] std::string GetDefaultUiDocumentPath() const override {
+				return mRawModule->GetDefaultUiDocumentPath();
+			}
+
+		private:
+			IGameModule* mRawModule = nullptr;
+			void (*mDestroyFunction)(IGameModule*) = nullptr;
+		};
+
+		[[nodiscard]] LoadedRuntimeLibrary* EnsureRuntimeLibraryLoaded(
+			GameModuleRegistryState& state,
+			const std::string_view   canonicalName,
+			const GameModulePaths&   paths
+		) {
+			const std::string canonical(canonicalName);
+			if (auto runtimeIt = state.loadedRuntimeLibraries.find(canonical);
+				runtimeIt != state.loadedRuntimeLibraries.end()) {
+				return &runtimeIt->second;
+			}
+
+			if (paths.runtimeBinaryPath.empty()) {
+				return nullptr;
+			}
+
+			std::error_code ec;
+			const std::filesystem::path runtimePath =
+				std::filesystem::path(paths.runtimeBinaryPath).lexically_normal();
+			if (!std::filesystem::exists(runtimePath, ec) || ec) {
+				Error(
+					kChannel,
+					"runtime binary not found for game '{}': '{}'",
+					paths.gameName,
+					runtimePath.generic_string()
+				);
+				return nullptr;
+			}
+			if (!std::filesystem::is_regular_file(runtimePath, ec) || ec) {
+				Error(
+					kChannel,
+					"runtime binary is not a file for game '{}': '{}'",
+					paths.gameName,
+					runtimePath.generic_string()
+				);
+				return nullptr;
+			}
+
+			const std::wstring runtimePathWide = runtimePath.wstring();
+			HMODULE            runtimeModule = ::LoadLibraryW(runtimePathWide.c_str());
+			if (runtimeModule == nullptr) {
+				const DWORD errorCode = ::GetLastError();
+				Error(
+					kChannel,
+					"LoadLibraryW failed for game '{}' runtime='{}' error={}",
+					paths.gameName,
+					runtimePath.generic_string(),
+					errorCode
+				);
+				return nullptr;
+			}
+
+			FARPROC symbol = ::GetProcAddress(runtimeModule, kGameRuntimeApiV1SymbolName);
+			if (symbol == nullptr) {
+				const DWORD errorCode = ::GetLastError();
+				Error(
+					kChannel,
+					"runtime '{}' missing symbol '{}' error={}",
+					runtimePath.generic_string(),
+					kGameRuntimeApiV1SymbolName,
+					errorCode
+				);
+				::FreeLibrary(runtimeModule);
+				return nullptr;
+			}
+
+			const auto getApi =
+				reinterpret_cast<GetGameRuntimeApiV1Function>(symbol);
+			const GameRuntimeApiV1* api = getApi();
+			if (!IsValidGameRuntimeApiV1(api)) {
+				Error(
+					kChannel,
+					"runtime '{}' returned invalid GameRuntimeApiV1",
+					runtimePath.generic_string()
+				);
+				::FreeLibrary(runtimeModule);
+				return nullptr;
+			}
+
+			const char* runtimeName = api->GetRuntimeName();
+			Msg(
+				kChannel,
+				"runtime library loaded: game='{}' runtime='{}' apiVersion={} name='{}'",
+				paths.gameName,
+				runtimePath.generic_string(),
+				api->abiVersion,
+				runtimeName == nullptr ? "" : runtimeName
+			);
+
+			LoadedRuntimeLibrary loadedRuntime = {};
+			loadedRuntime.moduleHandle = runtimeModule;
+			loadedRuntime.api = api;
+			loadedRuntime.runtimeBinaryPath = runtimePath.generic_string();
+			const auto [insertedIt, inserted] = state.loadedRuntimeLibraries.emplace(
+				canonical,
+				std::move(loadedRuntime)
+			);
+			(void)inserted;
+			return &insertedIt->second;
 		}
 
 		class DefaultGameModule final : public IGameModule {
@@ -1133,6 +1337,11 @@ namespace Unnamed {
 
 		RegisteredGameModule& entry = state.modulesByName[canonicalName];
 		entry.createFunction = createFunction;
+		if (auto runtimeIt = state.loadedRuntimeLibraries.find(canonicalName);
+			runtimeIt != state.loadedRuntimeLibraries.end()) {
+			UnloadRuntimeLibrary(runtimeIt->second);
+			state.loadedRuntimeLibraries.erase(runtimeIt);
+		}
 		state.aliasToCanonical[canonicalName] = canonicalName;
 		return true;
 	}
@@ -1166,8 +1375,20 @@ namespace Unnamed {
 	}
 
 	std::unique_ptr<IGameModule> CreateGameModule(const std::string_view gameName) {
-		const RegisteredGameModule* entry = FindRegisteredGameModule(gameName);
-		if (entry == nullptr) {
+		RegisterDefaultProfilesIfNeeded();
+		GameModuleRegistryState& state = GetRegistryState();
+		const std::string canonicalName = ResolveCanonicalName(state, gameName);
+		if (canonicalName.empty()) {
+			DevMsg(
+				kChannel,
+				"CreateGameModule('{}') failed: canonical game name is empty",
+				gameName
+			);
+			return nullptr;
+		}
+
+		auto entryIt = state.modulesByName.find(canonicalName);
+		if (entryIt == state.modulesByName.end()) {
 			DevMsg(
 				kChannel,
 				"CreateGameModule('{}') failed: game profile is not registered",
@@ -1176,8 +1397,10 @@ namespace Unnamed {
 			return nullptr;
 		}
 
-		if (entry->createFunction != nullptr) {
-			std::unique_ptr<IGameModule> module = entry->createFunction();
+		RegisteredGameModule& entry = entryIt->second;
+
+		if (entry.createFunction != nullptr) {
+			std::unique_ptr<IGameModule> module = entry.createFunction();
 			if (!module) {
 				DevMsg(
 					kChannel,
@@ -1187,18 +1410,56 @@ namespace Unnamed {
 				return nullptr;
 			}
 
-			if (entry->paths.has_value()) {
+			if (entry.paths.has_value()) {
 				return std::make_unique<ProfileBoundGameModule>(
 					std::move(module),
-					*entry->paths
+					*entry.paths
 				);
 			}
 			return module;
 		}
 
+		if (entry.paths.has_value() && !entry.paths->runtimeBinaryPath.empty()) {
+			LoadedRuntimeLibrary* runtimeLibrary = EnsureRuntimeLibraryLoaded(
+				state,
+				canonicalName,
+				*entry.paths
+			);
+			if (runtimeLibrary == nullptr || runtimeLibrary->api == nullptr) {
+				Error(
+					kChannel,
+					"CreateGameModule('{}') failed: runtime binary could not be loaded ('{}')",
+					gameName,
+					entry.paths->runtimeBinaryPath
+				);
+				return nullptr;
+			}
+
+			IGameModule* rawModule = runtimeLibrary->api->CreateGameModule();
+			if (rawModule == nullptr) {
+				Error(
+					kChannel,
+					"CreateGameModule('{}') failed: runtime '{}' returned null module",
+					gameName,
+					runtimeLibrary->runtimeBinaryPath
+				);
+				return nullptr;
+			}
+
+			std::unique_ptr<IGameModule> importedModule =
+				std::make_unique<ImportedRuntimeGameModule>(
+					rawModule,
+					runtimeLibrary->api->DestroyGameModule
+				);
+			return std::make_unique<ProfileBoundGameModule>(
+				std::move(importedModule),
+				*entry.paths
+			);
+		}
+
 		// Editor など未リンク App では、Paths だけ持つ既定モジュールで起動する。
-		if (entry->paths.has_value()) {
-			return std::make_unique<DefaultGameModule>(*entry->paths);
+		if (entry.paths.has_value()) {
+			return std::make_unique<DefaultGameModule>(*entry.paths);
 		}
 
 		DevMsg(

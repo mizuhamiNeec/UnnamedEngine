@@ -25,6 +25,8 @@ namespace Unnamed {
 		std::string configRoot;
 		/// @brief 既定の起動シーン（contentRoot 相対）です。
 		std::string defaultStartupScene;
+		/// @brief Runtime DLL のパス（gameRoot 基準または絶対）です。
+		std::string runtimeBinaryPath;
 		/// @brief 解決に成功した game_profile.json の実パスです。
 		std::string resolvedManifestPath;
 	};
