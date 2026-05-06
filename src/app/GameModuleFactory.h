@@ -20,6 +20,18 @@ namespace Unnamed {
 	/// @details `--repo-root` など App 側引数解決結果を渡します。
 	void SetGameModuleManifestRepoRootOverride(const std::filesystem::path& repoRootPath);
 
+	/// @brief 明示指定された game_profile.json パスを優先して読み込みます。
+	/// @details `--project` など App 側引数解決結果を渡します。
+	void SetGameModuleManifestPathOverride(const std::filesystem::path& manifestPath);
+
+	/// @brief 登録済みプロファイルが単一の場合、そのゲーム名を返します。
+	/// @details 単一に確定できない場合は空文字を返します。
+	[[nodiscard]] std::string ResolveSingleRegisteredGameName();
+
+	/// @brief 指定ゲームの manifest を明示経路へ固定し、以降の解決を `--project` 相当に統一します。
+	/// @details 既に読み込み済みの場合は profile 再読込を行い、リンク済み runtime 登録は維持します。
+	[[nodiscard]] bool PinGameModuleManifestToGame(std::string_view gameName);
+
 	/// @brief 指定ゲーム名へ生成関数を登録します。
 	/// @param gameName 登録名（例: Parkour）
 	/// @param createFunction モジュール生成関数

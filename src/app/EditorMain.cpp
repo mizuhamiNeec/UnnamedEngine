@@ -81,6 +81,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 	}
 	Unnamed::EmitLaunchOptionDiagnostics("UnnamedEditorApp", launchOptions);
 
+	if (launchOptions.projectManifestPath.has_value()) {
+		Unnamed::SetGameModuleManifestPathOverride(
+			*launchOptions.projectManifestPath
+		);
+	}
+
 	if (launchOptions.repoRootOverride.has_value()) {
 		Unnamed::SetGameModuleManifestRepoRootOverride(
 			*launchOptions.repoRootOverride
@@ -93,11 +99,17 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 		return EXIT_FAILURE;
 	}
 
-	const std::string gameName = ResolveEditorGameName(launchOptions);
+	std::string gameName = ResolveEditorGameName(launchOptions);
+	if (gameName.empty() && launchOptions.projectManifestPath.has_value()) {
+		gameName = Unnamed::ResolveSingleRegisteredGameName();
+	}
+	if (!gameName.empty() && !launchOptions.projectManifestPath.has_value()) {
+		(void)Unnamed::PinGameModuleManifestToGame(gameName);
+	}
 	if (gameName.empty()) {
 		Fatal(
 			"EditorApp",
-			"No game profile was selected. Pass --game=<name> and provide manifests via UNNAMED_PROJECTS_ROOT or --repo-root."
+			"No game profile was selected. Pass --project=<game_profile.json> or --game=<name> and provide manifest roots via UNNAMED_PROJECTS_ROOT or --repo-root."
 		);
 		return EXIT_FAILURE;
 	}
@@ -107,7 +119,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 	if (!gameModule) {
 		Fatal(
 			"EditorApp",
-			"Unknown game profile '{}'. Verify --game value and game_profile.json resolution.",
+			"Profile mismatch: game '{}' was not found in the resolved manifest set. Verify --project path or --game alias.",
 			gameName
 		);
 		return EXIT_FAILURE;

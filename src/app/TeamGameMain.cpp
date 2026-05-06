@@ -29,6 +29,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	}
 	Unnamed::EmitLaunchOptionDiagnostics("TeamGameApp", launchOptions);
 
+	if (launchOptions.projectManifestPath.has_value()) {
+		Unnamed::SetGameModuleManifestPathOverride(
+			*launchOptions.projectManifestPath
+		);
+	}
+
 	if (launchOptions.repoRootOverride.has_value()) {
 		Unnamed::SetGameModuleManifestRepoRootOverride(
 			*launchOptions.repoRootOverride
@@ -39,9 +45,17 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 		Error("TeamGameApp", "Failed to register TeamGame game module profile.");
 		return EXIT_FAILURE;
 	}
+	if (!launchOptions.projectManifestPath.has_value()) {
+		(void)Unnamed::PinGameModuleManifestToGame("TeamGame");
+	}
 	std::unique_ptr<Unnamed::IGameModule> gameModule =
 		Unnamed::CreateGameModule("TeamGame");
 	if (!gameModule) {
+		Error(
+			"TeamGameApp",
+			"Profile mismatch: game '{}' was not found in the resolved manifest set. Verify --project path or manifest roots.",
+			"TeamGame"
+		);
 		return EXIT_FAILURE;
 	}
 

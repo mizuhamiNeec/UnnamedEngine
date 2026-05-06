@@ -17,6 +17,8 @@ namespace Unnamed {
 	struct AppLaunchOptions {
 		/// @brief `--game` で指定されたゲーム名です。
 		std::optional<std::string> gameName = std::nullopt;
+		/// @brief `--project` で指定された game_profile.json のパスです。
+		std::optional<std::filesystem::path> projectManifestPath = std::nullopt;
 		/// @brief `--repo-root` で指定された repo root です。
 		std::optional<std::filesystem::path> repoRootOverride = std::nullopt;
 		/// @brief `--help` / `-h` が指定されたかどうかです。
@@ -99,6 +101,8 @@ namespace Unnamed {
 		helpText += "  --help, -h               ヘルプを表示して終了。\n";
 		helpText += "  --game=<name>            ゲームプロファイルを名前またはエイリアスで選択。\n";
 		helpText += "  --game <name>            ゲームプロファイルを名前またはエイリアスで選択。\n";
+		helpText += "  --project=<path>         game_profile.json を明示指定して起動対象を解決。\n";
+		helpText += "  --project <path>         game_profile.json を明示指定して起動対象を解決。\n";
 		helpText += "  --repo-root=<path>       明示的にリポジトリルートを指定してマニフェスト検索。\n";
 		helpText += "  --repo-root <path>       明示的にリポジトリルートを指定してマニフェスト検索。\n";
 		helpText += "  --validate-startup-only  起動前検証のみ実行して終了。\n\n";
@@ -106,14 +110,15 @@ namespace Unnamed {
 		helpText += "  UNNAMED_PROJECTS_ROOT=<path> projects ルートを直接指定してマニフェスト検索。\n";
 		helpText += "  UNNAMED_REPO_ROOT=<path> リポジトリルートを指定してマニフェスト検索。\n\n";
 		helpText += "マニフェスト検索の優先順位:\n";
-		helpText += "  1) UNNAMED_PROJECTS_ROOT\n";
-		helpText += "  2) --repo-root\n";
-		helpText += "  3) UNNAMED_REPO_ROOT\n";
-		helpText += "  4) Upward search from current working directory\n";
-		helpText += "  5) Upward search from executable directory\n\n";
+		helpText += "  1) --project\n";
+		helpText += "  2) UNNAMED_PROJECTS_ROOT\n";
+		helpText += "  3) --repo-root\n";
+		helpText += "  4) UNNAMED_REPO_ROOT\n";
+		helpText += "  5) Upward search from current working directory\n";
+		helpText += "  6) Upward search from executable directory\n\n";
 		helpText += "Example:\n";
 		helpText +=
-			"  UnnamedEditorApp.exe --game=TeamGame --repo-root=S:/Repositories/UnnamedEngine\n";
+			"  UnnamedEditorApp.exe --project=S:/Repositories/TD4_01/projects/TeamGame/config/game_profile.json\n";
 
 		std::fputs(helpText.c_str(), stdout);
 		::OutputDebugStringA(helpText.c_str());
@@ -130,7 +135,7 @@ namespace Unnamed {
 	}
 
 	/// @brief 現在プロセスのコマンドラインを共通ルールで解析します。
-	/// @details `--game[= ]` と `--repo-root[= ]` と `--help/-h` に対応します。
+	/// @details `--game[= ]` と `--project[= ]` と `--repo-root[= ]` と `--help/-h` に対応します。
 	[[nodiscard]] inline AppLaunchOptions
 	ParseAppLaunchOptionsFromCommandLine() {
 		AppLaunchOptions options          = {};
@@ -220,6 +225,33 @@ namespace Unnamed {
 				continue;
 			}
 
+			if (arg.rfind(L"--project=", 0) == 0) {
+				const std::wstring_view pathText = arg.substr(10);
+				if (pathText.empty() || isEmptyOrWhitespace(pathText)) {
+					appendDiagnostic(
+						"--project の値が空か空白のみでした; オプションが無視されました"
+					);
+					continue;
+				}
+
+				options.projectManifestPath = std::filesystem::path(
+					std::wstring(pathText)
+				);
+				continue;
+			}
+
+			if (arg == L"--project") {
+				if (i + 1 >= argc || isOptionToken(argv[i + 1])) {
+					appendDiagnostic(
+						"--project の後に値がありませんでした; 期待される形式: --project <path>"
+					);
+					continue;
+				}
+				options.projectManifestPath = std::filesystem::path(argv[i + 1]);
+				++i;
+				continue;
+			}
+
 			if (arg == L"--repo-root") {
 				if (i + 1 >= argc || isOptionToken(argv[i + 1])) {
 					appendDiagnostic(
@@ -253,6 +285,19 @@ namespace Unnamed {
 					"--repo-root パスは存在しないかアクセス不能です:" +
 					repoRoot.generic_string() +
 					"' (manifest search will continue with fallback candidates)"
+				);
+			}
+		}
+
+		if (options.projectManifestPath.has_value()) {
+			std::error_code ec;
+			const std::filesystem::path& manifestPath = *options.projectManifestPath;
+			const bool exists = std::filesystem::exists(manifestPath, ec);
+			if (ec || !exists) {
+				appendDiagnostic(
+					"--project パスは存在しないかアクセス不能です:'" +
+					manifestPath.generic_string() +
+					"' (explicit manifest load will fail if this remains unresolved)"
 				);
 			}
 		}

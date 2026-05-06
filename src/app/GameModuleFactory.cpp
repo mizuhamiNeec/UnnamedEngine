@@ -48,6 +48,7 @@ namespace Unnamed {
 
 		struct ManifestSearchConfiguration {
 			std::optional<std::filesystem::path> explicitRepoRootOverride;
+			std::optional<std::filesystem::path> explicitManifestPathOverride;
 		};
 
 		struct GameModuleRegistryState {
@@ -55,6 +56,11 @@ namespace Unnamed {
 			std::unordered_map<std::string, std::string> aliasToCanonical;
 			ManifestSearchConfiguration manifestSearch = {};
 			bool defaultsRegistered = false;
+		};
+
+		struct RuntimeBindingSnapshot {
+			std::unordered_map<std::string, GameModuleCreateFunction> createFunctions;
+			std::vector<std::pair<std::string, std::string>>          aliases;
 		};
 
 		[[nodiscard]] GameModuleRegistryState& GetRegistryState() {
@@ -313,6 +319,55 @@ namespace Unnamed {
 			return true;
 		}
 
+		[[nodiscard]] std::filesystem::path ResolveManifestBaseRoot(
+			const std::filesystem::path& manifestPath
+		) {
+			const std::filesystem::path normalized = manifestPath.lexically_normal();
+			const std::filesystem::path configDir = normalized.parent_path();
+			const std::filesystem::path gameDir = configDir.parent_path();
+			const std::filesystem::path projectsDir = gameDir.parent_path();
+			if (configDir.filename() == "config" &&
+			    normalized.filename() == "game_profile.json" &&
+			    projectsDir.filename() == "projects" && projectsDir.has_parent_path()) {
+				return projectsDir.parent_path();
+			}
+			return configDir;
+		}
+
+		[[nodiscard]] std::string ResolvePathAgainstBaseRoot(
+			const std::filesystem::path& baseRoot,
+			const std::string&           value
+		) {
+			if (value.empty()) {
+				return value;
+			}
+
+			const std::filesystem::path asPath(value);
+			if (asPath.is_absolute()) {
+				return asPath.lexically_normal().generic_string();
+			}
+
+			return (baseRoot / asPath).lexically_normal().generic_string();
+		}
+
+		void ResolveProfileRootsAgainstBaseRoot(
+			LoadedGameProfile&            profile,
+			const std::filesystem::path& baseRoot
+		) {
+			profile.paths.gameRoot = ResolvePathAgainstBaseRoot(
+				baseRoot,
+				profile.paths.gameRoot
+			);
+			profile.paths.contentRoot = ResolvePathAgainstBaseRoot(
+				baseRoot,
+				profile.paths.contentRoot
+			);
+			profile.paths.configRoot = ResolvePathAgainstBaseRoot(
+				baseRoot,
+				profile.paths.configRoot
+			);
+		}
+
 		[[nodiscard]] bool TryReadRequiredStringField(
 			const nlohmann::json& root,
 			const std::string_view fieldName,
@@ -521,7 +576,102 @@ namespace Unnamed {
 			}
 
 			state.defaultsRegistered = true;
+
+			const auto registerManifestAtPath =
+				[&](
+					const std::filesystem::path& manifestPath,
+					const std::filesystem::path& baseRoot
+				) {
+					ManifestLoadResult loadResult = LoadGameProfileManifest(
+						manifestPath.generic_string()
+					);
+					if (loadResult.profile.has_value()) {
+						DevMsg(
+							kChannel,
+							"resolve manifest profile roots against baseRoot='{}'",
+							baseRoot.generic_string()
+						);
+						ResolveProfileRootsAgainstBaseRoot(
+							*loadResult.profile,
+							baseRoot
+						);
+						loadResult.profile->paths.resolvedManifestPath =
+							manifestPath.generic_string();
+						Msg(
+							kChannel,
+							"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}'",
+							loadResult.profile->paths.gameName,
+							manifestPath.generic_string(),
+							loadResult.profile->paths.gameRoot,
+							loadResult.profile->paths.contentRoot,
+							loadResult.profile->paths.configRoot,
+							loadResult.profile->paths.defaultStartupScene
+						);
+					}
+
+					const std::optional<LoadedGameProfile> profile =
+						loadResult.profile;
+					if (!profile.has_value()) {
+						Warning(
+							kChannel,
+							"manifest load failed '{}' : {}",
+							manifestPath.generic_string(),
+							loadResult.failureReason
+						);
+						return;
+					}
+
+					const std::string canonicalName =
+						NormalizeGameName(profile->paths.gameName);
+					if (!RegisterProfile(state, profile->paths)) {
+						return;
+					}
+					RegisterAliases(state, profile->aliases, canonicalName);
+				};
+
+			if (state.manifestSearch.explicitManifestPathOverride.has_value()) {
+				std::error_code ec;
+				std::filesystem::path manifestPath =
+					std::filesystem::weakly_canonical(
+						*state.manifestSearch.explicitManifestPathOverride,
+						ec
+					);
+				if (ec) {
+					manifestPath = state.manifestSearch.explicitManifestPathOverride
+						               ->lexically_normal();
+				}
+
+				if (!std::filesystem::exists(manifestPath, ec) || ec) {
+					Error(
+						kChannel,
+						"explicit manifest does not exist '{}'.",
+						manifestPath.generic_string()
+					);
+					return;
+				}
+				if (!std::filesystem::is_regular_file(manifestPath, ec) || ec) {
+					Error(
+						kChannel,
+						"explicit manifest is not a file '{}'.",
+						manifestPath.generic_string()
+					);
+					return;
+				}
+
+				DevMsg(
+					kChannel,
+					"manifest discovery mode: explicit manifest '{}'",
+					manifestPath.generic_string()
+				);
+				registerManifestAtPath(
+					manifestPath,
+					ResolveManifestBaseRoot(manifestPath)
+				);
+				return;
+			}
+
 			std::filesystem::path projectsRoot;
+			std::filesystem::path manifestsBaseRoot;
 			std::string           projectsRootReason;
 			if (const auto envProjectsRoot = TryGetEnvironmentProjectsRoot();
 				envProjectsRoot.has_value()) {
@@ -533,6 +683,7 @@ namespace Unnamed {
 				if (ec) {
 					projectsRoot = envProjectsRoot->lexically_normal();
 				}
+				manifestsBaseRoot = projectsRoot.parent_path();
 				projectsRootReason = "env:UNNAMED_PROJECTS_ROOT";
 			} else {
 				const std::optional<RepositoryRootCandidate> resolvedRepoRoot =
@@ -545,6 +696,7 @@ namespace Unnamed {
 					return;
 				}
 				projectsRoot = resolvedRepoRoot->root / "projects";
+				manifestsBaseRoot = resolvedRepoRoot->root;
 				projectsRootReason =
 					"repo-root:" + resolvedRepoRoot->reason;
 			}
@@ -593,40 +745,65 @@ namespace Unnamed {
 				manifestPaths.size()
 			);
 			for (const std::string& manifestPath : manifestPaths) {
-				ManifestLoadResult loadResult = LoadGameProfileManifest(manifestPath);
-				if (loadResult.profile.has_value()) {
-					loadResult.profile->paths.resolvedManifestPath = manifestPath;
-					Msg(
-						kChannel,
-						"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}'",
-						loadResult.profile->paths.gameName,
-						manifestPath,
-						loadResult.profile->paths.gameRoot,
-						loadResult.profile->paths.contentRoot,
-						loadResult.profile->paths.configRoot,
-						loadResult.profile->paths.defaultStartupScene
-					);
-				}
-
-				const std::optional<LoadedGameProfile> profile =
-					loadResult.profile;
-				if (!profile.has_value()) {
-					Warning(
-						kChannel,
-						"manifest load failed '{}' : {}",
-						manifestPath,
-						loadResult.failureReason
-					);
-					continue;
-				}
-
-				const std::string canonicalName =
-					NormalizeGameName(profile->paths.gameName);
-				if (!RegisterProfile(state, profile->paths)) {
-					continue;
-				}
-				RegisterAliases(state, profile->aliases, canonicalName);
+				registerManifestAtPath(
+					std::filesystem::path(manifestPath),
+					manifestsBaseRoot
+				);
 			}
+		}
+
+		[[nodiscard]] RuntimeBindingSnapshot TakeRuntimeBindingSnapshot(
+			const GameModuleRegistryState& state
+		) {
+			RuntimeBindingSnapshot snapshot = {};
+			for (const auto& [canonicalName, entry] : state.modulesByName) {
+				if (entry.createFunction != nullptr) {
+					snapshot.createFunctions.emplace(
+						canonicalName,
+						entry.createFunction
+					);
+				}
+			}
+
+			for (const auto& [aliasName, canonicalName] : state.aliasToCanonical) {
+				if (aliasName == canonicalName) {
+					continue;
+				}
+				if (!snapshot.createFunctions.contains(canonicalName)) {
+					continue;
+				}
+				snapshot.aliases.emplace_back(aliasName, canonicalName);
+			}
+
+			return snapshot;
+		}
+
+		void RestoreRuntimeBindings(
+			GameModuleRegistryState&          state,
+			const RuntimeBindingSnapshot& snapshot
+		) {
+			for (const auto& [canonicalName, createFunction] : snapshot.createFunctions) {
+				auto entryIt = state.modulesByName.find(canonicalName);
+				if (entryIt == state.modulesByName.end()) {
+					continue;
+				}
+				entryIt->second.createFunction = createFunction;
+			}
+
+			for (const auto& [aliasName, canonicalName] : snapshot.aliases) {
+				(void)RegisterAliasInternal(state, aliasName, canonicalName);
+			}
+		}
+
+		void ReloadProfilesPreserveRuntimeBindings() {
+			GameModuleRegistryState& state = GetRegistryState();
+			const RuntimeBindingSnapshot snapshot =
+				TakeRuntimeBindingSnapshot(state);
+			state.modulesByName.clear();
+			state.aliasToCanonical.clear();
+			state.defaultsRegistered = false;
+			RegisterDefaultProfilesIfNeeded();
+			RestoreRuntimeBindings(state, snapshot);
 		}
 
 		[[nodiscard]] std::string ResolveCanonicalName(
@@ -844,9 +1021,90 @@ namespace Unnamed {
 		if (state.defaultsRegistered) {
 			DevMsg(
 				kChannel,
-				"--repo-root override was set after profile registration; restart app to apply new manifest search root"
+				"--repo-root override was set after profile registration; reloading profiles with the updated root"
 			);
+			ReloadProfilesPreserveRuntimeBindings();
 		}
+	}
+
+	void SetGameModuleManifestPathOverride(
+		const std::filesystem::path& manifestPath
+	) {
+		GameModuleRegistryState& state = GetRegistryState();
+		if (manifestPath.empty()) {
+			DevMsg(kChannel, "ignored empty --project override");
+			return;
+		}
+
+		state.manifestSearch.explicitManifestPathOverride = manifestPath;
+		DevMsg(
+			kChannel,
+			"configured --project override: '{}'",
+			manifestPath.generic_string()
+		);
+		if (state.defaultsRegistered) {
+			DevMsg(
+				kChannel,
+				"--project override was set after profile registration; reloading profiles with explicit manifest"
+			);
+			ReloadProfilesPreserveRuntimeBindings();
+		}
+	}
+
+	std::string ResolveSingleRegisteredGameName() {
+		RegisterDefaultProfilesIfNeeded();
+		const GameModuleRegistryState& state = GetRegistryState();
+		if (state.modulesByName.size() != 1) {
+			return {};
+		}
+
+		const auto it = state.modulesByName.begin();
+		if (it == state.modulesByName.end()) {
+			return {};
+		}
+
+		if (it->second.paths.has_value()) {
+			return it->second.paths->gameName;
+		}
+		return it->first;
+	}
+
+	bool PinGameModuleManifestToGame(const std::string_view gameName) {
+		RegisterDefaultProfilesIfNeeded();
+		GameModuleRegistryState& state = GetRegistryState();
+		const std::string canonicalName = ResolveCanonicalName(state, gameName);
+		if (canonicalName.empty()) {
+			DevMsg(
+				kChannel,
+				"PinGameModuleManifestToGame('{}') failed: unresolved game name",
+				gameName
+			);
+			return false;
+		}
+
+		const auto entryIt = state.modulesByName.find(canonicalName);
+		if (entryIt == state.modulesByName.end() || !entryIt->second.paths.has_value()) {
+			DevMsg(
+				kChannel,
+				"PinGameModuleManifestToGame('{}') failed: profile paths are not registered",
+				gameName
+			);
+			return false;
+		}
+
+		const std::string& manifestPath =
+			entryIt->second.paths->resolvedManifestPath;
+		if (manifestPath.empty()) {
+			DevMsg(
+				kChannel,
+				"PinGameModuleManifestToGame('{}') failed: resolvedManifestPath is empty",
+				gameName
+			);
+			return false;
+		}
+
+		SetGameModuleManifestPathOverride(std::filesystem::path(manifestPath));
+		return true;
 	}
 
 	bool RegisterGameModule(
