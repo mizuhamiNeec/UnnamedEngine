@@ -3,8 +3,57 @@
 
 #include "AppLaunchOptions.h"
 #include "GameModuleFactory.h"
+#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
+#include "game/parkour/runtime/ParkourGameModule.h"
+#endif
+#ifdef UNNAMED_WITH_TEAMGAME_RUNTIME
+#include "game/team/runtime/TeamGameModule.h"
+#endif
 
 namespace {
+	[[nodiscard]] bool RegisterLauncherRuntimeModules() {
+#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
+		if (!Unnamed::RegisterGameModule(
+			"Parkour",
+			&Unnamed::CreateParkourGameModule
+		)) {
+			Error(
+				"UnnamedLauncher",
+				"Failed to register Parkour runtime module."
+			);
+			return false;
+		}
+#endif
+#ifdef UNNAMED_WITH_TEAMGAME_RUNTIME
+		if (!Unnamed::RegisterGameModule(
+			"TeamGame",
+			&Unnamed::CreateTeamGameModule
+		)) {
+			Error(
+				"UnnamedLauncher",
+				"Failed to register TeamGame runtime module."
+			);
+			return false;
+		}
+#endif
+
+#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
+		(void)Unnamed::RegisterGameModuleAlias("ParkourGame", "Parkour");
+#endif
+#ifdef UNNAMED_WITH_TEAMGAME_RUNTIME
+		(void)Unnamed::RegisterGameModuleAlias("Team", "TeamGame");
+#endif
+
+#if !defined(UNNAMED_WITH_PARKOUR_RUNTIME) && !defined(UNNAMED_WITH_TEAMGAME_RUNTIME)
+		Warning(
+			"UnnamedLauncher",
+			"No linked game runtime module is available. Launcher will run with manifest-only DefaultGameModule."
+		);
+#endif
+
+		return true;
+	}
+
 	[[nodiscard]] std::string ResolveStandaloneGameName(
 		const Unnamed::AppLaunchOptions& launchOptions
 	) {
@@ -44,6 +93,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 	}
 
 	Unnamed::RegisterDefaultGameModuleProfiles();
+	if (!RegisterLauncherRuntimeModules()) {
+		return EXIT_FAILURE;
+	}
 
 	std::string gameName = ResolveStandaloneGameName(launchOptions);
 	if (gameName.empty() && launchOptions.projectManifestPath.has_value()) {

@@ -352,6 +352,53 @@ if ENABLE_TEAMGAME_RUNTIME then
 end
 
 group "Engine/Applications"
+project "UnnamedLauncher"
+	kind "WindowedApp"
+	CommonProjectSettings("%{prj.name}")
+	WarningSettings()
+
+	files {
+		"src/pch.h",
+		"src/pch.cpp",
+		"src/app/AppLaunchOptions.h",
+		"src/app/GameModuleFactory.h",
+		"src/app/GameModuleFactory.cpp",
+		"src/app/main.cpp",
+	}
+
+	local launcherGameIncludeDirs = {}
+	local launcherGameLinks = {}
+	local launcherWholeArchiveLinkOptions = {}
+	local launcherGameDefines = {}
+	if ENABLE_PARKOUR_RUNTIME then
+		table.insert(launcherGameIncludeDirs, PARKOUR_RUNTIME_DIR)
+		table.insert(launcherGameLinks, "ParkourRuntime")
+		table.insert(launcherWholeArchiveLinkOptions, "/WHOLEARCHIVE:ParkourRuntime.lib")
+		table.insert(launcherGameDefines, "UNNAMED_WITH_PARKOUR_RUNTIME")
+	end
+	if ENABLE_TEAMGAME_RUNTIME then
+		table.insert(launcherGameIncludeDirs, TEAMGAME_RUNTIME_DIR)
+		table.insert(launcherGameLinks, "TeamGameRuntime")
+		table.insert(launcherWholeArchiveLinkOptions, "/WHOLEARCHIVE:TeamGameRuntime.lib")
+		table.insert(launcherGameDefines, "UNNAMED_WITH_TEAMGAME_RUNTIME")
+	end
+
+	EngineIncludeDirs()
+	includedirs(launcherGameIncludeDirs)
+	links {
+		"UnnamedEngineRuntime",
+		"DirectXTex",
+	}
+	links(launcherGameLinks)
+	defines(launcherGameDefines)
+	filter "configurations:Debug"
+		links { "UnnamedEditorRuntime" }
+		defines { "UNNAMED_WITH_EDITOR" }
+	filter {}
+	LinkAssimpByConfig()
+	CopyDxCompilerDlls()
+	linkoptions(launcherWholeArchiveLinkOptions)
+
 project "UnnamedEditorApp"
 	kind "WindowedApp"
 	CommonProjectSettings("%{prj.name}")
