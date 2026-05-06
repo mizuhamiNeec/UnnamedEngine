@@ -11,6 +11,8 @@ param(
     [string]$PackageFormat = "zip",
     [string]$PackageOutputRoot = "",
     [switch]$EnableOnCreate,
+    [switch]$CheckApiCompat,
+    [switch]$FailOnDeprecatedApi,
     [switch]$IncludeUnchanged,
     [switch]$KeepPackageFolderWhenZip,
     [switch]$SkipStartupValidation,
@@ -168,6 +170,7 @@ $profilePath = Join-Path $resolvedGameRoot "config\\game_profile.json"
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $newModScript = Resolve-ToolScriptPath -ScriptName "newmod.ps1"
 $packageModScript = Resolve-ToolScriptPath -ScriptName "package-mod.ps1"
+$checkApiCompatScript = Resolve-ToolScriptPath -ScriptName "check-api-compat.ps1"
 
 $didCreate = $false
 $didEnable = $false
@@ -200,6 +203,16 @@ if ($Action -eq "enable") {
 }
 
 if ($Action -in @("validate", "all") -and -not $SkipStartupValidation) {
+    if ($CheckApiCompat -or $Action -eq "all") {
+        $compatArgs = @(
+            "-GameRoot", $resolvedGameRoot
+        )
+        if ($FailOnDeprecatedApi) {
+            $compatArgs += "-FailOnDeprecated"
+        }
+        Invoke-ToolScript -ScriptPath $checkApiCompatScript -Arguments $compatArgs
+    }
+
     $editorExe = Resolve-EditorExecutable -RepoRoot $repoRoot
     Validate-Startup -EditorExe $editorExe -ProjectProfilePath $profilePath -WorkingDirectory $repoRoot
     $didValidate = $true

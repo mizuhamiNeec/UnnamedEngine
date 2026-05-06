@@ -9,12 +9,14 @@
 #include <numeric>
 #include <optional>
 #include <queue>
+#include <span>
 #include <set>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <array>
 
 #include <json.hpp>
 #include <Windows.h>
@@ -31,8 +33,34 @@
 namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "GameModuleFactory";
-		constexpr std::string_view kSupportedEngineApiVersion = "1";
-		constexpr std::string_view kSupportedGameApiVersion = "1";
+		constexpr std::array<std::string_view, 1> kSupportedEngineApiVersions = {
+			"1",
+		};
+		constexpr std::array<std::string_view, 1> kSupportedGameApiVersions = {
+			"1",
+		};
+		// 段階移行ルール: deprecated は警告付き許容。期限を過ぎたら supported から除外する。
+		constexpr std::array<std::string_view, 1> kDeprecatedEngineApiVersions = {
+			"0",
+		};
+		constexpr std::array<std::string_view, 1> kDeprecatedGameApiVersions = {
+			"0",
+		};
+		constexpr std::string_view kEngineApiDeprecationNote =
+			"engineApi '0' is deprecated and scheduled for removal after 2026-09-30.";
+		constexpr std::string_view kGameApiDeprecationNote =
+			"gameApi '0' is deprecated and scheduled for removal after 2026-09-30.";
+
+		enum class ApiCompatibilityLevel {
+			Supported,
+			Deprecated,
+			Unsupported,
+		};
+
+		struct ApiCompatibilityResult {
+			ApiCompatibilityLevel level = ApiCompatibilityLevel::Unsupported;
+			std::string           message;
+		};
 
 		struct RegisteredGameModule {
 			std::optional<GameModulePaths> paths;
@@ -571,6 +599,72 @@ namespace Unnamed {
 				return cmp <= 0;
 			}
 			return false;
+		}
+
+		[[nodiscard]] bool ContainsApiVersion(
+			const std::span<const std::string_view> versions,
+			const std::string_view                  target
+		) {
+			return std::ranges::find(versions, target) != versions.end();
+		}
+
+		[[nodiscard]] std::string FormatApiVersionSet(
+			const std::span<const std::string_view> versions
+		) {
+			if (versions.empty()) {
+				return "<none>";
+			}
+
+			std::string result;
+			for (std::size_t i = 0; i < versions.size(); ++i) {
+				if (i != 0) {
+					result += ", ";
+				}
+				result += versions[i];
+			}
+			return result;
+		}
+
+		[[nodiscard]] ApiCompatibilityResult EvaluateApiCompatibility(
+			const std::string_view                  apiLabel,
+			const std::string_view                  requestedVersion,
+			const std::span<const std::string_view> supportedVersions,
+			const std::span<const std::string_view> deprecatedVersions,
+			const std::string_view                  deprecationNote
+		) {
+			if (ContainsApiVersion(supportedVersions, requestedVersion)) {
+				return {
+					.level = ApiCompatibilityLevel::Supported,
+					.message = std::format(
+						"{} '{}' is supported.",
+						apiLabel,
+						requestedVersion
+					),
+				};
+			}
+
+			if (ContainsApiVersion(deprecatedVersions, requestedVersion)) {
+				return {
+					.level = ApiCompatibilityLevel::Deprecated,
+					.message = std::format(
+						"{} '{}' is deprecated. {}",
+						apiLabel,
+						requestedVersion,
+						deprecationNote
+					),
+				};
+			}
+
+			return {
+				.level = ApiCompatibilityLevel::Unsupported,
+				.message = std::format(
+					"{} '{}' is unsupported. supported=[{}] deprecated=[{}]",
+					apiLabel,
+					requestedVersion,
+					FormatApiVersionSet(supportedVersions),
+					FormatApiVersionSet(deprecatedVersions)
+				),
+			};
 		}
 
 		void ResolveProfileRootsAgainstBaseRoot(
@@ -1166,6 +1260,14 @@ namespace Unnamed {
 			bool hasDependencyError = false;
 			std::unordered_map<std::string, std::vector<std::string>> edgesByDependency;
 			std::unordered_map<std::string, int> inDegree;
+			Msg(
+				kChannel,
+				"api compatibility policy: engine supported=[{}] deprecated=[{}], game supported=[{}] deprecated=[{}]",
+				FormatApiVersionSet(kSupportedEngineApiVersions),
+				FormatApiVersionSet(kDeprecatedEngineApiVersions),
+				FormatApiVersionSet(kSupportedGameApiVersions),
+				FormatApiVersionSet(kDeprecatedGameApiVersions)
+			);
 			for (const std::string& modId : enabledModIds) {
 				if (!manifestsById.contains(modId)) {
 					Warning(
@@ -1179,25 +1281,60 @@ namespace Unnamed {
 				}
 
 				const LoadedModManifest& modManifest = manifestsById.at(modId);
-				if (modManifest.engineApi != kSupportedEngineApiVersion) {
-					Warning(
-						kChannel,
-						"mod '{}' engineApi mismatch: required='{}' supported='{}'",
-						modId,
+				const ApiCompatibilityResult engineApiCompatibility =
+					EvaluateApiCompatibility(
+						"engineApi",
 						modManifest.engineApi,
-						kSupportedEngineApiVersion
+						kSupportedEngineApiVersions,
+						kDeprecatedEngineApiVersions,
+						kEngineApiDeprecationNote
 					);
-					hasDependencyError = true;
-				}
-				if (modManifest.gameApi != kSupportedGameApiVersion) {
+				if (engineApiCompatibility.level ==
+				    ApiCompatibilityLevel::Unsupported) {
 					Warning(
 						kChannel,
-						"mod '{}' gameApi mismatch: required='{}' supported='{}'",
+						"mod '{}' {}",
 						modId,
-						modManifest.gameApi,
-						kSupportedGameApiVersion
+						engineApiCompatibility.message
 					);
 					hasDependencyError = true;
+				} else if (
+					engineApiCompatibility.level ==
+					ApiCompatibilityLevel::Deprecated) {
+					Warning(
+						kChannel,
+						"mod '{}' {}",
+						modId,
+						engineApiCompatibility.message
+					);
+				}
+
+				const ApiCompatibilityResult gameApiCompatibility =
+					EvaluateApiCompatibility(
+						"gameApi",
+						modManifest.gameApi,
+						kSupportedGameApiVersions,
+						kDeprecatedGameApiVersions,
+						kGameApiDeprecationNote
+					);
+				if (gameApiCompatibility.level ==
+				    ApiCompatibilityLevel::Unsupported) {
+					Warning(
+						kChannel,
+						"mod '{}' {}",
+						modId,
+						gameApiCompatibility.message
+					);
+					hasDependencyError = true;
+				} else if (
+					gameApiCompatibility.level ==
+					ApiCompatibilityLevel::Deprecated) {
+					Warning(
+						kChannel,
+						"mod '{}' {}",
+						modId,
+						gameApiCompatibility.message
+					);
 				}
 				inDegree.emplace(modId, 0);
 			}

@@ -169,9 +169,7 @@ if ([string]::IsNullOrWhiteSpace($modInstallDirName)) {
 }
 $modContentRootRelative = ([string]$manifest.contentRoot).Trim()
 $resolvedModContentRoot = Resolve-PathAgainstBase -BasePath $resolvedModRoot -Value $modContentRootRelative
-if (-not (Test-Path -LiteralPath $resolvedModContentRoot -PathType Container)) {
-    throw "mod content root was not found: $resolvedModContentRoot"
-}
+$hasModContentRoot = Test-Path -LiteralPath $resolvedModContentRoot -PathType Container
 
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
     $OutputRoot = Join-Path $resolvedGameRoot "packaged/mods"
@@ -197,37 +195,39 @@ New-Item -ItemType Directory -Force -Path $modInstallRoot | Out-Null
 Copy-Item -LiteralPath $manifestPath -Destination (Join-Path $modInstallRoot "mod_manifest.json") -Force
 
 $targetContentRoot = Join-Path $modInstallRoot $modContentRootRelative
-New-Item -ItemType Directory -Force -Path $targetContentRoot | Out-Null
 
 $copiedCount = 0
 $skippedUnchangedCount = 0
-$modFiles = Get-ChildItem -LiteralPath $resolvedModContentRoot -Recurse -File
-foreach ($file in $modFiles) {
-    $relativePath = $file.FullName.Substring($resolvedModContentRoot.Length).TrimStart("\", "/")
-    if ([string]::IsNullOrWhiteSpace($relativePath)) {
-        continue
-    }
+if ($hasModContentRoot) {
+    New-Item -ItemType Directory -Force -Path $targetContentRoot | Out-Null
+    $modFiles = Get-ChildItem -LiteralPath $resolvedModContentRoot -Recurse -File
+    foreach ($file in $modFiles) {
+        $relativePath = $file.FullName.Substring($resolvedModContentRoot.Length).TrimStart("\", "/")
+        if ([string]::IsNullOrWhiteSpace($relativePath)) {
+            continue
+        }
 
-    if (-not $IncludeUnchanged) {
-        $baseFilePath = Join-Path $baseContentRoot $relativePath
-        if (Test-Path -LiteralPath $baseFilePath -PathType Leaf) {
-            $modHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $file.FullName).Hash
-            $baseHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $baseFilePath).Hash
-            if ($modHash -eq $baseHash) {
-                $skippedUnchangedCount++
-                continue
+        if (-not $IncludeUnchanged) {
+            $baseFilePath = Join-Path $baseContentRoot $relativePath
+            if (Test-Path -LiteralPath $baseFilePath -PathType Leaf) {
+                $modHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $file.FullName).Hash
+                $baseHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $baseFilePath).Hash
+                if ($modHash -eq $baseHash) {
+                    $skippedUnchangedCount++
+                    continue
+                }
             }
         }
-    }
 
-    $destPath = Join-Path $targetContentRoot $relativePath
-    $destDir = Split-Path -Parent $destPath
-    if (-not [string]::IsNullOrWhiteSpace($destDir)) {
-        New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-    }
+        $destPath = Join-Path $targetContentRoot $relativePath
+        $destDir = Split-Path -Parent $destPath
+        if (-not [string]::IsNullOrWhiteSpace($destDir)) {
+            New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+        }
 
-    Copy-Item -LiteralPath $file.FullName -Destination $destPath -Force
-    $copiedCount++
+        Copy-Item -LiteralPath $file.FullName -Destination $destPath -Force
+        $copiedCount++
+    }
 }
 
 $zipPath = ""
@@ -265,6 +265,9 @@ Write-Host ""
 Write-Host "Notes:"
 Write-Host "  - package root contains '$modInstallDirName/' (copy or extract into '<GameRoot>/mods')."
 Write-Host "  - mod_manifest.json is always included."
+if (-not $hasModContentRoot) {
+    Write-Host "  - content root was not found; packaged manifest-only mod."
+}
 if ($IncludeUnchanged) {
     Write-Host "  - unchanged files against base content are included."
 } else {
