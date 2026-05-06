@@ -1650,6 +1650,32 @@ namespace Unnamed {
 						paths.runtimeBinaryPath
 					)
 				);
+			} else {
+				RegisterDefaultProfilesIfNeeded();
+				GameModuleRegistryState& state = GetRegistryState();
+				std::string canonicalName = ResolveCanonicalName(
+					state,
+					paths.gameName
+				);
+				if (canonicalName.empty()) {
+					canonicalName = NormalizeGameName(paths.gameName);
+				}
+				LoadedRuntimeLibrary* runtimeLibrary = EnsureRuntimeLibraryLoaded(
+					state,
+					canonicalName,
+					paths
+				);
+				if (runtimeLibrary == nullptr || runtimeLibrary->api == nullptr) {
+					const bool strictRuntimePolicy =
+						paths.requireRuntimeBinary || paths.preferRuntimeBinary;
+					reportIssue(
+						strictRuntimePolicy,
+						std::format(
+							"runtime binary failed to load API from '{}'.",
+							paths.runtimeBinaryPath
+						)
+					);
+				}
 			}
 		}
 
