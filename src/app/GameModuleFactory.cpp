@@ -42,6 +42,25 @@ namespace Unnamed {
 			std::string            runtimeBinaryPath;
 		};
 
+		enum class RuntimeLoadFailure {
+			None,
+			RuntimePathEmpty,
+			RuntimeBinaryNotFound,
+			RuntimeBinaryNotFile,
+			LoadLibraryFailed,
+			MissingRuntimeSymbol,
+			InvalidRuntimeApi,
+		};
+
+		struct RuntimeLoadResult {
+			LoadedRuntimeLibrary* runtimeLibrary = nullptr;
+			RuntimeLoadFailure    failure = RuntimeLoadFailure::None;
+			std::string           runtimePath;
+			DWORD                 systemErrorCode = 0;
+			std::uint32_t         apiVersion = 0;
+			std::uint32_t         apiStructSize = 0;
+		};
+
 		struct LoadedGameProfile {
 			GameModulePaths            paths;
 			std::vector<std::string> aliases;
@@ -988,6 +1007,47 @@ namespace Unnamed {
 			return true;
 		}
 
+		[[nodiscard]] std::string DescribeRuntimeLoadFailure(
+			const RuntimeLoadResult& result
+		) {
+			switch (result.failure) {
+				case RuntimeLoadFailure::None:
+					return {};
+				case RuntimeLoadFailure::RuntimePathEmpty:
+					return "runtimeBinary path is empty";
+				case RuntimeLoadFailure::RuntimeBinaryNotFound:
+					return std::format("runtime binary not found '{}'", result.runtimePath);
+				case RuntimeLoadFailure::RuntimeBinaryNotFile:
+					return std::format(
+						"runtime binary is not a file '{}'",
+						result.runtimePath
+					);
+				case RuntimeLoadFailure::LoadLibraryFailed:
+					return std::format(
+						"LoadLibraryW failed for '{}' (error={})",
+						result.runtimePath,
+						result.systemErrorCode
+					);
+				case RuntimeLoadFailure::MissingRuntimeSymbol:
+					return std::format(
+						"runtime '{}' is missing symbol '{}' (error={})",
+						result.runtimePath,
+						kGameRuntimeApiV1SymbolName,
+						result.systemErrorCode
+					);
+				case RuntimeLoadFailure::InvalidRuntimeApi:
+					return std::format(
+						"runtime '{}' returned invalid GameRuntimeApiV1 (expectedVersion={}, gotVersion={}, structSize={})",
+						result.runtimePath,
+						static_cast<std::uint32_t>(GameRuntimeAbiVersion::Current),
+						result.apiVersion,
+						result.apiStructSize
+					);
+			}
+
+			return "unknown runtime load failure";
+		}
+
 		class ImportedRuntimeGameModule final : public IGameModule {
 		public:
 			ImportedRuntimeGameModule(
@@ -1046,26 +1106,30 @@ namespace Unnamed {
 			void (*mDestroyFunction)(IGameModule*) = nullptr;
 		};
 
-		[[nodiscard]] LoadedRuntimeLibrary* EnsureRuntimeLibraryLoaded(
+		[[nodiscard]] RuntimeLoadResult EnsureRuntimeLibraryLoaded(
 			GameModuleRegistryState& state,
 			const std::string_view   canonicalName,
 			const GameModulePaths&   paths
 		) {
+			RuntimeLoadResult result = {};
 			const std::string canonical(canonicalName);
 			if (paths.runtimeBinaryPath.empty()) {
-				return nullptr;
+				result.failure = RuntimeLoadFailure::RuntimePathEmpty;
+				return result;
 			}
 
 			std::error_code ec;
 			const std::filesystem::path runtimePath =
 				std::filesystem::path(paths.runtimeBinaryPath).lexically_normal();
+			result.runtimePath = runtimePath.generic_string();
 			if (auto runtimeIt = state.loadedRuntimeLibraries.find(canonical);
 				runtimeIt != state.loadedRuntimeLibraries.end()) {
 				const std::filesystem::path loadedRuntimePath =
 					std::filesystem::path(runtimeIt->second.runtimeBinaryPath)
 						.lexically_normal();
 				if (loadedRuntimePath == runtimePath) {
-					return &runtimeIt->second;
+					result.runtimeLibrary = &runtimeIt->second;
+					return result;
 				}
 
 				Msg(
@@ -1080,66 +1144,39 @@ namespace Unnamed {
 			}
 
 			if (!std::filesystem::exists(runtimePath, ec) || ec) {
-				Error(
-					kChannel,
-					"runtime binary not found for game '{}': '{}'",
-					paths.gameName,
-					runtimePath.generic_string()
-				);
-				return nullptr;
+				result.failure = RuntimeLoadFailure::RuntimeBinaryNotFound;
+				return result;
 			}
 			if (!std::filesystem::is_regular_file(runtimePath, ec) || ec) {
-				Error(
-					kChannel,
-					"runtime binary is not a file for game '{}': '{}'",
-					paths.gameName,
-					runtimePath.generic_string()
-				);
-				return nullptr;
+				result.failure = RuntimeLoadFailure::RuntimeBinaryNotFile;
+				return result;
 			}
 
 			const std::wstring runtimePathWide = runtimePath.wstring();
 			HMODULE            runtimeModule = ::LoadLibraryW(runtimePathWide.c_str());
 			if (runtimeModule == nullptr) {
-				const DWORD errorCode = ::GetLastError();
-				Error(
-					kChannel,
-					"LoadLibraryW failed for game '{}' runtime='{}' error={}",
-					paths.gameName,
-					runtimePath.generic_string(),
-					errorCode
-				);
-				return nullptr;
+				result.failure = RuntimeLoadFailure::LoadLibraryFailed;
+				result.systemErrorCode = ::GetLastError();
+				return result;
 			}
 
 			FARPROC symbol = ::GetProcAddress(runtimeModule, kGameRuntimeApiV1SymbolName);
 			if (symbol == nullptr) {
-				const DWORD errorCode = ::GetLastError();
-				Error(
-					kChannel,
-					"runtime '{}' missing symbol '{}' error={}",
-					runtimePath.generic_string(),
-					kGameRuntimeApiV1SymbolName,
-					errorCode
-				);
+				result.failure = RuntimeLoadFailure::MissingRuntimeSymbol;
+				result.systemErrorCode = ::GetLastError();
 				::FreeLibrary(runtimeModule);
-				return nullptr;
+				return result;
 			}
 
 			const auto getApi =
 				reinterpret_cast<GetGameRuntimeApiV1Function>(symbol);
 			const GameRuntimeApiV1* api = getApi();
 			if (!IsValidGameRuntimeApiV1(api)) {
-				Error(
-					kChannel,
-					"runtime '{}' returned invalid GameRuntimeApiV1 (expectedVersion={}, gotVersion={}, structSize={})",
-					runtimePath.generic_string(),
-					static_cast<std::uint32_t>(GameRuntimeAbiVersion::Current),
-					api == nullptr ? 0u : api->abiVersion,
-					api == nullptr ? 0u : api->structSize
-				);
+				result.failure = RuntimeLoadFailure::InvalidRuntimeApi;
+				result.apiVersion = api == nullptr ? 0u : api->abiVersion;
+				result.apiStructSize = api == nullptr ? 0u : api->structSize;
 				::FreeLibrary(runtimeModule);
-				return nullptr;
+				return result;
 			}
 
 			const char* runtimeName = api->GetRuntimeName();
@@ -1161,7 +1198,8 @@ namespace Unnamed {
 				std::move(loadedRuntime)
 			);
 			(void)inserted;
-			return &insertedIt->second;
+			result.runtimeLibrary = &insertedIt->second;
+			return result;
 		}
 
 		class DefaultGameModule final : public IGameModule {
@@ -1477,25 +1515,28 @@ namespace Unnamed {
 		const bool shouldTryDynamicRuntime =
 			hasRuntimeBinary && (preferRuntimeBinary || entry.createFunction == nullptr);
 		if (shouldTryDynamicRuntime) {
-			LoadedRuntimeLibrary* runtimeLibrary = EnsureRuntimeLibraryLoaded(
+			const RuntimeLoadResult runtimeLoad = EnsureRuntimeLibraryLoaded(
 				state,
 				canonicalName,
 				*entry.paths
 			);
+			LoadedRuntimeLibrary* runtimeLibrary = runtimeLoad.runtimeLibrary;
 			if (runtimeLibrary == nullptr || runtimeLibrary->api == nullptr) {
+				const std::string failureReason = DescribeRuntimeLoadFailure(runtimeLoad);
 				if (requireRuntimeBinary || entry.createFunction == nullptr) {
 					Error(
 						kChannel,
-						"CreateGameModule('{}') failed: runtime binary could not be loaded ('{}')",
+						"CreateGameModule('{}') failed: runtime binary could not be loaded ({})",
 						gameName,
-						entry.paths->runtimeBinaryPath
+						failureReason
 					);
 					return nullptr;
 				}
 				Warning(
 					kChannel,
-					"runtime binary load failed for '{}', fallback to static runtime registration.",
-					gameName
+					"runtime binary load failed for '{}': {}. fallback to static runtime registration.",
+					gameName,
+					failureReason
 				);
 			} else {
 				IGameModule* rawModule = runtimeLibrary->api->CreateGameModule();
@@ -1660,19 +1701,24 @@ namespace Unnamed {
 				if (canonicalName.empty()) {
 					canonicalName = NormalizeGameName(paths.gameName);
 				}
-				LoadedRuntimeLibrary* runtimeLibrary = EnsureRuntimeLibraryLoaded(
+				const RuntimeLoadResult runtimeLoad = EnsureRuntimeLibraryLoaded(
 					state,
 					canonicalName,
 					paths
 				);
+				LoadedRuntimeLibrary* runtimeLibrary = runtimeLoad.runtimeLibrary;
 				if (runtimeLibrary == nullptr || runtimeLibrary->api == nullptr) {
 					const bool strictRuntimePolicy =
 						paths.requireRuntimeBinary || paths.preferRuntimeBinary;
+					const std::string failureReason = DescribeRuntimeLoadFailure(
+						runtimeLoad
+					);
 					reportIssue(
 						strictRuntimePolicy,
 						std::format(
-							"runtime binary failed to load API from '{}'.",
-							paths.runtimeBinaryPath
+							"runtime binary failed to load API from '{}': {}.",
+							paths.runtimeBinaryPath,
+							failureReason
 						)
 					);
 				}
