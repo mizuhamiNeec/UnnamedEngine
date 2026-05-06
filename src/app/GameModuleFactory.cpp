@@ -1776,7 +1776,13 @@ namespace Unnamed {
 		const StartupValidationOptions& options
 	) {
 		const GameModulePaths paths = gameModule.GetGameModulePaths();
-		const std::string startupScenePath = ResolveStartupScenePath(gameModule);
+		std::string startupSceneRelative = gameModule.GetDefaultStartupScenePath();
+		if (startupSceneRelative.empty()) {
+			startupSceneRelative = paths.defaultStartupScene;
+		}
+		const MountedContentResolution startupSceneResolution =
+			ResolveGameMountedContentPathDetailed(paths, startupSceneRelative);
+		const std::string startupScenePath = startupSceneResolution.resolvedPath;
 		const std::string contentRoot = ResolveGameContentPath(paths, "");
 		const std::string configRoot = ResolveGameConfigPath(paths, "");
 
@@ -1789,6 +1795,18 @@ namespace Unnamed {
 			}
 			Warning(kChannel, "startup validation: {}", text);
 		};
+
+		if (options.emitDetailedLogs && !startupSceneResolution.resolvedRoot.empty()) {
+			Msg(
+				kChannel,
+				"startup scene mount resolution: relative='{}' resolved='{}' layer='{}' root='{}' exists={}",
+				startupSceneRelative,
+				startupSceneResolution.resolvedPath,
+				startupSceneResolution.resolvedLayer,
+				startupSceneResolution.resolvedRoot,
+				startupSceneResolution.existsOnDisk
+			);
+		}
 
 		std::error_code ec;
 		if (paths.resolvedManifestPath.empty()) {
