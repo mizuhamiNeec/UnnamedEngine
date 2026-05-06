@@ -1,6 +1,7 @@
 #include "GameModuleFactory.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cctype>
 #include <exception>
 #include <filesystem>
@@ -71,6 +72,8 @@ namespace Unnamed {
 			HMODULE                moduleHandle = nullptr;
 			const GameRuntimeApiV1* api = nullptr;
 			std::string            runtimeBinaryPath;
+			std::uintmax_t         runtimeBinaryFileSize = 0;
+			std::int64_t           runtimeBinaryWriteTimeTicks = 0;
 		};
 
 		enum class RuntimeLoadFailure {
@@ -2044,6 +2047,37 @@ namespace Unnamed {
 			return true;
 		}
 
+		[[nodiscard]] bool TryReadRuntimeBinaryIdentity(
+			const std::filesystem::path& runtimePath,
+			std::uintmax_t&              outFileSize,
+			std::int64_t&                outWriteTimeTicks
+		) {
+			std::error_code ec;
+			if (!std::filesystem::exists(runtimePath, ec) || ec) {
+				return false;
+			}
+			if (!std::filesystem::is_regular_file(runtimePath, ec) || ec) {
+				return false;
+			}
+
+			const std::uintmax_t fileSize = std::filesystem::file_size(runtimePath, ec);
+			if (ec) {
+				return false;
+			}
+
+			const auto writeTime = std::filesystem::last_write_time(runtimePath, ec);
+			if (ec) {
+				return false;
+			}
+
+			const auto writeDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(
+				writeTime.time_since_epoch()
+			);
+			outFileSize = fileSize;
+			outWriteTimeTicks = static_cast<std::int64_t>(writeDuration.count());
+			return true;
+		}
+
 		[[nodiscard]] std::string DescribeRuntimeLoadFailure(
 			const RuntimeLoadResult& result
 		) {
@@ -2159,23 +2193,48 @@ namespace Unnamed {
 			const std::filesystem::path runtimePath =
 				std::filesystem::path(paths.runtimeBinaryPath).lexically_normal();
 			result.runtimePath = runtimePath.generic_string();
+			std::uintmax_t runtimeFileSize = 0;
+			std::int64_t   runtimeWriteTimeTicks = 0;
+			const bool hasRuntimeIdentity = TryReadRuntimeBinaryIdentity(
+				runtimePath,
+				runtimeFileSize,
+				runtimeWriteTimeTicks
+			);
 			if (auto runtimeIt = state.loadedRuntimeLibraries.find(canonical);
 				runtimeIt != state.loadedRuntimeLibraries.end()) {
 				const std::filesystem::path loadedRuntimePath =
 					std::filesystem::path(runtimeIt->second.runtimeBinaryPath)
 						.lexically_normal();
 				if (loadedRuntimePath == runtimePath) {
-					result.runtimeLibrary = &runtimeIt->second;
-					return result;
+					if (!hasRuntimeIdentity ||
+					    (runtimeIt->second.runtimeBinaryFileSize == runtimeFileSize &&
+					     runtimeIt->second.runtimeBinaryWriteTimeTicks ==
+						     runtimeWriteTimeTicks)) {
+						result.runtimeLibrary = &runtimeIt->second;
+						return result;
+					}
+
+					Msg(
+						kChannel,
+						"runtime binary content changed for game '{}': path='{}' size {}->{} writeTicks {}->{} (reload)",
+						paths.gameName,
+						runtimePath.generic_string(),
+						runtimeIt->second.runtimeBinaryFileSize,
+						runtimeFileSize,
+						runtimeIt->second.runtimeBinaryWriteTimeTicks,
+						runtimeWriteTimeTicks
+					);
 				}
 
-				Msg(
-					kChannel,
-					"runtime binary path changed for game '{}': old='{}' new='{}' (reload)",
-					paths.gameName,
-					runtimeIt->second.runtimeBinaryPath,
-					runtimePath.generic_string()
-				);
+				if (loadedRuntimePath != runtimePath) {
+					Msg(
+						kChannel,
+						"runtime binary path changed for game '{}': old='{}' new='{}' (reload)",
+						paths.gameName,
+						runtimeIt->second.runtimeBinaryPath,
+						runtimePath.generic_string()
+					);
+				}
 				UnloadRuntimeLibrary(runtimeIt->second);
 				state.loadedRuntimeLibraries.erase(runtimeIt);
 			}
@@ -2230,6 +2289,8 @@ namespace Unnamed {
 			loadedRuntime.moduleHandle = runtimeModule;
 			loadedRuntime.api = api;
 			loadedRuntime.runtimeBinaryPath = runtimePath.generic_string();
+			loadedRuntime.runtimeBinaryFileSize = runtimeFileSize;
+			loadedRuntime.runtimeBinaryWriteTimeTicks = runtimeWriteTimeTicks;
 			const auto [insertedIt, inserted] = state.loadedRuntimeLibraries.emplace(
 				canonical,
 				std::move(loadedRuntime)
