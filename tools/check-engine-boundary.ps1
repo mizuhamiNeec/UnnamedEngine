@@ -42,11 +42,14 @@ foreach ($entry in $changedEntries) {
     $status = $tokens[0]
     $path = $tokens[1]
     if ($path -match "^projects/") {
-        if (
+        $allowDeleteForSeparation =
             $status -like "D*" -and (
                 $path -match "^projects/[^/]+/runtime/" -or
-                $path -match "^projects/[^/]+/content/"
+                $path -match "^projects/[^/]+/content/" -or
+                $path -match "^projects/[^/]+/config/game_profile\.json$"
             )
+        if (
+            $allowDeleteForSeparation
         ) {
             continue
         }
