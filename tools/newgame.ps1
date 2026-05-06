@@ -24,7 +24,7 @@ function Write-TextFile {
 
 function To-LowerSnake {
     param([string]$Value)
-    return ($Value -replace "([a-z0-9])([A-Z])", '$1_$2').ToLowerInvariant()
+    return ($Value -creplace "([a-z0-9])([A-Z])", '$1_$2').ToLowerInvariant()
 }
 
 function Get-RelativePath {
@@ -130,12 +130,6 @@ $bootstrapSceneJson = @"
           },
           "guid": 6001,
           "type": "engine.Transform"
-        },
-        {
-          "active": true,
-          "data": {},
-          "guid": 6002,
-          "type": "$sampleStableName"
         }
       ],
       "folderPath": "Bootstrap",
