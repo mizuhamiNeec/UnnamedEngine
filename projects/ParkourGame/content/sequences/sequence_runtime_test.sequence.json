@@ -1,0 +1,266 @@
+{
+    "bindings": [
+        {
+            "bindingId": 1,
+            "componentStableName": "engine.Transform",
+            "entityGuid": 2322,
+            "propertyPath": ""
+        }
+    ],
+    "displayRate": 10,
+    "editor": {
+        "autoKeyEnabled": false,
+        "scrubFireEvents": true
+    },
+    "lengthFrames": 8192,
+    "name": "SequenceRuntimeTest_MoveHorizontalPlatform",
+    "tickResolution": 24000,
+    "tracks": [
+        {
+            "bindingId": 1,
+            "blendMode": "absolute",
+            "name": "Platform_Transform",
+            "priority": 100,
+            "sections": [
+                {
+                    "boolKeys": [],
+                    "cameraCutKeys": [],
+                    "endFrame": 8192,
+                    "eventKeys": [],
+                    "floatCurve": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "priority": 0,
+                    "sectionId": 2001,
+                    "skeletal": {
+                        "layerIndex": 0,
+                        "playOnEnter": false,
+                        "playbackCurve": {
+                            "channelId": 0,
+                            "keys": []
+                        },
+                        "speedCurve": {
+                            "channelId": 0,
+                            "keys": []
+                        },
+                        "stateId": "",
+                        "stopOnExit": false,
+                        "weightCurve": {
+                            "channelId": 0,
+                            "keys": []
+                        }
+                    },
+                    "startFrame": 0,
+                    "transformPosX": {
+                        "channelId": 3001,
+                        "keys": [
+                            {
+                                "arriveTangent": 0.0,
+                                "frame": 0,
+                                "interpolation": "cubic",
+                                "keyId": 3101,
+                                "leaveTangent": 0.14399999380111694,
+                                "value": 39.013999938964844
+                            },
+                            {
+                                "arriveTangent": 0.0,
+                                "frame": 1024,
+                                "interpolation": "cubic",
+                                "keyId": 3102,
+                                "leaveTangent": 0.0,
+                                "value": 115.0999984741211
+                            },
+                            {
+                                "arriveTangent": 0.0,
+                                "frame": 2048,
+                                "interpolation": "cubic",
+                                "keyId": 3103,
+                                "leaveTangent": 0.0,
+                                "value": 165.21400451660156
+                            }
+                        ]
+                    },
+                    "transformPosY": {
+                        "channelId": 3002,
+                        "keys": [
+                            {
+                                "arriveTangent": 0.0,
+                                "frame": 0,
+                                "interpolation": "linear",
+                                "keyId": 3201,
+                                "leaveTangent": 0.0,
+                                "value": 1.6260000467300415
+                            },
+                            {
+                                "arriveTangent": 0.0,
+                                "frame": 4096,
+                                "interpolation": "linear",
+                                "keyId": 3202,
+                                "leaveTangent": 0.0,
+                                "value": 1.6260000467300415
+                            }
+                        ]
+                    },
+                    "transformPosZ": {
+                        "channelId": 3003,
+                        "keys": [
+                            {
+                                "arriveTangent": 0.0,
+                                "frame": 0,
+                                "interpolation": "linear",
+                                "keyId": 3301,
+                                "leaveTangent": 0.0,
+                                "value": 8.128000259399414
+                            },
+                            {
+                                "arriveTangent": 0.0,
+                                "frame": 4096,
+                                "interpolation": "linear",
+                                "keyId": 3302,
+                                "leaveTangent": 0.0,
+                                "value": 8.128000259399414
+                            }
+                        ]
+                    },
+                    "transformRotW": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformRotX": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformRotY": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformRotZ": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformScaleX": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformScaleY": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformScaleZ": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "vec3XCurve": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "vec3YCurve": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "vec3ZCurve": {
+                        "channelId": 0,
+                        "keys": []
+                    }
+                }
+            ],
+            "trackId": 1001,
+            "trackType": "transform"
+        },
+        {
+            "bindingId": 1,
+            "blendMode": "absolute",
+            "name": "Test_Event",
+            "priority": 0,
+            "sections": [
+                {
+                    "boolKeys": [],
+                    "cameraCutKeys": [],
+                    "endFrame": 8192,
+                    "eventKeys": [],
+                    "floatCurve": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "priority": 0,
+                    "sectionId": 2002,
+                    "skeletal": {
+                        "layerIndex": 0,
+                        "playOnEnter": false,
+                        "playbackCurve": {
+                            "channelId": 0,
+                            "keys": []
+                        },
+                        "speedCurve": {
+                            "channelId": 0,
+                            "keys": []
+                        },
+                        "stateId": "",
+                        "stopOnExit": false,
+                        "weightCurve": {
+                            "channelId": 0,
+                            "keys": []
+                        }
+                    },
+                    "startFrame": 0,
+                    "transformPosX": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformPosY": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformPosZ": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformRotW": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformRotX": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformRotY": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformRotZ": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformScaleX": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformScaleY": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "transformScaleZ": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "vec3XCurve": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "vec3YCurve": {
+                        "channelId": 0,
+                        "keys": []
+                    },
+                    "vec3ZCurve": {
+                        "channelId": 0,
+                        "keys": []
+                    }
+                }
+            ],
+            "trackId": 1002,
+            "trackType": "event"
+        }
+    ],
+    "version": 2
+}
