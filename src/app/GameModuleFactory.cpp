@@ -438,6 +438,29 @@ namespace Unnamed {
 			return true;
 		}
 
+		[[nodiscard]] bool TryReadOptionalBoolField(
+			const nlohmann::json& root,
+			const std::string_view fieldName,
+			const std::string_view manifestPath,
+			bool&                 outValue
+		) {
+			const auto it = root.find(std::string(fieldName));
+			if (it == root.end()) {
+				return true;
+			}
+			if (!it->is_boolean()) {
+				DevMsg(
+					kChannel,
+					"manifest '{}' field '{}' must be a boolean when provided",
+					manifestPath,
+					fieldName
+				);
+				return false;
+			}
+			outValue = it->get<bool>();
+			return true;
+		}
+
 		[[nodiscard]] ManifestLoadResult LoadGameProfileManifest(
 			const std::string_view manifestPath
 		) {
@@ -536,6 +559,22 @@ namespace Unnamed {
 				}
 				profile.paths.runtimeBinaryPath =
 					runtimeBinaryIt->get<std::string>();
+			}
+			if (!TryReadOptionalBoolField(
+					root,
+					"requireRuntimeBinary",
+					manifestPath,
+					profile.paths.requireRuntimeBinary
+				) ||
+				!TryReadOptionalBoolField(
+					root,
+					"preferRuntimeBinary",
+					manifestPath,
+					profile.paths.preferRuntimeBinary
+				)) {
+				result.failureReason =
+					"invalid optional boolean field(s) for runtime policy";
+				return result;
 			}
 
 			const auto aliasesIt = root.find("aliases");
@@ -643,14 +682,16 @@ namespace Unnamed {
 							manifestPath.generic_string();
 						Msg(
 							kChannel,
-							"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}' runtimeBinary='{}'",
+							"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}' runtimeBinary='{}' requireRuntimeBinary={} preferRuntimeBinary={}",
 							loadResult.profile->paths.gameName,
 							manifestPath.generic_string(),
 							loadResult.profile->paths.gameRoot,
 							loadResult.profile->paths.contentRoot,
 							loadResult.profile->paths.configRoot,
 							loadResult.profile->paths.defaultStartupScene,
-							loadResult.profile->paths.runtimeBinaryPath
+							loadResult.profile->paths.runtimeBinaryPath,
+							loadResult.profile->paths.requireRuntimeBinary,
+							loadResult.profile->paths.preferRuntimeBinary
 						);
 					}
 
@@ -1416,6 +1457,77 @@ namespace Unnamed {
 		}
 
 		RegisteredGameModule& entry = entryIt->second;
+		const bool hasRuntimePaths = entry.paths.has_value();
+		const bool hasRuntimeBinary = hasRuntimePaths &&
+		                              !entry.paths->runtimeBinaryPath.empty();
+		const bool requireRuntimeBinary = hasRuntimePaths &&
+		                                  entry.paths->requireRuntimeBinary;
+		const bool preferRuntimeBinary = hasRuntimePaths &&
+		                                 entry.paths->preferRuntimeBinary;
+
+		if (requireRuntimeBinary && !hasRuntimeBinary) {
+			Error(
+				kChannel,
+				"CreateGameModule('{}') failed: runtimeBinary is required but not configured in manifest.",
+				gameName
+			);
+			return nullptr;
+		}
+
+		const bool shouldTryDynamicRuntime =
+			hasRuntimeBinary && (preferRuntimeBinary || entry.createFunction == nullptr);
+		if (shouldTryDynamicRuntime) {
+			LoadedRuntimeLibrary* runtimeLibrary = EnsureRuntimeLibraryLoaded(
+				state,
+				canonicalName,
+				*entry.paths
+			);
+			if (runtimeLibrary == nullptr || runtimeLibrary->api == nullptr) {
+				if (requireRuntimeBinary || entry.createFunction == nullptr) {
+					Error(
+						kChannel,
+						"CreateGameModule('{}') failed: runtime binary could not be loaded ('{}')",
+						gameName,
+						entry.paths->runtimeBinaryPath
+					);
+					return nullptr;
+				}
+				Warning(
+					kChannel,
+					"runtime binary load failed for '{}', fallback to static runtime registration.",
+					gameName
+				);
+			} else {
+				IGameModule* rawModule = runtimeLibrary->api->CreateGameModule();
+				if (rawModule == nullptr) {
+					if (requireRuntimeBinary || entry.createFunction == nullptr) {
+						Error(
+							kChannel,
+							"CreateGameModule('{}') failed: runtime '{}' returned null module",
+							gameName,
+							runtimeLibrary->runtimeBinaryPath
+						);
+						return nullptr;
+					}
+					Warning(
+						kChannel,
+						"runtime '{}' returned null module for '{}', fallback to static runtime registration.",
+						runtimeLibrary->runtimeBinaryPath,
+						gameName
+					);
+				} else {
+					std::unique_ptr<IGameModule> importedModule =
+						std::make_unique<ImportedRuntimeGameModule>(
+							rawModule,
+							runtimeLibrary->api->DestroyGameModule
+						);
+					return std::make_unique<ProfileBoundGameModule>(
+						std::move(importedModule),
+						*entry.paths
+					);
+				}
+			}
+		}
 
 		if (entry.createFunction != nullptr) {
 			std::unique_ptr<IGameModule> module = entry.createFunction();
@@ -1435,44 +1547,6 @@ namespace Unnamed {
 				);
 			}
 			return module;
-		}
-
-		if (entry.paths.has_value() && !entry.paths->runtimeBinaryPath.empty()) {
-			LoadedRuntimeLibrary* runtimeLibrary = EnsureRuntimeLibraryLoaded(
-				state,
-				canonicalName,
-				*entry.paths
-			);
-			if (runtimeLibrary == nullptr || runtimeLibrary->api == nullptr) {
-				Error(
-					kChannel,
-					"CreateGameModule('{}') failed: runtime binary could not be loaded ('{}')",
-					gameName,
-					entry.paths->runtimeBinaryPath
-				);
-				return nullptr;
-			}
-
-			IGameModule* rawModule = runtimeLibrary->api->CreateGameModule();
-			if (rawModule == nullptr) {
-				Error(
-					kChannel,
-					"CreateGameModule('{}') failed: runtime '{}' returned null module",
-					gameName,
-					runtimeLibrary->runtimeBinaryPath
-				);
-				return nullptr;
-			}
-
-			std::unique_ptr<IGameModule> importedModule =
-				std::make_unique<ImportedRuntimeGameModule>(
-					rawModule,
-					runtimeLibrary->api->DestroyGameModule
-				);
-			return std::make_unique<ProfileBoundGameModule>(
-				std::move(importedModule),
-				*entry.paths
-			);
 		}
 
 		// Editor など未リンク App では、Paths だけ持つ既定モジュールで起動する。
@@ -1553,7 +1627,12 @@ namespace Unnamed {
 		}
 
 		ec.clear();
-		if (!paths.runtimeBinaryPath.empty()) {
+		if (paths.requireRuntimeBinary && paths.runtimeBinaryPath.empty()) {
+			reportIssue(
+				true,
+				"runtime binary is required but runtimeBinary path is empty."
+			);
+		} else if (!paths.runtimeBinaryPath.empty()) {
 			if (!std::filesystem::exists(paths.runtimeBinaryPath, ec) || ec) {
 				reportIssue(
 					true,

@@ -29,6 +29,10 @@ namespace Unnamed {
 		std::string defaultStartupScene;
 		/// @brief Runtime DLL のパス（gameRoot 基準または絶対）です。
 		std::string runtimeBinaryPath;
+		/// @brief runtimeBinary を必須として扱うかどうかです。
+		bool requireRuntimeBinary = false;
+		/// @brief 静的登録より runtimeBinary を優先するかどうかです。
+		bool preferRuntimeBinary = false;
 		/// @brief 解決に成功した game_profile.json の実パスです。
 		std::string resolvedManifestPath;
 	};
