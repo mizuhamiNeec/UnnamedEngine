@@ -8,6 +8,7 @@
 #include <map>
 #include <numeric>
 #include <optional>
+#include <queue>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -30,6 +31,8 @@
 namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "GameModuleFactory";
+		constexpr std::string_view kSupportedEngineApiVersion = "1";
+		constexpr std::string_view kSupportedGameApiVersion = "1";
 
 		struct RegisteredGameModule {
 			std::optional<GameModulePaths> paths;
@@ -64,6 +67,25 @@ namespace Unnamed {
 		struct LoadedGameProfile {
 			GameModulePaths            paths;
 			std::vector<std::string> aliases;
+			std::string               modsRootOverride;
+			std::vector<std::string> enabledMods;
+			std::vector<std::string> disabledMods;
+		};
+
+		struct ModDependencySpec {
+			std::string id;
+			std::string versionConstraint;
+		};
+
+		struct LoadedModManifest {
+			std::string                    id;
+			std::string                    version;
+			std::string                    engineApi;
+			std::string                    gameApi;
+			std::string                    contentRoot;
+			std::filesystem::path          modRootPath;
+			std::filesystem::path          manifestPath;
+			std::vector<ModDependencySpec> dependencies;
 		};
 
 		struct ManifestLoadResult {
@@ -417,6 +439,140 @@ namespace Unnamed {
 			return (baseRoot / asPath).lexically_normal().generic_string();
 		}
 
+		[[nodiscard]] bool TryLoadJsonObjectFile(
+			const std::filesystem::path& path,
+			nlohmann::json&               outJson,
+			std::string&                  outError
+		) {
+			std::ifstream input(path, std::ios::binary);
+			if (!input.is_open()) {
+				outError = "file not found";
+				return false;
+			}
+			try {
+				input >> outJson;
+			} catch (const std::exception& ex) {
+				outError = std::format("parse error: {}", ex.what());
+				return false;
+			}
+			if (!outJson.is_object()) {
+				outError = "invalid root type: expected object";
+				return false;
+			}
+			return true;
+		}
+
+		[[nodiscard]] std::vector<std::string> ParseVersionParts(
+			const std::string_view version
+		) {
+			std::vector<std::string> parts;
+			std::string current;
+			for (char ch : version) {
+				if (ch == '.') {
+					parts.emplace_back(current);
+					current.clear();
+					continue;
+				}
+				current.push_back(ch);
+			}
+			parts.emplace_back(current);
+			return parts;
+		}
+
+		[[nodiscard]] bool TryParseVersionNumber(
+			const std::string_view text,
+			int&                   outValue
+		) {
+			if (text.empty()) {
+				return false;
+			}
+			for (char ch : text) {
+				if (ch < '0' || ch > '9') {
+					return false;
+				}
+			}
+			outValue = std::stoi(std::string(text));
+			return true;
+		}
+
+		[[nodiscard]] int CompareVersions(
+			const std::string_view lhsVersion,
+			const std::string_view rhsVersion,
+			bool&                  outComparable
+		) {
+			outComparable = false;
+			const std::vector<std::string> lhsParts = ParseVersionParts(lhsVersion);
+			const std::vector<std::string> rhsParts = ParseVersionParts(rhsVersion);
+			const std::size_t partCount = std::max(lhsParts.size(), rhsParts.size());
+			for (std::size_t i = 0; i < partCount; ++i) {
+				const std::string_view lhsPart = i < lhsParts.size() ?
+				                                     std::string_view(lhsParts[i]) :
+				                                     std::string_view("0");
+				const std::string_view rhsPart = i < rhsParts.size() ?
+				                                     std::string_view(rhsParts[i]) :
+				                                     std::string_view("0");
+				int lhsValue = 0;
+				int rhsValue = 0;
+				if (!TryParseVersionNumber(lhsPart, lhsValue) ||
+				    !TryParseVersionNumber(rhsPart, rhsValue)) {
+					return 0;
+				}
+				if (lhsValue < rhsValue) {
+					outComparable = true;
+					return -1;
+				}
+				if (lhsValue > rhsValue) {
+					outComparable = true;
+					return 1;
+				}
+			}
+			outComparable = true;
+			return 0;
+		}
+
+		[[nodiscard]] bool SatisfiesVersionConstraint(
+			const std::string_view version,
+			const std::string_view constraint
+		) {
+			if (constraint.empty()) {
+				return true;
+			}
+
+			std::string op = "==";
+			std::string rhs = std::string(constraint);
+			if (constraint.starts_with(">=") || constraint.starts_with("<=") ||
+			    constraint.starts_with("==")) {
+				op = std::string(constraint.substr(0, 2));
+				rhs = std::string(constraint.substr(2));
+			} else if (constraint.starts_with(">") || constraint.starts_with("<") ||
+			           constraint.starts_with("=")) {
+				op = std::string(constraint.substr(0, 1));
+				rhs = std::string(constraint.substr(1));
+			}
+
+			bool comparable = false;
+			const int cmp = CompareVersions(version, rhs, comparable);
+			if (!comparable) {
+				return version == rhs;
+			}
+			if (op == "==" || op == "=") {
+				return cmp == 0;
+			}
+			if (op == ">") {
+				return cmp > 0;
+			}
+			if (op == ">=") {
+				return cmp >= 0;
+			}
+			if (op == "<") {
+				return cmp < 0;
+			}
+			if (op == "<=") {
+				return cmp <= 0;
+			}
+			return false;
+		}
+
 		void ResolveProfileRootsAgainstBaseRoot(
 			LoadedGameProfile&            profile,
 			const std::filesystem::path& baseRoot
@@ -714,6 +870,49 @@ namespace Unnamed {
 					return result;
 				}
 			}
+			if (const auto modsIt = root.find("mods"); modsIt != root.end()) {
+				if (!modsIt->is_object()) {
+					DevMsg(
+						kChannel,
+						"manifest '{}' field 'mods' must be an object when provided",
+						manifestPath
+					);
+					result.failureReason = "invalid optional object field 'mods'";
+					return result;
+				}
+
+				if (const auto modsRootIt = modsIt->find("root");
+					modsRootIt != modsIt->end()) {
+					if (!modsRootIt->is_string()) {
+						DevMsg(
+							kChannel,
+							"manifest '{}' field 'mods.root' must be a string when provided",
+							manifestPath
+						);
+						result.failureReason =
+							"invalid optional string field 'mods.root'";
+						return result;
+					}
+					profile.modsRootOverride = modsRootIt->get<std::string>();
+				}
+
+				if (!TryReadOptionalStringArrayField(
+						*modsIt,
+						"enabled",
+						manifestPath,
+						profile.enabledMods
+					) ||
+					!TryReadOptionalStringArrayField(
+						*modsIt,
+						"disabled",
+						manifestPath,
+						profile.disabledMods
+					)) {
+					result.failureReason =
+						"invalid optional string array field(s) for mods";
+					return result;
+				}
+			}
 
 			const auto aliasesIt = root.find("aliases");
 			if (aliasesIt == root.end() || !aliasesIt->is_array()) {
@@ -747,6 +946,371 @@ namespace Unnamed {
 			);
 			result.profile = std::move(profile);
 			return result;
+		}
+
+		[[nodiscard]] bool TryReadModDependencyEntry(
+			const nlohmann::json& dependencyNode,
+			ModDependencySpec&    outDependency
+		) {
+			if (dependencyNode.is_string()) {
+				outDependency.id = dependencyNode.get<std::string>();
+				outDependency.versionConstraint.clear();
+				return !outDependency.id.empty();
+			}
+			if (!dependencyNode.is_object()) {
+				return false;
+			}
+			const auto idIt = dependencyNode.find("id");
+			if (idIt == dependencyNode.end() || !idIt->is_string()) {
+				return false;
+			}
+			outDependency.id = idIt->get<std::string>();
+			if (const auto versionIt = dependencyNode.find("version");
+				versionIt != dependencyNode.end()) {
+				if (!versionIt->is_string()) {
+					return false;
+				}
+				outDependency.versionConstraint = versionIt->get<std::string>();
+			}
+			return !outDependency.id.empty();
+		}
+
+		[[nodiscard]] std::optional<LoadedModManifest> TryLoadModManifest(
+			const std::filesystem::path& manifestPath,
+			std::string&                 outError
+		) {
+			nlohmann::json root = nlohmann::json::object();
+			if (!TryLoadJsonObjectFile(manifestPath, root, outError)) {
+				return std::nullopt;
+			}
+
+			int schemaVersion = 0;
+			if (!root.contains("schemaVersion") ||
+			    !root["schemaVersion"].is_number_integer()) {
+				outError = "missing or invalid required integer field 'schemaVersion'";
+				return std::nullopt;
+			}
+			schemaVersion = root["schemaVersion"].get<int>();
+			if (schemaVersion != 1) {
+				outError = std::format(
+					"unsupported schemaVersion {} (supported: 1)",
+					schemaVersion
+				);
+				return std::nullopt;
+			}
+
+			const auto requireStringField = [&](const std::string_view fieldName,
+			                                    std::string&           outValue) {
+				const auto it = root.find(std::string(fieldName));
+				if (it == root.end() || !it->is_string()) {
+					return false;
+				}
+				outValue = it->get<std::string>();
+				return !outValue.empty();
+			};
+
+			LoadedModManifest manifest = {};
+			if (!requireStringField("id", manifest.id) ||
+			    !requireStringField("version", manifest.version) ||
+			    !requireStringField("engineApi", manifest.engineApi) ||
+			    !requireStringField("gameApi", manifest.gameApi)) {
+				outError =
+					"missing required string field(s): id/version/engineApi/gameApi";
+				return std::nullopt;
+			}
+			if (const auto contentRootIt = root.find("contentRoot");
+				contentRootIt != root.end()) {
+				if (!contentRootIt->is_string()) {
+					outError = "invalid optional string field 'contentRoot'";
+					return std::nullopt;
+				}
+				manifest.contentRoot = contentRootIt->get<std::string>();
+			}
+			if (manifest.contentRoot.empty()) {
+				manifest.contentRoot = "content";
+			}
+
+			if (const auto depsIt = root.find("deps"); depsIt != root.end()) {
+				if (!depsIt->is_array()) {
+					outError = "invalid optional array field 'deps'";
+					return std::nullopt;
+				}
+				for (const nlohmann::json& depNode : *depsIt) {
+					ModDependencySpec dep = {};
+					if (!TryReadModDependencyEntry(depNode, dep)) {
+						outError = "invalid dependency entry in 'deps'";
+						return std::nullopt;
+					}
+					manifest.dependencies.emplace_back(std::move(dep));
+				}
+			}
+
+			manifest.manifestPath = manifestPath;
+			manifest.modRootPath = manifestPath.parent_path();
+			return manifest;
+		}
+
+		void ResolveAndApplyModMountRoots(LoadedGameProfile& profile) {
+			const std::filesystem::path gameRootPath(profile.paths.gameRoot);
+			if (gameRootPath.empty()) {
+				return;
+			}
+
+			std::filesystem::path modsRootPath = gameRootPath / "mods";
+			if (!profile.modsRootOverride.empty()) {
+				modsRootPath = std::filesystem::path(
+					ResolvePathAgainstBaseRoot(gameRootPath, profile.modsRootOverride)
+				);
+			}
+			std::error_code ec;
+			if (!std::filesystem::exists(modsRootPath, ec) || ec) {
+				DevMsg(
+					kChannel,
+					"mods root was not found for game '{}': '{}'",
+					profile.paths.gameName,
+					modsRootPath.generic_string()
+				);
+				return;
+			}
+
+			std::unordered_map<std::string, LoadedModManifest> manifestsById;
+			for (std::filesystem::directory_iterator it(
+				     modsRootPath,
+				     std::filesystem::directory_options::skip_permission_denied,
+				     ec
+			     );
+			     it != std::filesystem::directory_iterator();
+			     it.increment(ec)) {
+				if (ec) {
+					ec.clear();
+					continue;
+				}
+				if (!it->is_directory(ec) || ec) {
+					ec.clear();
+					continue;
+				}
+
+				const std::filesystem::path manifestPath =
+					it->path() / "mod_manifest.json";
+				if (!std::filesystem::exists(manifestPath, ec) || ec) {
+					ec.clear();
+					continue;
+				}
+
+				std::string parseError;
+				const std::optional<LoadedModManifest> manifest = TryLoadModManifest(
+					manifestPath,
+					parseError
+				);
+				if (!manifest.has_value()) {
+					Warning(
+						kChannel,
+						"mod manifest load failed '{}': {}",
+						manifestPath.generic_string(),
+						parseError
+					);
+					continue;
+				}
+				if (manifestsById.contains(manifest->id)) {
+					Warning(
+						kChannel,
+						"duplicate mod id '{}' detected; keeping first manifest.",
+						manifest->id
+					);
+					continue;
+				}
+				manifestsById.emplace(manifest->id, *manifest);
+			}
+
+			std::vector<std::string> enabledModIds;
+			if (!profile.enabledMods.empty()) {
+				enabledModIds = profile.enabledMods;
+			} else {
+				enabledModIds.reserve(manifestsById.size());
+				for (const auto& [modId, manifest] : manifestsById) {
+					(void)manifest;
+					enabledModIds.emplace_back(modId);
+				}
+				std::ranges::sort(enabledModIds);
+			}
+
+			if (!profile.disabledMods.empty()) {
+				std::unordered_set<std::string> disabledSet(
+					profile.disabledMods.begin(),
+					profile.disabledMods.end()
+				);
+				enabledModIds.erase(
+					std::remove_if(
+						enabledModIds.begin(),
+						enabledModIds.end(),
+						[&](const std::string& modId) {
+							return disabledSet.contains(modId);
+						}
+					),
+					enabledModIds.end()
+				);
+			}
+
+			{
+				std::unordered_set<std::string> seen;
+				std::vector<std::string> uniqueEnabled;
+				uniqueEnabled.reserve(enabledModIds.size());
+				for (const std::string& modId : enabledModIds) {
+					if (seen.emplace(modId).second) {
+						uniqueEnabled.emplace_back(modId);
+					}
+				}
+				enabledModIds = std::move(uniqueEnabled);
+			}
+
+			bool hasDependencyError = false;
+			std::unordered_map<std::string, std::vector<std::string>> edgesByDependency;
+			std::unordered_map<std::string, int> inDegree;
+			for (const std::string& modId : enabledModIds) {
+				if (!manifestsById.contains(modId)) {
+					Warning(
+						kChannel,
+						"enabled mod '{}' was not found under '{}'",
+						modId,
+						modsRootPath.generic_string()
+					);
+					hasDependencyError = true;
+					continue;
+				}
+
+				const LoadedModManifest& modManifest = manifestsById.at(modId);
+				if (modManifest.engineApi != kSupportedEngineApiVersion) {
+					Warning(
+						kChannel,
+						"mod '{}' engineApi mismatch: required='{}' supported='{}'",
+						modId,
+						modManifest.engineApi,
+						kSupportedEngineApiVersion
+					);
+					hasDependencyError = true;
+				}
+				if (modManifest.gameApi != kSupportedGameApiVersion) {
+					Warning(
+						kChannel,
+						"mod '{}' gameApi mismatch: required='{}' supported='{}'",
+						modId,
+						modManifest.gameApi,
+						kSupportedGameApiVersion
+					);
+					hasDependencyError = true;
+				}
+				inDegree.emplace(modId, 0);
+			}
+
+			std::unordered_set<std::string> enabledSet(
+				enabledModIds.begin(),
+				enabledModIds.end()
+			);
+			for (const std::string& modId : enabledModIds) {
+				if (!enabledSet.contains(modId) || !manifestsById.contains(modId)) {
+					continue;
+				}
+				const LoadedModManifest& modManifest = manifestsById.at(modId);
+				for (const ModDependencySpec& dependency : modManifest.dependencies) {
+					if (!enabledSet.contains(dependency.id) ||
+					    !manifestsById.contains(dependency.id)) {
+						Warning(
+							kChannel,
+							"mod '{}' dependency '{}' is missing or disabled.",
+							modId,
+							dependency.id
+						);
+						hasDependencyError = true;
+						continue;
+					}
+					const LoadedModManifest& dependencyManifest =
+						manifestsById.at(dependency.id);
+					if (!SatisfiesVersionConstraint(
+						    dependencyManifest.version,
+						    dependency.versionConstraint
+					    )) {
+						Warning(
+							kChannel,
+							"mod '{}' dependency version mismatch: dep='{}' required='{}' actual='{}'",
+							modId,
+							dependency.id,
+							dependency.versionConstraint,
+							dependencyManifest.version
+						);
+						hasDependencyError = true;
+						continue;
+					}
+
+					edgesByDependency[dependency.id].emplace_back(modId);
+					inDegree[modId]++;
+				}
+			}
+
+			if (hasDependencyError) {
+				Warning(
+					kChannel,
+					"mod loading aborted for game '{}': dependency/api validation failed.",
+					profile.paths.gameName
+				);
+				profile.paths.modContentMountRoots.clear();
+				return;
+			}
+
+			std::set<std::string> ready;
+			for (const auto& [modId, degree] : inDegree) {
+				if (degree == 0) {
+					ready.emplace(modId);
+				}
+			}
+
+			std::vector<std::string> orderedModIds;
+			orderedModIds.reserve(enabledModIds.size());
+			while (!ready.empty()) {
+				const std::string modId = *ready.begin();
+				ready.erase(ready.begin());
+				orderedModIds.emplace_back(modId);
+				if (!edgesByDependency.contains(modId)) {
+					continue;
+				}
+				for (const std::string& dependentId : edgesByDependency.at(modId)) {
+					inDegree[dependentId]--;
+					if (inDegree[dependentId] == 0) {
+						ready.emplace(dependentId);
+					}
+				}
+			}
+
+			if (orderedModIds.size() != inDegree.size()) {
+				Warning(
+					kChannel,
+					"mod loading aborted for game '{}': circular dependency detected.",
+					profile.paths.gameName
+				);
+				profile.paths.modContentMountRoots.clear();
+				return;
+			}
+
+			profile.paths.modContentMountRoots.clear();
+			for (const std::string& modId : orderedModIds) {
+				const LoadedModManifest& manifest = manifestsById.at(modId);
+				const std::string modContentRoot = ResolvePathAgainstBaseRoot(
+					manifest.modRootPath,
+					manifest.contentRoot
+				);
+				if (modContentRoot.empty()) {
+					continue;
+				}
+				profile.paths.modContentMountRoots.emplace_back(modContentRoot);
+			}
+
+			Msg(
+				kChannel,
+				"resolved mods for game '{}': root='{}' enabled={} mounted={}",
+				profile.paths.gameName,
+				modsRootPath.generic_string(),
+				enabledModIds.size(),
+				profile.paths.modContentMountRoots.size()
+			);
 		}
 
 		[[nodiscard]] bool RegisterAliasInternal(
@@ -818,6 +1382,7 @@ namespace Unnamed {
 						);
 						loadResult.profile->paths.resolvedManifestPath =
 							manifestPath.generic_string();
+						ResolveAndApplyModMountRoots(*loadResult.profile);
 						Msg(
 							kChannel,
 							"manifest profile loaded: game='{}' manifest='{}' gameRoot='{}' contentRoot='{}' configRoot='{}' defaultStartupScene='{}' runtimeBinary='{}' requireRuntimeBinary={} preferRuntimeBinary={} mounts(base={}, dlc={}, mod={})",
