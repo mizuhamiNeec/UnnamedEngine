@@ -324,6 +324,31 @@ if ENABLE_TEAMGAME_RUNTIME then
 
 		EngineIncludeDirs()
 		includedirs { TEAMGAME_RUNTIME_DIR }
+
+	project "TeamGameRuntimeDll"
+		kind "SharedLib"
+		CommonProjectSettings("%{prj.name}")
+		targetname "TeamGameRuntime"
+
+		files {
+			"src/pch.h",
+			"src/pch.cpp",
+			"src/app/runtime/TeamGameRuntimeApiEntry.cpp",
+		}
+
+		EngineIncludeDirs()
+		includedirs { TEAMGAME_RUNTIME_DIR }
+		links {
+			"UnnamedEngineRuntime",
+			"TeamGameRuntime",
+			"DirectXTex",
+		}
+		filter "configurations:Debug"
+			links { "UnnamedEditorRuntime" }
+			defines { "UNNAMED_WITH_EDITOR" }
+		filter {}
+		LinkAssimpByConfig()
+		linkoptions { "/WHOLEARCHIVE:TeamGameRuntime.lib" }
 end
 
 group "Engine/Applications"
