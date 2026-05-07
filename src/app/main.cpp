@@ -11,6 +11,14 @@
 #endif
 
 namespace {
+	[[nodiscard]] constexpr bool HasLinkedRuntimeModules() {
+#if defined(UNNAMED_WITH_PARKOUR_RUNTIME) || defined(UNNAMED_WITH_TEAMGAME_RUNTIME)
+		return true;
+#else
+		return false;
+#endif
+	}
+
 	[[nodiscard]] bool RegisterLauncherRuntimeModules() {
 #ifdef UNNAMED_WITH_PARKOUR_RUNTIME
 		if (!Unnamed::RegisterGameModule(
@@ -64,8 +72,8 @@ namespace {
 	}
 }
 
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
-	(void)commandLine;
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, const PWSTR lpCmdLine, int) {
+	(void)lpCmdLine;
 
 	const Unnamed::AppLaunchOptions launchOptions =
 		Unnamed::ParseAppLaunchOptionsFromCommandLine();
@@ -98,7 +106,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 	}
 
 	std::string gameName = ResolveStandaloneGameName(launchOptions);
-	if (gameName.empty() && launchOptions.projectManifestPath.has_value()) {
+	if (gameName.empty()) {
 		gameName = Unnamed::ResolveSingleRegisteredGameName();
 	}
 	if (!gameName.empty() && !launchOptions.projectManifestPath.has_value()) {
@@ -124,7 +132,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR commandLine, int) {
 	}
 
 #ifdef _DEBUG
-	constexpr bool failOnUnknown = true;
+	constexpr bool failOnUnknown = HasLinkedRuntimeModules();
 #else
 	constexpr bool failOnUnknown = false;
 #endif
