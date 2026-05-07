@@ -73,11 +73,12 @@ namespace Unnamed {
 
 			const GameModulePaths gamePaths = gameModule->GetGameModulePaths();
 			const MountedContentResolution resolution =
-				ResolveGameMountedContentPathDetailed(gamePaths, normalizedInput);
-			if (!resolution.resolvedRoot.empty()) {
+				ResolveGameMountedContentPathDetailed(
+					gamePaths, normalizedInput);
+			if (resolution.resolvedRoot.empty()) {
 				DevMsg(
 					kChannel,
-					"asset mount resolved '{}' -> '{}' layer='{}' root='{}' exists={}",
+					"Failed to resolve asset load path: {}. Resolution details: resolvedPath='{}', resolvedLayer='{}', resolvedRoot='{}', existsOnDisk={}",
 					normalizedInput,
 					resolution.resolvedPath,
 					resolution.resolvedLayer,
