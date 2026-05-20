@@ -1,4 +1,4 @@
-# **Component**
+# **コンポーネント**
 
 コンポーネントは [Entity](entity.md)
 をどう振る舞わせるかを定義するもので、ゲーム内のロジックやデータを実装するための基本的な機能です。
@@ -21,83 +21,133 @@
 
 ```cpp linenums="1" title="MyComponent.h"
 #pragma once
-#include "BaseComponent.h"
 
-namespace MyGame {
-    class MyComponent : public BaseComponent {
-public:
-    // -----------------------------------------------------------------------
-    // MyComponentの独自のメンバ関数やプロパティをここに定義
-    // 例: 独自の関数
-    void HelloWorld();
-    // -----------------------------------------------------------------------
+#include "engine/unnamed/framework/components/base/BaseComponent.h"
 
-    // 必要に応じてBaseComponentの仮想関数をオーバーライド
-    // void OnAttached() override;
-    // void OnTick(float deltaTime) override;
-    // void OnDetached() override;
+// 独自の名前空間を使用する場合は注意
+namespace Unnamed {
+	class JsonReader;
+	class JsonWriter;
 
-    // -----------------------------------------------------------------------
-    // オーバーライド必須関数↓
-    // -----------------------------------------------------------------------
+	/// @brief サンプル用の独自コンポーネントです。
+	class MyComponent final : public BaseComponent {
+	public:
+		/// @brief デバッグログを出力します。
+		void HelloWorld() const;
 
-    // シーンファイルからのパースに必要です。
-    [[nodiscard]] std::string_view GetStableName() const override;
+		// ---- BaseComponent ------------------------------------------------
+		/// @brief シーンファイル上で使用する安定名を返します。
+		[[nodiscard]] std::string_view GetStableName() const override;
 
-    // エディターやログに表示するコンポーネント名。重複は避けてください。
-    [[nodiscard]] std::string_view GetComponentName() const override;
+		/// @brief エディター表示名を返します。
+		[[nodiscard]] std::string_view GetComponentName() const override;
+
+		/// @brief 毎フレーム呼び出される更新処理です。
+		void OnTick(float deltaTime) override;
 
 #ifdef _DEBUG
-    void DrawInspectorImGui() override;
+		/// @brief エディターのインスペクターUIを描画します。
+		void DrawInspectorImGui() override;
 #endif
 
-	/// @brief コンポーネントの値を読み込む際に使用されます。
-	void Deserialize(const JsonReader& reader) override;
+		/// @brief Jsonからコンポーネント値を復元します。
+		void Deserialize(const JsonReader& reader) override;
 
-	/// @brief コンポーネントの値を書き込む際に使用されます。
-	void Serialize(JsonWriter& writer) const override;
-};
+		/// @brief コンポーネント値をJsonへ保存します。
+		void Serialize(JsonWriter& writer) const override;
+
+	private:
+		float mMoveSpeed = 240.0f;
+		bool  mEnableLog = true;
+	};
 }
 ```
+
+#### **ソースファイル(`MyComponent.cpp`)**
 
 ```cpp linenums="1" title="MyComponent.cpp"
 #include "MyComponent.h"
 
 #ifdef _DEBUG
-#include "imgui.h" // ImGui
+#include <imgui.h>
 #endif
 
-namespace MyGame {
+#include "core/ComponentRegistry.h"
+#include "core/io/json/JsonReader.h"
+#include "core/io/json/JsonWriter.h"
+#include "engine/unnamed/framework/entity/Entity.h"
 
-    void MyComponent::HelloWorld() {
-        Msg(GetComponentName(), "Hello, World!");
-    }
+namespace Unnamed {
+	namespace {
+		float ReadFloatOr(const JsonReader& reader, const char* key, float fallback) {
+			const JsonReader value = reader[key];
+			return value.Valid() ? value.GetFloat() : fallback;
+		}
 
-    std::string_view MyComponent::GetStableName() const {
-        // .でメニュー階層を下げることができます。
-        // mygame.foo.bar.MyComponent のように分けられます。
-        return "mygame.MyComponent"; 
-    }
+		bool ReadBoolOr(const JsonReader& reader, const char* key, bool fallback) {
+			const JsonReader value = reader[key];
+			return value.Valid() ? value.GetBool() : fallback;
+		}
+	}
 
-    std::string_view MyComponent::GetComponentName() const {
-        return "MyComponent";
-    }
+	void MyComponent::HelloWorld() const {
+		Msg(GetComponentName().data(), "Hello, World! speed=%.2f", mMoveSpeed);
+	}
+
+	std::string_view MyComponent::GetStableName() const {
+		// '.' でエディター上の階層を分けられます。
+		return "game.MyComponent";
+	}
+
+	std::string_view MyComponent::GetComponentName() const {
+		return "MyComponent";
+	}
+
+	void MyComponent::OnTick(float deltaTime) {
+		if (!mEnableLog) {
+			return;
+		}
+
+		// 所有エンティティが未設定の場合もあるため安全に確認します。
+		const Entity* owner = GetOwner();
+		if (!owner) {
+			return;
+		}
+
+		DevMsg(
+			GetComponentName().data(),
+			"Owner=%s Delta=%.3f Speed=%.2f",
+			owner->GetName().data(),
+			deltaTime,
+			mMoveSpeed
+		);
+	}
 
 #ifdef _DEBUG
-    void MyComponent::DrawInspectorImGui(){
-        // インスペクタに表示するImGuiコードをここに記述します。
-        ImGui::Text("This is My First Component!");
-        if(ImGui::Button("Click Me")) {
-            HelloWorld();
-        }
-    }
+	void MyComponent::DrawInspectorImGui() {
+		ImGui::Checkbox("Enable Log", &mEnableLog);
+		ImGui::DragFloat("Move Speed", &mMoveSpeed, 1.0f, 0.0f, 10000.0f);
+	}
 #endif
 
-    !!! danger "重要"
-        REGISTER_COMPONENT() マクロを忘れずに呼び出してください。これがないとエンジンがコンポーネントを認識できません。
-    REGISTER_COMPONENT(MyComponent);
+	void MyComponent::Deserialize(const JsonReader& reader) {
+		mMoveSpeed = ReadFloatOr(reader, "moveSpeed", mMoveSpeed);
+		mEnableLog = ReadBoolOr(reader, "enableLog", mEnableLog);
+	}
+
+	void MyComponent::Serialize(JsonWriter& writer) const {
+		writer.Key("moveSpeed");
+		writer.Write(mMoveSpeed);
+		writer.Key("enableLog");
+		writer.Write(mEnableLog);
+	}
+
+	REGISTER_COMPONENT(MyComponent);
 }
 ```
+
+!!! danger "重要"
+	`REGISTER_COMPONENT(MyComponent);` を忘れずに記述してください。これがないとエンジンがコンポーネントを認識できません。
 
 ## **コンポーネントをエンティティーへ追加**
 
@@ -116,14 +166,20 @@ TODO: 画像を追加
 
 ```cpp
 #include "MyComponent.h" // 追加したいコンポーネントのヘッダをインクルード
+#include "engine/unnamed/framework/entity/Entity.h"
 
 void ComponentName::OnAttached() {
-    // オーナー(Entity) に MyComponent を追加
-    GetOwner()->AddComponent<MyComponent>();
+	Entity* owner = GetOwner();
+	if (!owner) {
+		return;
+	}
+
+	// オーナー(Entity) に MyComponent を追加
+	owner->AddComponent<MyComponent>();
 }
 ```
 
-### 3. シーンファイルに直接記述(基本的には非推奨)
+### 3. シーンファイルに直接記述(※非推奨)
 
 !!! warning "注意"
 シーンファイルはJson形式なので、直接編集することも可能ですが、エディタでの管理が推奨されます。直接編集する場合は、以下のようにコンポーネントを記述します。
@@ -131,19 +187,20 @@ void ComponentName::OnAttached() {
 
 ```json
 {
-    "entities": [
-        {
-            "name": "MyEntity",
-            "components": [
-                {
-                    "type": "mygame.MyComponent", // コンポーネントの stableName
-                    "data": {
-                        // コンポーネントのプロパティをここに記述
-                    },
-                    "guid": "114514" // コンポーネントのGUID()
-                }
-            ]
-        }
-    ]
+	"entities": [
+		{
+			"name": "MyEntity",
+			"components": [
+				{
+					"type": "game.MyComponent",
+					"data": {
+						"moveSpeed": 320.0,
+						"enableLog": true
+					},
+					"guid": "114514"
+				}
+			]
+		}
+	]
 }
 ```
