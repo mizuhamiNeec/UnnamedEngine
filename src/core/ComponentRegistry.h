@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <typeindex>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -14,8 +16,10 @@ namespace Unnamed {
 		using CreateFn = std::unique_ptr<BaseComponent>(*)();
 
 		struct Entry {
-			CreateFn    create = nullptr;
-			std::string displayName;
+			CreateFn        create = nullptr;
+			std::string     displayName;
+			std::type_index typeIndex   = std::type_index(typeid(void));
+			bool            hasTypeInfo = false;
 		};
 
 		struct RegisteredComponentInfo {
@@ -33,6 +37,29 @@ namespace Unnamed {
 			std::string_view stableName, CreateFn createFn,
 			std::string_view displayName
 		);
+		bool Register(
+			std::string_view stableName, CreateFn         createFn,
+			std::string_view displayName, std::type_index typeIndex
+		);
+
+		template <typename T>
+		bool RegisterTyped(
+			std::string_view stableName,
+			std::string_view displayName
+		) {
+			static_assert(
+				std::is_base_of_v<BaseComponent, T>,
+				"T must derive from BaseComponent."
+			);
+			return Register(
+				stableName,
+				[]() -> std::unique_ptr<BaseComponent> {
+					return std::make_unique<T>();
+				},
+				displayName,
+				std::type_index(typeid(T))
+			);
+		}
 
 		[[nodiscard]] std::unique_ptr<BaseComponent> Create(
 			std::string_view stableName
@@ -49,15 +76,28 @@ namespace Unnamed {
 		static ComponentRegistry& Get();
 
 	private:
-		std::unordered_map<std::string, Entry> mEntries;
+		bool RegisterInternal(
+			std::string_view stableName, CreateFn         createFn,
+			std::string_view displayName, std::type_index typeIndex,
+			bool             hasTypeInfo
+		);
+
+		std::unordered_map<std::string, Entry>           mEntries;
+		std::unordered_map<std::type_index, std::string> mStableNamesByType;
 	};
 
-	namespace detail {
+	namespace Detail {
 		struct AutoComponentRegister final {
 			AutoComponentRegister(
 				std::string_view            stableName,
 				std::string_view            displayName,
 				ComponentRegistry::CreateFn createFn
+			);
+			AutoComponentRegister(
+				std::string_view            stableName,
+				std::string_view            displayName,
+				ComponentRegistry::CreateFn createFn,
+				std::type_index             typeIndex
 			);
 		};
 	}
@@ -69,8 +109,8 @@ namespace {													\
 std::unique_ptr<Unnamed::BaseComponent> Create_##T() {		\
 return std::make_unique<T>();								\
 }															\
-const Unnamed::detail::AutoComponentRegister gAutoReg_##T(	\
-T{}.GetStableName(), T{}.GetComponentName(), &Create_##T);	\
+const Unnamed::Detail::AutoComponentRegister gAutoReg_##T(	\
+T{}.GetStableName(), T{}.GetComponentName(), &Create_##T, std::type_index(typeid(T)));	\
 }
 
 // 拡張コンポーネント登録マクロ
@@ -79,6 +119,6 @@ namespace {																\
 std::unique_ptr<Unnamed::BaseComponent> Create_##T() {					\
 return std::make_unique<T>();											\
 }																		\
-const Unnamed::detail::AutoComponentRegister gAutoReg_##T(				\
-(stableNameLiteral), (displayNameLiteral), &Create_##T);				\
+const Unnamed::Detail::AutoComponentRegister gAutoReg_##T(				\
+(stableNameLiteral), (displayNameLiteral), &Create_##T, std::type_index(typeid(T)));				\
 }
