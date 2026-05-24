@@ -137,7 +137,13 @@ namespace Unnamed {
 					return false;
 				}
 
-				ConsoleScriptParser parser(args[0]);
+				std::string scriptPath = args[0];
+				for (size_t i = 1; i < args.size(); ++i) {
+					scriptPath += " ";
+					scriptPath += args[i];
+				}
+
+				ConsoleScriptParser parser(scriptPath);
 				return true;
 			},
 			"Execute a console script file."
@@ -190,7 +196,7 @@ namespace Unnamed {
 		static ConCommand demoStatus(
 			"demo_status",
 			[](std::vector<std::string>) {
-				auto* demoService = ServiceLocator::Get<IDemoService>();
+				const auto* demoService = ServiceLocator::Get<IDemoService>();
 				if (!demoService) {
 					Error(kChannelNone, "DemoService is not available.");
 					return false;
@@ -204,5 +210,6 @@ namespace Unnamed {
 		ServerCommand();
 	}
 
-	void ServerCommand() {}
+	void ServerCommand() {
+	}
 }
