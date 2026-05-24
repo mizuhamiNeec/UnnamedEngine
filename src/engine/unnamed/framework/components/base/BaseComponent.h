@@ -78,11 +78,9 @@ namespace Unnamed {
 		/// @brief エディタのアイコン（フォントアイコン）を取得します。オーバーライド任意
 		[[nodiscard]] virtual uint32_t GetIcon() const;
 
-#ifdef _DEBUG
 		/// @brief エディタのインスペクターでこのコンポーネントのプロパティを描画します。
-		/// @details ImGuiはReleaseに含まれないので_DEBUGで囲んでください。必要に応じてオーバーライドしてください。
+		/// @details ImGui呼び出しは実装側で `_DEBUG`/`UNNAMED_WITH_EDITOR` を必ず確認してください。
 		virtual void DrawInspectorImGui();
-#endif
 
 		/// @brief コンポーネントの値を読み込む際に使用されます。オーバーライド必須
 		virtual void Deserialize(const JsonReader& reader) = 0;
