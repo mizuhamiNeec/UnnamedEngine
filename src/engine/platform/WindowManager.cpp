@@ -1,4 +1,4 @@
-﻿#include "WindowManager.h"
+#include "WindowManager.h"
 
 #include <dwmapi.h>
 #include <ranges>
@@ -12,7 +12,7 @@
 
 #pragma comment(lib, "winmm.lib")
 
-#ifdef _DEBUG
+#if defined(UNNAMED_WITH_EDITOR)
 /// @brief ImGuiのWndProcハンドラ
 /// @param hWnd ウィンドウハンドル
 /// @param msg メッセージ
@@ -228,7 +228,7 @@ namespace Unnamed {
 			style &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
 		}
 
-		RECT rect{0, 0, desc.width, desc.height};
+		RECT rect{.left = 0, .top = 0, .right = desc.width, .bottom = desc.height};
 		AdjustWindowRectEx(&rect, style, FALSE, 0);
 
 		const std::wstring titleW = StrUtil::ToWString(desc.title);
@@ -259,7 +259,7 @@ namespace Unnamed {
 		const HMONITOR hMonitor = MonitorFromWindow(
 			hwnd, MONITOR_DEFAULTTONEAREST
 		);
-		MONITORINFO mi = {sizeof(mi)};
+		MONITORINFO mi = {.cbSize = sizeof(mi)};
 		if (!GetMonitorInfoW(hMonitor, &mi)) {
 			Error(kChannel, "Failed to get monitor info.");
 			::DestroyWindow(hwnd);
@@ -300,7 +300,7 @@ namespace Unnamed {
 		const HWND   hwnd, const UINT msg, const WPARAM wParam,
 		const LPARAM lParam
 	) {
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 		if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam)) {
 			return true;
 		}

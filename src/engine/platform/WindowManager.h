@@ -58,7 +58,7 @@ namespace Unnamed {
 
 		/// @brief プラットフォームイベントのコールバックを登録します。
 		/// @param events 登録するイベントコールバックのインターフェースへのポインタ
-		void RegisterPlatformEvents(IPlatformEvents* events);
+		static void RegisterPlatformEvents(IPlatformEvents* events);
 
 	private:
 		/// @brief ウィンドウクラスが登録されていることを保証します。登録されていない場合は登録します。
