@@ -21,7 +21,7 @@
 
 namespace Unnamed {
 	namespace {
-		static constexpr std::string_view kChannel = "AudioSourceComponent";
+		constexpr std::string_view kChannel = "AudioSrc";
 	}
 
 	std::string_view AudioSourceComponent::GetStableName() const {
@@ -85,7 +85,7 @@ namespace Unnamed {
 		writer.Write(mPitch);
 	}
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 	void AudioSourceComponent::DrawInspectorImGui() {
 		std::string soundPath = mSoundPath;
 		if (
@@ -128,7 +128,7 @@ namespace Unnamed {
 		);
 	}
 #endif
-	
+
 	uint32_t AudioSourceComponent::GetIcon() const {
 		return kIconSpeaker;
 	}
@@ -166,7 +166,7 @@ namespace Unnamed {
 		return mLoop;
 	}
 
-	void AudioSourceComponent::SetVolume(float volume) noexcept {
+	void AudioSourceComponent::SetVolume(const float volume) noexcept {
 		mVolume = std::clamp(volume, 0.0f, 4.0f);
 		if (mVoice) {
 			mVoice->SetVolume(mVolume);
@@ -177,7 +177,7 @@ namespace Unnamed {
 		return mVolume;
 	}
 
-	void AudioSourceComponent::SetPitch(float pitch) noexcept {
+	void AudioSourceComponent::SetPitch(const float pitch) noexcept {
 		mPitch = std::clamp(pitch, 0.01f, 4.0f);
 		if (mVoice) {
 			mVoice->SetPitch(mPitch);

@@ -26,7 +26,7 @@ namespace Unnamed {
 		void Deserialize(const JsonReader& reader) override;
 		void Serialize(JsonWriter& writer) const override;
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 		void DrawInspectorImGui() override;
 #endif
 
@@ -57,17 +57,17 @@ namespace Unnamed {
 		bool EnsureVoiceReady(bool preservePlayback);
 		void InvalidateVoice();
 
-		std::string mSoundPath;
-		AssetID     mSoundAssetId       = kInvalidAssetID;
-		uint64_t    mLoadedAssetVersion = 0;
-
-		bool  mPlayOnStart      = true;
-		bool  mLoop             = false;
-		float mVolume           = 1.0f;
-		float mPitch            = 1.0f;
-		bool  mAutoPlayConsumed = false;
-		bool  mLoggedError      = false;
+		std::string                 mSoundPath;
+		AssetID                     mSoundAssetId       = kInvalidAssetID;
+		uint64_t                    mLoadedAssetVersion = 0;
 
 		std::shared_ptr<AudioVoice> mVoice;
+		
+		float                       mVolume           = 1.0f;
+		float                       mPitch            = 1.0f;
+		bool                        mPlayOnStart      = true;
+		bool                        mLoop             = false;
+		bool                        mAutoPlayConsumed = false;
+		bool                        mLoggedError      = false;
 	};
 }
