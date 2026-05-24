@@ -56,7 +56,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 	void CameraComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Camera Active", &mCameraActive);
 		ImGui::DragFloat("FovYDegrees", &mFovYDegrees, 0.1f, 1.0f, 179.0f);
@@ -71,7 +71,7 @@ namespace Unnamed {
 		mAspectRatio = aspectRatio > 0.0f ? aspectRatio : 16.0f / 9.0f;
 	}
 
-	void CameraComponent::SetCameraActive(bool active) noexcept {
+	void CameraComponent::SetCameraActive(const bool active) noexcept {
 		mCameraActive = active;
 	}
 
@@ -114,7 +114,7 @@ namespace Unnamed {
 		return true;
 	}
 
-	void CameraComponent::SetFovYDegrees(float fovYDegrees) {
+	void CameraComponent::SetFovYDegrees(const float fovYDegrees) {
 		mFovYDegrees = std::clamp(fovYDegrees, 1.0f, 179.0f);
 	}
 

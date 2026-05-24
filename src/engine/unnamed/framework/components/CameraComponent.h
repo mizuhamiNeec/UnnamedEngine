@@ -33,17 +33,17 @@ namespace Unnamed {
 		/// @return カメラ入力の構築に成功したかどうか。
 		bool BuildCameraInput(Render::RenderCameraInput& outCamera) const;
 
-		void               SetFovYDegrees(float fovYDegrees);
+		void                SetFovYDegrees(float fovYDegrees);
 		[[nodiscard]] float GetFovYDegrees() const noexcept;
 
-		bool               SetAsCurrentCamera() const;
+		[[nodiscard]] bool SetAsCurrentCamera() const;
 		[[nodiscard]] bool IsCurrentCamera() const;
 
 		// ---- BaseComponent ------------------------------------------------
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 		void DrawInspectorImGui() override;
 #endif
 
