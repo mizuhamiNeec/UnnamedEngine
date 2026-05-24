@@ -87,7 +87,7 @@ namespace Unnamed {
 			}
 		};
 
-		static constexpr std::array<std::array<const char*, 5>, 3>
+		constexpr std::array<std::array<const char*, 5>, 3>
 		kPhaseGroupCountSampleNames = {
 			{
 				{
@@ -327,9 +327,9 @@ namespace Unnamed {
 		const float renderDeltaTime,
 		const float interpolationAlpha
 	) {
-		mTime.renderDeltaTime = std::max(0.0f, renderDeltaTime);
-		mTime.renderUnscaledDeltaTime = std::max(0.0f, renderDeltaTime);
-		ConsoleSystem* console = mServices.console;
+		mTime.renderDeltaTime               = std::max(0.0f, renderDeltaTime);
+		mTime.renderUnscaledDeltaTime       = std::max(0.0f, renderDeltaTime);
+		ConsoleSystem* console              = mServices.console;
 		const bool     interpolationEnabled =
 			console ?
 				console->GetConVarValueOr("cl_interpolate", true) :
@@ -478,6 +478,20 @@ namespace Unnamed {
 		return SceneSerializer::SaveToFile(*mScene, path);
 	}
 
+	void World::UnloadScene() {
+		if (!mScene) {
+			return;
+		}
+
+		OnSceneUnloaded();
+		mCameraManager.ClearCurrentCamera();
+		if (mSequenceRuntime) {
+			mSequenceRuntime->Clear();
+		}
+		mScene.reset();
+		mLoadedScenePath.clear();
+	}
+
 	void World::RequestSceneTransition(const std::string_view path) {
 		const std::string normalizedPath = StrUtil::NormalizePath(
 			StrUtil::TrimSpaces(std::string(path))
@@ -514,20 +528,6 @@ namespace Unnamed {
 			"Scene transition failed: {}",
 			requestedPath
 		);
-	}
-
-	void World::UnloadScene() {
-		if (!mScene) {
-			return;
-		}
-
-		OnSceneUnloaded();
-		mCameraManager.ClearCurrentCamera();
-		if (mSequenceRuntime) {
-			mSequenceRuntime->Clear();
-		}
-		mScene.reset();
-		mLoadedScenePath.clear();
 	}
 
 	void World::FillRenderFrameInputs(
@@ -690,7 +690,7 @@ namespace Unnamed {
 				object.meshAssetId                 = meshAssetId;
 
 				const auto& materialSlots = skelRenderer->GetMaterialSlots();
-				uint32_t maxSlotIndex = 0;
+				uint32_t    maxSlotIndex  = 0;
 				for (const auto& slot : materialSlots) {
 					maxSlotIndex = std::max(maxSlotIndex, slot.slotIndex);
 				}
@@ -1239,8 +1239,8 @@ namespace Unnamed {
 		return mServices.assetManager;
 	}
 
-	IDemoService* World::GetDemoService() const noexcept {
-		return ServiceLocator::Get<IDemoService>();
+	IDemoService* World::GetDemoService() noexcept {
+		return ServiceLocator::Get<IDemoService>(); // TODO: サービス乱用 ダメ
 	}
 
 	AudioSystem* World::GetAudioSystem() const noexcept {

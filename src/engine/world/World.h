@@ -229,7 +229,7 @@ namespace Unnamed {
 		[[nodiscard]] AssetManager* GetAssetManager() const noexcept;
 
 		/// @brief DemoService 参照を取得します。
-		[[nodiscard]] IDemoService* GetDemoService() const noexcept;
+		[[nodiscard]] static IDemoService* GetDemoService() noexcept;
 
 		/// @brief AudioSystem 参照を取得します。
 		[[nodiscard]] AudioSystem* GetAudioSystem() const noexcept;
