@@ -8,7 +8,7 @@ namespace Unnamed {
 		ClientConVar();
 		ServerConVar();
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 		EditorConVar();
 #endif
 	}
@@ -113,7 +113,7 @@ namespace Unnamed {
 
 		static ConVar cl_showpos(
 			"cl_showpos",
-#ifdef _DEBUG
+#if defined(UNNAMED_WITH_EDITOR)
 			1,
 #else
 			0,
@@ -124,7 +124,7 @@ namespace Unnamed {
 
 		static ConVar cl_showfps(
 			"cl_showfps",
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR 
 			2,
 #else
 			0,
