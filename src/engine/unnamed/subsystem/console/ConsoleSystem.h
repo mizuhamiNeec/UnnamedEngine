@@ -227,7 +227,7 @@ namespace Unnamed {
 		std::unique_ptr<ConCommand>                      mHelpCommand;
 		std::unique_ptr<ConCommand>                      mClearCommand;
 
-#ifdef _DEBUG // デバッグ時(ImGui有効化時)にはコンソールUIを有効化
+#ifdef UNNAMED_WITH_EDITOR // デバッグ時(ImGui有効化時)にはコンソールUIを有効化
 		std::unique_ptr<ConsoleUI> mConsoleUI;
 #endif
 	};

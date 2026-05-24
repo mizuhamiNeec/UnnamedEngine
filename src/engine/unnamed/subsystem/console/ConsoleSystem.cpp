@@ -75,7 +75,8 @@ namespace Unnamed {
 		return (static_cast<int>(lhs) & static_cast<int>(rhs)) != 0;
 	}
 
-	ConsoleSystem::~ConsoleSystem() {};
+	ConsoleSystem::~ConsoleSystem() {
+	};
 
 	bool ConsoleSystem::Init() {
 		// サービスロケータに登録
@@ -93,7 +94,7 @@ namespace Unnamed {
 			}
 		}
 
-#ifdef _DEBUG // デバッグビルドではコンソールUIを有効化
+#ifdef UNNAMED_WITH_EDITOR // Editor有効ターゲットではコンソールUIを有効化
 		mConsoleUI = std::make_unique<ConsoleUI>(this);
 		if (mConsoleUI) {
 			mConsoleUI->Init();
@@ -111,7 +112,7 @@ namespace Unnamed {
 	}
 
 	void ConsoleSystem::Update(float) {
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 		// コンソールUIの更新
 		if (mConsoleUI) {
 			mConsoleUI->Show();
@@ -206,7 +207,7 @@ namespace Unnamed {
 		OutputDebugStringW(StrUtil::ToWString(out).c_str());
 		OutputDebugStringW(StrUtil::ToWString("\n").c_str());
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 		// UIの更新
 		if (mConsoleUI) {
 			mConsoleUI->OnConsoleUpdate();
@@ -357,7 +358,7 @@ namespace Unnamed {
 				"> {}",
 				trimmed
 			);
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 			// UIに通知
 			if (mConsoleUI) {
 				mConsoleUI->OnConsoleUpdate();
@@ -551,23 +552,23 @@ namespace Unnamed {
 	}
 
 	std::vector<std::string> ConsoleSystem::FindSimilarConVars(
-		std::string_view input, size_t maxResults
+		const std::string_view input, size_t maxResults
 	) {
 		// 大文字小文字を区別しないstring_viewを小文字に変換するヘルパー
 		auto toLower = [](std::string_view str) -> std::string {
 			std::string result(str.begin(), str.end());
-			std::transform(
-				result.begin(), result.end(), result.begin(),
-				[](unsigned char c) {
-					return std::tolower(c);
-				}
+			std::ranges::transform(result
+			                       , result.begin(),
+			                       [](const unsigned char c) {
+				                       return std::tolower(c);
+			                       }
 			);
 			return result;
 		};
 
 		// Levenshtein距離を計算する関数
 		auto calculateLevenshteinDistance = [](
-			std::string_view s1, std::string_view s2
+			const std::string_view s1, const std::string_view s2
 		) -> int {
 			const int len1 = static_cast<int>(s1.length());
 			const int len2 = static_cast<int>(s2.length());
@@ -636,11 +637,11 @@ namespace Unnamed {
 		}
 
 		// スコア順でソート（高スコアが先）
-		std::sort(
-			candidates.begin(), candidates.end(),
-			[](const auto& a, const auto& b) {
-				return a.second > b.second;
-			}
+		std::ranges::sort(candidates
+		                  ,
+		                  [](const auto& a, const auto& b) {
+			                  return a.second > b.second;
+		                  }
 		);
 
 		// 結果を返す
@@ -654,7 +655,7 @@ namespace Unnamed {
 	}
 
 	std::vector<std::string> ConsoleSystem::FindSimilarConCommands(
-		std::string_view input, size_t maxResults
+		const std::string_view input, size_t maxResults
 	) {
 		// 大文字小文字を区別しないstring_viewを小文字に変換するヘルパー
 		auto toLower = [](std::string_view str) -> std::string {
@@ -662,7 +663,7 @@ namespace Unnamed {
 			std::ranges::transform(
 				result
 				, result.begin(),
-				[](unsigned char c) {
+				[](const unsigned char c) {
 					return std::tolower(c);
 				}
 			);
@@ -671,7 +672,7 @@ namespace Unnamed {
 
 		// Levenshtein距離を計算する関数
 		auto calculateLevenshteinDistance = [](
-			std::string_view s1, std::string_view s2
+			const std::string_view s1, const std::string_view s2
 		) -> int {
 			const int len1 = static_cast<int>(s1.length());
 			const int len2 = static_cast<int>(s2.length());
@@ -788,7 +789,7 @@ namespace Unnamed {
 						);
 					}
 					for (const auto& var : mConVars | std::views::values) {
-						LogLevel level = LogLevel::Info;
+						auto level = LogLevel::Info;
 
 						switch (GetConVarType(var)) {
 							case CVAR_TYPE::BOOL: level = LogLevel::Bool;
@@ -869,7 +870,7 @@ namespace Unnamed {
 				if (
 					auto* ci = dynamic_cast<ConVar<int>*>(var)
 				) {
-					int value = 0;
+					int value;
 					try {
 						value = std::stoi(args[0]);
 					} catch (const std::exception& e) {
@@ -910,7 +911,7 @@ namespace Unnamed {
 				if (
 					auto* cf = dynamic_cast<ConVar<float>*>(var)
 				) {
-					float value = 0.0f;
+					float value;
 					try {
 						value = std::stof(args[0]);
 					} catch (const std::exception& e) {
@@ -951,7 +952,7 @@ namespace Unnamed {
 				if (
 					auto* cd = dynamic_cast<ConVar<double>*>(var)
 				) {
-					double value = 0.0;
+					double value;
 					try {
 						value = std::stof(args[0]);
 					} catch (std::exception& e) {
