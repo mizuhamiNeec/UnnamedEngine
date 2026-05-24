@@ -22,7 +22,7 @@ namespace Unnamed {
 			return "Rotator";
 		}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -38,3 +38,4 @@ namespace Unnamed {
 		bool mRotationEnabled = true;
 	};
 }
+

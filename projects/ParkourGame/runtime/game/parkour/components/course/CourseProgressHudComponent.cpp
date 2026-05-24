@@ -4,7 +4,7 @@
 #include <array>
 #include <cstring>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
 #endif
 
@@ -31,7 +31,7 @@
 
 namespace Unnamed {
 	namespace {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		template <size_t N>
 		void DrawStringInput(
 			const char* label,
@@ -105,7 +105,7 @@ namespace Unnamed {
 		return kIconMonitor;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CourseProgressHudComponent::DrawInspectorImGui() {
 		DrawStringInput<64>("Course Id", mCourseId);
 		if (mCourseId.empty()) {
@@ -426,3 +426,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(CourseProgressHudComponent);
 }
+

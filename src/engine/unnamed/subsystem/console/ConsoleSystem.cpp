@@ -9,7 +9,7 @@
 #include <engine/unnamed/subsystem/console/ConVarWriter.h>
 #include <engine/unnamed/subsystem/console/Log.h>
 #include <engine/game/GamePathResolver.h>
-#include <engine/game/IGameModule.h>
+#include <engine/game/GameRuntimeContext.h>
 #include <engine/unnamed/subsystem/console/builtin/BuiltInCommands.h>
 #include <engine/unnamed/subsystem/console/builtin/BuiltInConVars.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
@@ -28,13 +28,14 @@ namespace Unnamed {
 		"./content/core/cfg/user.cfg";
 
 	[[nodiscard]] std::string ResolvePersistUserCfgPath() {
-		const IGameModule* gameModule = ServiceLocator::Get<IGameModule>();
-		if (!gameModule) {
+		const GameRuntimeContext* runtimeContext =
+			ServiceLocator::Get<GameRuntimeContext>();
+		if (!runtimeContext) {
 			return std::string(kLegacyUserCfgPath);
 		}
 
 		const std::string resolvedPath = ResolveGameConfigPath(
-			gameModule->GetGameModulePaths(),
+			runtimeContext->modulePaths,
 			"user.cfg"
 		);
 		if (resolvedPath.empty()) {

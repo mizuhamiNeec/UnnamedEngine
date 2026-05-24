@@ -1,4 +1,4 @@
-#ifdef _DEBUG
+#if defined(UNNAMED_WITH_EDITOR)
 #include <algorithm>
 #include <cctype>
 #include <imgui.h>

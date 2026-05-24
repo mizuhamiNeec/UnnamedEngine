@@ -46,7 +46,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -149,7 +149,7 @@ namespace Unnamed {
 		uint64_t                  mActiveAbilityMask = 0;
 		static constexpr uint32_t kMovementRuntimeVersion = 3;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		std::string mDebugLastPublishedCueId;
 		float       mDebugLastPublishedCueValue  = 0.0f;
 		float       mDebugLastPublishedCueValue2 = 0.0f;
@@ -158,3 +158,4 @@ namespace Unnamed {
 		float mCollisionDebugLogCooldownSec = 0.0f;
 	};
 }
+

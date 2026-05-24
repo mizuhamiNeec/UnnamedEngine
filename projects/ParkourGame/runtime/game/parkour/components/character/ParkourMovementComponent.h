@@ -89,7 +89,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -211,11 +211,18 @@ namespace Unnamed {
 		void ResetParkourRuntime();
 		/// @brief Duck視点補間のランタイム状態を初期化します。
 		void ResetDuckViewRuntime();
+		/// @brief 壁走り中の視点追従ランタイム状態を初期化します。
+		void ResetWallRunViewFollowRuntime();
 		/// @brief Duck状態に応じてカメラルートの視点高さを更新します。
 		void UpdateDuckViewHeight(
 			TransformComponent*       actorTransform,
 			const MovementFrameInput& input,
 			float                     stepSeconds
+		);
+		/// @brief 壁走り中に進行方向へ視点Yawを追従させます。
+		void UpdateWallRunViewFollow(
+			TransformComponent* actorTransform,
+			float               stepSeconds
 		);
 		/// @brief プレイヤー配下のカメラルートTransformを解決します。
 		[[nodiscard]] TransformComponent* ResolveCameraRootTransform(
@@ -262,6 +269,10 @@ namespace Unnamed {
 		float                       mDuckViewSmoothedLocalY = 0.0f;
 		bool                        mDuckViewFractionInitialized = false;
 		bool                        mDuckViewSmoothedLocalYInitialized = false;
+		float                       mWallRunViewFollowResponsiveness = 30.0f;
+		float                       mWallRunViewFollowMaxYawSpeedDegPerSec = 3600.0f;
+		float                       mWallRunViewFollowSmoothedYawDeg = 0.0f;
+		bool                        mWallRunViewFollowInitialized = false;
 		bool                        mCameraRootBaseLocalCached = false;
 		CharacterActionFrameInput   mActionFrameInput = {};
 
@@ -278,3 +289,4 @@ namespace Unnamed {
 		mDeterministicActionInputQueue;
 	};
 }
+

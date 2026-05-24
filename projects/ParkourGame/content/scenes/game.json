@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.00005340576172,
-                            36.000125885009766,
-                            16.00005340576172
+                            16.000144958496094,
+                            36.00034713745117,
+                            16.000144958496094
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -125,7 +125,9 @@
                             "speedVault": true,
                             "wallRun": true
                         },
-                        "standViewHeightHu": 64.0
+                        "standViewHeightHu": 64.0,
+                        "wallRunViewFollowMaxYawSpeedDegPerSec": 3600.0,
+                        "wallRunViewFollowResponsiveness": 3.0
                     },
                     "guid": 2,
                     "type": "parkour.ParkourMovement"
@@ -175,15 +177,15 @@
                 {
                     "active": true,
                     "data": {
-                        "arrowSizePx": 34.0,
+                        "arrowSizePx": 162.0,
                         "arrowTexturePath": "textures/arrow.png",
                         "arrowWidgetName": "NextCheckpointArrow",
                         "courseId": "default",
-                        "pinSizePx": 42.0,
+                        "pinSizePx": 64.0,
                         "pinTexturePath": "textures/ping.png",
                         "pinWidgetName": "NextCheckpointPin",
                         "requireCourseHudEnabled": true,
-                        "screenClampMarginPx": 100.0
+                        "screenClampMarginPx": 128.0
                     },
                     "guid": 10168664850864293449,
                     "type": "parkour.CourseProgressHud"
@@ -1093,7 +1095,7 @@
                         "pitch": 1.0,
                         "playOnStart": true,
                         "soundPath": "sounds/bgm/Run.wav",
-                        "volume": 0.4000000059604645
+                        "volume": 0.75
                     },
                     "guid": 11414014045292773144,
                     "type": "engine.AudioSource"
@@ -1211,6 +1213,10 @@
                             {
                                 "componentStableName": "game.CameraRotator",
                                 "entityGuid": 2101
+                            },
+                            {
+                                "componentStableName": "engine.UiCanvas",
+                                "entityGuid": 2315
                             }
                         ],
                         "playerCameraEntityGuid": 2103,
@@ -1224,7 +1230,7 @@
                                 ],
                                 "endPos": [
                                     0.0,
-                                    2.0,
+                                    4.0,
                                     110.0
                                 ],
                                 "startLook": [
@@ -1234,7 +1240,7 @@
                                 ],
                                 "startPos": [
                                     0.0,
-                                    2.0,
+                                    4.0,
                                     4.0
                                 ]
                             },
@@ -1288,23 +1294,23 @@
                                 "durationSeconds": 0.5,
                                 "endLook": [
                                     0.0,
-                                    4.0,
+                                    3.9619998931884766,
                                     1.0
                                 ],
                                 "endPos": [
                                     0.0,
-                                    4.0,
-                                    0.0
+                                    3.9619998931884766,
+                                    0.10199999809265137
                                 ],
                                 "startLook": [
                                     0.0,
-                                    4.0,
+                                    8.125,
                                     1.0
                                 ],
                                 "startPos": [
                                     0.0,
-                                    4.0,
-                                    0.0
+                                    8.0,
+                                    0.10199999809265137
                                 ]
                             }
                         ],
@@ -1378,7 +1384,10 @@
                     "data": {
                         "attachCommands": [
                             "sv_gravity 1000",
-                            "sv_airaccelerate 100000000000000000000"
+                            "sv_airaccelerate 100000000000000000000",
+                            "bind f9 \"demo_record S:/Repositories/UE/projects/ParkourGame/content/replay/title_demo.udemo\"",
+                            "bind f8 \"demo_play S:/Repositories/UE/projects/ParkourGame/content/replay/title_demo.udemo\"",
+                            "bind f7 \"demo_stop\""
                         ],
                         "detachCommands": []
                     },

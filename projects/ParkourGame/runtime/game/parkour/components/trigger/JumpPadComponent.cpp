@@ -1,6 +1,6 @@
 #include "JumpPadComponent.h"
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
 #endif
 
@@ -23,7 +23,7 @@ namespace Unnamed {
 		writer.Write(mBoostVelocityHu);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void JumpPadComponent::DrawInspectorImGui() {
 		DrawVolumeInspectorImGui();
 		ImGui::DragFloat(
@@ -38,3 +38,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(JumpPadComponent);
 }
+

@@ -1,155 +1,176 @@
 #include <pch.h>
-#include <engine/Engine.h>
 
-#include "AppLaunchOptions.h"
-#include "GameModuleFactory.h"
-#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
-#include "game/parkour/runtime/ParkourGameModule.h"
-#endif
-#ifdef UNNAMED_WITH_TEAMGAME_RUNTIME
-#include "game/team/runtime/TeamGameModule.h"
-#endif
+#include <filesystem>
+#include <vector>
+
+#include "LaunchDesc.h"
+#include "GameRuntimeModuleRegistration.h"
+#include "LoadedGameModule.h"
+
+#include "core/io/json/JsonReader.h"
+#include "engine/Engine.h"
+#include "engine/game/GameModuleRegistry.h"
 
 namespace {
-	[[nodiscard]] constexpr bool HasLinkedRuntimeModules() {
-#if defined(UNNAMED_WITH_PARKOUR_RUNTIME) || defined(UNNAMED_WITH_TEAMGAME_RUNTIME)
-		return true;
-#else
-		return false;
-#endif
-	}
-
-	[[nodiscard]] bool RegisterLauncherRuntimeModules() {
-#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
-		if (!Unnamed::RegisterGameModule(
-			"Parkour",
-			&Unnamed::CreateParkourGameModule
-		)) {
-			Error(
-				"UnnamedLauncher",
-				"Failed to register Parkour runtime module."
-			);
-			return false;
-		}
-#endif
-#ifdef UNNAMED_WITH_TEAMGAME_RUNTIME
-		if (!Unnamed::RegisterGameModule(
-			"TeamGame",
-			&Unnamed::CreateTeamGameModule
-		)) {
-			Error(
-				"UnnamedLauncher",
-				"Failed to register TeamGame runtime module."
-			);
-			return false;
-		}
-#endif
-
-#ifdef UNNAMED_WITH_PARKOUR_RUNTIME
-		(void)Unnamed::RegisterGameModuleAlias("ParkourGame", "Parkour");
-#endif
-#ifdef UNNAMED_WITH_TEAMGAME_RUNTIME
-		(void)Unnamed::RegisterGameModuleAlias("Team", "TeamGame");
-#endif
-
-#if !defined(UNNAMED_WITH_PARKOUR_RUNTIME) && !defined(UNNAMED_WITH_TEAMGAME_RUNTIME)
-		Warning(
-			"UnnamedLauncher",
-			"No linked game runtime module is available. Launcher will run with manifest-only DefaultGameModule."
-		);
-#endif
-
-		return true;
-	}
-
-	[[nodiscard]] std::string ResolveStandaloneGameName(
-		const Unnamed::AppLaunchOptions& launchOptions
+	[[nodiscard]] std::string BuildAvailableModulesText(
+		const std::vector<std::string>& moduleNames
 	) {
-		if (!launchOptions.gameName.has_value() || launchOptions.gameName->empty()) {
-			return {};
+		if (moduleNames.empty()) {
+			return "<none>";
 		}
-		return *launchOptions.gameName;
+
+		std::string text = moduleNames.front();
+		for (size_t i = 1; i < moduleNames.size(); ++i) {
+			text += ", ";
+			text += moduleNames[i];
+		}
+		return text;
+	}
+
+	[[nodiscard]] bool ResolveRuntimeModuleFromProfile(
+		const std::filesystem::path& manifestPath,
+		std::string&                 outRuntimeModule
+	) {
+		const Unnamed::JsonReader profileReader(manifestPath.generic_string());
+		if (!profileReader.Valid()) {
+			Error(
+				"Launcher",
+				"Failed to read game profile '{}'.",
+				manifestPath.generic_string()
+			);
+			return false;
+		}
+
+		std::string runtimeModule = profileReader["runtimeModule"].GetString("");
+		if (runtimeModule.empty()) {
+			runtimeModule = profileReader["gameName"].GetString("");
+		}
+
+		if (runtimeModule.empty()) {
+			Error(
+				"Launcher",
+				"Failed to resolve runtime module from '{}': both runtimeModule and gameName are empty.",
+				manifestPath.generic_string()
+			);
+			return false;
+		}
+
+		outRuntimeModule = runtimeModule;
+		return true;
 	}
 }
 
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, const PWSTR lpCmdLine, int) {
-	(void)lpCmdLine;
-
-	const Unnamed::AppLaunchOptions launchOptions =
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
+	const Unnamed::LaunchDesc launchOptions =
 		Unnamed::ParseAppLaunchOptionsFromCommandLine();
 	if (launchOptions.showHelp) {
-		Unnamed::PrintLaunchHelp("UnnamedLauncher.exe");
-		return EXIT_SUCCESS;
-	}
-	Unnamed::EmitLaunchOptionDiagnostics("UnnamedLauncher", launchOptions);
-
-	if (launchOptions.projectManifestPath.has_value()) {
-		Unnamed::SetGameModuleManifestPathOverride(
-			*launchOptions.projectManifestPath
-		);
-	}
-
-	if (launchOptions.repoRootOverride.has_value()) {
-		Unnamed::SetGameModuleManifestRepoRootOverride(
-			*launchOptions.repoRootOverride
-		);
-	}
-	if (launchOptions.projectsRootOverride.has_value()) {
-		Unnamed::SetGameModuleManifestProjectsRootOverride(
-			*launchOptions.projectsRootOverride
-		);
-	}
-
-	Unnamed::RegisterDefaultGameModuleProfiles();
-	if (!RegisterLauncherRuntimeModules()) {
-		return EXIT_FAILURE;
-	}
-
-	std::string gameName = ResolveStandaloneGameName(launchOptions);
-	if (gameName.empty()) {
-		gameName = Unnamed::ResolveSingleRegisteredGameName();
-	}
-	if (!gameName.empty() && !launchOptions.projectManifestPath.has_value()) {
-		(void)Unnamed::PinGameModuleManifestToGame(gameName);
-	}
-	if (gameName.empty()) {
-		Error(
-			"UnnamedLauncher",
-			"No game profile was selected. Pass --project=<game_profile.json> or --game=<name> and provide manifest roots via --projects-root, UNNAMED_PROJECTS_ROOT, or --repo-root."
-		);
-		return EXIT_FAILURE;
-	}
-
-	std::unique_ptr<Unnamed::IGameModule> gameModule =
-		Unnamed::CreateGameModule(gameName);
-	if (!gameModule) {
-		Error(
-			"UnnamedLauncher",
-			"Profile mismatch: game '{}' was not found in the resolved manifest set. Verify --project path or --game alias.",
-			gameName
-		);
-		return EXIT_FAILURE;
-	}
-
-#ifdef _DEBUG
-	constexpr bool failOnUnknown = HasLinkedRuntimeModules();
+#if defined(UNNAMED_WITH_EDITOR)
+		Unnamed::PrintLaunchHelp("UnnamedEditorApp.exe");
 #else
-	constexpr bool failOnUnknown = false;
+		Unnamed::PrintLaunchHelp("UnnamedLauncher.exe");
 #endif
-	const bool validated = Unnamed::ValidateGameModuleStartupProfile(
-		*gameModule,
-		{
-			.failOnUnknownComponentTypes = failOnUnknown,
-			.emitDetailedLogs = true,
-		}
-	);
-	if (!validated) {
-		return EXIT_FAILURE;
-	}
-	if (launchOptions.validateStartupOnly) {
 		return EXIT_SUCCESS;
 	}
 
-	Unnamed::Engine engine(*gameModule, Unnamed::RUN_MODE::STANDALONE);
-	return engine.Run();
+#if defined(UNNAMED_WITH_EDITOR)
+	Unnamed::EmitLaunchOptionDiagnostics("UnnamedEditorApp", launchOptions);
+#else
+	Unnamed::EmitLaunchOptionDiagnostics("UnnamedLauncher", launchOptions);
+#endif
+
+	Unnamed::GameModuleRegistry moduleRegistry;
+	Unnamed::RegisterBuiltInGameModules(moduleRegistry);
+
+	std::string requestedModuleName = {};
+	if (launchOptions.projectManifestPath.has_value()) {
+		if (!ResolveRuntimeModuleFromProfile(
+			    *launchOptions.projectManifestPath,
+			    requestedModuleName
+		    )) {
+			return EXIT_FAILURE;
+		}
+	}
+
+	if (requestedModuleName.empty() && launchOptions.gameName.has_value()) {
+		requestedModuleName = *launchOptions.gameName;
+	}
+
+	if (requestedModuleName.empty()) {
+		const std::vector<std::string> registeredNames =
+			moduleRegistry.ListRegisteredNames();
+		if (registeredNames.size() == 1) {
+			requestedModuleName = registeredNames.front();
+		}
+	}
+
+	if (requestedModuleName.empty()) {
+		const std::vector<std::string> registeredNames =
+			moduleRegistry.ListRegisteredNames();
+		Fatal(
+			"Launcher",
+			"No runtime module was selected. Pass --project=<game_profile.json> with runtimeModule, or --game=<module>. Registered modules: {}",
+			BuildAvailableModulesText(registeredNames)
+		);
+		return EXIT_FAILURE;
+	}
+
+	std::unique_ptr<Unnamed::LoadedGameModule> loadedGameModule =
+		Unnamed::LoadedGameModule::Create(
+			moduleRegistry,
+			requestedModuleName
+		);
+	if (!loadedGameModule) {
+		const std::vector<std::string> registeredNames =
+			moduleRegistry.ListRegisteredNames();
+		Fatal(
+			"Launcher",
+			"Runtime module '{}' is not registered. Registered modules: {}",
+			requestedModuleName,
+			BuildAvailableModulesText(registeredNames)
+		);
+		return EXIT_FAILURE;
+	}
+
+	Msg(
+		"Launcher",
+		"Selected runtime module '{}' (GameModule='{}').",
+		requestedModuleName,
+		loadedGameModule->GetGameModuleName()
+	);
+
+	if (launchOptions.validateStartupOnly) {
+		Msg(
+			"Launcher",
+			"validate-startup-only succeeded for runtime module '{}'",
+			requestedModuleName
+		);
+		return EXIT_SUCCESS;
+	}
+
+#if defined(UNNAMED_WITH_EDITOR)
+	constexpr Unnamed::RUN_MODE runMode = Unnamed::RUN_MODE::EDITOR;
+#else
+	constexpr Unnamed::RUN_MODE runMode = Unnamed::RUN_MODE::STANDALONE;
+#endif
+
+	loadedGameModule->RegisterRuntimeContextService();
+	Unnamed::EngineRuntimeBindings runtimeBindings = {
+		.gameWorldFactory = &loadedGameModule->GetWorldFactory(),
+		.runtimeContext   = &loadedGameModule->GetRuntimeContext(),
+		.createDemoService = [&] {
+			return loadedGameModule->CreateDemoService();
+		},
+	};
+	Unnamed::Engine engine(runtimeBindings, runMode);
+	const Unnamed::EngineRunCallbacks callbacks = {
+		.onPostInitialize = [&](Unnamed::Engine& runningEngine) {
+			return loadedGameModule->RegisterAndLoad(runningEngine);
+		},
+		.onPreShutdown = [&](Unnamed::Engine& runningEngine) {
+			loadedGameModule->Unload(runningEngine);
+		},
+	};
+	const int result = engine.Run(callbacks);
+	loadedGameModule->UnregisterRuntimeContextService();
+	return result;
 }

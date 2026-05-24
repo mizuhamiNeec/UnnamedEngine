@@ -274,13 +274,25 @@ namespace Unnamed {
 				);
 				if (!expectedMap.empty() && !currentMap.empty() &&
 				    expectedMap != currentMap) {
-					Error(
-						kChannel,
-						"Map mismatch for demo playback. expected='{}' actual='{}'",
-						mFile.mapPath,
-						world->GetLoadedScenePath()
-					);
-					return false;
+					const MISMATCH_POLICY policy = ResolveMismatchPolicy();
+					if (policy == MISMATCH_POLICY::STOP) {
+						Error(
+							kChannel,
+							"Map mismatch for demo playback. expected='{}' actual='{}'",
+							mFile.mapPath,
+							world->GetLoadedScenePath()
+						);
+						return false;
+					}
+					if (policy != MISMATCH_POLICY::SILENT) {
+						Warning(
+							kChannel,
+							"Map mismatch for demo playback. expected='{}' actual='{}' policy={}",
+							mFile.mapPath,
+							world->GetLoadedScenePath(),
+							MismatchPolicyToString(policy)
+						);
+					}
 				}
 			}
 		}

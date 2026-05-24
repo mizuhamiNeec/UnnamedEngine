@@ -1,4 +1,4 @@
-﻿#include "StaticMeshColliderComponent.h"
+#include "StaticMeshColliderComponent.h"
 
 #include <imgui.h>
 
@@ -47,7 +47,7 @@ namespace Unnamed {
 		return "StaticMeshCollider";
 	}
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 	void StaticMeshColliderComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Enabled", &mEnabled);
 		ImGui::Checkbox("Dynamic", &mDynamic);

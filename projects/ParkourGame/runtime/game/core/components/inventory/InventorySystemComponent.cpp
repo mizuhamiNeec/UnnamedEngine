@@ -274,7 +274,7 @@ namespace Unnamed {
 		return kIconFolder;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void InventorySystemComponent::DrawInspectorImGui() {
 		ImGui::DragInt(
 			"Equipped Index",
@@ -778,3 +778,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(InventorySystemComponent);
 }
+

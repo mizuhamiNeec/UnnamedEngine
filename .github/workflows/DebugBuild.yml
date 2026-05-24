@@ -19,7 +19,7 @@ env:
   # Visual Studio の構成(Debug / Develop / Release)
   CONFIGURATION: Debug
   PLATFORM: x64
-  PREMAKE_GAMES: none
+  PREMAKE_GAMES: parkour
 
 jobs:
   build:
@@ -56,6 +56,8 @@ jobs:
             ".\build\projects\Lua\Lua.vcxproj",
             ".\build\projects\UnnamedEngineRuntime\UnnamedEngineRuntime.vcxproj",
             ".\build\projects\UnnamedEditorRuntime\UnnamedEditorRuntime.vcxproj",
+            ".\build\projects\ParkourGameRuntime\ParkourGameRuntime.vcxproj",
+            ".\build\projects\UnnamedLauncher\UnnamedLauncher.vcxproj",
             ".\build\projects\UnnamedEditorApp\UnnamedEditorApp.vcxproj"
           )
 
@@ -70,12 +72,17 @@ jobs:
             }
           }
 
-      - name: Engine smoke validation
+      - name: Startup validation
         shell: pwsh
         run: |
+          $projectManifest = Resolve-Path ".\projects\ParkourGame\config\game_profile.json"
+          $launcherExe = Resolve-Path ".\bin\Debug-windows-x86_64\UnnamedLauncher\UnnamedLauncher.exe"
           $editorExe = Resolve-Path ".\bin\Debug-windows-x86_64\UnnamedEditorApp\UnnamedEditorApp.exe"
-          Write-Host "Running editor help smoke: $editorExe"
-          & $editorExe --help
-          if ($LASTEXITCODE -ne 0) {
-            throw "Editor help smoke failed (exit=$LASTEXITCODE)"
+
+          foreach ($exe in @($launcherExe, $editorExe)) {
+            Write-Host "Running startup validation: $exe --project=$projectManifest --validate-startup-only"
+            & $exe "--project=$projectManifest" --validate-startup-only
+            if ($LASTEXITCODE -ne 0) {
+              throw "Startup validation failed: $exe (exit=$LASTEXITCODE)"
+            }
           }

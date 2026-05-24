@@ -575,7 +575,7 @@ namespace Unnamed {
 		mLastViewYawDeg   = command.playerInput.viewYawDeg;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void PlayerCharacterController::DrawInspectorImGui() {
 		ImGui::BeginDisabled();
 		ImGui::TextUnformatted("PlayerInput");
@@ -638,3 +638,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(PlayerCharacterController);
 }
+

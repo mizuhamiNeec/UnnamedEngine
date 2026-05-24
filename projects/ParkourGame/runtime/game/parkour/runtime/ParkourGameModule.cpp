@@ -1,6 +1,9 @@
+#include <pch.h>
+
 #include "ParkourGameModule.h"
 #include "ParkourComponentRegistration.h"
 
+#include "core/ComponentRegistry.h"
 #include "engine/physics/core/Physics.h"
 #include "engine/scene/Scene.h"
 #include "engine/game/GamePathResolver.h"
@@ -9,8 +12,44 @@
 
 namespace Unnamed {
 	namespace {
+		constexpr std::string_view kChannel = "ParkourGameModule";
 		constexpr std::string_view kParkourProjectContentRoot =
 			"./projects/ParkourGame/content";
+	}
+
+	std::string ParkourGameModule::GetName() const {
+		return "ParkourGameModule";
+	}
+
+	void ParkourGameModule::OnLoad(Engine& engine) {
+		(void)engine;
+		Msg(kChannel, "OnLoad completed.");
+	}
+
+	void ParkourGameModule::OnUnload(Engine& engine) {
+		(void)engine;
+		Msg(kChannel, "OnUnload completed.");
+	}
+
+	void ParkourGameModule::RegisterComponents(Engine& engine) {
+		(void)engine;
+		RegisterParkourGameComponents(ComponentRegistry::Get());
+		Msg(kChannel, "Registered game components.");
+	}
+
+	void ParkourGameModule::RegisterSystems(Engine& engine) {
+		(void)engine;
+		DevMsg(kChannel, "RegisterSystems is currently empty.");
+	}
+
+	void ParkourGameModule::RegisterConsoleCommands(Engine& engine) {
+		(void)engine;
+		DevMsg(kChannel, "RegisterConsoleCommands is currently empty.");
+	}
+
+	void ParkourGameModule::RegisterAssetTypes(Engine& engine) {
+		(void)engine;
+		DevMsg(kChannel, "RegisterAssetTypes is currently empty.");
 	}
 
 	void ParkourGameModule::Initialize(EngineServices& services) {

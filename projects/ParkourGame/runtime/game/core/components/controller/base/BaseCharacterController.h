@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 
 namespace Unnamed {
@@ -23,7 +23,7 @@ namespace Unnamed {
 
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -34,3 +34,4 @@ namespace Unnamed {
 		BaseCharacterComponent* mTarget = nullptr;
 	};
 }
+

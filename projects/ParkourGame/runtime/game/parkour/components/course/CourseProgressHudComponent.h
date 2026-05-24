@@ -36,7 +36,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief インスペクタ UI を描画します。
 		void DrawInspectorImGui() override;
 #endif
@@ -85,3 +85,4 @@ namespace Unnamed {
 		UiCanvasComponent*       mUiCanvas       = nullptr;
 	};
 }
+

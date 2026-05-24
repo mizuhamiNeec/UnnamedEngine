@@ -100,7 +100,7 @@ namespace Unnamed {
 		return kIconPanoramaHorizontal;
 	}
 
-#ifdef _DEBUG
+#if defined(UNNAMED_WITH_EDITOR)
 	void SkyboxComponent::DrawInspectorImGui() {
 		std::string texturePath = mTexturePath;
 		if (

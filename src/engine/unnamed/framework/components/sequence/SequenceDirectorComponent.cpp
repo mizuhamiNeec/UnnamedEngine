@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <cstring>
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 #include <imgui.h>
 #endif
 
@@ -27,7 +27,7 @@ namespace Unnamed {
 	namespace {
 		static constexpr std::string_view kChannel = "SequenceDirector";
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 		template <size_t N>
 		void DrawStringInput(const char* label, std::string& value) {
 			std::array<char, N> buffer = {};
@@ -83,7 +83,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 	void SequenceDirectorComponent::DrawInspectorImGui() {
 		DrawStringInput<256>("Sequence Path", mSequencePath);
 		ImGui::Checkbox("Play On Attach", &mPlayOnAttach);

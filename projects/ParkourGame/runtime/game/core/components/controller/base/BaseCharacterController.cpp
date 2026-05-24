@@ -1,4 +1,4 @@
-﻿#include "BaseCharacterController.h"
+#include "BaseCharacterController.h"
 
 #include "../../character/base/BaseCharacterComponent.h"
 
@@ -46,7 +46,7 @@ namespace Unnamed {
 		return kIconJoystick;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void BaseCharacterController::DrawInspectorImGui() {
 		BaseComponent::DrawInspectorImGui();
 	}
@@ -58,3 +58,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(BaseCharacterController);
 }
+

@@ -12,7 +12,7 @@
 
 #pragma comment(lib, "winmm.lib")
 
-#if defined(UNNAMED_WITH_EDITOR)
+#ifdef UNNAMED_WITH_EDITOR
 /// @brief ImGuiのWndProcハンドラ
 /// @param hWnd ウィンドウハンドル
 /// @param msg メッセージ

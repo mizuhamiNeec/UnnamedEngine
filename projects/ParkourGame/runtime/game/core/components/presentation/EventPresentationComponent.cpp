@@ -6,7 +6,7 @@
 #include <memory>
 #include <unordered_set>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
 #endif
 
@@ -20,14 +20,14 @@
 #include "game/core/components/AudioFxControllerComponent.h"
 #include "game/core/components/CameraFxControllerComponent.h"
 #include "game/core/presentation/EventPresentationExecutor.h"
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include "game/core/presentation/editor/EventPresentationEditorGraphCodec.h"
 #include "game/core/presentation/editor/EventPresentationEditorGraphUi.h"
 #include "game/core/presentation/editor/EventPresentationEditorGraphValidator.h"
 #endif
 
 #include "engine/ImGui/Icons.h"
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 #include "engine/scene/Scene.h"
@@ -37,7 +37,7 @@
 #include "engine/world/World.h"
 
 namespace Unnamed {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	struct EventPresentationGraphEditorState final {
 		bool                                            windowOpen   = false;
 		bool                                            dirty        = false;
@@ -88,7 +88,7 @@ namespace Unnamed {
 			return found;
 		}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		bool EditStringField(
 			const char* label, std::string& value, const size_t capacity = 256
 		) {
@@ -111,7 +111,7 @@ namespace Unnamed {
 	}
 
 	void EventPresentationComponent::OnAttached() {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		if (!mGraphEditorState) {
 			mGraphEditorState = std::make_unique<
 				EventPresentationGraphEditorState>();
@@ -122,7 +122,7 @@ namespace Unnamed {
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
 		(void)LoadAsset();
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		AuditSourceGuidBindings();
 #endif
 		SubscribeAll();
@@ -133,7 +133,7 @@ namespace Unnamed {
 		mAudioFx   = nullptr;
 		mCameraFx  = nullptr;
 		mAnimation = nullptr;
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		if (mGraphEditorState) {
 			mGraphEditorState->needsRebuild = true;
 		}
@@ -170,7 +170,7 @@ namespace Unnamed {
 		return kIconAccessibility;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void EventPresentationComponent::DrawInspectorImGui() {
 		World*         world            = GetWorld();
 		Entity*        owner            = GetOwner();
@@ -311,7 +311,7 @@ namespace Unnamed {
 			(void)LoadAsset();
 		}
 		if (needsResubscribe) {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			AuditSourceGuidBindings();
 #endif
 			SubscribeAll();
@@ -612,7 +612,7 @@ namespace Unnamed {
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
 		(void)LoadAsset();
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		AuditSourceGuidBindings();
 #endif
 		SubscribeAll();
@@ -645,7 +645,7 @@ namespace Unnamed {
 		mLoadedAssetVersion = 0;
 		mLoadedAssetName.clear();
 		mTriggers.clear();
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		if (mGraphEditorState) {
 			mGraphEditorState->needsRebuild = true;
 		}
@@ -659,7 +659,7 @@ namespace Unnamed {
 		mLoadedAssetName.clear();
 
 		if (mAssetPath.empty()) {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			if (mGraphEditorState) {
 				mGraphEditorState->needsRebuild = true;
 			}
@@ -680,7 +680,7 @@ namespace Unnamed {
 			Warning(
 				kChannel, "Failed to load event presentation '{}'.", mAssetPath
 			);
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			if (mGraphEditorState) {
 				mGraphEditorState->needsRebuild = true;
 			}
@@ -697,7 +697,7 @@ namespace Unnamed {
 				"Asset '{}' is not EventPresentationAssetData.",
 				mAssetPath
 			);
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			if (mGraphEditorState) {
 				mGraphEditorState->needsRebuild = true;
 			}
@@ -771,7 +771,7 @@ namespace Unnamed {
 				static_cast<int>(mTriggers.size())
 			);
 		}
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		if (mGraphEditorState) {
 			mGraphEditorState->needsRebuild = true;
 		}
@@ -863,7 +863,7 @@ namespace Unnamed {
 	}
 
 	void EventPresentationComponent::HandleCue(const GameplayCue& cue) {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		++mDebugHandledCueCount;
 #endif
 		if (!mAudioFx) {
@@ -895,7 +895,7 @@ namespace Unnamed {
 			if (!EventPresentationExecutor::EvaluateCondition(
 				trigger.condition, cue
 			)) {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 				if (mGraphEditorState && mGraphEditorState->ui) {
 					mGraphEditorState->ui->NotifyTriggerConditionFailed(
 						mGraphEditorState->graph, trigger.cueId
@@ -925,7 +925,7 @@ namespace Unnamed {
 				}
 				continue;
 			}
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			if (mGraphEditorState && mGraphEditorState->ui) {
 				mGraphEditorState->ui->NotifyTriggerExecuted(
 					mGraphEditorState->graph, trigger.cueId
@@ -948,7 +948,7 @@ namespace Unnamed {
 				.audioTargetEntityGuid     = ResolveAudioTargetEntityGuid(),
 				.cameraTargetEntityGuid    = ResolveCameraFxTargetEntityGuid(),
 				.animationTargetEntityGuid = ResolveAnimationTargetEntityGuid(),
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 				.actionTraceCallback =
 				[this, triggerCueId = std::string(trigger.cueId)](
 				const size_t                                       actionIndex,
@@ -1117,3 +1117,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(EventPresentationComponent);
 }
+

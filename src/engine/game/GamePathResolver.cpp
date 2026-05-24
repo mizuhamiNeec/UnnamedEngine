@@ -251,9 +251,11 @@ namespace Unnamed {
 		return ResolveAgainstRoot(configRoot, path);
 	}
 
-	std::string ResolveStartupScenePath(const IGameModule& gameModule) {
-		const GameModulePaths paths = gameModule.GetGameModulePaths();
-		std::string startupScene = gameModule.GetDefaultStartupScenePath();
+	std::string ResolveStartupScenePath(
+		const GameModulePaths& paths,
+		std::string_view       startupScenePath
+	) {
+		std::string startupScene(startupScenePath);
 		if (startupScene.empty()) {
 			startupScene = paths.defaultStartupScene;
 		}

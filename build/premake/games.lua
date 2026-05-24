@@ -1,0 +1,2 @@
+-- Engine repository intentionally does not define game runtime projects.
+-- Game repositories own runtime/app project declarations and include engine premake helpers.

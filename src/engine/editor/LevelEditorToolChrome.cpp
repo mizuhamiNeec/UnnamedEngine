@@ -16,7 +16,7 @@
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
 #include "engine/game/GamePathResolver.h"
-#include "engine/game/IGameModule.h"
+#include "engine/game/GameRuntimeContext.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 #include "engine/world/EditorWorld.h"
@@ -50,12 +50,13 @@ namespace Unnamed {
 			static bool sWarnedMissingModule        = false;
 			static bool sWarnedUnavailableSceneRoot = false;
 
-			const IGameModule* gameModule = ServiceLocator::Get<IGameModule>();
-			if (!gameModule) {
+			const GameRuntimeContext* runtimeContext =
+				ServiceLocator::Get<GameRuntimeContext>();
+			if (!runtimeContext) {
 				if (!sWarnedMissingModule) {
 					Warning(
 						kChannel,
-						"IGameModule service was not available. Fallback scene root '{}'.",
+						"GameRuntimeContext service was not available. Fallback scene root '{}'.",
 						std::string(kFallbackSceneRoot)
 					);
 					sWarnedMissingModule = true;
@@ -64,7 +65,7 @@ namespace Unnamed {
 			}
 
 			const std::string sceneRoot = ResolveGameContentPath(
-				gameModule->GetGameModulePaths(),
+				runtimeContext->modulePaths,
 				"scenes"
 			);
 			std::error_code ec;

@@ -1,6 +1,7 @@
 {
 	"schemaVersion": 1,
 	"gameName": "Parkour",
+	"runtimeModule": "ParkourGameRuntime",
 	"aliases": [
 		"ParkourGame"
 	],

@@ -1,4 +1,4 @@
-#ifdef _DEBUG
+#if defined(UNNAMED_WITH_EDITOR)
 #include "ConVarHelper.h"
 
 #include <algorithm>

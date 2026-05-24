@@ -1,6 +1,6 @@
 #include "GoalComponent.h"
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
 #include <array>
 #include <algorithm>
@@ -32,7 +32,7 @@ namespace Unnamed {
 		writer.Write(mCourseId);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void GoalComponent::DrawInspectorImGui() {
 		DrawVolumeInspectorImGui();
 		ImGui::InputInt("Index", &mIndex);
@@ -59,3 +59,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(GoalComponent);
 }
+

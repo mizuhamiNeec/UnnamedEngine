@@ -19,7 +19,7 @@ env:
   # Visual Studio の構成(Debug / Develop / Release)
   CONFIGURATION: Release
   PLATFORM: x64
-  PREMAKE_GAMES: none
+  PREMAKE_GAMES: parkour
 
 jobs:
   build:
@@ -51,31 +51,107 @@ jobs:
       - name: Build
         shell: pwsh
         run: |
-          $projects = @(
-            ".\build\projects\DirectXTex\DirectXTex.vcxproj",
-            ".\build\projects\Lua\Lua.vcxproj",
-            ".\build\projects\UnnamedEngineRuntime\UnnamedEngineRuntime.vcxproj",
-            ".\build\projects\UnnamedEditorRuntime\UnnamedEditorRuntime.vcxproj",
-            ".\build\projects\UnnamedEditorApp\UnnamedEditorApp.vcxproj"
-          )
-
-          foreach ($project in $projects) {
-            Write-Host "Building $project ($env:CONFIGURATION|$env:PLATFORM)"
-            msbuild $project `
-              /m:1 `
-              /p:Configuration=$env:CONFIGURATION `
-              /p:Platform=$env:PLATFORM
-            if ($LASTEXITCODE -ne 0) {
-              throw "Build failed: $project (exit=$LASTEXITCODE)"
-            }
+          $project = ".\build\projects\UnnamedLauncher\UnnamedLauncher.vcxproj"
+          Write-Host "Building shipping target $project ($env:CONFIGURATION|$env:PLATFORM)"
+          msbuild $project `
+            /m:1 `
+            /p:Configuration=$env:CONFIGURATION `
+            /p:Platform=$env:PLATFORM
+          if ($LASTEXITCODE -ne 0) {
+            throw "Build failed: $project (exit=$LASTEXITCODE)"
           }
 
-      - name: Engine smoke validation
+      - name: Parkour release startup validation
         shell: pwsh
         run: |
-          $editorExe = Resolve-Path ".\bin\Release-windows-x86_64\UnnamedEditorApp\UnnamedEditorApp.exe"
-          Write-Host "Running editor help smoke: $editorExe"
-          & $editorExe --help
+          $gameExe = Resolve-Path ".\bin\Release-windows-x86_64\UnnamedLauncher\UnnamedLauncher.exe"
+          $project = Resolve-Path ".\projects\ParkourGame\config\game_profile.json"
+          Write-Host "Running Parkour startup validation: $gameExe --project=$project --validate-startup-only"
+          $valOut = [System.IO.Path]::GetTempFileName()
+          $valErr = [System.IO.Path]::GetTempFileName()
+          try {
+            $gameProcess = Start-Process -FilePath $gameExe -ArgumentList @("--project=$project", "--validate-startup-only") -WorkingDirectory $PWD -Wait -PassThru -NoNewWindow -RedirectStandardOutput $valOut -RedirectStandardError $valErr
+            $validationText = ((Get-Content -Path $valOut -Raw) + [Environment]::NewLine + (Get-Content -Path $valErr -Raw)).Trim()
+            if (-not [string]::IsNullOrWhiteSpace($validationText)) {
+              Write-Host $validationText
+            }
+            if ($gameProcess.ExitCode -ne 0) {
+              throw "Parkour startup validation failed (exit=$($gameProcess.ExitCode))"
+            }
+          } finally {
+            if (Test-Path -LiteralPath $valOut) { Remove-Item -LiteralPath $valOut -Force }
+            if (Test-Path -LiteralPath $valErr) { Remove-Item -LiteralPath $valErr -Force }
+          }
+
+      - name: Parkour release package isolated validation
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\tools\package-game.ps1 `
+            -Project .\projects\ParkourGame\config\game_profile.json `
+            -AppExePath .\bin\Release-windows-x86_64\UnnamedLauncher\UnnamedLauncher.exe `
+            -OutputRoot .\dist\ci-release-parkour `
+            -ValidateStartup -ValidateIsolatedStartup -Clean
           if ($LASTEXITCODE -ne 0) {
-            throw "Editor help smoke failed (exit=$LASTEXITCODE)"
+            throw "Packaged startup validation failed (exit=$LASTEXITCODE)"
+          }
+
+      - name: Validate package manifest
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\tools\validate-package-manifest.ps1 `
+            -ManifestPath .\dist\ci-release-parkour\package_manifest.json `
+            -ExpectedGameName Parkour `
+            -ExpectedConfiguration Release `
+            -RequireGitCommitHash `
+            -MinCopiedFiles 80 `
+            -MinCopiedBytes 20000000 `
+            -RequireStartupValidation `
+            -RequireIsolatedValidation
+          if ($LASTEXITCODE -ne 0) {
+            throw "Package manifest validation failed (exit=$LASTEXITCODE)"
+          }
+
+      - name: Generate asset inventory
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\tools\generate-asset-inventory.ps1 `
+            -ContentRoot .\dist\ci-release-parkour\content `
+            -OutputPath .\dist\ci-release-parkour\asset_inventory.json `
+            -GameName Parkour `
+            -Configuration Release `
+            -MountName content `
+            -IncludeHash `
+            -VerboseSummary
+          if ($LASTEXITCODE -ne 0) {
+            throw "Asset inventory generation failed (exit=$LASTEXITCODE)"
+          }
+
+      - name: Validate asset inventory
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\tools\validate-asset-inventory.ps1 `
+            -InventoryPath .\dist\ci-release-parkour\asset_inventory.json `
+            -ExpectedGameName Parkour `
+            -ExpectedConfiguration Release `
+            -MinAssets 100 `
+            -MinTotalBytes 10000000 `
+            -RequireHashes `
+            -RequireAssetTypes texture,scene,json,shader,sound,font `
+            -MaxUnknownAssets 0
+          if ($LASTEXITCODE -ne 0) {
+            throw "Asset inventory validation failed (exit=$LASTEXITCODE)"
+          }
+
+      - name: Validate asset references
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\tools\validate-asset-references.ps1 `
+            -ContentRoot .\dist\ci-release-parkour\content `
+            -InventoryPath .\dist\ci-release-parkour\asset_inventory.json `
+            -OutputPath .\dist\ci-release-parkour\asset_reference_report.json `
+            -FailOnMissing `
+            -FailOnWarnings `
+            -VerboseSummary
+          if ($LASTEXITCODE -ne 0) {
+            throw "Asset reference validation failed (exit=$LASTEXITCODE)"
           }

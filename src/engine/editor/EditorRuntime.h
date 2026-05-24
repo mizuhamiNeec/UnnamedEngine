@@ -10,7 +10,7 @@ namespace Unnamed {
 	class InputSystem;
 	class AssetManager;
 	class IDemoService;
-	class IGameModule;
+	class IGameWorldFactory;
 	class Profiler;
 
 	namespace Render {
@@ -25,7 +25,7 @@ namespace Unnamed {
 			InputSystem*          inputSystem,
 			AssetManager*         assetManager,
 			IDemoService*         demoService,
-			IGameModule&          gameModule,
+			IGameWorldFactory&    gameWorldFactory,
 			Profiler*             profiler,
 			WindowManager&        windowManager,
 			Render::RenderModule& renderModule,

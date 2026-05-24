@@ -131,7 +131,7 @@ namespace Unnamed {
 		return kIconSiren;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void PatrolPointComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Enabled", &mEnabled);
 		ImGui::DragFloat3("PointA", &mPointA.x, 1.0f);
@@ -163,3 +163,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(PatrolPointComponent);
 }
+

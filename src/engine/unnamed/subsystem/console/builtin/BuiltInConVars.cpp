@@ -113,7 +113,7 @@ namespace Unnamed {
 
 		static ConVar cl_showpos(
 			"cl_showpos",
-#if defined(UNNAMED_WITH_EDITOR)
+#ifdef UNNAMED_WITH_EDITOR
 			1,
 #else
 			0,
@@ -124,7 +124,7 @@ namespace Unnamed {
 
 		static ConVar cl_showfps(
 			"cl_showfps",
-#ifdef UNNAMED_WITH_EDITOR 
+#ifdef UNNAMED_WITH_EDITOR
 			2,
 #else
 			0,

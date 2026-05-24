@@ -6,6 +6,20 @@ namespace Unnamed {
 	/// @brief Parkour ゲーム向けの GameModule 実装です。
 	class ParkourGameModule final : public IGameModule {
 	public:
+		/// @brief モジュール識別名を返します。
+		[[nodiscard]] std::string GetName() const override;
+		/// @brief Engine 初期化完了後のロードフックです。
+		void OnLoad(Engine& engine) override;
+		/// @brief Engine シャットダウン開始時のアンロードフックです。
+		void OnUnload(Engine& engine) override;
+		/// @brief ゲーム固有コンポーネントを登録します。
+		void RegisterComponents(Engine& engine) override;
+		/// @brief ゲーム固有システムを登録します。
+		void RegisterSystems(Engine& engine) override;
+		/// @brief ゲーム固有コンソールコマンドを登録します。
+		void RegisterConsoleCommands(Engine& engine) override;
+		/// @brief ゲーム固有アセット型を登録します。
+		void RegisterAssetTypes(Engine& engine) override;
 		/// @brief モジュールを初期化します。
 		void Initialize(EngineServices& services) override;
 		/// @brief Standalone 向けランタイムワールドを生成します。

@@ -62,6 +62,9 @@ namespace Unnamed {
 	private:
 		HWND                               mWindowHandle   = nullptr;
 		std::unordered_map<uint32_t, bool> mButtonStates;
+		
+		POINT mPrevCursor; // RDPセッションでのカーソル位置を追跡するための変数
+		
 		int                                mDeltaX         = 0;
 		int                                mDeltaY         = 0;
 		int                                mWheelDelta     = 0;

@@ -1,24 +1,30 @@
 #pragma once
+#include <functional>
 #include <memory>
 
 #include <core/assets/AssetID.h>
 
 #include <engine/EngineConfig.h>
-#include <engine/EngineServices.h>
 
 class IPostProcess;
 class SrvManager;
 
 namespace Unnamed {
+	class Engine;
+	class AssetManager;
 	class AudioSystem;
 	class ComponentRegistry;
 	class EditorRuntime;
 	class ImGuiLayer;
 	class ConsoleSystem;
+	class InputSystem;
+	class Profiler;
+	class WindowManager;
 	class ConCommand;
 	class IDemoService;
-	class IGameModule;
+	class IGameWorldFactory;
 	class World;
+	struct GameRuntimeContext;
 	struct WorldServices;
 
 	namespace Render {
@@ -30,20 +36,39 @@ namespace Unnamed {
 		class IRhiDevice;
 	}
 
+	/// @brief Engine へ注入するゲームランタイム依存情報です。
+	struct EngineRuntimeBindings {
+		/// @brief スタンドアロン/PIE のワールド生成ファクトリです。
+		IGameWorldFactory* gameWorldFactory = nullptr;
+		/// @brief ゲームランタイムの起動コンテキストです。
+		GameRuntimeContext* runtimeContext = nullptr;
+		/// @brief Demo サービス生成関数です。
+		std::function<std::unique_ptr<IDemoService>()> createDemoService = {};
+	};
+
+	/// @brief Engine 実行時フックです。
+	struct EngineRunCallbacks {
+		/// @brief Engine 初期化後に呼ばれます。false を返すと起動失敗として終了します。
+		std::function<bool(Engine&)> onPostInitialize = {};
+		/// @brief Engine シャットダウン直前に呼ばれます。
+		std::function<void(Engine&)> onPreShutdown = {};
+	};
+
 	/// @brief エンジンクラス
 	class Engine {
 	public:
 		/// @brief コンストラクタ
-		/// @param gameModule ゲーム側機能を注入するモジュール
+		/// @param runtimeBindings ゲームランタイム依存情報
 		/// @param runMode 実行モード
-		Engine(IGameModule& gameModule, RUN_MODE runMode);
+		Engine(const EngineRuntimeBindings& runtimeBindings, RUN_MODE runMode);
 
 		/// @brief デストラクタ
 		~Engine();
 
 		/// @brief エンジンの実行
+		/// @param callbacks 実行時コールバック
 		/// @return 終了コード
-		int Run();
+		int Run(const EngineRunCallbacks& callbacks = {});
 
 		/// @brief エディターモードの画面表示モードを切り替えます。
 		void ToggleEditorScreenMode() const;
@@ -85,7 +110,7 @@ namespace Unnamed {
 		/// @return 現在のワールドの参照
 		[[nodiscard]] World* GetWorld() const;
 
-		IGameModule& mGameModule;
+		EngineRuntimeBindings mRuntimeBindings = {};
 		RUN_MODE     mRequestedRunMode = RUN_MODE::STANDALONE;
 		EngineConfig mConfig;
 

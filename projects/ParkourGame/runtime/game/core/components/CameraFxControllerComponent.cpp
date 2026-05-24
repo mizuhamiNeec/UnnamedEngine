@@ -5,7 +5,7 @@
 #include <cmath>
 #include <utility>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
 #endif
 
@@ -108,7 +108,7 @@ namespace Unnamed {
 			{.name = "IN_OUT_BOUNCE", .type = EASE_TYPE::IN_OUT_BOUNCE},
 		};
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		bool EditStringField(
 			const char* label, std::string& value, const size_t capacity = 128
 		) {
@@ -357,7 +357,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CameraFxControllerComponent::DrawInspectorImGui() {
 		mCamera         = ResolveCamera();
 		mShakeTransform = ResolveShakeTransform();
@@ -930,3 +930,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(CameraFxControllerComponent);
 }
+

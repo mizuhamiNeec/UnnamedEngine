@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <string>
 #include <vector>
 
@@ -24,7 +24,7 @@ namespace Unnamed {
 		/// @brief コンポーネントアイコンIDを返します。
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef	_DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief Debugビルド時にInspectorからコマンド配列を編集します。
 		void DrawInspectorImGui() override;
 #endif
@@ -46,3 +46,4 @@ namespace Unnamed {
 		std::vector<std::string> mOnDetachCommands;
 	};
 }
+

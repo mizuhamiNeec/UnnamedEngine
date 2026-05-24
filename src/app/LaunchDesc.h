@@ -14,7 +14,7 @@
 
 namespace Unnamed {
 	/// @brief App 起動引数から抽出した共通オプションです。
-	struct AppLaunchOptions {
+	struct LaunchDesc {
 		/// @brief `--game` で指定されたゲーム名です。
 		std::optional<std::string> gameName = std::nullopt;
 		/// @brief `--project` で指定された game_profile.json のパスです。
@@ -132,7 +132,7 @@ namespace Unnamed {
 	/// @brief 解析した引数診断を表示します。
 	inline void EmitLaunchOptionDiagnostics(
 		const std::string_view  appName,
-		const AppLaunchOptions& options
+		const LaunchDesc& options
 	) {
 		for (const std::string& diagnostic : options.diagnostics) {
 			EmitPreLaunchLog(appName, diagnostic);
@@ -141,9 +141,9 @@ namespace Unnamed {
 
 	/// @brief 現在プロセスのコマンドラインを共通ルールで解析します。
 	/// @details `--game[= ]` と `--project[= ]` と `--projects-root[= ]` と `--repo-root[= ]` と `--help/-h` に対応します。
-	[[nodiscard]] inline AppLaunchOptions
+	[[nodiscard]] inline LaunchDesc
 	ParseAppLaunchOptionsFromCommandLine() {
-		AppLaunchOptions options          = {};
+		LaunchDesc options          = {};
 		const auto       appendDiagnostic = [&](const std::string_view text) {
 			options.diagnostics.emplace_back(text);
 		};

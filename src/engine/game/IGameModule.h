@@ -5,49 +5,37 @@
 #include <new>
 #include <string>
 #include <type_traits>
-#include <vector>
 
+#include "engine/game/GameModulePaths.h"
 #include "engine/game/IGameWorldFactory.h"
 
 namespace Unnamed {
+	class Engine;
 	class World;
 	class IDemoService;
 	class ComponentRegistry;
 	struct EngineServices;
 	struct WorldServices;
 
-	/// @brief ゲームのルート情報と既定起動情報をまとめた構造体です。
-	struct GameModulePaths {
-		/// @brief ゲーム識別名です。
-		std::string gameName;
-		/// @brief ゲームルートディレクトリです。
-		std::string gameRoot;
-		/// @brief コンテンツルートディレクトリです。
-		std::string contentRoot;
-		/// @brief 設定ファイルルートディレクトリです。
-		std::string configRoot;
-		/// @brief base マウント（低優先）の content ルート一覧です。
-		std::vector<std::string> baseContentMountRoots;
-		/// @brief dlc マウント（中優先）の content ルート一覧です。
-		std::vector<std::string> dlcContentMountRoots;
-		/// @brief mod マウント（高優先）の content ルート一覧です。
-		std::vector<std::string> modContentMountRoots;
-		/// @brief 既定の起動シーン（contentRoot 相対）です。
-		std::string defaultStartupScene;
-		/// @brief Runtime DLL のパス（gameRoot 基準または絶対）です。
-		std::string runtimeBinaryPath;
-		/// @brief runtimeBinary を必須として扱うかどうかです。
-		bool requireRuntimeBinary = false;
-		/// @brief 静的登録より runtimeBinary を優先するかどうかです。
-		bool preferRuntimeBinary = false;
-		/// @brief 解決に成功した game_profile.json の実パスです。
-		std::string resolvedManifestPath;
-	};
-
 	/// @brief ゲーム側から Engine へ機能注入するためのモジュール抽象です。
 	class IGameModule : public IGameWorldFactory {
 	public:
 		~IGameModule() override = default;
+
+		/// @brief モジュール識別名を返します。
+		[[nodiscard]] virtual std::string GetName() const = 0;
+		/// @brief Engine 初期化完了後に呼ばれるロードフックです。
+		virtual void OnLoad(Engine& engine) = 0;
+		/// @brief Engine シャットダウン開始時に呼ばれるアンロードフックです。
+		virtual void OnUnload(Engine& engine) = 0;
+		/// @brief ゲーム固有コンポーネントを登録します。
+		virtual void RegisterComponents(Engine& engine) = 0;
+		/// @brief ゲーム固有システムを登録します。
+		virtual void RegisterSystems(Engine& engine) = 0;
+		/// @brief ゲーム固有コンソールコマンドを登録します。
+		virtual void RegisterConsoleCommands(Engine& engine) = 0;
+		/// @brief ゲーム固有アセット型を登録します。
+		virtual void RegisterAssetTypes(Engine& engine) = 0;
 
 		/// @brief Engine 初期化後にゲームモジュールを初期化します。
 		virtual void Initialize(EngineServices& services) = 0;

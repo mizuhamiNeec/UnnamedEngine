@@ -3,7 +3,7 @@
 #include <string>
 #include <string_view>
 
-#include "engine/game/IGameModule.h"
+#include "engine/game/GameModulePaths.h"
 
 namespace Unnamed {
 	/// @brief マウント付き content 解決の詳細結果です。
@@ -51,8 +51,9 @@ namespace Unnamed {
 		std::string_view       path
 	);
 
-	/// @brief GameModule の既定起動シーンパスを content root 基準で解決します。
+	/// @brief 既定起動シーンパスを content root 基準で解決します。
 	[[nodiscard]] std::string ResolveStartupScenePath(
-		const IGameModule& gameModule
+		const GameModulePaths& paths,
+		std::string_view       startupScenePath
 	);
 }

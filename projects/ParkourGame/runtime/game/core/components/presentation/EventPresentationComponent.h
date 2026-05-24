@@ -17,7 +17,7 @@ namespace Unnamed {
 	class AudioFxControllerComponent;
 	class CameraFxControllerComponent;
 	class SkeletalAnimationComponent;
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	struct EventPresentationGraphEditorState;
 #endif
 
@@ -47,7 +47,7 @@ namespace Unnamed {
 		/// @return Material icon codepoint
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief デバッグ用の Inspector UI を描画します。
 		void DrawInspectorImGui() override;
 
@@ -142,7 +142,7 @@ namespace Unnamed {
 		float mElapsedSeconds = 0.0f;
 		bool  mVerboseLog     = false;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		std::string mDebugPublishCueId = "movement.land";
 		float       mDebugPublishValue = 1.0f;
 		float       mDebugPublishValue2 = 400.0f;
@@ -155,3 +155,4 @@ namespace Unnamed {
 	/// @details 前方宣言型を含む実装都合のため、この関数経由で登録します。
 	void RegisterEventPresentationComponent(ComponentRegistry& componentRegistry);
 }
+

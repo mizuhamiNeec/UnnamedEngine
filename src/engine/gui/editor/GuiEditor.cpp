@@ -12,7 +12,7 @@
 #include "engine/gui/UiRoot.h"
 #include "engine/gui/UiScreenStack.h"
 #include "engine/gui/UiWidget.h"
-#include "engine/game/IGameModule.h"
+#include "engine/game/GameRuntimeContext.h"
 #include "engine/gui/components/UiButtonBehaviorComponent.h"
 #include "engine/gui/components/UiDigitStripComponent.h"
 #include "engine/gui/components/UiLayoutComponents.h"
@@ -69,9 +69,9 @@ namespace Unnamed::Gui {
 
 		void EnsureContextDefaults(GuiEditorContext& context) {
 			if (context.pathBuffer[0] == '\0') {
-				if (const auto* gameModule = ServiceLocator::Get<IGameModule>()) {
+				if (const auto* runtimeContext = ServiceLocator::Get<GameRuntimeContext>()) {
 					const std::string defaultUiPath =
-						gameModule->GetDefaultUiDocumentPath();
+						runtimeContext->defaultUiDocumentPath;
 					if (!defaultUiPath.empty()) {
 						std::snprintf(
 							context.pathBuffer.data(),

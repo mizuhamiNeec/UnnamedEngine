@@ -14,6 +14,7 @@
 #include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
+#include "engine/game/IDemoService.h"
 #include "engine/physics/core/Physics.h"
 #include "engine/scene/Scene.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
@@ -40,11 +41,24 @@ namespace Unnamed {
 		constexpr float kDuckSweepBlockToiEpsilon  = 1.0e-4f;
 		constexpr float kUnduckHeadroomPaddingHu   = 0.5f;
 		constexpr float kDuckViewUnduckHoldSec     = 0.05f;
+		constexpr float kWallRunViewFollowMinDirSq = 1.0e-6f;
+		constexpr float kWallRunViewFollowSpeedScaleMax = 2.25f;
 
 		float EaseInOutSpline(float value) {
 			value = std::clamp(value, 0.0f, 1.0f);
 			const float valueSquared = value * value;
 			return 3.0f * valueSquared - 2.0f * valueSquared * value;
+		}
+
+		float DeltaAngleDegrees(const float currentDeg, const float targetDeg) {
+			float delta = std::fmod(targetDeg - currentDeg, 360.0f);
+			if (delta > 180.0f) {
+				delta -= 360.0f;
+			}
+			if (delta < -180.0f) {
+				delta += 360.0f;
+			}
+			return delta;
 		}
 
 		bool TryReadVec3FromObject(
@@ -75,6 +89,7 @@ namespace Unnamed {
 		mAutoSprintActive = false;
 		ResetParkourRuntime();
 		ResetDuckViewRuntime();
+		ResetWallRunViewFollowRuntime();
 		mStandingHalfExtents = mBoxHalfExtents;
 		RebuildDuckHalfExtents();
 		mCameraRootBaseLocalCached = false;
@@ -108,6 +123,7 @@ namespace Unnamed {
 		ResetDuckStandDebugFrame();
 		GameMovementComponent::SimulateStep(transform, input, stepSeconds);
 		UpdateDuckViewHeight(transform, input, stepSeconds);
+		UpdateWallRunViewFollow(transform, stepSeconds);
 		DrawDuckStandDebug(transform);
 		// 旧State実装と同じ入力エッジ判定に合わせるため、毎tick最後に同期します。
 		mRuntime.lastJumpHeld = input.jumpPressed;
@@ -147,7 +163,7 @@ namespace Unnamed {
 		return "ParkourMovement";
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void ParkourMovementComponent::DrawInspectorImGui() {
 		GameMovementComponent::DrawInspectorImGui();
 
@@ -180,6 +196,14 @@ namespace Unnamed {
 		);
 		ImGui::Text("DuckViewSmoothedLocalY: %.4f", mDuckViewSmoothedLocalY);
 		ImGui::Text("CameraRootGuid: %llu", mCameraRootEntityGuid);
+		ImGui::Text(
+			"WallRunViewFollowResp: %.2f",
+			mWallRunViewFollowResponsiveness
+		);
+		ImGui::Text(
+			"WallRunViewFollowMaxYawSpeed: %.2f",
+			mWallRunViewFollowMaxYawSpeedDegPerSec
+		);
 	}
 #endif
 
@@ -205,15 +229,32 @@ namespace Unnamed {
 			                          ? reader["duckViewClampPaddingHu"].
 			                            GetFloat() :
 			                          mDuckViewClampPaddingHu;
+		mWallRunViewFollowResponsiveness =
+			reader.Has("wallRunViewFollowResponsiveness") ?
+				reader["wallRunViewFollowResponsiveness"].GetFloat() :
+				mWallRunViewFollowResponsiveness;
+		mWallRunViewFollowMaxYawSpeedDegPerSec =
+			reader.Has("wallRunViewFollowMaxYawSpeedDegPerSec") ?
+				reader["wallRunViewFollowMaxYawSpeedDegPerSec"].GetFloat() :
+				mWallRunViewFollowMaxYawSpeedDegPerSec;
 		mStandViewHeightHu      = std::max(0.0f, mStandViewHeightHu);
 		mDuckViewHeightHu = std::clamp(mDuckViewHeightHu, 0.0f, mStandViewHeightHu);
 		mDuckViewTimeToDuckSec   = std::max(0.0f, mDuckViewTimeToDuckSec);
 		mDuckViewTimeToUnduckSec = std::max(0.0f, mDuckViewTimeToUnduckSec);
 		mDuckViewClampPaddingHu  = std::max(0.0f, mDuckViewClampPaddingHu);
+		mWallRunViewFollowResponsiveness = std::max(
+			0.0f,
+			mWallRunViewFollowResponsiveness
+		);
+		mWallRunViewFollowMaxYawSpeedDegPerSec = std::max(
+			0.0f,
+			mWallRunViewFollowMaxYawSpeedDegPerSec
+		);
 		mStandingHalfExtents = mBoxHalfExtents;
 		RebuildDuckHalfExtents();
 		mCameraRootBaseLocalCached = false;
 		ResetDuckViewRuntime();
+		ResetWallRunViewFollowRuntime();
 	}
 
 	void ParkourMovementComponent::Serialize(JsonWriter& writer) const {
@@ -230,6 +271,10 @@ namespace Unnamed {
 		writer.Write(mDuckViewTimeToUnduckSec);
 		writer.Key("duckViewClampPaddingHu");
 		writer.Write(mDuckViewClampPaddingHu);
+		writer.Key("wallRunViewFollowResponsiveness");
+		writer.Write(mWallRunViewFollowResponsiveness);
+		writer.Key("wallRunViewFollowMaxYawSpeedDegPerSec");
+		writer.Write(mWallRunViewFollowMaxYawSpeedDegPerSec);
 	}
 
 	void ParkourMovementComponent::WriteReplayState(
@@ -907,6 +952,7 @@ namespace Unnamed {
 		mRuntime.wallRun.lastWallNormal    = mRuntime.wallRun.normal;
 		mRuntime.wallRun.timeSinceLast     = 0.0f;
 		mRuntime.wallRun.jumpWasHeldOnInit = false;
+		ResetWallRunViewFollowRuntime();
 	}
 
 	void ParkourMovementComponent::RegisterMovementModes(
@@ -1130,6 +1176,11 @@ namespace Unnamed {
 		mDuckViewSmoothedLocalYInitialized = false;
 	}
 
+	void ParkourMovementComponent::ResetWallRunViewFollowRuntime() {
+		mWallRunViewFollowSmoothedYawDeg = 0.0f;
+		mWallRunViewFollowInitialized    = false;
+	}
+
 	TransformComponent* ParkourMovementComponent::ResolveCameraRootTransform(
 		TransformComponent* actorTransform
 	) {
@@ -1274,6 +1325,105 @@ namespace Unnamed {
 		Vec3 localPosition = mCameraRootBaseLocalPosition;
 		localPosition.y    = mDuckViewSmoothedLocalY;
 		cameraRoot->SetPosition(localPosition);
+	}
+
+	void ParkourMovementComponent::UpdateWallRunViewFollow(
+		TransformComponent* actorTransform,
+		const float         stepSeconds
+	) {
+		if (stepSeconds <= 0.0f || !actorTransform) {
+			return;
+		}
+		if (auto* demoService = GetDemoService();
+			demoService && demoService->IsPlayback()) {
+			ResetWallRunViewFollowRuntime();
+			return;
+		}
+		if (!mRuntime.wallRun.active) {
+			ResetWallRunViewFollowRuntime();
+			return;
+		}
+
+		TransformComponent* cameraRoot = ResolveCameraRootTransform(actorTransform);
+		if (!cameraRoot) {
+			ResetWallRunViewFollowRuntime();
+			return;
+		}
+		Entity* cameraEntity = cameraRoot->GetOwner();
+		if (!cameraEntity) {
+			ResetWallRunViewFollowRuntime();
+			return;
+		}
+		auto* cameraRotator = cameraEntity->GetComponent<CameraRotatorComponent>();
+		if (!cameraRotator) {
+			ResetWallRunViewFollowRuntime();
+			return;
+		}
+
+		Vec3 followDirection = mRuntime.wallRun.direction;
+		followDirection.y    = 0.0f;
+		if (followDirection.SqrLength() <= kWallRunViewFollowMinDirSq) {
+			ResetWallRunViewFollowRuntime();
+			return;
+		}
+		followDirection.Normalize();
+
+		const float targetYawDeg = std::atan2(followDirection.x, followDirection.z) *
+			Math::rad2Deg;
+		const Vec2  lookAngles = cameraRotator->GetLookAnglesDegrees();
+		const float currentYawDeg = lookAngles.y;
+		const float currentPitchDeg = lookAngles.x;
+
+		if (!mWallRunViewFollowInitialized) {
+			mWallRunViewFollowSmoothedYawDeg = currentYawDeg;
+			mWallRunViewFollowInitialized    = true;
+		}
+
+		const float deltaYawDeg = DeltaAngleDegrees(currentYawDeg, targetYawDeg);
+		Vec3 velocityHorz = mVelocity;
+		velocityHorz.y    = 0.0f;
+		const float horizontalSpeedHu = Math::MtoH(velocityHorz.Length());
+		const float minWallRunSpeedHu = mConsole ?
+			                                mConsole->GetConVarValueOr(
+				                                "park_wallrun_minspeed",
+				                                200.0f
+			                                ) :
+			                                200.0f;
+		const float sprintSpeedHu = mConsole ?
+			                            mConsole->GetConVarValueOr(
+				                            "sv_sprintspeed",
+				                            320.0f
+			                            ) :
+			                            320.0f;
+		const float speedScaleMaxRefHu = std::max(
+			minWallRunSpeedHu + 1.0f,
+			sprintSpeedHu * 2.0f
+		);
+		const float speedScaleT = std::clamp(
+			(horizontalSpeedHu - minWallRunSpeedHu) /
+				(speedScaleMaxRefHu - minWallRunSpeedHu),
+			0.0f,
+			1.0f
+		);
+		const float speedScale = Math::Lerp(
+			1.0f,
+			kWallRunViewFollowSpeedScaleMax,
+			speedScaleT
+		);
+
+		const float alpha = std::clamp(
+			mWallRunViewFollowResponsiveness * speedScale * stepSeconds,
+			0.0f,
+			1.0f
+		);
+		float followStepDeg = deltaYawDeg * alpha;
+		const float maxStepDeg =
+			mWallRunViewFollowMaxYawSpeedDegPerSec * speedScale * stepSeconds;
+		followStepDeg = std::clamp(followStepDeg, -maxStepDeg, maxStepDeg);
+
+		const float nextYawDeg = currentYawDeg + followStepDeg;
+		mWallRunViewFollowSmoothedYawDeg = nextYawDeg;
+		cameraRotator->SetLookAnglesDegrees(currentPitchDeg, nextYawDeg);
 	}
 
 	bool ParkourMovementComponent::IsDuckDebugDrawEnabled() const {
@@ -1656,3 +1806,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(ParkourMovementComponent);
 }
+

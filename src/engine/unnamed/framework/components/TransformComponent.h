@@ -91,7 +91,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 

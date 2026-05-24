@@ -32,4 +32,4 @@ premake5.exe --games=teamgame --projects-root="S:/Repositories/TD4_01/projects" 
 - `VisualStudio 2026` | `Rider` の場合は 生成された `.slnx` ファイルを開いてください。
 
 !!! warning "注意"
-    `VisualStudio Code` をお使いの方はアクションが整備されていないため、IDEでの実行を推奨します。どうしてもVSCodeで実行したい場合は、管理者へ。
+    `VisualStudio Code` をお使いの方はアクションが整備されていないため、IDEでの実行を推奨します。

@@ -165,7 +165,7 @@ namespace Unnamed {
 		return hash;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CameraRotatorComponent::DrawInspectorImGui() {
 		ImGui::DragFloat("Pitch", &mCurrentPitch, 0.1f, -89.0f, 89.0f);
 		ImGui::DragFloat("Yaw", &mCurrentYaw, 0.1f, -1080.0f, 1080.0f);
@@ -238,3 +238,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(CameraRotatorComponent);
 }
+

@@ -9,7 +9,7 @@
 #include <core/string/StrUtil.h>
 
 #include <engine/game/GamePathResolver.h>
-#include <engine/game/IGameModule.h>
+#include <engine/game/GameRuntimeContext.h>
 #include <engine/profiler/Profiler.h>
 #include <engine/unnamed/subsystem/console/Log.h>
 #include <engine/unnamed/subsystem/interface/ServiceLocator.h>
@@ -66,15 +66,17 @@ namespace Unnamed {
 				return "./" + normalizedInput;
 			}
 
-			const IGameModule* gameModule = ServiceLocator::Get<IGameModule>();
-			if (!gameModule) {
+			const GameRuntimeContext* runtimeContext =
+				ServiceLocator::Get<GameRuntimeContext>();
+			if (!runtimeContext) {
 				return normalizedInput;
 			}
 
-			const GameModulePaths gamePaths = gameModule->GetGameModulePaths();
 			const MountedContentResolution resolution =
 				ResolveGameMountedContentPathDetailed(
-					gamePaths, normalizedInput);
+					runtimeContext->modulePaths,
+					normalizedInput
+				);
 			if (resolution.resolvedRoot.empty()) {
 				DevMsg(
 					kChannel,

@@ -15,7 +15,7 @@
 
 #include "engine/gui/UiDocument.h"
 #include "engine/gui/UiRoot.h"
-#include "engine/game/IGameModule.h"
+#include "engine/game/GameRuntimeContext.h"
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -67,12 +67,12 @@ namespace Unnamed {
 		}
 
 		std::string ResolveDefaultUiAssetPath() {
-			const auto* gameModule = ServiceLocator::Get<IGameModule>();
-			if (!gameModule) {
+			const auto* runtimeContext = ServiceLocator::Get<GameRuntimeContext>();
+			if (!runtimeContext) {
 				return {};
 			}
 
-			const std::string uiPath = gameModule->GetDefaultUiDocumentPath();
+			const std::string uiPath = runtimeContext->defaultUiDocumentPath;
 			return uiPath.empty() ? std::string() : StrUtil::NormalizePath(uiPath);
 		}
 	}
@@ -144,7 +144,7 @@ namespace Unnamed {
 		writer.Write(mReceiveInput);
 	}
 
-#ifdef _DEBUG
+#if defined(UNNAMED_WITH_EDITOR)
 	void UiCanvasComponent::DrawInspectorImGui() {
 		std::string uiAssetPath = mUiAssetPath;
 		if (

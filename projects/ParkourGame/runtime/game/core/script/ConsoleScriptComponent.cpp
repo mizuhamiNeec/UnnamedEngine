@@ -1,11 +1,11 @@
-﻿#include "ConsoleScriptComponent.h"
+#include "ConsoleScriptComponent.h"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstring>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
 #endif
 
@@ -26,7 +26,7 @@ namespace Unnamed {
 		constexpr const char* kAttachCommandsKey = "attachCommands";
 		constexpr const char* kDetachCommandsKey = "detachCommands";
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		template <size_t N>
 		bool EditCommandInput(const char* label, std::string& value) {
 			std::array<char, N> buffer = {};
@@ -118,7 +118,7 @@ namespace Unnamed {
 		return kIconArticle;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void ConsoleScriptComponent::DrawInspectorImGui() {
 		DrawCommandListInspector("On Attach", mOnAttachCommands);
 		DrawCommandListInspector("On Detach", mOnDetachCommands);
@@ -182,3 +182,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(ConsoleScriptComponent);
 }
+
