@@ -150,8 +150,10 @@ function Validate-Startup {
         if ($process.ExitCode -ne 0) {
             throw "Startup validation failed with exit code $($process.ExitCode)."
         }
-        if ($combined -notmatch "status=passed") {
-            throw "Startup validation failed (status=passed was not found in output)."
+        $hasLegacyPassedStatus = $combined -match "status=passed"
+        $hasSucceededMessage = $combined -match "validate-startup-only\s+succeeded"
+        if (-not ($hasLegacyPassedStatus -or $hasSucceededMessage)) {
+            throw "Startup validation failed (success marker was not found in output)."
         }
     }
     finally {

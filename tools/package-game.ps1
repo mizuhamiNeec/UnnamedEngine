@@ -274,8 +274,10 @@ if ($ValidateStartup) {
         if (Test-Path -LiteralPath $stdoutPath) { Remove-Item -LiteralPath $stdoutPath -Force }
         if (Test-Path -LiteralPath $stderrPath) { Remove-Item -LiteralPath $stderrPath -Force }
     }
-    if ($validationText -notmatch "status=passed") {
-        throw "startup validation failed (status=passed was not found in output)."
+    $hasLegacyPassedStatus = $validationText -match "status=passed"
+    $hasSucceededMessage = $validationText -match "validate-startup-only\s+succeeded"
+    if (-not ($hasLegacyPassedStatus -or $hasSucceededMessage)) {
+        throw "startup validation failed (success marker was not found in output)."
     }
 }
 

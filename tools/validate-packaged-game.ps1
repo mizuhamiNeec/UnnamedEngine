@@ -170,8 +170,10 @@ try {
     if ($process.ExitCode -ne 0) {
         throw "isolated startup validation failed with exit code $($process.ExitCode)"
     }
-    if ($combined -notmatch "status=passed") {
-        throw "isolated startup validation failed (status=passed was not found in output)."
+    $hasLegacyPassedStatus = $combined -match "status=passed"
+    $hasSucceededMessage = $combined -match "validate-startup-only\s+succeeded"
+    if (-not ($hasLegacyPassedStatus -or $hasSucceededMessage)) {
+        throw "isolated startup validation failed (success marker was not found in output)."
     }
 }
 finally {
