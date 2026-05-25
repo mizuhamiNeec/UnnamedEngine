@@ -31,8 +31,9 @@
 
 #include <engine/EngineComponentRegistration.h>
 #include <engine/game/GamePathResolver.h>
+#include <engine/game/GameRuntimeContext.h>
 #include <engine/game/IDemoService.h>
-#include <engine/game/IGameModule.h>
+#include <engine/game/IGameWorldFactory.h>
 #include <engine/Platform/PlatformEventsImpl.h>
 #include <engine/Platform/WindowManager.h>
 #include <engine/profiler/Profiler.h>
@@ -96,7 +97,7 @@ namespace Unnamed {
 				orderLabel,
 				std::string(cfgPath)
 			);
-			console->ExecuteCommand("exec " + std::string(cfgPath));
+			console->ExecuteCommand("exec \"" + std::string(cfgPath) + "\"");
 			return true;
 		}
 
@@ -116,14 +117,17 @@ namespace Unnamed {
 		}
 	}
 
-	Engine::Engine(IGameModule& gameModule, const RUN_MODE runMode)
-		: mGameModule(gameModule),
-		  mRequestedRunMode(runMode), mConfig() {
+	Engine::Engine(
+		const EngineRuntimeBindings& runtimeBindings,
+		const RUN_MODE               runMode
+	) : mRuntimeBindings(runtimeBindings),
+	    mRequestedRunMode(runMode),
+	    mConfig() {
 	}
 
 	Engine::~Engine() = default;
 
-	int Engine::Run() {
+	int Engine::Run(const EngineRunCallbacks& callbacks) {
 		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); // リークチェック
 		const HRESULT hr = CoInitializeEx(
 			nullptr, COINIT_MULTITHREADED
@@ -141,6 +145,19 @@ namespace Unnamed {
 		// 初期化
 		if (!Init()) {
 			UASSERT(false && "Failed to initialize Engine");
+			return EXIT_FAILURE;
+		}
+
+		if (callbacks.onPostInitialize && !callbacks.onPostInitialize(*this)) {
+			if (callbacks.onPreShutdown) {
+				callbacks.onPreShutdown(*this);
+			}
+			Shutdown();
+			timeEndPeriod(1);
+			if (coInitialized) {
+				CoUninitialize();
+			}
+			return EXIT_FAILURE;
 		}
 
 		// メインループ
@@ -179,6 +196,9 @@ namespace Unnamed {
 		}
 
 		// シャットダウン
+		if (callbacks.onPreShutdown) {
+			callbacks.onPreShutdown(*this);
+		}
 		Shutdown();
 		timeEndPeriod(1);
 		if (coInitialized) {
@@ -201,7 +221,14 @@ namespace Unnamed {
 		SystemClock::Init();
 
 		ServiceLocator::Register<Engine>(this);
-		ServiceLocator::Register<IGameModule>(&mGameModule);
+		if (mRuntimeBindings.runtimeContext == nullptr) {
+			Error("Engine", "GameRuntimeContext is null.");
+			return false;
+		}
+		if (mRuntimeBindings.gameWorldFactory == nullptr) {
+			Error("Engine", "IGameWorldFactory is null.");
+			return false;
+		}
 
 		RUN_MODE resolvedRunMode = mRequestedRunMode;
 #if !(defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR))
@@ -252,7 +279,9 @@ namespace Unnamed {
 			return false;
 		}
 
-		mDemoService = mGameModule.CreateDemoService();
+		if (mRuntimeBindings.createDemoService) {
+			mDemoService = mRuntimeBindings.createDemoService();
+		}
 		ServiceLocator::Register<IDemoService>(mDemoService.get());
 
 		mAssetManager = std::make_unique<AssetManager>();
@@ -373,28 +402,21 @@ namespace Unnamed {
 		mRenderModule->Init(mConsoleSystem.get());
 		mRenderFrameContext = std::make_unique<Render::RenderFrameContext>();
 
-		// ゲームモジュールに Engine 側サービスを公開し、初期化を委譲します。
-		EngineServices engineServices = {
-			.console       = mConsoleSystem.get(),
-			.inputSystem   = mInputSystem.get(),
-			.assetManager  = mAssetManager.get(),
-			.profiler      = mProfiler.get(),
-			.windowManager = mWindowManager.get(),
-			.demoService   = mDemoService.get()
-		};
-		mGameModule.Initialize(engineServices);
 		RegisterEngineComponents(ComponentRegistry::Get());
-		mGameModule.RegisterGameComponents(ComponentRegistry::Get());
-		const GameModulePaths gamePaths = mGameModule.GetGameModulePaths();
+		const GameRuntimeContext& runtimeContext = *mRuntimeBindings.runtimeContext;
+		const GameModulePaths& gamePaths = runtimeContext.modulePaths;
 		DevMsg(
 			"Engine",
-			"Game profile: game='{}' manifest='{}' root='{}' content='{}' config='{}' startupScene='{}'",
+			"Game runtime context: module='{}' game='{}' manifest='{}' root='{}' content='{}' config='{}' startupScene='{}'",
+			runtimeContext.runtimeModuleName,
 			gamePaths.gameName,
 			gamePaths.resolvedManifestPath,
 			gamePaths.gameRoot,
 			gamePaths.contentRoot,
 			gamePaths.configRoot,
-			gamePaths.defaultStartupScene
+			runtimeContext.defaultStartupScenePath.empty() ?
+				runtimeContext.modulePaths.defaultStartupScene :
+				runtimeContext.defaultStartupScenePath
 		);
 
 		(void)ExecuteGameCfgIfExists(
@@ -460,7 +482,7 @@ namespace Unnamed {
 				mInputSystem.get(),
 				mAssetManager.get(),
 				mDemoService.get(),
-				mGameModule,
+				*mRuntimeBindings.gameWorldFactory,
 				mProfiler.get(),
 				*mWindowManager,
 				*mRenderModule,
@@ -468,7 +490,10 @@ namespace Unnamed {
 			);
 			if (World* runtimeWorld = mUEditorRuntime->GetRuntimeWorld()) {
 				const std::string startupScenePath =
-					ResolveStartupScenePath(mGameModule);
+					ResolveStartupScenePath(
+						gamePaths,
+						runtimeContext.defaultStartupScenePath
+					);
 				runtimeWorld->LoadSceneFromFile(startupScenePath.c_str());
 			}
 
@@ -488,17 +513,20 @@ namespace Unnamed {
 			}
 #endif
 		} else {
-			std::unique_ptr<World> runtimeWorld = mGameModule.
-				CreateRuntimeWorld(
+			std::unique_ptr<World> runtimeWorld =
+				mRuntimeBindings.gameWorldFactory->CreateRuntimeWorld(
 					BuildWorldServices()
 				);
 			if (!runtimeWorld) {
-				Error("Engine", "GameModule returned null runtime world.");
+				Error("Engine", "Game world factory returned null runtime world.");
 				return false;
 			}
 			World&            world = ActivateWorld(std::move(runtimeWorld));
 			const std::string startupScenePath =
-				ResolveStartupScenePath(mGameModule);
+				ResolveStartupScenePath(
+					gamePaths,
+					runtimeContext.defaultStartupScenePath
+				);
 			world.LoadSceneFromFile(startupScenePath.c_str());
 		}
 
@@ -828,7 +856,6 @@ namespace Unnamed {
 		mAssetManager.reset();
 
 		ServiceLocator::Register<Engine>(nullptr);
-		ServiceLocator::Register<IGameModule>(nullptr);
 	}
 
 	/// @brief コンソールコマンドと変数の登録

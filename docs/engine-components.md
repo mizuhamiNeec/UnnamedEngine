@@ -13,6 +13,9 @@
 - 自動登録: `REGISTER_COMPONENT(...)` マクロによる `ComponentRegistry` 自動登録
 - 既定登録: `RegisterDefaultEngineComponents(...)` で標準セットを保証
   - 実装: `src/engine/EngineComponentRegistration.cpp`
+- ゲーム固有登録: `IGameModule::RegisterGameComponents(...)` で明示登録
+  - 実装例: `<projects-root>/TeamGame/runtime/game/team/runtime/TeamGameComponentRegistration.cpp`
+  - 補足: `REGISTER_COMPONENT(...)` のみだとリンク構成次第で静的初期化が到達しない場合があるため、明示登録を正規経路として運用します。
 
 `stableName` は永続化キーなので、シーン JSON の `type` と完全一致が必要です。
 
@@ -71,6 +74,7 @@
 - `DrawInspectorImGui` を含む ImGui 依存コードは `#ifdef _DEBUG` で囲むこと。`Develop/Release` では ImGui 実装がリンクされません。
 - `stableName`/`typeName` はアセット互換性のキーです。既存データがある状態での変更は避けてください。
 - シーン側では `game.*` / `engine.*` が混在します。新規追加時は「どの Runtime が登録責務を持つか」を先に決めると運用が安定します。
+- `game_profile.json` は profile/path 解決の仕組みであり、Runtime 実体の自動ロード機構ではありません。App 側 `RegisterGameModule(...)` 登録が未実施だと `DefaultGameModule` が生成され、ゲーム固有 Runtime 実装は使われません。
 
 ## 5. 参照実装
 

@@ -9,26 +9,48 @@ namespace Unnamed {
 	BaseComponent::BaseComponent()  = default;
 	BaseComponent::~BaseComponent() = default;
 
-	void BaseComponent::OnAttached() {}
-	void BaseComponent::OnDetached() {}
-	void BaseComponent::PrePhysicsTick(float) {}
-	void BaseComponent::OnTick(float) {}
-	void BaseComponent::OnFrameInputTick(float) {}
-	void BaseComponent::OnRenderTick(float, float) {}
-	void BaseComponent::PostPhysicsTick(float) {}
-	void BaseComponent::OnPreRender() const {}
-	void BaseComponent::OnRender() const {}
-	void BaseComponent::OnPostRender() const {}
-	void BaseComponent::OnEditorTick(float) {}
-	void BaseComponent::OnEditorRender() const {}
+	void BaseComponent::OnAttached() {
+	}
+
+	void BaseComponent::OnDetached() {
+	}
+
+	void BaseComponent::PrePhysicsTick(float) {
+	}
+
+	void BaseComponent::OnTick(float) {
+	}
+
+	void BaseComponent::OnFrameInputTick(float) {
+	}
+
+	void BaseComponent::OnRenderTick(float, float) {
+	}
+
+	void BaseComponent::PostPhysicsTick(float) {
+	}
+
+	void BaseComponent::OnPreRender() const {
+	}
+
+	void BaseComponent::OnRender() const {
+	}
+
+	void BaseComponent::OnPostRender() const {
+	}
+
+	void BaseComponent::OnEditorTick(float) {
+	}
+
+	void BaseComponent::OnEditorRender() const {
+	}
 
 	uint32_t BaseComponent::GetIcon() const {
 		return kIconQuestionMark; // デフォルトはクエスションマークアイコン
 	}
 
-#ifdef _DEBUG
-	void BaseComponent::DrawInspectorImGui() {}
-#endif
+	void BaseComponent::DrawInspectorImGui() {
+	}
 
 	Entity* BaseComponent::GetOwner() const {
 		return mOwner;
@@ -47,27 +69,27 @@ namespace Unnamed {
 	}
 
 	ConsoleSystem* BaseComponent::GetConsoleSystem() const noexcept {
-		World* world = GetWorld();
+		const World* world = GetWorld();
 		return world ? world->GetConsoleSystem() : nullptr;
 	}
 
 	InputSystem* BaseComponent::GetInputSystem() const noexcept {
-		World* world = GetWorld();
+		const World* world = GetWorld();
 		return world ? world->GetInputSystem() : nullptr;
 	}
 
 	AssetManager* BaseComponent::GetAssetManager() const noexcept {
-		World* world = GetWorld();
+		const World* world = GetWorld();
 		return world ? world->GetAssetManager() : nullptr;
 	}
 
 	IDemoService* BaseComponent::GetDemoService() const noexcept {
-		World* world = GetWorld();
-		return world ? world->GetDemoService() : nullptr;
+		const World* world = GetWorld();
+		return world ? World::GetDemoService() : nullptr;
 	}
 
 	AudioSystem* BaseComponent::GetAudioSystem() const noexcept {
-		World* world = GetWorld();
+		const World* world = GetWorld();
 		return world ? world->GetAudioSystem() : nullptr;
 	}
 

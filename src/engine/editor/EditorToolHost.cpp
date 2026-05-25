@@ -9,7 +9,6 @@
 #include "engine/editor/EditorGuiScriptPanel.h"
 #include "engine/editor/EditorNotification.h"
 #include "engine/editor/GuiEditorTool.h"
-#include "engine/game/IGameModule.h"
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
 #include "engine/render/RenderModule.h"
@@ -24,7 +23,7 @@ namespace Unnamed {
 		InputSystem*          inputSystem,
 		AssetManager*         assetManager,
 		IDemoService*         demoService,
-		IGameModule&          gameModule,
+		IGameWorldFactory&    gameWorldFactory,
 		Profiler*             profiler,
 		WindowManager&        windowManager,
 		Render::RenderModule& renderModule,
@@ -36,7 +35,7 @@ namespace Unnamed {
 	    mInputSystem(inputSystem),
 	    mAssetManager(assetManager),
 	    mDemoService(demoService),
-	    mGameModule(gameModule),
+	    mGameWorldFactory(gameWorldFactory),
 	    mProfiler(profiler) {
 		if (!mConsole) {
 			Error(
@@ -63,7 +62,7 @@ namespace Unnamed {
 			.inputSystem      = mInputSystem,
 			.assetManager     = mAssetManager,
 			.demoService      = mDemoService,
-			.gameWorldFactory = &mGameModule,
+			.gameWorldFactory = &mGameWorldFactory,
 			.profiler         = mProfiler,
 		};
 		for (auto& tool : mOwnedTools) {

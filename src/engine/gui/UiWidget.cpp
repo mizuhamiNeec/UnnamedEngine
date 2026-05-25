@@ -468,7 +468,7 @@ namespace Unnamed::Gui {
 		if (!w) {
 			return;
 		}
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 		const auto& r  = w->GetGlobalRect();
 		auto*       dl = ImGui::GetForegroundDrawList();
 

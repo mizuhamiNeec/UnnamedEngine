@@ -1,7 +1,14 @@
 #include "MouseDevice.h"
 
+#include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed {
+	namespace {
+		bool IsRemoteSession() {
+			return GetSystemMetrics(SM_REMOTESESSION) != 0;
+		}
+	}
+
 	/// @brief コンストラクタ
 	/// @param hWnd ウィンドウハンドル
 	MouseDevice::MouseDevice(const HWND hWnd) {
@@ -19,7 +26,8 @@ namespace Unnamed {
 	MouseDevice::~MouseDevice() = default;
 
 	/// @brief 更新処理
-	void MouseDevice::Update() {}
+	void MouseDevice::Update() {
+	}
 
 	/// @brief 生の入力を処理する
 	/// @param raw 生の入力データ
@@ -61,9 +69,25 @@ namespace Unnamed {
 			mButtonStates[VK_XBUTTON2] = false;
 		}
 
-		// 移動量
-		mDeltaX += mouseData.lLastX;
-		mDeltaY += mouseData.lLastY;
+		// リモートセッションではマウス移動が正しく取得できないため、移動量の更新をスキップする
+		if (!IsRemoteSession()) {
+			// 移動量
+			mDeltaX += mouseData.lLastX;
+			mDeltaY += mouseData.lLastY;
+		} else {
+			POINT current;
+
+			GetCursorPos(&current);
+
+			const auto deltaX = current.x - mPrevCursor.x;
+			const auto deltaY = current.y - mPrevCursor.y;
+
+			mDeltaX += deltaX;
+			mDeltaY += deltaY;
+
+			mPrevCursor = current;
+		}
+
 		// ホイール
 		if (mouseData.usButtonFlags & RI_MOUSE_WHEEL) {
 			const SHORT wheelData = static_cast<SHORT>(mouseData.usButtonData);

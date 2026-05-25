@@ -530,7 +530,7 @@ namespace Unnamed {
 		writer.EndArray();
 	}
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 	void SkeletalAnimationComponent::DrawInspectorImGui() {
 		auto editStringField = [](
 			const char*  label,

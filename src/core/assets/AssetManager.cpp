@@ -9,7 +9,7 @@
 #include <core/string/StrUtil.h>
 
 #include <engine/game/GamePathResolver.h>
-#include <engine/game/IGameModule.h>
+#include <engine/game/GameRuntimeContext.h>
 #include <engine/profiler/Profiler.h>
 #include <engine/unnamed/subsystem/console/Log.h>
 #include <engine/unnamed/subsystem/interface/ServiceLocator.h>
@@ -66,17 +66,31 @@ namespace Unnamed {
 				return "./" + normalizedInput;
 			}
 
-			const IGameModule* gameModule = ServiceLocator::Get<IGameModule>();
-			if (!gameModule) {
+			const GameRuntimeContext* runtimeContext =
+				ServiceLocator::Get<GameRuntimeContext>();
+			if (!runtimeContext) {
 				return normalizedInput;
 			}
 
-			// contentRoot 相対として解決します。
-			const std::string resolvedPath = ResolveGameContentPath(
-				gameModule->GetGameModulePaths(),
-				normalizedInput
-			);
-			return resolvedPath.empty() ? normalizedInput : resolvedPath;
+			const MountedContentResolution resolution =
+				ResolveGameMountedContentPathDetailed(
+					runtimeContext->modulePaths,
+					normalizedInput
+				);
+			if (resolution.resolvedRoot.empty()) {
+				DevMsg(
+					kChannel,
+					"Failed to resolve asset load path: {}. Resolution details: resolvedPath='{}', resolvedLayer='{}', resolvedRoot='{}', existsOnDisk={}",
+					normalizedInput,
+					resolution.resolvedPath,
+					resolution.resolvedLayer,
+					resolution.resolvedRoot,
+					resolution.existsOnDisk
+				);
+			}
+			return resolution.resolvedPath.empty() ?
+				       normalizedInput :
+				       resolution.resolvedPath;
 		}
 
 		FileStamp ReadCurrentFileStamp(const std::string& path) {

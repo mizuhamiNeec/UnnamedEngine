@@ -127,7 +127,7 @@ namespace Unnamed {
 		writer.Write(mMoveSpeed);
 	}
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 	void EditorCameraComponent::DrawInspectorImGui() {
 		ImGui::DragFloat("FovYDegrees", &mFovYDegrees, 0.1f, 1.0f, 179.0f);
 		ImGui::DragFloat("NearZ", &mNearZ, 0.0005f, 0.0001f, mFarZ - 0.001f);

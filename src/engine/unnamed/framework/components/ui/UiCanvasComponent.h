@@ -41,7 +41,7 @@ namespace Unnamed {
 		void Deserialize(const JsonReader& reader) override;
 		void Serialize(JsonWriter& writer) const override;
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 		void DrawInspectorImGui() override;
 #endif
 		

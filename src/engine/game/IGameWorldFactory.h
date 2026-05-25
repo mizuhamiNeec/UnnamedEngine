@@ -11,6 +11,13 @@ namespace Unnamed {
 	public:
 		virtual ~IGameWorldFactory() = default;
 
+		/// @brief Standalone 実行用のワールドを生成します。
+		/// @param services ワールドへ注入するサービス群
+		/// @return 生成されたワールド
+		[[nodiscard]] virtual std::unique_ptr<World> CreateRuntimeWorld(
+			const WorldServices& services
+		) = 0;
+
 		/// @brief Play-In-Editor 用のワールドを生成します。
 		/// @param services ワールドへ注入するサービス群
 		/// @return 生成されたワールド

@@ -1,0 +1,12 @@
+{
+	"schemaVersion": 1,
+	"gameName": "Parkour",
+	"runtimeModule": "ParkourGameRuntime",
+	"aliases": [
+		"ParkourGame"
+	],
+	"gameRoot": "..",
+	"contentRoot": "../content",
+	"configRoot": ".",
+	"defaultStartupScene": "scenes/title.json"
+}

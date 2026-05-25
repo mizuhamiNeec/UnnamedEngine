@@ -8,6 +8,12 @@
 #include "engine/physics/core/Physics.h"
 
 namespace Unnamed {
+	enum class COLLIDER_TYPE : uint8_t {
+		BOX,     // AABB
+		SPHERE,  // 球
+		CAPSULE, // カプセル
+	};
+
 	struct KinematicContact {
 		uint64_t hitEntityGuid = 0;
 		Vec3     normal        = Vec3::zero;

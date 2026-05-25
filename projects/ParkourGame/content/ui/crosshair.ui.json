@@ -1,0 +1,416 @@
+{
+    "name": "ui/MainMenu.ui.json",
+    "root": {
+        "children": [
+            {
+                "children": [
+                    {
+                        "children": [],
+                        "components": [
+                            {
+                                "data": {
+                                    "anchors": [
+                                        0.44999998807907104,
+                                        0.550000011920929,
+                                        0.550000011920929,
+                                        0.44999998807907104
+                                    ],
+                                    "constraints": {
+                                        "maxHeight": 3.4028234663852886e+38,
+                                        "maxWidth": 3.4028234663852886e+38,
+                                        "minHeight": 0.0,
+                                        "minWidth": 0.0
+                                    },
+                                    "margins": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "pivot": [
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "rect": [
+                                        0.0,
+                                        0.0,
+                                        240.0,
+                                        120.0
+                                    ],
+                                    "sizePolicy": [
+                                        "Fixed",
+                                        "Fixed"
+                                    ]
+                                },
+                                "type": "Transform"
+                            },
+                            {
+                                "data": {
+                                    "borderColor": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        1.0
+                                    ],
+                                    "borderThickness": 0.0,
+                                    "cornerRadius": 4.0,
+                                    "fillColor": [
+                                        0.7854406237602234,
+                                        0.7854406237602234,
+                                        0.7854406237602234,
+                                        1.0
+                                    ]
+                                },
+                                "type": "PanelStyle"
+                            }
+                        ],
+                        "enabled": true,
+                        "name": "Panel",
+                        "visible": true
+                    },
+                    {
+                        "children": [],
+                        "components": [
+                            {
+                                "data": {
+                                    "anchors": [
+                                        0.3499999940395355,
+                                        0.550000011920929,
+                                        0.0,
+                                        0.44999998807907104
+                                    ],
+                                    "constraints": {
+                                        "maxHeight": 3.4028234663852886e+38,
+                                        "maxWidth": 3.4028234663852886e+38,
+                                        "minHeight": 0.0,
+                                        "minWidth": 0.0
+                                    },
+                                    "margins": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "pivot": [
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "rect": [
+                                        0.0,
+                                        0.0,
+                                        240.0,
+                                        120.0
+                                    ],
+                                    "sizePolicy": [
+                                        "Fixed",
+                                        "Fixed"
+                                    ]
+                                },
+                                "type": "Transform"
+                            },
+                            {
+                                "data": {
+                                    "borderColor": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        1.0
+                                    ],
+                                    "borderThickness": 0.0,
+                                    "cornerRadius": 4.0,
+                                    "fillColor": [
+                                        0.7843137383460999,
+                                        0.7843137383460999,
+                                        0.7843137383460999,
+                                        1.0
+                                    ]
+                                },
+                                "type": "PanelStyle"
+                            }
+                        ],
+                        "enabled": true,
+                        "name": "Panel",
+                        "visible": true
+                    },
+                    {
+                        "children": [],
+                        "components": [
+                            {
+                                "data": {
+                                    "anchors": [
+                                        1.0,
+                                        0.550000011920929,
+                                        0.6499999761581421,
+                                        0.44999998807907104
+                                    ],
+                                    "constraints": {
+                                        "maxHeight": 3.4028234663852886e+38,
+                                        "maxWidth": 3.4028234663852886e+38,
+                                        "minHeight": 0.0,
+                                        "minWidth": 0.0
+                                    },
+                                    "margins": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "pivot": [
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "rect": [
+                                        0.0,
+                                        0.0,
+                                        290.5,
+                                        28.5
+                                    ],
+                                    "sizePolicy": [
+                                        "Fixed",
+                                        "Fixed"
+                                    ]
+                                },
+                                "type": "Transform"
+                            },
+                            {
+                                "data": {
+                                    "borderColor": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        1.0
+                                    ],
+                                    "borderThickness": 0.0,
+                                    "cornerRadius": 4.0,
+                                    "fillColor": [
+                                        0.7843137383460999,
+                                        0.7843137383460999,
+                                        0.7843137383460999,
+                                        1.0
+                                    ]
+                                },
+                                "type": "PanelStyle"
+                            }
+                        ],
+                        "enabled": true,
+                        "name": "Panel",
+                        "visible": true
+                    },
+                    {
+                        "children": [],
+                        "components": [
+                            {
+                                "data": {
+                                    "anchors": [
+                                        0.44999998807907104,
+                                        1.0,
+                                        0.550000011920929,
+                                        0.6499999761581421
+                                    ],
+                                    "constraints": {
+                                        "maxHeight": 3.4028234663852886e+38,
+                                        "maxWidth": 3.4028234663852886e+38,
+                                        "minHeight": 0.0,
+                                        "minWidth": 0.0
+                                    },
+                                    "margins": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "pivot": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "rect": [
+                                        0.0,
+                                        0.0,
+                                        240.0,
+                                        120.0
+                                    ],
+                                    "sizePolicy": [
+                                        "Fixed",
+                                        "Fixed"
+                                    ]
+                                },
+                                "type": "Transform"
+                            },
+                            {
+                                "data": {
+                                    "borderColor": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        1.0
+                                    ],
+                                    "borderThickness": 0.0,
+                                    "cornerRadius": 4.0,
+                                    "fillColor": [
+                                        0.7843137383460999,
+                                        0.7843137383460999,
+                                        0.7843137383460999,
+                                        1.0
+                                    ]
+                                },
+                                "type": "PanelStyle"
+                            }
+                        ],
+                        "enabled": true,
+                        "name": "Panel",
+                        "visible": true
+                    },
+                    {
+                        "children": [],
+                        "components": [
+                            {
+                                "data": {
+                                    "anchors": [
+                                        0.44999998807907104,
+                                        0.3499999940395355,
+                                        0.550000011920929,
+                                        0.0
+                                    ],
+                                    "constraints": {
+                                        "maxHeight": 3.4028234663852886e+38,
+                                        "maxWidth": 3.4028234663852886e+38,
+                                        "minHeight": 0.0,
+                                        "minWidth": 0.0
+                                    },
+                                    "margins": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "pivot": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "rect": [
+                                        0.0,
+                                        0.0,
+                                        35.5,
+                                        131.5
+                                    ],
+                                    "sizePolicy": [
+                                        "Fixed",
+                                        "Fixed"
+                                    ]
+                                },
+                                "type": "Transform"
+                            },
+                            {
+                                "data": {
+                                    "borderColor": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        1.0
+                                    ],
+                                    "borderThickness": 0.0,
+                                    "cornerRadius": 4.0,
+                                    "fillColor": [
+                                        0.7843137383460999,
+                                        0.7843137383460999,
+                                        0.7843137383460999,
+                                        1.0
+                                    ]
+                                },
+                                "type": "PanelStyle"
+                            }
+                        ],
+                        "enabled": true,
+                        "name": "Panel",
+                        "visible": true
+                    }
+                ],
+                "components": [
+                    {
+                        "data": {
+                            "anchors": [
+                                0.05000000074505806,
+                                0.05000000074505806,
+                                0.949999988079071,
+                                0.949999988079071
+                            ],
+                            "constraints": {
+                                "maxHeight": 3.4028234663852886e+38,
+                                "maxWidth": 3.4028234663852886e+38,
+                                "minHeight": 0.0,
+                                "minWidth": 0.0
+                            },
+                            "margins": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "pivot": [
+                                0.0,
+                                0.0
+                            ],
+                            "rect": [
+                                0.0,
+                                0.0,
+                                160.0,
+                                64.0
+                            ],
+                            "sizePolicy": [
+                                "Fixed",
+                                "Fixed"
+                            ]
+                        },
+                        "type": "Transform"
+                    }
+                ],
+                "enabled": true,
+                "name": "Widget",
+                "visible": true
+            }
+        ],
+        "components": [
+            {
+                "data": {
+                    "anchors": [
+                        0.5,
+                        0.5,
+                        0.5,
+                        0.5
+                    ],
+                    "constraints": {
+                        "maxHeight": 3.4028234663852886e+38,
+                        "maxWidth": 3.4028234663852886e+38,
+                        "minHeight": 0.0,
+                        "minWidth": 0.0
+                    },
+                    "margins": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "pivot": [
+                        0.5,
+                        0.5
+                    ],
+                    "rect": [
+                        0.0,
+                        0.0,
+                        128.0,
+                        128.0
+                    ],
+                    "sizePolicy": [
+                        "Fixed",
+                        "Expand"
+                    ]
+                },
+                "type": "Transform"
+            }
+        ],
+        "enabled": true,
+        "name": "RootLayout",
+        "visible": true
+    },
+    "version": 2
+}

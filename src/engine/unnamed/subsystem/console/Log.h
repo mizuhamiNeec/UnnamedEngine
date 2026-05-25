@@ -87,6 +87,7 @@ namespace Unnamed {
 					"notify warning 2 Warning | " + body,
 					EXEC_FLAG::FROM_CONSOLE | EXEC_FLAG::SILENT
 				);
+				break; // わすれんじゃあねぇ
 			case LogLevel::Error: console->ExecuteCommand(
 					"notify error 2 Error | " + body,
 					EXEC_FLAG::FROM_CONSOLE | EXEC_FLAG::SILENT

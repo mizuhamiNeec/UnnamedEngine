@@ -1,0 +1,108 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: DevelopBuild
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - src/**
+      - projects/**
+      - build/premake/**
+      - premake5.lua
+      - .github/workflows/DevelopBuild.yml
+  push:
+    branches:
+      - main
+    paths:
+      - src/**
+      - projects/**
+      - build/premake/**
+      - premake5.lua
+      - .github/workflows/DevelopBuild.yml
+
+env:
+  # リポジトリのルートディレクトリを起点としたソリューションファイルのパス
+  SOLUTION_FILE_PATH: Unnamed.slnx
+  # Visual Studio の構成(Debug / Develop / Release)
+  CONFIGURATION: Develop
+  PLATFORM: x64
+  PREMAKE_GAMES: parkour
+
+jobs:
+  build:
+    runs-on: windows-2025-vs2026
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup premake
+        uses: abel0b/setup-premake@v2.4
+        with:
+          version: "5.0.0-beta8"
+          path: ./
+
+      - name: Show files in the current directory
+        shell: pwsh
+        run: Get-ChildItem ./
+
+      - name: Generate Visual Studio 2026 project files
+        shell: pwsh
+        run: .\premake5.exe --games=$env:PREMAKE_GAMES vs2026
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v3
+        with:
+          msbuild-architecture: x64
+
+      - name: Build
+        shell: pwsh
+        run: |
+          $projects = @(
+            ".\build\projects\DirectXTex\DirectXTex.vcxproj",
+            ".\build\projects\Lua\Lua.vcxproj",
+            ".\build\projects\UnnamedEngineRuntime\UnnamedEngineRuntime.vcxproj",
+            ".\build\projects\ParkourGameRuntime\ParkourGameRuntime.vcxproj",
+            ".\build\projects\UnnamedLauncher\UnnamedLauncher.vcxproj"
+          )
+
+          foreach ($project in $projects) {
+            Write-Host "Building $project ($env:CONFIGURATION|$env:PLATFORM)"
+            msbuild $project `
+              /m:1 `
+              /p:Configuration=$env:CONFIGURATION `
+              /p:Platform=$env:PLATFORM
+            if ($LASTEXITCODE -ne 0) {
+              throw "Build failed: $project (exit=$LASTEXITCODE)"
+            }
+          }
+
+      - name: Startup validation
+        shell: pwsh
+        run: |
+          $projectManifest = Resolve-Path ".\projects\ParkourGame\config\game_profile.json"
+          $launcherExe = Resolve-Path ".\bin\Develop-windows-x86_64\UnnamedLauncher\UnnamedLauncher.exe"
+
+          foreach ($exe in @($launcherExe)) {
+            Write-Host "Running startup validation: $exe --project=$projectManifest --validate-startup-only"
+            $valOut = [System.IO.Path]::GetTempFileName()
+            $valErr = [System.IO.Path]::GetTempFileName()
+            try {
+              $process = Start-Process -FilePath $exe -ArgumentList @("--project=$projectManifest", "--validate-startup-only") -WorkingDirectory $PWD -Wait -PassThru -NoNewWindow -RedirectStandardOutput $valOut -RedirectStandardError $valErr
+              $validationText = ((Get-Content -Path $valOut -Raw) + [Environment]::NewLine + (Get-Content -Path $valErr -Raw)).Trim()
+              if (-not [string]::IsNullOrWhiteSpace($validationText)) {
+                Write-Host $validationText
+              }
+              if ($process.ExitCode -ne 0) {
+                throw "Startup validation failed: $exe (exit=$($process.ExitCode))"
+              }
+            } finally {
+              if (Test-Path -LiteralPath $valOut) { Remove-Item -LiteralPath $valOut -Force }
+              if (Test-Path -LiteralPath $valErr) { Remove-Item -LiteralPath $valErr -Force }
+            }
+          }

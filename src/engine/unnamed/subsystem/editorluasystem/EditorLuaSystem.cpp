@@ -1,11 +1,9 @@
 #include "EditorLuaSystem.h"
 
 #include <thirdparty/lua/lua.hpp>
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 #include <imgui.h>
 #endif
-
-#include "core/assets/loader/TextureLoaderDirectXTex.h"
 
 namespace Unnamed {
 	namespace {
@@ -17,7 +15,7 @@ namespace Unnamed {
 
 		int LuaUiText(lua_State* lua) {
 			const char* text = luaL_checkstring(lua, 1);
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 			ImGui::TextUnformatted(text);
 #else
 			(void)text;
@@ -27,7 +25,7 @@ namespace Unnamed {
 
 		int LuaUiButton(lua_State* lua) {
 			const char* text = luaL_checkstring(lua, 1);
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 			const bool pressed = ImGui::Button(text);
 #else
 			(void)text;
@@ -38,10 +36,51 @@ namespace Unnamed {
 			return 1;
 		}
 
+		int LuaUiBeginWindow(lua_State* lua) {
+			const char* title  = luaL_checkstring(lua, 1);
+#ifdef UNNAMED_WITH_EDITOR
+			const bool  opened = ImGui::Begin(title);
+#else
+			(void)title;
+			constexpr bool opened = false;
+#endif
+			lua_pushboolean(lua, opened);
+			return 1;
+		}
+
+		int LuaUiEndWindow(lua_State*) {
+#ifdef UNNAMED_WITH_EDITOR
+			ImGui::End();
+#endif
+			return 0;
+		}
+
 		void RegisterEditorLuaBindings(lua_State* lua) {
 			lua_register(lua, "Ui_Text", LuaUiText);
 			lua_register(lua, "Ui_Button", LuaUiButton);
+			lua_register(lua, "Ui_BeginWindow", LuaUiBeginWindow);
+			lua_register(lua, "Ui_EndWindow", LuaUiEndWindow);
 		}
+
+		auto kEditorUiBootStrapLua = R"(
+			Ui = Ui or {}
+			
+			function Ui.Text(text)
+				Ui_Text(text)
+			end
+
+			function Ui.Button(text)
+				return Ui_Button(text)
+			end
+
+			function Ui.BeginWindow(title)
+				return Ui_BeginWindow(title)
+			end
+
+			function Ui.EndWindow()
+				Ui_EndWindow()
+			end
+		)";
 	}
 
 	bool EditorLuaSystem::Init() {
@@ -56,6 +95,9 @@ namespace Unnamed {
 
 		luaL_openlibs(mState);
 		RegisterEditorLuaBindings(mState);
+
+		std::string error;
+		ExecuteString(kEditorUiBootStrapLua, &error);
 
 		return true;
 	}

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "../base/BaseComponent.h"
 
 #include "core/assets/AssetID.h"
@@ -16,7 +16,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 		void DrawInspectorImGui() override;
 #endif
 

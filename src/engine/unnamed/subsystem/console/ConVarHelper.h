@@ -1,5 +1,5 @@
 #pragma once
-#ifdef _DEBUG
+#ifdef UNNAMED_WITH_EDITOR
 #include <string>
 #include <variant>
 #include <vector>

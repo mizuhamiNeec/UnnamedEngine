@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+set -eu
+
+if command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoProfile -ExecutionPolicy Bypass -File "./tools/check-engine-boundary.ps1" -Staged
+elif command -v powershell >/dev/null 2>&1; then
+  powershell -NoProfile -ExecutionPolicy Bypass -File "./tools/check-engine-boundary.ps1" -Staged
+else
+  echo "PowerShell not found. Skipping engine boundary pre-commit check."
+fi
