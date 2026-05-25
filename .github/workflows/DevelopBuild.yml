@@ -9,9 +9,21 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - src/**
+      - projects/**
+      - build/premake/**
+      - premake5.lua
+      - .github/workflows/DevelopBuild.yml
   push:
     branches:
       - main
+    paths:
+      - src/**
+      - projects/**
+      - build/premake/**
+      - premake5.lua
+      - .github/workflows/DevelopBuild.yml
 
 env:
   # リポジトリのルートディレクトリを起点としたソリューションファイルのパス
@@ -78,8 +90,19 @@ jobs:
 
           foreach ($exe in @($launcherExe)) {
             Write-Host "Running startup validation: $exe --project=$projectManifest --validate-startup-only"
-            & $exe "--project=$projectManifest" --validate-startup-only
-            if ($LASTEXITCODE -ne 0) {
-              throw "Startup validation failed: $exe (exit=$LASTEXITCODE)"
+            $valOut = [System.IO.Path]::GetTempFileName()
+            $valErr = [System.IO.Path]::GetTempFileName()
+            try {
+              $process = Start-Process -FilePath $exe -ArgumentList @("--project=$projectManifest", "--validate-startup-only") -WorkingDirectory $PWD -Wait -PassThru -NoNewWindow -RedirectStandardOutput $valOut -RedirectStandardError $valErr
+              $validationText = ((Get-Content -Path $valOut -Raw) + [Environment]::NewLine + (Get-Content -Path $valErr -Raw)).Trim()
+              if (-not [string]::IsNullOrWhiteSpace($validationText)) {
+                Write-Host $validationText
+              }
+              if ($process.ExitCode -ne 0) {
+                throw "Startup validation failed: $exe (exit=$($process.ExitCode))"
+              }
+            } finally {
+              if (Test-Path -LiteralPath $valOut) { Remove-Item -LiteralPath $valOut -Force }
+              if (Test-Path -LiteralPath $valErr) { Remove-Item -LiteralPath $valErr -Force }
             }
           }

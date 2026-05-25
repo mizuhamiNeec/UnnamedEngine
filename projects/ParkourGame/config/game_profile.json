@@ -5,8 +5,8 @@
 	"aliases": [
 		"ParkourGame"
 	],
-	"gameRoot": "./projects/ParkourGame",
-	"contentRoot": "./projects/ParkourGame/content",
-	"configRoot": "./projects/ParkourGame/config",
+	"gameRoot": "..",
+	"contentRoot": "../content",
+	"configRoot": ".",
 	"defaultStartupScene": "scenes/title.json"
 }

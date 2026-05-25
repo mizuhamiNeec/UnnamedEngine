@@ -9,9 +9,21 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - src/**
+      - projects/**
+      - build/premake/**
+      - premake5.lua
+      - .github/workflows/DebugBuild.yml
   push:
     branches:
       - main
+    paths:
+      - src/**
+      - projects/**
+      - build/premake/**
+      - premake5.lua
+      - .github/workflows/DebugBuild.yml
 
 env:
   # リポジトリのルートディレクトリを起点としたソリューションファイルのパス
