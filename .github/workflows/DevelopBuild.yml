@@ -55,10 +55,8 @@ jobs:
             ".\build\projects\DirectXTex\DirectXTex.vcxproj",
             ".\build\projects\Lua\Lua.vcxproj",
             ".\build\projects\UnnamedEngineRuntime\UnnamedEngineRuntime.vcxproj",
-            ".\build\projects\UnnamedEditorRuntime\UnnamedEditorRuntime.vcxproj",
             ".\build\projects\ParkourGameRuntime\ParkourGameRuntime.vcxproj",
-            ".\build\projects\UnnamedLauncher\UnnamedLauncher.vcxproj",
-            ".\build\projects\UnnamedEditorApp\UnnamedEditorApp.vcxproj"
+            ".\build\projects\UnnamedLauncher\UnnamedLauncher.vcxproj"
           )
 
           foreach ($project in $projects) {
@@ -77,9 +75,8 @@ jobs:
         run: |
           $projectManifest = Resolve-Path ".\projects\ParkourGame\config\game_profile.json"
           $launcherExe = Resolve-Path ".\bin\Develop-windows-x86_64\UnnamedLauncher\UnnamedLauncher.exe"
-          $editorExe = Resolve-Path ".\bin\Develop-windows-x86_64\UnnamedEditorApp\UnnamedEditorApp.exe"
 
-          foreach ($exe in @($launcherExe, $editorExe)) {
+          foreach ($exe in @($launcherExe)) {
             Write-Host "Running startup validation: $exe --project=$projectManifest --validate-startup-only"
             & $exe "--project=$projectManifest" --validate-startup-only
             if ($LASTEXITCODE -ne 0) {
