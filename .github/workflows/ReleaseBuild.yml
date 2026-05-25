@@ -90,7 +90,7 @@ jobs:
             -Project .\projects\ParkourGame\config\game_profile.json `
             -AppExePath .\bin\Release-windows-x86_64\UnnamedLauncher\UnnamedLauncher.exe `
             -OutputRoot .\dist\ci-release-parkour `
-            -ValidateStartup -ValidateIsolatedStartup -Clean
+            -ValidateStartup -ValidateIsolatedStartup
           if ($LASTEXITCODE -ne 0) {
             throw "Packaged startup validation failed (exit=$LASTEXITCODE)"
           }
