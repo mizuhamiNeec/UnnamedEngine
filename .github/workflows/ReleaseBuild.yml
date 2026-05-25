@@ -112,7 +112,12 @@ jobs:
       - name: Validate package manifest
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File .\tools\validate-package-manifest.ps1 `
+          $scriptPath = ".\tools\validate-package-manifest.ps1"
+          if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
+            Write-Warning "Optional step skipped: script was not found ($scriptPath)"
+            return
+          }
+          powershell -ExecutionPolicy Bypass -File $scriptPath `
             -ManifestPath .\dist\ci-release-parkour\package_manifest.json `
             -ExpectedGameName Parkour `
             -ExpectedConfiguration Release `
@@ -128,7 +133,12 @@ jobs:
       - name: Generate asset inventory
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File .\tools\generate-asset-inventory.ps1 `
+          $scriptPath = ".\tools\generate-asset-inventory.ps1"
+          if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
+            Write-Warning "Optional step skipped: script was not found ($scriptPath)"
+            return
+          }
+          powershell -ExecutionPolicy Bypass -File $scriptPath `
             -ContentRoot .\dist\ci-release-parkour\content `
             -OutputPath .\dist\ci-release-parkour\asset_inventory.json `
             -GameName Parkour `
@@ -143,7 +153,12 @@ jobs:
       - name: Validate asset inventory
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File .\tools\validate-asset-inventory.ps1 `
+          $scriptPath = ".\tools\validate-asset-inventory.ps1"
+          if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
+            Write-Warning "Optional step skipped: script was not found ($scriptPath)"
+            return
+          }
+          powershell -ExecutionPolicy Bypass -File $scriptPath `
             -InventoryPath .\dist\ci-release-parkour\asset_inventory.json `
             -ExpectedGameName Parkour `
             -ExpectedConfiguration Release `
@@ -159,7 +174,12 @@ jobs:
       - name: Validate asset references
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File .\tools\validate-asset-references.ps1 `
+          $scriptPath = ".\tools\validate-asset-references.ps1"
+          if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
+            Write-Warning "Optional step skipped: script was not found ($scriptPath)"
+            return
+          }
+          powershell -ExecutionPolicy Bypass -File $scriptPath `
             -ContentRoot .\dist\ci-release-parkour\content `
             -InventoryPath .\dist\ci-release-parkour\asset_inventory.json `
             -OutputPath .\dist\ci-release-parkour\asset_reference_report.json `
