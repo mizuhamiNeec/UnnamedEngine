@@ -3,8 +3,8 @@
 #include <filesystem>
 #include <vector>
 
-#include "LaunchDesc.h"
 #include "GameRuntimeModuleRegistration.h"
+#include "LaunchDesc.h"
 #include "LoadedGameModule.h"
 
 #include "core/io/json/JsonReader.h"
@@ -12,12 +12,13 @@
 #include "engine/game/GameModuleRegistry.h"
 
 namespace {
+	/// @brief 使用可能なモジュールのリストをカンマ区切りで作成します。
+	/// @param moduleNames モジュール名のリスト
+	/// @return カンマ区切りのモジュール名の文字列。
 	[[nodiscard]] std::string BuildAvailableModulesText(
 		const std::vector<std::string>& moduleNames
 	) {
-		if (moduleNames.empty()) {
-			return "<none>";
-		}
+		if (moduleNames.empty()) { return "<none>"; }
 
 		std::string text = moduleNames.front();
 		for (size_t i = 1; i < moduleNames.size(); ++i) {
@@ -27,6 +28,10 @@ namespace {
 		return text;
 	}
 
+	/// @brief ゲームプロファイルからランタイムモジュール名を解決します。
+	/// @param manifestPath ゲームプロファイルのパス
+	/// @param outRuntimeModule 解決されたランタイムモジュール名の出力先
+	/// @return 成功した場合はtrue、失敗した場合はfalse。
 	[[nodiscard]] bool ResolveRuntimeModuleFromProfile(
 		const std::filesystem::path& manifestPath,
 		std::string&                 outRuntimeModule
@@ -41,7 +46,8 @@ namespace {
 			return false;
 		}
 
-		std::string runtimeModule = profileReader["runtimeModule"].GetString("");
+		std::string runtimeModule = profileReader["runtimeModule"].
+			GetString("");
 		if (runtimeModule.empty()) {
 			runtimeModule = profileReader["gameName"].GetString("");
 		}
@@ -59,6 +65,12 @@ namespace {
 		return true;
 	}
 }
+
+//-----------------------------------------------------------------------------
+// TODO: エンジンとゲームのリポジトリを分けたい。
+//		 が、エディタでゲーム固有のコンポーネントを使おうとするとエディタがゲームを知る必要が
+//		 ある。
+//-----------------------------------------------------------------------------
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	const Unnamed::LaunchDesc launchOptions =
@@ -84,11 +96,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	std::string requestedModuleName = {};
 	if (launchOptions.projectManifestPath.has_value()) {
 		if (!ResolveRuntimeModuleFromProfile(
-			    *launchOptions.projectManifestPath,
-			    requestedModuleName
-		    )) {
-			return EXIT_FAILURE;
-		}
+			*launchOptions.projectManifestPath,
+			requestedModuleName
+		)) { return EXIT_FAILURE; }
 	}
 
 	if (requestedModuleName.empty() && launchOptions.gameName.has_value()) {
@@ -148,20 +158,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	}
 
 #if defined(UNNAMED_WITH_EDITOR)
-	constexpr Unnamed::RUN_MODE runMode = Unnamed::RUN_MODE::EDITOR;
+	constexpr auto runMode = Unnamed::RUN_MODE::EDITOR;
 #else
-	constexpr Unnamed::RUN_MODE runMode = Unnamed::RUN_MODE::STANDALONE;
+	constexpr auto runMode = Unnamed::RUN_MODE::STANDALONE;
 #endif
 
 	loadedGameModule->RegisterRuntimeContextService();
 	Unnamed::EngineRuntimeBindings runtimeBindings = {
-		.gameWorldFactory = &loadedGameModule->GetWorldFactory(),
-		.runtimeContext   = &loadedGameModule->GetRuntimeContext(),
+		.gameWorldFactory  = &loadedGameModule->GetWorldFactory(),
+		.runtimeContext    = &loadedGameModule->GetRuntimeContext(),
 		.createDemoService = [&] {
 			return loadedGameModule->CreateDemoService();
 		},
 	};
-	Unnamed::Engine engine(runtimeBindings, runMode);
+	Unnamed::Engine                   engine(runtimeBindings, runMode);
 	const Unnamed::EngineRunCallbacks callbacks = {
 		.onPostInitialize = [&](Unnamed::Engine& runningEngine) {
 			return loadedGameModule->RegisterAndLoad(runningEngine);
