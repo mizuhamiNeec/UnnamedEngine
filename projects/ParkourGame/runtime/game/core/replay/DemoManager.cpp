@@ -9,6 +9,7 @@
 #include "DemoBinaryReader.h"
 #include "DemoBinaryWriter.h"
 
+#include "core/path/PathUtil.h"
 #include "engine/game/GamePathResolver.h"
 #include "engine/game/IGameModule.h"
 #include "engine/scene/Scene.h"
@@ -42,9 +43,9 @@ namespace Unnamed {
 			if (pathText.empty()) {
 				return {};
 			}
-			std::string normalized = std::filesystem::path(pathText)
-			                         .lexically_normal()
-			                         .generic_string();
+			std::string normalized = Path::ToGenericUtf8(
+				Path::FromUtf8(pathText).lexically_normal()
+			);
 			if (normalized.rfind("./", 0) == 0) {
 				normalized.erase(0, 2);
 			}
@@ -68,7 +69,7 @@ namespace Unnamed {
 		if (path.empty()) {
 			path = ResolveDefaultRecordingPath();
 		}
-		if (std::filesystem::path(ToLowerAscii(path)).extension() == ".json") {
+		if (Path::FromUtf8(ToLowerAscii(path)).extension() == ".json") {
 			Error(
 				kChannel,
 				"JSON demo recording is unsupported in DemoFileV2. Please use .udemo."
@@ -761,7 +762,7 @@ namespace Unnamed {
 
 	bool DemoManager::LoadPlaybackFile(const std::string& path) {
 		const std::string loweredPath = ToLowerAscii(path);
-		if (std::filesystem::path(loweredPath).extension() == ".json") {
+		if (Path::FromUtf8(loweredPath).extension() == ".json") {
 			Error(
 				kChannel,
 				"JSON demo playback is unsupported in DemoFileV2. Please record or convert to .udemo."

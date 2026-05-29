@@ -9,11 +9,28 @@
 #include "LoadedGameModule.h"
 
 #include "core/io/json/JsonReader.h"
+#include "core/path/PathUtil.h"
 #include "engine/Engine.h"
 #include "engine/game/GameRuntimeContext.h"
 #include "engine/game/GameModuleRegistry.h"
 
 namespace {
+	/// @brief パスを絶対パスへ解決し、正規化します。
+	/// @details 失敗した場合は入力値の lexical 正規化結果へフォールバックします。
+	[[nodiscard]] std::filesystem::path ResolveAbsoluteNormalizedPath(
+		const std::filesystem::path& path
+	) {
+		std::error_code ec = {};
+		const std::filesystem::path absolutePath = std::filesystem::absolute(
+			path,
+			ec
+		);
+		if (ec) {
+			return path.lexically_normal();
+		}
+		return absolutePath.lexically_normal();
+	}
+
 	/// @brief 使用可能なモジュールのリストをカンマ区切りで作成します。
 	/// @param moduleNames モジュール名のリスト
 	/// @return カンマ区切りのモジュール名の文字列。
@@ -38,12 +55,16 @@ namespace {
 		const std::filesystem::path& manifestPath,
 		std::string&                 outRuntimeModule
 	) {
-		const Unnamed::JsonReader profileReader(manifestPath.generic_string());
+		const std::filesystem::path normalizedManifestPath =
+			ResolveAbsoluteNormalizedPath(manifestPath);
+		const Unnamed::JsonReader profileReader(
+			Path::ToGenericUtf8(normalizedManifestPath)
+		);
 		if (!profileReader.Valid()) {
 			Error(
 				"Launcher",
 				"Failed to read game profile '{}'.",
-				manifestPath.generic_string()
+				Path::ToGenericUtf8(normalizedManifestPath)
 			);
 			return false;
 		}
@@ -58,7 +79,7 @@ namespace {
 			Error(
 				"Launcher",
 				"Failed to resolve runtime module from '{}': both runtimeModule and gameName are empty.",
-				manifestPath.generic_string()
+				Path::ToGenericUtf8(normalizedManifestPath)
 			);
 			return false;
 		}
@@ -79,13 +100,13 @@ namespace {
 			return std::string(fallbackPath);
 		}
 
-		const std::filesystem::path valuePath(rawPath);
+		const std::filesystem::path valuePath = Path::FromUtf8(rawPath);
 		if (valuePath.is_absolute()) {
-			return valuePath.lexically_normal().generic_string();
+			return Path::ToGenericUtf8(valuePath.lexically_normal());
 		}
 
 		const std::filesystem::path baseDir = manifestPath.parent_path();
-		return (baseDir / valuePath).lexically_normal().generic_string();
+		return Path::ToGenericUtf8((baseDir / valuePath).lexically_normal());
 	}
 
 	[[nodiscard]] bool ApplyRuntimeContextFromProfile(
@@ -93,15 +114,15 @@ namespace {
 		Unnamed::LoadedGameModule&     loadedGameModule
 	) {
 		const std::filesystem::path normalizedManifestPath =
-			manifestPath.lexically_normal();
+			ResolveAbsoluteNormalizedPath(manifestPath);
 		const Unnamed::JsonReader profileReader(
-			normalizedManifestPath.generic_string()
+			Path::ToGenericUtf8(normalizedManifestPath)
 		);
 		if (!profileReader.Valid()) {
 			Error(
 				"Launcher",
 				"Failed to read game profile '{}'.",
-				normalizedManifestPath.generic_string()
+				Path::ToGenericUtf8(normalizedManifestPath)
 			);
 			return false;
 		}
@@ -152,7 +173,7 @@ namespace {
 				modulePaths.preferRuntimeBinary
 			);
 		modulePaths.resolvedManifestPath =
-			normalizedManifestPath.generic_string();
+			Path::ToGenericUtf8(normalizedManifestPath);
 
 		Msg(
 			"Launcher",
@@ -243,7 +264,7 @@ namespace {
 			Msg(
 				"Launcher",
 				"Found default game profile '{}'.",
-				manifestPath.generic_string()
+				Path::ToGenericUtf8(manifestPath)
 			);
 
 			if (!ResolveRuntimeModuleFromProfile(manifestPath, outRuntimeModule)) {

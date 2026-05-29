@@ -52,14 +52,14 @@ namespace Unnamed {
 			return result;
 		}
 
-		const std::filesystem::path full(path);
+		const std::filesystem::path full = Path::FromUtf8(path);
 		const std::filesystem::path baseDir = full.parent_path();
 
 		MaterialAssetData data = {};
 
 		// "name" フィールドがあればそれを、なければファイル名をアセット名とする。
 		data.name = root.Read<std::string>("name").value_or(
-			full.filename().string()
+			Path::ToUtf8String(full.filename())
 		);
 
 		// "domain" フィールドがあればそれを、なければ "pbr" をドメインとして扱う。
@@ -127,11 +127,11 @@ namespace Unnamed {
 		result.payload = std::move(data);
 
 		// 解決名は拡張子を取り除いたものを使う(.material.jsonと2段界)
-		result.resolveName = full.stem().stem().string();
+		result.resolveName = Path::ToUtf8String(full.stem().stem());
 
 		std::error_code ec;
-		if (std::filesystem::exists(path, ec)) {
-			result.stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+		if (Path::ExistsUtf8(path, ec)) {
+			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 		}
 		return result;
 	}

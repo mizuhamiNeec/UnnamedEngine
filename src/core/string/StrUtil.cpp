@@ -4,6 +4,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "core/path/PathUtil.h"
+
 namespace Unnamed::StrUtil {
 	std::string ToString(const std::wstring& string) {
 		if (string.empty()) {
@@ -235,7 +237,7 @@ namespace Unnamed::StrUtil {
 	}
 
 	bool ReadFileToString(const std::string& path, std::string& outString) {
-		const std::ifstream ifs(path, std::ios::binary);
+		const std::ifstream ifs(Path::FromUtf8(path), std::ios::binary);
 		if (!ifs) {
 			return false;
 		}

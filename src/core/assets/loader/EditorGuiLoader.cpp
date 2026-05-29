@@ -1,5 +1,6 @@
 ﻿#include "EditorGuiLoader.h"
 
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -51,10 +52,12 @@ namespace Unnamed {
 		);
 
 		result.payload     = std::move(data);
-		result.resolveName = std::filesystem::path(path).filename().string();
+		result.resolveName = Path::ToUtf8String(
+			Path::FromUtf8(path).filename()
+		);
 		if (std::error_code ec;
-			std::filesystem::exists(path, ec)) {
-			result.stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+			Path::ExistsUtf8(path, ec)) {
+			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 		}
 
 		return result;

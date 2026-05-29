@@ -1,8 +1,10 @@
 #include "BinaryReader.h"
 
+#include "core/path/PathUtil.h"
+
 namespace Unnamed {
 	BinaryReader::BinaryReader(const std::string& path) : mStream(
-		path, std::ios::binary
+		Path::FromUtf8(path), std::ios::binary
 	) {
 		if (!IsOpen()) {
 			return;

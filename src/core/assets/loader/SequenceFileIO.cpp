@@ -8,6 +8,7 @@
 #include <json.hpp>
 
 #include "SequenceMigrator.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -379,7 +380,7 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] std::string ReadTextFile(const std::string& path) {
-			std::ifstream ifs(path, std::ios::binary);
+			std::ifstream ifs(Path::FromUtf8(path), std::ios::binary);
 			if (!ifs) {
 				return {};
 			}
@@ -413,10 +414,10 @@ namespace Unnamed {
 
 		SequenceAuthoringData authoring = {};
 		authoring.version = root.value("version", 2);
-		const std::filesystem::path filePath(path);
+		const std::filesystem::path filePath = Path::FromUtf8(path);
 		authoring.name = root.value(
 			"name",
-			filePath.stem().stem().string()
+			Path::ToUtf8String(filePath.stem().stem())
 		);
 		authoring.displayRate = std::max(1, root.value("displayRate", 60));
 		authoring.tickResolution = std::max(1, root.value("tickResolution", 24000));
@@ -554,13 +555,16 @@ namespace Unnamed {
 			return true;
 		}
 
-		const std::filesystem::path filePath(path);
+		const std::filesystem::path filePath = Path::FromUtf8(path);
 		if (filePath.has_parent_path()) {
 			std::error_code ec = {};
 			(void)std::filesystem::create_directories(filePath.parent_path(), ec);
 		}
 
-		std::ofstream ofs(path, std::ios::binary | std::ios::trunc);
+		std::ofstream ofs(
+			Path::FromUtf8(path),
+			std::ios::binary | std::ios::trunc
+		);
 		if (!ofs) {
 			return false;
 		}

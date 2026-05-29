@@ -3,6 +3,7 @@
 
 #include "core/math/Vec3.h"
 #include "core/math/Vec4.h"
+#include "core/path/PathUtil.h"
 
 #include "JsonWriter.h"
 
@@ -132,12 +133,12 @@ namespace Unnamed {
 			throw std::runtime_error("Save path is empty");
 		}
 
-		const std::filesystem::path filePath(mPath);
+		const std::filesystem::path filePath = Path::FromUtf8(mPath);
 		if (filePath.has_parent_path()) {
 			std::filesystem::create_directories(filePath.parent_path());
 		}
 
-		std::ofstream ofs(mPath, std::ios::binary);
+		std::ofstream ofs(filePath, std::ios::binary);
 		if (!ofs) {
 			throw std::runtime_error(
 				"Failed to open file for writing: " + mPath

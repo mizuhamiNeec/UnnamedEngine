@@ -24,6 +24,7 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/TextureAssetData.h"
+#include "core/path/PathUtil.h"
 
 #include "engine/unnamed/subsystem/console/Log.h"
 
@@ -51,7 +52,10 @@ namespace Unnamed::UI {
 		[[nodiscard]] bool ReadBinaryFile(
 			const std::string& path, std::vector<uint8_t>& outBytes
 		) {
-			std::ifstream input(path, std::ios::binary | std::ios::ate);
+			std::ifstream input(
+				Path::FromUtf8(path),
+				std::ios::binary | std::ios::ate
+			);
 			if (!input.is_open()) {
 				return false;
 			}

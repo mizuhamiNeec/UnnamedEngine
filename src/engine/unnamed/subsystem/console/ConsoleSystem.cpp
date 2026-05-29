@@ -4,6 +4,7 @@
 #include <iostream>
 #include <ranges>
 
+#include <core/path/PathUtil.h>
 #include <engine/unnamed/subsystem/console/ConsoleSystem.h>
 #include <engine/unnamed/subsystem/console/ConsoleUI.h>
 #include <engine/unnamed/subsystem/console/ConVarWriter.h>
@@ -42,7 +43,7 @@ namespace Unnamed {
 			return std::string(kLegacyUserCfgPath);
 		}
 
-		const std::filesystem::path configPath(resolvedPath);
+		const std::filesystem::path configPath = Path::FromUtf8(resolvedPath);
 		const std::filesystem::path configDir = configPath.parent_path();
 		if (!configDir.empty()) {
 			std::error_code ec;
@@ -51,7 +52,7 @@ namespace Unnamed {
 				DevMsg(
 					kChannelConsole,
 					"Failed to create config directory '{}': {}. Falling back to '{}'.",
-					configDir.generic_string(),
+					Path::ToGenericUtf8(configDir),
 					ec.message(),
 					std::string(kLegacyUserCfgPath)
 				);
@@ -59,7 +60,7 @@ namespace Unnamed {
 			}
 		}
 
-		return configPath.generic_string();
+		return Path::ToGenericUtf8(configPath);
 	}
 
 	EXEC_FLAG operator|=(EXEC_FLAG& lhs, const EXEC_FLAG& rhs) {

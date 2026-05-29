@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include <core/string/StrUtil.h>
+#include <core/path/PathUtil.h>
 
 #include <engine/unnamed/subsystem/console/Log.h>
 
@@ -12,7 +13,8 @@ namespace Unnamed {
 	/// @brief コンストラクタ
 	/// @param path スクリプトファイルのパス
 	ConsoleScriptParser::ConsoleScriptParser(const std::string_view& path) {
-		std::ifstream inputFile(path.data());
+		const std::filesystem::path nativePath = Path::FromUtf8(path);
+		std::ifstream               inputFile(nativePath);
 
 		// 存在しない場合は作る
 		if (!inputFile) {
@@ -20,7 +22,7 @@ namespace Unnamed {
 				kChannel, "Script file not found. Creating a new one: {}",
 				std::string(path)
 			);
-			std::ofstream outputFile(path.data());
+			std::ofstream outputFile(nativePath);
 			if (!outputFile) {
 				Error(
 					kChannel, "Failed to create script file: {}",
@@ -29,7 +31,7 @@ namespace Unnamed {
 				throw std::runtime_error("Failed to create script file");
 			}
 			outputFile.close();
-			inputFile.open(path.data());
+			inputFile.open(nativePath);
 		}
 
 		if (!inputFile.is_open()) {

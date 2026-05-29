@@ -6,6 +6,7 @@
 #include <filesystem>
 
 #include <core/assets/types/TextureAssetData.h>
+#include <core/path/PathUtil.h>
 #include <core/string/StrUtil.h>
 
 #include <engine/unnamed/subsystem/console/Log.h>
@@ -183,9 +184,9 @@ namespace Unnamed {
 		}
 
 		r.payload     = std::move(out);
-		r.resolveName = std::filesystem::path(path).filename().string();
-		if (std::error_code ec; std::filesystem::exists(path, ec)) {
-			r.stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+		r.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
+		if (std::error_code ec; Path::ExistsUtf8(path, ec)) {
+			r.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 		}
 
 		return r;

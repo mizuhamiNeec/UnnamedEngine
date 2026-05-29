@@ -11,6 +11,7 @@
 #include "core/math/Quaternion.h"
 #include "core/math/Vec3.h"
 #include "core/math/Vec4.h"
+#include "core/path/PathUtil.h"
 
 namespace Unnamed {
 	/// @brief JSON読み込みクラス
@@ -31,7 +32,7 @@ namespace Unnamed {
 		/// @brief ファイルパスから読み込むコンストラクタ
 		/// @param path JSONファイルのパス
 		explicit JsonReader(const std::string& path) {
-			std::ifstream ifs(path);
+			std::ifstream ifs(Path::FromUtf8(path));
 			if (!ifs) {
 				mValid = false;
 				return;

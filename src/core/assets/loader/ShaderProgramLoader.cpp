@@ -108,12 +108,12 @@ namespace Unnamed {
 			return result;
 		}
 
-		const std::filesystem::path full(path);
+		const std::filesystem::path full = Path::FromUtf8(path);
 		const std::filesystem::path baseDir = full.parent_path();
 
 		ShaderProgramAssetData data = {};
 		data.name                   = root.Read<std::string>("name").value_or(
-			full.filename().string()
+			Path::ToUtf8String(full.filename())
 		);
 
 		if (root.Has("vs")) {
@@ -158,11 +158,11 @@ namespace Unnamed {
 		addStageDependency(data.cs);
 
 		result.payload     = std::move(data);
-		result.resolveName = full.stem().stem().string();
+		result.resolveName = Path::ToUtf8String(full.stem().stem());
 
 		std::error_code ec;
-		if (std::filesystem::exists(path, ec)) {
-			result.stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+		if (Path::ExistsUtf8(path, ec)) {
+			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 		}
 
 		return result;

@@ -6,6 +6,7 @@
 #include <unordered_set>
 
 #include <core/UnnamedMacro.h>
+#include <core/path/PathUtil.h>
 #include <core/string/StrUtil.h>
 
 #include <engine/game/GamePathResolver.h>
@@ -53,7 +54,7 @@ namespace Unnamed {
 				return {};
 			}
 
-			const std::filesystem::path fsPath(normalizedInput);
+			const std::filesystem::path fsPath = Path::FromUtf8(normalizedInput);
 			if (
 				fsPath.is_absolute() ||
 				IsCurrentDirectoryRelativePath(normalizedInput)
@@ -96,16 +97,16 @@ namespace Unnamed {
 		FileStamp ReadCurrentFileStamp(const std::string& path) {
 			FileStamp       stamp = {};
 			std::error_code ec;
-			if (!std::filesystem::exists(path, ec)) {
+			if (!Path::ExistsUtf8(path, ec)) {
 				return stamp;
 			}
 
-			const auto lastWrite = std::filesystem::last_write_time(path, ec);
+			const auto lastWrite = Path::LastWriteTimeUtf8(path, ec);
 			if (!ec) {
 				stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
 			}
 
-			stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+			stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 			return stamp;
 		}
 
@@ -590,13 +591,13 @@ namespace Unnamed {
 		const AssetID id      = AllocateID();
 		mPathToID[normalized] = id;
 
-		namespace Fs = std::filesystem;
-
 		Node& node           = mNodes[id];
 		node.meta.type       = type;
 		node.meta.sourcePath = normalized;
 		node.meta.loaded     = false;
-		node.meta.name       = Fs::path(normalized).filename().string();
+		node.meta.name = Path::ToUtf8String(
+			Path::FromUtf8(normalized).filename()
+		);
 
 		mNameToID[node.meta.name] = id;
 		return id;

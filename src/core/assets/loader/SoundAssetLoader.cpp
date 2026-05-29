@@ -5,6 +5,7 @@
 #include <fstream>
 
 #include "core/assets/types/SoundAssetData.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -41,7 +42,7 @@ namespace Unnamed {
 
 	LoadResult SoundAssetLoader::Load(const std::string& path) {
 		LoadResult    result = {};
-		std::ifstream file(path, std::ios::binary);
+		std::ifstream file(Path::FromUtf8(path), std::ios::binary);
 		if (!file.is_open()) {
 			return result;
 		}
@@ -137,13 +138,13 @@ namespace Unnamed {
 			return {};
 		}
 
-		const std::filesystem::path full(path);
+		const std::filesystem::path full = Path::FromUtf8(path);
 		result.payload     = std::move(soundData);
-		result.resolveName = full.stem().string();
+		result.resolveName = Path::ToUtf8String(full.stem());
 
 		std::error_code ec;
-		if (std::filesystem::exists(path, ec)) {
-			result.stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+		if (Path::ExistsUtf8(path, ec)) {
+			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 		}
 		return result;
 	}

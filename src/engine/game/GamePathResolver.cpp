@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <vector>
 
+#include "core/path/PathUtil.h"
+
 namespace Unnamed {
 	namespace {
 		enum class ContentMountLayer {
@@ -24,7 +26,7 @@ namespace Unnamed {
 			if (path.empty()) {
 				return false;
 			}
-			const std::filesystem::path fsPath(path);
+			const std::filesystem::path fsPath = Path::FromUtf8(path);
 			return fsPath.is_absolute() || path.rfind("./", 0) == 0 ||
 			       path.rfind("../", 0) == 0;
 		}
@@ -34,7 +36,9 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] std::string NormalizePath(std::string_view path) {
-			return std::filesystem::path(path).lexically_normal().generic_string();
+			return Path::ToGenericUtf8(
+				Path::FromUtf8(path).lexically_normal()
+			);
 		}
 
 		[[nodiscard]] std::string ResolveRootWithGameRootFallback(
@@ -53,10 +57,10 @@ namespace Unnamed {
 				return NormalizePath(explicitRoot);
 			}
 
-			return std::filesystem::path(gameRoot)
-			       .append(explicitRoot)
-			       .lexically_normal()
-			       .generic_string();
+			return Path::ToGenericUtf8(
+				(Path::FromUtf8(gameRoot) / Path::FromUtf8(explicitRoot)).
+				lexically_normal()
+			);
 		}
 
 		[[nodiscard]] std::string ResolveAgainstRoot(
@@ -70,7 +74,7 @@ namespace Unnamed {
 				return NormalizePath(root);
 			}
 
-			const std::filesystem::path fsPath(path);
+			const std::filesystem::path fsPath = Path::FromUtf8(path);
 			if (fsPath.is_absolute() || IsRelativeToCurrentDir(path)) {
 				return NormalizePath(path);
 			}
@@ -79,10 +83,9 @@ namespace Unnamed {
 				return NormalizePath(path);
 			}
 
-			return std::filesystem::path(root)
-			       .append(path)
-			       .lexically_normal()
-			       .generic_string();
+			return Path::ToGenericUtf8(
+				(Path::FromUtf8(root) / Path::FromUtf8(path)).lexically_normal()
+			);
 		}
 
 		[[nodiscard]] std::string ToString(const ContentMountLayer layer) {
@@ -201,8 +204,7 @@ namespace Unnamed {
 			result.resolvedPath = NormalizePath(path);
 			result.resolvedLayer = "direct";
 			std::error_code ec;
-			result.existsOnDisk =
-				std::filesystem::exists(result.resolvedPath, ec) && !ec;
+			result.existsOnDisk = Path::ExistsUtf8(result.resolvedPath, ec) && !ec;
 			return result;
 		}
 
@@ -211,8 +213,7 @@ namespace Unnamed {
 			result.resolvedPath = ResolveGameContentPath(paths, path);
 			result.resolvedLayer = "base";
 			std::error_code ec;
-			result.existsOnDisk =
-				std::filesystem::exists(result.resolvedPath, ec) && !ec;
+			result.existsOnDisk = Path::ExistsUtf8(result.resolvedPath, ec) && !ec;
 			return result;
 		}
 
@@ -223,7 +224,7 @@ namespace Unnamed {
 				continue;
 			}
 
-			if (std::filesystem::exists(candidate, ec) && !ec) {
+			if (Path::ExistsUtf8(candidate, ec) && !ec) {
 				result.resolvedPath = candidate;
 				result.resolvedLayer = ToString(it->layer);
 				result.resolvedRoot = it->rootPath;

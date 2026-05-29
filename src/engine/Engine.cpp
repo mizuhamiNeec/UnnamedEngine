@@ -27,6 +27,7 @@
 #include <core/assets/loader/SoundAssetLoader.h>
 #include <core/assets/loader/TextureLoaderDirectXTex.h>
 #include <core/assets/loader/UiDocumentAssetLoader.h>
+#include <core/path/PathUtil.h>
 #include <core/string/StrUtil.h>
 
 #include <engine/EngineComponentRegistration.h>
@@ -81,7 +82,7 @@ namespace Unnamed {
 				return false;
 			}
 
-			if (!std::filesystem::exists(std::filesystem::path(cfgPath))) {
+			if (!std::filesystem::exists(Path::FromUtf8(cfgPath))) {
 				DevMsg(
 					channel,
 					"[CFG:{}] skipped missing {}",

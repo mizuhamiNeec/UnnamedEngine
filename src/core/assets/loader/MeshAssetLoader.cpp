@@ -15,6 +15,7 @@
 #include "core/hash/HashBuilder.h"
 #include "core/io/binary/BinaryReader.h"
 #include "core/io/binary/BinaryWriter.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/profiler/Profiler.h"
@@ -56,15 +57,15 @@ namespace Unnamed {
 		FileStamp ReadCurrentFileStamp(const std::string& path) {
 			FileStamp       stamp = {};
 			std::error_code ec;
-			if (!std::filesystem::exists(path, ec)) {
+			if (!Path::ExistsUtf8(path, ec)) {
 				return stamp;
 			}
 
-			const auto lastWrite = std::filesystem::last_write_time(path, ec);
+			const auto lastWrite = Path::LastWriteTimeUtf8(path, ec);
 			if (!ec) {
 				stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
 			}
-			stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+			stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 			return stamp;
 		}
 
@@ -613,7 +614,7 @@ namespace Unnamed {
 		}
 
 		r.payload     = std::move(out);
-		r.resolveName = std::filesystem::path(path).filename().string();
+		r.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
 		r.stamp       = ReadCurrentFileStamp(path);
 		WriteDerivedCache(path, r);
 
@@ -637,7 +638,7 @@ namespace Unnamed {
 			return false;
 		}
 
-		BinaryReader reader(cachePath.string());
+		BinaryReader reader(Path::ToUtf8String(cachePath));
 		if (!reader.IsOpen()) {
 			return false;
 		}
@@ -762,7 +763,7 @@ namespace Unnamed {
 		}
 
 		out.payload     = std::move(mesh);
-		out.resolveName = std::filesystem::path(path).filename().string();
+		out.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
 		out.stamp       = sourceStamp;
 
 		if (Profiler* profiler = ServiceLocator::Get<Profiler>()) {
@@ -785,7 +786,7 @@ namespace Unnamed {
 		std::error_code             ec;
 		std::filesystem::create_directories(cachePath.parent_path(), ec);
 
-		BinaryWriter writer(cachePath.string());
+		BinaryWriter writer(Path::ToUtf8String(cachePath));
 		if (!writer.IsOpen()) {
 			return false;
 		}
