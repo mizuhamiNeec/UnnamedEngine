@@ -66,6 +66,10 @@ namespace Unnamed::Rhi {
 		[[nodiscard]] ID3D12RootSignature* GetCsRootSignature() const;
 		[[nodiscard]] ID3D12RootSignature* GetFsRootSignature() const;
 		[[nodiscard]] ID3D12RootSignature* GetGeomRootSignature() const;
+		[[nodiscard]] ID3D12RootSignature* GetGeomRootSignatureLinearClamp()
+			const;
+		[[nodiscard]] ID3D12RootSignature* GetGeomRootSignaturePointClamp()
+			const;
 
 		[[nodiscard]] ID3D12Device* GetDevice() const;
 		DxcShaderCompiler&          GetDxcCompiler();
@@ -196,5 +200,7 @@ namespace Unnamed::Rhi {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mCsRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mFsRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mGeomRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mGeomRootSignatureLinearClamp;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mGeomRootSignaturePointClamp;
 	};
 }

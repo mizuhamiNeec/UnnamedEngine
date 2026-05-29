@@ -77,8 +77,17 @@ namespace Unnamed {
 		float       mArrowSizePx         = 34.0f;
 		std::string mPinWidgetName       = "NextCheckpointPin";
 		std::string mArrowWidgetName     = "NextCheckpointArrow";
+		std::string mElapsedMinutesWidgetName = "CourseProgressElapsedMinutes";
+		std::string mElapsedSecondsWidgetName = "CourseProgressElapsedSeconds";
+		std::string mElapsedFractionWidgetName = "CourseProgressElapsedFraction";
+		std::string mElapsedCommaWidgetName = "CourseProgressElapsedComma";
+		std::string mElapsedDotWidgetName = "CourseProgressElapsedDot";
 		std::string mPinTexturePath      = "textures/ping.png";
 		std::string mArrowTexturePath    = "textures/arrow.png";
+		std::string mDigitTexturePath    = "textures/digits.png";
+		std::string mCommaTexturePath    = "textures/colon.png";
+		std::string mDotTexturePath      = "textures/dot.png";
+		float       mElapsedTextAlpha    = 0.72f;
 
 		// 所有しない参照です。毎Tick再解決するため raw pointer を使用します。
 		CourseProgressComponent* mCourseProgress = nullptr;

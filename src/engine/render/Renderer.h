@@ -147,7 +147,9 @@ namespace Unnamed::Render {
 		};
 
 		struct SpritePassRes {
-			GeometryPassRes geom = {};
+			GeometryPassRes geom           = {};
+			GeometryPassRes geomLinearClamp = {};
+			GeometryPassRes geomPointClamp  = {};
 		};
 
 		struct BillboardPassRes {

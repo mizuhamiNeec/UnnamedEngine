@@ -480,6 +480,12 @@ namespace Unnamed::Render {
 		mSpritePass.geom.resolved = mPipelineRegistry.GetGraphics(
 			mSpritePass.geom.pipeline
 		);
+		mSpritePass.geomLinearClamp.resolved = mPipelineRegistry.GetGraphics(
+			mSpritePass.geomLinearClamp.pipeline
+		);
+		mSpritePass.geomPointClamp.resolved = mPipelineRegistry.GetGraphics(
+			mSpritePass.geomPointClamp.pipeline
+		);
 		mBillboardPass.depthGeom.resolved = mPipelineRegistry.GetGraphics(
 			mBillboardPass.depthGeom.pipeline
 		);

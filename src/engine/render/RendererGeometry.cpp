@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -705,13 +706,51 @@ namespace Unnamed::Render {
 		auto&       registry = renderDevice.GetRegistry();
 		const auto* tex = assetManager.Get<TextureAssetData>(textureAssetId);
 		if (!tex) {
+			Warning(
+				"Renderer",
+				"EnsureSpriteTextureLoaded failed: TextureAssetData not found for assetId={}",
+				textureAssetId
+			);
 			EnsureSpriteFallbackTexture(renderDevice);
 			return mSpriteFallbackTextureId;
+		}
+
+		static bool sLoggedFontAtlasTexturePath = false;
+		if (
+			!sLoggedFontAtlasTexturePath &&
+			tex->sourcePath.find("runtime://ui/font_atlas_ascii") !=
+				std::string::npos
+		) {
+			const size_t mipCount   = tex->mips.size();
+			const size_t rowPitch0  = mipCount > 0 ? tex->mips[0].rowPitch : 0;
+			const size_t dataSize0  = mipCount > 0 ? tex->mips[0].bytes.size() : 0;
+			DevMsg(
+				"Renderer",
+				"Font atlas texture asset resolved: assetId={}, sourcePath='{}', size={}x{}, format={}, mips={}, rowPitch0={}, dataSize0={}.",
+				textureAssetId,
+				tex->sourcePath,
+				tex->width,
+				tex->height,
+				static_cast<int>(tex->format),
+				mipCount,
+				rowPitch0,
+				dataSize0
+			);
+			sLoggedFontAtlasTexturePath = true;
 		}
 
 		const uint32_t textureId = registry.CreateTexture2DFromAsset(
 			*tex, "SpriteOverlayTex"
 		);
+		if (textureId == 0) {
+			Warning(
+				"Renderer",
+				"EnsureSpriteTextureLoaded failed: registry.CreateTexture2DFromAsset returned 0 for assetId={}",
+				textureAssetId
+			);
+			EnsureSpriteFallbackTexture(renderDevice);
+			return mSpriteFallbackTextureId;
+		}
 		mSpriteTextureIds.emplace(textureAssetId, textureId);
 		return textureId;
 	}

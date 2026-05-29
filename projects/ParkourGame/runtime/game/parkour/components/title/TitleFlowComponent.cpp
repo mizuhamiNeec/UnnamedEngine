@@ -10,6 +10,7 @@
 
 #include "engine/ImGui/Icons.h"
 #include "engine/game/GamePathResolver.h"
+#include "engine/game/GameRuntimeContext.h"
 #include "engine/game/IGameModule.h"
 #include "engine/gui/UiRoot.h"
 #include "engine/gui/UiWidget.h"
@@ -52,6 +53,14 @@ namespace Unnamed {
 			// 既存JSONの "content/..." 形式はプロジェクトルート基準として扱います。
 			if (IsEngineRootRelativePath(effectivePath)) {
 				return "./" + effectivePath;
+			}
+
+			if (const GameRuntimeContext* runtimeContext =
+				ServiceLocator::Get<GameRuntimeContext>()) {
+				return ResolveGameContentPath(
+					runtimeContext->modulePaths,
+					effectivePath
+				);
 			}
 
 			if (const IGameModule* gameModule = ServiceLocator::Get<IGameModule>()) {

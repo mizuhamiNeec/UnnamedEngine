@@ -123,10 +123,17 @@ namespace Unnamed {
 
 		std::string mResultRootWidgetName    = "CourseResultRoot";
 		std::string mClearImageWidgetName    = "CourseResultClearImage";
-		std::string mElapsedDigitsWidgetName = "CourseResultElapsedDigits";
+		std::string mElapsedDigitsWidgetName = "CourseResultElapsedDigits"; // legacy fallback
+		std::string mElapsedMinutesWidgetName = "CourseResultElapsedMinutes";
+		std::string mElapsedSecondsWidgetName = "CourseResultElapsedSeconds";
+		std::string mElapsedFractionWidgetName = "CourseResultElapsedFraction";
+		std::string mElapsedCommaWidgetName = "CourseResultElapsedComma";
+		std::string mElapsedDotWidgetName   = "CourseResultElapsedDot";
 		std::string mFadeOverlayWidgetName   = "OpeningFadeOverlay";
 		std::string mClearTexturePath        = "textures/clear.png";
 		std::string mDigitTexturePath        = "textures/digits.png";
+		std::string mCommaTexturePath        = "textures/colon.png";
+		std::string mDotTexturePath          = "textures/dot.png";
 
 		float mResultHoldSeconds = 2.0f;
 		float mFadeOutSeconds    = 0.45f;
@@ -143,9 +150,19 @@ namespace Unnamed {
 		Gui::UiWidget*           mResultRootWidget    = nullptr;
 		Gui::UiWidget*           mClearImageWidget    = nullptr;
 		Gui::UiWidget*           mElapsedDigitsWidget = nullptr;
+		Gui::UiWidget*           mElapsedMinutesWidget = nullptr;
+		Gui::UiWidget*           mElapsedSecondsWidget = nullptr;
+		Gui::UiWidget*           mElapsedFractionWidget = nullptr;
+		Gui::UiWidget*           mElapsedCommaWidget   = nullptr;
+		Gui::UiWidget*           mElapsedDotWidget     = nullptr;
 		Gui::UiWidget*           mFadeOverlayWidget   = nullptr;
 		Gui::UiTextureComponent* mClearImageTexture   = nullptr;
 		Gui::UiDigitStripComponent* mElapsedDigits    = nullptr;
+		Gui::UiDigitStripComponent* mElapsedMinutes   = nullptr;
+		Gui::UiDigitStripComponent* mElapsedSeconds   = nullptr;
+		Gui::UiDigitStripComponent* mElapsedFraction  = nullptr;
+		Gui::UiTextureComponent* mElapsedComma        = nullptr;
+		Gui::UiTextureComponent* mElapsedDot          = nullptr;
 		Gui::UiTextureComponent* mFadeOverlayTexture  = nullptr;
 
 		PHASE mPhase               = PHASE::WAITING;

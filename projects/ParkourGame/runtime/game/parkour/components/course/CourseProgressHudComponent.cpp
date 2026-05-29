@@ -14,10 +14,12 @@
 
 #include "engine/ImGui/Icons.h"
 #include "engine/game/GamePathResolver.h"
+#include "engine/game/GameRuntimeContext.h"
 #include "engine/game/IGameModule.h"
 #include "engine/gui/Rect.h"
 #include "engine/gui/UiRoot.h"
 #include "engine/gui/UiWidget.h"
+#include "engine/gui/components/UiDigitStripComponent.h"
 #include "engine/gui/components/UiTextureComponent.h"
 #include "engine/gui/components/UiTransformComponent.h"
 #include "engine/unnamed/framework/components/ui/UiCanvasComponent.h"
@@ -26,6 +28,7 @@
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 #include "engine/world/World.h"
 
+#include "CourseElapsedTimeFormat.h"
 #include "CourseHudProjection.h"
 #include "CourseProgressComponent.h"
 
@@ -69,6 +72,13 @@ namespace Unnamed {
 				return "./" + effectivePath;
 			}
 
+			if (const GameRuntimeContext* runtimeContext =
+				ServiceLocator::Get<GameRuntimeContext>()) {
+				return ResolveGameContentPath(
+					runtimeContext->modulePaths,
+					effectivePath
+				);
+			}
 			if (const IGameModule* gameModule = ServiceLocator::Get<IGameModule>()) {
 				return ResolveGameContentPath(
 					gameModule->GetGameModulePaths(),
@@ -123,8 +133,23 @@ namespace Unnamed {
 		ImGui::DragFloat("Arrow Size Px", &mArrowSizePx, 0.5f, 1.0f, 512.0f);
 		DrawStringInput<64>("Pin Widget Name", mPinWidgetName);
 		DrawStringInput<64>("Arrow Widget Name", mArrowWidgetName);
+		DrawStringInput<64>("Elapsed Minutes Widget", mElapsedMinutesWidgetName);
+		DrawStringInput<64>("Elapsed Seconds Widget", mElapsedSecondsWidgetName);
+		DrawStringInput<64>("Elapsed Fraction Widget", mElapsedFractionWidgetName);
+		DrawStringInput<64>("Elapsed Comma Widget", mElapsedCommaWidgetName);
+		DrawStringInput<64>("Elapsed Dot Widget", mElapsedDotWidgetName);
 		DrawStringInput<128>("Pin Texture Path", mPinTexturePath);
 		DrawStringInput<128>("Arrow Texture Path", mArrowTexturePath);
+		DrawStringInput<128>("Digit Texture Path", mDigitTexturePath);
+		DrawStringInput<128>("Comma Texture Path", mCommaTexturePath);
+		DrawStringInput<128>("Dot Texture Path", mDotTexturePath);
+		ImGui::DragFloat(
+			"Elapsed Text Alpha",
+			&mElapsedTextAlpha,
+			0.01f,
+			0.0f,
+			1.0f
+		);
 	}
 #endif
 
@@ -148,8 +173,32 @@ namespace Unnamed {
 		}
 		mPinWidgetName   = reader["pinWidgetName"].GetString(mPinWidgetName);
 		mArrowWidgetName = reader["arrowWidgetName"].GetString(mArrowWidgetName);
+		mElapsedMinutesWidgetName =
+			reader["elapsedMinutesWidgetName"].GetString(mElapsedMinutesWidgetName);
+		mElapsedSecondsWidgetName =
+			reader["elapsedSecondsWidgetName"].GetString(mElapsedSecondsWidgetName);
+		mElapsedFractionWidgetName = reader["elapsedFractionWidgetName"].GetString(
+			mElapsedFractionWidgetName
+		);
+		mElapsedCommaWidgetName =
+			reader["elapsedCommaWidgetName"].GetString(mElapsedCommaWidgetName);
+		mElapsedDotWidgetName =
+			reader["elapsedDotWidgetName"].GetString(mElapsedDotWidgetName);
 		mPinTexturePath  = reader["pinTexturePath"].GetString(mPinTexturePath);
 		mArrowTexturePath = reader["arrowTexturePath"].GetString(mArrowTexturePath);
+		mDigitTexturePath =
+			reader["digitTexturePath"].GetString(mDigitTexturePath);
+		mCommaTexturePath =
+			reader["commaTexturePath"].GetString(mCommaTexturePath);
+		mDotTexturePath = reader["dotTexturePath"].GetString(mDotTexturePath);
+		if (const JsonReader elapsedTextAlpha = reader["elapsedTextAlpha"];
+			elapsedTextAlpha.Valid()) {
+			mElapsedTextAlpha = std::clamp(
+				elapsedTextAlpha.GetFloat(mElapsedTextAlpha),
+				0.0f,
+				1.0f
+			);
+		}
 	}
 
 	void CourseProgressHudComponent::Serialize(JsonWriter& writer) const {
@@ -167,10 +216,28 @@ namespace Unnamed {
 		writer.Write(mPinWidgetName);
 		writer.Key("arrowWidgetName");
 		writer.Write(mArrowWidgetName);
+		writer.Key("elapsedMinutesWidgetName");
+		writer.Write(mElapsedMinutesWidgetName);
+		writer.Key("elapsedSecondsWidgetName");
+		writer.Write(mElapsedSecondsWidgetName);
+		writer.Key("elapsedFractionWidgetName");
+		writer.Write(mElapsedFractionWidgetName);
+		writer.Key("elapsedCommaWidgetName");
+		writer.Write(mElapsedCommaWidgetName);
+		writer.Key("elapsedDotWidgetName");
+		writer.Write(mElapsedDotWidgetName);
 		writer.Key("pinTexturePath");
 		writer.Write(mPinTexturePath);
 		writer.Key("arrowTexturePath");
 		writer.Write(mArrowTexturePath);
+		writer.Key("digitTexturePath");
+		writer.Write(mDigitTexturePath);
+		writer.Key("commaTexturePath");
+		writer.Write(mCommaTexturePath);
+		writer.Key("dotTexturePath");
+		writer.Write(mDotTexturePath);
+		writer.Key("elapsedTextAlpha");
+		writer.Write(mElapsedTextAlpha);
 	}
 
 	void CourseProgressHudComponent::TickHud() {
@@ -193,24 +260,165 @@ namespace Unnamed {
 			rootWidget,
 			mArrowWidgetName
 		);
-		if (!pinWidget || !arrowWidget) {
-			return;
-		}
-
-		auto* pinTransform = pinWidget->GetComponent<Gui::UiTransformComponent>();
-		auto* arrowTransform = arrowWidget->GetComponent<Gui::UiTransformComponent>();
-		auto* pinTexture = pinWidget->GetOrAddComponent<Gui::UiTextureComponent>();
-		auto* arrowTexture = arrowWidget->GetOrAddComponent<Gui::UiTextureComponent>();
-		if (!pinTransform || !arrowTransform || !pinTexture || !arrowTexture) {
-			return;
-		}
-
-		pinTexture->SetTexturePath(
-			ResolveHudContentPath(mPinTexturePath, "textures/ping.png")
+		Gui::UiWidget* elapsedMinutesWidget = FindWidgetByNameRecursive(
+			rootWidget,
+			mElapsedMinutesWidgetName
 		);
-		arrowTexture->SetTexturePath(
-			ResolveHudContentPath(mArrowTexturePath, "textures/arrow.png")
+		Gui::UiWidget* elapsedSecondsWidget = FindWidgetByNameRecursive(
+			rootWidget,
+			mElapsedSecondsWidgetName
 		);
+		Gui::UiWidget* elapsedFractionWidget = FindWidgetByNameRecursive(
+			rootWidget,
+			mElapsedFractionWidgetName
+		);
+		Gui::UiWidget* elapsedCommaWidget = FindWidgetByNameRecursive(
+			rootWidget,
+			mElapsedCommaWidgetName
+		);
+		Gui::UiWidget* elapsedDotWidget = FindWidgetByNameRecursive(
+			rootWidget,
+			mElapsedDotWidgetName
+		);
+		auto* elapsedMinutes = elapsedMinutesWidget ?
+			                       elapsedMinutesWidget->GetOrAddComponent<
+				                       Gui::UiDigitStripComponent>() :
+			                       nullptr;
+		auto* elapsedSeconds = elapsedSecondsWidget ?
+			                       elapsedSecondsWidget->GetOrAddComponent<
+				                       Gui::UiDigitStripComponent>() :
+			                       nullptr;
+		auto* elapsedFraction = elapsedFractionWidget ?
+			                        elapsedFractionWidget->GetOrAddComponent<
+				                        Gui::UiDigitStripComponent>() :
+			                        nullptr;
+		auto* elapsedComma = elapsedCommaWidget ?
+			                     elapsedCommaWidget->GetOrAddComponent<
+				                     Gui::UiTextureComponent>() :
+			                     nullptr;
+		auto* elapsedDot = elapsedDotWidget ?
+			                   elapsedDotWidget->GetOrAddComponent<
+				                   Gui::UiTextureComponent>() :
+			                   nullptr;
+		const auto updateElapsedTimeWidgets = [&](const bool visible,
+		                                          const float elapsedSecondsValue) {
+			const auto hideWidget = [](Gui::UiWidget* widget) {
+				if (!widget) {
+					return;
+				}
+				widget->SetVisible(false);
+				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+			};
+			if (!(elapsedMinutes && elapsedSeconds && elapsedFraction && elapsedComma &&
+			      elapsedDot)) {
+				hideWidget(elapsedMinutesWidget);
+				hideWidget(elapsedSecondsWidget);
+				hideWidget(elapsedFractionWidget);
+				hideWidget(elapsedCommaWidget);
+				hideWidget(elapsedDotWidget);
+				return;
+			}
+
+			const float alpha = std::clamp(mElapsedTextAlpha, 0.0f, 1.0f);
+			if (!visible) {
+				hideWidget(elapsedMinutesWidget);
+				hideWidget(elapsedSecondsWidget);
+				hideWidget(elapsedFractionWidget);
+				hideWidget(elapsedCommaWidget);
+				hideWidget(elapsedDotWidget);
+				return;
+			}
+
+			const CourseElapsedTimeParts time =
+				SplitCourseElapsedTime(elapsedSecondsValue);
+			const auto applyDigits = [&](Gui::UiWidget* widget,
+			                             Gui::UiDigitStripComponent* strip,
+			                             const int value) {
+				if (!widget || !strip) {
+					return;
+				}
+				widget->SetVisible(true);
+				strip->SetStripTexturePath(
+					ResolveHudContentPath(mDigitTexturePath, "textures/digits.png")
+				);
+				strip->SetMinDigits(2);
+				strip->SetValue(value);
+				Gui::Color color = strip->GetColor();
+				color.a          = alpha;
+				strip->SetColor(color);
+				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+			};
+			applyDigits(elapsedMinutesWidget, elapsedMinutes, time.minutes);
+			applyDigits(elapsedSecondsWidget, elapsedSeconds, time.seconds);
+			applyDigits(elapsedFractionWidget, elapsedFraction, time.fraction);
+
+			const auto applySeparator = [&](Gui::UiWidget* widget,
+			                                Gui::UiTextureComponent* texture,
+			                                const std::string_view path,
+			                                const std::string_view fallbackPath) {
+				if (!widget || !texture) {
+					return;
+				}
+				widget->SetVisible(true);
+				texture->SetTexturePath(ResolveHudContentPath(path, fallbackPath));
+				Gui::Color color = texture->GetColor();
+				color.a          = alpha;
+				texture->SetColor(color);
+				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+			};
+			applySeparator(
+				elapsedCommaWidget,
+				elapsedComma,
+				mCommaTexturePath,
+				"textures/colon.png"
+			);
+			applySeparator(
+				elapsedDotWidget,
+				elapsedDot,
+				mDotTexturePath,
+				"textures/dot.png"
+			);
+		};
+		const bool hasGuideWidgets = pinWidget && arrowWidget;
+
+		Gui::UiTransformComponent* pinTransform = hasGuideWidgets ?
+			                                        pinWidget
+				                                        ->GetComponent<
+					                                        Gui::
+						                                        UiTransformComponent>() :
+			                                        nullptr;
+		Gui::UiTransformComponent* arrowTransform = hasGuideWidgets ?
+			                                          arrowWidget
+				                                          ->GetComponent<
+					                                          Gui::
+						                                          UiTransformComponent>() :
+			                                          nullptr;
+		Gui::UiTextureComponent* pinTexture = hasGuideWidgets ?
+			                                    pinWidget
+				                                    ->GetOrAddComponent<
+					                                    Gui::
+						                                    UiTextureComponent>() :
+			                                    nullptr;
+		Gui::UiTextureComponent* arrowTexture = hasGuideWidgets ?
+			                                      arrowWidget
+				                                      ->GetOrAddComponent<
+					                                      Gui::
+						                                      UiTextureComponent>() :
+			                                      nullptr;
+		const bool canDrawGuides =
+			hasGuideWidgets &&
+			pinTransform &&
+			arrowTransform &&
+			pinTexture &&
+			arrowTexture;
+		if (canDrawGuides) {
+			pinTexture->SetTexturePath(
+				ResolveHudContentPath(mPinTexturePath, "textures/ping.png")
+			);
+			arrowTexture->SetTexturePath(
+				ResolveHudContentPath(mArrowTexturePath, "textures/arrow.png")
+			);
+		}
 
 		const auto hideBoth = [&]() {
 			UpdateGuideWidget(
@@ -236,15 +444,22 @@ namespace Unnamed {
 		};
 
 		if (!mCourseProgress || !mCourseProgress->IsActive()) {
+			updateElapsedTimeWidgets(false, 0.0f);
 			hideBoth();
 			return;
 		}
 		if (mRequireCourseHudEnabled && !mCourseProgress->IsHudEnabled()) {
+			updateElapsedTimeWidgets(false, 0.0f);
 			hideBoth();
 			return;
 		}
 
 		const CourseProgressSnapshot& snapshot = mCourseProgress->GetSnapshot();
+		updateElapsedTimeWidgets(!snapshot.courseCleared, snapshot.elapsedSeconds);
+		if (!canDrawGuides) {
+			hideBoth();
+			return;
+		}
 		if (snapshot.courseCleared || !snapshot.hasNextTarget) {
 			hideBoth();
 			return;

@@ -36,6 +36,7 @@ namespace Unnamed {
 			sprite.rotationRad               = 0.0f;
 			sprite.color                     = ToVec4(rect.fillColor);
 			sprite.sortKey                   = sortKey;
+			sprite.uvFlipY                   = true;
 			return sprite;
 		}
 
@@ -56,6 +57,7 @@ namespace Unnamed {
 			sprite.sortKey                   = sortKey;
 			sprite.uvMin                     = image.uvMin;
 			sprite.uvMax                     = image.uvMax;
+			sprite.uvFlipY                   = true;
 			return sprite;
 		}
 

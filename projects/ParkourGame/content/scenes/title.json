@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.00006103515625,
-                            36.000144958496094,
-                            16.00006103515625
+                            16.000083923339844,
+                            36.00019836425781,
+                            16.000083923339844
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -141,22 +141,6 @@
                 {
                     "active": true,
                     "data": {
-                        "courseId": "default",
-                        "debugDraw": true,
-                        "fallbackHalfExtentsHu": [
-                            16.0,
-                            36.0,
-                            16.0
-                        ],
-                        "hudEnabled": true,
-                        "reloadRespawnEnabled": true
-                    },
-                    "guid": 15378210262151497018,
-                    "type": "parkour.CourseProgress"
-                },
-                {
-                    "active": true,
-                    "data": {
                         "billboardDepthMode": "DepthTest",
                         "pixelSize": [
                             1920.0,
@@ -180,7 +164,16 @@
                         "arrowSizePx": 34.0,
                         "arrowTexturePath": "textures/arrow.png",
                         "arrowWidgetName": "NextCheckpointArrow",
+                        "commaTexturePath": "textures/colon.png",
                         "courseId": "default",
+                        "digitTexturePath": "textures/digits.png",
+                        "dotTexturePath": "textures/dot.png",
+                        "elapsedCommaWidgetName": "CourseProgressElapsedComma",
+                        "elapsedDotWidgetName": "CourseProgressElapsedDot",
+                        "elapsedFractionWidgetName": "CourseProgressElapsedFraction",
+                        "elapsedMinutesWidgetName": "CourseProgressElapsedMinutes",
+                        "elapsedSecondsWidgetName": "CourseProgressElapsedSeconds",
+                        "elapsedTextAlpha": 0.7200000286102295,
                         "pinSizePx": 42.0,
                         "pinTexturePath": "textures/ping.png",
                         "pinWidgetName": "NextCheckpointPin",
@@ -390,13 +383,13 @@
                         "speed": 1.0,
                         "stateMap": [
                             {
-                                "blendSec": 0.11999999731779099,
-                                "clipName": "Sprint.001",
+                                "blendSec": 0.125,
+                                "clipName": "Vault",
                                 "layerIndex": 0,
-                                "loop": true,
+                                "loop": false,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_sprint",
+                                "stateId": "animstate_vaulting",
                                 "weight": 1.0
                             },
                             {
@@ -410,13 +403,13 @@
                                 "weight": 1.0
                             },
                             {
-                                "blendSec": 0.125,
-                                "clipName": "Vault",
+                                "blendSec": 0.11999999731779099,
+                                "clipName": "Sprint.001",
                                 "layerIndex": 0,
-                                "loop": false,
+                                "loop": true,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_vaulting",
+                                "stateId": "animstate_sprint",
                                 "weight": 1.0
                             },
                             {

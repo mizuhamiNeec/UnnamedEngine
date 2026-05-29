@@ -57,6 +57,43 @@ namespace Unnamed {
 			"post_bloommipcount", 2, FCVAR::ARCHIVE,
 			"Number of mip levels to use for bloom effect."
 		);
+
+		static ConVar r_ui_text_sampler_mode(
+			"r_ui_text_sampler_mode", 0, FCVAR::ARCHIVE,
+			"UI text sampler mode: 0=default(aniso+wrap), 1=linear+clamp, 2=point+clamp.",
+			true,
+			0,
+			true,
+			2
+		);
+
+		static ConVar ui_new_font_size_preset(
+			"ui_new_font_size_preset", 0, FCVAR::ARCHIVE,
+			"New UI font size preset index: 0=16, 1=18, 2=20, 3=24.",
+			true,
+			0,
+			true,
+			3
+		);
+
+		static ConVar ui_new_font_oversample_preset(
+			"ui_new_font_oversample_preset", 1, FCVAR::ARCHIVE,
+			"New UI oversample preset index: 0=1x1, 1=2x2, 2=3x1, 3=3x2.",
+			true,
+			0,
+			true,
+			3
+		);
+
+		static ConVar ui_new_text_force_fallback_texture(
+			"ui_new_text_force_fallback_texture", false, FCVAR::ARCHIVE,
+			"Force NewUI text glyph sprites to use fallback white texture (debug)."
+		);
+
+		static ConVar ui_new_text_debug_mode(
+			"ui_new_text_debug_mode", 0, FCVAR::ARCHIVE,
+			"NewUI text debug mode. 0=normal, 4=force first glyph to red 64x64 rect."
+		);
 	}
 
 	void EditorConVar() {

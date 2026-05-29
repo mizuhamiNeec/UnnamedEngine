@@ -324,6 +324,24 @@ namespace Unnamed::Render {
 		mSpritePass.geom.pipeline = mPipelineRegistry.RegisterGraphics(spriteSpec);
 		mSpritePass.geom.resolved = nullptr;
 
+		auto spriteLinearClampSpec = spriteSpec;
+		spriteLinearClampSpec.debugName   = "ScreenSpriteLinearClamp";
+		spriteLinearClampSpec.rootSignature =
+			dx.GetGeomRootSignatureLinearClamp();
+		mSpritePass.geomLinearClamp.pipeline = mPipelineRegistry.RegisterGraphics(
+			spriteLinearClampSpec
+		);
+		mSpritePass.geomLinearClamp.resolved = nullptr;
+
+		auto spritePointClampSpec = spriteSpec;
+		spritePointClampSpec.debugName   = "ScreenSpritePointClamp";
+		spritePointClampSpec.rootSignature =
+			dx.GetGeomRootSignaturePointClamp();
+		mSpritePass.geomPointClamp.pipeline = mPipelineRegistry.RegisterGraphics(
+			spritePointClampSpec
+		);
+		mSpritePass.geomPointClamp.resolved = nullptr;
+
 		auto billboardDepthSpec = spriteSpec;
 		billboardDepthSpec.debugName              = "WorldBillboardDepth";
 		billboardDepthSpec.psoTemplate.rtvFormat  = kSceneHdrColorFormat;

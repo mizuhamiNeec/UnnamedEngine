@@ -12,6 +12,7 @@
 
 #include "engine/rhi/d3d12/D3D12Device.h"
 #include "engine/rhi/d3d12/D3D12Util.h"
+#include "engine/unnamed/subsystem/console/ConsoleSystem.h"
 
 #include "rendergraph/RenderGraphBuilder.h"
 #include "rendergraph/RenderPassContext.h"
@@ -1738,6 +1739,16 @@ namespace Unnamed::Render {
 					if (view.screenSprites.empty()) {
 						return;
 					}
+					static bool sLoggedScreenSpritePassCount = false;
+					if (!sLoggedScreenSpritePassCount) {
+						DevMsg(
+							"Renderer",
+							"ScreenSprites pass pre-draw: viewKey='{}', inputCount={}.",
+							view.viewKey,
+							view.screenSprites.size()
+						);
+						sLoggedScreenSpritePassCount = true;
+					}
 
 					auto& allocator = static_cast<Rhi::D3D12Device&>(
 						renderDevice.GetRhiDevice()
@@ -1760,12 +1771,51 @@ namespace Unnamed::Render {
 					);
 					pass.SetSrvUavHeap();
 					pass.SetRenderTarget(outputId);
-					if (!mSpritePass.geom.resolved || !mSpritePass.geom.resolved->pso) {
+
+					int textSamplerMode = 0;
+					if (mConsole != nullptr) {
+						const auto* samplerModeVar = mConsole->GetConVarAs<ConVar<int>>(
+							"r_ui_text_sampler_mode"
+						);
+						if (samplerModeVar != nullptr) {
+							textSamplerMode =
+								std::clamp(samplerModeVar->GetValue(), 0, 2);
+						}
+					}
+
+					const GeometryPassRes* spriteGeom = &mSpritePass.geom;
+					if (textSamplerMode != 0) {
+						static bool sLoggedSamplerFallback = false;
+						if (!sLoggedSamplerFallback) {
+							Warning(
+								"Renderer",
+								"r_ui_text_sampler_mode={} requested, but sampler comparison path is temporarily disabled. Falling back to Default PSO.",
+								textSamplerMode
+							);
+							sLoggedSamplerFallback = true;
+						}
+					}
+
+					static int sLoggedSamplerMode = -1;
+					if (sLoggedSamplerMode != textSamplerMode) {
+						DevMsg(
+							"Renderer",
+							"ScreenSprite sampler mode changed: {} (0=Default, 1=LinearClamp, 2=PointClamp).",
+							textSamplerMode
+						);
+						sLoggedSamplerMode = textSamplerMode;
+					}
+
+					if (!spriteGeom->resolved || !spriteGeom->resolved->pso) {
+						Warning(
+							"Renderer",
+							"ScreenSprite pipeline is invalid. UI sprite rendering skipped for this pass."
+						);
 						return;
 					}
 					pass.SetGraphicsPipeline(
-						mSpritePass.geom.resolved->rootSignature,
-						mSpritePass.geom.resolved->pso
+						spriteGeom->resolved->rootSignature,
+						spriteGeom->resolved->pso
 					);
 					pass.BindGraphicsCbv(
 						ToRootIndex(GEOM_ROOT_SLOT::FRAME), frameCb
@@ -1795,8 +1845,14 @@ namespace Unnamed::Render {
 						               );
 						object.worldInverseTranspose =
 							object.world.Inverse().Transpose();
-						const float uvMinY = sprite.uvFlipY ? 1.0f : 0.0f;
-						const float uvMaxY = sprite.uvFlipY ? 0.0f : 1.0f;
+						// ScreenSpriteInput::uvFlipY は RendererGraph で uvMinY/uvMaxY を
+						// 入れ替えるためのフラグです（shader では常時Y反転しません）。
+						const float uvMinY = sprite.uvFlipY ?
+							                     sprite.uvMax.y :
+							                     sprite.uvMin.y;
+						const float uvMaxY = sprite.uvFlipY ?
+							                     sprite.uvMin.y :
+							                     sprite.uvMax.y;
 						const float uvMinX = sprite.uvMin.x;
 						const float uvMaxX = sprite.uvMax.x;
 						object.skinningInfo = Vec4(uvMinX, uvMinY, uvMaxX, uvMaxY);
