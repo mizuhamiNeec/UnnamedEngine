@@ -26,7 +26,6 @@
 *.iobj
 *.ilk
 *.idb
-*.lib
 *.exp
 *.map
 *.tlog
@@ -56,7 +55,6 @@ _ReSharper*/
 imgui.ini
 
 # Compiled Shaders
-**/DirectXTex/Shaders/Compiled/
 **/Shaders/Compiled/
 
 # --- Repo-specific ---
