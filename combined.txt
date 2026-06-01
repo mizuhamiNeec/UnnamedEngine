@@ -726,6 +726,7 @@
 └──     └── ├── DirectXTex_Windows10_2019.vcxproj.filters
 └──     └── ├── DirectXTex_Windows10_2022.vcxproj.filters
 └──     └── ├── Shaders/
+└──     └── └── └── Compiled/
 └──     └── ├── d3dx12.h
 └──     └── ├── filters.h
 └──     └── └── scoped.h
@@ -838,6 +839,7 @@
 └──     └── └──     ├── vector3.h
 └──     └── └──     └── version.h
 └──     └── └── lib/
+└──     └──     ├── Debug/
 └──     └──     └── Release/
 └──     ├── lua/
 └──     └── ├── lapi.h
