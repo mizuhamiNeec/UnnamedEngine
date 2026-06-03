@@ -187,7 +187,7 @@ namespace Unnamed {
 	}
 
 	void AudioSourceComponent::SetPitch(const float pitch) noexcept {
-		mPitch = std::min(0.01f, pitch); // ピッチは0.01以上に制限
+		mPitch = std::max(0.01f, pitch); // ピッチは0.01以上に制限
 	}
 
 	float AudioSourceComponent::GetPitch() const noexcept {
