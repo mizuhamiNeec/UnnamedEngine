@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstring>
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
@@ -12,7 +11,6 @@
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
-#include "engine/ImGui/Icons.h"
 #include "engine/game/GamePathResolver.h"
 #include "engine/game/GameRuntimeContext.h"
 #include "engine/game/IGameModule.h"
@@ -22,6 +20,7 @@
 #include "engine/gui/components/UiDigitStripComponent.h"
 #include "engine/gui/components/UiTextureComponent.h"
 #include "engine/gui/components/UiTransformComponent.h"
+#include "engine/ImGui/Icons.h"
 #include "engine/unnamed/framework/components/ui/UiCanvasComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
@@ -52,8 +51,8 @@ namespace Unnamed {
 #endif
 
 		[[nodiscard]] bool IsEngineRootRelativePath(const std::string_view path) {
-			return path.rfind("content/", 0) == 0 ||
-			       path.rfind("projects/", 0) == 0;
+			return path.starts_with("content/") ||
+			       path.starts_with("projects/");
 		}
 
 		[[nodiscard]] std::string ResolveHudContentPath(
@@ -246,7 +245,7 @@ namespace Unnamed {
 			return;
 		}
 
-		Gui::UiRoot* runtimeRoot = mUiCanvas->GetRuntimeRoot();
+		const Gui::UiRoot* runtimeRoot = mUiCanvas->GetRuntimeRoot();
 		Gui::UiWidget* rootWidget = runtimeRoot ? runtimeRoot->GetRootWidget() : nullptr;
 		if (!rootWidget) {
 			return;
@@ -300,9 +299,9 @@ namespace Unnamed {
 			                   elapsedDotWidget->GetOrAddComponent<
 				                   Gui::UiTextureComponent>() :
 			                   nullptr;
-		const auto updateElapsedTimeWidgets = [&](const bool visible,
+		const auto UpdateElapsedTimeWidgets = [&](const bool visible,
 		                                          const float elapsedSecondsValue) {
-			const auto hideWidget = [](Gui::UiWidget* widget) {
+			const auto HideWidget = [](Gui::UiWidget* widget) {
 				if (!widget) {
 					return;
 				}
@@ -311,27 +310,27 @@ namespace Unnamed {
 			};
 			if (!(elapsedMinutes && elapsedSeconds && elapsedFraction && elapsedComma &&
 			      elapsedDot)) {
-				hideWidget(elapsedMinutesWidget);
-				hideWidget(elapsedSecondsWidget);
-				hideWidget(elapsedFractionWidget);
-				hideWidget(elapsedCommaWidget);
-				hideWidget(elapsedDotWidget);
+				HideWidget(elapsedMinutesWidget);
+				HideWidget(elapsedSecondsWidget);
+				HideWidget(elapsedFractionWidget);
+				HideWidget(elapsedCommaWidget);
+				HideWidget(elapsedDotWidget);
 				return;
 			}
 
 			const float alpha = std::clamp(mElapsedTextAlpha, 0.0f, 1.0f);
 			if (!visible) {
-				hideWidget(elapsedMinutesWidget);
-				hideWidget(elapsedSecondsWidget);
-				hideWidget(elapsedFractionWidget);
-				hideWidget(elapsedCommaWidget);
-				hideWidget(elapsedDotWidget);
+				HideWidget(elapsedMinutesWidget);
+				HideWidget(elapsedSecondsWidget);
+				HideWidget(elapsedFractionWidget);
+				HideWidget(elapsedCommaWidget);
+				HideWidget(elapsedDotWidget);
 				return;
 			}
 
 			const CourseElapsedTimeParts time =
 				SplitCourseElapsedTime(elapsedSecondsValue);
-			const auto applyDigits = [&](Gui::UiWidget* widget,
+			const auto ApplyDigits = [&](Gui::UiWidget* widget,
 			                             Gui::UiDigitStripComponent* strip,
 			                             const int value) {
 				if (!widget || !strip) {
@@ -348,11 +347,11 @@ namespace Unnamed {
 				strip->SetColor(color);
 				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 			};
-			applyDigits(elapsedMinutesWidget, elapsedMinutes, time.minutes);
-			applyDigits(elapsedSecondsWidget, elapsedSeconds, time.seconds);
-			applyDigits(elapsedFractionWidget, elapsedFraction, time.fraction);
+			ApplyDigits(elapsedMinutesWidget, elapsedMinutes, time.minutes);
+			ApplyDigits(elapsedSecondsWidget, elapsedSeconds, time.seconds);
+			ApplyDigits(elapsedFractionWidget, elapsedFraction, time.fraction);
 
-			const auto applySeparator = [&](Gui::UiWidget* widget,
+			const auto ApplySeparator = [&](Gui::UiWidget* widget,
 			                                Gui::UiTextureComponent* texture,
 			                                const std::string_view path,
 			                                const std::string_view fallbackPath) {
@@ -366,13 +365,13 @@ namespace Unnamed {
 				texture->SetColor(color);
 				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 			};
-			applySeparator(
+			ApplySeparator(
 				elapsedCommaWidget,
 				elapsedComma,
 				mCommaTexturePath,
 				"textures/colon.png"
 			);
-			applySeparator(
+			ApplySeparator(
 				elapsedDotWidget,
 				elapsedDot,
 				mDotTexturePath,
@@ -420,7 +419,7 @@ namespace Unnamed {
 			);
 		}
 
-		const auto hideBoth = [&]() {
+		const auto HideBoth = [&]() {
 			UpdateGuideWidget(
 				pinWidget,
 				pinTransform,
@@ -444,41 +443,41 @@ namespace Unnamed {
 		};
 
 		if (!mCourseProgress || !mCourseProgress->IsActive()) {
-			updateElapsedTimeWidgets(false, 0.0f);
-			hideBoth();
+			UpdateElapsedTimeWidgets(false, 0.0f);
+			HideBoth();
 			return;
 		}
 		if (mRequireCourseHudEnabled && !mCourseProgress->IsHudEnabled()) {
-			updateElapsedTimeWidgets(false, 0.0f);
-			hideBoth();
+			UpdateElapsedTimeWidgets(false, 0.0f);
+			HideBoth();
 			return;
 		}
 
 		const CourseProgressSnapshot& snapshot = mCourseProgress->GetSnapshot();
-		updateElapsedTimeWidgets(!snapshot.courseCleared, snapshot.elapsedSeconds);
+		UpdateElapsedTimeWidgets(!snapshot.courseCleared, snapshot.elapsedSeconds);
 		if (!canDrawGuides) {
-			hideBoth();
+			HideBoth();
 			return;
 		}
 		if (snapshot.courseCleared || !snapshot.hasNextTarget) {
-			hideBoth();
+			HideBoth();
 			return;
 		}
 
 		World* world = GetWorld();
 		if (!world) {
-			hideBoth();
+			HideBoth();
 			return;
 		}
 		const auto cameraInfo = world->GetCameraManager().GetCurrentCameraInfo();
 		if (!cameraInfo.valid) {
-			hideBoth();
+			HideBoth();
 			return;
 		}
 
 		Vec2 viewportSizePx = Vec2::zero;
 		if (!ResolveViewportSize(viewportSizePx)) {
-			hideBoth();
+			HideBoth();
 			return;
 		}
 
@@ -490,7 +489,7 @@ namespace Unnamed {
 			mScreenClampMarginPx,
 			projection
 		)) {
-			hideBoth();
+			HideBoth();
 			return;
 		}
 
@@ -599,7 +598,7 @@ namespace Unnamed {
 		const float                alpha,
 		const float                rotationRad,
 		const bool                 visible
-	) const {
+	) {
 		if (!widget || !transform || !texture) {
 			return;
 		}
@@ -613,7 +612,7 @@ namespace Unnamed {
 		// 絶対ピクセル指定で追従させるため、原点アンカー + 中心ピボットに揃えます。
 		// 投影座標は画面全体基準なので、親基準のローカル座標へ変換します。
 		Vec2 localCenterPx = centerPx;
-		if (Gui::UiWidget* parent = widget->GetParent()) {
+		if (const Gui::UiWidget* parent = widget->GetParent()) {
 			const Gui::Rect& parentRect = parent->GetGlobalRect();
 			localCenterPx.x -= parentRect.x;
 			localCenterPx.y -= parentRect.y;

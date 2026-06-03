@@ -59,7 +59,7 @@ namespace Unnamed {
 		/// @brief 画面サイズを決定します。
 		[[nodiscard]] bool ResolveViewportSize(Vec2& outViewportSizePx) const;
 		/// @brief 追従スプライトの描画状態を更新します。
-		void UpdateGuideWidget(
+		static void UpdateGuideWidget(
 			Gui::UiWidget*            widget,
 			Gui::UiTransformComponent* transform,
 			Gui::UiTextureComponent*  texture,
@@ -68,7 +68,7 @@ namespace Unnamed {
 			float                     alpha,
 			float                     rotationRad,
 			bool                      visible
-		) const;
+		);
 
 		std::string mCourseId = "default";
 		bool        mRequireCourseHudEnabled = true;
