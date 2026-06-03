@@ -1011,7 +1011,7 @@ namespace Unnamed {
 				billboard.color           = Vec4::one;
 				billboard.rotationRad     = 0.0f;
 				billboard.sortKey         = canvasSort;
-				billboard.uvFlipY         = true;
+				billboard.uvFlipY         = false;
 				billboard.depthTest       =
 					entry.canvas->GetBillboardDepthMode() ==
 					UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
@@ -1028,7 +1028,7 @@ namespace Unnamed {
 				sprite.color           = Vec4::one;
 				sprite.rotationRad     = 0.0f;
 				sprite.sortKey         = canvasSort;
-				sprite.uvFlipY         = true;
+				sprite.uvFlipY         = false;
 				sceneView.worldSprites.emplace_back(sprite);
 			}
 		}
