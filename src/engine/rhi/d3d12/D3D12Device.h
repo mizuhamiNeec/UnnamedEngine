@@ -32,6 +32,8 @@ namespace Unnamed::Rhi {
 		void BeginFrame() override;
 		void EndFrame() override;
 		void OnResize(uint32_t width, uint32_t height) override;
+		/// @brief GPU が投入済みコマンドを完了するまで待機します。
+		void WaitForGpuIdle();
 
 		[[nodiscard]] BACKEND_TYPE GetBackendType() const override;
 		IRhiSwapChain&             GetSwapChain() override;
@@ -127,7 +129,6 @@ namespace Unnamed::Rhi {
 		void        CreateFenceObjects();
 		void        WaitForFrame(uint32_t frameIndex) const;
 		void        SignalFrame(uint32_t frameIndex);
-		void        WaitForGpuIdle();
 
 	public:
 		[[nodiscard]] uint64_t GetCompletedFenceValue() const;
