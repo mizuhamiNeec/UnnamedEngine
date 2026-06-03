@@ -89,6 +89,7 @@ namespace Unnamed::Render {
 			RenderDevice&                       renderDevice,
 			const std::vector<RenderViewInput>& frameViews
 		);
+
 		static std::pair<uint32_t, uint32_t> ResolveSceneRenderExtent(
 			uint32_t                   backBufferWidth,
 			uint32_t                   backBufferHeight,
@@ -201,6 +202,106 @@ namespace Unnamed::Render {
 			std::vector<uint32_t> bloomMipTextureIds = {};
 			uint32_t              outputTextureId = 0;
 		};
+
+		/// @brief シーンビューのクリア pass を追加します。
+		void AddSceneClearPass(
+			const std::string& prefix,
+			uint32_t           colorId,
+			uint32_t           depthId
+		);
+
+		/// @brief シーンビューの skybox pass を追加します。
+		void AddSkyboxPass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			size_t                  viewIndex,
+			const ViewRuntimeState& state,
+			uint32_t                skyboxTextureId
+		);
+
+		/// @brief シーンビューの mesh geometry pass を追加します。
+		void AddGeometryPass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			size_t                  viewIndex,
+			const ViewRuntimeState& state
+		);
+
+		/// @brief depth test ありの world billboard pass を追加します。
+		void AddWorldBillboardDepthPass(
+			RenderDevice&                renderDevice,
+			const std::string&           prefix,
+			size_t                       viewIndex,
+			const ViewRuntimeState&      state,
+			const std::vector<uint32_t>& worldBillboardTextureIds
+		);
+
+		/// @brief world sprite pass を追加します。
+		void AddWorldSpritePass(
+			RenderDevice&                renderDevice,
+			const std::string&           prefix,
+			size_t                       viewIndex,
+			const ViewRuntimeState&      state,
+			const std::vector<uint32_t>& worldSpriteTextureIds
+		);
+
+		/// @brief debug line pass を追加します。
+		void AddDebugLinePass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			size_t                  viewIndex,
+			const ViewRuntimeState& state
+		);
+
+		/// @brief depth test なしの world billboard pass を追加します。
+		void AddWorldBillboardFrontPass(
+			RenderDevice&                renderDevice,
+			const std::string&           prefix,
+			size_t                       viewIndex,
+			const ViewRuntimeState&      state,
+			const std::vector<uint32_t>& worldBillboardTextureIds
+		);
+
+		/// @brief シーンビューの post process と tone map pass を追加します。
+		void AddScenePostProcessPasses(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			size_t                  viewIndex,
+			const ViewRuntimeState& state,
+			uint32_t&               outputId
+		);
+
+		/// @brief sprite-only view の clear pass を追加します。
+		void AddSpriteOnlyClearPass(
+			const std::string& prefix,
+			uint32_t           outputId
+		);
+
+		/// @brief screen sprite pass を追加します。
+		void AddScreenSpritePass(
+			RenderDevice&                renderDevice,
+			const std::string&           prefix,
+			size_t                       viewIndex,
+			const ViewRuntimeState&      state,
+			uint32_t                     outputId,
+			const std::vector<uint32_t>& screenSpriteTextureIds
+		);
+
+		/// @brief editor UI が参照する view output を SRV 状態に遷移する pass を追加します。
+		void AddPrepareUiViewOutputsPass(
+			const std::vector<RenderViewInput>& frameViews
+		);
+
+		/// @brief present 対象 view を back buffer に合成する pass を追加します。
+		void AddPresentPass(RenderDevice& renderDevice);
+
+		/// @brief swap chain present がない editor frame の back buffer clear pass を追加します。
+		void AddEditorBackBufferClearPass(
+			const std::vector<RenderViewInput>& frameViews
+		);
+
+		/// @brief ImGui main draw data pass を追加します。
+		void AddImGuiMainPass();
 
 		static constexpr uint32_t kMaxDrawObjects       = 1024; // TODO: とりあえず
 		static constexpr uint32_t kMaxDebugLines        = 65536; // TODO: とりあえず
