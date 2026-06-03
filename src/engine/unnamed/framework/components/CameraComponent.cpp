@@ -4,6 +4,8 @@
 
 #include <imgui.h>
 
+#include <engine/ImGui/Icons.h>
+
 #include "TransformComponent.h"
 
 #include "core/ComponentRegistry.h"

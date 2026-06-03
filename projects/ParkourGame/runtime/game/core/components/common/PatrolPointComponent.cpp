@@ -8,6 +8,7 @@
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
+#include "engine/ImGui/Icons.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 

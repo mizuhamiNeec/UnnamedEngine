@@ -8,8 +8,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include <imgui.h>
-
 #include "core/ComponentRegistry.h"
 #include "core/assets/types/MeshAssetData.h"
 #include "core/io/json/JsonReader.h"
@@ -530,7 +528,7 @@ namespace Unnamed {
 		writer.EndArray();
 	}
 
-#ifdef UNNAMED_WITH_EDITOR
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SkeletalAnimationComponent::DrawInspectorImGui() {
 		auto editStringField = [](
 			const char*  label,

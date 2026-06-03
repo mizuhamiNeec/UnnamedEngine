@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <engine/ImGui/Icons.h>
+
 #include "core/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
@@ -453,7 +455,7 @@ namespace Unnamed {
 		}
 	}
 
-#if defined(UNNAMED_WITH_EDITOR)
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void TransformComponent::DrawInspectorImGui() {
 		Vec3       localPos   = mLocalPos;
 		Quaternion localRot   = mLocalRot;

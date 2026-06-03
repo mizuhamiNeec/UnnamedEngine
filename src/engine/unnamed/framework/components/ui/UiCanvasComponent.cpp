@@ -144,7 +144,7 @@ namespace Unnamed {
 		writer.Write(mReceiveInput);
 	}
 
-#if defined(UNNAMED_WITH_EDITOR)
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void UiCanvasComponent::DrawInspectorImGui() {
 		std::string uiAssetPath = mUiAssetPath;
 		if (

@@ -7,8 +7,6 @@
 #include "core/math/Quaternion.h"
 #include "core/math/Vec3.h"
 
-#include "engine/ImGui/Icons.h"
-
 namespace Unnamed {
 	class Scene;
 
@@ -91,7 +89,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
-#if defined(UNNAMED_WITH_EDITOR)
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 

@@ -5,6 +5,7 @@
 
 #include "core/assets/AssetID.h"
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
+#include "engine/unnamed/subsystem/console/concommand/ConVar.h"
 
 namespace Unnamed {
 	class AssetManager;
@@ -26,7 +27,7 @@ namespace Unnamed {
 		void Deserialize(const JsonReader& reader) override;
 		void Serialize(JsonWriter& writer) const override;
 
-#ifdef UNNAMED_WITH_EDITOR
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -57,17 +58,19 @@ namespace Unnamed {
 		bool EnsureVoiceReady(bool preservePlayback);
 		void InvalidateVoice();
 
-		std::string                 mSoundPath;
-		AssetID                     mSoundAssetId       = kInvalidAssetID;
-		uint64_t                    mLoadedAssetVersion = 0;
+		std::string mSoundPath;
+		AssetID     mSoundAssetId       = kInvalidAssetID;
+		uint64_t    mLoadedAssetVersion = 0;
 
 		std::shared_ptr<AudioVoice> mVoice;
-		
-		float                       mVolume           = 1.0f;
-		float                       mPitch            = 1.0f;
-		bool                        mPlayOnStart      = true;
-		bool                        mLoop             = false;
-		bool                        mAutoPlayConsumed = false;
-		bool                        mLoggedError      = false;
+
+		ConVar<float>* mTimeScale;
+
+		float mVolume           = 1.0f;
+		float mPitch            = 1.0f;
+		bool  mPlayOnStart      = true;
+		bool  mLoop             = false;
+		bool  mAutoPlayConsumed = false;
+		bool  mLoggedError      = false;
 	};
 }

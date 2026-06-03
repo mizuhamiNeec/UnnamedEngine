@@ -85,7 +85,7 @@ namespace Unnamed {
 		writer.Write(mPitch);
 	}
 
-#ifdef UNNAMED_WITH_EDITOR
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void AudioSourceComponent::DrawInspectorImGui() {
 		std::string soundPath = mSoundPath;
 		if (

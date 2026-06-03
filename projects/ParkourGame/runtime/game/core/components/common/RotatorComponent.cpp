@@ -7,6 +7,7 @@
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Quaternion.h"
 
+#include "engine/ImGui/Icons.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 

@@ -40,7 +40,7 @@ namespace Unnamed {
 			return "EditorCamera";
 		}
 
-#ifdef UNNAMED_WITH_EDITOR
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 

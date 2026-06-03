@@ -43,7 +43,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef UNNAMED_WITH_EDITOR
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
