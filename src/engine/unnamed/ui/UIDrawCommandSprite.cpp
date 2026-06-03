@@ -14,6 +14,8 @@
 namespace Unnamed::UI {
 	namespace {
 		constexpr bool kSnapTextGlyphToPixel = true;
+		constexpr std::string_view kDefaultUIFontPath =
+			R"(.\content\core\fonts\JetBrainsMono.ttf)";
 
 		[[nodiscard]] Render::ScreenSpriteInput BuildRectSprite(
 			const UIDrawCommand& command, const int32_t sortKey
@@ -60,66 +62,80 @@ namespace Unnamed::UI {
 			++outStats->textCommandCount;
 		}
 
-		UIFontAtlas& fontAtlas = GetUIFontAtlas();
-		fontAtlas.SetFontPixelSize(command.textFontSize);
-		fontAtlas.SetOversampling(
+		UIFontAtlasCache& fontAtlasCache = GetUIFontAtlasCache();
+		const UIFontAtlasKey key = MakeUIFontAtlasKey(
+			kDefaultUIFontPath,
+			command.textFontSize,
 			command.textOversampleH,
 			command.textOversampleV
 		);
-		if (!fontAtlas.EnsureInitialized(assetManager)) {
+		UIFontAtlas* fontAtlas = fontAtlasCache.GetOrCreate(key, assetManager);
+		if (fontAtlas == nullptr) {
 			return;
 		}
 
 		bool forceFallbackTexture = false;
 		int  textDebugMode        = 0;
-		if (auto* console = ServiceLocator::Get<ConsoleSystem>();
-			console != nullptr) {
-			if (const auto* forceFallbackVar = console->GetConVarAs<ConVar<bool>>(
-				    "ui_new_text_force_fallback_texture"
-			    );
-				forceFallbackVar != nullptr) {
+		if (
+			auto* console = ServiceLocator::Get<ConsoleSystem>();
+			console != nullptr
+		) {
+			if (
+				const auto* forceFallbackVar =
+					console->GetConVarAs<ConVar<bool>>(
+						"ui_new_text_force_fallback_texture"
+					);
+				forceFallbackVar != nullptr
+			) {
 				forceFallbackTexture = forceFallbackVar->GetValue();
 			}
-			if (const auto* textDebugModeVar = console->GetConVarAs<ConVar<int>>(
-				    "ui_new_text_debug_mode"
-			    );
-				textDebugModeVar != nullptr) {
+			if (
+				const auto* textDebugModeVar =
+					console->GetConVarAs<ConVar<int>>(
+						"ui_new_text_debug_mode"
+					);
+				textDebugModeVar != nullptr
+			) {
 				textDebugMode = textDebugModeVar->GetValue();
 			}
 		}
 
-		static float sLoggedFontSize = -1.0f;
-		static uint32_t sLoggedOversampleH = 0;
-		static uint32_t sLoggedOversampleV = 0;
-		static bool sLoggedForceFallback = false;
-		const bool atlasStateChanged =
-			std::fabs(sLoggedFontSize - fontAtlas.GetFontPixelSize()) > 0.01f ||
-			sLoggedOversampleH != fontAtlas.GetOversampleH() ||
-			sLoggedOversampleV != fontAtlas.GetOversampleV() ||
+		static float    sLoggedFontSize      = -1.0f;
+		static uint32_t sLoggedOversampleH   = 0;
+		static uint32_t sLoggedOversampleV   = 0;
+		static bool     sLoggedForceFallback = false;
+		const bool      atlasStateChanged    =
+			std::fabs(sLoggedFontSize - fontAtlas->GetFontPixelSize()) > 0.01f ||
+			sLoggedOversampleH != fontAtlas->GetOversampleH() ||
+			sLoggedOversampleV != fontAtlas->GetOversampleV() ||
 			sLoggedForceFallback != forceFallbackTexture;
-		if (atlasStateChanged) {
+		if (textDebugMode >= 1 && atlasStateChanged) {
+			const UIFontAtlasCacheDebugInfo cacheInfo = fontAtlasCache.
+				GetDebugInfo();
 			DevMsg(
 				"UI",
-				"Text runtime atlas state: textureAssetId={}, fontSize={}, oversample={}x{}, forceFallbackTexture={}, debugMode={}.",
-				fontAtlas.GetTextureAssetId(),
-				fontAtlas.GetFontPixelSize(),
-				fontAtlas.GetOversampleH(),
-				fontAtlas.GetOversampleV(),
+				"Text runtime atlas state: textureAssetId={}, fontSize={}, oversample={}x{}, forceFallbackTexture={}, debugMode={}, cacheCount={}, createCalls={}.",
+				fontAtlas->GetTextureAssetId(),
+				fontAtlas->GetFontPixelSize(),
+				fontAtlas->GetOversampleH(),
+				fontAtlas->GetOversampleV(),
 				forceFallbackTexture,
-				textDebugMode
+				textDebugMode,
+				cacheInfo.cacheCount,
+				cacheInfo.createRuntimeAssetCallCount
 			);
-			sLoggedFontSize      = fontAtlas.GetFontPixelSize();
-			sLoggedOversampleH   = fontAtlas.GetOversampleH();
-			sLoggedOversampleV   = fontAtlas.GetOversampleV();
+			sLoggedFontSize      = fontAtlas->GetFontPixelSize();
+			sLoggedOversampleH   = fontAtlas->GetOversampleH();
+			sLoggedOversampleV   = fontAtlas->GetOversampleV();
 			sLoggedForceFallback = forceFallbackTexture;
 		}
 
 		static bool sLoggedGlyphLookupPlay = false;
-		if (!sLoggedGlyphLookupPlay) {
-			const UIGlyph* glyphP = fontAtlas.FindGlyph('P');
-			const UIGlyph* glyphL = fontAtlas.FindGlyph('l');
-			const UIGlyph* glyphA = fontAtlas.FindGlyph('a');
-			const UIGlyph* glyphY = fontAtlas.FindGlyph('y');
+		if (textDebugMode >= 1 && !sLoggedGlyphLookupPlay) {
+			const UIGlyph* glyphP = fontAtlas->FindGlyph('P');
+			const UIGlyph* glyphL = fontAtlas->FindGlyph('l');
+			const UIGlyph* glyphA = fontAtlas->FindGlyph('a');
+			const UIGlyph* glyphY = fontAtlas->FindGlyph('y');
 			DevMsg(
 				"UI",
 				"Glyph lookup check: P(has={},size={}x{}), l(has={},size={}x{}), a(has={},size={}x{}), y(has={},size={}x{}).",
@@ -141,11 +157,11 @@ namespace Unnamed::UI {
 
 		float       cursorX   = std::round(command.textPosition.x);
 		const float baselineY =
-			std::round(command.textPosition.y + fontAtlas.GetAscentPx());
+			std::round(command.textPosition.y + fontAtlas->GetAscentPx());
 		int32_t glyphSortOffset = 0;
 
 		for (const char character : command.text) {
-			const UIGlyph* glyph = fontAtlas.FindGlyph(character);
+			const UIGlyph* glyph = fontAtlas->FindGlyph(character);
 			if (glyph == nullptr) {
 				if (outStats != nullptr) {
 					++outStats->skippedGlyphCount;
@@ -157,13 +173,14 @@ namespace Unnamed::UI {
 				sprite.texture.source = Render::SPRITE_TEXTURE_SOURCE::ASSET;
 				sprite.texture.textureAssetId = forceFallbackTexture ?
 					                                kInvalidAssetID :
-					                                fontAtlas.GetTextureAssetId();
-				const Vec2 glyphPosition = Vec2(
+					                                fontAtlas->
+					                                GetTextureAssetId();
+				const auto glyphPosition = Vec2(
 					std::round(cursorX + glyph->bearing.x),
 					std::round(baselineY + glyph->bearing.y)
 				);
 				const Vec2 glyphSize = glyph->size;
-				sprite.positionPx = kSnapTextGlyphToPixel ?
+				sprite.positionPx    = kSnapTextGlyphToPixel ?
 					                    Vec2(
 						                    std::round(glyphPosition.x),
 						                    std::round(glyphPosition.y)
@@ -195,16 +212,17 @@ namespace Unnamed::UI {
 
 				const bool forceDebugGlyphRect = textDebugMode == 4 &&
 				                                 outStats != nullptr &&
-				                                 outStats->glyphSpriteCount == 0;
+				                                 outStats->glyphSpriteCount ==
+				                                 0;
 				if (forceDebugGlyphRect) {
-					sprite.positionPx             = Vec2(320.0f, 32.0f);
-					sprite.sizePx                 = Vec2(64.0f, 64.0f);
+					sprite.positionPx = Vec2(320.0f, 32.0f);
+					sprite.sizePx = Vec2(64.0f, 64.0f);
 					sprite.texture.textureAssetId = kInvalidAssetID;
-					sprite.uvMin                  = Vec2(0.0f, 0.0f);
-					sprite.uvMax                  = Vec2(1.0f, 1.0f);
-					sprite.color                  = Vec4(1.0f, 0.0f, 0.0f, 1.0f);
-					sprite.anchor                 = Vec2(0.0f, 0.0f);
-					sprite.uvFlipY                = true;
+					sprite.uvMin = Vec2(0.0f, 0.0f);
+					sprite.uvMax = Vec2(1.0f, 1.0f);
+					sprite.color = Vec4(1.0f, 0.0f, 0.0f, 1.0f);
+					sprite.anchor = Vec2(0.0f, 0.0f);
+					sprite.uvFlipY = true;
 					Warning(
 						"UI",
 						"ui_new_text_debug_mode=4 applied to first glyph '{}': forced red 64x64 fallback rect.",
@@ -212,7 +230,10 @@ namespace Unnamed::UI {
 					);
 				}
 				static bool sLoggedGlyphSpriteP = false;
-				if (!sLoggedGlyphSpriteP && character == 'P') {
+				if (
+					textDebugMode >= 1 && !sLoggedGlyphSpriteP &&
+					character == 'P'
+				) {
 					DevMsg(
 						"UI",
 						"UIFontAtlas glyph 'P' sprite: atlasGlyphSize=({}, {}), glyphOffset=({}, {}), finalPosition=({}, {}), finalSize=({}, {}), uvMin=({}, {}), uvMax=({}, {}).",
@@ -233,7 +254,7 @@ namespace Unnamed::UI {
 				}
 
 				static bool sLoggedFirstGlyphSprite = false;
-				if (!sLoggedFirstGlyphSprite) {
+				if (textDebugMode >= 1 && !sLoggedFirstGlyphSprite) {
 					DevMsg(
 						"UI",
 						"First glyph sprite: ch='{}', pos=({}, {}), size=({}, {}), anchor=({}, {}), uvFlipY={}, color=({}, {}, {}, {}), texAssetId={}, uvMin=({}, {}), uvMax=({}, {}).",
