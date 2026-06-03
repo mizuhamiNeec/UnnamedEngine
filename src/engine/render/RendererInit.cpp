@@ -383,6 +383,11 @@ namespace Unnamed::Render {
 
 	void Renderer::Init(RenderDevice& renderDevice) {
 		auto& dx = dynamic_cast<Rhi::D3D12Device&>(renderDevice.GetRhiDevice());
+		mTextureResourceCache.Initialize(
+			&renderDevice.GetAssetManager(), &renderDevice.GetRegistry()
+		);
+		mTextureResourceCache.SetUnusedFrameThreshold(120);
+		mLastTextureCacheStatsLogFrame = 0;
 		RebuildPipelineCatalog(renderDevice, dx);
 
 		mFrameCb.Init(

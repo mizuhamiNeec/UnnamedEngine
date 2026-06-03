@@ -697,13 +697,7 @@ namespace Unnamed::Render {
 			return mSpriteFallbackTextureId;
 		}
 
-		if (const auto it = mSpriteTextureIds.find(textureAssetId);
-			it != mSpriteTextureIds.end()) {
-			return it->second;
-		}
-
 		const auto& assetManager = renderDevice.GetAssetManager();
-		auto&       registry = renderDevice.GetRegistry();
 		const auto* tex = assetManager.Get<TextureAssetData>(textureAssetId);
 		if (!tex) {
 			Warning(
@@ -739,48 +733,34 @@ namespace Unnamed::Render {
 			sLoggedFontAtlasTexturePath = true;
 		}
 
-		const uint32_t textureId = registry.CreateTexture2DFromAsset(
-			*tex, "SpriteOverlayTex"
+		const uint32_t textureId = mTextureResourceCache.ResolveSpriteTexture(
+			textureAssetId
 		);
 		if (textureId == 0) {
 			Warning(
 				"Renderer",
-				"EnsureSpriteTextureLoaded failed: registry.CreateTexture2DFromAsset returned 0 for assetId={}",
+				"EnsureSpriteTextureLoaded failed: TextureResourceCache::ResolveSpriteTexture returned 0 for assetId={}",
 				textureAssetId
 			);
 			EnsureSpriteFallbackTexture(renderDevice);
 			return mSpriteFallbackTextureId;
 		}
-		mSpriteTextureIds.emplace(textureAssetId, textureId);
 		return textureId;
 	}
 
 	uint32_t Renderer::EnsureSkyboxTextureLoaded(
 		RenderDevice& renderDevice, const AssetID textureAssetId
 	) {
+		(void)renderDevice;
 		if (textureAssetId == kInvalidAssetID) {
 			return 0;
 		}
-		if (const auto it = mSkyboxTextureIds.find(textureAssetId);
-		    it != mSkyboxTextureIds.end()) {
-			return it->second;
-		}
-
-		const auto& assetManager = renderDevice.GetAssetManager();
-		auto&       registry = renderDevice.GetRegistry();
-		const auto* tex = assetManager.Get<TextureAssetData>(textureAssetId);
-		if (!tex || !tex->isCubeMap) {
-			return 0;
-		}
-
-		const uint32_t textureId = registry.CreateTextureFromAsset(
-			*tex, "SkyboxCubeTex"
+		const uint32_t textureId = mTextureResourceCache.ResolveSkyboxTexture(
+			textureAssetId
 		);
 		if (textureId == 0) {
 			return 0;
 		}
-
-		mSkyboxTextureIds.emplace(textureAssetId, textureId);
 		return textureId;
 	}
 

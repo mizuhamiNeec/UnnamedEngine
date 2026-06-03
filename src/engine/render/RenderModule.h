@@ -23,8 +23,11 @@ namespace Unnamed::Render {
 	class RenderModule {
 	public:
 		RenderModule(AssetManager& assetManager, Rhi::IRhiDevice& rhiDevice);
+		~RenderModule();
 
 		void Init(ConsoleSystem* console);
+		/// @brief Renderer/RenderDevice を明示的な順序で終了します。
+		void Shutdown();
 		void Tick(RenderFrameInputs& inputs) const;
 
 		void OnResize(uint32_t width, uint32_t height) const;

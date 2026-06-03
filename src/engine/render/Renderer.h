@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "RendererDraw.h"
+#include "TextureResourceCache.h"
 
 #include "core/assets/AssetID.h"
 #include "core/math/Vec2.h"
@@ -40,6 +41,10 @@ namespace Unnamed::Render {
 	class Renderer {
 	public:
 		Renderer(ConsoleSystem* console);
+		~Renderer();
+
+		/// @brief Renderer が保持する Registry texture を明示解放します。
+		void Shutdown(RenderDevice& renderDevice);
 
 		/// @brief レンダラの初期化処理に呼び出されます。
 		/// @param renderDevice 描画に使用するRenderDevice
@@ -232,9 +237,9 @@ namespace Unnamed::Render {
 		AssetID mPostFxChainAsset = kInvalidAssetID;
 		std::unordered_map<AssetID, MaterialBinding> mMaterialBindings;
 		std::vector<PostFxRuntimePass> mPostFxPasses;
-		std::unordered_map<AssetID, uint32_t> mSpriteTextureIds;
-		std::unordered_map<AssetID, uint32_t> mSkyboxTextureIds;
+		TextureResourceCache mTextureResourceCache;
 		uint32_t mSpriteFallbackTextureId = 0;
+		uint64_t mLastTextureCacheStatsLogFrame = 0;
 
 		std::vector<MeshDrawItem>     mMainDrawList;
 		std::vector<DrawBatch>        mMainBatches;

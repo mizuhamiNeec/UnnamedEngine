@@ -28,9 +28,9 @@ namespace Unnamed::Render {
 		) {
 			Rhi::FrameConstants frame  = {};
 			const float         aspect = height > 0 ?
-				                     static_cast<float>(width) /
-				                     static_cast<float>(height) :
-				                     16.0f / 9.0f;
+				                             static_cast<float>(width) /
+				                             static_cast<float>(height) :
+				                             16.0f / 9.0f;
 			const Mat4 fallbackView = Mat4::identity;
 			const Mat4 fallbackProj = Mat4::PerspectiveFovD3D(
 				90.0f * Math::deg2Rad,
@@ -39,11 +39,11 @@ namespace Unnamed::Render {
 				10000.0f,
 				ProjectionDepthMode::ReverseZ
 			);
-			frame.view = camera.valid ? camera.view : fallbackView;
-			frame.proj = camera.valid ? camera.proj : fallbackProj;
-			frame.viewProj = frame.view * frame.proj;
+			frame.view      = camera.valid ? camera.view : fallbackView;
+			frame.proj      = camera.valid ? camera.proj : fallbackProj;
+			frame.viewProj  = frame.view * frame.proj;
 			frame.cameraPos = camera.valid ? camera.cameraPos : Vec3::zero;
-			frame.time = time;
+			frame.time      = time;
 			return frame;
 		}
 
@@ -80,10 +80,14 @@ namespace Unnamed::Render {
 			const uint32_t srcWidth,
 			const uint32_t srcHeight
 		) {
-			const float safeDstWidth = static_cast<float>(std::max(1u, dstWidth));
-			const float safeDstHeight = static_cast<float>(std::max(1u, dstHeight));
-			const float safeSrcWidth = static_cast<float>(std::max(1u, srcWidth));
-			const float safeSrcHeight = static_cast<float>(std::max(1u, srcHeight));
+			const float safeDstWidth = static_cast<float>(
+				std::max(1u, dstWidth));
+			const float safeDstHeight = static_cast<float>(std::max(
+				1u, dstHeight));
+			const float safeSrcWidth = static_cast<float>(
+				std::max(1u, srcWidth));
+			const float safeSrcHeight = static_cast<float>(std::max(
+				1u, srcHeight));
 			const float srcAspect = safeSrcWidth / safeSrcHeight;
 
 			float fitWidth  = safeDstWidth;
@@ -94,10 +98,10 @@ namespace Unnamed::Render {
 			}
 
 			FitRect rect = {};
-			rect.width = std::max(1.0f, fitWidth);
-			rect.height = std::max(1.0f, fitHeight);
-			rect.x = (safeDstWidth - rect.width) * 0.5f;
-			rect.y = (safeDstHeight - rect.height) * 0.5f;
+			rect.width   = std::max(1.0f, fitWidth);
+			rect.height  = std::max(1.0f, fitHeight);
+			rect.x       = (safeDstWidth - rect.width) * 0.5f;
+			rect.y       = (safeDstHeight - rect.height) * 0.5f;
 			return rect;
 		}
 
@@ -233,8 +237,9 @@ namespace Unnamed::Render {
 				const int  vecIndex  = key[6] - '0';
 				const char component = key[7];
 				if (float* dst = ResolveScalarComponent(
-					outParams, vecIndex, component
-				); dst) {
+						outParams, vecIndex, component
+					);
+					dst) {
 					*dst = value;
 				}
 				return;
@@ -244,8 +249,9 @@ namespace Unnamed::Render {
 				const int  vecIndex  = key[1] - '0';
 				const char component = key[2];
 				if (float* dst = ResolveScalarComponent(
-					outParams, vecIndex, component
-				); dst) {
+						outParams, vecIndex, component
+					);
+					dst) {
 					*dst = value;
 				}
 			}
@@ -332,12 +338,23 @@ namespace Unnamed::Render {
 				}
 
 				// TODO: vectorのリサイズって重いんかな?重そうだな...
-				state.bloomMipTextureIds.resize(
+				const size_t requestedBloomMipCount = static_cast<size_t>(
 					std::max(
 						mConsole->GetConVarValueOr("post_bloommipcount", 5),
 						1
-					)
-				);
+					));
+				if (state.bloomMipTextureIds.size() > requestedBloomMipCount) {
+					auto& registry = renderDevice.GetRegistry();
+					for (size_t i = requestedBloomMipCount;
+					     i < state.bloomMipTextureIds.size();
+					     ++i) {
+						if (state.bloomMipTextureIds[i] != 0) {
+							registry.
+								ReleaseTexture(state.bloomMipTextureIds[i]);
+						}
+					}
+				}
+				state.bloomMipTextureIds.resize(requestedBloomMipCount);
 
 				for (uint32_t i = 0; i < state.bloomMipTextureIds.size(); ++i) {
 					if (state.bloomMipTextureIds[i] != 0) {
@@ -448,7 +465,8 @@ namespace Unnamed::Render {
 						}
 						b.ClearDepth(depthId, 0.0f, 0);
 					},
-					[](RenderPassContext&) {}
+					[](RenderPassContext&) {
+					}
 				);
 
 				mGraph.AddPass(
@@ -480,19 +498,20 @@ namespace Unnamed::Render {
 							renderDevice.GetRhiDevice()
 						).GetFrameUploadAllocator();
 						Rhi::FrameConstants frame = BuildSceneFrameConstants(
-							view.camera, state.logicalWidth, state.logicalHeight, 0.0f
+							view.camera, state.logicalWidth,
+							state.logicalHeight, 0.0f
 						);
-						Rhi::ObjectConstants object = {};
-						object.world                = Mat4::identity;
-						object.world.m[3][0]        = frame.cameraPos.x;
-						object.world.m[3][1]        = frame.cameraPos.y;
-						object.world.m[3][2]        = frame.cameraPos.z;
+						Rhi::ObjectConstants object  = {};
+						object.world                 = Mat4::identity;
+						object.world.m[3][0]         = frame.cameraPos.x;
+						object.world.m[3][1]         = frame.cameraPos.y;
+						object.world.m[3][2]         = frame.cameraPos.z;
 						object.worldInverseTranspose =
 							object.world.Inverse().Transpose();
 						object.skinningInfo = Vec4::zero;
 
 						Rhi::MaterialConstants material = {};
-						material.baseColor = Vec4(
+						material.baseColor              = Vec4(
 							view.skybox.intensity,
 							view.skybox.intensity,
 							view.skybox.intensity,
@@ -569,7 +588,8 @@ namespace Unnamed::Render {
 							renderDevice.GetRhiDevice()
 						).GetFrameUploadAllocator();
 						Rhi::FrameConstants frame = BuildSceneFrameConstants(
-							view.camera, state.logicalWidth, state.logicalHeight, 0.0f
+							view.camera, state.logicalWidth,
+							state.logicalHeight, 0.0f
 						);
 						const D3D12_GPU_VIRTUAL_ADDRESS frameCb =
 							allocator.AllocateConstantBuffer(
@@ -596,7 +616,8 @@ namespace Unnamed::Render {
 							std::span<const uint32_t>(&state.colorTextureId, 1),
 							state.depthTextureId
 						);
-						if (!mGeometryPass.resolved || !mGeometryPass.resolved->pso) {
+						if (!mGeometryPass.resolved || !mGeometryPass.resolved->
+						    pso) {
 							return;
 						}
 						pass.SetGraphicsPipeline(
@@ -609,8 +630,9 @@ namespace Unnamed::Render {
 
 						const MaterialBinding* fallbackMaterial = nullptr;
 						if (const auto it = mMaterialBindings.find(
-							mDefaultMaterialInstance
-						); it != mMaterialBindings.end()) {
+								mDefaultMaterialInstance
+							);
+							it != mMaterialBindings.end()) {
 							fallbackMaterial = &it->second;
 						}
 
@@ -670,38 +692,43 @@ namespace Unnamed::Render {
 								ToRootIndex(GEOM_ROOT_SLOT::OBJECT), objectCb
 							);
 							pass.BindGraphicsCbv(
-								ToRootIndex(GEOM_ROOT_SLOT::SKINNING), skinningCb
+								ToRootIndex(GEOM_ROOT_SLOT::SKINNING),
+								skinningCb
 							);
 
 							if (mesh.submeshes.empty()) {
-								Rhi::MaterialConstants material  = {};
-								uint32_t               textureId = 0;
+								Rhi::MaterialConstants material        = {};
+								uint32_t               textureId       = 0;
 								const MaterialBinding* materialBinding =
 									fallbackMaterial;
 								if (const auto matIt = mMaterialBindings.find(
-									objectInput.materialInstanceId
-								); matIt != mMaterialBindings.end()) {
+										objectInput.materialInstanceId
+									);
+									matIt != mMaterialBindings.end()) {
 									materialBinding = &matIt->second;
 								}
 								if (materialBinding) {
 									material  = materialBinding->constants;
-									textureId = materialBinding->albedoTextureId;
+									textureId = materialBinding->
+										albedoTextureId;
 								}
 								if (textureId == 0) {
 									EnsureSpriteFallbackTexture(renderDevice);
 									textureId = mSpriteFallbackTextureId;
 								}
 
-								const D3D12_GPU_VIRTUAL_ADDRESS materialCbFallback =
-									allocator.AllocateConstantBuffer(
-										&material, sizeof(material)
-									);
+								const D3D12_GPU_VIRTUAL_ADDRESS
+									materialCbFallback =
+										allocator.AllocateConstantBuffer(
+											&material, sizeof(material)
+										);
 								pass.BindGraphicsCbv(
 									ToRootIndex(GEOM_ROOT_SLOT::MATERIAL),
 									materialCbFallback
 								);
 								pass.BindGraphicsSrvTable(
-									ToRootIndex(GEOM_ROOT_SLOT::BASE_COLOR_TEXTURE),
+									ToRootIndex(
+										GEOM_ROOT_SLOT::BASE_COLOR_TEXTURE),
 									textureId
 								);
 								pass.DrawIndexedTest(mesh.indexCount);
@@ -716,7 +743,7 @@ namespace Unnamed::Render {
 								AssetID submeshMaterialId = objectInput.
 									materialInstanceId;
 								if (submesh.materialIndex < objectInput.
-									materialInstanceIdsBySlot.size()) {
+								    materialInstanceIdsBySlot.size()) {
 									const AssetID slotMaterialId = objectInput.
 										materialInstanceIdsBySlot[
 											submesh.materialIndex
@@ -726,34 +753,38 @@ namespace Unnamed::Render {
 									}
 								}
 
-								Rhi::MaterialConstants material  = {};
-								uint32_t               textureId = 0;
+								Rhi::MaterialConstants material        = {};
+								uint32_t               textureId       = 0;
 								const MaterialBinding* materialBinding =
 									fallbackMaterial;
 								if (const auto matIt = mMaterialBindings.find(
-									submeshMaterialId
-								); matIt != mMaterialBindings.end()) {
+										submeshMaterialId
+									);
+									matIt != mMaterialBindings.end()) {
 									materialBinding = &matIt->second;
 								}
 								if (materialBinding) {
 									material  = materialBinding->constants;
-									textureId = materialBinding->albedoTextureId;
+									textureId = materialBinding->
+										albedoTextureId;
 								}
 								if (textureId == 0) {
 									EnsureSpriteFallbackTexture(renderDevice);
 									textureId = mSpriteFallbackTextureId;
 								}
 
-								const D3D12_GPU_VIRTUAL_ADDRESS materialCbSubmesh =
-									allocator.AllocateConstantBuffer(
-										&material, sizeof(material)
-									);
+								const D3D12_GPU_VIRTUAL_ADDRESS
+									materialCbSubmesh =
+										allocator.AllocateConstantBuffer(
+											&material, sizeof(material)
+										);
 								pass.BindGraphicsCbv(
 									ToRootIndex(GEOM_ROOT_SLOT::MATERIAL),
 									materialCbSubmesh
 								);
 								pass.BindGraphicsSrvTable(
-									ToRootIndex(GEOM_ROOT_SLOT::BASE_COLOR_TEXTURE),
+									ToRootIndex(
+										GEOM_ROOT_SLOT::BASE_COLOR_TEXTURE),
 									textureId
 								);
 								pass.DrawIndexedTest(
@@ -799,7 +830,8 @@ namespace Unnamed::Render {
 							renderDevice.GetRhiDevice()
 						).GetFrameUploadAllocator();
 						Rhi::FrameConstants frame = BuildSceneFrameConstants(
-							view.camera, state.logicalWidth, state.logicalHeight, 0.0f
+							view.camera, state.logicalWidth,
+							state.logicalHeight, 0.0f
 						);
 						const D3D12_GPU_VIRTUAL_ADDRESS frameCb =
 							allocator.AllocateConstantBuffer(
@@ -875,9 +907,12 @@ namespace Unnamed::Render {
 							object.world.m[3][2] = billboard.worldPosition.z;
 							object.worldInverseTranspose =
 								object.world.Inverse().Transpose();
-							const float uvMinY = billboard.uvFlipY ? 1.0f : 0.0f;
-							const float uvMaxY = billboard.uvFlipY ? 0.0f : 1.0f;
-							object.skinningInfo = Vec4(0.0f, uvMinY, 1.0f, uvMaxY);
+							const float uvMinY =
+								billboard.uvFlipY ? 1.0f : 0.0f;
+							const float uvMaxY =
+								billboard.uvFlipY ? 0.0f : 1.0f;
+							object.skinningInfo = Vec4(
+								0.0f, uvMinY, 1.0f, uvMaxY);
 
 							Rhi::MaterialConstants material = {};
 							material.baseColor              = billboard.color;
@@ -896,7 +931,8 @@ namespace Unnamed::Render {
 								ToRootIndex(GEOM_ROOT_SLOT::OBJECT), objectCb
 							);
 							pass.BindGraphicsCbv(
-								ToRootIndex(GEOM_ROOT_SLOT::MATERIAL), materialCb
+								ToRootIndex(GEOM_ROOT_SLOT::MATERIAL),
+								materialCb
 							);
 							pass.BindGraphicsCbv(
 								ToRootIndex(GEOM_ROOT_SLOT::SKINNING), objectCb
@@ -937,7 +973,8 @@ namespace Unnamed::Render {
 							renderDevice.GetRhiDevice()
 						).GetFrameUploadAllocator();
 						Rhi::FrameConstants frame = BuildSceneFrameConstants(
-							view.camera, state.logicalWidth, state.logicalHeight, 0.0f
+							view.camera, state.logicalWidth,
+							state.logicalHeight, 0.0f
 						);
 						const D3D12_GPU_VIRTUAL_ADDRESS frameCb =
 							allocator.AllocateConstantBuffer(
@@ -1012,9 +1049,10 @@ namespace Unnamed::Render {
 							object.world.m[3][2] = sprite.worldPosition.z;
 							object.worldInverseTranspose =
 								object.world.Inverse().Transpose();
-							const float uvMinY = sprite.uvFlipY ? 1.0f : 0.0f;
-							const float uvMaxY = sprite.uvFlipY ? 0.0f : 1.0f;
-							object.skinningInfo = Vec4(0.0f, uvMinY, 1.0f, uvMaxY);
+							const float uvMinY  = sprite.uvFlipY ? 1.0f : 0.0f;
+							const float uvMaxY  = sprite.uvFlipY ? 0.0f : 1.0f;
+							object.skinningInfo = Vec4(
+								0.0f, uvMinY, 1.0f, uvMaxY);
 
 							Rhi::MaterialConstants material = {};
 							material.baseColor              = sprite.color;
@@ -1034,7 +1072,8 @@ namespace Unnamed::Render {
 								ToRootIndex(GEOM_ROOT_SLOT::OBJECT), objectCb
 							);
 							pass.BindGraphicsCbv(
-								ToRootIndex(GEOM_ROOT_SLOT::MATERIAL), materialCb
+								ToRootIndex(GEOM_ROOT_SLOT::MATERIAL),
+								materialCb
 							);
 							pass.BindGraphicsCbv(
 								ToRootIndex(GEOM_ROOT_SLOT::SKINNING), objectCb
@@ -1074,7 +1113,8 @@ namespace Unnamed::Render {
 							renderDevice.GetRhiDevice()
 						).GetFrameUploadAllocator();
 						Rhi::FrameConstants frame = BuildSceneFrameConstants(
-							view.camera, state.logicalWidth, state.logicalHeight, 0.0f
+							view.camera, state.logicalWidth,
+							state.logicalHeight, 0.0f
 						);
 						const D3D12_GPU_VIRTUAL_ADDRESS frameCb =
 							allocator.AllocateConstantBuffer(
@@ -1114,7 +1154,9 @@ namespace Unnamed::Render {
 							b.ReadSrvPs(texId);
 						}
 					},
-					[this, viewIndex, state, &renderDevice](RenderPassContext& pass) {
+					[this, viewIndex, state, &renderDevice](
+					RenderPassContext& pass
+				) {
 						const RenderViewInput& view = mFrameViews[viewIndex];
 						if (view.worldBillboards.empty()) {
 							return;
@@ -1133,15 +1175,19 @@ namespace Unnamed::Render {
 							renderDevice.GetRhiDevice()
 						).GetFrameUploadAllocator();
 						Rhi::FrameConstants frame = BuildSceneFrameConstants(
-							view.camera, state.logicalWidth, state.logicalHeight, 0.0f
+							view.camera, state.logicalWidth,
+							state.logicalHeight, 0.0f
 						);
 						const D3D12_GPU_VIRTUAL_ADDRESS frameCb =
-							allocator.AllocateConstantBuffer(&frame, sizeof(frame));
+							allocator.AllocateConstantBuffer(
+								&frame, sizeof(frame));
 
 						const Mat4 cameraWorld = frame.view.Inverse();
-						const Vec3 cameraRight = cameraWorld.GetRight().Normalized();
+						const Vec3 cameraRight = cameraWorld.GetRight().
+							Normalized();
 						const Vec3 cameraUp = cameraWorld.GetUp().Normalized();
-						const Vec3 cameraForward = cameraWorld.GetForward().Normalized();
+						const Vec3 cameraForward = cameraWorld.GetForward().
+							Normalized();
 
 						pass.SetViewportAndScissor(
 							0.0f,
@@ -1172,7 +1218,8 @@ namespace Unnamed::Render {
 								continue;
 							}
 
-							const float cosine = std::cos(billboard.rotationRad);
+							const float cosine =
+								std::cos(billboard.rotationRad);
 							const float sine = std::sin(billboard.rotationRad);
 							const Vec3  rotatedRight =
 								cameraRight * cosine + cameraUp * sine;
@@ -1181,7 +1228,7 @@ namespace Unnamed::Render {
 
 							Rhi::ObjectConstants object = {};
 							object.world                = Mat4::identity;
-							object.world.m[0][0] =
+							object.world.m[0][0]        =
 								rotatedRight.x * billboard.sizeWorld.x * 0.5f;
 							object.world.m[0][1] =
 								rotatedRight.y * billboard.sizeWorld.x * 0.5f;
@@ -1201,9 +1248,12 @@ namespace Unnamed::Render {
 							object.world.m[3][2] = billboard.worldPosition.z;
 							object.worldInverseTranspose =
 								object.world.Inverse().Transpose();
-							const float uvMinY = billboard.uvFlipY ? 1.0f : 0.0f;
-							const float uvMaxY = billboard.uvFlipY ? 0.0f : 1.0f;
-							object.skinningInfo = Vec4(0.0f, uvMinY, 1.0f, uvMaxY);
+							const float uvMinY =
+								billboard.uvFlipY ? 1.0f : 0.0f;
+							const float uvMaxY =
+								billboard.uvFlipY ? 0.0f : 1.0f;
+							object.skinningInfo = Vec4(
+								0.0f, uvMinY, 1.0f, uvMaxY);
 
 							Rhi::MaterialConstants material = {};
 							material.baseColor              = billboard.color;
@@ -1211,7 +1261,8 @@ namespace Unnamed::Render {
 							material.domainMode             = 0.0f;
 
 							const D3D12_GPU_VIRTUAL_ADDRESS objectCb =
-								allocator.AllocateConstantBuffer(&object, sizeof(object));
+								allocator.AllocateConstantBuffer(
+									&object, sizeof(object));
 							const D3D12_GPU_VIRTUAL_ADDRESS materialCb =
 								allocator.AllocateConstantBuffer(
 									&material,
@@ -1221,16 +1272,19 @@ namespace Unnamed::Render {
 								ToRootIndex(GEOM_ROOT_SLOT::OBJECT), objectCb
 							);
 							pass.BindGraphicsCbv(
-								ToRootIndex(GEOM_ROOT_SLOT::MATERIAL), materialCb
+								ToRootIndex(GEOM_ROOT_SLOT::MATERIAL),
+								materialCb
 							);
 							pass.BindGraphicsCbv(
 								ToRootIndex(GEOM_ROOT_SLOT::SKINNING), objectCb
 							);
 							pass.BindGraphicsSrvTable(
 								ToRootIndex(GEOM_ROOT_SLOT::BASE_COLOR_TEXTURE),
-								ResolveSpriteTexture(renderDevice, billboard.texture)
+								ResolveSpriteTexture(
+									renderDevice, billboard.texture)
 							);
-							pass.DrawIndexedTest(mBillboardPass.frontGeom.indexCount);
+							pass.DrawIndexedTest(
+								mBillboardPass.frontGeom.indexCount);
 						}
 					}
 				);
@@ -1316,7 +1370,8 @@ namespace Unnamed::Render {
 									    level + 1)
 							);
 							const uint32_t dstHeight = std::max(
-								1u, state.logicalHeight >> static_cast<uint32_t>(
+								1u, state.logicalHeight >> static_cast<uint32_t>
+								    (
 									    level + 1)
 							);
 
@@ -1370,15 +1425,18 @@ namespace Unnamed::Render {
 										return;
 									}
 									pass.SetGraphicsPipeline(
-										mBloomDownsamplePass.resolved->rootSignature,
+										mBloomDownsamplePass.resolved->
+										rootSignature,
 										mBloomDownsamplePass.resolved->pso
 									);
 									pass.BindGraphicsCbv(
-										ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
+										ToRootIndex(
+											FS_ROOT_SLOT::POST_FX_PARAMS),
 										bloomCb
 									);
 									pass.BindGraphicsSrvTable(
-										ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
+										ToRootIndex(
+											FS_ROOT_SLOT::SOURCE_TEXTURE),
 										downsampleSrcId
 									);
 									pass.DrawFullscreenTriangle();
@@ -1400,7 +1458,8 @@ namespace Unnamed::Render {
 									    level + 1)
 							);
 							const uint32_t srcHeight = std::max(
-								1u, state.logicalHeight >> static_cast<uint32_t>(
+								1u, state.logicalHeight >> static_cast<uint32_t>
+								    (
 									    level + 1)
 							);
 							const uint32_t dstWidth = std::max(
@@ -1456,15 +1515,18 @@ namespace Unnamed::Render {
 										return;
 									}
 									pass.SetGraphicsPipeline(
-										mBloomUpsamplePass.resolved->rootSignature,
+										mBloomUpsamplePass.resolved->
+										rootSignature,
 										mBloomUpsamplePass.resolved->pso
 									);
 									pass.BindGraphicsCbv(
-										ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
+										ToRootIndex(
+											FS_ROOT_SLOT::POST_FX_PARAMS),
 										bloomCb
 									);
 									pass.BindGraphicsSrvTable(
-										ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
+										ToRootIndex(
+											FS_ROOT_SLOT::SOURCE_TEXTURE),
 										srcLowId
 									);
 									pass.DrawFullscreenTriangle();
@@ -1497,7 +1559,8 @@ namespace Unnamed::Render {
 								);
 								pass.SetSrvUavHeap();
 								pass.SetRenderTarget(bloomCombinedOutId);
-								if (!mHdrCopyPass.resolved || !mHdrCopyPass.resolved->pso) {
+								if (!mHdrCopyPass.resolved || !mHdrCopyPass.
+								    resolved->pso) {
 									return;
 								}
 								pass.SetGraphicsPipeline(
@@ -1509,15 +1572,19 @@ namespace Unnamed::Render {
 									baseCopyInId
 								);
 								PostFxParamsConstants copyParams = {};
-								copyParams.scalar0.x = std::clamp(
-									static_cast<float>(std::max(1u, state.logicalWidth)) /
-										static_cast<float>(std::max(1u, state.allocatedWidth)),
+								copyParams.scalar0.x             = std::clamp(
+									static_cast<float>(std::max(
+										1u, state.logicalWidth)) /
+									static_cast<float>(std::max(
+										1u, state.allocatedWidth)),
 									0.0f,
 									1.0f
 								);
 								copyParams.scalar0.y = std::clamp(
-									static_cast<float>(std::max(1u, state.logicalHeight)) /
-										static_cast<float>(std::max(1u, state.allocatedHeight)),
+									static_cast<float>(std::max(
+										1u, state.logicalHeight)) /
+									static_cast<float>(std::max(
+										1u, state.allocatedHeight)),
 									0.0f,
 									1.0f
 								);
@@ -1537,20 +1604,20 @@ namespace Unnamed::Render {
 							}
 						);
 
-						BloomPyramidConstants bloomCompositeCbData = {};
-						const uint32_t bloomBaseLogicalWidth = std::max(
+						BloomPyramidConstants bloomCompositeCbData  = {};
+						const uint32_t        bloomBaseLogicalWidth = std::max(
 							1u, state.logicalWidth >> 1u
 						);
 						const uint32_t bloomBaseLogicalHeight = std::max(
 							1u, state.logicalHeight >> 1u
 						);
-						bloomCompositeCbData.params0               = Vec4(
+						bloomCompositeCbData.params0 = Vec4(
 							1.0f / static_cast<float>(bloomBaseLogicalWidth),
 							1.0f / static_cast<float>(bloomBaseLogicalHeight),
 							0.0f,
 							0.0f
 						);
-						bloomCompositeCbData.params1               = Vec4(
+						bloomCompositeCbData.params1 = Vec4(
 							bloomRadius, bloomIntensity, 0.0f, 0.0f
 						);
 						auto& allocator = static_cast<Rhi::D3D12Device&>(
@@ -1640,7 +1707,8 @@ namespace Unnamed::Render {
 								static_cast<float>(state.logicalHeight)
 							);
 							pass.SetSrvUavHeap();
-							if (!passRes.pass.resolved || !passRes.pass.resolved->pso) {
+							if (!passRes.pass.resolved || !passRes.pass.resolved
+							    ->pso) {
 								return;
 							}
 							pass.SetGraphicsPipeline(
@@ -1649,7 +1717,8 @@ namespace Unnamed::Render {
 							);
 							pass.SetRenderTarget(outId);
 							pass.BindGraphicsCbv(
-								ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS), postFxCb
+								ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
+								postFxCb
 							);
 							pass.BindGraphicsSrvTable(
 								ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE), inId
@@ -1693,7 +1762,8 @@ namespace Unnamed::Render {
 						);
 						pass.SetSrvUavHeap();
 						pass.SetRenderTarget(toneMapOutputId);
-						if (!mToneMapPass.resolved || !mToneMapPass.resolved->pso) {
+						if (!mToneMapPass.resolved || !mToneMapPass.resolved->
+						    pso) {
 							return;
 						}
 						pass.SetGraphicsPipeline(
@@ -1704,7 +1774,8 @@ namespace Unnamed::Render {
 							ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS), toneMapCb
 						);
 						pass.BindGraphicsSrvTable(
-							ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE), toneMapInputId
+							ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
+							toneMapInputId
 						);
 						pass.DrawFullscreenTriangle();
 					}
@@ -1720,7 +1791,8 @@ namespace Unnamed::Render {
 						b.WriteRt(outputId);
 						b.ClearColor(outputId, 0.0f, 0.0f, 0.0f, 0.0f);
 					},
-					[](RenderPassContext&) {}
+					[](RenderPassContext&) {
+					}
 				);
 			}
 
@@ -1774,7 +1846,8 @@ namespace Unnamed::Render {
 
 					int textSamplerMode = 0;
 					if (mConsole != nullptr) {
-						const auto* samplerModeVar = mConsole->GetConVarAs<ConVar<int>>(
+						const auto* samplerModeVar = mConsole->GetConVarAs<
+							ConVar<int>>(
 							"r_ui_text_sampler_mode"
 						);
 						if (samplerModeVar != nullptr) {
@@ -1833,29 +1906,28 @@ namespace Unnamed::Render {
 
 						Rhi::ObjectConstants object = {};
 						object.world                = Mat4::Scale(
-							               Vec3(
-								               sprite.sizePx.x * 0.5f,
-								               sprite.sizePx.y * 0.5f,
-								               1.0f
-							               )
-						               ) * Mat4::RotateZ(
-							               sprite.rotationRad
-						               ) * Mat4::Translate(
-							               Vec3(center.x, center.y, 0.0f)
-						               );
-						object.worldInverseTranspose =
-							object.world.Inverse().Transpose();
-						// ScreenSpriteInput::uvFlipY は RendererGraph で uvMinY/uvMaxY を
-						// 入れ替えるためのフラグです（shader では常時Y反転しません）。
+							Vec3(
+								sprite.sizePx.x * 0.5f,
+								sprite.sizePx.y * 0.5f,
+								1.0f
+							)
+						) * Mat4::RotateZ(
+							sprite.rotationRad
+						) * Mat4::Translate(
+							Vec3(center.x, center.y, 0.0f)
+						);
+						object.worldInverseTranspose = Mat4::identity;
+						// 使わんので単位
 						const float uvMinY = sprite.uvFlipY ?
 							                     sprite.uvMax.y :
 							                     sprite.uvMin.y;
 						const float uvMaxY = sprite.uvFlipY ?
 							                     sprite.uvMin.y :
 							                     sprite.uvMax.y;
-						const float uvMinX = sprite.uvMin.x;
-						const float uvMaxX = sprite.uvMax.x;
-						object.skinningInfo = Vec4(uvMinX, uvMinY, uvMaxX, uvMaxY);
+						const float uvMinX  = sprite.uvMin.x;
+						const float uvMaxX  = sprite.uvMax.x;
+						object.skinningInfo = Vec4(
+							uvMinX, uvMinY, uvMaxX, uvMaxY);
 
 						Rhi::MaterialConstants material = {};
 						material.baseColor              = sprite.color;
@@ -1914,7 +1986,8 @@ namespace Unnamed::Render {
 						b.ReadSrvPs(texId);
 					}
 				},
-				[](RenderPassContext&) {}
+				[](RenderPassContext&) {
+				}
 			);
 		}
 
@@ -1924,7 +1997,8 @@ namespace Unnamed::Render {
 				presentIt != mViewStates.end() &&
 				presentIt->second.outputTextureId != 0
 			) {
-				const uint32_t presentTexture = presentIt->second.outputTextureId;
+				const uint32_t presentTexture = presentIt->second.
+					outputTextureId;
 				const uint32_t presentLogicalWidth = std::max(
 					1u, presentIt->second.logicalWidth
 				);
@@ -1956,15 +2030,15 @@ namespace Unnamed::Render {
 						pass.SetSrvUavHeap();
 
 						PostFxParamsConstants params = {};
-						params.scalar0.x = std::clamp(
+						params.scalar0.x             = std::clamp(
 							static_cast<float>(presentLogicalWidth) /
-								static_cast<float>(presentAllocatedWidth),
+							static_cast<float>(presentAllocatedWidth),
 							0.0f,
 							1.0f
 						);
 						params.scalar0.y = std::clamp(
 							static_cast<float>(presentLogicalHeight) /
-								static_cast<float>(presentAllocatedHeight),
+							static_cast<float>(presentAllocatedHeight),
 							0.0f,
 							1.0f
 						);
@@ -1988,7 +2062,8 @@ namespace Unnamed::Render {
 							fitRect.height
 						);
 
-						if (!mFullscreenPass.resolved || !mFullscreenPass.resolved->pso) {
+						if (!mFullscreenPass.resolved || !mFullscreenPass.
+						    resolved->pso) {
 							return;
 						}
 						pass.SetGraphicsPipeline(
@@ -2000,7 +2075,8 @@ namespace Unnamed::Render {
 							ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS), postFxCb
 						);
 						pass.BindGraphicsSrvTable(
-							ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE), presentTexture
+							ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
+							presentTexture
 						);
 						pass.DrawFullscreenTriangle();
 					}
@@ -2027,7 +2103,8 @@ namespace Unnamed::Render {
 							1.0f
 						);
 					},
-					[](RenderPassContext&) {}
+					[](RenderPassContext&) {
+					}
 				);
 			}
 		}
@@ -2045,5 +2122,3 @@ namespace Unnamed::Render {
 		);
 	}
 }
-
-

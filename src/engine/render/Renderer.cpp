@@ -15,6 +15,18 @@
 namespace Unnamed::Render {
 	namespace {
 		constexpr std::string_view kRenderChannel = "Renderer";
+		constexpr uint64_t         kTextureCacheStatsLogIntervalFrames = 120;
+	}
+
+	Renderer::~Renderer() = default;
+
+	void Renderer::Shutdown(RenderDevice& renderDevice) {
+		mTextureResourceCache.ReleaseAll();
+		if (mSpriteFallbackTextureId != 0) {
+			renderDevice.GetRegistry().ReleaseTexture(mSpriteFallbackTextureId);
+			mSpriteFallbackTextureId = 0;
+		}
+		renderDevice.FlushGpuAndCollectGarbage();
 	}
 
 	void Renderer::RenderFrame(
@@ -26,6 +38,8 @@ namespace Unnamed::Render {
 		const auto&                 swapChain = rhi.GetSwapChain();
 		const uint32_t              backBufferWidth = swapChain.GetWidth();
 		const uint32_t              backBufferHeight = swapChain.GetHeight();
+		mTextureResourceCache.BeginFrame(inputs.frameIndex);
+
 		std::unordered_set<AssetID> dirtyMeshAssets;
 		bool                        materialsDirty = false;
 		bool                        postFxDirty    = false;
@@ -279,7 +293,40 @@ namespace Unnamed::Render {
 
 		rhi.BeginFrame();
 		mAdvancedFoundation.BeginFrame();
+		mTextureResourceCache.CollectGarbage();
 		renderDevice.GetRegistry().CollectGarbage(dx.GetCompletedFenceValue());
+		if (
+			inputs.frameIndex == 0 ||
+			inputs.frameIndex < mLastTextureCacheStatsLogFrame ||
+			(inputs.frameIndex - mLastTextureCacheStatsLogFrame) >=
+			kTextureCacheStatsLogIntervalFrames
+		) {
+			const TextureResourceCacheDebugStats cacheStats =
+				mTextureResourceCache.GetDebugStats();
+			const RgRegistryDebugStats registryStats =
+				renderDevice.GetRegistry().GetDebugStats();
+			DevMsg(
+				kRenderChannel,
+				"TextureCacheStats frame={} live={}, sprite={}, skybox={}, created={}, ttlReleased={}, versionRecreated={}, releaseAllReleased={}, failedResolve={}, frameTtlReleased={}, registryLiveTex={}, registryRetiredTex={}, registrySrvUavSlots={}, registryRtvSlots={}, registryDsvSlots={}, registryCpuSrvUavSlots={}",
+				inputs.frameIndex,
+				cacheStats.liveEntryCount,
+				cacheStats.spriteEntryCount,
+				cacheStats.skyboxEntryCount,
+				cacheStats.createdTextureCount,
+				cacheStats.ttlReleaseCount,
+				cacheStats.versionRecreateCount,
+				cacheStats.releaseAllReleaseCount,
+				cacheStats.failedResolveCount,
+				cacheStats.lastFrameReleasedByTtl,
+				registryStats.activeTextureCount,
+				registryStats.retiredResourceCount,
+				registryStats.srvUavActiveSlots,
+				registryStats.rtvActiveSlots,
+				registryStats.dsvActiveSlots,
+				registryStats.cpuSrvUavActiveSlots
+			);
+			mLastTextureCacheStatsLogFrame = inputs.frameIndex;
+		}
 
 		{
 			Profiler::ScopeTimer scope(profiler, "Render.BuildGraph");
