@@ -54,10 +54,10 @@ namespace Unnamed::Rhi {
 
 		mCommandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
 
-		const float clearColor[4] = {
-			color.r, color.g, color.b, color.a
+		const std::array clearColor{
+			color.r, color.g,color.b,color.a
 		};
-		mCommandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+		mCommandList->ClearRenderTargetView(rtv, clearColor.data(), 0, nullptr);
 	}
 
 	void D3D12CommandContext::SetSrvUavHeap(ID3D12DescriptorHeap* heap) {
