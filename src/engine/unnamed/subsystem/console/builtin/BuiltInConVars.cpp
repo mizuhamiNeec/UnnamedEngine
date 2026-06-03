@@ -480,7 +480,7 @@ namespace Unnamed {
 			"Slide ends when horizontal speed falls below this HU/s."
 		);
 		static ConVar park_slide_hopspeedcap(
-			"park_slide_hopspeedcap", 5000.0f,
+			"park_slide_hopspeedcap", 25000.0f,
 			FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Maximum slide speed cap in HU/s."
 		);
@@ -562,7 +562,7 @@ namespace Unnamed {
 			"Maximum vaultable wall height in HU."
 		);
 		static ConVar park_vault_minspeed(
-			"park_vault_minspeed", 150.0f,
+			"park_vault_minspeed", 32.0f,
 			FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Minimum speed in HU/s to start speed vault."
 		);
@@ -597,7 +597,7 @@ namespace Unnamed {
 			"Speed vault duration in seconds."
 		);
 		static ConVar park_vault_cooldown(
-			"park_vault_cooldown", 0.3f,
+			"park_vault_cooldown", 0.0f,
 			FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Speed vault cooldown in seconds."
 		);
@@ -613,7 +613,7 @@ namespace Unnamed {
 			"Blink cooldown in seconds."
 		);
 		static ConVar park_blink_moveduration(
-			"park_blink_moveduration", 0.08f,
+			"park_blink_moveduration", 0.1f,
 			FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Blink interpolation duration in seconds."
 		);
