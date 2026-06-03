@@ -643,7 +643,7 @@ namespace Unnamed {
 				}
 			}
 
-			static constexpr uint32_t kMaxFixedTicksPerFrame = 16u;
+			static constexpr uint32_t kMaxFixedTicksPerFrame = 1024u;
 
 			const uint32_t tickRate = mDemoService ?
 				                          mDemoService->
