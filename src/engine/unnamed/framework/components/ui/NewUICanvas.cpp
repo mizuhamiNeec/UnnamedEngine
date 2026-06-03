@@ -3,159 +3,59 @@
 #include "pch.h"
 
 #include <algorithm>
-#include <array>
+#include <string_view>
 
 #include "core/ComponentRegistry.h"
+#include "core/assets/AssetManager.h"
 
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
 #include "engine/unnamed/subsystem/console/concommand/ConVar.h"
-#include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 #include "engine/unnamed/ui/UIContext.h"
+#include "engine/unnamed/ui/UIFontAtlas.h"
 #include "engine/world/World.h"
 
 namespace Unnamed {
 	namespace {
-		struct FontOversamplePreset {
-			uint32_t h = 1;
-			uint32_t v = 1;
+		constexpr std::string_view kDefaultUIFontPath =
+			R"(.\content\core\fonts\JetBrainsMono.ttf)";
+
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+		constexpr const char* kTextAlignLabels[] = {
+			"Left",
+			"Center",
+			"Right",
 		};
 
-		constexpr std::array<float, 4> kTestFontSizes = {16.0f, 18.0f, 20.0f, 24.0f};
-		constexpr std::array<FontOversamplePreset, 4> kTestOversamplePresets = {
-			FontOversamplePreset{1, 1},
-			FontOversamplePreset{2, 2},
-			FontOversamplePreset{3, 1},
-			FontOversamplePreset{3, 2},
-		};
-		constexpr size_t kDefaultFontSizeIndex   = 0;
-		constexpr size_t kDefaultOversampleIndex = 1;
-
-		void ApplyTextQualityPreset(UI::UITheme& theme) {
-			int fontSizePresetIndex   = static_cast<int>(kDefaultFontSizeIndex);
-			int oversamplePresetIndex = static_cast<int>(kDefaultOversampleIndex);
-
-			if (auto* console = ServiceLocator::Get<ConsoleSystem>();
-				console != nullptr) {
-				if (const auto* fontSizePresetVar =
-					    console->GetConVarAs<ConVar<int>>(
-						    "ui_new_font_size_preset"
-					    );
-					fontSizePresetVar != nullptr) {
-					fontSizePresetIndex = std::clamp(
-						fontSizePresetVar->GetValue(),
-						0,
-						static_cast<int>(kTestFontSizes.size() - 1)
-					);
-				}
-
-				if (const auto* oversamplePresetVar =
-					    console->GetConVarAs<ConVar<int>>(
-						    "ui_new_font_oversample_preset"
-					    );
-					oversamplePresetVar != nullptr) {
-					oversamplePresetIndex = std::clamp(
-						oversamplePresetVar->GetValue(),
-						0,
-						static_cast<int>(kTestOversamplePresets.size() - 1)
-					);
-				}
+		[[nodiscard]] int ToComboIndex(const UI::UI_TEXT_ALIGN align) {
+			switch (align) {
+				case UI::UI_TEXT_ALIGN::LEFT: return 0;
+				case UI::UI_TEXT_ALIGN::RIGHT: return 2;
+				case UI::UI_TEXT_ALIGN::CENTER:
+				default: return 1;
 			}
-
-			theme.fontSize = kTestFontSizes[static_cast<size_t>(fontSizePresetIndex)];
-			theme.fontOversampleH =
-				kTestOversamplePresets[static_cast<size_t>(oversamplePresetIndex)].h;
-			theme.fontOversampleV =
-				kTestOversamplePresets[static_cast<size_t>(oversamplePresetIndex)].v;
-
-#ifdef _DEBUG
-			static int sLastFontPresetIndex   = -1;
-			static int sLastOversamplePresetIndex = -1;
-			if (
-				sLastFontPresetIndex != fontSizePresetIndex ||
-				sLastOversamplePresetIndex != oversamplePresetIndex
-			) {
-				DevMsg(
-					"UI",
-					"NewUICanvas text quality preset: fontSizePreset={}({}), oversamplePreset={}({}x{}).",
-					fontSizePresetIndex,
-					theme.fontSize,
-					oversamplePresetIndex,
-					theme.fontOversampleH,
-					theme.fontOversampleV
-				);
-				sLastFontPresetIndex       = fontSizePresetIndex;
-				sLastOversamplePresetIndex = oversamplePresetIndex;
-			}
-#endif
 		}
+
+		[[nodiscard]] UI::UI_TEXT_ALIGN ToTextAlign(const int index) {
+			switch (index) {
+				case 0: return UI::UI_TEXT_ALIGN::LEFT;
+				case 2: return UI::UI_TEXT_ALIGN::RIGHT;
+				case 1:
+				default: return UI::UI_TEXT_ALIGN::CENTER;
+			}
+		}
+#endif
 	}
 
 	void NewUICanvas::OnAttached() {
 		BaseComponent::OnAttached();
-		mTheme.buttonNormalColor = UI::UIColor{
-			.r = 0.14f,
-			.g = 0.18f,
-			.b = 0.28f,
-			.a = 1.0f
-		};
-		mTheme.buttonHoveredColor = UI::UIColor{
-			.r = 0.10f,
-			.g = 0.55f,
-			.b = 0.95f,
-			.a = 1.0f
-		};
-		mTheme.buttonPressedColor = UI::UIColor{
-			.r = 0.96f,
-			.g = 0.34f,
-			.b = 0.08f,
-			.a = 1.0f
-		};
-		mTheme.panelColor = UI::UIColor{
-			.r = 0.07f,
-			.g = 0.09f,
-			.b = 0.14f,
-			.a = 0.90f
-		};
-		mTheme.textColor = UI::UIColor{
-			.r = 0.98f,
-			.g = 0.98f,
-			.b = 0.98f,
-			.a = 1.0f
-		};
-		mTheme.panelPadding        = 16.0f;
-		mTheme.buttonTextPadding   = Vec2(14.0f, 12.0f);
-		mTheme.defaultGap          = 8.0f;
-		mTheme.defaultButtonHeight = 48.0f;
-		ApplyTextQualityPreset(mTheme);
-
-#ifdef _DEBUG
-		static bool sLoggedThemeFontSize = false;
-		if (!sLoggedThemeFontSize) {
-			DevMsg(
-				"UI",
-				"NewUICanvas test font settings: sizes=[{}, {}, {}, {}], oversamplePresets=[1x1, 2x2, 3x1, 3x2], activeSize={}, activeOversample={}x{}",
-				kTestFontSizes[0],
-				kTestFontSizes[1],
-				kTestFontSizes[2],
-				kTestFontSizes[3],
-				mTheme.fontSize,
-				mTheme.fontOversampleH,
-				mTheme.fontOversampleV
-			);
-			sLoggedThemeFontSize = true;
-		}
-#endif
 	}
 
-	void NewUICanvas::OnTick(float deltaTime) {
+	void NewUICanvas::OnTick(const float deltaTime) {
 		BaseComponent::OnTick(deltaTime);
 	}
 
-	void NewUICanvas::OnFrameInputTick(float frameDeltaTime) {
-		BaseComponent::OnFrameInputTick(frameDeltaTime);
-		ApplyTextQualityPreset(mTheme);
-
+	void NewUICanvas::OnFrameInputTick(const float frameDeltaTime) {
 		const auto* input = GetWorld()->GetInputSystem();
 		if (!input) {
 			mDrawCommands.clear();
@@ -164,68 +64,246 @@ namespace Unnamed {
 
 		UI::UnnamedUiInputState inputState;
 		inputState.mousePosition = input->GetMouseClientPosition();
+
+		// 暫定的に攻撃ボタンを左クリックとして使用
 		inputState.mousePressed  = input->IsPressed("attack1");
 		inputState.mouseReleased = input->IsReleased("attack1");
 		inputState.mouseDown     = input->IsHeld("attack1");
 
-		UI::UIContext uiContext;
-		uiContext.BeginFrame(inputState);
-		uiContext.SetTheme(mTheme);
+		mContext.BeginFrame(inputState, frameDeltaTime);
+		mContext.SetTheme(mTheme);
+		if (AssetManager* assetManager = GetAssetManager()) {
+			UI::UIFontAtlas* fontAtlas = UI::GetUIFontAtlasCache().GetOrCreate(
+				UI::MakeUIFontAtlasKey(
+					kDefaultUIFontPath,
+					mTheme.fontSize,
+					mTheme.fontOversampleH,
+					mTheme.fontOversampleV
+				),
+				*assetManager
+			);
+			mContext.SetFontAtlas(fontAtlas);
+		}
 
-		const Vec2 panelPosition = Vec2(24.0f, 24.0f);
-		const Vec2 panelSize     = Vec2(288.0f, 224.0f);
-		const UI::UIRect panelRect{
+		constexpr auto       panelPosition = Vec2(24.0f, 24.0f);
+		constexpr auto       panelSize     = Vec2(1024.0f, 1024.0f);
+		constexpr UI::UIRect panelRect{
 			.position = panelPosition,
 			.size     = panelSize,
 		};
-		uiContext.BeginPanel(panelRect);
+		mContext.BeginPanel(panelRect);
 
-		uiContext.BeginColumn(
-			panelPosition + Vec2(mTheme.panelPadding, mTheme.panelPadding),
-			mTheme.defaultGap
-		);
+		const auto buttonSize = Vec2(128.0f, mTheme.buttonHeight);
 
-		const Vec2 buttonSize = Vec2(240.0f, mTheme.defaultButtonHeight);
-		if (uiContext.Button("Play", buttonSize)) {
-			Msg("UI", "Play clicked");
-		}
-		if (uiContext.Button("Settings", buttonSize)) {
-			Msg("UI", "Settings clicked");
-		}
-		if (uiContext.Button("Exit", buttonSize)) {
-			Msg("UI", "Exit clicked");
-		}
-
-		uiContext.EndColumn();
-		uiContext.EndPanel();
-
-		uiContext.EndFrame();
-
-		const auto& commands = uiContext.GetDrawList().GetCommands();
-		mDrawCommands.assign(commands.begin(), commands.end());
-
-#ifdef _DEBUG
-		static bool sLoggedDrawCommandCount = false;
-		if (!sLoggedDrawCommandCount) {
-			DevMsg(
-				"UI",
-				"NewUICanvas generated {} UIDrawCommand(s).",
-				mDrawCommands.size()
+		{
+			mContext.BeginColumn(
+				panelPosition + Vec2(mTheme.panelPadding, mTheme.panelPadding),
+				mTheme.defaultGap
 			);
-			sLoggedDrawCommandCount = true;
+
+			mContext.Label("Main Menu");
+			mContext.Separator();
+			mContext.Spacer(8.0f);
+
+			if (mContext.Button("Play", buttonSize)) {
+				Msg("UI", "Play button clicked!");
+			}
+
+			if (mContext.Button("Settings", buttonSize)) {
+				Msg("UI", "Settings button clicked!");
+			}
+
+			if (mContext.Button("Exit", buttonSize)) {
+				Msg("UI", "Exit button clicked!");
+			}
+
+			if (mContext.Checkbox("Show Debug", &mShowDebug)) {
+				Msg("UI", "Show Debug checkbox toggled: {}", mShowDebug);
+			}
+
+			if (mContext.Checkbox("Enable Bloom", &mEnableBloom)) {
+				Msg("UI", "Enable Bloom checkbox toggled: {}",
+				    mEnableBloom);
+			}
+
+			if (mContext.SliderFloat("Volume", &mVolume, 0.0f, 1.0f)) {
+				Msg("UI", "Volume slider changed: {:.2f}", mVolume);
+			}
+
+			mContext.PushID("Player");
+			if (mContext.SliderFloat("Speed", &mPlayerSpeed, 0.0f, 10.0f)) {
+				Msg("UI", "Player Speed slider changed: {:.2f}", mPlayerSpeed);
+			}
+			mContext.PopID();
+
+			mContext.PushID("Enemy");
+			if (mContext.SliderFloat("Speed", &mEnemySpeed, 0.0f, 10.0f)) {
+				Msg("UI", "Enemy Speed slider changed: {:.2f}", mEnemySpeed);
+			}
+			mContext.PopID();
+
+			mContext.Spacer(16.0f);
+
+			mContext.Label("Actions");
+			mContext.Separator();
+
+			{
+				mContext.BeginRow(panelPosition + Vec2(mTheme.panelPadding, 256.0f + mTheme.defaultGap)  ,mTheme.defaultGap);
+
+				if (mContext.Button("OK", buttonSize)) {
+					Msg("UI", "OK button clicked!");
+				}
+
+				if (mContext.Button("Cancel", buttonSize)) {
+					Msg("UI", "Cancel button clicked!");
+				}
+
+				mContext.EndRow();
+			}
+			
+			mContext.EndColumn();
 		}
-#endif
+
+		mContext.EndPanel();
+
+		mContext.EndFrame();
+
+		const auto& commands = mContext.GetDrawList().GetCommands();
+		mDrawCommands.assign(commands.begin(), commands.end());
 	}
 
 	void NewUICanvas::OnRenderTick(
-		float renderDeltaTime, float interpolationAlpha
+		const float renderDeltaTime, const float interpolationAlpha
 	) {
 		BaseComponent::OnRenderTick(renderDeltaTime, interpolationAlpha);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void NewUICanvas::DrawInspectorImGui() {
-		BaseComponent::DrawInspectorImGui();
+		ImGui::SeparatorText("==THEME==");
+
+		ImGui::SeparatorText("Button");
+
+		ImGui::DragFloat2("ButtonTextPadding", &mTheme.buttonTextPadding.x);
+
+		ImGui::DragFloat("DefaultButtonHeight", &mTheme.buttonHeight);
+
+		ImGui::ColorEdit4("ButtonBorderColor", &mTheme.buttonBorderColor.r);
+		ImGui::DragFloat("ButtonBorderWidth", &mTheme.buttonBorderWidth);
+
+		int buttonTextAlignIndex = ToComboIndex(mTheme.buttonTextAlign);
+		if (
+			ImGui::Combo(
+				"ButtonTextAlign",
+				&buttonTextAlignIndex,
+				kTextAlignLabels,
+				3
+			)
+		) {
+			mTheme.buttonTextAlign = ToTextAlign(buttonTextAlignIndex);
+		}
+
+		ImGui::ColorEdit4("Normal", &mTheme.buttonNormalColor.r);
+		ImGui::ColorEdit4("Hovered", &mTheme.buttonHoveredColor.r);
+		ImGui::ColorEdit4("Pressed", &mTheme.buttonPressedColor.r);
+
+		ImGui::SeparatorText("Panel");
+
+		ImGui::ColorEdit4("Panel##Color", &mTheme.panelColor.r);
+		ImGui::DragFloat("PanelPadding", &mTheme.panelPadding);
+
+		ImGui::ColorEdit4("PanelBorderColor", &mTheme.panelBorderColor.r);
+		ImGui::DragFloat("PanelBorderWidth", &mTheme.panelBorderWidth);
+
+		ImGui::SeparatorText("Text");
+
+		ImGui::ColorEdit4("Text##Color", &mTheme.textColor.r);
+
+		ImGui::SeparatorText("Font");
+
+		ImGui::DragFloat("FontSize", &mTheme.fontSize);
+
+		int fontOversampleH = static_cast<int>(mTheme.fontOversampleH);
+		if (ImGui::DragInt("FontOversampleH", &fontOversampleH, 1.0f, 1, 64)) {
+			mTheme.fontOversampleH = static_cast<uint32_t>(std::max(
+				fontOversampleH, 1
+			));
+		}
+
+		int fontOversampleV = static_cast<int>(mTheme.fontOversampleV);
+		if (ImGui::DragInt("FontOversampleV", &fontOversampleV, 1.0f, 1, 64)) {
+			mTheme.fontOversampleV = static_cast<uint32_t>(std::max(
+				fontOversampleV, 1
+			));
+		}
+
+		ImGui::SeparatorText("FontAtlas Cache");
+		const UI::UIFontAtlasCacheDebugInfo cacheInfo =
+			UI::GetUIFontAtlasCache().
+			GetDebugInfo();
+		ImGui::Text(
+			"Cache: %zu / %zu",
+			cacheInfo.cacheCount,
+			cacheInfo.maxCacheEntries
+		);
+		ImGui::Text(
+			"CreateRuntimeAsset calls: %llu",
+			static_cast<unsigned long long>(cacheInfo.
+				createRuntimeAssetCallCount
+			)
+		);
+		ImGui::Text(
+			"DestroyRuntimeAsset calls: %llu (failed: %llu)",
+			static_cast<unsigned long long>(cacheInfo.
+				destroyRuntimeAssetCallCount
+			),
+			static_cast<unsigned long long>(
+				cacheInfo.destroyRuntimeAssetFailedCount
+			)
+		);
+		if (AssetManager* assetManager = GetWorld() ?
+			                                 GetWorld()->GetAssetManager() :
+			                                 nullptr) {
+			const AssetManager::DebugStats assetStats =
+				assetManager->GetDebugStats();
+			ImGui::Text(
+				"AssetManager runtime textures: %zu, destroyed: %zu",
+				assetStats.runtimeTextureAssetCount,
+				assetStats.destroyedRuntimeAssetCount
+			);
+			ImGui::Text(
+				"Loaded TextureAssetData: %zu, DestroyRuntimeAsset total: %llu",
+				assetStats.loadedTextureAssetCount,
+				static_cast<unsigned long long>(
+					assetStats.destroyRuntimeAssetCount
+				)
+			);
+		}
+		ImGui::Text(
+			"Current key: size100=%d, oversample=%ux%u",
+			cacheInfo.currentKey.fontSize100,
+			cacheInfo.currentKey.oversampleH,
+			cacheInfo.currentKey.oversampleV
+		);
+		ImGui::Text(
+			"Current atlas assetId: %u",
+			cacheInfo.currentTextureAssetId
+		);
+		ImGui::Text(
+			"Current font path: %s",
+			cacheInfo.currentKey.fontPath.c_str()
+		);
+		if (ImGui::Button("Clear Font Cache")) {
+			if (AssetManager* assetManager = GetWorld() ?
+				                                 GetWorld()->GetAssetManager() :
+				                                 nullptr) {
+				UI::GetUIFontAtlasCache().Clear(assetManager);
+			} else {
+				Warning("UI", "Clear Font Cache failed: AssetManager is null.");
+			}
+		}
+
+		ImGui::DragFloat("DefaultGap", &mTheme.defaultGap);
 	}
 #endif
 

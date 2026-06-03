@@ -7,6 +7,8 @@
 
 #include "../base/BaseComponent.h"
 
+#include "engine/unnamed/ui/UIContext.h"
+
 namespace Unnamed {
 	class NewUICanvas : public BaseComponent {
 	public:
@@ -20,7 +22,7 @@ namespace Unnamed {
 			float renderDeltaTime, float interpolationAlpha
 		) override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -28,7 +30,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		void                           Deserialize(const JsonReader& reader)
-			override;
+		override;
 		void Serialize(JsonWriter& writer) const override;
 
 		/// @brief 前回のフレーム入力更新で生成されたUI描画コマンドを返します。
@@ -36,7 +38,15 @@ namespace Unnamed {
 		GetDrawCommands() const;
 
 	private:
-		UI::UITheme mTheme = {};
+		UI::UIContext mContext;
+
+		UI::UITheme                    mTheme = {};
 		std::vector<UI::UIDrawCommand> mDrawCommands;
+
+		bool  mShowDebug   = false;
+		bool  mEnableBloom = true;
+		float mVolume      = 0.5f;
+		float mPlayerSpeed = 3.0f;
+		float mEnemySpeed  = 6.0f;
 	};
 }
