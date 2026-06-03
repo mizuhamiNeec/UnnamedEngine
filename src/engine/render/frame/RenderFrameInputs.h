@@ -130,7 +130,7 @@ namespace Unnamed::Render {
 		Vec4    color          = Vec4::one;
 		float   rotationRad    = 0.0f;
 		int32_t sortKey        = 0;
-		bool    uvFlipY        = false;
+		bool    uvFlipY        = true;
 		bool    depthTest      = true;
 	};
 
@@ -143,7 +143,7 @@ namespace Unnamed::Render {
 		Vec4    color          = Vec4::one;
 		float   rotationRad    = 0.0f;
 		int32_t sortKey        = 0;
-		bool    uvFlipY        = false;
+		bool    uvFlipY        = true;
 	};
 
 	struct DebugLineInput {
