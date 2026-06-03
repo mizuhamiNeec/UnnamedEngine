@@ -55,7 +55,8 @@ _ReSharper*/
 imgui.ini
 
 # Compiled Shaders
-**/Shaders/Compiled/
+**/Shaders/Compiled/*
+!**/Shaders/Compiled/*.inc
 
 # --- Repo-specific ---
 /ClassDiagram.cd
