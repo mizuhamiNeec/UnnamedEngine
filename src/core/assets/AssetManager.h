@@ -20,6 +20,15 @@ namespace Unnamed {
 	public:
 		using ReloadCallback = std::function<void(AssetID id)>;
 
+		struct DebugStats {
+			size_t   runtimeAssetCount          = 0;
+			size_t   runtimeTextureAssetCount   = 0;
+			size_t   destroyedRuntimeAssetCount = 0;
+			size_t   loadedTextureAssetCount    = 0;
+			uint64_t unloadUnusedFreedCount     = 0;
+			uint64_t destroyRuntimeAssetCount   = 0;
+		};
+
 		enum class AssetLoadPolicy : uint8_t {
 			UseCachedIfLoaded,
 			ForceReload,
@@ -57,6 +66,21 @@ namespace Unnamed {
 			T&&                         payload,
 			const std::vector<AssetID>& dependencies = {}
 		);
+
+		/// @brief ランタイムアセットかどうかを取得します
+		/// @param id アセットのID
+		/// @return ランタイムアセットの場合true
+		[[nodiscard]] bool IsRuntimeAsset(AssetID id) const;
+
+		/// @brief 明示破棄済みのランタイムアセットかどうかを取得します
+		/// @param id アセットのID
+		/// @return 明示破棄済みの場合true
+		[[nodiscard]] bool IsDestroyedRuntimeAsset(AssetID id) const;
+
+		/// @brief 参照されていないランタイムアセットを明示破棄します
+		/// @param id 破棄するアセットのID
+		/// @return 破棄に成功した場合true
+		bool DestroyRuntimeAsset(AssetID id);
 
 		/// @brief アセットの参照カウントを増やします
 		/// @param id アセットのID
@@ -116,6 +140,10 @@ namespace Unnamed {
 		[[nodiscard]]
 		size_t UnloadUnused();
 
+		/// @brief アセットマネージャーのデバッグ統計を取得します
+		/// @return デバッグ統計
+		[[nodiscard]] DebugStats GetDebugStats() const;
+
 		/// @brief パスからアセットを検索します
 		/// @param path 検索するアセットのパス
 		/// @return 見つかったアセットのID、見つからなかった場合はkInvalidAssetID
@@ -164,5 +192,8 @@ namespace Unnamed {
 
 		std::vector<std::unique_ptr<IAssetLoader>> mLoaders;
 		std::vector<ReloadCallback>                mReloadCallbacks;
+
+		uint64_t mUnloadUnusedFreedCount   = 0;
+		uint64_t mDestroyRuntimeAssetCount = 0;
 	};
 }

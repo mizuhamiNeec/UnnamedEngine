@@ -226,6 +226,8 @@ namespace Unnamed {
 			n.payload        = std::move(r.payload);
 			n.meta.type      = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
 			n.meta.loaded    = true;
+			n.meta.runtime   = false;
+			n.meta.destroyed = false;
 			n.meta.fileStamp = CompleteFileStamp(n.meta.sourcePath, r.stamp);
 
 			// 名前の解決
@@ -259,6 +261,10 @@ namespace Unnamed {
 		Node&            n     = mNodes[id];
 		n.meta.type            = type;
 		n.meta.name            = std::move(name);
+		n.meta.sourcePath.clear();
+		n.meta.fileStamp       = {};
+		n.meta.runtime         = true;
+		n.meta.destroyed       = false;
 		n.meta.loaded          = true;
 		n.payload              = std::forward<T>(payload);
 		mNameToID[n.meta.name] = id;
@@ -283,9 +289,115 @@ namespace Unnamed {
 		const std::vector<AssetID>&
 	);
 
+	bool AssetManager::IsRuntimeAsset(const AssetID id) const {
+		std::scoped_lock lock(mMutex);
+		if (id == kInvalidAssetID || id >= mNextID) {
+			return false;
+		}
+		return mNodes[id].meta.runtime;
+	}
+
+	bool AssetManager::IsDestroyedRuntimeAsset(const AssetID id) const {
+		std::scoped_lock lock(mMutex);
+		if (id == kInvalidAssetID || id >= mNextID) {
+			return false;
+		}
+		const AssetMetaData& meta = mNodes[id].meta;
+		return meta.runtime && meta.destroyed;
+	}
+
+	bool AssetManager::DestroyRuntimeAsset(const AssetID id) {
+		std::scoped_lock lock(mMutex);
+		if (id == kInvalidAssetID || id >= mNextID) {
+			Warning(kChannel, "DestroyRuntimeAsset rejected: invalid assetId={}", id);
+			return false;
+		}
+
+		Node&          n    = mNodes[id];
+		AssetMetaData& meta = n.meta;
+		if (!meta.runtime) {
+			Warning(
+				kChannel,
+				"DestroyRuntimeAsset rejected: assetId={} is not a runtime asset.",
+				id
+			);
+			return false;
+		}
+		if (meta.destroyed) {
+			Warning(
+				kChannel,
+				"DestroyRuntimeAsset rejected: assetId={} is already destroyed.",
+				id
+			);
+			return false;
+		}
+		if (meta.strongRefs > 0) {
+			Warning(
+				kChannel,
+				"DestroyRuntimeAsset rejected: assetId={} still has strongRefs={}.",
+				id,
+				meta.strongRefs
+			);
+			return false;
+		}
+
+		std::vector<AssetID> activeDependents;
+		for (const AssetID dependent : n.dependents) {
+			if (
+				dependent == kInvalidAssetID || dependent >= mNextID ||
+				mNodes[dependent].meta.destroyed
+			) {
+				continue;
+			}
+			activeDependents.emplace_back(dependent);
+		}
+		if (!activeDependents.empty()) {
+			Warning(
+				kChannel,
+				"DestroyRuntimeAsset rejected: assetId={} is still referenced by {} dependent asset(s).",
+				id,
+				activeDependents.size()
+			);
+			return false;
+		}
+
+		SetDependencies(id);
+
+		// name lookupは破棄済みruntime assetの誤用検出に使うため、
+		// active assetとしては返さずFindByName側でWarningに寄せます。
+		const auto pathIt = mPathToID.find(meta.sourcePath);
+		if (
+			!meta.sourcePath.empty() && pathIt != mPathToID.end() &&
+			pathIt->second == id
+		) {
+			mPathToID.erase(pathIt);
+		}
+
+		n.payload      = std::monostate{};
+		n.dependents.clear();
+		meta.loaded    = false;
+		meta.destroyed = true;
+		meta.version++;
+		mDestroyRuntimeAssetCount++;
+
+		DevMsg(
+			kChannel,
+			"Destroyed runtime asset payload: assetId={}, name='{}', type={}",
+			id,
+			meta.name,
+			ToString(meta.type)
+		);
+		return true;
+	}
+
 	void AssetManager::AddRef(const AssetID id) {
 		std::scoped_lock lock(mMutex);
 		if (id == kInvalidAssetID || id >= mNextID) {
+			return;
+		}
+		const AssetMetaData& meta = mNodes[id].meta;
+		if (meta.runtime && meta.destroyed) {
+			Warning(kChannel, "AddRef ignored for destroyed runtime assetId={}", id);
 			return;
 		}
 		mNodes[id].meta.strongRefs++;
@@ -297,6 +409,10 @@ namespace Unnamed {
 			return;
 		}
 		auto& n = mNodes[id].meta;
+		if (n.runtime && n.destroyed) {
+			Warning(kChannel, "Release ignored for destroyed runtime assetId={}", id);
+			return;
+		}
 		if (n.strongRefs > 0) {
 			n.strongRefs--;
 		}
@@ -309,6 +425,10 @@ namespace Unnamed {
 			return;
 		}
 		Node& n = mNodes[id];
+		if (n.meta.runtime && n.meta.destroyed) {
+			Warning(kChannel, "SetDependencies ignored for destroyed runtime assetId={}", id);
+			return;
+		}
 
 		for (const auto dep : n.dependencies) {
 			if (dep == kInvalidAssetID || dep >= mNextID) {
@@ -318,13 +438,26 @@ namespace Unnamed {
 			std::erase(vec, id);
 		}
 
-		n.dependencies = dependencies;
-
-		// 依存先のdependentsを更新
-		for (const auto dep : n.dependencies) {
+		n.dependencies.clear();
+		n.dependencies.reserve(dependencies.size());
+		for (const AssetID dep : dependencies) {
 			if (dep == kInvalidAssetID || dep >= mNextID) {
 				continue;
 			}
+			if (mNodes[dep].meta.runtime && mNodes[dep].meta.destroyed) {
+				Warning(
+					kChannel,
+					"SetDependencies skipped destroyed runtime dependency: assetId={}, dependency={}",
+					id,
+					dep
+				);
+				continue;
+			}
+			n.dependencies.emplace_back(dep);
+		}
+
+		// 依存先のdependentsを更新
+		for (const auto dep : n.dependencies) {
 			auto& depBy = mNodes[dep].dependents;
 			if (std::ranges::find(depBy, id) == depBy.end()) {
 				depBy.emplace_back(id);
@@ -342,6 +475,11 @@ namespace Unnamed {
 	const T* AssetManager::Get(const AssetID id) const {
 		std::scoped_lock lock(mMutex);
 		if (id == kInvalidAssetID || id >= mNextID) {
+			return nullptr;
+		}
+		const AssetMetaData& meta = mNodes[id].meta;
+		if (meta.runtime && meta.destroyed) {
+			Warning(kChannel, "Get ignored for destroyed runtime assetId={}", id);
 			return nullptr;
 		}
 		const auto& v = mNodes[id].payload;
@@ -386,6 +524,10 @@ namespace Unnamed {
 		}
 
 		Node& n = mNodes[id];
+		if (n.meta.runtime && n.meta.destroyed) {
+			Warning(kChannel, "Reload rejected for destroyed runtime assetId={}", id);
+			return false;
+		}
 
 		// ソースパスが空か?
 		if (n.meta.sourcePath.empty()) {
@@ -408,6 +550,7 @@ namespace Unnamed {
 			LoadResult r     = l->Load(n.meta.sourcePath);
 			n.payload        = std::move(r.payload);
 			n.meta.loaded    = true;
+			n.meta.destroyed = false;
 			n.meta.fileStamp = CompleteFileStamp(n.meta.sourcePath, r.stamp);
 			n.meta.version++;
 
@@ -475,7 +618,10 @@ namespace Unnamed {
 			changed.reserve(mNextID);
 			for (AssetID id = 1; id < mNextID; ++id) {
 				const Node& node = mNodes[id];
-				if (!node.meta.loaded || node.meta.sourcePath.empty()) {
+				if (
+					node.meta.destroyed || !node.meta.loaded ||
+					node.meta.sourcePath.empty()
+				) {
 					continue;
 				}
 
@@ -516,6 +662,9 @@ namespace Unnamed {
 		size_t           freed = 0;
 		for (AssetID id = 1; id < mNextID; ++id) {
 			Node& n = mNodes[id];
+			if (n.meta.runtime && n.meta.destroyed) {
+				continue;
+			}
 			// ロードされていないか?
 			if (!n.meta.loaded) {
 				continue;
@@ -544,7 +693,37 @@ namespace Unnamed {
 			n.meta.loaded = false;
 			freed++;
 		}
+		mUnloadUnusedFreedCount += freed;
 		return freed;
+	}
+
+	AssetManager::DebugStats AssetManager::GetDebugStats() const {
+		std::scoped_lock lock(mMutex);
+		DebugStats       stats = {};
+		stats.unloadUnusedFreedCount   = mUnloadUnusedFreedCount;
+		stats.destroyRuntimeAssetCount = mDestroyRuntimeAssetCount;
+
+		for (AssetID id = 1; id < mNextID; ++id) {
+			const Node&          node = mNodes[id];
+			const AssetMetaData& meta = node.meta;
+			if (meta.runtime) {
+				stats.runtimeAssetCount++;
+				if (meta.type == ASSET_TYPE::TEXTURE) {
+					stats.runtimeTextureAssetCount++;
+				}
+			}
+			if (meta.runtime && meta.destroyed) {
+				stats.destroyedRuntimeAssetCount++;
+			}
+			if (
+				meta.loaded &&
+				std::holds_alternative<TextureAssetData>(node.payload)
+			) {
+				stats.loadedTextureAssetCount++;
+			}
+		}
+
+		return stats;
 	}
 
 	AssetID AssetManager::FindByPath(const std::string_view path) const {
@@ -558,7 +737,23 @@ namespace Unnamed {
 	AssetID AssetManager::FindByName(const std::string_view name) const {
 		std::scoped_lock lock(mMutex);
 		const auto       it = mNameToID.find(std::string(name));
-		return it != mNameToID.end() ? it->second : kInvalidAssetID;
+		if (it == mNameToID.end()) {
+			return kInvalidAssetID;
+		}
+		const AssetID id = it->second;
+		if (id != kInvalidAssetID && id < mNextID) {
+			const AssetMetaData& meta = mNodes[id].meta;
+			if (meta.runtime && meta.destroyed) {
+				Warning(
+					kChannel,
+					"FindByName ignored destroyed runtime asset: name='{}', assetId={}",
+					name,
+					id
+				);
+				return kInvalidAssetID;
+			}
+		}
+		return id;
 	}
 
 	std::vector<AssetID> AssetManager::AllAssets() const {
@@ -595,6 +790,8 @@ namespace Unnamed {
 		node.meta.type       = type;
 		node.meta.sourcePath = normalized;
 		node.meta.loaded     = false;
+		node.meta.runtime    = false;
+		node.meta.destroyed  = false;
 		node.meta.name = Path::ToUtf8String(
 			Path::FromUtf8(normalized).filename()
 		);
