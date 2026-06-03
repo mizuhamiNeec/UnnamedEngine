@@ -72,8 +72,6 @@ nav:
       - コンポーネント:
         - component.md
         - transformcomponent.md
-  - 新規ゲーム作成:
-    - create-new-game.md
   - エンジン内蔵コンポーネント: 
     - engine-components.md
 
