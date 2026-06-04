@@ -86,6 +86,7 @@ namespace Unnamed::Render {
 
 		/// @brief レンダリンググラフの構築
 		/// @param renderDevice 描画に使用するRenderDevice
+		/// @param frameViews フレーム内の全てのRenderViewInput
 		void BuildGraph(
 			RenderDevice&                       renderDevice,
 			const std::vector<RenderViewInput>& frameViews
@@ -139,6 +140,11 @@ namespace Unnamed::Render {
 			AABB                                   localAABB  = {};
 		};
 
+		// Current contract:
+		// - Material shader used by Geometry pass must be compatible with GeomRootSignature.
+		// - Supported bindings are the existing geometry root slots only.
+		// - Additional material texture slots, custom constant buffers, and shader reflection are not supported yet.
+		// - Non-compatible shaders may compile/resolve but can fail at draw time.
 		struct MaterialBinding {
 			Rhi::MaterialConstants constants = {};
 			AssetID materialInstanceId = kInvalidAssetID;

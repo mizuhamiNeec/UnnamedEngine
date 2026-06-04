@@ -611,6 +611,7 @@ namespace Unnamed::Render {
 			binding.shaderProgramId    = mat->shaderProgramId;
 			binding.renderState        = mat->renderState;
 
+			// Material pipeline warnings are emitted when the binding is created, so they do not repeat every frame.
 			if (binding.shaderProgramId == kInvalidAssetID) {
 				Warning(
 					"Renderer",
@@ -645,6 +646,7 @@ namespace Unnamed::Render {
 				binding.shaderProgramId != kInvalidAssetID &&
 				mGeometryVertexLayout.stride != 0
 			) {
+				// See Renderer::MaterialBinding for the current Geometry material shader contract.
 				GraphicsPipelineSpec spec =
 					RendererPipelineCatalog::MakeGeometryPreset(
 						"MaterialGeometry_" +

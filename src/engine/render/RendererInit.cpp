@@ -185,6 +185,7 @@ namespace Unnamed::Render {
 		auto& assetManager = renderDevice.GetAssetManager();
 
 		mPipelineRegistry.Clear();
+		// Pipeline handles become invalid after catalog rebuild; material bindings rebuild their variants on next load.
 		ReleaseMaterialBindings(renderDevice);
 
 		const AssetID fullscreenProgramId = LoadAsset(

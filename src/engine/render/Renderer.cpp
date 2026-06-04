@@ -56,7 +56,7 @@ namespace Unnamed::Render {
 			}
 		}
 		if (materialsDirty) {
-			// Hot reload 時は既存マテリアルバインディングを破棄して再構築します。
+			// Hot reload invalidates material constants, texture SRVs, pipeline handles, and resolved PSO pointers.
 			ReleaseMaterialBindings(renderDevice);
 		}
 		if (postFxDirty) {
@@ -492,6 +492,13 @@ namespace Unnamed::Render {
 
 	void Renderer::ReleaseMaterialBindings(RenderDevice& renderDevice) {
 		auto& registry = renderDevice.GetRegistry();
+		if (!mMaterialBindings.empty()) {
+			DevMsg(
+				kRenderChannel,
+				"Releasing {} material bindings and invalidating material geometry pipeline variants.",
+				mMaterialBindings.size()
+			);
+		}
 		for (const auto& [materialInstanceId, binding] : mMaterialBindings) {
 			(void)materialInstanceId;
 			if (binding.albedoTextureId != 0) {
