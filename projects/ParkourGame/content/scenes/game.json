@@ -1401,8 +1401,8 @@
                         "attachCommands": [
                             "sv_gravity 1000",
                             "sv_airaccelerate 100000000000000000000",
-                            "bind f9 \"demo_record S:/Repositories/UE/projects/ParkourGame/content/replay/title_demo.udemo\"",
-                            "bind f8 \"demo_play S:/Repositories/UE/projects/ParkourGame/content/replay/title_demo.udemo\"",
+                            "bind f9 \"demo_record ./projects/ParkourGame/content/replay/title_demo.udemo\"",
+                            "bind f8 \"demo_play ./projects/ParkourGame/content/replay/title_demo.udemo\"",
                             "bind f7 \"demo_stop\""
                         ],
                         "detachCommands": []
