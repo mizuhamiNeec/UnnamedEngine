@@ -16,6 +16,8 @@ namespace Unnamed::Render {
 		MATERIAL = 2,
 		SKINNING = 3,
 		BASE_COLOR_TEXTURE = 4,
+		SHADOW_CONSTANTS = 5,
+		SHADOW_MAP = 6,
 	};
 
 	/// @brief コンピュート描画ルートシグネチャのルートパラメータスロット。

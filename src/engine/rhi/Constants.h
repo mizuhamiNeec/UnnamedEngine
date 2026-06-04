@@ -66,4 +66,18 @@ namespace Unnamed::Rhi {
 		sizeof(MaterialConstants) <= 256,
 		"MaterialConstants must be 256 bytes or less"
 	);
+
+	struct alignas(16) ShadowConstants {
+		Mat4 lightViewProj = Mat4::identity;
+		Vec4 params        = Vec4::zero; // x=depthBias, y=strength, z=texelSize, w=enabled
+	};
+
+	static_assert(
+		sizeof(ShadowConstants) % 16 == 0,
+		"ShadowConstants must be 16-byte aligned"
+	);
+	static_assert(
+		sizeof(ShadowConstants) <= 256,
+		"ShadowConstants must be 256 bytes or less"
+	);
 }

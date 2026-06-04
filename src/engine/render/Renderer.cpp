@@ -23,6 +23,12 @@ namespace Unnamed::Render {
 	void Renderer::Shutdown(RenderDevice& renderDevice) {
 		mTextureResourceCache.ReleaseAll();
 		ReleaseMaterialBindings(renderDevice);
+		if (mDirectionalShadow.shadowDepthTextureId != 0) {
+			renderDevice.GetRegistry().ReleaseTexture(
+				mDirectionalShadow.shadowDepthTextureId
+			);
+			mDirectionalShadow.shadowDepthTextureId = 0;
+		}
 		if (mSpriteFallbackTextureId != 0) {
 			renderDevice.GetRegistry().ReleaseTexture(mSpriteFallbackTextureId);
 			mSpriteFallbackTextureId = 0;
@@ -539,6 +545,12 @@ namespace Unnamed::Render {
 
 		mGeometryPass.resolved = mPipelineRegistry.GetGraphics(
 			mGeometryPass.pipeline
+		);
+		mShadowDepthPass.resolved = mPipelineRegistry.GetGraphics(
+			mShadowDepthPass.pipeline
+		);
+		mShadowDepthDoubleSidedPass.resolved = mPipelineRegistry.GetGraphics(
+			mShadowDepthDoubleSidedPass.pipeline
 		);
 		mSkyboxPass.geom.resolved = mPipelineRegistry.GetGraphics(
 			mSkyboxPass.geom.pipeline

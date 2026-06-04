@@ -198,6 +198,11 @@ namespace Unnamed::Render {
 			"./content/core/shaders/programs/depth_vis.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
+		const AssetID depthOnlyProgramId = LoadAsset(
+			assetManager,
+			"./content/core/shaders/programs/depth_only.shader.json",
+			ASSET_TYPE::SHADER_PROGRAM
+		);
 		const AssetID geomProgramId = LoadAsset(
 			assetManager,
 			"./content/core/shaders/programs/pbr.shader.json",
@@ -358,6 +363,35 @@ namespace Unnamed::Render {
 			)
 		);
 		mGeometryPass.resolved = nullptr;
+
+		auto shadowDepthSpec = RendererPipelineCatalog::MakeGeometryPreset(
+			"ShadowDepthOnly",
+			depthOnlyProgramId,
+			dx.GetGeomRootSignature(),
+			DXGI_FORMAT_UNKNOWN,
+			DXGI_FORMAT_D32_FLOAT,
+			geometryLayout
+		);
+		shadowDepthSpec.psoTemplate.numRenderTargets     = 0;
+		shadowDepthSpec.psoTemplate.rtvFormat            =
+			DXGI_FORMAT_UNKNOWN;
+		shadowDepthSpec.psoTemplate.depthEnable          = true;
+		shadowDepthSpec.psoTemplate.depthWriteEnable     = true;
+		shadowDepthSpec.psoTemplate.depthFunc            =
+			D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+		shadowDepthSpec.psoTemplate.blendEnable          = false;
+		mShadowDepthPass.pipeline = mPipelineRegistry.RegisterGraphics(
+			shadowDepthSpec
+		);
+		mShadowDepthPass.resolved = nullptr;
+
+		auto shadowDepthDoubleSidedSpec = shadowDepthSpec;
+		shadowDepthDoubleSidedSpec.debugName = "ShadowDepthOnlyDoubleSided";
+		shadowDepthDoubleSidedSpec.psoTemplate.cullMode =
+			D3D12_CULL_MODE_NONE;
+		mShadowDepthDoubleSidedPass.pipeline =
+			mPipelineRegistry.RegisterGraphics(shadowDepthDoubleSidedSpec);
+		mShadowDepthDoubleSidedPass.resolved = nullptr;
 
 		auto skyboxSpec = RendererPipelineCatalog::MakeGeometryPreset(
 			"Skybox",

@@ -636,7 +636,7 @@ namespace Unnamed::Render {
 			) {
 				DevMsg(
 					"Renderer",
-					"Material instance {} uses custom geometry shader {}. Assuming GeomRootSignature compatibility; shader reflection is not available.",
+					"Material instance {} uses custom geometry shader {}. Assuming GeomRootSignature compatibility including ShadowConstants(b4) and ShadowMap(t1); shader reflection is not available.",
 					requestedMaterialInstanceId,
 					binding.shaderProgramId
 				);

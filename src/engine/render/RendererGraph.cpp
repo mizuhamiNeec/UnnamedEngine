@@ -59,6 +59,66 @@ namespace Unnamed::Render {
 			);
 		}
 
+		Mat4 BuildLookAtView(
+			const Vec3& eye,
+			const Vec3& target,
+			const Vec3& up
+		) {
+			Vec3 forward = (target - eye).Normalized();
+			if (forward.IsZero()) {
+				forward = Vec3::forward;
+			}
+			Vec3 right = up.Cross(forward).Normalized();
+			if (right.IsZero()) {
+				right = Vec3::right;
+			}
+			const Vec3 viewUp = forward.Cross(right);
+
+			Mat4 view = Mat4::identity;
+			view.m[0][0] = right.x;
+			view.m[1][0] = right.y;
+			view.m[2][0] = right.z;
+			view.m[3][0] = -eye.Dot(right);
+			view.m[0][1] = viewUp.x;
+			view.m[1][1] = viewUp.y;
+			view.m[2][1] = viewUp.z;
+			view.m[3][1] = -eye.Dot(viewUp);
+			view.m[0][2] = forward.x;
+			view.m[1][2] = forward.y;
+			view.m[2][2] = forward.z;
+			view.m[3][2] = -eye.Dot(forward);
+			return view;
+		}
+
+		struct FixedShadowMatrices {
+			Mat4 lightView     = Mat4::identity;
+			Mat4 lightProj     = Mat4::identity;
+			Mat4 lightViewProj = Mat4::identity;
+		};
+
+		FixedShadowMatrices BuildFixedDirectionalShadowMatrices(
+			const RenderCameraInput& camera
+		) {
+			// Temporary until directional light data is provided by RenderFrameInputs.
+			const Vec3 lightDirection = Vec3(-0.5f, -1.0f, 0.5f).Normalized();
+			const Vec3 center = camera.valid ? camera.cameraPos : Vec3::zero;
+			const float shadowDistance = 80.0f;
+			const float orthoHalfSize  = 40.0f;
+			const Vec3 eye = center - lightDirection * shadowDistance;
+			FixedShadowMatrices result = {};
+			result.lightView = BuildLookAtView(eye, center, Vec3::up);
+			result.lightProj = Mat4::MakeOrthographicMat(
+				-orthoHalfSize,
+				orthoHalfSize,
+				orthoHalfSize,
+				-orthoHalfSize,
+				0.1f,
+				shadowDistance * 2.0f
+			);
+			result.lightViewProj = result.lightView * result.lightProj;
+			return result;
+		}
+
 		struct PostFxParamsConstants {
 			Vec4 scalar0 = Vec4::zero;
 			Vec4 scalar1 = Vec4::zero;
@@ -417,6 +477,56 @@ namespace Unnamed::Render {
 			}
 		}
 
+		size_t firstSceneViewIndex = frameViews.size();
+		for (size_t i = 0; i < frameViews.size(); ++i) {
+			if (frameViews[i].type == RENDER_VIEW_TYPE::SCENE) {
+				firstSceneViewIndex = i;
+				break;
+			}
+		}
+		if (firstSceneViewIndex < frameViews.size()) {
+			const int requestedShadowSize = mConsole ?
+				                                mConsole->GetConVarValueOr(
+					                                "r_shadowmap_size",
+					                                1024
+				                                ) :
+				                                1024;
+			const uint32_t shadowResolution = static_cast<uint32_t>(
+				std::clamp(requestedShadowSize, 256, 4096)
+			);
+			if (mDirectionalShadow.resolution != shadowResolution) {
+				if (mDirectionalShadow.shadowDepthTextureId != 0) {
+					renderDevice.GetRegistry().ReleaseTexture(
+						mDirectionalShadow.shadowDepthTextureId
+					);
+					mDirectionalShadow.shadowDepthTextureId = 0;
+				}
+				mDirectionalShadow.resolution = shadowResolution;
+			}
+			if (mDirectionalShadow.shadowDepthTextureId == 0) {
+				mDirectionalShadow.shadowDepthTextureId = mGraph.CreateTexture(
+					{
+						.width = shadowResolution,
+						.height = shadowResolution,
+						.resourceFormat = DXGI_FORMAT_R32_TYPELESS,
+						.allowDsv = true,
+						.srvFormat = DXGI_FORMAT_R32_FLOAT,
+						.dsvFormat = DXGI_FORMAT_D32_FLOAT,
+						.debugName = "DirectionalShadowMap",
+						.optimizedClearDepth = 0.0f,
+						.extentMode = RG_EXTENT_MODE::FIXED,
+					}
+				);
+			}
+			const FixedShadowMatrices shadowMatrices =
+				BuildFixedDirectionalShadowMatrices(
+					frameViews[firstSceneViewIndex].camera
+				);
+			mDirectionalShadow.lightView = shadowMatrices.lightView;
+			mDirectionalShadow.lightProj = shadowMatrices.lightProj;
+			mDirectionalShadow.lightViewProj = shadowMatrices.lightViewProj;
+		}
+
 		for (size_t viewIndex = 0; viewIndex < frameViews.size(); ++viewIndex) {
 			const RenderViewInput& view = frameViews[viewIndex];
 			const auto             state = mViewStates[view.viewKey];
@@ -461,6 +571,16 @@ namespace Unnamed::Render {
 			const uint32_t depthId  = state.depthTextureId;
 			uint32_t       outputId = state.outputTextureId;
 			if (view.type == RENDER_VIEW_TYPE::SCENE) {
+				if (
+					viewIndex == firstSceneViewIndex &&
+					mDirectionalShadow.shadowDepthTextureId != 0
+				) {
+					AddShadowMapPass(
+						renderDevice,
+						viewIndex,
+						mDirectionalShadow
+					);
+				}
 				AddSceneClearPass(prefix, colorId, depthId);
 
 				AddSkyboxPass(
@@ -518,6 +638,7 @@ namespace Unnamed::Render {
 			AddEditorBackBufferClearPass(frameViews);
 		}
 
+		AddShadowMapDebugPass(renderDevice);
 		AddImGuiMainPass();
 	}
 
@@ -686,18 +807,32 @@ namespace Unnamed::Render {
 		// RenderTarget: state.colorTextureId.
 		// DepthStencil: state.depthTextureId.
 		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId). Texture SRVs are bound at draw time through MaterialBinding/fallback texture.
+		// ResourceState: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(mDirectionalShadow.shadowDepthTextureId when enabled). Material texture SRVs are bound at draw time through MaterialBinding/fallback texture.
 		// Notes: Static and skinned meshes share this pass. Opaque material shader/depth/cull variants are selected per draw; transparent/blend material handling is still intentionally unsupported.
 		const uint32_t colorId = state.colorTextureId;
 		const uint32_t depthId = state.depthTextureId;
+		const uint32_t shadowDepthId =
+			mDirectionalShadow.shadowDepthTextureId;
+		const bool shadowEnabled =
+			shadowDepthId != 0 &&
+			(!mConsole || mConsole->GetConVarValueOr(
+				"r_shadowmap_enabled",
+				true
+			));
 
 		mGraph.AddPass(
 			prefix + "Geometry",
-			[colorId, depthId](RenderGraphBuilder& b) {
+			[colorId, depthId, shadowDepthId, shadowEnabled](
+			RenderGraphBuilder& b
+		) {
 				b.WriteRt(colorId);
 				b.WriteDepth(depthId);
+				if (shadowEnabled) {
+					b.ReadSrvPs(shadowDepthId);
+				}
 			},
-			[this, viewIndex, state, &renderDevice](
+			[this, viewIndex, state, shadowDepthId, shadowEnabled,
+			 &renderDevice](
 			RenderPassContext& pass
 		) {
 				const RenderViewInput& view = mFrameViews[viewIndex];
@@ -725,6 +860,38 @@ namespace Unnamed::Render {
 					allocator.AllocateConstantBuffer(
 						&identityPalette, sizeof(identityPalette)
 					);
+
+				Rhi::ShadowConstants shadow = {};
+				shadow.lightViewProj = mDirectionalShadow.lightViewProj;
+				shadow.params = Vec4(
+					mConsole ?
+						mConsole->GetConVarValueOr(
+							"r_shadowmap_bias", 0.0005f
+						) :
+						0.0005f,
+					mConsole ?
+						mConsole->GetConVarValueOr(
+							"r_shadowmap_strength", 0.65f
+						) :
+						0.65f,
+					mDirectionalShadow.resolution > 0 ?
+						1.0f / static_cast<float>(
+							mDirectionalShadow.resolution) :
+						0.0f,
+					shadowEnabled ? 1.0f : 0.0f
+				);
+				const D3D12_GPU_VIRTUAL_ADDRESS shadowCb =
+					allocator.AllocateConstantBuffer(
+						&shadow, sizeof(shadow)
+					);
+
+				uint32_t shadowSrvTextureId = shadowEnabled ?
+					                              shadowDepthId :
+					                              0;
+				if (shadowSrvTextureId == 0) {
+					EnsureSpriteFallbackTexture(renderDevice);
+					shadowSrvTextureId = mSpriteFallbackTextureId;
+				}
 
 				pass.SetViewportAndScissor(
 					0.0f,
@@ -767,6 +934,16 @@ namespace Unnamed::Render {
 						currentGeometryPipeline = pipeline;
 					}
 					return true;
+				};
+				const auto BindShadowInputs = [&]() {
+					pass.BindGraphicsCbv(
+						ToRootIndex(GEOM_ROOT_SLOT::SHADOW_CONSTANTS),
+						shadowCb
+					);
+					pass.BindGraphicsSrvTable(
+						ToRootIndex(GEOM_ROOT_SLOT::SHADOW_MAP),
+						shadowSrvTextureId
+					);
 				};
 
 				const MaterialBinding* fallbackMaterial = nullptr;
@@ -878,6 +1055,7 @@ namespace Unnamed::Render {
 								GEOM_ROOT_SLOT::BASE_COLOR_TEXTURE),
 							textureId
 						);
+						BindShadowInputs();
 						pass.DrawIndexedTest(mesh.indexCount);
 						continue;
 					}
@@ -948,10 +1126,260 @@ namespace Unnamed::Render {
 								GEOM_ROOT_SLOT::BASE_COLOR_TEXTURE),
 							textureId
 						);
+						BindShadowInputs();
 						pass.DrawIndexedTest(
 							submesh.indexCount,
 							submesh.indexStart,
 							0
+						);
+					}
+				}
+			}
+		);
+	}
+
+	void Renderer::AddShadowMapPass(
+		RenderDevice&                 renderDevice,
+		const size_t                  viewIndex,
+		const DirectionalShadowRuntimeState& shadowState
+	) {
+		// Pass: Directional shadow map depth-only.
+		// Input: First scene RenderViewInput::visibleObjects and skinning palettes.
+		// Output: shadowState.shadowDepthTextureId depth writes.
+		// PSO: mShadowDepthPass or mShadowDepthDoubleSidedPass.
+		// RootSignature: Geom root signature; DepthOnly shader uses FRAME, OBJECT, and SKINNING slots.
+		// RenderTarget: none.
+		// DepthStencil: shadowState.shadowDepthTextureId.
+		// DescriptorHeap: none.
+		// ResourceState: WriteDepth(shadowState.shadowDepthTextureId).
+		// Notes: Temporary fixed directional light; replace with RenderFrameInputs light data later.
+		const uint32_t shadowDepthId = shadowState.shadowDepthTextureId;
+		mGraph.AddPass(
+			"DirectionalShadowMap",
+			[shadowDepthId](RenderGraphBuilder& b) {
+				b.WriteDepth(shadowDepthId);
+				b.ClearDepth(shadowDepthId, 0.0f, 0);
+			},
+			[this, viewIndex, shadowState, &renderDevice](
+			RenderPassContext& pass
+		) {
+				const RenderViewInput& view = mFrameViews[viewIndex];
+				if (view.visibleObjects.empty()) {
+					return;
+				}
+				if (
+					!mShadowDepthPass.resolved ||
+					!mShadowDepthPass.resolved->pso
+				) {
+					return;
+				}
+
+				auto& allocator = static_cast<Rhi::D3D12Device&>(
+					renderDevice.GetRhiDevice()
+				).GetFrameUploadAllocator();
+
+				Rhi::FrameConstants frame = {};
+				frame.view = shadowState.lightView;
+				frame.proj = shadowState.lightProj;
+				frame.viewProj = shadowState.lightViewProj;
+				const D3D12_GPU_VIRTUAL_ADDRESS frameCb =
+					allocator.AllocateConstantBuffer(&frame, sizeof(frame));
+
+				Rhi::SkinningPaletteConstants identityPalette = {};
+				for (auto& bone : identityPalette.bones) {
+					bone = Mat4::identity;
+				}
+				const D3D12_GPU_VIRTUAL_ADDRESS identitySkinCb =
+					allocator.AllocateConstantBuffer(
+						&identityPalette,
+						sizeof(identityPalette)
+					);
+
+				pass.SetViewportAndScissor(
+					0.0f,
+					0.0f,
+					static_cast<float>(shadowState.resolution),
+					static_cast<float>(shadowState.resolution)
+				);
+				pass.SetRenderTargetAndDepth(
+					std::span<const uint32_t>{},
+					shadowState.shadowDepthTextureId
+				);
+
+				const ResolvedGraphicsPipeline* currentPipeline = nullptr;
+				auto bindShadowPipeline = [&](
+					                          const MaterialBinding*
+						                          materialBinding
+				                          ) {
+					const GeometryPassRes* passRes = &mShadowDepthPass;
+					if (
+						materialBinding &&
+						!materialBinding->renderState.cullBackFace
+					) {
+						passRes = &mShadowDepthDoubleSidedPass;
+					}
+					if (!passRes->resolved || !passRes->resolved->pso) {
+						return false;
+					}
+					if (currentPipeline != passRes->resolved) {
+						pass.SetGraphicsPipeline(
+							passRes->resolved->rootSignature,
+							passRes->resolved->pso
+						);
+						currentPipeline = passRes->resolved;
+					}
+					return true;
+				};
+
+				auto shouldDrawShadowCaster = [](
+					                              const MaterialBinding*
+						                              materialBinding
+				                              ) {
+					if (!materialBinding) {
+						return true;
+					}
+					const auto& rs = materialBinding->renderState;
+					return rs.depthEnable && rs.depthWrite && !rs.blendEnable;
+				};
+
+				const MaterialBinding* fallbackMaterial = nullptr;
+				if (const auto it = mMaterialBindings.find(
+						mDefaultMaterialInstance
+					);
+					it != mMaterialBindings.end()) {
+					fallbackMaterial = &it->second;
+				}
+
+				for (const auto& objectInput : view.visibleObjects) {
+					const auto meshIt = mSceneMeshesByAsset.find(
+						objectInput.meshAssetId
+					);
+					if (meshIt == mSceneMeshesByAsset.end()) {
+						continue;
+					}
+					const MeshBuffer& mesh = meshIt->second;
+
+					Rhi::ObjectConstants object = {};
+					object.world = objectInput.world;
+					object.worldInverseTranspose =
+						object.world.Inverse().Transpose();
+					object.skinningInfo = Vec4(
+						0.0f,
+						objectInput.isSkinned ? 1.0f : 0.0f,
+						0.0f,
+						0.0f
+					);
+
+					Rhi::SkinningPaletteConstants skinPalette =
+						identityPalette;
+					if (
+						objectInput.isSkinned &&
+						objectInput.skeletonPaletteId <
+						view.skinningPalettes.size()
+					) {
+						const auto& sourcePalette =
+							view.skinningPalettes[
+								objectInput.skeletonPaletteId
+							];
+						const uint32_t maxBones = std::min<uint32_t>(
+							static_cast<uint32_t>(
+								sourcePalette.boneMatrices.size()
+							),
+							Rhi::SkinningPaletteConstants::kMaxBones
+						);
+						for (uint32_t i = 0; i < maxBones; ++i) {
+							skinPalette.bones[i] =
+								sourcePalette.boneMatrices[i];
+						}
+					}
+
+					const D3D12_GPU_VIRTUAL_ADDRESS objectCb =
+						allocator.AllocateConstantBuffer(
+							&object,
+							sizeof(object)
+						);
+					const D3D12_GPU_VIRTUAL_ADDRESS skinningCb =
+						objectInput.isSkinned ?
+							allocator.AllocateConstantBuffer(
+								&skinPalette,
+								sizeof(skinPalette)
+							) :
+							identitySkinCb;
+
+					pass.SetVertexBuffer(mesh.vbv);
+					pass.SetIndexBuffer(mesh.ibv);
+
+					auto resolveMaterial = [&](const AssetID materialId) {
+						const MaterialBinding* materialBinding =
+							fallbackMaterial;
+						if (const auto matIt = mMaterialBindings.find(
+								materialId
+							);
+							matIt != mMaterialBindings.end()) {
+							materialBinding = &matIt->second;
+						}
+						return materialBinding;
+					};
+
+					auto drawSubmesh = [&](
+						                   const uint32_t indexCount,
+						                   const uint32_t indexStart,
+						                   const AssetID materialId
+					                   ) {
+						const MaterialBinding* materialBinding =
+							resolveMaterial(materialId);
+						if (!shouldDrawShadowCaster(materialBinding)) {
+							return;
+						}
+						if (!bindShadowPipeline(materialBinding)) {
+							return;
+						}
+						pass.BindGraphicsCbv(
+							ToRootIndex(GEOM_ROOT_SLOT::FRAME),
+							frameCb
+						);
+						pass.BindGraphicsCbv(
+							ToRootIndex(GEOM_ROOT_SLOT::OBJECT),
+							objectCb
+						);
+						pass.BindGraphicsCbv(
+							ToRootIndex(GEOM_ROOT_SLOT::SKINNING),
+							skinningCb
+						);
+						pass.DrawIndexedTest(indexCount, indexStart, 0);
+					};
+
+					if (mesh.submeshes.empty()) {
+						drawSubmesh(
+							mesh.indexCount,
+							0,
+							objectInput.materialInstanceId
+						);
+						continue;
+					}
+
+					for (const auto& submesh : mesh.submeshes) {
+						if (submesh.indexCount == 0) {
+							continue;
+						}
+						AssetID submeshMaterialId =
+							objectInput.materialInstanceId;
+						if (
+							submesh.materialIndex <
+							objectInput.materialInstanceIdsBySlot.size()
+						) {
+							const AssetID slotMaterialId =
+								objectInput.materialInstanceIdsBySlot[
+									submesh.materialIndex
+								];
+							if (slotMaterialId != kInvalidAssetID) {
+								submeshMaterialId = slotMaterialId;
+							}
+						}
+						drawSubmesh(
+							submesh.indexCount,
+							submesh.indexStart,
+							submeshMaterialId
 						);
 					}
 				}
@@ -2533,6 +2961,86 @@ namespace Unnamed::Render {
 				);
 			}
 		}
+	}
+
+	void Renderer::AddShadowMapDebugPass(RenderDevice& renderDevice) {
+		// Pass: Shadow map debug overlay.
+		// Input: mDirectionalShadow.shadowDepthTextureId SRV.
+		// Output: swap chain back buffer render target overlay.
+		// PSO: mDepthVisPass.resolved->pso.
+		// RootSignature: mDepthVisPass.resolved->rootSignature.
+		// RenderTarget: RenderGraph back buffer.
+		// DepthStencil: none.
+		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
+		// ResourceState: ReadSrvPs(mDirectionalShadow.shadowDepthTextureId), WriteBackBufferRt().
+		// Notes: Disabled by default; enable with r_shadowmap_debug.
+		if (
+			!mConsole ||
+			!mConsole->GetConVarValueOr("r_shadowmap_debug", false) ||
+			mDirectionalShadow.shadowDepthTextureId == 0
+		) {
+			return;
+		}
+		const uint32_t shadowDepthId =
+			mDirectionalShadow.shadowDepthTextureId;
+		const uint32_t requestedSize = static_cast<uint32_t>(
+			std::clamp(
+				mConsole->GetConVarValueOr("r_shadowmap_debug_size", 256),
+				64,
+				1024
+			)
+		);
+		mGraph.AddPass(
+			"ShadowMapDebugOverlay",
+			[shadowDepthId](RenderGraphBuilder& b) {
+				b.ReadSrvPs(shadowDepthId);
+				b.WriteBackBufferRt();
+			},
+			[this, shadowDepthId, requestedSize, &renderDevice](
+			const RenderPassContext& pass
+		) {
+				if (!mDepthVisPass.resolved || !mDepthVisPass.resolved->pso) {
+					return;
+				}
+				pass.SetSrvUavHeap();
+				const float size = static_cast<float>(
+					std::min(
+						requestedSize,
+						std::max(
+							1u,
+							std::min(
+								pass.GetBackBufferWidth(),
+								pass.GetBackBufferHeight()
+							)
+						)
+					)
+				);
+				pass.SetViewportAndScissor(16.0f, 16.0f, size, size);
+				pass.SetGraphicsPipeline(
+					mDepthVisPass.resolved->rootSignature,
+					mDepthVisPass.resolved->pso
+				);
+
+				PostFxParamsConstants params = {};
+				auto& allocator = static_cast<Rhi::D3D12Device&>(
+					renderDevice.GetRhiDevice()
+				).GetFrameUploadAllocator();
+				const D3D12_GPU_VIRTUAL_ADDRESS paramsCb =
+					allocator.AllocateConstantBuffer(
+						&params,
+						sizeof(params)
+					);
+				pass.BindGraphicsCbv(
+					ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
+					paramsCb
+				);
+				pass.BindGraphicsSrvTable(
+					ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
+					shadowDepthId
+				);
+				pass.DrawFullscreenTriangle();
+			}
+		);
 	}
 
 	void Renderer::AddEditorBackBufferClearPass(

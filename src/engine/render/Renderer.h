@@ -142,7 +142,8 @@ namespace Unnamed::Render {
 
 		// Current contract:
 		// - Material shader used by Geometry pass must be compatible with GeomRootSignature.
-		// - Supported bindings are the existing geometry root slots only.
+		// - Supported bindings are FRAME(b0), OBJECT(b1), MATERIAL(b2), SKINNING(b3),
+		//   BASE_COLOR_TEXTURE(t0), SHADOW_CONSTANTS(b4), and SHADOW_MAP(t1).
 		// - Additional material texture slots, custom constant buffers, and shader reflection are not supported yet.
 		// - Non-compatible shaders may compile/resolve but can fail at draw time.
 		struct MaterialBinding {
@@ -200,6 +201,14 @@ namespace Unnamed::Render {
 			uint32_t                               frameVertexCount = 0;
 		};
 
+		struct DirectionalShadowRuntimeState {
+			uint32_t shadowDepthTextureId = 0;
+			uint32_t resolution           = 1024;
+			Mat4     lightView            = Mat4::identity;
+			Mat4     lightProj            = Mat4::identity;
+			Mat4     lightViewProj        = Mat4::identity;
+		};
+
 		struct ViewRuntimeState {
 			RENDER_VIEW_TYPE      type               = RENDER_VIEW_TYPE::SCENE;
 			RenderViewOutputDesc  output             = {};
@@ -237,6 +246,13 @@ namespace Unnamed::Render {
 			const std::string&      prefix,
 			size_t                  viewIndex,
 			const ViewRuntimeState& state
+		);
+
+		/// @brief directional light shadow map 用 depth-only pass を追加します。
+		void AddShadowMapPass(
+			RenderDevice&                 renderDevice,
+			size_t                        viewIndex,
+			const DirectionalShadowRuntimeState& shadowState
 		);
 
 		/// @brief depth test ありの world billboard pass を追加します。
@@ -374,6 +390,9 @@ namespace Unnamed::Render {
 		/// @brief present 対象 view を back buffer に合成する pass を追加します。
 		void AddPresentPass(RenderDevice& renderDevice);
 
+		/// @brief shadow map depth texture の debug overlay pass を追加します。
+		void AddShadowMapDebugPass(RenderDevice& renderDevice);
+
 		/// @brief swap chain present がない editor frame の back buffer clear pass を追加します。
 		void AddEditorBackBufferClearPass(
 			const std::vector<RenderViewInput>& frameViews
@@ -399,6 +418,8 @@ namespace Unnamed::Render {
 		FullscreenPassRes        mDepthVisPass        = {};
 		ComputePassRes           mComputePass         = {};
 		GeometryPassRes          mGeometryPass        = {};
+		GeometryPassRes          mShadowDepthPass     = {};
+		GeometryPassRes          mShadowDepthDoubleSidedPass = {};
 		SpritePassRes            mSpritePass          = {};
 		BillboardPassRes         mBillboardPass       = {};
 		SkyboxPassRes            mSkyboxPass          = {};
@@ -417,6 +438,7 @@ namespace Unnamed::Render {
 		AssetID mDefaultMaterialInstance =
 			kInvalidAssetID;
 		AssetID mPostFxChainAsset = kInvalidAssetID;
+		DirectionalShadowRuntimeState mDirectionalShadow = {};
 		std::unordered_map<AssetID, MaterialBinding> mMaterialBindings;
 		std::vector<PostFxRuntimePass> mPostFxPasses;
 		TextureResourceCache mTextureResourceCache;

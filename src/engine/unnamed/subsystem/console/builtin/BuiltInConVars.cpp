@@ -67,6 +67,52 @@ namespace Unnamed {
 			2
 		);
 
+		static ConVar r_shadowmap_size(
+			"r_shadowmap_size", 1024, FCVAR::ARCHIVE,
+			"Directional shadow map resolution.",
+			true,
+			256,
+			true,
+			4096
+		);
+
+		static ConVar r_shadowmap_debug(
+			"r_shadowmap_debug", false, FCVAR::ARCHIVE,
+			"Draw the directional shadow map depth texture as a backbuffer overlay."
+		);
+
+		static ConVar r_shadowmap_debug_size(
+			"r_shadowmap_debug_size", 256, FCVAR::ARCHIVE,
+			"Shadow map debug overlay size in pixels.",
+			true,
+			64,
+			true,
+			1024
+		);
+
+		static ConVar r_shadowmap_enabled(
+			"r_shadowmap_enabled", true, FCVAR::ARCHIVE,
+			"Apply the directional shadow map in geometry lighting."
+		);
+
+		static ConVar r_shadowmap_bias(
+			"r_shadowmap_bias", 0.0005f, FCVAR::ARCHIVE,
+			"Directional shadow map depth bias.",
+			true,
+			0.0f,
+			true,
+			0.05f
+		);
+
+		static ConVar r_shadowmap_strength(
+			"r_shadowmap_strength", 0.65f, FCVAR::ARCHIVE,
+			"Directional shadow map strength.",
+			true,
+			0.0f,
+			true,
+			1.0f
+		);
+
 		static ConVar ui_new_font_size_preset(
 			"ui_new_font_size_preset", 0, FCVAR::ARCHIVE,
 			"New UI font size preset index: 0=16, 1=18, 2=20, 3=24.",
