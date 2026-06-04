@@ -153,7 +153,7 @@ namespace Unnamed::Render {
 		};
 
 		struct SpritePassRes {
-			GeometryPassRes geom           = {};
+			GeometryPassRes geom            = {};
 			GeometryPassRes geomLinearClamp = {};
 			GeometryPassRes geomPointClamp  = {};
 		};
@@ -189,18 +189,18 @@ namespace Unnamed::Render {
 		};
 
 		struct ViewRuntimeState {
-			RENDER_VIEW_TYPE      type = RENDER_VIEW_TYPE::SCENE;
-			RenderViewOutputDesc  output = {};
-			uint32_t              logicalWidth = 1;
-			uint32_t              logicalHeight = 1;
-			uint32_t              allocatedWidth = 1;
-			uint32_t              allocatedHeight = 1;
-			uint32_t              colorTextureId = 0;
-			uint32_t              depthTextureId = 0;
-			uint32_t              postFxTextureAId = 0;
-			uint32_t              postFxTextureBId = 0;
+			RENDER_VIEW_TYPE      type               = RENDER_VIEW_TYPE::SCENE;
+			RenderViewOutputDesc  output             = {};
+			uint32_t              logicalWidth       = 1;
+			uint32_t              logicalHeight      = 1;
+			uint32_t              allocatedWidth     = 1;
+			uint32_t              allocatedHeight    = 1;
+			uint32_t              colorTextureId     = 0;
+			uint32_t              depthTextureId     = 0;
+			uint32_t              postFxTextureAId   = 0;
+			uint32_t              postFxTextureBId   = 0;
 			std::vector<uint32_t> bloomMipTextureIds = {};
-			uint32_t              outputTextureId = 0;
+			uint32_t              outputTextureId    = 0;
 		};
 
 		/// @brief シーンビューのクリア pass を追加します。
@@ -271,6 +271,73 @@ namespace Unnamed::Render {
 			uint32_t&               outputId
 		);
 
+		/// @brief bloom downsample pass 群を追加します。
+		void AddBloomDownsamplePasses(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			const ViewRuntimeState& state,
+			int                     mipCount,
+			float                   bloomIntensity,
+			float                   bloomThreshold,
+			float                   bloomRadius,
+			float                   bloomKnee,
+			uint32_t                postFxInputId
+		);
+
+		/// @brief bloom upsample pass 群を追加します。
+		void AddBloomUpsamplePasses(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			const ViewRuntimeState& state,
+			int                     mipCount,
+			float                   bloomIntensity,
+			float                   bloomRadius
+		);
+
+		/// @brief bloom 合成前の base copy pass を追加します。
+		void AddBloomBaseCopyPass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			const ViewRuntimeState& state,
+			uint32_t                baseCopyInId,
+			uint32_t                bloomCombinedOutId
+		);
+
+		/// @brief bloom mip を base copy へ合成する pass を追加します。
+		void AddBloomCompositePass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			const ViewRuntimeState& state,
+			uint32_t                bloomBaseId,
+			uint32_t                bloomCombinedOutId,
+			float                   bloomIntensity,
+			float                   bloomRadius
+		);
+
+		/// @brief 汎用 post-fx pass を追加し ping-pong を進めます。
+		void AddGenericPostFxPasses(
+			RenderDevice&            renderDevice,
+			const std::string&       prefix,
+			const ViewRuntimeState&  state,
+			const PostFxRuntimePass& passRes,
+			const Vec4&              scalar0,
+			const Vec4&              scalar1,
+			const Vec4&              color0,
+			const Vec4&              color1,
+			uint32_t&                postFxInputId,
+			uint32_t&                postFxOutputId
+		);
+
+		/// @brief tone map pass を追加し最終 outputId を更新します。
+		void AddToneMapExposurePass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			const ViewRuntimeState& state,
+			const RenderViewInput&  view,
+			uint32_t                postFxInputId,
+			uint32_t&               outputId
+		);
+
 		/// @brief sprite-only view の clear pass を追加します。
 		void AddSpriteOnlyClearPass(
 			const std::string& prefix,
@@ -303,12 +370,12 @@ namespace Unnamed::Render {
 		/// @brief ImGui main draw data pass を追加します。
 		void AddImGuiMainPass();
 
-		static constexpr uint32_t kMaxDrawObjects       = 1024; // TODO: とりあえず
-		static constexpr uint32_t kMaxDebugLines        = 65536; // TODO: とりあえず
+		static constexpr uint32_t kMaxDrawObjects = 1024;  // TODO: とりあえず
+		static constexpr uint32_t kMaxDebugLines  = 65536; // TODO: とりあえず
 
 		ConsoleSystem* mConsole = nullptr;
 
-		RenderGraph mGraph;
+		RenderGraph      mGraph;
 		PipelineRegistry mPipelineRegistry;
 
 		FullscreenPassRes        mFullscreenPass      = {};
@@ -342,8 +409,8 @@ namespace Unnamed::Render {
 		uint32_t mSpriteFallbackTextureId = 0;
 		uint64_t mLastTextureCacheStatsLogFrame = 0;
 
-		std::vector<MeshDrawItem>     mMainDrawList;
-		std::vector<DrawBatch>        mMainBatches;
+		std::vector<MeshDrawItem> mMainDrawList;
+		std::vector<DrawBatch> mMainBatches;
 		std::unordered_map<std::string, ViewRuntimeState> mViewStates;
 		std::vector<std::string> mViewExecutionOrder;
 		std::vector<RenderViewInput> mFrameViews;

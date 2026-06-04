@@ -66,6 +66,13 @@ namespace Unnamed::Render {
 			Vec4 color1  = Vec4::zero;
 		};
 
+		struct BloomPyramidConstants {
+			Vec4 params0 = Vec4::zero;
+			// x=invSrcW, y=invSrcH, z=threshold, w=knee
+			Vec4 params1 = Vec4::zero;
+			// x=radius, y=intensity, z=firstPass
+		};
+
 		struct FitRect {
 			float x      = 0.0f;
 			float y      = 0.0f;
@@ -232,7 +239,7 @@ namespace Unnamed::Render {
 				return;
 			}
 
-			if (key.rfind("scalar", 0) == 0 && key.size() >= 8) {
+			if (key.starts_with("scalar") && key.size() >= 8) {
 				const int  vecIndex  = key[6] - '0';
 				const char component = key[7];
 				if (float* dst = ResolveScalarComponent(
@@ -1490,7 +1497,7 @@ namespace Unnamed::Render {
 	void Renderer::AddScenePostProcessPasses(
 		RenderDevice&           renderDevice,
 		const std::string&      prefix,
-		size_t                  viewIndex,
+		const size_t            viewIndex,
 		const ViewRuntimeState& state,
 		uint32_t&               outputId
 	) {
@@ -1522,23 +1529,14 @@ namespace Unnamed::Render {
 				ApplyColorParam(name, value, params);
 			}
 			if (viewOverride) {
-				for (const auto& [name, value] : viewOverride->
-				     scalarParams) {
+				for (const auto& [name, value] : viewOverride->scalarParams) {
 					ApplyScalarParam(name, value, params);
 				}
-				for (const auto& [name, value] : viewOverride->
-				     colorParams) {
+				for (const auto& [name, value] : viewOverride->colorParams) {
 					ApplyColorParam(name, value, params);
 				}
 			}
 			return std::pair{params, viewOverride};
-		};
-
-		struct BloomPyramidConstants {
-			Vec4 params0 = Vec4::zero;
-			// x=invSrcW, y=invSrcH, z=threshold, w=knee
-			Vec4 params1 = Vec4::zero;
-			// x=radius, y=intensity, z=firstPass
 		};
 
 		for (const auto& passRes : mPostFxPasses) {
@@ -1553,8 +1551,9 @@ namespace Unnamed::Render {
 			}
 
 			if (EqualsIgnoreCase(passRes.name, "Bloom")) {
-				const int mipCount = static_cast<int>(state.
-					bloomMipTextureIds.size());
+				const int mipCount = static_cast<int>(
+					state.bloomMipTextureIds.size()
+				);
 
 				const float bloomIntensity = std::max(
 					resolvedParams.scalar0.x, 0.0f
@@ -1570,389 +1569,526 @@ namespace Unnamed::Render {
 					resolvedParams.scalar0.w, 0.0f
 				);
 
-				uint32_t srcId = postFxInputId;
-				for (uint32_t level = 0; std::cmp_less(level, mipCount);
-				     ++level) {
-					const uint32_t dstId = state.bloomMipTextureIds[
-						level];
-					const uint32_t srcWidth = std::max(
-						1u, state.logicalWidth >> level
-					);
-					const uint32_t srcHeight = std::max(
-						1u, state.logicalHeight >> level
-					);
-					const uint32_t dstWidth = std::max(
-						1u, state.logicalWidth >> static_cast<uint32_t>(
-							    level + 1)
-					);
-					const uint32_t dstHeight = std::max(
-						1u, state.logicalHeight >> static_cast<uint32_t>
-						    (
-							    level + 1)
-					);
+				AddBloomDownsamplePasses(
+					renderDevice,
+					prefix,
+					state,
+					mipCount,
+					bloomIntensity,
+					bloomThreshold,
+					bloomRadius,
+					bloomKnee,
+					postFxInputId
+				);
+				AddBloomUpsamplePasses(
+					renderDevice,
+					prefix,
+					state,
+					mipCount,
+					bloomIntensity,
+					bloomRadius
+				);
 
-					BloomPyramidConstants bloomCbData = {};
-					bloomCbData.params0               = Vec4(
-						1.0f / static_cast<float>(srcWidth),
-						1.0f / static_cast<float>(srcHeight),
-						bloomThreshold,
-						bloomKnee
-					);
-					bloomCbData.params1 = Vec4(
-						bloomRadius, bloomIntensity,
-						level == 0 ? 1.0f : 0.0f, 0.0f
-					);
-
-					auto& allocator = dynamic_cast<Rhi::D3D12Device&>(
-						renderDevice.GetRhiDevice()
-					).GetFrameUploadAllocator();
-					const D3D12_GPU_VIRTUAL_ADDRESS bloomCb =
-						allocator.AllocateConstantBuffer(
-							&bloomCbData, sizeof(bloomCbData)
-						);
-
-					const uint32_t downsampleSrcId = srcId;
-					// Bloom downsample: ReadSrvPs(downsampleSrcId) -> WriteRt(dstId).
-					mGraph.AddPass(
-						prefix + "BloomDownsample[" + std::to_string(
-							level
-						) + "]",
-						[downsampleSrcId, dstId](
-						RenderGraphBuilder& b
-					) {
-							b.ReadSrvPs(downsampleSrcId);
-							b.WriteRt(dstId);
-						},
-						[this, dstId, dstWidth, dstHeight, bloomCb,
-							downsampleSrcId](
-						const RenderPassContext& pass
-					) {
-							pass.SetViewportAndScissor(
-								0.0f,
-								0.0f,
-								static_cast<float>(dstWidth),
-								static_cast<float>(dstHeight)
-							);
-							pass.SetSrvUavHeap();
-							pass.SetRenderTarget(dstId);
-							if (
-								!mBloomDownsamplePass.resolved ||
-								!mBloomDownsamplePass.resolved->pso
-							) {
-								return;
-							}
-							pass.SetGraphicsPipeline(
-								mBloomDownsamplePass.resolved->
-								rootSignature,
-								mBloomDownsamplePass.resolved->pso
-							);
-							pass.BindGraphicsCbv(
-								ToRootIndex(
-									FS_ROOT_SLOT::POST_FX_PARAMS),
-								bloomCb
-							);
-							pass.BindGraphicsSrvTable(
-								ToRootIndex(
-									FS_ROOT_SLOT::SOURCE_TEXTURE),
-								downsampleSrcId
-							);
-							pass.DrawFullscreenTriangle();
-						}
-					);
-
-					srcId = dstId;
-				}
-
-				for (
-					uint32_t level = mipCount - 1; level > 0; --level
-				) {
-					const uint32_t srcLowId = state.bloomMipTextureIds[
-						level];
-					const uint32_t dstHighId = state.bloomMipTextureIds[
-						level - 1];
-					const uint32_t srcWidth = std::max(
-						1u, state.logicalWidth >> static_cast<uint32_t>(
-							    level + 1)
-					);
-					const uint32_t srcHeight = std::max(
-						1u, state.logicalHeight >> static_cast<uint32_t>
-						    (
-							    level + 1)
-					);
-					const uint32_t dstWidth = std::max(
-						1u, state.logicalWidth >> level
-					);
-					const uint32_t dstHeight = std::max(
-						1u, state.logicalHeight >> level
-					);
-
-					BloomPyramidConstants bloomCbData = {};
-					bloomCbData.params0               = Vec4(
-						1.0f / static_cast<float>(srcWidth),
-						1.0f / static_cast<float>(srcHeight),
-						0.0f,
-						0.0f
-					);
-					bloomCbData.params1 = Vec4(
-						bloomRadius, bloomIntensity, 0.0f, 0.0f
-					);
-
-					auto& allocator = dynamic_cast<Rhi::D3D12Device&>(
-						renderDevice.GetRhiDevice()
-					).GetFrameUploadAllocator();
-					const D3D12_GPU_VIRTUAL_ADDRESS bloomCb =
-						allocator.AllocateConstantBuffer(
-							&bloomCbData, sizeof(bloomCbData)
-						);
-
-					// Bloom upsample: ReadSrvPs(srcLowId) -> WriteRt(dstHighId).
-					mGraph.AddPass(
-						prefix + "BloomUpsample[" + std::to_string(
-							level
-						) + "]",
-						[srcLowId, dstHighId](RenderGraphBuilder& b) {
-							b.ReadSrvPs(srcLowId);
-							b.WriteRt(dstHighId);
-						},
-						[this, dstHighId, dstWidth, dstHeight, bloomCb,
-							srcLowId](
-						const RenderPassContext& pass
-					) {
-							pass.SetViewportAndScissor(
-								0.0f,
-								0.0f,
-								static_cast<float>(dstWidth),
-								static_cast<float>(dstHeight)
-							);
-							pass.SetSrvUavHeap();
-							pass.SetRenderTarget(dstHighId);
-							if (
-								!mBloomUpsamplePass.resolved ||
-								!mBloomUpsamplePass.resolved->pso
-							) {
-								return;
-							}
-							pass.SetGraphicsPipeline(
-								mBloomUpsamplePass.resolved->
-								                   rootSignature,
-								mBloomUpsamplePass.resolved->pso
-							);
-							pass.BindGraphicsCbv(
-								ToRootIndex(
-									FS_ROOT_SLOT::POST_FX_PARAMS),
-								bloomCb
-							);
-							pass.BindGraphicsSrvTable(
-								ToRootIndex(
-									FS_ROOT_SLOT::SOURCE_TEXTURE),
-								srcLowId
-							);
-							pass.DrawFullscreenTriangle();
-						}
-					);
-				}
-
-				const uint32_t bloomBaseId = state.bloomMipTextureIds[
-					0];
+				const uint32_t bloomBaseId        = state.bloomMipTextureIds[0];
 				const uint32_t baseCopyInId       = postFxInputId;
 				const uint32_t bloomCombinedOutId = postFxOutputId;
 
-				// Bloom base copy: ReadSrvPs(baseCopyInId) -> WriteRt(bloomCombinedOutId).
-				mGraph.AddPass(
-					prefix + "BloomBaseCopy",
-					[baseCopyInId, bloomCombinedOutId](
-					RenderGraphBuilder& b
-				) {
-						b.ReadSrvPs(baseCopyInId);
-						b.WriteRt(bloomCombinedOutId);
-					},
-					[this, state, baseCopyInId, bloomCombinedOutId, &
-						renderDevice](
-					const RenderPassContext& pass
-				) {
-						pass.SetViewportAndScissor(
-							0.0f,
-							0.0f,
-							static_cast<float>(state.logicalWidth),
-							static_cast<float>(state.logicalHeight)
-						);
-						pass.SetSrvUavHeap();
-						pass.SetRenderTarget(bloomCombinedOutId);
-						if (!mHdrCopyPass.resolved || !mHdrCopyPass.
-						    resolved->pso) {
-							return;
-						}
-						pass.SetGraphicsPipeline(
-							mHdrCopyPass.resolved->rootSignature,
-							mHdrCopyPass.resolved->pso
-						);
-						pass.BindGraphicsSrvTable(
-							ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
-							baseCopyInId
-						);
-						PostFxParamsConstants copyParams = {};
-						copyParams.scalar0.x             = std::clamp(
-							static_cast<float>(std::max(
-								1u, state.logicalWidth)) /
-							static_cast<float>(std::max(
-								1u, state.allocatedWidth)),
-							0.0f,
-							1.0f
-						);
-						copyParams.scalar0.y = std::clamp(
-							static_cast<float>(std::max(
-								1u, state.logicalHeight)) /
-							static_cast<float>(std::max(
-								1u, state.allocatedHeight)),
-							0.0f,
-							1.0f
-						);
-						auto& allocator = dynamic_cast<Rhi::D3D12Device&>
-						(
-							renderDevice.GetRhiDevice()
-						).GetFrameUploadAllocator();
-						const D3D12_GPU_VIRTUAL_ADDRESS copyCb =
-							allocator.AllocateConstantBuffer(
-								&copyParams, sizeof(copyParams)
-							);
-						pass.BindGraphicsCbv(
-							ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
-							copyCb
-						);
-						pass.DrawFullscreenTriangle();
-					}
+				AddBloomBaseCopyPass(
+					renderDevice,
+					prefix,
+					state,
+					baseCopyInId,
+					bloomCombinedOutId
 				);
-
-				BloomPyramidConstants bloomCompositeCbData  = {};
-				const uint32_t        bloomBaseLogicalWidth = std::max(
-					1u, state.logicalWidth >> 1u
-				);
-				const uint32_t bloomBaseLogicalHeight = std::max(
-					1u, state.logicalHeight >> 1u
-				);
-				bloomCompositeCbData.params0 = Vec4(
-					1.0f / static_cast<float>(bloomBaseLogicalWidth),
-					1.0f / static_cast<float>(bloomBaseLogicalHeight),
-					0.0f,
-					0.0f
-				);
-				bloomCompositeCbData.params1 = Vec4(
-					bloomRadius, bloomIntensity, 0.0f, 0.0f
-				);
-				auto& allocator = dynamic_cast<Rhi::D3D12Device&>(
-					renderDevice.GetRhiDevice()
-				).GetFrameUploadAllocator();
-				const D3D12_GPU_VIRTUAL_ADDRESS bloomCompositeCb =
-					allocator.AllocateConstantBuffer(
-						&bloomCompositeCbData,
-						sizeof(bloomCompositeCbData)
-					);
-
-				// Bloom composite: ReadSrvPs(bloomBaseId) -> WriteRt(bloomCombinedOutId).
-				mGraph.AddPass(
-					prefix + "BloomComposite",
-					[bloomBaseId, bloomCombinedOutId](
-					RenderGraphBuilder& b
-				) {
-						b.ReadSrvPs(bloomBaseId);
-						b.WriteRt(bloomCombinedOutId);
-					},
-					[this, state, bloomCombinedOutId, bloomBaseId,
-						bloomCompositeCb](
-					const RenderPassContext& pass
-				) {
-						pass.SetViewportAndScissor(
-							0.0f,
-							0.0f,
-							static_cast<float>(state.logicalWidth),
-							static_cast<float>(state.logicalHeight)
-						);
-						pass.SetSrvUavHeap();
-						pass.SetRenderTarget(bloomCombinedOutId);
-						if (
-							!mBloomCombinePass.resolved ||
-							!mBloomCombinePass.resolved->pso
-						) {
-							return;
-						}
-						pass.SetGraphicsPipeline(
-							mBloomCombinePass.resolved->rootSignature,
-							mBloomCombinePass.resolved->pso
-						);
-						pass.BindGraphicsCbv(
-							ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
-							bloomCompositeCb
-						);
-						pass.BindGraphicsSrvTable(
-							ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
-							bloomBaseId
-						);
-						pass.DrawFullscreenTriangle();
-					}
+				AddBloomCompositePass(
+					renderDevice,
+					prefix,
+					state,
+					bloomBaseId,
+					bloomCombinedOutId,
+					bloomIntensity,
+					bloomRadius
 				);
 
 				postFxInputId  = bloomCombinedOutId;
-				postFxOutputId = postFxOutputId == state.
-				                 postFxTextureAId ?
+				postFxOutputId = postFxOutputId == state.postFxTextureAId ?
 					                 state.postFxTextureBId :
 					                 state.postFxTextureAId;
 				continue;
 			}
 
+			AddGenericPostFxPasses(
+				renderDevice,
+				prefix,
+				state,
+				passRes,
+				resolvedParams.scalar0,
+				resolvedParams.scalar1,
+				resolvedParams.color0,
+				resolvedParams.color1,
+				postFxInputId,
+				postFxOutputId
+			);
+		}
+
+		AddToneMapExposurePass(
+			renderDevice, prefix, state, view, postFxInputId, outputId
+		);
+	}
+
+	void Renderer::AddBloomDownsamplePasses(
+		RenderDevice&           renderDevice,
+		const std::string&      prefix,
+		const ViewRuntimeState& state,
+		const int               mipCount,
+		const float             bloomIntensity,
+		const float             bloomThreshold,
+		const float             bloomRadius,
+		const float             bloomKnee,
+		const uint32_t          postFxInputId
+	) {
+		// Pass: Bloom downsample.
+		// Input: postFxInputId for level 0, then each previous bloom mip.
+		// Output: state.bloomMipTextureIds[level].
+		// PSO: mBloomDownsamplePass.resolved->pso.
+		// RootSignature: mBloomDownsamplePass.resolved->rootSignature.
+		// RenderTarget: state.bloomMipTextureIds[level].
+		// DepthStencil: none.
+		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
+		// ResourceState: ReadSrvPs(downsampleSrcId), WriteRt(dstId).
+		// Notes: First pass reads the current post-fx input; later passes read the previous bloom mip.
+		uint32_t srcId = postFxInputId;
+		for (uint32_t level = 0; std::cmp_less(level, mipCount); ++level) {
+			const uint32_t dstId    = state.bloomMipTextureIds[level];
+			const uint32_t srcWidth = std::max(
+				1u, state.logicalWidth >> level
+			);
+			const uint32_t srcHeight = std::max(
+				1u, state.logicalHeight >> level
+			);
+			const uint32_t dstWidth = std::max(
+				1u, state.logicalWidth >> static_cast<uint32_t>(level + 1)
+			);
+			const uint32_t dstHeight = std::max(
+				1u, state.logicalHeight >> static_cast<uint32_t>(level + 1)
+			);
+
+			BloomPyramidConstants bloomCbData = {};
+			bloomCbData.params0               = Vec4(
+				1.0f / static_cast<float>(srcWidth),
+				1.0f / static_cast<float>(srcHeight),
+				bloomThreshold,
+				bloomKnee
+			);
+			bloomCbData.params1 = Vec4(
+				bloomRadius, bloomIntensity,
+				level == 0 ? 1.0f : 0.0f, 0.0f
+			);
+
 			auto& allocator = dynamic_cast<Rhi::D3D12Device&>(
 				renderDevice.GetRhiDevice()
 			).GetFrameUploadAllocator();
-			const D3D12_GPU_VIRTUAL_ADDRESS postFxCb =
+			const D3D12_GPU_VIRTUAL_ADDRESS bloomCb =
 				allocator.AllocateConstantBuffer(
-					&resolvedParams, sizeof(resolvedParams)
+					&bloomCbData, sizeof(bloomCbData)
 				);
 
-			const auto inId  = postFxInputId;
-			const auto outId = postFxOutputId;
-
-			// Generic PostFx chain: ReadSrvPs(inId) -> WriteRt(outId).
+			const uint32_t downsampleSrcId = srcId;
+			// Bloom downsample: ReadSrvPs(downsampleSrcId) -> WriteRt(dstId).
 			mGraph.AddPass(
-				prefix + "PostFx_" + passRes.name,
-				[inId, outId](RenderGraphBuilder& b) {
-					b.ReadSrvPs(inId);
-					b.WriteRt(outId);
+				prefix + "BloomDownsample[" + std::to_string(level) + "]",
+				[downsampleSrcId, dstId](RenderGraphBuilder& b) {
+					b.ReadSrvPs(downsampleSrcId);
+					b.WriteRt(dstId);
 				},
-				[this, passRes, inId, outId, state, postFxCb](
+				[this, dstId, dstWidth, dstHeight, bloomCb, downsampleSrcId](
 				const RenderPassContext& pass
 			) {
 					pass.SetViewportAndScissor(
 						0.0f,
 						0.0f,
-						static_cast<float>(state.logicalWidth),
-						static_cast<float>(state.logicalHeight)
+						static_cast<float>(dstWidth),
+						static_cast<float>(dstHeight)
 					);
 					pass.SetSrvUavHeap();
-					if (!passRes.pass.resolved || !passRes.pass.resolved
-					    ->pso) {
+					pass.SetRenderTarget(dstId);
+					if (
+						!mBloomDownsamplePass.resolved ||
+						!mBloomDownsamplePass.resolved->pso
+					) {
 						return;
 					}
 					pass.SetGraphicsPipeline(
-						passRes.pass.resolved->rootSignature,
-						passRes.pass.resolved->pso
+						mBloomDownsamplePass.resolved->rootSignature,
+						mBloomDownsamplePass.resolved->pso
 					);
-					pass.SetRenderTarget(outId);
 					pass.BindGraphicsCbv(
 						ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
-						postFxCb
+						bloomCb
 					);
 					pass.BindGraphicsSrvTable(
-						ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE), inId
+						ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
+						downsampleSrcId
 					);
 					pass.DrawFullscreenTriangle();
 				}
 			);
 
-			postFxInputId  = outId;
-			postFxOutputId = postFxOutputId == state.postFxTextureAId ?
-				                 state.postFxTextureBId :
-				                 state.postFxTextureAId;
+			srcId = dstId;
 		}
+	}
 
+	void Renderer::AddBloomUpsamplePasses(
+		RenderDevice&           renderDevice,
+		const std::string&      prefix,
+		const ViewRuntimeState& state,
+		const int               mipCount,
+		const float             bloomIntensity,
+		const float             bloomRadius
+	) {
+		// Pass: Bloom upsample.
+		// Input: lower-resolution bloom mip at state.bloomMipTextureIds[level].
+		// Output: higher-resolution bloom mip at state.bloomMipTextureIds[level - 1].
+		// PSO: mBloomUpsamplePass.resolved->pso.
+		// RootSignature: mBloomUpsamplePass.resolved->rootSignature.
+		// RenderTarget: state.bloomMipTextureIds[level - 1].
+		// DepthStencil: none.
+		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
+		// ResourceState: ReadSrvPs(srcLowId), WriteRt(dstHighId).
+		// Notes: Runs from the lowest mip back toward bloom mip 0.
+		for (uint32_t level = mipCount - 1; level > 0; --level) {
+			const uint32_t srcLowId  = state.bloomMipTextureIds[level];
+			const uint32_t dstHighId = state.bloomMipTextureIds[level - 1];
+			const uint32_t srcWidth  = std::max(
+				1u, state.logicalWidth >> static_cast<uint32_t>(level + 1)
+			);
+			const uint32_t srcHeight = std::max(
+				1u, state.logicalHeight >> static_cast<uint32_t>(level + 1)
+			);
+			const uint32_t dstWidth = std::max(
+				1u, state.logicalWidth >> level
+			);
+			const uint32_t dstHeight = std::max(
+				1u, state.logicalHeight >> level
+			);
+
+			BloomPyramidConstants bloomCbData = {};
+			bloomCbData.params0               = Vec4(
+				1.0f / static_cast<float>(srcWidth),
+				1.0f / static_cast<float>(srcHeight),
+				0.0f,
+				0.0f
+			);
+			bloomCbData.params1 = Vec4(
+				bloomRadius, bloomIntensity, 0.0f, 0.0f
+			);
+
+			auto& allocator = dynamic_cast<Rhi::D3D12Device&>(
+				renderDevice.GetRhiDevice()
+			).GetFrameUploadAllocator();
+			const D3D12_GPU_VIRTUAL_ADDRESS bloomCb =
+				allocator.AllocateConstantBuffer(
+					&bloomCbData, sizeof(bloomCbData)
+				);
+
+			// Bloom upsample: ReadSrvPs(srcLowId) -> WriteRt(dstHighId).
+			mGraph.AddPass(
+				prefix + "BloomUpsample[" + std::to_string(level) + "]",
+				[srcLowId, dstHighId](RenderGraphBuilder& b) {
+					b.ReadSrvPs(srcLowId);
+					b.WriteRt(dstHighId);
+				},
+				[this, dstHighId, dstWidth, dstHeight, bloomCb, srcLowId](
+				const RenderPassContext& pass
+			) {
+					pass.SetViewportAndScissor(
+						0.0f,
+						0.0f,
+						static_cast<float>(dstWidth),
+						static_cast<float>(dstHeight)
+					);
+					pass.SetSrvUavHeap();
+					pass.SetRenderTarget(dstHighId);
+					if (
+						!mBloomUpsamplePass.resolved ||
+						!mBloomUpsamplePass.resolved->pso
+					) {
+						return;
+					}
+					pass.SetGraphicsPipeline(
+						mBloomUpsamplePass.resolved->rootSignature,
+						mBloomUpsamplePass.resolved->pso
+					);
+					pass.BindGraphicsCbv(
+						ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
+						bloomCb
+					);
+					pass.BindGraphicsSrvTable(
+						ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
+						srcLowId
+					);
+					pass.DrawFullscreenTriangle();
+				}
+			);
+		}
+	}
+
+	void Renderer::AddBloomBaseCopyPass(
+		RenderDevice&           renderDevice,
+		const std::string&      prefix,
+		const ViewRuntimeState& state,
+		const uint32_t          baseCopyInId,
+		const uint32_t          bloomCombinedOutId
+	) {
+		// Pass: Bloom base copy.
+		// Input: baseCopyInId.
+		// Output: bloomCombinedOutId.
+		// PSO: mHdrCopyPass.resolved->pso.
+		// RootSignature: mHdrCopyPass.resolved->rootSignature.
+		// RenderTarget: bloomCombinedOutId.
+		// DepthStencil: none.
+		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
+		// ResourceState: ReadSrvPs(baseCopyInId), WriteRt(bloomCombinedOutId).
+		// Notes: Copies the pre-bloom HDR input into the ping-pong target before composite.
+		mGraph.AddPass(
+			prefix + "BloomBaseCopy",
+			[baseCopyInId, bloomCombinedOutId](RenderGraphBuilder& b) {
+				b.ReadSrvPs(baseCopyInId);
+				b.WriteRt(bloomCombinedOutId);
+			},
+			[this, state, baseCopyInId, bloomCombinedOutId, &renderDevice](
+			const RenderPassContext& pass
+		) {
+				pass.SetViewportAndScissor(
+					0.0f,
+					0.0f,
+					static_cast<float>(state.logicalWidth),
+					static_cast<float>(state.logicalHeight)
+				);
+				pass.SetSrvUavHeap();
+				pass.SetRenderTarget(bloomCombinedOutId);
+				if (!mHdrCopyPass.resolved || !mHdrCopyPass.resolved->pso) {
+					return;
+				}
+				pass.SetGraphicsPipeline(
+					mHdrCopyPass.resolved->rootSignature,
+					mHdrCopyPass.resolved->pso
+				);
+				pass.BindGraphicsSrvTable(
+					ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
+					baseCopyInId
+				);
+				PostFxParamsConstants copyParams = {};
+				copyParams.scalar0.x             = std::clamp(
+					static_cast<float>(std::max(1u, state.logicalWidth)) /
+					static_cast<float>(std::max(1u, state.allocatedWidth)),
+					0.0f,
+					1.0f
+				);
+				copyParams.scalar0.y = std::clamp(
+					static_cast<float>(std::max(1u, state.logicalHeight)) /
+					static_cast<float>(std::max(1u, state.allocatedHeight)),
+					0.0f,
+					1.0f
+				);
+				auto& allocator = dynamic_cast<Rhi::D3D12Device&>(
+					renderDevice.GetRhiDevice()
+				).GetFrameUploadAllocator();
+				const D3D12_GPU_VIRTUAL_ADDRESS copyCb =
+					allocator.AllocateConstantBuffer(
+						&copyParams, sizeof(copyParams)
+					);
+				pass.BindGraphicsCbv(
+					ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
+					copyCb
+				);
+				pass.DrawFullscreenTriangle();
+			}
+		);
+	}
+
+	void Renderer::AddBloomCompositePass(
+		RenderDevice&           renderDevice,
+		const std::string&      prefix,
+		const ViewRuntimeState& state,
+		const uint32_t          bloomBaseId,
+		const uint32_t          bloomCombinedOutId,
+		const float             bloomIntensity,
+		const float             bloomRadius
+	) {
+		// Pass: Bloom composite.
+		// Input: bloomBaseId.
+		// Output: bloomCombinedOutId.
+		// PSO: mBloomCombinePass.resolved->pso.
+		// RootSignature: mBloomCombinePass.resolved->rootSignature.
+		// RenderTarget: bloomCombinedOutId.
+		// DepthStencil: none.
+		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
+		// ResourceState: ReadSrvPs(bloomBaseId), WriteRt(bloomCombinedOutId).
+		// Notes: Adds bloom mip 0 into the copied HDR base in the same output target.
+		BloomPyramidConstants bloomCompositeCbData;
+		const uint32_t        bloomBaseLogicalWidth = std::max(
+			1u, state.logicalWidth >> 1u
+		);
+		const uint32_t bloomBaseLogicalHeight = std::max(
+			1u, state.logicalHeight >> 1u
+		);
+		bloomCompositeCbData.params0 = Vec4(
+			1.0f / static_cast<float>(bloomBaseLogicalWidth),
+			1.0f / static_cast<float>(bloomBaseLogicalHeight),
+			0.0f,
+			0.0f
+		);
+		bloomCompositeCbData.params1 = Vec4(
+			bloomRadius, bloomIntensity, 0.0f, 0.0f
+		);
+		auto& allocator = dynamic_cast<Rhi::D3D12Device&>(
+			renderDevice.GetRhiDevice()
+		).GetFrameUploadAllocator();
+		const D3D12_GPU_VIRTUAL_ADDRESS bloomCompositeCb =
+			allocator.AllocateConstantBuffer(
+				&bloomCompositeCbData,
+				sizeof(bloomCompositeCbData)
+			);
+
+		mGraph.AddPass(
+			prefix + "BloomComposite",
+			[bloomBaseId, bloomCombinedOutId](RenderGraphBuilder& b) {
+				b.ReadSrvPs(bloomBaseId);
+				b.WriteRt(bloomCombinedOutId);
+			},
+			[this, state, bloomCombinedOutId, bloomBaseId, bloomCompositeCb](
+			const RenderPassContext& pass
+		) {
+				pass.SetViewportAndScissor(
+					0.0f,
+					0.0f,
+					static_cast<float>(state.logicalWidth),
+					static_cast<float>(state.logicalHeight)
+				);
+				pass.SetSrvUavHeap();
+				pass.SetRenderTarget(bloomCombinedOutId);
+				if (
+					!mBloomCombinePass.resolved ||
+					!mBloomCombinePass.resolved->pso
+				) {
+					return;
+				}
+				pass.SetGraphicsPipeline(
+					mBloomCombinePass.resolved->rootSignature,
+					mBloomCombinePass.resolved->pso
+				);
+				pass.BindGraphicsCbv(
+					ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
+					bloomCompositeCb
+				);
+				pass.BindGraphicsSrvTable(
+					ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE),
+					bloomBaseId
+				);
+				pass.DrawFullscreenTriangle();
+			}
+		);
+	}
+
+	void Renderer::AddGenericPostFxPasses(
+		RenderDevice&            renderDevice,
+		const std::string&       prefix,
+		const ViewRuntimeState&  state,
+		const PostFxRuntimePass& passRes,
+		const Vec4&              scalar0,
+		const Vec4&              scalar1,
+		const Vec4&              color0,
+		const Vec4&              color1,
+		uint32_t&                postFxInputId,
+		uint32_t&                postFxOutputId
+	) {
+		// Pass: Generic PostFx chain.
+		// Input: postFxInputId.
+		// Output: postFxOutputId.
+		// PSO: passRes.pass.resolved->pso.
+		// RootSignature: passRes.pass.resolved->rootSignature.
+		// RenderTarget: postFxOutputId.
+		// DepthStencil: none.
+		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
+		// ResourceState: ReadSrvPs(inId), WriteRt(outId).
+		// Notes: Advances the scene post-fx ping-pong target after adding the pass.
+		PostFxParamsConstants resolvedParams;
+		resolvedParams.scalar0 = scalar0;
+		resolvedParams.scalar1 = scalar1;
+		resolvedParams.color0  = color0;
+		resolvedParams.color1  = color1;
+
+		auto& allocator = dynamic_cast<Rhi::D3D12Device&>(
+			renderDevice.GetRhiDevice()
+		).GetFrameUploadAllocator();
+		const D3D12_GPU_VIRTUAL_ADDRESS postFxCb =
+			allocator.AllocateConstantBuffer(
+				&resolvedParams, sizeof(resolvedParams)
+			);
+
+		const auto inId  = postFxInputId;
+		const auto outId = postFxOutputId;
+
+		mGraph.AddPass(
+			prefix + "PostFx_" + passRes.name,
+			[inId, outId](RenderGraphBuilder& b) {
+				b.ReadSrvPs(inId);
+				b.WriteRt(outId);
+			},
+			[this, passRes, inId, outId, state, postFxCb](
+			const RenderPassContext& pass
+		) {
+				pass.SetViewportAndScissor(
+					0.0f,
+					0.0f,
+					static_cast<float>(state.logicalWidth),
+					static_cast<float>(state.logicalHeight)
+				);
+				pass.SetSrvUavHeap();
+				if (!passRes.pass.resolved || !passRes.pass.resolved->pso) {
+					return;
+				}
+				pass.SetGraphicsPipeline(
+					passRes.pass.resolved->rootSignature,
+					passRes.pass.resolved->pso
+				);
+				pass.SetRenderTarget(outId);
+				pass.BindGraphicsCbv(
+					ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
+					postFxCb
+				);
+				pass.BindGraphicsSrvTable(
+					ToRootIndex(FS_ROOT_SLOT::SOURCE_TEXTURE), inId
+				);
+				pass.DrawFullscreenTriangle();
+			}
+		);
+
+		postFxInputId  = outId;
+		postFxOutputId = postFxOutputId == state.postFxTextureAId ?
+			                 state.postFxTextureBId :
+			                 state.postFxTextureAId;
+	}
+
+	void Renderer::AddToneMapExposurePass(
+		RenderDevice&           renderDevice,
+		const std::string&      prefix,
+		const ViewRuntimeState& state,
+		const RenderViewInput&  view,
+		const uint32_t          postFxInputId,
+		uint32_t&               outputId
+	) {
+		// Pass: ToneMapExposure.
+		// Input: postFxInputId.
+		// Output: state.outputTextureId.
+		// PSO: mToneMapPass.resolved->pso.
+		// RootSignature: mToneMapPass.resolved->rootSignature.
+		// RenderTarget: state.outputTextureId.
+		// DepthStencil: none.
+		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
+		// ResourceState: ReadSrvPs(toneMapInputId), WriteRt(toneMapOutputId).
+		// Notes: Writes the final LDR output texture and updates outputId.
 		PostFxParamsConstants toneMapParams = {};
 		toneMapParams.scalar1.x             = view.camera.exposureEv;
 		auto& allocator                     = dynamic_cast<Rhi::D3D12Device&>(
@@ -1964,7 +2100,6 @@ namespace Unnamed::Render {
 			);
 		const uint32_t toneMapInputId  = postFxInputId;
 		const uint32_t toneMapOutputId = state.outputTextureId;
-		// ToneMapExposure: ReadSrvPs(toneMapInputId) -> WriteRt(toneMapOutputId).
 		mGraph.AddPass(
 			prefix + "ToneMapExposure",
 			[toneMapInputId, toneMapOutputId](RenderGraphBuilder& b) {
@@ -1982,8 +2117,7 @@ namespace Unnamed::Render {
 				);
 				pass.SetSrvUavHeap();
 				pass.SetRenderTarget(toneMapOutputId);
-				if (!mToneMapPass.resolved || !mToneMapPass.resolved->
-				    pso) {
+				if (!mToneMapPass.resolved || !mToneMapPass.resolved->pso) {
 					return;
 				}
 				pass.SetGraphicsPipeline(
