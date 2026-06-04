@@ -30,4 +30,9 @@ cbuffer SkinningPaletteCB : register(b3) {
 	float4x4 gSkinMatrices[512];
 }
 
+cbuffer ShadowCB : register(b4) {
+	float4x4 gShadowLightViewProj;
+	float4   gShadowParams; // x=depthBias, y=strength, z=texelSize, w=enabled
+}
+
 #endif

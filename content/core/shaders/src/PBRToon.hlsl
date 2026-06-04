@@ -1,6 +1,7 @@
 #include "SceneConstants.hlsli"
 
 Texture2D    gBaseColorTex : register(t0);
+Texture2D    gShadowMap : register(t1);
 SamplerState gLinearWrap : register(s0);
 
 struct VsIn {
@@ -56,6 +57,39 @@ VsOut VsMain(VsIn i) {
 	return o;
 }
 
+/// @brief Directional ShadowMap を 1 tap で評価する。Reverse-Z の GREATER_EQUAL depth pass と合わせる。
+float ComputeDirectionalShadowVisibility(float3 positionWS) {
+	if (gShadowParams.w <= 0.5f) {
+		return 1.0f;
+	}
+
+	float4 lightClip = mul(float4(positionWS, 1.0f), gShadowLightViewProj);
+	if (lightClip.w <= 0.0f) {
+		return 1.0f;
+	}
+
+	float3 lightNdc = lightClip.xyz / lightClip.w;
+	float2 shadowUv = float2(lightNdc.x * 0.5f + 0.5f, 0.5f - lightNdc.y * 0.5f);
+	if (
+		shadowUv.x < 0.0f || shadowUv.x > 1.0f ||
+		shadowUv.y < 0.0f || shadowUv.y > 1.0f ||
+		lightNdc.z < 0.0f || lightNdc.z > 1.0f
+	) {
+		return 1.0f;
+	}
+
+	uint shadowWidth = 1;
+	uint shadowHeight = 1;
+	gShadowMap.GetDimensions(shadowWidth, shadowHeight);
+	const uint2 shadowTexel = min(
+		uint2(shadowUv * float2(shadowWidth, shadowHeight)),
+		uint2(shadowWidth - 1u, shadowHeight - 1u)
+	);
+	const float storedDepth  = gShadowMap.Load(int3(shadowTexel, 0)).r;
+	const float currentDepth = lightNdc.z;
+	return (currentDepth + gShadowParams.x >= storedDepth) ? 1.0f : 0.0f;
+}
+
 /// @brief PBR入力を活かしつつトゥーン調ライティングを適用して最終色を出力する。
 float4 PsMain(VsOut i) : SV_Target {
 	// ベースカラーをマテリアル係数込みで計算する。
@@ -98,8 +132,14 @@ float4 PsMain(VsOut i) : SV_Target {
 	float3 rimColor     = float3(0.025f, 0.025f, 0.025f) * rimIntensity;
 
 	float3 ambient = float3(0.025f, 0.025f, 0.125f) * albedo;
-	float3 lit = albedo * diffuseFactor + specularToon + rimColor + ambient +
-	             gEmissiveColor.rgb;
+	float shadowVisibility = ComputeDirectionalShadowVisibility(i.positionWS);
+	float shadowFactor = lerp(
+		1.0f,
+		shadowVisibility,
+		saturate(gShadowParams.y)
+	);
+	float3 directLit = (albedo * diffuseFactor + specularToon) * shadowFactor;
+	float3 lit = directLit + rimColor + ambient + gEmissiveColor.rgb;
 
 	// 側面にわずかな寒色を加えて法線向きを視認しやすくする。
 	if (N.y < 0.7f) {
