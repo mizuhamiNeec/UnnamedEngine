@@ -901,7 +901,9 @@
                     "data": {
                         "attachCommands": [
                             "sv_gravity 1000",
-                            "sv_airaccelerate 100000000000000000000"
+                            "sv_airaccelerate 100000000000000000000",
+                            "r_shadowmap_enabled false",
+                            "r_shadowmap_debug false"
                         ],
                         "detachCommands": []
                     },
