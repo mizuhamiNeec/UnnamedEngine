@@ -681,13 +681,13 @@ namespace Unnamed::Render {
 		// Pass: Geometry.
 		// Input: RenderViewInput::visibleObjects, scene mesh buffers, material bindings, fallback texture.
 		// Output: mesh color/depth writes for the scene view.
-		// PSO: mGeometryPass.resolved->pso.
-		// RootSignature: mGeometryPass.resolved->rootSignature (Geom).
+		// PSO: MaterialBinding::resolvedGeometryPipeline when available; otherwise mGeometryPass.resolved->pso fallback.
+		// RootSignature: Geom root signature; material shaders are assumed to be compatible.
 		// RenderTarget: state.colorTextureId.
 		// DepthStencil: state.depthTextureId.
 		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
 		// ResourceState: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId). Texture SRVs are bound at draw time through MaterialBinding/fallback texture.
-		// Notes: Static and skinned meshes share this pass; MaterialAssetData::shaderProgramId/renderState are not selected here, because MaterialBinding only stores constants and albedoTextureId.
+		// Notes: Static and skinned meshes share this pass. Opaque material shader/depth/cull variants are selected per draw; transparent/blend material handling is still intentionally unsupported.
 		const uint32_t colorId = state.colorTextureId;
 		const uint32_t depthId = state.depthTextureId;
 
@@ -741,13 +741,33 @@ namespace Unnamed::Render {
 				    pso) {
 					return;
 				}
-				pass.SetGraphicsPipeline(
-					mGeometryPass.resolved->rootSignature,
-					mGeometryPass.resolved->pso
-				);
-				pass.BindGraphicsCbv(
-					ToRootIndex(GEOM_ROOT_SLOT::FRAME), frameCb
-				);
+				const ResolvedGraphicsPipeline* currentGeometryPipeline =
+					nullptr;
+				auto BindGeometryPipeline = [&](
+					const MaterialBinding*
+					materialBinding
+				) {
+					const ResolvedGraphicsPipeline* pipeline =
+						mGeometryPass.resolved;
+					if (
+						materialBinding &&
+						materialBinding->resolvedGeometryPipeline &&
+						materialBinding->resolvedGeometryPipeline->pso
+					) {
+						pipeline = materialBinding->resolvedGeometryPipeline;
+					}
+					if (!pipeline || !pipeline->pso) {
+						return false;
+					}
+					if (currentGeometryPipeline != pipeline) {
+						pass.SetGraphicsPipeline(
+							pipeline->rootSignature,
+							pipeline->pso
+						);
+						currentGeometryPipeline = pipeline;
+					}
+					return true;
+				};
 
 				const MaterialBinding* fallbackMaterial = nullptr;
 				if (const auto it = mMaterialBindings.find(
@@ -809,13 +829,6 @@ namespace Unnamed::Render {
 
 					pass.SetVertexBuffer(mesh.vbv);
 					pass.SetIndexBuffer(mesh.ibv);
-					pass.BindGraphicsCbv(
-						ToRootIndex(GEOM_ROOT_SLOT::OBJECT), objectCb
-					);
-					pass.BindGraphicsCbv(
-						ToRootIndex(GEOM_ROOT_SLOT::SKINNING),
-						skinningCb
-					);
 
 					if (mesh.submeshes.empty()) {
 						Rhi::MaterialConstants material        = {};
@@ -843,6 +856,19 @@ namespace Unnamed::Render {
 								allocator.AllocateConstantBuffer(
 									&material, sizeof(material)
 								);
+						if (!BindGeometryPipeline(materialBinding)) {
+							continue;
+						}
+						pass.BindGraphicsCbv(
+							ToRootIndex(GEOM_ROOT_SLOT::FRAME), frameCb
+						);
+						pass.BindGraphicsCbv(
+							ToRootIndex(GEOM_ROOT_SLOT::OBJECT), objectCb
+						);
+						pass.BindGraphicsCbv(
+							ToRootIndex(GEOM_ROOT_SLOT::SKINNING),
+							skinningCb
+						);
 						pass.BindGraphicsCbv(
 							ToRootIndex(GEOM_ROOT_SLOT::MATERIAL),
 							materialCbFallback
@@ -900,6 +926,19 @@ namespace Unnamed::Render {
 								allocator.AllocateConstantBuffer(
 									&material, sizeof(material)
 								);
+						if (!BindGeometryPipeline(materialBinding)) {
+							continue;
+						}
+						pass.BindGraphicsCbv(
+							ToRootIndex(GEOM_ROOT_SLOT::FRAME), frameCb
+						);
+						pass.BindGraphicsCbv(
+							ToRootIndex(GEOM_ROOT_SLOT::OBJECT), objectCb
+						);
+						pass.BindGraphicsCbv(
+							ToRootIndex(GEOM_ROOT_SLOT::SKINNING),
+							skinningCb
+						);
 						pass.BindGraphicsCbv(
 							ToRootIndex(GEOM_ROOT_SLOT::MATERIAL),
 							materialCbSubmesh
