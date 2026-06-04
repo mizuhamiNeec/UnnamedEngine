@@ -22,6 +22,7 @@ namespace Unnamed::Render {
 
 	void Renderer::Shutdown(RenderDevice& renderDevice) {
 		mTextureResourceCache.ReleaseAll();
+		ReleaseMaterialBindings(renderDevice);
 		if (mSpriteFallbackTextureId != 0) {
 			renderDevice.GetRegistry().ReleaseTexture(mSpriteFallbackTextureId);
 			mSpriteFallbackTextureId = 0;
@@ -32,12 +33,12 @@ namespace Unnamed::Render {
 	void Renderer::RenderFrame(
 		RenderDevice& renderDevice, const RenderFrameInputs& inputs
 	) {
-		Profiler*                   profiler = ServiceLocator::Get<Profiler>();
-		auto&                       rhi = renderDevice.GetRhiDevice();
-		auto&                       dx = static_cast<Rhi::D3D12Device&>(rhi);
-		const auto&                 swapChain = rhi.GetSwapChain();
-		const uint32_t              backBufferWidth = swapChain.GetWidth();
-		const uint32_t              backBufferHeight = swapChain.GetHeight();
+		Profiler*      profiler         = ServiceLocator::Get<Profiler>();
+		auto&          rhi              = renderDevice.GetRhiDevice();
+		auto&          dx               = static_cast<Rhi::D3D12Device&>(rhi);
+		const auto&    swapChain        = rhi.GetSwapChain();
+		const uint32_t backBufferWidth  = swapChain.GetWidth();
+		const uint32_t backBufferHeight = swapChain.GetHeight();
 		mTextureResourceCache.BeginFrame(inputs.frameIndex);
 
 		std::unordered_set<AssetID> dirtyMeshAssets;
@@ -56,15 +57,7 @@ namespace Unnamed::Render {
 		}
 		if (materialsDirty) {
 			// Hot reload 時は既存マテリアルバインディングを破棄して再構築します。
-			auto& registry = renderDevice.GetRegistry();
-			for (const auto& [materialInstanceId, binding] : mMaterialBindings) {
-				(void)materialInstanceId;
-				if (binding.albedoTextureId != 0) {
-					registry.ReleaseTexture(binding.albedoTextureId);
-				}
-			}
-			mMaterialBindings.clear();
-			mDefaultMaterialInstance = kInvalidAssetID;
+			ReleaseMaterialBindings(renderDevice);
 		}
 		if (postFxDirty) {
 			RebuildPipelineCatalog(renderDevice, dx);
@@ -112,26 +105,32 @@ namespace Unnamed::Render {
 				view.output.height = std::max(1u, view.output.height);
 			}
 
-			std::sort(
-				view.worldBillboards.begin(),
-				view.worldBillboards.end(),
-				[](const WorldBillboardInput& a, const WorldBillboardInput& b) {
-					return a.sortKey < b.sortKey;
-				}
+			std::ranges::sort(view.worldBillboards
+			                  ,
+			                  [](
+			                  const WorldBillboardInput& a,
+			                  const WorldBillboardInput& b
+		                  ) {
+				                  return a.sortKey < b.sortKey;
+			                  }
 			);
-			std::sort(
-				view.worldSprites.begin(),
-				view.worldSprites.end(),
-				[](const WorldSpriteInput& a, const WorldSpriteInput& b) {
-					return a.sortKey < b.sortKey;
-				}
+			std::ranges::sort(view.worldSprites
+			                  ,
+			                  [](
+			                  const WorldSpriteInput& a,
+			                  const WorldSpriteInput& b
+		                  ) {
+				                  return a.sortKey < b.sortKey;
+			                  }
 			);
-			std::sort(
-				view.screenSprites.begin(),
-				view.screenSprites.end(),
-				[](const ScreenSpriteInput& a, const ScreenSpriteInput& b) {
-					return a.sortKey < b.sortKey;
-				}
+			std::ranges::sort(view.screenSprites
+			                  ,
+			                  [](
+			                  const ScreenSpriteInput& a,
+			                  const ScreenSpriteInput& b
+		                  ) {
+				                  return a.sortKey < b.sortKey;
+			                  }
 			);
 
 			if (
@@ -141,11 +140,11 @@ namespace Unnamed::Render {
 				mPresentViewKey = view.viewKey;
 			}
 
-			auto&          state           = mViewStates[view.viewKey];
-			const bool     typeChanged     = state.type != view.type;
-			const uint32_t logicalWidth    = std::max(1u, view.output.width);
-			const uint32_t logicalHeight   = std::max(1u, view.output.height);
-			const bool allowGrowOnlyReuse  =
+			auto&          state = mViewStates[view.viewKey];
+			const bool     typeChanged = state.type != view.type;
+			const uint32_t logicalWidth = std::max(1u, view.output.width);
+			const uint32_t logicalHeight = std::max(1u, view.output.height);
+			const bool     allowGrowOnlyReuse =
 				view.type == RENDER_VIEW_TYPE::SCENE &&
 				view.output.exposeToUi &&
 				!view.output.presentToSwapChain &&
@@ -166,15 +165,16 @@ namespace Unnamed::Render {
 					                                      logicalHeight,
 					                                      std::max(
 						                                      1u,
-						                                      view.sceneViewMode.
+						                                      view.sceneViewMode
+						                                      .
 						                                      allocationHintHeight
 					                                      )
 				                                      ) :
 				                                      logicalHeight;
 
-			state.type         = view.type;
-			state.output       = view.output;
-			state.logicalWidth = logicalWidth;
+			state.type          = view.type;
+			state.output        = view.output;
+			state.logicalWidth  = logicalWidth;
 			state.logicalHeight = logicalHeight;
 
 			uint32_t desiredAllocatedWidth  = logicalWidth;
@@ -379,7 +379,7 @@ namespace Unnamed::Render {
 
 		const auto& registry =
 			const_cast<RenderDevice&>(renderDevice).GetRegistry();
-		view.srvCpu      = registry.GetSrvCpu(view.textureId);
+		view.srvCpu = registry.GetSrvCpu(view.textureId);
 		view.srvRevision = registry.GetSrvRevision(view.textureId);
 		view.uvMin = Vec2(0.0f, 0.0f);
 		const float safeAllocatedWidth = static_cast<float>(std::max(
@@ -391,13 +391,13 @@ namespace Unnamed::Render {
 		view.uvMax = Vec2(
 			std::clamp(
 				static_cast<float>(std::max(1u, it->second.logicalWidth)) /
-					safeAllocatedWidth,
+				safeAllocatedWidth,
 				0.0f,
 				1.0f
 			),
 			std::clamp(
 				static_cast<float>(std::max(1u, it->second.logicalHeight)) /
-					safeAllocatedHeight,
+				safeAllocatedHeight,
 				0.0f,
 				1.0f
 			)
@@ -410,10 +410,10 @@ namespace Unnamed::Render {
 		if (it == mViewStates.end()) {
 			return Vec2::zero;
 		}
-		return Vec2(
+		return Vec2{
 			static_cast<float>(std::max(1u, it->second.logicalWidth)),
 			static_cast<float>(std::max(1u, it->second.logicalHeight))
-		);
+		};
 	}
 
 	std::pair<uint32_t, uint32_t> Renderer::ResolveSceneRenderExtent(
@@ -490,35 +490,47 @@ namespace Unnamed::Render {
 		return {width, height};
 	}
 
+	void Renderer::ReleaseMaterialBindings(RenderDevice& renderDevice) {
+		auto& registry = renderDevice.GetRegistry();
+		for (const auto& [materialInstanceId, binding] : mMaterialBindings) {
+			(void)materialInstanceId;
+			if (binding.albedoTextureId != 0) {
+				registry.ReleaseTexture(binding.albedoTextureId);
+			}
+		}
+		mMaterialBindings.clear();
+		mDefaultMaterialInstance = kInvalidAssetID;
+	}
+
 	void Renderer::ResolveRegisteredPipelines(RenderDevice& renderDevice) {
 		mPipelineRegistry.ResolveAll(renderDevice);
 
-		mFullscreenPass.resolved      = mPipelineRegistry.GetGraphics(
+		mFullscreenPass.resolved = mPipelineRegistry.GetGraphics(
 			mFullscreenPass.pipeline
 		);
-		mHdrCopyPass.resolved         = mPipelineRegistry.GetGraphics(
+		mHdrCopyPass.resolved = mPipelineRegistry.GetGraphics(
 			mHdrCopyPass.pipeline
 		);
-		mToneMapPass.resolved         = mPipelineRegistry.GetGraphics(
+		mToneMapPass.resolved = mPipelineRegistry.GetGraphics(
 			mToneMapPass.pipeline
 		);
 		mBloomDownsamplePass.resolved = mPipelineRegistry.GetGraphics(
 			mBloomDownsamplePass.pipeline
 		);
-		mBloomUpsamplePass.resolved   = mPipelineRegistry.GetGraphics(
+		mBloomUpsamplePass.resolved = mPipelineRegistry.GetGraphics(
 			mBloomUpsamplePass.pipeline
 		);
-		mBloomCombinePass.resolved    = mPipelineRegistry.GetGraphics(
+		mBloomCombinePass.resolved = mPipelineRegistry.GetGraphics(
 			mBloomCombinePass.pipeline
 		);
-		mDepthVisPass.resolved        = mPipelineRegistry.GetGraphics(
+		mDepthVisPass.resolved = mPipelineRegistry.GetGraphics(
 			mDepthVisPass.pipeline
 		);
-		mComputePass.resolved         = mPipelineRegistry.GetCompute(
+		mComputePass.resolved = mPipelineRegistry.GetCompute(
 			mComputePass.pipeline
 		);
 
-		mGeometryPass.resolved        = mPipelineRegistry.GetGraphics(
+		mGeometryPass.resolved = mPipelineRegistry.GetGraphics(
 			mGeometryPass.pipeline
 		);
 		mSkyboxPass.geom.resolved = mPipelineRegistry.GetGraphics(
@@ -540,6 +552,24 @@ namespace Unnamed::Render {
 			mBillboardPass.frontGeom.pipeline
 		);
 		mLinePass.resolved = mPipelineRegistry.GetGraphics(mLinePass.pipeline);
+
+		for (auto& [materialInstanceId, binding] : mMaterialBindings) {
+			binding.resolvedGeometryPipeline = mPipelineRegistry.GetGraphics(
+				binding.geometryPipeline
+			);
+			if (
+				(!binding.resolvedGeometryPipeline ||
+				 !binding.resolvedGeometryPipeline->pso) &&
+				!binding.pipelineResolveWarningEmitted
+			) {
+				Warning(
+					kRenderChannel,
+					"Failed to resolve geometry pipeline for material instance {}. Falling back to default geometry pipeline.",
+					materialInstanceId
+				);
+				binding.pipelineResolveWarningEmitted = true;
+			}
+		}
 
 		for (auto& pass : mPostFxPasses) {
 			pass.pass.resolved = mPipelineRegistry.GetGraphics(
@@ -564,7 +594,7 @@ namespace Unnamed::Render {
 		);
 	}
 
-	void Renderer::InitializeDebugLineResources(Rhi::D3D12Device& dx) {
+	void Renderer::InitializeDebugLineResources(const Rhi::D3D12Device& dx) {
 		mLinePass.vertexCapacity   = kMaxDebugLines * 2;
 		mLinePass.frameVertexCount = 0;
 		mLinePass.mappedVertices   = nullptr;
@@ -600,7 +630,7 @@ namespace Unnamed::Render {
 		);
 
 		void*                 mapped    = nullptr;
-		constexpr D3D12_RANGE readRange = {0, 0};
+		constexpr D3D12_RANGE readRange = {.Begin = 0, .End = 0};
 		Rhi::Throw(mLinePass.dynamicVb->Map(0, &readRange, &mapped));
 		mLinePass.mappedVertices = static_cast<DebugLineVertex*>(mapped);
 

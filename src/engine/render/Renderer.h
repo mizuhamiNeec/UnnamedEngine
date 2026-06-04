@@ -10,6 +10,7 @@
 #include "TextureResourceCache.h"
 
 #include "core/assets/AssetID.h"
+#include "core/assets/types/MaterialAssetData.h"
 #include "core/math/Vec2.h"
 
 #include "engine/rhi/Buffer.h"
@@ -109,7 +110,8 @@ namespace Unnamed::Render {
 		void LoadMaterialResources(
 			RenderDevice& renderDevice, Rhi::D3D12Device& dx
 		);
-		void LoadPostFxChain(RenderDevice& renderDevice);
+		void ReleaseMaterialBindings(RenderDevice& renderDevice);
+		void LoadPostFxChain(const RenderDevice& renderDevice);
 		void RebuildPipelineCatalog(
 			RenderDevice& renderDevice, Rhi::D3D12Device& dx
 		);
@@ -138,10 +140,14 @@ namespace Unnamed::Render {
 		};
 
 		struct MaterialBinding {
-			Rhi::MaterialConstants constants          = {};
-			AssetID                materialInstanceId = kInvalidAssetID;
-			uint32_t               albedoTextureId    = 0;
-			uint32_t               padding0           = 0;
+			Rhi::MaterialConstants constants = {};
+			AssetID materialInstanceId = kInvalidAssetID;
+			AssetID shaderProgramId = kInvalidAssetID;
+			MaterialRenderStateData renderState = {};
+			PipelineHandle geometryPipeline = {};
+			const ResolvedGraphicsPipeline* resolvedGeometryPipeline = nullptr;
+			uint32_t albedoTextureId = 0;
+			bool pipelineResolveWarningEmitted = false;
 		};
 
 		struct PostFxRuntimePass {
@@ -397,6 +403,8 @@ namespace Unnamed::Render {
 		Rhi::UploadBuffer<Rhi::ObjectConstants> mObjectCb;
 		Rhi::UploadBuffer<Rhi::MaterialConstants> mMaterialCb;
 		Rhi::UploadBuffer<Rhi::SkinningPaletteConstants> mSkinningCb;
+		AssetID mGeometryShaderProgramId = kInvalidAssetID;
+		Rhi::VertexLayoutDesc mGeometryVertexLayout = {};
 		std::vector<MeshBuffer> mSceneMeshes;
 		std::unordered_map<AssetID, MeshBuffer> mSceneMeshesByAsset;
 		AssetID mLoadedMeshAsset = kInvalidAssetID;
@@ -432,7 +440,7 @@ namespace Unnamed::Render {
 			RenderDevice& renderDevice, AssetID textureAssetId
 		);
 		void        EnsureSpriteFallbackTexture(RenderDevice& renderDevice);
-		void        InitializeDebugLineResources(Rhi::D3D12Device& dx);
+		void        InitializeDebugLineResources(const Rhi::D3D12Device& dx);
 		void        UploadDebugLinesForFrame();
 		static void ReleaseViewRuntimeTextures(
 			RenderDevice& renderDevice, ViewRuntimeState& state
