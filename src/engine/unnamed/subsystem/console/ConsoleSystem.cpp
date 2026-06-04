@@ -169,6 +169,13 @@ namespace Unnamed {
 		const std::string_view     message,
 		const std::source_location location
 	) {
+#ifndef _DEBUG
+		if (level == LogLevel::Dev) {
+			// Devレベルのメッセージはリリースビルドでは出力しない
+			return;
+		}
+#endif
+
 		// ログメッセージをバッファに追加
 		ConsoleLogText logText;
 		logText.level     = level;
