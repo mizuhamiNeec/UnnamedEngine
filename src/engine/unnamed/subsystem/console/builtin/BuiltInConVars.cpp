@@ -73,7 +73,7 @@ namespace Unnamed {
 			true,
 			256,
 			true,
-			4096
+			8192
 		);
 
 		static ConVar r_shadowmap_debug(
@@ -111,6 +111,11 @@ namespace Unnamed {
 			0.0f,
 			true,
 			1.0f
+		);
+
+		static ConVar r_shadowmap_force_cull_none(
+			"r_shadowmap_force_cull_none", false, FCVAR::ARCHIVE,
+			"Force CullNone for directional shadow map casters."
 		);
 
 		static ConVar ui_new_font_size_preset(

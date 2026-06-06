@@ -27,9 +27,9 @@ namespace Unnamed::Render {
 		) {
 			Rhi::FrameConstants frame  = {};
 			const float         aspect = height > 0 ?
-				                     static_cast<float>(width) /
-				                     static_cast<float>(height) :
-				                     16.0f / 9.0f;
+				                             static_cast<float>(width) /
+				                             static_cast<float>(height) :
+				                             16.0f / 9.0f;
 			const Mat4 fallbackView = Mat4::identity;
 			const Mat4 fallbackProj = Mat4::PerspectiveFovD3D(
 				90.0f * Math::deg2Rad,
@@ -59,6 +59,25 @@ namespace Unnamed::Render {
 			);
 		}
 
+		Mat4 BuildReverseZOrthographic(
+			const float left,
+			const float top,
+			const float right,
+			const float bottom,
+			const float nearClip,
+			const float farClip
+		) {
+			Mat4        result     = Mat4::identity;
+			const float depthRange = farClip - nearClip;
+			result.m[0][0]         = 2.0f / (right - left);
+			result.m[1][1]         = 2.0f / (top - bottom);
+			result.m[2][2]         = -1.0f / depthRange;
+			result.m[3][0]         = (left + right) / (left - right);
+			result.m[3][1]         = (top + bottom) / (bottom - top);
+			result.m[3][2]         = farClip / depthRange;
+			return result;
+		}
+
 		Mat4 BuildLookAtView(
 			const Vec3& eye,
 			const Vec3& target,
@@ -74,7 +93,7 @@ namespace Unnamed::Render {
 			}
 			const Vec3 viewUp = forward.Cross(right);
 
-			Mat4 view = Mat4::identity;
+			Mat4 view    = Mat4::identity;
 			view.m[0][0] = right.x;
 			view.m[1][0] = right.y;
 			view.m[2][0] = right.z;
@@ -91,23 +110,29 @@ namespace Unnamed::Render {
 		}
 
 		struct FixedShadowMatrices {
-			Mat4 lightView     = Mat4::identity;
-			Mat4 lightProj     = Mat4::identity;
-			Mat4 lightViewProj = Mat4::identity;
+			Mat4 lightView         = Mat4::identity;
+			Mat4 lightProj         = Mat4::identity;
+			Mat4 lightViewProj     = Mat4::identity;
+			Vec3 lightRayDirection = Vec3(0.0f, -1.0f, 0.0f);
+			Vec3 directionToLight  = Vec3(0.0f, 1.0f, 0.0f);
 		};
 
 		FixedShadowMatrices BuildFixedDirectionalShadowMatrices(
 			const RenderCameraInput& camera
 		) {
 			// Temporary until directional light data is provided by RenderFrameInputs.
-			const Vec3 lightDirection = Vec3(-0.5f, -1.0f, 0.5f).Normalized();
+			const Vec3 lightRayDirection =
+				Vec3(-0.5f, -1.0f, 0.5f).Normalized();
+			const Vec3 directionToLight = lightRayDirection * -1.0f;
 			const Vec3 center = camera.valid ? camera.cameraPos : Vec3::zero;
-			const float shadowDistance = 80.0f;
-			const float orthoHalfSize  = 40.0f;
-			const Vec3 eye = center - lightDirection * shadowDistance;
+			constexpr float shadowDistance = 80.0f;
+			constexpr float orthoHalfSize = 40.0f;
+			const Vec3 eye = center - lightRayDirection * shadowDistance;
 			FixedShadowMatrices result = {};
+			result.lightRayDirection = lightRayDirection;
+			result.directionToLight = directionToLight;
 			result.lightView = BuildLookAtView(eye, center, Vec3::up);
-			result.lightProj = Mat4::MakeOrthographicMat(
+			result.lightProj = BuildReverseZOrthographic(
 				-orthoHalfSize,
 				orthoHalfSize,
 				orthoHalfSize,
@@ -492,7 +517,7 @@ namespace Unnamed::Render {
 				                                ) :
 				                                1024;
 			const uint32_t shadowResolution = static_cast<uint32_t>(
-				std::clamp(requestedShadowSize, 256, 4096)
+				std::clamp(requestedShadowSize, 256, 16385)
 			);
 			if (mDirectionalShadow.resolution != shadowResolution) {
 				if (mDirectionalShadow.shadowDepthTextureId != 0) {
@@ -506,15 +531,15 @@ namespace Unnamed::Render {
 			if (mDirectionalShadow.shadowDepthTextureId == 0) {
 				mDirectionalShadow.shadowDepthTextureId = mGraph.CreateTexture(
 					{
-						.width = shadowResolution,
-						.height = shadowResolution,
-						.resourceFormat = DXGI_FORMAT_R32_TYPELESS,
-						.allowDsv = true,
-						.srvFormat = DXGI_FORMAT_R32_FLOAT,
-						.dsvFormat = DXGI_FORMAT_D32_FLOAT,
-						.debugName = "DirectionalShadowMap",
+						.width               = shadowResolution,
+						.height              = shadowResolution,
+						.resourceFormat      = DXGI_FORMAT_R32_TYPELESS,
+						.allowDsv            = true,
+						.srvFormat           = DXGI_FORMAT_R32_FLOAT,
+						.dsvFormat           = DXGI_FORMAT_D32_FLOAT,
+						.debugName           = "DirectionalShadowMap",
 						.optimizedClearDepth = 0.0f,
-						.extentMode = RG_EXTENT_MODE::FIXED,
+						.extentMode          = RG_EXTENT_MODE::FIXED,
 					}
 				);
 			}
@@ -522,9 +547,13 @@ namespace Unnamed::Render {
 				BuildFixedDirectionalShadowMatrices(
 					frameViews[firstSceneViewIndex].camera
 				);
-			mDirectionalShadow.lightView = shadowMatrices.lightView;
-			mDirectionalShadow.lightProj = shadowMatrices.lightProj;
-			mDirectionalShadow.lightViewProj = shadowMatrices.lightViewProj;
+			mDirectionalShadow.lightView         = shadowMatrices.lightView;
+			mDirectionalShadow.lightProj         = shadowMatrices.lightProj;
+			mDirectionalShadow.lightViewProj     = shadowMatrices.lightViewProj;
+			mDirectionalShadow.lightRayDirection =
+				shadowMatrices.lightRayDirection;
+			mDirectionalShadow.directionToLight =
+				shadowMatrices.directionToLight;
 		}
 
 		for (size_t viewIndex = 0; viewIndex < frameViews.size(); ++viewIndex) {
@@ -647,16 +676,16 @@ namespace Unnamed::Render {
 		const uint32_t     colorId,
 		const uint32_t     depthId
 	) {
-		// Pass: Scene clear.
-		// Input: none.
-		// Output: colorId and depthId are cleared.
-		// PSO: none.
-		// RootSignature: none.
-		// RenderTarget: colorId.
-		// DepthStencil: depthId.
-		// DescriptorHeap: none.
-		// ResourceState: WriteRt(colorId), WriteDepth(depthId).
-		// Notes: Keeps the existing clear color and reverse-Z depth clear value.
+		// パス: シーン クリア。
+		// 入力: なし。
+		// 出力: colorId と depthId がクリアされる。
+		// PSO: なし。
+		// ルートシグネチャ: なし。
+		// レンダーターゲット: colorId。
+		// 深度ステンシル: depthId。
+		// ディスクリプタヒープ: なし。
+		// リソースステート: WriteRt(colorId), WriteDepth(depthId)。
+		// 注記: 既存のクリアカラーと逆Z深度クリア値を保持する。
 		mGraph.AddPass(
 			prefix + "Clear",
 			[colorId, depthId](RenderGraphBuilder& b) {
@@ -679,16 +708,16 @@ namespace Unnamed::Render {
 		const ViewRuntimeState& state,
 		const uint32_t          skyboxTextureId
 	) {
-		// Pass: Skybox.
-		// Input: RenderViewInput::camera, skyboxTextureId SRV, skybox cube VB/IB.
-		// Output: skybox pixels in state.colorTextureId and depth writes.
-		// PSO: mSkyboxPass.geom.resolved->pso.
-		// RootSignature: mSkyboxPass.geom.resolved->rootSignature (Geom).
-		// RenderTarget: state.colorTextureId.
-		// DepthStencil: state.depthTextureId.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(skyboxTextureId when nonzero).
-		// Notes: Uses MaterialConstants::baseColor as skybox intensity.
+		// パス: スカイボックス。
+		// 入力: RenderViewInput::camera、skyboxTextureId SRV、スカイボックス cube VB/IB。
+		// 出力: state.colorTextureId 内のスカイボックスピクセルと深度書き込み。
+		// PSO: mSkyboxPass.geom.resolved->pso。
+		// ルートシグネチャ: mSkyboxPass.geom.resolved->rootSignature (Geom)。
+		// レンダーターゲット: state.colorTextureId。
+		// 深度ステンシル: state.depthTextureId。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(skyboxTextureId 非ゼロ時)。
+		// 注記: スカイボックスの強度として MaterialConstants::baseColor を使用する。
 		const uint32_t colorId = state.colorTextureId;
 		const uint32_t depthId = state.depthTextureId;
 		mGraph.AddPass(
@@ -799,26 +828,26 @@ namespace Unnamed::Render {
 		size_t                  viewIndex,
 		const ViewRuntimeState& state
 	) {
-		// Pass: Geometry.
-		// Input: RenderViewInput::visibleObjects, scene mesh buffers, material bindings, fallback texture.
-		// Output: mesh color/depth writes for the scene view.
-		// PSO: MaterialBinding::resolvedGeometryPipeline when available; otherwise mGeometryPass.resolved->pso fallback.
-		// RootSignature: Geom root signature; material shaders are assumed to be compatible.
-		// RenderTarget: state.colorTextureId.
-		// DepthStencil: state.depthTextureId.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(mDirectionalShadow.shadowDepthTextureId when enabled). Material texture SRVs are bound at draw time through MaterialBinding/fallback texture.
-		// Notes: Static and skinned meshes share this pass. Opaque material shader/depth/cull variants are selected per draw; transparent/blend material handling is still intentionally unsupported.
-		const uint32_t colorId = state.colorTextureId;
-		const uint32_t depthId = state.depthTextureId;
+		// パス: ジオメトリ。
+		// 入力: RenderViewInput::visibleObjects、シーンメッシュバッファ、マテリアルバインディング、フォールバックテクスチャ。
+		// 出力: シーンビューのメッシュカラー/深度書き込み。
+		// PSO: 利用可能時は MaterialBinding::resolvedGeometryPipeline、それ以外は mGeometryPass.resolved->pso フォールバック。
+		// ルートシグネチャ: Geom ルートシグネチャ、マテリアルシェーダは互換性があると想定される。
+		// レンダーターゲット: state.colorTextureId。
+		// 深度ステンシル: state.depthTextureId。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(有効時の mDirectionalShadow.shadowDepthTextureId)。 マテリアルテクスチャ SRV は MaterialBinding/フォールバックテクスチャを通じた描画時にバインドされる。
+		// 注記: 静的メッシュとスキンメッシュはこのパスを共有する。不透明マテリアルシェーダ/深度/カルバリアントは描画ごとに選択される。透明/ブレンドマテリアル処理は意図的に未対応のまま。
+		const uint32_t colorId       = state.colorTextureId;
+		const uint32_t depthId       = state.depthTextureId;
 		const uint32_t shadowDepthId =
 			mDirectionalShadow.shadowDepthTextureId;
 		const bool shadowEnabled =
 			shadowDepthId != 0 &&
 			(!mConsole || mConsole->GetConVarValueOr(
-				"r_shadowmap_enabled",
-				true
-			));
+				 "r_shadowmap_enabled",
+				 true
+			 ));
 
 		mGraph.AddPass(
 			prefix + "Geometry",
@@ -832,7 +861,7 @@ namespace Unnamed::Render {
 				}
 			},
 			[this, viewIndex, state, shadowDepthId, shadowEnabled,
-			 &renderDevice](
+				&renderDevice](
 			RenderPassContext& pass
 		) {
 				const RenderViewInput& view = mFrameViews[viewIndex];
@@ -862,8 +891,8 @@ namespace Unnamed::Render {
 					);
 
 				Rhi::ShadowConstants shadow = {};
-				shadow.lightViewProj = mDirectionalShadow.lightViewProj;
-				shadow.params = Vec4(
+				shadow.lightViewProj        = mDirectionalShadow.lightViewProj;
+				shadow.params               = Vec4(
 					mConsole ?
 						mConsole->GetConVarValueOr(
 							"r_shadowmap_bias", 0.0005f
@@ -879,6 +908,12 @@ namespace Unnamed::Render {
 							mDirectionalShadow.resolution) :
 						0.0f,
 					shadowEnabled ? 1.0f : 0.0f
+				);
+				shadow.directionToLight = Vec4(
+					mDirectionalShadow.directionToLight.x,
+					mDirectionalShadow.directionToLight.y,
+					mDirectionalShadow.directionToLight.z,
+					0.0f
 				);
 				const D3D12_GPU_VIRTUAL_ADDRESS shadowCb =
 					allocator.AllocateConstantBuffer(
@@ -1139,20 +1174,20 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddShadowMapPass(
-		RenderDevice&                 renderDevice,
-		const size_t                  viewIndex,
+		RenderDevice&                        renderDevice,
+		const size_t                         viewIndex,
 		const DirectionalShadowRuntimeState& shadowState
 	) {
-		// Pass: Directional shadow map depth-only.
-		// Input: First scene RenderViewInput::visibleObjects and skinning palettes.
-		// Output: shadowState.shadowDepthTextureId depth writes.
-		// PSO: mShadowDepthPass or mShadowDepthDoubleSidedPass.
-		// RootSignature: Geom root signature; DepthOnly shader uses FRAME, OBJECT, and SKINNING slots.
-		// RenderTarget: none.
-		// DepthStencil: shadowState.shadowDepthTextureId.
-		// DescriptorHeap: none.
-		// ResourceState: WriteDepth(shadowState.shadowDepthTextureId).
-		// Notes: Temporary fixed directional light; replace with RenderFrameInputs light data later.
+		// パス: ディレクショナルシャドウマップ 深度のみ。
+		// 入力: 最初のシーンの RenderViewInput::visibleObjects とスキニングパレット。
+		// 出力: shadowState.shadowDepthTextureId 深度書き込み。
+		// PSO: mShadowDepthPass、mShadowDepthFrontCullPass、または mShadowDepthDoubleSidedPass。
+		// ルートシグネチャ: Geom ルートシグネチャ、DepthOnly シェーダは FRAME、OBJECT、SKINNING スロットを使用。
+		// レンダーターゲット: なし。
+		// 深度ステンシル: shadowState.shadowDepthTextureId。
+		// ディスクリプタヒープ: なし。
+		// リソースステート: WriteDepth(shadowState.shadowDepthTextureId)。
+		// 注記: 一時的な固定ディレクショナルライト。後で RenderFrameInputs ライトデータに置き換える。r_shadowmap_force_cull_none は室内/内向きメッシュ検証のためすべてのキャスターをダブルサイド PSO で強制できる。
 		const uint32_t shadowDepthId = shadowState.shadowDepthTextureId;
 		mGraph.AddPass(
 			"DirectionalShadowMap",
@@ -1206,17 +1241,37 @@ namespace Unnamed::Render {
 					shadowState.shadowDepthTextureId
 				);
 
-				const ResolvedGraphicsPipeline* currentPipeline = nullptr;
-				auto bindShadowPipeline = [&](
-					                          const MaterialBinding*
-						                          materialBinding
-				                          ) {
+				const ResolvedGraphicsPipeline* currentPipeline    = nullptr;
+				auto                            bindShadowPipeline = [&](
+					const MaterialBinding*
+					materialBinding
+				) {
+					const bool forceCullNone = mConsole &&
+					                           mConsole->GetConVarValueOr(
+						                           "r_shadowmap_force_cull_none",
+						                           false
+					                           );
 					const GeometryPassRes* passRes = &mShadowDepthPass;
-					if (
-						materialBinding &&
-						!materialBinding->renderState.cullBackFace
-					) {
+					if (forceCullNone) {
 						passRes = &mShadowDepthDoubleSidedPass;
+					} else if (materialBinding) {
+						switch (materialBinding->renderState.shadowCullMode) {
+							case MATERIAL_SHADOW_CULL_MODE::BACK
+							: passRes = &mShadowDepthPass;
+								break;
+							case MATERIAL_SHADOW_CULL_MODE::FRONT
+							: passRes = &mShadowDepthFrontCullPass;
+								break;
+							case MATERIAL_SHADOW_CULL_MODE::NONE
+							: passRes = &mShadowDepthDoubleSidedPass;
+								break;
+							case MATERIAL_SHADOW_CULL_MODE::FOLLOW_MATERIAL:
+							default: passRes =
+							         materialBinding->renderState.cullBackFace ?
+								         &mShadowDepthPass :
+								         &mShadowDepthDoubleSidedPass;
+								break;
+						}
 					}
 					if (!passRes->resolved || !passRes->resolved->pso) {
 						return false;
@@ -1232,14 +1287,15 @@ namespace Unnamed::Render {
 				};
 
 				auto shouldDrawShadowCaster = [](
-					                              const MaterialBinding*
-						                              materialBinding
-				                              ) {
+					const MaterialBinding*
+					materialBinding
+				) {
 					if (!materialBinding) {
 						return true;
 					}
 					const auto& rs = materialBinding->renderState;
-					return rs.depthEnable && rs.depthWrite && !rs.blendEnable;
+					return rs.castsShadow && rs.depthEnable && rs.depthWrite &&
+					       !rs.blendEnable;
 				};
 
 				const MaterialBinding* fallbackMaterial = nullptr;
@@ -1259,8 +1315,8 @@ namespace Unnamed::Render {
 					}
 					const MeshBuffer& mesh = meshIt->second;
 
-					Rhi::ObjectConstants object = {};
-					object.world = objectInput.world;
+					Rhi::ObjectConstants object  = {};
+					object.world                 = objectInput.world;
 					object.worldInverseTranspose =
 						object.world.Inverse().Transpose();
 					object.skinningInfo = Vec4(
@@ -1322,10 +1378,10 @@ namespace Unnamed::Render {
 					};
 
 					auto drawSubmesh = [&](
-						                   const uint32_t indexCount,
-						                   const uint32_t indexStart,
-						                   const AssetID materialId
-					                   ) {
+						const uint32_t indexCount,
+						const uint32_t indexStart,
+						const AssetID  materialId
+					) {
 						const MaterialBinding* materialBinding =
 							resolveMaterial(materialId);
 						if (!shouldDrawShadowCaster(materialBinding)) {
@@ -1394,16 +1450,16 @@ namespace Unnamed::Render {
 		const ViewRuntimeState&      state,
 		const std::vector<uint32_t>& worldBillboardTextureIds
 	) {
-		// Pass: World billboard depth.
-		// Input: RenderViewInput::worldBillboards where depthTest is true, worldBillboardTextureIds SRVs.
-		// Output: billboard color/depth writes for the scene view.
-		// PSO: mBillboardPass.depthGeom.resolved->pso.
-		// RootSignature: mBillboardPass.depthGeom.resolved->rootSignature (Geom).
-		// RenderTarget: state.colorTextureId.
-		// DepthStencil: state.depthTextureId.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(each worldBillboardTextureIds entry).
-		// Notes: Uses camera-facing billboards and preserves depth-tested draw filtering.
+		// パス: ワールドビルボード 深度。
+		// 入力: depthTest が true の RenderViewInput::worldBillboards、worldBillboardTextureIds SRV。
+		// 出力: シーンビューのビルボードカラー/深度書き込み。
+		// PSO: mBillboardPass.depthGeom.resolved->pso。
+		// ルートシグネチャ: mBillboardPass.depthGeom.resolved->rootSignature (Geom)。
+		// レンダーターゲット: state.colorTextureId。
+		// 深度ステンシル: state.depthTextureId。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(worldBillboardTextureIds 各エントリ)。
+		// 注記: カメラ向きビルボードを使用し、深度テスト描画フィルタリングを保持。
 		const uint32_t colorId = state.colorTextureId;
 		const uint32_t depthId = state.depthTextureId;
 
@@ -1568,16 +1624,16 @@ namespace Unnamed::Render {
 		const ViewRuntimeState&      state,
 		const std::vector<uint32_t>& worldSpriteTextureIds
 	) {
-		// Pass: World sprite.
-		// Input: RenderViewInput::worldSprites, worldSpriteTextureIds SRVs.
-		// Output: world sprite color/depth writes for the scene view.
-		// PSO: mBillboardPass.depthGeom.resolved->pso.
-		// RootSignature: mBillboardPass.depthGeom.resolved->rootSignature (Geom).
-		// RenderTarget: state.colorTextureId.
-		// DepthStencil: state.depthTextureId.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(each worldSpriteTextureIds entry).
-		// Notes: Uses explicit worldRight/worldUp vectors instead of camera-facing billboards.
+		// パス: ワールドスプライト。
+		// 入力: RenderViewInput::worldSprites、worldSpriteTextureIds SRV。
+		// 出力: シーンビューのワールドスプライトカラー/深度書き込み。
+		// PSO: mBillboardPass.depthGeom.resolved->pso。
+		// ルートシグネチャ: mBillboardPass.depthGeom.resolved->rootSignature (Geom)。
+		// レンダーターゲット: state.colorTextureId。
+		// 深度ステンシル: state.depthTextureId。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(worldSpriteTextureIds 各エントリ)。
+		// 注記: カメラ向きビルボードではなく明示的な worldRight/worldUp ベクトルを使用。
 		const uint32_t colorId = state.colorTextureId;
 		const uint32_t depthId = state.depthTextureId;
 
@@ -1729,16 +1785,16 @@ namespace Unnamed::Render {
 		size_t                  viewIndex,
 		const ViewRuntimeState& state
 	) {
-		// Pass: Debug lines.
-		// Input: mLinePass.frameVbv uploaded by UploadDebugLinesForFrame and the active scene camera.
-		// Output: debug line color/depth writes for the scene view.
-		// PSO: mLinePass.resolved->pso.
-		// RootSignature: mLinePass.resolved->rootSignature (Geom root slots).
-		// RenderTarget: state.colorTextureId.
-		// DepthStencil: state.depthTextureId.
-		// DescriptorHeap: none set in this pass.
-		// ResourceState: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId).
-		// Notes: Uses LINELIST topology and current frame vertex count.
+		// パス: デバッグライン。
+		// 入力: UploadDebugLinesForFrame でアップロードされた mLinePass.frameVbv とアクティブなシーンカメラ。
+		// 出力: シーンビューのデバッグラインカラー/深度書き込み。
+		// PSO: mLinePass.resolved->pso。
+		// ルートシグネチャ: mLinePass.resolved->rootSignature (Geom ルートスロット)。
+		// レンダーターゲット: state.colorTextureId。
+		// 深度ステンシル: state.depthTextureId。
+		// ディスクリプタヒープ: このパスで設定されることなし。
+		// リソースステート: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId)。
+		// 注記: LINELIST トポロジーと現在のフレーム頂点カウントを使用。
 		const uint32_t colorId = state.colorTextureId;
 		const uint32_t depthId = state.depthTextureId;
 
@@ -1805,16 +1861,16 @@ namespace Unnamed::Render {
 		const ViewRuntimeState&      state,
 		const std::vector<uint32_t>& worldBillboardTextureIds
 	) {
-		// Pass: World billboard front.
-		// Input: RenderViewInput::worldBillboards where depthTest is false, worldBillboardTextureIds SRVs.
-		// Output: front billboard color writes for the scene view.
-		// PSO: mBillboardPass.frontGeom.resolved->pso.
-		// RootSignature: mBillboardPass.frontGeom.resolved->rootSignature (Geom).
-		// RenderTarget: state.colorTextureId.
-		// DepthStencil: none bound by this pass.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: WriteRt(state.colorTextureId), ReadSrvPs(each worldBillboardTextureIds entry).
-		// Notes: Preserves the existing no-depth front billboard path.
+		// パス: ワールドビルボード フロント。
+		// 入力: depthTest が false の RenderViewInput::worldBillboards、worldBillboardTextureIds SRV。
+		// 出力: シーンビューのフロントビルボードカラー書き込み。
+		// PSO: mBillboardPass.frontGeom.resolved->pso。
+		// ルートシグネチャ: mBillboardPass.frontGeom.resolved->rootSignature (Geom)。
+		// レンダーターゲット: state.colorTextureId。
+		// 深度ステンシル: このパスでバインドなし。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: WriteRt(state.colorTextureId), ReadSrvPs(worldBillboardTextureIds 各エントリ)。
+		// 注記: 既存の深度なしフロントビルボードパスを保持。
 		const uint32_t colorId = state.colorTextureId;
 
 		mGraph.AddPass(
@@ -1968,16 +2024,16 @@ namespace Unnamed::Render {
 		const ViewRuntimeState& state,
 		uint32_t&               outputId
 	) {
-		// Pass: Scene post process chain.
-		// Input: state.colorTextureId, postFx ping-pong textures, bloom mips, view post-fx overrides.
-		// Output: state.outputTextureId after ToneMapExposure.
-		// PSO: mBloomDownsamplePass/mBloomUpsamplePass/mHdrCopyPass/mBloomCombinePass, each PostFxRuntimePass, mToneMapPass.
-		// RootSignature: fullscreen pass root signatures using FS_ROOT_SLOT bindings.
-		// RenderTarget: postFx ping-pong textures, bloom mip textures, then state.outputTextureId.
-		// DepthStencil: none.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: Each internal pass declares ReadSrvPs(source texture) and WriteRt(destination texture); ToneMapExposure writes state.outputTextureId.
-		// Notes: Keeps Bloom, generic PostFx, and ToneMap ordering exactly as BuildGraph had it.
+		// パス: シーン ポストプロセス チェーン。
+		// 入力: state.colorTextureId、ポストFX ピンポンテクスチャ、ブルームミップ、ビュー ポストFX オーバーライド。
+		// 出力: ToneMapExposure 後の state.outputTextureId。
+		// PSO: mBloomDownsamplePass/mBloomUpsamplePass/mHdrCopyPass/mBloomCombinePass、 各 PostFxRuntimePass、mToneMapPass。
+		// ルートシグネチャ: FS_ROOT_SLOT バインディングを使用したフルスクリーンパスルートシグネチャ。
+		// レンダーターゲット: ポストFX ピンポンテクスチャ、ブルームミップテクスチャ、その後 state.outputTextureId。
+		// 深度ステンシル: なし。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: 各内部パスは ReadSrvPs(ソーステクスチャ) と WriteRt(デスティネーションテクスチャ) を宣言。ToneMapExposure が state.outputTextureId を書き込み。
+		// 注記: Bloom、汎用 PostFx、ToneMap の順序を BuildGraph と全く同じに保持。
 		const RenderViewInput& view = mFrameViews[viewIndex];
 
 		uint32_t postFxInputId             = state.colorTextureId;
@@ -2114,16 +2170,16 @@ namespace Unnamed::Render {
 		const float             bloomKnee,
 		const uint32_t          postFxInputId
 	) {
-		// Pass: Bloom downsample.
-		// Input: postFxInputId for level 0, then each previous bloom mip.
-		// Output: state.bloomMipTextureIds[level].
-		// PSO: mBloomDownsamplePass.resolved->pso.
-		// RootSignature: mBloomDownsamplePass.resolved->rootSignature.
-		// RenderTarget: state.bloomMipTextureIds[level].
-		// DepthStencil: none.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: ReadSrvPs(downsampleSrcId), WriteRt(dstId).
-		// Notes: First pass reads the current post-fx input; later passes read the previous bloom mip.
+		// パス: ブルーム ダウンサンプル。
+		// 入力: レベル 0 の postFxInputId、その後は各前のブルームミップ。
+		// 出力: state.bloomMipTextureIds[level]。
+		// PSO: mBloomDownsamplePass.resolved->pso。
+		// ルートシグネチャ: mBloomDownsamplePass.resolved->rootSignature。
+		// レンダーターゲット: state.bloomMipTextureIds[level]。
+		// 深度ステンシル: なし。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: ReadSrvPs(downsampleSrcId), WriteRt(dstId)。
+		// 注記: 最初のパスは現在のポストFX 入力を読み込み、後のパスは前のブルームミップを読み込む。
 		uint32_t srcId = postFxInputId;
 		for (uint32_t level = 0; std::cmp_less(level, mipCount); ++level) {
 			const uint32_t dstId    = state.bloomMipTextureIds[level];
@@ -2161,7 +2217,7 @@ namespace Unnamed::Render {
 				);
 
 			const uint32_t downsampleSrcId = srcId;
-			// Bloom downsample: ReadSrvPs(downsampleSrcId) -> WriteRt(dstId).
+			// ブルーム ダウンサンプル: ReadSrvPs(downsampleSrcId) -> WriteRt(dstId)。
 			mGraph.AddPass(
 				prefix + "BloomDownsample[" + std::to_string(level) + "]",
 				[downsampleSrcId, dstId](RenderGraphBuilder& b) {
@@ -2213,16 +2269,16 @@ namespace Unnamed::Render {
 		const float             bloomIntensity,
 		const float             bloomRadius
 	) {
-		// Pass: Bloom upsample.
-		// Input: lower-resolution bloom mip at state.bloomMipTextureIds[level].
-		// Output: higher-resolution bloom mip at state.bloomMipTextureIds[level - 1].
-		// PSO: mBloomUpsamplePass.resolved->pso.
-		// RootSignature: mBloomUpsamplePass.resolved->rootSignature.
-		// RenderTarget: state.bloomMipTextureIds[level - 1].
-		// DepthStencil: none.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: ReadSrvPs(srcLowId), WriteRt(dstHighId).
-		// Notes: Runs from the lowest mip back toward bloom mip 0.
+		// パス: ブルーム アップサンプル。
+		// 入力: state.bloomMipTextureIds[level] の低解像度ブルームミップ。
+		// 出力: state.bloomMipTextureIds[level - 1] の高解像度ブルームミップ。
+		// PSO: mBloomUpsamplePass.resolved->pso。
+		// ルートシグネチャ: mBloomUpsamplePass.resolved->rootSignature。
+		// レンダーターゲット: state.bloomMipTextureIds[level - 1]。
+		// 深度ステンシル: なし。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: ReadSrvPs(srcLowId), WriteRt(dstHighId)。
+		// 注記: 最低ミップからブルームミップ 0 に向けて実行。
 		for (uint32_t level = mipCount - 1; level > 0; --level) {
 			const uint32_t srcLowId  = state.bloomMipTextureIds[level];
 			const uint32_t dstHighId = state.bloomMipTextureIds[level - 1];
@@ -2258,7 +2314,7 @@ namespace Unnamed::Render {
 					&bloomCbData, sizeof(bloomCbData)
 				);
 
-			// Bloom upsample: ReadSrvPs(srcLowId) -> WriteRt(dstHighId).
+			// ブルーム アップサンプル: ReadSrvPs(srcLowId) -> WriteRt(dstHighId)。
 			mGraph.AddPass(
 				prefix + "BloomUpsample[" + std::to_string(level) + "]",
 				[srcLowId, dstHighId](RenderGraphBuilder& b) {
@@ -2307,16 +2363,16 @@ namespace Unnamed::Render {
 		const uint32_t          baseCopyInId,
 		const uint32_t          bloomCombinedOutId
 	) {
-		// Pass: Bloom base copy.
-		// Input: baseCopyInId.
-		// Output: bloomCombinedOutId.
-		// PSO: mHdrCopyPass.resolved->pso.
-		// RootSignature: mHdrCopyPass.resolved->rootSignature.
-		// RenderTarget: bloomCombinedOutId.
-		// DepthStencil: none.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: ReadSrvPs(baseCopyInId), WriteRt(bloomCombinedOutId).
-		// Notes: Copies the pre-bloom HDR input into the ping-pong target before composite.
+		// パス: ブルーム 基本コピー。
+		// 入力: baseCopyInId。
+		// 出力: bloomCombinedOutId。
+		// PSO: mHdrCopyPass.resolved->pso。
+		// ルートシグネチャ: mHdrCopyPass.resolved->rootSignature。
+		// レンダーターゲット: bloomCombinedOutId。
+		// 深度ステンシル: なし。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: ReadSrvPs(baseCopyInId), WriteRt(bloomCombinedOutId)。
+		// 注記: 合成前にピンポンターゲットに事前ブルーム HDR 入力をコピー。
 		mGraph.AddPass(
 			prefix + "BloomBaseCopy",
 			[baseCopyInId, bloomCombinedOutId](RenderGraphBuilder& b) {
@@ -2383,16 +2439,16 @@ namespace Unnamed::Render {
 		const float             bloomIntensity,
 		const float             bloomRadius
 	) {
-		// Pass: Bloom composite.
-		// Input: bloomBaseId.
-		// Output: bloomCombinedOutId.
-		// PSO: mBloomCombinePass.resolved->pso.
-		// RootSignature: mBloomCombinePass.resolved->rootSignature.
-		// RenderTarget: bloomCombinedOutId.
-		// DepthStencil: none.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: ReadSrvPs(bloomBaseId), WriteRt(bloomCombinedOutId).
-		// Notes: Adds bloom mip 0 into the copied HDR base in the same output target.
+		// パス: ブルーム 合成。
+		// 入力: bloomBaseId。
+		// 出力: bloomCombinedOutId。
+		// PSO: mBloomCombinePass.resolved->pso。
+		// ルートシグネチャ: mBloomCombinePass.resolved->rootSignature。
+		// レンダーターゲット: bloomCombinedOutId。
+		// 深度ステンシル: なし。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: ReadSrvPs(bloomBaseId), WriteRt(bloomCombinedOutId)。
+		// 注記: ブルームミップ 0 をコピーされた HDR 基本に同じ出力ターゲットで追加。
 		BloomPyramidConstants bloomCompositeCbData;
 		const uint32_t        bloomBaseLogicalWidth = std::max(
 			1u, state.logicalWidth >> 1u
@@ -2470,16 +2526,16 @@ namespace Unnamed::Render {
 		uint32_t&                postFxInputId,
 		uint32_t&                postFxOutputId
 	) {
-		// Pass: Generic PostFx chain.
-		// Input: postFxInputId.
-		// Output: postFxOutputId.
-		// PSO: passRes.pass.resolved->pso.
-		// RootSignature: passRes.pass.resolved->rootSignature.
-		// RenderTarget: postFxOutputId.
-		// DepthStencil: none.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: ReadSrvPs(inId), WriteRt(outId).
-		// Notes: Advances the scene post-fx ping-pong target after adding the pass.
+		// パス: 汎用 PostFx チェーン。
+		// 入力: postFxInputId。
+		// 出力: postFxOutputId。
+		// PSO: passRes.pass.resolved->pso。
+		// ルートシグネチャ: passRes.pass.resolved->rootSignature。
+		// レンダーターゲット: postFxOutputId。
+		// 深度ステンシル: なし。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: ReadSrvPs(inId), WriteRt(outId)。
+		// 注記: パスの追加後にシーン ポストFX ピンポンターゲットを進める。
 		PostFxParamsConstants resolvedParams;
 		resolvedParams.scalar0 = scalar0;
 		resolvedParams.scalar1 = scalar1;
@@ -2758,19 +2814,19 @@ namespace Unnamed::Render {
 
 					Rhi::ObjectConstants object = {};
 					object.world                = Mat4::Scale(
-						               Vec3(
-							               sprite.sizePx.x *
-							               0.5f,
-							               sprite.sizePx.y *
-							               0.5f,
-							               1.0f
-						               )
-					               ) * Mat4::RotateZ(
-						               sprite.rotationRad
-					               ) * Mat4::Translate(
-						               Vec3(center.x, center.y,
-						                    0.0f)
-					               );
+						                              Vec3(
+							                              sprite.sizePx.x *
+							                              0.5f,
+							                              sprite.sizePx.y *
+							                              0.5f,
+							                              1.0f
+						                              )
+					                              ) * Mat4::RotateZ(
+						                              sprite.rotationRad
+					                              ) * Mat4::Translate(
+						                              Vec3(center.x, center.y,
+							                              0.0f)
+					                              );
 					object.worldInverseTranspose = Mat4::identity;
 					// 使わんので単位
 					const float uvMinY = sprite.uvFlipY ?
@@ -2859,16 +2915,16 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddPresentPass(RenderDevice& renderDevice) {
-		// Pass: Present fullscreen sample.
-		// Input: mPresentViewKey outputTextureId SRV.
-		// Output: swap chain back buffer render target.
-		// PSO: mFullscreenPass.resolved->pso.
-		// RootSignature: mFullscreenPass.resolved->rootSignature (fullscreen FS_ROOT_SLOT bindings).
-		// RenderTarget: RenderGraph back buffer.
-		// DepthStencil: none.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: ReadSrvPs(presentTexture), WriteBackBufferRt().
-		// Notes: Clears back buffer, aspect-fits the selected view, then draws fullscreen triangle.
+		// パス: フルスクリーン サンプルの提示。
+		// 入力: mPresentViewKey outputTextureId SRV。
+		// 出力: スワップチェーン バックバッファ レンダーターゲット。
+		// PSO: mFullscreenPass.resolved->pso。
+		// ルートシグネチャ: mFullscreenPass.resolved->rootSignature (フルスクリーン FS_ROOT_SLOT バインディング)。
+		// レンダーターゲット: RenderGraph バックバッファ。
+		// 深度ステンシル: なし。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: ReadSrvPs(presentTexture), WriteBackBufferRt()。
+		// 注記: バックバッファをクリア、選択されたビューをアスペクトフィット、フルスクリーン三角形を描画。
 		if (!mPresentViewKey.empty()) {
 			const auto presentIt = mViewStates.find(mPresentViewKey);
 			if (
@@ -2895,13 +2951,15 @@ namespace Unnamed::Render {
 						b.ReadSrvPs(presentTexture);
 						b.WriteBackBufferRt();
 					},
-					[this,
+					[
+						this,
 						presentTexture,
 						presentLogicalWidth,
 						presentLogicalHeight,
 						presentAllocatedWidth,
 						presentAllocatedHeight,
-						&renderDevice](
+						&renderDevice
+					](
 					const RenderPassContext& pass
 				) {
 						pass.ClearBackBuffer(0.0f, 0.0f, 0.0f, 1.0f);
@@ -2964,16 +3022,16 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddShadowMapDebugPass(RenderDevice& renderDevice) {
-		// Pass: Shadow map debug overlay.
-		// Input: mDirectionalShadow.shadowDepthTextureId SRV.
-		// Output: swap chain back buffer render target overlay.
-		// PSO: mDepthVisPass.resolved->pso.
-		// RootSignature: mDepthVisPass.resolved->rootSignature.
-		// RenderTarget: RenderGraph back buffer.
-		// DepthStencil: none.
-		// DescriptorHeap: D3D12Device SRV/UAV heap via RenderPassContext::SetSrvUavHeap.
-		// ResourceState: ReadSrvPs(mDirectionalShadow.shadowDepthTextureId), WriteBackBufferRt().
-		// Notes: Disabled by default; enable with r_shadowmap_debug.
+		// パス: シャドウマップ デバッグ オーバーレイ。
+		// 入力: mDirectionalShadow.shadowDepthTextureId SRV。
+		// 出力: スワップチェーン バックバッファ レンダーターゲット オーバーレイ。
+		// PSO: mDepthVisPass.resolved->pso。
+		// ルートシグネチャ: mDepthVisPass.resolved->rootSignature。
+		// レンダーターゲット: RenderGraph バックバッファ。
+		// 深度ステンシル: なし。
+		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
+		// リソースステート: ReadSrvPs(mDirectionalShadow.shadowDepthTextureId), WriteBackBufferRt()。
+		// 注記: デフォルトでは無効。r_shadowmap_debug で有効化。
 		if (
 			!mConsole ||
 			!mConsole->GetConVarValueOr("r_shadowmap_debug", false) ||
@@ -3021,7 +3079,7 @@ namespace Unnamed::Render {
 					mDepthVisPass.resolved->pso
 				);
 
-				PostFxParamsConstants params = {};
+				const PostFxParamsConstants params = {};
 				auto& allocator = static_cast<Rhi::D3D12Device&>(
 					renderDevice.GetRhiDevice()
 				).GetFrameUploadAllocator();
@@ -3046,16 +3104,16 @@ namespace Unnamed::Render {
 	void Renderer::AddEditorBackBufferClearPass(
 		const std::vector<RenderViewInput>& frameViews
 	) {
-		// Pass: Editor back buffer clear.
-		// Input: frame view output flags.
-		// Output: swap chain back buffer clear.
-		// PSO: none.
-		// RootSignature: none.
-		// RenderTarget: RenderGraph back buffer.
-		// DepthStencil: none.
-		// DescriptorHeap: none.
-		// ResourceState: WriteBackBufferRt().
-		// Notes: Runs only when no present view is selected and a view requests swap-chain clear.
+		// パス: エディタ バックバッファ クリア。
+		// 入力: フレーム ビュー出力フラグ。
+		// 出力: スワップチェーン バックバッファ クリア。
+		// PSO: なし。
+		// ルートシグネチャ: なし。
+		// レンダーターゲット: RenderGraph バックバッファ。
+		// 深度ステンシル: なし。
+		// ディスクリプタヒープ: なし。
+		// リソースステート: WriteBackBufferRt()。
+		// 注記: ビューが選択されていない場合にのみ実行され、ビューがスワップチェーンクリアをリクエストする場合のみ。
 		bool clearBackBuffer = false;
 		for (const RenderViewInput& view : frameViews) {
 			if (view.output.clearSwapChainWhenNotPresenting) {
@@ -3083,16 +3141,16 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddImGuiMainPass() {
-		// Pass: ImGui main.
-		// Input: mUiMainRenderCallback ImGui draw data callback.
-		// Output: swap chain back buffer writes.
-		// PSO: callback-owned ImGui pipeline state.
-		// RootSignature: callback-owned ImGui root signature.
-		// RenderTarget: RenderGraph back buffer.
-		// DepthStencil: none.
-		// DescriptorHeap: callback-owned ImGui descriptor bindings.
-		// ResourceState: WriteBackBufferRt().
-		// Notes: RendererGraph only schedules the pass and invokes the callback.
+		// パス: ImGui メイン。
+		// 入力: mUiMainRenderCallback ImGui 描画データ コールバック。
+		// 出力: スワップチェーン バックバッファ 書き込み。
+		// PSO: コールバック オーナーの ImGui パイプライン ステート。
+		// ルートシグネチャ: コールバック オーナーの ImGui ルートシグネチャ。
+		// レンダーターゲット: RenderGraph バックバッファ。
+		// 深度ステンシル: なし。
+		// ディスクリプタヒープ: コールバック オーナーの ImGui ディスクリプタ バインディング。
+		// リソースステート: WriteBackBufferRt()。
+		// 注記: RendererGraph はパスをスケジュール化し、コールバック を呼び出すのみ。
 		mGraph.AddPass(
 			"ImGuiMainPass",
 			[](RenderGraphBuilder& b) {

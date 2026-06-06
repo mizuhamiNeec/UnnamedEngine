@@ -207,6 +207,8 @@ namespace Unnamed::Render {
 			Mat4     lightView            = Mat4::identity;
 			Mat4     lightProj            = Mat4::identity;
 			Mat4     lightViewProj        = Mat4::identity;
+			Vec3     lightRayDirection    = Vec3(0.0f, -1.0f, 0.0f);
+			Vec3     directionToLight     = Vec3(0.0f, 1.0f, 0.0f);
 		};
 
 		struct ViewRuntimeState {
@@ -250,8 +252,8 @@ namespace Unnamed::Render {
 
 		/// @brief directional light shadow map 用 depth-only pass を追加します。
 		void AddShadowMapPass(
-			RenderDevice&                 renderDevice,
-			size_t                        viewIndex,
+			RenderDevice&                        renderDevice,
+			size_t                               viewIndex,
 			const DirectionalShadowRuntimeState& shadowState
 		);
 
@@ -409,22 +411,23 @@ namespace Unnamed::Render {
 		RenderGraph      mGraph;
 		PipelineRegistry mPipelineRegistry;
 
-		FullscreenPassRes        mFullscreenPass      = {};
-		FullscreenPassRes        mHdrCopyPass         = {};
-		FullscreenPassRes        mToneMapPass         = {};
-		FullscreenPassRes        mBloomDownsamplePass = {};
-		FullscreenPassRes        mBloomUpsamplePass   = {};
-		FullscreenPassRes        mBloomCombinePass    = {};
-		FullscreenPassRes        mDepthVisPass        = {};
-		ComputePassRes           mComputePass         = {};
-		GeometryPassRes          mGeometryPass        = {};
-		GeometryPassRes          mShadowDepthPass     = {};
+		FullscreenPassRes        mFullscreenPass             = {};
+		FullscreenPassRes        mHdrCopyPass                = {};
+		FullscreenPassRes        mToneMapPass                = {};
+		FullscreenPassRes        mBloomDownsamplePass        = {};
+		FullscreenPassRes        mBloomUpsamplePass          = {};
+		FullscreenPassRes        mBloomCombinePass           = {};
+		FullscreenPassRes        mDepthVisPass               = {};
+		ComputePassRes           mComputePass                = {};
+		GeometryPassRes          mGeometryPass               = {};
+		GeometryPassRes          mShadowDepthPass            = {};
+		GeometryPassRes          mShadowDepthFrontCullPass   = {};
 		GeometryPassRes          mShadowDepthDoubleSidedPass = {};
-		SpritePassRes            mSpritePass          = {};
-		BillboardPassRes         mBillboardPass       = {};
-		SkyboxPassRes            mSkyboxPass          = {};
-		LinePassRes              mLinePass            = {};
-		AdvancedRenderFoundation mAdvancedFoundation  = {};
+		SpritePassRes            mSpritePass                 = {};
+		BillboardPassRes         mBillboardPass              = {};
+		SkyboxPassRes            mSkyboxPass                 = {};
+		LinePassRes              mLinePass                   = {};
+		AdvancedRenderFoundation mAdvancedFoundation         = {};
 
 		Rhi::UploadBuffer<Rhi::FrameConstants> mFrameCb;
 		Rhi::UploadBuffer<Rhi::ObjectConstants> mObjectCb;

@@ -372,18 +372,26 @@ namespace Unnamed::Render {
 			DXGI_FORMAT_D32_FLOAT,
 			geometryLayout
 		);
-		shadowDepthSpec.psoTemplate.numRenderTargets     = 0;
-		shadowDepthSpec.psoTemplate.rtvFormat            =
+		shadowDepthSpec.psoTemplate.numRenderTargets = 0;
+		shadowDepthSpec.psoTemplate.rtvFormat        =
 			DXGI_FORMAT_UNKNOWN;
-		shadowDepthSpec.psoTemplate.depthEnable          = true;
-		shadowDepthSpec.psoTemplate.depthWriteEnable     = true;
-		shadowDepthSpec.psoTemplate.depthFunc            =
+		shadowDepthSpec.psoTemplate.depthEnable      = true;
+		shadowDepthSpec.psoTemplate.depthWriteEnable = true;
+		shadowDepthSpec.psoTemplate.depthFunc        =
 			D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-		shadowDepthSpec.psoTemplate.blendEnable          = false;
+		shadowDepthSpec.psoTemplate.blendEnable = false;
 		mShadowDepthPass.pipeline = mPipelineRegistry.RegisterGraphics(
 			shadowDepthSpec
 		);
 		mShadowDepthPass.resolved = nullptr;
+
+		auto shadowDepthFrontCullSpec = shadowDepthSpec;
+		shadowDepthFrontCullSpec.debugName = "ShadowDepthOnlyFrontCull";
+		shadowDepthFrontCullSpec.psoTemplate.cullMode =
+			D3D12_CULL_MODE_FRONT;
+		mShadowDepthFrontCullPass.pipeline =
+			mPipelineRegistry.RegisterGraphics(shadowDepthFrontCullSpec);
+		mShadowDepthFrontCullPass.resolved = nullptr;
 
 		auto shadowDepthDoubleSidedSpec = shadowDepthSpec;
 		shadowDepthDoubleSidedSpec.debugName = "ShadowDepthOnlyDoubleSided";

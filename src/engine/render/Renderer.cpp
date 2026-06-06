@@ -549,6 +549,9 @@ namespace Unnamed::Render {
 		mShadowDepthPass.resolved = mPipelineRegistry.GetGraphics(
 			mShadowDepthPass.pipeline
 		);
+		mShadowDepthFrontCullPass.resolved = mPipelineRegistry.GetGraphics(
+			mShadowDepthFrontCullPass.pipeline
+		);
 		mShadowDepthDoubleSidedPass.resolved = mPipelineRegistry.GetGraphics(
 			mShadowDepthDoubleSidedPass.pipeline
 		);

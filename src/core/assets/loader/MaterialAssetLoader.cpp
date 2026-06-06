@@ -29,10 +29,36 @@ namespace Unnamed {
 			}
 			return MATERIAL_DOMAIN::PBR_METAL_ROUGH;
 		}
+
+		/// @brief ShadowMap caster のカリングモードを文字列から解析する。
+		/// @param s 解析する文字列
+		/// @return 解析されたカリングモード。解析できない場合はFOLLOW_MATERIALを返す。
+		MATERIAL_SHADOW_CULL_MODE ParseShadowCullMode(
+			const std::string& s
+		) {
+			const auto v = StrUtil::ToLowerCase(s);
+			if (v == "back" || v == "backface" || v == "cullback") {
+				return MATERIAL_SHADOW_CULL_MODE::BACK;
+			}
+			if (v == "front" || v == "frontface" || v == "cullfront") {
+				return MATERIAL_SHADOW_CULL_MODE::FRONT;
+			}
+			if (v == "none" || v == "off" || v == "double_sided") {
+				return MATERIAL_SHADOW_CULL_MODE::NONE;
+			}
+			if (v == "doublesided" || v == "double-sided") {
+				return MATERIAL_SHADOW_CULL_MODE::NONE;
+			}
+			if (v == "follow" || v == "follow_material") {
+				return MATERIAL_SHADOW_CULL_MODE::FOLLOW_MATERIAL;
+			}
+			return MATERIAL_SHADOW_CULL_MODE::FOLLOW_MATERIAL;
+		}
 	}
 
 	MaterialAssetLoader::MaterialAssetLoader(AssetManager* assetManager) :
-		mAssetManager(assetManager) {}
+		mAssetManager(assetManager) {
+	}
 
 	bool MaterialAssetLoader::CanLoad(
 		const std::string_view path, ASSET_TYPE* outType
@@ -52,7 +78,7 @@ namespace Unnamed {
 			return result;
 		}
 
-		const std::filesystem::path full = Path::FromUtf8(path);
+		const std::filesystem::path full    = Path::FromUtf8(path);
 		const std::filesystem::path baseDir = full.parent_path();
 
 		MaterialAssetData data = {};
@@ -70,8 +96,9 @@ namespace Unnamed {
 		// "shader" フィールドがあればシェーダープログラムを読み込む。
 		if (const auto shader = root.Read<std::string>("shader");
 			shader.has_value() && !shader->empty()) {
-			data.shaderProgramPath = Path::ResolveRelativePath(baseDir, *shader);
-			data.shaderProgramId   = mAssetManager->LoadFromFile(
+			data.shaderProgramPath =
+				Path::ResolveRelativePath(baseDir, *shader);
+			data.shaderProgramId = mAssetManager->LoadFromFile(
 				data.shaderProgramPath, ASSET_TYPE::SHADER_PROGRAM
 			);
 			if (data.shaderProgramId != kInvalidAssetID) {
@@ -90,6 +117,13 @@ namespace Unnamed {
 				rs.Read<bool>("cullBackFace").value_or(true);
 			data.renderState.blendEnable =
 				rs.Read<bool>("blendEnable").value_or(false);
+			data.renderState.castsShadow =
+				rs.Read<bool>("castsShadow").value_or(true);
+			data.renderState.shadowCullMode = ParseShadowCullMode(
+				rs.Read<std::string>("shadowCullMode").value_or(
+					"FollowMaterial"
+				)
+			);
 			data.renderState.stencilEnable =
 				rs.Read<bool>("stencilEnable").value_or(false);
 			data.renderState.stencilReadMask = static_cast<uint8_t>(
