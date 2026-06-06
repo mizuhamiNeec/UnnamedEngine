@@ -120,13 +120,13 @@ namespace Unnamed::Render {
 		FixedShadowMatrices BuildFixedDirectionalShadowMatrices(
 			const RenderCameraInput& camera
 		) {
-			// Temporary until directional light data is provided by RenderFrameInputs.
+			// RenderFrameInputsから方向性光データが得られるまでの一時的なものです。
 			const Vec3 lightRayDirection =
 				Vec3(-0.5f, -1.0f, 0.5f).Normalized();
 			const Vec3 directionToLight = lightRayDirection * -1.0f;
 			const Vec3 center = camera.valid ? camera.cameraPos : Vec3::zero;
-			constexpr float shadowDistance = 80.0f;
-			constexpr float orthoHalfSize = 40.0f;
+			const float shadowDistance = Math::HtoM(8192);
+			const float orthoHalfSize = Math::HtoM(4096);
 			const Vec3 eye = center - lightRayDirection * shadowDistance;
 			FixedShadowMatrices result = {};
 			result.lightRayDirection = lightRayDirection;
@@ -908,6 +908,22 @@ namespace Unnamed::Render {
 							mDirectionalShadow.resolution) :
 						0.0f,
 					shadowEnabled ? 1.0f : 0.0f
+				);
+				shadow.filterParams = Vec4(
+					mConsole && mConsole->GetConVarValueOr(
+						"r_shadowmap_pcf_enabled", true
+					) ? 1.0f : 0.0f,
+					mConsole ?
+						mConsole->GetConVarValueOr(
+							"r_shadowmap_pcf_radius", 1.0f
+						) :
+						1.0f,
+					mConsole ?
+						mConsole->GetConVarValueOr(
+							"r_shadowmap_normal_bias", 0.0f
+						) :
+						0.0f,
+					0.0f
 				);
 				shadow.directionToLight = Vec4(
 					mDirectionalShadow.directionToLight.x,
