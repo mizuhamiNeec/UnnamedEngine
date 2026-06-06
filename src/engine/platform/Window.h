@@ -48,6 +48,9 @@ namespace Unnamed {
 		/// @brief ウィンドウの説明を取得します。
 		[[nodiscard]] WindowDesc GetDesc() const;
 
+		/// @brief 現在のウィンドウモードを取得します。
+		[[nodiscard]] WINDOW_MODE GetMode() const;
+
 		/// @brief ウィンドウが閉じるべきかどうかを返します。WindowManagerがこれを見て実際の破棄を行います。
 		[[nodiscard]] bool ShouldClose() const;
 
@@ -62,10 +65,22 @@ namespace Unnamed {
 			HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 		);
 
+		/// @brief 指定したウィンドウモードに変更します。
+		void SetMode(WINDOW_MODE mode);
+
 		/// @brief フルスクリーンとウィンドウモードを切り替えます。
-		void ToggleFullscreen() const;
+		void ToggleFullscreen();
 
 	private:
+		/// @brief 現在のウィンドウ位置とスタイルを復帰用に保存します。
+		void CaptureWindowedPlacement();
+
+		/// @brief ウィンドウモードへ戻します。
+		void ApplyWindowedMode();
+
+		/// @brief モニタ全体を覆うボーダーレス表示へ変更します。
+		void ApplyBorderlessMode(WINDOW_MODE mode);
+
 		/// @brief ウィンドウを閉じるようにマークします。実際の破棄はWindowManagerが行います。
 		void MarkCloseRequested();
 
@@ -73,10 +88,14 @@ namespace Unnamed {
 		WindowDesc        mDesc          = {};
 		WindowResizeEvent mPendingResize = {};
 		WindowId          mId            = {};
+		WINDOWPLACEMENT   mWindowedPlacement = {.length = sizeof(WINDOWPLACEMENT)};
+		DWORD             mWindowedStyle     = 0;
+		DWORD             mWindowedExStyle   = 0;
 
 		bool mShouldClose      = false;
 		bool mMinimized        = false;
 		bool mHasPendingResize = false;
 		bool mInLiveResize     = false;
+		bool mHasWindowedPlacement = false;
 	};
 }

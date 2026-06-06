@@ -781,9 +781,9 @@ namespace Unnamed {
 		mPostFxChainCommand.reset();
 		mPostFxChainReloadCommand.reset();
 		mSequenceRegressionRunCommand.reset();
+		mToggleFullscreenCommand.reset();
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		mToggleEditorCommand.reset();
-		mToggleFullscreenCommand.reset();
 #endif
 
 		if (mDemoService && (mDemoService->IsPlayback() || mDemoService->
@@ -973,6 +973,15 @@ namespace Unnamed {
 			"Run fixed-tick regression tests for sequence runtime."
 		);
 
+		mToggleFullscreenCommand = std::make_unique<ConCommand>(
+			"togglefullscreen",
+			[this](const std::vector<std::string>&) {
+				ToggleFullscreen();
+				return true;
+			},
+			"Toggle the main window fullscreen mode."
+		);
+
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		mToggleEditorCommand = std::make_unique<ConCommand>(
 			"toggleeditor",
@@ -981,15 +990,6 @@ namespace Unnamed {
 				return true;
 			},
 			"Toggle editor mode."
-		);
-
-		mToggleFullscreenCommand = std::make_unique<ConCommand>(
-			"togglefullscreen",
-			[this](const std::vector<std::string>&) {
-				ToggleFullscreen();
-				return true;
-			},
-			"Toggle editor viewport/swapchain presentation mode."
 		);
 #endif
 	}
@@ -1011,7 +1011,7 @@ namespace Unnamed {
 
 	void Engine::ToggleFullscreen() const {
 		if (mWindowManager) {
-			if (const Window* window = mWindowManager->FindWindowById(
+			if (Window* window = mWindowManager->FindWindowById(
 				mWindowManager->GetMainWindowId()
 			)) {
 				window->ToggleFullscreen();

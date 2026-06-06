@@ -55,7 +55,12 @@ namespace Unnamed {
 			return false;
 		}
 
-		const auto hwndOpt = CreateNativeWindow(mainDesc);
+		WindowDesc nativeDesc = mainDesc;
+		nativeDesc.mode       = WINDOW_MODE::WINDOWED;
+		nativeDesc.visible    = mainDesc.visible &&
+		                        mainDesc.mode == WINDOW_MODE::WINDOWED;
+
+		const auto hwndOpt = CreateNativeWindow(nativeDesc);
 		if (!hwndOpt.has_value()) {
 			Error(kChannel, "Failed to create main window.");
 			return false;
@@ -63,8 +68,14 @@ namespace Unnamed {
 
 		mMainWindowId = WindowId{mNextWindowId++};
 		auto window   = std::make_unique<Window>(
-			mMainWindowId, mainDesc, hwndOpt.value()
+			mMainWindowId, nativeDesc, hwndOpt.value()
 		);
+		window->SetMode(mainDesc.mode);
+		if (mainDesc.visible && mainDesc.mode != WINDOW_MODE::WINDOWED) {
+			ShowWindow(hwndOpt.value(), SW_SHOW);
+			UpdateWindow(hwndOpt.value());
+			SetFocus(hwndOpt.value());
+		}
 
 		mWindows.emplace(mMainWindowId.value, std::move(window));
 
@@ -141,13 +152,24 @@ namespace Unnamed {
 			return std::nullopt;
 		}
 
-		const auto hwndOpt = CreateNativeWindow(desc);
+		WindowDesc nativeDesc = desc;
+		nativeDesc.mode       = WINDOW_MODE::WINDOWED;
+		nativeDesc.visible    = desc.visible &&
+		                        desc.mode == WINDOW_MODE::WINDOWED;
+
+		const auto hwndOpt = CreateNativeWindow(nativeDesc);
 		if (!hwndOpt.has_value()) {
 			return std::nullopt;
 		}
 
 		const WindowId id{mNextWindowId++};
-		auto window = std::make_unique<Window>(id, desc, hwndOpt.value());
+		auto window = std::make_unique<Window>(id, nativeDesc, hwndOpt.value());
+		window->SetMode(desc.mode);
+		if (desc.visible && desc.mode != WINDOW_MODE::WINDOWED) {
+			ShowWindow(hwndOpt.value(), SW_SHOW);
+			UpdateWindow(hwndOpt.value());
+			SetFocus(hwndOpt.value());
+		}
 		mWindows.emplace(id.value, std::move(window));
 		return id;
 	}
