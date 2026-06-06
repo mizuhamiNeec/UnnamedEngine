@@ -104,6 +104,15 @@ namespace Unnamed {
 			0.05f
 		);
 
+		static ConVar r_shadowmap_normal_bias(
+			"r_shadowmap_normal_bias", 0.0f, FCVAR::ARCHIVE,
+			"Directional shadow map normal offset bias in world units.",
+			true,
+			0.0f,
+			true,
+			0.5f
+		);
+
 		static ConVar r_shadowmap_strength(
 			"r_shadowmap_strength", 0.65f, FCVAR::ARCHIVE,
 			"Directional shadow map strength.",
@@ -111,6 +120,20 @@ namespace Unnamed {
 			0.0f,
 			true,
 			1.0f
+		);
+
+		static ConVar r_shadowmap_pcf_enabled(
+			"r_shadowmap_pcf_enabled", true, FCVAR::ARCHIVE,
+			"Enable 3x3 PCF filtering for the directional shadow map."
+		);
+
+		static ConVar r_shadowmap_pcf_radius(
+			"r_shadowmap_pcf_radius", 1.0f, FCVAR::ARCHIVE,
+			"Directional shadow map 3x3 PCF radius in texels.",
+			true,
+			0.0f,
+			true,
+			4.0f
 		);
 
 		static ConVar r_shadowmap_force_cull_none(
