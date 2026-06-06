@@ -57,13 +57,27 @@ VsOut VsMain(VsIn i) {
 	return o;
 }
 
-/// @brief Directional ShadowMap を 1 tap で評価する。Reverse-Z の GREATER_EQUAL depth pass と合わせる。
-float ComputeDirectionalShadowVisibility(float3 positionWS) {
+/// @brief Reverse-Z ShadowMap の 1 sample compare。GREATER_EQUAL depth pass と合わせる。
+float SampleDirectionalShadowTexel(int2 texel, uint2 shadowSize, float currentDepth) {
+	if (
+		texel.x < 0 || texel.y < 0 ||
+		texel.x >= (int)shadowSize.x || texel.y >= (int)shadowSize.y
+	) {
+		return 1.0f;
+	}
+
+	const float storedDepth = gShadowMap.Load(int3(texel, 0)).r;
+	return (currentDepth + gShadowParams.x >= storedDepth) ? 1.0f : 0.0f;
+}
+
+/// @brief Directional ShadowMap を評価する。PCF 無効時は従来の 1 tap compare。
+float ComputeDirectionalShadowVisibility(float3 positionWS, float3 normalWS) {
 	if (gShadowParams.w <= 0.5f) {
 		return 1.0f;
 	}
 
-	float4 lightClip = mul(float4(positionWS, 1.0f), gShadowLightViewProj);
+	float3 biasedPositionWS = positionWS + normalize(normalWS) * gShadowFilterParams.z;
+	float4 lightClip = mul(float4(biasedPositionWS, 1.0f), gShadowLightViewProj);
 	if (lightClip.w <= 0.0f) {
 		return 1.0f;
 	}
@@ -81,13 +95,32 @@ float ComputeDirectionalShadowVisibility(float3 positionWS) {
 	uint shadowWidth = 1;
 	uint shadowHeight = 1;
 	gShadowMap.GetDimensions(shadowWidth, shadowHeight);
-	const uint2 shadowTexel = min(
-		uint2(shadowUv * float2(shadowWidth, shadowHeight)),
-		uint2(shadowWidth - 1u, shadowHeight - 1u)
-	);
-	const float storedDepth  = gShadowMap.Load(int3(shadowTexel, 0)).r;
+	const uint2 shadowSize = uint2(shadowWidth, shadowHeight);
+	const int2 shadowTexel = int2(min(
+		uint2(shadowUv * float2(shadowSize)),
+		shadowSize - 1u
+	));
 	const float currentDepth = lightNdc.z;
-	return (currentDepth + gShadowParams.x >= storedDepth) ? 1.0f : 0.0f;
+	if (gShadowFilterParams.x <= 0.5f) {
+		return SampleDirectionalShadowTexel(
+			shadowTexel, shadowSize, currentDepth
+		);
+	}
+
+	const int radius = max(0, (int)round(gShadowFilterParams.y));
+	float visibility = 0.0f;
+	[unroll]
+	for (int y = -1; y <= 1; ++y) {
+		[unroll]
+		for (int x = -1; x <= 1; ++x) {
+			visibility += SampleDirectionalShadowTexel(
+				shadowTexel + int2(x, y) * radius,
+				shadowSize,
+				currentDepth
+			);
+		}
+	}
+	return visibility / 9.0f;
 }
 
 /// @brief PBR入力を活かしつつトゥーン調ライティングを適用して最終色を出力する。
@@ -132,7 +165,7 @@ float4 PsMain(VsOut i) : SV_Target {
 	float3 rimColor     = float3(0.025f, 0.025f, 0.025f) * rimIntensity;
 
 	float3 ambient = float3(0.025f, 0.025f, 0.125f) * albedo;
-	float shadowVisibility = ComputeDirectionalShadowVisibility(i.positionWS);
+	float shadowVisibility = ComputeDirectionalShadowVisibility(i.positionWS, N);
 	float shadowFactor = lerp(
 		1.0f,
 		shadowVisibility,
