@@ -104,7 +104,7 @@ float4 PsMain(VsOut i) : SV_Target {
 
 	float3 N = normalize(i.normalWS);
 	float3 V = normalize(gCameraPos - i.positionWS);
-	float3 L = normalize(float3(0.3f, 0.75f, 0.4f));
+	float3 L = normalize(gDirectionToLight.xyz);
 	float3 H = normalize(V + L);
 
 	float ndl = saturate(dot(N, L));

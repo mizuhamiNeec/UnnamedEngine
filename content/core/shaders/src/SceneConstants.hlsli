@@ -33,6 +33,7 @@ cbuffer SkinningPaletteCB : register(b3) {
 cbuffer ShadowCB : register(b4) {
 	float4x4 gShadowLightViewProj;
 	float4   gShadowParams; // x=depthBias, y=strength, z=texelSize, w=enabled
+	float4   gDirectionToLight; // xyz=surface-to-light direction for NdotL
 }
 
 #endif
