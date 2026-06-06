@@ -71,6 +71,8 @@ namespace Unnamed::Rhi {
 		Mat4 lightViewProj = Mat4::identity;
 		Vec4 params        = Vec4::zero;
 		// x=depthBias, y=strength, z=texelSize, w=enabled
+		Vec4 filterParams = Vec4::zero;
+		// x=pcfEnabled, y=pcfRadiusTexels, z=normalBias, w=unused
 		Vec4 directionToLight = Vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	};
 
