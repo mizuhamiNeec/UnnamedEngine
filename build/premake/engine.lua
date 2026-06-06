@@ -46,6 +46,7 @@ project "UnnamedEngineRuntime"
 
 project "UnnamedEngineRuntimeEditor"
 	kind "StaticLib"
+	removeconfigurations { "Develop", "Release" }
 	CommonProjectSettings("%{prj.name}")
 	WarningSettings()
 
@@ -90,6 +91,7 @@ project "UnnamedEngineRuntimeEditor"
 
 project "UnnamedEditorRuntime"
 	kind "StaticLib"
+	removeconfigurations { "Develop", "Release" }
 	CommonProjectSettings("%{prj.name}")
 	WarningSettings()
 

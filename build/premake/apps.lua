@@ -67,6 +67,7 @@ project "UnnamedLauncher"
 
 project "UnnamedEditorApp"
 	kind "WindowedApp"
+	removeconfigurations { "Develop", "Release" }
 	CommonProjectSettings("%{prj.name}")
 	WarningSettings()
 
