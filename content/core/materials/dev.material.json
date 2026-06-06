@@ -4,9 +4,11 @@
 	"domain": "pbr",
 	"renderState": {
 		"depthEnable": true,
+		"castsShadow": true,
+		"shadowCullMode": "None",
 		"depthWrite": true,
 		"cullBackFace": true,
-		"blendEnable": true,
+		"blendEnable": false,
 		"stencilEnable": false
 	},
 	"scalars": {
