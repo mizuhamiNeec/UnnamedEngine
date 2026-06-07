@@ -30,6 +30,26 @@ namespace Unnamed {
 			return MATERIAL_DOMAIN::PBR_METAL_ROUGH;
 		}
 
+		/// @brief シェーディングモデルを文字列から解析する。
+		/// @param s 解析する文字列
+		/// @return 解析されたシェーディングモデル。解析できない場合はLitPBRを返す。
+		MATERIAL_SHADING_MODEL ParseShadingModel(const std::string& s) {
+			const auto v = StrUtil::ToLowerCase(s);
+			if (v == "toon" || v == "npbr") {
+				return MATERIAL_SHADING_MODEL::TOON;
+			}
+			if (v == "unlit") {
+				return MATERIAL_SHADING_MODEL::UNLIT;
+			}
+			if (v == "pbr" || v == "lit" || v == "litpbr") {
+				return MATERIAL_SHADING_MODEL::LIT_PBR;
+			}
+			if (v == "lit_pbr" || v == "lit-pbr") {
+				return MATERIAL_SHADING_MODEL::LIT_PBR;
+			}
+			return MATERIAL_SHADING_MODEL::LIT_PBR;
+		}
+
 		/// @brief ShadowMap caster のカリングモードを文字列から解析する。
 		/// @param s 解析する文字列
 		/// @return 解析されたカリングモード。解析できない場合はFOLLOW_MATERIALを返す。
@@ -92,6 +112,11 @@ namespace Unnamed {
 		data.domain = ParseDomain(
 			root.Read<std::string>("domain").value_or("pbr")
 		);
+		if (const auto shadingModel = root.Read<std::string>("shadingModel")) {
+			data.shadingModel = ParseShadingModel(*shadingModel);
+		} else if (data.domain == MATERIAL_DOMAIN::UNLIT) {
+			data.shadingModel = MATERIAL_SHADING_MODEL::UNLIT;
+		}
 
 		// "shader" フィールドがあればシェーダープログラムを読み込む。
 		if (const auto shader = root.Read<std::string>("shader");

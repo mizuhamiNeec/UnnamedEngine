@@ -92,6 +92,16 @@ namespace Unnamed::Render {
 		float   intensity      = 1.0f;
 	};
 
+	struct DirectionalLightInput {
+		bool enabled     = false;
+		bool castsShadow = true;
+
+		Vec3  lightRayDirection = Vec3(0.0f, -1.0f, 0.0f);
+		Vec3  directionToLight  = Vec3(0.0f, 1.0f, 0.0f);
+		Vec3  color             = Vec3::one;
+		float intensity         = 1.0f;
+	};
+
 	struct VisibleRenderObject {
 		AssetID  meshAssetId        = kInvalidAssetID;
 		AssetID  materialInstanceId = kInvalidAssetID;
@@ -165,6 +175,7 @@ namespace Unnamed::Render {
 		std::vector<PostFxPassOverride> postFxPassOverrides;
 		RenderCameraInput     camera = {};
 		SkyboxInput           skybox = {};
+		DirectionalLightInput directionalLight = {};
 
 		std::vector<VisibleRenderObject>  visibleObjects;
 		std::vector<SkinningPaletteInput> skinningPalettes;

@@ -55,7 +55,8 @@ namespace Unnamed::Rhi {
 		float roughness     = 1.0f;
 		float opacity       = 1.0f;
 		float domainMode    = 1.0f; // 0=Unlit, 1=PBR
-		float padding[12]   = {};
+		float shadingModel  = 0.0f; // 0=LitPBR, 1=Toon, 2=Unlit
+		float padding[11]   = {};
 	};
 
 	static_assert(
@@ -74,6 +75,7 @@ namespace Unnamed::Rhi {
 		Vec4 filterParams = Vec4::zero;
 		// x=pcfEnabled, y=pcfRadiusTexels, z=normalBias, w=unused
 		Vec4 directionToLight = Vec4(0.0f, 1.0f, 0.0f, 0.0f);
+		Vec4 lightColorIntensity = Vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	};
 
 	static_assert(

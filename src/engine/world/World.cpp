@@ -621,6 +621,16 @@ namespace Unnamed {
 				}
 			}
 
+			if (!sceneView.directionalLight.enabled) {
+				auto* directionalLight = entity->GetComponent<
+					DirectionalLightComponent>();
+				if (directionalLight && directionalLight->IsActive()) {
+					(void)directionalLight->BuildLightInput(
+						sceneView.directionalLight
+					);
+				}
+			}
+
 			auto* transform    = entity->GetComponent<TransformComponent>();
 			auto* meshRenderer = entity->GetComponent<
 				StaticMeshRendererComponent>();

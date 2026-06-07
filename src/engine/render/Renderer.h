@@ -202,6 +202,7 @@ namespace Unnamed::Render {
 		};
 
 		struct DirectionalShadowRuntimeState {
+			bool     enabled              = false;
 			uint32_t shadowDepthTextureId = 0;
 			uint32_t resolution           = 1024;
 			Mat4     lightView            = Mat4::identity;
@@ -209,6 +210,8 @@ namespace Unnamed::Render {
 			Mat4     lightViewProj        = Mat4::identity;
 			Vec3     lightRayDirection    = Vec3(0.0f, -1.0f, 0.0f);
 			Vec3     directionToLight     = Vec3(0.0f, 1.0f, 0.0f);
+			Vec3     color                = Vec3::one;
+			float    intensity            = 1.0f;
 		};
 
 		struct ViewRuntimeState {

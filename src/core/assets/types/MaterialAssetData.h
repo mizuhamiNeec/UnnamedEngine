@@ -13,6 +13,13 @@ namespace Unnamed {
 		PBR_METAL_ROUGH = 1,
 	};
 
+	/// @brief マテリアルのシェーディングモデル。
+	enum class MATERIAL_SHADING_MODEL : uint8_t {
+		LIT_PBR = 0,
+		TOON    = 1,
+		UNLIT   = 2,
+	};
+
 	/// @brief ShadowMap caster で使用するカリングモード。
 	enum class MATERIAL_SHADOW_CULL_MODE : uint8_t {
 		FOLLOW_MATERIAL = 0,
@@ -43,6 +50,8 @@ namespace Unnamed {
 		AssetID         shaderProgramId = kInvalidAssetID;
 		std::string     shaderProgramPath;
 		MATERIAL_DOMAIN domain = MATERIAL_DOMAIN::PBR_METAL_ROUGH;
+		MATERIAL_SHADING_MODEL shadingModel =
+			MATERIAL_SHADING_MODEL::LIT_PBR;
 
 		MaterialRenderStateData renderState = {};
 

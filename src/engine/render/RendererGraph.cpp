@@ -109,7 +109,7 @@ namespace Unnamed::Render {
 			return view;
 		}
 
-		struct FixedShadowMatrices {
+		struct DirectionalShadowMatrices {
 			Mat4 lightView         = Mat4::identity;
 			Mat4 lightProj         = Mat4::identity;
 			Mat4 lightViewProj     = Mat4::identity;
@@ -117,18 +117,21 @@ namespace Unnamed::Render {
 			Vec3 directionToLight  = Vec3(0.0f, 1.0f, 0.0f);
 		};
 
-		FixedShadowMatrices BuildFixedDirectionalShadowMatrices(
-			const RenderCameraInput& camera
+		DirectionalShadowMatrices BuildDirectionalShadowMatrices(
+			const RenderCameraInput&     camera,
+			const DirectionalLightInput& light
 		) {
-			// RenderFrameInputsから方向性光データが得られるまでの一時的なものです。
-			const Vec3 lightRayDirection =
-				Vec3(-0.5f, -1.0f, 0.5f).Normalized();
+			Vec3 lightRayDirection = light.lightRayDirection;
+			if (lightRayDirection.IsZero()) {
+				lightRayDirection = Vec3(0.0f, -1.0f, 0.0f);
+			}
+			lightRayDirection = lightRayDirection.Normalized();
 			const Vec3 directionToLight = lightRayDirection * -1.0f;
 			const Vec3 center = camera.valid ? camera.cameraPos : Vec3::zero;
 			const float shadowDistance = Math::HtoM(8192);
 			const float orthoHalfSize = Math::HtoM(4096);
 			const Vec3 eye = center - lightRayDirection * shadowDistance;
-			FixedShadowMatrices result = {};
+			DirectionalShadowMatrices result;
 			result.lightRayDirection = lightRayDirection;
 			result.directionToLight = directionToLight;
 			result.lightView = BuildLookAtView(eye, center, Vec3::up);
@@ -509,7 +512,15 @@ namespace Unnamed::Render {
 				break;
 			}
 		}
-		if (firstSceneViewIndex < frameViews.size()) {
+		mDirectionalShadow.enabled = false;
+		if (
+			firstSceneViewIndex < frameViews.size() &&
+			frameViews[firstSceneViewIndex].directionalLight.enabled &&
+			frameViews[firstSceneViewIndex].directionalLight.castsShadow &&
+			frameViews[firstSceneViewIndex].directionalLight.intensity > 0.0f
+		) {
+			const DirectionalLightInput& shadowLight =
+				frameViews[firstSceneViewIndex].directionalLight;
 			const int requestedShadowSize = mConsole ?
 				                                mConsole->GetConVarValueOr(
 					                                "r_shadowmap_size",
@@ -543,10 +554,12 @@ namespace Unnamed::Render {
 					}
 				);
 			}
-			const FixedShadowMatrices shadowMatrices =
-				BuildFixedDirectionalShadowMatrices(
-					frameViews[firstSceneViewIndex].camera
+			const DirectionalShadowMatrices shadowMatrices =
+				BuildDirectionalShadowMatrices(
+					frameViews[firstSceneViewIndex].camera,
+					shadowLight
 				);
+			mDirectionalShadow.enabled       = true;
 			mDirectionalShadow.lightView         = shadowMatrices.lightView;
 			mDirectionalShadow.lightProj         = shadowMatrices.lightProj;
 			mDirectionalShadow.lightViewProj     = shadowMatrices.lightViewProj;
@@ -554,6 +567,8 @@ namespace Unnamed::Render {
 				shadowMatrices.lightRayDirection;
 			mDirectionalShadow.directionToLight =
 				shadowMatrices.directionToLight;
+			mDirectionalShadow.color     = shadowLight.color;
+			mDirectionalShadow.intensity = shadowLight.intensity;
 		}
 
 		for (size_t viewIndex = 0; viewIndex < frameViews.size(); ++viewIndex) {
@@ -602,6 +617,7 @@ namespace Unnamed::Render {
 			if (view.type == RENDER_VIEW_TYPE::SCENE) {
 				if (
 					viewIndex == firstSceneViewIndex &&
+					mDirectionalShadow.enabled &&
 					mDirectionalShadow.shadowDepthTextureId != 0
 				) {
 					AddShadowMapPass(
@@ -842,7 +858,13 @@ namespace Unnamed::Render {
 		const uint32_t depthId       = state.depthTextureId;
 		const uint32_t shadowDepthId =
 			mDirectionalShadow.shadowDepthTextureId;
+		const bool viewLightEnabled =
+			viewIndex < mFrameViews.size() &&
+			mFrameViews[viewIndex].directionalLight.enabled &&
+			mFrameViews[viewIndex].directionalLight.intensity > 0.0f;
 		const bool shadowEnabled =
+			viewLightEnabled &&
+			mDirectionalShadow.enabled &&
 			shadowDepthId != 0 &&
 			(!mConsole || mConsole->GetConVarValueOr(
 				 "r_shadowmap_enabled",
@@ -892,6 +914,9 @@ namespace Unnamed::Render {
 
 				Rhi::ShadowConstants shadow = {};
 				shadow.lightViewProj        = mDirectionalShadow.lightViewProj;
+				const DirectionalLightInput& light = view.directionalLight;
+				const bool directLightEnabled =
+					light.enabled && light.intensity > 0.0f;
 				shadow.params               = Vec4(
 					mConsole ?
 						mConsole->GetConVarValueOr(
@@ -925,11 +950,21 @@ namespace Unnamed::Render {
 						0.0f,
 					0.0f
 				);
+				const Vec3 directionToLight =
+					directLightEnabled ?
+						light.directionToLight.Normalized() :
+						Vec3(0.0f, 1.0f, 0.0f);
 				shadow.directionToLight = Vec4(
-					mDirectionalShadow.directionToLight.x,
-					mDirectionalShadow.directionToLight.y,
-					mDirectionalShadow.directionToLight.z,
+					directionToLight.x,
+					directionToLight.y,
+					directionToLight.z,
 					0.0f
+				);
+				shadow.lightColorIntensity = Vec4(
+					light.color.x,
+					light.color.y,
+					light.color.z,
+					directLightEnabled ? light.intensity : 0.0f
 				);
 				const D3D12_GPU_VIRTUAL_ADDRESS shadowCb =
 					allocator.AllocateConstantBuffer(
@@ -1203,7 +1238,7 @@ namespace Unnamed::Render {
 		// 深度ステンシル: shadowState.shadowDepthTextureId。
 		// ディスクリプタヒープ: なし。
 		// リソースステート: WriteDepth(shadowState.shadowDepthTextureId)。
-		// 注記: 一時的な固定ディレクショナルライト。後で RenderFrameInputs ライトデータに置き換える。r_shadowmap_force_cull_none は室内/内向きメッシュ検証のためすべてのキャスターをダブルサイド PSO で強制できる。
+		// 注記: DirectionalLightInput 由来のライト視点で描画する。r_shadowmap_force_cull_none は室内/内向きメッシュ検証のためすべてのキャスターをダブルサイド PSO で強制できる。
 		const uint32_t shadowDepthId = shadowState.shadowDepthTextureId;
 		mGraph.AddPass(
 			"DirectionalShadowMap",
@@ -3051,6 +3086,7 @@ namespace Unnamed::Render {
 		if (
 			!mConsole ||
 			!mConsole->GetConVarValueOr("r_shadowmap_debug", false) ||
+			!mDirectionalShadow.enabled ||
 			mDirectionalShadow.shadowDepthTextureId == 0
 		) {
 			return;

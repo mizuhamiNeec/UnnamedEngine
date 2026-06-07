@@ -23,6 +23,20 @@
 
 namespace Unnamed::Render {
 	namespace {
+		float ToMaterialShadingModelValue(
+			const MATERIAL_SHADING_MODEL shadingModel
+		) {
+			switch (shadingModel) {
+			case MATERIAL_SHADING_MODEL::TOON:
+				return 1.0f;
+			case MATERIAL_SHADING_MODEL::UNLIT:
+				return 2.0f;
+			case MATERIAL_SHADING_MODEL::LIT_PBR:
+			default:
+				return 0.0f;
+			}
+		}
+
 		void CreateDefaultBufferWithUpload(
 			ID3D12Device*                           device,
 			ID3D12GraphicsCommandList*              cmdList,
@@ -705,10 +719,11 @@ namespace Unnamed::Render {
 				it != mat->scalarParams.end()) {
 				binding.constants.opacity = it->second;
 			}
-			binding.constants.domainMode = mat->domain ==
-			                               MATERIAL_DOMAIN::UNLIT ?
-				                               0.0f :
-				                               1.0f;
+			binding.constants.shadingModel = ToMaterialShadingModelValue(
+				mat->shadingModel
+			);
+			binding.constants.domainMode =
+				binding.constants.shadingModel > 1.5f ? 0.0f : 1.0f;
 
 			if (const auto it = matInst->vectorOverrides.find("BaseColor");
 				it != matInst->vectorOverrides.end()) {
