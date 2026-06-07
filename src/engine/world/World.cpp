@@ -23,6 +23,7 @@
 #include "engine/scene/Scene.h"
 #include "engine/scene/SceneSerializer.h"
 #include "engine/sequence/SequenceRuntime.h"
+#include "engine/unnamed/framework/components/DirectionalLightComponent.h"
 #include "engine/unnamed/framework/components/SkyboxComponent.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/components/editor/EditorCameraComponent.h"

@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.000160217285156,
-                            36.00038146972656,
-                            16.000160217285156
+                            16.00017547607422,
+                            36.00041961669922,
+                            16.00017547607422
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -1632,6 +1632,54 @@
             "guid": 9100000000000000200,
             "isEditorOnly": false,
             "name": "CutsceneCamera",
+            "visible": true
+        },
+        {
+            "active": true,
+            "components": [
+                {
+                    "active": true,
+                    "data": {
+                        "parentEntityGuid": 0,
+                        "position": [
+                            0.0,
+                            13.004799842834473,
+                            0.0
+                        ],
+                        "rotation": [
+                            -2.1179334908083547e-06,
+                            0.9914448857307434,
+                            -0.1305258870124817,
+                            1.717097575237858e-08
+                        ],
+                        "scale": [
+                            0.9999989867210388,
+                            0.9999997615814209,
+                            0.9999986290931702
+                        ]
+                    },
+                    "guid": 10492884076588630975,
+                    "type": "engine.Transform"
+                },
+                {
+                    "active": true,
+                    "data": {
+                        "castsShadow": true,
+                        "color": [
+                            1.0,
+                            0.8095300793647766,
+                            0.3371647596359253
+                        ],
+                        "intensity": 4.0
+                    },
+                    "guid": 16978718190624883074,
+                    "type": "engine.DirectionalLight"
+                }
+            ],
+            "folderPath": "Gameplay/World",
+            "guid": 9100000000000000202,
+            "isEditorOnly": false,
+            "name": "Sun",
             "visible": true
         }
     ],
