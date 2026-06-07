@@ -1,13 +1,13 @@
 {
-  "name": "BloomDownsample",
-  "vs": {
-    "path": "../src/FullscreenTriangle.hlsli",
-    "entry": "VsMain",
-    "profile": "vs_6_6"
-  },
-  "ps": {
-    "path": "../src/BloomDownsample.hlsl",
-    "entry": "PsMain",
-    "profile": "ps_6_6"
-  }
+	"name": "BloomDownsample",
+	"vs": {
+		"path": "../src/FullscreenTriangle.hlsli",
+		"entry": "VsMain",
+		"profile": "vs_6_6"
+	},
+	"ps": {
+		"path": "../src/BloomDownsample.hlsl",
+		"entry": "PsMain",
+		"profile": "ps_6_6"
+	}
 }
