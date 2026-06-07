@@ -47,15 +47,17 @@ namespace Unnamed {
 		/// @return Material icon codepoint
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		/// @brief デバッグ用の Inspector UI を描画します。
 		void DrawInspectorImGui() override;
 
 		/// @brief cueSourceEntityGuid と主要 publisher の owner GUID 整合を監査します。
 		void AuditSourceGuidBindings() const;
 
+#ifdef UNNAMED_WITH_EDITOR
 		/// @brief EventPresentation 専用グラフエディタウィンドウを描画します。
 		void DrawGraphEditorWindow();
+#endif
 #endif
 
 		/// @brief JSON から設定を復元します。
@@ -142,12 +144,14 @@ namespace Unnamed {
 		float mElapsedSeconds = 0.0f;
 		bool  mVerboseLog     = false;
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		std::string mDebugPublishCueId = "movement.land";
 		float       mDebugPublishValue = 1.0f;
 		float       mDebugPublishValue2 = 400.0f;
 		uint64_t    mDebugHandledCueCount = 0;
+#ifdef UNNAMED_WITH_EDITOR
 		std::unique_ptr<EventPresentationGraphEditorState> mGraphEditorState;
+#endif
 #endif
 	};
 
@@ -155,4 +159,3 @@ namespace Unnamed {
 	/// @details 前方宣言型を含む実装都合のため、この関数経由で登録します。
 	void RegisterEventPresentationComponent(ComponentRegistry& componentRegistry);
 }
-

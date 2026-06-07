@@ -1,6 +1,6 @@
 #include "TriggerVolumeComponentBase.h"
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -55,7 +55,7 @@ namespace Unnamed {
 		return owner ? owner->GetComponent<TransformComponent>() : nullptr;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void TriggerVolumeComponentBase::DrawVolumeInspectorImGui() {
 		ImGui::DragFloat3("Local Center HU", &mLocalCenterHu.x, 1.0f);
 		ImGui::DragFloat3("Extents HU", &mExtentsHu.x, 1.0f, 0.0f, 100000.0f);

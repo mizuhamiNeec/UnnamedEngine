@@ -1,6 +1,6 @@
 #include "SpeedBoostAreaComponent.h"
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -29,7 +29,7 @@ namespace Unnamed {
 		writer.Write(mDurationSec);
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void SpeedBoostAreaComponent::DrawInspectorImGui() {
 		DrawVolumeInspectorImGui();
 		ImGui::DragFloat("Multiplier", &mMultiplier, 0.01f, 0.0f, 100.0f);

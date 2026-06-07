@@ -6,7 +6,7 @@
 #include <cstring>
 #include <utility>
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -76,7 +76,7 @@ namespace Unnamed {
 			return effectivePath;
 		}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		template <size_t N>
 		void DrawStringInput(const char* label, std::string& value) {
 			std::array<char, N> buffer = {};
@@ -150,7 +150,7 @@ namespace Unnamed {
 		return kIconTimer;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void CourseResultFlowComponent::DrawInspectorImGui() {
 		DrawStringInput<64>("Course Id", mCourseId);
 		if (mCourseId.empty()) {

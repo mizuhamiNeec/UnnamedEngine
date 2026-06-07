@@ -107,7 +107,7 @@ namespace Unnamed {
 		return kIconAccessibility;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void SkeletalMeshRendererComponent::DrawInspectorImGui() {
 		std::string meshPath = mMeshPath;
 		if (

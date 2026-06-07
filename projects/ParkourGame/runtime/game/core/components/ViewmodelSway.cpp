@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -168,7 +168,7 @@ namespace Unnamed {
 		return "ViewmodelSway";
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void ViewmodelSway::DrawInspectorImGui() {
 		ImGui::DragFloat(
 			"SwayAmount", &mSwayAmount, 0.01f, 0.0f, 10.0f, "%.2f"

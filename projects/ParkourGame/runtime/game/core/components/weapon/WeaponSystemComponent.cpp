@@ -649,7 +649,7 @@ namespace Unnamed {
 		return kIconExplosion;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void WeaponSystemComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Verbose Logging", &mVerboseLogging);
 		ImGui::Checkbox("Draw Debug Trace", &mDrawDebugTrace);

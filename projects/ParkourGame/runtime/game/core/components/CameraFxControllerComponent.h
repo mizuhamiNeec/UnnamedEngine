@@ -61,7 +61,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		void DrawInspectorImGui() override;
 #endif
 
@@ -128,7 +128,7 @@ namespace Unnamed {
 		Quaternion mLastAppliedShakeRotation = Quaternion::identity;
 		uint32_t   mNextShakeSeed = 1;
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		float mDebugTriggerIntensity = 1.0f;
 #endif
 	};

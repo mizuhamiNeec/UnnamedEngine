@@ -455,7 +455,7 @@ namespace Unnamed {
 		}
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void TransformComponent::DrawInspectorImGui() {
 		Vec3       localPos   = mLocalPos;
 		Quaternion localRot   = mLocalRot;

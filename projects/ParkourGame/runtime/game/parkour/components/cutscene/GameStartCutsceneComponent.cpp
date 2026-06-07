@@ -7,7 +7,7 @@
 #include <cstring>
 #include <ranges>
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -39,7 +39,7 @@ namespace Unnamed {
 		constexpr float kMinDurationSec = 0.01f;
 		constexpr std::string_view kDefaultLookLockStableName = "game.CameraRotator";
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		template <size_t N>
 		void DrawStringInput(const char* label, std::string& value) {
 			std::array<char, N> buffer = {};
@@ -175,7 +175,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void GameStartCutsceneComponent::DrawInspectorImGui() {
 		ImGui::InputScalar(
 			"Tour Camera Entity Guid",

@@ -61,7 +61,7 @@ namespace Unnamed {
 		return kIcon3DRotation;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void RotatorComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Enabled", &mRotationEnabled);
 		ImGui::DragFloat3("RotationRate", &mRotationRate.x, 0.1f);

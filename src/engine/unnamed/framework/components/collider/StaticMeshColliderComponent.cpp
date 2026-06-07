@@ -49,7 +49,7 @@ namespace Unnamed {
 		return "StaticMeshCollider";
 	}
 
-#ifdef UNNAMED_WITH_EDITOR
+#ifdef _DEBUG
 	void StaticMeshColliderComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Enabled", &mEnabled);
 		ImGui::Checkbox("Dynamic", &mDynamic);

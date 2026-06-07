@@ -528,7 +528,7 @@ namespace Unnamed {
 		writer.EndArray();
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void SkeletalAnimationComponent::DrawInspectorImGui() {
 		auto editStringField = [](
 			const char*  label,

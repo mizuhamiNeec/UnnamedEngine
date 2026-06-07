@@ -16,7 +16,7 @@ namespace Unnamed {
 			return "SpeedBoostArea";
 		}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		void DrawInspectorImGui() override;
 #endif
 

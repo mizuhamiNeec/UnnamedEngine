@@ -24,7 +24,7 @@ namespace Unnamed {
 		/// @brief コンポーネントアイコンIDを返します。
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		/// @brief Debugビルド時にInspectorからコマンド配列を編集します。
 		void DrawInspectorImGui() override;
 #endif

@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -19,7 +19,7 @@
 
 namespace Unnamed {
 	namespace {
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		bool EditStringField(
 			const char* label, std::string& value, const size_t capacity = 128
 		) {
@@ -88,7 +88,7 @@ namespace Unnamed {
 		return kIconSpeaker;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void AudioFxControllerComponent::DrawInspectorImGui() {
 		ImGui::Text(
 			"OneShot Presets: %d",

@@ -46,7 +46,7 @@ namespace Unnamed {
 		return kIconJoystick;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void BaseCharacterController::DrawInspectorImGui() {
 		BaseComponent::DrawInspectorImGui();
 	}

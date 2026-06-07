@@ -20,7 +20,7 @@ namespace Unnamed {
 		constexpr std::string_view kDefaultUIFontPath =
 			R"(.\content\core\fonts\JetBrainsMono.ttf)";
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		constexpr const char* kTextAlignLabels[] = {
 			"Left",
 			"Center",
@@ -178,7 +178,7 @@ namespace Unnamed {
 		BaseComponent::OnRenderTick(renderDeltaTime, interpolationAlpha);
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void NewUICanvas::DrawInspectorImGui() {
 		ImGui::SeparatorText("==THEME==");
 

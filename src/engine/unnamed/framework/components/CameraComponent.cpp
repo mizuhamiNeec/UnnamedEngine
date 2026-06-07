@@ -58,7 +58,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef UNNAMED_WITH_EDITOR
+#ifdef _DEBUG
 	void CameraComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Camera Active", &mCameraActive);
 		ImGui::DragFloat("FovYDegrees", &mFovYDegrees, 0.1f, 1.0f, 179.0f);
