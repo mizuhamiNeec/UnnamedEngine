@@ -1,13 +1,17 @@
 #include "SceneConstants.hlsli"
 
 Texture2D    gBaseColorTex : register(t0);
-Texture2D    gShadowMap : register(t1);
+Texture2D    gNormalTex : register(t1);
+Texture2D    gOrmTex : register(t2);
+Texture2D    gEmissiveTex : register(t3);
+Texture2D    gShadowMap : register(t4);
 SamplerState gLinearWrap : register(s0);
 
 struct VsIn {
 	float3 pos : POSITION;
 	float3 nrm : NORMAL;
 	float2 uv : TEXCOORD0;
+	float4 tangent : TANGENT;
 	float4 boneIndices : TEXCOORD1;
 	float4 boneWeights : TEXCOORD2;
 };
@@ -17,16 +21,19 @@ struct VsOut {
 	float3 normalWS : TEXCOORD0;
 	float2 uv : TEXCOORD1;
 	float3 positionWS : TEXCOORD2;
+	float4 tangentWS : TANGENT;
 };
 
 VsOut VsMain(VsIn i) {
 	VsOut  o;
-	float3 localPos = i.pos;
-	float3 localNrm = i.nrm;
+	float3 localPos     = i.pos;
+	float3 localNrm     = i.nrm;
+	float3 localTangent = i.tangent.xyz;
 
 	if (gSkinningInfo.y > 0.5f) {
-		float4 skinnedPos = 0.0f;
-		float3 skinnedNrm = 0.0f;
+		float4 skinnedPos     = 0.0f;
+		float3 skinnedNrm     = 0.0f;
+		float3 skinnedTangent = 0.0f;
 
 		[unroll]
 		for (uint k = 0; k < 4; ++k) {
@@ -42,22 +49,37 @@ VsOut VsMain(VsIn i) {
 			skinnedNrm += mul(
 				float4(i.nrm, 0.0f), gSkinMatrices[boneIndex]
 			).xyz * weight;
+			skinnedTangent += mul(
+				float4(i.tangent.xyz, 0.0f), gSkinMatrices[boneIndex]
+			).xyz * weight;
 		}
 
-		localPos = skinnedPos.xyz;
-		localNrm = normalize(skinnedNrm);
+		localPos     = skinnedPos.xyz;
+		localNrm     = normalize(skinnedNrm);
+		localTangent = dot(skinnedTangent, skinnedTangent) > 1.0e-6f ?
+			               normalize(skinnedTangent) :
+			               float3(1.0f, 0.0f, 0.0f);
 	}
 
 	float4 wp = mul(float4(localPos, 1.0f), gWorld);
 	o.pos = mul(wp, gViewProj);
 	o.positionWS = wp.xyz;
 	o.normalWS = normalize(mul(float4(localNrm, 0.0f), gWorldInvTranspose).xyz);
+	float3 worldTangent = mul(float4(localTangent, 0.0f), gWorld).xyz;
+	worldTangent = dot(worldTangent, worldTangent) > 1.0e-6f ?
+		               normalize(worldTangent) :
+		               float3(1.0f, 0.0f, 0.0f);
+	o.tangentWS = float4(
+		worldTangent, i.tangent.w
+	);
 	o.uv = i.uv;
 	return o;
 }
 
 /// @brief Reverse-Z ShadowMap の 1 sample compare。GREATER_EQUAL depth pass と合わせる。
-float SampleDirectionalShadowTexel(int2 texel, uint2 shadowSize, float currentDepth) {
+float SampleDirectionalShadowTexel(
+	int2 texel, uint2 shadowSize, float currentDepth
+) {
 	if (
 		texel.x < 0 || texel.y < 0 ||
 		texel.x >= (int)shadowSize.x || texel.y >= (int)shadowSize.y
@@ -75,14 +97,17 @@ float ComputeDirectionalShadowVisibility(float3 positionWS, float3 normalWS) {
 		return 1.0f;
 	}
 
-	float3 biasedPositionWS = positionWS + normalize(normalWS) * gShadowFilterParams.z;
-	float4 lightClip = mul(float4(biasedPositionWS, 1.0f), gShadowLightViewProj);
+	float3 biasedPositionWS = positionWS + normalize(normalWS) *
+	                          gShadowFilterParams.z;
+	float4 lightClip = mul(float4(biasedPositionWS, 1.0f),
+	                       gShadowLightViewProj);
 	if (lightClip.w <= 0.0f) {
 		return 1.0f;
 	}
 
 	float3 lightNdc = lightClip.xyz / lightClip.w;
-	float2 shadowUv = float2(lightNdc.x * 0.5f + 0.5f, 0.5f - lightNdc.y * 0.5f);
+	float2 shadowUv = float2(lightNdc.x * 0.5f + 0.5f,
+	                         0.5f - lightNdc.y * 0.5f);
 	if (
 		shadowUv.x < 0.0f || shadowUv.x > 1.0f ||
 		shadowUv.y < 0.0f || shadowUv.y > 1.0f ||
@@ -91,11 +116,11 @@ float ComputeDirectionalShadowVisibility(float3 positionWS, float3 normalWS) {
 		return 1.0f;
 	}
 
-	uint shadowWidth = 1;
+	uint shadowWidth  = 1;
 	uint shadowHeight = 1;
 	gShadowMap.GetDimensions(shadowWidth, shadowHeight);
-	const uint2 shadowSize = uint2(shadowWidth, shadowHeight);
-	const int2 shadowTexel = int2(min(
+	const uint2 shadowSize  = uint2(shadowWidth, shadowHeight);
+	const int2  shadowTexel = int2(min(
 		uint2(shadowUv * float2(shadowSize)),
 		shadowSize - 1u
 	));
@@ -106,8 +131,8 @@ float ComputeDirectionalShadowVisibility(float3 positionWS, float3 normalWS) {
 		);
 	}
 
-	const int radius = max(0, (int)round(gShadowFilterParams.y));
-	float visibility = 0.0f;
+	const int radius     = max(0, (int)round(gShadowFilterParams.y));
+	float     visibility = 0.0f;
 	[unroll]
 	for (int y = -1; y <= 1; ++y) {
 		[unroll]
@@ -125,6 +150,9 @@ float ComputeDirectionalShadowVisibility(float3 positionWS, float3 normalWS) {
 struct MaterialEvalInput {
 	float3 albedo;
 	float3 emissive;
+	float  ambientOcclusion;
+	float  metallic;
+	float  roughness;
 	float3 normalWS;
 	float3 viewDirWS;
 	float3 lightDirWS;
@@ -136,6 +164,15 @@ struct MaterialEvalInput {
 
 float3 EvaluateUnlit(MaterialEvalInput input) {
 	return input.albedo + input.emissive;
+}
+
+float3 EvaluateHemisphereAmbient(MaterialEvalInput input) {
+	const float  hemisphere   = saturate(input.normalWS.y * 0.5f + 0.5f);
+	const float3 ambientColor = lerp(
+		gGroundAmbientColor.rgb, gSkyAmbientColor.rgb, hemisphere
+	);
+	const float3 diffuseColor = input.albedo * (1.0f - input.metallic);
+	return diffuseColor * ambientColor * gEnvironmentLightingParams.x;
 }
 
 static const float kPi = 3.14159265359f;
@@ -155,7 +192,7 @@ float GeometrySchlickGGX(float ndv, float roughness) {
 
 float GeometrySmith(float ndv, float ndl, float roughness) {
 	return GeometrySchlickGGX(ndv, roughness) *
-		GeometrySchlickGGX(ndl, roughness);
+	       GeometrySchlickGGX(ndl, roughness);
 }
 
 float3 FresnelSchlick(float cosTheta, float3 f0) {
@@ -163,8 +200,8 @@ float3 FresnelSchlick(float cosTheta, float3 f0) {
 }
 
 float3 EvaluateLitPBR(MaterialEvalInput input) {
-	const float metallic  = saturate(gMetallic);
-	const float roughness = max(saturate(gRoughness), 0.04f);
+	const float metallic  = saturate(input.metallic);
+	const float roughness = max(saturate(input.roughness), 0.04f);
 
 	const float ndl = saturate(dot(input.normalWS, input.lightDirWS));
 	const float ndv = saturate(dot(input.normalWS, input.viewDirWS));
@@ -176,25 +213,58 @@ float3 EvaluateLitPBR(MaterialEvalInput input) {
 	const float  d  = DistributionGGX(ndh, roughness);
 	const float  g  = GeometrySmith(ndv, ndl, roughness);
 
-	const float3 specular = (d * g * f) / max(4.0f * ndv * ndl, 0.0001f);
-	const float3 kd       = (1.0f - f) * (1.0f - metallic);
-	const float3 diffuse  = kd * input.albedo / kPi;
-	const float3 radiance = input.lightColor * ndl * input.shadowFactor;
-	return (diffuse + specular) * radiance + input.emissive;
+	const float3 specular       = (d * g * f) / max(4.0f * ndv * ndl, 0.0001f);
+	const float3 kd             = (1.0f - f) * (1.0f - metallic);
+	const float3 diffuse        = kd * input.albedo / kPi;
+	const float3 radiance       = input.lightColor * ndl * input.shadowFactor;
+	const float3 directLighting = (diffuse + specular) * radiance;
+	const float3 ambient        = EvaluateHemisphereAmbient(input) *
+	                              input.ambientOcclusion;
+	return directLighting + ambient + input.emissive;
+}
+
+float3 BuildFallbackTangent(float3 normalWS) {
+	const float3 axis = abs(normalWS.y) < 0.999f ?
+		                    float3(0.0f, 1.0f, 0.0f) :
+		                    float3(1.0f, 0.0f, 0.0f);
+	return normalize(axis - normalWS * dot(normalWS, axis));
+}
+
+float3 ApplyNormalMap(float3 normalWS, float4 tangentWS, float2 uv) {
+	float3 n = normalize(normalWS);
+	float3 t = tangentWS.xyz;
+	t        = t - n * dot(n, t);
+	if (dot(t, t) <= 1.0e-6f) {
+		t = BuildFallbackTangent(n);
+	} else {
+		t = normalize(t);
+	}
+
+	const float  tangentSign = tangentWS.w < 0.0f ? -1.0f : 1.0f;
+	const float3 b           = tangentSign * cross(n, t);
+	const float3 normalTS    = gNormalTex.Sample(gLinearWrap, uv).xyz * 2.0f -
+	                           1.0f;
+	return normalize(normalTS.x * t + normalTS.y * b + normalTS.z * n);
 }
 
 float4 PsMain(VsOut i) : SV_Target {
 	float4 baseColor = gBaseColorTex.Sample(gLinearWrap, i.uv) * gBaseColor;
+	float3 orm = gOrmTex.Sample(gLinearWrap, i.uv).rgb;
+	float3 emissiveTexture = gEmissiveTex.Sample(gLinearWrap, i.uv).rgb;
+	float3 mappedNormalWS = ApplyNormalMap(i.normalWS, i.tangentWS, i.uv);
 
 	MaterialEvalInput input;
-	input.albedo      = baseColor.rgb;
-	input.emissive    = gEmissiveColor.rgb;
-	input.normalWS    = normalize(i.normalWS);
-	input.viewDirWS   = normalize(gCameraPos - i.positionWS);
-	input.lightDirWS  = normalize(gDirectionToLight.xyz);
-	input.halfDirWS   = normalize(input.viewDirWS + input.lightDirWS);
-	input.positionWS  = i.positionWS;
-	input.lightColor  =
+	input.albedo           = baseColor.rgb;
+	input.emissive         = gEmissiveColor.rgb * emissiveTexture;
+	input.ambientOcclusion = saturate(orm.r);
+	input.metallic         = saturate(gMetallic * orm.b);
+	input.roughness        = max(saturate(gRoughness * orm.g), 0.04f);
+	input.normalWS         = mappedNormalWS;
+	input.viewDirWS        = normalize(gCameraPos - i.positionWS);
+	input.lightDirWS       = normalize(gDirectionToLight.xyz);
+	input.halfDirWS        = normalize(input.viewDirWS + input.lightDirWS);
+	input.positionWS       = i.positionWS;
+	input.lightColor       =
 		gDirectionalLightColorIntensity.rgb * gDirectionalLightColorIntensity.a;
 
 	float shadowVisibility = ComputeDirectionalShadowVisibility(
@@ -204,8 +274,8 @@ float4 PsMain(VsOut i) : SV_Target {
 		1.0f, shadowVisibility, saturate(gShadowParams.y)
 	);
 
-	float3 lit = (gDomainMode < 0.5f || gShadingModel > 1.5f)
-		? EvaluateUnlit(input)
-		: EvaluateLitPBR(input);
+	float3 lit = (gDomainMode < 0.5f || gShadingModel > 1.5f) ?
+		             EvaluateUnlit(input) :
+		             EvaluateLitPBR(input);
 	return float4(lit, saturate(gOpacity * baseColor.a));
 }

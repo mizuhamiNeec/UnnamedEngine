@@ -971,6 +971,34 @@ namespace Unnamed::Render {
 						&shadow, sizeof(shadow)
 					);
 
+				Rhi::EnvironmentLightingConstants environment = {};
+				const EnvironmentLightInput& environmentLight =
+					view.environmentLight;
+				environment.skyAmbientColor = Vec4(
+					environmentLight.skyColor.x,
+					environmentLight.skyColor.y,
+					environmentLight.skyColor.z,
+					1.0f
+				);
+				environment.groundAmbientColor = Vec4(
+					environmentLight.groundColor.x,
+					environmentLight.groundColor.y,
+					environmentLight.groundColor.z,
+					1.0f
+				);
+				environment.params = Vec4(
+					environmentLight.enabled ?
+						std::max(0.0f, environmentLight.intensity) :
+						0.0f,
+					0.0f,
+					0.0f,
+					0.0f
+				);
+				const D3D12_GPU_VIRTUAL_ADDRESS environmentCb =
+					allocator.AllocateConstantBuffer(
+						&environment, sizeof(environment)
+					);
+
 				uint32_t shadowSrvTextureId = shadowEnabled ?
 					                              shadowDepthId :
 					                              0;
@@ -1021,7 +1049,7 @@ namespace Unnamed::Render {
 					}
 					return true;
 				};
-				const auto BindShadowInputs = [&]() {
+				const auto BindSceneLightingInputs = [&]() {
 					pass.BindGraphicsCbv(
 						ToRootIndex(GEOM_ROOT_SLOT::SHADOW_CONSTANTS),
 						shadowCb
@@ -1029,6 +1057,11 @@ namespace Unnamed::Render {
 					pass.BindGraphicsSrvTable(
 						ToRootIndex(GEOM_ROOT_SLOT::SHADOW_MAP),
 						shadowSrvTextureId
+					);
+					pass.BindGraphicsCbv(
+						ToRootIndex(
+							GEOM_ROOT_SLOT::ENVIRONMENT_LIGHTING),
+						environmentCb
 					);
 				};
 
@@ -1039,6 +1072,20 @@ namespace Unnamed::Render {
 					it != mMaterialBindings.end()) {
 					fallbackMaterial = &it->second;
 				}
+				auto ResolveMaterialTextureTable = [&renderDevice](
+					const MaterialBinding* materialBinding
+				) {
+					if (
+						materialBinding &&
+						materialBinding->materialTextureTable.IsValid()
+					) {
+						return renderDevice.GetRegistry().
+							GetSrvDescriptorTableGpu(
+								materialBinding->materialTextureTable
+							);
+					}
+					return D3D12_GPU_DESCRIPTOR_HANDLE{};
+				};
 
 				for (const auto& objectInput : view.visibleObjects) {
 					const auto meshIt = mSceneMeshesByAsset.find(
@@ -1095,7 +1142,6 @@ namespace Unnamed::Render {
 
 					if (mesh.submeshes.empty()) {
 						Rhi::MaterialConstants material        = {};
-						uint32_t               textureId       = 0;
 						const MaterialBinding* materialBinding =
 							fallbackMaterial;
 						if (const auto matIt = mMaterialBindings.find(
@@ -1106,12 +1152,11 @@ namespace Unnamed::Render {
 						}
 						if (materialBinding) {
 							material  = materialBinding->constants;
-							textureId = materialBinding->
-								albedoTextureId;
 						}
-						if (textureId == 0) {
-							EnsureSpriteFallbackTexture(renderDevice);
-							textureId = mSpriteFallbackTextureId;
+						const auto materialTextureTable =
+							ResolveMaterialTextureTable(materialBinding);
+						if (materialTextureTable.ptr == 0) {
+							continue;
 						}
 
 						const D3D12_GPU_VIRTUAL_ADDRESS
@@ -1138,10 +1183,10 @@ namespace Unnamed::Render {
 						);
 						pass.BindGraphicsSrvTable(
 							ToRootIndex(
-								GEOM_ROOT_SLOT::BASE_COLOR_TEXTURE),
-							textureId
+								GEOM_ROOT_SLOT::MATERIAL_TEXTURES),
+							materialTextureTable
 						);
-						BindShadowInputs();
+						BindSceneLightingInputs();
 						pass.DrawIndexedTest(mesh.indexCount);
 						continue;
 					}
@@ -1166,7 +1211,6 @@ namespace Unnamed::Render {
 						}
 
 						Rhi::MaterialConstants material        = {};
-						uint32_t               textureId       = 0;
 						const MaterialBinding* materialBinding =
 							fallbackMaterial;
 						if (const auto matIt = mMaterialBindings.find(
@@ -1177,12 +1221,11 @@ namespace Unnamed::Render {
 						}
 						if (materialBinding) {
 							material  = materialBinding->constants;
-							textureId = materialBinding->
-								albedoTextureId;
 						}
-						if (textureId == 0) {
-							EnsureSpriteFallbackTexture(renderDevice);
-							textureId = mSpriteFallbackTextureId;
+						const auto materialTextureTable =
+							ResolveMaterialTextureTable(materialBinding);
+						if (materialTextureTable.ptr == 0) {
+							continue;
 						}
 
 						const D3D12_GPU_VIRTUAL_ADDRESS
@@ -1209,10 +1252,10 @@ namespace Unnamed::Render {
 						);
 						pass.BindGraphicsSrvTable(
 							ToRootIndex(
-								GEOM_ROOT_SLOT::BASE_COLOR_TEXTURE),
-							textureId
+								GEOM_ROOT_SLOT::MATERIAL_TEXTURES),
+							materialTextureTable
 						);
-						BindShadowInputs();
+						BindSceneLightingInputs();
 						pass.DrawIndexedTest(
 							submesh.indexCount,
 							submesh.indexStart,

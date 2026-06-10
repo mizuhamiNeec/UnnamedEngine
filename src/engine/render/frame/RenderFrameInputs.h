@@ -14,8 +14,8 @@
 
 namespace Unnamed::Render {
 	enum class PROJECTION_DEPTH_MODE : uint8_t {
-		ForwardZ,
-		ReverseZ,
+		FORWARD_Z,
+		REVERSE_Z,
 	};
 
 	enum class SPRITE_TEXTURE_SOURCE : uint8_t {
@@ -82,7 +82,7 @@ namespace Unnamed::Render {
 		float                 exposureEv = 0.0f;
 		float                 nearZ     = 0.001f;
 		float                 farZ      = 10000.0f;
-		PROJECTION_DEPTH_MODE depthMode = PROJECTION_DEPTH_MODE::ReverseZ;
+		PROJECTION_DEPTH_MODE depthMode = PROJECTION_DEPTH_MODE::REVERSE_Z;
 		bool                  valid     = false;
 	};
 
@@ -100,6 +100,13 @@ namespace Unnamed::Render {
 		Vec3  directionToLight  = Vec3(0.0f, 1.0f, 0.0f);
 		Vec3  color             = Vec3::one;
 		float intensity         = 1.0f;
+	};
+
+	struct EnvironmentLightInput {
+		Vec3  skyColor    = Vec3::zero;
+		Vec3  groundColor = Vec3::zero;
+		float intensity   = 0.0f;
+		bool  enabled     = false;
 	};
 
 	struct VisibleRenderObject {
@@ -176,6 +183,7 @@ namespace Unnamed::Render {
 		RenderCameraInput     camera = {};
 		SkyboxInput           skybox = {};
 		DirectionalLightInput directionalLight = {};
+		EnvironmentLightInput environmentLight = {};
 
 		std::vector<VisibleRenderObject>  visibleObjects;
 		std::vector<SkinningPaletteInput> skinningPalettes;

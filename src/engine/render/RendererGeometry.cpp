@@ -27,13 +27,57 @@ namespace Unnamed::Render {
 			const MATERIAL_SHADING_MODEL shadingModel
 		) {
 			switch (shadingModel) {
-			case MATERIAL_SHADING_MODEL::TOON:
-				return 1.0f;
-			case MATERIAL_SHADING_MODEL::UNLIT:
-				return 2.0f;
-			case MATERIAL_SHADING_MODEL::LIT_PBR:
-			default:
-				return 0.0f;
+				case MATERIAL_SHADING_MODEL::TOON: return 1.0f;
+				case MATERIAL_SHADING_MODEL::UNLIT: return 2.0f;
+				case MATERIAL_SHADING_MODEL::LIT_PBR:
+				default: return 0.0f;
+			}
+		}
+
+		std::string ResolveMaterialTextureOverridePath(
+			const MaterialInstanceAssetData& matInst,
+			const MATERIAL_TEXTURE_SLOT      slot
+		) {
+			auto findOverride = [&matInst](const char* key) -> std::string {
+				if (const auto it = matInst.textureOverrides.find(key);
+					it != matInst.textureOverrides.end()) {
+					return it->second;
+				}
+				return {};
+			};
+
+			switch (slot) {
+				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: if (std::string path =
+							findOverride("BaseColor");
+						!path.empty()) {
+						return path;
+					}
+					return findOverride("MainTex");
+				case MATERIAL_TEXTURE_SLOT::NORMAL: return findOverride(
+						"Normal");
+				case MATERIAL_TEXTURE_SLOT::ORM: return findOverride("ORM");
+				case MATERIAL_TEXTURE_SLOT::EMISSIVE: return findOverride(
+						"Emissive");
+				case MATERIAL_TEXTURE_SLOT::COUNT:
+				default: return {};
+			}
+		}
+
+		uint32_t GetFallbackTextureId(
+			const MaterialTextureSet&   defaultTextures,
+			const MATERIAL_TEXTURE_SLOT slot
+		) {
+			switch (slot) {
+				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: return defaultTextures.
+						baseColorTextureId;
+				case MATERIAL_TEXTURE_SLOT::NORMAL: return defaultTextures.
+						normalTextureId;
+				case MATERIAL_TEXTURE_SLOT::ORM: return defaultTextures.
+						ormTextureId;
+				case MATERIAL_TEXTURE_SLOT::EMISSIVE: return defaultTextures.
+						emissiveTextureId;
+				case MATERIAL_TEXTURE_SLOT::COUNT:
+				default: return 0;
 			}
 		}
 
@@ -114,6 +158,7 @@ namespace Unnamed::Render {
 			float px,  py, pz;
 			float nx,  ny, nz;
 			float u,   v;
+			float tx,  ty,  tz,  tw;
 			float bi0, bi1, bi2, bi3;
 			float bw0, bw1, bw2, bw3;
 		};
@@ -413,6 +458,8 @@ namespace Unnamed::Render {
 					.px  = v.position.x, .py = v.position.y, .pz = v.position.z,
 					.nx  = v.normal.x, .ny   = v.normal.y, .nz   = v.normal.z,
 					.u   = v.uv.x, .v        = v.uv.y,
+					.tx  = v.tangent.x, .ty  = v.tangent.y,
+					.tz  = v.tangent.z, .tw  = v.tangent.w,
 					.bi0 = static_cast<float>(v.boneIndices[0]),
 					.bi1 = static_cast<float>(v.boneIndices[1]),
 					.bi2 = static_cast<float>(v.boneIndices[2]),
@@ -551,8 +598,8 @@ namespace Unnamed::Render {
 		RenderDevice& renderDevice, Rhi::D3D12Device& dx
 	) {
 		auto&                assetManager = renderDevice.GetAssetManager();
-		auto&                registry = renderDevice.GetRegistry();
 		std::vector<AssetID> requestedMaterialInstances = {};
+		EnsureDefaultMaterialTextures(renderDevice);
 
 		const AssetID materialInstanceId = assetManager.LoadFromFile(
 			std::string(kDefaultMaterialInstance), ASSET_TYPE::MATERIAL_INSTANCE
@@ -650,7 +697,7 @@ namespace Unnamed::Render {
 			) {
 				DevMsg(
 					"Renderer",
-					"Material instance {} uses custom geometry shader {}. Assuming GeomRootSignature compatibility including ShadowConstants(b4) and ShadowMap(t1); shader reflection is not available.",
+					"Material instance {} uses custom geometry shader {}. Assuming GeomRootSignature compatibility including MaterialTextures(t0..t3), ShadowConstants(b4), ShadowMap(t4), and EnvironmentLighting(b5); shader reflection is not available.",
 					requestedMaterialInstanceId,
 					binding.shaderProgramId
 				);
@@ -746,44 +793,61 @@ namespace Unnamed::Render {
 				binding.constants.opacity = it->second;
 			}
 
-			std::string baseColorPath;
-			if (const auto it = matInst->textureOverrides.find("BaseColor");
-				it != matInst->textureOverrides.end()) {
-				baseColorPath = it->second;
-			}
-			if (baseColorPath.empty()) {
-				if (const auto it = matInst->textureOverrides.find("MainTex");
-					it != matInst->textureOverrides.end()) {
-					baseColorPath = it->second;
-				}
-			}
-
-			if (!baseColorPath.empty()) {
-				const AssetID texId = assetManager.LoadFromFile(
-					baseColorPath, ASSET_TYPE::TEXTURE
+			auto resolveTexture = [&](const MATERIAL_TEXTURE_SLOT slot) {
+				const std::string path = ResolveMaterialTextureOverridePath(
+					*matInst, slot
 				);
-				const auto* tex = assetManager.Get<TextureAssetData>(texId);
-				if (tex) {
-					binding.albedoTextureId = registry.CreateTexture2DFromAsset(
-						*tex, "MatBaseColor"
+				if (path.empty()) {
+					return GetFallbackTextureId(
+						mDefaultMaterialTextures, slot
 					);
 				}
-			}
-			if (binding.albedoTextureId == 0) {
-				TextureAssetData white = {};
-				white.width            = 1;
-				white.height           = 1;
-				white.isSRGB           = true;
-				TextureMip mip         = {};
-				mip.width              = 1;
-				mip.height             = 1;
-				mip.rowPitch           = 4;
-				mip.bytes              = {255, 255, 255, 255};
-				white.mips.emplace_back(std::move(mip));
-				binding.albedoTextureId = registry.CreateTexture2DFromAsset(
-					white, "MatFallbackWhite"
+
+				const AssetID texId = assetManager.LoadFromFile(
+					path, ASSET_TYPE::TEXTURE
 				);
-			}
+				if (slot == MATERIAL_TEXTURE_SLOT::NORMAL) {
+					const auto* texture = assetManager.Get<TextureAssetData>(
+						texId
+					);
+					if (texture && texture->isSRGB) {
+						Warning(
+							"Renderer",
+							"Material instance {} uses an sRGB Normal texture '{}'. Tangent-space DirectX normal maps must be linear.",
+							requestedMaterialInstanceId,
+							path
+						);
+					}
+				}
+				if (slot == MATERIAL_TEXTURE_SLOT::ORM) {
+					const auto* texture = assetManager.Get<TextureAssetData>(
+						texId
+					);
+					if (texture && texture->isSRGB) {
+						Warning(
+							"Renderer",
+							"Material instance {} uses an sRGB ORM texture '{}'. ORM must be linear: R=AO, G=Perceptual Roughness, B=Metallic.",
+							requestedMaterialInstanceId,
+							path
+						);
+					}
+				}
+				const uint32_t textureId =
+					mTextureResourceCache.ResolveTexture2D(texId);
+				if (textureId != 0) {
+					return textureId;
+				}
+				return GetFallbackTextureId(mDefaultMaterialTextures, slot);
+			};
+
+			binding.textures.baseColorTextureId =
+				resolveTexture(MATERIAL_TEXTURE_SLOT::BASE_COLOR);
+			binding.textures.normalTextureId =
+				resolveTexture(MATERIAL_TEXTURE_SLOT::NORMAL);
+			binding.textures.ormTextureId =
+				resolveTexture(MATERIAL_TEXTURE_SLOT::ORM);
+			binding.textures.emissiveTextureId =
+				resolveTexture(MATERIAL_TEXTURE_SLOT::EMISSIVE);
 
 			mMaterialBindings.emplace(
 				requestedMaterialInstanceId,

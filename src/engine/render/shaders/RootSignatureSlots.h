@@ -15,9 +15,11 @@ namespace Unnamed::Render {
 		OBJECT = 1,
 		MATERIAL = 2,
 		SKINNING = 3,
-		BASE_COLOR_TEXTURE = 4,
+		MATERIAL_TEXTURES = 4,
+		BASE_COLOR_TEXTURE = MATERIAL_TEXTURES,
 		SHADOW_CONSTANTS = 5,
 		SHADOW_MAP = 6,
+		ENVIRONMENT_LIGHTING = 7,
 	};
 
 	/// @brief コンピュート描画ルートシグネチャのルートパラメータスロット。

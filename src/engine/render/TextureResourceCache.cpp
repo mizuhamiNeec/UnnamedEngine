@@ -25,36 +25,56 @@ namespace Unnamed::Render {
 	}
 
 	uint32_t TextureResourceCache::ResolveSpriteTexture(const AssetID assetId) {
-		return ResolveTexture(assetId, false, mSpriteEntries);
+		return ResolveTexture(
+			assetId, false, false, "SpriteOverlayTex", mSpriteEntries
+		);
 	}
 
 	uint32_t TextureResourceCache::ResolveSkyboxTexture(const AssetID assetId) {
-		return ResolveTexture(assetId, true, mSkyboxEntries);
+		return ResolveTexture(
+			assetId, true, false, "SkyboxCubeTex", mSkyboxEntries
+		);
+	}
+
+	uint32_t TextureResourceCache::ResolveTexture2D(const AssetID assetId) {
+		return ResolveTexture(
+			assetId, false, true, "MaterialTex2D", mMaterial2DEntries
+		);
 	}
 
 	void TextureResourceCache::CollectGarbage() {
 		const uint64_t releasedSprite = CollectGarbageInternal(mSpriteEntries);
 		const uint64_t releasedSkybox = CollectGarbageInternal(mSkyboxEntries);
+		// Material bindings keep resolved texture IDs until they are rebuilt, so
+		// material entries are released by ReleaseAll instead of TTL collection.
 		mDebugStats.lastFrameReleasedByTtl = releasedSprite + releasedSkybox;
 	}
 
 	void TextureResourceCache::ReleaseAll() {
 		const uint64_t releasedSprite = ReleaseAllInternal(mSpriteEntries);
 		const uint64_t releasedSkybox = ReleaseAllInternal(mSkyboxEntries);
-		mDebugStats.releaseAllReleaseCount += releasedSprite + releasedSkybox;
+		const uint64_t releasedMaterial = ReleaseAllInternal(mMaterial2DEntries);
+		mDebugStats.releaseAllReleaseCount +=
+			releasedSprite + releasedSkybox + releasedMaterial;
 	}
 
 	TextureResourceCacheDebugStats TextureResourceCache::GetDebugStats() const {
 		TextureResourceCacheDebugStats stats = mDebugStats;
 		stats.spriteEntryCount = static_cast<uint32_t>(mSpriteEntries.size());
 		stats.skyboxEntryCount = static_cast<uint32_t>(mSkyboxEntries.size());
-		stats.liveEntryCount = stats.spriteEntryCount + stats.skyboxEntryCount;
+		stats.materialEntryCount =
+			static_cast<uint32_t>(mMaterial2DEntries.size());
+		stats.liveEntryCount = stats.spriteEntryCount +
+		                       stats.skyboxEntryCount +
+		                       stats.materialEntryCount;
 		return stats;
 	}
 
 	uint32_t TextureResourceCache::ResolveTexture(
 		const AssetID                               assetId,
 		const bool                                  requireCubeMap,
+		const bool                                  requireTexture2D,
+		const char* const                           debugName,
 		std::unordered_map<AssetID, CacheEntry>& cacheEntries
 	) {
 		if (
@@ -89,6 +109,10 @@ namespace Unnamed::Render {
 			mDebugStats.failedResolveCount++;
 			return 0;
 		}
+		if (requireTexture2D && texture->isCubeMap) {
+			mDebugStats.failedResolveCount++;
+			return 0;
+		}
 
 		const uint32_t assetVersion = meta.version;
 		if (const auto it = cacheEntries.find(assetId); it != cacheEntries.end()) {
@@ -110,10 +134,10 @@ namespace Unnamed::Render {
 
 		const uint32_t textureId = requireCubeMap ?
 			                           mRegistry->CreateTextureFromAsset(
-				                           *texture, "SkyboxCubeTex"
+				                           *texture, debugName
 			                           ) :
 			                           mRegistry->CreateTexture2DFromAsset(
-				                           *texture, "SpriteOverlayTex"
+				                           *texture, debugName
 			                           );
 		if (textureId == 0) {
 			mDebugStats.failedResolveCount++;

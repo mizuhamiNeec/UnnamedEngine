@@ -4,6 +4,7 @@ struct VsIn {
 	float3 pos : POSITION;
 	float3 nrm : NORMAL;
 	float2 uv : TEXCOORD0;
+	float4 tangent : TANGENT;
 	float4 boneIndices : TEXCOORD1;
 	float4 boneWeights : TEXCOORD2;
 };
@@ -27,7 +28,7 @@ VsOut VsMain(VsIn i) {
 			}
 
 			const uint boneIndex = min((uint)i.boneIndices[k], 511u);
-			skinnedPos += mul(
+			skinnedPos           += mul(
 				float4(i.pos, 1.0f), gSkinMatrices[boneIndex]
 			) * weight;
 		}
@@ -36,7 +37,7 @@ VsOut VsMain(VsIn i) {
 	}
 
 	const float4 wp = mul(float4(localPos, 1.0f), gWorld);
-	o.pos = mul(wp, gViewProj);
+	o.pos           = mul(wp, gViewProj);
 	return o;
 }
 

@@ -16,6 +16,7 @@ namespace Unnamed::Render {
 	struct TextureResourceCacheDebugStats {
 		uint32_t spriteEntryCount        = 0;
 		uint32_t skyboxEntryCount        = 0;
+		uint32_t materialEntryCount      = 0;
 		uint32_t liveEntryCount          = 0;
 		uint64_t createdTextureCount     = 0;
 		uint64_t ttlReleaseCount         = 0;
@@ -43,6 +44,9 @@ namespace Unnamed::Render {
 		/// @brief スカイボックス用テクスチャを解決します。
 		[[nodiscard]] uint32_t ResolveSkyboxTexture(AssetID assetId);
 
+		/// @brief マテリアル用2Dテクスチャを解決します。
+		[[nodiscard]] uint32_t ResolveTexture2D(AssetID assetId);
+
 		/// @brief 一定フレーム未使用のテクスチャを解放します。
 		void CollectGarbage();
 
@@ -62,6 +66,8 @@ namespace Unnamed::Render {
 		[[nodiscard]] uint32_t ResolveTexture(
 			AssetID                               assetId,
 			bool                                  requireCubeMap,
+			bool                                  requireTexture2D,
+			const char*                           debugName,
 			std::unordered_map<AssetID, CacheEntry>& cacheEntries
 		);
 		uint64_t CollectGarbageInternal(
@@ -78,6 +84,7 @@ namespace Unnamed::Render {
 
 		std::unordered_map<AssetID, CacheEntry> mSpriteEntries;
 		std::unordered_map<AssetID, CacheEntry> mSkyboxEntries;
+		std::unordered_map<AssetID, CacheEntry> mMaterial2DEntries;
 
 		TextureResourceCacheDebugStats mDebugStats = {};
 	};

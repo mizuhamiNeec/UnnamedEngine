@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -23,6 +25,7 @@
 #include "frame/RenderFrameInputs.h"
 
 #include "rendergraph/RenderGraph.h"
+#include "rendergraph/RgResourceRegistry.h"
 
 #include "shaders/PipelineRegistry.h"
 
@@ -37,6 +40,24 @@ namespace Unnamed::Render {
 		uint64_t                    srvRevision = 0;
 		Vec2                        uvMin       = Vec2(0.0f, 0.0f);
 		Vec2                        uvMax       = Vec2(1.0f, 1.0f);
+	};
+
+	/// @brief Geometry material texture table の固定スロット。
+	/// @details ORM は R=Ambient Occlusion, G=Perceptual Roughness, B=Metallic。
+	enum class MATERIAL_TEXTURE_SLOT : uint8_t {
+		BASE_COLOR = 0,
+		NORMAL,
+		ORM,
+		EMISSIVE,
+		COUNT,
+	};
+
+	/// @brief 解決済み Material texture の RgTextureId セット。
+	struct MaterialTextureSet {
+		uint32_t baseColorTextureId = 0;
+		uint32_t normalTextureId    = 0;
+		uint32_t ormTextureId       = 0;
+		uint32_t emissiveTextureId  = 0;
 	};
 
 	class Renderer {
@@ -76,6 +97,8 @@ namespace Unnamed::Render {
 		[[nodiscard]] Vec2 GetViewOutputSize(std::string_view viewKey) const;
 
 	private:
+		struct MaterialBinding;
+
 		// シーンの描画にはHDRを使う!
 		static constexpr DXGI_FORMAT kSceneHdrColorFormat =
 			DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -112,6 +135,11 @@ namespace Unnamed::Render {
 			RenderDevice& renderDevice, Rhi::D3D12Device& dx
 		);
 		void ReleaseMaterialBindings(RenderDevice& renderDevice);
+		void EnsureDefaultMaterialTextures(RenderDevice& renderDevice);
+		void ReleaseDefaultMaterialTextures(RenderDevice& renderDevice);
+		void EnsureMaterialTextureTable(
+			RenderDevice& renderDevice, MaterialBinding& binding
+		) const;
 		void LoadPostFxChain(const RenderDevice& renderDevice);
 		void RebuildPipelineCatalog(
 			RenderDevice& renderDevice, Rhi::D3D12Device& dx
@@ -143,8 +171,10 @@ namespace Unnamed::Render {
 		// Current contract:
 		// - Material shader used by Geometry pass must be compatible with GeomRootSignature.
 		// - Supported bindings are FRAME(b0), OBJECT(b1), MATERIAL(b2), SKINNING(b3),
-		//   BASE_COLOR_TEXTURE(t0), SHADOW_CONSTANTS(b4), and SHADOW_MAP(t1).
-		// - Additional material texture slots, custom constant buffers, and shader reflection are not supported yet.
+		//   MaterialTextures(t0..t3), SHADOW_CONSTANTS(b4), SHADOW_MAP(t4),
+		//   and ENVIRONMENT_LIGHTING(b5).
+		// - MaterialTextures order is BaseColor(t0), Normal(t1), ORM(t2), Emissive(t3).
+		// - Custom constant buffers and shader reflection are not supported yet.
 		// - Non-compatible shaders may compile/resolve but can fail at draw time.
 		struct MaterialBinding {
 			Rhi::MaterialConstants constants = {};
@@ -153,7 +183,9 @@ namespace Unnamed::Render {
 			MaterialRenderStateData renderState = {};
 			PipelineHandle geometryPipeline = {};
 			const ResolvedGraphicsPipeline* resolvedGeometryPipeline = nullptr;
-			uint32_t albedoTextureId = 0;
+			MaterialTextureSet textures = {};
+			RgSrvDescriptorTable materialTextureTable = {};
+			std::array<uint64_t, 4> materialTextureSrvRevisions = {};
 			bool pipelineResolveWarningEmitted = false;
 		};
 
@@ -448,6 +480,7 @@ namespace Unnamed::Render {
 		std::unordered_map<AssetID, MaterialBinding> mMaterialBindings;
 		std::vector<PostFxRuntimePass> mPostFxPasses;
 		TextureResourceCache mTextureResourceCache;
+		MaterialTextureSet mDefaultMaterialTextures;
 		uint32_t mSpriteFallbackTextureId = 0;
 		uint64_t mLastTextureCacheStatsLogFrame = 0;
 

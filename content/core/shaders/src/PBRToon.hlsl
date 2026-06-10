@@ -1,13 +1,17 @@
 #include "SceneConstants.hlsli"
 
 Texture2D    gBaseColorTex : register(t0);
-Texture2D    gShadowMap : register(t1);
+Texture2D    gNormalTex : register(t1);
+Texture2D    gOrmTex : register(t2);
+Texture2D    gEmissiveTex : register(t3);
+Texture2D    gShadowMap : register(t4);
 SamplerState gLinearWrap : register(s0);
 
 struct VsIn {
 	float3 pos : POSITION;
 	float3 nrm : NORMAL;
 	float2 uv : TEXCOORD0;
+	float4 tangent : TANGENT;
 	float4 boneIndices : TEXCOORD1;
 	float4 boneWeights : TEXCOORD2;
 };
@@ -58,7 +62,9 @@ VsOut VsMain(VsIn i) {
 }
 
 /// @brief Reverse-Z ShadowMap の 1 sample compare。GREATER_EQUAL depth pass と合わせる。
-float SampleDirectionalShadowTexel(int2 texel, uint2 shadowSize, float currentDepth) {
+float SampleDirectionalShadowTexel(
+	int2 texel, uint2 shadowSize, float currentDepth
+) {
 	if (
 		texel.x < 0 || texel.y < 0 ||
 		texel.x >= (int)shadowSize.x || texel.y >= (int)shadowSize.y
@@ -76,14 +82,17 @@ float ComputeDirectionalShadowVisibility(float3 positionWS, float3 normalWS) {
 		return 1.0f;
 	}
 
-	float3 biasedPositionWS = positionWS + normalize(normalWS) * gShadowFilterParams.z;
-	float4 lightClip = mul(float4(biasedPositionWS, 1.0f), gShadowLightViewProj);
+	float3 biasedPositionWS = positionWS + normalize(normalWS) *
+	                          gShadowFilterParams.z;
+	float4 lightClip = mul(float4(biasedPositionWS, 1.0f),
+	                       gShadowLightViewProj);
 	if (lightClip.w <= 0.0f) {
 		return 1.0f;
 	}
 
 	float3 lightNdc = lightClip.xyz / lightClip.w;
-	float2 shadowUv = float2(lightNdc.x * 0.5f + 0.5f, 0.5f - lightNdc.y * 0.5f);
+	float2 shadowUv = float2(lightNdc.x * 0.5f + 0.5f,
+	                         0.5f - lightNdc.y * 0.5f);
 	if (
 		shadowUv.x < 0.0f || shadowUv.x > 1.0f ||
 		shadowUv.y < 0.0f || shadowUv.y > 1.0f ||
@@ -92,11 +101,11 @@ float ComputeDirectionalShadowVisibility(float3 positionWS, float3 normalWS) {
 		return 1.0f;
 	}
 
-	uint shadowWidth = 1;
+	uint shadowWidth  = 1;
 	uint shadowHeight = 1;
 	gShadowMap.GetDimensions(shadowWidth, shadowHeight);
-	const uint2 shadowSize = uint2(shadowWidth, shadowHeight);
-	const int2 shadowTexel = int2(min(
+	const uint2 shadowSize  = uint2(shadowWidth, shadowHeight);
+	const int2  shadowTexel = int2(min(
 		uint2(shadowUv * float2(shadowSize)),
 		shadowSize - 1u
 	));
@@ -107,8 +116,8 @@ float ComputeDirectionalShadowVisibility(float3 positionWS, float3 normalWS) {
 		);
 	}
 
-	const int radius = max(0, (int)round(gShadowFilterParams.y));
-	float visibility = 0.0f;
+	const int radius     = max(0, (int)round(gShadowFilterParams.y));
+	float     visibility = 0.0f;
 	[unroll]
 	for (int y = -1; y <= 1; ++y) {
 		[unroll]
@@ -150,7 +159,7 @@ float3 EvaluateUnlit(MaterialEvalInput input) {
 
 float3 EvaluateLitPBR(MaterialEvalInput input) {
 	const float ndl = saturate(dot(input.normalWS, input.lightDirWS));
-	float diffuseFactor;
+	float       diffuseFactor;
 	if (ndl > 0.75f) {
 		diffuseFactor = 1.00f;
 	} else if (ndl > 0.40f) {
@@ -159,15 +168,16 @@ float3 EvaluateLitPBR(MaterialEvalInput input) {
 		diffuseFactor = 0.40f;
 	}
 
-	float  specPow   = lerp(96.0f, 8.0f, saturate(gRoughness));
-	float  spec      = pow(saturate(dot(input.normalWS, input.halfDirWS)), specPow);
+	float  specPow = lerp(96.0f, 8.0f, saturate(gRoughness));
+	float  spec = pow(saturate(dot(input.normalWS, input.halfDirWS)), specPow);
 	float3 specColor = lerp(
 		float3(0.04f, 0.04f, 0.04f), input.albedo, saturate(gMetallic)
 	);
 	float3 specular = specColor * spec * 0.25f;
-	float  rim = pow(1.0f - saturate(dot(input.normalWS, input.viewDirWS)), 3.0f);
-	float3 rimColor = float3(0.025f, 0.025f, 0.025f) * rim;
-	float3 ambient = float3(0.025f, 0.025f, 0.125f) * input.albedo;
+	float  rim      = pow(1.0f - saturate(dot(input.normalWS, input.viewDirWS)),
+	                      3.0f);
+	float3 rimColor  = float3(0.025f, 0.025f, 0.025f) * rim;
+	float3 ambient   = float3(0.025f, 0.025f, 0.125f) * input.albedo;
 	float3 directLit =
 		(input.albedo * diffuseFactor + specular) *
 		input.lightColor * input.shadowFactor;
@@ -175,29 +185,31 @@ float3 EvaluateLitPBR(MaterialEvalInput input) {
 }
 
 float3 EvaluateToon(MaterialEvalInput input) {
-	const float ndl       = saturate(dot(input.normalWS, input.lightDirWS));
-	const float threshold = 0.45f;
-	const float softness  = 0.08f;
+	const float ndl         = saturate(dot(input.normalWS, input.lightDirWS));
+	const float threshold   = 0.45f;
+	const float softness    = 0.08f;
 	const float toonDiffuse =
 		smoothstep(threshold - softness, threshold + softness, ndl);
 
-	float specPow = lerp(96.0f, 8.0f, saturate(gRoughness));
-	float spec = pow(saturate(dot(input.normalWS, input.halfDirWS)), specPow);
-	float specBand = smoothstep(0.45f, 0.55f, spec);
+	float  specPow = lerp(96.0f, 8.0f, saturate(gRoughness));
+	float  spec = pow(saturate(dot(input.normalWS, input.halfDirWS)), specPow);
+	float  specBand = smoothstep(0.45f, 0.55f, spec);
 	float3 specColor = lerp(
 		float3(0.04f, 0.04f, 0.04f), input.albedo, saturate(gMetallic)
 	);
 
 	const float rimStrength = 0.025f;
-	float rim = pow(1.0f - saturate(dot(input.normalWS, input.viewDirWS)), 3.0f);
+	float       rim = pow(1.0f - saturate(dot(input.normalWS, input.viewDirWS)),
+	                      3.0f);
 	float3 rimColor = float3(rimStrength, rimStrength, rimStrength) * rim;
 
 	float3 shadowColor = input.albedo * float3(0.06f, 0.08f, 0.16f);
-	float3 litColor =
-		(input.albedo * lerp(0.40f, 1.0f, toonDiffuse) + specColor * specBand * 0.25f) *
+	float3 litColor    =
+		(input.albedo * lerp(0.40f, 1.0f, toonDiffuse) + specColor * specBand *
+		 0.25f) *
 		input.lightColor;
 	float3 directLit = lerp(shadowColor, litColor, input.shadowFactor);
-	float3 ambient = float3(0.025f, 0.025f, 0.125f) * input.albedo;
+	float3 ambient   = float3(0.025f, 0.025f, 0.125f) * input.albedo;
 	return directLit + rimColor + ambient + input.emissive;
 }
 
@@ -206,14 +218,14 @@ float4 PsMain(VsOut i) : SV_Target {
 	float4 baseColor = gBaseColorTex.Sample(gLinearWrap, i.uv) * gBaseColor;
 
 	MaterialEvalInput input;
-	input.albedo      = baseColor.rgb;
-	input.emissive    = gEmissiveColor.rgb;
-	input.normalWS    = normalize(i.normalWS);
-	input.viewDirWS   = normalize(gCameraPos - i.positionWS);
-	input.lightDirWS  = normalize(gDirectionToLight.xyz);
-	input.halfDirWS   = normalize(input.viewDirWS + input.lightDirWS);
-	input.positionWS  = i.positionWS;
-	input.lightColor  =
+	input.albedo     = baseColor.rgb;
+	input.emissive   = gEmissiveColor.rgb;
+	input.normalWS   = normalize(i.normalWS);
+	input.viewDirWS  = normalize(gCameraPos - i.positionWS);
+	input.lightDirWS = normalize(gDirectionToLight.xyz);
+	input.halfDirWS  = normalize(input.viewDirWS + input.lightDirWS);
+	input.positionWS = i.positionWS;
+	input.lightColor =
 		gDirectionalLightColorIntensity.rgb * gDirectionalLightColorIntensity.a;
 
 	float shadowVisibility = ComputeDirectionalShadowVisibility(
@@ -235,8 +247,8 @@ float4 PsMain(VsOut i) : SV_Target {
 	// 側面にわずかな寒色を加えて法線向きを視認しやすくする。
 	if (gShadingModel < 1.5f && input.normalWS.y < 0.7f) {
 		const float3 synthwaveBlueTint = float3(0.10f, 0.65f, 1.00f);
-		float        t                 = saturate(1.0f - input.normalWS.y / 0.7f);
-		lit                            += synthwaveBlueTint * t * 0.01f;
+		float        t = saturate(1.0f - input.normalWS.y / 0.7f);
+		lit += synthwaveBlueTint * t * 0.01f;
 	}
 
 	lit = ApplySceneFog(lit, i.positionWS);

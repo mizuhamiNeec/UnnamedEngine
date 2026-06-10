@@ -39,4 +39,10 @@ cbuffer ShadowCB : register(b4) {
 	float4   gDirectionalLightColorIntensity; // rgb=color, a=intensity
 }
 
+cbuffer EnvironmentLightingCB : register(b5) {
+	float4 gSkyAmbientColor;
+	float4 gGroundAmbientColor;
+	float4 gEnvironmentLightingParams; // x=ambientIntensity, yzw=unused
+}
+
 #endif

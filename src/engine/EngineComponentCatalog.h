@@ -3,6 +3,7 @@
 #include <type_traits>
 
 #include "engine/unnamed/framework/components/CameraComponent.h"
+#include "engine/unnamed/framework/components/SkyLightComponent.h"
 #include "engine/unnamed/framework/components/SkyboxComponent.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/components/audio/AudioSourceComponent.h"
@@ -24,6 +25,7 @@ namespace Unnamed {
 		fn(std::type_identity<TransformComponent>{});
 		fn(std::type_identity<CameraComponent>{});
 		fn(std::type_identity<SkyboxComponent>{});
+		fn(std::type_identity<SkyLightComponent>{});
 		fn(std::type_identity<StaticMeshRendererComponent>{});
 		fn(std::type_identity<StaticMeshColliderComponent>{});
 		fn(std::type_identity<SkeletalMeshRendererComponent>{});

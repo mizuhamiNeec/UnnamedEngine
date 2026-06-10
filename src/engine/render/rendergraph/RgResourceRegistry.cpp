@@ -48,7 +48,8 @@ namespace Unnamed::Render {
 			const uint64_t mipLevels = static_cast<uint64_t>(std::max<uint16_t>(
 				desc.MipLevels, 1
 			));
-			const uint64_t pixels = desc.Width * static_cast<uint64_t>(desc.Height);
+			const uint64_t pixels =
+				desc.Width * static_cast<uint64_t>(desc.Height);
 			return pixels * slices * mipLevels *
 			       static_cast<uint64_t>(ApproxBytesPerPixel(desc.Format));
 		}
@@ -119,8 +120,8 @@ namespace Unnamed::Render {
 			);
 		}
 
-		auto& e = mEntries[id];
-		e.desc  = resolved;
+		auto& e     = mEntries[id];
+		e.desc      = resolved;
 		e.isCubeMap = false;
 
 		CreateD3D12Texture(e);
@@ -138,7 +139,8 @@ namespace Unnamed::Render {
 
 		const uint32_t mipLevels = texture.mipLevels > 0 ?
 			                           texture.mipLevels :
-			                           static_cast<uint32_t>(texture.mips.size());
+			                           static_cast<uint32_t>(texture.mips.
+				                           size());
 		if (mipLevels == 0) {
 			return 0;
 		}
@@ -173,25 +175,25 @@ namespace Unnamed::Render {
 					continue;
 				}
 				TextureSubresource legacySubresource = {};
-				legacySubresource.width      = mip.width;
-				legacySubresource.height     = mip.height;
-				legacySubresource.rowPitch   = mip.rowPitch;
-				legacySubresource.slicePitch = mip.bytes.size();
-				legacySubresource.mipLevel   = mipLevel;
-				legacySubresource.arraySlice = 0;
-				legacySubresource.bytes      = mip.bytes;
+				legacySubresource.width              = mip.width;
+				legacySubresource.height             = mip.height;
+				legacySubresource.rowPitch           = mip.rowPitch;
+				legacySubresource.slicePitch         = mip.bytes.size();
+				legacySubresource.mipLevel           = mipLevel;
+				legacySubresource.arraySlice         = 0;
+				legacySubresource.bytes              = mip.bytes;
 				legacySubresources.emplace_back(std::move(legacySubresource));
 				subresourceInfos[mipLevel] = &legacySubresources.back();
 			}
 		}
 
-		if (std::any_of(
-			subresourceInfos.begin(),
-			subresourceInfos.end(),
-			[](const TextureSubresource* subresource) {
-				return subresource == nullptr;
-			}
-		)) {
+		if (
+			std::ranges::any_of(
+				subresourceInfos,
+				[](const TextureSubresource* subresource) {
+					return subresource == nullptr;
+				}
+			)) {
 			Warning(
 				kChannel,
 				"テクスチャのサブリソースが不足しているため作成できません: {}",
@@ -217,11 +219,11 @@ namespace Unnamed::Render {
 			.width          = texture.width,
 			.height         = texture.height,
 			.resourceFormat = textureFormat,
-			.allowUav   = false,
-			.allowRtv   = false,
-			.allowDsv   = false,
-			.debugName  = debugName,
-			.extentMode = RG_EXTENT_MODE::FIXED,
+			.allowUav       = false,
+			.allowRtv       = false,
+			.allowDsv       = false,
+			.debugName      = debugName,
+			.extentMode     = RG_EXTENT_MODE::FIXED,
 		};
 
 		auto* device = mDx.GetDevice();
@@ -230,8 +232,8 @@ namespace Unnamed::Render {
 		texDesc.Dimension           = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 		texDesc.Width               = e.desc.width;
 		texDesc.Height              = e.desc.height;
-		texDesc.DepthOrArraySize = static_cast<uint16_t>(arraySize);
-		texDesc.MipLevels        = static_cast<uint16_t>(mipLevels);
+		texDesc.DepthOrArraySize    = static_cast<uint16_t>(arraySize);
+		texDesc.MipLevels           = static_cast<uint16_t>(mipLevels);
 		texDesc.Format              = e.desc.resourceFormat;
 		texDesc.SampleDesc.Count    = 1;
 		texDesc.Layout              = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -265,13 +267,13 @@ namespace Unnamed::Render {
 			const UINT subresourceCount = static_cast<UINT>(std::min<uint32_t>(
 				expectedSubresources,
 				static_cast<uint32_t>(rd.MipLevels) *
-					static_cast<uint32_t>(rd.DepthOrArraySize)
+				static_cast<uint32_t>(rd.DepthOrArraySize)
 			));
-			uint64_t requiredBytes = 0;
+			uint64_t                                        requiredBytes = 0;
 			std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(
 				subresourceCount
 			);
-			std::vector<UINT> numRows(subresourceCount);
+			std::vector<UINT>     numRows(subresourceCount);
 			std::vector<uint64_t> rowSizeInBytes(subresourceCount);
 			device->GetCopyableFootprints(
 				&rd,
@@ -309,8 +311,9 @@ namespace Unnamed::Render {
 			);
 
 			void*       map       = nullptr;
-			D3D12_RANGE readRange = {0, 0};
+			D3D12_RANGE readRange = {.Begin = 0, .End = 0};
 			Rhi::Throw(upload->Map(0, &readRange, &map));
+			bool copyValid = true;
 			for (UINT subresourceIndex = 0; subresourceIndex < subresourceCount;
 			     ++subresourceIndex) {
 				const TextureSubresource* subresource =
@@ -324,14 +327,32 @@ namespace Unnamed::Render {
 					const size_t srcOffset =
 						static_cast<size_t>(y) * subresource->rowPitch;
 					const uint8_t* src = srcOffset < subresource->bytes.size() ?
-						                     subresource->bytes.data() + srcOffset :
+						                     subresource->bytes.data() +
+						                     srcOffset :
 						                     nullptr;
-					uint8_t* dst = static_cast<uint8_t*>(map) + footprint.Offset +
-					               static_cast<size_t>(y) *
-					               footprint.Footprint.RowPitch;
+					uint8_t* dst =
+						static_cast<uint8_t*>(map) + footprint.Offset +
+						static_cast<size_t>(y) *
+						footprint.Footprint.RowPitch;
 					const size_t rowBytes = static_cast<size_t>(
 						rowSizeInBytes[subresourceIndex]
 					);
+					const uint64_t dstBegin =
+						footprint.Offset +
+						static_cast<uint64_t>(y) *
+						footprint.Footprint.RowPitch;
+					const uint64_t dstEnd = dstBegin + rowBytes;
+					if (dstEnd > requiredBytes) {
+						Warning(
+							kChannel,
+							"テクスチャのアップロード範囲が不正です: {}, subresource={}, row={}",
+							debugName,
+							subresourceIndex,
+							y
+						);
+						copyValid = false;
+						break;
+					}
 					size_t copyBytes = 0;
 					if (src) {
 						copyBytes = std::min<size_t>(
@@ -345,8 +366,16 @@ namespace Unnamed::Render {
 						std::memset(dst + copyBytes, 0, rowBytes - copyBytes);
 					}
 				}
+				if (!copyValid) {
+					break;
+				}
 			}
 			upload->Unmap(0, nullptr);
+			if (!copyValid) {
+				up.EndAndSubmitAndWait();
+				ReleaseTexture(id);
+				return 0;
+			}
 
 			auto toCopy = CD3DX12_RESOURCE_BARRIER::Transition(
 				e.resource.Get(),
@@ -436,7 +465,9 @@ namespace Unnamed::Render {
 		e.isCubeMap   = false;
 	}
 
-	ID3D12Resource* RgResourceRegistry::GetResource(uint32_t textureId) const {
+	ID3D12Resource* RgResourceRegistry::GetResource(
+		const uint32_t textureId
+	) const {
 		if (textureId == 0 || textureId >= mEntries.size()) {
 			return nullptr;
 		}
@@ -485,6 +516,78 @@ namespace Unnamed::Render {
 			return 0;
 		}
 		return mEntries[textureId].resourceRevision;
+	}
+
+	RgSrvDescriptorTable RgResourceRegistry::CreateSrvDescriptorTable(
+		const std::span<const uint32_t> textureIds,
+		const std::string&              debugName
+	) {
+		RgSrvDescriptorTable table;
+		table.count     = static_cast<uint32_t>(textureIds.size());
+		table.baseLocal = AllocSrvUavTable(table.count);
+		UpdateSrvDescriptorTable(table, textureIds, debugName);
+		return table;
+	}
+
+	void RgResourceRegistry::UpdateSrvDescriptorTable(
+		const RgSrvDescriptorTable&     table,
+		const std::span<const uint32_t> textureIds,
+		const std::string&              debugName
+	) const {
+		if (!table.IsValid() || textureIds.size() != table.count) {
+			Fatal(
+				kChannel,
+				"Invalid SRV descriptor table update: name={}, base={}, tableCount={}, textureCount={}",
+				debugName,
+				table.baseLocal,
+				table.count,
+				textureIds.size()
+			);
+			return;
+		}
+
+		auto* device = mDx.GetDevice();
+		for (uint32_t i = 0; i < table.count; ++i) {
+			const D3D12_CPU_DESCRIPTOR_HANDLE src = GetSrvCpu(textureIds[i]);
+			if (src.ptr == 0) {
+				Fatal(
+					kChannel,
+					"Invalid SRV source for descriptor table: name={}, textureId={}, index={}",
+					debugName,
+					textureIds[i],
+					i
+				);
+				return;
+			}
+			for (uint32_t fi = 0; fi < mFramesInFlight; ++fi) {
+				const auto dst = GetSrvUavCpuAt(fi, table.baseLocal + i);
+				device->CopyDescriptorsSimple(
+					1,
+					dst,
+					src,
+					D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+				);
+			}
+		}
+	}
+
+	void RgResourceRegistry::ReleaseSrvDescriptorTable(
+		RgSrvDescriptorTable& table
+	) {
+		if (!table.IsValid()) {
+			return;
+		}
+		mFreeSrvUavTableRanges.emplace_back(table.baseLocal, table.count);
+		table = {};
+	}
+
+	D3D12_GPU_DESCRIPTOR_HANDLE RgResourceRegistry::GetSrvDescriptorTableGpu(
+		const RgSrvDescriptorTable& table
+	) const {
+		if (!table.IsValid()) {
+			return {};
+		}
+		return GetSrvUavGpuAt(mCurrentFrameIndex, table.baseLocal);
 	}
 
 	D3D12_GPU_DESCRIPTOR_HANDLE RgResourceRegistry::GetUav(
@@ -581,9 +684,9 @@ namespace Unnamed::Render {
 			statsBefore.retiredResourceCount,
 			statsAfter.retiredResourceCount,
 			static_cast<double>(statsBefore.retiredResourceBytes) /
-				(1024.0 * 1024.0),
+			(1024.0 * 1024.0),
 			static_cast<double>(statsAfter.retiredResourceBytes) /
-				(1024.0 * 1024.0),
+			(1024.0 * 1024.0),
 			statsBefore.srvUavActiveSlots,
 			statsAfter.srvUavActiveSlots,
 			statsBefore.rtvActiveSlots,
@@ -600,37 +703,41 @@ namespace Unnamed::Render {
 	) {
 		uint32_t reclaimedCount = 0;
 		uint64_t reclaimedBytes = 0;
-		std::erase_if(mRetiredResources, [this, completedFenceValue, &reclaimedCount, &reclaimedBytes](
-			              const RetiredTextureResource& retired
-		              ) {
-			const bool ready = retired.retireFenceValue == 0 ||
-				retired.retireFenceValue <= completedFenceValue;
-			if (!ready) {
-				return false;
-			}
+		std::erase_if(mRetiredResources,
+		              [this, completedFenceValue, &reclaimedCount, &
+			              reclaimedBytes](
+		              const RetiredTextureResource& retired
+	              ) {
+			              const bool ready = retired.retireFenceValue == 0 ||
+			                                 retired.retireFenceValue <=
+			                                 completedFenceValue;
+			              if (!ready) {
+				              return false;
+			              }
 
-			if (retired.srvLocal != UINT32_MAX) {
-				mFreeSrvUavLocals.emplace_back(retired.srvLocal);
-			}
-			if (retired.uavLocal != UINT32_MAX) {
-				mFreeSrvUavLocals.emplace_back(retired.uavLocal);
-			}
-			if (retired.rtvLocal != UINT32_MAX) {
-				mFreeRtvLocals.emplace_back(retired.rtvLocal);
-			}
-			if (retired.dsvLocal != UINT32_MAX) {
-				mFreeDsvLocals.emplace_back(retired.dsvLocal);
-			}
-			if (retired.srvCpuLocal != UINT32_MAX) {
-				mFreeCpuLocals.emplace_back(retired.srvCpuLocal);
-			}
-			if (retired.releaseTextureId && retired.textureId != 0) {
-				mFreeTextureIds.emplace_back(retired.textureId);
-			}
-			++reclaimedCount;
-			reclaimedBytes += retired.approxBytes;
-			return true;
-		}
+			              if (retired.srvLocal != UINT32_MAX) {
+				              mFreeSrvUavLocals.emplace_back(retired.srvLocal);
+			              }
+			              if (retired.uavLocal != UINT32_MAX) {
+				              mFreeSrvUavLocals.emplace_back(retired.uavLocal);
+			              }
+			              if (retired.rtvLocal != UINT32_MAX) {
+				              mFreeRtvLocals.emplace_back(retired.rtvLocal);
+			              }
+			              if (retired.dsvLocal != UINT32_MAX) {
+				              mFreeDsvLocals.emplace_back(retired.dsvLocal);
+			              }
+			              if (retired.srvCpuLocal != UINT32_MAX) {
+				              mFreeCpuLocals.emplace_back(retired.srvCpuLocal);
+			              }
+			              if (retired.releaseTextureId && retired.textureId !=
+			                  0) {
+				              mFreeTextureIds.emplace_back(retired.textureId);
+			              }
+			              ++reclaimedCount;
+			              reclaimedBytes += retired.approxBytes;
+			              return true;
+		              }
 		);
 
 		if (reclaimedCount > 0) {
@@ -650,6 +757,48 @@ namespace Unnamed::Render {
 		}
 	}
 
+	RgRegistryDebugStats RgResourceRegistry::GetDebugStats() const {
+		RgRegistryDebugStats stats = {};
+		for (const auto& entry : mEntries) {
+			if (!entry.resource) {
+				continue;
+			}
+			++stats.activeTextureCount;
+			stats.activeTextureBytes += EstimateTextureBytes(
+				entry.resource.Get());
+		}
+		for (const auto& retired : mRetiredResources) {
+			++stats.retiredResourceCount;
+			stats.retiredResourceBytes += retired.approxBytes;
+		}
+
+		stats.srvUavActiveSlots = mNextSrvUavLocalGlobal >
+		                          mFreeSrvUavLocals.size() ?
+			                          mNextSrvUavLocalGlobal -
+			                          static_cast<uint32_t>(mFreeSrvUavLocals.
+				                          size()) :
+			                          0;
+		stats.rtvActiveSlots = mNextRtvLocalGlobal > mFreeRtvLocals.size() ?
+			                       mNextRtvLocalGlobal -
+			                       static_cast<uint32_t>(mFreeRtvLocals.
+				                       size()) :
+			                       0;
+		stats.dsvActiveSlots = mNextDsvLocalGlobal > mFreeDsvLocals.size() ?
+			                       mNextDsvLocalGlobal -
+			                       static_cast<uint32_t>(mFreeDsvLocals.
+				                       size()) :
+			                       0;
+		stats.cpuSrvUavActiveSlots = mCpuNextSlot > mFreeCpuLocals.size() ?
+			                             mCpuNextSlot -
+			                             static_cast<uint32_t>(mFreeCpuLocals.
+				                             size()) :
+			                             0;
+		stats.reusableTextureIdCount = static_cast<uint32_t>(
+			mFreeTextureIds.size()
+		);
+		return stats;
+	}
+
 	uint32_t RgResourceRegistry::AllocSrvUavSlot() {
 		if (!mFreeSrvUavLocals.empty()) {
 			const uint32_t local = mFreeSrvUavLocals.back();
@@ -662,6 +811,40 @@ namespace Unnamed::Render {
 			Fatal(
 				kChannel, "SRV/UAV heap slots exhausted: local={}, perFrame={}",
 				local, mSrvUavPerFrameSlots
+			);
+			UASSERT(false);
+		}
+		return local;
+	}
+
+	uint32_t RgResourceRegistry::AllocSrvUavTable(const uint32_t count) {
+		if (count == 0) {
+			return UINT32_MAX;
+		}
+		for (auto it = mFreeSrvUavTableRanges.begin();
+		     it != mFreeSrvUavTableRanges.end();
+		     ++it) {
+			auto& [base, available] = *it;
+			if (available < count) {
+				continue;
+			}
+			const uint32_t local = base;
+			base                 += count;
+			available            -= count;
+			if (available == 0) {
+				mFreeSrvUavTableRanges.erase(it);
+			}
+			return local;
+		}
+		const uint32_t local   = mNextSrvUavLocalGlobal;
+		mNextSrvUavLocalGlobal += count;
+		if (mNextSrvUavLocalGlobal > mSrvUavPerFrameSlots) {
+			Fatal(
+				kChannel,
+				"SRV/UAV heap table slots exhausted: local={}, count={}, perFrame={}",
+				local,
+				count,
+				mSrvUavPerFrameSlots
 			);
 			UASSERT(false);
 		}
@@ -748,7 +931,7 @@ namespace Unnamed::Render {
 	}
 
 	D3D12_GPU_DESCRIPTOR_HANDLE RgResourceRegistry::GetSrvUavGpuAt(
-		uint32_t frameIndex, uint32_t local
+		const uint32_t frameIndex, const uint32_t local
 	) const {
 		auto*      heap = mDx.GetSrvUavHeap();
 		const auto base = heap->GetGPUDescriptorHandleForHeapStart();
@@ -893,7 +1076,7 @@ namespace Unnamed::Render {
 				self->GetSafeRetireFenceValue(), mDx.GetNextSignalFenceValue()
 			);
 			retired.approxBytes = EstimateTextureBytes(e.resource.Get());
-			retired.resource = e.resource;
+			retired.resource    = e.resource;
 			self->mRetiredResources.emplace_back(std::move(retired));
 			e.resource.Reset();
 		}
@@ -962,9 +1145,9 @@ namespace Unnamed::Render {
 		srv.Shader4ComponentMapping         =
 			D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		if (e.isCubeMap) {
-			srv.ViewDimension                 = D3D12_SRV_DIMENSION_TEXTURECUBE;
-			srv.TextureCube.MostDetailedMip  = 0;
-			srv.TextureCube.MipLevels        = resourceDesc.MipLevels;
+			srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			srv.TextureCube.MostDetailedMip = 0;
+			srv.TextureCube.MipLevels = resourceDesc.MipLevels;
 			srv.TextureCube.ResourceMinLODClamp = 0.0f;
 		} else if (resourceDesc.DepthOrArraySize > 1) {
 			srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
@@ -1040,42 +1223,5 @@ namespace Unnamed::Render {
 		}
 
 		e.srvRevision = ++mGlobalSrvRevision;
-	}
-
-	RgRegistryDebugStats RgResourceRegistry::GetDebugStats() const {
-		RgRegistryDebugStats stats = {};
-		for (const auto& entry : mEntries) {
-			if (!entry.resource) {
-				continue;
-			}
-			++stats.activeTextureCount;
-			stats.activeTextureBytes += EstimateTextureBytes(entry.resource.Get());
-		}
-		for (const auto& retired : mRetiredResources) {
-			++stats.retiredResourceCount;
-			stats.retiredResourceBytes += retired.approxBytes;
-		}
-
-		stats.srvUavActiveSlots = mNextSrvUavLocalGlobal >
-			                          mFreeSrvUavLocals.size() ?
-			                          mNextSrvUavLocalGlobal -
-			                          static_cast<uint32_t>(mFreeSrvUavLocals.size()) :
-			                          0;
-		stats.rtvActiveSlots = mNextRtvLocalGlobal > mFreeRtvLocals.size() ?
-			                       mNextRtvLocalGlobal -
-			                       static_cast<uint32_t>(mFreeRtvLocals.size()) :
-			                       0;
-		stats.dsvActiveSlots = mNextDsvLocalGlobal > mFreeDsvLocals.size() ?
-			                       mNextDsvLocalGlobal -
-			                       static_cast<uint32_t>(mFreeDsvLocals.size()) :
-			                       0;
-		stats.cpuSrvUavActiveSlots = mCpuNextSlot > mFreeCpuLocals.size() ?
-			                             mCpuNextSlot -
-			                             static_cast<uint32_t>(mFreeCpuLocals.size()) :
-			                             0;
-		stats.reusableTextureIdCount = static_cast<uint32_t>(
-			mFreeTextureIds.size()
-		);
-		return stats;
 	}
 }

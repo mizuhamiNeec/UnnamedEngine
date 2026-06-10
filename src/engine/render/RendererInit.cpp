@@ -22,7 +22,7 @@ namespace Unnamed::Render {
 
 		Rhi::VertexLayoutDesc BuildGeometryVertexLayout() {
 			return Rhi::VertexLayoutDesc{
-				.stride   = sizeof(float) * 16,
+				.stride   = sizeof(float) * 20,
 				.elements = {
 					Rhi::VertexElementDesc{
 						.semantic         = Rhi::VertexSemantic::POSITION,
@@ -52,8 +52,8 @@ namespace Unnamed::Render {
 						.instanceStepRate = 0,
 					},
 					Rhi::VertexElementDesc{
-						.semantic         = Rhi::VertexSemantic::TEXCOORD,
-						.semanticIndex    = 1,
+						.semantic         = Rhi::VertexSemantic::TANGENT,
+						.semanticIndex    = 0,
 						.format           = Rhi::VertexFormat::FLOAT4,
 						.offset           = sizeof(float) * 8,
 						.inputSlot        = 0,
@@ -62,9 +62,18 @@ namespace Unnamed::Render {
 					},
 					Rhi::VertexElementDesc{
 						.semantic         = Rhi::VertexSemantic::TEXCOORD,
-						.semanticIndex    = 2,
+						.semanticIndex    = 1,
 						.format           = Rhi::VertexFormat::FLOAT4,
 						.offset           = sizeof(float) * 12,
+						.inputSlot        = 0,
+						.perInstance      = false,
+						.instanceStepRate = 0,
+					},
+					Rhi::VertexElementDesc{
+						.semantic         = Rhi::VertexSemantic::TEXCOORD,
+						.semanticIndex    = 2,
+						.format           = Rhi::VertexFormat::FLOAT4,
+						.offset           = sizeof(float) * 16,
 						.inputSlot        = 0,
 						.perInstance      = false,
 						.instanceStepRate = 0,

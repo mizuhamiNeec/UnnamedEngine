@@ -21,14 +21,14 @@ namespace Unnamed {
 		/// @param path 元のアセットファイルのパス
 		/// @param out 読み込んだキャッシュの内容を格納する出力パラメータ
 		/// @return キャッシュが有効であればtrue、そうでなければfalse
-		bool TryLoadDerivedCache(
+		static bool TryLoadDerivedCache(
 			const std::string& path, LoadResult& out
-		) const;
+		);
 
 		/// @brief 派生キャッシュを書き込む。書き込みに失敗した場合はfalseを返す。
 		/// @param path 元のアセットファイルのパス
 		/// @param in 書き込む内容を格納する入力パラメータ
 		/// @return 書き込みに成功すればtrue、そうでなければfalse
-		bool WriteDerivedCache(const std::string& path, const LoadResult& in);
+		static bool WriteDerivedCache(const std::string& path, const LoadResult& in);
 	};
 }

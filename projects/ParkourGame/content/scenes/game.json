@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.00017547607422,
-                            36.00041961669922,
-                            16.00017547607422
+                            16.000213623046875,
+                            36.000511169433594,
+                            16.000213623046875
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -680,13 +680,13 @@
                         "speed": 1.0,
                         "stateMap": [
                             {
-                                "blendSec": 0.125,
-                                "clipName": "Vault",
+                                "blendSec": 0.11999999731779099,
+                                "clipName": "Sprint.001",
                                 "layerIndex": 0,
-                                "loop": false,
+                                "loop": true,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_vaulting",
+                                "stateId": "animstate_sprint",
                                 "weight": 1.0
                             },
                             {
@@ -700,13 +700,13 @@
                                 "weight": 1.0
                             },
                             {
-                                "blendSec": 0.11999999731779099,
-                                "clipName": "Sprint.001",
+                                "blendSec": 0.125,
+                                "clipName": "Vault",
                                 "layerIndex": 0,
-                                "loop": true,
+                                "loop": false,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_sprint",
+                                "stateId": "animstate_vaulting",
                                 "weight": 1.0
                             },
                             {
@@ -1670,7 +1670,7 @@
                             0.8095300793647766,
                             0.3371647596359253
                         ],
-                        "intensity": 4.0
+                        "intensity": 5.0
                     },
                     "guid": 16978718190624883074,
                     "type": "engine.DirectionalLight"
@@ -1680,6 +1680,58 @@
             "guid": 9100000000000000202,
             "isEditorOnly": false,
             "name": "Sun",
+            "visible": true
+        },
+        {
+            "active": true,
+            "components": [
+                {
+                    "active": true,
+                    "data": {
+                        "parentEntityGuid": 0,
+                        "position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "guid": 13302431723005234301,
+                    "type": "engine.Transform"
+                },
+                {
+                    "active": true,
+                    "data": {
+                        "groundColor": [
+                            0.07999999821186066,
+                            0.07000000029802322,
+                            0.05999999865889549
+                        ],
+                        "intensity": 3.0,
+                        "skyColor": [
+                            0.25,
+                            0.30000001192092896,
+                            0.4000000059604645
+                        ]
+                    },
+                    "guid": 13828722475934398570,
+                    "type": "engine.SkyLight"
+                }
+            ],
+            "folderPath": "Gameplay/World",
+            "guid": 9100000000000000203,
+            "isEditorOnly": false,
+            "name": "SkyLight",
             "visible": true
         }
     ],

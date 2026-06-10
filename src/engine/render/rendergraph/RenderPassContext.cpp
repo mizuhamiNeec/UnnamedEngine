@@ -20,7 +20,8 @@ namespace Unnamed::Render {
 	    mBackBufferWidth(backBufferWidth),
 	    mBackBufferHeight(backBufferHeight),
 	    mSrvUavHeap(srvUavHeap),
-	    mDescriptorResolver(descriptorResolver) {}
+	    mDescriptorResolver(descriptorResolver) {
+	}
 
 	void RenderPassContext::SetViewportToBackBuffer() const {
 		SetViewportAndScissor(
@@ -61,7 +62,7 @@ namespace Unnamed::Render {
 		mContext.SetSrvUavHeap(mSrvUavHeap);
 	}
 
-	void RenderPassContext::SetBackBufferAsRenderTarget() {
+	void RenderPassContext::SetBackBufferAsRenderTarget() const {
 		const uint32_t index = mContext.GetSwapChain()->
 		                                GetCurrentBackBufferIndex();
 		const auto rtv = mContext.GetSwapChain()->GetRtvHandle(index);
@@ -80,6 +81,12 @@ namespace Unnamed::Render {
 	) const {
 		const auto gpu = mDescriptorResolver.GetSrv(textureId);
 		mCommandList->SetGraphicsRootDescriptorTable(rootIndex, gpu);
+	}
+
+	void RenderPassContext::BindGraphicsSrvTable(
+		const uint32_t rootIndex, const D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle
+	) const {
+		mCommandList->SetGraphicsRootDescriptorTable(rootIndex, gpuHandle);
 	}
 
 	void RenderPassContext::SetIndexBuffer(
@@ -124,7 +131,8 @@ namespace Unnamed::Render {
 	}
 
 	void RenderPassContext::ClearRtv(
-		uint32_t textureId, float r, float g, float b, float a
+		uint32_t    textureId, const float r, const float g, const float b,
+		const float a
 	) const {
 		const auto rtv = mDescriptorResolver.GetRtvCpu(textureId);
 		if (rtv.ptr == 0) {
@@ -135,7 +143,9 @@ namespace Unnamed::Render {
 		mCommandList->ClearRenderTargetView(rtv, color, 0, nullptr);
 	}
 
-	void RenderPassContext::SetRenderTargetById(const uint32_t textureId) {
+	void RenderPassContext::SetRenderTargetById(
+		const uint32_t textureId
+	) const {
 		if (textureId == RenderGraph::kBackBufferId) {
 			SetBackBufferAsRenderTarget();
 			return;
@@ -155,7 +165,7 @@ namespace Unnamed::Render {
 	}
 
 	void RenderPassContext::SetRenderTargets(
-		std::span<const uint32_t> textureIds
+		const std::span<const uint32_t> textureIds
 	) const {
 		if (textureIds.empty()) {
 			mCommandList->OMSetRenderTargets(0, nullptr, FALSE, nullptr);
@@ -187,7 +197,7 @@ namespace Unnamed::Render {
 	}
 
 	void RenderPassContext::SetRenderTargetsByIds(
-		std::span<const uint32_t> textureIds
+		const std::span<const uint32_t> textureIds
 	) const {
 		if (textureIds.empty()) {
 			return;
@@ -208,8 +218,8 @@ namespace Unnamed::Render {
 		for (uint32_t i = 0; i < count; ++i) {
 			const uint32_t id = textureIds[i];
 
-			D3D12_CPU_DESCRIPTOR_HANDLE rtv = {};
-			ID3D12Resource*             res = nullptr;
+			D3D12_CPU_DESCRIPTOR_HANDLE rtv;
+			ID3D12Resource*             res;
 
 			if (id == RenderGraph::kBackBufferId) {
 				rtv = mContext.GetCurrentBackBufferRtv();
@@ -267,13 +277,13 @@ namespace Unnamed::Render {
 	}
 
 	void RenderPassContext::ClearDepthById(
-		uint32_t textureId, float depth
+		const uint32_t textureId, const float depth
 	) const {
 		ClearDepthStencilById(textureId, depth, 0);
 	}
 
 	void RenderPassContext::ClearDepthStencilById(
-		uint32_t textureId, float depth, uint8_t stencil
+		uint32_t textureId, const float depth, const uint8_t stencil
 	) const {
 		if (textureId == RenderGraph::kBackBufferId) {
 			Fatal("RDG", "バックバッファは深度ステンシルを持ちません。");
@@ -321,7 +331,7 @@ namespace Unnamed::Render {
 		for (uint32_t i = 0; i < count; ++i) {
 			const uint32_t id = colorRtIds[i];
 
-			D3D12_CPU_DESCRIPTOR_HANDLE rtv = {};
+			D3D12_CPU_DESCRIPTOR_HANDLE rtv;
 			if (id == RenderGraph::kBackBufferId) {
 				rtv = mContext.GetCurrentBackBufferRtv();
 			} else {
@@ -339,7 +349,7 @@ namespace Unnamed::Render {
 		}
 
 		const D3D12_CPU_DESCRIPTOR_HANDLE* dsvPtr = nullptr;
-		D3D12_CPU_DESCRIPTOR_HANDLE        dsv    = {};
+		D3D12_CPU_DESCRIPTOR_HANDLE        dsv;
 		if (depthRtId.has_value()) {
 			dsv = mDescriptorResolver.GetDsvCpu(depthRtId.value());
 			if (dsv.ptr == 0) {
@@ -375,7 +385,8 @@ namespace Unnamed::Render {
 	void RenderPassContext::SetVertexBuffer(
 		const D3D12_VERTEX_BUFFER_VIEW& vbv
 	) const {
-		mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		mCommandList->IASetPrimitiveTopology(
+			D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		mCommandList->IASetVertexBuffers(0, 1, &vbv);
 	}
 

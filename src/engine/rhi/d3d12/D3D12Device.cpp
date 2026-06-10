@@ -804,7 +804,8 @@ namespace Unnamed::Rhi {
 	void D3D12Device::CreateGeometryRootSignature() {
 		// Geometry RootSignature:
 		// CBV(b0)=Frame, CBV(b1)=Object, CBV(b2)=Material, CBV(b3)=Skinning,
-		// SRV(t0)=BaseColor, CBV(b4)=ShadowConstants, SRV(t1)=ShadowMap
+		// SRV(t0..t3)=MaterialTextures, CBV(b4)=ShadowConstants, SRV(t4)=ShadowMap,
+		// CBV(b5)=EnvironmentLightingConstants
 		{
 			auto createGeomSignature = [this](
 				                         ID3D12RootSignature** outSignature,
@@ -814,8 +815,8 @@ namespace Unnamed::Rhi {
 			                         ) {
 			D3D12_DESCRIPTOR_RANGE srvRange = {};
 			srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			srvRange.NumDescriptors = 1;
-			srvRange.BaseShaderRegister = 0; // t0
+			srvRange.NumDescriptors = 4;
+			srvRange.BaseShaderRegister = 0; // t0..t3
 			srvRange.RegisterSpace = 0;
 			srvRange.OffsetInDescriptorsFromTableStart =
 				D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -823,13 +824,13 @@ namespace Unnamed::Rhi {
 			D3D12_DESCRIPTOR_RANGE shadowSrvRange = {};
 			shadowSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 			shadowSrvRange.NumDescriptors = 1;
-			shadowSrvRange.BaseShaderRegister = 1; // t1
+			shadowSrvRange.BaseShaderRegister = 4; // t4
 			shadowSrvRange.RegisterSpace = 0;
 			shadowSrvRange.OffsetInDescriptorsFromTableStart =
 				D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			// CBV(b0)->FrameConstants, CBV(b1)->ObjectConstants, CBV(b2)->Material, CBV(b3)->SkinningPalette, CBV(b4)->ShadowConstants
-			std::array<D3D12_ROOT_PARAMETER, 7> param = {};
+			// CBV(b0)->FrameConstants, CBV(b1)->ObjectConstants, CBV(b2)->Material, CBV(b3)->SkinningPalette, CBV(b4)->ShadowConstants, CBV(b5)->EnvironmentLightingConstants
+			std::array<D3D12_ROOT_PARAMETER, 8> param = {};
 			param[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 			param[0].Descriptor.ShaderRegister = 0; // b0
 			param[0].Descriptor.RegisterSpace = 0;
@@ -866,6 +867,11 @@ namespace Unnamed::Rhi {
 			param[6].DescriptorTable.NumDescriptorRanges = 1;
 			param[6].DescriptorTable.pDescriptorRanges = &shadowSrvRange;
 			param[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+			param[7].ParameterType             = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			param[7].Descriptor.ShaderRegister = 5; // b5
+			param[7].Descriptor.RegisterSpace  = 0;
+			param[7].ShaderVisibility          = D3D12_SHADER_VISIBILITY_PIXEL;
 
 			D3D12_STATIC_SAMPLER_DESC sampler = {};
 			sampler.Filter = filter;

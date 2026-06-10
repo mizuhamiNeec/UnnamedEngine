@@ -111,7 +111,7 @@ namespace Unnamed {
 		outCamera.exposureEv = mExposureEv;
 		outCamera.nearZ      = mNearZ;
 		outCamera.farZ       = mFarZ;
-		outCamera.depthMode  = Render::PROJECTION_DEPTH_MODE::ReverseZ;
+		outCamera.depthMode  = Render::PROJECTION_DEPTH_MODE::REVERSE_Z;
 		outCamera.valid      = true;
 		return true;
 	}

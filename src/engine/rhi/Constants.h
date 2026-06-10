@@ -86,4 +86,20 @@ namespace Unnamed::Rhi {
 		sizeof(ShadowConstants) <= 256,
 		"ShadowConstants must be 256 bytes or less"
 	);
+
+	struct alignas(16) EnvironmentLightingConstants {
+		Vec4 skyAmbientColor = Vec4(0.25f, 0.30f, 0.40f, 1.0f);
+		Vec4 groundAmbientColor = Vec4(0.08f, 0.07f, 0.06f, 1.0f);
+		Vec4 params = Vec4(0.3f, 0.0f, 0.0f, 0.0f);
+		// x=ambientIntensity, yzw=unused
+	};
+
+	static_assert(
+		sizeof(EnvironmentLightingConstants) % 16 == 0,
+		"EnvironmentLightingConstants must be 16-byte aligned"
+	);
+	static_assert(
+		sizeof(EnvironmentLightingConstants) <= 256,
+		"EnvironmentLightingConstants must be 256 bytes or less"
+	);
 }

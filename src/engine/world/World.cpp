@@ -24,6 +24,7 @@
 #include "engine/scene/SceneSerializer.h"
 #include "engine/sequence/SequenceRuntime.h"
 #include "engine/unnamed/framework/components/DirectionalLightComponent.h"
+#include "engine/unnamed/framework/components/SkyLightComponent.h"
 #include "engine/unnamed/framework/components/SkyboxComponent.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/components/editor/EditorCameraComponent.h"
@@ -554,6 +555,7 @@ namespace Unnamed {
 		}
 
 		Render::RenderViewInput sceneView = {};
+		bool skyLightResolved             = false;
 		sceneView.viewKey                 = "world.main";
 		sceneView.type                    = Render::RENDER_VIEW_TYPE::SCENE;
 		sceneView.output.sizeMode         =
@@ -628,6 +630,15 @@ namespace Unnamed {
 				if (directionalLight && directionalLight->IsActive()) {
 					(void)directionalLight->BuildLightInput(
 						sceneView.directionalLight
+					);
+				}
+			}
+
+			if (!skyLightResolved) {
+				auto* skyLight = entity->GetComponent<SkyLightComponent>();
+				if (skyLight && skyLight->IsActive()) {
+					skyLightResolved = skyLight->BuildLightInput(
+						sceneView.environmentLight
 					);
 				}
 			}
