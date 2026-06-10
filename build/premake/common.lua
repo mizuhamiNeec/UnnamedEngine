@@ -126,3 +126,8 @@ function CopyDxCompilerDlls()
 		'copy /Y "$(WindowsSdkDir)bin\\$(TargetPlatformVersion)\\x64\\dxil.dll" "%{cfg.targetdir}\\dxil.dll"'
 	}
 end
+
+function PCHSettings()
+	pchheader "src/pch.h"
+	pchsource "src/pch.cpp"
+end

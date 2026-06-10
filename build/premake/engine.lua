@@ -3,6 +3,7 @@ group "Engine/Runtime"
 project "UnnamedEngineRuntime"
 	kind "StaticLib"
 	CommonProjectSettings("%{prj.name}")
+	PCHSettings()
 	WarningSettings()
 
 	files(RootPathList({
@@ -48,6 +49,7 @@ project "UnnamedEngineRuntimeEditor"
 	kind "StaticLib"
 	removeconfigurations { "Develop", "Release" }
 	CommonProjectSettings("%{prj.name}")
+	PCHSettings()
 	WarningSettings()
 
 	files(RootPathList({
@@ -93,6 +95,7 @@ project "UnnamedEditorRuntime"
 	kind "StaticLib"
 	removeconfigurations { "Develop", "Release" }
 	CommonProjectSettings("%{prj.name}")
+	PCHSettings()
 	WarningSettings()
 
 	files(RootPathList({

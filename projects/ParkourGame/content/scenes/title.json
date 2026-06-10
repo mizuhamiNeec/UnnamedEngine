@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.000091552734375,
-                            36.00021743774414,
-                            16.000091552734375
+                            16.000099182128906,
+                            36.00023651123047,
+                            16.000099182128906
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -383,13 +383,13 @@
                         "speed": 1.0,
                         "stateMap": [
                             {
-                                "blendSec": 0.11999999731779099,
-                                "clipName": "Sprint.001",
+                                "blendSec": 0.125,
+                                "clipName": "Vault",
                                 "layerIndex": 0,
-                                "loop": true,
+                                "loop": false,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_sprint",
+                                "stateId": "animstate_vaulting",
                                 "weight": 1.0
                             },
                             {
@@ -403,13 +403,13 @@
                                 "weight": 1.0
                             },
                             {
-                                "blendSec": 0.125,
-                                "clipName": "Vault",
+                                "blendSec": 0.11999999731779099,
+                                "clipName": "Sprint.001",
                                 "layerIndex": 0,
-                                "loop": false,
+                                "loop": true,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_vaulting",
+                                "stateId": "animstate_sprint",
                                 "weight": 1.0
                             },
                             {
@@ -1007,7 +1007,7 @@
                             1.0
                         ]
                     },
-                    "guid": 0,
+                    "guid": 14295444211257290053,
                     "type": "engine.Transform"
                 },
                 {
@@ -1019,9 +1019,9 @@
                             0.8078431487083435,
                             0.33725491166114807
                         ],
-                        "intensity": 5.0
+                        "intensity": 1.0
                     },
-                    "guid": 0,
+                    "guid": 14563691171550782281,
                     "type": "engine.DirectionalLight"
                 }
             ],
@@ -1055,7 +1055,7 @@
                             1.0
                         ]
                     },
-                    "guid": 0,
+                    "guid": 15079642671080334060,
                     "type": "engine.Transform"
                 },
                 {
@@ -1073,7 +1073,7 @@
                             0.4000000059604645
                         ]
                     },
-                    "guid": 0,
+                    "guid": 14317060316090079281,
                     "type": "engine.SkyLight"
                 }
             ],
