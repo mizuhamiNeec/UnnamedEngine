@@ -129,6 +129,9 @@ project "UnnamedEditorRuntime"
 	filter { "files:**/ImGui/**.cpp or files:**/ImGuizmo/**.cpp" }
 		warnings "Extra"
 		disablewarnings { "4189" }
+	filter { "files:**/thirdparty/ImGui/**.cpp or files:**/thirdparty/ImGuizmo/**.cpp" }
+		enablepch "Off"
+		forceincludes {}
 	filter {}
 
 	defines { "UNNAMED_WITH_EDITOR" }

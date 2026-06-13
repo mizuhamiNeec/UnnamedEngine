@@ -128,6 +128,10 @@ function CopyDxCompilerDlls()
 end
 
 function PCHSettings()
-	pchheader "src/pch.h"
-	pchsource "src/pch.cpp"
+	pchheader "pch.h"
+	pchsource(RootPath("src/pch.cpp"))
+
+	filter { "files:**.cpp", "files:not **/thirdparty/**" }
+		forceincludes { "pch.h" }
+	filter {}
 end
