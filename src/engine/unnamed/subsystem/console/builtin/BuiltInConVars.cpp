@@ -91,7 +91,7 @@ namespace Unnamed {
 		);
 
 		static ConVar r_shadowmap_enabled(
-			"r_shadowmap_enabled", true, FCVAR::ARCHIVE,
+			"r_shadowmap_enabled", false, FCVAR::ARCHIVE,
 			"Apply the directional shadow map in geometry lighting."
 		);
 
