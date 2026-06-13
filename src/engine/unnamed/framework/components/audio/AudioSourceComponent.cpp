@@ -36,6 +36,10 @@ namespace Unnamed {
 		mAutoPlayConsumed = false;
 		mLoggedError      = false;
 		(void)EnsureVoiceReady(false);
+
+		mTimeScale = GetConsoleSystem()->GetConVarAs<ConVar<float>>(
+			"host_timescale"
+		);
 	}
 
 	void AudioSourceComponent::OnDetached() {
@@ -51,6 +55,11 @@ namespace Unnamed {
 		if (mPlayOnStart && !mAutoPlayConsumed) {
 			mVoice->Play(mLoop);
 			mAutoPlayConsumed = true;
+		}
+
+		if (mVoice) {
+			// TimeScaleを考慮してピッチを設定する
+			mVoice->SetPitch(mPitch * mTimeScale->GetValue());
 		}
 	}
 
@@ -85,7 +94,7 @@ namespace Unnamed {
 		writer.Write(mPitch);
 	}
 
-#ifdef UNNAMED_WITH_EDITOR
+#ifdef _DEBUG
 	void AudioSourceComponent::DrawInspectorImGui() {
 		std::string soundPath = mSoundPath;
 		if (
@@ -178,10 +187,7 @@ namespace Unnamed {
 	}
 
 	void AudioSourceComponent::SetPitch(const float pitch) noexcept {
-		mPitch = std::clamp(pitch, 0.01f, 4.0f);
-		if (mVoice) {
-			mVoice->SetPitch(mPitch);
-		}
+		mPitch = std::max(0.01f, pitch); // ピッチは0.01以上に制限
 	}
 
 	float AudioSourceComponent::GetPitch() const noexcept {

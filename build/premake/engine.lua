@@ -3,6 +3,7 @@ group "Engine/Runtime"
 project "UnnamedEngineRuntime"
 	kind "StaticLib"
 	CommonProjectSettings("%{prj.name}")
+	PCHSettings()
 	WarningSettings()
 
 	files(RootPathList({
@@ -46,7 +47,9 @@ project "UnnamedEngineRuntime"
 
 project "UnnamedEngineRuntimeEditor"
 	kind "StaticLib"
+	removeconfigurations { "Develop", "Release" }
 	CommonProjectSettings("%{prj.name}")
+	PCHSettings()
 	WarningSettings()
 
 	files(RootPathList({
@@ -90,7 +93,9 @@ project "UnnamedEngineRuntimeEditor"
 
 project "UnnamedEditorRuntime"
 	kind "StaticLib"
+	removeconfigurations { "Develop", "Release" }
 	CommonProjectSettings("%{prj.name}")
+	PCHSettings()
 	WarningSettings()
 
 	files(RootPathList({
@@ -124,6 +129,9 @@ project "UnnamedEditorRuntime"
 	filter { "files:**/ImGui/**.cpp or files:**/ImGuizmo/**.cpp" }
 		warnings "Extra"
 		disablewarnings { "4189" }
+	filter { "files:**/thirdparty/ImGui/**.cpp or files:**/thirdparty/ImGuizmo/**.cpp" }
+		enablepch "Off"
+		forceincludes {}
 	filter {}
 
 	defines { "UNNAMED_WITH_EDITOR" }

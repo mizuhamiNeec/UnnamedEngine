@@ -2,6 +2,7 @@
 
 #include "IniParser.h"
 
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -18,7 +19,9 @@ namespace Unnamed {
 	) {
 		std::unordered_map<std::string, std::unordered_map<
 			                   std::string, std::string>> iniData;
-		std::ifstream                                     inputFile(filePath);
+		std::ifstream                                     inputFile(
+			Path::FromUtf8(filePath)
+		);
 		if (!inputFile.is_open()) {
 			Msg(
 				kChannel, "ファイルを開けませんでした: {}", filePath

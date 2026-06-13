@@ -5,6 +5,8 @@
 
 #include "RenderDevice.h"
 
+#include "core/assets/types/TextureAssetData.h"
+
 #include "engine/profiler/Profiler.h"
 #include "engine/rhi/d3d12/D3D12Device.h"
 #include "engine/rhi/d3d12/D3D12Util.h"
@@ -15,17 +17,79 @@
 namespace Unnamed::Render {
 	namespace {
 		constexpr std::string_view kRenderChannel = "Renderer";
+		constexpr uint64_t         kTextureCacheStatsLogIntervalFrames = 120;
+
+		uint32_t CreateSolidColorTexture(
+			RenderDevice& renderDevice,
+			const uint8_t r,
+			const uint8_t g,
+			const uint8_t b,
+			const uint8_t a,
+			const bool    isSrgb,
+			const char*   debugName
+		) {
+			TextureAssetData texture = {};
+			texture.width            = 1;
+			texture.height           = 1;
+			texture.arraySize        = 1;
+			texture.mipLevels        = 1;
+			texture.format           = isSrgb ?
+				                           DXGI_FORMAT_R8G8B8A8_UNORM_SRGB :
+				                           DXGI_FORMAT_R8G8B8A8_UNORM;
+			texture.isSRGB           = isSrgb;
+			texture.dimension        = TEXTURE_DIMENSION::TEXTURE_2D;
+			TextureMip mip           = {};
+			mip.width                = 1;
+			mip.height               = 1;
+			mip.rowPitch             = 4;
+			mip.bytes                = {r, g, b, a};
+			texture.mips.emplace_back(std::move(mip));
+			TextureSubresource subresource = {};
+			subresource.width              = 1;
+			subresource.height             = 1;
+			subresource.rowPitch           = 4;
+			subresource.slicePitch         = 4;
+			subresource.mipLevel           = 0;
+			subresource.arraySlice         = 0;
+			subresource.bytes              = {r, g, b, a};
+			texture.subresources.emplace_back(std::move(subresource));
+			return renderDevice.GetRegistry().CreateTexture2DFromAsset(
+				texture,
+				debugName
+			);
+		}
+	}
+
+	Renderer::~Renderer() = default;
+
+	void Renderer::Shutdown(RenderDevice& renderDevice) {
+		mTextureResourceCache.ReleaseAll();
+		ReleaseMaterialBindings(renderDevice);
+		ReleaseDefaultMaterialTextures(renderDevice);
+		if (mDirectionalShadow.shadowDepthTextureId != 0) {
+			renderDevice.GetRegistry().ReleaseTexture(
+				mDirectionalShadow.shadowDepthTextureId
+			);
+			mDirectionalShadow.shadowDepthTextureId = 0;
+		}
+		if (mSpriteFallbackTextureId != 0) {
+			renderDevice.GetRegistry().ReleaseTexture(mSpriteFallbackTextureId);
+			mSpriteFallbackTextureId = 0;
+		}
+		renderDevice.FlushGpuAndCollectGarbage();
 	}
 
 	void Renderer::RenderFrame(
 		RenderDevice& renderDevice, const RenderFrameInputs& inputs
 	) {
-		Profiler*                   profiler = ServiceLocator::Get<Profiler>();
-		auto&                       rhi = renderDevice.GetRhiDevice();
-		auto&                       dx = static_cast<Rhi::D3D12Device&>(rhi);
-		const auto&                 swapChain = rhi.GetSwapChain();
-		const uint32_t              backBufferWidth = swapChain.GetWidth();
-		const uint32_t              backBufferHeight = swapChain.GetHeight();
+		Profiler*      profiler         = ServiceLocator::Get<Profiler>();
+		auto&          rhi              = renderDevice.GetRhiDevice();
+		auto&          dx               = static_cast<Rhi::D3D12Device&>(rhi);
+		const auto&    swapChain        = rhi.GetSwapChain();
+		const uint32_t backBufferWidth  = swapChain.GetWidth();
+		const uint32_t backBufferHeight = swapChain.GetHeight();
+		mTextureResourceCache.BeginFrame(inputs.frameIndex);
+
 		std::unordered_set<AssetID> dirtyMeshAssets;
 		bool                        materialsDirty = false;
 		bool                        postFxDirty    = false;
@@ -41,16 +105,8 @@ namespace Unnamed::Render {
 			}
 		}
 		if (materialsDirty) {
-			// Hot reload 時は既存マテリアルバインディングを破棄して再構築します。
-			auto& registry = renderDevice.GetRegistry();
-			for (const auto& [materialInstanceId, binding] : mMaterialBindings) {
-				(void)materialInstanceId;
-				if (binding.albedoTextureId != 0) {
-					registry.ReleaseTexture(binding.albedoTextureId);
-				}
-			}
-			mMaterialBindings.clear();
-			mDefaultMaterialInstance = kInvalidAssetID;
+			// Hot reload invalidates material constants, texture SRVs, pipeline handles, and resolved PSO pointers.
+			ReleaseMaterialBindings(renderDevice);
 		}
 		if (postFxDirty) {
 			RebuildPipelineCatalog(renderDevice, dx);
@@ -98,26 +154,32 @@ namespace Unnamed::Render {
 				view.output.height = std::max(1u, view.output.height);
 			}
 
-			std::sort(
-				view.worldBillboards.begin(),
-				view.worldBillboards.end(),
-				[](const WorldBillboardInput& a, const WorldBillboardInput& b) {
-					return a.sortKey < b.sortKey;
-				}
+			std::ranges::sort(view.worldBillboards
+			                  ,
+			                  [](
+			                  const WorldBillboardInput& a,
+			                  const WorldBillboardInput& b
+		                  ) {
+				                  return a.sortKey < b.sortKey;
+			                  }
 			);
-			std::sort(
-				view.worldSprites.begin(),
-				view.worldSprites.end(),
-				[](const WorldSpriteInput& a, const WorldSpriteInput& b) {
-					return a.sortKey < b.sortKey;
-				}
+			std::ranges::sort(view.worldSprites
+			                  ,
+			                  [](
+			                  const WorldSpriteInput& a,
+			                  const WorldSpriteInput& b
+		                  ) {
+				                  return a.sortKey < b.sortKey;
+			                  }
 			);
-			std::sort(
-				view.screenSprites.begin(),
-				view.screenSprites.end(),
-				[](const ScreenSpriteInput& a, const ScreenSpriteInput& b) {
-					return a.sortKey < b.sortKey;
-				}
+			std::ranges::sort(view.screenSprites
+			                  ,
+			                  [](
+			                  const ScreenSpriteInput& a,
+			                  const ScreenSpriteInput& b
+		                  ) {
+				                  return a.sortKey < b.sortKey;
+			                  }
 			);
 
 			if (
@@ -127,11 +189,11 @@ namespace Unnamed::Render {
 				mPresentViewKey = view.viewKey;
 			}
 
-			auto&          state           = mViewStates[view.viewKey];
-			const bool     typeChanged     = state.type != view.type;
-			const uint32_t logicalWidth    = std::max(1u, view.output.width);
-			const uint32_t logicalHeight   = std::max(1u, view.output.height);
-			const bool allowGrowOnlyReuse  =
+			auto&          state = mViewStates[view.viewKey];
+			const bool     typeChanged = state.type != view.type;
+			const uint32_t logicalWidth = std::max(1u, view.output.width);
+			const uint32_t logicalHeight = std::max(1u, view.output.height);
+			const bool     allowGrowOnlyReuse =
 				view.type == RENDER_VIEW_TYPE::SCENE &&
 				view.output.exposeToUi &&
 				!view.output.presentToSwapChain &&
@@ -152,15 +214,16 @@ namespace Unnamed::Render {
 					                                      logicalHeight,
 					                                      std::max(
 						                                      1u,
-						                                      view.sceneViewMode.
+						                                      view.sceneViewMode
+						                                      .
 						                                      allocationHintHeight
 					                                      )
 				                                      ) :
 				                                      logicalHeight;
 
-			state.type         = view.type;
-			state.output       = view.output;
-			state.logicalWidth = logicalWidth;
+			state.type          = view.type;
+			state.output        = view.output;
+			state.logicalWidth  = logicalWidth;
 			state.logicalHeight = logicalHeight;
 
 			uint32_t desiredAllocatedWidth  = logicalWidth;
@@ -272,14 +335,53 @@ namespace Unnamed::Render {
 		if (requiresSpriteTextures) {
 			EnsureSpriteFallbackTexture(renderDevice);
 		}
+		EnsureDefaultMaterialTextures(renderDevice);
 
 		// 今フレームで参照されるマテリアルを遅延登録します。
 		LoadMaterialResources(renderDevice, dx);
+		for (auto& [materialInstanceId, binding] : mMaterialBindings) {
+			(void)materialInstanceId;
+			EnsureMaterialTextureTable(renderDevice, binding);
+		}
 		ResolveRegisteredPipelines(renderDevice);
 
 		rhi.BeginFrame();
 		mAdvancedFoundation.BeginFrame();
+		mTextureResourceCache.CollectGarbage();
 		renderDevice.GetRegistry().CollectGarbage(dx.GetCompletedFenceValue());
+		if (
+			inputs.frameIndex == 0 ||
+			inputs.frameIndex < mLastTextureCacheStatsLogFrame ||
+			(inputs.frameIndex - mLastTextureCacheStatsLogFrame) >=
+			kTextureCacheStatsLogIntervalFrames
+		) {
+			const TextureResourceCacheDebugStats cacheStats =
+				mTextureResourceCache.GetDebugStats();
+			const RgRegistryDebugStats registryStats =
+				renderDevice.GetRegistry().GetDebugStats();
+			DevMsg(
+				kRenderChannel,
+				"TextureCacheStats frame={} live={}, sprite={}, skybox={}, material={}, created={}, ttlReleased={}, versionRecreated={}, releaseAllReleased={}, failedResolve={}, frameTtlReleased={}, registryLiveTex={}, registryRetiredTex={}, registrySrvUavSlots={}, registryRtvSlots={}, registryDsvSlots={}, registryCpuSrvUavSlots={}",
+				inputs.frameIndex,
+				cacheStats.liveEntryCount,
+				cacheStats.spriteEntryCount,
+				cacheStats.skyboxEntryCount,
+				cacheStats.materialEntryCount,
+				cacheStats.createdTextureCount,
+				cacheStats.ttlReleaseCount,
+				cacheStats.versionRecreateCount,
+				cacheStats.releaseAllReleaseCount,
+				cacheStats.failedResolveCount,
+				cacheStats.lastFrameReleasedByTtl,
+				registryStats.activeTextureCount,
+				registryStats.retiredResourceCount,
+				registryStats.srvUavActiveSlots,
+				registryStats.rtvActiveSlots,
+				registryStats.dsvActiveSlots,
+				registryStats.cpuSrvUavActiveSlots
+			);
+			mLastTextureCacheStatsLogFrame = inputs.frameIndex;
+		}
 
 		{
 			Profiler::ScopeTimer scope(profiler, "Render.BuildGraph");
@@ -332,7 +434,7 @@ namespace Unnamed::Render {
 
 		const auto& registry =
 			const_cast<RenderDevice&>(renderDevice).GetRegistry();
-		view.srvCpu      = registry.GetSrvCpu(view.textureId);
+		view.srvCpu = registry.GetSrvCpu(view.textureId);
 		view.srvRevision = registry.GetSrvRevision(view.textureId);
 		view.uvMin = Vec2(0.0f, 0.0f);
 		const float safeAllocatedWidth = static_cast<float>(std::max(
@@ -344,13 +446,13 @@ namespace Unnamed::Render {
 		view.uvMax = Vec2(
 			std::clamp(
 				static_cast<float>(std::max(1u, it->second.logicalWidth)) /
-					safeAllocatedWidth,
+				safeAllocatedWidth,
 				0.0f,
 				1.0f
 			),
 			std::clamp(
 				static_cast<float>(std::max(1u, it->second.logicalHeight)) /
-					safeAllocatedHeight,
+				safeAllocatedHeight,
 				0.0f,
 				1.0f
 			)
@@ -363,10 +465,10 @@ namespace Unnamed::Render {
 		if (it == mViewStates.end()) {
 			return Vec2::zero;
 		}
-		return Vec2(
+		return Vec2{
 			static_cast<float>(std::max(1u, it->second.logicalWidth)),
 			static_cast<float>(std::max(1u, it->second.logicalHeight))
-		);
+		};
 	}
 
 	std::pair<uint32_t, uint32_t> Renderer::ResolveSceneRenderExtent(
@@ -443,42 +545,172 @@ namespace Unnamed::Render {
 		return {width, height};
 	}
 
+	void Renderer::ReleaseMaterialBindings(RenderDevice& renderDevice) {
+		auto& registry = renderDevice.GetRegistry();
+		if (!mMaterialBindings.empty()) {
+			DevMsg(
+				kRenderChannel,
+				"Releasing {} material bindings and invalidating material geometry pipeline variants.",
+				mMaterialBindings.size()
+			);
+		}
+		for (auto& [materialInstanceId, binding] : mMaterialBindings) {
+			(void)materialInstanceId;
+			registry.ReleaseSrvDescriptorTable(binding.materialTextureTable);
+		}
+		mMaterialBindings.clear();
+		mDefaultMaterialInstance = kInvalidAssetID;
+	}
+
+	void Renderer::EnsureDefaultMaterialTextures(RenderDevice& renderDevice) {
+		// Material fallback textures are renderer-owned and shared by all
+		// MaterialBinding instances until Shutdown.
+		if (mDefaultMaterialTextures.baseColorTextureId == 0) {
+			mDefaultMaterialTextures.baseColorTextureId =
+				CreateSolidColorTexture(
+					renderDevice, 255, 255, 255, 255, true,
+					"MaterialDefaultBaseColorWhite"
+				);
+		}
+		if (mDefaultMaterialTextures.normalTextureId == 0) {
+			mDefaultMaterialTextures.normalTextureId =
+				CreateSolidColorTexture(
+					renderDevice, 128, 128, 255, 255, false,
+					"MaterialDefaultNormalFlat"
+				);
+		}
+		if (mDefaultMaterialTextures.ormTextureId == 0) {
+			// ORM convention: R=AO, G=Perceptual Roughness, B=Metallic.
+			mDefaultMaterialTextures.ormTextureId =
+				CreateSolidColorTexture(
+					renderDevice, 255, 255, 255, 255, false,
+					"MaterialDefaultOrm"
+				);
+		}
+		if (mDefaultMaterialTextures.emissiveTextureId == 0) {
+			mDefaultMaterialTextures.emissiveTextureId =
+				CreateSolidColorTexture(
+					renderDevice, 255, 255, 255, 255, true,
+					"MaterialDefaultEmissiveWhite"
+				);
+		}
+	}
+
+	void Renderer::ReleaseDefaultMaterialTextures(RenderDevice& renderDevice) {
+		auto releaseTexture = [&](uint32_t& textureId) {
+			if (textureId == 0) {
+				return;
+			}
+			renderDevice.GetRegistry().ReleaseTexture(textureId);
+			textureId = 0;
+		};
+
+		releaseTexture(mDefaultMaterialTextures.baseColorTextureId);
+		releaseTexture(mDefaultMaterialTextures.normalTextureId);
+		releaseTexture(mDefaultMaterialTextures.ormTextureId);
+		releaseTexture(mDefaultMaterialTextures.emissiveTextureId);
+	}
+
+	void Renderer::EnsureMaterialTextureTable(
+		RenderDevice& renderDevice, MaterialBinding& binding
+	) const {
+		auto& registry = renderDevice.GetRegistry();
+
+		std::array<uint32_t, 4> textureIds = {
+			binding.textures.baseColorTextureId != 0 ?
+				binding.textures.baseColorTextureId :
+				mDefaultMaterialTextures.baseColorTextureId,
+			binding.textures.normalTextureId != 0 ?
+				binding.textures.normalTextureId :
+				mDefaultMaterialTextures.normalTextureId,
+			binding.textures.ormTextureId != 0 ?
+				binding.textures.ormTextureId :
+				mDefaultMaterialTextures.ormTextureId,
+			binding.textures.emissiveTextureId != 0 ?
+				binding.textures.emissiveTextureId :
+				mDefaultMaterialTextures.emissiveTextureId,
+		};
+
+		std::array<uint64_t, 4> revisions = {};
+		for (size_t i = 0; i < textureIds.size(); ++i) {
+			revisions[i] = registry.GetSrvRevision(textureIds[i]);
+		}
+
+		const bool needsCreate = !binding.materialTextureTable.IsValid();
+		const bool needsUpdate =
+			needsCreate ||
+			binding.materialTextureSrvRevisions != revisions;
+		if (!needsUpdate) {
+			return;
+		}
+
+		if (needsCreate) {
+			binding.materialTextureTable =
+				registry.CreateSrvDescriptorTable(
+					textureIds,
+					"MaterialTextureTable"
+				);
+		} else {
+			registry.UpdateSrvDescriptorTable(
+				binding.materialTextureTable,
+				textureIds,
+				"MaterialTextureTable"
+			);
+		}
+		binding.materialTextureSrvRevisions = revisions;
+	}
+
 	void Renderer::ResolveRegisteredPipelines(RenderDevice& renderDevice) {
 		mPipelineRegistry.ResolveAll(renderDevice);
 
-		mFullscreenPass.resolved      = mPipelineRegistry.GetGraphics(
+		mFullscreenPass.resolved = mPipelineRegistry.GetGraphics(
 			mFullscreenPass.pipeline
 		);
-		mHdrCopyPass.resolved         = mPipelineRegistry.GetGraphics(
+		mHdrCopyPass.resolved = mPipelineRegistry.GetGraphics(
 			mHdrCopyPass.pipeline
 		);
-		mToneMapPass.resolved         = mPipelineRegistry.GetGraphics(
+		mToneMapPass.resolved = mPipelineRegistry.GetGraphics(
 			mToneMapPass.pipeline
 		);
 		mBloomDownsamplePass.resolved = mPipelineRegistry.GetGraphics(
 			mBloomDownsamplePass.pipeline
 		);
-		mBloomUpsamplePass.resolved   = mPipelineRegistry.GetGraphics(
+		mBloomUpsamplePass.resolved = mPipelineRegistry.GetGraphics(
 			mBloomUpsamplePass.pipeline
 		);
-		mBloomCombinePass.resolved    = mPipelineRegistry.GetGraphics(
+		mBloomCombinePass.resolved = mPipelineRegistry.GetGraphics(
 			mBloomCombinePass.pipeline
 		);
-		mDepthVisPass.resolved        = mPipelineRegistry.GetGraphics(
+		mDepthVisPass.resolved = mPipelineRegistry.GetGraphics(
 			mDepthVisPass.pipeline
 		);
-		mComputePass.resolved         = mPipelineRegistry.GetCompute(
+		mComputePass.resolved = mPipelineRegistry.GetCompute(
 			mComputePass.pipeline
 		);
 
-		mGeometryPass.resolved        = mPipelineRegistry.GetGraphics(
+		mGeometryPass.resolved = mPipelineRegistry.GetGraphics(
 			mGeometryPass.pipeline
+		);
+		mShadowDepthPass.resolved = mPipelineRegistry.GetGraphics(
+			mShadowDepthPass.pipeline
+		);
+		mShadowDepthFrontCullPass.resolved = mPipelineRegistry.GetGraphics(
+			mShadowDepthFrontCullPass.pipeline
+		);
+		mShadowDepthDoubleSidedPass.resolved = mPipelineRegistry.GetGraphics(
+			mShadowDepthDoubleSidedPass.pipeline
 		);
 		mSkyboxPass.geom.resolved = mPipelineRegistry.GetGraphics(
 			mSkyboxPass.geom.pipeline
 		);
 		mSpritePass.geom.resolved = mPipelineRegistry.GetGraphics(
 			mSpritePass.geom.pipeline
+		);
+		mSpritePass.geomLinearClamp.resolved = mPipelineRegistry.GetGraphics(
+			mSpritePass.geomLinearClamp.pipeline
+		);
+		mSpritePass.geomPointClamp.resolved = mPipelineRegistry.GetGraphics(
+			mSpritePass.geomPointClamp.pipeline
 		);
 		mBillboardPass.depthGeom.resolved = mPipelineRegistry.GetGraphics(
 			mBillboardPass.depthGeom.pipeline
@@ -487,6 +719,24 @@ namespace Unnamed::Render {
 			mBillboardPass.frontGeom.pipeline
 		);
 		mLinePass.resolved = mPipelineRegistry.GetGraphics(mLinePass.pipeline);
+
+		for (auto& [materialInstanceId, binding] : mMaterialBindings) {
+			binding.resolvedGeometryPipeline = mPipelineRegistry.GetGraphics(
+				binding.geometryPipeline
+			);
+			if (
+				(!binding.resolvedGeometryPipeline ||
+				 !binding.resolvedGeometryPipeline->pso) &&
+				!binding.pipelineResolveWarningEmitted
+			) {
+				Warning(
+					kRenderChannel,
+					"Failed to resolve geometry pipeline for material instance {}. Falling back to default geometry pipeline.",
+					materialInstanceId
+				);
+				binding.pipelineResolveWarningEmitted = true;
+			}
+		}
 
 		for (auto& pass : mPostFxPasses) {
 			pass.pass.resolved = mPipelineRegistry.GetGraphics(
@@ -511,7 +761,7 @@ namespace Unnamed::Render {
 		);
 	}
 
-	void Renderer::InitializeDebugLineResources(Rhi::D3D12Device& dx) {
+	void Renderer::InitializeDebugLineResources(const Rhi::D3D12Device& dx) {
 		mLinePass.vertexCapacity   = kMaxDebugLines * 2;
 		mLinePass.frameVertexCount = 0;
 		mLinePass.mappedVertices   = nullptr;
@@ -547,7 +797,7 @@ namespace Unnamed::Render {
 		);
 
 		void*                 mapped    = nullptr;
-		constexpr D3D12_RANGE readRange = {0, 0};
+		constexpr D3D12_RANGE readRange = {.Begin = 0, .End = 0};
 		Rhi::Throw(mLinePass.dynamicVb->Map(0, &readRange, &mapped));
 		mLinePass.mappedVertices = static_cast<DebugLineVertex*>(mapped);
 

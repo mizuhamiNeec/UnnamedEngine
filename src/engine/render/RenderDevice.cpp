@@ -130,6 +130,12 @@ namespace Unnamed::Render {
 		return mRegistry;
 	}
 
+	void RenderDevice::FlushGpuAndCollectGarbage() {
+		auto& dx = dynamic_cast<Rhi::D3D12Device&>(mRhiDevice);
+		dx.WaitForGpuIdle();
+		mRegistry.CollectGarbage(dx.GetCompletedFenceValue());
+	}
+
 	void RenderDevice::HookHotReload() {
 		mAssetManager.RegisterReload(
 			[this](AssetID id) {

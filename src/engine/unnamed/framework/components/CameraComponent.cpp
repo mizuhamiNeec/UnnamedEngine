@@ -4,6 +4,8 @@
 
 #include <imgui.h>
 
+#include <engine/ImGui/Icons.h>
+
 #include "TransformComponent.h"
 
 #include "core/ComponentRegistry.h"
@@ -56,7 +58,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef UNNAMED_WITH_EDITOR
+#ifdef _DEBUG
 	void CameraComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Camera Active", &mCameraActive);
 		ImGui::DragFloat("FovYDegrees", &mFovYDegrees, 0.1f, 1.0f, 179.0f);
@@ -109,7 +111,7 @@ namespace Unnamed {
 		outCamera.exposureEv = mExposureEv;
 		outCamera.nearZ      = mNearZ;
 		outCamera.farZ       = mFarZ;
-		outCamera.depthMode  = Render::PROJECTION_DEPTH_MODE::ReverseZ;
+		outCamera.depthMode  = Render::PROJECTION_DEPTH_MODE::REVERSE_Z;
 		outCamera.valid      = true;
 		return true;
 	}

@@ -32,6 +32,8 @@ namespace Unnamed::Rhi {
 		void BeginFrame() override;
 		void EndFrame() override;
 		void OnResize(uint32_t width, uint32_t height) override;
+		/// @brief GPU が投入済みコマンドを完了するまで待機します。
+		void WaitForGpuIdle();
 
 		[[nodiscard]] BACKEND_TYPE GetBackendType() const override;
 		IRhiSwapChain&             GetSwapChain() override;
@@ -66,6 +68,10 @@ namespace Unnamed::Rhi {
 		[[nodiscard]] ID3D12RootSignature* GetCsRootSignature() const;
 		[[nodiscard]] ID3D12RootSignature* GetFsRootSignature() const;
 		[[nodiscard]] ID3D12RootSignature* GetGeomRootSignature() const;
+		[[nodiscard]] ID3D12RootSignature* GetGeomRootSignatureLinearClamp()
+			const;
+		[[nodiscard]] ID3D12RootSignature* GetGeomRootSignaturePointClamp()
+			const;
 
 		[[nodiscard]] ID3D12Device* GetDevice() const;
 		DxcShaderCompiler&          GetDxcCompiler();
@@ -123,7 +129,6 @@ namespace Unnamed::Rhi {
 		void        CreateFenceObjects();
 		void        WaitForFrame(uint32_t frameIndex) const;
 		void        SignalFrame(uint32_t frameIndex);
-		void        WaitForGpuIdle();
 
 	public:
 		[[nodiscard]] uint64_t GetCompletedFenceValue() const;
@@ -196,5 +201,7 @@ namespace Unnamed::Rhi {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mCsRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mFsRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mGeomRootSignature;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mGeomRootSignatureLinearClamp;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature> mGeomRootSignaturePointClamp;
 	};
 }

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <array>
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -522,7 +522,7 @@ namespace Unnamed {
 		const float
 	) {}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void GameMovementComponent::DrawInspectorImGui() {
 		BaseCharacterComponent::DrawInspectorImGui();
 
@@ -1012,7 +1012,7 @@ namespace Unnamed {
 		}
 		world->GetGameplayCueBus().Publish(cue);
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		mDebugLastPublishedCueId     = cue.id;
 		mDebugLastPublishedCueValue  = cue.value;
 		mDebugLastPublishedCueValue2 = cue.value2;

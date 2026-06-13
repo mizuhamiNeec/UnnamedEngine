@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -22,6 +23,64 @@
 
 namespace Unnamed::Render {
 	namespace {
+		float ToMaterialShadingModelValue(
+			const MATERIAL_SHADING_MODEL shadingModel
+		) {
+			switch (shadingModel) {
+				case MATERIAL_SHADING_MODEL::TOON: return 1.0f;
+				case MATERIAL_SHADING_MODEL::UNLIT: return 2.0f;
+				case MATERIAL_SHADING_MODEL::LIT_PBR:
+				default: return 0.0f;
+			}
+		}
+
+		std::string ResolveMaterialTextureOverridePath(
+			const MaterialInstanceAssetData& matInst,
+			const MATERIAL_TEXTURE_SLOT      slot
+		) {
+			auto findOverride = [&matInst](const char* key) -> std::string {
+				if (const auto it = matInst.textureOverrides.find(key);
+					it != matInst.textureOverrides.end()) {
+					return it->second;
+				}
+				return {};
+			};
+
+			switch (slot) {
+				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: if (std::string path =
+							findOverride("BaseColor");
+						!path.empty()) {
+						return path;
+					}
+					return findOverride("MainTex");
+				case MATERIAL_TEXTURE_SLOT::NORMAL: return findOverride(
+						"Normal");
+				case MATERIAL_TEXTURE_SLOT::ORM: return findOverride("ORM");
+				case MATERIAL_TEXTURE_SLOT::EMISSIVE: return findOverride(
+						"Emissive");
+				case MATERIAL_TEXTURE_SLOT::COUNT:
+				default: return {};
+			}
+		}
+
+		uint32_t GetFallbackTextureId(
+			const MaterialTextureSet&   defaultTextures,
+			const MATERIAL_TEXTURE_SLOT slot
+		) {
+			switch (slot) {
+				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: return defaultTextures.
+						baseColorTextureId;
+				case MATERIAL_TEXTURE_SLOT::NORMAL: return defaultTextures.
+						normalTextureId;
+				case MATERIAL_TEXTURE_SLOT::ORM: return defaultTextures.
+						ormTextureId;
+				case MATERIAL_TEXTURE_SLOT::EMISSIVE: return defaultTextures.
+						emissiveTextureId;
+				case MATERIAL_TEXTURE_SLOT::COUNT:
+				default: return 0;
+			}
+		}
+
 		void CreateDefaultBufferWithUpload(
 			ID3D12Device*                           device,
 			ID3D12GraphicsCommandList*              cmdList,
@@ -75,7 +134,7 @@ namespace Unnamed::Render {
 				);
 
 				void*                 mapped = nullptr;
-				constexpr D3D12_RANGE range  = {0, 0};
+				constexpr D3D12_RANGE range  = {.Begin = 0, .End = 0};
 				Rhi::Throw(outUpload->Map(0, &range, &mapped));
 				memcpy(mapped, srcData, byteSize);
 				outUpload->Unmap(0, nullptr);
@@ -99,6 +158,7 @@ namespace Unnamed::Render {
 			float px,  py, pz;
 			float nx,  ny, nz;
 			float u,   v;
+			float tx,  ty,  tz,  tw;
 			float bi0, bi1, bi2, bi3;
 			float bw0, bw1, bw2, bw3;
 		};
@@ -125,9 +185,27 @@ namespace Unnamed::Render {
 		auto* cmdList = up.GetCommandList();
 
 		constexpr VertexGeom verts[3] = {
-			{-0.5f, -0.5f, 0.0f, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0},
-			{0.0f, 0.5f, 0.0f, 0, 0, 1, 0.5f, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-			{0.5f, -0.5f, 0.0f, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0},
+			{
+				.px  = -0.5f, .py = -0.5f, .pz = 0.0f,
+				.nx  = 0, .ny     = 0, .nz     = 1,
+				.u   = 0, .v      = 1,
+				.bi0 = 0, .bi1    = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1    = 0, .bw2 = 0, .bw3 = 0
+			},
+			{
+				.px  = 0.0f, .py = 0.5f, .pz = 0.0f,
+				.nx  = 0, .ny    = 0, .nz    = 1,
+				.u   = 0.5f, .v  = 0,
+				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+			},
+			{
+				.px  = 0.5f, .py = -0.5f, .pz = 0.0f,
+				.nx  = 0, .ny    = 0, .nz     = 1,
+				.u   = 1, .v     = 1,
+				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+			},
 		};
 		constexpr uint16_t indices[3] = {0, 1, 2};
 
@@ -182,10 +260,10 @@ namespace Unnamed::Render {
 		auto* cmdList = up.GetCommandList();
 
 		constexpr QuadVertex verts[4] = {
-			{-1.0f, -1.0f, 0.0f, 0.0f, 1.0f},
-			{-1.0f, 1.0f, 0.0f, 0.0f, 0.0f},
-			{1.0f, 1.0f, 0.0f, 1.0f, 0.0f},
-			{1.0f, -1.0f, 0.0f, 1.0f, 1.0f},
+			{.px = -1.0f, .py = -1.0f, .pz = 0.0f, .u = 0.0f, .v = 1.0f},
+			{.px = -1.0f, .py = 1.0f, .pz = 0.0f, .u = 0.0f, .v = 0.0f},
+			{.px = 1.0f, .py = 1.0f, .pz = 0.0f, .u = 1.0f, .v = 0.0f},
+			{.px = 1.0f, .py = -1.0f, .pz = 0.0f, .u = 1.0f, .v = 1.0f},
 		};
 		constexpr uint16_t indices[6] = {0, 1, 2, 0, 2, 3};
 
@@ -237,14 +315,62 @@ namespace Unnamed::Render {
 		auto* cmdList = up.GetCommandList();
 
 		constexpr VertexGeom verts[8] = {
-			{-1.0f, -1.0f, -1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-			{1.0f, -1.0f, -1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-			{1.0f, 1.0f, -1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-			{-1.0f, 1.0f, -1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-			{-1.0f, -1.0f, 1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-			{1.0f, -1.0f, 1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-			{1.0f, 1.0f, 1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-			{-1.0f, 1.0f, 1.0f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
+			{
+				.px  = -1.0f, .py = -1.0f, .pz = -1.0f,
+				.nx  = 0, .ny     = 0, .nz     = 0,
+				.u   = 0, .v      = 0,
+				.bi0 = 0, .bi1    = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1    = 0, .bw2 = 0, .bw3 = 0
+			},
+			{
+				.px  = 1.0f, .py = -1.0f, .pz = -1.0f,
+				.nx  = 0, .ny    = 0, .nz     = 0,
+				.u   = 0, .v     = 0,
+				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+			},
+			{
+				.px  = 1.0f, .py = 1.0f, .pz = -1.0f,
+				.nx  = 0, .ny    = 0, .nz    = 0,
+				.u   = 0, .v     = 0,
+				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+			},
+			{
+				.px  = -1.0f, .py = 1.0f, .pz = -1.0f,
+				.nx  = 0, .ny     = 0, .nz    = 0,
+				.u   = 0, .v      = 0,
+				.bi0 = 0, .bi1    = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1    = 0, .bw2 = 0, .bw3 = 0
+			},
+			{
+				.px  = -1.0f, .py = -1.0f, .pz = 1.0f,
+				.nx  = 0, .ny     = 0, .nz     = 0,
+				.u   = 0, .v      = 0,
+				.bi0 = 0, .bi1    = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1    = 0, .bw2 = 0, .bw3 = 0
+			},
+			{
+				.px  = 1.0f, .py = -1.0f, .pz = 1.0f,
+				.nx  = 0, .ny    = 0, .nz     = 0,
+				.u   = 0, .v     = 0,
+				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+			},
+			{
+				.px  = 1.0f, .py = 1.0f, .pz = 1.0f,
+				.nx  = 0, .ny    = 0, .nz    = 0,
+				.u   = 0, .v     = 0,
+				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+			},
+			{
+				.px  = -1.0f, .py = 1.0f, .pz = 1.0f,
+				.nx  = 0, .ny     = 0, .nz    = 0,
+				.u   = 0, .v      = 0,
+				.bi0 = 0, .bi1    = 0, .bi2 = 0, .bi3 = 0,
+				.bw0 = 1, .bw1    = 0, .bw2 = 0, .bw3 = 0
+			},
 		};
 		constexpr uint16_t indices[36] = {
 			0, 1, 2, 0, 2, 3,
@@ -290,7 +416,7 @@ namespace Unnamed::Render {
 		mSkyboxPass.geom.ibv.SizeInBytes = sizeof(indices);
 		mSkyboxPass.geom.ibv.Format      = DXGI_FORMAT_R16_UINT;
 		mSkyboxPass.geom.indexCount      = 36;
-		mSkyboxPass.geom.localAABB = MakeAabbFromPositions(
+		mSkyboxPass.geom.localAABB       = MakeAabbFromPositions(
 			std::vector<VertexGeom>(std::begin(verts), std::end(verts))
 		);
 
@@ -329,14 +455,16 @@ namespace Unnamed::Render {
 			const float w3 = weightSum > 0.0f ? v.boneWeights[3] : 0.0f;
 			vertices.emplace_back(
 				VertexGeom{
-					v.position.x, v.position.y, v.position.z,
-					v.normal.x, v.normal.y, v.normal.z,
-					v.uv.x, v.uv.y,
-					static_cast<float>(v.boneIndices[0]),
-					static_cast<float>(v.boneIndices[1]),
-					static_cast<float>(v.boneIndices[2]),
-					static_cast<float>(v.boneIndices[3]),
-					w0, w1, w2, w3
+					.px  = v.position.x, .py = v.position.y, .pz = v.position.z,
+					.nx  = v.normal.x, .ny   = v.normal.y, .nz   = v.normal.z,
+					.u   = v.uv.x, .v        = v.uv.y,
+					.tx  = v.tangent.x, .ty  = v.tangent.y,
+					.tz  = v.tangent.z, .tw  = v.tangent.w,
+					.bi0 = static_cast<float>(v.boneIndices[0]),
+					.bi1 = static_cast<float>(v.boneIndices[1]),
+					.bi2 = static_cast<float>(v.boneIndices[2]),
+					.bi3 = static_cast<float>(v.boneIndices[3]),
+					.bw0 = w0, .bw1 = w1, .bw2 = w2, .bw3 = w3
 				}
 			);
 		}
@@ -419,15 +547,19 @@ namespace Unnamed::Render {
 				}
 
 				MeshSubMeshRange range = {};
-				range.indexStart = submesh.indexStart;
-				range.indexCount = submesh.indexCount;
-				range.materialIndex = submesh.materialIndex;
+				range.indexStart       = submesh.indexStart;
+				range.indexCount       = submesh.indexCount;
+				range.materialIndex    = submesh.materialIndex;
 				meshBuffer.submeshes.emplace_back(range);
 			}
 		}
 		if (meshBuffer.submeshes.empty() && meshBuffer.indexCount > 0) {
 			meshBuffer.submeshes.emplace_back(
-				MeshSubMeshRange{0, meshBuffer.indexCount, 0}
+				MeshSubMeshRange{
+					.indexStart    = 0,
+					.indexCount    = meshBuffer.indexCount,
+					.materialIndex = 0
+				}
 			);
 		}
 		meshBuffer.localAABB.min = meshAsset->localBoundsMin;
@@ -459,18 +591,16 @@ namespace Unnamed::Render {
 		mLoadedMeshAsset = kInvalidAssetID;
 	}
 
+	constexpr std::string_view kDefaultMaterialInstance =
+		"./content/core/materials/instances/dev_default.matinst.json";
+
 	void Renderer::LoadMaterialResources(
-		RenderDevice& renderDevice, Rhi::D3D12Device&
-
-
-	
+		RenderDevice& renderDevice, Rhi::D3D12Device& dx
 	) {
-		auto& assetManager = renderDevice.GetAssetManager();
-		auto& registry     = renderDevice.GetRegistry();
+		auto&                assetManager = renderDevice.GetAssetManager();
 		std::vector<AssetID> requestedMaterialInstances = {};
+		EnsureDefaultMaterialTextures(renderDevice);
 
-		constexpr std::string_view kDefaultMaterialInstance =
-			"./content/core/materials/instances/dev_default.matinst.json";
 		const AssetID materialInstanceId = assetManager.LoadFromFile(
 			std::string(kDefaultMaterialInstance), ASSET_TYPE::MATERIAL_INSTANCE
 		);
@@ -491,7 +621,8 @@ namespace Unnamed::Render {
 						object.materialInstanceId
 					);
 				}
-				for (const AssetID slotMaterialId : object.materialInstanceIdsBySlot
+				for (const AssetID slotMaterialId : object.
+				     materialInstanceIdsBySlot
 				) {
 					if (slotMaterialId != kInvalidAssetID) {
 						requestedMaterialInstances.emplace_back(slotMaterialId);
@@ -503,19 +634,17 @@ namespace Unnamed::Render {
 		if (requestedMaterialInstances.empty()) {
 			return;
 		}
-		std::sort(
-			requestedMaterialInstances.begin(),
-			requestedMaterialInstances.end()
+		std::ranges::sort(requestedMaterialInstances
 		);
 		requestedMaterialInstances.erase(
-			std::unique(
-				requestedMaterialInstances.begin(),
-				requestedMaterialInstances.end()
-			),
+			std::ranges::unique(
+				requestedMaterialInstances
+			).begin(),
 			requestedMaterialInstances.end()
 		);
 
-		for (const AssetID requestedMaterialInstanceId : requestedMaterialInstances
+		for (const AssetID requestedMaterialInstanceId :
+		     requestedMaterialInstances
 		) {
 			if (requestedMaterialInstanceId == kInvalidAssetID) {
 				continue;
@@ -540,6 +669,82 @@ namespace Unnamed::Render {
 
 			MaterialBinding binding    = {};
 			binding.materialInstanceId = requestedMaterialInstanceId;
+			binding.shaderProgramId    = mat->shaderProgramId;
+			binding.renderState        = mat->renderState;
+
+			// Material pipeline warnings are emitted when the binding is created, so they do not repeat every frame.
+			if (binding.shaderProgramId == kInvalidAssetID) {
+				Warning(
+					"Renderer",
+					"Material instance {} has invalid shaderProgramId. Falling back to default geometry shader.",
+					requestedMaterialInstanceId
+				);
+				binding.shaderProgramId = mGeometryShaderProgramId;
+			}
+
+			if (binding.renderState.blendEnable) {
+				Warning(
+					"Renderer",
+					"Material instance {} has blendEnable=true, but transparent geometry is not implemented. Using opaque geometry fallback.",
+					requestedMaterialInstanceId
+				);
+				binding.renderState.blendEnable = false;
+			}
+
+			if (
+				binding.shaderProgramId != kInvalidAssetID &&
+				binding.shaderProgramId != mGeometryShaderProgramId
+			) {
+				DevMsg(
+					"Renderer",
+					"Material instance {} uses custom geometry shader {}. Assuming GeomRootSignature compatibility including MaterialTextures(t0..t3), ShadowConstants(b4), ShadowMap(t4), and EnvironmentLighting(b5); shader reflection is not available.",
+					requestedMaterialInstanceId,
+					binding.shaderProgramId
+				);
+			}
+
+			if (
+				binding.shaderProgramId != kInvalidAssetID &&
+				mGeometryVertexLayout.stride != 0
+			) {
+				// See Renderer::MaterialBinding for the current Geometry material shader contract.
+				GraphicsPipelineSpec spec =
+					RendererPipelineCatalog::MakeGeometryPreset(
+						"MaterialGeometry_" +
+						std::to_string(requestedMaterialInstanceId),
+						binding.shaderProgramId,
+						dx.GetGeomRootSignature(),
+						kSceneHdrColorFormat,
+						DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
+						mGeometryVertexLayout
+					);
+				spec.psoTemplate.depthEnable =
+					binding.renderState.depthEnable;
+				spec.psoTemplate.depthWriteEnable =
+					binding.renderState.depthWrite;
+				spec.psoTemplate.cullMode =
+					binding.renderState.cullBackFace ?
+						D3D12_CULL_MODE_BACK :
+						D3D12_CULL_MODE_NONE;
+				spec.psoTemplate.blendEnable   = false;
+				spec.psoTemplate.stencilEnable =
+					binding.renderState.stencilEnable;
+				spec.psoTemplate.stencilReadMask =
+					binding.renderState.stencilReadMask;
+				spec.psoTemplate.stencilWriteMask =
+					binding.renderState.stencilWriteMask;
+				binding.geometryPipeline = mPipelineRegistry.RegisterGraphics(
+					spec
+				);
+			} else {
+				Warning(
+					"Renderer",
+					"Material instance {} could not register a geometry pipeline variant. Falling back to default geometry pipeline.",
+					requestedMaterialInstanceId
+				);
+				binding.geometryPipeline              = mGeometryPass.pipeline;
+				binding.pipelineResolveWarningEmitted = true;
+			}
 
 			if (const auto it = mat->vectorParams.find("BaseColor");
 				it != mat->vectorParams.end()) {
@@ -561,9 +766,11 @@ namespace Unnamed::Render {
 				it != mat->scalarParams.end()) {
 				binding.constants.opacity = it->second;
 			}
-			binding.constants.domainMode = mat->domain == MATERIAL_DOMAIN::UNLIT ?
-				                               0.0f :
-				                               1.0f;
+			binding.constants.shadingModel = ToMaterialShadingModelValue(
+				mat->shadingModel
+			);
+			binding.constants.domainMode =
+				binding.constants.shadingModel > 1.5f ? 0.0f : 1.0f;
 
 			if (const auto it = matInst->vectorOverrides.find("BaseColor");
 				it != matInst->vectorOverrides.end()) {
@@ -586,44 +793,61 @@ namespace Unnamed::Render {
 				binding.constants.opacity = it->second;
 			}
 
-			std::string baseColorPath;
-			if (const auto it = matInst->textureOverrides.find("BaseColor");
-				it != matInst->textureOverrides.end()) {
-				baseColorPath = it->second;
-			}
-			if (baseColorPath.empty()) {
-				if (const auto it = matInst->textureOverrides.find("MainTex");
-					it != matInst->textureOverrides.end()) {
-					baseColorPath = it->second;
-				}
-			}
-
-			if (!baseColorPath.empty()) {
-				const AssetID texId = assetManager.LoadFromFile(
-					baseColorPath, ASSET_TYPE::TEXTURE
+			auto resolveTexture = [&](const MATERIAL_TEXTURE_SLOT slot) {
+				const std::string path = ResolveMaterialTextureOverridePath(
+					*matInst, slot
 				);
-				const auto* tex = assetManager.Get<TextureAssetData>(texId);
-				if (tex) {
-					binding.albedoTextureId = registry.CreateTexture2DFromAsset(
-						*tex, "MatBaseColor"
+				if (path.empty()) {
+					return GetFallbackTextureId(
+						mDefaultMaterialTextures, slot
 					);
 				}
-			}
-			if (binding.albedoTextureId == 0) {
-				TextureAssetData white = {};
-				white.width            = 1;
-				white.height           = 1;
-				white.isSRGB           = true;
-				TextureMip mip         = {};
-				mip.width              = 1;
-				mip.height             = 1;
-				mip.rowPitch           = 4;
-				mip.bytes              = {255, 255, 255, 255};
-				white.mips.emplace_back(std::move(mip));
-				binding.albedoTextureId = registry.CreateTexture2DFromAsset(
-					white, "MatFallbackWhite"
+
+				const AssetID texId = assetManager.LoadFromFile(
+					path, ASSET_TYPE::TEXTURE
 				);
-			}
+				if (slot == MATERIAL_TEXTURE_SLOT::NORMAL) {
+					const auto* texture = assetManager.Get<TextureAssetData>(
+						texId
+					);
+					if (texture && texture->isSRGB) {
+						Warning(
+							"Renderer",
+							"Material instance {} uses an sRGB Normal texture '{}'. Tangent-space DirectX normal maps must be linear.",
+							requestedMaterialInstanceId,
+							path
+						);
+					}
+				}
+				if (slot == MATERIAL_TEXTURE_SLOT::ORM) {
+					const auto* texture = assetManager.Get<TextureAssetData>(
+						texId
+					);
+					if (texture && texture->isSRGB) {
+						Warning(
+							"Renderer",
+							"Material instance {} uses an sRGB ORM texture '{}'. ORM must be linear: R=AO, G=Perceptual Roughness, B=Metallic.",
+							requestedMaterialInstanceId,
+							path
+						);
+					}
+				}
+				const uint32_t textureId =
+					mTextureResourceCache.ResolveTexture2D(texId);
+				if (textureId != 0) {
+					return textureId;
+				}
+				return GetFallbackTextureId(mDefaultMaterialTextures, slot);
+			};
+
+			binding.textures.baseColorTextureId =
+				resolveTexture(MATERIAL_TEXTURE_SLOT::BASE_COLOR);
+			binding.textures.normalTextureId =
+				resolveTexture(MATERIAL_TEXTURE_SLOT::NORMAL);
+			binding.textures.ormTextureId =
+				resolveTexture(MATERIAL_TEXTURE_SLOT::ORM);
+			binding.textures.emissiveTextureId =
+				resolveTexture(MATERIAL_TEXTURE_SLOT::EMISSIVE);
 
 			mMaterialBindings.emplace(
 				requestedMaterialInstanceId,
@@ -632,19 +856,21 @@ namespace Unnamed::Render {
 		}
 	}
 
-	void Renderer::LoadPostFxChain(RenderDevice& renderDevice) {
-		auto& assetManager = renderDevice.GetAssetManager();
-		auto& dx = static_cast<Rhi::D3D12Device&>(renderDevice.GetRhiDevice());
+	constexpr std::string_view kDefaultPostFxChainPath =
+		"./content/core/postfx/default.postfx.json";
 
-		constexpr std::string_view kDefaultPostFxChainPath =
-			"./content/core/postfx/default.postfx.json";
+	void Renderer::LoadPostFxChain(const RenderDevice& renderDevice) {
+		auto&       assetManager = renderDevice.GetAssetManager();
+		const auto& dx           = static_cast<Rhi::D3D12Device&>(renderDevice.
+			GetRhiDevice());
 		if (mPostFxChainAsset == kInvalidAssetID) {
 			mPostFxChainAsset = assetManager.LoadFromFile(
 				std::string(kDefaultPostFxChainPath), ASSET_TYPE::POST_FX_CHAIN
 			);
 		}
 
-		const auto* chain = assetManager.Get<PostFxChainAssetData>(mPostFxChainAsset);
+		const auto* chain = assetManager.Get<PostFxChainAssetData>(
+			mPostFxChainAsset);
 		if (!chain) {
 			mPostFxPasses.clear();
 			return;
@@ -672,7 +898,7 @@ namespace Unnamed::Render {
 			runtimePass.enabled           = passAsset.enabled;
 			runtimePass.scalarDefaults    = passAsset.scalarParams;
 			runtimePass.colorDefaults     = passAsset.colorParams;
-			runtimePass.pass.pipeline = mPipelineRegistry.RegisterGraphics(
+			runtimePass.pass.pipeline     = mPipelineRegistry.RegisterGraphics(
 				RendererPipelineCatalog::MakeFullscreenPreset(
 					"PostFx_" + runtimePass.name,
 					shaderProgramId,
@@ -696,52 +922,72 @@ namespace Unnamed::Render {
 			return mSpriteFallbackTextureId;
 		}
 
-		if (const auto it = mSpriteTextureIds.find(textureAssetId);
-			it != mSpriteTextureIds.end()) {
-			return it->second;
-		}
-
 		const auto& assetManager = renderDevice.GetAssetManager();
-		auto&       registry = renderDevice.GetRegistry();
 		const auto* tex = assetManager.Get<TextureAssetData>(textureAssetId);
 		if (!tex) {
+			Warning(
+				"Renderer",
+				"EnsureSpriteTextureLoaded failed: TextureAssetData not found for assetId={}",
+				textureAssetId
+			);
 			EnsureSpriteFallbackTexture(renderDevice);
 			return mSpriteFallbackTextureId;
 		}
 
-		const uint32_t textureId = registry.CreateTexture2DFromAsset(
-			*tex, "SpriteOverlayTex"
+		static bool sLoggedFontAtlasTexturePath = false;
+		if (
+			!sLoggedFontAtlasTexturePath &&
+			tex->sourcePath.find("runtime://ui/font_atlas_ascii") !=
+			std::string::npos
+		) {
+			const size_t mipCount  = tex->mips.size();
+			const size_t rowPitch0 = mipCount > 0 ? tex->mips[0].rowPitch : 0;
+			const size_t dataSize0 = mipCount > 0 ?
+				                         tex->mips[0].bytes.size() :
+				                         0;
+			DevMsg(
+				"Renderer",
+				"Font atlas texture asset resolved: assetId={}, sourcePath='{}', size={}x{}, format={}, mips={}, rowPitch0={}, dataSize0={}.",
+				textureAssetId,
+				tex->sourcePath,
+				tex->width,
+				tex->height,
+				static_cast<int>(tex->format),
+				mipCount,
+				rowPitch0,
+				dataSize0
+			);
+			sLoggedFontAtlasTexturePath = true;
+		}
+
+		const uint32_t textureId = mTextureResourceCache.ResolveSpriteTexture(
+			textureAssetId
 		);
-		mSpriteTextureIds.emplace(textureAssetId, textureId);
+		if (textureId == 0) {
+			Warning(
+				"Renderer",
+				"EnsureSpriteTextureLoaded failed: TextureResourceCache::ResolveSpriteTexture returned 0 for assetId={}",
+				textureAssetId
+			);
+			EnsureSpriteFallbackTexture(renderDevice);
+			return mSpriteFallbackTextureId;
+		}
 		return textureId;
 	}
 
 	uint32_t Renderer::EnsureSkyboxTextureLoaded(
 		RenderDevice& renderDevice, const AssetID textureAssetId
 	) {
+		(void)renderDevice;
 		if (textureAssetId == kInvalidAssetID) {
 			return 0;
 		}
-		if (const auto it = mSkyboxTextureIds.find(textureAssetId);
-		    it != mSkyboxTextureIds.end()) {
-			return it->second;
-		}
-
-		const auto& assetManager = renderDevice.GetAssetManager();
-		auto&       registry = renderDevice.GetRegistry();
-		const auto* tex = assetManager.Get<TextureAssetData>(textureAssetId);
-		if (!tex || !tex->isCubeMap) {
-			return 0;
-		}
-
-		const uint32_t textureId = registry.CreateTextureFromAsset(
-			*tex, "SkyboxCubeTex"
+		const uint32_t textureId = mTextureResourceCache.ResolveSkyboxTexture(
+			textureAssetId
 		);
 		if (textureId == 0) {
 			return 0;
 		}
-
-		mSkyboxTextureIds.emplace(textureAssetId, textureId);
 		return textureId;
 	}
 

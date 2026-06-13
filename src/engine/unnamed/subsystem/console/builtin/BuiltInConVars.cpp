@@ -57,6 +57,117 @@ namespace Unnamed {
 			"post_bloommipcount", 2, FCVAR::ARCHIVE,
 			"Number of mip levels to use for bloom effect."
 		);
+
+		static ConVar r_ui_text_sampler_mode(
+			"r_ui_text_sampler_mode", 0, FCVAR::ARCHIVE,
+			"UI text sampler mode: 0=default(aniso+wrap), 1=linear+clamp, 2=point+clamp.",
+			true,
+			0,
+			true,
+			2
+		);
+
+		static ConVar r_shadowmap_size(
+			"r_shadowmap_size", 1024, FCVAR::ARCHIVE,
+			"Directional shadow map resolution.",
+			true,
+			256,
+			true,
+			8192
+		);
+
+		static ConVar r_shadowmap_debug(
+			"r_shadowmap_debug", false, FCVAR::ARCHIVE,
+			"Draw the directional shadow map depth texture as a backbuffer overlay."
+		);
+
+		static ConVar r_shadowmap_debug_size(
+			"r_shadowmap_debug_size", 256, FCVAR::ARCHIVE,
+			"Shadow map debug overlay size in pixels.",
+			true,
+			64,
+			true,
+			1024
+		);
+
+		static ConVar r_shadowmap_enabled(
+			"r_shadowmap_enabled", false, FCVAR::ARCHIVE,
+			"Apply the directional shadow map in geometry lighting."
+		);
+
+		static ConVar r_shadowmap_bias(
+			"r_shadowmap_bias", 0.0005f, FCVAR::ARCHIVE,
+			"Directional shadow map depth bias.",
+			true,
+			0.0f,
+			true,
+			0.05f
+		);
+
+		static ConVar r_shadowmap_normal_bias(
+			"r_shadowmap_normal_bias", 0.0f, FCVAR::ARCHIVE,
+			"Directional shadow map normal offset bias in world units.",
+			true,
+			0.0f,
+			true,
+			0.5f
+		);
+
+		static ConVar r_shadowmap_strength(
+			"r_shadowmap_strength", 0.65f, FCVAR::ARCHIVE,
+			"Directional shadow map strength.",
+			true,
+			0.0f,
+			true,
+			1.0f
+		);
+
+		static ConVar r_shadowmap_pcf_enabled(
+			"r_shadowmap_pcf_enabled", true, FCVAR::ARCHIVE,
+			"Enable 3x3 PCF filtering for the directional shadow map."
+		);
+
+		static ConVar r_shadowmap_pcf_radius(
+			"r_shadowmap_pcf_radius", 1.0f, FCVAR::ARCHIVE,
+			"Directional shadow map 3x3 PCF radius in texels.",
+			true,
+			0.0f,
+			true,
+			4.0f
+		);
+
+		static ConVar r_shadowmap_force_cull_none(
+			"r_shadowmap_force_cull_none", false, FCVAR::ARCHIVE,
+			"Force CullNone for directional shadow map casters."
+		);
+
+		static ConVar ui_new_font_size_preset(
+			"ui_new_font_size_preset", 0, FCVAR::ARCHIVE,
+			"New UI font size preset index: 0=16, 1=18, 2=20, 3=24.",
+			true,
+			0,
+			true,
+			3
+		);
+
+		static ConVar ui_new_font_oversample_preset(
+			"ui_new_font_oversample_preset", 1, FCVAR::ARCHIVE,
+			"New UI oversample preset index: 0=1x1, 1=2x2, 2=3x1, 3=3x2.",
+			true,
+			0,
+			true,
+			3
+		);
+
+		static ConVar ui_new_text_force_fallback_texture(
+			"ui_new_text_force_fallback_texture", false, FCVAR::ARCHIVE,
+			"Force NewUI text glyph sprites to use fallback white texture (debug)."
+		);
+
+		static ConVar ui_new_text_debug_mode(
+			"ui_new_text_debug_mode", 0, FCVAR::ARCHIVE,
+			"NewUI text debug mode. 0=normal, 4=force first glyph to red 64x64 rect."
+		);
 	}
 
 	void EditorConVar() {
@@ -443,7 +554,7 @@ namespace Unnamed {
 			"Slide ends when horizontal speed falls below this HU/s."
 		);
 		static ConVar park_slide_hopspeedcap(
-			"park_slide_hopspeedcap", 5000.0f,
+			"park_slide_hopspeedcap", 25000.0f,
 			FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Maximum slide speed cap in HU/s."
 		);
@@ -525,7 +636,7 @@ namespace Unnamed {
 			"Maximum vaultable wall height in HU."
 		);
 		static ConVar park_vault_minspeed(
-			"park_vault_minspeed", 150.0f,
+			"park_vault_minspeed", 32.0f,
 			FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Minimum speed in HU/s to start speed vault."
 		);
@@ -560,7 +671,7 @@ namespace Unnamed {
 			"Speed vault duration in seconds."
 		);
 		static ConVar park_vault_cooldown(
-			"park_vault_cooldown", 0.3f,
+			"park_vault_cooldown", 0.0f,
 			FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Speed vault cooldown in seconds."
 		);
@@ -576,7 +687,7 @@ namespace Unnamed {
 			"Blink cooldown in seconds."
 		);
 		static ConVar park_blink_moveduration(
-			"park_blink_moveduration", 0.08f,
+			"park_blink_moveduration", 0.1f,
 			FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Blink interpolation duration in seconds."
 		);

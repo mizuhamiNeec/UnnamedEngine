@@ -11,12 +11,24 @@ namespace Unnamed::Render {
 	) : mAssetManager(assetManager),
 	    mRhiDevice(rhiDevice) {}
 
+	RenderModule::~RenderModule() {
+		Shutdown();
+	}
+
 	void RenderModule::Init(ConsoleSystem* console) {
 		mRenderDevice = std::make_unique<RenderDevice>(
 			mRhiDevice, mAssetManager
 		);
 		mRenderer = std::make_unique<Renderer>(console);
 		mRenderer->Init(*mRenderDevice);
+	}
+
+	void RenderModule::Shutdown() {
+		if (mRenderer && mRenderDevice) {
+			mRenderer->Shutdown(*mRenderDevice);
+		}
+		mRenderer.reset();
+		mRenderDevice.reset();
 	}
 
 	void RenderModule::Tick(RenderFrameInputs& inputs) const {

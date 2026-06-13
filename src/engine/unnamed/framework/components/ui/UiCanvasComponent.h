@@ -41,7 +41,7 @@ namespace Unnamed {
 		void Deserialize(const JsonReader& reader) override;
 		void Serialize(JsonWriter& writer) const override;
 
-#ifdef UNNAMED_WITH_EDITOR
+#ifdef _DEBUG
 		void DrawInspectorImGui() override;
 #endif
 		
@@ -76,10 +76,10 @@ namespace Unnamed {
 		void OnDetached() override;
 
 	private:
-		void InvalidateRuntime();
-
-		std::string mUiAssetPath;
-		UI_CANVAS_SPACE_MODE mSpaceMode = UI_CANVAS_SPACE_MODE::SCREEN;
+		void                     InvalidateRuntime();
+		
+		std::string                    mUiAssetPath;
+		UI_CANVAS_SPACE_MODE           mSpaceMode          = UI_CANVAS_SPACE_MODE::SCREEN;
 		UI_CANVAS_BILLBOARD_DEPTH_MODE mBillboardDepthMode =
 			UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
 		Vec2                 mPixelSize = Vec2(1920.0f, 1080.0f);

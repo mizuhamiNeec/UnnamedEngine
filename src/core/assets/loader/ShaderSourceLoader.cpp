@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include "core/assets/AssetManager.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -47,17 +48,16 @@ namespace Unnamed {
 		}
 		data.includePaths = ParseIncludes(text);
 
-		const std::filesystem::path baseDir = std::filesystem::path(path).
-			parent_path();
+		const std::filesystem::path baseDir = Path::FromUtf8(path).parent_path();
 
 		// 依存関係の解決
 		for (const auto& include : data.includePaths) {
-			std::filesystem::path includePath(include);
+			std::filesystem::path includePath = Path::FromUtf8(include);
 			if (includePath.is_relative()) {
 				includePath = baseDir / includePath;
 			}
 			const std::string depPath = StrUtil::NormalizePath(
-				includePath.lexically_normal().string()
+				Path::ToGenericUtf8(includePath.lexically_normal())
 			);
 			const AssetID depId = mAssetManager->LoadFromFile(
 				depPath, ASSET_TYPE::SHADER_SOURCE
@@ -68,9 +68,9 @@ namespace Unnamed {
 		}
 
 		r.payload     = std::move(data);
-		r.resolveName = std::filesystem::path(path).filename().string();
-		if (std::error_code ec; std::filesystem::exists(path, ec)) {
-			r.stamp.sizeInBytes = std::filesystem::file_size(path);
+		r.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
+		if (std::error_code ec; Path::ExistsUtf8(path, ec)) {
+			r.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 		}
 
 		return r;

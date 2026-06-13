@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include <core/path/PathUtil.h>
 #include <engine/unnamed/subsystem/console/Log.h>
 #include <engine/unnamed/subsystem/console/ConsoleSystem.h>
 #include <engine/unnamed/subsystem/console/concommand/ConVar.h>
@@ -9,7 +10,7 @@
 
 namespace Unnamed {
 	ConVarWriter::ConVarWriter(const std::string_view path) {
-		std::ofstream ofs(path.data(), std::ios::binary);
+		std::ofstream ofs(Path::FromUtf8(path), std::ios::binary);
 
 		if (!ofs) {
 			Warning(

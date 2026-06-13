@@ -46,7 +46,7 @@ namespace Unnamed {
 		void Deserialize(const JsonReader& reader) override;
 		void Serialize(JsonWriter& writer) const override;
 
-#ifdef UNNAMED_WITH_EDITOR
+#ifdef _DEBUG
 		void DrawInspectorImGui() override;
 		[[nodiscard]] std::vector<std::string> DebugGetStateIds() const;
 #endif

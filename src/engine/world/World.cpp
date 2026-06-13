@@ -23,12 +23,15 @@
 #include "engine/scene/Scene.h"
 #include "engine/scene/SceneSerializer.h"
 #include "engine/sequence/SequenceRuntime.h"
+#include "engine/unnamed/framework/components/DirectionalLightComponent.h"
+#include "engine/unnamed/framework/components/SkyLightComponent.h"
 #include "engine/unnamed/framework/components/SkyboxComponent.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/components/editor/EditorCameraComponent.h"
 #include "engine/unnamed/framework/components/mesh/SkeletalAnimationComponent.h"
 #include "engine/unnamed/framework/components/mesh/SkeletalMeshRendererComponent.h"
 #include "engine/unnamed/framework/components/mesh/StaticMeshRendererComponent.h"
+#include "engine/unnamed/framework/components/ui/NewUICanvas.h"
 #include "engine/unnamed/framework/components/ui/UiCanvasComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/primitive/Primitives.h"
@@ -39,6 +42,7 @@
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 #include "engine/unnamed/subsystem/input/device/mouse/MouseDevice.h"
+#include "engine/unnamed/ui/UIDrawCommandSprite.h"
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "World";
@@ -126,6 +130,10 @@ namespace Unnamed {
 			Entity*             entity    = nullptr;
 			TransformComponent* transform = nullptr;
 			UiCanvasComponent*  canvas    = nullptr;
+		};
+
+		struct NewUiCanvasRuntimeEntry {
+			NewUICanvas* canvas = nullptr;
 		};
 
 		[[nodiscard]] std::vector<Entity*> CollectActiveEntities(
@@ -547,6 +555,7 @@ namespace Unnamed {
 		}
 
 		Render::RenderViewInput sceneView = {};
+		bool skyLightResolved             = false;
 		sceneView.viewKey                 = "world.main";
 		sceneView.type                    = Render::RENDER_VIEW_TYPE::SCENE;
 		sceneView.output.sizeMode         =
@@ -569,6 +578,8 @@ namespace Unnamed {
 
 		std::vector<UiCanvasRuntimeEntry> uiCanvasEntries;
 		uiCanvasEntries.reserve(mScene->GetEntities().size());
+		std::vector<NewUiCanvasRuntimeEntry> newUiCanvasEntries;
+		newUiCanvasEntries.reserve(mScene->GetEntities().size());
 		InputSystem* inputSystem        = mServices.inputSystem;
 		static bool  sTextWarningLogged = false;
 		const Vec2   aspectViewportSize = inputSystem ?
@@ -613,12 +624,37 @@ namespace Unnamed {
 				}
 			}
 
+			if (!sceneView.directionalLight.enabled) {
+				auto* directionalLight = entity->GetComponent<
+					DirectionalLightComponent>();
+				if (directionalLight && directionalLight->IsActive()) {
+					(void)directionalLight->BuildLightInput(
+						sceneView.directionalLight
+					);
+				}
+			}
+
+			if (!skyLightResolved) {
+				auto* skyLight = entity->GetComponent<SkyLightComponent>();
+				if (skyLight && skyLight->IsActive()) {
+					skyLightResolved = skyLight->BuildLightInput(
+						sceneView.environmentLight
+					);
+				}
+			}
+
 			auto* transform    = entity->GetComponent<TransformComponent>();
 			auto* meshRenderer = entity->GetComponent<
 				StaticMeshRendererComponent>();
 			auto* skelRenderer = entity->GetComponent<
 				SkeletalMeshRendererComponent>();
 			auto* uiCanvas = entity->GetComponent<UiCanvasComponent>();
+			auto* newUiCanvas = entity->GetComponent<NewUICanvas>();
+			if (newUiCanvas && newUiCanvas->IsActive()) {
+				NewUiCanvasRuntimeEntry entry = {};
+				entry.canvas                  = newUiCanvas;
+				newUiCanvasEntries.emplace_back(entry);
+			}
 			if (!transform) {
 				continue;
 			}
@@ -968,9 +1004,9 @@ namespace Unnamed {
 				}
 
 				if (!sTextWarningLogged) {
-					Warning(
+					DevMsg(
 						kChannel,
-						"UiDrawCommand TEXT is not supported in runtime pass yet (Phase2)."
+						"UiDrawCommand TEXT is skipped in runtime pass."
 					);
 					sTextWarningLogged = true;
 				}
@@ -997,7 +1033,7 @@ namespace Unnamed {
 				billboard.color           = Vec4::one;
 				billboard.rotationRad     = 0.0f;
 				billboard.sortKey         = canvasSort;
-				billboard.uvFlipY         = true;
+				billboard.uvFlipY         = false;
 				billboard.depthTest       =
 					entry.canvas->GetBillboardDepthMode() ==
 					UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
@@ -1014,9 +1050,81 @@ namespace Unnamed {
 				sprite.color           = Vec4::one;
 				sprite.rotationRad     = 0.0f;
 				sprite.sortKey         = canvasSort;
-				sprite.uvFlipY         = true;
+				sprite.uvFlipY         = false;
 				sceneView.worldSprites.emplace_back(sprite);
 			}
+		}
+
+		size_t newUiOverlaySpriteCount = 0;
+		UI::UIDrawCommandSpriteStats newUiSpriteStats = {};
+		size_t                       newUiRectCommandCount = 0;
+		size_t                       newUiTextCommandCount = 0;
+		for (size_t canvasIndex = 0; canvasIndex < newUiCanvasEntries.size();
+		     ++canvasIndex) {
+			const auto& entry = newUiCanvasEntries[canvasIndex];
+			if (!entry.canvas) {
+				continue;
+			}
+
+			const auto& commands = entry.canvas->GetDrawCommands();
+			for (const UI::UIDrawCommand& command : commands) {
+				if (command.type == UI::UIDrawCommandType::RECT) {
+					++newUiRectCommandCount;
+				} else if (command.type == UI::UIDrawCommandType::TEXT) {
+					++newUiTextCommandCount;
+				}
+			}
+			for (size_t commandIndex = 0; commandIndex < commands.size();
+			     ++commandIndex) {
+				const int32_t baseSortKey =
+					static_cast<int32_t>(canvasIndex) * 100000 +
+					static_cast<int32_t>(commandIndex) * 256;
+				std::vector<Render::ScreenSpriteInput> commandSprites;
+				UI::AppendDrawCommandScreenSprites(
+					commands[commandIndex],
+					baseSortKey,
+					assetManager,
+					commandSprites,
+					&newUiSpriteStats
+				);
+				if (commandSprites.empty()) {
+					continue;
+				}
+				newUiOverlaySpriteCount += commandSprites.size();
+				frameContext.AddOverlaySprites(std::move(commandSprites));
+			}
+		}
+
+		const auto& frameOverlaySprites =
+			frameContext.GetOverlayData().screenSprites;
+		const size_t sceneSpritesBeforeMerge = sceneView.screenSprites.size();
+		if (!frameOverlaySprites.empty()) {
+			sceneView.screenSprites.reserve(
+				sceneView.screenSprites.size() + frameOverlaySprites.size()
+			);
+			sceneView.screenSprites.insert(
+				sceneView.screenSprites.end(),
+				frameOverlaySprites.begin(),
+				frameOverlaySprites.end()
+			);
+		}
+		static bool sLoggedNewUiPipelineSummary = false;
+		if (!sLoggedNewUiPipelineSummary && newUiOverlaySpriteCount > 0) {
+			DevMsg(
+				"UI",
+				"NewUI pipeline summary frame={}: commandGen(rect={}, text={}) -> overlayTransform(glyphSprites={}, skippedGlyphs={}, totalOverlaySprites={}) -> frameContextSubmit(overlaySprites={}) -> sceneMerge(before={}, added={}, after={}).",
+				inputs.frameIndex,
+				newUiRectCommandCount,
+				newUiTextCommandCount,
+				newUiSpriteStats.glyphSpriteCount,
+				newUiSpriteStats.skippedGlyphCount,
+				newUiOverlaySpriteCount,
+				frameOverlaySprites.size(),
+				sceneSpritesBeforeMerge,
+				frameOverlaySprites.size(),
+				sceneView.screenSprites.size()
+			);
+			sLoggedNewUiPipelineSummary = true;
 		}
 
 		if (!mDebugScreenSprites.empty()) {

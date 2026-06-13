@@ -27,10 +27,13 @@ namespace Unnamed::Render {
 		) const;
 		void SetSrvUavHeap() const;
 
-		void SetBackBufferAsRenderTarget();
+		void SetBackBufferAsRenderTarget() const;
 
 		void BindComputeUavTable(uint32_t rootIndex, uint32_t textureId) const;
 		void BindGraphicsSrvTable(uint32_t rootIndex, uint32_t textureId) const;
+		void BindGraphicsSrvTable(
+			uint32_t rootIndex, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle
+		) const;
 
 		void SetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW& ibv) const;
 
@@ -46,7 +49,7 @@ namespace Unnamed::Render {
 			uint32_t textureId, float r, float g, float b, float a
 		) const;
 
-		void SetRenderTargetById(uint32_t textureId);
+		void SetRenderTargetById(uint32_t textureId) const;
 		void ClearColorById(
 			uint32_t textureId, float r, float g, float b, float a
 		) const;

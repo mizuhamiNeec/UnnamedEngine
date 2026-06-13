@@ -8,6 +8,7 @@
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
+#include "engine/ImGui/Icons.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 
@@ -131,7 +132,7 @@ namespace Unnamed {
 		return kIconSiren;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void PatrolPointComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Enabled", &mEnabled);
 		ImGui::DragFloat3("PointA", &mPointA.x, 1.0f);

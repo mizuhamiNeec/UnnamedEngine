@@ -35,6 +35,9 @@ namespace Unnamed::Render {
 		void                OnResize(uint32_t width, uint32_t height);
 		RgResourceRegistry& GetRegistry();
 
+		/// @brief GPU 完了待ち後、退役済み Registry リソースを回収します。
+		void FlushGpuAndCollectGarbage();
+
 	private:
 		void HookHotReload();
 

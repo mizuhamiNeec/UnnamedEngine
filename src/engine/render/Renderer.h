@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -7,8 +9,10 @@
 #include <utility>
 
 #include "RendererDraw.h"
+#include "TextureResourceCache.h"
 
 #include "core/assets/AssetID.h"
+#include "core/assets/types/MaterialAssetData.h"
 #include "core/math/Vec2.h"
 
 #include "engine/rhi/Buffer.h"
@@ -21,6 +25,7 @@
 #include "frame/RenderFrameInputs.h"
 
 #include "rendergraph/RenderGraph.h"
+#include "rendergraph/RgResourceRegistry.h"
 
 #include "shaders/PipelineRegistry.h"
 
@@ -37,9 +42,31 @@ namespace Unnamed::Render {
 		Vec2                        uvMax       = Vec2(1.0f, 1.0f);
 	};
 
+	/// @brief Geometry material texture table の固定スロット。
+	/// @details ORM は R=Ambient Occlusion, G=Perceptual Roughness, B=Metallic。
+	enum class MATERIAL_TEXTURE_SLOT : uint8_t {
+		BASE_COLOR = 0,
+		NORMAL,
+		ORM,
+		EMISSIVE,
+		COUNT,
+	};
+
+	/// @brief 解決済み Material texture の RgTextureId セット。
+	struct MaterialTextureSet {
+		uint32_t baseColorTextureId = 0;
+		uint32_t normalTextureId    = 0;
+		uint32_t ormTextureId       = 0;
+		uint32_t emissiveTextureId  = 0;
+	};
+
 	class Renderer {
 	public:
 		Renderer(ConsoleSystem* console);
+		~Renderer();
+
+		/// @brief Renderer が保持する Registry texture を明示解放します。
+		void Shutdown(RenderDevice& renderDevice);
 
 		/// @brief レンダラの初期化処理に呼び出されます。
 		/// @param renderDevice 描画に使用するRenderDevice
@@ -70,6 +97,8 @@ namespace Unnamed::Render {
 		[[nodiscard]] Vec2 GetViewOutputSize(std::string_view viewKey) const;
 
 	private:
+		struct MaterialBinding;
+
 		// シーンの描画にはHDRを使う!
 		static constexpr DXGI_FORMAT kSceneHdrColorFormat =
 			DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -80,10 +109,12 @@ namespace Unnamed::Render {
 
 		/// @brief レンダリンググラフの構築
 		/// @param renderDevice 描画に使用するRenderDevice
+		/// @param frameViews フレーム内の全てのRenderViewInput
 		void BuildGraph(
 			RenderDevice&                       renderDevice,
 			const std::vector<RenderViewInput>& frameViews
 		);
+
 		static std::pair<uint32_t, uint32_t> ResolveSceneRenderExtent(
 			uint32_t                   backBufferWidth,
 			uint32_t                   backBufferHeight,
@@ -103,7 +134,13 @@ namespace Unnamed::Render {
 		void LoadMaterialResources(
 			RenderDevice& renderDevice, Rhi::D3D12Device& dx
 		);
-		void LoadPostFxChain(RenderDevice& renderDevice);
+		void ReleaseMaterialBindings(RenderDevice& renderDevice);
+		void EnsureDefaultMaterialTextures(RenderDevice& renderDevice);
+		void ReleaseDefaultMaterialTextures(RenderDevice& renderDevice);
+		void EnsureMaterialTextureTable(
+			RenderDevice& renderDevice, MaterialBinding& binding
+		) const;
+		void LoadPostFxChain(const RenderDevice& renderDevice);
 		void RebuildPipelineCatalog(
 			RenderDevice& renderDevice, Rhi::D3D12Device& dx
 		);
@@ -131,11 +168,25 @@ namespace Unnamed::Render {
 			AABB                                   localAABB  = {};
 		};
 
+		// Current contract:
+		// - Material shader used by Geometry pass must be compatible with GeomRootSignature.
+		// - Supported bindings are FRAME(b0), OBJECT(b1), MATERIAL(b2), SKINNING(b3),
+		//   MaterialTextures(t0..t3), SHADOW_CONSTANTS(b4), SHADOW_MAP(t4),
+		//   and ENVIRONMENT_LIGHTING(b5).
+		// - MaterialTextures order is BaseColor(t0), Normal(t1), ORM(t2), Emissive(t3).
+		// - Custom constant buffers and shader reflection are not supported yet.
+		// - Non-compatible shaders may compile/resolve but can fail at draw time.
 		struct MaterialBinding {
-			Rhi::MaterialConstants constants          = {};
-			AssetID                materialInstanceId = kInvalidAssetID;
-			uint32_t               albedoTextureId    = 0;
-			uint32_t               padding0           = 0;
+			Rhi::MaterialConstants constants = {};
+			AssetID materialInstanceId = kInvalidAssetID;
+			AssetID shaderProgramId = kInvalidAssetID;
+			MaterialRenderStateData renderState = {};
+			PipelineHandle geometryPipeline = {};
+			const ResolvedGraphicsPipeline* resolvedGeometryPipeline = nullptr;
+			MaterialTextureSet textures = {};
+			RgSrvDescriptorTable materialTextureTable = {};
+			std::array<uint64_t, 4> materialTextureSrvRevisions = {};
+			bool pipelineResolveWarningEmitted = false;
 		};
 
 		struct PostFxRuntimePass {
@@ -147,7 +198,9 @@ namespace Unnamed::Render {
 		};
 
 		struct SpritePassRes {
-			GeometryPassRes geom = {};
+			GeometryPassRes geom            = {};
+			GeometryPassRes geomLinearClamp = {};
+			GeometryPassRes geomPointClamp  = {};
 		};
 
 		struct BillboardPassRes {
@@ -180,62 +233,259 @@ namespace Unnamed::Render {
 			uint32_t                               frameVertexCount = 0;
 		};
 
-		struct ViewRuntimeState {
-			RENDER_VIEW_TYPE      type = RENDER_VIEW_TYPE::SCENE;
-			RenderViewOutputDesc  output = {};
-			uint32_t              logicalWidth = 1;
-			uint32_t              logicalHeight = 1;
-			uint32_t              allocatedWidth = 1;
-			uint32_t              allocatedHeight = 1;
-			uint32_t              colorTextureId = 0;
-			uint32_t              depthTextureId = 0;
-			uint32_t              postFxTextureAId = 0;
-			uint32_t              postFxTextureBId = 0;
-			std::vector<uint32_t> bloomMipTextureIds = {};
-			uint32_t              outputTextureId = 0;
+		struct DirectionalShadowRuntimeState {
+			bool     enabled              = false;
+			uint32_t shadowDepthTextureId = 0;
+			uint32_t resolution           = 1024;
+			Mat4     lightView            = Mat4::identity;
+			Mat4     lightProj            = Mat4::identity;
+			Mat4     lightViewProj        = Mat4::identity;
+			Vec3     lightRayDirection    = Vec3(0.0f, -1.0f, 0.0f);
+			Vec3     directionToLight     = Vec3(0.0f, 1.0f, 0.0f);
+			Vec3     color                = Vec3::one;
+			float    intensity            = 1.0f;
 		};
 
-		static constexpr uint32_t kMaxDrawObjects       = 1024; // TODO: とりあえず
-		static constexpr uint32_t kMaxDebugLines        = 65536; // TODO: とりあえず
+		struct ViewRuntimeState {
+			RENDER_VIEW_TYPE      type               = RENDER_VIEW_TYPE::SCENE;
+			RenderViewOutputDesc  output             = {};
+			uint32_t              logicalWidth       = 1;
+			uint32_t              logicalHeight      = 1;
+			uint32_t              allocatedWidth     = 1;
+			uint32_t              allocatedHeight    = 1;
+			uint32_t              colorTextureId     = 0;
+			uint32_t              depthTextureId     = 0;
+			uint32_t              postFxTextureAId   = 0;
+			uint32_t              postFxTextureBId   = 0;
+			std::vector<uint32_t> bloomMipTextureIds = {};
+			uint32_t              outputTextureId    = 0;
+		};
+
+		/// @brief シーンビューのクリア pass を追加します。
+		void AddSceneClearPass(
+			const std::string& prefix,
+			uint32_t           colorId,
+			uint32_t           depthId
+		);
+
+		/// @brief シーンビューの skybox pass を追加します。
+		void AddSkyboxPass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			size_t                  viewIndex,
+			const ViewRuntimeState& state,
+			uint32_t                skyboxTextureId
+		);
+
+		/// @brief シーンビューの mesh geometry pass を追加します。
+		void AddGeometryPass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			size_t                  viewIndex,
+			const ViewRuntimeState& state
+		);
+
+		/// @brief directional light shadow map 用 depth-only pass を追加します。
+		void AddShadowMapPass(
+			RenderDevice&                        renderDevice,
+			size_t                               viewIndex,
+			const DirectionalShadowRuntimeState& shadowState
+		);
+
+		/// @brief depth test ありの world billboard pass を追加します。
+		void AddWorldBillboardDepthPass(
+			RenderDevice&                renderDevice,
+			const std::string&           prefix,
+			size_t                       viewIndex,
+			const ViewRuntimeState&      state,
+			const std::vector<uint32_t>& worldBillboardTextureIds
+		);
+
+		/// @brief world sprite pass を追加します。
+		void AddWorldSpritePass(
+			RenderDevice&                renderDevice,
+			const std::string&           prefix,
+			size_t                       viewIndex,
+			const ViewRuntimeState&      state,
+			const std::vector<uint32_t>& worldSpriteTextureIds
+		);
+
+		/// @brief debug line pass を追加します。
+		void AddDebugLinePass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			size_t                  viewIndex,
+			const ViewRuntimeState& state
+		);
+
+		/// @brief depth test なしの world billboard pass を追加します。
+		void AddWorldBillboardFrontPass(
+			RenderDevice&                renderDevice,
+			const std::string&           prefix,
+			size_t                       viewIndex,
+			const ViewRuntimeState&      state,
+			const std::vector<uint32_t>& worldBillboardTextureIds
+		);
+
+		/// @brief シーンビューの post process と tone map pass を追加します。
+		void AddScenePostProcessPasses(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			size_t                  viewIndex,
+			const ViewRuntimeState& state,
+			uint32_t&               outputId
+		);
+
+		/// @brief bloom downsample pass 群を追加します。
+		void AddBloomDownsamplePasses(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			const ViewRuntimeState& state,
+			int                     mipCount,
+			float                   bloomIntensity,
+			float                   bloomThreshold,
+			float                   bloomRadius,
+			float                   bloomKnee,
+			uint32_t                postFxInputId
+		);
+
+		/// @brief bloom upsample pass 群を追加します。
+		void AddBloomUpsamplePasses(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			const ViewRuntimeState& state,
+			int                     mipCount,
+			float                   bloomIntensity,
+			float                   bloomRadius
+		);
+
+		/// @brief bloom 合成前の base copy pass を追加します。
+		void AddBloomBaseCopyPass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			const ViewRuntimeState& state,
+			uint32_t                baseCopyInId,
+			uint32_t                bloomCombinedOutId
+		);
+
+		/// @brief bloom mip を base copy へ合成する pass を追加します。
+		void AddBloomCompositePass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			const ViewRuntimeState& state,
+			uint32_t                bloomBaseId,
+			uint32_t                bloomCombinedOutId,
+			float                   bloomIntensity,
+			float                   bloomRadius
+		);
+
+		/// @brief 汎用 post-fx pass を追加し ping-pong を進めます。
+		void AddGenericPostFxPasses(
+			RenderDevice&            renderDevice,
+			const std::string&       prefix,
+			const ViewRuntimeState&  state,
+			const PostFxRuntimePass& passRes,
+			const Vec4&              scalar0,
+			const Vec4&              scalar1,
+			const Vec4&              color0,
+			const Vec4&              color1,
+			uint32_t&                postFxInputId,
+			uint32_t&                postFxOutputId
+		);
+
+		/// @brief tone map pass を追加し最終 outputId を更新します。
+		void AddToneMapExposurePass(
+			RenderDevice&           renderDevice,
+			const std::string&      prefix,
+			const ViewRuntimeState& state,
+			const RenderViewInput&  view,
+			uint32_t                postFxInputId,
+			uint32_t&               outputId
+		);
+
+		/// @brief sprite-only view の clear pass を追加します。
+		void AddSpriteOnlyClearPass(
+			const std::string& prefix,
+			uint32_t           outputId
+		);
+
+		/// @brief screen sprite pass を追加します。
+		void AddScreenSpritePass(
+			RenderDevice&                renderDevice,
+			const std::string&           prefix,
+			size_t                       viewIndex,
+			const ViewRuntimeState&      state,
+			uint32_t                     outputId,
+			const std::vector<uint32_t>& screenSpriteTextureIds
+		);
+
+		/// @brief editor UI が参照する view output を SRV 状態に遷移する pass を追加します。
+		void AddPrepareUiViewOutputsPass(
+			const std::vector<RenderViewInput>& frameViews
+		);
+
+		/// @brief present 対象 view を back buffer に合成する pass を追加します。
+		void AddPresentPass(RenderDevice& renderDevice);
+
+		/// @brief shadow map depth texture の debug overlay pass を追加します。
+		void AddShadowMapDebugPass(RenderDevice& renderDevice);
+
+		/// @brief swap chain present がない editor frame の back buffer clear pass を追加します。
+		void AddEditorBackBufferClearPass(
+			const std::vector<RenderViewInput>& frameViews
+		);
+
+		/// @brief ImGui main draw data pass を追加します。
+		void AddImGuiMainPass();
+
+		static constexpr uint32_t kMaxDrawObjects = 1024;  // TODO: とりあえず
+		static constexpr uint32_t kMaxDebugLines  = 65536; // TODO: とりあえず
 
 		ConsoleSystem* mConsole = nullptr;
 
-		RenderGraph mGraph;
+		RenderGraph      mGraph;
 		PipelineRegistry mPipelineRegistry;
 
-		FullscreenPassRes        mFullscreenPass      = {};
-		FullscreenPassRes        mHdrCopyPass         = {};
-		FullscreenPassRes        mToneMapPass         = {};
-		FullscreenPassRes        mBloomDownsamplePass = {};
-		FullscreenPassRes        mBloomUpsamplePass   = {};
-		FullscreenPassRes        mBloomCombinePass    = {};
-		FullscreenPassRes        mDepthVisPass        = {};
-		ComputePassRes           mComputePass         = {};
-		GeometryPassRes          mGeometryPass        = {};
-		SpritePassRes            mSpritePass          = {};
-		BillboardPassRes         mBillboardPass       = {};
-		SkyboxPassRes            mSkyboxPass          = {};
-		LinePassRes              mLinePass            = {};
-		AdvancedRenderFoundation mAdvancedFoundation  = {};
+		FullscreenPassRes        mFullscreenPass             = {};
+		FullscreenPassRes        mHdrCopyPass                = {};
+		FullscreenPassRes        mToneMapPass                = {};
+		FullscreenPassRes        mBloomDownsamplePass        = {};
+		FullscreenPassRes        mBloomUpsamplePass          = {};
+		FullscreenPassRes        mBloomCombinePass           = {};
+		FullscreenPassRes        mDepthVisPass               = {};
+		ComputePassRes           mComputePass                = {};
+		GeometryPassRes          mGeometryPass               = {};
+		GeometryPassRes          mShadowDepthPass            = {};
+		GeometryPassRes          mShadowDepthFrontCullPass   = {};
+		GeometryPassRes          mShadowDepthDoubleSidedPass = {};
+		SpritePassRes            mSpritePass                 = {};
+		BillboardPassRes         mBillboardPass              = {};
+		SkyboxPassRes            mSkyboxPass                 = {};
+		LinePassRes              mLinePass                   = {};
+		AdvancedRenderFoundation mAdvancedFoundation         = {};
 
 		Rhi::UploadBuffer<Rhi::FrameConstants> mFrameCb;
 		Rhi::UploadBuffer<Rhi::ObjectConstants> mObjectCb;
 		Rhi::UploadBuffer<Rhi::MaterialConstants> mMaterialCb;
 		Rhi::UploadBuffer<Rhi::SkinningPaletteConstants> mSkinningCb;
+		AssetID mGeometryShaderProgramId = kInvalidAssetID;
+		Rhi::VertexLayoutDesc mGeometryVertexLayout = {};
 		std::vector<MeshBuffer> mSceneMeshes;
 		std::unordered_map<AssetID, MeshBuffer> mSceneMeshesByAsset;
 		AssetID mLoadedMeshAsset = kInvalidAssetID;
 		AssetID mDefaultMaterialInstance =
 			kInvalidAssetID;
 		AssetID mPostFxChainAsset = kInvalidAssetID;
+		DirectionalShadowRuntimeState mDirectionalShadow = {};
 		std::unordered_map<AssetID, MaterialBinding> mMaterialBindings;
 		std::vector<PostFxRuntimePass> mPostFxPasses;
-		std::unordered_map<AssetID, uint32_t> mSpriteTextureIds;
-		std::unordered_map<AssetID, uint32_t> mSkyboxTextureIds;
+		TextureResourceCache mTextureResourceCache;
+		MaterialTextureSet mDefaultMaterialTextures;
 		uint32_t mSpriteFallbackTextureId = 0;
+		uint64_t mLastTextureCacheStatsLogFrame = 0;
 
-		std::vector<MeshDrawItem>     mMainDrawList;
-		std::vector<DrawBatch>        mMainBatches;
+		std::vector<MeshDrawItem> mMainDrawList;
+		std::vector<DrawBatch> mMainBatches;
 		std::unordered_map<std::string, ViewRuntimeState> mViewStates;
 		std::vector<std::string> mViewExecutionOrder;
 		std::vector<RenderViewInput> mFrameViews;
@@ -257,7 +507,7 @@ namespace Unnamed::Render {
 			RenderDevice& renderDevice, AssetID textureAssetId
 		);
 		void        EnsureSpriteFallbackTexture(RenderDevice& renderDevice);
-		void        InitializeDebugLineResources(Rhi::D3D12Device& dx);
+		void        InitializeDebugLineResources(const Rhi::D3D12Device& dx);
 		void        UploadDebugLinesForFrame();
 		static void ReleaseViewRuntimeTextures(
 			RenderDevice& renderDevice, ViewRuntimeState& state

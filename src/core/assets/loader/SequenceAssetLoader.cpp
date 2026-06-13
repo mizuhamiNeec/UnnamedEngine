@@ -3,6 +3,7 @@
 #include <filesystem>
 
 #include "SequenceFileIO.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -33,15 +34,15 @@ namespace Unnamed {
 			return result;
 		}
 
-		const std::filesystem::path filePath(path);
+		const std::filesystem::path filePath = Path::FromUtf8(path);
 		result.payload     = std::move(ioResult.runtime);
-		result.resolveName = filePath.stem().stem().string();
+		result.resolveName = Path::ToUtf8String(filePath.stem().stem());
 
 		std::error_code ec;
-		if (std::filesystem::exists(path, ec)) {
-			result.stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+		if (Path::ExistsUtf8(path, ec)) {
+			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 		}
-		if (const auto lastWrite = std::filesystem::last_write_time(path, ec);
+		if (const auto lastWrite = Path::LastWriteTimeUtf8(path, ec);
 			!ec) {
 			result.stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
 		}

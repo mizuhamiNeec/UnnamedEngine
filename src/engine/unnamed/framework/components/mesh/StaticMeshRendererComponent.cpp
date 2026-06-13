@@ -106,7 +106,7 @@ namespace Unnamed {
 		return kIconDeployedCode;
 	}
 
-#ifdef UNNAMED_WITH_EDITOR
+#ifdef _DEBUG
 	void StaticMeshRendererComponent::DrawInspectorImGui() {
 		std::string meshPath = mMeshPath;
 		if (

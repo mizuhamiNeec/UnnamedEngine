@@ -1,15 +1,19 @@
 #include "ParkourComponentRegistration.h"
 
 #include "core/ComponentRegistry.h"
+
+#include "engine/unnamed/framework/components/DirectionalLightComponent.h"
+#include "engine/unnamed/framework/components/SkyLightComponent.h"
 #include "engine/unnamed/subsystem/console/Log.h"
+
 #include "game/core/collision/kinematic/base/BaseKinematicCollisionResolver.h"
-#include "game/core/components/character/state/GameMovementStateMachine.h"
 #include "game/core/components/AudioFxControllerComponent.h"
 #include "game/core/components/CameraFxControllerComponent.h"
 #include "game/core/components/CameraRotatorComponent.h"
 #include "game/core/components/ViewmodelSway.h"
 #include "game/core/components/character/GameMovementComponent.h"
 #include "game/core/components/character/base/BaseCharacterComponent.h"
+#include "game/core/components/character/state/GameMovementStateMachine.h"
 #include "game/core/components/common/PatrolPointComponent.h"
 #include "game/core/components/common/RotatorComponent.h"
 #include "game/core/components/controller/PlayerCharacterController.h"
@@ -34,9 +38,9 @@ namespace Unnamed {
 	namespace {
 		template <typename T>
 		void RegisterComponentIfMissing(
-			ComponentRegistry&       componentRegistry,
-			const std::string_view   stableName,
-			const std::string_view   displayName
+			ComponentRegistry&     componentRegistry,
+			const std::string_view stableName,
+			const std::string_view displayName
 		) {
 			if (componentRegistry.IsRegistered(stableName)) {
 				return;
@@ -134,6 +138,12 @@ namespace Unnamed {
 		);
 		RegisterComponentIfMissing<SpeedBoostAreaComponent>(
 			componentRegistry, "parkour.SpeedBoostArea", "SpeedBoostArea"
+		);
+		RegisterComponentIfMissing<SkyLightComponent>(
+			componentRegistry, "engine.SkyLight", "SkyLight"
+		);
+		RegisterComponentIfMissing<DirectionalLightComponent>(
+			componentRegistry, "engine.DirectionalLight", "DirectionalLight"
 		);
 	}
 }

@@ -50,6 +50,7 @@ _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
 .idea/
+*.DotSettings
 
 # ImGui config (user local)
 imgui.ini

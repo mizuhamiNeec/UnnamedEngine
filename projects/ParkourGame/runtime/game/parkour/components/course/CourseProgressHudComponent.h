@@ -36,7 +36,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		/// @brief インスペクタ UI を描画します。
 		void DrawInspectorImGui() override;
 #endif
@@ -59,7 +59,7 @@ namespace Unnamed {
 		/// @brief 画面サイズを決定します。
 		[[nodiscard]] bool ResolveViewportSize(Vec2& outViewportSizePx) const;
 		/// @brief 追従スプライトの描画状態を更新します。
-		void UpdateGuideWidget(
+		static void UpdateGuideWidget(
 			Gui::UiWidget*            widget,
 			Gui::UiTransformComponent* transform,
 			Gui::UiTextureComponent*  texture,
@@ -68,7 +68,7 @@ namespace Unnamed {
 			float                     alpha,
 			float                     rotationRad,
 			bool                      visible
-		) const;
+		);
 
 		std::string mCourseId = "default";
 		bool        mRequireCourseHudEnabled = true;
@@ -77,8 +77,17 @@ namespace Unnamed {
 		float       mArrowSizePx         = 34.0f;
 		std::string mPinWidgetName       = "NextCheckpointPin";
 		std::string mArrowWidgetName     = "NextCheckpointArrow";
+		std::string mElapsedMinutesWidgetName = "CourseProgressElapsedMinutes";
+		std::string mElapsedSecondsWidgetName = "CourseProgressElapsedSeconds";
+		std::string mElapsedFractionWidgetName = "CourseProgressElapsedFraction";
+		std::string mElapsedCommaWidgetName = "CourseProgressElapsedComma";
+		std::string mElapsedDotWidgetName = "CourseProgressElapsedDot";
 		std::string mPinTexturePath      = "textures/ping.png";
 		std::string mArrowTexturePath    = "textures/arrow.png";
+		std::string mDigitTexturePath    = "textures/digits.png";
+		std::string mCommaTexturePath    = "textures/colon.png";
+		std::string mDotTexturePath      = "textures/dot.png";
+		float       mElapsedTextAlpha    = 0.72f;
 
 		// 所有しない参照です。毎Tick再解決するため raw pointer を使用します。
 		CourseProgressComponent* mCourseProgress = nullptr;

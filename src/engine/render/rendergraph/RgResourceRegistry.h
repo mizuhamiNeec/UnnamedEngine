@@ -4,7 +4,9 @@
 #include <d3d12.h>
 #include <dxgiformat.h>
 #include <optional>
+#include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <wrl/client.h>
@@ -61,6 +63,15 @@ namespace Unnamed::Render {
 		uint32_t reusableTextureIdCount = 0;
 	};
 
+	struct RgSrvDescriptorTable {
+		uint32_t baseLocal = UINT32_MAX;
+		uint32_t count     = 0;
+
+		[[nodiscard]] bool IsValid() const {
+			return baseLocal != UINT32_MAX && count > 0;
+		}
+	};
+
 	class RgResourceRegistry {
 	public:
 		explicit RgResourceRegistry(Rhi::D3D12Device& dx);
@@ -86,6 +97,19 @@ namespace Unnamed::Render {
 		) const;
 		[[nodiscard]] uint64_t GetSrvRevision(uint32_t textureId) const;
 		[[nodiscard]] uint64_t GetResourceRevision(uint32_t textureId) const;
+		[[nodiscard]] RgSrvDescriptorTable CreateSrvDescriptorTable(
+			std::span<const uint32_t> textureIds,
+			const std::string&        debugName
+		);
+		void UpdateSrvDescriptorTable(
+			const RgSrvDescriptorTable& table,
+			std::span<const uint32_t>   textureIds,
+			const std::string&          debugName
+		) const;
+		void ReleaseSrvDescriptorTable(RgSrvDescriptorTable& table);
+		[[nodiscard]] D3D12_GPU_DESCRIPTOR_HANDLE GetSrvDescriptorTableGpu(
+			const RgSrvDescriptorTable& table
+		) const;
 		[[nodiscard]] D3D12_GPU_DESCRIPTOR_HANDLE GetUav(
 			uint32_t textureId
 		) const;
@@ -104,6 +128,7 @@ namespace Unnamed::Render {
 
 	private:
 		uint32_t AllocSrvUavSlot();
+		uint32_t AllocSrvUavTable(uint32_t count);
 		uint32_t AllocRtvSlot();
 		uint32_t AllocCpuSlot();
 		uint32_t AllocDsvSlot();
@@ -197,6 +222,7 @@ namespace Unnamed::Render {
 		uint64_t                            mGlobalSrvRevision = 1;
 
 		std::vector<uint32_t> mFreeSrvUavLocals;
+		std::vector<std::pair<uint32_t, uint32_t>> mFreeSrvUavTableRanges;
 		std::vector<uint32_t> mFreeRtvLocals;
 		std::vector<uint32_t> mFreeCpuLocals;
 		std::vector<uint32_t> mFreeDsvLocals;

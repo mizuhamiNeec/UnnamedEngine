@@ -27,6 +27,7 @@
 #include <core/assets/loader/SoundAssetLoader.h>
 #include <core/assets/loader/TextureLoaderDirectXTex.h>
 #include <core/assets/loader/UiDocumentAssetLoader.h>
+#include <core/path/PathUtil.h>
 #include <core/string/StrUtil.h>
 
 #include <engine/EngineComponentRegistration.h>
@@ -81,7 +82,7 @@ namespace Unnamed {
 				return false;
 			}
 
-			if (!std::filesystem::exists(std::filesystem::path(cfgPath))) {
+			if (!std::filesystem::exists(Path::FromUtf8(cfgPath))) {
 				DevMsg(
 					channel,
 					"[CFG:{}] skipped missing {}",
@@ -642,7 +643,7 @@ namespace Unnamed {
 				}
 			}
 
-			static constexpr uint32_t kMaxFixedTicksPerFrame = 16u;
+			static constexpr uint32_t kMaxFixedTicksPerFrame = 1024u;
 
 			const uint32_t tickRate = mDemoService ?
 				                          mDemoService->
@@ -780,9 +781,9 @@ namespace Unnamed {
 		mPostFxChainCommand.reset();
 		mPostFxChainReloadCommand.reset();
 		mSequenceRegressionRunCommand.reset();
+		mToggleFullscreenCommand.reset();
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		mToggleEditorCommand.reset();
-		mToggleFullscreenCommand.reset();
 #endif
 
 		if (mDemoService && (mDemoService->IsPlayback() || mDemoService->
@@ -972,6 +973,15 @@ namespace Unnamed {
 			"Run fixed-tick regression tests for sequence runtime."
 		);
 
+		mToggleFullscreenCommand = std::make_unique<ConCommand>(
+			"togglefullscreen",
+			[this](const std::vector<std::string>&) {
+				ToggleFullscreen();
+				return true;
+			},
+			"Toggle the main window fullscreen mode."
+		);
+
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		mToggleEditorCommand = std::make_unique<ConCommand>(
 			"toggleeditor",
@@ -980,15 +990,6 @@ namespace Unnamed {
 				return true;
 			},
 			"Toggle editor mode."
-		);
-
-		mToggleFullscreenCommand = std::make_unique<ConCommand>(
-			"togglefullscreen",
-			[this](const std::vector<std::string>&) {
-				ToggleFullscreen();
-				return true;
-			},
-			"Toggle editor viewport/swapchain presentation mode."
 		);
 #endif
 	}
@@ -1010,7 +1011,7 @@ namespace Unnamed {
 
 	void Engine::ToggleFullscreen() const {
 		if (mWindowManager) {
-			if (const Window* window = mWindowManager->FindWindowById(
+			if (Window* window = mWindowManager->FindWindowById(
 				mWindowManager->GetMainWindowId()
 			)) {
 				window->ToggleFullscreen();

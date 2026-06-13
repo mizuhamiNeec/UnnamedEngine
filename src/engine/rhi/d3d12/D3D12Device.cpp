@@ -103,6 +103,8 @@ namespace Unnamed::Rhi {
 		mFsRootSignature.Reset();
 		mCsRootSignature.Reset();
 		mGeomRootSignature.Reset();
+		mGeomRootSignatureLinearClamp.Reset();
+		mGeomRootSignaturePointClamp.Reset();
 
 		mUploadContext.reset();
 
@@ -313,6 +315,14 @@ namespace Unnamed::Rhi {
 
 	ID3D12RootSignature* D3D12Device::GetGeomRootSignature() const {
 		return mGeomRootSignature.Get();
+	}
+
+	ID3D12RootSignature* D3D12Device::GetGeomRootSignatureLinearClamp() const {
+		return mGeomRootSignatureLinearClamp.Get();
+	}
+
+	ID3D12RootSignature* D3D12Device::GetGeomRootSignaturePointClamp() const {
+		return mGeomRootSignaturePointClamp.Get();
 	}
 
 	ID3D12Device* D3D12Device::GetDevice() const {
@@ -793,18 +803,34 @@ namespace Unnamed::Rhi {
 
 	void D3D12Device::CreateGeometryRootSignature() {
 		// Geometry RootSignature:
-		// CBV(b0)=Frame, CBV(b1)=Object, CBV(b2)=Material, CBV(b3)=Skinning, SRV(t0)=BaseColor
+		// CBV(b0)=Frame, CBV(b1)=Object, CBV(b2)=Material, CBV(b3)=Skinning,
+		// SRV(t0..t3)=MaterialTextures, CBV(b4)=ShadowConstants, SRV(t4)=ShadowMap,
+		// CBV(b5)=EnvironmentLightingConstants
 		{
+			auto createGeomSignature = [this](
+				                         ID3D12RootSignature** outSignature,
+				                         const D3D12_FILTER    filter,
+				                         const D3D12_TEXTURE_ADDRESS_MODE
+				                             addressMode
+			                         ) {
 			D3D12_DESCRIPTOR_RANGE srvRange = {};
 			srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			srvRange.NumDescriptors = 1;
-			srvRange.BaseShaderRegister = 0; // t0
+			srvRange.NumDescriptors = 4;
+			srvRange.BaseShaderRegister = 0; // t0..t3
 			srvRange.RegisterSpace = 0;
 			srvRange.OffsetInDescriptorsFromTableStart =
 				D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			// CBV(b0)->FrameConstants, CBV(b1)->ObjectConstants, CBV(b2)->Material, CBV(b3)->SkinningPalette
-			std::array<D3D12_ROOT_PARAMETER, 5> param = {};
+			D3D12_DESCRIPTOR_RANGE shadowSrvRange = {};
+			shadowSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			shadowSrvRange.NumDescriptors = 1;
+			shadowSrvRange.BaseShaderRegister = 4; // t4
+			shadowSrvRange.RegisterSpace = 0;
+			shadowSrvRange.OffsetInDescriptorsFromTableStart =
+				D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			// CBV(b0)->FrameConstants, CBV(b1)->ObjectConstants, CBV(b2)->Material, CBV(b3)->SkinningPalette, CBV(b4)->ShadowConstants, CBV(b5)->EnvironmentLightingConstants
+			std::array<D3D12_ROOT_PARAMETER, 8> param = {};
 			param[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 			param[0].Descriptor.ShaderRegister = 0; // b0
 			param[0].Descriptor.RegisterSpace = 0;
@@ -831,14 +857,30 @@ namespace Unnamed::Rhi {
 			param[4].DescriptorTable.pDescriptorRanges = &srvRange;
 			param[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
+			param[5].ParameterType             = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			param[5].Descriptor.ShaderRegister = 4; // b4
+			param[5].Descriptor.RegisterSpace  = 0;
+			param[5].ShaderVisibility          = D3D12_SHADER_VISIBILITY_PIXEL;
+
+			param[6].ParameterType =
+				D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			param[6].DescriptorTable.NumDescriptorRanges = 1;
+			param[6].DescriptorTable.pDescriptorRanges = &shadowSrvRange;
+			param[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+			param[7].ParameterType             = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			param[7].Descriptor.ShaderRegister = 5; // b5
+			param[7].Descriptor.RegisterSpace  = 0;
+			param[7].ShaderVisibility          = D3D12_SHADER_VISIBILITY_PIXEL;
+
 			D3D12_STATIC_SAMPLER_DESC sampler = {};
-			sampler.Filter = D3D12_FILTER_ANISOTROPIC;
-			sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			sampler.Filter = filter;
+			sampler.AddressU = addressMode;
+			sampler.AddressV = addressMode;
+			sampler.AddressW = addressMode;
 			sampler.MinLOD = 0.0f;
-			sampler.MaxLOD = 0.0f;
-			sampler.MaxAnisotropy = 16;
+			sampler.MaxLOD = D3D12_FLOAT32_MAX;
+			sampler.MaxAnisotropy = filter == D3D12_FILTER_ANISOTROPIC ? 16 : 1;
 			sampler.MipLODBias = 0.0f;
 			sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 			sampler.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
@@ -869,8 +911,25 @@ namespace Unnamed::Rhi {
 					0,
 					blob->GetBufferPointer(),
 					blob->GetBufferSize(),
-					IID_PPV_ARGS(mGeomRootSignature.ReleaseAndGetAddressOf())
+					IID_PPV_ARGS(outSignature)
 				)
+			);
+			};
+
+			createGeomSignature(
+				mGeomRootSignature.ReleaseAndGetAddressOf(),
+				D3D12_FILTER_ANISOTROPIC,
+				D3D12_TEXTURE_ADDRESS_MODE_WRAP
+			);
+			createGeomSignature(
+				mGeomRootSignatureLinearClamp.ReleaseAndGetAddressOf(),
+				D3D12_FILTER_MIN_MAG_MIP_LINEAR,
+				D3D12_TEXTURE_ADDRESS_MODE_CLAMP
+			);
+			createGeomSignature(
+				mGeomRootSignaturePointClamp.ReleaseAndGetAddressOf(),
+				D3D12_FILTER_MIN_MAG_MIP_POINT,
+				D3D12_TEXTURE_ADDRESS_MODE_CLAMP
 			);
 		}
 	}

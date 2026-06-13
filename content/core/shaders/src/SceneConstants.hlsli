@@ -23,11 +23,26 @@ cbuffer MaterialCB : register(b2) {
 	float  gRoughness;
 	float  gOpacity;
 	float  gDomainMode;
-	float2 gPadding;
+	float  gShadingModel;
+	float  gPadding;
 }
 
 cbuffer SkinningPaletteCB : register(b3) {
 	float4x4 gSkinMatrices[512];
+}
+
+cbuffer ShadowCB : register(b4) {
+	float4x4 gShadowLightViewProj;
+	float4   gShadowParams; // x=depthBias, y=strength, z=texelSize, w=enabled
+	float4   gShadowFilterParams; // x=pcfEnabled, y=pcfRadiusTexels, z=normalBias, w=unused
+	float4   gDirectionToLight; // xyz=surface-to-light direction for NdotL
+	float4   gDirectionalLightColorIntensity; // rgb=color, a=intensity
+}
+
+cbuffer EnvironmentLightingCB : register(b5) {
+	float4 gSkyAmbientColor;
+	float4 gGroundAmbientColor;
+	float4 gEnvironmentLightingParams; // x=ambientIntensity, yzw=unused
 }
 
 #endif

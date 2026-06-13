@@ -121,9 +121,6 @@ namespace Unnamed {
 		helpText += "  5) UNNAMED_REPO_ROOT\n";
 		helpText += "  6) Upward search from current working directory\n";
 		helpText += "  7) Upward search from executable directory\n\n";
-		helpText += "Example:\n";
-		helpText +=
-			"  UnnamedEditorApp.exe --project=S:/Repositories/TD4_01/projects/TeamGame/config/game_profile.json\n";
 
 		std::fputs(helpText.c_str(), stdout);
 		::OutputDebugStringA(helpText.c_str());

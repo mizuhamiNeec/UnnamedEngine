@@ -6,7 +6,7 @@
 #include <memory>
 #include <unordered_set>
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -27,7 +27,7 @@
 #endif
 
 #include "engine/ImGui/Icons.h"
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 #include "engine/scene/Scene.h"
@@ -88,7 +88,7 @@ namespace Unnamed {
 			return found;
 		}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		bool EditStringField(
 			const char* label, std::string& value, const size_t capacity = 256
 		) {
@@ -122,7 +122,7 @@ namespace Unnamed {
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
 		(void)LoadAsset();
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		AuditSourceGuidBindings();
 #endif
 		SubscribeAll();
@@ -170,7 +170,7 @@ namespace Unnamed {
 		return kIconAccessibility;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void EventPresentationComponent::DrawInspectorImGui() {
 		World*         world            = GetWorld();
 		Entity*        owner            = GetOwner();
@@ -283,6 +283,7 @@ namespace Unnamed {
 			}
 		}
 
+#ifdef UNNAMED_WITH_EDITOR
 		if (!mGraphEditorState) {
 			mGraphEditorState = std::make_unique<
 				EventPresentationGraphEditorState>();
@@ -306,18 +307,21 @@ namespace Unnamed {
 				"グラフの状態: %s", mGraphEditorState->status.c_str()
 			);
 		}
+#endif
 
 		if (needsReload) {
 			(void)LoadAsset();
 		}
 		if (needsResubscribe) {
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 			AuditSourceGuidBindings();
 #endif
 			SubscribeAll();
 		}
 
+#ifdef UNNAMED_WITH_EDITOR
 		DrawGraphEditorWindow();
+#endif
 	}
 
 	void EventPresentationComponent::AuditSourceGuidBindings() const {
@@ -379,6 +383,7 @@ namespace Unnamed {
 		}
 	}
 
+#ifdef UNNAMED_WITH_EDITOR
 	void EventPresentationComponent::DrawGraphEditorWindow() {
 		if (!mGraphEditorState || !mGraphEditorState->windowOpen) {
 			return;
@@ -580,6 +585,7 @@ namespace Unnamed {
 		mGraphEditorState->windowOpen = open;
 	}
 #endif
+#endif
 
 	void EventPresentationComponent::Deserialize(const JsonReader& reader) {
 		mCueSourceEntityGuid = 0;
@@ -612,7 +618,7 @@ namespace Unnamed {
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
 		(void)LoadAsset();
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		AuditSourceGuidBindings();
 #endif
 		SubscribeAll();
@@ -863,7 +869,7 @@ namespace Unnamed {
 	}
 
 	void EventPresentationComponent::HandleCue(const GameplayCue& cue) {
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		++mDebugHandledCueCount;
 #endif
 		if (!mAudioFx) {
@@ -1117,4 +1123,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(EventPresentationComponent);
 }
-

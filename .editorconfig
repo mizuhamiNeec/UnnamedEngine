@@ -1,12 +1,19 @@
 ﻿root = true
 
 [*.{c++,cc,cpp,cppm,cxx,h,h++,hh,hlsl,hlsli,hlslinc,hpp,hxx,inl,ipp,ixx,tlh,tli}]
+end_of_line = lf
+insert_final_newline = true
 charset = utf-8
-end_of_line = crlf
+trim_trailing_whitespace = true
+
+[*.{bat,cmd,ps1,slnx,vcxproj,vcxproj.filters,vcxproj.user}]
+charset = utf-8
+end_of_line = lf
+
 
 [*.{cfg}]
 charset = utf-8
-end_of_line = crlf
+end_of_line = lf
 indent_style = tab
 indent_size = 4
 insert_final_newline = true
@@ -26,4 +33,4 @@ align_after_open_bracket_exclude_pattern = ^.*=\s*.*$
 align_after_open_bracket_exclude_pattern = ^.*:\s*$
 align_after_open_bracket_exclude_pattern = ^.*:\s*.*$
 align_after_open_bracket_exclude_pattern = ^.*\s\s*$
-align_after_open_bracket_exclude_pattern = ^.*\s\s+.*$  
+align_after_open_bracket_exclude_pattern = ^.*\s\s+.*$

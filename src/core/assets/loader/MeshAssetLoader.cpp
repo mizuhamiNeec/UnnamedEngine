@@ -15,6 +15,7 @@
 #include "core/hash/HashBuilder.h"
 #include "core/io/binary/BinaryReader.h"
 #include "core/io/binary/BinaryWriter.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/profiler/Profiler.h"
@@ -25,7 +26,7 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel          = "MeshAssetLdr";
 		constexpr uint32_t         kMeshCacheMagic   = 0x48534D55; // UMSH
-			constexpr uint32_t         kMeshCacheVersion = 4;
+		constexpr uint32_t         kMeshCacheVersion = 5;
 
 		constexpr std::array kSupportedExtensions = {
 			".obj",
@@ -56,15 +57,15 @@ namespace Unnamed {
 		FileStamp ReadCurrentFileStamp(const std::string& path) {
 			FileStamp       stamp = {};
 			std::error_code ec;
-			if (!std::filesystem::exists(path, ec)) {
+			if (!Path::ExistsUtf8(path, ec)) {
 				return stamp;
 			}
 
-			const auto lastWrite = std::filesystem::last_write_time(path, ec);
+			const auto lastWrite = Path::LastWriteTimeUtf8(path, ec);
 			if (!ec) {
 				stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
 			}
-			stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+			stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 			return stamp;
 		}
 
@@ -74,9 +75,11 @@ namespace Unnamed {
 		uint64_t BuildImporterConfigHash(const bool hasSkinning) {
 			constexpr uint64_t kBaseFlags =
 				aiProcess_JoinIdenticalVertices | // 重複頂点の結合
-				aiProcess_ImproveCacheLocality |  // 頂点キャッシュ最適化
-				aiProcess_ConvertToLeftHanded;    // このエンジンは左手座標系
-			uint64_t hash = HashBuilder::Combine64(kBaseFlags, kMeshCacheVersion);
+				aiProcess_ImproveCacheLocality | // 頂点キャッシュ最適化
+				aiProcess_CalcTangentSpace | // NormalMap 用 tangent/bitangent 生成
+				aiProcess_ConvertToLeftHanded; // このエンジンは左手座標系
+			uint64_t hash = HashBuilder::Combine64(
+				kBaseFlags, kMeshCacheVersion);
 			if (!hasSkinning) {
 				hash = HashBuilder::Combine64(
 					hash, aiProcess_PreTransformVertices
@@ -100,7 +103,45 @@ namespace Unnamed {
 		}
 
 		Vec3 ToVec3(const aiVector3D& v) {
-			return Vec3(v.x, v.y, v.z);
+			return {v.x, v.y, v.z};
+		}
+
+		[[nodiscard]] bool IsFiniteVec3(const Vec3& v) {
+			return std::isfinite(v.x) && std::isfinite(v.y) &&
+			       std::isfinite(v.z);
+		}
+
+		[[nodiscard]] Vec3 SafeNormalizeOr(
+			const Vec3& value, const Vec3& fallback
+		) {
+			if (!IsFiniteVec3(value) || value.SqrLength() <= 1.0e-8f) {
+				return fallback;
+			}
+			return value.Normalized();
+		}
+
+		[[nodiscard]] Vec3 OrthonormalizeTangent(
+			const Vec3& tangent, const Vec3& normal
+		) {
+			const Vec3 n = SafeNormalizeOr(normal, Vec3::up);
+			Vec3       t = tangent - n * tangent.Dot(n);
+			if (!IsFiniteVec3(t) || t.SqrLength() <= 1.0e-8f) {
+				const Vec3 fallbackAxis = std::abs(n.y) < 0.999f ?
+					                          Vec3::up :
+					                          Vec3::right;
+				t = fallbackAxis - n * fallbackAxis.Dot(n);
+			}
+			return SafeNormalizeOr(t, Vec3::right);
+		}
+
+		[[nodiscard]] Vec4 BuildTangentWithHandedness(
+			const Vec3& normal, const Vec3& tangent, const Vec3& bitangent
+		) {
+			const Vec3  n    = SafeNormalizeOr(normal, Vec3::up);
+			const Vec3  t    = OrthonormalizeTangent(tangent, n);
+			const Vec3  b    = SafeNormalizeOr(bitangent, n.Cross(t));
+			const float sign = n.Cross(t).Dot(b) < 0.0f ? -1.0f : 1.0f;
+			return {t, sign};
 		}
 
 		Quaternion ToQuaternion(const aiQuaternion& q) {
@@ -108,7 +149,7 @@ namespace Unnamed {
 		}
 
 		void BuildNodeLookup(
-			const aiNode* node,
+			const aiNode*                                   node,
 			std::unordered_map<std::string, const aiNode*>& outLookup
 		) {
 			if (!node) {
@@ -122,9 +163,9 @@ namespace Unnamed {
 		}
 
 		void BuildSkeletonHierarchy(
-			const aiScene*                                      scene,
-			const std::unordered_map<std::string, uint16_t>&    boneNameToIndex,
-			MeshAssetData&                                      out
+			const aiScene*                                   scene,
+			const std::unordered_map<std::string, uint16_t>& boneNameToIndex,
+			MeshAssetData&                                   out
 		) {
 			if (!scene || !scene->mRootNode || out.skeleton.empty()) {
 				return;
@@ -141,16 +182,16 @@ namespace Unnamed {
 				}
 
 				const aiNode* node = nodeIt->second;
-				aiVector3D   scaling(1.0f, 1.0f, 1.0f);
-				aiQuaternion rotation;
-				aiVector3D   translation(0.0f, 0.0f, 0.0f);
+				aiVector3D    scaling(1.0f, 1.0f, 1.0f);
+				aiQuaternion  rotation;
+				aiVector3D    translation(0.0f, 0.0f, 0.0f);
 				node->mTransformation.Decompose(scaling, rotation, translation);
 
 				bone.bindLocalTranslation = ToVec3(translation);
 				bone.bindLocalRotation    = ToQuaternion(rotation);
 				bone.bindLocalScale       = ToVec3(scaling);
 
-				bone.parentIndex          = -1;
+				bone.parentIndex     = -1;
 				const aiNode* parent = node->mParent;
 				while (parent) {
 					const auto parentIt = boneNameToIndex.find(
@@ -174,27 +215,30 @@ namespace Unnamed {
 		}
 
 		void SortTrackKeys(SkeletonBoneTrackAssetData& track) {
-			std::sort(
-				track.translationKeys.begin(),
-				track.translationKeys.end(),
-				[](const AnimationKeyVec3AssetData& lhs,
-				   const AnimationKeyVec3AssetData& rhs) {
+			std::ranges::sort(
+				track.translationKeys,
+				[](
+				const AnimationKeyVec3AssetData& lhs,
+				const AnimationKeyVec3AssetData& rhs
+			) {
 					return lhs.timeSeconds < rhs.timeSeconds;
 				}
 			);
-			std::sort(
-				track.rotationKeys.begin(),
-				track.rotationKeys.end(),
-				[](const AnimationKeyQuatAssetData& lhs,
-				   const AnimationKeyQuatAssetData& rhs) {
+			std::ranges::sort(
+				track.rotationKeys,
+				[](
+				const AnimationKeyQuatAssetData& lhs,
+				const AnimationKeyQuatAssetData& rhs
+			) {
 					return lhs.timeSeconds < rhs.timeSeconds;
 				}
 			);
-			std::sort(
-				track.scaleKeys.begin(),
-				track.scaleKeys.end(),
-				[](const AnimationKeyVec3AssetData& lhs,
-				   const AnimationKeyVec3AssetData& rhs) {
+			std::ranges::sort(
+				track.scaleKeys,
+				[](
+				const AnimationKeyVec3AssetData& lhs,
+				const AnimationKeyVec3AssetData& rhs
+			) {
 					return lhs.timeSeconds < rhs.timeSeconds;
 				}
 			);
@@ -221,9 +265,11 @@ namespace Unnamed {
 					                              anim->mTicksPerSecond :
 					                              25.0;
 				AnimationClipAssetData clip = {};
-				clip.name = anim->mName.length > 0 ?
-					            std::string(anim->mName.C_Str()) :
-					            ("Anim" + std::to_string(animIndex));
+				clip.name                   = anim->mName.length > 0 ?
+					                              std::string(
+						                              anim->mName.C_Str()) :
+					                              ("Anim" + std::to_string(
+						                               animIndex));
 				clip.durationSeconds = anim->mDuration > 0.0 ?
 					                       static_cast<float>(
 						                       anim->mDuration /
@@ -254,10 +300,10 @@ namespace Unnamed {
 						const aiVectorKey& key = channel->mPositionKeys[i];
 						track.translationKeys.push_back(
 							{
-								static_cast<float>(
+								.timeSeconds = static_cast<float>(
 									key.mTime / ticksPerSecond
 								),
-								ToVec3(key.mValue)
+								.value = ToVec3(key.mValue)
 							}
 						);
 					}
@@ -266,10 +312,10 @@ namespace Unnamed {
 						const aiQuatKey& key = channel->mRotationKeys[i];
 						track.rotationKeys.push_back(
 							{
-								static_cast<float>(
+								.timeSeconds = static_cast<float>(
 									key.mTime / ticksPerSecond
 								),
-								ToQuaternion(key.mValue)
+								.value = ToQuaternion(key.mValue)
 							}
 						);
 					}
@@ -278,10 +324,10 @@ namespace Unnamed {
 						const aiVectorKey& key = channel->mScalingKeys[i];
 						track.scaleKeys.push_back(
 							{
-								static_cast<float>(
+								.timeSeconds = static_cast<float>(
 									key.mTime / ticksPerSecond
 								),
-								ToVec3(key.mValue)
+								.value = ToVec3(key.mValue)
 							}
 						);
 					}
@@ -399,6 +445,27 @@ namespace Unnamed {
 						mesh->mNormals[v].Normalize();
 					}
 				}
+
+				if (mesh->HasTangentsAndBitangents()) {
+					aiMatrix4x4 rotScale = global;
+					rotScale.a4          = rotScale.b4 = rotScale.c4 = 0.0f;
+					for (uint32_t v = 0; v < mesh->mNumVertices; ++v) {
+						mesh->mTangents[v] = rotScale * mesh->mTangents[v];
+						mesh->mTangents[v].Normalize();
+						mesh->mBitangents[v] = rotScale * mesh->mBitangents[v];
+						mesh->mBitangents[v].Normalize();
+
+						if (mesh->HasNormals()) {
+							const Vec3 n = SafeNormalizeOr(
+								ToVec3(mesh->mNormals[v]), Vec3::up
+							);
+							const Vec3 t = OrthonormalizeTangent(
+								ToVec3(mesh->mTangents[v]), n
+							);
+							mesh->mTangents[v] = aiVector3D(t.x, t.y, t.z);
+						}
+					}
+				}
 			}
 
 			for (uint32_t c = 0; c < node->mNumChildren; ++c) {
@@ -442,6 +509,7 @@ namespace Unnamed {
 		// スキン無しメッシュは階層トランスフォームを焼き込んで頂点をフラット化することで、ランタイムの頂点処理を軽量化する。
 		constexpr uint32_t kBaseFlags =
 			aiProcess_ImproveCacheLocality |
+			aiProcess_CalcTangentSpace |
 			aiProcess_ConvertToLeftHanded;
 
 		const aiScene* scene = importer.ReadFile(path, kBaseFlags);
@@ -485,7 +553,8 @@ namespace Unnamed {
 
 			const uint32_t baseVertex = static_cast<uint32_t>(out.vertices.
 				size());
-			const uint32_t submeshIndexStart = static_cast<uint32_t>(out.indices.
+			const uint32_t submeshIndexStart = static_cast<uint32_t>(out.indices
+				.
 				size());
 			out.vertices.reserve(
 				out.vertices.size() + static_cast<size_t>(mesh->mNumVertices)
@@ -511,6 +580,18 @@ namespace Unnamed {
 						       mesh->mTextureCoords[0][i].y
 					       ) :
 					       Vec2::zero;
+				if (mesh->HasTangentsAndBitangents()) {
+					v.tangent = BuildTangentWithHandedness(
+						v.normal,
+						ToVec3(mesh->mTangents[i]),
+						ToVec3(mesh->mBitangents[i])
+					);
+				} else {
+					v.tangent = Vec4(
+						OrthonormalizeTangent(Vec3::right, v.normal),
+						1.0f
+					);
+				}
 
 				out.localBoundsMin = Vec3::Min(out.localBoundsMin, v.position);
 				out.localBoundsMax = Vec3::Max(out.localBoundsMax, v.position);
@@ -593,9 +674,9 @@ namespace Unnamed {
 			);
 			if (submeshIndexCount > 0) {
 				SubMeshAssetData submesh = {};
-				submesh.indexStart = submeshIndexStart;
-				submesh.indexCount = submeshIndexCount;
-				submesh.materialIndex = mesh->mMaterialIndex;
+				submesh.indexStart       = submeshIndexStart;
+				submesh.indexCount       = submeshIndexCount;
+				submesh.materialIndex    = mesh->mMaterialIndex;
 				out.submeshes.emplace_back(submesh);
 			}
 		}
@@ -613,7 +694,7 @@ namespace Unnamed {
 		}
 
 		r.payload     = std::move(out);
-		r.resolveName = std::filesystem::path(path).filename().string();
+		r.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
 		r.stamp       = ReadCurrentFileStamp(path);
 		WriteDerivedCache(path, r);
 
@@ -631,13 +712,13 @@ namespace Unnamed {
 
 	bool MeshAssetLoader::TryLoadDerivedCache(
 		const std::string& path, LoadResult& out
-	) const {
+	) {
 		const std::filesystem::path cachePath = GetDerivedCachePath(path);
 		if (!std::filesystem::exists(cachePath)) {
 			return false;
 		}
 
-		BinaryReader reader(cachePath.string());
+		BinaryReader reader(Path::ToUtf8String(cachePath));
 		if (!reader.IsOpen()) {
 			return false;
 		}
@@ -762,7 +843,7 @@ namespace Unnamed {
 		}
 
 		out.payload     = std::move(mesh);
-		out.resolveName = std::filesystem::path(path).filename().string();
+		out.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
 		out.stamp       = sourceStamp;
 
 		if (Profiler* profiler = ServiceLocator::Get<Profiler>()) {
@@ -785,7 +866,7 @@ namespace Unnamed {
 		std::error_code             ec;
 		std::filesystem::create_directories(cachePath.parent_path(), ec);
 
-		BinaryWriter writer(cachePath.string());
+		BinaryWriter writer(Path::ToUtf8String(cachePath));
 		if (!writer.IsOpen()) {
 			return false;
 		}
@@ -811,7 +892,8 @@ namespace Unnamed {
 		}
 		if (!writer.WriteArray(mesh->vertices.data(), mesh->vertices.size()) ||
 		    !writer.WriteArray(mesh->indices.data(), mesh->indices.size()) ||
-		    !writer.WriteArray(mesh->submeshes.data(), mesh->submeshes.size())) {
+		    !writer.WriteArray(mesh->submeshes.data(),
+		                       mesh->submeshes.size())) {
 			return false;
 		}
 

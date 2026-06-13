@@ -13,5 +13,4 @@ startproject(startupProject)
 
 dofile("build/premake/thirdparty.lua")
 dofile("build/premake/engine.lua")
-dofile("build/premake/games.lua")
 dofile("build/premake/apps.lua")

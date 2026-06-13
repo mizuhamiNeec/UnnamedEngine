@@ -55,7 +55,8 @@ namespace Unnamed::Rhi {
 		float roughness     = 1.0f;
 		float opacity       = 1.0f;
 		float domainMode    = 1.0f; // 0=Unlit, 1=PBR
-		float padding[12]   = {};
+		float shadingModel  = 0.0f; // 0=LitPBR, 1=Toon, 2=Unlit
+		float padding[11]   = {};
 	};
 
 	static_assert(
@@ -65,5 +66,40 @@ namespace Unnamed::Rhi {
 	static_assert(
 		sizeof(MaterialConstants) <= 256,
 		"MaterialConstants must be 256 bytes or less"
+	);
+
+	struct alignas(16) ShadowConstants {
+		Mat4 lightViewProj = Mat4::identity;
+		Vec4 params        = Vec4::zero;
+		// x=depthBias, y=strength, z=texelSize, w=enabled
+		Vec4 filterParams = Vec4::zero;
+		// x=pcfEnabled, y=pcfRadiusTexels, z=normalBias, w=unused
+		Vec4 directionToLight = Vec4(0.0f, 1.0f, 0.0f, 0.0f);
+		Vec4 lightColorIntensity = Vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	};
+
+	static_assert(
+		sizeof(ShadowConstants) % 16 == 0,
+		"ShadowConstants must be 16-byte aligned"
+	);
+	static_assert(
+		sizeof(ShadowConstants) <= 256,
+		"ShadowConstants must be 256 bytes or less"
+	);
+
+	struct alignas(16) EnvironmentLightingConstants {
+		Vec4 skyAmbientColor = Vec4(0.25f, 0.30f, 0.40f, 1.0f);
+		Vec4 groundAmbientColor = Vec4(0.08f, 0.07f, 0.06f, 1.0f);
+		Vec4 params = Vec4(0.3f, 0.0f, 0.0f, 0.0f);
+		// x=ambientIntensity, yzw=unused
+	};
+
+	static_assert(
+		sizeof(EnvironmentLightingConstants) % 16 == 0,
+		"EnvironmentLightingConstants must be 16-byte aligned"
+	);
+	static_assert(
+		sizeof(EnvironmentLightingConstants) <= 256,
+		"EnvironmentLightingConstants must be 256 bytes or less"
 	);
 }

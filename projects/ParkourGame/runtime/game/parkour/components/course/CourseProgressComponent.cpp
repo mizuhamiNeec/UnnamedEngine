@@ -4,7 +4,7 @@
 #include <array>
 #include <cstring>
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -114,9 +114,9 @@ namespace Unnamed {
 		return "CourseProgress";
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void CourseProgressComponent::DrawInspectorImGui() {
-#if defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		std::array<char, 64> courseIdBuffer  = {};
 		const size_t         courseIdCopyLen = std::min(
 			mCourseId.size(),

@@ -12,5 +12,7 @@ namespace Unnamed {
 		uint32_t    strongRefs = 0; // 外部からの参照
 		uint32_t    version    = 0; // アセットのバージョン
 		bool        loaded     = false;
+		bool        runtime    = false; // CreateRuntimeAssetで生成されたアセット
+		bool        destroyed  = false; // 明示破棄済みのruntimeアセット
 	};
 }

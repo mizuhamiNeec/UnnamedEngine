@@ -1,6 +1,6 @@
-#ifdef _DEBUG
+#include "pch.h"
 
-#include <imgui_internal.h>
+#ifdef _DEBUG
 
 #include <core/math/Math.h>
 
@@ -217,8 +217,8 @@ namespace ImGuiUtil {
 		const bool               canRemove,
 		const ImGuiTreeNodeFlags flags
 	) {
-		std::string uniqueID = "##" + std::to_string(id);
-		HeaderMenuAction menuAction = HeaderMenuAction::None;
+		const std::string uniqueID   = "##" + std::to_string(id);
+		auto              menuAction = HeaderMenuAction::None;
 
 		ImGui::PushID(uniqueID.c_str());
 		ImGui::BeginGroup();
@@ -230,9 +230,9 @@ namespace ImGuiUtil {
 			flags | ImGuiTreeNodeFlags_AllowOverlap // チェックボックスと重なってもいいようにする
 		);
 
-		const float collapsingHeaderHeight = ImGui::GetItemRectSize().y;
-		const ImVec2 collapsingHeaderMin   = ImGui::GetItemRectMin();
-		const ImVec2 collapsingHeaderMax   = ImGui::GetItemRectMax();
+		const float  collapsingHeaderHeight = ImGui::GetItemRectSize().y;
+		const ImVec2 collapsingHeaderMin    = ImGui::GetItemRectMin();
+		const ImVec2 collapsingHeaderMax    = ImGui::GetItemRectMax();
 
 		ImGui::PopStyleVar();
 
@@ -247,7 +247,6 @@ namespace ImGuiUtil {
 			Unnamed::StrUtil::ConvertToUtf8(icon).c_str()
 		);
 		iconSize.x *= iconScale;
-		iconSize.y *= iconScale;
 
 		ImGui::GetWindowDrawList()->AddText(
 			ImGui::GetFont(),
@@ -283,18 +282,19 @@ namespace ImGuiUtil {
 
 		ImGui::SameLine();
 
-		std::string moreHoriz = Unnamed::StrUtil::ConvertToUtf8(
+		const std::string moreHoriz = Unnamed::StrUtil::ConvertToUtf8(
 			kIconMoreHoriz
 		);
 
 		const float buttonWidth = ImGui::CalcTextSize(moreHoriz.c_str()).x +
-			ImGui::GetStyle().FramePadding.x * 2.0f;
+		                          ImGui::GetStyle().FramePadding.x * 2.0f;
 		ImGui::SetCursorPosX(
 			ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x -
 			ImGui::GetStyle().ItemSpacing.x * 2.0f - buttonWidth
 		);
-		const float headerCenterY = (collapsingHeaderMin.y + collapsingHeaderMax.
-			y) *
+		const float headerCenterY =
+			(collapsingHeaderMin.y + collapsingHeaderMax.
+			 y) *
 			0.5f;
 		const float buttonTopY = headerCenterY - ImGui::GetFrameHeight() * 0.5f;
 		ImGui::SetCursorPosY(buttonTopY - ImGui::GetWindowPos().y);

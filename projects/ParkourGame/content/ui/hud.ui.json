@@ -149,6 +149,326 @@
                         "data": {
                             "anchors": [
                                 0.5,
+                                0.0,
+                                0.5,
+                                0.0
+                            ],
+                            "constraints": {
+                                "maxHeight": 3.4028234663852886e+38,
+                                "maxWidth": 3.4028234663852886e+38,
+                                "minHeight": 0.0,
+                                "minWidth": 0.0
+                            },
+                            "margins": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "pivot": [
+                                0.5,
+                                0.5
+                            ],
+                            "rect": [
+                                -120.0,
+                                56.0,
+                                96.0,
+                                48.0
+                            ],
+                            "sizePolicy": [
+                                "Fixed",
+                                "Fixed"
+                            ]
+                        },
+                        "type": "Transform"
+                    },
+                    {
+                        "data": {
+                            "color": [
+                                1.0,
+                                1.0,
+                                1.0,
+                                0.7200000286102295
+                            ],
+                            "digitSpacing": 0.0,
+                            "minDigits": 2,
+                            "stripTexturePath": "textures/digits.png",
+                            "value": 0
+                        },
+                        "type": "DigitStrip"
+                    }
+                ],
+                "enabled": true,
+                "name": "CourseProgressElapsedMinutes",
+                "visible": false
+            },
+            {
+                "children": [],
+                "components": [
+                    {
+                        "data": {
+                            "anchors": [
+                                0.5,
+                                0.0,
+                                0.5,
+                                0.0
+                            ],
+                            "constraints": {
+                                "maxHeight": 3.4028234663852886e+38,
+                                "maxWidth": 3.4028234663852886e+38,
+                                "minHeight": 0.0,
+                                "minWidth": 0.0
+                            },
+                            "margins": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "pivot": [
+                                0.5,
+                                0.5
+                            ],
+                            "rect": [
+                                -60.0,
+                                56.0,
+                                48.0,
+                                48.0
+                            ],
+                            "sizePolicy": [
+                                "Fixed",
+                                "Fixed"
+                            ]
+                        },
+                        "type": "Transform"
+                    },
+                    {
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "color": [
+                                1.0,
+                                1.0,
+                                1.0,
+                                0.7200000286102295
+                            ],
+                            "rotationRad": 0.0,
+                            "texturePath": "textures/colon.png",
+                            "uvMax": [
+                                1.0,
+                                1.0
+                            ],
+                            "uvMin": [
+                                0.0,
+                                0.0
+                            ]
+                        },
+                        "type": "Texture"
+                    }
+                ],
+                "enabled": true,
+                "name": "CourseProgressElapsedComma",
+                "visible": false
+            },
+            {
+                "children": [],
+                "components": [
+                    {
+                        "data": {
+                            "anchors": [
+                                0.5,
+                                0.0,
+                                0.5,
+                                0.0
+                            ],
+                            "constraints": {
+                                "maxHeight": 3.4028234663852886e+38,
+                                "maxWidth": 3.4028234663852886e+38,
+                                "minHeight": 0.0,
+                                "minWidth": 0.0
+                            },
+                            "margins": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "pivot": [
+                                0.5,
+                                0.5
+                            ],
+                            "rect": [
+                                0.0,
+                                56.0,
+                                96.0,
+                                48.0
+                            ],
+                            "sizePolicy": [
+                                "Fixed",
+                                "Fixed"
+                            ]
+                        },
+                        "type": "Transform"
+                    },
+                    {
+                        "data": {
+                            "color": [
+                                1.0,
+                                1.0,
+                                1.0,
+                                0.7200000286102295
+                            ],
+                            "digitSpacing": 0.0,
+                            "minDigits": 2,
+                            "stripTexturePath": "textures/digits.png",
+                            "value": 0
+                        },
+                        "type": "DigitStrip"
+                    }
+                ],
+                "enabled": true,
+                "name": "CourseProgressElapsedSeconds",
+                "visible": false
+            },
+            {
+                "children": [],
+                "components": [
+                    {
+                        "data": {
+                            "anchors": [
+                                0.5,
+                                0.0,
+                                0.5,
+                                0.0
+                            ],
+                            "constraints": {
+                                "maxHeight": 3.4028234663852886e+38,
+                                "maxWidth": 3.4028234663852886e+38,
+                                "minHeight": 0.0,
+                                "minWidth": 0.0
+                            },
+                            "margins": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "pivot": [
+                                0.5,
+                                0.5
+                            ],
+                            "rect": [
+                                60.0,
+                                56.0,
+                                48.0,
+                                48.0
+                            ],
+                            "sizePolicy": [
+                                "Fixed",
+                                "Fixed"
+                            ]
+                        },
+                        "type": "Transform"
+                    },
+                    {
+                        "data": {
+                            "anchor": [
+                                0.5,
+                                0.5
+                            ],
+                            "color": [
+                                1.0,
+                                1.0,
+                                1.0,
+                                0.7200000286102295
+                            ],
+                            "rotationRad": 0.0,
+                            "texturePath": "textures/dot.png",
+                            "uvMax": [
+                                1.0,
+                                1.0
+                            ],
+                            "uvMin": [
+                                0.0,
+                                0.0
+                            ]
+                        },
+                        "type": "Texture"
+                    }
+                ],
+                "enabled": true,
+                "name": "CourseProgressElapsedDot",
+                "visible": false
+            },
+            {
+                "children": [],
+                "components": [
+                    {
+                        "data": {
+                            "anchors": [
+                                0.5,
+                                0.0,
+                                0.5,
+                                0.0
+                            ],
+                            "constraints": {
+                                "maxHeight": 3.4028234663852886e+38,
+                                "maxWidth": 3.4028234663852886e+38,
+                                "minHeight": 0.0,
+                                "minWidth": 0.0
+                            },
+                            "margins": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "pivot": [
+                                0.5,
+                                0.5
+                            ],
+                            "rect": [
+                                120.0,
+                                56.0,
+                                96.0,
+                                48.0
+                            ],
+                            "sizePolicy": [
+                                "Fixed",
+                                "Fixed"
+                            ]
+                        },
+                        "type": "Transform"
+                    },
+                    {
+                        "data": {
+                            "color": [
+                                1.0,
+                                1.0,
+                                1.0,
+                                0.7200000286102295
+                            ],
+                            "digitSpacing": 0.0,
+                            "minDigits": 2,
+                            "stripTexturePath": "textures/digits.png",
+                            "value": 0
+                        },
+                        "type": "DigitStrip"
+                    }
+                ],
+                "enabled": true,
+                "name": "CourseProgressElapsedFraction",
+                "visible": false
+            },
+            {
+                "children": [],
+                "components": [
+                    {
+                        "data": {
+                            "anchors": [
+                                0.5,
                                 0.5,
                                 0.5,
                                 0.5
@@ -412,6 +732,326 @@
                         ],
                         "enabled": true,
                         "name": "CourseResultElapsedDigits",
+                        "visible": true
+                    },
+                    {
+                        "children": [],
+                        "components": [
+                            {
+                                "data": {
+                                    "anchors": [
+                                        0.5,
+                                        0.5,
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "constraints": {
+                                        "maxHeight": 3.4028234663852886e+38,
+                                        "maxWidth": 3.4028234663852886e+38,
+                                        "minHeight": 0.0,
+                                        "minWidth": 0.0
+                                    },
+                                    "margins": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "pivot": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "rect": [
+                                        -120.0,
+                                        72.0,
+                                        96.0,
+                                        48.0
+                                    ],
+                                    "sizePolicy": [
+                                        "Fixed",
+                                        "Fixed"
+                                    ]
+                                },
+                                "type": "Transform"
+                            },
+                            {
+                                "data": {
+                                    "color": [
+                                        1.0,
+                                        1.0,
+                                        1.0,
+                                        0.0
+                                    ],
+                                    "digitSpacing": 0.0,
+                                    "minDigits": 2,
+                                    "stripTexturePath": "textures/digits.png",
+                                    "value": 0
+                                },
+                                "type": "DigitStrip"
+                            }
+                        ],
+                        "enabled": true,
+                        "name": "CourseResultElapsedMinutes",
+                        "visible": true
+                    },
+                    {
+                        "children": [],
+                        "components": [
+                            {
+                                "data": {
+                                    "anchors": [
+                                        0.5,
+                                        0.5,
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "constraints": {
+                                        "maxHeight": 3.4028234663852886e+38,
+                                        "maxWidth": 3.4028234663852886e+38,
+                                        "minHeight": 0.0,
+                                        "minWidth": 0.0
+                                    },
+                                    "margins": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "pivot": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "rect": [
+                                        -60.0,
+                                        72.0,
+                                        48.0,
+                                        48.0
+                                    ],
+                                    "sizePolicy": [
+                                        "Fixed",
+                                        "Fixed"
+                                    ]
+                                },
+                                "type": "Transform"
+                            },
+                            {
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "color": [
+                                        1.0,
+                                        1.0,
+                                        1.0,
+                                        0.0
+                                    ],
+                                    "rotationRad": 0.0,
+                                    "texturePath": "textures/colon.png",
+                                    "uvMax": [
+                                        1.0,
+                                        1.0
+                                    ],
+                                    "uvMin": [
+                                        0.0,
+                                        0.0
+                                    ]
+                                },
+                                "type": "Texture"
+                            }
+                        ],
+                        "enabled": true,
+                        "name": "CourseResultElapsedComma",
+                        "visible": true
+                    },
+                    {
+                        "children": [],
+                        "components": [
+                            {
+                                "data": {
+                                    "anchors": [
+                                        0.5,
+                                        0.5,
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "constraints": {
+                                        "maxHeight": 3.4028234663852886e+38,
+                                        "maxWidth": 3.4028234663852886e+38,
+                                        "minHeight": 0.0,
+                                        "minWidth": 0.0
+                                    },
+                                    "margins": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "pivot": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "rect": [
+                                        0.0,
+                                        72.0,
+                                        96.0,
+                                        48.0
+                                    ],
+                                    "sizePolicy": [
+                                        "Fixed",
+                                        "Fixed"
+                                    ]
+                                },
+                                "type": "Transform"
+                            },
+                            {
+                                "data": {
+                                    "color": [
+                                        1.0,
+                                        1.0,
+                                        1.0,
+                                        0.0
+                                    ],
+                                    "digitSpacing": 0.0,
+                                    "minDigits": 2,
+                                    "stripTexturePath": "textures/digits.png",
+                                    "value": 0
+                                },
+                                "type": "DigitStrip"
+                            }
+                        ],
+                        "enabled": true,
+                        "name": "CourseResultElapsedSeconds",
+                        "visible": true
+                    },
+                    {
+                        "children": [],
+                        "components": [
+                            {
+                                "data": {
+                                    "anchors": [
+                                        0.5,
+                                        0.5,
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "constraints": {
+                                        "maxHeight": 3.4028234663852886e+38,
+                                        "maxWidth": 3.4028234663852886e+38,
+                                        "minHeight": 0.0,
+                                        "minWidth": 0.0
+                                    },
+                                    "margins": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "pivot": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "rect": [
+                                        60.0,
+                                        72.0,
+                                        48.0,
+                                        48.0
+                                    ],
+                                    "sizePolicy": [
+                                        "Fixed",
+                                        "Fixed"
+                                    ]
+                                },
+                                "type": "Transform"
+                            },
+                            {
+                                "data": {
+                                    "anchor": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "color": [
+                                        1.0,
+                                        1.0,
+                                        1.0,
+                                        0.0
+                                    ],
+                                    "rotationRad": 0.0,
+                                    "texturePath": "textures/dot.png",
+                                    "uvMax": [
+                                        1.0,
+                                        1.0
+                                    ],
+                                    "uvMin": [
+                                        0.0,
+                                        0.0
+                                    ]
+                                },
+                                "type": "Texture"
+                            }
+                        ],
+                        "enabled": true,
+                        "name": "CourseResultElapsedDot",
+                        "visible": true
+                    },
+                    {
+                        "children": [],
+                        "components": [
+                            {
+                                "data": {
+                                    "anchors": [
+                                        0.5,
+                                        0.5,
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "constraints": {
+                                        "maxHeight": 3.4028234663852886e+38,
+                                        "maxWidth": 3.4028234663852886e+38,
+                                        "minHeight": 0.0,
+                                        "minWidth": 0.0
+                                    },
+                                    "margins": [
+                                        0.0,
+                                        0.0,
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "pivot": [
+                                        0.5,
+                                        0.5
+                                    ],
+                                    "rect": [
+                                        120.0,
+                                        72.0,
+                                        96.0,
+                                        48.0
+                                    ],
+                                    "sizePolicy": [
+                                        "Fixed",
+                                        "Fixed"
+                                    ]
+                                },
+                                "type": "Transform"
+                            },
+                            {
+                                "data": {
+                                    "color": [
+                                        1.0,
+                                        1.0,
+                                        1.0,
+                                        0.0
+                                    ],
+                                    "digitSpacing": 0.0,
+                                    "minDigits": 2,
+                                    "stripTexturePath": "textures/digits.png",
+                                    "value": 0
+                                },
+                                "type": "DigitStrip"
+                            }
+                        ],
+                        "enabled": true,
+                        "name": "CourseResultElapsedFraction",
                         "visible": true
                     }
                 ],

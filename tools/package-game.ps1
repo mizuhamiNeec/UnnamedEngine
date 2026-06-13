@@ -34,6 +34,19 @@ function Resolve-PathAgainstBase {
     return [System.IO.Path]::GetFullPath((Join-Path $BasePath $Value))
 }
 
+function Test-EquivalentPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$LeftPath,
+        [Parameter(Mandatory = $true)]
+        [string]$RightPath
+    )
+
+    $leftFullPath = [System.IO.Path]::GetFullPath($LeftPath)
+    $rightFullPath = [System.IO.Path]::GetFullPath($RightPath)
+    return [string]::Equals($leftFullPath, $rightFullPath, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
 function Load-JsonObject {
     param([string]$Path)
 
@@ -102,13 +115,21 @@ function Resolve-AppExecutable {
         throw "bin directory was not found for auto app detection: $binRoot"
     }
 
-    $preferredName = "{0}App.exe" -f ([string]$Manifest.gameName)
-    $candidates = Get-ChildItem -LiteralPath $binRoot -Recurse -File -Filter $preferredName | Sort-Object LastWriteTimeUtc -Descending
-    if ($candidates.Count -gt 0) {
-        return $candidates[0].FullName
+    $candidateNames = @()
+    $gameName = [string]$Manifest.gameName
+    if (-not [string]::IsNullOrWhiteSpace($gameName)) {
+        $candidateNames += ("{0}App.exe" -f $gameName)
+    }
+    $candidateNames += "UnnamedLauncher.exe"
+
+    foreach ($candidateName in $candidateNames) {
+        $candidates = Get-ChildItem -LiteralPath $binRoot -Recurse -File -Filter $candidateName | Sort-Object LastWriteTimeUtc -Descending
+        if ($candidates.Count -gt 0) {
+            return $candidates[0].FullName
+        }
     }
 
-    throw "Could not auto-detect app executable '$preferredName'. Pass -AppExePath explicitly."
+    throw "Could not auto-detect app executable. Tried: $($candidateNames -join ', '). Pass -AppExePath explicitly."
 }
 
 function Invoke-ToolScript {
@@ -129,11 +150,17 @@ $resolvedProject = [System.IO.Path]::GetFullPath($Project)
 $manifest = Load-JsonObject -Path $resolvedProject
 Ensure-ManifestShape -Manifest $manifest -ManifestPath $resolvedProject
 
+$repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$engineContentRoot = Join-Path $repoRoot "content"
+
 $manifestDir = Split-Path -Parent $resolvedProject
 $resolvedGameRoot = Resolve-PathAgainstBase -BasePath $manifestDir -Value ([string]$manifest.gameRoot)
 $resolvedContentRoot = Resolve-PathAgainstBase -BasePath $manifestDir -Value ([string]$manifest.contentRoot)
 $resolvedConfigRoot = Resolve-PathAgainstBase -BasePath $manifestDir -Value ([string]$manifest.configRoot)
 
+if (-not (Test-Path -LiteralPath $engineContentRoot -PathType Container)) {
+    throw "Engine content root was not found: $engineContentRoot"
+}
 if (-not (Test-Path -LiteralPath $resolvedGameRoot -PathType Container)) {
     throw "Resolved gameRoot does not exist: $resolvedGameRoot"
 }
@@ -160,7 +187,10 @@ New-Item -ItemType Directory -Force -Path $resolvedOutputRoot | Out-Null
 
 $targetContentRoot = Join-Path $resolvedOutputRoot "content"
 $targetConfigRoot = Join-Path $resolvedOutputRoot "config"
-Copy-DirectoryContents -SourceDir $resolvedContentRoot -DestinationDir $targetContentRoot
+Copy-DirectoryContents -SourceDir $engineContentRoot -DestinationDir $targetContentRoot
+if (-not (Test-EquivalentPath -LeftPath $engineContentRoot -RightPath $resolvedContentRoot)) {
+    Copy-DirectoryContents -SourceDir $resolvedContentRoot -DestinationDir $targetContentRoot
+}
 Copy-DirectoryContents -SourceDir $resolvedConfigRoot -DestinationDir $targetConfigRoot
 
 if ($IncludeMods) {
@@ -225,6 +255,12 @@ $packagedManifest.gameRoot = ".."
 $packagedManifest.contentRoot = "../content"
 $packagedManifest.configRoot = "."
 $packagedManifest.defaultStartupScene = [string]$manifest.defaultStartupScene
+if ($manifest.PSObject.Properties.Match("runtimeModule").Count -gt 0) {
+    $runtimeModule = [string]$manifest.runtimeModule
+    if (-not [string]::IsNullOrWhiteSpace($runtimeModule)) {
+        $packagedManifest.runtimeModule = $runtimeModule
+    }
+}
 
 if ($manifest.PSObject.Properties.Match("requireRuntimeBinary").Count -gt 0) {
     $packagedManifest.requireRuntimeBinary = [bool]$manifest.requireRuntimeBinary

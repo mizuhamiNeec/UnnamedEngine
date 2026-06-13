@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.000144958496094,
-                            36.00034713745117,
-                            16.000144958496094
+                            16.000221252441406,
+                            36.00053024291992,
+                            16.000221252441406
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -180,7 +180,16 @@
                         "arrowSizePx": 162.0,
                         "arrowTexturePath": "textures/arrow.png",
                         "arrowWidgetName": "NextCheckpointArrow",
+                        "commaTexturePath": "textures/colon.png",
                         "courseId": "default",
+                        "digitTexturePath": "textures/digits.png",
+                        "dotTexturePath": "textures/dot.png",
+                        "elapsedCommaWidgetName": "CourseProgressElapsedComma",
+                        "elapsedDotWidgetName": "CourseProgressElapsedDot",
+                        "elapsedFractionWidgetName": "CourseProgressElapsedFraction",
+                        "elapsedMinutesWidgetName": "CourseProgressElapsedMinutes",
+                        "elapsedSecondsWidgetName": "CourseProgressElapsedSeconds",
+                        "elapsedTextAlpha": 0.7200000286102295,
                         "pinSizePx": 64.0,
                         "pinTexturePath": "textures/ping.png",
                         "pinWidgetName": "NextCheckpointPin",
@@ -196,11 +205,18 @@
                         "clearAudioSourceGuid": 9100000000000000212,
                         "clearImageWidgetName": "CourseResultClearImage",
                         "clearTexturePath": "textures/clear.png",
+                        "commaTexturePath": "textures/colon.png",
                         "courseId": "default",
                         "digitTexturePath": "textures/digits.png",
+                        "dotTexturePath": "textures/dot.png",
+                        "elapsedCommaWidgetName": "CourseResultElapsedComma",
                         "elapsedDigitsMinDigits": 6,
                         "elapsedDigitsWidgetName": "CourseResultElapsedDigits",
                         "elapsedDisplayScale": 100.0,
+                        "elapsedDotWidgetName": "CourseResultElapsedDot",
+                        "elapsedFractionWidgetName": "CourseResultElapsedFraction",
+                        "elapsedMinutesWidgetName": "CourseResultElapsedMinutes",
+                        "elapsedSecondsWidgetName": "CourseResultElapsedSeconds",
                         "fadeOutSeconds": 0.44999998807907104,
                         "fadeOverlayWidgetName": "OpeningFadeOverlay",
                         "hudCanvasEntityGuid": 2100,
@@ -1385,8 +1401,8 @@
                         "attachCommands": [
                             "sv_gravity 1000",
                             "sv_airaccelerate 100000000000000000000",
-                            "bind f9 \"demo_record S:/Repositories/UE/projects/ParkourGame/content/replay/title_demo.udemo\"",
-                            "bind f8 \"demo_play S:/Repositories/UE/projects/ParkourGame/content/replay/title_demo.udemo\"",
+                            "bind f9 \"demo_record ./projects/ParkourGame/content/replay/title_demo.udemo\"",
+                            "bind f8 \"demo_play ./projects/ParkourGame/content/replay/title_demo.udemo\"",
                             "bind f7 \"demo_stop\""
                         ],
                         "detachCommands": []
@@ -1616,6 +1632,106 @@
             "guid": 9100000000000000200,
             "isEditorOnly": false,
             "name": "CutsceneCamera",
+            "visible": true
+        },
+        {
+            "active": true,
+            "components": [
+                {
+                    "active": true,
+                    "data": {
+                        "parentEntityGuid": 0,
+                        "position": [
+                            0.0,
+                            13.004799842834473,
+                            0.0
+                        ],
+                        "rotation": [
+                            -2.1179334908083547e-06,
+                            0.9914448857307434,
+                            -0.1305258870124817,
+                            1.717097575237858e-08
+                        ],
+                        "scale": [
+                            0.9999989867210388,
+                            0.9999997615814209,
+                            0.9999986290931702
+                        ]
+                    },
+                    "guid": 10492884076588630975,
+                    "type": "engine.Transform"
+                },
+                {
+                    "active": true,
+                    "data": {
+                        "castsShadow": true,
+                        "color": [
+                            1.0,
+                            0.8095300793647766,
+                            0.3371647596359253
+                        ],
+                        "intensity": 1.0
+                    },
+                    "guid": 16978718190624883074,
+                    "type": "engine.DirectionalLight"
+                }
+            ],
+            "folderPath": "Gameplay/World",
+            "guid": 9100000000000000202,
+            "isEditorOnly": false,
+            "name": "Sun",
+            "visible": true
+        },
+        {
+            "active": true,
+            "components": [
+                {
+                    "active": true,
+                    "data": {
+                        "parentEntityGuid": 0,
+                        "position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "guid": 13302431723005234301,
+                    "type": "engine.Transform"
+                },
+                {
+                    "active": true,
+                    "data": {
+                        "groundColor": [
+                            0.07999999821186066,
+                            0.07000000029802322,
+                            0.05999999865889549
+                        ],
+                        "intensity": 3.0,
+                        "skyColor": [
+                            0.25,
+                            0.30000001192092896,
+                            0.4000000059604645
+                        ]
+                    },
+                    "guid": 13828722475934398570,
+                    "type": "engine.SkyLight"
+                }
+            ],
+            "folderPath": "Gameplay/World",
+            "guid": 9100000000000000203,
+            "isEditorOnly": false,
+            "name": "SkyLight",
             "visible": true
         }
     ],

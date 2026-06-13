@@ -21,6 +21,7 @@ if hasParkourRuntime then
 	project "ParkourGameRuntime"
 		kind "StaticLib"
 		CommonProjectSettings("%{prj.name}")
+		PCHSettings()
 		WarningSettings()
 
 		files(RootPathList({
@@ -45,6 +46,7 @@ group "Engine/Applications"
 project "UnnamedLauncher"
 	kind "WindowedApp"
 	CommonProjectSettings("%{prj.name}")
+	PCHSettings()
 	WarningSettings()
 
 	files(AppLaunchFiles())
@@ -67,7 +69,9 @@ project "UnnamedLauncher"
 
 project "UnnamedEditorApp"
 	kind "WindowedApp"
+	removeconfigurations { "Develop", "Release" }
 	CommonProjectSettings("%{prj.name}")
+	PCHSettings()
 	WarningSettings()
 
 	files(AppLaunchFiles())

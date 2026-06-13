@@ -7,6 +7,7 @@ namespace Unnamed {
 	void WorldDebugDraw::DrawLine(
 		const Vec3& start, const Vec3& end, const Vec4& color
 	) {
+#ifdef _DEBUG
 		mPendingLines.emplace_back(
 			PendingLine{
 				.start = start,
@@ -14,12 +15,18 @@ namespace Unnamed {
 				.color = color,
 			}
 		);
+#else
+		(void)start;
+		(void)end;
+		(void)color;
+#endif
 	}
 
 	void WorldDebugDraw::DrawRay(
 		const Vec3& position, const Vec3& dir, const float length,
 		const Vec4& color
 	) {
+#ifdef _DEBUG
 		mPendingLines.emplace_back(
 			PendingLine{
 				.start = position,
@@ -27,11 +34,18 @@ namespace Unnamed {
 				.color = color,
 			}
 		);
+#else
+		(void)position;
+		(void)dir;
+		(void)length;
+		(void)color;
+#endif
 	}
 
 	void WorldDebugDraw::DrawRay(
 		const Vec3& position, const Vec3& dir, const Vec4& color
 	) {
+#ifdef _DEBUG
 		mPendingLines.emplace_back(
 			PendingLine{
 				.start = position,
@@ -39,6 +53,11 @@ namespace Unnamed {
 				.color = color,
 			}
 		);
+#else
+		(void)position;
+		(void)dir;
+		(void)color;
+#endif
 	}
 
 	void WorldDebugDraw::DrawAxis(

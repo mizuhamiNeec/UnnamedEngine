@@ -6,7 +6,7 @@
 #include <cstring>
 #include <unordered_set>
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 
 namespace Unnamed {

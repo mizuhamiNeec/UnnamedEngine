@@ -1,15 +1,15 @@
+#include "pch.h"
 #include "BaseKinematicCollisionResolver.h"
 
 #include <cmath>
 
-#include "engine/unnamed/subsystem/console/Log.h"
-
 namespace Unnamed {
 	BaseKinematicCollisionResolver::BaseKinematicCollisionResolver(
 		Physics::Engine* engine
-	) : mEngine(engine) {}
+	) : mEngine(engine) {
+	}
 
-	BaseKinematicCollisionResolver::~BaseKinematicCollisionResolver() {}
+	BaseKinematicCollisionResolver::~BaseKinematicCollisionResolver() = default;
 
 	Vec3 BaseKinematicCollisionResolver::ClipVelocity(
 		const Vec3& in, const Vec3& normal, const float overbounce

@@ -5,6 +5,7 @@
 
 #include "core/assets/types/EventPresentationAssetData.h"
 #include "core/io/json/JsonReader.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -33,10 +34,10 @@ namespace Unnamed {
 			return result;
 		}
 
-		const std::filesystem::path full(path);
+		const std::filesystem::path full = Path::FromUtf8(path);
 		EventPresentationAssetData  data = {};
 		data.name = root.Read<std::string>("name").value_or(
-			full.stem().stem().string()
+			Path::ToUtf8String(full.stem().stem())
 		);
 
 		const JsonReader triggersNode = root["triggers"];
@@ -161,11 +162,11 @@ namespace Unnamed {
 		}
 
 		result.payload     = std::move(data);
-		result.resolveName = full.stem().stem().string();
+		result.resolveName = Path::ToUtf8String(full.stem().stem());
 
 		std::error_code ec;
-		if (std::filesystem::exists(path, ec)) {
-			result.stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+		if (Path::ExistsUtf8(path, ec)) {
+			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 		}
 
 		return result;

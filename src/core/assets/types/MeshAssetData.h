@@ -9,6 +9,7 @@
 #include "core/math/Quaternion.h"
 #include "core/math/Vec2.h"
 #include "core/math/Vec3.h"
+#include "core/math/Vec4.h"
 
 namespace Unnamed {
 	/// @brief メッシュの頂点データ構造体
@@ -16,6 +17,7 @@ namespace Unnamed {
 		Vec3                    position    = Vec3::zero;
 		Vec3                    normal      = Vec3::up;
 		Vec2                    uv          = Vec2::zero;
+		Vec4                    tangent     = Vec4(Vec3::right, 1.0f);
 		std::array<uint16_t, 4> boneIndices = {0, 0, 0, 0};
 		std::array<float, 4>    boneWeights = {0.0f, 0.0f, 0.0f, 0.0f};
 	};
@@ -23,11 +25,11 @@ namespace Unnamed {
 	/// @brief スケルトンのボーンデータ構造体
 	struct SkeletonBoneAssetData {
 		std::string name;
-		int32_t     parentIndex     = -1;
-		Mat4        inverseBindPose = Mat4::identity;
+		int32_t     parentIndex          = -1;
+		Mat4        inverseBindPose      = Mat4::identity;
 		Vec3        bindLocalTranslation = Vec3::zero;
-		Quaternion  bindLocalRotation = Quaternion::identity;
-		Vec3        bindLocalScale = Vec3::one;
+		Quaternion  bindLocalRotation    = Quaternion::identity;
+		Vec3        bindLocalScale       = Vec3::one;
 	};
 
 	struct AnimationKeyVec3AssetData {
@@ -41,33 +43,33 @@ namespace Unnamed {
 	};
 
 	struct SkeletonBoneTrackAssetData {
-		int32_t                                   boneIndex = -1;
-		std::vector<AnimationKeyVec3AssetData>    translationKeys;
-		std::vector<AnimationKeyQuatAssetData>    rotationKeys;
-		std::vector<AnimationKeyVec3AssetData>    scaleKeys;
+		int32_t                                boneIndex = -1;
+		std::vector<AnimationKeyVec3AssetData> translationKeys;
+		std::vector<AnimationKeyQuatAssetData> rotationKeys;
+		std::vector<AnimationKeyVec3AssetData> scaleKeys;
 	};
 
 	struct AnimationClipAssetData {
-		std::string                           name;
-		float                                 durationSeconds = 0.0f;
+		std::string                             name;
+		float                                   durationSeconds = 0.0f;
 		std::vector<SkeletonBoneTrackAssetData> boneTracks;
 	};
 
 	/// @brief メッシュのサブメッシュデータ構造体
 	struct SubMeshAssetData {
-		uint32_t indexStart     = 0;  // インデックスバッファ内の開始インデックス
-		uint32_t indexCount     = 0;  // このサブメッシュのインデックス数
-		uint32_t materialIndex  = 0;  // Assimp のマテリアルインデックス
+		uint32_t indexStart    = 0; // インデックスバッファ内の開始インデックス
+		uint32_t indexCount    = 0; // このサブメッシュのインデックス数
+		uint32_t materialIndex = 0; // Assimp のマテリアルインデックス
 	};
 
 	/// @brief メッシュアセットのデータ構造体
 	struct MeshAssetData {
-		std::vector<MeshVertex>            vertices;
-		std::vector<uint32_t>              indices;
-		std::vector<SubMeshAssetData>      submeshes;  // サブメッシュ情報
-		std::vector<SkeletonBoneAssetData> skeleton;
+		std::vector<MeshVertex>             vertices;
+		std::vector<uint32_t>               indices;
+		std::vector<SubMeshAssetData>       submeshes; // サブメッシュ情報
+		std::vector<SkeletonBoneAssetData>  skeleton;
 		std::vector<AnimationClipAssetData> animationClips;
-		bool                               hasSkinning = false;
+		bool                                hasSkinning = false;
 
 		Vec3 localBoundsMin = Vec3(FLT_MAX);
 		Vec3 localBoundsMax = Vec3(-FLT_MAX);

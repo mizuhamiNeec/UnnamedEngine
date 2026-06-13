@@ -237,6 +237,12 @@ namespace Unnamed {
 			)
 		);
 
+		auto SubmitWarningMessage = [this](const std::string& message) {
+			mConsoleSystem->ExecuteCommand(
+				"notify warn 10 未実装 | " + message
+			);
+		};
+
 		{
 			const auto toolbarIconSize = ImVec2(
 				toolbarHeight * 2.75f,
@@ -254,31 +260,68 @@ namespace Unnamed {
 					ImGuiDir_Right
 				)
 			) {
-				mConsoleSystem->ExecuteCommand(
-					"notify warn 10 未実装 | 頂点選択はまだ実装されていません。"
-				);
+				SubmitWarningMessage("頂点選択は未実装です。");
 			}
 			ImGui::SameLine();
-			ImGuiWidgets::IconButton(
-				kIconEdge, "Edges", toolbarIconSize, iconScale, ImGuiDir_Right
-			);
+			if (
+				ImGuiWidgets::IconButton(
+					kIconEdge,
+					"Edges",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				)
+			) {
+				SubmitWarningMessage("辺選択は未実装です。");
+			}
 			ImGui::SameLine();
-			ImGuiWidgets::IconButton(
-				kIconFace, "Faces", toolbarIconSize, iconScale, ImGuiDir_Right
-			);
+			if (
+				ImGuiWidgets::IconButton(
+					kIconFace,
+					"Faces",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				)
+			) {
+				SubmitWarningMessage("面選択は未実装です。");
+			}
 			ImGui::SameLine();
-			ImGuiWidgets::IconButton(
-				kIconMesh, "Meshes", toolbarIconSize, iconScale, ImGuiDir_Right
-			);
+			if (
+				ImGuiWidgets::IconButton(
+					kIconMesh,
+					"Meshes",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				)
+			) {
+				SubmitWarningMessage("メッシュ選択は未実装です。");
+			}
 			ImGui::SameLine();
-			ImGuiWidgets::IconButton(
-				kIconObject, "Object", toolbarIconSize, iconScale,
-				ImGuiDir_Right
-			);
+			if (
+				ImGuiWidgets::IconButton(
+					kIconObject,
+					"Object",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				)
+			) {
+				SubmitWarningMessage("オブジェクト選択は未実装です。");
+			}
 			ImGui::SameLine();
-			ImGuiWidgets::IconButton(
-				kIconGroup, "Group", toolbarIconSize, iconScale, ImGuiDir_Right
-			);
+			if (
+				ImGuiWidgets::IconButton(
+					kIconGroup,
+					"Group",
+					toolbarIconSize,
+					iconScale,
+					ImGuiDir_Right
+				)
+			) {
+				SubmitWarningMessage("グループ選択は未実装です。");
+			}
 		}
 
 		ImGui::SameLine();

@@ -2,11 +2,14 @@
 	"name": "dev_material",
 	"shader": "../shaders/programs/pbr.shader.json",
 	"domain": "pbr",
+	"shadingModel": "LitPBR",
 	"renderState": {
 		"depthEnable": true,
+		"castsShadow": true,
+		"shadowCullMode": "None",
 		"depthWrite": true,
 		"cullBackFace": true,
-		"blendEnable": true,
+		"blendEnable": false,
 		"stencilEnable": false
 	},
 	"scalars": {

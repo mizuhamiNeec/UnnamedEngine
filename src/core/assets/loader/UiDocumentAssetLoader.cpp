@@ -3,6 +3,7 @@
 
 #include <fstream>
 
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -20,7 +21,7 @@ namespace Unnamed {
 
 	LoadResult UiDocumentAssetLoader::Load(const std::string& path) {
 		LoadResult    result = {};
-		std::ifstream ifs(path);
+		std::ifstream ifs(Path::FromUtf8(path));
 		if (!ifs) {
 			return result;
 		}
@@ -42,17 +43,17 @@ namespace Unnamed {
 			return result;
 		}
 
-		const std::filesystem::path full(path);
+		const std::filesystem::path full = Path::FromUtf8(path);
 		UiDocumentAssetData         data = {};
-		data.name = root.value("name", full.filename().string());
+		data.name = root.value("name", Path::ToUtf8String(full.filename()));
 		data.rootJson = std::move(root);
 
 		result.payload     = std::move(data);
-		result.resolveName = full.stem().stem().string();
+		result.resolveName = Path::ToUtf8String(full.stem().stem());
 
 		std::error_code ec;
-		if (std::filesystem::exists(path, ec)) {
-			result.stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+		if (Path::ExistsUtf8(path, ec)) {
+			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 		}
 		return result;
 	}

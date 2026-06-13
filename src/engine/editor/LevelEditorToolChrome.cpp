@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "core/math/Math.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
@@ -97,7 +98,7 @@ namespace Unnamed {
 
 			std::vector<std::string> scenePaths = {};
 			std::error_code          ec         = {};
-			const fs::path           rootPath{std::string(scenesRoot)};
+			const fs::path           rootPath = Path::FromUtf8(scenesRoot);
 			if (!fs::exists(rootPath, ec)) {
 				return scenePaths;
 			}
@@ -118,7 +119,7 @@ namespace Unnamed {
 				}
 
 				const std::string normalizedPath = StrUtil::NormalizePath(
-					it->path().generic_string()
+					Path::ToGenericUtf8(it->path())
 				);
 				if (
 					normalizedPath.find("/scenes/") == std::string::npos ||

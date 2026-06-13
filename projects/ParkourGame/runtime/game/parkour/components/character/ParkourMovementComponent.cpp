@@ -163,7 +163,7 @@ namespace Unnamed {
 		return "ParkourMovement";
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void ParkourMovementComponent::DrawInspectorImGui() {
 		GameMovementComponent::DrawInspectorImGui();
 

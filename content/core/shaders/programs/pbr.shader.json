@@ -1,12 +1,12 @@
 {
 	"name": "PBR",
 	"vs": {
-		"path": "../src/PBRToon.hlsl",
+		"path": "../src/PBR.hlsl",
 		"entry": "VsMain",
 		"profile": "vs_6_6"
 	},
 	"ps": {
-		"path": "../src/PBRToon.hlsl",
+		"path": "../src/PBR.hlsl",
 		"entry": "PsMain",
 		"profile": "ps_6_6"
 	}

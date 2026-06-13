@@ -42,13 +42,13 @@ namespace Unnamed {
 			return result;
 		}
 
-		const std::filesystem::path full(path);
+		const std::filesystem::path full = Path::FromUtf8(path);
 		const std::filesystem::path baseDir = full.parent_path();
 
 		// "name" フィールドがあればそれを、なければファイル名をアセット名とする。
 		MaterialInstanceAssetData data = {};
 		data.name = root.Read<std::string>("name").value_or(
-			full.filename().string()
+			Path::ToUtf8String(full.filename())
 		);
 
 		// "material" フィールドがあればマテリアルアセットを読み込む。
@@ -115,11 +115,11 @@ namespace Unnamed {
 		result.payload = std::move(data);
 
 		// アセット名が指定されていない場合は、ファイル名から拡張子を除いたものをアセット名とする。
-		result.resolveName = full.stem().stem().string();
+		result.resolveName = Path::ToUtf8String(full.stem().stem());
 
 		std::error_code ec;
-		if (std::filesystem::exists(path, ec)) {
-			result.stamp.sizeInBytes = std::filesystem::file_size(path, ec);
+		if (Path::ExistsUtf8(path, ec)) {
+			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
 		}
 		return result;
 	}

@@ -127,7 +127,7 @@ namespace Unnamed {
 		writer.Write(mMoveSpeed);
 	}
 
-#ifdef UNNAMED_WITH_EDITOR
+#ifdef _DEBUG
 	void EditorCameraComponent::DrawInspectorImGui() {
 		ImGui::DragFloat("FovYDegrees", &mFovYDegrees, 0.1f, 1.0f, 179.0f);
 		ImGui::DragFloat("NearZ", &mNearZ, 0.0005f, 0.0001f, mFarZ - 0.001f);
@@ -209,7 +209,7 @@ namespace Unnamed {
 		outCamera.exposureEv = mExposureEv;
 		outCamera.nearZ     = mNearZ;
 		outCamera.farZ      = mFarZ;
-		outCamera.depthMode = Render::PROJECTION_DEPTH_MODE::ReverseZ;
+		outCamera.depthMode = Render::PROJECTION_DEPTH_MODE::REVERSE_Z;
 		outCamera.valid     = true;
 		return true;
 	}

@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <cstring>
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 #include <imgui.h>
 #endif
 
@@ -26,7 +26,7 @@ namespace Unnamed {
 		constexpr const char* kAttachCommandsKey = "attachCommands";
 		constexpr const char* kDetachCommandsKey = "detachCommands";
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 		template <size_t N>
 		bool EditCommandInput(const char* label, std::string& value) {
 			std::array<char, N> buffer = {};
@@ -118,7 +118,7 @@ namespace Unnamed {
 		return kIconArticle;
 	}
 
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+#ifdef _DEBUG
 	void ConsoleScriptComponent::DrawInspectorImGui() {
 		DrawCommandListInspector("On Attach", mOnAttachCommands);
 		DrawCommandListInspector("On Detach", mOnDetachCommands);
