@@ -13,6 +13,7 @@
 
 #include "core/assets/types/MeshAssetData.h"
 #include "core/hash/HashBuilder.h"
+#include "core/hash/StableHashBuilder.h"
 #include "core/io/binary/BinaryReader.h"
 #include "core/io/binary/BinaryWriter.h"
 #include "core/path/PathUtil.h"
@@ -78,14 +79,18 @@ namespace Unnamed {
 				aiProcess_ImproveCacheLocality | // 頂点キャッシュ最適化
 				aiProcess_CalcTangentSpace | // NormalMap 用 tangent/bitangent 生成
 				aiProcess_ConvertToLeftHanded; // このエンジンは左手座標系
-			uint64_t hash = HashBuilder::Combine64(
-				kBaseFlags, kMeshCacheVersion);
+
+			StableHashBuilder hashBuilder(kBaseFlags);
+
+			hashBuilder.AddUInt64(kMeshCacheVersion);
+
 			if (!hasSkinning) {
-				hash = HashBuilder::Combine64(
-					hash, aiProcess_PreTransformVertices
+				hashBuilder.AddUInt64(
+					aiProcess_PreTransformVertices
 				);
 			}
-			return hash;
+			
+			return hashBuilder.Value();
 		}
 
 		/// @brief Assimpの4x4行列をエンジンのMat4に変換する。Assimpは行優先、エンジンは列優先なので、要素の入れ替えに注意。
@@ -266,10 +271,10 @@ namespace Unnamed {
 					                              25.0;
 				AnimationClipAssetData clip = {};
 				clip.name                   = anim->mName.length > 0 ?
-					                              std::string(
-						                              anim->mName.C_Str()) :
-					                              ("Anim" + std::to_string(
-						                               animIndex));
+					            std::string(
+						            anim->mName.C_Str()) :
+					            ("Anim" + std::to_string(
+						             animIndex));
 				clip.durationSeconds = anim->mDuration > 0.0 ?
 					                       static_cast<float>(
 						                       anim->mDuration /
