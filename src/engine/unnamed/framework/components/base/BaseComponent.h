@@ -2,8 +2,6 @@
 #include <cstdint>
 #include <string_view>
 
-#include "core/TypeId.h"
-
 namespace Unnamed {
 	class World;
 	class Scene;
@@ -142,7 +140,7 @@ namespace Unnamed {
 
 		/// @brief コンポーネントの型識別子を取得します。
 		/// @return コンポーネントの型識別子
-		[[nodiscard]] TypeId GetTypeId() const;
+		[[nodiscard]] uint64_t GetTypeId() const;
 
 		/// @brief Tick実行グループを取得します。
 		/// @return Tickグループ
