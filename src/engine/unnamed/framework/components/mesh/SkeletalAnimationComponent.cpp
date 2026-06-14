@@ -915,60 +915,58 @@ namespace Unnamed {
 
 	void SkeletalAnimationComponent::SetClipName(const std::string& clipName) {
 		EnsureHasAtLeastOneLayer();
-		mLayers[0].desc.clipName      = clipName;
-		mLayers[0].playbackTime       = 0.0f;
-		mLayers[0].cachedClipDuration = 0.0f;
-		mLayers[0].transition.active  = false;
+		mLayers.front().desc.clipName      = clipName;
+		mLayers.front().playbackTime       = 0.0f;
+		mLayers.front().cachedClipDuration = 0.0f;
+		mLayers.front().transition.active  = false;
 	}
 
-	const std::string&
-	SkeletalAnimationComponent::GetClipName() const noexcept {
-		static constexpr std::string kEmpty;
+	std::string_view SkeletalAnimationComponent::GetClipName() const noexcept {
 		if (mLayers.empty()) {
-			return kEmpty;
+			return {};
 		}
-		return mLayers[0].desc.clipName;
+		return mLayers.front().desc.clipName;
 	}
 
 	void SkeletalAnimationComponent::SetLoop(const bool enabled) {
 		EnsureHasAtLeastOneLayer();
-		mLayers[0].desc.loop = enabled;
+		mLayers.front().desc.loop = enabled;
 		ClampLayerPlaybackIfPossible(0);
 	}
 
 	bool SkeletalAnimationComponent::GetLoop() const noexcept {
-		return !mLayers.empty() && mLayers[0].desc.loop;
+		return !mLayers.empty() && mLayers.front().desc.loop;
 	}
 
 	void SkeletalAnimationComponent::SetPlayOnStart(const bool enabled) {
 		EnsureHasAtLeastOneLayer();
-		mLayers[0].desc.playOnStart = enabled;
-		if (enabled && !mLayers[0].isPlaying) {
-			mLayers[0].playOnStartConsumed = false;
+		mLayers.front().desc.playOnStart = enabled;
+		if (enabled && !mLayers.front().isPlaying) {
+			mLayers.front().playOnStartConsumed = false;
 		}
 	}
 
 	bool SkeletalAnimationComponent::GetPlayOnStart() const noexcept {
-		return !mLayers.empty() && mLayers[0].desc.playOnStart;
+		return !mLayers.empty() && mLayers.front().desc.playOnStart;
 	}
 
 	void SkeletalAnimationComponent::SetSpeed(const float speed) {
 		EnsureHasAtLeastOneLayer();
-		mLayers[0].desc.speed = std::clamp(speed, 0.0f, 8.0f);
+		mLayers.front().desc.speed = std::clamp(speed, 0.0f, 8.0f);
 	}
 
 	float SkeletalAnimationComponent::GetSpeed() const noexcept {
-		return mLayers.empty() ? 1.0f : mLayers[0].desc.speed;
+		return mLayers.empty() ? 1.0f : mLayers.front().desc.speed;
 	}
 
 	void SkeletalAnimationComponent::SetPlaybackTime(const float timeSeconds) {
 		EnsureHasAtLeastOneLayer();
-		mLayers[0].playbackTime = std::max(timeSeconds, 0.0f);
+		mLayers.front().playbackTime = std::max(timeSeconds, 0.0f);
 		ClampLayerPlaybackIfPossible(0);
 	}
 
 	float SkeletalAnimationComponent::GetPlaybackTime() const noexcept {
-		return mLayers.empty() ? 0.0f : mLayers[0].playbackTime;
+		return mLayers.empty() ? 0.0f : mLayers.front().playbackTime;
 	}
 
 	bool SkeletalAnimationComponent::IsPlaying() const noexcept {

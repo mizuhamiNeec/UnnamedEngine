@@ -58,7 +58,7 @@ namespace Unnamed {
 		[[nodiscard]] bool HasState(std::string_view stateId) const;
 
 		void SetClipName(const std::string& clipName);
-		[[nodiscard]] const std::string& GetClipName() const noexcept;
+		[[nodiscard]] std::string_view GetClipName() const noexcept;
 
 		void               SetLoop(bool enabled);
 		[[nodiscard]] bool GetLoop() const noexcept;
