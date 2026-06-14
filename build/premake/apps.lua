@@ -17,9 +17,12 @@ local hasParkourRuntime = os.isdir(parkourRuntimeRoot)
 local startupManifest = _G.STARTUP_PROJECT_MANIFEST or "projects/ParkourGame/config/game_profile.json"
 local hasStartupManifest = os.isfile(RootPath(startupManifest))
 
-if hasParkourRuntime then
-	project "ParkourGameRuntime"
+function ParkourRuntimeProject(projectName, enableEditor)
+	project(projectName)
 		kind "StaticLib"
+		if enableEditor then
+			removeconfigurations { "Develop", "Release" }
+		end
 		CommonProjectSettings("%{prj.name}")
 		PCHSettings()
 		WarningSettings()
@@ -31,14 +34,24 @@ if hasParkourRuntime then
 			"projects/ParkourGame/runtime/**.cpp",
 		}))
 
-		excludes(RootPathList({
-			"projects/ParkourGame/runtime/**/editor/**",
-		}))
+		if not enableEditor then
+			excludes(RootPathList({
+				"projects/ParkourGame/runtime/**/editor/**",
+			}))
+		end
 
 		EngineIncludeDirs()
 		includedirs { parkourRuntimeRoot }
 		defines { "UNNAMED_WITH_PARKOUR_RUNTIME" }
+		if enableEditor then
+			defines { "UNNAMED_WITH_EDITOR" }
+		end
 		filter {}
+end
+
+if hasParkourRuntime then
+	ParkourRuntimeProject("ParkourGameRuntime", false)
+	ParkourRuntimeProject("ParkourGameRuntimeEditor", true)
 end
 
 group "Engine/Applications"
@@ -88,7 +101,7 @@ project "UnnamedEditorApp"
 	if hasParkourRuntime then
 		includedirs { parkourRuntimeRoot }
 		defines { "UNNAMED_WITH_PARKOUR_RUNTIME" }
-		links { "ParkourGameRuntime" }
+		links { "ParkourGameRuntimeEditor" }
 	end
 	defines { "UNNAMED_WITH_EDITOR" }
 	LinkAssimpByConfig()
