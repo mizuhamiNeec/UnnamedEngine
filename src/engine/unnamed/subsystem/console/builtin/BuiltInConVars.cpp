@@ -456,26 +456,6 @@ namespace Unnamed {
 			"Ground probe distance in HU."
 		);
 
-		static ConVar sv_move_collision_debugdraw(
-			"sv_move_collision_debugdraw", false,
-			FCVAR::CHEAT | FCVAR::REPLICATED,
-			"Draw GameMovement collision hit/recover debug overlays."
-		);
-		static ConVar sv_move_collision_debuglog(
-			"sv_move_collision_debuglog", false,
-			FCVAR::CHEAT | FCVAR::REPLICATED,
-			"Print GameMovement collision target/debug details to console."
-		);
-		static ConVar sv_move_collision_debuglog_interval(
-			"sv_move_collision_debuglog_interval", 0.15f,
-			FCVAR::CHEAT | FCVAR::REPLICATED,
-			"Minimum interval in seconds between collision debug logs.",
-			true,
-			0.01f,
-			true,
-			5.0f
-		);
-
 		// Noclip
 		static ConVar sv_noclipaccelerate(
 			"sv_noclipaccelerate", 5.0f, FCVAR::NOTIFY | FCVAR::REPLICATED,
