@@ -9,7 +9,8 @@ namespace Unnamed::Render {
 	RenderModule::RenderModule(
 		AssetManager& assetManager, Rhi::IRhiDevice& rhiDevice
 	) : mAssetManager(assetManager),
-	    mRhiDevice(rhiDevice) {}
+	    mRhiDevice(rhiDevice) {
+	}
 
 	RenderModule::~RenderModule() {
 		Shutdown();
@@ -31,7 +32,7 @@ namespace Unnamed::Render {
 		mRenderDevice.reset();
 	}
 
-	void RenderModule::Tick(RenderFrameInputs& inputs) const {
+	void RenderModule::Tick(const RenderFrameInputs& inputs) const {
 		mRenderer->RenderFrame(*mRenderDevice, inputs);
 	}
 

@@ -28,7 +28,7 @@ namespace Unnamed::Render {
 		void Init(ConsoleSystem* console);
 		/// @brief Renderer/RenderDevice を明示的な順序で終了します。
 		void Shutdown();
-		void Tick(RenderFrameInputs& inputs) const;
+		void Tick(const RenderFrameInputs& inputs) const;
 
 		void OnResize(uint32_t width, uint32_t height) const;
 
