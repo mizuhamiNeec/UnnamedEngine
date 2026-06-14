@@ -32,7 +32,7 @@ namespace Unnamed {
 		writer.Write(mCourseId);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void GoalComponent::DrawInspectorImGui() {
 		DrawVolumeInspectorImGui();
 		ImGui::InputInt("Index", &mIndex);

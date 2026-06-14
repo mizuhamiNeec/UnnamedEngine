@@ -31,7 +31,7 @@ namespace Unnamed {
 		void SerializeVolume(JsonWriter& writer) const;
 		[[nodiscard]] TransformComponent* GetTransform() const;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawVolumeInspectorImGui();
 #endif
 

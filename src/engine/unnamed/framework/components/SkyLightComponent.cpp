@@ -93,7 +93,7 @@ namespace Unnamed {
 		writer.Write(mIntensity);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SkyLightComponent::DrawInspectorImGui() {
 		float skyColor[3] = {mSkyColor.x, mSkyColor.y, mSkyColor.z};
 		if (ImGui::ColorEdit3("Sky Color", skyColor)) {

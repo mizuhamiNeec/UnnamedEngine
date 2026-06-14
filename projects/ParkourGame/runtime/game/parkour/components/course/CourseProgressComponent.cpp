@@ -114,7 +114,7 @@ namespace Unnamed {
 		return "CourseProgress";
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CourseProgressComponent::DrawInspectorImGui() {
 #ifdef _DEBUG
 		std::array<char, 64> courseIdBuffer  = {};

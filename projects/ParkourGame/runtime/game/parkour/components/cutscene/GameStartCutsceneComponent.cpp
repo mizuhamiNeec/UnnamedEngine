@@ -175,7 +175,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void GameStartCutsceneComponent::DrawInspectorImGui() {
 		ImGui::InputScalar(
 			"Tour Camera Entity Guid",

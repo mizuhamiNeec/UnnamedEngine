@@ -118,7 +118,7 @@ namespace Unnamed {
 		return kIconArticle;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void ConsoleScriptComponent::DrawInspectorImGui() {
 		DrawCommandListInspector("On Attach", mOnAttachCommands);
 		DrawCommandListInspector("On Detach", mOnDetachCommands);

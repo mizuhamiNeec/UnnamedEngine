@@ -122,7 +122,7 @@ namespace Unnamed {
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
 		(void)LoadAsset();
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		AuditSourceGuidBindings();
 #endif
 		SubscribeAll();
@@ -170,7 +170,7 @@ namespace Unnamed {
 		return kIconAccessibility;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void EventPresentationComponent::DrawInspectorImGui() {
 		World*         world            = GetWorld();
 		Entity*        owner            = GetOwner();
@@ -313,7 +313,7 @@ namespace Unnamed {
 			(void)LoadAsset();
 		}
 		if (needsResubscribe) {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			AuditSourceGuidBindings();
 #endif
 			SubscribeAll();
@@ -618,7 +618,7 @@ namespace Unnamed {
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
 		(void)LoadAsset();
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		AuditSourceGuidBindings();
 #endif
 		SubscribeAll();

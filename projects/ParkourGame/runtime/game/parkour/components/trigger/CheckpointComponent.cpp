@@ -60,7 +60,7 @@ namespace Unnamed {
 		writer.Write(mCourseId);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CheckpointComponent::DrawInspectorImGui() {
 		DrawVolumeInspectorImGui();
 		ImGui::InputInt("Index", &mIndex);

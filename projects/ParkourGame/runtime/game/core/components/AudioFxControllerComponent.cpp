@@ -88,7 +88,7 @@ namespace Unnamed {
 		return kIconSpeaker;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void AudioFxControllerComponent::DrawInspectorImGui() {
 		ImGui::Text(
 			"OneShot Presets: %d",

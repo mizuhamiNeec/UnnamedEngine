@@ -116,7 +116,7 @@ namespace Unnamed {
 		writer.Write(mCastsShadow);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void DirectionalLightComponent::DrawInspectorImGui() {
 		float color[3] = {mColor.x, mColor.y, mColor.z};
 		if (ImGui::ColorEdit3("Color", color)) {

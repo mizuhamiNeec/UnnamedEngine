@@ -83,7 +83,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SequenceDirectorComponent::DrawInspectorImGui() {
 		DrawStringInput<256>("Sequence Path", mSequencePath);
 		ImGui::Checkbox("Play On Attach", &mPlayOnAttach);

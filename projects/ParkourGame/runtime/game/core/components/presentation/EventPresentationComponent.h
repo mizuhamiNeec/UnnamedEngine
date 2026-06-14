@@ -47,7 +47,7 @@ namespace Unnamed {
 		/// @return Material icon codepoint
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief デバッグ用の Inspector UI を描画します。
 		void DrawInspectorImGui() override;
 

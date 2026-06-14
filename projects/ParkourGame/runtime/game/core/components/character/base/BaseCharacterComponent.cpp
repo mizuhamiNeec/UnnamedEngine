@@ -165,7 +165,8 @@ namespace Unnamed {
 		}
 		return nullptr;
 	}
-#ifdef _DEBUG
+
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void BaseCharacterComponent::DrawInspectorImGui() {
 		if (mStateMachine) {
 			const std::string modeName(

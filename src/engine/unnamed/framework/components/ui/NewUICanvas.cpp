@@ -178,7 +178,7 @@ namespace Unnamed {
 		BaseComponent::OnRenderTick(renderDeltaTime, interpolationAlpha);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void NewUICanvas::DrawInspectorImGui() {
 		ImGui::SeparatorText("==THEME==");
 
