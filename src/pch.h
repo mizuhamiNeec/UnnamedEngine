@@ -24,6 +24,12 @@
 #include <core/UnnamedMacro.h>
 #include <core/string/StrUtil.h>
 #include <engine/unnamed/subsystem/console/Log.h>
+#include <core/math/Math.h>
+#include <core/math/Vec2.h>
+#include <core/math/Vec3.h>
+#include <core/math/Vec4.h>
+#include <core/math/Mat4.h>
+#include <core/math/Quaternion.h>
 
 //-----------------------------------------------------------------------------
 // STD
