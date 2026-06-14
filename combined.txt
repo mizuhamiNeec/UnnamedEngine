@@ -1910,7 +1910,7 @@ namespace Unnamed {
 		return kIconSpeaker;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void AudioFxControllerComponent::DrawInspectorImGui() {
 		ImGui::Text(
 			"OneShot Presets: %d",
@@ -2167,7 +2167,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -2548,7 +2548,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CameraFxControllerComponent::DrawInspectorImGui() {
 		mCamera         = ResolveCamera();
 		mShakeTransform = ResolveShakeTransform();
@@ -3190,7 +3190,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -3435,7 +3435,7 @@ namespace Unnamed {
 		return hash;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CameraRotatorComponent::DrawInspectorImGui() {
 		ImGui::DragFloat("Pitch", &mCurrentPitch, 0.1f, -89.0f, 89.0f);
 		ImGui::DragFloat("Yaw", &mCurrentYaw, 0.1f, -1080.0f, 1080.0f);
@@ -3549,7 +3549,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -3761,7 +3761,7 @@ namespace Unnamed {
 		return "ViewmodelSway";
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void ViewmodelSway::DrawInspectorImGui() {
 		ImGui::DragFloat(
 			"SwayAmount", &mSwayAmount, 0.01f, 0.0f, 10.0f, "%.2f"
@@ -3845,7 +3845,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -3902,7 +3902,6 @@ File Path: projects/ParkourGame/runtime/game/core/components/character/GameMovem
 #include "core/io/json/JsonWriter.h"
 #include "core/string/StrUtil.h"
 
-#include "engine/scene/Scene.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
@@ -3953,9 +3952,6 @@ namespace Unnamed {
 		if (!transform || !mCollisionResolver || !mStateMachine) {
 			return;
 		}
-		mCollisionDebugLogCooldownSec = std::max(
-			0.0f, mCollisionDebugLogCooldownSec - stepSeconds
-		);
 
 		const bool        wasGrounded            = mSupportCache.grounded;
 		const float       preStepVerticalSpeedHu = Math::MtoH(mVelocity.y);
@@ -4150,7 +4146,7 @@ namespace Unnamed {
 	}
 
 	void GameMovementComponent::PostPhysicsTick(float) {
-		TransformComponent* transform = GetTransform();
+		const TransformComponent* transform = GetTransform();
 		if (!transform) {
 			Error(
 				GetComponentName(), "TransformComponentが見つからないため、移動できません。"
@@ -4167,9 +4163,7 @@ namespace Unnamed {
 			0.125f
 		);
 
-		const MovementContext context = {
-			.input = mMoveFrameInput,
-		};
+		const MovementContext context = {.input = mMoveFrameInput};
 
 		if (!mStateMachine) {
 			return;
@@ -4199,15 +4193,7 @@ namespace Unnamed {
 			Vec4::cyan
 		);
 
-		const bool drawCollisionDebug = mConsole &&
-		                                mConsole->GetConVarValueOr(
-			                                "sv_move_collision_debugdraw", false
-		                                );
-		const bool logCollisionDebug = mConsole &&
-		                               mConsole->GetConVarValueOr(
-			                               "sv_move_collision_debuglog", false
-		                               );
-		auto* boxResolver = dynamic_cast<BoxKinematicCollisionResolver*>(
+		const auto* boxResolver = dynamic_cast<BoxKinematicCollisionResolver*>(
 			mCollisionResolver.get()
 		);
 		if (!boxResolver) {
@@ -4217,89 +4203,21 @@ namespace Unnamed {
 		const BoxKinematicCollisionResolver::CollisionDebugState& debugState =
 			boxResolver->GetCollisionDebugState();
 
-		if (drawCollisionDebug && debugState.hasBlockingHit) {
-			const Vec4 castColor = Vec4::orange;
-			const Vec4 hitColor  = Vec4::red;
-
-			// 衝突スイープの経路とヒット面法線を可視化します。
-			worldDebugDraw.DrawArrow(
-				debugState.blockingCastStart,
-				debugState.blockingCastDir * debugState.blockingCastLength,
-				castColor,
-				Math::HtoM(4.0f)
+		for (int i = 0; i < debugState.recoverOverlapCount; ++i) {
+			const Physics::Hit& overlap = debugState.recoverOverlaps[
+				static_cast<size_t>(i)
+			];
+			const float overlapLen = std::clamp(
+				overlap.depth,
+				Math::HtoM(1.0f),
+				Math::HtoM(16.0f)
 			);
-			worldDebugDraw.DrawSphere(
-				debugState.blockingHit.pos,
-				Quaternion::identity,
-				Math::HtoM(2.0f),
-				hitColor,
-				10
-			);
-			worldDebugDraw.DrawArrow(
-				debugState.blockingHit.pos,
-				debugState.blockingHit.normal * Math::HtoM(14.0f),
-				hitColor,
-				Math::HtoM(2.0f)
-			);
-		}
-		if (drawCollisionDebug && debugState.recoverAttempted) {
-			const Vec4 recoverColor = debugState.recoverSucceeded ?
-				                          Vec4(0.2f, 1.0f, 0.4f, 1.0f) :
-				                          Vec4(1.0f, 0.1f, 0.1f, 1.0f);
-
 			worldDebugDraw.DrawArrow(
 				debugState.recoverStart,
-				debugState.recoverEnd - debugState.recoverStart,
-				recoverColor,
-				Math::HtoM(3.0f)
+				overlap.normal * overlapLen,
+				Vec4::yellow,
+				Math::HtoM(1.5f)
 			);
-			for (int i = 0; i < debugState.recoverOverlapCount; ++i) {
-				const Physics::Hit& overlap = debugState.recoverOverlaps[
-					static_cast<size_t>(i)
-				];
-				const float overlapLen = std::clamp(
-					overlap.depth,
-					Math::HtoM(1.0f),
-					Math::HtoM(16.0f)
-				);
-				worldDebugDraw.DrawArrow(
-					debugState.recoverStart,
-					overlap.normal * overlapLen,
-					Vec4::yellow,
-					Math::HtoM(1.5f)
-				);
-			}
-		}
-
-		if (
-			logCollisionDebug &&
-			debugState.hasBlockingHit &&
-			mCollisionDebugLogCooldownSec <= 0.0f
-		) {
-			const float logInterval = mConsole->GetConVarValueOr(
-				"sv_move_collision_debuglog_interval", 0.15f
-			);
-			const Physics::Hit& hit = debugState.blockingHit;
-			Msg(
-				"GameMovement",
-				"CollisionDebug guid={} tri={} toi={:.4f} depth={:.5f} startSolid={} allSolid={} normal=({:.3f},{:.3f},{:.3f}) hitPos=({:.3f},{:.3f},{:.3f}) recover(reason={} ok={} overlaps={})",
-				static_cast<unsigned long long>(hit.hitEntityGuid),
-				hit.triIndex,
-				hit.toi,
-				hit.depth,
-				hit.startSolid,
-				hit.allsolid,
-				hit.normal.x,
-				hit.normal.y,
-				hit.normal.z,
-				hit.pos.x,
-				hit.pos.y,
-				hit.pos.z,
-				ToStringRecoverReason(debugState.recoverReason),
-				debugState.recoverSucceeded,
-				debugState.recoverOverlapCount
-			);
-			mCollisionDebugLogCooldownSec = std::max(0.0f, logInterval);
 		}
 	}
 
@@ -4406,9 +4324,10 @@ namespace Unnamed {
 		const bool,
 		const bool,
 		const float
-	) {}
+	) {
+	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void GameMovementComponent::DrawInspectorImGui() {
 		BaseCharacterComponent::DrawInspectorImGui();
 
@@ -4421,25 +4340,14 @@ namespace Unnamed {
 		ImGui::Checkbox("SpeedVault", &mCapabilitySet.speedVault);
 		ImGui::Checkbox("Blink", &mCapabilitySet.blink);
 		ImGui::Checkbox("Grapple", &mCapabilitySet.grapple);
-		ImGui::Text(
-			"Mode: %s | ActiveAbilities: 0x%016llX",
-			ToString(mCurrentModeId).data(),
-			static_cast<unsigned long long>(mActiveAbilityMask)
+		ImGui::Text("Mode: %s | ActiveAbilities: 0x%016llX",
+		            ToString(mCurrentModeId).data(),
+		            static_cast<unsigned long long>(mActiveAbilityMask)
 		);
 
 		ImGui::SeparatorText("Gameplay Cue Debug");
-		ImGui::Text(
-			"Published Cues: %llu",
-			static_cast<unsigned long long>(mDebugPublishedCueCount)
-		);
-		ImGui::Text("Last Cue ID: %s", mDebugLastPublishedCueId.c_str());
-		ImGui::Text(
-			"Last Cue Payload: %.3f / %.3f",
-			mDebugLastPublishedCueValue,
-			mDebugLastPublishedCueValue2
-		);
 
-		auto* boxResolver = dynamic_cast<BoxKinematicCollisionResolver*>(
+		const auto* boxResolver = dynamic_cast<BoxKinematicCollisionResolver*>(
 			mCollisionResolver.get()
 		);
 		if (boxResolver) {
@@ -4479,7 +4387,8 @@ namespace Unnamed {
 
 	void GameMovementComponent::Deserialize(const JsonReader& reader) {
 		BaseCharacterComponent::Deserialize(reader);
-		if (const JsonReader caps = reader["movementCapabilities"]; caps.
+		if (const JsonReader caps = reader["movementCapabilities"];
+			caps.
 			Valid()) {
 			mCapabilitySet.jump   = caps["jump"].GetBool(mCapabilitySet.jump);
 			mCapabilitySet.crouch = caps["crouch"].GetBool(
@@ -4523,15 +4432,6 @@ namespace Unnamed {
 		writer.Key("grapple");
 		writer.Write(mCapabilitySet.grapple);
 		writer.EndObject();
-	}
-
-	Vec3 GameMovementComponent::SampleSupportContactVelocity(
-		const uint64_t supportEntityGuid,
-		const Vec3&    worldPoint
-	) const {
-		(void)supportEntityGuid;
-		(void)worldPoint;
-		return Vec3::zero;
 	}
 
 	void GameMovementComponent::WriteReplayState(
@@ -4617,7 +4517,7 @@ namespace Unnamed {
 		writer.EndObject();
 
 		// トランスフォームデータの書き込み
-		if (TransformComponent* transform = GetTransform()) {
+		if (const TransformComponent* transform = GetTransform()) {
 			const Vec3       position = transform->GetPosition();
 			const Quaternion rotation = transform->GetRotation();
 
@@ -4644,7 +4544,7 @@ namespace Unnamed {
 	}
 
 	void GameMovementComponent::ReadReplayState(const nlohmann::json& inState) {
-		JsonReader reader(inState);
+		const JsonReader reader(inState);
 		if (!reader.Valid() || !reader.IsObject()) {
 			return;
 		}
@@ -4654,15 +4554,17 @@ namespace Unnamed {
 
 		// スカラー値の読み込み
 		mGrounded         = reader["grounded"].GetBool(mGrounded);
-		mCollisionEnabled = reader["collisionEnabled"].GetBool(mCollisionEnabled);
+		mCollisionEnabled = reader["collisionEnabled"].GetBool(
+			mCollisionEnabled);
 		mJumpSnapDisableRemaining =
-			reader["jumpSnapDisableRemaining"].GetFloat(mJumpSnapDisableRemaining);
+			reader["jumpSnapDisableRemaining"].GetFloat(
+				mJumpSnapDisableRemaining);
 
 		// ボックスハーフエクステントの読み込み
 		mBoxHalfExtents = reader["boxHalfExtents"].GetVec3(mBoxHalfExtents);
 
 		// サポート情報の読み込み
-		JsonReader supportReader = reader["support"];
+		const JsonReader supportReader = reader["support"];
 		if (supportReader.Valid() && supportReader.IsObject()) {
 			mSupportCache.grounded =
 				supportReader["grounded"].GetBool(mSupportCache.grounded);
@@ -4683,14 +4585,14 @@ namespace Unnamed {
 
 		// トランスフォーム情報の読み込み
 		if (TransformComponent* transform = GetTransform()) {
-			JsonReader posReader = reader["position"];
+			const JsonReader posReader = reader["position"];
 			if (posReader.Valid() && posReader.IsArray()) {
 				transform->SetPosition(posReader.GetVec3());
 			}
 
-			JsonReader rotReader = reader["rotation"];
+			const JsonReader rotReader = reader["rotation"];
 			if (rotReader.Valid() && rotReader.IsArray() &&
-				rotReader.Size() == 4) {
+			    rotReader.Size() == 4) {
 				transform->SetRotation(Quaternion(
 					rotReader[0].GetFloat(),
 					rotReader[1].GetFloat(),
@@ -4720,7 +4622,7 @@ namespace Unnamed {
 			);
 
 			// 能力セットの読み込み
-			JsonReader capabilitiesReader = reader["capabilities"];
+			const JsonReader capabilitiesReader = reader["capabilities"];
 			if (capabilitiesReader.Valid() && capabilitiesReader.IsObject()) {
 				mCapabilitySet.jump =
 					capabilitiesReader["jump"].GetBool(mCapabilitySet.jump);
@@ -4729,7 +4631,8 @@ namespace Unnamed {
 				mCapabilitySet.slide =
 					capabilitiesReader["slide"].GetBool(mCapabilitySet.slide);
 				mCapabilitySet.wallRun =
-					capabilitiesReader["wallRun"].GetBool(mCapabilitySet.wallRun);
+					capabilitiesReader["wallRun"].GetBool(
+						mCapabilitySet.wallRun);
 				mCapabilitySet.doubleJump = capabilitiesReader["doubleJump"]
 					.GetBool(mCapabilitySet.doubleJump);
 				mCapabilitySet.speedVault = capabilitiesReader["speedVault"]
@@ -4737,10 +4640,11 @@ namespace Unnamed {
 				mCapabilitySet.blink =
 					capabilitiesReader["blink"].GetBool(mCapabilitySet.blink);
 				mCapabilitySet.grapple =
-					capabilitiesReader["grapple"].GetBool(mCapabilitySet.grapple);
+					capabilitiesReader["grapple"].GetBool(
+						mCapabilitySet.grapple);
 			}
 		} else if (reader["stateName"].Valid() &&
-				   reader["stateName"].IsString()) {
+		           reader["stateName"].IsString()) {
 			// レガシースキーマのサポート
 			Warning(
 				GetComponentName(),
@@ -4818,59 +4722,9 @@ namespace Unnamed {
 		return owner ? owner->GetComponent<TransformComponent>() : nullptr;
 	}
 
-	Vec3 GameMovementComponent::GetSupportSamplePoint(
-		const TransformComponent* transform
-	) const {
-		if (!transform) {
-			return Vec3::zero;
-		}
-
-		return transform->GetPosition() + Vec3::down * mBoxHalfExtents.y;
-	}
-
-	Vec3 GameMovementComponent::ResolveSupportLinearVelocity(
-		const uint64_t supportEntityGuid
-	) const {
-		(void)supportEntityGuid;
-		return Vec3::zero;
-	}
-
-	Vec3 GameMovementComponent::ResolveSupportAngularVelocity(
-		const uint64_t supportEntityGuid
-	) const {
-		(void)supportEntityGuid;
-		return Vec3::zero;
-	}
-
-	Vec3 GameMovementComponent::ResolveSupportContactVelocity(
-		const uint64_t supportEntityGuid,
-		const Vec3&    worldPoint
-	) const {
-		(void)supportEntityGuid;
-		(void)worldPoint;
-		return Vec3::zero;
-	}
-
-	Vec3 GameMovementComponent::ResolveSupportStepDelta(
-		const uint64_t supportEntityGuid, const float stepSeconds
-	) const {
-		(void)supportEntityGuid;
-		(void)stepSeconds;
-		return Vec3::zero;
-	}
-
-	bool GameMovementComponent::ApplyPassiveMotionStep(
-		TransformComponent* transform,
-		const float         stepSeconds
-	) {
-		(void)transform;
-		(void)stepSeconds;
-		return false;
-	}
-
 	void GameMovementComponent::PublishCue(
 		std::string id, const float value, const float value2
-	) {
+	) const {
 		World* world = GetWorld();
 		if (!world) {
 			return;
@@ -4886,7 +4740,6 @@ namespace Unnamed {
 		cue.sourceEntityGuid = owner->GetGuid();
 		cue.value            = value;
 		cue.value2           = value2;
-		// value/value2 互換を維持しつつ、named payload も同時に供給します。
 		if (cue.id == "movement.land") {
 			cue.SetFloat("landStrength", value);
 			cue.SetFloat("impactSpeedHuPerSec", value2);
@@ -4897,18 +4750,10 @@ namespace Unnamed {
 			cue.SetFloat("sprintRatio", value);
 		}
 		world->GetGameplayCueBus().Publish(cue);
-
-#ifdef _DEBUG
-		mDebugLastPublishedCueId     = cue.id;
-		mDebugLastPublishedCueValue  = cue.value;
-		mDebugLastPublishedCueValue2 = cue.value2;
-		++mDebugPublishedCueCount;
-#endif
 	}
 
 	REGISTER_COMPONENT(GameMovementComponent);
 }
-
 
 
 ============================================================
@@ -4962,7 +4807,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -4976,12 +4821,6 @@ namespace Unnamed {
 			TransformComponent* transform,
 			const Vec3&         worldPosition
 		);
-
-		/// @brief 動的支持面の任意点速度を取得します。
-		[[nodiscard]] Vec3 SampleSupportContactVelocity(
-			uint64_t    supportEntityGuid,
-			const Vec3& worldPoint
-		) const;
 
 		virtual void WriteReplayState(nlohmann::json& outState) const;
 		virtual void ReadReplayState(const nlohmann::json& inState);
@@ -5014,30 +4853,12 @@ namespace Unnamed {
 		[[nodiscard]] const MovementCapabilitySet& GetCapabilitySet() const;
 
 		[[nodiscard]] TransformComponent* GetTransform() const override;
-		[[nodiscard]] Vec3 GetSupportSamplePoint(
-			const TransformComponent* transform
-		) const;
-		[[nodiscard]] Vec3                ResolveSupportLinearVelocity(
-			uint64_t supportEntityGuid
-		) const;
-		[[nodiscard]] Vec3 ResolveSupportAngularVelocity(
-			uint64_t supportEntityGuid
-		) const;
-		[[nodiscard]] Vec3 ResolveSupportContactVelocity(
-			uint64_t    supportEntityGuid,
-			const Vec3& worldPoint
-		) const;
-		[[nodiscard]] Vec3 ResolveSupportStepDelta(
-			uint64_t supportEntityGuid, float stepSeconds
-		) const;
-		[[nodiscard]] bool ApplyPassiveMotionStep(
-			TransformComponent* transform, float stepSeconds
-		);
+
 		/// @brief GameplayCue を発火します。
 		/// @details value/value2 の意味は Cue ごとに異なるため、発火箇所で必ず契約コメントを残します。
 		void PublishCue(
 			std::string id, float value = 0.0f, float value2 = 0.0f
-		);
+		) const;
 		virtual void OnAfterCoreCueDispatch(
 			std::string_view          previousStateName,
 			std::string_view          currentStateName,
@@ -5052,10 +4873,10 @@ namespace Unnamed {
 		ConsoleSystem*   mConsole = nullptr;
 
 		struct SupportCache {
-			bool     grounded              = false;
 			uint64_t supportEntityGuid     = 0;
 			Vec3     supportLinearVelocity = Vec3::zero;
 			Vec3     supportStepDelta      = Vec3::zero;
+			bool     grounded              = false;
 		};
 
 		SupportCache              mSupportCache;
@@ -5064,17 +4885,8 @@ namespace Unnamed {
 		MOVEMENT_MODE_ID          mCurrentModeId = MOVEMENT_MODE_ID::AIR;
 		uint64_t                  mActiveAbilityMask = 0;
 		static constexpr uint32_t kMovementRuntimeVersion = 3;
-
-#ifdef _DEBUG
-		std::string mDebugLastPublishedCueId;
-		float       mDebugLastPublishedCueValue  = 0.0f;
-		float       mDebugLastPublishedCueValue2 = 0.0f;
-		uint64_t    mDebugPublishedCueCount      = 0;
-#endif
-		float mCollisionDebugLogCooldownSec = 0.0f;
 	};
 }
-
 
 
 ============================================================
@@ -5247,7 +5059,8 @@ namespace Unnamed {
 		}
 		return nullptr;
 	}
-#ifdef _DEBUG
+
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void BaseCharacterComponent::DrawInspectorImGui() {
 		if (mStateMachine) {
 			const std::string modeName(
@@ -5292,7 +5105,6 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(BaseCharacterComponent);
 }
-
 
 
 ============================================================
@@ -5401,7 +5213,7 @@ namespace Unnamed {
 
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -5418,7 +5230,7 @@ namespace Unnamed {
 		std::unique_ptr<BaseKinematicCollisionResolver> mCollisionResolver;
 
 		MovementFrameInput mMoveFrameInput;
-		
+
 		RingBuffer<DeterministicInputPacket, kDeterministicInputQueueCapacity>
 		mDeterministicInputQueue;
 
@@ -5433,7 +5245,6 @@ namespace Unnamed {
 		bool mIsPlayerControlled = true;
 	};
 }
-
 
 
 ============================================================
@@ -7147,7 +6958,7 @@ namespace Unnamed {
 		return kIconSiren;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void PatrolPointComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Enabled", &mEnabled);
 		ImGui::DragFloat3("PointA", &mPointA.x, 1.0f);
@@ -7205,7 +7016,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -7297,7 +7108,7 @@ namespace Unnamed {
 		return kIcon3DRotation;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void RotatorComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Enabled", &mRotationEnabled);
 		ImGui::DragFloat3("RotationRate", &mRotationRate.x, 0.1f);
@@ -7341,7 +7152,7 @@ namespace Unnamed {
 			return "Rotator";
 		}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -7940,7 +7751,7 @@ namespace Unnamed {
 		mLastViewYawDeg   = command.playerInput.viewYawDeg;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void PlayerCharacterController::DrawInspectorImGui() {
 		ImGui::BeginDisabled();
 		ImGui::TextUnformatted("PlayerInput");
@@ -8041,7 +7852,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -8134,7 +7945,7 @@ namespace Unnamed {
 		return kIconJoystick;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void BaseCharacterController::DrawInspectorImGui() {
 		BaseComponent::DrawInspectorImGui();
 	}
@@ -8177,7 +7988,7 @@ namespace Unnamed {
 
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -8470,7 +8281,7 @@ namespace Unnamed {
 		return kIconFolder;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void InventorySystemComponent::DrawInspectorImGui() {
 		ImGui::DragInt(
 			"Equipped Index",
@@ -9090,7 +8901,7 @@ namespace Unnamed {
 		/// @brief エディタアイコンを返します。
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief エディタインスペクターを描画します。
 		void DrawInspectorImGui() override;
 #endif
@@ -9463,7 +9274,7 @@ namespace Unnamed {
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
 		(void)LoadAsset();
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		AuditSourceGuidBindings();
 #endif
 		SubscribeAll();
@@ -9511,7 +9322,7 @@ namespace Unnamed {
 		return kIconAccessibility;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void EventPresentationComponent::DrawInspectorImGui() {
 		World*         world            = GetWorld();
 		Entity*        owner            = GetOwner();
@@ -9654,7 +9465,7 @@ namespace Unnamed {
 			(void)LoadAsset();
 		}
 		if (needsResubscribe) {
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			AuditSourceGuidBindings();
 #endif
 			SubscribeAll();
@@ -9959,7 +9770,7 @@ namespace Unnamed {
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
 		(void)LoadAsset();
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		AuditSourceGuidBindings();
 #endif
 		SubscribeAll();
@@ -10518,7 +10329,7 @@ namespace Unnamed {
 		/// @return Material icon codepoint
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief デバッグ用の Inspector UI を描画します。
 		void DrawInspectorImGui() override;
 
@@ -11286,7 +11097,7 @@ namespace Unnamed {
 		return kIconExplosion;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void WeaponSystemComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Verbose Logging", &mVerboseLogging);
 		ImGui::Checkbox("Draw Debug Trace", &mDrawDebugTrace);
@@ -11588,7 +11399,7 @@ namespace Unnamed {
 		/// @brief エディタアイコンを返します。
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief エディタインスペクターを描画します。
 		void DrawInspectorImGui() override;
 #endif
@@ -19142,8 +18953,6 @@ File Path: projects/ParkourGame/runtime/game/core/script/ConsoleScriptComponent.
 
 #include <algorithm>
 #include <array>
-#include <cstddef>
-#include <cstring>
 
 #ifdef _DEBUG
 #include <imgui.h>
@@ -19258,7 +19067,7 @@ namespace Unnamed {
 		return kIconArticle;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void ConsoleScriptComponent::DrawInspectorImGui() {
 		DrawCommandListInspector("On Attach", mOnAttachCommands);
 		DrawCommandListInspector("On Detach", mOnDetachCommands);
@@ -19297,7 +19106,7 @@ namespace Unnamed {
 	void ConsoleScriptComponent::ExecutePhaseCommands(
 		const std::vector<std::string>& commands,
 		const char*                     phaseName
-	) const {
+	) {
 		ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
 		if (!console) {
 			Warning(
@@ -19354,7 +19163,7 @@ namespace Unnamed {
 		/// @brief コンポーネントアイコンIDを返します。
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief Debugビルド時にInspectorからコマンド配列を編集します。
 		void DrawInspectorImGui() override;
 #endif
@@ -19367,16 +19176,15 @@ namespace Unnamed {
 
 	private:
 		/// @brief 指定フェーズのコマンド配列を順序どおりに実行します。
-		void ExecutePhaseCommands(
+		static void ExecutePhaseCommands(
 			const std::vector<std::string>& commands,
 			const char*                     phaseName
-		) const;
+		);
 
 		std::vector<std::string> mOnAttachCommands;
 		std::vector<std::string> mOnDetachCommands;
 	};
 }
-
 
 
 ============================================================
@@ -19576,7 +19384,7 @@ namespace Unnamed {
 		return "ParkourMovement";
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void ParkourMovementComponent::DrawInspectorImGui() {
 		GameMovementComponent::DrawInspectorImGui();
 
@@ -21316,7 +21124,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -24043,7 +23851,7 @@ namespace Unnamed {
 		return "CourseProgress";
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CourseProgressComponent::DrawInspectorImGui() {
 #ifdef _DEBUG
 		std::array<char, 64> courseIdBuffer  = {};
@@ -24794,7 +24602,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -24985,7 +24793,7 @@ namespace Unnamed {
 		return kIconMonitor;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CourseProgressHudComponent::DrawInspectorImGui() {
 		DrawStringInput<64>("Course Id", mCourseId);
 		if (mCourseId.empty()) {
@@ -25555,7 +25363,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief インスペクタ UI を描画します。
 		void DrawInspectorImGui() override;
 #endif
@@ -25771,7 +25579,7 @@ namespace Unnamed {
 		return kIconTimer;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CourseResultFlowComponent::DrawInspectorImGui() {
 		DrawStringInput<64>("Course Id", mCourseId);
 		if (mCourseId.empty()) {
@@ -26555,7 +26363,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief インスペクタ用UIを描画します。
 		void DrawInspectorImGui() override;
 #endif
@@ -26870,7 +26678,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void GameStartCutsceneComponent::DrawInspectorImGui() {
 		ImGui::InputScalar(
 			"Tour Camera Entity Guid",
@@ -27901,7 +27709,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief インスペクタ用UIを描画します。
 		void DrawInspectorImGui() override;
 #endif
@@ -28770,7 +28578,7 @@ namespace Unnamed {
 		writer.Write(mCourseId);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CheckpointComponent::DrawInspectorImGui() {
 		DrawVolumeInspectorImGui();
 		ImGui::InputInt("Index", &mIndex);
@@ -28828,7 +28636,7 @@ namespace Unnamed {
 			return "Checkpoint";
 		}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -28898,7 +28706,7 @@ namespace Unnamed {
 		writer.Write(mCourseId);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void GoalComponent::DrawInspectorImGui() {
 		DrawVolumeInspectorImGui();
 		ImGui::InputInt("Index", &mIndex);
@@ -28951,7 +28759,7 @@ namespace Unnamed {
 			return "Goal";
 		}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -29003,7 +28811,7 @@ namespace Unnamed {
 		writer.Write(mBoostVelocityHu);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void JumpPadComponent::DrawInspectorImGui() {
 		DrawVolumeInspectorImGui();
 		ImGui::DragFloat(
@@ -29042,7 +28850,7 @@ namespace Unnamed {
 			return "JumpPad";
 		}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -29094,7 +28902,7 @@ namespace Unnamed {
 		writer.Write(mDurationSec);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SpeedBoostAreaComponent::DrawInspectorImGui() {
 		DrawVolumeInspectorImGui();
 		ImGui::DragFloat("Multiplier", &mMultiplier, 0.01f, 0.0f, 100.0f);
@@ -29128,7 +28936,7 @@ namespace Unnamed {
 			return "SpeedBoostArea";
 		}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -29211,14 +29019,13 @@ namespace Unnamed {
 		return owner ? owner->GetComponent<TransformComponent>() : nullptr;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void TriggerVolumeComponentBase::DrawVolumeInspectorImGui() {
 		ImGui::DragFloat3("Local Center HU", &mLocalCenterHu.x, 1.0f);
 		ImGui::DragFloat3("Extents HU", &mExtentsHu.x, 1.0f, 0.0f, 100000.0f);
 	}
 #endif
 }
-
 
 
 ============================================================
@@ -29257,7 +29064,7 @@ namespace Unnamed {
 		void SerializeVolume(JsonWriter& writer) const;
 		[[nodiscard]] TransformComponent* GetTransform() const;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawVolumeInspectorImGui();
 #endif
 
@@ -65031,7 +64838,8 @@ namespace Unnamed::Render {
 	RenderModule::RenderModule(
 		AssetManager& assetManager, Rhi::IRhiDevice& rhiDevice
 	) : mAssetManager(assetManager),
-	    mRhiDevice(rhiDevice) {}
+	    mRhiDevice(rhiDevice) {
+	}
 
 	RenderModule::~RenderModule() {
 		Shutdown();
@@ -65053,7 +64861,7 @@ namespace Unnamed::Render {
 		mRenderDevice.reset();
 	}
 
-	void RenderModule::Tick(RenderFrameInputs& inputs) const {
+	void RenderModule::Tick(const RenderFrameInputs& inputs) const {
 		mRenderer->RenderFrame(*mRenderDevice, inputs);
 	}
 
@@ -65129,7 +64937,7 @@ namespace Unnamed::Render {
 		void Init(ConsoleSystem* console);
 		/// @brief Renderer/RenderDevice を明示的な順序で終了します。
 		void Shutdown();
-		void Tick(RenderFrameInputs& inputs) const;
+		void Tick(const RenderFrameInputs& inputs) const;
 
 		void OnResize(uint32_t width, uint32_t height) const;
 
@@ -85566,7 +85374,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CameraComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Camera Active", &mCameraActive);
 		ImGui::DragFloat("FovYDegrees", &mFovYDegrees, 0.1f, 1.0f, 179.0f);
@@ -85730,7 +85538,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -85875,7 +85683,7 @@ namespace Unnamed {
 		writer.Write(mCastsShadow);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void DirectionalLightComponent::DrawInspectorImGui() {
 		float color[3] = {mColor.x, mColor.y, mColor.z};
 		if (ImGui::ColorEdit3("Color", color)) {
@@ -85934,7 +85742,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -86047,7 +85855,7 @@ namespace Unnamed {
 		writer.Write(mIntensity);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SkyLightComponent::DrawInspectorImGui() {
 		float skyColor[3] = {mSkyColor.x, mSkyColor.y, mSkyColor.z};
 		if (ImGui::ColorEdit3("Sky Color", skyColor)) {
@@ -86111,7 +85919,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -86231,7 +86039,7 @@ namespace Unnamed {
 		return kIconPanoramaHorizontal;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SkyboxComponent::DrawInspectorImGui() {
 		std::string texturePath = mTexturePath;
 		if (
@@ -86283,7 +86091,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -86760,7 +86568,7 @@ namespace Unnamed {
 		}
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void TransformComponent::DrawInspectorImGui() {
 		Vec3       localPos   = mLocalPos;
 		Quaternion localRot   = mLocalRot;
@@ -86910,7 +86718,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -87070,7 +86878,7 @@ namespace Unnamed {
 		writer.Write(mPitch);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void AudioSourceComponent::DrawInspectorImGui() {
 		std::string soundPath = mSoundPath;
 		if (
@@ -87322,7 +87130,7 @@ namespace Unnamed {
 		void Deserialize(const JsonReader& reader) override;
 		void Serialize(JsonWriter& writer) const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -87711,7 +87519,7 @@ namespace Unnamed {
 		return "StaticMeshCollider";
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void StaticMeshColliderComponent::DrawInspectorImGui() {
 		ImGui::Checkbox("Enabled", &mEnabled);
 		ImGui::Checkbox("Dynamic", &mDynamic);
@@ -87891,7 +87699,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -88049,7 +87857,7 @@ namespace Unnamed {
 		writer.Write(mMoveSpeed);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void EditorCameraComponent::DrawInspectorImGui() {
 		ImGui::DragFloat("FovYDegrees", &mFovYDegrees, 0.1f, 1.0f, 179.0f);
 		ImGui::DragFloat("NearZ", &mNearZ, 0.0005f, 0.0001f, mFarZ - 0.001f);
@@ -88335,7 +88143,7 @@ namespace Unnamed {
 			return "EditorCamera";
 		}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -88397,7 +88205,6 @@ File Path: src/engine/unnamed/framework/components/mesh/SkeletalAnimationCompone
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <unordered_map>
@@ -88595,7 +88402,7 @@ namespace Unnamed {
 			return state;
 		}
 
-		std::string ToLowerAscii(std::string_view text) {
+		std::string ToLowerAscii(const std::string_view text) {
 			std::string lowered(text);
 			std::ranges::transform(
 				lowered,
@@ -88607,7 +88414,7 @@ namespace Unnamed {
 			return lowered;
 		}
 
-		std::string TrimAscii(std::string_view text) {
+		std::string TrimAscii(const std::string_view text) {
 			size_t begin = 0;
 			while (
 				begin < text.size() &&
@@ -88627,7 +88434,7 @@ namespace Unnamed {
 			return std::string(text.substr(begin, end - begin));
 		}
 
-		std::string_view StripAnimStatePrefix(std::string_view stateId) {
+		std::string_view StripAnimStatePrefix(const std::string_view stateId) {
 			static constexpr std::string_view kPrefix = "animstate_";
 			if (stateId.starts_with(kPrefix)) {
 				return stateId.substr(kPrefix.size());
@@ -88648,7 +88455,7 @@ namespace Unnamed {
 
 			std::vector<uint8_t> visitState(boneCount, 0u);
 			// 0:未訪問, 1:訪問中, 2:確定
-			auto resolveBoneGlobal = [&](
+			auto ResolveBoneGlobal = [&](
 				auto&& self, const uint32_t boneIndex
 			)
 				-> void {
@@ -88683,7 +88490,7 @@ namespace Unnamed {
 			};
 
 			for (uint32_t boneIndex = 0; boneIndex < boneCount; ++boneIndex) {
-				resolveBoneGlobal(resolveBoneGlobal, boneIndex);
+				ResolveBoneGlobal(ResolveBoneGlobal, boneIndex);
 			}
 		}
 	}
@@ -88923,7 +88730,7 @@ namespace Unnamed {
 		writer.EndArray();
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SkeletalAnimationComponent::DrawInspectorImGui() {
 		auto editStringField = [](
 			const char*  label,
@@ -89190,7 +88997,7 @@ namespace Unnamed {
 	}
 
 	bool SkeletalAnimationComponent::PlayState(const std::string_view stateId) {
-		auto findState = [&](const std::string_view id) {
+		auto FindState = [&](const std::string_view id) {
 			const std::string trimmedId = TrimAscii(id);
 			auto              it        = mStateMap.find(trimmedId);
 			if (it != mStateMap.end()) {
@@ -89223,7 +89030,7 @@ namespace Unnamed {
 			return mStateMap.end();
 		};
 
-		const auto it = findState(stateId);
+		const auto it = FindState(stateId);
 		if (it == mStateMap.end()) {
 			return false;
 		}
@@ -89311,60 +89118,58 @@ namespace Unnamed {
 
 	void SkeletalAnimationComponent::SetClipName(const std::string& clipName) {
 		EnsureHasAtLeastOneLayer();
-		mLayers[0].desc.clipName      = clipName;
-		mLayers[0].playbackTime       = 0.0f;
-		mLayers[0].cachedClipDuration = 0.0f;
-		mLayers[0].transition.active  = false;
+		mLayers.front().desc.clipName      = clipName;
+		mLayers.front().playbackTime       = 0.0f;
+		mLayers.front().cachedClipDuration = 0.0f;
+		mLayers.front().transition.active  = false;
 	}
 
-	const std::string&
-	SkeletalAnimationComponent::GetClipName() const noexcept {
-		static const std::string kEmpty;
+	std::string_view SkeletalAnimationComponent::GetClipName() const noexcept {
 		if (mLayers.empty()) {
-			return kEmpty;
+			return {};
 		}
-		return mLayers[0].desc.clipName;
+		return mLayers.front().desc.clipName;
 	}
 
 	void SkeletalAnimationComponent::SetLoop(const bool enabled) {
 		EnsureHasAtLeastOneLayer();
-		mLayers[0].desc.loop = enabled;
+		mLayers.front().desc.loop = enabled;
 		ClampLayerPlaybackIfPossible(0);
 	}
 
 	bool SkeletalAnimationComponent::GetLoop() const noexcept {
-		return !mLayers.empty() && mLayers[0].desc.loop;
+		return !mLayers.empty() && mLayers.front().desc.loop;
 	}
 
 	void SkeletalAnimationComponent::SetPlayOnStart(const bool enabled) {
 		EnsureHasAtLeastOneLayer();
-		mLayers[0].desc.playOnStart = enabled;
-		if (enabled && !mLayers[0].isPlaying) {
-			mLayers[0].playOnStartConsumed = false;
+		mLayers.front().desc.playOnStart = enabled;
+		if (enabled && !mLayers.front().isPlaying) {
+			mLayers.front().playOnStartConsumed = false;
 		}
 	}
 
 	bool SkeletalAnimationComponent::GetPlayOnStart() const noexcept {
-		return !mLayers.empty() && mLayers[0].desc.playOnStart;
+		return !mLayers.empty() && mLayers.front().desc.playOnStart;
 	}
 
-	void SkeletalAnimationComponent::SetSpeed(float speed) {
+	void SkeletalAnimationComponent::SetSpeed(const float speed) {
 		EnsureHasAtLeastOneLayer();
-		mLayers[0].desc.speed = std::clamp(speed, 0.0f, 8.0f);
+		mLayers.front().desc.speed = std::clamp(speed, 0.0f, 8.0f);
 	}
 
 	float SkeletalAnimationComponent::GetSpeed() const noexcept {
-		return mLayers.empty() ? 1.0f : mLayers[0].desc.speed;
+		return mLayers.empty() ? 1.0f : mLayers.front().desc.speed;
 	}
 
-	void SkeletalAnimationComponent::SetPlaybackTime(float timeSeconds) {
+	void SkeletalAnimationComponent::SetPlaybackTime(const float timeSeconds) {
 		EnsureHasAtLeastOneLayer();
-		mLayers[0].playbackTime = std::max(timeSeconds, 0.0f);
+		mLayers.front().playbackTime = std::max(timeSeconds, 0.0f);
 		ClampLayerPlaybackIfPossible(0);
 	}
 
 	float SkeletalAnimationComponent::GetPlaybackTime() const noexcept {
-		return mLayers.empty() ? 0.0f : mLayers[0].playbackTime;
+		return mLayers.empty() ? 0.0f : mLayers.front().playbackTime;
 	}
 
 	bool SkeletalAnimationComponent::IsPlaying() const noexcept {
@@ -89521,7 +89326,7 @@ namespace Unnamed {
 			}
 			const float toWeight = std::max(0.0f, layerWeight - fromWeight);
 
-			const auto accumulateClip = [&](
+			const auto AccumulateClip = [&](
 				const AnimationClipAssetData* clip,
 				const float                   playbackTime,
 				const bool                    loop,
@@ -89579,7 +89384,7 @@ namespace Unnamed {
 				}
 			};
 
-			accumulateClip(
+			AccumulateClip(
 				currentClip,
 				layer.playbackTime,
 				layer.desc.loop,
@@ -89595,7 +89400,7 @@ namespace Unnamed {
 					layer.transition.fromCachedClipDuration = std::max(
 						fromClip->durationSeconds, 0.0f
 					);
-					accumulateClip(
+					AccumulateClip(
 						fromClip,
 						layer.transition.fromPlaybackTime,
 						layer.transition.fromLoop,
@@ -89808,7 +89613,7 @@ namespace Unnamed {
 		void Deserialize(const JsonReader& reader) override;
 		void Serialize(JsonWriter& writer) const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 		[[nodiscard]] std::vector<std::string> DebugGetStateIds() const;
 #endif
@@ -89820,7 +89625,7 @@ namespace Unnamed {
 		[[nodiscard]] bool HasState(std::string_view stateId) const;
 
 		void SetClipName(const std::string& clipName);
-		[[nodiscard]] const std::string& GetClipName() const noexcept;
+		[[nodiscard]] std::string_view GetClipName() const noexcept;
 
 		void               SetLoop(bool enabled);
 		[[nodiscard]] bool GetLoop() const noexcept;
@@ -89998,7 +89803,7 @@ namespace Unnamed {
 		return kIconAccessibility;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SkeletalMeshRendererComponent::DrawInspectorImGui() {
 		std::string meshPath = mMeshPath;
 		if (
@@ -90359,7 +90164,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -90491,7 +90296,7 @@ namespace Unnamed {
 		return kIconDeployedCode;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void StaticMeshRendererComponent::DrawInspectorImGui() {
 		std::string meshPath = mMeshPath;
 		if (
@@ -90857,7 +90662,7 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetStableName() const override;
 		[[nodiscard]] std::string_view GetComponentName() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -90966,7 +90771,7 @@ namespace Unnamed {
 		return kIconVideoCam;
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SequenceDirectorComponent::DrawInspectorImGui() {
 		DrawStringInput<256>("Sequence Path", mSequencePath);
 		ImGui::Checkbox("Play On Attach", &mPlayOnAttach);
@@ -91341,7 +91146,7 @@ namespace Unnamed {
 		/// @brief コンポーネントアイコンを返します。
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		/// @brief インスペクタUIを描画します。
 		void DrawInspectorImGui() override;
 #endif
@@ -91583,7 +91388,7 @@ namespace Unnamed {
 		BaseComponent::OnRenderTick(renderDeltaTime, interpolationAlpha);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void NewUICanvas::DrawInspectorImGui() {
 		ImGui::SeparatorText("==THEME==");
 
@@ -91767,7 +91572,7 @@ namespace Unnamed {
 			float renderDeltaTime, float interpolationAlpha
 		) override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 
@@ -91946,7 +91751,7 @@ namespace Unnamed {
 		writer.Write(mReceiveInput);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void UiCanvasComponent::DrawInspectorImGui() {
 		std::string uiAssetPath = mUiAssetPath;
 		if (
@@ -92224,7 +92029,7 @@ namespace Unnamed {
 		void Deserialize(const JsonReader& reader) override;
 		void Serialize(JsonWriter& writer) const override;
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
 		
@@ -100734,26 +100539,6 @@ namespace Unnamed {
 			"sv_groundprobe_distance_hu", 1.0f,
 			FCVAR::NOTIFY | FCVAR::REPLICATED,
 			"Ground probe distance in HU."
-		);
-
-		static ConVar sv_move_collision_debugdraw(
-			"sv_move_collision_debugdraw", false,
-			FCVAR::CHEAT | FCVAR::REPLICATED,
-			"Draw GameMovement collision hit/recover debug overlays."
-		);
-		static ConVar sv_move_collision_debuglog(
-			"sv_move_collision_debuglog", false,
-			FCVAR::CHEAT | FCVAR::REPLICATED,
-			"Print GameMovement collision target/debug details to console."
-		);
-		static ConVar sv_move_collision_debuglog_interval(
-			"sv_move_collision_debuglog_interval", 0.15f,
-			FCVAR::CHEAT | FCVAR::REPLICATED,
-			"Minimum interval in seconds between collision debug logs.",
-			true,
-			0.01f,
-			true,
-			5.0f
 		);
 
 		// Noclip
