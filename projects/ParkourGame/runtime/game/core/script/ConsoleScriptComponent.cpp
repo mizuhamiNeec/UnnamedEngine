@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstddef>
-#include <cstring>
 
 #ifdef _DEBUG
 #include <imgui.h>
@@ -157,7 +155,7 @@ namespace Unnamed {
 	void ConsoleScriptComponent::ExecutePhaseCommands(
 		const std::vector<std::string>& commands,
 		const char*                     phaseName
-	) const {
+	) {
 		ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
 		if (!console) {
 			Warning(

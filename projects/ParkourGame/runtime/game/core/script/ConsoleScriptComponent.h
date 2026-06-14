@@ -37,13 +37,12 @@ namespace Unnamed {
 
 	private:
 		/// @brief 指定フェーズのコマンド配列を順序どおりに実行します。
-		void ExecutePhaseCommands(
+		static void ExecutePhaseCommands(
 			const std::vector<std::string>& commands,
 			const char*                     phaseName
-		) const;
+		);
 
 		std::vector<std::string> mOnAttachCommands;
 		std::vector<std::string> mOnDetachCommands;
 	};
 }
-
