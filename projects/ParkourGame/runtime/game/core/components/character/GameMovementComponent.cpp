@@ -16,7 +16,6 @@
 #include "core/io/json/JsonWriter.h"
 #include "core/string/StrUtil.h"
 
-#include "engine/scene/Scene.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
@@ -67,9 +66,6 @@ namespace Unnamed {
 		if (!transform || !mCollisionResolver || !mStateMachine) {
 			return;
 		}
-		mCollisionDebugLogCooldownSec = std::max(
-			0.0f, mCollisionDebugLogCooldownSec - stepSeconds
-		);
 
 		const bool        wasGrounded            = mSupportCache.grounded;
 		const float       preStepVerticalSpeedHu = Math::MtoH(mVelocity.y);
@@ -264,7 +260,7 @@ namespace Unnamed {
 	}
 
 	void GameMovementComponent::PostPhysicsTick(float) {
-		TransformComponent* transform = GetTransform();
+		const TransformComponent* transform = GetTransform();
 		if (!transform) {
 			Error(
 				GetComponentName(), "TransformComponentが見つからないため、移動できません。"
@@ -281,9 +277,7 @@ namespace Unnamed {
 			0.125f
 		);
 
-		const MovementContext context = {
-			.input = mMoveFrameInput,
-		};
+		const MovementContext context = {.input = mMoveFrameInput};
 
 		if (!mStateMachine) {
 			return;
@@ -313,15 +307,7 @@ namespace Unnamed {
 			Vec4::cyan
 		);
 
-		const bool drawCollisionDebug = mConsole &&
-		                                mConsole->GetConVarValueOr(
-			                                "sv_move_collision_debugdraw", false
-		                                );
-		const bool logCollisionDebug = mConsole &&
-		                               mConsole->GetConVarValueOr(
-			                               "sv_move_collision_debuglog", false
-		                               );
-		auto* boxResolver = dynamic_cast<BoxKinematicCollisionResolver*>(
+		const auto* boxResolver = dynamic_cast<BoxKinematicCollisionResolver*>(
 			mCollisionResolver.get()
 		);
 		if (!boxResolver) {
@@ -331,89 +317,21 @@ namespace Unnamed {
 		const BoxKinematicCollisionResolver::CollisionDebugState& debugState =
 			boxResolver->GetCollisionDebugState();
 
-		if (drawCollisionDebug && debugState.hasBlockingHit) {
-			const Vec4 castColor = Vec4::orange;
-			const Vec4 hitColor  = Vec4::red;
-
-			// 衝突スイープの経路とヒット面法線を可視化します。
-			worldDebugDraw.DrawArrow(
-				debugState.blockingCastStart,
-				debugState.blockingCastDir * debugState.blockingCastLength,
-				castColor,
-				Math::HtoM(4.0f)
+		for (int i = 0; i < debugState.recoverOverlapCount; ++i) {
+			const Physics::Hit& overlap = debugState.recoverOverlaps[
+				static_cast<size_t>(i)
+			];
+			const float overlapLen = std::clamp(
+				overlap.depth,
+				Math::HtoM(1.0f),
+				Math::HtoM(16.0f)
 			);
-			worldDebugDraw.DrawSphere(
-				debugState.blockingHit.pos,
-				Quaternion::identity,
-				Math::HtoM(2.0f),
-				hitColor,
-				10
-			);
-			worldDebugDraw.DrawArrow(
-				debugState.blockingHit.pos,
-				debugState.blockingHit.normal * Math::HtoM(14.0f),
-				hitColor,
-				Math::HtoM(2.0f)
-			);
-		}
-		if (drawCollisionDebug && debugState.recoverAttempted) {
-			const Vec4 recoverColor = debugState.recoverSucceeded ?
-				                          Vec4(0.2f, 1.0f, 0.4f, 1.0f) :
-				                          Vec4(1.0f, 0.1f, 0.1f, 1.0f);
-
 			worldDebugDraw.DrawArrow(
 				debugState.recoverStart,
-				debugState.recoverEnd - debugState.recoverStart,
-				recoverColor,
-				Math::HtoM(3.0f)
+				overlap.normal * overlapLen,
+				Vec4::yellow,
+				Math::HtoM(1.5f)
 			);
-			for (int i = 0; i < debugState.recoverOverlapCount; ++i) {
-				const Physics::Hit& overlap = debugState.recoverOverlaps[
-					static_cast<size_t>(i)
-				];
-				const float overlapLen = std::clamp(
-					overlap.depth,
-					Math::HtoM(1.0f),
-					Math::HtoM(16.0f)
-				);
-				worldDebugDraw.DrawArrow(
-					debugState.recoverStart,
-					overlap.normal * overlapLen,
-					Vec4::yellow,
-					Math::HtoM(1.5f)
-				);
-			}
-		}
-
-		if (
-			logCollisionDebug &&
-			debugState.hasBlockingHit &&
-			mCollisionDebugLogCooldownSec <= 0.0f
-		) {
-			const float logInterval = mConsole->GetConVarValueOr(
-				"sv_move_collision_debuglog_interval", 0.15f
-			);
-			const Physics::Hit& hit = debugState.blockingHit;
-			Msg(
-				"GameMovement",
-				"CollisionDebug guid={} tri={} toi={:.4f} depth={:.5f} startSolid={} allSolid={} normal=({:.3f},{:.3f},{:.3f}) hitPos=({:.3f},{:.3f},{:.3f}) recover(reason={} ok={} overlaps={})",
-				static_cast<unsigned long long>(hit.hitEntityGuid),
-				hit.triIndex,
-				hit.toi,
-				hit.depth,
-				hit.startSolid,
-				hit.allsolid,
-				hit.normal.x,
-				hit.normal.y,
-				hit.normal.z,
-				hit.pos.x,
-				hit.pos.y,
-				hit.pos.z,
-				ToStringRecoverReason(debugState.recoverReason),
-				debugState.recoverSucceeded,
-				debugState.recoverOverlapCount
-			);
-			mCollisionDebugLogCooldownSec = std::max(0.0f, logInterval);
 		}
 	}
 
@@ -520,7 +438,8 @@ namespace Unnamed {
 		const bool,
 		const bool,
 		const float
-	) {}
+	) {
+	}
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void GameMovementComponent::DrawInspectorImGui() {
@@ -535,25 +454,14 @@ namespace Unnamed {
 		ImGui::Checkbox("SpeedVault", &mCapabilitySet.speedVault);
 		ImGui::Checkbox("Blink", &mCapabilitySet.blink);
 		ImGui::Checkbox("Grapple", &mCapabilitySet.grapple);
-		ImGui::Text(
-			"Mode: %s | ActiveAbilities: 0x%016llX",
-			ToString(mCurrentModeId).data(),
-			static_cast<unsigned long long>(mActiveAbilityMask)
+		ImGui::Text("Mode: %s | ActiveAbilities: 0x%016llX",
+		            ToString(mCurrentModeId).data(),
+		            static_cast<unsigned long long>(mActiveAbilityMask)
 		);
 
 		ImGui::SeparatorText("Gameplay Cue Debug");
-		ImGui::Text(
-			"Published Cues: %llu",
-			static_cast<unsigned long long>(mDebugPublishedCueCount)
-		);
-		ImGui::Text("Last Cue ID: %s", mDebugLastPublishedCueId.c_str());
-		ImGui::Text(
-			"Last Cue Payload: %.3f / %.3f",
-			mDebugLastPublishedCueValue,
-			mDebugLastPublishedCueValue2
-		);
 
-		auto* boxResolver = dynamic_cast<BoxKinematicCollisionResolver*>(
+		const auto* boxResolver = dynamic_cast<BoxKinematicCollisionResolver*>(
 			mCollisionResolver.get()
 		);
 		if (boxResolver) {
@@ -593,7 +501,8 @@ namespace Unnamed {
 
 	void GameMovementComponent::Deserialize(const JsonReader& reader) {
 		BaseCharacterComponent::Deserialize(reader);
-		if (const JsonReader caps = reader["movementCapabilities"]; caps.
+		if (const JsonReader caps = reader["movementCapabilities"];
+			caps.
 			Valid()) {
 			mCapabilitySet.jump   = caps["jump"].GetBool(mCapabilitySet.jump);
 			mCapabilitySet.crouch = caps["crouch"].GetBool(
@@ -637,15 +546,6 @@ namespace Unnamed {
 		writer.Key("grapple");
 		writer.Write(mCapabilitySet.grapple);
 		writer.EndObject();
-	}
-
-	Vec3 GameMovementComponent::SampleSupportContactVelocity(
-		const uint64_t supportEntityGuid,
-		const Vec3&    worldPoint
-	) const {
-		(void)supportEntityGuid;
-		(void)worldPoint;
-		return Vec3::zero;
 	}
 
 	void GameMovementComponent::WriteReplayState(
@@ -731,7 +631,7 @@ namespace Unnamed {
 		writer.EndObject();
 
 		// トランスフォームデータの書き込み
-		if (TransformComponent* transform = GetTransform()) {
+		if (const TransformComponent* transform = GetTransform()) {
 			const Vec3       position = transform->GetPosition();
 			const Quaternion rotation = transform->GetRotation();
 
@@ -758,7 +658,7 @@ namespace Unnamed {
 	}
 
 	void GameMovementComponent::ReadReplayState(const nlohmann::json& inState) {
-		JsonReader reader(inState);
+		const JsonReader reader(inState);
 		if (!reader.Valid() || !reader.IsObject()) {
 			return;
 		}
@@ -768,15 +668,17 @@ namespace Unnamed {
 
 		// スカラー値の読み込み
 		mGrounded         = reader["grounded"].GetBool(mGrounded);
-		mCollisionEnabled = reader["collisionEnabled"].GetBool(mCollisionEnabled);
+		mCollisionEnabled = reader["collisionEnabled"].GetBool(
+			mCollisionEnabled);
 		mJumpSnapDisableRemaining =
-			reader["jumpSnapDisableRemaining"].GetFloat(mJumpSnapDisableRemaining);
+			reader["jumpSnapDisableRemaining"].GetFloat(
+				mJumpSnapDisableRemaining);
 
 		// ボックスハーフエクステントの読み込み
 		mBoxHalfExtents = reader["boxHalfExtents"].GetVec3(mBoxHalfExtents);
 
 		// サポート情報の読み込み
-		JsonReader supportReader = reader["support"];
+		const JsonReader supportReader = reader["support"];
 		if (supportReader.Valid() && supportReader.IsObject()) {
 			mSupportCache.grounded =
 				supportReader["grounded"].GetBool(mSupportCache.grounded);
@@ -797,14 +699,14 @@ namespace Unnamed {
 
 		// トランスフォーム情報の読み込み
 		if (TransformComponent* transform = GetTransform()) {
-			JsonReader posReader = reader["position"];
+			const JsonReader posReader = reader["position"];
 			if (posReader.Valid() && posReader.IsArray()) {
 				transform->SetPosition(posReader.GetVec3());
 			}
 
-			JsonReader rotReader = reader["rotation"];
+			const JsonReader rotReader = reader["rotation"];
 			if (rotReader.Valid() && rotReader.IsArray() &&
-				rotReader.Size() == 4) {
+			    rotReader.Size() == 4) {
 				transform->SetRotation(Quaternion(
 					rotReader[0].GetFloat(),
 					rotReader[1].GetFloat(),
@@ -834,7 +736,7 @@ namespace Unnamed {
 			);
 
 			// 能力セットの読み込み
-			JsonReader capabilitiesReader = reader["capabilities"];
+			const JsonReader capabilitiesReader = reader["capabilities"];
 			if (capabilitiesReader.Valid() && capabilitiesReader.IsObject()) {
 				mCapabilitySet.jump =
 					capabilitiesReader["jump"].GetBool(mCapabilitySet.jump);
@@ -843,7 +745,8 @@ namespace Unnamed {
 				mCapabilitySet.slide =
 					capabilitiesReader["slide"].GetBool(mCapabilitySet.slide);
 				mCapabilitySet.wallRun =
-					capabilitiesReader["wallRun"].GetBool(mCapabilitySet.wallRun);
+					capabilitiesReader["wallRun"].GetBool(
+						mCapabilitySet.wallRun);
 				mCapabilitySet.doubleJump = capabilitiesReader["doubleJump"]
 					.GetBool(mCapabilitySet.doubleJump);
 				mCapabilitySet.speedVault = capabilitiesReader["speedVault"]
@@ -851,10 +754,11 @@ namespace Unnamed {
 				mCapabilitySet.blink =
 					capabilitiesReader["blink"].GetBool(mCapabilitySet.blink);
 				mCapabilitySet.grapple =
-					capabilitiesReader["grapple"].GetBool(mCapabilitySet.grapple);
+					capabilitiesReader["grapple"].GetBool(
+						mCapabilitySet.grapple);
 			}
 		} else if (reader["stateName"].Valid() &&
-				   reader["stateName"].IsString()) {
+		           reader["stateName"].IsString()) {
 			// レガシースキーマのサポート
 			Warning(
 				GetComponentName(),
@@ -932,59 +836,9 @@ namespace Unnamed {
 		return owner ? owner->GetComponent<TransformComponent>() : nullptr;
 	}
 
-	Vec3 GameMovementComponent::GetSupportSamplePoint(
-		const TransformComponent* transform
-	) const {
-		if (!transform) {
-			return Vec3::zero;
-		}
-
-		return transform->GetPosition() + Vec3::down * mBoxHalfExtents.y;
-	}
-
-	Vec3 GameMovementComponent::ResolveSupportLinearVelocity(
-		const uint64_t supportEntityGuid
-	) const {
-		(void)supportEntityGuid;
-		return Vec3::zero;
-	}
-
-	Vec3 GameMovementComponent::ResolveSupportAngularVelocity(
-		const uint64_t supportEntityGuid
-	) const {
-		(void)supportEntityGuid;
-		return Vec3::zero;
-	}
-
-	Vec3 GameMovementComponent::ResolveSupportContactVelocity(
-		const uint64_t supportEntityGuid,
-		const Vec3&    worldPoint
-	) const {
-		(void)supportEntityGuid;
-		(void)worldPoint;
-		return Vec3::zero;
-	}
-
-	Vec3 GameMovementComponent::ResolveSupportStepDelta(
-		const uint64_t supportEntityGuid, const float stepSeconds
-	) const {
-		(void)supportEntityGuid;
-		(void)stepSeconds;
-		return Vec3::zero;
-	}
-
-	bool GameMovementComponent::ApplyPassiveMotionStep(
-		TransformComponent* transform,
-		const float         stepSeconds
-	) {
-		(void)transform;
-		(void)stepSeconds;
-		return false;
-	}
-
 	void GameMovementComponent::PublishCue(
 		std::string id, const float value, const float value2
-	) {
+	) const {
 		World* world = GetWorld();
 		if (!world) {
 			return;
@@ -1000,7 +854,6 @@ namespace Unnamed {
 		cue.sourceEntityGuid = owner->GetGuid();
 		cue.value            = value;
 		cue.value2           = value2;
-		// value/value2 互換を維持しつつ、named payload も同時に供給します。
 		if (cue.id == "movement.land") {
 			cue.SetFloat("landStrength", value);
 			cue.SetFloat("impactSpeedHuPerSec", value2);
@@ -1011,15 +864,7 @@ namespace Unnamed {
 			cue.SetFloat("sprintRatio", value);
 		}
 		world->GetGameplayCueBus().Publish(cue);
-
-#ifdef _DEBUG
-		mDebugLastPublishedCueId     = cue.id;
-		mDebugLastPublishedCueValue  = cue.value;
-		mDebugLastPublishedCueValue2 = cue.value2;
-		++mDebugPublishedCueCount;
-#endif
 	}
 
 	REGISTER_COMPONENT(GameMovementComponent);
 }
-
