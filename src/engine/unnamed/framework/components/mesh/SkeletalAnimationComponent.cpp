@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <unordered_map>
@@ -200,7 +199,7 @@ namespace Unnamed {
 			return state;
 		}
 
-		std::string ToLowerAscii(std::string_view text) {
+		std::string ToLowerAscii(const std::string_view text) {
 			std::string lowered(text);
 			std::ranges::transform(
 				lowered,
@@ -212,7 +211,7 @@ namespace Unnamed {
 			return lowered;
 		}
 
-		std::string TrimAscii(std::string_view text) {
+		std::string TrimAscii(const std::string_view text) {
 			size_t begin = 0;
 			while (
 				begin < text.size() &&
@@ -232,7 +231,7 @@ namespace Unnamed {
 			return std::string(text.substr(begin, end - begin));
 		}
 
-		std::string_view StripAnimStatePrefix(std::string_view stateId) {
+		std::string_view StripAnimStatePrefix(const std::string_view stateId) {
 			static constexpr std::string_view kPrefix = "animstate_";
 			if (stateId.starts_with(kPrefix)) {
 				return stateId.substr(kPrefix.size());
@@ -253,7 +252,7 @@ namespace Unnamed {
 
 			std::vector<uint8_t> visitState(boneCount, 0u);
 			// 0:未訪問, 1:訪問中, 2:確定
-			auto resolveBoneGlobal = [&](
+			auto ResolveBoneGlobal = [&](
 				auto&& self, const uint32_t boneIndex
 			)
 				-> void {
@@ -288,7 +287,7 @@ namespace Unnamed {
 			};
 
 			for (uint32_t boneIndex = 0; boneIndex < boneCount; ++boneIndex) {
-				resolveBoneGlobal(resolveBoneGlobal, boneIndex);
+				ResolveBoneGlobal(ResolveBoneGlobal, boneIndex);
 			}
 		}
 	}
@@ -528,7 +527,7 @@ namespace Unnamed {
 		writer.EndArray();
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SkeletalAnimationComponent::DrawInspectorImGui() {
 		auto editStringField = [](
 			const char*  label,
@@ -795,7 +794,7 @@ namespace Unnamed {
 	}
 
 	bool SkeletalAnimationComponent::PlayState(const std::string_view stateId) {
-		auto findState = [&](const std::string_view id) {
+		auto FindState = [&](const std::string_view id) {
 			const std::string trimmedId = TrimAscii(id);
 			auto              it        = mStateMap.find(trimmedId);
 			if (it != mStateMap.end()) {
@@ -828,7 +827,7 @@ namespace Unnamed {
 			return mStateMap.end();
 		};
 
-		const auto it = findState(stateId);
+		const auto it = FindState(stateId);
 		if (it == mStateMap.end()) {
 			return false;
 		}
@@ -924,7 +923,7 @@ namespace Unnamed {
 
 	const std::string&
 	SkeletalAnimationComponent::GetClipName() const noexcept {
-		static const std::string kEmpty;
+		static constexpr std::string kEmpty;
 		if (mLayers.empty()) {
 			return kEmpty;
 		}
@@ -953,7 +952,7 @@ namespace Unnamed {
 		return !mLayers.empty() && mLayers[0].desc.playOnStart;
 	}
 
-	void SkeletalAnimationComponent::SetSpeed(float speed) {
+	void SkeletalAnimationComponent::SetSpeed(const float speed) {
 		EnsureHasAtLeastOneLayer();
 		mLayers[0].desc.speed = std::clamp(speed, 0.0f, 8.0f);
 	}
@@ -962,7 +961,7 @@ namespace Unnamed {
 		return mLayers.empty() ? 1.0f : mLayers[0].desc.speed;
 	}
 
-	void SkeletalAnimationComponent::SetPlaybackTime(float timeSeconds) {
+	void SkeletalAnimationComponent::SetPlaybackTime(const float timeSeconds) {
 		EnsureHasAtLeastOneLayer();
 		mLayers[0].playbackTime = std::max(timeSeconds, 0.0f);
 		ClampLayerPlaybackIfPossible(0);
@@ -1126,7 +1125,7 @@ namespace Unnamed {
 			}
 			const float toWeight = std::max(0.0f, layerWeight - fromWeight);
 
-			const auto accumulateClip = [&](
+			const auto AccumulateClip = [&](
 				const AnimationClipAssetData* clip,
 				const float                   playbackTime,
 				const bool                    loop,
@@ -1184,7 +1183,7 @@ namespace Unnamed {
 				}
 			};
 
-			accumulateClip(
+			AccumulateClip(
 				currentClip,
 				layer.playbackTime,
 				layer.desc.loop,
@@ -1200,7 +1199,7 @@ namespace Unnamed {
 					layer.transition.fromCachedClipDuration = std::max(
 						fromClip->durationSeconds, 0.0f
 					);
-					accumulateClip(
+					AccumulateClip(
 						fromClip,
 						layer.transition.fromPlaybackTime,
 						layer.transition.fromLoop,
