@@ -118,7 +118,7 @@ namespace Unnamed {
 		std::unique_ptr<BaseKinematicCollisionResolver> mCollisionResolver;
 
 		MovementFrameInput mMoveFrameInput;
-		
+
 		RingBuffer<DeterministicInputPacket, kDeterministicInputQueueCapacity>
 		mDeterministicInputQueue;
 

@@ -211,4 +211,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(BaseCharacterComponent);
 }
-
