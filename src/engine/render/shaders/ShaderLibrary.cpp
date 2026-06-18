@@ -7,6 +7,7 @@
 #include "core/hash/HashBuilder.h"
 #include "core/assets/FileStamp.h"
 #include "core/hash/StableHashBuilder.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/rhi/DxcShaderCompiler.h"
@@ -69,9 +70,9 @@ namespace Unnamed::Render {
 				return it->second;
 			}
 
-			const std::wstring sourcePath(src->path.begin(), src->path.end());
-			const std::wstring entry(key.entry.begin(), key.entry.end());
-			const std::wstring profile(key.profile.begin(), key.profile.end());
+			const std::wstring sourcePath = Path::FromUtf8(src->path).wstring();
+			const std::wstring entry      = StrUtil::ToWString(key.entry);
+			const std::wstring profile    = StrUtil::ToWString(key.profile);
 
 			const std::vector<std::wstring> includeDirs;
 			const auto                      extraArgs = BuildDxcArgs(key);
