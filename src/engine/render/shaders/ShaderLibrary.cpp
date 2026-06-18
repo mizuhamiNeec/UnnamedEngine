@@ -3,10 +3,11 @@
 #include <algorithm>
 #include <fstream>
 
-#include "core/UnnamedMacro.h"
 #include "core/assets/AssetManager.h"
 #include "core/hash/HashBuilder.h"
 #include "core/assets/FileStamp.h"
+#include "core/hash/StableHashBuilder.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/rhi/DxcShaderCompiler.h"
@@ -17,17 +18,11 @@ namespace Unnamed::Render {
 	static constexpr std::string_view kDxilCacheDir =
 		"./content/core/shaders/compiled/";
 
-	static uint64_t StampToU64(const FileStamp& stamp) {
-		return HashBuilder::Combine64(
-			stamp.sizeInBytes,
-			static_cast<uint64_t>(stamp.lastWriteTicks)
-		);
-	}
-
 	ShaderLibrary::ShaderLibrary(
 		AssetManager& assetManager, Rhi::DxcShaderCompiler& dxcCompiler
 	) : mAssetManager(assetManager),
-	    mDxcShaderCompiler(dxcCompiler) {}
+	    mDxcShaderCompiler(dxcCompiler) {
+	}
 
 	const ShaderDxil& ShaderLibrary::GetOrCreateDxil(const ShaderKey& key) {
 		auto& reverse = mReverse[key.shaderSourceId];
@@ -35,14 +30,14 @@ namespace Unnamed::Render {
 			reverse.emplace_back(key);
 		}
 
-		auto       runtimeIt = mRuntimeCache.find(key);
+		const auto runtimeIt = mRuntimeCache.find(key);
 		const bool hadCached = runtimeIt != mRuntimeCache.end();
 		const bool wasDirty  = mDirtyKeys.erase(key) > 0;
 		if (hadCached && !wasDirty) {
 			return runtimeIt->second;
 		}
 
-		const auto dxilPath = GetDxilCachePath(key);
+		const auto dxilPath  = GetDxilCachePath(key);
 		ShaderDxil candidate = {};
 		bool       prepared  = false;
 		if (std::filesystem::exists(dxilPath)) {
@@ -75,9 +70,9 @@ namespace Unnamed::Render {
 				return it->second;
 			}
 
-			const std::wstring sourcePath(src->path.begin(), src->path.end());
-			const std::wstring entry(key.entry.begin(), key.entry.end());
-			const std::wstring profile(key.profile.begin(), key.profile.end());
+			const std::wstring sourcePath = Path::FromUtf8(src->path).wstring();
+			const std::wstring entry      = StrUtil::ToWString(key.entry);
+			const std::wstring profile    = StrUtil::ToWString(key.profile);
 
 			const std::vector<std::wstring> includeDirs;
 			const auto                      extraArgs = BuildDxcArgs(key);
@@ -153,7 +148,7 @@ namespace Unnamed::Render {
 		}
 	}
 
-	void ShaderLibrary::InvalidateByShaderSource(AssetID shaderSourceId) {
+	void ShaderLibrary::InvalidateByShaderSource(const AssetID shaderSourceId) {
 		MarkDirtyByShaderSource(shaderSourceId);
 	}
 
@@ -186,7 +181,7 @@ namespace Unnamed::Render {
 	}
 
 	uint64_t ShaderLibrary::ComputeDerivedHash(const ShaderKey& key) const {
-		uint64_t h = 0;
+		StableHashBuilder hashBuilder;
 
 		const auto* src = mAssetManager.Get<ShaderSourceAssetData>(
 			key.shaderSourceId
@@ -201,39 +196,29 @@ namespace Unnamed::Render {
 
 		// ソースファイルのパスを正規化してハッシュに含める
 		const std::string srcPath = StrUtil::NormalizePath(src->path);
-		h = HashBuilder::Combine64(
-			h, static_cast<uint64_t>(std::hash<std::string>{}(srcPath))
-		);
-
-		h = HashBuilder::Combine64(
-			h, static_cast<uint64_t>(std::hash<std::string>{}(key.entry))
-		);
-		h = HashBuilder::Combine64(
-			h, static_cast<uint64_t>(std::hash<std::string>{}(key.profile))
-		);
+		hashBuilder.AddString(srcPath);
+		hashBuilder.AddString(key.entry);
+		hashBuilder.AddString(key.profile);
 		for (const auto& [name, value] : key.defines) {
-			h = HashBuilder::Combine64(
-				h, static_cast<uint64_t>(std::hash<std::string>{}(name))
-			);
-			h = HashBuilder::Combine64(
-				h, static_cast<uint64_t>(std::hash<std::string>{}(value))
-			);
+			hashBuilder.AddString(name);
+			hashBuilder.AddString(value);
 		}
 
 		const auto& meta = mAssetManager.Meta(key.shaderSourceId);
-		h                = HashBuilder::Combine64(
-			h, StampToU64(meta.fileStamp)
-		);
+
+		hashBuilder.AddUInt64(meta.fileStamp.sizeInBytes);
+		hashBuilder.AddInt64(meta.fileStamp.lastWriteTicks);
 
 		for (
 			const auto depId : mAssetManager.GetDependencies(key.shaderSourceId)
 		) {
 			const auto& depMeta = mAssetManager.Meta(depId);
-			h = HashBuilder::Combine64(h, depId);
-			h = HashBuilder::Combine64(h, StampToU64(depMeta.fileStamp));
+			hashBuilder.AddUInt64(depId);
+			hashBuilder.AddUInt64(depMeta.fileStamp.sizeInBytes);
+			hashBuilder.AddInt64(depMeta.fileStamp.lastWriteTicks);
 		}
 
-		return h;
+		return hashBuilder.Value();
 	}
 
 	std::vector<std::wstring> ShaderLibrary::BuildDxcArgs(
@@ -273,7 +258,9 @@ namespace Unnamed::Render {
 		const std::filesystem::path& path
 	) {
 		std::ifstream ifs(path, std::ios::binary);
-		if (!ifs) return {};
+		if (!ifs) {
+			return {};
+		}
 		ifs.seekg(0, std::ios::end);
 		const auto size = static_cast<size_t>(ifs.tellg());
 		ifs.seekg(0, std::ios::beg);
@@ -293,7 +280,9 @@ namespace Unnamed::Render {
 	) {
 		std::filesystem::create_directories(path.parent_path());
 		std::ofstream ofs(path, std::ios::binary);
-		if (!ofs) return;
+		if (!ofs) {
+			return;
+		}
 		ofs.write(
 			reinterpret_cast<const char*>(bytes.data()),
 			static_cast<std::streamsize>(bytes.size())

@@ -11,6 +11,7 @@
 #include <imgui.h>
 
 #include "core/assets/AssetManager.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
@@ -31,7 +32,9 @@ namespace Unnamed::EditorContentBrowser {
 		std::unordered_map<ImGuiID, BrowserViewState> sPickerStates;
 
 		std::string NormalizePath(const fs::path& path) {
-			return StrUtil::NormalizePath(path.lexically_normal().string());
+			return StrUtil::NormalizePath(
+				Path::ToGenericUtf8(path.lexically_normal())
+			);
 		}
 
 		bool IsPathInsideRoot(const fs::path& path, const fs::path& root) {
@@ -52,7 +55,8 @@ namespace Unnamed::EditorContentBrowser {
 			const std::string&  candidate,
 			const AssetTypeMask acceptedMask
 		) {
-			const std::string normalized = NormalizePath(fs::path(candidate));
+			const std::string normalized = NormalizePath(
+				Path::FromUtf8(candidate));
 			if (normalized.empty()) {
 				ioPath = normalized;
 				return true;
@@ -92,7 +96,8 @@ namespace Unnamed::EditorContentBrowser {
 			std::ranges::sort(
 				outDirs,
 				[](const fs::path& lhs, const fs::path& rhs) {
-					return lhs.filename().string() < rhs.filename().string();
+					return Path::ToUtf8String(lhs.filename()) <
+					       Path::ToUtf8String(rhs.filename());
 				}
 			);
 		}
@@ -114,7 +119,7 @@ namespace Unnamed::EditorContentBrowser {
 				const fs::directory_entry& de = *it;
 				BrowserEntry               entry = {};
 				entry.path = de.path();
-				entry.name = entry.path.filename().string();
+				entry.name = Path::ToUtf8String(entry.path.filename());
 				entry.isDirectory = de.is_directory(ec);
 				if (ec) {
 					continue;
@@ -171,12 +176,13 @@ namespace Unnamed::EditorContentBrowser {
 			const fs::path& rootPath, const fs::path& nodePath,
 			std::string&    currentPath
 		) {
-			const std::string node       = NormalizePath(nodePath);
-			const std::string current    = NormalizePath(fs::path(currentPath));
-			const bool        isCurrent  = node == current;
-			const bool        isAncestor = current.starts_with(node) &&
-			                               (current.size() == node.size() ||
-			                                current[node.size()] == '/');
+			const std::string node    = NormalizePath(nodePath);
+			const std::string current = NormalizePath(
+				Path::FromUtf8(currentPath));
+			const bool isCurrent  = node == current;
+			const bool isAncestor = current.starts_with(node) &&
+			                        (current.size() == node.size() ||
+			                         current[node.size()] == '/');
 
 			std::vector<fs::path> children;
 			EnumerateDirectories(nodePath, children);
@@ -196,7 +202,8 @@ namespace Unnamed::EditorContentBrowser {
 
 			const std::string label = nodePath == rootPath ?
 				                          "content" :
-				                          nodePath.filename().string();
+				                          Path::ToUtf8String(
+					                          nodePath.filename());
 			const bool opened = ImGui::TreeNodeEx(
 				node.c_str(),
 				flags,
@@ -245,9 +252,9 @@ namespace Unnamed::EditorContentBrowser {
 			const float         iconAreaSize,
 			bool&               outDoubleClicked
 		) {
-			const float padding        = 6.0f;
-			const float textAreaHeight = ImGui::GetTextLineHeight() * 2.0f;
-			const float cellHeight     =
+			constexpr float padding        = 6.0f;
+			const float     textAreaHeight = ImGui::GetTextLineHeight() * 2.0f;
+			const float     cellHeight     =
 				iconAreaSize + textAreaHeight + padding * 3.0f;
 			const ImVec2 cellSize(iconAreaSize, cellHeight);
 
@@ -333,15 +340,15 @@ namespace Unnamed::EditorContentBrowser {
 		}
 
 		bool DrawContentView(
-			BrowserViewState&   state,
-			const AssetTypeMask acceptedMask,
-			const bool          emitDragPayload,
-			std::string*        outCommittedPath,
+			BrowserViewState&        state,
+			const AssetTypeMask      acceptedMask,
+			const bool               emitDragPayload,
+			std::string*             outCommittedPath,
 			const AssetOpenCallback* onAssetOpen
 		) {
-			const fs::path rootPath = fs::path(state.rootPath).
+			const fs::path rootPath = Path::FromUtf8(state.rootPath).
 				lexically_normal();
-			fs::path currentPath = fs::path(state.currentPath).
+			fs::path currentPath = Path::FromUtf8(state.currentPath).
 				lexically_normal();
 			if (!IsPathInsideRoot(currentPath, rootPath)) {
 				currentPath = rootPath;
@@ -372,7 +379,8 @@ namespace Unnamed::EditorContentBrowser {
 				);
 				std::string currentPathString = NormalizePath(currentPath);
 				DrawTreeRecursive(rootPath, rootPath, currentPathString);
-				currentPath = fs::path(currentPathString).lexically_normal();
+				currentPath = Path::FromUtf8(currentPathString).
+					lexically_normal();
 				ImGui::EndChild();
 
 				ImGui::TableNextColumn();
@@ -503,9 +511,9 @@ namespace Unnamed::EditorContentBrowser {
 		}
 
 		bool DrawTopBar(BrowserViewState& state) {
-			const fs::path rootPath = fs::path(state.rootPath).
+			const fs::path rootPath = Path::FromUtf8(state.rootPath).
 				lexically_normal();
-			fs::path currentPath = fs::path(state.currentPath).
+			fs::path currentPath = Path::FromUtf8(state.currentPath).
 				lexically_normal();
 			if (!IsPathInsideRoot(currentPath, rootPath)) {
 				currentPath = rootPath;
@@ -564,8 +572,8 @@ namespace Unnamed::EditorContentBrowser {
 		ImGui::TextUnformatted(label);
 		ImGui::SameLine();
 
-		const float buttonWidth = 36.0f;
-		const float helpWidth   =
+		constexpr float buttonWidth = 36.0f;
+		const float     helpWidth   =
 			(helpText && helpText[0] != '\0') ? 24.0f : 0.0f;
 		const float inputWidth = std::max(
 			80.0f,
@@ -626,9 +634,9 @@ namespace Unnamed::EditorContentBrowser {
 			static_cast<uint32_t>(widgetId)
 		);
 		if (ImGui::Button("...")) {
-			const fs::path rootPath = fs::path(pickerState.rootPath).
+			const fs::path rootPath = Path::FromUtf8(pickerState.rootPath).
 				lexically_normal();
-			const fs::path targetPath = fs::path(path).lexically_normal();
+			const fs::path targetPath = Path::FromUtf8(path).lexically_normal();
 			if (!path.empty() && IsPathInsideRoot(targetPath, rootPath)) {
 				pickerState.currentPath = NormalizePath(
 					targetPath.parent_path()
@@ -723,7 +731,8 @@ namespace Unnamed::EditorContentBrowser {
 			return;
 		}
 
-		const fs::path  rootPath = fs::path(state.rootPath).lexically_normal();
+		const fs::path rootPath = Path::FromUtf8(state.rootPath).
+			lexically_normal();
 		std::error_code ec;
 		if (!fs::exists(rootPath, ec) || !fs::is_directory(rootPath, ec)) {
 			ImGui::TextUnformatted("`./content` directory not found.");

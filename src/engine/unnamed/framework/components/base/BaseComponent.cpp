@@ -2,6 +2,8 @@
 
 #include "../../entity/Entity.h"
 
+#include "core/hash/StableHashBuilder.h"
+
 #include "engine/ImGui/Icons.h"
 #include "engine/world/World.h"
 
@@ -109,8 +111,10 @@ namespace Unnamed {
 		mGuid = guid;
 	}
 
-	TypeId BaseComponent::GetTypeId() const {
-		return HashTypeName(GetStableName());
+	uint64_t BaseComponent::GetTypeId() const {
+		StableHashBuilder hashBuilder;
+		hashBuilder.AddString(GetStableName());
+		return hashBuilder.Value();
 	}
 
 	BaseComponent::TICK_GROUP BaseComponent::GetTickGroup() const {

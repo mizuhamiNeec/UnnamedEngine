@@ -70,6 +70,59 @@ namespace Unnamed {
 		return output;
 	}
 
+	/// @brief UTF-8 文字列をワイド文字列へ変換します。
+	[[nodiscard]] inline std::wstring ConvertUtf8ToWide(
+		const std::string_view text
+	) {
+		if (text.empty()) {
+			return {};
+		}
+
+		const int requiredSize = ::MultiByteToWideChar(
+			CP_UTF8,
+			0,
+			text.data(),
+			static_cast<int>(text.size()),
+			nullptr,
+			0
+		);
+		if (requiredSize <= 0) {
+			return {};
+		}
+
+		std::wstring output(static_cast<size_t>(requiredSize), L'\0');
+		const int    writtenSize = ::MultiByteToWideChar(
+			CP_UTF8,
+			0,
+			text.data(),
+			static_cast<int>(text.size()),
+			output.data(),
+			requiredSize
+		);
+		if (writtenSize != requiredSize) {
+			return {};
+		}
+		return output;
+	}
+
+	/// @brief UTF-8 テキストをデバッグ出力へ送ります。
+	inline void OutputDebugStringUtf8(const std::string_view text) {
+		const std::wstring wideText = ConvertUtf8ToWide(text);
+		if (wideText.empty() && !text.empty()) {
+			const std::string fallback(text);
+			::OutputDebugStringA(fallback.c_str());
+			return;
+		}
+		::OutputDebugStringW(wideText.c_str());
+	}
+
+	/// @brief ワイド文字列のパスをネイティブ `std::filesystem::path` へ変換します。
+	[[nodiscard]] inline std::filesystem::path MakeNativePath(
+		const std::wstring_view text
+	) {
+		return std::filesystem::path(std::wstring(text));
+	}
+
 	/// @brief 起動前ログを標準エラーとデバッガ出力へ送ります。
 	[[nodiscard]] inline std::string BuildLaunchMessage(
 		const std::string_view appName,
@@ -89,7 +142,7 @@ namespace Unnamed {
 	) {
 		const std::string line = BuildLaunchMessage(appName, message);
 		std::fputs((line + "\n").c_str(), stderr);
-		::OutputDebugStringA((line + "\n").c_str());
+		OutputDebugStringUtf8(line + "\n");
 	}
 
 	/// @brief 起動オプションのヘルプを表示します。
@@ -123,7 +176,7 @@ namespace Unnamed {
 		helpText += "  7) Upward search from executable directory\n\n";
 
 		std::fputs(helpText.c_str(), stdout);
-		::OutputDebugStringA(helpText.c_str());
+		OutputDebugStringUtf8(helpText);
 	}
 
 	/// @brief 解析した引数診断を表示します。
@@ -221,9 +274,7 @@ namespace Unnamed {
 					continue;
 				}
 
-				options.repoRootOverride = std::filesystem::path(
-					std::wstring(pathText)
-				);
+				options.repoRootOverride = MakeNativePath(pathText);
 				continue;
 			}
 
@@ -236,9 +287,7 @@ namespace Unnamed {
 					continue;
 				}
 
-				options.projectsRootOverride = std::filesystem::path(
-					std::wstring(pathText)
-				);
+				options.projectsRootOverride = MakeNativePath(pathText);
 				continue;
 			}
 
@@ -251,9 +300,7 @@ namespace Unnamed {
 					continue;
 				}
 
-				options.projectManifestPath = std::filesystem::path(
-					std::wstring(pathText)
-				);
+				options.projectManifestPath = MakeNativePath(pathText);
 				continue;
 			}
 
@@ -264,7 +311,7 @@ namespace Unnamed {
 					);
 					continue;
 				}
-				options.projectManifestPath = std::filesystem::path(argv[i + 1]);
+				options.projectManifestPath = MakeNativePath(argv[i + 1]);
 				++i;
 				continue;
 			}
@@ -276,7 +323,7 @@ namespace Unnamed {
 					);
 					continue;
 				}
-				options.repoRootOverride = std::filesystem::path(argv[i + 1]);
+				options.repoRootOverride = MakeNativePath(argv[i + 1]);
 				++i;
 				continue;
 			}
@@ -288,7 +335,7 @@ namespace Unnamed {
 					);
 					continue;
 				}
-				options.projectsRootOverride = std::filesystem::path(argv[i + 1]);
+				options.projectsRootOverride = MakeNativePath(argv[i + 1]);
 				++i;
 				continue;
 			}

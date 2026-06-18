@@ -164,8 +164,9 @@ namespace Unnamed::StrUtil {
 	}
 
 	std::string ToLowerExt(const std::string_view& str) {
-		std::string e = std::filesystem::path(std::string(str)).extension().
-			string();
+		std::string e = Path::ToUtf8String(
+			Path::FromUtf8(str).extension()
+		);
 		for (auto& c : e) {
 			c = static_cast<std::string::value_type>(std::tolower(c));
 		}

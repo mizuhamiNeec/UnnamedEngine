@@ -6,10 +6,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "core/TypeId.h"
-
 #include "../components/base/BaseComponent.h"
 
+#include "core/hash/StableHashBuilder.h"
 
 namespace Unnamed {
 	class World;
@@ -259,7 +258,7 @@ namespace Unnamed {
 		// 所有しているコンポーネント
 		std::vector<std::unique_ptr<BaseComponent>> mComponents;
 
-		std::unordered_map<TypeId, std::vector<BaseComponent*>>
+		std::unordered_map<uint64_t, std::vector<BaseComponent*>>
 		mComponentsByType;
 
 		std::string mName = "unnamed";         // 名前
@@ -295,7 +294,9 @@ namespace Unnamed {
 		mComponents.emplace_back(std::move(ptr));
 
 		// 型索引へ登録
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
+		StableHashBuilder hashBuilder;
+		hashBuilder.AddString(ComponentType{}.GetStableName());
+		const uint64_t typeId = hashBuilder.Value();
 		mComponentsByType[typeId].emplace_back(raw);
 
 		raw->OnAttached();
@@ -313,7 +314,9 @@ namespace Unnamed {
 			"ComponentType は std::string_view GetStableName() const を持つ必要があります。"
 		);
 
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
+		StableHashBuilder hashBuilder;
+		hashBuilder.AddString(ComponentType{}.GetStableName());
+		const uint64_t typeId = hashBuilder.Value();
 
 		const auto it = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end() || it->second.empty()) {
@@ -333,7 +336,9 @@ namespace Unnamed {
 			"ComponentType は std::string_view GetStableName() const を持つ必要があります。"
 		);
 
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
+		StableHashBuilder hashBuilder;
+		hashBuilder.AddString(ComponentType{}.GetStableName());
+		const uint64_t typeId = hashBuilder.Value();
 
 		const auto it = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end() || it->second.empty()) {
@@ -354,8 +359,8 @@ namespace Unnamed {
 		);
 
 		out.clear();
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
-		const auto   it     = mComponentsByType.find(typeId);
+		const uint64_t typeId = HashTypeName(ComponentType{}.GetStableName());
+		const auto     it     = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end()) {
 			return;
 		}
@@ -378,8 +383,8 @@ namespace Unnamed {
 		);
 
 		out.clear();
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
-		const auto   it     = mComponentsByType.find(typeId);
+		const uint64_t typeId = HashTypeName(ComponentType{}.GetStableName());
+		const auto     it     = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end()) {
 			return;
 		}
@@ -536,8 +541,8 @@ namespace Unnamed {
 			"ComponentType は std::string_view GetStableName() const を持つ必要があります。"
 		);
 
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
-		const auto   it     = mComponentsByType.find(typeId);
+		const uint64_t typeId = HashTypeName(ComponentType{}.GetStableName());
+		const auto     it     = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end() || it->second.empty()) {
 			return true;
 		}
@@ -572,8 +577,8 @@ namespace Unnamed {
 			"ComponentType は std::string_view GetStableName() const を持つ必要があります。"
 		);
 
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
-		const auto   it     = mComponentsByType.find(typeId);
+		const uint64_t typeId = HashTypeName(ComponentType{}.GetStableName());
+		const auto     it     = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end() || it->second.empty()) {
 			return true;
 		}
