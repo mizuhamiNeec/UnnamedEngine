@@ -7,11 +7,12 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/loader/SequenceFileIO.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
 	namespace {
-		static constexpr size_t kMaxUndoDepth = 128;
+		constexpr size_t kMaxUndoDepth = 128;
 	}
 
 	SequenceEditorDocument::SequenceEditorDocument(std::string path) :
@@ -124,8 +125,8 @@ namespace Unnamed {
 	}
 
 	std::string SequenceEditorDocument::GetDisplayName() const {
-		const std::filesystem::path path(mPath);
-		return path.stem().stem().string();
+		const std::filesystem::path path = Path::FromUtf8(mPath);
+		return Path::ToUtf8String(path.stem().stem());
 	}
 
 	SequenceAuthoringData& SequenceEditorDocument::GetAuthoringData() {
