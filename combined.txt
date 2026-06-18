@@ -204,8 +204,6 @@
 └── ├── core/
 └── └── ├── ComponentRegistry.cpp
 └── └── ├── ComponentRegistry.h
-└── └── ├── TypeId.cpp
-└── └── ├── TypeId.h
 └── └── ├── UnnamedMacro.cpp
 └── └── ├── UnnamedMacro.h
 └── └── ├── assets/
@@ -268,7 +266,8 @@
 └── └── └── ├── GuidGenerator.cpp
 └── └── └── └── GuidGenerator.h
 └── └── ├── hash/
-└── └── └── └── HashBuilder.h
+└── └── └── ├── HashBuilder.h
+└── └── └── └── StableHashBuilder.h
 └── └── ├── io/
 └── └── └── ├── binary/
 └── └── └── └── ├── BinaryReader.cpp
@@ -546,7 +545,16 @@
 └── └── └── └── TweenTypes.h
 └── └── ├── ui/
 └── └── └── ├── ImGuiLayer.cpp
-└── └── └── └── ImGuiLayer.h
+└── └── └── ├── ImGuiLayer.h
+└── └── └── └── retained/
+└── └── └──     ├── IUiBackend.h
+└── └── └──     ├── UiAnimatedValue.h
+└── └── └──     ├── UiDocument.cpp
+└── └── └──     ├── UiDocument.h
+└── └── └──     ├── UiNode.h
+└── └── └──     ├── UiSystem.cpp
+└── └── └──     ├── UiSystem.h
+└── └── └──     └── UiTypes.h
 └── └── ├── unnamed/
 └── └── └── ├── framework/
 └── └── └── └── ├── components/
@@ -29812,6 +29820,59 @@ namespace Unnamed {
 		return output;
 	}
 
+	/// @brief UTF-8 文字列をワイド文字列へ変換します。
+	[[nodiscard]] inline std::wstring ConvertUtf8ToWide(
+		const std::string_view text
+	) {
+		if (text.empty()) {
+			return {};
+		}
+
+		const int requiredSize = ::MultiByteToWideChar(
+			CP_UTF8,
+			0,
+			text.data(),
+			static_cast<int>(text.size()),
+			nullptr,
+			0
+		);
+		if (requiredSize <= 0) {
+			return {};
+		}
+
+		std::wstring output(static_cast<size_t>(requiredSize), L'\0');
+		const int    writtenSize = ::MultiByteToWideChar(
+			CP_UTF8,
+			0,
+			text.data(),
+			static_cast<int>(text.size()),
+			output.data(),
+			requiredSize
+		);
+		if (writtenSize != requiredSize) {
+			return {};
+		}
+		return output;
+	}
+
+	/// @brief UTF-8 テキストをデバッグ出力へ送ります。
+	inline void OutputDebugStringUtf8(const std::string_view text) {
+		const std::wstring wideText = ConvertUtf8ToWide(text);
+		if (wideText.empty() && !text.empty()) {
+			const std::string fallback(text);
+			::OutputDebugStringA(fallback.c_str());
+			return;
+		}
+		::OutputDebugStringW(wideText.c_str());
+	}
+
+	/// @brief ワイド文字列のパスをネイティブ `std::filesystem::path` へ変換します。
+	[[nodiscard]] inline std::filesystem::path MakeNativePath(
+		const std::wstring_view text
+	) {
+		return std::filesystem::path(std::wstring(text));
+	}
+
 	/// @brief 起動前ログを標準エラーとデバッガ出力へ送ります。
 	[[nodiscard]] inline std::string BuildLaunchMessage(
 		const std::string_view appName,
@@ -29831,7 +29892,7 @@ namespace Unnamed {
 	) {
 		const std::string line = BuildLaunchMessage(appName, message);
 		std::fputs((line + "\n").c_str(), stderr);
-		::OutputDebugStringA((line + "\n").c_str());
+		OutputDebugStringUtf8(line + "\n");
 	}
 
 	/// @brief 起動オプションのヘルプを表示します。
@@ -29865,7 +29926,7 @@ namespace Unnamed {
 		helpText += "  7) Upward search from executable directory\n\n";
 
 		std::fputs(helpText.c_str(), stdout);
-		::OutputDebugStringA(helpText.c_str());
+		OutputDebugStringUtf8(helpText);
 	}
 
 	/// @brief 解析した引数診断を表示します。
@@ -29963,9 +30024,7 @@ namespace Unnamed {
 					continue;
 				}
 
-				options.repoRootOverride = std::filesystem::path(
-					std::wstring(pathText)
-				);
+				options.repoRootOverride = MakeNativePath(pathText);
 				continue;
 			}
 
@@ -29978,9 +30037,7 @@ namespace Unnamed {
 					continue;
 				}
 
-				options.projectsRootOverride = std::filesystem::path(
-					std::wstring(pathText)
-				);
+				options.projectsRootOverride = MakeNativePath(pathText);
 				continue;
 			}
 
@@ -29993,9 +30050,7 @@ namespace Unnamed {
 					continue;
 				}
 
-				options.projectManifestPath = std::filesystem::path(
-					std::wstring(pathText)
-				);
+				options.projectManifestPath = MakeNativePath(pathText);
 				continue;
 			}
 
@@ -30006,7 +30061,7 @@ namespace Unnamed {
 					);
 					continue;
 				}
-				options.projectManifestPath = std::filesystem::path(argv[i + 1]);
+				options.projectManifestPath = MakeNativePath(argv[i + 1]);
 				++i;
 				continue;
 			}
@@ -30018,7 +30073,7 @@ namespace Unnamed {
 					);
 					continue;
 				}
-				options.repoRootOverride = std::filesystem::path(argv[i + 1]);
+				options.repoRootOverride = MakeNativePath(argv[i + 1]);
 				++i;
 				continue;
 			}
@@ -30030,7 +30085,7 @@ namespace Unnamed {
 					);
 					continue;
 				}
-				options.projectsRootOverride = std::filesystem::path(argv[i + 1]);
+				options.projectsRootOverride = MakeNativePath(argv[i + 1]);
 				++i;
 				continue;
 			}
@@ -31089,42 +31144,6 @@ return std::make_unique<T>();											\
 }																		\
 const Unnamed::Detail::AutoComponentRegister gAutoReg_##T(				\
 (stableNameLiteral), (displayNameLiteral), &Create_##T, std::type_index(typeid(T)));				\
-}
-
-
-============================================================
-File Path: src/core/TypeId.cpp
-============================================================
-#include "TypeId.h"
-
-
-============================================================
-File Path: src/core/TypeId.h
-============================================================
-#pragma once
-#include <cstdint>
-#include <string_view>
-
-namespace Unnamed {
-	using TypeId = uint64_t;
-
-	// FNV-1a 64ビットハッシュ定数
-	static constexpr uint64_t kFnv1A64OffsetBasis = 14695981039346656037ull;
-
-	// FNV-1a 64ビットプライム定数
-	static constexpr TypeId kFnv1A64Prime = 1099511628211ull;
-
-	/// @brief 文字列のFNV-1aハッシュを計算します。
-	/// @param s ハッシュを計算する文字列ビュー
-	/// @return 計算されたハッシュ値
-	constexpr TypeId HashTypeName(const std::string_view s) {
-		TypeId h = kFnv1A64OffsetBasis;
-		for (const char c : s) {
-			h ^= static_cast<unsigned char>(c);
-			h *= kFnv1A64Prime;
-		}
-		return h;
-	}
 }
 
 
@@ -33277,6 +33296,7 @@ File Path: src/core/assets/loader/MeshAssetLoader.cpp
 
 #include "core/assets/types/MeshAssetData.h"
 #include "core/hash/HashBuilder.h"
+#include "core/hash/StableHashBuilder.h"
 #include "core/io/binary/BinaryReader.h"
 #include "core/io/binary/BinaryWriter.h"
 #include "core/path/PathUtil.h"
@@ -33299,6 +33319,7 @@ namespace Unnamed {
 			// FBXはAssimpビルドに含めると重たいので非対応! Gitに上げられない!
 		};
 
+		/// @brief バイナリなメッシュキャッシュファイルのヘッダ構造体。
 		struct MeshCacheHeader {
 			uint32_t magic                = kMeshCacheMagic;
 			uint32_t version              = kMeshCacheVersion;
@@ -33342,14 +33363,17 @@ namespace Unnamed {
 				aiProcess_ImproveCacheLocality | // 頂点キャッシュ最適化
 				aiProcess_CalcTangentSpace | // NormalMap 用 tangent/bitangent 生成
 				aiProcess_ConvertToLeftHanded; // このエンジンは左手座標系
-			uint64_t hash = HashBuilder::Combine64(
-				kBaseFlags, kMeshCacheVersion);
+
+			StableHashBuilder hashBuilder(kBaseFlags);
+
+			hashBuilder.AddUInt64(kMeshCacheVersion);
+
 			if (!hasSkinning) {
-				hash = HashBuilder::Combine64(
-					hash, aiProcess_PreTransformVertices
+				hashBuilder.AddUInt64(
+					aiProcess_PreTransformVertices
 				);
 			}
-			return hash;
+			return hashBuilder.Value();
 		}
 
 		/// @brief Assimpの4x4行列をエンジンのMat4に変換する。Assimpは行優先、エンジンは列優先なので、要素の入れ替えに注意。
@@ -33530,10 +33554,10 @@ namespace Unnamed {
 					                              25.0;
 				AnimationClipAssetData clip = {};
 				clip.name                   = anim->mName.length > 0 ?
-					                              std::string(
-						                              anim->mName.C_Str()) :
-					                              ("Anim" + std::to_string(
-						                               animIndex));
+					            std::string(
+						            anim->mName.C_Str()) :
+					            ("Anim" + std::to_string(
+						             animIndex));
 				clip.durationSeconds = anim->mDuration > 0.0 ?
 					                       static_cast<float>(
 						                       anim->mDuration /
@@ -37124,8 +37148,9 @@ File Path: src/core/hash/HashBuilder.h
 #include <type_traits>
 
 namespace Unnamed {
-	/// @brief 汎用ハッシュ生成クラス
-	/// @details 複数の値を順番に組み合わせ、安定したハッシュ値を生成する。
+	/// @brief ランタイム用の汎用ハッシュ生成クラス
+	/// @details std::hashやポインタの値を組み合わせる。
+	/// 生成値は他環境で一致するとは限らない
 	class HashBuilder final {
 	public:
 		/// @brief デフォルトシード（0）でハッシュ生成器を初期化する。
@@ -37133,8 +37158,9 @@ namespace Unnamed {
 
 		/// @brief シード値を指定してハッシュ生成器を初期化する。
 		/// @param seed 初期シード値
-		explicit constexpr HashBuilder(const size_t seed) noexcept :
-			mSeed(seed) {}
+		explicit constexpr HashBuilder(const uint64_t seed) noexcept
+			: mSeed(seed) {
+		}
 
 		/// @brief `std::hash` で値をハッシュ化して現在のシードに混ぜる。
 		/// @tparam T ハッシュ化対象の型
@@ -37150,6 +37176,7 @@ namespace Unnamed {
 		template <typename T>
 		void AddEnum(const T value) {
 			static_assert(std::is_enum_v<T>);
+
 			using UnderlyingType = std::underlying_type_t<T>;
 			AddValue(static_cast<UnderlyingType>(value));
 		}
@@ -37159,36 +37186,27 @@ namespace Unnamed {
 		/// @param value ハッシュ化対象のポインタ
 		template <typename T>
 		void AddPointer(const T* value) noexcept {
-			AddHashed(reinterpret_cast<size_t>(value));
+			AddHashed(reinterpret_cast<uint64_t>(value));
 		}
 
 		/// @brief 既にハッシュ化済みの値を現在のシードに混ぜる。
 		/// @param value 既にハッシュ化済みの値
-		void AddHashed(const size_t value) noexcept {
+		void AddHashed(const uint64_t value) noexcept {
 			mSeed = Combine(mSeed, value);
 		}
 
 		/// @brief 現在のハッシュ値を返す。
 		/// @return 現在のハッシュ値
-		[[nodiscard]] constexpr size_t Value() const noexcept {
+		[[nodiscard]]
+		constexpr uint64_t Value() const noexcept {
 			return mSeed;
 		}
 
-		/// @brief 2つの `size_t` ハッシュ値を組み合わせる。
+		/// @brief 2つの `uint64_t` ハッシュ値を組み合わせる。
 		/// @param seed ベースとなるハッシュ値
 		/// @param value 混ぜるハッシュ値
 		/// @return 組み合わせ結果
-		[[nodiscard]] static constexpr size_t Combine(
-			const size_t seed, const size_t value
-		) noexcept {
-			return seed ^ (value + kMixConstant + (seed << 6) + (seed >> 2));
-		}
-
-		/// @brief 2つの64ビットハッシュ値を組み合わせる。
-		/// @param seed ベースとなるハッシュ値
-		/// @param value 混ぜるハッシュ値
-		/// @return 組み合わせ結果
-		[[nodiscard]] static constexpr uint64_t Combine64(
+		[[nodiscard]] static constexpr uint64_t Combine(
 			const uint64_t seed, const uint64_t value
 		) noexcept {
 			return seed ^ (value + kMixConstant + (seed << 6) + (seed >> 2));
@@ -37197,7 +37215,101 @@ namespace Unnamed {
 	private:
 		static constexpr uint64_t kMixConstant = 0x9e3779b97f4a7c15ull;
 
-		size_t mSeed = 0;
+		uint64_t mSeed = 0;
+	};
+}
+
+
+============================================================
+File Path: src/core/hash/StableHashBuilder.h
+============================================================
+#pragma once
+
+namespace Unnamed {
+	inline constexpr uint64_t kFnv1a64OffsetBasis = 14695981039346656037ull;
+	inline constexpr uint64_t kFnv1a64Prime       = 1099511628211ull;
+
+	[[nodiscard]] constexpr uint64_t Fnv1a64(
+		const std::string_view value
+	) noexcept {
+		uint64_t hash = kFnv1a64OffsetBasis;
+
+		for (const char character : value) {
+			hash ^= static_cast<uint64_t>(character);
+			hash *= kFnv1a64Prime;
+		}
+
+		return hash;
+	}
+
+	[[nodiscard]]
+	constexpr uint64_t Combine64(
+		const uint64_t seed,
+		const uint64_t value
+	) noexcept {
+		constexpr uint64_t mixConstant = 0x9e3779b97f4a7c15ull;
+
+		// まじぇまじぇ
+		return seed ^ (value + mixConstant + (seed << 6) + (seed >> 2));
+	}
+
+	class StableHashBuilder final {
+	public:
+		explicit constexpr
+		StableHashBuilder(const uint64_t seed = 0) noexcept : mSeed(seed) {
+		}
+
+		/// @brief 既にハッシュ化済みの値を現在のシードに混ぜる。
+		/// @param value 既にハッシュ化済みの値
+		constexpr void AddHash(const uint64_t value) noexcept {
+			mSeed = Combine64(mSeed, value);
+		}
+
+		/// @brief 文字列をFNV-1aでハッシュ化して現在のシードに混ぜる。
+		/// @param value ハッシュ化対象の文字列ビュー
+		constexpr void AddString(const std::string_view value) noexcept {
+			AddHash(Fnv1a64(value));
+		}
+
+		/// @brief 64ビット符号なし整数を現在のシードに混ぜる。
+		/// @param value ハッシュ化対象の64ビット符号なし整数
+		constexpr void AddUInt64(const uint64_t value) noexcept {
+			AddHash(value);
+		}
+
+		/// @brief 64ビット符号付き整数を現在のシードに混ぜる。
+		/// @param value ハッシュ化対象の64ビット符号付き整数
+		constexpr void AddInt64(const int64_t value) noexcept {
+			AddHash(static_cast<uint64_t>(value));
+		}
+
+		/// @brief ブール値を現在のシードに混ぜる。trueは1、falseは0として扱う。
+		/// @param value ハッシュ化対象のブール値
+		constexpr void AddBool(const bool value) noexcept {
+			AddHash(value ? 1ull : 0ull);
+		}
+
+		/// @brief 列挙値を基底型に変換して現在のシードに混ぜる。
+		/// @tparam T 列挙型
+		/// @param value ハッシュ化対象の列挙値
+		template <typename T>
+		constexpr void AddEnum(const T value) noexcept {
+			static_assert(std::is_enum_v<T>);
+
+			using UnderlyingType = std::underlying_type_t<T>;
+			using UnsignedType   = std::make_unsigned_t<UnderlyingType>;
+
+			AddHash(static_cast<uint64_t>(static_cast<UnsignedType>(value)));
+		}
+
+		/// @brief 現在のハッシュ値を返す。
+		/// @return 現在のハッシュ値
+		[[nodiscard]] constexpr uint64_t Value() const noexcept {
+			return mSeed;
+		}
+
+	private:
+		uint64_t mSeed = 0;
 	};
 }
 
@@ -40702,7 +40814,7 @@ constexpr const float& Vec4::operator[](const int index) const {
 }
 
 Vec4 Vec4::operator*(const Mat4& mat4) const {
-	return Vec4(
+	return {
 		x * mat4.m[0][0] + y * mat4.m[1][0] + z * mat4.m[2][0] + w * mat4.m[3][
 			0],
 		x * mat4.m[0][1] + y * mat4.m[1][1] + z * mat4.m[2][1] + w * mat4.m[3][
@@ -40711,23 +40823,27 @@ Vec4 Vec4::operator*(const Mat4& mat4) const {
 			2],
 		x * mat4.m[0][3] + y * mat4.m[1][3] + z * mat4.m[2][3] + w * mat4.m[3][
 			3]
-	);
+	};
 }
 
 Vec4 Vec4::operator*(const float rhs) const {
-	return Vec4(x * rhs, y * rhs, z * rhs, w * rhs);
+	return {x * rhs, y * rhs, z * rhs, w * rhs};
 }
 
 Vec4 Vec4::operator+(const Vec4& rhs) const {
-	return Vec4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
+	return {x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w};
 }
 
 Vec4 Vec4::operator-(const Vec4& rhs) const {
-	return Vec4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w);
+	return {x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w};
+}
+
+Vec4 Vec4::operator*(const Vec4& rhs) const {
+	return {x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w};
 }
 
 Vec4 Vec4::operator/(const float rhs) const {
-	return Vec4(x / rhs, y / rhs, z / rhs, w / rhs);
+	return {x / rhs, y / rhs, z / rhs, w / rhs};
 }
 
 #ifdef _DEBUG
@@ -40814,6 +40930,7 @@ struct Vec4 final {
 	Vec4 operator*(float rhs) const;
 	Vec4 operator+(const Vec4& rhs) const;
 	Vec4 operator-(const Vec4& rhs) const;
+	Vec4 operator*(const Vec4& rhs) const;
 	Vec4 operator/(float rhs) const;
 };
 
@@ -41232,8 +41349,9 @@ namespace Unnamed::StrUtil {
 	}
 
 	std::string ToLowerExt(const std::string_view& str) {
-		std::string e = std::filesystem::path(std::string(str)).extension().
-			string();
+		std::string e = Path::ToUtf8String(
+			Path::FromUtf8(str).extension()
+		);
 		for (auto& c : e) {
 			c = static_cast<std::string::value_type>(std::tolower(c));
 		}
@@ -46560,6 +46678,7 @@ File Path: src/engine/editor/ContentBrowser.cpp
 #include <imgui.h>
 
 #include "core/assets/AssetManager.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
@@ -46580,7 +46699,9 @@ namespace Unnamed::EditorContentBrowser {
 		std::unordered_map<ImGuiID, BrowserViewState> sPickerStates;
 
 		std::string NormalizePath(const fs::path& path) {
-			return StrUtil::NormalizePath(path.lexically_normal().string());
+			return StrUtil::NormalizePath(
+				Path::ToGenericUtf8(path.lexically_normal())
+			);
 		}
 
 		bool IsPathInsideRoot(const fs::path& path, const fs::path& root) {
@@ -46601,7 +46722,8 @@ namespace Unnamed::EditorContentBrowser {
 			const std::string&  candidate,
 			const AssetTypeMask acceptedMask
 		) {
-			const std::string normalized = NormalizePath(fs::path(candidate));
+			const std::string normalized = NormalizePath(
+				Path::FromUtf8(candidate));
 			if (normalized.empty()) {
 				ioPath = normalized;
 				return true;
@@ -46641,7 +46763,8 @@ namespace Unnamed::EditorContentBrowser {
 			std::ranges::sort(
 				outDirs,
 				[](const fs::path& lhs, const fs::path& rhs) {
-					return lhs.filename().string() < rhs.filename().string();
+					return Path::ToUtf8String(lhs.filename()) <
+					       Path::ToUtf8String(rhs.filename());
 				}
 			);
 		}
@@ -46663,7 +46786,7 @@ namespace Unnamed::EditorContentBrowser {
 				const fs::directory_entry& de = *it;
 				BrowserEntry               entry = {};
 				entry.path = de.path();
-				entry.name = entry.path.filename().string();
+				entry.name = Path::ToUtf8String(entry.path.filename());
 				entry.isDirectory = de.is_directory(ec);
 				if (ec) {
 					continue;
@@ -46720,12 +46843,13 @@ namespace Unnamed::EditorContentBrowser {
 			const fs::path& rootPath, const fs::path& nodePath,
 			std::string&    currentPath
 		) {
-			const std::string node       = NormalizePath(nodePath);
-			const std::string current    = NormalizePath(fs::path(currentPath));
-			const bool        isCurrent  = node == current;
-			const bool        isAncestor = current.starts_with(node) &&
-			                               (current.size() == node.size() ||
-			                                current[node.size()] == '/');
+			const std::string node    = NormalizePath(nodePath);
+			const std::string current = NormalizePath(
+				Path::FromUtf8(currentPath));
+			const bool isCurrent  = node == current;
+			const bool isAncestor = current.starts_with(node) &&
+			                        (current.size() == node.size() ||
+			                         current[node.size()] == '/');
 
 			std::vector<fs::path> children;
 			EnumerateDirectories(nodePath, children);
@@ -46745,7 +46869,8 @@ namespace Unnamed::EditorContentBrowser {
 
 			const std::string label = nodePath == rootPath ?
 				                          "content" :
-				                          nodePath.filename().string();
+				                          Path::ToUtf8String(
+					                          nodePath.filename());
 			const bool opened = ImGui::TreeNodeEx(
 				node.c_str(),
 				flags,
@@ -46794,9 +46919,9 @@ namespace Unnamed::EditorContentBrowser {
 			const float         iconAreaSize,
 			bool&               outDoubleClicked
 		) {
-			const float padding        = 6.0f;
-			const float textAreaHeight = ImGui::GetTextLineHeight() * 2.0f;
-			const float cellHeight     =
+			constexpr float padding        = 6.0f;
+			const float     textAreaHeight = ImGui::GetTextLineHeight() * 2.0f;
+			const float     cellHeight     =
 				iconAreaSize + textAreaHeight + padding * 3.0f;
 			const ImVec2 cellSize(iconAreaSize, cellHeight);
 
@@ -46882,15 +47007,15 @@ namespace Unnamed::EditorContentBrowser {
 		}
 
 		bool DrawContentView(
-			BrowserViewState&   state,
-			const AssetTypeMask acceptedMask,
-			const bool          emitDragPayload,
-			std::string*        outCommittedPath,
+			BrowserViewState&        state,
+			const AssetTypeMask      acceptedMask,
+			const bool               emitDragPayload,
+			std::string*             outCommittedPath,
 			const AssetOpenCallback* onAssetOpen
 		) {
-			const fs::path rootPath = fs::path(state.rootPath).
+			const fs::path rootPath = Path::FromUtf8(state.rootPath).
 				lexically_normal();
-			fs::path currentPath = fs::path(state.currentPath).
+			fs::path currentPath = Path::FromUtf8(state.currentPath).
 				lexically_normal();
 			if (!IsPathInsideRoot(currentPath, rootPath)) {
 				currentPath = rootPath;
@@ -46921,7 +47046,8 @@ namespace Unnamed::EditorContentBrowser {
 				);
 				std::string currentPathString = NormalizePath(currentPath);
 				DrawTreeRecursive(rootPath, rootPath, currentPathString);
-				currentPath = fs::path(currentPathString).lexically_normal();
+				currentPath = Path::FromUtf8(currentPathString).
+					lexically_normal();
 				ImGui::EndChild();
 
 				ImGui::TableNextColumn();
@@ -47052,9 +47178,9 @@ namespace Unnamed::EditorContentBrowser {
 		}
 
 		bool DrawTopBar(BrowserViewState& state) {
-			const fs::path rootPath = fs::path(state.rootPath).
+			const fs::path rootPath = Path::FromUtf8(state.rootPath).
 				lexically_normal();
-			fs::path currentPath = fs::path(state.currentPath).
+			fs::path currentPath = Path::FromUtf8(state.currentPath).
 				lexically_normal();
 			if (!IsPathInsideRoot(currentPath, rootPath)) {
 				currentPath = rootPath;
@@ -47113,8 +47239,8 @@ namespace Unnamed::EditorContentBrowser {
 		ImGui::TextUnformatted(label);
 		ImGui::SameLine();
 
-		const float buttonWidth = 36.0f;
-		const float helpWidth   =
+		constexpr float buttonWidth = 36.0f;
+		const float     helpWidth   =
 			(helpText && helpText[0] != '\0') ? 24.0f : 0.0f;
 		const float inputWidth = std::max(
 			80.0f,
@@ -47175,9 +47301,9 @@ namespace Unnamed::EditorContentBrowser {
 			static_cast<uint32_t>(widgetId)
 		);
 		if (ImGui::Button("...")) {
-			const fs::path rootPath = fs::path(pickerState.rootPath).
+			const fs::path rootPath = Path::FromUtf8(pickerState.rootPath).
 				lexically_normal();
-			const fs::path targetPath = fs::path(path).lexically_normal();
+			const fs::path targetPath = Path::FromUtf8(path).lexically_normal();
 			if (!path.empty() && IsPathInsideRoot(targetPath, rootPath)) {
 				pickerState.currentPath = NormalizePath(
 					targetPath.parent_path()
@@ -47272,7 +47398,8 @@ namespace Unnamed::EditorContentBrowser {
 			return;
 		}
 
-		const fs::path  rootPath = fs::path(state.rootPath).lexically_normal();
+		const fs::path rootPath = Path::FromUtf8(state.rootPath).
+			lexically_normal();
 		std::error_code ec;
 		if (!fs::exists(rootPath, ec) || !fs::is_directory(rootPath, ec)) {
 			ImGui::TextUnformatted("`./content` directory not found.");
@@ -49827,7 +49954,6 @@ File Path: src/engine/editor/LevelEditorTool.cpp
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include "EditorNotification.h"
 #include "ImGuizmoConfigLoader.h"
 
 #include "core/io/json/JsonReader.h"
@@ -49853,7 +49979,7 @@ namespace Unnamed {
 			WindowManager& windowManager
 		) {
 			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			Window* const  mainWindow   = windowManager.FindWindowById(
+			const Window* const  mainWindow   = windowManager.FindWindowById(
 				mainWindowId
 			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
@@ -49887,7 +50013,7 @@ namespace Unnamed {
 			WindowManager& windowManager
 		) {
 			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			Window* const  mainWindow   = windowManager.FindWindowById(
+			const Window* const  mainWindow   = windowManager.FindWindowById(
 				mainWindowId
 			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
@@ -50012,9 +50138,10 @@ namespace Unnamed {
 			services.assetManager
 		);
 
-		auto guizmoConfig = mConsoleSystem->GetConVarAs<ConVar<std::string>>(
-			"im_guizmoconfigpath"
-		);
+		const auto guizmoConfig =
+			mConsoleSystem->GetConVarAs<ConVar<std::string>>(
+				"im_guizmoconfigpath"
+			);
 
 		if (guizmoConfig) {
 			ImGuizmoConfigLoader(guizmoConfig->GetValue());
@@ -50083,7 +50210,7 @@ namespace Unnamed {
 		}
 
 		DrawMainMenu();
-		ImGuiID dockSpaceId = ImGui::GetID("EditorDockSpace");
+		const ImGuiID dockSpaceId = ImGui::GetID("EditorDockSpace");
 
 		if (!mDockInitialized) {
 			ImGui::DockBuilderRemoveNode(dockSpaceId);
@@ -50096,13 +50223,13 @@ namespace Unnamed {
 
 			ImGuiID dockMain = dockSpaceId;
 
-			ImGuiID dockLeft = ImGui::DockBuilderSplitNode(
+			const ImGuiID dockLeft = ImGui::DockBuilderSplitNode(
 				dockMain, ImGuiDir_Left, 0.22f, nullptr, &dockMain
 			);
-			ImGuiID dockRight = ImGui::DockBuilderSplitNode(
+			const ImGuiID dockRight = ImGui::DockBuilderSplitNode(
 				dockMain, ImGuiDir_Right, 0.28f, nullptr, &dockMain
 			);
-			ImGuiID dockBottom = ImGui::DockBuilderSplitNode(
+			const ImGuiID dockBottom = ImGui::DockBuilderSplitNode(
 				dockMain, ImGuiDir_Down, 0.30f, nullptr, &dockMain
 			);
 
@@ -50132,9 +50259,11 @@ namespace Unnamed {
 					mWindowManager.GetMainWindowId()
 				)) {
 					Vec2 virtualViewportSize = mViewportSize;
-					if (const auto outputIt = mViewOutputs.find(
-						mActiveViewportViewKey
-					); outputIt != mViewOutputs.end()) {
+					if (
+						const auto outputIt =
+							mViewOutputs.find(mActiveViewportViewKey);
+						outputIt != mViewOutputs.end()
+					) {
 						virtualViewportSize = Vec2(
 							std::max(1.0f, outputIt->second.size.x),
 							std::max(1.0f, outputIt->second.size.y)
@@ -50464,8 +50593,8 @@ namespace Unnamed {
 			case EDITOR_VIEWPORT_RENDER_MODE::FHD1080
 			: sceneRequest.mode = Render::SCENE_RENDER_MODE::FHD_1080P;
 				break;
-			case EDITOR_VIEWPORT_RENDER_MODE::UHD4K :
-				sceneRequest.mode = Render::SCENE_RENDER_MODE::UHD_4K;
+			case EDITOR_VIEWPORT_RENDER_MODE::UHD4K
+			: sceneRequest.mode = Render::SCENE_RENDER_MODE::UHD_4K;
 			default: break;
 		}
 
@@ -54286,11 +54415,12 @@ File Path: src/engine/editor/sequence/SequenceEditorDocument.cpp
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/loader/SequenceFileIO.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
 	namespace {
-		static constexpr size_t kMaxUndoDepth = 128;
+		constexpr size_t kMaxUndoDepth = 128;
 	}
 
 	SequenceEditorDocument::SequenceEditorDocument(std::string path) :
@@ -54403,8 +54533,8 @@ namespace Unnamed {
 	}
 
 	std::string SequenceEditorDocument::GetDisplayName() const {
-		const std::filesystem::path path(mPath);
-		return path.stem().stem().string();
+		const std::filesystem::path path = Path::FromUtf8(mPath);
+		return Path::ToUtf8String(path.stem().stem());
 	}
 
 	SequenceAuthoringData& SequenceEditorDocument::GetAuthoringData() {
@@ -76280,10 +76410,11 @@ File Path: src/engine/render/shaders/ShaderLibrary.cpp
 #include <algorithm>
 #include <fstream>
 
-#include "core/UnnamedMacro.h"
 #include "core/assets/AssetManager.h"
 #include "core/hash/HashBuilder.h"
 #include "core/assets/FileStamp.h"
+#include "core/hash/StableHashBuilder.h"
+#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/rhi/DxcShaderCompiler.h"
@@ -76294,17 +76425,11 @@ namespace Unnamed::Render {
 	static constexpr std::string_view kDxilCacheDir =
 		"./content/core/shaders/compiled/";
 
-	static uint64_t StampToU64(const FileStamp& stamp) {
-		return HashBuilder::Combine64(
-			stamp.sizeInBytes,
-			static_cast<uint64_t>(stamp.lastWriteTicks)
-		);
-	}
-
 	ShaderLibrary::ShaderLibrary(
 		AssetManager& assetManager, Rhi::DxcShaderCompiler& dxcCompiler
 	) : mAssetManager(assetManager),
-	    mDxcShaderCompiler(dxcCompiler) {}
+	    mDxcShaderCompiler(dxcCompiler) {
+	}
 
 	const ShaderDxil& ShaderLibrary::GetOrCreateDxil(const ShaderKey& key) {
 		auto& reverse = mReverse[key.shaderSourceId];
@@ -76312,14 +76437,14 @@ namespace Unnamed::Render {
 			reverse.emplace_back(key);
 		}
 
-		auto       runtimeIt = mRuntimeCache.find(key);
+		const auto runtimeIt = mRuntimeCache.find(key);
 		const bool hadCached = runtimeIt != mRuntimeCache.end();
 		const bool wasDirty  = mDirtyKeys.erase(key) > 0;
 		if (hadCached && !wasDirty) {
 			return runtimeIt->second;
 		}
 
-		const auto dxilPath = GetDxilCachePath(key);
+		const auto dxilPath  = GetDxilCachePath(key);
 		ShaderDxil candidate = {};
 		bool       prepared  = false;
 		if (std::filesystem::exists(dxilPath)) {
@@ -76352,9 +76477,9 @@ namespace Unnamed::Render {
 				return it->second;
 			}
 
-			const std::wstring sourcePath(src->path.begin(), src->path.end());
-			const std::wstring entry(key.entry.begin(), key.entry.end());
-			const std::wstring profile(key.profile.begin(), key.profile.end());
+			const std::wstring sourcePath = Path::FromUtf8(src->path).wstring();
+			const std::wstring entry      = StrUtil::ToWString(key.entry);
+			const std::wstring profile    = StrUtil::ToWString(key.profile);
 
 			const std::vector<std::wstring> includeDirs;
 			const auto                      extraArgs = BuildDxcArgs(key);
@@ -76430,7 +76555,7 @@ namespace Unnamed::Render {
 		}
 	}
 
-	void ShaderLibrary::InvalidateByShaderSource(AssetID shaderSourceId) {
+	void ShaderLibrary::InvalidateByShaderSource(const AssetID shaderSourceId) {
 		MarkDirtyByShaderSource(shaderSourceId);
 	}
 
@@ -76463,7 +76588,7 @@ namespace Unnamed::Render {
 	}
 
 	uint64_t ShaderLibrary::ComputeDerivedHash(const ShaderKey& key) const {
-		uint64_t h = 0;
+		StableHashBuilder hashBuilder;
 
 		const auto* src = mAssetManager.Get<ShaderSourceAssetData>(
 			key.shaderSourceId
@@ -76478,39 +76603,29 @@ namespace Unnamed::Render {
 
 		// ソースファイルのパスを正規化してハッシュに含める
 		const std::string srcPath = StrUtil::NormalizePath(src->path);
-		h = HashBuilder::Combine64(
-			h, static_cast<uint64_t>(std::hash<std::string>{}(srcPath))
-		);
-
-		h = HashBuilder::Combine64(
-			h, static_cast<uint64_t>(std::hash<std::string>{}(key.entry))
-		);
-		h = HashBuilder::Combine64(
-			h, static_cast<uint64_t>(std::hash<std::string>{}(key.profile))
-		);
+		hashBuilder.AddString(srcPath);
+		hashBuilder.AddString(key.entry);
+		hashBuilder.AddString(key.profile);
 		for (const auto& [name, value] : key.defines) {
-			h = HashBuilder::Combine64(
-				h, static_cast<uint64_t>(std::hash<std::string>{}(name))
-			);
-			h = HashBuilder::Combine64(
-				h, static_cast<uint64_t>(std::hash<std::string>{}(value))
-			);
+			hashBuilder.AddString(name);
+			hashBuilder.AddString(value);
 		}
 
 		const auto& meta = mAssetManager.Meta(key.shaderSourceId);
-		h                = HashBuilder::Combine64(
-			h, StampToU64(meta.fileStamp)
-		);
+
+		hashBuilder.AddUInt64(meta.fileStamp.sizeInBytes);
+		hashBuilder.AddInt64(meta.fileStamp.lastWriteTicks);
 
 		for (
 			const auto depId : mAssetManager.GetDependencies(key.shaderSourceId)
 		) {
 			const auto& depMeta = mAssetManager.Meta(depId);
-			h = HashBuilder::Combine64(h, depId);
-			h = HashBuilder::Combine64(h, StampToU64(depMeta.fileStamp));
+			hashBuilder.AddUInt64(depId);
+			hashBuilder.AddUInt64(depMeta.fileStamp.sizeInBytes);
+			hashBuilder.AddInt64(depMeta.fileStamp.lastWriteTicks);
 		}
 
-		return h;
+		return hashBuilder.Value();
 	}
 
 	std::vector<std::wstring> ShaderLibrary::BuildDxcArgs(
@@ -76550,7 +76665,9 @@ namespace Unnamed::Render {
 		const std::filesystem::path& path
 	) {
 		std::ifstream ifs(path, std::ios::binary);
-		if (!ifs) return {};
+		if (!ifs) {
+			return {};
+		}
 		ifs.seekg(0, std::ios::end);
 		const auto size = static_cast<size_t>(ifs.tellg());
 		ifs.seekg(0, std::ios::beg);
@@ -76570,7 +76687,9 @@ namespace Unnamed::Render {
 	) {
 		std::filesystem::create_directories(path.parent_path());
 		std::ofstream ofs(path, std::ios::binary);
-		if (!ofs) return;
+		if (!ofs) {
+			return;
+		}
 		ofs.write(
 			reinterpret_cast<const char*>(bytes.data()),
 			static_cast<std::streamsize>(bytes.size())
@@ -85312,6 +85431,854 @@ namespace Unnamed {
 
 
 ============================================================
+File Path: src/engine/ui/retained/IUiBackend.h
+============================================================
+#pragma once
+#include "UiTypes.h"
+
+#include "core/assets/AssetID.h"
+
+#include "core/math/Vec2.h"
+#include "core/math/Vec4.h"
+
+namespace Unnamed::UI::Retained {
+	struct UiBackendFrameContext {
+		UiRect viewportRect = {};
+	};
+
+	struct UiRectPaintData {
+		UiRect rect     = {};
+		UiRect clipRect = {};
+
+		Vec4 color = {};
+
+		float cornerRadius = 0.0f;
+	};
+
+	struct UiImagePaintData {
+		UiRect rect     = {};
+		UiRect clipRect = {};
+
+		AssetID textureId = {};
+
+		Vec2 uvMin = Vec2::zero;
+		Vec2 uvMax = Vec2::one;
+
+		Vec4 tintColor = Vec4::white;
+	};
+
+	class IUiBackend {
+	public:
+		virtual ~IUiBackend() = default;
+
+		virtual void BeginFrame(const UiBackendFrameContext& frameContext) = 0;
+
+		virtual void EndFrame() = 0;
+
+		[[nodiscard]] virtual UiInteractionResult ProcessInteraction(
+			UiNodeId      nodeId,
+			const UiRect& interactionRect,
+			const UiRect& clipRect,
+			bool          enabled
+		) = 0;
+
+		virtual void DrawRect(const UiRectPaintData& paintData) = 0;
+		virtual void DrawImage(const UiImagePaintData& paintData) = 0;
+	};
+}
+
+
+============================================================
+File Path: src/engine/ui/retained/UiAnimatedValue.h
+============================================================
+#pragma once
+#include <algorithm>
+
+namespace Unnamed::UI::Retained {
+	template <typename T>
+	T InterpolateUiValue(
+		const T& start,
+		const T& target,
+		float    time
+	) {
+		return start + (target - start) * time;
+	}
+
+	template <typename T>
+	class UiAnimatedValue {
+	public:
+		void SetImmediate(const T& value) noexcept {
+			mCurrentValue = value;
+			mStartValue   = value;
+			mTargetValue  = value;
+
+			mElapsedSeconds  = 0.0f;
+			mDurationSeconds = 0.0f;
+			mAnimating       = false;
+		}
+
+		void AnimateTo(
+			const T&    target,
+			const float duration
+		) {
+			if (duration <= 0.0f) {
+				SetImmediate(target);
+				return;
+			}
+
+			mStartValue  = mCurrentValue;
+			mTargetValue = target;
+
+			mElapsedSeconds  = 0.0f;
+			mDurationSeconds = duration;
+			mAnimating       = true;
+		}
+
+		void Update(float deltaTime) noexcept {
+			if (!mAnimating) {
+				return;
+			}
+
+			mElapsedSeconds += std::max(deltaTime, 0.0f);
+
+			const float normalizedTime = std::clamp(
+				mElapsedSeconds / mDurationSeconds,
+				0.0f,
+				1.0f
+			);
+
+			const float easedTime = normalizedTime; // TODO: 一旦リニアで
+
+			mCurrentValue = InterpolateUiValue(mStartValue, mTargetValue,
+			                                   easedTime);
+
+			if (normalizedTime >= 1.0f) {
+				mCurrentValue = mTargetValue;
+				mAnimating    = false;
+			}
+		}
+
+		[[nodiscard]]
+		const T& Value() const noexcept {
+			return mCurrentValue;
+		}
+
+		[[nodiscard]]
+		bool IsAnimating() const noexcept {
+			return mAnimating;
+		}
+
+	private:
+		T mCurrentValue = {};
+		T mStartValue   = {};
+		T mTargetValue  = {};
+
+		float mElapsedSeconds  = 0.0f;
+		float mDurationSeconds = 0.0f;
+
+		bool mAnimating = false;
+	};
+}
+
+
+============================================================
+File Path: src/engine/ui/retained/UiDocument.cpp
+============================================================
+#include "pch.h"
+#include "UiDocument.h"
+
+namespace Unnamed::UI::Retained {
+	void UiDocument::AppendChild(
+		const UiNodeHandle parentHandle, const UiNodeHandle childHandle
+	) {
+		UASSERT(IsValid(parentHandle));
+		UASSERT(IsValid(childHandle));
+		UASSERT(parentHandle != childHandle);
+
+		UiNode& parent = GetNode(parentHandle);
+		UiNode& child  = GetNode(childHandle);
+
+		UASSERT(!child.parent.IsValid());
+
+		child.parent = parentHandle;
+
+		if (!parent.firstChild.IsValid()) {
+			parent.firstChild = childHandle;
+			parent.lastChild  = childHandle;
+			return;
+		}
+
+		UiNode& lastChild     = GetNode(parent.lastChild);
+		lastChild.nextSibling = childHandle;
+		parent.lastChild      = childHandle;
+	}
+
+	UiNode& UiDocument::GetNode(const UiNodeHandle handle) {
+		UASSERT(IsValid(handle));
+		return mNodes[handle.index];
+	}
+
+	const UiNode& UiDocument::GetNode(const UiNodeHandle handle) const {
+		UASSERT(IsValid(handle));
+		return mNodes[handle.index];
+	}
+
+	bool UiDocument::IsValid(const UiNodeHandle handle) const {
+		if (!handle.IsValid()) {
+			return false;
+		}
+
+		if (handle.index >= mNodes.size()) {
+			return false;
+		}
+
+		return mNodes[handle.index].generation == handle.generation;
+	}
+}
+
+
+============================================================
+File Path: src/engine/ui/retained/UiDocument.h
+============================================================
+#pragma once
+#include "UiNode.h"
+#include "UiTypes.h"
+
+namespace Unnamed::UI::Retained {
+	struct UiNode;
+
+	class UiDocument {
+	public:
+		/// @brief ノードを作成してドキュメントに追加します
+		/// @tparam T ノードデータの型
+		/// @param id ノードID
+		/// @param type ノードの種類
+		/// @param localRect ノードのローカル矩形
+		/// @param data ノードデータ
+		/// @return 作成されたノードのハンドル
+		template <typename T>
+		UiNodeHandle CreateNode(
+			const UiNodeId id, const UI_NODE_TYPE type, const UiRect localRect,
+			T&&            data
+		) {
+			UiNode node    = {};
+			node.id        = id;
+			node.type      = type;
+			node.localRect = localRect;
+			node.data      = std::forward<T>(data);
+
+			const uint32_t index = static_cast<uint32_t>(mNodes.size());
+
+			mNodes.emplace_back(std::move(node));
+
+			return UiNodeHandle{
+				.index      = index,
+				.generation = mNodes[index].generation
+			};
+		}
+
+		/// @brief 親ノードに子ノードを追加します
+		/// @param parentHandle 親ノードのハンドル
+		/// @param childHandle 追加する子ノードのハンドル
+		void AppendChild(UiNodeHandle parentHandle, UiNodeHandle childHandle);
+
+		/// @brief ノードを取得します
+		/// @param handle 取得するノードのハンドル
+		/// @return ノードの参照。
+		[[nodiscard]] UiNode& GetNode(UiNodeHandle handle);
+
+		/// @brief ノードを取得します（const版）
+		/// @param handle 取得するノードのハンドル
+		/// @return ノードの参照。
+		[[nodiscard]] const UiNode& GetNode(UiNodeHandle handle) const;
+
+	private:
+		/// @brief ノードハンドルが有効かどうかを判定します
+		/// @param handle 判定するノードハンドル
+		/// @return ハンドルが有効であればtrue、そうでなければfalse
+		[[nodiscard]] bool IsValid(UiNodeHandle handle) const;
+
+		std::vector<UiNode> mNodes;
+	};
+}
+
+
+============================================================
+File Path: src/engine/ui/retained/UiNode.h
+============================================================
+#pragma once
+#include <variant>
+
+#include "UiAnimatedValue.h"
+#include "UiTypes.h"
+
+#include "core/assets/AssetID.h"
+
+namespace Unnamed::UI::Retained {
+	struct UiButtonVisualStyle {
+		Vec4 backgroundColor  = Vec4::zero;
+		Vec4 contentTintColor = Vec4::white;
+
+		Vec2 size = Vec2::one;
+
+		float opacity            = 1.0f;
+		float transitionDuration = 0.1f;
+
+		UiEasing easing = UiEasing::LINEAR;
+	};
+
+	struct UiButtonStyle {
+		UiButtonVisualStyle normal;
+		UiButtonVisualStyle hovered;
+		UiButtonVisualStyle pressed;
+		UiButtonVisualStyle disabled;
+	};
+
+	struct UiButtonRuntimeState {
+		UiAnimatedValue<Vec4>  backgroundColor;
+		UiAnimatedValue<Vec4>  contentTintColor;
+		UiAnimatedValue<Vec2>  size;
+		UiAnimatedValue<float> opacity;
+
+		UI_INTERACTION_STATE interactionState = UI_INTERACTION_STATE::NORMAL;
+
+		bool initialized = false;
+	};
+
+	struct UiButtonData {
+		UiButtonStyle        style;
+		UiButtonRuntimeState runtimeState;
+
+		bool enabled = true;
+	};
+
+	struct UiImageData {
+		AssetID textureId = {};
+
+		Vec2 uvMin = Vec2::zero;
+		Vec2 uvMax = Vec2::one;
+
+		Vec4 tintColor = Vec4::white;
+	};
+
+	using UiNodeData = std::variant<UiButtonData, UiImageData>;
+
+	struct UiNode {
+		UiNodeId     id   = {};
+		UI_NODE_TYPE type = UI_NODE_TYPE::IMAGE;
+
+		UiNodeHandle parent      = {};
+		UiNodeHandle firstChild  = {};
+		UiNodeHandle lastChild   = {};
+		UiNodeHandle nextSibling = {};
+
+		// 親の左上を原点とするローカル矩形
+		UiRect localRect = {};
+
+		UiNodeData data;
+
+		uint32_t generation = 1;
+
+		bool visible = true;
+	};
+}
+
+
+============================================================
+File Path: src/engine/ui/retained/UiSystem.cpp
+============================================================
+#include "pch.h"
+#include "UiSystem.h"
+
+namespace Unnamed::UI::Retained {
+	constexpr float kMaxUiDeltaTime = 0.1f;
+
+	namespace {
+		UiRect CalculateWorldRect(
+			const UiRect& localRect, const UiSystem::TraversalContext& context
+		) {
+			return {
+				.min = context.origin + localRect.min * context.size,
+				.max = context.origin + localRect.max * context.size
+			};
+		}
+
+		UiRect ScaleRectAroundCenter(
+			const UiRect& rect, const Vec2& scale
+		) {
+			const Vec2 center   = rect.Center();
+			const Vec2 halfSize = rect.Size() * 0.5f * scale;
+
+			return {
+				.min = center - halfSize,
+				.max = center + halfSize
+			};
+		}
+
+		const UiButtonVisualStyle& GetButtonVisualStyle(
+			const UiButtonStyle& style, const UI_INTERACTION_STATE state
+		) {
+			switch (state) {
+				case UI_INTERACTION_STATE::NORMAL: return style.normal;
+				case UI_INTERACTION_STATE::HOVERED: return style.hovered;
+				case UI_INTERACTION_STATE::PRESSED: return style.pressed;
+				case UI_INTERACTION_STATE::DISABLED: return style.disabled;
+			}
+
+			return style.normal;
+		}
+	}
+
+	void UiSystem::Render(
+		const UiDocument&     document, const UiNodeHandle rootNode,
+		IUiBackend&           backend,
+		const UiFrameContext& frameContext
+	) {
+		// GetEvents()のイベントは次回のRender()まで有効
+		mEvents.clear();
+
+		UiBackendFrameContext backendFrameContext = {};
+		backendFrameContext.viewportRect          = frameContext.viewportRect;
+
+		backend.BeginFrame(backendFrameContext);
+
+		if (!rootNode.IsValid()) {
+			backend.EndFrame();
+			return;
+		}
+
+		float deltaTime = std::max(frameContext.unscaledDeltaTime, 0.0f);
+
+		// スパイクで移動しすぎないようにクランプ
+		deltaTime = std::min(deltaTime, kMaxUiDeltaTime);
+
+		TraversalContext traversalContext = {};
+		traversalContext.origin           = frameContext.viewportRect.min;
+
+		traversalContext.size = Vec2::one;
+
+		traversalContext.contentTintColor = Vec4::white;
+
+		traversalContext.opacity = 1.0f;
+
+		traversalContext.clipRect = frameContext.viewportRect;
+
+		ProcessNode(document, rootNode, backend, traversalContext, deltaTime);
+
+		backend.EndFrame();
+	}
+
+	std::span<const UiEvent> UiSystem::GetEvents() const {
+		return std::span(mEvents.data(), mEvents.size());
+	}
+
+	void UiSystem::ProcessNode(
+		const UiDocument&       document, const UiNodeHandle nodeHandle,
+		IUiBackend&             backend,
+		const TraversalContext& context, const float deltaTime
+	) {
+		UiNode node = document.GetNode(nodeHandle);
+
+		if (!node.visible) {
+			return;
+		}
+
+		switch (node.type) {
+			case UI_NODE_TYPE::BUTTON: {
+				UiButtonData* button = std::get_if<UiButtonData>(&node.data);
+
+				UASSERT(button != nullptr);
+
+				if (button == nullptr) {
+					return;
+				}
+
+				ProcessButton(
+					document,
+					nodeHandle,
+					node,
+					*button,
+					backend,
+					context,
+					deltaTime
+				);
+				break;
+			}
+			case UI_NODE_TYPE::IMAGE: {
+				const UiImageData* image = std::get_if<UiImageData>(&node.data);
+
+				UASSERT(image != nullptr);
+
+				if (image == nullptr) {
+					return;
+				}
+
+				ProcessImage(
+					node,
+					*image,
+					backend,
+					context
+				);
+			}
+		}
+	}
+
+	void UiSystem::ProcessButton(
+		const UiDocument&       document, const UiNodeHandle nodeHandle,
+		const UiNode&           node,
+		UiButtonData&           button, IUiBackend&  backend,
+		const TraversalContext& context, const float deltaTime
+	) {
+		(void)nodeHandle;
+
+		UiButtonRuntimeState& runtime = button.runtimeState;
+
+		if (!runtime.initialized) {
+			const UiButtonVisualStyle& normal = button.style.normal;
+			runtime.backgroundColor.SetImmediate(normal.contentTintColor);
+			runtime.contentTintColor.SetImmediate(normal.contentTintColor);
+			runtime.size.SetImmediate(normal.size);
+			runtime.opacity.SetImmediate(normal.opacity);
+
+			runtime.interactionState =
+				button.enabled ?
+					UI_INTERACTION_STATE::NORMAL :
+					UI_INTERACTION_STATE::DISABLED;
+
+			runtime.initialized = true;
+		}
+
+		const UiRect layoutRect = CalculateWorldRect(node.localRect, context);
+
+		const UiInteractionResult interaction =
+			backend.ProcessInteraction(
+				node.id,
+				layoutRect,
+				context.clipRect,
+				button.enabled
+			);
+
+		auto nextState = UI_INTERACTION_STATE::NORMAL;
+
+		if (!button.enabled) {
+			nextState = UI_INTERACTION_STATE::DISABLED;
+		} else if (interaction.held) {
+			nextState = UI_INTERACTION_STATE::PRESSED;
+		} else if (interaction.hovered) {
+			nextState = UI_INTERACTION_STATE::HOVERED;
+		}
+
+		if (nextState != runtime.interactionState) {
+			runtime.interactionState = nextState;
+
+			const UiButtonVisualStyle& target =
+				GetButtonVisualStyle(button.style, nextState);
+
+			runtime.backgroundColor.AnimateTo(
+				target.backgroundColor, target.transitionDuration
+			);
+			runtime.contentTintColor.AnimateTo(
+				target.contentTintColor, target.transitionDuration
+			);
+			runtime.size.AnimateTo(
+				target.size, target.transitionDuration
+			);
+			runtime.opacity.AnimateTo(
+				target.opacity, target.transitionDuration
+			);
+		}
+
+		runtime.backgroundColor.Update(deltaTime);
+		runtime.contentTintColor.Update(deltaTime);
+		runtime.size.Update(deltaTime);
+		runtime.opacity.Update(deltaTime);
+
+		const UiRect visualRect =
+			ScaleRectAroundCenter(layoutRect, runtime.size.Value());
+
+		Vec4 backgroundColor = runtime.backgroundColor.Value() * context.
+		                       contentTintColor;
+
+		// 親から透明度を引き継ぐ
+		backgroundColor.w *= context.opacity * runtime.opacity.Value();
+
+		backend.DrawRect(
+			UiRectPaintData{
+				.rect         = visualRect,
+				.clipRect     = context.clipRect,
+				.color        = backgroundColor,
+				.cornerRadius = 4.0f
+			}
+		);
+
+		if (interaction.clicked) {
+			mEvents.emplace_back(
+				UiEvent{
+					.target = node.id,
+					.type   = UI_EVENT_TYPE::CLICK
+				}
+			);
+		}
+
+		TraversalContext childContext;
+		childContext.origin = visualRect.min;
+		childContext.size   = context.size * runtime.size.Value();
+
+		childContext.contentTintColor =
+			context.contentTintColor * runtime.contentTintColor.Value();
+
+		childContext.opacity = context.opacity * runtime.opacity.Value();
+
+		childContext.clipRect = context.clipRect;
+
+		ProcessChildren(
+			document,
+			node,
+			backend,
+			childContext,
+			deltaTime
+		);
+	}
+
+	void UiSystem::ProcessImage(
+		const UiNode& node, const UiImageData& image, IUiBackend& backend,
+		const TraversalContext& context
+	) {
+		Vec4 tintColor =
+			image.tintColor * context.contentTintColor;
+
+		tintColor.w *= context.opacity;
+
+		backend.DrawImage(
+			UiImagePaintData{
+				.rect = CalculateWorldRect(
+					node.localRect,
+					context
+				),
+				.clipRect  = context.clipRect,
+				.textureId = image.textureId,
+				.uvMin     = image.uvMin,
+				.uvMax     = image.uvMax,
+				.tintColor = tintColor
+			}
+		);
+	}
+
+	void UiSystem::ProcessChildren(
+		const UiDocument&       document, const UiNode& parent,
+		IUiBackend&             backend,
+		const TraversalContext& context, const float deltaTime
+	) {
+		UiNodeHandle childHandle = parent.firstChild;
+
+		while (childHandle.IsValid()) {
+			const UiNode childNode = document.GetNode(childHandle);
+
+			// ProcessNode内で遅延削除をする場合に備え、次のハンドルを取っておく
+			const UiNodeHandle nextSibling = childNode.nextSibling;
+
+			ProcessNode(
+				document,
+				childHandle,
+				backend,
+				context,
+				deltaTime
+			);
+
+			childHandle = nextSibling;
+		}
+	}
+}
+
+
+============================================================
+File Path: src/engine/ui/retained/UiSystem.h
+============================================================
+#pragma once
+#include <span>
+
+#include "IUiBackend.h"
+#include "UiDocument.h"
+#include "UiTypes.h"
+
+namespace Unnamed::UI::Retained {
+	struct UiFrameContext {
+		UiRect viewportRect      = {};
+		float  unscaledDeltaTime = 0.0f;
+	};
+
+	class UiSystem {
+	public:
+		void Render(
+			const UiDocument&     document,
+			UiNodeHandle          rootNode,
+			IUiBackend&           backend,
+			const UiFrameContext& frameContext
+		);
+
+		[[nodiscard]] std::span<const UiEvent> GetEvents() const;
+
+		struct TraversalContext {
+			Vec2 origin = Vec2::zero;
+			Vec2 size   = Vec2::one;
+
+			Vec4 contentTintColor = Vec4::white;
+
+			float opacity = 1.0f;
+
+			UiRect clipRect = {};
+		};
+
+	private:
+		void ProcessNode(
+			const UiDocument&       document,
+			UiNodeHandle            nodeHandle,
+			IUiBackend&             backend,
+			const TraversalContext& context,
+			float                   deltaTime
+		);
+
+		void ProcessButton(
+			const UiDocument&       document,
+			UiNodeHandle            nodeHandle,
+			const UiNode&           node,
+			UiButtonData&           button,
+			IUiBackend&             backend,
+			const TraversalContext& context,
+			float                   deltaTime
+		);
+
+		static void ProcessImage(
+			const UiNode&      node,
+			const UiImageData& image,
+			IUiBackend&        backend, const TraversalContext& context
+		);
+
+		void ProcessChildren(
+			const UiDocument&       document,
+			const UiNode&           parent,
+			IUiBackend&             backend,
+			const TraversalContext& context,
+			float                   deltaTime
+		);
+
+	private:
+		std::vector<UiEvent> mEvents;
+	};
+}
+
+
+============================================================
+File Path: src/engine/ui/retained/UiTypes.h
+============================================================
+#pragma once
+
+#include <cstdint>
+#include <limits>
+#include <string_view>
+
+#include "core/hash/StableHashBuilder.h"
+
+#include "core/math/Vec2.h"
+#include "core/math/Vec4.h"
+
+namespace Unnamed::UI::Retained {
+	/// @brief UIノードの識別子
+	struct UiNodeId {
+		constexpr static uint64_t kInvalid =
+			std::numeric_limits<uint64_t>::max();
+
+		uint64_t value = kInvalid;
+
+		[[nodiscard]] bool IsValid() const {
+			return value != kInvalid;
+		}
+
+		// 比較演算子
+		auto operator<=>(const UiNodeId&) const = default;
+	};
+
+	/// @brief UIノードのハンドル
+	struct UiNodeHandle {
+		static constexpr uint32_t kInvalidIndex = std::numeric_limits<
+			uint32_t>::max();
+
+		uint32_t index      = kInvalidIndex;
+		uint32_t generation = 0;
+
+		[[nodiscard]] bool IsValid() const {
+			return index != kInvalidIndex && generation != 0;
+		}
+
+		auto operator<=>(const UiNodeHandle&) const = default;
+	};
+
+	struct UiRect {
+		Vec2 min = Vec2::zero;
+		Vec2 max = Vec2::zero;
+
+		/// @brief 矩形のサイズを取得します
+		/// @return 矩形のサイズ
+		[[nodiscard]] Vec2 Size() const {
+			return max - min;
+		}
+
+		/// @brief 矩形の中心点を取得します
+		/// @return 矩形の中心点
+		[[nodiscard]] Vec2 Center() const {
+			return (min + max) * 0.5f;
+		}
+
+		/// @brief 矩形が空かどうかを判定します
+		/// @return 矩形が空であればtrue、そうでなければfalse
+		[[nodiscard]] bool IsEmpty() const {
+			const Vec2 size = Size();
+			return size.x <= 0.0f || size.y <= 0.0f;
+		}
+	};
+
+	enum class UI_NODE_TYPE : uint8_t {
+		BUTTON,
+		IMAGE,
+	};
+
+	enum class UI_INTERACTION_STATE : uint8_t {
+		NORMAL,
+		HOVERED,
+		PRESSED,
+		DISABLED,
+	};
+
+	struct UiInteractionResult {
+		bool hovered = false;
+		bool held    = false;
+		bool clicked = false;
+	};
+
+	enum class UiEasing : uint8_t {
+		LINEAR,
+	};
+
+	enum class UI_EVENT_TYPE : uint8_t {
+		CLICK
+	};
+
+	struct UiEvent {
+		UiNodeId      target = {};
+		UI_EVENT_TYPE type   = UI_EVENT_TYPE::CLICK;
+	};
+
+	constexpr UiNodeId MakeUiNodeId(const std::string_view value) {
+		StableHashBuilder builder;
+
+		builder.AddString(value);
+
+		return UiNodeId{builder.Value()};
+	}
+}
+
+
+============================================================
 File Path: src/engine/unnamed/framework/components/CameraComponent.cpp
 ============================================================
 #include "CameraComponent.h"
@@ -87186,6 +88153,8 @@ File Path: src/engine/unnamed/framework/components/base/BaseComponent.cpp
 
 #include "../../entity/Entity.h"
 
+#include "core/hash/StableHashBuilder.h"
+
 #include "engine/ImGui/Icons.h"
 #include "engine/world/World.h"
 
@@ -87293,8 +88262,10 @@ namespace Unnamed {
 		mGuid = guid;
 	}
 
-	TypeId BaseComponent::GetTypeId() const {
-		return HashTypeName(GetStableName());
+	uint64_t BaseComponent::GetTypeId() const {
+		StableHashBuilder hashBuilder;
+		hashBuilder.AddString(GetStableName());
+		return hashBuilder.Value();
 	}
 
 	BaseComponent::TICK_GROUP BaseComponent::GetTickGroup() const {
@@ -87309,8 +88280,6 @@ File Path: src/engine/unnamed/framework/components/base/BaseComponent.h
 #pragma once
 #include <cstdint>
 #include <string_view>
-
-#include "core/TypeId.h"
 
 namespace Unnamed {
 	class World;
@@ -87450,7 +88419,7 @@ namespace Unnamed {
 
 		/// @brief コンポーネントの型識別子を取得します。
 		/// @return コンポーネントの型識別子
-		[[nodiscard]] TypeId GetTypeId() const;
+		[[nodiscard]] uint64_t GetTypeId() const;
 
 		/// @brief Tick実行グループを取得します。
 		/// @return Tickグループ
@@ -92544,10 +93513,9 @@ File Path: src/engine/unnamed/framework/entity/Entity.h
 #include <unordered_map>
 #include <vector>
 
-#include "core/TypeId.h"
-
 #include "../components/base/BaseComponent.h"
 
+#include "core/hash/StableHashBuilder.h"
 
 namespace Unnamed {
 	class World;
@@ -92797,7 +93765,7 @@ namespace Unnamed {
 		// 所有しているコンポーネント
 		std::vector<std::unique_ptr<BaseComponent>> mComponents;
 
-		std::unordered_map<TypeId, std::vector<BaseComponent*>>
+		std::unordered_map<uint64_t, std::vector<BaseComponent*>>
 		mComponentsByType;
 
 		std::string mName = "unnamed";         // 名前
@@ -92833,7 +93801,9 @@ namespace Unnamed {
 		mComponents.emplace_back(std::move(ptr));
 
 		// 型索引へ登録
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
+		StableHashBuilder hashBuilder;
+		hashBuilder.AddString(ComponentType{}.GetStableName());
+		const uint64_t typeId = hashBuilder.Value();
 		mComponentsByType[typeId].emplace_back(raw);
 
 		raw->OnAttached();
@@ -92851,7 +93821,9 @@ namespace Unnamed {
 			"ComponentType は std::string_view GetStableName() const を持つ必要があります。"
 		);
 
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
+		StableHashBuilder hashBuilder;
+		hashBuilder.AddString(ComponentType{}.GetStableName());
+		const uint64_t typeId = hashBuilder.Value();
 
 		const auto it = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end() || it->second.empty()) {
@@ -92871,7 +93843,9 @@ namespace Unnamed {
 			"ComponentType は std::string_view GetStableName() const を持つ必要があります。"
 		);
 
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
+		StableHashBuilder hashBuilder;
+		hashBuilder.AddString(ComponentType{}.GetStableName());
+		const uint64_t typeId = hashBuilder.Value();
 
 		const auto it = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end() || it->second.empty()) {
@@ -92892,8 +93866,8 @@ namespace Unnamed {
 		);
 
 		out.clear();
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
-		const auto   it     = mComponentsByType.find(typeId);
+		const uint64_t typeId = HashTypeName(ComponentType{}.GetStableName());
+		const auto     it     = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end()) {
 			return;
 		}
@@ -92916,8 +93890,8 @@ namespace Unnamed {
 		);
 
 		out.clear();
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
-		const auto   it     = mComponentsByType.find(typeId);
+		const uint64_t typeId = HashTypeName(ComponentType{}.GetStableName());
+		const auto     it     = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end()) {
 			return;
 		}
@@ -93074,8 +94048,8 @@ namespace Unnamed {
 			"ComponentType は std::string_view GetStableName() const を持つ必要があります。"
 		);
 
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
-		const auto   it     = mComponentsByType.find(typeId);
+		const uint64_t typeId = HashTypeName(ComponentType{}.GetStableName());
+		const auto     it     = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end() || it->second.empty()) {
 			return true;
 		}
@@ -93110,8 +94084,8 @@ namespace Unnamed {
 			"ComponentType は std::string_view GetStableName() const を持つ必要があります。"
 		);
 
-		const TypeId typeId = HashTypeName(ComponentType{}.GetStableName());
-		const auto   it     = mComponentsByType.find(typeId);
+		const uint64_t typeId = HashTypeName(ComponentType{}.GetStableName());
+		const auto     it     = mComponentsByType.find(typeId);
 		if (it == mComponentsByType.end() || it->second.empty()) {
 			return true;
 		}
@@ -111387,6 +112361,12 @@ File Path: src/pch.h
 #include <core/UnnamedMacro.h>
 #include <core/string/StrUtil.h>
 #include <engine/unnamed/subsystem/console/Log.h>
+#include <core/math/Math.h>
+#include <core/math/Vec2.h>
+#include <core/math/Vec3.h>
+#include <core/math/Vec4.h>
+#include <core/math/Mat4.h>
+#include <core/math/Quaternion.h>
 
 //-----------------------------------------------------------------------------
 // STD
