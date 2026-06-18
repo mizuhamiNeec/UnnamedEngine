@@ -36,6 +36,7 @@ namespace Unnamed {
 			// FBXはAssimpビルドに含めると重たいので非対応! Gitに上げられない!
 		};
 
+		/// @brief バイナリなメッシュキャッシュファイルのヘッダ構造体。
 		struct MeshCacheHeader {
 			uint32_t magic                = kMeshCacheMagic;
 			uint32_t version              = kMeshCacheVersion;
@@ -89,7 +90,6 @@ namespace Unnamed {
 					aiProcess_PreTransformVertices
 				);
 			}
-			
 			return hashBuilder.Value();
 		}
 
