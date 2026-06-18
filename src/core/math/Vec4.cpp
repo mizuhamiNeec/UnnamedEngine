@@ -29,7 +29,7 @@ constexpr const float& Vec4::operator[](const int index) const {
 }
 
 Vec4 Vec4::operator*(const Mat4& mat4) const {
-	return Vec4(
+	return {
 		x * mat4.m[0][0] + y * mat4.m[1][0] + z * mat4.m[2][0] + w * mat4.m[3][
 			0],
 		x * mat4.m[0][1] + y * mat4.m[1][1] + z * mat4.m[2][1] + w * mat4.m[3][
@@ -38,23 +38,27 @@ Vec4 Vec4::operator*(const Mat4& mat4) const {
 			2],
 		x * mat4.m[0][3] + y * mat4.m[1][3] + z * mat4.m[2][3] + w * mat4.m[3][
 			3]
-	);
+	};
 }
 
 Vec4 Vec4::operator*(const float rhs) const {
-	return Vec4(x * rhs, y * rhs, z * rhs, w * rhs);
+	return {x * rhs, y * rhs, z * rhs, w * rhs};
 }
 
 Vec4 Vec4::operator+(const Vec4& rhs) const {
-	return Vec4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
+	return {x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w};
 }
 
 Vec4 Vec4::operator-(const Vec4& rhs) const {
-	return Vec4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w);
+	return {x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w};
+}
+
+Vec4 Vec4::operator*(const Vec4& rhs) const {
+	return {x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w};
 }
 
 Vec4 Vec4::operator/(const float rhs) const {
-	return Vec4(x / rhs, y / rhs, z / rhs, w / rhs);
+	return {x / rhs, y / rhs, z / rhs, w / rhs};
 }
 
 #ifdef _DEBUG
