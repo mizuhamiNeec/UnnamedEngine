@@ -5,7 +5,6 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include "EditorNotification.h"
 #include "ImGuizmoConfigLoader.h"
 
 #include "core/io/json/JsonReader.h"
@@ -31,7 +30,7 @@ namespace Unnamed {
 			WindowManager& windowManager
 		) {
 			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			Window* const  mainWindow   = windowManager.FindWindowById(
+			const Window* const  mainWindow   = windowManager.FindWindowById(
 				mainWindowId
 			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
@@ -65,7 +64,7 @@ namespace Unnamed {
 			WindowManager& windowManager
 		) {
 			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			Window* const  mainWindow   = windowManager.FindWindowById(
+			const Window* const  mainWindow   = windowManager.FindWindowById(
 				mainWindowId
 			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
@@ -190,9 +189,10 @@ namespace Unnamed {
 			services.assetManager
 		);
 
-		auto guizmoConfig = mConsoleSystem->GetConVarAs<ConVar<std::string>>(
-			"im_guizmoconfigpath"
-		);
+		const auto guizmoConfig =
+			mConsoleSystem->GetConVarAs<ConVar<std::string>>(
+				"im_guizmoconfigpath"
+			);
 
 		if (guizmoConfig) {
 			ImGuizmoConfigLoader(guizmoConfig->GetValue());
@@ -261,7 +261,7 @@ namespace Unnamed {
 		}
 
 		DrawMainMenu();
-		ImGuiID dockSpaceId = ImGui::GetID("EditorDockSpace");
+		const ImGuiID dockSpaceId = ImGui::GetID("EditorDockSpace");
 
 		if (!mDockInitialized) {
 			ImGui::DockBuilderRemoveNode(dockSpaceId);
@@ -274,13 +274,13 @@ namespace Unnamed {
 
 			ImGuiID dockMain = dockSpaceId;
 
-			ImGuiID dockLeft = ImGui::DockBuilderSplitNode(
+			const ImGuiID dockLeft = ImGui::DockBuilderSplitNode(
 				dockMain, ImGuiDir_Left, 0.22f, nullptr, &dockMain
 			);
-			ImGuiID dockRight = ImGui::DockBuilderSplitNode(
+			const ImGuiID dockRight = ImGui::DockBuilderSplitNode(
 				dockMain, ImGuiDir_Right, 0.28f, nullptr, &dockMain
 			);
-			ImGuiID dockBottom = ImGui::DockBuilderSplitNode(
+			const ImGuiID dockBottom = ImGui::DockBuilderSplitNode(
 				dockMain, ImGuiDir_Down, 0.30f, nullptr, &dockMain
 			);
 
@@ -310,9 +310,11 @@ namespace Unnamed {
 					mWindowManager.GetMainWindowId()
 				)) {
 					Vec2 virtualViewportSize = mViewportSize;
-					if (const auto outputIt = mViewOutputs.find(
-						mActiveViewportViewKey
-					); outputIt != mViewOutputs.end()) {
+					if (
+						const auto outputIt =
+							mViewOutputs.find(mActiveViewportViewKey);
+						outputIt != mViewOutputs.end()
+					) {
 						virtualViewportSize = Vec2(
 							std::max(1.0f, outputIt->second.size.x),
 							std::max(1.0f, outputIt->second.size.y)
@@ -642,8 +644,8 @@ namespace Unnamed {
 			case EDITOR_VIEWPORT_RENDER_MODE::FHD1080
 			: sceneRequest.mode = Render::SCENE_RENDER_MODE::FHD_1080P;
 				break;
-			case EDITOR_VIEWPORT_RENDER_MODE::UHD4K :
-				sceneRequest.mode = Render::SCENE_RENDER_MODE::UHD_4K;
+			case EDITOR_VIEWPORT_RENDER_MODE::UHD4K
+			: sceneRequest.mode = Render::SCENE_RENDER_MODE::UHD_4K;
 			default: break;
 		}
 
