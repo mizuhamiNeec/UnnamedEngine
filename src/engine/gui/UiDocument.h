@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "core/filesystem/Path.h"
 #include "UiWidget.h"
 
 namespace Unnamed::Gui {
@@ -11,8 +12,8 @@ namespace Unnamed::Gui {
 		UiDocument();
 		~UiDocument();
 
-		bool                               Save(const std::string& path) const;
-		static std::shared_ptr<UiDocument> Load(const std::string& path);
+		bool                               Save(const Path& path) const;
+		static std::shared_ptr<UiDocument> Load(const Path& path);
 		static std::shared_ptr<UiDocument> LoadFromJson(
 			const JsonReader& reader, const std::string& sourceLabel
 		);

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/Path.h"
 #include "core/math/Vec2.h"
 
 namespace Unnamed {
@@ -18,10 +19,10 @@ namespace Unnamed {
 namespace Unnamed::UI {
 	/// @brief UIフォントアトラスを一意に識別するキーです。
 	struct UIFontAtlasKey {
-		std::string fontPath;
-		int32_t     fontSize100 = 2000;
-		uint32_t    oversampleH = 1;
-		uint32_t    oversampleV = 1;
+		Path     fontPath = {};
+		int32_t  fontSize100 = 2000;
+		uint32_t oversampleH = 1;
+		uint32_t oversampleV = 1;
 
 		[[nodiscard]] bool operator==(const UIFontAtlasKey& rhs) const = default
 		;
@@ -29,10 +30,10 @@ namespace Unnamed::UI {
 
 	/// @brief フォントサイズとoversampleからUIFontAtlasKeyを生成します。
 	[[nodiscard]] UIFontAtlasKey MakeUIFontAtlasKey(
-		std::string_view fontPath,
-		float            fontSizePx,
-		uint32_t         oversampleH,
-		uint32_t         oversampleV
+		const Path& fontPath,
+		float       fontSizePx,
+		uint32_t    oversampleH,
+		uint32_t    oversampleV
 	);
 
 	/// @brief 1文字分のグリフ情報です。
@@ -58,13 +59,13 @@ namespace Unnamed::UI {
 		[[nodiscard]] AssetID GetTextureAssetId() const;
 
 		/// @brief フォントピクセルサイズを返します。
-		[[nodiscard]] float              GetFontPixelSize() const;
-		[[nodiscard]] const std::string& GetFontPath() const;
+		[[nodiscard]] float       GetFontPixelSize() const;
+		[[nodiscard]] const Path& GetFontPath() const;
 
 		/// @brief フォントピクセルサイズを設定します。
 		/// @details サイズが変わった場合は次回 EnsureInitialized 時に再生成します。
 		void SetFontPixelSize(float fontPixelSize);
-		void SetFontPath(std::string_view fontPath);
+		void SetFontPath(Path fontPath);
 
 		/// @brief stbtt packing の oversampling 設定を返します。
 		[[nodiscard]] uint32_t GetOversampleH() const;
@@ -116,8 +117,9 @@ namespace Unnamed::UI {
 		float       mDescentPx      = 0.0f;
 		float       mLineGapPx      = 0.0f;
 		float       mLineHeightPx   = 20.0f;
-		std::string mFontPath       =
-			R"(.\content\core\fonts\JetBrainsMono.ttf)";
+		Path                                 mFontPath = Path(
+			R"(.\content\core\fonts\JetBrainsMono.ttf)"
+		);
 		bool                                 mInitialized = false;
 		std::array<UIGlyph, kGlyphTableSize> mGlyphs      = {};
 	};

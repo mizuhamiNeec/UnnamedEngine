@@ -7,7 +7,6 @@
 #include <imgui.h>
 
 #include "core/assets/AssetType.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/gui/UiRoot.h"
 #include "engine/gui/UiScreenStack.h"
@@ -48,8 +47,8 @@ namespace Unnamed::Gui {
 			return value;
 		}
 
-		std::string NormalizePath(const std::string_view path) {
-			return StrUtil::NormalizePath(std::string(path));
+		Path NormalizePath(const std::string_view path) {
+			return Path(path).LexicallyNormal();
 		}
 
 		void CopyStringToBuffer(
@@ -71,7 +70,7 @@ namespace Unnamed::Gui {
 			if (context.pathBuffer[0] == '\0') {
 				if (const auto* runtimeContext = ServiceLocator::Get<GameRuntimeContext>()) {
 					const std::string defaultUiPath =
-						runtimeContext->defaultUiDocumentPath;
+						runtimeContext->defaultUiDocumentPath.ToGenericUtf8();
 					if (!defaultUiPath.empty()) {
 						std::snprintf(
 							context.pathBuffer.data(),
@@ -878,7 +877,8 @@ namespace Unnamed::Gui {
 				} else if (
 					auto* texture = dynamic_cast<UiTextureComponent*>(component)
 				) {
-					std::string texturePath = texture->GetTexturePath();
+					std::string texturePath =
+						texture->GetTexturePath().ToGenericUtf8();
 					if (
 						ImGuiWidgets::AssetPathPicker(
 							"Texture",
@@ -886,7 +886,7 @@ namespace Unnamed::Gui {
 							ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::TEXTURE)
 						)
 					) {
-						texture->SetTexturePath(texturePath);
+						texture->SetTexturePath(Path(texturePath));
 						changed = true;
 					}
 
@@ -912,7 +912,8 @@ namespace Unnamed::Gui {
 				} else if (
 					auto* strip = dynamic_cast<UiDigitStripComponent*>(component)
 				) {
-					std::string texturePath = strip->GetStripTexturePath();
+					std::string texturePath =
+						strip->GetStripTexturePath().ToGenericUtf8();
 					if (
 						ImGuiWidgets::AssetPathPicker(
 							"Strip Texture",
@@ -920,7 +921,7 @@ namespace Unnamed::Gui {
 							ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::TEXTURE)
 						)
 					) {
-						strip->SetStripTexturePath(texturePath);
+						strip->SetStripTexturePath(Path(texturePath));
 						changed = true;
 					}
 
@@ -1026,7 +1027,7 @@ namespace Unnamed::Gui {
 			context.pathBuffer.size()
 		);
 
-		const std::string normalizedPath = NormalizePath(
+		const Path normalizedPath = NormalizePath(
 			context.pathBuffer.data()
 		);
 
@@ -1079,9 +1080,9 @@ namespace Unnamed::Gui {
 			}
 		}
 
-		const std::string trackingPath = context.activeDocumentPath.empty() ?
-			                                 normalizedPath :
-			                                 context.activeDocumentPath;
+		const Path trackingPath = context.activeDocumentPath.IsEmpty() ?
+			                          normalizedPath :
+			                          context.activeDocumentPath;
 		const bool dirty = manager.IsDirty(trackingPath);
 		const bool pending = manager.HasPendingExternal(trackingPath);
 

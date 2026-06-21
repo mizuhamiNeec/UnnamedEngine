@@ -1,4 +1,5 @@
 #include "UIFontAtlas.h"
+#include "core/filesystem/Path.h"
 
 #include "pch.h"
 
@@ -26,7 +27,7 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/TextureAssetData.h"
-#include "core/path/PathUtil.h"
+
 
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -66,10 +67,10 @@ namespace Unnamed::UI {
 		}
 
 		[[nodiscard]] bool ReadBinaryFile(
-			const std::string& path, std::vector<uint8_t>& outBytes
+			const Path& path, std::vector<uint8_t>& outBytes
 		) {
 			std::ifstream input(
-				Path::FromUtf8(path),
+				path.Native(),
 				std::ios::binary | std::ios::ate
 			);
 			if (!input.is_open()) {
@@ -95,13 +96,13 @@ namespace Unnamed::UI {
 	}
 
 	UIFontAtlasKey MakeUIFontAtlasKey(
-		const std::string_view fontPath,
-		const float            fontSizePx,
-		const uint32_t         oversampleH,
-		const uint32_t         oversampleV
+		const Path&  fontPath,
+		const float  fontSizePx,
+		const uint32_t oversampleH,
+		const uint32_t oversampleV
 	) {
 		UIFontAtlasKey key = {};
-		key.fontPath       = std::string(fontPath);
+		key.fontPath       = fontPath.IsEmpty() ? Path() : fontPath.LexicallyNormal();
 		key.fontSize100    = static_cast<int32_t>(std::lround(
 			std::clamp(fontSizePx, 8.0f, 96.0f) * 100.0f
 		));
@@ -133,7 +134,7 @@ namespace Unnamed::UI {
 		return mFontPixelSize;
 	}
 
-	const std::string& UIFontAtlas::GetFontPath() const {
+	const Path& UIFontAtlas::GetFontPath() const {
 		return mFontPath;
 	}
 
@@ -150,12 +151,12 @@ namespace Unnamed::UI {
 		mInitialized   = false;
 	}
 
-	void UIFontAtlas::SetFontPath(const std::string_view fontPath) {
-		const std::string normalized(fontPath);
-		if (normalized.empty() || normalized == mFontPath) {
+	void UIFontAtlas::SetFontPath(Path fontPath) {
+		fontPath = fontPath.IsEmpty() ? Path() : fontPath.LexicallyNormal();
+		if (fontPath.IsEmpty() || fontPath == mFontPath) {
 			return;
 		}
-		mFontPath    = normalized;
+		mFontPath    = std::move(fontPath);
 		mInitialized = false;
 	}
 
@@ -327,12 +328,14 @@ namespace Unnamed::UI {
 		texture.mipLevels        = 1;
 		texture.format           = DXGI_FORMAT_R8G8B8A8_UNORM;
 		texture.isSRGB           = false;
-		texture.sourcePath       = std::format(
-			"runtime://ui/font_atlas_ascii/{}_{}x{}_{}",
-			mFontPixelSize,
-			mOversampleH,
-			mOversampleV,
-			bitmapGlyphCount
+		texture.sourcePath       = Path(
+			std::format(
+				"runtime://ui/font_atlas_ascii/{}_{}x{}_{}",
+				mFontPixelSize,
+				mOversampleH,
+				mOversampleV,
+				bitmapGlyphCount
+			)
 		);
 
 		TextureMip mip = {};

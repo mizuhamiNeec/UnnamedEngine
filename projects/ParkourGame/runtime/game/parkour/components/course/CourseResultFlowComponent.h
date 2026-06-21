@@ -5,6 +5,8 @@
 #include <string_view>
 #include <vector>
 
+#include <core/filesystem/Path.h>
+
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 
 namespace Unnamed {
@@ -116,7 +118,7 @@ namespace Unnamed {
 		[[nodiscard]] static float EvaluateEase(float t);
 
 		std::string mCourseId       = "default";
-		std::string mTitleScenePath = "scenes/title.json";
+		Path mTitleScenePath = Path("scenes/title.json");
 
 		uint64_t mHudCanvasEntityGuid = 0;
 		uint64_t mClearAudioSourceGuid = 0;
@@ -130,10 +132,10 @@ namespace Unnamed {
 		std::string mElapsedCommaWidgetName = "CourseResultElapsedComma";
 		std::string mElapsedDotWidgetName   = "CourseResultElapsedDot";
 		std::string mFadeOverlayWidgetName   = "OpeningFadeOverlay";
-		std::string mClearTexturePath        = "textures/clear.png";
-		std::string mDigitTexturePath        = "textures/digits.png";
-		std::string mCommaTexturePath        = "textures/colon.png";
-		std::string mDotTexturePath          = "textures/dot.png";
+		Path        mClearTexturePath        = Path("textures/clear.png");
+		Path        mDigitTexturePath        = Path("textures/digits.png");
+		Path        mCommaTexturePath        = Path("textures/colon.png");
+		Path        mDotTexturePath          = Path("textures/dot.png");
 
 		float mResultHoldSeconds = 2.0f;
 		float mFadeOutSeconds    = 0.45f;
@@ -171,4 +173,3 @@ namespace Unnamed {
 		bool  mWasCourseCleared    = false;
 	};
 }
-

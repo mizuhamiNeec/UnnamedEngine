@@ -3,7 +3,6 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/UiDocumentAssetData.h"
 #include "core/io/json/JsonReader.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/unnamed/subsystem/console/Log.h"
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
@@ -21,15 +20,16 @@ namespace Unnamed::Gui {
 	UiDocumentManager::~UiDocumentManager() = default;
 
 	std::shared_ptr<UiDocument> UiDocumentManager::LoadDocument(
-		const std::string& path
+		const Path& path
 	) {
 		if (!mAssetManager) {
 			Error(kChannel, "AssetManager is not available.");
 			return nullptr;
 		}
 
-		const std::string normalizedPath = NormalizePath(path);
-		ManagedDocument&  managed = mDocuments[normalizedPath];
+		const Path        normalizedPath = NormalizePath(path);
+		const std::string key            = normalizedPath.ToGenericUtf8();
+		ManagedDocument&  managed        = mDocuments[key];
 		managed.normalizedPath = normalizedPath;
 		managed.assetId = mAssetManager->LoadFromFile(
 			normalizedPath, ASSET_TYPE::UI_DOCUMENT
@@ -46,35 +46,36 @@ namespace Unnamed::Gui {
 
 		managed.dirty           = false;
 		managed.pendingExternal = false;
-		DevMsg(kChannel, "Loaded UiDocument asset: {}", normalizedPath.c_str());
+		DevMsg(kChannel, "Loaded UiDocument asset: {}", normalizedPath);
 		return managed.document;
 	}
 
-	void UiDocumentManager::UnloadDocument(const std::string& path) {
-		mDocuments.erase(NormalizePath(path));
+	void UiDocumentManager::UnloadDocument(const Path& path) {
+		mDocuments.erase(NormalizePath(path).ToGenericUtf8());
 	}
 
 	std::shared_ptr<UiDocument> UiDocumentManager::GetDocument(
-		const std::string& path
+		const Path& path
 	) const {
 		const ManagedDocument* managed = FindManaged(path);
 		return managed ? managed->document : nullptr;
 	}
 
 	bool UiDocumentManager::SaveDocument(
-		const std::string&               path,
+		const Path&                      path,
 		const std::shared_ptr<UiDocument>& document
 	) {
 		if (!document) {
 			return false;
 		}
 
-		const std::string normalizedPath = NormalizePath(path);
+		const Path        normalizedPath = NormalizePath(path);
+		const std::string key            = normalizedPath.ToGenericUtf8();
 		if (!document->Save(normalizedPath)) {
 			return false;
 		}
 
-		ManagedDocument& managed = mDocuments[normalizedPath];
+		ManagedDocument& managed = mDocuments[key];
 		managed.normalizedPath = normalizedPath;
 		managed.document       = document;
 		managed.dirty          = false;
@@ -97,20 +98,20 @@ namespace Unnamed::Gui {
 		return true;
 	}
 
-	void UiDocumentManager::MarkDirty(const std::string& path, const bool dirty) {
+	void UiDocumentManager::MarkDirty(const Path& path, const bool dirty) {
 		if (ManagedDocument* managed = FindManaged(path)) {
 			managed->dirty = dirty;
 		}
 	}
 
-	bool UiDocumentManager::IsDirty(const std::string& path) const {
+	bool UiDocumentManager::IsDirty(const Path& path) const {
 		if (const ManagedDocument* managed = FindManaged(path)) {
 			return managed->dirty;
 		}
 		return false;
 	}
 
-	bool UiDocumentManager::HasPendingExternal(const std::string& path) const {
+	bool UiDocumentManager::HasPendingExternal(const Path& path) const {
 		if (const ManagedDocument* managed = FindManaged(path)) {
 			return managed->pendingExternal;
 		}
@@ -118,7 +119,7 @@ namespace Unnamed::Gui {
 	}
 
 	void UiDocumentManager::ResolvePendingExternal(
-		const std::string& path,
+		const Path&        path,
 		const bool         reloadFromAsset
 	) {
 		ManagedDocument* managed = FindManaged(path);
@@ -134,8 +135,8 @@ namespace Unnamed::Gui {
 		managed->pendingExternal = false;
 	}
 
-	std::vector<std::string> UiDocumentManager::UpdateTrackedDocuments() {
-		std::vector<std::string> updatedPaths;
+	std::vector<Path> UiDocumentManager::UpdateTrackedDocuments() {
+		std::vector<Path> updatedPaths;
 		if (!mAssetManager) {
 			return updatedPaths;
 		}
@@ -158,15 +159,15 @@ namespace Unnamed::Gui {
 
 			if (ReloadDocumentFromAsset(managed)) {
 				managed.pendingExternal = false;
-				updatedPaths.emplace_back(path);
+				updatedPaths.emplace_back(managed.normalizedPath);
 			}
 		}
 
 		return updatedPaths;
 	}
 
-	std::string UiDocumentManager::NormalizePath(std::string path) {
-		return StrUtil::NormalizePath(std::move(path));
+	Path UiDocumentManager::NormalizePath(Path path) {
+		return path.IsEmpty() ? Path() : path.LexicallyNormal();
 	}
 
 	bool UiDocumentManager::ReloadDocumentFromAsset(ManagedDocument& managed) const {
@@ -183,7 +184,7 @@ namespace Unnamed::Gui {
 
 		auto doc = UiDocument::LoadFromJson(
 			JsonReader(assetData->rootJson),
-			managed.normalizedPath
+			managed.normalizedPath.ToGenericUtf8()
 		);
 		if (!doc) {
 			return false;
@@ -195,10 +196,11 @@ namespace Unnamed::Gui {
 	}
 
 	UiDocumentManager::ManagedDocument* UiDocumentManager::FindManaged(
-		const std::string& path
+		const Path& path
 	) {
-		const std::string normalizedPath = NormalizePath(path);
-		const auto        it = mDocuments.find(normalizedPath);
+		const std::string normalizedPath =
+			NormalizePath(path).ToGenericUtf8();
+		const auto it = mDocuments.find(normalizedPath);
 		if (it == mDocuments.end()) {
 			return nullptr;
 		}
@@ -206,10 +208,11 @@ namespace Unnamed::Gui {
 	}
 
 	const UiDocumentManager::ManagedDocument* UiDocumentManager::FindManaged(
-		const std::string& path
+		const Path& path
 	) const {
-		const std::string normalizedPath = NormalizePath(path);
-		const auto        it = mDocuments.find(normalizedPath);
+		const std::string normalizedPath =
+			NormalizePath(path).ToGenericUtf8();
+		const auto it = mDocuments.find(normalizedPath);
 		if (it == mDocuments.end()) {
 			return nullptr;
 		}

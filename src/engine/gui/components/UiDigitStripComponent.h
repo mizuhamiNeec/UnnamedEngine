@@ -2,6 +2,8 @@
 
 #include "UiComponent.h"
 
+#include "core/filesystem/Path.h"
+
 #include "engine/gui/UiDrawCommand.h"
 
 namespace Unnamed::Gui {
@@ -11,8 +13,8 @@ namespace Unnamed::Gui {
 			return "DigitStrip";
 		}
 
-		void SetStripTexturePath(const std::string& path);
-		[[nodiscard]] const std::string& GetStripTexturePath() const;
+		void SetStripTexturePath(Path path);
+		[[nodiscard]] const Path& GetStripTexturePath() const;
 
 		void SetValue(int value);
 		[[nodiscard]] int GetValue() const;
@@ -34,7 +36,7 @@ namespace Unnamed::Gui {
 		void Deserialize(const JsonReader& reader) override;
 
 	private:
-		std::string mStripTexturePath;
+		Path mStripTexturePath;
 		int         mValue = 0;
 		int         mMinDigits = 2;
 		float       mDigitSpacing = 0.0f;

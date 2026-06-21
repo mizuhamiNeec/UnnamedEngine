@@ -4,6 +4,7 @@
 #include <string>
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/Path.h"
 
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 
@@ -47,8 +48,8 @@ namespace Unnamed {
 		
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-		void SetUiAssetPath(const std::string& path);
-		[[nodiscard]] const std::string& GetUiAssetPath() const;
+		void SetUiAssetPath(Path path);
+		[[nodiscard]] const Path& GetUiAssetPath() const;
 
 		void SetSpaceMode(UI_CANVAS_SPACE_MODE mode);
 		[[nodiscard]] UI_CANVAS_SPACE_MODE GetSpaceMode() const;
@@ -78,7 +79,7 @@ namespace Unnamed {
 	private:
 		void                     InvalidateRuntime();
 		
-		std::string                    mUiAssetPath;
+		Path                           mUiAssetPath;
 		UI_CANVAS_SPACE_MODE           mSpaceMode          = UI_CANVAS_SPACE_MODE::SCREEN;
 		UI_CANVAS_BILLBOARD_DEPTH_MODE mBillboardDepthMode =
 			UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
@@ -87,7 +88,7 @@ namespace Unnamed {
 		int32_t              mSortKey = 0;
 		bool                 mReceiveInput = true;
 
-		std::string                    mLoadedAssetPath;
+		Path                           mLoadedAssetPath;
 		AssetID                        mUiAssetId = kInvalidAssetID;
 		uint64_t                       mLoadedAssetVersion = 0;
 		std::unique_ptr<Gui::UiRoot>   mRuntimeRoot;

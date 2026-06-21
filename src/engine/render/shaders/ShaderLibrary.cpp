@@ -1,4 +1,5 @@
 #include "ShaderLibrary.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
 #include <fstream>
@@ -7,7 +8,7 @@
 #include "core/hash/HashBuilder.h"
 #include "core/assets/FileStamp.h"
 #include "core/hash/StableHashBuilder.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 #include "engine/rhi/DxcShaderCompiler.h"
@@ -40,7 +41,7 @@ namespace Unnamed::Render {
 		const auto dxilPath  = GetDxilCachePath(key);
 		ShaderDxil candidate = {};
 		bool       prepared  = false;
-		if (std::filesystem::exists(dxilPath)) {
+		if (std::filesystem::exists(dxilPath.Native())) {
 			candidate.bytes = ReadFileBytes(dxilPath);
 			prepared        = !candidate.bytes.empty();
 			if (!prepared) {
@@ -70,7 +71,7 @@ namespace Unnamed::Render {
 				return it->second;
 			}
 
-			const std::wstring sourcePath = Path::FromUtf8(src->path).wstring();
+			const std::wstring sourcePath = src->path.Native().wstring();
 			const std::wstring entry      = StrUtil::ToWString(key.entry);
 			const std::wstring profile    = StrUtil::ToWString(key.profile);
 
@@ -82,7 +83,7 @@ namespace Unnamed::Render {
 			} else {
 				const bool ok = mDxcShaderCompiler.CompileToFileDXIL(
 					sourcePath, entry, profile, includeDirs, extraArgs,
-					dxilPath.wstring()
+					dxilPath.Native().wstring()
 				);
 				if (ok) {
 					candidate.bytes = ReadFileBytes(dxilPath);
@@ -158,15 +159,13 @@ namespace Unnamed::Render {
 		mReverse.clear();
 	}
 
-	void ShaderLibrary::SetCacheDirectory(std::filesystem::path dir) {
+	void ShaderLibrary::SetCacheDirectory(Path dir) {
 		mCacheDir = std::move(dir);
 	}
 
-	std::filesystem::path ShaderLibrary::GetDxilCachePath(
-		const ShaderKey& key
-	) const {
+	Path ShaderLibrary::GetDxilCachePath(const ShaderKey& key) const {
 		const uint64_t dh = ComputeDerivedHash(key);
-		return mCacheDir / StrUtil::ToWString(
+		return mCacheDir / Path(
 			       std::string(kDxilCacheDir) +
 			       "shader_" +
 			       std::to_string(key.shaderSourceId) +
@@ -195,7 +194,7 @@ namespace Unnamed::Render {
 		}
 
 		// ソースファイルのパスを正規化してハッシュに含める
-		const std::string srcPath = StrUtil::NormalizePath(src->path);
+		const std::string srcPath = src->path.LexicallyNormal().ToGenericUtf8();
 		hashBuilder.AddString(srcPath);
 		hashBuilder.AddString(key.entry);
 		hashBuilder.AddString(key.profile);
@@ -254,10 +253,8 @@ namespace Unnamed::Render {
 		return args;
 	}
 
-	std::vector<uint8_t> ShaderLibrary::ReadFileBytes(
-		const std::filesystem::path& path
-	) {
-		std::ifstream ifs(path, std::ios::binary);
+	std::vector<uint8_t> ShaderLibrary::ReadFileBytes(const Path& path) {
+		std::ifstream ifs(path.Native(), std::ios::binary);
 		if (!ifs) {
 			return {};
 		}
@@ -276,10 +273,10 @@ namespace Unnamed::Render {
 	}
 
 	void ShaderLibrary::WriteFileBytes(
-		const std::filesystem::path& path, const std::vector<uint8_t>& bytes
+		const Path& path, const std::vector<uint8_t>& bytes
 	) {
-		std::filesystem::create_directories(path.parent_path());
-		std::ofstream ofs(path, std::ios::binary);
+		std::filesystem::create_directories(path.ParentPath().Native());
+		std::ofstream ofs(path.Native(), std::ios::binary);
 		if (!ofs) {
 			return;
 		}

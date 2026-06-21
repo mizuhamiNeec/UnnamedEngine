@@ -27,7 +27,7 @@
 #include <core/assets/loader/SoundAssetLoader.h>
 #include <core/assets/loader/TextureLoaderDirectXTex.h>
 #include <core/assets/loader/UiDocumentAssetLoader.h>
-#include <core/path/PathUtil.h>
+#include <core/filesystem/Path.h>
 #include <core/string/StrUtil.h>
 
 #include <engine/EngineComponentRegistration.h>
@@ -46,7 +46,6 @@
 #include <engine/rhi/d3d12/D3D12Device.h>
 #include <engine/rhi/d3d12/D3D12Util.h>
 #include <engine/rhi/interface/IRhiDevice.h>
-#include <engine/sequence/SequenceRegressionRunner.h>
 #include <engine/ui/ImGuiLayer.h>
 #include <engine/unnamed/framework/entity/Entity.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
@@ -74,20 +73,21 @@ namespace Unnamed {
 	namespace {
 		[[nodiscard]] bool ExecuteCfgIfExists(
 			ConsoleSystem*         console,
-			const std::string_view cfgPath,
+			const Path&            cfgPath,
 			const std::string_view channel,
 			const std::string_view orderLabel
 		) {
-			if (!console || cfgPath.empty()) {
+			if (!console || cfgPath.IsEmpty()) {
 				return false;
 			}
 
-			if (!std::filesystem::exists(Path::FromUtf8(cfgPath))) {
+			const std::string cfgPathText = cfgPath.ToGenericUtf8();
+			if (!std::filesystem::exists(cfgPath.Native())) {
 				DevMsg(
 					channel,
 					"[CFG:{}] skipped missing {}",
 					orderLabel,
-					std::string(cfgPath)
+					cfgPathText
 				);
 				return false;
 			}
@@ -96,9 +96,9 @@ namespace Unnamed {
 				channel,
 				"[CFG:{}] exec {}",
 				orderLabel,
-				std::string(cfgPath)
+				cfgPathText
 			);
-			console->ExecuteCommand("exec \"" + std::string(cfgPath) + "\"");
+			console->ExecuteCommand("exec \"" + cfgPathText + "\"");
 			return true;
 		}
 
@@ -111,7 +111,7 @@ namespace Unnamed {
 		) {
 			return ExecuteCfgIfExists(
 				console,
-				ResolveGameConfigPath(gamePaths, relativeCfgPath),
+				ResolveGameConfigPath(gamePaths, Path(relativeCfgPath)),
 				channel,
 				orderLabel
 			);
@@ -366,7 +366,7 @@ namespace Unnamed {
 		// コンソールコマンドと変数の登録
 		(void)ExecuteCfgIfExists(
 			mConsoleSystem.get(),
-			"./content/core/cfg/config_default.cfg",
+			Path("./content/core/cfg/config_default.cfg"),
 			"Engine",
 			"00-core:config_default"
 		);
@@ -415,7 +415,7 @@ namespace Unnamed {
 			gamePaths.gameRoot,
 			gamePaths.contentRoot,
 			gamePaths.configRoot,
-			runtimeContext.defaultStartupScenePath.empty() ?
+			runtimeContext.defaultStartupScenePath.IsEmpty() ?
 				runtimeContext.modulePaths.defaultStartupScene :
 				runtimeContext.defaultStartupScenePath
 		);
@@ -445,7 +445,7 @@ namespace Unnamed {
 			// 既存運用との互換性のため、game 側 user.cfg が無い場合のみ core を読みます。
 			(void)ExecuteCfgIfExists(
 				mConsoleSystem.get(),
-				"./content/core/cfg/user.cfg",
+				Path("./content/core/cfg/user.cfg"),
 				"Engine",
 				"31-core:user-fallback"
 			);
@@ -490,12 +490,12 @@ namespace Unnamed {
 				*mUImGuiLayer
 			);
 			if (World* runtimeWorld = mUEditorRuntime->GetRuntimeWorld()) {
-				const std::string startupScenePath =
+				runtimeWorld->LoadSceneFromFile(
 					ResolveStartupScenePath(
 						gamePaths,
 						runtimeContext.defaultStartupScenePath
-					);
-				runtimeWorld->LoadSceneFromFile(startupScenePath.c_str());
+					)
+				);
 			}
 
 			if (!ExecuteGameCfgIfExists(
@@ -507,7 +507,7 @@ namespace Unnamed {
 			)) {
 				(void)ExecuteCfgIfExists(
 					mConsoleSystem.get(),
-					"./content/core/cfg/editor.cfg",
+					Path("./content/core/cfg/editor.cfg"),
 					"Engine",
 					"41-core:editor-fallback"
 				);
@@ -523,12 +523,12 @@ namespace Unnamed {
 				return false;
 			}
 			World&            world = ActivateWorld(std::move(runtimeWorld));
-			const std::string startupScenePath =
+			world.LoadSceneFromFile(
 				ResolveStartupScenePath(
 					gamePaths,
 					runtimeContext.defaultStartupScenePath
-				);
-			world.LoadSceneFromFile(startupScenePath.c_str());
+				)
+			);
 		}
 
 		// ユーザー名をコンソール変数に設定
@@ -780,7 +780,6 @@ namespace Unnamed {
 		mPostFxListCommand.reset();
 		mPostFxChainCommand.reset();
 		mPostFxChainReloadCommand.reset();
-		mSequenceRegressionRunCommand.reset();
 		mToggleFullscreenCommand.reset();
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		mToggleEditorCommand.reset();
@@ -861,7 +860,7 @@ namespace Unnamed {
 
 	/// @brief コンソールコマンドと変数の登録
 	void Engine::RegisterConsoleCommandsAndVariables() {
-		const auto QueueSceneTransition = [this](const std::string& rawPath) {
+		const auto QueueSceneTransition = [this](Path path) {
 			World* runtimeWorld = GetWorld();
 			if (!runtimeWorld) {
 				Warning("Engine",
@@ -878,15 +877,13 @@ namespace Unnamed {
 				return false;
 			}
 
-			const std::string normalizedPath = StrUtil::NormalizePath(
-				StrUtil::TrimSpaces(rawPath)
-			);
-			if (normalizedPath.empty()) {
+			path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+			if (path.IsEmpty()) {
 				Warning("Engine", "Scene transition failed: path is empty.");
 				return false;
 			}
 
-			transitionTarget->RequestSceneTransition(normalizedPath);
+			transitionTarget->RequestSceneTransition(std::move(path));
 			return true;
 		};
 
@@ -908,7 +905,11 @@ namespace Unnamed {
 				}
 
 				// 引数を1つのパスとして扱い、空白を含むケースも吸収します。
-				return QueueSceneTransition(StrUtil::Join(args, " "));
+				return QueueSceneTransition(
+					Path(
+						StrUtil::TrimSpaces(StrUtil::Join(args, " "))
+					).LexicallyNormal()
+				);
 			},
 			"Queue a scene transition. Usage: map <scenePath>"
 		);
@@ -922,7 +923,7 @@ namespace Unnamed {
 					return false;
 				}
 
-				World* transitionTarget = ResolveSceneTransitionTargetWorld(
+				const World* transitionTarget = ResolveSceneTransitionTargetWorld(
 					runtimeWorld
 				);
 				if (!transitionTarget) {
@@ -931,10 +932,8 @@ namespace Unnamed {
 					return false;
 				}
 
-				const auto loadedPath = std::string(
-					transitionTarget->GetLoadedScenePath()
-				);
-				if (loadedPath.empty()) {
+				const Path loadedPath = transitionTarget->GetLoadedScenePath();
+				if (loadedPath.IsEmpty()) {
 					Warning("Engine", "Reload failed: no loaded scene path.");
 					return false;
 				}
@@ -943,36 +942,6 @@ namespace Unnamed {
 			},
 			"Reload current scene."
 		);
-
-		mSequenceRegressionRunCommand = std::make_unique<ConCommand>(
-			"seq_regression_run",
-			[this](const std::vector<std::string>&) {
-				if (!mAssetManager) {
-					Warning("SeqRegression", "AssetManager is null.");
-					return false;
-				}
-				World* world = GetWorld();
-				if (!world) {
-					Warning("SeqRegression", "World is null.");
-					return false;
-				}
-
-				std::string report = {};
-				const bool  passed = SequenceRegressionRunner::RunAll(
-					*world,
-					*mAssetManager,
-					&report
-				);
-				if (passed) {
-					Msg("SeqRegression", "\n{}", report);
-				} else {
-					Warning("SeqRegression", "\n{}", report);
-				}
-				return passed;
-			},
-			"Run fixed-tick regression tests for sequence runtime."
-		);
-
 		mToggleFullscreenCommand = std::make_unique<ConCommand>(
 			"togglefullscreen",
 			[this](const std::vector<std::string>&) {

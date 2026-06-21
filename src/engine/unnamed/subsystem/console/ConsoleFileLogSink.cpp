@@ -5,7 +5,7 @@
 
 #include <Windows.h>
 
-#include <core/path/PathUtil.h>
+#include <core/filesystem/Path.h>
 #include <engine/unnamed/subsystem/console/ConsoleFileLogSink.h>
 #include <engine/unnamed/subsystem/time/SystemClock.h>
 
@@ -24,10 +24,10 @@ namespace Unnamed {
 		mCfg = cfg;
 
 		// 既存ファイルを削除
-		if (!mCfg.path.empty() &&
-		    std::filesystem::exists(Path::FromUtf8(mCfg.path))) {
+		if (!mCfg.path.IsEmpty() &&
+		    std::filesystem::exists(mCfg.path.Native())) {
 			std::error_code ec;
-			std::filesystem::remove(Path::FromUtf8(mCfg.path), ec);
+			std::filesystem::remove(mCfg.path.Native(), ec);
 		}
 
 		if (!OpenFile()) {
@@ -198,7 +198,7 @@ namespace Unnamed {
 
 	bool ConsoleFileLogSink::OpenFile() {
 		mFile.open(
-			Path::FromUtf8(mCfg.path),
+			mCfg.path.Native(),
 			std::ios::out | std::ios::binary
 		);
 		if (!mFile.is_open()) {

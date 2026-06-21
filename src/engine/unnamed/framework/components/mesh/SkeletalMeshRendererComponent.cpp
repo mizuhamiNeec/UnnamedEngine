@@ -7,9 +7,9 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/MeshAssetData.h"
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
@@ -58,7 +58,7 @@ namespace Unnamed {
 			matPath = ReadStringOr(reader, "material", "");
 		}
 
-		SetMeshPath(meshPath);
+		SetMeshPath(Path(meshPath));
 
 		// 新形式（materialSlots）をチェック
 		const JsonReader slotsReader = reader["materialSlots"];
@@ -71,19 +71,21 @@ namespace Unnamed {
 				}
 				MaterialSlot slot;
 				slot.slotIndex = static_cast<uint32_t>(slotReader["slotIndex"].GetInt(static_cast<int>(i)));
-				slot.materialInstancePath = slotReader["materialInstancePath"].GetString("");
+				slot.materialInstancePath = Path(
+					slotReader["materialInstancePath"].GetString("")
+				);
 				slots.push_back(slot);
 			}
 			SetMaterialSlots(slots);
 		} else if (!matPath.empty()) {
 			// 旧形式（単一 materialInstancePath）から新形式に変換
-			SetMaterialInstancePath(matPath);
+			SetMaterialInstancePath(Path(matPath));
 		}
 	}
 
 	void SkeletalMeshRendererComponent::Serialize(JsonWriter& writer) const {
 		writer.Key("meshPath");
-		writer.Write(mMeshPath);
+		writer.Write(mMeshPath.ToGenericUtf8());
 		
 		// 新形式で materialSlots を出力
 		writer.Key("materialSlots");
@@ -93,14 +95,14 @@ namespace Unnamed {
 			writer.Key("slotIndex");
 			writer.Write(slot.slotIndex);
 			writer.Key("materialInstancePath");
-			writer.Write(slot.materialInstancePath);
+			writer.Write(slot.materialInstancePath.ToGenericUtf8());
 			writer.EndObject();
 		}
 		writer.EndArray();
 
 		// 互換性のため古い形式も出力（mMaterialInstancePath が設定されている場合）
 		writer.Key("materialInstancePath");
-		writer.Write(mMaterialInstancePath);
+		writer.Write(mMaterialInstancePath.ToGenericUtf8());
 	}
 
 	uint32_t SkeletalMeshRendererComponent::GetIcon() const noexcept {
@@ -109,7 +111,7 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SkeletalMeshRendererComponent::DrawInspectorImGui() {
-		std::string meshPath = mMeshPath;
+		std::string meshPath = mMeshPath.ToGenericUtf8();
 		if (
 			ImGuiWidgets::AssetPathPicker(
 				"SkeletalMeshPath",
@@ -117,7 +119,7 @@ namespace Unnamed {
 				ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::MESH)
 			)
 		) {
-			SetMeshPath(meshPath);
+			SetMeshPath(Path(meshPath));
 		}
 
 		uint32_t meshSlotCount = 0;
@@ -151,7 +153,8 @@ namespace Unnamed {
 
 			for (uint32_t i = 0; i < mMaterialSlots.size(); ++i) {
 				std::string slotLabel = "Slot " + std::to_string(mMaterialSlots[i].slotIndex);
-				std::string slotPath = mMaterialSlots[i].materialInstancePath;
+				std::string slotPath = mMaterialSlots[i].materialInstancePath.
+					ToGenericUtf8();
 				if (
 					ImGuiWidgets::AssetPathPicker(
 						slotLabel.c_str(),
@@ -159,14 +162,14 @@ namespace Unnamed {
 						ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::MATERIAL_INSTANCE)
 					)
 				) {
-					SetMaterialInstancePathForSlot(i, slotPath);
+					SetMaterialInstancePathForSlot(i, Path(slotPath));
 				}
 			}
 		}
 
 		// 旧形式互換性：単一パスのピッカー（mMaterialSlots が空の場合のみ表示）
 		if (mMaterialSlots.empty()) {
-			std::string materialPath = mMaterialInstancePath;
+			std::string materialPath = mMaterialInstancePath.ToGenericUtf8();
 			if (
 				ImGuiWidgets::AssetPathPicker(
 					"SkeletalMaterialPath",
@@ -174,44 +177,40 @@ namespace Unnamed {
 					ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::MATERIAL_INSTANCE)
 				)
 			) {
-				SetMaterialInstancePath(materialPath);
+				SetMaterialInstancePath(Path(materialPath));
 			}
 		}
 	}
 #endif
 
-	void SkeletalMeshRendererComponent::SetMeshPath(const std::string& path) {
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mMeshPath == normalized) {
+	void SkeletalMeshRendererComponent::SetMeshPath(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (mMeshPath == path) {
 			return;
 		}
 
-		mMeshPath    = normalized;
+		mMeshPath    = std::move(path);
 		mMeshAssetId = kInvalidAssetID;
 	}
 
 	void SkeletalMeshRendererComponent::SetMaterialInstancePath(
-		const std::string& path
+		Path path
 	) {
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mMaterialInstancePath == normalized) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (mMaterialInstancePath == path) {
 			return;
 		}
 
-		mMaterialInstancePath    = normalized;
+		mMaterialInstancePath    = std::move(path);
 		mMaterialInstanceAssetId = kInvalidAssetID;
 	}
 
-	const std::string&
+	const Path&
 	SkeletalMeshRendererComponent::GetMeshPath() const noexcept {
 		return mMeshPath;
 	}
 
-	const std::string&
+	const Path&
 	SkeletalMeshRendererComponent::GetMaterialInstancePath() const noexcept {
 		return mMaterialInstancePath;
 	}
@@ -219,7 +218,7 @@ namespace Unnamed {
 	AssetID SkeletalMeshRendererComponent::ResolveMeshAsset(
 		AssetManager& assetManager
 	) {
-		if (mMeshPath.empty()) {
+		if (mMeshPath.IsEmpty()) {
 			return kInvalidAssetID;
 		}
 		if (mMeshAssetId != kInvalidAssetID) {
@@ -233,7 +232,7 @@ namespace Unnamed {
 	AssetID SkeletalMeshRendererComponent::ResolveMaterialInstanceAsset(
 		AssetManager& assetManager
 	) {
-		if (mMaterialInstancePath.empty()) {
+		if (mMaterialInstancePath.IsEmpty()) {
 			return kInvalidAssetID;
 		}
 		if (mMaterialInstanceAssetId != kInvalidAssetID) {
@@ -264,22 +263,20 @@ namespace Unnamed {
 	}
 
 	void SkeletalMeshRendererComponent::SetMaterialInstancePathForSlot(
-		uint32_t slotIndex, const std::string& path
+		uint32_t slotIndex, Path path
 	) {
 		// スロットベクタが十分なサイズでない場合は拡張
 		if (slotIndex >= mMaterialSlots.size()) {
 			mMaterialSlots.resize(slotIndex + 1);
 		}
 
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mMaterialSlots[slotIndex].materialInstancePath == normalized) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (mMaterialSlots[slotIndex].materialInstancePath == path) {
 			return;
 		}
 
 		mMaterialSlots[slotIndex].slotIndex = slotIndex;
-		mMaterialSlots[slotIndex].materialInstancePath = normalized;
+		mMaterialSlots[slotIndex].materialInstancePath = std::move(path);
 
 		// マテリアルアセットIDリセット
 		if (slotIndex < mMaterialInstanceAssetIds.size()) {
@@ -296,7 +293,7 @@ namespace Unnamed {
 		AssetManager& assetManager
 	) {
 		// マテリアルスロットが空の場合、旧形式の単一パスで初期化
-		if (mMaterialSlots.empty() && !mMaterialInstancePath.empty()) {
+		if (mMaterialSlots.empty() && !mMaterialInstancePath.IsEmpty()) {
 			MaterialSlot slot;
 			slot.slotIndex = 0;
 			slot.materialInstancePath = mMaterialInstancePath;
@@ -314,7 +311,7 @@ namespace Unnamed {
 				continue;  // 既に解決済み
 			}
 
-			if (mMaterialSlots[i].materialInstancePath.empty()) {
+			if (mMaterialSlots[i].materialInstancePath.IsEmpty()) {
 				continue;  // パスが空の場合はスキップ
 			}
 

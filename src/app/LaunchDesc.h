@@ -12,17 +12,19 @@
 #include <Windows.h>
 #include <shellapi.h>
 
+#include "core/filesystem/Path.h"
+
 namespace Unnamed {
 	/// @brief App 起動引数から抽出した共通オプションです。
 	struct LaunchDesc {
 		/// @brief `--game` で指定されたゲーム名です。
 		std::optional<std::string> gameName = std::nullopt;
 		/// @brief `--project` で指定された game_profile.json のパスです。
-		std::optional<std::filesystem::path> projectManifestPath = std::nullopt;
+		std::optional<Path> projectManifestPath = std::nullopt;
 		/// @brief `--repo-root` で指定された repo root です。
-		std::optional<std::filesystem::path> repoRootOverride = std::nullopt;
+		std::optional<Path> repoRootOverride = std::nullopt;
 		/// @brief `--projects-root` で指定された projects ルートです。
-		std::optional<std::filesystem::path> projectsRootOverride = std::nullopt;
+		std::optional<Path> projectsRootOverride = std::nullopt;
 		/// @brief `--help` / `-h` が指定されたかどうかです。
 		bool showHelp = false;
 		/// @brief 起動前検証のみ実行して終了するかどうかです。
@@ -31,96 +33,85 @@ namespace Unnamed {
 		std::vector<std::string> diagnostics = {};
 	};
 
-	/// @brief ワイド文字列を UTF-8 文字列へ変換します。
+	/// @brief UTF-16文字列をUTF-8へ変換します。
 	[[nodiscard]] inline std::string ConvertWideToUtf8(
-		const std::wstring_view text
+		const std::wstring_view wide
 	) {
-		if (text.empty()) {
+		if (wide.empty()) {
 			return {};
 		}
 
-		const int requiredSize = ::WideCharToMultiByte(
+		const int wideLength = static_cast<int>(wide.size());
+		const int utf8Length = WideCharToMultiByte(
 			CP_UTF8,
-			0,
-			text.data(),
-			static_cast<int>(text.size()),
+			WC_ERR_INVALID_CHARS,
+			wide.data(),
+			wideLength,
 			nullptr,
 			0,
 			nullptr,
 			nullptr
 		);
-		if (requiredSize <= 0) {
+		if (utf8Length <= 0) {
 			return {};
 		}
 
-		std::string output(static_cast<size_t>(requiredSize), '\0');
-		const int   writtenSize = ::WideCharToMultiByte(
+		std::string utf8(static_cast<size_t>(utf8Length), '\0');
+		const int convertedLength = WideCharToMultiByte(
 			CP_UTF8,
-			0,
-			text.data(),
-			static_cast<int>(text.size()),
-			output.data(),
-			requiredSize,
+			WC_ERR_INVALID_CHARS,
+			wide.data(),
+			wideLength,
+			utf8.data(),
+			utf8Length,
 			nullptr,
 			nullptr
 		);
-		if (writtenSize != requiredSize) {
+		if (convertedLength <= 0) {
 			return {};
 		}
-		return output;
+		return utf8;
 	}
 
-	/// @brief UTF-8 文字列をワイド文字列へ変換します。
-	[[nodiscard]] inline std::wstring ConvertUtf8ToWide(
-		const std::string_view text
-	) {
+	/// @brief UTF-8文字列をデバッガ出力へ送ります。
+	inline void OutputDebugStringUtf8(const std::string_view text) {
 		if (text.empty()) {
-			return {};
+			return;
 		}
 
-		const int requiredSize = ::MultiByteToWideChar(
+		const int utf8Length = static_cast<int>(text.size());
+		const int wideLength = MultiByteToWideChar(
 			CP_UTF8,
-			0,
+			MB_ERR_INVALID_CHARS,
 			text.data(),
-			static_cast<int>(text.size()),
+			utf8Length,
 			nullptr,
 			0
 		);
-		if (requiredSize <= 0) {
-			return {};
-		}
-
-		std::wstring output(static_cast<size_t>(requiredSize), L'\0');
-		const int    writtenSize = ::MultiByteToWideChar(
-			CP_UTF8,
-			0,
-			text.data(),
-			static_cast<int>(text.size()),
-			output.data(),
-			requiredSize
-		);
-		if (writtenSize != requiredSize) {
-			return {};
-		}
-		return output;
-	}
-
-	/// @brief UTF-8 テキストをデバッグ出力へ送ります。
-	inline void OutputDebugStringUtf8(const std::string_view text) {
-		const std::wstring wideText = ConvertUtf8ToWide(text);
-		if (wideText.empty() && !text.empty()) {
-			const std::string fallback(text);
-			::OutputDebugStringA(fallback.c_str());
+		if (wideLength <= 0) {
 			return;
 		}
-		::OutputDebugStringW(wideText.c_str());
+
+		std::wstring wide(static_cast<size_t>(wideLength), L'\0');
+		const int convertedLength = MultiByteToWideChar(
+			CP_UTF8,
+			MB_ERR_INVALID_CHARS,
+			text.data(),
+			utf8Length,
+			wide.data(),
+			wideLength
+		);
+		if (convertedLength <= 0) {
+			return;
+		}
+		OutputDebugStringW(wide.c_str());
 	}
 
-	/// @brief ワイド文字列のパスをネイティブ `std::filesystem::path` へ変換します。
-	[[nodiscard]] inline std::filesystem::path MakeNativePath(
-		const std::wstring_view text
+	/// @brief UTF-16引数からOSネイティブのfilesystem::pathを作ります。
+	[[nodiscard]] inline Path MakeNativePath(
+		const std::wstring_view path
 	) {
-		return std::filesystem::path(std::wstring(text));
+		return Path::FromNative(std::filesystem::path(std::wstring(path)));
 	}
 
 	/// @brief 起動前ログを標準エラーとデバッガ出力へ送ります。
@@ -201,7 +192,7 @@ namespace Unnamed {
 			return !token.empty() && token[0] == L'-';
 		};
 		const auto isEmptyOrWhitespace = [](const std::wstring_view text) {
-			for (wchar_t ch : text) {
+			for (const wchar_t ch : text) {
 				if (!iswspace(static_cast<unsigned>(ch))) {
 					return false;
 				}
@@ -210,7 +201,7 @@ namespace Unnamed {
 		};
 
 		int     argc = 0;
-		LPWSTR* argv = ::CommandLineToArgvW(::GetCommandLineW(), &argc);
+		LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 		if (argv == nullptr) {
 			appendDiagnostic(
 				"コマンドライン引数の解析に失敗しました (CommandLineToArgvW が null を返しました)"
@@ -354,12 +345,12 @@ namespace Unnamed {
 
 		if (options.repoRootOverride.has_value()) {
 			std::error_code ec;
-			const std::filesystem::path& repoRoot = *options.repoRootOverride;
-			const bool exists = std::filesystem::exists(repoRoot, ec);
+			const Path& repoRoot = *options.repoRootOverride;
+			const bool exists = std::filesystem::exists(repoRoot.Native(), ec);
 			if (ec || !exists) {
 				appendDiagnostic(
 					"--repo-root パスは存在しないかアクセス不能です:" +
-					repoRoot.generic_string() +
+					repoRoot.ToGenericUtf8() +
 					"' (manifest search will continue with fallback candidates)"
 				);
 			}
@@ -367,30 +358,34 @@ namespace Unnamed {
 
 		if (options.projectManifestPath.has_value()) {
 			std::error_code ec;
-			const std::filesystem::path& manifestPath = *options.projectManifestPath;
-			const bool exists = std::filesystem::exists(manifestPath, ec);
+			const Path& manifestPath = *options.projectManifestPath;
+			const bool exists = std::filesystem::exists(
+				manifestPath.Native(), ec
+			);
 			if (ec || !exists) {
 				appendDiagnostic(
 					"--project パスは存在しないかアクセス不能です:'" +
-					manifestPath.generic_string() +
+					manifestPath.ToGenericUtf8() +
 					"' (explicit manifest load will fail if this remains unresolved)"
 				);
 			}
 		}
 		if (options.projectsRootOverride.has_value()) {
 			std::error_code ec;
-			const std::filesystem::path& projectsRoot = *options.projectsRootOverride;
-			const bool exists = std::filesystem::exists(projectsRoot, ec);
+			const Path& projectsRoot = *options.projectsRootOverride;
+			const bool exists = std::filesystem::exists(
+				projectsRoot.Native(), ec
+			);
 			if (ec || !exists) {
 				appendDiagnostic(
 					"--projects-root パスは存在しないかアクセス不能です:'" +
-					projectsRoot.generic_string() +
+					projectsRoot.ToGenericUtf8() +
 					"' (manifest search will continue with fallback candidates)"
 				);
 			}
 		}
 
-		::LocalFree(argv);
+		LocalFree(argv);
 		return options;
 	}
 }

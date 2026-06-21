@@ -6,7 +6,7 @@
 #include <unordered_set>
 
 #include <core/UnnamedMacro.h>
-#include <core/path/PathUtil.h>
+#include <core/filesystem/Path.h>
 #include <core/string/StrUtil.h>
 
 #include <engine/game/GamePathResolver.h>
@@ -31,40 +31,26 @@ namespace Unnamed {
 	constexpr std::string_view kChannel = "AstMgr";
 
 	namespace {
-		[[nodiscard]] bool IsCurrentDirectoryRelativePath(
-			const std::string_view path
-		) {
-			return path.starts_with("./") || path.starts_with("../");
+		[[nodiscard]] bool IsAbsoluteOrCurrentRelative(const Path& path) {
+			if (path.IsEmpty()) {
+				return false;
+			}
+
+			const std::string text = path.ToGenericUtf8();
+			return path.IsAbsolute() || text.starts_with("./") ||
+			       text.starts_with("../");
 		}
 
-		[[nodiscard]] bool IsEngineRootRelativePath(
-			const std::string_view path
+		[[nodiscard]] Path ResolveAssetLoadPath(
+			const Path& path
 		) {
-			return path.starts_with("content/") ||
-			       path.starts_with("projects/");
-		}
-
-		[[nodiscard]] std::string ResolveAssetLoadPath(
-			const std::string_view path
-		) {
-			const std::string normalizedInput = StrUtil::NormalizePath(
-				std::string(path)
-			);
-			if (normalizedInput.empty()) {
+			const Path normalizedInput = path.LexicallyNormal();
+			if (normalizedInput.IsEmpty()) {
 				return {};
 			}
 
-			const std::filesystem::path fsPath = Path::FromUtf8(normalizedInput);
-			if (
-				fsPath.is_absolute() ||
-				IsCurrentDirectoryRelativePath(normalizedInput)
-			) {
+			if (IsAbsoluteOrCurrentRelative(normalizedInput)) {
 				return normalizedInput;
-			}
-
-			// 既存データの "content/..." や "projects/..." はプロジェクトルート基準で扱います。
-			if (IsEngineRootRelativePath(normalizedInput)) {
-				return "./" + normalizedInput;
 			}
 
 			const GameRuntimeContext* runtimeContext =
@@ -78,7 +64,7 @@ namespace Unnamed {
 					runtimeContext->modulePaths,
 					normalizedInput
 				);
-			if (resolution.resolvedRoot.empty()) {
+			if (resolution.resolvedRoot.IsEmpty()) {
 				DevMsg(
 					kChannel,
 					"Failed to resolve asset load path: {}. Resolution details: resolvedPath='{}', resolvedLayer='{}', resolvedRoot='{}', existsOnDisk={}",
@@ -89,29 +75,31 @@ namespace Unnamed {
 					resolution.existsOnDisk
 				);
 			}
-			return resolution.resolvedPath.empty() ?
+			return resolution.resolvedPath.IsEmpty() ?
 				       normalizedInput :
 				       resolution.resolvedPath;
 		}
 
-		FileStamp ReadCurrentFileStamp(const std::string& path) {
+		FileStamp ReadCurrentFileStamp(const Path& path) {
 			FileStamp       stamp = {};
 			std::error_code ec;
-			if (!Path::ExistsUtf8(path, ec)) {
+			if (path.IsEmpty() || !std::filesystem::exists(path.Native(), ec)) {
 				return stamp;
 			}
 
-			const auto lastWrite = Path::LastWriteTimeUtf8(path, ec);
+			const auto lastWrite = std::filesystem::last_write_time(
+				path.Native(), ec
+			);
 			if (!ec) {
 				stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
 			}
 
-			stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+			stamp.sizeInBytes = std::filesystem::file_size(path.Native(), ec);
 			return stamp;
 		}
 
 		FileStamp CompleteFileStamp(
-			const std::string& path, const FileStamp& partialStamp
+			const Path& path, const FileStamp& partialStamp
 		) {
 			FileStamp completed = partialStamp;
 			if (
@@ -145,14 +133,12 @@ namespace Unnamed {
 	}
 
 	AssetID AssetManager::LoadFromFile(
-		const std::string&              path,
+		const Path&                     path,
 		const std::optional<ASSET_TYPE> typeOpt,
 		const AssetLoadPolicy           policy
 	) {
-		const std::string normalizedPath = StrUtil::NormalizePath(
-			ResolveAssetLoadPath(path)
-		);
-		if (normalizedPath.empty()) {
+		const Path normalizedPath = ResolveAssetLoadPath(path);
+		if (normalizedPath.IsEmpty()) {
 			Warning(kChannel, "Asset path is empty.");
 			return kInvalidAssetID;
 		}
@@ -161,7 +147,7 @@ namespace Unnamed {
 		std::scoped_lock lock(mMutex);
 
 		if (policy == AssetLoadPolicy::UseCachedIfLoaded) {
-			const auto cachedIt = mPathToID.find(normalizedPath);
+			const auto cachedIt = mPathToID.find(normalizedPath.ToGenericUtf8());
 			if (cachedIt != mPathToID.end()) {
 				const AssetID cachedId = cachedIt->second;
 				const Node&   cached   = mNodes[cachedId];
@@ -257,11 +243,11 @@ namespace Unnamed {
 		const std::vector<AssetID>& dependencies
 	) {
 		std::scoped_lock lock(mMutex);
-		const AssetID    id    = AllocateID();
-		Node&            n     = mNodes[id];
-		n.meta.type            = type;
-		n.meta.name            = std::move(name);
-		n.meta.sourcePath.clear();
+		const AssetID    id = AllocateID();
+		Node&            n  = mNodes[id];
+		n.meta.type         = type;
+		n.meta.name         = std::move(name);
+		n.meta.sourcePath.Clear();
 		n.meta.fileStamp       = {};
 		n.meta.runtime         = true;
 		n.meta.destroyed       = false;
@@ -279,6 +265,8 @@ namespace Unnamed {
 		std::string,
 		TextureAssetData&&,
 		const std::vector<AssetID>&
+
+	
 	);
 
 	template
@@ -287,6 +275,8 @@ namespace Unnamed {
 		std::string,
 		SequenceAssetData&&,
 		const std::vector<AssetID>&
+
+	
 	);
 
 	bool AssetManager::IsRuntimeAsset(const AssetID id) const {
@@ -309,7 +299,8 @@ namespace Unnamed {
 	bool AssetManager::DestroyRuntimeAsset(const AssetID id) {
 		std::scoped_lock lock(mMutex);
 		if (id == kInvalidAssetID || id >= mNextID) {
-			Warning(kChannel, "DestroyRuntimeAsset rejected: invalid assetId={}", id);
+			Warning(kChannel,
+			        "DestroyRuntimeAsset rejected: invalid assetId={}", id);
 			return false;
 		}
 
@@ -365,15 +356,15 @@ namespace Unnamed {
 
 		// name lookupは破棄済みruntime assetの誤用検出に使うため、
 		// active assetとしては返さずFindByName側でWarningに寄せます。
-		const auto pathIt = mPathToID.find(meta.sourcePath);
+		const auto pathIt = mPathToID.find(meta.sourcePath.ToGenericUtf8());
 		if (
-			!meta.sourcePath.empty() && pathIt != mPathToID.end() &&
+			!meta.sourcePath.IsEmpty() && pathIt != mPathToID.end() &&
 			pathIt->second == id
 		) {
 			mPathToID.erase(pathIt);
 		}
 
-		n.payload      = std::monostate{};
+		n.payload = std::monostate{};
 		n.dependents.clear();
 		meta.loaded    = false;
 		meta.destroyed = true;
@@ -397,7 +388,8 @@ namespace Unnamed {
 		}
 		const AssetMetaData& meta = mNodes[id].meta;
 		if (meta.runtime && meta.destroyed) {
-			Warning(kChannel, "AddRef ignored for destroyed runtime assetId={}", id);
+			Warning(kChannel, "AddRef ignored for destroyed runtime assetId={}",
+			        id);
 			return;
 		}
 		mNodes[id].meta.strongRefs++;
@@ -410,7 +402,8 @@ namespace Unnamed {
 		}
 		auto& n = mNodes[id].meta;
 		if (n.runtime && n.destroyed) {
-			Warning(kChannel, "Release ignored for destroyed runtime assetId={}", id);
+			Warning(kChannel,
+			        "Release ignored for destroyed runtime assetId={}", id);
 			return;
 		}
 		if (n.strongRefs > 0) {
@@ -426,7 +419,9 @@ namespace Unnamed {
 		}
 		Node& n = mNodes[id];
 		if (n.meta.runtime && n.meta.destroyed) {
-			Warning(kChannel, "SetDependencies ignored for destroyed runtime assetId={}", id);
+			Warning(kChannel,
+			        "SetDependencies ignored for destroyed runtime assetId={}",
+			        id);
 			return;
 		}
 
@@ -479,7 +474,8 @@ namespace Unnamed {
 		}
 		const AssetMetaData& meta = mNodes[id].meta;
 		if (meta.runtime && meta.destroyed) {
-			Warning(kChannel, "Get ignored for destroyed runtime assetId={}", id);
+			Warning(kChannel, "Get ignored for destroyed runtime assetId={}",
+			        id);
 			return nullptr;
 		}
 		const auto& v = mNodes[id].payload;
@@ -525,12 +521,13 @@ namespace Unnamed {
 
 		Node& n = mNodes[id];
 		if (n.meta.runtime && n.meta.destroyed) {
-			Warning(kChannel, "Reload rejected for destroyed runtime assetId={}", id);
+			Warning(kChannel,
+			        "Reload rejected for destroyed runtime assetId={}", id);
 			return false;
 		}
 
 		// ソースパスが空か?
-		if (n.meta.sourcePath.empty()) {
+		if (n.meta.sourcePath.IsEmpty()) {
 			return false;
 		}
 
@@ -620,7 +617,7 @@ namespace Unnamed {
 				const Node& node = mNodes[id];
 				if (
 					node.meta.destroyed || !node.meta.loaded ||
-					node.meta.sourcePath.empty()
+					node.meta.sourcePath.IsEmpty()
 				) {
 					continue;
 				}
@@ -699,7 +696,7 @@ namespace Unnamed {
 
 	AssetManager::DebugStats AssetManager::GetDebugStats() const {
 		std::scoped_lock lock(mMutex);
-		DebugStats       stats = {};
+		DebugStats       stats         = {};
 		stats.unloadUnusedFreedCount   = mUnloadUnusedFreedCount;
 		stats.destroyRuntimeAssetCount = mDestroyRuntimeAssetCount;
 
@@ -726,10 +723,10 @@ namespace Unnamed {
 		return stats;
 	}
 
-	AssetID AssetManager::FindByPath(const std::string_view path) const {
+	AssetID AssetManager::FindByPath(const Path& path) const {
 		std::scoped_lock  lock(mMutex);
 		const std::string normalized =
-			StrUtil::NormalizePath(std::string(path));
+			path.LexicallyNormal().ToGenericUtf8();
 		const auto it = mPathToID.find(normalized);
 		return it != mPathToID.end() ? it->second : kInvalidAssetID;
 	}
@@ -775,16 +772,17 @@ namespace Unnamed {
 	}
 
 	AssetID AssetManager::FindOrCreateSlotByPath(
-		const std::string& path, const ASSET_TYPE type
+		const Path& path, const ASSET_TYPE type
 	) {
-		const auto normalized = StrUtil::NormalizePath(path);
-		const auto it         = mPathToID.find(normalized);
+		const Path normalized = path.LexicallyNormal();
+		const auto key        = normalized.ToGenericUtf8();
+		const auto it         = mPathToID.find(key);
 		if (it != mPathToID.end()) {
 			return it->second;
 		}
 
 		const AssetID id      = AllocateID();
-		mPathToID[normalized] = id;
+		mPathToID[key]        = id;
 
 		Node& node           = mNodes[id];
 		node.meta.type       = type;
@@ -792,9 +790,7 @@ namespace Unnamed {
 		node.meta.loaded     = false;
 		node.meta.runtime    = false;
 		node.meta.destroyed  = false;
-		node.meta.name = Path::ToUtf8String(
-			Path::FromUtf8(normalized).filename()
-		);
+		node.meta.name       = Path::ToUtf8String(normalized.FileName());
 
 		mNameToID[node.meta.name] = id;
 		return id;

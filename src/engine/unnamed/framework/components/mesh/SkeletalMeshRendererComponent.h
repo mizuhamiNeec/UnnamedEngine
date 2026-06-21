@@ -5,6 +5,7 @@
 #include "../base/BaseComponent.h"
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/Path.h"
 
 namespace Unnamed {
 	class AssetManager;
@@ -17,11 +18,11 @@ namespace Unnamed {
 		// ---- SkeletalMeshRendererComponent ---------------------------------
 		/// @brief メッシュのファイルパスを設定します。
 		/// @param path メッシュのファイルパス。
-		void SetMeshPath(const std::string& path);
+		void SetMeshPath(Path path);
 
 		/// @brief マテリアルインスタンスのファイルパスを設定します。
 		/// @param path マテリアルインスタンスのファイルパス。
-		void SetMaterialInstancePath(const std::string& path);
+		void SetMaterialInstancePath(Path path);
 
 		/// @brief マテリアルスロットを設定します。
 		/// @param slots マテリアルスロットのベクタ。
@@ -30,16 +31,16 @@ namespace Unnamed {
 		/// @brief 指定されたスロットのマテリアルインスタンスのファイルパスを設定します。
 		/// @param slotIndex スロットインデックス。
 		/// @param path マテリアルインスタンスのファイルパス。
-		void SetMaterialInstancePathForSlot(uint32_t slotIndex, const std::string& path);
+		void SetMaterialInstancePathForSlot(uint32_t slotIndex, Path path);
 
 		/// @brief メッシュのファイルパスを取得します。
 		/// @return メッシュのファイルパス。
-		[[nodiscard]] const std::string& GetMeshPath() const noexcept;
+		[[nodiscard]] const Path& GetMeshPath() const noexcept;
 
 		/// @brief マテリアルインスタンスのファイルパスを取得します。
 		/// @return マテリアルインスタンスのファイルパス。
 		[[nodiscard]]
-		const std::string& GetMaterialInstancePath() const noexcept;
+		const Path& GetMaterialInstancePath() const noexcept;
 
 		/// @brief マテリアルスロット一覧を取得します。
 		/// @return マテリアルスロットのベクタ。
@@ -101,8 +102,8 @@ namespace Unnamed {
 		[[nodiscard]] uint32_t GetIcon() const noexcept override;
 
 	private:
-		std::string mMeshPath;
-		std::string mMaterialInstancePath;
+		Path mMeshPath;
+		Path mMaterialInstancePath;
 		std::vector<MaterialSlot> mMaterialSlots;
 
 		AssetID mMeshAssetId             = kInvalidAssetID;

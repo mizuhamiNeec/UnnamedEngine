@@ -5,6 +5,7 @@
 #include <string_view>
 
 namespace Unnamed {
+	class Path;
 	class Entity;
 	struct DemoTickCommand;
 
@@ -15,9 +16,9 @@ namespace Unnamed {
 		virtual ~IDemoService() = default;
 
 		/// @brief デモ録画を開始します。
-		virtual bool StartRecording(std::string path) = 0;
+		virtual bool StartRecording(Path path) = 0;
 		/// @brief デモ再生を開始します。
-		virtual bool StartPlayback(std::string path) = 0;
+		virtual bool StartPlayback(Path path) = 0;
 		/// @brief 録画または再生を停止します。
 		virtual bool Stop() = 0;
 
@@ -30,7 +31,7 @@ namespace Unnamed {
 		/// @brief 再生開始ティックを返します。
 		[[nodiscard]] virtual uint64_t GetPlaybackStartTick() const = 0;
 		/// @brief 現在扱っているデモパスを返します。
-		[[nodiscard]] virtual std::string_view GetCurrentPath() const = 0;
+		[[nodiscard]] virtual Path GetCurrentPath() const = 0;
 		/// @brief 再生セッション番号を返します。
 		[[nodiscard]] virtual uint64_t GetPlaybackSessionSerial() const = 0;
 		/// @brief 録画セッション番号を返します。

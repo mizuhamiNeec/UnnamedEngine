@@ -6,12 +6,14 @@
 #include <string>
 #include <vector>
 
+#include "core/filesystem/Path.h"
+
 namespace Unnamed {
 	class BinaryReader {
 	public:
 		/// @brief 指定したパスのファイルをバイナリモードで開く。
 		/// @param path ファイルパス
-		explicit BinaryReader(const std::string& path);
+		explicit BinaryReader(const Path& path);
 
 		/// @brief ファイルが正常に開けているか
 		/// @return ファイルが開けているか

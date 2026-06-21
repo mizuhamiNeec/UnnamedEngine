@@ -1,7 +1,7 @@
 #include "DemoManager.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
-#include <cmath>
 #include <filesystem>
 #include <limits>
 #include <sstream>
@@ -9,7 +9,6 @@
 #include "DemoBinaryReader.h"
 #include "DemoBinaryWriter.h"
 
-#include "core/path/PathUtil.h"
 #include "engine/game/GamePathResolver.h"
 #include "engine/game/IGameModule.h"
 #include "engine/scene/Scene.h"
@@ -25,7 +24,7 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "Demo";
 
-		std::string ToLowerAscii(std::string_view text) {
+		std::string ToLowerAscii(const std::string_view text) {
 			std::string lowered(text);
 			std::ranges::transform(
 				lowered,
@@ -38,38 +37,39 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] std::string NormalizePathForCompare(
-			const std::string_view pathText
+			const Path& pathText
 		) {
-			if (pathText.empty()) {
+			if (pathText.IsEmpty()) {
 				return {};
 			}
-			std::string normalized = Path::ToGenericUtf8(
-				Path::FromUtf8(pathText).lexically_normal()
-			);
+			auto normalized = pathText.LexicallyNormal().ToGenericUtf8();
 			if (normalized.rfind("./", 0) == 0) {
 				normalized.erase(0, 2);
 			}
 			return normalized;
 		}
 
-		[[nodiscard]] std::string ResolveDefaultRecordingPath() {
+		[[nodiscard]] Path ResolveDefaultRecordingPath() {
 			constexpr std::string_view kDefaultRelativePath =
 				"replay/demo_recorded_v2.udemo";
-			if (const IGameModule* gameModule = ServiceLocator::Get<IGameModule>()) {
+			if (const IGameModule* gameModule = ServiceLocator::Get<
+				IGameModule>()) {
 				return ResolveGameContentPath(
 					gameModule->GetGameModulePaths(),
-					kDefaultRelativePath
+					Path(kDefaultRelativePath)
 				);
 			}
-			return std::string(kDefaultRelativePath);
+			return Path(kDefaultRelativePath);
 		}
 	}
 
-	bool DemoManager::StartRecording(std::string path) {
-		if (path.empty()) {
+	bool DemoManager::StartRecording(Path path) {
+		if (path.IsEmpty()) {
 			path = ResolveDefaultRecordingPath();
 		}
-		if (Path::FromUtf8(ToLowerAscii(path)).extension() == ".json") {
+
+		// 拡張子が.jsonの場合はエラーを出す（誤ってJSON形式で保存しないように）
+		if (path.Extension() == Path(".json")) {
 			Error(
 				kChannel,
 				"JSON demo recording is unsupported in DemoFileV2. Please use .udemo."
@@ -83,8 +83,8 @@ namespace Unnamed {
 			Reset();
 		}
 
-		mMode                = MODE::RECORDING;
-		mCurrentPath         = std::move(path);
+		mMode        = MODE::RECORDING;
+		mCurrentPath = std::move(path);
 		++mRecordingSessionSerial;
 		mFile                = {};
 		mFile.version        = kDemoFileVersion;
@@ -97,8 +97,8 @@ namespace Unnamed {
 		return true;
 	}
 
-	bool DemoManager::StartPlayback(std::string path) {
-		if (path.empty()) {
+	bool DemoManager::StartPlayback(Path path) {
+		if (path.IsEmpty()) {
 			Error(kChannel, "demo_play requires a path.");
 			return false;
 		}
@@ -166,7 +166,7 @@ namespace Unnamed {
 		return mMode == MODE::PLAYBACK ? mFile.startTick : 0ull;
 	}
 
-	std::string_view DemoManager::GetCurrentPath() const {
+	Path DemoManager::GetCurrentPath() const {
 		return mCurrentPath;
 	}
 
@@ -250,9 +250,9 @@ namespace Unnamed {
 			return;
 		}
 
-		if (mFile.mapPath.empty()) {
+		if (mFile.mapPath.IsEmpty()) {
 			if (const World* world = subjectEntity.GetWorld()) {
-				mFile.mapPath = std::string(world->GetLoadedScenePath());
+				mFile.mapPath = world->GetLoadedScenePath();
 			}
 		}
 
@@ -264,7 +264,7 @@ namespace Unnamed {
 			return true;
 		}
 
-		if (!mFile.mapPath.empty()) {
+		if (!mFile.mapPath.IsEmpty()) {
 			const World* world = subjectEntity.GetWorld();
 			if (world) {
 				const std::string expectedMap = NormalizePathForCompare(
@@ -298,8 +298,8 @@ namespace Unnamed {
 			}
 		}
 
-		const uint64_t entityGuid = subjectEntity.GetGuid();
-		const auto& initialEntities =
+		const uint64_t entityGuid      = subjectEntity.GetGuid();
+		const auto&    initialEntities =
 			ResolvePlaybackInitialSnapshotSet(subjectEntity);
 		if (!mPlaybackInitialSetApplied && !initialEntities.empty()) {
 			Scene* scene = nullptr;
@@ -381,9 +381,9 @@ namespace Unnamed {
 		snapshot.entities.emplace_back(std::move(currentSnapshotRecord));
 
 		if (mMode == MODE::RECORDING) {
-			if (mFile.mapPath.empty()) {
+			if (mFile.mapPath.IsEmpty()) {
 				if (const World* world = subjectEntity.GetWorld()) {
-					mFile.mapPath = std::string(world->GetLoadedScenePath());
+					mFile.mapPath = world->GetLoadedScenePath();
 				}
 			}
 			mFile.snapshots.emplace_back(std::move(snapshot));
@@ -413,9 +413,9 @@ namespace Unnamed {
 		if (expected.entities.empty() || snapshot.entities.empty()) {
 			return;
 		}
-		const EntitySnapshotRecord& currentRecord  = snapshot.entities.front();
+		const EntitySnapshotRecord& currentRecord = snapshot.entities.front();
 		const EntitySnapshotRecord* expectedRecord = nullptr;
-		const uint64_t recordedEntityGuid =
+		const uint64_t              recordedEntityGuid =
 			ResolvePlaybackRecordedEntityGuid(currentRecord.entityGuid);
 		for (const EntitySnapshotRecord& expectedEntityRecord : expected.
 		     entities) {
@@ -467,173 +467,9 @@ namespace Unnamed {
 		}
 	}
 
-	void DemoManager::CaptureInitialSnapshotSet(
-		const Entity& subjectEntity,
-		std::vector<EntitySnapshotRecord>& outRecords
-	) const {
-		const auto captureEntity = [this, &outRecords](const Entity& entity) {
-			if (!entity.IsActive()) {
-				return;
-			}
-			const uint64_t entityGuid = entity.GetGuid();
-			for (const EntitySnapshotRecord& initial : outRecords) {
-				if (initial.entityGuid == entityGuid) {
-					return;
-				}
-			}
-
-			nlohmann::json state = nlohmann::json::object();
-			uint64_t       hash  = 0;
-			if (!mSerializerRegistry.SerializeEntity(entity, state, hash)) {
-				return;
-			}
-
-			EntitySnapshotRecord initialRecord = {};
-			initialRecord.entityGuid           = entityGuid;
-			initialRecord.entityType           = "entity.generic.v1";
-			initialRecord.entityTypeId         = 0;
-			initialRecord.state                = std::move(state);
-			initialRecord.hash                 = hash;
-			outRecords.emplace_back(std::move(initialRecord));
-		};
-
-		const World* world = subjectEntity.GetWorld();
-		const Scene* scene = world ? world->GetScenePtr() : nullptr;
-		if (!scene) {
-			captureEntity(subjectEntity);
-			return;
-		}
-
-		std::vector<const Entity*> orderedEntities = {};
-		orderedEntities.reserve(scene->GetEntities().size());
-		for (const auto& entityPtr : scene->GetEntities()) {
-			if (!entityPtr) {
-				continue;
-			}
-			orderedEntities.emplace_back(entityPtr.get());
-		}
-		std::ranges::sort(
-			orderedEntities,
-			[](const Entity* lhs, const Entity* rhs) {
-				return lhs->GetGuid() < rhs->GetGuid();
-			}
-		);
-		for (const Entity* entity : orderedEntities) {
-			if (!entity) {
-				continue;
-			}
-			captureEntity(*entity);
-		}
-	}
-
-	const std::vector<EntitySnapshotRecord>&
-	DemoManager::ResolvePlaybackInitialSnapshotSet(
-		const Entity& subjectEntity
-	) {
-		if (!mFile.initialEntities.empty()) {
-			return mFile.initialEntities;
-		}
-
-		std::vector<EntitySnapshotRecord>& syntheticInitial =
-			mPlaybackSyntheticInitialEntities[mCurrentPath];
-		if (syntheticInitial.empty()) {
-			CaptureInitialSnapshotSet(subjectEntity, syntheticInitial);
-			Warning(
-				kChannel,
-				"Demo initial snapshot set is empty. Captured runtime state as a synthetic loop start. path='{}'",
-				mCurrentPath
-			);
-		}
-		return syntheticInitial;
-	}
-
-	uint64_t DemoManager::ResolvePlaybackRecordedEntityGuid(
-		const uint64_t runtimeEntityGuid
-	) const {
-		if (runtimeEntityGuid == 0) {
-			return 0;
-		}
-
-		const auto it = mPlaybackEntityGuidRemap.find(runtimeEntityGuid);
-		return it != mPlaybackEntityGuidRemap.end() ?
-			       it->second :
-			       runtimeEntityGuid;
-	}
-
-	const EntitySnapshotRecord* DemoManager::FindInitialSnapshotByGuid(
-		const std::vector<EntitySnapshotRecord>& records,
-		const uint64_t entityGuid
-	) const {
-		if (entityGuid == 0) {
-			return nullptr;
-		}
-
-		for (const EntitySnapshotRecord& initial : records) {
-			if (initial.entityGuid == entityGuid) {
-				return &initial;
-			}
-		}
-		return nullptr;
-	}
-
-	const EntitySnapshotRecord*
-	DemoManager::FindInitialSnapshotForRuntimeEntity(
-		const std::vector<EntitySnapshotRecord>& records,
-		const Entity& subjectEntity
-	) const {
-		const uint64_t runtimeEntityGuid = subjectEntity.GetGuid();
-
-		// まずGUID一致を優先し、同じシーンをそのまま再生する場合の挙動を維持します。
-		if (const EntitySnapshotRecord* exact =
-			    FindInitialSnapshotByGuid(records, runtimeEntityGuid)) {
-			return exact;
-		}
-
-		const uint64_t remappedEntityGuid =
-			ResolvePlaybackRecordedEntityGuid(runtimeEntityGuid);
-		if (remappedEntityGuid != runtimeEntityGuid) {
-			if (const EntitySnapshotRecord* remapped =
-				    FindInitialSnapshotByGuid(records, remappedEntityGuid)) {
-				return remapped;
-			}
-		}
-
-		// コマンド/検証スナップショットに残っている主体GUIDを現在のプレイヤーへ対応付けます。
-		if (const uint64_t recordedSubjectEntityGuid =
-			    ResolveRecordedSubjectEntityGuid();
-			recordedSubjectEntityGuid != 0) {
-			if (const EntitySnapshotRecord* recordedSubject =
-				    FindInitialSnapshotByGuid(records, recordedSubjectEntityGuid)) {
-				return recordedSubject;
-			}
-		}
-
-		if (records.size() == 1) {
-			return &records.front();
-		}
-		return nullptr;
-	}
-
-	uint64_t DemoManager::ResolveRecordedSubjectEntityGuid() const {
-		for (const DemoTickCommand& command : mFile.commands) {
-			if (command.subjectEntityGuid != 0) {
-				return command.subjectEntityGuid;
-			}
-		}
-
-		for (const FrameSnapshot& snapshot : mFile.snapshots) {
-			for (const EntitySnapshotRecord& record : snapshot.entities) {
-				if (record.entityGuid != 0) {
-					return record.entityGuid;
-				}
-			}
-		}
-		return 0;
-	}
-
 	void DemoManager::Reset() {
-		mMode = MODE::IDLE;
-		mCurrentPath.clear();
+		mMode                   = MODE::IDLE;
+		mCurrentPath            = {};
 		mFile                   = {};
 		mPlaybackCommandCursor  = 0;
 		mPlaybackSnapshotCursor = 0;
@@ -655,7 +491,7 @@ namespace Unnamed {
 		std::ostringstream stream;
 		stream
 			<< "mode=" << modeText
-			<< ", path='" << mCurrentPath << "'"
+			<< ", path='" << mCurrentPath.ToUtf8() << "'"
 			<< ", commands=" << mFile.commands.size()
 			<< ", snapshots=" << mFile.snapshots.size()
 			<< ", playbackCommandCursor=" << mPlaybackCommandCursor
@@ -736,12 +572,12 @@ namespace Unnamed {
 	}
 
 	bool DemoManager::SaveRecordingToFile() const {
-		if (mCurrentPath.empty()) {
+		if (mCurrentPath.IsEmpty()) {
 			Error(kChannel, "Cannot save recording: path is empty.");
 			return false;
 		}
 
-		const std::filesystem::path outPath(mCurrentPath);
+		const std::filesystem::path outPath = mCurrentPath.Native();
 		if (outPath.has_parent_path()) {
 			std::filesystem::create_directories(outPath.parent_path());
 		}
@@ -760,9 +596,11 @@ namespace Unnamed {
 		return true;
 	}
 
-	bool DemoManager::LoadPlaybackFile(const std::string& path) {
-		const std::string loweredPath = ToLowerAscii(path);
-		if (Path::FromUtf8(loweredPath).extension() == ".json") {
+	bool DemoManager::LoadPlaybackFile(const Path& path) {
+		const std::string pathText    = path.ToUtf8();
+		const std::string loweredPath = ToLowerAscii(pathText);
+		if (Path(loweredPath).Extension() ==
+		    Path(".json")) {
 			Error(
 				kChannel,
 				"JSON demo playback is unsupported in DemoFileV2. Please record or convert to .udemo."
@@ -805,5 +643,169 @@ namespace Unnamed {
 		mFirstMismatchTick      = std::numeric_limits<uint64_t>::max();
 		mActiveTickRate         = mFile.tickRate;
 		return true;
+	}
+
+	void DemoManager::CaptureInitialSnapshotSet(
+		const Entity&                      subjectEntity,
+		std::vector<EntitySnapshotRecord>& outRecords
+	) const {
+		const auto captureEntity = [this, &outRecords](const Entity& entity) {
+			if (!entity.IsActive()) {
+				return;
+			}
+			const uint64_t entityGuid = entity.GetGuid();
+			for (const EntitySnapshotRecord& initial : outRecords) {
+				if (initial.entityGuid == entityGuid) {
+					return;
+				}
+			}
+
+			nlohmann::json state = nlohmann::json::object();
+			uint64_t       hash  = 0;
+			if (!mSerializerRegistry.SerializeEntity(entity, state, hash)) {
+				return;
+			}
+
+			EntitySnapshotRecord initialRecord = {};
+			initialRecord.entityGuid           = entityGuid;
+			initialRecord.entityType           = "entity.generic.v1";
+			initialRecord.entityTypeId         = 0;
+			initialRecord.state                = std::move(state);
+			initialRecord.hash                 = hash;
+			outRecords.emplace_back(std::move(initialRecord));
+		};
+
+		const World* world = subjectEntity.GetWorld();
+		const Scene* scene = world ? world->GetScenePtr() : nullptr;
+		if (!scene) {
+			captureEntity(subjectEntity);
+			return;
+		}
+
+		std::vector<const Entity*> orderedEntities = {};
+		orderedEntities.reserve(scene->GetEntities().size());
+		for (const auto& entityPtr : scene->GetEntities()) {
+			if (!entityPtr) {
+				continue;
+			}
+			orderedEntities.emplace_back(entityPtr.get());
+		}
+		std::ranges::sort(
+			orderedEntities,
+			[](const Entity* lhs, const Entity* rhs) {
+				return lhs->GetGuid() < rhs->GetGuid();
+			}
+		);
+		for (const Entity* entity : orderedEntities) {
+			if (!entity) {
+				continue;
+			}
+			captureEntity(*entity);
+		}
+	}
+
+	const std::vector<EntitySnapshotRecord>&
+	DemoManager::ResolvePlaybackInitialSnapshotSet(
+		const Entity& subjectEntity
+	) {
+		if (!mFile.initialEntities.empty()) {
+			return mFile.initialEntities;
+		}
+
+		std::vector<EntitySnapshotRecord>& syntheticInitial =
+			mPlaybackSyntheticInitialEntities[mCurrentPath.ToUtf8()];
+		if (syntheticInitial.empty()) {
+			CaptureInitialSnapshotSet(subjectEntity, syntheticInitial);
+			Warning(
+				kChannel,
+				"Demo initial snapshot set is empty. Captured runtime state as a synthetic loop start. path='{}'",
+				mCurrentPath.ToUtf8()
+			);
+		}
+		return syntheticInitial;
+	}
+
+	uint64_t DemoManager::ResolvePlaybackRecordedEntityGuid(
+		const uint64_t runtimeEntityGuid
+	) const {
+		if (runtimeEntityGuid == 0) {
+			return 0;
+		}
+
+		const auto it = mPlaybackEntityGuidRemap.find(runtimeEntityGuid);
+		return it != mPlaybackEntityGuidRemap.end() ?
+			       it->second :
+			       runtimeEntityGuid;
+	}
+
+	const EntitySnapshotRecord* DemoManager::FindInitialSnapshotByGuid(
+		const std::vector<EntitySnapshotRecord>& records,
+		const uint64_t                           entityGuid
+	) const {
+		if (entityGuid == 0) {
+			return nullptr;
+		}
+
+		for (const EntitySnapshotRecord& initial : records) {
+			if (initial.entityGuid == entityGuid) {
+				return &initial;
+			}
+		}
+		return nullptr;
+	}
+
+	const EntitySnapshotRecord*
+	DemoManager::FindInitialSnapshotForRuntimeEntity(
+		const std::vector<EntitySnapshotRecord>& records,
+		const Entity&                            subjectEntity
+	) const {
+		const uint64_t runtimeEntityGuid = subjectEntity.GetGuid();
+
+		// まずGUID一致を優先し、同じシーンをそのまま再生する場合の挙動を維持します。
+		if (const EntitySnapshotRecord* exact =
+			FindInitialSnapshotByGuid(records, runtimeEntityGuid)) {
+			return exact;
+		}
+
+		const uint64_t remappedEntityGuid =
+			ResolvePlaybackRecordedEntityGuid(runtimeEntityGuid);
+		if (remappedEntityGuid != runtimeEntityGuid) {
+			if (const EntitySnapshotRecord* remapped =
+				FindInitialSnapshotByGuid(records, remappedEntityGuid)) {
+				return remapped;
+			}
+		}
+
+		// コマンド/検証スナップショットに残っている主体GUIDを現在のプレイヤーへ対応付けます。
+		if (const uint64_t recordedSubjectEntityGuid =
+				ResolveRecordedSubjectEntityGuid();
+			recordedSubjectEntityGuid != 0) {
+			if (const EntitySnapshotRecord* recordedSubject =
+				FindInitialSnapshotByGuid(records, recordedSubjectEntityGuid)) {
+				return recordedSubject;
+			}
+		}
+
+		if (records.size() == 1) {
+			return &records.front();
+		}
+		return nullptr;
+	}
+
+	uint64_t DemoManager::ResolveRecordedSubjectEntityGuid() const {
+		for (const DemoTickCommand& command : mFile.commands) {
+			if (command.subjectEntityGuid != 0) {
+				return command.subjectEntityGuid;
+			}
+		}
+
+		for (const FrameSnapshot& snapshot : mFile.snapshots) {
+			for (const EntitySnapshotRecord& record : snapshot.entities) {
+				if (record.entityGuid != 0) {
+					return record.entityGuid;
+				}
+			}
+		}
+		return 0;
 	}
 }

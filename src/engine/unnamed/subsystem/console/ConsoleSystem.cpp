@@ -4,7 +4,7 @@
 #include <iostream>
 #include <ranges>
 
-#include <core/path/PathUtil.h>
+#include <core/filesystem/Path.h>
 #include <engine/unnamed/subsystem/console/ConsoleSystem.h>
 #include <engine/unnamed/subsystem/console/ConsoleUI.h>
 #include <engine/unnamed/subsystem/console/ConVarWriter.h>
@@ -28,22 +28,22 @@ namespace Unnamed {
 	static constexpr std::string_view kLegacyUserCfgPath =
 		"./content/core/cfg/user.cfg";
 
-	[[nodiscard]] std::string ResolvePersistUserCfgPath() {
+	[[nodiscard]] Path ResolvePersistUserCfgPath() {
 		const GameRuntimeContext* runtimeContext =
 			ServiceLocator::Get<GameRuntimeContext>();
 		if (!runtimeContext) {
-			return std::string(kLegacyUserCfgPath);
+			return Path(kLegacyUserCfgPath);
 		}
 
-		const std::string resolvedPath = ResolveGameConfigPath(
+		const Path resolvedPath = ResolveGameConfigPath(
 			runtimeContext->modulePaths,
-			"user.cfg"
+			Path("user.cfg")
 		);
-		if (resolvedPath.empty()) {
-			return std::string(kLegacyUserCfgPath);
+		if (resolvedPath.IsEmpty()) {
+			return Path(kLegacyUserCfgPath);
 		}
 
-		const std::filesystem::path configPath = Path::FromUtf8(resolvedPath);
+		const std::filesystem::path configPath = resolvedPath.Native();
 		const std::filesystem::path configDir = configPath.parent_path();
 		if (!configDir.empty()) {
 			std::error_code ec;
@@ -54,13 +54,13 @@ namespace Unnamed {
 					"Failed to create config directory '{}': {}. Falling back to '{}'.",
 					Path::ToGenericUtf8(configDir),
 					ec.message(),
-					std::string(kLegacyUserCfgPath)
+					Path(kLegacyUserCfgPath)
 				);
-				return std::string(kLegacyUserCfgPath);
+				return Path(kLegacyUserCfgPath);
 			}
 		}
 
-		return Path::ToGenericUtf8(configPath);
+		return Path::FromNative(configPath).LexicallyNormal();
 	}
 
 	EXEC_FLAG operator|=(EXEC_FLAG& lhs, const EXEC_FLAG& rhs) {
@@ -87,7 +87,7 @@ namespace Unnamed {
 		// ファイルログの開始
 		if (mEnableFileLog) {
 			ConsoleFileLogSink::Config cfg;
-			cfg.path = std::string(kConsoleLogPath);
+			cfg.path = Path(kConsoleLogPath);
 			if (!mFileLogSink.Start(cfg)) {
 				Error(
 					kChannelConsole,
@@ -128,7 +128,7 @@ namespace Unnamed {
 
 		// ユーザー設定ファイルに変数を書き込む
 		try {
-			const std::string userCfgPath = ResolvePersistUserCfgPath();
+			const Path userCfgPath = ResolvePersistUserCfgPath();
 			DevMsg(
 				kChannelConsole,
 				"Persisting archived convars to '{}'.",

@@ -7,7 +7,6 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/guidgenerator/GuidGenerator.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/sequence/SequencePlayer.h"
 #include "engine/sequence/SequenceRuntime.h"
@@ -122,28 +121,28 @@ namespace Unnamed {
 		}
 	}
 
-	bool SequenceEditorController::OpenDocument(const std::string& path) {
-		const std::string normalizedPath = StrUtil::NormalizePath(path);
-		if (normalizedPath.empty()) {
+	bool SequenceEditorController::OpenDocument(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (path.IsEmpty()) {
 			return false;
 		}
 
 		for (size_t i = 0; i < mDocuments.size(); ++i) {
-			if (mDocuments[i] && mDocuments[i]->GetPath() == normalizedPath) {
+			if (mDocuments[i] && mDocuments[i]->GetPath() == path) {
 				SetActiveDocumentIndex(static_cast<int32_t>(i));
 				return true;
 			}
 		}
 
-		auto document = std::make_shared<SequenceEditorDocument>(normalizedPath);
+		auto document = std::make_shared<SequenceEditorDocument>(path);
 		if (!document->ReloadFromDisk()) {
-			Warning("SequenceEditor", "Failed to load sequence document: {}", normalizedPath);
+			Warning("SequenceEditor", "Failed to load sequence document: {}", path);
 			return false;
 		}
 
 		if (mAssetManager) {
 			const AssetID sourceAssetId = mAssetManager->LoadFromFile(
-				normalizedPath,
+				path,
 				ASSET_TYPE::SEQUENCE
 			);
 			document->SetSourceAssetId(sourceAssetId);

@@ -8,9 +8,9 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/SoundAssetData.h"
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
@@ -65,7 +65,7 @@ namespace Unnamed {
 
 	void AudioSourceComponent::Deserialize(const JsonReader& reader) {
 		if (reader.Has("soundPath")) {
-			SetSoundPath(reader["soundPath"].GetString());
+			SetSoundPath(Path(reader["soundPath"].GetString()));
 		}
 		if (reader.Has("playOnStart")) {
 			SetPlayOnStart(reader["playOnStart"].GetBool());
@@ -83,7 +83,7 @@ namespace Unnamed {
 
 	void AudioSourceComponent::Serialize(JsonWriter& writer) const {
 		writer.Key("soundPath");
-		writer.Write(mSoundPath);
+		writer.Write(mSoundPath.ToGenericUtf8());
 		writer.Key("playOnStart");
 		writer.Write(mPlayOnStart);
 		writer.Key("loop");
@@ -96,7 +96,7 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void AudioSourceComponent::DrawInspectorImGui() {
-		std::string soundPath = mSoundPath;
+		std::string soundPath = mSoundPath.ToGenericUtf8();
 		if (
 			ImGuiWidgets::AssetPathPicker(
 				"Sound Path",
@@ -104,7 +104,7 @@ namespace Unnamed {
 				ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::SOUND)
 			)
 		) {
-			SetSoundPath(soundPath);
+			SetSoundPath(Path(soundPath));
 		}
 
 		ImGui::Checkbox("Play On Start", &mPlayOnStart);
@@ -142,20 +142,18 @@ namespace Unnamed {
 		return kIconSpeaker;
 	}
 
-	void AudioSourceComponent::SetSoundPath(const std::string& path) {
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mSoundPath == normalized) {
+	void AudioSourceComponent::SetSoundPath(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (mSoundPath == path) {
 			return;
 		}
-		mSoundPath        = normalized;
+		mSoundPath        = std::move(path);
 		mAutoPlayConsumed = false;
 		mLoggedError      = false;
 		InvalidateVoice();
 	}
 
-	const std::string& AudioSourceComponent::GetSoundPath() const noexcept {
+	const Path& AudioSourceComponent::GetSoundPath() const noexcept {
 		return mSoundPath;
 	}
 
@@ -225,7 +223,7 @@ namespace Unnamed {
 	}
 
 	bool AudioSourceComponent::EnsureVoiceReady(const bool preservePlayback) {
-		if (mSoundPath.empty()) {
+		if (mSoundPath.IsEmpty()) {
 			return false;
 		}
 

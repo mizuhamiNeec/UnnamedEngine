@@ -22,5 +22,5 @@ namespace Unnamed {
 	};
 
 	std::string ToString(ASSET_TYPE e);
-	ASSET_TYPE  GuessAssetTypeFromPath(std::string_view path);
+	ASSET_TYPE  GuessAssetTypeFromPath(const Path& path);
 }

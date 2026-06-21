@@ -16,7 +16,7 @@ namespace Unnamed {
 	static constexpr std::string_view kChannel = "SceneSerializer";
 
 	bool SceneSerializer::LoadFromFile(
-		Scene& scene, const std::string& path, GuidGenerator& guidGen
+		Scene& scene, Path path, GuidGenerator& guidGen
 	) {
 		const JsonReader root(path);
 		if (!root.Valid()) {
@@ -27,7 +27,7 @@ namespace Unnamed {
 	}
 
 	bool SceneSerializer::SaveToFile(
-		const Scene& scene, const std::string& path
+		const Scene& scene, const Path& path
 	) {
 		JsonWriter writer(path);
 		Serialize(scene, writer);

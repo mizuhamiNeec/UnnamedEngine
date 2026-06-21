@@ -1,10 +1,9 @@
 #include <pch.h>
 
-#include <filesystem>
 #include <fstream>
 #include <sstream>
 
-#include "core/path/PathUtil.h"
+#include "core/filesystem/Path.h"
 
 namespace Unnamed::StrUtil {
 	std::string ToString(const std::wstring& string) {
@@ -50,7 +49,6 @@ namespace Unnamed::StrUtil {
 		}
 		return ret;
 	}
-
 
 	std::wstring ToWString(const std::string& string) {
 		if (string.empty()) {
@@ -137,7 +135,8 @@ namespace Unnamed::StrUtil {
 			utf8String += static_cast<char>(0x80 | codePoint >> 12 & 0x3F);
 			utf8String += static_cast<char>(0x80 | codePoint >> 6 & 0x3F);
 			utf8String += static_cast<char>(0x80 | codePoint & 0x3F);
-		} else {}
+		} else {
+		}
 
 		return utf8String;
 	}
@@ -152,25 +151,6 @@ namespace Unnamed::StrUtil {
 		}
 
 		return result;
-	}
-
-	bool HasExtension(std::string_view path, std::string_view ext) {
-		if (path.size() < ext.size()) {
-			return false;
-		}
-		const auto tail = path.substr(path.size() - ext.size(), ext.size());
-		const auto lowerTail = ToLowerCase(std::string(tail));
-		return lowerTail == ext;
-	}
-
-	std::string ToLowerExt(const std::string_view& str) {
-		std::string e = Path::ToUtf8String(
-			Path::FromUtf8(str).extension()
-		);
-		for (auto& c : e) {
-			c = static_cast<std::string::value_type>(std::tolower(c));
-		}
-		return e;
 	}
 
 	std::string RemoveDoubleQuotes(const std::string_view& str) {
@@ -237,8 +217,8 @@ namespace Unnamed::StrUtil {
 		return string.substr(start, end - start + 1);
 	}
 
-	bool ReadFileToString(const std::string& path, std::string& outString) {
-		const std::ifstream ifs(Path::FromUtf8(path), std::ios::binary);
+	bool ReadFileToString(const Path& path, std::string& outString) {
+		const std::ifstream ifs(path.Native(), std::ios::binary);
 		if (!ifs) {
 			return false;
 		}
@@ -246,15 +226,6 @@ namespace Unnamed::StrUtil {
 		ss << ifs.rdbuf();
 		outString = ss.str();
 		return true;
-	}
-
-	std::string NormalizePath(std::string path) {
-		for (auto& c : path) {
-			if (c == '\\') {
-				c = '/';
-			}
-		}
-		return path;
 	}
 
 	bool CheckBoolString(std::string str) {

@@ -15,12 +15,12 @@ namespace Unnamed {
 		/// @param path 読み込むファイルのパス
 		/// @param outType ロード可能な場合、対応するASSET_TYPEを出力するポインタ
 		/// @return 読み込める場合はtrue、そうでない場合はfalse
-		bool CanLoad(std::string_view path, ASSET_TYPE* outType) const override;
+		bool CanLoad(const Path& path, ASSET_TYPE* outType) const override;
 
 		/// @brief ファイルを読み込む
 		/// @param path 読み込むファイルのパス
 		/// @return ロード結果
-		LoadResult Load(const std::string& path) override;
+		LoadResult Load(const Path& path) override;
 
 	private:
 		/// @brief シェーダーソースのテキストを解析して、インクルードされているファイルのパスを抽出します。

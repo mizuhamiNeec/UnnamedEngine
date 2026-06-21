@@ -1,19 +1,20 @@
 #include "ShaderProgramLoader.h"
+#include "core/filesystem/Path.h"
 
 #include <filesystem>
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/ShaderProgramAssetData.h"
 #include "core/io/json/JsonReader.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
 	class JsonReader;
 
 	namespace {
-		bool IsShaderProgramPath(const std::string_view path) {
-			return StrUtil::ToLowerCase(std::string(path)).ends_with(
+		bool IsShaderProgramPath(const Path& path) {
+			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
 				".shader.json"
 			);
 		}
@@ -62,7 +63,7 @@ namespace Unnamed {
 		}
 
 		std::optional<ShaderProgramStage> ParseStage(
-			const JsonReader& j, const std::filesystem::path& baseDir
+			const JsonReader& j, const Path& baseDir
 		) {
 			if (!j.Valid() || !j.IsObject()) {
 				return std::nullopt;
@@ -75,7 +76,8 @@ namespace Unnamed {
 
 			ShaderProgramStage stage = {};
 			stage.sourcePath         = Path::ResolveRelativePath(
-				baseDir, *sourcePath
+				baseDir.Native(),
+				*sourcePath
 			);
 			stage.entry   = j.Read<std::string>("entry").value_or("Main");
 			stage.profile = j.Read<std::string>("profile").value_or(
@@ -92,7 +94,7 @@ namespace Unnamed {
 		mAssetManager(assetManager) {}
 
 	bool ShaderProgramLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		const bool ok = IsShaderProgramPath(path);
 		if (outType) {
@@ -101,19 +103,19 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult ShaderProgramLoader::Load(const std::string& path) {
+	LoadResult ShaderProgramLoader::Load(const Path& path) {
 		LoadResult       result = {};
 		const JsonReader root(path);
 		if (!root.Valid()) {
 			return result;
 		}
 
-		const std::filesystem::path full = Path::FromUtf8(path);
-		const std::filesystem::path baseDir = full.parent_path();
+		const Path full    = path.LexicallyNormal();
+		const Path baseDir = full.ParentPath();
 
 		ShaderProgramAssetData data = {};
 		data.name                   = root.Read<std::string>("name").value_or(
-			Path::ToUtf8String(full.filename())
+			Path::ToUtf8String(full.FileName())
 		);
 
 		if (root.Has("vs")) {
@@ -134,7 +136,7 @@ namespace Unnamed {
 					continue;
 				}
 				data.includeDirectories.emplace_back(
-					Path::ResolveRelativePath(baseDir, v.GetString())
+					Path::ResolveRelativePath(baseDir.Native(), v.GetString())
 				);
 			}
 		}
@@ -158,11 +160,13 @@ namespace Unnamed {
 		addStageDependency(data.cs);
 
 		result.payload     = std::move(data);
-		result.resolveName = Path::ToUtf8String(full.stem().stem());
+		result.resolveName = Path::ToUtf8String(full.Stem().Stem());
 
 		std::error_code ec;
-		if (Path::ExistsUtf8(path, ec)) {
-			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		if (std::filesystem::exists(path.Native(), ec)) {
+			result.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 
 		return result;

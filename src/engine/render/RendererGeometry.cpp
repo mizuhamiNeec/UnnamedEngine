@@ -34,11 +34,11 @@ namespace Unnamed::Render {
 			}
 		}
 
-		std::string ResolveMaterialTextureOverridePath(
+		Path ResolveMaterialTextureOverridePath(
 			const MaterialInstanceAssetData& matInst,
 			const MATERIAL_TEXTURE_SLOT      slot
 		) {
-			auto findOverride = [&matInst](const char* key) -> std::string {
+			auto findOverride = [&matInst](const char* key) -> Path {
 				if (const auto it = matInst.textureOverrides.find(key);
 					it != matInst.textureOverrides.end()) {
 					return it->second;
@@ -47,9 +47,9 @@ namespace Unnamed::Render {
 			};
 
 			switch (slot) {
-				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: if (std::string path =
+				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: if (Path path =
 							findOverride("BaseColor");
-						!path.empty()) {
+						!path.IsEmpty()) {
 						return path;
 					}
 					return findOverride("MainTex");
@@ -602,7 +602,7 @@ namespace Unnamed::Render {
 		EnsureDefaultMaterialTextures(renderDevice);
 
 		const AssetID materialInstanceId = assetManager.LoadFromFile(
-			std::string(kDefaultMaterialInstance), ASSET_TYPE::MATERIAL_INSTANCE
+			Path(kDefaultMaterialInstance), ASSET_TYPE::MATERIAL_INSTANCE
 		);
 		if (materialInstanceId != kInvalidAssetID) {
 			requestedMaterialInstances.emplace_back(materialInstanceId);
@@ -794,10 +794,10 @@ namespace Unnamed::Render {
 			}
 
 			auto resolveTexture = [&](const MATERIAL_TEXTURE_SLOT slot) {
-				const std::string path = ResolveMaterialTextureOverridePath(
+				const Path path = ResolveMaterialTextureOverridePath(
 					*matInst, slot
 				);
-				if (path.empty()) {
+				if (path.IsEmpty()) {
 					return GetFallbackTextureId(
 						mDefaultMaterialTextures, slot
 					);
@@ -865,7 +865,7 @@ namespace Unnamed::Render {
 			GetRhiDevice());
 		if (mPostFxChainAsset == kInvalidAssetID) {
 			mPostFxChainAsset = assetManager.LoadFromFile(
-				std::string(kDefaultPostFxChainPath), ASSET_TYPE::POST_FX_CHAIN
+				Path(kDefaultPostFxChainPath), ASSET_TYPE::POST_FX_CHAIN
 			);
 		}
 
@@ -883,7 +883,7 @@ namespace Unnamed::Render {
 			AssetID shaderProgramId = passAsset.shaderProgramId;
 			if (
 				shaderProgramId == kInvalidAssetID &&
-				!passAsset.shaderProgramPath.empty()
+				!passAsset.shaderProgramPath.IsEmpty()
 			) {
 				shaderProgramId = assetManager.LoadFromFile(
 					passAsset.shaderProgramPath, ASSET_TYPE::SHADER_PROGRAM
@@ -934,10 +934,11 @@ namespace Unnamed::Render {
 			return mSpriteFallbackTextureId;
 		}
 
-		static bool sLoggedFontAtlasTexturePath = false;
+		static bool       sLoggedFontAtlasTexturePath = false;
+		const std::string textureSourcePath = tex->sourcePath.ToGenericUtf8();
 		if (
 			!sLoggedFontAtlasTexturePath &&
-			tex->sourcePath.find("runtime://ui/font_atlas_ascii") !=
+			textureSourcePath.find("runtime://ui/font_atlas_ascii") !=
 			std::string::npos
 		) {
 			const size_t mipCount  = tex->mips.size();

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/Path.h"
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 #include "engine/world/GameplayCueBus.h"
 #include "game/core/presentation/EventPresentationTypes.h"
@@ -71,7 +72,7 @@ namespace Unnamed {
 	private:
 		/// @brief アセットパスを正規化して設定します。
 		/// @param path アセットパス
-		void SetAssetPath(const std::string& path);
+		void SetAssetPath(Path path);
 
 		/// @brief EventPresentation アセットをロードして実行用データを再構築します。
 		/// @return ロード成功時 true
@@ -111,17 +112,17 @@ namespace Unnamed {
 
 		/// @brief AudioFxController を解決します。
 		/// @return 解決結果（失敗時は nullptr）
-		[[nodiscard]] AudioFxControllerComponent* ResolveAudioFx();
+		[[nodiscard]] AudioFxControllerComponent* ResolveAudioFx() const;
 
 		/// @brief CameraFxController を解決します。
 		/// @return 解決結果（失敗時は nullptr）
-		[[nodiscard]] CameraFxControllerComponent* ResolveCameraFx();
+		[[nodiscard]] CameraFxControllerComponent* ResolveCameraFx() const;
 
 		/// @brief SkeletalAnimation を解決します。
 		/// @return 解決結果（失敗時は nullptr）
-		[[nodiscard]] SkeletalAnimationComponent* ResolveAnimation();
+		[[nodiscard]] SkeletalAnimationComponent* ResolveAnimation() const;
 
-		std::string                      mAssetPath;
+		Path                             mAssetPath;
 		AssetID                          mAssetId = kInvalidAssetID;
 		uint64_t                         mLoadedAssetVersion = 0;
 		std::string                      mLoadedAssetName;

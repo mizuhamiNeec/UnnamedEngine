@@ -2,7 +2,7 @@
 
 #include "IniParser.h"
 
-#include "core/path/PathUtil.h"
+#include "core/filesystem/Path.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -13,24 +13,35 @@ namespace Unnamed {
 	/// @brief INIファイルをパースする
 	/// @param filePath INIファイルのパス
 	/// @return セクション名とキー・値のペアのマップ
-	std::unordered_map<std::string, std::unordered_map<
-		                   std::string, std::string>> IniParser::ParseIniFile(
-		const std::string& filePath
+	std::unordered_map<
+		std::string,
+		std::unordered_map<
+			std::string,
+			std::string
+		>
+	> IniParser::ParseIniFile(
+		const Path& filePath
 	) {
-		std::unordered_map<std::string, std::unordered_map<
-			                   std::string, std::string>> iniData;
-		std::ifstream                                     inputFile(
-			Path::FromUtf8(filePath)
-		);
+		std::unordered_map<
+			std::string,
+			std::unordered_map<
+				std::string,
+				std::string
+			>
+		> iniData;
+
+		std::ifstream inputFile(filePath.Native());
+
 		if (!inputFile.is_open()) {
 			Msg(
-				kChannel, "ファイルを開けませんでした: {}", filePath
+				kChannel, "ファイルを開けませんでした: {}", filePath.ToUtf8()
 			);
 			return iniData;
 		}
 
 		std::string line;
 		std::string currentSection = "Default";
+
 		while (std::getline(inputFile, line)) {
 			// コメント、空行は無視
 			line = StrUtil::TrimSpaces(line);
@@ -45,13 +56,17 @@ namespace Unnamed {
 			}
 
 			// キーと値の分割
-			size_t equalsPos = line.find('=');
-			if (equalsPos != std::string::npos) {
+			if (
+				size_t equalsPos = line.find('=');
+				equalsPos != std::string::npos
+			) {
 				std::string key =
 					StrUtil::TrimSpaces(line.substr(0, equalsPos));
+
 				std::string value = StrUtil::TrimSpaces(
 					line.substr(equalsPos + 1)
 				);
+
 				iniData[currentSection][key] = value;
 			}
 		}

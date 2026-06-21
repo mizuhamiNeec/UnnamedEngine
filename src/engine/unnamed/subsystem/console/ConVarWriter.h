@@ -1,9 +1,10 @@
 #pragma once
-#include <string_view>
+
+#include "core/filesystem/Path.h"
 
 namespace Unnamed {
 	class ConVarWriter {
 	public:
-		explicit ConVarWriter(std::string_view path);
+		explicit ConVarWriter(const Path& path);
 	};
 }

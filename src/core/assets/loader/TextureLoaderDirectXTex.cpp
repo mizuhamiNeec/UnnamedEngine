@@ -6,7 +6,7 @@
 #include <filesystem>
 
 #include <core/assets/types/TextureAssetData.h>
-#include <core/path/PathUtil.h>
+#include <core/filesystem/Path.h>
 #include <core/string/StrUtil.h>
 
 #include <engine/unnamed/subsystem/console/Log.h>
@@ -50,13 +50,15 @@ namespace Unnamed {
 	};
 
 	bool TextureLoaderDirectXTex::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		bool ok = false;
+		const std::string pathExt =
+			StrUtil::ToLowerCase(path.Extension().ToGenericUtf8());
 
 		// サポートされている拡張子か確認
 		for (const auto& supported : kSupportedExtensions) {
-			if (StrUtil::HasExtension(path, supported)) {
+			if (pathExt == supported) {
 				ok = true;
 				break;
 			}
@@ -76,7 +78,7 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult TextureLoaderDirectXTex::Load(const std::string& path) {
+	LoadResult TextureLoaderDirectXTex::Load(const Path& path) {
 		LoadResult r = {};
 		using namespace DirectX;
 
@@ -84,8 +86,10 @@ namespace Unnamed {
 		TexMetadata  meta = {};
 		HRESULT      hr   = E_FAIL;
 
-		std::wstring wPath = StrUtil::ToWString(path);
-		std::string  ext   = StrUtil::ToLowerExt(path);
+		std::wstring wPath = path.Native().wstring();
+		std::string  ext   = StrUtil::ToLowerCase(
+			path.Extension().ToGenericUtf8()
+		);
 
 		if (ext == ".dds") {
 			hr = LoadFromDDSFile(
@@ -144,7 +148,7 @@ namespace Unnamed {
 		out.dimension  = out.isCubeMap ?
 			                 TEXTURE_DIMENSION::TEXTURE_CUBE :
 			                 TEXTURE_DIMENSION::TEXTURE_2D;
-		out.sourcePath = path;
+		out.sourcePath = path.LexicallyNormal();
 
 		out.subresources.reserve(
 			static_cast<size_t>(out.arraySize) * static_cast<size_t>(out.mipLevels)
@@ -184,9 +188,11 @@ namespace Unnamed {
 		}
 
 		r.payload     = std::move(out);
-		r.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
-		if (std::error_code ec; Path::ExistsUtf8(path, ec)) {
-			r.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		r.resolveName = Path::ToUtf8String(path.FileName());
+		if (std::error_code ec; std::filesystem::exists(path.Native(), ec)) {
+			r.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 
 		return r;

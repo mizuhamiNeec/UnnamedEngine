@@ -4,10 +4,12 @@
 #include <utility>
 #include <vector>
 
+#include "core/filesystem/Path.h"
+
 namespace Unnamed {
 	/// @brief シェーダープログラムのステージごとの情報を表す構造体
 	struct ShaderProgramStage {
-		std::string                                      sourcePath;
+		Path                                             sourcePath;
 		std::string                                      entry;
 		std::string                                      profile;
 		std::vector<std::pair<std::string, std::string>> defines;

@@ -1,4 +1,5 @@
 #include <pch.h>
+#include "core/filesystem/Path.h"
 
 #include "ParkourGameModule.h"
 #include "ParkourComponentRegistration.h"
@@ -85,22 +86,22 @@ namespace Unnamed {
 
 	GameModulePaths ParkourGameModule::GetGameModulePaths() const {
 		return {
-			.gameName            = "Parkour",
-			.gameRoot            = "./projects/ParkourGame",
-			.contentRoot         = std::string(kParkourProjectContentRoot),
-			.configRoot          = "./projects/ParkourGame/config",
-			.defaultStartupScene = "scenes/title.json",
+			.gameName = "Parkour",
+			.gameRoot = Path("./projects/ParkourGame"),
+			.contentRoot = Path(kParkourProjectContentRoot),
+			.configRoot = Path("./projects/ParkourGame/config"),
+			.defaultStartupScene = Path("scenes/title.json"),
 		};
 	}
 
-	std::string ParkourGameModule::GetDefaultStartupScenePath() const {
+	Path ParkourGameModule::GetDefaultStartupScenePath() const {
 		return GetGameModulePaths().defaultStartupScene;
 	}
 
-	std::string ParkourGameModule::GetDefaultUiDocumentPath() const {
+	Path ParkourGameModule::GetDefaultUiDocumentPath() const {
 		return ResolveGameContentPath(
 			GetGameModulePaths(),
-			"ui/MainMenu.ui.json"
+			Path("ui/MainMenu.ui.json")
 		);
 	}
 

@@ -4,6 +4,7 @@
 #include <string>
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/Path.h"
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 #include "engine/unnamed/subsystem/console/concommand/ConVar.h"
 
@@ -33,8 +34,8 @@ namespace Unnamed {
 
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-		void                             SetSoundPath(const std::string& path);
-		[[nodiscard]] const std::string& GetSoundPath() const noexcept;
+		void                     SetSoundPath(Path path);
+		[[nodiscard]] const Path& GetSoundPath() const noexcept;
 
 		void               SetPlayOnStart(bool enabled) noexcept;
 		[[nodiscard]] bool GetPlayOnStart() const noexcept;
@@ -58,7 +59,7 @@ namespace Unnamed {
 		bool EnsureVoiceReady(bool preservePlayback);
 		void InvalidateVoice();
 
-		std::string mSoundPath;
+		Path        mSoundPath;
 		AssetID     mSoundAssetId       = kInvalidAssetID;
 		uint64_t    mLoadedAssetVersion = 0;
 

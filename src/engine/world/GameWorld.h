@@ -12,7 +12,7 @@ namespace Unnamed {
 		void FixedTick(float fixedDeltaTime) override;
 		void RenderTick(float renderDeltaTime, float interpolationAlpha) override;
 
-		bool LoadSceneFromFile(const char* path) override;
+		bool LoadSceneFromFile(Path path) override;
 		void UnloadScene() override;
 
 		void FillRenderFrameInputs(

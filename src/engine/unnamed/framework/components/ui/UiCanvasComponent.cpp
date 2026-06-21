@@ -9,9 +9,9 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/UiDocumentAssetData.h"
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/gui/UiDocument.h"
 #include "engine/gui/UiRoot.h"
@@ -66,14 +66,12 @@ namespace Unnamed {
 			return UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
 		}
 
-		std::string ResolveDefaultUiAssetPath() {
+		Path ResolveDefaultUiAssetPath() {
 			const auto* runtimeContext = ServiceLocator::Get<GameRuntimeContext>();
 			if (!runtimeContext) {
 				return {};
 			}
-
-			const std::string uiPath = runtimeContext->defaultUiDocumentPath;
-			return uiPath.empty() ? std::string() : StrUtil::NormalizePath(uiPath);
+			return runtimeContext->defaultUiDocumentPath.LexicallyNormal();
 		}
 	}
 
@@ -83,7 +81,7 @@ namespace Unnamed {
 
 	void UiCanvasComponent::Deserialize(const JsonReader& reader) {
 		if (reader.Has("uiAssetPath")) {
-			SetUiAssetPath(reader["uiAssetPath"].GetString());
+			SetUiAssetPath(Path(reader["uiAssetPath"].GetString()));
 		}
 		if (reader.Has("spaceMode")) {
 			SetSpaceMode(ParseMode(reader["spaceMode"].GetString()));
@@ -117,7 +115,7 @@ namespace Unnamed {
 
 	void UiCanvasComponent::Serialize(JsonWriter& writer) const {
 		writer.Key("uiAssetPath");
-		writer.Write(mUiAssetPath);
+		writer.Write(mUiAssetPath.ToGenericUtf8());
 
 		writer.Key("spaceMode");
 		writer.Write(ToModeString(mSpaceMode));
@@ -146,7 +144,7 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void UiCanvasComponent::DrawInspectorImGui() {
-		std::string uiAssetPath = mUiAssetPath;
+		std::string uiAssetPath = mUiAssetPath.ToGenericUtf8();
 		if (
 			ImGuiWidgets::AssetPathPicker(
 				"UI Asset Path",
@@ -154,7 +152,7 @@ namespace Unnamed {
 				ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::UI_DOCUMENT)
 			)
 		) {
-			SetUiAssetPath(uiAssetPath);
+			SetUiAssetPath(Path(uiAssetPath));
 		}
 
 		constexpr const char* kModes[] = {
@@ -198,19 +196,17 @@ namespace Unnamed {
 		return kIconMonitor;
 	}
 
-	void UiCanvasComponent::SetUiAssetPath(const std::string& path) {
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mUiAssetPath == normalized) {
+	void UiCanvasComponent::SetUiAssetPath(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (mUiAssetPath == path) {
 			return;
 		}
-		mUiAssetPath = normalized;
+		mUiAssetPath = std::move(path);
 		mUiAssetId   = kInvalidAssetID;
 		InvalidateRuntime();
 	}
 
-	const std::string& UiCanvasComponent::GetUiAssetPath() const {
+	const Path& UiCanvasComponent::GetUiAssetPath() const {
 		return mUiAssetPath;
 	}
 
@@ -266,7 +262,7 @@ namespace Unnamed {
 	}
 
 	bool UiCanvasComponent::EnsureRuntimeLoaded() {
-		if (mUiAssetPath.empty()) {
+		if (mUiAssetPath.IsEmpty()) {
 			if (!mLoggedLoadFailure) {
 				Error(kChannel, "UI asset path is empty.");
 				mLoggedLoadFailure = true;
@@ -323,7 +319,7 @@ namespace Unnamed {
 
 		auto document = Gui::UiDocument::LoadFromJson(
 			JsonReader(assetData->rootJson),
-			mUiAssetPath
+			mUiAssetPath.ToGenericUtf8()
 		);
 		if (!document) {
 			if (!mLoggedLoadFailure) {
@@ -368,7 +364,7 @@ namespace Unnamed {
 
 	void UiCanvasComponent::InvalidateRuntime() {
 		mRuntimeRoot.reset();
-		mLoadedAssetPath.clear();
+		mLoadedAssetPath.Clear();
 		mLoadedAssetVersion = 0;
 	}
 

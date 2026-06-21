@@ -2,6 +2,10 @@
 #include <string>
 #include <vector>
 
+namespace Unnamed {
+	class Path;
+}
+
 ///@brief 文字列ユーティリティクラス
 ///@details 文字列の変換、操作、解析のための静的ヘルパー関数を提供します
 namespace Unnamed::StrUtil {
@@ -53,17 +57,6 @@ namespace Unnamed::StrUtil {
 	/// @return バージョン番号の配列
 	std::vector<int> ParseVersion(const std::string& version);
 
-	/// @brief パスが指定された拡張子を持つかを判定する（大文字小文字を区別しない）
-	/// @param path ファイルパス
-	/// @param ext 拡張子（例: ".txt"）
-	/// @return 指定された拡張子を持つ場合true
-	bool HasExtension(std::string_view path, std::string_view ext);
-
-	/// @brief 拡張子を小文字に変換する
-	/// @param str 入力文字列
-	/// @return 小文字に変換された拡張子
-	std::string ToLowerExt(const std::string_view& str);
-
 	/// @brief 文字列から両端の二重引用符を削除する
 	/// @param str 入力文字列
 	/// @return 二重引用符が削除された文字列
@@ -93,12 +86,7 @@ namespace Unnamed::StrUtil {
 	/// @param path ファイルパス
 	/// @param outString ファイル内容の文字列
 	/// @return 成功したらtrueを返す
-	bool ReadFileToString(const std::string& path, std::string& outString);
-
-	/// @brief パスを正規化する（例: "C:/folder/../file.txt" -> "C:/file.txt"）
-	/// @param path 入力パス
-	/// @return 正規化されたパス
-	std::string NormalizePath(std::string path);
+	bool ReadFileToString(const Path& path, std::string& outString);
 
 	/// @brief ブール文字列かを判定する
 	/// @param str 判定する文字列

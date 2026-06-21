@@ -36,28 +36,23 @@
 
 namespace Unnamed {
 	namespace {
-		constexpr std::string_view kChannel = "CourseResultFlow";
+		constexpr std::string_view kChannel        = "CourseResultFlow";
 		constexpr float            kMinDurationSec = 0.01f;
 
-		[[nodiscard]] bool IsEngineRootRelativePath(const std::string_view path) {
-			return path.rfind("content/", 0) == 0 ||
-			       path.rfind("projects/", 0) == 0;
-		}
-
-		[[nodiscard]] std::string ResolveResultContentPath(
-			const std::string_view configuredPath,
-			const std::string_view fallbackRelativePath
+		[[nodiscard]] Path ResolveResultContentPath(
+			const Path& configuredPath,
+			const Path& fallbackRelativePath
 		) {
-			std::string effectivePath = configuredPath.empty() ?
-				                            std::string(fallbackRelativePath) :
-				                            std::string(configuredPath);
-			if (effectivePath.empty()) {
+			const auto effectivePath = configuredPath.IsEmpty() ?
+				                           fallbackRelativePath :
+				                           configuredPath;
+			if (effectivePath.IsEmpty()) {
 				return {};
 			}
 
 			// 旧設定の "content/..." 指定はプロジェクトルート基準として扱います。
-			if (IsEngineRootRelativePath(effectivePath)) {
-				return "./" + effectivePath;
+			if (effectivePath.IsRelative()) {
+				return (Path("./") / effectivePath).LexicallyNormal();
 			}
 
 			if (const GameRuntimeContext* runtimeContext =
@@ -67,7 +62,10 @@ namespace Unnamed {
 					effectivePath
 				);
 			}
-			if (const IGameModule* gameModule = ServiceLocator::Get<IGameModule>()) {
+			if (
+				const IGameModule* gameModule =
+					ServiceLocator::Get<IGameModule>()
+			) {
 				return ResolveGameContentPath(
 					gameModule->GetGameModulePaths(),
 					effectivePath
@@ -78,7 +76,7 @@ namespace Unnamed {
 
 #ifdef _DEBUG
 		template <size_t N>
-		void DrawStringInput(const char* label, std::string& value) {
+		bool DrawStringInput(const char* label, std::string& value) {
 			std::array<char, N> buffer = {};
 			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
 			if (copyLen > 0) {
@@ -87,6 +85,7 @@ namespace Unnamed {
 			if (ImGui::InputText(label, buffer.data(), buffer.size())) {
 				value = buffer.data();
 			}
+			return ImGui::IsItemEdited();
 		}
 #endif
 	}
@@ -112,14 +111,11 @@ namespace Unnamed {
 				mWasCourseCleared = cleared;
 				break;
 			}
-			case PHASE::SHOW_RESULT:
-				TickShowResult(clampedDelta);
+			case PHASE::SHOW_RESULT: TickShowResult(clampedDelta);
 				break;
-			case PHASE::FADE_OUT:
-				TickFadeOut(clampedDelta);
+			case PHASE::FADE_OUT: TickFadeOut(clampedDelta);
 				break;
-			case PHASE::TRANSITIONED:
-				UpdateResultWidgets(1.0f);
+			case PHASE::TRANSITIONED: UpdateResultWidgets(1.0f);
 				SetFadeOverlayAlpha(1.0f);
 				break;
 			default: break;
@@ -156,20 +152,35 @@ namespace Unnamed {
 		if (mCourseId.empty()) {
 			mCourseId = "default";
 		}
-		DrawStringInput<128>("Title Scene Path", mTitleScenePath);
+
+		std::string titleScenePathTemp = mTitleScenePath.ToUtf8();
+		DrawStringInput<128>("Title Scene Path", titleScenePathTemp);
+		mTitleScenePath = Path(titleScenePathTemp);
 		DrawStringInput<64>("Result Root Widget", mResultRootWidgetName);
 		DrawStringInput<64>("Clear Image Widget", mClearImageWidgetName);
-		DrawStringInput<64>("Elapsed Digits Widget (Legacy)", mElapsedDigitsWidgetName);
-		DrawStringInput<64>("Elapsed Minutes Widget", mElapsedMinutesWidgetName);
-		DrawStringInput<64>("Elapsed Seconds Widget", mElapsedSecondsWidgetName);
-		DrawStringInput<64>("Elapsed Fraction Widget", mElapsedFractionWidgetName);
+		DrawStringInput<64>("Elapsed Digits Widget (Legacy)",
+		                    mElapsedDigitsWidgetName);
+		DrawStringInput<64>("Elapsed Minutes Widget",
+		                    mElapsedMinutesWidgetName);
+		DrawStringInput<64>("Elapsed Seconds Widget",
+		                    mElapsedSecondsWidgetName);
+		DrawStringInput<64>("Elapsed Fraction Widget",
+		                    mElapsedFractionWidgetName);
 		DrawStringInput<64>("Elapsed Comma Widget", mElapsedCommaWidgetName);
 		DrawStringInput<64>("Elapsed Dot Widget", mElapsedDotWidgetName);
 		DrawStringInput<64>("Fade Overlay Widget", mFadeOverlayWidgetName);
-		DrawStringInput<128>("Clear Texture", mClearTexturePath);
-		DrawStringInput<128>("Digit Texture", mDigitTexturePath);
-		DrawStringInput<128>("Comma Texture", mCommaTexturePath);
-		DrawStringInput<128>("Dot Texture", mDotTexturePath);
+		std::string clearTexturePath = mClearTexturePath.ToGenericUtf8();
+		DrawStringInput<128>("Clear Texture", clearTexturePath);
+		mClearTexturePath            = Path(clearTexturePath);
+		std::string digitTexturePath = mDigitTexturePath.ToGenericUtf8();
+		DrawStringInput<128>("Digit Texture", digitTexturePath);
+		mDigitTexturePath            = Path(digitTexturePath);
+		std::string commaTexturePath = mCommaTexturePath.ToGenericUtf8();
+		DrawStringInput<128>("Comma Texture", commaTexturePath);
+		mCommaTexturePath          = Path(commaTexturePath);
+		std::string dotTexturePath = mDotTexturePath.ToGenericUtf8();
+		DrawStringInput<128>("Dot Texture", dotTexturePath);
+		mDotTexturePath = Path(dotTexturePath);
 		ImGui::DragFloat(
 			"Result Hold Seconds",
 			&mResultHoldSeconds,
@@ -216,11 +227,17 @@ namespace Unnamed {
 		if (mCourseId.empty()) {
 			mCourseId = "default";
 		}
-		mTitleScenePath = reader["titleScenePath"].GetString(mTitleScenePath);
-		if (const JsonReader node = reader["hudCanvasEntityGuid"]; node.Valid()) {
+		mTitleScenePath = Path(
+			reader["titleScenePath"].GetString(mTitleScenePath.ToUtf8())
+		);
+		if (const JsonReader node = reader["hudCanvasEntityGuid"];
+			node.Valid()) {
 			mHudCanvasEntityGuid = node.GetUint64();
 		}
-		if (const JsonReader node = reader["clearAudioSourceGuid"]; node.Valid()) {
+		if (
+			const JsonReader node = reader["clearAudioSourceGuid"];
+			node.Valid()
+		) {
 			mClearAudioSourceGuid = node.GetUint64();
 		}
 
@@ -229,46 +246,63 @@ namespace Unnamed {
 		mClearImageWidgetName =
 			reader["clearImageWidgetName"].GetString(mClearImageWidgetName);
 		mElapsedDigitsWidgetName =
-			reader["elapsedDigitsWidgetName"].GetString(mElapsedDigitsWidgetName);
+			reader["elapsedDigitsWidgetName"].GetString(
+				mElapsedDigitsWidgetName);
 		mElapsedMinutesWidgetName =
-			reader["elapsedMinutesWidgetName"].GetString(mElapsedMinutesWidgetName);
+			reader["elapsedMinutesWidgetName"].GetString(
+				mElapsedMinutesWidgetName);
 		mElapsedSecondsWidgetName =
-			reader["elapsedSecondsWidgetName"].GetString(mElapsedSecondsWidgetName);
-		mElapsedFractionWidgetName = reader["elapsedFractionWidgetName"].GetString(
-			mElapsedFractionWidgetName
-		);
+			reader["elapsedSecondsWidgetName"].GetString(
+				mElapsedSecondsWidgetName);
+		mElapsedFractionWidgetName = reader["elapsedFractionWidgetName"].
+			GetString(
+				mElapsedFractionWidgetName
+			);
 		mElapsedCommaWidgetName =
 			reader["elapsedCommaWidgetName"].GetString(mElapsedCommaWidgetName);
 		mElapsedDotWidgetName =
 			reader["elapsedDotWidgetName"].GetString(mElapsedDotWidgetName);
 		mFadeOverlayWidgetName =
 			reader["fadeOverlayWidgetName"].GetString(mFadeOverlayWidgetName);
-		mClearTexturePath =
-			reader["clearTexturePath"].GetString(mClearTexturePath);
-		mDigitTexturePath =
-			reader["digitTexturePath"].GetString(mDigitTexturePath);
-		mCommaTexturePath =
-			reader["commaTexturePath"].GetString(mCommaTexturePath);
-		mDotTexturePath =
-			reader["dotTexturePath"].GetString(mDotTexturePath);
+		mClearTexturePath = Path(
+			reader["clearTexturePath"].GetString(
+				mClearTexturePath.ToGenericUtf8())
+		);
+		mDigitTexturePath = Path(
+			reader["digitTexturePath"].GetString(
+				mDigitTexturePath.ToGenericUtf8())
+		);
+		mCommaTexturePath = Path(
+			reader["commaTexturePath"].GetString(
+				mCommaTexturePath.ToGenericUtf8())
+		);
+		mDotTexturePath = Path(
+			reader["dotTexturePath"].GetString(mDotTexturePath.ToGenericUtf8())
+		);
 
-		if (const JsonReader node = reader["resultHoldSeconds"]; node.Valid()) {
+		if (const JsonReader node = reader["resultHoldSeconds"];
+			node.Valid()) {
 			mResultHoldSeconds =
 				std::max(kMinDurationSec, node.GetFloat(mResultHoldSeconds));
 		}
-		if (const JsonReader node = reader["fadeOutSeconds"]; node.Valid()) {
-			mFadeOutSeconds = std::max(kMinDurationSec, node.GetFloat(mFadeOutSeconds));
+		if (const JsonReader node = reader["fadeOutSeconds"];
+			node.Valid()) {
+			mFadeOutSeconds = std::max(kMinDurationSec,
+			                           node.GetFloat(mFadeOutSeconds));
 		}
 		if (const JsonReader node = reader["elapsedDigitsMinDigits"];
 			node.Valid()) {
-			mElapsedDigitsMinDigits = std::max(1, node.GetInt(mElapsedDigitsMinDigits));
+			mElapsedDigitsMinDigits = std::max(
+				1, node.GetInt(mElapsedDigitsMinDigits));
 		}
-		if (const JsonReader node = reader["elapsedDisplayScale"]; node.Valid()) {
+		if (const JsonReader node = reader["elapsedDisplayScale"];
+			node.Valid()) {
 			mElapsedDisplayScale =
 				std::max(1.0f, node.GetFloat(mElapsedDisplayScale));
 		}
 
-		if (const JsonReader lockNode = reader["lockTargets"]; lockNode.Valid()) {
+		if (const JsonReader lockNode = reader["lockTargets"];
+			lockNode.Valid()) {
 			const JsonReader lockArray = lockNode.GetArray();
 			mLockTargets.clear();
 			mLockTargets.reserve(lockArray.Size());
@@ -284,7 +318,8 @@ namespace Unnamed {
 					spec.entityGuid = entityNode.GetUint64();
 				}
 				spec.componentStableName =
-					item["componentStableName"].GetString(spec.componentStableName);
+					item["componentStableName"].GetString(
+						spec.componentStableName);
 				if (!spec.componentStableName.empty()) {
 					mLockTargets.emplace_back(std::move(spec));
 				}
@@ -320,13 +355,13 @@ namespace Unnamed {
 		writer.Key("fadeOverlayWidgetName");
 		writer.Write(mFadeOverlayWidgetName);
 		writer.Key("clearTexturePath");
-		writer.Write(mClearTexturePath);
+		writer.Write(mClearTexturePath.ToGenericUtf8());
 		writer.Key("digitTexturePath");
-		writer.Write(mDigitTexturePath);
+		writer.Write(mDigitTexturePath.ToGenericUtf8());
 		writer.Key("commaTexturePath");
-		writer.Write(mCommaTexturePath);
+		writer.Write(mCommaTexturePath.ToGenericUtf8());
 		writer.Key("dotTexturePath");
-		writer.Write(mDotTexturePath);
+		writer.Write(mDotTexturePath.ToGenericUtf8());
 		writer.Key("resultHoldSeconds");
 		writer.Write(mResultHoldSeconds);
 		writer.Key("fadeOutSeconds");
@@ -350,7 +385,7 @@ namespace Unnamed {
 		}
 
 		const CourseProgressSnapshot& snapshot = mCourseProgress->GetSnapshot();
-		mLatchedElapsedSeconds =
+		mLatchedElapsedSeconds                 =
 			snapshot.clearedElapsedSeconds > 0.0f ?
 				snapshot.clearedElapsedSeconds :
 				snapshot.elapsedSeconds;
@@ -387,7 +422,7 @@ namespace Unnamed {
 
 	void CourseResultFlowComponent::TickFadeOut(const float deltaTime) {
 		mPhaseElapsedSeconds += deltaTime;
-		const float t = std::clamp(
+		const float t        = std::clamp(
 			mPhaseElapsedSeconds / std::max(kMinDurationSec, mFadeOutSeconds),
 			0.0f,
 			1.0f
@@ -406,11 +441,11 @@ namespace Unnamed {
 			return;
 		}
 
-		const std::string titleScenePath = ResolveResultContentPath(
+		const Path titleScenePath = ResolveResultContentPath(
 			mTitleScenePath,
-			"scenes/title.json"
+			Path("scenes/title.json")
 		);
-		if (titleScenePath.empty()) {
+		if (titleScenePath.IsEmpty()) {
 			Warning(kChannel, "Title scene path is empty.");
 			return;
 		}
@@ -434,8 +469,10 @@ namespace Unnamed {
 			bool found = false;
 			entity.ForEachComponent(
 				[&](BaseComponent& component) {
-					auto* progress = dynamic_cast<CourseProgressComponent*>(&component);
-					if (!progress || progress->GetCourseId() != normalizedCourseId) {
+					auto* progress = dynamic_cast<CourseProgressComponent*>(&
+						component);
+					if (!progress || progress->GetCourseId() !=
+					    normalizedCourseId) {
 						return true;
 					}
 					mCourseProgress = progress;
@@ -469,7 +506,7 @@ namespace Unnamed {
 		}
 
 		if (mHudCanvas && mHudCanvas->EnsureRuntimeLoaded()) {
-			Gui::UiRoot*   root       = mHudCanvas->GetRuntimeRoot();
+			const Gui::UiRoot* root = mHudCanvas->GetRuntimeRoot();
 			Gui::UiWidget* rootWidget = root ? root->GetRootWidget() : nullptr;
 			if (rootWidget) {
 				mResultRootWidget = FindWidgetByNameRecursive(
@@ -511,7 +548,8 @@ namespace Unnamed {
 
 				if (mClearImageWidget) {
 					mClearImageTexture =
-						mClearImageWidget->GetOrAddComponent<Gui::UiTextureComponent>();
+						mClearImageWidget->GetOrAddComponent<
+							Gui::UiTextureComponent>();
 				}
 				if (mElapsedDigitsWidget) {
 					mElapsedDigits =
@@ -545,7 +583,8 @@ namespace Unnamed {
 				}
 				if (mFadeOverlayWidget) {
 					mFadeOverlayTexture =
-						mFadeOverlayWidget->GetOrAddComponent<Gui::UiTextureComponent>();
+						mFadeOverlayWidget->GetOrAddComponent<
+							Gui::UiTextureComponent>();
 				}
 			}
 		}
@@ -554,29 +593,31 @@ namespace Unnamed {
 	}
 
 	void CourseResultFlowComponent::ClearResolvedBindings() {
-		mCourseProgress      = nullptr;
-		mHudCanvas           = nullptr;
-		mClearAudio          = nullptr;
-		mResultRootWidget    = nullptr;
-		mClearImageWidget    = nullptr;
-		mElapsedDigitsWidget = nullptr;
-		mElapsedMinutesWidget = nullptr;
-		mElapsedSecondsWidget = nullptr;
+		mCourseProgress        = nullptr;
+		mHudCanvas             = nullptr;
+		mClearAudio            = nullptr;
+		mResultRootWidget      = nullptr;
+		mClearImageWidget      = nullptr;
+		mElapsedDigitsWidget   = nullptr;
+		mElapsedMinutesWidget  = nullptr;
+		mElapsedSecondsWidget  = nullptr;
 		mElapsedFractionWidget = nullptr;
-		mElapsedCommaWidget = nullptr;
-		mElapsedDotWidget = nullptr;
-		mFadeOverlayWidget   = nullptr;
-		mClearImageTexture   = nullptr;
-		mElapsedDigits       = nullptr;
-		mElapsedMinutes      = nullptr;
-		mElapsedSeconds      = nullptr;
-		mElapsedFraction     = nullptr;
-		mElapsedComma        = nullptr;
-		mElapsedDot          = nullptr;
-		mFadeOverlayTexture  = nullptr;
+		mElapsedCommaWidget    = nullptr;
+		mElapsedDotWidget      = nullptr;
+		mFadeOverlayWidget     = nullptr;
+		mClearImageTexture     = nullptr;
+		mElapsedDigits         = nullptr;
+		mElapsedMinutes        = nullptr;
+		mElapsedSeconds        = nullptr;
+		mElapsedFraction       = nullptr;
+		mElapsedComma          = nullptr;
+		mElapsedDot            = nullptr;
+		mFadeOverlayTexture    = nullptr;
 	}
 
-	void CourseResultFlowComponent::UpdateResultWidgets(const float alpha)
+	void CourseResultFlowComponent::UpdateResultWidgets(
+		const float alpha
+	)
 	const {
 		const float clampedAlpha = std::clamp(alpha, 0.0f, 1.0f);
 		if (mResultRootWidget) {
@@ -589,7 +630,8 @@ namespace Unnamed {
 		}
 		if (mClearImageTexture) {
 			mClearImageTexture->SetTexturePath(
-				ResolveResultContentPath(mClearTexturePath, "textures/clear.png")
+				ResolveResultContentPath(mClearTexturePath,
+				                         Path("textures/clear.png"))
 			);
 			Gui::Color color = mClearImageTexture->GetColor();
 			color.a          = clampedAlpha;
@@ -615,15 +657,20 @@ namespace Unnamed {
 			const CourseElapsedTimeParts time =
 				SplitCourseElapsedTime(mLatchedElapsedSeconds);
 
-			const auto applyDigitStrip = [&](Gui::UiWidget* widget,
-			                                 Gui::UiDigitStripComponent* strip,
-			                                 const int value) {
+			const auto applyDigitStrip = [&](
+				Gui::UiWidget*              widget,
+				Gui::UiDigitStripComponent* strip,
+				const int                   value
+			) {
 				if (!widget || !strip) {
 					return;
 				}
 				widget->SetVisible(clampedAlpha > 0.0f);
 				strip->SetStripTexturePath(
-					ResolveResultContentPath(mDigitTexturePath, "textures/digits.png")
+					ResolveResultContentPath(
+						mDigitTexturePath,
+						Path("textures/digits.png")
+					)
 				);
 				strip->SetMinDigits(2);
 				strip->SetValue(value);
@@ -632,19 +679,25 @@ namespace Unnamed {
 				strip->SetColor(color);
 				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 			};
-			applyDigitStrip(mElapsedMinutesWidget, mElapsedMinutes, time.minutes);
-			applyDigitStrip(mElapsedSecondsWidget, mElapsedSeconds, time.seconds);
-			applyDigitStrip(mElapsedFractionWidget, mElapsedFraction, time.fraction);
+			applyDigitStrip(mElapsedMinutesWidget, mElapsedMinutes,
+			                time.minutes);
+			applyDigitStrip(mElapsedSecondsWidget, mElapsedSeconds,
+			                time.seconds);
+			applyDigitStrip(mElapsedFractionWidget, mElapsedFraction,
+			                time.fraction);
 
-			const auto applySeparator = [&](Gui::UiWidget* widget,
-			                                Gui::UiTextureComponent* texture,
-			                                const std::string_view path,
-			                                const std::string_view fallbackPath) {
+			const auto applySeparator = [&](
+				Gui::UiWidget*           widget,
+				Gui::UiTextureComponent* texture,
+				const Path&              path,
+				const Path&              fallbackPath
+			) {
 				if (!widget || !texture) {
 					return;
 				}
 				widget->SetVisible(clampedAlpha > 0.0f);
-				texture->SetTexturePath(ResolveResultContentPath(path, fallbackPath));
+				texture->SetTexturePath(
+					ResolveResultContentPath(path, fallbackPath));
 				Gui::Color color = texture->GetColor();
 				color.a          = clampedAlpha;
 				texture->SetColor(color);
@@ -654,13 +707,13 @@ namespace Unnamed {
 				mElapsedCommaWidget,
 				mElapsedComma,
 				mCommaTexturePath,
-				"textures/colon.png"
+				Path("textures/colon.png")
 			);
 			applySeparator(
 				mElapsedDotWidget,
 				mElapsedDot,
 				mDotTexturePath,
-				"textures/dot.png"
+				Path("textures/dot.png")
 			);
 		} else if (mElapsedDigits) {
 			const int displayValue = static_cast<int>(
@@ -668,7 +721,10 @@ namespace Unnamed {
 				            mElapsedDisplayScale)
 			);
 			mElapsedDigits->SetStripTexturePath(
-				ResolveResultContentPath(mDigitTexturePath, "textures/digits.png")
+				ResolveResultContentPath(
+					mDigitTexturePath,
+					Path("textures/digits.png")
+				)
 			);
 			mElapsedDigits->SetMinDigits(mElapsedDigitsMinDigits);
 			mElapsedDigits->SetValue(displayValue);
@@ -678,7 +734,9 @@ namespace Unnamed {
 		}
 	}
 
-	void CourseResultFlowComponent::SetFadeOverlayAlpha(const float alpha)
+	void CourseResultFlowComponent::SetFadeOverlayAlpha(
+		const float alpha
+	)
 	const {
 		if (!mFadeOverlayWidget || !mFadeOverlayTexture) {
 			return;
@@ -729,7 +787,8 @@ namespace Unnamed {
 			if (!target || target == this) {
 				continue;
 			}
-			if (std::ranges::find(lockedComponents, target) != lockedComponents.end()) {
+			if (std::ranges::find(lockedComponents, target) != lockedComponents.
+			    end()) {
 				continue;
 			}
 
@@ -833,7 +892,7 @@ namespace Unnamed {
 	}
 
 	Gui::UiWidget* CourseResultFlowComponent::FindWidgetByNameRecursive(
-		Gui::UiWidget*          root,
+		Gui::UiWidget*         root,
 		const std::string_view widgetName
 	) {
 		if (!root) {
@@ -856,7 +915,8 @@ namespace Unnamed {
 		}
 
 		for (Gui::UiWidget* child : root->GetReferenceChildren()) {
-			if (Gui::UiWidget* found = FindWidgetByNameRecursive(child, widgetName)) {
+			if (Gui::UiWidget* found = FindWidgetByNameRecursive(
+				child, widgetName)) {
 				return found;
 			}
 		}
@@ -864,7 +924,7 @@ namespace Unnamed {
 	}
 
 	void CourseResultFlowComponent::SerializeLockTarget(
-		JsonWriter&            writer,
+		JsonWriter&           writer,
 		const LockTargetSpec& spec
 	) {
 		writer.BeginObject();
@@ -887,4 +947,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(CourseResultFlowComponent);
 }
-

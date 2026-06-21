@@ -18,7 +18,7 @@
 namespace Unnamed {
 	namespace {
 		constexpr std::string_view kDefaultUIFontPath =
-			R"(.\content\core\fonts\JetBrainsMono.ttf)";
+			"./content/core/fonts/JetBrainsMono.ttf";
 
 #ifdef _DEBUG
 		constexpr const char* kTextAlignLabels[] = {
@@ -75,7 +75,7 @@ namespace Unnamed {
 		if (AssetManager* assetManager = GetAssetManager()) {
 			UI::UIFontAtlas* fontAtlas = UI::GetUIFontAtlasCache().GetOrCreate(
 				UI::MakeUIFontAtlasKey(
-					kDefaultUIFontPath,
+					Path(kDefaultUIFontPath),
 					mTheme.fontSize,
 					mTheme.fontOversampleH,
 					mTheme.fontOversampleV
@@ -291,7 +291,7 @@ namespace Unnamed {
 		);
 		ImGui::Text(
 			"Current font path: %s",
-			cacheInfo.currentKey.fontPath.c_str()
+			cacheInfo.currentKey.fontPath.ToGenericUtf8().c_str()
 		);
 		if (ImGui::Button("Clear Font Cache")) {
 			if (AssetManager* assetManager = GetWorld() ?

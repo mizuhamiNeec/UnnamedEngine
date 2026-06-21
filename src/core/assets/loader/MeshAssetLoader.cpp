@@ -1,4 +1,5 @@
 #include "MeshAssetLoader.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
 #include <array>
@@ -16,7 +17,7 @@
 #include "core/hash/StableHashBuilder.h"
 #include "core/io/binary/BinaryReader.h"
 #include "core/io/binary/BinaryWriter.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 #include "engine/profiler/Profiler.h"
@@ -56,18 +57,20 @@ namespace Unnamed {
 		/// @param path 判定するファイルのパス
 		/// @return ファイルのスタンプ
 		/// @note ファイルの内容までは見ないため、同一のスタンプでも内容が変わっている可能性はある。あくまで「前回読み込んだときと同じファイルかどうか」を判定するためのもの。
-		FileStamp ReadCurrentFileStamp(const std::string& path) {
+		FileStamp ReadCurrentFileStamp(const Path& path) {
 			FileStamp       stamp = {};
 			std::error_code ec;
-			if (!Path::ExistsUtf8(path, ec)) {
+			if (path.IsEmpty() || !std::filesystem::exists(path.Native(), ec)) {
 				return stamp;
 			}
 
-			const auto lastWrite = Path::LastWriteTimeUtf8(path, ec);
+			const auto lastWrite = std::filesystem::last_write_time(
+				path.Native(), ec
+			);
 			if (!ec) {
 				stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
 			}
-			stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+			stamp.sizeInBytes = std::filesystem::file_size(path.Native(), ec);
 			return stamp;
 		}
 
@@ -480,10 +483,11 @@ namespace Unnamed {
 	}
 
 	bool MeshAssetLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		// 拡張子ベースで判定。厳密なファイル存在チェックはLoad()に任せる。
-		const std::string ext = StrUtil::ToLowerExt(path);
+		const std::string ext =
+			StrUtil::ToLowerCase(path.Extension().ToGenericUtf8());
 		bool              ok  = false;
 
 		for (const auto& supportedExt : kSupportedExtensions) {
@@ -500,7 +504,7 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult MeshAssetLoader::Load(const std::string& path) {
+	LoadResult MeshAssetLoader::Load(const Path& path) {
 		LoadResult r = {};
 		if (TryLoadDerivedCache(path, r)) {
 			return r;
@@ -517,7 +521,9 @@ namespace Unnamed {
 			aiProcess_CalcTangentSpace |
 			aiProcess_ConvertToLeftHanded;
 
-		const aiScene* scene = importer.ReadFile(path, kBaseFlags);
+		const aiScene* scene = importer.ReadFile(
+			path.ToGenericUtf8(), kBaseFlags
+		);
 
 		if (!scene) {
 			Error(
@@ -545,7 +551,7 @@ namespace Unnamed {
 		}
 
 		MeshAssetData out = {};
-		out.sourcePath    = path;
+		out.sourcePath    = path.LexicallyNormal();
 		out.hasSkinning   = hasBones;
 		std::unordered_map<std::string, uint16_t> boneNameToIndex;
 
@@ -699,31 +705,28 @@ namespace Unnamed {
 		}
 
 		r.payload     = std::move(out);
-		r.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
+		r.resolveName = Path::ToUtf8String(path.FileName());
 		r.stamp       = ReadCurrentFileStamp(path);
 		WriteDerivedCache(path, r);
 
 		return r;
 	}
 
-	std::filesystem::path MeshAssetLoader::GetDerivedCachePath(
-		const std::string& sourcePath
-	) {
-		const std::string normalized = StrUtil::NormalizePath(sourcePath);
+	Path MeshAssetLoader::GetDerivedCachePath(const Path& sourcePath) {
+		const std::string normalized =
+			sourcePath.LexicallyNormal().ToGenericUtf8();
 		const uint64_t    hash       = std::hash<std::string>{}(normalized);
-		return std::filesystem::path("./bin/cache/assets/meshes") /
-		       (std::to_string(hash) + ".umeshbin");
+		return Path("./bin/cache/assets/meshes") /
+		       Path(std::to_string(hash) + ".umeshbin");
 	}
 
-	bool MeshAssetLoader::TryLoadDerivedCache(
-		const std::string& path, LoadResult& out
-	) {
-		const std::filesystem::path cachePath = GetDerivedCachePath(path);
-		if (!std::filesystem::exists(cachePath)) {
+	bool MeshAssetLoader::TryLoadDerivedCache(const Path& path, LoadResult& out) {
+		const Path cachePath = GetDerivedCachePath(path);
+		if (!std::filesystem::exists(cachePath.Native())) {
 			return false;
 		}
 
-		BinaryReader reader(Path::ToUtf8String(cachePath));
+		BinaryReader reader(cachePath);
 		if (!reader.IsOpen()) {
 			return false;
 		}
@@ -737,7 +740,7 @@ namespace Unnamed {
 			return false;
 		}
 
-		const std::string normalized  = StrUtil::NormalizePath(path);
+		const std::string normalized  = path.LexicallyNormal().ToGenericUtf8();
 		const FileStamp   sourceStamp = ReadCurrentFileStamp(path);
 		if (header.sourcePathHash != std::hash<std::string>{}(normalized)) {
 			return false;
@@ -756,7 +759,7 @@ namespace Unnamed {
 		}
 
 		MeshAssetData mesh = {};
-		mesh.sourcePath    = path;
+		mesh.sourcePath    = path.LexicallyNormal();
 		mesh.hasSkinning   = hasSkinning;
 		mesh.vertices.resize(header.vertexCount);
 		mesh.indices.resize(header.indexCount);
@@ -848,7 +851,7 @@ namespace Unnamed {
 		}
 
 		out.payload     = std::move(mesh);
-		out.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
+		out.resolveName = Path::ToUtf8String(path.FileName());
 		out.stamp       = sourceStamp;
 
 		if (Profiler* profiler = ServiceLocator::Get<Profiler>()) {
@@ -858,7 +861,7 @@ namespace Unnamed {
 	}
 
 	bool MeshAssetLoader::WriteDerivedCache(
-		const std::string& path, const LoadResult& in
+		const Path& path, const LoadResult& in
 	) {
 		const auto* mesh = std::get_if<MeshAssetData>(
 			&const_cast<AssetPayload&>(in.payload)
@@ -867,18 +870,20 @@ namespace Unnamed {
 			return false;
 		}
 
-		const std::filesystem::path cachePath = GetDerivedCachePath(path);
+		const Path                   cachePath = GetDerivedCachePath(path);
 		std::error_code             ec;
-		std::filesystem::create_directories(cachePath.parent_path(), ec);
+		std::filesystem::create_directories(
+			cachePath.ParentPath().Native(), ec
+		);
 
-		BinaryWriter writer(Path::ToUtf8String(cachePath));
+		BinaryWriter writer(cachePath);
 		if (!writer.IsOpen()) {
 			return false;
 		}
 
 		MeshCacheHeader header = {};
 		header.sourcePathHash  = std::hash<std::string>{}(
-			StrUtil::NormalizePath(path)
+			path.LexicallyNormal().ToGenericUtf8()
 		);
 		header.sourceLastWriteTicks = in.stamp.lastWriteTicks;
 		header.sourceSizeBytes = in.stamp.sizeInBytes;

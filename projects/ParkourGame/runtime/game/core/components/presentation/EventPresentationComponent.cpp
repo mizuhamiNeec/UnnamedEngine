@@ -1,8 +1,6 @@
 #include "EventPresentationComponent.h"
 
 #include <algorithm>
-#include <cctype>
-#include <cstring>
 #include <memory>
 #include <unordered_set>
 
@@ -14,9 +12,9 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/EventPresentationAssetData.h"
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
-#include "core/string/StrUtil.h"
 #include "game/core/components/AudioFxControllerComponent.h"
 #include "game/core/components/CameraFxControllerComponent.h"
 #include "game/core/presentation/EventPresentationExecutor.h"
@@ -52,7 +50,7 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "EventPresentationV2";
 
-		[[nodiscard]] std::string TrimAscii(std::string_view text) {
+		[[nodiscard]] std::string TrimAscii(const std::string_view text) {
 			size_t begin = 0;
 			while (
 				begin < text.size() &&
@@ -173,10 +171,10 @@ namespace Unnamed {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void EventPresentationComponent::DrawInspectorImGui() {
 		World*         world            = GetWorld();
-		Entity*        owner            = GetOwner();
+		const Entity*  owner            = GetOwner();
 		bool           needsReload      = false;
 		bool           needsResubscribe = false;
-		std::string    assetPath        = mAssetPath;
+		std::string    assetPath        = mAssetPath.ToGenericUtf8();
 		const uint64_t ownerGuid        = owner ? owner->GetGuid() : 0;
 
 		ImGui::Text(
@@ -199,7 +197,7 @@ namespace Unnamed {
 			"Animation Target GUID (effective): %llu",
 			static_cast<unsigned long long>(ResolveAnimationTargetEntityGuid())
 		);
-		ImGui::Text("Asset Path: %s", mAssetPath.c_str());
+		ImGui::Text("Asset Path: %s", assetPath.c_str());
 		ImGui::Text(
 			"Asset State: %s",
 			mAssetId != kInvalidAssetID ? "Connected" : "Missing"
@@ -214,7 +212,7 @@ namespace Unnamed {
 				ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::EVENT_PRESENTATION)
 			)
 		) {
-			SetAssetPath(assetPath);
+			SetAssetPath(Path(assetPath));
 			needsReload      = true;
 			needsResubscribe = true;
 		}
@@ -423,7 +421,7 @@ namespace Unnamed {
 			state.graph.Clear();
 			state.issues.clear();
 
-			if (mAssetPath.empty()) {
+			if (mAssetPath.IsEmpty()) {
 				state.status =
 					"グラフの再構築をスキップしました:アセットパスが空です。";
 			} else if (AssetManager* assetManager = GetAssetManager()) {
@@ -444,7 +442,7 @@ namespace Unnamed {
 					if (!EventPresentationEditorGraphCodec::BuildGraphFromAsset(
 						*assetData,
 						state.graph,
-						mAssetPath,
+						mAssetPath.ToGenericUtf8(),
 						&error
 					)) {
 						state.status = "グラフの再構築に失敗: " + error;
@@ -551,7 +549,7 @@ namespace Unnamed {
 				} else if (!EventPresentationEditorGraphCodec::SaveAssetJson(
 					assetData,
 					&state.graph,
-					mAssetPath,
+					mAssetPath.ToGenericUtf8(),
 					&error
 				)) {
 					state.status = "セーブ失敗(書き込み): " + error;
@@ -565,7 +563,8 @@ namespace Unnamed {
 			}
 		}
 
-		ImGui::Text("Asset Path: %s", mAssetPath.c_str());
+		const std::string assetPathText = mAssetPath.ToGenericUtf8();
+		ImGui::Text("Asset Path: %s", assetPathText.c_str());
 		ImGui::Text(
 			"Selected Node: %llu | きちゃない: %s",
 			static_cast<unsigned long long>(state.ui->GetSelectedNodeId()),
@@ -593,10 +592,10 @@ namespace Unnamed {
 		mCameraFxEntityGuid  = 0;
 		mAnimationEntityGuid = 0;
 		mVerboseLog          = false;
-		SetAssetPath("");
+		SetAssetPath(Path());
 
 		if (reader.Has("assetPath")) {
-			SetAssetPath(reader["assetPath"].GetString(""));
+			SetAssetPath(Path(reader["assetPath"].GetString("")));
 		}
 		if (reader.Has("cueSourceEntityGuid")) {
 			mCueSourceEntityGuid = reader["cueSourceEntityGuid"].GetUint64();
@@ -626,7 +625,7 @@ namespace Unnamed {
 
 	void EventPresentationComponent::Serialize(JsonWriter& writer) const {
 		writer.Key("assetPath");
-		writer.Write(mAssetPath);
+		writer.Write(mAssetPath.ToGenericUtf8());
 		writer.Key("cueSourceEntityGuid");
 		writer.Write(mCueSourceEntityGuid);
 		writer.Key("audioFxEntityGuid");
@@ -639,14 +638,12 @@ namespace Unnamed {
 		writer.Write(mVerboseLog);
 	}
 
-	void EventPresentationComponent::SetAssetPath(const std::string& path) {
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mAssetPath == normalized) {
+	void EventPresentationComponent::SetAssetPath(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (mAssetPath == path) {
 			return;
 		}
-		mAssetPath          = normalized;
+		mAssetPath          = std::move(path);
 		mAssetId            = kInvalidAssetID;
 		mLoadedAssetVersion = 0;
 		mLoadedAssetName.clear();
@@ -664,7 +661,7 @@ namespace Unnamed {
 		mLoadedAssetVersion = 0;
 		mLoadedAssetName.clear();
 
-		if (mAssetPath.empty()) {
+		if (mAssetPath.IsEmpty()) {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			if (mGraphEditorState) {
 				mGraphEditorState->needsRebuild = true;
@@ -786,7 +783,7 @@ namespace Unnamed {
 	}
 
 	void EventPresentationComponent::RefreshAssetIfNeeded() {
-		if (mAssetPath.empty()) {
+		if (mAssetPath.IsEmpty()) {
 			if (mAssetId != kInvalidAssetID || !mTriggers.empty()) {
 				mAssetId            = kInvalidAssetID;
 				mLoadedAssetVersion = 0;
@@ -797,12 +794,12 @@ namespace Unnamed {
 			return;
 		}
 
-		AssetManager* assetManager = GetAssetManager();
+		const AssetManager* assetManager = GetAssetManager();
 		if (!assetManager) {
 			return;
 		}
 
-		bool needsReload = false;
+		bool needsReload;
 		if (mAssetId == kInvalidAssetID) {
 			needsReload = true;
 		} else {
@@ -941,11 +938,13 @@ namespace Unnamed {
 
 			const uint64_t receiverGuid =
 				GetOwner() ? GetOwner()->GetGuid() : 0;
+			const std::string assetDisplayName = mLoadedAssetName.empty() ?
+				                                     mAssetPath.
+				                                     ToGenericUtf8() :
+				                                     mLoadedAssetName;
 			const EventPresentationExecutor::ExecutionContext context = {
-				.cue       = cue,
-				.assetName = mLoadedAssetName.empty() ?
-					             std::string_view(mAssetPath) :
-					             std::string_view(mLoadedAssetName),
+				.cue                       = cue,
+				.assetName                 = std::string_view(assetDisplayName),
 				.receiverEntityGuid        = receiverGuid,
 				.verboseLog                = mVerboseLog,
 				.audioFx                   = mAudioFx,
@@ -963,7 +962,7 @@ namespace Unnamed {
 					if (!mGraphEditorState || !mGraphEditorState->ui) {
 						return;
 					}
-					EventPresentationEditorGraphUi::RuntimeTraceState uiState =
+					auto uiState =
 						EventPresentationEditorGraphUi::RuntimeTraceState::Executed;
 					switch (status) {
 						case
@@ -1048,7 +1047,8 @@ namespace Unnamed {
 		return owner ? owner->GetGuid() : 0;
 	}
 
-	AudioFxControllerComponent* EventPresentationComponent::ResolveAudioFx() {
+	AudioFxControllerComponent*
+	EventPresentationComponent::ResolveAudioFx() const {
 		const uint64_t targetGuid = ResolveAudioTargetEntityGuid();
 		if (targetGuid == 0) {
 			return nullptr;
@@ -1064,7 +1064,8 @@ namespace Unnamed {
 			       nullptr;
 	}
 
-	CameraFxControllerComponent* EventPresentationComponent::ResolveCameraFx() {
+	CameraFxControllerComponent*
+	EventPresentationComponent::ResolveCameraFx() const {
 		const uint64_t targetGuid = ResolveCameraFxTargetEntityGuid();
 		if (targetGuid == 0) {
 			return nullptr;
@@ -1080,7 +1081,8 @@ namespace Unnamed {
 			       nullptr;
 	}
 
-	SkeletalAnimationComponent* EventPresentationComponent::ResolveAnimation() {
+	SkeletalAnimationComponent*
+	EventPresentationComponent::ResolveAnimation() const {
 		const uint64_t targetGuid = ResolveAnimationTargetEntityGuid();
 		if (targetGuid == 0) {
 			return nullptr;
@@ -1099,7 +1101,8 @@ namespace Unnamed {
 	void RegisterEventPresentationComponent(
 		ComponentRegistry& componentRegistry
 	) {
-		static constexpr std::string_view kStableName = "game.EventPresentation";
+		static constexpr std::string_view kStableName =
+			"game.EventPresentation";
 		static constexpr std::string_view kDisplayName = "EventPresentation";
 		if (componentRegistry.IsRegistered(kStableName)) {
 			return;

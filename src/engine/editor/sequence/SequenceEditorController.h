@@ -35,7 +35,7 @@ namespace Unnamed {
 		void Tick(float deltaSeconds);
 
 		/// @brief 指定パスのSequenceドキュメントを開きます。
-		[[nodiscard]] bool OpenDocument(const std::string& path);
+		[[nodiscard]] bool OpenDocument(Path path);
 
 		/// @brief アクティブドキュメントを保存します。
 		[[nodiscard]] bool SaveActiveDocument();

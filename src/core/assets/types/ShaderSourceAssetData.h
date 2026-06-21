@@ -2,10 +2,12 @@
 #include <string>
 #include <vector>
 
+#include "core/filesystem/Path.h"
+
 namespace Unnamed {
 	/// @brief シェーダーソースアセットのデータ構造体
 	struct ShaderSourceAssetData {
-		std::string              path;
+		Path                     path;
 		std::vector<std::string> includePaths;
 	};
 }

@@ -27,7 +27,7 @@ namespace Unnamed::Gui {
 		std::array<char, 256> pathBuffer           = {};
 		std::array<char, 128> outlinerFilterBuffer = {};
 		std::array<char, 128> renameBuffer         = {};
-		std::string           activeDocumentPath;
+		Path                  activeDocumentPath;
 		bool                  textWarningLogged     = false;
 		bool                  documentChanged       = false;
 		int                   addComponentTypeIndex = 0;

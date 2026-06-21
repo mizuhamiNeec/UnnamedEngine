@@ -12,8 +12,8 @@ namespace Unnamed {
 		/// @brief ゲームのルート情報と既定起動情報です。
 		GameModulePaths modulePaths = {};
 		/// @brief 起動時デフォルトシーン（content 相対）です。
-		std::string defaultStartupScenePath;
+		Path defaultStartupScenePath;
 		/// @brief UI ドキュメントのデフォルトパスです。
-		std::string defaultUiDocumentPath;
+		Path defaultUiDocumentPath;
 	};
 }

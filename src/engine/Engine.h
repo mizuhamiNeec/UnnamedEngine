@@ -139,6 +139,7 @@ namespace Unnamed {
 #endif
 
 		std::unique_ptr<AudioSystem> mAudioSystem;
+		
 		std::unique_ptr<ConCommand>  mQuitCommand;
 		std::unique_ptr<ConCommand>  mToggleEditorCommand;
 		std::unique_ptr<ConCommand>  mToggleFullscreenCommand;
@@ -152,7 +153,6 @@ namespace Unnamed {
 		std::unique_ptr<ConCommand>  mPostFxListCommand;
 		std::unique_ptr<ConCommand>  mPostFxChainCommand;
 		std::unique_ptr<ConCommand>  mPostFxChainReloadCommand;
-		std::unique_ptr<ConCommand>  mSequenceRegressionRunCommand;
 
 		std::unique_ptr<Render::RenderFrameContext> mRenderFrameContext;
 		float mAssetHotReloadPollAccumulator = 0.0f;

@@ -2,6 +2,8 @@
 
 #include "UiComponent.h"
 
+#include "core/filesystem/Path.h"
+
 #include "engine/gui/UiDrawCommand.h"
 
 namespace Unnamed::Gui {
@@ -11,8 +13,8 @@ namespace Unnamed::Gui {
 			return "Texture";
 		}
 
-		void SetTexturePath(const std::string& path);
-		[[nodiscard]] const std::string& GetTexturePath() const;
+		void SetTexturePath(Path path);
+		[[nodiscard]] const Path& GetTexturePath() const;
 
 		void SetColor(const Color& color);
 		[[nodiscard]] const Color& GetColor() const;
@@ -37,7 +39,7 @@ namespace Unnamed::Gui {
 		void Deserialize(const JsonReader& reader) override;
 
 	private:
-		std::string mTexturePath;
+		Path mTexturePath;
 		Color       mColor = {.r = 1.0f, .g = 1.0f, .b = 1.0f, .a = 1.0f};
 		Vec2        mUvMin = Vec2(0.0f, 0.0f);
 		Vec2        mUvMax = Vec2(1.0f, 1.0f);

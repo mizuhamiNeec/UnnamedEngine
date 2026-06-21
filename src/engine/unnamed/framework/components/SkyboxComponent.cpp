@@ -7,9 +7,9 @@
 #include "core/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
@@ -27,19 +27,17 @@ namespace Unnamed {
 		}
 	}
 
-	void SkyboxComponent::SetTexturePath(const std::string& path) {
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mTexturePath == normalized) {
+	void SkyboxComponent::SetTexturePath(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (mTexturePath == path) {
 			return;
 		}
 
-		mTexturePath    = normalized;
+		mTexturePath    = std::move(path);
 		mTextureAssetId = kInvalidAssetID;
 	}
 
-	const std::string& SkyboxComponent::GetTexturePath() const noexcept {
+	const Path& SkyboxComponent::GetTexturePath() const noexcept {
 		return mTexturePath;
 	}
 
@@ -52,7 +50,7 @@ namespace Unnamed {
 	}
 
 	AssetID SkyboxComponent::ResolveTextureAsset(AssetManager& assetManager) {
-		if (mTexturePath.empty()) {
+		if (mTexturePath.IsEmpty()) {
 			return kInvalidAssetID;
 		}
 		if (mTextureAssetId != kInvalidAssetID) {
@@ -78,20 +76,20 @@ namespace Unnamed {
 	}
 
 	void SkyboxComponent::Deserialize(const JsonReader& reader) {
-		std::string texturePath = mTexturePath;
+		std::string texturePath = mTexturePath.ToGenericUtf8();
 		if (const JsonReader value = reader["texturePath"]; value.Valid()) {
 			texturePath = value.GetString();
 		}
 		if (texturePath.empty()) {
 			texturePath = std::string(kDefaultSkyboxTexturePath);
 		}
-		SetTexturePath(texturePath);
+		SetTexturePath(Path(texturePath));
 		SetIntensity(ReadFloatOr(reader, "intensity", mIntensity));
 	}
 
 	void SkyboxComponent::Serialize(JsonWriter& writer) const {
 		writer.Key("texturePath");
-		writer.Write(mTexturePath);
+		writer.Write(mTexturePath.ToGenericUtf8());
 		writer.Key("intensity");
 		writer.Write(mIntensity);
 	}
@@ -102,7 +100,7 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SkyboxComponent::DrawInspectorImGui() {
-		std::string texturePath = mTexturePath;
+		std::string texturePath = mTexturePath.ToGenericUtf8();
 		if (
 			ImGuiWidgets::AssetPathPicker(
 				"TexturePath",
@@ -110,7 +108,7 @@ namespace Unnamed {
 				ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::TEXTURE)
 			)
 		) {
-			SetTexturePath(texturePath);
+			SetTexturePath(mTexturePath);
 		}
 
 		if (ImGui::DragFloat("Intensity", &mIntensity, 0.01f, 0.0f, 32.0f)) {

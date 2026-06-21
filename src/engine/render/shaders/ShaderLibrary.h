@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "core/filesystem/Path.h"
 #include "ShaderKey.h"
 
 namespace Unnamed {
@@ -34,27 +35,21 @@ namespace Unnamed::Render {
 		void InvalidateByShaderSource(AssetID shaderSourceId);
 
 		void InvalidateAll();
-		void SetCacheDirectory(std::filesystem::path dir);
+		void SetCacheDirectory(Path dir);
 
 	private:
-		[[nodiscard]] std::filesystem::path GetDxilCachePath(
-			const ShaderKey& key
-		) const;
+		[[nodiscard]] Path GetDxilCachePath(const ShaderKey& key) const;
 		[[nodiscard]] uint64_t ComputeDerivedHash(const ShaderKey& key) const;
 
 		static std::vector<std::wstring> BuildDxcArgs(const ShaderKey& key);
 
-		static std::vector<uint8_t> ReadFileBytes(
-			const std::filesystem::path& path
-		);
-		static void WriteFileBytes(
-			const std::filesystem::path& path, const std::vector<uint8_t>& bytes
-		);
+		static std::vector<uint8_t> ReadFileBytes(const Path& path);
+		static void WriteFileBytes(const Path& path, const std::vector<uint8_t>& bytes);
 
 		AssetManager&           mAssetManager;
 		Rhi::DxcShaderCompiler& mDxcShaderCompiler;
 
-		std::filesystem::path mCacheDir = {};
+		Path mCacheDir = {};
 
 		std::unordered_map<ShaderKey, ShaderDxil, ShaderKeyHash> mRuntimeCache;
 		std::unordered_set<ShaderKey, ShaderKeyHash>             mDirtyKeys;

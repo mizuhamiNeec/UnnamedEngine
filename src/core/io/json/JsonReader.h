@@ -8,10 +8,10 @@
 #include <string_view>
 #include <vector>
 
+#include "core/filesystem/Path.h"
 #include "core/math/Quaternion.h"
 #include "core/math/Vec3.h"
 #include "core/math/Vec4.h"
-#include "core/path/PathUtil.h"
 
 namespace Unnamed {
 	/// @brief JSON読み込みクラス
@@ -21,18 +21,30 @@ namespace Unnamed {
 		/// @brief デフォルトコンストラクタ
 		JsonReader() = default;
 
-
 		/// @brief JSONオブジェクトから初期化するコンストラクタ
 		/// @param root JSONルートオブジェクト
 		explicit JsonReader(const nlohmann::json& root)
 			: mStorage(std::make_shared<nlohmann::json>(root)),
 			  mNode(mStorage.get()),
-			  mValid(true) {}
+			  mValid(true) {
+		}
 
 		/// @brief ファイルパスから読み込むコンストラクタ
 		/// @param path JSONファイルのパス
-		explicit JsonReader(const std::string& path) {
-			std::ifstream ifs(Path::FromUtf8(path));
+		explicit JsonReader(const char* path) :
+			JsonReader(Path(path == nullptr ? "" : path)) {
+		}
+
+		/// @brief ファイルパスから読み込むコンストラクタ
+		/// @param path JSONファイルのパス
+		explicit JsonReader(const std::string& path) :
+			JsonReader(Path(path)) {
+		}
+
+		/// @brief ファイルパスから読み込むコンストラクタ
+		/// @param path JSONファイルのパス
+		explicit JsonReader(const Path& path) {
+			std::ifstream ifs(path.Native());
 			if (!ifs) {
 				mValid = false;
 				return;
@@ -332,7 +344,8 @@ namespace Unnamed {
 		)
 			: mStorage(std::move(storage)),
 			  mNode(node),
-			  mValid(valid && node != nullptr) {}
+			  mValid(valid && node != nullptr) {
+		}
 
 		std::shared_ptr<nlohmann::json> mStorage;
 		const nlohmann::json*           mNode{nullptr};

@@ -38,6 +38,8 @@
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 // ReSharper disable once CppUnusedIncludeDirective
+#include "core/filesystem/Path.h"
+
 #include "engine/unnamed/subsystem/console/concommand/ConVar.h"
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
@@ -449,8 +451,8 @@ namespace Unnamed {
 		}
 	}
 
-	bool World::LoadSceneFromFile(const char* path) {
-		if (!path || std::string_view(path).empty()) {
+	bool World::LoadSceneFromFile(Path path) {
+		if (path.IsEmpty()) {
 			return false;
 		}
 
@@ -468,19 +470,19 @@ namespace Unnamed {
 		}
 
 		SetScene(std::move(newScene));
-		mLoadedScenePath = StrUtil::NormalizePath(path);
+		mLoadedScenePath = path.LexicallyNormal();
 		OnSceneLoaded();
 
 		Msg(
 			kChannel, "Scene loaded successfully from file: {}",
-			std::string(path)
+			path
 		);
 
 		return true;
 	}
 
-	bool World::SaveSceneToFile(const char* path) const {
-		if (!mScene || !path || std::string_view(path).empty()) {
+	bool World::SaveSceneToFile(Path path) const {
+		if (!mScene || path.IsEmpty()) {
 			return false;
 		}
 		return SceneSerializer::SaveToFile(*mScene, path);
@@ -497,20 +499,18 @@ namespace Unnamed {
 			mSequenceRuntime->Clear();
 		}
 		mScene.reset();
-		mLoadedScenePath.clear();
+		mLoadedScenePath = {};
 	}
 
-	void World::RequestSceneTransition(const std::string_view path) {
-		const std::string normalizedPath = StrUtil::NormalizePath(
-			StrUtil::TrimSpaces(std::string(path))
-		);
-		if (normalizedPath.empty()) {
+	void World::RequestSceneTransition(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (path.IsEmpty()) {
 			Warning(kChannel, "Scene transition was ignored because path is empty.");
 			return;
 		}
 
 		// 実行中のシーン更新中に即時ロードしないため、次の安全地点まで保留します。
-		mPendingSceneTransitionPath = normalizedPath;
+		mPendingSceneTransitionPath = std::move(path);
 		Msg(
 			kChannel,
 			"Queued scene transition to: {}",
@@ -519,15 +519,15 @@ namespace Unnamed {
 	}
 
 	void World::ProcessPendingSceneTransition() {
-		if (mPendingSceneTransitionPath.empty()) {
+		if (mPendingSceneTransitionPath.IsEmpty()) {
 			return;
 		}
 
 		// 再入時に同じ要求を処理しないよう、先に保留値を取り出します。
-		const std::string requestedPath = std::move(mPendingSceneTransitionPath);
-		mPendingSceneTransitionPath.clear();
+		const Path requestedPath = std::move(mPendingSceneTransitionPath);
+		mPendingSceneTransitionPath = {};
 
-		if (LoadSceneFromFile(requestedPath.c_str())) {
+		if (LoadSceneFromFile(requestedPath)) {
 			return;
 		}
 
@@ -982,7 +982,7 @@ namespace Unnamed {
 				if (draw.type == Gui::UI_DRAW_COMMAND_TYPE::IMAGE) {
 					Render::ScreenSpriteInput sprite =
 						UiCanvasRuntime::BuildScreenSprite(draw.image, sort);
-					if (!draw.image.texturePath.empty()) {
+					if (!draw.image.texturePath.IsEmpty()) {
 						const AssetID textureAssetId = assetManager.LoadFromFile(
 							draw.image.texturePath,
 							ASSET_TYPE::TEXTURE
@@ -1144,12 +1144,12 @@ namespace Unnamed {
 		return true;
 	}
 
-	std::string_view World::GetLoadedScenePath() const {
+	Path World::GetLoadedScenePath() const {
 		return mLoadedScenePath;
 	}
 
-	void World::SetLoadedScenePath(std::string path) {
-		mLoadedScenePath = std::move(path);
+	void World::SetLoadedScenePath(Path path) {
+		mLoadedScenePath = path.IsEmpty() ? Path() : path.LexicallyNormal();
 	}
 
 	WorldCameraManager& World::GetCameraManager() noexcept {

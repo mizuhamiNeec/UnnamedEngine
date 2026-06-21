@@ -4,6 +4,8 @@
 #include <cctype>
 #include <string_view>
 
+#include "core/filesystem/Path.h"
+
 std::string Unnamed::ToString(const ASSET_TYPE e) {
 	switch (e) {
 		case ASSET_TYPE::UNKNOWN: return "UNKNOWN";
@@ -25,7 +27,7 @@ std::string Unnamed::ToString(const ASSET_TYPE e) {
 }
 
 Unnamed::ASSET_TYPE Unnamed::GuessAssetTypeFromPath(
-	const std::string_view path
+	const Path& path
 ) {
 	auto ToLower = [](std::string value) {
 		std::ranges::transform(

@@ -50,12 +50,12 @@ namespace Unnamed {
 		/// @brief ゲーム名・ルート・既定シーン情報を返します。
 		[[nodiscard]] virtual GameModulePaths GetGameModulePaths() const = 0;
 		/// @brief 起動時のデフォルトシーンパスを返します。
-		[[nodiscard]] virtual std::string GetDefaultStartupScenePath() const {
+		[[nodiscard]] virtual Path GetDefaultStartupScenePath() const {
 			return GetGameModulePaths().defaultStartupScene;
 		}
 		/// @brief UI ドキュメントのデフォルトパスを返します。
 		/// @details Engine 側はこの値を利用し、ゲーム固有パスを直書きしません。
-		[[nodiscard]] virtual std::string GetDefaultUiDocumentPath() const {
+		[[nodiscard]] virtual Path GetDefaultUiDocumentPath() const {
 			return {};
 		}
 	};

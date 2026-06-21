@@ -12,6 +12,7 @@
 #include "AssetMetaData.h"
 #include "AssetType.h"
 #include "LoadResult.h"
+#include "core/filesystem/Path.h"
 
 namespace Unnamed {
 	class IAssetLoader;
@@ -47,7 +48,7 @@ namespace Unnamed {
 		/// @param policy ロードポリシー（デフォルトはUseCachedIfLoaded）
 		/// @return ロードしたアセットのID
 		AssetID LoadFromFile(
-			const std::string& path,
+			const Path& path,
 			std::optional<ASSET_TYPE> typeOpt = std::nullopt,
 			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
 		);
@@ -147,7 +148,7 @@ namespace Unnamed {
 		/// @brief パスからアセットを検索します
 		/// @param path 検索するアセットのパス
 		/// @return 見つかったアセットのID、見つからなかった場合はkInvalidAssetID
-		[[nodiscard]] AssetID FindByPath(std::string_view path) const;
+		[[nodiscard]] AssetID FindByPath(const Path& path) const;
 
 		/// @brief 名前からアセットを検索します
 		/// @param name 検索するアセットの名前
@@ -166,7 +167,7 @@ namespace Unnamed {
 		/// @param type アセットの型
 		/// @return アセットID
 		AssetID FindOrCreateSlotByPath(
-			const std::string& path, ASSET_TYPE type
+			const Path& path, ASSET_TYPE type
 		);
 
 		/// @brief 指定したアセットを参照しているアセット情報を再構築します

@@ -13,7 +13,7 @@ namespace Unnamed {
 		mEditorLuaSystem = luaSystem;
 	}
 
-	void EditorGuiScriptPanel::SetScriptPath(std::string path) {
+	void EditorGuiScriptPanel::SetScriptPath(Path path) {
 		if (mScriptPath == path) {
 			return;
 		}
@@ -43,7 +43,7 @@ namespace Unnamed {
 			return;
 		}
 
-		if (mScriptPath.empty()) {
+		if (mScriptPath.IsEmpty()) {
 			mHasError  = true;
 			mLastError = "Editor GUI script path is empty.";
 			return;
@@ -58,7 +58,7 @@ namespace Unnamed {
 			EditorGuiData>(mAssetID);
 		if (!editorGuiAsset) {
 			mHasError  = true;
-			mLastError = "Failed to load editor GUI asset: " + mScriptPath;
+			mLastError = "Failed to load editor GUI asset: " + mScriptPath.ToGenericUtf8();
 			return;
 		}
 
@@ -73,7 +73,7 @@ namespace Unnamed {
 	}
 
 	void EditorGuiScriptPanel::Draw() {
-		if (mScriptPath.empty()) {
+		if (mScriptPath.IsEmpty()) {
 			ImGui::TextUnformatted("No editor GUI script selected.");
 			return;
 		}

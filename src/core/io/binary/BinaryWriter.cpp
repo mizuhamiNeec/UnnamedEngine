@@ -1,11 +1,12 @@
 #include "BinaryWriter.h"
 
-#include "core/path/PathUtil.h"
+#include "core/filesystem/Path.h"
 
 namespace Unnamed {
-	BinaryWriter::BinaryWriter(const std::string& path) : mStream(
-		Path::FromUtf8(path), std::ios::binary | std::ios::trunc
-	) {}
+	BinaryWriter::BinaryWriter(const Path& path) : mStream(
+		path.Native(), std::ios::binary | std::ios::trunc
+	) {
+	}
 
 	bool BinaryWriter::IsOpen() const {
 		return mStream.is_open();

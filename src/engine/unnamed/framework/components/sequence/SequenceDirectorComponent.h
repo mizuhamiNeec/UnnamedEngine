@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "core/filesystem/Path.h"
 #include "engine/sequence/SequenceRuntimeTypes.h"
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 
@@ -70,7 +71,7 @@ namespace Unnamed {
 		/// @brief ロック対象仕様からコンポーネントを解決します。
 		[[nodiscard]] BaseComponent* ResolveLockTarget(const LockTargetSpec& spec) const;
 
-		std::string mSequencePath = "";
+		Path        mSequencePath = {};
 		bool        mPlayOnAttach = true;
 		bool        mAutoStopWhenCompleted = true;
 		float       mPlayRate = 1.0f;

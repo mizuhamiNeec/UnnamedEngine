@@ -5,11 +5,13 @@
 #include <functional>
 #include <string>
 
+#include <core/filesystem/Path.h>
+
 #include "core/assets/AssetType.h"
 
 namespace Unnamed::EditorContentBrowser {
-	using AssetTypeMask = uint32_t;
-	inline constexpr AssetTypeMask kAssetTypeMaskAny = 0xFFFFFFFFu;
+	using AssetTypeMask                                    = uint32_t;
+	inline constexpr AssetTypeMask kAssetTypeMaskAny       = 0xFFFFFFFFu;
 	inline constexpr const char*   kAssetDragDropPayloadId =
 		"UNNAMED_ASSET_REF";
 
@@ -19,11 +21,11 @@ namespace Unnamed::EditorContentBrowser {
 	};
 
 	struct BrowserViewState {
-		std::string rootPath    = "./content";
-		std::string currentPath = "./content";
-		std::string selectedPath;
-		bool        iconView = false;
-		float       iconSize = 96.0f;
+		Path  rootPath    = Path("./content");
+		Path  currentPath = Path("./content");
+		Path  selectedPath;
+		bool  iconView = false;
+		float iconSize = 96.0f;
 	};
 
 	using AssetOpenCallback = std::function<void(
@@ -32,8 +34,8 @@ namespace Unnamed::EditorContentBrowser {
 	)>;
 
 	[[nodiscard]] AssetTypeMask AssetTypeToMask(ASSET_TYPE type);
-	[[nodiscard]] bool IsAssetTypeAccepted(
-		ASSET_TYPE type,
+	[[nodiscard]] bool          IsAssetTypeAccepted(
+		ASSET_TYPE    type,
 		AssetTypeMask acceptedMask
 	);
 

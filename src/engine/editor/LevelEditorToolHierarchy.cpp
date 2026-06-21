@@ -1207,7 +1207,7 @@ namespace Unnamed {
 				) {
 					return;
 				}
-				(void)mSequenceEditorController->OpenDocument(path);
+				(void)mSequenceEditorController->OpenDocument(Path(path));
 			}
 		);
 	}

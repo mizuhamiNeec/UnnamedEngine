@@ -1,5 +1,6 @@
 #ifdef _DEBUG
 #include "LevelEditorTool.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
 #include <array>
@@ -11,8 +12,6 @@
 #include <vector>
 
 #include "core/math/Math.h"
-#include "core/path/PathUtil.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
@@ -44,7 +43,7 @@ namespace Unnamed {
 			outBuffer[copyLength] = '\0';
 		}
 
-		[[nodiscard]] std::string ResolveEditorSceneRootPath() {
+		[[nodiscard]] Path ResolveEditorSceneRootPath() {
 			constexpr std::string_view kChannel           = "LevelEditorTool";
 			constexpr std::string_view kFallbackSceneRoot =
 				"./content/core/scenes";
@@ -58,23 +57,23 @@ namespace Unnamed {
 					Warning(
 						kChannel,
 						"GameRuntimeContext service was not available. Fallback scene root '{}'.",
-						std::string(kFallbackSceneRoot)
+						Path(kFallbackSceneRoot)
 					);
 					sWarnedMissingModule = true;
 				}
-				return std::string(kFallbackSceneRoot);
+				return Path(kFallbackSceneRoot);
 			}
 
-			const std::string sceneRoot = ResolveGameContentPath(
+			const Path sceneRoot = ResolveGameContentPath(
 				runtimeContext->modulePaths,
-				"scenes"
-			);
+				Path("scenes")
+			).LexicallyNormal();
 			std::error_code ec;
-			if (!sceneRoot.empty() &&
-			    std::filesystem::exists(sceneRoot, ec) &&
+			if (!sceneRoot.IsEmpty() &&
+			    std::filesystem::exists(sceneRoot.Native(), ec) &&
 			    !ec) {
 				sWarnedUnavailableSceneRoot = false;
-				return StrUtil::NormalizePath(sceneRoot);
+				return sceneRoot;
 			}
 
 			if (!sWarnedUnavailableSceneRoot) {
@@ -82,23 +81,23 @@ namespace Unnamed {
 					kChannel,
 					"Game scene root '{}' is unavailable. Fallback scene root '{}'.",
 					sceneRoot,
-					std::string(kFallbackSceneRoot)
+					Path(kFallbackSceneRoot)
 				);
 				sWarnedUnavailableSceneRoot = true;
 			}
-			return std::string(kFallbackSceneRoot);
+			return Path(kFallbackSceneRoot);
 		}
 
 		/// @brief `<game content>/scenes/*.json` からシーン候補を収集します。
 		/// @return ロード可能なシーンパス一覧
-		[[nodiscard]] std::vector<std::string> CollectSceneCandidates(
-			const std::string_view scenesRoot
+		[[nodiscard]] std::vector<Path> CollectSceneCandidates(
+			const Path& scenesRoot
 		) {
 			namespace fs = std::filesystem;
 
-			std::vector<std::string> scenePaths = {};
-			std::error_code          ec         = {};
-			const fs::path           rootPath = Path::FromUtf8(scenesRoot);
+			std::vector<Path> scenePaths = {};
+			std::error_code   ec         = {};
+			const fs::path    rootPath   = scenesRoot.Native();
 			if (!fs::exists(rootPath, ec)) {
 				return scenePaths;
 			}
@@ -118,24 +117,21 @@ namespace Unnamed {
 					continue;
 				}
 
-				const std::string normalizedPath = StrUtil::NormalizePath(
-					Path::ToGenericUtf8(it->path())
-				);
-				if (
-					normalizedPath.find("/scenes/") == std::string::npos ||
-					!StrUtil::HasExtension(normalizedPath, ".json")
-				) {
+				const Path normalizedPath =
+					Path::FromNative(it->path()).LexicallyNormal();
+				if (normalizedPath.Extension() != Path(".json")) {
 					continue;
 				}
 
-				if (it->path().is_relative()) {
-					scenePaths.emplace_back("./" + normalizedPath);
-				} else {
-					scenePaths.emplace_back(normalizedPath);
-				}
+				scenePaths.emplace_back(std::move(normalizedPath));
 			}
 
-			std::ranges::sort(scenePaths);
+			std::ranges::sort(
+				scenePaths,
+				[](const Path& lhs, const Path& rhs) {
+					return lhs.ToGenericUtf8() < rhs.ToGenericUtf8();
+				}
+			);
 			scenePaths.erase(
 				std::unique(scenePaths.begin(), scenePaths.end()),
 				scenePaths.end()
@@ -151,17 +147,16 @@ namespace Unnamed {
 	void LevelEditorTool::DrawMainMenu() {
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("File")) {
-				const auto currentPath =
-					std::string(mEditorWorld.GetLoadedScenePath());
-				const std::string sceneRoot = ResolveEditorSceneRootPath();
-				const std::string defaultScenePath = StrUtil::NormalizePath(
-					sceneRoot + "/sandbox.json"
-				);
+				const Path currentPath      = mEditorWorld.GetLoadedScenePath();
+				const Path sceneRoot        = ResolveEditorSceneRootPath();
+				const Path defaultScenePath =
+					(sceneRoot / Path("sandbox.json")).
+					LexicallyNormal();
 
 				if (ImGui::MenuItem("Save")) {
-					const std::string savePath = currentPath.empty() ?
-						                             defaultScenePath :
-						                             currentPath;
+					const Path savePath = currentPath.IsEmpty() ?
+						                      defaultScenePath :
+						                      currentPath;
 					if (SaveSceneAs(savePath)) {
 						Msg(
 							"LevelEditorTool",
@@ -196,8 +191,8 @@ namespace Unnamed {
 				ImGui::Separator();
 
 				if (ImGui::BeginMenu("Open Scene")) {
-					static std::vector<std::string> sSceneCandidates = {};
-					static std::string              sSceneRoot       = {};
+					static std::vector<Path> sSceneCandidates = {};
+					static Path              sSceneRoot       = {};
 					if (sSceneRoot != sceneRoot) {
 						sSceneRoot       = sceneRoot;
 						sSceneCandidates = CollectSceneCandidates(sceneRoot);
@@ -220,15 +215,17 @@ namespace Unnamed {
 					if (quickOpenCount == 0) {
 						ImGui::TextDisabled(
 							"No scenes found in %s/**/*.json",
-							sceneRoot.c_str()
+							sceneRoot.ToGenericUtf8().c_str()
 						);
 					} else {
 						for (size_t i = 0; i < quickOpenCount; ++i) {
-							const std::string& scenePath = sSceneCandidates[i];
-							if (!ImGui::MenuItem(scenePath.c_str())) {
+							const Path&       scenePath = sSceneCandidates[i];
+							const std::string scenePathText =
+								scenePath.ToGenericUtf8();
+							if (!ImGui::MenuItem(scenePathText.c_str())) {
 								continue;
 							}
-							SetPathBuffer(mOpenScenePathBuffer, scenePath);
+							SetPathBuffer(mOpenScenePathBuffer, scenePathText);
 							(void)LoadSceneFromPath(scenePath);
 						}
 						if (sSceneCandidates.size() > quickOpenCount) {
@@ -241,11 +238,14 @@ namespace Unnamed {
 
 					ImGui::Separator();
 
-					const std::string defaultPath = currentPath.empty() ?
-						                                defaultScenePath :
-						                                currentPath;
+					const Path defaultPath = currentPath.IsEmpty() ?
+						                         defaultScenePath :
+						                         currentPath;
 					if (mOpenScenePathBuffer[0] == '\0') {
-						SetPathBuffer(mOpenScenePathBuffer, defaultPath);
+						SetPathBuffer(
+							mOpenScenePathBuffer,
+							defaultPath.ToGenericUtf8()
+						);
 					}
 
 					ImGui::SetNextItemWidth(360.0f);
@@ -256,11 +256,16 @@ namespace Unnamed {
 					);
 
 					if (ImGui::Button("Load")) {
-						(void)LoadSceneFromPath(mOpenScenePathBuffer.data());
+						(void)LoadSceneFromPath(
+							Path(mOpenScenePathBuffer.data())
+						);
 					}
 					ImGui::SameLine();
 					if (ImGui::Button("Use Current")) {
-						SetPathBuffer(mOpenScenePathBuffer, defaultPath);
+						SetPathBuffer(
+							mOpenScenePathBuffer,
+							defaultPath.ToGenericUtf8()
+						);
 					}
 
 					ImGui::EndMenu();

@@ -1,24 +1,25 @@
 #include "EventPresentationLoader.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
 #include <filesystem>
 
 #include "core/assets/types/EventPresentationAssetData.h"
 #include "core/io/json/JsonReader.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
 	namespace {
-		bool IsEventPresentationPath(const std::string_view path) {
-			return StrUtil::ToLowerCase(std::string(path)).ends_with(
+		bool IsEventPresentationPath(const Path& path) {
+			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
 				".event_presentation.json"
 			);
 		}
 	}
 
 	bool EventPresentationLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		const bool ok = IsEventPresentationPath(path);
 		if (outType) {
@@ -27,17 +28,17 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult EventPresentationLoader::Load(const std::string& path) {
+	LoadResult EventPresentationLoader::Load(const Path& path) {
 		LoadResult       result = {};
 		const JsonReader root(path);
 		if (!root.Valid()) {
 			return result;
 		}
 
-		const std::filesystem::path full = Path::FromUtf8(path);
+		const Path full = path.LexicallyNormal();
 		EventPresentationAssetData  data = {};
 		data.name = root.Read<std::string>("name").value_or(
-			Path::ToUtf8String(full.stem().stem())
+			Path::ToUtf8String(full.Stem().Stem())
 		);
 
 		const JsonReader triggersNode = root["triggers"];
@@ -162,11 +163,13 @@ namespace Unnamed {
 		}
 
 		result.payload     = std::move(data);
-		result.resolveName = Path::ToUtf8String(full.stem().stem());
+		result.resolveName = Path::ToUtf8String(full.Stem().Stem());
 
 		std::error_code ec;
-		if (Path::ExistsUtf8(path, ec)) {
-			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		if (std::filesystem::exists(path.Native(), ec)) {
+			result.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 
 		return result;

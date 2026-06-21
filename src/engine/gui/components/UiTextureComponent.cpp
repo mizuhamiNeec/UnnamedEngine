@@ -2,9 +2,9 @@
 
 #include <algorithm>
 
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/gui/UiWidget.h"
 
@@ -46,11 +46,15 @@ namespace Unnamed::Gui {
 		}
 	}
 
-	void UiTextureComponent::SetTexturePath(const std::string& path) {
-		mTexturePath = path.empty() ? std::string() : StrUtil::NormalizePath(path);
+	void UiTextureComponent::SetTexturePath(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (mTexturePath == path) {
+			return;
+		}
+		mTexturePath = std::move(path);
 	}
 
-	const std::string& UiTextureComponent::GetTexturePath() const {
+	const Path& UiTextureComponent::GetTexturePath() const {
 		return mTexturePath;
 	}
 
@@ -101,7 +105,7 @@ namespace Unnamed::Gui {
 		const UiWidget& owner,
 		std::vector<UiDrawCommand>& out
 	) const {
-		if (!owner.IsVisible() || mTexturePath.empty()) {
+		if (!owner.IsVisible() || mTexturePath.IsEmpty()) {
 			return;
 		}
 
@@ -124,7 +128,7 @@ namespace Unnamed::Gui {
 
 	void UiTextureComponent::Serialize(JsonWriter& writer) const {
 		writer.Key("texturePath");
-		writer.Write(mTexturePath);
+		writer.Write(mTexturePath.ToGenericUtf8());
 		writer.Key("color");
 		WriteColor(writer, mColor);
 		writer.Key("uvMin");
@@ -139,7 +143,7 @@ namespace Unnamed::Gui {
 
 	void UiTextureComponent::Deserialize(const JsonReader& reader) {
 		if (reader.Has("texturePath")) {
-			SetTexturePath(reader["texturePath"].GetString());
+			SetTexturePath(Path(reader["texturePath"].GetString()));
 		}
 		if (reader.Has("color")) {
 			mColor = ReadColor(reader["color"], mColor);

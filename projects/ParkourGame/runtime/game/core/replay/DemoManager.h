@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <core/filesystem/Path.h>
+
 #include "engine/game/IDemoService.h"
 #include "DemoTypes.h"
 #include "ReplaySerializerRegistry.h"
@@ -33,12 +35,12 @@ namespace Unnamed {
 		/// @brief デモの録画を開始する
 		/// @param path 録画ファイルの保存先パス
 		/// @return 録画開始に成功したか
-		bool StartRecording(std::string path) override;
+		bool StartRecording(Path path) override;
 
 		/// @brief デモの再生を開始する
 		/// @param path 再生するデモファイルのパス
 		/// @return 再生開始に成功したか
-		bool StartPlayback(std::string path) override;
+		bool StartPlayback(Path path) override;
 
 		/// @brief 録画または再生を停止する
 		/// @return 停止に成功したか
@@ -66,7 +68,7 @@ namespace Unnamed {
 
 		/// @brief 再生開始からの経過時間（秒）を取得する
 		/// @return 再生開始からの経過時間（秒）
-		[[nodiscard]] std::string_view GetCurrentPath() const override;
+		[[nodiscard]] Path GetCurrentPath() const override;
 
 		/// @brief 現在の再生セッション番号を取得します。
 		/// @return StartPlayback が成功するたびに更新される番号
@@ -162,7 +164,7 @@ namespace Unnamed {
 		/// @brief 再生ファイルを読み込む
 		/// @param path 読み込むファイルのパス
 		/// @return 読み込みに成功した場合はtrue、そうでなければfalse
-		[[nodiscard]] bool LoadPlaybackFile(const std::string& path);
+		[[nodiscard]] bool LoadPlaybackFile(const Path& path);
 
 		/// @brief 対象エンティティのワールドから初期スナップショット集合を構築します。
 		/// @param subjectEntity 対象のエンティティ
@@ -207,7 +209,7 @@ namespace Unnamed {
 		[[nodiscard]] uint64_t ResolveRecordedSubjectEntityGuid() const;
 
 		MODE                     mMode               = MODE::IDLE;
-		std::string              mCurrentPath        = {};
+		Path                     mCurrentPath        = {};
 		DemoFileV2               mFile               = {};
 		ReplaySerializerRegistry mSerializerRegistry =
 			ReplaySerializerRegistry::BuildDefault();

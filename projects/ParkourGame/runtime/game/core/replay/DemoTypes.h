@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "core/filesystem/Path.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -12,7 +13,7 @@
 #include "game/core/input/CharacterActionFrameInput.h"
 
 namespace Unnamed {
-	constexpr uint32_t kDemoFileVersion = kDemoBinaryVersion;
+	constexpr uint32_t kDemoFileVersion     = kDemoBinaryVersion;
 	constexpr uint32_t kDefaultDemoTickRate = 66; // 1秒あたりのティック数
 
 	enum class DEMO_COMMAND_TYPE : uint8_t {
@@ -20,10 +21,10 @@ namespace Unnamed {
 	};
 
 	struct DemoPlayerInputPayload {
-		MovementFrameInput movement     = {};
-		CharacterActionFrameInput action = {};
-		float              viewYawDeg   = 0.0f;
-		float              viewPitchDeg = 0.0f;
+		MovementFrameInput        movement     = {};
+		CharacterActionFrameInput action       = {};
+		float                     viewYawDeg   = 0.0f;
+		float                     viewPitchDeg = 0.0f;
 	};
 
 	struct DemoTickCommand {
@@ -47,13 +48,13 @@ namespace Unnamed {
 	};
 
 	struct DemoFileV2 {
-		uint32_t                                     version = kDemoFileVersion;
-		uint32_t                                     tickRate = kDefaultDemoTickRate;
-		uint64_t                                     startTick = 0;
-		std::string                                  mapPath;
-		std::unordered_map<std::string, std::string> meta            = {};
-		std::vector<EntitySnapshotRecord>            initialEntities = {};
-		std::vector<DemoTickCommand>                 commands        = {};
-		std::vector<FrameSnapshot>                   snapshots       = {};
+		uint32_t version = kDemoFileVersion;
+		uint32_t tickRate = kDefaultDemoTickRate;
+		uint64_t startTick = 0;
+		Path mapPath;
+		std::unordered_map<std::string, std::string> meta = {};
+		std::vector<EntitySnapshotRecord> initialEntities = {};
+		std::vector<DemoTickCommand> commands = {};
+		std::vector<FrameSnapshot> snapshots = {};
 	};
 }

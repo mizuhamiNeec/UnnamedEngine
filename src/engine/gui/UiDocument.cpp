@@ -14,7 +14,7 @@ namespace Unnamed::Gui {
 
 	UiDocument::~UiDocument() = default;
 
-	bool UiDocument::Save(const std::string& path) const {
+	bool UiDocument::Save(const Path& path) const {
 		JsonWriter writer(path);
 
 		writer.BeginObject();
@@ -33,13 +33,13 @@ namespace Unnamed::Gui {
 		return writer.Save();
 	}
 
-	std::shared_ptr<UiDocument> UiDocument::Load(const std::string& path) {
+	std::shared_ptr<UiDocument> UiDocument::Load(const Path& path) {
 		const JsonReader reader(path);
 		if (!reader.Valid()) {
 			Error(kChannel, "Failed to open UI document '{}'.", path);
 			return nullptr;
 		}
-		return LoadFromJson(reader, path);
+		return LoadFromJson(reader, path.ToGenericUtf8());
 	}
 
 	std::shared_ptr<UiDocument> UiDocument::LoadFromJson(

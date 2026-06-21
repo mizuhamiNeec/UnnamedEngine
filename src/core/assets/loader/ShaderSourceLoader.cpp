@@ -1,10 +1,11 @@
 #include "ShaderSourceLoader.h"
+#include "core/filesystem/Path.h"
 
 #include <cctype>
 #include <filesystem>
 
 #include "core/assets/AssetManager.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -18,16 +19,18 @@ namespace Unnamed {
 		mAssetManager(assetManager) {}
 
 	bool ShaderSourceLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		// outTypeがnullptrならfalseを返す
 		if (!outType) {
 			return false;
 		}
+		const std::string extension =
+			StrUtil::ToLowerCase(path.Extension().ToGenericUtf8());
 		// 拡張子がサポートされているかを確認
 		if (
-			StrUtil::HasExtension(path, kSupportedHlslExtension) ||
-			StrUtil::HasExtension(path, kSupportedHlsliExtension)
+			extension == kSupportedHlslExtension ||
+			extension == kSupportedHlsliExtension
 		) {
 			*outType = ASSET_TYPE::SHADER_SOURCE;
 			return true;
@@ -35,11 +38,11 @@ namespace Unnamed {
 		return false;
 	}
 
-	LoadResult ShaderSourceLoader::Load(const std::string& path) {
+	LoadResult ShaderSourceLoader::Load(const Path& path) {
 		LoadResult r = {};
 
 		ShaderSourceAssetData data = {};
-		data.path                  = path;
+		data.path                  = path.LexicallyNormal();
 
 		std::string text;
 		if (!StrUtil::ReadFileToString(path, text)) {
@@ -48,19 +51,16 @@ namespace Unnamed {
 		}
 		data.includePaths = ParseIncludes(text);
 
-		const std::filesystem::path baseDir = Path::FromUtf8(path).parent_path();
+		const Path baseDir = path.ParentPath();
 
 		// 依存関係の解決
 		for (const auto& include : data.includePaths) {
-			std::filesystem::path includePath = Path::FromUtf8(include);
-			if (includePath.is_relative()) {
-				includePath = baseDir / includePath;
+			auto includePath = Path(include);
+			if (includePath.IsRelative()) {
+				includePath = (baseDir / includePath).LexicallyNormal();
 			}
-			const std::string depPath = StrUtil::NormalizePath(
-				Path::ToGenericUtf8(includePath.lexically_normal())
-			);
 			const AssetID depId = mAssetManager->LoadFromFile(
-				depPath, ASSET_TYPE::SHADER_SOURCE
+				includePath.LexicallyNormal(), ASSET_TYPE::SHADER_SOURCE
 			);
 			if (depId != kInvalidAssetID) {
 				r.dependencies.emplace_back(depId);
@@ -68,9 +68,11 @@ namespace Unnamed {
 		}
 
 		r.payload     = std::move(data);
-		r.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
-		if (std::error_code ec; Path::ExistsUtf8(path, ec)) {
-			r.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		r.resolveName = Path::ToUtf8String(path.FileName());
+		if (std::error_code ec; std::filesystem::exists(path.Native(), ec)) {
+			r.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 
 		return r;

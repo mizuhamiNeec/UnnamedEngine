@@ -21,14 +21,14 @@ namespace Unnamed {
 	public:
 		/// @brief `.sequence.json` を読み込み、編集データとランタイムデータを構築します。
 		static bool LoadFromFile(
-			const std::string&      path,
+			const Path&             path,
 			SequenceFileLoadResult& outResult
 		);
 
 		/// @brief 編集データを `.sequence.json` として保存します。
 		/// @param outWritten 内容が変化して実際に書き戻した場合はtrue
 		static bool SaveToFile(
-			const std::string&           path,
+			const Path&                  path,
 			const SequenceAuthoringData& authoring,
 			bool*                        outWritten = nullptr
 		);

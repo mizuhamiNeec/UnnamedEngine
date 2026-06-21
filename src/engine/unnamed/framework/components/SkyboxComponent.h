@@ -4,6 +4,7 @@
 #include "base/BaseComponent.h"
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/Path.h"
 
 namespace Unnamed {
 	class AssetManager;
@@ -12,8 +13,8 @@ namespace Unnamed {
 
 	class SkyboxComponent final : public BaseComponent {
 	public:
-		void SetTexturePath(const std::string& path);
-		[[nodiscard]] const std::string& GetTexturePath() const noexcept;
+		void SetTexturePath(Path path);
+		[[nodiscard]] const Path& GetTexturePath() const noexcept;
 
 		void                SetIntensity(float intensity) noexcept;
 		[[nodiscard]] float GetIntensity() const noexcept;
@@ -34,7 +35,7 @@ namespace Unnamed {
 		[[nodiscard]] uint32_t GetIcon() const override;
 
 	private:
-		std::string mTexturePath = "content/core/textures/wave.dds";
+		Path        mTexturePath = Path("content/core/textures/wave.dds");
 		AssetID     mTextureAssetId = kInvalidAssetID;
 		float       mIntensity      = 1.0f;
 	};

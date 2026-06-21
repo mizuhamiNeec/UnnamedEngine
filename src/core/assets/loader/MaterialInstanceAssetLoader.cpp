@@ -1,11 +1,12 @@
 #include "MaterialInstanceAssetLoader.h"
+#include "core/filesystem/Path.h"
 
 #include <filesystem>
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/MaterialInstanceAssetData.h"
 #include "core/io/json/JsonReader.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -13,8 +14,8 @@ namespace Unnamed {
 		/// @brief マテリアルインスタンスアセットのパスか?
 		/// @param path パス
 		/// @return マテリアルインスタンスアセットのパスならtrue
-		bool IsMaterialInstancePath(const std::string_view path) {
-			return StrUtil::ToLowerCase(std::string(path)).ends_with(
+		bool IsMaterialInstancePath(const Path& path) {
+			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
 				".matinst.json"
 			);
 		}
@@ -25,7 +26,7 @@ namespace Unnamed {
 	) : mAssetManager(assetManager) {}
 
 	bool MaterialInstanceAssetLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		// 拡張子ベースで判定。厳密なファイル存在チェックはLoad()に任せる。
 		const bool ok = IsMaterialInstancePath(path);
@@ -35,26 +36,29 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult MaterialInstanceAssetLoader::Load(const std::string& path) {
+	LoadResult MaterialInstanceAssetLoader::Load(const Path& path) {
 		LoadResult       result = {};
 		const JsonReader root(path);
 		if (!root.Valid()) {
 			return result;
 		}
 
-		const std::filesystem::path full = Path::FromUtf8(path);
-		const std::filesystem::path baseDir = full.parent_path();
+		const Path full    = path.LexicallyNormal();
+		const Path baseDir = full.ParentPath();
 
 		// "name" フィールドがあればそれを、なければファイル名をアセット名とする。
 		MaterialInstanceAssetData data = {};
 		data.name = root.Read<std::string>("name").value_or(
-			Path::ToUtf8String(full.filename())
+			Path::ToUtf8String(full.FileName())
 		);
 
 		// "material" フィールドがあればマテリアルアセットを読み込む。
 		if (const auto materialPath = root.Read<std::string>("material");
 			materialPath.has_value() && !materialPath->empty()) {
-			data.materialPath = Path::ResolveRelativePath(baseDir, *materialPath);
+			data.materialPath = Path::ResolveRelativePath(
+				baseDir.Native(),
+				*materialPath
+			);
 			data.materialId   = mAssetManager->LoadFromFile(
 				data.materialPath, ASSET_TYPE::MATERIAL
 			);
@@ -73,8 +77,9 @@ namespace Unnamed {
 					if (!texturePathNode.IsString()) {
 						return;
 					}
-					std::string texturePath = Path::ResolveRelativePath(
-						baseDir, texturePathNode.GetString()
+					const Path texturePath = Path::ResolveRelativePath(
+						baseDir.Native(),
+						texturePathNode.GetString()
 					);
 					data.textureOverrides[slot] = texturePath;
 
@@ -115,11 +120,13 @@ namespace Unnamed {
 		result.payload = std::move(data);
 
 		// アセット名が指定されていない場合は、ファイル名から拡張子を除いたものをアセット名とする。
-		result.resolveName = Path::ToUtf8String(full.stem().stem());
+		result.resolveName = Path::ToUtf8String(full.Stem().Stem());
 
 		std::error_code ec;
-		if (Path::ExistsUtf8(path, ec)) {
-			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		if (std::filesystem::exists(path.Native(), ec)) {
+			result.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 		return result;
 	}

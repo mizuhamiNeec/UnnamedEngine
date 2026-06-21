@@ -41,7 +41,7 @@ namespace Unnamed {
 		mRuntimeContext->modulePaths = mGameModule->GetGameModulePaths();
 		mRuntimeContext->defaultStartupScenePath =
 			mGameModule->GetDefaultStartupScenePath();
-		if (mRuntimeContext->defaultStartupScenePath.empty()) {
+		if (mRuntimeContext->defaultStartupScenePath.IsEmpty()) {
 			mRuntimeContext->defaultStartupScenePath =
 				mRuntimeContext->modulePaths.defaultStartupScene;
 		}

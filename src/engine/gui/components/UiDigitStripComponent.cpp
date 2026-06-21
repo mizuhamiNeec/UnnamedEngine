@@ -4,9 +4,9 @@
 #include <cmath>
 #include <string>
 
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/gui/UiWidget.h"
 
@@ -34,12 +34,15 @@ namespace Unnamed::Gui {
 		}
 	}
 
-	void UiDigitStripComponent::SetStripTexturePath(const std::string& path) {
-		mStripTexturePath =
-			path.empty() ? std::string() : StrUtil::NormalizePath(path);
+	void UiDigitStripComponent::SetStripTexturePath(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (mStripTexturePath == path) {
+			return;
+		}
+		mStripTexturePath = std::move(path);
 	}
 
-	const std::string& UiDigitStripComponent::GetStripTexturePath() const {
+	const Path& UiDigitStripComponent::GetStripTexturePath() const {
 		return mStripTexturePath;
 	}
 
@@ -79,7 +82,7 @@ namespace Unnamed::Gui {
 		const UiWidget& owner,
 		std::vector<UiDrawCommand>& out
 	) const {
-		if (!owner.IsVisible() || mStripTexturePath.empty()) {
+		if (!owner.IsVisible() || mStripTexturePath.IsEmpty()) {
 			return;
 		}
 
@@ -133,7 +136,7 @@ namespace Unnamed::Gui {
 
 	void UiDigitStripComponent::Serialize(JsonWriter& writer) const {
 		writer.Key("stripTexturePath");
-		writer.Write(mStripTexturePath);
+		writer.Write(mStripTexturePath.ToGenericUtf8());
 		writer.Key("value");
 		writer.Write(mValue);
 		writer.Key("minDigits");
@@ -146,7 +149,9 @@ namespace Unnamed::Gui {
 
 	void UiDigitStripComponent::Deserialize(const JsonReader& reader) {
 		if (reader.Has("stripTexturePath")) {
-			SetStripTexturePath(reader["stripTexturePath"].GetString());
+			SetStripTexturePath(
+				Path(reader["stripTexturePath"].GetString())
+			);
 		}
 		if (reader.Has("value")) {
 			SetValue(reader["value"].GetInt());

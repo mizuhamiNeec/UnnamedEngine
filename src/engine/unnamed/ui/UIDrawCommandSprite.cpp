@@ -13,8 +13,8 @@
 
 namespace Unnamed::UI {
 	namespace {
-		constexpr bool kSnapTextGlyphToPixel = true;
-		constexpr std::string_view kDefaultUIFontPath =
+		constexpr bool             kSnapTextGlyphToPixel = true;
+		constexpr std::string_view kDefaultUIFontPath    =
 			R"(.\content\core\fonts\JetBrainsMono.ttf)";
 
 		[[nodiscard]] Render::ScreenSpriteInput BuildRectSprite(
@@ -62,9 +62,9 @@ namespace Unnamed::UI {
 			++outStats->textCommandCount;
 		}
 
-		UIFontAtlasCache& fontAtlasCache = GetUIFontAtlasCache();
-		const UIFontAtlasKey key = MakeUIFontAtlasKey(
-			kDefaultUIFontPath,
+		UIFontAtlasCache&    fontAtlasCache = GetUIFontAtlasCache();
+		const UIFontAtlasKey key            = MakeUIFontAtlasKey(
+			Path(kDefaultUIFontPath),
 			command.textFontSize,
 			command.textOversampleH,
 			command.textOversampleV
@@ -105,7 +105,8 @@ namespace Unnamed::UI {
 		static uint32_t sLoggedOversampleV   = 0;
 		static bool     sLoggedForceFallback = false;
 		const bool      atlasStateChanged    =
-			std::fabs(sLoggedFontSize - fontAtlas->GetFontPixelSize()) > 0.01f ||
+			std::fabs(sLoggedFontSize - fontAtlas->GetFontPixelSize()) > 0.01f
+			||
 			sLoggedOversampleH != fontAtlas->GetOversampleH() ||
 			sLoggedOversampleV != fontAtlas->GetOversampleV() ||
 			sLoggedForceFallback != forceFallbackTexture;
@@ -181,11 +182,11 @@ namespace Unnamed::UI {
 				);
 				const Vec2 glyphSize = glyph->size;
 				sprite.positionPx    = kSnapTextGlyphToPixel ?
-					                    Vec2(
-						                    std::round(glyphPosition.x),
-						                    std::round(glyphPosition.y)
-					                    ) :
-					                    glyphPosition;
+					                       Vec2(
+						                       std::round(glyphPosition.x),
+						                       std::round(glyphPosition.y)
+					                       ) :
+					                       glyphPosition;
 				sprite.sizePx = kSnapTextGlyphToPixel ?
 					                Vec2(
 						                std::max(1.0f, std::round(glyphSize.x)),

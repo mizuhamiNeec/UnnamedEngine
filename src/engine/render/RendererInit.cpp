@@ -13,9 +13,9 @@
 namespace Unnamed::Render {
 	namespace {
 		AssetID LoadAsset(
-			AssetManager&      assetManager,
-			const std::string& path,
-			const ASSET_TYPE   type
+			AssetManager&    assetManager,
+			const Path&      path,
+			const ASSET_TYPE type
 		) {
 			return assetManager.LoadFromFile(path, type);
 		}
@@ -199,62 +199,64 @@ namespace Unnamed::Render {
 
 		const AssetID fullscreenProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/fullscreen_copy.shader.json",
+			Path("./content/core/shaders/programs/fullscreen_copy.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID depthVisProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/depth_vis.shader.json",
+			Path("./content/core/shaders/programs/depth_vis.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID depthOnlyProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/depth_only.shader.json",
+			Path("./content/core/shaders/programs/depth_only.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID geomProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/pbr.shader.json",
+			Path("./content/core/shaders/programs/pbr.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID skyboxProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/skybox.shader.json",
+			Path("./content/core/shaders/programs/skybox.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID csProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/cs_write_uav.shader.json",
+			Path("./content/core/shaders/programs/cs_write_uav.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID spriteOverlayProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/sprite_overlay.shader.json",
+			Path("./content/core/shaders/programs/sprite_overlay.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID debugLineProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/DebugLine.shader.json",
+			Path("./content/core/shaders/programs/DebugLine.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID bloomDownsampleProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/bloom_downsample.shader.json",
+			Path(
+				"./content/core/shaders/programs/bloom_downsample.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID bloomUpsampleProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/bloom_upsample.shader.json",
+			Path("./content/core/shaders/programs/bloom_upsample.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID bloomCombineProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/bloom_combine.shader.json",
+			Path("./content/core/shaders/programs/bloom_combine.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 		const AssetID toneMapExposureProgramId = LoadAsset(
 			assetManager,
-			"./content/core/shaders/programs/tonemap_exposure.shader.json",
+			Path(
+				"./content/core/shaders/programs/tonemap_exposure.shader.json"),
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 

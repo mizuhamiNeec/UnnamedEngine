@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/Path.h"
 #include "core/math/Vec4.h"
 
 namespace Unnamed {
@@ -11,9 +12,9 @@ namespace Unnamed {
 		std::string name;
 
 		AssetID     materialId = kInvalidAssetID;
-		std::string materialPath;
+		Path        materialPath;
 
-		std::unordered_map<std::string, std::string> textureOverrides;
+		std::unordered_map<std::string, Path>        textureOverrides;
 		std::unordered_map<std::string, float>       scalarOverrides;
 		std::unordered_map<std::string, Vec4>        vectorOverrides;
 	};

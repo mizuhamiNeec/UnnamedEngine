@@ -10,7 +10,7 @@ namespace Unnamed {
 	class EditorGuiScriptPanel {
 	public:
 		void Initialize(AssetManager* assetManager, EditorLuaSystem* luaSystem);
-		void SetScriptPath(std::string path);
+		void SetScriptPath(Path path);
 		void Reload();
 		void Draw();
 
@@ -18,8 +18,8 @@ namespace Unnamed {
 		AssetManager*    mAssetManager    = nullptr;
 		EditorLuaSystem* mEditorLuaSystem = nullptr;
 
-		std::string mScriptPath;
-		AssetID     mAssetID = 0;
+		Path    mScriptPath;
+		AssetID mAssetID = 0;
 
 		bool mLoaded   = false;
 		bool mHasError = false;

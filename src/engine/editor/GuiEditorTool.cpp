@@ -8,7 +8,6 @@
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/gui/UiCanvasRuntime.h"
 #include "engine/render/Renderer.h"
@@ -69,7 +68,7 @@ namespace Unnamed {
 		const float deltaTime = frameContext.unscaledDeltaTime;
 
 		(void)mGuiDocumentManager->UpdateTrackedDocuments();
-		if (!mGuiEditorContext->activeDocumentPath.empty()) {
+		if (!mGuiEditorContext->activeDocumentPath.IsEmpty()) {
 			if (auto latest = mGuiDocumentManager->GetDocument(
 				mGuiEditorContext->activeDocumentPath
 			); latest && latest != mGuiActiveDocument) {
@@ -160,10 +159,11 @@ namespace Unnamed {
 		Gui::DrawUiInspectorWindow(*mGuiEditorContext);
 
 		if (mGuiEditorContext->documentChanged) {
-			const std::string trackingPath =
-				!mGuiEditorContext->activeDocumentPath.empty() ?
+			const Path trackingPath =
+				!mGuiEditorContext->activeDocumentPath.IsEmpty() ?
 					mGuiEditorContext->activeDocumentPath :
-					StrUtil::NormalizePath(mGuiEditorContext->pathBuffer.data());
+					Path(mGuiEditorContext->pathBuffer.data()).
+						LexicallyNormal();
 			mGuiDocumentManager->MarkDirty(trackingPath, true);
 		}
 
@@ -220,7 +220,7 @@ namespace Unnamed {
 				);
 				if (assetManager && !draw.image.texturePath.empty()) {
 					const AssetID textureAssetId = assetManager->LoadFromFile(
-						draw.image.texturePath,
+						Path(draw.image.texturePath),
 						ASSET_TYPE::TEXTURE
 					);
 					if (textureAssetId != kInvalidAssetID) {

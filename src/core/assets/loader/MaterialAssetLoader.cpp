@@ -1,11 +1,12 @@
 #include "MaterialAssetLoader.h"
+#include "core/filesystem/Path.h"
 
 #include <filesystem>
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/MaterialAssetData.h"
 #include "core/io/json/JsonReader.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -13,8 +14,8 @@ namespace Unnamed {
 		/// @brief パスがマテリアルアセットのものであるか?
 		/// @param path 判定するパス
 		/// @return マテリアルアセットのパスであればtrue
-		bool IsMaterialPath(const std::string_view path) {
-			return StrUtil::ToLowerCase(std::string(path)).ends_with(
+		bool IsMaterialPath(const Path& path) {
+			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
 				".material.json"
 			);
 		}
@@ -81,7 +82,7 @@ namespace Unnamed {
 	}
 
 	bool MaterialAssetLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		// 拡張子ベースで判定。厳密なファイル存在チェックはLoad()に任せる。
 		const bool ok = IsMaterialPath(path);
@@ -91,21 +92,21 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult MaterialAssetLoader::Load(const std::string& path) {
+	LoadResult MaterialAssetLoader::Load(const Path& path) {
 		LoadResult       result = {};
 		const JsonReader root(path);
 		if (!root.Valid()) {
 			return result;
 		}
 
-		const std::filesystem::path full    = Path::FromUtf8(path);
-		const std::filesystem::path baseDir = full.parent_path();
+		const Path full    = path.LexicallyNormal();
+		const Path baseDir = full.ParentPath();
 
 		MaterialAssetData data = {};
 
 		// "name" フィールドがあればそれを、なければファイル名をアセット名とする。
 		data.name = root.Read<std::string>("name").value_or(
-			Path::ToUtf8String(full.filename())
+			Path::ToUtf8String(full.FileName())
 		);
 
 		// "domain" フィールドがあればそれを、なければ "pbr" をドメインとして扱う。
@@ -121,10 +122,13 @@ namespace Unnamed {
 		// "shader" フィールドがあればシェーダープログラムを読み込む。
 		if (const auto shader = root.Read<std::string>("shader");
 			shader.has_value() && !shader->empty()) {
-			data.shaderProgramPath =
-				Path::ResolveRelativePath(baseDir, *shader);
+			data.shaderProgramPath = Path::ResolveRelativePath(
+				baseDir.Native(),
+				*shader
+			);
 			data.shaderProgramId = mAssetManager->LoadFromFile(
-				data.shaderProgramPath, ASSET_TYPE::SHADER_PROGRAM
+				data.shaderProgramPath,
+				ASSET_TYPE::SHADER_PROGRAM
 			);
 			if (data.shaderProgramId != kInvalidAssetID) {
 				result.dependencies.emplace_back(data.shaderProgramId);
@@ -186,11 +190,13 @@ namespace Unnamed {
 		result.payload = std::move(data);
 
 		// 解決名は拡張子を取り除いたものを使う(.material.jsonと2段界)
-		result.resolveName = Path::ToUtf8String(full.stem().stem());
+		result.resolveName = Path::ToUtf8String(full.Stem().Stem());
 
 		std::error_code ec;
-		if (Path::ExistsUtf8(path, ec)) {
-			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		if (std::filesystem::exists(path.Native(), ec)) {
+			result.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 		return result;
 	}

@@ -1,11 +1,12 @@
 #include "PostFxChainLoader.h"
+#include "core/filesystem/Path.h"
 
 #include <filesystem>
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/PostFxChainAssetData.h"
 #include "core/io/json/JsonReader.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -13,8 +14,8 @@ namespace Unnamed {
 		/// @brief パスがPostFxChainアセットとして適切かどうかを判定する。拡張子ベースで判定する。
 		/// @param path 判定するパス
 		/// @return パスがPostFxChainアセットとして適切であればtrue、そうでなければfalse
-		bool IsPostFxPath(const std::string_view path) {
-			return StrUtil::ToLowerCase(std::string(path)).ends_with(
+		bool IsPostFxPath(const Path& path) {
+			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
 				".postfx.json"
 			);
 		}
@@ -24,7 +25,7 @@ namespace Unnamed {
 		mAssetManager(assetManager) {}
 
 	bool PostFxChainLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		const bool ok = IsPostFxPath(path);
 		if (outType) {
@@ -33,19 +34,19 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult PostFxChainLoader::Load(const std::string& path) {
+	LoadResult PostFxChainLoader::Load(const Path& path) {
 		LoadResult       result = {};
 		const JsonReader root(path);
 		if (!root.Valid()) {
 			return result;
 		}
 
-		const std::filesystem::path full = Path::FromUtf8(path);
-		const std::filesystem::path baseDir = full.parent_path();
+		const Path full    = path.LexicallyNormal();
+		const Path baseDir = full.ParentPath();
 
 		PostFxChainAssetData data = {};
 		data.name                 = root.Read<std::string>("name").value_or(
-			Path::ToUtf8String(full.filename())
+			Path::ToUtf8String(full.FileName())
 		);
 
 		const JsonReader passes = root["passes"];
@@ -63,10 +64,12 @@ namespace Unnamed {
 				if (const auto shaderPath = p.Read<std::string>("shader");
 					shaderPath.has_value() && !shaderPath->empty()) {
 					pass.shaderProgramPath = Path::ResolveRelativePath(
-						baseDir, *shaderPath
+						baseDir.Native(),
+						*shaderPath
 					);
 					pass.shaderProgramId = mAssetManager->LoadFromFile(
-						pass.shaderProgramPath, ASSET_TYPE::SHADER_PROGRAM
+						pass.shaderProgramPath,
+						ASSET_TYPE::SHADER_PROGRAM
 					);
 					if (pass.shaderProgramId != kInvalidAssetID) {
 						result.dependencies.emplace_back(pass.shaderProgramId);
@@ -102,11 +105,13 @@ namespace Unnamed {
 		}
 
 		result.payload     = std::move(data);
-		result.resolveName = Path::ToUtf8String(full.stem().stem());
+		result.resolveName = Path::ToUtf8String(full.Stem().Stem());
 
 		std::error_code ec;
-		if (Path::ExistsUtf8(path, ec)) {
-			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		if (std::filesystem::exists(path.Native(), ec)) {
+			result.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 		return result;
 	}

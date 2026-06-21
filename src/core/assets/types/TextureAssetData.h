@@ -6,6 +6,8 @@
 
 #include <dxgiformat.h>
 
+#include "core/filesystem/Path.h"
+
 namespace Unnamed {
 	enum class TEXTURE_DIMENSION : uint8_t {
 		TEXTURE_2D = 0,
@@ -44,6 +46,6 @@ namespace Unnamed {
 		bool                          isSRGB    = false; // sRGBかどうか
 		bool                          isCubeMap = false;
 		TEXTURE_DIMENSION             dimension = TEXTURE_DIMENSION::TEXTURE_2D;
-		std::string             sourcePath;     // ソースファイルパス
+		Path                          sourcePath;     // ソースファイルパス
 	};
 }

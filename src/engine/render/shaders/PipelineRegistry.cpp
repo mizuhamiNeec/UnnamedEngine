@@ -11,13 +11,13 @@
 
 namespace Unnamed::Render {
 	namespace {
-		constexpr std::string_view kChannel = "PipelineRegistry";
+		constexpr std::string_view kChannel = "PipelineReg";
 
 		bool ResolveShaderProgramStageKey(
-			RenderDevice&            renderDevice,
-			const AssetID            shaderProgramId,
-			const std::string_view   stage,
-			ShaderKey&               outKey
+			const RenderDevice&    renderDevice,
+			const AssetID          shaderProgramId,
+			const std::string_view stage,
+			ShaderKey&             outKey
 		) {
 			auto&       assetManager = renderDevice.GetAssetManager();
 			const auto* program      = assetManager.Get<ShaderProgramAssetData>(

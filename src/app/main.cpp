@@ -9,7 +9,8 @@
 #include "LoadedGameModule.h"
 
 #include "core/io/json/JsonReader.h"
-#include "core/path/PathUtil.h"
+#include "core/filesystem/Path.h"
+
 #include "engine/Engine.h"
 #include "engine/game/GameRuntimeContext.h"
 #include "engine/game/GameModuleRegistry.h"
@@ -17,18 +18,18 @@
 namespace {
 	/// @brief パスを絶対パスへ解決し、正規化します。
 	/// @details 失敗した場合は入力値の lexical 正規化結果へフォールバックします。
-	[[nodiscard]] std::filesystem::path ResolveAbsoluteNormalizedPath(
-		const std::filesystem::path& path
+	[[nodiscard]] Unnamed::Path ResolveAbsoluteNormalizedPath(
+		const Unnamed::Path& path
 	) {
-		std::error_code ec = {};
+		std::error_code             ec           = {};
 		const std::filesystem::path absolutePath = std::filesystem::absolute(
-			path,
+			path.Native(),
 			ec
 		);
 		if (ec) {
-			return path.lexically_normal();
+			return path.LexicallyNormal();
 		}
-		return absolutePath.lexically_normal();
+		return Unnamed::Path::FromNative(absolutePath.lexically_normal());
 	}
 
 	/// @brief 使用可能なモジュールのリストをカンマ区切りで作成します。
@@ -37,7 +38,9 @@ namespace {
 	[[nodiscard]] std::string BuildAvailableModulesText(
 		const std::vector<std::string>& moduleNames
 	) {
-		if (moduleNames.empty()) { return "<none>"; }
+		if (moduleNames.empty()) {
+			return "<none>";
+		}
 
 		std::string text = moduleNames.front();
 		for (size_t i = 1; i < moduleNames.size(); ++i) {
@@ -52,19 +55,17 @@ namespace {
 	/// @param outRuntimeModule 解決されたランタイムモジュール名の出力先
 	/// @return 成功した場合はtrue、失敗した場合はfalse。
 	[[nodiscard]] bool ResolveRuntimeModuleFromProfile(
-		const std::filesystem::path& manifestPath,
-		std::string&                 outRuntimeModule
+		const Unnamed::Path& manifestPath,
+		std::string&         outRuntimeModule
 	) {
-		const std::filesystem::path normalizedManifestPath =
+		const Unnamed::Path normalizedManifestPath =
 			ResolveAbsoluteNormalizedPath(manifestPath);
-		const Unnamed::JsonReader profileReader(
-			Path::ToGenericUtf8(normalizedManifestPath)
-		);
+		const Unnamed::JsonReader profileReader(normalizedManifestPath);
 		if (!profileReader.Valid()) {
 			Error(
 				"Launcher",
 				"Failed to read game profile '{}'.",
-				Path::ToGenericUtf8(normalizedManifestPath)
+				normalizedManifestPath
 			);
 			return false;
 		}
@@ -79,7 +80,7 @@ namespace {
 			Error(
 				"Launcher",
 				"Failed to resolve runtime module from '{}': both runtimeModule and gameName are empty.",
-				Path::ToGenericUtf8(normalizedManifestPath)
+				normalizedManifestPath
 			);
 			return false;
 		}
@@ -88,41 +89,38 @@ namespace {
 		return true;
 	}
 
-	[[nodiscard]] std::string ResolveProfilePathField(
-		const Unnamed::JsonReader&     profileReader,
-		const std::filesystem::path& manifestPath,
-		const std::string_view         fieldName,
-		const std::string_view         fallbackPath
+	[[nodiscard]] Unnamed::Path ResolveProfilePathField(
+		const Unnamed::JsonReader& profileReader,
+		const Unnamed::Path&       manifestPath,
+		const std::string_view     fieldName,
+		const Unnamed::Path&       fallbackPath
 	) {
 		const std::string rawPath =
 			profileReader[std::string(fieldName)].GetString("");
 		if (rawPath.empty()) {
-			return std::string(fallbackPath);
+			return fallbackPath;
 		}
 
-		const std::filesystem::path valuePath = Path::FromUtf8(rawPath);
-		if (valuePath.is_absolute()) {
-			return Path::ToGenericUtf8(valuePath.lexically_normal());
+		const auto valuePath = Unnamed::Path(rawPath);
+		if (valuePath.IsAbsolute()) {
+			return valuePath.LexicallyNormal();
 		}
 
-		const std::filesystem::path baseDir = manifestPath.parent_path();
-		return Path::ToGenericUtf8((baseDir / valuePath).lexically_normal());
+		return (manifestPath.ParentPath() / valuePath).LexicallyNormal();
 	}
 
 	[[nodiscard]] bool ApplyRuntimeContextFromProfile(
-		const std::filesystem::path& manifestPath,
-		Unnamed::LoadedGameModule&     loadedGameModule
+		const Unnamed::Path&       manifestPath,
+		Unnamed::LoadedGameModule& loadedGameModule
 	) {
-		const std::filesystem::path normalizedManifestPath =
+		const Unnamed::Path normalizedManifestPath =
 			ResolveAbsoluteNormalizedPath(manifestPath);
-		const Unnamed::JsonReader profileReader(
-			Path::ToGenericUtf8(normalizedManifestPath)
-		);
+		const Unnamed::JsonReader profileReader(normalizedManifestPath);
 		if (!profileReader.Valid()) {
 			Error(
 				"Launcher",
 				"Failed to read game profile '{}'.",
-				Path::ToGenericUtf8(normalizedManifestPath)
+				normalizedManifestPath
 			);
 			return false;
 		}
@@ -155,14 +153,18 @@ namespace {
 			modulePaths.configRoot
 		);
 
-		modulePaths.defaultStartupScene = profileReader["defaultStartupScene"]
-			                                  .GetString(
-				                                  modulePaths.defaultStartupScene
-			                                  );
-		runtimeContext.defaultStartupScenePath = modulePaths.defaultStartupScene;
+		modulePaths.defaultStartupScene = Unnamed::Path(
+			profileReader["defaultStartupScene"].GetString(
+				modulePaths.defaultStartupScene.ToGenericUtf8()
+			)
+		);
+		runtimeContext.defaultStartupScenePath = modulePaths.
+			defaultStartupScene;
 
-		modulePaths.runtimeBinaryPath = profileReader["runtimeBinary"].GetString(
-			modulePaths.runtimeBinaryPath
+		modulePaths.runtimeBinaryPath = Unnamed::Path(
+			profileReader["runtimeBinary"].GetString(
+				modulePaths.runtimeBinaryPath.ToGenericUtf8()
+			)
 		);
 		modulePaths.requireRuntimeBinary =
 			profileReader["requireRuntimeBinary"].GetBool(
@@ -172,8 +174,7 @@ namespace {
 			profileReader["preferRuntimeBinary"].GetBool(
 				modulePaths.preferRuntimeBinary
 			);
-		modulePaths.resolvedManifestPath =
-			Path::ToGenericUtf8(normalizedManifestPath);
+		modulePaths.resolvedManifestPath = normalizedManifestPath;
 
 		Msg(
 			"Launcher",
@@ -195,11 +196,11 @@ namespace {
 
 	/// @brief 実行中 EXE の配置ディレクトリを返します。
 	/// @return 解決できた場合はディレクトリパス、失敗時は nullopt。
-	[[nodiscard]] std::optional<std::filesystem::path>
+	[[nodiscard]] std::optional<Unnamed::Path>
 	TryResolveExecutableDirectory() {
 		std::vector<wchar_t> buffer(260, L'\0');
 		while (true) {
-			const DWORD copied = ::GetModuleFileNameW(
+			const DWORD copied = GetModuleFileNameW(
 				nullptr,
 				buffer.data(),
 				static_cast<DWORD>(buffer.size())
@@ -209,11 +210,12 @@ namespace {
 			}
 
 			if (copied < buffer.size() - 1) {
-				const std::filesystem::path exePath(std::wstring(
+				const Unnamed::Path exePath = Unnamed::Path::FromNative(
+					std::filesystem::path(std::wstring(
 					buffer.data(),
 					static_cast<size_t>(copied)
-				));
-				return exePath.parent_path();
+				)));
+				return exePath.ParentPath();
 			}
 
 			buffer.resize(buffer.size() * 2, L'\0');
@@ -225,29 +227,34 @@ namespace {
 	/// @return 解決結果。
 	[[nodiscard]] DefaultProfileResolutionResult
 	ResolveRuntimeModuleFromDefaultProfile(
-		std::string&                 outRuntimeModule,
-		std::filesystem::path* outResolvedManifestPath
+		std::string&     outRuntimeModule,
+		Unnamed::Path* outResolvedManifestPath
 	) {
 		static constexpr std::string_view kDefaultManifestRelativePath =
 			"config/game_profile.json";
 
-		std::vector<std::filesystem::path> candidates = {};
-		std::error_code                    ec = {};
+		std::vector<Unnamed::Path> candidates = {};
+		std::error_code ec = {};
 		const std::filesystem::path cwd = std::filesystem::current_path(ec);
 		if (!ec) {
-			candidates.emplace_back(cwd / kDefaultManifestRelativePath);
+			candidates.emplace_back(
+				Unnamed::Path::FromNative(cwd) /
+				Unnamed::Path(kDefaultManifestRelativePath)
+			);
 		}
 
 		if (const auto exeDir = TryResolveExecutableDirectory();
 			exeDir.has_value()) {
-			candidates.emplace_back(*exeDir / kDefaultManifestRelativePath);
+			candidates.emplace_back(
+				*exeDir / Unnamed::Path(kDefaultManifestRelativePath)
+			);
 		}
 
-		std::vector<std::filesystem::path> uniqueCandidates = {};
+		std::vector<Unnamed::Path> uniqueCandidates = {};
 		uniqueCandidates.reserve(candidates.size());
 		for (const auto& candidate : candidates) {
-			const std::filesystem::path normalized = candidate.lexically_normal();
-			const bool                 alreadyAdded =
+			const Unnamed::Path normalized = candidate.LexicallyNormal();
+			const bool alreadyAdded =
 				std::ranges::find(uniqueCandidates, normalized) !=
 				uniqueCandidates.end();
 			if (!alreadyAdded) {
@@ -257,17 +264,18 @@ namespace {
 
 		for (const auto& manifestPath : uniqueCandidates) {
 			ec = {};
-			if (!std::filesystem::exists(manifestPath, ec) || ec) {
+			if (!std::filesystem::exists(manifestPath.Native(), ec) || ec) {
 				continue;
 			}
 
 			Msg(
 				"Launcher",
 				"Found default game profile '{}'.",
-				Path::ToGenericUtf8(manifestPath)
+				manifestPath
 			);
 
-			if (!ResolveRuntimeModuleFromProfile(manifestPath, outRuntimeModule)) {
+			if (!ResolveRuntimeModuleFromProfile(
+				manifestPath, outRuntimeModule)) {
 				return DefaultProfileResolutionResult::Failed;
 			}
 			if (outResolvedManifestPath != nullptr) {
@@ -308,13 +316,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	Unnamed::GameModuleRegistry moduleRegistry;
 	Unnamed::RegisterBuiltInGameModules(moduleRegistry);
 
-	std::string                          requestedModuleName = {};
-	std::optional<std::filesystem::path> selectedManifestPath = std::nullopt;
+	std::string                requestedModuleName  = {};
+	std::optional<Unnamed::Path> selectedManifestPath = std::nullopt;
 	if (launchOptions.projectManifestPath.has_value()) {
 		if (!ResolveRuntimeModuleFromProfile(
 			*launchOptions.projectManifestPath,
 			requestedModuleName
-		)) { return EXIT_FAILURE; }
+		)) {
+			return EXIT_FAILURE;
+		}
 		selectedManifestPath = *launchOptions.projectManifestPath;
 	}
 
@@ -325,8 +335,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	if (requestedModuleName.empty() &&
 	    !launchOptions.projectManifestPath.has_value() &&
 	    !launchOptions.gameName.has_value()) {
-		std::filesystem::path resolvedManifestPath = {};
-		const DefaultProfileResolutionResult profileResult =
+		Unnamed::Path                     resolvedManifestPath = {};
+		const DefaultProfileResolutionResult profileResult        =
 			ResolveRuntimeModuleFromDefaultProfile(
 				requestedModuleName,
 				&resolvedManifestPath
@@ -400,7 +410,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 		return EXIT_SUCCESS;
 	}
 
-#if defined(UNNAMED_WITH_EDITOR)
+#ifdef UNNAMED_WITH_EDITOR
 	constexpr auto runMode = Unnamed::RUN_MODE::EDITOR;
 #else
 	constexpr auto runMode = Unnamed::RUN_MODE::STANDALONE;

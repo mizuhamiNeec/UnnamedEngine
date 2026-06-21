@@ -19,7 +19,7 @@ namespace Unnamed {
 		void RenderTick(float renderDeltaTime, float interpolationAlpha) override;
 
 		/// @brief シーンファイルをロードします。
-		bool LoadSceneFromFile(const char* path) override;
+		bool LoadSceneFromFile(Path path) override;
 		/// @brief シーンをアンロードします。
 		void UnloadScene() override;
 
