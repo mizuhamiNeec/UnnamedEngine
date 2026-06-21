@@ -15,7 +15,8 @@ namespace Unnamed {
 		/// @param path パス
 		/// @return マテリアルインスタンスアセットのパスならtrue
 		bool IsMaterialInstancePath(const Path& path) {
-			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
+			return StrUtil::EndsWithIgnoreCase(
+				path.ToGenericUtf8(),
 				".matinst.json"
 			);
 		}

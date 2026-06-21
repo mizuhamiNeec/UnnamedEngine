@@ -12,7 +12,8 @@
 namespace Unnamed {
 	namespace {
 		bool IsEventPresentationPath(const Path& path) {
-			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
+			return StrUtil::EndsWithIgnoreCase(
+				path.ToGenericUtf8(),
 				".event_presentation.json"
 			);
 		}

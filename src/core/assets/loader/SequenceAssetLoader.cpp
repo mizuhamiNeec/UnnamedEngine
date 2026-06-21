@@ -10,7 +10,8 @@
 namespace Unnamed {
 	namespace {
 		[[nodiscard]] bool IsSequencePath(const Path& path) {
-			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
+			return StrUtil::EndsWithIgnoreCase(
+				path.ToGenericUtf8(),
 				".sequence.json"
 			);
 		}

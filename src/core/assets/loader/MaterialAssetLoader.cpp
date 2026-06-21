@@ -15,7 +15,8 @@ namespace Unnamed {
 		/// @param path 判定するパス
 		/// @return マテリアルアセットのパスであればtrue
 		bool IsMaterialPath(const Path& path) {
-			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
+			return StrUtil::EndsWithIgnoreCase(
+				path.ToGenericUtf8(),
 				".material.json"
 			);
 		}

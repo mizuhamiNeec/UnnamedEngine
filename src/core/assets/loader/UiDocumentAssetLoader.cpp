@@ -9,7 +9,8 @@ namespace Unnamed {
 	bool UiDocumentAssetLoader::CanLoad(
 		const Path& path, ASSET_TYPE* outType
 	) const {
-		const bool ok = StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
+		const bool ok = StrUtil::EndsWithIgnoreCase(
+			path.ToGenericUtf8(),
 			".ui.json"
 		);
 		if (outType) {

@@ -71,8 +71,8 @@ namespace Unnamed::StrUtil {
 		return result;
 	}
 
-	std::string ToLowerCase(const std::string& input) {
-		std::string result = input;
+	std::string ToLowerCase(const std::string_view input) {
+		std::string result(input);
 		std::ranges::transform(
 			result,
 			result.begin(),
@@ -208,13 +208,58 @@ namespace Unnamed::StrUtil {
 		return tokens;
 	}
 
-	std::string TrimSpaces(const std::string& string) {
+	std::string TrimSpaces(const std::string_view string) {
 		const size_t start = string.find_first_not_of(" \t\n\r");
 		const size_t end   = string.find_last_not_of(" \t\n\r");
 		if (start == std::string::npos || end == std::string::npos) {
 			return "";
 		}
-		return string.substr(start, end - start + 1);
+		return std::string(string.substr(start, end - start + 1));
+	}
+
+	bool EqualsIgnoreCase(
+		const std::string_view lhs, const std::string_view rhs
+	) {
+		if (lhs.size() != rhs.size()) {
+			return false;
+		}
+		for (size_t i = 0; i < lhs.size(); ++i) {
+			if (
+				std::tolower(static_cast<unsigned char>(lhs[i])) !=
+				std::tolower(static_cast<unsigned char>(rhs[i]))
+			) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool StartsWithIgnoreCase(
+		const std::string_view string, const std::string_view prefix
+	) {
+		return string.size() >= prefix.size() &&
+		       EqualsIgnoreCase(string.substr(0, prefix.size()), prefix);
+	}
+
+	bool EndsWithIgnoreCase(
+		const std::string_view string, const std::string_view suffix
+	) {
+		return string.size() >= suffix.size() &&
+		       EqualsIgnoreCase(
+			       string.substr(string.size() - suffix.size()), suffix
+		       );
+	}
+
+	std::size_t FindIgnoreCase(
+		const std::string_view text, const std::string_view query
+	) {
+		if (query.empty() || text.empty()) {
+			return std::string::npos;
+		}
+
+		const std::string loweredText  = ToLowerCase(text);
+		const std::string loweredQuery = ToLowerCase(query);
+		return loweredText.find(loweredQuery);
 	}
 
 	bool ReadFileToString(const Path& path, std::string& outString) {

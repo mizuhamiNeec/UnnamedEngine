@@ -14,9 +14,7 @@ namespace Unnamed {
 
 	namespace {
 		bool IsShaderProgramPath(const Path& path) {
-			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
-				".shader.json"
-			);
+			return StrUtil::EndsWithIgnoreCase(path.ToGenericUtf8(), ".shader.json");
 		}
 
 		void ParseDefines(

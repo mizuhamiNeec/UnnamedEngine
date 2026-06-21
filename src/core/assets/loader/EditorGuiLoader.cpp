@@ -15,9 +15,7 @@ namespace Unnamed {
 		/// @param path 判定するパス
 		/// @return パスがEditorGuiアセットとして適切か?
 		bool IsEditorGuiPath(const Path& path) {
-			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
-				".edgui.lua"
-			);
+			return StrUtil::EndsWithIgnoreCase(path.ToGenericUtf8(), ".edgui.lua");
 		}
 	}
 

@@ -15,9 +15,7 @@ namespace Unnamed {
 		/// @param path 判定するパス
 		/// @return パスがPostFxChainアセットとして適切であればtrue、そうでなければfalse
 		bool IsPostFxPath(const Path& path) {
-			return StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
-				".postfx.json"
-			);
+			return StrUtil::EndsWithIgnoreCase(path.ToGenericUtf8(), ".postfx.json");
 		}
 	}
 

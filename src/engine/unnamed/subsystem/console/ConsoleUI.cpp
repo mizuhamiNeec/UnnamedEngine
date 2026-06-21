@@ -78,29 +78,6 @@ namespace Unnamed {
 	static constexpr int kMaxSuggestionDisplayCount = 8;
 
 	namespace {
-		std::string ToLowerAscii(const std::string_view text) {
-			std::string lowered(text);
-			std::ranges::transform(
-				lowered,
-				lowered.begin(),
-				[](const unsigned char c) {
-					return static_cast<char>(std::tolower(c));
-				}
-			);
-			return lowered;
-		}
-
-		size_t FindFirstCaseInsensitive(
-			const std::string_view text, const std::string_view query
-		) {
-			if (query.empty() || text.empty()) {
-				return std::string::npos;
-			}
-			const auto loweredText  = ToLowerAscii(text);
-			const auto loweredQuery = ToLowerAscii(query);
-			return loweredText.find(loweredQuery);
-		}
-
 		int CountDisplayLines(const std::string_view text) {
 			int count = 1;
 			for (const char c : text) {
@@ -560,14 +537,13 @@ namespace Unnamed {
 			return;
 		}
 		if (!ctx.token.empty()) {
-			const std::string lowerToken             = ToLowerAscii(ctx.token);
-			auto              IsCaseInsensitiveExact = [&](
+			auto IsCaseInsensitiveExact = [&](
 				const std::vector<std::string>& names
 			) {
 				return std::ranges::any_of(
 					names,
 					[&](const std::string& name) {
-						return ToLowerAscii(name) == lowerToken;
+						return StrUtil::EqualsIgnoreCase(name, ctx.token);
 					}
 				);
 			};
@@ -707,7 +683,7 @@ namespace Unnamed {
 				);
 				auto* drawList = ImGui::GetWindowDrawList();
 
-				const size_t matchPos = FindFirstCaseInsensitive(
+				const size_t matchPos = StrUtil::FindIgnoreCase(
 					item.name,
 					state.query
 				);
@@ -964,18 +940,18 @@ namespace Unnamed {
 		};
 
 		const std::string tokenText(token);
-		const std::string lowerToken    = ToLowerAscii(tokenText);
 		const auto        varCandidates =
 			mConsoleSystem->FindSimilarConVars(token, fetchCount);
 		const auto commandCandidates =
 			mConsoleSystem->FindSimilarConCommands(token, fetchCount);
 
 		auto IsExactMatch = [&](const std::string& name) {
-			return !tokenText.empty() && ToLowerAscii(name) == lowerToken;
+			return !tokenText.empty() &&
+			       StrUtil::EqualsIgnoreCase(name, tokenText);
 		};
 		auto IsPrefixMatch = [&](const std::string& name) {
 			return !tokenText.empty() &&
-			       ToLowerAscii(name).starts_with(lowerToken);
+			       StrUtil::StartsWithIgnoreCase(name, tokenText);
 		};
 
 		const bool hasExactVar = std::ranges::any_of(

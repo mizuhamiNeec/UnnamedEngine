@@ -6,6 +6,7 @@
 #include <imgui.h>
 
 #include "core/assets/AssetType.h"
+#include "core/string/StrUtil.h"
 
 #include "engine/gui/UiRoot.h"
 #include "engine/gui/UiScreenStack.h"
@@ -26,7 +27,7 @@
 #ifdef _DEBUG
 namespace Unnamed::Gui {
 	namespace {
-		constexpr const char* kRenamePopupId = "Rename Widget";
+		constexpr auto kRenamePopupId = "Rename Widget";
 
 		struct PaletteTemplate {
 			const char*                 category;
@@ -34,21 +35,6 @@ namespace Unnamed::Gui {
 			const char*                 tooltip;
 			std::unique_ptr<UiWidget> (*factory)();
 		};
-
-		std::string ToLower(std::string value) {
-			std::ranges::transform(
-				value,
-				value.begin(),
-				[](const unsigned char c) {
-					return static_cast<char>(std::tolower(c));
-				}
-			);
-			return value;
-		}
-
-		Path NormalizePath(const std::string_view path) {
-			return Path(path).LexicallyNormal();
-		}
 
 		void CopyStringToBuffer(
 			const std::string_view value,
@@ -168,8 +154,9 @@ namespace Unnamed::Gui {
 				return true;
 			}
 
-			const std::string nameLower = ToLower(
-				std::string(widget->GetName()));
+			const std::string nameLower = StrUtil::ToLowerCase(
+				widget->GetName()
+			);
 			if (nameLower.find(filterLower) != std::string::npos) {
 				return true;
 			}
@@ -190,16 +177,22 @@ namespace Unnamed::Gui {
 		std::unique_ptr<UiWidget> CreateWidgetTemplate() {
 			auto widget = std::make_unique<UiWidget>();
 			widget->SetName("Widget");
-			widget->SetAnchors({0.0f, 0.0f, 0.0f, 0.0f});
-			widget->SetPivot({0.0f, 0.0f});
-			widget->SetLocalRect({0.0f, 0.0f, 160.0f, 64.0f});
+			widget->SetAnchors(
+				{.minX = 0.0f, .minY = 0.0f, .maxX = 0.0f, .maxY = 0.0f}
+			);
+			widget->SetPivot({.x = 0.0f, .y = 0.0f});
+			widget->SetLocalRect(
+				{.x = 0.0f, .y = 0.0f, .width = 160.0f, .height = 64.0f}
+			);
 			return widget;
 		}
 
 		std::unique_ptr<UiWidget> CreatePanelTemplate() {
 			auto widget = CreateWidgetTemplate();
 			widget->SetName("Panel");
-			widget->SetLocalRect({0.0f, 0.0f, 240.0f, 120.0f});
+			widget->SetLocalRect(
+				{.x = 0.0f, .y = 0.0f, .width = 240.0f, .height = 120.0f}
+			);
 			const auto* panel = widget->GetOrAddComponent<
 				UiPanelStyleComponent>();
 			(void)panel;
@@ -209,7 +202,9 @@ namespace Unnamed::Gui {
 		std::unique_ptr<UiWidget> CreateButtonTemplate() {
 			auto widget = CreateWidgetTemplate();
 			widget->SetName("Button");
-			widget->SetLocalRect({0.0f, 0.0f, 180.0f, 56.0f});
+			widget->SetLocalRect(
+				{.x = 0.0f, .y = 0.0f, .width = 180.0f, .height = 56.0f}
+			);
 			auto* behavior = widget->GetOrAddComponent<
 				UiButtonBehaviorComponent>();
 			behavior->SetText("Button");
@@ -219,12 +214,18 @@ namespace Unnamed::Gui {
 		std::unique_ptr<UiWidget> CreateVerticalLayoutTemplate() {
 			auto widget = std::make_unique<UiWidget>();
 			widget->SetName("VerticalLayout");
-			widget->SetAnchors({0.0f, 0.0f, 1.0f, 1.0f});
-			widget->SetPivot({0.0f, 0.0f});
-			widget->SetLocalRect({0.0f, 0.0f, 0.0f, 0.0f});
+			widget->SetAnchors(
+				{.minX = 0.0f, .minY = 0.0f, .maxX = 1.0f, .maxY = 1.0f}
+			);
+			widget->SetPivot({.x = 0.0f, .y = 0.0f});
+			widget->SetLocalRect(
+				{.x = 0.0f, .y = 0.0f, .width = 0.0f, .height = 0.0f}
+			);
 			auto* layout = widget->GetOrAddComponent<
 				UiVerticalLayoutComponent>();
-			layout->SetPadding({8.0f, 8.0f, 8.0f, 8.0f});
+			layout->SetPadding(
+				{.left = 8.0f, .top = 8.0f, .right = 8.0f, .bottom = 8.0f}
+			);
 			layout->SetSpacing(6.0f);
 			return widget;
 		}
@@ -232,39 +233,48 @@ namespace Unnamed::Gui {
 		std::unique_ptr<UiWidget> CreateHorizontalLayoutTemplate() {
 			auto widget = std::make_unique<UiWidget>();
 			widget->SetName("HorizontalLayout");
-			widget->SetAnchors({0.0f, 0.0f, 1.0f, 1.0f});
-			widget->SetPivot({0.0f, 0.0f});
-			widget->SetLocalRect({0.0f, 0.0f, 0.0f, 0.0f});
+			widget->SetAnchors(
+				{.minX = 0.0f, .minY = 0.0f, .maxX = 1.0f, .maxY = 1.0f}
+			);
+			widget->SetPivot({.x = 0.0f, .y = 0.0f});
+			widget->SetLocalRect(
+				{.x = 0.0f, .y = 0.0f, .width = 0.0f, .height = 0.0f}
+			);
 			auto* layout = widget->GetOrAddComponent<
 				UiHorizontalLayoutComponent>();
-			layout->SetPadding({8.0f, 8.0f, 8.0f, 8.0f});
+			layout->SetPadding(
+				{.left = 8.0f, .top = 8.0f, .right = 8.0f, .bottom = 8.0f}
+			);
 			layout->SetSpacing(6.0f);
 			return widget;
 		}
 
-		// Palette templates are centrally defined here.
-		constexpr std::array<PaletteTemplate, 5> kPaletteTemplates = {
+		// パレットテンプレートはここで定義されます。
+		constexpr std::array kPaletteTemplates = {
 			PaletteTemplate{
-				"Basic", "Widget", "Empty widget with Transform only",
-				&CreateWidgetTemplate
+				.category = "Basic", .label = "Widget",
+				.tooltip  = "Empty widget with Transform only",
+				.factory  = &CreateWidgetTemplate
 			},
 			PaletteTemplate{
-				"Basic", "Panel", "Widget + PanelStyle component",
-				&CreatePanelTemplate
+				.category = "Basic", .label = "Panel",
+				.tooltip  = "Widget + PanelStyle component",
+				.factory  = &CreatePanelTemplate
 			},
 			PaletteTemplate{
-				"Controls", "Button", "Widget + ButtonBehavior component",
-				&CreateButtonTemplate
+				.category = "Controls", .label = "Button",
+				.tooltip  = "Widget + ButtonBehavior component",
+				.factory  = &CreateButtonTemplate
 			},
 			PaletteTemplate{
-				"Layout", "Vertical Layout",
-				"Widget + VerticalLayout component",
-				&CreateVerticalLayoutTemplate
+				.category = "Layout", .label = "Vertical Layout",
+				.tooltip  = "Widget + VerticalLayout component",
+				.factory  = &CreateVerticalLayoutTemplate
 			},
 			PaletteTemplate{
-				"Layout", "Horizontal Layout",
-				"Widget + HorizontalLayout component",
-				&CreateHorizontalLayoutTemplate
+				.category = "Layout", .label = "Horizontal Layout",
+				.tooltip  = "Widget + HorizontalLayout component",
+				.factory  = &CreateHorizontalLayoutTemplate
 			},
 		};
 
@@ -345,7 +355,7 @@ namespace Unnamed::Gui {
 
 			const bool         selected = widget == context.selectedWidget;
 			ImGuiTreeNodeFlags flags    = ImGuiTreeNodeFlags_OpenOnArrow |
-			                              ImGuiTreeNodeFlags_SpanAvailWidth;
+			                           ImGuiTreeNodeFlags_SpanAvailWidth;
 			if (
 				widget->GetChildren().empty() &&
 				widget->GetReferenceChildren().empty()
@@ -532,7 +542,7 @@ namespace Unnamed::Gui {
 			context.outlinerFilterBuffer.data(),
 			context.outlinerFilterBuffer.size()
 		);
-		const std::string filterLower = ToLower(
+		const std::string filterLower = StrUtil::ToLowerCase(
 			context.outlinerFilterBuffer.data()
 		);
 
@@ -646,7 +656,10 @@ namespace Unnamed::Gui {
 		float rectArray[4] = {rect.x, rect.y, rect.width, rect.height};
 		if (ImGui::DragFloat4("Local Rect", rectArray, 0.5f)) {
 			selected->SetLocalRect(
-				{rectArray[0], rectArray[1], rectArray[2], rectArray[3]}
+				{
+					.x     = rectArray[0], .y      = rectArray[1],
+					.width = rectArray[2], .height = rectArray[3]
+				}
 			);
 			changed = true;
 		}
@@ -660,7 +673,10 @@ namespace Unnamed::Gui {
 		};
 		if (ImGui::SliderFloat4("Anchors", anchorArray, 0.0f, 1.0f)) {
 			selected->SetAnchors(
-				{anchorArray[0], anchorArray[1], anchorArray[2], anchorArray[3]}
+				{
+					.minX = anchorArray[0], .minY = anchorArray[1],
+					.maxX = anchorArray[2], .maxY = anchorArray[3]
+				}
 			);
 			changed = true;
 		}
@@ -668,7 +684,7 @@ namespace Unnamed::Gui {
 		Pivot pivot         = selected->GetPivot();
 		float pivotArray[2] = {pivot.x, pivot.y};
 		if (ImGui::SliderFloat2("Pivot", pivotArray, 0.0f, 1.0f)) {
-			selected->SetPivot({pivotArray[0], pivotArray[1]});
+			selected->SetPivot({.x = pivotArray[0], .y = pivotArray[1]});
 			changed = true;
 		}
 
@@ -681,7 +697,10 @@ namespace Unnamed::Gui {
 		};
 		if (ImGui::DragFloat4("Margins", marginArray, 0.5f)) {
 			selected->SetMargins(
-				{marginArray[0], marginArray[1], marginArray[2], marginArray[3]}
+				{
+					.left  = marginArray[0], .top    = marginArray[1],
+					.right = marginArray[2], .bottom = marginArray[3]
+				}
 			);
 			changed = true;
 		}
@@ -723,10 +742,10 @@ namespace Unnamed::Gui {
 		if (ImGui::DragFloat4("Size Constraints", constraintArray, 0.5f)) {
 			selected->SetSizeConstraints(
 				{
-					constraintArray[0],
-					constraintArray[1],
-					constraintArray[2],
-					constraintArray[3],
+					.minWidth  = constraintArray[0],
+					.minHeight = constraintArray[1],
+					.maxWidth  = constraintArray[2],
+					.maxHeight = constraintArray[3]
 				}
 			);
 			changed = true;
@@ -785,10 +804,9 @@ namespace Unnamed::Gui {
 					if (ImGui::DragFloat4("Padding", paddingArray, 0.5f)) {
 						layout->SetPadding(
 							{
-								paddingArray[0],
-								paddingArray[1],
-								paddingArray[2],
-								paddingArray[3],
+								.left = paddingArray[0], .top = paddingArray[1],
+								.right = paddingArray[2],
+								.bottom = paddingArray[3]
 							}
 						);
 						changed = true;
@@ -1052,9 +1070,8 @@ namespace Unnamed::Gui {
 			context.pathBuffer.size()
 		);
 
-		const Path normalizedPath = NormalizePath(
-			context.pathBuffer.data()
-		);
+		const Path normalizedPath =
+			Path(context.pathBuffer.data()).LexicallyNormal();
 
 		if (ImGui::Button("Load")) {
 			auto doc = manager.LoadDocument(normalizedPath);
@@ -1222,7 +1239,7 @@ namespace Unnamed::Gui {
 			std::max(1.0f, fitHeight * context.previewZoom);
 
 		const ImVec2 baseCursor = ImGui::GetCursorScreenPos();
-		const ImVec2 imagePos   = ImVec2(
+		const auto imagePos   = ImVec2(
 			baseCursor.x + std::max(0.0f, (avail.x - drawWidth) * 0.5f),
 			baseCursor.y + std::max(0.0f, (avail.y - drawHeight) * 0.5f)
 		);
@@ -1259,10 +1276,10 @@ namespace Unnamed::Gui {
 		const float  u            = (mousePos.x - imagePos.x) / drawWidth;
 		const float  v            = (mousePos.y - imagePos.y) / drawHeight;
 		const bool   inside       = imageHovered &&
-		                            u >= 0.0f &&
-		                            u <= 1.0f &&
-		                            v >= 0.0f &&
-		                            v <= 1.0f;
+		                    u >= 0.0f &&
+		                    u <= 1.0f &&
+		                    v >= 0.0f &&
+		                    v <= 1.0f;
 
 		const float localX = inside ? u * targetWidth : -FLT_MAX;
 		const float localY = inside ? v * targetHeight : -FLT_MAX;

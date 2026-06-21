@@ -34,8 +34,7 @@ namespace Unnamed {
 	bool SoundAssetLoader::CanLoad(
 		const Path& path, ASSET_TYPE* outType
 	) const {
-		const bool ok = StrUtil::ToLowerCase(path.ToGenericUtf8()).ends_with(
-			".wav");
+		const bool ok = StrUtil::EndsWithIgnoreCase(path.ToGenericUtf8(), ".wav");
 		if (outType) {
 			*outType = ok ? ASSET_TYPE::SOUND : ASSET_TYPE::UNKNOWN;
 		}

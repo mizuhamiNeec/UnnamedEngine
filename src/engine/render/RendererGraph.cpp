@@ -7,6 +7,7 @@
 #include "Renderer.h"
 
 #include "core/math/Math.h"
+#include "core/string/StrUtil.h"
 
 #include "engine/rhi/d3d12/D3D12Device.h"
 #include "engine/rhi/d3d12/D3D12Util.h"
@@ -214,29 +215,12 @@ namespace Unnamed::Render {
 			return result;
 		}
 
-		bool EqualsIgnoreCase(
-			const std::string_view lhs, const std::string_view rhs
-		) {
-			if (lhs.size() != rhs.size()) {
-				return false;
-			}
-			for (size_t i = 0; i < lhs.size(); ++i) {
-				if (
-					std::tolower(static_cast<unsigned char>(lhs[i])) !=
-					std::tolower(static_cast<unsigned char>(rhs[i]))
-				) {
-					return false;
-				}
-			}
-			return true;
-		}
-
 		const PostFxPassOverride* FindPostFxPassOverride(
 			const std::string_view                 passName,
 			const std::vector<PostFxPassOverride>& overrides
 		) {
 			for (const auto& passOverride : overrides) {
-				if (EqualsIgnoreCase(passOverride.passName, passName)) {
+				if (StrUtil::EqualsIgnoreCase(passOverride.passName, passName)) {
 					return &passOverride;
 				}
 			}
@@ -2173,7 +2157,7 @@ namespace Unnamed::Render {
 				continue;
 			}
 
-			if (EqualsIgnoreCase(passRes.name, "Bloom")) {
+			if (StrUtil::EqualsIgnoreCase(passRes.name, "Bloom")) {
 				const int mipCount = static_cast<int>(
 					state.bloomMipTextureIds.size()
 				);

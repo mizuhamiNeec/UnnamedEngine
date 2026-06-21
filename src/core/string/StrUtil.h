@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Unnamed {
@@ -24,10 +25,10 @@ namespace Unnamed::StrUtil {
 	/// @return ワイド文字列
 	std::wstring ToWString(const std::string& string);
 
-	/// @brief 文字列を小文字に変換する
-	/// @param input 入力文字列
+	/// @brief 文字列ビューを小文字に変換する
+	/// @param input 入力文字列ビュー
 	/// @return 小文字に変換された文字列
-	std::string ToLowerCase(const std::string& input);
+	std::string ToLowerCase(std::string_view input);
 
 	/// @brief 文字列配列をデリミタで結合する
 	/// @param args 文字列配列
@@ -77,10 +78,40 @@ namespace Unnamed::StrUtil {
 	/// @return トークンの配列
 	std::vector<std::string> Tokenize(const std::string_view& command);
 
-	/// @brief 文字列の前後の空白を削除する
-	/// @param string 対象文字列
+	/// @brief 文字列ビューの前後の空白を削除する
+	/// @param string 対象文字列ビュー
 	/// @return トリムされた文字列
-	std::string TrimSpaces(const std::string& string);
+	std::string TrimSpaces(std::string_view string);
+
+	/// @brief 2つの文字列を大文字小文字を無視して比較する
+	/// @param lhs 左辺
+	/// @param rhs 右辺
+	/// @return 大文字小文字を無視して一致すればtrue
+	bool EqualsIgnoreCase(std::string_view lhs, std::string_view rhs);
+
+	/// @brief 文字列が指定の接頭辞で始まるかを大文字小文字を無視して判定する
+	/// @param string 対象文字列
+	/// @param prefix 接頭辞
+	/// @return 接頭辞で始まればtrue
+	bool StartsWithIgnoreCase(
+		std::string_view string, std::string_view prefix
+	);
+
+	/// @brief 文字列が指定の接尾辞で終わるかを大文字小文字を無視して判定する
+	/// @param string 対象文字列
+	/// @param suffix 接尾辞
+	/// @return 接尾辞で終わればtrue
+	bool EndsWithIgnoreCase(
+		std::string_view string, std::string_view suffix
+	);
+
+	/// @brief 文字列内でクエリを大文字小文字を無視して検索する
+	/// @param text 検索対象文字列
+	/// @param query 検索クエリ
+	/// @return 最初の一致位置。一致しない場合はstd::string::npos
+	std::size_t FindIgnoreCase(
+		std::string_view text, std::string_view query
+	);
 
 	/// @brief ファイルを読み込み、内容を文字列として返す
 	/// @param path ファイルパス
