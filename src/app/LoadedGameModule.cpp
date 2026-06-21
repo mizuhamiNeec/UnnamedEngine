@@ -15,7 +15,8 @@ namespace Unnamed {
 		const GameModuleRegistry& registry,
 		const std::string_view    requestedModuleName
 	) {
-		std::unique_ptr<IGameModule> gameModule = registry.Create(requestedModuleName);
+		std::unique_ptr<IGameModule> gameModule = registry.Create(
+			requestedModuleName);
 		if (!gameModule) {
 			return nullptr;
 		}
@@ -25,28 +26,6 @@ namespace Unnamed {
 				std::move(gameModule)
 			)
 		);
-	}
-
-	LoadedGameModule::LoadedGameModule(
-		std::string                 requestedModuleName,
-		std::unique_ptr<IGameModule> gameModule
-	) : mRequestedModuleName(std::move(requestedModuleName)),
-	    mGameModule(std::move(gameModule)),
-	    mRuntimeContext(std::make_unique<GameRuntimeContext>()) {
-		if (!mRuntimeContext || !mGameModule) {
-			return;
-		}
-
-		mRuntimeContext->runtimeModuleName = mRequestedModuleName;
-		mRuntimeContext->modulePaths = mGameModule->GetGameModulePaths();
-		mRuntimeContext->defaultStartupScenePath =
-			mGameModule->GetDefaultStartupScenePath();
-		if (mRuntimeContext->defaultStartupScenePath.IsEmpty()) {
-			mRuntimeContext->defaultStartupScenePath =
-				mRuntimeContext->modulePaths.defaultStartupScene;
-		}
-		mRuntimeContext->defaultUiDocumentPath =
-			mGameModule->GetDefaultUiDocumentPath();
 	}
 
 	LoadedGameModule::~LoadedGameModule() {
@@ -132,5 +111,27 @@ namespace Unnamed {
 
 	const std::string& LoadedGameModule::GetRequestedModuleName() const {
 		return mRequestedModuleName;
+	}
+
+	LoadedGameModule::LoadedGameModule(
+		std::string                  requestedModuleName,
+		std::unique_ptr<IGameModule> gameModule
+	) : mRequestedModuleName(std::move(requestedModuleName)),
+	    mGameModule(std::move(gameModule)),
+	    mRuntimeContext(std::make_unique<GameRuntimeContext>()) {
+		if (!mRuntimeContext || !mGameModule) {
+			return;
+		}
+
+		mRuntimeContext->runtimeModuleName = mRequestedModuleName;
+		mRuntimeContext->modulePaths = mGameModule->GetGameModulePaths();
+		mRuntimeContext->defaultStartupScenePath =
+			mGameModule->GetDefaultStartupScenePath();
+		if (mRuntimeContext->defaultStartupScenePath.IsEmpty()) {
+			mRuntimeContext->defaultStartupScenePath =
+				mRuntimeContext->modulePaths.defaultStartupScene;
+		}
+		mRuntimeContext->defaultUiDocumentPath =
+			mGameModule->GetDefaultUiDocumentPath();
 	}
 }

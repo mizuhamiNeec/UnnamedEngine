@@ -52,7 +52,7 @@ namespace Unnamed {
 	bool TextureLoaderDirectXTex::CanLoad(
 		const Path& path, ASSET_TYPE* outType
 	) const {
-		bool ok = false;
+		bool              ok      = false;
 		const std::string pathExt =
 			StrUtil::ToLowerCase(path.Extension().ToGenericUtf8());
 
@@ -138,20 +138,23 @@ namespace Unnamed {
 
 		// アセットデータにつめつめ
 		TextureAssetData out = {};
-		out.width     = static_cast<uint32_t>(meta.width);
-		out.height    = static_cast<uint32_t>(meta.height);
-		out.arraySize = static_cast<uint32_t>(std::max<size_t>(meta.arraySize, 1));
-		out.mipLevels = static_cast<uint32_t>(std::max<size_t>(meta.mipLevels, 1));
-		out.format     = meta.format;
-		out.isSRGB     = IsSrgbFormat(meta.format);
-		out.isCubeMap  = meta.IsCubemap();
-		out.dimension  = out.isCubeMap ?
-			                 TEXTURE_DIMENSION::TEXTURE_CUBE :
-			                 TEXTURE_DIMENSION::TEXTURE_2D;
+		out.width            = static_cast<uint32_t>(meta.width);
+		out.height           = static_cast<uint32_t>(meta.height);
+		out.arraySize        = static_cast<uint32_t>(std::max<size_t>(
+			meta.arraySize, 1));
+		out.mipLevels = static_cast<uint32_t>(std::max<size_t>(
+			meta.mipLevels, 1));
+		out.format    = meta.format;
+		out.isSRGB    = IsSrgbFormat(meta.format);
+		out.isCubeMap = meta.IsCubemap();
+		out.dimension = out.isCubeMap ?
+			                TEXTURE_DIMENSION::TEXTURE_CUBE :
+			                TEXTURE_DIMENSION::TEXTURE_2D;
 		out.sourcePath = path.LexicallyNormal();
 
 		out.subresources.reserve(
-			static_cast<size_t>(out.arraySize) * static_cast<size_t>(out.mipLevels)
+			static_cast<size_t>(out.arraySize) * static_cast<size_t>(out.
+				mipLevels)
 		);
 		out.mips.resize(out.mipLevels);
 
@@ -175,11 +178,11 @@ namespace Unnamed {
 				);
 
 				if (arraySlice == 0) {
-					TextureMip mip = {};
-					mip.width      = subresource.width;
-					mip.height     = subresource.height;
-					mip.rowPitch   = subresource.rowPitch;
-					mip.bytes      = subresource.bytes;
+					TextureMip mip     = {};
+					mip.width          = subresource.width;
+					mip.height         = subresource.height;
+					mip.rowPitch       = subresource.rowPitch;
+					mip.bytes          = subresource.bytes;
 					out.mips[mipLevel] = std::move(mip);
 				}
 
@@ -189,7 +192,8 @@ namespace Unnamed {
 
 		r.payload     = std::move(out);
 		r.resolveName = Path::ToUtf8String(path.FileName());
-		if (std::error_code ec; std::filesystem::exists(path.Native(), ec)) {
+		if (std::error_code ec;
+			std::filesystem::exists(path.Native(), ec)) {
 			r.stamp.sizeInBytes = std::filesystem::file_size(
 				path.Native(), ec
 			);

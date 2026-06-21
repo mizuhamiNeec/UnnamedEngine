@@ -23,7 +23,7 @@ namespace Unnamed {
 	}
 
 	uint64_t BinaryReader::Tell() {
-		return static_cast<uint64_t>(mStream.tellg());
+		return mStream.tellg();
 	}
 
 	bool BinaryReader::Seek(const uint64_t offset) {

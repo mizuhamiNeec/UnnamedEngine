@@ -13,13 +13,13 @@ namespace Unnamed {
 
 	class SkyboxComponent final : public BaseComponent {
 	public:
-		void SetTexturePath(Path path);
+		void                      SetTexturePath(Path path);
 		[[nodiscard]] const Path& GetTexturePath() const noexcept;
 
 		void                SetIntensity(float intensity) noexcept;
 		[[nodiscard]] float GetIntensity() const noexcept;
 
-		AssetID ResolveTextureAsset(AssetManager& assetManager);
+		AssetID               ResolveTextureAsset(AssetManager& assetManager);
 		[[nodiscard]] AssetID GetTextureAssetId() const noexcept;
 
 		[[nodiscard]] std::string_view GetStableName() const override;
@@ -35,8 +35,8 @@ namespace Unnamed {
 		[[nodiscard]] uint32_t GetIcon() const override;
 
 	private:
-		Path        mTexturePath = Path("content/core/textures/wave.dds");
-		AssetID     mTextureAssetId = kInvalidAssetID;
-		float       mIntensity      = 1.0f;
+		Path    mTexturePath    = Path("content/core/textures/wave.dds");
+		AssetID mTextureAssetId = kInvalidAssetID;
+		float   mIntensity      = 1.0f;
 	};
 }

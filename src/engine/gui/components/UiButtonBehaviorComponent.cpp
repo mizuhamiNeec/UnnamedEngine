@@ -98,7 +98,7 @@ namespace Unnamed::Gui {
 	}
 
 	void UiButtonBehaviorComponent::BuildDrawCommands(
-		const UiWidget& owner,
+		const UiWidget&             owner,
 		std::vector<UiDrawCommand>& out
 	) const {
 		if (!owner.IsVisible()) {
@@ -114,11 +114,11 @@ namespace Unnamed::Gui {
 
 		const Rect& rect = owner.GetGlobalRect();
 
-		UiDrawCommand rectCommand = {};
-		rectCommand.type          = UI_DRAW_COMMAND_TYPE::RECT;
-		rectCommand.rect.rect     = rect;
-		rectCommand.rect.fillColor = background;
-		rectCommand.rect.cornerRadius = mCornerRadius;
+		UiDrawCommand rectCommand        = {};
+		rectCommand.type                 = UI_DRAW_COMMAND_TYPE::RECT;
+		rectCommand.rect.rect            = rect;
+		rectCommand.rect.fillColor       = background;
+		rectCommand.rect.cornerRadius    = mCornerRadius;
 		rectCommand.rect.borderThickness = 1.0f;
 		rectCommand.rect.borderColor     = mBorderColor;
 		out.emplace_back(rectCommand);

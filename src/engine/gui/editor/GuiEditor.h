@@ -1,6 +1,5 @@
 #pragma once
 #include <array>
-#include <string>
 
 #include "engine/gui/UiDocumentManager.h"
 #include "engine/gui/UiScreenStack.h"

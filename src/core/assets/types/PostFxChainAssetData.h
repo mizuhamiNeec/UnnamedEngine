@@ -13,8 +13,8 @@ namespace Unnamed {
 		std::string name;
 		bool        enabled = true;
 
-		AssetID     shaderProgramId = kInvalidAssetID;
-		Path        shaderProgramPath;
+		AssetID shaderProgramId = kInvalidAssetID;
+		Path    shaderProgramPath;
 
 		std::unordered_map<std::string, float> scalarParams;
 		std::unordered_map<std::string, Vec4>  colorParams;

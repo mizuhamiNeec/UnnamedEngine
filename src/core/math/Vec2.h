@@ -12,65 +12,55 @@ struct Vec2 final {
 	static const Vec2 up;    /// 上方向 (0, 1)
 	static const Vec2 down;  /// 下方向 (0, -1)
 
-
 	/// @brief コンストラクタ
 	/// @param x X成分（デフォルト: 0.0f）
 	/// @param y Y成分（デフォルト: 0.0f）
 	constexpr Vec2(const float x = 0.0f, const float y = 0.0f) : x(x),
-		y(y) {}
+		y(y) {
+	}
 
 	/* ---------------- 関数類 ---------------- */
-
 
 	///  @brief ベクトルの長さを取得する
 	///  @return ベクトルの長さ
 	[[nodiscard]] float Length() const;
 
-
 	///  @brief ベクトルの長さの2乗を取得する
 	///  @return ベクトルの長さの2乗
 	[[nodiscard]] float SqrLength() const;
-
 
 	///  @brief 他のベクトルとの距離を計算する
 	///  @param other 対象ベクトル
 	///  @return 2点間の距離
 	[[nodiscard]] float Distance(const Vec2& other) const;
 
-
 	///  @brief 内積を計算する
 	///  @param other 対象ベクトル
 	///  @return 内積の値
 	[[nodiscard]] float Dot(const Vec2& other) const;
-
 
 	///  @brief 外積を計算する
 	///  @param other 対象ベクトル
 	///  @return 外積の値
 	[[nodiscard]] float Cross(const Vec2& other) const;
 
-
 	///  @brief ゼロベクトルかどうかを判定する
 	///  @param tolerance 許容誤差（デフォルト: 1e-6f）
 	///  @return ゼロベクトルの場合true
 	[[nodiscard]] bool IsZero(float tolerance = 1e-6f) const;
 
-
 	///  @brief このベクトルを正規化する
 	void Normalize();
-
 
 	///  @brief 正規化されたベクトルを取得する
 	///  @return 正規化されたベクトル
 	[[nodiscard]] Vec2 Normalized() const;
-
 
 	///  @brief ベクトルを範囲内にクランプする
 	///  @param min 最小値
 	///  @param max 最大値
 	///  @return クランプされたベクトル
 	[[nodiscard]] void Clamp(Vec2 min, Vec2 max);
-
 
 	///  @brief ベクトルの長さを範囲内にクランプする
 	///  @param min 最小長
@@ -88,7 +78,6 @@ struct Vec2 final {
 	///   @param normal 法線ベクトル
 	///   @return 反射ベクトル
 	[[nodiscard]] Vec2 Reflect(const Vec2& normal) const;
-
 
 	///  @brief ベクトルを回転する
 	///  @param angleZ Z軸周りの回転角（ラジアン）

@@ -48,7 +48,6 @@ namespace Unnamed::Physics {
 		float& /*depth*/,
 		Vec3& /*normal*/
 
-
 	
 	) const {
 		// レイは体積を持たないため、開始時に"重なっている"概念は扱わない

@@ -12,7 +12,6 @@
 #include "AssetMetaData.h"
 #include "AssetType.h"
 #include "LoadResult.h"
-#include "core/filesystem/Path.h"
 
 namespace Unnamed {
 	class IAssetLoader;

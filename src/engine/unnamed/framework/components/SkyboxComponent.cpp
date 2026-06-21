@@ -77,7 +77,8 @@ namespace Unnamed {
 
 	void SkyboxComponent::Deserialize(const JsonReader& reader) {
 		std::string texturePath = mTexturePath.ToGenericUtf8();
-		if (const JsonReader value = reader["texturePath"]; value.Valid()) {
+		if (const JsonReader value = reader["texturePath"];
+			value.Valid()) {
 			texturePath = value.GetString();
 		}
 		if (texturePath.empty()) {

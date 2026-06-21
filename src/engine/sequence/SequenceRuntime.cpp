@@ -12,7 +12,6 @@
 #include "engine/unnamed/framework/components/mesh/SkeletalAnimationComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
-#include "engine/unnamed/subsystem/console/Log.h"
 #include "engine/world/GameplayCueBus.h"
 #include "engine/world/World.h"
 
@@ -135,11 +134,13 @@ namespace Unnamed {
 					return frame > traversal.startFrame && frame <= traversal.
 					       endFrame;
 				}
-				return frame > traversal.startFrame || frame <= traversal.endFrame;
+				return frame > traversal.startFrame || frame <= traversal.
+				       endFrame;
 			}
 
 			if (!traversal.wrapped) {
-				return frame >= traversal.endFrame && frame < traversal.startFrame;
+				return frame >= traversal.endFrame && frame < traversal.
+				       startFrame;
 			}
 			return frame >= traversal.endFrame || frame < traversal.startFrame;
 		}
@@ -162,14 +163,17 @@ namespace Unnamed {
 			const uint64_t traversalSerial
 		) {
 			uint64_t hash = 0xcbf29ce484222325ull;
-			hash ^= playerId + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+			hash          ^= playerId + 0x9e3779b97f4a7c15ull + (hash << 6) + (
+				hash >> 2);
 			hash ^= keyId + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
-			hash ^= traversalSerial + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+			hash ^= traversalSerial + 0x9e3779b97f4a7c15ull + (hash << 6) + (
+				hash >> 2);
 			return hash;
 		}
 	}
 
-	SequenceRuntime::SequenceRuntime(World* world) : mWorld(world) {}
+	SequenceRuntime::SequenceRuntime(World* world) : mWorld(world) {
+	}
 
 	void SequenceRuntime::SetWorld(World* world) {
 		mWorld = world;
@@ -188,7 +192,8 @@ namespace Unnamed {
 		if (playerId == 0 || mPlayers.empty()) {
 			return;
 		}
-		if (const auto it = mPlayers.find(playerId); it != mPlayers.end()) {
+		if (const auto it = mPlayers.find(playerId);
+			it != mPlayers.end()) {
 			mPlayers.erase(it);
 		}
 	}
@@ -264,14 +269,14 @@ namespace Unnamed {
 		if (!mWorld) {
 			return;
 		}
-		AssetManager* assetManager = mWorld->GetAssetManager();
+		const AssetManager* assetManager = mWorld->GetAssetManager();
 		if (!assetManager) {
 			return;
 		}
 
 		for (auto& [playerId, playerWeak] : mPlayers) {
 			(void)playerId;
-			std::shared_ptr<SequencePlayer> player = playerWeak.lock();
+			const std::shared_ptr<SequencePlayer> player = playerWeak.lock();
 			if (!player || player->GetAssetId() == kInvalidAssetID) {
 				continue;
 			}
@@ -634,7 +639,7 @@ namespace Unnamed {
 	}
 
 	void SequenceRuntime::CollectTrackPre(
-		const SequencePlayer&                 player,
+		const SequencePlayer&           player,
 		const SequenceAssetData&        asset,
 		const SequenceTrackAssetData&   track,
 		const SequenceBindingAssetData* binding,
@@ -876,18 +881,21 @@ namespace Unnamed {
 				);
 			}
 
-			const SequenceTraversalRange traversal = player.GetLastTraversalRange();
+			const SequenceTraversalRange traversal = player.
+				GetLastTraversalRange();
 			if (
 				section.skeletal.playOnEnter &&
 				!section.skeletal.stateId.empty() &&
-				IsFrameInTraversal(traversal, static_cast<float>(section.startFrame))
+				IsFrameInTraversal(traversal,
+				                   static_cast<float>(section.startFrame))
 			) {
 				contribution.playState = true;
 				contribution.stateId   = section.skeletal.stateId;
 			}
 			if (
 				section.skeletal.stopOnExit &&
-				IsFrameInTraversal(traversal, static_cast<float>(section.endFrame))
+				IsFrameInTraversal(traversal,
+				                   static_cast<float>(section.endFrame))
 			) {
 				contribution.stopLayer = true;
 			}
@@ -940,7 +948,7 @@ namespace Unnamed {
 		const SequenceBindingAssetData* binding,
 		const uint64_t                  playerOrder
 	) {
-		const float currentFrame = player.GetCurrentFrame();
+		const float                  currentFrame = player.GetCurrentFrame();
 		const SequenceTraversalRange traversal = player.GetLastTraversalRange();
 
 		for (const SequenceSectionAssetData& section : track.sections) {
@@ -1025,117 +1033,6 @@ namespace Unnamed {
 				default: break;
 			}
 		}
-	}
-
-	void SequenceRuntime::EvaluateEventRange(
-		const SequenceTraversalRange&    traversal,
-		const SequencePlayer&            player,
-		const SequenceBindingAssetData*  binding,
-		const SequenceSectionAssetData&  section,
-		const int64_t                    lengthFrames
-	) {
-		if (!traversal.valid || section.eventKeys.empty()) {
-			return;
-		}
-		if (
-			traversal.causedBySeek &&
-			player.GetSeekEventPolicy() == SEQUENCE_SEEK_EVENT_POLICY::SUPPRESS
-		) {
-			return;
-		}
-
-		const float length = std::max(0.0f, static_cast<float>(lengthFrames));
-		const auto QueueDispatch = [&](
-			const SequenceEventKeyAssetData& key,
-			const uint64_t                   rangeSerial
-		) {
-			const uint64_t guardKey = BuildEventDispatchGuardKey(
-				player.GetPlayerId(),
-				key.keyId,
-				rangeSerial
-			);
-			if (!mEventDispatchGuard.emplace(guardKey).second) {
-				return;
-			}
-
-			EventDispatch dispatch = {};
-			dispatch.keyId         = key.keyId;
-			dispatch.cueId         = key.cueId;
-			dispatch.sourceEntityGuid = key.sourceEntityGuid != 0 ?
-				                            key.sourceEntityGuid :
-				                            (binding ? binding->entityGuid : 0);
-			dispatch.cueValue       = key.cueValue;
-			dispatch.cueValue2      = key.cueValue2;
-			dispatch.consoleCommand = key.consoleCommand;
-			mEventDispatches.emplace_back(std::move(dispatch));
-		};
-
-		const auto EmitForwardRange = [&](
-			const float startFrame,
-			const float endFrame,
-			const uint64_t rangeSerial
-		) {
-			for (const SequenceEventKeyAssetData& key : section.eventKeys) {
-				const float frame = static_cast<float>(key.frame);
-				if (frame > startFrame && frame <= endFrame) {
-					QueueDispatch(key, rangeSerial);
-				}
-			}
-		};
-
-		const auto EmitBackwardRange = [&](
-			const float startFrame,
-			const float endFrame,
-			const uint64_t rangeSerial
-		) {
-			for (const SequenceEventKeyAssetData& key : section.eventKeys) {
-				const float frame = static_cast<float>(key.frame);
-				if (frame >= endFrame && frame < startFrame) {
-					QueueDispatch(key, rangeSerial);
-				}
-			}
-		};
-
-		if (!traversal.wrapped || traversal.loopCount <= 0 || length <= 0.0f) {
-			if (traversal.direction == SEQUENCE_PLAYBACK_DIRECTION::FORWARD) {
-				EmitForwardRange(
-					traversal.startFrame,
-					traversal.endFrame,
-					traversal.traversalSerial
-				);
-			} else {
-				EmitBackwardRange(
-					traversal.startFrame,
-					traversal.endFrame,
-					traversal.traversalSerial
-				);
-			}
-			return;
-		}
-
-		uint64_t segmentSerial = traversal.traversalSerial;
-		if (traversal.direction == SEQUENCE_PLAYBACK_DIRECTION::FORWARD) {
-			EmitForwardRange(traversal.startFrame, length, segmentSerial++);
-
-			const int32_t fullLoopCount = std::max(0, traversal.loopCount - 1);
-			for (int32_t i = 0; i < fullLoopCount; ++i) {
-				for (const SequenceEventKeyAssetData& key : section.eventKeys) {
-					QueueDispatch(key, segmentSerial++);
-				}
-			}
-
-			EmitForwardRange(0.0f, traversal.endFrame, segmentSerial++);
-			return;
-		}
-
-		EmitBackwardRange(traversal.startFrame, 0.0f, segmentSerial++);
-		const int32_t fullLoopCount = std::max(0, traversal.loopCount - 1);
-		for (int32_t i = 0; i < fullLoopCount; ++i) {
-			for (const SequenceEventKeyAssetData& key : section.eventKeys) {
-				QueueDispatch(key, segmentSerial++);
-			}
-		}
-		EmitBackwardRange(length, traversal.endFrame, segmentSerial++);
 	}
 
 	void SequenceRuntime::ApplyFloatContributions() {
@@ -1586,6 +1483,119 @@ namespace Unnamed {
 				);
 			}
 		}
+	}
+
+	void SequenceRuntime::EvaluateEventRange(
+		const SequenceTraversalRange&   traversal,
+		const SequencePlayer&           player,
+		const SequenceBindingAssetData* binding,
+		const SequenceSectionAssetData& section,
+		const int64_t                   lengthFrames
+	) {
+		if (!traversal.valid || section.eventKeys.empty()) {
+			return;
+		}
+		if (
+			traversal.causedBySeek &&
+			player.GetSeekEventPolicy() == SEQUENCE_SEEK_EVENT_POLICY::SUPPRESS
+		) {
+			return;
+		}
+
+		const float length = std::max(0.0f, static_cast<float>(lengthFrames));
+		const auto  QueueDispatch = [&](
+			const SequenceEventKeyAssetData& key,
+			const uint64_t                   rangeSerial
+		) {
+			const uint64_t guardKey = BuildEventDispatchGuardKey(
+				player.GetPlayerId(),
+				key.keyId,
+				rangeSerial
+			);
+			if (!mEventDispatchGuard.emplace(guardKey).second) {
+				return;
+			}
+
+			EventDispatch dispatch    = {};
+			dispatch.keyId            = key.keyId;
+			dispatch.cueId            = key.cueId;
+			dispatch.sourceEntityGuid = key.sourceEntityGuid != 0 ?
+				                            key.sourceEntityGuid :
+				                            binding ?
+				                            binding->entityGuid :
+				                            0;
+			dispatch.cueValue       = key.cueValue;
+			dispatch.cueValue2      = key.cueValue2;
+			dispatch.consoleCommand = key.consoleCommand;
+			mEventDispatches.emplace_back(std::move(dispatch));
+		};
+
+		const auto EmitForwardRange = [&](
+			const float    startFrame,
+			const float    endFrame,
+			const uint64_t rangeSerial
+		) {
+			for (const SequenceEventKeyAssetData& key : section.eventKeys) {
+				const float frame = static_cast<float>(key.frame);
+				if (frame > startFrame && frame <= endFrame) {
+					QueueDispatch(key, rangeSerial);
+				}
+			}
+		};
+
+		const auto EmitBackwardRange = [&](
+			const float    startFrame,
+			const float    endFrame,
+			const uint64_t rangeSerial
+		) {
+			for (const SequenceEventKeyAssetData& key : section.eventKeys) {
+				const float frame = static_cast<float>(key.frame);
+				if (frame >= endFrame && frame < startFrame) {
+					QueueDispatch(key, rangeSerial);
+				}
+			}
+		};
+
+		if (!traversal.wrapped || traversal.loopCount <= 0 || length <= 0.0f) {
+			if (traversal.direction == SEQUENCE_PLAYBACK_DIRECTION::FORWARD) {
+				EmitForwardRange(
+					traversal.startFrame,
+					traversal.endFrame,
+					traversal.traversalSerial
+				);
+			} else {
+				EmitBackwardRange(
+					traversal.startFrame,
+					traversal.endFrame,
+					traversal.traversalSerial
+				);
+			}
+			return;
+		}
+
+		uint64_t segmentSerial = traversal.traversalSerial;
+		if (traversal.direction == SEQUENCE_PLAYBACK_DIRECTION::FORWARD) {
+			EmitForwardRange(traversal.startFrame, length, segmentSerial++);
+
+			const int32_t fullLoopCount = std::max(0, traversal.loopCount - 1);
+			for (int32_t i = 0; i < fullLoopCount; ++i) {
+				for (const SequenceEventKeyAssetData& key : section.eventKeys) {
+					QueueDispatch(key, segmentSerial++);
+				}
+			}
+
+			EmitForwardRange(0.0f, traversal.endFrame, segmentSerial++);
+			return;
+		}
+
+		EmitBackwardRange(traversal.startFrame, 0.0f, segmentSerial++);
+		const int32_t fullLoopCount = std::max(0, traversal.loopCount - 1);
+		for (int32_t i = 0; i < fullLoopCount; ++i) {
+			for (const SequenceEventKeyAssetData& key : section.eventKeys) {
+				QueueDispatch(key, segmentSerial++);
+			}
+		}
+		EmitBackwardRange(length, traversal.endFrame, segmentSerial++);
 	}
 
 	std::string SequenceRuntime::BuildPropertyKey(

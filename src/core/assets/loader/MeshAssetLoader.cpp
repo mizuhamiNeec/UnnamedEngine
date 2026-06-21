@@ -276,8 +276,8 @@ namespace Unnamed {
 				clip.name                   = anim->mName.length > 0 ?
 					            std::string(
 						            anim->mName.C_Str()) :
-					            ("Anim" + std::to_string(
-						             animIndex));
+					            "Anim" + std::to_string(
+						            animIndex);
 				clip.durationSeconds = anim->mDuration > 0.0 ?
 					                       static_cast<float>(
 						                       anim->mDuration /
@@ -488,7 +488,7 @@ namespace Unnamed {
 		// 拡張子ベースで判定。厳密なファイル存在チェックはLoad()に任せる。
 		const std::string ext =
 			StrUtil::ToLowerCase(path.Extension().ToGenericUtf8());
-		bool              ok  = false;
+		bool ok = false;
 
 		for (const auto& supportedExt : kSupportedExtensions) {
 			if (ext == supportedExt) {
@@ -715,12 +715,14 @@ namespace Unnamed {
 	Path MeshAssetLoader::GetDerivedCachePath(const Path& sourcePath) {
 		const std::string normalized =
 			sourcePath.LexicallyNormal().ToGenericUtf8();
-		const uint64_t    hash       = std::hash<std::string>{}(normalized);
+		const uint64_t hash = std::hash<std::string>{}(normalized);
 		return Path("./bin/cache/assets/meshes") /
 		       Path(std::to_string(hash) + ".umeshbin");
 	}
 
-	bool MeshAssetLoader::TryLoadDerivedCache(const Path& path, LoadResult& out) {
+	bool MeshAssetLoader::TryLoadDerivedCache(
+		const Path& path, LoadResult& out
+	) {
 		const Path cachePath = GetDerivedCachePath(path);
 		if (!std::filesystem::exists(cachePath.Native())) {
 			return false;
@@ -870,8 +872,8 @@ namespace Unnamed {
 			return false;
 		}
 
-		const Path                   cachePath = GetDerivedCachePath(path);
-		std::error_code             ec;
+		const Path      cachePath = GetDerivedCachePath(path);
+		std::error_code ec;
 		std::filesystem::create_directories(
 			cachePath.ParentPath().Native(), ec
 		);

@@ -45,10 +45,10 @@ namespace Unnamed {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawInspectorImGui() override;
 #endif
-		
+
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-		void SetUiAssetPath(Path path);
+		void                      SetUiAssetPath(Path path);
 		[[nodiscard]] const Path& GetUiAssetPath() const;
 
 		void SetSpaceMode(UI_CANVAS_SPACE_MODE mode);
@@ -58,40 +58,40 @@ namespace Unnamed {
 		[[nodiscard]] UI_CANVAS_BILLBOARD_DEPTH_MODE GetBillboardDepthMode()
 		const;
 
-		void SetPixelSize(const Vec2& size);
+		void               SetPixelSize(const Vec2& size);
 		[[nodiscard]] Vec2 GetPixelSize() const;
 
-		void SetWorldSize(const Vec2& size);
+		void               SetWorldSize(const Vec2& size);
 		[[nodiscard]] Vec2 GetWorldSize() const;
 
-		void SetSortKey(int32_t sortKey);
+		void                  SetSortKey(int32_t sortKey);
 		[[nodiscard]] int32_t GetSortKey() const;
 
-		void SetReceiveInput(bool receiveInput);
+		void               SetReceiveInput(bool receiveInput);
 		[[nodiscard]] bool GetReceiveInput() const;
 
-		bool EnsureRuntimeLoaded();
-		void TickRuntime(float deltaTime) const;
+		bool                       EnsureRuntimeLoaded();
+		void                       TickRuntime(float deltaTime) const;
 		[[nodiscard]] Gui::UiRoot* GetRuntimeRoot() const;
 
 		void OnDetached() override;
 
 	private:
-		void                     InvalidateRuntime();
-		
-		Path                           mUiAssetPath;
-		UI_CANVAS_SPACE_MODE           mSpaceMode          = UI_CANVAS_SPACE_MODE::SCREEN;
+		void InvalidateRuntime();
+
+		Path mUiAssetPath;
+		UI_CANVAS_SPACE_MODE mSpaceMode = UI_CANVAS_SPACE_MODE::SCREEN;
 		UI_CANVAS_BILLBOARD_DEPTH_MODE mBillboardDepthMode =
 			UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
-		Vec2                 mPixelSize = Vec2(1920.0f, 1080.0f);
-		Vec2                 mWorldSize = Vec2(2.0f, 1.125f);
-		int32_t              mSortKey = 0;
-		bool                 mReceiveInput = true;
+		Vec2    mPixelSize    = Vec2(1920.0f, 1080.0f);
+		Vec2    mWorldSize    = Vec2(2.0f, 1.125f);
+		int32_t mSortKey      = 0;
+		bool    mReceiveInput = true;
 
-		Path                           mLoadedAssetPath;
-		AssetID                        mUiAssetId = kInvalidAssetID;
-		uint64_t                       mLoadedAssetVersion = 0;
-		std::unique_ptr<Gui::UiRoot>   mRuntimeRoot;
-		bool                           mLoggedLoadFailure = false;
+		Path                         mLoadedAssetPath;
+		AssetID                      mUiAssetId          = kInvalidAssetID;
+		uint64_t                     mLoadedAssetVersion = 0;
+		std::unique_ptr<Gui::UiRoot> mRuntimeRoot;
+		bool                         mLoggedLoadFailure = false;
 	};
 }

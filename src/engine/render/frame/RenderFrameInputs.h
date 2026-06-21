@@ -19,12 +19,12 @@ namespace Unnamed::Render {
 	};
 
 	enum class SPRITE_TEXTURE_SOURCE : uint8_t {
-		ASSET = 0,
+		ASSET       = 0,
 		VIEW_OUTPUT = 1,
 	};
 
 	struct SpriteTextureRef {
-		SPRITE_TEXTURE_SOURCE source = SPRITE_TEXTURE_SOURCE::ASSET;
+		SPRITE_TEXTURE_SOURCE source         = SPRITE_TEXTURE_SOURCE::ASSET;
 		AssetID               textureAssetId = kInvalidAssetID;
 		std::string           viewKey;
 	};
@@ -48,20 +48,20 @@ namespace Unnamed::Render {
 	};
 
 	struct PostFxPassOverride {
-		std::string passName;
-		bool        hasEnabledOverride = false;
-		bool        enabled            = true;
+		std::string                            passName;
+		bool                                   hasEnabledOverride = false;
+		bool                                   enabled            = true;
 		std::unordered_map<std::string, float> scalarParams;
 		std::unordered_map<std::string, Vec4>  colorParams;
 	};
 
 	enum class RENDER_VIEW_TYPE : uint8_t {
-		SCENE = 0,
+		SCENE       = 0,
 		SPRITE_ONLY = 1,
 	};
 
 	enum class RENDER_VIEW_SIZE_MODE : uint8_t {
-		FIXED = 0,
+		FIXED             = 0,
 		MATCH_BACK_BUFFER = 1,
 	};
 
@@ -75,15 +75,15 @@ namespace Unnamed::Render {
 	};
 
 	struct RenderCameraInput {
-		Mat4                  view      = Mat4::identity;
-		Mat4                  proj      = Mat4::identity;
-		Mat4                  viewProj  = Mat4::identity;
-		Vec3                  cameraPos = Vec3::zero;
+		Mat4                  view       = Mat4::identity;
+		Mat4                  proj       = Mat4::identity;
+		Mat4                  viewProj   = Mat4::identity;
+		Vec3                  cameraPos  = Vec3::zero;
 		float                 exposureEv = 0.0f;
-		float                 nearZ     = 0.001f;
-		float                 farZ      = 10000.0f;
-		PROJECTION_DEPTH_MODE depthMode = PROJECTION_DEPTH_MODE::REVERSE_Z;
-		bool                  valid     = false;
+		float                 nearZ      = 0.001f;
+		float                 farZ       = 10000.0f;
+		PROJECTION_DEPTH_MODE depthMode  = PROJECTION_DEPTH_MODE::REVERSE_Z;
+		bool                  valid      = false;
 	};
 
 	struct SkyboxInput {
@@ -110,10 +110,10 @@ namespace Unnamed::Render {
 	};
 
 	struct VisibleRenderObject {
-		AssetID  meshAssetId        = kInvalidAssetID;
-		AssetID  materialInstanceId = kInvalidAssetID;
+		AssetID              meshAssetId               = kInvalidAssetID;
+		AssetID              materialInstanceId        = kInvalidAssetID;
 		std::vector<AssetID> materialInstanceIdsBySlot = {};
-		uint64_t ownerEntityGuid    = 0;
+		uint64_t             ownerEntityGuid           = 0;
 
 		Mat4 world       = Mat4::identity;
 		AABB worldBounds = {};
@@ -129,38 +129,38 @@ namespace Unnamed::Render {
 
 	struct ScreenSpriteInput {
 		SpriteTextureRef texture;
-		Vec2    positionPx     = Vec2::zero;
-		Vec2    sizePx         = Vec2::one;
-		Vec2    anchor         = Vec2(0.5f, 0.5f);
-		float   rotationRad    = 0.0f;
-		Vec4    color          = Vec4::one;
-		int32_t sortKey        = 0;
-		Vec2    uvMin          = Vec2(0.0f, 0.0f);
-		Vec2    uvMax          = Vec2(1.0f, 1.0f);
-		bool    uvFlipY        = false;
+		Vec2             positionPx  = Vec2::zero;
+		Vec2             sizePx      = Vec2::one;
+		Vec2             anchor      = Vec2(0.5f, 0.5f);
+		float            rotationRad = 0.0f;
+		Vec4             color       = Vec4::one;
+		int32_t          sortKey     = 0;
+		Vec2             uvMin       = Vec2(0.0f, 0.0f);
+		Vec2             uvMax       = Vec2(1.0f, 1.0f);
+		bool             uvFlipY     = false;
 	};
 
 	struct WorldBillboardInput {
 		SpriteTextureRef texture;
-		Vec3    worldPosition  = Vec3::zero;
-		Vec2    sizeWorld      = Vec2::one;
-		Vec4    color          = Vec4::one;
-		float   rotationRad    = 0.0f;
-		int32_t sortKey        = 0;
-		bool    uvFlipY        = true;
-		bool    depthTest      = true;
+		Vec3             worldPosition = Vec3::zero;
+		Vec2             sizeWorld     = Vec2::one;
+		Vec4             color         = Vec4::one;
+		float            rotationRad   = 0.0f;
+		int32_t          sortKey       = 0;
+		bool             uvFlipY       = true;
+		bool             depthTest     = true;
 	};
 
 	struct WorldSpriteInput {
 		SpriteTextureRef texture;
-		Vec3    worldPosition  = Vec3::zero;
-		Vec3    worldRight     = Vec3::right;
-		Vec3    worldUp        = Vec3::up;
-		Vec2    sizeWorld      = Vec2::one;
-		Vec4    color          = Vec4::one;
-		float   rotationRad    = 0.0f;
-		int32_t sortKey        = 0;
-		bool    uvFlipY        = true;
+		Vec3             worldPosition = Vec3::zero;
+		Vec3             worldRight    = Vec3::right;
+		Vec3             worldUp       = Vec3::up;
+		Vec2             sizeWorld     = Vec2::one;
+		Vec4             color         = Vec4::one;
+		float            rotationRad   = 0.0f;
+		int32_t          sortKey       = 0;
+		bool             uvFlipY       = true;
 	};
 
 	struct DebugLineInput {
@@ -176,14 +176,14 @@ namespace Unnamed::Render {
 	struct RenderViewInput {
 		std::string viewKey;
 
-		RENDER_VIEW_TYPE      type = RENDER_VIEW_TYPE::SCENE;
-		RenderViewOutputDesc  output = {};
-		SceneViewRenderMode   sceneViewMode = {};
+		RENDER_VIEW_TYPE                type          = RENDER_VIEW_TYPE::SCENE;
+		RenderViewOutputDesc            output        = {};
+		SceneViewRenderMode             sceneViewMode = {};
 		std::vector<PostFxPassOverride> postFxPassOverrides;
-		RenderCameraInput     camera = {};
-		SkyboxInput           skybox = {};
-		DirectionalLightInput directionalLight = {};
-		EnvironmentLightInput environmentLight = {};
+		RenderCameraInput               camera           = {};
+		SkyboxInput                     skybox           = {};
+		DirectionalLightInput           directionalLight = {};
+		EnvironmentLightInput           environmentLight = {};
 
 		std::vector<VisibleRenderObject>  visibleObjects;
 		std::vector<SkinningPaletteInput> skinningPalettes;
@@ -193,7 +193,7 @@ namespace Unnamed::Render {
 	};
 
 	struct RenderFrameInputs {
-		uint32_t frameIndex = 0;
+		uint32_t                     frameIndex = 0;
 		std::vector<RenderViewInput> views;
 		DebugDrawFrameInput          debugDraw;
 

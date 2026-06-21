@@ -57,7 +57,7 @@ namespace Unnamed {
 		}
 
 		std::string utf8(static_cast<size_t>(utf8Length), '\0');
-		const int convertedLength = WideCharToMultiByte(
+		const int   convertedLength = WideCharToMultiByte(
 			CP_UTF8,
 			WC_ERR_INVALID_CHARS,
 			wide.data(),
@@ -93,7 +93,7 @@ namespace Unnamed {
 		}
 
 		std::wstring wide(static_cast<size_t>(wideLength), L'\0');
-		const int convertedLength = MultiByteToWideChar(
+		const int    convertedLength = MultiByteToWideChar(
 			CP_UTF8,
 			MB_ERR_INVALID_CHARS,
 			text.data(),
@@ -147,15 +147,20 @@ namespace Unnamed {
 		helpText += "  --help, -h               ヘルプを表示して終了。\n";
 		helpText += "  --game=<name>            ゲームプロファイルを名前またはエイリアスで選択。\n";
 		helpText += "  --game <name>            ゲームプロファイルを名前またはエイリアスで選択。\n";
-		helpText += "  --project=<path>         game_profile.json を明示指定して起動対象を解決。\n";
-		helpText += "  --project <path>         game_profile.json を明示指定して起動対象を解決。\n";
+		helpText +=
+			"  --project=<path>         game_profile.json を明示指定して起動対象を解決。\n";
+		helpText +=
+			"  --project <path>         game_profile.json を明示指定して起動対象を解決。\n";
 		helpText += "  --repo-root=<path>       明示的にリポジトリルートを指定してマニフェスト検索。\n";
 		helpText += "  --repo-root <path>       明示的にリポジトリルートを指定してマニフェスト検索。\n";
-		helpText += "  --projects-root=<path>   明示的に projects ルートを指定してマニフェスト検索。\n";
-		helpText += "  --projects-root <path>   明示的に projects ルートを指定してマニフェスト検索。\n";
+		helpText +=
+			"  --projects-root=<path>   明示的に projects ルートを指定してマニフェスト検索。\n";
+		helpText +=
+			"  --projects-root <path>   明示的に projects ルートを指定してマニフェスト検索。\n";
 		helpText += "  --validate-startup-only  起動前検証のみ実行して終了。\n\n";
 		helpText += "Environment:\n";
-		helpText += "  UNNAMED_PROJECTS_ROOT=<path> projects ルートを直接指定してマニフェスト検索。\n";
+		helpText +=
+			"  UNNAMED_PROJECTS_ROOT=<path> projects ルートを直接指定してマニフェスト検索。\n";
 		helpText += "  UNNAMED_REPO_ROOT=<path> リポジトリルートを指定してマニフェスト検索。\n\n";
 		helpText += "マニフェスト検索の優先順位:\n";
 		helpText += "  1) --project\n";
@@ -172,8 +177,8 @@ namespace Unnamed {
 
 	/// @brief 解析した引数診断を表示します。
 	inline void EmitLaunchOptionDiagnostics(
-		const std::string_view  appName,
-		const LaunchDesc& options
+		const std::string_view appName,
+		const LaunchDesc&      options
 	) {
 		for (const std::string& diagnostic : options.diagnostics) {
 			EmitPreLaunchLog(appName, diagnostic);
@@ -182,10 +187,9 @@ namespace Unnamed {
 
 	/// @brief 現在プロセスのコマンドラインを共通ルールで解析します。
 	/// @details `--game[= ]` と `--project[= ]` と `--projects-root[= ]` と `--repo-root[= ]` と `--help/-h` に対応します。
-	[[nodiscard]] inline LaunchDesc
-	ParseAppLaunchOptionsFromCommandLine() {
+	[[nodiscard]] inline LaunchDesc ParseAppLaunchOptionsFromCommandLine() {
 		LaunchDesc options          = {};
-		const auto       appendDiagnostic = [&](const std::string_view text) {
+		const auto appendDiagnostic = [&](const std::string_view text) {
 			options.diagnostics.emplace_back(text);
 		};
 		const auto isOptionToken = [](const std::wstring_view token) {
@@ -193,7 +197,7 @@ namespace Unnamed {
 		};
 		const auto isEmptyOrWhitespace = [](const std::wstring_view text) {
 			for (const wchar_t ch : text) {
-				if (!iswspace(static_cast<unsigned>(ch))) {
+				if (!iswspace(ch)) {
 					return false;
 				}
 			}
@@ -358,8 +362,8 @@ namespace Unnamed {
 
 		if (options.projectManifestPath.has_value()) {
 			std::error_code ec;
-			const Path& manifestPath = *options.projectManifestPath;
-			const bool exists = std::filesystem::exists(
+			const Path&     manifestPath = *options.projectManifestPath;
+			const bool      exists       = std::filesystem::exists(
 				manifestPath.Native(), ec
 			);
 			if (ec || !exists) {
@@ -372,8 +376,8 @@ namespace Unnamed {
 		}
 		if (options.projectsRootOverride.has_value()) {
 			std::error_code ec;
-			const Path& projectsRoot = *options.projectsRootOverride;
-			const bool exists = std::filesystem::exists(
+			const Path&     projectsRoot = *options.projectsRootOverride;
+			const bool      exists       = std::filesystem::exists(
 				projectsRoot.Native(), ec
 			);
 			if (ec || !exists) {

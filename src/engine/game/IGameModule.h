@@ -40,19 +40,23 @@ namespace Unnamed {
 		/// @brief Engine 初期化後にゲームモジュールを初期化します。
 		virtual void Initialize(EngineServices& services) = 0;
 		/// @brief Standalone 実行用のランタイムワールドを生成します。
-		[[nodiscard]] virtual std::unique_ptr<World> CreateRuntimeWorld(
+		[[nodiscard]] std::unique_ptr<World> CreateRuntimeWorld(
 			const WorldServices& services
-		) = 0;
+		) override = 0;
 		/// @brief Demo サービス実装を生成します。
-		[[nodiscard]] virtual std::unique_ptr<IDemoService> CreateDemoService() = 0;
+		[[nodiscard]] virtual std::unique_ptr<IDemoService> CreateDemoService()
+		= 0;
 		/// @brief ゲーム固有コンポーネントを登録します。
-		virtual void RegisterGameComponents(ComponentRegistry& componentRegistry) = 0;
+		virtual void RegisterGameComponents(
+			ComponentRegistry& componentRegistry
+		) = 0;
 		/// @brief ゲーム名・ルート・既定シーン情報を返します。
 		[[nodiscard]] virtual GameModulePaths GetGameModulePaths() const = 0;
 		/// @brief 起動時のデフォルトシーンパスを返します。
 		[[nodiscard]] virtual Path GetDefaultStartupScenePath() const {
 			return GetGameModulePaths().defaultStartupScene;
 		}
+
 		/// @brief UI ドキュメントのデフォルトパスを返します。
 		/// @details Engine 側はこの値を利用し、ゲーム固有パスを直書きしません。
 		[[nodiscard]] virtual Path GetDefaultUiDocumentPath() const {
@@ -62,7 +66,7 @@ namespace Unnamed {
 
 	/// @brief Runtime DLL 境界の ABI バージョン定義です。
 	enum class GameRuntimeAbiVersion : std::uint32_t {
-		V1 = 1,
+		V1      = 1,
 		Current = V1,
 	};
 
@@ -73,7 +77,7 @@ namespace Unnamed {
 		std::uint32_t abiVersion =
 			static_cast<std::uint32_t>(GameRuntimeAbiVersion::V1);
 		/// @brief 構造体サイズです。将来拡張時の前方互換判定に使います。
-		std::uint32_t structSize = static_cast<std::uint32_t>(sizeof(GameRuntimeApiV1));
+		std::uint32_t structSize = sizeof(GameRuntimeApiV1);
 		/// @brief 予約フラグ（現状は 0 固定）です。
 		std::uint32_t reservedFlags = 0;
 		/// @brief 予約領域（現状は 0 固定）です。
@@ -127,7 +131,7 @@ namespace Unnamed {
 			std::is_base_of_v<IGameModule, TGameModule>,
 			"TGameModule must derive from IGameModule."
 		);
-		return new (std::nothrow) TGameModule();
+		return new(std::nothrow) TGameModule();
 	}
 
 	/// @brief Runtime API 向けに GameModule を破棄します。

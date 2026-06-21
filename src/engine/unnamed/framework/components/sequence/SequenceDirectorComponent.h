@@ -69,22 +69,25 @@ namespace Unnamed {
 		/// @brief ロック対象を元状態へ戻します。
 		void RestoreLockTargets();
 		/// @brief ロック対象仕様からコンポーネントを解決します。
-		[[nodiscard]] BaseComponent* ResolveLockTarget(const LockTargetSpec& spec) const;
+		[[nodiscard]] BaseComponent* ResolveLockTarget(
+			const LockTargetSpec& spec
+		) const;
 
-		Path        mSequencePath = {};
-		bool        mPlayOnAttach = true;
-		bool        mAutoStopWhenCompleted = true;
-		float       mPlayRate = 1.0f;
-		bool        mLoop = false;
-		SEQUENCE_COMPLETION_MODE mCompletionMode = SEQUENCE_COMPLETION_MODE::RESTORE_STATE;
-		bool        mApplyComponentLocks = true;
-		std::vector<LockTargetSpec> mLockTargets = {};
+		Path                     mSequencePath          = {};
+		bool                     mPlayOnAttach          = true;
+		bool                     mAutoStopWhenCompleted = true;
+		float                    mPlayRate              = 1.0f;
+		bool                     mLoop                  = false;
+		SEQUENCE_COMPLETION_MODE mCompletionMode        =
+			SEQUENCE_COMPLETION_MODE::RESTORE_STATE;
+		bool                        mApplyComponentLocks = true;
+		std::vector<LockTargetSpec> mLockTargets         = {};
 
-		bool        mPlayRequested = false;
-		bool        mWasEvaluating = false;
-		bool        mLoggedLoadFailure = false;
-		uint64_t    mSequenceAssetId = 0;
-		std::vector<ActiveLockState> mActiveLocks = {};
+		bool                         mPlayRequested     = false;
+		bool                         mWasEvaluating     = false;
+		bool                         mLoggedLoadFailure = false;
+		uint64_t                     mSequenceAssetId   = 0;
+		std::vector<ActiveLockState> mActiveLocks       = {};
 
 		std::shared_ptr<SequencePlayer> mPlayer = nullptr;
 	};

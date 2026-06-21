@@ -39,7 +39,7 @@ namespace Unnamed {
 		explicit JsonWriter(const char* path);
 		/// @brief コンストラクタ
 		/// @param path 出力ファイルパス
-		explicit JsonWriter(std::string path);
+		explicit JsonWriter(const std::string& path);
 		/// @brief コンストラクタ
 		/// @param path 出力ファイルパス
 		explicit JsonWriter(Path path);

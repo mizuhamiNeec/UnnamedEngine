@@ -32,7 +32,7 @@ namespace Unnamed {
 	}
 
 	void PreAnimatedStateStore::SaveTransformIfMissing(
-		const uint64_t                       entityGuid,
+		const uint64_t                   entityGuid,
 		const SequenceTransformSnapshot& snapshot
 	) {
 		if (mSavedTransforms.contains(entityGuid)) {
@@ -68,7 +68,7 @@ namespace Unnamed {
 			return;
 		}
 		mSavedCameraState = snapshot;
-		mHasSavedCamera = true;
+		mHasSavedCamera   = true;
 	}
 
 	bool PreAnimatedStateStore::TryGetFloat(
@@ -108,7 +108,7 @@ namespace Unnamed {
 	}
 
 	bool PreAnimatedStateStore::TryGetTransform(
-		const uint64_t                   entityGuid,
+		const uint64_t             entityGuid,
 		SequenceTransformSnapshot& outValue
 	) const {
 		const auto it = mSavedTransforms.find(entityGuid);
@@ -143,7 +143,9 @@ namespace Unnamed {
 		return true;
 	}
 
-	bool PreAnimatedStateStore::TryGetCamera(SequenceCameraSnapshot& outValue) const {
+	bool PreAnimatedStateStore::TryGetCamera(
+		SequenceCameraSnapshot& outValue
+	) const {
 		if (!mHasSavedCamera) {
 			return false;
 		}
@@ -176,7 +178,7 @@ namespace Unnamed {
 	}
 
 	void PreAnimatedStateStore::RemoveCamera() {
-		mHasSavedCamera = false;
+		mHasSavedCamera   = false;
 		mSavedCameraState = {};
 	}
 
@@ -187,7 +189,7 @@ namespace Unnamed {
 		mSavedTransforms.clear();
 		mSavedEntityActive.clear();
 		mSavedEntityVisible.clear();
-		mHasSavedCamera = false;
+		mHasSavedCamera   = false;
 		mSavedCameraState = {};
 	}
 

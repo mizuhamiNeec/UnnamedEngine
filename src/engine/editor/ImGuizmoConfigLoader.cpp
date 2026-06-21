@@ -4,10 +4,6 @@
 
 #include <core/io/json/JsonReader.h>
 
-#include <engine/unnamed/subsystem/console/ConsoleSystem.h>
-#include <engine/unnamed/subsystem/console/Log.h>
-#include <engine/unnamed/subsystem/console/concommand/ConVar.h>
-
 #include "ImGuizmo.h"
 
 namespace Unnamed {

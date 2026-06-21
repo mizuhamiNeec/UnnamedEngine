@@ -49,10 +49,12 @@ namespace Unnamed::Physics {
 	}
 
 	/// @brief 初期化
-	void Engine::Init() {}
+	void Engine::Init() {
+	}
 
 	/// @brief 更新
-	void Engine::Update(float) const {}
+	void Engine::Update(float) const {
+	}
 
 	void Engine::EndFrame() const {
 #ifdef _DEBUG
@@ -344,8 +346,8 @@ namespace Unnamed::Physics {
 							const bool betterPenetration = penetrationDepth >
 								bestPenetration;
 							const bool equalPenetration = std::abs(
-								penetrationDepth - bestPenetration
-							) <= 1.0e-6f;
+									penetrationDepth - bestPenetration
+								) <= 1.0e-6f;
 							const bool betterTieBreak = equalPenetration &&
 								(bvh->ownerGuid < bestHit.hitEntityGuid ||
 								 (bvh->ownerGuid == bestHit.hitEntityGuid &&
@@ -358,13 +360,13 @@ namespace Unnamed::Physics {
 							bestHit.toi     = 1.0f;
 							bestHit.depth   = penetrationDepth;
 							bestHit.pos     = box.center + separationAxis * (
-								                  std::min(
-									                  {
-										                  box.halfSize.x,
-										                  box.halfSize.y,
-										                  box.halfSize.z
-									                  }
-								                  ) - penetrationDepth * 0.5f);
+								              std::min(
+									              {
+										              box.halfSize.x,
+										              box.halfSize.y,
+										              box.halfSize.z
+									              }
+								              ) - penetrationDepth * 0.5f);
 							bestHit.normal        = separationAxis;
 							bestHit.triIndex      = triIdx;
 							bestHit.hitEntityGuid = bvh->ownerGuid;
@@ -859,13 +861,13 @@ namespace Unnamed::Physics {
 						tmpHit.toi   = 1.0f;
 						tmpHit.depth = penetrationDepth;
 						tmpHit.pos   = box.center + separationAxis * (
-							               std::min(
-								               {
-									               box.halfSize.x,
-									               box.halfSize.y,
-									               box.halfSize.z
-								               }
-							               ) - penetrationDepth * 0.5f);
+							             std::min(
+								             {
+									             box.halfSize.x,
+									             box.halfSize.y,
+									             box.halfSize.z
+								             }
+							             ) - penetrationDepth * 0.5f);
 						tmpHit.normal        = separationAxis;
 						tmpHit.triIndex      = triIdx;
 						tmpHit.hitEntityGuid = bvh->ownerGuid;
@@ -1065,13 +1067,13 @@ namespace Unnamed::Physics {
 						out.toi   = 1.0f;
 						out.depth = penetrationDepth;
 						out.pos   = box.center + separationAxis * (
-							            std::min(
-								            {
-									            box.halfSize.x,
-									            box.halfSize.y,
-									            box.halfSize.z
-								            }
-							            ) - penetrationDepth * 0.5f);
+							          std::min(
+								          {
+									          box.halfSize.x,
+									          box.halfSize.y,
+									          box.halfSize.z
+								          }
+							          ) - penetrationDepth * 0.5f);
 						out.normal        = separationAxis;
 						out.triIndex      = triIdx;
 						out.hitEntityGuid = bvh->ownerGuid;

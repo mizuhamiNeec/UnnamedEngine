@@ -66,7 +66,6 @@ namespace Unnamed::UI::Retained {
 			float                   deltaTime
 		);
 
-	private:
 		std::vector<UiEvent> mEvents;
 	};
 }

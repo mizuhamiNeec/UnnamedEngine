@@ -1,7 +1,6 @@
 #include "UiCanvasComponent.h"
 
 #include <algorithm>
-#include <array>
 
 #include <imgui.h>
 
@@ -23,7 +22,7 @@
 
 namespace Unnamed {
 	namespace {
-		static constexpr std::string_view kChannel = "UiCanvasComponent";
+		constexpr std::string_view kChannel = "UiCanvasComponent";
 
 		std::string ToModeString(const UI_CANVAS_SPACE_MODE mode) {
 			switch (mode) {
@@ -67,7 +66,8 @@ namespace Unnamed {
 		}
 
 		Path ResolveDefaultUiAssetPath() {
-			const auto* runtimeContext = ServiceLocator::Get<GameRuntimeContext>();
+			const auto* runtimeContext = ServiceLocator::Get<
+				GameRuntimeContext>();
 			if (!runtimeContext) {
 				return {};
 			}
@@ -76,7 +76,9 @@ namespace Unnamed {
 	}
 
 	UiCanvasComponent::UiCanvasComponent() :
-		mUiAssetPath(ResolveDefaultUiAssetPath()) {}
+		mUiAssetPath(ResolveDefaultUiAssetPath()) {
+	}
+
 	UiCanvasComponent::~UiCanvasComponent() = default;
 
 	void UiCanvasComponent::Deserialize(const JsonReader& reader) {
@@ -317,7 +319,7 @@ namespace Unnamed {
 			return false;
 		}
 
-		auto document = Gui::UiDocument::LoadFromJson(
+		const auto document = Gui::UiDocument::LoadFromJson(
 			JsonReader(assetData->rootJson),
 			mUiAssetPath.ToGenericUtf8()
 		);

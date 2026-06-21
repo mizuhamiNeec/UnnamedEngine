@@ -565,7 +565,7 @@ namespace Unnamed::EditorContentBrowser {
 
 		constexpr float buttonWidth = 36.0f;
 		const float     helpWidth   =
-			(helpText && helpText[0] != '\0') ? 24.0f : 0.0f;
+			helpText && helpText[0] != '\0' ? 24.0f : 0.0f;
 		const float inputWidth = std::max(
 			80.0f,
 			ImGui::GetContentRegionAvail().x - buttonWidth - helpWidth -

@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstddef>
-#include <cstring>
 
 #ifdef _DEBUG
 #include <imgui.h>
@@ -26,7 +24,7 @@
 
 namespace Unnamed {
 	namespace {
-		static constexpr std::string_view kChannel = "SequenceDirector";
+		constexpr std::string_view kChannel = "SequenceDirector";
 
 #ifdef _DEBUG
 		template <size_t N>
@@ -61,7 +59,7 @@ namespace Unnamed {
 
 	void SequenceDirectorComponent::OnEditorTick(const float deltaTime) {
 		(void)deltaTime;
-		World* world = GetWorld();
+		const World* world = GetWorld();
 		if (!world || !world->IsGameSimulationEnabled()) {
 			// PIE外ではディレクター駆動を止め、ロジックとの競合を防ぎます。
 			if (mPlayer && mPlayer->IsEvaluating()) {
@@ -168,8 +166,8 @@ namespace Unnamed {
 			completionMode.Valid()) {
 			const std::string text = completionMode.GetString("Restore");
 			mCompletionMode        = text == "Keep" ?
-				                         SEQUENCE_COMPLETION_MODE::KEEP_STATE :
-				                         SEQUENCE_COMPLETION_MODE::RESTORE_STATE;
+				                  SEQUENCE_COMPLETION_MODE::KEEP_STATE :
+				                  SEQUENCE_COMPLETION_MODE::RESTORE_STATE;
 		}
 		if (const JsonReader applyLocks = reader["applyComponentLocks"];
 			applyLocks.Valid()) {
@@ -251,7 +249,7 @@ namespace Unnamed {
 	}
 
 	bool SequenceDirectorComponent::StartPlayback() {
-		World* world = GetWorld();
+		const World* world = GetWorld();
 		if (!world) {
 			return false;
 		}

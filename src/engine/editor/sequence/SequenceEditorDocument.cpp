@@ -3,13 +3,10 @@
 #include "core/filesystem/Path.h"
 
 #include <algorithm>
-#include <filesystem>
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/loader/SequenceFileIO.h"
-
-#include "core/string/StrUtil.h"
 
 namespace Unnamed {
 	namespace {

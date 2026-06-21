@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "core/filesystem/Path.h"
-
 namespace Unnamed {
 	class BinaryReader {
 	public:
@@ -30,12 +28,12 @@ namespace Unnamed {
 		/// @brief 読み取り位置をファイルの先頭からのオフセットで移動する。
 		/// @param offset ファイルの先頭からのオフセット（バイト単位）
 		/// @return 成功したか
-		bool Seek(const uint64_t offset);
+		bool Seek(uint64_t offset);
 
 		/// @brief 読み取り位置を現在の位置からのオフセットで移動する。
 		/// @param bytes 現在の位置からのオフセット（バイト単位）
 		/// @return 成功したか
-		bool Skip(const uint64_t bytes);
+		bool Skip(uint64_t bytes);
 
 		/// @brief 現在の読み取り位置からファイル末尾までの残りバイト数を取得する。
 		/// @return 残りバイト数。読み取り位置がファイルサイズを超えている場合は`0`
@@ -45,7 +43,7 @@ namespace Unnamed {
 		/// @param outData 読み込んだデータの格納先バッファ
 		/// @param sizeBytes 読み込むバイト数
 		/// @return 読み込みに成功したか
-		bool ReadBytes(void* outData, const size_t sizeBytes);
+		bool ReadBytes(void* outData, size_t sizeBytes);
 
 		/// @brief 標準レイアウトな値を読み込む。
 		/// @tparam T 読み込む値の型。標準レイアウトである必要がある。

@@ -202,6 +202,16 @@ namespace Unnamed::Rhi {
 		);
 	}
 
+	void D3D12Device::WaitForGpuIdle() {
+		// すべてのフレームが完了するまで待機
+		for (uint32_t i = 0; i < mFramesInFlight; ++i) {
+			SignalFrame(i);
+		}
+		for (uint32_t i = 0; i < mFramesInFlight; ++i) {
+			WaitForFrame(i);
+		}
+	}
+
 	BACKEND_TYPE D3D12Device::GetBackendType() const {
 		return BACKEND_TYPE::D3D12;
 	}
@@ -808,112 +818,115 @@ namespace Unnamed::Rhi {
 		// CBV(b5)=EnvironmentLightingConstants
 		{
 			auto createGeomSignature = [this](
-				                         ID3D12RootSignature** outSignature,
-				                         const D3D12_FILTER    filter,
-				                         const D3D12_TEXTURE_ADDRESS_MODE
-				                             addressMode
-			                         ) {
-			D3D12_DESCRIPTOR_RANGE srvRange = {};
-			srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			srvRange.NumDescriptors = 4;
-			srvRange.BaseShaderRegister = 0; // t0..t3
-			srvRange.RegisterSpace = 0;
-			srvRange.OffsetInDescriptorsFromTableStart =
-				D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				ID3D12RootSignature** outSignature,
+				const D3D12_FILTER    filter,
+				const D3D12_TEXTURE_ADDRESS_MODE
+				addressMode
+			) {
+				D3D12_DESCRIPTOR_RANGE srvRange = {};
+				srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				srvRange.NumDescriptors = 4;
+				srvRange.BaseShaderRegister = 0; // t0..t3
+				srvRange.RegisterSpace = 0;
+				srvRange.OffsetInDescriptorsFromTableStart =
+					D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			D3D12_DESCRIPTOR_RANGE shadowSrvRange = {};
-			shadowSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			shadowSrvRange.NumDescriptors = 1;
-			shadowSrvRange.BaseShaderRegister = 4; // t4
-			shadowSrvRange.RegisterSpace = 0;
-			shadowSrvRange.OffsetInDescriptorsFromTableStart =
-				D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+				D3D12_DESCRIPTOR_RANGE shadowSrvRange = {};
+				shadowSrvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				shadowSrvRange.NumDescriptors = 1;
+				shadowSrvRange.BaseShaderRegister = 4; // t4
+				shadowSrvRange.RegisterSpace = 0;
+				shadowSrvRange.OffsetInDescriptorsFromTableStart =
+					D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			// CBV(b0)->FrameConstants, CBV(b1)->ObjectConstants, CBV(b2)->Material, CBV(b3)->SkinningPalette, CBV(b4)->ShadowConstants, CBV(b5)->EnvironmentLightingConstants
-			std::array<D3D12_ROOT_PARAMETER, 8> param = {};
-			param[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-			param[0].Descriptor.ShaderRegister = 0; // b0
-			param[0].Descriptor.RegisterSpace = 0;
-			param[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+				// CBV(b0)->FrameConstants, CBV(b1)->ObjectConstants, CBV(b2)->Material, CBV(b3)->SkinningPalette, CBV(b4)->ShadowConstants, CBV(b5)->EnvironmentLightingConstants
+				std::array<D3D12_ROOT_PARAMETER, 8> param = {};
+				param[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+				param[0].Descriptor.ShaderRegister = 0; // b0
+				param[0].Descriptor.RegisterSpace = 0;
+				param[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-			param[1].ParameterType             = D3D12_ROOT_PARAMETER_TYPE_CBV;
-			param[1].Descriptor.ShaderRegister = 1; // b1
-			param[1].Descriptor.RegisterSpace  = 0;
-			param[1].ShaderVisibility          = D3D12_SHADER_VISIBILITY_VERTEX;
+				param[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+				param[1].Descriptor.ShaderRegister = 1; // b1
+				param[1].Descriptor.RegisterSpace = 0;
+				param[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-			param[2].ParameterType             = D3D12_ROOT_PARAMETER_TYPE_CBV;
-			param[2].Descriptor.ShaderRegister = 2; // b2
-			param[2].Descriptor.RegisterSpace  = 0;
-			param[2].ShaderVisibility          = D3D12_SHADER_VISIBILITY_PIXEL;
+				param[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+				param[2].Descriptor.ShaderRegister = 2; // b2
+				param[2].Descriptor.RegisterSpace = 0;
+				param[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-			param[3].ParameterType             = D3D12_ROOT_PARAMETER_TYPE_CBV;
-			param[3].Descriptor.ShaderRegister = 3; // b3
-			param[3].Descriptor.RegisterSpace  = 0;
-			param[3].ShaderVisibility          = D3D12_SHADER_VISIBILITY_VERTEX;
+				param[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+				param[3].Descriptor.ShaderRegister = 3; // b3
+				param[3].Descriptor.RegisterSpace = 0;
+				param[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
-			param[4].ParameterType =
-				D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			param[4].DescriptorTable.NumDescriptorRanges = 1;
-			param[4].DescriptorTable.pDescriptorRanges = &srvRange;
-			param[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				param[4].ParameterType =
+					D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				param[4].DescriptorTable.NumDescriptorRanges = 1;
+				param[4].DescriptorTable.pDescriptorRanges = &srvRange;
+				param[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-			param[5].ParameterType             = D3D12_ROOT_PARAMETER_TYPE_CBV;
-			param[5].Descriptor.ShaderRegister = 4; // b4
-			param[5].Descriptor.RegisterSpace  = 0;
-			param[5].ShaderVisibility          = D3D12_SHADER_VISIBILITY_PIXEL;
+				param[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+				param[5].Descriptor.ShaderRegister = 4; // b4
+				param[5].Descriptor.RegisterSpace = 0;
+				param[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-			param[6].ParameterType =
-				D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			param[6].DescriptorTable.NumDescriptorRanges = 1;
-			param[6].DescriptorTable.pDescriptorRanges = &shadowSrvRange;
-			param[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				param[6].ParameterType =
+					D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				param[6].DescriptorTable.NumDescriptorRanges = 1;
+				param[6].DescriptorTable.pDescriptorRanges = &shadowSrvRange;
+				param[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-			param[7].ParameterType             = D3D12_ROOT_PARAMETER_TYPE_CBV;
-			param[7].Descriptor.ShaderRegister = 5; // b5
-			param[7].Descriptor.RegisterSpace  = 0;
-			param[7].ShaderVisibility          = D3D12_SHADER_VISIBILITY_PIXEL;
+				param[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+				param[7].Descriptor.ShaderRegister = 5; // b5
+				param[7].Descriptor.RegisterSpace = 0;
+				param[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-			D3D12_STATIC_SAMPLER_DESC sampler = {};
-			sampler.Filter = filter;
-			sampler.AddressU = addressMode;
-			sampler.AddressV = addressMode;
-			sampler.AddressW = addressMode;
-			sampler.MinLOD = 0.0f;
-			sampler.MaxLOD = D3D12_FLOAT32_MAX;
-			sampler.MaxAnisotropy = filter == D3D12_FILTER_ANISOTROPIC ? 16 : 1;
-			sampler.MipLODBias = 0.0f;
-			sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-			sampler.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-			sampler.ShaderRegister = 0; // s0
-			sampler.RegisterSpace = 0;
-			sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+				D3D12_STATIC_SAMPLER_DESC sampler = {};
+				sampler.Filter = filter;
+				sampler.AddressU = addressMode;
+				sampler.AddressV = addressMode;
+				sampler.AddressW = addressMode;
+				sampler.MinLOD = 0.0f;
+				sampler.MaxLOD = D3D12_FLOAT32_MAX;
+				sampler.MaxAnisotropy = filter == D3D12_FILTER_ANISOTROPIC ?
+					                        16 :
+					                        1;
+				sampler.MipLODBias     = 0.0f;
+				sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+				sampler.BorderColor    =
+					D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+				sampler.ShaderRegister   = 0; // s0
+				sampler.RegisterSpace    = 0;
+				sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-			D3D12_ROOT_SIGNATURE_DESC desc = {};
-			desc.NumParameters             = static_cast<UINT>(param.size());
-			desc.pParameters               = param.data();
-			desc.NumStaticSamplers         = 1;
-			desc.pStaticSamplers           = &sampler;
-			desc.Flags                     =
-				D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+				D3D12_ROOT_SIGNATURE_DESC desc = {};
+				desc.NumParameters = static_cast<UINT>(param.size());
+				desc.pParameters = param.data();
+				desc.NumStaticSamplers = 1;
+				desc.pStaticSamplers = &sampler;
+				desc.Flags =
+					D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-			ComPtr<ID3DBlob> blob, error;
-			Throw(
-				D3D12SerializeRootSignature(
-					&desc,
-					D3D_ROOT_SIGNATURE_VERSION_1,
-					blob.ReleaseAndGetAddressOf(),
-					error.ReleaseAndGetAddressOf()
-				)
-			);
+				ComPtr<ID3DBlob> blob, error;
+				Throw(
+					D3D12SerializeRootSignature(
+						&desc,
+						D3D_ROOT_SIGNATURE_VERSION_1,
+						blob.ReleaseAndGetAddressOf(),
+						error.ReleaseAndGetAddressOf()
+					)
+				);
 
-			Throw(
-				mDevice->CreateRootSignature(
-					0,
-					blob->GetBufferPointer(),
-					blob->GetBufferSize(),
-					IID_PPV_ARGS(outSignature)
-				)
-			);
+				Throw(
+					mDevice->CreateRootSignature(
+						0,
+						blob->GetBufferPointer(),
+						blob->GetBufferSize(),
+						IID_PPV_ARGS(outSignature)
+					)
+				);
 			};
 
 			createGeomSignature(
@@ -997,16 +1010,6 @@ namespace Unnamed::Rhi {
 		const uint64_t fenceValue      = mNextFenceValue++;
 		mFrames[frameIndex].fenceValue = fenceValue;
 		Throw(mGraphicsQueue->Signal(mFence.Get(), fenceValue));
-	}
-
-	void D3D12Device::WaitForGpuIdle() {
-		// すべてのフレームが完了するまで待機
-		for (uint32_t i = 0; i < mFramesInFlight; ++i) {
-			SignalFrame(i);
-		}
-		for (uint32_t i = 0; i < mFramesInFlight; ++i) {
-			WaitForFrame(i);
-		}
 	}
 
 	uint64_t D3D12Device::GetCompletedFenceValue() const {

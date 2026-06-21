@@ -18,7 +18,6 @@ public:
 	template <typename T = double>
 	[[nodiscard]] T ScaledDeltaTime();
 
-
 	[[nodiscard]] double   TotalTime() const;
 	[[nodiscard]] float    TimeScale() const;
 	[[nodiscard]] uint64_t FrameCount() const;

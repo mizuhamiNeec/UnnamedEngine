@@ -19,7 +19,6 @@
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 #include "engine/world/World.h"
 
-
 namespace Unnamed {
 	void StaticMeshColliderComponent::OnAttached() {
 		BaseComponent::OnAttached();
@@ -92,10 +91,10 @@ namespace Unnamed {
 			return;
 		}
 
-		Entity* owner     = GetOwner();
-		auto*   transform = owner ?
-			                  owner->GetComponent<TransformComponent>() :
-			                  nullptr;
+		Entity*     owner     = GetOwner();
+		const auto* transform = owner ?
+			                        owner->GetComponent<TransformComponent>() :
+			                        nullptr;
 		auto* meshRenderer =
 			owner ?
 				owner->GetComponent<StaticMeshRendererComponent>() :

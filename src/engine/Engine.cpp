@@ -47,9 +47,9 @@
 #include <engine/rhi/d3d12/D3D12Util.h>
 #include <engine/rhi/interface/IRhiDevice.h>
 #include <engine/ui/ImGuiLayer.h>
-#include <engine/unnamed/framework/entity/Entity.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
 #include <engine/unnamed/subsystem/EditorLuaSystem/EditorLuaSystem.h>
+#include <engine/unnamed/subsystem/input/InputSystem.h>
 #include <engine/unnamed/subsystem/input/device/gamepad/GamepadDevice.h>
 #include <engine/unnamed/subsystem/input/device/keyboard/KeyboardDevice.h>
 #include <engine/unnamed/subsystem/input/device/mouse/MouseDevice.h>
@@ -404,7 +404,8 @@ namespace Unnamed {
 		mRenderFrameContext = std::make_unique<Render::RenderFrameContext>();
 
 		RegisterEngineComponents(ComponentRegistry::Get());
-		const GameRuntimeContext& runtimeContext = *mRuntimeBindings.runtimeContext;
+		const GameRuntimeContext& runtimeContext = *mRuntimeBindings.
+			runtimeContext;
 		const GameModulePaths& gamePaths = runtimeContext.modulePaths;
 		DevMsg(
 			"Engine",
@@ -416,8 +417,8 @@ namespace Unnamed {
 			gamePaths.contentRoot,
 			gamePaths.configRoot,
 			runtimeContext.defaultStartupScenePath.IsEmpty() ?
-				runtimeContext.modulePaths.defaultStartupScene :
-				runtimeContext.defaultStartupScenePath
+			runtimeContext.modulePaths.defaultStartupScene :
+			runtimeContext.defaultStartupScenePath
 		);
 
 		(void)ExecuteGameCfgIfExists(
@@ -519,10 +520,13 @@ namespace Unnamed {
 					BuildWorldServices()
 				);
 			if (!runtimeWorld) {
-				Error("Engine", "Game world factory returned null runtime world.");
+				Error(
+					"Engine",
+					"Game world factory returned null runtime world."
+				);
 				return false;
 			}
-			World&            world = ActivateWorld(std::move(runtimeWorld));
+			World& world = ActivateWorld(std::move(runtimeWorld));
 			world.LoadSceneFromFile(
 				ResolveStartupScenePath(
 					gamePaths,
@@ -923,9 +927,10 @@ namespace Unnamed {
 					return false;
 				}
 
-				const World* transitionTarget = ResolveSceneTransitionTargetWorld(
-					runtimeWorld
-				);
+				const World* transitionTarget =
+					ResolveSceneTransitionTargetWorld(
+						runtimeWorld
+					);
 				if (!transitionTarget) {
 					Warning("Engine",
 					        "Reload failed: transition target world is null.");

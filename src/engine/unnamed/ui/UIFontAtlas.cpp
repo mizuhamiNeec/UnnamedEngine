@@ -28,7 +28,6 @@
 #include "core/assets/AssetType.h"
 #include "core/assets/types/TextureAssetData.h"
 
-
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 #include "engine/unnamed/subsystem/console/concommand/ConVar.h"
@@ -96,14 +95,14 @@ namespace Unnamed::UI {
 	}
 
 	UIFontAtlasKey MakeUIFontAtlasKey(
-		const Path&  fontPath,
-		const float  fontSizePx,
+		const Path&    fontPath,
+		const float    fontSizePx,
 		const uint32_t oversampleH,
 		const uint32_t oversampleV
 	) {
 		UIFontAtlasKey key = {};
-		key.fontPath       = fontPath.IsEmpty() ? Path() : fontPath.LexicallyNormal();
-		key.fontSize100    = static_cast<int32_t>(std::lround(
+		key.fontPath = fontPath.IsEmpty() ? Path() : fontPath.LexicallyNormal();
+		key.fontSize100 = static_cast<int32_t>(std::lround(
 			std::clamp(fontSizePx, 8.0f, 96.0f) * 100.0f
 		));
 		key.oversampleH = std::clamp(oversampleH, 1u, 8u);
@@ -268,15 +267,15 @@ namespace Unnamed::UI {
 		}
 		stbtt_PackSetOversampling(
 			&packContext,
-			static_cast<unsigned int>(mOversampleH),
-			static_cast<unsigned int>(mOversampleV)
+			mOversampleH,
+			mOversampleV
 		);
 		const int packed = stbtt_PackFontRange(
 			&packContext,
 			ttfBytes.data(),
 			0,
 			mFontPixelSize,
-			static_cast<int>(kAsciiFirst),
+			kAsciiFirst,
 			kAsciiCount,
 			packedChars.data()
 		);
@@ -290,7 +289,7 @@ namespace Unnamed::UI {
 		int                                       bitmapGlyphCount = 0;
 		for (uint32_t code = kAsciiFirst; code <= kAsciiLast; ++code) {
 			PendingGlyph& glyph       = pending[code];
-			const size_t  packedIndex = static_cast<size_t>(code - kAsciiFirst);
+			const size_t  packedIndex = code - kAsciiFirst;
 			glyph.packed              = packedChars[packedIndex];
 			glyph.advanceX            = glyph.packed.xadvance;
 			glyph.bearingX            = glyph.packed.xoff;
@@ -305,8 +304,8 @@ namespace Unnamed::UI {
 			glyph.srcY0     = glyph.packed.y0;
 			glyph.srcX1     = glyph.packed.x1;
 			glyph.srcY1     = glyph.packed.y1;
-			glyph.hasBitmap = (glyph.srcX1 > glyph.srcX0) &&
-			                  (glyph.srcY1 > glyph.srcY0);
+			glyph.hasBitmap = glyph.srcX1 > glyph.srcX0 &&
+			                  glyph.srcY1 > glyph.srcY0;
 			if (glyph.hasBitmap) {
 				++bitmapGlyphCount;
 			}
@@ -536,7 +535,7 @@ namespace Unnamed::UI {
 					return lhs.lastUsedFrame < rhs.lastUsedFrame;
 				}
 			);
-			
+
 			if (it == mEntries.end()) {
 				break;
 			}

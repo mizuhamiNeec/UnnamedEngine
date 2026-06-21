@@ -12,6 +12,7 @@
 #include "engine/world/GameplayCueBus.h"
 #include "engine/world/WorldCameraManager.h"
 #include "engine/world/WorldDebugDraw.h"
+#include "engine/physics/core/Physics.h"
 
 namespace Unnamed {
 	namespace Physics {
@@ -129,7 +130,7 @@ namespace Unnamed {
 
 		/// @brief ロードされたシーンのファイルパスを設定します。
 		/// @param path ロードされたシーンのファイルパス
-		void SetLoadedScenePath(Path path);
+		void SetLoadedScenePath(const Path& path);
 
 		/// @brief ワールドの現在カメラマネージャを取得します。
 		/// @return ワールドの現在カメラマネージャへの参照
@@ -258,18 +259,18 @@ namespace Unnamed {
 		std::unordered_map<std::string, PostFxPassOverrides>
 		mPostFxPassOverrides;
 
-		std::unique_ptr<Scene> mScene; // 現在のシーン
+		std::unique_ptr<Scene>           mScene;         // 現在のシーン
 		std::unique_ptr<Physics::Engine> mPhysicsEngine; // 物理エンジン
-		WorldCameraManager mCameraManager; // ワールドの現在カメラ管理
-		GameplayCueBus mGameplayCueBus;
+		WorldCameraManager               mCameraManager; // ワールドの現在カメラ管理
+		GameplayCueBus                   mGameplayCueBus;
 		std::unique_ptr<SequenceRuntime> mSequenceRuntime;
 
 		GuidGenerator mGuidGenerator; // GUIDジェネレーター
 
-		Path mLoadedScenePath; // ロードされたシーンのファイルパス
+		Path mLoadedScenePath;            // ロードされたシーンのファイルパス
 		Path mPendingSceneTransitionPath; // 保留中のシーン遷移先
 
-		WorldTime mTime; // ワールドの時間情報
+		WorldTime      mTime; // ワールドの時間情報
 		WorldDebugDraw mDebugDraw;
 
 		std::vector<Render::ScreenSpriteInput> mDebugScreenSprites;

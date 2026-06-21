@@ -22,7 +22,8 @@ namespace Unnamed {
 	}
 
 	PostFxChainLoader::PostFxChainLoader(AssetManager* assetManager) :
-		mAssetManager(assetManager) {}
+		mAssetManager(assetManager) {
+	}
 
 	bool PostFxChainLoader::CanLoad(
 		const Path& path, ASSET_TYPE* outType

@@ -113,7 +113,9 @@ namespace Unnamed {
 		void ClampCurrentFrame(float maxFrame);
 
 		/// @brief コンパイル済みアセットを更新します。
-		void SetCompiled(std::shared_ptr<const SequenceAssetData> asset, uint64_t version);
+		void SetCompiled(
+			std::shared_ptr<const SequenceAssetData> asset, uint64_t version
+		);
 
 		/// @brief 現在のコンパイル済みデータを取得します。
 		[[nodiscard]] const CompiledSequence* GetCompiled() const;
@@ -127,21 +129,24 @@ namespace Unnamed {
 		uint64_t mPlayerId = 0;
 		AssetID  mAssetId  = kInvalidAssetID;
 
-		SEQUENCE_PLAYER_STATE   mState          = SEQUENCE_PLAYER_STATE::STOPPED;
-		SEQUENCE_COMPLETION_MODE mCompletionMode = SEQUENCE_COMPLETION_MODE::RESTORE_STATE;
-		SEQUENCE_PLAYBACK_DIRECTION mPlaybackDirection = SEQUENCE_PLAYBACK_DIRECTION::FORWARD;
-		SEQUENCE_SEEK_EVENT_POLICY  mSeekEventPolicy  = SEQUENCE_SEEK_EVENT_POLICY::SUPPRESS;
-		bool                    mLoopEnabled    = false;
-		float                   mPlayRate       = 1.0f;
-		float                   mWeight         = 1.0f;
-		float                   mCurrentFrame   = 0.0f;
-		float                   mPreviousFrame  = 0.0f;
-		SequenceFrameRange      mLastFrameRange = {};
-		SequenceTraversalRange  mLastTraversalRange = {};
-		bool                    mHasPendingSeek = false;
-		uint64_t                mTraversalSerialCounter = 0;
+		SEQUENCE_PLAYER_STATE    mState = SEQUENCE_PLAYER_STATE::STOPPED;
+		SEQUENCE_COMPLETION_MODE mCompletionMode =
+			SEQUENCE_COMPLETION_MODE::RESTORE_STATE;
+		SEQUENCE_PLAYBACK_DIRECTION mPlaybackDirection =
+			SEQUENCE_PLAYBACK_DIRECTION::FORWARD;
+		SEQUENCE_SEEK_EVENT_POLICY mSeekEventPolicy =
+			SEQUENCE_SEEK_EVENT_POLICY::SUPPRESS;
+		bool                   mLoopEnabled            = false;
+		float                  mPlayRate               = 1.0f;
+		float                  mWeight                 = 1.0f;
+		float                  mCurrentFrame           = 0.0f;
+		float                  mPreviousFrame          = 0.0f;
+		SequenceFrameRange     mLastFrameRange         = {};
+		SequenceTraversalRange mLastTraversalRange     = {};
+		bool                   mHasPendingSeek         = false;
+		uint64_t               mTraversalSerialCounter = 0;
 
-		std::unique_ptr<CompiledSequence> mCompiled = nullptr;
+		std::unique_ptr<CompiledSequence> mCompiled        = nullptr;
 		uint64_t                          mCompiledVersion = 0;
 	};
 }

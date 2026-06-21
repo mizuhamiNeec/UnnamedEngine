@@ -5,7 +5,6 @@
 #include <random>
 #include <thread>
 
-
 namespace Unnamed {
 	constexpr uint64_t kGuidRandom64MsbMask = 0x8000'0000'0000'0000ULL;
 
@@ -28,7 +27,8 @@ namespace Unnamed {
 		}
 	}
 
-	GuidGenerator::GuidGenerator(const MODE m) : mMode(m) {}
+	GuidGenerator::GuidGenerator(const MODE m) : mMode(m) {
+	}
 
 	uint64_t GuidGenerator::Alloc() {
 		switch (mMode) {

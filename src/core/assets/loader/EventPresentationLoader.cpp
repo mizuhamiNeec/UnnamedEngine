@@ -23,7 +23,9 @@ namespace Unnamed {
 	) const {
 		const bool ok = IsEventPresentationPath(path);
 		if (outType) {
-			*outType = ok ? ASSET_TYPE::EVENT_PRESENTATION : ASSET_TYPE::UNKNOWN;
+			*outType = ok ?
+				           ASSET_TYPE::EVENT_PRESENTATION :
+				           ASSET_TYPE::UNKNOWN;
 		}
 		return ok;
 	}
@@ -35,8 +37,8 @@ namespace Unnamed {
 			return result;
 		}
 
-		const Path full = path.LexicallyNormal();
-		EventPresentationAssetData  data = {};
+		const Path                 full = path.LexicallyNormal();
+		EventPresentationAssetData data = {};
 		data.name = root.Read<std::string>("name").value_or(
 			Path::ToUtf8String(full.Stem().Stem())
 		);
@@ -75,16 +77,19 @@ namespace Unnamed {
 							GetString(trigger.condition.source.c_str());
 					}
 					if (conditionNode.Has("min")) {
-						trigger.condition.minValue = conditionNode["min"].GetFloat(
-							trigger.condition.minValue
-						);
+						trigger.condition.minValue = conditionNode["min"].
+							GetFloat(
+								trigger.condition.minValue
+							);
 					}
 					if (conditionNode.Has("max")) {
-						trigger.condition.maxValue = conditionNode["max"].GetFloat(
-							trigger.condition.maxValue
-						);
+						trigger.condition.maxValue = conditionNode["max"].
+							GetFloat(
+								trigger.condition.maxValue
+							);
 					}
-					if (trigger.condition.maxValue < trigger.condition.minValue) {
+					if (trigger.condition.maxValue < trigger.condition.
+					    minValue) {
 						std::swap(
 							trigger.condition.minValue,
 							trigger.condition.maxValue
@@ -94,7 +99,8 @@ namespace Unnamed {
 
 				const JsonReader actionsNode = triggerNode["actions"];
 				if (actionsNode.Valid() && actionsNode.IsArray()) {
-					for (size_t actionIndex = 0; actionIndex < actionsNode.Size();
+					for (size_t actionIndex = 0;
+					     actionIndex < actionsNode.Size();
 					     ++actionIndex) {
 						const JsonReader actionNode = actionsNode[actionIndex];
 						if (!actionNode.Valid() || !actionNode.IsObject()) {
@@ -112,7 +118,8 @@ namespace Unnamed {
 							action.id = actionNode["id"].GetString("");
 						}
 						if (actionNode.Has("debugText")) {
-							action.debugText = actionNode["debugText"].GetString("");
+							action.debugText = actionNode["debugText"].
+								GetString("");
 						}
 
 						const JsonReader valueNode = actionNode["value"];
@@ -122,7 +129,8 @@ namespace Unnamed {
 									GetString(action.valueInput.source.c_str());
 							}
 							if (valueNode.Has("constant")) {
-								action.valueInput.constant = valueNode["constant"].
+								action.valueInput.constant = valueNode[
+										"constant"].
 									GetFloat(action.valueInput.constant);
 							}
 							if (valueNode.Has("clampEnabled")) {
@@ -132,11 +140,13 @@ namespace Unnamed {
 									);
 							}
 							if (valueNode.Has("clampMin")) {
-								action.valueInput.clampMin = valueNode["clampMin"].
+								action.valueInput.clampMin = valueNode[
+										"clampMin"].
 									GetFloat(action.valueInput.clampMin);
 							}
 							if (valueNode.Has("clampMax")) {
-								action.valueInput.clampMax = valueNode["clampMax"].
+								action.valueInput.clampMax = valueNode[
+										"clampMax"].
 									GetFloat(action.valueInput.clampMax);
 							}
 							if (action.valueInput.clampMax <
@@ -147,7 +157,8 @@ namespace Unnamed {
 								);
 							}
 							if (valueNode.Has("multiply")) {
-								action.valueInput.multiply = valueNode["multiply"].
+								action.valueInput.multiply = valueNode[
+										"multiply"].
 									GetFloat(action.valueInput.multiply);
 							}
 						}

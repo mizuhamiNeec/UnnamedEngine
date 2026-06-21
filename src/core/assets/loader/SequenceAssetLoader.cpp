@@ -36,8 +36,8 @@ namespace Unnamed {
 		}
 
 		const Path filePath = path.LexicallyNormal();
-		result.payload     = std::move(ioResult.runtime);
-		result.resolveName = Path::ToUtf8String(filePath.Stem().Stem());
+		result.payload      = std::move(ioResult.runtime);
+		result.resolveName  = Path::ToUtf8String(filePath.Stem().Stem());
 
 		std::error_code ec;
 		if (std::filesystem::exists(path.Native(), ec)) {
@@ -46,8 +46,8 @@ namespace Unnamed {
 			);
 		}
 		if (const auto lastWrite = std::filesystem::last_write_time(
-			    path.Native(), ec
-		    );
+				path.Native(), ec
+			);
 			!ec) {
 			result.stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
 		}

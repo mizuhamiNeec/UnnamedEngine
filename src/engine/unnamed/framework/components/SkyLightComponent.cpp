@@ -102,7 +102,8 @@ namespace Unnamed {
 
 		float groundColor[3] = {mGroundColor.x, mGroundColor.y, mGroundColor.z};
 		if (ImGui::ColorEdit3("Ground Color", groundColor)) {
-			SetGroundColor(Vec3(groundColor[0], groundColor[1], groundColor[2]));
+			SetGroundColor(Vec3(groundColor[0], groundColor[1],
+			                    groundColor[2]));
 		}
 
 		if (ImGui::DragFloat("Intensity", &mIntensity, 0.01f, 0.0f, 8.0f)) {

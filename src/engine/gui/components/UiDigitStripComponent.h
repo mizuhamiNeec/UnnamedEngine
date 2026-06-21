@@ -13,19 +13,19 @@ namespace Unnamed::Gui {
 			return "DigitStrip";
 		}
 
-		void SetStripTexturePath(Path path);
+		void                      SetStripTexturePath(Path path);
 		[[nodiscard]] const Path& GetStripTexturePath() const;
 
-		void SetValue(int value);
+		void              SetValue(int value);
 		[[nodiscard]] int GetValue() const;
 
-		void SetMinDigits(int minDigits);
+		void              SetMinDigits(int minDigits);
 		[[nodiscard]] int GetMinDigits() const;
 
-		void SetDigitSpacing(float spacingPx);
+		void                SetDigitSpacing(float spacingPx);
 		[[nodiscard]] float GetDigitSpacing() const;
 
-		void SetColor(const Color& color);
+		void                       SetColor(const Color& color);
 		[[nodiscard]] const Color& GetColor() const;
 
 		void BuildDrawCommands(
@@ -36,10 +36,10 @@ namespace Unnamed::Gui {
 		void Deserialize(const JsonReader& reader) override;
 
 	private:
-		Path mStripTexturePath;
-		int         mValue = 0;
-		int         mMinDigits = 2;
-		float       mDigitSpacing = 0.0f;
-		Color       mColor = {.r = 1.0f, .g = 1.0f, .b = 1.0f, .a = 1.0f};
+		Path  mStripTexturePath;
+		int   mValue        = 0;
+		int   mMinDigits    = 2;
+		float mDigitSpacing = 0.0f;
+		Color mColor        = {.r = 1.0f, .g = 1.0f, .b = 1.0f, .a = 1.0f};
 	};
 }

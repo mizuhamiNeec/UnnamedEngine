@@ -51,7 +51,7 @@ namespace {
 
 		const float va = d3 * d6 - d5 * d4;
 		if (va <= 0.0f && d4 - d3 >= 0.0f && d5 - d6 >= 0.0f) {
-			const Vec3  bc = c - b;
+			const Vec3  bc      = c - b;
 			const float bcLenSq = bc.Dot(bc);
 			if (bcLenSq <= 1e-12f) {
 				return b;
@@ -183,7 +183,7 @@ namespace Unnamed::Physics {
 		float&          outTOI,
 		Vec3&           outNrm
 	) {
-		constexpr float kNormalEpsilon = 1e-12f;
+		constexpr float kNormalEpsilon  = 1e-12f;
 		constexpr float kContactEpsilon = 1e-6f;
 
 		/* ---------- 1. 基本量 ---------- */
@@ -345,8 +345,8 @@ namespace Unnamed::Physics {
 		const Vec3 p0 = center;
 		const Vec3 v  = delta;
 
-		const Vec3  e0 = tri.v1 - tri.v0;
-		const Vec3  e1 = tri.v2 - tri.v0;
+		const Vec3  e0        = tri.v1 - tri.v0;
+		const Vec3  e1        = tri.v2 - tri.v0;
 		Vec3        triNormal = e0.Cross(e1);
 		const float triNLenSq = triNormal.SqrLength();
 		if (triNLenSq > kNormalEpsilon) {
@@ -356,7 +356,7 @@ namespace Unnamed::Physics {
 		}
 
 		float candidateTimes[24];
-		int   candidateCount = 0;
+		int   candidateCount    = 0;
 		auto  pushCandidateTime = [&](const float t) {
 			if (t < -kRootEpsilon || t > 1.0f + kRootEpsilon) {
 				return;
@@ -372,7 +372,9 @@ namespace Unnamed::Physics {
 			}
 		};
 
-		auto addQuadraticRoots = [&](const float a, const float b, const float c) {
+		auto addQuadraticRoots = [&](
+			const float a, const float b, const float c
+		) {
 			if (fabsf(a) <= kParallelEpsilon) {
 				if (fabsf(b) <= kParallelEpsilon) {
 					return;
@@ -385,7 +387,7 @@ namespace Unnamed::Physics {
 			if (discriminant < -kParallelEpsilon) {
 				return;
 			}
-			discriminant = std::max(0.0f, discriminant);
+			discriminant         = std::max(0.0f, discriminant);
 			const float sqrtDisc = std::sqrt(discriminant);
 			const float inv2A    = 0.5f / a;
 			pushCandidateTime((-b - sqrtDisc) * inv2A);
@@ -427,9 +429,9 @@ namespace Unnamed::Physics {
 				continue;
 			}
 
-			const Vec3  m        = p0 - edgeStarts[i];
-			const float mdotEdge = m.Dot(edge);
-			const float vdotEdge = v.Dot(edge);
+			const Vec3  m          = p0 - edgeStarts[i];
+			const float mdotEdge   = m.Dot(edge);
+			const float vdotEdge   = v.Dot(edge);
 			const float invEdgeLen = 1.0f / edgeLen;
 
 			const float s0 = mdotEdge * invEdgeLen;
@@ -473,24 +475,26 @@ namespace Unnamed::Physics {
 		// 頂点接触候補（移動点と頂点距離が半径になる時刻）
 		const Vec3 vertices[3] = {tri.v0, tri.v1, tri.v2};
 		for (const Vec3& vertex : vertices) {
-			const Vec3 toVertex = p0 - vertex;
-			const float a       = motionLenSq;
-			const float b       = 2.0f * toVertex.Dot(v);
-			const float c       = toVertex.Dot(toVertex) - radius * radius;
+			const Vec3  toVertex = p0 - vertex;
+			const float a        = motionLenSq;
+			const float b        = 2.0f * toVertex.Dot(v);
+			const float c        = toVertex.Dot(toVertex) - radius * radius;
 			addQuadraticRoots(a, b, c);
 		}
 
-		float bestTOI  = FLT_MAX;
-		Vec3  bestNrm  = Vec3::zero;
-		bool  hasHit   = false;
-		const float maxDist = radius + kDistanceEpsilon;
+		float       bestTOI   = FLT_MAX;
+		Vec3        bestNrm   = Vec3::zero;
+		bool        hasHit    = false;
+		const float maxDist   = radius + kDistanceEpsilon;
 		const float maxDistSq = maxDist * maxDist;
 
-		auto evaluateCandidate = [&](const float t, const Vec3& fallbackNormal) {
-			const Vec3 centerAtT = p0 + v * t;
-			const Vec3 closest   = ClosestPointOnTriangle(tri, centerAtT);
-			Vec3       sep       = centerAtT - closest;
-			const float distSq   = sep.SqrLength();
+		auto evaluateCandidate = [&](
+			const float t, const Vec3& fallbackNormal
+		) {
+			const Vec3  centerAtT = p0 + v * t;
+			const Vec3  closest   = ClosestPointOnTriangle(tri, centerAtT);
+			const Vec3  sep       = centerAtT - closest;
+			const float distSq    = sep.SqrLength();
 			if (distSq > maxDistSq) {
 				return;
 			}
@@ -499,7 +503,7 @@ namespace Unnamed::Physics {
 			if (distSq > kNormalEpsilon) {
 				normal /= std::sqrt(distSq);
 			} else {
-				normal = fallbackNormal;
+				normal                    = fallbackNormal;
 				const float fallbackLenSq = normal.SqrLength();
 				if (fallbackLenSq > kNormalEpsilon) {
 					normal /= std::sqrt(fallbackLenSq);
@@ -597,8 +601,8 @@ namespace Unnamed::Physics {
 		constexpr float kContactEpsilon = 1e-6f;
 
 		// 1) テストする軸 13 本
-		Vec3 axes[13];
-		int  axisCnt = 0;
+		Vec3       axes[13];
+		int        axisCnt    = 0;
 		const Vec3 boxAxes[3] = {Vec3::right, Vec3::up, Vec3::forward};
 
 		// (a) ボックスのローカル軸
@@ -666,9 +670,9 @@ namespace Unnamed::Physics {
 		// 3) bestAxis 方向へ押し出し
 		// 軸種別（面/辺）に依存しないよう、三角形重心を基準に符号を決めます。
 		const Vec3 triCentroid = (tri.v0 + tri.v1 + tri.v2) * (1.0f / 3.0f);
-		outNormal              = (box.center - triCentroid).Dot(bestAxis) >= 0.0f ?
-			                         bestAxis :
-			                         -bestAxis;
+		outNormal = (box.center - triCentroid).Dot(bestAxis) >= 0.0f ?
+			            bestAxis :
+			            -bestAxis;
 		outDepth = bestDepth;
 		return true;
 	}

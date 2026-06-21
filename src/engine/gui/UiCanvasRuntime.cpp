@@ -1,7 +1,6 @@
 ﻿#include "UiCanvasRuntime.h"
 
 #include <cfloat>
-#include <cmath>
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/MeshAssetData.h"
@@ -28,15 +27,15 @@ namespace Unnamed {
 			const Gui::UiDrawCommandRect& rect, const int32_t sortKey
 		) {
 			Render::ScreenSpriteInput sprite = {};
-			sprite.texture.source            = Render::SPRITE_TEXTURE_SOURCE::ASSET;
-			sprite.texture.textureAssetId    = kInvalidAssetID;
-			sprite.positionPx                = Vec2(rect.rect.x, rect.rect.y);
-			sprite.sizePx                    = Vec2(rect.rect.width, rect.rect.height);
-			sprite.anchor                    = Vec2(0.0f, 0.0f);
-			sprite.rotationRad               = 0.0f;
-			sprite.color                     = ToVec4(rect.fillColor);
-			sprite.sortKey                   = sortKey;
-			sprite.uvFlipY                   = true;
+			sprite.texture.source = Render::SPRITE_TEXTURE_SOURCE::ASSET;
+			sprite.texture.textureAssetId = kInvalidAssetID;
+			sprite.positionPx = Vec2(rect.rect.x, rect.rect.y);
+			sprite.sizePx = Vec2(rect.rect.width, rect.rect.height);
+			sprite.anchor = Vec2(0.0f, 0.0f);
+			sprite.rotationRad = 0.0f;
+			sprite.color = ToVec4(rect.fillColor);
+			sprite.sortKey = sortKey;
+			sprite.uvFlipY = true;
 			return sprite;
 		}
 
@@ -44,20 +43,20 @@ namespace Unnamed {
 			const Gui::UiDrawCommandImage& image, const int32_t sortKey
 		) {
 			Render::ScreenSpriteInput sprite = {};
-			sprite.texture.source            = Render::SPRITE_TEXTURE_SOURCE::ASSET;
-			sprite.texture.textureAssetId    = kInvalidAssetID;
-			sprite.positionPx                = Vec2(
+			sprite.texture.source = Render::SPRITE_TEXTURE_SOURCE::ASSET;
+			sprite.texture.textureAssetId = kInvalidAssetID;
+			sprite.positionPx = Vec2(
 				image.rect.x + image.anchor.x * image.rect.width,
 				image.rect.y + image.anchor.y * image.rect.height
 			);
-			sprite.sizePx                    = Vec2(image.rect.width, image.rect.height);
-			sprite.anchor                    = image.anchor;
-			sprite.rotationRad               = image.rotationRad;
-			sprite.color                     = ToVec4(image.color);
-			sprite.sortKey                   = sortKey;
-			sprite.uvMin                     = image.uvMin;
-			sprite.uvMax                     = image.uvMax;
-			sprite.uvFlipY                   = true;
+			sprite.sizePx      = Vec2(image.rect.width, image.rect.height);
+			sprite.anchor      = image.anchor;
+			sprite.rotationRad = image.rotationRad;
+			sprite.color       = ToVec4(image.color);
+			sprite.sortKey     = sortKey;
+			sprite.uvMin       = image.uvMin;
+			sprite.uvMax       = image.uvMax;
+			sprite.uvFlipY     = true;
 			return sprite;
 		}
 
@@ -83,8 +82,8 @@ namespace Unnamed {
 				return false;
 			}
 
-			const float ndcX = (mousePos.x / viewportSize.x) * 2.0f - 1.0f;
-			const float ndcY = 1.0f - (mousePos.y / viewportSize.y) * 2.0f;
+			const float ndcX = mousePos.x / viewportSize.x * 2.0f - 1.0f;
+			const float ndcY = 1.0f - mousePos.y / viewportSize.y * 2.0f;
 
 			const Mat4 invViewProj = (camera.view * camera.proj).Inverse();
 			const Vec4 nearClip(ndcX, ndcY, 0.0f, 1.0f);
@@ -188,8 +187,8 @@ namespace Unnamed {
 			const Vec2& worldSize,
 			const Vec2& pixelSize
 		) {
-			const float u = (localWorld.x / worldSize.x) + 0.5f;
-			const float v = 0.5f - (localWorld.y / worldSize.y);
+			const float u = localWorld.x / worldSize.x + 0.5f;
+			const float v = 0.5f - localWorld.y / worldSize.y;
 			return {u * pixelSize.x, v * pixelSize.y};
 		}
 
@@ -220,7 +219,8 @@ namespace Unnamed {
 					continue;
 				}
 
-				auto* transform = entity->GetComponent<TransformComponent>();
+				const auto* transform = entity->GetComponent<
+					TransformComponent>();
 				if (!transform) {
 					continue;
 				}

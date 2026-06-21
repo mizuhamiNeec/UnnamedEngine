@@ -7,7 +7,6 @@
 
 #include <core/UnnamedMacro.h>
 #include <core/filesystem/Path.h>
-#include <core/string/StrUtil.h>
 
 #include <engine/game/GamePathResolver.h>
 #include <engine/game/GameRuntimeContext.h>
@@ -147,7 +146,8 @@ namespace Unnamed {
 		std::scoped_lock lock(mMutex);
 
 		if (policy == AssetLoadPolicy::UseCachedIfLoaded) {
-			const auto cachedIt = mPathToID.find(normalizedPath.ToGenericUtf8());
+			const auto cachedIt = mPathToID.
+				find(normalizedPath.ToGenericUtf8());
 			if (cachedIt != mPathToID.end()) {
 				const AssetID cachedId = cachedIt->second;
 				const Node&   cached   = mNodes[cachedId];
@@ -781,8 +781,8 @@ namespace Unnamed {
 			return it->second;
 		}
 
-		const AssetID id      = AllocateID();
-		mPathToID[key]        = id;
+		const AssetID id = AllocateID();
+		mPathToID[key]   = id;
 
 		Node& node           = mNodes[id];
 		node.meta.type       = type;

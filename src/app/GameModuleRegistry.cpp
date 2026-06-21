@@ -3,7 +3,6 @@
 #include "engine/game/GameModuleRegistry.h"
 
 #include <algorithm>
-#include <cctype>
 #include <ranges>
 
 #include "engine/game/IGameModule.h"
@@ -18,8 +17,8 @@ namespace Unnamed {
 		}
 
 		const std::string normalized = NormalizeModuleName(moduleName);
-		mFactories[normalized] = createFunction;
-		mDisplayNames[normalized] = std::string(moduleName);
+		mFactories[normalized]       = createFunction;
+		mDisplayNames[normalized]    = std::string(moduleName);
 		return true;
 	}
 
@@ -65,7 +64,9 @@ namespace Unnamed {
 			normalized.begin(),
 			normalized.end(),
 			normalized.begin(),
-			[](const unsigned char ch) { return static_cast<char>(std::tolower(ch)); }
+			[](const unsigned char ch) {
+				return static_cast<char>(std::tolower(ch));
+			}
 		);
 		return normalized;
 	}

@@ -147,11 +147,12 @@ namespace Unnamed {
 					existingStableNames.contains(info.stableName);
 				uint32_t componentIcon = kIconQuestionMark;
 				if (const auto cached = sComponentIconCache.find(
-					info.stableName
-				); cached != sComponentIconCache.end()) {
+						info.stableName
+					);
+					cached != sComponentIconCache.end()) {
 					componentIcon = cached->second;
 				} else {
-					if (auto component = ComponentRegistry::Get().Create(
+					if (const auto component = ComponentRegistry::Get().Create(
 						info.stableName
 					)) {
 						componentIcon = component->GetIcon();
@@ -331,7 +332,7 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] std::string BuildDuplicateEntityName(
-			const Scene& scene,
+			const Scene&  scene,
 			const Entity& source
 		) {
 			const std::string baseName =
@@ -360,7 +361,7 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] bool IsComponentGuidUsed(
-			const Scene& scene,
+			const Scene&   scene,
 			const uint64_t guid
 		) {
 			if (guid == 0) {
@@ -402,7 +403,7 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] Entity* DuplicateEntityInScene(
-			Scene& scene,
+			Scene&        scene,
 			const Entity& source
 		) {
 			const std::string duplicatedName = BuildDuplicateEntityName(
@@ -454,10 +455,14 @@ namespace Unnamed {
 				}
 			);
 
-			const auto* sourceTransform = source.GetComponent<TransformComponent>();
-			auto* duplicatedTransform = duplicated.GetComponent<TransformComponent>();
-			if (sourceTransform && duplicatedTransform && sourceTransform->GetParent()) {
-				duplicatedTransform->SetParent(sourceTransform->GetParent(), false);
+			const auto* sourceTransform = source.GetComponent<
+				TransformComponent>();
+			auto* duplicatedTransform = duplicated.GetComponent<
+				TransformComponent>();
+			if (sourceTransform && duplicatedTransform && sourceTransform->
+			    GetParent()) {
+				duplicatedTransform->SetParent(sourceTransform->GetParent(),
+				                               false);
 			}
 
 			return &duplicated;
@@ -581,7 +586,7 @@ namespace Unnamed {
 
 			OutlinerFolderNode root = {};
 			BuildOutlinerTree(root, *scene);
-			uint64_t    pendingDeleteEntityId = 0;
+			uint64_t    pendingDeleteEntityId    = 0;
 			uint64_t    pendingDuplicateEntityId = 0;
 			std::string pendingDeleteFolderPath;
 			bool        pendingCreateEntity = false;
@@ -687,7 +692,7 @@ namespace Unnamed {
 						ImGui::AcceptDragDropPayload(
 							"OUTLINER_FOLDER"
 						)) {
-						auto sourcePath = static_cast<const char*>(
+						const auto sourcePath = static_cast<const char*>(
 							payload->Data
 						);
 						if (sourcePath) {
@@ -807,7 +812,7 @@ namespace Unnamed {
 								ImGui::AcceptDragDropPayload(
 									"OUTLINER_FOLDER"
 								)) {
-								auto sourcePath = static_cast<const char
+								const auto sourcePath = static_cast<const char
 									*>(
 									payload->Data
 								);
@@ -932,8 +937,10 @@ namespace Unnamed {
 				createEntity(pendingCreateFolderPath);
 			}
 			if (pendingDuplicateEntityId != 0) {
-				if (Entity* sourceEntity = scene->FindEntity(pendingDuplicateEntityId)) {
-					if (Entity* duplicated = DuplicateEntityInScene(*scene, *sourceEntity)) {
+				if (Entity* sourceEntity = scene->FindEntity(
+					pendingDuplicateEntityId)) {
+					if (Entity* duplicated = DuplicateEntityInScene(
+						*scene, *sourceEntity)) {
 						mSelectedEntityId = duplicated->GetGuid();
 					}
 				}
@@ -1063,7 +1070,7 @@ namespace Unnamed {
 			ImGui::GetCursorPosY() + textSize + ImGui::GetStyle().ItemSpacing.y
 		);
 
-		std::string label = "GUID: " + std::to_string(entity->GetGuid());
+		const std::string label = "GUID: " + std::to_string(entity->GetGuid());
 		if (
 			ImGuiWidgets::IconButton(
 				kIconCopy, label.c_str(), ImVec2(0, 0), 1.0f, ImGuiDir_Right
@@ -1143,7 +1150,7 @@ namespace Unnamed {
 				orderedComponents[index - 1] != nullptr &&
 				orderedComponents[index - 1]->GetStableName() != "Transform";
 			const bool canMoveDown =
-				!isTransform && (index + 1) < orderedComponents.size();
+				!isTransform && index + 1 < orderedComponents.size();
 			const bool canRemove = !isTransform;
 
 			bool componentActive = component->IsActive();

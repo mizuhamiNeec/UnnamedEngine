@@ -69,8 +69,8 @@ namespace Unnamed {
 		/// @return TransformComponentへのポインタ、存在しない場合はnullptr
 		[[nodiscard]] TransformComponent* GetTransform() const;
 
-		InputSystem*         mInput   = nullptr;
-		class ConsoleSystem* mConsole = nullptr;
+		InputSystem*   mInput   = nullptr;
+		ConsoleSystem* mConsole = nullptr;
 
 		Vec3 mMoveInput = Vec3::zero;
 		Vec3 mWishDir   = Vec3::zero;

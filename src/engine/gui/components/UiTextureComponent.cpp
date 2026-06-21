@@ -102,7 +102,7 @@ namespace Unnamed::Gui {
 	}
 
 	void UiTextureComponent::BuildDrawCommands(
-		const UiWidget& owner,
+		const UiWidget&             owner,
 		std::vector<UiDrawCommand>& out
 	) const {
 		if (!owner.IsVisible() || mTexturePath.IsEmpty()) {
@@ -114,14 +114,14 @@ namespace Unnamed::Gui {
 			return;
 		}
 
-		UiDrawCommand command = {};
-		command.type = UI_DRAW_COMMAND_TYPE::IMAGE;
-		command.image.rect = rect;
+		UiDrawCommand command     = {};
+		command.type              = UI_DRAW_COMMAND_TYPE::IMAGE;
+		command.image.rect        = rect;
 		command.image.texturePath = mTexturePath;
-		command.image.color = mColor;
-		command.image.uvMin = mUvMin;
-		command.image.uvMax = mUvMax;
-		command.image.anchor = mAnchor;
+		command.image.color       = mColor;
+		command.image.uvMin       = mUvMin;
+		command.image.uvMax       = mUvMax;
+		command.image.anchor      = mAnchor;
 		command.image.rotationRad = mRotationRad;
 		out.emplace_back(std::move(command));
 	}

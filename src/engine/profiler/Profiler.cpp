@@ -7,7 +7,8 @@ namespace Unnamed {
 		Profiler* profiler, const std::string_view name
 	) : mProfiler(profiler),
 	    mName(name),
-	    mStart(Clock::now()) {}
+	    mStart(Clock::now()) {
+	}
 
 	Profiler::ScopeTimer::~ScopeTimer() {
 		if (!mProfiler) {

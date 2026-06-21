@@ -24,7 +24,8 @@ struct Vec3 final {
 	static const Vec3 min;      ///< 最小値
 
 	/// @brief デフォルトコンストラクタ（ゼロベクトルで初期化）
-	constexpr Vec3() : Vec3(0.0f, 0.0f, 0.0f) {}
+	constexpr Vec3() : Vec3(0.0f, 0.0f, 0.0f) {
+	}
 
 	/// @brief 各成分を指定して初期化するコンストラクタ
 	/// @param x X成分
@@ -32,19 +33,22 @@ struct Vec3 final {
 	/// @param z Z成分
 	constexpr Vec3(const float x, const float y, const float z) : x(x),
 		y(y),
-		z(z) {}
+		z(z) {
+	}
 
 	/// @brief スカラー値から全成分を初期化するコンストラクタ
 	/// @param scalar スカラー値
 	explicit constexpr Vec3(const float scalar) : x(scalar),
 	                                              y(scalar),
-	                                              z(scalar) {}
+	                                              z(scalar) {
+	}
 
 	/// @brief Vec2から変換するコンストラクタ
 	/// @param vec2 2次元ベクトル（z成分は0.0fに設定される）
 	constexpr Vec3(const Vec2 vec2) : x(vec2.x),
 	                                  y(vec2.y),
-	                                  z(0.0f) {}
+	                                  z(0.0f) {
+	}
 
 	/// @brief Vec4から変換するコンストラクタ
 	/// @param vec4 4次元ベクトル（w成分は無視される）

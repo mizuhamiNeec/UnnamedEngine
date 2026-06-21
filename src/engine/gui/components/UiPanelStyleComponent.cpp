@@ -62,18 +62,18 @@ namespace Unnamed::Gui {
 	}
 
 	void UiPanelStyleComponent::BuildDrawCommands(
-		const UiWidget& owner,
+		const UiWidget&             owner,
 		std::vector<UiDrawCommand>& out
 	) const {
 		if (!owner.IsVisible()) {
 			return;
 		}
 
-		UiDrawCommand command = {};
-		command.type          = UI_DRAW_COMMAND_TYPE::RECT;
-		command.rect.rect     = owner.GetGlobalRect();
-		command.rect.fillColor = mBackgroundColor;
-		command.rect.cornerRadius = mCornerRadius;
+		UiDrawCommand command        = {};
+		command.type                 = UI_DRAW_COMMAND_TYPE::RECT;
+		command.rect.rect            = owner.GetGlobalRect();
+		command.rect.fillColor       = mBackgroundColor;
+		command.rect.cornerRadius    = mCornerRadius;
 		command.rect.borderThickness = mBorderThickness;
 		command.rect.borderColor     = mBorderColor;
 		out.emplace_back(command);

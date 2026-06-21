@@ -13,8 +13,10 @@ namespace Math {
 	/// @return 角度の差 [rad]
 	float DeltaAngle(const float current, const float target) {
 		float delta = std::fmod(target - current, 2.0f * pi);
-		if (delta > pi) delta -= 2.0f * pi;
-		if (delta < -pi) delta += 2.0f * pi;
+		if (delta > pi)
+			delta -= 2.0f * pi;
+		if (delta < -pi)
+			delta += 2.0f * pi;
 		return delta;
 	}
 
@@ -24,8 +26,10 @@ namespace Math {
 	/// @param p2 制御点2
 	/// @return ベジェ曲線の値
 	float CubicBezier(const float t, const Vec2 p1, const Vec2 p2) {
-		if (t <= 0.0f) return 0.0f;
-		if (t >= 1.0f) return 1.0f;
+		if (t <= 0.0f)
+			return 0.0f;
+		if (t >= 1.0f)
+			return 1.0f;
 
 		float         u       = t;
 		constexpr int kMaxItr = 10;

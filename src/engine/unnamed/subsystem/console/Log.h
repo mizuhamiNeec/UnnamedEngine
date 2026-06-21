@@ -29,9 +29,8 @@ namespace Unnamed {
 				std::string(channel) +
 				"] " +
 				std::string(message);
-		} else {
-			out = std::string(message);
 		}
+		out = std::string(message);
 
 		// コンソールの出力
 		std::cout << out << "\n";

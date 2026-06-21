@@ -51,7 +51,7 @@ namespace Unnamed {
 		JsonWriter(Path(path == nullptr ? "" : path)) {
 	}
 
-	JsonWriter::JsonWriter(std::string path) :
+	JsonWriter::JsonWriter(const std::string& path) :
 		JsonWriter(Path(path)) {
 	}
 

@@ -66,7 +66,7 @@ namespace Unnamed {
 		[[nodiscard]] static constexpr uint64_t Combine(
 			const uint64_t seed, const uint64_t value
 		) noexcept {
-			return seed ^ (value + kMixConstant + (seed << 6) + (seed >> 2));
+			return seed ^ value + kMixConstant + (seed << 6) + (seed >> 2);
 		}
 
 	private:

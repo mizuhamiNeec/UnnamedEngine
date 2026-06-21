@@ -9,7 +9,6 @@
 #include "Window.h"
 
 #include "engine/EngineConfig.h"
-#include "engine/unnamed/subsystem/input/InputSystem.h"
 
 namespace Unnamed {
 	class WindowManager final {

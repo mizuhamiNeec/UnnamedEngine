@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <ranges>
 
 #pragma comment(lib, "dinput8.lib")
@@ -53,20 +52,24 @@ namespace Unnamed {
 
 		float NormalizeDirectInputSignedAxis(const LONG value) {
 			if (value >= -1000 && value <= 1000) {
-				return std::clamp(static_cast<float>(value) / 1000.0f, -1.0f, 1.0f);
+				return std::clamp(static_cast<float>(value) / 1000.0f, -1.0f,
+				                  1.0f);
 			}
 
 			constexpr float kCenter = 32767.5f;
-			return std::clamp((static_cast<float>(value) - kCenter) / kCenter, -1.0f, 1.0f);
+			return std::clamp((static_cast<float>(value) - kCenter) / kCenter,
+			                  -1.0f, 1.0f);
 		}
 
 		float NormalizeDirectInputUnsignedAxis(const LONG value) {
 			if (value >= 0 && value <= 255) {
-				return std::clamp(static_cast<float>(value) / 255.0f, 0.0f, 1.0f);
+				return std::clamp(static_cast<float>(value) / 255.0f, 0.0f,
+				                  1.0f);
 			}
 
 			if (value >= 0 && value <= 1000) {
-				return std::clamp(static_cast<float>(value) / 1000.0f, 0.0f, 1.0f);
+				return std::clamp(static_cast<float>(value) / 1000.0f, 0.0f,
+				                  1.0f);
 			}
 
 			return std::clamp(static_cast<float>(value) / 65535.0f, 0.0f, 1.0f);
@@ -79,10 +82,10 @@ namespace Unnamed {
 			}
 			const float sign = value >= 0.0f ? 1.0f : -1.0f;
 			return sign * std::clamp(
-				(absValue - deadzone) / (1.0f - deadzone),
-				0.0f,
-				1.0f
-			);
+				       (absValue - deadzone) / (1.0f - deadzone),
+				       0.0f,
+				       1.0f
+			       );
 		}
 
 		float ApplyUnsignedDeadzone(const float value, const float deadzone) {
@@ -143,11 +146,13 @@ namespace Unnamed {
 			return false;
 		}
 
-		if (const auto it = mButtonStates.find(key.code); it != mButtonStates.end()) {
+		if (const auto it = mButtonStates.find(key.code);
+			it != mButtonStates.end()) {
 			return it->second;
 		}
 
-		if (const auto it = mAnalogStates.find(key.code); it != mAnalogStates.end()) {
+		if (const auto it = mAnalogStates.find(key.code);
+			it != mAnalogStates.end()) {
 			if (key.code == VG_LT || key.code == VG_RT) {
 				return it->second > kTriggerAsButtonThreshold;
 			}
@@ -165,11 +170,13 @@ namespace Unnamed {
 			return 0.0f;
 		}
 
-		if (const auto it = mAnalogStates.find(key.code); it != mAnalogStates.end()) {
+		if (const auto it = mAnalogStates.find(key.code);
+			it != mAnalogStates.end()) {
 			return it->second;
 		}
 
-		if (const auto it = mButtonStates.find(key.code); it != mButtonStates.end()) {
+		if (const auto it = mButtonStates.find(key.code);
+			it != mButtonStates.end()) {
 			return it->second ? 1.0f : 0.0f;
 		}
 
@@ -240,7 +247,9 @@ namespace Unnamed {
 		}
 
 		IDirectInputDevice8W* device = nullptr;
-		if (FAILED(mDirectInput->CreateDevice(instance->guidInstance, &device, nullptr))) {
+		if (FAILED(
+			mDirectInput->CreateDevice(instance->guidInstance, &device, nullptr
+			))) {
 			return TRUE;
 		}
 
@@ -280,12 +289,14 @@ namespace Unnamed {
 		return self->ConfigureAxisRange(object);
 	}
 
-	BOOL GamepadDevice::ConfigureAxisRange(const DIDEVICEOBJECTINSTANCEW* object) {
+	BOOL GamepadDevice::ConfigureAxisRange(
+		const DIDEVICEOBJECTINSTANCEW* object
+	) {
 		if (!object || !mConfiguringDirectInputDevice) {
 			return DIENUM_CONTINUE;
 		}
 
-		DIPROPRANGE range = {};
+		DIPROPRANGE range       = {};
 		range.diph.dwSize       = sizeof(range);
 		range.diph.dwHeaderSize = sizeof(DIPROPHEADER);
 		range.diph.dwHow        = DIPH_BYID;
@@ -302,7 +313,7 @@ namespace Unnamed {
 
 	void GamepadDevice::LoadXInput() {
 		for (const char* dll : kXInputDllNames) {
-			HMODULE module = LoadLibraryA(dll);
+			const HMODULE module = LoadLibraryA(dll);
 			if (!module) {
 				continue;
 			}
@@ -349,9 +360,9 @@ namespace Unnamed {
 
 		bool anyConnected = false;
 		for (DWORD user = 0; user < 4; ++user) {
-			XINPUT_STATE state = {};
-			const DWORD result = mXInputGetState(user, &state);
-			const bool connected = result == ERROR_SUCCESS;
+			XINPUT_STATE state     = {};
+			const DWORD  result    = mXInputGetState(user, &state);
+			const bool   connected = result == ERROR_SUCCESS;
 			mXInputConnected[user] = connected;
 			if (!connected) {
 				continue;
@@ -366,16 +377,20 @@ namespace Unnamed {
 	}
 
 	void GamepadDevice::MergeXInputState(
-		const uint32_t           userIndex,
-		const XINPUT_STATE&      state
+		const uint32_t      userIndex,
+		const XINPUT_STATE& state
 	) {
 		(void)userIndex;
 		const auto& gamepad = state.Gamepad;
 
-		const auto mergeButton = [this](const uint32_t code, const bool pressed) {
+		const auto mergeButton = [this](
+			const uint32_t code, const bool pressed
+		) {
 			mButtonStates[code] = mButtonStates[code] || pressed;
 		};
-		const auto mergeAnalog = [this](const uint32_t code, const float value) {
+		const auto mergeAnalog = [this](
+			const uint32_t code, const float value
+		) {
 			auto& slot = mAnalogStates[code];
 			if (std::abs(value) > std::abs(slot)) {
 				slot = value;
@@ -386,16 +401,23 @@ namespace Unnamed {
 		mergeButton(VG_B, (gamepad.wButtons & XINPUT_GAMEPAD_B) != 0);
 		mergeButton(VG_X, (gamepad.wButtons & XINPUT_GAMEPAD_X) != 0);
 		mergeButton(VG_Y, (gamepad.wButtons & XINPUT_GAMEPAD_Y) != 0);
-		mergeButton(VG_LB, (gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0);
-		mergeButton(VG_RB, (gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0);
+		mergeButton(
+			VG_LB, (gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0);
+		mergeButton(
+			VG_RB, (gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0);
 		mergeButton(VG_BACK, (gamepad.wButtons & XINPUT_GAMEPAD_BACK) != 0);
 		mergeButton(VG_START, (gamepad.wButtons & XINPUT_GAMEPAD_START) != 0);
 		mergeButton(VG_LS, (gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0);
-		mergeButton(VG_RS, (gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0);
-		mergeButton(VG_DPAD_UP, (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0);
-		mergeButton(VG_DPAD_DOWN, (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0);
-		mergeButton(VG_DPAD_LEFT, (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0);
-		mergeButton(VG_DPAD_RIGHT, (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0);
+		mergeButton(
+			VG_RS, (gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0);
+		mergeButton(VG_DPAD_UP,
+		            (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0);
+		mergeButton(VG_DPAD_DOWN,
+		            (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0);
+		mergeButton(VG_DPAD_LEFT,
+		            (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0);
+		mergeButton(VG_DPAD_RIGHT,
+		            (gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0);
 
 		mergeAnalog(
 			VG_LX,
@@ -424,8 +446,8 @@ namespace Unnamed {
 	}
 
 	void GamepadDevice::RefreshXInputRumbleTarget(
-		const uint32_t           userIndex,
-		const XINPUT_STATE&      state
+		const uint32_t      userIndex,
+		const XINPUT_STATE& state
 	) {
 		if (!HasXInputActivity(state)) {
 			return;
@@ -553,10 +575,14 @@ namespace Unnamed {
 	}
 
 	void GamepadDevice::MergeDirectInputState(const DIJOYSTATE2& state) {
-		const auto mergeButton = [this](const uint32_t code, const bool pressed) {
+		const auto mergeButton = [this](
+			const uint32_t code, const bool pressed
+		) {
 			mButtonStates[code] = mButtonStates[code] || pressed;
 		};
-		const auto mergeAnalog = [this](const uint32_t code, const float value) {
+		const auto mergeAnalog = [this](
+			const uint32_t code, const float value
+		) {
 			auto& slot = mAnalogStates[code];
 			if (std::abs(value) > std::abs(slot)) {
 				slot = value;
@@ -621,16 +647,18 @@ namespace Unnamed {
 			);
 		}
 
-		float lt = 0.0f;
-		float rt = 0.0f;
-		const float slider0 = NormalizeDirectInputUnsignedAxis(state.rglSlider[0]);
-		const float slider1 = NormalizeDirectInputUnsignedAxis(state.rglSlider[1]);
+		float       lt      = 0.0f;
+		float       rt      = 0.0f;
+		const float slider0 = NormalizeDirectInputUnsignedAxis(
+			state.rglSlider[0]);
+		const float slider1 = NormalizeDirectInputUnsignedAxis(
+			state.rglSlider[1]);
 		if (slider0 > 0.01f || slider1 > 0.01f) {
 			lt = ApplyUnsignedDeadzone(slider0, kDirectInputTriggerDeadzone);
 			rt = ApplyUnsignedDeadzone(slider1, kDirectInputTriggerDeadzone);
 		} else {
 			const float zCombined = NormalizeDirectInputSignedAxis(state.lZ);
-			lt = ApplyUnsignedDeadzone(
+			lt                    = ApplyUnsignedDeadzone(
 				std::max(0.0f, -zCombined),
 				kDirectInputTriggerDeadzone
 			);
@@ -693,7 +721,7 @@ namespace Unnamed {
 		float low  = 0.0f;
 		float high = 0.0f;
 		for (const auto& event : mRumbleEvents) {
-			low += event.low;
+			low  += event.low;
 			high += event.high;
 		}
 
@@ -753,10 +781,10 @@ namespace Unnamed {
 			return 0.0f;
 		}
 
-		const float sign = value >= 0 ? 1.0f : -1.0f;
-		const float max  = value >= 0 ? 32767.0f : 32768.0f;
-		const float normalized = (static_cast<float>(absValue - deadzone)) /
-			(max - static_cast<float>(deadzone));
+		const float sign       = value >= 0 ? 1.0f : -1.0f;
+		const float max        = value >= 0 ? 32767.0f : 32768.0f;
+		const float normalized = static_cast<float>(absValue - deadzone) /
+		                         (max - static_cast<float>(deadzone));
 		return sign * std::clamp(normalized, 0.0f, 1.0f);
 	}
 

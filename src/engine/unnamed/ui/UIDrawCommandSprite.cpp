@@ -182,11 +182,11 @@ namespace Unnamed::UI {
 				);
 				const Vec2 glyphSize = glyph->size;
 				sprite.positionPx    = kSnapTextGlyphToPixel ?
-					                       Vec2(
-						                       std::round(glyphPosition.x),
-						                       std::round(glyphPosition.y)
-					                       ) :
-					                       glyphPosition;
+					                    Vec2(
+						                    std::round(glyphPosition.x),
+						                    std::round(glyphPosition.y)
+					                    ) :
+					                    glyphPosition;
 				sprite.sizePx = kSnapTextGlyphToPixel ?
 					                Vec2(
 						                std::max(1.0f, std::round(glyphSize.x)),

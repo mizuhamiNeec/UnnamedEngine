@@ -27,11 +27,11 @@ namespace Unnamed::Gui {
 		void SetSizePolicy(UiSizePolicy sizePolicy);
 		void SetSizeConstraints(UiSizeConstraints constraints);
 
-		[[nodiscard]] const Rect& GetRect() const;
-		[[nodiscard]] const Anchors& GetAnchors() const;
-		[[nodiscard]] const Margins& GetMargins() const;
-		[[nodiscard]] const Pivot& GetPivot() const;
-		[[nodiscard]] UiSizePolicy GetSizePolicy() const;
+		[[nodiscard]] const Rect&              GetRect() const;
+		[[nodiscard]] const Anchors&           GetAnchors() const;
+		[[nodiscard]] const Margins&           GetMargins() const;
+		[[nodiscard]] const Pivot&             GetPivot() const;
+		[[nodiscard]] UiSizePolicy             GetSizePolicy() const;
 		[[nodiscard]] const UiSizeConstraints& GetSizeConstraints() const;
 
 	private:

@@ -6,11 +6,14 @@ namespace Unnamed::Rhi {
 	D3D12CommandContext::D3D12CommandContext(
 		ID3D12GraphicsCommandList* commandList, D3D12SwapChain* swapChain
 	) : mCommandList(commandList),
-	    mSwapChain(swapChain) {}
+	    mSwapChain(swapChain) {
+	}
 
-	void D3D12CommandContext::Begin() {}
+	void D3D12CommandContext::Begin() {
+	}
 
-	void D3D12CommandContext::End() {}
+	void D3D12CommandContext::End() {
+	}
 
 	void D3D12CommandContext::TransitionBackBufferToRenderTarget() {
 		// 現在のバックバッファを取得
@@ -55,7 +58,7 @@ namespace Unnamed::Rhi {
 		mCommandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
 
 		const std::array clearColor{
-			color.r, color.g,color.b,color.a
+			color.r, color.g, color.b, color.a
 		};
 		mCommandList->ClearRenderTargetView(rtv, clearColor.data(), 0, nullptr);
 	}

@@ -12,7 +12,8 @@ namespace Unnamed {
 			const FCVAR             flags = FCVAR::NONE
 		) : mName(name),
 		    mDescription(description),
-		    mFlags(flags) {}
+		    mFlags(flags) {
+		}
 
 		virtual ~ConCommandBase() = default;
 

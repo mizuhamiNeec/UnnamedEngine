@@ -1,7 +1,6 @@
 #include "UiDigitStripComponent.h"
 
 #include <algorithm>
-#include <cmath>
 #include <string>
 
 #include "core/filesystem/Path.h"
@@ -79,7 +78,7 @@ namespace Unnamed::Gui {
 	}
 
 	void UiDigitStripComponent::BuildDrawCommands(
-		const UiWidget& owner,
+		const UiWidget&             owner,
 		std::vector<UiDrawCommand>& out
 	) const {
 		if (!owner.IsVisible() || mStripTexturePath.IsEmpty()) {
@@ -91,12 +90,13 @@ namespace Unnamed::Gui {
 			return;
 		}
 
-		const int rawValue = std::max(0, mValue);
-		std::string digits = std::to_string(rawValue);
+		const int   rawValue = std::max(0, mValue);
+		std::string digits   = std::to_string(rawValue);
 		if (static_cast<int>(digits.size()) < mMinDigits) {
 			digits.insert(
 				digits.begin(),
-				static_cast<size_t>(mMinDigits - static_cast<int>(digits.size())),
+				static_cast<size_t>(
+					mMinDigits - static_cast<int>(digits.size())),
 				'0'
 			);
 		}
@@ -106,8 +106,10 @@ namespace Unnamed::Gui {
 			return;
 		}
 
-		const float totalSpacing = mDigitSpacing * static_cast<float>(digitCount - 1);
-		const float digitWidth = (rect.width - totalSpacing) / static_cast<float>(digitCount);
+		const float totalSpacing =
+			mDigitSpacing * static_cast<float>(digitCount - 1);
+		const float digitWidth =
+			(rect.width - totalSpacing) / static_cast<float>(digitCount);
 		if (digitWidth <= 0.0f) {
 			return;
 		}
@@ -118,10 +120,11 @@ namespace Unnamed::Gui {
 				continue;
 			}
 
-			const int digit = static_cast<int>(c - '0');
+			const int   digit = c - '0';
 			const float u0 = static_cast<float>(digit) / 10.0f;
 			const float u1 = static_cast<float>(digit + 1) / 10.0f;
-			const float x = rect.x + (digitWidth + mDigitSpacing) * static_cast<float>(i);
+			const float x = rect.x + (digitWidth + mDigitSpacing) * static_cast<
+				                float>(i);
 
 			UiDrawCommand command = {};
 			command.type = UI_DRAW_COMMAND_TYPE::IMAGE;

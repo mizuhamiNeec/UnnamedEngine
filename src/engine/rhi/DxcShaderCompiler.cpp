@@ -11,7 +11,8 @@
 #pragma comment(lib, "dxcompiler.lib")
 
 namespace Unnamed::Rhi {
-	DxcShaderCompiler::DxcShaderCompiler() {}
+	DxcShaderCompiler::DxcShaderCompiler() {
+	}
 
 	bool DxcShaderCompiler::Initialize() {
 		if (FAILED(
@@ -37,7 +38,8 @@ namespace Unnamed::Rhi {
 		const std::wstring& path, const void* data, size_t size
 	) {
 		std::ofstream ofs(path, std::ios::binary);
-		if (!ofs) return false;
+		if (!ofs)
+			return false;
 		ofs.write(
 			reinterpret_cast<const char*>(data),
 			static_cast<std::streamsize>(size)
@@ -65,7 +67,8 @@ namespace Unnamed::Rhi {
 		const std::vector<std::wstring>& extraArgs,
 		const std::wstring& outputPath
 	) {
-		if (!mUtils || !mCompiler) return false;
+		if (!mUtils || !mCompiler)
+			return false;
 
 		std::ifstream sourceFile(sourcePath, std::ios::binary);
 		if (!sourceFile) {
@@ -122,7 +125,8 @@ namespace Unnamed::Rhi {
 
 		std::vector<LPCWSTR> argv;
 		argv.reserve(owned.size());
-		for (auto& s : owned) argv.emplace_back(s.c_str());
+		for (auto& s : owned)
+			argv.emplace_back(s.c_str());
 
 		Microsoft::WRL::ComPtr<IDxcResult> result;
 		if (FAILED(
@@ -138,7 +142,7 @@ namespace Unnamed::Rhi {
 		result->GetStatus(&status);
 
 		// エラー/警告ログ
-		std::string_view diagnostics = {};
+		std::string_view                     diagnostics = {};
 		Microsoft::WRL::ComPtr<IDxcBlobUtf8> errors;
 		if (SUCCEEDED(
 			result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(errors.

@@ -202,15 +202,15 @@ namespace Unnamed {
 			return false;
 		}
 
-		outCamera.view      = view;
-		outCamera.proj      = proj;
-		outCamera.viewProj  = view * proj;
-		outCamera.cameraPos = transform->GetPosition();
+		outCamera.view       = view;
+		outCamera.proj       = proj;
+		outCamera.viewProj   = view * proj;
+		outCamera.cameraPos  = transform->GetPosition();
 		outCamera.exposureEv = mExposureEv;
-		outCamera.nearZ     = mNearZ;
-		outCamera.farZ      = mFarZ;
-		outCamera.depthMode = Render::PROJECTION_DEPTH_MODE::REVERSE_Z;
-		outCamera.valid     = true;
+		outCamera.nearZ      = mNearZ;
+		outCamera.farZ       = mFarZ;
+		outCamera.depthMode  = Render::PROJECTION_DEPTH_MODE::REVERSE_Z;
+		outCamera.valid      = true;
 		return true;
 	}
 
@@ -251,8 +251,8 @@ namespace Unnamed {
 			"sensitivity",
 			1.0f
 		);
-		const float pitch = mConsole->GetConVarValueOr("m_pitch", 0.022f);
-		const float yaw   = mConsole->GetConVarValueOr("m_yaw", 0.022f);
+		const float pitch     = mConsole->GetConVarValueOr("m_pitch", 0.022f);
+		const float yaw       = mConsole->GetConVarValueOr("m_yaw", 0.022f);
 		const float pitchDown = mConsole->GetConVarValueOr(
 			"cl_pitchdown",
 			89.0f

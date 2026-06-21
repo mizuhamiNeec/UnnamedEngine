@@ -1,7 +1,6 @@
 #include "AssetType.h"
 
 #include <algorithm>
-#include <cctype>
 #include <string_view>
 
 #include "core/filesystem/Path.h"

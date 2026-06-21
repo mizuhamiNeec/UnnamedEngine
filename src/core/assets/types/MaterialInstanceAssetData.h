@@ -11,11 +11,11 @@ namespace Unnamed {
 	struct MaterialInstanceAssetData {
 		std::string name;
 
-		AssetID     materialId = kInvalidAssetID;
-		Path        materialPath;
+		AssetID materialId = kInvalidAssetID;
+		Path    materialPath;
 
-		std::unordered_map<std::string, Path>        textureOverrides;
-		std::unordered_map<std::string, float>       scalarOverrides;
-		std::unordered_map<std::string, Vec4>        vectorOverrides;
+		std::unordered_map<std::string, Path>  textureOverrides;
+		std::unordered_map<std::string, float> scalarOverrides;
+		std::unordered_map<std::string, Vec4>  vectorOverrides;
 	};
 }

@@ -23,7 +23,8 @@ namespace Unnamed {
 
 	MaterialInstanceAssetLoader::MaterialInstanceAssetLoader(
 		AssetManager* assetManager
-	) : mAssetManager(assetManager) {}
+	) : mAssetManager(assetManager) {
+	}
 
 	bool MaterialInstanceAssetLoader::CanLoad(
 		const Path& path, ASSET_TYPE* outType
@@ -59,7 +60,7 @@ namespace Unnamed {
 				baseDir.Native(),
 				*materialPath
 			);
-			data.materialId   = mAssetManager->LoadFromFile(
+			data.materialId = mAssetManager->LoadFromFile(
 				data.materialPath, ASSET_TYPE::MATERIAL
 			);
 			if (data.materialId != kInvalidAssetID) {

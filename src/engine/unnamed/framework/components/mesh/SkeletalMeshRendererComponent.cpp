@@ -23,14 +23,17 @@ namespace Unnamed {
 			return value.Valid() ? value.GetString() : std::string(fallback);
 		}
 
-		uint32_t ComputeRequiredMaterialSlotCount(const MeshAssetData& meshAsset) {
+		uint32_t ComputeRequiredMaterialSlotCount(
+			const MeshAssetData& meshAsset
+		) {
 			if (meshAsset.submeshes.empty()) {
 				return 1;
 			}
 
 			uint32_t maxMaterialIndex = 0;
 			for (const auto& submesh : meshAsset.submeshes) {
-				maxMaterialIndex = std::max(maxMaterialIndex, submesh.materialIndex);
+				maxMaterialIndex = std::max(maxMaterialIndex,
+				                            submesh.materialIndex);
 			}
 
 			return maxMaterialIndex + 1;
@@ -70,7 +73,8 @@ namespace Unnamed {
 					continue;
 				}
 				MaterialSlot slot;
-				slot.slotIndex = static_cast<uint32_t>(slotReader["slotIndex"].GetInt(static_cast<int>(i)));
+				slot.slotIndex = static_cast<uint32_t>(slotReader["slotIndex"].
+					GetInt(static_cast<int>(i)));
 				slot.materialInstancePath = Path(
 					slotReader["materialInstancePath"].GetString("")
 				);
@@ -86,7 +90,7 @@ namespace Unnamed {
 	void SkeletalMeshRendererComponent::Serialize(JsonWriter& writer) const {
 		writer.Key("meshPath");
 		writer.Write(mMeshPath.ToGenericUtf8());
-		
+
 		// 新形式で materialSlots を出力
 		writer.Key("materialSlots");
 		writer.BeginArray();
@@ -126,15 +130,18 @@ namespace Unnamed {
 		if (AssetManager* assetManager = GetAssetManager()) {
 			const AssetID meshAssetId = ResolveMeshAsset(*assetManager);
 			if (meshAssetId != kInvalidAssetID) {
-				const MeshAssetData* meshAsset = assetManager->Get<MeshAssetData>(meshAssetId);
+				const MeshAssetData* meshAsset = assetManager->Get<
+					MeshAssetData>(meshAssetId);
 				if (meshAsset != nullptr) {
-					meshSlotCount = ComputeRequiredMaterialSlotCount(*meshAsset);
+					meshSlotCount =
+						ComputeRequiredMaterialSlotCount(*meshAsset);
 				}
 			}
 		}
 
 		// Material Slots セクション
-		if (ImGui::CollapsingHeader("Material Slots", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (ImGui::CollapsingHeader("Material Slots",
+		                            ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (meshSlotCount > 0) {
 				ImGui::Text("Mesh Slots: %u", meshSlotCount);
 				if (ImGui::Button("Sync Slots From Mesh")) {
@@ -152,14 +159,16 @@ namespace Unnamed {
 			}
 
 			for (uint32_t i = 0; i < mMaterialSlots.size(); ++i) {
-				std::string slotLabel = "Slot " + std::to_string(mMaterialSlots[i].slotIndex);
+				std::string slotLabel = "Slot " + std::to_string(
+					                        mMaterialSlots[i].slotIndex);
 				std::string slotPath = mMaterialSlots[i].materialInstancePath.
 					ToGenericUtf8();
 				if (
 					ImGuiWidgets::AssetPathPicker(
 						slotLabel.c_str(),
 						slotPath,
-						ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::MATERIAL_INSTANCE)
+						ImGuiWidgets::AssetTypeToMask(
+							ASSET_TYPE::MATERIAL_INSTANCE)
 					)
 				) {
 					SetMaterialInstancePathForSlot(i, Path(slotPath));
@@ -205,14 +214,48 @@ namespace Unnamed {
 		mMaterialInstanceAssetId = kInvalidAssetID;
 	}
 
-	const Path&
-	SkeletalMeshRendererComponent::GetMeshPath() const noexcept {
+	void SkeletalMeshRendererComponent::SetMaterialSlots(
+		const std::vector<MaterialSlot>& slots
+	) {
+		mMaterialSlots = slots;
+		mMaterialInstanceAssetIds.clear();
+		mMaterialInstanceAssetIds.resize(slots.size(), kInvalidAssetID);
+	}
+
+	void SkeletalMeshRendererComponent::SetMaterialInstancePathForSlot(
+		uint32_t slotIndex, Path path
+	) {
+		// スロットベクタが十分なサイズでない場合は拡張
+		if (slotIndex >= mMaterialSlots.size()) {
+			mMaterialSlots.resize(slotIndex + 1);
+		}
+
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (mMaterialSlots[slotIndex].materialInstancePath == path) {
+			return;
+		}
+
+		mMaterialSlots[slotIndex].slotIndex            = slotIndex;
+		mMaterialSlots[slotIndex].materialInstancePath = std::move(path);
+
+		// マテリアルアセットIDリセット
+		if (slotIndex < mMaterialInstanceAssetIds.size()) {
+			mMaterialInstanceAssetIds[slotIndex] = kInvalidAssetID;
+		}
+	}
+
+	const Path& SkeletalMeshRendererComponent::GetMeshPath() const noexcept {
 		return mMeshPath;
 	}
 
 	const Path&
 	SkeletalMeshRendererComponent::GetMaterialInstancePath() const noexcept {
 		return mMaterialInstancePath;
+	}
+
+	const std::vector<MaterialSlot>&
+	SkeletalMeshRendererComponent::GetMaterialSlots() const noexcept {
+		return mMaterialSlots;
 	}
 
 	AssetID SkeletalMeshRendererComponent::ResolveMeshAsset(
@@ -245,89 +288,48 @@ namespace Unnamed {
 		return mMaterialInstanceAssetId;
 	}
 
-	AssetID SkeletalMeshRendererComponent::GetMeshAssetId() const noexcept {
-		return mMeshAssetId;
-	}
-
-	AssetID
-	SkeletalMeshRendererComponent::GetMaterialInstanceAssetId() const noexcept {
-		return mMaterialInstanceAssetId;
-	}
-
-	void SkeletalMeshRendererComponent::SetMaterialSlots(
-		const std::vector<MaterialSlot>& slots
-	) {
-		mMaterialSlots = slots;
-		mMaterialInstanceAssetIds.clear();
-		mMaterialInstanceAssetIds.resize(slots.size(), kInvalidAssetID);
-	}
-
-	void SkeletalMeshRendererComponent::SetMaterialInstancePathForSlot(
-		uint32_t slotIndex, Path path
-	) {
-		// スロットベクタが十分なサイズでない場合は拡張
-		if (slotIndex >= mMaterialSlots.size()) {
-			mMaterialSlots.resize(slotIndex + 1);
-		}
-
-		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
-		if (mMaterialSlots[slotIndex].materialInstancePath == path) {
-			return;
-		}
-
-		mMaterialSlots[slotIndex].slotIndex = slotIndex;
-		mMaterialSlots[slotIndex].materialInstancePath = std::move(path);
-
-		// マテリアルアセットIDリセット
-		if (slotIndex < mMaterialInstanceAssetIds.size()) {
-			mMaterialInstanceAssetIds[slotIndex] = kInvalidAssetID;
-		}
-	}
-
-	const std::vector<MaterialSlot>&
-	SkeletalMeshRendererComponent::GetMaterialSlots() const noexcept {
-		return mMaterialSlots;
-	}
-
 	void SkeletalMeshRendererComponent::ResolveMaterialInstanceAssets(
 		AssetManager& assetManager
 	) {
 		// マテリアルスロットが空の場合、旧形式の単一パスで初期化
 		if (mMaterialSlots.empty() && !mMaterialInstancePath.IsEmpty()) {
 			MaterialSlot slot;
-			slot.slotIndex = 0;
+			slot.slotIndex            = 0;
 			slot.materialInstancePath = mMaterialInstancePath;
 			mMaterialSlots.push_back(slot);
 		}
 
 		// マテリアルアセットIDリスト用意
 		if (mMaterialInstanceAssetIds.size() != mMaterialSlots.size()) {
-			mMaterialInstanceAssetIds.resize(mMaterialSlots.size(), kInvalidAssetID);
+			mMaterialInstanceAssetIds.resize(mMaterialSlots.size(),
+			                                 kInvalidAssetID);
 		}
 
 		// 各スロットを解決
 		for (uint32_t i = 0; i < mMaterialSlots.size(); ++i) {
 			if (mMaterialInstanceAssetIds[i] != kInvalidAssetID) {
-				continue;  // 既に解決済み
+				continue; // 既に解決済み
 			}
 
 			if (mMaterialSlots[i].materialInstancePath.IsEmpty()) {
-				continue;  // パスが空の場合はスキップ
+				continue; // パスが空の場合はスキップ
 			}
 
 			mMaterialInstanceAssetIds[i] = assetManager.LoadFromFile(
-				mMaterialSlots[i].materialInstancePath, ASSET_TYPE::MATERIAL_INSTANCE
+				mMaterialSlots[i].materialInstancePath,
+				ASSET_TYPE::MATERIAL_INSTANCE
 			);
 		}
 	}
 
-	AssetID SkeletalMeshRendererComponent::ResolveMaterialInstanceAssetForMaterialIndex(
+	AssetID
+	SkeletalMeshRendererComponent::ResolveMaterialInstanceAssetForMaterialIndex(
 		AssetManager& assetManager,
 		uint32_t      materialIndex
 	) {
 		ResolveMaterialInstanceAssets(assetManager);
 
-		AssetID materialId = GetMaterialInstanceAssetIdForMaterialIndex(
+		const AssetID materialId = GetMaterialInstanceAssetIdForMaterialIndex(
 			materialIndex
 		);
 		if (materialId != kInvalidAssetID) {
@@ -336,6 +338,15 @@ namespace Unnamed {
 
 		// 旧形式の単一マテリアルとの互換性を維持します。
 		return ResolveMaterialInstanceAsset(assetManager);
+	}
+
+	AssetID SkeletalMeshRendererComponent::GetMeshAssetId() const noexcept {
+		return mMeshAssetId;
+	}
+
+	AssetID
+	SkeletalMeshRendererComponent::GetMaterialInstanceAssetId() const noexcept {
+		return mMaterialInstanceAssetId;
 	}
 
 	AssetID SkeletalMeshRendererComponent::GetMaterialInstanceAssetIdForSlot(

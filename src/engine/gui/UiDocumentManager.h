@@ -28,7 +28,7 @@ namespace Unnamed::Gui {
 
 		std::shared_ptr<UiDocument> GetDocument(const Path& path) const;
 		bool                        SaveDocument(
-			const Path&                     path,
+			const Path&                        path,
 			const std::shared_ptr<UiDocument>& document
 		);
 
@@ -40,17 +40,17 @@ namespace Unnamed::Gui {
 
 	private:
 		struct ManagedDocument {
-			Path                      normalizedPath;
-			AssetID                   assetId = kInvalidAssetID;
-			uint64_t                  loadedVersion = 0;
+			Path                        normalizedPath;
+			AssetID                     assetId       = kInvalidAssetID;
+			uint64_t                    loadedVersion = 0;
 			std::shared_ptr<UiDocument> document;
-			bool                      dirty = false;
-			bool                      pendingExternal = false;
+			bool                        dirty           = false;
+			bool                        pendingExternal = false;
 		};
 
-		static Path            NormalizePath(Path path);
-		bool                   ReloadDocumentFromAsset(ManagedDocument& managed) const;
-		ManagedDocument*       FindManaged(const Path& path);
+		static Path NormalizePath(const Path& path);
+		bool ReloadDocumentFromAsset(ManagedDocument& managed) const;
+		ManagedDocument* FindManaged(const Path& path);
 		const ManagedDocument* FindManaged(const Path& path) const;
 
 		AssetManager* mAssetManager = nullptr;

@@ -91,7 +91,8 @@ namespace Unnamed {
 	}
 
 	ShaderProgramLoader::ShaderProgramLoader(AssetManager* assetManager) :
-		mAssetManager(assetManager) {}
+		mAssetManager(assetManager) {
+	}
 
 	bool ShaderProgramLoader::CanLoad(
 		const Path& path, ASSET_TYPE* outType

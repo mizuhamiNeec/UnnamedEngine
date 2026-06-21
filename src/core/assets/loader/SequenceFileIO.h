@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 
 #include "core/assets/types/SequenceAssetData.h"
 #include "core/assets/types/SequenceAuthoringData.h"

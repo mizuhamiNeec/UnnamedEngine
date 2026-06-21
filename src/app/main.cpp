@@ -196,8 +196,7 @@ namespace {
 
 	/// @brief 実行中 EXE の配置ディレクトリを返します。
 	/// @return 解決できた場合はディレクトリパス、失敗時は nullopt。
-	[[nodiscard]] std::optional<Unnamed::Path>
-	TryResolveExecutableDirectory() {
+	[[nodiscard]] std::optional<Unnamed::Path> TryResolveExecutableDirectory() {
 		std::vector<wchar_t> buffer(260, L'\0');
 		while (true) {
 			const DWORD copied = GetModuleFileNameW(
@@ -212,9 +211,9 @@ namespace {
 			if (copied < buffer.size() - 1) {
 				const Unnamed::Path exePath = Unnamed::Path::FromNative(
 					std::filesystem::path(std::wstring(
-					buffer.data(),
-					static_cast<size_t>(copied)
-				)));
+						buffer.data(),
+						copied
+					)));
 				return exePath.ParentPath();
 			}
 
@@ -227,14 +226,14 @@ namespace {
 	/// @return 解決結果。
 	[[nodiscard]] DefaultProfileResolutionResult
 	ResolveRuntimeModuleFromDefaultProfile(
-		std::string&     outRuntimeModule,
+		std::string&   outRuntimeModule,
 		Unnamed::Path* outResolvedManifestPath
 	) {
 		static constexpr std::string_view kDefaultManifestRelativePath =
 			"config/game_profile.json";
 
-		std::vector<Unnamed::Path> candidates = {};
-		std::error_code ec = {};
+		std::vector<Unnamed::Path>  candidates = {};
+		std::error_code             ec = {};
 		const std::filesystem::path cwd = std::filesystem::current_path(ec);
 		if (!ec) {
 			candidates.emplace_back(
@@ -253,8 +252,8 @@ namespace {
 		std::vector<Unnamed::Path> uniqueCandidates = {};
 		uniqueCandidates.reserve(candidates.size());
 		for (const auto& candidate : candidates) {
-			const Unnamed::Path normalized = candidate.LexicallyNormal();
-			const bool alreadyAdded =
+			const Unnamed::Path normalized   = candidate.LexicallyNormal();
+			const bool          alreadyAdded =
 				std::ranges::find(uniqueCandidates, normalized) !=
 				uniqueCandidates.end();
 			if (!alreadyAdded) {
@@ -316,7 +315,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	Unnamed::GameModuleRegistry moduleRegistry;
 	Unnamed::RegisterBuiltInGameModules(moduleRegistry);
 
-	std::string                requestedModuleName  = {};
+	std::string                  requestedModuleName  = {};
 	std::optional<Unnamed::Path> selectedManifestPath = std::nullopt;
 	if (launchOptions.projectManifestPath.has_value()) {
 		if (!ResolveRuntimeModuleFromProfile(
@@ -335,7 +334,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	if (requestedModuleName.empty() &&
 	    !launchOptions.projectManifestPath.has_value() &&
 	    !launchOptions.gameName.has_value()) {
-		Unnamed::Path                     resolvedManifestPath = {};
+		Unnamed::Path                        resolvedManifestPath = {};
 		const DefaultProfileResolutionResult profileResult        =
 			ResolveRuntimeModuleFromDefaultProfile(
 				requestedModuleName,

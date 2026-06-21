@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -19,7 +18,7 @@ namespace Unnamed {
 namespace Unnamed::UI {
 	/// @brief UIフォントアトラスを一意に識別するキーです。
 	struct UIFontAtlasKey {
-		Path     fontPath = {};
+		Path     fontPath    = {};
 		int32_t  fontSize100 = 2000;
 		uint32_t oversampleH = 1;
 		uint32_t oversampleV = 1;
@@ -104,20 +103,19 @@ namespace Unnamed::UI {
 			AssetManager& assetManager, std::string_view reason
 		);
 
-	private:
 		static constexpr uint32_t kAsciiFirst     = 32;
 		static constexpr uint32_t kAsciiLast      = 126;
 		static constexpr size_t   kGlyphTableSize = kAsciiLast + 1;
 
-		AssetID     mTextureAssetId = kInvalidAssetID;
-		float       mFontPixelSize  = 20.0f;
-		uint32_t    mOversampleH    = 1;
-		uint32_t    mOversampleV    = 1;
-		float       mAscentPx       = 0.0f;
-		float       mDescentPx      = 0.0f;
-		float       mLineGapPx      = 0.0f;
-		float       mLineHeightPx   = 20.0f;
-		Path                                 mFontPath = Path(
+		AssetID  mTextureAssetId = kInvalidAssetID;
+		float    mFontPixelSize  = 20.0f;
+		uint32_t mOversampleH    = 1;
+		uint32_t mOversampleV    = 1;
+		float    mAscentPx       = 0.0f;
+		float    mDescentPx      = 0.0f;
+		float    mLineGapPx      = 0.0f;
+		float    mLineHeightPx   = 20.0f;
+		Path     mFontPath       = Path(
 			R"(.\content\core\fonts\JetBrainsMono.ttf)"
 		);
 		bool                                 mInitialized = false;
@@ -158,7 +156,6 @@ namespace Unnamed::UI {
 
 		void PruneIfNeeded(AssetManager& assetManager);
 
-	private:
 		std::vector<CacheEntry> mEntries;
 		size_t                  mMaxCacheEntries = 8;
 		uint64_t                mUseCounter = 0;

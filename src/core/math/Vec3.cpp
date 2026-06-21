@@ -1,5 +1,3 @@
-#include <core/math/Math.h>
-
 #include <algorithm>
 #include <cmath>
 #include <format>

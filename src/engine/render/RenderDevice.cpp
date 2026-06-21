@@ -118,9 +118,9 @@ namespace Unnamed::Render {
 			statsBefore.activeTextureCount,
 			statsAfter.activeTextureCount,
 			static_cast<double>(statsBefore.activeTextureBytes) /
-				(1024.0 * 1024.0),
+			(1024.0 * 1024.0),
 			static_cast<double>(statsAfter.activeTextureBytes) /
-				(1024.0 * 1024.0),
+			(1024.0 * 1024.0),
 			statsBefore.retiredResourceCount,
 			statsAfter.retiredResourceCount
 		);

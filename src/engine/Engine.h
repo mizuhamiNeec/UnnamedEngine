@@ -86,7 +86,9 @@ namespace Unnamed {
 
 		/// @brief エンジン標準コンポーネントの登録を保証します。
 		/// @param componentRegistry 登録先のコンポーネントレジストリ
-		static void RegisterEngineComponents(ComponentRegistry& componentRegistry);
+		static void RegisterEngineComponents(
+			ComponentRegistry& componentRegistry
+		);
 
 		/// @brief シーン遷移処理の対象となるワールドを解決します。
 		/// @param runtimeWorld 現在の実行対象ワールド
@@ -110,9 +112,9 @@ namespace Unnamed {
 		/// @return 現在のワールドの参照
 		[[nodiscard]] World* GetWorld() const;
 
-		EngineRuntimeBindings mRuntimeBindings = {};
-		RUN_MODE     mRequestedRunMode = RUN_MODE::STANDALONE;
-		EngineConfig mConfig;
+		EngineRuntimeBindings mRuntimeBindings  = {};
+		RUN_MODE              mRequestedRunMode = RUN_MODE::STANDALONE;
+		EngineConfig          mConfig;
 
 		// 基本システム
 		std::unique_ptr<AssetManager>             mAssetManager;
@@ -120,10 +122,10 @@ namespace Unnamed {
 		std::unique_ptr<WindowManager>            mWindowManager;
 
 		// 基幹システム
-		std::unique_ptr<ConsoleSystem>         mConsoleSystem;
-		std::unique_ptr<class TerminalSystem>  mTerminalSystem;
-		std::unique_ptr<class TimeSystem>      mTimeSystem;
-		std::unique_ptr<InputSystem>           mInputSystem;
+		std::unique_ptr<ConsoleSystem>        mConsoleSystem;
+		std::unique_ptr<class TerminalSystem> mTerminalSystem;
+		std::unique_ptr<class TimeSystem>     mTimeSystem;
+		std::unique_ptr<InputSystem>          mInputSystem;
 
 		std::unique_ptr<Rhi::IRhiDevice>      mRhiDevice;
 		std::unique_ptr<Render::RenderModule> mRenderModule;
@@ -139,20 +141,20 @@ namespace Unnamed {
 #endif
 
 		std::unique_ptr<AudioSystem> mAudioSystem;
-		
-		std::unique_ptr<ConCommand>  mQuitCommand;
-		std::unique_ptr<ConCommand>  mToggleEditorCommand;
-		std::unique_ptr<ConCommand>  mToggleFullscreenCommand;
-		std::unique_ptr<ConCommand>  mMapCommand;
-		std::unique_ptr<ConCommand>  mReloadSceneCommand;
-		std::unique_ptr<ConCommand>  mPostFxSetCommand;
-		std::unique_ptr<ConCommand>  mPostFxEnableCommand;
-		std::unique_ptr<ConCommand>  mPostFxClearParamCommand;
-		std::unique_ptr<ConCommand>  mPostFxClearPassCommand;
-		std::unique_ptr<ConCommand>  mPostFxResetCommand;
-		std::unique_ptr<ConCommand>  mPostFxListCommand;
-		std::unique_ptr<ConCommand>  mPostFxChainCommand;
-		std::unique_ptr<ConCommand>  mPostFxChainReloadCommand;
+
+		std::unique_ptr<ConCommand> mQuitCommand;
+		std::unique_ptr<ConCommand> mToggleEditorCommand;
+		std::unique_ptr<ConCommand> mToggleFullscreenCommand;
+		std::unique_ptr<ConCommand> mMapCommand;
+		std::unique_ptr<ConCommand> mReloadSceneCommand;
+		std::unique_ptr<ConCommand> mPostFxSetCommand;
+		std::unique_ptr<ConCommand> mPostFxEnableCommand;
+		std::unique_ptr<ConCommand> mPostFxClearParamCommand;
+		std::unique_ptr<ConCommand> mPostFxClearPassCommand;
+		std::unique_ptr<ConCommand> mPostFxResetCommand;
+		std::unique_ptr<ConCommand> mPostFxListCommand;
+		std::unique_ptr<ConCommand> mPostFxChainCommand;
+		std::unique_ptr<ConCommand> mPostFxChainReloadCommand;
 
 		std::unique_ptr<Render::RenderFrameContext> mRenderFrameContext;
 		float mAssetHotReloadPollAccumulator = 0.0f;

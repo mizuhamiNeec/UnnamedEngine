@@ -4,8 +4,6 @@
 #include <variant>
 #include <vector>
 
-#include "core/math/Math.h"
-
 namespace Unnamed {
 	class ConsoleSystem;
 
@@ -15,7 +13,8 @@ namespace Unnamed {
 		explicit ConVarHelper(ConsoleSystem* consoleSystem) :
 			mConsoleSystem(
 				consoleSystem
-			) {}
+			) {
+		}
 
 		/// @brief ConVarヘルパーUIを表示します
 		void Show(bool& showConVarHelper);
@@ -33,14 +32,12 @@ namespace Unnamed {
 		/// @brief グリッドを表示します
 		void ShowGrid();
 
-
 		// 要素編集
 		/// @brief 要素編集ポップアップを表示します
 		void ShowElementEditPopup();
 		void LabelEdit();            // ラベル編集
 		void ButtonEdit();           // ボタン編集
 		void ExecutableButtonEdit(); // 実行可能ボタン編集
-
 
 		void ImportPage();
 		void ExportPage();
@@ -53,7 +50,8 @@ namespace Unnamed {
 		static constexpr auto kFgColorDefault = Vec4(0.71f, 0.71f, 0.72f, 1.0f);
 
 		/// @brief 空の構造体
-		struct Empty {};
+		struct Empty {
+		};
 
 		/// @brief ラベルの構造体
 		/// @details 区切りや説明用のラベル

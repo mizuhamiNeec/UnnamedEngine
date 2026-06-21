@@ -1,11 +1,8 @@
 #include "SequencePlayer.h"
 
 #include <algorithm>
-#include <cmath>
 
 namespace Unnamed {
-	uint64_t SequencePlayer::sNextPlayerId = 1;
-
 	SequencePlayer::SequencePlayer() {
 		mPlayerId = sNextPlayerId++;
 	}
@@ -15,15 +12,15 @@ namespace Unnamed {
 	}
 
 	void SequencePlayer::SetAssetId(const AssetID assetId) {
-		mAssetId        = assetId;
-		mCurrentFrame   = 0.0f;
-		mPreviousFrame  = 0.0f;
-		mLastFrameRange = {};
+		mAssetId            = assetId;
+		mCurrentFrame       = 0.0f;
+		mPreviousFrame      = 0.0f;
+		mLastFrameRange     = {};
 		mLastTraversalRange = {};
-		mHasPendingSeek = false;
+		mHasPendingSeek     = false;
 		mCompiled.reset();
 		mCompiledVersion = 0;
-		mState = SEQUENCE_PLAYER_STATE::STOPPED;
+		mState           = SEQUENCE_PLAYER_STATE::STOPPED;
 	}
 
 	AssetID SequencePlayer::GetAssetId() const {
@@ -58,21 +55,21 @@ namespace Unnamed {
 	}
 
 	void SequencePlayer::Stop() {
-		mCurrentFrame   = 0.0f;
-		mPreviousFrame  = 0.0f;
-		mLastFrameRange = {};
+		mCurrentFrame       = 0.0f;
+		mPreviousFrame      = 0.0f;
+		mLastFrameRange     = {};
 		mLastTraversalRange = {};
-		mHasPendingSeek = false;
-		mState          = SEQUENCE_PLAYER_STATE::STOPPED;
+		mHasPendingSeek     = false;
+		mState              = SEQUENCE_PLAYER_STATE::STOPPED;
 	}
 
 	void SequencePlayer::SeekFrames(const float frame) {
 		const float clampedFrame = std::max(0.0f, frame);
-		mPreviousFrame = mCurrentFrame;
-		mCurrentFrame = clampedFrame;
-		mLastFrameRange = {};
-		mLastTraversalRange = {};
-		mHasPendingSeek = true;
+		mPreviousFrame           = mCurrentFrame;
+		mCurrentFrame            = clampedFrame;
+		mLastFrameRange          = {};
+		mLastTraversalRange      = {};
+		mHasPendingSeek          = true;
 	}
 
 	void SequencePlayer::SetPlayRate(const float playRate) {
@@ -93,7 +90,9 @@ namespace Unnamed {
 		return mPlaybackDirection;
 	}
 
-	void SequencePlayer::SetSeekEventPolicy(const SEQUENCE_SEEK_EVENT_POLICY policy) {
+	void SequencePlayer::SetSeekEventPolicy(
+		const SEQUENCE_SEEK_EVENT_POLICY policy
+	) {
 		mSeekEventPolicy = policy;
 	}
 
@@ -117,7 +116,9 @@ namespace Unnamed {
 		return mWeight;
 	}
 
-	void SequencePlayer::SetCompletionMode(const SEQUENCE_COMPLETION_MODE mode) {
+	void SequencePlayer::SetCompletionMode(
+		const SEQUENCE_COMPLETION_MODE mode
+	) {
 		mCompletionMode = mode;
 	}
 
@@ -172,23 +173,23 @@ namespace Unnamed {
 	}
 
 	void SequencePlayer::AdvanceFrame(
-		const float                   deltaSeconds,
+		const float             deltaSeconds,
 		const CompiledSequence& compiled
 	) {
-		mLastFrameRange = {};
-		mLastTraversalRange = {};
+		mLastFrameRange             = {};
+		mLastTraversalRange         = {};
 		const float frameBeforeTick = mCurrentFrame;
-		mPreviousFrame = frameBeforeTick;
+		mPreviousFrame              = frameBeforeTick;
 
 		// シーク要求がある場合はまずシーク区間を確定し、次フレーム評価へ引き渡します。
 		if (mHasPendingSeek) {
-			mLastTraversalRange.startFrame   = mPreviousFrame;
-			mLastTraversalRange.endFrame     = mCurrentFrame;
-			mLastTraversalRange.direction    = mCurrentFrame < mPreviousFrame ?
-				                                   SEQUENCE_PLAYBACK_DIRECTION::BACKWARD :
-				                                   SEQUENCE_PLAYBACK_DIRECTION::FORWARD;
+			mLastTraversalRange.startFrame = mPreviousFrame;
+			mLastTraversalRange.endFrame   = mCurrentFrame;
+			mLastTraversalRange.direction  = mCurrentFrame < mPreviousFrame ?
+				                                SEQUENCE_PLAYBACK_DIRECTION::BACKWARD :
+				                                SEQUENCE_PLAYBACK_DIRECTION::FORWARD;
 			mLastTraversalRange.causedBySeek = true;
-			mLastTraversalRange.valid        = mCurrentFrame != mPreviousFrame;
+			mLastTraversalRange.valid = mCurrentFrame != mPreviousFrame;
 			mLastTraversalRange.traversalSerial = ++mTraversalSerialCounter;
 			mHasPendingSeek = false;
 
@@ -207,21 +208,22 @@ namespace Unnamed {
 			return;
 		}
 
-		const int64_t lengthFrames = std::max<int64_t>(0, compiled.GetLengthFrames());
+		const int64_t lengthFrames = std::max<int64_t>(
+			0, compiled.GetLengthFrames());
 		if (lengthFrames <= 0) {
 			mCurrentFrame = 0.0f;
-			mState = SEQUENCE_PLAYER_STATE::COMPLETED;
+			mState        = SEQUENCE_PLAYER_STATE::COMPLETED;
 			return;
 		}
 
 		const float frameDelta = deltaSeconds * static_cast<float>(
-			compiled.GetAsset()->tickResolution
-		) * std::max(0.0f, mPlayRate);
+			                         compiled.GetAsset()->tickResolution
+		                         ) * std::max(0.0f, mPlayRate);
 		if (frameDelta <= 0.0f) {
 			return;
 		}
 
-		const float length = static_cast<float>(lengthFrames);
+		const float length    = static_cast<float>(lengthFrames);
 		float       nextFrame = mCurrentFrame;
 		bool        wrapped   = false;
 		int32_t     loopCount = 0;
@@ -235,7 +237,7 @@ namespace Unnamed {
 			} else {
 				while (nextFrame > length) {
 					nextFrame -= length;
-					wrapped = true;
+					wrapped   = true;
 					++loopCount;
 				}
 			}
@@ -249,13 +251,13 @@ namespace Unnamed {
 			} else {
 				while (nextFrame < 0.0f) {
 					nextFrame += length;
-					wrapped = true;
+					wrapped   = true;
 					++loopCount;
 				}
 			}
 		}
 
-		nextFrame = std::clamp(nextFrame, 0.0f, length);
+		nextFrame     = std::clamp(nextFrame, 0.0f, length);
 		mCurrentFrame = nextFrame;
 		if (mCurrentFrame == mPreviousFrame) {
 			return;
@@ -283,19 +285,20 @@ namespace Unnamed {
 	}
 
 	void SequencePlayer::ClampCurrentFrame(const float maxFrame) {
-		const float clamped = std::clamp(mCurrentFrame, 0.0f, std::max(0.0f, maxFrame));
-		mCurrentFrame = clamped;
-		mPreviousFrame = clamped;
-		mLastFrameRange = {};
+		const float clamped = std::clamp(mCurrentFrame, 0.0f,
+		                                 std::max(0.0f, maxFrame));
+		mCurrentFrame       = clamped;
+		mPreviousFrame      = clamped;
+		mLastFrameRange     = {};
 		mLastTraversalRange = {};
-		mHasPendingSeek = false;
+		mHasPendingSeek     = false;
 	}
 
 	void SequencePlayer::SetCompiled(
 		std::shared_ptr<const SequenceAssetData> asset,
 		const uint64_t                           version
 	) {
-		mCompiled = std::make_unique<CompiledSequence>(std::move(asset));
+		mCompiled        = std::make_unique<CompiledSequence>(std::move(asset));
 		mCompiledVersion = version;
 	}
 
@@ -306,4 +309,6 @@ namespace Unnamed {
 	uint64_t SequencePlayer::GetCompiledVersion() const {
 		return mCompiledVersion;
 	}
+
+	uint64_t SequencePlayer::sNextPlayerId = 1;
 }

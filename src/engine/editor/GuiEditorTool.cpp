@@ -17,7 +17,8 @@
 
 namespace Unnamed {
 	GuiEditorTool::GuiEditorTool(ImGuiLayer& imGuiLayer)
-		: mImGuiLayer(imGuiLayer) {}
+		: mImGuiLayer(imGuiLayer) {
+	}
 
 	void GuiEditorTool::Initialize(const EditorToolServices& services) {
 		(void)services;
@@ -28,12 +29,12 @@ namespace Unnamed {
 		mGuiDocumentManager = std::make_unique<Gui::UiDocumentManager>(
 			ServiceLocator::Get<AssetManager>()
 		);
-		mGuiEditorRoot = std::make_unique<Gui::UiRoot>();
+		mGuiEditorRoot        = std::make_unique<Gui::UiRoot>();
 		mGuiEditorScreenStack = std::make_unique<Gui::UiScreenStack>(
 			mGuiEditorRoot.get()
 		);
 		mGuiEditorContext = std::make_unique<Gui::GuiEditorContext>();
-		mInitialized = true;
+		mInitialized      = true;
 	}
 
 	void GuiEditorTool::Shutdown() {
@@ -45,10 +46,11 @@ namespace Unnamed {
 		mGuiActiveDocument.reset();
 		mGuiDocumentManager.reset();
 		mGuiEditorDockInitialized = false;
-		mInitialized = false;
+		mInitialized              = false;
 	}
 
-	void GuiEditorTool::Tick(const EditorToolFrameContext&) {}
+	void GuiEditorTool::Tick(const EditorToolFrameContext&) {
+	}
 
 	void GuiEditorTool::BuildUi(const EditorToolFrameContext& frameContext) {
 		if (!mOpen) {
@@ -70,9 +72,10 @@ namespace Unnamed {
 		(void)mGuiDocumentManager->UpdateTrackedDocuments();
 		if (!mGuiEditorContext->activeDocumentPath.IsEmpty()) {
 			if (auto latest = mGuiDocumentManager->GetDocument(
-				mGuiEditorContext->activeDocumentPath
-			); latest && latest != mGuiActiveDocument) {
-				mGuiActiveDocument = latest;
+					mGuiEditorContext->activeDocumentPath
+				);
+				latest && latest != mGuiActiveDocument) {
+				mGuiActiveDocument                = latest;
 				mGuiEditorContext->selectedWidget = nullptr;
 				mGuiEditorScreenStack->Clear();
 				mGuiEditorScreenStack->PushScreen(
@@ -82,16 +85,17 @@ namespace Unnamed {
 		}
 		mGuiEditorContext->documentChanged = false;
 
-		ImGuiWindowFlags hostFlags =
+		constexpr ImGuiWindowFlags hostFlags =
 			ImGuiWindowFlags_MenuBar |
 			ImGuiWindowFlags_NoCollapse;
 		if (!ImGui::Begin("GUI Editor", &mOpen, hostFlags)) {
 			ImGui::End();
 			return;
 		}
-		const ImVec2 dockNodeSize = ImGui::GetContentRegionAvail();
-		const ImGuiID dockSpaceId = ImGui::GetID("GUIEditorDockSpace");
-		ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+		const ImVec2  dockNodeSize = ImGui::GetContentRegionAvail();
+		const ImGuiID dockSpaceId  = ImGui::GetID("GUIEditorDockSpace");
+		ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f),
+		                 ImGuiDockNodeFlags_None);
 		if (!mGuiEditorDockInitialized) {
 			if (dockNodeSize.x > 1.0f && dockNodeSize.y > 1.0f) {
 				ImGui::DockBuilderRemoveNode(dockSpaceId);
@@ -101,7 +105,8 @@ namespace Unnamed {
 				);
 				ImGui::DockBuilderSetNodeSize(
 					dockSpaceId,
-					ImVec2(std::max(1.0f, dockNodeSize.x), std::max(1.0f, dockNodeSize.y))
+					ImVec2(std::max(1.0f, dockNodeSize.x),
+					       std::max(1.0f, dockNodeSize.y))
 				);
 				ImGuiID dockMain = dockSpaceId;
 				ImGuiID dockLeft = ImGui::DockBuilderSplitNode(
@@ -111,21 +116,21 @@ namespace Unnamed {
 					nullptr,
 					&dockMain
 				);
-				ImGuiID dockRight = ImGui::DockBuilderSplitNode(
+				const ImGuiID dockRight = ImGui::DockBuilderSplitNode(
 					dockMain,
 					ImGuiDir_Right,
 					0.30f,
 					nullptr,
 					&dockMain
 				);
-				ImGuiID dockLeftBottom = ImGui::DockBuilderSplitNode(
+				const ImGuiID dockLeftBottom = ImGui::DockBuilderSplitNode(
 					dockLeft,
 					ImGuiDir_Down,
 					0.45f,
 					nullptr,
 					&dockLeft
 				);
-				ImGuiID dockOutliner = ImGui::DockBuilderSplitNode(
+				const ImGuiID dockOutliner = ImGui::DockBuilderSplitNode(
 					dockLeft,
 					ImGuiDir_Down,
 					0.50f,
@@ -163,7 +168,7 @@ namespace Unnamed {
 				!mGuiEditorContext->activeDocumentPath.IsEmpty() ?
 					mGuiEditorContext->activeDocumentPath :
 					Path(mGuiEditorContext->pathBuffer.data()).
-						LexicallyNormal();
+					LexicallyNormal();
 			mGuiDocumentManager->MarkDirty(trackingPath, true);
 		}
 
@@ -176,13 +181,13 @@ namespace Unnamed {
 		mGuiEditorRoot->UpdateLayout();
 
 		Render::SceneOutputView previewOutput = {};
-		Vec2 previewSize = Vec2::zero;
+		Vec2                    previewSize   = Vec2::zero;
 		if (const auto it = mViewOutputs.find(std::string(kViewGuiPreview));
 			it != mViewOutputs.end()) {
-			previewOutput.textureId = it->second.textureId;
-			previewOutput.srvCpu = it->second.srvCpu;
+			previewOutput.textureId   = it->second.textureId;
+			previewOutput.srvCpu      = it->second.srvCpu;
 			previewOutput.srvRevision = it->second.srvRevision;
-			previewSize = it->second.size;
+			previewSize               = it->second.size;
 		}
 
 		ImGui::SetNextWindowDockID(dockSpaceId, dockCond);
@@ -214,11 +219,12 @@ namespace Unnamed {
 			}
 
 			if (draw.type == Gui::UI_DRAW_COMMAND_TYPE::IMAGE) {
-				Render::ScreenSpriteInput sprite = UiCanvasRuntime::BuildScreenSprite(
-					draw.image,
-					static_cast<int32_t>(i)
-				);
-				if (assetManager && !draw.image.texturePath.empty()) {
+				Render::ScreenSpriteInput sprite =
+					UiCanvasRuntime::BuildScreenSprite(
+						draw.image,
+						static_cast<int32_t>(i)
+					);
+				if (assetManager && !draw.image.texturePath.IsEmpty()) {
 					const AssetID textureAssetId = assetManager->LoadFromFile(
 						Path(draw.image.texturePath),
 						ASSET_TYPE::TEXTURE
@@ -259,11 +265,13 @@ namespace Unnamed {
 			mGuiPreviewResolution.y
 		));
 		previewView.output.exposeToUi = true;
-		previewView.screenSprites = mGuiPreviewSprites;
+		previewView.screenSprites     = mGuiPreviewSprites;
 		inputs.views.emplace_back(std::move(previewView));
 	}
 
-	void GuiEditorTool::EnumerateViewKeys(std::vector<std::string>& outViewKeys) const {
+	void GuiEditorTool::EnumerateViewKeys(
+		std::vector<std::string>& outViewKeys
+	) const {
 		if (!mOpen) {
 			return;
 		}
@@ -271,14 +279,14 @@ namespace Unnamed {
 	}
 
 	void GuiEditorTool::SetViewOutput(
-		const std::string_view viewKey,
+		const std::string_view         viewKey,
 		const Render::SceneOutputView& output,
-		const Vec2 size
+		const Vec2                     size
 	) {
 		if (viewKey != kViewGuiPreview) {
 			return;
 		}
-		auto& cache = mViewOutputs[std::string(viewKey)];
+		auto& cache       = mViewOutputs[std::string(viewKey)];
 		cache.textureId   = output.textureId;
 		cache.srvCpu      = output.srvCpu;
 		cache.srvRevision = output.srvRevision;

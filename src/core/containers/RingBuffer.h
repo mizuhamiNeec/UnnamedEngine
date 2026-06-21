@@ -14,7 +14,8 @@ namespace Unnamed {
 		/// @brief デフォルトコンストラクタ
 		RingBuffer() : mHead(0),
 		               mTail(0),
-		               mSize(0) {}
+		               mSize(0) {
+		}
 
 		/// @brief バッファに要素を追加する
 		/// @param value 追加する要素
@@ -140,7 +141,8 @@ namespace Unnamed {
 			)
 				: mBuffer(buffer),
 				  mIndex(index),
-				  mCount(count) {}
+				  mCount(count) {
+			}
 
 			const T& operator*() const {
 				return mBuffer->mBuffer[mIndex];

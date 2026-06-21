@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <filesystem>
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -521,7 +520,7 @@ namespace Unnamed {
 					}
 					ImGui::EndCombo();
 				}
-				const auto size = static_cast<uint32_t>(labels.size());
+				constexpr auto size = static_cast<uint32_t>(labels.size());
 				ImGuiWidgets::HandleHoveredComboMenuMouseWheelScroll(
 					itemCurrentIndex, size
 

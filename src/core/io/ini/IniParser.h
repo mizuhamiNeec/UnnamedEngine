@@ -2,8 +2,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "core/filesystem/Path.h"
-
 namespace Unnamed {
 	/// @brief INIファイルパーサークラス
 	/// @details INI形式の設定ファイルを読み込み、パースします

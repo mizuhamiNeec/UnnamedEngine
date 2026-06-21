@@ -15,7 +15,7 @@ namespace Unnamed {
 		mTracks.reserve(mAsset->tracks.size());
 		for (const SequenceTrackAssetData& track : mAsset->tracks) {
 			CompiledSequenceTrack compiledTrack = {};
-			compiledTrack.source = &track;
+			compiledTrack.source                = &track;
 			compiledTrack.sections.reserve(track.sections.size());
 
 			for (const SequenceSectionAssetData& section : track.sections) {
@@ -29,7 +29,10 @@ namespace Unnamed {
 
 			std::ranges::sort(
 				compiledTrack.sections,
-				[](const CompiledSequenceSection& lhs, const CompiledSequenceSection& rhs) {
+				[](
+				const CompiledSequenceSection& lhs,
+				const CompiledSequenceSection& rhs
+			) {
 					if (!lhs.source || !rhs.source) {
 						return lhs.source != nullptr;
 					}
@@ -46,7 +49,8 @@ namespace Unnamed {
 		return mAsset;
 	}
 
-	const std::vector<CompiledSequenceTrack>& CompiledSequence::GetTracks() const {
+	const std::vector<CompiledSequenceTrack>&
+	CompiledSequence::GetTracks() const {
 		return mTracks;
 	}
 

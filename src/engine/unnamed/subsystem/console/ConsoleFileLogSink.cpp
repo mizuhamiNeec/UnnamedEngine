@@ -3,8 +3,6 @@
 #include <chrono>
 #include <filesystem>
 
-#include <Windows.h>
-
 #include <core/filesystem/Path.h>
 #include <engine/unnamed/subsystem/console/ConsoleFileLogSink.h>
 #include <engine/unnamed/subsystem/time/SystemClock.h>
@@ -170,7 +168,8 @@ namespace Unnamed {
 			int cur = channelWidth.load(std::memory_order_relaxed);
 			while (w > cur && !channelWidth.compare_exchange_weak(
 				       cur, w, std::memory_order_relaxed
-			       )) {}
+			       )) {
+			}
 
 			const int outW = channelWidth.load(std::memory_order_relaxed);
 			if (outW > 0) {

@@ -75,12 +75,13 @@ namespace Unnamed::Render {
 			const std::wstring entry      = StrUtil::ToWString(key.entry);
 			const std::wstring profile    = StrUtil::ToWString(key.profile);
 
-			const std::vector<std::wstring> includeDirs;
-			const auto                      extraArgs = BuildDxcArgs(key);
+			const auto extraArgs = BuildDxcArgs(key);
 
 			if (!mDxcShaderCompiler.Initialize()) {
 				Error(kChannel, "DxcShaderCompiler initialization failed.");
 			} else {
+				// ReSharper disable once CppVariableCanBeMadeConstexpr
+				const std::vector<std::wstring> includeDirs;
 				const bool ok = mDxcShaderCompiler.CompileToFileDXIL(
 					sourcePath, entry, profile, includeDirs, extraArgs,
 					dxilPath.Native().wstring()

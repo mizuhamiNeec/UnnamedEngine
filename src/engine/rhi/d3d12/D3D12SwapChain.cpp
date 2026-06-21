@@ -21,8 +21,8 @@ namespace Unnamed::Rhi {
 				return false;
 			}
 
-			BOOL allowTearing = FALSE;
-			const HRESULT hr  = factory5->CheckFeatureSupport(
+			BOOL          allowTearing = FALSE;
+			const HRESULT hr           = factory5->CheckFeatureSupport(
 				DXGI_FEATURE_PRESENT_ALLOW_TEARING,
 				&allowTearing,
 				sizeof(allowTearing)
@@ -40,9 +40,9 @@ namespace Unnamed::Rhi {
 	) : mFactory(std::move(factory)),
 	    mDevice(std::move(device)),
 	    mGraphicsQueue(std::move(graphicsQueue)) {
-		mWidth       = desc.width;
-		mHeight      = desc.height;
-		mBufferCount = desc.bufferCount;
+		mWidth        = desc.width;
+		mHeight       = desc.height;
+		mBufferCount  = desc.bufferCount;
 		mAllowTearing = CheckTearingSupport(mFactory);
 
 		D3D12_DESCRIPTOR_HEAP_DESC rtvDesc = {};
@@ -94,9 +94,9 @@ namespace Unnamed::Rhi {
 			return;
 		}
 
-		const auto resizeStart = std::chrono::steady_clock::now();
-		const uint32_t oldWidth  = mWidth;
-		const uint32_t oldHeight = mHeight;
+		const auto     resizeStart = std::chrono::steady_clock::now();
+		const uint32_t oldWidth    = mWidth;
+		const uint32_t oldHeight   = mHeight;
 		DevMsg(
 			kChannel,
 			"Resize start: {}x{} -> {}x{}",
@@ -168,20 +168,20 @@ namespace Unnamed::Rhi {
 		const HWND hwnd, const SwapChainDesc& desc
 	) {
 		DXGI_SWAP_CHAIN_DESC1 scDesc;
-		scDesc.Width = desc.width;
-		scDesc.Height = desc.height;
-		scDesc.Format = ToDxgiFormat(desc.format);
-		scDesc.Stereo = FALSE;
-		scDesc.SampleDesc.Count = 1;
+		scDesc.Width              = desc.width;
+		scDesc.Height             = desc.height;
+		scDesc.Format             = ToDxgiFormat(desc.format);
+		scDesc.Stereo             = FALSE;
+		scDesc.SampleDesc.Count   = 1;
 		scDesc.SampleDesc.Quality = 0;
-		scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		scDesc.BufferCount = desc.bufferCount;
-		scDesc.Scaling = DXGI_SCALING_STRETCH;
-		scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		scDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-		scDesc.Flags = (!desc.vSync && mAllowTearing)
-			               ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
-			               : 0;
+		scDesc.BufferUsage        = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		scDesc.BufferCount        = desc.bufferCount;
+		scDesc.Scaling            = DXGI_SCALING_STRETCH;
+		scDesc.SwapEffect         = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		scDesc.AlphaMode          = DXGI_ALPHA_MODE_IGNORE;
+		scDesc.Flags              = !desc.vSync && mAllowTearing ?
+			               DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING :
+			               0;
 
 		ComPtr<IDXGISwapChain1> swapChain1;
 		Throw(

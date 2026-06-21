@@ -42,7 +42,7 @@ namespace Unnamed {
 			Error(kChannel, "エディターGUIの読み込みに失敗しました: {}", path);
 			data.lastError =
 				"Failed to read file: " + path.ToGenericUtf8(); // エラー内容を保存
-			data.hasError  = true; // エラーが発生したことを示すフラグを立てる
+			data.hasError = true; // エラーが発生したことを示すフラグを立てる
 			return result;
 		}
 
@@ -56,7 +56,8 @@ namespace Unnamed {
 
 		result.payload     = std::move(data);
 		result.resolveName = Path::ToUtf8String(path.FileName());
-		if (std::error_code ec; std::filesystem::exists(path.Native(), ec)) {
+		if (std::error_code ec;
+			std::filesystem::exists(path.Native(), ec)) {
 			result.stamp.sizeInBytes = std::filesystem::file_size(
 				path.Native(), ec
 			);

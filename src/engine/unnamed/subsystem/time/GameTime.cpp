@@ -11,7 +11,8 @@ GameTime::GameTime() :
 	mDeltaTime(1.0 / 60.0),
 	mScaledDeltaTime(1.0 / 60.0),
 	mTotalTime(0),
-	mFrameCount(0) {}
+	mFrameCount(0) {
+}
 
 /// @brief ゲーム開始時の処理を行います。
 void GameTime::StartGame() {

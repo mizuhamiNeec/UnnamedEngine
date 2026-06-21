@@ -34,7 +34,7 @@ namespace Unnamed {
 
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-		void                     SetSoundPath(Path path);
+		void                      SetSoundPath(Path path);
 		[[nodiscard]] const Path& GetSoundPath() const noexcept;
 
 		void               SetPlayOnStart(bool enabled) noexcept;
@@ -59,9 +59,9 @@ namespace Unnamed {
 		bool EnsureVoiceReady(bool preservePlayback);
 		void InvalidateVoice();
 
-		Path        mSoundPath;
-		AssetID     mSoundAssetId       = kInvalidAssetID;
-		uint64_t    mLoadedAssetVersion = 0;
+		Path     mSoundPath;
+		AssetID  mSoundAssetId       = kInvalidAssetID;
+		uint64_t mLoadedAssetVersion = 0;
 
 		std::shared_ptr<AudioVoice> mVoice;
 

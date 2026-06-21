@@ -58,7 +58,8 @@ namespace Unnamed {
 			EditorGuiData>(mAssetID);
 		if (!editorGuiAsset) {
 			mHasError  = true;
-			mLastError = "Failed to load editor GUI asset: " + mScriptPath.ToGenericUtf8();
+			mLastError = "Failed to load editor GUI asset: " + mScriptPath.
+			             ToGenericUtf8();
 			return;
 		}
 

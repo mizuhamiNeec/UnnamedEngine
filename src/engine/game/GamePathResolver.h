@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <string_view>
 
 #include "engine/game/GameModulePaths.h"
 
@@ -28,7 +27,7 @@ namespace Unnamed {
 	/// @details contentRoot が空の場合は gameRoot を基準として解決します。
 	[[nodiscard]] Path ResolveGameContentPath(
 		const GameModulePaths& paths,
-		const Path& path
+		const Path&            path
 	);
 
 	/// @brief マウント順（base -> dlc -> mod）を考慮して content パスを解決します。

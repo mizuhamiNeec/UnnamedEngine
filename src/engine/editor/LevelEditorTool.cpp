@@ -9,7 +9,6 @@
 
 #include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/platform/Window.h"
 #include "engine/platform/WindowManager.h"
@@ -30,8 +29,8 @@ namespace Unnamed {
 		[[nodiscard]] Vec2 ResolveMainWindowMonitorExtent(
 			WindowManager& windowManager
 		) {
-			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			const Window* const  mainWindow   = windowManager.FindWindowById(
+			const WindowId      mainWindowId = windowManager.GetMainWindowId();
+			const Window* const mainWindow   = windowManager.FindWindowById(
 				mainWindowId
 			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
@@ -64,8 +63,8 @@ namespace Unnamed {
 		[[nodiscard]] Vec2 ResolveMainWindowClientExtent(
 			WindowManager& windowManager
 		) {
-			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			const Window* const  mainWindow   = windowManager.FindWindowById(
+			const WindowId      mainWindowId = windowManager.GetMainWindowId();
+			const Window* const mainWindow   = windowManager.FindWindowById(
 				mainWindowId
 			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {

@@ -96,7 +96,8 @@ namespace Unnamed {
 			ImGui_ImplDX12_InitInfo*,
 			D3D12_CPU_DESCRIPTOR_HANDLE,
 			D3D12_GPU_DESCRIPTOR_HANDLE
-		) {};
+		) {
+			};
 
 		ImGui_ImplDX12_Init(&initInfo);
 	}

@@ -398,7 +398,7 @@ namespace Unnamed {
 			}
 
 			ImGui::SameLine();
-			auto DrawViewBindingSelector = [this]() {
+			auto DrawViewBindingSelector = [this] {
 				const Scene*          scene   = GetOutlinerScene();
 				ViewportCameraBinding binding = ResolveViewportBinding(
 					kViewScenePerspective
@@ -580,7 +580,7 @@ namespace Unnamed {
 		ImGuizmo::SetDrawlist();
 		ImGuizmo::SetRect(imagePos.x, imagePos.y, drawWidth, drawHeight);
 
-		const bool useSnap = (sOperation != ImGuizmo::SCALE) &&
+		const bool useSnap = sOperation != ImGuizmo::SCALE &&
 		                     (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) ||
 		                      ImGui::IsKeyDown(ImGuiKey_RightCtrl));
 		const float snap[3] = {

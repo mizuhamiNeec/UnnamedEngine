@@ -62,12 +62,12 @@ namespace Unnamed {
 		Render::RenderModule& mRenderModule;
 		ImGuiLayer&           mImGuiLayer;
 
-		ConsoleSystem* mConsole      = nullptr;
-		InputSystem*   mInputSystem  = nullptr;
-		AssetManager*  mAssetManager = nullptr;
-		IDemoService*  mDemoService  = nullptr;
+		ConsoleSystem*     mConsole      = nullptr;
+		InputSystem*       mInputSystem  = nullptr;
+		AssetManager*      mAssetManager = nullptr;
+		IDemoService*      mDemoService  = nullptr;
 		IGameWorldFactory& mGameWorldFactory;
-		Profiler*      mProfiler = nullptr;
+		Profiler*          mProfiler = nullptr;
 
 		std::vector<std::unique_ptr<IEditorTool>> mOwnedTools;
 		LevelEditorTool*                          mLevelTool = nullptr;

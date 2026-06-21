@@ -11,10 +11,10 @@
 
 namespace Ui {
 	namespace {
-		constexpr uint32_t kMaxRowDepth = 64;
-		thread_local std::array<float, kMaxRowDepth> sRowSpacingStack = {};
+		constexpr uint32_t                             kMaxRowDepth     = 64;
+		thread_local std::array<float, kMaxRowDepth>   sRowSpacingStack = {};
 		thread_local std::array<uint8_t, kMaxRowDepth> sRowHasItemStack = {};
-		thread_local uint32_t sRowDepth = 0;
+		thread_local uint32_t                          sRowDepth        = 0;
 
 		UiContext& MutableContext() {
 			static UiContext context;
@@ -38,29 +38,29 @@ namespace Ui {
 				return 1;
 			}
 			if (codepoint <= 0x7FFu) {
-				out[0] = static_cast<char>(0xC0u | (codepoint >> 6u));
-				out[1] = static_cast<char>(0x80u | (codepoint & 0x3Fu));
+				out[0] = static_cast<char>(0xC0u | codepoint >> 6u);
+				out[1] = static_cast<char>(0x80u | codepoint & 0x3Fu);
 				out[2] = '\0';
 				return 2;
 			}
 			if (codepoint <= 0xFFFFu) {
-				out[0] = static_cast<char>(0xE0u | (codepoint >> 12u));
+				out[0] = static_cast<char>(0xE0u | codepoint >> 12u);
 				out[1] = static_cast<char>(
-					0x80u | ((codepoint >> 6u) & 0x3Fu)
+					0x80u | codepoint >> 6u & 0x3Fu
 				);
-				out[2] = static_cast<char>(0x80u | (codepoint & 0x3Fu));
+				out[2] = static_cast<char>(0x80u | codepoint & 0x3Fu);
 				out[3] = '\0';
 				return 3;
 			}
 			if (codepoint <= 0x10FFFFu) {
-				out[0] = static_cast<char>(0xF0u | (codepoint >> 18u));
+				out[0] = static_cast<char>(0xF0u | codepoint >> 18u);
 				out[1] = static_cast<char>(
-					0x80u | ((codepoint >> 12u) & 0x3Fu)
+					0x80u | codepoint >> 12u & 0x3Fu
 				);
 				out[2] = static_cast<char>(
-					0x80u | ((codepoint >> 6u) & 0x3Fu)
+					0x80u | codepoint >> 6u & 0x3Fu
 				);
-				out[3] = static_cast<char>(0x80u | (codepoint & 0x3Fu));
+				out[3] = static_cast<char>(0x80u | codepoint & 0x3Fu);
 				out[4] = '\0';
 				return 4;
 			}
@@ -82,9 +82,12 @@ namespace Ui {
 				sRowDepth = mSavedDepth;
 			}
 
-			ScopedRowContextIsolation(const ScopedRowContextIsolation&) = delete;
+			ScopedRowContextIsolation(
+				const ScopedRowContextIsolation&
+			) = delete;
 			ScopedRowContextIsolation& operator=(
 				const ScopedRowContextIsolation&
+			
 			) = delete;
 
 		private:
@@ -93,15 +96,12 @@ namespace Ui {
 
 		[[nodiscard]] ImDrawFlags ToDrawFlags(const UiCornerMode cornerMode) {
 			switch (cornerMode) {
-				case UiCornerMode::TopOnly:
-					return ImDrawFlags_RoundCornersTop;
-				case UiCornerMode::BottomOnly:
-					return ImDrawFlags_RoundCornersBottom;
-				case UiCornerMode::All:
-					return ImDrawFlags_RoundCornersAll;
+				case UiCornerMode::TopOnly: return ImDrawFlags_RoundCornersTop;
+				case UiCornerMode::BottomOnly: return
+						ImDrawFlags_RoundCornersBottom;
+				case UiCornerMode::All: return ImDrawFlags_RoundCornersAll;
 				case UiCornerMode::None:
-				default:
-					return ImDrawFlags_RoundCornersNone;
+				default: return ImDrawFlags_RoundCornersNone;
 			}
 		}
 
@@ -124,8 +124,8 @@ namespace Ui {
 				return;
 			}
 
-			const uint32_t rowIndex = ClampRowIndex(sRowDepth);
-			uint8_t& rowHasItem = sRowHasItemStack[rowIndex];
+			const uint32_t rowIndex   = ClampRowIndex(sRowDepth);
+			uint8_t&       rowHasItem = sRowHasItemStack[rowIndex];
 			if (rowHasItem) {
 				const float spacing = sRowSpacingStack[rowIndex];
 				if (spacing >= 0.0f) {
@@ -142,21 +142,20 @@ namespace Ui {
 			const UiColorRole colorRole
 		) {
 			switch (colorRole) {
-				case UiColorRole::TextMuted:
-					return ImGui::ColorConvertFloat4ToU32(styleSet.textMuted);
-				case UiColorRole::Accent:
-					return ImGui::ColorConvertFloat4ToU32(styleSet.accent);
-				case UiColorRole::SectionHeaderBackground:
-					return ImGui::ColorConvertFloat4ToU32(
-						styleSet.sectionHeaderBackground
-					);
-				case UiColorRole::SectionHeaderText:
-					return ImGui::ColorConvertFloat4ToU32(
-						styleSet.sectionHeaderText
-					);
+				case UiColorRole::TextMuted: return
+						ImGui::ColorConvertFloat4ToU32(styleSet.textMuted);
+				case UiColorRole::Accent: return ImGui::ColorConvertFloat4ToU32(
+						styleSet.accent);
+				case UiColorRole::SectionHeaderBackground: return
+						ImGui::ColorConvertFloat4ToU32(
+							styleSet.sectionHeaderBackground
+						);
+				case UiColorRole::SectionHeaderText: return
+						ImGui::ColorConvertFloat4ToU32(
+							styleSet.sectionHeaderText
+						);
 				case UiColorRole::Text:
-				default:
-					return ImGui::ColorConvertFloat4ToU32(styleSet.text);
+				default: return ImGui::ColorConvertFloat4ToU32(styleSet.text);
 			}
 		}
 	}
@@ -225,7 +224,8 @@ namespace Ui {
 		other.mActive = false;
 	}
 
-	ScopedStyleVar& ScopedStyleVar::operator=(ScopedStyleVar&& other
+	ScopedStyleVar& ScopedStyleVar::operator=(
+		ScopedStyleVar&& other
 	) noexcept {
 		if (this != &other) {
 			if (mActive) {
@@ -262,7 +262,8 @@ namespace Ui {
 		other.mActive = false;
 	}
 
-	ScopedStyleColor& ScopedStyleColor::operator=(ScopedStyleColor&& other
+	ScopedStyleColor& ScopedStyleColor::operator=(
+		ScopedStyleColor&& other
 	) noexcept {
 		if (this != &other) {
 			if (mActive) {
@@ -321,7 +322,8 @@ namespace Ui {
 		other.mActive = false;
 	}
 
-	ScopedDisabled& ScopedDisabled::operator=(ScopedDisabled&& other
+	ScopedDisabled& ScopedDisabled::operator=(
+		ScopedDisabled&& other
 	) noexcept {
 		if (this != &other) {
 			if (mActive) {
@@ -373,13 +375,12 @@ namespace Ui {
 		const UiStyleSet& styleSet = GetContext().styleSet;
 		const float       baseSize = ImGui::GetFontSize();
 		switch (fontStyle) {
-			case UiFontStyle::Heading:
-				return baseSize * styleSet.headingFontScale;
-			case UiFontStyle::Caption:
-				return baseSize * styleSet.captionFontScale;
+			case UiFontStyle::Heading: return
+					baseSize * styleSet.headingFontScale;
+			case UiFontStyle::Caption: return
+					baseSize * styleSet.captionFontScale;
 			case UiFontStyle::Body:
-			default:
-				return baseSize;
+			default: return baseSize;
 		}
 	}
 
@@ -417,7 +418,8 @@ namespace Ui {
 	) {
 		const float targetContainerHeight = containerHeight > 0.0f ?
 			                                    containerHeight :
-			                                    ImGui::GetContentRegionAvail().y;
+			                                    ImGui::GetContentRegionAvail().
+			                                    y;
 		const float targetContentHeight = contentHeight > 0.0f ?
 			                                  contentHeight :
 			                                  ImGui::GetFrameHeight();
@@ -451,7 +453,7 @@ namespace Ui {
 		const float slotStartY = ImGui::GetCursorPosY();
 		AlignCenterY(containerHeight, contentHeight);
 		drawContent();
-		const float slotEndY = slotStartY + containerHeight;
+		const float slotEndY        = slotStartY + containerHeight;
 		const float remainingHeight = slotEndY - ImGui::GetCursorPosY();
 		if (remainingHeight > 0.0f) {
 			// SetCursorPosだけで境界を拡張せず、Dummyで安全にスロット終端まで進めます。
@@ -461,9 +463,9 @@ namespace Ui {
 	}
 
 	void Section(
-		const char*                   sectionLabel,
-		const std::function<void()>&  drawContent,
-		const bool                    drawTrailingSeparator
+		const char*                  sectionLabel,
+		const std::function<void()>& drawContent,
+		const bool                   drawTrailingSeparator
 	) {
 		ImGui::BeginGroup();
 		if (sectionLabel != nullptr && sectionLabel[0] != '\0') {
@@ -507,14 +509,18 @@ namespace Ui {
 			return;
 		}
 
-		ImDrawList* drawList = params.drawList ? params.drawList :
-		                         ImGui::GetWindowDrawList();
+		ImDrawList* drawList = params.drawList ?
+			                       params.drawList :
+			                       ImGui::GetWindowDrawList();
 		if (drawList == nullptr) {
 			return;
 		}
 
-		ImFont* font = params.font ? params.font : ResolveFont(params.fontStyle);
-		const float fontSize = ResolveFontSize(params.fontStyle, params.fontSize);
+		ImFont* font = params.font ?
+			               params.font :
+			               ResolveFont(params.fontStyle);
+		const float fontSize = ResolveFontSize(params.fontStyle,
+		                                       params.fontSize);
 		const ImU32 textColor = params.useExplicitColor ?
 			                        params.color :
 			                        ResolveColor(params.colorRole);
@@ -522,7 +528,7 @@ namespace Ui {
 		ImVec2 screenPos = params.position;
 		if (!params.positionIsScreenSpace) {
 			const ImVec2 windowPos = ImGui::GetWindowPos();
-			screenPos = ImVec2(
+			screenPos              = ImVec2(
 				windowPos.x + params.position.x,
 				windowPos.y + params.position.y
 			);
@@ -570,30 +576,30 @@ namespace Ui {
 	) {
 		BeforeLayoutItem();
 
-		const ImGuiStyle& style = ImGui::GetStyle();
-		ImDrawList*       drawList = ImGui::GetWindowDrawList();
-		ImFont*           font = ImGui::GetFont();
+		const ImGuiStyle& style       = ImGui::GetStyle();
+		ImDrawList*       drawList    = ImGui::GetWindowDrawList();
+		ImFont*           font        = ImGui::GetFont();
 		char              iconUtf8[5] = {};
 		(void)EncodeCodepointToUtf8(icon, iconUtf8);
-		const bool        hasLabel = label && label[0] != '\0';
+		const bool hasLabel         = label && label[0] != '\0';
 		const bool horizontalLayout =
 			labelDir == ImGuiDir_Left || labelDir == ImGuiDir_Right;
 		const bool  iconOnly   = !hasLabel || labelDir == ImGuiDir_None;
 		const bool  autoWidth  = size.x <= 0.0f;
 		const bool  autoHeight = size.y <= 0.0f;
-		const float gap = horizontalLayout ?
-			                  style.ItemSpacing.x :
-			                  style.ItemSpacing.y;
+		const float gap        = horizontalLayout ?
+			                         style.ItemSpacing.x :
+			                         style.ItemSpacing.y;
 		const ImVec2 pad              = style.FramePadding;
 		const float  baseFontSize     = ImGui::GetFontSize();
 		const float  baseFontSizeSafe = std::max(1.0f, baseFontSize);
 		const ImVec2 iconBaseSize     = ImGui::CalcTextSize(iconUtf8);
-		const ImVec2 labelSize = hasLabel ?
-			                        ImGui::CalcTextSize(label) :
-			                        ImVec2(0.0f, 0.0f);
+		const ImVec2 labelSize        = hasLabel ?
+			                                ImGui::CalcTextSize(label) :
+			                                ImVec2(0.0f, 0.0f);
 		const float autoIconFontSize = std::max(1.0f, baseFontSize * iconScale);
 		const float autoFontScale    = autoIconFontSize / baseFontSizeSafe;
-		ImVec2      layoutIconSize = ImVec2(
+		ImVec2      layoutIconSize   = ImVec2(
 			iconBaseSize.x * autoFontScale,
 			iconBaseSize.y * autoFontScale
 		);
@@ -609,7 +615,7 @@ namespace Ui {
 				explicitInnerHeight * iconScale
 			);
 			const float explicitFontScale = explicitIconFontSize /
-				baseFontSizeSafe;
+			                                baseFontSizeSafe;
 			layoutIconSize = ImVec2(
 				iconBaseSize.x * explicitFontScale,
 				iconBaseSize.y * explicitFontScale
@@ -660,7 +666,7 @@ namespace Ui {
 			itemMax.x - itemMin.x,
 			itemMax.y - itemMin.y
 		);
-		const ImVec2 innerMin = ImVec2(itemMin.x + pad.x, itemMin.y + pad.y);
+		const ImVec2 innerMin  = ImVec2(itemMin.x + pad.x, itemMin.y + pad.y);
 		const ImVec2 innerSize = ImVec2(
 			std::max(1.0f, itemSize.x - pad.x * 2.0f),
 			std::max(1.0f, itemSize.y - pad.y * 2.0f)
@@ -695,7 +701,7 @@ namespace Ui {
 			                           autoIconFontSize :
 			                           std::max(1.0f, innerSize.y * iconScale);
 		const float  fontScale = iconFontSize / baseFontSizeSafe;
-		const ImVec2 iconSize = ImVec2(
+		const ImVec2 iconSize  = ImVec2(
 			iconBaseSize.x * fontScale,
 			iconBaseSize.y * fontScale
 		);
@@ -710,11 +716,11 @@ namespace Ui {
 				innerMin.y + (innerSize.y - iconSize.y) * 0.5f
 			);
 		} else if (horizontalLayout) {
-			const float blockWidth  = iconSize.x + labelSize.x + gap;
+			const float blockWidth = iconSize.x + labelSize.x + gap;
 			const float blockHeight = std::max(iconSize.y, labelSize.y);
 			const float startX = innerMin.x + (innerSize.x - blockWidth) * 0.5f;
 			const float startY = innerMin.y + (innerSize.y - blockHeight) *
-				0.5f;
+			                     0.5f;
 
 			if (labelDir == ImGuiDir_Left) {
 				labelPos = ImVec2(
@@ -737,8 +743,8 @@ namespace Ui {
 			}
 		} else {
 			const float blockHeight = iconSize.y + labelSize.y + gap;
-			const float startY = innerMin.y + (innerSize.y - blockHeight) *
-				0.5f;
+			const float startY      = innerMin.y + (innerSize.y - blockHeight) *
+			                          0.5f;
 			if (labelDir == ImGuiDir_Up) {
 				labelPos = ImVec2(
 					innerMin.x + (innerSize.x - labelSize.x) * 0.5f,
@@ -828,25 +834,27 @@ namespace Ui {
 	void SectionHeader(const UiSectionHeaderParams& params) {
 		BeforeLayoutItem();
 
-		const UiContext& context = GetContext();
+		const UiContext&  context  = GetContext();
 		const UiStyleSet& styleSet = context.styleSet;
-		ImDrawList* drawList       = ImGui::GetWindowDrawList();
+		ImDrawList*       drawList = ImGui::GetWindowDrawList();
 
 		const ImVec2 cursorPos = ImGui::GetCursorScreenPos();
 		const float  width     = ImGui::GetContentRegionAvail().x;
-		const ImVec2 padding =
+		const ImVec2 padding   =
 			params.padding.x > 0.0f || params.padding.y > 0.0f ?
 				params.padding :
 				styleSet.sectionHeaderPadding;
 
-		ImFont* headerFont = params.font ? params.font :
-		                      ResolveFont(params.fontStyle);
+		ImFont* headerFont = params.font ?
+			                     params.font :
+			                     ResolveFont(params.fontStyle);
 		const float headerFontSize = ResolveFontSize(
 			params.fontStyle,
 			params.fontSize
 		);
-		const float fontSizeForCalc = headerFont ? headerFontSize :
-		                            ImGui::GetFontSize();
+		const float fontSizeForCalc = headerFont ?
+			                              headerFontSize :
+			                              ImGui::GetFontSize();
 		const ImVec2 textSize = headerFont ?
 			                        headerFont->CalcTextSizeA(
 				                        fontSizeForCalc,
@@ -887,26 +895,26 @@ namespace Ui {
 
 		UiTextDrawParams textParams = {};
 		textParams.drawList         = drawList;
-		textParams.position = ImVec2(
+		textParams.position         = ImVec2(
 			rectMin.x + padding.x,
 			rectMin.y + (headerHeight - textSize.y) * 0.5f
 		);
-		textParams.text             = params.text;
-		textParams.font             = headerFont;
-		textParams.fontStyle        = params.fontStyle;
-		textParams.fontSize         = headerFontSize;
-		textParams.colorRole        = params.textColorRole;
+		textParams.text      = params.text;
+		textParams.font      = headerFont;
+		textParams.fontStyle = params.fontStyle;
+		textParams.fontSize  = headerFontSize;
+		textParams.colorRole = params.textColorRole;
 		DrawTextW(textParams);
 
 		ImGui::Dummy(ImVec2(width, headerHeight));
 	}
 
 	void DrawFilledRect(
-		ImDrawList*      drawList,
-		const ImVec2&    min,
-		const ImVec2&    max,
-		const ImU32      color,
-		const float      rounding,
+		ImDrawList*        drawList,
+		const ImVec2&      min,
+		const ImVec2&      max,
+		const ImU32        color,
+		const float        rounding,
 		const UiCornerMode cornerMode
 	) {
 		if (drawList == nullptr) {
@@ -922,11 +930,11 @@ namespace Ui {
 	}
 
 	void DrawFilledRectTopRounded(
-		ImDrawList*      drawList,
-		const ImVec2&    min,
-		const ImVec2&    max,
-		const ImU32      color,
-		const float      rounding
+		ImDrawList*   drawList,
+		const ImVec2& min,
+		const ImVec2& max,
+		const ImU32   color,
+		const float   rounding
 	) {
 		DrawFilledRect(
 			drawList,

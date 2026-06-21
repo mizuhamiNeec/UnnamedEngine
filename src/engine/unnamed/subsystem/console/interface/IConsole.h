@@ -3,7 +3,7 @@
 #include <string_view>
 
 namespace Unnamed {
-	const std::string kChannelNone = "";
+	constexpr std::string_view kChannelNone = "";
 
 	enum class LogLevel {
 		None = 0, // 純粋なテキストのみを出力したい場合に使用します。

@@ -33,14 +33,6 @@ namespace Unnamed {
 		return mLocalScale;
 	}
 
-	TransformComponent* TransformComponent::GetParent() const noexcept {
-		return mParent;
-	}
-
-	const Mat4& TransformComponent::GetWorldMat() const noexcept {
-		return mWorldMat;
-	}
-
 	const Mat4& TransformComponent::RenderWorldMat() const noexcept {
 		// 描画用のワールド行列は、補間されたローカル行列を親の描画用ワールド行列と掛け合わせて計算
 		mRenderWorldMat = BuildRenderLocalMatrix();
@@ -48,6 +40,10 @@ namespace Unnamed {
 			mRenderWorldMat = mRenderWorldMat * mParent->RenderWorldMat();
 		}
 		return mRenderWorldMat;
+	}
+
+	const Mat4& TransformComponent::GetWorldMat() const noexcept {
+		return mWorldMat;
 	}
 
 	void TransformComponent::SetPosition(const Vec3 position) noexcept {
@@ -70,6 +66,10 @@ namespace Unnamed {
 
 	void TransformComponent::RequestInterpolationResync() noexcept {
 		mInterpResyncRequested = true;
+	}
+
+	TransformComponent* TransformComponent::GetParent() const noexcept {
+		return mParent;
 	}
 
 	void TransformComponent::SetParent(
@@ -146,7 +146,7 @@ namespace Unnamed {
 		if (mParent) {
 			mParent->mChildren.emplace_back(this);
 		}
-		
+
 		if (preserveWorld) {
 			mLocalPos   = preservedPosition;
 			mLocalRot   = preservedRotation;

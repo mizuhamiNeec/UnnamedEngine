@@ -1,7 +1,5 @@
 #pragma once
 
-#include "core/filesystem/Path.h"
-
 namespace Unnamed {
 	class ConVarWriter {
 	public:

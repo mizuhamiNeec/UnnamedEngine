@@ -1,5 +1,3 @@
-#include <core/math/Math.h>
-
 #include "Mat4.h"
 
 Vec4 Vec4::one  = Vec4(1.0f, 1.0f, 1.0f, 1.0f);

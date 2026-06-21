@@ -440,11 +440,11 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] uint64_t ComputeSemanticHash(const std::string& text) {
-			return static_cast<uint64_t>(std::hash<std::string>{}(text));
+			return std::hash<std::string>{}(text);
 		}
 
 		[[nodiscard]] std::string ReadTextFile(const Path& path) {
-			std::ifstream ifs(path.Native(), std::ios::binary);
+			const std::ifstream ifs(path.Native(), std::ios::binary);
 			if (!ifs) {
 				return {};
 			}
@@ -477,10 +477,10 @@ namespace Unnamed {
 			return false;
 		}
 
-		SequenceAuthoringData authoring      = {};
-		authoring.version                    = root.value("version", 2);
-		const Path filePath = path.LexicallyNormal();
-		authoring.name                       = root.value(
+		SequenceAuthoringData authoring = {};
+		authoring.version               = root.value("version", 2);
+		const Path filePath             = path.LexicallyNormal();
+		authoring.name                  = root.value(
 			"name",
 			Path::ToUtf8String(filePath.Stem().Stem())
 		);

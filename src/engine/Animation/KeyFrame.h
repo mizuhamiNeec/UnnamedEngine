@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <core/math/Math.h>
 
 template <typename T>
 struct Keyframe {

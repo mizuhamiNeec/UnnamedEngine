@@ -21,8 +21,8 @@ namespace Unnamed::Render {
 		ID3D12RootSignature*                 rootSignature = nullptr;
 		std::optional<Rhi::VertexLayoutDesc> vertexLayout  = std::nullopt;
 
-		uint8_t     numRenderTargets = 1;
-		DXGI_FORMAT rtvFormat        = DXGI_FORMAT_R8G8B8A8_UNORM;
+		uint8_t                       numRenderTargets = 1;
+		DXGI_FORMAT                   rtvFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType =
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
@@ -45,9 +45,7 @@ namespace Unnamed::Render {
 		D3D12_COMPARISON_FUNC stencilBackFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 
 		bool            depthWriteEnable = true;
-		uint8_t         colorWriteMask   = static_cast<uint8_t>(
-			D3D12_COLOR_WRITE_ENABLE_ALL
-		);
+		uint8_t         colorWriteMask   = D3D12_COLOR_WRITE_ENABLE_ALL;
 		D3D12_CULL_MODE cullMode         = D3D12_CULL_MODE_BACK;
 		bool            blendEnable      = false;
 		D3D12_BLEND     srcBlend         = D3D12_BLEND_ONE;
@@ -319,8 +317,8 @@ namespace Unnamed::Render {
 		> mCompute;
 
 		std::unordered_set<GraphicsPsoKey, GraphicsPipelineKeyHash>
-			mDirtyGraphics;
+		mDirtyGraphics;
 		std::unordered_set<ComputePipelineKey, ComputePipelineKeyHash>
-			mDirtyCompute;
+		mDirtyCompute;
 	};
 }

@@ -1,9 +1,5 @@
 #pragma once
 
-#include <filesystem>
-
-#include <json.hpp>
-
 #include "core/assets/loader/interface/IAssetLoader.h"
 
 namespace Unnamed {

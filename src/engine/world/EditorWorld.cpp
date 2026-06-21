@@ -69,7 +69,6 @@ namespace Unnamed {
 			if (mPlayWorld) {
 				mPlayWorld->FixedTick(fixedDeltaTime);
 			}
-			return;
 		}
 	}
 
@@ -121,7 +120,7 @@ namespace Unnamed {
 		playWorld->Initialize();
 		const auto worldInitEnd = std::chrono::steady_clock::now();
 
-		auto          playScene = std::make_unique<Scene>();
+		auto playScene = std::make_unique<Scene>();
 		playScene->SetWorld(playWorld.get());
 		GuidGenerator cloneGuid;
 		const auto    cloneStart = std::chrono::steady_clock::now();
@@ -215,7 +214,7 @@ namespace Unnamed {
 	}
 
 	World* EditorWorld::GetRuntimeSceneWorld() {
-		return mPlayWorld ? static_cast<World*>(mPlayWorld.get()) : this;
+		return mPlayWorld ? mPlayWorld.get() : this;
 	}
 
 	const World* EditorWorld::GetRuntimeSceneWorld() const {
@@ -257,8 +256,8 @@ namespace Unnamed {
 
 	bool EditorWorld::BuildEditorCameraMatrices(
 		const Render::SceneViewRenderMode& request,
-		Mat4&                             outView,
-		Mat4&                             outProj
+		Mat4&                              outView,
+		Mat4&                              outProj
 	) {
 		UpdateEditorCameraAspectIfNeeded(request);
 		if (!mEditorEntity || !mEditorEntity->IsActive()) {
@@ -279,6 +278,24 @@ namespace Unnamed {
 			return;
 		}
 		camera->SetLookEnabled(enabled);
+	}
+
+	bool EditorWorld::BuildUiInputCamera(
+		Render::RenderCameraInput& outCamera
+	) const {
+		outCamera = {};
+		if (!mEditorEntity || !mEditorEntity->IsActive()) {
+			return false;
+		}
+
+		const auto* camera =
+			mEditorEntity->GetComponent<EditorCameraComponent>();
+		if (!camera || !camera->IsActive()) {
+			return false;
+		}
+
+		camera->BuildCameraInput(outCamera);
+		return outCamera.valid;
 	}
 
 	void EditorWorld::UpdateEditorCameraAspectIfNeeded(
@@ -320,23 +337,5 @@ namespace Unnamed {
 		mLastAspectMode           = request.mode;
 		mLastAspectViewportWidth  = request.viewportPanelWidth;
 		mLastAspectViewportHeight = request.viewportPanelHeight;
-	}
-
-	bool EditorWorld::BuildUiInputCamera(
-		Render::RenderCameraInput& outCamera
-	) const {
-		outCamera = {};
-		if (!mEditorEntity || !mEditorEntity->IsActive()) {
-			return false;
-		}
-
-		const auto* camera =
-			mEditorEntity->GetComponent<EditorCameraComponent>();
-		if (!camera || !camera->IsActive()) {
-			return false;
-		}
-
-		camera->BuildCameraInput(outCamera);
-		return outCamera.valid;
 	}
 }

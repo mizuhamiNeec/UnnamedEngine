@@ -1,9 +1,7 @@
-
 #include "UiDocumentAssetLoader.h"
 #include "core/filesystem/Path.h"
 
 #include <fstream>
-
 
 #include "core/string/StrUtil.h"
 

@@ -47,14 +47,14 @@ namespace Unnamed {
 
 	private:
 		LoadedGameModule(
-			std::string                requestedModuleName,
+			std::string                  requestedModuleName,
 			std::unique_ptr<IGameModule> gameModule
 		);
 
-		std::string                 mRequestedModuleName = {};
-		std::unique_ptr<IGameModule> mGameModule = {};
-		std::unique_ptr<GameRuntimeContext> mRuntimeContext = {};
-		bool mLoaded = false;
-		bool mRuntimeContextRegistered = false;
+		std::string                         mRequestedModuleName      = {};
+		std::unique_ptr<IGameModule>        mGameModule               = {};
+		std::unique_ptr<GameRuntimeContext> mRuntimeContext           = {};
+		bool                                mLoaded                   = false;
+		bool                                mRuntimeContextRegistered = false;
 	};
 }

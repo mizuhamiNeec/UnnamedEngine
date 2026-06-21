@@ -53,7 +53,7 @@ namespace Unnamed {
 		if (!ReadExact(
 			file,
 			riffHeader.data(),
-			static_cast<std::streamsize>(riffHeader.size())
+			riffHeader.size()
 		)) {
 			return result;
 		}
@@ -75,7 +75,7 @@ namespace Unnamed {
 			if (!ReadExact(
 				file,
 				chunkHeader.data(),
-				static_cast<std::streamsize>(chunkHeader.size())
+				chunkHeader.size()
 			)) {
 				break;
 			}
@@ -97,7 +97,7 @@ namespace Unnamed {
 				if (!ReadExact(
 					file,
 					fmtBytes.data(),
-					static_cast<std::streamsize>(chunkSize)
+					chunkSize
 				)) {
 					return {};
 				}
@@ -117,13 +117,13 @@ namespace Unnamed {
 				if (!ReadExact(
 					file,
 					soundData.pcmData.data(),
-					static_cast<std::streamsize>(chunkSize)
+					chunkSize
 				)) {
 					return {};
 				}
 				foundData = true;
 			} else {
-				file.seekg(static_cast<std::streamoff>(chunkSize),
+				file.seekg(chunkSize,
 				           std::ios::cur);
 			}
 

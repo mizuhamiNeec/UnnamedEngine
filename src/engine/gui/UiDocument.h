@@ -3,7 +3,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "core/filesystem/Path.h"
 #include "UiWidget.h"
 
 namespace Unnamed::Gui {

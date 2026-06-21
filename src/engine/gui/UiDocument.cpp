@@ -7,7 +7,7 @@
 
 namespace Unnamed::Gui {
 	namespace {
-		static constexpr std::string_view kChannel = "UiDocument";
+		constexpr std::string_view kChannel = "UiDocument";
 	}
 
 	UiDocument::UiDocument() = default;
@@ -43,7 +43,7 @@ namespace Unnamed::Gui {
 	}
 
 	std::shared_ptr<UiDocument> UiDocument::LoadFromJson(
-		const JsonReader& reader,
+		const JsonReader&  reader,
 		const std::string& sourceLabel
 	) {
 		if (!reader.Valid()) {

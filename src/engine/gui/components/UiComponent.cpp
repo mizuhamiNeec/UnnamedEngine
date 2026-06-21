@@ -1,7 +1,6 @@
 #include "UiComponent.h"
 
 #include "engine/gui/UiDrawCommand.h"
-#include "engine/gui/UiWidget.h"
 
 namespace Unnamed::Gui {
 	void UiComponent::OnAttached(UiWidget& owner) {
@@ -26,7 +25,7 @@ namespace Unnamed::Gui {
 	}
 
 	void UiComponent::BuildDrawCommands(
-		const UiWidget& owner,
+		const UiWidget&             owner,
 		std::vector<UiDrawCommand>& out
 	) const {
 		(void)owner;

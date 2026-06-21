@@ -213,54 +213,6 @@ namespace Unnamed {
 		mMaterialInstanceAssetId = kInvalidAssetID;
 	}
 
-	const Path& StaticMeshRendererComponent::GetMeshPath() const noexcept {
-		return mMeshPath;
-	}
-
-	const Path&
-	StaticMeshRendererComponent::GetMaterialInstancePath() const noexcept {
-		return mMaterialInstancePath;
-	}
-
-	AssetID StaticMeshRendererComponent::ResolveMeshAsset(
-		AssetManager& assetManager
-	) {
-		if (mMeshPath.IsEmpty()) {
-			return kInvalidAssetID;
-		}
-		if (mMeshAssetId != kInvalidAssetID) {
-			return mMeshAssetId;
-		}
-
-		mMeshAssetId = assetManager.LoadFromFile(mMeshPath, ASSET_TYPE::MESH);
-		return mMeshAssetId;
-	}
-
-	AssetID StaticMeshRendererComponent::ResolveMaterialInstanceAsset(
-		AssetManager& assetManager
-	) {
-		if (mMaterialInstancePath.IsEmpty()) {
-			return kInvalidAssetID;
-		}
-		if (mMaterialInstanceAssetId != kInvalidAssetID) {
-			return mMaterialInstanceAssetId;
-		}
-
-		mMaterialInstanceAssetId = assetManager.LoadFromFile(
-			mMaterialInstancePath, ASSET_TYPE::MATERIAL_INSTANCE
-		);
-		return mMaterialInstanceAssetId;
-	}
-
-	AssetID StaticMeshRendererComponent::GetMeshAssetId() const noexcept {
-		return mMeshAssetId;
-	}
-
-	AssetID
-	StaticMeshRendererComponent::GetMaterialInstanceAssetId() const noexcept {
-		return mMaterialInstanceAssetId;
-	}
-
 	void StaticMeshRendererComponent::SetMaterialSlots(
 		const std::vector<MaterialSlot>& slots
 	) {
@@ -291,9 +243,48 @@ namespace Unnamed {
 		}
 	}
 
+	const Path& StaticMeshRendererComponent::GetMeshPath() const noexcept {
+		return mMeshPath;
+	}
+
+	const Path&
+	StaticMeshRendererComponent::GetMaterialInstancePath() const noexcept {
+		return mMaterialInstancePath;
+	}
+
 	const std::vector<MaterialSlot>&
 	StaticMeshRendererComponent::GetMaterialSlots() const noexcept {
 		return mMaterialSlots;
+	}
+
+	AssetID StaticMeshRendererComponent::ResolveMeshAsset(
+		AssetManager& assetManager
+	) {
+		if (mMeshPath.IsEmpty()) {
+			return kInvalidAssetID;
+		}
+		if (mMeshAssetId != kInvalidAssetID) {
+			return mMeshAssetId;
+		}
+
+		mMeshAssetId = assetManager.LoadFromFile(mMeshPath, ASSET_TYPE::MESH);
+		return mMeshAssetId;
+	}
+
+	AssetID StaticMeshRendererComponent::ResolveMaterialInstanceAsset(
+		AssetManager& assetManager
+	) {
+		if (mMaterialInstancePath.IsEmpty()) {
+			return kInvalidAssetID;
+		}
+		if (mMaterialInstanceAssetId != kInvalidAssetID) {
+			return mMaterialInstanceAssetId;
+		}
+
+		mMaterialInstanceAssetId = assetManager.LoadFromFile(
+			mMaterialInstancePath, ASSET_TYPE::MATERIAL_INSTANCE
+		);
+		return mMaterialInstanceAssetId;
 	}
 
 	void StaticMeshRendererComponent::ResolveMaterialInstanceAssets(
@@ -337,7 +328,7 @@ namespace Unnamed {
 	) {
 		ResolveMaterialInstanceAssets(assetManager);
 
-		AssetID materialId = GetMaterialInstanceAssetIdForMaterialIndex(
+		const AssetID materialId = GetMaterialInstanceAssetIdForMaterialIndex(
 			materialIndex
 		);
 		if (materialId != kInvalidAssetID) {
@@ -346,6 +337,15 @@ namespace Unnamed {
 
 		// 旧形式の単一マテリアルとの互換性を維持します。
 		return ResolveMaterialInstanceAsset(assetManager);
+	}
+
+	AssetID StaticMeshRendererComponent::GetMeshAssetId() const noexcept {
+		return mMeshAssetId;
+	}
+
+	AssetID
+	StaticMeshRendererComponent::GetMaterialInstanceAssetId() const noexcept {
+		return mMaterialInstanceAssetId;
 	}
 
 	AssetID StaticMeshRendererComponent::GetMaterialInstanceAssetIdForSlot(

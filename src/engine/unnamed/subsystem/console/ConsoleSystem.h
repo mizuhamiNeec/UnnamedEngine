@@ -169,21 +169,9 @@ namespace Unnamed {
 		/// @return 変数の値、またはフォールバック値
 		template <typename T>
 		[[nodiscard]] T GetConVarValueOr(
-			const std::string_view name,
+			std::string_view name,
 			const T&               fallback
-		) {
-			if (const auto* var = GetConVarAs<ConVar<T>>(name)) {
-				return var->GetValue();
-			}
-			Print(
-				LogLevel::Warning, "Console",
-				std::format(
-					"CVar '{}' not found. Returning fallback value.", name
-				),
-				std::source_location::current()
-			);
-			return fallback;
-		}
+		);
 
 		/// @brief 入力テキストに基づいて曖昧検索でコンソール変数を検索します
 		/// @param input 検索キーワード

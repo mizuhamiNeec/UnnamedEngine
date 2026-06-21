@@ -15,10 +15,10 @@ namespace Unnamed::Render {
 		/// @param rtvFormat レンダーターゲットフォーマット
 		/// @return 生成されたパイプライン仕様
 		[[nodiscard]] static GraphicsPipelineSpec MakeFullscreenPreset(
-			std::string         debugName,
-			AssetID             shaderProgramId,
+			std::string          debugName,
+			AssetID              shaderProgramId,
 			ID3D12RootSignature* rootSignature,
-			DXGI_FORMAT         rtvFormat
+			DXGI_FORMAT          rtvFormat
 		);
 
 		/// @brief ジオメトリ描画向けグラフィクスパイプライン仕様を生成します。
@@ -30,11 +30,11 @@ namespace Unnamed::Render {
 		/// @param vertexLayout 頂点レイアウト
 		/// @return 生成されたパイプライン仕様
 		[[nodiscard]] static GraphicsPipelineSpec MakeGeometryPreset(
-			std::string                   debugName,
-			AssetID                       shaderProgramId,
-			ID3D12RootSignature*          rootSignature,
-			DXGI_FORMAT                   rtvFormat,
-			DXGI_FORMAT                   dsvFormat,
+			std::string                  debugName,
+			AssetID                      shaderProgramId,
+			ID3D12RootSignature*         rootSignature,
+			DXGI_FORMAT                  rtvFormat,
+			DXGI_FORMAT                  dsvFormat,
 			const Rhi::VertexLayoutDesc& vertexLayout
 		);
 
@@ -46,10 +46,10 @@ namespace Unnamed::Render {
 		/// @param vertexLayout 頂点レイアウト
 		/// @return 生成されたパイプライン仕様
 		[[nodiscard]] static GraphicsPipelineSpec MakeSpritePreset(
-			std::string                   debugName,
-			AssetID                       shaderProgramId,
-			ID3D12RootSignature*          rootSignature,
-			DXGI_FORMAT                   rtvFormat,
+			std::string                  debugName,
+			AssetID                      shaderProgramId,
+			ID3D12RootSignature*         rootSignature,
+			DXGI_FORMAT                  rtvFormat,
 			const Rhi::VertexLayoutDesc& vertexLayout
 		);
 
@@ -62,11 +62,11 @@ namespace Unnamed::Render {
 		/// @param vertexLayout 頂点レイアウト
 		/// @return 生成されたパイプライン仕様
 		[[nodiscard]] static GraphicsPipelineSpec MakeLinePreset(
-			std::string                   debugName,
-			AssetID                       shaderProgramId,
-			ID3D12RootSignature*          rootSignature,
-			DXGI_FORMAT                   rtvFormat,
-			DXGI_FORMAT                   dsvFormat,
+			std::string                  debugName,
+			AssetID                      shaderProgramId,
+			ID3D12RootSignature*         rootSignature,
+			DXGI_FORMAT                  rtvFormat,
+			DXGI_FORMAT                  dsvFormat,
 			const Rhi::VertexLayoutDesc& vertexLayout
 		);
 

@@ -30,7 +30,7 @@ namespace Unnamed {
 			return;
 		}
 
-		const auto vars    = console->GetConVars();
+		const auto vars = console->GetConVars();
 
 		for (const auto& var : vars) {
 			if (!var.second) {

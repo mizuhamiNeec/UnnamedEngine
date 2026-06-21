@@ -1,6 +1,5 @@
 #if defined(UNNAMED_WITH_EDITOR)
 #include <algorithm>
-#include <cctype>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <pch.h>
@@ -317,8 +316,8 @@ namespace Unnamed {
 
 		const bool inputActive =
 			ImGui::IsItemActive() || ImGui::IsItemFocused();
-		auto&      suggestionState        = gConsoleUIData.suggestion;
-		const bool hasSuggestionSelection =
+		const auto& suggestionState        = gConsoleUIData.suggestion;
+		const bool  hasSuggestionSelection =
 			inputActive &&
 			!suggestionState.items.empty() &&
 			suggestionState.selectedIndex >= 0 &&
@@ -440,7 +439,9 @@ namespace Unnamed {
 		// スクロールが一番下にある場合、自動スクロールを行う
 		if (
 			mWishScrollToBottom &&
-			ImGui::GetScrollY() >= ImGui::GetScrollMaxY()
+			ImGui::GetScrollY()
+			>=
+			ImGui::GetScrollMaxY()
 		) {
 			ImGui::SetScrollHereY(1.0f);
 		}
@@ -929,11 +930,9 @@ namespace Unnamed {
 	std::vector<ConsoleUI::SuggestionItem> ConsoleUI::BuildSuggestionsForToken(
 		const std::string_view token
 	) const {
-		std::vector<SuggestionItem>     results;
+		std::vector<SuggestionItem> results;
 		std::unordered_set<std::string> seen;
-		constexpr size_t                fetchCount = static_cast<size_t>(
-			kMaxSuggestionDisplayCount * 2
-		);
+		constexpr size_t fetchCount = kMaxSuggestionDisplayCount * 2;
 
 		auto AppendUnique = [&](
 			const std::string& name,
@@ -1016,15 +1015,15 @@ namespace Unnamed {
 		AppendFiltered(commandCandidates, false);
 
 		if (results.size() > static_cast<size_t>(kMaxSuggestionDisplayCount)) {
-			results.resize(static_cast<size_t>(kMaxSuggestionDisplayCount));
+			results.resize(kMaxSuggestionDisplayCount);
 		}
 		return results;
 	}
 
 	/// @brief インプットテキストからのコールバック
 	int ConsoleUI::InputTextCallback(ImGuiInputTextCallbackData* data) {
-		auto& c    = gConsoleUIData;
-		auto* self = static_cast<ConsoleUI*>(data->UserData);
+		auto&       c    = gConsoleUIData;
+		const auto* self = static_cast<ConsoleUI*>(data->UserData);
 		if (!self) {
 			return 0;
 		}
@@ -1160,7 +1159,8 @@ namespace Unnamed {
 				);
 				break;
 
-			case ImGuiInputTextFlags_CallbackResize: {}
+			case ImGuiInputTextFlags_CallbackResize: {
+			}
 			break;
 			default: ;
 		}

@@ -33,19 +33,19 @@ namespace Unnamed::Gui {
 	};
 
 	struct UiDrawCommandImage {
-		Rect        rect;
-		Path texturePath;
-		Color       color = {.r = 1.0f, .g = 1.0f, .b = 1.0f, .a = 1.0f};
-		Vec2        uvMin = Vec2(0.0f, 0.0f);
-		Vec2        uvMax = Vec2(1.0f, 1.0f);
-		Vec2        anchor = Vec2(0.0f, 0.0f);
-		float       rotationRad = 0.0f;
+		Rect  rect;
+		Path  texturePath;
+		Color color       = {.r = 1.0f, .g = 1.0f, .b = 1.0f, .a = 1.0f};
+		Vec2  uvMin       = Vec2(0.0f, 0.0f);
+		Vec2  uvMax       = Vec2(1.0f, 1.0f);
+		Vec2  anchor      = Vec2(0.0f, 0.0f);
+		float rotationRad = 0.0f;
 	};
 
 	struct UiDrawCommand {
 		UI_DRAW_COMMAND_TYPE type{UI_DRAW_COMMAND_TYPE::RECT};
-		UiDrawCommandRect  rect;
-		UiDrawCommandText  text;
-		UiDrawCommandImage image;
+		UiDrawCommandRect    rect;
+		UiDrawCommandText    text;
+		UiDrawCommandImage   image;
 	};
 }

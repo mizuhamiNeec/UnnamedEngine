@@ -30,17 +30,19 @@ namespace Unnamed::Gui {
 		const Path        normalizedPath = NormalizePath(path);
 		const std::string key            = normalizedPath.ToGenericUtf8();
 		ManagedDocument&  managed        = mDocuments[key];
-		managed.normalizedPath = normalizedPath;
-		managed.assetId = mAssetManager->LoadFromFile(
+		managed.normalizedPath           = normalizedPath;
+		managed.assetId                  = mAssetManager->LoadFromFile(
 			normalizedPath, ASSET_TYPE::UI_DOCUMENT
 		);
 		if (managed.assetId == kInvalidAssetID) {
-			Error(kChannel, "Failed to load UI document asset '{}'.", normalizedPath);
+			Error(kChannel, "Failed to load UI document asset '{}'.",
+			      normalizedPath);
 			return nullptr;
 		}
 
 		if (!ReloadDocumentFromAsset(managed)) {
-			Error(kChannel, "Failed to decode UI document '{}'.", normalizedPath);
+			Error(kChannel, "Failed to decode UI document '{}'.",
+			      normalizedPath);
 			return nullptr;
 		}
 
@@ -62,7 +64,7 @@ namespace Unnamed::Gui {
 	}
 
 	bool UiDocumentManager::SaveDocument(
-		const Path&                      path,
+		const Path&                        path,
 		const std::shared_ptr<UiDocument>& document
 	) {
 		if (!document) {
@@ -76,10 +78,10 @@ namespace Unnamed::Gui {
 		}
 
 		ManagedDocument& managed = mDocuments[key];
-		managed.normalizedPath = normalizedPath;
-		managed.document       = document;
-		managed.dirty          = false;
-		managed.pendingExternal = false;
+		managed.normalizedPath   = normalizedPath;
+		managed.document         = document;
+		managed.dirty            = false;
+		managed.pendingExternal  = false;
 
 		if (!mAssetManager) {
 			return true;
@@ -119,8 +121,8 @@ namespace Unnamed::Gui {
 	}
 
 	void UiDocumentManager::ResolvePendingExternal(
-		const Path&        path,
-		const bool         reloadFromAsset
+		const Path& path,
+		const bool  reloadFromAsset
 	) {
 		ManagedDocument* managed = FindManaged(path);
 		if (!managed || !managed->pendingExternal) {
@@ -146,8 +148,9 @@ namespace Unnamed::Gui {
 				continue;
 			}
 
-			const uint64_t currentVersion = mAssetManager->Meta(managed.assetId).
-			                                              version;
+			const uint64_t currentVersion = mAssetManager->Meta(managed.assetId)
+				.
+				version;
 			if (currentVersion <= managed.loadedVersion) {
 				continue;
 			}
@@ -166,11 +169,13 @@ namespace Unnamed::Gui {
 		return updatedPaths;
 	}
 
-	Path UiDocumentManager::NormalizePath(Path path) {
+	Path UiDocumentManager::NormalizePath(const Path& path) {
 		return path.IsEmpty() ? Path() : path.LexicallyNormal();
 	}
 
-	bool UiDocumentManager::ReloadDocumentFromAsset(ManagedDocument& managed) const {
+	bool UiDocumentManager::ReloadDocumentFromAsset(
+		ManagedDocument& managed
+	) const {
 		if (!mAssetManager || managed.assetId == kInvalidAssetID) {
 			return false;
 		}

@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "ContentBrowser.h"
-#include "EditorNotification.h"
 #include "EditorViewportCameraManager.h"
 #include "IEditorTool.h"
 

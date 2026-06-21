@@ -48,9 +48,9 @@ namespace Unnamed::Rhi {
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtvHeap;
 		uint32_t                                     mRtvDescriptorSize = 0;
 
-		uint32_t mWidth       = 0;
-		uint32_t mHeight      = 0;
-		uint32_t mBufferCount = 2;
+		uint32_t mWidth        = 0;
+		uint32_t mHeight       = 0;
+		uint32_t mBufferCount  = 2;
 		bool     mAllowTearing = false;
 
 		// 最大トリプルバッファ対応

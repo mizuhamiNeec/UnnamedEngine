@@ -84,18 +84,20 @@ namespace Unnamed {
 		/// @brief ウィンドウを閉じるようにマークします。実際の破棄はWindowManagerが行います。
 		void MarkCloseRequested();
 
-		HWND              mHwnd          = nullptr;
-		WindowDesc        mDesc          = {};
-		WindowResizeEvent mPendingResize = {};
-		WindowId          mId            = {};
-		WINDOWPLACEMENT   mWindowedPlacement = {.length = sizeof(WINDOWPLACEMENT)};
-		DWORD             mWindowedStyle     = 0;
-		DWORD             mWindowedExStyle   = 0;
+		HWND              mHwnd              = nullptr;
+		WindowDesc        mDesc              = {};
+		WindowResizeEvent mPendingResize     = {};
+		WindowId          mId                = {};
+		WINDOWPLACEMENT   mWindowedPlacement = {
+			.length = sizeof(WINDOWPLACEMENT)
+		};
+		DWORD mWindowedStyle   = 0;
+		DWORD mWindowedExStyle = 0;
 
-		bool mShouldClose      = false;
-		bool mMinimized        = false;
-		bool mHasPendingResize = false;
-		bool mInLiveResize     = false;
+		bool mShouldClose          = false;
+		bool mMinimized            = false;
+		bool mHasPendingResize     = false;
+		bool mInLiveResize         = false;
 		bool mHasWindowedPlacement = false;
 	};
 }

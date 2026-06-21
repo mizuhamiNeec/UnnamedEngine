@@ -10,11 +10,11 @@ namespace Unnamed {
 
 	/// @brief ゲームモジュール初期化時に渡す Engine サービス群です。
 	struct EngineServices {
-		ConsoleSystem* console = nullptr;
-		InputSystem*   inputSystem = nullptr;
-		AssetManager*  assetManager = nullptr;
-		Profiler*      profiler = nullptr;
+		ConsoleSystem* console       = nullptr;
+		InputSystem*   inputSystem   = nullptr;
+		AssetManager*  assetManager  = nullptr;
+		Profiler*      profiler      = nullptr;
 		WindowManager* windowManager = nullptr;
-		IDemoService*  demoService = nullptr;
+		IDemoService*  demoService   = nullptr;
 	};
 }

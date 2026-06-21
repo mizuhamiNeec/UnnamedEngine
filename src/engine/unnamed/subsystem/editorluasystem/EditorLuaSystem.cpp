@@ -37,9 +37,9 @@ namespace Unnamed {
 		}
 
 		int LuaUiBeginWindow(lua_State* lua) {
-			const char* title  = luaL_checkstring(lua, 1);
+			const char* title = luaL_checkstring(lua, 1);
 #ifdef UNNAMED_WITH_EDITOR
-			const bool  opened = ImGui::Begin(title);
+			const bool opened = ImGui::Begin(title);
 #else
 			(void)title;
 			constexpr bool opened = false;

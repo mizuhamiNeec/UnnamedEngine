@@ -3,7 +3,8 @@
 namespace Unnamed::Gui {
 	UiScreen::UiScreen(std::shared_ptr<UiDocument> document) : mDocument(
 		std::move(document)
-	) {}
+	) {
+	}
 
 	UiScreen::~UiScreen() = default;
 
@@ -11,9 +12,11 @@ namespace Unnamed::Gui {
 		return mDocument.get();
 	}
 
-	void UiScreen::OnShow() {}
+	void UiScreen::OnShow() {
+	}
 
-	void UiScreen::OnHide() {}
+	void UiScreen::OnHide() {
+	}
 
 	void UiScreen::OnUpdate(const float deltaTime) {
 		(void)deltaTime;

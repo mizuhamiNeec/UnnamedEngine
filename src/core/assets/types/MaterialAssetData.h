@@ -48,9 +48,9 @@ namespace Unnamed {
 	struct MaterialAssetData {
 		std::string name;
 
-		AssetID         shaderProgramId = kInvalidAssetID;
-		Path            shaderProgramPath;
-		MATERIAL_DOMAIN domain = MATERIAL_DOMAIN::PBR_METAL_ROUGH;
+		AssetID                shaderProgramId = kInvalidAssetID;
+		Path                   shaderProgramPath;
+		MATERIAL_DOMAIN        domain       = MATERIAL_DOMAIN::PBR_METAL_ROUGH;
 		MATERIAL_SHADING_MODEL shadingModel =
 			MATERIAL_SHADING_MODEL::LIT_PBR;
 

@@ -37,7 +37,7 @@ namespace Unnamed {
 			std::string_view moduleName
 		);
 
-		std::unordered_map<std::string, CreateFunction> mFactories = {};
-		std::unordered_map<std::string, std::string> mDisplayNames = {};
+		std::unordered_map<std::string, CreateFunction> mFactories    = {};
+		std::unordered_map<std::string, std::string>    mDisplayNames = {};
 	};
 }

@@ -12,7 +12,7 @@ namespace Unnamed::Render {
 	/// @brief パイプラインハンドル種別。
 	enum class PIPELINE_KIND : uint8_t {
 		GRAPHICS = 0,
-		COMPUTE = 1,
+		COMPUTE  = 1,
 	};
 
 	/// @brief パイプライン登録エントリを識別するハンドル。
@@ -31,10 +31,10 @@ namespace Unnamed::Render {
 
 	/// @brief グラフィクスパイプラインの登録仕様。
 	struct GraphicsPipelineSpec {
-		std::string         debugName;
-		AssetID             shaderProgramId = kInvalidAssetID;
-		ID3D12RootSignature* rootSignature  = nullptr;
-		GraphicsPsoKey      psoTemplate     = {};
+		std::string          debugName;
+		AssetID              shaderProgramId = kInvalidAssetID;
+		ID3D12RootSignature* rootSignature   = nullptr;
+		GraphicsPsoKey       psoTemplate     = {};
 	};
 
 	/// @brief コンピュートパイプラインの登録仕様。
@@ -93,12 +93,12 @@ namespace Unnamed::Render {
 
 	private:
 		struct GraphicsEntry {
-			GraphicsPipelineSpec    spec     = {};
+			GraphicsPipelineSpec     spec     = {};
 			ResolvedGraphicsPipeline resolved = {};
 		};
 
 		struct ComputeEntry {
-			ComputePipelineSpec    spec     = {};
+			ComputePipelineSpec     spec     = {};
 			ResolvedComputePipeline resolved = {};
 		};
 

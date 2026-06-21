@@ -58,7 +58,7 @@ namespace Unnamed {
 		WindowDesc nativeDesc = mainDesc;
 		nativeDesc.mode       = WINDOW_MODE::WINDOWED;
 		nativeDesc.visible    = mainDesc.visible &&
-		                        mainDesc.mode == WINDOW_MODE::WINDOWED;
+		                     mainDesc.mode == WINDOW_MODE::WINDOWED;
 
 		const auto hwndOpt = CreateNativeWindow(nativeDesc);
 		if (!hwndOpt.has_value()) {
@@ -155,7 +155,7 @@ namespace Unnamed {
 		WindowDesc nativeDesc = desc;
 		nativeDesc.mode       = WINDOW_MODE::WINDOWED;
 		nativeDesc.visible    = desc.visible &&
-		                        desc.mode == WINDOW_MODE::WINDOWED;
+		                     desc.mode == WINDOW_MODE::WINDOWED;
 
 		const auto hwndOpt = CreateNativeWindow(nativeDesc);
 		if (!hwndOpt.has_value()) {
@@ -250,7 +250,9 @@ namespace Unnamed {
 			style &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
 		}
 
-		RECT rect{.left = 0, .top = 0, .right = desc.width, .bottom = desc.height};
+		RECT rect{
+			.left = 0, .top = 0, .right = desc.width, .bottom = desc.height
+		};
 		AdjustWindowRectEx(&rect, style, FALSE, 0);
 
 		const std::wstring titleW = StrUtil::ToWString(desc.title);

@@ -15,7 +15,6 @@
 #include "engine/rhi/d3d12/D3D12SwapChain.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 
-
 #define USE_PIX_MARKERS
 
 static void BeginGpuEvent(ID3D12GraphicsCommandList* cl, const char* name) {
@@ -85,9 +84,9 @@ namespace Unnamed::Render {
 		if (!mStatesInitialized) {
 			mGlobalStates.clear();
 			mKnownResourceRevisions.clear();
-			mGlobalStates[kBackBufferId]          = D3D12_RESOURCE_STATE_PRESENT;
+			mGlobalStates[kBackBufferId] = D3D12_RESOURCE_STATE_PRESENT;
 			mKnownResourceRevisions[kBackBufferId] = 0;
-			mStatesInitialized                    = true;
+			mStatesInitialized = true;
 		}
 
 		std::unordered_map<uint32_t, D3D12_RESOURCE_STATES> plannedStates =
@@ -99,25 +98,26 @@ namespace Unnamed::Render {
 
 		const auto ensureTrackedResourceState =
 			[this, &plannedStates](const uint32_t textureId) {
-				if (textureId == kBackBufferId) {
-					return;
-				}
+			if (textureId == kBackBufferId) {
+				return;
+			}
 
-				const uint64_t currentRevision = mRenderDevice->GetRegistry().
-					GetResourceRevision(textureId);
-				const auto revIt = mKnownResourceRevisions.find(textureId);
-				if (
-					revIt != mKnownResourceRevisions.end() &&
-					revIt->second == currentRevision
-				) {
-					return;
-				}
+			const uint64_t currentRevision = mRenderDevice->GetRegistry().
+				GetResourceRevision(textureId);
+			const auto revIt = mKnownResourceRevisions.find(textureId);
+			if (
+				revIt != mKnownResourceRevisions.end() &&
+				revIt->second == currentRevision
+			) {
+				return;
+			}
 
-				const D3D12_RESOURCE_STATES resetState = DefaultInitState(textureId);
-				plannedStates[textureId]              = resetState;
-				mGlobalStates[textureId]              = resetState;
-				mKnownResourceRevisions[textureId]    = currentRevision;
-			};
+			const D3D12_RESOURCE_STATES resetState =
+				DefaultInitState(textureId);
+			plannedStates[textureId]           = resetState;
+			mGlobalStates[textureId]           = resetState;
+			mKnownResourceRevisions[textureId] = currentRevision;
+		};
 
 		std::unordered_set<uint32_t> uavWrittenPendingBarrier;
 
@@ -382,11 +382,12 @@ namespace Unnamed::Render {
 			}
 
 			const auto curIt = mGlobalStates.find(tr.textureId);
-			const D3D12_RESOURCE_STATES trackedBefore = curIt != mGlobalStates.end()
-				                                            ? curIt->second
-				                                            : DefaultInitState(
-					                                              tr.textureId
-				                                              );
+			const D3D12_RESOURCE_STATES trackedBefore = curIt != mGlobalStates.
+					end() ?
+					curIt->second :
+					DefaultInitState(
+						tr.textureId
+					);
 			if (trackedBefore != tr.before) {
 				DevMsg(
 					"RDG",
@@ -480,5 +481,6 @@ namespace Unnamed::Render {
 		return mRenderDevice->GetRegistry().GetResource(id);
 	}
 
-	void RenderGraph::ExecutePasses(Rhi::IRhiDevice&) {}
+	void RenderGraph::ExecutePasses(Rhi::IRhiDevice&) {
+	}
 }

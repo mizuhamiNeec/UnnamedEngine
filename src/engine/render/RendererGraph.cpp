@@ -1,21 +1,24 @@
-#include "Renderer.h"
-
 #include <algorithm>
 #include <cmath>
 #include <unordered_set>
 #include <utility>
 
 #include "RenderDevice.h"
+#include "Renderer.h"
 
 #include "core/math/Math.h"
 
 #include "engine/rhi/d3d12/D3D12Device.h"
 #include "engine/rhi/d3d12/D3D12Util.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
+#include "engine/unnamed/subsystem/console/concommand/ConVar.h"
 
 #include "rendergraph/RenderGraphBuilder.h"
 #include "rendergraph/RenderPassContext.h"
+
 #include "shaders/RootSignatureSlots.h"
+
+// ReSharper disable CppRedundantCastExpression
 
 namespace Unnamed::Render {
 	namespace {
@@ -27,9 +30,9 @@ namespace Unnamed::Render {
 		) {
 			Rhi::FrameConstants frame  = {};
 			const float         aspect = height > 0 ?
-				                             static_cast<float>(width) /
-				                             static_cast<float>(height) :
-				                             16.0f / 9.0f;
+				                     static_cast<float>(width) /
+				                     static_cast<float>(height) :
+				                     16.0f / 9.0f;
 			const Mat4 fallbackView = Mat4::identity;
 			const Mat4 fallbackProj = Mat4::PerspectiveFovD3D(
 				90.0f * Math::deg2Rad,
@@ -133,9 +136,9 @@ namespace Unnamed::Render {
 			const Vec3 eye = center - lightRayDirection * shadowDistance;
 			DirectionalShadowMatrices result;
 			result.lightRayDirection = lightRayDirection;
-			result.directionToLight = directionToLight;
-			result.lightView = BuildLookAtView(eye, center, Vec3::up);
-			result.lightProj = BuildReverseZOrthographic(
+			result.directionToLight  = directionToLight;
+			result.lightView         = BuildLookAtView(eye, center, Vec3::up);
+			result.lightProj         = BuildReverseZOrthographic(
 				-orthoHalfSize,
 				orthoHalfSize,
 				orthoHalfSize,
@@ -559,7 +562,7 @@ namespace Unnamed::Render {
 					frameViews[firstSceneViewIndex].camera,
 					shadowLight
 				);
-			mDirectionalShadow.enabled       = true;
+			mDirectionalShadow.enabled           = true;
 			mDirectionalShadow.lightView         = shadowMatrices.lightView;
 			mDirectionalShadow.lightProj         = shadowMatrices.lightProj;
 			mDirectionalShadow.lightViewProj     = shadowMatrices.lightViewProj;
@@ -913,11 +916,11 @@ namespace Unnamed::Render {
 					);
 
 				Rhi::ShadowConstants shadow = {};
-				shadow.lightViewProj        = mDirectionalShadow.lightViewProj;
+				shadow.lightViewProj = mDirectionalShadow.lightViewProj;
 				const DirectionalLightInput& light = view.directionalLight;
-				const bool directLightEnabled =
+				const bool                   directLightEnabled =
 					light.enabled && light.intensity > 0.0f;
-				shadow.params               = Vec4(
+				shadow.params = Vec4(
 					mConsole ?
 						mConsole->GetConVarValueOr(
 							"r_shadowmap_bias", 0.0005f
@@ -937,7 +940,9 @@ namespace Unnamed::Render {
 				shadow.filterParams = Vec4(
 					mConsole && mConsole->GetConVarValueOr(
 						"r_shadowmap_pcf_enabled", true
-					) ? 1.0f : 0.0f,
+					) ?
+						1.0f :
+						0.0f,
 					mConsole ?
 						mConsole->GetConVarValueOr(
 							"r_shadowmap_pcf_radius", 1.0f
@@ -971,8 +976,8 @@ namespace Unnamed::Render {
 						&shadow, sizeof(shadow)
 					);
 
-				Rhi::EnvironmentLightingConstants environment = {};
-				const EnvironmentLightInput& environmentLight =
+				Rhi::EnvironmentLightingConstants environment      = {};
+				const EnvironmentLightInput&      environmentLight =
 					view.environmentLight;
 				environment.skyAmbientColor = Vec4(
 					environmentLight.skyColor.x,
@@ -1049,7 +1054,7 @@ namespace Unnamed::Render {
 					}
 					return true;
 				};
-				const auto BindSceneLightingInputs = [&]() {
+				const auto BindSceneLightingInputs = [&] {
 					pass.BindGraphicsCbv(
 						ToRootIndex(GEOM_ROOT_SLOT::SHADOW_CONSTANTS),
 						shadowCb
@@ -1080,9 +1085,10 @@ namespace Unnamed::Render {
 						materialBinding->materialTextureTable.IsValid()
 					) {
 						return renderDevice.GetRegistry().
-							GetSrvDescriptorTableGpu(
-								materialBinding->materialTextureTable
-							);
+						                    GetSrvDescriptorTableGpu(
+							                    materialBinding->
+							                    materialTextureTable
+						                    );
 					}
 					return D3D12_GPU_DESCRIPTOR_HANDLE{};
 				};
@@ -1151,7 +1157,7 @@ namespace Unnamed::Render {
 							materialBinding = &matIt->second;
 						}
 						if (materialBinding) {
-							material  = materialBinding->constants;
+							material = materialBinding->constants;
 						}
 						const auto materialTextureTable =
 							ResolveMaterialTextureTable(materialBinding);
@@ -1220,7 +1226,7 @@ namespace Unnamed::Render {
 							materialBinding = &matIt->second;
 						}
 						if (materialBinding) {
-							material  = materialBinding->constants;
+							material = materialBinding->constants;
 						}
 						const auto materialTextureTable =
 							ResolveMaterialTextureTable(materialBinding);
@@ -2908,19 +2914,19 @@ namespace Unnamed::Render {
 
 					Rhi::ObjectConstants object = {};
 					object.world                = Mat4::Scale(
-						                              Vec3(
-							                              sprite.sizePx.x *
-							                              0.5f,
-							                              sprite.sizePx.y *
-							                              0.5f,
-							                              1.0f
-						                              )
-					                              ) * Mat4::RotateZ(
-						                              sprite.rotationRad
-					                              ) * Mat4::Translate(
-						                              Vec3(center.x, center.y,
-							                              0.0f)
-					                              );
+						               Vec3(
+							               sprite.sizePx.x *
+							               0.5f,
+							               sprite.sizePx.y *
+							               0.5f,
+							               1.0f
+						               )
+					               ) * Mat4::RotateZ(
+						               sprite.rotationRad
+					               ) * Mat4::Translate(
+						               Vec3(center.x, center.y,
+						                    0.0f)
+					               );
 					object.worldInverseTranspose = Mat4::identity;
 					// 使わんので単位
 					const float uvMinY = sprite.uvFlipY ?

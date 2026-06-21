@@ -1,8 +1,6 @@
 #pragma once
 #include "interface/IAssetLoader.h"
 
-#include <filesystem>
-
 namespace Unnamed {
 	class MeshAssetLoader final : public IAssetLoader {
 	public:

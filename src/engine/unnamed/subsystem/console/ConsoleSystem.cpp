@@ -44,7 +44,7 @@ namespace Unnamed {
 		}
 
 		const std::filesystem::path configPath = resolvedPath.Native();
-		const std::filesystem::path configDir = configPath.parent_path();
+		const std::filesystem::path configDir  = configPath.parent_path();
 		if (!configDir.empty()) {
 			std::error_code ec;
 			std::filesystem::create_directories(configDir, ec);
@@ -560,6 +560,37 @@ namespace Unnamed {
 		return type;
 	}
 
+	template <typename T>
+	T ConsoleSystem::GetConVarValueOr(
+		const std::string_view name,
+		const T&               fallback
+	) {
+		if (const auto* var = GetConVarAs<ConVar<T>>(name)) {
+			return var->GetValue();
+		}
+		Print(
+			LogLevel::Warning, "Console",
+			std::format(
+				"CVar '{}' not found. Returning fallback value.", name
+			),
+			std::source_location::current()
+		);
+		return fallback;
+	}
+
+	template bool ConsoleSystem::GetConVarValueOr<bool>(
+		std::string_view,
+		const bool&
+	);
+	template int ConsoleSystem::GetConVarValueOr<int>(
+		std::string_view,
+		const int&
+	);
+	template float ConsoleSystem::GetConVarValueOr<float>(
+		std::string_view,
+		const float&
+	);
+
 	std::vector<std::string> ConsoleSystem::FindSimilarConVars(
 		const std::string_view input, size_t maxResults
 	) {
@@ -597,10 +628,10 @@ namespace Unnamed {
 			for (int i = 1; i <= len1; ++i) {
 				for (int j = 1; j <= len2; ++j) {
 					const int cost =
-					(s1[static_cast<size_t>(i - 1)] ==
-					 s2[static_cast<size_t>(j - 1)]) ?
-						0 :
-						1;
+						s1[static_cast<size_t>(i - 1)] ==
+						s2[static_cast<size_t>(j - 1)] ?
+							0 :
+							1;
 					dp[i][j] = std::min(
 						{
 							dp[i - 1][j] + 1,       // 削除
@@ -701,10 +732,10 @@ namespace Unnamed {
 			for (int i = 1; i <= len1; ++i) {
 				for (int j = 1; j <= len2; ++j) {
 					const int cost =
-					(s1[static_cast<size_t>(i - 1)] ==
-					 s2[static_cast<size_t>(j - 1)]) ?
-						0 :
-						1;
+						s1[static_cast<size_t>(i - 1)] ==
+						s2[static_cast<size_t>(j - 1)] ?
+							0 :
+							1;
 					dp[i][j] = std::min(
 						{
 							dp[i - 1][j] + 1,       // 削除

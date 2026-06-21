@@ -2,8 +2,6 @@
 
 #ifdef _DEBUG
 
-#include <core/math/Math.h>
-
 #include <engine/ImGui/ImGuiUtil.h>
 
 #include "Icons.h"
@@ -254,7 +252,7 @@ namespace ImGuiUtil {
 			ImVec2(
 				ImGui::GetCursorScreenPos().x,
 				ImGui::GetCursorScreenPos().y + collapsingHeaderHeight * 0.5f -
-				(fontSize * iconScale) * 0.5f
+				fontSize * iconScale * 0.5f
 			),
 			ImGui::GetColorU32(ImGuiCol_Text),
 			Unnamed::StrUtil::ConvertToUtf8(icon).c_str()

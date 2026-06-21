@@ -77,7 +77,7 @@ namespace Unnamed {
 			return;
 		}
 
-		float angleStep = (360.0f / static_cast<float>(segments));
+		float angleStep = 360.0f / static_cast<float>(segments);
 
 		// ラジアンに変換
 		angleStep *= Math::deg2Rad;
@@ -123,7 +123,7 @@ namespace Unnamed {
 			arcSpan += 360.0f;
 		}
 
-		const float angleStep = (arcSpan / static_cast<float>(segments)) *
+		const float angleStep = arcSpan / static_cast<float>(segments) *
 		                        Math::deg2Rad;
 
 		const float stepOffset = startAngle + Math::deg2Rad;
@@ -202,10 +202,10 @@ namespace Unnamed {
 
 		const Vec3 right = dirNormalized.Cross(up).Normalized();
 
-		const Vec3 arrowLeft = end - (dirNormalized * headSize) + (
-			                       right * headSize * 0.5f);
-		const Vec3 arrowRight = end - (dirNormalized * headSize) - (
-			                        right * headSize * 0.5f);
+		const Vec3 arrowLeft = end - dirNormalized * headSize + right * headSize
+		                       * 0.5f;
+		const Vec3 arrowRight = end - dirNormalized * headSize - right *
+		                        headSize * 0.5f;
 
 		DrawLine(position, end, color);
 
@@ -302,7 +302,7 @@ namespace Unnamed {
 
 		for (int i = 1; i < segments; ++i) {
 			const float stepAngle = parallelAngleStep * static_cast<float>(i);
-			verticalOffset = (orientation * Vec3::up) * cos(stepAngle) * radius;
+			verticalOffset = orientation * Vec3::up * cos(stepAngle) * radius;
 			const float stepRadius = sin(stepAngle) * radius;
 
 			DrawCircle(

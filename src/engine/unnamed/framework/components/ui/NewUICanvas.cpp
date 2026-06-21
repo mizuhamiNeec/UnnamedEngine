@@ -148,7 +148,10 @@ namespace Unnamed {
 			mContext.Separator();
 
 			{
-				mContext.BeginRow(panelPosition + Vec2(mTheme.panelPadding, 256.0f + mTheme.defaultGap)  ,mTheme.defaultGap);
+				mContext.BeginRow(
+					panelPosition + Vec2(mTheme.panelPadding,
+					                     256.0f + mTheme.defaultGap),
+					mTheme.defaultGap);
 
 				if (mContext.Button("OK", buttonSize)) {
 					Msg("UI", "OK button clicked!");
@@ -160,7 +163,7 @@ namespace Unnamed {
 
 				mContext.EndRow();
 			}
-			
+
 			mContext.EndColumn();
 		}
 
@@ -261,9 +264,10 @@ namespace Unnamed {
 				cacheInfo.destroyRuntimeAssetFailedCount
 			)
 		);
-		if (AssetManager* assetManager = GetWorld() ?
-			                                 GetWorld()->GetAssetManager() :
-			                                 nullptr) {
+		if (const AssetManager* assetManager = GetWorld() ?
+			                                       GetWorld()->
+			                                       GetAssetManager() :
+			                                       nullptr) {
 			const AssetManager::DebugStats assetStats =
 				assetManager->GetDebugStats();
 			ImGui::Text(

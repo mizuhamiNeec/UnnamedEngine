@@ -22,7 +22,8 @@ struct Vec4 final {
 	) : x(x),
 	    y(y),
 	    z(z),
-	    w(w) {}
+	    w(w) {
+	}
 
 	/**
 	 * @brief Vec3とW成分から初期化するコンストラクタ
@@ -32,7 +33,8 @@ struct Vec4 final {
 	constexpr Vec4(const Vec3 vec3, const float w) : x(vec3.x),
 		y(vec3.y),
 		z(vec3.z),
-		w(w) {}
+		w(w) {
+	}
 
 	/**
 	 * @brief 初期化リストから生成するコンストラクタ

@@ -74,22 +74,22 @@ namespace Unnamed::Gui {
 	}
 
 	void UiTransformComponent::SetRect(const Rect& rect) {
-		mRect      = rect;
+		mRect       = rect;
 		mNeedsApply = true;
 	}
 
 	void UiTransformComponent::SetAnchors(const Anchors& anchors) {
-		mAnchors   = anchors;
+		mAnchors    = anchors;
 		mNeedsApply = true;
 	}
 
 	void UiTransformComponent::SetMargins(const Margins& margins) {
-		mMargins   = margins;
+		mMargins    = margins;
 		mNeedsApply = true;
 	}
 
 	void UiTransformComponent::SetPivot(const Pivot& pivot) {
-		mPivot     = pivot;
+		mPivot      = pivot;
 		mNeedsApply = true;
 	}
 

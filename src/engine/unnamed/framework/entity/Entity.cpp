@@ -27,7 +27,8 @@ namespace Unnamed {
 	) :
 		mName(name),
 		mGuid(guid),
-		mIsEditorOnly(isEditorOnly) {}
+		mIsEditorOnly(isEditorOnly) {
+	}
 
 	Entity::~Entity() {
 		OnDestroy();
@@ -312,7 +313,7 @@ namespace Unnamed {
 			return;
 		}
 
-		if ((*it) != nullptr) {
+		if (*it != nullptr) {
 			(*it)->OnDetached();
 			(*it)->SetOwner(nullptr);
 		}

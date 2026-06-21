@@ -1,6 +1,5 @@
 #pragma once
 #include <dxgiformat.h>
-#include <intsafe.h>
 
 #include "engine/rhi/RhiTypes.h"
 

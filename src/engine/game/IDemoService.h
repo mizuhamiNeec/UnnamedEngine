@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <string>
-#include <string_view>
 
 namespace Unnamed {
 	class Path;
@@ -47,8 +46,8 @@ namespace Unnamed {
 		virtual void SubmitLiveCommand(const DemoTickCommand& command) = 0;
 		/// @brief 再生コマンドを消費します。
 		[[nodiscard]] virtual bool ConsumePlaybackCommand(
-			uint64_t tick,
-			uint64_t subjectEntityGuid,
+			uint64_t         tick,
+			uint64_t         subjectEntityGuid,
 			DemoTickCommand& outCommand
 		) = 0;
 		/// @brief 再生初期スナップショットのキャプチャを行います。
@@ -62,7 +61,7 @@ namespace Unnamed {
 		/// @brief 録画または再生のスナップショット検証を行います。
 		virtual void RecordOrVerifySnapshot(
 			uint64_t tick,
-			Entity& subjectEntity
+			Entity&  subjectEntity
 		) = 0;
 
 		/// @brief 設定されたtickrateを解決します。

@@ -1,7 +1,6 @@
 #include "ShaderSourceLoader.h"
 #include "core/filesystem/Path.h"
 
-#include <cctype>
 #include <filesystem>
 
 #include "core/assets/AssetManager.h"
@@ -16,7 +15,8 @@ namespace Unnamed {
 	static constexpr std::string_view kSupportedHlsliExtension = ".hlsli";
 
 	ShaderSourceLoader::ShaderSourceLoader(AssetManager* assetManager) :
-		mAssetManager(assetManager) {}
+		mAssetManager(assetManager) {
+	}
 
 	bool ShaderSourceLoader::CanLoad(
 		const Path& path, ASSET_TYPE* outType
@@ -69,7 +69,8 @@ namespace Unnamed {
 
 		r.payload     = std::move(data);
 		r.resolveName = Path::ToUtf8String(path.FileName());
-		if (std::error_code ec; std::filesystem::exists(path.Native(), ec)) {
+		if (std::error_code ec;
+			std::filesystem::exists(path.Native(), ec)) {
 			r.stamp.sizeInBytes = std::filesystem::file_size(
 				path.Native(), ec
 			);
@@ -81,15 +82,15 @@ namespace Unnamed {
 	std::vector<std::string> ShaderSourceLoader::ParseIncludes(
 		const std::string& text
 	) {
-		std::vector<std::string> result;
-		size_t                   lineBegin = 0;
+		std::vector<std::string>          result;
+		size_t                            lineBegin     = 0;
 		static constexpr std::string_view kIncludeToken = "#include";
 
 		while (lineBegin < text.size()) {
-			const size_t lineEnd = text.find('\n', lineBegin);
-			const size_t lineSize = (lineEnd == std::string::npos) ?
-				                        (text.size() - lineBegin) :
-				                        (lineEnd - lineBegin);
+			const size_t lineEnd  = text.find('\n', lineBegin);
+			const size_t lineSize = lineEnd == std::string::npos ?
+				                        text.size() - lineBegin :
+				                        lineEnd - lineBegin;
 			const std::string_view line(text.data() + lineBegin, lineSize);
 
 			const size_t includePos = line.find(kIncludeToken);
@@ -103,7 +104,7 @@ namespace Unnamed {
 				}
 
 				if (cursor < line.size()) {
-					const char openDelimiter = line[cursor];
+					const char openDelimiter  = line[cursor];
 					char       closeDelimiter = '\0';
 					if (openDelimiter == '"') {
 						closeDelimiter = '"';
@@ -112,8 +113,10 @@ namespace Unnamed {
 					}
 
 					if (closeDelimiter != '\0') {
-						const size_t closePos = line.find(closeDelimiter, cursor + 1);
-						if (closePos != std::string_view::npos && closePos > cursor + 1) {
+						const size_t closePos = line.find(
+							closeDelimiter, cursor + 1);
+						if (closePos != std::string_view::npos && closePos >
+						    cursor + 1) {
 							result.emplace_back(
 								line.substr(
 									cursor + 1,

@@ -18,7 +18,7 @@ namespace Unnamed {
 				    IsActive()) {
 					continue;
 				}
-				auto* camera = entity->GetComponent<CameraComponent>();
+				const auto* camera = entity->GetComponent<CameraComponent>();
 				if (!camera || !camera->IsActive() || !camera->
 				    IsCameraActive()) {
 					continue;
@@ -36,7 +36,7 @@ namespace Unnamed {
 				if (!entity || !entity->IsActive()) {
 					continue;
 				}
-				auto* camera = entity->GetComponent<CameraComponent>();
+				const auto* camera = entity->GetComponent<CameraComponent>();
 				if (!camera || !camera->IsActive() || !camera->
 				    IsCameraActive()) {
 					continue;
@@ -59,7 +59,8 @@ namespace Unnamed {
 		}
 	}
 
-	WorldCameraManager::WorldCameraManager(World* world) : mWorld(world) {}
+	WorldCameraManager::WorldCameraManager(World* world) : mWorld(world) {
+	}
 
 	void WorldCameraManager::SetWorld(World* world) noexcept {
 		mWorld = world;

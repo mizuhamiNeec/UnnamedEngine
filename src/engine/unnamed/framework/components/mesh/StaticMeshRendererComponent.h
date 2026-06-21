@@ -49,7 +49,8 @@ namespace Unnamed {
 
 		/// @brief マテリアルスロット一覧を取得します。
 		/// @return マテリアルスロットのベクタ。
-		[[nodiscard]] const std::vector<MaterialSlot>& GetMaterialSlots() const noexcept;
+		[[nodiscard]] const std::vector<MaterialSlot>&
+		GetMaterialSlots() const noexcept;
 
 		/// @brief AssetManagerを使用してメッシュアセットIDを解決します。
 		/// @param assetManager アセットマネージャーの参照。
@@ -85,13 +86,16 @@ namespace Unnamed {
 		/// @brief 指定されたスロットのマテリアルインスタンスアセットIDを取得します。
 		/// @param slotIndex スロットインデックス。
 		/// @return マテリアルインスタンスアセットID。存在しない、または解決されていない場合はkInvalidAssetID。
-		[[nodiscard]] AssetID GetMaterialInstanceAssetIdForSlot(uint32_t slotIndex) const noexcept;
+		[[nodiscard]] AssetID GetMaterialInstanceAssetIdForSlot(
+			uint32_t slotIndex
+		) const noexcept;
 
 		/// @brief メッシュのmaterialIndexに対応するマテリアルインスタンスアセットIDを取得します。
 		/// @param materialIndex メッシュ側のmaterialIndex。
 		/// @return マテリアルインスタンスアセットID。存在しない、または解決されていない場合はkInvalidAssetID。
-		[[nodiscard]] AssetID GetMaterialInstanceAssetIdForMaterialIndex(uint32_t materialIndex) const noexcept;
-
+		[[nodiscard]] AssetID GetMaterialInstanceAssetIdForMaterialIndex(
+			uint32_t materialIndex
+		) const noexcept;
 
 		// ---- BaseComponent ------------------------------------------------
 		[[nodiscard]] std::string_view GetStableName() const override;
@@ -107,12 +111,12 @@ namespace Unnamed {
 		[[nodiscard]] uint32_t GetIcon() const override;
 
 	private:
-		Path mMeshPath;
-		Path mMaterialInstancePath;
+		Path                      mMeshPath;
+		Path                      mMaterialInstancePath;
 		std::vector<MaterialSlot> mMaterialSlots;
 
-		AssetID mMeshAssetId             = kInvalidAssetID;
-		AssetID mMaterialInstanceAssetId = kInvalidAssetID;
-		std::vector<AssetID> mMaterialInstanceAssetIds;  // スロット単位のマテリアルアセットID
+		AssetID              mMeshAssetId             = kInvalidAssetID;
+		AssetID              mMaterialInstanceAssetId = kInvalidAssetID;
+		std::vector<AssetID> mMaterialInstanceAssetIds; // スロット単位のマテリアルアセットID
 	};
 }

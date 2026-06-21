@@ -1,5 +1,4 @@
 #pragma once
-#include <core/math/Math.h>
 
 namespace Unnamed {
 	/// @brief レイ構造体

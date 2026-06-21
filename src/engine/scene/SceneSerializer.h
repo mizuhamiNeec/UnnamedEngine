@@ -1,7 +1,5 @@
 #pragma once
-#include <string>
 
-#include "core/filesystem/Path.h"
 #include "core/guidgenerator/GuidGenerator.h"
 
 namespace Unnamed {

@@ -5,13 +5,16 @@
 namespace Unnamed::Gui {
 	static constexpr std::string_view kChannel = "UiScreen";
 
-	UiScreenStack::UiScreenStack(UiRoot* uiRoot) : mUiRoot(uiRoot) {}
+	UiScreenStack::UiScreenStack(UiRoot* uiRoot) : mUiRoot(uiRoot) {
+	}
 
 	void UiScreenStack::PushScreen(std::shared_ptr<UiScreen> screen) {
-		if (!screen || !mUiRoot) return;
+		if (!screen || !mUiRoot)
+			return;
 
 		const UiDocument* doc = screen->GetDocument();
-		if (!doc) return;
+		if (!doc)
+			return;
 
 		UiWidget* documentRoot = doc->GetRootWidget();
 		if (!documentRoot) {

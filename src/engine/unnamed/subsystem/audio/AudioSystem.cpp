@@ -1,7 +1,5 @@
 #include "engine/unnamed/subsystem/audio/AudioSystem.h"
 
-#include <algorithm>
-
 #include "engine/unnamed/subsystem/audio/Audio.h"
 
 namespace Unnamed {
@@ -64,7 +62,7 @@ namespace Unnamed {
 	void AudioSystem::StopAll() {
 		CleanupExpiredVoices();
 		for (const auto& weak : mVoices) {
-			if (auto voice = weak.lock()) {
+			if (const auto voice = weak.lock()) {
 				voice->Stop();
 			}
 		}
@@ -77,7 +75,9 @@ namespace Unnamed {
 	void AudioSystem::CleanupExpiredVoices() {
 		std::erase_if(
 			mVoices,
-			[](const std::weak_ptr<AudioVoice>& weak) { return weak.expired(); }
+			[](const std::weak_ptr<AudioVoice>& weak) {
+				return weak.expired();
+			}
 		);
 	}
 }
