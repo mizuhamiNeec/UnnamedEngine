@@ -90,12 +90,8 @@ namespace Unnamed {
 			.gameRoot = Path("./projects/ParkourGame"),
 			.contentRoot = Path(kParkourProjectContentRoot),
 			.configRoot = Path("./projects/ParkourGame/config"),
-			.defaultStartupScene = Path("scenes/title.json"),
+			.defaultStartupScene = VirtualPath::ParseOrThrow("scenes/title.json"),
 		};
-	}
-
-	Path ParkourGameModule::GetDefaultStartupScenePath() const {
-		return GetGameModulePaths().defaultStartupScene;
 	}
 
 	Path ParkourGameModule::GetDefaultUiDocumentPath() const {

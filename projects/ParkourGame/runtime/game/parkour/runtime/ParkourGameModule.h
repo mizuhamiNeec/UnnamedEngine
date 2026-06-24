@@ -36,8 +36,6 @@ namespace Unnamed {
 		void RegisterGameComponents(ComponentRegistry& componentRegistry) override;
 		/// @brief ゲーム名・ルート・既定シーン情報を返します。
 		[[nodiscard]] GameModulePaths GetGameModulePaths() const override;
-		/// @brief 起動時デフォルトシーンパスを返します。
-		[[nodiscard]] Path GetDefaultStartupScenePath() const override;
 		/// @brief UI ドキュメントのデフォルトパスを返します。
 		[[nodiscard]] Path GetDefaultUiDocumentPath() const override;
 	};
