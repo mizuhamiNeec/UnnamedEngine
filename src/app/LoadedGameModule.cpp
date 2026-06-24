@@ -125,12 +125,8 @@ namespace Unnamed {
 
 		mRuntimeContext->runtimeModuleName = mRequestedModuleName;
 		mRuntimeContext->modulePaths = mGameModule->GetGameModulePaths();
-		mRuntimeContext->defaultStartupScenePath =
-			mGameModule->GetDefaultStartupScenePath();
-		if (mRuntimeContext->defaultStartupScenePath.IsEmpty()) {
-			mRuntimeContext->defaultStartupScenePath =
-				mRuntimeContext->modulePaths.defaultStartupScene;
-		}
+		mRuntimeContext->defaultStartupScene =
+			mRuntimeContext->modulePaths.defaultStartupScene;
 		mRuntimeContext->defaultUiDocumentPath =
 			mGameModule->GetDefaultUiDocumentPath();
 	}
