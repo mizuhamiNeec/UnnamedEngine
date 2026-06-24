@@ -8,6 +8,15 @@
 
 namespace Unnamed {
 	namespace {
+		[[nodiscard]] Path ContentPathFromVirtualPath(
+			const VirtualPath& virtualPath
+		) {
+			if (virtualPath.IsEmpty()) {
+				return {};
+			}
+			return Path(virtualPath.String());
+		}
+
 		enum class CONTENT_MOUNT_LAYER {
 			BASE,
 			DLC,
@@ -188,6 +197,16 @@ namespace Unnamed {
 		return ResolveGameMountedContentPathDetailed(paths, path).resolvedPath;
 	}
 
+	Path ResolveGameMountedContentPath(
+		const GameModulePaths& paths,
+		const VirtualPath&     virtualPath
+	) {
+		return ResolveGameMountedContentPathDetailed(
+			paths,
+			virtualPath
+		).resolvedPath;
+	}
+
 	MountedContentResolution ResolveGameMountedContentPathDetailed(
 		const GameModulePaths& paths,
 		const Path&            path
@@ -240,6 +259,19 @@ namespace Unnamed {
 		return result;
 	}
 
+	MountedContentResolution ResolveGameMountedContentPathDetailed(
+		const GameModulePaths& paths,
+		const VirtualPath&     virtualPath
+	) {
+		MountedContentResolution result =
+			ResolveGameMountedContentPathDetailed(
+				paths,
+				ContentPathFromVirtualPath(virtualPath)
+			);
+		result.virtualPath = virtualPath;
+		return result;
+	}
+
 	Path ResolveGameConfigPath(
 		const GameModulePaths& paths,
 		const Path&            path
@@ -251,14 +283,18 @@ namespace Unnamed {
 		return ResolveAgainstRoot(configRoot, path);
 	}
 
-	Path ResolveStartupScenePath(
-		const GameModulePaths& paths,
-		const Path&            startupScenePath
+	MountedContentResolution ResolveStartupScenePathDetailed(
+		const GameRuntimeContext& runtimeContext
 	) {
-		Path startupScene(startupScenePath);
-		if (startupScene.IsEmpty()) {
-			startupScene = paths.defaultStartupScene;
-		}
-		return ResolveGameMountedContentPath(paths, startupScene);
+		return ResolveGameMountedContentPathDetailed(
+			runtimeContext.modulePaths,
+			runtimeContext.defaultStartupScene
+		);
+	}
+
+	Path ResolveStartupScenePath(
+		const GameRuntimeContext& runtimeContext
+	) {
+		return ResolveStartupScenePathDetailed(runtimeContext).resolvedPath;
 	}
 }
