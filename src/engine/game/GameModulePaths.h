@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
 
 namespace Unnamed {
 	/// @brief ゲームのルート情報と既定起動情報をまとめた構造体です。
@@ -22,8 +23,8 @@ namespace Unnamed {
 		std::vector<Path> dlcContentMountRoots;
 		/// @brief mod マウント（高優先）の content ルート一覧です。
 		std::vector<Path> modContentMountRoots;
-		/// @brief 既定の起動シーン（contentRoot 相対）です。
-		Path defaultStartupScene;
+		/// @brief 既定の起動シーン VirtualPath（contentRoot 相対）です。
+		VirtualPath defaultStartupScene;
 		/// @brief Runtime DLL のパス（gameRoot 基準または絶対）です。
 		Path runtimeBinaryPath;
 		/// @brief runtimeBinary を必須として扱うかどうかです。
