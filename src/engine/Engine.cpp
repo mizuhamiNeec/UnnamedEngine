@@ -216,6 +216,10 @@ namespace Unnamed {
 #endif
 	}
 
+	void Engine::RequestShutdown() noexcept {
+		mWishShutdown = true;
+	}
+
 	/// @brief 初期化
 	/// @return 成功したらtrueを返す
 	bool Engine::Init() {
@@ -416,9 +420,7 @@ namespace Unnamed {
 			gamePaths.gameRoot,
 			gamePaths.contentRoot,
 			gamePaths.configRoot,
-			runtimeContext.defaultStartupScenePath.IsEmpty() ?
-			runtimeContext.modulePaths.defaultStartupScene :
-			runtimeContext.defaultStartupScenePath
+			runtimeContext.defaultStartupScene.String()
 		);
 
 		(void)ExecuteGameCfgIfExists(
@@ -491,12 +493,15 @@ namespace Unnamed {
 				*mUImGuiLayer
 			);
 			if (World* runtimeWorld = mUEditorRuntime->GetRuntimeWorld()) {
-				runtimeWorld->LoadSceneFromFile(
-					ResolveStartupScenePath(
-						gamePaths,
-						runtimeContext.defaultStartupScenePath
-					)
+				if (!LoadDefaultStartupScene(*runtimeWorld, runtimeContext)) {
+					return false;
+				}
+			} else {
+				Error(
+					"Engine",
+					"Editor runtime did not provide a runtime world for startup scene loading."
 				);
+				return false;
 			}
 
 			if (!ExecuteGameCfgIfExists(
@@ -527,12 +532,9 @@ namespace Unnamed {
 				return false;
 			}
 			World& world = ActivateWorld(std::move(runtimeWorld));
-			world.LoadSceneFromFile(
-				ResolveStartupScenePath(
-					gamePaths,
-					runtimeContext.defaultStartupScenePath
-				)
-			);
+			if (!LoadDefaultStartupScene(world, runtimeContext)) {
+				return false;
+			}
 		}
 
 		// ユーザー名をコンソール変数に設定
@@ -1030,5 +1032,50 @@ namespace Unnamed {
 		}
 #endif
 		return mWorld.get();
+	}
+
+	bool Engine::LoadDefaultStartupScene(
+		World&                    world,
+		const GameRuntimeContext& runtimeContext
+	) {
+		if (runtimeContext.defaultStartupScene.IsEmpty()) {
+			Error(
+				"Engine",
+				"Startup scene is empty: game='{}' manifest='{}'",
+				runtimeContext.modulePaths.gameName,
+				runtimeContext.modulePaths.resolvedManifestPath
+			);
+			return false;
+		}
+
+		const MountedContentResolution resolution =
+			ResolveStartupScenePathDetailed(runtimeContext);
+		if (!resolution.existsOnDisk) {
+			Error(
+				"Engine",
+				"Startup scene was not found: virtualPath='{}' candidate='{}' mount='{}' root='{}' game='{}'",
+				resolution.virtualPath.String(),
+				resolution.resolvedPath,
+				resolution.resolvedLayer,
+				resolution.resolvedRoot,
+				runtimeContext.modulePaths.gameName
+			);
+			return false;
+		}
+
+		if (!world.LoadSceneFromFile(resolution.resolvedPath)) {
+			Error(
+				"Engine",
+				"Startup scene load failed: virtualPath='{}' physicalPath='{}' mount='{}' root='{}' game='{}'",
+				resolution.virtualPath.String(),
+				resolution.resolvedPath,
+				resolution.resolvedLayer,
+				resolution.resolvedRoot,
+				runtimeContext.modulePaths.gameName
+			);
+			return false;
+		}
+
+		return true;
 	}
 }

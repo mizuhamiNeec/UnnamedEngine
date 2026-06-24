@@ -73,6 +73,9 @@ namespace Unnamed {
 		/// @brief エディターモードの画面表示モードを切り替えます。
 		void ToggleEditorScreenMode() const;
 
+		/// @brief 次の安全なタイミングでメインループを終了するよう要求します。
+		void RequestShutdown() noexcept;
+
 	private:
 		/// @brief 初期化処理
 		bool Init();
@@ -111,6 +114,12 @@ namespace Unnamed {
 		/// @brief 現在のワールドを取得します。
 		/// @return 現在のワールドの参照
 		[[nodiscard]] World* GetWorld() const;
+
+		/// @brief 既定起動シーンを解決して読み込みます。
+		[[nodiscard]] bool LoadDefaultStartupScene(
+			World&                    world,
+			const GameRuntimeContext& runtimeContext
+		);
 
 		EngineRuntimeBindings mRuntimeBindings  = {};
 		RUN_MODE              mRequestedRunMode = RUN_MODE::STANDALONE;
