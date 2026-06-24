@@ -129,7 +129,7 @@ namespace Unnamed {
 			);
 		}
 
-		return std::move(*result);
+		return *result;
 	}
 
 	const std::string& VirtualPath::String() const noexcept {
