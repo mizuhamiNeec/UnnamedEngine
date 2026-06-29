@@ -24,18 +24,6 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "Demo";
 
-		std::string ToLowerAscii(const std::string_view text) {
-			std::string lowered(text);
-			std::ranges::transform(
-				lowered,
-				lowered.begin(),
-				[](const unsigned char ch) {
-					return static_cast<char>(std::tolower(ch));
-				}
-			);
-			return lowered;
-		}
-
 		[[nodiscard]] std::string NormalizePathForCompare(
 			const Path& pathText
 		) {
@@ -180,7 +168,7 @@ namespace Unnamed {
 
 	uint32_t DemoManager::GetSimulationTickRate() const {
 		if (mMode == MODE::PLAYBACK || mMode == MODE::RECORDING) {
-			return SanitizeTickRate(mActiveTickRate);
+			return ClampTickRate(mActiveTickRate);
 		}
 		return ResolveConfiguredTickRate();
 	}
@@ -265,8 +253,7 @@ namespace Unnamed {
 		}
 
 		if (!mFile.mapPath.IsEmpty()) {
-			const World* world = subjectEntity.GetWorld();
-			if (world) {
+			if (const World* world = subjectEntity.GetWorld()) {
 				const std::string expectedMap = NormalizePathForCompare(
 					mFile.mapPath
 				);
@@ -510,12 +497,12 @@ namespace Unnamed {
 	}
 
 	DemoManager::MISMATCH_POLICY DemoManager::ResolveMismatchPolicy() {
-		ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
+		const ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
 		if (!console) {
 			return MISMATCH_POLICY::CONTINUE;
 		}
 
-		const std::string raw = ToLowerAscii(
+		const std::string raw = StrUtil::ToLowerCase(
 			console->GetConVarValueString("demo_mismatch_policy")
 		);
 		if (raw == "stop") {
@@ -538,7 +525,7 @@ namespace Unnamed {
 	}
 
 	uint64_t DemoManager::ResolveMismatchLogInterval() {
-		ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
+		const ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
 		if (!console) {
 			return 120ull;
 		}
@@ -556,7 +543,7 @@ namespace Unnamed {
 		}
 	}
 
-	uint32_t DemoManager::SanitizeTickRate(const uint32_t tickRate) {
+	uint32_t DemoManager::ClampTickRate(const uint32_t tickRate) {
 		return std::clamp(tickRate, 1u, 1000u);
 	}
 
@@ -582,9 +569,11 @@ namespace Unnamed {
 			std::filesystem::create_directories(outPath.parent_path());
 		}
 
-		DemoBinaryWriter writer = {};
-		std::string      error;
-		if (!writer.WriteFile(mCurrentPath, mFile, &error)) {
+		std::string error;
+		if (
+			constexpr DemoBinaryWriter writer = {};
+			!writer.WriteFile(mCurrentPath, mFile, &error)
+		) {
 			Error(
 				kChannel,
 				"Failed to write demo binary '{}': {}",
@@ -598,7 +587,7 @@ namespace Unnamed {
 
 	bool DemoManager::LoadPlaybackFile(const Path& path) {
 		const std::string pathText    = path.ToUtf8();
-		const std::string loweredPath = ToLowerAscii(pathText);
+		const std::string loweredPath = StrUtil::ToLowerCase(pathText);
 		if (Path(loweredPath).Extension() ==
 		    Path(".json")) {
 			Error(
@@ -634,7 +623,7 @@ namespace Unnamed {
 			);
 			return false;
 		}
-		loaded.tickRate = SanitizeTickRate(loaded.tickRate);
+		loaded.tickRate = ClampTickRate(loaded.tickRate);
 
 		mFile                   = std::move(loaded);
 		mPlaybackCommandCursor  = 0;
@@ -741,7 +730,7 @@ namespace Unnamed {
 	const EntitySnapshotRecord* DemoManager::FindInitialSnapshotByGuid(
 		const std::vector<EntitySnapshotRecord>& records,
 		const uint64_t                           entityGuid
-	) const {
+	) {
 		if (entityGuid == 0) {
 			return nullptr;
 		}

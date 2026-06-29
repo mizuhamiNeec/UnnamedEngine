@@ -145,10 +145,10 @@ namespace Unnamed {
 		/// @return スナップショットのズレが発生した際のログ出力間隔（ティック数）
 		[[nodiscard]] static uint64_t ResolveMismatchLogInterval();
 
-		/// @brief ティックレートの値をサニタイズする
-		/// @param tickRate サニタイズするティックレートの値
-		/// @return サニタイズされたティックレートの値
-		[[nodiscard]] static uint32_t SanitizeTickRate(uint32_t tickRate);
+		/// @brief ティックレートの値をクランプします
+		/// @param tickRate クランプするティックレートの値
+		/// @return クランプされたティックレートの値
+		[[nodiscard]] static uint32_t ClampTickRate(uint32_t tickRate);
 
 		/// @brief スナップショットのズレが発生した際のポリシーを文字列に変換する
 		/// @param policy スナップショットのズレが発生した際のポリシー
@@ -190,10 +190,10 @@ namespace Unnamed {
 		/// @brief 録画時GUIDに対応する初期スナップショットを検索します。
 		/// @param entityGuid 録画時エンティティGUID
 		/// @return 初期スナップショット。存在しない場合は nullptr
-		[[nodiscard]] const EntitySnapshotRecord* FindInitialSnapshotByGuid(
+		[[nodiscard]] static const EntitySnapshotRecord* FindInitialSnapshotByGuid(
 			const std::vector<EntitySnapshotRecord>& records,
 			uint64_t                                entityGuid
-		) const;
+		);
 
 		/// @brief 再生対象に適用する初期スナップショットを検索します。
 		/// @param subjectEntity 再生対象の実行時エンティティ
