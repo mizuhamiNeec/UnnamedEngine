@@ -56,7 +56,7 @@ namespace Unnamed {
 	};
 
 	/// @brief エンジンクラス
-	class Engine {
+	class Engine final {
 	public:
 		/// @brief コンストラクタ
 		/// @param runtimeBindings ゲームランタイム依存情報
@@ -84,6 +84,9 @@ namespace Unnamed {
 		void Tick();
 		/// @brief 終了処理
 		void Shutdown();
+
+		/// @brief ウィンドウのリサイズ処理
+		void ProcessResize();
 
 		/// @brief コンソールコマンドとコンソール変数を登録します。
 		void RegisterConsoleCommandsAndVariables();
@@ -117,8 +120,13 @@ namespace Unnamed {
 		[[nodiscard]] World* GetWorld() const;
 
 		/// @brief 既定起動シーンを解決して読み込みます。
-		[[nodiscard]] bool LoadDefaultStartupScene(
+		[[nodiscard]] static bool LoadDefaultStartupScene(
 			World&                    world,
+			const GameRuntimeContext& runtimeContext
+		);
+
+		/// @brief Core/Game のコンテンツマウントを初期化します。
+		[[nodiscard]] bool InitializeContentMounts(
 			const GameRuntimeContext& runtimeContext
 		);
 
@@ -131,12 +139,10 @@ namespace Unnamed {
 		std::unique_ptr<AssetManager>             mAssetManager;
 		std::unique_ptr<class PlatformEventsImpl> mPlatformEvents;
 		std::unique_ptr<WindowManager>            mWindowManager;
-
-		// 基幹システム
-		std::unique_ptr<ConsoleSystem>        mConsoleSystem;
-		std::unique_ptr<class TerminalSystem> mTerminalSystem;
-		std::unique_ptr<class TimeSystem>     mTimeSystem;
-		std::unique_ptr<InputSystem>          mInputSystem;
+		std::unique_ptr<ConsoleSystem>            mConsoleSystem;
+		std::unique_ptr<class TerminalSystem>     mTerminalSystem;
+		std::unique_ptr<class TimeSystem>         mTimeSystem;
+		std::unique_ptr<InputSystem>              mInputSystem;
 
 		std::unique_ptr<Rhi::IRhiDevice>      mRhiDevice;
 		std::unique_ptr<Render::RenderModule> mRenderModule;
@@ -147,8 +153,8 @@ namespace Unnamed {
 		std::unique_ptr<World> mWorld;
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-		std::unique_ptr<ImGuiLayer>    mUImGuiLayer;
-		std::unique_ptr<EditorRuntime> mUEditorRuntime;
+		std::unique_ptr<ImGuiLayer>    mImGuiLayer;
+		std::unique_ptr<EditorRuntime> mEditorRuntime;
 #endif
 
 		std::unique_ptr<AudioSystem> mAudioSystem;
@@ -182,5 +188,7 @@ namespace Unnamed {
 #endif
 
 		bool mWishShutdown = false;
+
+		bool mCoInitialized = false;
 	};
 }
