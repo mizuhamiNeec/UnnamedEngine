@@ -61,9 +61,18 @@ namespace Unnamed {
 			const Vec3&         worldPosition
 		);
 
+		/// @brief リプレイ状態をJSONオブジェクトへ書き込みます。
+		/// @param outState リプレイ状態のJSONオブジェクト
 		virtual void WriteReplayState(nlohmann::json& outState) const;
+
+		/// @brief リプレイ状態を復元します。
+		/// @param inState リプレイ状態のJSONオブジェクト
 		virtual void ReadReplayState(const nlohmann::json& inState);
+
+		/// @brief リプレイ状態のハッシュ値を計算します。
+		/// @return リプレイ状態のハッシュ値
 		[[nodiscard]] virtual uint64_t ComputeReplayStateHash() const;
+
 		/// @brief 地上移動の基準速度を常にスプリント値へ固定するかを返します。
 		[[nodiscard]] virtual bool UseSprintSpeedAsDefaultGroundSpeed() const;
 
