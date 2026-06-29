@@ -160,9 +160,16 @@ namespace Unnamed {
 	}
 
 	ConsoleSystem::~ConsoleSystem() {
-	};
+		Shutdown();
+		mState = CONSOLE_SYSTEM_STATE::DESTROYED;
+	}
 
 	bool ConsoleSystem::Init() {
+		if (mState == CONSOLE_SYSTEM_STATE::RUNNING) {
+			return true;
+		}
+		mState = CONSOLE_SYSTEM_STATE::RUNNING;
+
 		// サービスロケータに登録
 		ServiceLocator::Register<ConsoleSystem>(this);
 
@@ -205,8 +212,14 @@ namespace Unnamed {
 	}
 
 	void ConsoleSystem::Shutdown() {
-		mHelpCommand.reset();
-		mClearCommand.reset();
+		if (
+			mState == CONSOLE_SYSTEM_STATE::UNINITIALIZED ||
+			mState == CONSOLE_SYSTEM_STATE::DESTROYED ||
+			mState == CONSOLE_SYSTEM_STATE::SHUTTING_DOWN
+		) {
+			return;
+		}
+		mState = CONSOLE_SYSTEM_STATE::SHUTTING_DOWN;
 
 		// ユーザー設定ファイルに変数を書き込む
 		try {
@@ -230,10 +243,15 @@ namespace Unnamed {
 			);
 		}
 
+		DetachRegisteredConsoleObjects();
+		mHelpCommand.reset();
+		mClearCommand.reset();
+
 		// ファイルログ停止して残りを書き出し
 		mFileLogSink.Stop();
 
 		ServiceLocator::Register<ConsoleSystem>(nullptr);
+		mState = CONSOLE_SYSTEM_STATE::UNINITIALIZED;
 	}
 
 	const std::string_view ConsoleSystem::GetName() const {
@@ -307,14 +325,30 @@ namespace Unnamed {
 	}
 
 	void ConsoleSystem::RegisterConCommand(ConCommandBase* conCommand) {
+		if (!conCommand || mState != CONSOLE_SYSTEM_STATE::RUNNING) {
+			return;
+		}
+		const std::string commandName(conCommand->GetName());
+		if (const auto it = mConCommands.find(commandName);
+			it != mConCommands.end() && it->second != conCommand &&
+			it->second != nullptr) {
+			it->second->DetachFromConsoleSystem(*this);
+		}
+		conCommand->AttachToConsoleSystem(
+			*this, ConsoleRegistrationKind::Command
+		);
+		mConCommands[commandName] = conCommand;
+	}
+
+	void ConsoleSystem::UnregisterConCommand(
+		const ConCommandBase* conCommand
+	) noexcept {
 		if (!conCommand) {
 			return;
 		}
-		mConCommands[std::string(conCommand->GetName())] = conCommand;
-	}
 
-	void ConsoleSystem::UnregisterConCommand(const ConCommandBase* conCommand) {
-		if (!conCommand) {
+		const_cast<ConCommandBase*>(conCommand)->DetachFromConsoleSystem(*this);
+		if (mState == CONSOLE_SYSTEM_STATE::DESTROYED) {
 			return;
 		}
 
@@ -325,7 +359,52 @@ namespace Unnamed {
 	}
 
 	void ConsoleSystem::RegisterConVar(ConCommandBase* conVar) {
-		mConVars[std::string(conVar->GetName())] = conVar;
+		if (!conVar || mState != CONSOLE_SYSTEM_STATE::RUNNING) {
+			return;
+		}
+		const std::string conVarName(conVar->GetName());
+		if (const auto it = mConVars.find(conVarName);
+			it != mConVars.end() && it->second != conVar &&
+			it->second != nullptr) {
+			it->second->DetachFromConsoleSystem(*this);
+		}
+		conVar->AttachToConsoleSystem(
+			*this, ConsoleRegistrationKind::ConVar
+		);
+		mConVars[conVarName] = conVar;
+	}
+
+	void ConsoleSystem::UnregisterConVar(
+		const ConCommandBase* conVar
+	) noexcept {
+		if (!conVar) {
+			return;
+		}
+
+		const_cast<ConCommandBase*>(conVar)->DetachFromConsoleSystem(*this);
+		if (mState == CONSOLE_SYSTEM_STATE::DESTROYED) {
+			return;
+		}
+
+		const auto it = mConVars.find(std::string(conVar->GetName()));
+		if (it != mConVars.end() && it->second == conVar) {
+			mConVars.erase(it);
+		}
+	}
+
+	void ConsoleSystem::DetachRegisteredConsoleObjects() noexcept {
+		for (ConCommandBase* command : mConCommands | std::views::values) {
+			if (command) {
+				command->DetachFromConsoleSystem(*this);
+			}
+		}
+		for (ConCommandBase* conVar : mConVars | std::views::values) {
+			if (conVar) {
+				conVar->DetachFromConsoleSystem(*this);
+			}
+		}
+		mConCommands.clear();
+		mConVars.clear();
 	}
 
 	template <typename T>
