@@ -31,6 +31,7 @@
 #include <core/string/StrUtil.h>
 
 #include <engine/EngineComponentRegistration.h>
+#include <engine/content/ContentPathResolver.h>
 #include <engine/game/GamePathResolver.h>
 #include <engine/game/GameRuntimeContext.h>
 #include <engine/game/IDemoService.h>
@@ -115,6 +116,62 @@ namespace Unnamed {
 				channel,
 				orderLabel
 			);
+		}
+
+		[[nodiscard]] std::string DescribeContentRootFailureReason(
+			const Path& rootPath
+		) {
+			if (rootPath.IsEmpty()) {
+				return "Path is empty";
+			}
+			if (!rootPath.IsAbsolute()) {
+				return "Path is not absolute";
+			}
+			if (!rootPath.Exists()) {
+				return "Directory does not exist";
+			}
+			if (!rootPath.IsDirectory()) {
+				return "Path is not a directory";
+			}
+			return {};
+		}
+
+		[[nodiscard]] std::optional<Path> TryResolveCoreContentRoot(
+			const GameRuntimeContext& runtimeContext
+		) {
+			const GameModulePaths& gamePaths = runtimeContext.modulePaths;
+
+			if (gamePaths.gameRoot.IsAbsolute()) {
+				const Path normalizedGameRoot =
+					gamePaths.gameRoot.LexicallyNormal();
+				const Path repoLikeCoreRoot =
+					(normalizedGameRoot.ParentPath().ParentPath() /
+					 Path("content/core"))
+					.LexicallyNormal();
+				if (repoLikeCoreRoot.IsDirectory()) {
+					return repoLikeCoreRoot;
+				}
+			}
+
+			if (gamePaths.contentRoot.IsAbsolute()) {
+				const Path normalizedContentRoot =
+					gamePaths.contentRoot.LexicallyNormal();
+				const Path repoLikeCoreRootFromContent =
+					(normalizedContentRoot.ParentPath().ParentPath().
+					                       ParentPath() / Path("content/core"))
+					.LexicallyNormal();
+				if (repoLikeCoreRootFromContent.IsDirectory()) {
+					return repoLikeCoreRootFromContent;
+				}
+
+				const Path mergedContentCoreRoot =
+					(normalizedContentRoot / Path("core")).LexicallyNormal();
+				if (mergedContentCoreRoot.IsDirectory()) {
+					return mergedContentCoreRoot;
+				}
+			}
+
+			return std::nullopt;
 		}
 	}
 

@@ -7,9 +7,9 @@
 
 #include <core/UnnamedMacro.h>
 #include <core/filesystem/Path.h>
+#include <core/filesystem/VirtualPath.h>
 
-#include <engine/game/GamePathResolver.h>
-#include <engine/game/GameRuntimeContext.h>
+#include <engine/content/ContentPathResolver.h>
 #include <engine/profiler/Profiler.h>
 #include <engine/unnamed/subsystem/console/Log.h>
 #include <engine/unnamed/subsystem/interface/ServiceLocator.h>
@@ -41,6 +41,7 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] Path ResolveAssetLoadPath(
+			const ContentPathResolver& contentPathResolver,
 			const Path& path
 		) {
 			const Path normalizedInput = path.LexicallyNormal();
@@ -52,31 +53,19 @@ namespace Unnamed {
 				return normalizedInput;
 			}
 
-			const GameRuntimeContext* runtimeContext =
-				ServiceLocator::Get<GameRuntimeContext>();
-			if (!runtimeContext) {
+			const std::optional<VirtualPath> virtualPath =
+				VirtualPath::Parse(normalizedInput.ToGenericUtf8());
+			if (!virtualPath.has_value()) {
 				return normalizedInput;
 			}
 
-			const MountedContentResolution resolution =
-				ResolveGameMountedContentPathDetailed(
-					runtimeContext->modulePaths,
-					normalizedInput
-				);
-			if (resolution.resolvedRoot.IsEmpty()) {
-				DevMsg(
-					kChannel,
-					"Failed to resolve asset load path: {}. Resolution details: resolvedPath='{}', resolvedLayer='{}', resolvedRoot='{}', existsOnDisk={}",
-					normalizedInput,
-					resolution.resolvedPath,
-					resolution.resolvedLayer,
-					resolution.resolvedRoot,
-					resolution.existsOnDisk
-				);
+			const std::optional<ResolvedContentFile> resolvedFile =
+				contentPathResolver.ResolveFile(*virtualPath);
+			if (!resolvedFile.has_value()) {
+				return normalizedInput;
 			}
-			return resolution.resolvedPath.IsEmpty() ?
-				       normalizedInput :
-				       resolution.resolvedPath;
+
+			return resolvedFile->resolvedPath;
 		}
 
 		FileStamp ReadCurrentFileStamp(const Path& path) {
@@ -124,7 +113,10 @@ namespace Unnamed {
 		}
 	}
 
-	AssetManager::AssetManager() = default;
+	AssetManager::AssetManager(
+		const ContentPathResolver& contentPathResolver
+	) : mContentPathResolver(contentPathResolver) {
+	}
 
 	void AssetManager::RegisterLoader(std::unique_ptr<IAssetLoader> loader) {
 		std::scoped_lock lock(mMutex);
@@ -136,7 +128,8 @@ namespace Unnamed {
 		const std::optional<ASSET_TYPE> typeOpt,
 		const AssetLoadPolicy           policy
 	) {
-		const Path normalizedPath = ResolveAssetLoadPath(path);
+		const Path normalizedPath =
+			ResolveAssetLoadPath(mContentPathResolver, path);
 		if (normalizedPath.IsEmpty()) {
 			Warning(kChannel, "Asset path is empty.");
 			return kInvalidAssetID;
@@ -721,6 +714,11 @@ namespace Unnamed {
 		}
 
 		return stats;
+	}
+
+	const ContentPathResolver& AssetManager::GetContentPathResolver(
+	) const noexcept {
+		return mContentPathResolver;
 	}
 
 	AssetID AssetManager::FindByPath(const Path& path) const {

@@ -88,7 +88,7 @@ namespace Unnamed {
 	std::filesystem::file_time_type Path::LastWriteTimeUtf8(
 		const std::string_view utf8Path, std::error_code& ec
 	) {
-		return std::filesystem::last_write_time(
+		return last_write_time(
 			FromUtf8(utf8Path).Native(), ec);
 	}
 
@@ -106,12 +106,12 @@ namespace Unnamed {
 		return FromNative(nativePath.lexically_normal());
 	}
 
-	bool Path::IsEmpty() const noexcept {
-		return mNativePath.empty();
-	}
-
 	void Path::Clear() noexcept {
 		mNativePath.clear();
+	}
+
+	bool Path::IsEmpty() const noexcept {
+		return mNativePath.empty();
 	}
 
 	bool Path::IsAbsolute() const noexcept {
@@ -122,8 +122,16 @@ namespace Unnamed {
 		return mNativePath.is_relative();
 	}
 
+	bool Path::IsDirectory() const {
+		return is_directory(mNativePath);
+	}
+
+	bool Path::IsRegularFile() const {
+		return is_regular_file(mNativePath);
+	}
+
 	bool Path::Exists() const noexcept {
-		return std::filesystem::exists(mNativePath);
+		return exists(mNativePath);
 	}
 
 	Path Path::ParentPath() const {

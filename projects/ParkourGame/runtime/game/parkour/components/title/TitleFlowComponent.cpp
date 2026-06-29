@@ -46,27 +46,32 @@ namespace Unnamed {
 				return {};
 			}
 
-			// 既存JSONの "content/..." 形式はプロジェクトルート基準として扱います。
-			if (effectivePath.IsRelative()) {
-				return (Path("./") / effectivePath).LexicallyNormal();
-			}
+			const auto resolveFromModulePaths =
+				[&effectivePath](const GameModulePaths& modulePaths) {
+					const std::string genericPath =
+						effectivePath.ToGenericUtf8();
+					if (
+						effectivePath.IsRelative() &&
+						genericPath.starts_with("content/")
+					) {
+						return ResolveGameRootPath(
+							modulePaths,
+							effectivePath
+						);
+					}
+					return ResolveGameContentPath(modulePaths, effectivePath);
+				};
 
 			if (const GameRuntimeContext* runtimeContext =
 				ServiceLocator::Get<GameRuntimeContext>()) {
-				return ResolveGameContentPath(
-					runtimeContext->modulePaths,
-					effectivePath
-				);
+				return resolveFromModulePaths(runtimeContext->modulePaths);
 			}
 
 			if (const IGameModule* gameModule = ServiceLocator::Get<
 				IGameModule>()) {
-				return ResolveGameContentPath(
-					gameModule->GetGameModulePaths(),
-					effectivePath
-				);
+				return resolveFromModulePaths(gameModule->GetGameModulePaths());
 			}
-			return effectivePath;
+			return effectivePath.LexicallyNormal();
 		}
 
 		float EvaluateFadeEase(const float t) {

@@ -14,6 +14,7 @@
 #include "LoadResult.h"
 
 namespace Unnamed {
+	class ContentPathResolver;
 	class IAssetLoader;
 
 	class AssetManager {
@@ -35,7 +36,7 @@ namespace Unnamed {
 		};
 
 		/// @brief コンストラクタ
-		AssetManager();
+		explicit AssetManager(const ContentPathResolver& contentPathResolver);
 
 		/// @brief アセットローダーを登録します
 		/// @param loader 登録するアセットローダー
@@ -144,6 +145,10 @@ namespace Unnamed {
 		/// @return デバッグ統計
 		[[nodiscard]] DebugStats GetDebugStats() const;
 
+		/// @brief コンテンツ仮想パス解決に使用する Resolver を取得します。
+		[[nodiscard]] const ContentPathResolver& GetContentPathResolver(
+		) const noexcept;
+
 		/// @brief パスからアセットを検索します
 		/// @param path 検索するアセットのパス
 		/// @return 見つかったアセットのID、見つからなかった場合はkInvalidAssetID
@@ -192,6 +197,7 @@ namespace Unnamed {
 
 		std::vector<std::unique_ptr<IAssetLoader>> mLoaders;
 		std::vector<ReloadCallback>                mReloadCallbacks;
+		const ContentPathResolver&                mContentPathResolver;
 
 		uint64_t mUnloadUnusedFreedCount   = 0;
 		uint64_t mDestroyRuntimeAssetCount = 0;

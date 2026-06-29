@@ -92,12 +92,12 @@ namespace Unnamed {
 			const std::filesystem::path& baseDir, std::string_view path
 		);
 
+		/// @brief パスを空にします。
+		void Clear() noexcept;
+
 		/// @brief パスが空かを判定します。
 		/// @return パスが空である場合はtrue、そうでない場合はfalse
 		[[nodiscard]] bool IsEmpty() const noexcept;
-
-		/// @brief パスを空にします。
-		void Clear() noexcept;
 
 		/// @brief パスが絶対パスであるかを判定します。
 		/// @return パスが絶対パスである場合はtrue、そうでない場合はfalse
@@ -106,6 +106,14 @@ namespace Unnamed {
 		/// @brief パスが相対パスであるかを判定します。
 		/// @return パスが相対パスである場合はtrue、そうでない場合はfalse
 		[[nodiscard]] bool IsRelative() const noexcept;
+
+		/// @brief パスがディレクトリであるかを判定します。
+		/// @return パスがディレクトリである場合はtrue、そうでない場合はfalse
+		[[nodiscard]] bool IsDirectory() const;
+
+		/// @brief パスが通常のファイルであるかを判定します。
+		/// @return パスが通常のファイルである場合はtrue、そうでない場合はfalse
+		[[nodiscard]] bool IsRegularFile() const;
 
 		/// @brief パスが存在するかを判定します。
 		/// @return パスが存在する場合はtrue、そうでない場合はfalse

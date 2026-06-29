@@ -5,6 +5,7 @@
 #include <core/assets/AssetID.h>
 
 #include <engine/EngineConfig.h>
+#include <engine/content/ContentPathResolver.h>
 
 class IPostProcess;
 class SrvManager;
@@ -126,6 +127,7 @@ namespace Unnamed {
 		EngineConfig          mConfig;
 
 		// 基本システム
+		ContentPathResolver                       mContentPathResolver = {};
 		std::unique_ptr<AssetManager>             mAssetManager;
 		std::unique_ptr<class PlatformEventsImpl> mPlatformEvents;
 		std::unique_ptr<WindowManager>            mWindowManager;
