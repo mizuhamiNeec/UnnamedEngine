@@ -33,23 +33,23 @@
                         "materialInstancePath": "",
                         "materialSlots": [
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 0
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/gray.matinst.json",
+                                "materialInstancePath": "materials/instances/gray.matinst.json",
                                 "slotIndex": 1
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 2
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/red.matinst.json",
+                                "materialInstancePath": "materials/instances/red.matinst.json",
                                 "slotIndex": 3
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 4
                             }
                         ],

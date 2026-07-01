@@ -33,23 +33,23 @@
                         "materialInstancePath": "",
                         "materialSlots": [
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 0
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/gray.matinst.json",
+                                "materialInstancePath": "materials/instances/gray.matinst.json",
                                 "slotIndex": 1
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 2
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/red.matinst.json",
+                                "materialInstancePath": "materials/instances/red.matinst.json",
                                 "slotIndex": 3
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 4
                             }
                         ],
@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.000221252441406,
-                            36.00053024291992,
-                            16.000221252441406
+                            16.000228881835938,
+                            36.000545501708984,
+                            16.000228881835938
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -680,13 +680,13 @@
                         "speed": 1.0,
                         "stateMap": [
                             {
-                                "blendSec": 0.125,
-                                "clipName": "Vault",
+                                "blendSec": 0.11999999731779099,
+                                "clipName": "Sprint.001",
                                 "layerIndex": 0,
-                                "loop": false,
+                                "loop": true,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_vaulting",
+                                "stateId": "animstate_sprint",
                                 "weight": 1.0
                             },
                             {
@@ -700,13 +700,13 @@
                                 "weight": 1.0
                             },
                             {
-                                "blendSec": 0.11999999731779099,
-                                "clipName": "Sprint.001",
+                                "blendSec": 0.125,
+                                "clipName": "Vault",
                                 "layerIndex": 0,
-                                "loop": true,
+                                "loop": false,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_sprint",
+                                "stateId": "animstate_vaulting",
                                 "weight": 1.0
                             },
                             {
@@ -1470,7 +1470,7 @@
                     "data": {
                         "materialInstancePath": "",
                         "materialSlots": [],
-                        "meshPath": "content/core/models/fan.obj"
+                        "meshPath": "models/fan.obj"
                     },
                     "guid": 11218511112006460158,
                     "type": "engine.StaticMeshRenderer"
@@ -1545,7 +1545,7 @@
                     "data": {
                         "materialInstancePath": "",
                         "materialSlots": [],
-                        "meshPath": "content/core/models/fan.obj"
+                        "meshPath": "models/fan.obj"
                     },
                     "guid": 10079947523180645772,
                     "type": "engine.StaticMeshRenderer"
@@ -1732,6 +1732,46 @@
             "guid": 9100000000000000203,
             "isEditorOnly": false,
             "name": "SkyLight",
+            "visible": true
+        },
+        {
+            "active": true,
+            "components": [
+                {
+                    "active": true,
+                    "data": {
+                        "parentEntityGuid": 0,
+                        "position": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "rotation": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ]
+                    },
+                    "guid": 0,
+                    "type": "engine.Transform"
+                },
+                {
+                    "active": true,
+                    "data": {},
+                    "guid": 0,
+                    "type": "engine.NewUICanvas"
+                }
+            ],
+            "folderPath": "",
+            "guid": 9100000000000000204,
+            "isEditorOnly": false,
+            "name": "Entity",
             "visible": true
         }
     ],
