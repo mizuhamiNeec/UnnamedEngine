@@ -12,6 +12,7 @@
 #include "AssetMetaData.h"
 #include "AssetType.h"
 #include "LoadResult.h"
+#include "core/filesystem/VirtualPath.h"
 
 namespace Unnamed {
 	class ContentPathResolver;
@@ -51,6 +52,42 @@ namespace Unnamed {
 			const Path& path,
 			std::optional<ASSET_TYPE> typeOpt = std::nullopt,
 			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief マウント済み content からメッシュをロードします。
+		/// @param path 論理メッシュパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたメッシュアセットの ID。
+		AssetID LoadMesh(
+			const VirtualPath& path,
+			AssetLoadPolicy    policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 物理ファイルからメッシュを直接ロードします。
+		/// @param path 物理メッシュファイルパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたメッシュアセットの ID。
+		AssetID LoadMeshFromFile(
+			const Path&      path,
+			AssetLoadPolicy  policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief マウント済み content からマテリアルインスタンスをロードします。
+		/// @param path 論理マテリアルインスタンスパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたマテリアルインスタンスアセットの ID。
+		AssetID LoadMaterialInstance(
+			const VirtualPath& path,
+			AssetLoadPolicy    policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 物理ファイルからマテリアルインスタンスを直接ロードします。
+		/// @param path 物理マテリアルインスタンスファイルパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたマテリアルインスタンスアセットの ID。
+		AssetID LoadMaterialInstanceFromFile(
+			const Path&      path,
+			AssetLoadPolicy  policy = AssetLoadPolicy::UseCachedIfLoaded
 		);
 
 		/// @brief ランタイムアセットを作成します
@@ -172,6 +209,17 @@ namespace Unnamed {
 		/// @return アセットID
 		AssetID FindOrCreateSlotByPath(
 			const Path& path, ASSET_TYPE type
+		);
+
+		/// @brief 解決済みファイルパスからアセットをロードします
+		/// @param normalizedPath 正規化されたファイルパス
+		/// @param typeOpt アセットの種類
+		/// @param policy ロードポリシー
+		/// @return ロードしたアセットのID
+		AssetID LoadFromResolvedFile(
+			const Path&               normalizedPath,
+			std::optional<ASSET_TYPE> typeOpt,
+			AssetLoadPolicy           policy
 		);
 
 		/// @brief 指定したアセットを参照しているアセット情報を再構築します

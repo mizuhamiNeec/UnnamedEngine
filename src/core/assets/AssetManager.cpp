@@ -6,10 +6,10 @@
 #include <unordered_set>
 
 #include <core/UnnamedMacro.h>
+#include <core/content/ContentPathResolver.h>
 #include <core/filesystem/Path.h>
 #include <core/filesystem/VirtualPath.h>
 
-#include <engine/content/ContentPathResolver.h>
 #include <engine/profiler/Profiler.h>
 #include <engine/unnamed/subsystem/console/Log.h>
 #include <engine/unnamed/subsystem/interface/ServiceLocator.h>
@@ -128,6 +128,8 @@ namespace Unnamed {
 		const std::optional<ASSET_TYPE> typeOpt,
 		const AssetLoadPolicy           policy
 	) {
+		// Transitional compatibility path.
+		// Remove after all runtime asset references use VirtualPath explicitly.
 		const Path normalizedPath =
 			ResolveAssetLoadPath(mContentPathResolver, path);
 		if (normalizedPath.IsEmpty()) {
@@ -135,6 +137,116 @@ namespace Unnamed {
 			return kInvalidAssetID;
 		}
 
+		return LoadFromResolvedFile(normalizedPath, typeOpt, policy);
+	}
+
+	AssetID AssetManager::LoadMesh(
+		const VirtualPath& path,
+		const AssetLoadPolicy policy
+	) {
+		const std::optional<ResolvedContentFile> resolvedFile =
+			mContentPathResolver.ResolveFile(path);
+		if (!resolvedFile.has_value()) {
+			Error(
+				kChannel,
+				"Failed to resolve mesh asset: {}",
+				path.String()
+			);
+			return kInvalidAssetID;
+		}
+
+		DevMsg(
+			kChannel,
+			"Resolved mesh asset: virtualPath={}, mount={}, physicalPath={}",
+			path.String(),
+			resolvedFile->mountId,
+			resolvedFile->resolvedPath.ToUtf8()
+		);
+
+		return LoadMeshFromFile(resolvedFile->resolvedPath, policy);
+	}
+
+	AssetID AssetManager::LoadMeshFromFile(
+		const Path& path,
+		const AssetLoadPolicy policy
+	) {
+		const Path normalizedPath = path.LexicallyNormal();
+		if (normalizedPath.IsEmpty()) {
+			Warning(kChannel, "Mesh path is empty.");
+			return kInvalidAssetID;
+		}
+		if (!normalizedPath.IsRegularFile()) {
+			Error(
+				kChannel,
+				"Mesh file does not exist: {}",
+				normalizedPath.ToUtf8()
+			);
+			return kInvalidAssetID;
+		}
+
+		return LoadFromResolvedFile(
+			normalizedPath,
+			ASSET_TYPE::MESH,
+			policy
+		);
+	}
+
+	AssetID AssetManager::LoadMaterialInstance(
+		const VirtualPath& path,
+		const AssetLoadPolicy policy
+	) {
+		const std::optional<ResolvedContentFile> resolvedFile =
+			mContentPathResolver.ResolveFile(path);
+		if (!resolvedFile.has_value()) {
+			Error(
+				kChannel,
+				"Failed to resolve material instance asset: {}",
+				path.String()
+			);
+			return kInvalidAssetID;
+		}
+
+		DevMsg(
+			kChannel,
+			"Resolved material instance asset: virtualPath={}, mount={}, physicalPath={}",
+			path.String(),
+			resolvedFile->mountId,
+			resolvedFile->resolvedPath.ToUtf8()
+		);
+
+		return LoadMaterialInstanceFromFile(resolvedFile->resolvedPath, policy);
+	}
+
+	AssetID AssetManager::LoadMaterialInstanceFromFile(
+		const Path& path,
+		const AssetLoadPolicy policy
+	) {
+		const Path normalizedPath = path.LexicallyNormal();
+		if (normalizedPath.IsEmpty()) {
+			Warning(kChannel, "Material instance path is empty.");
+			return kInvalidAssetID;
+		}
+		if (!normalizedPath.IsRegularFile()) {
+			Error(
+				kChannel,
+				"Material instance file does not exist: {}",
+				normalizedPath.ToUtf8()
+			);
+			return kInvalidAssetID;
+		}
+
+		return LoadFromResolvedFile(
+			normalizedPath,
+			ASSET_TYPE::MATERIAL_INSTANCE,
+			policy
+		);
+	}
+
+	AssetID AssetManager::LoadFromResolvedFile(
+		const Path&                     normalizedPath,
+		const std::optional<ASSET_TYPE> typeOpt,
+		const AssetLoadPolicy           policy
+	) {
 		Profiler*        profiler = ServiceLocator::Get<Profiler>();
 		std::scoped_lock lock(mMutex);
 
@@ -201,7 +313,22 @@ namespace Unnamed {
 				continue;
 			}
 
-			LoadResult r     = l->Load(normalizedPath);
+			LoadResult r = l->Load(normalizedPath);
+			if (std::holds_alternative<std::monostate>(r.payload)) {
+				n.payload        = std::monostate{};
+				n.meta.type      = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
+				n.meta.loaded    = false;
+				n.meta.runtime   = false;
+				n.meta.destroyed = false;
+				SetDependencies(id, {});
+				Error(
+					kChannel,
+					"Asset loader failed: path={} type={}",
+					normalizedPath,
+					ToString(n.meta.type)
+				);
+				return kInvalidAssetID;
+			}
 			n.payload        = std::move(r.payload);
 			n.meta.type      = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
 			n.meta.loaded    = true;
