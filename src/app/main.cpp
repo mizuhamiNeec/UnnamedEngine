@@ -164,6 +164,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 		.createDemoService = [&] {
 			return loadedGameModule->CreateDemoService();
 		},
+		.sceneLoadOptions = {
+			.assetValidationPolicy =
+				runMode == Unnamed::RUN_MODE::STANDALONE ||
+				launchOptions.validateStartupOnly ?
+					Unnamed::SceneAssetValidationPolicy::Strict :
+					Unnamed::SceneAssetValidationPolicy::Permissive,
+		},
 	};
 	Unnamed::Engine                   engine(runtimeBindings, runMode);
 	const Unnamed::EngineRunCallbacks callbacks = {
