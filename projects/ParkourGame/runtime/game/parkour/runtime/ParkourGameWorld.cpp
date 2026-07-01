@@ -2,8 +2,6 @@
 
 #include <chrono>
 
-#include "core/string/StrUtil.h"
-
 #include "engine/render/frame/RenderFrameInputs.h"
 #include "engine/scene/Scene.h"
 #include "engine/scene/SceneSerializer.h"
@@ -41,7 +39,9 @@ namespace Unnamed {
 		World::RenderTick(renderDeltaTime, interpolationAlpha);
 	}
 
-	bool ParkourGameWorld::LoadSceneFromFile(Path path) {
+	bool ParkourGameWorld::LoadSceneFromFile(
+		const Path path, const SceneLoadOptions& options
+	) {
 		const auto start = std::chrono::steady_clock::now();
 		const bool ok    = [&] {
 			if (path.IsEmpty() || !path.Exists()) {
@@ -56,7 +56,7 @@ namespace Unnamed {
 			auto newScene = std::make_unique<Scene>();
 			newScene->SetWorld(this);
 			const bool loadOk = SceneSerializer::LoadFromFile(
-				*newScene, path, mGuidGenerator
+				*newScene, path, mGuidGenerator, options
 			);
 			if (!loadOk) {
 				return false;

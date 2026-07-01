@@ -6,6 +6,8 @@ namespace Unnamed {
 	/// @brief Parkour ゲーム向けのランタイムワールド実装です。
 	class ParkourGameWorld final : public World {
 	public:
+		using World::LoadSceneFromFile;
+
 		/// @brief デストラクタです。
 		~ParkourGameWorld() override;
 
@@ -19,7 +21,9 @@ namespace Unnamed {
 		void RenderTick(float renderDeltaTime, float interpolationAlpha) override;
 
 		/// @brief シーンファイルをロードします。
-		bool LoadSceneFromFile(Path path) override;
+		bool LoadSceneFromFile(
+			Path path, const SceneLoadOptions& options
+		) override;
 		/// @brief シーンをアンロードします。
 		void UnloadScene() override;
 
