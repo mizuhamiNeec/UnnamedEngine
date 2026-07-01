@@ -106,6 +106,10 @@ namespace Unnamed {
 #endif
 
 		void Deserialize(const JsonReader& reader) override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader,
+			const SceneDeserializeContext& context
+		) override;
 		void Serialize(JsonWriter& writer) const override;
 
 		[[nodiscard]] uint32_t GetIcon() const override;
