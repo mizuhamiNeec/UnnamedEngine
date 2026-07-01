@@ -450,6 +450,12 @@ namespace Unnamed {
 	}
 
 	bool World::LoadSceneFromFile(Path path) {
+		return LoadSceneFromFile(std::move(path), mSceneLoadOptions);
+	}
+
+	bool World::LoadSceneFromFile(
+		Path path, const SceneLoadOptions& options
+	) {
 		if (path.IsEmpty()) {
 			return false;
 		}
@@ -461,7 +467,7 @@ namespace Unnamed {
 		auto newScene = std::make_unique<Scene>();
 		newScene->SetWorld(this);
 		const bool ok = SceneSerializer::LoadFromFile(
-			*newScene, path, mGuidGenerator
+			*newScene, path, mGuidGenerator, options
 		);
 		if (!ok) {
 			return false;
@@ -1328,6 +1334,12 @@ namespace Unnamed {
 		// ワールドごとに必要な外部サービスを保持し、
 		// ServiceLocator への直接依存を減らします。
 		mServices = services;
+	}
+
+	void World::SetSceneLoadOptions(
+		const SceneLoadOptions& options
+	) noexcept {
+		mSceneLoadOptions = options;
 	}
 
 	const WorldServices& World::GetServices() const noexcept {

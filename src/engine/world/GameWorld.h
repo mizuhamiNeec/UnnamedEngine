@@ -5,6 +5,8 @@
 namespace Unnamed {
 	class GameWorld final : public World {
 	public:
+		using World::LoadSceneFromFile;
+
 		~GameWorld() override;
 
 		void Initialize() override;
@@ -12,7 +14,9 @@ namespace Unnamed {
 		void FixedTick(float fixedDeltaTime) override;
 		void RenderTick(float renderDeltaTime, float interpolationAlpha) override;
 
-		bool LoadSceneFromFile(Path path) override;
+		bool LoadSceneFromFile(
+			Path path, const SceneLoadOptions& options
+		) override;
 		void UnloadScene() override;
 
 		void FillRenderFrameInputs(

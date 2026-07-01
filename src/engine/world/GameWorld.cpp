@@ -43,7 +43,9 @@ namespace Unnamed {
 		World::RenderTick(renderDeltaTime, interpolationAlpha);
 	}
 
-	bool GameWorld::LoadSceneFromFile(Path path) {
+	bool GameWorld::LoadSceneFromFile(
+		Path path, const SceneLoadOptions& options
+	) {
 		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
 		if (path.IsEmpty()) {
 			return false;
@@ -64,7 +66,7 @@ namespace Unnamed {
 			auto       newScene = std::make_unique<Scene>();
 			newScene->SetWorld(this);
 			const bool loadOk   = SceneSerializer::LoadFromFile(
-				*newScene, path, mGuidGenerator
+				*newScene, path, mGuidGenerator, options
 			);
 			if (!loadOk) {
 				return false;

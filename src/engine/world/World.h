@@ -8,6 +8,7 @@
 #include "core/guidgenerator/GuidGenerator.h"
 
 #include "engine/render/frame/RenderFrameInputs.h"
+#include "engine/scene/SceneLoadOptions.h"
 #include "engine/sequence/SequenceRuntime.h"
 #include "engine/world/GameplayCueBus.h"
 #include "engine/world/WorldCameraManager.h"
@@ -95,7 +96,15 @@ namespace Unnamed {
 		/// @brief ファイルからシーンをロードします。
 		/// @param path ロードするシーンのファイルパス
 		/// @return ロードに成功した場合はtrue、失敗した場合はfalse
-		virtual bool LoadSceneFromFile(Path path);
+		bool LoadSceneFromFile(Path path);
+
+		/// @brief 指定されたオプションでファイルからシーンをロードします。
+		/// @param path ロードするシーンのファイルパス
+		/// @param options シーン読込オプション
+		/// @return ロードに成功した場合は true、失敗した場合は false
+		virtual bool LoadSceneFromFile(
+			Path path, const SceneLoadOptions& options
+		);
 
 		/// @brief シーンをファイルに保存します。
 		/// @param path 保存するシーンのファイルパス
@@ -217,6 +226,9 @@ namespace Unnamed {
 		/// @param services 注入するサービス群
 		void SetServices(const WorldServices& services) noexcept;
 
+		/// @brief この World の既定シーン読込オプションを設定します。
+		void SetSceneLoadOptions(const SceneLoadOptions& options) noexcept;
+
 		/// @brief World が利用するサービス参照を取得します。
 		/// @return 現在設定されているサービス群
 		[[nodiscard]] const WorldServices& GetServices() const noexcept;
@@ -276,5 +288,6 @@ namespace Unnamed {
 		std::vector<Render::ScreenSpriteInput> mDebugScreenSprites;
 
 		WorldServices mServices;
+		SceneLoadOptions mSceneLoadOptions = {};
 	};
 }
