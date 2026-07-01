@@ -3,9 +3,10 @@
 #include <memory>
 
 #include <core/assets/AssetID.h>
+#include <core/content/ContentPathResolver.h>
 
 #include <engine/EngineConfig.h>
-#include <engine/content/ContentPathResolver.h>
+#include <engine/scene/SceneLoadOptions.h>
 
 class IPostProcess;
 class SrvManager;
@@ -45,6 +46,8 @@ namespace Unnamed {
 		GameRuntimeContext* runtimeContext = nullptr;
 		/// @brief Demo サービス生成関数です。
 		std::function<std::unique_ptr<IDemoService>()> createDemoService = {};
+		/// @brief 起動シーンおよびシーン遷移に使用する読込オプションです。
+		SceneLoadOptions sceneLoadOptions = {};
 	};
 
 	/// @brief Engine 実行時フックです。
@@ -122,7 +125,8 @@ namespace Unnamed {
 		/// @brief 既定起動シーンを解決して読み込みます。
 		[[nodiscard]] static bool LoadDefaultStartupScene(
 			World&                    world,
-			const GameRuntimeContext& runtimeContext
+			const GameRuntimeContext& runtimeContext,
+			const SceneLoadOptions&   options
 		);
 
 		/// @brief Core/Game のコンテンツマウントを初期化します。

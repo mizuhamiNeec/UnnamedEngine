@@ -27,11 +27,12 @@
 #include <core/assets/loader/SoundAssetLoader.h>
 #include <core/assets/loader/TextureLoaderDirectXTex.h>
 #include <core/assets/loader/UiDocumentAssetLoader.h>
+#include <core/content/ContentPathResolver.h>
 #include <core/filesystem/Path.h>
 #include <core/string/StrUtil.h>
 
 #include <engine/EngineComponentRegistration.h>
-#include <engine/content/ContentPathResolver.h>
+#include <engine/content/ContentMountDefinitions.h>
 #include <engine/game/GamePathResolver.h>
 #include <engine/game/GameRuntimeContext.h>
 #include <engine/game/IDemoService.h>
@@ -532,7 +533,14 @@ namespace Unnamed {
 				*mImGuiLayer
 			);
 			if (World* runtimeWorld = mEditorRuntime->GetRuntimeWorld()) {
-				if (!LoadDefaultStartupScene(*runtimeWorld, runtimeContext)) {
+				runtimeWorld->SetSceneLoadOptions(
+					mRuntimeBindings.sceneLoadOptions
+				);
+				if (!LoadDefaultStartupScene(
+					*runtimeWorld,
+					runtimeContext,
+					mRuntimeBindings.sceneLoadOptions
+				)) {
 					return false;
 				}
 			} else {
@@ -571,7 +579,11 @@ namespace Unnamed {
 				return false;
 			}
 			World& world = ActivateWorld(std::move(runtimeWorld));
-			if (!LoadDefaultStartupScene(world, runtimeContext)) {
+			if (
+				!LoadDefaultStartupScene(
+					world, runtimeContext, mRuntimeBindings.sceneLoadOptions
+				)
+			) {
 				return false;
 			}
 		}
@@ -1082,6 +1094,7 @@ namespace Unnamed {
 		}
 
 		newWorld->SetServices(BuildWorldServices());
+		newWorld->SetSceneLoadOptions(mRuntimeBindings.sceneLoadOptions);
 
 		mWorld = std::move(newWorld);
 
@@ -1113,7 +1126,8 @@ namespace Unnamed {
 
 	bool Engine::LoadDefaultStartupScene(
 		World&                    world,
-		const GameRuntimeContext& runtimeContext
+		const GameRuntimeContext& runtimeContext,
+		const SceneLoadOptions&   options
 	) {
 		if (runtimeContext.defaultStartupScene.IsEmpty()) {
 			Error(
@@ -1140,7 +1154,7 @@ namespace Unnamed {
 			return false;
 		}
 
-		if (!world.LoadSceneFromFile(resolution.resolvedPath)) {
+		if (!world.LoadSceneFromFile(resolution.resolvedPath, options)) {
 			Error(
 				"Engine",
 				"Startup scene load failed: virtualPath='{}' physicalPath='{}' mount='{}' root='{}' game='{}'",
