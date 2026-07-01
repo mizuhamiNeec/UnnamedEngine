@@ -13,6 +13,7 @@ namespace Unnamed {
 	class AudioSystem;
 	class JsonWriter;
 	class JsonReader;
+	struct SceneDeserializeContext;
 
 	/// @brief Component は Entity に取り付けられるオブジェクトです。
 	/// @details 取り付けられた Entity にどのように振る舞わせるかを定義します。
@@ -82,6 +83,12 @@ namespace Unnamed {
 
 		/// @brief コンポーネントの値を読み込む際に使用されます。オーバーライド必須
 		virtual void Deserialize(const JsonReader& reader) = 0;
+
+		/// @brief シーン読込文脈を使用してコンポーネントの値を読み込みます。
+		/// @return 読込を継続できる場合は true、シーン読込を失敗させる場合は false。
+		[[nodiscard]] virtual bool Deserialize(
+			const JsonReader& reader, const SceneDeserializeContext& context
+		);
 
 		/// @brief コンポーネントの値を書き込む際に使用されます。オーバーライド必須
 		virtual void Serialize(JsonWriter& writer) const = 0;
