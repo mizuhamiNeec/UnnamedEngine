@@ -26,30 +26,6 @@ namespace Unnamed {
 			return value.Valid() ? value.GetString() : std::string(fallback);
 		}
 
-		[[nodiscard]] std::optional<VirtualPath> ParseSceneAssetVirtualPath(
-			const std::string_view assetPath
-		) {
-			if (assetPath.empty()) {
-				return std::nullopt;
-			}
-
-			const std::string genericPath(assetPath);
-			if (
-				genericPath.starts_with("./") ||
-				genericPath.starts_with("../") ||
-				genericPath.starts_with("content/")
-			) {
-				return std::nullopt;
-			}
-
-			const Path rawPath(genericPath);
-			if (rawPath.IsAbsolute()) {
-				return std::nullopt;
-			}
-
-			return VirtualPath::Parse(genericPath);
-		}
-
 		[[nodiscard]] AssetID ResolveStoredVirtualAssetPath(
 			const Path&                                       storedPath,
 			const char*                                       assetKind,
@@ -146,7 +122,7 @@ namespace Unnamed {
 			SetMeshPath({});
 		} else if (
 			const std::optional<VirtualPath> virtualPath =
-				ParseSceneAssetVirtualPath(meshPath);
+				VirtualPath::ParseContentReference(meshPath);
 			virtualPath.has_value()
 		) {
 			SetMeshPath(Path(virtualPath->String()));
@@ -238,7 +214,7 @@ namespace Unnamed {
 					slot.materialInstancePath = {};
 				} else if (
 					const std::optional<VirtualPath> virtualPath =
-						ParseSceneAssetVirtualPath(slotMaterialPath);
+						VirtualPath::ParseContentReference(slotMaterialPath);
 					virtualPath.has_value()
 				) {
 					slot.materialInstancePath = Path(virtualPath->String());
@@ -323,7 +299,7 @@ namespace Unnamed {
 			SetMaterialInstancePath({});
 		} else if (
 			const std::optional<VirtualPath> virtualPath =
-				ParseSceneAssetVirtualPath(matPath);
+				VirtualPath::ParseContentReference(matPath);
 			virtualPath.has_value()
 		) {
 			// 旧形式（単一 materialInstancePath）から新形式に変換
