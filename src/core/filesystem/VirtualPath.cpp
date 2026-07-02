@@ -120,6 +120,23 @@ namespace Unnamed {
 		return VirtualPath(std::move(normalizedPath));
 	}
 
+	std::optional<VirtualPath> VirtualPath::ParseContentReference(
+		const std::string_view utf8Path
+	) {
+		std::string normalizedSeparators(utf8Path);
+		std::ranges::replace(normalizedSeparators, '\\', '/');
+		if (
+			normalizedSeparators.starts_with("./") ||
+			normalizedSeparators.starts_with("../") ||
+			normalizedSeparators == "content" ||
+			normalizedSeparators.starts_with("content/")
+		) {
+			return std::nullopt;
+		}
+
+		return Parse(utf8Path);
+	}
+
 	VirtualPath VirtualPath::ParseOrThrow(const std::string_view utf8Path) {
 		const std::optional<VirtualPath> result = Parse(utf8Path);
 
