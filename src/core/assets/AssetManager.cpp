@@ -42,7 +42,7 @@ namespace Unnamed {
 
 		[[nodiscard]] Path ResolveAssetLoadPath(
 			const ContentPathResolver& contentPathResolver,
-			const Path& path
+			const Path&                path
 		) {
 			const Path normalizedInput = path.LexicallyNormal();
 			if (normalizedInput.IsEmpty()) {
@@ -140,8 +140,52 @@ namespace Unnamed {
 		return LoadFromResolvedFile(normalizedPath, typeOpt, policy);
 	}
 
+	AssetID AssetManager::LoadTexture(
+		const VirtualPath&    path,
+		const AssetLoadPolicy policy
+	) {
+		const std::optional<ResolvedContentFile> resolvedFile =
+			mContentPathResolver.ResolveFile(path);
+		if (!resolvedFile.has_value()) {
+			Error(kChannel, "Failed to resolve texture asset: {}",
+			      path.String());
+			return kInvalidAssetID;
+		}
+
+		DevMsg(
+			kChannel,
+			"Resolved texture asset: virtualPath={}, mount={}, physicalPath={}",
+			path.String(),
+			resolvedFile->mountId,
+			resolvedFile->resolvedPath.ToUtf8()
+		);
+
+		return LoadTextureFromFile(resolvedFile->resolvedPath, policy);
+	}
+
+	AssetID AssetManager::LoadTextureFromFile(
+		const Path&           path,
+		const AssetLoadPolicy policy
+	) {
+		const Path normalizedPath = path.LexicallyNormal();
+		if (normalizedPath.IsEmpty()) {
+			Warning(kChannel, "Texture path is empty.");
+			return kInvalidAssetID;
+		}
+		if (!normalizedPath.IsRegularFile()) {
+			Error(kChannel, "Texture file does not exist: {}", normalizedPath);
+			return kInvalidAssetID;
+		}
+
+		return LoadFromResolvedFile(
+			normalizedPath,
+			ASSET_TYPE::TEXTURE,
+			policy
+		);
+	}
+
 	AssetID AssetManager::LoadMesh(
-		const VirtualPath& path,
+		const VirtualPath&    path,
 		const AssetLoadPolicy policy
 	) {
 		const std::optional<ResolvedContentFile> resolvedFile =
@@ -167,7 +211,7 @@ namespace Unnamed {
 	}
 
 	AssetID AssetManager::LoadMeshFromFile(
-		const Path& path,
+		const Path&           path,
 		const AssetLoadPolicy policy
 	) {
 		const Path normalizedPath = path.LexicallyNormal();
@@ -192,7 +236,7 @@ namespace Unnamed {
 	}
 
 	AssetID AssetManager::LoadMaterialInstance(
-		const VirtualPath& path,
+		const VirtualPath&    path,
 		const AssetLoadPolicy policy
 	) {
 		const std::optional<ResolvedContentFile> resolvedFile =
@@ -218,7 +262,7 @@ namespace Unnamed {
 	}
 
 	AssetID AssetManager::LoadMaterialInstanceFromFile(
-		const Path& path,
+		const Path&           path,
 		const AssetLoadPolicy policy
 	) {
 		const Path normalizedPath = path.LexicallyNormal();
@@ -254,17 +298,26 @@ namespace Unnamed {
 			const auto cachedIt = mPathToID.
 				find(normalizedPath.ToGenericUtf8());
 			if (cachedIt != mPathToID.end()) {
-				const AssetID cachedId = cachedIt->second;
-				const Node&   cached   = mNodes[cachedId];
+				const AssetID cachedId       = cachedIt->second;
+				const Node&   cached         = mNodes[cachedId];
+				const bool    typeCompatible =
+					!typeOpt.has_value() || cached.meta.type == *typeOpt ||
+					cached.meta.type == ASSET_TYPE::UNKNOWN;
 				if (
-					cached.meta.loaded &&
-					(!typeOpt.has_value() || cached.meta.type == *typeOpt ||
-					 cached.meta.type == ASSET_TYPE::UNKNOWN)
+					cached.meta.loaded && typeCompatible
 				) {
 					if (profiler) {
 						profiler->AddSample("Asset.Load.CacheHit", 1.0f);
 					}
 					return cachedId;
+				}
+				if (cached.meta.loadFailed && typeCompatible) {
+					const FileStamp current = ReadCurrentFileStamp(
+						cached.meta.sourcePath
+					);
+					if (FileStampEquals(current, cached.meta.fileStamp)) {
+						return kInvalidAssetID;
+					}
 				}
 			}
 		}
@@ -300,6 +353,17 @@ namespace Unnamed {
 			}
 			return id;
 		}
+		if (
+			policy == AssetLoadPolicy::UseCachedIfLoaded &&
+			n.meta.loadFailed &&
+			(!typeOpt.has_value() || n.meta.type == *typeOpt ||
+			 n.meta.type == ASSET_TYPE::UNKNOWN)
+		) {
+			const FileStamp current = ReadCurrentFileStamp(n.meta.sourcePath);
+			if (FileStampEquals(current, n.meta.fileStamp)) {
+				return kInvalidAssetID;
+			}
+		}
 		if (profiler) {
 			profiler->AddSample("Asset.Load.CacheMiss", 1.0f);
 		}
@@ -315,11 +379,13 @@ namespace Unnamed {
 
 			LoadResult r = l->Load(normalizedPath);
 			if (std::holds_alternative<std::monostate>(r.payload)) {
-				n.payload        = std::monostate{};
-				n.meta.type      = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
-				n.meta.loaded    = false;
-				n.meta.runtime   = false;
+				n.payload = std::monostate{};
+				n.meta.type = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
+				n.meta.loaded = false;
+				n.meta.loadFailed = true;
+				n.meta.runtime = false;
 				n.meta.destroyed = false;
+				n.meta.fileStamp = ReadCurrentFileStamp(n.meta.sourcePath);
 				SetDependencies(id, {});
 				Error(
 					kChannel,
@@ -329,12 +395,13 @@ namespace Unnamed {
 				);
 				return kInvalidAssetID;
 			}
-			n.payload        = std::move(r.payload);
-			n.meta.type      = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
-			n.meta.loaded    = true;
-			n.meta.runtime   = false;
-			n.meta.destroyed = false;
-			n.meta.fileStamp = CompleteFileStamp(n.meta.sourcePath, r.stamp);
+			n.payload         = std::move(r.payload);
+			n.meta.type       = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
+			n.meta.loaded     = true;
+			n.meta.loadFailed = false;
+			n.meta.runtime    = false;
+			n.meta.destroyed  = false;
+			n.meta.fileStamp  = CompleteFileStamp(n.meta.sourcePath, r.stamp);
 
 			// 名前の解決
 			if (!r.resolveName.empty()) {
@@ -353,8 +420,16 @@ namespace Unnamed {
 			return id;
 		}
 
-		n.meta.loaded = false;
-		return id;
+		n.meta.loaded     = false;
+		n.meta.loadFailed = true;
+		n.meta.fileStamp  = ReadCurrentFileStamp(n.meta.sourcePath);
+		Error(
+			kChannel,
+			"No asset loader accepted file: path={} requestedType={}",
+			normalizedPath,
+			ToString(deduced)
+		);
+		return kInvalidAssetID;
 	}
 
 	template <class T>
@@ -372,6 +447,7 @@ namespace Unnamed {
 		n.meta.runtime         = true;
 		n.meta.destroyed       = false;
 		n.meta.loaded          = true;
+		n.meta.loadFailed      = false;
 		n.payload              = std::forward<T>(payload);
 		mNameToID[n.meta.name] = id;
 
@@ -664,11 +740,20 @@ namespace Unnamed {
 			}
 
 			// 再読み込み
-			LoadResult r     = l->Load(n.meta.sourcePath);
-			n.payload        = std::move(r.payload);
-			n.meta.loaded    = true;
-			n.meta.destroyed = false;
-			n.meta.fileStamp = CompleteFileStamp(n.meta.sourcePath, r.stamp);
+			LoadResult r = l->Load(n.meta.sourcePath);
+			if (std::holds_alternative<std::monostate>(r.payload)) {
+				n.payload         = std::monostate{};
+				n.meta.loaded     = false;
+				n.meta.loadFailed = true;
+				n.meta.fileStamp  = ReadCurrentFileStamp(n.meta.sourcePath);
+				SetDependencies(id, {});
+				return false;
+			}
+			n.payload         = std::move(r.payload);
+			n.meta.loaded     = true;
+			n.meta.loadFailed = false;
+			n.meta.destroyed  = false;
+			n.meta.fileStamp  = CompleteFileStamp(n.meta.sourcePath, r.stamp);
 			n.meta.version++;
 
 			// 依存の設定
@@ -913,6 +998,7 @@ namespace Unnamed {
 		node.meta.type       = type;
 		node.meta.sourcePath = normalized;
 		node.meta.loaded     = false;
+		node.meta.loadFailed = false;
 		node.meta.runtime    = false;
 		node.meta.destroyed  = false;
 		node.meta.name       = Path::ToUtf8String(normalized.FileName());

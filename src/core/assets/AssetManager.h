@@ -54,6 +54,24 @@ namespace Unnamed {
 			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
 		);
 
+		/// @brief マウント済み content からテクスチャをロードします。
+		/// @param path 論理テクスチャパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたテクスチャアセットの ID。
+		[[nodiscard]] AssetID LoadTexture(
+			const VirtualPath& path,
+			AssetLoadPolicy    policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 物理ファイルからテクスチャを直接ロードします。
+		/// @param path 物理テクスチャファイルパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたテクスチャアセットの ID。
+		[[nodiscard]] AssetID LoadTextureFromFile(
+			const Path&     path,
+			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
 		/// @brief マウント済み content からメッシュをロードします。
 		/// @param path 論理メッシュパス。
 		/// @param policy ロードポリシー。
