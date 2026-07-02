@@ -2,7 +2,7 @@
 	"name": "red",
 	"material": "../dev.material.json",
 	"textures": {
-		"BaseColor": "../../textures/error.png"
+		"BaseColor": "textures/error.png"
 	},
 	"scalars": {
 		"Metallic": 0,
