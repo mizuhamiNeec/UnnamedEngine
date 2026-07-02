@@ -16,6 +16,7 @@
 #include "core/assets/types/MeshAssetData.h"
 #include "core/assets/types/PostFxChainAssetData.h"
 #include "core/assets/types/TextureAssetData.h"
+#include "core/filesystem/VirtualPath.h"
 
 #include "engine/rhi/Buffer.h"
 #include "engine/rhi/d3d12/D3D12Device.h"
@@ -34,32 +35,41 @@ namespace Unnamed::Render {
 			}
 		}
 
-		Path ResolveMaterialTextureOverridePath(
+		const MatTextureOverride* ResolveMaterialTextureOverride(
 			const MaterialInstanceAssetData& matInst,
 			const MATERIAL_TEXTURE_SLOT      slot
 		) {
-			auto findOverride = [&matInst](const char* key) -> Path {
+			auto FindOverride = [&matInst](
+				const char* key
+			) -> const MatTextureOverride* {
 				if (const auto it = matInst.textureOverrides.find(key);
 					it != matInst.textureOverrides.end()) {
-					return it->second;
+					return &it->second;
 				}
-				return {};
+				return nullptr;
 			};
 
 			switch (slot) {
-				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: if (Path path =
-							findOverride("BaseColor");
-						!path.IsEmpty()) {
-						return path;
+				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: {
+					if (
+						const MatTextureOverride* textureOverride =
+							FindOverride("BaseColor")
+					) {
+						return textureOverride;
 					}
-					return findOverride("MainTex");
-				case MATERIAL_TEXTURE_SLOT::NORMAL: return findOverride(
-						"Normal");
-				case MATERIAL_TEXTURE_SLOT::ORM: return findOverride("ORM");
-				case MATERIAL_TEXTURE_SLOT::EMISSIVE: return findOverride(
-						"Emissive");
+					return FindOverride("MainTex");
+				}
+				case MATERIAL_TEXTURE_SLOT::NORMAL: {
+					return FindOverride("Normal");
+				}
+				case MATERIAL_TEXTURE_SLOT::ORM: {
+					return FindOverride("ORM");
+				}
+				case MATERIAL_TEXTURE_SLOT::EMISSIVE: {
+					return FindOverride("Emissive");
+				}
 				case MATERIAL_TEXTURE_SLOT::COUNT:
-				default: return {};
+				default: return nullptr;
 			}
 		}
 
@@ -591,8 +601,9 @@ namespace Unnamed::Render {
 		mLoadedMeshAsset = kInvalidAssetID;
 	}
 
-	constexpr std::string_view kDefaultMaterialInstance =
-		"./content/core/materials/instances/dev_default.matinst.json";
+	const VirtualPath kDefaultMaterialInstance = VirtualPath::ParseOrThrow(
+		"materials/instances/dev_default.matinst.json"
+	);
 
 	void Renderer::LoadMaterialResources(
 		RenderDevice& renderDevice, Rhi::D3D12Device& dx
@@ -601,8 +612,8 @@ namespace Unnamed::Render {
 		std::vector<AssetID> requestedMaterialInstances = {};
 		EnsureDefaultMaterialTextures(renderDevice);
 
-		const AssetID materialInstanceId = assetManager.LoadFromFile(
-			Path(kDefaultMaterialInstance), ASSET_TYPE::MATERIAL_INSTANCE
+		const AssetID materialInstanceId = assetManager.LoadMaterialInstance(
+			kDefaultMaterialInstance
 		);
 		if (materialInstanceId != kInvalidAssetID) {
 			requestedMaterialInstances.emplace_back(materialInstanceId);
@@ -794,18 +805,15 @@ namespace Unnamed::Render {
 			}
 
 			auto resolveTexture = [&](const MATERIAL_TEXTURE_SLOT slot) {
-				const Path path = ResolveMaterialTextureOverridePath(
-					*matInst, slot
-				);
-				if (path.IsEmpty()) {
+				const MatTextureOverride* textureOverride =
+					ResolveMaterialTextureOverride(*matInst, slot);
+				if (textureOverride == nullptr) {
 					return GetFallbackTextureId(
 						mDefaultMaterialTextures, slot
 					);
 				}
 
-				const AssetID texId = assetManager.LoadFromFile(
-					path, ASSET_TYPE::TEXTURE
-				);
+				const AssetID texId = textureOverride->assetId;
 				if (slot == MATERIAL_TEXTURE_SLOT::NORMAL) {
 					const auto* texture = assetManager.Get<TextureAssetData>(
 						texId
@@ -815,7 +823,7 @@ namespace Unnamed::Render {
 							"Renderer",
 							"Material instance {} uses an sRGB Normal texture '{}'. Tangent-space DirectX normal maps must be linear.",
 							requestedMaterialInstanceId,
-							path
+							textureOverride->assetPath.String()
 						);
 					}
 				}
@@ -828,7 +836,7 @@ namespace Unnamed::Render {
 							"Renderer",
 							"Material instance {} uses an sRGB ORM texture '{}'. ORM must be linear: R=AO, G=Perceptual Roughness, B=Metallic.",
 							requestedMaterialInstanceId,
-							path
+							textureOverride->assetPath.String()
 						);
 					}
 				}
