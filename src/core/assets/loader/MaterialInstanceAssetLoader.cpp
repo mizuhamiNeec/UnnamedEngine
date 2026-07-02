@@ -1,5 +1,6 @@
 #include "MaterialInstanceAssetLoader.h"
 #include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
 
 #include <filesystem>
 
@@ -8,6 +9,8 @@
 #include "core/io/json/JsonReader.h"
 
 #include "core/string/StrUtil.h"
+
+#include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed {
 	namespace {
@@ -71,28 +74,75 @@ namespace Unnamed {
 
 		// "textures" フィールドがあればテクスチャオーバーライドを読み込む。
 		const JsonReader textures = root["textures"];
-		if (textures.Valid() && textures.IsObject()) {
+		if (textures.Valid() && !textures.IsObject()) {
+			Error(
+				"MaterialInstanceLoader",
+				"Invalid texture references type: materialInstance='{}' field='textures' expected='object'",
+				full
+			);
+			return result;
+		}
+		if (textures.Valid()) {
+			bool textureReferencesValid = true;
 			textures.ForEachObject(
 				[&](
-				const std::string& slot, const JsonReader& texturePathNode
-			) {
+					const std::string& slot, const JsonReader& texturePathNode
+				) {
 					if (!texturePathNode.IsString()) {
+						Error(
+							"MaterialInstanceLoader",
+							"Invalid texture reference type: materialInstance='{}' field='textures.{}' expected='string'",
+							full,
+							slot
+						);
+						textureReferencesValid = false;
 						return;
 					}
-					const Path texturePath = Path::ResolveRelativePath(
-						baseDir.Native(),
-						texturePathNode.GetString()
-					);
-					data.textureOverrides[slot] = texturePath;
 
-					const AssetID textureDep = mAssetManager->LoadFromFile(
-						texturePath, ASSET_TYPE::TEXTURE
-					);
-					if (textureDep != kInvalidAssetID) {
-						result.dependencies.emplace_back(textureDep);
+					const std::string texturePathText =
+						texturePathNode.GetString();
+					const std::optional<VirtualPath> texturePath =
+						VirtualPath::ParseContentReference(texturePathText);
+					if (!texturePath.has_value()) {
+						Error(
+							"MaterialInstanceLoader",
+							"Invalid texture virtual path: materialInstance='{}' field='textures.{}' virtualPath='{}'",
+							full,
+							slot,
+							texturePathText
+						);
+						textureReferencesValid = false;
+						return;
 					}
+
+					const AssetID textureAssetId = mAssetManager->LoadTexture(
+						*texturePath
+					);
+					if (textureAssetId == kInvalidAssetID) {
+						Error(
+							"MaterialInstanceLoader",
+							"Texture dependency load failed: materialInstance='{}' field='textures.{}' virtualPath='{}'",
+							full,
+							slot,
+							texturePath->String()
+						);
+						textureReferencesValid = false;
+						return;
+					}
+
+					data.textureOverrides.insert_or_assign(
+						slot,
+						MatTextureOverride{
+							.assetPath = *texturePath,
+							.assetId   = textureAssetId,
+						}
+					);
+					result.dependencies.emplace_back(textureAssetId);
 				}
 			);
+			if (!textureReferencesValid) {
+				return {};
+			}
 		}
 
 		// "scalars" フィールドがあればスカラーオーバーライドを読み込む。
@@ -113,7 +163,7 @@ namespace Unnamed {
 		if (vectors.Valid() && vectors.IsObject()) {
 			vectors.ForEachObject(
 				[&data](const std::string& k, const JsonReader& v) {
-					data.vectorOverrides[k] = v.GetVec4(Vec4(0, 0, 0, 0));
+					data.vectorOverrides[k] = v.GetVec4(Vec4::zero);
 				}
 			);
 		}
