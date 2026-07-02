@@ -10,6 +10,8 @@
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "ConScrP";
 
+	// TODO: 仮想パスに対応していないので要修正
+	
 	void ConsoleScriptParser::ParseAndExecute(const Path& path) {
 		const auto& native = path.Native();
 
