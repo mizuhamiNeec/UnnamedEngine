@@ -11,19 +11,21 @@
 
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/console/Log.h"
+#include "engine/world/World.h"
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "SceneSerializer";
 
 	bool SceneSerializer::LoadFromFile(
-		Scene& scene, Path path, GuidGenerator& guidGen
+		Scene& scene, Path path, GuidGenerator& guidGen,
+		const SceneLoadOptions& options
 	) {
 		const JsonReader root(path);
 		if (!root.Valid()) {
 			Error(kChannel, "Failed to open scene: {}", path);
 			return false;
 		}
-		return Deserialize(scene, root, guidGen);
+		return Deserialize(scene, root, guidGen, options, path);
 	}
 
 	bool SceneSerializer::SaveToFile(
@@ -58,7 +60,8 @@ namespace Unnamed {
 	}
 
 	bool SceneSerializer::Deserialize(
-		Scene& scene, const JsonReader& root, GuidGenerator& guidGen
+		Scene& scene, const JsonReader& root, GuidGenerator& guidGen,
+		const SceneLoadOptions& options, const Path& scenePath
 	) {
 		scene.Reset();
 
@@ -134,8 +137,27 @@ namespace Unnamed {
 
 				const JsonReader data = c["data"];
 				if (data.Valid()) {
-					// コンポーネントに任せる
-					comp->Deserialize(data);
+					const World* world = scene.GetWorld();
+					const SceneDeserializeContext context{
+						.loadOptions  = options,
+						.assetManager = world ? world->GetAssetManager() : nullptr,
+						.scenePath    = scenePath,
+						.entityName   = name,
+						.entityId     = finalGuid,
+						.componentType = type,
+					};
+					if (!comp->Deserialize(data, context)) {
+						Error(
+							kChannel,
+							"Component deserialize failed: scene='{}' entity='{}' entityId={} component='{}'",
+							scenePath,
+							name,
+							finalGuid,
+							type
+						);
+						scene.Reset();
+						return false;
+					}
 				}
 
 				(void)entity.AddComponentInstance(std::move(comp));
@@ -240,7 +262,11 @@ namespace Unnamed {
 			const auto parseEnd = std::chrono::steady_clock::now();
 			const JsonReader reader(root);
 			const auto deserializeStart = std::chrono::steady_clock::now();
-			const bool ok = Deserialize(dst, reader, guidGen);
+			const SceneLoadOptions options{};
+			const Path scenePath("__clone__.json");
+			const bool ok = Deserialize(
+				dst, reader, guidGen, options, scenePath
+			);
 			const auto deserializeEnd = std::chrono::steady_clock::now();
 
 			DevMsg(
