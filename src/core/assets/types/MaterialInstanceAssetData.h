@@ -4,9 +4,16 @@
 
 #include "core/assets/AssetID.h"
 #include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
 #include "core/math/Vec4.h"
 
 namespace Unnamed {
+	/// @brief Material Instanceのテクスチャオーバーライドです。
+	struct MatTextureOverride final {
+		VirtualPath assetPath;
+		AssetID     assetId = kInvalidAssetID;
+	};
+
 	/// @brief マテリアルインスタンスアセットのデータ構造体
 	struct MaterialInstanceAssetData {
 		std::string name;
@@ -14,8 +21,8 @@ namespace Unnamed {
 		AssetID materialId = kInvalidAssetID;
 		Path    materialPath;
 
-		std::unordered_map<std::string, Path>  textureOverrides;
-		std::unordered_map<std::string, float> scalarOverrides;
-		std::unordered_map<std::string, Vec4>  vectorOverrides;
+		std::unordered_map<std::string, MatTextureOverride> textureOverrides;
+		std::unordered_map<std::string, float>              scalarOverrides;
+		std::unordered_map<std::string, Vec4>               vectorOverrides;
 	};
 }
