@@ -8,6 +8,7 @@
 
 #ifdef _DEBUG
 namespace Unnamed {
+	class AssetManager;
 	class ImGuiLayer;
 
 	namespace Render {
@@ -36,7 +37,9 @@ namespace Unnamed::Gui {
 
 	void DrawUiHierarchyWindow(UiRoot& uiRoot, GuiEditorContext& context);
 	void DrawUiPaletteWindow(UiRoot& uiRoot, GuiEditorContext& context);
-	void DrawUiInspectorWindow(GuiEditorContext& context);
+	void DrawUiInspectorWindow(
+		GuiEditorContext& context, AssetManager& assetManager
+	);
 	void DrawUiEditorMenu(
 		UiDocumentManager&           manager,
 		std::shared_ptr<UiDocument>& activeDocument,

@@ -618,7 +618,9 @@ namespace Unnamed::Gui {
 		ImGui::End();
 	}
 
-	void DrawUiInspectorWindow(GuiEditorContext& context) {
+	void DrawUiInspectorWindow(
+		GuiEditorContext& context, AssetManager& assetManager
+	) {
 		if (!ImGui::Begin("Ui Inspector")) {
 			ImGui::End();
 			return;
@@ -914,8 +916,9 @@ namespace Unnamed::Gui {
 				} else if (
 					auto* texture = dynamic_cast<UiTextureComponent*>(component)
 				) {
-					std::string texturePath =
-						texture->GetTexturePath().ToGenericUtf8();
+					std::string texturePath = texture->GetTexturePath().has_value() ?
+						texture->GetTexturePath()->String() :
+						std::string{};
 					if (
 						ImGuiWidgets::AssetPathPicker(
 							"Texture",
@@ -923,7 +926,15 @@ namespace Unnamed::Gui {
 							ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::TEXTURE)
 						)
 					) {
-						texture->SetTexturePath(Path(texturePath));
+						const auto virtualPath =
+							VirtualPath::ParseContentReference(texturePath);
+						if (!virtualPath.has_value()) {
+							texture->ClearTexturePath();
+						} else {
+							(void)texture->SetTexturePath(
+								*virtualPath, assetManager
+							);
+						}
 						changed = true;
 					}
 
@@ -953,7 +964,9 @@ namespace Unnamed::Gui {
 						component)
 				) {
 					std::string texturePath =
-						strip->GetStripTexturePath().ToGenericUtf8();
+						strip->GetStripTexturePath().has_value() ?
+						strip->GetStripTexturePath()->String() :
+						std::string{};
 					if (
 						ImGuiWidgets::AssetPathPicker(
 							"Strip Texture",
@@ -961,7 +974,15 @@ namespace Unnamed::Gui {
 							ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::TEXTURE)
 						)
 					) {
-						strip->SetStripTexturePath(Path(texturePath));
+						const auto virtualPath =
+							VirtualPath::ParseContentReference(texturePath);
+						if (!virtualPath.has_value()) {
+							strip->ClearStripTexturePath();
+						} else {
+							(void)strip->SetStripTexturePath(
+								*virtualPath, assetManager
+							);
+						}
 						changed = true;
 					}
 
