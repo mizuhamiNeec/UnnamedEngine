@@ -108,7 +108,7 @@ namespace Unnamed::Gui {
 
 		[[nodiscard]] UiComponent* GetComponentByTypeName(
 			std::string_view typeName
-		);
+		) const;
 		[[nodiscard]] const std::vector<std::unique_ptr<UiComponent>>&
 		GetComponents() const;
 		[[nodiscard]] std::vector<std::unique_ptr<UiComponent>>&
@@ -264,10 +264,14 @@ namespace Unnamed::Gui {
 		[[nodiscard]] virtual const char* GetTypeName() const;
 
 		virtual void SaveToJson(JsonWriter& writer) const;
-		virtual void LoadFromJson(const JsonReader& reader);
+		/// @brief UIウィジェットをJSONから復元します。
+		/// @return コンポーネントと子を含めて復元できた場合はtrue。
+		[[nodiscard]] virtual bool LoadFromJson(
+			const JsonReader& reader, const UiDeserializeContext& context
+		);
 
-		static std::unique_ptr<UiWidget> CreateFromJson(
-			const JsonReader& reader
+		[[nodiscard]] static std::unique_ptr<UiWidget> CreateFromJson(
+			const JsonReader& reader, const UiDeserializeContext& context
 		);
 
 	protected:
