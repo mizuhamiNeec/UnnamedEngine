@@ -11,9 +11,6 @@
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
-#include "engine/game/GamePathResolver.h"
-#include "engine/game/GameRuntimeContext.h"
-#include "engine/game/IGameModule.h"
 #include "engine/gui/Rect.h"
 #include "engine/gui/UiRoot.h"
 #include "engine/gui/UiWidget.h"
@@ -24,7 +21,6 @@
 #include "engine/unnamed/framework/components/ui/UiCanvasComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
-#include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 #include "engine/world/World.h"
 
 #include "CourseElapsedTimeFormat.h"
@@ -65,35 +61,6 @@ namespace Unnamed {
 			}
 		}
 #endif
-
-		[[nodiscard]] Path ResolveHudContentPath(
-			const Path& configuredPath,
-			const Path& fallbackRelativePath
-		) {
-			const auto effectivePath = configuredPath.IsEmpty() ?
-				                           fallbackRelativePath :
-				                           configuredPath;
-
-			if (effectivePath.IsEmpty()) {
-				return {};
-			}
-
-			if (const GameRuntimeContext* runtimeContext =
-				ServiceLocator::Get<GameRuntimeContext>()) {
-				return ResolveGameContentPath(
-					runtimeContext->modulePaths,
-					effectivePath
-				).LexicallyNormal();
-			}
-			if (const IGameModule* gameModule = ServiceLocator::Get<
-				IGameModule>()) {
-				return ResolveGameContentPath(
-					gameModule->GetGameModulePaths(),
-					effectivePath
-				).LexicallyNormal();
-			}
-			return effectivePath.LexicallyNormal();
-		}
 	}
 
 	void CourseProgressHudComponent::OnAttached() {
@@ -281,6 +248,7 @@ namespace Unnamed {
 		if (!mUiCanvas || !mUiCanvas->EnsureRuntimeLoaded()) {
 			return;
 		}
+		AssetManager* const assetManager = GetAssetManager();
 
 		const Gui::UiRoot* runtimeRoot = mUiCanvas->GetRuntimeRoot();
 		Gui::UiWidget*     rootWidget  = runtimeRoot ?
@@ -381,11 +349,14 @@ namespace Unnamed {
 					return;
 				}
 				widget->SetVisible(true);
-				strip->SetStripTexturePath(
-					ResolveHudContentPath(mDigitTexturePath,
-					                      Path("textures/digits.png")
-					)
-				);
+				if (assetManager) {
+					(void)strip->SetStripTexturePath(
+						mDigitTexturePath.IsEmpty() ?
+							"textures/digits.png" :
+							mDigitTexturePath.ToGenericUtf8(),
+						*assetManager
+					);
+				}
 				strip->SetMinDigits(2);
 				strip->SetValue(value);
 				Gui::Color color = strip->GetColor();
@@ -407,8 +378,14 @@ namespace Unnamed {
 					return;
 				}
 				widget->SetVisible(true);
-				texture->SetTexturePath(
-					ResolveHudContentPath(path, fallbackPath));
+				if (assetManager) {
+					(void)texture->SetTexturePath(
+						path.IsEmpty() ?
+							fallbackPath.ToGenericUtf8() :
+							path.ToGenericUtf8(),
+						*assetManager
+					);
+				}
 				Gui::Color color = texture->GetColor();
 				color.a          = alpha;
 				texture->SetColor(color);
@@ -452,18 +429,20 @@ namespace Unnamed {
 			pinTexture &&
 			arrowTexture;
 		if (canDrawGuides) {
-			pinTexture->SetTexturePath(
-				ResolveHudContentPath(
-					mPinTexturePath,
-					Path("textures/ping.png")
-				)
-			);
-			arrowTexture->SetTexturePath(
-				ResolveHudContentPath(
-					mArrowTexturePath,
-					Path("textures/arrow.png")
-				)
-			);
+			if (assetManager) {
+				(void)pinTexture->SetTexturePath(
+					mPinTexturePath.IsEmpty() ?
+						"textures/ping.png" :
+						mPinTexturePath.ToGenericUtf8(),
+					*assetManager
+				);
+				(void)arrowTexture->SetTexturePath(
+					mArrowTexturePath.IsEmpty() ?
+						"textures/arrow.png" :
+						mArrowTexturePath.ToGenericUtf8(),
+					*assetManager
+				);
+			}
 		}
 
 		const auto HideBoth = [&]() {
