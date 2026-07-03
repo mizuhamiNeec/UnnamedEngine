@@ -12,9 +12,13 @@ namespace Unnamed::Gui {
 		~UiDocument();
 
 		bool                               Save(const Path& path) const;
-		static std::shared_ptr<UiDocument> Load(const Path& path);
-		static std::shared_ptr<UiDocument> LoadFromJson(
-			const JsonReader& reader, const std::string& sourceLabel
+		[[nodiscard]] static std::shared_ptr<UiDocument> Load(
+			const Path& path, const UiDeserializeContext& context
+		);
+		[[nodiscard]] static std::shared_ptr<UiDocument> LoadFromJson(
+			const JsonReader&           reader,
+			const std::string&          sourceLabel,
+			const UiDeserializeContext& context
 		);
 
 		void               SetName(const std::string& name);
