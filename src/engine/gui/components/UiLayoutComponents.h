@@ -19,7 +19,9 @@ namespace Unnamed::Gui {
 		[[nodiscard]] float GetSpacing() const;
 
 		void Serialize(JsonWriter& writer) const override;
-		void Deserialize(const JsonReader& reader) override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const UiDeserializeContext& context
+		) override;
 		void OnAfterLayout(UiWidget& owner) override;
 
 	protected:

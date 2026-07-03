@@ -29,13 +29,17 @@ namespace Unnamed::Gui {
 		writer.Write(mSpacing);
 	}
 
-	void UiLinearLayoutComponent::Deserialize(const JsonReader& reader) {
+	bool UiLinearLayoutComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		(void)context;
 		if (reader.Has("padding")) {
 			mPadding = ReadPadding(reader["padding"].GetArray());
 		}
 		if (reader.Has("spacing")) {
 			mSpacing = reader["spacing"].GetFloat();
 		}
+		return true;
 	}
 
 	void UiLinearLayoutComponent::OnAfterLayout(UiWidget& owner) {
