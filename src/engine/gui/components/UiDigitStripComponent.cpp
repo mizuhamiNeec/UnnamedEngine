@@ -3,10 +3,11 @@
 #include <algorithm>
 #include <string>
 
-#include "core/filesystem/Path.h"
+#include "core/assets/AssetManager.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
+#include "engine/gui/UiTextureReference.h"
 #include "engine/gui/UiWidget.h"
 
 namespace Unnamed::Gui {
@@ -33,16 +34,49 @@ namespace Unnamed::Gui {
 		}
 	}
 
-	void UiDigitStripComponent::SetStripTexturePath(Path path) {
-		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
-		if (mStripTexturePath == path) {
-			return;
+	bool UiDigitStripComponent::SetStripTexturePath(
+		const VirtualPath& path, AssetManager& assetManager
+	) {
+		if (
+			mStripTexturePath.has_value() && *mStripTexturePath == path &&
+			mStripTextureAssetId != kInvalidAssetID
+		) {
+			return true;
 		}
-		mStripTexturePath = std::move(path);
+		const AssetID assetId = assetManager.LoadTexture(path);
+		if (assetId == kInvalidAssetID) {
+			ClearStripTexturePath();
+			return false;
+		}
+		mStripTexturePath    = path;
+		mStripTextureAssetId = assetId;
+		return true;
 	}
 
-	const Path& UiDigitStripComponent::GetStripTexturePath() const {
+	bool UiDigitStripComponent::SetStripTexturePath(
+		const std::string_view path, AssetManager& assetManager
+	) {
+		const auto virtualPath = VirtualPath::ParseContentReference(path);
+		if (!virtualPath.has_value()) {
+			Error("UI", "Invalid UI texture virtual path: {}", path);
+			ClearStripTexturePath();
+			return false;
+		}
+		return SetStripTexturePath(*virtualPath, assetManager);
+	}
+
+	void UiDigitStripComponent::ClearStripTexturePath() noexcept {
+		mStripTexturePath.reset();
+		mStripTextureAssetId = kInvalidAssetID;
+	}
+
+	const std::optional<VirtualPath>&
+	UiDigitStripComponent::GetStripTexturePath() const noexcept {
 		return mStripTexturePath;
+	}
+
+	AssetID UiDigitStripComponent::GetStripTextureAssetId() const noexcept {
+		return mStripTextureAssetId;
 	}
 
 	void UiDigitStripComponent::SetValue(const int value) {
@@ -81,7 +115,7 @@ namespace Unnamed::Gui {
 		const UiWidget&             owner,
 		std::vector<UiDrawCommand>& out
 	) const {
-		if (!owner.IsVisible() || mStripTexturePath.IsEmpty()) {
+		if (!owner.IsVisible() || mStripTextureAssetId == kInvalidAssetID) {
 			return;
 		}
 
@@ -129,7 +163,7 @@ namespace Unnamed::Gui {
 			UiDrawCommand command = {};
 			command.type = UI_DRAW_COMMAND_TYPE::IMAGE;
 			command.image.rect = Rect(x, rect.y, digitWidth, rect.height);
-			command.image.texturePath = mStripTexturePath;
+			command.image.textureAssetId = mStripTextureAssetId;
 			command.image.color = mColor;
 			command.image.uvMin = Vec2(u0, 0.0f);
 			command.image.uvMax = Vec2(u1, 1.0f);
@@ -138,8 +172,10 @@ namespace Unnamed::Gui {
 	}
 
 	void UiDigitStripComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("stripTexturePath");
-		writer.Write(mStripTexturePath.ToGenericUtf8());
+		if (mStripTexturePath.has_value()) {
+			writer.Key("stripTexturePath");
+			writer.Write(mStripTexturePath->String());
+		}
 		writer.Key("value");
 		writer.Write(mValue);
 		writer.Key("minDigits");
@@ -150,12 +186,17 @@ namespace Unnamed::Gui {
 		WriteColor(writer, mColor);
 	}
 
-	void UiDigitStripComponent::Deserialize(const JsonReader& reader) {
-		if (reader.Has("stripTexturePath")) {
-			SetStripTexturePath(
-				Path(reader["stripTexturePath"].GetString())
-			);
+	bool UiDigitStripComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		UiTextureReference reference;
+		if (!DeserializeUiTextureReference(
+				reader, "stripTexturePath", context, reference)) {
+			ClearStripTexturePath();
+			return false;
 		}
+		mStripTexturePath    = std::move(reference.virtualPath);
+		mStripTextureAssetId = reference.assetId;
 		if (reader.Has("value")) {
 			SetValue(reader["value"].GetInt());
 		}
@@ -168,5 +209,6 @@ namespace Unnamed::Gui {
 		if (reader.Has("color")) {
 			mColor = ReadColor(reader["color"], mColor);
 		}
+		return true;
 	}
 }
