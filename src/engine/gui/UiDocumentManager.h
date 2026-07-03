@@ -20,7 +20,7 @@ namespace Unnamed {
 namespace Unnamed::Gui {
 	class UiDocumentManager {
 	public:
-		explicit UiDocumentManager(AssetManager* assetManager = nullptr);
+		explicit UiDocumentManager(AssetManager& assetManager);
 		~UiDocumentManager();
 
 		std::shared_ptr<UiDocument> LoadDocument(const Path& path);
@@ -53,7 +53,7 @@ namespace Unnamed::Gui {
 		ManagedDocument* FindManaged(const Path& path);
 		const ManagedDocument* FindManaged(const Path& path) const;
 
-		AssetManager* mAssetManager = nullptr;
+		AssetManager& mAssetManager;
 		std::unordered_map<std::string, ManagedDocument> mDocuments;
 	};
 }
