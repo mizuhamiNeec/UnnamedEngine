@@ -1,8 +1,11 @@
 #pragma once
 
+#include <optional>
+
 #include "UiComponent.h"
 
-#include "core/filesystem/Path.h"
+#include "core/assets/AssetID.h"
+#include "core/filesystem/VirtualPath.h"
 
 #include "engine/gui/UiDrawCommand.h"
 
@@ -13,8 +16,19 @@ namespace Unnamed::Gui {
 			return "Texture";
 		}
 
-		void                      SetTexturePath(Path path);
-		[[nodiscard]] const Path& GetTexturePath() const;
+		/// @brief テクスチャ論理パスを解決して設定します。
+		[[nodiscard]] bool SetTexturePath(
+			const VirtualPath& path, AssetManager& assetManager
+		);
+		/// @brief content root基準文字列を検証してテクスチャを設定します。
+		[[nodiscard]] bool SetTexturePath(
+			std::string_view path, AssetManager& assetManager
+		);
+		/// @brief テクスチャ参照を未設定に戻します。
+		void ClearTexturePath() noexcept;
+		[[nodiscard]] const std::optional<VirtualPath>& GetTexturePath()
+		const noexcept;
+		[[nodiscard]] AssetID GetTextureAssetId() const noexcept;
 
 		void                       SetColor(const Color& color);
 		[[nodiscard]] const Color& GetColor() const;
@@ -36,10 +50,13 @@ namespace Unnamed::Gui {
 		) const override;
 
 		void Serialize(JsonWriter& writer) const override;
-		void Deserialize(const JsonReader& reader) override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const UiDeserializeContext& context
+		) override;
 
 	private:
-		Path  mTexturePath;
+		std::optional<VirtualPath> mTexturePath;
+		AssetID mTextureAssetId = kInvalidAssetID;
 		Color mColor       = {.r = 1.0f, .g = 1.0f, .b = 1.0f, .a = 1.0f};
 		Vec2  mUvMin       = Vec2(0.0f, 0.0f);
 		Vec2  mUvMax       = Vec2(1.0f, 1.0f);

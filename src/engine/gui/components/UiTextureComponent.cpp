@@ -2,10 +2,12 @@
 
 #include <algorithm>
 
-#include "core/filesystem/Path.h"
+#include "core/assets/AssetManager.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
+#include "engine/gui/UiDeserializeContext.h"
+#include "engine/gui/UiTextureReference.h"
 #include "engine/gui/UiWidget.h"
 
 namespace Unnamed::Gui {
@@ -46,16 +48,49 @@ namespace Unnamed::Gui {
 		}
 	}
 
-	void UiTextureComponent::SetTexturePath(Path path) {
-		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
-		if (mTexturePath == path) {
-			return;
+	bool UiTextureComponent::SetTexturePath(
+		const VirtualPath& path, AssetManager& assetManager
+	) {
+		if (
+			mTexturePath.has_value() && *mTexturePath == path &&
+			mTextureAssetId != kInvalidAssetID
+		) {
+			return true;
 		}
-		mTexturePath = std::move(path);
+		const AssetID assetId = assetManager.LoadTexture(path);
+		if (assetId == kInvalidAssetID) {
+			ClearTexturePath();
+			return false;
+		}
+		mTexturePath    = path;
+		mTextureAssetId = assetId;
+		return true;
 	}
 
-	const Path& UiTextureComponent::GetTexturePath() const {
+	bool UiTextureComponent::SetTexturePath(
+		const std::string_view path, AssetManager& assetManager
+	) {
+		const auto virtualPath = VirtualPath::ParseContentReference(path);
+		if (!virtualPath.has_value()) {
+			Error("UI", "Invalid UI texture virtual path: {}", path);
+			ClearTexturePath();
+			return false;
+		}
+		return SetTexturePath(*virtualPath, assetManager);
+	}
+
+	void UiTextureComponent::ClearTexturePath() noexcept {
+		mTexturePath.reset();
+		mTextureAssetId = kInvalidAssetID;
+	}
+
+	const std::optional<VirtualPath>& UiTextureComponent::GetTexturePath()
+	const noexcept {
 		return mTexturePath;
+	}
+
+	AssetID UiTextureComponent::GetTextureAssetId() const noexcept {
+		return mTextureAssetId;
 	}
 
 	void UiTextureComponent::SetColor(const Color& color) {
@@ -105,7 +140,7 @@ namespace Unnamed::Gui {
 		const UiWidget&             owner,
 		std::vector<UiDrawCommand>& out
 	) const {
-		if (!owner.IsVisible() || mTexturePath.IsEmpty()) {
+		if (!owner.IsVisible() || mTextureAssetId == kInvalidAssetID) {
 			return;
 		}
 
@@ -117,7 +152,7 @@ namespace Unnamed::Gui {
 		UiDrawCommand command     = {};
 		command.type              = UI_DRAW_COMMAND_TYPE::IMAGE;
 		command.image.rect        = rect;
-		command.image.texturePath = mTexturePath;
+		command.image.textureAssetId = mTextureAssetId;
 		command.image.color       = mColor;
 		command.image.uvMin       = mUvMin;
 		command.image.uvMax       = mUvMax;
@@ -127,8 +162,10 @@ namespace Unnamed::Gui {
 	}
 
 	void UiTextureComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("texturePath");
-		writer.Write(mTexturePath.ToGenericUtf8());
+		if (mTexturePath.has_value()) {
+			writer.Key("texturePath");
+			writer.Write(mTexturePath->String());
+		}
 		writer.Key("color");
 		WriteColor(writer, mColor);
 		writer.Key("uvMin");
@@ -141,10 +178,17 @@ namespace Unnamed::Gui {
 		writer.Write(mRotationRad);
 	}
 
-	void UiTextureComponent::Deserialize(const JsonReader& reader) {
-		if (reader.Has("texturePath")) {
-			SetTexturePath(Path(reader["texturePath"].GetString()));
+	bool UiTextureComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		UiTextureReference reference;
+		if (!DeserializeUiTextureReference(
+				reader, "texturePath", context, reference)) {
+			ClearTexturePath();
+			return false;
 		}
+		mTexturePath    = std::move(reference.virtualPath);
+		mTextureAssetId = reference.assetId;
 		if (reader.Has("color")) {
 			mColor = ReadColor(reader["color"], mColor);
 		}
@@ -160,5 +204,6 @@ namespace Unnamed::Gui {
 		if (reader.Has("rotationRad")) {
 			SetRotationRad(reader["rotationRad"].GetFloat(mRotationRad));
 		}
+		return true;
 	}
 }
