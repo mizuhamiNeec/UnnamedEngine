@@ -56,7 +56,11 @@ namespace Unnamed::Gui {
 		(void)writer;
 	}
 
-	void UiComponent::Deserialize(const JsonReader& reader) {
+	bool UiComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
 		(void)reader;
+		(void)context;
+		return true;
 	}
 }
