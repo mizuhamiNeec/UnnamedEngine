@@ -90,7 +90,10 @@ namespace Unnamed::Gui {
 		WriteColor(writer, mBorderColor);
 	}
 
-	void UiPanelStyleComponent::Deserialize(const JsonReader& reader) {
+	bool UiPanelStyleComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		(void)context;
 		if (reader.Has("fillColor")) {
 			mBackgroundColor = ReadColor(reader["fillColor"], mBackgroundColor);
 		}
@@ -103,5 +106,6 @@ namespace Unnamed::Gui {
 		if (reader.Has("borderColor")) {
 			mBorderColor = ReadColor(reader["borderColor"], mBorderColor);
 		}
+		return true;
 	}
 }

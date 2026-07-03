@@ -27,7 +27,9 @@ namespace Unnamed::Gui {
 			const UiWidget& owner, std::vector<UiDrawCommand>& out
 		) const override;
 		void Serialize(JsonWriter& writer) const override;
-		void Deserialize(const JsonReader& reader) override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const UiDeserializeContext& context
+		) override;
 
 	private:
 		Color mBackgroundColor = {
