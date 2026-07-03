@@ -62,6 +62,7 @@ namespace Unnamed {
 		};
 
 		ImGuiLayer& mImGuiLayer;
+		AssetManager* mAssetManager = nullptr;
 
 		bool mOpen = false;
 		bool mInitialized = false;

@@ -13,7 +13,6 @@
 #include "engine/render/Renderer.h"
 #include "engine/ui/ImGuiLayer.h"
 #include "engine/unnamed/subsystem/console/Log.h"
-#include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 
 namespace Unnamed {
 	GuiEditorTool::GuiEditorTool(ImGuiLayer& imGuiLayer)
@@ -21,13 +20,17 @@ namespace Unnamed {
 	}
 
 	void GuiEditorTool::Initialize(const EditorToolServices& services) {
-		(void)services;
 		if (mInitialized) {
 			return;
 		}
+		if (!services.assetManager) {
+			Error(kChannelNone, "AssetManager is not available for GUI Editor.");
+			return;
+		}
 
+		mAssetManager = services.assetManager;
 		mGuiDocumentManager = std::make_unique<Gui::UiDocumentManager>(
-			ServiceLocator::Get<AssetManager>()
+			*mAssetManager
 		);
 		mGuiEditorRoot        = std::make_unique<Gui::UiRoot>();
 		mGuiEditorScreenStack = std::make_unique<Gui::UiScreenStack>(
@@ -45,6 +48,7 @@ namespace Unnamed {
 		mGuiEditorRoot.reset();
 		mGuiActiveDocument.reset();
 		mGuiDocumentManager.reset();
+		mAssetManager = nullptr;
 		mGuiEditorDockInitialized = false;
 		mInitialized              = false;
 	}
@@ -161,7 +165,7 @@ namespace Unnamed {
 		ImGui::SetNextWindowDockID(dockSpaceId, dockCond);
 		Gui::DrawUiPaletteWindow(*mGuiEditorRoot, *mGuiEditorContext);
 		ImGui::SetNextWindowDockID(dockSpaceId, dockCond);
-		Gui::DrawUiInspectorWindow(*mGuiEditorContext);
+		Gui::DrawUiInspectorWindow(*mGuiEditorContext, *mAssetManager);
 
 		if (mGuiEditorContext->documentChanged) {
 			const Path trackingPath =
@@ -206,7 +210,6 @@ namespace Unnamed {
 
 		mGuiPreviewSprites.clear();
 		mGuiPreviewSprites.reserve(mGuiPreviewDrawCommands.size());
-		auto* assetManager = ServiceLocator::Get<AssetManager>();
 		for (size_t i = 0; i < mGuiPreviewDrawCommands.size(); ++i) {
 			const auto& draw = mGuiPreviewDrawCommands[i];
 			if (draw.type == Gui::UI_DRAW_COMMAND_TYPE::RECT) {
@@ -224,15 +227,6 @@ namespace Unnamed {
 						draw.image,
 						static_cast<int32_t>(i)
 					);
-				if (assetManager && !draw.image.texturePath.IsEmpty()) {
-					const AssetID textureAssetId = assetManager->LoadFromFile(
-						Path(draw.image.texturePath),
-						ASSET_TYPE::TEXTURE
-					);
-					if (textureAssetId != kInvalidAssetID) {
-						sprite.texture.textureAssetId = textureAssetId;
-					}
-				}
 				mGuiPreviewSprites.emplace_back(std::move(sprite));
 				continue;
 			}
