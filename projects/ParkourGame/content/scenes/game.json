@@ -1154,7 +1154,7 @@
                     "active": true,
                     "data": {
                         "intensity": 1.0,
-                        "texturePath": "content/core/textures/wave.dds"
+                        "texturePath": "textures/wave.dds"
                     },
                     "guid": 13523057102086617376,
                     "type": "engine.Skybox"
