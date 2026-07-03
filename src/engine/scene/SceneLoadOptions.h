@@ -9,15 +9,15 @@ namespace Unnamed {
 	class AssetManager;
 
 	/// @brief シーン内アセット参照の検証方針です。
-	enum class SCENE_ASSET_VALIDATION_POLICY : uint8_t {
-		PERMISSIVE,
-		STRICT,
+	enum class SceneAssetValidationPolicy : uint8_t {
+		Permissive,
+		Strict,
 	};
 
 	/// @brief シーン読込時の動作を指定します。
 	struct SceneLoadOptions final {
-		SCENE_ASSET_VALIDATION_POLICY assetValidationPolicy =
-			SCENE_ASSET_VALIDATION_POLICY::PERMISSIVE;
+		SceneAssetValidationPolicy assetValidationPolicy =
+			SceneAssetValidationPolicy::Permissive;
 	};
 
 	/// @brief コンポーネントのシーンデシリアライズに必要な文脈です。
@@ -35,15 +35,15 @@ namespace Unnamed {
 		const SceneLoadOptions& options
 	) noexcept {
 		return options.assetValidationPolicy ==
-			SCENE_ASSET_VALIDATION_POLICY::STRICT;
+			SceneAssetValidationPolicy::Strict;
 	}
 
 	/// @brief シーン検証方針を汎用アセット参照検証方針へ変換します。
 	[[nodiscard]] constexpr AssetReferenceValidationPolicy
 	ToAssetReferenceValidationPolicy(
-		const SCENE_ASSET_VALIDATION_POLICY policy
+		const SceneAssetValidationPolicy policy
 	) noexcept {
-		return policy == SCENE_ASSET_VALIDATION_POLICY::STRICT ?
+		return policy == SceneAssetValidationPolicy::Strict ?
 			AssetReferenceValidationPolicy::Strict :
 			AssetReferenceValidationPolicy::Permissive;
 	}
