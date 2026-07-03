@@ -42,7 +42,10 @@ namespace Unnamed::Gui {
 		WriteConstraints(writer, mSizeConstraints);
 	}
 
-	void UiTransformComponent::Deserialize(const JsonReader& reader) {
+	bool UiTransformComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		(void)context;
 		if (reader.Has("rect")) {
 			mRect = ReadRect(reader["rect"].GetArray());
 		}
@@ -62,6 +65,7 @@ namespace Unnamed::Gui {
 			mSizeConstraints = ReadConstraints(reader["constraints"]);
 		}
 		mNeedsApply = true;
+		return true;
 	}
 
 	void UiTransformComponent::SyncFromWidget(const UiWidget& owner) {
