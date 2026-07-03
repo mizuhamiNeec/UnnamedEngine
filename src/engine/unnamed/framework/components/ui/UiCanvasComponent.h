@@ -7,6 +7,8 @@
 #include "core/filesystem/Path.h"
 
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
+#include "engine/content/AssetReferenceValidationPolicy.h"
+#include "engine/gui/UiDeserializeContext.h"
 
 #include "core/math/Vec2.h"
 
@@ -40,6 +42,9 @@ namespace Unnamed {
 		}
 
 		void Deserialize(const JsonReader& reader) override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const SceneDeserializeContext& context
+		) override;
 		void Serialize(JsonWriter& writer) const override;
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
@@ -77,6 +82,9 @@ namespace Unnamed {
 		void OnDetached() override;
 
 	private:
+		[[nodiscard]] bool EnsureRuntimeLoaded(
+			const Gui::UiDeserializeContext& context
+		);
 		void InvalidateRuntime();
 
 		Path mUiAssetPath;
@@ -93,5 +101,7 @@ namespace Unnamed {
 		uint64_t                     mLoadedAssetVersion = 0;
 		std::unique_ptr<Gui::UiRoot> mRuntimeRoot;
 		bool                         mLoggedLoadFailure = false;
+		AssetReferenceValidationPolicy mAssetValidationPolicy =
+			AssetReferenceValidationPolicy::Permissive;
 	};
 }

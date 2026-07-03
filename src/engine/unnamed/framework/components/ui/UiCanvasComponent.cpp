@@ -13,7 +13,9 @@
 #include "core/io/json/JsonWriter.h"
 
 #include "engine/gui/UiDocument.h"
+#include "engine/gui/UiDeserializeContext.h"
 #include "engine/gui/UiRoot.h"
+#include "engine/scene/SceneLoadOptions.h"
 #include "engine/game/GameRuntimeContext.h"
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
@@ -113,6 +115,31 @@ namespace Unnamed {
 		if (reader.Has("receiveInput")) {
 			SetReceiveInput(reader["receiveInput"].GetBool());
 		}
+	}
+
+	bool UiCanvasComponent::Deserialize(
+		const JsonReader& reader, const SceneDeserializeContext& context
+	) {
+		Deserialize(reader);
+		mAssetValidationPolicy = ToAssetReferenceValidationPolicy(
+			context.loadOptions.assetValidationPolicy
+		);
+
+		if (!context.assetManager) {
+			Error(
+				kChannel,
+				"AssetManager is not available while loading UI asset '{}'.",
+				mUiAssetPath
+			);
+			return !IsStrictAssetValidation(mAssetValidationPolicy);
+		}
+
+		const Gui::UiDeserializeContext uiContext{
+			.assetManager          = *context.assetManager,
+			.assetValidationPolicy = mAssetValidationPolicy,
+		};
+		const bool loaded = EnsureRuntimeLoaded(uiContext);
+		return loaded || !IsStrictAssetValidation(mAssetValidationPolicy);
 	}
 
 	void UiCanvasComponent::Serialize(JsonWriter& writer) const {
@@ -264,15 +291,7 @@ namespace Unnamed {
 	}
 
 	bool UiCanvasComponent::EnsureRuntimeLoaded() {
-		if (mUiAssetPath.IsEmpty()) {
-			if (!mLoggedLoadFailure) {
-				Error(kChannel, "UI asset path is empty.");
-				mLoggedLoadFailure = true;
-			}
-			return false;
-		}
-
-		auto* assetManager = GetAssetManager();
+		AssetManager* assetManager = GetAssetManager();
 		if (!assetManager) {
 			if (!mLoggedLoadFailure) {
 				Error(kChannel, "AssetManager is not available.");
@@ -281,8 +300,26 @@ namespace Unnamed {
 			return false;
 		}
 
+		const Gui::UiDeserializeContext context{
+			.assetManager          = *assetManager,
+			.assetValidationPolicy = mAssetValidationPolicy,
+		};
+		return EnsureRuntimeLoaded(context);
+	}
+
+	bool UiCanvasComponent::EnsureRuntimeLoaded(
+		const Gui::UiDeserializeContext& context
+	) {
+		if (mUiAssetPath.IsEmpty()) {
+			if (!mLoggedLoadFailure) {
+				Error(kChannel, "UI asset path is empty.");
+				mLoggedLoadFailure = true;
+			}
+			return false;
+		}
+
 		if (mUiAssetId == kInvalidAssetID || mLoadedAssetPath != mUiAssetPath) {
-			mUiAssetId = assetManager->LoadFromFile(
+			mUiAssetId = context.assetManager.LoadFromFile(
 				mUiAssetPath, ASSET_TYPE::UI_DOCUMENT
 			);
 			mLoadedAssetVersion = 0;
@@ -297,7 +334,7 @@ namespace Unnamed {
 			return false;
 		}
 
-		const auto& meta = assetManager->Meta(mUiAssetId);
+		const auto& meta = context.assetManager.Meta(mUiAssetId);
 		if (
 			mRuntimeRoot &&
 			mLoadedAssetPath == mUiAssetPath &&
@@ -306,7 +343,7 @@ namespace Unnamed {
 			return true;
 		}
 
-		const auto* assetData = assetManager->Get<UiDocumentAssetData>(
+		const auto* assetData = context.assetManager.Get<UiDocumentAssetData>(
 			mUiAssetId
 		);
 		if (!assetData) {
@@ -321,7 +358,8 @@ namespace Unnamed {
 
 		const auto document = Gui::UiDocument::LoadFromJson(
 			JsonReader(assetData->rootJson),
-			mUiAssetPath.ToGenericUtf8()
+			mUiAssetPath.ToGenericUtf8(),
+			context
 		);
 		if (!document) {
 			if (!mLoggedLoadFailure) {
