@@ -163,7 +163,10 @@ namespace Unnamed::Gui {
 		writer.Write(mFontSize);
 	}
 
-	void UiButtonBehaviorComponent::Deserialize(const JsonReader& reader) {
+	bool UiButtonBehaviorComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		(void)context;
 		if (reader.Has("text")) {
 			mText = reader["text"].GetString();
 		}
@@ -188,5 +191,6 @@ namespace Unnamed::Gui {
 		if (reader.Has("fontSize")) {
 			mFontSize = reader["fontSize"].GetFloat();
 		}
+		return true;
 	}
 }

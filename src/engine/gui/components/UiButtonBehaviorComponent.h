@@ -39,7 +39,9 @@ namespace Unnamed::Gui {
 		) const override;
 		void OnClick(UiWidget& owner) override;
 		void Serialize(JsonWriter& writer) const override;
-		void Deserialize(const JsonReader& reader) override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const UiDeserializeContext& context
+		) override;
 
 	private:
 		std::string           mText;
