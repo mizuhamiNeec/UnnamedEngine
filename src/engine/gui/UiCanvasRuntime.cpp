@@ -44,7 +44,7 @@ namespace Unnamed {
 		) {
 			Render::ScreenSpriteInput sprite = {};
 			sprite.texture.source = Render::SPRITE_TEXTURE_SOURCE::ASSET;
-			sprite.texture.textureAssetId = kInvalidAssetID;
+			sprite.texture.textureAssetId = image.textureAssetId;
 			sprite.positionPx = Vec2(
 				image.rect.x + image.anchor.x * image.rect.width,
 				image.rect.y + image.anchor.y * image.rect.height
