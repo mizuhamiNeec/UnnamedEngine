@@ -615,12 +615,10 @@ namespace Unnamed {
 			}
 
 			if (!sceneView.skybox.enabled) {
-				auto* skybox = entity->GetComponent<SkyboxComponent>();
+				const auto* skybox = entity->GetComponent<SkyboxComponent>();
 				if (skybox && skybox->IsActive()) {
 					const AssetID skyboxTextureAssetId =
-						skybox->ResolveTextureAsset(
-							assetManager
-						);
+						skybox->GetTextureAssetId();
 					if (skyboxTextureAssetId != kInvalidAssetID) {
 						sceneView.skybox.enabled = true;
 						sceneView.skybox.textureAssetId = skyboxTextureAssetId;
@@ -989,16 +987,6 @@ namespace Unnamed {
 				if (draw.type == Gui::UI_DRAW_COMMAND_TYPE::IMAGE) {
 					Render::ScreenSpriteInput sprite =
 						UiCanvasRuntime::BuildScreenSprite(draw.image, sort);
-					if (!draw.image.texturePath.IsEmpty()) {
-						const AssetID textureAssetId = assetManager.
-							LoadFromFile(
-								draw.image.texturePath,
-								ASSET_TYPE::TEXTURE
-							);
-						if (textureAssetId != kInvalidAssetID) {
-							sprite.texture.textureAssetId = textureAssetId;
-						}
-					}
 
 					if (
 						entry.canvas->GetSpaceMode() ==
