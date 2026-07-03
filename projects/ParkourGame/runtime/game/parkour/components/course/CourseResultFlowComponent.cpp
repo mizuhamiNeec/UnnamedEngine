@@ -620,6 +620,7 @@ namespace Unnamed {
 	)
 	const {
 		const float clampedAlpha = std::clamp(alpha, 0.0f, 1.0f);
+		AssetManager* const assetManager = GetAssetManager();
 		if (mResultRootWidget) {
 			mResultRootWidget->SetVisible(clampedAlpha > 0.0f);
 			mResultRootWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
@@ -629,10 +630,14 @@ namespace Unnamed {
 			mClearImageWidget->SetVisible(clampedAlpha > 0.0f);
 		}
 		if (mClearImageTexture) {
-			mClearImageTexture->SetTexturePath(
-				ResolveResultContentPath(mClearTexturePath,
-				                         Path("textures/clear.png"))
-			);
+			if (assetManager) {
+				(void)mClearImageTexture->SetTexturePath(
+					mClearTexturePath.IsEmpty() ?
+						"textures/clear.png" :
+						mClearTexturePath.ToGenericUtf8(),
+					*assetManager
+				);
+			}
 			Gui::Color color = mClearImageTexture->GetColor();
 			color.a          = clampedAlpha;
 			mClearImageTexture->SetColor(color);
@@ -666,12 +671,14 @@ namespace Unnamed {
 					return;
 				}
 				widget->SetVisible(clampedAlpha > 0.0f);
-				strip->SetStripTexturePath(
-					ResolveResultContentPath(
-						mDigitTexturePath,
-						Path("textures/digits.png")
-					)
-				);
+				if (assetManager) {
+					(void)strip->SetStripTexturePath(
+						mDigitTexturePath.IsEmpty() ?
+							"textures/digits.png" :
+							mDigitTexturePath.ToGenericUtf8(),
+						*assetManager
+					);
+				}
 				strip->SetMinDigits(2);
 				strip->SetValue(value);
 				Gui::Color color = strip->GetColor();
@@ -696,8 +703,14 @@ namespace Unnamed {
 					return;
 				}
 				widget->SetVisible(clampedAlpha > 0.0f);
-				texture->SetTexturePath(
-					ResolveResultContentPath(path, fallbackPath));
+				if (assetManager) {
+					(void)texture->SetTexturePath(
+						path.IsEmpty() ?
+							fallbackPath.ToGenericUtf8() :
+							path.ToGenericUtf8(),
+						*assetManager
+					);
+				}
 				Gui::Color color = texture->GetColor();
 				color.a          = clampedAlpha;
 				texture->SetColor(color);
@@ -720,12 +733,14 @@ namespace Unnamed {
 				std::lround(std::max(0.0f, mLatchedElapsedSeconds) *
 				            mElapsedDisplayScale)
 			);
-			mElapsedDigits->SetStripTexturePath(
-				ResolveResultContentPath(
-					mDigitTexturePath,
-					Path("textures/digits.png")
-				)
-			);
+			if (assetManager) {
+				(void)mElapsedDigits->SetStripTexturePath(
+					mDigitTexturePath.IsEmpty() ?
+						"textures/digits.png" :
+						mDigitTexturePath.ToGenericUtf8(),
+					*assetManager
+				);
+			}
 			mElapsedDigits->SetMinDigits(mElapsedDigitsMinDigits);
 			mElapsedDigits->SetValue(displayValue);
 			Gui::Color color = mElapsedDigits->GetColor();
