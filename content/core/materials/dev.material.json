@@ -1,6 +1,6 @@
 {
 	"name": "dev_material",
-	"shader": "../shaders/programs/pbr.shader.json",
+	"shader": "shaders/programs/pbr.shader.json",
 	"domain": "pbr",
 	"shadingModel": "LitPBR",
 	"renderState": {

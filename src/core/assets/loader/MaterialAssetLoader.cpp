@@ -1,5 +1,6 @@
 #include "MaterialAssetLoader.h"
 #include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
 
 #include <filesystem>
 
@@ -100,8 +101,7 @@ namespace Unnamed {
 			return result;
 		}
 
-		const Path full    = path.LexicallyNormal();
-		const Path baseDir = full.ParentPath();
+		const Path full = path.LexicallyNormal();
 
 		MaterialAssetData data = {};
 
@@ -120,21 +120,45 @@ namespace Unnamed {
 			data.shadingModel = MATERIAL_SHADING_MODEL::UNLIT;
 		}
 
-		// "shader" フィールドがあればシェーダープログラムを読み込む。
-		if (const auto shader = root.Read<std::string>("shader");
-			shader.has_value() && !shader->empty()) {
-			data.shaderProgramPath = Path::ResolveRelativePath(
-				baseDir.Native(),
-				*shader
+		// ShaderProgramはMaterialの成立に必須。
+		const JsonReader shaderPathNode = root["shader"];
+		if (!shaderPathNode.Valid() || !shaderPathNode.IsString()) {
+			Error(
+				"MaterialLoader",
+				"Invalid shader reference type: material='{}' field='shader' expected='string'",
+				full
 			);
-			data.shaderProgramId = mAssetManager->LoadFromFile(
-				data.shaderProgramPath,
-				ASSET_TYPE::SHADER_PROGRAM
-			);
-			if (data.shaderProgramId != kInvalidAssetID) {
-				result.dependencies.emplace_back(data.shaderProgramId);
-			}
+			return result;
 		}
+
+		const std::string shaderPathText = shaderPathNode.GetString();
+		const std::optional<VirtualPath> shaderPath =
+			VirtualPath::ParseContentReference(shaderPathText);
+		if (!shaderPath.has_value()) {
+			Error(
+				"MaterialLoader",
+				"Invalid shader program virtual path: material='{}' field='shader' virtualPath='{}'",
+				full,
+				shaderPathText
+			);
+			return result;
+		}
+
+		data.shaderProgramPath = *shaderPath;
+		data.shaderProgramId   = mAssetManager->LoadAsset(
+			*shaderPath,
+			ASSET_TYPE::SHADER_PROGRAM
+		);
+		if (data.shaderProgramId == kInvalidAssetID) {
+			Error(
+				"MaterialLoader",
+				"Shader program dependency load failed: material='{}' field='shader' virtualPath='{}'",
+				full,
+				shaderPath->String()
+			);
+			return result;
+		}
+		result.dependencies.emplace_back(data.shaderProgramId);
 
 		// "renderState" フィールドがあればレンダーステートを読み込む。
 		const JsonReader rs = root["renderState"];

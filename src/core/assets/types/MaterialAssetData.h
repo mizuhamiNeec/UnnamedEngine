@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 #include "core/assets/AssetID.h"
-#include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
 #include "core/math/Vec4.h"
 
 namespace Unnamed {
@@ -49,7 +49,7 @@ namespace Unnamed {
 		std::string name;
 
 		AssetID                shaderProgramId = kInvalidAssetID;
-		Path                   shaderProgramPath;
+		VirtualPath            shaderProgramPath;
 		MATERIAL_DOMAIN        domain       = MATERIAL_DOMAIN::PBR_METAL_ROUGH;
 		MATERIAL_SHADING_MODEL shadingModel =
 			MATERIAL_SHADING_MODEL::LIT_PBR;
