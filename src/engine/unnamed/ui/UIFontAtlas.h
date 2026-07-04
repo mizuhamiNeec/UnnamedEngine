@@ -9,6 +9,7 @@
 
 #include "core/assets/AssetID.h"
 #include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
 #include "core/math/Vec2.h"
 
 namespace Unnamed {
@@ -18,7 +19,7 @@ namespace Unnamed {
 namespace Unnamed::UI {
 	/// @brief UIフォントアトラスを一意に識別するキーです。
 	struct UIFontAtlasKey {
-		Path     fontPath    = {};
+		VirtualPath fontPath = {};
 		int32_t  fontSize100 = 2000;
 		uint32_t oversampleH = 1;
 		uint32_t oversampleV = 1;
@@ -29,7 +30,7 @@ namespace Unnamed::UI {
 
 	/// @brief フォントサイズとoversampleからUIFontAtlasKeyを生成します。
 	[[nodiscard]] UIFontAtlasKey MakeUIFontAtlasKey(
-		const Path& fontPath,
+		const VirtualPath& fontPath,
 		float       fontSizePx,
 		uint32_t    oversampleH,
 		uint32_t    oversampleV
@@ -115,9 +116,7 @@ namespace Unnamed::UI {
 		float    mDescentPx      = 0.0f;
 		float    mLineGapPx      = 0.0f;
 		float    mLineHeightPx   = 20.0f;
-		Path     mFontPath       = Path(
-			R"(.\content\core\fonts\JetBrainsMono.ttf)"
-		);
+		Path     mFontPath       = {};
 		bool                                 mInitialized = false;
 		std::array<UIGlyph, kGlyphTableSize> mGlyphs      = {};
 	};
@@ -138,7 +137,9 @@ namespace Unnamed::UI {
 	public:
 		/// @brief 同一キーなら既存Atlas、未作成なら新規生成して返します。
 		[[nodiscard]] UIFontAtlas* GetOrCreate(
-			const UIFontAtlasKey& key, AssetManager& assetManager
+			const UIFontAtlasKey& key,
+			const Path&           resolvedFontPath,
+			AssetManager&         assetManager
 		);
 
 		/// @brief キャッシュ内容をクリアし、保持しているruntime texture assetを破棄します。

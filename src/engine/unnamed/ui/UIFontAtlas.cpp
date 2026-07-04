@@ -95,13 +95,13 @@ namespace Unnamed::UI {
 	}
 
 	UIFontAtlasKey MakeUIFontAtlasKey(
-		const Path&    fontPath,
+		const VirtualPath& fontPath,
 		const float    fontSizePx,
 		const uint32_t oversampleH,
 		const uint32_t oversampleV
 	) {
 		UIFontAtlasKey key = {};
-		key.fontPath = fontPath.IsEmpty() ? Path() : fontPath.LexicallyNormal();
+		key.fontPath = fontPath;
 		key.fontSize100 = static_cast<int32_t>(std::lround(
 			std::clamp(fontSizePx, 8.0f, 96.0f) * 100.0f
 		));
@@ -450,7 +450,9 @@ namespace Unnamed::UI {
 	}
 
 	UIFontAtlas* UIFontAtlasCache::GetOrCreate(
-		const UIFontAtlasKey& key, AssetManager& assetManager
+		const UIFontAtlasKey& key,
+		const Path&           resolvedFontPath,
+		AssetManager&         assetManager
 	) {
 		++mUseCounter;
 		for (CacheEntry& entry : mEntries) {
@@ -466,7 +468,7 @@ namespace Unnamed::UI {
 		}
 
 		auto atlas = std::make_unique<UIFontAtlas>();
-		atlas->SetFontPath(key.fontPath);
+		atlas->SetFontPath(resolvedFontPath);
 		atlas->SetFontPixelSize(KeyToFontSizePx(key));
 		atlas->SetOversampling(key.oversampleH, key.oversampleV);
 		if (!atlas->EnsureInitialized(assetManager)) {
