@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "engine/unnamed/ui/UnnamedUIDrawList.h"
@@ -8,6 +9,13 @@
 #include "../base/BaseComponent.h"
 
 #include "engine/unnamed/ui/UIContext.h"
+#include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
+#include "engine/content/AssetReferenceValidationPolicy.h"
+
+namespace Unnamed::UI {
+	class UIFontAtlas;
+}
 
 namespace Unnamed {
 	class NewUICanvas : public BaseComponent {
@@ -31,17 +39,36 @@ namespace Unnamed {
 		[[nodiscard]] std::string_view GetComponentName() const override;
 		void                           Deserialize(const JsonReader& reader)
 		override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const SceneDeserializeContext& context
+		) override;
 		void Serialize(JsonWriter& writer) const override;
 
 		/// @brief 前回のフレーム入力更新で生成されたUI描画コマンドを返します。
 		[[nodiscard]] const std::vector<UI::UIDrawCommand>&
 		GetDrawCommands() const;
+		/// @brief 現在設定のAtlasをcacheから取得し、使用中として更新します。
+		[[nodiscard]] UI::UIFontAtlas* ResolveFontAtlas(
+			AssetManager& assetManager
+		);
 
 	private:
+		[[nodiscard]] bool InitializeFontAtlas(
+			AssetManager& assetManager,
+			AssetReferenceValidationPolicy validationPolicy
+		);
+		[[nodiscard]] bool TryInitializeFontAtlas(
+			const VirtualPath& fontPath, AssetManager& assetManager
+		);
+
 		UI::UIContext mContext;
 
 		UI::UITheme                    mTheme = {};
 		std::vector<UI::UIDrawCommand> mDrawCommands;
+		std::optional<VirtualPath> mFontPath =
+			VirtualPath::ParseContentReference("fonts/JetBrainsMono.ttf");
+		Path mResolvedFontPath;
+		UI::UIFontAtlas* mFontAtlas = nullptr;
 
 		bool  mShowDebug   = false;
 		bool  mEnableBloom = true;
