@@ -16,12 +16,15 @@ namespace Unnamed::Render {
 		Shutdown();
 	}
 
-	void RenderModule::Init(ConsoleSystem* console) {
+	bool RenderModule::Init(
+		ConsoleSystem* console,
+		const RendererStartupValidationPolicy validationPolicy
+	) {
 		mRenderDevice = std::make_unique<RenderDevice>(
 			mRhiDevice, mAssetManager
 		);
 		mRenderer = std::make_unique<Renderer>(console);
-		mRenderer->Init(*mRenderDevice);
+		return mRenderer->Init(*mRenderDevice, validationPolicy);
 	}
 
 	void RenderModule::Shutdown() {

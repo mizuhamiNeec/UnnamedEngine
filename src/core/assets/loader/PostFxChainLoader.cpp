@@ -5,9 +5,12 @@
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/PostFxChainAssetData.h"
+#include "core/filesystem/VirtualPath.h"
 #include "core/io/json/JsonReader.h"
 
 #include "core/string/StrUtil.h"
+
+#include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed {
 	namespace {
@@ -34,14 +37,19 @@ namespace Unnamed {
 	}
 
 	LoadResult PostFxChainLoader::Load(const Path& path) {
+		return Load(path, AssetLoadContext{});
+	}
+
+	LoadResult PostFxChainLoader::Load(
+		const Path& path, const AssetLoadContext& context
+	) {
 		LoadResult       result = {};
 		const JsonReader root(path);
 		if (!root.Valid()) {
 			return result;
 		}
 
-		const Path full    = path.LexicallyNormal();
-		const Path baseDir = full.ParentPath();
+		const Path full = path.LexicallyNormal();
 
 		PostFxChainAssetData data = {};
 		data.name                 = root.Read<std::string>("name").value_or(
@@ -60,20 +68,52 @@ namespace Unnamed {
 				pass.name = p.Read<std::string>("name").value_or("Pass");
 				pass.enabled = p.Read<bool>("enabled").value_or(true);
 
-				if (const auto shaderPath = p.Read<std::string>("shader");
-					shaderPath.has_value() && !shaderPath->empty()) {
-					pass.shaderProgramPath = Path::ResolveRelativePath(
-						baseDir.Native(),
-						*shaderPath
+				const JsonReader shaderPathNode = p["shader"];
+				if (!shaderPathNode.Valid() || !shaderPathNode.IsString()) {
+					Error(
+						"PostFxChainLoader",
+						"Invalid pass shader reference type: postFxChain='{}' field='passes[{}].shader' expected='string'",
+						full,
+						i
 					);
-					pass.shaderProgramId = mAssetManager->LoadFromFile(
-						pass.shaderProgramPath,
+					return result;
+				}
+
+				const std::string shaderPathText = shaderPathNode.GetString();
+				const std::optional<VirtualPath> shaderPath =
+					VirtualPath::ParseContentReference(shaderPathText);
+				if (!shaderPath.has_value()) {
+					Error(
+						"PostFxChainLoader",
+						"Invalid pass shader virtual path: postFxChain='{}' field='passes[{}].shader' virtualPath='{}'",
+						full,
+						i,
+						shaderPathText
+					);
+					return result;
+				}
+
+				pass.shaderProgramPath = *shaderPath;
+				pass.shaderProgramId = context.resolvedMountId.empty()
+					? mAssetManager->LoadAsset(
+						*shaderPath, ASSET_TYPE::SHADER_PROGRAM)
+					: mAssetManager->LoadAssetFromMount(
+						*shaderPath,
+						context.resolvedMountId,
 						ASSET_TYPE::SHADER_PROGRAM
 					);
-					if (pass.shaderProgramId != kInvalidAssetID) {
-						result.dependencies.emplace_back(pass.shaderProgramId);
-					}
+				if (pass.shaderProgramId == kInvalidAssetID) {
+					Error(
+						"PostFxChainLoader",
+						"Pass shader dependency load failed: postFxChain='{}' field='passes[{}].shader' virtualPath='{}' mount='{}'",
+						full,
+						i,
+						shaderPath->String(),
+						context.resolvedMountId
+					);
+					return result;
 				}
+				result.dependencies.emplace_back(pass.shaderProgramId);
 
 				const JsonReader scalars = p["scalars"];
 				if (scalars.Valid() && scalars.IsObject()) {

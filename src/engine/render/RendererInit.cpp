@@ -6,6 +6,8 @@
 #include "RendererPipelineCatalog.h"
 
 #include "core/assets/AssetManager.h"
+#include "core/assets/types/ShaderProgramAssetData.h"
+#include "core/assets/types/ShaderSourceAssetData.h"
 #include "core/filesystem/VirtualPath.h"
 
 #include "engine/content/ContentMountDefinitions.h"
@@ -154,17 +156,72 @@ namespace Unnamed::Render {
 		);
 	}
 
+	bool Renderer::ValidateShaderProgramStages(
+		const AssetManager&         assetManager,
+		const AssetID              shaderProgramId,
+		const RequiredShaderStages requiredStages,
+		const std::string_view      debugName
+	) {
+		const auto* shaderProgram = assetManager.Get<ShaderProgramAssetData>(
+			shaderProgramId
+		);
+		if (!shaderProgram) {
+			Error(
+				"Renderer",
+				"Required ShaderProgram is unavailable: name='{}' assetId={}",
+				debugName,
+				shaderProgramId
+			);
+			return false;
+		}
+
+		auto validateStage = [&](
+			const std::optional<ShaderProgramStage>& stage,
+			const std::string_view stageName
+		) {
+			if (
+				!stage.has_value() ||
+				stage->shaderSourceAssetId == kInvalidAssetID ||
+				!assetManager.Get<ShaderSourceAssetData>(
+					stage->shaderSourceAssetId)
+			) {
+				Error(
+					"Renderer",
+					"Required ShaderProgram stage is unavailable: name='{}' assetId={} stage='{}'",
+					debugName,
+					shaderProgramId,
+					stageName
+				);
+				return false;
+			}
+			return true;
+		};
+
+		if (requiredStages == RequiredShaderStages::Compute) {
+			return validateStage(shaderProgram->cs, "cs");
+		}
+		const bool vsValid = validateStage(shaderProgram->vs, "vs");
+		const bool psValid = validateStage(shaderProgram->ps, "ps");
+		return vsValid && psValid;
+	}
+
 	Renderer::Renderer(ConsoleSystem* console) : mConsole(console) {
 	}
 
-	void Renderer::Init(RenderDevice& renderDevice) {
+	bool Renderer::Init(
+		RenderDevice& renderDevice,
+		const RendererStartupValidationPolicy validationPolicy
+	) {
+		mStartupValidationPolicy = validationPolicy;
 		auto& dx = dynamic_cast<Rhi::D3D12Device&>(renderDevice.GetRhiDevice());
 		mTextureResourceCache.Initialize(
 			&renderDevice.GetAssetManager(), &renderDevice.GetRegistry()
 		);
 		mTextureResourceCache.SetUnusedFrameThreshold(120);
 		mLastTextureCacheStatsLogFrame = 0;
-		RebuildPipelineCatalog(renderDevice, dx);
+		if (!RebuildPipelineCatalog(renderDevice, dx, validationPolicy)) {
+			return false;
+		}
 
 		mFrameCb.Init(
 			dx.GetDevice(), dx.GetFramesInFlight(), L"FrameConstants"
@@ -205,10 +262,13 @@ namespace Unnamed::Render {
 		);
 		mGraph.Reset();
 		mGraphBuilt = false;
+		return true;
 	}
 
-	void Renderer::RebuildPipelineCatalog(
-		RenderDevice& renderDevice, Rhi::D3D12Device& dx
+	bool Renderer::RebuildPipelineCatalog(
+		RenderDevice& renderDevice,
+		Rhi::D3D12Device& dx,
+		const RendererStartupValidationPolicy validationPolicy
 	) {
 		auto& assetManager = renderDevice.GetAssetManager();
 
@@ -276,6 +336,36 @@ namespace Unnamed::Render {
 			"shaders/programs/tonemap_exposure.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
+
+		bool requiredShadersValid = true;
+		auto validateGraphics = [&](
+			const AssetID id, const std::string_view name
+		) {
+			requiredShadersValid = ValidateShaderProgramStages(
+				assetManager, id, RequiredShaderStages::Graphics, name
+			) && requiredShadersValid;
+		};
+		validateGraphics(fullscreenProgramId, "FullscreenCopy");
+		validateGraphics(depthVisProgramId, "DepthVis");
+		validateGraphics(depthOnlyProgramId, "DepthOnly");
+		validateGraphics(geomProgramId, "Geometry");
+		validateGraphics(skyboxProgramId, "Skybox");
+		validateGraphics(spriteOverlayProgramId, "SpriteOverlay");
+		validateGraphics(debugLineProgramId, "DebugLine");
+		validateGraphics(bloomDownsampleProgramId, "BloomDownsample");
+		validateGraphics(bloomUpsampleProgramId, "BloomUpsample");
+		validateGraphics(bloomCombineProgramId, "BloomCombine");
+		validateGraphics(toneMapExposureProgramId, "ToneMapExposure");
+		requiredShadersValid = ValidateShaderProgramStages(
+			assetManager,
+			csProgramId,
+			RequiredShaderStages::Compute,
+			"ComputeWriteUav"
+		) && requiredShadersValid;
+		if (!requiredShadersValid) {
+			Error("Renderer", "Required Renderer shader assets are invalid.");
+			return false;
+		}
 
 		const DXGI_FORMAT swapChainFormat = Rhi::ToDxgiFormat(
 			dx.GetSwapChain().GetFormat()
@@ -511,6 +601,19 @@ namespace Unnamed::Render {
 		);
 		mLinePass.resolved = nullptr;
 
-		LoadPostFxChain(renderDevice);
+		if (!LoadPostFxChain(renderDevice)) {
+			if (validationPolicy == RendererStartupValidationPolicy::Strict) {
+				Error(
+					"Renderer",
+					"Default PostFxChain is required by strict startup validation."
+				);
+				return false;
+			}
+			Warning(
+				"Renderer",
+				"Default PostFxChain is unavailable; continuing without post effects."
+			);
+		}
+		return true;
 	}
 }

@@ -64,6 +64,12 @@ namespace Unnamed::Render {
 		uint32_t emissiveTextureId  = 0;
 	};
 
+	/// @brief Renderer起動時の任意アセット失敗方針です。
+	enum class RendererStartupValidationPolicy : uint8_t {
+		Permissive,
+		Strict,
+	};
+
 	class Renderer {
 	public:
 		Renderer(ConsoleSystem* console);
@@ -73,8 +79,13 @@ namespace Unnamed::Render {
 		void Shutdown(RenderDevice& renderDevice);
 
 		/// @brief レンダラの初期化処理に呼び出されます。
-		/// @param renderDevice 描画に使用するRenderDevice
-		void Init(RenderDevice& renderDevice);
+		/// @param renderDevice 描画に使用するRenderDevice。
+		/// @param validationPolicy Renderer起動アセットの検証方針。
+		/// @return 必須Rendererアセットを含む初期化に成功した場合true。
+		[[nodiscard]] bool Init(
+			RenderDevice& renderDevice,
+			RendererStartupValidationPolicy validationPolicy
+		);
 
 		/// @brief 毎フレームの描画処理に呼び出されます。
 		/// @param renderDevice 描画に使用するRenderDevice
@@ -102,6 +113,10 @@ namespace Unnamed::Render {
 
 	private:
 		struct MaterialBinding;
+		enum class RequiredShaderStages : uint8_t {
+			Graphics,
+			Compute,
+		};
 
 		// シーンの描画にはHDRを使う!
 		static constexpr DXGI_FORMAT kSceneHdrColorFormat =
@@ -151,12 +166,28 @@ namespace Unnamed::Render {
 			std::string_view virtualPathText,
 			ASSET_TYPE type
 		);
+		/// @brief ShaderProgramが必要なstage sourceを保持するか検証します。
+		/// @param assetManager アセット管理サービス。
+		/// @param shaderProgramId 検証するShaderProgram ID。
+		/// @param requiredStages 必須stage構成。
+		/// @param debugName ログ表示名。
+		/// @return 必須stageとShaderSourceが全て有効な場合true。
+		[[nodiscard]] static bool ValidateShaderProgramStages(
+			const AssetManager& assetManager,
+			AssetID shaderProgramId,
+			RequiredShaderStages requiredStages,
+			std::string_view debugName
+		);
 		void EnsureMaterialTextureTable(
 			RenderDevice& renderDevice, MaterialBinding& binding
 		) const;
-		void LoadPostFxChain(const RenderDevice& renderDevice);
-		void RebuildPipelineCatalog(
-			RenderDevice& renderDevice, Rhi::D3D12Device& dx
+		[[nodiscard]] bool LoadPostFxChain(
+			const RenderDevice& renderDevice
+		);
+		[[nodiscard]] bool RebuildPipelineCatalog(
+			RenderDevice& renderDevice,
+			Rhi::D3D12Device& dx,
+			RendererStartupValidationPolicy validationPolicy
 		);
 		void ResolveRegisteredPipelines(RenderDevice& renderDevice);
 
@@ -456,6 +487,8 @@ namespace Unnamed::Render {
 		static constexpr uint32_t kMaxDebugLines  = 65536; // TODO: とりあえず
 
 		ConsoleSystem* mConsole = nullptr;
+		RendererStartupValidationPolicy mStartupValidationPolicy =
+			RendererStartupValidationPolicy::Permissive;
 
 		RenderGraph      mGraph;
 		PipelineRegistry mPipelineRegistry;

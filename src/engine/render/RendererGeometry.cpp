@@ -867,7 +867,7 @@ namespace Unnamed::Render {
 	constexpr std::string_view kDefaultPostFxChainPath =
 		"postfx/default.postfx.json";
 
-	void Renderer::LoadPostFxChain(const RenderDevice& renderDevice) {
+	bool Renderer::LoadPostFxChain(const RenderDevice& renderDevice) {
 		auto&       assetManager = renderDevice.GetAssetManager();
 		const auto& dx           = static_cast<Rhi::D3D12Device&>(renderDevice.
 			GetRhiDevice());
@@ -881,24 +881,26 @@ namespace Unnamed::Render {
 			mPostFxChainAsset);
 		if (!chain) {
 			mPostFxPasses.clear();
-			return;
+			return false;
 		}
 
 		std::vector<PostFxRuntimePass> runtimePasses;
 		runtimePasses.reserve(chain->passes.size());
 
 		for (const auto& passAsset : chain->passes) {
-			AssetID shaderProgramId = passAsset.shaderProgramId;
-			if (
-				shaderProgramId == kInvalidAssetID &&
-				!passAsset.shaderProgramPath.IsEmpty()
-			) {
-				shaderProgramId = assetManager.LoadFromFile(
-					passAsset.shaderProgramPath, ASSET_TYPE::SHADER_PROGRAM
-				);
-			}
+			const AssetID shaderProgramId = passAsset.shaderProgramId;
 			if (shaderProgramId == kInvalidAssetID) {
-				continue;
+				mPostFxPasses.clear();
+				return false;
+			}
+			if (!ValidateShaderProgramStages(
+				assetManager,
+				shaderProgramId,
+				RequiredShaderStages::Graphics,
+				passAsset.name
+			)) {
+				mPostFxPasses.clear();
+				return false;
 			}
 
 			PostFxRuntimePass runtimePass = {};
@@ -920,6 +922,7 @@ namespace Unnamed::Render {
 		}
 
 		mPostFxPasses = std::move(runtimePasses);
+		return true;
 	}
 
 	uint32_t Renderer::EnsureSpriteTextureLoaded(

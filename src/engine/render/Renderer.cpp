@@ -109,7 +109,9 @@ namespace Unnamed::Render {
 			ReleaseMaterialBindings(renderDevice);
 		}
 		if (postFxDirty) {
-			RebuildPipelineCatalog(renderDevice, dx);
+			(void)RebuildPipelineCatalog(
+				renderDevice, dx, mStartupValidationPolicy
+			);
 		}
 
 		mFrameViews      = inputs.views;

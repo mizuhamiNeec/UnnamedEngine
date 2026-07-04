@@ -447,7 +447,16 @@ namespace Unnamed {
 		mRenderModule = std::make_unique<Render::RenderModule>(
 			*mAssetManager, *mRhiDevice
 		);
-		mRenderModule->Init(mConsoleSystem.get());
+		const Render::RendererStartupValidationPolicy rendererValidationPolicy =
+			IsStrictAssetValidation(mRuntimeBindings.sceneLoadOptions) ?
+				Render::RendererStartupValidationPolicy::Strict :
+				Render::RendererStartupValidationPolicy::Permissive;
+		if (!mRenderModule->Init(
+			mConsoleSystem.get(), rendererValidationPolicy
+		)) {
+			Error("Engine", "Renderer initialization failed.");
+			return false;
+		}
 		mRenderFrameContext = std::make_unique<Render::RenderFrameContext>();
 
 		RegisterEngineComponents(ComponentRegistry::Get());
