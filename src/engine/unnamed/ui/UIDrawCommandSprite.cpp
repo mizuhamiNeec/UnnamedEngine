@@ -5,7 +5,6 @@
 
 #include "UIFontAtlas.h"
 
-#include "core/assets/AssetManager.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 #include "engine/unnamed/subsystem/console/concommand/ConVar.h"
@@ -14,9 +13,6 @@
 namespace Unnamed::UI {
 	namespace {
 		constexpr bool             kSnapTextGlyphToPixel = true;
-		constexpr std::string_view kDefaultUIFontPath    =
-			R"(.\content\core\fonts\JetBrainsMono.ttf)";
-
 		[[nodiscard]] Render::ScreenSpriteInput BuildRectSprite(
 			const UIDrawCommand& command, const int32_t sortKey
 		) {
@@ -46,7 +42,7 @@ namespace Unnamed::UI {
 	void AppendDrawCommandScreenSprites(
 		const UIDrawCommand&                    command,
 		const int32_t                           baseSortKey,
-		AssetManager&                           assetManager,
+		const UIFontAtlas* const                fontAtlas,
 		std::vector<Render::ScreenSpriteInput>& outSprites,
 		UIDrawCommandSpriteStats*               outStats
 	) {
@@ -62,14 +58,6 @@ namespace Unnamed::UI {
 			++outStats->textCommandCount;
 		}
 
-		UIFontAtlasCache&    fontAtlasCache = GetUIFontAtlasCache();
-		const UIFontAtlasKey key            = MakeUIFontAtlasKey(
-			Path(kDefaultUIFontPath),
-			command.textFontSize,
-			command.textOversampleH,
-			command.textOversampleV
-		);
-		UIFontAtlas* fontAtlas = fontAtlasCache.GetOrCreate(key, assetManager);
 		if (fontAtlas == nullptr) {
 			return;
 		}
@@ -111,7 +99,7 @@ namespace Unnamed::UI {
 			sLoggedOversampleV != fontAtlas->GetOversampleV() ||
 			sLoggedForceFallback != forceFallbackTexture;
 		if (textDebugMode >= 1 && atlasStateChanged) {
-			const UIFontAtlasCacheDebugInfo cacheInfo = fontAtlasCache.
+			const UIFontAtlasCacheDebugInfo cacheInfo = GetUIFontAtlasCache().
 				GetDebugInfo();
 			DevMsg(
 				"UI",

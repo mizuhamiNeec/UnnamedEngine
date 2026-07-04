@@ -7,11 +7,8 @@
 
 #include "engine/render/frame/RenderFrameInputs.h"
 
-namespace Unnamed {
-	class AssetManager;
-}
-
 namespace Unnamed::UI {
+	class UIFontAtlas;
 	struct UIDrawCommandSpriteStats {
 		uint32_t textCommandCount  = 0;
 		uint32_t glyphSpriteCount  = 0;
@@ -23,7 +20,7 @@ namespace Unnamed::UI {
 	void AppendDrawCommandScreenSprites(
 		const UIDrawCommand&                    command,
 		int32_t                                 baseSortKey,
-		AssetManager&                           assetManager,
+		const UIFontAtlas*                      fontAtlas,
 		std::vector<Render::ScreenSpriteInput>& outSprites,
 		UIDrawCommandSpriteStats*               outStats = nullptr
 	);
