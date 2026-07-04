@@ -48,8 +48,7 @@ namespace Unnamed {
 			return result;
 		}
 
-		const Path full    = path.LexicallyNormal();
-		const Path baseDir = full.ParentPath();
+		const Path full = path.LexicallyNormal();
 
 		// "name" フィールドがあればそれを、なければファイル名をアセット名とする。
 		MaterialInstanceAssetData data = {};
@@ -57,20 +56,45 @@ namespace Unnamed {
 			Path::ToUtf8String(full.FileName())
 		);
 
-		// "material" フィールドがあればマテリアルアセットを読み込む。
-		if (const auto materialPath = root.Read<std::string>("material");
-			materialPath.has_value() && !materialPath->empty()) {
-			data.materialPath = Path::ResolveRelativePath(
-				baseDir.Native(),
-				*materialPath
+		// 基底MaterialはMaterial Instanceの成立に必須。
+		const JsonReader materialPathNode = root["material"];
+		if (!materialPathNode.Valid() || !materialPathNode.IsString()) {
+			Error(
+				"MaterialInstanceLoader",
+				"Invalid material reference type: materialInstance='{}' field='material' expected='string'",
+				full
 			);
-			data.materialId = mAssetManager->LoadFromFile(
-				data.materialPath, ASSET_TYPE::MATERIAL
-			);
-			if (data.materialId != kInvalidAssetID) {
-				result.dependencies.emplace_back(data.materialId);
-			}
+			return result;
 		}
+
+		const std::string materialPathText = materialPathNode.GetString();
+		const std::optional<VirtualPath> materialPath =
+			VirtualPath::ParseContentReference(materialPathText);
+		if (!materialPath.has_value()) {
+			Error(
+				"MaterialInstanceLoader",
+				"Invalid material virtual path: materialInstance='{}' field='material' virtualPath='{}'",
+				full,
+				materialPathText
+			);
+			return result;
+		}
+
+		data.materialPath = *materialPath;
+		data.materialId   = mAssetManager->LoadAsset(
+			*materialPath,
+			ASSET_TYPE::MATERIAL
+		);
+		if (data.materialId == kInvalidAssetID) {
+			Error(
+				"MaterialInstanceLoader",
+				"Material dependency load failed: materialInstance='{}' field='material' virtualPath='{}'",
+				full,
+				materialPath->String()
+			);
+			return result;
+		}
+		result.dependencies.emplace_back(data.materialId);
 
 		// "textures" フィールドがあればテクスチャオーバーライドを読み込む。
 		const JsonReader textures = root["textures"];
@@ -86,8 +110,8 @@ namespace Unnamed {
 			bool textureReferencesValid = true;
 			textures.ForEachObject(
 				[&](
-					const std::string& slot, const JsonReader& texturePathNode
-				) {
+				const std::string& slot, const JsonReader& texturePathNode
+			) {
 					if (!texturePathNode.IsString()) {
 						Error(
 							"MaterialInstanceLoader",

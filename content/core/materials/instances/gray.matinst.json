@@ -1,6 +1,6 @@
 {
 	"name": "gray",
-	"material": "../dev.material.json",
+	"material": "materials/dev.material.json",
 	"textures": {
 		"BaseColor": "textures/dev_measuregray.png"
 	},
