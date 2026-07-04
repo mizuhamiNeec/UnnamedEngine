@@ -29,26 +29,16 @@ namespace Unnamed {
 		[[nodiscard]] AssetID ResolveStoredVirtualAssetPath(
 			const Path&                                       storedPath,
 			const char*                                       assetKind,
-			const std::function<AssetID(const VirtualPath&)>& loadVirtualPath,
-			const std::function<AssetID(const Path&)>&        loadPhysicalPath
+			const std::function<AssetID(const VirtualPath&)>& loadVirtualPath
 		) {
 			const Path        normalizedPath = storedPath.LexicallyNormal();
 			const std::string genericPath    = normalizedPath.ToGenericUtf8();
-			if (
-				normalizedPath.IsAbsolute() ||
-				genericPath.starts_with("./") ||
-				genericPath.starts_with("../") ||
-				genericPath.starts_with("content/")
-			) {
-				return loadPhysicalPath(normalizedPath);
-			}
-
 			const std::optional<VirtualPath> virtualPath =
-				VirtualPath::Parse(genericPath);
+				VirtualPath::ParseContentReference(genericPath);
 			if (!virtualPath.has_value()) {
 				Error(
 					"Scene",
-					"Invalid {} virtual path: {}",
+					"Invalid {} virtual path: {}. Physical mesh/material paths are no longer supported in scene JSON.",
 					assetKind,
 					genericPath
 				);
@@ -562,9 +552,6 @@ namespace Unnamed {
 			"mesh",
 			[&assetManager](const VirtualPath& virtualPath) {
 				return assetManager.LoadMesh(virtualPath);
-			},
-			[&assetManager](const Path& physicalPath) {
-				return assetManager.LoadMeshFromFile(physicalPath);
 			}
 		);
 		return mMeshAssetId;
@@ -585,9 +572,6 @@ namespace Unnamed {
 			"material instance",
 			[&assetManager](const VirtualPath& virtualPath) {
 				return assetManager.LoadMaterialInstance(virtualPath);
-			},
-			[&assetManager](const Path& physicalPath) {
-				return assetManager.LoadMaterialInstanceFromFile(physicalPath);
 			}
 		);
 		return mMaterialInstanceAssetId;
@@ -625,10 +609,6 @@ namespace Unnamed {
 				"material instance",
 				[&assetManager](const VirtualPath& virtualPath) {
 					return assetManager.LoadMaterialInstance(virtualPath);
-				},
-				[&assetManager](const Path& physicalPath) {
-					return assetManager.LoadMaterialInstanceFromFile(
-						physicalPath);
 				}
 			);
 		}

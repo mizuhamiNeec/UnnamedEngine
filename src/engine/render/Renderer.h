@@ -12,6 +12,7 @@
 #include "TextureResourceCache.h"
 
 #include "core/assets/AssetID.h"
+#include "core/assets/AssetType.h"
 #include "core/assets/types/MaterialAssetData.h"
 #include "core/math/Vec2.h"
 
@@ -27,6 +28,10 @@
 #include "rendergraph/RgResourceRegistry.h"
 
 #include "shaders/PipelineRegistry.h"
+
+namespace Unnamed {
+	class AssetManager;
+}
 
 namespace Unnamed::Render {
 	struct RenderFrameInputs;
@@ -136,6 +141,16 @@ namespace Unnamed::Render {
 		void ReleaseMaterialBindings(RenderDevice& renderDevice);
 		void EnsureDefaultMaterialTextures(RenderDevice& renderDevice);
 		void ReleaseDefaultMaterialTextures(RenderDevice& renderDevice);
+		/// @brief Core mount 固定でRenderer内部アセットをロードします。
+		/// @param assetManager アセット管理サービス。
+		/// @param virtualPathText content root 基準の論理パス。
+		/// @param type ロードするアセット型。
+		/// @return ロードしたアセットID。失敗時はkInvalidAssetID。
+		[[nodiscard]] static AssetID LoadCoreAsset(
+			AssetManager& assetManager,
+			std::string_view virtualPathText,
+			ASSET_TYPE type
+		);
 		void EnsureMaterialTextureTable(
 			RenderDevice& renderDevice, MaterialBinding& binding
 		) const;

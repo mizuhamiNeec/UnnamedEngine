@@ -43,7 +43,8 @@ namespace Unnamed {
 		/// @param loader 登録するアセットローダー
 		void RegisterLoader(std::unique_ptr<IAssetLoader> loader);
 
-		/// @brief ファイルからアセットをロードします
+		/// @brief ファイルからアセットをロードします。
+		/// @deprecated 移行専用APIです。新規コードでは型付きAPI、LoadAsset、またはLoadAssetFromFileを使用してください。
 		/// @param path ロードするファイルのパス
 		/// @param typeOpt アセットの種類（省略可能）
 		/// @param policy ロードポリシー（デフォルトはUseCachedIfLoaded）
@@ -51,6 +52,28 @@ namespace Unnamed {
 		AssetID LoadFromFile(
 			const Path& path,
 			std::optional<ASSET_TYPE> typeOpt = std::nullopt,
+			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief マウント済み content から実行時指定型のアセットをロードします。
+		/// @param path 論理アセットパス。
+		/// @param type アセットの型。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたアセットの ID。
+		[[nodiscard]] AssetID LoadAsset(
+			const VirtualPath& path,
+			ASSET_TYPE        type,
+			AssetLoadPolicy   policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 絶対物理ファイルパスから実行時指定型のアセットをロードします。
+		/// @param path 解決済みの絶対物理ファイルパス。
+		/// @param type アセットの型。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたアセットの ID。
+		[[nodiscard]] AssetID LoadAssetFromFile(
+			const Path&     path,
+			ASSET_TYPE      type,
 			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
 		);
 

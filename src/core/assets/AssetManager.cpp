@@ -140,6 +140,56 @@ namespace Unnamed {
 		return LoadFromResolvedFile(normalizedPath, typeOpt, policy);
 	}
 
+	AssetID AssetManager::LoadAsset(
+		const VirtualPath&    path,
+		const ASSET_TYPE      type,
+		const AssetLoadPolicy policy
+	) {
+		const std::optional<ResolvedContentFile> resolvedFile =
+			mContentPathResolver.ResolveFile(path);
+		if (!resolvedFile.has_value()) {
+			Error(
+				kChannel,
+				"Failed to resolve asset: virtualPath={}, type={}",
+				path.String(),
+				ToString(type)
+			);
+			return kInvalidAssetID;
+		}
+
+		return LoadAssetFromFile(resolvedFile->resolvedPath, type, policy);
+	}
+
+	AssetID AssetManager::LoadAssetFromFile(
+		const Path&           path,
+		const ASSET_TYPE      type,
+		const AssetLoadPolicy policy
+	) {
+		const Path normalizedPath = path.LexicallyNormal();
+		if (normalizedPath.IsEmpty()) {
+			Warning(kChannel, "Asset path is empty.");
+			return kInvalidAssetID;
+		}
+		if (!normalizedPath.IsAbsolute()) {
+			Error(
+				kChannel,
+				"LoadAssetFromFile requires an absolute physical path: {}",
+				normalizedPath.ToUtf8()
+			);
+			return kInvalidAssetID;
+		}
+		if (!normalizedPath.IsRegularFile()) {
+			Error(
+				kChannel,
+				"Asset file does not exist: {}",
+				normalizedPath.ToUtf8()
+			);
+			return kInvalidAssetID;
+		}
+
+		return LoadFromResolvedFile(normalizedPath, type, policy);
+	}
+
 	AssetID AssetManager::LoadTexture(
 		const VirtualPath&    path,
 		const AssetLoadPolicy policy

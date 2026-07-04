@@ -6,20 +6,16 @@
 #include "RendererPipelineCatalog.h"
 
 #include "core/assets/AssetManager.h"
+#include "core/content/ContentPathResolver.h"
+#include "core/filesystem/VirtualPath.h"
 
+#include "engine/content/ContentMountDefinitions.h"
 #include "engine/rhi/d3d12/D3D12Device.h"
 #include "engine/rhi/d3d12/D3D12Util.h"
+#include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed::Render {
 	namespace {
-		AssetID LoadAsset(
-			AssetManager&    assetManager,
-			const Path&      path,
-			const ASSET_TYPE type
-		) {
-			return assetManager.LoadFromFile(path, type);
-		}
-
 		Rhi::VertexLayoutDesc BuildGeometryVertexLayout() {
 			return Rhi::VertexLayoutDesc{
 				.stride   = sizeof(float) * 20,
@@ -135,6 +131,45 @@ namespace Unnamed::Render {
 		}
 	}
 
+	AssetID Renderer::LoadCoreAsset(
+		AssetManager&          assetManager,
+		const std::string_view virtualPathText,
+		const ASSET_TYPE       type
+	) {
+		const std::optional<VirtualPath> virtualPath =
+			VirtualPath::ParseContentReference(virtualPathText);
+		if (!virtualPath.has_value()) {
+			Error(
+				"Renderer",
+				"Invalid Core renderer asset virtual path: path={}, type={}",
+				virtualPathText,
+				ToString(type)
+			);
+			return kInvalidAssetID;
+		}
+
+		const std::optional<ResolvedContentFile> resolution =
+			assetManager.GetContentPathResolver().ResolveFileFromMount(
+				ContentMountId::kCore,
+				*virtualPath
+			);
+		if (!resolution.has_value()) {
+			Error(
+				"Renderer",
+				"Failed to resolve Core renderer asset: path={}, type={}, mount={}",
+				virtualPath->String(),
+				ToString(type),
+				ContentMountId::kCore
+			);
+			return kInvalidAssetID;
+		}
+
+		return assetManager.LoadAssetFromFile(
+			resolution->resolvedPath,
+			type
+		);
+	}
+
 	Renderer::Renderer(ConsoleSystem* console) : mConsole(console) {
 	}
 
@@ -197,66 +232,64 @@ namespace Unnamed::Render {
 		// Pipeline handles become invalid after catalog rebuild; material bindings rebuild their variants on next load.
 		ReleaseMaterialBindings(renderDevice);
 
-		const AssetID fullscreenProgramId = LoadAsset(
+		const AssetID fullscreenProgramId = LoadCoreAsset(
 			assetManager,
-			Path("./content/core/shaders/programs/fullscreen_copy.shader.json"),
+			"shaders/programs/fullscreen_copy.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID depthVisProgramId = LoadAsset(
+		const AssetID depthVisProgramId = LoadCoreAsset(
 			assetManager,
-			Path("./content/core/shaders/programs/depth_vis.shader.json"),
+			"shaders/programs/depth_vis.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID depthOnlyProgramId = LoadAsset(
+		const AssetID depthOnlyProgramId = LoadCoreAsset(
 			assetManager,
-			Path("./content/core/shaders/programs/depth_only.shader.json"),
+			"shaders/programs/depth_only.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID geomProgramId = LoadAsset(
+		const AssetID geomProgramId = LoadCoreAsset(
 			assetManager,
-			Path("./content/core/shaders/programs/pbr.shader.json"),
+			"shaders/programs/pbr.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID skyboxProgramId = LoadAsset(
+		const AssetID skyboxProgramId = LoadCoreAsset(
 			assetManager,
-			Path("./content/core/shaders/programs/skybox.shader.json"),
+			"shaders/programs/skybox.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID csProgramId = LoadAsset(
+		const AssetID csProgramId = LoadCoreAsset(
 			assetManager,
-			Path("./content/core/shaders/programs/cs_write_uav.shader.json"),
+			"shaders/programs/cs_write_uav.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID spriteOverlayProgramId = LoadAsset(
+		const AssetID spriteOverlayProgramId = LoadCoreAsset(
 			assetManager,
-			Path("./content/core/shaders/programs/sprite_overlay.shader.json"),
+			"shaders/programs/sprite_overlay.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID debugLineProgramId = LoadAsset(
+		const AssetID debugLineProgramId = LoadCoreAsset(
 			assetManager,
-			Path("./content/core/shaders/programs/DebugLine.shader.json"),
+			"shaders/programs/DebugLine.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID bloomDownsampleProgramId = LoadAsset(
+		const AssetID bloomDownsampleProgramId = LoadCoreAsset(
 			assetManager,
-			Path(
-				"./content/core/shaders/programs/bloom_downsample.shader.json"),
+			"shaders/programs/bloom_downsample.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID bloomUpsampleProgramId = LoadAsset(
+		const AssetID bloomUpsampleProgramId = LoadCoreAsset(
 			assetManager,
-			Path("./content/core/shaders/programs/bloom_upsample.shader.json"),
+			"shaders/programs/bloom_upsample.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID bloomCombineProgramId = LoadAsset(
+		const AssetID bloomCombineProgramId = LoadCoreAsset(
 			assetManager,
-			Path("./content/core/shaders/programs/bloom_combine.shader.json"),
+			"shaders/programs/bloom_combine.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID toneMapExposureProgramId = LoadAsset(
+		const AssetID toneMapExposureProgramId = LoadCoreAsset(
 			assetManager,
-			Path(
-				"./content/core/shaders/programs/tonemap_exposure.shader.json"),
+			"shaders/programs/tonemap_exposure.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
 

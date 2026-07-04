@@ -865,15 +865,15 @@ namespace Unnamed::Render {
 	}
 
 	constexpr std::string_view kDefaultPostFxChainPath =
-		"./content/core/postfx/default.postfx.json";
+		"postfx/default.postfx.json";
 
 	void Renderer::LoadPostFxChain(const RenderDevice& renderDevice) {
 		auto&       assetManager = renderDevice.GetAssetManager();
 		const auto& dx           = static_cast<Rhi::D3D12Device&>(renderDevice.
 			GetRhiDevice());
 		if (mPostFxChainAsset == kInvalidAssetID) {
-			mPostFxChainAsset = assetManager.LoadFromFile(
-				Path(kDefaultPostFxChainPath), ASSET_TYPE::POST_FX_CHAIN
+			mPostFxChainAsset = LoadCoreAsset(
+				assetManager, kDefaultPostFxChainPath, ASSET_TYPE::POST_FX_CHAIN
 			);
 		}
 

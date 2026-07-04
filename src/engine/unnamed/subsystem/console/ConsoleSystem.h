@@ -16,7 +16,7 @@
 #include <engine/unnamed/subsystem/interface/ISubsystem.h>
 
 namespace Unnamed {
-	constexpr uint32_t kConsoleBufferSize = 1024; // ログバッファのサイズ
+	constexpr uint32_t kConsoleBufferSize = 8192; // ログバッファのサイズ
 
 	class ConCommandBase;
 	class ConCommand;
