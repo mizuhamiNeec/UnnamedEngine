@@ -48,6 +48,7 @@
 #include <engine/rhi/d3d12/D3D12Device.h>
 #include <engine/rhi/d3d12/D3D12Util.h>
 #include <engine/rhi/interface/IRhiDevice.h>
+#include <engine/unnamed/ui/UIFontAtlas.h>
 #include <engine/ui/ImGuiLayer.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
 #include <engine/unnamed/subsystem/EditorLuaSystem/EditorLuaSystem.h>
@@ -909,6 +910,9 @@ namespace Unnamed {
 		}
 		mPlatformEvents.reset();
 
+		if (mAssetManager) {
+			UI::GetUIFontAtlasCache().Clear(mAssetManager.get());
+		}
 		ServiceLocator::Register<AssetManager>(nullptr);
 		mAssetManager.reset();
 
