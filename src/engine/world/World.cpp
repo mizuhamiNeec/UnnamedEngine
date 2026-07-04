@@ -1071,6 +1071,9 @@ namespace Unnamed {
 					++newUiTextCommandCount;
 				}
 			}
+			UI::UIFontAtlas* fontAtlas = entry.canvas->ResolveFontAtlas(
+				assetManager
+			);
 			for (size_t commandIndex = 0; commandIndex < commands.size();
 			     ++commandIndex) {
 				const int32_t baseSortKey =
@@ -1080,7 +1083,7 @@ namespace Unnamed {
 				UI::AppendDrawCommandScreenSprites(
 					commands[commandIndex],
 					baseSortKey,
-					assetManager,
+					fontAtlas,
 					commandSprites,
 					&newUiSpriteStats
 				);
