@@ -6,7 +6,6 @@
 #include "RendererPipelineCatalog.h"
 
 #include "core/assets/AssetManager.h"
-#include "core/content/ContentPathResolver.h"
 #include "core/filesystem/VirtualPath.h"
 
 #include "engine/content/ContentMountDefinitions.h"
@@ -148,24 +147,9 @@ namespace Unnamed::Render {
 			return kInvalidAssetID;
 		}
 
-		const std::optional<ResolvedContentFile> resolution =
-			assetManager.GetContentPathResolver().ResolveFileFromMount(
-				ContentMountId::kCore,
-				*virtualPath
-			);
-		if (!resolution.has_value()) {
-			Error(
-				"Renderer",
-				"Failed to resolve Core renderer asset: path={}, type={}, mount={}",
-				virtualPath->String(),
-				ToString(type),
-				ContentMountId::kCore
-			);
-			return kInvalidAssetID;
-		}
-
-		return assetManager.LoadAssetFromFile(
-			resolution->resolvedPath,
+		return assetManager.LoadAssetFromMount(
+			*virtualPath,
+			ContentMountId::kCore,
 			type
 		);
 	}

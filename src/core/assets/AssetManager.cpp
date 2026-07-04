@@ -137,7 +137,7 @@ namespace Unnamed {
 			return kInvalidAssetID;
 		}
 
-		return LoadFromResolvedFile(normalizedPath, typeOpt, policy);
+		return LoadFromResolvedFile(normalizedPath, typeOpt, policy, {});
 	}
 
 	AssetID AssetManager::LoadAsset(
@@ -157,7 +157,39 @@ namespace Unnamed {
 			return kInvalidAssetID;
 		}
 
-		return LoadAssetFromFile(resolvedFile->resolvedPath, type, policy);
+		return LoadFromResolvedFile(
+			resolvedFile->resolvedPath,
+			type,
+			policy,
+			resolvedFile->mountId
+		);
+	}
+
+	AssetID AssetManager::LoadAssetFromMount(
+		const VirtualPath&    path,
+		const std::string_view mountId,
+		const ASSET_TYPE      type,
+		const AssetLoadPolicy policy
+	) {
+		const std::optional<ResolvedContentFile> resolvedFile =
+			mContentPathResolver.ResolveFileFromMount(mountId, path);
+		if (!resolvedFile.has_value()) {
+			Error(
+				kChannel,
+				"Failed to resolve asset from mount: virtualPath={}, type={}, mount={}",
+				path.String(),
+				ToString(type),
+				mountId
+			);
+			return kInvalidAssetID;
+		}
+
+		return LoadFromResolvedFile(
+			resolvedFile->resolvedPath,
+			type,
+			policy,
+			resolvedFile->mountId
+		);
 	}
 
 	AssetID AssetManager::LoadAssetFromFile(
@@ -187,7 +219,7 @@ namespace Unnamed {
 			return kInvalidAssetID;
 		}
 
-		return LoadFromResolvedFile(normalizedPath, type, policy);
+		return LoadFromResolvedFile(normalizedPath, type, policy, {});
 	}
 
 	AssetID AssetManager::LoadTexture(
@@ -210,7 +242,12 @@ namespace Unnamed {
 			resolvedFile->resolvedPath.ToUtf8()
 		);
 
-		return LoadTextureFromFile(resolvedFile->resolvedPath, policy);
+		return LoadFromResolvedFile(
+			resolvedFile->resolvedPath,
+			ASSET_TYPE::TEXTURE,
+			policy,
+			resolvedFile->mountId
+		);
 	}
 
 	AssetID AssetManager::LoadTextureFromFile(
@@ -230,7 +267,8 @@ namespace Unnamed {
 		return LoadFromResolvedFile(
 			normalizedPath,
 			ASSET_TYPE::TEXTURE,
-			policy
+			policy,
+			{}
 		);
 	}
 
@@ -257,7 +295,12 @@ namespace Unnamed {
 			resolvedFile->resolvedPath.ToUtf8()
 		);
 
-		return LoadMeshFromFile(resolvedFile->resolvedPath, policy);
+		return LoadFromResolvedFile(
+			resolvedFile->resolvedPath,
+			ASSET_TYPE::MESH,
+			policy,
+			resolvedFile->mountId
+		);
 	}
 
 	AssetID AssetManager::LoadMeshFromFile(
@@ -281,7 +324,8 @@ namespace Unnamed {
 		return LoadFromResolvedFile(
 			normalizedPath,
 			ASSET_TYPE::MESH,
-			policy
+			policy,
+			{}
 		);
 	}
 
@@ -308,7 +352,12 @@ namespace Unnamed {
 			resolvedFile->resolvedPath.ToUtf8()
 		);
 
-		return LoadMaterialInstanceFromFile(resolvedFile->resolvedPath, policy);
+		return LoadFromResolvedFile(
+			resolvedFile->resolvedPath,
+			ASSET_TYPE::MATERIAL_INSTANCE,
+			policy,
+			resolvedFile->mountId
+		);
 	}
 
 	AssetID AssetManager::LoadMaterialInstanceFromFile(
@@ -332,14 +381,16 @@ namespace Unnamed {
 		return LoadFromResolvedFile(
 			normalizedPath,
 			ASSET_TYPE::MATERIAL_INSTANCE,
-			policy
+			policy,
+			{}
 		);
 	}
 
 	AssetID AssetManager::LoadFromResolvedFile(
 		const Path&                     normalizedPath,
 		const std::optional<ASSET_TYPE> typeOpt,
-		const AssetLoadPolicy           policy
+		const AssetLoadPolicy           policy,
+		const std::string_view          sourceMountId
 	) {
 		Profiler*        profiler = ServiceLocator::Get<Profiler>();
 		std::scoped_lock lock(mMutex);
@@ -349,7 +400,10 @@ namespace Unnamed {
 				find(normalizedPath.ToGenericUtf8());
 			if (cachedIt != mPathToID.end()) {
 				const AssetID cachedId       = cachedIt->second;
-				const Node&   cached         = mNodes[cachedId];
+				Node&         cached         = mNodes[cachedId];
+				if (!sourceMountId.empty()) {
+					cached.meta.sourceMountId = sourceMountId;
+				}
 				const bool    typeCompatible =
 					!typeOpt.has_value() || cached.meta.type == *typeOpt ||
 					cached.meta.type == ASSET_TYPE::UNKNOWN;
@@ -392,6 +446,12 @@ namespace Unnamed {
 		// 不明の場合はスロットだけ作成
 		const AssetID id = FindOrCreateSlotByPath(normalizedPath, deduced);
 		Node&         n  = mNodes[id];
+		if (!sourceMountId.empty()) {
+			n.meta.sourceMountId = sourceMountId;
+		} else if (const std::optional<std::string> inferredMountId =
+			mContentPathResolver.FindMountIdForResolvedPath(normalizedPath)) {
+			n.meta.sourceMountId = *inferredMountId;
+		}
 		if (
 			policy == AssetLoadPolicy::UseCachedIfLoaded &&
 			n.meta.loaded &&
@@ -427,7 +487,10 @@ namespace Unnamed {
 				continue;
 			}
 
-			LoadResult r = l->Load(normalizedPath);
+			const AssetLoadContext loadContext{
+				.resolvedMountId = n.meta.sourceMountId,
+			};
+			LoadResult r = l->Load(normalizedPath, loadContext);
 			if (std::holds_alternative<std::monostate>(r.payload)) {
 				n.payload = std::monostate{};
 				n.meta.type = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
@@ -493,6 +556,7 @@ namespace Unnamed {
 		n.meta.type         = type;
 		n.meta.name         = std::move(name);
 		n.meta.sourcePath.Clear();
+		n.meta.sourceMountId.clear();
 		n.meta.fileStamp       = {};
 		n.meta.runtime         = true;
 		n.meta.destroyed       = false;
@@ -790,7 +854,10 @@ namespace Unnamed {
 			}
 
 			// 再読み込み
-			LoadResult r = l->Load(n.meta.sourcePath);
+			const AssetLoadContext loadContext{
+				.resolvedMountId = n.meta.sourceMountId,
+			};
+			LoadResult r = l->Load(n.meta.sourcePath, loadContext);
 			if (std::holds_alternative<std::monostate>(r.payload)) {
 				n.payload         = std::monostate{};
 				n.meta.loaded     = false;

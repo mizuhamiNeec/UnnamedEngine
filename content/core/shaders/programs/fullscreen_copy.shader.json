@@ -1,12 +1,12 @@
 {
   "name": "FullscreenCopy",
   "vs": {
-    "path": "../src/FullscreenTriangle.hlsli",
+    "path": "shaders/src/FullscreenTriangle.hlsli",
     "entry": "VsMain",
     "profile": "vs_6_6"
   },
   "ps": {
-    "path": "../src/FullscreenCopy.hlsl",
+    "path": "shaders/src/FullscreenCopy.hlsl",
     "entry": "PsMain",
     "profile": "ps_6_6"
   }

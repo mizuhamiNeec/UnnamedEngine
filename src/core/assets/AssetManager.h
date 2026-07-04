@@ -66,6 +66,19 @@ namespace Unnamed {
 			AssetLoadPolicy   policy = AssetLoadPolicy::UseCachedIfLoaded
 		);
 
+		/// @brief 指定mountのcontentから実行時指定型のアセットをロードします。
+		/// @param path 論理アセットパス。
+		/// @param mountId 解決に使用するmount ID。
+		/// @param type アセットの型。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたアセットの ID。
+		[[nodiscard]] AssetID LoadAssetFromMount(
+			const VirtualPath& path,
+			std::string_view   mountId,
+			ASSET_TYPE        type,
+			AssetLoadPolicy   policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
 		/// @brief 絶対物理ファイルパスから実行時指定型のアセットをロードします。
 		/// @param path 解決済みの絶対物理ファイルパス。
 		/// @param type アセットの型。
@@ -260,7 +273,8 @@ namespace Unnamed {
 		AssetID LoadFromResolvedFile(
 			const Path&               normalizedPath,
 			std::optional<ASSET_TYPE> typeOpt,
-			AssetLoadPolicy           policy
+			AssetLoadPolicy           policy,
+			std::string_view          sourceMountId
 		);
 
 		/// @brief 指定したアセットを参照しているアセット情報を再構築します

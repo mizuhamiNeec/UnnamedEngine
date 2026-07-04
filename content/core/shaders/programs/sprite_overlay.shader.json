@@ -1,12 +1,12 @@
 {
 	"name": "SpriteOverlay",
 	"vs": {
-		"path": "../src/sprite_overlay.vs.hlsl",
+		"path": "shaders/src/sprite_overlay.vs.hlsl",
 		"entry": "VsMain",
 		"profile": "vs_6_6"
 	},
 	"ps": {
-		"path": "../src/sprite_overlay.ps.hlsl",
+		"path": "shaders/src/sprite_overlay.ps.hlsl",
 		"entry": "PsMain",
 		"profile": "ps_6_6"
 	}

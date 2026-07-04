@@ -99,6 +99,40 @@ namespace Unnamed {
 		return false;
 	}
 
+	std::optional<std::string>
+	ContentPathResolver::FindMountIdForResolvedPath(
+		const Path& resolvedPath
+	) const {
+		if (resolvedPath.IsEmpty() || !resolvedPath.IsAbsolute()) {
+			return std::nullopt;
+		}
+
+		const std::filesystem::path normalizedPath =
+			resolvedPath.LexicallyNormal().Native();
+		for (const ContentDirectoryMount& mount : mMounts) {
+			std::error_code ec;
+			const std::filesystem::path relativePath =
+				std::filesystem::relative(
+					normalizedPath,
+					mount.rootPath.Native(),
+					ec
+				);
+			if (ec || relativePath.empty() || relativePath.is_absolute()) {
+				continue;
+			}
+
+			const auto firstComponent = relativePath.begin();
+			if (
+				firstComponent != relativePath.end() &&
+				*firstComponent != ".."
+			) {
+				return mount.id;
+			}
+		}
+
+		return std::nullopt;
+	}
+
 	const std::vector<ContentDirectoryMount>&
 	ContentPathResolver::GetMounts() const noexcept {
 		return mMounts;

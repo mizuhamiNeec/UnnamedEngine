@@ -1,12 +1,12 @@
 {
 	"name": "DebugLine",
 	"vs": {
-		"path": "../src/DebugLine.hlsl",
+		"path": "shaders/src/DebugLine.hlsl",
 		"entry": "VsMain",
 		"profile": "vs_6_6"
 	},
 	"ps": {
-		"path": "../src/DebugLine.hlsl",
+		"path": "shaders/src/DebugLine.hlsl",
 		"entry": "PsMain",
 		"profile": "ps_6_6"
 	}

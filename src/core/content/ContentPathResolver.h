@@ -61,6 +61,13 @@ namespace Unnamed {
 		/// @return 存在する場合は true、存在しない場合は false。
 		[[nodiscard]] bool HasMount(std::string_view mountId) const noexcept;
 
+		/// @brief 解決済み物理パスを包含するmount IDを取得します。
+		/// @param resolvedPath 解決済みの物理パス。
+		/// @return 所属mount ID。mount外の場合はstd::nullopt。
+		[[nodiscard]] std::optional<std::string> FindMountIdForResolvedPath(
+			const Path& resolvedPath
+		) const;
+
 		/// @brief マウントされているコンテンツディレクトリの情報を取得します。
 		/// @return マウントされているコンテンツディレクトリの情報のリスト。
 		[[nodiscard]]

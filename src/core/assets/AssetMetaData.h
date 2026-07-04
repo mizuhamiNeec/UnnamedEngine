@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+
 #include "core/filesystem/Path.h"
 #include "AssetType.h"
 #include "FileStamp.h"
@@ -9,6 +11,7 @@ namespace Unnamed {
 		ASSET_TYPE  type = ASSET_TYPE::UNKNOWN;
 		std::string name;           // 表示名
 		Path        sourcePath;     // アセットのソースファイルパス
+		std::string sourceMountId;  // マウント経由で解決された場合のmount ID
 		FileStamp   fileStamp;      // ファイル監視に使用
 		uint32_t    strongRefs = 0; // 外部からの参照
 		uint32_t    version    = 0; // アセットのバージョン
