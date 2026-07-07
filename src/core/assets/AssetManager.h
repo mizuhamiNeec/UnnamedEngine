@@ -108,6 +108,24 @@ namespace Unnamed {
 			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
 		);
 
+		/// @brief マウント済み content からサウンドをロードします。
+		/// @param path 論理サウンドパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたサウンドアセットの ID。
+		[[nodiscard]] AssetID LoadSound(
+			const VirtualPath& path,
+			AssetLoadPolicy    policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 絶対物理ファイルパスからサウンドを直接ロードします。
+		/// @param path 物理サウンドファイルパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたサウンドアセットの ID。
+		[[nodiscard]] AssetID LoadSoundFromFile(
+			const Path&     path,
+			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
 		/// @brief マウント済み content からメッシュをロードします。
 		/// @param path 論理メッシュパス。
 		/// @param policy ロードポリシー。

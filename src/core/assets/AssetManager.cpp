@@ -275,6 +275,20 @@ namespace Unnamed {
 		);
 	}
 
+	AssetID AssetManager::LoadSound(
+		const VirtualPath&    path,
+		const AssetLoadPolicy policy
+	) {
+		return LoadAsset(path, ASSET_TYPE::SOUND, policy);
+	}
+
+	AssetID AssetManager::LoadSoundFromFile(
+		const Path&           path,
+		const AssetLoadPolicy policy
+	) {
+		return LoadAssetFromFile(path, ASSET_TYPE::SOUND, policy);
+	}
+
 	AssetID AssetManager::LoadMesh(
 		const VirtualPath&    path,
 		const AssetLoadPolicy policy

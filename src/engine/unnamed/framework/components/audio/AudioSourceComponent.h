@@ -1,10 +1,11 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "core/assets/AssetID.h"
-#include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 #include "engine/unnamed/subsystem/console/concommand/ConVar.h"
 
@@ -26,6 +27,11 @@ namespace Unnamed {
 		void OnTick(float deltaTime) override;
 
 		void Deserialize(const JsonReader& reader) override;
+		/// @brief シーン読込方針を適用してサウンド参照を読み込みます。
+		/// @return 読込を継続できる場合はtrue。
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const SceneDeserializeContext& context
+		) override;
 		void Serialize(JsonWriter& writer) const override;
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
@@ -34,8 +40,23 @@ namespace Unnamed {
 
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-		void                      SetSoundPath(Path path);
-		[[nodiscard]] const Path& GetSoundPath() const noexcept;
+		/// @brief content内のサウンド参照をロードして設定します。
+		/// @param path content-root基準の論理パス。
+		/// @param assetManager サウンドをロードするAssetManager。
+		/// @return サウンドをロードして設定できた場合はtrue。
+		[[nodiscard]] bool SetSoundPath(
+			const VirtualPath& path, AssetManager& assetManager
+		);
+
+		/// @brief サウンド参照とロード済みvoiceをクリアします。
+		void ClearSoundPath() noexcept;
+
+		/// @brief 設定中の論理サウンドパスを取得します。
+		[[nodiscard]] const std::optional<VirtualPath>& GetSoundPath()
+		const noexcept;
+
+		/// @brief ロード済みサウンドAssetIDを取得します。
+		[[nodiscard]] AssetID GetSoundAssetId() const noexcept;
 
 		void               SetPlayOnStart(bool enabled) noexcept;
 		[[nodiscard]] bool GetPlayOnStart() const noexcept;
@@ -59,9 +80,9 @@ namespace Unnamed {
 		bool EnsureVoiceReady(bool preservePlayback);
 		void InvalidateVoice();
 
-		Path     mSoundPath;
-		AssetID  mSoundAssetId       = kInvalidAssetID;
-		uint64_t mLoadedAssetVersion = 0;
+		std::optional<VirtualPath> mSoundPath;
+		AssetID                   mSoundAssetId       = kInvalidAssetID;
+		uint64_t                  mLoadedAssetVersion = 0;
 
 		std::shared_ptr<AudioVoice> mVoice;
 

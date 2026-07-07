@@ -944,7 +944,7 @@
                         "loop": false,
                         "pitch": 1.0,
                         "playOnStart": false,
-                        "soundPath": "sounds/se/footstep/Robot_Footstep_Single_v3_02.wav",
+                        "soundPath": "sounds/se/player/Robot_Footstep_Single_v3_02.wav",
                         "volume": 0.30000001192092896
                     },
                     "guid": 17000123456789012345,
@@ -956,7 +956,7 @@
                         "loop": false,
                         "pitch": 1.0,
                         "playOnStart": false,
-                        "soundPath": "sounds/se/footstep/Robot_Footstep_Single_v2_01.wav",
+                        "soundPath": "sounds/se/player/Robot_Footstep_Single_v2_01.wav",
                         "volume": 0.36000001430511475
                     },
                     "guid": 17000123456789012347,

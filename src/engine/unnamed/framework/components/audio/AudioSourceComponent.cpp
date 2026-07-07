@@ -8,12 +8,14 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/SoundAssetData.h"
+#include "core/content/ContentPathResolver.h"
 #include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
+#include "engine/scene/SceneLoadOptions.h"
 #include "engine/unnamed/subsystem/audio/Audio.h"
 #include "engine/unnamed/subsystem/audio/AudioSystem.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -35,6 +37,13 @@ namespace Unnamed {
 	void AudioSourceComponent::OnAttached() {
 		mAutoPlayConsumed = false;
 		mLoggedError      = false;
+		if (
+			mSoundPath.has_value() && mSoundAssetId == kInvalidAssetID
+		) {
+			if (AssetManager* assetManager = GetAssetManager()) {
+				(void)SetSoundPath(*mSoundPath, *assetManager);
+			}
+		}
 		(void)EnsureVoiceReady(false);
 
 		mTimeScale = GetConsoleSystem()->GetConVarAs<ConVar<float>>(
@@ -64,9 +73,23 @@ namespace Unnamed {
 	}
 
 	void AudioSourceComponent::Deserialize(const JsonReader& reader) {
-		if (reader.Has("soundPath")) {
-			SetSoundPath(Path(reader["soundPath"].GetString()));
-		}
+		constexpr SceneLoadOptions options{};
+		const Path scenePath("<direct component deserialize>");
+		const SceneDeserializeContext context{
+			.loadOptions   = options,
+			.assetManager  = GetAssetManager(),
+			.scenePath     = scenePath,
+			.entityName    = "<unknown>",
+			.entityId      = 0,
+			.componentType = GetStableName(),
+		};
+		(void)Deserialize(reader, context);
+	}
+
+	bool AudioSourceComponent::Deserialize(
+		const JsonReader& reader, const SceneDeserializeContext& context
+	) {
+		ClearSoundPath();
 		if (reader.Has("playOnStart")) {
 			SetPlayOnStart(reader["playOnStart"].GetBool());
 		}
@@ -79,11 +102,92 @@ namespace Unnamed {
 		if (reader.Has("pitch")) {
 			SetPitch(reader["pitch"].GetFloat());
 		}
+
+		const JsonReader pathNode = reader["soundPath"];
+		if (!pathNode.Valid()) {
+			return true;
+		}
+		if (!pathNode.IsString()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='soundPath' reason='expected string'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		const std::string soundPath = pathNode.GetString();
+		if (soundPath.empty()) {
+			return true;
+		}
+		const std::optional<VirtualPath> virtualPath =
+			VirtualPath::ParseContentReference(soundPath);
+		if (!virtualPath.has_value()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='soundPath' virtualPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				soundPath
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		if (!context.assetManager) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='soundPath' virtualPath='{}' reason='AssetManager unavailable'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				soundPath
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		const std::optional<ResolvedContentFile> resolvedFile =
+			context.assetManager->GetContentPathResolver().ResolveFile(*virtualPath);
+		if (!resolvedFile.has_value()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='unresolved content' scene='{}' entity='{}' entityId={} component='{}' field='soundPath' virtualPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				soundPath
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		if (SetSoundPath(*virtualPath, *context.assetManager)) {
+			return true;
+		}
+		Error(
+			kChannel,
+			"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='soundPath' virtualPath='{}' mount='{}' physicalPath='{}'",
+			context.scenePath,
+			context.entityName,
+			context.entityId,
+			context.componentType,
+			soundPath,
+			resolvedFile->mountId,
+			resolvedFile->resolvedPath
+		);
+		return !IsStrictAssetValidation(context.loadOptions);
 	}
 
 	void AudioSourceComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("soundPath");
-		writer.Write(mSoundPath.ToGenericUtf8());
+		if (mSoundPath.has_value()) {
+			writer.Key("soundPath");
+			writer.Write(mSoundPath->String());
+		}
 		writer.Key("playOnStart");
 		writer.Write(mPlayOnStart);
 		writer.Key("loop");
@@ -96,7 +200,8 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void AudioSourceComponent::DrawInspectorImGui() {
-		std::string soundPath = mSoundPath.ToGenericUtf8();
+		std::string soundPath = mSoundPath.has_value() ?
+			mSoundPath->String() : std::string{};
 		if (
 			ImGuiWidgets::AssetPathPicker(
 				"Sound Path",
@@ -104,7 +209,14 @@ namespace Unnamed {
 				ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::SOUND)
 			)
 		) {
-			SetSoundPath(Path(soundPath));
+			const std::optional<VirtualPath> virtualPath =
+				VirtualPath::ParseContentReference(soundPath);
+			AssetManager* assetManager = GetAssetManager();
+			if (!virtualPath.has_value() || !assetManager) {
+				ClearSoundPath();
+			} else {
+				(void)SetSoundPath(*virtualPath, *assetManager);
+			}
 		}
 
 		ImGui::Checkbox("Play On Start", &mPlayOnStart);
@@ -142,19 +254,44 @@ namespace Unnamed {
 		return kIconSpeaker;
 	}
 
-	void AudioSourceComponent::SetSoundPath(Path path) {
-		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
-		if (mSoundPath == path) {
-			return;
+	bool AudioSourceComponent::SetSoundPath(
+		const VirtualPath& path, AssetManager& assetManager
+	) {
+		if (
+			mSoundPath.has_value() && *mSoundPath == path &&
+			mSoundAssetId != kInvalidAssetID
+		) {
+			return true;
 		}
-		mSoundPath        = std::move(path);
+
+		const AssetID assetId = assetManager.LoadSound(path);
+		if (assetId == kInvalidAssetID) {
+			ClearSoundPath();
+			return false;
+		}
+
+		InvalidateVoice();
+		mSoundPath        = path;
+		mSoundAssetId     = assetId;
 		mAutoPlayConsumed = false;
 		mLoggedError      = false;
-		InvalidateVoice();
+		return true;
 	}
 
-	const Path& AudioSourceComponent::GetSoundPath() const noexcept {
+	void AudioSourceComponent::ClearSoundPath() noexcept {
+		InvalidateVoice();
+		mSoundPath.reset();
+		mAutoPlayConsumed = false;
+		mLoggedError      = false;
+	}
+
+	const std::optional<VirtualPath>& AudioSourceComponent::GetSoundPath()
+	const noexcept {
 		return mSoundPath;
+	}
+
+	AssetID AudioSourceComponent::GetSoundAssetId() const noexcept {
+		return mSoundAssetId;
 	}
 
 	void AudioSourceComponent::SetPlayOnStart(const bool enabled) noexcept {
@@ -223,31 +360,17 @@ namespace Unnamed {
 	}
 
 	bool AudioSourceComponent::EnsureVoiceReady(const bool preservePlayback) {
-		if (mSoundPath.IsEmpty()) {
+		if (!mSoundPath.has_value() || mSoundAssetId == kInvalidAssetID) {
 			return false;
 		}
 
-		auto* assetManager = ServiceLocator::Get<AssetManager>();
+		auto* assetManager = GetAssetManager();
 		auto* audioSystem  = ServiceLocator::Get<AudioSystem>();
 		if (!assetManager || !audioSystem || !audioSystem->IsReady()) {
 			if (!mLoggedError) {
 				Error(
 					kChannel, "AssetManager or AudioSystem is not available."
 				);
-				mLoggedError = true;
-			}
-			return false;
-		}
-
-		if (mSoundAssetId == kInvalidAssetID) {
-			mSoundAssetId = assetManager->LoadFromFile(
-				mSoundPath, ASSET_TYPE::SOUND
-			);
-			mLoadedAssetVersion = 0;
-		}
-		if (mSoundAssetId == kInvalidAssetID) {
-			if (!mLoggedError) {
-				Error(kChannel, "Failed to load sound asset '{}'.", mSoundPath);
 				mLoggedError = true;
 			}
 			return false;
@@ -270,7 +393,7 @@ namespace Unnamed {
 			if (!mLoggedError) {
 				Error(
 					kChannel, "Sound asset payload is invalid: '{}'.",
-					mSoundPath
+					mSoundPath->String()
 				);
 				mLoggedError = true;
 			}
@@ -283,7 +406,7 @@ namespace Unnamed {
 			if (!mLoggedError) {
 				Error(
 					kChannel, "Failed to create audio voice for '{}'.",
-					mSoundPath
+					mSoundPath->String()
 				);
 				mLoggedError = true;
 			}
