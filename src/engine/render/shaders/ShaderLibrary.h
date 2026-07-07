@@ -37,8 +37,20 @@ namespace Unnamed::Render {
 		void SetCacheDirectory(Path dir);
 
 	private:
+		struct ShaderDependencyFingerprint final {
+			std::string mountId;
+			std::string stablePath;
+			AssetID     assetId = kInvalidAssetID;
+			uint32_t    version = 0;
+			uint64_t    sizeInBytes = 0;
+			int64_t     lastWriteTicks = 0;
+		};
+
 		[[nodiscard]] Path     GetDxilCachePath(const ShaderKey& key) const;
 		[[nodiscard]] uint64_t ComputeDerivedHash(const ShaderKey& key) const;
+		/// @brief Root ShaderSourceを含む推移的依存fingerprintを安定順で収集します。
+		[[nodiscard]] std::vector<ShaderDependencyFingerprint>
+		CollectDependencyFingerprints(AssetID rootShaderSourceId) const;
 
 		static std::vector<std::wstring> BuildDxcArgs(const ShaderKey& key);
 

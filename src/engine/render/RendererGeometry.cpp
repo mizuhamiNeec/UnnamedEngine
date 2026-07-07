@@ -620,6 +620,18 @@ namespace Unnamed::Render {
 			mDefaultMaterialInstance = materialInstanceId;
 		}
 
+		if (IsStrictRenderStartupValidation(mStartupOptions)) {
+			for (const AssetID assetId : assetManager.AllAssets()) {
+				const AssetMetaData& meta = assetManager.Meta(assetId);
+				if (
+					meta.loaded &&
+					meta.type == ASSET_TYPE::MATERIAL_INSTANCE
+				) {
+					requestedMaterialInstances.emplace_back(assetId);
+				}
+			}
+		}
+
 		// 可視オブジェクトが参照する全マテリアルインスタンスを収集します。
 		for (const RenderViewInput& view : mFrameViews) {
 			if (view.type != RENDER_VIEW_TYPE::SCENE) {
@@ -908,13 +920,16 @@ namespace Unnamed::Render {
 			runtimePass.enabled           = passAsset.enabled;
 			runtimePass.scalarDefaults    = passAsset.scalarParams;
 			runtimePass.colorDefaults     = passAsset.colorParams;
-			runtimePass.pass.pipeline     = mPipelineRegistry.RegisterGraphics(
-				RendererPipelineCatalog::MakeFullscreenPreset(
+			auto pipelineSpec = RendererPipelineCatalog::MakeFullscreenPreset(
 					"PostFx_" + runtimePass.name,
 					shaderProgramId,
 					dx.GetFsRootSignature(),
 					kSceneHdrColorFormat
-				)
+				);
+			pipelineSpec.startupRequirement =
+				PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
+			runtimePass.pass.pipeline = mPipelineRegistry.RegisterGraphics(
+				pipelineSpec
 			);
 			runtimePass.pass.resolved = nullptr;
 

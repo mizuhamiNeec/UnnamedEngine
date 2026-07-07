@@ -86,7 +86,11 @@ namespace Unnamed::Render {
 				key.ps.shaderSourceId,
 				key.ps.entry
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mGraphics.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
@@ -118,7 +122,8 @@ namespace Unnamed::Render {
 		desc.RTVFormats[0]    = key.numRenderTargets > 0 ?
 			                     key.rtvFormat :
 			                     DXGI_FORMAT_UNKNOWN;
-		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Count   = key.sampleCount;
+		desc.SampleDesc.Quality = key.sampleQuality;
 
 		if (key.depthEnable || key.stencilEnable) {
 			desc.DSVFormat = key.dsvFormat;
@@ -185,7 +190,11 @@ namespace Unnamed::Render {
 				"CreateGraphicsPipelineState failed. hr=0x{:08X}",
 				static_cast<uint32_t>(hr)
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mGraphics.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		if (hasExisting) {
@@ -218,7 +227,11 @@ namespace Unnamed::Render {
 				key.cs.shaderSourceId,
 				key.cs.entry
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mCompute.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {};
@@ -235,7 +248,11 @@ namespace Unnamed::Render {
 				"CreateComputePipelineState failed. hr=0x{:08X}",
 				static_cast<uint32_t>(hr)
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mCompute.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		if (hasExisting) {

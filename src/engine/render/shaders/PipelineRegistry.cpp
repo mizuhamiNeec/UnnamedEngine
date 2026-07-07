@@ -83,13 +83,33 @@ namespace Unnamed::Render {
 		mCompute.clear();
 	}
 
-	void PipelineRegistry::ResolveAll(RenderDevice& renderDevice) {
+	PipelineResolveResult PipelineRegistry::ResolveAll(
+		RenderDevice& renderDevice, const PIPELINE_RESOLVE_SCOPE scope
+	) {
+		PipelineResolveResult result = {};
 		for (auto& entry : mGraphics) {
+			if (
+				scope == PIPELINE_RESOLVE_SCOPE::REQUIRED_ONLY &&
+				entry.spec.startupRequirement !=
+					PIPELINE_STARTUP_REQUIREMENT::REQUIRED
+			) {
+				continue;
+			}
+			++result.requestedCount;
 			entry.resolved = {};
 			if (
 				entry.spec.shaderProgramId == kInvalidAssetID ||
 				entry.spec.rootSignature == nullptr
 			) {
+				if (!entry.resolveFailureLogged) {
+					Error(
+						kChannel,
+						"Invalid graphics pipeline specification '{}'",
+						entry.spec.debugName
+					);
+					entry.resolveFailureLogged = true;
+					++result.newlyFailedCount;
+				}
 				continue;
 			}
 
@@ -99,40 +119,76 @@ namespace Unnamed::Render {
 			if (!ResolveShaderProgramStageKey(
 				renderDevice, entry.spec.shaderProgramId, "vs", key.vs
 			)) {
-				Warning(
-					kChannel,
-					"Failed to resolve VS stage for graphics pipeline '{}'",
-					entry.spec.debugName
-				);
+				if (!entry.resolveFailureLogged) {
+					Warning(
+						kChannel,
+						"Failed to resolve VS stage for graphics pipeline '{}'",
+						entry.spec.debugName
+					);
+					entry.resolveFailureLogged = true;
+					++result.newlyFailedCount;
+				}
 				continue;
 			}
 			if (!ResolveShaderProgramStageKey(
 				renderDevice, entry.spec.shaderProgramId, "ps", key.ps
 			)) {
-				Warning(
-					kChannel,
-					"Failed to resolve PS stage for graphics pipeline '{}'",
-					entry.spec.debugName
-				);
+				if (!entry.resolveFailureLogged) {
+					Warning(
+						kChannel,
+						"Failed to resolve PS stage for graphics pipeline '{}'",
+						entry.spec.debugName
+					);
+					entry.resolveFailureLogged = true;
+					++result.newlyFailedCount;
+				}
 				continue;
 			}
 
 			ID3D12PipelineState* pso =
 				renderDevice.GetPipelineCache().GetOrCreateGraphicsPso(key);
 			if (!pso) {
+				if (!entry.resolveFailureLogged) {
+					Error(
+						kChannel,
+						"Failed to create graphics PSO for pipeline '{}'",
+						entry.spec.debugName
+					);
+					entry.resolveFailureLogged = true;
+					++result.newlyFailedCount;
+				}
 				continue;
 			}
 
 			entry.resolved.rootSignature = entry.spec.rootSignature;
 			entry.resolved.pso           = pso;
+			entry.resolveFailureLogged    = false;
+			++result.resolvedCount;
 		}
 
 		for (auto& entry : mCompute) {
+			if (
+				scope == PIPELINE_RESOLVE_SCOPE::REQUIRED_ONLY &&
+				entry.spec.startupRequirement !=
+					PIPELINE_STARTUP_REQUIREMENT::REQUIRED
+			) {
+				continue;
+			}
+			++result.requestedCount;
 			entry.resolved = {};
 			if (
 				entry.spec.shaderProgramId == kInvalidAssetID ||
 				entry.spec.rootSignature == nullptr
 			) {
+				if (!entry.resolveFailureLogged) {
+					Error(
+						kChannel,
+						"Invalid compute pipeline specification '{}'",
+						entry.spec.debugName
+					);
+					entry.resolveFailureLogged = true;
+					++result.newlyFailedCount;
+				}
 				continue;
 			}
 
@@ -141,23 +197,39 @@ namespace Unnamed::Render {
 			if (!ResolveShaderProgramStageKey(
 				renderDevice, entry.spec.shaderProgramId, "cs", key.cs
 			)) {
-				Warning(
-					kChannel,
-					"Failed to resolve CS stage for compute pipeline '{}'",
-					entry.spec.debugName
-				);
+				if (!entry.resolveFailureLogged) {
+					Warning(
+						kChannel,
+						"Failed to resolve CS stage for compute pipeline '{}'",
+						entry.spec.debugName
+					);
+					entry.resolveFailureLogged = true;
+					++result.newlyFailedCount;
+				}
 				continue;
 			}
 
 			ID3D12PipelineState* pso =
 				renderDevice.GetPipelineCache().GetOrCreateComputePso(key);
 			if (!pso) {
+				if (!entry.resolveFailureLogged) {
+					Error(
+						kChannel,
+						"Failed to create compute PSO for pipeline '{}'",
+						entry.spec.debugName
+					);
+					entry.resolveFailureLogged = true;
+					++result.newlyFailedCount;
+				}
 				continue;
 			}
 
 			entry.resolved.rootSignature = entry.spec.rootSignature;
 			entry.resolved.pso           = pso;
+			entry.resolveFailureLogged    = false;
+			++result.resolvedCount;
 		}
+		return result;
 	}
 
 	const ResolvedGraphicsPipeline* PipelineRegistry::GetGraphics(

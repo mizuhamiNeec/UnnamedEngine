@@ -210,16 +210,16 @@ namespace Unnamed::Render {
 
 	bool Renderer::Init(
 		RenderDevice& renderDevice,
-		const RendererStartupValidationPolicy validationPolicy
+		const RenderStartupOptions& startupOptions
 	) {
-		mStartupValidationPolicy = validationPolicy;
+		mStartupOptions = startupOptions;
 		auto& dx = dynamic_cast<Rhi::D3D12Device&>(renderDevice.GetRhiDevice());
 		mTextureResourceCache.Initialize(
 			&renderDevice.GetAssetManager(), &renderDevice.GetRegistry()
 		);
 		mTextureResourceCache.SetUnusedFrameThreshold(120);
 		mLastTextureCacheStatsLogFrame = 0;
-		if (!RebuildPipelineCatalog(renderDevice, dx, validationPolicy)) {
+		if (!RebuildPipelineCatalog(renderDevice, dx, startupOptions)) {
 			return false;
 		}
 
@@ -265,10 +265,29 @@ namespace Unnamed::Render {
 		return true;
 	}
 
+	bool Renderer::ValidateStartupResources(RenderDevice& renderDevice) {
+		if (!IsStrictRenderStartupValidation(mStartupOptions)) {
+			return true;
+		}
+
+		auto& dx = static_cast<Rhi::D3D12Device&>(
+			renderDevice.GetRhiDevice()
+		);
+		LoadMaterialResources(renderDevice, dx);
+		if (!ResolveRegisteredPipelines(renderDevice)) {
+			Error(
+				"Renderer",
+				"Strict startup validation failed for reachable Material pipelines."
+			);
+			return false;
+		}
+		return true;
+	}
+
 	bool Renderer::RebuildPipelineCatalog(
 		RenderDevice& renderDevice,
 		Rhi::D3D12Device& dx,
-		const RendererStartupValidationPolicy validationPolicy
+		const RenderStartupOptions& startupOptions
 	) {
 		auto& assetManager = renderDevice.GetAssetManager();
 
@@ -414,6 +433,8 @@ namespace Unnamed::Render {
 				dx.GetFsRootSignature(),
 				kSceneHdrColorFormat
 			);
+		bloomDownsampleSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		mBloomDownsamplePass.pipeline = mPipelineRegistry.RegisterGraphics(
 			bloomDownsampleSpec
 		);
@@ -425,6 +446,8 @@ namespace Unnamed::Render {
 			dx.GetFsRootSignature(),
 			kSceneHdrColorFormat
 		);
+		bloomUpsampleSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		bloomUpsampleSpec.psoTemplate.blendEnable = true;
 		bloomUpsampleSpec.psoTemplate.srcBlend = D3D12_BLEND_ONE;
 		bloomUpsampleSpec.psoTemplate.destBlend = D3D12_BLEND_ONE;
@@ -441,6 +464,8 @@ namespace Unnamed::Render {
 			dx.GetFsRootSignature(),
 			kSceneHdrColorFormat
 		);
+		bloomCombineSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		bloomCombineSpec.psoTemplate.blendEnable = true;
 		bloomCombineSpec.psoTemplate.srcBlend = D3D12_BLEND_ONE;
 		bloomCombineSpec.psoTemplate.destBlend = D3D12_BLEND_ONE;
@@ -451,13 +476,16 @@ namespace Unnamed::Render {
 		);
 		mBloomCombinePass.resolved = nullptr;
 
-		mDepthVisPass.pipeline = mPipelineRegistry.RegisterGraphics(
-			RendererPipelineCatalog::MakeFullscreenPreset(
+		auto depthVisSpec = RendererPipelineCatalog::MakeFullscreenPreset(
 				"DepthVis",
 				depthVisProgramId,
 				dx.GetFsRootSignature(),
 				swapChainFormat
-			)
+			);
+		depthVisSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
+		mDepthVisPass.pipeline = mPipelineRegistry.RegisterGraphics(
+			depthVisSpec
 		);
 		mDepthVisPass.resolved = nullptr;
 
@@ -505,6 +533,8 @@ namespace Unnamed::Render {
 
 		auto shadowDepthFrontCullSpec = shadowDepthSpec;
 		shadowDepthFrontCullSpec.debugName = "ShadowDepthOnlyFrontCull";
+		shadowDepthFrontCullSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		shadowDepthFrontCullSpec.psoTemplate.cullMode =
 			D3D12_CULL_MODE_FRONT;
 		mShadowDepthFrontCullPass.pipeline =
@@ -513,6 +543,8 @@ namespace Unnamed::Render {
 
 		auto shadowDepthDoubleSidedSpec = shadowDepthSpec;
 		shadowDepthDoubleSidedSpec.debugName = "ShadowDepthOnlyDoubleSided";
+		shadowDepthDoubleSidedSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		shadowDepthDoubleSidedSpec.psoTemplate.cullMode =
 			D3D12_CULL_MODE_NONE;
 		mShadowDepthDoubleSidedPass.pipeline =
@@ -589,20 +621,23 @@ namespace Unnamed::Render {
 		);
 		mBillboardPass.frontGeom.resolved = nullptr;
 
-		mLinePass.pipeline = mPipelineRegistry.RegisterGraphics(
-			RendererPipelineCatalog::MakeLinePreset(
+		auto debugLineSpec = RendererPipelineCatalog::MakeLinePreset(
 				"DebugLine",
 				debugLineProgramId,
 				dx.GetGeomRootSignature(),
 				kSceneHdrColorFormat,
 				DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
 				lineLayout
-			)
+			);
+		debugLineSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
+		mLinePass.pipeline = mPipelineRegistry.RegisterGraphics(
+			debugLineSpec
 		);
 		mLinePass.resolved = nullptr;
 
 		if (!LoadPostFxChain(renderDevice)) {
-			if (validationPolicy == RendererStartupValidationPolicy::Strict) {
+			if (IsStrictRenderStartupValidation(startupOptions)) {
 				Error(
 					"Renderer",
 					"Default PostFxChain is required by strict startup validation."
@@ -613,6 +648,17 @@ namespace Unnamed::Render {
 				"Renderer",
 				"Default PostFxChain is unavailable; continuing without post effects."
 			);
+		}
+		const PIPELINE_RESOLVE_SCOPE startupResolveScope =
+			IsStrictRenderStartupValidation(startupOptions) ?
+				PIPELINE_RESOLVE_SCOPE::ALL_REGISTERED :
+				PIPELINE_RESOLVE_SCOPE::REQUIRED_ONLY;
+		if (!ResolveRegisteredPipelines(renderDevice, startupResolveScope)) {
+			Error(
+				"Renderer",
+				"Startup validation failed for Renderer/PostFx pipelines."
+			);
+			return false;
 		}
 		return true;
 	}

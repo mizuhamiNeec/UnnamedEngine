@@ -6,6 +6,7 @@
 #include <core/content/ContentPathResolver.h>
 
 #include <engine/EngineConfig.h>
+#include <engine/render/RenderStartupOptions.h>
 #include <engine/scene/SceneLoadOptions.h>
 
 class IPostProcess;
@@ -48,6 +49,8 @@ namespace Unnamed {
 		std::function<std::unique_ptr<IDemoService>()> createDemoService = {};
 		/// @brief 起動シーンおよびシーン遷移に使用する読込オプションです。
 		SceneLoadOptions sceneLoadOptions = {};
+		/// @brief Renderer起動時のShader/PSO検証オプションです。
+		Render::RenderStartupOptions renderStartupOptions = {};
 	};
 
 	/// @brief Engine 実行時フックです。

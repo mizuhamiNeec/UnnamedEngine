@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <queue>
+#include <functional>
 #include <unordered_set>
 
 #include <core/UnnamedMacro.h>
@@ -82,7 +83,9 @@ namespace Unnamed {
 				stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
 			}
 
-			stamp.sizeInBytes = std::filesystem::file_size(path.Native(), ec);
+			if (std::filesystem::is_regular_file(path.Native(), ec)) {
+				stamp.sizeInBytes = std::filesystem::file_size(path.Native(), ec);
+			}
 			return stamp;
 		}
 
@@ -395,6 +398,23 @@ namespace Unnamed {
 		Profiler*        profiler = ServiceLocator::Get<Profiler>();
 		std::scoped_lock lock(mMutex);
 
+		const auto activeLoad = std::ranges::find(
+			mActiveLoadStack, normalizedPath
+		);
+		if (activeLoad != mActiveLoadStack.end()) {
+			std::vector<std::string> cycle;
+			for (auto it = activeLoad; it != mActiveLoadStack.end(); ++it) {
+				cycle.emplace_back(it->ToGenericUtf8());
+			}
+			cycle.emplace_back(normalizedPath.ToGenericUtf8());
+			Error(
+				kChannel,
+				"Shader include cycle detected:\n{}",
+				StrUtil::Join(cycle, "\n -> ")
+			);
+			return kInvalidAssetID;
+		}
+
 		if (policy == AssetLoadPolicy::UseCachedIfLoaded) {
 			const auto cachedIt = mPathToID.
 				find(normalizedPath.ToGenericUtf8());
@@ -487,39 +507,83 @@ namespace Unnamed {
 				continue;
 			}
 
+			const std::string loadedMountId = n.meta.sourceMountId;
 			const AssetLoadContext loadContext{
-				.resolvedMountId = n.meta.sourceMountId,
+				.resolvedMountId = loadedMountId,
 			};
+			mActiveLoadStack.emplace_back(normalizedPath);
 			LoadResult r = l->Load(normalizedPath, loadContext);
+			mActiveLoadStack.pop_back();
+			Node& loadedNode = mNodes[id];
 			if (std::holds_alternative<std::monostate>(r.payload)) {
-				n.payload = std::monostate{};
-				n.meta.type = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
-				n.meta.loaded = false;
-				n.meta.loadFailed = true;
-				n.meta.runtime = false;
-				n.meta.destroyed = false;
-				n.meta.fileStamp = ReadCurrentFileStamp(n.meta.sourcePath);
-				SetDependencies(id, {});
+				loadedNode.payload = std::monostate{};
+				loadedNode.meta.type = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
+				loadedNode.meta.loaded = false;
+				loadedNode.meta.loadFailed = true;
+				loadedNode.meta.runtime = false;
+				loadedNode.meta.destroyed = false;
+				loadedNode.meta.fileStamp = ReadCurrentFileStamp(
+					loadedNode.meta.sourcePath
+				);
+				UpdateSourceWatches(loadedNode, r.sourceWatchPaths);
+				loadedNode.unresolvedShaderIncludes =
+					std::move(r.unresolvedShaderIncludes);
+				std::vector<AssetID> failureCycle;
+				if (FindDependencyCycle(id, r.dependencies, failureCycle)) {
+					SetDependencies(id, {});
+				} else {
+					SetDependencies(id, r.dependencies);
+				}
 				Error(
 					kChannel,
 					"Asset loader failed: path={} type={}",
 					normalizedPath,
-					ToString(n.meta.type)
+					ToString(loadedNode.meta.type)
 				);
 				return kInvalidAssetID;
 			}
-			n.payload         = std::move(r.payload);
-			n.meta.type       = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
-			n.meta.loaded     = true;
-			n.meta.loadFailed = false;
-			n.meta.runtime    = false;
-			n.meta.destroyed  = false;
-			n.meta.fileStamp  = CompleteFileStamp(n.meta.sourcePath, r.stamp);
+			std::vector<AssetID> dependencyCycle;
+			if (FindDependencyCycle(id, r.dependencies, dependencyCycle)) {
+				std::vector<std::string> cyclePaths;
+				cyclePaths.reserve(dependencyCycle.size());
+				for (const AssetID cycleId : dependencyCycle) {
+					cyclePaths.emplace_back(
+						mNodes[cycleId].meta.sourcePath.ToGenericUtf8()
+					);
+				}
+				Error(
+					kChannel,
+					"Shader include dependency cycle detected:\n{}",
+					StrUtil::Join(cyclePaths, "\n -> ")
+				);
+				loadedNode.payload = std::monostate{};
+				loadedNode.meta.loaded = false;
+				loadedNode.meta.loadFailed = true;
+				loadedNode.meta.fileStamp = ReadCurrentFileStamp(
+					loadedNode.meta.sourcePath
+				);
+				UpdateSourceWatches(loadedNode, r.sourceWatchPaths);
+				SetDependencies(id, {});
+				return kInvalidAssetID;
+			}
+
+			loadedNode.payload         = std::move(r.payload);
+			loadedNode.meta.type       = deduced == ASSET_TYPE::UNKNOWN ? t : deduced;
+			loadedNode.meta.loaded     = true;
+			loadedNode.meta.loadFailed = false;
+			loadedNode.meta.runtime    = false;
+			loadedNode.meta.destroyed  = false;
+			loadedNode.meta.fileStamp  = CompleteFileStamp(
+				loadedNode.meta.sourcePath, r.stamp
+			);
+			UpdateSourceWatches(loadedNode, r.sourceWatchPaths);
+			loadedNode.unresolvedShaderIncludes =
+				std::move(r.unresolvedShaderIncludes);
 
 			// 名前の解決
 			if (!r.resolveName.empty()) {
-				n.meta.name            = r.resolveName;
-				mNameToID[n.meta.name] = id;
+				loadedNode.meta.name            = r.resolveName;
+				mNameToID[loadedNode.meta.name] = id;
 			}
 
 			// 依存の設定
@@ -770,6 +834,71 @@ namespace Unnamed {
 		}
 	}
 
+	void AssetManager::UpdateSourceWatches(
+		Node& node, const std::vector<Path>& watchPaths
+	) {
+		node.sourceWatches.clear();
+		node.sourceWatches.reserve(watchPaths.size());
+		for (const Path& watchPath : watchPaths) {
+			if (watchPath.IsEmpty()) {
+				continue;
+			}
+			const Path normalized = watchPath.LexicallyNormal();
+			const bool alreadyPresent = std::ranges::any_of(
+				node.sourceWatches,
+				[&normalized](const SourceWatchState& watch) {
+					return watch.path == normalized;
+				}
+			);
+			if (!alreadyPresent) {
+				node.sourceWatches.emplace_back(SourceWatchState{
+					.path  = normalized,
+					.stamp = ReadCurrentFileStamp(normalized),
+				});
+			}
+		}
+	}
+
+	bool AssetManager::FindDependencyCycle(
+		const AssetID rootId,
+		const std::vector<AssetID>& proposedDependencies,
+		std::vector<AssetID>& outCycle
+	) const {
+		outCycle.clear();
+		std::unordered_map<AssetID, ASSET_DEPENDENCY_VISIT_STATE> states;
+		std::vector<AssetID> stack;
+
+		std::function<bool(AssetID)> visit = [&](const AssetID current) {
+			const ASSET_DEPENDENCY_VISIT_STATE state = states.contains(current) ?
+				states.at(current) : ASSET_DEPENDENCY_VISIT_STATE::UNVISITED;
+			if (state == ASSET_DEPENDENCY_VISIT_STATE::VISITING) {
+				const auto cycleBegin = std::ranges::find(stack, current);
+				outCycle.assign(cycleBegin, stack.end());
+				outCycle.emplace_back(current);
+				return true;
+			}
+			if (state == ASSET_DEPENDENCY_VISIT_STATE::VISITED ||
+			    current == kInvalidAssetID || current >= mNextID) {
+				return false;
+			}
+
+			states[current] = ASSET_DEPENDENCY_VISIT_STATE::VISITING;
+			stack.emplace_back(current);
+			const std::vector<AssetID>& dependencies = current == rootId ?
+				proposedDependencies : mNodes[current].dependencies;
+			for (const AssetID dependency : dependencies) {
+				if (visit(dependency)) {
+					return true;
+				}
+			}
+			stack.pop_back();
+			states[current] = ASSET_DEPENDENCY_VISIT_STATE::VISITED;
+			return false;
+		};
+
+		return visit(rootId);
+	}
+
 	const AssetMetaData& AssetManager::Meta(const AssetID id) const {
 		std::scoped_lock lock(mMutex);
 		UASSERT(id < mNextID);
@@ -842,36 +971,98 @@ namespace Unnamed {
 		}
 
 		// ローダーを探す
+		const Path        sourcePath    = n.meta.sourcePath;
+		const ASSET_TYPE  sourceType    = n.meta.type;
+		const std::string sourceMountId = n.meta.sourceMountId;
 		for (const auto& l : mLoaders) {
 			auto t = ASSET_TYPE::UNKNOWN;
 			// このローダーで読めるか?
-			if (!l->CanLoad(n.meta.sourcePath, &t)) {
+			if (!l->CanLoad(sourcePath, &t)) {
 				continue;
 			}
 			// アセットタイプが違うか?
-			if (t != n.meta.type && n.meta.type != ASSET_TYPE::UNKNOWN) {
+			if (t != sourceType && sourceType != ASSET_TYPE::UNKNOWN) {
 				continue;
 			}
 
 			// 再読み込み
 			const AssetLoadContext loadContext{
-				.resolvedMountId = n.meta.sourceMountId,
+				.resolvedMountId = sourceMountId,
 			};
-			LoadResult r = l->Load(n.meta.sourcePath, loadContext);
+			mActiveLoadStack.emplace_back(sourcePath);
+			LoadResult r = l->Load(sourcePath, loadContext);
+			mActiveLoadStack.pop_back();
+			Node& loadedNode = mNodes[id];
 			if (std::holds_alternative<std::monostate>(r.payload)) {
-				n.payload         = std::monostate{};
-				n.meta.loaded     = false;
-				n.meta.loadFailed = true;
-				n.meta.fileStamp  = ReadCurrentFileStamp(n.meta.sourcePath);
-				SetDependencies(id, {});
+				std::vector<AssetID> failureDependencies =
+					loadedNode.dependencies;
+				failureDependencies.insert(
+					failureDependencies.end(),
+					r.dependencies.begin(),
+					r.dependencies.end()
+				);
+				std::ranges::sort(failureDependencies);
+				failureDependencies.erase(
+					std::ranges::unique(failureDependencies).begin(),
+					failureDependencies.end()
+				);
+				loadedNode.payload         = std::monostate{};
+				loadedNode.meta.loaded     = false;
+				loadedNode.meta.loadFailed = true;
+				loadedNode.meta.fileStamp  = ReadCurrentFileStamp(sourcePath);
+				UpdateSourceWatches(loadedNode, r.sourceWatchPaths);
+				loadedNode.unresolvedShaderIncludes =
+					std::move(r.unresolvedShaderIncludes);
+				std::vector<AssetID> failureCycle;
+				if (FindDependencyCycle(id, failureDependencies, failureCycle)) {
+					SetDependencies(id, {});
+				} else {
+					SetDependencies(id, failureDependencies);
+				}
+				const auto callbacks = mReloadCallbacks;
+				for (auto& callback : callbacks) {
+					callback(id);
+				}
 				return false;
 			}
-			n.payload         = std::move(r.payload);
-			n.meta.loaded     = true;
-			n.meta.loadFailed = false;
-			n.meta.destroyed  = false;
-			n.meta.fileStamp  = CompleteFileStamp(n.meta.sourcePath, r.stamp);
-			n.meta.version++;
+
+			std::vector<AssetID> dependencyCycle;
+			if (FindDependencyCycle(id, r.dependencies, dependencyCycle)) {
+				const std::vector<AssetID> previousDependencies =
+					loadedNode.dependencies;
+				std::vector<std::string> cyclePaths;
+				for (const AssetID cycleId : dependencyCycle) {
+					cyclePaths.emplace_back(
+						mNodes[cycleId].meta.sourcePath.ToGenericUtf8()
+					);
+				}
+				Error(
+					kChannel,
+					"Shader include dependency cycle detected:\n{}",
+					StrUtil::Join(cyclePaths, "\n -> ")
+				);
+				loadedNode.payload         = std::monostate{};
+				loadedNode.meta.loaded     = false;
+				loadedNode.meta.loadFailed = true;
+				loadedNode.meta.fileStamp  = ReadCurrentFileStamp(sourcePath);
+				UpdateSourceWatches(loadedNode, r.sourceWatchPaths);
+				SetDependencies(id, previousDependencies);
+				const auto callbacks = mReloadCallbacks;
+				for (auto& callback : callbacks) {
+					callback(id);
+				}
+				return false;
+			}
+
+			loadedNode.payload         = std::move(r.payload);
+			loadedNode.meta.loaded     = true;
+			loadedNode.meta.loadFailed = false;
+			loadedNode.meta.destroyed  = false;
+			loadedNode.meta.fileStamp  = CompleteFileStamp(sourcePath, r.stamp);
+			UpdateSourceWatches(loadedNode, r.sourceWatchPaths);
+			loadedNode.unresolvedShaderIncludes =
+				std::move(r.unresolvedShaderIncludes);
+			loadedNode.meta.version++;
 
 			// 依存の設定
 			SetDependencies(id, r.dependencies);
@@ -890,9 +1081,7 @@ namespace Unnamed {
 	bool AssetManager::ReloadWithDependents(const AssetID id) {
 		Profiler*            profiler = ServiceLocator::Get<Profiler>();
 		Profiler::ScopeTimer scope(profiler, "Asset.ReloadWithDependents");
-		if (!Reload(id)) {
-			return false;
-		}
+		bool allReloadsSucceeded = Reload(id);
 
 		std::unordered_set<AssetID> visited;
 		std::queue<AssetID>         queue;
@@ -914,7 +1103,9 @@ namespace Unnamed {
 			const AssetID current = queue.front();
 			queue.pop();
 
-			Reload(current);
+			if (!Reload(current)) {
+				allReloadsSucceeded = false;
+			}
 
 			std::scoped_lock lock(mMutex);
 			for (const AssetID dependent : mNodes[current].dependents) {
@@ -927,7 +1118,7 @@ namespace Unnamed {
 			}
 		}
 
-		return true;
+		return allReloadsSucceeded;
 	}
 
 	std::vector<AssetID> AssetManager::PollSourceChanges() {
@@ -937,21 +1128,25 @@ namespace Unnamed {
 			changed.reserve(mNextID);
 			for (AssetID id = 1; id < mNextID; ++id) {
 				const Node& node = mNodes[id];
-				if (
-					node.meta.destroyed || !node.meta.loaded ||
-					node.meta.sourcePath.IsEmpty()
-				) {
+				if (node.meta.destroyed || node.meta.sourcePath.IsEmpty() ||
+				    (!node.meta.loaded && !node.meta.loadFailed)) {
 					continue;
 				}
 
 				const FileStamp current = ReadCurrentFileStamp(
 					node.meta.sourcePath
 				);
-				if (current.sizeInBytes == 0 && current.lastWriteTicks == 0) {
-					continue;
-				}
 				if (!FileStampEquals(current, node.meta.fileStamp)) {
 					changed.emplace_back(id);
+					continue;
+				}
+				for (const SourceWatchState& watch : node.sourceWatches) {
+					if (!FileStampEquals(
+						ReadCurrentFileStamp(watch.path), watch.stamp
+					)) {
+						changed.emplace_back(id);
+						break;
+					}
 				}
 			}
 		}

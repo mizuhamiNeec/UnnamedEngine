@@ -22,12 +22,15 @@ namespace Unnamed {
 		/// @return ロード結果
 		LoadResult Load(const Path& path) override;
 
-	private:
-		/// @brief シェーダーソースのテキストを解析して、インクルードされているファイルのパスを抽出します。
-		/// @param text シェーダーソースのテキスト
-		/// @return インクルードされているファイルのパスのリスト
-		static std::vector<std::string> ParseIncludes(const std::string& text);
+		/// @brief mount情報を伴ってShaderSourceを読み込みます。
+		/// @param path 解決済み物理パス。
+		/// @param context 親Assetから継承されたmount情報。
+		/// @return ロード結果。
+		LoadResult Load(
+			const Path& path, const AssetLoadContext& context
+		) override;
 
+	private:
 		AssetManager* mAssetManager = nullptr;
 	};
 }

@@ -56,6 +56,26 @@ namespace Unnamed {
 			const VirtualPath& virtualPath
 		) const;
 
+		/// @brief 指定mount内の論理パスに対応する物理候補を構築します。
+		/// @details ファイルの存在は検証しません。
+		/// @param mountId マウントID。
+		/// @param virtualPath 論理パス。
+		/// @return mount内の候補。mountが存在しない場合はstd::nullopt。
+		[[nodiscard]] std::optional<ResolvedContentFile> BuildFileCandidateFromMount(
+			std::string_view mountId,
+			const VirtualPath& virtualPath
+		) const;
+
+		/// @brief mount内の物理パスを論理パス付きの解決情報へ変換します。
+		/// @details ファイルの存在は検証しません。mount外のパスは拒否します。
+		/// @param mountId マウントID。
+		/// @param physicalPath 正規化対象の物理パス。
+		/// @return mount内の解決情報。mount外の場合はstd::nullopt。
+		[[nodiscard]] std::optional<ResolvedContentFile> DescribePathFromMount(
+			std::string_view mountId,
+			const Path& physicalPath
+		) const;
+
 		/// @brief 指定されたマウントが存在するかどうかを確認します。
 		/// @param mountId マウントID。
 		/// @return 存在する場合は true、存在しない場合は false。

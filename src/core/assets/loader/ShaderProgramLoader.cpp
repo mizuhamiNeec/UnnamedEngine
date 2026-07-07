@@ -5,6 +5,7 @@
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/ShaderProgramAssetData.h"
+#include "core/content/ContentPathResolver.h"
 #include "core/filesystem/VirtualPath.h"
 #include "core/io/json/JsonReader.h"
 
@@ -143,8 +144,15 @@ namespace Unnamed {
 			return result;
 		}
 
-		const Path full    = path.LexicallyNormal();
-		const Path baseDir = full.ParentPath();
+		const Path full = path.LexicallyNormal();
+		if (root.Has("includeDirs")) {
+			Error(
+				"ShaderProgramLoader",
+				"ShaderProgram includeDirs is not supported; use explicit HLSL include references: shaderProgram='{}'",
+				full
+			);
+			return result;
+		}
 
 		ShaderProgramAssetData data = {};
 		data.name                   = root.Read<std::string>("name").value_or(
@@ -170,6 +178,22 @@ namespace Unnamed {
 					ASSET_TYPE::SHADER_SOURCE
 				);
 			if (stage.shaderSourceAssetId == kInvalidAssetID) {
+				const auto candidate = context.resolvedMountId.empty() ?
+					mAssetManager->GetContentPathResolver().ResolveFile(
+						stage.sourcePath
+					) :
+					mAssetManager->GetContentPathResolver().
+						BuildFileCandidateFromMount(
+							context.resolvedMountId, stage.sourcePath
+						);
+				if (candidate.has_value()) {
+					const AssetID failedDependency = mAssetManager->FindByPath(
+						candidate->resolvedPath
+					);
+					if (failedDependency != kInvalidAssetID) {
+						result.dependencies.emplace_back(failedDependency);
+					}
+				}
 				Error(
 					"ShaderProgramLoader",
 					"Shader stage source dependency load failed: shaderProgram='{}' field='{}.path' virtualPath='{}' mount='{}'",
@@ -194,19 +218,6 @@ namespace Unnamed {
 		}
 		if (root.Has("cs") && !loadStage(root["cs"], "cs", data.cs)) {
 			return result;
-		}
-
-		const JsonReader includeDirs = root["includeDirs"];
-		if (includeDirs.Valid() && includeDirs.IsArray()) {
-			for (size_t i = 0; i < includeDirs.Size(); ++i) {
-				const JsonReader v = includeDirs[i];
-				if (!v.Valid() || !v.IsString()) {
-					continue;
-				}
-				data.includeDirectories.emplace_back(
-					Path::ResolveRelativePath(baseDir.Native(), v.GetString())
-				);
-			}
 		}
 
 		result.payload     = std::move(data);

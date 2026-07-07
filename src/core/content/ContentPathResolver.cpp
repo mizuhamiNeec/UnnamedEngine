@@ -87,6 +87,68 @@ namespace Unnamed {
 		return std::nullopt;
 	}
 
+	std::optional<ResolvedContentFile>
+	ContentPathResolver::BuildFileCandidateFromMount(
+		const std::string_view mountId,
+		const VirtualPath&     virtualPath
+	) const {
+		if (mountId.empty() || virtualPath.IsEmpty()) {
+			return std::nullopt;
+		}
+
+		for (const ContentDirectoryMount& mount : mMounts) {
+			if (mount.id == mountId) {
+				return ResolvedContentFile{
+					.virtualPath   = virtualPath,
+					.resolvedPath  = BuildCandidatePath(mount, virtualPath),
+					.mountId       = mount.id,
+					.mountPriority = mount.priority,
+				};
+			}
+		}
+		return std::nullopt;
+	}
+
+	std::optional<ResolvedContentFile> ContentPathResolver::DescribePathFromMount(
+		const std::string_view mountId,
+		const Path&            physicalPath
+	) const {
+		if (mountId.empty() || physicalPath.IsEmpty() ||
+		    !physicalPath.IsAbsolute()) {
+			return std::nullopt;
+		}
+
+		for (const ContentDirectoryMount& mount : mMounts) {
+			if (mount.id != mountId) {
+				continue;
+			}
+
+			const std::filesystem::path relative = physicalPath.LexicallyNormal().
+				Native().lexically_relative(mount.rootPath.Native());
+			if (relative.empty() || relative.is_absolute()) {
+				return std::nullopt;
+			}
+			for (const auto& component : relative) {
+				if (component == "..") {
+					return std::nullopt;
+				}
+			}
+
+			const std::optional<VirtualPath> virtualPath =
+				VirtualPath::ParseContentReference(relative.generic_string());
+			if (!virtualPath.has_value()) {
+				return std::nullopt;
+			}
+			return ResolvedContentFile{
+				.virtualPath   = *virtualPath,
+				.resolvedPath  = physicalPath.LexicallyNormal(),
+				.mountId       = mount.id,
+				.mountPriority = mount.priority,
+			};
+		}
+		return std::nullopt;
+	}
+
 	bool ContentPathResolver::HasMount(
 		const std::string_view mountId
 	) const noexcept {

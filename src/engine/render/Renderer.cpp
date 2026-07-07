@@ -110,7 +110,7 @@ namespace Unnamed::Render {
 		}
 		if (postFxDirty) {
 			(void)RebuildPipelineCatalog(
-				renderDevice, dx, mStartupValidationPolicy
+				renderDevice, dx, mStartupOptions
 			);
 		}
 
@@ -345,7 +345,7 @@ namespace Unnamed::Render {
 			(void)materialInstanceId;
 			EnsureMaterialTextureTable(renderDevice, binding);
 		}
-		ResolveRegisteredPipelines(renderDevice);
+		(void)ResolveRegisteredPipelines(renderDevice);
 
 		rhi.BeginFrame();
 		mAdvancedFoundation.BeginFrame();
@@ -662,8 +662,12 @@ namespace Unnamed::Render {
 		binding.materialTextureSrvRevisions = revisions;
 	}
 
-	void Renderer::ResolveRegisteredPipelines(RenderDevice& renderDevice) {
-		mPipelineRegistry.ResolveAll(renderDevice);
+	bool Renderer::ResolveRegisteredPipelines(
+		RenderDevice& renderDevice, const PIPELINE_RESOLVE_SCOPE scope
+	) {
+		const PipelineResolveResult result = mPipelineRegistry.ResolveAll(
+			renderDevice, scope
+		);
 
 		mFullscreenPass.resolved = mPipelineRegistry.GetGraphics(
 			mFullscreenPass.pipeline
@@ -745,6 +749,16 @@ namespace Unnamed::Render {
 				pass.pass.pipeline
 			);
 		}
+
+		if (result.newlyFailedCount != 0) {
+			Error(
+				kRenderChannel,
+				"Pipeline resolution failed: resolved={}/{}",
+				result.resolvedCount,
+				result.requestedCount
+			);
+		}
+		return result.Succeeded();
 	}
 
 	uint32_t Renderer::ResolveSpriteTexture(

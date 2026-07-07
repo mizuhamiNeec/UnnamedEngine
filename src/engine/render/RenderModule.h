@@ -31,8 +31,11 @@ namespace Unnamed::Render {
 		/// @return 初期化に成功した場合true。
 		[[nodiscard]] bool Init(
 			ConsoleSystem* console,
-			RendererStartupValidationPolicy validationPolicy
+			const RenderStartupOptions& startupOptions
 		);
+		/// @brief 起動シーンから到達可能なRenderer Pipelineを検証します。
+		/// @return 検証に成功した場合true。
+		[[nodiscard]] bool ValidateStartupResources() const;
 		/// @brief Renderer/RenderDevice を明示的な順序で終了します。
 		void Shutdown();
 		void Tick(const RenderFrameInputs& inputs) const;

@@ -182,21 +182,8 @@ namespace Unnamed::Render {
 
 	uint64_t ShaderLibrary::ComputeDerivedHash(const ShaderKey& key) const {
 		StableHashBuilder hashBuilder;
-
-		const auto* src = mAssetManager.Get<ShaderSourceAssetData>(
-			key.shaderSourceId
-		);
-		if (!src) {
-			Error(
-				kChannel, "ShaderSource payload missing while hashing: id={}",
-				key.shaderSourceId
-			);
-			return 0;
-		}
-
-		// ソースファイルのパスを正規化してハッシュに含める
-		const std::string srcPath = src->path.LexicallyNormal().ToGenericUtf8();
-		hashBuilder.AddString(srcPath);
+		constexpr uint64_t kShaderCompilerCacheVersion = 2;
+		hashBuilder.AddUInt64(kShaderCompilerCacheVersion);
 		hashBuilder.AddString(key.entry);
 		hashBuilder.AddString(key.profile);
 		for (const auto& [name, value] : key.defines) {
@@ -204,21 +191,77 @@ namespace Unnamed::Render {
 			hashBuilder.AddString(value);
 		}
 
-		const auto& meta = mAssetManager.Meta(key.shaderSourceId);
-
-		hashBuilder.AddUInt64(meta.fileStamp.sizeInBytes);
-		hashBuilder.AddInt64(meta.fileStamp.lastWriteTicks);
-
-		for (
-			const auto depId : mAssetManager.GetDependencies(key.shaderSourceId)
-		) {
-			const auto& depMeta = mAssetManager.Meta(depId);
-			hashBuilder.AddUInt64(depId);
-			hashBuilder.AddUInt64(depMeta.fileStamp.sizeInBytes);
-			hashBuilder.AddInt64(depMeta.fileStamp.lastWriteTicks);
+		for (const ShaderDependencyFingerprint& dependency :
+		     CollectDependencyFingerprints(key.shaderSourceId)) {
+			hashBuilder.AddString(dependency.mountId);
+			hashBuilder.AddString(dependency.stablePath);
+			hashBuilder.AddUInt64(dependency.assetId);
+			hashBuilder.AddUInt64(dependency.version);
+			hashBuilder.AddUInt64(dependency.sizeInBytes);
+			hashBuilder.AddInt64(dependency.lastWriteTicks);
 		}
 
+		hashBuilder.AddString("-WX");
+		hashBuilder.AddString("-Zi");
+		hashBuilder.AddString("-Qembed_debug");
+		hashBuilder.AddString("-Zpr");
+#ifdef _DEBUG
+		hashBuilder.AddString("-Od");
+#else
+		hashBuilder.AddString("-O3");
+#endif
+
 		return hashBuilder.Value();
+	}
+
+	std::vector<ShaderLibrary::ShaderDependencyFingerprint>
+	ShaderLibrary::CollectDependencyFingerprints(
+		const AssetID rootShaderSourceId
+	) const {
+		std::vector<AssetID> pending = {rootShaderSourceId};
+		std::unordered_set<AssetID> visited;
+		std::vector<ShaderDependencyFingerprint> fingerprints;
+
+		while (!pending.empty()) {
+			const AssetID assetId = pending.back();
+			pending.pop_back();
+			if (assetId == kInvalidAssetID || !visited.emplace(assetId).second) {
+				continue;
+			}
+
+			const AssetMetaData& meta = mAssetManager.Meta(assetId);
+			const auto* source = mAssetManager.Get<ShaderSourceAssetData>(assetId);
+			const std::string stablePath = source && source->virtualPath.has_value() ?
+				source->virtualPath->String() :
+				meta.sourcePath.LexicallyNormal().ToGenericUtf8();
+			fingerprints.emplace_back(ShaderDependencyFingerprint{
+				.mountId       = meta.sourceMountId,
+				.stablePath     = stablePath,
+				.assetId        = assetId,
+				.version        = meta.version,
+				.sizeInBytes    = meta.fileStamp.sizeInBytes,
+				.lastWriteTicks = meta.fileStamp.lastWriteTicks,
+			});
+
+			for (const AssetID dependency : mAssetManager.GetDependencies(assetId)) {
+				pending.emplace_back(dependency);
+			}
+		}
+
+		std::ranges::sort(
+			fingerprints,
+			[](const ShaderDependencyFingerprint& lhs,
+			   const ShaderDependencyFingerprint& rhs) {
+				if (lhs.mountId != rhs.mountId) {
+					return lhs.mountId < rhs.mountId;
+				}
+				if (lhs.stablePath != rhs.stablePath) {
+					return lhs.stablePath < rhs.stablePath;
+				}
+				return lhs.assetId < rhs.assetId;
+			}
+		);
+		return fingerprints;
 	}
 
 	std::vector<std::wstring> ShaderLibrary::BuildDxcArgs(

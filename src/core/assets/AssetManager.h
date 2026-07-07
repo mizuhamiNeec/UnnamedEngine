@@ -253,6 +253,12 @@ namespace Unnamed {
 		std::vector<AssetID> AllAssets() const;
 
 	private:
+		enum class ASSET_DEPENDENCY_VISIT_STATE : uint8_t {
+			UNVISITED,
+			VISITING,
+			VISITED,
+		};
+
 		/// @brief 新しいアセットIDを割り当てます
 		/// @return 割り当てられたアセットID
 		AssetID AllocateID();
@@ -284,12 +290,31 @@ namespace Unnamed {
 		/// @brief すべてのアセットの依存関係情報を再構築します
 		void RebuildAllDependents();
 
+		struct SourceWatchState final {
+			Path      path;
+			FileStamp stamp;
+		};
+
 		struct Node {
 			AssetMetaData        meta;
 			AssetPayload         payload;
 			std::vector<AssetID> dependencies;
 			std::vector<AssetID> dependents;
+			std::vector<SourceWatchState> sourceWatches;
+			std::vector<UnresolvedShaderInclude> unresolvedShaderIncludes;
 		};
+
+		/// @brief missing依存の監視パスと現在stampを更新します。
+		void UpdateSourceWatches(
+			Node& node, const std::vector<Path>& watchPaths
+		);
+
+		/// @brief 提案された依存を適用した場合のcycleを検索します。
+		[[nodiscard]] bool FindDependencyCycle(
+			AssetID rootId,
+			const std::vector<AssetID>& proposedDependencies,
+			std::vector<AssetID>& outCycle
+		) const;
 
 		mutable std::recursive_mutex mMutex;
 		std::vector<Node>            mNodes;
@@ -301,6 +326,7 @@ namespace Unnamed {
 		std::vector<std::unique_ptr<IAssetLoader>> mLoaders;
 		std::vector<ReloadCallback>                mReloadCallbacks;
 		const ContentPathResolver&                mContentPathResolver;
+		std::vector<Path>                         mActiveLoadStack;
 
 		uint64_t mUnloadUnusedFreedCount   = 0;
 		uint64_t mDestroyRuntimeAssetCount = 0;

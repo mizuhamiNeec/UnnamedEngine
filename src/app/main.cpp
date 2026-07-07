@@ -171,6 +171,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 					Unnamed::SceneAssetValidationPolicy::Strict :
 					Unnamed::SceneAssetValidationPolicy::Permissive,
 		},
+		.renderStartupOptions = {
+			.validationPolicy = launchOptions.validateStartupOnly ?
+				Unnamed::Render::RenderStartupValidationPolicy::Strict :
+				Unnamed::Render::RenderStartupValidationPolicy::Runtime,
+		},
 	};
 	Unnamed::Engine                   engine(runtimeBindings, runMode);
 	const Unnamed::EngineRunCallbacks callbacks = {

@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "RendererDraw.h"
+#include "RenderStartupOptions.h"
 #include "TextureResourceCache.h"
 
 #include "core/assets/AssetID.h"
@@ -64,12 +65,6 @@ namespace Unnamed::Render {
 		uint32_t emissiveTextureId  = 0;
 	};
 
-	/// @brief Renderer起動時の任意アセット失敗方針です。
-	enum class RendererStartupValidationPolicy : uint8_t {
-		Permissive,
-		Strict,
-	};
-
 	class Renderer {
 	public:
 		Renderer(ConsoleSystem* console);
@@ -84,7 +79,14 @@ namespace Unnamed::Render {
 		/// @return 必須Rendererアセットを含む初期化に成功した場合true。
 		[[nodiscard]] bool Init(
 			RenderDevice& renderDevice,
-			RendererStartupValidationPolicy validationPolicy
+			const RenderStartupOptions& startupOptions
+		);
+
+		/// @brief 起動シーンから到達可能なMaterial Pipelineを厳格検証します。
+		/// @param renderDevice 描画に使用するRenderDevice。
+		/// @return 全対象Pipelineの解決に成功した場合true。
+		[[nodiscard]] bool ValidateStartupResources(
+			RenderDevice& renderDevice
 		);
 
 		/// @brief 毎フレームの描画処理に呼び出されます。
@@ -187,9 +189,13 @@ namespace Unnamed::Render {
 		[[nodiscard]] bool RebuildPipelineCatalog(
 			RenderDevice& renderDevice,
 			Rhi::D3D12Device& dx,
-			RendererStartupValidationPolicy validationPolicy
+			const RenderStartupOptions& startupOptions
 		);
-		void ResolveRegisteredPipelines(RenderDevice& renderDevice);
+		[[nodiscard]] bool ResolveRegisteredPipelines(
+			RenderDevice& renderDevice,
+			PIPELINE_RESOLVE_SCOPE scope =
+				PIPELINE_RESOLVE_SCOPE::ALL_REGISTERED
+		);
 
 		struct FullscreenPassRes {
 			PipelineHandle                  pipeline = {};
@@ -487,8 +493,7 @@ namespace Unnamed::Render {
 		static constexpr uint32_t kMaxDebugLines  = 65536; // TODO: とりあえず
 
 		ConsoleSystem* mConsole = nullptr;
-		RendererStartupValidationPolicy mStartupValidationPolicy =
-			RendererStartupValidationPolicy::Permissive;
+		RenderStartupOptions mStartupOptions = {};
 
 		RenderGraph      mGraph;
 		PipelineRegistry mPipelineRegistry;

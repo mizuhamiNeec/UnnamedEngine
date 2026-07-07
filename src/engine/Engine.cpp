@@ -447,12 +447,8 @@ namespace Unnamed {
 		mRenderModule = std::make_unique<Render::RenderModule>(
 			*mAssetManager, *mRhiDevice
 		);
-		const Render::RendererStartupValidationPolicy rendererValidationPolicy =
-			IsStrictAssetValidation(mRuntimeBindings.sceneLoadOptions) ?
-				Render::RendererStartupValidationPolicy::Strict :
-				Render::RendererStartupValidationPolicy::Permissive;
 		if (!mRenderModule->Init(
-			mConsoleSystem.get(), rendererValidationPolicy
+			mConsoleSystem.get(), mRuntimeBindings.renderStartupOptions
 		)) {
 			Error("Engine", "Renderer initialization failed.");
 			return false;
@@ -596,6 +592,19 @@ namespace Unnamed {
 			) {
 				return false;
 			}
+		}
+
+		if (
+			Render::IsStrictRenderStartupValidation(
+				mRuntimeBindings.renderStartupOptions
+			) &&
+			!mRenderModule->ValidateStartupResources()
+		) {
+			Error(
+				"Engine",
+				"Renderer startup validation failed for startup scene resources."
+			);
+			return false;
 		}
 
 		// ユーザー名をコンソール変数に設定

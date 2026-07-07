@@ -4,6 +4,9 @@
 #include <filesystem>
 
 #include "core/assets/AssetManager.h"
+#include "core/assets/shader/ShaderIncludeParser.h"
+#include "core/assets/shader/ShaderIncludeResolver.h"
+#include "core/content/ContentPathResolver.h"
 
 #include "core/string/StrUtil.h"
 
@@ -39,32 +42,113 @@ namespace Unnamed {
 	}
 
 	LoadResult ShaderSourceLoader::Load(const Path& path) {
+		return Load(path, AssetLoadContext{});
+	}
+
+	LoadResult ShaderSourceLoader::Load(
+		const Path& path, const AssetLoadContext& context
+	) {
 		LoadResult r = {};
 
 		ShaderSourceAssetData data = {};
 		data.path                  = path.LexicallyNormal();
+		data.mountId               = std::string(context.resolvedMountId);
+		if (data.mountId.empty()) {
+			data.mountId = mAssetManager->GetContentPathResolver().
+				FindMountIdForResolvedPath(data.path).value_or(std::string{});
+		}
+		if (!data.mountId.empty()) {
+			const auto sourceDescription = mAssetManager->GetContentPathResolver().
+				DescribePathFromMount(data.mountId, data.path);
+			if (sourceDescription.has_value()) {
+				data.virtualPath = sourceDescription->virtualPath;
+			}
+		}
 
 		std::string text;
 		if (!StrUtil::ReadFileToString(path, text)) {
 			Error(kChannel, "シェーダーソースの読み込みに失敗しました: {}", path);
 			return r;
 		}
-		data.includePaths = ParseIncludes(text);
-
-		const Path baseDir = path.ParentPath();
+		data.includeReferences = ShaderIncludeParser::Parse(text);
+		ShaderIncludeResolver includeResolver(
+			mAssetManager->GetContentPathResolver()
+		);
+		bool dependenciesValid = true;
 
 		// 依存関係の解決
-		for (const auto& include : data.includePaths) {
-			auto includePath = Path(include);
-			if (includePath.IsRelative()) {
-				includePath = (baseDir / includePath).LexicallyNormal();
+		for (const ShaderIncludeReference& reference : data.includeReferences) {
+			const std::optional<ResolvedShaderInclude> resolved =
+				includeResolver.Resolve(data.path, data.mountId, reference);
+			if (!resolved.has_value()) {
+				Error(
+					kChannel,
+					"Invalid or mount-escaping shader include: source='{}' mount='{}' include='{}' kind={}",
+					data.path,
+					data.mountId,
+					reference.path,
+					reference.kind == ShaderIncludeKind::SourceRelative ?
+						"source-relative" : "mount-root-relative"
+				);
+				dependenciesValid = false;
+				continue;
 			}
-			const AssetID depId = mAssetManager->LoadFromFile(
-				includePath.LexicallyNormal(), ASSET_TYPE::SHADER_SOURCE
+
+			ResolvedShaderInclude include = *resolved;
+			if (!include.physicalPath.IsRegularFile()) {
+				UnresolvedShaderInclude unresolved = {
+					.kind                   = reference.kind,
+					.path                   = reference.path,
+					.mountId                = include.mountId,
+					.expectedPhysicalPath   = include.physicalPath,
+					.watchedParentDirectory = include.physicalPath.ParentPath(),
+				};
+				data.unresolvedIncludes.emplace_back(unresolved);
+				r.unresolvedShaderIncludes.emplace_back(unresolved);
+				r.sourceWatchPaths.emplace_back(
+					unresolved.watchedParentDirectory
+				);
+				Error(
+					kChannel,
+					"Shader include was not found: source='{}' mount='{}' include='{}' expected='{}'",
+					data.path,
+					include.mountId,
+					reference.path,
+					include.physicalPath
+				);
+				dependenciesValid = false;
+				continue;
+			}
+
+			const AssetID depId = mAssetManager->LoadAssetFromMount(
+				*include.virtualPath,
+				include.mountId,
+				ASSET_TYPE::SHADER_SOURCE
 			);
 			if (depId != kInvalidAssetID) {
+				include.shaderSourceAssetId = depId;
+				data.resolvedIncludes.emplace_back(std::move(include));
 				r.dependencies.emplace_back(depId);
+			} else {
+				const AssetID failedDependency = mAssetManager->FindByPath(
+					include.physicalPath
+				);
+				if (failedDependency != kInvalidAssetID) {
+					r.dependencies.emplace_back(failedDependency);
+				}
+				Error(
+					kChannel,
+					"Shader include dependency load failed: source='{}' mount='{}' include='{}' physical='{}'",
+					data.path,
+					include.mountId,
+					reference.path,
+					include.physicalPath
+				);
+				dependenciesValid = false;
 			}
+		}
+		if (!dependenciesValid) {
+			return r;
 		}
 
 		r.payload     = std::move(data);
@@ -79,60 +163,4 @@ namespace Unnamed {
 		return r;
 	}
 
-	std::vector<std::string> ShaderSourceLoader::ParseIncludes(
-		const std::string& text
-	) {
-		std::vector<std::string>          result;
-		size_t                            lineBegin     = 0;
-		static constexpr std::string_view kIncludeToken = "#include";
-
-		while (lineBegin < text.size()) {
-			const size_t lineEnd  = text.find('\n', lineBegin);
-			const size_t lineSize = lineEnd == std::string::npos ?
-				                        text.size() - lineBegin :
-				                        lineEnd - lineBegin;
-			const std::string_view line(text.data() + lineBegin, lineSize);
-
-			const size_t includePos = line.find(kIncludeToken);
-			if (includePos != std::string_view::npos) {
-				size_t cursor = includePos + kIncludeToken.size();
-				while (
-					cursor < line.size() &&
-					std::isspace(static_cast<unsigned char>(line[cursor]))
-				) {
-					++cursor;
-				}
-
-				if (cursor < line.size()) {
-					const char openDelimiter  = line[cursor];
-					char       closeDelimiter = '\0';
-					if (openDelimiter == '"') {
-						closeDelimiter = '"';
-					} else if (openDelimiter == '<') {
-						closeDelimiter = '>';
-					}
-
-					if (closeDelimiter != '\0') {
-						const size_t closePos = line.find(
-							closeDelimiter, cursor + 1);
-						if (closePos != std::string_view::npos && closePos >
-						    cursor + 1) {
-							result.emplace_back(
-								line.substr(
-									cursor + 1,
-									closePos - (cursor + 1)
-								)
-							);
-						}
-					}
-				}
-			}
-
-			if (lineEnd == std::string::npos) {
-				break;
-			}
-			lineBegin = lineEnd + 1;
-		}
-		return result;
-	}
 }

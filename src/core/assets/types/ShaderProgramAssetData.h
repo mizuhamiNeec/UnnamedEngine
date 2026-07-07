@@ -23,6 +23,5 @@ namespace Unnamed {
 		std::optional<ShaderProgramStage> vs;
 		std::optional<ShaderProgramStage> ps;
 		std::optional<ShaderProgramStage> cs;
-		std::vector<std::string>          includeDirectories;
 	};
 }
