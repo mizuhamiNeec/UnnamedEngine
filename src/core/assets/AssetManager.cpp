@@ -289,6 +289,20 @@ namespace Unnamed {
 		return LoadAssetFromFile(path, ASSET_TYPE::SOUND, policy);
 	}
 
+	AssetID AssetManager::LoadSequence(
+		const VirtualPath&    path,
+		const AssetLoadPolicy policy
+	) {
+		return LoadAsset(path, ASSET_TYPE::SEQUENCE, policy);
+	}
+
+	AssetID AssetManager::LoadSequenceFromFile(
+		const Path&           path,
+		const AssetLoadPolicy policy
+	) {
+		return LoadAssetFromFile(path, ASSET_TYPE::SEQUENCE, policy);
+	}
+
 	AssetID AssetManager::LoadMesh(
 		const VirtualPath&    path,
 		const AssetLoadPolicy policy

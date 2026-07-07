@@ -10,12 +10,14 @@
 #include "core/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/SequenceAssetData.h"
+#include "core/content/ContentPathResolver.h"
 #include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/scene/Scene.h"
+#include "engine/scene/SceneLoadOptions.h"
 #include "engine/sequence/SequencePlayer.h"
 #include "engine/sequence/SequenceRuntime.h"
 #include "engine/unnamed/framework/entity/Entity.h"
@@ -42,14 +44,24 @@ namespace Unnamed {
 	}
 
 	void SequenceDirectorComponent::OnAttached() {
-		mPlayRequested = mPlayOnAttach;
+		if (
+			mSequencePath.has_value() &&
+			mSequenceAssetId == kInvalidAssetID
+		) {
+			if (AssetManager* assetManager = GetAssetManager()) {
+				const VirtualPath sequencePath = *mSequencePath;
+				(void)SetSequencePath(sequencePath, *assetManager);
+			}
+		}
+		mPlayRequested =
+			mPlayOnAttach && mSequenceAssetId != kInvalidAssetID;
 	}
 
 	void SequenceDirectorComponent::OnDetached() {
 		StopPlayback(true);
 		// Runtime側は weak_ptr 登録なので、所有を外せば次ティックで自然に掃除されます。
 		mPlayer.reset();
-		mSequenceAssetId = 0;
+		mSequenceAssetId = kInvalidAssetID;
 	}
 
 	void SequenceDirectorComponent::OnTick(const float deltaTime) {
@@ -84,9 +96,23 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SequenceDirectorComponent::DrawInspectorImGui() {
-		std::string sequencePath = mSequencePath.ToGenericUtf8();
+		std::string sequencePath = mSequencePath.has_value() ?
+			mSequencePath->String() : std::string{};
+		const std::string previousSequencePath = sequencePath;
 		DrawStringInput<256>("Sequence Path", sequencePath);
-		mSequencePath = Path(sequencePath);
+		if (
+			ImGui::IsItemDeactivatedAfterEdit() &&
+			sequencePath != previousSequencePath
+		) {
+			const std::optional<VirtualPath> virtualPath =
+				VirtualPath::ParseContentReference(sequencePath);
+			AssetManager* assetManager = GetAssetManager();
+			if (!virtualPath.has_value() || !assetManager) {
+				ClearSequencePath();
+			} else {
+				(void)SetSequencePath(*virtualPath, *assetManager);
+			}
+		}
 		ImGui::Checkbox("Play On Attach", &mPlayOnAttach);
 		ImGui::Checkbox("Auto Stop When Completed", &mAutoStopWhenCompleted);
 		ImGui::DragFloat("Play Rate", &mPlayRate, 0.05f, 0.0f, 8.0f);
@@ -143,9 +169,23 @@ namespace Unnamed {
 #endif
 
 	void SequenceDirectorComponent::Deserialize(const JsonReader& reader) {
-		mSequencePath = Path(
-			reader["sequencePath"].GetString(mSequencePath.ToGenericUtf8())
-		);
+		constexpr SceneLoadOptions options{};
+		const Path scenePath("<direct component deserialize>");
+		const SceneDeserializeContext context{
+			.loadOptions   = options,
+			.assetManager  = GetAssetManager(),
+			.scenePath     = scenePath,
+			.entityName    = "<unknown>",
+			.entityId      = 0,
+			.componentType = GetStableName(),
+		};
+		(void)Deserialize(reader, context);
+	}
+
+	bool SequenceDirectorComponent::Deserialize(
+		const JsonReader& reader, const SceneDeserializeContext& context
+	) {
+		ClearSequencePath();
 		if (const JsonReader playOnAttach = reader["playOnAttach"];
 			playOnAttach.Valid()) {
 			mPlayOnAttach = playOnAttach.GetBool(mPlayOnAttach);
@@ -200,12 +240,91 @@ namespace Unnamed {
 			}
 		}
 
-		mPlayRequested = mPlayOnAttach;
+		const JsonReader pathNode = reader["sequencePath"];
+		if (!pathNode.Valid()) {
+			return true;
+		}
+		if (!pathNode.IsString()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='sequencePath' reason='expected string'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		const std::string sequencePath = pathNode.GetString();
+		if (sequencePath.empty()) {
+			return true;
+		}
+		const std::optional<VirtualPath> virtualPath =
+			VirtualPath::ParseContentReference(sequencePath);
+		if (!virtualPath.has_value()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='sequencePath' virtualPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				sequencePath
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		if (!context.assetManager) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='sequencePath' virtualPath='{}' reason='AssetManager unavailable'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				sequencePath
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		const std::optional<ResolvedContentFile> resolvedFile =
+			context.assetManager->GetContentPathResolver().ResolveFile(*virtualPath);
+		if (!resolvedFile.has_value()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='unresolved content' scene='{}' entity='{}' entityId={} component='{}' field='sequencePath' virtualPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				sequencePath
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		if (SetSequencePath(*virtualPath, *context.assetManager)) {
+			return true;
+		}
+		Error(
+			kChannel,
+			"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='sequencePath' virtualPath='{}' mount='{}' physicalPath='{}'",
+			context.scenePath,
+			context.entityName,
+			context.entityId,
+			context.componentType,
+			sequencePath,
+			resolvedFile->mountId,
+			resolvedFile->resolvedPath
+		);
+		return !IsStrictAssetValidation(context.loadOptions);
 	}
 
 	void SequenceDirectorComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("sequencePath");
-		writer.Write(mSequencePath.ToGenericUtf8());
+		if (mSequencePath.has_value()) {
+			writer.Key("sequencePath");
+			writer.Write(mSequencePath->String());
+		}
 		writer.Key("playOnAttach");
 		writer.Write(mPlayOnAttach);
 		writer.Key("autoStopWhenCompleted");
@@ -238,6 +357,46 @@ namespace Unnamed {
 		writer.EndArray();
 	}
 
+	bool SequenceDirectorComponent::SetSequencePath(
+		const VirtualPath& path, AssetManager& assetManager
+	) {
+		if (
+			mSequencePath.has_value() && *mSequencePath == path &&
+			mSequenceAssetId != kInvalidAssetID
+		) {
+			return true;
+		}
+
+		const AssetID assetId = assetManager.LoadSequence(path);
+		if (assetId == kInvalidAssetID) {
+			ClearSequencePath();
+			return false;
+		}
+
+		StopPlayback(true);
+		mSequencePath      = path;
+		mSequenceAssetId   = assetId;
+		mLoggedLoadFailure = false;
+		mPlayRequested     = mPlayOnAttach;
+		return true;
+	}
+
+	void SequenceDirectorComponent::ClearSequencePath() {
+		StopPlayback(true);
+		mSequencePath.reset();
+		mSequenceAssetId   = kInvalidAssetID;
+		mLoggedLoadFailure = false;
+	}
+
+	const std::optional<VirtualPath>&
+	SequenceDirectorComponent::GetSequencePath() const noexcept {
+		return mSequencePath;
+	}
+
+	AssetID SequenceDirectorComponent::GetSequenceAssetId() const noexcept {
+		return mSequenceAssetId;
+	}
+
 	void SequenceDirectorComponent::EnsurePlayer() {
 		if (!mPlayer) {
 			mPlayer = std::make_shared<SequencePlayer>();
@@ -257,7 +416,10 @@ namespace Unnamed {
 		if (!assetManager) {
 			return false;
 		}
-		if (mSequencePath.IsEmpty()) {
+		if (
+			!mSequencePath.has_value() ||
+			mSequenceAssetId == kInvalidAssetID
+		) {
 			return false;
 		}
 
@@ -266,24 +428,19 @@ namespace Unnamed {
 			return false;
 		}
 
-		const AssetID assetId = assetManager->LoadFromFile(
-			mSequencePath,
-			ASSET_TYPE::SEQUENCE
-		);
 		const auto* sequenceAsset = assetManager->Get<SequenceAssetData>(
-			assetId);
+			mSequenceAssetId);
 		if (!sequenceAsset) {
 			if (!mLoggedLoadFailure) {
 				Warning(kChannel, "Failed to load sequence '{}'.",
-				        mSequencePath);
+				        mSequencePath->String());
 				mLoggedLoadFailure = true;
 			}
 			return false;
 		}
 
 		mLoggedLoadFailure = false;
-		mSequenceAssetId   = assetId;
-		mPlayer->SetAssetId(assetId);
+		mPlayer->SetAssetId(mSequenceAssetId);
 		mPlayer->SetPlayRate(std::max(0.0f, mPlayRate));
 		mPlayer->SetLoop(mLoop);
 		mPlayer->SetCompletionMode(mCompletionMode);

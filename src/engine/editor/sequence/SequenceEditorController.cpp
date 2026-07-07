@@ -5,9 +5,10 @@
 #include <cmath>
 
 #include "core/assets/AssetManager.h"
-#include "core/assets/AssetType.h"
+#include "core/content/ContentPathResolver.h"
 #include "core/guidgenerator/GuidGenerator.h"
 
+#include "engine/content/ContentMountDefinitions.h"
 #include "engine/sequence/SequencePlayer.h"
 #include "engine/sequence/SequenceRuntime.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -148,10 +149,8 @@ namespace Unnamed {
 		}
 
 		if (mAssetManager) {
-			const AssetID sourceAssetId = mAssetManager->LoadFromFile(
-				path,
-				ASSET_TYPE::SEQUENCE
-			);
+			const AssetID sourceAssetId =
+				mAssetManager->LoadSequenceFromFile(path);
 			document->SetSourceAssetId(sourceAssetId);
 		}
 
@@ -165,6 +164,19 @@ namespace Unnamed {
 		if (!document) {
 			return false;
 		}
+		if (mAssetManager) {
+			const std::optional<std::string> mountId =
+				mAssetManager->GetContentPathResolver().
+				FindMountIdForResolvedPath(document->GetPath());
+			if (mountId == ContentMountId::kCore) {
+				Warning(
+					"SequenceEditor",
+					"Core Sequence assets are read-only. Duplicate the asset into Game content before saving: {}",
+					document->GetPath()
+				);
+				return false;
+			}
+		}
 
 		document->GetAuthoringData().editor.autoKeyEnabled  = mAutoKeyEnabled;
 		document->GetAuthoringData().editor.scrubFireEvents = mScrubFireEvents;
@@ -173,9 +185,8 @@ namespace Unnamed {
 		}
 
 		if (mAssetManager) {
-			const AssetID sourceAssetId = mAssetManager->LoadFromFile(
+			const AssetID sourceAssetId = mAssetManager->LoadSequenceFromFile(
 				document->GetPath(),
-				ASSET_TYPE::SEQUENCE,
 				AssetManager::AssetLoadPolicy::ForceReload
 			);
 			document->SetSourceAssetId(sourceAssetId);

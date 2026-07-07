@@ -126,6 +126,24 @@ namespace Unnamed {
 			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
 		);
 
+		/// @brief マウント済み content からSequenceをロードします。
+		/// @param path 論理Sequenceパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたSequenceアセットの ID。
+		[[nodiscard]] AssetID LoadSequence(
+			const VirtualPath& path,
+			AssetLoadPolicy    policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 絶対物理ファイルパスからSequenceを直接ロードします。
+		/// @param path 物理Sequenceファイルパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたSequenceアセットの ID。
+		[[nodiscard]] AssetID LoadSequenceFromFile(
+			const Path&     path,
+			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
 		/// @brief マウント済み content からメッシュをロードします。
 		/// @param path 論理メッシュパス。
 		/// @param policy ロードポリシー。
