@@ -2,7 +2,6 @@
 
 #include <filesystem>
 #include <fstream>
-#include <iterator>
 
 #include "core/string/StrUtil.h"
 
@@ -15,6 +14,9 @@ namespace Unnamed::Rhi {
 	}
 
 	bool DxcShaderCompiler::Initialize() {
+		if (mUtils && mCompiler) {
+			return true;
+		}
 		if (FAILED(
 			DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(mUtils.
 				ReleaseAndGetAddressOf()))
@@ -26,11 +28,6 @@ namespace Unnamed::Rhi {
 		))
 			return false;
 
-		if (FAILED(
-			mUtils->CreateDefaultIncludeHandler(mIncludeHandler.
-				ReleaseAndGetAddressOf())
-		))
-			return false;
 		return true;
 	}
 
@@ -48,41 +45,33 @@ namespace Unnamed::Rhi {
 	}
 
 	bool DxcShaderCompiler::CompileToFileDXIL(
-		const std::wstring& sourcePath, const std::wstring& entryPoint,
+		const std::string_view sourceCode,
+		const std::wstring& sourceName, const std::wstring& entryPoint,
 		const std::wstring& targetProfile,
-		const std::vector<std::wstring>& includeDirs,
 		const std::vector<std::wstring>& extraArgs,
+		IDxcIncludeHandler& includeHandler,
 		const std::wstring& outputPath
 	) {
 		return CompileInternal(
-			sourcePath, entryPoint, targetProfile, includeDirs, extraArgs,
-			outputPath
+			sourceCode, sourceName, entryPoint, targetProfile, extraArgs,
+			includeHandler, outputPath
 		);
 	}
 
+	IDxcUtils& DxcShaderCompiler::GetUtils() const {
+		return *mUtils.Get();
+	}
+
 	bool DxcShaderCompiler::CompileInternal(
-		const std::wstring& sourcePath, const std::wstring& entryPoint,
+		const std::string_view sourceCode,
+		const std::wstring& sourceName, const std::wstring& entryPoint,
 		const std::wstring& targetProfile,
-		const std::vector<std::wstring>& includeDirs,
 		const std::vector<std::wstring>& extraArgs,
+		IDxcIncludeHandler& includeHandler,
 		const std::wstring& outputPath
 	) {
 		if (!mUtils || !mCompiler)
 			return false;
-
-		std::ifstream sourceFile(sourcePath, std::ios::binary);
-		if (!sourceFile) {
-			Error("Shader", "Failed to open shader source file.");
-			return false;
-		}
-		std::string sourceCode(
-			(std::istreambuf_iterator<char>(sourceFile)),
-			std::istreambuf_iterator<char>()
-		);
-		if (sourceFile.bad()) {
-			Error("Shader", "Failed to read shader source file.");
-			return false;
-		}
 
 		DxcBuffer src{};
 		src.Ptr      = sourceCode.data();
@@ -91,7 +80,7 @@ namespace Unnamed::Rhi {
 
 		// 引数は LPCWSTR 配列。寿命を保つため wstring を別ベクタで保持
 		std::vector<std::wstring> owned;
-		owned.reserve(16 + includeDirs.size() * 2 + extraArgs.size());
+		owned.reserve(16 + extraArgs.size());
 
 		auto Push = [&](const std::wstring& s) {
 			owned.emplace_back(s);
@@ -99,7 +88,7 @@ namespace Unnamed::Rhi {
 
 		// 必須
 		// DXC は先頭にソースパスを渡す形式を前提にする実装があるため明示する
-		Push(sourcePath);
+		Push(sourceName);
 		Push(L"-E");
 		Push(entryPoint);
 		Push(L"-T");
@@ -111,12 +100,6 @@ namespace Unnamed::Rhi {
 		Push(L"-Qembed_debug"); // DXILにデバッグ埋め込み
 		Push(L"-O3");           // 最適化
 		Push(L"-Zpr");          // メモリレイアウトは行優先（row-major）
-
-		// include
-		for (const auto& dir : includeDirs) {
-			Push(L"-I");
-			Push(dir);
-		}
 
 		// 追加引数
 		for (const auto& a : extraArgs) {
@@ -132,7 +115,7 @@ namespace Unnamed::Rhi {
 		if (FAILED(
 			mCompiler->Compile(&src, argv.data(), static_cast<uint32_t>(argv.
 					size()),
-				mIncludeHandler.Get(), IID_PPV_ARGS(result.
+				&includeHandler, IID_PPV_ARGS(result.
 					ReleaseAndGetAddressOf()))
 		)) {
 			return false;
@@ -164,7 +147,7 @@ namespace Unnamed::Rhi {
 					"Shader",
 					"Compile failed with status=0x{:08X} for '{}'",
 					static_cast<uint32_t>(status),
-					StrUtil::ToString(sourcePath)
+					StrUtil::ToString(sourceName)
 				);
 			}
 			return false;
@@ -189,7 +172,7 @@ namespace Unnamed::Rhi {
 
 		Msg(
 			"Shader", "Compile Succeeded! {} to {}",
-			StrUtil::ToString(sourcePath), StrUtil::ToString(outputPath)
+			StrUtil::ToString(sourceName), StrUtil::ToString(outputPath)
 		);
 
 		return WriteBinaryFile(

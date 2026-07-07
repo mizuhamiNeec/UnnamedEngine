@@ -71,6 +71,7 @@ namespace Unnamed {
 			return r;
 		}
 		data.includeReferences = ShaderIncludeParser::Parse(text);
+		data.sourceText        = std::move(text);
 		ShaderIncludeResolver includeResolver(
 			mAssetManager->GetContentPathResolver()
 		);

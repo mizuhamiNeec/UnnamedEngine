@@ -12,6 +12,8 @@
 #include "core/string/StrUtil.h"
 
 #include "engine/rhi/DxcShaderCompiler.h"
+#include "MountAwareDxcIncludeHandler.h"
+#include "ShaderCompileUnit.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed::Render {
@@ -71,7 +73,6 @@ namespace Unnamed::Render {
 				return it->second;
 			}
 
-			const std::wstring sourcePath = src->path.Native().wstring();
 			const std::wstring entry      = StrUtil::ToWString(key.entry);
 			const std::wstring profile    = StrUtil::ToWString(key.profile);
 
@@ -80,12 +81,33 @@ namespace Unnamed::Render {
 			if (!mDxcShaderCompiler.Initialize()) {
 				Error(kChannel, "DxcShaderCompiler initialization failed.");
 			} else {
-				// ReSharper disable once CppVariableCanBeMadeConstexpr
-				const std::vector<std::wstring> includeDirs;
-				const bool ok = mDxcShaderCompiler.CompileToFileDXIL(
-					sourcePath, entry, profile, includeDirs, extraArgs,
-					dxilPath.Native().wstring()
-				);
+				const ShaderCompileUnitBuilder compileUnitBuilder(mAssetManager);
+				const std::optional<ShaderCompileUnit> compileUnit =
+					compileUnitBuilder.Build(key.shaderSourceId);
+				bool ok = false;
+				if (!compileUnit.has_value()) {
+					Error(
+						kChannel,
+						"Failed to build resolved Shader compile unit: sourceAssetId={} path='{}' mount='{}'",
+						key.shaderSourceId,
+						src->path,
+						src->mountId
+					);
+				} else {
+					Microsoft::WRL::ComPtr<IDxcIncludeHandler> includeHandler =
+						MountAwareDxcIncludeHandler::Create(
+							mDxcShaderCompiler.GetUtils(), *compileUnit
+						);
+					ok = includeHandler && mDxcShaderCompiler.CompileToFileDXIL(
+						compileUnit->rewrittenRootSource,
+						StrUtil::ToWString(compileUnit->rootDiagnosticPath),
+						entry,
+						profile,
+						extraArgs,
+						*includeHandler.Get(),
+						dxilPath.Native().wstring()
+					);
+				}
 				if (ok) {
 					candidate.bytes = ReadFileBytes(dxilPath);
 					prepared        = !candidate.bytes.empty();
@@ -182,7 +204,7 @@ namespace Unnamed::Render {
 
 	uint64_t ShaderLibrary::ComputeDerivedHash(const ShaderKey& key) const {
 		StableHashBuilder hashBuilder;
-		constexpr uint64_t kShaderCompilerCacheVersion = 2;
+		constexpr uint64_t kShaderCompilerCacheVersion = 3;
 		hashBuilder.AddUInt64(kShaderCompilerCacheVersion);
 		hashBuilder.AddString(key.entry);
 		hashBuilder.AddString(key.profile);

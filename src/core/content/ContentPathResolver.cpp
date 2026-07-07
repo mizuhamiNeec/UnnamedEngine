@@ -135,7 +135,9 @@ namespace Unnamed {
 			}
 
 			const std::optional<VirtualPath> virtualPath =
-				VirtualPath::ParseContentReference(relative.generic_string());
+				VirtualPath::ParseContentReference(
+					Path::ToGenericUtf8(relative)
+				);
 			if (!virtualPath.has_value()) {
 				return std::nullopt;
 			}

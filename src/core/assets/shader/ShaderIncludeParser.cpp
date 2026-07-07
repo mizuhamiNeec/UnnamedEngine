@@ -10,6 +10,14 @@ namespace Unnamed {
 	) {
 		std::string logicalSource;
 		logicalSource.reserve(source.size());
+		std::vector<size_t> logicalToOriginal;
+		logicalToOriginal.reserve(source.size());
+		auto appendLogical = [&logicalSource, &logicalToOriginal](
+			const char value, const size_t originalPosition
+		) {
+			logicalSource.push_back(value);
+			logicalToOriginal.emplace_back(originalPosition);
+		};
 
 		bool inBlockComment = false;
 		bool inLineComment  = false;
@@ -32,26 +40,27 @@ namespace Unnamed {
 			if (inLineComment) {
 				if (current == '\n') {
 					inLineComment = false;
-					logicalSource.push_back('\n');
+					appendLogical('\n', i);
 				} else {
-					logicalSource.push_back(' ');
+					appendLogical(' ', i);
 				}
 				continue;
 			}
 
 			if (inBlockComment) {
 				if (current == '*' && next == '/') {
-					logicalSource.append("  ");
+					appendLogical(' ', i);
+					appendLogical(' ', i + 1);
 					++i;
 					inBlockComment = false;
 				} else {
-					logicalSource.push_back(current == '\n' ? '\n' : ' ');
+					appendLogical(current == '\n' ? '\n' : ' ', i);
 				}
 				continue;
 			}
 
 			if (inString) {
-				logicalSource.push_back(current);
+				appendLogical(current, i);
 				if (escaped) {
 					escaped = false;
 				} else if (current == '\\') {
@@ -63,13 +72,15 @@ namespace Unnamed {
 			}
 
 			if (current == '/' && next == '/') {
-				logicalSource.append("  ");
+				appendLogical(' ', i);
+				appendLogical(' ', i + 1);
 				++i;
 				inLineComment = true;
 				continue;
 			}
 			if (current == '/' && next == '*') {
-				logicalSource.append("  ");
+				appendLogical(' ', i);
+				appendLogical(' ', i + 1);
 				++i;
 				inBlockComment = true;
 				continue;
@@ -78,7 +89,7 @@ namespace Unnamed {
 				inString       = true;
 				stringDelimiter = current;
 			}
-			logicalSource.push_back(current);
+			appendLogical(current, i);
 		}
 
 		std::vector<ShaderIncludeReference> references;
@@ -92,6 +103,18 @@ namespace Unnamed {
 			);
 
 			if (std::optional<ShaderIncludeReference> reference = ParseLine(line)) {
+				const size_t logicalTokenBegin =
+					lineBegin + reference->sourceTokenBegin;
+				const size_t logicalTokenEnd =
+					lineBegin + reference->sourceTokenEnd;
+				if (logicalTokenBegin < logicalToOriginal.size() &&
+				    logicalTokenEnd > logicalTokenBegin &&
+				    logicalTokenEnd <= logicalToOriginal.size()) {
+					reference->sourceTokenBegin =
+						logicalToOriginal[logicalTokenBegin];
+					reference->sourceTokenEnd =
+						logicalToOriginal[logicalTokenEnd - 1] + 1;
+				}
 				references.emplace_back(std::move(*reference));
 			}
 
@@ -154,6 +177,8 @@ namespace Unnamed {
 			.path = std::string(line.substr(
 				cursor + 1, closePosition - cursor - 1
 			)),
+			.sourceTokenBegin = cursor,
+			.sourceTokenEnd   = closePosition + 1,
 		};
 	}
 }

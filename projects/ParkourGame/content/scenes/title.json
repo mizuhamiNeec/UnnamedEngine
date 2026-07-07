@@ -49,7 +49,7 @@
                                 "slotIndex": 3
                             },
                             {
-                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/game_fixture.matinst.json",
                                 "slotIndex": 4
                             }
                         ],

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <string>
 
@@ -18,6 +19,8 @@ namespace Unnamed {
 	struct ShaderIncludeReference final {
 		ShaderIncludeKind kind = ShaderIncludeKind::SourceRelative;
 		std::string       path;
+		std::size_t       sourceTokenBegin = 0;
+		std::size_t       sourceTokenEnd   = 0;
 	};
 
 	/// @brief mount内で解決されたShader includeです。
