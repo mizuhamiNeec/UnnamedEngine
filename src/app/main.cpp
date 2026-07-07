@@ -173,8 +173,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 		},
 		.renderStartupOptions = {
 			.validationPolicy = launchOptions.validateStartupOnly ?
-				Unnamed::Render::RenderStartupValidationPolicy::Strict :
-				Unnamed::Render::RenderStartupValidationPolicy::Runtime,
+				Unnamed::Render::RENDER_STARTUP_VALIDATION_POLICY::Strict :
+				Unnamed::Render::RENDER_STARTUP_VALIDATION_POLICY::Runtime,
 		},
 	};
 	Unnamed::Engine                   engine(runtimeBindings, runMode);
