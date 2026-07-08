@@ -31,44 +31,6 @@ namespace Unnamed {
 	constexpr std::string_view kChannel = "AstMgr";
 
 	namespace {
-		[[nodiscard]] bool IsAbsoluteOrCurrentRelative(const Path& path) {
-			if (path.IsEmpty()) {
-				return false;
-			}
-
-			const std::string text = path.ToGenericUtf8();
-			return path.IsAbsolute() || text.starts_with("./") ||
-			       text.starts_with("../");
-		}
-
-		[[nodiscard]] Path ResolveAssetLoadPath(
-			const ContentPathResolver& contentPathResolver,
-			const Path&                path
-		) {
-			const Path normalizedInput = path.LexicallyNormal();
-			if (normalizedInput.IsEmpty()) {
-				return {};
-			}
-
-			if (IsAbsoluteOrCurrentRelative(normalizedInput)) {
-				return normalizedInput;
-			}
-
-			const std::optional<VirtualPath> virtualPath =
-				VirtualPath::Parse(normalizedInput.ToGenericUtf8());
-			if (!virtualPath.has_value()) {
-				return normalizedInput;
-			}
-
-			const std::optional<ResolvedContentFile> resolvedFile =
-				contentPathResolver.ResolveFile(*virtualPath);
-			if (!resolvedFile.has_value()) {
-				return normalizedInput;
-			}
-
-			return resolvedFile->resolvedPath;
-		}
-
 		FileStamp ReadCurrentFileStamp(const Path& path) {
 			FileStamp       stamp = {};
 			std::error_code ec;
@@ -124,23 +86,6 @@ namespace Unnamed {
 	void AssetManager::RegisterLoader(std::unique_ptr<IAssetLoader> loader) {
 		std::scoped_lock lock(mMutex);
 		mLoaders.emplace_back(std::move(loader));
-	}
-
-	AssetID AssetManager::LoadFromFile(
-		const Path&                     path,
-		const std::optional<ASSET_TYPE> typeOpt,
-		const AssetLoadPolicy           policy
-	) {
-		// Transitional compatibility path.
-		// Remove after all runtime asset references use VirtualPath explicitly.
-		const Path normalizedPath =
-			ResolveAssetLoadPath(mContentPathResolver, path);
-		if (normalizedPath.IsEmpty()) {
-			Warning(kChannel, "Asset path is empty.");
-			return kInvalidAssetID;
-		}
-
-		return LoadFromResolvedFile(normalizedPath, typeOpt, policy, {});
 	}
 
 	AssetID AssetManager::LoadAsset(

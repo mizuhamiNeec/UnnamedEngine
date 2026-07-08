@@ -71,7 +71,17 @@ namespace Unnamed::EditorContentBrowser {
 				auto* assetManager = ServiceLocator::Get<AssetManager>();
 				assetManager && guessedType != ASSET_TYPE::UNKNOWN
 			) {
-				(void)assetManager->LoadFromFile(normalized, guessedType);
+				std::error_code ec;
+				const Path physicalPath = normalized.IsAbsolute() ?
+					normalized :
+					Path::FromNative(std::filesystem::absolute(
+						normalized.Native(), ec
+					)).LexicallyNormal();
+				if (!ec) {
+					(void)assetManager->LoadAssetFromFile(
+						physicalPath, guessedType
+					);
+				}
 			}
 			ioPath = normalized.ToGenericUtf8();
 			return true;

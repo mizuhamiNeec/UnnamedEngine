@@ -82,7 +82,7 @@ namespace Unnamed {
 			);
 
 			mEditorGuiScriptPanel->SetScriptPath(
-				Path("./content/core/editorgui/test.edgui.lua")
+				VirtualPath::ParseOrThrow("editorgui/test.edgui.lua")
 			);
 		}
 

@@ -3,6 +3,8 @@
 
 #include <imgui.h>
 
+#include "engine/content/ContentMountDefinitions.h"
+
 namespace Unnamed {
 	constexpr ImVec4 kTextColorError(1.0f, 0.35f, 0.35f, 1.0f);
 
@@ -13,7 +15,7 @@ namespace Unnamed {
 		mEditorLuaSystem = luaSystem;
 	}
 
-	void EditorGuiScriptPanel::SetScriptPath(Path path) {
+	void EditorGuiScriptPanel::SetScriptPath(VirtualPath path) {
 		if (mScriptPath == path) {
 			return;
 		}
@@ -49,8 +51,9 @@ namespace Unnamed {
 			return;
 		}
 
-		mAssetID = mAssetManager->LoadFromFile(
+		mAssetID = mAssetManager->LoadAssetFromMount(
 			mScriptPath,
+			ContentMountId::kCore,
 			ASSET_TYPE::EDITOR_GUI
 		);
 
@@ -58,8 +61,8 @@ namespace Unnamed {
 			EditorGuiData>(mAssetID);
 		if (!editorGuiAsset) {
 			mHasError  = true;
-			mLastError = "Failed to load editor GUI asset: " + mScriptPath.
-			             ToGenericUtf8();
+			mLastError = "Failed to load editor GUI asset: " +
+			             mScriptPath.String();
 			return;
 		}
 

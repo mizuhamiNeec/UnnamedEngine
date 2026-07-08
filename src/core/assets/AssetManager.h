@@ -43,18 +43,6 @@ namespace Unnamed {
 		/// @param loader 登録するアセットローダー
 		void RegisterLoader(std::unique_ptr<IAssetLoader> loader);
 
-		/// @brief ファイルからアセットをロードします。
-		/// @deprecated 移行専用APIです。新規コードでは型付きAPI、LoadAsset、またはLoadAssetFromFileを使用してください。
-		/// @param path ロードするファイルのパス
-		/// @param typeOpt アセットの種類（省略可能）
-		/// @param policy ロードポリシー（デフォルトはUseCachedIfLoaded）
-		/// @return ロードしたアセットのID
-		AssetID LoadFromFile(
-			const Path& path,
-			std::optional<ASSET_TYPE> typeOpt = std::nullopt,
-			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
-		);
-
 		/// @brief マウント済み content から実行時指定型のアセットをロードします。
 		/// @param path 論理アセットパス。
 		/// @param type アセットの型。
