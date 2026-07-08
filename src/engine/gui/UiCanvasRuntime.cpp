@@ -237,7 +237,7 @@ namespace Unnamed {
 						SkeletalMeshRendererComponent>();
 					skeletalMesh && skeletalMesh->IsActive()
 				) {
-					meshAssetId = skeletalMesh->ResolveMeshAsset(assetManager);
+					meshAssetId = skeletalMesh->GetMeshAssetId();
 				}
 
 				if (meshAssetId == kInvalidAssetID) {

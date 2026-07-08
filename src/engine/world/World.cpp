@@ -717,14 +717,10 @@ namespace Unnamed {
 			}
 
 			if (skelRenderer && skelRenderer->IsActive()) {
-				const AssetID meshAssetId = skelRenderer->ResolveMeshAsset(
-					assetManager
-				);
+				const AssetID meshAssetId = skelRenderer->GetMeshAssetId();
 				if (meshAssetId == kInvalidAssetID) {
 					continue;
 				}
-
-				skelRenderer->ResolveMaterialInstanceAssets(assetManager);
 
 				Render::VisibleRenderObject object = {};
 				object.meshAssetId                 = meshAssetId;
@@ -755,10 +751,7 @@ namespace Unnamed {
 						meshAsset->submeshes.front().materialIndex :
 						0u;
 				object.materialInstanceId = skelRenderer->
-					ResolveMaterialInstanceAssetForMaterialIndex(
-						assetManager,
-						materialIndex
-					);
+					GetMaterialInstanceAssetIdForMaterialIndex(materialIndex);
 				object.ownerEntityGuid   = entity->GetGuid();
 				object.world             = transform->RenderWorldMat();
 				object.isSkinned         = false;
