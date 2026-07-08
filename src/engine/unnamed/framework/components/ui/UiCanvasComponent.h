@@ -1,10 +1,11 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "core/assets/AssetID.h"
-#include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
 
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 #include "engine/content/AssetReferenceValidationPolicy.h"
@@ -17,6 +18,8 @@ namespace Unnamed::Gui {
 }
 
 namespace Unnamed {
+	class AssetManager;
+
 	enum class UI_CANVAS_SPACE_MODE : uint8_t {
 		SCREEN          = 0,
 		WORLD_BILLBOARD = 1,
@@ -53,8 +56,17 @@ namespace Unnamed {
 
 		[[nodiscard]] uint32_t GetIcon() const override;
 
-		void                      SetUiAssetPath(Path path);
-		[[nodiscard]] const Path& GetUiAssetPath() const;
+		/// @brief UI Document参照を設定し、ロード済みAssetIDを更新します。
+		[[nodiscard]] bool SetUiDocumentPath(
+			const VirtualPath& path, AssetManager& assetManager
+		);
+		/// @brief UI Document参照とロード済み状態をクリアします。
+		void ClearUiDocumentPath();
+		/// @brief UI Documentの論理参照を取得します。
+		[[nodiscard]] const std::optional<VirtualPath>& GetUiDocumentPath(
+		) const;
+		/// @brief ロード済みUI DocumentのAssetIDを取得します。
+		[[nodiscard]] AssetID GetUiDocumentAssetId() const;
 
 		void SetSpaceMode(UI_CANVAS_SPACE_MODE mode);
 		[[nodiscard]] UI_CANVAS_SPACE_MODE GetSpaceMode() const;
@@ -87,7 +99,7 @@ namespace Unnamed {
 		);
 		void InvalidateRuntime();
 
-		Path mUiAssetPath;
+		std::optional<VirtualPath> mUiDocumentPath;
 		UI_CANVAS_SPACE_MODE mSpaceMode = UI_CANVAS_SPACE_MODE::SCREEN;
 		UI_CANVAS_BILLBOARD_DEPTH_MODE mBillboardDepthMode =
 			UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
@@ -96,8 +108,7 @@ namespace Unnamed {
 		int32_t mSortKey      = 0;
 		bool    mReceiveInput = true;
 
-		Path                         mLoadedAssetPath;
-		AssetID                      mUiAssetId          = kInvalidAssetID;
+		AssetID                      mUiDocumentAssetId  = kInvalidAssetID;
 		uint64_t                     mLoadedAssetVersion = 0;
 		std::unique_ptr<Gui::UiRoot> mRuntimeRoot;
 		bool                         mLoggedLoadFailure = false;

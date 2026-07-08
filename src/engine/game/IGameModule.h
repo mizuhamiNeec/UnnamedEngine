@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <new>
+#include <optional>
 #include <string>
 #include <type_traits>
 
@@ -52,10 +53,11 @@ namespace Unnamed {
 		) = 0;
 		/// @brief ゲーム名・ルート・既定シーン情報を返します。
 		[[nodiscard]] virtual GameModulePaths GetGameModulePaths() const = 0;
-		/// @brief UI ドキュメントのデフォルトパスを返します。
+		/// @brief UI ドキュメントのデフォルト論理パスを返します。
 		/// @details Engine 側はこの値を利用し、ゲーム固有パスを直書きしません。
-		[[nodiscard]] virtual Path GetDefaultUiDocumentPath() const {
-			return {};
+		[[nodiscard]] virtual std::optional<VirtualPath> GetDefaultUiDocument(
+		) const {
+			return std::nullopt;
 		}
 	};
 

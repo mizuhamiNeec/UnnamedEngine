@@ -165,7 +165,7 @@
                         "receiveInput": false,
                         "sortKey": 300,
                         "spaceMode": "Screen",
-                        "uiAssetPath": "ui/hud.ui.json",
+                        "uiDocumentPath": "ui/hud.ui.json",
                         "worldSize": [
                             2.0,
                             1.125
@@ -1061,7 +1061,7 @@
                         "receiveInput": false,
                         "sortKey": 0,
                         "spaceMode": "WorldBillboard",
-                        "uiAssetPath": "ui/crosshair.ui.json",
+                        "uiDocumentPath": "ui/crosshair.ui.json",
                         "worldSize": [
                             256.0,
                             256.0

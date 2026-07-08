@@ -127,7 +127,7 @@ namespace Unnamed {
 		mRuntimeContext->modulePaths = mGameModule->GetGameModulePaths();
 		mRuntimeContext->defaultStartupScene =
 			mRuntimeContext->modulePaths.defaultStartupScene;
-		mRuntimeContext->defaultUiDocumentPath =
-			mGameModule->GetDefaultUiDocumentPath();
+		mRuntimeContext->defaultUiDocument =
+			mGameModule->GetDefaultUiDocument();
 	}
 }

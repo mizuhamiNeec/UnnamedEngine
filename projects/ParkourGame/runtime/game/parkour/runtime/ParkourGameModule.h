@@ -36,8 +36,9 @@ namespace Unnamed {
 		void RegisterGameComponents(ComponentRegistry& componentRegistry) override;
 		/// @brief ゲーム名・ルート・既定シーン情報を返します。
 		[[nodiscard]] GameModulePaths GetGameModulePaths() const override;
-		/// @brief UI ドキュメントのデフォルトパスを返します。
-		[[nodiscard]] Path GetDefaultUiDocumentPath() const override;
+		/// @brief UI ドキュメントのデフォルト論理パスを返します。
+		[[nodiscard]] std::optional<VirtualPath> GetDefaultUiDocument(
+		) const override;
 	};
 
 	/// @brief Parkour GameModule を生成します。

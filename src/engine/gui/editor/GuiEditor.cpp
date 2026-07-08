@@ -5,7 +5,9 @@
 #include <cstdio>
 #include <imgui.h>
 
+#include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
+#include "core/content/ContentPathResolver.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/gui/UiRoot.h"
@@ -55,9 +57,16 @@ namespace Unnamed::Gui {
 			if (context.pathBuffer[0] == '\0') {
 				if (const auto* runtimeContext = ServiceLocator::Get<
 					GameRuntimeContext>()) {
-					const std::string defaultUiPath =
-						runtimeContext->defaultUiDocumentPath.ToGenericUtf8();
-					if (!defaultUiPath.empty()) {
+					const auto* assetManager = ServiceLocator::Get<AssetManager>();
+					const auto resolution =
+						assetManager && runtimeContext->defaultUiDocument.has_value() ?
+						assetManager->GetContentPathResolver().ResolveFile(
+							*runtimeContext->defaultUiDocument
+						) :
+						std::nullopt;
+					if (resolution.has_value()) {
+						const std::string defaultUiPath =
+							resolution->resolvedPath.ToGenericUtf8();
 						std::snprintf(
 							context.pathBuffer.data(),
 							context.pathBuffer.size(),

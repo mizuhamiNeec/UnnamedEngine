@@ -7,7 +7,6 @@
 #include "core/ComponentRegistry.h"
 #include "engine/physics/core/Physics.h"
 #include "engine/scene/Scene.h"
-#include "engine/game/GamePathResolver.h"
 #include "game/core/replay/DemoManager.h"
 #include "game/parkour/runtime/ParkourGameWorld.h"
 
@@ -94,11 +93,8 @@ namespace Unnamed {
 		};
 	}
 
-	Path ParkourGameModule::GetDefaultUiDocumentPath() const {
-		return ResolveGameContentPath(
-			GetGameModulePaths(),
-			Path("ui/MainMenu.ui.json")
-		);
+	std::optional<VirtualPath> ParkourGameModule::GetDefaultUiDocument() const {
+		return VirtualPath::ParseContentReference("ui/MainMenu.ui.json");
 	}
 
 	std::unique_ptr<IGameModule> CreateParkourGameModule() {

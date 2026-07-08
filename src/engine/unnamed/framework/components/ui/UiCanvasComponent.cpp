@@ -8,7 +8,7 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/UiDocumentAssetData.h"
-#include "core/filesystem/Path.h"
+#include "core/content/ContentPathResolver.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
@@ -67,26 +67,45 @@ namespace Unnamed {
 			return UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
 		}
 
-		Path ResolveDefaultUiAssetPath() {
+		std::optional<VirtualPath> ResolveDefaultUiDocumentPath() {
 			const auto* runtimeContext = ServiceLocator::Get<
 				GameRuntimeContext>();
 			if (!runtimeContext) {
-				return {};
+				return std::nullopt;
 			}
-			return runtimeContext->defaultUiDocumentPath.LexicallyNormal();
+			return runtimeContext->defaultUiDocument;
 		}
 	}
 
 	UiCanvasComponent::UiCanvasComponent() :
-		mUiAssetPath(ResolveDefaultUiAssetPath()) {
+		mUiDocumentPath(ResolveDefaultUiDocumentPath()) {
 	}
 
 	UiCanvasComponent::~UiCanvasComponent() = default;
 
 	void UiCanvasComponent::Deserialize(const JsonReader& reader) {
-		if (reader.Has("uiAssetPath")) {
-			SetUiAssetPath(Path(reader["uiAssetPath"].GetString()));
-		}
+		constexpr SceneLoadOptions options{};
+		const Path scenePath("<direct component deserialize>");
+		const SceneDeserializeContext context{
+			.loadOptions   = options,
+			.assetManager  = GetAssetManager(),
+			.scenePath     = scenePath,
+			.entityName    = "<unknown>",
+			.entityId      = 0,
+			.componentType = GetStableName(),
+		};
+		(void)Deserialize(reader, context);
+	}
+
+	bool UiCanvasComponent::Deserialize(
+		const JsonReader& reader, const SceneDeserializeContext& context
+	) {
+		ClearUiDocumentPath();
+		mUiDocumentPath = ResolveDefaultUiDocumentPath();
+		mAssetValidationPolicy = ToAssetReferenceValidationPolicy(
+			context.loadOptions.assetValidationPolicy
+		);
+
 		if (reader.Has("spaceMode")) {
 			SetSpaceMode(ParseMode(reader["spaceMode"].GetString()));
 		}
@@ -115,22 +134,93 @@ namespace Unnamed {
 		if (reader.Has("receiveInput")) {
 			SetReceiveInput(reader["receiveInput"].GetBool());
 		}
-	}
 
-	bool UiCanvasComponent::Deserialize(
-		const JsonReader& reader, const SceneDeserializeContext& context
-	) {
-		Deserialize(reader);
-		mAssetValidationPolicy = ToAssetReferenceValidationPolicy(
-			context.loadOptions.assetValidationPolicy
-		);
+		const JsonReader pathNode = reader["uiDocumentPath"];
+		if (pathNode.Valid()) {
+			mUiDocumentPath.reset();
+			if (!pathNode.IsString()) {
+				Error(
+					kChannel,
+					"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='uiDocumentPath' reason='expected string'",
+					context.scenePath,
+					context.entityName,
+					context.entityId,
+					context.componentType
+				);
+				return !IsStrictAssetValidation(context.loadOptions);
+			}
+
+			const std::string pathValue = pathNode.GetString();
+			if (pathValue.empty()) {
+				return true;
+			}
+			mUiDocumentPath = VirtualPath::ParseContentReference(pathValue);
+			if (!mUiDocumentPath.has_value()) {
+				Error(
+					kChannel,
+					"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='uiDocumentPath' virtualPath='{}'",
+					context.scenePath,
+					context.entityName,
+					context.entityId,
+					context.componentType,
+					pathValue
+				);
+				return !IsStrictAssetValidation(context.loadOptions);
+			}
+		}
+
+		if (!mUiDocumentPath.has_value()) {
+			return true;
+		}
 
 		if (!context.assetManager) {
 			Error(
 				kChannel,
-				"AssetManager is not available while loading UI asset '{}'.",
-				mUiAssetPath
+				"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='uiDocumentPath' virtualPath='{}' reason='AssetManager unavailable'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				mUiDocumentPath->String()
 			);
+			ClearUiDocumentPath();
+			return !IsStrictAssetValidation(mAssetValidationPolicy);
+		}
+
+		const std::optional<ResolvedContentFile> resolvedFile =
+			context.assetManager->GetContentPathResolver().ResolveFile(
+				*mUiDocumentPath
+			);
+		if (!resolvedFile.has_value()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='unresolved content' scene='{}' entity='{}' entityId={} component='{}' field='uiDocumentPath' virtualPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				mUiDocumentPath->String()
+			);
+			ClearUiDocumentPath();
+			return !IsStrictAssetValidation(mAssetValidationPolicy);
+		}
+
+		mUiDocumentAssetId = context.assetManager->LoadAsset(
+			*mUiDocumentPath, ASSET_TYPE::UI_DOCUMENT
+		);
+		if (mUiDocumentAssetId == kInvalidAssetID) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='uiDocumentPath' virtualPath='{}' mount='{}' physicalPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				mUiDocumentPath->String(),
+				resolvedFile->mountId,
+				resolvedFile->resolvedPath
+			);
+			ClearUiDocumentPath();
 			return !IsStrictAssetValidation(mAssetValidationPolicy);
 		}
 
@@ -139,12 +229,28 @@ namespace Unnamed {
 			.assetValidationPolicy = mAssetValidationPolicy,
 		};
 		const bool loaded = EnsureRuntimeLoaded(uiContext);
+		if (!loaded) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='uiDocumentPath' virtualPath='{}' mount='{}' physicalPath='{}' reason='UI document deserialize failed'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				mUiDocumentPath->String(),
+				resolvedFile->mountId,
+				resolvedFile->resolvedPath
+			);
+			ClearUiDocumentPath();
+		}
 		return loaded || !IsStrictAssetValidation(mAssetValidationPolicy);
 	}
 
 	void UiCanvasComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("uiAssetPath");
-		writer.Write(mUiAssetPath.ToGenericUtf8());
+		if (mUiDocumentPath.has_value()) {
+			writer.Key("uiDocumentPath");
+			writer.Write(mUiDocumentPath->String());
+		}
 
 		writer.Key("spaceMode");
 		writer.Write(ToModeString(mSpaceMode));
@@ -173,15 +279,23 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void UiCanvasComponent::DrawInspectorImGui() {
-		std::string uiAssetPath = mUiAssetPath.ToGenericUtf8();
+		std::string uiDocumentPath = mUiDocumentPath.has_value() ?
+			mUiDocumentPath->String() : std::string{};
 		if (
 			ImGuiWidgets::AssetPathPicker(
-				"UI Asset Path",
-				uiAssetPath,
+				"UI Document Path",
+				uiDocumentPath,
 				ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::UI_DOCUMENT)
 			)
 		) {
-			SetUiAssetPath(Path(uiAssetPath));
+			const std::optional<VirtualPath> path =
+				VirtualPath::ParseContentReference(uiDocumentPath);
+			AssetManager* assetManager = GetAssetManager();
+			if (!path.has_value() || !assetManager) {
+				ClearUiDocumentPath();
+			} else {
+				(void)SetUiDocumentPath(*path, *assetManager);
+			}
 		}
 
 		constexpr const char* kModes[] = {
@@ -225,18 +339,58 @@ namespace Unnamed {
 		return kIconMonitor;
 	}
 
-	void UiCanvasComponent::SetUiAssetPath(Path path) {
-		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
-		if (mUiAssetPath == path) {
-			return;
+	bool UiCanvasComponent::SetUiDocumentPath(
+		const VirtualPath& path, AssetManager& assetManager
+	) {
+		const AssetID assetId = assetManager.LoadAsset(
+			path, ASSET_TYPE::UI_DOCUMENT
+		);
+		if (assetId == kInvalidAssetID) {
+			ClearUiDocumentPath();
+			return false;
 		}
-		mUiAssetPath = std::move(path);
-		mUiAssetId   = kInvalidAssetID;
+
+		if (
+			mUiDocumentPath == path &&
+			mUiDocumentAssetId == assetId
+		) {
+			const Gui::UiDeserializeContext context{
+				.assetManager          = assetManager,
+				.assetValidationPolicy = mAssetValidationPolicy,
+			};
+			if (EnsureRuntimeLoaded(context)) {
+				return true;
+			}
+			ClearUiDocumentPath();
+			return false;
+		}
+		mUiDocumentPath    = path;
+		mUiDocumentAssetId = assetId;
+		InvalidateRuntime();
+		const Gui::UiDeserializeContext context{
+			.assetManager          = assetManager,
+			.assetValidationPolicy = mAssetValidationPolicy,
+		};
+		if (EnsureRuntimeLoaded(context)) {
+			return true;
+		}
+		ClearUiDocumentPath();
+		return false;
+	}
+
+	void UiCanvasComponent::ClearUiDocumentPath() {
+		mUiDocumentPath.reset();
+		mUiDocumentAssetId = kInvalidAssetID;
 		InvalidateRuntime();
 	}
 
-	const Path& UiCanvasComponent::GetUiAssetPath() const {
-		return mUiAssetPath;
+	const std::optional<VirtualPath>& UiCanvasComponent::GetUiDocumentPath(
+	) const {
+		return mUiDocumentPath;
+	}
+
+	AssetID UiCanvasComponent::GetUiDocumentAssetId() const {
+		return mUiDocumentAssetId;
 	}
 
 	void UiCanvasComponent::SetSpaceMode(const UI_CANVAS_SPACE_MODE mode) {
@@ -310,46 +464,43 @@ namespace Unnamed {
 	bool UiCanvasComponent::EnsureRuntimeLoaded(
 		const Gui::UiDeserializeContext& context
 	) {
-		if (mUiAssetPath.IsEmpty()) {
+		if (!mUiDocumentPath.has_value()) {
 			if (!mLoggedLoadFailure) {
-				Error(kChannel, "UI asset path is empty.");
+				Error(kChannel, "UI document path is not set.");
 				mLoggedLoadFailure = true;
 			}
 			return false;
 		}
 
-		if (mUiAssetId == kInvalidAssetID || mLoadedAssetPath != mUiAssetPath) {
-			mUiAssetId = context.assetManager.LoadFromFile(
-				mUiAssetPath, ASSET_TYPE::UI_DOCUMENT
-			);
-			mLoadedAssetVersion = 0;
-		}
-		if (mUiAssetId == kInvalidAssetID) {
+		if (mUiDocumentAssetId == kInvalidAssetID) {
 			if (!mLoggedLoadFailure) {
 				Error(
-					kChannel, "Failed to resolve UI asset '{}'.", mUiAssetPath
+					kChannel,
+					"UI document '{}' has no loaded AssetID.",
+					mUiDocumentPath->String()
 				);
 				mLoggedLoadFailure = true;
 			}
 			return false;
 		}
 
-		const auto& meta = context.assetManager.Meta(mUiAssetId);
+		const auto& meta = context.assetManager.Meta(mUiDocumentAssetId);
 		if (
 			mRuntimeRoot &&
-			mLoadedAssetPath == mUiAssetPath &&
 			mLoadedAssetVersion == meta.version
 		) {
 			return true;
 		}
 
 		const auto* assetData = context.assetManager.Get<UiDocumentAssetData>(
-			mUiAssetId
+			mUiDocumentAssetId
 		);
 		if (!assetData) {
 			if (!mLoggedLoadFailure) {
 				Error(
-					kChannel, "UI asset '{}' payload is invalid.", mUiAssetPath
+					kChannel,
+					"UI document '{}' payload is invalid.",
+					mUiDocumentPath->String()
 				);
 				mLoggedLoadFailure = true;
 			}
@@ -358,12 +509,16 @@ namespace Unnamed {
 
 		const auto document = Gui::UiDocument::LoadFromJson(
 			JsonReader(assetData->rootJson),
-			mUiAssetPath.ToGenericUtf8(),
+			mUiDocumentPath->String(),
 			context
 		);
 		if (!document) {
 			if (!mLoggedLoadFailure) {
-				Error(kChannel, "Failed to load UI asset '{}'.", mUiAssetPath);
+				Error(
+					kChannel,
+					"Failed to load UI document '{}'.",
+					mUiDocumentPath->String()
+				);
 				mLoggedLoadFailure = true;
 			}
 			return false;
@@ -373,16 +528,18 @@ namespace Unnamed {
 		if (!rootWidget) {
 			if (!mLoggedLoadFailure) {
 				Error(
-					kChannel, "UI asset '{}' has no root widget.", mUiAssetPath
+					kChannel,
+					"UI document '{}' has no root widget.",
+					mUiDocumentPath->String()
 				);
 				mLoggedLoadFailure = true;
 			}
 			return false;
 		}
 
-		mRuntimeRoot = std::make_unique<Gui::UiRoot>();
-		mRuntimeRoot->AddChild(std::move(rootWidget));
-		mLoadedAssetPath    = mUiAssetPath;
+		auto runtimeRoot = std::make_unique<Gui::UiRoot>();
+		runtimeRoot->AddChild(std::move(rootWidget));
+		mRuntimeRoot        = std::move(runtimeRoot);
 		mLoadedAssetVersion = meta.version;
 		mLoggedLoadFailure  = false;
 		return true;
@@ -404,8 +561,8 @@ namespace Unnamed {
 
 	void UiCanvasComponent::InvalidateRuntime() {
 		mRuntimeRoot.reset();
-		mLoadedAssetPath.Clear();
 		mLoadedAssetVersion = 0;
+		mLoggedLoadFailure  = false;
 	}
 
 	REGISTER_COMPONENT(UiCanvasComponent);

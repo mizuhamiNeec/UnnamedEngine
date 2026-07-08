@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include "engine/game/GameModulePaths.h"
@@ -13,7 +14,7 @@ namespace Unnamed {
 		GameModulePaths modulePaths = {};
 		/// @brief 起動時デフォルトシーンの論理 VirtualPath です。
 		VirtualPath defaultStartupScene;
-		/// @brief UI ドキュメントのデフォルトパスです。
-		Path defaultUiDocumentPath;
+		/// @brief UI ドキュメントのデフォルト論理パスです。
+		std::optional<VirtualPath> defaultUiDocument;
 	};
 }

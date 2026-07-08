@@ -2,8 +2,10 @@
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/UiDocumentAssetData.h"
+#include "core/content/ContentPathResolver.h"
 #include "core/io/json/JsonReader.h"
 
+#include "engine/content/ContentMountDefinitions.h"
 #include "engine/gui/UiDeserializeContext.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 
@@ -23,7 +25,7 @@ namespace Unnamed::Gui {
 		const std::string key            = normalizedPath.ToGenericUtf8();
 		ManagedDocument&  managed        = mDocuments[key];
 		managed.normalizedPath           = normalizedPath;
-		managed.assetId                  = mAssetManager.LoadFromFile(
+		managed.assetId                  = mAssetManager.LoadAssetFromFile(
 			normalizedPath, ASSET_TYPE::UI_DOCUMENT
 		);
 		if (managed.assetId == kInvalidAssetID) {
@@ -65,6 +67,18 @@ namespace Unnamed::Gui {
 
 		const Path        normalizedPath = NormalizePath(path);
 		const std::string key            = normalizedPath.ToGenericUtf8();
+		const std::optional<std::string> mountId =
+			mAssetManager.GetContentPathResolver().FindMountIdForResolvedPath(
+				normalizedPath
+			);
+		if (mountId == ContentMountId::kCore) {
+			Warning(
+				kChannel,
+				"Core UI documents are read-only. Duplicate the document into Game content before saving: {}",
+				normalizedPath
+			);
+			return false;
+		}
 		if (!document->Save(normalizedPath)) {
 			return false;
 		}
@@ -75,13 +89,13 @@ namespace Unnamed::Gui {
 		managed.dirty            = false;
 		managed.pendingExternal  = false;
 
-		managed.assetId = mAssetManager.LoadFromFile(
+		managed.assetId = mAssetManager.LoadAssetFromFile(
 			normalizedPath,
 			ASSET_TYPE::UI_DOCUMENT,
 			AssetManager::AssetLoadPolicy::ForceReload
 		);
 		if (managed.assetId == kInvalidAssetID) {
-			return true;
+			return false;
 		}
 
 		managed.loadedVersion = mAssetManager.Meta(managed.assetId).version;
