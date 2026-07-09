@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.00023651123047,
-                            36.00056457519531,
-                            16.00023651123047
+                            16.000244140625,
+                            36.00058364868164,
+                            16.000244140625
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -655,7 +655,6 @@
                 {
                     "active": true,
                     "data": {
-                        "materialInstancePath": "",
                         "materialSlots": [],
                         "meshPath": "models/viewmodel/viewmodel.glb"
                     },
@@ -680,13 +679,13 @@
                         "speed": 1.0,
                         "stateMap": [
                             {
-                                "blendSec": 0.125,
-                                "clipName": "Vault",
+                                "blendSec": 0.11999999731779099,
+                                "clipName": "Sprint.001",
                                 "layerIndex": 0,
-                                "loop": false,
+                                "loop": true,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_vaulting",
+                                "stateId": "animstate_sprint",
                                 "weight": 1.0
                             },
                             {
@@ -700,13 +699,13 @@
                                 "weight": 1.0
                             },
                             {
-                                "blendSec": 0.11999999731779099,
-                                "clipName": "Sprint.001",
+                                "blendSec": 0.125,
+                                "clipName": "Vault",
                                 "layerIndex": 0,
-                                "loop": true,
+                                "loop": false,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_sprint",
+                                "stateId": "animstate_vaulting",
                                 "weight": 1.0
                             },
                             {

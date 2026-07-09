@@ -109,7 +109,8 @@ namespace Unnamed {
 			resolvedFile->resolvedPath,
 			type,
 			policy,
-			resolvedFile->mountId
+			resolvedFile->mountId,
+			resolvedFile->virtualPath
 		);
 	}
 
@@ -136,7 +137,8 @@ namespace Unnamed {
 			resolvedFile->resolvedPath,
 			type,
 			policy,
-			resolvedFile->mountId
+			resolvedFile->mountId,
+			resolvedFile->virtualPath
 		);
 	}
 
@@ -167,7 +169,7 @@ namespace Unnamed {
 			return kInvalidAssetID;
 		}
 
-		return LoadFromResolvedFile(normalizedPath, type, policy, {});
+		return LoadFromResolvedFile(normalizedPath, type, policy, {}, std::nullopt);
 	}
 
 	AssetID AssetManager::LoadTexture(
@@ -194,7 +196,8 @@ namespace Unnamed {
 			resolvedFile->resolvedPath,
 			ASSET_TYPE::TEXTURE,
 			policy,
-			resolvedFile->mountId
+			resolvedFile->mountId,
+			resolvedFile->virtualPath
 		);
 	}
 
@@ -216,7 +219,8 @@ namespace Unnamed {
 			normalizedPath,
 			ASSET_TYPE::TEXTURE,
 			policy,
-			{}
+			{},
+			std::nullopt
 		);
 	}
 
@@ -275,7 +279,8 @@ namespace Unnamed {
 			resolvedFile->resolvedPath,
 			ASSET_TYPE::MESH,
 			policy,
-			resolvedFile->mountId
+			resolvedFile->mountId,
+			resolvedFile->virtualPath
 		);
 	}
 
@@ -301,7 +306,8 @@ namespace Unnamed {
 			normalizedPath,
 			ASSET_TYPE::MESH,
 			policy,
-			{}
+			{},
+			std::nullopt
 		);
 	}
 
@@ -320,19 +326,12 @@ namespace Unnamed {
 			return kInvalidAssetID;
 		}
 
-		DevMsg(
-			kChannel,
-			"Resolved material instance asset: virtualPath={}, mount={}, physicalPath={}",
-			path.String(),
-			resolvedFile->mountId,
-			resolvedFile->resolvedPath.ToUtf8()
-		);
-
 		return LoadFromResolvedFile(
 			resolvedFile->resolvedPath,
 			ASSET_TYPE::MATERIAL_INSTANCE,
 			policy,
-			resolvedFile->mountId
+			resolvedFile->mountId,
+			resolvedFile->virtualPath
 		);
 	}
 
@@ -358,7 +357,8 @@ namespace Unnamed {
 			normalizedPath,
 			ASSET_TYPE::MATERIAL_INSTANCE,
 			policy,
-			{}
+			{},
+			std::nullopt
 		);
 	}
 
@@ -366,8 +366,23 @@ namespace Unnamed {
 		const Path&                     normalizedPath,
 		const std::optional<ASSET_TYPE> typeOpt,
 		const AssetLoadPolicy           policy,
-		const std::string_view          sourceMountId
+		const std::string_view          sourceMountId,
+		std::optional<VirtualPath>      sourceVirtualPath
 	) {
+		std::string effectiveMountId(sourceMountId);
+		if (effectiveMountId.empty()) {
+			effectiveMountId = mContentPathResolver.FindMountIdForResolvedPath(
+				normalizedPath
+			).value_or(std::string{});
+		}
+		if (!sourceVirtualPath.has_value() && !effectiveMountId.empty()) {
+			const auto description = mContentPathResolver.DescribePathFromMount(
+				effectiveMountId, normalizedPath
+			);
+			if (description.has_value()) {
+				sourceVirtualPath = description->virtualPath;
+			}
+		}
 		Profiler*        profiler = ServiceLocator::Get<Profiler>();
 		std::scoped_lock lock(mMutex);
 
@@ -394,8 +409,11 @@ namespace Unnamed {
 			if (cachedIt != mPathToID.end()) {
 				const AssetID cachedId       = cachedIt->second;
 				Node&         cached         = mNodes[cachedId];
-				if (!sourceMountId.empty()) {
-					cached.meta.sourceMountId = sourceMountId;
+				if (!effectiveMountId.empty()) {
+					cached.meta.sourceMountId = effectiveMountId;
+				}
+				if (sourceVirtualPath.has_value()) {
+					cached.meta.sourceVirtualPath = sourceVirtualPath;
 				}
 				const bool    typeCompatible =
 					!typeOpt.has_value() || cached.meta.type == *typeOpt ||
@@ -439,11 +457,11 @@ namespace Unnamed {
 		// 不明の場合はスロットだけ作成
 		const AssetID id = FindOrCreateSlotByPath(normalizedPath, deduced);
 		Node&         n  = mNodes[id];
-		if (!sourceMountId.empty()) {
-			n.meta.sourceMountId = sourceMountId;
-		} else if (const std::optional<std::string> inferredMountId =
-			mContentPathResolver.FindMountIdForResolvedPath(normalizedPath)) {
-			n.meta.sourceMountId = *inferredMountId;
+		if (!effectiveMountId.empty()) {
+			n.meta.sourceMountId = effectiveMountId;
+		}
+		if (sourceVirtualPath.has_value()) {
+			n.meta.sourceVirtualPath = std::move(sourceVirtualPath);
 		}
 		if (
 			policy == AssetLoadPolicy::UseCachedIfLoaded &&
@@ -594,6 +612,7 @@ namespace Unnamed {
 		n.meta.name         = std::move(name);
 		n.meta.sourcePath.Clear();
 		n.meta.sourceMountId.clear();
+		n.meta.sourceVirtualPath.reset();
 		n.meta.fileStamp       = {};
 		n.meta.runtime         = true;
 		n.meta.destroyed       = false;

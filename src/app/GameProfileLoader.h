@@ -171,7 +171,7 @@ namespace Unnamed {
 					modulePaths.defaultStartupScene.String()
 				);
 			const std::optional<VirtualPath> defaultStartupScene =
-				VirtualPath::Parse(defaultStartupSceneUtf8);
+				VirtualPath::ParseContentReference(defaultStartupSceneUtf8);
 			if (!defaultStartupScene.has_value()) {
 				Error(
 					"Launcher",

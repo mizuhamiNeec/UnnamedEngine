@@ -299,12 +299,15 @@ namespace Unnamed {
 		/// @param normalizedPath 正規化されたファイルパス
 		/// @param typeOpt アセットの種類
 		/// @param policy ロードポリシー
+		/// @param sourceMountId 解決元mount ID
+		/// @param sourceVirtualPath 解決元論理パス
 		/// @return ロードしたアセットのID
 		AssetID LoadFromResolvedFile(
 			const Path&               normalizedPath,
 			std::optional<ASSET_TYPE> typeOpt,
 			AssetLoadPolicy           policy,
-			std::string_view          sourceMountId
+			std::string_view          sourceMountId,
+			std::optional<VirtualPath> sourceVirtualPath
 		);
 
 		/// @brief 指定したアセットを参照しているアセット情報を再構築します
