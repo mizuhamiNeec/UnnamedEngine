@@ -115,10 +115,10 @@ namespace Unnamed {
 	}
 
 	AssetID AssetManager::LoadAssetFromMount(
-		const VirtualPath&    path,
+		const VirtualPath&     path,
 		const std::string_view mountId,
-		const ASSET_TYPE      type,
-		const AssetLoadPolicy policy
+		const ASSET_TYPE       type,
+		const AssetLoadPolicy  policy
 	) {
 		const std::optional<ResolvedContentFile> resolvedFile =
 			mContentPathResolver.ResolveFileFromMount(mountId, path);
@@ -362,6 +362,31 @@ namespace Unnamed {
 		);
 	}
 
+	template <class T>
+	AssetID AssetManager::CreateRuntimeAsset(
+		const ASSET_TYPE            type, std::string name, T&& payload,
+		const std::vector<AssetID>& dependencies
+	) {
+		std::scoped_lock lock(mMutex);
+		const AssetID    id = AllocateID();
+		Node&            n  = mNodes[id];
+		n.meta.type         = type;
+		n.meta.name         = std::move(name);
+		n.meta.sourcePath.Clear();
+		n.meta.sourceMountId.clear();
+		n.meta.sourceVirtualPath.reset();
+		n.meta.fileStamp       = {};
+		n.meta.runtime         = true;
+		n.meta.destroyed       = false;
+		n.meta.loaded          = true;
+		n.meta.loadFailed      = false;
+		n.payload              = std::forward<T>(payload);
+		mNameToID[n.meta.name] = id;
+
+		SetDependencies(id, dependencies);
+		return id;
+	}
+
 	AssetID AssetManager::LoadFromResolvedFile(
 		const Path&                     normalizedPath,
 		const std::optional<ASSET_TYPE> typeOpt,
@@ -407,8 +432,8 @@ namespace Unnamed {
 			const auto cachedIt = mPathToID.
 				find(normalizedPath.ToGenericUtf8());
 			if (cachedIt != mPathToID.end()) {
-				const AssetID cachedId       = cachedIt->second;
-				Node&         cached         = mNodes[cachedId];
+				const AssetID cachedId = cachedIt->second;
+				Node&         cached   = mNodes[cachedId];
 				if (!effectiveMountId.empty()) {
 					cached.meta.sourceMountId = effectiveMountId;
 				}
@@ -498,7 +523,7 @@ namespace Unnamed {
 				continue;
 			}
 
-			const std::string loadedMountId = n.meta.sourceMountId;
+			const std::string      loadedMountId = n.meta.sourceMountId;
 			const AssetLoadContext loadContext{
 				.resolvedMountId = loadedMountId,
 			};
@@ -547,10 +572,10 @@ namespace Unnamed {
 					"Shader include dependency cycle detected:\n{}",
 					StrUtil::Join(cyclePaths, "\n -> ")
 				);
-				loadedNode.payload = std::monostate{};
-				loadedNode.meta.loaded = false;
+				loadedNode.payload         = std::monostate{};
+				loadedNode.meta.loaded     = false;
 				loadedNode.meta.loadFailed = true;
-				loadedNode.meta.fileStamp = ReadCurrentFileStamp(
+				loadedNode.meta.fileStamp  = ReadCurrentFileStamp(
 					loadedNode.meta.sourcePath
 				);
 				UpdateSourceWatches(loadedNode, r.sourceWatchPaths);
@@ -598,31 +623,6 @@ namespace Unnamed {
 			ToString(deduced)
 		);
 		return kInvalidAssetID;
-	}
-
-	template <class T>
-	AssetID AssetManager::CreateRuntimeAsset(
-		const ASSET_TYPE            type, std::string name, T&& payload,
-		const std::vector<AssetID>& dependencies
-	) {
-		std::scoped_lock lock(mMutex);
-		const AssetID    id = AllocateID();
-		Node&            n  = mNodes[id];
-		n.meta.type         = type;
-		n.meta.name         = std::move(name);
-		n.meta.sourcePath.Clear();
-		n.meta.sourceMountId.clear();
-		n.meta.sourceVirtualPath.reset();
-		n.meta.fileStamp       = {};
-		n.meta.runtime         = true;
-		n.meta.destroyed       = false;
-		n.meta.loaded          = true;
-		n.meta.loadFailed      = false;
-		n.payload              = std::forward<T>(payload);
-		mNameToID[n.meta.name] = id;
-
-		SetDependencies(id, dependencies);
-		return id;
 	}
 
 	template
@@ -826,6 +826,28 @@ namespace Unnamed {
 		}
 	}
 
+	const AssetMetaData& AssetManager::Meta(const AssetID id) const {
+		std::scoped_lock lock(mMutex);
+		UASSERT(id < mNextID);
+		return mNodes[id].meta;
+	}
+
+	template <class T>
+	const T* AssetManager::Get(const AssetID id) const {
+		std::scoped_lock lock(mMutex);
+		if (id == kInvalidAssetID || id >= mNextID) {
+			return nullptr;
+		}
+		const AssetMetaData& meta = mNodes[id].meta;
+		if (meta.runtime && meta.destroyed) {
+			Warning(kChannel, "Get ignored for destroyed runtime assetId={}",
+			        id);
+			return nullptr;
+		}
+		const auto& v = mNodes[id].payload;
+		return std::get_if<T>(&const_cast<AssetPayload&>(v));
+	}
+
 	void AssetManager::UpdateSourceWatches(
 		Node& node, const std::vector<Path>& watchPaths
 	) {
@@ -835,7 +857,7 @@ namespace Unnamed {
 			if (watchPath.IsEmpty()) {
 				continue;
 			}
-			const Path normalized = watchPath.LexicallyNormal();
+			const Path normalized     = watchPath.LexicallyNormal();
 			const bool alreadyPresent = std::ranges::any_of(
 				node.sourceWatches,
 				[&normalized](const SourceWatchState& watch) {
@@ -852,13 +874,13 @@ namespace Unnamed {
 	}
 
 	bool AssetManager::FindDependencyCycle(
-		const AssetID rootId,
+		const AssetID               rootId,
 		const std::vector<AssetID>& proposedDependencies,
-		std::vector<AssetID>& outCycle
+		std::vector<AssetID>&       outCycle
 	) const {
 		outCycle.clear();
 		std::unordered_map<AssetID, ASSET_DEPENDENCY_VISIT_STATE> states;
-		std::vector<AssetID> stack;
+		std::vector<AssetID>                                      stack;
 
 		std::function<bool(AssetID)> visit = [&](const AssetID current) {
 			const ASSET_DEPENDENCY_VISIT_STATE state = states.contains(current) ?
@@ -889,28 +911,6 @@ namespace Unnamed {
 		};
 
 		return visit(rootId);
-	}
-
-	const AssetMetaData& AssetManager::Meta(const AssetID id) const {
-		std::scoped_lock lock(mMutex);
-		UASSERT(id < mNextID);
-		return mNodes[id].meta;
-	}
-
-	template <class T>
-	const T* AssetManager::Get(const AssetID id) const {
-		std::scoped_lock lock(mMutex);
-		if (id == kInvalidAssetID || id >= mNextID) {
-			return nullptr;
-		}
-		const AssetMetaData& meta = mNodes[id].meta;
-		if (meta.runtime && meta.destroyed) {
-			Warning(kChannel, "Get ignored for destroyed runtime assetId={}",
-			        id);
-			return nullptr;
-		}
-		const auto& v = mNodes[id].payload;
-		return std::get_if<T>(&const_cast<AssetPayload&>(v));
 	}
 
 	template const TextureAssetData*           AssetManager::Get(AssetID) const;
@@ -950,7 +950,7 @@ namespace Unnamed {
 			return false;
 		}
 
-		Node& n = mNodes[id];
+		const Node& n = mNodes[id];
 		if (n.meta.runtime && n.meta.destroyed) {
 			Warning(kChannel,
 			        "Reload rejected for destroyed runtime assetId={}", id);

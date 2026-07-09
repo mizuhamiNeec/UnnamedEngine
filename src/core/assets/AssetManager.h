@@ -332,7 +332,7 @@ namespace Unnamed {
 		};
 
 		/// @brief missing依存の監視パスと現在stampを更新します。
-		void UpdateSourceWatches(
+		static void UpdateSourceWatches(
 			Node& node, const std::vector<Path>& watchPaths
 		);
 
