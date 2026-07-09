@@ -12,7 +12,7 @@ namespace Unnamed::Gui {
 		UiButton();
 		~UiButton() override;
 
-		void SetText(const std::string_view& text);
+		void                           SetText(const std::string_view& text);
 		[[nodiscard]] std::string_view GetText() const;
 
 		void SetOnClick(const std::function<void()>& callback);

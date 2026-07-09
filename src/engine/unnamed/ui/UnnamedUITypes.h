@@ -16,7 +16,7 @@ namespace Unnamed::UI {
 			       point.y <= position.y + size.y;
 		}
 	};
-	
+
 	/// @brief UIの色構造体
 	/// RGBAで0.0f～1.0fの範囲で表現されます。
 	struct UIColor {
@@ -24,7 +24,7 @@ namespace Unnamed::UI {
 	};
 
 	UIColor Lerp(const UIColor& a, const UIColor& b, float t);
-	
+
 	/// @brief UIテキストの水平配置です。
 	enum class UI_TEXT_ALIGN : uint8_t {
 		LEFT,

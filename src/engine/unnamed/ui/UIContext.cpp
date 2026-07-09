@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <cmath>
 
-#include "core/math/Math.h"
-
 #include "engine/tween/TweenManager.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 

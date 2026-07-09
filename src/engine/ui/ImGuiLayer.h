@@ -7,7 +7,6 @@
 #include <vector>
 
 #include <imgui.h>
-#include <wrl/client.h>
 
 struct ImGui_ImplDX12_InitInfo;
 

@@ -34,7 +34,9 @@ namespace Unnamed {
 		void SaveVec3IfMissing(const std::string& key, const Vec3& value);
 
 		/// @brief Transformを初回のみ保存します。
-		void SaveTransformIfMissing(uint64_t entityGuid, const SequenceTransformSnapshot& snapshot);
+		void SaveTransformIfMissing(
+			uint64_t entityGuid, const SequenceTransformSnapshot& snapshot
+		);
 
 		/// @brief Entityのactive状態を初回のみ保存します。
 		void SaveEntityActiveIfMissing(uint64_t entityGuid, bool active);
@@ -46,22 +48,34 @@ namespace Unnamed {
 		void SaveCameraIfMissing(const SequenceCameraSnapshot& snapshot);
 
 		/// @brief 保存済みFloatを取得します。
-		[[nodiscard]] bool TryGetFloat(const std::string& key, float& outValue) const;
+		[[nodiscard]] bool TryGetFloat(
+			const std::string& key, float& outValue
+		) const;
 
 		/// @brief 保存済みBoolを取得します。
-		[[nodiscard]] bool TryGetBool(const std::string& key, bool& outValue) const;
+		[[nodiscard]] bool TryGetBool(
+			const std::string& key, bool& outValue
+		) const;
 
 		/// @brief 保存済みVec3を取得します。
-		[[nodiscard]] bool TryGetVec3(const std::string& key, Vec3& outValue) const;
+		[[nodiscard]] bool TryGetVec3(
+			const std::string& key, Vec3& outValue
+		) const;
 
 		/// @brief 保存済みTransformを取得します。
-		[[nodiscard]] bool TryGetTransform(uint64_t entityGuid, SequenceTransformSnapshot& outValue) const;
+		[[nodiscard]] bool TryGetTransform(
+			uint64_t entityGuid, SequenceTransformSnapshot& outValue
+		) const;
 
 		/// @brief 保存済みEntity activeを取得します。
-		[[nodiscard]] bool TryGetEntityActive(uint64_t entityGuid, bool& outValue) const;
+		[[nodiscard]] bool TryGetEntityActive(
+			uint64_t entityGuid, bool& outValue
+		) const;
 
 		/// @brief 保存済みEntity visibleを取得します。
-		[[nodiscard]] bool TryGetEntityVisible(uint64_t entityGuid, bool& outValue) const;
+		[[nodiscard]] bool TryGetEntityVisible(
+			uint64_t entityGuid, bool& outValue
+		) const;
 
 		/// @brief 保存済みCamera状態を取得します。
 		[[nodiscard]] bool TryGetCamera(SequenceCameraSnapshot& outValue) const;
@@ -91,34 +105,41 @@ namespace Unnamed {
 		void Clear();
 
 		/// @brief 退避済みFloatキーを取得します。
-		[[nodiscard]] const std::unordered_map<std::string, float>& GetSavedFloats() const;
+		[[nodiscard]] const std::unordered_map<std::string, float>&
+		GetSavedFloats() const;
 
 		/// @brief 退避済みBoolキーを取得します。
-		[[nodiscard]] const std::unordered_map<std::string, bool>& GetSavedBools() const;
+		[[nodiscard]] const std::unordered_map<std::string, bool>&
+		GetSavedBools() const;
 
 		/// @brief 退避済みVec3キーを取得します。
-		[[nodiscard]] const std::unordered_map<std::string, Vec3>& GetSavedVec3() const;
+		[[nodiscard]] const std::unordered_map<std::string, Vec3>&
+		GetSavedVec3() const;
 
 		/// @brief 退避済みTransformキーを取得します。
-		[[nodiscard]] const std::unordered_map<uint64_t, SequenceTransformSnapshot>& GetSavedTransforms() const;
+		[[nodiscard]] const std::unordered_map<
+			uint64_t, SequenceTransformSnapshot>& GetSavedTransforms() const;
 
 		/// @brief 退避済みEntity activeキーを取得します。
-		[[nodiscard]] const std::unordered_map<uint64_t, bool>& GetSavedEntityActive() const;
+		[[nodiscard]] const std::unordered_map<uint64_t, bool>&
+		GetSavedEntityActive() const;
 
 		/// @brief 退避済みEntity visibleキーを取得します。
-		[[nodiscard]] const std::unordered_map<uint64_t, bool>& GetSavedEntityVisible() const;
+		[[nodiscard]] const std::unordered_map<uint64_t, bool>&
+		GetSavedEntityVisible() const;
 
 		/// @brief Camera退避値が存在するかを返します。
 		[[nodiscard]] bool HasSavedCamera() const;
 
 	private:
 		std::unordered_map<std::string, float> mSavedFloatValues = {};
-		std::unordered_map<std::string, bool>  mSavedBoolValues  = {};
-		std::unordered_map<std::string, Vec3>  mSavedVec3Values  = {};
-		std::unordered_map<uint64_t, SequenceTransformSnapshot> mSavedTransforms = {};
-		std::unordered_map<uint64_t, bool> mSavedEntityActive = {};
+		std::unordered_map<std::string, bool> mSavedBoolValues = {};
+		std::unordered_map<std::string, Vec3> mSavedVec3Values = {};
+		std::unordered_map<uint64_t, SequenceTransformSnapshot> mSavedTransforms
+			= {};
+		std::unordered_map<uint64_t, bool> mSavedEntityActive  = {};
 		std::unordered_map<uint64_t, bool> mSavedEntityVisible = {};
-		bool                   mHasSavedCamera   = false;
-		SequenceCameraSnapshot mSavedCameraState = {};
+		bool                               mHasSavedCamera     = false;
+		SequenceCameraSnapshot             mSavedCameraState   = {};
 	};
 }

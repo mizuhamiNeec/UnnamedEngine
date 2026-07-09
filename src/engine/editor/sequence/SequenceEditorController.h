@@ -3,12 +3,9 @@
 
 #include <functional>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "core/assets/AssetID.h"
-#include "core/assets/types/SequenceAssetData.h"
-#include "core/math/Quaternion.h"
 #include "core/math/Vec3.h"
 
 #include "SequenceEditorDocument.h"
@@ -35,7 +32,7 @@ namespace Unnamed {
 		void Tick(float deltaSeconds);
 
 		/// @brief 指定パスのSequenceドキュメントを開きます。
-		[[nodiscard]] bool OpenDocument(const std::string& path);
+		[[nodiscard]] bool OpenDocument(Path path);
 
 		/// @brief アクティブドキュメントを保存します。
 		[[nodiscard]] bool SaveActiveDocument();
@@ -56,7 +53,8 @@ namespace Unnamed {
 		[[nodiscard]] const SequenceEditorDocument* GetActiveDocument() const;
 
 		/// @brief 開いているドキュメント一覧を取得します。
-		[[nodiscard]] const std::vector<std::shared_ptr<SequenceEditorDocument>>&
+		[[nodiscard]] const std::vector<std::shared_ptr<SequenceEditorDocument>>
+		&
 		GetDocuments() const;
 
 		/// @brief アクティブドキュメントのインデックスを取得します。
@@ -135,17 +133,17 @@ namespace Unnamed {
 			int32_t&               outSectionIndex
 		) const;
 
-		World*       mWorld       = nullptr;
+		World*        mWorld        = nullptr;
 		AssetManager* mAssetManager = nullptr;
 
 		std::vector<std::shared_ptr<SequenceEditorDocument>> mDocuments = {};
-		int32_t                   mActiveDocumentIndex = -1;
-		SequenceEditorSelection   mSelection           = {};
-		float                     mPlayheadFrame       = 0.0f;
-		bool                      mAutoKeyEnabled      = false;
-		bool                      mScrubFireEvents     = false;
+		int32_t mActiveDocumentIndex = -1;
+		SequenceEditorSelection mSelection = {};
+		float mPlayheadFrame = 0.0f;
+		bool mAutoKeyEnabled = false;
+		bool mScrubFireEvents = false;
 
-		std::shared_ptr<SequencePlayer> mPreviewPlayer = nullptr;
+		std::shared_ptr<SequencePlayer> mPreviewPlayer     = nullptr;
 		bool                            mPreviewRegistered = false;
 	};
 }

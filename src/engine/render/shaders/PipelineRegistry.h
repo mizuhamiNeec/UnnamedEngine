@@ -12,7 +12,19 @@ namespace Unnamed::Render {
 	/// @brief パイプラインハンドル種別。
 	enum class PIPELINE_KIND : uint8_t {
 		GRAPHICS = 0,
-		COMPUTE = 1,
+		COMPUTE  = 1,
+	};
+
+	/// @brief 起動時にPipelineを解決する必要性です。
+	enum class PIPELINE_STARTUP_REQUIREMENT : uint8_t {
+		REQUIRED,
+		CONFIGURED_OPTIONAL,
+	};
+
+	/// @brief 一括Pipeline解決の対象範囲です。
+	enum class PIPELINE_RESOLVE_SCOPE : uint8_t {
+		REQUIRED_ONLY,
+		ALL_REGISTERED,
 	};
 
 	/// @brief パイプライン登録エントリを識別するハンドル。
@@ -31,10 +43,12 @@ namespace Unnamed::Render {
 
 	/// @brief グラフィクスパイプラインの登録仕様。
 	struct GraphicsPipelineSpec {
-		std::string         debugName;
-		AssetID             shaderProgramId = kInvalidAssetID;
-		ID3D12RootSignature* rootSignature  = nullptr;
-		GraphicsPsoKey      psoTemplate     = {};
+		std::string          debugName;
+		AssetID              shaderProgramId = kInvalidAssetID;
+		ID3D12RootSignature* rootSignature   = nullptr;
+		GraphicsPsoKey       psoTemplate     = {};
+		PIPELINE_STARTUP_REQUIREMENT startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::REQUIRED;
 	};
 
 	/// @brief コンピュートパイプラインの登録仕様。
@@ -43,6 +57,8 @@ namespace Unnamed::Render {
 		AssetID              shaderProgramId = kInvalidAssetID;
 		ID3D12RootSignature* rootSignature   = nullptr;
 		ComputePipelineKey   psoTemplate     = {};
+		PIPELINE_STARTUP_REQUIREMENT startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::REQUIRED;
 	};
 
 	/// @brief 解決済みグラフィクスパイプライン。
@@ -55,6 +71,19 @@ namespace Unnamed::Render {
 	struct ResolvedComputePipeline {
 		ID3D12RootSignature* rootSignature = nullptr;
 		ID3D12PipelineState* pso           = nullptr;
+	};
+
+	/// @brief 登録済みPipelineの一括解決結果です。
+	struct PipelineResolveResult final {
+		uint32_t requestedCount   = 0;
+		uint32_t resolvedCount    = 0;
+		uint32_t newlyFailedCount = 0;
+
+		/// @brief 全Pipelineが解決されたか判定します。
+		/// @return 全件成功した場合true。
+		[[nodiscard]] bool Succeeded() const noexcept {
+			return requestedCount == resolvedCount;
+		}
 	};
 
 	/// @brief パイプライン仕様の登録とPSO解決を管理するレジストリ。
@@ -75,7 +104,11 @@ namespace Unnamed::Render {
 
 		/// @brief 登録済み仕様をもとにPSOを解決します。
 		/// @param renderDevice 描画デバイス
-		void ResolveAll(RenderDevice& renderDevice);
+		[[nodiscard]] PipelineResolveResult ResolveAll(
+			RenderDevice& renderDevice,
+			PIPELINE_RESOLVE_SCOPE scope =
+				PIPELINE_RESOLVE_SCOPE::ALL_REGISTERED
+		);
 
 		/// @brief 解決済みグラフィクスパイプラインを取得します。
 		/// @param handle パイプラインハンドル
@@ -93,13 +126,15 @@ namespace Unnamed::Render {
 
 	private:
 		struct GraphicsEntry {
-			GraphicsPipelineSpec    spec     = {};
+			GraphicsPipelineSpec     spec     = {};
 			ResolvedGraphicsPipeline resolved = {};
+			bool                     resolveFailureLogged = false;
 		};
 
 		struct ComputeEntry {
-			ComputePipelineSpec    spec     = {};
+			ComputePipelineSpec     spec     = {};
 			ResolvedComputePipeline resolved = {};
+			bool                    resolveFailureLogged = false;
 		};
 
 		std::vector<GraphicsEntry> mGraphics = {};

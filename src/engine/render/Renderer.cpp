@@ -34,15 +34,15 @@ namespace Unnamed::Render {
 			texture.arraySize        = 1;
 			texture.mipLevels        = 1;
 			texture.format           = isSrgb ?
-				                           DXGI_FORMAT_R8G8B8A8_UNORM_SRGB :
-				                           DXGI_FORMAT_R8G8B8A8_UNORM;
-			texture.isSRGB           = isSrgb;
-			texture.dimension        = TEXTURE_DIMENSION::TEXTURE_2D;
-			TextureMip mip           = {};
-			mip.width                = 1;
-			mip.height               = 1;
-			mip.rowPitch             = 4;
-			mip.bytes                = {r, g, b, a};
+				                 DXGI_FORMAT_R8G8B8A8_UNORM_SRGB :
+				                 DXGI_FORMAT_R8G8B8A8_UNORM;
+			texture.isSRGB    = isSrgb;
+			texture.dimension = TEXTURE_DIMENSION::TEXTURE_2D;
+			TextureMip mip    = {};
+			mip.width         = 1;
+			mip.height        = 1;
+			mip.rowPitch      = 4;
+			mip.bytes         = {r, g, b, a};
 			texture.mips.emplace_back(std::move(mip));
 			TextureSubresource subresource = {};
 			subresource.width              = 1;
@@ -109,7 +109,9 @@ namespace Unnamed::Render {
 			ReleaseMaterialBindings(renderDevice);
 		}
 		if (postFxDirty) {
-			RebuildPipelineCatalog(renderDevice, dx);
+			(void)RebuildPipelineCatalog(
+				renderDevice, dx, mStartupOptions
+			);
 		}
 
 		mFrameViews      = inputs.views;
@@ -343,7 +345,7 @@ namespace Unnamed::Render {
 			(void)materialInstanceId;
 			EnsureMaterialTextureTable(renderDevice, binding);
 		}
-		ResolveRegisteredPipelines(renderDevice);
+		(void)ResolveRegisteredPipelines(renderDevice);
 
 		rhi.BeginFrame();
 		mAdvancedFoundation.BeginFrame();
@@ -352,7 +354,7 @@ namespace Unnamed::Render {
 		if (
 			inputs.frameIndex == 0 ||
 			inputs.frameIndex < mLastTextureCacheStatsLogFrame ||
-			(inputs.frameIndex - mLastTextureCacheStatsLogFrame) >=
+			inputs.frameIndex - mLastTextureCacheStatsLogFrame >=
 			kTextureCacheStatsLogIntervalFrames
 		) {
 			const TextureResourceCacheDebugStats cacheStats =
@@ -660,8 +662,12 @@ namespace Unnamed::Render {
 		binding.materialTextureSrvRevisions = revisions;
 	}
 
-	void Renderer::ResolveRegisteredPipelines(RenderDevice& renderDevice) {
-		mPipelineRegistry.ResolveAll(renderDevice);
+	bool Renderer::ResolveRegisteredPipelines(
+		RenderDevice& renderDevice, const PIPELINE_RESOLVE_SCOPE scope
+	) {
+		const PipelineResolveResult result = mPipelineRegistry.ResolveAll(
+			renderDevice, scope
+		);
 
 		mFullscreenPass.resolved = mPipelineRegistry.GetGraphics(
 			mFullscreenPass.pipeline
@@ -743,6 +749,16 @@ namespace Unnamed::Render {
 				pass.pass.pipeline
 			);
 		}
+
+		if (result.newlyFailedCount != 0) {
+			Error(
+				kRenderChannel,
+				"Pipeline resolution failed: resolved={}/{}",
+				result.resolvedCount,
+				result.requestedCount
+			);
+		}
+		return result.Succeeded();
 	}
 
 	uint32_t Renderer::ResolveSpriteTexture(
@@ -768,10 +784,9 @@ namespace Unnamed::Render {
 		mLinePass.dynamicVb.Reset();
 		mLinePass.frameVbv = {};
 
-		const uint64_t bufferSize = static_cast<uint64_t>(
-			                            sizeof(DebugLineVertex)
-		                            ) * static_cast<uint64_t>(mLinePass.
-			                            vertexCapacity);
+		const uint64_t bufferSize =
+			sizeof(DebugLineVertex) * static_cast<uint64_t>(mLinePass.
+				vertexCapacity);
 
 		D3D12_HEAP_PROPERTIES heapProps = {};
 		heapProps.Type                  = D3D12_HEAP_TYPE_UPLOAD;
@@ -833,7 +848,7 @@ namespace Unnamed::Render {
 
 		const uint32_t lineCount = static_cast<uint32_t>(std::min<size_t>(
 			requestedLines,
-			static_cast<size_t>(kMaxDebugLines)
+			kMaxDebugLines
 		));
 		const uint32_t vertexCount = std::min<uint32_t>(
 			lineCount * 2u,

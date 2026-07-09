@@ -9,6 +9,7 @@
 #include <thread>
 #include <vector>
 
+#include "core/filesystem/Path.h"
 #include <engine/unnamed/subsystem/console/interface/IConsole.h>
 #include <engine/unnamed/time/DateTime.h>
 
@@ -28,10 +29,10 @@ namespace Unnamed {
 		};
 
 		struct Config {
-			std::string path            = "./consolesystem.log";
-			uint32_t    flushIntervalMs = 250;             // flushの間隔
-			size_t      batchSize       = 128;             // この件数で即書き込み
-			LogLevel    flushOnLevel    = LogLevel::Error; // このレベル以上はすぐ書き込み
+			Path     path            = Path("./consolesystem.log");
+			uint32_t flushIntervalMs = 250;             // flushの間隔
+			size_t   batchSize       = 128;             // この件数で即書き込み
+			LogLevel flushOnLevel    = LogLevel::Error; // このレベル以上はすぐ書き込み
 		};
 
 		ConsoleFileLogSink();

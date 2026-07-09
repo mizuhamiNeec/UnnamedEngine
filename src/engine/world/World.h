@@ -4,13 +4,16 @@
 #include <string_view>
 #include <vector>
 
+#include "core/filesystem/Path.h"
 #include "core/guidgenerator/GuidGenerator.h"
 
 #include "engine/render/frame/RenderFrameInputs.h"
+#include "engine/scene/SceneLoadOptions.h"
 #include "engine/sequence/SequenceRuntime.h"
 #include "engine/world/GameplayCueBus.h"
 #include "engine/world/WorldCameraManager.h"
 #include "engine/world/WorldDebugDraw.h"
+#include "engine/physics/core/Physics.h"
 
 namespace Unnamed {
 	namespace Physics {
@@ -33,23 +36,23 @@ namespace Unnamed {
 	}
 
 	struct WorldTime {
-		float    fixedDeltaTime        = 0.0f;
-		float    renderDeltaTime       = 0.0f;
+		float    fixedDeltaTime          = 0.0f;
+		float    renderDeltaTime         = 0.0f;
 		float    renderUnscaledDeltaTime = 0.0f;
-		float    interpolationAlpha    = 0.0f;
-		float    timeSeconds           = 0.0f;
-		uint64_t fixedTickCounter      = 0;
+		float    interpolationAlpha      = 0.0f;
+		float    timeSeconds             = 0.0f;
+		uint64_t fixedTickCounter        = 0;
 	};
 
 	/// @brief World が参照する外部サービス群です。
 	/// @details ServiceLocator 依存を削減するために、Engine 側で構築して注入します。
 	struct WorldServices {
-		ConsoleSystem* console = nullptr;
-		InputSystem*   inputSystem = nullptr;
-		Profiler*      profiler = nullptr;
+		ConsoleSystem* console      = nullptr;
+		InputSystem*   inputSystem  = nullptr;
+		Profiler*      profiler     = nullptr;
 		AssetManager*  assetManager = nullptr;
-		IDemoService*  demoService = nullptr;
-		AudioSystem*   audioSystem = nullptr;
+		IDemoService*  demoService  = nullptr;
+		AudioSystem*   audioSystem  = nullptr;
 	};
 
 	class World {
@@ -82,7 +85,9 @@ namespace Unnamed {
 		virtual void FrameInputTick(float frameDeltaTime);
 
 		/// @brief 描画フレームティックを実行します。
-		virtual void RenderTick(float renderDeltaTime, float interpolationAlpha);
+		virtual void RenderTick(
+			float renderDeltaTime, float interpolationAlpha
+		);
 
 		/// @brief エディタ用のティックします。ゲームの時間スケールの影響を受けません。
 		/// @param unscaledDeltaTime 前のフレームからの経過時間（秒）。ゲームの時間スケールの影響を受けません。
@@ -91,19 +96,27 @@ namespace Unnamed {
 		/// @brief ファイルからシーンをロードします。
 		/// @param path ロードするシーンのファイルパス
 		/// @return ロードに成功した場合はtrue、失敗した場合はfalse
-		virtual bool LoadSceneFromFile(const char* path);
+		bool LoadSceneFromFile(Path path);
+
+		/// @brief 指定されたオプションでファイルからシーンをロードします。
+		/// @param path ロードするシーンのファイルパス
+		/// @param options シーン読込オプション
+		/// @return ロードに成功した場合は true、失敗した場合は false
+		virtual bool LoadSceneFromFile(
+			Path path, const SceneLoadOptions& options
+		);
 
 		/// @brief シーンをファイルに保存します。
 		/// @param path 保存するシーンのファイルパス
 		/// @return 保存に成功した場合はtrue、失敗した場合はfalse
-		virtual bool SaveSceneToFile(const char* path) const;
+		virtual bool SaveSceneToFile(Path path) const;
 
 		/// @brief 現在のシーンをアンロードします。
 		virtual void UnloadScene();
 
 		/// @brief シーン遷移を次の安全なタイミングで実行するようリクエストします。
 		/// @param path 遷移先シーンのファイルパス
-		void RequestSceneTransition(std::string_view path);
+		void RequestSceneTransition(Path path);
 
 		/// @brief 保留中のシーン遷移を処理します。
 		/// @details エンジンのフレーム先頭など、安全なタイミングで呼び出してください。
@@ -122,11 +135,11 @@ namespace Unnamed {
 
 		/// @brief ロードされたシーンのファイルパスを取得します。存在しない場合は空文字列を返します。
 		/// @return ロードされたシーンのファイルパス
-		[[nodiscard]] std::string_view GetLoadedScenePath() const;
+		[[nodiscard]] Path GetLoadedScenePath() const;
 
 		/// @brief ロードされたシーンのファイルパスを設定します。
 		/// @param path ロードされたシーンのファイルパス
-		void SetLoadedScenePath(std::string path);
+		void SetLoadedScenePath(const Path& path);
 
 		/// @brief ワールドの現在カメラマネージャを取得します。
 		/// @return ワールドの現在カメラマネージャへの参照
@@ -137,14 +150,15 @@ namespace Unnamed {
 		[[nodiscard]] const WorldCameraManager&
 		GetCameraManager() const noexcept;
 
-		[[nodiscard]] GameplayCueBus& GetGameplayCueBus() noexcept;
+		[[nodiscard]] GameplayCueBus&       GetGameplayCueBus() noexcept;
 		[[nodiscard]] const GameplayCueBus& GetGameplayCueBus() const noexcept;
 
 		/// @brief ワールドのシーケンスランタイムを取得します。
 		[[nodiscard]] SequenceRuntime& GetSequenceRuntime() noexcept;
 
 		/// @brief ワールドのシーケンスランタイムを取得します（const版）。
-		[[nodiscard]] const SequenceRuntime& GetSequenceRuntime() const noexcept;
+		[[nodiscard]] const SequenceRuntime&
+		GetSequenceRuntime() const noexcept;
 
 		/// @brief シーンを設定します。既にシーンが存在する場合はアンロードされます。
 		/// @param scene 設定するシーンのユニークポインタ
@@ -212,6 +226,9 @@ namespace Unnamed {
 		/// @param services 注入するサービス群
 		void SetServices(const WorldServices& services) noexcept;
 
+		/// @brief この World の既定シーン読込オプションを設定します。
+		void SetSceneLoadOptions(const SceneLoadOptions& options) noexcept;
+
 		/// @brief World が利用するサービス参照を取得します。
 		/// @return 現在設定されているサービス群
 		[[nodiscard]] const WorldServices& GetServices() const noexcept;
@@ -254,17 +271,23 @@ namespace Unnamed {
 		std::unordered_map<std::string, PostFxPassOverrides>
 		mPostFxPassOverrides;
 
-		std::unique_ptr<Scene>           mScene;           // 現在のシーン
-		std::unique_ptr<Physics::Engine> mPhysicsEngine;   // 物理エンジン
-		WorldCameraManager               mCameraManager;   // ワールドの現在カメラ管理
+		std::unique_ptr<Scene>           mScene;         // 現在のシーン
+		std::unique_ptr<Physics::Engine> mPhysicsEngine; // 物理エンジン
+		WorldCameraManager               mCameraManager; // ワールドの現在カメラ管理
 		GameplayCueBus                   mGameplayCueBus;
 		std::unique_ptr<SequenceRuntime> mSequenceRuntime;
-		GuidGenerator                    mGuidGenerator;   // GUIDジェネレーター
-		std::string                      mLoadedScenePath; // ロードされたシーンのファイルパス
-		std::string                      mPendingSceneTransitionPath; // 保留中のシーン遷移先
-		WorldTime                        mTime;            // ワールドの時間情報
-		WorldDebugDraw                   mDebugDraw;
+
+		GuidGenerator mGuidGenerator; // GUIDジェネレーター
+
+		Path mLoadedScenePath;            // ロードされたシーンのファイルパス
+		Path mPendingSceneTransitionPath; // 保留中のシーン遷移先
+
+		WorldTime      mTime; // ワールドの時間情報
+		WorldDebugDraw mDebugDraw;
+
 		std::vector<Render::ScreenSpriteInput> mDebugScreenSprites;
-		WorldServices                    mServices;
+
+		WorldServices mServices;
+		SceneLoadOptions mSceneLoadOptions = {};
 	};
 }

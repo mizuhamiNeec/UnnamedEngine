@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <cctype>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -16,47 +14,47 @@ namespace Unnamed {
 	/// @brief GameplayCue の型付き named payload コンテナです。
 	struct GameplayCuePayloadBag final {
 		/// @brief bool payload を設定します。
-		void SetBool(const std::string_view name, const bool value);
+		void SetBool(std::string_view name, bool value);
 
 		/// @brief float payload を設定します。
-		void SetFloat(const std::string_view name, const float value);
+		void SetFloat(std::string_view name, float value);
 
 		/// @brief Vec2 payload を設定します。
-		void SetVec2(const std::string_view name, const Vec2& value);
+		void SetVec2(std::string_view name, const Vec2& value);
 
 		/// @brief Vec3 payload を設定します。
-		void SetVec3(const std::string_view name, const Vec3& value);
+		void SetVec3(std::string_view name, const Vec3& value);
 
 		/// @brief EntityId(uint64_t) payload を設定します。
-		void SetEntityId(const std::string_view name, const uint64_t value);
+		void SetEntityId(std::string_view name, uint64_t value);
 
 		/// @brief bool payload を取得します。
 		[[nodiscard]] bool TryGetBool(
-			const std::string_view name, bool& outValue
+			std::string_view name, bool& outValue
 		) const;
 
 		/// @brief float payload を取得します。
 		[[nodiscard]] bool TryGetFloat(
-			const std::string_view name,
-			float&                 outValue
+			std::string_view name,
+			float&           outValue
 		) const;
 
 		/// @brief Vec2 payload を取得します。
 		[[nodiscard]] bool TryGetVec2(
-			const std::string_view name,
-			Vec2&                  outValue
+			std::string_view name,
+			Vec2&            outValue
 		) const;
 
 		/// @brief Vec3 payload を取得します。
 		[[nodiscard]] bool TryGetVec3(
-			const std::string_view name,
-			Vec3&                  outValue
+			std::string_view name,
+			Vec3&            outValue
 		) const;
 
 		/// @brief EntityId(uint64_t) payload を取得します。
 		[[nodiscard]] bool TryGetEntityId(
-			const std::string_view name,
-			uint64_t&              outValue
+			std::string_view name,
+			uint64_t&        outValue
 		) const;
 
 		/// @brief payload をクリアします。
@@ -81,7 +79,7 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] static std::string NormalizeKey(
-			const std::string_view name
+			std::string_view name
 		);
 
 		std::unordered_map<std::string, bool>     mBoolValues;
@@ -99,50 +97,50 @@ namespace Unnamed {
 		GameplayCuePayloadBag payload          = {};
 
 		/// @brief bool payload を設定します。
-		void SetBool(const std::string_view name, const bool payloadValue);
+		void SetBool(std::string_view name, bool payloadValue);
 
 		/// @brief float payload を設定します。
-		void SetFloat(const std::string_view name, const float payloadValue);
+		void SetFloat(std::string_view name, float payloadValue);
 
 		/// @brief Vec2 payload を設定します。
-		void SetVec2(const std::string_view name, const Vec2& payloadValue);
+		void SetVec2(std::string_view name, const Vec2& payloadValue);
 
 		/// @brief Vec3 payload を設定します。
-		void SetVec3(const std::string_view name, const Vec3& payloadValue);
+		void SetVec3(std::string_view name, const Vec3& payloadValue);
 
 		/// @brief EntityId(uint64_t) payload を設定します。
 		void SetEntityId(
-			const std::string_view name, const uint64_t payloadValue
+			std::string_view name, uint64_t payloadValue
 		);
 
 		/// @brief bool payload を取得します。
 		[[nodiscard]] bool TryGetBool(
-			const std::string_view name,
-			bool&                  outValue
+			std::string_view name,
+			bool&            outValue
 		) const;
 
 		/// @brief float payload を取得します。
 		[[nodiscard]] bool TryGetFloat(
-			const std::string_view name,
-			float&                 outValue
+			std::string_view name,
+			float&           outValue
 		) const;
 
 		/// @brief Vec2 payload を取得します。
 		[[nodiscard]] bool TryGetVec2(
-			const std::string_view name,
-			Vec2&                  outValue
+			std::string_view name,
+			Vec2&            outValue
 		) const;
 
 		/// @brief Vec3 payload を取得します。
 		[[nodiscard]] bool TryGetVec3(
-			const std::string_view name,
-			Vec3&                  outValue
+			std::string_view name,
+			Vec3&            outValue
 		) const;
 
 		/// @brief EntityId(uint64_t) payload を取得します。
 		[[nodiscard]] bool TryGetEntityId(
-			const std::string_view name,
-			uint64_t&              outValue
+			std::string_view name,
+			uint64_t&        outValue
 		) const;
 	};
 
@@ -167,7 +165,7 @@ namespace Unnamed {
 		/// @brief 指定したハンドルの購読を解除します。
 		/// @param handle 購読のハンドル
 		/// @return 購読が正常に解除された場合はtrue。無効なハンドルが指定された場合や、すでに解除されている場合はfalse。
-		bool Unsubscribe(const Handle handle);
+		bool Unsubscribe(Handle handle);
 
 		/// @brief 条件に合致する GameplayCue を発行します。
 		/// @param cue 発行する GameplayCue。id と sourceEntityGuid は必須で、空のidや0のsourceEntityGuidを持つcueは無視されます。

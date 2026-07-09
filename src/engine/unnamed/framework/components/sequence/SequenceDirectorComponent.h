@@ -1,9 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
+#include "core/assets/AssetID.h"
+#include "core/filesystem/VirtualPath.h"
 #include "engine/sequence/SequenceRuntimeTypes.h"
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 
@@ -38,8 +41,25 @@ namespace Unnamed {
 
 		/// @brief JSONから設定を読み込みます。
 		void Deserialize(const JsonReader& reader) override;
+		/// @brief シーン読込方針を適用してSequence参照を読み込みます。
+		/// @return 読込を継続できる場合はtrue。
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const SceneDeserializeContext& context
+		) override;
 		/// @brief 設定をJSONへ書き込みます。
 		void Serialize(JsonWriter& writer) const override;
+
+		/// @brief content内のSequence参照をロードして設定します。
+		[[nodiscard]] bool SetSequencePath(
+			const VirtualPath& path, AssetManager& assetManager
+		);
+		/// @brief Sequence参照とロード済みAssetIDをクリアします。
+		void ClearSequencePath();
+		/// @brief 設定中の論理Sequenceパスを取得します。
+		[[nodiscard]] const std::optional<VirtualPath>& GetSequencePath()
+		const noexcept;
+		/// @brief ロード済みSequence AssetIDを取得します。
+		[[nodiscard]] AssetID GetSequenceAssetId() const noexcept;
 
 	private:
 		/// @brief ロック対象仕様です。
@@ -68,22 +88,25 @@ namespace Unnamed {
 		/// @brief ロック対象を元状態へ戻します。
 		void RestoreLockTargets();
 		/// @brief ロック対象仕様からコンポーネントを解決します。
-		[[nodiscard]] BaseComponent* ResolveLockTarget(const LockTargetSpec& spec) const;
+		[[nodiscard]] BaseComponent* ResolveLockTarget(
+			const LockTargetSpec& spec
+		) const;
 
-		std::string mSequencePath = "";
-		bool        mPlayOnAttach = true;
-		bool        mAutoStopWhenCompleted = true;
-		float       mPlayRate = 1.0f;
-		bool        mLoop = false;
-		SEQUENCE_COMPLETION_MODE mCompletionMode = SEQUENCE_COMPLETION_MODE::RESTORE_STATE;
-		bool        mApplyComponentLocks = true;
-		std::vector<LockTargetSpec> mLockTargets = {};
+		std::optional<VirtualPath> mSequencePath;
+		AssetID                   mSequenceAssetId       = kInvalidAssetID;
+		bool                     mPlayOnAttach          = true;
+		bool                     mAutoStopWhenCompleted = true;
+		float                    mPlayRate              = 1.0f;
+		bool                     mLoop                  = false;
+		SEQUENCE_COMPLETION_MODE mCompletionMode        =
+			SEQUENCE_COMPLETION_MODE::RESTORE_STATE;
+		bool                        mApplyComponentLocks = true;
+		std::vector<LockTargetSpec> mLockTargets         = {};
 
-		bool        mPlayRequested = false;
-		bool        mWasEvaluating = false;
-		bool        mLoggedLoadFailure = false;
-		uint64_t    mSequenceAssetId = 0;
-		std::vector<ActiveLockState> mActiveLocks = {};
+		bool                         mPlayRequested     = false;
+		bool                         mWasEvaluating     = false;
+		bool                         mLoggedLoadFailure = false;
+		std::vector<ActiveLockState> mActiveLocks       = {};
 
 		std::shared_ptr<SequencePlayer> mPlayer = nullptr;
 	};

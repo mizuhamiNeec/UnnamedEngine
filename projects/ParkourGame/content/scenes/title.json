@@ -33,23 +33,23 @@
                         "materialInstancePath": "",
                         "materialSlots": [
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 0
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/gray.matinst.json",
+                                "materialInstancePath": "materials/instances/gray.matinst.json",
                                 "slotIndex": 1
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 2
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/red.matinst.json",
+                                "materialInstancePath": "materials/instances/red.matinst.json",
                                 "slotIndex": 3
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/game_fixture.matinst.json",
                                 "slotIndex": 4
                             }
                         ],
@@ -149,7 +149,7 @@
                         "receiveInput": false,
                         "sortKey": 300,
                         "spaceMode": "Screen",
-                        "uiAssetPath": "ui/hud.ui.json",
+                        "uiDocumentPath": "ui/hud.ui.json",
                         "worldSize": [
                             2.0,
                             1.125
@@ -647,7 +647,7 @@
                         "loop": false,
                         "pitch": 1.0,
                         "playOnStart": false,
-                        "soundPath": "sounds/se/footstep/Robot_Footstep_Single_v3_02.wav",
+                        "soundPath": "sounds/se/player/Robot_Footstep_Single_v3_02.wav",
                         "volume": 0.30000001192092896
                     },
                     "guid": 17000123456789012345,
@@ -659,7 +659,7 @@
                         "loop": false,
                         "pitch": 1.0,
                         "playOnStart": false,
-                        "soundPath": "sounds/se/footstep/Robot_Footstep_Single_v2_01.wav",
+                        "soundPath": "sounds/se/player/Robot_Footstep_Single_v2_01.wav",
                         "volume": 0.36000001430511475
                     },
                     "guid": 17000123456789012347,
@@ -764,7 +764,7 @@
                         "receiveInput": false,
                         "sortKey": 0,
                         "spaceMode": "WorldBillboard",
-                        "uiAssetPath": "ui/crosshair.ui.json",
+                        "uiDocumentPath": "ui/crosshair.ui.json",
                         "worldSize": [
                             256.0,
                             256.0
@@ -857,7 +857,7 @@
                     "active": true,
                     "data": {
                         "intensity": 1.0,
-                        "texturePath": "content/core/textures/wave.dds"
+                        "texturePath": "textures/wave.dds"
                     },
                     "guid": 13523057102086617376,
                     "type": "engine.Skybox"
@@ -953,7 +953,7 @@
                         "receiveInput": true,
                         "sortKey": 1000,
                         "spaceMode": "Screen",
-                        "uiAssetPath": "ui/TitleMenu.ui.json",
+                        "uiDocumentPath": "ui/TitleMenu.ui.json",
                         "worldSize": [
                             2.0,
                             1.125

@@ -21,8 +21,10 @@ namespace Unnamed::Render {
 		ID3D12RootSignature*                 rootSignature = nullptr;
 		std::optional<Rhi::VertexLayoutDesc> vertexLayout  = std::nullopt;
 
-		uint8_t     numRenderTargets = 1;
-		DXGI_FORMAT rtvFormat        = DXGI_FORMAT_R8G8B8A8_UNORM;
+		uint8_t                       numRenderTargets = 1;
+		DXGI_FORMAT                   rtvFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		uint32_t                      sampleCount   = 1;
+		uint32_t                      sampleQuality = 0;
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType =
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
@@ -45,9 +47,7 @@ namespace Unnamed::Render {
 		D3D12_COMPARISON_FUNC stencilBackFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 
 		bool            depthWriteEnable = true;
-		uint8_t         colorWriteMask   = static_cast<uint8_t>(
-			D3D12_COLOR_WRITE_ENABLE_ALL
-		);
+		uint8_t         colorWriteMask   = D3D12_COLOR_WRITE_ENABLE_ALL;
 		D3D12_CULL_MODE cullMode         = D3D12_CULL_MODE_BACK;
 		bool            blendEnable      = false;
 		D3D12_BLEND     srcBlend         = D3D12_BLEND_ONE;
@@ -63,6 +63,8 @@ namespace Unnamed::Render {
 			       rootSignature == rhs.rootSignature &&
 			       numRenderTargets == rhs.numRenderTargets &&
 			       rtvFormat == rhs.rtvFormat &&
+			       sampleCount == rhs.sampleCount &&
+			       sampleQuality == rhs.sampleQuality &&
 			       primitiveTopologyType == rhs.primitiveTopologyType &&
 			       depthEnable == rhs.depthEnable &&
 			       dsvFormat == rhs.dsvFormat &&
@@ -128,6 +130,8 @@ namespace Unnamed::Render {
 			hash.AddPointer(k.rootSignature);
 			hash.AddValue(k.numRenderTargets);
 			hash.AddEnum(k.rtvFormat);
+			hash.AddValue(k.sampleCount);
+			hash.AddValue(k.sampleQuality);
 			hash.AddEnum(k.primitiveTopologyType);
 
 			hash.AddValue(k.depthEnable);
@@ -181,6 +185,12 @@ namespace Unnamed::Render {
 				return false;
 			}
 			if (a.rtvFormat != b.rtvFormat) {
+				return false;
+			}
+			if (a.sampleCount != b.sampleCount) {
+				return false;
+			}
+			if (a.sampleQuality != b.sampleQuality) {
 				return false;
 			}
 			if (a.primitiveTopologyType != b.primitiveTopologyType) {
@@ -319,8 +329,8 @@ namespace Unnamed::Render {
 		> mCompute;
 
 		std::unordered_set<GraphicsPsoKey, GraphicsPipelineKeyHash>
-			mDirtyGraphics;
+		mDirtyGraphics;
 		std::unordered_set<ComputePipelineKey, ComputePipelineKeyHash>
-			mDirtyCompute;
+		mDirtyCompute;
 	};
 }

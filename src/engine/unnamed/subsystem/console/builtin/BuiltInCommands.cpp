@@ -6,6 +6,8 @@
 #include <engine/game/IDemoService.h>
 #include <engine/unnamed/subsystem/interface/ServiceLocator.h>
 
+#include "core/filesystem/Path.h"
+
 #include "engine/unnamed/subsystem/console/ConsoleScriptParser.h"
 
 namespace Unnamed {
@@ -143,7 +145,10 @@ namespace Unnamed {
 					scriptPath += args[i];
 				}
 
-				ConsoleScriptParser parser(scriptPath);
+				// スクリプトファイルを実行する
+				ConsoleScriptParser parser;
+				parser.ParseAndExecute(Path(scriptPath));
+
 				return true;
 			},
 			"Execute a console script file."
@@ -151,21 +156,21 @@ namespace Unnamed {
 
 		static ConCommand demoRecord(
 			"demo_record",
-			[](std::vector<std::string> args) {
+			[](const std::vector<std::string>& args) {
 				auto* demoService = ServiceLocator::Get<IDemoService>();
 				if (!demoService) {
 					Error(kChannelNone, "DemoService is not available.");
 					return false;
 				}
 				const std::string path = args.empty() ? std::string() : args[0];
-				return demoService->StartRecording(path);
+				return demoService->StartRecording(Path(path));
 			},
 			"Start demo recording. Usage: demo_record [path]"
 		);
 
 		static ConCommand demoPlay(
 			"demo_play",
-			[](std::vector<std::string> args) {
+			[](const std::vector<std::string>& args) {
 				auto* demoService = ServiceLocator::Get<IDemoService>();
 				if (!demoService) {
 					Error(kChannelNone, "DemoService is not available.");
@@ -175,14 +180,14 @@ namespace Unnamed {
 					Error(kChannelNone, "Usage: demo_play <path>");
 					return false;
 				}
-				return demoService->StartPlayback(args[0]);
+				return demoService->StartPlayback(Path(args[0]));
 			},
 			"Start demo playback. Usage: demo_play <path>"
 		);
 
 		static ConCommand demoStop(
 			"demo_stop",
-			[](std::vector<std::string>) {
+			[](const std::vector<std::string>&) {
 				auto* demoService = ServiceLocator::Get<IDemoService>();
 				if (!demoService) {
 					Error(kChannelNone, "DemoService is not available.");
@@ -195,7 +200,7 @@ namespace Unnamed {
 
 		static ConCommand demoStatus(
 			"demo_status",
-			[](std::vector<std::string>) {
+			[](const std::vector<std::string>&) {
 				const auto* demoService = ServiceLocator::Get<IDemoService>();
 				if (!demoService) {
 					Error(kChannelNone, "DemoService is not available.");

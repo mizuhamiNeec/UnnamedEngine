@@ -16,6 +16,7 @@
 #include "core/assets/types/MeshAssetData.h"
 #include "core/assets/types/PostFxChainAssetData.h"
 #include "core/assets/types/TextureAssetData.h"
+#include "core/filesystem/VirtualPath.h"
 
 #include "engine/rhi/Buffer.h"
 #include "engine/rhi/d3d12/D3D12Device.h"
@@ -34,32 +35,41 @@ namespace Unnamed::Render {
 			}
 		}
 
-		std::string ResolveMaterialTextureOverridePath(
+		const MatTextureOverride* ResolveMaterialTextureOverride(
 			const MaterialInstanceAssetData& matInst,
 			const MATERIAL_TEXTURE_SLOT      slot
 		) {
-			auto findOverride = [&matInst](const char* key) -> std::string {
+			auto FindOverride = [&matInst](
+				const char* key
+			) -> const MatTextureOverride* {
 				if (const auto it = matInst.textureOverrides.find(key);
 					it != matInst.textureOverrides.end()) {
-					return it->second;
+					return &it->second;
 				}
-				return {};
+				return nullptr;
 			};
 
 			switch (slot) {
-				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: if (std::string path =
-							findOverride("BaseColor");
-						!path.empty()) {
-						return path;
+				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: {
+					if (
+						const MatTextureOverride* textureOverride =
+							FindOverride("BaseColor")
+					) {
+						return textureOverride;
 					}
-					return findOverride("MainTex");
-				case MATERIAL_TEXTURE_SLOT::NORMAL: return findOverride(
-						"Normal");
-				case MATERIAL_TEXTURE_SLOT::ORM: return findOverride("ORM");
-				case MATERIAL_TEXTURE_SLOT::EMISSIVE: return findOverride(
-						"Emissive");
+					return FindOverride("MainTex");
+				}
+				case MATERIAL_TEXTURE_SLOT::NORMAL: {
+					return FindOverride("Normal");
+				}
+				case MATERIAL_TEXTURE_SLOT::ORM: {
+					return FindOverride("ORM");
+				}
+				case MATERIAL_TEXTURE_SLOT::EMISSIVE: {
+					return FindOverride("Emissive");
+				}
 				case MATERIAL_TEXTURE_SLOT::COUNT:
-				default: return {};
+				default: return nullptr;
 			}
 		}
 
@@ -591,8 +601,9 @@ namespace Unnamed::Render {
 		mLoadedMeshAsset = kInvalidAssetID;
 	}
 
-	constexpr std::string_view kDefaultMaterialInstance =
-		"./content/core/materials/instances/dev_default.matinst.json";
+	const VirtualPath kDefaultMaterialInstance = VirtualPath::ParseOrThrow(
+		"materials/instances/dev_default.matinst.json"
+	);
 
 	void Renderer::LoadMaterialResources(
 		RenderDevice& renderDevice, Rhi::D3D12Device& dx
@@ -601,12 +612,24 @@ namespace Unnamed::Render {
 		std::vector<AssetID> requestedMaterialInstances = {};
 		EnsureDefaultMaterialTextures(renderDevice);
 
-		const AssetID materialInstanceId = assetManager.LoadFromFile(
-			std::string(kDefaultMaterialInstance), ASSET_TYPE::MATERIAL_INSTANCE
+		const AssetID materialInstanceId = assetManager.LoadMaterialInstance(
+			kDefaultMaterialInstance
 		);
 		if (materialInstanceId != kInvalidAssetID) {
 			requestedMaterialInstances.emplace_back(materialInstanceId);
 			mDefaultMaterialInstance = materialInstanceId;
+		}
+
+		if (IsStrictRenderStartupValidation(mStartupOptions)) {
+			for (const AssetID assetId : assetManager.AllAssets()) {
+				const AssetMetaData& meta = assetManager.Meta(assetId);
+				if (
+					meta.loaded &&
+					meta.type == ASSET_TYPE::MATERIAL_INSTANCE
+				) {
+					requestedMaterialInstances.emplace_back(assetId);
+				}
+			}
 		}
 
 		// 可視オブジェクトが参照する全マテリアルインスタンスを収集します。
@@ -794,18 +817,15 @@ namespace Unnamed::Render {
 			}
 
 			auto resolveTexture = [&](const MATERIAL_TEXTURE_SLOT slot) {
-				const std::string path = ResolveMaterialTextureOverridePath(
-					*matInst, slot
-				);
-				if (path.empty()) {
+				const MatTextureOverride* textureOverride =
+					ResolveMaterialTextureOverride(*matInst, slot);
+				if (textureOverride == nullptr) {
 					return GetFallbackTextureId(
 						mDefaultMaterialTextures, slot
 					);
 				}
 
-				const AssetID texId = assetManager.LoadFromFile(
-					path, ASSET_TYPE::TEXTURE
-				);
+				const AssetID texId = textureOverride->assetId;
 				if (slot == MATERIAL_TEXTURE_SLOT::NORMAL) {
 					const auto* texture = assetManager.Get<TextureAssetData>(
 						texId
@@ -815,7 +835,7 @@ namespace Unnamed::Render {
 							"Renderer",
 							"Material instance {} uses an sRGB Normal texture '{}'. Tangent-space DirectX normal maps must be linear.",
 							requestedMaterialInstanceId,
-							path
+							textureOverride->assetPath.String()
 						);
 					}
 				}
@@ -828,7 +848,7 @@ namespace Unnamed::Render {
 							"Renderer",
 							"Material instance {} uses an sRGB ORM texture '{}'. ORM must be linear: R=AO, G=Perceptual Roughness, B=Metallic.",
 							requestedMaterialInstanceId,
-							path
+							textureOverride->assetPath.String()
 						);
 					}
 				}
@@ -857,15 +877,15 @@ namespace Unnamed::Render {
 	}
 
 	constexpr std::string_view kDefaultPostFxChainPath =
-		"./content/core/postfx/default.postfx.json";
+		"postfx/default.postfx.json";
 
-	void Renderer::LoadPostFxChain(const RenderDevice& renderDevice) {
+	bool Renderer::LoadPostFxChain(const RenderDevice& renderDevice) {
 		auto&       assetManager = renderDevice.GetAssetManager();
 		const auto& dx           = static_cast<Rhi::D3D12Device&>(renderDevice.
 			GetRhiDevice());
 		if (mPostFxChainAsset == kInvalidAssetID) {
-			mPostFxChainAsset = assetManager.LoadFromFile(
-				std::string(kDefaultPostFxChainPath), ASSET_TYPE::POST_FX_CHAIN
+			mPostFxChainAsset = LoadCoreAsset(
+				assetManager, kDefaultPostFxChainPath, ASSET_TYPE::POST_FX_CHAIN
 			);
 		}
 
@@ -873,24 +893,26 @@ namespace Unnamed::Render {
 			mPostFxChainAsset);
 		if (!chain) {
 			mPostFxPasses.clear();
-			return;
+			return false;
 		}
 
 		std::vector<PostFxRuntimePass> runtimePasses;
 		runtimePasses.reserve(chain->passes.size());
 
 		for (const auto& passAsset : chain->passes) {
-			AssetID shaderProgramId = passAsset.shaderProgramId;
-			if (
-				shaderProgramId == kInvalidAssetID &&
-				!passAsset.shaderProgramPath.empty()
-			) {
-				shaderProgramId = assetManager.LoadFromFile(
-					passAsset.shaderProgramPath, ASSET_TYPE::SHADER_PROGRAM
-				);
-			}
+			const AssetID shaderProgramId = passAsset.shaderProgramId;
 			if (shaderProgramId == kInvalidAssetID) {
-				continue;
+				mPostFxPasses.clear();
+				return false;
+			}
+			if (!ValidateShaderProgramStages(
+				assetManager,
+				shaderProgramId,
+				RequiredShaderStages::Graphics,
+				passAsset.name
+			)) {
+				mPostFxPasses.clear();
+				return false;
 			}
 
 			PostFxRuntimePass runtimePass = {};
@@ -898,13 +920,16 @@ namespace Unnamed::Render {
 			runtimePass.enabled           = passAsset.enabled;
 			runtimePass.scalarDefaults    = passAsset.scalarParams;
 			runtimePass.colorDefaults     = passAsset.colorParams;
-			runtimePass.pass.pipeline     = mPipelineRegistry.RegisterGraphics(
-				RendererPipelineCatalog::MakeFullscreenPreset(
+			auto pipelineSpec = RendererPipelineCatalog::MakeFullscreenPreset(
 					"PostFx_" + runtimePass.name,
 					shaderProgramId,
 					dx.GetFsRootSignature(),
 					kSceneHdrColorFormat
-				)
+				);
+			pipelineSpec.startupRequirement =
+				PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
+			runtimePass.pass.pipeline = mPipelineRegistry.RegisterGraphics(
+				pipelineSpec
 			);
 			runtimePass.pass.resolved = nullptr;
 
@@ -912,6 +937,7 @@ namespace Unnamed::Render {
 		}
 
 		mPostFxPasses = std::move(runtimePasses);
+		return true;
 	}
 
 	uint32_t Renderer::EnsureSpriteTextureLoaded(
@@ -934,10 +960,11 @@ namespace Unnamed::Render {
 			return mSpriteFallbackTextureId;
 		}
 
-		static bool sLoggedFontAtlasTexturePath = false;
+		static bool       sLoggedFontAtlasTexturePath = false;
+		const std::string textureSourcePath = tex->sourcePath.ToGenericUtf8();
 		if (
 			!sLoggedFontAtlasTexturePath &&
-			tex->sourcePath.find("runtime://ui/font_atlas_ascii") !=
+			textureSourcePath.find("runtime://ui/font_atlas_ascii") !=
 			std::string::npos
 		) {
 			const size_t mipCount  = tex->mips.size();

@@ -26,14 +26,14 @@ namespace Unnamed {
 			const SoundAssetData& soundData
 		);
 
-		void StopAll();
+		void               StopAll();
 		[[nodiscard]] bool IsReady() const noexcept;
 
 	private:
 		void CleanupExpiredVoices();
 
-		Microsoft::WRL::ComPtr<IXAudio2> mXAudio2;
-		IXAudio2MasteringVoice*          mMasterVoice = nullptr;
+		Microsoft::WRL::ComPtr<IXAudio2>       mXAudio2;
+		IXAudio2MasteringVoice*                mMasterVoice = nullptr;
 		std::vector<std::weak_ptr<AudioVoice>> mVoices;
 	};
 }

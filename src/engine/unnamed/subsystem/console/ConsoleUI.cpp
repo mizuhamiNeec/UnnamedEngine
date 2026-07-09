@@ -1,6 +1,5 @@
 #if defined(UNNAMED_WITH_EDITOR)
 #include <algorithm>
-#include <cctype>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <pch.h>
@@ -79,29 +78,6 @@ namespace Unnamed {
 	static constexpr int kMaxSuggestionDisplayCount = 8;
 
 	namespace {
-		std::string ToLowerAscii(const std::string_view text) {
-			std::string lowered(text);
-			std::ranges::transform(
-				lowered,
-				lowered.begin(),
-				[](const unsigned char c) {
-					return static_cast<char>(std::tolower(c));
-				}
-			);
-			return lowered;
-		}
-
-		size_t FindFirstCaseInsensitive(
-			const std::string_view text, const std::string_view query
-		) {
-			if (query.empty() || text.empty()) {
-				return std::string::npos;
-			}
-			const auto loweredText  = ToLowerAscii(text);
-			const auto loweredQuery = ToLowerAscii(query);
-			return loweredText.find(loweredQuery);
-		}
-
 		int CountDisplayLines(const std::string_view text) {
 			int count = 1;
 			for (const char c : text) {
@@ -317,8 +293,8 @@ namespace Unnamed {
 
 		const bool inputActive =
 			ImGui::IsItemActive() || ImGui::IsItemFocused();
-		auto&      suggestionState        = gConsoleUIData.suggestion;
-		const bool hasSuggestionSelection =
+		const auto& suggestionState        = gConsoleUIData.suggestion;
+		const bool  hasSuggestionSelection =
 			inputActive &&
 			!suggestionState.items.empty() &&
 			suggestionState.selectedIndex >= 0 &&
@@ -440,7 +416,9 @@ namespace Unnamed {
 		// スクロールが一番下にある場合、自動スクロールを行う
 		if (
 			mWishScrollToBottom &&
-			ImGui::GetScrollY() >= ImGui::GetScrollMaxY()
+			ImGui::GetScrollY()
+			>=
+			ImGui::GetScrollMaxY()
 		) {
 			ImGui::SetScrollHereY(1.0f);
 		}
@@ -559,14 +537,13 @@ namespace Unnamed {
 			return;
 		}
 		if (!ctx.token.empty()) {
-			const std::string lowerToken             = ToLowerAscii(ctx.token);
-			auto              IsCaseInsensitiveExact = [&](
+			auto IsCaseInsensitiveExact = [&](
 				const std::vector<std::string>& names
 			) {
 				return std::ranges::any_of(
 					names,
 					[&](const std::string& name) {
-						return ToLowerAscii(name) == lowerToken;
+						return StrUtil::EqualsIgnoreCase(name, ctx.token);
 					}
 				);
 			};
@@ -706,7 +683,7 @@ namespace Unnamed {
 				);
 				auto* drawList = ImGui::GetWindowDrawList();
 
-				const size_t matchPos = FindFirstCaseInsensitive(
+				const size_t matchPos = StrUtil::FindIgnoreCase(
 					item.name,
 					state.query
 				);
@@ -929,11 +906,9 @@ namespace Unnamed {
 	std::vector<ConsoleUI::SuggestionItem> ConsoleUI::BuildSuggestionsForToken(
 		const std::string_view token
 	) const {
-		std::vector<SuggestionItem>     results;
+		std::vector<SuggestionItem> results;
 		std::unordered_set<std::string> seen;
-		constexpr size_t                fetchCount = static_cast<size_t>(
-			kMaxSuggestionDisplayCount * 2
-		);
+		constexpr size_t fetchCount = kMaxSuggestionDisplayCount * 2;
 
 		auto AppendUnique = [&](
 			const std::string& name,
@@ -965,18 +940,18 @@ namespace Unnamed {
 		};
 
 		const std::string tokenText(token);
-		const std::string lowerToken    = ToLowerAscii(tokenText);
 		const auto        varCandidates =
 			mConsoleSystem->FindSimilarConVars(token, fetchCount);
 		const auto commandCandidates =
 			mConsoleSystem->FindSimilarConCommands(token, fetchCount);
 
 		auto IsExactMatch = [&](const std::string& name) {
-			return !tokenText.empty() && ToLowerAscii(name) == lowerToken;
+			return !tokenText.empty() &&
+			       StrUtil::EqualsIgnoreCase(name, tokenText);
 		};
 		auto IsPrefixMatch = [&](const std::string& name) {
 			return !tokenText.empty() &&
-			       ToLowerAscii(name).starts_with(lowerToken);
+			       StrUtil::StartsWithIgnoreCase(name, tokenText);
 		};
 
 		const bool hasExactVar = std::ranges::any_of(
@@ -1016,15 +991,15 @@ namespace Unnamed {
 		AppendFiltered(commandCandidates, false);
 
 		if (results.size() > static_cast<size_t>(kMaxSuggestionDisplayCount)) {
-			results.resize(static_cast<size_t>(kMaxSuggestionDisplayCount));
+			results.resize(kMaxSuggestionDisplayCount);
 		}
 		return results;
 	}
 
 	/// @brief インプットテキストからのコールバック
 	int ConsoleUI::InputTextCallback(ImGuiInputTextCallbackData* data) {
-		auto& c    = gConsoleUIData;
-		auto* self = static_cast<ConsoleUI*>(data->UserData);
+		auto&       c    = gConsoleUIData;
+		const auto* self = static_cast<ConsoleUI*>(data->UserData);
 		if (!self) {
 			return 0;
 		}
@@ -1160,7 +1135,8 @@ namespace Unnamed {
 				);
 				break;
 
-			case ImGuiInputTextFlags_CallbackResize: {}
+			case ImGuiInputTextFlags_CallbackResize: {
+			}
 			break;
 			default: ;
 		}

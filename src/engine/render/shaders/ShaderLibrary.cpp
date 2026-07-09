@@ -1,4 +1,5 @@
 #include "ShaderLibrary.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
 #include <fstream>
@@ -7,10 +8,12 @@
 #include "core/hash/HashBuilder.h"
 #include "core/assets/FileStamp.h"
 #include "core/hash/StableHashBuilder.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 #include "engine/rhi/DxcShaderCompiler.h"
+#include "MountAwareDxcIncludeHandler.h"
+#include "ShaderCompileUnit.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed::Render {
@@ -40,7 +43,7 @@ namespace Unnamed::Render {
 		const auto dxilPath  = GetDxilCachePath(key);
 		ShaderDxil candidate = {};
 		bool       prepared  = false;
-		if (std::filesystem::exists(dxilPath)) {
+		if (std::filesystem::exists(dxilPath.Native())) {
 			candidate.bytes = ReadFileBytes(dxilPath);
 			prepared        = !candidate.bytes.empty();
 			if (!prepared) {
@@ -70,20 +73,41 @@ namespace Unnamed::Render {
 				return it->second;
 			}
 
-			const std::wstring sourcePath = Path::FromUtf8(src->path).wstring();
 			const std::wstring entry      = StrUtil::ToWString(key.entry);
 			const std::wstring profile    = StrUtil::ToWString(key.profile);
 
-			const std::vector<std::wstring> includeDirs;
-			const auto                      extraArgs = BuildDxcArgs(key);
+			const auto extraArgs = BuildDxcArgs(key);
 
 			if (!mDxcShaderCompiler.Initialize()) {
 				Error(kChannel, "DxcShaderCompiler initialization failed.");
 			} else {
-				const bool ok = mDxcShaderCompiler.CompileToFileDXIL(
-					sourcePath, entry, profile, includeDirs, extraArgs,
-					dxilPath.wstring()
-				);
+				const ShaderCompileUnitBuilder compileUnitBuilder(mAssetManager);
+				const std::optional<ShaderCompileUnit> compileUnit =
+					compileUnitBuilder.Build(key.shaderSourceId);
+				bool ok = false;
+				if (!compileUnit.has_value()) {
+					Error(
+						kChannel,
+						"Failed to build resolved Shader compile unit: sourceAssetId={} path='{}' mount='{}'",
+						key.shaderSourceId,
+						src->path,
+						src->mountId
+					);
+				} else {
+					Microsoft::WRL::ComPtr<IDxcIncludeHandler> includeHandler =
+						MountAwareDxcIncludeHandler::Create(
+							mDxcShaderCompiler.GetUtils(), *compileUnit
+						);
+					ok = includeHandler && mDxcShaderCompiler.CompileToFileDXIL(
+						compileUnit->rewrittenRootSource,
+						StrUtil::ToWString(compileUnit->rootDiagnosticPath),
+						entry,
+						profile,
+						extraArgs,
+						*includeHandler.Get(),
+						dxilPath.Native().wstring()
+					);
+				}
 				if (ok) {
 					candidate.bytes = ReadFileBytes(dxilPath);
 					prepared        = !candidate.bytes.empty();
@@ -158,15 +182,13 @@ namespace Unnamed::Render {
 		mReverse.clear();
 	}
 
-	void ShaderLibrary::SetCacheDirectory(std::filesystem::path dir) {
+	void ShaderLibrary::SetCacheDirectory(Path dir) {
 		mCacheDir = std::move(dir);
 	}
 
-	std::filesystem::path ShaderLibrary::GetDxilCachePath(
-		const ShaderKey& key
-	) const {
+	Path ShaderLibrary::GetDxilCachePath(const ShaderKey& key) const {
 		const uint64_t dh = ComputeDerivedHash(key);
-		return mCacheDir / StrUtil::ToWString(
+		return mCacheDir / Path(
 			       std::string(kDxilCacheDir) +
 			       "shader_" +
 			       std::to_string(key.shaderSourceId) +
@@ -182,21 +204,8 @@ namespace Unnamed::Render {
 
 	uint64_t ShaderLibrary::ComputeDerivedHash(const ShaderKey& key) const {
 		StableHashBuilder hashBuilder;
-
-		const auto* src = mAssetManager.Get<ShaderSourceAssetData>(
-			key.shaderSourceId
-		);
-		if (!src) {
-			Error(
-				kChannel, "ShaderSource payload missing while hashing: id={}",
-				key.shaderSourceId
-			);
-			return 0;
-		}
-
-		// ソースファイルのパスを正規化してハッシュに含める
-		const std::string srcPath = StrUtil::NormalizePath(src->path);
-		hashBuilder.AddString(srcPath);
+		constexpr uint64_t kShaderCompilerCacheVersion = 3;
+		hashBuilder.AddUInt64(kShaderCompilerCacheVersion);
 		hashBuilder.AddString(key.entry);
 		hashBuilder.AddString(key.profile);
 		for (const auto& [name, value] : key.defines) {
@@ -204,21 +213,77 @@ namespace Unnamed::Render {
 			hashBuilder.AddString(value);
 		}
 
-		const auto& meta = mAssetManager.Meta(key.shaderSourceId);
-
-		hashBuilder.AddUInt64(meta.fileStamp.sizeInBytes);
-		hashBuilder.AddInt64(meta.fileStamp.lastWriteTicks);
-
-		for (
-			const auto depId : mAssetManager.GetDependencies(key.shaderSourceId)
-		) {
-			const auto& depMeta = mAssetManager.Meta(depId);
-			hashBuilder.AddUInt64(depId);
-			hashBuilder.AddUInt64(depMeta.fileStamp.sizeInBytes);
-			hashBuilder.AddInt64(depMeta.fileStamp.lastWriteTicks);
+		for (const ShaderDependencyFingerprint& dependency :
+		     CollectDependencyFingerprints(key.shaderSourceId)) {
+			hashBuilder.AddString(dependency.mountId);
+			hashBuilder.AddString(dependency.stablePath);
+			hashBuilder.AddUInt64(dependency.assetId);
+			hashBuilder.AddUInt64(dependency.version);
+			hashBuilder.AddUInt64(dependency.sizeInBytes);
+			hashBuilder.AddInt64(dependency.lastWriteTicks);
 		}
 
+		hashBuilder.AddString("-WX");
+		hashBuilder.AddString("-Zi");
+		hashBuilder.AddString("-Qembed_debug");
+		hashBuilder.AddString("-Zpr");
+#ifdef _DEBUG
+		hashBuilder.AddString("-Od");
+#else
+		hashBuilder.AddString("-O3");
+#endif
+
 		return hashBuilder.Value();
+	}
+
+	std::vector<ShaderLibrary::ShaderDependencyFingerprint>
+	ShaderLibrary::CollectDependencyFingerprints(
+		const AssetID rootShaderSourceId
+	) const {
+		std::vector<AssetID> pending = {rootShaderSourceId};
+		std::unordered_set<AssetID> visited;
+		std::vector<ShaderDependencyFingerprint> fingerprints;
+
+		while (!pending.empty()) {
+			const AssetID assetId = pending.back();
+			pending.pop_back();
+			if (assetId == kInvalidAssetID || !visited.emplace(assetId).second) {
+				continue;
+			}
+
+			const AssetMetaData& meta = mAssetManager.Meta(assetId);
+			const auto* source = mAssetManager.Get<ShaderSourceAssetData>(assetId);
+			const std::string stablePath = source && source->virtualPath.has_value() ?
+				source->virtualPath->String() :
+				meta.sourcePath.LexicallyNormal().ToGenericUtf8();
+			fingerprints.emplace_back(ShaderDependencyFingerprint{
+				.mountId       = meta.sourceMountId,
+				.stablePath     = stablePath,
+				.assetId        = assetId,
+				.version        = meta.version,
+				.sizeInBytes    = meta.fileStamp.sizeInBytes,
+				.lastWriteTicks = meta.fileStamp.lastWriteTicks,
+			});
+
+			for (const AssetID dependency : mAssetManager.GetDependencies(assetId)) {
+				pending.emplace_back(dependency);
+			}
+		}
+
+		std::ranges::sort(
+			fingerprints,
+			[](const ShaderDependencyFingerprint& lhs,
+			   const ShaderDependencyFingerprint& rhs) {
+				if (lhs.mountId != rhs.mountId) {
+					return lhs.mountId < rhs.mountId;
+				}
+				if (lhs.stablePath != rhs.stablePath) {
+					return lhs.stablePath < rhs.stablePath;
+				}
+				return lhs.assetId < rhs.assetId;
+			}
+		);
+		return fingerprints;
 	}
 
 	std::vector<std::wstring> ShaderLibrary::BuildDxcArgs(
@@ -254,10 +319,8 @@ namespace Unnamed::Render {
 		return args;
 	}
 
-	std::vector<uint8_t> ShaderLibrary::ReadFileBytes(
-		const std::filesystem::path& path
-	) {
-		std::ifstream ifs(path, std::ios::binary);
+	std::vector<uint8_t> ShaderLibrary::ReadFileBytes(const Path& path) {
+		std::ifstream ifs(path.Native(), std::ios::binary);
 		if (!ifs) {
 			return {};
 		}
@@ -276,10 +339,10 @@ namespace Unnamed::Render {
 	}
 
 	void ShaderLibrary::WriteFileBytes(
-		const std::filesystem::path& path, const std::vector<uint8_t>& bytes
+		const Path& path, const std::vector<uint8_t>& bytes
 	) {
-		std::filesystem::create_directories(path.parent_path());
-		std::ofstream ofs(path, std::ios::binary);
+		std::filesystem::create_directories(path.ParentPath().Native());
+		std::ofstream ofs(path.Native(), std::ios::binary);
 		if (!ofs) {
 			return;
 		}

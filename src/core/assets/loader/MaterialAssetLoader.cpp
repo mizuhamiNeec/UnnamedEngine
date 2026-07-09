@@ -1,11 +1,13 @@
 #include "MaterialAssetLoader.h"
+#include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
 
 #include <filesystem>
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/MaterialAssetData.h"
 #include "core/io/json/JsonReader.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -13,8 +15,9 @@ namespace Unnamed {
 		/// @brief パスがマテリアルアセットのものであるか?
 		/// @param path 判定するパス
 		/// @return マテリアルアセットのパスであればtrue
-		bool IsMaterialPath(const std::string_view path) {
-			return StrUtil::ToLowerCase(std::string(path)).ends_with(
+		bool IsMaterialPath(const Path& path) {
+			return StrUtil::EndsWithIgnoreCase(
+				path.ToGenericUtf8(),
 				".material.json"
 			);
 		}
@@ -81,7 +84,7 @@ namespace Unnamed {
 	}
 
 	bool MaterialAssetLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		// 拡張子ベースで判定。厳密なファイル存在チェックはLoad()に任せる。
 		const bool ok = IsMaterialPath(path);
@@ -91,21 +94,20 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult MaterialAssetLoader::Load(const std::string& path) {
+	LoadResult MaterialAssetLoader::Load(const Path& path) {
 		LoadResult       result = {};
 		const JsonReader root(path);
 		if (!root.Valid()) {
 			return result;
 		}
 
-		const std::filesystem::path full    = Path::FromUtf8(path);
-		const std::filesystem::path baseDir = full.parent_path();
+		const Path full = path.LexicallyNormal();
 
 		MaterialAssetData data = {};
 
 		// "name" フィールドがあればそれを、なければファイル名をアセット名とする。
 		data.name = root.Read<std::string>("name").value_or(
-			Path::ToUtf8String(full.filename())
+			Path::ToUtf8String(full.FileName())
 		);
 
 		// "domain" フィールドがあればそれを、なければ "pbr" をドメインとして扱う。
@@ -118,18 +120,45 @@ namespace Unnamed {
 			data.shadingModel = MATERIAL_SHADING_MODEL::UNLIT;
 		}
 
-		// "shader" フィールドがあればシェーダープログラムを読み込む。
-		if (const auto shader = root.Read<std::string>("shader");
-			shader.has_value() && !shader->empty()) {
-			data.shaderProgramPath =
-				Path::ResolveRelativePath(baseDir, *shader);
-			data.shaderProgramId = mAssetManager->LoadFromFile(
-				data.shaderProgramPath, ASSET_TYPE::SHADER_PROGRAM
+		// ShaderProgramはMaterialの成立に必須。
+		const JsonReader shaderPathNode = root["shader"];
+		if (!shaderPathNode.Valid() || !shaderPathNode.IsString()) {
+			Error(
+				"MaterialLoader",
+				"Invalid shader reference type: material='{}' field='shader' expected='string'",
+				full
 			);
-			if (data.shaderProgramId != kInvalidAssetID) {
-				result.dependencies.emplace_back(data.shaderProgramId);
-			}
+			return result;
 		}
+
+		const std::string shaderPathText = shaderPathNode.GetString();
+		const std::optional<VirtualPath> shaderPath =
+			VirtualPath::ParseContentReference(shaderPathText);
+		if (!shaderPath.has_value()) {
+			Error(
+				"MaterialLoader",
+				"Invalid shader program virtual path: material='{}' field='shader' virtualPath='{}'",
+				full,
+				shaderPathText
+			);
+			return result;
+		}
+
+		data.shaderProgramPath = *shaderPath;
+		data.shaderProgramId   = mAssetManager->LoadAsset(
+			*shaderPath,
+			ASSET_TYPE::SHADER_PROGRAM
+		);
+		if (data.shaderProgramId == kInvalidAssetID) {
+			Error(
+				"MaterialLoader",
+				"Shader program dependency load failed: material='{}' field='shader' virtualPath='{}'",
+				full,
+				shaderPath->String()
+			);
+			return result;
+		}
+		result.dependencies.emplace_back(data.shaderProgramId);
 
 		// "renderState" フィールドがあればレンダーステートを読み込む。
 		const JsonReader rs = root["renderState"];
@@ -186,11 +215,13 @@ namespace Unnamed {
 		result.payload = std::move(data);
 
 		// 解決名は拡張子を取り除いたものを使う(.material.jsonと2段界)
-		result.resolveName = Path::ToUtf8String(full.stem().stem());
+		result.resolveName = Path::ToUtf8String(full.Stem().Stem());
 
 		std::error_code ec;
-		if (Path::ExistsUtf8(path, ec)) {
-			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		if (std::filesystem::exists(path.Native(), ec)) {
+			result.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 		return result;
 	}

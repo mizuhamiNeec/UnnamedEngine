@@ -2,19 +2,19 @@
 
 namespace Unnamed::Render {
 	GraphicsPipelineSpec RendererPipelineCatalog::MakeFullscreenPreset(
-		std::string           debugName,
-		const AssetID         shaderProgramId,
-		ID3D12RootSignature*  rootSignature,
-		const DXGI_FORMAT     rtvFormat
+		std::string          debugName,
+		const AssetID        shaderProgramId,
+		ID3D12RootSignature* rootSignature,
+		const DXGI_FORMAT    rtvFormat
 	) {
-		GraphicsPipelineSpec spec = {};
-		spec.debugName            = std::move(debugName);
-		spec.shaderProgramId      = shaderProgramId;
-		spec.rootSignature        = rootSignature;
-		spec.psoTemplate.rootSignature = rootSignature;
-		spec.psoTemplate.vertexLayout  = std::nullopt;
-		spec.psoTemplate.rtvFormat     = rtvFormat;
-		spec.psoTemplate.depthEnable   = false;
+		GraphicsPipelineSpec spec         = {};
+		spec.debugName                    = std::move(debugName);
+		spec.shaderProgramId              = shaderProgramId;
+		spec.rootSignature                = rootSignature;
+		spec.psoTemplate.rootSignature    = rootSignature;
+		spec.psoTemplate.vertexLayout     = std::nullopt;
+		spec.psoTemplate.rtvFormat        = rtvFormat;
+		spec.psoTemplate.depthEnable      = false;
 		spec.psoTemplate.depthWriteEnable = false;
 		spec.psoTemplate.dsvFormat        = DXGI_FORMAT_UNKNOWN;
 		spec.psoTemplate.depthFunc        = D3D12_COMPARISON_FUNC_ALWAYS;
@@ -22,21 +22,21 @@ namespace Unnamed::Render {
 	}
 
 	GraphicsPipelineSpec RendererPipelineCatalog::MakeGeometryPreset(
-		std::string                   debugName,
-		const AssetID                 shaderProgramId,
-		ID3D12RootSignature*          rootSignature,
-		const DXGI_FORMAT             rtvFormat,
-		const DXGI_FORMAT             dsvFormat,
+		std::string                  debugName,
+		const AssetID                shaderProgramId,
+		ID3D12RootSignature*         rootSignature,
+		const DXGI_FORMAT            rtvFormat,
+		const DXGI_FORMAT            dsvFormat,
 		const Rhi::VertexLayoutDesc& vertexLayout
 	) {
-		GraphicsPipelineSpec spec = {};
-		spec.debugName            = std::move(debugName);
-		spec.shaderProgramId      = shaderProgramId;
-		spec.rootSignature        = rootSignature;
-		spec.psoTemplate.rootSignature = rootSignature;
-		spec.psoTemplate.vertexLayout  = vertexLayout;
-		spec.psoTemplate.rtvFormat     = rtvFormat;
-		spec.psoTemplate.depthEnable   = true;
+		GraphicsPipelineSpec spec         = {};
+		spec.debugName                    = std::move(debugName);
+		spec.shaderProgramId              = shaderProgramId;
+		spec.rootSignature                = rootSignature;
+		spec.psoTemplate.rootSignature    = rootSignature;
+		spec.psoTemplate.vertexLayout     = vertexLayout;
+		spec.psoTemplate.rtvFormat        = rtvFormat;
+		spec.psoTemplate.depthEnable      = true;
 		spec.psoTemplate.depthWriteEnable = true;
 		spec.psoTemplate.dsvFormat        = dsvFormat;
 		spec.psoTemplate.depthFunc        = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
@@ -44,20 +44,20 @@ namespace Unnamed::Render {
 	}
 
 	GraphicsPipelineSpec RendererPipelineCatalog::MakeSpritePreset(
-		std::string                   debugName,
-		const AssetID                 shaderProgramId,
-		ID3D12RootSignature*          rootSignature,
-		const DXGI_FORMAT             rtvFormat,
+		std::string                  debugName,
+		const AssetID                shaderProgramId,
+		ID3D12RootSignature*         rootSignature,
+		const DXGI_FORMAT            rtvFormat,
 		const Rhi::VertexLayoutDesc& vertexLayout
 	) {
-		GraphicsPipelineSpec spec = {};
-		spec.debugName            = std::move(debugName);
-		spec.shaderProgramId      = shaderProgramId;
-		spec.rootSignature        = rootSignature;
-		spec.psoTemplate.rootSignature = rootSignature;
-		spec.psoTemplate.vertexLayout  = vertexLayout;
-		spec.psoTemplate.rtvFormat     = rtvFormat;
-		spec.psoTemplate.depthEnable   = false;
+		GraphicsPipelineSpec spec         = {};
+		spec.debugName                    = std::move(debugName);
+		spec.shaderProgramId              = shaderProgramId;
+		spec.rootSignature                = rootSignature;
+		spec.psoTemplate.rootSignature    = rootSignature;
+		spec.psoTemplate.vertexLayout     = vertexLayout;
+		spec.psoTemplate.rtvFormat        = rtvFormat;
+		spec.psoTemplate.depthEnable      = false;
 		spec.psoTemplate.depthWriteEnable = false;
 		spec.psoTemplate.dsvFormat        = DXGI_FORMAT_UNKNOWN;
 		spec.psoTemplate.depthFunc        = D3D12_COMPARISON_FUNC_ALWAYS;
@@ -71,25 +71,25 @@ namespace Unnamed::Render {
 	}
 
 	GraphicsPipelineSpec RendererPipelineCatalog::MakeLinePreset(
-		std::string                   debugName,
-		const AssetID                 shaderProgramId,
-		ID3D12RootSignature*          rootSignature,
-		const DXGI_FORMAT             rtvFormat,
-		const DXGI_FORMAT             dsvFormat,
+		std::string                  debugName,
+		const AssetID                shaderProgramId,
+		ID3D12RootSignature*         rootSignature,
+		const DXGI_FORMAT            rtvFormat,
+		const DXGI_FORMAT            dsvFormat,
 		const Rhi::VertexLayoutDesc& vertexLayout
 	) {
 		GraphicsPipelineSpec spec = {};
-		spec.debugName            = std::move(debugName);
-		spec.shaderProgramId      = shaderProgramId;
-		spec.rootSignature        = rootSignature;
+		spec.debugName = std::move(debugName);
+		spec.shaderProgramId = shaderProgramId;
+		spec.rootSignature = rootSignature;
 		spec.psoTemplate.rootSignature = rootSignature;
-		spec.psoTemplate.vertexLayout  = vertexLayout;
-		spec.psoTemplate.rtvFormat     = rtvFormat;
-		spec.psoTemplate.depthEnable   = true;
+		spec.psoTemplate.vertexLayout = vertexLayout;
+		spec.psoTemplate.rtvFormat = rtvFormat;
+		spec.psoTemplate.depthEnable = true;
 		spec.psoTemplate.depthWriteEnable = true;
-		spec.psoTemplate.dsvFormat        = dsvFormat;
-		spec.psoTemplate.depthFunc        = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-		spec.psoTemplate.cullMode         = D3D12_CULL_MODE_NONE;
+		spec.psoTemplate.dsvFormat = dsvFormat;
+		spec.psoTemplate.depthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+		spec.psoTemplate.cullMode = D3D12_CULL_MODE_NONE;
 		spec.psoTemplate.primitiveTopologyType =
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
 		return spec;
@@ -100,10 +100,10 @@ namespace Unnamed::Render {
 		const AssetID        shaderProgramId,
 		ID3D12RootSignature* rootSignature
 	) {
-		ComputePipelineSpec spec = {};
-		spec.debugName           = std::move(debugName);
-		spec.shaderProgramId     = shaderProgramId;
-		spec.rootSignature       = rootSignature;
+		ComputePipelineSpec spec       = {};
+		spec.debugName                 = std::move(debugName);
+		spec.shaderProgramId           = shaderProgramId;
+		spec.rootSignature             = rootSignature;
 		spec.psoTemplate.rootSignature = rootSignature;
 		return spec;
 	}

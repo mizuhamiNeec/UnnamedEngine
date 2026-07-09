@@ -1,8 +1,9 @@
 #include "AssetType.h"
 
-#include <algorithm>
-#include <cctype>
 #include <string_view>
+
+#include "core/filesystem/Path.h"
+#include "core/string/StrUtil.h"
 
 std::string Unnamed::ToString(const ASSET_TYPE e) {
 	switch (e) {
@@ -25,23 +26,12 @@ std::string Unnamed::ToString(const ASSET_TYPE e) {
 }
 
 Unnamed::ASSET_TYPE Unnamed::GuessAssetTypeFromPath(
-	const std::string_view path
+	const Path& path
 ) {
-	auto ToLower = [](std::string value) {
-		std::ranges::transform(
-			value,
-			value.begin(),
-			[](const unsigned char c) {
-				return static_cast<char>(std::tolower(c));
-			}
-		);
-		return value;
-	};
-	const std::string lower = ToLower(std::string(path));
+	const std::string pathText = path.ToGenericUtf8();
 
 	auto EndsWith = [&](const std::string_view suffix) {
-		return lower.size() >= suffix.size() &&
-		       lower.ends_with(suffix);
+		return StrUtil::EndsWithIgnoreCase(pathText, suffix);
 	};
 
 	if (

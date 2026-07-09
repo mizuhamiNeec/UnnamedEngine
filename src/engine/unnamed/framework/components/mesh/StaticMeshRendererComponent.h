@@ -5,6 +5,7 @@
 #include "../base/BaseComponent.h"
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/Path.h"
 
 namespace Unnamed {
 	class AssetManager;
@@ -13,8 +14,8 @@ namespace Unnamed {
 
 	/// @brief マテリアルスロットのデータ構造体
 	struct MaterialSlot {
-		uint32_t    slotIndex = 0;
-		std::string materialInstancePath;
+		uint32_t slotIndex = 0;
+		Path     materialInstancePath;
 	};
 
 	class StaticMeshRendererComponent final : public BaseComponent {
@@ -22,11 +23,11 @@ namespace Unnamed {
 		// ---- StaticMeshRendererComponent -----------------------------------
 		/// @brief メッシュのファイルパスを設定します。
 		/// @param path メッシュのファイルパス。
-		void SetMeshPath(const std::string& path);
+		void SetMeshPath(Path path);
 
 		/// @brief マテリアルインスタンスのファイルパスを設定します。
 		/// @param path マテリアルインスタンスのファイルパス。
-		void SetMaterialInstancePath(const std::string& path);
+		void SetMaterialInstancePath(Path path);
 
 		/// @brief マテリアルスロットを設定します。
 		/// @param slots マテリアルスロットのベクタ。
@@ -35,20 +36,21 @@ namespace Unnamed {
 		/// @brief 指定されたスロットのマテリアルインスタンスのファイルパスを設定します。
 		/// @param slotIndex スロットインデックス。
 		/// @param path マテリアルインスタンスのファイルパス。
-		void SetMaterialInstancePathForSlot(uint32_t slotIndex, const std::string& path);
+		void SetMaterialInstancePathForSlot(uint32_t slotIndex, Path path);
 
 		/// @brief メッシュのファイルパスを取得します。
 		/// @return メッシュのファイルパス。
-		[[nodiscard]] const std::string& GetMeshPath() const noexcept;
+		[[nodiscard]] const Path& GetMeshPath() const noexcept;
 
 		/// @brief マテリアルインスタンスのファイルパスを取得します。
 		/// @return マテリアルインスタンスのファイルパス。
 		[[nodiscard]]
-		const std::string& GetMaterialInstancePath() const noexcept;
+		const Path& GetMaterialInstancePath() const noexcept;
 
 		/// @brief マテリアルスロット一覧を取得します。
 		/// @return マテリアルスロットのベクタ。
-		[[nodiscard]] const std::vector<MaterialSlot>& GetMaterialSlots() const noexcept;
+		[[nodiscard]] const std::vector<MaterialSlot>&
+		GetMaterialSlots() const noexcept;
 
 		/// @brief AssetManagerを使用してメッシュアセットIDを解決します。
 		/// @param assetManager アセットマネージャーの参照。
@@ -84,13 +86,16 @@ namespace Unnamed {
 		/// @brief 指定されたスロットのマテリアルインスタンスアセットIDを取得します。
 		/// @param slotIndex スロットインデックス。
 		/// @return マテリアルインスタンスアセットID。存在しない、または解決されていない場合はkInvalidAssetID。
-		[[nodiscard]] AssetID GetMaterialInstanceAssetIdForSlot(uint32_t slotIndex) const noexcept;
+		[[nodiscard]] AssetID GetMaterialInstanceAssetIdForSlot(
+			uint32_t slotIndex
+		) const noexcept;
 
 		/// @brief メッシュのmaterialIndexに対応するマテリアルインスタンスアセットIDを取得します。
 		/// @param materialIndex メッシュ側のmaterialIndex。
 		/// @return マテリアルインスタンスアセットID。存在しない、または解決されていない場合はkInvalidAssetID。
-		[[nodiscard]] AssetID GetMaterialInstanceAssetIdForMaterialIndex(uint32_t materialIndex) const noexcept;
-
+		[[nodiscard]] AssetID GetMaterialInstanceAssetIdForMaterialIndex(
+			uint32_t materialIndex
+		) const noexcept;
 
 		// ---- BaseComponent ------------------------------------------------
 		[[nodiscard]] std::string_view GetStableName() const override;
@@ -101,17 +106,21 @@ namespace Unnamed {
 #endif
 
 		void Deserialize(const JsonReader& reader) override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader,
+			const SceneDeserializeContext& context
+		) override;
 		void Serialize(JsonWriter& writer) const override;
 
 		[[nodiscard]] uint32_t GetIcon() const override;
 
 	private:
-		std::string mMeshPath;
-		std::string mMaterialInstancePath;
+		Path                      mMeshPath;
+		Path                      mMaterialInstancePath;
 		std::vector<MaterialSlot> mMaterialSlots;
 
-		AssetID mMeshAssetId             = kInvalidAssetID;
-		AssetID mMaterialInstanceAssetId = kInvalidAssetID;
-		std::vector<AssetID> mMaterialInstanceAssetIds;  // スロット単位のマテリアルアセットID
+		AssetID              mMeshAssetId             = kInvalidAssetID;
+		AssetID              mMaterialInstanceAssetId = kInvalidAssetID;
+		std::vector<AssetID> mMaterialInstanceAssetIds; // スロット単位のマテリアルアセットID
 	};
 }

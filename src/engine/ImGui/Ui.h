@@ -270,9 +270,9 @@ namespace Ui {
 		ImTextureID textureId,
 		ImVec2      imageSize,
 		float       rounding,
-		ImDrawFlags flags = ImDrawFlags_RoundCornersAll,
-		ImVec2      uv0 = ImVec2(0, 0),
-		ImVec2      uv1 = ImVec2(1, 1),
+		ImDrawFlags flags     = ImDrawFlags_RoundCornersAll,
+		ImVec2      uv0       = ImVec2(0, 0),
+		ImVec2      uv1       = ImVec2(1, 1),
 		ImVec4      tintColor = ImVec4(1, 1, 1, 1)
 	);
 

@@ -1,10 +1,10 @@
 #include "BinaryReader.h"
 
-#include "core/path/PathUtil.h"
+#include "core/filesystem/Path.h"
 
 namespace Unnamed {
-	BinaryReader::BinaryReader(const std::string& path) : mStream(
-		Path::FromUtf8(path), std::ios::binary
+	BinaryReader::BinaryReader(const Path& path) : mStream(
+		path.Native(), std::ios::binary
 	) {
 		if (!IsOpen()) {
 			return;
@@ -23,7 +23,7 @@ namespace Unnamed {
 	}
 
 	uint64_t BinaryReader::Tell() {
-		return static_cast<uint64_t>(mStream.tellg());
+		return mStream.tellg();
 	}
 
 	bool BinaryReader::Seek(const uint64_t offset) {

@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-
 struct Vec4;
 struct Vec2;
 struct Vec3;

@@ -1,5 +1,6 @@
 #include <pch.h>
 
+#include <engine/unnamed/subsystem/console/ConsoleSystem.h>
 #include <engine/unnamed/subsystem/console/ConsoleFlags.h>
 #include <engine/unnamed/subsystem/console/concommand/base/ConCommandBase.h>
 
@@ -86,5 +87,47 @@ namespace Unnamed {
 	/// @return 説明
 	std::string_view ConCommandBase::GetDescription() const {
 		return mDescription;
+	}
+
+	void ConCommandBase::AttachToConsoleSystem(
+		ConsoleSystem&          consoleSystem,
+		const ConsoleRegistrationKind registrationKind
+	) noexcept {
+		mRegisteredConsoleSystem = &consoleSystem;
+		mRegistrationKind        = registrationKind;
+	}
+
+	void ConCommandBase::DetachFromConsoleSystem(
+		const ConsoleSystem& consoleSystem
+	) noexcept {
+		if (mRegisteredConsoleSystem != &consoleSystem) {
+			return;
+		}
+
+		mRegisteredConsoleSystem = nullptr;
+		mRegistrationKind        = ConsoleRegistrationKind::None;
+	}
+
+	void ConCommandBase::UnregisterFromConsoleSystem() noexcept {
+		ConsoleSystem* const consoleSystem = mRegisteredConsoleSystem;
+		const ConsoleRegistrationKind registrationKind = mRegistrationKind;
+
+		mRegisteredConsoleSystem = nullptr;
+		mRegistrationKind        = ConsoleRegistrationKind::None;
+
+		if (!consoleSystem) {
+			return;
+		}
+
+		switch (registrationKind) {
+			case ConsoleRegistrationKind::Command:
+				consoleSystem->UnregisterConCommand(this);
+				break;
+			case ConsoleRegistrationKind::ConVar:
+				consoleSystem->UnregisterConVar(this);
+				break;
+			case ConsoleRegistrationKind::None:
+				break;
+		}
 	}
 }

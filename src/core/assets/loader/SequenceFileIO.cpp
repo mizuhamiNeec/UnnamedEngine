@@ -1,4 +1,5 @@
 #include "SequenceFileIO.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -8,7 +9,7 @@
 #include <json.hpp>
 
 #include "SequenceMigrator.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -17,7 +18,8 @@ namespace Unnamed {
 			const nlohmann::json& value
 		) {
 			if (value.is_string()) {
-				const std::string text = StrUtil::ToLowerCase(value.get<std::string>());
+				const std::string text = StrUtil::ToLowerCase(
+					value.get<std::string>());
 				if (text == "step") {
 					return SEQUENCE_INTERPOLATION_MODE::MODE_STEP;
 				}
@@ -47,9 +49,12 @@ namespace Unnamed {
 			}
 		}
 
-		[[nodiscard]] SEQUENCE_BLEND_MODE ParseBlendMode(const nlohmann::json& value) {
+		[[nodiscard]] SEQUENCE_BLEND_MODE ParseBlendMode(
+			const nlohmann::json& value
+		) {
 			if (value.is_string()) {
-				return StrUtil::ToLowerCase(value.get<std::string>()) == "additive" ?
+				return StrUtil::ToLowerCase(value.get<std::string>()) ==
+				       "additive" ?
 					       SEQUENCE_BLEND_MODE::MODE_ADDITIVE :
 					       SEQUENCE_BLEND_MODE::MODE_ABSOLUTE;
 			}
@@ -58,13 +63,20 @@ namespace Unnamed {
 				       SEQUENCE_BLEND_MODE::MODE_ABSOLUTE;
 		}
 
-		[[nodiscard]] nlohmann::json ToJsonBlendMode(const SEQUENCE_BLEND_MODE mode) {
-			return mode == SEQUENCE_BLEND_MODE::MODE_ADDITIVE ? "additive" : "absolute";
+		[[nodiscard]] nlohmann::json ToJsonBlendMode(
+			const SEQUENCE_BLEND_MODE mode
+		) {
+			return mode == SEQUENCE_BLEND_MODE::MODE_ADDITIVE ?
+				       "additive" :
+				       "absolute";
 		}
 
-		[[nodiscard]] SEQUENCE_TRACK_TYPE ParseTrackType(const nlohmann::json& value) {
+		[[nodiscard]] SEQUENCE_TRACK_TYPE ParseTrackType(
+			const nlohmann::json& value
+		) {
 			if (value.is_string()) {
-				const std::string text = StrUtil::ToLowerCase(value.get<std::string>());
+				const std::string text = StrUtil::ToLowerCase(
+					value.get<std::string>());
 				if (text == "transform") {
 					return SEQUENCE_TRACK_TYPE::TRANSFORM;
 				}
@@ -94,7 +106,8 @@ namespace Unnamed {
 
 			const int raw = value.is_number_integer() ?
 				                value.get<int>() :
-				                static_cast<int>(SEQUENCE_TRACK_TYPE::PROPERTY_FLOAT);
+				                static_cast<int>(
+					                SEQUENCE_TRACK_TYPE::PROPERTY_FLOAT);
 			if (
 				raw < static_cast<int>(SEQUENCE_TRACK_TYPE::TRANSFORM) ||
 				raw > static_cast<int>(SEQUENCE_TRACK_TYPE::PROPERTY_VEC3)
@@ -104,10 +117,13 @@ namespace Unnamed {
 			return static_cast<SEQUENCE_TRACK_TYPE>(raw);
 		}
 
-		[[nodiscard]] nlohmann::json ToJsonTrackType(const SEQUENCE_TRACK_TYPE type) {
+		[[nodiscard]] nlohmann::json ToJsonTrackType(
+			const SEQUENCE_TRACK_TYPE type
+		) {
 			switch (type) {
 				case SEQUENCE_TRACK_TYPE::TRANSFORM: return "transform";
-				case SEQUENCE_TRACK_TYPE::SKELETAL_CONTROL: return "skeletalControl";
+				case SEQUENCE_TRACK_TYPE::SKELETAL_CONTROL: return
+						"skeletalControl";
 				case SEQUENCE_TRACK_TYPE::CAMERA_CUT: return "cameraCut";
 				case SEQUENCE_TRACK_TYPE::EVENT: return "event";
 				case SEQUENCE_TRACK_TYPE::VISIBILITY: return "visibility";
@@ -122,7 +138,10 @@ namespace Unnamed {
 		void SortFloatKeys(SequenceRichCurveAssetData& curve) {
 			std::ranges::sort(
 				curve.keys,
-				[](const SequenceFloatKeyAssetData& lhs, const SequenceFloatKeyAssetData& rhs) {
+				[](
+				const SequenceFloatKeyAssetData& lhs,
+				const SequenceFloatKeyAssetData& rhs
+			) {
 					return lhs.frame < rhs.frame;
 				}
 			);
@@ -131,7 +150,10 @@ namespace Unnamed {
 		void SortBoolKeys(std::vector<SequenceBoolKeyAssetData>& keys) {
 			std::ranges::sort(
 				keys,
-				[](const SequenceBoolKeyAssetData& lhs, const SequenceBoolKeyAssetData& rhs) {
+				[](
+				const SequenceBoolKeyAssetData& lhs,
+				const SequenceBoolKeyAssetData& rhs
+			) {
 					return lhs.frame < rhs.frame;
 				}
 			);
@@ -140,16 +162,24 @@ namespace Unnamed {
 		void SortEventKeys(std::vector<SequenceEventKeyAssetData>& keys) {
 			std::ranges::sort(
 				keys,
-				[](const SequenceEventKeyAssetData& lhs, const SequenceEventKeyAssetData& rhs) {
+				[](
+				const SequenceEventKeyAssetData& lhs,
+				const SequenceEventKeyAssetData& rhs
+			) {
 					return lhs.frame < rhs.frame;
 				}
 			);
 		}
 
-		void SortCameraCutKeys(std::vector<SequenceCameraCutKeyAssetData>& keys) {
+		void SortCameraCutKeys(
+			std::vector<SequenceCameraCutKeyAssetData>& keys
+		) {
 			std::ranges::sort(
 				keys,
-				[](const SequenceCameraCutKeyAssetData& lhs, const SequenceCameraCutKeyAssetData& rhs) {
+				[](
+				const SequenceCameraCutKeyAssetData& lhs,
+				const SequenceCameraCutKeyAssetData& rhs
+			) {
 					return lhs.frame < rhs.frame;
 				}
 			);
@@ -160,7 +190,8 @@ namespace Unnamed {
 			if (!node.is_object()) {
 				return curve;
 			}
-			if (node.contains("channelId") && node["channelId"].is_number_unsigned()) {
+			if (node.contains("channelId") && node["channelId"].
+			    is_number_unsigned()) {
 				curve.channelId = node["channelId"].get<uint64_t>();
 			}
 			if (!node.contains("keys") || !node["keys"].is_array()) {
@@ -178,7 +209,8 @@ namespace Unnamed {
 				key.arriveTangent = keyNode.value("arriveTangent", 0.0f);
 				key.leaveTangent = keyNode.value("leaveTangent", 0.0f);
 				if (keyNode.contains("interpolation")) {
-					key.interpolation = ParseInterpolation(keyNode["interpolation"]);
+					key.interpolation = ParseInterpolation(
+						keyNode["interpolation"]);
 				}
 				curve.keys.emplace_back(key);
 			}
@@ -191,13 +223,14 @@ namespace Unnamed {
 			node["channelId"]   = curve.channelId;
 			node["keys"]        = nlohmann::json::array();
 			for (const SequenceFloatKeyAssetData& key : curve.keys) {
-				nlohmann::json keyNode = nlohmann::json::object();
+				nlohmann::json keyNode   = nlohmann::json::object();
 				keyNode["keyId"]         = key.keyId;
 				keyNode["frame"]         = key.frame;
 				keyNode["value"]         = key.value;
 				keyNode["arriveTangent"] = key.arriveTangent;
 				keyNode["leaveTangent"]  = key.leaveTangent;
-				keyNode["interpolation"] = ToJsonInterpolation(key.interpolation);
+				keyNode["interpolation"] = ToJsonInterpolation(
+					key.interpolation);
 				node["keys"].emplace_back(std::move(keyNode));
 			}
 			return node;
@@ -213,20 +246,34 @@ namespace Unnamed {
 			section.endFrame   = node.value("endFrame", section.startFrame);
 			section.priority   = node.value("priority", 0);
 
-			section.floatCurve = ParseCurve(node.value("floatCurve", nlohmann::json::object()));
-			section.vec3XCurve = ParseCurve(node.value("vec3XCurve", nlohmann::json::object()));
-			section.vec3YCurve = ParseCurve(node.value("vec3YCurve", nlohmann::json::object()));
-			section.vec3ZCurve = ParseCurve(node.value("vec3ZCurve", nlohmann::json::object()));
-			section.transformPosX = ParseCurve(node.value("transformPosX", nlohmann::json::object()));
-			section.transformPosY = ParseCurve(node.value("transformPosY", nlohmann::json::object()));
-			section.transformPosZ = ParseCurve(node.value("transformPosZ", nlohmann::json::object()));
-			section.transformRotX = ParseCurve(node.value("transformRotX", nlohmann::json::object()));
-			section.transformRotY = ParseCurve(node.value("transformRotY", nlohmann::json::object()));
-			section.transformRotZ = ParseCurve(node.value("transformRotZ", nlohmann::json::object()));
-			section.transformRotW = ParseCurve(node.value("transformRotW", nlohmann::json::object()));
-			section.transformScaleX = ParseCurve(node.value("transformScaleX", nlohmann::json::object()));
-			section.transformScaleY = ParseCurve(node.value("transformScaleY", nlohmann::json::object()));
-			section.transformScaleZ = ParseCurve(node.value("transformScaleZ", nlohmann::json::object()));
+			section.floatCurve = ParseCurve(
+				node.value("floatCurve", nlohmann::json::object()));
+			section.vec3XCurve = ParseCurve(
+				node.value("vec3XCurve", nlohmann::json::object()));
+			section.vec3YCurve = ParseCurve(
+				node.value("vec3YCurve", nlohmann::json::object()));
+			section.vec3ZCurve = ParseCurve(
+				node.value("vec3ZCurve", nlohmann::json::object()));
+			section.transformPosX = ParseCurve(
+				node.value("transformPosX", nlohmann::json::object()));
+			section.transformPosY = ParseCurve(
+				node.value("transformPosY", nlohmann::json::object()));
+			section.transformPosZ = ParseCurve(
+				node.value("transformPosZ", nlohmann::json::object()));
+			section.transformRotX = ParseCurve(
+				node.value("transformRotX", nlohmann::json::object()));
+			section.transformRotY = ParseCurve(
+				node.value("transformRotY", nlohmann::json::object()));
+			section.transformRotZ = ParseCurve(
+				node.value("transformRotZ", nlohmann::json::object()));
+			section.transformRotW = ParseCurve(
+				node.value("transformRotW", nlohmann::json::object()));
+			section.transformScaleX = ParseCurve(
+				node.value("transformScaleX", nlohmann::json::object()));
+			section.transformScaleY = ParseCurve(
+				node.value("transformScaleY", nlohmann::json::object()));
+			section.transformScaleZ = ParseCurve(
+				node.value("transformScaleZ", nlohmann::json::object()));
 
 			if (node.contains("boolKeys") && node["boolKeys"].is_array()) {
 				section.boolKeys.reserve(node["boolKeys"].size());
@@ -245,7 +292,8 @@ namespace Unnamed {
 				SortBoolKeys(section.boolKeys);
 			}
 
-			if (node.contains("cameraCutKeys") && node["cameraCutKeys"].is_array()) {
+			if (node.contains("cameraCutKeys") && node["cameraCutKeys"].
+			    is_array()) {
 				section.cameraCutKeys.reserve(node["cameraCutKeys"].size());
 				for (const nlohmann::json& keyNode : node["cameraCutKeys"]) {
 					if (!keyNode.is_object()) {
@@ -255,7 +303,8 @@ namespace Unnamed {
 						SequenceCameraCutKeyAssetData{
 							.keyId            = keyNode.value("keyId", 0ull),
 							.frame            = keyNode.value("frame", 0ll),
-							.cameraEntityGuid = keyNode.value("cameraEntityGuid", 0ull),
+							.cameraEntityGuid = keyNode.value(
+								"cameraEntityGuid", 0ull),
 						}
 					);
 				}
@@ -269,13 +318,15 @@ namespace Unnamed {
 						continue;
 					}
 					SequenceEventKeyAssetData key = {};
-					key.keyId           = keyNode.value("keyId", 0ull);
-					key.frame           = keyNode.value("frame", 0ll);
-					key.cueId           = keyNode.value("cueId", std::string());
-					key.sourceEntityGuid = keyNode.value("sourceEntityGuid", 0ull);
-					key.cueValue        = keyNode.value("cueValue", 0.0f);
-					key.cueValue2       = keyNode.value("cueValue2", 0.0f);
-					key.consoleCommand  = keyNode.value("consoleCommand", std::string());
+					key.keyId = keyNode.value("keyId", 0ull);
+					key.frame = keyNode.value("frame", 0ll);
+					key.cueId = keyNode.value("cueId", std::string());
+					key.sourceEntityGuid = keyNode.value(
+						"sourceEntityGuid", 0ull);
+					key.cueValue       = keyNode.value("cueValue", 0.0f);
+					key.cueValue2      = keyNode.value("cueValue2", 0.0f);
+					key.consoleCommand = keyNode.value(
+						"consoleCommand", std::string());
 					section.eventKeys.emplace_back(std::move(key));
 				}
 				SortEventKeys(section.eventKeys);
@@ -283,13 +334,22 @@ namespace Unnamed {
 
 			if (node.contains("skeletal") && node["skeletal"].is_object()) {
 				const auto& skeletalNode = node["skeletal"];
-				section.skeletal.stateId = skeletalNode.value("stateId", std::string());
-				section.skeletal.layerIndex = skeletalNode.value("layerIndex", 0);
-				section.skeletal.playOnEnter = skeletalNode.value("playOnEnter", false);
-				section.skeletal.stopOnExit = skeletalNode.value("stopOnExit", false);
-				section.skeletal.weightCurve = ParseCurve(skeletalNode.value("weightCurve", nlohmann::json::object()));
-				section.skeletal.playbackCurve = ParseCurve(skeletalNode.value("playbackCurve", nlohmann::json::object()));
-				section.skeletal.speedCurve = ParseCurve(skeletalNode.value("speedCurve", nlohmann::json::object()));
+				section.skeletal.stateId = skeletalNode.value(
+					"stateId", std::string());
+				section.skeletal.layerIndex = skeletalNode.value(
+					"layerIndex", 0);
+				section.skeletal.playOnEnter = skeletalNode.value(
+					"playOnEnter", false);
+				section.skeletal.stopOnExit = skeletalNode.value(
+					"stopOnExit", false);
+				section.skeletal.weightCurve = ParseCurve(
+					skeletalNode.value("weightCurve",
+					                   nlohmann::json::object()));
+				section.skeletal.playbackCurve = ParseCurve(
+					skeletalNode.value("playbackCurve",
+					                   nlohmann::json::object()));
+				section.skeletal.speedCurve = ParseCurve(
+					skeletalNode.value("speedCurve", nlohmann::json::object()));
 			}
 
 			return section;
@@ -302,17 +362,17 @@ namespace Unnamed {
 			node["endFrame"]    = section.endFrame;
 			node["priority"]    = section.priority;
 
-			node["floatCurve"] = ToJsonCurve(section.floatCurve);
-			node["vec3XCurve"] = ToJsonCurve(section.vec3XCurve);
-			node["vec3YCurve"] = ToJsonCurve(section.vec3YCurve);
-			node["vec3ZCurve"] = ToJsonCurve(section.vec3ZCurve);
-			node["transformPosX"] = ToJsonCurve(section.transformPosX);
-			node["transformPosY"] = ToJsonCurve(section.transformPosY);
-			node["transformPosZ"] = ToJsonCurve(section.transformPosZ);
-			node["transformRotX"] = ToJsonCurve(section.transformRotX);
-			node["transformRotY"] = ToJsonCurve(section.transformRotY);
-			node["transformRotZ"] = ToJsonCurve(section.transformRotZ);
-			node["transformRotW"] = ToJsonCurve(section.transformRotW);
+			node["floatCurve"]      = ToJsonCurve(section.floatCurve);
+			node["vec3XCurve"]      = ToJsonCurve(section.vec3XCurve);
+			node["vec3YCurve"]      = ToJsonCurve(section.vec3YCurve);
+			node["vec3ZCurve"]      = ToJsonCurve(section.vec3ZCurve);
+			node["transformPosX"]   = ToJsonCurve(section.transformPosX);
+			node["transformPosY"]   = ToJsonCurve(section.transformPosY);
+			node["transformPosZ"]   = ToJsonCurve(section.transformPosZ);
+			node["transformRotX"]   = ToJsonCurve(section.transformRotX);
+			node["transformRotY"]   = ToJsonCurve(section.transformRotY);
+			node["transformRotZ"]   = ToJsonCurve(section.transformRotZ);
+			node["transformRotW"]   = ToJsonCurve(section.transformRotW);
 			node["transformScaleX"] = ToJsonCurve(section.transformScaleX);
 			node["transformScaleY"] = ToJsonCurve(section.transformScaleY);
 			node["transformScaleZ"] = ToJsonCurve(section.transformScaleZ);
@@ -331,7 +391,8 @@ namespace Unnamed {
 			}
 
 			node["cameraCutKeys"] = nlohmann::json::array();
-			for (const SequenceCameraCutKeyAssetData& key : section.cameraCutKeys) {
+			for (const SequenceCameraCutKeyAssetData& key : section.
+			     cameraCutKeys) {
 				node["cameraCutKeys"].emplace_back(
 					nlohmann::json::object(
 						{
@@ -367,7 +428,10 @@ namespace Unnamed {
 					{"playOnEnter", section.skeletal.playOnEnter},
 					{"stopOnExit", section.skeletal.stopOnExit},
 					{"weightCurve", ToJsonCurve(section.skeletal.weightCurve)},
-					{"playbackCurve", ToJsonCurve(section.skeletal.playbackCurve)},
+					{
+						"playbackCurve",
+						ToJsonCurve(section.skeletal.playbackCurve)
+					},
 					{"speedCurve", ToJsonCurve(section.skeletal.speedCurve)}
 				}
 			);
@@ -376,11 +440,11 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] uint64_t ComputeSemanticHash(const std::string& text) {
-			return static_cast<uint64_t>(std::hash<std::string>{}(text));
+			return std::hash<std::string>{}(text);
 		}
 
-		[[nodiscard]] std::string ReadTextFile(const std::string& path) {
-			std::ifstream ifs(Path::FromUtf8(path), std::ios::binary);
+		[[nodiscard]] std::string ReadTextFile(const Path& path) {
+			const std::ifstream ifs(path.Native(), std::ios::binary);
 			if (!ifs) {
 				return {};
 			}
@@ -391,7 +455,7 @@ namespace Unnamed {
 	}
 
 	bool SequenceFileIO::LoadFromFile(
-		const std::string&      path,
+		const Path&             path,
 		SequenceFileLoadResult& outResult
 	) {
 		const std::string text = ReadTextFile(path);
@@ -406,22 +470,25 @@ namespace Unnamed {
 			return false;
 		}
 
-		bool migrated = false;
+		bool    migrated      = false;
 		int32_t sourceVersion = 1;
-		if (!SequenceMigrator::MigrateToLatest(root, &migrated, &sourceVersion)) {
+		if (!SequenceMigrator::MigrateToLatest(root, &migrated,
+		                                       &sourceVersion)) {
 			return false;
 		}
 
 		SequenceAuthoringData authoring = {};
-		authoring.version = root.value("version", 2);
-		const std::filesystem::path filePath = Path::FromUtf8(path);
-		authoring.name = root.value(
+		authoring.version               = root.value("version", 2);
+		const Path filePath             = path.LexicallyNormal();
+		authoring.name                  = root.value(
 			"name",
-			Path::ToUtf8String(filePath.stem().stem())
+			Path::ToUtf8String(filePath.Stem().Stem())
 		);
-		authoring.displayRate = std::max(1, root.value("displayRate", 60));
-		authoring.tickResolution = std::max(1, root.value("tickResolution", 24000));
-		authoring.lengthFrames = std::max<int64_t>(0, root.value("lengthFrames", 0ll));
+		authoring.displayRate    = std::max(1, root.value("displayRate", 60));
+		authoring.tickResolution = std::max(
+			1, root.value("tickResolution", 24000));
+		authoring.lengthFrames = std::max<int64_t>(
+			0, root.value("lengthFrames", 0ll));
 
 		if (root.contains("bindings") && root["bindings"].is_array()) {
 			authoring.bindings.reserve(root["bindings"].size());
@@ -437,7 +504,8 @@ namespace Unnamed {
 							"componentStableName",
 							std::string()
 						),
-						.propertyPath = bindingNode.value("propertyPath", std::string()),
+						.propertyPath = bindingNode.value(
+							"propertyPath", std::string()),
 					}
 				);
 			}
@@ -462,21 +530,27 @@ namespace Unnamed {
 				track.priority  = trackNode.value("priority", 0);
 				track.bindingId = trackNode.value("bindingId", 0ull);
 
-				if (trackNode.contains("sections") && trackNode["sections"].is_array()) {
+				if (trackNode.contains("sections") && trackNode["sections"].
+				    is_array()) {
 					track.sections.reserve(trackNode["sections"].size());
-					for (const nlohmann::json& sectionNode : trackNode["sections"]) {
+					for (const nlohmann::json& sectionNode : trackNode[
+						     "sections"]) {
 						track.sections.emplace_back(ParseSection(sectionNode));
 					}
 					std::ranges::sort(
 						track.sections,
-						[](const SequenceSectionAssetData& lhs, const SequenceSectionAssetData& rhs) {
+						[](
+						const SequenceSectionAssetData& lhs,
+						const SequenceSectionAssetData& rhs
+					) {
 							return lhs.startFrame < rhs.startFrame;
 						}
 					);
 				}
 
 				for (const SequenceSectionAssetData& section : track.sections) {
-					authoring.lengthFrames = std::max(authoring.lengthFrames, section.endFrame);
+					authoring.lengthFrames = std::max(
+						authoring.lengthFrames, section.endFrame);
 				}
 
 				authoring.tracks.emplace_back(std::move(track));
@@ -485,8 +559,10 @@ namespace Unnamed {
 
 		if (root.contains("editor") && root["editor"].is_object()) {
 			const nlohmann::json& editorNode = root["editor"];
-			authoring.editor.scrubFireEvents = editorNode.value("scrubFireEvents", false);
-			authoring.editor.autoKeyEnabled = editorNode.value("autoKeyEnabled", false);
+			authoring.editor.scrubFireEvents = editorNode.value(
+				"scrubFireEvents", false);
+			authoring.editor.autoKeyEnabled = editorNode.value(
+				"autoKeyEnabled", false);
 		}
 
 		outResult.authoring     = authoring;
@@ -498,11 +574,11 @@ namespace Unnamed {
 	}
 
 	bool SequenceFileIO::SaveToFile(
-		const std::string&           path,
+		const Path&                  path,
 		const SequenceAuthoringData& authoring,
 		bool*                        outWritten
 	) {
-		nlohmann::json root = nlohmann::json::object();
+		nlohmann::json root    = nlohmann::json::object();
 		root["version"]        = std::max(2, authoring.version);
 		root["name"]           = authoring.name;
 		root["displayRate"]    = authoring.displayRate;
@@ -526,13 +602,13 @@ namespace Unnamed {
 		root["tracks"] = nlohmann::json::array();
 		for (const SequenceTrackAssetData& track : authoring.tracks) {
 			nlohmann::json trackNode = nlohmann::json::object();
-			trackNode["trackId"]   = track.trackId;
-			trackNode["name"]      = track.name;
-			trackNode["trackType"] = ToJsonTrackType(track.trackType);
-			trackNode["blendMode"] = ToJsonBlendMode(track.blendMode);
-			trackNode["priority"]  = track.priority;
-			trackNode["bindingId"] = track.bindingId;
-			trackNode["sections"]  = nlohmann::json::array();
+			trackNode["trackId"]     = track.trackId;
+			trackNode["name"]        = track.name;
+			trackNode["trackType"]   = ToJsonTrackType(track.trackType);
+			trackNode["blendMode"]   = ToJsonBlendMode(track.blendMode);
+			trackNode["priority"]    = track.priority;
+			trackNode["bindingId"]   = track.bindingId;
+			trackNode["sections"]    = nlohmann::json::array();
 			for (const SequenceSectionAssetData& section : track.sections) {
 				trackNode["sections"].emplace_back(ToJsonSection(section));
 			}
@@ -546,8 +622,8 @@ namespace Unnamed {
 			}
 		);
 
-		const std::string nextText     = root.dump(4);
-		const std::string currentText  = ReadTextFile(path);
+		const std::string nextText    = root.dump(4);
+		const std::string currentText = ReadTextFile(path);
 		if (currentText == nextText) {
 			if (outWritten) {
 				*outWritten = false;
@@ -555,20 +631,22 @@ namespace Unnamed {
 			return true;
 		}
 
-		const std::filesystem::path filePath = Path::FromUtf8(path);
-		if (filePath.has_parent_path()) {
+		const Path filePath = path.LexicallyNormal();
+		if (!filePath.ParentPath().IsEmpty()) {
 			std::error_code ec = {};
-			(void)std::filesystem::create_directories(filePath.parent_path(), ec);
+			(void)std::filesystem::create_directories(
+				filePath.ParentPath().Native(), ec);
 		}
 
 		std::ofstream ofs(
-			Path::FromUtf8(path),
+			path.Native(),
 			std::ios::binary | std::ios::trunc
 		);
 		if (!ofs) {
 			return false;
 		}
-		ofs.write(nextText.data(), static_cast<std::streamsize>(nextText.size()));
+		ofs.write(nextText.data(),
+		          static_cast<std::streamsize>(nextText.size()));
 		ofs.flush();
 		if (outWritten) {
 			*outWritten = true;
@@ -580,13 +658,13 @@ namespace Unnamed {
 		const SequenceAuthoringData& authoring
 	) {
 		SequenceAssetData runtime = {};
-		runtime.version        = authoring.version;
-		runtime.name           = authoring.name;
-		runtime.displayRate    = authoring.displayRate;
-		runtime.tickResolution = authoring.tickResolution;
-		runtime.lengthFrames   = authoring.lengthFrames;
-		runtime.bindings       = authoring.bindings;
-		runtime.tracks         = authoring.tracks;
+		runtime.version           = authoring.version;
+		runtime.name              = authoring.name;
+		runtime.displayRate       = authoring.displayRate;
+		runtime.tickResolution    = authoring.tickResolution;
+		runtime.lengthFrames      = authoring.lengthFrames;
+		runtime.bindings          = authoring.bindings;
+		runtime.tracks            = authoring.tracks;
 		return runtime;
 	}
 }

@@ -1,11 +1,10 @@
 #pragma once
-#include <string_view>
 
 namespace Unnamed {
 	/// @brief コンソールスクリプトパーサークラス
 	/// @details コンソールスクリプト(.cfg)を解析してコマンドを実行するクラス
-	class ConsoleScriptParser {
+	class ConsoleScriptParser final {
 	public:
-		ConsoleScriptParser(const std::string_view& path);
+		static void ParseAndExecute(const Path& path);
 	};
 }

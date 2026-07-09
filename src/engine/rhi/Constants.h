@@ -74,7 +74,7 @@ namespace Unnamed::Rhi {
 		// x=depthBias, y=strength, z=texelSize, w=enabled
 		Vec4 filterParams = Vec4::zero;
 		// x=pcfEnabled, y=pcfRadiusTexels, z=normalBias, w=unused
-		Vec4 directionToLight = Vec4(0.0f, 1.0f, 0.0f, 0.0f);
+		Vec4 directionToLight    = Vec4(0.0f, 1.0f, 0.0f, 0.0f);
 		Vec4 lightColorIntensity = Vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	};
 
@@ -88,9 +88,9 @@ namespace Unnamed::Rhi {
 	);
 
 	struct alignas(16) EnvironmentLightingConstants {
-		Vec4 skyAmbientColor = Vec4(0.25f, 0.30f, 0.40f, 1.0f);
+		Vec4 skyAmbientColor    = Vec4(0.25f, 0.30f, 0.40f, 1.0f);
 		Vec4 groundAmbientColor = Vec4(0.08f, 0.07f, 0.06f, 1.0f);
-		Vec4 params = Vec4(0.3f, 0.0f, 0.0f, 0.0f);
+		Vec4 params             = Vec4(0.3f, 0.0f, 0.0f, 0.0f);
 		// x=ambientIntensity, yzw=unused
 	};
 

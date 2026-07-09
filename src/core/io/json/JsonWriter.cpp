@@ -1,9 +1,9 @@
 #include <fstream>
+#include "core/filesystem/Path.h"
 #include <stdexcept>
 
 #include "core/math/Vec3.h"
 #include "core/math/Vec4.h"
-#include "core/path/PathUtil.h"
 
 #include "JsonWriter.h"
 
@@ -47,8 +47,16 @@ namespace Unnamed {
 		);
 	}
 
-	JsonWriter::JsonWriter(std::string path) : mRoot(nullptr),
-	                                           mPath(std::move(path)) {
+	JsonWriter::JsonWriter(const char* path) :
+		JsonWriter(Path(path == nullptr ? "" : path)) {
+	}
+
+	JsonWriter::JsonWriter(const std::string& path) :
+		JsonWriter(Path(path)) {
+	}
+
+	JsonWriter::JsonWriter(Path path) : mRoot(nullptr),
+	                                    mPath(std::move(path)) {
 		mStack.clear();
 	}
 
@@ -129,11 +137,11 @@ namespace Unnamed {
 	}
 
 	bool JsonWriter::Save() const {
-		if (mPath.empty()) {
+		if (mPath.IsEmpty()) {
 			throw std::runtime_error("Save path is empty");
 		}
 
-		const std::filesystem::path filePath = Path::FromUtf8(mPath);
+		const std::filesystem::path filePath = mPath.Native();
 		if (filePath.has_parent_path()) {
 			std::filesystem::create_directories(filePath.parent_path());
 		}
@@ -141,7 +149,7 @@ namespace Unnamed {
 		std::ofstream ofs(filePath, std::ios::binary);
 		if (!ofs) {
 			throw std::runtime_error(
-				"Failed to open file for writing: " + mPath
+				"Failed to open file for writing: " + mPath.ToUtf8()
 			);
 		}
 		ofs << ToString();

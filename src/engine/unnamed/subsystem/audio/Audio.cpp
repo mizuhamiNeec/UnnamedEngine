@@ -18,14 +18,14 @@ namespace Unnamed {
 			return false;
 		}
 
-		WAVEFORMATEX wfex         = {};
-		wfex.wFormatTag           = soundData.formatTag;
-		wfex.nChannels            = soundData.channels;
-		wfex.nSamplesPerSec       = soundData.sampleRate;
-		wfex.nAvgBytesPerSec      = soundData.averageBytesPerSecond;
-		wfex.nBlockAlign          = soundData.blockAlign;
-		wfex.wBitsPerSample       = soundData.bitsPerSample;
-		wfex.cbSize               = 0;
+		WAVEFORMATEX wfex    = {};
+		wfex.wFormatTag      = soundData.formatTag;
+		wfex.nChannels       = soundData.channels;
+		wfex.nSamplesPerSec  = soundData.sampleRate;
+		wfex.nAvgBytesPerSec = soundData.averageBytesPerSecond;
+		wfex.nBlockAlign     = soundData.blockAlign;
+		wfex.wBitsPerSample  = soundData.bitsPerSample;
+		wfex.cbSize          = 0;
 
 		const HRESULT hr = xAudio2->CreateSourceVoice(&mSourceVoice, &wfex);
 		if (FAILED(hr)) {
@@ -33,8 +33,8 @@ namespace Unnamed {
 			return false;
 		}
 
-		mOwnedPcmData       = soundData.pcmData;
-		mAudioBuffer        = {};
+		mOwnedPcmData           = soundData.pcmData;
+		mAudioBuffer            = {};
 		mAudioBuffer.pAudioData = mOwnedPcmData.data();
 		mAudioBuffer.AudioBytes = static_cast<UINT32>(mOwnedPcmData.size());
 		mAudioBuffer.Flags      = XAUDIO2_END_OF_STREAM;

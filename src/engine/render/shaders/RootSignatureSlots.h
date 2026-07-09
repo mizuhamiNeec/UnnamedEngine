@@ -11,14 +11,14 @@ namespace Unnamed::Render {
 
 	/// @brief ジオメトリ描画ルートシグネチャのルートパラメータスロット。
 	enum class GEOM_ROOT_SLOT : uint32_t {
-		FRAME = 0,
-		OBJECT = 1,
-		MATERIAL = 2,
-		SKINNING = 3,
-		MATERIAL_TEXTURES = 4,
-		BASE_COLOR_TEXTURE = MATERIAL_TEXTURES,
-		SHADOW_CONSTANTS = 5,
-		SHADOW_MAP = 6,
+		FRAME                = 0,
+		OBJECT               = 1,
+		MATERIAL             = 2,
+		SKINNING             = 3,
+		MATERIAL_TEXTURES    = 4,
+		BASE_COLOR_TEXTURE   = MATERIAL_TEXTURES,
+		SHADOW_CONSTANTS     = 5,
+		SHADOW_MAP           = 6,
 		ENVIRONMENT_LIGHTING = 7,
 	};
 

@@ -6,12 +6,10 @@
 #include <engine/unnamed/subsystem/console/Log.h>
 #include <engine/unnamed/subsystem/interface/ServiceLocator.h>
 
-namespace Unnamed {
+	namespace Unnamed {
 	/// @brief デストラクタ
 	ConCommand::~ConCommand() {
-		if (auto* console = ServiceLocator::Get<ConsoleSystem>()) {
-			console->UnregisterConCommand(this);
-		}
+		UnregisterFromConsoleSystem();
 	}
 
 	/// @brief コンストラクタ

@@ -11,8 +11,6 @@
 
 #include "ConsoleSystem.h"
 
-#include "core/string/StrUtil.h"
-
 #include "engine/Properties.h"
 #include "engine/ImGui/Icons.h"
 
@@ -767,8 +765,11 @@ namespace Unnamed {
 		mElementEditDraftExecutableButton = elem;
 	}
 
-	void ConVarHelper::ImportPage() {}
-	void ConVarHelper::ExportPage() {}
+	void ConVarHelper::ImportPage() {
+	}
+
+	void ConVarHelper::ExportPage() {
+	}
 
 	void ConVarHelper::RearrangeGridElements(
 		const uint32_t newWidth, const uint32_t newHeight

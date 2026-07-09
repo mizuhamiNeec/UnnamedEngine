@@ -1,8 +1,6 @@
 #pragma once
 #include <vector>
 
-#include <core/math/Math.h>
-
 #include <engine/Animation/KeyFrame.h>
 
 #include "core/math/Mat4.h"

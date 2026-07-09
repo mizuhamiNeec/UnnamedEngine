@@ -28,10 +28,11 @@ namespace Unnamed {
 
 	/// @brief Sequence Editorの選択状態です。
 	struct SequenceEditorSelection final {
-		int32_t                       trackIndex    = -1;
-		int32_t                       sectionIndex  = -1;
-		SEQUENCE_EDITOR_FLOAT_CHANNEL floatChannel  = SEQUENCE_EDITOR_FLOAT_CHANNEL::NONE;
-		int32_t                       keyIndex      = -1;
+		int32_t                       trackIndex   = -1;
+		int32_t                       sectionIndex = -1;
+		SEQUENCE_EDITOR_FLOAT_CHANNEL floatChannel =
+			SEQUENCE_EDITOR_FLOAT_CHANNEL::NONE;
+		int32_t keyIndex = -1;
 	};
 }
 

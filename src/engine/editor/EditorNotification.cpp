@@ -120,7 +120,9 @@ namespace Unnamed {
 			return ImGui::GetColorU32(ImGuiCol_Text);
 		}
 
-		std::optional<NOTIFY_TYPE> TryParseNotifyType(const std::string_view value) {
+		std::optional<NOTIFY_TYPE> TryParseNotifyType(
+			const std::string_view value
+		) {
 			const std::string lower = StrUtil::ToLowerCase(std::string(value));
 			if (lower == "info" || lower == "i") {
 				return NOTIFY_TYPE::INFO;
@@ -139,7 +141,7 @@ namespace Unnamed {
 
 		std::string JoinArgs(
 			const std::vector<std::string>& args, const size_t beginIndex,
-			const size_t                          endIndex
+			const size_t                    endIndex
 		) {
 			if (beginIndex >= endIndex || beginIndex >= args.size()) {
 				return {};
@@ -631,7 +633,7 @@ namespace Unnamed {
 		}
 
 		const std::weak_ptr weakNotification = notification;
-		const auto fadeTween = mTweenManager->CreateTo(
+		const auto          fadeTween        = mTweenManager->CreateTo(
 			notification->opacity, 0.0f, kExitDurationSeconds
 		);
 		fadeTween->SetEaseCubicBezier(kP1, kP2).OnComplete(

@@ -15,11 +15,13 @@ namespace Unnamed::Gui {
 		void SetPadding(const LayoutPadding& padding);
 		[[nodiscard]] const LayoutPadding& GetPadding() const;
 
-		void SetSpacing(float spacing);
+		void                SetSpacing(float spacing);
 		[[nodiscard]] float GetSpacing() const;
 
 		void Serialize(JsonWriter& writer) const override;
-		void Deserialize(const JsonReader& reader) override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const UiDeserializeContext& context
+		) override;
 		void OnAfterLayout(UiWidget& owner) override;
 
 	protected:

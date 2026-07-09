@@ -1,6 +1,6 @@
 #include "UiVerticalLayout.h"
 
-	namespace Unnamed::Gui {
+namespace Unnamed::Gui {
 	UiVerticalLayout::UiVerticalLayout() {
 		(void)GetOrAddComponent<UiVerticalLayoutComponent>();
 		SyncLayoutComponent();

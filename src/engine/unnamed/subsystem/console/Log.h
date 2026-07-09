@@ -29,9 +29,8 @@ namespace Unnamed {
 				std::string(channel) +
 				"] " +
 				std::string(message);
-		} else {
-			out = std::string(message);
 		}
+		out = std::string(message);
 
 		// コンソールの出力
 		std::cout << out << "\n";
@@ -94,7 +93,7 @@ namespace Unnamed {
 				);
 				break;
 			case LogLevel::Fatal: console->ExecuteCommand(
-					"notify fatal 0 Fatal | " + body,
+					"notify fatal 10 Fatal | " + body,
 					EXEC_FLAG::FROM_CONSOLE | EXEC_FLAG::SILENT
 				);
 				break;

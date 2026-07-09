@@ -14,7 +14,7 @@ namespace Unnamed::Render {
 	}
 
 	void TextureResourceCache::BeginFrame(const uint64_t frameIndex) {
-		mCurrentFrame = frameIndex;
+		mCurrentFrame                      = frameIndex;
 		mDebugStats.lastFrameReleasedByTtl = 0;
 	}
 
@@ -51,9 +51,10 @@ namespace Unnamed::Render {
 	}
 
 	void TextureResourceCache::ReleaseAll() {
-		const uint64_t releasedSprite = ReleaseAllInternal(mSpriteEntries);
-		const uint64_t releasedSkybox = ReleaseAllInternal(mSkyboxEntries);
-		const uint64_t releasedMaterial = ReleaseAllInternal(mMaterial2DEntries);
+		const uint64_t releasedSprite   = ReleaseAllInternal(mSpriteEntries);
+		const uint64_t releasedSkybox   = ReleaseAllInternal(mSkyboxEntries);
+		const uint64_t releasedMaterial =
+			ReleaseAllInternal(mMaterial2DEntries);
 		mDebugStats.releaseAllReleaseCount +=
 			releasedSprite + releasedSkybox + releasedMaterial;
 	}
@@ -71,10 +72,10 @@ namespace Unnamed::Render {
 	}
 
 	uint32_t TextureResourceCache::ResolveTexture(
-		const AssetID                               assetId,
-		const bool                                  requireCubeMap,
-		const bool                                  requireTexture2D,
-		const char* const                           debugName,
+		const AssetID                            assetId,
+		const bool                               requireCubeMap,
+		const bool                               requireTexture2D,
+		const char* const                        debugName,
 		std::unordered_map<AssetID, CacheEntry>& cacheEntries
 	) {
 		if (
@@ -88,7 +89,8 @@ namespace Unnamed::Render {
 
 		const AssetMetaData& meta = mAssetManager->Meta(assetId);
 		if (meta.runtime && meta.destroyed) {
-			if (const auto it = cacheEntries.find(assetId); it != cacheEntries.end()) {
+			if (const auto it = cacheEntries.find(assetId);
+				it != cacheEntries.end()) {
 				if (it->second.textureId != 0) {
 					mRegistry->ReleaseTexture(it->second.textureId);
 				}
@@ -115,7 +117,8 @@ namespace Unnamed::Render {
 		}
 
 		const uint32_t assetVersion = meta.version;
-		if (const auto it = cacheEntries.find(assetId); it != cacheEntries.end()) {
+		if (const auto it = cacheEntries.find(assetId);
+			it != cacheEntries.end()) {
 			CacheEntry& entry = it->second;
 			if (
 				entry.textureId != 0 &&
@@ -147,8 +150,8 @@ namespace Unnamed::Render {
 		cacheEntries.emplace(
 			assetId,
 			CacheEntry{
-				.textureId    = textureId,
-				.assetVersion = assetVersion,
+				.textureId     = textureId,
+				.assetVersion  = assetVersion,
 				.lastUsedFrame = mCurrentFrame,
 			}
 		);
@@ -165,10 +168,10 @@ namespace Unnamed::Render {
 
 		uint64_t releasedCount = 0;
 		for (auto it = cacheEntries.begin(); it != cacheEntries.end();) {
-			const CacheEntry& entry = it->second;
-			const bool shouldRelease =
+			const CacheEntry& entry         = it->second;
+			const bool        shouldRelease =
 				mCurrentFrame > entry.lastUsedFrame &&
-				(mCurrentFrame - entry.lastUsedFrame) > mUnusedFrameThreshold;
+				mCurrentFrame - entry.lastUsedFrame > mUnusedFrameThreshold;
 			if (!shouldRelease) {
 				++it;
 				continue;

@@ -45,8 +45,9 @@ namespace Unnamed {
 				if (!entity || !entity->IsActive()) {
 					continue;
 				}
-				auto* camera = entity->GetComponent<CameraComponent>();
-				if (!camera || !camera->IsActive() || !camera->IsCameraActive()) {
+				const auto* camera = entity->GetComponent<CameraComponent>();
+				if (!camera || !camera->IsActive() || !camera->
+				    IsCameraActive()) {
 					continue;
 				}
 				return entity.get();
@@ -64,8 +65,9 @@ namespace Unnamed {
 				if (!entity || entity->GetGuid() != entityGuid) {
 					continue;
 				}
-				auto* camera = entity->GetComponent<CameraComponent>();
-				if (!camera || !camera->IsActive() || !camera->IsCameraActive()) {
+				const auto* camera = entity->GetComponent<CameraComponent>();
+				if (!camera || !camera->IsActive() || !camera->
+				    IsCameraActive()) {
 					continue;
 				}
 				return entity.get();
@@ -74,7 +76,8 @@ namespace Unnamed {
 		}
 
 		bool BuildGameplayCameraInput(
-			Entity& entity, const float aspect, Render::RenderCameraInput& outCamera
+			Entity&                    entity, const float aspect,
+			Render::RenderCameraInput& outCamera
 		) {
 			auto* camera = entity.GetComponent<CameraComponent>();
 			if (!camera || !camera->IsActive() || !camera->IsCameraActive()) {
@@ -83,11 +86,10 @@ namespace Unnamed {
 			camera->SetAspectRatio(aspect);
 			return camera->BuildCameraInput(outCamera);
 		}
-
 	}
 
 	void EditorViewportCameraManager::SetPaneBinding(
-		const std::string_view          viewKey,
+		const std::string_view       viewKey,
 		const ViewportCameraBinding& binding
 	) {
 		mPaneBindings[std::string(viewKey)] = binding;
@@ -105,11 +107,11 @@ namespace Unnamed {
 
 	EditorViewportCameraManager::ResolvedCamera
 	EditorViewportCameraManager::ResolveViewCamera(
-		EditorWorld&                         editorWorld,
-		const std::string_view               viewKey,
+		EditorWorld&                       editorWorld,
+		const std::string_view             viewKey,
 		const Render::SceneViewRenderMode& sceneViewMode,
-		const ViewportCameraBinding&         binding,
-		const Render::RenderCameraInput*     fallbackCamera
+		const ViewportCameraBinding&       binding,
+		const Render::RenderCameraInput*   fallbackCamera
 	) {
 		(void)viewKey;
 		ResolvedCamera resolved = {};
@@ -120,7 +122,8 @@ namespace Unnamed {
 		if (binding.kind == ViewportCameraBindingKind::EditorPerspective) {
 			if (editorWorld.IsPlaying()) {
 				if (Scene* scene = editorWorld.GetActiveScene()) {
-					if (Entity* cameraEntity = FindFirstActiveGameplayCameraEntity(scene)) {
+					if (Entity* cameraEntity =
+						FindFirstActiveGameplayCameraEntity(scene)) {
 						Render::RenderCameraInput gameplay = {};
 						if (
 							BuildGameplayCameraInput(
@@ -143,7 +146,8 @@ namespace Unnamed {
 			}
 			Mat4 viewMat = Mat4::identity;
 			Mat4 projMat = Mat4::identity;
-			if (editorWorld.BuildEditorCameraMatrices(sceneViewMode, viewMat, projMat)) {
+			if (editorWorld.BuildEditorCameraMatrices(
+				sceneViewMode, viewMat, projMat)) {
 				resolved.input.valid     = true;
 				resolved.input.view      = viewMat;
 				resolved.input.proj      = projMat;
@@ -185,9 +189,9 @@ namespace Unnamed {
 	}
 
 	void EditorViewportCameraManager::SyncGameplayCameraAspect(
-		EditorWorld&                         editorWorld,
+		EditorWorld&                       editorWorld,
 		const Render::SceneViewRenderMode& sceneViewMode,
-		const ViewportCameraBinding&         binding
+		const ViewportCameraBinding&       binding
 	) {
 		if (binding.kind == ViewportCameraBindingKind::EditorPerspective) {
 			return;

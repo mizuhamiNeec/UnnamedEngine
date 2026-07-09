@@ -2,7 +2,7 @@
 
 #include "components/UiButtonBehaviorComponent.h"
 
-	namespace Unnamed::Gui {
+namespace Unnamed::Gui {
 	UiButton::UiButton() {
 		(void)GetOrAddComponent<UiButtonBehaviorComponent>();
 	}

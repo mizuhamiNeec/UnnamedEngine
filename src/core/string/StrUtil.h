@@ -1,6 +1,11 @@
 #pragma once
 #include <string>
+#include <string_view>
 #include <vector>
+
+namespace Unnamed {
+	class Path;
+}
 
 ///@brief 文字列ユーティリティクラス
 ///@details 文字列の変換、操作、解析のための静的ヘルパー関数を提供します
@@ -20,10 +25,10 @@ namespace Unnamed::StrUtil {
 	/// @return ワイド文字列
 	std::wstring ToWString(const std::string& string);
 
-	/// @brief 文字列を小文字に変換する
-	/// @param input 入力文字列
+	/// @brief 文字列ビューを小文字に変換する
+	/// @param input 入力文字列ビュー
 	/// @return 小文字に変換された文字列
-	std::string ToLowerCase(const std::string& input);
+	std::string ToLowerCase(std::string_view input);
 
 	/// @brief 文字列配列をデリミタで結合する
 	/// @param args 文字列配列
@@ -53,17 +58,6 @@ namespace Unnamed::StrUtil {
 	/// @return バージョン番号の配列
 	std::vector<int> ParseVersion(const std::string& version);
 
-	/// @brief パスが指定された拡張子を持つかを判定する（大文字小文字を区別しない）
-	/// @param path ファイルパス
-	/// @param ext 拡張子（例: ".txt"）
-	/// @return 指定された拡張子を持つ場合true
-	bool HasExtension(std::string_view path, std::string_view ext);
-
-	/// @brief 拡張子を小文字に変換する
-	/// @param str 入力文字列
-	/// @return 小文字に変換された拡張子
-	std::string ToLowerExt(const std::string_view& str);
-
 	/// @brief 文字列から両端の二重引用符を削除する
 	/// @param str 入力文字列
 	/// @return 二重引用符が削除された文字列
@@ -84,21 +78,46 @@ namespace Unnamed::StrUtil {
 	/// @return トークンの配列
 	std::vector<std::string> Tokenize(const std::string_view& command);
 
-	/// @brief 文字列の前後の空白を削除する
-	/// @param string 対象文字列
+	/// @brief 文字列ビューの前後の空白を削除する
+	/// @param string 対象文字列ビュー
 	/// @return トリムされた文字列
-	std::string TrimSpaces(const std::string& string);
+	std::string TrimSpaces(std::string_view string);
+
+	/// @brief 2つの文字列を大文字小文字を無視して比較する
+	/// @param lhs 左辺
+	/// @param rhs 右辺
+	/// @return 大文字小文字を無視して一致すればtrue
+	bool EqualsIgnoreCase(std::string_view lhs, std::string_view rhs);
+
+	/// @brief 文字列が指定の接頭辞で始まるかを大文字小文字を無視して判定する
+	/// @param string 対象文字列
+	/// @param prefix 接頭辞
+	/// @return 接頭辞で始まればtrue
+	bool StartsWithIgnoreCase(
+		std::string_view string, std::string_view prefix
+	);
+
+	/// @brief 文字列が指定の接尾辞で終わるかを大文字小文字を無視して判定する
+	/// @param string 対象文字列
+	/// @param suffix 接尾辞
+	/// @return 接尾辞で終わればtrue
+	bool EndsWithIgnoreCase(
+		std::string_view string, std::string_view suffix
+	);
+
+	/// @brief 文字列内でクエリを大文字小文字を無視して検索する
+	/// @param text 検索対象文字列
+	/// @param query 検索クエリ
+	/// @return 最初の一致位置。一致しない場合はstd::string::npos
+	std::size_t FindIgnoreCase(
+		std::string_view text, std::string_view query
+	);
 
 	/// @brief ファイルを読み込み、内容を文字列として返す
 	/// @param path ファイルパス
 	/// @param outString ファイル内容の文字列
 	/// @return 成功したらtrueを返す
-	bool ReadFileToString(const std::string& path, std::string& outString);
-
-	/// @brief パスを正規化する（例: "C:/folder/../file.txt" -> "C:/file.txt"）
-	/// @param path 入力パス
-	/// @return 正規化されたパス
-	std::string NormalizePath(std::string path);
+	bool ReadFileToString(const Path& path, std::string& outString);
 
 	/// @brief ブール文字列かを判定する
 	/// @param str 判定する文字列

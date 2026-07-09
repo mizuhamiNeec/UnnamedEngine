@@ -2,11 +2,11 @@
 
 #include "RgResourceRegistry.h"
 
-
 namespace Unnamed::Render {
 	RegistryDescriptorResolver::RegistryDescriptorResolver(
 		const RgResourceRegistry& reg
-	) : mReg(reg) {}
+	) : mReg(reg) {
+	}
 
 	D3D12_GPU_DESCRIPTOR_HANDLE RegistryDescriptorResolver::GetSrv(
 		const uint32_t textureId

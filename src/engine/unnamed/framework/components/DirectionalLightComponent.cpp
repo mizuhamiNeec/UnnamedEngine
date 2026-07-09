@@ -74,8 +74,8 @@ namespace Unnamed {
 
 		const auto* transform = owner->GetComponent<TransformComponent>();
 		Vec3        lightRayDirection = transform ?
-			                                transform->Forward() :
-			                                Vec3(0.0f, -1.0f, 0.0f);
+			                         transform->Forward() :
+			                         Vec3(0.0f, -1.0f, 0.0f);
 		if (lightRayDirection.IsZero()) {
 			lightRayDirection = Vec3(0.0f, -1.0f, 0.0f);
 		}

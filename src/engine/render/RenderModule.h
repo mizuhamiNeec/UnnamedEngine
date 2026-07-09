@@ -25,7 +25,17 @@ namespace Unnamed::Render {
 		RenderModule(AssetManager& assetManager, Rhi::IRhiDevice& rhiDevice);
 		~RenderModule();
 
-		void Init(ConsoleSystem* console);
+		/// @brief RenderDeviceとRendererを初期化します。
+		/// @param console Rendererが使用するConsoleSystem。
+		/// @param validationPolicy Renderer起動アセットの検証方針。
+		/// @return 初期化に成功した場合true。
+		[[nodiscard]] bool Init(
+			ConsoleSystem* console,
+			const RenderStartupOptions& startupOptions
+		);
+		/// @brief 起動シーンから到達可能なRenderer Pipelineを検証します。
+		/// @return 検証に成功した場合true。
+		[[nodiscard]] bool ValidateStartupResources() const;
 		/// @brief Renderer/RenderDevice を明示的な順序で終了します。
 		void Shutdown();
 		void Tick(const RenderFrameInputs& inputs) const;

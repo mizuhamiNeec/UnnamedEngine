@@ -1,4 +1,3 @@
-
 #include "GuiEditor.h"
 
 #include <algorithm>
@@ -6,7 +5,9 @@
 #include <cstdio>
 #include <imgui.h>
 
+#include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
+#include "core/content/ContentPathResolver.h"
 #include "core/string/StrUtil.h"
 
 #include "engine/gui/UiRoot.h"
@@ -28,29 +29,14 @@
 #ifdef _DEBUG
 namespace Unnamed::Gui {
 	namespace {
-		constexpr const char* kRenamePopupId = "Rename Widget";
+		constexpr auto kRenamePopupId = "Rename Widget";
 
 		struct PaletteTemplate {
-			const char* category;
-			const char* label;
-			const char* tooltip;
+			const char*                 category;
+			const char*                 label;
+			const char*                 tooltip;
 			std::unique_ptr<UiWidget> (*factory)();
 		};
-
-		std::string ToLower(std::string value) {
-			std::ranges::transform(
-				value,
-				value.begin(),
-				[](const unsigned char c) {
-					return static_cast<char>(std::tolower(c));
-				}
-			);
-			return value;
-		}
-
-		std::string NormalizePath(const std::string_view path) {
-			return StrUtil::NormalizePath(std::string(path));
-		}
 
 		void CopyStringToBuffer(
 			const std::string_view value,
@@ -69,10 +55,18 @@ namespace Unnamed::Gui {
 
 		void EnsureContextDefaults(GuiEditorContext& context) {
 			if (context.pathBuffer[0] == '\0') {
-				if (const auto* runtimeContext = ServiceLocator::Get<GameRuntimeContext>()) {
-					const std::string defaultUiPath =
-						runtimeContext->defaultUiDocumentPath;
-					if (!defaultUiPath.empty()) {
+				if (const auto* runtimeContext = ServiceLocator::Get<
+					GameRuntimeContext>()) {
+					const auto* assetManager = ServiceLocator::Get<AssetManager>();
+					const auto resolution =
+						assetManager && runtimeContext->defaultUiDocument.has_value() ?
+						assetManager->GetContentPathResolver().ResolveFile(
+							*runtimeContext->defaultUiDocument
+						) :
+						std::nullopt;
+					if (resolution.has_value()) {
+						const std::string defaultUiPath =
+							resolution->resolvedPath.ToGenericUtf8();
 						std::snprintf(
 							context.pathBuffer.data(),
 							context.pathBuffer.size(),
@@ -86,7 +80,7 @@ namespace Unnamed::Gui {
 		}
 
 		UiWidget* GetEditableDocumentRoot(UiRoot& uiRoot) {
-			UiWidget* runtimeRoot = uiRoot.GetRootWidget();
+			const UiWidget* runtimeRoot = uiRoot.GetRootWidget();
 			if (!runtimeRoot) {
 				return nullptr;
 			}
@@ -157,7 +151,7 @@ namespace Unnamed::Gui {
 				return false;
 			}
 
-			std::unique_ptr<UiWidget> removed = parent->TakeChild(widget);
+			const std::unique_ptr<UiWidget> removed = parent->TakeChild(widget);
 			return removed != nullptr;
 		}
 
@@ -169,7 +163,9 @@ namespace Unnamed::Gui {
 				return true;
 			}
 
-			const std::string nameLower = ToLower(std::string(widget->GetName()));
+			const std::string nameLower = StrUtil::ToLowerCase(
+				widget->GetName()
+			);
 			if (nameLower.find(filterLower) != std::string::npos) {
 				return true;
 			}
@@ -190,17 +186,24 @@ namespace Unnamed::Gui {
 		std::unique_ptr<UiWidget> CreateWidgetTemplate() {
 			auto widget = std::make_unique<UiWidget>();
 			widget->SetName("Widget");
-			widget->SetAnchors({0.0f, 0.0f, 0.0f, 0.0f});
-			widget->SetPivot({0.0f, 0.0f});
-			widget->SetLocalRect({0.0f, 0.0f, 160.0f, 64.0f});
+			widget->SetAnchors(
+				{.minX = 0.0f, .minY = 0.0f, .maxX = 0.0f, .maxY = 0.0f}
+			);
+			widget->SetPivot({.x = 0.0f, .y = 0.0f});
+			widget->SetLocalRect(
+				{.x = 0.0f, .y = 0.0f, .width = 160.0f, .height = 64.0f}
+			);
 			return widget;
 		}
 
 		std::unique_ptr<UiWidget> CreatePanelTemplate() {
 			auto widget = CreateWidgetTemplate();
 			widget->SetName("Panel");
-			widget->SetLocalRect({0.0f, 0.0f, 240.0f, 120.0f});
-			auto* panel = widget->GetOrAddComponent<UiPanelStyleComponent>();
+			widget->SetLocalRect(
+				{.x = 0.0f, .y = 0.0f, .width = 240.0f, .height = 120.0f}
+			);
+			const auto* panel = widget->GetOrAddComponent<
+				UiPanelStyleComponent>();
 			(void)panel;
 			return widget;
 		}
@@ -208,8 +211,11 @@ namespace Unnamed::Gui {
 		std::unique_ptr<UiWidget> CreateButtonTemplate() {
 			auto widget = CreateWidgetTemplate();
 			widget->SetName("Button");
-			widget->SetLocalRect({0.0f, 0.0f, 180.0f, 56.0f});
-			auto* behavior = widget->GetOrAddComponent<UiButtonBehaviorComponent>();
+			widget->SetLocalRect(
+				{.x = 0.0f, .y = 0.0f, .width = 180.0f, .height = 56.0f}
+			);
+			auto* behavior = widget->GetOrAddComponent<
+				UiButtonBehaviorComponent>();
 			behavior->SetText("Button");
 			return widget;
 		}
@@ -217,11 +223,18 @@ namespace Unnamed::Gui {
 		std::unique_ptr<UiWidget> CreateVerticalLayoutTemplate() {
 			auto widget = std::make_unique<UiWidget>();
 			widget->SetName("VerticalLayout");
-			widget->SetAnchors({0.0f, 0.0f, 1.0f, 1.0f});
-			widget->SetPivot({0.0f, 0.0f});
-			widget->SetLocalRect({0.0f, 0.0f, 0.0f, 0.0f});
-			auto* layout = widget->GetOrAddComponent<UiVerticalLayoutComponent>();
-			layout->SetPadding({8.0f, 8.0f, 8.0f, 8.0f});
+			widget->SetAnchors(
+				{.minX = 0.0f, .minY = 0.0f, .maxX = 1.0f, .maxY = 1.0f}
+			);
+			widget->SetPivot({.x = 0.0f, .y = 0.0f});
+			widget->SetLocalRect(
+				{.x = 0.0f, .y = 0.0f, .width = 0.0f, .height = 0.0f}
+			);
+			auto* layout = widget->GetOrAddComponent<
+				UiVerticalLayoutComponent>();
+			layout->SetPadding(
+				{.left = 8.0f, .top = 8.0f, .right = 8.0f, .bottom = 8.0f}
+			);
 			layout->SetSpacing(6.0f);
 			return widget;
 		}
@@ -229,36 +242,48 @@ namespace Unnamed::Gui {
 		std::unique_ptr<UiWidget> CreateHorizontalLayoutTemplate() {
 			auto widget = std::make_unique<UiWidget>();
 			widget->SetName("HorizontalLayout");
-			widget->SetAnchors({0.0f, 0.0f, 1.0f, 1.0f});
-			widget->SetPivot({0.0f, 0.0f});
-			widget->SetLocalRect({0.0f, 0.0f, 0.0f, 0.0f});
-			auto* layout = widget->GetOrAddComponent<UiHorizontalLayoutComponent>();
-			layout->SetPadding({8.0f, 8.0f, 8.0f, 8.0f});
+			widget->SetAnchors(
+				{.minX = 0.0f, .minY = 0.0f, .maxX = 1.0f, .maxY = 1.0f}
+			);
+			widget->SetPivot({.x = 0.0f, .y = 0.0f});
+			widget->SetLocalRect(
+				{.x = 0.0f, .y = 0.0f, .width = 0.0f, .height = 0.0f}
+			);
+			auto* layout = widget->GetOrAddComponent<
+				UiHorizontalLayoutComponent>();
+			layout->SetPadding(
+				{.left = 8.0f, .top = 8.0f, .right = 8.0f, .bottom = 8.0f}
+			);
 			layout->SetSpacing(6.0f);
 			return widget;
 		}
 
-		// Palette templates are centrally defined here.
-		const std::array<PaletteTemplate, 5> kPaletteTemplates = {
-			PaletteTemplate {
-				"Basic", "Widget", "Empty widget with Transform only",
-				&CreateWidgetTemplate
+		// パレットテンプレートはここで定義されます。
+		constexpr std::array kPaletteTemplates = {
+			PaletteTemplate{
+				.category = "Basic", .label = "Widget",
+				.tooltip  = "Empty widget with Transform only",
+				.factory  = &CreateWidgetTemplate
 			},
-			PaletteTemplate {
-				"Basic", "Panel", "Widget + PanelStyle component",
-				&CreatePanelTemplate
+			PaletteTemplate{
+				.category = "Basic", .label = "Panel",
+				.tooltip  = "Widget + PanelStyle component",
+				.factory  = &CreatePanelTemplate
 			},
-			PaletteTemplate {
-				"Controls", "Button", "Widget + ButtonBehavior component",
-				&CreateButtonTemplate
+			PaletteTemplate{
+				.category = "Controls", .label = "Button",
+				.tooltip  = "Widget + ButtonBehavior component",
+				.factory  = &CreateButtonTemplate
 			},
-			PaletteTemplate {
-				"Layout", "Vertical Layout", "Widget + VerticalLayout component",
-				&CreateVerticalLayoutTemplate
+			PaletteTemplate{
+				.category = "Layout", .label = "Vertical Layout",
+				.tooltip  = "Widget + VerticalLayout component",
+				.factory  = &CreateVerticalLayoutTemplate
 			},
-			PaletteTemplate {
-				"Layout", "Horizontal Layout",
-				"Widget + HorizontalLayout component", &CreateHorizontalLayoutTemplate
+			PaletteTemplate{
+				.category = "Layout", .label = "Horizontal Layout",
+				.tooltip  = "Widget + HorizontalLayout component",
+				.factory  = &CreateHorizontalLayoutTemplate
 			},
 		};
 
@@ -312,7 +337,8 @@ namespace Unnamed::Gui {
 				);
 
 				if (ImGui::Button("Apply")) {
-					context.renameTargetWidget->SetName(context.renameBuffer.data());
+					context.renameTargetWidget->SetName(
+						context.renameBuffer.data());
 					MarkDocumentDirty(context);
 					context.renameTargetWidget = nullptr;
 					ImGui::CloseCurrentPopup();
@@ -337,7 +363,7 @@ namespace Unnamed::Gui {
 			}
 
 			const bool         selected = widget == context.selectedWidget;
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
+			ImGuiTreeNodeFlags flags    = ImGuiTreeNodeFlags_OpenOnArrow |
 			                           ImGuiTreeNodeFlags_SpanAvailWidth;
 			if (
 				widget->GetChildren().empty() &&
@@ -359,7 +385,7 @@ namespace Unnamed::Gui {
 				flags,
 				"%s##%p",
 				label.c_str(),
-				static_cast<void*>(widget)
+				widget
 			);
 			if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
 				context.selectedWidget = widget;
@@ -405,7 +431,8 @@ namespace Unnamed::Gui {
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(
 					"UI_WIDGET_PTR"
 				)) {
-					UiWidget* dragged = *static_cast<UiWidget* const*>(payload->Data);
+					UiWidget* dragged = *static_cast<UiWidget* const*>(payload->
+						Data);
 					if (ReparentWidget(dragged, widget)) {
 						context.selectedWidget = dragged;
 						MarkDocumentDirty(context);
@@ -427,7 +454,8 @@ namespace Unnamed::Gui {
 				);
 			}
 			for (UiWidget* refChild : widget->GetReferenceChildren()) {
-				DrawWidgetTreeNode(editableRoot, refChild, context, filterLower);
+				DrawWidgetTreeNode(editableRoot, refChild, context,
+				                   filterLower);
 			}
 
 			if (!(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
@@ -439,7 +467,7 @@ namespace Unnamed::Gui {
 			UiWidget*         editableRoot,
 			GuiEditorContext& context
 		) {
-			UiWidget* pendingDelete = context.pendingDeleteWidget;
+			UiWidget* pendingDelete     = context.pendingDeleteWidget;
 			context.pendingDeleteWidget = nullptr;
 			if (!pendingDelete || pendingDelete == editableRoot) {
 				return;
@@ -473,7 +501,7 @@ namespace Unnamed::Gui {
 				return;
 			}
 
-			const Rect rect = widget->GetGlobalRect();
+			const Rect  rect  = widget->GetGlobalRect();
 			const ImU32 color = widget == selectedWidget ?
 				                    IM_COL32(255, 210, 64, 255) :
 				                    IM_COL32(64, 220, 255, 180);
@@ -523,15 +551,17 @@ namespace Unnamed::Gui {
 			context.outlinerFilterBuffer.data(),
 			context.outlinerFilterBuffer.size()
 		);
-		const std::string filterLower = ToLower(
+		const std::string filterLower = StrUtil::ToLowerCase(
 			context.outlinerFilterBuffer.data()
 		);
 
 		UiWidget* editableRoot = GetEditableDocumentRoot(uiRoot);
 		if (editableRoot) {
-			DrawWidgetTreeNode(editableRoot, editableRoot, context, filterLower);
+			DrawWidgetTreeNode(editableRoot, editableRoot, context,
+			                   filterLower);
 		} else {
-			ImGui::TextUnformatted("No root widget. Load or create a document root.");
+			ImGui::TextUnformatted(
+				"No root widget. Load or create a document root.");
 		}
 
 		DrawRenamePopup(context);
@@ -561,11 +591,12 @@ namespace Unnamed::Gui {
 		ImGui::Text("Add To: %s", targetName.c_str());
 		ImGui::Separator();
 
-		const std::array<const char*, 3> categories = {
+		constexpr std::array<const char*, 3> categories = {
 			"Basic", "Controls", "Layout"
 		};
 		for (const char* category : categories) {
-			if (!ImGui::CollapsingHeader(category, ImGuiTreeNodeFlags_DefaultOpen)) {
+			if (!ImGui::CollapsingHeader(category,
+			                             ImGuiTreeNodeFlags_DefaultOpen)) {
 				continue;
 			}
 
@@ -595,7 +626,10 @@ namespace Unnamed::Gui {
 
 		ImGui::End();
 	}
-	void DrawUiInspectorWindow(GuiEditorContext& context) {
+
+	void DrawUiInspectorWindow(
+		GuiEditorContext& context, AssetManager& assetManager
+	) {
 		if (!ImGui::Begin("Ui Inspector")) {
 			ImGui::End();
 			return;
@@ -629,17 +663,20 @@ namespace Unnamed::Gui {
 			changed = true;
 		}
 
-		Rect  rect = selected->GetLocalRect();
+		Rect  rect         = selected->GetLocalRect();
 		float rectArray[4] = {rect.x, rect.y, rect.width, rect.height};
 		if (ImGui::DragFloat4("Local Rect", rectArray, 0.5f)) {
 			selected->SetLocalRect(
-				{rectArray[0], rectArray[1], rectArray[2], rectArray[3]}
+				{
+					.x     = rectArray[0], .y      = rectArray[1],
+					.width = rectArray[2], .height = rectArray[3]
+				}
 			);
 			changed = true;
 		}
 
-		Anchors anchors = selected->GetAnchors();
-		float anchorArray[4] = {
+		Anchors anchors        = selected->GetAnchors();
+		float   anchorArray[4] = {
 			anchors.minX,
 			anchors.minY,
 			anchors.maxX,
@@ -647,20 +684,23 @@ namespace Unnamed::Gui {
 		};
 		if (ImGui::SliderFloat4("Anchors", anchorArray, 0.0f, 1.0f)) {
 			selected->SetAnchors(
-				{anchorArray[0], anchorArray[1], anchorArray[2], anchorArray[3]}
+				{
+					.minX = anchorArray[0], .minY = anchorArray[1],
+					.maxX = anchorArray[2], .maxY = anchorArray[3]
+				}
 			);
 			changed = true;
 		}
 
-		Pivot pivot = selected->GetPivot();
+		Pivot pivot         = selected->GetPivot();
 		float pivotArray[2] = {pivot.x, pivot.y};
 		if (ImGui::SliderFloat2("Pivot", pivotArray, 0.0f, 1.0f)) {
-			selected->SetPivot({pivotArray[0], pivotArray[1]});
+			selected->SetPivot({.x = pivotArray[0], .y = pivotArray[1]});
 			changed = true;
 		}
 
-		Margins margins = selected->GetMargins();
-		float marginArray[4] = {
+		Margins margins        = selected->GetMargins();
+		float   marginArray[4] = {
 			margins.left,
 			margins.top,
 			margins.right,
@@ -668,13 +708,16 @@ namespace Unnamed::Gui {
 		};
 		if (ImGui::DragFloat4("Margins", marginArray, 0.5f)) {
 			selected->SetMargins(
-				{marginArray[0], marginArray[1], marginArray[2], marginArray[3]}
+				{
+					.left  = marginArray[0], .top    = marginArray[1],
+					.right = marginArray[2], .bottom = marginArray[3]
+				}
 			);
 			changed = true;
 		}
 
-		auto        sizePolicy = selected->GetSizePolicy();
-		const char* policies[] = {"FIXED", "EXPAND"};
+		auto        sizePolicy       = selected->GetSizePolicy();
+		const char* policies[]       = {"FIXED", "EXPAND"};
 		int         horizontalPolicy = static_cast<int>(sizePolicy.horizontal);
 		int         verticalPolicy   = static_cast<int>(sizePolicy.vertical);
 		if (ImGui::Combo(
@@ -700,7 +743,7 @@ namespace Unnamed::Gui {
 			changed = true;
 		}
 
-		auto constraints = selected->GetSizeConstraints();
+		auto  constraints        = selected->GetSizeConstraints();
 		float constraintArray[4] = {
 			constraints.minWidth,
 			constraints.minHeight,
@@ -710,10 +753,10 @@ namespace Unnamed::Gui {
 		if (ImGui::DragFloat4("Size Constraints", constraintArray, 0.5f)) {
 			selected->SetSizeConstraints(
 				{
-					constraintArray[0],
-					constraintArray[1],
-					constraintArray[2],
-					constraintArray[3],
+					.minWidth  = constraintArray[0],
+					.minHeight = constraintArray[1],
+					.maxWidth  = constraintArray[2],
+					.maxHeight = constraintArray[3]
 				}
 			);
 			changed = true;
@@ -763,18 +806,18 @@ namespace Unnamed::Gui {
 				typeName.c_str()
 			);
 			if (open) {
-				if (auto* layout = dynamic_cast<UiLinearLayoutComponent*>(component)) {
-					LayoutPadding padding = layout->GetPadding();
+				if (auto* layout = dynamic_cast<UiLinearLayoutComponent*>(
+					component)) {
+					LayoutPadding padding         = layout->GetPadding();
 					float         paddingArray[4] = {
 						padding.left, padding.top, padding.right, padding.bottom
 					};
 					if (ImGui::DragFloat4("Padding", paddingArray, 0.5f)) {
 						layout->SetPadding(
 							{
-								paddingArray[0],
-								paddingArray[1],
-								paddingArray[2],
-								paddingArray[3],
+								.left = paddingArray[0], .top = paddingArray[1],
+								.right = paddingArray[2],
+								.bottom = paddingArray[3]
 							}
 						);
 						changed = true;
@@ -784,7 +827,8 @@ namespace Unnamed::Gui {
 						layout->SetSpacing(spacing);
 						changed = true;
 					}
-				} else if (auto* panel = dynamic_cast<UiPanelStyleComponent*>(component)
+				} else if (auto* panel = dynamic_cast<UiPanelStyleComponent*>(
+					component)
 				) {
 					Color bg = panel->GetBackgroundColor();
 					if (DrawColor4("Background", bg)) {
@@ -819,11 +863,14 @@ namespace Unnamed::Gui {
 						changed = true;
 					}
 				} else if (
-					auto* button = dynamic_cast<UiButtonBehaviorComponent*>(component)
+					auto* button = dynamic_cast<UiButtonBehaviorComponent*>(
+						component)
 				) {
 					char textBuffer[128] = {};
-					CopyStringToBuffer(button->GetText(), textBuffer, sizeof(textBuffer));
-					if (ImGui::InputText("Text", textBuffer, sizeof(textBuffer))) {
+					CopyStringToBuffer(button->GetText(), textBuffer,
+					                   sizeof(textBuffer));
+					if (ImGui::InputText("Text", textBuffer,
+					                     sizeof(textBuffer))) {
 						button->SetText(textBuffer);
 						changed = true;
 					}
@@ -878,7 +925,9 @@ namespace Unnamed::Gui {
 				} else if (
 					auto* texture = dynamic_cast<UiTextureComponent*>(component)
 				) {
-					std::string texturePath = texture->GetTexturePath();
+					std::string texturePath = texture->GetTexturePath().has_value() ?
+						texture->GetTexturePath()->String() :
+						std::string{};
 					if (
 						ImGuiWidgets::AssetPathPicker(
 							"Texture",
@@ -886,7 +935,15 @@ namespace Unnamed::Gui {
 							ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::TEXTURE)
 						)
 					) {
-						texture->SetTexturePath(texturePath);
+						const auto virtualPath =
+							VirtualPath::ParseContentReference(texturePath);
+						if (!virtualPath.has_value()) {
+							texture->ClearTexturePath();
+						} else {
+							(void)texture->SetTexturePath(
+								*virtualPath, assetManager
+							);
+						}
 						changed = true;
 					}
 
@@ -896,23 +953,29 @@ namespace Unnamed::Gui {
 						changed = true;
 					}
 
-					Vec2 uvMin = texture->GetUvMin();
+					Vec2  uvMin         = texture->GetUvMin();
 					float uvMinArray[2] = {uvMin.x, uvMin.y};
-					if (ImGui::DragFloat2("UV Min", uvMinArray, 0.001f, 0.0f, 1.0f)) {
+					if (ImGui::DragFloat2("UV Min", uvMinArray, 0.001f, 0.0f,
+					                      1.0f)) {
 						texture->SetUvMin(Vec2(uvMinArray[0], uvMinArray[1]));
 						changed = true;
 					}
 
-					Vec2 uvMax = texture->GetUvMax();
+					Vec2  uvMax         = texture->GetUvMax();
 					float uvMaxArray[2] = {uvMax.x, uvMax.y};
-					if (ImGui::DragFloat2("UV Max", uvMaxArray, 0.001f, 0.0f, 1.0f)) {
+					if (ImGui::DragFloat2("UV Max", uvMaxArray, 0.001f, 0.0f,
+					                      1.0f)) {
 						texture->SetUvMax(Vec2(uvMaxArray[0], uvMaxArray[1]));
 						changed = true;
 					}
 				} else if (
-					auto* strip = dynamic_cast<UiDigitStripComponent*>(component)
+					auto* strip = dynamic_cast<UiDigitStripComponent*>(
+						component)
 				) {
-					std::string texturePath = strip->GetStripTexturePath();
+					std::string texturePath =
+						strip->GetStripTexturePath().has_value() ?
+						strip->GetStripTexturePath()->String() :
+						std::string{};
 					if (
 						ImGuiWidgets::AssetPathPicker(
 							"Strip Texture",
@@ -920,7 +983,15 @@ namespace Unnamed::Gui {
 							ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::TEXTURE)
 						)
 					) {
-						strip->SetStripTexturePath(texturePath);
+						const auto virtualPath =
+							VirtualPath::ParseContentReference(texturePath);
+						if (!virtualPath.has_value()) {
+							strip->ClearStripTexturePath();
+						} else {
+							(void)strip->SetStripTexturePath(
+								*virtualPath, assetManager
+							);
+						}
 						changed = true;
 					}
 
@@ -937,7 +1008,8 @@ namespace Unnamed::Gui {
 					}
 
 					float spacing = strip->GetDigitSpacing();
-					if (ImGui::DragFloat("Digit Spacing", &spacing, 0.1f, 0.0f, 256.0f)) {
+					if (ImGui::DragFloat("Digit Spacing", &spacing, 0.1f, 0.0f,
+					                     256.0f)) {
 						strip->SetDigitSpacing(spacing);
 						changed = true;
 					}
@@ -988,14 +1060,16 @@ namespace Unnamed::Gui {
 				static_cast<int>(componentTypeLabels.size())
 			);
 			if (ImGui::Button("Add Component##GuiEditorAddComponentButton")) {
-				const std::string_view typeName = componentTypes[static_cast<size_t>(
+				const std::string_view typeName = componentTypes[static_cast<
+					size_t>(
 					context.addComponentTypeIndex
 				)];
 				if (
 					typeName != "Transform" ||
 					!selected->GetComponent<UiTransformComponent>()
 				) {
-					if (auto component = UiWidget::CreateComponentByTypeName(typeName)
+					if (auto component = UiWidget::CreateComponentByTypeName(
+						typeName)
 					) {
 						selected->AddComponent(std::move(component));
 						changed = true;
@@ -1026,9 +1100,8 @@ namespace Unnamed::Gui {
 			context.pathBuffer.size()
 		);
 
-		const std::string normalizedPath = NormalizePath(
-			context.pathBuffer.data()
-		);
+		const Path normalizedPath =
+			Path(context.pathBuffer.data()).LexicallyNormal();
 
 		if (ImGui::Button("Load")) {
 			auto doc = manager.LoadDocument(normalizedPath);
@@ -1079,10 +1152,10 @@ namespace Unnamed::Gui {
 			}
 		}
 
-		const std::string trackingPath = context.activeDocumentPath.empty() ?
-			                                 normalizedPath :
-			                                 context.activeDocumentPath;
-		const bool dirty = manager.IsDirty(trackingPath);
+		const Path trackingPath = context.activeDocumentPath.IsEmpty() ?
+			                          normalizedPath :
+			                          context.activeDocumentPath;
+		const bool dirty   = manager.IsDirty(trackingPath);
 		const bool pending = manager.HasPendingExternal(trackingPath);
 
 		ImGui::Separator();
@@ -1099,7 +1172,8 @@ namespace Unnamed::Gui {
 					context.selectedWidget = nullptr;
 					if (screenStack) {
 						screenStack->Clear();
-						screenStack->PushScreen(std::make_shared<UiScreen>(doc));
+						screenStack->
+							PushScreen(std::make_shared<UiScreen>(doc));
 					}
 				}
 			}
@@ -1128,6 +1202,7 @@ namespace Unnamed::Gui {
 
 		ImGui::End();
 	}
+
 	void DrawUiPreviewWindow(
 		UiRoot*                        uiRoot,
 		const Render::SceneOutputView& previewOutput,
@@ -1190,10 +1265,11 @@ namespace Unnamed::Gui {
 		fitHeight = std::max(1.0f, fitHeight);
 
 		const float drawWidth  = std::max(1.0f, fitWidth * context.previewZoom);
-		const float drawHeight = std::max(1.0f, fitHeight * context.previewZoom);
+		const float drawHeight =
+			std::max(1.0f, fitHeight * context.previewZoom);
 
 		const ImVec2 baseCursor = ImGui::GetCursorScreenPos();
-		const ImVec2 imagePos = ImVec2(
+		const auto imagePos   = ImVec2(
 			baseCursor.x + std::max(0.0f, (avail.x - drawWidth) * 0.5f),
 			baseCursor.y + std::max(0.0f, (avail.y - drawHeight) * 0.5f)
 		);
@@ -1229,7 +1305,7 @@ namespace Unnamed::Gui {
 		const ImVec2 mousePos     = ImGui::GetMousePos();
 		const float  u            = (mousePos.x - imagePos.x) / drawWidth;
 		const float  v            = (mousePos.y - imagePos.y) / drawHeight;
-		const bool inside = imageHovered &&
+		const bool   inside       = imageHovered &&
 		                    u >= 0.0f &&
 		                    u <= 1.0f &&
 		                    v >= 0.0f &&
@@ -1246,7 +1322,8 @@ namespace Unnamed::Gui {
 		);
 
 		UiWidget* editableRoot = GetEditableDocumentRoot(*uiRoot);
-		if (inside && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && editableRoot) {
+		if (inside && ImGui::IsMouseClicked(ImGuiMouseButton_Left) &&
+		    editableRoot) {
 			if (UiWidget* hit = editableRoot->HitTest(localX, localY)) {
 				context.selectedWidget = hit;
 			}

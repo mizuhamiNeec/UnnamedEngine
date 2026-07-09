@@ -1,5 +1,4 @@
-<img src="../assets/logo.svg" width="128px" height="auto" />
-
+![Logo](assets/logo.svg)
 Unnamed Engine はC++で開発されたゲームエンジンです。形状キャストが可能な物理エンジン、シーン管理、UIシステムなど、ゲーム開発に必要な機能を提供します。
 
 コンポーネントベースのアーキテクチャを採用しており、柔軟なゲームロジックの実装が可能です。

@@ -166,7 +166,7 @@ namespace ImGuiWidgets {
 	/// @param logo ロゴのコードポイント(フォントアイコン)
 	/// @param bShow ウィンドウの表示状態への参照。ウィンドウが閉じられた場合にfalseになります。
 	void ShowAboutWindow(
-		std::string systemName, std::string version, uint32_t logo, bool& bShow
+		const std::string& systemName, const std::string& version, uint32_t logo, bool& bShow
 	);
 
 	/// @brief アセットパスの入力 + D&D受け入れ + ピッカー起動を行うウィジェット

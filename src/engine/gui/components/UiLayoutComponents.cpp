@@ -29,13 +29,17 @@ namespace Unnamed::Gui {
 		writer.Write(mSpacing);
 	}
 
-	void UiLinearLayoutComponent::Deserialize(const JsonReader& reader) {
+	bool UiLinearLayoutComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		(void)context;
 		if (reader.Has("padding")) {
 			mPadding = ReadPadding(reader["padding"].GetArray());
 		}
 		if (reader.Has("spacing")) {
 			mSpacing = reader["spacing"].GetFloat();
 		}
+		return true;
 	}
 
 	void UiLinearLayoutComponent::OnAfterLayout(UiWidget& owner) {
@@ -72,10 +76,12 @@ namespace Unnamed::Gui {
 
 			const UiSizePolicy       policy      = child->GetSizePolicy();
 			const UiSizeConstraints& constraints = child->GetSizeConstraints();
-			const bool isVertical = IsVertical();
-			const bool expand = isVertical ?
-				                    policy.vertical == UiSizePolicyAxis::EXPAND :
-				                    policy.horizontal == UiSizePolicyAxis::EXPAND;
+			const bool               isVertical  = IsVertical();
+			const bool               expand      = isVertical ?
+				                    policy.vertical ==
+				                    UiSizePolicyAxis::EXPAND :
+				                    policy.horizontal ==
+				                    UiSizePolicyAxis::EXPAND;
 
 			float preferred = isVertical ?
 				                  child->GetPreferredHeight() :
@@ -92,9 +98,9 @@ namespace Unnamed::Gui {
 				                       constraints.maxWidth;
 			const float clamped = std::clamp(preferred, minValue, maxValue);
 
-			ChildInfo info = {};
-			info.widget    = child;
-			info.expand    = expand;
+			ChildInfo info   = {};
+			info.widget      = child;
+			info.expand      = expand;
 			info.fixedExtent = expand ? 0.0f : clamped;
 			totalFixedExtent += info.fixedExtent;
 			if (expand) {
@@ -108,14 +114,16 @@ namespace Unnamed::Gui {
 		}
 
 		const float totalSpacing =
-			mSpacing * static_cast<float>(std::max(0, static_cast<int>(infos.size()) - 1));
+			mSpacing * static_cast<float>(std::max(
+				0, static_cast<int>(infos.size()) - 1));
 		const float contentExtent = IsVertical() ? contentHeight : contentWidth;
-		const float remaining = std::max(
+		const float remaining     = std::max(
 			0.0f,
 			contentExtent - totalFixedExtent - totalSpacing
 		);
 		const float expandExtent = expandCount > 0 ?
-			                           remaining / static_cast<float>(expandCount) :
+			                           remaining / static_cast<float>(
+				                           expandCount) :
 			                           0.0f;
 
 		float cursor = IsVertical() ? mPadding.top : mPadding.left;
@@ -124,7 +132,8 @@ namespace Unnamed::Gui {
 				continue;
 			}
 
-			const UiSizeConstraints& constraints = info.widget->GetSizeConstraints();
+			const UiSizeConstraints& constraints = info.widget->
+				GetSizeConstraints();
 			float extent = info.fixedExtent;
 			if (info.expand) {
 				extent = expandExtent;

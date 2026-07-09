@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "core/ComponentRegistry.h"
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -29,47 +30,48 @@
 namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "TitleFlow";
-		constexpr const char*      kDemoMismatchPolicyCvar =
-			"demo_mismatch_policy";
-		constexpr float            kDemoRetryIntervalSec = 0.75f;
-		constexpr float            kMinDurationSec       = 0.01f;
+		constexpr auto kDemoMismatchPolicyCvar = "demo_mismatch_policy";
+		constexpr float kDemoRetryIntervalSec = 0.75f;
+		constexpr float kMinDurationSec = 0.01f;
 
-		[[nodiscard]] bool IsEngineRootRelativePath(const std::string_view path) {
-			return path.rfind("content/", 0) == 0 ||
-			       path.rfind("projects/", 0) == 0;
-		}
-
-		[[nodiscard]] std::string ResolveTitleContentPath(
-			const std::string_view configuredPath,
-			const std::string_view fallbackRelativePath
+		// TODO: ResolveContent系は複数のファイルで同じ処理の定義がされているので要修正
+		[[nodiscard]] Path ResolveTitleContentPath(
+			const Path& configuredPath,
+			const Path& fallbackRelativePath
 		) {
-			std::string effectivePath = configuredPath.empty() ?
-				                            std::string(fallbackRelativePath) :
-				                            std::string(configuredPath);
-			if (effectivePath.empty()) {
+			const auto effectivePath = configuredPath.IsEmpty() ?
+				                     fallbackRelativePath :
+				                     configuredPath;
+			if (effectivePath.IsEmpty()) {
 				return {};
 			}
 
-			// 既存JSONの "content/..." 形式はプロジェクトルート基準として扱います。
-			if (IsEngineRootRelativePath(effectivePath)) {
-				return "./" + effectivePath;
-			}
+			const auto resolveFromModulePaths =
+				[&effectivePath](const GameModulePaths& modulePaths) {
+					const std::string genericPath =
+						effectivePath.ToGenericUtf8();
+					if (
+						effectivePath.IsRelative() &&
+						genericPath.starts_with("content/")
+					) {
+						return ResolveGameRootPath(
+							modulePaths,
+							effectivePath
+						);
+					}
+					return ResolveGameContentPath(modulePaths, effectivePath);
+				};
 
 			if (const GameRuntimeContext* runtimeContext =
 				ServiceLocator::Get<GameRuntimeContext>()) {
-				return ResolveGameContentPath(
-					runtimeContext->modulePaths,
-					effectivePath
-				);
+				return resolveFromModulePaths(runtimeContext->modulePaths);
 			}
 
-			if (const IGameModule* gameModule = ServiceLocator::Get<IGameModule>()) {
-				return ResolveGameContentPath(
-					gameModule->GetGameModulePaths(),
-					effectivePath
-				);
+			if (const IGameModule* gameModule = ServiceLocator::Get<
+				IGameModule>()) {
+				return resolveFromModulePaths(gameModule->GetGameModulePaths());
 			}
-			return effectivePath;
+			return effectivePath.LexicallyNormal();
 		}
 
 		float EvaluateFadeEase(const float t) {
@@ -109,16 +111,21 @@ namespace Unnamed {
 	}
 
 	void TitleFlowComponent::Deserialize(const JsonReader& reader) {
-		mGameplayScenePath =
-			reader["gameplayScenePath"].GetString(mGameplayScenePath);
-		mDemoPath               = reader["demoPath"].GetString(mDemoPath);
-		mPlayPromptName         = reader["playPromptName"].GetString(mPlayPromptName);
-		mFadeOverlayName        = reader["fadeOverlayName"].GetString(mFadeOverlayName);
-		mFadeOutSeconds         = std::max(
+		mGameplayScenePath = Path(
+			reader["gameplayScenePath"].
+				GetString(mGameplayScenePath.ToGenericUtf8())
+		);
+		mDemoPath = Path(
+			reader["demoPath"].GetString(mDemoPath.ToGenericUtf8())
+		);
+		mPlayPromptName  = reader["playPromptName"].GetString(mPlayPromptName);
+		mFadeOverlayName = reader["fadeOverlayName"].
+			GetString(mFadeOverlayName);
+		mFadeOutSeconds = std::max(
 			kMinDurationSec,
 			reader["fadeOutSeconds"].GetFloat(mFadeOutSeconds)
 		);
-		mFadeInSeconds          = std::max(
+		mFadeInSeconds = std::max(
 			kMinDurationSec,
 			reader["fadeInSeconds"].GetFloat(mFadeInSeconds)
 		);
@@ -134,9 +141,9 @@ namespace Unnamed {
 
 	void TitleFlowComponent::Serialize(JsonWriter& writer) const {
 		writer.Key("gameplayScenePath");
-		writer.Write(mGameplayScenePath);
+		writer.Write(mGameplayScenePath.ToGenericUtf8());
 		writer.Key("demoPath");
-		writer.Write(mDemoPath);
+		writer.Write(mDemoPath.ToGenericUtf8());
 		writer.Key("playPromptName");
 		writer.Write(mPlayPromptName);
 		writer.Key("fadeOverlayName");
@@ -181,15 +188,15 @@ namespace Unnamed {
 	}
 
 	void TitleFlowComponent::EnterTitleMode() {
-		mInitialized             = true;
-		mPlayRequested           = false;
-		mQuitRequested           = false;
-		mDemoRetrySeconds        = 0.0f;
-		mHasSavedMismatchPolicy  = false;
+		mInitialized            = true;
+		mPlayRequested          = false;
+		mQuitRequested          = false;
+		mDemoRetrySeconds       = 0.0f;
+		mHasSavedMismatchPolicy = false;
 		mSavedMismatchPolicy.clear();
-		mPhase                   = PHASE::IDLE;
-		mPhaseElapsedSeconds     = 0.0f;
-		mPromptBlinkSeconds      = 0.0f;
+		mPhase               = PHASE::IDLE;
+		mPhaseElapsedSeconds = 0.0f;
+		mPromptBlinkSeconds  = 0.0f;
 
 		if (Entity* owner = GetOwner()) {
 			owner->SetVisible(true);
@@ -215,7 +222,7 @@ namespace Unnamed {
 		mPhase               = PHASE::INACTIVE;
 		mPhaseElapsedSeconds = 0.0f;
 		mPromptBlinkSeconds  = 0.0f;
-		mActiveDemoPath.clear();
+		mActiveDemoPath.Clear();
 
 		if (IDemoService* demo = GetDemoService()) {
 			if (demo->IsPlayback() || demo->IsRecording()) {
@@ -243,8 +250,8 @@ namespace Unnamed {
 			return false;
 		}
 
-		const std::string demoPath = ResolveDemoPath();
-		if (demoPath.empty()) {
+		const Path demoPath = ResolveDemoPath();
+		if (demoPath.IsEmpty()) {
 			Warning(kChannel, "Title demo path is empty.");
 			mDemoRetrySeconds = kDemoRetryIntervalSec;
 			return false;
@@ -299,8 +306,9 @@ namespace Unnamed {
 			}
 			case PHASE::DEMO_LOOP_FADE_OUT: {
 				mPhaseElapsedSeconds += deltaTime;
-				const float t = std::clamp(
-					mPhaseElapsedSeconds / std::max(kMinDurationSec, mFadeOutSeconds),
+				const float t        = std::clamp(
+					mPhaseElapsedSeconds / std::max(
+						kMinDurationSec, mFadeOutSeconds),
 					0.0f,
 					1.0f
 				);
@@ -319,8 +327,9 @@ namespace Unnamed {
 			}
 			case PHASE::DEMO_LOOP_FADE_IN: {
 				mPhaseElapsedSeconds += deltaTime;
-				const float t = std::clamp(
-					mPhaseElapsedSeconds / std::max(kMinDurationSec, mFadeInSeconds),
+				const float t        = std::clamp(
+					mPhaseElapsedSeconds / std::max(
+						kMinDurationSec, mFadeInSeconds),
 					0.0f,
 					1.0f
 				);
@@ -334,9 +343,9 @@ namespace Unnamed {
 			}
 			case PHASE::START_TRANSITION_OUT: {
 				mPhaseElapsedSeconds += deltaTime;
-				const float t = std::clamp(
+				const float t        = std::clamp(
 					mPhaseElapsedSeconds /
-						std::max(kMinDurationSec, mStartTransitionSeconds),
+					std::max(kMinDurationSec, mStartTransitionSeconds),
 					0.0f,
 					1.0f
 				);
@@ -353,7 +362,7 @@ namespace Unnamed {
 
 	void TitleFlowComponent::CommitStartTransition() {
 		IDemoService* demo  = GetDemoService();
-		World*       world = GetWorld();
+		World*        world = GetWorld();
 		if (!world) {
 			return;
 		}
@@ -366,11 +375,11 @@ namespace Unnamed {
 			(void)demo->Stop();
 		}
 
-		const std::string gameplayScenePath = ResolveTitleContentPath(
+		const Path gameplayScenePath = ResolveTitleContentPath(
 			mGameplayScenePath,
-			"scenes/game.json"
+			Path("scenes/game.json")
 		);
-		if (gameplayScenePath.empty()) {
+		if (gameplayScenePath.IsEmpty()) {
 			Warning(kChannel, "Gameplay scene path is empty.");
 			return;
 		}
@@ -394,8 +403,8 @@ namespace Unnamed {
 			return;
 		}
 
-		Gui::UiRoot* root             = mUiCanvas->GetRuntimeRoot();
-		Gui::UiWidget* rootWidget     = root ? root->GetRootWidget() : nullptr;
+		Gui::UiRoot*   root       = mUiCanvas->GetRuntimeRoot();
+		Gui::UiWidget* rootWidget = root ? root->GetRootWidget() : nullptr;
 		if (!rootWidget) {
 			return;
 		}
@@ -415,25 +424,32 @@ namespace Unnamed {
 				nullptr;
 		mFadeOverlayTexture =
 			fadeOverlayWidget ?
-				fadeOverlayWidget->GetOrAddComponent<Gui::UiTextureComponent>() :
+				fadeOverlayWidget->GetOrAddComponent<
+					Gui::UiTextureComponent>() :
 				nullptr;
 
 		if (mPlayButtonWidget) {
 			if (auto* playBehavior =
-				mPlayButtonWidget->GetComponent<Gui::UiButtonBehaviorComponent>()) {
-				playBehavior->SetOnClick([this]() { RequestStart(); });
+				mPlayButtonWidget->GetComponent<
+					Gui::UiButtonBehaviorComponent>()) {
+				playBehavior->SetOnClick([this]() {
+					RequestStart();
+				});
 			}
 		}
 		if (mQuitButtonWidget) {
 			if (auto* quitBehavior =
-				mQuitButtonWidget->GetComponent<Gui::UiButtonBehaviorComponent>()) {
-				quitBehavior->SetOnClick([this]() { RequestQuit(); });
+				mQuitButtonWidget->GetComponent<
+					Gui::UiButtonBehaviorComponent>()) {
+				quitBehavior->SetOnClick([this]() {
+					RequestQuit();
+				});
 			}
 		}
 	}
 
 	Gui::UiWidget* TitleFlowComponent::FindWidgetByNameRecursive(
-		Gui::UiWidget*        root,
+		Gui::UiWidget*         root,
 		const std::string_view widgetName
 	) {
 		if (!root) {
@@ -503,8 +519,11 @@ namespace Unnamed {
 		mPlayPromptTexture->SetColor(color);
 	}
 
-	std::string TitleFlowComponent::ResolveDemoPath() const {
-		return ResolveTitleContentPath(mDemoPath, "replay/title_demo.udemo");
+	Path TitleFlowComponent::ResolveDemoPath() const {
+		return ResolveTitleContentPath(
+			mDemoPath,
+			Path("replay/title_demo.udemo")
+		);
 	}
 
 	void TitleFlowComponent::RequestStart() {

@@ -1,9 +1,9 @@
 {
 	"name": "dev_default",
-	"material": "../dev.material.json",
+	"material": "materials/dev.material.json",
 	"textures": {
-		"BaseColor": "../../textures/dev_measure.png",
-		"Normal": "../../textures/dev_measure_normal.png"
+		"BaseColor": "textures/dev_measure.png",
+		"Normal": "textures/dev_measure_normal.png"
 	},
 	"scalars": {
 		"Metallic": 0.25,

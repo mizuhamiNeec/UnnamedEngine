@@ -12,5 +12,8 @@ Unnamed Engine は C++ / DirectX 12 を使用したゲームエンジンです�
 ## ドキュメント
 
 - [はじめに](gettingstarted.md)
+- [コンポーネント](component.md)
+- [コンソール](console.md)
+- [入力システム](inputsystem.md)
 - [エンジン内蔵コンポーネント](engine-components.md)
-- [コンポーネントドキュメントテンプレート](component-template.md)
+- [ステータス](status.md)

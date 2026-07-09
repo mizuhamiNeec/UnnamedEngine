@@ -9,16 +9,17 @@
 #include <utility>
 
 #include "RendererDraw.h"
+#include "RenderStartupOptions.h"
 #include "TextureResourceCache.h"
 
 #include "core/assets/AssetID.h"
+#include "core/assets/AssetType.h"
 #include "core/assets/types/MaterialAssetData.h"
 #include "core/math/Vec2.h"
 
 #include "engine/rhi/Buffer.h"
 #include "engine/rhi/Constants.h"
 #include "engine/rhi/UploadBuffer.h"
-#include "engine/unnamed/subsystem/console/concommand/ConVar.h"
 
 #include "foundation/AdvancedRenderFoundation.h"
 
@@ -28,6 +29,10 @@
 #include "rendergraph/RgResourceRegistry.h"
 
 #include "shaders/PipelineRegistry.h"
+
+namespace Unnamed {
+	class AssetManager;
+}
 
 namespace Unnamed::Render {
 	struct RenderFrameInputs;
@@ -69,8 +74,20 @@ namespace Unnamed::Render {
 		void Shutdown(RenderDevice& renderDevice);
 
 		/// @brief レンダラの初期化処理に呼び出されます。
-		/// @param renderDevice 描画に使用するRenderDevice
-		void Init(RenderDevice& renderDevice);
+		/// @param renderDevice 描画に使用するRenderDevice。
+		/// @param validationPolicy Renderer起動アセットの検証方針。
+		/// @return 必須Rendererアセットを含む初期化に成功した場合true。
+		[[nodiscard]] bool Init(
+			RenderDevice& renderDevice,
+			const RenderStartupOptions& startupOptions
+		);
+
+		/// @brief 起動シーンから到達可能なMaterial Pipelineを厳格検証します。
+		/// @param renderDevice 描画に使用するRenderDevice。
+		/// @return 全対象Pipelineの解決に成功した場合true。
+		[[nodiscard]] bool ValidateStartupResources(
+			RenderDevice& renderDevice
+		);
 
 		/// @brief 毎フレームの描画処理に呼び出されます。
 		/// @param renderDevice 描画に使用するRenderDevice
@@ -98,6 +115,10 @@ namespace Unnamed::Render {
 
 	private:
 		struct MaterialBinding;
+		enum class RequiredShaderStages : uint8_t {
+			Graphics,
+			Compute,
+		};
 
 		// シーンの描画にはHDRを使う!
 		static constexpr DXGI_FORMAT kSceneHdrColorFormat =
@@ -137,14 +158,44 @@ namespace Unnamed::Render {
 		void ReleaseMaterialBindings(RenderDevice& renderDevice);
 		void EnsureDefaultMaterialTextures(RenderDevice& renderDevice);
 		void ReleaseDefaultMaterialTextures(RenderDevice& renderDevice);
+		/// @brief Core mount 固定でRenderer内部アセットをロードします。
+		/// @param assetManager アセット管理サービス。
+		/// @param virtualPathText content root 基準の論理パス。
+		/// @param type ロードするアセット型。
+		/// @return ロードしたアセットID。失敗時はkInvalidAssetID。
+		[[nodiscard]] static AssetID LoadCoreAsset(
+			AssetManager& assetManager,
+			std::string_view virtualPathText,
+			ASSET_TYPE type
+		);
+		/// @brief ShaderProgramが必要なstage sourceを保持するか検証します。
+		/// @param assetManager アセット管理サービス。
+		/// @param shaderProgramId 検証するShaderProgram ID。
+		/// @param requiredStages 必須stage構成。
+		/// @param debugName ログ表示名。
+		/// @return 必須stageとShaderSourceが全て有効な場合true。
+		[[nodiscard]] static bool ValidateShaderProgramStages(
+			const AssetManager& assetManager,
+			AssetID shaderProgramId,
+			RequiredShaderStages requiredStages,
+			std::string_view debugName
+		);
 		void EnsureMaterialTextureTable(
 			RenderDevice& renderDevice, MaterialBinding& binding
 		) const;
-		void LoadPostFxChain(const RenderDevice& renderDevice);
-		void RebuildPipelineCatalog(
-			RenderDevice& renderDevice, Rhi::D3D12Device& dx
+		[[nodiscard]] bool LoadPostFxChain(
+			const RenderDevice& renderDevice
 		);
-		void ResolveRegisteredPipelines(RenderDevice& renderDevice);
+		[[nodiscard]] bool RebuildPipelineCatalog(
+			RenderDevice& renderDevice,
+			Rhi::D3D12Device& dx,
+			const RenderStartupOptions& startupOptions
+		);
+		[[nodiscard]] bool ResolveRegisteredPipelines(
+			RenderDevice& renderDevice,
+			PIPELINE_RESOLVE_SCOPE scope =
+				PIPELINE_RESOLVE_SCOPE::ALL_REGISTERED
+		);
 
 		struct FullscreenPassRes {
 			PipelineHandle                  pipeline = {};
@@ -442,6 +493,7 @@ namespace Unnamed::Render {
 		static constexpr uint32_t kMaxDebugLines  = 65536; // TODO: とりあえず
 
 		ConsoleSystem* mConsole = nullptr;
+		RenderStartupOptions mStartupOptions = {};
 
 		RenderGraph      mGraph;
 		PipelineRegistry mPipelineRegistry;

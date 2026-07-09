@@ -5,10 +5,10 @@
 #include <cmath>
 
 #include "core/assets/AssetManager.h"
-#include "core/assets/AssetType.h"
+#include "core/content/ContentPathResolver.h"
 #include "core/guidgenerator/GuidGenerator.h"
-#include "core/string/StrUtil.h"
 
+#include "engine/content/ContentMountDefinitions.h"
 #include "engine/sequence/SequencePlayer.h"
 #include "engine/sequence/SequenceRuntime.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -25,7 +25,7 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] int64_t QuantizeFrame(const float frame) {
-			return static_cast<int64_t>(std::llround(std::max(0.0f, frame)));
+			return std::llround(std::max(0.0f, frame));
 		}
 
 		void EnsureCurveChannelId(SequenceRichCurveAssetData& ioCurve) {
@@ -61,14 +61,19 @@ namespace Unnamed {
 			);
 			std::ranges::sort(
 				ioCurve.keys,
-				[](const SequenceFloatKeyAssetData& lhs, const SequenceFloatKeyAssetData& rhs) {
+				[](
+				const SequenceFloatKeyAssetData& lhs,
+				const SequenceFloatKeyAssetData& rhs
+			) {
 					return lhs.frame < rhs.frame;
 				}
 			);
 		}
 	}
 
-	void SequenceEditorController::Initialize(World* world, AssetManager* assetManager) {
+	void SequenceEditorController::Initialize(
+		World* world, AssetManager* assetManager
+	) {
 		mWorld        = world;
 		mAssetManager = assetManager;
 		EnsurePreviewPlayer();
@@ -78,7 +83,8 @@ namespace Unnamed {
 			mAssetManager->RegisterReload(
 				[](const AssetID assetId) {
 					if (gSequenceEditorReloadReceiver) {
-						gSequenceEditorReloadReceiver->HandleAssetReload(assetId);
+						gSequenceEditorReloadReceiver->HandleAssetReload(
+							assetId);
 					}
 				}
 			);
@@ -91,7 +97,7 @@ namespace Unnamed {
 			return;
 		}
 
-		mWorld = world;
+		mWorld             = world;
 		mPreviewRegistered = false;
 		if (mWorld && mPreviewPlayer && !mPreviewRegistered) {
 			mWorld->GetSequenceRuntime().RegisterPlayer(mPreviewPlayer);
@@ -122,30 +128,29 @@ namespace Unnamed {
 		}
 	}
 
-	bool SequenceEditorController::OpenDocument(const std::string& path) {
-		const std::string normalizedPath = StrUtil::NormalizePath(path);
-		if (normalizedPath.empty()) {
+	bool SequenceEditorController::OpenDocument(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (path.IsEmpty()) {
 			return false;
 		}
 
 		for (size_t i = 0; i < mDocuments.size(); ++i) {
-			if (mDocuments[i] && mDocuments[i]->GetPath() == normalizedPath) {
+			if (mDocuments[i] && mDocuments[i]->GetPath() == path) {
 				SetActiveDocumentIndex(static_cast<int32_t>(i));
 				return true;
 			}
 		}
 
-		auto document = std::make_shared<SequenceEditorDocument>(normalizedPath);
+		auto document = std::make_shared<SequenceEditorDocument>(path);
 		if (!document->ReloadFromDisk()) {
-			Warning("SequenceEditor", "Failed to load sequence document: {}", normalizedPath);
+			Warning("SequenceEditor", "Failed to load sequence document: {}",
+			        path);
 			return false;
 		}
 
 		if (mAssetManager) {
-			const AssetID sourceAssetId = mAssetManager->LoadFromFile(
-				normalizedPath,
-				ASSET_TYPE::SEQUENCE
-			);
+			const AssetID sourceAssetId =
+				mAssetManager->LoadSequenceFromFile(path);
 			document->SetSourceAssetId(sourceAssetId);
 		}
 
@@ -159,6 +164,19 @@ namespace Unnamed {
 		if (!document) {
 			return false;
 		}
+		if (mAssetManager) {
+			const std::optional<std::string> mountId =
+				mAssetManager->GetContentPathResolver().
+				FindMountIdForResolvedPath(document->GetPath());
+			if (mountId == ContentMountId::kCore) {
+				Warning(
+					"SequenceEditor",
+					"Core Sequence assets are read-only. Duplicate the asset into Game content before saving: {}",
+					document->GetPath()
+				);
+				return false;
+			}
+		}
 
 		document->GetAuthoringData().editor.autoKeyEnabled  = mAutoKeyEnabled;
 		document->GetAuthoringData().editor.scrubFireEvents = mScrubFireEvents;
@@ -167,9 +185,8 @@ namespace Unnamed {
 		}
 
 		if (mAssetManager) {
-			const AssetID sourceAssetId = mAssetManager->LoadFromFile(
+			const AssetID sourceAssetId = mAssetManager->LoadSequenceFromFile(
 				document->GetPath(),
-				ASSET_TYPE::SEQUENCE,
 				AssetManager::AssetLoadPolicy::ForceReload
 			);
 			document->SetSourceAssetId(sourceAssetId);
@@ -216,7 +233,8 @@ namespace Unnamed {
 		return mDocuments[mActiveDocumentIndex].get();
 	}
 
-	const SequenceEditorDocument* SequenceEditorController::GetActiveDocument() const {
+	const SequenceEditorDocument*
+	SequenceEditorController::GetActiveDocument() const {
 		return const_cast<SequenceEditorController*>(this)->GetActiveDocument();
 	}
 
@@ -238,8 +256,10 @@ namespace Unnamed {
 		mPlayheadFrame       = 0.0f;
 
 		if (const SequenceEditorDocument* document = GetActiveDocument()) {
-			mAutoKeyEnabled  = document->GetAuthoringData().editor.autoKeyEnabled;
-			mScrubFireEvents = document->GetAuthoringData().editor.scrubFireEvents;
+			mAutoKeyEnabled = document->GetAuthoringData().editor.
+			                            autoKeyEnabled;
+			mScrubFireEvents = document->GetAuthoringData().editor.
+			                             scrubFireEvents;
 		}
 		RefreshPreviewAsset();
 	}
@@ -248,7 +268,8 @@ namespace Unnamed {
 		return mSelection;
 	}
 
-	const SequenceEditorSelection& SequenceEditorController::GetSelection() const {
+	const SequenceEditorSelection&
+	SequenceEditorController::GetSelection() const {
 		return mSelection;
 	}
 
@@ -261,14 +282,16 @@ namespace Unnamed {
 		const bool  seekNow
 	) {
 		SequenceEditorDocument* document = GetActiveDocument();
-		const float maxFrame = document ?
-			                       static_cast<float>(
-				                       std::max<int64_t>(
-					                       0,
-					                       document->GetAuthoringData().lengthFrames
-				                       )
-			                       ) :
-			                       0.0f;
+		const float             maxFrame = document ?
+			                                   static_cast<float>(
+				                                   std::max<int64_t>(
+					                                   0,
+					                                   document->
+					                                   GetAuthoringData().
+					                                   lengthFrames
+				                                   )
+			                                   ) :
+			                                   0.0f;
 		mPlayheadFrame = std::clamp(frame, 0.0f, std::max(0.0f, maxFrame));
 
 		if (!seekNow || !mPreviewPlayer || !mWorld) {
@@ -289,7 +312,8 @@ namespace Unnamed {
 		if (!mPreviewPlayer) {
 			return;
 		}
-		mPreviewPlayer->SetPlaybackDirection(SEQUENCE_PLAYBACK_DIRECTION::FORWARD);
+		mPreviewPlayer->SetPlaybackDirection(
+			SEQUENCE_PLAYBACK_DIRECTION::FORWARD);
 		mPreviewPlayer->SetSeekEventPolicy(
 			mScrubFireEvents ?
 				SEQUENCE_SEEK_EVENT_POLICY::FIRE_IN_RANGE :
@@ -303,7 +327,8 @@ namespace Unnamed {
 		if (!mPreviewPlayer) {
 			return;
 		}
-		mPreviewPlayer->SetPlaybackDirection(SEQUENCE_PLAYBACK_DIRECTION::BACKWARD);
+		mPreviewPlayer->SetPlaybackDirection(
+			SEQUENCE_PLAYBACK_DIRECTION::BACKWARD);
 		mPreviewPlayer->SetSeekEventPolicy(
 			mScrubFireEvents ?
 				SEQUENCE_SEEK_EVENT_POLICY::FIRE_IN_RANGE :
@@ -328,7 +353,8 @@ namespace Unnamed {
 	}
 
 	bool SequenceEditorController::IsPreviewPlaying() const {
-		return mPreviewPlayer && mPreviewPlayer->GetState() == SEQUENCE_PLAYER_STATE::PLAYING;
+		return mPreviewPlayer && mPreviewPlayer->GetState() ==
+		       SEQUENCE_PLAYER_STATE::PLAYING;
 	}
 
 	bool SequenceEditorController::IsAutoKeyEnabled() const {
@@ -346,7 +372,9 @@ namespace Unnamed {
 		return mScrubFireEvents;
 	}
 
-	void SequenceEditorController::SetScrubFireEventsEnabled(const bool enabled) {
+	void SequenceEditorController::SetScrubFireEventsEnabled(
+		const bool enabled
+	) {
 		mScrubFireEvents = enabled;
 		if (SequenceEditorDocument* document = GetActiveDocument()) {
 			document->GetAuthoringData().editor.scrubFireEvents = enabled;
@@ -369,17 +397,17 @@ namespace Unnamed {
 	}
 
 	void SequenceEditorController::OnGizmoTransformChanged(
-		const uint64_t          entityGuid,
-		const Vec3&             position,
-		const Quaternion&       rotation,
-		const Vec3&             scale
+		const uint64_t    entityGuid,
+		const Vec3&       position,
+		const Quaternion& rotation,
+		const Vec3&       scale
 	) {
 		if (!mAutoKeyEnabled || entityGuid == 0) {
 			return;
 		}
 
 		const int64_t keyFrame = QuantizeFrame(mPlayheadFrame);
-		const bool modified = ModifyActiveDocument(
+		const bool    modified = ModifyActiveDocument(
 			[&](SequenceAuthoringData& data) {
 				int32_t trackIndex   = -1;
 				int32_t sectionIndex = -1;
@@ -404,22 +432,31 @@ namespace Unnamed {
 					return;
 				}
 
-				SequenceSectionAssetData& section = track.sections[sectionIndex];
-				AddOrUpdateFloatKey(section.transformPosX, keyFrame, position.x);
-				AddOrUpdateFloatKey(section.transformPosY, keyFrame, position.y);
-				AddOrUpdateFloatKey(section.transformPosZ, keyFrame, position.z);
-				AddOrUpdateFloatKey(section.transformRotX, keyFrame, rotation.x);
-				AddOrUpdateFloatKey(section.transformRotY, keyFrame, rotation.y);
-				AddOrUpdateFloatKey(section.transformRotZ, keyFrame, rotation.z);
-				AddOrUpdateFloatKey(section.transformRotW, keyFrame, rotation.w);
+				SequenceSectionAssetData& section = track.sections[
+					sectionIndex];
+				AddOrUpdateFloatKey(section.transformPosX, keyFrame,
+				                    position.x);
+				AddOrUpdateFloatKey(section.transformPosY, keyFrame,
+				                    position.y);
+				AddOrUpdateFloatKey(section.transformPosZ, keyFrame,
+				                    position.z);
+				AddOrUpdateFloatKey(section.transformRotX, keyFrame,
+				                    rotation.x);
+				AddOrUpdateFloatKey(section.transformRotY, keyFrame,
+				                    rotation.y);
+				AddOrUpdateFloatKey(section.transformRotZ, keyFrame,
+				                    rotation.z);
+				AddOrUpdateFloatKey(section.transformRotW, keyFrame,
+				                    rotation.w);
 				AddOrUpdateFloatKey(section.transformScaleX, keyFrame, scale.x);
 				AddOrUpdateFloatKey(section.transformScaleY, keyFrame, scale.y);
 				AddOrUpdateFloatKey(section.transformScaleZ, keyFrame, scale.z);
 
-				data.lengthFrames = std::max(data.lengthFrames, keyFrame);
+				data.lengthFrames       = std::max(data.lengthFrames, keyFrame);
 				mSelection.trackIndex   = trackIndex;
 				mSelection.sectionIndex = sectionIndex;
-				mSelection.floatChannel = SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_X;
+				mSelection.floatChannel =
+					SEQUENCE_EDITOR_FLOAT_CHANNEL::TRANSFORM_POS_X;
 			}
 		);
 		if (modified) {
@@ -440,18 +477,22 @@ namespace Unnamed {
 			return;
 		}
 
-		mAutoKeyEnabled  = activeDocument->GetAuthoringData().editor.autoKeyEnabled;
-		mScrubFireEvents = activeDocument->GetAuthoringData().editor.scrubFireEvents;
+		mAutoKeyEnabled = activeDocument->GetAuthoringData().editor.
+		                                  autoKeyEnabled;
+		mScrubFireEvents = activeDocument->GetAuthoringData().editor.
+		                                   scrubFireEvents;
 		RefreshPreviewAsset();
 	}
 
 	void SequenceEditorController::EnsurePreviewPlayer() {
 		if (!mPreviewPlayer) {
 			mPreviewPlayer = std::make_shared<SequencePlayer>();
-			mPreviewPlayer->SetCompletionMode(SEQUENCE_COMPLETION_MODE::KEEP_STATE);
+			mPreviewPlayer->SetCompletionMode(
+				SEQUENCE_COMPLETION_MODE::KEEP_STATE);
 			mPreviewPlayer->SetLoop(false);
 			mPreviewPlayer->SetPlayRate(1.0f);
-			mPreviewPlayer->SetPlaybackDirection(SEQUENCE_PLAYBACK_DIRECTION::FORWARD);
+			mPreviewPlayer->SetPlaybackDirection(
+				SEQUENCE_PLAYBACK_DIRECTION::FORWARD);
 		}
 		if (mWorld && !mPreviewRegistered) {
 			mWorld->GetSequenceRuntime().RegisterPlayer(mPreviewPlayer);
@@ -470,9 +511,10 @@ namespace Unnamed {
 			return;
 		}
 
-		const AssetID previewAssetId = activeDocument->RebuildPreviewRuntimeAsset(
-			*mAssetManager
-		);
+		const AssetID previewAssetId = activeDocument->
+			RebuildPreviewRuntimeAsset(
+				*mAssetManager
+			);
 		if (previewAssetId == kInvalidAssetID) {
 			return;
 		}
@@ -514,11 +556,11 @@ namespace Unnamed {
 		}
 		if (bindingId == 0) {
 			SequenceBindingAssetData binding = {};
-			binding.bindingId = AllocateStableId();
-			binding.entityGuid = entityGuid;
-			binding.componentStableName = "engine.Transform";
-			binding.propertyPath = "";
-			bindingId = binding.bindingId;
+			binding.bindingId                = AllocateStableId();
+			binding.entityGuid               = entityGuid;
+			binding.componentStableName      = "engine.Transform";
+			binding.propertyPath             = "";
+			bindingId                        = binding.bindingId;
 			ioData.bindings.emplace_back(std::move(binding));
 		}
 
@@ -526,7 +568,8 @@ namespace Unnamed {
 			mSelection.trackIndex >= 0 &&
 			mSelection.trackIndex < static_cast<int32_t>(ioData.tracks.size())
 		) {
-			const SequenceTrackAssetData& selectedTrack = ioData.tracks[mSelection.trackIndex];
+			const SequenceTrackAssetData& selectedTrack = ioData.tracks[
+				mSelection.trackIndex];
 			if (
 				selectedTrack.trackType == SEQUENCE_TRACK_TYPE::TRANSFORM &&
 				selectedTrack.bindingId == bindingId
@@ -536,7 +579,8 @@ namespace Unnamed {
 		}
 
 		if (outTrackIndex < 0) {
-			for (int32_t i = 0; i < static_cast<int32_t>(ioData.tracks.size()); ++i) {
+			for (int32_t i = 0; i < static_cast<int32_t>(ioData.tracks.size());
+			     ++i) {
 				const SequenceTrackAssetData& track = ioData.tracks[i];
 				if (
 					track.trackType == SEQUENCE_TRACK_TYPE::TRANSFORM &&
@@ -550,11 +594,11 @@ namespace Unnamed {
 
 		if (outTrackIndex < 0) {
 			SequenceTrackAssetData track = {};
-			track.trackId   = AllocateStableId();
-			track.name      = "Transform_" + std::to_string(entityGuid);
+			track.trackId = AllocateStableId();
+			track.name = "Transform_" + std::to_string(entityGuid);
 			track.trackType = SEQUENCE_TRACK_TYPE::TRANSFORM;
 			track.blendMode = SEQUENCE_BLEND_MODE::MODE_ABSOLUTE;
-			track.priority  = 0;
+			track.priority = 0;
 			track.bindingId = bindingId;
 			SequenceSectionAssetData section = {};
 			section.sectionId = AllocateStableId();
@@ -588,10 +632,11 @@ namespace Unnamed {
 			track.sections.emplace_back(std::move(section));
 		}
 
-		outSectionIndex = (
-			mSelection.sectionIndex >= 0 &&
-			mSelection.sectionIndex < static_cast<int32_t>(track.sections.size())
-		) ? mSelection.sectionIndex : 0;
+		outSectionIndex = mSelection.sectionIndex >= 0 &&
+		                  mSelection.sectionIndex < static_cast<int32_t>(track.
+			                  sections.size()) ?
+			                  mSelection.sectionIndex :
+			                  0;
 		if (track.sections[outSectionIndex].sectionId == 0) {
 			track.sections[outSectionIndex].sectionId = AllocateStableId();
 		}

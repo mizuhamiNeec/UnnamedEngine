@@ -25,23 +25,23 @@ namespace Unnamed {
 
 	/// @brief Event Presentation v2 の Action 設定を定義します。
 	struct EventPresentationActionAssetData {
-		std::string                       type;
-		std::string                       id;
-		std::string                       debugText;
+		std::string                          type;
+		std::string                          id;
+		std::string                          debugText;
 		EventPresentationValueInputAssetData valueInput;
 	};
 
 	/// @brief Event Presentation v2 の Cue 反応定義を表します。
 	struct EventPresentationTriggerAssetData {
-		std::string                         cueId;
-		float                               cooldownSec = 0.0f;
-		EventPresentationConditionAssetData condition;
+		std::string                                   cueId;
+		float                                         cooldownSec = 0.0f;
+		EventPresentationConditionAssetData           condition;
 		std::vector<EventPresentationActionAssetData> actions;
 	};
 
 	/// @brief Event Presentation v2 アセットのルートデータです。
 	struct EventPresentationAssetData {
-		std::string                          name;
+		std::string                                    name;
 		std::vector<EventPresentationTriggerAssetData> triggers;
 	};
 }

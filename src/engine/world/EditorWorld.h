@@ -1,7 +1,6 @@
 #pragma once
 #include "World.h"
 
-#include "engine/physics/core/Physics.h"
 #include "engine/render/frame/RenderFrameInputs.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 
@@ -20,7 +19,9 @@ namespace Unnamed {
 		void Initialize() override;
 		void FixedTick(float fixedDeltaTime) override;
 		void FrameInputTick(float frameDeltaTime) override;
-		void RenderTick(float renderDeltaTime, float interpolationAlpha) override;
+		void RenderTick(
+			float renderDeltaTime, float interpolationAlpha
+		) override;
 
 		void StartPlayInEditor();
 		void StopPlayInEditor();
@@ -69,10 +70,10 @@ namespace Unnamed {
 			const Render::SceneViewRenderMode& request
 		);
 
-		std::unique_ptr<Entity> mEditorEntity;
-		std::unique_ptr<World>  mPlayWorld;
-		IGameWorldFactory*      mPlayWorldFactory = nullptr;
-		Render::SCENE_RENDER_MODE  mLastAspectMode =
+		std::unique_ptr<Entity>   mEditorEntity;
+		std::unique_ptr<World>    mPlayWorld;
+		IGameWorldFactory*        mPlayWorldFactory = nullptr;
+		Render::SCENE_RENDER_MODE mLastAspectMode   =
 			Render::SCENE_RENDER_MODE::FIT_VIEWPORT;
 		uint32_t mLastAspectViewportWidth  = 0;
 		uint32_t mLastAspectViewportHeight = 0;

@@ -8,9 +8,13 @@ namespace Unnamed {
 	class IniParser {
 	public:
 		static std::unordered_map<
-			std::string, std::unordered_map<std::string, std::string>
+			std::string,
+			std::unordered_map<
+				std::string,
+				std::string
+			>
 		> ParseIniFile(
-			const std::string& filePath
+			const Path& filePath
 		);
 	};
 }

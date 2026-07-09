@@ -7,8 +7,8 @@
 
 #include "ImGuizmoConfigLoader.h"
 
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/platform/Window.h"
 #include "engine/platform/WindowManager.h"
@@ -29,8 +29,8 @@ namespace Unnamed {
 		[[nodiscard]] Vec2 ResolveMainWindowMonitorExtent(
 			WindowManager& windowManager
 		) {
-			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			const Window* const  mainWindow   = windowManager.FindWindowById(
+			const WindowId      mainWindowId = windowManager.GetMainWindowId();
+			const Window* const mainWindow   = windowManager.FindWindowById(
 				mainWindowId
 			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
@@ -63,8 +63,8 @@ namespace Unnamed {
 		[[nodiscard]] Vec2 ResolveMainWindowClientExtent(
 			WindowManager& windowManager
 		) {
-			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			const Window* const  mainWindow   = windowManager.FindWindowById(
+			const WindowId      mainWindowId = windowManager.GetMainWindowId();
+			const Window* const mainWindow   = windowManager.FindWindowById(
 				mainWindowId
 			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
@@ -703,7 +703,12 @@ namespace Unnamed {
 		return const_cast<Scene*>(scene)->FindEntity(mSelectedEntityId);
 	}
 
-	bool LevelEditorTool::SaveSceneAs(const std::string& path) const {
+	bool LevelEditorTool::SaveSceneAs(Path path) const {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (path.IsEmpty()) {
+			return false;
+		}
+
 		const Scene* scene = mEditorWorld.GetEditableScene();
 		if (!scene) {
 			return false;
@@ -715,11 +720,9 @@ namespace Unnamed {
 		return true;
 	}
 
-	bool LevelEditorTool::LoadSceneFromPath(const std::string& path) {
-		const std::string normalizedPath = StrUtil::NormalizePath(
-			StrUtil::TrimSpaces(path)
-		);
-		if (normalizedPath.empty()) {
+	bool LevelEditorTool::LoadSceneFromPath(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (path.IsEmpty()) {
 			return false;
 		}
 
@@ -728,20 +731,21 @@ namespace Unnamed {
 			mEditorWorld.StopPlayInEditor();
 		}
 
-		if (!mEditorWorld.LoadSceneFromFile(normalizedPath.c_str())) {
+		if (!mEditorWorld.LoadSceneFromFile(path)) {
 			Warning(
 				"LevelEditorTool",
 				"Failed to load scene: {}",
-				normalizedPath
+				path
 			);
 			return false;
 		}
 
 		mSelectedEntityId = 0;
-		Msg("LevelEditorTool", "Scene loaded: {}", normalizedPath);
+		Msg("LevelEditorTool", "Scene loaded: {}", path);
 
 		mConsoleSystem->ExecuteCommand(
-			"notify info 2 LevelEditor | SceneLoaded: " + normalizedPath
+			"notify info 2 LevelEditor | SceneLoaded: " +
+			path.ToGenericUtf8()
 		);
 
 		return true;

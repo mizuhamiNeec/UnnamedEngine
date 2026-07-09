@@ -3,8 +3,11 @@
 #include <memory>
 
 #include <core/assets/AssetID.h>
+#include <core/content/ContentPathResolver.h>
 
 #include <engine/EngineConfig.h>
+#include <engine/render/RenderStartupOptions.h>
+#include <engine/scene/SceneLoadOptions.h>
 
 class IPostProcess;
 class SrvManager;
@@ -44,6 +47,10 @@ namespace Unnamed {
 		GameRuntimeContext* runtimeContext = nullptr;
 		/// @brief Demo サービス生成関数です。
 		std::function<std::unique_ptr<IDemoService>()> createDemoService = {};
+		/// @brief 起動シーンおよびシーン遷移に使用する読込オプションです。
+		SceneLoadOptions sceneLoadOptions = {};
+		/// @brief Renderer起動時のShader/PSO検証オプションです。
+		Render::RenderStartupOptions renderStartupOptions = {};
 	};
 
 	/// @brief Engine 実行時フックです。
@@ -55,7 +62,7 @@ namespace Unnamed {
 	};
 
 	/// @brief エンジンクラス
-	class Engine {
+	class Engine final {
 	public:
 		/// @brief コンストラクタ
 		/// @param runtimeBindings ゲームランタイム依存情報
@@ -73,6 +80,9 @@ namespace Unnamed {
 		/// @brief エディターモードの画面表示モードを切り替えます。
 		void ToggleEditorScreenMode() const;
 
+		/// @brief 次の安全なタイミングでメインループを終了するよう要求します。
+		void RequestShutdown() noexcept;
+
 	private:
 		/// @brief 初期化処理
 		bool Init();
@@ -81,12 +91,17 @@ namespace Unnamed {
 		/// @brief 終了処理
 		void Shutdown();
 
+		/// @brief ウィンドウのリサイズ処理
+		void ProcessResize();
+
 		/// @brief コンソールコマンドとコンソール変数を登録します。
 		void RegisterConsoleCommandsAndVariables();
 
 		/// @brief エンジン標準コンポーネントの登録を保証します。
 		/// @param componentRegistry 登録先のコンポーネントレジストリ
-		static void RegisterEngineComponents(ComponentRegistry& componentRegistry);
+		static void RegisterEngineComponents(
+			ComponentRegistry& componentRegistry
+		);
 
 		/// @brief シーン遷移処理の対象となるワールドを解決します。
 		/// @param runtimeWorld 現在の実行対象ワールド
@@ -110,20 +125,31 @@ namespace Unnamed {
 		/// @return 現在のワールドの参照
 		[[nodiscard]] World* GetWorld() const;
 
-		EngineRuntimeBindings mRuntimeBindings = {};
-		RUN_MODE     mRequestedRunMode = RUN_MODE::STANDALONE;
-		EngineConfig mConfig;
+		/// @brief 既定起動シーンを解決して読み込みます。
+		[[nodiscard]] static bool LoadDefaultStartupScene(
+			World&                    world,
+			const GameRuntimeContext& runtimeContext,
+			const SceneLoadOptions&   options
+		);
+
+		/// @brief Core/Game のコンテンツマウントを初期化します。
+		[[nodiscard]] bool InitializeContentMounts(
+			const GameRuntimeContext& runtimeContext
+		);
+
+		EngineRuntimeBindings mRuntimeBindings  = {};
+		RUN_MODE              mRequestedRunMode = RUN_MODE::STANDALONE;
+		EngineConfig          mConfig;
 
 		// 基本システム
+		ContentPathResolver                       mContentPathResolver = {};
 		std::unique_ptr<AssetManager>             mAssetManager;
 		std::unique_ptr<class PlatformEventsImpl> mPlatformEvents;
 		std::unique_ptr<WindowManager>            mWindowManager;
-
-		// 基幹システム
-		std::unique_ptr<ConsoleSystem>         mConsoleSystem;
-		std::unique_ptr<class TerminalSystem>  mTerminalSystem;
-		std::unique_ptr<class TimeSystem>      mTimeSystem;
-		std::unique_ptr<InputSystem>           mInputSystem;
+		std::unique_ptr<ConsoleSystem>            mConsoleSystem;
+		std::unique_ptr<class TerminalSystem>     mTerminalSystem;
+		std::unique_ptr<class TimeSystem>         mTimeSystem;
+		std::unique_ptr<InputSystem>              mInputSystem;
 
 		std::unique_ptr<Rhi::IRhiDevice>      mRhiDevice;
 		std::unique_ptr<Render::RenderModule> mRenderModule;
@@ -134,25 +160,25 @@ namespace Unnamed {
 		std::unique_ptr<World> mWorld;
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-		std::unique_ptr<ImGuiLayer>    mUImGuiLayer;
-		std::unique_ptr<EditorRuntime> mUEditorRuntime;
+		std::unique_ptr<ImGuiLayer>    mImGuiLayer;
+		std::unique_ptr<EditorRuntime> mEditorRuntime;
 #endif
 
 		std::unique_ptr<AudioSystem> mAudioSystem;
-		std::unique_ptr<ConCommand>  mQuitCommand;
-		std::unique_ptr<ConCommand>  mToggleEditorCommand;
-		std::unique_ptr<ConCommand>  mToggleFullscreenCommand;
-		std::unique_ptr<ConCommand>  mMapCommand;
-		std::unique_ptr<ConCommand>  mReloadSceneCommand;
-		std::unique_ptr<ConCommand>  mPostFxSetCommand;
-		std::unique_ptr<ConCommand>  mPostFxEnableCommand;
-		std::unique_ptr<ConCommand>  mPostFxClearParamCommand;
-		std::unique_ptr<ConCommand>  mPostFxClearPassCommand;
-		std::unique_ptr<ConCommand>  mPostFxResetCommand;
-		std::unique_ptr<ConCommand>  mPostFxListCommand;
-		std::unique_ptr<ConCommand>  mPostFxChainCommand;
-		std::unique_ptr<ConCommand>  mPostFxChainReloadCommand;
-		std::unique_ptr<ConCommand>  mSequenceRegressionRunCommand;
+
+		std::unique_ptr<ConCommand> mQuitCommand;
+		std::unique_ptr<ConCommand> mToggleEditorCommand;
+		std::unique_ptr<ConCommand> mToggleFullscreenCommand;
+		std::unique_ptr<ConCommand> mMapCommand;
+		std::unique_ptr<ConCommand> mReloadSceneCommand;
+		std::unique_ptr<ConCommand> mPostFxSetCommand;
+		std::unique_ptr<ConCommand> mPostFxEnableCommand;
+		std::unique_ptr<ConCommand> mPostFxClearParamCommand;
+		std::unique_ptr<ConCommand> mPostFxClearPassCommand;
+		std::unique_ptr<ConCommand> mPostFxResetCommand;
+		std::unique_ptr<ConCommand> mPostFxListCommand;
+		std::unique_ptr<ConCommand> mPostFxChainCommand;
+		std::unique_ptr<ConCommand> mPostFxChainReloadCommand;
 
 		std::unique_ptr<Render::RenderFrameContext> mRenderFrameContext;
 		float mAssetHotReloadPollAccumulator = 0.0f;
@@ -169,5 +195,7 @@ namespace Unnamed {
 #endif
 
 		bool mWishShutdown = false;
+
+		bool mCoInitialized = false;
 	};
 }

@@ -1,11 +1,12 @@
 #include "SoundAssetLoader.h"
+#include "core/filesystem/Path.h"
 
 #include <array>
 #include <filesystem>
 #include <fstream>
 
 #include "core/assets/types/SoundAssetData.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
@@ -31,18 +32,18 @@ namespace Unnamed {
 	}
 
 	bool SoundAssetLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
-		const bool ok = StrUtil::ToLowerCase(std::string(path)).ends_with(".wav");
+		const bool ok = StrUtil::EndsWithIgnoreCase(path.ToGenericUtf8(), ".wav");
 		if (outType) {
 			*outType = ok ? ASSET_TYPE::SOUND : ASSET_TYPE::UNKNOWN;
 		}
 		return ok;
 	}
 
-	LoadResult SoundAssetLoader::Load(const std::string& path) {
+	LoadResult SoundAssetLoader::Load(const Path& path) {
 		LoadResult    result = {};
-		std::ifstream file(Path::FromUtf8(path), std::ios::binary);
+		std::ifstream file(path.Native(), std::ios::binary);
 		if (!file.is_open()) {
 			return result;
 		}
@@ -51,7 +52,7 @@ namespace Unnamed {
 		if (!ReadExact(
 			file,
 			riffHeader.data(),
-			static_cast<std::streamsize>(riffHeader.size())
+			riffHeader.size()
 		)) {
 			return result;
 		}
@@ -73,16 +74,18 @@ namespace Unnamed {
 			if (!ReadExact(
 				file,
 				chunkHeader.data(),
-				static_cast<std::streamsize>(chunkHeader.size())
+				chunkHeader.size()
 			)) {
 				break;
 			}
 
 			const uint32_t chunkSize = ReadLe32(chunkHeader.data() + 4);
-			const bool isFmt = chunkHeader[0] == 'f' && chunkHeader[1] == 'm' &&
-			                   chunkHeader[2] == 't' && chunkHeader[3] == ' ';
-			const bool isData = chunkHeader[0] == 'd' && chunkHeader[1] == 'a' &&
-			                    chunkHeader[2] == 't' && chunkHeader[3] == 'a';
+			const bool     isFmt     =
+				chunkHeader[0] == 'f' && chunkHeader[1] == 'm' &&
+				chunkHeader[2] == 't' && chunkHeader[3] == ' ';
+			const bool isData =
+				chunkHeader[0] == 'd' && chunkHeader[1] == 'a' &&
+				chunkHeader[2] == 't' && chunkHeader[3] == 'a';
 
 			if (isFmt) {
 				if (chunkSize < 16) {
@@ -93,18 +96,18 @@ namespace Unnamed {
 				if (!ReadExact(
 					file,
 					fmtBytes.data(),
-					static_cast<std::streamsize>(chunkSize)
+					chunkSize
 				)) {
 					return {};
 				}
 
-				soundData.formatTag             = ReadLe16(fmtBytes.data() + 0);
-				soundData.channels              = ReadLe16(fmtBytes.data() + 2);
-				soundData.sampleRate            = ReadLe32(fmtBytes.data() + 4);
+				soundData.formatTag = ReadLe16(fmtBytes.data() + 0);
+				soundData.channels = ReadLe16(fmtBytes.data() + 2);
+				soundData.sampleRate = ReadLe32(fmtBytes.data() + 4);
 				soundData.averageBytesPerSecond = ReadLe32(fmtBytes.data() + 8);
-				soundData.blockAlign            = ReadLe16(fmtBytes.data() + 12);
-				soundData.bitsPerSample         = ReadLe16(fmtBytes.data() + 14);
-				foundFmt                        = true;
+				soundData.blockAlign = ReadLe16(fmtBytes.data() + 12);
+				soundData.bitsPerSample = ReadLe16(fmtBytes.data() + 14);
+				foundFmt = true;
 			} else if (isData) {
 				if (chunkSize == 0) {
 					return {};
@@ -113,13 +116,14 @@ namespace Unnamed {
 				if (!ReadExact(
 					file,
 					soundData.pcmData.data(),
-					static_cast<std::streamsize>(chunkSize)
+					chunkSize
 				)) {
 					return {};
 				}
 				foundData = true;
 			} else {
-				file.seekg(static_cast<std::streamoff>(chunkSize), std::ios::cur);
+				file.seekg(chunkSize,
+				           std::ios::cur);
 			}
 
 			if ((chunkSize & 1u) != 0u) {
@@ -138,13 +142,15 @@ namespace Unnamed {
 			return {};
 		}
 
-		const std::filesystem::path full = Path::FromUtf8(path);
+		const Path full    = path.LexicallyNormal();
 		result.payload     = std::move(soundData);
-		result.resolveName = Path::ToUtf8String(full.stem());
+		result.resolveName = Path::ToUtf8String(full.Stem());
 
 		std::error_code ec;
-		if (Path::ExistsUtf8(path, ec)) {
-			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		if (std::filesystem::exists(path.Native(), ec)) {
+			result.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 		return result;
 	}

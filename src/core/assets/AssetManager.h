@@ -12,8 +12,10 @@
 #include "AssetMetaData.h"
 #include "AssetType.h"
 #include "LoadResult.h"
+#include "core/filesystem/VirtualPath.h"
 
 namespace Unnamed {
+	class ContentPathResolver;
 	class IAssetLoader;
 
 	class AssetManager {
@@ -35,21 +37,135 @@ namespace Unnamed {
 		};
 
 		/// @brief コンストラクタ
-		AssetManager();
+		explicit AssetManager(const ContentPathResolver& contentPathResolver);
 
 		/// @brief アセットローダーを登録します
 		/// @param loader 登録するアセットローダー
 		void RegisterLoader(std::unique_ptr<IAssetLoader> loader);
 
-		/// @brief ファイルからアセットをロードします
-		/// @param path ロードするファイルのパス
-		/// @param typeOpt アセットの種類（省略可能）
-		/// @param policy ロードポリシー（デフォルトはUseCachedIfLoaded）
-		/// @return ロードしたアセットのID
-		AssetID LoadFromFile(
-			const std::string& path,
-			std::optional<ASSET_TYPE> typeOpt = std::nullopt,
+		/// @brief マウント済み content から実行時指定型のアセットをロードします。
+		/// @param path 論理アセットパス。
+		/// @param type アセットの型。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたアセットの ID。
+		[[nodiscard]] AssetID LoadAsset(
+			const VirtualPath& path,
+			ASSET_TYPE        type,
+			AssetLoadPolicy   policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 指定mountのcontentから実行時指定型のアセットをロードします。
+		/// @param path 論理アセットパス。
+		/// @param mountId 解決に使用するmount ID。
+		/// @param type アセットの型。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたアセットの ID。
+		[[nodiscard]] AssetID LoadAssetFromMount(
+			const VirtualPath& path,
+			std::string_view   mountId,
+			ASSET_TYPE        type,
+			AssetLoadPolicy   policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 絶対物理ファイルパスから実行時指定型のアセットをロードします。
+		/// @param path 解決済みの絶対物理ファイルパス。
+		/// @param type アセットの型。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたアセットの ID。
+		[[nodiscard]] AssetID LoadAssetFromFile(
+			const Path&     path,
+			ASSET_TYPE      type,
 			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief マウント済み content からテクスチャをロードします。
+		/// @param path 論理テクスチャパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたテクスチャアセットの ID。
+		[[nodiscard]] AssetID LoadTexture(
+			const VirtualPath& path,
+			AssetLoadPolicy    policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 物理ファイルからテクスチャを直接ロードします。
+		/// @param path 物理テクスチャファイルパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたテクスチャアセットの ID。
+		[[nodiscard]] AssetID LoadTextureFromFile(
+			const Path&     path,
+			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief マウント済み content からサウンドをロードします。
+		/// @param path 論理サウンドパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたサウンドアセットの ID。
+		[[nodiscard]] AssetID LoadSound(
+			const VirtualPath& path,
+			AssetLoadPolicy    policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 絶対物理ファイルパスからサウンドを直接ロードします。
+		/// @param path 物理サウンドファイルパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたサウンドアセットの ID。
+		[[nodiscard]] AssetID LoadSoundFromFile(
+			const Path&     path,
+			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief マウント済み content からSequenceをロードします。
+		/// @param path 論理Sequenceパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたSequenceアセットの ID。
+		[[nodiscard]] AssetID LoadSequence(
+			const VirtualPath& path,
+			AssetLoadPolicy    policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 絶対物理ファイルパスからSequenceを直接ロードします。
+		/// @param path 物理Sequenceファイルパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたSequenceアセットの ID。
+		[[nodiscard]] AssetID LoadSequenceFromFile(
+			const Path&     path,
+			AssetLoadPolicy policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief マウント済み content からメッシュをロードします。
+		/// @param path 論理メッシュパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたメッシュアセットの ID。
+		AssetID LoadMesh(
+			const VirtualPath& path,
+			AssetLoadPolicy    policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 物理ファイルからメッシュを直接ロードします。
+		/// @param path 物理メッシュファイルパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたメッシュアセットの ID。
+		AssetID LoadMeshFromFile(
+			const Path&      path,
+			AssetLoadPolicy  policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief マウント済み content からマテリアルインスタンスをロードします。
+		/// @param path 論理マテリアルインスタンスパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたマテリアルインスタンスアセットの ID。
+		AssetID LoadMaterialInstance(
+			const VirtualPath& path,
+			AssetLoadPolicy    policy = AssetLoadPolicy::UseCachedIfLoaded
+		);
+
+		/// @brief 物理ファイルからマテリアルインスタンスを直接ロードします。
+		/// @param path 物理マテリアルインスタンスファイルパス。
+		/// @param policy ロードポリシー。
+		/// @return ロードしたマテリアルインスタンスアセットの ID。
+		AssetID LoadMaterialInstanceFromFile(
+			const Path&      path,
+			AssetLoadPolicy  policy = AssetLoadPolicy::UseCachedIfLoaded
 		);
 
 		/// @brief ランタイムアセットを作成します
@@ -144,10 +260,14 @@ namespace Unnamed {
 		/// @return デバッグ統計
 		[[nodiscard]] DebugStats GetDebugStats() const;
 
+		/// @brief コンテンツ仮想パス解決に使用する Resolver を取得します。
+		[[nodiscard]] const ContentPathResolver& GetContentPathResolver(
+		) const noexcept;
+
 		/// @brief パスからアセットを検索します
 		/// @param path 検索するアセットのパス
 		/// @return 見つかったアセットのID、見つからなかった場合はkInvalidAssetID
-		[[nodiscard]] AssetID FindByPath(std::string_view path) const;
+		[[nodiscard]] AssetID FindByPath(const Path& path) const;
 
 		/// @brief 名前からアセットを検索します
 		/// @param name 検索するアセットの名前
@@ -157,6 +277,12 @@ namespace Unnamed {
 		std::vector<AssetID> AllAssets() const;
 
 	private:
+		enum class ASSET_DEPENDENCY_VISIT_STATE : uint8_t {
+			UNVISITED,
+			VISITING,
+			VISITED,
+		};
+
 		/// @brief 新しいアセットIDを割り当てます
 		/// @return 割り当てられたアセットID
 		AssetID AllocateID();
@@ -166,7 +292,22 @@ namespace Unnamed {
 		/// @param type アセットの型
 		/// @return アセットID
 		AssetID FindOrCreateSlotByPath(
-			const std::string& path, ASSET_TYPE type
+			const Path& path, ASSET_TYPE type
+		);
+
+		/// @brief 解決済みファイルパスからアセットをロードします
+		/// @param normalizedPath 正規化されたファイルパス
+		/// @param typeOpt アセットの種類
+		/// @param policy ロードポリシー
+		/// @param sourceMountId 解決元mount ID
+		/// @param sourceVirtualPath 解決元論理パス
+		/// @return ロードしたアセットのID
+		AssetID LoadFromResolvedFile(
+			const Path&               normalizedPath,
+			std::optional<ASSET_TYPE> typeOpt,
+			AssetLoadPolicy           policy,
+			std::string_view          sourceMountId,
+			std::optional<VirtualPath> sourceVirtualPath
 		);
 
 		/// @brief 指定したアセットを参照しているアセット情報を再構築します
@@ -176,12 +317,31 @@ namespace Unnamed {
 		/// @brief すべてのアセットの依存関係情報を再構築します
 		void RebuildAllDependents();
 
+		struct SourceWatchState final {
+			Path      path;
+			FileStamp stamp;
+		};
+
 		struct Node {
 			AssetMetaData        meta;
 			AssetPayload         payload;
 			std::vector<AssetID> dependencies;
 			std::vector<AssetID> dependents;
+			std::vector<SourceWatchState> sourceWatches;
+			std::vector<UnresolvedShaderInclude> unresolvedShaderIncludes;
 		};
+
+		/// @brief missing依存の監視パスと現在stampを更新します。
+		static void UpdateSourceWatches(
+			Node& node, const std::vector<Path>& watchPaths
+		);
+
+		/// @brief 提案された依存を適用した場合のcycleを検索します。
+		[[nodiscard]] bool FindDependencyCycle(
+			AssetID rootId,
+			const std::vector<AssetID>& proposedDependencies,
+			std::vector<AssetID>& outCycle
+		) const;
 
 		mutable std::recursive_mutex mMutex;
 		std::vector<Node>            mNodes;
@@ -192,6 +352,8 @@ namespace Unnamed {
 
 		std::vector<std::unique_ptr<IAssetLoader>> mLoaders;
 		std::vector<ReloadCallback>                mReloadCallbacks;
+		const ContentPathResolver&                mContentPathResolver;
+		std::vector<Path>                         mActiveLoadStack;
 
 		uint64_t mUnloadUnusedFreedCount   = 0;
 		uint64_t mDestroyRuntimeAssetCount = 0;

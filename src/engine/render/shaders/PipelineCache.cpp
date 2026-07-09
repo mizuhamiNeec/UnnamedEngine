@@ -60,13 +60,14 @@ namespace Unnamed::Render {
 	PipelineCache::PipelineCache(
 		ID3D12Device* device, ShaderLibrary& shaders
 	) : mDevice(device),
-	    mShaders(shaders) {}
+	    mShaders(shaders) {
+	}
 
 	ID3D12PipelineState* PipelineCache::GetOrCreateGraphicsPso(
 		const GraphicsPsoKey& key
 	) {
-		auto       it          = mGraphics.find(key);
-		const bool hasExisting = it != mGraphics.end();
+		auto       it           = mGraphics.find(key);
+		const bool hasExisting  = it != mGraphics.end();
 		const bool needsRebuild =
 			!hasExisting || mDirtyGraphics.contains(key);
 		if (!needsRebuild) {
@@ -85,7 +86,11 @@ namespace Unnamed::Render {
 				key.ps.shaderSourceId,
 				key.ps.entry
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mGraphics.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
@@ -106,7 +111,7 @@ namespace Unnamed::Render {
 			desc.BlendState.RenderTarget[i].RenderTargetWriteMask =
 				key.colorWriteMask;
 		}
-		desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		desc.RasterizerState          = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		desc.RasterizerState.CullMode = key.cullMode;
 
 		desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -117,7 +122,8 @@ namespace Unnamed::Render {
 		desc.RTVFormats[0]    = key.numRenderTargets > 0 ?
 			                     key.rtvFormat :
 			                     DXGI_FORMAT_UNKNOWN;
-		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Count   = key.sampleCount;
+		desc.SampleDesc.Quality = key.sampleQuality;
 
 		if (key.depthEnable || key.stencilEnable) {
 			desc.DSVFormat = key.dsvFormat;
@@ -128,9 +134,9 @@ namespace Unnamed::Render {
 		if (key.depthEnable) {
 			desc.DepthStencilState.DepthEnable    = TRUE;
 			desc.DepthStencilState.DepthWriteMask = key.depthWriteEnable ?
-				                                D3D12_DEPTH_WRITE_MASK_ALL :
-				                                D3D12_DEPTH_WRITE_MASK_ZERO;
-			desc.DepthStencilState.DepthFunc      = key.depthFunc;
+				                                        D3D12_DEPTH_WRITE_MASK_ALL :
+				                                        D3D12_DEPTH_WRITE_MASK_ZERO;
+			desc.DepthStencilState.DepthFunc = key.depthFunc;
 		} else {
 			desc.DepthStencilState.DepthEnable = FALSE;
 			desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
@@ -184,7 +190,11 @@ namespace Unnamed::Render {
 				"CreateGraphicsPipelineState failed. hr=0x{:08X}",
 				static_cast<uint32_t>(hr)
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mGraphics.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		if (hasExisting) {
@@ -200,8 +210,8 @@ namespace Unnamed::Render {
 	ID3D12PipelineState* PipelineCache::GetOrCreateComputePso(
 		const ComputePipelineKey& key
 	) {
-		auto       it          = mCompute.find(key);
-		const bool hasExisting = it != mCompute.end();
+		const auto it           = mCompute.find(key);
+		const bool hasExisting  = it != mCompute.end();
 		const bool needsRebuild =
 			!hasExisting || mDirtyCompute.contains(key);
 		if (!needsRebuild) {
@@ -217,7 +227,11 @@ namespace Unnamed::Render {
 				key.cs.shaderSourceId,
 				key.cs.entry
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mCompute.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {};
@@ -234,7 +248,11 @@ namespace Unnamed::Render {
 				"CreateComputePipelineState failed. hr=0x{:08X}",
 				static_cast<uint32_t>(hr)
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mCompute.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		if (hasExisting) {

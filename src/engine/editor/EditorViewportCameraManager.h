@@ -6,8 +6,6 @@
 #include <string_view>
 #include <unordered_map>
 
-#include "core/math/Vec3.h"
-
 #include "engine/render/frame/RenderFrameInputs.h"
 
 namespace Unnamed {
@@ -28,7 +26,7 @@ namespace Unnamed {
 	class EditorViewportCameraManager final {
 	public:
 		struct ResolvedCamera {
-			Render::RenderCameraInput input = {};
+			Render::RenderCameraInput input          = {};
 			bool                      isOrthographic = false;
 		};
 
@@ -41,17 +39,17 @@ namespace Unnamed {
 		) const;
 
 		ResolvedCamera ResolveViewCamera(
-			EditorWorld&                     editorWorld,
-			std::string_view                 viewKey,
+			EditorWorld&                       editorWorld,
+			std::string_view                   viewKey,
 			const Render::SceneViewRenderMode& sceneViewMode,
-			const ViewportCameraBinding&     binding,
-			const Render::RenderCameraInput* fallbackCamera
+			const ViewportCameraBinding&       binding,
+			const Render::RenderCameraInput*   fallbackCamera
 		);
 
 		void SyncGameplayCameraAspect(
-			EditorWorld&                     editorWorld,
+			EditorWorld&                       editorWorld,
 			const Render::SceneViewRenderMode& sceneViewMode,
-			const ViewportCameraBinding&     binding
+			const ViewportCameraBinding&       binding
 		);
 
 	private:

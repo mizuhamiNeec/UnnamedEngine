@@ -13,7 +13,8 @@ namespace {
 	Vec3 ClosestPointOnSegment(const Vec3& a, const Vec3& b, const Vec3& p) {
 		const Vec3  ab     = b - a;
 		const float abLen2 = ab.Dot(ab);
-		if (abLen2 <= 1e-12f) return a;
+		if (abLen2 <= 1e-12f)
+			return a;
 		const float t = std::clamp((p - a).Dot(ab) / abLen2, 0.0f, 1.0f);
 		return a + ab * t;
 	}
@@ -33,12 +34,14 @@ namespace {
 		const Vec3  ap = p - a;
 		const float d1 = ab.Dot(ap);
 		const float d2 = ac.Dot(ap);
-		if (d1 <= 0.0f && d2 <= 0.0f) return a;
+		if (d1 <= 0.0f && d2 <= 0.0f)
+			return a;
 
 		const Vec3  bp = p - b;
 		const float d3 = ab.Dot(bp);
 		const float d4 = ac.Dot(bp);
-		if (d3 >= 0.0f && d4 <= d3) return b;
+		if (d3 >= 0.0f && d4 <= d3)
+			return b;
 
 		const float vc = d1 * d4 - d3 * d2;
 		if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
@@ -49,7 +52,8 @@ namespace {
 		const Vec3  cp = p - c;
 		const float d5 = ab.Dot(cp);
 		const float d6 = ac.Dot(cp);
-		if (d6 >= 0.0f && d5 <= d6) return c;
+		if (d6 >= 0.0f && d5 <= d6)
+			return c;
 
 		const float vb = d5 * d2 - d1 * d6;
 		if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {

@@ -1,8 +1,7 @@
 #include "EventPresentationComponent.h"
 
 #include <algorithm>
-#include <cctype>
-#include <cstring>
+#include <filesystem>
 #include <memory>
 #include <unordered_set>
 
@@ -14,9 +13,10 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/EventPresentationAssetData.h"
+#include "core/content/ContentPathResolver.h"
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
-#include "core/string/StrUtil.h"
 #include "game/core/components/AudioFxControllerComponent.h"
 #include "game/core/components/CameraFxControllerComponent.h"
 #include "game/core/presentation/EventPresentationExecutor.h"
@@ -31,6 +31,8 @@
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 #include "engine/scene/Scene.h"
+#include "engine/scene/SceneLoadOptions.h"
+#include "engine/content/ContentMountDefinitions.h"
 #include "engine/unnamed/framework/components/mesh/SkeletalAnimationComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -52,7 +54,7 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "EventPresentationV2";
 
-		[[nodiscard]] std::string TrimAscii(std::string_view text) {
+		[[nodiscard]] std::string TrimAscii(const std::string_view text) {
 			size_t begin = 0;
 			while (
 				begin < text.size() &&
@@ -121,7 +123,9 @@ namespace Unnamed {
 		mAudioFx   = ResolveAudioFx();
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
-		(void)LoadAsset();
+		if (AssetManager* assetManager = GetAssetManager()) {
+			(void)RebuildRuntimeData(*assetManager);
+		}
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		AuditSourceGuidBindings();
 #endif
@@ -173,10 +177,13 @@ namespace Unnamed {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void EventPresentationComponent::DrawInspectorImGui() {
 		World*         world            = GetWorld();
-		Entity*        owner            = GetOwner();
+		const Entity*  owner            = GetOwner();
 		bool           needsReload      = false;
 		bool           needsResubscribe = false;
-		std::string    assetPath        = mAssetPath;
+		std::string assetPath = !mEditorPresentationPath.IsEmpty() ?
+			mEditorPresentationPath.ToGenericUtf8() :
+			mPresentationPath.has_value() ?
+				mPresentationPath->String() : std::string{};
 		const uint64_t ownerGuid        = owner ? owner->GetGuid() : 0;
 
 		ImGui::Text(
@@ -199,10 +206,10 @@ namespace Unnamed {
 			"Animation Target GUID (effective): %llu",
 			static_cast<unsigned long long>(ResolveAnimationTargetEntityGuid())
 		);
-		ImGui::Text("Asset Path: %s", mAssetPath.c_str());
+		ImGui::Text("Asset Path: %s", assetPath.c_str());
 		ImGui::Text(
 			"Asset State: %s",
-			mAssetId != kInvalidAssetID ? "Connected" : "Missing"
+			mPresentationAssetId != kInvalidAssetID ? "Connected" : "Missing"
 		);
 		ImGui::Text("Trigger Count: %d", static_cast<int>(mTriggers.size()));
 		ImGui::Text("Subscriptions: %d", static_cast<int>(mCueHandles.size()));
@@ -214,8 +221,43 @@ namespace Unnamed {
 				ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::EVENT_PRESENTATION)
 			)
 		) {
-			SetAssetPath(assetPath);
-			needsReload      = true;
+			AssetManager* assetManager = GetAssetManager();
+			std::optional<ResolvedContentFile> selection;
+			if (assetManager) {
+				const auto virtualPath =
+					VirtualPath::ParseContentReference(assetPath);
+				if (virtualPath.has_value()) {
+					selection = assetManager->GetContentPathResolver().ResolveFile(
+						*virtualPath
+					);
+				} else {
+					std::error_code ec;
+					const Path inputPath(assetPath);
+					const Path physicalPath = inputPath.IsAbsolute() ?
+						inputPath.LexicallyNormal() :
+						Path::FromNative(std::filesystem::absolute(
+							inputPath.Native(), ec
+						)).LexicallyNormal();
+					const auto mountId = !ec ?
+						assetManager->GetContentPathResolver().
+							FindMountIdForResolvedPath(physicalPath) :
+						std::nullopt;
+					if (mountId.has_value()) {
+						selection = assetManager->GetContentPathResolver().
+							DescribePathFromMount(*mountId, physicalPath);
+					}
+				}
+			}
+
+			if (assetManager && selection.has_value()) {
+				mEditorPresentationPath = selection->resolvedPath;
+				(void)SetPresentationPath(
+					selection->virtualPath, *assetManager
+				);
+			} else {
+				mEditorPresentationPath.Clear();
+				ClearPresentationPath();
+			}
 			needsResubscribe = true;
 		}
 
@@ -310,7 +352,15 @@ namespace Unnamed {
 #endif
 
 		if (needsReload) {
-			(void)LoadAsset();
+			AssetManager* assetManager = GetAssetManager();
+			if (assetManager && mPresentationPath.has_value()) {
+				mPresentationAssetId = assetManager->LoadAsset(
+					*mPresentationPath,
+					ASSET_TYPE::EVENT_PRESENTATION,
+					AssetManager::AssetLoadPolicy::ForceReload
+				);
+				(void)RebuildRuntimeData(*assetManager);
+			}
 		}
 		if (needsResubscribe) {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
@@ -423,16 +473,15 @@ namespace Unnamed {
 			state.graph.Clear();
 			state.issues.clear();
 
-			if (mAssetPath.empty()) {
+			if (mEditorPresentationPath.IsEmpty()) {
 				state.status =
 					"グラフの再構築をスキップしました:アセットパスが空です。";
 			} else if (AssetManager* assetManager = GetAssetManager()) {
-				AssetID assetId = mAssetId;
-				if (assetId == kInvalidAssetID) {
-					assetId = assetManager->LoadFromFile(
-						mAssetPath, ASSET_TYPE::EVENT_PRESENTATION
-					);
-				}
+				const AssetID assetId = assetManager->LoadAssetFromFile(
+					mEditorPresentationPath,
+					ASSET_TYPE::EVENT_PRESENTATION,
+					AssetManager::AssetLoadPolicy::ForceReload
+				);
 				const EventPresentationAssetData* assetData =
 					assetId != kInvalidAssetID ?
 						assetManager->Get<EventPresentationAssetData>(assetId) :
@@ -444,7 +493,7 @@ namespace Unnamed {
 					if (!EventPresentationEditorGraphCodec::BuildGraphFromAsset(
 						*assetData,
 						state.graph,
-						mAssetPath,
+						mEditorPresentationPath.ToGenericUtf8(),
 						&error
 					)) {
 						state.status = "グラフの再構築に失敗: " + error;
@@ -539,6 +588,15 @@ namespace Unnamed {
 			);
 			if (hasError) {
 				state.status = "セーブ中止:グラフにエラーがあります。";
+			} else if (AssetManager* assetManager = GetAssetManager();
+			           !assetManager) {
+				state.status =
+					"セーブ中止:AssetManagerが利用できません。";
+			} else if (assetManager->GetContentPathResolver().
+			           FindMountIdForResolvedPath(mEditorPresentationPath) ==
+			           ContentMountId::kCore) {
+				state.status =
+					"セーブ中止:Coreのグラフは読み取り専用です。Game contentへ複製してください。";
 			} else {
 				EventPresentationAssetData assetData = {};
 				std::string                error;
@@ -551,21 +609,33 @@ namespace Unnamed {
 				} else if (!EventPresentationEditorGraphCodec::SaveAssetJson(
 					assetData,
 					&state.graph,
-					mAssetPath,
+					mEditorPresentationPath.ToGenericUtf8(),
 					&error
 				)) {
 					state.status = "セーブ失敗(書き込み): " + error;
 				} else {
 					state.status = "グラフはアセットJSONに保存されます。";
 					state.dirty  = false;
-					(void)LoadAsset();
+					if (assetManager) {
+						const AssetID reloadedId =
+							assetManager->LoadAssetFromFile(
+								mEditorPresentationPath,
+								ASSET_TYPE::EVENT_PRESENTATION,
+								AssetManager::AssetLoadPolicy::ForceReload
+							);
+						if (reloadedId == mPresentationAssetId) {
+							(void)RebuildRuntimeData(*assetManager);
+						}
+					}
 					SubscribeAll();
 					state.needsRebuild = true;
 				}
 			}
 		}
 
-		ImGui::Text("Asset Path: %s", mAssetPath.c_str());
+		const std::string assetPathText =
+			mEditorPresentationPath.ToGenericUtf8();
+		ImGui::Text("Asset Path: %s", assetPathText.c_str());
 		ImGui::Text(
 			"Selected Node: %llu | きちゃない: %s",
 			static_cast<unsigned long long>(state.ui->GetSelectedNodeId()),
@@ -588,16 +658,33 @@ namespace Unnamed {
 #endif
 
 	void EventPresentationComponent::Deserialize(const JsonReader& reader) {
+		constexpr SceneLoadOptions options{};
+		const Path scenePath("<direct component deserialize>");
+		const SceneDeserializeContext context{
+			.loadOptions   = options,
+			.assetManager  = GetAssetManager(),
+			.scenePath     = scenePath,
+			.entityName    = "<unknown>",
+			.entityId      = 0,
+			.componentType = GetStableName(),
+		};
+		(void)Deserialize(reader, context);
+	}
+
+	bool EventPresentationComponent::Deserialize(
+		const JsonReader& reader, const SceneDeserializeContext& context
+	) {
 		mCueSourceEntityGuid = 0;
 		mAudioFxEntityGuid   = 0;
 		mCameraFxEntityGuid  = 0;
 		mAnimationEntityGuid = 0;
 		mVerboseLog          = false;
-		SetAssetPath("");
+		UnsubscribeAll();
+		ClearPresentationPath();
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+		mEditorPresentationPath.Clear();
+#endif
 
-		if (reader.Has("assetPath")) {
-			SetAssetPath(reader["assetPath"].GetString(""));
-		}
 		if (reader.Has("cueSourceEntityGuid")) {
 			mCueSourceEntityGuid = reader["cueSourceEntityGuid"].GetUint64();
 		}
@@ -614,19 +701,101 @@ namespace Unnamed {
 			mVerboseLog = reader["verboseLog"].GetBool(false);
 		}
 
+		const JsonReader pathNode = reader["assetPath"];
+		if (!pathNode.Valid()) {
+			return true;
+		}
+		if (!pathNode.IsString()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='assetPath' reason='expected string'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		const std::string pathValue = pathNode.GetString();
+		if (pathValue.empty()) {
+			return true;
+		}
+		const std::optional<VirtualPath> virtualPath =
+			VirtualPath::ParseContentReference(pathValue);
+		if (!virtualPath.has_value()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='assetPath' virtualPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				pathValue
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+		if (!context.assetManager) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='assetPath' virtualPath='{}' reason='AssetManager unavailable'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				pathValue
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		const std::optional<ResolvedContentFile> resolvedFile =
+			context.assetManager->GetContentPathResolver().ResolveFile(*virtualPath);
+		if (!resolvedFile.has_value()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='unresolved content' scene='{}' entity='{}' entityId={} component='{}' field='assetPath' virtualPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				pathValue
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+		mEditorPresentationPath = resolvedFile->resolvedPath;
+#endif
+		if (!SetPresentationPath(*virtualPath, *context.assetManager)) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='assetPath' virtualPath='{}' mount='{}' physicalPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				pathValue,
+				resolvedFile->mountId,
+				resolvedFile->resolvedPath
+			);
+			ClearPresentationPath();
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
 		mAudioFx   = ResolveAudioFx();
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
-		(void)LoadAsset();
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		AuditSourceGuidBindings();
 #endif
 		SubscribeAll();
+		return true;
 	}
 
 	void EventPresentationComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("assetPath");
-		writer.Write(mAssetPath);
+		if (mPresentationPath.has_value()) {
+			writer.Key("assetPath");
+			writer.Write(mPresentationPath->String());
+		}
 		writer.Key("cueSourceEntityGuid");
 		writer.Write(mCueSourceEntityGuid);
 		writer.Key("audioFxEntityGuid");
@@ -639,16 +808,37 @@ namespace Unnamed {
 		writer.Write(mVerboseLog);
 	}
 
-	void EventPresentationComponent::SetAssetPath(const std::string& path) {
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mAssetPath == normalized) {
-			return;
+	bool EventPresentationComponent::SetPresentationPath(
+		const VirtualPath& path, AssetManager& assetManager
+	) {
+		const AssetID assetId = assetManager.LoadAsset(
+			path, ASSET_TYPE::EVENT_PRESENTATION
+		);
+		if (assetId == kInvalidAssetID) {
+			ClearPresentationPath();
+			return false;
 		}
-		mAssetPath          = normalized;
-		mAssetId            = kInvalidAssetID;
+		mPresentationPath    = path;
+		mPresentationAssetId = assetId;
 		mLoadedAssetVersion = 0;
+		mLoadedAssetName.clear();
+		mTriggers.clear();
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+		if (mGraphEditorState) {
+			mGraphEditorState->needsRebuild = true;
+		}
+#endif
+		if (RebuildRuntimeData(assetManager)) {
+			return true;
+		}
+		ClearPresentationPath();
+		return false;
+	}
+
+	void EventPresentationComponent::ClearPresentationPath() {
+		mPresentationPath.reset();
+		mPresentationAssetId = kInvalidAssetID;
+		mLoadedAssetVersion  = 0;
 		mLoadedAssetName.clear();
 		mTriggers.clear();
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
@@ -658,13 +848,17 @@ namespace Unnamed {
 #endif
 	}
 
-	bool EventPresentationComponent::LoadAsset() {
+	bool EventPresentationComponent::RebuildRuntimeData(
+		AssetManager& assetManager
+	) {
 		mTriggers.clear();
-		mAssetId            = kInvalidAssetID;
 		mLoadedAssetVersion = 0;
 		mLoadedAssetName.clear();
 
-		if (mAssetPath.empty()) {
+		if (
+			!mPresentationPath.has_value() ||
+			mPresentationAssetId == kInvalidAssetID
+		) {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			if (mGraphEditorState) {
 				mGraphEditorState->needsRebuild = true;
@@ -673,35 +867,14 @@ namespace Unnamed {
 			return false;
 		}
 
-		AssetManager* assetManager = GetAssetManager();
-		if (!assetManager) {
-			Warning(kChannel, "AssetManager is not available.");
-			return false;
-		}
-
-		const AssetID assetId = assetManager->LoadFromFile(
-			mAssetPath, ASSET_TYPE::EVENT_PRESENTATION
-		);
-		if (assetId == kInvalidAssetID) {
-			Warning(
-				kChannel, "Failed to load event presentation '{}'.", mAssetPath
-			);
-#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-			if (mGraphEditorState) {
-				mGraphEditorState->needsRebuild = true;
-			}
-#endif
-			return false;
-		}
-
-		const auto* assetData = assetManager->Get<EventPresentationAssetData>(
-			assetId
+		const auto* assetData = assetManager.Get<EventPresentationAssetData>(
+			mPresentationAssetId
 		);
 		if (!assetData) {
 			Warning(
 				kChannel,
 				"Asset '{}' is not EventPresentationAssetData.",
-				mAssetPath
+				mPresentationPath->String()
 			);
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 			if (mGraphEditorState) {
@@ -711,8 +884,7 @@ namespace Unnamed {
 			return false;
 		}
 
-		mAssetId            = assetId;
-		mLoadedAssetVersion = assetManager->Meta(assetId).version;
+		mLoadedAssetVersion = assetManager.Meta(mPresentationAssetId).version;
 		mLoadedAssetName    = assetData->name;
 		mTriggers.reserve(assetData->triggers.size());
 
@@ -773,7 +945,7 @@ namespace Unnamed {
 			DevMsg(
 				kChannel,
 				"Loaded v2 asset '{}' with {} triggers.",
-				mAssetPath,
+				mPresentationPath->String(),
 				static_cast<int>(mTriggers.size())
 			);
 		}
@@ -786,9 +958,9 @@ namespace Unnamed {
 	}
 
 	void EventPresentationComponent::RefreshAssetIfNeeded() {
-		if (mAssetPath.empty()) {
-			if (mAssetId != kInvalidAssetID || !mTriggers.empty()) {
-				mAssetId            = kInvalidAssetID;
+		if (!mPresentationPath.has_value()) {
+			if (mPresentationAssetId != kInvalidAssetID || !mTriggers.empty()) {
+				mPresentationAssetId = kInvalidAssetID;
 				mLoadedAssetVersion = 0;
 				mLoadedAssetName.clear();
 				mTriggers.clear();
@@ -802,16 +974,12 @@ namespace Unnamed {
 			return;
 		}
 
-		bool needsReload = false;
-		if (mAssetId == kInvalidAssetID) {
-			needsReload = true;
-		} else {
-			const auto& meta = assetManager->Meta(mAssetId);
-			needsReload = !meta.loaded || meta.version != mLoadedAssetVersion;
+		if (mPresentationAssetId == kInvalidAssetID) {
+			return;
 		}
-
-		if (needsReload) {
-			(void)LoadAsset();
+		const auto& meta = assetManager->Meta(mPresentationAssetId);
+		if (meta.version != mLoadedAssetVersion) {
+			(void)RebuildRuntimeData(*assetManager);
 			SubscribeAll();
 		}
 	}
@@ -941,11 +1109,13 @@ namespace Unnamed {
 
 			const uint64_t receiverGuid =
 				GetOwner() ? GetOwner()->GetGuid() : 0;
+			const std::string assetDisplayName = mLoadedAssetName.empty() ?
+				(mPresentationPath.has_value() ?
+					 mPresentationPath->String() : std::string{}) :
+				mLoadedAssetName;
 			const EventPresentationExecutor::ExecutionContext context = {
-				.cue       = cue,
-				.assetName = mLoadedAssetName.empty() ?
-					             std::string_view(mAssetPath) :
-					             std::string_view(mLoadedAssetName),
+				.cue                       = cue,
+				.assetName                 = std::string_view(assetDisplayName),
 				.receiverEntityGuid        = receiverGuid,
 				.verboseLog                = mVerboseLog,
 				.audioFx                   = mAudioFx,
@@ -963,7 +1133,7 @@ namespace Unnamed {
 					if (!mGraphEditorState || !mGraphEditorState->ui) {
 						return;
 					}
-					EventPresentationEditorGraphUi::RuntimeTraceState uiState =
+					auto uiState =
 						EventPresentationEditorGraphUi::RuntimeTraceState::Executed;
 					switch (status) {
 						case
@@ -1048,7 +1218,8 @@ namespace Unnamed {
 		return owner ? owner->GetGuid() : 0;
 	}
 
-	AudioFxControllerComponent* EventPresentationComponent::ResolveAudioFx() {
+	AudioFxControllerComponent*
+	EventPresentationComponent::ResolveAudioFx() const {
 		const uint64_t targetGuid = ResolveAudioTargetEntityGuid();
 		if (targetGuid == 0) {
 			return nullptr;
@@ -1064,7 +1235,8 @@ namespace Unnamed {
 			       nullptr;
 	}
 
-	CameraFxControllerComponent* EventPresentationComponent::ResolveCameraFx() {
+	CameraFxControllerComponent*
+	EventPresentationComponent::ResolveCameraFx() const {
 		const uint64_t targetGuid = ResolveCameraFxTargetEntityGuid();
 		if (targetGuid == 0) {
 			return nullptr;
@@ -1080,7 +1252,8 @@ namespace Unnamed {
 			       nullptr;
 	}
 
-	SkeletalAnimationComponent* EventPresentationComponent::ResolveAnimation() {
+	SkeletalAnimationComponent*
+	EventPresentationComponent::ResolveAnimation() const {
 		const uint64_t targetGuid = ResolveAnimationTargetEntityGuid();
 		if (targetGuid == 0) {
 			return nullptr;
@@ -1099,7 +1272,8 @@ namespace Unnamed {
 	void RegisterEventPresentationComponent(
 		ComponentRegistry& componentRegistry
 	) {
-		static constexpr std::string_view kStableName = "game.EventPresentation";
+		static constexpr std::string_view kStableName =
+			"game.EventPresentation";
 		static constexpr std::string_view kDisplayName = "EventPresentation";
 		if (componentRegistry.IsRegistered(kStableName)) {
 			return;

@@ -112,7 +112,9 @@ namespace Unnamed {
 
 	/// @brief デストラクタ
 	template <typename T>
-	ConVar<T>::~ConVar() = default;
+	ConVar<T>::~ConVar() {
+		this->UnregisterFromConsoleSystem();
+	}
 
 	/// @brief コンソール変数クラスの実装
 	/// @param name 変数名

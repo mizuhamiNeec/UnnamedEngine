@@ -6,20 +6,17 @@
 #include "RendererPipelineCatalog.h"
 
 #include "core/assets/AssetManager.h"
+#include "core/assets/types/ShaderProgramAssetData.h"
+#include "core/assets/types/ShaderSourceAssetData.h"
+#include "core/filesystem/VirtualPath.h"
 
+#include "engine/content/ContentMountDefinitions.h"
 #include "engine/rhi/d3d12/D3D12Device.h"
 #include "engine/rhi/d3d12/D3D12Util.h"
+#include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed::Render {
 	namespace {
-		AssetID LoadAsset(
-			AssetManager&      assetManager,
-			const std::string& path,
-			const ASSET_TYPE   type
-		) {
-			return assetManager.LoadFromFile(path, type);
-		}
-
 		Rhi::VertexLayoutDesc BuildGeometryVertexLayout() {
 			return Rhi::VertexLayoutDesc{
 				.stride   = sizeof(float) * 20,
@@ -135,17 +132,96 @@ namespace Unnamed::Render {
 		}
 	}
 
+	AssetID Renderer::LoadCoreAsset(
+		AssetManager&          assetManager,
+		const std::string_view virtualPathText,
+		const ASSET_TYPE       type
+	) {
+		const std::optional<VirtualPath> virtualPath =
+			VirtualPath::ParseContentReference(virtualPathText);
+		if (!virtualPath.has_value()) {
+			Error(
+				"Renderer",
+				"Invalid Core renderer asset virtual path: path={}, type={}",
+				virtualPathText,
+				ToString(type)
+			);
+			return kInvalidAssetID;
+		}
+
+		return assetManager.LoadAssetFromMount(
+			*virtualPath,
+			ContentMountId::kCore,
+			type
+		);
+	}
+
+	bool Renderer::ValidateShaderProgramStages(
+		const AssetManager&         assetManager,
+		const AssetID              shaderProgramId,
+		const RequiredShaderStages requiredStages,
+		const std::string_view      debugName
+	) {
+		const auto* shaderProgram = assetManager.Get<ShaderProgramAssetData>(
+			shaderProgramId
+		);
+		if (!shaderProgram) {
+			Error(
+				"Renderer",
+				"Required ShaderProgram is unavailable: name='{}' assetId={}",
+				debugName,
+				shaderProgramId
+			);
+			return false;
+		}
+
+		auto validateStage = [&](
+			const std::optional<ShaderProgramStage>& stage,
+			const std::string_view stageName
+		) {
+			if (
+				!stage.has_value() ||
+				stage->shaderSourceAssetId == kInvalidAssetID ||
+				!assetManager.Get<ShaderSourceAssetData>(
+					stage->shaderSourceAssetId)
+			) {
+				Error(
+					"Renderer",
+					"Required ShaderProgram stage is unavailable: name='{}' assetId={} stage='{}'",
+					debugName,
+					shaderProgramId,
+					stageName
+				);
+				return false;
+			}
+			return true;
+		};
+
+		if (requiredStages == RequiredShaderStages::Compute) {
+			return validateStage(shaderProgram->cs, "cs");
+		}
+		const bool vsValid = validateStage(shaderProgram->vs, "vs");
+		const bool psValid = validateStage(shaderProgram->ps, "ps");
+		return vsValid && psValid;
+	}
+
 	Renderer::Renderer(ConsoleSystem* console) : mConsole(console) {
 	}
 
-	void Renderer::Init(RenderDevice& renderDevice) {
+	bool Renderer::Init(
+		RenderDevice& renderDevice,
+		const RenderStartupOptions& startupOptions
+	) {
+		mStartupOptions = startupOptions;
 		auto& dx = dynamic_cast<Rhi::D3D12Device&>(renderDevice.GetRhiDevice());
 		mTextureResourceCache.Initialize(
 			&renderDevice.GetAssetManager(), &renderDevice.GetRegistry()
 		);
 		mTextureResourceCache.SetUnusedFrameThreshold(120);
 		mLastTextureCacheStatsLogFrame = 0;
-		RebuildPipelineCatalog(renderDevice, dx);
+		if (!RebuildPipelineCatalog(renderDevice, dx, startupOptions)) {
+			return false;
+		}
 
 		mFrameCb.Init(
 			dx.GetDevice(), dx.GetFramesInFlight(), L"FrameConstants"
@@ -186,10 +262,32 @@ namespace Unnamed::Render {
 		);
 		mGraph.Reset();
 		mGraphBuilt = false;
+		return true;
 	}
 
-	void Renderer::RebuildPipelineCatalog(
-		RenderDevice& renderDevice, Rhi::D3D12Device& dx
+	bool Renderer::ValidateStartupResources(RenderDevice& renderDevice) {
+		if (!IsStrictRenderStartupValidation(mStartupOptions)) {
+			return true;
+		}
+
+		auto& dx = static_cast<Rhi::D3D12Device&>(
+			renderDevice.GetRhiDevice()
+		);
+		LoadMaterialResources(renderDevice, dx);
+		if (!ResolveRegisteredPipelines(renderDevice)) {
+			Error(
+				"Renderer",
+				"Strict startup validation failed for reachable Material pipelines."
+			);
+			return false;
+		}
+		return true;
+	}
+
+	bool Renderer::RebuildPipelineCatalog(
+		RenderDevice& renderDevice,
+		Rhi::D3D12Device& dx,
+		const RenderStartupOptions& startupOptions
 	) {
 		auto& assetManager = renderDevice.GetAssetManager();
 
@@ -197,66 +295,96 @@ namespace Unnamed::Render {
 		// Pipeline handles become invalid after catalog rebuild; material bindings rebuild their variants on next load.
 		ReleaseMaterialBindings(renderDevice);
 
-		const AssetID fullscreenProgramId = LoadAsset(
+		const AssetID fullscreenProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/fullscreen_copy.shader.json",
+			"shaders/programs/fullscreen_copy.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID depthVisProgramId = LoadAsset(
+		const AssetID depthVisProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/depth_vis.shader.json",
+			"shaders/programs/depth_vis.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID depthOnlyProgramId = LoadAsset(
+		const AssetID depthOnlyProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/depth_only.shader.json",
+			"shaders/programs/depth_only.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID geomProgramId = LoadAsset(
+		const AssetID geomProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/pbr.shader.json",
+			"shaders/programs/pbr.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID skyboxProgramId = LoadAsset(
+		const AssetID skyboxProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/skybox.shader.json",
+			"shaders/programs/skybox.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID csProgramId = LoadAsset(
+		const AssetID csProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/cs_write_uav.shader.json",
+			"shaders/programs/cs_write_uav.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID spriteOverlayProgramId = LoadAsset(
+		const AssetID spriteOverlayProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/sprite_overlay.shader.json",
+			"shaders/programs/sprite_overlay.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID debugLineProgramId = LoadAsset(
+		const AssetID debugLineProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/DebugLine.shader.json",
+			"shaders/programs/DebugLine.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID bloomDownsampleProgramId = LoadAsset(
+		const AssetID bloomDownsampleProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/bloom_downsample.shader.json",
+			"shaders/programs/bloom_downsample.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID bloomUpsampleProgramId = LoadAsset(
+		const AssetID bloomUpsampleProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/bloom_upsample.shader.json",
+			"shaders/programs/bloom_upsample.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID bloomCombineProgramId = LoadAsset(
+		const AssetID bloomCombineProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/bloom_combine.shader.json",
+			"shaders/programs/bloom_combine.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
-		const AssetID toneMapExposureProgramId = LoadAsset(
+		const AssetID toneMapExposureProgramId = LoadCoreAsset(
 			assetManager,
-			"./content/core/shaders/programs/tonemap_exposure.shader.json",
+			"shaders/programs/tonemap_exposure.shader.json",
 			ASSET_TYPE::SHADER_PROGRAM
 		);
+
+		bool requiredShadersValid = true;
+		auto validateGraphics = [&](
+			const AssetID id, const std::string_view name
+		) {
+			requiredShadersValid = ValidateShaderProgramStages(
+				assetManager, id, RequiredShaderStages::Graphics, name
+			) && requiredShadersValid;
+		};
+		validateGraphics(fullscreenProgramId, "FullscreenCopy");
+		validateGraphics(depthVisProgramId, "DepthVis");
+		validateGraphics(depthOnlyProgramId, "DepthOnly");
+		validateGraphics(geomProgramId, "Geometry");
+		validateGraphics(skyboxProgramId, "Skybox");
+		validateGraphics(spriteOverlayProgramId, "SpriteOverlay");
+		validateGraphics(debugLineProgramId, "DebugLine");
+		validateGraphics(bloomDownsampleProgramId, "BloomDownsample");
+		validateGraphics(bloomUpsampleProgramId, "BloomUpsample");
+		validateGraphics(bloomCombineProgramId, "BloomCombine");
+		validateGraphics(toneMapExposureProgramId, "ToneMapExposure");
+		requiredShadersValid = ValidateShaderProgramStages(
+			assetManager,
+			csProgramId,
+			RequiredShaderStages::Compute,
+			"ComputeWriteUav"
+		) && requiredShadersValid;
+		if (!requiredShadersValid) {
+			Error("Renderer", "Required Renderer shader assets are invalid.");
+			return false;
+		}
 
 		const DXGI_FORMAT swapChainFormat = Rhi::ToDxgiFormat(
 			dx.GetSwapChain().GetFormat()
@@ -305,6 +433,8 @@ namespace Unnamed::Render {
 				dx.GetFsRootSignature(),
 				kSceneHdrColorFormat
 			);
+		bloomDownsampleSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		mBloomDownsamplePass.pipeline = mPipelineRegistry.RegisterGraphics(
 			bloomDownsampleSpec
 		);
@@ -316,6 +446,8 @@ namespace Unnamed::Render {
 			dx.GetFsRootSignature(),
 			kSceneHdrColorFormat
 		);
+		bloomUpsampleSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		bloomUpsampleSpec.psoTemplate.blendEnable = true;
 		bloomUpsampleSpec.psoTemplate.srcBlend = D3D12_BLEND_ONE;
 		bloomUpsampleSpec.psoTemplate.destBlend = D3D12_BLEND_ONE;
@@ -332,6 +464,8 @@ namespace Unnamed::Render {
 			dx.GetFsRootSignature(),
 			kSceneHdrColorFormat
 		);
+		bloomCombineSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		bloomCombineSpec.psoTemplate.blendEnable = true;
 		bloomCombineSpec.psoTemplate.srcBlend = D3D12_BLEND_ONE;
 		bloomCombineSpec.psoTemplate.destBlend = D3D12_BLEND_ONE;
@@ -342,13 +476,16 @@ namespace Unnamed::Render {
 		);
 		mBloomCombinePass.resolved = nullptr;
 
-		mDepthVisPass.pipeline = mPipelineRegistry.RegisterGraphics(
-			RendererPipelineCatalog::MakeFullscreenPreset(
+		auto depthVisSpec = RendererPipelineCatalog::MakeFullscreenPreset(
 				"DepthVis",
 				depthVisProgramId,
 				dx.GetFsRootSignature(),
 				swapChainFormat
-			)
+			);
+		depthVisSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
+		mDepthVisPass.pipeline = mPipelineRegistry.RegisterGraphics(
+			depthVisSpec
 		);
 		mDepthVisPass.resolved = nullptr;
 
@@ -396,6 +533,8 @@ namespace Unnamed::Render {
 
 		auto shadowDepthFrontCullSpec = shadowDepthSpec;
 		shadowDepthFrontCullSpec.debugName = "ShadowDepthOnlyFrontCull";
+		shadowDepthFrontCullSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		shadowDepthFrontCullSpec.psoTemplate.cullMode =
 			D3D12_CULL_MODE_FRONT;
 		mShadowDepthFrontCullPass.pipeline =
@@ -404,6 +543,8 @@ namespace Unnamed::Render {
 
 		auto shadowDepthDoubleSidedSpec = shadowDepthSpec;
 		shadowDepthDoubleSidedSpec.debugName = "ShadowDepthOnlyDoubleSided";
+		shadowDepthDoubleSidedSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		shadowDepthDoubleSidedSpec.psoTemplate.cullMode =
 			D3D12_CULL_MODE_NONE;
 		mShadowDepthDoubleSidedPass.pipeline =
@@ -480,18 +621,45 @@ namespace Unnamed::Render {
 		);
 		mBillboardPass.frontGeom.resolved = nullptr;
 
-		mLinePass.pipeline = mPipelineRegistry.RegisterGraphics(
-			RendererPipelineCatalog::MakeLinePreset(
+		auto debugLineSpec = RendererPipelineCatalog::MakeLinePreset(
 				"DebugLine",
 				debugLineProgramId,
 				dx.GetGeomRootSignature(),
 				kSceneHdrColorFormat,
 				DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
 				lineLayout
-			)
+			);
+		debugLineSpec.startupRequirement =
+			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
+		mLinePass.pipeline = mPipelineRegistry.RegisterGraphics(
+			debugLineSpec
 		);
 		mLinePass.resolved = nullptr;
 
-		LoadPostFxChain(renderDevice);
+		if (!LoadPostFxChain(renderDevice)) {
+			if (IsStrictRenderStartupValidation(startupOptions)) {
+				Error(
+					"Renderer",
+					"Default PostFxChain is required by strict startup validation."
+				);
+				return false;
+			}
+			Warning(
+				"Renderer",
+				"Default PostFxChain is unavailable; continuing without post effects."
+			);
+		}
+		const PIPELINE_RESOLVE_SCOPE startupResolveScope =
+			IsStrictRenderStartupValidation(startupOptions) ?
+				PIPELINE_RESOLVE_SCOPE::ALL_REGISTERED :
+				PIPELINE_RESOLVE_SCOPE::REQUIRED_ONLY;
+		if (!ResolveRegisteredPipelines(renderDevice, startupResolveScope)) {
+			Error(
+				"Renderer",
+				"Startup validation failed for Renderer/PostFx pipelines."
+			);
+			return false;
+		}
+		return true;
 	}
 }

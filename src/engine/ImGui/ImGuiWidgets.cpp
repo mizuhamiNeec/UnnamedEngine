@@ -2,12 +2,9 @@
 #include "ImGuiWidgets.h"
 
 #include <array>
-#include <format>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <pch.h>
-
-#include <core/math/Math.h>
 
 #include <engine/Properties.h>
 #include <engine/ImGui/Icons.h>
@@ -544,7 +541,6 @@ namespace ImGuiWidgets {
 		return ret;
 	}
 
-
 	void HandleHoveredComboMenuMouseWheelScroll(
 		uint32_t& index, const uint32_t itemSize
 	) {
@@ -895,7 +891,7 @@ namespace ImGuiWidgets {
 				textPos.y - style.FramePadding.y + window->MenuBarHeight
 			);
 		} else {
-			float iconW = (icon && icon[0]) ?
+			float iconW = icon && icon[0] ?
 				              ImGui::CalcTextSize(icon, NULL).x :
 				              0.0f;
 			float checkmarkW = IM_TRUNC(g.FontSize * 1.20f);
@@ -937,7 +933,7 @@ namespace ImGuiWidgets {
 			ImGui::EndDisabled();
 		}
 
-		const bool hovered = (g.HoveredId == id) && enabled && !g.
+		const bool hovered = g.HoveredId == id && enabled && !g.
 		                     NavHighlightItemUnderNav;
 		if (menusetIsOpen) {
 			ImGui::PopItemFlag();
@@ -949,24 +945,24 @@ namespace ImGuiWidgets {
 		if (window->DC.LayoutType == ImGuiLayoutType_Vertical) {
 			bool            movingTowardChildMenu = false;
 			ImGuiPopupData* childPopup            =
-				(g.BeginPopupStack.Size < g.OpenPopupStack.Size) ?
+				g.BeginPopupStack.Size < g.OpenPopupStack.Size ?
 					&g.OpenPopupStack[g.BeginPopupStack.Size] :
 					NULL; // Popup candidate (testing below)
 			ImGuiWindow* childMenuWindow =
-			(childPopup && childPopup->Window && childPopup->Window->
-			 ParentWindow == window) ?
-				childPopup->Window :
-				NULL;
+				childPopup && childPopup->Window && childPopup->Window->
+				ParentWindow == window ?
+					childPopup->Window :
+					NULL;
 			if (g.HoveredWindow == window && childMenuWindow != NULL) {
 				const float refUnit  = g.FontSize; // FIXME-DPI
 				const float childDir =
-					(window->Pos.x < childMenuWindow->Pos.x) ? 1.0f : -1.0f;
+					window->Pos.x < childMenuWindow->Pos.x ? 1.0f : -1.0f;
 				const ImRect nextWindowRect = childMenuWindow->Rect();
-				ImVec2       ta             = (g.IO.MousePos - g.IO.MouseDelta);
-				ImVec2       tb             = (childDir > 0.0f) ?
+				ImVec2       ta             = g.IO.MousePos - g.IO.MouseDelta;
+				ImVec2       tb             = childDir > 0.0f ?
 					                              nextWindowRect.GetTL() :
 					                              nextWindowRect.GetTR();
-				ImVec2 tc = (childDir > 0.0f) ?
+				ImVec2 tc = childDir > 0.0f ?
 					            nextWindowRect.GetBL() :
 					            nextWindowRect.GetBR();
 				const float padFarmostH = ImClamp(
@@ -977,10 +973,10 @@ namespace ImGuiWidgets {
 				tb.x += childDir * refUnit;
 				tc.x += childDir * refUnit;
 				tb.y = ta.y + ImMax(
-					       (tb.y - padFarmostH) - ta.y, -refUnit * 8.0f
+					       tb.y - padFarmostH - ta.y, -refUnit * 8.0f
 				       );
 				tc.y = ta.y + ImMin(
-					       (tc.y + padFarmostH) - ta.y, +refUnit * 8.0f
+					       tc.y + padFarmostH - ta.y, +refUnit * 8.0f
 				       );
 				movingTowardChildMenu = ImTriangleContainsPoint(
 					ta, tb, tc, g.IO.MousePos
@@ -1233,7 +1229,8 @@ namespace ImGuiWidgets {
 	}
 
 	void ShowAboutWindow(
-		std::string systemName, std::string version, uint32_t logo, bool& bShow
+		const std::string& systemName, const std::string& version,
+		uint32_t           logo, bool&                    bShow
 	) {
 		const std::string text = "About " + systemName;
 

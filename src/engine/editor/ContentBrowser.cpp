@@ -1,5 +1,6 @@
 #ifdef _DEBUG
 #include "ContentBrowser.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
 #include <array>
@@ -11,7 +12,7 @@
 #include <imgui.h>
 
 #include "core/assets/AssetManager.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
@@ -23,7 +24,7 @@ namespace Unnamed::EditorContentBrowser {
 		namespace fs = std::filesystem;
 
 		struct BrowserEntry {
-			fs::path    path;
+			Path        path;
 			std::string name;
 			bool        isDirectory = false;
 			ASSET_TYPE  type        = ASSET_TYPE::UNKNOWN;
@@ -31,15 +32,15 @@ namespace Unnamed::EditorContentBrowser {
 
 		std::unordered_map<ImGuiID, BrowserViewState> sPickerStates;
 
-		std::string NormalizePath(const fs::path& path) {
-			return StrUtil::NormalizePath(
-				Path::ToGenericUtf8(path.lexically_normal())
-			);
+		Path NormalizePath(const Path& path) {
+			return path.LexicallyNormal();
 		}
 
-		bool IsPathInsideRoot(const fs::path& path, const fs::path& root) {
-			const std::string normalizedPath = NormalizePath(path);
-			const std::string normalizedRoot = NormalizePath(root);
+		bool IsPathInsideRoot(const Path& path, const Path& root) {
+			const std::string normalizedPath =
+				path.LexicallyNormal().ToGenericUtf8();
+			const std::string normalizedRoot =
+				root.LexicallyNormal().ToGenericUtf8();
 			if (normalizedPath == normalizedRoot) {
 				return true;
 			}
@@ -52,13 +53,12 @@ namespace Unnamed::EditorContentBrowser {
 
 		bool TryCommitAssetPath(
 			std::string&        ioPath,
-			const std::string&  candidate,
+			const Path&         candidate,
 			const AssetTypeMask acceptedMask
 		) {
-			const std::string normalized = NormalizePath(
-				Path::FromUtf8(candidate));
-			if (normalized.empty()) {
-				ioPath = normalized;
+			const Path normalized = candidate.LexicallyNormal();
+			if (normalized.IsEmpty()) {
+				ioPath.clear();
 				return true;
 			}
 
@@ -71,18 +71,28 @@ namespace Unnamed::EditorContentBrowser {
 				auto* assetManager = ServiceLocator::Get<AssetManager>();
 				assetManager && guessedType != ASSET_TYPE::UNKNOWN
 			) {
-				(void)assetManager->LoadFromFile(normalized, guessedType);
+				std::error_code ec;
+				const Path physicalPath = normalized.IsAbsolute() ?
+					normalized :
+					Path::FromNative(std::filesystem::absolute(
+						normalized.Native(), ec
+					)).LexicallyNormal();
+				if (!ec) {
+					(void)assetManager->LoadAssetFromFile(
+						physicalPath, guessedType
+					);
+				}
 			}
-			ioPath = normalized;
+			ioPath = normalized.ToGenericUtf8();
 			return true;
 		}
 
 		void EnumerateDirectories(
-			const fs::path& currentDir, std::vector<fs::path>& outDirs
+			const Path& currentDir, std::vector<Path>& outDirs
 		) {
 			outDirs.clear();
 			std::error_code ec;
-			for (fs::directory_iterator it(currentDir, ec), end;
+			for (fs::directory_iterator it(currentDir.Native(), ec), end;
 			     !ec && it != end;
 			     it.increment(ec)) {
 				if (ec) {
@@ -91,13 +101,12 @@ namespace Unnamed::EditorContentBrowser {
 				if (!it->is_directory(ec) || ec) {
 					continue;
 				}
-				outDirs.emplace_back(it->path());
+				outDirs.emplace_back(Path::FromNative(it->path()));
 			}
 			std::ranges::sort(
 				outDirs,
-				[](const fs::path& lhs, const fs::path& rhs) {
-					return Path::ToUtf8String(lhs.filename()) <
-					       Path::ToUtf8String(rhs.filename());
+				[](const Path& lhs, const Path& rhs) {
+					return lhs.FileName().Native() < rhs.FileName().Native();
 				}
 			);
 		}
@@ -118,17 +127,15 @@ namespace Unnamed::EditorContentBrowser {
 
 				const fs::directory_entry& de = *it;
 				BrowserEntry               entry = {};
-				entry.path = de.path();
-				entry.name = Path::ToUtf8String(entry.path.filename());
+				entry.path = Path::FromNative(de.path());
+				entry.name = Path::ToUtf8String(entry.path.FileName());
 				entry.isDirectory = de.is_directory(ec);
 				if (ec) {
 					continue;
 				}
 
 				if (!entry.isDirectory) {
-					entry.type = GuessAssetTypeFromPath(
-						NormalizePath(entry.path)
-					);
+					entry.type = GuessAssetTypeFromPath(entry.path);
 					if (!IsAssetTypeAccepted(entry.type, acceptedMask)) {
 						continue;
 					}
@@ -157,7 +164,8 @@ namespace Unnamed::EditorContentBrowser {
 
 			AssetDragDropPayload payload = {};
 			payload.assetType = static_cast<uint16_t>(entry.type);
-			const std::string normalizedPath = NormalizePath(entry.path);
+			const std::string normalizedPath = entry.path.LexicallyNormal().
+				ToUtf8();
 			memcpy(
 				payload.path,
 				normalizedPath.c_str(),
@@ -173,18 +181,15 @@ namespace Unnamed::EditorContentBrowser {
 		}
 
 		void DrawTreeRecursive(
-			const fs::path& rootPath, const fs::path& nodePath,
-			std::string&    currentPath
+			const Path& rootPath, const Path& nodePath,
+			Path&       currentPath
 		) {
-			const std::string node    = NormalizePath(nodePath);
-			const std::string current = NormalizePath(
-				Path::FromUtf8(currentPath));
+			const auto node       = nodePath;
+			const auto current    = currentPath.LexicallyNormal();
 			const bool isCurrent  = node == current;
-			const bool isAncestor = current.starts_with(node) &&
-			                        (current.size() == node.size() ||
-			                         current[node.size()] == '/');
+			const bool isAncestor = currentPath.ParentPath() == node;
 
-			std::vector<fs::path> children;
+			std::vector<Path> children;
 			EnumerateDirectories(nodePath, children);
 
 			ImGuiTreeNodeFlags flags =
@@ -202,10 +207,9 @@ namespace Unnamed::EditorContentBrowser {
 
 			const std::string label = nodePath == rootPath ?
 				                          "content" :
-				                          Path::ToUtf8String(
-					                          nodePath.filename());
+				                          nodePath.FileName().ToUtf8();
 			const bool opened = ImGui::TreeNodeEx(
-				node.c_str(),
+				node.ToUtf8().c_str(),
 				flags,
 				"%s %s",
 				StrUtil::ConvertToUtf8(kIconGroup).c_str(),
@@ -218,7 +222,7 @@ namespace Unnamed::EditorContentBrowser {
 			if (!opened || children.empty()) {
 				return;
 			}
-			for (const fs::path& child : children) {
+			for (const Path& child : children) {
 				DrawTreeRecursive(rootPath, child, currentPath);
 			}
 			ImGui::TreePop();
@@ -258,7 +262,8 @@ namespace Unnamed::EditorContentBrowser {
 				iconAreaSize + textAreaHeight + padding * 3.0f;
 			const ImVec2 cellSize(iconAreaSize, cellHeight);
 
-			const std::string cellId = NormalizePath(entry.path);
+			const std::string cellId =
+				NormalizePath(entry.path).ToGenericUtf8();
 			ImGui::PushID(cellId.c_str());
 			const bool clicked = ImGui::Selectable(
 				"##asset_cell",
@@ -346,10 +351,8 @@ namespace Unnamed::EditorContentBrowser {
 			std::string*             outCommittedPath,
 			const AssetOpenCallback* onAssetOpen
 		) {
-			const fs::path rootPath = Path::FromUtf8(state.rootPath).
-				lexically_normal();
-			fs::path currentPath = Path::FromUtf8(state.currentPath).
-				lexically_normal();
+			const Path rootPath    = state.rootPath.LexicallyNormal();
+			Path       currentPath = state.currentPath.LexicallyNormal();
 			if (!IsPathInsideRoot(currentPath, rootPath)) {
 				currentPath = rootPath;
 			}
@@ -377,10 +380,8 @@ namespace Unnamed::EditorContentBrowser {
 				ImGui::BeginChild(
 					"##ContentBrowserTree", ImVec2(0.0f, 0.0f), false
 				);
-				std::string currentPathString = NormalizePath(currentPath);
-				DrawTreeRecursive(rootPath, rootPath, currentPathString);
-				currentPath = Path::FromUtf8(currentPathString).
-					lexically_normal();
+				DrawTreeRecursive(rootPath, rootPath, currentPath);
+				currentPath = currentPath.LexicallyNormal();
 				ImGui::EndChild();
 
 				ImGui::TableNextColumn();
@@ -389,12 +390,11 @@ namespace Unnamed::EditorContentBrowser {
 				);
 
 				std::vector<BrowserEntry> entries;
-				EnumerateEntries(currentPath, acceptedMask, entries);
+				EnumerateEntries(currentPath.Native(), acceptedMask, entries);
 				if (!state.iconView) {
 					for (const BrowserEntry& entry : entries) {
-						const std::string normalizedPath = NormalizePath(
-							entry.path
-						);
+						const auto normalizedPath =
+							entry.path.LexicallyNormal();
 						const std::string row = std::format(
 							"{} {}###{}",
 							entry.isDirectory ?
@@ -419,7 +419,7 @@ namespace Unnamed::EditorContentBrowser {
 									ImGuiMouseButton_Left
 								)
 							) {
-								currentPath = entry.path.lexically_normal();
+								currentPath = entry.path.LexicallyNormal();
 							} else if (
 								!entry.isDirectory &&
 								ImGui::IsMouseDoubleClicked(
@@ -427,10 +427,11 @@ namespace Unnamed::EditorContentBrowser {
 								)
 							) {
 								if (outCommittedPath) {
-									*outCommittedPath = normalizedPath;
+									*outCommittedPath = normalizedPath.ToUtf8();
 									committed         = true;
 								} else if (onAssetOpen && *onAssetOpen) {
-									(*onAssetOpen)(normalizedPath, entry.type);
+									(*onAssetOpen)(
+										normalizedPath.ToUtf8(), entry.type);
 								}
 							}
 						}
@@ -464,9 +465,8 @@ namespace Unnamed::EditorContentBrowser {
 
 					int column = 0;
 					for (const BrowserEntry& entry : entries) {
-						const std::string normalizedPath = NormalizePath(
-							entry.path
-						);
+						const auto normalizedPath = entry.path.
+							LexicallyNormal();
 						bool       doubleClicked = false;
 						const bool clicked       = DrawIconCell(
 							entry,
@@ -477,15 +477,16 @@ namespace Unnamed::EditorContentBrowser {
 						if (clicked) {
 							state.selectedPath = normalizedPath;
 							if (entry.isDirectory && doubleClicked) {
-								currentPath = entry.path.lexically_normal();
+								currentPath = entry.path.LexicallyNormal();
 							} else if (
 								!entry.isDirectory && doubleClicked
 							) {
 								if (outCommittedPath) {
-									*outCommittedPath = normalizedPath;
+									*outCommittedPath = normalizedPath.ToUtf8();
 									committed         = true;
 								} else if (onAssetOpen && *onAssetOpen) {
-									(*onAssetOpen)(normalizedPath, entry.type);
+									(*onAssetOpen)(
+										normalizedPath.ToUtf8(), entry.type);
 								}
 							}
 						}
@@ -506,15 +507,13 @@ namespace Unnamed::EditorContentBrowser {
 				ImGui::EndTable();
 			}
 
-			state.currentPath = NormalizePath(currentPath);
+			state.currentPath = currentPath.LexicallyNormal();
 			return committed;
 		}
 
 		bool DrawTopBar(BrowserViewState& state) {
-			const fs::path rootPath = Path::FromUtf8(state.rootPath).
-				lexically_normal();
-			fs::path currentPath = Path::FromUtf8(state.currentPath).
-				lexically_normal();
+			const Path rootPath    = state.rootPath.LexicallyNormal();
+			Path       currentPath = state.currentPath.LexicallyNormal();
 			if (!IsPathInsideRoot(currentPath, rootPath)) {
 				currentPath = rootPath;
 			}
@@ -524,7 +523,7 @@ namespace Unnamed::EditorContentBrowser {
 					kIconArrowUpward, nullptr, ImVec2(0, 0), 1.0f
 				)
 			) {
-				const fs::path parent = currentPath.parent_path();
+				const Path parent = currentPath.ParentPath();
 				if (IsPathInsideRoot(parent, rootPath)) {
 					currentPath = parent;
 				}
@@ -536,9 +535,11 @@ namespace Unnamed::EditorContentBrowser {
 			ImGui::RadioButton("Icon", &viewMode, 1);
 			state.iconView = viewMode == 1;
 			ImGui::SameLine();
-			ImGui::TextDisabled("%s", NormalizePath(currentPath).c_str());
+			const std::string currentPathText =
+				NormalizePath(currentPath).ToGenericUtf8();
+			ImGui::TextDisabled("%s", currentPathText.c_str());
 
-			state.currentPath = NormalizePath(currentPath);
+			state.currentPath = currentPath.LexicallyNormal();
 			return true;
 		}
 	}
@@ -574,7 +575,7 @@ namespace Unnamed::EditorContentBrowser {
 
 		constexpr float buttonWidth = 36.0f;
 		const float     helpWidth   =
-			(helpText && helpText[0] != '\0') ? 24.0f : 0.0f;
+			helpText && helpText[0] != '\0' ? 24.0f : 0.0f;
 		const float inputWidth = std::max(
 			80.0f,
 			ImGui::GetContentRegionAvail().x - buttonWidth - helpWidth -
@@ -591,7 +592,8 @@ namespace Unnamed::EditorContentBrowser {
 		if (ImGui::InputText(
 			"##AssetPath", pathBuffer.data(), pathBuffer.size()
 		)) {
-			if (TryCommitAssetPath(path, pathBuffer.data(), acceptedMask)) {
+			if (TryCommitAssetPath(path, Path(pathBuffer.data()),
+			                       acceptedMask)) {
 				changed = true;
 			} else {
 				rejected = true;
@@ -607,9 +609,11 @@ namespace Unnamed::EditorContentBrowser {
 						AssetDragDropPayload*>(
 						payload->Data
 					);
-					if (TryCommitAssetPath(
-						path, assetPayload->path, acceptedMask
-					)) {
+					if (
+						TryCommitAssetPath(
+							path, Path(assetPayload->path), acceptedMask
+						)
+					) {
 						changed = true;
 					} else {
 						rejected = true;
@@ -621,10 +625,10 @@ namespace Unnamed::EditorContentBrowser {
 
 		const ImGuiID     widgetId    = ImGui::GetID("##AssetPath");
 		BrowserViewState& pickerState = sPickerStates[widgetId];
-		if (pickerState.rootPath.empty()) {
-			pickerState.rootPath = "./content";
+		if (pickerState.rootPath.IsEmpty()) {
+			pickerState.rootPath = Path("./content");
 		}
-		if (pickerState.currentPath.empty()) {
+		if (pickerState.currentPath.IsEmpty()) {
 			pickerState.currentPath = pickerState.rootPath;
 		}
 
@@ -634,17 +638,16 @@ namespace Unnamed::EditorContentBrowser {
 			static_cast<uint32_t>(widgetId)
 		);
 		if (ImGui::Button("...")) {
-			const fs::path rootPath = Path::FromUtf8(pickerState.rootPath).
-				lexically_normal();
-			const fs::path targetPath = Path::FromUtf8(path).lexically_normal();
+			const Path rootPath   = pickerState.rootPath.LexicallyNormal();
+			const Path targetPath = Path(path).LexicallyNormal();
 			if (!path.empty() && IsPathInsideRoot(targetPath, rootPath)) {
 				pickerState.currentPath = NormalizePath(
-					targetPath.parent_path()
+					targetPath.ParentPath()
 				);
 				pickerState.selectedPath = NormalizePath(targetPath);
 			} else {
 				pickerState.currentPath = NormalizePath(rootPath);
-				pickerState.selectedPath.clear();
+				pickerState.selectedPath.Clear();
 			}
 			ImGui::OpenPopup(popupId.c_str());
 		}
@@ -686,7 +689,7 @@ namespace Unnamed::EditorContentBrowser {
 				nullptr
 			);
 			if (committedByDoubleClick && TryCommitAssetPath(
-				    path, committedPath, acceptedMask
+				    path, Path(committedPath), acceptedMask
 			    )) {
 				changed = true;
 				ImGui::CloseCurrentPopup();
@@ -694,7 +697,7 @@ namespace Unnamed::EditorContentBrowser {
 
 			if (ImGui::Button("Select")) {
 				if (
-					!pickerState.selectedPath.empty() &&
+					!pickerState.selectedPath.IsEmpty() &&
 					TryCommitAssetPath(
 						path, pickerState.selectedPath, acceptedMask
 					)
@@ -731,8 +734,7 @@ namespace Unnamed::EditorContentBrowser {
 			return;
 		}
 
-		const fs::path rootPath = Path::FromUtf8(state.rootPath).
-			lexically_normal();
+		const fs::path  rootPath = state.rootPath.LexicallyNormal().Native();
 		std::error_code ec;
 		if (!fs::exists(rootPath, ec) || !fs::is_directory(rootPath, ec)) {
 			ImGui::TextUnformatted("`./content` directory not found.");

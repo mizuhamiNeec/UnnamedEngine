@@ -1,8 +1,8 @@
 {
 	"name": "gray",
-	"material": "../dev.material.json",
+	"material": "materials/dev.material.json",
 	"textures": {
-		"BaseColor": "../../textures/dev_measuregray.png"
+		"BaseColor": "textures/dev_measuregray.png"
 	},
 	"scalars": {
 		"Metallic": 0.5,

@@ -167,7 +167,7 @@ namespace Unnamed {
 		void PruneExpiredPlayers();
 
 		void CollectTrackPre(
-			const SequencePlayer&                 player,
+			const SequencePlayer&           player,
 			const SequenceAssetData&        asset,
 			const SequenceTrackAssetData&   track,
 			const SequenceBindingAssetData* binding,
@@ -194,11 +194,11 @@ namespace Unnamed {
 
 		/// @brief イベント区間を走査して発火キューへ積みます。
 		void EvaluateEventRange(
-			const SequenceTraversalRange& traversal,
-			const SequencePlayer&         player,
+			const SequenceTraversalRange&   traversal,
+			const SequencePlayer&           player,
 			const SequenceBindingAssetData* binding,
 			const SequenceSectionAssetData& section,
-			int64_t                       lengthFrames
+			int64_t                         lengthFrames
 		);
 
 		[[nodiscard]] static std::string BuildPropertyKey(

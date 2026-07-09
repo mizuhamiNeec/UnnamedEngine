@@ -8,8 +8,8 @@
 namespace Unnamed {
 	void RegisterDefaultEngineComponents(ComponentRegistry& componentRegistry) {
 		const auto registerIfMissing = [&](auto typeTag) {
-			using T = typename decltype(typeTag)::type;
-			const T probe{};
+			using T = decltype(typeTag)::type;
+			const T                probe{};
 			const std::string_view stableName = probe.GetStableName();
 			if (componentRegistry.IsRegistered(stableName)) {
 				return;
@@ -34,4 +34,3 @@ namespace Unnamed {
 		ForEachEngineComponentType(registerIfMissing);
 	}
 }
-

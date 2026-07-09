@@ -1,9 +1,9 @@
 #include "Engine.h"
+#include <pch.h>
 
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
-#include <pch.h>
 
 // ReSharper disable CppUnusedIncludeDirective
 #include <engine/physics/core/Physics.h>
@@ -27,10 +27,12 @@
 #include <core/assets/loader/SoundAssetLoader.h>
 #include <core/assets/loader/TextureLoaderDirectXTex.h>
 #include <core/assets/loader/UiDocumentAssetLoader.h>
-#include <core/path/PathUtil.h>
+#include <core/content/ContentPathResolver.h>
+#include <core/filesystem/Path.h>
 #include <core/string/StrUtil.h>
 
 #include <engine/EngineComponentRegistration.h>
+#include <engine/content/ContentMountDefinitions.h>
 #include <engine/game/GamePathResolver.h>
 #include <engine/game/GameRuntimeContext.h>
 #include <engine/game/IDemoService.h>
@@ -46,11 +48,11 @@
 #include <engine/rhi/d3d12/D3D12Device.h>
 #include <engine/rhi/d3d12/D3D12Util.h>
 #include <engine/rhi/interface/IRhiDevice.h>
-#include <engine/sequence/SequenceRegressionRunner.h>
+#include <engine/unnamed/ui/UIFontAtlas.h>
 #include <engine/ui/ImGuiLayer.h>
-#include <engine/unnamed/framework/entity/Entity.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
 #include <engine/unnamed/subsystem/EditorLuaSystem/EditorLuaSystem.h>
+#include <engine/unnamed/subsystem/input/InputSystem.h>
 #include <engine/unnamed/subsystem/input/device/gamepad/GamepadDevice.h>
 #include <engine/unnamed/subsystem/input/device/keyboard/KeyboardDevice.h>
 #include <engine/unnamed/subsystem/input/device/mouse/MouseDevice.h>
@@ -74,20 +76,21 @@ namespace Unnamed {
 	namespace {
 		[[nodiscard]] bool ExecuteCfgIfExists(
 			ConsoleSystem*         console,
-			const std::string_view cfgPath,
+			const Path&            cfgPath,
 			const std::string_view channel,
 			const std::string_view orderLabel
 		) {
-			if (!console || cfgPath.empty()) {
+			if (!console || cfgPath.IsEmpty()) {
 				return false;
 			}
 
-			if (!std::filesystem::exists(Path::FromUtf8(cfgPath))) {
+			const std::string cfgPathText = cfgPath.ToGenericUtf8();
+			if (!std::filesystem::exists(cfgPath.Native())) {
 				DevMsg(
 					channel,
 					"[CFG:{}] skipped missing {}",
 					orderLabel,
-					std::string(cfgPath)
+					cfgPathText
 				);
 				return false;
 			}
@@ -96,9 +99,9 @@ namespace Unnamed {
 				channel,
 				"[CFG:{}] exec {}",
 				orderLabel,
-				std::string(cfgPath)
+				cfgPathText
 			);
-			console->ExecuteCommand("exec \"" + std::string(cfgPath) + "\"");
+			console->ExecuteCommand("exec \"" + cfgPathText + "\"");
 			return true;
 		}
 
@@ -111,10 +114,66 @@ namespace Unnamed {
 		) {
 			return ExecuteCfgIfExists(
 				console,
-				ResolveGameConfigPath(gamePaths, relativeCfgPath),
+				ResolveGameConfigPath(gamePaths, Path(relativeCfgPath)),
 				channel,
 				orderLabel
 			);
+		}
+
+		[[nodiscard]] std::string DescribeContentRootFailureReason(
+			const Path& rootPath
+		) {
+			if (rootPath.IsEmpty()) {
+				return "Path is empty";
+			}
+			if (!rootPath.IsAbsolute()) {
+				return "Path is not absolute";
+			}
+			if (!rootPath.Exists()) {
+				return "Directory does not exist";
+			}
+			if (!rootPath.IsDirectory()) {
+				return "Path is not a directory";
+			}
+			return {};
+		}
+
+		[[nodiscard]] std::optional<Path> TryResolveCoreContentRoot(
+			const GameRuntimeContext& runtimeContext
+		) {
+			const GameModulePaths& gamePaths = runtimeContext.modulePaths;
+
+			if (gamePaths.gameRoot.IsAbsolute()) {
+				const Path normalizedGameRoot =
+					gamePaths.gameRoot.LexicallyNormal();
+				const Path repoLikeCoreRoot =
+					(normalizedGameRoot.ParentPath().ParentPath() /
+					 Path("content/core"))
+					.LexicallyNormal();
+				if (repoLikeCoreRoot.IsDirectory()) {
+					return repoLikeCoreRoot;
+				}
+			}
+
+			if (gamePaths.contentRoot.IsAbsolute()) {
+				const Path normalizedContentRoot =
+					gamePaths.contentRoot.LexicallyNormal();
+				const Path repoLikeCoreRootFromContent =
+					(normalizedContentRoot.ParentPath().ParentPath().
+					                       ParentPath() / Path("content/core"))
+					.LexicallyNormal();
+				if (repoLikeCoreRootFromContent.IsDirectory()) {
+					return repoLikeCoreRootFromContent;
+				}
+
+				const Path mergedContentCoreRoot =
+					(normalizedContentRoot / Path("core")).LexicallyNormal();
+				if (mergedContentCoreRoot.IsDirectory()) {
+					return mergedContentCoreRoot;
+				}
+			}
+
+			return std::nullopt;
 		}
 	}
 
@@ -130,22 +189,11 @@ namespace Unnamed {
 
 	int Engine::Run(const EngineRunCallbacks& callbacks) {
 		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); // リークチェック
-		const HRESULT hr = CoInitializeEx(
-			nullptr, COINIT_MULTITHREADED
-		);
-		const bool coInitialized = SUCCEEDED(hr);
-		if (!coInitialized && hr != RPC_E_CHANGED_MODE) {
-			Warning(
-				"Engine",
-				"CoInitializeEx failed. hr=0x{:08X}",
-				static_cast<uint32_t>(hr)
-			);
-		}
-		timeBeginPeriod(1); // システムタイマーの分解能を上げる
 
 		// 初期化
 		if (!Init()) {
-			UASSERT(false && "Failed to initialize Engine");
+			Error("Engine", "Failed to initialize Engine.");
+			Shutdown();
 			return EXIT_FAILURE;
 		}
 
@@ -154,10 +202,6 @@ namespace Unnamed {
 				callbacks.onPreShutdown(*this);
 			}
 			Shutdown();
-			timeEndPeriod(1);
-			if (coInitialized) {
-				CoUninitialize();
-			}
 			return EXIT_FAILURE;
 		}
 
@@ -166,29 +210,9 @@ namespace Unnamed {
 			mWindowManager->ProcessMessage();
 
 			// ウィンドウのリサイズ処理
-			for (const WindowId id : mWindowManager->GetAllWindowIds()) {
-				Window* wnd = mWindowManager->FindWindowById(id);
-				if (!wnd) {
-					continue;
-				}
-				if (const auto resize = wnd->ConsumeResizeEvent()) {
-					if (
-						resize->width > 0 && resize->height > 0 &&
-						(std::cmp_not_equal(resize->width, mLastResizeWidth) ||
-						 std::cmp_not_equal(resize->height, mLastResizeHeight))
-					) {
-						mLastResizeWidth = static_cast<uint32_t>(resize->width);
-						mLastResizeHeight = static_cast<uint32_t>(resize->
-							height);
-						if (mRenderModule) {
-							mRenderModule->OnResize(
-								mLastResizeWidth, mLastResizeHeight
-							);
-						}
-					}
-				}
-			}
+			ProcessResize();
 
+			// メインループの終了条件 Windowが閉じたい、またはエンジンが終了要求を受けた場合
 			if (mWindowManager->ShouldQuit() || mWishShutdown) {
 				break;
 			}
@@ -200,25 +224,42 @@ namespace Unnamed {
 		if (callbacks.onPreShutdown) {
 			callbacks.onPreShutdown(*this);
 		}
+
 		Shutdown();
-		timeEndPeriod(1);
-		if (coInitialized) {
-			CoUninitialize();
-		}
+
 		return EXIT_SUCCESS;
 	}
 
 	void Engine::ToggleEditorScreenMode() const {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-		if (mUEditorRuntime && mIsEditorMode) {
-			mUEditorRuntime->TogglePresentMode();
+		if (mEditorRuntime && mIsEditorMode) {
+			mEditorRuntime->TogglePresentMode();
 		}
 #endif
+	}
+
+	void Engine::RequestShutdown() noexcept {
+		mWishShutdown = true;
 	}
 
 	/// @brief 初期化
 	/// @return 成功したらtrueを返す
 	bool Engine::Init() {
+		// COMの初期化
+		const HRESULT hr = CoInitializeEx(
+			nullptr, COINIT_MULTITHREADED
+		);
+		mCoInitialized = SUCCEEDED(hr);
+		if (!mCoInitialized && hr != RPC_E_CHANGED_MODE) {
+			Warning(
+				"Engine",
+				"CoInitializeEx failed. hr=0x{:08X}",
+				static_cast<uint32_t>(hr)
+			);
+		}
+
+		timeBeginPeriod(1); // システムタイマーの分解能を上げる
+
 		SystemClock::Init();
 
 		ServiceLocator::Register<Engine>(this);
@@ -280,12 +321,18 @@ namespace Unnamed {
 			return false;
 		}
 
+		const GameRuntimeContext& runtimeContext = *mRuntimeBindings.
+			runtimeContext;
+		if (!InitializeContentMounts(runtimeContext)) {
+			return false;
+		}
+
 		if (mRuntimeBindings.createDemoService) {
 			mDemoService = mRuntimeBindings.createDemoService();
 		}
 		ServiceLocator::Register<IDemoService>(mDemoService.get());
 
-		mAssetManager = std::make_unique<AssetManager>();
+		mAssetManager = std::make_unique<AssetManager>(mContentPathResolver);
 		ServiceLocator::Register<AssetManager>(mAssetManager.get());
 
 		// 各ローダーの登録
@@ -366,7 +413,7 @@ namespace Unnamed {
 		// コンソールコマンドと変数の登録
 		(void)ExecuteCfgIfExists(
 			mConsoleSystem.get(),
-			"./content/core/cfg/config_default.cfg",
+			Path("./content/core/cfg/config_default.cfg"),
 			"Engine",
 			"00-core:config_default"
 		);
@@ -400,11 +447,15 @@ namespace Unnamed {
 		mRenderModule = std::make_unique<Render::RenderModule>(
 			*mAssetManager, *mRhiDevice
 		);
-		mRenderModule->Init(mConsoleSystem.get());
+		if (!mRenderModule->Init(
+			mConsoleSystem.get(), mRuntimeBindings.renderStartupOptions
+		)) {
+			Error("Engine", "Renderer initialization failed.");
+			return false;
+		}
 		mRenderFrameContext = std::make_unique<Render::RenderFrameContext>();
 
 		RegisterEngineComponents(ComponentRegistry::Get());
-		const GameRuntimeContext& runtimeContext = *mRuntimeBindings.runtimeContext;
 		const GameModulePaths& gamePaths = runtimeContext.modulePaths;
 		DevMsg(
 			"Engine",
@@ -415,9 +466,7 @@ namespace Unnamed {
 			gamePaths.gameRoot,
 			gamePaths.contentRoot,
 			gamePaths.configRoot,
-			runtimeContext.defaultStartupScenePath.empty() ?
-				runtimeContext.modulePaths.defaultStartupScene :
-				runtimeContext.defaultStartupScenePath
+			runtimeContext.defaultStartupScene.String()
 		);
 
 		(void)ExecuteGameCfgIfExists(
@@ -445,15 +494,15 @@ namespace Unnamed {
 			// 既存運用との互換性のため、game 側 user.cfg が無い場合のみ core を読みます。
 			(void)ExecuteCfgIfExists(
 				mConsoleSystem.get(),
-				"./content/core/cfg/user.cfg",
+				Path("./content/core/cfg/user.cfg"),
 				"Engine",
 				"31-core:user-fallback"
 			);
 		}
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-		auto& dx     = dynamic_cast<Rhi::D3D12Device&>(*mRhiDevice);
-		mUImGuiLayer = std::make_unique<ImGuiLayer>(
+		auto& dx    = dynamic_cast<Rhi::D3D12Device&>(*mRhiDevice);
+		mImGuiLayer = std::make_unique<ImGuiLayer>(
 			hwnd,
 			dx,
 			dx.GetSwapChain().GetBufferCount(),
@@ -462,13 +511,13 @@ namespace Unnamed {
 
 		mRenderModule->SetUiCallbacks(
 			[this](const Render::RenderPassContext& passContext) {
-				if (mUImGuiLayer) {
-					mUImGuiLayer->RenderMainDrawData(passContext);
+				if (mImGuiLayer) {
+					mImGuiLayer->RenderMainDrawData(passContext);
 				}
 			},
 			[this] {
-				if (mUImGuiLayer) {
-					mUImGuiLayer->RenderPlatformWindows();
+				if (mImGuiLayer) {
+					mImGuiLayer->RenderPlatformWindows();
 				}
 			}
 		);
@@ -478,7 +527,7 @@ namespace Unnamed {
 
 		if (mConfig.mode == RUN_MODE::EDITOR) {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-			mUEditorRuntime = std::make_unique<EditorRuntime>(
+			mEditorRuntime = std::make_unique<EditorRuntime>(
 				mConsoleSystem.get(),
 				mInputSystem.get(),
 				mAssetManager.get(),
@@ -487,15 +536,25 @@ namespace Unnamed {
 				mProfiler.get(),
 				*mWindowManager,
 				*mRenderModule,
-				*mUImGuiLayer
+				*mImGuiLayer
 			);
-			if (World* runtimeWorld = mUEditorRuntime->GetRuntimeWorld()) {
-				const std::string startupScenePath =
-					ResolveStartupScenePath(
-						gamePaths,
-						runtimeContext.defaultStartupScenePath
-					);
-				runtimeWorld->LoadSceneFromFile(startupScenePath.c_str());
+			if (World* runtimeWorld = mEditorRuntime->GetRuntimeWorld()) {
+				runtimeWorld->SetSceneLoadOptions(
+					mRuntimeBindings.sceneLoadOptions
+				);
+				if (!LoadDefaultStartupScene(
+					*runtimeWorld,
+					runtimeContext,
+					mRuntimeBindings.sceneLoadOptions
+				)) {
+					return false;
+				}
+			} else {
+				Error(
+					"Engine",
+					"Editor runtime did not provide a runtime world for startup scene loading."
+				);
+				return false;
 			}
 
 			if (!ExecuteGameCfgIfExists(
@@ -507,7 +566,7 @@ namespace Unnamed {
 			)) {
 				(void)ExecuteCfgIfExists(
 					mConsoleSystem.get(),
-					"./content/core/cfg/editor.cfg",
+					Path("./content/core/cfg/editor.cfg"),
 					"Engine",
 					"41-core:editor-fallback"
 				);
@@ -519,16 +578,33 @@ namespace Unnamed {
 					BuildWorldServices()
 				);
 			if (!runtimeWorld) {
-				Error("Engine", "Game world factory returned null runtime world.");
+				Error(
+					"Engine",
+					"Game world factory returned null runtime world."
+				);
 				return false;
 			}
-			World&            world = ActivateWorld(std::move(runtimeWorld));
-			const std::string startupScenePath =
-				ResolveStartupScenePath(
-					gamePaths,
-					runtimeContext.defaultStartupScenePath
-				);
-			world.LoadSceneFromFile(startupScenePath.c_str());
+			World& world = ActivateWorld(std::move(runtimeWorld));
+			if (
+				!LoadDefaultStartupScene(
+					world, runtimeContext, mRuntimeBindings.sceneLoadOptions
+				)
+			) {
+				return false;
+			}
+		}
+
+		if (
+			Render::IsStrictRenderStartupValidation(
+				mRuntimeBindings.renderStartupOptions
+			) &&
+			!mRenderModule->ValidateStartupResources()
+		) {
+			Error(
+				"Engine",
+				"Renderer startup validation failed for startup scene resources."
+			);
+			return false;
 		}
 
 		// ユーザー名をコンソール変数に設定
@@ -593,18 +669,18 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		// Update内でImGuiを使えるように更新前にフレーム開始
-		if (mUImGuiLayer) {
+		if (mImGuiLayer) {
 			Profiler::ScopeTimer scope(mProfiler.get(), "ImGui.BeginFrame");
 			auto& dx = dynamic_cast<Rhi::D3D12Device&>(*mRhiDevice);
-			mUImGuiLayer->BeginFrame(dx.GetCurrentFrameIndex());
+			mImGuiLayer->BeginFrame(dx.GetCurrentFrameIndex());
 		}
-		if (mUEditorRuntime && mIsEditorMode) {
+		if (mEditorRuntime && mIsEditorMode) {
 			if (
-				mUEditorRuntime->GetPresentMode() ==
+				mEditorRuntime->GetPresentMode() ==
 				EDITOR_PRESENT_MODE::VIEWPORT_PANEL
 			) {
 				Profiler::ScopeTimer scope(mProfiler.get(), "Editor.BeginUI");
-				mUEditorRuntime->BeginUI();
+				mEditorRuntime->BeginUI();
 			}
 		}
 #endif
@@ -622,9 +698,9 @@ namespace Unnamed {
 
 		World* runtimeWorld = mWorld.get();
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-		if (mUEditorRuntime && mIsEditorMode) {
-			mUEditorRuntime->SyncPresentationState();
-			runtimeWorld = mUEditorRuntime->GetRuntimeWorld();
+		if (mEditorRuntime && mIsEditorMode) {
+			mEditorRuntime->SyncPresentationState();
+			runtimeWorld = mEditorRuntime->GetRuntimeWorld();
 		}
 
 #endif
@@ -728,26 +804,26 @@ namespace Unnamed {
 		}
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-		if (mUImGuiLayer) {
-			if (mUEditorRuntime && mIsEditorMode) {
-				mUEditorRuntime->SyncViewOutputs();
+		if (mImGuiLayer) {
+			if (mEditorRuntime && mIsEditorMode) {
+				mEditorRuntime->SyncViewOutputs();
 				if (
-					mUEditorRuntime->GetPresentMode() ==
+					mEditorRuntime->GetPresentMode() ==
 					EDITOR_PRESENT_MODE::VIEWPORT_PANEL
 				) {
 					Profiler::ScopeTimer scope(
 						mProfiler.get(), "Editor.BuildUi"
 					);
-					mUEditorRuntime->BuildUi(unscaledDeltaTime);
+					mEditorRuntime->BuildUi(unscaledDeltaTime);
 				}
 			}
 			{
 				Profiler::ScopeTimer scope(mProfiler.get(), "ImGui.EndFrame");
-				mUImGuiLayer->EndFrame();
+				mImGuiLayer->EndFrame();
 			}
 		}
-		if (mUEditorRuntime && mIsEditorMode) {
-			mUEditorRuntime->FillEditorRenderViews(inputs);
+		if (mEditorRuntime && mIsEditorMode) {
+			mEditorRuntime->FillEditorRenderViews(inputs);
 		}
 #endif
 
@@ -780,7 +856,6 @@ namespace Unnamed {
 		mPostFxListCommand.reset();
 		mPostFxChainCommand.reset();
 		mPostFxChainReloadCommand.reset();
-		mSequenceRegressionRunCommand.reset();
 		mToggleFullscreenCommand.reset();
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		mToggleEditorCommand.reset();
@@ -802,8 +877,8 @@ namespace Unnamed {
 		if (mRenderModule) {
 			mRenderModule->SetUiCallbacks({}, {});
 		}
-		mUEditorRuntime.reset();
-		mUImGuiLayer.reset();
+		mEditorRuntime.reset();
+		mImGuiLayer.reset();
 #endif
 
 		mRenderFrameContext.reset();
@@ -853,15 +928,56 @@ namespace Unnamed {
 		}
 		mPlatformEvents.reset();
 
+		if (mAssetManager) {
+			UI::GetUIFontAtlasCache().Clear(mAssetManager.get());
+		}
 		ServiceLocator::Register<AssetManager>(nullptr);
 		mAssetManager.reset();
 
 		ServiceLocator::Register<Engine>(nullptr);
+
+		timeEndPeriod(1); // システムタイマーの分解能を元に戻す
+
+		// COMの終了
+		if (mCoInitialized) {
+			CoUninitialize();
+		}
+	}
+
+	void Engine::ProcessResize() {
+		for (const WindowId id : mWindowManager->GetAllWindowIds()) {
+			Window* wnd = mWindowManager->FindWindowById(id);
+			if (!wnd) {
+				continue;
+			}
+			if (const auto resize = wnd->ConsumeResizeEvent()) {
+				if (
+					resize->width > 0 &&
+					resize->height > 0 &&
+					(
+						std::cmp_not_equal(resize->width, mLastResizeWidth)
+						||
+						std::cmp_not_equal(resize->height,
+						                   mLastResizeHeight)
+					)
+				) {
+					mLastResizeWidth =
+						static_cast<uint32_t>(resize->width);
+					mLastResizeHeight =
+						static_cast<uint32_t>(resize->height);
+					if (mRenderModule) {
+						mRenderModule->OnResize(
+							mLastResizeWidth, mLastResizeHeight
+						);
+					}
+				}
+			}
+		}
 	}
 
 	/// @brief コンソールコマンドと変数の登録
 	void Engine::RegisterConsoleCommandsAndVariables() {
-		const auto QueueSceneTransition = [this](const std::string& rawPath) {
+		const auto QueueSceneTransition = [this](Path path) {
 			World* runtimeWorld = GetWorld();
 			if (!runtimeWorld) {
 				Warning("Engine",
@@ -878,15 +994,13 @@ namespace Unnamed {
 				return false;
 			}
 
-			const std::string normalizedPath = StrUtil::NormalizePath(
-				StrUtil::TrimSpaces(rawPath)
-			);
-			if (normalizedPath.empty()) {
+			path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+			if (path.IsEmpty()) {
 				Warning("Engine", "Scene transition failed: path is empty.");
 				return false;
 			}
 
-			transitionTarget->RequestSceneTransition(normalizedPath);
+			transitionTarget->RequestSceneTransition(std::move(path));
 			return true;
 		};
 
@@ -908,7 +1022,11 @@ namespace Unnamed {
 				}
 
 				// 引数を1つのパスとして扱い、空白を含むケースも吸収します。
-				return QueueSceneTransition(StrUtil::Join(args, " "));
+				return QueueSceneTransition(
+					Path(
+						StrUtil::TrimSpaces(StrUtil::Join(args, " "))
+					).LexicallyNormal()
+				);
 			},
 			"Queue a scene transition. Usage: map <scenePath>"
 		);
@@ -922,19 +1040,18 @@ namespace Unnamed {
 					return false;
 				}
 
-				World* transitionTarget = ResolveSceneTransitionTargetWorld(
-					runtimeWorld
-				);
+				const World* transitionTarget =
+					ResolveSceneTransitionTargetWorld(
+						runtimeWorld
+					);
 				if (!transitionTarget) {
 					Warning("Engine",
 					        "Reload failed: transition target world is null.");
 					return false;
 				}
 
-				const auto loadedPath = std::string(
-					transitionTarget->GetLoadedScenePath()
-				);
-				if (loadedPath.empty()) {
+				const Path loadedPath = transitionTarget->GetLoadedScenePath();
+				if (loadedPath.IsEmpty()) {
 					Warning("Engine", "Reload failed: no loaded scene path.");
 					return false;
 				}
@@ -943,36 +1060,6 @@ namespace Unnamed {
 			},
 			"Reload current scene."
 		);
-
-		mSequenceRegressionRunCommand = std::make_unique<ConCommand>(
-			"seq_regression_run",
-			[this](const std::vector<std::string>&) {
-				if (!mAssetManager) {
-					Warning("SeqRegression", "AssetManager is null.");
-					return false;
-				}
-				World* world = GetWorld();
-				if (!world) {
-					Warning("SeqRegression", "World is null.");
-					return false;
-				}
-
-				std::string report = {};
-				const bool  passed = SequenceRegressionRunner::RunAll(
-					*world,
-					*mAssetManager,
-					&report
-				);
-				if (passed) {
-					Msg("SeqRegression", "\n{}", report);
-				} else {
-					Warning("SeqRegression", "\n{}", report);
-				}
-				return passed;
-			},
-			"Run fixed-tick regression tests for sequence runtime."
-		);
-
 		mToggleFullscreenCommand = std::make_unique<ConCommand>(
 			"togglefullscreen",
 			[this](const std::vector<std::string>&) {
@@ -1029,6 +1116,7 @@ namespace Unnamed {
 		}
 
 		newWorld->SetServices(BuildWorldServices());
+		newWorld->SetSceneLoadOptions(mRuntimeBindings.sceneLoadOptions);
 
 		mWorld = std::move(newWorld);
 
@@ -1051,10 +1139,177 @@ namespace Unnamed {
 
 	World* Engine::GetWorld() const {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-		if (mUEditorRuntime && mIsEditorMode) {
-			return mUEditorRuntime->GetRuntimeWorld();
+		if (mEditorRuntime && mIsEditorMode) {
+			return mEditorRuntime->GetRuntimeWorld();
 		}
 #endif
 		return mWorld.get();
+	}
+
+	bool Engine::LoadDefaultStartupScene(
+		World&                    world,
+		const GameRuntimeContext& runtimeContext,
+		const SceneLoadOptions&   options
+	) {
+		if (runtimeContext.defaultStartupScene.IsEmpty()) {
+			Error(
+				"Engine",
+				"Startup scene is empty: game='{}' manifest='{}'",
+				runtimeContext.modulePaths.gameName,
+				runtimeContext.modulePaths.resolvedManifestPath
+			);
+			return false;
+		}
+
+		const MountedContentResolution resolution =
+			ResolveStartupScenePathDetailed(runtimeContext);
+		if (!resolution.existsOnDisk) {
+			Error(
+				"Engine",
+				"Startup scene was not found: virtualPath='{}' candidate='{}' mount='{}' root='{}' game='{}'",
+				resolution.virtualPath.String(),
+				resolution.resolvedPath,
+				resolution.resolvedLayer,
+				resolution.resolvedRoot,
+				runtimeContext.modulePaths.gameName
+			);
+			return false;
+		}
+
+		if (!world.LoadSceneFromFile(resolution.resolvedPath, options)) {
+			Error(
+				"Engine",
+				"Startup scene load failed: virtualPath='{}' physicalPath='{}' mount='{}' root='{}' game='{}'",
+				resolution.virtualPath.String(),
+				resolution.resolvedPath,
+				resolution.resolvedLayer,
+				resolution.resolvedRoot,
+				runtimeContext.modulePaths.gameName
+			);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool Engine::InitializeContentMounts(
+		const GameRuntimeContext& runtimeContext
+	) {
+		const GameModulePaths& gamePaths       = runtimeContext.modulePaths;
+		const Path&            gameContentRoot = gamePaths.contentRoot;
+
+		const std::string gameContentRootFailureReason =
+			DescribeContentRootFailureReason(gameContentRoot);
+		if (!gameContentRootFailureReason.empty()) {
+			Error(
+				"Engine",
+				"Failed to mount content directory: mount={} priority={} root={} reason={}",
+				ContentMountId::kGame,
+				ContentMountPriority::kGame,
+				gameContentRoot.ToUtf8(),
+				gameContentRootFailureReason
+			);
+			return false;
+		}
+
+		const std::optional<Path> coreRoot = TryResolveCoreContentRoot(
+			runtimeContext
+		);
+		if (!coreRoot.has_value()) {
+			Error(
+				"Engine",
+				"Failed to mount content directory: mount={} priority={} root={} reason={}",
+				ContentMountId::kCore,
+				ContentMountPriority::kCore,
+				"<unresolved>",
+				"Core content root could not be derived from runtime context"
+			);
+			return false;
+		}
+
+		const std::string coreRootFailureReason =
+			DescribeContentRootFailureReason(*coreRoot);
+		if (!coreRootFailureReason.empty()) {
+			Error(
+				"Engine",
+				"Failed to mount content directory: mount={} priority={} root={} reason={}",
+				ContentMountId::kCore,
+				ContentMountPriority::kCore,
+				coreRoot->ToUtf8(),
+				coreRootFailureReason
+			);
+			return false;
+		}
+
+		if (mContentPathResolver.HasMount(ContentMountId::kCore)) {
+			Error(
+				"Engine",
+				"Failed to mount content directory: mount={} priority={} root={} reason={}",
+				ContentMountId::kCore,
+				ContentMountPriority::kCore,
+				coreRoot->ToUtf8(),
+				"Mount ID already exists"
+			);
+			return false;
+		}
+		if (mContentPathResolver.HasMount(ContentMountId::kGame)) {
+			Error(
+				"Engine",
+				"Failed to mount content directory: mount={} priority={} root={} reason={}",
+				ContentMountId::kGame,
+				ContentMountPriority::kGame,
+				gameContentRoot.ToUtf8(),
+				"Mount ID already exists"
+			);
+			return false;
+		}
+
+		if (!mContentPathResolver.MountDirectory(
+			std::string(ContentMountId::kCore),
+			*coreRoot,
+			ContentMountPriority::kCore
+		)) {
+			Error(
+				"Engine",
+				"Failed to mount content directory: mount={} priority={} root={} reason={}",
+				ContentMountId::kCore,
+				ContentMountPriority::kCore,
+				coreRoot->ToUtf8(),
+				"MountDirectory returned false"
+			);
+			return false;
+		}
+		DevMsg(
+			"Engine",
+			"Mounted content directory: mount={} priority={} root={}",
+			ContentMountId::kCore,
+			ContentMountPriority::kCore,
+			coreRoot->ToUtf8()
+		);
+
+		if (!mContentPathResolver.MountDirectory(
+			std::string(ContentMountId::kGame),
+			gameContentRoot,
+			ContentMountPriority::kGame
+		)) {
+			Error(
+				"Engine",
+				"Failed to mount content directory: mount={} priority={} root={} reason={}",
+				ContentMountId::kGame,
+				ContentMountPriority::kGame,
+				gameContentRoot.ToUtf8(),
+				"MountDirectory returned false"
+			);
+			return false;
+		}
+		DevMsg(
+			"Engine",
+			"Mounted content directory: mount={} priority={} root={}",
+			ContentMountId::kGame,
+			ContentMountPriority::kGame,
+			gameContentRoot.ToUtf8()
+		);
+
+		return true;
 	}
 }

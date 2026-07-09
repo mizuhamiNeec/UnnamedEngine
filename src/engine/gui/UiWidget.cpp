@@ -1,7 +1,6 @@
 #include "UiWidget.h"
 
 #include <algorithm>
-#include <cstddef>
 #include <utility>
 
 #include <engine/unnamed/subsystem/console/Log.h>
@@ -18,7 +17,7 @@
 
 namespace Unnamed::Gui {
 	namespace {
-		static constexpr std::string_view kChannel = "UiWidget";
+		constexpr std::string_view kChannel = "UiWidget";
 	}
 
 	DIRTY_FLAGS operator|(DIRTY_FLAGS a, DIRTY_FLAGS b) {
@@ -68,9 +67,10 @@ namespace Unnamed::Gui {
 		MarkDirty(DIRTY_FLAGS::LAYOUT | DIRTY_FLAGS::DRAW);
 	}
 
-	UiComponent* UiWidget::GetComponentByTypeName(const std::string_view typeName
-	) {
-		for (auto& component : mComponents) {
+	UiComponent* UiWidget::GetComponentByTypeName(
+		const std::string_view typeName
+	) const {
+		for (const auto& component : mComponents) {
 			if (component && component->GetTypeName() == typeName) {
 				return component.get();
 			}
@@ -104,7 +104,7 @@ namespace Unnamed::Gui {
 		return true;
 	}
 
-	bool UiWidget::MoveComponent(size_t fromIndex, size_t toIndex) {
+	bool UiWidget::MoveComponent(const size_t fromIndex, size_t toIndex) {
 		if (
 			fromIndex >= mComponents.size() ||
 			toIndex >= mComponents.size() ||
@@ -238,7 +238,7 @@ namespace Unnamed::Gui {
 		}
 
 		for (auto it = mReferenceChildren.begin(); it != mReferenceChildren.
-		     end(); ++it) {
+		                                           end(); ++it) {
 			if (*it == child) {
 				if ((*it)->mParent == this) {
 					(*it)->mParent = nullptr;
@@ -254,7 +254,8 @@ namespace Unnamed::Gui {
 		return mReferenceChildren;
 	}
 
-	const std::vector<std::unique_ptr<UiWidget>>& UiWidget::GetChildren() const {
+	const std::vector<std::unique_ptr<UiWidget>>&
+	UiWidget::GetChildren() const {
 		return mChildren;
 	}
 
@@ -466,7 +467,6 @@ namespace Unnamed::Gui {
 
 	void UiWidget::DebugDrawUi(const UiWidget* w) {
 		if (!w) {
-			return;
 		}
 #ifdef UNNAMED_WITH_EDITOR
 		const auto& r  = w->GetGlobalRect();
@@ -515,7 +515,7 @@ namespace Unnamed::Gui {
 		}
 
 		for (auto it = mReferenceChildren.rbegin(); it != mReferenceChildren.
-		     rend(); ++it) {
+		                                            rend(); ++it) {
 			UiWidget* child = *it;
 			if (child) {
 				if (UiWidget* hit = child->HitTest(x, y)) {
@@ -628,9 +628,11 @@ namespace Unnamed::Gui {
 		writer.EndObject();
 	}
 
-	void UiWidget::LoadFromJson(const JsonReader& reader) {
+	bool UiWidget::LoadFromJson(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
 		if (!reader.Valid()) {
-			return;
+			return false;
 		}
 
 		if (reader.Has("name")) {
@@ -658,7 +660,9 @@ namespace Unnamed::Gui {
 				const JsonReader  dataNode = componentNode["data"];
 
 				if (UiComponent* existing = GetComponentByTypeName(typeName)) {
-					existing->Deserialize(dataNode);
+					if (!existing->Deserialize(dataNode, context)) {
+						return false;
+					}
 					continue;
 				}
 
@@ -673,30 +677,39 @@ namespace Unnamed::Gui {
 					);
 					continue;
 				}
-				component->Deserialize(dataNode);
+				if (!component->Deserialize(dataNode, context)) {
+					return false;
+				}
 				AddComponent(std::move(component));
 			}
 		}
 
 		OnDeserialize(reader);
+		return true;
 	}
 
-	std::unique_ptr<UiWidget> UiWidget::CreateFromJson(const JsonReader& reader) {
+	std::unique_ptr<UiWidget>
+	UiWidget::CreateFromJson(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
 		if (!reader.Valid()) {
 			return nullptr;
 		}
 
 		auto widget = std::make_unique<UiWidget>();
-		widget->LoadFromJson(reader);
+		if (!widget->LoadFromJson(reader, context)) {
+			return nullptr;
+		}
 
 		if (reader.Has("children")) {
 			const JsonReader children = reader["children"].GetArray();
 			for (size_t i = 0; i < children.Size(); ++i) {
-				JsonReader childNode = children[i];
-				auto       childWidget = CreateFromJson(childNode);
-				if (childWidget) {
-					widget->AddChild(std::move(childWidget));
+				JsonReader childNode   = children[i];
+				auto childWidget = CreateFromJson(childNode, context);
+				if (!childWidget) {
+					return nullptr;
 				}
+				widget->AddChild(std::move(childWidget));
 			}
 		}
 

@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <core/filesystem/Path.h>
+
 #include "engine/game/IDemoService.h"
 #include "DemoTypes.h"
 #include "ReplaySerializerRegistry.h"
@@ -33,12 +35,12 @@ namespace Unnamed {
 		/// @brief デモの録画を開始する
 		/// @param path 録画ファイルの保存先パス
 		/// @return 録画開始に成功したか
-		bool StartRecording(std::string path) override;
+		bool StartRecording(Path path) override;
 
 		/// @brief デモの再生を開始する
 		/// @param path 再生するデモファイルのパス
 		/// @return 再生開始に成功したか
-		bool StartPlayback(std::string path) override;
+		bool StartPlayback(Path path) override;
 
 		/// @brief 録画または再生を停止する
 		/// @return 停止に成功したか
@@ -66,7 +68,7 @@ namespace Unnamed {
 
 		/// @brief 再生開始からの経過時間（秒）を取得する
 		/// @return 再生開始からの経過時間（秒）
-		[[nodiscard]] std::string_view GetCurrentPath() const override;
+		[[nodiscard]] Path GetCurrentPath() const override;
 
 		/// @brief 現在の再生セッション番号を取得します。
 		/// @return StartPlayback が成功するたびに更新される番号
@@ -143,10 +145,10 @@ namespace Unnamed {
 		/// @return スナップショットのズレが発生した際のログ出力間隔（ティック数）
 		[[nodiscard]] static uint64_t ResolveMismatchLogInterval();
 
-		/// @brief ティックレートの値をサニタイズする
-		/// @param tickRate サニタイズするティックレートの値
-		/// @return サニタイズされたティックレートの値
-		[[nodiscard]] static uint32_t SanitizeTickRate(uint32_t tickRate);
+		/// @brief ティックレートの値をクランプします
+		/// @param tickRate クランプするティックレートの値
+		/// @return クランプされたティックレートの値
+		[[nodiscard]] static uint32_t ClampTickRate(uint32_t tickRate);
 
 		/// @brief スナップショットのズレが発生した際のポリシーを文字列に変換する
 		/// @param policy スナップショットのズレが発生した際のポリシー
@@ -162,7 +164,7 @@ namespace Unnamed {
 		/// @brief 再生ファイルを読み込む
 		/// @param path 読み込むファイルのパス
 		/// @return 読み込みに成功した場合はtrue、そうでなければfalse
-		[[nodiscard]] bool LoadPlaybackFile(const std::string& path);
+		[[nodiscard]] bool LoadPlaybackFile(const Path& path);
 
 		/// @brief 対象エンティティのワールドから初期スナップショット集合を構築します。
 		/// @param subjectEntity 対象のエンティティ
@@ -188,10 +190,10 @@ namespace Unnamed {
 		/// @brief 録画時GUIDに対応する初期スナップショットを検索します。
 		/// @param entityGuid 録画時エンティティGUID
 		/// @return 初期スナップショット。存在しない場合は nullptr
-		[[nodiscard]] const EntitySnapshotRecord* FindInitialSnapshotByGuid(
+		[[nodiscard]] static const EntitySnapshotRecord* FindInitialSnapshotByGuid(
 			const std::vector<EntitySnapshotRecord>& records,
 			uint64_t                                entityGuid
-		) const;
+		);
 
 		/// @brief 再生対象に適用する初期スナップショットを検索します。
 		/// @param subjectEntity 再生対象の実行時エンティティ
@@ -207,7 +209,7 @@ namespace Unnamed {
 		[[nodiscard]] uint64_t ResolveRecordedSubjectEntityGuid() const;
 
 		MODE                     mMode               = MODE::IDLE;
-		std::string              mCurrentPath        = {};
+		Path                     mCurrentPath        = {};
 		DemoFileV2               mFile               = {};
 		ReplaySerializerRegistry mSerializerRegistry =
 			ReplaySerializerRegistry::BuildDefault();

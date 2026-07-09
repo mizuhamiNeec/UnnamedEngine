@@ -1,6 +1,8 @@
-﻿#include "EditorGuiLoader.h"
+#include "EditorGuiLoader.h"
+#include "core/filesystem/Path.h"
 
-#include "core/path/PathUtil.h"
+#include <filesystem>
+
 #include "core/string/StrUtil.h"
 
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -12,15 +14,13 @@ namespace Unnamed {
 		/// @brief パスがEditorGuiアセットとして適切かどうかを判定します。
 		/// @param path 判定するパス
 		/// @return パスがEditorGuiアセットとして適切か?
-		bool IsEditorGuiPath(const std::string_view path) {
-			return StrUtil::ToLowerCase(std::string(path)).ends_with(
-				".edgui.lua"
-			);
+		bool IsEditorGuiPath(const Path& path) {
+			return StrUtil::EndsWithIgnoreCase(path.ToGenericUtf8(), ".edgui.lua");
 		}
 	}
 
 	bool EditorGuiLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		const bool ok = IsEditorGuiPath(path);
 		if (outType) {
@@ -29,17 +29,18 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult EditorGuiLoader::Load(const std::string& path) {
+	LoadResult EditorGuiLoader::Load(const Path& path) {
 		LoadResult result = {};
 
 		EditorGuiData data = {};
-		data.sourcePath    = path; // ソースファイルのパスを保存
+		data.sourcePath    = path.LexicallyNormal(); // ソースファイルのパスを保存
 
 		std::string source;
 		if (!StrUtil::ReadFileToString(path, source)) {
 			Error(kChannel, "エディターGUIの読み込みに失敗しました: {}", path);
-			data.lastError = "Failed to read file: " + path; // エラー内容を保存
-			data.hasError  = true; // エラーが発生したことを示すフラグを立てる
+			data.lastError =
+				"Failed to read file: " + path.ToGenericUtf8(); // エラー内容を保存
+			data.hasError = true; // エラーが発生したことを示すフラグを立てる
 			return result;
 		}
 
@@ -52,12 +53,12 @@ namespace Unnamed {
 		);
 
 		result.payload     = std::move(data);
-		result.resolveName = Path::ToUtf8String(
-			Path::FromUtf8(path).filename()
-		);
+		result.resolveName = Path::ToUtf8String(path.FileName());
 		if (std::error_code ec;
-			Path::ExistsUtf8(path, ec)) {
-			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+			std::filesystem::exists(path.Native(), ec)) {
+			result.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 
 		return result;

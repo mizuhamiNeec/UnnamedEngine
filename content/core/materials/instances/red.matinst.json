@@ -1,8 +1,8 @@
 {
 	"name": "red",
-	"material": "../dev.material.json",
+	"material": "materials/dev.material.json",
 	"textures": {
-		"BaseColor": "../../textures/error.png"
+		"BaseColor": "textures/error.png"
 	},
 	"scalars": {
 		"Metallic": 0,

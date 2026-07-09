@@ -7,22 +7,26 @@
 
 namespace Unnamed {
 	namespace {
-		void RegisterTransformAccessors(SequencePropertyAccessorRegistry& registry) {
+		void RegisterTransformAccessors(
+			SequencePropertyAccessorRegistry& registry
+		) {
 			registry.RegisterFloat(
 				"engine.Transform",
 				"position.x",
 				SequenceFloatAccessor{
 					.get = [](Entity& entity, float& outValue) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (const auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							outValue = transform->GetPosition().x;
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const float& value) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							Vec3 position = transform->GetPosition();
-							position.x = value;
+							position.x    = value;
 							transform->SetPosition(position);
 							return true;
 						}
@@ -35,16 +39,18 @@ namespace Unnamed {
 				"position.y",
 				SequenceFloatAccessor{
 					.get = [](Entity& entity, float& outValue) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (const auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							outValue = transform->GetPosition().y;
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const float& value) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							Vec3 position = transform->GetPosition();
-							position.y = value;
+							position.y    = value;
 							transform->SetPosition(position);
 							return true;
 						}
@@ -57,16 +63,18 @@ namespace Unnamed {
 				"position.z",
 				SequenceFloatAccessor{
 					.get = [](Entity& entity, float& outValue) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (const auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							outValue = transform->GetPosition().z;
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const float& value) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							Vec3 position = transform->GetPosition();
-							position.z = value;
+							position.z    = value;
 							transform->SetPosition(position);
 							return true;
 						}
@@ -80,16 +88,18 @@ namespace Unnamed {
 				"scale.x",
 				SequenceFloatAccessor{
 					.get = [](Entity& entity, float& outValue) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (const auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							outValue = transform->GetScale().x;
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const float& value) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							Vec3 scale = transform->GetScale();
-							scale.x = value;
+							scale.x    = value;
 							transform->SetScale(scale);
 							return true;
 						}
@@ -102,16 +112,18 @@ namespace Unnamed {
 				"scale.y",
 				SequenceFloatAccessor{
 					.get = [](Entity& entity, float& outValue) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (const auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							outValue = transform->GetScale().y;
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const float& value) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							Vec3 scale = transform->GetScale();
-							scale.y = value;
+							scale.y    = value;
 							transform->SetScale(scale);
 							return true;
 						}
@@ -124,16 +136,18 @@ namespace Unnamed {
 				"scale.z",
 				SequenceFloatAccessor{
 					.get = [](Entity& entity, float& outValue) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (const auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							outValue = transform->GetScale().z;
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const float& value) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							Vec3 scale = transform->GetScale();
-							scale.z = value;
+							scale.z    = value;
 							transform->SetScale(scale);
 							return true;
 						}
@@ -147,14 +161,16 @@ namespace Unnamed {
 				"position",
 				SequenceVec3Accessor{
 					.get = [](Entity& entity, Vec3& outValue) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (const auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							outValue = transform->GetPosition();
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const Vec3& value) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							transform->SetPosition(value);
 							return true;
 						}
@@ -167,14 +183,16 @@ namespace Unnamed {
 				"scale",
 				SequenceVec3Accessor{
 					.get = [](Entity& entity, Vec3& outValue) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (const auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							outValue = transform->GetScale();
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const Vec3& value) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
+						if (auto* transform = entity.GetComponent<
+							TransformComponent>()) {
 							transform->SetScale(value);
 							return true;
 						}
@@ -187,15 +205,19 @@ namespace Unnamed {
 				"rotation.euler",
 				SequenceVec3Accessor{
 					.get = [](Entity& entity, Vec3& outValue) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
-							outValue = transform->GetRotation().ToEulerDegrees();
+						if (const auto* transform = entity.GetComponent<
+							TransformComponent>()) {
+							outValue = transform->GetRotation().
+							                      ToEulerDegrees();
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const Vec3& value) {
-						if (auto* transform = entity.GetComponent<TransformComponent>()) {
-							transform->SetRotation(Quaternion::EulerDegrees(value));
+						if (auto* transform = entity.GetComponent<
+							TransformComponent>()) {
+							transform->SetRotation(
+								Quaternion::EulerDegrees(value));
 							return true;
 						}
 						return false;
@@ -204,20 +226,24 @@ namespace Unnamed {
 			);
 		}
 
-		void RegisterCameraAccessors(SequencePropertyAccessorRegistry& registry) {
+		void RegisterCameraAccessors(
+			SequencePropertyAccessorRegistry& registry
+		) {
 			registry.RegisterFloat(
 				"game.Camera",
 				"fovYDegrees",
 				SequenceFloatAccessor{
 					.get = [](Entity& entity, float& outValue) {
-						if (auto* camera = entity.GetComponent<CameraComponent>()) {
+						if (const auto* camera = entity.GetComponent<
+							CameraComponent>()) {
 							outValue = camera->GetFovYDegrees();
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const float& value) {
-						if (auto* camera = entity.GetComponent<CameraComponent>()) {
+						if (auto* camera = entity.GetComponent<
+							CameraComponent>()) {
 							camera->SetFovYDegrees(value);
 							return true;
 						}
@@ -230,14 +256,16 @@ namespace Unnamed {
 				"active",
 				SequenceBoolAccessor{
 					.get = [](Entity& entity, bool& outValue) {
-						if (auto* camera = entity.GetComponent<CameraComponent>()) {
+						if (const auto* camera = entity.GetComponent<
+							CameraComponent>()) {
 							outValue = camera->IsCameraActive();
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const bool& value) {
-						if (auto* camera = entity.GetComponent<CameraComponent>()) {
+						if (auto* camera = entity.GetComponent<
+							CameraComponent>()) {
 							camera->SetCameraActive(value);
 							return true;
 						}
@@ -247,20 +275,24 @@ namespace Unnamed {
 			);
 		}
 
-		void RegisterSkeletalAccessors(SequencePropertyAccessorRegistry& registry) {
+		void RegisterSkeletalAccessors(
+			SequencePropertyAccessorRegistry& registry
+		) {
 			registry.RegisterFloat(
 				"engine.SkeletalAnimation",
 				"speed",
 				SequenceFloatAccessor{
 					.get = [](Entity& entity, float& outValue) {
-						if (auto* component = entity.GetComponent<SkeletalAnimationComponent>()) {
+						if (const auto* component = entity.GetComponent<
+							SkeletalAnimationComponent>()) {
 							outValue = component->GetSpeed();
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const float& value) {
-						if (auto* component = entity.GetComponent<SkeletalAnimationComponent>()) {
+						if (auto* component = entity.GetComponent<
+							SkeletalAnimationComponent>()) {
 							component->SetSpeed(value);
 							return true;
 						}
@@ -273,14 +305,16 @@ namespace Unnamed {
 				"playbackTime",
 				SequenceFloatAccessor{
 					.get = [](Entity& entity, float& outValue) {
-						if (auto* component = entity.GetComponent<SkeletalAnimationComponent>()) {
+						if (const auto* component = entity.GetComponent<
+							SkeletalAnimationComponent>()) {
 							outValue = component->GetPlaybackTime();
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const float& value) {
-						if (auto* component = entity.GetComponent<SkeletalAnimationComponent>()) {
+						if (auto* component = entity.GetComponent<
+							SkeletalAnimationComponent>()) {
 							component->SetPlaybackTime(value);
 							return true;
 						}
@@ -293,14 +327,16 @@ namespace Unnamed {
 				"playing",
 				SequenceBoolAccessor{
 					.get = [](Entity& entity, bool& outValue) {
-						if (auto* component = entity.GetComponent<SkeletalAnimationComponent>()) {
+						if (const auto* component = entity.GetComponent<
+							SkeletalAnimationComponent>()) {
 							outValue = component->IsPlaying();
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const bool& value) {
-						if (auto* component = entity.GetComponent<SkeletalAnimationComponent>()) {
+						if (auto* component = entity.GetComponent<
+							SkeletalAnimationComponent>()) {
 							if (value) {
 								component->Play();
 							} else {
@@ -317,14 +353,16 @@ namespace Unnamed {
 				"loop",
 				SequenceBoolAccessor{
 					.get = [](Entity& entity, bool& outValue) {
-						if (auto* component = entity.GetComponent<SkeletalAnimationComponent>()) {
+						if (const auto* component = entity.GetComponent<
+							SkeletalAnimationComponent>()) {
 							outValue = component->GetLoop();
 							return true;
 						}
 						return false;
 					},
 					.set = [](Entity& entity, const bool& value) {
-						if (auto* component = entity.GetComponent<SkeletalAnimationComponent>()) {
+						if (auto* component = entity.GetComponent<
+							SkeletalAnimationComponent>()) {
 							component->SetLoop(value);
 							return true;
 						}
@@ -342,18 +380,19 @@ namespace Unnamed {
 	}
 
 	void SequencePropertyAccessorRegistry::RegisterFloat(
-		std::string componentStableName,
-		std::string propertyPath,
+		const std::string&    componentStableName,
+		const std::string&    propertyPath,
 		SequenceFloatAccessor accessor
 	) {
-		mFloatAccessors[BuildKey(componentStableName, propertyPath)] = std::move(
-			accessor
-		);
+		mFloatAccessors[BuildKey(componentStableName, propertyPath)] =
+			std::move(
+				accessor
+			);
 	}
 
 	void SequencePropertyAccessorRegistry::RegisterBool(
-		std::string componentStableName,
-		std::string propertyPath,
+		const std::string&   componentStableName,
+		const std::string&   propertyPath,
 		SequenceBoolAccessor accessor
 	) {
 		mBoolAccessors[BuildKey(componentStableName, propertyPath)] = std::move(
@@ -362,8 +401,8 @@ namespace Unnamed {
 	}
 
 	void SequencePropertyAccessorRegistry::RegisterVec3(
-		std::string componentStableName,
-		std::string propertyPath,
+		const std::string&   componentStableName,
+		const std::string&   propertyPath,
 		SequenceVec3Accessor accessor
 	) {
 		mVec3Accessors[BuildKey(componentStableName, propertyPath)] = std::move(
@@ -406,8 +445,8 @@ namespace Unnamed {
 		const std::string_view propertyPath
 	) {
 		std::string key = std::string(componentStableName);
-		key += "|";
-		key += std::string(propertyPath);
+		key             += "|";
+		key             += std::string(propertyPath);
 		return key;
 	}
 }

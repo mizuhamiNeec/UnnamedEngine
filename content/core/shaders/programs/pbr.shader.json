@@ -1,12 +1,12 @@
 {
 	"name": "PBR",
 	"vs": {
-		"path": "../src/PBR.hlsl",
+		"path": "shaders/src/PBR.hlsl",
 		"entry": "VsMain",
 		"profile": "vs_6_6"
 	},
 	"ps": {
-		"path": "../src/PBR.hlsl",
+		"path": "shaders/src/PBR.hlsl",
 		"entry": "PsMain",
 		"profile": "ps_6_6"
 	}

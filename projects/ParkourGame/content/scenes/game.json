@@ -33,23 +33,23 @@
                         "materialInstancePath": "",
                         "materialSlots": [
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 0
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/gray.matinst.json",
+                                "materialInstancePath": "materials/instances/gray.matinst.json",
                                 "slotIndex": 1
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 2
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/red.matinst.json",
+                                "materialInstancePath": "materials/instances/red.matinst.json",
                                 "slotIndex": 3
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 4
                             }
                         ],
@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.000221252441406,
-                            36.00053024291992,
-                            16.000221252441406
+                            16.000244140625,
+                            36.00058364868164,
+                            16.000244140625
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -165,7 +165,7 @@
                         "receiveInput": false,
                         "sortKey": 300,
                         "spaceMode": "Screen",
-                        "uiAssetPath": "ui/hud.ui.json",
+                        "uiDocumentPath": "ui/hud.ui.json",
                         "worldSize": [
                             2.0,
                             1.125
@@ -655,7 +655,6 @@
                 {
                     "active": true,
                     "data": {
-                        "materialInstancePath": "",
                         "materialSlots": [],
                         "meshPath": "models/viewmodel/viewmodel.glb"
                     },
@@ -680,13 +679,13 @@
                         "speed": 1.0,
                         "stateMap": [
                             {
-                                "blendSec": 0.125,
-                                "clipName": "Vault",
+                                "blendSec": 0.11999999731779099,
+                                "clipName": "Sprint.001",
                                 "layerIndex": 0,
-                                "loop": false,
+                                "loop": true,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_vaulting",
+                                "stateId": "animstate_sprint",
                                 "weight": 1.0
                             },
                             {
@@ -700,13 +699,13 @@
                                 "weight": 1.0
                             },
                             {
-                                "blendSec": 0.11999999731779099,
-                                "clipName": "Sprint.001",
+                                "blendSec": 0.125,
+                                "clipName": "Vault",
                                 "layerIndex": 0,
-                                "loop": true,
+                                "loop": false,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_sprint",
+                                "stateId": "animstate_vaulting",
                                 "weight": 1.0
                             },
                             {
@@ -944,7 +943,7 @@
                         "loop": false,
                         "pitch": 1.0,
                         "playOnStart": false,
-                        "soundPath": "sounds/se/footstep/Robot_Footstep_Single_v3_02.wav",
+                        "soundPath": "sounds/se/player/Robot_Footstep_Single_v3_02.wav",
                         "volume": 0.30000001192092896
                     },
                     "guid": 17000123456789012345,
@@ -956,7 +955,7 @@
                         "loop": false,
                         "pitch": 1.0,
                         "playOnStart": false,
-                        "soundPath": "sounds/se/footstep/Robot_Footstep_Single_v2_01.wav",
+                        "soundPath": "sounds/se/player/Robot_Footstep_Single_v2_01.wav",
                         "volume": 0.36000001430511475
                     },
                     "guid": 17000123456789012347,
@@ -1061,7 +1060,7 @@
                         "receiveInput": false,
                         "sortKey": 0,
                         "spaceMode": "WorldBillboard",
-                        "uiAssetPath": "ui/crosshair.ui.json",
+                        "uiDocumentPath": "ui/crosshair.ui.json",
                         "worldSize": [
                             256.0,
                             256.0
@@ -1154,7 +1153,7 @@
                     "active": true,
                     "data": {
                         "intensity": 1.0,
-                        "texturePath": "content/core/textures/wave.dds"
+                        "texturePath": "textures/wave.dds"
                     },
                     "guid": 13523057102086617376,
                     "type": "engine.Skybox"
@@ -1470,7 +1469,7 @@
                     "data": {
                         "materialInstancePath": "",
                         "materialSlots": [],
-                        "meshPath": "content/core/models/fan.obj"
+                        "meshPath": "models/fan.obj"
                     },
                     "guid": 11218511112006460158,
                     "type": "engine.StaticMeshRenderer"
@@ -1545,7 +1544,7 @@
                     "data": {
                         "materialInstancePath": "",
                         "materialSlots": [],
-                        "meshPath": "content/core/models/fan.obj"
+                        "meshPath": "models/fan.obj"
                     },
                     "guid": 10079947523180645772,
                     "type": "engine.StaticMeshRenderer"

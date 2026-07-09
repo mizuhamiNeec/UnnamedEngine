@@ -65,7 +65,7 @@ namespace Unnamed {
 			.gameWorldFactory = &mGameWorldFactory,
 			.profiler         = mProfiler,
 		};
-		for (auto& tool : mOwnedTools) {
+		for (const auto& tool : mOwnedTools) {
 			if (!tool) {
 				continue;
 			}
@@ -82,7 +82,7 @@ namespace Unnamed {
 			);
 
 			mEditorGuiScriptPanel->SetScriptPath(
-				"./content/core/editorgui/test.edgui.lua"
+				VirtualPath::ParseOrThrow("editorgui/test.edgui.lua")
 			);
 		}
 
@@ -96,7 +96,7 @@ namespace Unnamed {
 	}
 
 	void EditorToolHost::Shutdown() {
-		for (auto& tool : mOwnedTools) {
+		for (const auto& tool : mOwnedTools) {
 			if (!tool) {
 				continue;
 			}
@@ -320,8 +320,8 @@ namespace Unnamed {
 					);
 					ImGui::DockBuilderSetNodeSize(dockSpaceId, dockNodeSize);
 
-					ImGuiID dockMain  = dockSpaceId;
-					ImGuiID dockRight = ImGui::DockBuilderSplitNode(
+					ImGuiID       dockMain  = dockSpaceId;
+					const ImGuiID dockRight = ImGui::DockBuilderSplitNode(
 						dockMain,
 						ImGuiDir_Right,
 						0.4f,
@@ -338,7 +338,7 @@ namespace Unnamed {
 			ImGui::End();
 		}
 
-		for (auto& tool : mOwnedTools) {
+		for (const auto& tool : mOwnedTools) {
 			if (!tool || !tool->IsOpen()) {
 				continue;
 			}

@@ -17,13 +17,13 @@ namespace Unnamed::UI {
 		UIRect  rect;
 		UIColor color;
 
-		Vec2        textPosition = Vec2::zero;
-		float       textFontSize = 18.0f;
-		
+		Vec2  textPosition = Vec2::zero;
+		float textFontSize = 18.0f;
+
 		std::string text;
-		
-		uint32_t    textOversampleH = 1;
-		uint32_t    textOversampleV = 1;
+
+		uint32_t textOversampleH = 1;
+		uint32_t textOversampleV = 1;
 	};
 
 	class UIDrawList {
@@ -34,7 +34,7 @@ namespace Unnamed::UI {
 		/// @param rect 描画する矩形
 		/// @param color 矩形の色
 		void AddRect(const UIRect& rect, const UIColor& color);
-		
+
 		/// @brief テキストを描画するコマンドを追加します。
 		/// @param text 描画するテキスト
 		/// @param position テキストの描画位置（左上基準）
@@ -50,7 +50,7 @@ namespace Unnamed::UI {
 			uint32_t           oversampleH,
 			uint32_t           oversampleV
 		);
-		
+
 		/// @brief 矩形の枠線を描画するコマンドを追加します。
 		/// @param rect 枠線を描画する矩形
 		/// @param width 枠線の幅

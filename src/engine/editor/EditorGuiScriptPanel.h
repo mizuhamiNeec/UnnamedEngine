@@ -2,6 +2,7 @@
 #ifdef _DEBUG
 
 #include <core/assets/AssetManager.h>
+#include <core/filesystem/VirtualPath.h>
 
 #include "engine/unnamed/subsystem/EditorLuaSystem/EditorLuaSystem.h"
 
@@ -10,7 +11,8 @@ namespace Unnamed {
 	class EditorGuiScriptPanel {
 	public:
 		void Initialize(AssetManager* assetManager, EditorLuaSystem* luaSystem);
-		void SetScriptPath(std::string path);
+		/// @brief Core mount内のEditor GUIスクリプト論理パスを設定します。
+		void SetScriptPath(VirtualPath path);
 		void Reload();
 		void Draw();
 
@@ -18,8 +20,8 @@ namespace Unnamed {
 		AssetManager*    mAssetManager    = nullptr;
 		EditorLuaSystem* mEditorLuaSystem = nullptr;
 
-		std::string mScriptPath;
-		AssetID     mAssetID = 0;
+		VirtualPath mScriptPath;
+		AssetID mAssetID = 0;
 
 		bool mLoaded   = false;
 		bool mHasError = false;

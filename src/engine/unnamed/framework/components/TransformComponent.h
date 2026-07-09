@@ -116,35 +116,35 @@ namespace Unnamed {
 		void MarkPostSimulationOverride();
 
 		// Local transform.
-		Vec3 mLocalPos = Vec3::zero;
-		Quaternion mLocalRot = Quaternion::identity;
-		Vec3 mLocalScale = Vec3::one;
+		Vec3       mLocalPos   = Vec3::zero;
+		Quaternion mLocalRot   = Quaternion::identity;
+		Vec3       mLocalScale = Vec3::one;
 
 		// World transform (simulation/render).
-		Mat4 mWorldMat = Mat4::identity;
+		Mat4         mWorldMat       = Mat4::identity;
 		mutable Mat4 mRenderWorldMat = Mat4::identity;
 
 		// Hierarchy.
-		TransformComponent* mParent = nullptr;
+		TransformComponent*              mParent = nullptr;
 		std::vector<TransformComponent*> mChildren;
-		uint64_t mPendingParentEntityGuid = 0;
+		uint64_t                         mPendingParentEntityGuid = 0;
 
 		// Interpolation samples.
-		Vec3 mInterpPrevPos = Vec3::zero;
-		Quaternion mInterpPrevRot = Quaternion::identity;
-		Vec3 mInterpPrevScale = Vec3::one;
+		Vec3       mInterpPrevPos   = Vec3::zero;
+		Quaternion mInterpPrevRot   = Quaternion::identity;
+		Vec3       mInterpPrevScale = Vec3::one;
 
-		Vec3 mInterpCurrPos = Vec3::zero;
-		Quaternion mInterpCurrRot = Quaternion::identity;
-		Vec3 mInterpCurrScale = Vec3::one;
+		Vec3       mInterpCurrPos   = Vec3::zero;
+		Quaternion mInterpCurrRot   = Quaternion::identity;
+		Vec3       mInterpCurrScale = Vec3::one;
 
 		// Interpolation state.
-		uint64_t mInterpSampleTick = 0; // 固定ティックでの補間サンプル採取カウンタ
-		float mRenderInterpAlpha = 1.0f; // 描画補間係数（0.0f - 1.0f）
+		uint64_t mInterpSampleTick  = 0;    // 固定ティックでの補間サンプル採取カウンタ
+		float    mRenderInterpAlpha = 1.0f; // 描画補間係数（0.0f - 1.0f）
 
-		bool mInterpInitialized = false; // 補間履歴初期化済みか
-		bool mInterpResyncRequested = false; // 補間履歴の再同期要求
+		bool mInterpInitialized         = false; // 補間履歴初期化済みか
+		bool mInterpResyncRequested     = false; // 補間履歴の再同期要求
 		bool mHasPostSimulationOverride = false; // シミュ後に値を上書きしたか
-		bool mIsDirty = false; // 変化があったか
+		bool mIsDirty                   = false; // 変化があったか
 	};
 }

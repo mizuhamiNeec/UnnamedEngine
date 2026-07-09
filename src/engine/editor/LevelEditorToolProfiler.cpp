@@ -25,10 +25,11 @@ namespace Unnamed {
 		[[nodiscard]] ImVec4 BuildCategoryColor(
 			const std::string_view sampleName
 		) {
-			const std::string_view category = ExtractProfilerCategory(sampleName);
-			const size_t           hashValue = std::hash<std::string_view>{}(
-                category
-            );
+			const std::string_view category = ExtractProfilerCategory(
+				sampleName);
+			const size_t hashValue = std::hash<std::string_view>{}(
+				category
+			);
 			const float hue = static_cast<float>(hashValue % 1024u) / 1024.0f;
 			return ImColor::HSV(hue, 0.75f, 0.95f);
 		}
@@ -53,7 +54,7 @@ namespace Unnamed {
 			const float t = std::clamp(
 				((point.x - segmentStart.x) * segment.x +
 				 (point.y - segmentStart.y) * segment.y) /
-					segmentLengthSquared,
+				segmentLengthSquared,
 				0.0f,
 				1.0f
 			);
@@ -103,11 +104,11 @@ namespace Unnamed {
 				180.0f
 			);
 			ImGui::InvisibleButton("##ProfilerCanvas", canvasSize);
-			const ImVec2 canvasMin = ImGui::GetItemRectMin();
-			const ImVec2 canvasMax = ImGui::GetItemRectMax();
-			ImDrawList*  drawList  = ImGui::GetWindowDrawList();
+			const ImVec2 canvasMin     = ImGui::GetItemRectMin();
+			const ImVec2 canvasMax     = ImGui::GetItemRectMax();
+			ImDrawList*  drawList      = ImGui::GetWindowDrawList();
 			const bool   canvasHovered = ImGui::IsItemHovered();
-			const ImVec2 mousePos = ImGui::GetMousePos();
+			const ImVec2 mousePos      = ImGui::GetMousePos();
 
 			drawList->AddRectFilled(
 				canvasMin,
@@ -149,7 +150,7 @@ namespace Unnamed {
 				}
 
 				const ImVec4 colorVec = BuildCategoryColor(sample.name);
-				const ImU32  color = ImGui::GetColorU32(colorVec);
+				const ImU32  color    = ImGui::GetColorU32(colorVec);
 
 				ImVec2 prev    = {};
 				bool   hasPrev = false;
@@ -172,7 +173,8 @@ namespace Unnamed {
 						drawList->AddLine(prev, point, color, 1.5f);
 						if (canvasHovered) {
 							const float distanceSquared =
-								DistanceToLineSegmentSquared(mousePos, prev, point);
+								DistanceToLineSegmentSquared(
+									mousePos, prev, point);
 							if (distanceSquared < hoveredDistanceSquared) {
 								hoveredDistanceSquared = distanceSquared;
 								hoveredSample          = &sample;
@@ -222,4 +224,3 @@ namespace Unnamed {
 }
 
 #endif
-

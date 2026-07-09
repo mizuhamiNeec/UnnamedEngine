@@ -25,7 +25,7 @@ namespace Unnamed {
 		constexpr uint64_t mixConstant = 0x9e3779b97f4a7c15ull;
 
 		// まじぇまじぇ
-		return seed ^ (value + mixConstant + (seed << 6) + (seed >> 2));
+		return seed ^ value + mixConstant + (seed << 6) + (seed >> 2);
 	}
 
 	class StableHashBuilder final {

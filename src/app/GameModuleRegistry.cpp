@@ -3,9 +3,9 @@
 #include "engine/game/GameModuleRegistry.h"
 
 #include <algorithm>
-#include <cctype>
 #include <ranges>
 
+#include "core/string/StrUtil.h"
 #include "engine/game/IGameModule.h"
 
 namespace Unnamed {
@@ -17,16 +17,16 @@ namespace Unnamed {
 			return false;
 		}
 
-		const std::string normalized = NormalizeModuleName(moduleName);
-		mFactories[normalized] = createFunction;
-		mDisplayNames[normalized] = std::string(moduleName);
+		const std::string normalized = StrUtil::ToLowerCase(moduleName);
+		mFactories[normalized]       = createFunction;
+		mDisplayNames[normalized]    = std::string(moduleName);
 		return true;
 	}
 
 	std::unique_ptr<IGameModule> GameModuleRegistry::Create(
 		const std::string_view moduleName
 	) const {
-		const std::string normalized = NormalizeModuleName(moduleName);
+		const std::string normalized = StrUtil::ToLowerCase(moduleName);
 		if (normalized.empty()) {
 			return nullptr;
 		}
@@ -39,7 +39,7 @@ namespace Unnamed {
 	}
 
 	bool GameModuleRegistry::Contains(const std::string_view moduleName) const {
-		const std::string normalized = NormalizeModuleName(moduleName);
+		const std::string normalized = StrUtil::ToLowerCase(moduleName);
 		if (normalized.empty()) {
 			return false;
 		}
@@ -55,18 +55,5 @@ namespace Unnamed {
 		}
 		std::ranges::sort(names);
 		return names;
-	}
-
-	std::string GameModuleRegistry::NormalizeModuleName(
-		const std::string_view moduleName
-	) {
-		std::string normalized(moduleName);
-		std::transform(
-			normalized.begin(),
-			normalized.end(),
-			normalized.begin(),
-			[](const unsigned char ch) { return static_cast<char>(std::tolower(ch)); }
-		);
-		return normalized;
 	}
 }

@@ -3,6 +3,8 @@
 
 #include <imgui.h>
 
+#include "engine/content/ContentMountDefinitions.h"
+
 namespace Unnamed {
 	constexpr ImVec4 kTextColorError(1.0f, 0.35f, 0.35f, 1.0f);
 
@@ -13,7 +15,7 @@ namespace Unnamed {
 		mEditorLuaSystem = luaSystem;
 	}
 
-	void EditorGuiScriptPanel::SetScriptPath(std::string path) {
+	void EditorGuiScriptPanel::SetScriptPath(VirtualPath path) {
 		if (mScriptPath == path) {
 			return;
 		}
@@ -43,14 +45,15 @@ namespace Unnamed {
 			return;
 		}
 
-		if (mScriptPath.empty()) {
+		if (mScriptPath.IsEmpty()) {
 			mHasError  = true;
 			mLastError = "Editor GUI script path is empty.";
 			return;
 		}
 
-		mAssetID = mAssetManager->LoadFromFile(
+		mAssetID = mAssetManager->LoadAssetFromMount(
 			mScriptPath,
+			ContentMountId::kCore,
 			ASSET_TYPE::EDITOR_GUI
 		);
 
@@ -58,7 +61,8 @@ namespace Unnamed {
 			EditorGuiData>(mAssetID);
 		if (!editorGuiAsset) {
 			mHasError  = true;
-			mLastError = "Failed to load editor GUI asset: " + mScriptPath;
+			mLastError = "Failed to load editor GUI asset: " +
+			             mScriptPath.String();
 			return;
 		}
 
@@ -73,7 +77,7 @@ namespace Unnamed {
 	}
 
 	void EditorGuiScriptPanel::Draw() {
-		if (mScriptPath.empty()) {
+		if (mScriptPath.IsEmpty()) {
 			ImGui::TextUnformatted("No editor GUI script selected.");
 			return;
 		}

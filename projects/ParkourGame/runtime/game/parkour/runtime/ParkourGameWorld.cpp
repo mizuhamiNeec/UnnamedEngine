@@ -2,8 +2,6 @@
 
 #include <chrono>
 
-#include "core/string/StrUtil.h"
-
 #include "engine/render/frame/RenderFrameInputs.h"
 #include "engine/scene/Scene.h"
 #include "engine/scene/SceneSerializer.h"
@@ -41,10 +39,12 @@ namespace Unnamed {
 		World::RenderTick(renderDeltaTime, interpolationAlpha);
 	}
 
-	bool ParkourGameWorld::LoadSceneFromFile(const char* path) {
+	bool ParkourGameWorld::LoadSceneFromFile(
+		const Path path, const SceneLoadOptions& options
+	) {
 		const auto start = std::chrono::steady_clock::now();
 		const bool ok    = [&] {
-			if (!path || std::string_view(path).empty()) {
+			if (path.IsEmpty() || !path.Exists()) {
 				return false;
 			}
 
@@ -53,10 +53,10 @@ namespace Unnamed {
 			const auto afterUnload = std::chrono::steady_clock::now();
 
 			// GUID が同一のシーン遷移でも競合しないよう旧シーン解除後にロードします。
-			auto       newScene = std::make_unique<Scene>();
+			auto newScene = std::make_unique<Scene>();
 			newScene->SetWorld(this);
-			const bool loadOk   = SceneSerializer::LoadFromFile(
-				*newScene, path, mGuidGenerator
+			const bool loadOk = SceneSerializer::LoadFromFile(
+				*newScene, path, mGuidGenerator, options
 			);
 			if (!loadOk) {
 				return false;
@@ -65,7 +65,7 @@ namespace Unnamed {
 			World::SetScene(std::move(newScene));
 			const auto afterSetScene = std::chrono::steady_clock::now();
 
-			mLoadedScenePath = StrUtil::NormalizePath(path);
+			mLoadedScenePath = path.LexicallyNormal();
 			OnSceneLoaded();
 
 			Msg(
@@ -83,7 +83,7 @@ namespace Unnamed {
 				std::chrono::duration_cast<std::chrono::milliseconds>(
 					afterSetScene - start
 				).count(),
-				std::string(path)
+				path.ToUtf8()
 			);
 			return true;
 		}();
@@ -96,7 +96,7 @@ namespace Unnamed {
 				std::chrono::duration_cast<std::chrono::milliseconds>(
 					end - start
 				).count(),
-				path ? std::string(path) : std::string("<null>")
+				!path.IsEmpty() ? path.ToUtf8() : std::string("<null>")
 			);
 		}
 		return ok;

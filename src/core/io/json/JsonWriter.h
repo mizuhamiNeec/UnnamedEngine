@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "core/filesystem/Path.h"
 
 struct Vec4;
 struct Vec3;
@@ -16,7 +17,7 @@ namespace Unnamed {
 		// ルート JSON 値
 		nlohmann::json mRoot;
 		// 出力パス
-		std::string mPath;
+		Path mPath;
 		// 現在ネスト中のコンテナスタック
 		mutable std::vector<nlohmann::json*> mStack;
 		// オブジェクトに値を入れる前に指定されたキー (値書き込み待ち)
@@ -35,7 +36,13 @@ namespace Unnamed {
 	public:
 		/// @brief コンストラクタ
 		/// @param path 出力ファイルパス
-		explicit JsonWriter(std::string path);
+		explicit JsonWriter(const char* path);
+		/// @brief コンストラクタ
+		/// @param path 出力ファイルパス
+		explicit JsonWriter(const std::string& path);
+		/// @brief コンストラクタ
+		/// @param path 出力ファイルパス
+		explicit JsonWriter(Path path);
 
 		/// @brief オブジェクトの開始
 		void BeginObject();

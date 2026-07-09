@@ -2,8 +2,6 @@
 
 #include <pch.h>
 
-#include <core/math/Math.h>
-
 #include <cassert>
 #include <cmath>
 #include <format>

@@ -62,18 +62,18 @@ namespace Unnamed::Gui {
 	}
 
 	void UiPanelStyleComponent::BuildDrawCommands(
-		const UiWidget& owner,
+		const UiWidget&             owner,
 		std::vector<UiDrawCommand>& out
 	) const {
 		if (!owner.IsVisible()) {
 			return;
 		}
 
-		UiDrawCommand command = {};
-		command.type          = UI_DRAW_COMMAND_TYPE::RECT;
-		command.rect.rect     = owner.GetGlobalRect();
-		command.rect.fillColor = mBackgroundColor;
-		command.rect.cornerRadius = mCornerRadius;
+		UiDrawCommand command        = {};
+		command.type                 = UI_DRAW_COMMAND_TYPE::RECT;
+		command.rect.rect            = owner.GetGlobalRect();
+		command.rect.fillColor       = mBackgroundColor;
+		command.rect.cornerRadius    = mCornerRadius;
 		command.rect.borderThickness = mBorderThickness;
 		command.rect.borderColor     = mBorderColor;
 		out.emplace_back(command);
@@ -90,7 +90,10 @@ namespace Unnamed::Gui {
 		WriteColor(writer, mBorderColor);
 	}
 
-	void UiPanelStyleComponent::Deserialize(const JsonReader& reader) {
+	bool UiPanelStyleComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		(void)context;
 		if (reader.Has("fillColor")) {
 			mBackgroundColor = ReadColor(reader["fillColor"], mBackgroundColor);
 		}
@@ -103,5 +106,6 @@ namespace Unnamed::Gui {
 		if (reader.Has("borderColor")) {
 			mBorderColor = ReadColor(reader["borderColor"], mBorderColor);
 		}
+		return true;
 	}
 }

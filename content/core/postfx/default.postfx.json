@@ -4,7 +4,7 @@
 		{
 			"name": "Bloom",
 			"enabled": true,
-			"shader": "../shaders/programs/postfx_bloom.shader.json",
+			"shader": "shaders/programs/postfx_bloom.shader.json",
 			"scalars": {
 				"Intensity": 3.0,
 				"Threshold": 1.1,
@@ -15,7 +15,7 @@
 		{
 			"name": "FXAA",
 			"enabled": true,
-			"shader": "../shaders/programs/postfx_fxaa.shader.json",
+			"shader": "shaders/programs/postfx_fxaa.shader.json",
 			"scalars": {
 				"EdgeThreshold": 0.166,
 				"EdgeThresholdMin": 0.0625,
@@ -26,7 +26,7 @@
 		{
 			"name": "Vignette",
 			"enabled": true,
-			"shader": "../shaders/programs/postfx_vignette.shader.json",
+			"shader": "shaders/programs/postfx_vignette.shader.json",
 			"scalars": {
 				"Intensity": 1.25
 			},

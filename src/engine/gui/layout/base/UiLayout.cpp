@@ -1,7 +1,7 @@
 #include "UiLayout.h"
 
 namespace Unnamed::Gui {
-	UiLayout::UiLayout() = default;
+	UiLayout::UiLayout()  = default;
 	UiLayout::~UiLayout() = default;
 
 	void UiLayout::SetPadding(const LayoutPadding& padding) {
@@ -30,7 +30,8 @@ namespace Unnamed::Gui {
 			vertical->SetPadding(mPadding);
 			vertical->SetSpacing(mSpacing);
 		}
-		if (auto* horizontal = self->GetComponent<UiHorizontalLayoutComponent>()) {
+		if (auto* horizontal = self->GetComponent<
+			UiHorizontalLayoutComponent>()) {
 			horizontal->SetPadding(mPadding);
 			horizontal->SetSpacing(mSpacing);
 		}

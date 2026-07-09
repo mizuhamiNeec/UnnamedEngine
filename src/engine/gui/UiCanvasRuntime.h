@@ -54,12 +54,12 @@ namespace Unnamed {
 		/// @return 交差した場合はtrue、そうでない場合はfalse
 		[[nodiscard]] bool RayIntersectsUiPlane(
 			const Ray&  ray,
-			const Vec3&  center,
-			const Vec3&  axisRight,
-			const Vec3&  axisUp,
-			const Vec2&  worldSize,
-			float&       outDistance,
-			Vec2&        outLocalWorld
+			const Vec3& center,
+			const Vec3& axisRight,
+			const Vec3& axisUp,
+			const Vec2& worldSize,
+			float&      outDistance,
+			Vec2&       outLocalWorld
 		);
 
 		/// @brief UI平面上のワールド座標をピクセル座標に変換します。
@@ -81,13 +81,11 @@ namespace Unnamed {
 		/// @param ignoredEntityGuid 除外するエンティティのGUID
 		/// @return UI平面より手前にジオメトリがある場合はtrue
 		[[nodiscard]] bool RayHitsSceneGeometryBefore(
-			const Scene&         scene,
-			AssetManager&  assetManager,
-			const Ray&     ray,
-			float          maxDistance,
-			uint64_t       ignoredEntityGuid
+			const Scene&  scene,
+			AssetManager& assetManager,
+			const Ray&    ray,
+			float         maxDistance,
+			uint64_t      ignoredEntityGuid
 		);
 	}
 }
-
-

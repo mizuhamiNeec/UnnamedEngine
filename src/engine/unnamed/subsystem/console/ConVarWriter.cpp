@@ -2,15 +2,15 @@
 
 #include <fstream>
 
-#include <core/path/PathUtil.h>
+#include <core/filesystem/Path.h>
 #include <engine/unnamed/subsystem/console/Log.h>
 #include <engine/unnamed/subsystem/console/ConsoleSystem.h>
 #include <engine/unnamed/subsystem/console/concommand/ConVar.h>
 #include <engine/unnamed/subsystem/interface/ServiceLocator.h>
 
 namespace Unnamed {
-	ConVarWriter::ConVarWriter(const std::string_view path) {
-		std::ofstream ofs(Path::FromUtf8(path), std::ios::binary);
+	ConVarWriter::ConVarWriter(const Path& path) {
+		std::ofstream ofs(path.Native(), std::ios::binary);
 
 		if (!ofs) {
 			Warning(
@@ -30,7 +30,7 @@ namespace Unnamed {
 			return;
 		}
 
-		const auto vars    = console->GetConVars();
+		const auto vars = console->GetConVars();
 
 		for (const auto& var : vars) {
 			if (!var.second) {

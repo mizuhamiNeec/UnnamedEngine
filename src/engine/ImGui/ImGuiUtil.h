@@ -50,7 +50,7 @@ namespace ImGuiUtil {
 		bool               canMoveUp   = true,
 		bool               canMoveDown = true,
 		bool               canRemove   = true,
-		ImGuiTreeNodeFlags flags = 0
+		ImGuiTreeNodeFlags flags       = 0
 	);
 #endif
 }

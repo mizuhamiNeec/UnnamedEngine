@@ -1,12 +1,12 @@
 {
 	"name": "PostFxVignette",
 	"vs": {
-		"path": "../src/FullscreenTriangle.hlsli",
+		"path": "shaders/src/FullscreenTriangle.hlsli",
 		"entry": "VsMain",
 		"profile": "vs_6_6"
 	},
 	"ps": {
-		"path": "../src/PostFxVignette.hlsl",
+		"path": "shaders/src/PostFxVignette.hlsl",
 		"entry": "PsMain",
 		"profile": "ps_6_6"
 	}
