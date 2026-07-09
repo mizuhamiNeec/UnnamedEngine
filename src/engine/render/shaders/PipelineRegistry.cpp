@@ -19,7 +19,7 @@ namespace Unnamed::Render {
 			const std::string_view stage,
 			ShaderKey&             outKey
 		) {
-			auto&       assetManager = renderDevice.GetAssetManager();
+			const auto& assetManager = renderDevice.GetAssetManager();
 			const auto* program      = assetManager.Get<ShaderProgramAssetData>(
 				shaderProgramId
 			);
@@ -91,7 +91,7 @@ namespace Unnamed::Render {
 			if (
 				scope == PIPELINE_RESOLVE_SCOPE::REQUIRED_ONLY &&
 				entry.spec.startupRequirement !=
-					PIPELINE_STARTUP_REQUIREMENT::REQUIRED
+				PIPELINE_STARTUP_REQUIREMENT::REQUIRED
 			) {
 				continue;
 			}
@@ -162,7 +162,7 @@ namespace Unnamed::Render {
 
 			entry.resolved.rootSignature = entry.spec.rootSignature;
 			entry.resolved.pso           = pso;
-			entry.resolveFailureLogged    = false;
+			entry.resolveFailureLogged   = false;
 			++result.resolvedCount;
 		}
 
@@ -170,7 +170,7 @@ namespace Unnamed::Render {
 			if (
 				scope == PIPELINE_RESOLVE_SCOPE::REQUIRED_ONLY &&
 				entry.spec.startupRequirement !=
-					PIPELINE_STARTUP_REQUIREMENT::REQUIRED
+				PIPELINE_STARTUP_REQUIREMENT::REQUIRED
 			) {
 				continue;
 			}
@@ -226,7 +226,7 @@ namespace Unnamed::Render {
 
 			entry.resolved.rootSignature = entry.spec.rootSignature;
 			entry.resolved.pso           = pso;
-			entry.resolveFailureLogged    = false;
+			entry.resolveFailureLogged   = false;
 			++result.resolvedCount;
 		}
 		return result;

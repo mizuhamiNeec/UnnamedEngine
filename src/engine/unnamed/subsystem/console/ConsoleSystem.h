@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <format>
 #include <memory>
 #include <source_location>
 #include <type_traits>
