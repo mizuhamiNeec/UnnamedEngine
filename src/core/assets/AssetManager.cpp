@@ -1,7 +1,6 @@
 #include "AssetManager.h"
 
 #include <algorithm>
-#include <filesystem>
 #include <queue>
 #include <functional>
 #include <unordered_set>
@@ -29,54 +28,6 @@
 
 namespace Unnamed {
 	constexpr std::string_view kChannel = "AstMgr";
-
-	namespace {
-		FileStamp ReadCurrentFileStamp(const Path& path) {
-			FileStamp       stamp = {};
-			std::error_code ec;
-			if (path.IsEmpty() || !std::filesystem::exists(path.Native(), ec)) {
-				return stamp;
-			}
-
-			const auto lastWrite = std::filesystem::last_write_time(
-				path.Native(), ec
-			);
-			if (!ec) {
-				stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
-			}
-
-			if (std::filesystem::is_regular_file(path.Native(), ec)) {
-				stamp.sizeInBytes = std::filesystem::file_size(path.Native(), ec);
-			}
-			return stamp;
-		}
-
-		FileStamp CompleteFileStamp(
-			const Path& path, const FileStamp& partialStamp
-		) {
-			FileStamp completed = partialStamp;
-			if (
-				completed.sizeInBytes != 0 &&
-				completed.lastWriteTicks != 0
-			) {
-				return completed;
-			}
-
-			const FileStamp current = ReadCurrentFileStamp(path);
-			if (completed.sizeInBytes == 0) {
-				completed.sizeInBytes = current.sizeInBytes;
-			}
-			if (completed.lastWriteTicks == 0) {
-				completed.lastWriteTicks = current.lastWriteTicks;
-			}
-			return completed;
-		}
-
-		bool FileStampEquals(const FileStamp& lhs, const FileStamp& rhs) {
-			return lhs.lastWriteTicks == rhs.lastWriteTicks &&
-			       lhs.sizeInBytes == rhs.sizeInBytes;
-		}
-	}
 
 	AssetManager::AssetManager(
 		const ContentPathResolver& contentPathResolver

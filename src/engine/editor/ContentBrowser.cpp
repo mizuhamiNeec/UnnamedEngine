@@ -32,10 +32,6 @@ namespace Unnamed::EditorContentBrowser {
 
 		std::unordered_map<ImGuiID, BrowserViewState> sPickerStates;
 
-		Path NormalizePath(const Path& path) {
-			return path.LexicallyNormal();
-		}
-
 		bool IsPathInsideRoot(const Path& path, const Path& root) {
 			const std::string normalizedPath =
 				path.LexicallyNormal().ToGenericUtf8();
@@ -263,7 +259,7 @@ namespace Unnamed::EditorContentBrowser {
 			const ImVec2 cellSize(iconAreaSize, cellHeight);
 
 			const std::string cellId =
-				NormalizePath(entry.path).ToGenericUtf8();
+				entry.path.LexicallyNormal().ToGenericUtf8();
 			ImGui::PushID(cellId.c_str());
 			const bool clicked = ImGui::Selectable(
 				"##asset_cell",
@@ -536,7 +532,7 @@ namespace Unnamed::EditorContentBrowser {
 			state.iconView = viewMode == 1;
 			ImGui::SameLine();
 			const std::string currentPathText =
-				NormalizePath(currentPath).ToGenericUtf8();
+				currentPath.LexicallyNormal().ToGenericUtf8();
 			ImGui::TextDisabled("%s", currentPathText.c_str());
 
 			state.currentPath = currentPath.LexicallyNormal();
@@ -641,12 +637,11 @@ namespace Unnamed::EditorContentBrowser {
 			const Path rootPath   = pickerState.rootPath.LexicallyNormal();
 			const Path targetPath = Path(path).LexicallyNormal();
 			if (!path.empty() && IsPathInsideRoot(targetPath, rootPath)) {
-				pickerState.currentPath = NormalizePath(
-					targetPath.ParentPath()
-				);
-				pickerState.selectedPath = NormalizePath(targetPath);
+				pickerState.currentPath =
+					targetPath.ParentPath().LexicallyNormal();
+				pickerState.selectedPath = targetPath.LexicallyNormal();
 			} else {
-				pickerState.currentPath = NormalizePath(rootPath);
+				pickerState.currentPath = rootPath.LexicallyNormal();
 				pickerState.selectedPath.Clear();
 			}
 			ImGui::OpenPopup(popupId.c_str());

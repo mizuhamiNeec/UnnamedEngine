@@ -21,6 +21,7 @@
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiUtil.h"
 #include "engine/ImGui/ImGuiWidgets.h"
+#include "engine/scene/SceneFolderPath.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -180,77 +181,11 @@ namespace Unnamed {
 			return added;
 		}
 
-		std::vector<std::string> SplitFolderPath(std::string_view folderPath) {
-			std::vector<std::string> parts;
-			size_t                   begin = 0;
-			while (begin < folderPath.size()) {
-				const size_t end = folderPath.find('/', begin);
-				const size_t len = (end == std::string_view::npos ?
-					                    folderPath.size() :
-					                    end) - begin;
-				if (len > 0) {
-					parts.emplace_back(folderPath.substr(begin, len));
-				}
-				if (end == std::string_view::npos) {
-					break;
-				}
-				begin = end + 1;
-			}
-			return parts;
-		}
-
-		std::string NormalizeFolderPath(const std::string_view folderPath) {
-			std::string path(folderPath);
-			std::ranges::replace(path, '\\', '/');
-			while (!path.empty() && path.front() == '/') {
-				path.erase(path.begin());
-			}
-			while (!path.empty() && path.back() == '/') {
-				path.pop_back();
-			}
-			return path;
-		}
-
-		std::string JoinFolderPath(
-			const std::string_view parent, const std::string_view child
-		) {
-			if (parent.empty()) {
-				return std::string(child);
-			}
-			if (child.empty()) {
-				return std::string(parent);
-			}
-			return std::string(parent) + "/" + std::string(child);
-		}
-
-		std::string GetFolderLeafName(const std::string_view folderPath) {
-			const size_t slashPos = folderPath.find_last_of('/');
-			return slashPos == std::string_view::npos ?
-				       std::string(folderPath) :
-				       std::string(folderPath.substr(slashPos + 1));
-		}
-
-		bool IsFolderEqualOrDescendant(
-			const std::string_view path, const std::string_view ancestor
-		) {
-			if (ancestor.empty()) {
-				return true;
-			}
-			if (path == ancestor) {
-				return true;
-			}
-			if (path.size() <= ancestor.size()) {
-				return false;
-			}
-			return path.starts_with(ancestor) &&
-			       path[ancestor.size()] == '/';
-		}
-
 		OutlinerFolderNode* EnsureFolderNode(
 			OutlinerFolderNode& root, const std::string_view folderPath
 		) {
 			OutlinerFolderNode* node = &root;
-			for (const auto& part : SplitFolderPath(folderPath)) {
+			for (const auto& part : SceneFolderPath::Split(folderPath)) {
 				node = &node->children[part];
 			}
 			return node;
@@ -277,14 +212,16 @@ namespace Unnamed {
 		std::string MakeUniqueFolderPath(
 			const Scene& scene, const std::string_view parentFolderPath
 		) {
-			const std::string parent = NormalizeFolderPath(parentFolderPath);
+			const std::string parent = SceneFolderPath::Normalize(
+				parentFolderPath
+			);
 			int               suffix = 0;
 			for (;;) {
 				const std::string candidateName =
 					suffix == 0 ?
 						"NewFolder" :
 						"NewFolder" + std::to_string(suffix);
-				const std::string candidatePath = JoinFolderPath(
+				const std::string candidatePath = SceneFolderPath::Join(
 					parent, candidateName
 				);
 				if (
@@ -502,7 +439,7 @@ namespace Unnamed {
 			renameEntityId   = 0;
 			renameFolderPath = std::string(folderPath);
 			std::ranges::fill(renameBuffer, '\0');
-			const std::string leafName = GetFolderLeafName(folderPath);
+			const std::string leafName = SceneFolderPath::LeafName(folderPath);
 			memcpy(
 				renameBuffer.data(),
 				leafName.c_str(),
@@ -776,7 +713,7 @@ namespace Unnamed {
 				const std::string&        folderPath
 			) {
 					if (!folderPath.empty()) {
-						const std::string displayName = GetFolderLeafName(
+						const std::string displayName = SceneFolderPath::LeafName(
 							folderPath
 						);
 						ImGui::TableNextRow();
@@ -819,7 +756,7 @@ namespace Unnamed {
 								if (
 									sourcePath &&
 									folderPath != sourcePath &&
-									!IsFolderEqualOrDescendant(
+									!SceneFolderPath::IsEqualOrDescendant(
 										folderPath, sourcePath
 									)
 								) {

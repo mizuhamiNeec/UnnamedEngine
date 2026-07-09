@@ -10,19 +10,12 @@
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "EdGuiLdr";
 
-	namespace {
-		/// @brief パスがEditorGuiアセットとして適切かどうかを判定します。
-		/// @param path 判定するパス
-		/// @return パスがEditorGuiアセットとして適切か?
-		bool IsEditorGuiPath(const Path& path) {
-			return StrUtil::EndsWithIgnoreCase(path.ToGenericUtf8(), ".edgui.lua");
-		}
-	}
-
 	bool EditorGuiLoader::CanLoad(
 		const Path& path, ASSET_TYPE* outType
 	) const {
-		const bool ok = IsEditorGuiPath(path);
+		const bool ok = StrUtil::EndsWithIgnoreCase(
+			path.ToGenericUtf8(), ".edgui.lua"
+		);
 		if (outType) {
 			*outType = ok ? ASSET_TYPE::EDITOR_GUI : ASSET_TYPE::UNKNOWN;
 		}

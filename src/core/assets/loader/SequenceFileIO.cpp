@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
 
 #include <json.hpp>
 
@@ -442,24 +441,14 @@ namespace Unnamed {
 		[[nodiscard]] uint64_t ComputeSemanticHash(const std::string& text) {
 			return std::hash<std::string>{}(text);
 		}
-
-		[[nodiscard]] std::string ReadTextFile(const Path& path) {
-			const std::ifstream ifs(path.Native(), std::ios::binary);
-			if (!ifs) {
-				return {};
-			}
-			std::ostringstream oss;
-			oss << ifs.rdbuf();
-			return oss.str();
-		}
 	}
 
 	bool SequenceFileIO::LoadFromFile(
 		const Path&             path,
 		SequenceFileLoadResult& outResult
 	) {
-		const std::string text = ReadTextFile(path);
-		if (text.empty()) {
+		std::string text;
+		if (!StrUtil::ReadFileToString(path, text) || text.empty()) {
 			return false;
 		}
 
@@ -622,8 +611,9 @@ namespace Unnamed {
 			}
 		);
 
-		const std::string nextText    = root.dump(4);
-		const std::string currentText = ReadTextFile(path);
+		const std::string nextText = root.dump(4);
+		std::string       currentText;
+		(void)StrUtil::ReadFileToString(path, currentText);
 		if (currentText == nextText) {
 			if (outWritten) {
 				*outWritten = false;

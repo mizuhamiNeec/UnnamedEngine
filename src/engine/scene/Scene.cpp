@@ -5,84 +5,9 @@
 
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
+#include "engine/scene/SceneFolderPath.h"
 
 namespace Unnamed {
-	namespace {
-		std::string NormalizeFolderPath(std::string_view folderPath) {
-			std::string path(folderPath);
-			std::replace(path.begin(), path.end(), '\\', '/');
-			while (!path.empty() && path.front() == '/') {
-				path.erase(path.begin());
-			}
-			while (!path.empty() && path.back() == '/') {
-				path.pop_back();
-			}
-			return path;
-		}
-
-		bool IsFolderEqualOrDescendant(
-			std::string_view path, std::string_view ancestor
-		) {
-			if (ancestor.empty()) {
-				return true;
-			}
-			if (path == ancestor) {
-				return true;
-			}
-			if (path.size() <= ancestor.size()) {
-				return false;
-			}
-			return path.substr(0, ancestor.size()) == ancestor &&
-			       path[ancestor.size()] == '/';
-		}
-
-		std::string ReplaceFolderPrefix(
-			std::string_view path, std::string_view source,
-			std::string_view destination
-		) {
-			if (!IsFolderEqualOrDescendant(path, source)) {
-				return std::string(path);
-			}
-
-			const std::string_view suffix = path.size() == source.size() ?
-				                                std::string_view{} :
-				                                path.substr(source.size() + 1);
-			if (destination.empty()) {
-				return std::string(suffix);
-			}
-			if (suffix.empty()) {
-				return std::string(destination);
-			}
-			return std::string(destination) + "/" + std::string(suffix);
-		}
-
-		std::string GetFolderParentPath(std::string_view folderPath) {
-			const size_t slash = folderPath.find_last_of('/');
-			return slash == std::string_view::npos ?
-				       std::string() :
-				       std::string(folderPath.substr(0, slash));
-		}
-
-		std::string GetFolderLeafName(std::string_view folderPath) {
-			const size_t slash = folderPath.find_last_of('/');
-			return slash == std::string_view::npos ?
-				       std::string(folderPath) :
-				       std::string(folderPath.substr(slash + 1));
-		}
-
-		std::string JoinFolderPath(
-			std::string_view parent, std::string_view child
-		) {
-			if (parent.empty()) {
-				return std::string(child);
-			}
-			if (child.empty()) {
-				return std::string(parent);
-			}
-			return std::string(parent) + "/" + std::string(child);
-		}
-	}
-
 	Scene::Scene()  = default;
 	Scene::~Scene() = default;
 
@@ -162,7 +87,7 @@ namespace Unnamed {
 	}
 
 	void Scene::AddFolder(const std::string_view folderPath) {
-		const std::string normalized = NormalizeFolderPath(folderPath);
+		const std::string normalized = SceneFolderPath::Normalize(folderPath);
 		if (normalized.empty()) {
 			return;
 		}
@@ -171,11 +96,11 @@ namespace Unnamed {
 		) {
 			mFolders.emplace_back(normalized);
 		}
-		std::sort(mFolders.begin(), mFolders.end());
+		std::ranges::sort(mFolders);
 	}
 
 	void Scene::RemoveFolder(const std::string_view folderPath) {
-		const std::string normalized = NormalizeFolderPath(folderPath);
+		const std::string normalized = SceneFolderPath::Normalize(folderPath);
 		std::erase(mFolders, normalized);
 	}
 
@@ -183,22 +108,22 @@ namespace Unnamed {
 		const std::string_view sourceFolderPath,
 		const std::string_view newLeafName
 	) {
-		const std::string source = NormalizeFolderPath(sourceFolderPath);
-		const std::string leaf   = NormalizeFolderPath(newLeafName);
+		const std::string source = SceneFolderPath::Normalize(sourceFolderPath);
+		const std::string leaf   = SceneFolderPath::Normalize(newLeafName);
 		if (source.empty() || leaf.empty()) {
 			return;
 		}
 
-		const std::string destination = JoinFolderPath(
-			GetFolderParentPath(source), leaf
+		const std::string destination = SceneFolderPath::Join(
+			SceneFolderPath::ParentPath(source), leaf
 		);
 		if (destination == source) {
 			return;
 		}
 
 		for (std::string& folder : mFolders) {
-			folder = NormalizeFolderPath(
-				ReplaceFolderPrefix(folder, source, destination)
+			folder = SceneFolderPath::Normalize(
+				SceneFolderPath::ReplacePrefix(folder, source, destination)
 			);
 		}
 		for (const auto& entityPtr : mEntities) {
@@ -206,28 +131,28 @@ namespace Unnamed {
 				continue;
 			}
 			const std::string current(entityPtr->GetFolderPath());
-			if (!IsFolderEqualOrDescendant(current, source)) {
+			if (!SceneFolderPath::IsEqualOrDescendant(current, source)) {
 				continue;
 			}
 			entityPtr->SetFolderPath(
-				ReplaceFolderPrefix(current, source, destination)
+				SceneFolderPath::ReplacePrefix(current, source, destination)
 			);
 		}
-		std::sort(mFolders.begin(), mFolders.end());
+		std::ranges::sort(mFolders);
 		mFolders.erase(
-			std::unique(mFolders.begin(), mFolders.end()),
+			std::ranges::unique(mFolders).begin(),
 			mFolders.end()
 		);
 	}
 
 	void Scene::DeleteFolderSubtree(const std::string_view folderPath) {
-		const std::string source = NormalizeFolderPath(folderPath);
+		const std::string source = SceneFolderPath::Normalize(folderPath);
 		if (source.empty()) {
 			return;
 		}
 
 		for (auto it = mFolders.begin(); it != mFolders.end();) {
-			if (IsFolderEqualOrDescendant(*it, source)) {
+			if (SceneFolderPath::IsEqualOrDescendant(*it, source)) {
 				it = mFolders.erase(it);
 			} else {
 				++it;
@@ -239,7 +164,7 @@ namespace Unnamed {
 				continue;
 			}
 			const std::string current(entityPtr->GetFolderPath());
-			if (!IsFolderEqualOrDescendant(current, source)) {
+			if (!SceneFolderPath::IsEqualOrDescendant(current, source)) {
 				continue;
 			}
 			entityPtr->SetFolderPath("");
@@ -250,8 +175,9 @@ namespace Unnamed {
 		const std::string_view sourceFolderPath,
 		const std::string_view targetParentPath
 	) {
-		const std::string source       = NormalizeFolderPath(sourceFolderPath);
-		const std::string targetParent = NormalizeFolderPath(targetParentPath);
+		const std::string source = SceneFolderPath::Normalize(sourceFolderPath);
+		const std::string targetParent =
+			SceneFolderPath::Normalize(targetParentPath);
 		if (source.empty()) {
 			return;
 		}
@@ -264,15 +190,15 @@ namespace Unnamed {
 			                                leafName :
 			                                targetParent + "/" + leafName;
 
-		if (destination == source || IsFolderEqualOrDescendant(
+		if (destination == source || SceneFolderPath::IsEqualOrDescendant(
 			    targetParent, source
 		    )) {
 			return;
 		}
 
 		for (std::string& folder : mFolders) {
-			folder = NormalizeFolderPath(
-				ReplaceFolderPrefix(folder, source, destination)
+			folder = SceneFolderPath::Normalize(
+				SceneFolderPath::ReplacePrefix(folder, source, destination)
 			);
 		}
 		for (const auto& entityPtr : mEntities) {
@@ -280,22 +206,22 @@ namespace Unnamed {
 				continue;
 			}
 			const std::string current(entityPtr->GetFolderPath());
-			if (!IsFolderEqualOrDescendant(current, source)) {
+			if (!SceneFolderPath::IsEqualOrDescendant(current, source)) {
 				continue;
 			}
 			entityPtr->SetFolderPath(
-				ReplaceFolderPrefix(current, source, destination)
+				SceneFolderPath::ReplacePrefix(current, source, destination)
 			);
 		}
 
-		std::sort(mFolders.begin(), mFolders.end());
+		std::ranges::sort(mFolders);
 		mFolders.erase(
-			std::unique(mFolders.begin(), mFolders.end()),
+			std::ranges::unique(mFolders).begin(),
 			mFolders.end()
 		);
 	}
 
-	void Scene::Serialize(const JsonWriter& writer) const {
+	void Scene::Serialize(const JsonWriter& writer) {
 		writer; // 未実装
 	}
 

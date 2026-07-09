@@ -389,7 +389,7 @@ namespace Unnamed::Render {
 
 		/// @brief bloom downsample pass 群を追加します。
 		void AddBloomDownsamplePasses(
-			RenderDevice&           renderDevice,
+			const RenderDevice&           renderDevice,
 			const std::string&      prefix,
 			const ViewRuntimeState& state,
 			int                     mipCount,
@@ -402,7 +402,7 @@ namespace Unnamed::Render {
 
 		/// @brief bloom upsample pass 群を追加します。
 		void AddBloomUpsamplePasses(
-			RenderDevice&           renderDevice,
+			const RenderDevice&           renderDevice,
 			const std::string&      prefix,
 			const ViewRuntimeState& state,
 			int                     mipCount,
@@ -421,7 +421,7 @@ namespace Unnamed::Render {
 
 		/// @brief bloom mip を base copy へ合成する pass を追加します。
 		void AddBloomCompositePass(
-			RenderDevice&           renderDevice,
+			const RenderDevice&           renderDevice,
 			const std::string&      prefix,
 			const ViewRuntimeState& state,
 			uint32_t                bloomBaseId,
@@ -432,7 +432,7 @@ namespace Unnamed::Render {
 
 		/// @brief 汎用 post-fx pass を追加し ping-pong を進めます。
 		void AddGenericPostFxPasses(
-			RenderDevice&            renderDevice,
+			const RenderDevice&            renderDevice,
 			const std::string&       prefix,
 			const ViewRuntimeState&  state,
 			const PostFxRuntimePass& passRes,
@@ -446,7 +446,7 @@ namespace Unnamed::Render {
 
 		/// @brief tone map pass を追加し最終 outputId を更新します。
 		void AddToneMapExposurePass(
-			RenderDevice&           renderDevice,
+			const RenderDevice&           renderDevice,
 			const std::string&      prefix,
 			const ViewRuntimeState& state,
 			const RenderViewInput&  view,

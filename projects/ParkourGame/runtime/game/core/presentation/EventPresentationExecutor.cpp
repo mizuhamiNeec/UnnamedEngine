@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cmath>
 
+#include "core/string/StrUtil.h"
 #include "game/core/components/AudioFxControllerComponent.h"
 #include "game/core/components/CameraFxControllerComponent.h"
 
@@ -30,17 +31,6 @@ namespace Unnamed {
 				--end;
 			}
 			return std::string(text.substr(begin, end - begin));
-		}
-
-		[[nodiscard]] std::string ToLowerAscii(std::string text) {
-			std::ranges::transform(
-				text,
-				text.begin(),
-				[](const unsigned char c) {
-					return static_cast<char>(std::tolower(c));
-				}
-			);
-			return text;
 		}
 
 		[[nodiscard]] float ReadSourceValue(
@@ -87,7 +77,9 @@ namespace Unnamed {
 		if (outPayloadName) {
 			outPayloadName->clear();
 		}
-		const std::string normalized = ToLowerAscii(TrimAscii(sourceText));
+		const std::string normalized = StrUtil::ToLowerCase(
+			TrimAscii(sourceText)
+		);
 		if (normalized == "cue.value") {
 			return EventPresentationValueSource::CueValue;
 		}
@@ -117,7 +109,9 @@ namespace Unnamed {
 	EventPresentationActionType EventPresentationExecutor::ParseActionType(
 		const std::string_view actionTypeText
 	) {
-		const std::string normalized = ToLowerAscii(TrimAscii(actionTypeText));
+		const std::string normalized = StrUtil::ToLowerCase(
+			TrimAscii(actionTypeText)
+		);
 		if (normalized == "sound.play") {
 			return EventPresentationActionType::SoundPlay;
 		}

@@ -10,19 +10,13 @@
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
-	namespace {
-		bool IsEventPresentationPath(const Path& path) {
-			return StrUtil::EndsWithIgnoreCase(
-				path.ToGenericUtf8(),
-				".event_presentation.json"
-			);
-		}
-	}
-
 	bool EventPresentationLoader::CanLoad(
 		const Path& path, ASSET_TYPE* outType
 	) const {
-		const bool ok = IsEventPresentationPath(path);
+		const bool ok = StrUtil::EndsWithIgnoreCase(
+			path.ToGenericUtf8(),
+			".event_presentation.json"
+		);
 		if (outType) {
 			*outType = ok ?
 				           ASSET_TYPE::EVENT_PRESENTATION :

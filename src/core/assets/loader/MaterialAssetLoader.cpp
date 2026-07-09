@@ -12,16 +12,6 @@
 
 namespace Unnamed {
 	namespace {
-		/// @brief パスがマテリアルアセットのものであるか?
-		/// @param path 判定するパス
-		/// @return マテリアルアセットのパスであればtrue
-		bool IsMaterialPath(const Path& path) {
-			return StrUtil::EndsWithIgnoreCase(
-				path.ToGenericUtf8(),
-				".material.json"
-			);
-		}
-
 		/// @brief マテリアルドメインを文字列から解析する
 		/// @param s 解析する文字列
 		/// @return 解析されたマテリアルドメイン。解析できない場合はPBR_METAL_ROUGHを返す。
@@ -87,7 +77,10 @@ namespace Unnamed {
 		const Path& path, ASSET_TYPE* outType
 	) const {
 		// 拡張子ベースで判定。厳密なファイル存在チェックはLoad()に任せる。
-		const bool ok = IsMaterialPath(path);
+		const bool ok = StrUtil::EndsWithIgnoreCase(
+			path.ToGenericUtf8(),
+			".material.json"
+		);
 		if (outType) {
 			*outType = ok ? ASSET_TYPE::MATERIAL : ASSET_TYPE::UNKNOWN;
 		}

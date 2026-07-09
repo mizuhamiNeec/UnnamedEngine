@@ -8,20 +8,14 @@
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
-	namespace {
-		[[nodiscard]] bool IsSequencePath(const Path& path) {
-			return StrUtil::EndsWithIgnoreCase(
-				path.ToGenericUtf8(),
-				".sequence.json"
-			);
-		}
-	}
-
 	bool SequenceAssetLoader::CanLoad(
 		const Path& path,
 		ASSET_TYPE* outType
 	) const {
-		const bool canLoad = IsSequencePath(path);
+		const bool canLoad = StrUtil::EndsWithIgnoreCase(
+			path.ToGenericUtf8(),
+			".sequence.json"
+		);
 		if (outType) {
 			*outType = canLoad ? ASSET_TYPE::SEQUENCE : ASSET_TYPE::UNKNOWN;
 		}

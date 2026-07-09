@@ -17,10 +17,6 @@ namespace Unnamed {
 	class JsonReader;
 
 	namespace {
-		bool IsShaderProgramPath(const Path& path) {
-			return StrUtil::EndsWithIgnoreCase(path.ToGenericUtf8(), ".shader.json");
-		}
-
 		void ParseDefines(
 			const JsonReader&                                 j,
 			std::vector<std::pair<std::string, std::string>>& outDefines
@@ -124,7 +120,9 @@ namespace Unnamed {
 	bool ShaderProgramLoader::CanLoad(
 		const Path& path, ASSET_TYPE* outType
 	) const {
-		const bool ok = IsShaderProgramPath(path);
+		const bool ok = StrUtil::EndsWithIgnoreCase(
+			path.ToGenericUtf8(), ".shader.json"
+		);
 		if (outType) {
 			*outType = ok ? ASSET_TYPE::SHADER_PROGRAM : ASSET_TYPE::UNKNOWN;
 		}

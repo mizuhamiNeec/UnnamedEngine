@@ -1,4 +1,5 @@
 #include "MeshAssetLoader.h"
+#include "core/assets/FileStamp.h"
 #include "core/filesystem/Path.h"
 
 #include <algorithm>
@@ -52,27 +53,6 @@ namespace Unnamed {
 			uint32_t animationClipCount   = 0;
 			uint32_t flags                = 0;
 		};
-
-		/// @brief ファイルの状態を表すスタンプ。ファイルの存在、更新日時、サイズを組み合わせて、ファイルが同一かどうかを判定するために使う。
-		/// @param path 判定するファイルのパス
-		/// @return ファイルのスタンプ
-		/// @note ファイルの内容までは見ないため、同一のスタンプでも内容が変わっている可能性はある。あくまで「前回読み込んだときと同じファイルかどうか」を判定するためのもの。
-		FileStamp ReadCurrentFileStamp(const Path& path) {
-			FileStamp       stamp = {};
-			std::error_code ec;
-			if (path.IsEmpty() || !std::filesystem::exists(path.Native(), ec)) {
-				return stamp;
-			}
-
-			const auto lastWrite = std::filesystem::last_write_time(
-				path.Native(), ec
-			);
-			if (!ec) {
-				stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
-			}
-			stamp.sizeInBytes = std::filesystem::file_size(path.Native(), ec);
-			return stamp;
-		}
 
 		/// @brief Assimpのインポート設定を表すハッシュ値を生成する。スキンニングの有無によって、頂点処理のフラット化（PreTransformVertices）を切り替えるため、スキンニングの有無も考慮する。
 		/// @param hasSkinning スキンニングがあるか?

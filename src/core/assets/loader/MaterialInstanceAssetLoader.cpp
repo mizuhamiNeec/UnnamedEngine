@@ -13,18 +13,6 @@
 #include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed {
-	namespace {
-		/// @brief マテリアルインスタンスアセットのパスか?
-		/// @param path パス
-		/// @return マテリアルインスタンスアセットのパスならtrue
-		bool IsMaterialInstancePath(const Path& path) {
-			return StrUtil::EndsWithIgnoreCase(
-				path.ToGenericUtf8(),
-				".matinst.json"
-			);
-		}
-	}
-
 	MaterialInstanceAssetLoader::MaterialInstanceAssetLoader(
 		AssetManager* assetManager
 	) : mAssetManager(assetManager) {
@@ -34,7 +22,10 @@ namespace Unnamed {
 		const Path& path, ASSET_TYPE* outType
 	) const {
 		// 拡張子ベースで判定。厳密なファイル存在チェックはLoad()に任せる。
-		const bool ok = IsMaterialInstancePath(path);
+		const bool ok = StrUtil::EndsWithIgnoreCase(
+			path.ToGenericUtf8(),
+			".matinst.json"
+		);
 		if (outType) {
 			*outType = ok ? ASSET_TYPE::MATERIAL_INSTANCE : ASSET_TYPE::UNKNOWN;
 		}

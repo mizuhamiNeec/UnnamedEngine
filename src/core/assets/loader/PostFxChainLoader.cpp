@@ -13,15 +13,6 @@
 #include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed {
-	namespace {
-		/// @brief パスがPostFxChainアセットとして適切かどうかを判定する。拡張子ベースで判定する。
-		/// @param path 判定するパス
-		/// @return パスがPostFxChainアセットとして適切であればtrue、そうでなければfalse
-		bool IsPostFxPath(const Path& path) {
-			return StrUtil::EndsWithIgnoreCase(path.ToGenericUtf8(), ".postfx.json");
-		}
-	}
-
 	PostFxChainLoader::PostFxChainLoader(AssetManager* assetManager) :
 		mAssetManager(assetManager) {
 	}
@@ -29,7 +20,9 @@ namespace Unnamed {
 	bool PostFxChainLoader::CanLoad(
 		const Path& path, ASSET_TYPE* outType
 	) const {
-		const bool ok = IsPostFxPath(path);
+		const bool ok = StrUtil::EndsWithIgnoreCase(
+			path.ToGenericUtf8(), ".postfx.json"
+		);
 		if (outType) {
 			*outType = ok ? ASSET_TYPE::POST_FX_CHAIN : ASSET_TYPE::UNKNOWN;
 		}

@@ -50,19 +50,6 @@ namespace Unnamed::Render {
 			return frame;
 		}
 
-		Mat4 BuildOrthographic(
-			const uint32_t width, const uint32_t height
-		) {
-			return Mat4::MakeOrthographicMat(
-				0.0f,
-				0.0f,
-				static_cast<float>(width),
-				static_cast<float>(height),
-				0.0f,
-				1.0f
-			);
-		}
-
 		Mat4 BuildReverseZOrthographic(
 			const float left,
 			const float top,
@@ -220,7 +207,8 @@ namespace Unnamed::Render {
 			const std::vector<PostFxPassOverride>& overrides
 		) {
 			for (const auto& passOverride : overrides) {
-				if (StrUtil::EqualsIgnoreCase(passOverride.passName, passName)) {
+				if (StrUtil::EqualsIgnoreCase(passOverride.passName,
+				                              passName)) {
 					return &passOverride;
 				}
 			}
@@ -1280,7 +1268,7 @@ namespace Unnamed::Render {
 				b.ClearDepth(shadowDepthId, 0.0f, 0);
 			},
 			[this, viewIndex, shadowState, &renderDevice](
-			RenderPassContext& pass
+			const RenderPassContext& pass
 		) {
 				const RenderViewInput& view = mFrameViews[viewIndex];
 				if (view.visibleObjects.empty()) {
@@ -2244,7 +2232,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddBloomDownsamplePasses(
-		RenderDevice&           renderDevice,
+		const RenderDevice&     renderDevice,
 		const std::string&      prefix,
 		const ViewRuntimeState& state,
 		const int               mipCount,
@@ -2346,7 +2334,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddBloomUpsamplePasses(
-		RenderDevice&           renderDevice,
+		const RenderDevice&     renderDevice,
 		const std::string&      prefix,
 		const ViewRuntimeState& state,
 		const int               mipCount,
@@ -2515,7 +2503,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddBloomCompositePass(
-		RenderDevice&           renderDevice,
+		const RenderDevice&           renderDevice,
 		const std::string&      prefix,
 		const ViewRuntimeState& state,
 		const uint32_t          bloomBaseId,
@@ -2599,7 +2587,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddGenericPostFxPasses(
-		RenderDevice&            renderDevice,
+		const RenderDevice&            renderDevice,
 		const std::string&       prefix,
 		const ViewRuntimeState&  state,
 		const PostFxRuntimePass& passRes,
@@ -2679,7 +2667,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddToneMapExposurePass(
-		RenderDevice&           renderDevice,
+		const RenderDevice&           renderDevice,
 		const std::string&      prefix,
 		const ViewRuntimeState& state,
 		const RenderViewInput&  view,
@@ -2820,8 +2808,13 @@ namespace Unnamed::Render {
 
 				Rhi::FrameConstants frame = {};
 				frame.view                = Mat4::identity;
-				frame.proj                = BuildOrthographic(
-					state.logicalWidth, state.logicalHeight
+				frame.proj                = Mat4::MakeOrthographicMat(
+					0.0f,
+					0.0f,
+					static_cast<float>(state.logicalWidth),
+					static_cast<float>(state.logicalHeight),
+					0.0f,
+					1.0f
 				);
 				frame.viewProj = frame.view * frame.proj;
 				const D3D12_GPU_VIRTUAL_ADDRESS frameCb =

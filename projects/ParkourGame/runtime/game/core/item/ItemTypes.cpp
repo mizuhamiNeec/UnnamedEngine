@@ -1,26 +1,12 @@
 #include "ItemTypes.h"
 
 #include <algorithm>
-#include <cctype>
 
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
+#include "core/string/StrUtil.h"
 
 namespace Unnamed {
-	namespace {
-		[[nodiscard]] std::string ToLowerCopy(const std::string_view text) {
-			std::string out(text);
-			std::ranges::transform(
-				out,
-				out.begin(),
-				[](const unsigned char c) {
-					return static_cast<char>(std::tolower(c));
-				}
-			);
-			return out;
-		}
-	}
-
 	std::string_view ToString(const ITEM_CLASS itemClass) {
 		switch (itemClass) {
 			case ITEM_CLASS::WEAPON: return "weapon";
@@ -32,7 +18,7 @@ namespace Unnamed {
 	}
 
 	ITEM_CLASS ItemClassFromString(const std::string_view text) {
-		const std::string lowered = ToLowerCopy(text);
+		const std::string lowered = StrUtil::ToLowerCase(text);
 		if (lowered == "weapon") {
 			return ITEM_CLASS::WEAPON;
 		}
@@ -58,7 +44,7 @@ namespace Unnamed {
 	}
 
 	DROP_POLICY DropPolicyFromString(const std::string_view text) {
-		const std::string lowered = ToLowerCopy(text);
+		const std::string lowered = StrUtil::ToLowerCase(text);
 		if (lowered == "cannot_drop") {
 			return DROP_POLICY::CANNOT_DROP;
 		}
