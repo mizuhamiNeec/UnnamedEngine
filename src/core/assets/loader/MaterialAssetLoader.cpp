@@ -7,68 +7,9 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/MaterialAssetData.h"
 #include "core/io/json/JsonReader.h"
-
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
-	namespace {
-		/// @brief マテリアルドメインを文字列から解析する
-		/// @param s 解析する文字列
-		/// @return 解析されたマテリアルドメイン。解析できない場合はPBR_METAL_ROUGHを返す。
-		MATERIAL_DOMAIN ParseDomain(const std::string& s) {
-			const auto v = StrUtil::ToLowerCase(s);
-			if (v == "unlit") {
-				return MATERIAL_DOMAIN::UNLIT;
-			}
-			return MATERIAL_DOMAIN::PBR_METAL_ROUGH;
-		}
-
-		/// @brief シェーディングモデルを文字列から解析する。
-		/// @param s 解析する文字列
-		/// @return 解析されたシェーディングモデル。解析できない場合はLitPBRを返す。
-		MATERIAL_SHADING_MODEL ParseShadingModel(const std::string& s) {
-			const auto v = StrUtil::ToLowerCase(s);
-			if (v == "toon" || v == "npbr") {
-				return MATERIAL_SHADING_MODEL::TOON;
-			}
-			if (v == "unlit") {
-				return MATERIAL_SHADING_MODEL::UNLIT;
-			}
-			if (v == "pbr" || v == "lit" || v == "litpbr") {
-				return MATERIAL_SHADING_MODEL::LIT_PBR;
-			}
-			if (v == "lit_pbr" || v == "lit-pbr") {
-				return MATERIAL_SHADING_MODEL::LIT_PBR;
-			}
-			return MATERIAL_SHADING_MODEL::LIT_PBR;
-		}
-
-		/// @brief ShadowMap caster のカリングモードを文字列から解析する。
-		/// @param s 解析する文字列
-		/// @return 解析されたカリングモード。解析できない場合はFOLLOW_MATERIALを返す。
-		MATERIAL_SHADOW_CULL_MODE ParseShadowCullMode(
-			const std::string& s
-		) {
-			const auto v = StrUtil::ToLowerCase(s);
-			if (v == "back" || v == "backface" || v == "cullback") {
-				return MATERIAL_SHADOW_CULL_MODE::BACK;
-			}
-			if (v == "front" || v == "frontface" || v == "cullfront") {
-				return MATERIAL_SHADOW_CULL_MODE::FRONT;
-			}
-			if (v == "none" || v == "off" || v == "double_sided") {
-				return MATERIAL_SHADOW_CULL_MODE::NONE;
-			}
-			if (v == "doublesided" || v == "double-sided") {
-				return MATERIAL_SHADOW_CULL_MODE::NONE;
-			}
-			if (v == "follow" || v == "follow_material") {
-				return MATERIAL_SHADOW_CULL_MODE::FOLLOW_MATERIAL;
-			}
-			return MATERIAL_SHADOW_CULL_MODE::FOLLOW_MATERIAL;
-		}
-	}
-
 	MaterialAssetLoader::MaterialAssetLoader(AssetManager* assetManager) :
 		mAssetManager(assetManager) {
 	}
@@ -104,11 +45,11 @@ namespace Unnamed {
 		);
 
 		// "domain" フィールドがあればそれを、なければ "pbr" をドメインとして扱う。
-		data.domain = ParseDomain(
+		data.domain = ParseMaterialDomain(
 			root.Read<std::string>("domain").value_or("pbr")
 		);
 		if (const auto shadingModel = root.Read<std::string>("shadingModel")) {
-			data.shadingModel = ParseShadingModel(*shadingModel);
+			data.shadingModel = ParseMaterialShadingModel(*shadingModel);
 		} else if (data.domain == MATERIAL_DOMAIN::UNLIT) {
 			data.shadingModel = MATERIAL_SHADING_MODEL::UNLIT;
 		}
@@ -166,7 +107,7 @@ namespace Unnamed {
 				rs.Read<bool>("blendEnable").value_or(false);
 			data.renderState.castsShadow =
 				rs.Read<bool>("castsShadow").value_or(true);
-			data.renderState.shadowCullMode = ParseShadowCullMode(
+			data.renderState.shadowCullMode = ParseMaterialShadowCullMode(
 				rs.Read<std::string>("shadowCullMode").value_or(
 					"FollowMaterial"
 				)
