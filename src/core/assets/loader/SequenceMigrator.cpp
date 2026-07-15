@@ -6,11 +6,6 @@
 
 namespace Unnamed {
 	namespace {
-		[[nodiscard]] uint64_t AllocateStableId() {
-			static GuidGenerator generator;
-			return generator.Alloc();
-		}
-
 		[[nodiscard]] bool EnsureIdField(
 			nlohmann::json& node,
 			const char*     keyName
@@ -26,7 +21,7 @@ namespace Unnamed {
 				    int64_t>() > 0) {
 				return false;
 			}
-			node[keyName] = AllocateStableId();
+			node[keyName] = GuidGenerator::AllocRandom();
 			return true;
 		}
 
