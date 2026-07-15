@@ -7,6 +7,7 @@
 #include "core/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
+#include "core/math/Math.h"
 #include "core/math/Quaternion.h"
 #include "core/math/Vec4.h"
 
@@ -28,6 +29,7 @@
 #include "game/core/components/CameraRotatorComponent.h"
 #include "game/core/components/character/state/GameMovementStateMachine.h"
 #include "game/core/replay/ReplayHash.h"
+#include "game/core/replay/ReplayJson.h"
 
 #include "ability/ParkourMovementAbilities.h"
 
@@ -50,36 +52,6 @@ namespace Unnamed {
 			return 3.0f * valueSquared - 2.0f * valueSquared * value;
 		}
 
-		float DeltaAngleDegrees(const float currentDeg, const float targetDeg) {
-			float delta = std::fmod(targetDeg - currentDeg, 360.0f);
-			if (delta > 180.0f) {
-				delta -= 360.0f;
-			}
-			if (delta < -180.0f) {
-				delta += 360.0f;
-			}
-			return delta;
-		}
-
-		bool TryReadVec3FromObject(
-			const nlohmann::json& object,
-			const char*           key,
-			Vec3&                 outValue
-		) {
-			if (!object.is_object()) {
-				return false;
-			}
-			const auto it = object.find(key);
-			if (it == object.end() || !it->is_array() || it->size() != 3) {
-				return false;
-			}
-			outValue = Vec3(
-				(*it)[0].get<float>(),
-				(*it)[1].get<float>(),
-				(*it)[2].get<float>()
-			);
-			return true;
-		}
 	}
 
 	ParkourMovementComponent::~ParkourMovementComponent() = default;
@@ -455,12 +427,12 @@ namespace Unnamed {
 			// backward compatibility for older/flat dump styles
 			GameMovementComponent::ReadReplayState(inState);
 		}
-		(void)TryReadVec3FromObject(
+		(void)ReplayJson::TryReadVec3(
 			inState,
 			"standingHalfExtents",
 			mStandingHalfExtents
 		);
-		(void)TryReadVec3FromObject(
+		(void)ReplayJson::TryReadVec3(
 			inState,
 			"duckHalfExtents",
 			mDuckHalfExtents
@@ -488,12 +460,12 @@ namespace Unnamed {
 					"active",
 					mRuntime.wallRun.active
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					wallRun,
 					"normal",
 					mRuntime.wallRun.normal
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					wallRun,
 					"direction",
 					mRuntime.wallRun.direction
@@ -506,7 +478,7 @@ namespace Unnamed {
 					"timeSinceLast",
 					mRuntime.wallRun.timeSinceLast
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					wallRun,
 					"lastWallNormal",
 					mRuntime.wallRun.lastWallNormal
@@ -524,7 +496,7 @@ namespace Unnamed {
 					"active",
 					mRuntime.slide.active
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					slide,
 					"direction",
 					mRuntime.slide.direction
@@ -550,12 +522,12 @@ namespace Unnamed {
 					"moveTime",
 					mRuntime.blink.moveTime
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					blink,
 					"startPos",
 					mRuntime.blink.startPos
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					blink,
 					"targetPos",
 					mRuntime.blink.targetPos
@@ -577,22 +549,22 @@ namespace Unnamed {
 					"cooldown",
 					mRuntime.vault.cooldown
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					vault,
 					"startPos",
 					mRuntime.vault.startPos
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					vault,
 					"apexPos",
 					mRuntime.vault.apexPos
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					vault,
 					"endPos",
 					mRuntime.vault.endPos
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					vault,
 					"preVelocity",
 					mRuntime.vault.preVelocity
@@ -610,7 +582,7 @@ namespace Unnamed {
 					"latched",
 					mRuntime.grapple.isLatched
 				);
-				(void)TryReadVec3FromObject(
+				(void)ReplayJson::TryReadVec3(
 					grapple,
 					"anchorPoint",
 					mRuntime.grapple.anchorPoint
@@ -1379,7 +1351,9 @@ namespace Unnamed {
 			mWallRunViewFollowInitialized    = true;
 		}
 
-		const float deltaYawDeg = DeltaAngleDegrees(currentYawDeg, targetYawDeg);
+		const float deltaYawDeg = Math::DeltaAngleDegrees(
+			currentYawDeg, targetYawDeg
+		);
 		Vec3 velocityHorz = mVelocity;
 		velocityHorz.y    = 0.0f;
 		const float horizontalSpeedHu = Math::MtoH(velocityHorz.Length());
@@ -1806,4 +1780,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(ParkourMovementComponent);
 }
-
