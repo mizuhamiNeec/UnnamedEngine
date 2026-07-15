@@ -91,14 +91,14 @@ namespace Unnamed {
 		return *mGameModule;
 	}
 
-	std::unique_ptr<IDemoService> LoadedGameModule::CreateDemoService() {
+	std::unique_ptr<IDemoService> LoadedGameModule::CreateDemoService() const {
 		if (!mGameModule) {
 			return nullptr;
 		}
 		return mGameModule->CreateDemoService();
 	}
 
-	GameRuntimeContext& LoadedGameModule::GetRuntimeContext() {
+	GameRuntimeContext& LoadedGameModule::GetRuntimeContext() const {
 		return *mRuntimeContext;
 	}
 
