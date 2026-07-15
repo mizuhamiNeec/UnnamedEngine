@@ -1,4 +1,5 @@
 #include "TextureLoaderDirectXTex.h"
+#include "DirectXTexConversions.h"
 
 #include <algorithm>
 #include <array>
@@ -13,21 +14,6 @@
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "TxLdrDtx";
-
-	namespace {
-		[[nodiscard]] bool IsSrgbFormat(const DXGI_FORMAT format) {
-			switch (format) {
-				case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-				case DXGI_FORMAT_BC1_UNORM_SRGB:
-				case DXGI_FORMAT_BC2_UNORM_SRGB:
-				case DXGI_FORMAT_BC3_UNORM_SRGB:
-				case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
-				case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
-				case DXGI_FORMAT_BC7_UNORM_SRGB: return true;
-				default: return false;
-			}
-		}
-	}
 
 	static constexpr std::array kSupportedExtensions = {
 		// DirectDraw Surface
@@ -145,7 +131,7 @@ namespace Unnamed {
 		out.mipLevels = static_cast<uint32_t>(std::max<size_t>(
 			meta.mipLevels, 1));
 		out.format    = meta.format;
-		out.isSRGB    = IsSrgbFormat(meta.format);
+		out.isSRGB    = DirectXTexConversions::IsSrgbFormat(meta.format);
 		out.isCubeMap = meta.IsCubemap();
 		out.dimension = out.isCubeMap ?
 			                TEXTURE_DIMENSION::TEXTURE_CUBE :
