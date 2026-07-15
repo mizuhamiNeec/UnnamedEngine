@@ -43,7 +43,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	const Unnamed::LaunchDesc launchOptions =
 		Unnamed::ParseAppLaunchOptionsFromCommandLine();
 	if (launchOptions.showHelp) {
-#if defined(UNNAMED_WITH_EDITOR)
+#ifdef UNNAMED_WITH_EDITOR
 		Unnamed::PrintLaunchHelp("UnnamedEditorApp.exe");
 #else
 		Unnamed::PrintLaunchHelp("UnnamedLauncher.exe");
@@ -51,7 +51,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 		return EXIT_SUCCESS;
 	}
 
-#if defined(UNNAMED_WITH_EDITOR)
+#ifdef UNNAMED_WITH_EDITOR
 	Unnamed::EmitLaunchOptionDiagnostics("UnnamedEditorApp", launchOptions);
 #else
 	Unnamed::EmitLaunchOptionDiagnostics("UnnamedLauncher", launchOptions);
