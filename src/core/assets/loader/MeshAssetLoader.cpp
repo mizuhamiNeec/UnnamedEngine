@@ -1,15 +1,14 @@
 #include "MeshAssetLoader.h"
+#include "AssimpConversions.h"
 #include "core/assets/FileStamp.h"
 #include "core/filesystem/Path.h"
 
 #include <algorithm>
 #include <array>
-#include <chrono>
 #include <filesystem>
 #include <unordered_map>
 
 #include <assimp/Importer.hpp>
-#include <assimp/matrix4x4.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
@@ -76,24 +75,6 @@ namespace Unnamed {
 			return hashBuilder.Value();
 		}
 
-		/// @brief Assimpの4x4行列をエンジンのMat4に変換する。Assimpは行優先、エンジンは列優先なので、要素の入れ替えに注意。
-		/// @param m 変換するAssimpの行列
-		/// @return 変換されたMat4
-		Mat4 ToMat4(const aiMatrix4x4& m) {
-			Mat4 out = Mat4::identity;
-			out      = {
-				{m.a1, m.b1, m.c1, m.d1}, // 1列目				
-				{m.a2, m.b2, m.c2, m.d2}, // 2列目
-				{m.a3, m.b3, m.c3, m.d3}, // 3列目
-				{m.a4, m.b4, m.c4, m.d4}  // 4列目
-			};
-			return out;
-		}
-
-		Vec3 ToVec3(const aiVector3D& v) {
-			return {v.x, v.y, v.z};
-		}
-
 		[[nodiscard]] bool IsFiniteVec3(const Vec3& v) {
 			return std::isfinite(v.x) && std::isfinite(v.y) &&
 			       std::isfinite(v.z);
@@ -130,10 +111,6 @@ namespace Unnamed {
 			const Vec3  b    = SafeNormalizeOr(bitangent, n.Cross(t));
 			const float sign = n.Cross(t).Dot(b) < 0.0f ? -1.0f : 1.0f;
 			return {t, sign};
-		}
-
-		Quaternion ToQuaternion(const aiQuaternion& q) {
-			return Quaternion(q.x, q.y, q.z, q.w).Normalized();
 		}
 
 		void BuildNodeLookup(
@@ -175,9 +152,11 @@ namespace Unnamed {
 				aiVector3D    translation(0.0f, 0.0f, 0.0f);
 				node->mTransformation.Decompose(scaling, rotation, translation);
 
-				bone.bindLocalTranslation = ToVec3(translation);
-				bone.bindLocalRotation    = ToQuaternion(rotation);
-				bone.bindLocalScale       = ToVec3(scaling);
+				bone.bindLocalTranslation =
+					AssimpConversions::ToVec3(translation);
+				bone.bindLocalRotation =
+					AssimpConversions::ToQuaternion(rotation);
+				bone.bindLocalScale = AssimpConversions::ToVec3(scaling);
 
 				bone.parentIndex     = -1;
 				const aiNode* parent = node->mParent;
@@ -291,7 +270,7 @@ namespace Unnamed {
 								.timeSeconds = static_cast<float>(
 									key.mTime / ticksPerSecond
 								),
-								.value = ToVec3(key.mValue)
+								.value = AssimpConversions::ToVec3(key.mValue)
 							}
 						);
 					}
@@ -303,7 +282,8 @@ namespace Unnamed {
 								.timeSeconds = static_cast<float>(
 									key.mTime / ticksPerSecond
 								),
-								.value = ToQuaternion(key.mValue)
+								.value =
+									AssimpConversions::ToQuaternion(key.mValue)
 							}
 						);
 					}
@@ -315,7 +295,7 @@ namespace Unnamed {
 								.timeSeconds = static_cast<float>(
 									key.mTime / ticksPerSecond
 								),
-								.value = ToVec3(key.mValue)
+								.value = AssimpConversions::ToVec3(key.mValue)
 							}
 						);
 					}
@@ -445,10 +425,12 @@ namespace Unnamed {
 
 						if (mesh->HasNormals()) {
 							const Vec3 n = SafeNormalizeOr(
-								ToVec3(mesh->mNormals[v]), Vec3::up
+								AssimpConversions::ToVec3(mesh->mNormals[v]),
+								Vec3::up
 							);
 							const Vec3 t = OrthonormalizeTangent(
-								ToVec3(mesh->mTangents[v]), n
+								AssimpConversions::ToVec3(mesh->mTangents[v]),
+								n
 							);
 							mesh->mTangents[v] = aiVector3D(t.x, t.y, t.z);
 						}
@@ -574,8 +556,8 @@ namespace Unnamed {
 				if (mesh->HasTangentsAndBitangents()) {
 					v.tangent = BuildTangentWithHandedness(
 						v.normal,
-						ToVec3(mesh->mTangents[i]),
-						ToVec3(mesh->mBitangents[i])
+						AssimpConversions::ToVec3(mesh->mTangents[i]),
+						AssimpConversions::ToVec3(mesh->mBitangents[i])
 					);
 				} else {
 					v.tangent = Vec4(
@@ -610,7 +592,8 @@ namespace Unnamed {
 						SkeletonBoneAssetData sb = {};
 						sb.name                  = boneName;
 						sb.parentIndex           = -1;
-						sb.inverseBindPose       = ToMat4(bone->mOffsetMatrix);
+						sb.inverseBindPose =
+							AssimpConversions::ToMat4(bone->mOffsetMatrix);
 						out.skeleton.emplace_back(std::move(sb));
 					} else {
 						globalBoneIndex = it->second;
