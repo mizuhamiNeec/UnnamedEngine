@@ -26,47 +26,6 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "UiCanvasComponent";
 
-		std::string ToModeString(const UI_CANVAS_SPACE_MODE mode) {
-			switch (mode) {
-				case UI_CANVAS_SPACE_MODE::SCREEN: return "Screen";
-				case UI_CANVAS_SPACE_MODE::WORLD_BILLBOARD: return
-						"WorldBillboard";
-				case UI_CANVAS_SPACE_MODE::WORLD_PLANE: return "WorldPlane";
-				default: return "Screen";
-			}
-		}
-
-		UI_CANVAS_SPACE_MODE ParseMode(const std::string_view value) {
-			if (value == "WorldBillboard") {
-				return UI_CANVAS_SPACE_MODE::WORLD_BILLBOARD;
-			}
-			if (value == "WorldPlane") {
-				return UI_CANVAS_SPACE_MODE::WORLD_PLANE;
-			}
-			return UI_CANVAS_SPACE_MODE::SCREEN;
-		}
-
-		std::string ToBillboardDepthModeString(
-			const UI_CANVAS_BILLBOARD_DEPTH_MODE mode
-		) {
-			switch (mode) {
-				case UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST: return
-						"DepthTest";
-				case UI_CANVAS_BILLBOARD_DEPTH_MODE::ALWAYS_FRONT: return
-						"AlwaysFront";
-				default: return "DepthTest";
-			}
-		}
-
-		UI_CANVAS_BILLBOARD_DEPTH_MODE ParseBillboardDepthMode(
-			const std::string_view value
-		) {
-			if (value == "AlwaysFront") {
-				return UI_CANVAS_BILLBOARD_DEPTH_MODE::ALWAYS_FRONT;
-			}
-			return UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
-		}
-
 		std::optional<VirtualPath> ResolveDefaultUiDocumentPath() {
 			const auto* runtimeContext = ServiceLocator::Get<
 				GameRuntimeContext>();
@@ -75,6 +34,47 @@ namespace Unnamed {
 			}
 			return runtimeContext->defaultUiDocument;
 		}
+	}
+
+	std::string_view ToString(const UI_CANVAS_SPACE_MODE mode) {
+		switch (mode) {
+			case UI_CANVAS_SPACE_MODE::SCREEN: return "Screen";
+			case UI_CANVAS_SPACE_MODE::WORLD_BILLBOARD: return
+					"WorldBillboard";
+			case UI_CANVAS_SPACE_MODE::WORLD_PLANE: return "WorldPlane";
+			default: return "Screen";
+		}
+	}
+
+	UI_CANVAS_SPACE_MODE ParseUiCanvasSpaceMode(
+		const std::string_view value
+	) {
+		if (value == "WorldBillboard") {
+			return UI_CANVAS_SPACE_MODE::WORLD_BILLBOARD;
+		}
+		if (value == "WorldPlane") {
+			return UI_CANVAS_SPACE_MODE::WORLD_PLANE;
+		}
+		return UI_CANVAS_SPACE_MODE::SCREEN;
+	}
+
+	std::string_view ToString(const UI_CANVAS_BILLBOARD_DEPTH_MODE mode) {
+		switch (mode) {
+			case UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST: return
+					"DepthTest";
+			case UI_CANVAS_BILLBOARD_DEPTH_MODE::ALWAYS_FRONT: return
+					"AlwaysFront";
+			default: return "DepthTest";
+		}
+	}
+
+	UI_CANVAS_BILLBOARD_DEPTH_MODE ParseUiCanvasBillboardDepthMode(
+		const std::string_view value
+	) {
+		if (value == "AlwaysFront") {
+			return UI_CANVAS_BILLBOARD_DEPTH_MODE::ALWAYS_FRONT;
+		}
+		return UI_CANVAS_BILLBOARD_DEPTH_MODE::DEPTH_TEST;
 	}
 
 	UiCanvasComponent::UiCanvasComponent() :
@@ -107,11 +107,13 @@ namespace Unnamed {
 		);
 
 		if (reader.Has("spaceMode")) {
-			SetSpaceMode(ParseMode(reader["spaceMode"].GetString()));
+			SetSpaceMode(
+				ParseUiCanvasSpaceMode(reader["spaceMode"].GetString())
+			);
 		}
 		if (reader.Has("billboardDepthMode")) {
 			SetBillboardDepthMode(
-				ParseBillboardDepthMode(
+				ParseUiCanvasBillboardDepthMode(
 					reader["billboardDepthMode"].GetString()
 				)
 			);
@@ -253,10 +255,10 @@ namespace Unnamed {
 		}
 
 		writer.Key("spaceMode");
-		writer.Write(ToModeString(mSpaceMode));
+		writer.Write(std::string(ToString(mSpaceMode)));
 
 		writer.Key("billboardDepthMode");
-		writer.Write(ToBillboardDepthModeString(mBillboardDepthMode));
+		writer.Write(std::string(ToString(mBillboardDepthMode)));
 
 		writer.Key("pixelSize");
 		writer.BeginArray();

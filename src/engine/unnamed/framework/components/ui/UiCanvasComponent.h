@@ -3,6 +3,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include "core/assets/AssetID.h"
 #include "core/filesystem/VirtualPath.h"
@@ -30,6 +31,31 @@ namespace Unnamed {
 		DEPTH_TEST   = 0,
 		ALWAYS_FRONT = 1,
 	};
+
+	/// @brief UI Canvasの空間モードを保存用文字列に変換します。
+	/// @param mode 変換する空間モード。
+	/// @return 保存用の文字列表現。
+	[[nodiscard]] std::string_view ToString(UI_CANVAS_SPACE_MODE mode);
+
+	/// @brief 保存用文字列からUI Canvasの空間モードへ変換します。
+	/// @param value 読み込む文字列。
+	/// @return 対応する空間モード。未対応値はSCREEN。
+	[[nodiscard]] UI_CANVAS_SPACE_MODE ParseUiCanvasSpaceMode(
+		std::string_view value
+	);
+
+	/// @brief UI Canvasのビルボード深度モードを保存用文字列に変換します。
+	/// @param mode 変換するビルボード深度モード。
+	/// @return 保存用の文字列表現。
+	[[nodiscard]] std::string_view ToString(
+		UI_CANVAS_BILLBOARD_DEPTH_MODE mode
+	);
+
+	/// @brief 保存用文字列からUI Canvasのビルボード深度モードへ変換します。
+	/// @param value 読み込む文字列。
+	/// @return 対応する深度モード。未対応値はDEPTH_TEST。
+	[[nodiscard]] UI_CANVAS_BILLBOARD_DEPTH_MODE
+	ParseUiCanvasBillboardDepthMode(std::string_view value);
 
 	class UiCanvasComponent final : public BaseComponent {
 	public:
