@@ -137,9 +137,9 @@ namespace Unnamed {
 		KEY("backspace", KEYBOARD, VK_BACK),    // バックスペース
 		KEY("enter", KEYBOARD, VK_RETURN),      // エンター
 		KEY("semicolon", KEYBOARD, VK_OEM_1),   // セミコロン
-		KEY("lwin", KEYBOARD, VK_LWIN),         // 左Windowsキー
-		KEY("rwin", KEYBOARD, VK_RWIN),         // 右Windowsキー(※
-		KEY("apps", KEYBOARD, VK_APPS),         // アプリケーションキー(※
+		KEY("lwin", KEYBOARD, VK_LWIN),         // 左Windowsキー(※ OSに邪魔されるので非推奨
+		KEY("rwin", KEYBOARD, VK_RWIN),         // 右Windowsキー(※ 〃
+		KEY("apps", KEYBOARD, VK_APPS),         // アプリケーションキー(※ なにこれ
 		KEY("numlock", KEYBOARD, VK_NUMLOCK),   // NumLock
 		KEY("scrolllock", KEYBOARD, VK_SCROLL), // ScrollLock
 
