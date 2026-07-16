@@ -37,23 +37,23 @@ namespace Unnamed {
 
 	/// @brief 外部参照用のコース進行スナップショットです。
 	struct CourseProgressSnapshot {
-		std::string                    courseId = "default";
+		std::string                        courseId = "default";
 		std::vector<CourseTriggerSnapshot> checkpoints = {};
-		std::vector<CourseTriggerSnapshot> goals       = {};
-		std::vector<int32_t>           orderedCheckpointIndices = {};
-		std::vector<int32_t>           touchedCheckpointIndices = {};
-		Vec3                           spawnPosition = Vec3::zero;
-		Vec3                           respawnPosition = Vec3::zero;
-		Vec3                           nextTargetWorldPosition = Vec3::zero;
-		int32_t                        nextCheckpointIndex = 0;
-		int32_t                        lastCheckpointIndex = -1;
-		bool                           spawnInitialized = false;
-		bool                           allCheckpointsPassed = false;
-		bool                           courseCleared = false;
-		bool                           hasNextTarget = false;
-		float                          elapsedSeconds = 0.0f;
-		float                          clearedElapsedSeconds = 0.0f;
-		uint64_t                       revision = 0;
+		std::vector<CourseTriggerSnapshot> goals = {};
+		std::vector<int32_t>               orderedCheckpointIndices = {};
+		std::vector<int32_t>               touchedCheckpointIndices = {};
+		Vec3                               spawnPosition = Vec3::zero;
+		Vec3                               respawnPosition = Vec3::zero;
+		Vec3                               nextTargetWorldPosition = Vec3::zero;
+		int32_t                            nextCheckpointIndex = 0;
+		int32_t                            lastCheckpointIndex = -1;
+		bool                               spawnInitialized = false;
+		bool                               allCheckpointsPassed = false;
+		bool                               courseCleared = false;
+		bool                               hasNextTarget = false;
+		float                              elapsedSeconds = 0.0f;
+		float                              clearedElapsedSeconds = 0.0f;
+		uint64_t                           revision = 0;
 	};
 
 	/// @brief チェックポイント/ゴール進行を管理するプレイヤー側コンポーネントです。
@@ -92,7 +92,9 @@ namespace Unnamed {
 		[[nodiscard]] bool IsHudEnabled() const;
 
 		/// @brief 現在有効なリスポーン座標を返します。
-		[[nodiscard]] bool ResolveCurrentRespawnPosition(Vec3& outPosition) const;
+		[[nodiscard]] bool ResolveCurrentRespawnPosition(
+			Vec3& outPosition
+		) const;
 
 		/// @brief リプレイ用状態を書き込みます。
 		void WriteReplayState(nlohmann::json& outState) const;
@@ -115,7 +117,7 @@ namespace Unnamed {
 			float               deltaTime,
 			bool                drawDebug
 		);
-		void DrawCourseDebug(TransformComponent* transform) const;
+		void DrawCourseDebug(const TransformComponent* transform) const;
 		void UpdateTouchedSnapshot();
 		void RespawnToLatest(TransformComponent* transform);
 		[[nodiscard]] int32_t ResolveNextCheckpointIndex() const;
@@ -123,15 +125,15 @@ namespace Unnamed {
 		void PublishCheckpointPassedCue(int32_t checkpointIndex) const;
 		void PublishCourseClearedCue() const;
 
-		std::string mCourseId = "default";
-		bool        mReloadRespawnEnabled = true;
-		bool        mHudEnabled = true;
-		bool        mDebugDraw = true;
+		std::string mCourseId                    = "default";
+		bool        mReloadRespawnEnabled        = true;
+		bool        mHudEnabled                  = true;
+		bool        mDebugDraw                   = true;
 		Vec3        mFallbackPlayerHalfExtentsHu = Vec3(16.0f, 36.0f, 16.0f);
 
-		CourseProgressSnapshot      mSnapshot = {};
+		CourseProgressSnapshot      mSnapshot                 = {};
 		std::unordered_set<int32_t> mTouchedCheckpointIndices = {};
-		CharacterActionFrameInput   mActionFrameInput = {};
+		CharacterActionFrameInput   mActionFrameInput         = {};
 		RingBuffer<
 			DeterministicActionInputPacket,
 			kDeterministicActionInputQueueCapacity
@@ -139,4 +141,3 @@ namespace Unnamed {
 		mDeterministicActionInputQueue;
 	};
 }
-

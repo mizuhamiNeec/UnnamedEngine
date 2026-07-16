@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstring>
 
 #ifdef _DEBUG
 #include <imgui.h>
@@ -18,6 +17,7 @@
 #include "engine/scene/Scene.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
+#include "engine/unnamed/primitive/Primitives.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 #include "engine/world/GameplayCueBus.h"
 #include "engine/world/World.h"
@@ -25,22 +25,12 @@
 #include "game/core/components/character/GameMovementComponent.h"
 #include "game/core/components/character/base/BaseCharacterComponent.h"
 #include "game/core/replay/ReplayHash.h"
+#include "game/core/replay/ReplayJson.h"
 #include "game/parkour/components/trigger/CheckpointComponent.h"
 #include "game/parkour/components/trigger/GoalComponent.h"
 
 namespace Unnamed {
 	namespace {
-		[[nodiscard]] bool IsAabbOverlapping(
-			const Vec3& minA,
-			const Vec3& maxA,
-			const Vec3& minB,
-			const Vec3& maxB
-		) {
-			return minA.x <= maxB.x && maxA.x >= minB.x &&
-			       minA.y <= maxB.y && maxA.y >= minB.y &&
-			       minA.z <= maxB.z && maxA.z >= minB.z;
-		}
-
 		[[nodiscard]] std::string BuildCourseCueId(
 			const std::string_view courseId,
 			const std::string_view suffix
@@ -50,26 +40,6 @@ namespace Unnamed {
 					std::string("default") :
 					std::string(courseId);
 			return "course." + normalizedCourse + "." + std::string(suffix);
-		}
-
-		[[nodiscard]] bool TryReadVec3(
-			const nlohmann::json& object,
-			const char*           key,
-			Vec3&                 outValue
-		) {
-			if (!object.is_object()) {
-				return false;
-			}
-			const auto it = object.find(key);
-			if (it == object.end() || !it->is_array() || it->size() != 3) {
-				return false;
-			}
-			outValue = Vec3(
-				(*it)[0].get<float>(),
-				(*it)[1].get<float>(),
-				(*it)[2].get<float>()
-			);
-			return true;
 		}
 	}
 
@@ -170,8 +140,7 @@ namespace Unnamed {
 		ImGui::Text("Elapsed Seconds: %.2f", mSnapshot.elapsedSeconds);
 		ImGui::Text(
 			"Cleared Elapsed Seconds: %.2f",
-			mSnapshot.clearedElapsedSeconds
-		);
+			mSnapshot.clearedElapsedSeconds);
 		if (ImGui::Button("Reset Progress")) {
 			ResetProgress();
 		}
@@ -308,8 +277,10 @@ namespace Unnamed {
 			"spawnInitialized",
 			mSnapshot.spawnInitialized
 		);
-		(void)TryReadVec3(inState, "spawnPosition", mSnapshot.spawnPosition);
-		(void)TryReadVec3(
+		(void)ReplayJson::TryReadVec3(
+			inState, "spawnPosition", mSnapshot.spawnPosition
+		);
+		(void)ReplayJson::TryReadVec3(
 			inState, "respawnPosition", mSnapshot.respawnPosition
 		);
 		mSnapshot.nextCheckpointIndex = inState.value(
@@ -489,9 +460,8 @@ namespace Unnamed {
 			}
 		}
 
-		std::sort(
-			checkpoints.begin(),
-			checkpoints.end(),
+		std::ranges::sort(
+			checkpoints,
 			[](const CourseTriggerSnapshot& a, const CourseTriggerSnapshot& b) {
 				if (a.index != b.index) {
 					return a.index < b.index;
@@ -517,6 +487,7 @@ namespace Unnamed {
 		const Vec3 playerHalfExtents = ResolvePlayerHalfExtentsMeters();
 		const Vec3 playerMin         = playerCenter - playerHalfExtents;
 		const Vec3 playerMax         = playerCenter + playerHalfExtents;
+		const AABB playerBounds      = {.min = playerMin, .max = playerMax};
 
 		bool    checkpointPassedThisFrame = false;
 		int32_t passedCheckpointIndex     = -1;
@@ -525,9 +496,8 @@ namespace Unnamed {
 				checkpoint.worldCenter - checkpoint.worldHalfExtents;
 			const Vec3 triggerMax =
 				checkpoint.worldCenter + checkpoint.worldHalfExtents;
-			if (!IsAabbOverlapping(
-				playerMin, playerMax, triggerMin, triggerMax
-			)) {
+			const AABB triggerBounds = {.min = triggerMin, .max = triggerMax};
+			if (!playerBounds.Overlaps(triggerBounds)) {
 				continue;
 			}
 
@@ -567,14 +537,15 @@ namespace Unnamed {
 					goal.worldCenter - goal.worldHalfExtents;
 				const Vec3 triggerMax =
 					goal.worldCenter + goal.worldHalfExtents;
-				if (!IsAabbOverlapping(
-					playerMin, playerMax, triggerMin, triggerMax
-				)) {
+				const AABB triggerBounds = {
+					.min = triggerMin, .max = triggerMax
+				};
+				if (!playerBounds.Overlaps(triggerBounds)) {
 					continue;
 				}
-				mSnapshot.courseCleared = true;
+				mSnapshot.courseCleared         = true;
 				mSnapshot.clearedElapsedSeconds = mSnapshot.elapsedSeconds;
-				courseClearedThisFrame  = true;
+				courseClearedThisFrame          = true;
 				break;
 			}
 		}
@@ -613,7 +584,7 @@ namespace Unnamed {
 	}
 
 	void CourseProgressComponent::DrawCourseDebug(
-		TransformComponent* transform
+		const TransformComponent* transform
 	) const {
 		if (!transform) {
 			return;
@@ -623,14 +594,14 @@ namespace Unnamed {
 			return;
 		}
 
-		auto&      debugDraw              = world->GetDebugDraw();
-		const Vec4 checkpointDoneColor    = Vec4(0.2f, 0.95f, 0.2f, 1.0f);
-		const Vec4 checkpointNextColor    = Vec4(1.0f, 0.85f, 0.2f, 1.0f);
-		const Vec4 checkpointPendingColor = Vec4(0.55f, 0.55f, 0.55f, 1.0f);
-		const Vec4 respawnLineColor       = Vec4(0.8f, 0.8f, 1.0f, 1.0f);
-		const Vec4 goalLockedColor        = Vec4(1.0f, 0.25f, 0.25f, 1.0f);
-		const Vec4 goalReadyColor         = Vec4(0.3f, 0.9f, 1.0f, 1.0f);
-		const Vec4 goalClearedColor       = Vec4(0.2f, 1.0f, 0.6f, 1.0f);
+		auto&          debugDraw              = world->GetDebugDraw();
+		constexpr auto checkpointDoneColor    = Vec4(0.2f, 0.95f, 0.2f, 1.0f);
+		constexpr auto checkpointNextColor    = Vec4(1.0f, 0.85f, 0.2f, 1.0f);
+		constexpr auto checkpointPendingColor = Vec4(0.55f, 0.55f, 0.55f, 1.0f);
+		constexpr auto respawnLineColor       = Vec4(0.8f, 0.8f, 1.0f, 1.0f);
+		constexpr auto goalLockedColor        = Vec4(1.0f, 0.25f, 0.25f, 1.0f);
+		constexpr auto goalReadyColor         = Vec4(0.3f, 0.9f, 1.0f, 1.0f);
+		constexpr auto goalClearedColor       = Vec4(0.2f, 1.0f, 0.6f, 1.0f);
 
 		for (const CourseTriggerSnapshot& checkpoint : mSnapshot.checkpoints) {
 			const bool done = mTouchedCheckpointIndices.contains(
@@ -750,8 +721,8 @@ namespace Unnamed {
 	void CourseProgressComponent::PublishCheckpointPassedCue(
 		const int32_t checkpointIndex
 	) const {
-		World*  world = GetWorld();
-		Entity* owner = GetOwner();
+		World*        world = GetWorld();
+		const Entity* owner = GetOwner();
 		if (!world || !owner || owner->GetGuid() == 0) {
 			return;
 		}
@@ -765,8 +736,8 @@ namespace Unnamed {
 	}
 
 	void CourseProgressComponent::PublishCourseClearedCue() const {
-		World*  world = GetWorld();
-		Entity* owner = GetOwner();
+		World*        world = GetWorld();
+		const Entity* owner = GetOwner();
 		if (!world || !owner || owner->GetGuid() == 0) {
 			return;
 		}
@@ -785,6 +756,4 @@ namespace Unnamed {
 			mSnapshot.clearedElapsedSeconds
 		);
 	}
-
 }
-
