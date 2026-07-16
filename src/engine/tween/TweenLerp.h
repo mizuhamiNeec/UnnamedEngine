@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-
 struct Vec4;
 struct Vec2;
 struct Vec3;
@@ -9,6 +8,10 @@ struct Quaternion;
 namespace Unnamed {
 	template <typename TValue>
 	struct TweenLerp;
+
+	//-------------------------------------------------------------------------
+	// 各型のEvaluate関数の定義
+	//-------------------------------------------------------------------------
 
 	template <>
 	struct TweenLerp<float> {

@@ -10,9 +10,7 @@ namespace Unnamed {
 
 		/// @brief コンストラクタ
 		/// @param playable TweenPlayableオブジェクトへのWeakPtr。
-		explicit TweenHandle(
-			const std::weak_ptr<ITweenPlayable>& playable
-		);
+		explicit TweenHandle(const std::weak_ptr<ITweenPlayable>& playable);
 
 		/// @brief TweenPlayableオブジェクトが有効かどうかを判定します。
 		/// @return 有効な場合はtrue、無効な場合はfalse。
@@ -27,7 +25,7 @@ namespace Unnamed {
 		[[nodiscard]] bool IsComplete() const;
 
 		/// @brief TweenPlayableオブジェクトを一時停止します。
-		void Pause();
+		void Pause() const;
 
 		/// @brief TweenPlayableオブジェクトを再開します。
 		void Resume() const;

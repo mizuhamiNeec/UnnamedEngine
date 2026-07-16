@@ -28,7 +28,7 @@ namespace Unnamed {
 		return playable->IsComplete();
 	}
 
-	void TweenHandle::Pause() {
+	void TweenHandle::Pause() const {
 		const auto playable = mPlayable.lock();
 		if (!playable) {
 			return;
