@@ -109,9 +109,9 @@ namespace Unnamed {
 		[[nodiscard]] Scene*       GetOutlinerScene();
 		[[nodiscard]] const Scene* GetOutlinerScene() const;
 
-		void DrawMainMenu();
-		void DrawSideBar();
-		void DrawStatusBar();
+		void        DrawMainMenu();
+		static void DrawSideBar();
+		void        DrawStatusBar();
 
 		void DrawViewport(float deltaTime);
 		void DrawViewportTopBar();

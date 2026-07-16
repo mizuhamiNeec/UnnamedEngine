@@ -38,7 +38,7 @@ namespace Unnamed {
 			std::string_view viewKey
 		) const;
 
-		ResolvedCamera ResolveViewCamera(
+		static ResolvedCamera ResolveViewCamera(
 			EditorWorld&                       editorWorld,
 			std::string_view                   viewKey,
 			const Render::SceneViewRenderMode& sceneViewMode,
@@ -46,7 +46,7 @@ namespace Unnamed {
 			const Render::RenderCameraInput*   fallbackCamera
 		);
 
-		void SyncGameplayCameraAspect(
+		static void SyncGameplayCameraAspect(
 			EditorWorld&                       editorWorld,
 			const Render::SceneViewRenderMode& sceneViewMode,
 			const ViewportCameraBinding&       binding

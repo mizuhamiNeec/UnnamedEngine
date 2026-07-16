@@ -478,73 +478,11 @@ namespace Unnamed::Render {
 		const uint32_t             backBufferHeight,
 		const SceneViewRenderMode& request
 	) {
-		uint32_t width  = backBufferWidth;
-		uint32_t height = backBufferHeight;
-
-		const uint32_t panelWidth = request.viewportPanelWidth != 0 ?
-			                            request.viewportPanelWidth :
-			                            std::max(1u, backBufferWidth);
-		const uint32_t panelHeight = request.viewportPanelHeight != 0 ?
-			                             request.viewportPanelHeight :
-			                             std::max(1u, backBufferHeight);
-
-		switch (request.mode) {
-			case SCENE_RENDER_MODE::FIT_VIEWPORT: {
-				width  = panelWidth;
-				height = panelHeight;
-				break;
-			}
-			case SCENE_RENDER_MODE::FIXED_ASPECT_16X9: {
-				width  = panelWidth;
-				height = panelHeight;
-				if (width * 9 > height * 16) {
-					width = height * 16 / 9;
-				} else {
-					height = width * 9 / 16;
-				}
-				break;
-			}
-			case SCENE_RENDER_MODE::FIXED_ASPECT_4X3: {
-				width  = panelWidth;
-				height = panelHeight;
-				if (width * 3 > height * 4) {
-					width = height * 4 / 3;
-				} else {
-					height = width * 3 / 4;
-				}
-				break;
-			}
-			case SCENE_RENDER_MODE::HD_720P: {
-				width  = 1280;
-				height = 720;
-				break;
-			}
-			case SCENE_RENDER_MODE::FHD_1080P: {
-				width  = 1920;
-				height = 1080;
-				break;
-			}
-			case SCENE_RENDER_MODE::UHD_4K: {
-				width  = 3840;
-				height = 2160;
-				break;
-			}
-			default: break;
-		}
-
-		width  = std::clamp(width, 2u, 8192u);
-		height = std::clamp(height, 2u, 8192u);
-
-		if ((width & 1u) != 0u) {
-			--width;
-		}
-		if ((height & 1u) != 0u) {
-			--height;
-		}
-
-		width  = std::max(2u, width);
-		height = std::max(2u, height);
-		return {width, height};
+		return ResolveSceneViewRenderExtent(
+			backBufferWidth,
+			backBufferHeight,
+			request
+		);
 	}
 
 	void Renderer::ReleaseMaterialBindings(RenderDevice& renderDevice) {

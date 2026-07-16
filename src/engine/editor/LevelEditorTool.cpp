@@ -87,64 +87,6 @@ namespace Unnamed {
 				static_cast<float>(clientHeight)
 			};
 		}
-
-		[[nodiscard]] Vec2 ResolveSceneRenderExtentForInput(
-			const Render::SceneViewRenderMode& request
-		) {
-			uint32_t width  = std::max(1u, request.viewportPanelWidth);
-			uint32_t height = std::max(1u, request.viewportPanelHeight);
-
-			switch (request.mode) {
-				case Render::SCENE_RENDER_MODE::FIT_VIEWPORT: {
-					break;
-				}
-				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_16X9: {
-					if (width * 9 > height * 16) {
-						width = height * 16 / 9;
-					} else {
-						height = width * 9 / 16;
-					}
-					break;
-				}
-				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_4X3: {
-					if (width * 3 > height * 4) {
-						width = height * 4 / 3;
-					} else {
-						height = width * 3 / 4;
-					}
-					break;
-				}
-				case Render::SCENE_RENDER_MODE::HD_720P: {
-					width  = 1280;
-					height = 720;
-					break;
-				}
-				case Render::SCENE_RENDER_MODE::FHD_1080P: {
-					width  = 1920;
-					height = 1080;
-					break;
-				}
-				case Render::SCENE_RENDER_MODE::UHD_4K: {
-					width  = 3840;
-					height = 2160;
-					break;
-				}
-				default: {
-					break;
-				}
-			}
-
-			width  = std::clamp(width, 2u, 8192u);
-			height = std::clamp(height, 2u, 8192u);
-			if ((width & 1u) != 0u) {
-				--width;
-			}
-			if ((height & 1u) != 0u) {
-				--height;
-			}
-
-			return {static_cast<float>(width), static_cast<float>(height)};
-		}
 	}
 
 	LevelEditorTool::LevelEditorTool(
@@ -428,7 +370,7 @@ namespace Unnamed {
 			view.output.clearSwapChainWhenNotPresenting = !presentToSwapChain;
 			view.output.exposeToUi = exposeToUi;
 
-			mCameraManager.SyncGameplayCameraAspect(
+			EditorViewportCameraManager::SyncGameplayCameraAspect(
 				mEditorWorld, view.sceneViewMode, binding
 			);
 			const Render::RenderCameraInput* fallback = sourceScene.camera.
@@ -436,7 +378,7 @@ namespace Unnamed {
 					&sourceScene.camera :
 					nullptr;
 			const EditorViewportCameraManager::ResolvedCamera resolved =
-				mCameraManager.ResolveViewCamera(
+				EditorViewportCameraManager::ResolveViewCamera(
 					mEditorWorld,
 					key,
 					view.sceneViewMode,
@@ -565,8 +507,15 @@ namespace Unnamed {
 				clientExtent.y,
 				true
 			);
-		const Vec2 runtimeViewportSize = ResolveSceneRenderExtentForInput(
-			sceneRequest
+		const auto [runtimeViewportWidth, runtimeViewportHeight] =
+			Render::ResolveSceneViewRenderExtent(
+				sceneRequest.viewportPanelWidth,
+				sceneRequest.viewportPanelHeight,
+				sceneRequest
+			);
+		const Vec2 runtimeViewportSize(
+			static_cast<float>(runtimeViewportWidth),
+			static_cast<float>(runtimeViewportHeight)
 		);
 
 		mViewportPanelWidth  = runtimeViewportSize.x;

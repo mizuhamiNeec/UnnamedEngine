@@ -50,56 +50,6 @@ namespace Unnamed::Render {
 			return frame;
 		}
 
-		Mat4 BuildReverseZOrthographic(
-			const float left,
-			const float top,
-			const float right,
-			const float bottom,
-			const float nearClip,
-			const float farClip
-		) {
-			Mat4        result     = Mat4::identity;
-			const float depthRange = farClip - nearClip;
-			result.m[0][0]         = 2.0f / (right - left);
-			result.m[1][1]         = 2.0f / (top - bottom);
-			result.m[2][2]         = -1.0f / depthRange;
-			result.m[3][0]         = (left + right) / (left - right);
-			result.m[3][1]         = (top + bottom) / (bottom - top);
-			result.m[3][2]         = farClip / depthRange;
-			return result;
-		}
-
-		Mat4 BuildLookAtView(
-			const Vec3& eye,
-			const Vec3& target,
-			const Vec3& up
-		) {
-			Vec3 forward = (target - eye).Normalized();
-			if (forward.IsZero()) {
-				forward = Vec3::forward;
-			}
-			Vec3 right = up.Cross(forward).Normalized();
-			if (right.IsZero()) {
-				right = Vec3::right;
-			}
-			const Vec3 viewUp = forward.Cross(right);
-
-			Mat4 view    = Mat4::identity;
-			view.m[0][0] = right.x;
-			view.m[1][0] = right.y;
-			view.m[2][0] = right.z;
-			view.m[3][0] = -eye.Dot(right);
-			view.m[0][1] = viewUp.x;
-			view.m[1][1] = viewUp.y;
-			view.m[2][1] = viewUp.z;
-			view.m[3][1] = -eye.Dot(viewUp);
-			view.m[0][2] = forward.x;
-			view.m[1][2] = forward.y;
-			view.m[2][2] = forward.z;
-			view.m[3][2] = -eye.Dot(forward);
-			return view;
-		}
-
 		struct DirectionalShadowMatrices {
 			Mat4 lightView         = Mat4::identity;
 			Mat4 lightProj         = Mat4::identity;
@@ -125,14 +75,15 @@ namespace Unnamed::Render {
 			DirectionalShadowMatrices result;
 			result.lightRayDirection = lightRayDirection;
 			result.directionToLight  = directionToLight;
-			result.lightView         = BuildLookAtView(eye, center, Vec3::up);
-			result.lightProj         = BuildReverseZOrthographic(
+			result.lightView         = Mat4::LookAtView(eye, center, Vec3::up);
+			result.lightProj         = Mat4::OrthographicD3D(
 				-orthoHalfSize,
 				orthoHalfSize,
 				orthoHalfSize,
 				-orthoHalfSize,
 				0.1f,
-				shadowDistance * 2.0f
+				shadowDistance * 2.0f,
+				ProjectionDepthMode::ReverseZ
 			);
 			result.lightViewProj = result.lightView * result.lightProj;
 			return result;

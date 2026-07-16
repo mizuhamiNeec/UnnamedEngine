@@ -1,8 +1,6 @@
 #ifdef _DEBUG
 #include "EditorViewportCameraManager.h"
 
-#include <algorithm>
-
 #include "engine/scene/Scene.h"
 #include "engine/unnamed/framework/components/CameraComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
@@ -10,34 +8,7 @@
 
 namespace Unnamed {
 	namespace {
-		float ResolveAspectRatio(
-			const Render::SceneViewRenderMode& sceneViewMode
-		) {
-			switch (sceneViewMode.mode) {
-				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_16X9
-				: return 16.0f / 9.0f;
-				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_4X3
-				: return 4.0f / 3.0f;
-				case Render::SCENE_RENDER_MODE::HD_720P
-				: return 1280.0f / 720.0f;
-				case Render::SCENE_RENDER_MODE::FHD_1080P
-				: return 1920.0f / 1080.0f;
-				case Render::SCENE_RENDER_MODE::UHD_4K
-				: return 3840.0f / 2160.0f;
-				case Render::SCENE_RENDER_MODE::FIT_VIEWPORT:
-				default: {
-					const float width = static_cast<float>(std::max(
-						1u, sceneViewMode.viewportPanelWidth
-					));
-					const float height = static_cast<float>(std::max(
-						1u, sceneViewMode.viewportPanelHeight
-					));
-					return width / height;
-				}
-			}
-		}
-
-		Entity* FindFirstActiveGameplayCameraEntity(Scene* scene) {
+		Entity* FindFirstActiveGameplayCameraEntity(const Scene* scene) {
 			if (!scene) {
 				return nullptr;
 			}
@@ -56,7 +27,7 @@ namespace Unnamed {
 		}
 
 		Entity* FindGameplayCameraEntityByGuid(
-			Scene* scene, const uint64_t entityGuid
+			const Scene* scene, const uint64_t entityGuid
 		) {
 			if (!scene || entityGuid == 0) {
 				return nullptr;
@@ -128,7 +99,9 @@ namespace Unnamed {
 						if (
 							BuildGameplayCameraInput(
 								*cameraEntity,
-								ResolveAspectRatio(sceneViewMode),
+								Render::ResolveSceneViewAspectRatio(
+									sceneViewMode
+								),
 								gameplay
 							)
 						) {
@@ -179,7 +152,9 @@ namespace Unnamed {
 		Render::RenderCameraInput gameplay = {};
 		if (
 			BuildGameplayCameraInput(
-				*cameraEntity, ResolveAspectRatio(sceneViewMode), gameplay
+				*cameraEntity,
+				Render::ResolveSceneViewAspectRatio(sceneViewMode),
+				gameplay
 			)
 		) {
 			resolved.input = gameplay;
@@ -197,7 +172,7 @@ namespace Unnamed {
 			return;
 		}
 
-		Scene* scene = editorWorld.GetActiveScene();
+		const Scene* scene = editorWorld.GetActiveScene();
 		if (!scene) {
 			return;
 		}
@@ -219,7 +194,9 @@ namespace Unnamed {
 		if (!camera || !camera->IsActive() || !camera->IsCameraActive()) {
 			return;
 		}
-		camera->SetAspectRatio(ResolveAspectRatio(sceneViewMode));
+		camera->SetAspectRatio(
+			Render::ResolveSceneViewAspectRatio(sceneViewMode)
+		);
 	}
 }
 

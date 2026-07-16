@@ -1,6 +1,5 @@
 #include "EditorWorld.h"
 
-#include <algorithm>
 #include <chrono>
 
 #include "engine/game/IGameWorldFactory.h"
@@ -18,36 +17,6 @@ namespace Unnamed {
 
 	EditorWorld::~EditorWorld() = default;
 
-	namespace {
-		float ResolveEditorCameraAspect(
-			const Render::SceneViewRenderMode& request
-		) {
-			switch (request.mode) {
-				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_16X9
-				: return 16.0f / 9.0f;
-				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_4X3
-				: return 4.0f / 3.0f;
-				case Render::SCENE_RENDER_MODE::HD_720P
-				: return 1280.0f / 720.0f;
-				case Render::SCENE_RENDER_MODE::FHD_1080P
-				: return 1920.0f / 1080.0f;
-				case Render::SCENE_RENDER_MODE::UHD_4K
-				: return 3840.0f / 2160.0f;
-				case Render::SCENE_RENDER_MODE::FIT_VIEWPORT:
-				default: {
-					const uint32_t width = std::max(
-						1u, request.viewportPanelWidth
-					);
-					const uint32_t height = std::max(
-						1u, request.viewportPanelHeight
-					);
-					return static_cast<float>(width) / static_cast<float>(
-						       height);
-				}
-			}
-		}
-	}
-
 	void EditorWorld::Initialize() {
 		World::Initialize();
 
@@ -56,7 +25,7 @@ namespace Unnamed {
 				"__EditorCameraEntity", mGuidGenerator.Alloc(), true
 			);
 			auto* transform = mEditorEntity->AddComponent<TransformComponent>();
-			transform->SetPosition(Vec3(0.0f, 5.0f, -3.0f));
+			transform->SetPosition(Math::HtoM({0.0f, 256.0f, -256.0f}));
 			transform->SetRotation(
 				Quaternion::EulerDegrees(Vec3::right * 15.0f)
 			);
@@ -331,7 +300,8 @@ namespace Unnamed {
 		}
 
 		if (shouldUpdate) {
-			camera->SetAspectRatio(ResolveEditorCameraAspect(request));
+			camera->
+				SetAspectRatio(Render::ResolveSceneViewAspectRatio(request));
 		}
 
 		mLastAspectMode           = request.mode;
