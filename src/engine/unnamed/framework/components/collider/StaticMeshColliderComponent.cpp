@@ -37,6 +37,7 @@ namespace Unnamed {
 
 	BaseComponent::TICK_GROUP StaticMeshColliderComponent::
 	GetTickGroup() const {
+		// 移動元の更新後、ゲームプレイ判定より前に衝突形状を同期する
 		return TICK_GROUP::COLLIDER_SYNC;
 	}
 
@@ -130,6 +131,7 @@ namespace Unnamed {
 			return;
 		}
 
+		// Dynamic で変換だけが変わった場合は BVH を再構築せずに更新する
 		if (
 			mRegistered &&
 			mRegisteredAsDynamic &&
@@ -187,6 +189,7 @@ namespace Unnamed {
 		}
 
 		if (const Entity* owner = GetOwner()) {
+			// 登録先の種別にかかわらず、同じ所有者の衝突形状をすべて解除する
 			if (
 				Physics::Engine* physics = GetWorld() ?
 					                           &GetWorld()->GetPhysicsEngine() :

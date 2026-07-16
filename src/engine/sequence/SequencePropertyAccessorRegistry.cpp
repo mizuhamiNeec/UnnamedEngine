@@ -374,6 +374,7 @@ namespace Unnamed {
 	}
 
 	SequencePropertyAccessorRegistry::SequencePropertyAccessorRegistry() {
+		// シリアライズに使う安定名をキーにし、実装型名の変更からシーケンスを守る
 		RegisterTransformAccessors(*this);
 		RegisterCameraAccessors(*this);
 		RegisterSkeletalAccessors(*this);

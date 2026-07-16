@@ -201,6 +201,7 @@ namespace Unnamed {
 	void SequenceRuntime::AdvanceAndApplyPreSimulation(
 		const float deltaSeconds
 	) {
+		// 今回の評価対象を初期化し、後段で未評価プロパティを元に戻せるようにする
 		mTouchedFloatKeys.clear();
 		mTouchedBoolKeys.clear();
 		mTouchedVec3Keys.clear();
@@ -295,6 +296,7 @@ namespace Unnamed {
 				player->GetCompiled() == nullptr ||
 				player->GetCompiledVersion() != version
 			) {
+				// アセット更新後は古いトラック構成を使わず、再コンパイルしたスナップショットへ切り替える
 				player->SetCompiled(
 					std::make_shared<SequenceAssetData>(*asset), version
 				);
@@ -328,6 +330,7 @@ namespace Unnamed {
 				players.emplace_back(std::move(player));
 			}
 		}
+		// unordered_map の走査順に依存せず、重ね合わせ結果を再現可能にする
 		std::ranges::sort(
 			players,
 			[](
@@ -372,6 +375,7 @@ namespace Unnamed {
 	}
 
 	void SequenceRuntime::EvaluatePostSimulation() {
+		// 物理更新後に確定すべき表示・カメラ・イベント系の寄与を分離する
 		mVisibilityContributions.clear();
 		mActivationContributions.clear();
 		mCameraContributions.clear();

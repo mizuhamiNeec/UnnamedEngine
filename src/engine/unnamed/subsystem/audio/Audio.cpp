@@ -33,6 +33,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// XAudio2 が再生中も参照するため、PCM バッファは Voice の寿命まで保持する
 		mOwnedPcmData           = soundData.pcmData;
 		mAudioBuffer            = {};
 		mAudioBuffer.pAudioData = mOwnedPcmData.data();
@@ -120,6 +121,7 @@ namespace Unnamed {
 			return;
 		}
 
+		// バッファ参照を外してから PCM 所有領域を解放する
 		mSourceVoice->Stop();
 		mSourceVoice->FlushSourceBuffers();
 		mSourceVoice->DestroyVoice();

@@ -14,6 +14,7 @@ namespace Unnamed::UI {
 	void UIContext::BeginFrame(
 		const UnnamedUiInputState& inputState, const float deltaTime
 	) {
+		// フレーム固有の描画・レイアウト状態だけを初期化し、ドラッグ中の操作対象は維持する
 		mInputState = inputState;
 		mDrawList.Clear();
 		mLayoutStack.clear();
@@ -23,6 +24,7 @@ namespace Unnamed::UI {
 	}
 
 	void UIContext::EndFrame() {
+		// マウス解放までアクティブ Widget を保持して、押下と解放を同じ対象へ届ける
 		if (mInputState.mouseReleased) {
 			ClearActiveWidget();
 		}
@@ -103,6 +105,7 @@ namespace Unnamed::UI {
 	std::string UIContext::MakeWidgetId(
 		const std::string& type, const std::string& label
 	) const {
+		// 親スコープを含め、同じラベルを持つ兄弟 Widget の入力状態を分離する
 		// TODO: Replace this string path with a stable hashed ID once PushID grows beyond minimal UI.
 		std::string result;
 		for (const std::string& scope : mIdStack) {

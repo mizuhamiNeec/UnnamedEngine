@@ -40,6 +40,7 @@ namespace Unnamed {
 		Scene& scene, const JsonReader& root, GuidGenerator& guidGen,
 		const SceneLoadOptions& options, const Path& scenePath
 	) {
+		// 読み込み失敗時に以前のシーン内容が混在しないよう、先に置き換える
 		scene.Reset();
 
 		const JsonReader folders = root["folders"];
@@ -74,6 +75,7 @@ namespace Unnamed {
 			const bool entityActive = e.ReadBoolOr("active", true);
 			const bool entityVisible = e.ReadBoolOr("visible", true);
 
+			// ファイル内の GUID 重複や未指定は実行時に一意な値へ補正する
 			uint64_t finalGuid = guid != 0 ? guid : guidGen.Alloc();
 			while (finalGuid == 0 || scene.FindEntity(finalGuid) != nullptr) {
 				finalGuid = guidGen.Alloc();
@@ -124,6 +126,7 @@ namespace Unnamed {
 						.componentType = type,
 					};
 					if (!comp->Deserialize(data, context)) {
+						// 部分的に復元されたシーンを残さず、呼び出し元へ失敗を伝える
 						Error(
 							kChannel,
 							"Component deserialize failed: scene='{}' entity='{}' entityId={} component='{}'",
@@ -137,6 +140,7 @@ namespace Unnamed {
 					}
 				}
 
+				// Deserialize 完了後にアタッチし、初期化フックが復元済みの値を参照できるようにする
 				(void)entity.AddComponentInstance(std::move(comp));
 			}
 		}

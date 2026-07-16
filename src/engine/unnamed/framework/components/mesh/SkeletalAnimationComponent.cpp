@@ -143,6 +143,7 @@ namespace Unnamed {
 				accum.hasReference = true;
 			}
 
+			// q と -q の加重平均が相殺しないよう、基準半球へ揃える
 			const float dot =
 				accum.reference.x * q.x +
 				accum.reference.y * q.y +
@@ -293,6 +294,7 @@ namespace Unnamed {
 			return;
 		}
 
+		// スキニング姿勢は描画時だけ使うため、再生時間も描画フレームで進める
 		EnsureHasAtLeastOneLayer();
 		for (size_t i = 0; i < mLayers.size(); ++i) {
 			auto& layer = mLayers[i];
@@ -367,6 +369,7 @@ namespace Unnamed {
 			}
 		}
 
+		// 旧形式の単一クリップ指定は先頭レイヤーとして読み替える
 		if (mLayers.empty()) {
 			AnimationLayerDesc legacy = {};
 			if (reader.Has("clipName")) {
@@ -1060,6 +1063,7 @@ namespace Unnamed {
 		std::vector<BlendAccumQuat> blendedRotation(boneCount);
 		std::vector<BlendAccumVec3> blendedScale(boneCount);
 
+		// 各レイヤーと遷移元を同じ重み空間で蓄積する
 		for (size_t layerIndex = 0; layerIndex < mLayers.size(); ++layerIndex) {
 			auto&       layer       = mLayers[layerIndex];
 			const float layerWeight = std::max(layer.desc.weight, 0.0f);

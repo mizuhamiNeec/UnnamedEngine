@@ -162,6 +162,7 @@ namespace Unnamed {
 			}
 		};
 
+		// アセットに記述された順序で実行し、トレースの actionIndex と対応させる
 		for (size_t actionIndex = 0; actionIndex < trigger.actions.size();
 		     ++actionIndex) {
 			const EventPresentationAction& action = trigger.actions[

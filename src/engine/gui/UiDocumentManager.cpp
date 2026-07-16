@@ -71,6 +71,7 @@ namespace Unnamed::Gui {
 			mAssetManager.GetContentPathResolver().FindMountIdForResolvedPath(
 				normalizedPath
 			);
+		// 共通 UI は上書きしない。編集結果はゲーム固有コンテンツへ保存する
 		if (mountId == ContentMountId::kCore) {
 			Warning(
 				kChannel,
@@ -153,6 +154,7 @@ namespace Unnamed::Gui {
 				continue;
 			}
 
+			// 未保存の編集がある間は外部更新を保留し、編集内容を自動で失わない
 			if (managed.dirty) {
 				managed.pendingExternal = true;
 				continue;

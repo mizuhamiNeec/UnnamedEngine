@@ -138,9 +138,11 @@ namespace Unnamed {
 			return;
 		}
 
+		// 視覚効果は固定シミュレーションに混ぜず、描画フレームでのみ進める
 		mCamera         = ResolveCamera();
 		mShakeTransform = ResolveShakeTransform();
 
+		// 同時に発火したシェイクは個別の減衰ノイズとして重ね合わせる
 		Vec2 shakeOffset = Vec2::zero;
 		for (size_t i = 0; i < mActiveShakes.size();) {
 			ActiveShake& shake = mActiveShakes[i];

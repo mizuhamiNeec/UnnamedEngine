@@ -39,6 +39,7 @@ namespace Unnamed {
 				return false;
 			}
 
+			// 未知チャンクもサイズ境界を守って読み飛ばし、将来の拡張を許容する
 			const uint64_t chunkStart = reader.Tell();
 			const uint64_t chunkEnd   = chunkStart + chunk.size;
 			bool           parseOk;

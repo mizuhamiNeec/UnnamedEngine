@@ -20,6 +20,7 @@ namespace Unnamed::Render {
 		ConsoleSystem* console,
 		const RenderStartupOptions& startupOptions
 	) {
+		// GPU リソースの所有者を先に作り、Renderer にはその実行基盤を渡す
 		mRenderDevice = std::make_unique<RenderDevice>(
 			mRhiDevice, mAssetManager
 		);

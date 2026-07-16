@@ -38,6 +38,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// 同じプリセットでもピッチを変え、連続再生の機械的な繰り返しを抑える
 		const float safeIntensity = std::max(0.0f, intensityScale);
 		const float pitchMin      = std::clamp(preset->pitchMin, 0.01f, 4.0f);
 		const float pitchMax      = std::clamp(
@@ -251,6 +252,7 @@ namespace Unnamed {
 		World* world = GetWorld();
 		Scene* scene = world ? world->GetScenePtr() : nullptr;
 
+		// コンポーネント GUID 指定を優先し、同一 Entity の複数 AudioSource を区別する
 		if (scene && preset.sourceComponentGuid != 0) {
 			for (const auto& entityPtr : scene->GetEntities()) {
 				Entity* entity = entityPtr.get();

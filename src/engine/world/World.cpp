@@ -229,7 +229,7 @@ namespace Unnamed {
 	}
 
 	void World::FixedTick(const float fixedDeltaTime) {
-		// まずは削除予定のエンティティを削除
+		// 更新対象の一覧を作る前に削除予約を確定する
 		if (mScene) {
 			mScene->ProcessPendingEntityDestruction();
 		}
@@ -246,6 +246,7 @@ namespace Unnamed {
 			mSequenceRuntime->AdvanceAndApplyPreSimulation(fixedDeltaTime);
 		}
 
+		// フェーズ間で対象と順序を揃えるため、この固定更新の一覧を固定する
 		const std::vector<Entity*> activeEntities = CollectActiveEntities(
 			mScene.get()
 		);
@@ -300,6 +301,7 @@ namespace Unnamed {
 			);
 		};
 
+		// 各フェーズで同じグループ順を守り、依存する更新順序を維持する
 		for (const TickGroup group : kTickGroupOrder) {
 			RunPhaseGroup(TICK_PHASE::PRE_PHYSICS, group);
 		}

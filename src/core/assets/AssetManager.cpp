@@ -44,6 +44,7 @@ namespace Unnamed {
 		const ASSET_TYPE      type,
 		const AssetLoadPolicy policy
 	) {
+		// 仮想パスはマウント優先順位に従って物理ファイルへ解決する
 		const std::optional<ResolvedContentFile> resolvedFile =
 			mContentPathResolver.ResolveFile(path);
 		if (!resolvedFile.has_value()) {
@@ -71,6 +72,7 @@ namespace Unnamed {
 		const ASSET_TYPE       type,
 		const AssetLoadPolicy  policy
 	) {
+		// 特定モジュールの参照は検索順を使わず、指定マウント内で解決する
 		const std::optional<ResolvedContentFile> resolvedFile =
 			mContentPathResolver.ResolveFileFromMount(mountId, path);
 		if (!resolvedFile.has_value()) {
@@ -99,6 +101,7 @@ namespace Unnamed {
 		const AssetLoadPolicy policy
 	) {
 		const Path normalizedPath = path.LexicallyNormal();
+		// 物理パス用 API はマウント解決を行わないため、絶対パスだけを受け付ける
 		if (normalizedPath.IsEmpty()) {
 			Warning(kChannel, "Asset path is empty.");
 			return kInvalidAssetID;
@@ -366,6 +369,7 @@ namespace Unnamed {
 			mActiveLoadStack, normalizedPath
 		);
 		if (activeLoad != mActiveLoadStack.end()) {
+			// 同じファイルへの再帰ロードは依存循環として失敗させる
 			std::vector<std::string> cycle;
 			for (auto it = activeLoad; it != mActiveLoadStack.end(); ++it) {
 				cycle.emplace_back(it->ToGenericUtf8());
@@ -1067,6 +1071,7 @@ namespace Unnamed {
 	std::vector<AssetID> AssetManager::PollSourceChanges() {
 		std::vector<AssetID> changed;
 		{
+			// 監視対象だけをロック中に集め、再ロードはロック解放後に行う
 			std::scoped_lock lock(mMutex);
 			changed.reserve(mNextID);
 			for (AssetID id = 1; id < mNextID; ++id) {

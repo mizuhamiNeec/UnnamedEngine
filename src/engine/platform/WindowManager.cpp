@@ -55,6 +55,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// HWND は通常ウィンドウとして作成し、生成後に要求された表示モードへ切り替える
 		WindowDesc nativeDesc = mainDesc;
 		nativeDesc.mode       = WINDOW_MODE::WINDOWED;
 		nativeDesc.visible    = mainDesc.visible &&
@@ -330,7 +331,7 @@ namespace Unnamed {
 		}
 #endif
 
-		// メッセージを他のシステムに横流し
+		// Window 固有処理の前に入力などのプラットフォームリスナーへ転送する
 		if (mPlatformEvents) {
 			mPlatformEvents->DispatchMessage(hwnd, msg, wParam, lParam);
 		}

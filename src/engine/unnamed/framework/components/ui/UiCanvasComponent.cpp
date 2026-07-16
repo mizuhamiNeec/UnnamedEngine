@@ -283,6 +283,7 @@ namespace Unnamed {
 	void UiCanvasComponent::DrawInspectorImGui() {
 		std::string uiDocumentPath = mUiDocumentPath.has_value() ?
 			mUiDocumentPath->String() : std::string{};
+		// アセット更新時だけランタイムツリーを作り直し、通常フレームでは再利用する
 		if (
 			ImGuiWidgets::AssetPathPicker(
 				"UI Document Path",
@@ -526,6 +527,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// ドキュメント定義は共有し、実行時ツリーは Canvas ごとに所有する
 		auto rootWidget = document->TakeRootWidget();
 		if (!rootWidget) {
 			if (!mLoggedLoadFailure) {

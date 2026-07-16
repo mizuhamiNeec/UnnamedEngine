@@ -88,6 +88,7 @@ namespace Unnamed::Render {
 	) {
 		PipelineResolveResult result = {};
 		for (auto& entry : mGraphics) {
+			// 起動検証では必須パイプラインだけを解決し、任意機能は使用時まで遅延させる
 			if (
 				scope == PIPELINE_RESOLVE_SCOPE::REQUIRED_ONLY &&
 				entry.spec.startupRequirement !=

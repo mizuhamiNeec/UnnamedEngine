@@ -85,6 +85,7 @@ namespace Unnamed {
 			deltaTime
 		);
 
+		// 摩擦・加速を反映した後、キネマティック解決器に段差と衝突応答を委ねる
 		KinematicMoveQuery query = {
 			.position    = context.transform->GetPosition(),
 			.velocity    = context.velocity,
@@ -102,6 +103,7 @@ namespace Unnamed {
 		context.velocity = query.velocity;
 
 		Physics::Hit groundHit{};
+		// 移動後に接地を再確認し、足場を失ったフレームで空中モードへ移す
 		if (!IsGrounded(context.resolver, query.position, &groundHit)) {
 			context.supportEntityGuid      = 0;
 			context.supportLinearVelocity  = Vec3::zero;

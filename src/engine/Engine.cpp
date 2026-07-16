@@ -323,6 +323,7 @@ namespace Unnamed {
 
 		const GameRuntimeContext& runtimeContext = *mRuntimeBindings.
 			runtimeContext;
+		// アセット管理より先にコンテンツの解決先を確立する
 		if (!InitializeContentMounts(runtimeContext)) {
 			return false;
 		}
@@ -335,7 +336,7 @@ namespace Unnamed {
 		mAssetManager = std::make_unique<AssetManager>(mContentPathResolver);
 		ServiceLocator::Register<AssetManager>(mAssetManager.get());
 
-		// 各ローダーの登録
+		// コンテンツ種別ごとのロード実装をアセット管理に集約する
 		mAssetManager->RegisterLoader(
 			std::move(std::make_unique<TextureLoaderDirectXTex>())
 		);
@@ -430,6 +431,7 @@ namespace Unnamed {
 			.enableGpuBasedValidation = true
 		};
 
+		// スワップチェーンはメインウィンドウの HWND に紐付けて作成する
 		const Rhi::SwapChainDesc swapChainDesc = {
 			.width       = static_cast<uint32_t>(window->GetDesc().width),
 			.height      = static_cast<uint32_t>(window->GetDesc().height),
@@ -574,6 +576,7 @@ namespace Unnamed {
 			}
 #endif
 		} else {
+			// シーン読込前にワールドを有効化し、必要なサービスを注入する
 			std::unique_ptr<World> runtimeWorld =
 				mRuntimeBindings.gameWorldFactory->CreateRuntimeWorld(
 					BuildWorldServices()
@@ -751,12 +754,14 @@ namespace Unnamed {
 			}
 
 			mSimulationAccumulator += std::max(0.0f, scaledDeltaTime);
+			// 長時間停止後の追い付き更新が無制限に続かないよう上限を設ける
 			mSimulationAccumulator = std::min(
 				mSimulationAccumulator,
 				fixedStepSeconds * static_cast<float>(kMaxFixedTicksPerFrame)
 			);
 
 			{
+				// 入力は描画フレームごとに一度だけ収集し、固定更新で共有する
 				Profiler::ScopeTimer scope(
 					mProfiler.get(), "World.FrameInputTick"
 				);
@@ -777,6 +782,7 @@ namespace Unnamed {
 			}
 
 			{
+				// 固定更新の残り時間で描画用の補間位置を決める
 				const float interpolationAlpha =
 					fixedStepSeconds > 0.0f ?
 						std::clamp(
@@ -1112,10 +1118,12 @@ namespace Unnamed {
 			Fatal("Engine", "Attempted to activate null world.");
 		}
 		if (mWorld) {
+			// 旧ワールドが依存するサービスを保ったまま終了処理を行う
 			mWorld->Shutdown();
 			mWorld.reset();
 		}
 
+		// ワールドは ServiceLocator ではなく、この実行時サービス群を参照する
 		newWorld->SetServices(BuildWorldServices());
 		newWorld->SetSceneLoadOptions(mRuntimeBindings.sceneLoadOptions);
 
@@ -1265,6 +1273,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// core を基底にし、優先度の高い game 側で同名コンテンツを上書きする
 		if (!mContentPathResolver.MountDirectory(
 			std::string(ContentMountId::kCore),
 			*coreRoot,

@@ -167,6 +167,7 @@ namespace Unnamed {
 				return false;
 			}
 
+			// プログラムを解決したマウント内で依存シェーダーも解決し、上書き層を混在させない
 			stage.shaderSourceAssetId = context.resolvedMountId.empty()
 				? mAssetManager->LoadAsset(
 					stage.sourcePath, ASSET_TYPE::SHADER_SOURCE)

@@ -32,9 +32,11 @@ namespace Unnamed {
 	}
 
 	std::optional<WindowResizeEvent> Window::ConsumeResizeEvent() {
-		if (!mHasPendingResize)
+		if (!mHasPendingResize) {
 			return std::nullopt;
+		}
 
+		// 複数の WM_SIZE をまとめ、Engine 側では一度だけスワップチェーンを更新する
 		mDesc.width  = mPendingResize.width;
 		mDesc.height = mPendingResize.height;
 
@@ -190,6 +192,7 @@ namespace Unnamed {
 	}
 
 	void Window::ApplyBorderlessMode(const WINDOW_MODE mode) {
+		// 復帰時にユーザーの位置・サイズを戻せるよう、枠なし化の前に保存する
 		CaptureWindowedPlacement();
 
 		MONITORINFO mi = {.cbSize = sizeof(mi)};

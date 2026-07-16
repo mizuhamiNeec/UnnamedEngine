@@ -75,6 +75,7 @@ namespace Unnamed {
 
 		mCurrentModeId = mStateMachine->GetCurrentModeId();
 		mActiveAbilityMask = mStateMachine->GetActiveAbilityMask();
+		// 状態機械だけが更新する移動状態を、今回の固定ステップ用コンテキストへ集約する
 		MovementContext context = {};
 		context.input = input;
 		context.transform = transform;
@@ -222,6 +223,7 @@ namespace Unnamed {
 			mMoveFrameInput = deterministicPacket.input;
 			SimulateStep(transform, deterministicPacket.input, stepSeconds);
 
+			// スナップショットは移動結果の確定後に記録し、再生時の比較対象を揃える
 			if (Entity* owner = GetOwner()) {
 				if (auto* demoService = GetDemoService()) {
 					demoService->RecordOrVerifySnapshot(

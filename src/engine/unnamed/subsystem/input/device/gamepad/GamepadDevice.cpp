@@ -133,6 +133,7 @@ namespace Unnamed {
 			mDirectInputRefreshRequested = false;
 		}
 
+		// XInput 対応パッドを優先し、同じデバイスの二重入力を避ける
 		if (!hasXInput) {
 			(void)PollDirectInput();
 		}
@@ -383,6 +384,7 @@ namespace Unnamed {
 		(void)userIndex;
 		const auto& gamepad = state.Gamepad;
 
+		// 複数コントローラーを一つの仮想ゲームパッドとして合成する
 		const auto mergeButton = [this](
 			const uint32_t code, const bool pressed
 		) {
@@ -738,6 +740,7 @@ namespace Unnamed {
 		mAppliedRumbleLow  = low;
 		mAppliedRumbleHigh = high;
 
+		// 振動は最後に操作された XInput パッドを優先する
 		if (mHasLastActiveXInputUser &&
 		    mXInputConnected[mLastActiveXInputUser]) {
 			ApplyRumbleToXInput(mLastActiveXInputUser, low, high);

@@ -218,6 +218,7 @@ namespace Unnamed {
 			result.existsOnDisk  = true;
 			return result;
 		}
+		// 明示された物理パスはコンテンツの上書き検索を通さない
 		if (IsAbsoluteOrCurrentRelative(path)) {
 			result.resolvedPath  = path.LexicallyNormal();
 			result.resolvedLayer = "direct";
@@ -235,6 +236,7 @@ namespace Unnamed {
 		}
 
 		std::error_code ec;
+		// base < DLC < mod の順に、より後段のコンテンツで上書きする
 		for (auto it = mountRoots.rbegin(); it != mountRoots.rend(); ++it) {
 			auto candidate = ResolveAgainstRoot(it->rootPath, path);
 			if (candidate.IsEmpty()) {

@@ -97,6 +97,7 @@ namespace Unnamed::Render {
 			dirtyMeshAssets, materialsDirty, postFxDirty
 		);
 		if (!dirtyMeshAssets.empty()) {
+			// ホットリロード後に古い GPU メッシュ状態を次フレームへ持ち越さない
 			for (const AssetID dirtyMesh : dirtyMeshAssets) {
 				mSceneMeshesByAsset.erase(dirtyMesh);
 				if (mLoadedMeshAsset == dirtyMesh) {
@@ -114,6 +115,7 @@ namespace Unnamed::Render {
 			);
 		}
 
+		// ワールドが提出した描画入力を、このフレームで実行するビュー一覧として確定する
 		mFrameViews      = inputs.views;
 		mFrameDebugLines = inputs.debugDraw.lines;
 		if (mFrameViews.empty()) {
@@ -386,6 +388,7 @@ namespace Unnamed::Render {
 		}
 
 		{
+			// 全ビューのリソースを揃えてから、依存関係を持つ描画グラフを構築する
 			Profiler::ScopeTimer scope(profiler, "Render.BuildGraph");
 			mGraph.Reset();
 			mGraphBuilt = false;

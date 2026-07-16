@@ -112,6 +112,7 @@ namespace Unnamed::Render {
 				return;
 			}
 
+			// 再生成されたリソースに前世代の状態遷移履歴を適用しない
 			const D3D12_RESOURCE_STATES resetState =
 				DefaultInitState(textureId);
 			plannedStates[textureId]           = resetState;
@@ -320,6 +321,7 @@ namespace Unnamed::Render {
 			resolver
 		);
 
+		// コンパイル済みの遷移とバリアを各パス実行直前に適用する
 		for (const auto& cp : mCompiled) {
 			const auto& pass = mPasses[cp.passIndex];
 			BeginGpuEvent(commandList, pass.name.c_str());
@@ -338,7 +340,7 @@ namespace Unnamed::Render {
 			EndGpuEvent(commandList);
 		}
 
-		// 最後にバックバッファをPresent状態に
+		// 次フレームと Present の契約を満たすため、バックバッファ状態を戻す
 		{
 			ID3D12Resource* bb  = ResolveResource(device, kBackBufferId);
 			auto&           cur = mGlobalStates[kBackBufferId];

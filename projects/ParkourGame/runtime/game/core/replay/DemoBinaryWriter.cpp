@@ -44,6 +44,7 @@ namespace Unnamed {
 		BinaryWriter& writer, const uint32_t chunkId, Fn&& payloadWriter,
 		std::string*  outError, const std::string_view chunkName
 	) {
+		// ペイロードをバッファリングせず、書き込み後に実サイズをヘッダーへ戻す
 		const uint64_t        chunkHeaderPos = writer.Tell();
 		DemoBinaryChunkHeader chunkHeader    = {};
 		chunkHeader.id                       = chunkId;
@@ -106,6 +107,7 @@ namespace Unnamed {
 					file.meta.begin(),
 					file.meta.end()
 				);
+				// unordered_map の走査順に依存しないバイナリ出力にする
 				std::ranges::sort(
 					metaEntries,
 					[](const auto& lhs, const auto& rhs) {

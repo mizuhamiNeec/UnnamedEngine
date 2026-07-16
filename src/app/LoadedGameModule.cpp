@@ -56,6 +56,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// 起動コンテンツをロードする前にゲーム固有の型と実装を登録する
 		mGameModule->RegisterAssetTypes(engine);
 		mGameModule->RegisterComponents(engine);
 		mGameModule->RegisterSystems(engine);
@@ -77,6 +78,7 @@ namespace Unnamed {
 			return;
 		}
 
+		// Engine のサービスが有効な間にゲーム側の参照を解放する
 		mGameModule->OnUnload(engine);
 		mLoaded = false;
 		Msg(

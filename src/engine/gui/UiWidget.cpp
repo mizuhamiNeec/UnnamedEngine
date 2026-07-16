@@ -62,6 +62,7 @@ namespace Unnamed::Gui {
 		if (!component) {
 			return;
 		}
+		// アタッチ中に Widget を参照できるよう、所有権を移す前に通知する
 		component->OnAttached(*this);
 		mComponents.emplace_back(std::move(component));
 		MarkDirty(DIRTY_FLAGS::LAYOUT | DIRTY_FLAGS::DRAW);
@@ -410,6 +411,7 @@ namespace Unnamed::Gui {
 	}
 
 	void UiWidget::UpdateLayoutRecursive(const Rect& parentGlobalRect) {
+		// レイアウト前後のフックでコンポーネントが寸法を調整できるようにする
 		for (auto& component : mComponents) {
 			if (component) {
 				component->OnBeforeLayout(*this);
@@ -506,6 +508,7 @@ namespace Unnamed::Gui {
 			return nullptr;
 		}
 
+		// 後から追加した子を手前として判定し、描画順と入力順を一致させる
 		for (auto it = mChildren.rbegin(); it != mChildren.rend(); ++it) {
 			if (*it) {
 				if (UiWidget* hit = (*it)->HitTest(x, y)) {
@@ -701,6 +704,7 @@ namespace Unnamed::Gui {
 			return nullptr;
 		}
 
+		// 子孫の復元に失敗した場合は、部分的な Widget ツリーを返さない
 		if (reader.Has("children")) {
 			const JsonReader children = reader["children"].GetArray();
 			for (size_t i = 0; i < children.Size(); ++i) {

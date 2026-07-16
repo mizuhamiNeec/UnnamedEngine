@@ -84,6 +84,7 @@ namespace Unnamed {
 		const MovementFrameInput& input,
 		const float               stepSeconds
 	) {
+		// アクション入力も移動入力と同じ固定ティックで一度だけ消費する
 		DeterministicActionInputPacket actionPacket = {};
 		if (mDeterministicActionInputQueue.Pop(actionPacket)) {
 			mActionFrameInput = actionPacket.input;
@@ -91,6 +92,7 @@ namespace Unnamed {
 			mActionFrameInput = {};
 		}
 
+		// 能力の残り時間を先に進め、今回の状態遷移判定へ反映する
 		TickParkourTimers(stepSeconds);
 		ResetDuckStandDebugFrame();
 		GameMovementComponent::SimulateStep(transform, input, stepSeconds);

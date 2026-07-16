@@ -49,28 +49,31 @@ namespace Unnamed {
 				return {};
 			}
 
-			// 旧設定の "content/..." 指定はプロジェクトルート基準として扱います。
-			if (effectivePath.IsRelative()) {
-				return (Path("./") / effectivePath).LexicallyNormal();
-			}
+			const auto resolveFromModulePaths =
+				[&effectivePath](const GameModulePaths& modulePaths) {
+					const std::string genericPath =
+						effectivePath.ToGenericUtf8();
+					if (
+						effectivePath.IsRelative() &&
+						genericPath.starts_with("content/")
+					) {
+						// 旧設定の "content/..." 指定はプロジェクトルート基準で解決します。
+						return ResolveGameRootPath(modulePaths, effectivePath);
+					}
+					return ResolveGameContentPath(modulePaths, effectivePath);
+				};
 
 			if (const GameRuntimeContext* runtimeContext =
 				ServiceLocator::Get<GameRuntimeContext>()) {
-				return ResolveGameContentPath(
-					runtimeContext->modulePaths,
-					effectivePath
-				);
+				return resolveFromModulePaths(runtimeContext->modulePaths);
 			}
 			if (
 				const IGameModule* gameModule =
 					ServiceLocator::Get<IGameModule>()
 			) {
-				return ResolveGameContentPath(
-					gameModule->GetGameModulePaths(),
-					effectivePath
-				);
+				return resolveFromModulePaths(gameModule->GetGameModulePaths());
 			}
-			return effectivePath;
+			return effectivePath.LexicallyNormal();
 		}
 	}
 

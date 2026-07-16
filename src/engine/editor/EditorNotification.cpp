@@ -451,6 +451,7 @@ namespace Unnamed {
 				std::vector<NotificationLayout> layouts;
 				layouts.reserve(mNotifications.size());
 
+				// 全カードの配置先を先に決め、追加・削除時もスタックを滑らかに移動する
 				float totalHeight = 0.0f;
 				for (const std::shared_ptr<NotificationState>& state :
 				     mNotifications) {
@@ -632,6 +633,7 @@ namespace Unnamed {
 			return;
 		}
 
+		// 完了コールバックが通知の寿命を延長しないよう弱参照だけを保持する
 		const std::weak_ptr weakNotification = notification;
 		const auto          fadeTween        = mTweenManager->CreateTo(
 			notification->opacity, 0.0f, kExitDurationSeconds

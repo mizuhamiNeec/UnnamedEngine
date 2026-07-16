@@ -523,6 +523,7 @@ namespace Unnamed::Physics {
 			return false;
 		}
 
+		// 移動種別にかかわらず、所有者ごとに衝突メッシュは一つだけ保持する
 		RemoveColliderByOwnerGuid(mStaticBVHs, ownerGuid);
 		RemoveColliderByOwnerGuid(mDynamicBVHs, ownerGuid);
 
@@ -552,6 +553,7 @@ namespace Unnamed::Physics {
 			return false;
 		}
 
+		// 移動種別にかかわらず、所有者ごとに衝突メッシュは一つだけ保持する
 		RemoveColliderByOwnerGuid(mStaticBVHs, ownerGuid);
 		RemoveColliderByOwnerGuid(mDynamicBVHs, ownerGuid);
 
@@ -588,6 +590,7 @@ namespace Unnamed::Physics {
 		if (it == mDynamicBVHs.end()) {
 			return false;
 		}
+		// Dynamic BVH はローカル空間を保ち、問い合わせ時に現在の変換を適用する
 		it->world = world;
 		return true;
 	}
@@ -689,6 +692,7 @@ namespace Unnamed::Physics {
 				continue;
 			}
 
+			// Static は登録時に焼き込み、Dynamic は更新可能なローカル頂点を保持する
 			const Triangle tri = mobility == ColliderMobility::Dynamic ?
 				                     BuildTriangleLocal(
 					                     vertices[i0],

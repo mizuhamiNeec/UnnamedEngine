@@ -5,6 +5,7 @@ namespace Unnamed {
 		const std::string& key,
 		const float        value
 	) {
+		// 複数フレーム・複数トラックで上書きされても、最初の復元値だけを保持する
 		if (mSavedFloatValues.contains(key)) {
 			return;
 		}

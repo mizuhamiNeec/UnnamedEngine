@@ -219,6 +219,7 @@ namespace Unnamed::Render {
 		);
 		mTextureResourceCache.SetUnusedFrameThreshold(120);
 		mLastTextureCacheStatsLogFrame = 0;
+		// 必須シェーダーとパイプラインを起動時に確立し、不足を早期に検出する
 		if (!RebuildPipelineCatalog(renderDevice, dx, startupOptions)) {
 			return false;
 		}

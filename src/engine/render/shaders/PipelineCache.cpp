@@ -48,6 +48,7 @@ namespace Unnamed::Render {
 		if (!needsRebuild) {
 			return it->second.Get();
 		}
+		// ホットリロード失敗時も、既存 PSO があれば描画を継続できるように残す
 		mDirtyGraphics.erase(key);
 
 		const auto& vsDxil = mShaders.GetOrCreateDxil(key.vs);
@@ -192,6 +193,7 @@ namespace Unnamed::Render {
 		if (!needsRebuild) {
 			return it->second.Get();
 		}
+		// ホットリロード失敗時も、既存 PSO があれば描画を継続できるように残す
 		mDirtyCompute.erase(key);
 
 		const auto& csDxil = mShaders.GetOrCreateDxil(key.cs);

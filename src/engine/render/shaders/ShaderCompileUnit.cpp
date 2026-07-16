@@ -28,6 +28,7 @@ namespace Unnamed::Render {
 			return std::nullopt;
 		}
 
+		// 推移的な include を一つのコンパイル単位へ閉じ込める
 		std::vector<AssetID> pending = {rootShaderSourceId};
 		std::unordered_set<AssetID> visited;
 		std::vector<AssetID> includeAssetIds;
@@ -61,6 +62,7 @@ namespace Unnamed::Render {
 			}
 		}
 
+		// 内部 include 名を安定化し、同じ依存グラフでコンパイル結果を再現可能にする
 		std::ranges::sort(
 			includeAssetIds,
 			[this](const AssetID lhs, const AssetID rhs) {
@@ -148,6 +150,7 @@ namespace Unnamed::Render {
 			}
 			replacements.emplace_back(&include);
 		}
+		// 後ろから置換して、前方のトークン位置をずらさない
 		std::ranges::sort(
 			replacements,
 			[](const ResolvedShaderInclude* lhs,

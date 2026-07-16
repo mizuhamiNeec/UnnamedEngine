@@ -71,6 +71,7 @@ namespace Unnamed {
 			Reset();
 		}
 
+		// 記録中は途中で設定が変わっても固定ステップを変えない
 		mMode        = MODE::RECORDING;
 		mCurrentPath = std::move(path);
 		++mRecordingSessionSerial;
@@ -167,6 +168,7 @@ namespace Unnamed {
 	}
 
 	uint32_t DemoManager::GetSimulationTickRate() const {
+		// 録画・再生はファイルに固定したレートを優先して決定性を保つ
 		if (mMode == MODE::PLAYBACK || mMode == MODE::RECORDING) {
 			return ClampTickRate(mActiveTickRate);
 		}
@@ -204,6 +206,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// 追い越したコマンドを捨て、現在の固定ティックだけを一度だけ消費する
 		while (mPlaybackCommandCursor < mFile.commands.size() &&
 		       mFile.commands[mPlaybackCommandCursor].tick < tick) {
 			++mPlaybackCommandCursor;
@@ -288,6 +291,7 @@ namespace Unnamed {
 		const uint64_t entityGuid      = subjectEntity.GetGuid();
 		const auto&    initialEntities =
 			ResolvePlaybackInitialSnapshotSet(subjectEntity);
+		// シーン全体の初期状態は最初の対象エンティティで一度だけ復元する
 		if (!mPlaybackInitialSetApplied && !initialEntities.empty()) {
 			Scene* scene = nullptr;
 			if (World* world = subjectEntity.GetWorld()) {

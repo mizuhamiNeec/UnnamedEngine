@@ -21,6 +21,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// 相対パスの解釈を呼び出し元の作業ディレクトリに委ねない
 		ContentDirectoryMount mount{
 			.id       = std::move(mountId),
 			.rootPath = rootPath.LexicallyNormal(),
@@ -41,6 +42,7 @@ namespace Unnamed {
 			return std::nullopt;
 		}
 
+		// 優先度順に並んだ最初の実在ファイルを採用する
 		for (const ContentDirectoryMount& mount : mMounts) {
 			const Path candidatePath = BuildCandidatePath(mount, virtualPath);
 			if (!candidatePath.IsRegularFile()) {
@@ -128,6 +130,7 @@ namespace Unnamed {
 			if (relative.empty() || relative.is_absolute()) {
 				return std::nullopt;
 			}
+			// マウント外のパスを仮想パスとして再公開しない
 			for (const auto& component : relative) {
 				if (component == "..") {
 					return std::nullopt;
@@ -210,6 +213,7 @@ namespace Unnamed {
 	}
 
 	void ContentPathResolver::SortMounts() {
+		// 同じ優先度では後から追加したマウントを上書き層として扱う
 		std::ranges::sort(
 			mMounts,
 			[](const ContentDirectoryMount& lhs, const ContentDirectoryMount& rhs

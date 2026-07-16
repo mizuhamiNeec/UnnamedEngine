@@ -29,6 +29,7 @@ namespace Unnamed {
 		uint64_t hash    = ReplayHash::Begin();
 		uint32_t written = 0;
 
+		// 再生に必要な登録済みコンポーネントだけを状態と検証ハッシュへ含める
 		for (const auto& [stableName, serializer] : mSerializers) {
 			const BaseComponent* component = FindComponentByStableName(
 				entity, stableName
@@ -67,6 +68,7 @@ namespace Unnamed {
 			return;
 		}
 
+		// 未登録・欠落コンポーネントは無視し、異なるシーン構成でも復元を継続する
 		for (const auto& [stableName, serializer] : mSerializers) {
 			const auto it = itComponents->find(stableName);
 			if (it == itComponents->end()) {

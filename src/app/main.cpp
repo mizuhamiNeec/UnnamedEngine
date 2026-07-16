@@ -62,6 +62,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 
 	std::string                  requestedModuleName  = {};
 	std::optional<Unnamed::Path> selectedManifestPath = std::nullopt;
+	// 明示指定されたプロフィールを起動モジュール選択の最優先にする
 	if (launchOptions.projectManifestPath.has_value()) {
 		if (!Unnamed::GameProfileLoader::ResolveRuntimeModuleFromProfile(
 			*launchOptions.projectManifestPath,
@@ -72,6 +73,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 		selectedManifestPath = *launchOptions.projectManifestPath;
 	}
 
+	// プロフィール未指定時のみコマンドラインのモジュール名を採用する
 	if (requestedModuleName.empty() && launchOptions.gameName.has_value()) {
 		requestedModuleName = *launchOptions.gameName;
 	}
@@ -79,6 +81,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	if (requestedModuleName.empty() &&
 	    !launchOptions.projectManifestPath.has_value() &&
 	    !launchOptions.gameName.has_value()) {
+		// 起動指定がない場合は既定プロフィールから実行時モジュールを解決する
 		Unnamed::Path                                     resolvedManifestPath = {};
 		const Unnamed::DefaultGameProfileResolutionResult profileResult        =
 			Unnamed::GameProfileLoader::ResolveRuntimeModuleFromDefaultProfile(
@@ -102,6 +105,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	if (requestedModuleName.empty()) {
 		const std::vector<std::string> registeredNames =
 			moduleRegistry.ListRegisteredNames();
+		// 単一モジュール構成だけは明示指定なしでも安全に起動できる
 		if (registeredNames.size() == 1) {
 			requestedModuleName = registeredNames.front();
 		}
@@ -157,7 +161,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	constexpr auto runMode = Unnamed::RUN_MODE::STANDALONE;
 #endif
 
+	// Engine 初期化から終了までゲーム固有サービスを公開する
 	loadedGameModule->RegisterRuntimeContextService();
+	// 実体の所有権は loadedGameModule に残し、Engine には実行時の参照だけを渡す
 	Unnamed::EngineRuntimeBindings runtimeBindings = {
 		.gameWorldFactory  = &loadedGameModule->GetWorldFactory(),
 		.runtimeContext    = &loadedGameModule->GetRuntimeContext(),
@@ -180,6 +186,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	Unnamed::Engine                   engine(runtimeBindings, runMode);
 	const Unnamed::EngineRunCallbacks callbacks = {
 		.onPostInitialize = [&](Unnamed::Engine& runningEngine) {
+			// エンジン側の共通登録完了後にゲーム固有の登録とロードを行う
 			if (!loadedGameModule->RegisterAndLoad(runningEngine)) {
 				return false;
 			}
@@ -194,10 +201,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 			return true;
 		},
 		.onPreShutdown = [&](Unnamed::Engine& runningEngine) {
+			// Engine の所有物が破棄される前にゲーム側の解放処理を完了する
 			loadedGameModule->Unload(runningEngine);
 		},
 	};
 	const int result = engine.Run(callbacks);
+	// Engine の終了後に借用先となるゲームサービスを登録解除する
 	loadedGameModule->UnregisterRuntimeContextService();
 	return result;
 }

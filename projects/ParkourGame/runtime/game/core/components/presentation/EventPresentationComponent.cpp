@@ -82,6 +82,7 @@ namespace Unnamed {
 		}
 		mGraphEditorState->needsRebuild = true;
 #endif
+		// コールバック登録前に実行対象とトリガーを揃え、即時発火でも不完全な状態を避ける
 		mAudioFx   = ResolveAudioFx();
 		mCameraFx  = ResolveCameraFx();
 		mAnimation = ResolveAnimation();
@@ -956,6 +957,7 @@ namespace Unnamed {
 		}
 		const auto& meta = assetManager->Meta(mPresentationAssetId);
 		if (meta.version != mLoadedAssetVersion) {
+			// ホットリロードでトリガー集合が変わるため、購読も作り直す
 			(void)RebuildRuntimeData(*assetManager);
 			SubscribeAll();
 		}
@@ -978,6 +980,7 @@ namespace Unnamed {
 			return;
 		}
 
+		// 同じ Cue ID の複数トリガーは一つのバス購読で受け取る
 		std::unordered_set<std::string> uniqueCueIds;
 		uniqueCueIds.reserve(mTriggers.size());
 		for (const EventPresentationTrigger& trigger : mTriggers) {
@@ -1039,6 +1042,7 @@ namespace Unnamed {
 			);
 		}
 
+		// 同じ Cue に一致する各トリガーは、条件とクールダウンを独立して評価する
 		for (EventPresentationTrigger& trigger : mTriggers) {
 			if (trigger.cueId != cue.id) {
 				continue;

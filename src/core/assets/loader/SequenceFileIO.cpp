@@ -459,6 +459,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// 古い保存形式は読み取り直後に現行スキーマへ揃える
 		bool    migrated      = false;
 		int32_t sourceVersion = 1;
 		if (!SequenceMigrator::MigrateToLatest(root, &migrated,
@@ -526,6 +527,7 @@ namespace Unnamed {
 						     "sections"]) {
 						track.sections.emplace_back(ParseSection(sectionNode));
 					}
+					// 時間順を固定し、ファイル内の配列順に評価結果を左右させない
 					std::ranges::sort(
 						track.sections,
 						[](
@@ -614,6 +616,7 @@ namespace Unnamed {
 		const std::string nextText = root.dump(4);
 		std::string       currentText;
 		(void)StrUtil::ReadFileToString(path, currentText);
+		// 内容が同じなら更新日時を変えず、不要なホットリロードを防ぐ
 		if (currentText == nextText) {
 			if (outWritten) {
 				*outWritten = false;

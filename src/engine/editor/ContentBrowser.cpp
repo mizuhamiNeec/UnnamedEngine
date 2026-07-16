@@ -33,6 +33,7 @@ namespace Unnamed::EditorContentBrowser {
 		std::unordered_map<ImGuiID, BrowserViewState> sPickerStates;
 
 		bool IsPathInsideRoot(const Path& path, const Path& root) {
+			// 文字列の接頭辞だけで sibling directory を root 内と誤認しない
 			const std::string normalizedPath =
 				path.LexicallyNormal().ToGenericUtf8();
 			const std::string normalizedRoot =
@@ -63,6 +64,7 @@ namespace Unnamed::EditorContentBrowser {
 				return false;
 			}
 
+			// エディタで選んだ物理ファイルは、選択時点でアセットとして解決を試みる
 			if (
 				auto* assetManager = ServiceLocator::Get<AssetManager>();
 				assetManager && guessedType != ASSET_TYPE::UNKNOWN
@@ -99,6 +101,7 @@ namespace Unnamed::EditorContentBrowser {
 				}
 				outDirs.emplace_back(Path::FromNative(it->path()));
 			}
+			// 表示順をファイルシステム列挙順に依存させない
 			std::ranges::sort(
 				outDirs,
 				[](const Path& lhs, const Path& rhs) {
