@@ -3,7 +3,7 @@
 #include <core/math/Math.h>
 
 namespace Math {
-	float Lerp(const float a, const float b, float t) {
+	float Lerp(const float a, const float b, const float t) {
 		return a * (1.0f - t) + b * t;
 	}
 
@@ -13,10 +13,23 @@ namespace Math {
 	/// @return 角度の差 [rad]
 	float DeltaAngle(const float current, const float target) {
 		float delta = std::fmod(target - current, 2.0f * pi);
-		if (delta > pi)
+		if (delta > pi) {
 			delta -= 2.0f * pi;
-		if (delta < -pi)
+		}
+		if (delta < -pi) {
 			delta += 2.0f * pi;
+		}
+		return delta;
+	}
+
+	float DeltaAngleDegrees(const float current, const float target) {
+		float delta = std::fmod(target - current, 360.0f);
+		if (delta > 180.0f) {
+			delta -= 360.0f;
+		}
+		if (delta < -180.0f) {
+			delta += 360.0f;
+		}
 		return delta;
 	}
 
@@ -26,14 +39,16 @@ namespace Math {
 	/// @param p2 制御点2
 	/// @return ベジェ曲線の値
 	float CubicBezier(const float t, const Vec2 p1, const Vec2 p2) {
-		if (t <= 0.0f)
+		if (t <= 0.0f) {
 			return 0.0f;
-		if (t >= 1.0f)
+		}
+		if (t >= 1.0f) {
 			return 1.0f;
+		}
 
-		float         u       = t;
-		constexpr int kMaxItr = 10;
-		for (int i = 0; i < kMaxItr; i++) {
+		float         u      = t;
+		constexpr int maxItr = 10;
+		for (int i = 0; i < maxItr; i++) {
 			const float oneMinusU = 1.0f - u;
 			const float bezierX   = 3.0f * oneMinusU * oneMinusU * u * p1.x +
 			                      3.0f * oneMinusU * u * u * p2.x +
@@ -78,10 +93,11 @@ namespace Math {
 	/// @param a 開始値
 	/// @param b 終了値
 	/// @param t 補間係数 (0.0 ~ 1.0)
-	Vec2 Lerp(const Vec2& a, const Vec2& b, float t) {
+	Vec2 Lerp(const Vec2& a, const Vec2& b, const float t) {
 		return a * (1.0f - t) + b * t;
 	}
 
+	/// TODO: 使えるように修正
 	/// @brief ワールド座標をスクリーン座標と画面中心からの角度に変換します 
 	/// @param worldPos 変換するワールド座標
 	/// @param screenSize 画面サイズ
@@ -213,7 +229,7 @@ namespace Math {
 	/// @param b 終了値
 	/// @param t 補間係数 (0.0 ~ 1.0)
 	/// @return 補間結果
-	Vec3 Lerp(const Vec3& a, const Vec3& b, float t) {
+	Vec3 Lerp(const Vec3& a, const Vec3& b, const float t) {
 		return a * (1.0f - t) + b * t;
 	}
 
@@ -222,11 +238,11 @@ namespace Math {
 	/// @param b ベクトルB
 	/// @return 各成分ごとの最小値を持つベクトル
 	Vec3 Min(const Vec3 a, const Vec3 b) {
-		return Vec3(
+		return {
 			std::min(a.x, b.x),
 			std::min(a.y, b.y),
 			std::min(a.z, b.z)
-		);
+		};
 	}
 
 	/// @brief 各成分ごとの最大値を取得します
@@ -234,11 +250,11 @@ namespace Math {
 	/// @param b ベクトルB
 	/// @return 各成分ごとの最大値を持つベクトル
 	Vec3 Max(const Vec3 a, const Vec3 b) {
-		return Vec3(
+		return {
 			std::max(a.x, b.x),
 			std::max(a.y, b.y),
 			std::max(a.z, b.z)
-		);
+		};
 	}
 
 	/// @brief 線形補間を行います
@@ -246,19 +262,8 @@ namespace Math {
 	/// @param b 終了値
 	/// @param t 補間係数 (0.0 ~ 1.0)
 	/// @return 補間結果
-	Vec4 Lerp(const Vec4& a, const Vec4& b, float t) {
+	Vec4 Lerp(const Vec4& a, const Vec4& b, const float t) {
 		return a * (1.0f - t) + b * t;
-	}
-
-	/// @brief EaseOutBack関数
-	/// @param t 補間係数 (0.0 ~ 1.0)
-	/// @return 補間結果
-	float EaseOutBack(const float t) {
-		constexpr float c1 = 1.70158f;
-		constexpr float c3 = c1 + 1;
-		return 1.0f + c3 * std::pow(t - 1.0f, 3.0f) + c1 * std::pow(
-			       t - 1.0f, 2.0f
-		       );
 	}
 
 	/// @brief インチをメートルに変換します
