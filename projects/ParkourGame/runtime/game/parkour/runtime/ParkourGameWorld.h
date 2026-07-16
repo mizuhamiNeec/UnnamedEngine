@@ -31,7 +31,8 @@ namespace Unnamed {
 		void FillRenderFrameInputs(
 			Render::RenderFrameInputs&  inputs,
 			Render::RenderFrameContext& frameContext,
-			AssetManager&               assetManager
+			AssetManager&               assetManager,
+			bool                        enableUiInput = true
 		) override;
 
 		/// @brief 現在のシーンを差し替えます。
