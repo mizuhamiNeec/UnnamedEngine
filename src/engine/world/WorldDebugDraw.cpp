@@ -367,6 +367,6 @@ namespace Unnamed {
 		}
 #endif
 		(void)inputs;
-		mPendingLines.clear();
+		Clear();
 	}
 }

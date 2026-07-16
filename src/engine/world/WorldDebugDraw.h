@@ -128,11 +128,17 @@ namespace Unnamed {
 			int               segments = 16
 		);
 
+		/// @brief ボックスを描画します。
+		/// @param position ボックスの中心位置
+		/// @param orientation ボックスの回転
+		/// @param size ボックスのサイズ（幅、高さ、奥行き）
+		/// @param color ボックスの色（RGBA）
 		void DrawBox(
 			const Vec3& position, const Quaternion& orientation,
 			Vec3        size, const Vec4&           color
 		);
 
+		/// @brief 描画コマンドをすべてクリアします。
 		void Clear();
 
 		/// @brief 描画コマンドをレンダーフレーム入力にフラッシュします。
