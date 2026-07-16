@@ -4,78 +4,6 @@
 
 #include <cmath>
 
-namespace {
-	/// @brief 線分上の最も近い点を計算します
-	/// @param a 線分の始点
-	/// @param b 線分の終点
-	/// @param p 点
-	/// @return 線分上の最も近い点
-	Vec3 ClosestPointOnSegment(const Vec3& a, const Vec3& b, const Vec3& p) {
-		const Vec3  ab     = b - a;
-		const float abLen2 = ab.Dot(ab);
-		if (abLen2 <= 1e-12f)
-			return a;
-		const float t = std::clamp((p - a).Dot(ab) / abLen2, 0.0f, 1.0f);
-		return a + ab * t;
-	}
-
-	/// @brief 三角形上の最も近い点を計算します
-	/// @param tri 三角形
-	/// @param p 点
-	/// @return 三角形上の最も近い点
-	Vec3 ClosestPointOnTriangle(const Unnamed::Triangle& tri, const Vec3& p) {
-		// Barycentric technique
-		const Vec3 a = tri.v0;
-		const Vec3 b = tri.v1;
-		const Vec3 c = tri.v2;
-		// Check against vertices/edges
-		const Vec3  ab = b - a;
-		const Vec3  ac = c - a;
-		const Vec3  ap = p - a;
-		const float d1 = ab.Dot(ap);
-		const float d2 = ac.Dot(ap);
-		if (d1 <= 0.0f && d2 <= 0.0f)
-			return a;
-
-		const Vec3  bp = p - b;
-		const float d3 = ab.Dot(bp);
-		const float d4 = ac.Dot(bp);
-		if (d3 >= 0.0f && d4 <= d3)
-			return b;
-
-		const float vc = d1 * d4 - d3 * d2;
-		if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
-			const float v = d1 / (d1 - d3);
-			return a + ab * v;
-		}
-
-		const Vec3  cp = p - c;
-		const float d5 = ab.Dot(cp);
-		const float d6 = ac.Dot(cp);
-		if (d6 >= 0.0f && d5 <= d6)
-			return c;
-
-		const float vb = d5 * d2 - d1 * d6;
-		if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
-			const float w = d2 / (d2 - d6);
-			return a + ac * w;
-		}
-
-		const float va = d3 * d6 - d5 * d4;
-		if (va <= 0.0f && d4 - d3 >= 0.0f && d5 - d6 >= 0.0f) {
-			const Vec3  bc = c - b;
-			const float t  =
-				std::clamp((p - b).Dot(bc) / bc.Dot(bc), 0.0f, 1.0f);
-			return b + bc * t;
-		}
-
-		// Inside face region
-		const Vec3  n    = ab.Cross(ac).Normalized();
-		const float dist = (p - a).Dot(n);
-		return p - n * dist;
-	}
-}
-
 namespace Unnamed::Physics {
 	/// @brief ノードのAABBを拡張します
 	/// @param nodeBounds ノードのAABB
@@ -87,8 +15,8 @@ namespace Unnamed::Physics {
 		// わずかなマージンを追加して数値誤差を防ぐ
 		constexpr auto margin = Vec3(1e-6f);
 		return {
-			nodeBounds.min - r - margin,
-			nodeBounds.max + r + margin
+			.min = nodeBounds.min - r - margin,
+			.max =nodeBounds.max + r + margin
 		};
 	}
 

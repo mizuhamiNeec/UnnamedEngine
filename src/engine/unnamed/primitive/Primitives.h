@@ -66,6 +66,11 @@ namespace Unnamed {
 		void Expand(const Vec3& point);
 		void Expand(const AABB& aabb);
 
+		/// @brief 境界を含めて別のAABBと重なっているか判定します。
+		/// @param other 比較対象のAABB
+		/// @return 3軸すべてで範囲が重なる場合はtrue
+		[[nodiscard]] bool Overlaps(const AABB& other) const;
+
 		[[nodiscard]] Vec3 Center() const;
 
 		[[nodiscard]] float SurfaceArea() const;

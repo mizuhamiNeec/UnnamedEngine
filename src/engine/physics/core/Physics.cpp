@@ -38,14 +38,6 @@ namespace Unnamed::Physics {
 			};
 		}
 
-		[[nodiscard]] bool IsAABBOverlap(
-			const AABB& lhs,
-			const AABB& rhs
-		) {
-			return lhs.max.x >= rhs.min.x && lhs.min.x <= rhs.max.x &&
-			       lhs.max.y >= rhs.min.y && lhs.min.y <= rhs.max.y &&
-			       lhs.max.z >= rhs.min.z && lhs.min.z <= rhs.max.z;
-		}
 	}
 
 	/// @brief 初期化
@@ -296,7 +288,7 @@ namespace Unnamed::Physics {
 					continue;
 				}
 				const AABB rootBounds = ToWorldBounds(bvh, bvh.nodes[0].bounds);
-				if (IsAABBOverlap(boxAABB, rootBounds)) {
+				if (boxAABB.Overlaps(rootBounds)) {
 					filtered.emplace_back(&bvh);
 				}
 			}
@@ -319,7 +311,7 @@ namespace Unnamed::Physics {
 					const uint32_t index = stack[--sp];
 					const auto& node = bvh->nodes[index];
 					const AABB nodeBounds = ToWorldBounds(*bvh, node.bounds);
-					if (!IsAABBOverlap(boxAABB, nodeBounds)) {
+					if (!boxAABB.Overlaps(nodeBounds)) {
 						continue;
 					}
 
@@ -786,7 +778,7 @@ namespace Unnamed::Physics {
 				continue;
 			}
 			const AABB rootBounds = ToWorldBounds(bvh, bvh.nodes[0].bounds);
-			if (IsAABBOverlap(boxAABB, rootBounds)) {
+			if (boxAABB.Overlaps(rootBounds)) {
 				filtered.emplace_back(&bvh);
 			}
 		}
@@ -829,7 +821,7 @@ namespace Unnamed::Physics {
 				const auto&    node       = bvh->nodes[index];
 				const AABB     nodeBounds = ToWorldBounds(*bvh, node.bounds);
 
-				if (!IsAABBOverlap(boxAABB, nodeBounds)) {
+				if (!boxAABB.Overlaps(nodeBounds)) {
 					continue;
 				}
 
@@ -1006,7 +998,7 @@ namespace Unnamed::Physics {
 				continue;
 			}
 			const AABB rootBounds = ToWorldBounds(bvh, bvh.nodes[0].bounds);
-			if (IsAABBOverlap(boxAABB, rootBounds)) {
+			if (boxAABB.Overlaps(rootBounds)) {
 				filtered.emplace_back(&bvh);
 			}
 		}
@@ -1031,7 +1023,7 @@ namespace Unnamed::Physics {
 					nodes[index];
 				const AABB nodeBounds = ToWorldBounds(*bvh, bounds);
 
-				if (!IsAABBOverlap(boxAABB, nodeBounds)) {
+				if (!boxAABB.Overlaps(nodeBounds)) {
 					continue;
 				}
 
