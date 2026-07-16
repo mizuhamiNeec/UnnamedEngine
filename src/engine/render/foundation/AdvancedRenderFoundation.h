@@ -9,7 +9,7 @@
 namespace Unnamed::Render {
 	class RenderGraph;
 
-	enum class RtBuildMode : uint8_t {
+	enum class RT_BUILD_MODE : uint8_t {
 		NONE,
 		SOFTWARE_FALLBACK,
 		HARDWARE_INLINE,
@@ -24,7 +24,7 @@ namespace Unnamed::Render {
 	};
 
 	struct RtFrameState {
-		RtBuildMode                 buildMode = RtBuildMode::NONE;
+		RT_BUILD_MODE               buildMode = RT_BUILD_MODE::NONE;
 		std::vector<RtInstanceDesc> visibleInstances;
 		bool                        needsTlasRebuild = false;
 	};
@@ -48,7 +48,9 @@ namespace Unnamed::Render {
 
 	class AdvancedRenderFoundation {
 	public:
-		void Initialize(RenderGraph& graph, uint32_t width, uint32_t height);
+		void Initialize(
+			const RenderGraph& graph, uint32_t width, uint32_t height
+		);
 		void OnResize(uint32_t width, uint32_t height);
 		void BeginFrame();
 

@@ -5,7 +5,7 @@
 
 namespace Unnamed::Render {
 	void AdvancedRenderFoundation::Initialize(
-		RenderGraph& graph, const uint32_t width, const uint32_t height
+		const RenderGraph& graph, const uint32_t width, const uint32_t height
 	) {
 		if (mInitialized) {
 			return;
@@ -13,7 +13,7 @@ namespace Unnamed::Render {
 		mInitialized = true;
 
 		// RT出力の最小土台
-		mRtFrameState.buildMode = RtBuildMode::SOFTWARE_FALLBACK;
+		mRtFrameState.buildMode = RT_BUILD_MODE::SOFTWARE_FALLBACK;
 
 		// GI履歴バッファ
 		mGiFrameState.irradianceHistoryTextureId = graph.CreateTexture(
