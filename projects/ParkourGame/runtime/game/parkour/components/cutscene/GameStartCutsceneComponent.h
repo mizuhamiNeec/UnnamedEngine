@@ -33,7 +33,9 @@ namespace Unnamed {
 		/// @brief 開始演出を毎フレーム更新します。
 		void OnTick(float deltaTime) override;
 		/// @brief 描画フレームでカメラ拘束状態を再適用します。
-		void OnRenderTick(float renderDeltaTime, float interpolationAlpha) override;
+		void OnRenderTick(
+			float renderDeltaTime, float interpolationAlpha
+		) override;
 		/// @brief エディター時にショット座標のデバッグ表示を更新します。
 		void OnEditorTick(float deltaTime) override;
 		/// @brief コンポーネント破棄時にロック解除とUI非表示を保証します。
@@ -86,68 +88,109 @@ namespace Unnamed {
 
 		/// @brief 開始演出を初期化して Tour を開始します。
 		void StartSequence();
+
 		/// @brief Tour を更新します。
+		/// @param deltaTime 前フレームからの経過時間
 		void TickTour(float deltaTime);
+
 		/// @brief Countdown を更新します。
+		/// @param deltaTime 前フレームからの経過時間
 		void TickCountdown(float deltaTime);
+
 		/// @brief Tour から Countdown に遷移します。
 		void EnterCountdown();
+
 		/// @brief 演出完了で Gameplay に遷移します。
 		void EnterGameplay();
 
 		/// @brief Countdown のSEトリガーを更新します。
 		void UpdateCountdownAudio();
+
 		/// @brief 演出UIの表示状態を更新します。
 		void UpdateHudWidgets();
+
 		/// @brief フェードオーバーレイの表示を更新します。
 		void UpdateFadeOverlayWidget() const;
+
 		/// @brief 3-2-1-START 表示を更新します。
 		void UpdateCountdownWidgets() const;
+
 		/// @brief カウントダウンUIを非表示にします。
 		void HideCountdownWidgets() const;
+
 		/// @brief 演出UIをすべて非表示にします。
 		void HideAllCutsceneWidgets() const;
 
 		/// @brief カメラ/UI/Audio の参照を再解決します。
 		void ResolveBindings();
+
 		/// @brief 解決済み参照のキャッシュを初期化します。
 		void ClearResolvedBindings();
+
 		/// @brief lockTargets を無効化して入力/操作を抑止します。
 		void ApplyLockTargets();
+
 		/// @brief lockTargets の有効状態を復帰します。
 		void RestoreLockTargets();
 
 		/// @brief ショット姿勢をツアーカメラへ適用します。
-		void ApplyTourCameraPose(const Vec3& cameraPos, const Vec3& lookAtPos);
+		/// @param cameraPos カメラ位置
+		/// @param lookAtPos カメラの注視点
+		void ApplyTourCameraPose(
+			const Vec3& cameraPos, const Vec3& lookAtPos
+		) const;
+
 		/// @brief ツアーカメラを現在カメラとして強制します。
-		[[nodiscard]] bool SwitchToTourCamera();
+		[[nodiscard]] bool SwitchToTourCamera() const;
+
 		/// @brief プレイヤーカメラを現在カメラとして強制します。
-		[[nodiscard]] bool SwitchToPlayerCamera();
+		[[nodiscard]] bool SwitchToPlayerCamera() const;
 
 		/// @brief lock spec から対象コンポーネントを解決します。
-		[[nodiscard]] BaseComponent* ResolveLockTarget(const LockTargetSpec& spec)
-		const;
+		/// @param spec ロック対象定義
+		/// @return 解決できた場合は対象コンポーネント、解決できなかった場合は nullptr を返します。
+		[[nodiscard]] BaseComponent* ResolveLockTarget(
+			const LockTargetSpec& spec
+		) const;
+
 		/// @brief GUID から AudioSource を解決します。
+		/// @param componentGuid AudioSourceComponent の GUID
+		/// @return 解決できた場合は対象コンポーネント、解決できなかった場合は nullptr を返します。
 		[[nodiscard]] AudioSourceComponent* ResolveAudioSourceByGuid(
 			uint64_t componentGuid
 		) const;
+
 		/// @brief 画面解像度を取得します。
+		/// @param outViewportSizePx 画面解像度を格納する変数
+		/// @return 解像度が取得できた場合は true、取得できなかった場合は false を返します。
 		[[nodiscard]] bool ResolveViewportSize(Vec2& outViewportSizePx) const;
 
 		/// @brief ウィジェット名を再帰的に検索します。
+		/// @param root 検索開始ウィジェット
+		/// @param widgetName 検索するウィジェット名
+		/// @return 見つかった場合は対象ウィジェット、見つからなかった場合は nullptr を返します。
 		[[nodiscard]] static Gui::UiWidget* FindWidgetByNameRecursive(
-			Gui::UiWidget* root,
+			Gui::UiWidget*   root,
 			std::string_view widgetName
 		);
+
 		/// @brief lock spec を JSON へ書き出します。
+		/// @param writer JSON ライター
+		/// @param spec ロック対象定義
 		static void SerializeLockTarget(
-			JsonWriter& writer,
+			JsonWriter&           writer,
 			const LockTargetSpec& spec
 		);
+
 		/// @brief shot spec を JSON へ書き出します。
+		/// @param writer JSON ライター
+		/// @param shot ショット定義
 		static void SerializeShot(JsonWriter& writer, const ShotSpec& shot);
+
 		/// @brief 演出用 cubic-bezier 補間を返します。
+		/// @param t 補間パラメータ [0, 1]
 		[[nodiscard]] static float EvaluateEase(float t);
+
 		/// @brief エディター用にショットの軸デバッグ描画を行います。
 		void DrawShotDebugAxes() const;
 
@@ -171,39 +214,38 @@ namespace Unnamed {
 		std::vector<ShotSpec>       mShots       = {};
 		std::vector<LockTargetSpec> mLockTargets = {};
 
-		PHASE  mPhase                  = PHASE::GAMEPLAY;
-		size_t mShotIndex              = 0;
-		float  mShotElapsedSeconds     = 0.0f;
+		PHASE  mPhase                   = PHASE::GAMEPLAY;
+		size_t mShotIndex               = 0;
+		float  mShotElapsedSeconds      = 0.0f;
 		float  mCountdownElapsedSeconds = 0.0f;
-		float  mFadeAlpha              = 0.0f;
-		bool   mShotFadeActive         = false;
-		bool   mShotFadeSwapped        = false;
-		int    mLastCountdownCueStep   = -1;
-		bool   mPendingStartSequence   = false;
-		bool   mSequenceActive         = false;
+		float  mFadeAlpha               = 0.0f;
+		bool   mShotFadeActive          = false;
+		bool   mShotFadeSwapped         = false;
+		int    mLastCountdownCueStep    = -1;
+		bool   mPendingStartSequence    = false;
+		bool   mSequenceActive          = false;
 		bool   mGameplayControlReleased = false;
 
 		std::vector<ActiveLockState> mActiveLocks = {};
 
-		Entity*             mTourCameraEntity    = nullptr;
-		TransformComponent* mTourCameraTransform = nullptr;
-		CameraComponent*    mTourCamera          = nullptr;
-		Entity*             mPlayerCameraEntity  = nullptr;
-		CameraComponent*    mPlayerCamera        = nullptr;
-		UiCanvasComponent*  mHudCanvas           = nullptr;
-		AudioSourceComponent* mCountAudioSource  = nullptr;
-		AudioSourceComponent* mStartAudioSource  = nullptr;
+		Entity*               mTourCameraEntity    = nullptr;
+		TransformComponent*   mTourCameraTransform = nullptr;
+		CameraComponent*      mTourCamera          = nullptr;
+		Entity*               mPlayerCameraEntity  = nullptr;
+		CameraComponent*      mPlayerCamera        = nullptr;
+		UiCanvasComponent*    mHudCanvas           = nullptr;
+		AudioSourceComponent* mCountAudioSource    = nullptr;
+		AudioSourceComponent* mStartAudioSource    = nullptr;
 
-		Gui::UiWidget*           mCountdownDigitWidget    = nullptr;
+		Gui::UiWidget*             mCountdownDigitWidget    = nullptr;
 		Gui::UiTransformComponent* mCountdownDigitTransform = nullptr;
-		Gui::UiTextureComponent* mCountdownDigitTexture   = nullptr;
+		Gui::UiTextureComponent*   mCountdownDigitTexture   = nullptr;
 
-		Gui::UiWidget*           mCountdownStartWidget    = nullptr;
+		Gui::UiWidget*             mCountdownStartWidget    = nullptr;
 		Gui::UiTransformComponent* mCountdownStartTransform = nullptr;
-		Gui::UiTextureComponent* mCountdownStartTexture   = nullptr;
+		Gui::UiTextureComponent*   mCountdownStartTexture   = nullptr;
 
-		Gui::UiWidget*           mFadeOverlayWidget       = nullptr;
-		Gui::UiTextureComponent* mFadeOverlayTexture      = nullptr;
+		Gui::UiWidget*           mFadeOverlayWidget  = nullptr;
+		Gui::UiTextureComponent* mFadeOverlayTexture = nullptr;
 	};
 }
-

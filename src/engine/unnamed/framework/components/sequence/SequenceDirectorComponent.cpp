@@ -1,10 +1,10 @@
 #include "SequenceDirectorComponent.h"
 
 #include <algorithm>
-#include <array>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
+#include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
 #include "core/ComponentRegistry.h"
@@ -28,19 +28,6 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "SequenceDirector";
 
-#ifdef _DEBUG
-		template <size_t N>
-		void DrawStringInput(const char* label, std::string& value) {
-			std::array<char, N> buffer = {};
-			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLen);
-			}
-			if (ImGui::InputText(label, buffer.data(), buffer.size())) {
-				value = buffer.data();
-			}
-		}
-#endif
 	}
 
 	void SequenceDirectorComponent::OnAttached() {
@@ -99,7 +86,7 @@ namespace Unnamed {
 		std::string sequencePath = mSequencePath.has_value() ?
 			mSequencePath->String() : std::string{};
 		const std::string previousSequencePath = sequencePath;
-		DrawStringInput<256>("Sequence Path", sequencePath);
+		(void)ImGuiWidgets::InputText<256>("Sequence Path", sequencePath);
 		if (
 			ImGui::IsItemDeactivatedAfterEdit() &&
 			sequencePath != previousSequencePath
@@ -144,8 +131,9 @@ namespace Unnamed {
 			);
 			ImGui::InputScalar("Entity Guid", ImGuiDataType_U64,
 			                   &spec.entityGuid);
-			DrawStringInput<128>("Component StableName",
-			                     spec.componentStableName);
+			(void)ImGuiWidgets::InputText<128>(
+				"Component StableName", spec.componentStableName
+			);
 			if (ImGui::Button("Remove")) {
 				mLockTargets.erase(
 					mLockTargets.begin() + static_cast<ptrdiff_t>(i));

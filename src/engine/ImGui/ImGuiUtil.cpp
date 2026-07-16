@@ -9,13 +9,6 @@
 #include "core/string/StrUtil.h"
 
 namespace ImGuiUtil {
-	/// @brief Vec4型をImVec4型に変換します。
-	/// @param vec 変換するVec4型のベクトル
-	/// @return 変換後のImVec4型のベクトル
-	ImVec4 ToImVec4(const Vec4& vec) {
-		return {vec.x, vec.y, vec.z, vec.w};
-	}
-
 	/// @brief ImGuiのダークテーマスタイルを設定します。
 	void StyleColorsDark() {
 		ImGuiStyle& style  = ImGui::GetStyle();
@@ -135,18 +128,6 @@ namespace ImGuiUtil {
 		ImGui::StyleColorsLight();
 	}
 
-	///	@brief Drag用のスタイルカラーをプッシュします。
-	/// @param bg 通常時の背景色
-	/// @param bgHovered ホバー時の背景色
-	/// @param bgActive アクティブ時の背景色
-	void PushStyleColorForDrag(
-		const ImVec4& bg, const ImVec4& bgHovered, const ImVec4& bgActive
-	) {
-		ImGui::PushStyleColor(ImGuiCol_FrameBg, bg);
-		ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, bgHovered);
-		ImGui::PushStyleColor(ImGuiCol_FrameBgActive, bgActive);
-	}
-
 	/// @brief アウトライン付きのテキストを描画します。
 	/// @param drawList 描画リストへのポインタ
 	/// @param pos テキストの位置
@@ -202,125 +183,6 @@ namespace ImGuiUtil {
 			text
 		);
 		drawList->AddText(clientPos, textCol, text);
-	}
-
-	bool CollapsingHeaderWithCheckbox(
-		const uint32_t           icon,
-		const char*              label,
-		const uint64_t           id,
-		bool*                    checkbox,
-		HeaderMenuAction*        action,
-		const bool               canMoveUp,
-		const bool               canMoveDown,
-		const bool               canRemove,
-		const ImGuiTreeNodeFlags flags
-	) {
-		const std::string uniqueID   = "##" + std::to_string(id);
-		auto              menuAction = HeaderMenuAction::None;
-
-		ImGui::PushID(uniqueID.c_str());
-		ImGui::BeginGroup();
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{8.0f, 8.0f});
-
-		const bool isOpen = ImGui::CollapsingHeader(
-			uniqueID.c_str(),
-			flags | ImGuiTreeNodeFlags_AllowOverlap // チェックボックスと重なってもいいようにする
-		);
-
-		const float  collapsingHeaderHeight = ImGui::GetItemRectSize().y;
-		const ImVec2 collapsingHeaderMin    = ImGui::GetItemRectMin();
-		const ImVec2 collapsingHeaderMax    = ImGui::GetItemRectMax();
-
-		ImGui::PopStyleVar();
-
-		ImGui::SameLine();
-
-		// アイコンを表示
-		constexpr float iconScale = 1.5f;
-
-		// フォントサイズを取得
-		const float fontSize = ImGui::GetFontSize();
-		ImVec2      iconSize = ImGui::CalcTextSize(
-			Unnamed::StrUtil::ConvertToUtf8(icon).c_str()
-		);
-		iconSize.x *= iconScale;
-
-		ImGui::GetWindowDrawList()->AddText(
-			ImGui::GetFont(),
-			fontSize * iconScale,
-			ImVec2(
-				ImGui::GetCursorScreenPos().x,
-				ImGui::GetCursorScreenPos().y + collapsingHeaderHeight * 0.5f -
-				fontSize * iconScale * 0.5f
-			),
-			ImGui::GetColorU32(ImGuiCol_Text),
-			Unnamed::StrUtil::ConvertToUtf8(icon).c_str()
-		);
-
-		ImGui::SameLine();
-
-		// チェックボックス用にカーソル位置を調整
-		ImGui::SetCursorPos(
-			ImVec2(
-				ImGui::GetCursorPosX() + ImGui::GetStyle().ItemSpacing.x +
-				iconSize.x,
-				ImGui::GetCursorPosY() + collapsingHeaderHeight * 0.5f -
-				ImGui::GetFrameHeight() * 0.5f
-			)
-		);
-
-		// チェックボックスを表示
-		ImGui::Checkbox("##Checkbox", checkbox);
-
-		ImGui::SameLine();
-
-		// ラベルを表示
-		ImGui::Text(label);
-
-		ImGui::SameLine();
-
-		const std::string moreHoriz = Unnamed::StrUtil::ConvertToUtf8(
-			kIconMoreHoriz
-		);
-
-		const float buttonWidth = ImGui::CalcTextSize(moreHoriz.c_str()).x +
-		                          ImGui::GetStyle().FramePadding.x * 2.0f;
-		ImGui::SetCursorPosX(
-			ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x -
-			ImGui::GetStyle().ItemSpacing.x * 2.0f - buttonWidth
-		);
-		const float headerCenterY =
-			(collapsingHeaderMin.y + collapsingHeaderMax.
-			 y) *
-			0.5f;
-		const float buttonTopY = headerCenterY - ImGui::GetFrameHeight() * 0.5f;
-		ImGui::SetCursorPosY(buttonTopY - ImGui::GetWindowPos().y);
-
-		const bool menuOpen = ImGui::Button(moreHoriz.c_str());
-
-		if (menuOpen) {
-			ImGui::OpenPopup("##HeaderMenu");
-		}
-		if (ImGui::BeginPopup("##HeaderMenu")) {
-			if (ImGui::MenuItem("Move Up", nullptr, false, canMoveUp)) {
-				menuAction = HeaderMenuAction::MoveUp;
-			}
-			if (ImGui::MenuItem("Move Down", nullptr, false, canMoveDown)) {
-				menuAction = HeaderMenuAction::MoveDown;
-			}
-			if (ImGui::MenuItem("Remove", nullptr, false, canRemove)) {
-				menuAction = HeaderMenuAction::Remove;
-			}
-			ImGui::EndPopup();
-		}
-
-		ImGui::EndGroup();
-		ImGui::PopID();
-		if (action != nullptr) {
-			*action = menuAction;
-		}
-		return isOpen;
 	}
 }
 #endif

@@ -145,6 +145,8 @@ namespace Unnamed {
 
 	void LevelEditorTool::DrawMainMenu() {
 		if (ImGui::BeginMenuBar()) {
+			ImGuiWidgets::BeginMenu();
+
 			if (ImGui::BeginMenu("File")) {
 				const Path currentPath      = mEditorWorld.GetLoadedScenePath();
 				const Path sceneRoot        = ResolveEditorSceneRootPath();
@@ -152,7 +154,7 @@ namespace Unnamed {
 					(sceneRoot / Path("sandbox.json")).
 					LexicallyNormal();
 
-				if (ImGui::MenuItem("Save")) {
+				if (ImGuiWidgets::MenuItemWithIcon("Save", kIconSave)) {
 					const Path savePath = currentPath.IsEmpty() ?
 						                      defaultScenePath :
 						                      currentPath;
@@ -171,7 +173,8 @@ namespace Unnamed {
 					}
 				}
 
-				if (ImGui::MenuItem("Save As (sandbox.json)")) {
+				if (ImGuiWidgets::MenuItemWithIcon(
+					"Save As (sandbox.json)", kIconSaveAs)) {
 					if (SaveSceneAs(defaultScenePath)) {
 						Msg(
 							"LevelEditorTool",
@@ -189,7 +192,13 @@ namespace Unnamed {
 
 				ImGui::Separator();
 
-				if (ImGui::BeginMenu("Open Scene")) {
+				if (
+					ImGuiWidgets::BeginMenuEx(
+						"Open Scene",
+						StrUtil::ConvertToUtf8(kIconDeployedCode).c_str(),
+						true
+					)
+				) {
 					static std::vector<Path> sSceneCandidates = {};
 					static Path              sSceneRoot       = {};
 					if (sSceneRoot != sceneRoot) {
@@ -200,7 +209,11 @@ namespace Unnamed {
 						sSceneCandidates = CollectSceneCandidates(sceneRoot);
 					}
 
-					if (ImGui::MenuItem("Refresh Scene List")) {
+					if (
+						ImGuiWidgets::MenuItemWithIcon(
+							"Refresh Scene List", kIconRefresh
+						)
+					) {
 						sSceneCandidates = CollectSceneCandidates(sceneRoot);
 					}
 
@@ -221,7 +234,8 @@ namespace Unnamed {
 							const Path&       scenePath = sSceneCandidates[i];
 							const std::string scenePathText =
 								scenePath.ToGenericUtf8();
-							if (!ImGui::MenuItem(scenePathText.c_str())) {
+							if (!ImGuiWidgets::MenuItemWithIcon(
+								scenePathText.c_str(), kIconJson)) {
 								continue;
 							}
 							SetPathBuffer(mOpenScenePathBuffer, scenePathText);
@@ -272,11 +286,16 @@ namespace Unnamed {
 
 				ImGui::Separator();
 
-				(void)ImGui::MenuItem("Import");
-				(void)ImGui::MenuItem("Export");
+				(void)ImGuiWidgets::MenuItemWithIcon(
+					"Import", kIconUpload, nullptr, false, false
+				);
+				(void)ImGuiWidgets::MenuItemWithIcon(
+					"Export", kIconDownload, nullptr, false, false
+				);
 				ImGui::EndMenu();
 			}
 
+			ImGuiWidgets::EndMenu();
 			ImGui::EndMenuBar();
 		}
 	}

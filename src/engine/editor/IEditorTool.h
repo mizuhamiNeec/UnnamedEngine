@@ -7,6 +7,8 @@
 
 #include "core/math/Vec2.h"
 
+#include "engine/ImGui/Icons.h"
+
 namespace Unnamed {
 	class ConsoleSystem;
 	class InputSystem;
@@ -77,7 +79,10 @@ namespace Unnamed {
 
 		[[nodiscard]] virtual bool IsOpen() const = 0;
 		virtual void               SetOpen(bool open) = 0;
+
+		virtual uint32_t GetIcon() {
+			return kIconQuestionMark;
+		}
 	};
 }
-
 #endif

@@ -5,7 +5,7 @@
 #include <memory>
 #include <unordered_set>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
 #endif
 
@@ -17,6 +17,7 @@
 #include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
+#include "core/string/StrUtil.h"
 #include "game/core/components/AudioFxControllerComponent.h"
 #include "game/core/components/CameraFxControllerComponent.h"
 #include "game/core/presentation/EventPresentationExecutor.h"
@@ -27,7 +28,7 @@
 #endif
 
 #include "engine/ImGui/Icons.h"
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 #include "engine/scene/Scene.h"
@@ -54,24 +55,6 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "EventPresentationV2";
 
-		[[nodiscard]] std::string TrimAscii(const std::string_view text) {
-			size_t begin = 0;
-			while (
-				begin < text.size() &&
-				std::isspace(static_cast<unsigned char>(text[begin])) != 0
-			) {
-				++begin;
-			}
-			size_t end = text.size();
-			while (
-				end > begin &&
-				std::isspace(static_cast<unsigned char>(text[end - 1])) != 0
-			) {
-				--end;
-			}
-			return std::string(text.substr(begin, end - begin));
-		}
-
 		/// @brief エンティティが指定 stableName のコンポーネントを持つか判定します。
 		[[nodiscard]] bool HasComponentStableName(
 			const Entity&          entity,
@@ -89,27 +72,6 @@ namespace Unnamed {
 			);
 			return found;
 		}
-
-#ifdef _DEBUG
-		bool EditStringField(
-			const char* label, std::string& value, const size_t capacity = 256
-		) {
-			std::vector<char> buffer(capacity, '\0');
-			const size_t      copyLength = std::min(value.size(), capacity - 1);
-			if (copyLength > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLength);
-			}
-			if (!ImGui::InputText(label, buffer.data(), buffer.size())) {
-				return false;
-			}
-			value = buffer.data();
-			return true;
-		}
-
-		bool EditEntityGuidField(const char* label, uint64_t& guid) {
-			return ImGui::InputScalar(label, ImGuiDataType_U64, &guid);
-		}
-#endif
 	}
 
 	void EventPresentationComponent::OnAttached() {
@@ -176,15 +138,17 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void EventPresentationComponent::DrawInspectorImGui() {
-		World*         world            = GetWorld();
-		const Entity*  owner            = GetOwner();
-		bool           needsReload      = false;
-		bool           needsResubscribe = false;
-		std::string assetPath = !mEditorPresentationPath.IsEmpty() ?
-			mEditorPresentationPath.ToGenericUtf8() :
-			mPresentationPath.has_value() ?
-				mPresentationPath->String() : std::string{};
-		const uint64_t ownerGuid        = owner ? owner->GetGuid() : 0;
+		World*        world            = GetWorld();
+		const Entity* owner            = GetOwner();
+		bool          needsReload      = false;
+		bool          needsResubscribe = false;
+		std::string   assetPath        = !mEditorPresentationPath.IsEmpty() ?
+			                                 mEditorPresentationPath.
+			                                 ToGenericUtf8() :
+			                                 mPresentationPath.has_value() ?
+			                                 mPresentationPath->String() :
+			                                 std::string{};
+		const uint64_t ownerGuid = owner ? owner->GetGuid() : 0;
 
 		ImGui::Text(
 			"Owner GUID: %llu",
@@ -221,30 +185,37 @@ namespace Unnamed {
 				ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::EVENT_PRESENTATION)
 			)
 		) {
-			AssetManager* assetManager = GetAssetManager();
+			AssetManager*                      assetManager = GetAssetManager();
 			std::optional<ResolvedContentFile> selection;
 			if (assetManager) {
 				const auto virtualPath =
 					VirtualPath::ParseContentReference(assetPath);
 				if (virtualPath.has_value()) {
-					selection = assetManager->GetContentPathResolver().ResolveFile(
-						*virtualPath
-					);
+					selection = assetManager->GetContentPathResolver().
+					                          ResolveFile(
+						                          *virtualPath
+					                          );
 				} else {
 					std::error_code ec;
-					const Path inputPath(assetPath);
-					const Path physicalPath = inputPath.IsAbsolute() ?
-						inputPath.LexicallyNormal() :
-						Path::FromNative(std::filesystem::absolute(
-							inputPath.Native(), ec
-						)).LexicallyNormal();
+					const Path      inputPath(assetPath);
+					const Path      physicalPath = inputPath.IsAbsolute() ?
+						                               inputPath.
+						                               LexicallyNormal() :
+						                               Path::FromNative(
+							                               std::filesystem::absolute(
+								                               inputPath.
+								                               Native(), ec
+							                               )).LexicallyNormal();
 					const auto mountId = !ec ?
-						assetManager->GetContentPathResolver().
-							FindMountIdForResolvedPath(physicalPath) :
-						std::nullopt;
+						                     assetManager->
+						                     GetContentPathResolver().
+						                     FindMountIdForResolvedPath(
+							                     physicalPath) :
+						                     std::nullopt;
 					if (mountId.has_value()) {
 						selection = assetManager->GetContentPathResolver().
-							DescribePathFromMount(*mountId, physicalPath);
+						                          DescribePathFromMount(
+							                          *mountId, physicalPath);
 					}
 				}
 			}
@@ -261,24 +232,26 @@ namespace Unnamed {
 			needsResubscribe = true;
 		}
 
-		if (EditEntityGuidField(
-			"Cue Source Entity GUID", mCueSourceEntityGuid
+		if (ImGui::InputScalar(
+			"Cue Source Entity GUID", ImGuiDataType_U64, &mCueSourceEntityGuid
 		)) {
 			needsResubscribe = true;
 		}
-		if (EditEntityGuidField(
-			"Audio Target Entity GUID", mAudioFxEntityGuid
+		if (ImGui::InputScalar(
+			"Audio Target Entity GUID", ImGuiDataType_U64, &mAudioFxEntityGuid
 		)) {
 			mAudioFx = ResolveAudioFx();
 		}
-		if (EditEntityGuidField(
-				"Camera Target Entity GUID", mCameraFxEntityGuid
+		if (ImGui::InputScalar(
+				"Camera Target Entity GUID", ImGuiDataType_U64,
+				&mCameraFxEntityGuid
 			)
 		) {
 			mCameraFx = ResolveCameraFx();
 		}
-		if (EditEntityGuidField(
-			"Animation Target Entity GUID", mAnimationEntityGuid
+		if (ImGui::InputScalar(
+			"Animation Target Entity GUID", ImGuiDataType_U64,
+			&mAnimationEntityGuid
 		)) {
 			mAnimation = ResolveAnimation();
 		}
@@ -299,7 +272,9 @@ namespace Unnamed {
 			"Handled Cues: %llu",
 			static_cast<unsigned long long>(mDebugHandledCueCount)
 		);
-		(void)EditStringField("Publish Cue ID", mDebugPublishCueId);
+		(void)ImGuiWidgets::InputText(
+			"Publish Cue ID", mDebugPublishCueId, 256
+		);
 		(void)ImGui::DragFloat(
 			"Publish Value", &mDebugPublishValue, 0.01f, -10000.0f, 10000.0f,
 			"%.3f"
@@ -463,7 +438,7 @@ namespace Unnamed {
 			state.ui = std::make_unique<EventPresentationEditorGraphUi>();
 		}
 
-		const auto validateGraph = [&state]() {
+		const auto ValidateGraph = [&state]() {
 			(void)EventPresentationEditorGraphValidator::Validate(
 				state.graph, state.issues
 			);
@@ -499,7 +474,7 @@ namespace Unnamed {
 						state.status = "グラフの再構築に失敗: " + error;
 					} else {
 						state.ui->ResetForGraph(state.graph);
-						validateGraph();
+						ValidateGraph();
 						state.dirty  = false;
 						state.status = "アセットからグラフを再構築しました。";
 					}
@@ -516,7 +491,7 @@ namespace Unnamed {
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Validate")) {
-			validateGraph();
+			ValidateGraph();
 			state.status = "Validation completed.";
 		}
 		ImGui::SameLine();
@@ -527,7 +502,7 @@ namespace Unnamed {
 		if (ImGui::Button("取り消し")) {
 			if (state.ui->Undo(state.graph)) {
 				state.dirty = true;
-				validateGraph();
+				ValidateGraph();
 				state.status = "元に戻しました。";
 			}
 		}
@@ -542,7 +517,7 @@ namespace Unnamed {
 		if (ImGui::Button("やり直し")) {
 			if (state.ui->Redo(state.graph)) {
 				state.dirty = true;
-				validateGraph();
+				ValidateGraph();
 				state.status = "やり直しました。";
 			}
 		}
@@ -556,8 +531,8 @@ namespace Unnamed {
 		ImGui::SameLine();
 		int snapSize = state.ui->GetGridSnapSize();
 		if (ImGui::BeginCombo("スナップ", std::to_string(snapSize).c_str())) {
-			constexpr int kSnapOptions[] = {16, 32, 64};
-			for (const int option : kSnapOptions) {
+			constexpr int snapOptions[] = {16, 32, 64};
+			for (const int option : snapOptions) {
 				const bool selected = snapSize == option;
 				if (ImGui::Selectable(
 					std::to_string(option).c_str(), selected
@@ -578,7 +553,7 @@ namespace Unnamed {
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("グラフを保存")) {
-			validateGraph();
+			ValidateGraph();
 			const bool hasError = std::ranges::any_of(
 				state.issues,
 				[](const EventPresentationValidationIssue& issue) {
@@ -589,11 +564,12 @@ namespace Unnamed {
 			if (hasError) {
 				state.status = "セーブ中止:グラフにエラーがあります。";
 			} else if (AssetManager* assetManager = GetAssetManager();
-			           !assetManager) {
+				!assetManager) {
 				state.status =
 					"セーブ中止:AssetManagerが利用できません。";
 			} else if (assetManager->GetContentPathResolver().
-			           FindMountIdForResolvedPath(mEditorPresentationPath) ==
+			                         FindMountIdForResolvedPath(
+				                         mEditorPresentationPath) ==
 			           ContentMountId::kCore) {
 				state.status =
 					"セーブ中止:Coreのグラフは読み取り専用です。Game contentへ複製してください。";
@@ -648,7 +624,7 @@ namespace Unnamed {
 
 		if (state.ui->Draw(state.graph, state.issues)) {
 			state.dirty = true;
-			validateGraph();
+			ValidateGraph();
 		}
 
 		ImGui::End();
@@ -749,7 +725,8 @@ namespace Unnamed {
 		}
 
 		const std::optional<ResolvedContentFile> resolvedFile =
-			context.assetManager->GetContentPathResolver().ResolveFile(*virtualPath);
+			context.assetManager->GetContentPathResolver().ResolveFile(
+				*virtualPath);
 		if (!resolvedFile.has_value()) {
 			Error(
 				kChannel,
@@ -820,7 +797,7 @@ namespace Unnamed {
 		}
 		mPresentationPath    = path;
 		mPresentationAssetId = assetId;
-		mLoadedAssetVersion = 0;
+		mLoadedAssetVersion  = 0;
 		mLoadedAssetName.clear();
 		mTriggers.clear();
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
@@ -891,7 +868,7 @@ namespace Unnamed {
 		for (const EventPresentationTriggerAssetData& triggerData : assetData->
 		     triggers) {
 			EventPresentationTrigger trigger = {};
-			trigger.cueId                    = TrimAscii(triggerData.cueId);
+			trigger.cueId = StrUtil::TrimAsciiWhitespace(triggerData.cueId);
 			if (trigger.cueId.empty()) {
 				continue;
 			}
@@ -914,12 +891,12 @@ namespace Unnamed {
 			     triggerData.
 			     actions) {
 				EventPresentationAction action = {};
-				action.typeName = TrimAscii(actionData.type);
+				action.typeName = StrUtil::TrimAsciiWhitespace(actionData.type);
 				action.actionType = EventPresentationExecutor::ParseActionType(
 					action.typeName
 				);
-				action.id           = TrimAscii(actionData.id);
-				action.debugText    = actionData.debugText;
+				action.id = StrUtil::TrimAsciiWhitespace(actionData.id);
+				action.debugText = actionData.debugText;
 				action.value.source =
 					EventPresentationExecutor::ParseValueSource(
 						actionData.valueInput.source,
@@ -961,7 +938,7 @@ namespace Unnamed {
 		if (!mPresentationPath.has_value()) {
 			if (mPresentationAssetId != kInvalidAssetID || !mTriggers.empty()) {
 				mPresentationAssetId = kInvalidAssetID;
-				mLoadedAssetVersion = 0;
+				mLoadedAssetVersion  = 0;
 				mLoadedAssetName.clear();
 				mTriggers.clear();
 				SubscribeAll();
@@ -1110,9 +1087,12 @@ namespace Unnamed {
 			const uint64_t receiverGuid =
 				GetOwner() ? GetOwner()->GetGuid() : 0;
 			const std::string assetDisplayName = mLoadedAssetName.empty() ?
-				(mPresentationPath.has_value() ?
-					 mPresentationPath->String() : std::string{}) :
-				mLoadedAssetName;
+				                                     (mPresentationPath.
+					                                     has_value() ?
+						                                     mPresentationPath->
+						                                     String() :
+						                                     std::string{}) :
+				                                     mLoadedAssetName;
 			const EventPresentationExecutor::ExecutionContext context = {
 				.cue                       = cue,
 				.assetName                 = std::string_view(assetDisplayName),

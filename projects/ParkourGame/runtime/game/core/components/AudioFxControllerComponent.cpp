@@ -1,9 +1,10 @@
 #include "AudioFxControllerComponent.h"
 
-#include <algorithm>
-
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
+
+#include <utility>
+#include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
 #include "core/ComponentRegistry.h"
@@ -18,28 +19,11 @@
 #include "engine/world/World.h"
 
 namespace Unnamed {
-	namespace {
-#ifdef _DEBUG
-		bool EditStringField(
-			const char* label, std::string& value, const size_t capacity = 128
-		) {
-			std::vector<char> buffer(capacity, '\0');
-			const size_t      copyLength = std::min(value.size(), capacity - 1);
-			if (copyLength > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLength);
-			}
-			if (!ImGui::InputText(label, buffer.data(), buffer.size())) {
-				return false;
-			}
-			value = buffer.data();
-			return true;
-		}
-#endif
+	void AudioFxControllerComponent::OnAttached() {
 	}
 
-	void AudioFxControllerComponent::OnAttached() {}
-
-	void AudioFxControllerComponent::OnTick(const float) {}
+	void AudioFxControllerComponent::OnTick(const float) {
+	}
 
 	bool AudioFxControllerComponent::TriggerOneShot(
 		const std::string_view presetId, const float intensityScale
@@ -101,7 +85,7 @@ namespace Unnamed {
 			ImGui::PushID(static_cast<int>(i));
 			ImGui::SeparatorText(("OneShot " + std::to_string(i)).c_str());
 
-			(void)EditStringField("ID", preset.id);
+			(void)ImGuiWidgets::InputText("ID", preset.id, 128);
 			(void)ImGui::InputScalar(
 				"Source Entity GUID",
 				ImGuiDataType_U64,
@@ -154,7 +138,7 @@ namespace Unnamed {
 		}
 
 		if (
-			removeIndex != static_cast<size_t>(-1) &&
+			std::cmp_not_equal(removeIndex, -1) &&
 			removeIndex < mOneShotPresets.size()
 		) {
 			mOneShotPresets.erase(
@@ -302,4 +286,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(AudioFxControllerComponent);
 }
-

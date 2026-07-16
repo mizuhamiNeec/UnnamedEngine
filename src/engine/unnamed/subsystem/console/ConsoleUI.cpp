@@ -165,10 +165,7 @@ namespace Unnamed {
 
 	void ConsoleUI::ShowMenuBar() {
 		if (ImGui::BeginMenuBar()) {
-			ImGui::PushStyleVar(
-				ImGuiStyleVar_WindowPadding,
-				ImVec2(kPopupPadding, kPopupPadding)
-			);
+			ImGuiWidgets::BeginMenu();
 
 			if (ImGui::BeginMenu("File")) {
 				if (ImGuiWidgets::MenuItemWithIcon("Clear", kIconReset)) {
@@ -237,7 +234,7 @@ namespace Unnamed {
 				ImGui::EndMenu();
 			}
 
-			ImGui::PopStyleVar();
+			ImGuiWidgets::EndMenu();
 
 			ImGui::EndMenuBar();
 		}
@@ -327,10 +324,7 @@ namespace Unnamed {
 	}
 
 	void ConsoleUI::ShowContextMenu() const {
-		ImGui::PushStyleVar(
-			ImGuiStyleVar_WindowPadding,
-			ImVec2(kPopupPadding, kPopupPadding)
-		);
+		ImGuiWidgets::BeginMenu();
 
 		if (ImGui::BeginPopup(kConsoleUIContextPopupId)) {
 			// 選択数をカウント
@@ -377,7 +371,7 @@ namespace Unnamed {
 
 			ImGui::EndPopup();
 		}
-		ImGui::PopStyleVar();
+		ImGuiWidgets::EndMenu();
 	}
 
 	void ConsoleUI::Submit() {
@@ -619,19 +613,16 @@ namespace Unnamed {
 
 		const float rowHeight = ImGui::GetFrameHeight();
 		const float popupH    =
-			rowHeight * static_cast<float>(itemCount) + kPopupPadding * 2.0f;
+			rowHeight * static_cast<float>(itemCount) + 8.0f * 2.0f;
 		const auto popupPos = ImVec2(
 			inputLeftTop.x,
-			inputLeftTop.y - popupH - kPopupPadding
+			inputLeftTop.y - popupH - 8.0f
 		);
 		const auto popupSize = ImVec2(std::max(inputWidth, 200.0f), popupH);
 
 		ImGui::SetNextWindowPos(popupPos);
 		ImGui::SetNextWindowSize(popupSize);
-		ImGui::PushStyleVar(
-			ImGuiStyleVar_WindowPadding,
-			ImVec2(kPopupPadding, kPopupPadding)
-		);
+		ImGuiWidgets::BeginMenu();
 
 		constexpr ImGuiWindowFlags flags =
 			ImGuiWindowFlags_NoFocusOnAppearing |
@@ -754,7 +745,7 @@ namespace Unnamed {
 			ImGui::PopStyleVar();
 		}
 		ImGui::End();
-		ImGui::PopStyleVar();
+		ImGuiWidgets::EndMenu();
 	}
 
 	void ConsoleUI::MoveSuggestionSelection(const int delta) {

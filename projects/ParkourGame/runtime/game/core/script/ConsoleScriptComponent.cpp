@@ -1,10 +1,8 @@
 #include "ConsoleScriptComponent.h"
 
-#include <algorithm>
-#include <array>
-
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
+#include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
 #include "core/ComponentRegistry.h"
@@ -21,24 +19,10 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "ConsoleScriptComponent";
 
-		constexpr const char* kAttachCommandsKey = "attachCommands";
-		constexpr const char* kDetachCommandsKey = "detachCommands";
+		constexpr auto kAttachCommandsKey = "attachCommands";
+		constexpr auto kDetachCommandsKey = "detachCommands";
 
-#ifdef _DEBUG
-		template <size_t N>
-		bool EditCommandInput(const char* label, std::string& value) {
-			std::array<char, N> buffer = {};
-			const size_t        copyLen = std::min(value.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLen);
-			}
-			if (!ImGui::InputText(label, buffer.data(), buffer.size())) {
-				return false;
-			}
-			value = buffer.data();
-			return true;
-		}
-
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		void DrawCommandListInspector(
 			const char*               label,
 			std::vector<std::string>& commands
@@ -57,10 +41,11 @@ namespace Unnamed {
 			for (size_t i = 0; i < commands.size(); ++i) {
 				ImGui::PushID(static_cast<int>(i));
 				std::string& command = commands[i];
-				EditCommandInput<512>("##Command", command);
+				(void)ImGuiWidgets::InputText<512>("##Command", command);
 				ImGui::SameLine();
 				if (ImGui::Button("Remove")) {
-					commands.erase(commands.begin() + static_cast<ptrdiff_t>(i));
+					commands.
+						erase(commands.begin() + static_cast<ptrdiff_t>(i));
 					ImGui::PopID();
 					break;
 				}
@@ -71,7 +56,7 @@ namespace Unnamed {
 #endif
 
 		void ReadCommandArray(
-			const JsonReader&          node,
+			const JsonReader&         node,
 			std::vector<std::string>& outCommands
 		) {
 			outCommands.clear();
@@ -85,7 +70,8 @@ namespace Unnamed {
 				if (!commandNode.Valid()) {
 					continue;
 				}
-				std::string command = StrUtil::TrimSpaces(commandNode.GetString(""));
+				std::string command = StrUtil::TrimSpaces(
+					commandNode.GetString(""));
 				if (command.empty()) {
 					continue;
 				}
@@ -180,4 +166,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(ConsoleScriptComponent);
 }
-

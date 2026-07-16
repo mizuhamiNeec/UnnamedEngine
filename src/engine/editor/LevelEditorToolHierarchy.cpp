@@ -215,8 +215,8 @@ namespace Unnamed {
 			const std::string parent = SceneFolderPath::Normalize(
 				parentFolderPath
 			);
-			int               suffix = 0;
-			for (;;) {
+			int suffix = 0;
+			while (true) {
 				const std::string candidateName =
 					suffix == 0 ?
 						"NewFolder" :
@@ -713,9 +713,10 @@ namespace Unnamed {
 				const std::string&        folderPath
 			) {
 					if (!folderPath.empty()) {
-						const std::string displayName = SceneFolderPath::LeafName(
-							folderPath
-						);
+						const std::string displayName =
+							SceneFolderPath::LeafName(
+								folderPath
+							);
 						ImGui::TableNextRow();
 						ImGui::TableNextColumn();
 						const bool opened = ImGui::TreeNodeEx(
@@ -792,8 +793,8 @@ namespace Unnamed {
 
 					for (const auto& [childName, childNode] : node.children) {
 						const std::string childPath = folderPath.empty() ?
-							childName :
-							folderPath + "/" + childName;
+								childName :
+								folderPath + "/" + childName;
 						drawFolder(childNode, childPath);
 					}
 
@@ -803,11 +804,11 @@ namespace Unnamed {
 								                        TransformComponent>() :
 							                        nullptr;
 						const auto* parentTransform = transform ?
-							transform->GetParent() :
-							nullptr;
+								transform->GetParent() :
+								nullptr;
 						const Entity* parentEntity = parentTransform ?
-							parentTransform->GetOwner() :
-							nullptr;
+								parentTransform->GetOwner() :
+								nullptr;
 						if (
 							parentEntity &&
 							std::string(parentEntity->GetFolderPath()) ==
@@ -1025,10 +1026,7 @@ namespace Unnamed {
 			ImGui::OpenPopup("InspectorAddComponentPopup");
 		}
 
-		ImGui::PushStyleVar(
-			ImGuiStyleVar_WindowPadding,
-			ImVec2(kPopupPadding, kPopupPadding)
-		);
+		ImGuiWidgets::BeginMenu();
 
 		if (ImGui::BeginPopup("InspectorAddComponentPopup")) {
 			ComponentMenuNode addComponentRoot    = {};
@@ -1058,7 +1056,7 @@ namespace Unnamed {
 			ImGui::EndPopup();
 		}
 
-		ImGui::PopStyleVar();
+		ImGuiWidgets::EndMenu();
 
 		ImGui::Separator();
 
@@ -1070,7 +1068,7 @@ namespace Unnamed {
 		);
 
 		auto pendingAction =
-			ImGuiUtil::HeaderMenuAction::None;
+			ImGuiWidgets::HeaderMenuAction::None;
 		BaseComponent* pendingTarget = nullptr;
 
 		for (size_t index = 0; index < orderedComponents.size(); ++index) {
@@ -1092,8 +1090,8 @@ namespace Unnamed {
 
 			bool componentActive = component->IsActive();
 			auto action          =
-				ImGuiUtil::HeaderMenuAction::None;
-			const bool open = ImGuiUtil::CollapsingHeaderWithCheckbox(
+				ImGuiWidgets::HeaderMenuAction::None;
+			const bool open = ImGuiWidgets::CollapsingHeaderWithCheckbox(
 				component->GetIcon(),
 				component->GetComponentName().data(),
 				component->GetGuid(),
@@ -1113,7 +1111,7 @@ namespace Unnamed {
 			ImGui::Separator();
 
 			if (
-				action != ImGuiUtil::HeaderMenuAction::None &&
+				action != ImGuiWidgets::HeaderMenuAction::None &&
 				pendingTarget == nullptr
 			) {
 				pendingAction = action;
@@ -1123,16 +1121,16 @@ namespace Unnamed {
 
 		if (pendingTarget != nullptr) {
 			switch (pendingAction) {
-				case ImGuiUtil::HeaderMenuAction::MoveUp: (void)entity->
+				case ImGuiWidgets::HeaderMenuAction::MoveUp: (void)entity->
 						MoveComponentUp(pendingTarget);
 					break;
-				case ImGuiUtil::HeaderMenuAction::MoveDown: (void)entity->
+				case ImGuiWidgets::HeaderMenuAction::MoveDown: (void)entity->
 						MoveComponentDown(pendingTarget);
 					break;
-				case ImGuiUtil::HeaderMenuAction::Remove: entity->
+				case ImGuiWidgets::HeaderMenuAction::Remove: entity->
 						RemoveComponent(pendingTarget);
 					break;
-				case ImGuiUtil::HeaderMenuAction::None:
+				case ImGuiWidgets::HeaderMenuAction::None:
 				default: break;
 			}
 		}

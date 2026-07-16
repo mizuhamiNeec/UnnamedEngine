@@ -1,10 +1,10 @@
 #include "CourseProgressHudComponent.h"
 
 #include <algorithm>
-#include <array>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
+#include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
 #include "core/ComponentRegistry.h"
@@ -29,35 +29,15 @@
 
 namespace Unnamed {
 	namespace {
-#ifdef _DEBUG
-		template <size_t N>
-		void DrawStringInput(
-			const char*  label,
-			std::string& value
-		) {
-			std::array<char, N> buffer = {};
-			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLen);
-			}
-			if (ImGui::InputText(label, buffer.data(), buffer.size())) {
-				value = buffer.data();
-			}
-		}
-
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 		template <size_t N>
 		void DrawPathInput(
 			const char* label,
 			Path&       value
 		) {
-			std::array<char, N> buffer = {};
-			const std::string pathStr = value.ToGenericUtf8();
-			const size_t copyLen = std::min(pathStr.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), pathStr.data(), copyLen);
-			}
-			if (ImGui::InputText(label, buffer.data(), buffer.size())) {
-				value = Path(buffer.data());
+			std::string pathText = value.ToGenericUtf8();
+			if (ImGuiWidgets::InputText<N>(label, pathText)) {
+				value = Path(pathText);
 			}
 		}
 #endif
@@ -89,7 +69,7 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CourseProgressHudComponent::DrawInspectorImGui() {
-		DrawStringInput<64>("Course Id", mCourseId);
+		(void)ImGuiWidgets::InputText<64>("Course Id", mCourseId);
 		if (mCourseId.empty()) {
 			mCourseId = "default";
 		}
@@ -104,16 +84,23 @@ namespace Unnamed {
 		);
 		ImGui::DragFloat("Pin Size Px", &mPinSizePx, 0.5f, 1.0f, 512.0f);
 		ImGui::DragFloat("Arrow Size Px", &mArrowSizePx, 0.5f, 1.0f, 512.0f);
-		DrawStringInput<64>("Pin Widget Name", mPinWidgetName);
-		DrawStringInput<64>("Arrow Widget Name", mArrowWidgetName);
-		DrawStringInput<64>("Elapsed Minutes Widget",
-		                    mElapsedMinutesWidgetName);
-		DrawStringInput<64>("Elapsed Seconds Widget",
-		                    mElapsedSecondsWidgetName);
-		DrawStringInput<64>("Elapsed Fraction Widget",
-		                    mElapsedFractionWidgetName);
-		DrawStringInput<64>("Elapsed Comma Widget", mElapsedCommaWidgetName);
-		DrawStringInput<64>("Elapsed Dot Widget", mElapsedDotWidgetName);
+		(void)ImGuiWidgets::InputText<64>("Pin Widget Name", mPinWidgetName);
+		(void)ImGuiWidgets::InputText<64>("Arrow Widget Name", mArrowWidgetName);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Minutes Widget", mElapsedMinutesWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Seconds Widget", mElapsedSecondsWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Fraction Widget", mElapsedFractionWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Comma Widget", mElapsedCommaWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Dot Widget", mElapsedDotWidgetName
+		);
 		DrawPathInput<128>("Pin Texture Path", mPinTexturePath);
 		DrawPathInput<128>("Arrow Texture Path", mArrowTexturePath);
 		DrawPathInput<128>("Digit Texture Path", mDigitTexturePath);

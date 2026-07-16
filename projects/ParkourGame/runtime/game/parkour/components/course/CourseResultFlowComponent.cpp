@@ -1,13 +1,12 @@
 #include "CourseResultFlowComponent.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
-#include <cstring>
 #include <utility>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
+#include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
 #include "core/ComponentRegistry.h"
@@ -73,21 +72,6 @@ namespace Unnamed {
 			}
 			return effectivePath;
 		}
-
-#ifdef _DEBUG
-		template <size_t N>
-		bool DrawStringInput(const char* label, std::string& value) {
-			std::array<char, N> buffer = {};
-			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLen);
-			}
-			if (ImGui::InputText(label, buffer.data(), buffer.size())) {
-				value = buffer.data();
-			}
-			return ImGui::IsItemEdited();
-		}
-#endif
 	}
 
 	void CourseResultFlowComponent::OnAttached() {
@@ -148,38 +132,54 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CourseResultFlowComponent::DrawInspectorImGui() {
-		DrawStringInput<64>("Course Id", mCourseId);
+		(void)ImGuiWidgets::InputText<64>("Course Id", mCourseId);
 		if (mCourseId.empty()) {
 			mCourseId = "default";
 		}
 
 		std::string titleScenePathTemp = mTitleScenePath.ToUtf8();
-		DrawStringInput<128>("Title Scene Path", titleScenePathTemp);
+		(void)ImGuiWidgets::InputText<128>(
+			"Title Scene Path", titleScenePathTemp
+		);
 		mTitleScenePath = Path(titleScenePathTemp);
-		DrawStringInput<64>("Result Root Widget", mResultRootWidgetName);
-		DrawStringInput<64>("Clear Image Widget", mClearImageWidgetName);
-		DrawStringInput<64>("Elapsed Digits Widget (Legacy)",
-		                    mElapsedDigitsWidgetName);
-		DrawStringInput<64>("Elapsed Minutes Widget",
-		                    mElapsedMinutesWidgetName);
-		DrawStringInput<64>("Elapsed Seconds Widget",
-		                    mElapsedSecondsWidgetName);
-		DrawStringInput<64>("Elapsed Fraction Widget",
-		                    mElapsedFractionWidgetName);
-		DrawStringInput<64>("Elapsed Comma Widget", mElapsedCommaWidgetName);
-		DrawStringInput<64>("Elapsed Dot Widget", mElapsedDotWidgetName);
-		DrawStringInput<64>("Fade Overlay Widget", mFadeOverlayWidgetName);
+		(void)ImGuiWidgets::InputText<64>(
+			"Result Root Widget", mResultRootWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Clear Image Widget", mClearImageWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Digits Widget (Legacy)", mElapsedDigitsWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Minutes Widget", mElapsedMinutesWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Seconds Widget", mElapsedSecondsWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Fraction Widget", mElapsedFractionWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Comma Widget", mElapsedCommaWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Dot Widget", mElapsedDotWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Fade Overlay Widget", mFadeOverlayWidgetName
+		);
 		std::string clearTexturePath = mClearTexturePath.ToGenericUtf8();
-		DrawStringInput<128>("Clear Texture", clearTexturePath);
+		(void)ImGuiWidgets::InputText<128>("Clear Texture", clearTexturePath);
 		mClearTexturePath            = Path(clearTexturePath);
 		std::string digitTexturePath = mDigitTexturePath.ToGenericUtf8();
-		DrawStringInput<128>("Digit Texture", digitTexturePath);
+		(void)ImGuiWidgets::InputText<128>("Digit Texture", digitTexturePath);
 		mDigitTexturePath            = Path(digitTexturePath);
 		std::string commaTexturePath = mCommaTexturePath.ToGenericUtf8();
-		DrawStringInput<128>("Comma Texture", commaTexturePath);
+		(void)ImGuiWidgets::InputText<128>("Comma Texture", commaTexturePath);
 		mCommaTexturePath          = Path(commaTexturePath);
 		std::string dotTexturePath = mDotTexturePath.ToGenericUtf8();
-		DrawStringInput<128>("Dot Texture", dotTexturePath);
+		(void)ImGuiWidgets::InputText<128>("Dot Texture", dotTexturePath);
 		mDotTexturePath = Path(dotTexturePath);
 		ImGui::DragFloat(
 			"Result Hold Seconds",
@@ -465,7 +465,7 @@ namespace Unnamed {
 
 		const std::string normalizedCourseId =
 			mCourseId.empty() ? std::string("default") : mCourseId;
-		const auto tryBindCourseProgress = [&](Entity& entity) -> bool {
+		const auto TryBindCourseProgress = [&](Entity& entity) -> bool {
 			bool found = false;
 			entity.ForEachComponent(
 				[&](BaseComponent& component) {
@@ -484,11 +484,11 @@ namespace Unnamed {
 		};
 
 		if (Entity* owner = GetOwner()) {
-			(void)tryBindCourseProgress(*owner);
+			(void)TryBindCourseProgress(*owner);
 		}
 		if (!mCourseProgress) {
 			for (const auto& entityPtr : scene->GetEntities()) {
-				if (entityPtr && tryBindCourseProgress(*entityPtr)) {
+				if (entityPtr && TryBindCourseProgress(*entityPtr)) {
 					break;
 				}
 			}
@@ -619,7 +619,7 @@ namespace Unnamed {
 		const float alpha
 	)
 	const {
-		const float clampedAlpha = std::clamp(alpha, 0.0f, 1.0f);
+		const float         clampedAlpha = std::clamp(alpha, 0.0f, 1.0f);
 		AssetManager* const assetManager = GetAssetManager();
 		if (mResultRootWidget) {
 			mResultRootWidget->SetVisible(clampedAlpha > 0.0f);
@@ -662,7 +662,7 @@ namespace Unnamed {
 			const CourseElapsedTimeParts time =
 				SplitCourseElapsedTime(mLatchedElapsedSeconds);
 
-			const auto applyDigitStrip = [&](
+			const auto ApplyDigitStrip = [&](
 				Gui::UiWidget*              widget,
 				Gui::UiDigitStripComponent* strip,
 				const int                   value
@@ -686,14 +686,14 @@ namespace Unnamed {
 				strip->SetColor(color);
 				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 			};
-			applyDigitStrip(mElapsedMinutesWidget, mElapsedMinutes,
+			ApplyDigitStrip(mElapsedMinutesWidget, mElapsedMinutes,
 			                time.minutes);
-			applyDigitStrip(mElapsedSecondsWidget, mElapsedSeconds,
+			ApplyDigitStrip(mElapsedSecondsWidget, mElapsedSeconds,
 			                time.seconds);
-			applyDigitStrip(mElapsedFractionWidget, mElapsedFraction,
+			ApplyDigitStrip(mElapsedFractionWidget, mElapsedFraction,
 			                time.fraction);
 
-			const auto applySeparator = [&](
+			const auto ApplySeparator = [&](
 				Gui::UiWidget*           widget,
 				Gui::UiTextureComponent* texture,
 				const Path&              path,
@@ -716,13 +716,13 @@ namespace Unnamed {
 				texture->SetColor(color);
 				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 			};
-			applySeparator(
+			ApplySeparator(
 				mElapsedCommaWidget,
 				mElapsedComma,
 				mCommaTexturePath,
 				Path("textures/colon.png")
 			);
-			applySeparator(
+			ApplySeparator(
 				mElapsedDotWidget,
 				mElapsedDot,
 				mDotTexturePath,
@@ -778,18 +778,18 @@ namespace Unnamed {
 			mElapsedDigitsWidget->SetVisible(false);
 			mElapsedDigitsWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 		}
-		const auto hideWidget = [](Gui::UiWidget* widget) {
+		const auto HideWidget = [](Gui::UiWidget* widget) {
 			if (!widget) {
 				return;
 			}
 			widget->SetVisible(false);
 			widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 		};
-		hideWidget(mElapsedMinutesWidget);
-		hideWidget(mElapsedSecondsWidget);
-		hideWidget(mElapsedFractionWidget);
-		hideWidget(mElapsedCommaWidget);
-		hideWidget(mElapsedDotWidget);
+		HideWidget(mElapsedMinutesWidget);
+		HideWidget(mElapsedSecondsWidget);
+		HideWidget(mElapsedFractionWidget);
+		HideWidget(mElapsedCommaWidget);
+		HideWidget(mElapsedDotWidget);
 	}
 
 	void CourseResultFlowComponent::ApplyLockTargets() {
@@ -835,7 +835,7 @@ namespace Unnamed {
 			return nullptr;
 		}
 
-		const auto findInEntity = [&](Entity& entity) -> BaseComponent* {
+		const auto FindInEntity = [&](Entity& entity) -> BaseComponent* {
 			BaseComponent* found = nullptr;
 			entity.ForEachComponent(
 				[&](BaseComponent& component) {
@@ -851,20 +851,20 @@ namespace Unnamed {
 
 		if (spec.entityGuid != 0) {
 			if (Entity* entity = scene->FindEntity(spec.entityGuid)) {
-				return findInEntity(*entity);
+				return FindInEntity(*entity);
 			}
 			return nullptr;
 		}
 
 		if (Entity* owner = GetOwner()) {
-			if (BaseComponent* found = findInEntity(*owner)) {
+			if (BaseComponent* found = FindInEntity(*owner)) {
 				return found;
 			}
 		}
 
 		for (const auto& entityPtr : scene->GetEntities()) {
 			if (entityPtr) {
-				if (BaseComponent* found = findInEntity(*entityPtr)) {
+				if (BaseComponent* found = FindInEntity(*entityPtr)) {
 					return found;
 				}
 			}
@@ -879,7 +879,7 @@ namespace Unnamed {
 			return nullptr;
 		}
 
-		Scene* scene = GetScene();
+		const Scene* scene = GetScene();
 		if (!scene) {
 			return nullptr;
 		}

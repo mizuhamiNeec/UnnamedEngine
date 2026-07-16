@@ -1,6 +1,7 @@
 #pragma once
 #ifdef _DEBUG
 
+#include "EditorProperties.h"
 #include "EditorToolHost.h"
 
 namespace Unnamed {
@@ -18,8 +19,20 @@ namespace Unnamed {
 		struct RenderFrameInputs;
 	}
 
+	/// @brief エディタランタイム
+	/// @details エディタのUIやツールを管理するランタイムクラスです。エディタの初期化、UIの構築、レンダリングビューの収集、プレゼンテーション状態の同期などを行います。
 	class EditorRuntime final {
 	public:
+		/// @brief エディタランタイムを初期化します。
+		/// @param console コンソールシステムへのポインタ
+		/// @param inputSystem 入力システムへのポインタ
+		/// @param assetManager アセットマネージャへのポインタ
+		/// @param demoService デモサービスへのポインタ
+		/// @param gameWorldFactory ゲームワールドファクトリへの参照
+		/// @param profiler プロファイラへのポインタ
+		/// @param windowManager ウィンドウマネージャへの参照
+		/// @param renderModule レンダーモジュールへの参照
+		/// @param imGuiLayer ImGuiレイヤーへの参照
 		EditorRuntime(
 			ConsoleSystem*        console,
 			InputSystem*          inputSystem,
@@ -31,22 +44,35 @@ namespace Unnamed {
 			Render::RenderModule& renderModule,
 			ImGuiLayer&           imGuiLayer
 		);
-		~EditorRuntime();
 
-		void BeginUI();
+		/// @brief エディタのUIを開始します。
+		void BeginUI() const;
+
+		/// @brief エディタのUIを構築します。
 		void BuildUi(float deltaTime);
 
-		void                              TogglePresentMode();
+		/// @brief 表示モードを切り替えます。
+		void TogglePresentMode() const;
+
+		/// @brief 現在の表示モードを取得します。
 		[[nodiscard]] EDITOR_PRESENT_MODE GetPresentMode() const;
 
-		void FillEditorRenderViews(Render::RenderFrameInputs& inputs);
-		void SyncViewOutputs();
-		void SyncPresentationState();
+		/// @brief エディタのレンダリングビューを収集します。
+		/// @param inputs レンダリングフレームの入力情報
+		void FillEditorRenderViews(Render::RenderFrameInputs& inputs) const;
 
+		/// @brief レンダリングビューの出力を同期します。
+		void SyncViewOutputs() const;
+
+		/// @brief プレゼンテーション状態を同期します。
+		void SyncPresentationState() const;
+
+		/// @brief ランタイムワールドを取得します。
+		/// @return ランタイムワールドへのポインタ
 		[[nodiscard]] World* GetRuntimeWorld() const;
 
 	private:
-		ConsoleSystem* mConsole;
+		ConsoleSystem* mConsole = nullptr;
 		EditorToolHost mToolHost;
 	};
 }

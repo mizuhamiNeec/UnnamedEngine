@@ -16,7 +16,9 @@
 #include "engine/unnamed/subsystem/editorluasystem/EditorLuaSystem.h"
 
 namespace Unnamed {
-	static constexpr std::string_view kChannel = "EdTlHost";
+	static constexpr std::string_view kChannel        = "EdTlHost";
+	static constexpr float            kTitleBarHeight = 34.0f;
+	static constexpr float            kWindowPadding  = 8.0f;
 
 	EditorToolHost::EditorToolHost(
 		ConsoleSystem*        console,
@@ -141,7 +143,7 @@ namespace Unnamed {
 			// WindowPadding
 			ImGui::PushStyleVar(
 				ImGuiStyleVar_WindowPadding,
-				ImVec2(kPopupPadding, kPopupPadding)
+				ImVec2(kWindowPadding, kWindowPadding)
 			);
 
 			//-----------------------------------------------------------------
@@ -157,7 +159,8 @@ namespace Unnamed {
 				const std::string iconText =
 					" " + StrUtil::ConvertToUtf8(kIconArrowBack) + " ";
 
-				if (ImGuiWidgets::BeginMainMenu(iconText.c_str())) {
+				if (ImGuiWidgets::BeginMainMenu(iconText.c_str(),
+				                                kTitleBarHeight)) {
 					ImGui::PopStyleColor(); // Text
 					if (
 						ImGuiWidgets::MenuItemWithIcon(
@@ -173,7 +176,7 @@ namespace Unnamed {
 			}
 
 			// File メニュー
-			if (ImGuiWidgets::BeginMainMenu("File")) {
+			if (ImGuiWidgets::BeginMainMenu("File", kTitleBarHeight)) {
 				if (ImGuiWidgets::MenuItemWithIcon("Exit", kIconPower)) {
 					if (mConsole) {
 						mConsole->ExecuteCommand("quit");
@@ -184,7 +187,7 @@ namespace Unnamed {
 
 			// Edit メニュー
 			{
-				if (ImGuiWidgets::BeginMainMenu("Edit")) {
+				if (ImGuiWidgets::BeginMainMenu("Edit", kTitleBarHeight)) {
 					(void)ImGuiWidgets::MenuItemWithIcon(
 						"Settings", kIconSettings
 					);
@@ -194,15 +197,16 @@ namespace Unnamed {
 
 			// Window メニュー
 			{
-				if (ImGuiWidgets::BeginMainMenu("Window")) {
+				if (ImGuiWidgets::BeginMainMenu("Window", kTitleBarHeight)) {
 					for (const auto& tool : mOwnedTools) {
 						if (!tool) {
 							continue;
 						}
 						const bool open = tool->IsOpen();
 						if (
-							ImGui::MenuItem(
+							ImGuiWidgets::MenuItemWithIcon(
 								std::string(tool->GetDisplayName()).c_str(),
+								tool->GetIcon(),
 								nullptr,
 								open
 							)

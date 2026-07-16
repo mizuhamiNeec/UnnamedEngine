@@ -527,6 +527,7 @@ namespace Unnamed {
 
 		if (mConfig.mode == RUN_MODE::EDITOR) {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+			EditorUIProperties editorUIProperties; // デフォルトを使用
 			mEditorRuntime = std::make_unique<EditorRuntime>(
 				mConsoleSystem.get(),
 				mInputSystem.get(),
