@@ -1,4 +1,4 @@
-#if defined(UNNAMED_WITH_EDITOR)
+#ifdef UNNAMED_WITH_EDITOR
 #include <algorithm>
 #include <imgui.h>
 #include <imgui_internal.h>

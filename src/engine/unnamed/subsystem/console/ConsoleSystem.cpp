@@ -25,7 +25,7 @@ namespace Unnamed {
 	static constexpr std::string_view kChannelConsole = "Console";
 	static constexpr std::string_view kConsoleLogPath = "./consolesystem.log";
 
-	// 互換性維持用の既存 user.cfg です。
+	// 互換性維持用の既存 user.cfg
 	static constexpr std::string_view kLegacyUserCfgPath =
 		"./content/core/cfg/user.cfg";
 
