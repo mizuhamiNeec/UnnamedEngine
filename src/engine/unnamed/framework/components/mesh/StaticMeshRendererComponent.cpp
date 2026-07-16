@@ -1,6 +1,5 @@
 #include "StaticMeshRendererComponent.h"
 
-#include <algorithm>
 #include <functional>
 
 #include "core/ComponentRegistry.h"
@@ -19,13 +18,6 @@
 
 namespace Unnamed {
 	namespace {
-		std::string ReadStringOr(
-			const JsonReader& reader, const char* key, const char* fallback
-		) {
-			const JsonReader value = reader[key];
-			return value.Valid() ? value.GetString() : std::string(fallback);
-		}
-
 		[[nodiscard]] AssetID ResolveStoredVirtualAssetPath(
 			const Path&                                       storedPath,
 			const char*                                       assetKind,
@@ -46,23 +38,6 @@ namespace Unnamed {
 			}
 
 			return loadVirtualPath(*virtualPath);
-		}
-		
-		// ReSharper disable once CppDeclaratorNeverUsed
-		uint32_t ComputeRequiredMaterialSlotCount(
-			const MeshAssetData& meshAsset
-		) {
-			if (meshAsset.submeshes.empty()) {
-				return 1;
-			}
-
-			uint32_t maxMaterialIndex = 0;
-			for (const auto& submesh : meshAsset.submeshes) {
-				maxMaterialIndex = std::max(maxMaterialIndex,
-				                            submesh.materialIndex);
-			}
-
-			return maxMaterialIndex + 1;
 		}
 	}
 
@@ -96,16 +71,16 @@ namespace Unnamed {
 		mMaterialInstanceAssetId = kInvalidAssetID;
 		SetMaterialSlots({});
 		SetMaterialInstancePath({});
-		std::string meshPath = ReadStringOr(reader, "meshPath", "");
+		std::string meshPath = reader.ReadStringOr("meshPath", "");
 		if (meshPath.empty()) {
-			meshPath = ReadStringOr(reader, "mesh", "");
+			meshPath = reader.ReadStringOr("mesh", "");
 		}
 
-		std::string matPath = ReadStringOr(
-			reader, "materialInstancePath", ""
+		std::string matPath = reader.ReadStringOr(
+			"materialInstancePath", ""
 		);
 		if (matPath.empty()) {
-			matPath = ReadStringOr(reader, "material", "");
+			matPath = reader.ReadStringOr("material", "");
 		}
 
 		if (meshPath.empty()) {

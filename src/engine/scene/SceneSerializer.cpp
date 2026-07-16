@@ -36,29 +36,6 @@ namespace Unnamed {
 		return writer.Save();
 	}
 
-	namespace {
-		bool ReadBoolOr(
-			const JsonReader& r, const char* key, const bool fallback
-		) {
-			const JsonReader v = r[key];
-			return v.Valid() ? v.GetBool() : fallback;
-		}
-
-		uint64_t ReadU64Or(
-			const JsonReader& r, const char* key, const uint64_t fallback
-		) {
-			const JsonReader v = r[key];
-			return v.Valid() ? v.GetUint64() : fallback;
-		}
-
-		std::string ReadStringOr(
-			const JsonReader& r, const char* key, const char* fallback
-		) {
-			const JsonReader v = r[key];
-			return v.Valid() ? v.GetString() : std::string(fallback);
-		}
-	}
-
 	bool SceneSerializer::Deserialize(
 		Scene& scene, const JsonReader& root, GuidGenerator& guidGen,
 		const SceneLoadOptions& options, const Path& scenePath
@@ -90,12 +67,12 @@ namespace Unnamed {
 				continue;
 			}
 
-			const std::string name = ReadStringOr(e, "name", "unnamed");
-			const std::string folderPath = ReadStringOr(e, "folderPath", "");
-			const uint64_t guid = ReadU64Or(e, "guid", 0);
-			const bool isEditorOnly = ReadBoolOr(e, "isEditorOnly", false);
-			const bool entityActive = ReadBoolOr(e, "active", true);
-			const bool entityVisible = ReadBoolOr(e, "visible", true);
+			const std::string name = e.ReadStringOr("name", "unnamed");
+			const std::string folderPath = e.ReadStringOr("folderPath", "");
+			const uint64_t guid = e.ReadUint64Or("guid", 0);
+			const bool isEditorOnly = e.ReadBoolOr("isEditorOnly", false);
+			const bool entityActive = e.ReadBoolOr("active", true);
+			const bool entityVisible = e.ReadBoolOr("visible", true);
 
 			uint64_t finalGuid = guid != 0 ? guid : guidGen.Alloc();
 			while (finalGuid == 0 || scene.FindEntity(finalGuid) != nullptr) {
@@ -118,7 +95,7 @@ namespace Unnamed {
 					continue;
 				}
 
-				const std::string type = ReadStringOr(c, "type", "");
+				const std::string type = c.ReadStringOr("type", "");
 				if (type.empty()) {
 					continue;
 				}
@@ -130,10 +107,10 @@ namespace Unnamed {
 					continue;
 				}
 
-				const uint64_t compGuid = ReadU64Or(c, "guid", 0);
+				const uint64_t compGuid = c.ReadUint64Or("guid", 0);
 				comp->SetGuid(compGuid != 0 ? compGuid : guidGen.Alloc());
 
-				comp->SetActive(ReadBoolOr(c, "active", true));
+				comp->SetActive(c.ReadBoolOr("active", true));
 
 				const JsonReader data = c["data"];
 				if (data.Valid()) {

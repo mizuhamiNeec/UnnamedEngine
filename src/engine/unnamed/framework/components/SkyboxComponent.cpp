@@ -20,13 +20,6 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kDefaultSkyboxTexturePath =
 			"textures/wave.dds";
-
-		float ReadFloatOr(
-			const JsonReader& reader, const char* key, const float fallback
-		) {
-			const JsonReader value = reader[key];
-			return value.Valid() ? value.GetFloat() : fallback;
-		}
 	}
 
 	bool SkyboxComponent::SetTexturePath(
@@ -112,14 +105,14 @@ namespace Unnamed {
 			value.GetString() :
 			std::string(kDefaultSkyboxTexturePath);
 		mTexturePath = VirtualPath::ParseContentReference(texturePath);
-		SetIntensity(ReadFloatOr(reader, "intensity", mIntensity));
+		SetIntensity(reader.ReadFloatOr("intensity", mIntensity));
 	}
 
 	bool SkyboxComponent::Deserialize(
 		const JsonReader& reader, const SceneDeserializeContext& context
 	) {
 		ClearTexturePath();
-		SetIntensity(ReadFloatOr(reader, "intensity", mIntensity));
+		SetIntensity(reader.ReadFloatOr("intensity", mIntensity));
 
 		const JsonReader pathNode = reader["texturePath"];
 		const std::string texturePath = pathNode.Valid() ?

@@ -21,15 +21,6 @@ namespace Unnamed {
 	static constexpr std::string_view kChannel = "EdCamComp";
 	static constexpr float            kMoveSpeedPopupDurationSeconds = 1.0f;
 
-	namespace {
-		float ReadFloatOr(
-			const JsonReader& reader, const char* key, const float fallback
-		) {
-			const JsonReader value = reader[key];
-			return value.Valid() ? value.GetFloat() : fallback;
-		}
-	}
-
 	void EditorCameraComponent::OnAttached() {
 		mInput = ServiceLocator::Get<InputSystem>();
 		if (!mInput) {
@@ -107,11 +98,12 @@ namespace Unnamed {
 	}
 
 	void EditorCameraComponent::Deserialize(const JsonReader& reader) {
-		mFovYDegrees = ReadFloatOr(reader, "fovYDegrees", mFovYDegrees);
-		mNearZ       = ReadFloatOr(reader, "nearZ", mNearZ);
-		mFarZ        = ReadFloatOr(reader, "farZ", mFarZ);
-		mExposureEv  = ReadFloatOr(reader, "exposureEv", mExposureEv);
-		mMoveSpeed   = ReadFloatOr(reader, "moveSpeed", mMoveSpeed);
+		mFovYDegrees =
+			reader.ReadFloatOr("fovYDegrees", mFovYDegrees);
+		mNearZ      = reader.ReadFloatOr("nearZ", mNearZ);
+		mFarZ       = reader.ReadFloatOr("farZ", mFarZ);
+		mExposureEv = reader.ReadFloatOr("exposureEv", mExposureEv);
+		mMoveSpeed  = reader.ReadFloatOr("moveSpeed", mMoveSpeed);
 	}
 
 	void EditorCameraComponent::Serialize(JsonWriter& writer) const {
