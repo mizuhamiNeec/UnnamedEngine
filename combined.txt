@@ -18989,14 +18989,14 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "ConsoleScriptComponent";
 
-		constexpr const char* kAttachCommandsKey = "attachCommands";
-		constexpr const char* kDetachCommandsKey = "detachCommands";
+		constexpr auto kAttachCommandsKey = "attachCommands";
+		constexpr auto kDetachCommandsKey = "detachCommands";
 
 #ifdef _DEBUG
 		template <size_t N>
 		bool EditCommandInput(const char* label, std::string& value) {
 			std::array<char, N> buffer = {};
-			const size_t        copyLen = std::min(value.size(), buffer.size() - 1);
+			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
 			if (copyLen > 0) {
 				std::memcpy(buffer.data(), value.data(), copyLen);
 			}
@@ -19028,7 +19028,9 @@ namespace Unnamed {
 				EditCommandInput<512>("##Command", command);
 				ImGui::SameLine();
 				if (ImGui::Button("Remove")) {
-					commands.erase(commands.begin() + static_cast<ptrdiff_t>(i));
+					commands.erase(
+						commands.begin() + static_cast<ptrdiff_t>(i)
+					);
 					ImGui::PopID();
 					break;
 				}
@@ -19039,7 +19041,7 @@ namespace Unnamed {
 #endif
 
 		void ReadCommandArray(
-			const JsonReader&          node,
+			const JsonReader&         node,
 			std::vector<std::string>& outCommands
 		) {
 			outCommands.clear();
@@ -19053,7 +19055,8 @@ namespace Unnamed {
 				if (!commandNode.Valid()) {
 					continue;
 				}
-				std::string command = StrUtil::TrimSpaces(commandNode.GetString(""));
+				std::string command = StrUtil::TrimSpaces(
+					commandNode.GetString(""));
 				if (command.empty()) {
 					continue;
 				}
@@ -19148,7 +19151,6 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(ConsoleScriptComponent);
 }
-
 
 
 ============================================================
@@ -43211,7 +43213,7 @@ File Path: src/engine/EngineComponentRegistration.cpp
 
 namespace Unnamed {
 	void RegisterDefaultEngineComponents(ComponentRegistry& componentRegistry) {
-		const auto registerIfMissing = [&](auto typeTag) {
+		const auto RegisterIfMissing = [&](auto typeTag) {
 			using T = typename decltype(typeTag)::type;
 			const T probe{};
 			const std::string_view stableName = probe.GetStableName();
@@ -43235,7 +43237,7 @@ namespace Unnamed {
 			}
 		};
 
-		ForEachEngineComponentType(registerIfMissing);
+		ForEachEngineComponentType(RegisterIfMissing);
 	}
 }
 
@@ -71946,7 +71948,7 @@ File Path: src/engine/render/foundation/AdvancedRenderFoundation.cpp
 
 namespace Unnamed::Render {
 	void AdvancedRenderFoundation::Initialize(
-		RenderGraph& graph, const uint32_t width, const uint32_t height
+		const RenderGraph& graph, const uint32_t width, const uint32_t height
 	) {
 		if (mInitialized) {
 			return;
@@ -71954,7 +71956,7 @@ namespace Unnamed::Render {
 		mInitialized = true;
 
 		// RT出力の最小土台
-		mRtFrameState.buildMode = RtBuildMode::SOFTWARE_FALLBACK;
+		mRtFrameState.buildMode = RT_BUILD_MODE::SOFTWARE_FALLBACK;
 
 		// GI履歴バッファ
 		mGiFrameState.irradianceHistoryTextureId = graph.CreateTexture(
@@ -72040,7 +72042,7 @@ File Path: src/engine/render/foundation/AdvancedRenderFoundation.h
 namespace Unnamed::Render {
 	class RenderGraph;
 
-	enum class RtBuildMode : uint8_t {
+	enum class RT_BUILD_MODE : uint8_t {
 		NONE,
 		SOFTWARE_FALLBACK,
 		HARDWARE_INLINE,
@@ -72055,7 +72057,7 @@ namespace Unnamed::Render {
 	};
 
 	struct RtFrameState {
-		RtBuildMode                 buildMode = RtBuildMode::NONE;
+		RT_BUILD_MODE               buildMode = RT_BUILD_MODE::NONE;
 		std::vector<RtInstanceDesc> visibleInstances;
 		bool                        needsTlasRebuild = false;
 	};
@@ -72079,7 +72081,9 @@ namespace Unnamed::Render {
 
 	class AdvancedRenderFoundation {
 	public:
-		void Initialize(RenderGraph& graph, uint32_t width, uint32_t height);
+		void Initialize(
+			const RenderGraph& graph, uint32_t width, uint32_t height
+		);
 		void OnResize(uint32_t width, uint32_t height);
 		void BeginFrame();
 
@@ -72194,12 +72198,12 @@ namespace Unnamed::Render {
 	};
 
 	enum class SPRITE_TEXTURE_SOURCE : uint8_t {
-		ASSET = 0,
+		ASSET       = 0,
 		VIEW_OUTPUT = 1,
 	};
 
 	struct SpriteTextureRef {
-		SPRITE_TEXTURE_SOURCE source = SPRITE_TEXTURE_SOURCE::ASSET;
+		SPRITE_TEXTURE_SOURCE source         = SPRITE_TEXTURE_SOURCE::ASSET;
 		AssetID               textureAssetId = kInvalidAssetID;
 		std::string           viewKey;
 	};
@@ -72223,20 +72227,20 @@ namespace Unnamed::Render {
 	};
 
 	struct PostFxPassOverride {
-		std::string passName;
-		bool        hasEnabledOverride = false;
-		bool        enabled            = true;
+		std::string                            passName;
+		bool                                   hasEnabledOverride = false;
+		bool                                   enabled            = true;
 		std::unordered_map<std::string, float> scalarParams;
 		std::unordered_map<std::string, Vec4>  colorParams;
 	};
 
 	enum class RENDER_VIEW_TYPE : uint8_t {
-		SCENE = 0,
+		SCENE       = 0,
 		SPRITE_ONLY = 1,
 	};
 
 	enum class RENDER_VIEW_SIZE_MODE : uint8_t {
-		FIXED = 0,
+		FIXED             = 0,
 		MATCH_BACK_BUFFER = 1,
 	};
 
@@ -72250,15 +72254,15 @@ namespace Unnamed::Render {
 	};
 
 	struct RenderCameraInput {
-		Mat4                  view      = Mat4::identity;
-		Mat4                  proj      = Mat4::identity;
-		Mat4                  viewProj  = Mat4::identity;
-		Vec3                  cameraPos = Vec3::zero;
+		Mat4                  view       = Mat4::identity;
+		Mat4                  proj       = Mat4::identity;
+		Mat4                  viewProj   = Mat4::identity;
+		Vec3                  cameraPos  = Vec3::zero;
 		float                 exposureEv = 0.0f;
-		float                 nearZ     = 0.001f;
-		float                 farZ      = 10000.0f;
-		PROJECTION_DEPTH_MODE depthMode = PROJECTION_DEPTH_MODE::REVERSE_Z;
-		bool                  valid     = false;
+		float                 nearZ      = 0.001f;
+		float                 farZ       = 10000.0f;
+		PROJECTION_DEPTH_MODE depthMode  = PROJECTION_DEPTH_MODE::REVERSE_Z;
+		bool                  valid      = false;
 	};
 
 	struct SkyboxInput {
@@ -72285,10 +72289,10 @@ namespace Unnamed::Render {
 	};
 
 	struct VisibleRenderObject {
-		AssetID  meshAssetId        = kInvalidAssetID;
-		AssetID  materialInstanceId = kInvalidAssetID;
+		AssetID              meshAssetId               = kInvalidAssetID;
+		AssetID              materialInstanceId        = kInvalidAssetID;
 		std::vector<AssetID> materialInstanceIdsBySlot = {};
-		uint64_t ownerEntityGuid    = 0;
+		uint64_t             ownerEntityGuid           = 0;
 
 		Mat4 world       = Mat4::identity;
 		AABB worldBounds = {};
@@ -72304,38 +72308,38 @@ namespace Unnamed::Render {
 
 	struct ScreenSpriteInput {
 		SpriteTextureRef texture;
-		Vec2    positionPx     = Vec2::zero;
-		Vec2    sizePx         = Vec2::one;
-		Vec2    anchor         = Vec2(0.5f, 0.5f);
-		float   rotationRad    = 0.0f;
-		Vec4    color          = Vec4::one;
-		int32_t sortKey        = 0;
-		Vec2    uvMin          = Vec2(0.0f, 0.0f);
-		Vec2    uvMax          = Vec2(1.0f, 1.0f);
-		bool    uvFlipY        = false;
+		Vec2             positionPx  = Vec2::zero;
+		Vec2             sizePx      = Vec2::one;
+		Vec2             anchor      = Vec2(0.5f, 0.5f);
+		float            rotationRad = 0.0f;
+		Vec4             color       = Vec4::one;
+		int32_t          sortKey     = 0;
+		Vec2             uvMin       = Vec2(0.0f, 0.0f);
+		Vec2             uvMax       = Vec2(1.0f, 1.0f);
+		bool             uvFlipY     = false;
 	};
 
 	struct WorldBillboardInput {
 		SpriteTextureRef texture;
-		Vec3    worldPosition  = Vec3::zero;
-		Vec2    sizeWorld      = Vec2::one;
-		Vec4    color          = Vec4::one;
-		float   rotationRad    = 0.0f;
-		int32_t sortKey        = 0;
-		bool    uvFlipY        = true;
-		bool    depthTest      = true;
+		Vec3             worldPosition = Vec3::zero;
+		Vec2             sizeWorld     = Vec2::one;
+		Vec4             color         = Vec4::one;
+		float            rotationRad   = 0.0f;
+		int32_t          sortKey       = 0;
+		bool             uvFlipY       = true;
+		bool             depthTest     = true;
 	};
 
 	struct WorldSpriteInput {
 		SpriteTextureRef texture;
-		Vec3    worldPosition  = Vec3::zero;
-		Vec3    worldRight     = Vec3::right;
-		Vec3    worldUp        = Vec3::up;
-		Vec2    sizeWorld      = Vec2::one;
-		Vec4    color          = Vec4::one;
-		float   rotationRad    = 0.0f;
-		int32_t sortKey        = 0;
-		bool    uvFlipY        = true;
+		Vec3             worldPosition = Vec3::zero;
+		Vec3             worldRight    = Vec3::right;
+		Vec3             worldUp       = Vec3::up;
+		Vec2             sizeWorld     = Vec2::one;
+		Vec4             color         = Vec4::one;
+		float            rotationRad   = 0.0f;
+		int32_t          sortKey       = 0;
+		bool             uvFlipY       = true;
 	};
 
 	struct DebugLineInput {
@@ -72351,14 +72355,14 @@ namespace Unnamed::Render {
 	struct RenderViewInput {
 		std::string viewKey;
 
-		RENDER_VIEW_TYPE      type = RENDER_VIEW_TYPE::SCENE;
-		RenderViewOutputDesc  output = {};
-		SceneViewRenderMode   sceneViewMode = {};
+		RENDER_VIEW_TYPE                type          = RENDER_VIEW_TYPE::SCENE;
+		RenderViewOutputDesc            output        = {};
+		SceneViewRenderMode             sceneViewMode = {};
 		std::vector<PostFxPassOverride> postFxPassOverrides;
-		RenderCameraInput     camera = {};
-		SkyboxInput           skybox = {};
-		DirectionalLightInput directionalLight = {};
-		EnvironmentLightInput environmentLight = {};
+		RenderCameraInput               camera           = {};
+		SkyboxInput                     skybox           = {};
+		DirectionalLightInput           directionalLight = {};
+		EnvironmentLightInput           environmentLight = {};
 
 		std::vector<VisibleRenderObject>  visibleObjects;
 		std::vector<SkinningPaletteInput> skinningPalettes;
@@ -72368,7 +72372,7 @@ namespace Unnamed::Render {
 	};
 
 	struct RenderFrameInputs {
-		uint32_t frameIndex = 0;
+		uint32_t                     frameIndex = 0;
 		std::vector<RenderViewInput> views;
 		DebugDrawFrameInput          debugDraw;
 
@@ -76489,14 +76493,15 @@ namespace Unnamed::Render {
 			const std::wstring sourcePath = Path::FromUtf8(src->path).wstring();
 			const std::wstring entry      = StrUtil::ToWString(key.entry);
 			const std::wstring profile    = StrUtil::ToWString(key.profile);
-
-			const std::vector<std::wstring> includeDirs;
+			
 			const auto                      extraArgs = BuildDxcArgs(key);
 
 			if (!mDxcShaderCompiler.Initialize()) {
 				Error(kChannel, "DxcShaderCompiler initialization failed.");
 			} else {
-				const bool ok = mDxcShaderCompiler.CompileToFileDXIL(
+				// ReSharper disable once CppVariableCanBeMadeConstexpr
+				const std::vector<std::wstring> includeDirs;
+				const bool                      ok = mDxcShaderCompiler.CompileToFileDXIL(
 					sourcePath, entry, profile, includeDirs, extraArgs,
 					dxilPath.wstring()
 				);
@@ -76559,7 +76564,7 @@ namespace Unnamed::Render {
 	}
 
 	void ShaderLibrary::MarkAllDirty() {
-		for (const auto& [key, _] : mRuntimeCache) {
+		for (const auto& key : mRuntimeCache | std::views::keys) {
 			mDirtyKeys.emplace(key);
 		}
 	}
@@ -84120,17 +84125,32 @@ File Path: src/engine/tween/ITweenPlayable.h
 ﻿#pragma once
 
 namespace Unnamed {
+	/// @brief 再生可能なTweenのインターフェース。Tweenの更新、再生、一時停止、完了などの操作を提供します。
 	class ITweenPlayable {
 	public:
 		virtual ~ITweenPlayable() = default;
 
+		/// @brief Tweenを更新します。
+		/// @param deltaTime 前のフレームからの経過時間（秒）
 		virtual void Update(float deltaTime) = 0;
+
+		/// @brief Tweenの再生を一時停止します。
 		virtual void Pause() = 0;
+
+		/// @brief 一時停止中のTweenの再生を再開します。
 		virtual void Resume() = 0;
+
+		/// @brief Tweenを強制終了します。
+		/// @param complete trueの場合、Tweenを完了状態にしてから終了します。falseの場合、Tweenを即座に終了します。
 		virtual void Kill(bool complete) = 0;
 
+		/// @brief Tweenが生きているか?
 		[[nodiscard]] virtual bool IsAlive() const = 0;
+
+		/// @brief Tweenが再生中か?
 		[[nodiscard]] virtual bool IsPlaying() const = 0;
+
+		/// @brief Tweenが完了しているか?
 		[[nodiscard]] virtual bool IsComplete() const = 0;
 	};
 }
@@ -84145,178 +84165,183 @@ File Path: src/engine/tween/TweenEase.cpp
 
 #include "core/math/Math.h"
 
-float Unnamed::TweenEase::Evaluate(const EASE_TYPE easeType, float x) {
-	x = std::clamp(x, 0.0f, 1.0f);
+namespace Unnamed {
+	//-------------------------------------------------------------------------
+	// ソース: https://easings.net/ja 
+	//-------------------------------------------------------------------------
+	float TweenEase::Evaluate(const EASE_TYPE easeType, float x) {
+		x = std::clamp(x, 0.0f, 1.0f);
 
-	constexpr auto c1 = 1.70158f;
-	constexpr auto c2 = c1 * 1.525f;
-	constexpr auto c3 = c1 + 1.0f;
-	constexpr auto c4 = 2.0f * Math::pi / 3.0f;
-	constexpr auto c5 = 2.0f * Math::pi / 4.5f;
+		constexpr auto c1 = 1.70158f;
+		constexpr auto c2 = c1 * 1.525f;
+		constexpr auto c3 = c1 + 1.0f;
+		constexpr auto c4 = 2.0f * Math::pi / 3.0f;
+		constexpr auto c5 = 2.0f * Math::pi / 4.5f;
 
-	switch (easeType) {
-		case EASE_TYPE::LINEAR: return x;
-		case EASE_TYPE::IN_SINE: {
-			return 1.0f - cos(x * Math::pi * 0.5f);
-		}
-		case EASE_TYPE::OUT_SINE: {
-			return sin(x * Math::pi * 0.5f);
-		}
-		case EASE_TYPE::IN_OUT_SINE: {
-			return -(cos(Math::pi * x) - 1.0f) * 0.5f;
-		}
-		case EASE_TYPE::IN_QUAD: {
-			return x * x;
-		}
-		case EASE_TYPE::OUT_QUAD: {
-			return 1.0f - (1.0f - x) * (1.0f - x);
-		}
-		case EASE_TYPE::IN_OUT_QUAD: {
-			return x < 0.5f ?
-				       2.0f * x * x :
-				       1.0f - pow(-2.0f * x + 2.0f, 2.0f) * 0.5f;
-		}
-		case EASE_TYPE::IN_CUBIC: {
-			return x * x * x;
-		}
-		case EASE_TYPE::OUT_CUBIC: {
-			return 1.0f - pow(1.0f - x, 3.0f);
-		}
-		case EASE_TYPE::IN_OUT_CUBIC: {
-			return x < 0.5f ?
-				       4.0f * x * x * x :
-				       1.0f - pow(-2.0f * x + 2.0f, 3.0f) * 0.5f;
-		}
-		case EASE_TYPE::IN_QUART: {
-			return x * x * x * x;
-		}
-		case EASE_TYPE::OUT_QUART: {
-			return 1.0f - pow(1.0f - x, 4.0f);
-		}
-		case EASE_TYPE::IN_OUT_QUART: {
-			return x < 0.5f ?
-				       8 * x * x * x * x :
-				       1.0f - pow(-2.0f * x + 2.0f, 4.0f) * 0.5f;
-		}
-		case EASE_TYPE::IN_QUINT: {
-			return x * x * x * x * x;
-		}
-		case EASE_TYPE::OUT_QUINT: {
-			return 1.0f - pow(1.0f - x, 5.0f);
-		}
-		case EASE_TYPE::IN_OUT_QUINT: {
-			return x < 0.5f ?
-				       16.0f * x * x * x * x * x :
-				       1.0f - pow(-2.0f * x + 2.0f, 5.0f) * 0.5f;
-		}
-		case EASE_TYPE::IN_EXPO: {
-			return x == 0.0f ? 0.0f : pow(2.0f, 10.0f * x - 10.0f);
-		}
-		case EASE_TYPE::OUT_EXPO: {
-			return x == 1.0f ? 1.0f : 1.0f - pow(2.0f, -10.0f * x);
-		}
-		case EASE_TYPE::IN_OUT_EXPO: {
-			return x == 0.0f ?
-				       0.0f :
-				       x == 1.0f ?
-				       1 :
-				       x < 0.5f ?
-				       pow(2.0f, 20.0f * x - 10.0f) * 0.5f :
-				       (2.0f - pow(2.0f, -20.0f * x + 10.0f)) * 0.5f;
-		}
-		case EASE_TYPE::IN_CIRC: {
-			return 1.0f - sqrt(1.0f - pow(x, 2.0f));
-		}
-		case EASE_TYPE::OUT_CIRC: {
-			return sqrt(1.0f - pow(x - 1.0f, 2.0f));
-		}
-		case EASE_TYPE::IN_OUT_CIRC: {
-			return x < 0.5f ?
-				       (1.0f - sqrt(1.0f - pow(2.0f * x, 2.0f))) * 0.5f :
-				       (sqrt(
-					        1.0f - pow(-2.0f * x + 2.0f, 2.0f)
-				        ) + 1.0f) * 0.5f;
-		}
-		case EASE_TYPE::IN_BACK: {
-			return c3 * x * x * x - c1 * x * x;
-		}
-		case EASE_TYPE::OUT_BACK: {
-			return 1.0f + c3 * pow(x - 1.0f, 3.0f) + c1 * pow(
-				       x - 1.0f, 2.0f
-			       );
-		}
-		case EASE_TYPE::IN_OUT_BACK: {
-			return x < 0.5f ?
-				       pow(2.0f * x, 2.0f) * (
-					       (c2 + 1.0f) * 2.0f * x - c2) * 0.5f :
-				       (pow(2.0f * x - 2.0f, 2.0f) * (
-					        (c2 + 1.0f) * (x * 2.0f - 2.0f) + c2) +
-				        2.0f) * 0.5f;
-		}
-		case EASE_TYPE::IN_ELASTIC: {
-			return x == 0.0f ?
-				       0.0f :
-				       x == 1.0f ?
-				       1.0f :
-				       -pow(2.0f, 10.0f * x - 10.0f) * sin(
-					       (x * 10.0f - 10.75f) * c4
+		switch (easeType) {
+			case EASE_TYPE::LINEAR: return x;
+			case EASE_TYPE::IN_SINE: {
+				return 1.0f - cos(x * Math::pi * 0.5f);
+			}
+			case EASE_TYPE::OUT_SINE: {
+				return sin(x * Math::pi * 0.5f);
+			}
+			case EASE_TYPE::IN_OUT_SINE: {
+				return -(cos(Math::pi * x) - 1.0f) * 0.5f;
+			}
+			case EASE_TYPE::IN_QUAD: {
+				return x * x;
+			}
+			case EASE_TYPE::OUT_QUAD: {
+				return 1.0f - (1.0f - x) * (1.0f - x);
+			}
+			case EASE_TYPE::IN_OUT_QUAD: {
+				return x < 0.5f ?
+					       2.0f * x * x :
+					       1.0f - pow(-2.0f * x + 2.0f, 2.0f) * 0.5f;
+			}
+			case EASE_TYPE::IN_CUBIC: {
+				return x * x * x;
+			}
+			case EASE_TYPE::OUT_CUBIC: {
+				return 1.0f - pow(1.0f - x, 3.0f);
+			}
+			case EASE_TYPE::IN_OUT_CUBIC: {
+				return x < 0.5f ?
+					       4.0f * x * x * x :
+					       1.0f - pow(-2.0f * x + 2.0f, 3.0f) * 0.5f;
+			}
+			case EASE_TYPE::IN_QUART: {
+				return x * x * x * x;
+			}
+			case EASE_TYPE::OUT_QUART: {
+				return 1.0f - pow(1.0f - x, 4.0f);
+			}
+			case EASE_TYPE::IN_OUT_QUART: {
+				return x < 0.5f ?
+					       8 * x * x * x * x :
+					       1.0f - pow(-2.0f * x + 2.0f, 4.0f) * 0.5f;
+			}
+			case EASE_TYPE::IN_QUINT: {
+				return x * x * x * x * x;
+			}
+			case EASE_TYPE::OUT_QUINT: {
+				return 1.0f - pow(1.0f - x, 5.0f);
+			}
+			case EASE_TYPE::IN_OUT_QUINT: {
+				return x < 0.5f ?
+					       16.0f * x * x * x * x * x :
+					       1.0f - pow(-2.0f * x + 2.0f, 5.0f) * 0.5f;
+			}
+			case EASE_TYPE::IN_EXPO: {
+				return x == 0.0f ? 0.0f : pow(2.0f, 10.0f * x - 10.0f);
+			}
+			case EASE_TYPE::OUT_EXPO: {
+				return x == 1.0f ? 1.0f : 1.0f - pow(2.0f, -10.0f * x);
+			}
+			case EASE_TYPE::IN_OUT_EXPO: {
+				return x == 0.0f ?
+					       0.0f :
+					       x == 1.0f ?
+					       1.0f :
+					       x < 0.5f ?
+					       pow(2.0f, 20.0f * x - 10.0f) * 0.5f :
+					       (2.0f - pow(2.0f, -20.0f * x + 10.0f)) * 0.5f;
+			}
+			case EASE_TYPE::IN_CIRC: {
+				return 1.0f - sqrt(1.0f - pow(x, 2.0f));
+			}
+			case EASE_TYPE::OUT_CIRC: {
+				return sqrt(1.0f - pow(x - 1.0f, 2.0f));
+			}
+			case EASE_TYPE::IN_OUT_CIRC: {
+				return x < 0.5f ?
+					       (1.0f - sqrt(1.0f - pow(2.0f * x, 2.0f))) * 0.5f :
+					       (sqrt(
+						        1.0f - pow(-2.0f * x + 2.0f, 2.0f)
+					        ) + 1.0f) * 0.5f;
+			}
+			case EASE_TYPE::IN_BACK: {
+				return c3 * x * x * x - c1 * x * x;
+			}
+			case EASE_TYPE::OUT_BACK: {
+				return 1.0f + c3 * pow(x - 1.0f, 3.0f) + c1 * pow(
+					       x - 1.0f, 2.0f
 				       );
-		}
-		case EASE_TYPE::OUT_ELASTIC: {
-			return x == 0.0f ?
-				       0.0f :
-				       x == 1.0f ?
-				       1.0f :
-				       pow(2.0f, -10.0f * x) * sin(
-					       (x * 10.0f - 0.75f) * c4
-				       ) + 1.0f;
-		}
-		case EASE_TYPE::IN_OUT_ELASTIC: {
-			return x == 0.0f ?
-				       0.0f :
-				       x == 1.0f ?
-				       1.0f :
-				       x < 0.5f ?
-				       -(pow(2.0f, 20.0f * x - 10.0f) * sin(
-					         (20.0f * x - 11.125f) * c5
-				         )) * 0.5f :
-				       pow(2.0f, -20.0f * x + 10.0f) * sin(
-					       (20.0f * x - 11.125f) * c5
-				       ) * 0.5f + 1.0f;
-		}
-		case EASE_TYPE::IN_BOUNCE: {
-			return 1.0f - Evaluate(EASE_TYPE::OUT_BOUNCE, 1.0f - x);
-		}
-		case EASE_TYPE::OUT_BOUNCE: {
-			constexpr auto n1 = 7.5625f;
-			constexpr auto d1 = 2.75f;
+			}
+			case EASE_TYPE::IN_OUT_BACK: {
+				return x < 0.5f ?
+					       pow(2.0f * x, 2.0f) * (
+						       (c2 + 1.0f) * 2.0f * x - c2) * 0.5f :
+					       (pow(2.0f * x - 2.0f, 2.0f) * (
+						        (c2 + 1.0f) * (x * 2.0f - 2.0f) + c2) +
+					        2.0f) * 0.5f;
+			}
+			case EASE_TYPE::IN_ELASTIC: {
+				return x == 0.0f ?
+					       0.0f :
+					       x == 1.0f ?
+					       1.0f :
+					       -pow(2.0f, 10.0f * x - 10.0f) * sin(
+						       (x * 10.0f - 10.75f) * c4
+					       );
+			}
+			case EASE_TYPE::OUT_ELASTIC: {
+				return x == 0.0f ?
+					       0.0f :
+					       x == 1.0f ?
+					       1.0f :
+					       pow(2.0f, -10.0f * x) * sin(
+						       (x * 10.0f - 0.75f) * c4
+					       ) + 1.0f;
+			}
+			case EASE_TYPE::IN_OUT_ELASTIC: {
+				return x == 0.0f ?
+					       0.0f :
+					       x == 1.0f ?
+					       1.0f :
+					       x < 0.5f ?
+					       -(pow(2.0f, 20.0f * x - 10.0f) * sin(
+						         (20.0f * x - 11.125f) * c5
+					         )) * 0.5f :
+					       pow(2.0f, -20.0f * x + 10.0f) * sin(
+						       (20.0f * x - 11.125f) * c5
+					       ) * 0.5f + 1.0f;
+			}
+			case EASE_TYPE::IN_BOUNCE: {
+				return 1.0f - Evaluate(EASE_TYPE::OUT_BOUNCE, 1.0f - x);
+			}
+			case EASE_TYPE::OUT_BOUNCE: {
+				constexpr auto n1 = 7.5625f;
+				constexpr auto d1 = 2.75f;
 
-			if (x < 1.0f / d1) {
-				return n1 * x * x;
+				if (x < 1.0f / d1) {
+					return n1 * x * x;
+				}
+				if (
+					x < 2.0f / d1) {
+					return n1 * (x - 1.0f / d1) * (x - 1.0f / d1) +
+					       0.75f;
+				}
+				if (x < 2.5f / d1) {
+					return n1 * (x - 2.0f / d1) * (x - 2.0f / d1) +
+					       0.9375f;
+				}
+				return n1 * (x - 2.625f / d1) * (x - 2.625f / d1) +
+				       0.984375f;
 			}
-			if (
-				x < 2.0f / d1) {
-				return n1 * (x - 1.0f / d1) * (x - 1.0f / d1) +
-				       0.75f;
+			case EASE_TYPE::IN_OUT_BOUNCE: {
+				return x < 0.5f ?
+					       (1.0f - Evaluate(
+						        EASE_TYPE::OUT_BOUNCE, 1.0f - 2.0f * x
+					        )) * 0.5f :
+					       Evaluate(
+						       EASE_TYPE::OUT_BOUNCE, 2.0f * x - 1.0f
+					       ) * 0.5f + 0.5f;
 			}
-			if (x < 2.5f / d1) {
-				return n1 * (x - 2.0f / d1) * (x - 2.0f / d1) +
-				       0.9375f;
+			default: {
+				return x;
 			}
-			return n1 * (x - 2.625f / d1) * (x - 2.625f / d1) +
-			       0.984375f;
-		}
-		case EASE_TYPE::IN_OUT_BOUNCE: {
-			return x < 0.5f ?
-				       (1.0f - Evaluate(
-					        EASE_TYPE::OUT_BOUNCE, 1.0f - 2.0f * x
-				        )) * 0.5f :
-				       Evaluate(
-					       EASE_TYPE::OUT_BOUNCE, 2.0f * x - 1.0f
-				       ) * 0.5f + 0.5f;
-		}
-		default: {
-			return x;
 		}
 	}
 }
@@ -84330,8 +84355,12 @@ File Path: src/engine/tween/TweenEase.h
 #include "TweenTypes.h"
 
 namespace Unnamed {
+	/// @brief Tweenのイージング関数を提供するクラス。
 	class TweenEase {
 	public:
+		/// @brief 指定されたイージングタイプに基づいて、正規化時間に対する補間係数を計算します。
+		/// @param easeType イージングタイプ。
+		/// @param x 時間。0.0fから1.0fの範囲で指定します。
 		static float Evaluate(EASE_TYPE easeType, float x);
 	};
 }
@@ -84370,7 +84399,7 @@ namespace Unnamed {
 		return playable->IsComplete();
 	}
 
-	void TweenHandle::Pause() {
+	void TweenHandle::Pause() const {
 		const auto playable = mPlayable.lock();
 		if (!playable) {
 			return;
@@ -84411,9 +84440,7 @@ namespace Unnamed {
 
 		/// @brief コンストラクタ
 		/// @param playable TweenPlayableオブジェクトへのWeakPtr。
-		explicit TweenHandle(
-			const std::weak_ptr<ITweenPlayable>& playable
-		);
+		explicit TweenHandle(const std::weak_ptr<ITweenPlayable>& playable);
 
 		/// @brief TweenPlayableオブジェクトが有効かどうかを判定します。
 		/// @return 有効な場合はtrue、無効な場合はfalse。
@@ -84428,7 +84455,7 @@ namespace Unnamed {
 		[[nodiscard]] bool IsComplete() const;
 
 		/// @brief TweenPlayableオブジェクトを一時停止します。
-		void Pause();
+		void Pause() const;
 
 		/// @brief TweenPlayableオブジェクトを再開します。
 		void Resume() const;
@@ -84459,6 +84486,8 @@ File Path: src/engine/tween/TweenInstance.h
 #include "TweenTypes.h"
 
 namespace Unnamed {
+	/// @brief Tweenのインスタンスを表すクラス。指定されたGetter関数とSetter関数を使用して、値の補間を行います。
+	/// @tparam TValue 補間する値の型。float、Vec2、Vec3、Vec4、Quaternionに対応。
 	template <typename TValue>
 	class TweenInstance final : public ITweenPlayable {
 	public:
@@ -84539,6 +84568,7 @@ namespace Unnamed {
 		/// @brief ループ処理または完了処理を行います。ループ回数が残っていればループし、そうでなければ完了させます。
 		void HandleLoopOrComplete();
 
+		/// @brief Tweenを完了状態にし、必要に応じてコールバック関数を呼び出します。Tweenの状態をCOMPLETEDに設定し、再生中であれば最終値を適用します。
 		void CompleteInternal();
 
 		GetterFunc   mGetter;
@@ -84869,7 +84899,6 @@ File Path: src/engine/tween/TweenLerp.h
 ============================================================
 ﻿#pragma once
 
-
 struct Vec4;
 struct Vec2;
 struct Vec3;
@@ -84878,6 +84907,10 @@ struct Quaternion;
 namespace Unnamed {
 	template <typename TValue>
 	struct TweenLerp;
+
+	//-------------------------------------------------------------------------
+	// 各型のEvaluate関数の定義
+	//-------------------------------------------------------------------------
 
 	template <>
 	struct TweenLerp<float> {
@@ -84936,9 +84969,11 @@ namespace Unnamed {
 				continue;
 			}
 
+			// 更新
 			tween->Update(deltaTime);
 		}
 
+		// 完了したTweenはリストから削除する
 		std::erase_if(
 			mTweens,
 			[](const std::shared_ptr<ITweenPlayable>& tween) {
@@ -84953,9 +84988,11 @@ namespace Unnamed {
 				continue;
 			}
 
+			// 更新
 			tween->Kill(complete);
 		}
 
+		// 完了したTweenはリストから削除する
 		std::erase_if(
 			mTweens,
 			[](const std::shared_ptr<ITweenPlayable>& tween) {
@@ -84976,15 +85013,25 @@ File Path: src/engine/tween/TweenManager.h
 #include "TweenInstance.h"
 
 namespace Unnamed {
-	class TweenManager {
+	/// @brief Tweenの管理クラス。Tweenの作成、更新、終了を行います。
+	class TweenManager final {
 	public:
-		TweenManager()  = default;
-		~TweenManager() = default;
+		TweenManager() = default;
 
+		/// @brief 更新処理
+		/// @param deltaTime 前のフレームからの経過時間（秒）
 		void Update(float deltaTime);
 
+		/// @brief すべてのTweenを終了します。
+		/// @param complete trueの場合、Tweenを完了状態にしてから終了します。falseの場合、Tweenを即座に終了します。
 		void KillAll(bool complete = false);
 
+		/// @brief Tweenを作成し追加します。
+		/// @param getter 取得関数
+		/// @param setter 設定関数
+		/// @param endValue 目標値
+		/// @param duration Tweenの継続時間（秒）
+		/// @return 作成されたTweenのインスタンスへのshared_ptr
 		template <typename TValue>
 		std::shared_ptr<TweenInstance<TValue>> Create(
 			TweenInstance<TValue>::GetterFunc getter,
@@ -84999,6 +85046,12 @@ namespace Unnamed {
 			return tween;
 		}
 
+		/// @brief 指定された変数に対してTweenを作成し、目標値まで補間します。
+		/// @tparam TValue 補間する値の型。float、Vec2、Vec3、Vec4、Quaternionに対応。
+		/// @param target 補間対象の変数への参照
+		/// @param endValue 目標値
+		/// @param duration Tweenの継続時間（秒）
+		/// @return TweenHandle。Tweenの操作に使用できます。
 		template <typename TValue>
 		TweenHandle To(
 			TValue&       target,
@@ -85019,6 +85072,12 @@ namespace Unnamed {
 			return TweenHandle(tween);
 		}
 
+		/// @brief 指定された変数に対してTweenを作成し、目標値まで補間します。
+		/// @tparam TValue 補間する値の型。float、Vec2、Vec3、Vec4、Quaternionに対応。
+		/// @param target 補間対象の変数への参照
+		/// @param endValue 目標値
+		/// @param duration Tweenの継続時間（秒）
+		/// @return TweenHandle。Tweenの操作に使用できます。
 		template <typename TValue>
 		std::shared_ptr<TweenInstance<TValue>> CreateTo(
 			TValue&       target,
@@ -85037,6 +85096,14 @@ namespace Unnamed {
 			);
 		}
 
+		/// @brief 指定されたオブジェクトのメンバー変数に対してTweenを作成し、目標値まで補間します。
+		/// @tparam TObject 補間対象のオブジェクトの型
+		/// @tparam TValue 補間する値の型。float、Vec2、Vec3、Vec4、Quaternionに対応。
+		/// @param object 補間対象のオブジェクトへのweak_ptr
+		/// @param member 補間対象のメンバー変数へのポインタ
+		/// @param endValue 目標値
+		/// @param duration Tweenの継続時間（秒）
+		/// @return TweenHandle。Tweenの操作に使用できます。
 		template <typename TObject, typename TValue>
 		TweenHandle ToMember(
 			const std::weak_ptr<TObject>& object,
@@ -85079,30 +85146,30 @@ File Path: src/engine/tween/TweenTypes.h
 
 namespace Unnamed {
 	enum class EASE_TYPE {
-		LINEAR,
-		IN_SINE, OUT_SINE, IN_OUT_SINE,
-		IN_QUAD, OUT_QUAD, IN_OUT_QUAD,
-		IN_CUBIC, OUT_CUBIC, IN_OUT_CUBIC,
-		IN_QUART, OUT_QUART, IN_OUT_QUART,
-		IN_QUINT, OUT_QUINT, IN_OUT_QUINT,
-		IN_EXPO, OUT_EXPO, IN_OUT_EXPO,
-		IN_CIRC, OUT_CIRC, IN_OUT_CIRC,
-		IN_BACK, OUT_BACK, IN_OUT_BACK,
-		IN_ELASTIC, OUT_ELASTIC, IN_OUT_ELASTIC,
-		IN_BOUNCE, OUT_BOUNCE, IN_OUT_BOUNCE,
+		LINEAR,                                  // Linear
+		IN_SINE, OUT_SINE, IN_OUT_SINE,          // Sine
+		IN_QUAD, OUT_QUAD, IN_OUT_QUAD,          // Quad
+		IN_CUBIC, OUT_CUBIC, IN_OUT_CUBIC,       // Cubic
+		IN_QUART, OUT_QUART, IN_OUT_QUART,       // Quart
+		IN_QUINT, OUT_QUINT, IN_OUT_QUINT,       // Quint
+		IN_EXPO, OUT_EXPO, IN_OUT_EXPO,          // Expo
+		IN_CIRC, OUT_CIRC, IN_OUT_CIRC,          // Circ
+		IN_BACK, OUT_BACK, IN_OUT_BACK,          // Back
+		IN_ELASTIC, OUT_ELASTIC, IN_OUT_ELASTIC, // Elastic
+		IN_BOUNCE, OUT_BOUNCE, IN_OUT_BOUNCE,    // Bounce
 	};
 
 	enum class LOOP_TYPE {
-		RESTART,
-		YOYO,
+		RESTART, // 最初から再生
+		YOYO,    // 逆再生
 	};
 
 	enum class TWEEN_STATE {
-		DELAYED,
-		PLAYING,
-		PAUSED,
-		COMPLETED,
-		KILLED,
+		DELAYED,   // 遅延中
+		PLAYING,   // 再生中
+		PAUSED,    // 一時停止中
+		COMPLETED, // 完了
+		KILLED,    // 終了
 	};
 }
 
@@ -104131,9 +104198,9 @@ namespace Unnamed {
 		KEY("backspace", KEYBOARD, VK_BACK),    // バックスペース
 		KEY("enter", KEYBOARD, VK_RETURN),      // エンター
 		KEY("semicolon", KEYBOARD, VK_OEM_1),   // セミコロン
-		KEY("lwin", KEYBOARD, VK_LWIN),         // 左Windowsキー
-		KEY("rwin", KEYBOARD, VK_RWIN),         // 右Windowsキー(※
-		KEY("apps", KEYBOARD, VK_APPS),         // アプリケーションキー(※
+		KEY("lwin", KEYBOARD, VK_LWIN),         // 左Windowsキー(※ OSに邪魔されるので非推奨
+		KEY("rwin", KEYBOARD, VK_RWIN),         // 右Windowsキー(※ 〃
+		KEY("apps", KEYBOARD, VK_APPS),         // アプリケーションキー(※ なにこれ
 		KEY("numlock", KEYBOARD, VK_NUMLOCK),   // NumLock
 		KEY("scrolllock", KEYBOARD, VK_SCROLL), // ScrollLock
 
@@ -112174,7 +112241,7 @@ namespace Unnamed {
 		}
 #endif
 		(void)inputs;
-		mPendingLines.clear();
+		Clear();
 	}
 }
 
@@ -112312,11 +112379,17 @@ namespace Unnamed {
 			int               segments = 16
 		);
 
+		/// @brief ボックスを描画します。
+		/// @param position ボックスの中心位置
+		/// @param orientation ボックスの回転
+		/// @param size ボックスのサイズ（幅、高さ、奥行き）
+		/// @param color ボックスの色（RGBA）
 		void DrawBox(
 			const Vec3& position, const Quaternion& orientation,
 			Vec3        size, const Vec4&           color
 		);
 
+		/// @brief 描画コマンドをすべてクリアします。
 		void Clear();
 
 		/// @brief 描画コマンドをレンダーフレーム入力にフラッシュします。
