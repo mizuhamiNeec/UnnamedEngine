@@ -77,4 +77,9 @@ namespace Unnamed {
 
 		Path sourcePath;
 	};
+
+	/// @brief メッシュに必要なマテリアルスロット数を返します。
+	/// @param meshAsset 対象メッシュ
+	/// @return サブメッシュの最大materialIndexから求めたスロット数
+	uint32_t ComputeRequiredMaterialSlotCount(const MeshAssetData& meshAsset);
 }
