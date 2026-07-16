@@ -6,48 +6,12 @@
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
+#include "engine/gui/UiSerializationHelpers.h"
 #include "engine/gui/UiDeserializeContext.h"
 #include "engine/gui/UiTextureReference.h"
 #include "engine/gui/UiWidget.h"
 
 namespace Unnamed::Gui {
-	namespace {
-		void WriteColor(JsonWriter& writer, const Color& color) {
-			writer.BeginArray();
-			writer.Write(color.r);
-			writer.Write(color.g);
-			writer.Write(color.b);
-			writer.Write(color.a);
-			writer.EndArray();
-		}
-
-		Color ReadColor(const JsonReader& reader, const Color& fallback) {
-			if (!reader.Valid() || reader.Size() < 4) {
-				return fallback;
-			}
-			return {
-				.r = reader[0].GetFloat(),
-				.g = reader[1].GetFloat(),
-				.b = reader[2].GetFloat(),
-				.a = reader[3].GetFloat(),
-			};
-		}
-
-		void WriteVec2(JsonWriter& writer, const Vec2& value) {
-			writer.BeginArray();
-			writer.Write(value.x);
-			writer.Write(value.y);
-			writer.EndArray();
-		}
-
-		Vec2 ReadVec2(const JsonReader& reader, const Vec2& fallback) {
-			if (!reader.Valid() || reader.Size() < 2) {
-				return fallback;
-			}
-			return Vec2(reader[0].GetFloat(), reader[1].GetFloat());
-		}
-	}
-
 	bool UiTextureComponent::SetTexturePath(
 		const VirtualPath& path, AssetManager& assetManager
 	) {

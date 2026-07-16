@@ -3,32 +3,10 @@
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
+#include "engine/gui/UiSerializationHelpers.h"
 #include "engine/gui/UiWidget.h"
 
 namespace Unnamed::Gui {
-	namespace {
-		void WriteColor(JsonWriter& writer, const Color& color) {
-			writer.BeginArray();
-			writer.Write(color.r);
-			writer.Write(color.g);
-			writer.Write(color.b);
-			writer.Write(color.a);
-			writer.EndArray();
-		}
-
-		Color ReadColor(const JsonReader& reader, const Color& fallback) {
-			if (!reader.Valid() || reader.Size() < 4) {
-				return fallback;
-			}
-			return {
-				.r = reader[0].GetFloat(),
-				.g = reader[1].GetFloat(),
-				.b = reader[2].GetFloat(),
-				.a = reader[3].GetFloat(),
-			};
-		}
-	}
-
 	void UiPanelStyleComponent::SetBackgroundColor(const Color& color) {
 		mBackgroundColor = color;
 	}
