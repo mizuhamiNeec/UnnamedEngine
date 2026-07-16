@@ -73,14 +73,15 @@ namespace Unnamed::Render {
 			const std::wstring sourcePath = Path::FromUtf8(src->path).wstring();
 			const std::wstring entry      = StrUtil::ToWString(key.entry);
 			const std::wstring profile    = StrUtil::ToWString(key.profile);
-
-			const std::vector<std::wstring> includeDirs;
+			
 			const auto                      extraArgs = BuildDxcArgs(key);
 
 			if (!mDxcShaderCompiler.Initialize()) {
 				Error(kChannel, "DxcShaderCompiler initialization failed.");
 			} else {
-				const bool ok = mDxcShaderCompiler.CompileToFileDXIL(
+				// ReSharper disable once CppVariableCanBeMadeConstexpr
+				const std::vector<std::wstring> includeDirs;
+				const bool                      ok = mDxcShaderCompiler.CompileToFileDXIL(
 					sourcePath, entry, profile, includeDirs, extraArgs,
 					dxilPath.wstring()
 				);
@@ -143,7 +144,7 @@ namespace Unnamed::Render {
 	}
 
 	void ShaderLibrary::MarkAllDirty() {
-		for (const auto& [key, _] : mRuntimeCache) {
+		for (const auto& key : mRuntimeCache | std::views::keys) {
 			mDirtyKeys.emplace(key);
 		}
 	}
