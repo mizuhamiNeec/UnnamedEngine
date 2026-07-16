@@ -21,14 +21,14 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "ConsoleScriptComponent";
 
-		constexpr const char* kAttachCommandsKey = "attachCommands";
-		constexpr const char* kDetachCommandsKey = "detachCommands";
+		constexpr auto kAttachCommandsKey = "attachCommands";
+		constexpr auto kDetachCommandsKey = "detachCommands";
 
 #ifdef _DEBUG
 		template <size_t N>
 		bool EditCommandInput(const char* label, std::string& value) {
 			std::array<char, N> buffer = {};
-			const size_t        copyLen = std::min(value.size(), buffer.size() - 1);
+			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
 			if (copyLen > 0) {
 				std::memcpy(buffer.data(), value.data(), copyLen);
 			}
@@ -60,7 +60,9 @@ namespace Unnamed {
 				EditCommandInput<512>("##Command", command);
 				ImGui::SameLine();
 				if (ImGui::Button("Remove")) {
-					commands.erase(commands.begin() + static_cast<ptrdiff_t>(i));
+					commands.erase(
+						commands.begin() + static_cast<ptrdiff_t>(i)
+					);
 					ImGui::PopID();
 					break;
 				}
@@ -71,7 +73,7 @@ namespace Unnamed {
 #endif
 
 		void ReadCommandArray(
-			const JsonReader&          node,
+			const JsonReader&         node,
 			std::vector<std::string>& outCommands
 		) {
 			outCommands.clear();
@@ -85,7 +87,8 @@ namespace Unnamed {
 				if (!commandNode.Valid()) {
 					continue;
 				}
-				std::string command = StrUtil::TrimSpaces(commandNode.GetString(""));
+				std::string command = StrUtil::TrimSpaces(
+					commandNode.GetString(""));
 				if (command.empty()) {
 					continue;
 				}
@@ -180,4 +183,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(ConsoleScriptComponent);
 }
-
