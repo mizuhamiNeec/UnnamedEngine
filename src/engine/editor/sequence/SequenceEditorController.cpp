@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #include "core/assets/AssetManager.h"
 #include "core/content/ContentPathResolver.h"
@@ -19,18 +20,13 @@ namespace Unnamed {
 		SequenceEditorController* gSequenceEditorReloadReceiver = nullptr;
 		bool                      gSequenceEditorReloadHooked   = false;
 
-		[[nodiscard]] uint64_t AllocateStableId() {
-			static GuidGenerator generator;
-			return generator.Alloc();
-		}
-
 		[[nodiscard]] int64_t QuantizeFrame(const float frame) {
 			return std::llround(std::max(0.0f, frame));
 		}
 
 		void EnsureCurveChannelId(SequenceRichCurveAssetData& ioCurve) {
 			if (ioCurve.channelId == 0) {
-				ioCurve.channelId = AllocateStableId();
+				ioCurve.channelId = GuidGenerator::AllocRandom();
 			}
 		}
 
@@ -51,7 +47,7 @@ namespace Unnamed {
 
 			ioCurve.keys.emplace_back(
 				SequenceFloatKeyAssetData{
-					.keyId         = AllocateStableId(),
+					.keyId         = GuidGenerator::AllocRandom(),
 					.frame         = frame,
 					.value         = value,
 					.arriveTangent = 0.0f,
@@ -167,7 +163,7 @@ namespace Unnamed {
 		if (mAssetManager) {
 			const std::optional<std::string> mountId =
 				mAssetManager->GetContentPathResolver().
-				FindMountIdForResolvedPath(document->GetPath());
+				               FindMountIdForResolvedPath(document->GetPath());
 			if (mountId == ContentMountId::kCore) {
 				Warning(
 					"SequenceEditor",
@@ -227,7 +223,7 @@ namespace Unnamed {
 		if (mActiveDocumentIndex < 0) {
 			return nullptr;
 		}
-		if (mActiveDocumentIndex >= static_cast<int32_t>(mDocuments.size())) {
+		if (std::cmp_greater_equal(mActiveDocumentIndex, mDocuments.size())) {
 			return nullptr;
 		}
 		return mDocuments[mActiveDocumentIndex].get();
@@ -248,7 +244,7 @@ namespace Unnamed {
 	}
 
 	void SequenceEditorController::SetActiveDocumentIndex(const int32_t index) {
-		if (index < 0 || index >= static_cast<int32_t>(mDocuments.size())) {
+		if (index < 0 || std::cmp_greater_equal(index, mDocuments.size())) {
 			return;
 		}
 		mActiveDocumentIndex = index;
@@ -337,7 +333,7 @@ namespace Unnamed {
 		mPreviewPlayer->Play();
 	}
 
-	void SequenceEditorController::PausePreview() {
+	void SequenceEditorController::PausePreview() const {
 		if (!mPreviewPlayer) {
 			return;
 		}
@@ -419,7 +415,7 @@ namespace Unnamed {
 				);
 				if (
 					trackIndex < 0 ||
-					trackIndex >= static_cast<int32_t>(data.tracks.size())
+					std::cmp_greater_equal(trackIndex, data.tracks.size())
 				) {
 					return;
 				}
@@ -427,7 +423,7 @@ namespace Unnamed {
 				SequenceTrackAssetData& track = data.tracks[trackIndex];
 				if (
 					sectionIndex < 0 ||
-					sectionIndex >= static_cast<int32_t>(track.sections.size())
+					std::cmp_greater_equal(sectionIndex, track.sections.size())
 				) {
 					return;
 				}
@@ -544,7 +540,7 @@ namespace Unnamed {
 		uint64_t bindingId = 0;
 		for (SequenceBindingAssetData& binding : ioData.bindings) {
 			if (binding.bindingId == 0) {
-				binding.bindingId = AllocateStableId();
+				binding.bindingId = GuidGenerator::AllocRandom();
 			}
 			if (
 				binding.entityGuid == entityGuid &&
@@ -556,7 +552,7 @@ namespace Unnamed {
 		}
 		if (bindingId == 0) {
 			SequenceBindingAssetData binding = {};
-			binding.bindingId                = AllocateStableId();
+			binding.bindingId                = GuidGenerator::AllocRandom();
 			binding.entityGuid               = entityGuid;
 			binding.componentStableName      = "engine.Transform";
 			binding.propertyPath             = "";
@@ -566,7 +562,7 @@ namespace Unnamed {
 
 		if (
 			mSelection.trackIndex >= 0 &&
-			mSelection.trackIndex < static_cast<int32_t>(ioData.tracks.size())
+			std::cmp_less(mSelection.trackIndex, ioData.tracks.size())
 		) {
 			const SequenceTrackAssetData& selectedTrack = ioData.tracks[
 				mSelection.trackIndex];
@@ -579,7 +575,7 @@ namespace Unnamed {
 		}
 
 		if (outTrackIndex < 0) {
-			for (int32_t i = 0; i < static_cast<int32_t>(ioData.tracks.size());
+			for (int32_t i = 0; std::cmp_less(i, ioData.tracks.size());
 			     ++i) {
 				const SequenceTrackAssetData& track = ioData.tracks[i];
 				if (
@@ -594,27 +590,27 @@ namespace Unnamed {
 
 		if (outTrackIndex < 0) {
 			SequenceTrackAssetData track = {};
-			track.trackId = AllocateStableId();
+			track.trackId = GuidGenerator::AllocRandom();
 			track.name = "Transform_" + std::to_string(entityGuid);
 			track.trackType = SEQUENCE_TRACK_TYPE::TRANSFORM;
 			track.blendMode = SEQUENCE_BLEND_MODE::MODE_ABSOLUTE;
 			track.priority = 0;
 			track.bindingId = bindingId;
 			SequenceSectionAssetData section = {};
-			section.sectionId = AllocateStableId();
+			section.sectionId = GuidGenerator::AllocRandom();
 			section.startFrame = 0;
 			section.endFrame = std::max<int64_t>(ioData.lengthFrames, 1);
 			section.priority = 0;
-			section.transformPosX.channelId = AllocateStableId();
-			section.transformPosY.channelId = AllocateStableId();
-			section.transformPosZ.channelId = AllocateStableId();
-			section.transformRotX.channelId = AllocateStableId();
-			section.transformRotY.channelId = AllocateStableId();
-			section.transformRotZ.channelId = AllocateStableId();
-			section.transformRotW.channelId = AllocateStableId();
-			section.transformScaleX.channelId = AllocateStableId();
-			section.transformScaleY.channelId = AllocateStableId();
-			section.transformScaleZ.channelId = AllocateStableId();
+			section.transformPosX.channelId = GuidGenerator::AllocRandom();
+			section.transformPosY.channelId = GuidGenerator::AllocRandom();
+			section.transformPosZ.channelId = GuidGenerator::AllocRandom();
+			section.transformRotX.channelId = GuidGenerator::AllocRandom();
+			section.transformRotY.channelId = GuidGenerator::AllocRandom();
+			section.transformRotZ.channelId = GuidGenerator::AllocRandom();
+			section.transformRotW.channelId = GuidGenerator::AllocRandom();
+			section.transformScaleX.channelId = GuidGenerator::AllocRandom();
+			section.transformScaleY.channelId = GuidGenerator::AllocRandom();
+			section.transformScaleZ.channelId = GuidGenerator::AllocRandom();
 			track.sections.emplace_back(std::move(section));
 			ioData.tracks.emplace_back(std::move(track));
 			outTrackIndex = static_cast<int32_t>(ioData.tracks.size() - 1);
@@ -622,23 +618,24 @@ namespace Unnamed {
 
 		SequenceTrackAssetData& track = ioData.tracks[outTrackIndex];
 		if (track.trackId == 0) {
-			track.trackId = AllocateStableId();
+			track.trackId = GuidGenerator::AllocRandom();
 		}
 		if (track.sections.empty()) {
 			SequenceSectionAssetData section = {};
-			section.sectionId = AllocateStableId();
+			section.sectionId = GuidGenerator::AllocRandom();
 			section.startFrame = 0;
 			section.endFrame = std::max<int64_t>(ioData.lengthFrames, 1);
 			track.sections.emplace_back(std::move(section));
 		}
 
 		outSectionIndex = mSelection.sectionIndex >= 0 &&
-		                  mSelection.sectionIndex < static_cast<int32_t>(track.
-			                  sections.size()) ?
+		                  std::cmp_less(mSelection.sectionIndex, track.
+		                                sections.size()) ?
 			                  mSelection.sectionIndex :
 			                  0;
 		if (track.sections[outSectionIndex].sectionId == 0) {
-			track.sections[outSectionIndex].sectionId = AllocateStableId();
+			track.sections[outSectionIndex].sectionId =
+				GuidGenerator::AllocRandom();
 		}
 	}
 }

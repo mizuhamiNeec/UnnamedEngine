@@ -22,6 +22,10 @@ namespace Unnamed {
 		/// @return 生成された64ビットGUID
 		uint64_t Alloc();
 
+		/// @brief スレッドローカル乱数生成器から64ビットGUIDを割り当てる
+		/// @return 最上位ビットがセットされたランダムな64ビットGUID
+		[[nodiscard]] static uint64_t AllocRandom();
+
 	private:
 		std::atomic<uint64_t> mCounter = {0};
 		MODE                  mMode;

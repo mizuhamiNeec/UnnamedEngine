@@ -37,7 +37,7 @@ namespace Unnamed {
 					       1, std::memory_order_relaxed
 				       ) + 1;
 			}
-			case MODE::RANDOM64: return AllocRandom64ThreadSafe();
+			case MODE::RANDOM64: return AllocRandom();
 
 			default: {
 				return mCounter.fetch_add(
@@ -45,5 +45,9 @@ namespace Unnamed {
 				       ) + 1;
 			}
 		}
+	}
+
+	uint64_t GuidGenerator::AllocRandom() {
+		return AllocRandom64ThreadSafe();
 	}
 }

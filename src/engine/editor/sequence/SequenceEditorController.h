@@ -82,7 +82,7 @@ namespace Unnamed {
 		void PlayPreviewBackward();
 
 		/// @brief プレビュー再生を一時停止します。
-		void PausePreview();
+		void PausePreview() const;
 
 		/// @brief プレビュー再生を停止します。
 		void StopPreview();
