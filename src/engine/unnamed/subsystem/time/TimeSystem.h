@@ -15,7 +15,9 @@ namespace Unnamed {
 		bool Init() override;
 
 		void BeginFrame() const;
-		void EndFrame() const;
+		/// @brief フレームを終了します。
+		/// @param advanceGameTime false の場合はフレームレート制限だけを適用し、ゲーム時間は進めません。
+		void EndFrame(bool advanceGameTime = true) const;
 
 		[[nodiscard]] const std::string_view GetName() const override;
 

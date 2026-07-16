@@ -36,9 +36,11 @@ namespace Unnamed {
 		void FillRenderFrameInputs(
 			Render::RenderFrameInputs&  inputs,
 			Render::RenderFrameContext& frameContext,
-			AssetManager&               assetManager
+			AssetManager&               assetManager,
+			bool                        enableUiInput = true
 		) override;
 		[[nodiscard]] bool IsGameSimulationEnabled() const noexcept override;
+		[[nodiscard]] World* GetSimulationWorld() noexcept override;
 
 		[[nodiscard]] Scene* GetEditableScene() {
 			return mScene.get();

@@ -143,16 +143,19 @@ namespace Unnamed {
 	void EditorWorld::FillRenderFrameInputs(
 		Render::RenderFrameInputs&  inputs,
 		Render::RenderFrameContext& frameContext,
-		AssetManager&               assetManager
+		AssetManager&               assetManager,
+		const bool                  enableUiInput
 	) {
 		if (mPlayWorld) {
 			mPlayWorld->FillRenderFrameInputs(
-				inputs, frameContext, assetManager
+				inputs, frameContext, assetManager, enableUiInput
 			);
 			return;
 		}
 
-		World::FillRenderFrameInputs(inputs, frameContext, assetManager);
+		World::FillRenderFrameInputs(
+			inputs, frameContext, assetManager, enableUiInput
+		);
 
 		Render::RenderViewInput* primarySceneView = nullptr;
 		for (auto& view : inputs.views) {
@@ -180,6 +183,10 @@ namespace Unnamed {
 
 	bool EditorWorld::IsGameSimulationEnabled() const noexcept {
 		return false;
+	}
+
+	World* EditorWorld::GetSimulationWorld() noexcept {
+		return mPlayWorld ? mPlayWorld.get() : this;
 	}
 
 	World* EditorWorld::GetRuntimeSceneWorld() {

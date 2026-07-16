@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <functional>
 #include <memory>
 
@@ -132,6 +133,10 @@ namespace Unnamed {
 			const SceneLoadOptions&   options
 		);
 
+		/// @brief 読み込まれたシーンをシミュレーション開始前に描画ウォームアップすべきか判定します。
+		/// @details 新しいシーンの最初の描画で発生する同期ロード時間をゲーム時間へ混入させません。
+		[[nodiscard]] bool BeginSceneWarmupIfNeeded(World* runtimeWorld);
+
 		/// @brief Core/Game のコンテンツマウントを初期化します。
 		[[nodiscard]] bool InitializeContentMounts(
 			const GameRuntimeContext& runtimeContext
@@ -183,6 +188,8 @@ namespace Unnamed {
 		std::unique_ptr<Render::RenderFrameContext> mRenderFrameContext;
 		float mAssetHotReloadPollAccumulator = 0.0f;
 		float mSimulationAccumulator = 0.0f;
+		World*   mWarmupWorld           = nullptr;
+		uint64_t mWarmedSceneGeneration = 0;
 		uint32_t mFrameIndex = 0;
 		uint32_t mLastResizeWidth = 0;
 		uint32_t mLastResizeHeight = 0;

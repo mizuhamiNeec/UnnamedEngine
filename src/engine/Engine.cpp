@@ -710,6 +710,7 @@ namespace Unnamed {
 #endif
 
 		// ワールドの固定シミュレーション更新 + 描画フレーム更新
+		bool sceneWarmupFrame = false;
 		if (runtimeWorld) {
 			{
 				// シーン遷移はフレーム先頭でまとめて適用し、更新ループ中の差し替えを避けます。
@@ -722,6 +723,10 @@ namespace Unnamed {
 					transitionTarget->ProcessPendingSceneTransition();
 				}
 			}
+
+			sceneWarmupFrame = BeginSceneWarmupIfNeeded(
+				runtimeWorld->GetSimulationWorld()
+			);
 
 			static constexpr uint32_t kMaxFixedTicksPerFrame = 1024u;
 
@@ -753,14 +758,15 @@ namespace Unnamed {
 				mLastLoggedTickRateMismatchConfigured = 0;
 			}
 
-			mSimulationAccumulator += std::max(0.0f, scaledDeltaTime);
+			mSimulationAccumulator += sceneWarmupFrame ?
+				0.0f : std::max(0.0f, scaledDeltaTime);
 			// 長時間停止後の追い付き更新が無制限に続かないよう上限を設ける
 			mSimulationAccumulator = std::min(
 				mSimulationAccumulator,
 				fixedStepSeconds * static_cast<float>(kMaxFixedTicksPerFrame)
 			);
 
-			{
+			if (!sceneWarmupFrame) {
 				// 入力は描画フレームごとに一度だけ収集し、固定更新で共有する
 				Profiler::ScopeTimer scope(
 					mProfiler.get(), "World.FrameInputTick"
@@ -768,7 +774,7 @@ namespace Unnamed {
 				runtimeWorld->FrameInputTick(unscaledDeltaTime);
 			}
 
-			{
+			if (!sceneWarmupFrame) {
 				Profiler::ScopeTimer scope(mProfiler.get(), "World.FixedTick");
 				uint32_t             fixedTickCount = 0;
 				while (
@@ -781,7 +787,7 @@ namespace Unnamed {
 				}
 			}
 
-			{
+			if (!sceneWarmupFrame) {
 				// 固定更新の残り時間で描画用の補間位置を決める
 				const float interpolationAlpha =
 					fixedStepSeconds > 0.0f ?
@@ -806,7 +812,10 @@ namespace Unnamed {
 				mProfiler.get(), "World.FillRenderFrameInputs"
 			);
 			runtimeWorld->FillRenderFrameInputs(
-				inputs, *mRenderFrameContext, *mAssetManager
+				inputs,
+				*mRenderFrameContext,
+				*mAssetManager,
+				!sceneWarmupFrame
 			);
 		}
 
@@ -839,6 +848,12 @@ namespace Unnamed {
 			mRenderModule->Tick(inputs);
 		}
 
+		if (sceneWarmupFrame) {
+			// RenderFrame が投入したメッシュ、テクスチャ、PSO のGPU作業まで完了させる。
+			// この待機時間は下記 EndFrame(false) によりゲーム時間へ加算されない。
+			dynamic_cast<Rhi::D3D12Device&>(*mRhiDevice).WaitForGpuIdle();
+		}
+
 		if (mProfiler) {
 			const float totalMs = std::chrono::duration<float, std::milli>(
 				std::chrono::steady_clock::now() - frameStart
@@ -847,7 +862,34 @@ namespace Unnamed {
 			mProfiler->EndFrame();
 		}
 
-		mTimeSystem->EndFrame(); // フレーム終了
+		mTimeSystem->EndFrame(!sceneWarmupFrame); // フレーム終了
+	}
+
+	bool Engine::BeginSceneWarmupIfNeeded(World* const runtimeWorld) {
+		if (!runtimeWorld || !runtimeWorld->GetScenePtr()) {
+			mWarmupWorld          = runtimeWorld;
+			mWarmedSceneGeneration = 0;
+			return false;
+		}
+
+		const uint64_t sceneGeneration = runtimeWorld->GetSceneGeneration();
+		if (
+			mWarmupWorld == runtimeWorld &&
+			mWarmedSceneGeneration == sceneGeneration
+		) {
+			return false;
+		}
+
+		mWarmupWorld           = runtimeWorld;
+		mWarmedSceneGeneration = sceneGeneration;
+		mSimulationAccumulator = 0.0f;
+		Msg(
+			"Engine",
+			"Warming scene before simulation: path={} generation={}",
+			runtimeWorld->GetLoadedScenePath(),
+			sceneGeneration
+		);
+		return true;
 	}
 
 	/// @brief シャットダウン

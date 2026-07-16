@@ -548,7 +548,8 @@ namespace Unnamed {
 	void World::FillRenderFrameInputs(
 		Render::RenderFrameInputs&  inputs,
 		Render::RenderFrameContext& frameContext,
-		AssetManager&               assetManager
+		AssetManager&               assetManager,
+		const bool                  enableUiInput
 	) {
 		frameContext.Reset();
 		inputs.views.clear();
@@ -824,7 +825,8 @@ namespace Unnamed {
 			runtimeRoot->UpdateLayout();
 
 			const bool canProcessInput =
-				entry.canvas->GetReceiveInput() && inputSystem != nullptr;
+				enableUiInput && entry.canvas->GetReceiveInput() &&
+				inputSystem != nullptr;
 			if (canProcessInput) {
 				const Vec2 mousePos     = inputSystem->GetMouseClientPosition();
 				const Vec2 viewportSize = inputSystem->
@@ -1143,6 +1145,14 @@ namespace Unnamed {
 		return mLoadedScenePath;
 	}
 
+	uint64_t World::GetSceneGeneration() const noexcept {
+		return mSceneGeneration;
+	}
+
+	World* World::GetSimulationWorld() noexcept {
+		return this;
+	}
+
 	void World::SetLoadedScenePath(const Path& path) {
 		mLoadedScenePath = path.IsEmpty() ? Path() : path.LexicallyNormal();
 	}
@@ -1186,6 +1196,9 @@ namespace Unnamed {
 			}
 		}
 		mScene = std::move(scene);
+		if (mScene) {
+			++mSceneGeneration;
+		}
 		mCameraManager.ClearCurrentCamera();
 		if (mSequenceRuntime) {
 			mSequenceRuntime->Clear();

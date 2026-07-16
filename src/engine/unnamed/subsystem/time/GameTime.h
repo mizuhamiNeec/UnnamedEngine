@@ -9,7 +9,9 @@ public:
 
 	void StartGame();
 
-	void EndFrame();
+	/// @brief フレームを終了し、必要に応じてゲーム時間を進めます。
+	/// @param advanceGameTime false の場合は実時間だけを破棄し、次フレームの計測基準を更新します。
+	void EndFrame(bool advanceGameTime = true);
 
 	// Getter
 	template <typename T = double>

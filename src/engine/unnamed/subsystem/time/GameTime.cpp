@@ -23,7 +23,7 @@ void GameTime::StartGame() {
 }
 
 /// @brief フレーム開始時の処理を行います。
-void GameTime::EndFrame() {
+void GameTime::EndFrame(const bool advanceGameTime) {
 	// フレーム終了時刻を記録
 	const TimePoint frameEndTime = Clock::now();
 
@@ -31,6 +31,14 @@ void GameTime::EndFrame() {
 	mDeltaTime = std::chrono::duration<double>(
 		frameEndTime - mFrameStartTime
 	).count();
+
+	if (!advanceGameTime) {
+		// ロード用フレームはゲームの更新時間に含めず、次フレームの起点だけを更新する。
+		mDeltaTime       = 0.0;
+		mScaledDeltaTime = 0.0;
+		mFrameStartTime  = frameEndTime;
+		return;
+	}
 
 	// タイムスケールを取得
 	mTimeScale = ServiceLocator::Get<Unnamed::ConsoleSystem>()->GetConVarAs<

@@ -124,9 +124,12 @@ namespace Unnamed {
 	void GameWorld::FillRenderFrameInputs(
 		Render::RenderFrameInputs&  inputs,
 		Render::RenderFrameContext& frameContext,
-		AssetManager&               assetManager
+		AssetManager&               assetManager,
+		const bool                  enableUiInput
 	) {
-		World::FillRenderFrameInputs(inputs, frameContext, assetManager);
+		World::FillRenderFrameInputs(
+			inputs, frameContext, assetManager, enableUiInput
+		);
 	}
 
 	void GameWorld::SetScene(std::unique_ptr<Scene> scene) {

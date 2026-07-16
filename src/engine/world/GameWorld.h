@@ -22,7 +22,8 @@ namespace Unnamed {
 		void FillRenderFrameInputs(
 			Render::RenderFrameInputs&  inputs,
 			Render::RenderFrameContext& frameContext,
-			AssetManager&               assetManager
+			AssetManager&               assetManager,
+			bool                        enableUiInput = true
 		) override;
 
 		void SetScene(std::unique_ptr<Scene> scene) override;

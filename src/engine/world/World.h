@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -126,8 +127,17 @@ namespace Unnamed {
 		virtual void FillRenderFrameInputs(
 			Render::RenderFrameInputs&  inputs,
 			Render::RenderFrameContext& frameContext,
-			AssetManager&               assetManager
+			AssetManager&               assetManager,
+			bool                        enableUiInput = true
 		);
+
+		/// @brief 現在のシーンが設定されるたびに増加する世代番号を返します。
+		/// @details エンジンはこの番号を使い、新しいシーンをシミュレーション開始前にウォームアップします。
+		[[nodiscard]] uint64_t GetSceneGeneration() const noexcept;
+
+		/// @brief 実際にゲームシミュレーションを実行するワールドを返します。
+		/// @details 通常は自身を返し、PIE のように更新を委譲するワールドは委譲先を返します。
+		[[nodiscard]] virtual World* GetSimulationWorld() noexcept;
 
 		/// @brief ゲームシミュレーションが有効かどうかを返します。デフォルトではtrueを返します。
 		/// @return ゲームシミュレーションが有効な場合はtrue、そうでない場合はfalse
@@ -281,6 +291,7 @@ namespace Unnamed {
 
 		Path mLoadedScenePath;            // ロードされたシーンのファイルパス
 		Path mPendingSceneTransitionPath; // 保留中のシーン遷移先
+		uint64_t mSceneGeneration = 0;
 
 		WorldTime      mTime; // ワールドの時間情報
 		WorldDebugDraw mDebugDraw;
