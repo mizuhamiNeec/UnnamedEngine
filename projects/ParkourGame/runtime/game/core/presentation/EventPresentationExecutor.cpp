@@ -1,8 +1,6 @@
 #include "EventPresentationExecutor.h"
 
 #include <algorithm>
-#include <cctype>
-#include <cmath>
 
 #include "core/string/StrUtil.h"
 #include "game/core/components/AudioFxControllerComponent.h"
@@ -14,24 +12,6 @@
 namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "EventPresentationV2";
-
-		[[nodiscard]] std::string TrimAscii(std::string_view text) {
-			size_t begin = 0;
-			while (
-				begin < text.size() &&
-				std::isspace(static_cast<unsigned char>(text[begin])) != 0
-			) {
-				++begin;
-			}
-			size_t end = text.size();
-			while (
-				end > begin &&
-				std::isspace(static_cast<unsigned char>(text[end - 1])) != 0
-			) {
-				--end;
-			}
-			return std::string(text.substr(begin, end - begin));
-		}
 
 		[[nodiscard]] float ReadSourceValue(
 			const EventPresentationValueSource source,
@@ -64,7 +44,8 @@ namespace Unnamed {
 					}
 					return payloadValue;
 				}
-				case EventPresentationValueSource::Constant: return constantValue;
+				case EventPresentationValueSource::Constant: return
+						constantValue;
 				default: return cue.value;
 			}
 		}
@@ -78,7 +59,7 @@ namespace Unnamed {
 			outPayloadName->clear();
 		}
 		const std::string normalized = StrUtil::ToLowerCase(
-			TrimAscii(sourceText)
+			StrUtil::TrimAsciiWhitespace(sourceText)
 		);
 		if (normalized == "cue.value") {
 			return EventPresentationValueSource::CueValue;
@@ -86,8 +67,8 @@ namespace Unnamed {
 		if (normalized == "cue.value2" || normalized == "cue.impact_speed") {
 			return EventPresentationValueSource::CueValue2;
 		}
-		if (normalized.rfind("payload.", 0) == 0) {
-			std::string payloadName = TrimAscii(
+		if (normalized.starts_with("payload.")) {
+			std::string payloadName = StrUtil::TrimAsciiWhitespace(
 				std::string_view(normalized).substr(
 					std::string_view("payload.").size()
 				)
@@ -110,7 +91,7 @@ namespace Unnamed {
 		const std::string_view actionTypeText
 	) {
 		const std::string normalized = StrUtil::ToLowerCase(
-			TrimAscii(actionTypeText)
+			StrUtil::TrimAsciiWhitespace(actionTypeText)
 		);
 		if (normalized == "sound.play") {
 			return EventPresentationActionType::SoundPlay;
@@ -172,8 +153,10 @@ namespace Unnamed {
 		const EventPresentationTrigger& trigger,
 		const ExecutionContext&         context
 	) {
-		const auto reportAction = [&](const size_t actionIndex,
-		                              const ActionTraceStatus status) {
+		const auto ReportAction = [&](
+			const size_t            actionIndex,
+			const ActionTraceStatus status
+		) {
 			if (context.actionTraceCallback) {
 				context.actionTraceCallback(actionIndex, status);
 			}
@@ -181,7 +164,8 @@ namespace Unnamed {
 
 		for (size_t actionIndex = 0; actionIndex < trigger.actions.size();
 		     ++actionIndex) {
-			const EventPresentationAction& action = trigger.actions[actionIndex];
+			const EventPresentationAction& action = trigger.actions[
+				actionIndex];
 			const float actionValue = EvaluateValue(action.value, context.cue);
 			switch (action.actionType) {
 				case EventPresentationActionType::SoundPlay: {
@@ -192,7 +176,7 @@ namespace Unnamed {
 							context.receiverEntityGuid,
 							context.cue.id
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					if (action.id.empty()) {
@@ -201,7 +185,7 @@ namespace Unnamed {
 							"Action sound.play failed: preset id is empty (asset='{}').",
 							context.assetName
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					const float intensity = std::max(0.0f, actionValue);
@@ -214,7 +198,7 @@ namespace Unnamed {
 								action.id
 							);
 						}
-						reportAction(actionIndex, ActionTraceStatus::Skipped);
+						ReportAction(actionIndex, ActionTraceStatus::Skipped);
 						break;
 					}
 					const bool triggered = context.audioFx->TriggerOneShot(
@@ -229,7 +213,7 @@ namespace Unnamed {
 							intensity,
 							context.audioTargetEntityGuid
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 					} else if (context.verboseLog) {
 						DevMsg(
 							kChannel,
@@ -238,9 +222,9 @@ namespace Unnamed {
 							intensity,
 							context.audioTargetEntityGuid
 						);
-						reportAction(actionIndex, ActionTraceStatus::Executed);
+						ReportAction(actionIndex, ActionTraceStatus::Executed);
 					} else {
-						reportAction(actionIndex, ActionTraceStatus::Executed);
+						ReportAction(actionIndex, ActionTraceStatus::Executed);
 					}
 					break;
 				}
@@ -252,7 +236,7 @@ namespace Unnamed {
 							context.receiverEntityGuid,
 							context.cue.id
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					if (action.id.empty()) {
@@ -261,7 +245,7 @@ namespace Unnamed {
 							"Action camera.shake failed: preset id is empty (asset='{}').",
 							context.assetName
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					const float intensity = std::max(0.0f, actionValue);
@@ -274,7 +258,7 @@ namespace Unnamed {
 								action.id
 							);
 						}
-						reportAction(actionIndex, ActionTraceStatus::Skipped);
+						ReportAction(actionIndex, ActionTraceStatus::Skipped);
 						break;
 					}
 					context.cameraFx->TriggerShake(action.id, intensity);
@@ -287,7 +271,7 @@ namespace Unnamed {
 							context.cameraTargetEntityGuid
 						);
 					}
-					reportAction(actionIndex, ActionTraceStatus::Executed);
+					ReportAction(actionIndex, ActionTraceStatus::Executed);
 					break;
 				}
 				case EventPresentationActionType::CameraFov: {
@@ -298,7 +282,7 @@ namespace Unnamed {
 							context.receiverEntityGuid,
 							context.cue.id
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					if (action.id.empty()) {
@@ -307,7 +291,7 @@ namespace Unnamed {
 							"Action camera.fov failed: preset id is empty (asset='{}').",
 							context.assetName
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					const float intensity = std::max(0.0f, actionValue);
@@ -320,7 +304,7 @@ namespace Unnamed {
 								action.id
 							);
 						}
-						reportAction(actionIndex, ActionTraceStatus::Skipped);
+						ReportAction(actionIndex, ActionTraceStatus::Skipped);
 						break;
 					}
 					context.cameraFx->TriggerFov(action.id, intensity);
@@ -333,7 +317,7 @@ namespace Unnamed {
 							context.cameraTargetEntityGuid
 						);
 					}
-					reportAction(actionIndex, ActionTraceStatus::Executed);
+					ReportAction(actionIndex, ActionTraceStatus::Executed);
 					break;
 				}
 				case EventPresentationActionType::CameraRotation: {
@@ -344,7 +328,7 @@ namespace Unnamed {
 							context.receiverEntityGuid,
 							context.cue.id
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					if (action.id.empty()) {
@@ -353,7 +337,7 @@ namespace Unnamed {
 							"Action camera.rotation failed: preset id is empty (asset='{}').",
 							context.assetName
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					const float intensity = std::max(0.0f, actionValue);
@@ -366,7 +350,7 @@ namespace Unnamed {
 								action.id
 							);
 						}
-						reportAction(actionIndex, ActionTraceStatus::Skipped);
+						ReportAction(actionIndex, ActionTraceStatus::Skipped);
 						break;
 					}
 					context.cameraFx->TriggerRotation(action.id, intensity);
@@ -379,7 +363,7 @@ namespace Unnamed {
 							context.cameraTargetEntityGuid
 						);
 					}
-					reportAction(actionIndex, ActionTraceStatus::Executed);
+					ReportAction(actionIndex, ActionTraceStatus::Executed);
 					break;
 				}
 				case EventPresentationActionType::AnimationPlayState: {
@@ -390,7 +374,7 @@ namespace Unnamed {
 							context.receiverEntityGuid,
 							context.cue.id
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					if (action.id.empty()) {
@@ -399,7 +383,7 @@ namespace Unnamed {
 							"Action animation.play_state failed: state id is empty (asset='{}').",
 							context.assetName
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					const bool played = context.animation->PlayState(action.id);
@@ -410,7 +394,7 @@ namespace Unnamed {
 							action.id,
 							context.animationTargetEntityGuid
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 					} else if (context.verboseLog) {
 						DevMsg(
 							kChannel,
@@ -418,9 +402,9 @@ namespace Unnamed {
 							action.id,
 							context.animationTargetEntityGuid
 						);
-						reportAction(actionIndex, ActionTraceStatus::Executed);
+						ReportAction(actionIndex, ActionTraceStatus::Executed);
 					} else {
-						reportAction(actionIndex, ActionTraceStatus::Executed);
+						ReportAction(actionIndex, ActionTraceStatus::Executed);
 					}
 					break;
 				}
@@ -432,7 +416,7 @@ namespace Unnamed {
 							context.receiverEntityGuid,
 							context.cue.id
 						);
-						reportAction(actionIndex, ActionTraceStatus::Error);
+						ReportAction(actionIndex, ActionTraceStatus::Error);
 						break;
 					}
 					if (!std::isfinite(actionValue)) {
@@ -443,7 +427,7 @@ namespace Unnamed {
 							context.cue.id,
 							context.assetName
 						);
-						reportAction(actionIndex, ActionTraceStatus::Warning);
+						ReportAction(actionIndex, ActionTraceStatus::Warning);
 						break;
 					}
 					const float safeSpeed = std::max(0.0f, actionValue);
@@ -456,13 +440,15 @@ namespace Unnamed {
 							context.animationTargetEntityGuid
 						);
 					}
-					reportAction(actionIndex, ActionTraceStatus::Executed);
+					ReportAction(actionIndex, ActionTraceStatus::Executed);
 					break;
 				}
 				case EventPresentationActionType::DebugPrint: {
 					const std::string_view text = !action.debugText.empty() ?
-						                              std::string_view(action.debugText) :
-						                              std::string_view(action.id);
+						                              std::string_view(
+							                              action.debugText) :
+						                              std::string_view(
+							                              action.id);
 					DevMsg(
 						kChannel,
 						"[debug.print] cue='{}' value={:.3f} value2={:.3f} expr={:.3f} message='{}'.",
@@ -472,7 +458,7 @@ namespace Unnamed {
 						actionValue,
 						text
 					);
-					reportAction(actionIndex, ActionTraceStatus::Executed);
+					ReportAction(actionIndex, ActionTraceStatus::Executed);
 					break;
 				}
 				case EventPresentationActionType::Unknown:
@@ -484,7 +470,7 @@ namespace Unnamed {
 						trigger.cueId,
 						context.assetName
 					);
-					reportAction(actionIndex, ActionTraceStatus::Warning);
+					ReportAction(actionIndex, ActionTraceStatus::Warning);
 					break;
 			}
 		}

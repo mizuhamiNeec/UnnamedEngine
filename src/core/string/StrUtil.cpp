@@ -217,6 +217,24 @@ namespace Unnamed::StrUtil {
 		return std::string(string.substr(start, end - start + 1));
 	}
 
+	std::string TrimAsciiWhitespace(const std::string_view string) {
+		size_t begin = 0;
+		while (
+			begin < string.size() &&
+			std::isspace(static_cast<unsigned char>(string[begin])) != 0
+		) {
+			++begin;
+		}
+		size_t end = string.size();
+		while (
+			end > begin &&
+			std::isspace(static_cast<unsigned char>(string[end - 1])) != 0
+		) {
+			--end;
+		}
+		return std::string(string.substr(begin, end - begin));
+	}
+
 	bool EqualsIgnoreCase(
 		const std::string_view lhs, const std::string_view rhs
 	) {

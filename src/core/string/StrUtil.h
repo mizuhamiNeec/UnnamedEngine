@@ -83,6 +83,11 @@ namespace Unnamed::StrUtil {
 	/// @return トリムされた文字列
 	std::string TrimSpaces(std::string_view string);
 
+	/// @brief 文字列ビューの前後からCロケールのASCII空白文字を削除する
+	/// @param string 対象文字列ビュー
+	/// @return space、tab、改行、復帰、form-feed、vertical-tabを除いた文字列
+	std::string TrimAsciiWhitespace(std::string_view string);
+
 	/// @brief 2つの文字列を大文字小文字を無視して比較する
 	/// @param lhs 左辺
 	/// @param rhs 右辺
