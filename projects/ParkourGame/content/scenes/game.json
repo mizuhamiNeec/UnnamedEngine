@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.000259399414063,
-                            36.0006217956543,
-                            16.000259399414063
+                            16.000267028808594,
+                            36.00063705444336,
+                            16.000267028808594
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -679,13 +679,13 @@
                         "speed": 1.0,
                         "stateMap": [
                             {
-                                "blendSec": 0.11999999731779099,
-                                "clipName": "Sprint.001",
+                                "blendSec": 0.125,
+                                "clipName": "Vault",
                                 "layerIndex": 0,
-                                "loop": true,
+                                "loop": false,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_sprint",
+                                "stateId": "animstate_vaulting",
                                 "weight": 1.0
                             },
                             {
@@ -699,13 +699,13 @@
                                 "weight": 1.0
                             },
                             {
-                                "blendSec": 0.125,
-                                "clipName": "Vault",
+                                "blendSec": 0.11999999731779099,
+                                "clipName": "Sprint.001",
                                 "layerIndex": 0,
-                                "loop": false,
+                                "loop": true,
                                 "restartOnPlay": true,
                                 "speed": 1.0,
-                                "stateId": "animstate_vaulting",
+                                "stateId": "animstate_sprint",
                                 "weight": 1.0
                             },
                             {
@@ -1455,156 +1455,6 @@
             "guid": 2320,
             "isEditorOnly": false,
             "name": "Script",
-            "visible": true
-        },
-        {
-            "active": true,
-            "components": [
-                {
-                    "active": true,
-                    "data": {
-                        "parentEntityGuid": 0,
-                        "position": [
-                            39.013999938964844,
-                            1.6260000467300415,
-                            0.0
-                        ],
-                        "rotation": [
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "scale": [
-                            1.0,
-                            1.0,
-                            1.0
-                        ]
-                    },
-                    "guid": 14432184254079450260,
-                    "type": "engine.Transform"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "materialInstancePath": "",
-                        "materialSlots": [],
-                        "meshPath": "models/fan.obj"
-                    },
-                    "guid": 11218511112006460158,
-                    "type": "engine.StaticMeshRenderer"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "dynamic": true,
-                        "enabled": true
-                    },
-                    "guid": 11799664914444189922,
-                    "type": "engine.StaticMeshCollider"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "enabled": true,
-                        "moveToPointB": true,
-                        "pointA": [
-                            39.013999938964844,
-                            1.6260000467300415,
-                            0.0
-                        ],
-                        "pointB": [
-                            39.013999938964844,
-                            11.62600040435791,
-                            0.0
-                        ],
-                        "snapOnAttach": true,
-                        "speed": 5.0,
-                        "startFromA": true
-                    },
-                    "guid": 14408135907502723530,
-                    "type": "game.PatrolPoint"
-                }
-            ],
-            "folderPath": "",
-            "guid": 2321,
-            "isEditorOnly": false,
-            "name": "VerticalMovingPlatform",
-            "visible": true
-        },
-        {
-            "active": true,
-            "components": [
-                {
-                    "active": true,
-                    "data": {
-                        "parentEntityGuid": 0,
-                        "position": [
-                            39.013999938964844,
-                            1.6260000467300415,
-                            8.128000259399414
-                        ],
-                        "rotation": [
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "scale": [
-                            1.0,
-                            4.0,
-                            1.0
-                        ]
-                    },
-                    "guid": 12851917235657260575,
-                    "type": "engine.Transform"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "materialInstancePath": "",
-                        "materialSlots": [],
-                        "meshPath": "models/fan.obj"
-                    },
-                    "guid": 10079947523180645772,
-                    "type": "engine.StaticMeshRenderer"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "dynamic": true,
-                        "enabled": true
-                    },
-                    "guid": 13167560044277730826,
-                    "type": "engine.StaticMeshCollider"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "enabled": true,
-                        "moveToPointB": true,
-                        "pointA": [
-                            39.013999938964844,
-                            1.6260000467300415,
-                            8.128000259399414
-                        ],
-                        "pointB": [
-                            92.65899658203125,
-                            1.6260000467300415,
-                            8.128000259399414
-                        ],
-                        "snapOnAttach": true,
-                        "speed": 5.0,
-                        "startFromA": true
-                    },
-                    "guid": 16121965786767389326,
-                    "type": "game.PatrolPoint"
-                }
-            ],
-            "folderPath": "",
-            "guid": 2322,
-            "isEditorOnly": false,
-            "name": "HorizontalMovingPlatform",
             "visible": true
         },
         {
