@@ -22,7 +22,7 @@ namespace Unnamed {
 	public:
 		/// @brief タイトル演出を更新します。
 		/// @param deltaTime 前フレームからの経過時間（秒）
-		void OnTick(float deltaTime) override;
+		void OnFrameInputTick(float deltaTime) override;
 		/// @brief エディタ中も同じタイトル演出を更新します。
 		/// @param deltaTime 前フレームからの経過時間（秒）
 		void OnEditorTick(float deltaTime) override;

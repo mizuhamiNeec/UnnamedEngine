@@ -757,6 +757,12 @@ namespace Unnamed {
 	bool ParkourMovementComponent::CanStandAt(
 		const MovementContext& context
 	) const {
+		// 既に立ちハルなら、現在の接触面を再度占有判定して強制しゃがみへ
+		// 遷移させない。急傾斜面はハルとの接触を overlap として返すことがある。
+		if (!mRuntime.duckHullActive) {
+			return true;
+		}
+
 		if (!context.transform) {
 			return true;
 		}
@@ -789,26 +795,29 @@ namespace Unnamed {
 			mDuckStandDebug.standTargetHalfExtents = standCheckHalfExtents;
 		}
 
-		// 地上 unduck は足元固定で遷移するため、終点占有判定を優先します。
-		// 空中 unduck のみ経路スイープを有効化して干渉を防ぎます。
+		// 足元が支持されている unduck は追加される上部体積だけを判定する。
+		// サーフランプとの下側接触は、立ちハル全体の overlap 判定に含めない。
 		HullOccupancyDebugInfo occupancyDebug = {};
-		if (!CanOccupyHull(
-			context,
-			standCheckCenter,
-			standCheckHalfExtents,
-			!grounded,
-			debugEnabled ? &occupancyDebug : nullptr
-		)) {
-			if (debugEnabled) {
-				mDuckStandDebug.standOccupancy = occupancyDebug;
+		if (!grounded) {
+			// 空中では頭側固定で下方向へ拡張するため、終点と経路を確認する。
+			if (!CanOccupyHull(
+				context,
+				standCheckCenter,
+				standCheckHalfExtents,
+				true,
+				debugEnabled ? &occupancyDebug : nullptr
+			)) {
+				if (debugEnabled) {
+					mDuckStandDebug.standOccupancy = occupancyDebug;
+				}
+				return false;
 			}
-			return false;
 		}
 		if (debugEnabled) {
 			mDuckStandDebug.standOccupancy = occupancyDebug;
 		}
 
-		if (!grounded || !mRuntime.duckHullActive) {
+		if (!grounded) {
 			if (debugEnabled) {
 				mDuckStandDebug.standAllowed = true;
 			}
@@ -1589,8 +1598,29 @@ namespace Unnamed {
 	bool ParkourMovementComponent::IsDuckGrounded(
 		const MovementContext& context
 	) const {
-		return context.isGrounded ||
-		       context.modeState.currentMode == MOVEMENT_MODE_ID::GROUND;
+		if (context.isGrounded ||
+		    context.modeState.currentMode == MOVEMENT_MODE_ID::GROUND) {
+			return true;
+		}
+		if (!context.transform || !context.resolver) {
+			return false;
+		}
+
+		// 姿勢変更では歩行可能判定よりも足元位置を優先する。これにより、
+		// 非歩行可能なサーフランプ上でも足元を固定してハルを切り替えられる。
+		const float probeDistanceHu = mConsole ?
+		                                  mConsole->GetConVarValueOr(
+			                                      "sv_groundprobe_distance_hu", 1.0f
+		                                  ) :
+		                                  1.0f;
+		Physics::Hit supportHit{};
+		return context.resolver->ProbeGround(
+			context.transform->GetPosition(),
+			Math::HtoM(std::max(0.0f, probeDistanceHu)),
+			&supportHit
+		) &&
+		       (supportHit.startSolid || supportHit.allsolid ||
+		        supportHit.normal.y > 0.0f);
 	}
 
 	bool ParkourMovementComponent::CanOccupyHull(

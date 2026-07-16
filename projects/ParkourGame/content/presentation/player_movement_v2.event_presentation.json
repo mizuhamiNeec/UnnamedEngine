@@ -3109,7 +3109,7 @@
                     "y": 192.0
                 },
                 {
-                    "actionId": "se_jump",
+                    "actionId": "se_doublejump",
                     "actionType": "sound.play",
                     "clampEnabled": false,
                     "clampMax": 3.4028234663852886e+38,
@@ -6591,9 +6591,9 @@
                 }
             ],
             "view": {
-                "panX": 538.2052612304688,
-                "panY": -5658.97412109375,
-                "zoom": 0.6499999761581421
+                "panX": -2814.58740234375,
+                "panY": 155.1083221435547,
+                "zoom": 0.9499999284744263
             }
         }
     },
@@ -6639,7 +6639,7 @@
                     }
                 },
                 {
-                    "id": "se_jump",
+                    "id": "se_doublejump",
                     "type": "sound.play",
                     "value": {
                         "constant": 1.0,

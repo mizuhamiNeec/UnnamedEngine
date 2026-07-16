@@ -2076,11 +2076,11 @@ namespace Unnamed {
 					runtime.vault.time / duration, 0.0f, 1.0f
 				);
 				const float u = 1.0f - t;
-				(void)MoveTransformWithSlideResponse(
-					context,
+				// Vault 開始時に経路を検証済みなので、障害物を乗り越える補間中は
+				// 通常の SlideMove で同じ障害物に再び遮られないよう軌道を適用する。
+				context.transform->SetPosition(
 					runtime.vault.startPos * (u * u) + runtime.vault.apexPos *
-					(2.0f * u * t) + runtime.vault.endPos * (t * t),
-					deltaTime
+					(2.0f * u * t) + runtime.vault.endPos * (t * t)
 				);
 				parkour->SyncCollisionHull(context.transform);
 				context.velocity              = Vec3::zero;

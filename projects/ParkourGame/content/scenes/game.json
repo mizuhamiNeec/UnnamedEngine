@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.000244140625,
-                            36.00058364868164,
-                            16.000244140625
+                            16.000259399414063,
+                            36.0006217956543,
+                            16.000259399414063
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -964,6 +964,18 @@
                 {
                     "active": true,
                     "data": {
+                        "loop": false,
+                        "pitch": 1.0,
+                        "playOnStart": false,
+                        "soundPath": "sounds/se/player/UI_Noisy_Impact_09.wav",
+                        "volume": 0.20000000298023224
+                    },
+                    "guid": 17000123456789012349,
+                    "type": "engine.AudioSource"
+                },
+                {
+                    "active": true,
+                    "data": {
                         "oneShotPresets": [
                             {
                                 "id": "se_jump",
@@ -972,6 +984,14 @@
                                 "sourceComponentGuid": 17000123456789012345,
                                 "sourceEntityGuid": 0,
                                 "volume": 0.30000001192092896
+                            },
+                            {
+                                "id": "se_doublejump",
+                                "pitchMax": 1.059999942779541,
+                                "pitchMin": 0.949999988079071,
+                                "sourceComponentGuid": 17000123456789012349,
+                                "sourceEntityGuid": 0,
+                                "volume": 0.15000000596046448
                             },
                             {
                                 "id": "se_land",
@@ -1329,7 +1349,7 @@
                                 ]
                             }
                         ],
-                        "skipAction": "",
+                        "skipAction": "jump",
                         "startAudioSourceGuid": 9100000000000000212,
                         "tourCameraEntityGuid": 9100000000000000200
                     },
@@ -1364,7 +1384,7 @@
             "folderPath": "",
             "guid": 2319,
             "isEditorOnly": false,
-            "name": "Entity",
+            "name": "Cutscene",
             "visible": true
         },
         {

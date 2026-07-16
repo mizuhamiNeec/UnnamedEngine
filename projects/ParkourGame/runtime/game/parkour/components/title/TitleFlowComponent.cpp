@@ -85,7 +85,7 @@ namespace Unnamed {
 		}
 	}
 
-	void TitleFlowComponent::OnTick(const float deltaTime) {
+	void TitleFlowComponent::OnFrameInputTick(const float deltaTime) {
 		TickTitle(deltaTime);
 	}
 

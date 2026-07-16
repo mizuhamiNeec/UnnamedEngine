@@ -44,6 +44,17 @@ namespace Unnamed {
 		mPendingStartSequence = true;
 	}
 
+	void GameStartCutsceneComponent::OnFrameInputTick(float) {
+		if (!mSequenceActive || mPhase != PHASE::TOUR || mSkipAction.empty()) {
+			return;
+		}
+
+		if (const InputSystem* input = GetInputSystem();
+		    input && input->IsPressed(mSkipAction)) {
+			EnterCountdown();
+		}
+	}
+
 	void GameStartCutsceneComponent::OnTick(const float deltaTime) {
 		if (mPendingStartSequence) {
 			mPendingStartSequence = false;
@@ -464,15 +475,6 @@ namespace Unnamed {
 			return;
 		}
 
-		if (!mSkipAction.empty()) {
-			if (const InputSystem* input = GetInputSystem()) {
-				if (input->IsPressed(mSkipAction)) {
-					EnterCountdown();
-					return;
-				}
-			}
-		}
-
 		if (mShots.empty()) {
 			EnterCountdown();
 			return;
@@ -687,14 +689,14 @@ namespace Unnamed {
 		const float     digitBaseHeight = std::max(1.0f, digitBaseRect.height);
 
 		const float digitTarget =
-			std::clamp(std::min(viewW, viewH) * 0.24f, 96.0f, 320.0f);
+			std::clamp(std::min(viewW, viewH) * 0.14f, 64.0f, 192.0f);
 		const float digitScale =
 			digitTarget / std::max(digitBaseWidth, digitBaseHeight);
 
 		const float startBaseWidth  = std::max(1.0f, startBaseRect.width);
 		const float startBaseHeight = std::max(1.0f, startBaseRect.height);
 		const float startScale      =
-			std::clamp(viewW * 0.42f / startBaseWidth, 0.45f, 1.45f);
+			std::clamp(viewW * 0.25f / startBaseWidth, 0.45f, 1.45f);
 		float       startWidth   = startBaseWidth * startScale;
 		float       startHeight  = startBaseHeight * startScale;
 		const float startOffsetY = centerOffsetY + digitTarget * 0.05f;

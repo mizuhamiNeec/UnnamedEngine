@@ -30,6 +30,8 @@ namespace Unnamed {
 	public:
 		/// @brief コンポーネント追加時に開始演出を初期化します。
 		void OnAttached() override;
+		/// @brief フレーム入力で開始演出のスキップ操作を受け付けます。
+		void OnFrameInputTick(float frameDeltaTime) override;
 		/// @brief 開始演出を毎フレーム更新します。
 		void OnTick(float deltaTime) override;
 		/// @brief 描画フレームでカメラ拘束状態を再適用します。
