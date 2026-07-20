@@ -759,7 +759,7 @@ namespace Unnamed {
 			}
 
 			mSimulationAccumulator += sceneWarmupFrame ?
-				0.0f : std::max(0.0f, scaledDeltaTime);
+				                          0.0f : std::max(0.0f, scaledDeltaTime);
 			// 長時間停止後の追い付き更新が無制限に続かないよう上限を設ける
 			mSimulationAccumulator = std::min(
 				mSimulationAccumulator,
@@ -863,33 +863,6 @@ namespace Unnamed {
 		}
 
 		mTimeSystem->EndFrame(!sceneWarmupFrame); // フレーム終了
-	}
-
-	bool Engine::BeginSceneWarmupIfNeeded(World* const runtimeWorld) {
-		if (!runtimeWorld || !runtimeWorld->GetScenePtr()) {
-			mWarmupWorld          = runtimeWorld;
-			mWarmedSceneGeneration = 0;
-			return false;
-		}
-
-		const uint64_t sceneGeneration = runtimeWorld->GetSceneGeneration();
-		if (
-			mWarmupWorld == runtimeWorld &&
-			mWarmedSceneGeneration == sceneGeneration
-		) {
-			return false;
-		}
-
-		mWarmupWorld           = runtimeWorld;
-		mWarmedSceneGeneration = sceneGeneration;
-		mSimulationAccumulator = 0.0f;
-		Msg(
-			"Engine",
-			"Warming scene before simulation: path={} generation={}",
-			runtimeWorld->GetLoadedScenePath(),
-			sceneGeneration
-		);
-		return true;
 	}
 
 	/// @brief シャットダウン
@@ -1240,6 +1213,33 @@ namespace Unnamed {
 			return false;
 		}
 
+		return true;
+	}
+
+	bool Engine::BeginSceneWarmupIfNeeded(World* const runtimeWorld) {
+		if (!runtimeWorld || !runtimeWorld->GetScenePtr()) {
+			mWarmupWorld           = runtimeWorld;
+			mWarmedSceneGeneration = 0;
+			return false;
+		}
+
+		const uint64_t sceneGeneration = runtimeWorld->GetSceneGeneration();
+		if (
+			mWarmupWorld == runtimeWorld &&
+			mWarmedSceneGeneration == sceneGeneration
+		) {
+			return false;
+		}
+
+		mWarmupWorld           = runtimeWorld;
+		mWarmedSceneGeneration = sceneGeneration;
+		mSimulationAccumulator = 0.0f;
+		Msg(
+			"Engine",
+			"Warming scene before simulation: path={} generation={}",
+			runtimeWorld->GetLoadedScenePath(),
+			sceneGeneration
+		);
 		return true;
 	}
 
