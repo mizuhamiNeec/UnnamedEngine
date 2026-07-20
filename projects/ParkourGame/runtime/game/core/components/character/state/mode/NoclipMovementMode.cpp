@@ -17,7 +17,6 @@ namespace Unnamed {
 	}
 
 	void NoclipMovementMode::Tick(MovementContext& context, const float deltaTime) {
-#ifdef _DEBUG
 		if (!mConsole->GetConVarValueOr("noclip", false)) {
 			context.SubmitTransition(
 				context.defaultAirMode,
@@ -52,10 +51,6 @@ namespace Unnamed {
 		context.transform->SetPosition(
 			context.transform->GetPosition() + context.velocity * deltaTime
 		);
-#else
-		(void)context;
-		(void)deltaTime;
-#endif
 	}
 
 	void NoclipMovementMode::Exit() {}
