@@ -301,7 +301,6 @@ namespace Unnamed::Render {
 		RenderDevice&                       renderDevice,
 		const std::vector<RenderViewInput>& frameViews
 	) {
-		mGraphBuilt = true;
 		mGraph.SetRenderDevice(renderDevice);
 
 		for (const RenderViewInput& view : frameViews) {
@@ -733,10 +732,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>(&state.colorTextureId, 1),
-					state.depthTextureId
-				);
 				pass.SetGraphicsPipeline(
 					mSkyboxPass.geom.resolved->rootSignature,
 					mSkyboxPass.geom.resolved->pso
@@ -778,7 +773,7 @@ namespace Unnamed::Render {
 		// レンダーターゲット: state.colorTextureId。
 		// 深度ステンシル: state.depthTextureId。
 		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
-		// リソースステート: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(有効時の mDirectionalShadow.shadowDepthTextureId)。 マテリアルテクスチャ SRV は MaterialBinding/フォールバックテクスチャを通じた描画時にバインドされる。
+		// リソースステート: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(影と実際に描画するマテリアルの全テクスチャ)。
 		// 注記: 静的メッシュとスキンメッシュはこのパスを共有する。不透明マテリアルシェーダ/深度/カルバリアントは描画ごとに選択される。透明/ブレンドマテリアル処理は意図的に未対応のまま。
 		const uint32_t colorId       = state.colorTextureId;
 		const uint32_t depthId       = state.depthTextureId;
@@ -796,19 +791,86 @@ namespace Unnamed::Render {
 				 "r_shadowmap_enabled",
 				 true
 			 ));
+		uint32_t shadowSrvTextureId = shadowEnabled ? shadowDepthId : 0;
+		if (shadowSrvTextureId == 0) {
+			EnsureSpriteFallbackTexture(renderDevice);
+			shadowSrvTextureId = mSpriteFallbackTextureId;
+		}
+
+		const RenderViewInput& view = mFrameViews[viewIndex];
+		const MaterialBinding* fallbackMaterial = nullptr;
+		if (const auto it = mMaterialBindings.find(mDefaultMaterialInstance);
+		    it != mMaterialBindings.end()) {
+			fallbackMaterial = &it->second;
+		}
+		const auto resolveMaterialBinding =
+			[this, fallbackMaterial](const AssetID materialInstanceId)
+			-> const MaterialBinding* {
+				if (const auto it = mMaterialBindings.find(materialInstanceId);
+				    it != mMaterialBindings.end()) {
+					return &it->second;
+				}
+				return fallbackMaterial;
+			};
+
+		std::vector<uint32_t> geometryTextureIds;
+		std::unordered_set<uint32_t> seenGeometryTextureIds;
+		const auto addMaterialTextureIds = [&geometryTextureIds,
+		                                    &seenGeometryTextureIds](
+			const MaterialBinding* materialBinding
+		) {
+			if (!materialBinding) {
+				return;
+			}
+			for (const uint32_t textureId : materialBinding->resolvedTextureIds) {
+				if (textureId != 0 && seenGeometryTextureIds.insert(textureId).second) {
+					geometryTextureIds.emplace_back(textureId);
+				}
+			}
+		};
+		for (const auto& objectInput : view.visibleObjects) {
+			const auto meshIt = mSceneMeshesByAsset.find(objectInput.meshAssetId);
+			if (meshIt == mSceneMeshesByAsset.end()) {
+				continue;
+			}
+			const MeshBuffer& mesh = meshIt->second;
+			if (mesh.submeshes.empty()) {
+				addMaterialTextureIds(
+					resolveMaterialBinding(objectInput.materialInstanceId)
+				);
+				continue;
+			}
+			for (const auto& submesh : mesh.submeshes) {
+				if (submesh.indexCount == 0) {
+					continue;
+				}
+				AssetID materialInstanceId = objectInput.materialInstanceId;
+				if (submesh.materialIndex < objectInput.materialInstanceIdsBySlot.size()) {
+					const AssetID slotMaterialId =
+						objectInput.materialInstanceIdsBySlot[submesh.materialIndex];
+					if (slotMaterialId != kInvalidAssetID) {
+						materialInstanceId = slotMaterialId;
+					}
+				}
+				addMaterialTextureIds(resolveMaterialBinding(materialInstanceId));
+			}
+		}
 
 		mGraph.AddPass(
 			prefix + "Geometry",
-			[colorId, depthId, shadowDepthId, shadowEnabled](
+			[colorId, depthId, shadowSrvTextureId, geometryTextureIds](
 			RenderGraphBuilder& b
 		) {
 				b.WriteRt(colorId);
 				b.WriteDepth(depthId);
-				if (shadowEnabled) {
-					b.ReadSrvPs(shadowDepthId);
+				if (shadowSrvTextureId != 0) {
+					b.ReadSrvPs(shadowSrvTextureId);
+				}
+				for (const uint32_t textureId : geometryTextureIds) {
+					b.ReadSrvPs(textureId);
 				}
 			},
-			[this, viewIndex, state, shadowDepthId, shadowEnabled,
+			[this, viewIndex, state, shadowSrvTextureId, shadowEnabled,
 				&renderDevice](
 			RenderPassContext& pass
 		) {
@@ -927,14 +989,6 @@ namespace Unnamed::Render {
 						&environment, sizeof(environment)
 					);
 
-				uint32_t shadowSrvTextureId = shadowEnabled ?
-					                              shadowDepthId :
-					                              0;
-				if (shadowSrvTextureId == 0) {
-					EnsureSpriteFallbackTexture(renderDevice);
-					shadowSrvTextureId = mSpriteFallbackTextureId;
-				}
-
 				pass.SetViewportAndScissor(
 					0.0f,
 					0.0f,
@@ -942,10 +996,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>(&state.colorTextureId, 1),
-					state.depthTextureId
-				);
 				if (!mGeometryPass.resolved || !mGeometryPass.resolved->
 				    pso) {
 					return;
@@ -1259,10 +1309,6 @@ namespace Unnamed::Render {
 					static_cast<float>(shadowState.resolution),
 					static_cast<float>(shadowState.resolution)
 				);
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>{},
-					shadowState.shadowDepthTextureId
-				);
 
 				const ResolvedGraphicsPipeline* currentPipeline    = nullptr;
 				auto                            bindShadowPipeline = [&](
@@ -1541,10 +1587,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>(&state.colorTextureId, 1),
-					state.depthTextureId
-				);
 				if (
 					!mBillboardPass.depthGeom.resolved ||
 					!mBillboardPass.depthGeom.resolved->pso
@@ -1698,10 +1740,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>(&state.colorTextureId, 1),
-					state.depthTextureId
-				);
 				if (
 					!mBillboardPass.depthGeom.resolved ||
 					!mBillboardPass.depthGeom.resolved->pso
@@ -1857,10 +1895,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalWidth),
 					static_cast<float>(state.logicalHeight)
 				);
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>(&state.colorTextureId, 1),
-					state.depthTextureId
-				);
 				pass.SetGraphicsPipeline(
 					mLinePass.resolved->rootSignature,
 					mLinePass.resolved->pso
@@ -1946,7 +1980,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTarget(state.colorTextureId);
 				if (
 					!mBillboardPass.frontGeom.resolved ||
 					!mBillboardPass.frontGeom.resolved->pso
@@ -2257,7 +2290,6 @@ namespace Unnamed::Render {
 						static_cast<float>(dstHeight)
 					);
 					pass.SetSrvUavHeap();
-					pass.SetRenderTarget(dstId);
 					if (
 						!mBloomDownsamplePass.resolved ||
 						!mBloomDownsamplePass.resolved->pso
@@ -2354,7 +2386,6 @@ namespace Unnamed::Render {
 						static_cast<float>(dstHeight)
 					);
 					pass.SetSrvUavHeap();
-					pass.SetRenderTarget(dstHighId);
 					if (
 						!mBloomUpsamplePass.resolved ||
 						!mBloomUpsamplePass.resolved->pso
@@ -2412,7 +2443,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTarget(bloomCombinedOutId);
 				if (!mHdrCopyPass.resolved || !mHdrCopyPass.resolved->pso) {
 					return;
 				}
@@ -2513,7 +2543,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTarget(bloomCombinedOutId);
 				if (
 					!mBloomCombinePass.resolved ||
 					!mBloomCombinePass.resolved->pso
@@ -2599,7 +2628,6 @@ namespace Unnamed::Render {
 					passRes.pass.resolved->rootSignature,
 					passRes.pass.resolved->pso
 				);
-				pass.SetRenderTarget(outId);
 				pass.BindGraphicsCbv(
 					ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
 					postFxCb
@@ -2662,7 +2690,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTarget(toneMapOutputId);
 				if (!mToneMapPass.resolved || !mToneMapPass.resolved->pso) {
 					return;
 				}
@@ -2778,7 +2805,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTarget(outputId);
 
 				int textSamplerMode = 0;
 				if (mConsole != nullptr) {

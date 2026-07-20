@@ -1,5 +1,6 @@
 #include "RenderGraph.h"
 
+#include <algorithm>
 #include <pix.h>
 #include <unordered_set>
 #include <utility>
@@ -15,30 +16,72 @@
 #include "engine/rhi/d3d12/D3D12SwapChain.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 
-#define USE_PIX_MARKERS
+namespace {
+#define USE_PIX_MARKERS // PIXマーカー
 
-static void BeginGpuEvent(ID3D12GraphicsCommandList* cl, const char* name) {
+	void BeginGpuEvent(ID3D12GraphicsCommandList* cl, const char* name) {
 #if defined(USE_PIX_MARKERS)
-	PIXBeginEvent(cl, 0, name);
+		PIXBeginEvent(cl, 0, name);
 #else
-	(void)cl;
-	(void)name;
+		(void)cl;
+		(void)name;
 #endif
-}
+	}
 
-static void EndGpuEvent(ID3D12GraphicsCommandList* cl) {
+	void EndGpuEvent(ID3D12GraphicsCommandList* cl) {
 #if defined(USE_PIX_MARKERS)
-	PIXEndEvent(cl);
+		PIXEndEvent(cl);
 #else
-	(void)cl;
+		(void)cl;
 #endif
+	}
 }
 
 namespace Unnamed::Render {
-	static D3D12_RESOURCE_STATES DefaultInitState(const uint32_t id) {
-		return id == RenderGraph::kBackBufferId ?
-			       D3D12_RESOURCE_STATE_PRESENT :
-			       D3D12_RESOURCE_STATE_COMMON;
+	static constexpr std::string_view kChannel = "RDG";
+
+	namespace {
+		struct PassResourceAccess {
+			bool isRenderTarget = false;
+			bool isUavWrite     = false;
+			bool isSrvRead      = false;
+			bool isDepthWrite   = false;
+			bool isDepthRead    = false;
+
+			[[nodiscard]] bool HasRead() const {
+				return isSrvRead || isDepthRead;
+			}
+
+			[[nodiscard]] bool HasWrite() const {
+				return isRenderTarget || isUavWrite || isDepthWrite;
+			}
+		};
+
+		struct ResourceDependencyState {
+			std::optional<uint32_t> lastWriter;
+			std::vector<uint32_t>   readersSinceLastWrite;
+		};
+
+		void AddDependency(
+			std::vector<std::vector<uint32_t>>& outgoingDependencies,
+			const uint32_t                      beforePassIndex,
+			const uint32_t                      afterPassIndex
+		) {
+			if (beforePassIndex == afterPassIndex) {
+				return;
+			}
+
+			auto& dependents = outgoingDependencies[beforePassIndex];
+			if (!std::ranges::contains(dependents, afterPassIndex)) {
+				dependents.emplace_back(afterPassIndex);
+			}
+		}
+
+		D3D12_RESOURCE_STATES DefaultInitState(const uint32_t id) {
+			return id == RenderGraph::kBackBufferId ?
+				       D3D12_RESOURCE_STATE_PRESENT :
+				       D3D12_RESOURCE_STATE_COMMON;
+		}
 	}
 
 	void RenderGraph::SetRenderDevice(RenderDevice& renderDevice) {
@@ -96,7 +139,112 @@ namespace Unnamed::Render {
 		plannedStates[kBackBufferId] = D3D12_RESOURCE_STATE_PRESENT;
 		mGlobalStates[kBackBufferId] = D3D12_RESOURCE_STATE_PRESENT;
 
-		const auto ensureTrackedResourceState =
+		// パス登録順とは別に、宣言済みリソースアクセスから RAW/WAR/WAW 依存を
+		// 構築する。これにより実行順は手続き的な追加順ではなく、リソース契約に
+		// よって決まる。複数の有効順がある場合だけ登録順を維持する。
+		std::vector<std::vector<uint32_t>> outgoingDependencies(
+			mPasses.size()
+		);
+		std::unordered_map<uint32_t, ResourceDependencyState>
+			resourceDependencyStates;
+
+		for (uint32_t passIndex = 0;
+		     passIndex < static_cast<uint32_t>(mPasses.size());
+		     ++passIndex) {
+			std::unordered_map<uint32_t, PassResourceAccess> accesses;
+			for (const RgUse& use : mPasses[passIndex].uses) {
+				auto& access = accesses[use.textureId];
+				switch (use.access) {
+					case RG_ACCESS::RENDER_TARGET: access.isRenderTarget = true;
+						break;
+					case RG_ACCESS::UAV_WRITE: access.isUavWrite = true;
+						break;
+					case RG_ACCESS::SRV_READ_PS:
+					case RG_ACCESS::SRV_READ_CS: access.isSrvRead = true;
+						break;
+					case RG_ACCESS::DEPTH_WRITE: access.isDepthWrite = true;
+						break;
+					case RG_ACCESS::DEPTH_READ: access.isDepthRead = true;
+						break;
+				}
+			}
+
+			for (const auto& [textureId, access] : accesses) {
+				auto& dependencyState = resourceDependencyStates[textureId];
+				if (access.HasRead()) {
+					if (dependencyState.lastWriter.has_value()) {
+						AddDependency(
+							outgoingDependencies,
+							*dependencyState.lastWriter,
+							passIndex
+						);
+					}
+					dependencyState.readersSinceLastWrite.emplace_back(
+						passIndex);
+				}
+
+				if (access.HasWrite()) {
+					if (dependencyState.lastWriter.has_value()) {
+						AddDependency(
+							outgoingDependencies,
+							*dependencyState.lastWriter,
+							passIndex
+						);
+					}
+					for (const uint32_t readerPassIndex :
+					     dependencyState.readersSinceLastWrite) {
+						AddDependency(
+							outgoingDependencies,
+							readerPassIndex,
+							passIndex
+						);
+					}
+					dependencyState.readersSinceLastWrite.clear();
+					dependencyState.lastWriter = passIndex;
+				}
+			}
+		}
+
+		std::vector<uint32_t> inDegree(mPasses.size());
+		for (const auto& dependents : outgoingDependencies) {
+			for (const uint32_t dependentPassIndex : dependents) {
+				++inDegree[dependentPassIndex];
+			}
+		}
+
+		std::vector<uint32_t> readyPasses;
+		readyPasses.reserve(mPasses.size());
+		for (uint32_t passIndex = 0;
+		     passIndex < static_cast<uint32_t>(mPasses.size());
+		     ++passIndex) {
+			if (inDegree[passIndex] == 0) {
+				readyPasses.emplace_back(passIndex);
+			}
+		}
+
+		std::vector<uint32_t> executionOrder;
+		executionOrder.reserve(mPasses.size());
+		while (!readyPasses.empty()) {
+			const auto     nextIt    = std::ranges::min_element(readyPasses);
+			const uint32_t passIndex = *nextIt;
+			readyPasses.erase(nextIt);
+			executionOrder.emplace_back(passIndex);
+
+			for (const uint32_t dependentPassIndex :
+			     outgoingDependencies[passIndex]) {
+				if (--inDegree[dependentPassIndex] == 0) {
+					readyPasses.emplace_back(dependentPassIndex);
+				}
+			}
+		}
+
+		if (executionOrder.size() != mPasses.size()) {
+			Fatal(kChannel, "RenderGraph pass dependencies contain a cycle.");
+			UASSERT(false);
+			return;
+		}
+
+		const auto EnsureTrackedResourceState =
 			[this, &plannedStates](const uint32_t textureId) {
 			if (textureId == kBackBufferId) {
 				return;
@@ -122,11 +270,7 @@ namespace Unnamed::Render {
 
 		std::unordered_set<uint32_t> uavWrittenPendingBarrier;
 
-		for (
-			uint32_t passIndex = 0;
-			passIndex < static_cast<uint32_t>(mPasses.size());
-			++passIndex
-		) {
+		for (const uint32_t passIndex : executionOrder) {
 			const auto&  pass     = mPasses[passIndex];
 			CompiledPass compiled = {};
 			compiled.passIndex    = passIndex;
@@ -134,125 +278,105 @@ namespace Unnamed::Render {
 			compiled.colorRts = pass.colorRts;
 			compiled.depthRt  = pass.depthRt;
 
+			std::unordered_map<uint32_t, PassResourceAccess>    accesses;
 			std::unordered_map<uint32_t, D3D12_RESOURCE_STATES> requiredStates;
-
-			// 出力ターゲットで要求を確定
-			for (uint32_t rtId : pass.colorRts) {
-				requiredStates[rtId] = D3D12_RESOURCE_STATE_RENDER_TARGET;
-			}
-			if (pass.depthRt.has_value()) {
-				requiredStates[*pass.depthRt] =
-					D3D12_RESOURCE_STATE_DEPTH_WRITE;
-			}
-
-			// 使用するテクスチャの要求状態を確定
-			for (const auto& use : pass.uses) {
-				auto& req = requiredStates[use.textureId];
-
+			for (const RgUse& use : pass.uses) {
+				auto& access = accesses[use.textureId];
 				switch (use.access) {
-					case RG_ACCESS::SRV_READ_PS: {
-						// UAV/RT/DSVと同居はヤヴァい
-						if (
-							req == D3D12_RESOURCE_STATE_RENDER_TARGET ||
-							req == D3D12_RESOURCE_STATE_UNORDERED_ACCESS ||
-							req == D3D12_RESOURCE_STATE_DEPTH_WRITE
-						) {
-							Fatal(
-								"RDG",
-								"パス名 '{}' に textureID={} のRT/DSV/UAV使用とSRV(PS)読み取りが同時に指定されています。",
-								pass.name, use.textureId
-							);
-							UASSERT(false);
-							break;
-						}
-						req |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+					case RG_ACCESS::RENDER_TARGET: access.isRenderTarget = true;
 						break;
-					}
-
-					case RG_ACCESS::SRV_READ_CS: {
-						if (
-							req == D3D12_RESOURCE_STATE_RENDER_TARGET ||
-							req == D3D12_RESOURCE_STATE_UNORDERED_ACCESS ||
-							req == D3D12_RESOURCE_STATE_DEPTH_WRITE
-						) {
-							Fatal(
-								"RDG",
-								"パス名 '{}' に textureID={} のRT/DSV/UAV使用とSRV(CS)読み取りが同時に指定されています。",
-								pass.name, use.textureId
-							);
-							UASSERT(false);
-							break;
-						}
-						req |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+					case RG_ACCESS::UAV_WRITE: access.isUavWrite = true;
 						break;
-					}
-
-					case RG_ACCESS::UAV_WRITE: {
-						// すでにRT/DSVならヤヴァい
-						if (
-							req == D3D12_RESOURCE_STATE_RENDER_TARGET ||
-							req == D3D12_RESOURCE_STATE_DEPTH_WRITE
-						) {
-							Fatal(
-								"RDG",
-								"パス名 '{}' に textureID={} のRT/DSV使用とUAV書き込みが同時に指定されています。",
-								pass.name, use.textureId
-							);
-							UASSERT(false);
-							break;
-						}
-						req = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-						compiled.uavWritesInPass.emplace_back(use.textureId);
+					case RG_ACCESS::SRV_READ_PS:
+					case RG_ACCESS::SRV_READ_CS: access.isSrvRead = true;
 						break;
-					}
-
-					case RG_ACCESS::DEPTH_READ: {
-						// TODO: 今のところ使わないので未対応。
+					case RG_ACCESS::DEPTH_WRITE: access.isDepthWrite = true;
 						break;
-					}
+					case RG_ACCESS::DEPTH_READ: access.isDepthRead = true;
+						break;
+				}
+				requiredStates[use.textureId] |= RequiredState(use.access);
+			}
 
-					case RG_ACCESS::RENDER_TARGET: break;
-					case RG_ACCESS::DEPTH_WRITE: break;
-						// こいつらは無視
+			bool hasInvalidAccess = false;
+			for (const auto& [textureId, access] : accesses) {
+				const uint32_t writeAccessCount =
+					static_cast<uint32_t>(access.isRenderTarget) +
+					static_cast<uint32_t>(access.isUavWrite) +
+					static_cast<uint32_t>(access.isDepthWrite);
+				if (
+					writeAccessCount > 1 ||
+					(access.HasRead() && access.HasWrite()) ||
+					access.isDepthRead
+				) {
+					Fatal(
+						kChannel,
+						"Pass '{}' declares unsupported or incompatible access for textureId={}",
+						pass.name,
+						textureId
+					);
+					hasInvalidAccess = true;
+				}
+			}
+			if (hasInvalidAccess) {
+				UASSERT(false);
+				return;
+			}
+
+			for (const auto& [textureId, access] : pass.uses) {
+				if (IsUavWrite(access)) {
+					compiled.uavWritesInPass.emplace_back(textureId);
 				}
 			}
 
-			auto HasRtUse = [&](uint32_t texId) {
+			auto HasRtUse = [&](const uint32_t texId) {
 				return std::ranges::contains(pass.colorRts, texId);
 			};
 
-			for (const auto& c : pass.clearsColor) {
-				if (!HasRtUse(c.textureId)) {
+			for (const auto& [textureId, color] : pass.clearsColor) {
+				if (!HasRtUse(textureId)) {
 					Fatal(
-						"RDG",
+						kChannel,
 						"パス名 '{}' のクリアコマンドで textureID={} が指定されていますが、このパスでRT使用がありません。",
-						pass.name, c.textureId
+						pass.name, textureId
 					);
+					UASSERT(false);
+					return;
 				}
 				compiled.clearsBefore.push_back(
 					RgClearCmd{
-						.textureId = c.textureId,
-						.color     = Color{
-							c.color.r, c.color.g, c.color.b, c.color.a
+						.textureId = textureId,
+						.color     = {
+							.r = color.r, .g = color.g, .b = color.b,
+							.a = color.a
 						},
 					}
 				);
 			}
-			for (const auto& dc : pass.clearDepth) {
+			for (const auto& [textureId, depth, stencil] : pass.clearDepth) {
+				if (!pass.depthRt.has_value() || *pass.depthRt != textureId) {
+					Fatal(
+						kChannel,
+						"Pass '{}' clears textureId={} as depth without declaring it as the depth target.",
+						pass.name,
+						textureId
+					);
+					UASSERT(false);
+					return;
+				}
 				compiled.clearDepthBefore.emplace_back(
 					RgDepthClearCmd{
-						.textureId = dc.textureId,
-						.depth     = dc.depth,
-						.stencil   = dc.stencil,
+						.textureId = textureId,
+						.depth     = depth,
+						.stencil   = stencil,
 					}
 				);
 			}
 
-			for (const auto& use : pass.uses) {
-				if (IsSrvRead(use.access) && uavWrittenPendingBarrier.
-				    contains(use.textureId)) {
-					compiled.uavBarriersBefore.emplace_back(use.textureId);
-					uavWrittenPendingBarrier.erase(use.textureId);
+			for (const auto& [textureId, access] : pass.uses) {
+				if (uavWrittenPendingBarrier.contains(textureId)) {
+					compiled.uavBarriersBefore.emplace_back(textureId);
+					uavWrittenPendingBarrier.erase(textureId);
 				}
 			}
 
@@ -261,7 +385,7 @@ namespace Unnamed::Render {
 					continue;
 				}
 
-				ensureTrackedResourceState(textureId);
+				EnsureTrackedResourceState(textureId);
 
 				// plannedStates になければ初期状態にする
 				auto it = plannedStates.find(textureId);
@@ -370,47 +494,48 @@ namespace Unnamed::Render {
 
 	void RenderGraph::BeginPass(
 		Rhi::IRhiDevice&           device, Rhi::D3D12CommandContext& context,
-		ID3D12GraphicsCommandList* commandList, RenderPassContext& passContext,
+		ID3D12GraphicsCommandList* commandList,
+		const RenderPassContext&   passContext,
 		const char*                passName,
 		const CompiledPass&        cp
 	) {
 		// 遷移
-		for (const auto& tr : cp.transitionsBefore) {
-			ID3D12Resource* res = ResolveResource(device, tr.textureId);
+		for (const auto& [textureId, before, after] : cp.transitionsBefore) {
+			ID3D12Resource* res = ResolveResource(device, textureId);
 			if (!res) {
-				Fatal("RDG", "リソースの解決に失敗しました: textureId={}", tr.textureId);
+				Fatal(kChannel, "リソースの解決に失敗しました: textureId={}", textureId);
 				UASSERT(false);
 				continue;
 			}
 
-			const auto curIt = mGlobalStates.find(tr.textureId);
+			const auto curIt = mGlobalStates.find(textureId);
 			const D3D12_RESOURCE_STATES trackedBefore = curIt != mGlobalStates.
 					end() ?
 					curIt->second :
 					DefaultInitState(
-						tr.textureId
+						textureId
 					);
-			if (trackedBefore != tr.before) {
+			if (trackedBefore != before) {
 				DevMsg(
-					"RDG",
+					kChannel,
 					"State drift detected in pass='{}' for textureId={}: trackedBefore=0x{:X}, compiledBefore=0x{:X}, after=0x{:X}",
 					passName ? passName : "<null>",
-					tr.textureId,
+					textureId,
 					static_cast<uint32_t>(trackedBefore),
-					static_cast<uint32_t>(tr.before),
-					static_cast<uint32_t>(tr.after)
+					static_cast<uint32_t>(before),
+					static_cast<uint32_t>(after)
 				);
 			}
 
-			context.TransitionResource(res, tr.before, tr.after);
-			mGlobalStates[tr.textureId] = tr.after;
+			context.TransitionResource(res, before, after);
+			mGlobalStates[textureId] = after;
 		}
 
 		// UAVのバリア
 		for (const uint32_t id : cp.uavBarriersBefore) {
 			ID3D12Resource* res = ResolveResource(device, id);
 			if (!res) {
-				Fatal("RDG", "リソースの解決に失敗しました(UAV barrier): textureId={}", id);
+				Fatal(kChannel, "リソースの解決に失敗しました(UAV barrier): textureId={}", id);
 				UASSERT(false);
 				continue;
 			}
@@ -421,26 +546,26 @@ namespace Unnamed::Render {
 			commandList->ResourceBarrier(1, &uav);
 		}
 
-		// RTとDSのセット
+		// setup で確定したアタッチメントを一度だけ設定する。パスコールバックはこれを変更しない。
 		if (!cp.colorRts.empty() || cp.depthRt.has_value()) {
 			passContext.SetRenderTargetAndDepth(cp.colorRts, cp.depthRt);
 		}
 
 		// クリア
-		for (const auto& c : cp.clearsBefore) {
+		for (const auto& [textureId, color] : cp.clearsBefore) {
 			passContext.ClearColorById(
-				c.textureId, c.color.r, c.color.g, c.color.b, c.color.a
+				textureId, color.r, color.g, color.b, color.a
 			);
 		}
 
 		// DEPTHクリア
-		for (auto& d : cp.clearDepthBefore) {
-			passContext.ClearDepthStencilById(d.textureId, d.depth, d.stencil);
+		for (const auto& [textureId, depth, stencil] : cp.clearDepthBefore) {
+			passContext.ClearDepthStencilById(textureId, depth, stencil);
 		}
 	}
 
 	void RenderGraph::EndPass(RenderPassContext&, const CompiledPass&) {
-		// 将来使います
+		// TODO: 将来使います
 	}
 
 	D3D12_RESOURCE_STATES RenderGraph::RequiredState(const RG_ACCESS access) {
@@ -460,11 +585,6 @@ namespace Unnamed::Render {
 		}
 	}
 
-	bool RenderGraph::IsSrvRead(const RG_ACCESS access) {
-		return access == RG_ACCESS::SRV_READ_PS || access ==
-		       RG_ACCESS::SRV_READ_CS;
-	}
-
 	bool RenderGraph::IsUavWrite(const RG_ACCESS access) {
 		return access == RG_ACCESS::UAV_WRITE;
 	}
@@ -481,8 +601,5 @@ namespace Unnamed::Render {
 		}
 
 		return mRenderDevice->GetRegistry().GetResource(id);
-	}
-
-	void RenderGraph::ExecutePasses(Rhi::IRhiDevice&) {
 	}
 }

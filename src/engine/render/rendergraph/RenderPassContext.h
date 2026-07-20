@@ -7,11 +7,19 @@
 
 #include "IDescriptorResolver.h"
 
-#include "../../RHI/d3d12/D3D12CommandContext.h"
+namespace Unnamed::Rhi {
+	class D3D12CommandContext;
+}
 
 namespace Unnamed::Render {
+	class RenderGraph;
+
+	/// @brief RenderGraph が確定したパス状態の上で描画コマンドを記録するためのコンテキストです。
+	/// @details アタッチメントの選択とクリアは RenderGraph のリソース契約から一度だけ行います。
+	///          パスコールバックはパイプライン、ディスクリプタ、定数、ジオメトリ、draw/dispatch だけを記録します。
 	class RenderPassContext {
 	public:
+		/// @brief コマンド記録に必要な D3D12 状態とディスクリプタ解決器を束ねます。
 		RenderPassContext(
 			Rhi::D3D12CommandContext&  context,
 			ID3D12GraphicsCommandList* commandList,
@@ -21,16 +29,19 @@ namespace Unnamed::Render {
 			const IDescriptorResolver& descriptorResolver
 		);
 
+		/// @brief 現在のバックバッファ全体をビューポートとシザーに設定します。
 		void SetViewportToBackBuffer() const;
+		/// @brief 指定した論理描画領域をビューポートとシザーに設定します。
 		void SetViewportAndScissor(
 			float x, float y, float width, float height
 		) const;
+		/// @brief グラフィックス/コンピュート SRV/UAV テーブルに使うヒープを設定します。
 		void SetSrvUavHeap() const;
-
-		void SetBackBufferAsRenderTarget() const;
 
 		void BindComputeUavTable(uint32_t rootIndex, uint32_t textureId) const;
 		void BindGraphicsSrvTable(uint32_t rootIndex, uint32_t textureId) const;
+		/// @brief 事前構築済みの SRV テーブルをグラフィックスルートへ設定します。
+		/// @warning テーブル内の全リソースは、setup コールバックで read 宣言済みでなければなりません。
 		void BindGraphicsSrvTable(
 			uint32_t rootIndex, D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle
 		) const;
@@ -44,32 +55,7 @@ namespace Unnamed::Render {
 			uint32_t rootIndex, D3D12_GPU_VIRTUAL_ADDRESS gpuVa
 		) const;
 
-		void SetRenderTarget(uint32_t textureId) const;
-		void ClearRtv(
-			uint32_t textureId, float r, float g, float b, float a
-		) const;
-
-		void SetRenderTargetById(uint32_t textureId) const;
-		void ClearColorById(
-			uint32_t textureId, float r, float g, float b, float a
-		) const;
-
-		void SetRenderTargets(std::span<const uint32_t> textureIds) const;
-		void SetRenderTargetsByIds(std::span<const uint32_t> textureIds) const;
-
-		void SetDepthStencilById(uint32_t textureId) const;
-		void ClearDepthById(
-			uint32_t textureId, float depth = 1.0f
-		) const;
-		void ClearDepthStencilById(
-			uint32_t textureId, float depth, uint8_t stencil
-		) const;
 		void SetStencilRef(uint32_t ref) const;
-
-		void SetRenderTargetAndDepth(
-			std::span<const uint32_t> colorRtIds,
-			std::optional<uint32_t>   depthRtId
-		) const;
 
 		void SetComputePipeline(
 			ID3D12RootSignature* rootSignature,
@@ -104,11 +90,39 @@ namespace Unnamed::Render {
 		[[nodiscard]] uint32_t GetBackBufferWidth() const;
 		[[nodiscard]] uint32_t GetBackBufferHeight() const;
 
+		/// @brief 外部描画統合用の D3D12 コマンドリストを返します。
+		/// @warning 呼び出し側は RenderGraph が設定したアタッチメントを変更してはいけません。
 		[[nodiscard]] ID3D12GraphicsCommandList* GetCommandList() const {
 			return mCommandList;
 		}
 
 	private:
+		friend class RenderGraph;
+
+		// アタッチメントの選択とクリアは、RenderGraph だけが行う。
+		void SetBackBufferAsRenderTarget() const;
+		void SetRenderTarget(uint32_t textureId) const;
+		void ClearRtv(
+			uint32_t textureId, float r, float g, float b, float a
+		) const;
+		void SetRenderTargetById(uint32_t textureId) const;
+		void ClearColorById(
+			uint32_t textureId, float r, float g, float b, float a
+		) const;
+		void SetRenderTargets(std::span<const uint32_t> textureIds) const;
+		void SetRenderTargetsByIds(std::span<const uint32_t> textureIds) const;
+		void SetDepthStencilById(uint32_t textureId) const;
+		void ClearDepthById(
+			uint32_t textureId, float depth = 1.0f
+		) const;
+		void ClearDepthStencilById(
+			uint32_t textureId, float depth, uint8_t stencil
+		) const;
+		void SetRenderTargetAndDepth(
+			std::span<const uint32_t> colorRtIds,
+			std::optional<uint32_t>   depthRtId
+		) const;
+
 		Rhi::D3D12CommandContext&  mContext;
 		ID3D12GraphicsCommandList* mCommandList = nullptr;
 
