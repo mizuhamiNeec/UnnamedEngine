@@ -76,6 +76,13 @@ namespace Unnamed::Render {
 				mPostFxDirty = true;
 				break;
 			}
+			case ASSET_TYPE::UNKNOWN: break;
+			case ASSET_TYPE::SOUND: break;
+			case ASSET_TYPE::RAW_FILE: break;
+			case ASSET_TYPE::UI_DOCUMENT: break;
+			case ASSET_TYPE::EVENT_PRESENTATION: break;
+			case ASSET_TYPE::SEQUENCE: break;
+			case ASSET_TYPE::EDITOR_GUI: break;
 			default: break;
 		}
 	}
@@ -138,7 +145,7 @@ namespace Unnamed::Render {
 
 	void RenderDevice::HookHotReload() {
 		mAssetManager.RegisterReload(
-			[this](AssetID id) {
+			[this](const AssetID id) {
 				InvalidateAssetDerivedState(id);
 			}
 		);
