@@ -60,8 +60,6 @@ namespace Unnamed::Render {
 		}
 	}
 
-	Renderer::~Renderer() = default;
-
 	void Renderer::Shutdown(RenderDevice& renderDevice) {
 		mTextureResourceCache.ReleaseAll();
 		ReleaseMaterialBindings(renderDevice);
@@ -100,9 +98,6 @@ namespace Unnamed::Render {
 			// ホットリロード後に古い GPU メッシュ状態を次フレームへ持ち越さない
 			for (const AssetID dirtyMesh : dirtyMeshAssets) {
 				mSceneMeshesByAsset.erase(dirtyMesh);
-				if (mLoadedMeshAsset == dirtyMesh) {
-					mLoadedMeshAsset = kInvalidAssetID;
-				}
 			}
 		}
 		if (materialsDirty) {
@@ -130,227 +125,13 @@ namespace Unnamed::Render {
 
 		UploadDebugLinesForFrame();
 
-		mViewExecutionOrder.clear();
-		mPresentViewKey.clear();
-		std::unordered_set<std::string> activeViewKeys;
-		activeViewKeys.reserve(mFrameViews.size());
+		SynchronizeViewRuntimeStates(
+			renderDevice, backBufferWidth, backBufferHeight
+		);
 
-		for (RenderViewInput& view : mFrameViews) {
-			if (view.viewKey.empty()) {
-				view.viewKey = "unnamed.view";
-			}
-			mViewExecutionOrder.emplace_back(view.viewKey);
-			activeViewKeys.emplace(view.viewKey);
-
-			if (view.type == RENDER_VIEW_TYPE::SCENE) {
-				const auto [sceneWidth, sceneHeight] = ResolveSceneRenderExtent(
-					backBufferWidth, backBufferHeight, view.sceneViewMode
-				);
-				view.output.width  = sceneWidth;
-				view.output.height = sceneHeight;
-			} else if (
-				view.output.sizeMode == RENDER_VIEW_SIZE_MODE::MATCH_BACK_BUFFER
-			) {
-				view.output.width  = std::max(1u, backBufferWidth);
-				view.output.height = std::max(1u, backBufferHeight);
-			} else {
-				view.output.width  = std::max(1u, view.output.width);
-				view.output.height = std::max(1u, view.output.height);
-			}
-
-			std::ranges::sort(view.worldBillboards
-			                  ,
-			                  [](
-			                  const WorldBillboardInput& a,
-			                  const WorldBillboardInput& b
-		                  ) {
-				                  return a.sortKey < b.sortKey;
-			                  }
-			);
-			std::ranges::sort(view.worldSprites
-			                  ,
-			                  [](
-			                  const WorldSpriteInput& a,
-			                  const WorldSpriteInput& b
-		                  ) {
-				                  return a.sortKey < b.sortKey;
-			                  }
-			);
-			std::ranges::sort(view.screenSprites
-			                  ,
-			                  [](
-			                  const ScreenSpriteInput& a,
-			                  const ScreenSpriteInput& b
-		                  ) {
-				                  return a.sortKey < b.sortKey;
-			                  }
-			);
-
-			if (
-				mPresentViewKey.empty() &&
-				view.output.presentToSwapChain
-			) {
-				mPresentViewKey = view.viewKey;
-			}
-
-			auto&          state = mViewStates[view.viewKey];
-			const bool     typeChanged = state.type != view.type;
-			const uint32_t logicalWidth = std::max(1u, view.output.width);
-			const uint32_t logicalHeight = std::max(1u, view.output.height);
-			const bool     allowGrowOnlyReuse =
-				view.type == RENDER_VIEW_TYPE::SCENE &&
-				view.output.exposeToUi &&
-				!view.output.presentToSwapChain &&
-				view.sceneViewMode.preferRealtimeResize &&
-				view.sceneViewMode.mode == SCENE_RENDER_MODE::FIT_VIEWPORT;
-			const uint32_t allocationHintWidth = allowGrowOnlyReuse ?
-				                                     std::max(
-					                                     logicalWidth,
-					                                     std::max(
-						                                     1u,
-						                                     view.sceneViewMode.
-						                                     allocationHintWidth
-					                                     )
-				                                     ) :
-				                                     logicalWidth;
-			const uint32_t allocationHintHeight = allowGrowOnlyReuse ?
-				                                      std::max(
-					                                      logicalHeight,
-					                                      std::max(
-						                                      1u,
-						                                      view.sceneViewMode
-						                                      .
-						                                      allocationHintHeight
-					                                      )
-				                                      ) :
-				                                      logicalHeight;
-
-			state.type          = view.type;
-			state.output        = view.output;
-			state.logicalWidth  = logicalWidth;
-			state.logicalHeight = logicalHeight;
-
-			uint32_t desiredAllocatedWidth  = logicalWidth;
-			uint32_t desiredAllocatedHeight = logicalHeight;
-			if (allowGrowOnlyReuse) {
-				const bool firstAllocation =
-					typeChanged ||
-					state.allocatedWidth <= 1 ||
-					state.allocatedHeight <= 1;
-				desiredAllocatedWidth = firstAllocation ?
-					                        allocationHintWidth :
-					                        std::max(
-						                        state.allocatedWidth,
-						                        logicalWidth
-					                        );
-				desiredAllocatedHeight = firstAllocation ?
-					                         allocationHintHeight :
-					                         std::max(
-						                         state.allocatedHeight,
-						                         logicalHeight
-					                         );
-			}
-
-			const bool sizeChanged =
-				typeChanged ||
-				state.allocatedWidth != desiredAllocatedWidth ||
-				state.allocatedHeight != desiredAllocatedHeight;
-			state.allocatedWidth  = desiredAllocatedWidth;
-			state.allocatedHeight = desiredAllocatedHeight;
-
-			if (sizeChanged || typeChanged) {
-				ReleaseViewRuntimeTextures(renderDevice, state);
-				state.colorTextureId   = 0;
-				state.depthTextureId   = 0;
-				state.postFxTextureAId = 0;
-				state.postFxTextureBId = 0;
-				for (uint32_t& bloomMipTextureId : state.bloomMipTextureIds) {
-					bloomMipTextureId = 0;
-				}
-				state.outputTextureId = 0;
-			}
-		}
-
-		for (
-			auto it = mViewStates.begin();
-			it != mViewStates.end();
-		) {
-			if (!activeViewKeys.contains(it->first)) {
-				ReleaseViewRuntimeTextures(renderDevice, it->second);
-				it = mViewStates.erase(it);
-			} else {
-				++it;
-			}
-		}
-
-		bool requiresSpriteTextures = false;
-		for (const RenderViewInput& view : mFrameViews) {
-			if (
-				!view.worldBillboards.empty() ||
-				!view.worldSprites.empty() ||
-				!view.screenSprites.empty()
-			) {
-				requiresSpriteTextures = true;
-			}
-			for (const auto& s : view.worldBillboards) {
-				if (s.texture.source == SPRITE_TEXTURE_SOURCE::ASSET) {
-					requiresSpriteTextures = true;
-					(void)EnsureSpriteTextureLoaded(
-						renderDevice, s.texture.textureAssetId
-					);
-				}
-			}
-			for (const auto& s : view.worldSprites) {
-				if (s.texture.source == SPRITE_TEXTURE_SOURCE::ASSET) {
-					requiresSpriteTextures = true;
-					(void)EnsureSpriteTextureLoaded(
-						renderDevice, s.texture.textureAssetId
-					);
-				}
-			}
-			for (const auto& s : view.screenSprites) {
-				if (s.texture.source == SPRITE_TEXTURE_SOURCE::ASSET) {
-					requiresSpriteTextures = true;
-					(void)EnsureSpriteTextureLoaded(
-						renderDevice, s.texture.textureAssetId
-					);
-				}
-			}
-			if (
-				view.type == RENDER_VIEW_TYPE::SCENE &&
-				view.skybox.enabled &&
-				view.skybox.textureAssetId != kInvalidAssetID
-			) {
-				(void)EnsureSkyboxTextureLoaded(
-					renderDevice, view.skybox.textureAssetId
-				);
-			}
-			if (view.type != RENDER_VIEW_TYPE::SCENE) {
-				continue;
-			}
-			for (const auto& obj : view.visibleObjects) {
-				if (obj.meshAssetId != kInvalidAssetID) {
-					(void)EnsureMeshResourceLoaded(
-						renderDevice, dx, obj.meshAssetId
-					);
-				}
-			}
-		}
-		if (requiresSpriteTextures) {
-			EnsureSpriteFallbackTexture(renderDevice);
-		}
-		EnsureDefaultMaterialTextures(renderDevice);
-
-		// 今フレームで参照されるマテリアルを遅延登録します。
-		LoadMaterialResources(renderDevice, dx);
-		for (auto& [materialInstanceId, binding] : mMaterialBindings) {
-			(void)materialInstanceId;
-			EnsureMaterialTextureTable(renderDevice, binding);
-		}
-		(void)ResolveRegisteredPipelines(renderDevice);
+		PrepareFrameResources(renderDevice, dx);
 
 		rhi.BeginFrame();
-		mAdvancedFoundation.BeginFrame();
 		mTextureResourceCache.CollectGarbage();
 		renderDevice.GetRegistry().CollectGarbage(dx.GetCompletedFenceValue());
 		if (
@@ -391,7 +172,6 @@ namespace Unnamed::Render {
 			// 全ビューのリソースを揃えてから、依存関係を持つ描画グラフを構築する
 			Profiler::ScopeTimer scope(profiler, "Render.BuildGraph");
 			mGraph.Reset();
-			mGraphBuilt = false;
 			BuildGraph(renderDevice, mFrameViews);
 		}
 		{
@@ -403,16 +183,6 @@ namespace Unnamed::Render {
 		}
 
 		rhi.EndFrame();
-	}
-
-	void Renderer::OnResize(const uint32_t width, const uint32_t height) {
-		mAdvancedFoundation.OnResize(width, height);
-		DevMsg(
-			kRenderChannel,
-			"OnResize: {}x{}",
-			width,
-			height
-		);
 	}
 
 	void Renderer::SetUiCallbacks(
@@ -474,6 +244,200 @@ namespace Unnamed::Render {
 			static_cast<float>(std::max(1u, it->second.logicalWidth)),
 			static_cast<float>(std::max(1u, it->second.logicalHeight))
 		};
+	}
+
+	void Renderer::SynchronizeViewRuntimeStates(
+		RenderDevice&  renderDevice,
+		const uint32_t backBufferWidth,
+		const uint32_t backBufferHeight
+	) {
+		mPresentViewKey.clear();
+		std::unordered_set<std::string> activeViewKeys;
+		activeViewKeys.reserve(mFrameViews.size());
+
+		for (RenderViewInput& view : mFrameViews) {
+			if (view.viewKey.empty()) {
+				view.viewKey = "unnamed.view";
+			}
+			activeViewKeys.emplace(view.viewKey);
+
+			if (view.type == RENDER_VIEW_TYPE::SCENE) {
+				const auto [sceneWidth, sceneHeight] = ResolveSceneRenderExtent(
+					backBufferWidth, backBufferHeight, view.sceneViewMode
+				);
+				view.output.width  = sceneWidth;
+				view.output.height = sceneHeight;
+			} else if (
+				view.output.sizeMode == RENDER_VIEW_SIZE_MODE::MATCH_BACK_BUFFER
+			) {
+				view.output.width  = std::max(1u, backBufferWidth);
+				view.output.height = std::max(1u, backBufferHeight);
+			} else {
+				view.output.width  = std::max(1u, view.output.width);
+				view.output.height = std::max(1u, view.output.height);
+			}
+
+			std::ranges::sort(view.worldBillboards, [](
+			                  const WorldBillboardInput& a, const WorldBillboardInput& b
+		                  ) {
+				                  return a.sortKey < b.sortKey;
+			                  });
+			std::ranges::sort(view.worldSprites, [](
+			                  const WorldSpriteInput& a, const WorldSpriteInput& b
+		                  ) {
+				                  return a.sortKey < b.sortKey;
+			                  });
+			std::ranges::sort(view.screenSprites, [](
+			                  const ScreenSpriteInput& a, const ScreenSpriteInput& b
+		                  ) {
+				                  return a.sortKey < b.sortKey;
+			                  });
+
+			if (mPresentViewKey.empty() && view.output.presentToSwapChain) {
+				mPresentViewKey = view.viewKey;
+			}
+
+			auto&          state = mViewStates[view.viewKey];
+			const bool     typeChanged = state.type != view.type;
+			const uint32_t logicalWidth = std::max(1u, view.output.width);
+			const uint32_t logicalHeight = std::max(1u, view.output.height);
+			const bool     allowGrowOnlyReuse =
+				view.type == RENDER_VIEW_TYPE::SCENE &&
+				view.output.exposeToUi &&
+				!view.output.presentToSwapChain &&
+				view.sceneViewMode.preferRealtimeResize &&
+				view.sceneViewMode.mode == SCENE_RENDER_MODE::FIT_VIEWPORT;
+			const uint32_t allocationHintWidth = allowGrowOnlyReuse ?
+				                                     std::max(
+					                                     logicalWidth,
+					                                     std::max(1u, view.sceneViewMode.allocationHintWidth)
+				                                     ) :
+				                                     logicalWidth;
+			const uint32_t allocationHintHeight = allowGrowOnlyReuse ?
+				                                      std::max(
+					                                      logicalHeight,
+					                                      std::max(1u, view.sceneViewMode.allocationHintHeight)
+				                                      ) :
+				                                      logicalHeight;
+
+			state.type          = view.type;
+			state.output        = view.output;
+			state.logicalWidth  = logicalWidth;
+			state.logicalHeight = logicalHeight;
+
+			uint32_t desiredAllocatedWidth  = logicalWidth;
+			uint32_t desiredAllocatedHeight = logicalHeight;
+			if (allowGrowOnlyReuse) {
+				const bool firstAllocation =
+					typeChanged ||
+					state.allocatedWidth <= 1 ||
+					state.allocatedHeight <= 1;
+				desiredAllocatedWidth = firstAllocation ?
+					                        allocationHintWidth :
+					                        std::max(state.allocatedWidth, logicalWidth);
+				desiredAllocatedHeight = firstAllocation ?
+					                         allocationHintHeight :
+					                         std::max(state.allocatedHeight, logicalHeight);
+			}
+
+			const bool sizeChanged =
+				typeChanged ||
+				state.allocatedWidth != desiredAllocatedWidth ||
+				state.allocatedHeight != desiredAllocatedHeight;
+			state.allocatedWidth  = desiredAllocatedWidth;
+			state.allocatedHeight = desiredAllocatedHeight;
+
+			if (sizeChanged || typeChanged) {
+				ReleaseViewRuntimeTextures(renderDevice, state);
+				state.colorTextureId   = 0;
+				state.depthTextureId   = 0;
+				state.postFxTextureAId = 0;
+				state.postFxTextureBId = 0;
+				for (uint32_t& bloomMipTextureId : state.bloomMipTextureIds) {
+					bloomMipTextureId = 0;
+				}
+				state.outputTextureId = 0;
+			}
+		}
+
+		for (auto it = mViewStates.begin(); it != mViewStates.end();) {
+			if (!activeViewKeys.contains(it->first)) {
+				ReleaseViewRuntimeTextures(renderDevice, it->second);
+				it = mViewStates.erase(it);
+			} else {
+				++it;
+			}
+		}
+	}
+
+	void Renderer::PrepareFrameResources(
+		RenderDevice& renderDevice, Rhi::D3D12Device& dx
+	) {
+		bool requiresSpriteTextures = false;
+		for (const RenderViewInput& view : mFrameViews) {
+			if (
+				!view.worldBillboards.empty() ||
+				!view.worldSprites.empty() ||
+				!view.screenSprites.empty()
+			) {
+				requiresSpriteTextures = true;
+			}
+			for (const auto& sprite : view.worldBillboards) {
+				if (sprite.texture.source == SPRITE_TEXTURE_SOURCE::ASSET) {
+					requiresSpriteTextures = true;
+					(void)EnsureSpriteTextureLoaded(
+						renderDevice, sprite.texture.textureAssetId
+					);
+				}
+			}
+			for (const auto& sprite : view.worldSprites) {
+				if (sprite.texture.source == SPRITE_TEXTURE_SOURCE::ASSET) {
+					requiresSpriteTextures = true;
+					(void)EnsureSpriteTextureLoaded(
+						renderDevice, sprite.texture.textureAssetId
+					);
+				}
+			}
+			for (const auto& sprite : view.screenSprites) {
+				if (sprite.texture.source == SPRITE_TEXTURE_SOURCE::ASSET) {
+					requiresSpriteTextures = true;
+					(void)EnsureSpriteTextureLoaded(
+						renderDevice, sprite.texture.textureAssetId
+					);
+				}
+			}
+			if (
+				view.type == RENDER_VIEW_TYPE::SCENE &&
+				view.skybox.enabled &&
+				view.skybox.textureAssetId != kInvalidAssetID
+			) {
+				(void)EnsureSkyboxTextureLoaded(
+					renderDevice, view.skybox.textureAssetId
+				);
+			}
+			if (view.type != RENDER_VIEW_TYPE::SCENE) {
+				continue;
+			}
+			for (const auto& object : view.visibleObjects) {
+				if (object.meshAssetId != kInvalidAssetID) {
+					(void)EnsureMeshResourceLoaded(
+						renderDevice, dx, object.meshAssetId
+					);
+				}
+			}
+		}
+		if (requiresSpriteTextures) {
+			EnsureSpriteFallbackTexture(renderDevice);
+		}
+		EnsureDefaultMaterialTextures(renderDevice);
+
+		// 今フレームで参照されるマテリアルを遅延登録します。
+		LoadMaterialResources(renderDevice, dx);
+		for (auto& [materialInstanceId, binding] : mMaterialBindings) {
+			(void)materialInstanceId;
+			EnsureMaterialTextureTable(renderDevice, binding);
+		}
+		(void)ResolveRegisteredPipelines(renderDevice);
 	}
 
 	std::pair<uint32_t, uint32_t> Renderer::ResolveSceneRenderExtent(
@@ -573,6 +537,7 @@ namespace Unnamed::Render {
 				binding.textures.emissiveTextureId :
 				mDefaultMaterialTextures.emissiveTextureId,
 		};
+		binding.resolvedTextureIds = textureIds;
 
 		std::array<uint64_t, 4> revisions = {};
 		for (size_t i = 0; i < textureIds.size(); ++i) {

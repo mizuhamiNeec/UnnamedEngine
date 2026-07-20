@@ -17,7 +17,7 @@ namespace Unnamed::Render {
 	}
 
 	bool RenderModule::Init(
-		ConsoleSystem* console,
+		ConsoleSystem*              console,
 		const RenderStartupOptions& startupOptions
 	) {
 		// GPU リソースの所有者を先に作り、Renderer にはその実行基盤を渡す
@@ -52,7 +52,6 @@ namespace Unnamed::Render {
 	) const {
 		if (mRenderDevice) {
 			mRenderDevice->OnResize(width, height);
-			mRenderer->OnResize(width, height);
 		}
 	}
 

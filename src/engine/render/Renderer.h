@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include "RendererDraw.h"
 #include "RenderStartupOptions.h"
 #include "TextureResourceCache.h"
 
@@ -19,9 +18,6 @@
 
 #include "engine/rhi/Buffer.h"
 #include "engine/rhi/Constants.h"
-#include "engine/rhi/UploadBuffer.h"
-
-#include "foundation/AdvancedRenderFoundation.h"
 
 #include "frame/RenderFrameInputs.h"
 
@@ -34,17 +30,23 @@ namespace Unnamed {
 	class AssetManager;
 }
 
+namespace Unnamed::Rhi {
+	class D3D12Device;
+}
+
 namespace Unnamed::Render {
 	struct RenderFrameInputs;
 	class RenderPassContext;
 	class RenderDevice;
 
+	/// @brief UI などがシーン出力をサンプリングするための SRV と有効 UV 範囲です。
 	struct SceneOutputView {
-		uint32_t                    textureId   = 0;
-		D3D12_CPU_DESCRIPTOR_HANDLE srvCpu      = {};
-		uint64_t                    srvRevision = 0;
-		Vec2                        uvMin       = Vec2(0.0f, 0.0f);
-		Vec2                        uvMax       = Vec2(1.0f, 1.0f);
+		uint64_t                    srvRevision = 0;          // 8
+		D3D12_CPU_DESCRIPTOR_HANDLE srvCpu      = {};         // 8
+		Vec2                        uvMin       = Vec2::zero; // 8
+		Vec2                        uvMax       = Vec2::one;  // 8
+		uint32_t                    textureId   = 0;          // 4
+		// 36 パディングにより 40
 	};
 
 	/// @brief Geometry material texture table の固定スロット。
@@ -65,20 +67,22 @@ namespace Unnamed::Render {
 		uint32_t emissiveTextureId  = 0;
 	};
 
-	class Renderer {
+	/// @brief フレーム入力から RenderGraph を構築し、シーンおよび UI 描画を記録するレンダラーです。
+	/// @details GPU テクスチャの寿命は RenderDevice のレジストリが管理し、このクラスはビュー、
+	///          パイプライン、フレームごとのパス構成を管理します。
+	class Renderer final {
 	public:
-		Renderer(ConsoleSystem* console);
-		~Renderer();
+		explicit Renderer(ConsoleSystem* console);
 
 		/// @brief Renderer が保持する Registry texture を明示解放します。
 		void Shutdown(RenderDevice& renderDevice);
 
 		/// @brief レンダラの初期化処理に呼び出されます。
 		/// @param renderDevice 描画に使用するRenderDevice。
-		/// @param validationPolicy Renderer起動アセットの検証方針。
+		/// @param startupOptions レンダラの起動オプション。
 		/// @return 必須Rendererアセットを含む初期化に成功した場合true。
 		[[nodiscard]] bool Init(
-			RenderDevice& renderDevice,
+			RenderDevice&               renderDevice,
 			const RenderStartupOptions& startupOptions
 		);
 
@@ -96,28 +100,30 @@ namespace Unnamed::Render {
 			RenderDevice& renderDevice, const RenderFrameInputs& inputs
 		);
 
-		/// @brief クライアントのリサイズ時の処理に呼び出されます。
-		void OnResize(uint32_t width, uint32_t height);
-
 		using UiMainRenderCallback = std::function<void(RenderPassContext&)>;
 		using UiPlatformRenderCallback = std::function<void()>;
 
+		/// @brief RenderGraph の UI パスで呼び出す描画コールバックを設定します。
+		/// @details main コールバックは Graph が設定済みのアタッチメントを変更してはいけません。
 		void SetUiCallbacks(
 			UiMainRenderCallback     mainRenderCallback,
 			UiPlatformRenderCallback platformRenderCallback
 		);
 
+		/// @brief 指定ビューのサンプリング用出力を返します。存在しない場合は空の値を返します。
 		[[nodiscard]] SceneOutputView GetViewOutputView(
 			const RenderDevice& renderDevice,
 			std::string_view    viewKey
 		) const;
+		/// @brief 指定ビューの論理解像度を返します。存在しない場合はゼロサイズを返します。
 		[[nodiscard]] Vec2 GetViewOutputSize(std::string_view viewKey) const;
 
 	private:
 		struct MaterialBinding;
-		enum class RequiredShaderStages : uint8_t {
-			Graphics,
-			Compute,
+
+		enum class REQUIRED_SHADER_STAGES : uint8_t {
+			GRAPHICS,
+			COMPUTE,
 		};
 
 		// シーンの描画にはHDRを使う!
@@ -128,12 +134,23 @@ namespace Unnamed::Render {
 		static constexpr DXGI_FORMAT kSceneLdrColorFormat =
 			DXGI_FORMAT_R8G8B8A8_UNORM;
 
-		/// @brief レンダリンググラフの構築
+		/// @brief 現在フレームのビュー入力からパスとリソース契約を構築します。
+		/// @details 実行コールバックは描画だけを記録し、アタッチメントは各 setup 宣言から RenderGraph が設定します。
 		/// @param renderDevice 描画に使用するRenderDevice
 		/// @param frameViews フレーム内の全てのRenderViewInput
 		void BuildGraph(
 			RenderDevice&                       renderDevice,
 			const std::vector<RenderViewInput>& frameViews
+		);
+		/// @brief ビューごとの解像度と永続出力リソースの寿命を同期します。
+		void SynchronizeViewRuntimeStates(
+			RenderDevice& renderDevice,
+			uint32_t      backBufferWidth,
+			uint32_t      backBufferHeight
+		);
+		/// @brief 今フレームで参照するテクスチャ、メッシュ、マテリアル、PSO を遅延準備します。
+		void PrepareFrameResources(
+			RenderDevice& renderDevice, Rhi::D3D12Device& dx
 		);
 
 		static std::pair<uint32_t, uint32_t> ResolveSceneRenderExtent(
@@ -146,11 +163,8 @@ namespace Unnamed::Render {
 		void CreateQuadResources(Rhi::D3D12Device& dx);
 		void CreateSkyboxCubeResources(Rhi::D3D12Device& dx);
 		bool EnsureMeshResourceLoaded(
-			RenderDevice& renderDevice, Rhi::D3D12Device& dx,
-			AssetID       meshAssetId
-		);
-		void LoadSceneMeshResources(
-			RenderDevice& renderDevice, Rhi::D3D12Device& dx
+			const RenderDevice& renderDevice, Rhi::D3D12Device& dx,
+			AssetID             meshAssetId
 		);
 		void LoadMaterialResources(
 			RenderDevice& renderDevice, Rhi::D3D12Device& dx
@@ -164,9 +178,9 @@ namespace Unnamed::Render {
 		/// @param type ロードするアセット型。
 		/// @return ロードしたアセットID。失敗時はkInvalidAssetID。
 		[[nodiscard]] static AssetID LoadCoreAsset(
-			AssetManager& assetManager,
+			AssetManager&    assetManager,
 			std::string_view virtualPathText,
-			ASSET_TYPE type
+			ASSET_TYPE       type
 		);
 		/// @brief ShaderProgramが必要なstage sourceを保持するか検証します。
 		/// @param assetManager アセット管理サービス。
@@ -175,10 +189,10 @@ namespace Unnamed::Render {
 		/// @param debugName ログ表示名。
 		/// @return 必須stageとShaderSourceが全て有効な場合true。
 		[[nodiscard]] static bool ValidateShaderProgramStages(
-			const AssetManager& assetManager,
-			AssetID shaderProgramId,
-			RequiredShaderStages requiredStages,
-			std::string_view debugName
+			const AssetManager&    assetManager,
+			AssetID                shaderProgramId,
+			REQUIRED_SHADER_STAGES requiredStages,
+			std::string_view       debugName
 		);
 		void EnsureMaterialTextureTable(
 			RenderDevice& renderDevice, MaterialBinding& binding
@@ -187,12 +201,12 @@ namespace Unnamed::Render {
 			const RenderDevice& renderDevice
 		);
 		[[nodiscard]] bool RebuildPipelineCatalog(
-			RenderDevice& renderDevice,
-			Rhi::D3D12Device& dx,
+			RenderDevice&               renderDevice,
+			Rhi::D3D12Device&           dx,
 			const RenderStartupOptions& startupOptions
 		);
 		[[nodiscard]] bool ResolveRegisteredPipelines(
-			RenderDevice& renderDevice,
+			RenderDevice&          renderDevice,
 			PIPELINE_RESOLVE_SCOPE scope =
 				PIPELINE_RESOLVE_SCOPE::ALL_REGISTERED
 		);
@@ -235,9 +249,11 @@ namespace Unnamed::Render {
 			PipelineHandle geometryPipeline = {};
 			const ResolvedGraphicsPipeline* resolvedGeometryPipeline = nullptr;
 			MaterialTextureSet textures = {};
-			RgSrvDescriptorTable materialTextureTable = {};
-			std::array<uint64_t, 4> materialTextureSrvRevisions = {};
-			bool pipelineResolveWarningEmitted = false;
+			// SRV テーブルと RenderGraph の read 宣言で共有する解決済み ID。
+			std::array<uint32_t, 4> resolvedTextureIds            = {};
+			RgSrvDescriptorTable    materialTextureTable          = {};
+			std::array<uint64_t, 4> materialTextureSrvRevisions   = {};
+			bool                    pipelineResolveWarningEmitted = false;
 		};
 
 		struct PostFxRuntimePass {
@@ -389,7 +405,7 @@ namespace Unnamed::Render {
 
 		/// @brief bloom downsample pass 群を追加します。
 		void AddBloomDownsamplePasses(
-			const RenderDevice&           renderDevice,
+			const RenderDevice&     renderDevice,
 			const std::string&      prefix,
 			const ViewRuntimeState& state,
 			int                     mipCount,
@@ -402,7 +418,7 @@ namespace Unnamed::Render {
 
 		/// @brief bloom upsample pass 群を追加します。
 		void AddBloomUpsamplePasses(
-			const RenderDevice&           renderDevice,
+			const RenderDevice&     renderDevice,
 			const std::string&      prefix,
 			const ViewRuntimeState& state,
 			int                     mipCount,
@@ -421,7 +437,7 @@ namespace Unnamed::Render {
 
 		/// @brief bloom mip を base copy へ合成する pass を追加します。
 		void AddBloomCompositePass(
-			const RenderDevice&           renderDevice,
+			const RenderDevice&     renderDevice,
 			const std::string&      prefix,
 			const ViewRuntimeState& state,
 			uint32_t                bloomBaseId,
@@ -432,7 +448,7 @@ namespace Unnamed::Render {
 
 		/// @brief 汎用 post-fx pass を追加し ping-pong を進めます。
 		void AddGenericPostFxPasses(
-			const RenderDevice&            renderDevice,
+			const RenderDevice&      renderDevice,
 			const std::string&       prefix,
 			const ViewRuntimeState&  state,
 			const PostFxRuntimePass& passRes,
@@ -446,7 +462,7 @@ namespace Unnamed::Render {
 
 		/// @brief tone map pass を追加し最終 outputId を更新します。
 		void AddToneMapExposurePass(
-			const RenderDevice&           renderDevice,
+			const RenderDevice&     renderDevice,
 			const std::string&      prefix,
 			const ViewRuntimeState& state,
 			const RenderViewInput&  view,
@@ -489,42 +505,33 @@ namespace Unnamed::Render {
 		/// @brief ImGui main draw data pass を追加します。
 		void AddImGuiMainPass();
 
-		static constexpr uint32_t kMaxDrawObjects = 1024;  // TODO: とりあえず
-		static constexpr uint32_t kMaxDebugLines  = 65536; // TODO: とりあえず
+		static constexpr uint32_t kMaxDebugLines = 65536; // TODO: とりあえず
 
-		ConsoleSystem* mConsole = nullptr;
+		ConsoleSystem*       mConsole        = nullptr;
 		RenderStartupOptions mStartupOptions = {};
 
 		RenderGraph      mGraph;
 		PipelineRegistry mPipelineRegistry;
 
-		FullscreenPassRes        mFullscreenPass             = {};
-		FullscreenPassRes        mHdrCopyPass                = {};
-		FullscreenPassRes        mToneMapPass                = {};
-		FullscreenPassRes        mBloomDownsamplePass        = {};
-		FullscreenPassRes        mBloomUpsamplePass          = {};
-		FullscreenPassRes        mBloomCombinePass           = {};
-		FullscreenPassRes        mDepthVisPass               = {};
-		ComputePassRes           mComputePass                = {};
-		GeometryPassRes          mGeometryPass               = {};
-		GeometryPassRes          mShadowDepthPass            = {};
-		GeometryPassRes          mShadowDepthFrontCullPass   = {};
-		GeometryPassRes          mShadowDepthDoubleSidedPass = {};
-		SpritePassRes            mSpritePass                 = {};
-		BillboardPassRes         mBillboardPass              = {};
-		SkyboxPassRes            mSkyboxPass                 = {};
-		LinePassRes              mLinePass                   = {};
-		AdvancedRenderFoundation mAdvancedFoundation         = {};
-
-		Rhi::UploadBuffer<Rhi::FrameConstants> mFrameCb;
-		Rhi::UploadBuffer<Rhi::ObjectConstants> mObjectCb;
-		Rhi::UploadBuffer<Rhi::MaterialConstants> mMaterialCb;
-		Rhi::UploadBuffer<Rhi::SkinningPaletteConstants> mSkinningCb;
+		FullscreenPassRes mFullscreenPass = {};
+		FullscreenPassRes mHdrCopyPass = {};
+		FullscreenPassRes mToneMapPass = {};
+		FullscreenPassRes mBloomDownsamplePass = {};
+		FullscreenPassRes mBloomUpsamplePass = {};
+		FullscreenPassRes mBloomCombinePass = {};
+		FullscreenPassRes mDepthVisPass = {};
+		ComputePassRes mComputePass = {};
+		GeometryPassRes mGeometryPass = {};
+		GeometryPassRes mShadowDepthPass = {};
+		GeometryPassRes mShadowDepthFrontCullPass = {};
+		GeometryPassRes mShadowDepthDoubleSidedPass = {};
+		SpritePassRes mSpritePass = {};
+		BillboardPassRes mBillboardPass = {};
+		SkyboxPassRes mSkyboxPass = {};
+		LinePassRes mLinePass = {};
 		AssetID mGeometryShaderProgramId = kInvalidAssetID;
 		Rhi::VertexLayoutDesc mGeometryVertexLayout = {};
-		std::vector<MeshBuffer> mSceneMeshes;
 		std::unordered_map<AssetID, MeshBuffer> mSceneMeshesByAsset;
-		AssetID mLoadedMeshAsset = kInvalidAssetID;
 		AssetID mDefaultMaterialInstance =
 			kInvalidAssetID;
 		AssetID mPostFxChainAsset = kInvalidAssetID;
@@ -536,18 +543,12 @@ namespace Unnamed::Render {
 		uint32_t mSpriteFallbackTextureId = 0;
 		uint64_t mLastTextureCacheStatsLogFrame = 0;
 
-		std::vector<MeshDrawItem> mMainDrawList;
-		std::vector<DrawBatch> mMainBatches;
 		std::unordered_map<std::string, ViewRuntimeState> mViewStates;
-		std::vector<std::string> mViewExecutionOrder;
 		std::vector<RenderViewInput> mFrameViews;
 		std::vector<DebugLineInput> mFrameDebugLines;
 		std::string mPresentViewKey;
 		UiMainRenderCallback mUiMainRenderCallback;
 		UiPlatformRenderCallback mUiPlatformRenderCallback;
-
-		bool mGraphBuilt           = false;
-		Mat4 mBillboardCameraWorld = Mat4::identity;
 
 		uint32_t EnsureSpriteTextureLoaded(
 			RenderDevice& renderDevice, AssetID textureAssetId
@@ -556,7 +557,7 @@ namespace Unnamed::Render {
 			RenderDevice& renderDevice, const SpriteTextureRef& textureRef
 		);
 		uint32_t EnsureSkyboxTextureLoaded(
-			RenderDevice& renderDevice, AssetID textureAssetId
+			const RenderDevice& renderDevice, AssetID textureAssetId
 		);
 		void        EnsureSpriteFallbackTexture(RenderDevice& renderDevice);
 		void        InitializeDebugLineResources(const Rhi::D3D12Device& dx);

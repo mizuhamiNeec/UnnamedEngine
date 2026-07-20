@@ -132,6 +132,67 @@ namespace Unnamed::Render {
 		}
 	}
 
+	Renderer::Renderer(ConsoleSystem* console) : mConsole(console) {
+	}
+
+	bool Renderer::Init(
+		RenderDevice&               renderDevice,
+		const RenderStartupOptions& startupOptions
+	) {
+		mStartupOptions = startupOptions;
+		auto& dx = dynamic_cast<Rhi::D3D12Device&>(renderDevice.GetRhiDevice());
+		mTextureResourceCache.Initialize(
+			&renderDevice.GetAssetManager(), &renderDevice.GetRegistry()
+		);
+		mTextureResourceCache.SetUnusedFrameThreshold(120);
+		mLastTextureCacheStatsLogFrame = 0;
+		// 必須シェーダーとパイプラインを起動時に確立し、不足を早期に検出する
+		if (!RebuildPipelineCatalog(renderDevice, dx, startupOptions)) {
+			return false;
+		}
+
+		InitializeDebugLineResources(dx);
+
+		CreateTriangleTestResources(dx);
+		CreateQuadResources(dx);
+		CreateSkyboxCubeResources(dx);
+		mBillboardPass.depthGeom.vb         = mSpritePass.geom.vb;
+		mBillboardPass.depthGeom.ib         = mSpritePass.geom.ib;
+		mBillboardPass.depthGeom.vbv        = mSpritePass.geom.vbv;
+		mBillboardPass.depthGeom.ibv        = mSpritePass.geom.ibv;
+		mBillboardPass.depthGeom.indexCount = mSpritePass.geom.indexCount;
+		mBillboardPass.frontGeom.vb         = mSpritePass.geom.vb;
+		mBillboardPass.frontGeom.ib         = mSpritePass.geom.ib;
+		mBillboardPass.frontGeom.vbv        = mSpritePass.geom.vbv;
+		mBillboardPass.frontGeom.ibv        = mSpritePass.geom.ibv;
+		mBillboardPass.frontGeom.indexCount = mSpritePass.geom.indexCount;
+		LoadMaterialResources(renderDevice, dx);
+		renderDevice.GetRegistry().OnResize(
+			dx.GetSwapChain().GetWidth(),
+			dx.GetSwapChain().GetHeight(),
+			dx.GetSwapChain().GetCurrentBackBufferIndex()
+		);
+		mGraph.Reset();
+		return true;
+	}
+
+	bool Renderer::ValidateStartupResources(RenderDevice& renderDevice) {
+		if (!IsStrictRenderStartupValidation(mStartupOptions)) {
+			return true;
+		}
+
+		auto& dx = dynamic_cast<Rhi::D3D12Device&>(renderDevice.GetRhiDevice());
+		LoadMaterialResources(renderDevice, dx);
+		if (!ResolveRegisteredPipelines(renderDevice)) {
+			Error(
+				"Renderer",
+				"Strict startup validation failed for reachable Material pipelines."
+			);
+			return false;
+		}
+		return true;
+	}
+
 	AssetID Renderer::LoadCoreAsset(
 		AssetManager&          assetManager,
 		const std::string_view virtualPathText,
@@ -157,10 +218,10 @@ namespace Unnamed::Render {
 	}
 
 	bool Renderer::ValidateShaderProgramStages(
-		const AssetManager&         assetManager,
+		const AssetManager&        assetManager,
 		const AssetID              shaderProgramId,
-		const RequiredShaderStages requiredStages,
-		const std::string_view      debugName
+		const REQUIRED_SHADER_STAGES requiredStages,
+		const std::string_view     debugName
 	) {
 		const auto* shaderProgram = assetManager.Get<ShaderProgramAssetData>(
 			shaderProgramId
@@ -175,9 +236,9 @@ namespace Unnamed::Render {
 			return false;
 		}
 
-		auto validateStage = [&](
+		auto ValidateStage = [&](
 			const std::optional<ShaderProgramStage>& stage,
-			const std::string_view stageName
+			const std::string_view                   stageName
 		) {
 			if (
 				!stage.has_value() ||
@@ -197,97 +258,17 @@ namespace Unnamed::Render {
 			return true;
 		};
 
-		if (requiredStages == RequiredShaderStages::Compute) {
-			return validateStage(shaderProgram->cs, "cs");
+		if (requiredStages == REQUIRED_SHADER_STAGES::COMPUTE) {
+			return ValidateStage(shaderProgram->cs, "cs");
 		}
-		const bool vsValid = validateStage(shaderProgram->vs, "vs");
-		const bool psValid = validateStage(shaderProgram->ps, "ps");
+		const bool vsValid = ValidateStage(shaderProgram->vs, "vs");
+		const bool psValid = ValidateStage(shaderProgram->ps, "ps");
 		return vsValid && psValid;
 	}
 
-	Renderer::Renderer(ConsoleSystem* console) : mConsole(console) {
-	}
-
-	bool Renderer::Init(
-		RenderDevice& renderDevice,
-		const RenderStartupOptions& startupOptions
-	) {
-		mStartupOptions = startupOptions;
-		auto& dx = dynamic_cast<Rhi::D3D12Device&>(renderDevice.GetRhiDevice());
-		mTextureResourceCache.Initialize(
-			&renderDevice.GetAssetManager(), &renderDevice.GetRegistry()
-		);
-		mTextureResourceCache.SetUnusedFrameThreshold(120);
-		mLastTextureCacheStatsLogFrame = 0;
-		// 必須シェーダーとパイプラインを起動時に確立し、不足を早期に検出する
-		if (!RebuildPipelineCatalog(renderDevice, dx, startupOptions)) {
-			return false;
-		}
-
-		mFrameCb.Init(
-			dx.GetDevice(), dx.GetFramesInFlight(), L"FrameConstants"
-		);
-		mObjectCb.Init(
-			dx.GetDevice(), dx.GetFramesInFlight() * kMaxDrawObjects,
-			L"ObjectCB"
-		);
-		mMaterialCb.Init(
-			dx.GetDevice(), dx.GetFramesInFlight() * kMaxDrawObjects,
-			L"MaterialCB"
-		);
-		mSkinningCb.Init(
-			dx.GetDevice(), dx.GetFramesInFlight() * kMaxDrawObjects,
-			L"SkinningPaletteCB"
-		);
-		InitializeDebugLineResources(dx);
-
-		CreateTriangleTestResources(dx);
-		CreateQuadResources(dx);
-		CreateSkyboxCubeResources(dx);
-		mBillboardPass.depthGeom.vb         = mSpritePass.geom.vb;
-		mBillboardPass.depthGeom.ib         = mSpritePass.geom.ib;
-		mBillboardPass.depthGeom.vbv        = mSpritePass.geom.vbv;
-		mBillboardPass.depthGeom.ibv        = mSpritePass.geom.ibv;
-		mBillboardPass.depthGeom.indexCount = mSpritePass.geom.indexCount;
-		mBillboardPass.frontGeom.vb         = mSpritePass.geom.vb;
-		mBillboardPass.frontGeom.ib         = mSpritePass.geom.ib;
-		mBillboardPass.frontGeom.vbv        = mSpritePass.geom.vbv;
-		mBillboardPass.frontGeom.ibv        = mSpritePass.geom.ibv;
-		mBillboardPass.frontGeom.indexCount = mSpritePass.geom.indexCount;
-		LoadSceneMeshResources(renderDevice, dx);
-		LoadMaterialResources(renderDevice, dx);
-		renderDevice.GetRegistry().OnResize(
-			dx.GetSwapChain().GetWidth(),
-			dx.GetSwapChain().GetHeight(),
-			dx.GetSwapChain().GetCurrentBackBufferIndex()
-		);
-		mGraph.Reset();
-		mGraphBuilt = false;
-		return true;
-	}
-
-	bool Renderer::ValidateStartupResources(RenderDevice& renderDevice) {
-		if (!IsStrictRenderStartupValidation(mStartupOptions)) {
-			return true;
-		}
-
-		auto& dx = static_cast<Rhi::D3D12Device&>(
-			renderDevice.GetRhiDevice()
-		);
-		LoadMaterialResources(renderDevice, dx);
-		if (!ResolveRegisteredPipelines(renderDevice)) {
-			Error(
-				"Renderer",
-				"Strict startup validation failed for reachable Material pipelines."
-			);
-			return false;
-		}
-		return true;
-	}
-
 	bool Renderer::RebuildPipelineCatalog(
-		RenderDevice& renderDevice,
-		Rhi::D3D12Device& dx,
+		RenderDevice&               renderDevice,
+		Rhi::D3D12Device&           dx,
 		const RenderStartupOptions& startupOptions
 	) {
 		auto& assetManager = renderDevice.GetAssetManager();
@@ -358,30 +339,31 @@ namespace Unnamed::Render {
 		);
 
 		bool requiredShadersValid = true;
-		auto validateGraphics = [&](
+		auto ValidateGraphics     = [&](
 			const AssetID id, const std::string_view name
 		) {
 			requiredShadersValid = ValidateShaderProgramStages(
-				assetManager, id, RequiredShaderStages::Graphics, name
-			) && requiredShadersValid;
+				                       assetManager, id,
+				                       REQUIRED_SHADER_STAGES::GRAPHICS, name
+			                       ) && requiredShadersValid;
 		};
-		validateGraphics(fullscreenProgramId, "FullscreenCopy");
-		validateGraphics(depthVisProgramId, "DepthVis");
-		validateGraphics(depthOnlyProgramId, "DepthOnly");
-		validateGraphics(geomProgramId, "Geometry");
-		validateGraphics(skyboxProgramId, "Skybox");
-		validateGraphics(spriteOverlayProgramId, "SpriteOverlay");
-		validateGraphics(debugLineProgramId, "DebugLine");
-		validateGraphics(bloomDownsampleProgramId, "BloomDownsample");
-		validateGraphics(bloomUpsampleProgramId, "BloomUpsample");
-		validateGraphics(bloomCombineProgramId, "BloomCombine");
-		validateGraphics(toneMapExposureProgramId, "ToneMapExposure");
+		ValidateGraphics(fullscreenProgramId, "FullscreenCopy");
+		ValidateGraphics(depthVisProgramId, "DepthVis");
+		ValidateGraphics(depthOnlyProgramId, "DepthOnly");
+		ValidateGraphics(geomProgramId, "Geometry");
+		ValidateGraphics(skyboxProgramId, "Skybox");
+		ValidateGraphics(spriteOverlayProgramId, "SpriteOverlay");
+		ValidateGraphics(debugLineProgramId, "DebugLine");
+		ValidateGraphics(bloomDownsampleProgramId, "BloomDownsample");
+		ValidateGraphics(bloomUpsampleProgramId, "BloomUpsample");
+		ValidateGraphics(bloomCombineProgramId, "BloomCombine");
+		ValidateGraphics(toneMapExposureProgramId, "ToneMapExposure");
 		requiredShadersValid = ValidateShaderProgramStages(
-			assetManager,
-			csProgramId,
-			RequiredShaderStages::Compute,
-			"ComputeWriteUav"
-		) && requiredShadersValid;
+			                       assetManager,
+			                       csProgramId,
+			                       REQUIRED_SHADER_STAGES::COMPUTE,
+			                       "ComputeWriteUav"
+		                       ) && requiredShadersValid;
 		if (!requiredShadersValid) {
 			Error("Renderer", "Required Renderer shader assets are invalid.");
 			return false;
@@ -478,11 +460,11 @@ namespace Unnamed::Render {
 		mBloomCombinePass.resolved = nullptr;
 
 		auto depthVisSpec = RendererPipelineCatalog::MakeFullscreenPreset(
-				"DepthVis",
-				depthVisProgramId,
-				dx.GetFsRootSignature(),
-				swapChainFormat
-			);
+			"DepthVis",
+			depthVisProgramId,
+			dx.GetFsRootSignature(),
+			swapChainFormat
+		);
 		depthVisSpec.startupRequirement =
 			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		mDepthVisPass.pipeline = mPipelineRegistry.RegisterGraphics(
@@ -565,15 +547,15 @@ namespace Unnamed::Render {
 			skyboxSpec);
 		mSkyboxPass.geom.resolved = nullptr;
 
-		auto spriteSpec = RendererPipelineCatalog::MakeSpritePreset(
+		const auto spriteSpec = RendererPipelineCatalog::MakeSpritePreset(
 			"ScreenSprite",
 			spriteOverlayProgramId,
 			dx.GetGeomRootSignature(),
 			kSceneLdrColorFormat,
 			spriteLayout
 		);
-		mSpritePass.geom.pipeline = mPipelineRegistry.RegisterGraphics(
-			spriteSpec);
+		mSpritePass.geom.pipeline =
+			mPipelineRegistry.RegisterGraphics(spriteSpec);
 		mSpritePass.geom.resolved = nullptr;
 
 		auto spriteLinearClampSpec          = spriteSpec;
@@ -623,13 +605,13 @@ namespace Unnamed::Render {
 		mBillboardPass.frontGeom.resolved = nullptr;
 
 		auto debugLineSpec = RendererPipelineCatalog::MakeLinePreset(
-				"DebugLine",
-				debugLineProgramId,
-				dx.GetGeomRootSignature(),
-				kSceneHdrColorFormat,
-				DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
-				lineLayout
-			);
+			"DebugLine",
+			debugLineProgramId,
+			dx.GetGeomRootSignature(),
+			kSceneHdrColorFormat,
+			DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
+			lineLayout
+		);
 		debugLineSpec.startupRequirement =
 			PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
 		mLinePass.pipeline = mPipelineRegistry.RegisterGraphics(
