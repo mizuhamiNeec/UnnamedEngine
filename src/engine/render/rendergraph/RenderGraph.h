@@ -104,6 +104,10 @@ namespace Unnamed::Render {
 
 		static D3D12_RESOURCE_STATES RequiredState(RG_ACCESS access);
 		static bool                  IsUavWrite(RG_ACCESS access);
+		[[nodiscard]] bool HasCachedDependencyTopology() const;
+		void CacheDependencyTopology(
+			const std::vector<uint32_t>& executionOrder
+		);
 
 		ID3D12Resource* ResolveResource(
 			Rhi::IRhiDevice& device, uint32_t id
@@ -117,6 +121,10 @@ namespace Unnamed::Render {
 		std::unordered_map<uint32_t, uint64_t> mKnownResourceRevisions;
 
 		std::vector<CompiledPass> mCompiled;
+		/// @brief 同一の pass/use 列に対して再利用する依存グラフの実行順です。
+		/// @details バリアとアタッチメントはリソース世代・状態に依存するため、毎フレーム再コンパイルします。
+		std::vector<std::vector<RgUse>> mCachedDependencyUses;
+		std::vector<uint32_t>           mCachedExecutionOrder;
 		bool                      mIsDirty           = true;
 		bool                      mStatesInitialized = false;
 	};

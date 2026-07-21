@@ -139,109 +139,79 @@ namespace Unnamed::Render {
 		plannedStates[kBackBufferId] = D3D12_RESOURCE_STATE_PRESENT;
 		mGlobalStates[kBackBufferId] = D3D12_RESOURCE_STATE_PRESENT;
 
-		// パス登録順とは別に、宣言済みリソースアクセスから RAW/WAR/WAW 依存を
-		// 構築する。これにより実行順は手続き的な追加順ではなく、リソース契約に
-		// よって決まる。複数の有効順がある場合だけ登録順を維持する。
-		std::vector<std::vector<uint32_t>> outgoingDependencies(
-			mPasses.size()
-		);
-		std::unordered_map<uint32_t, ResourceDependencyState>
-			resourceDependencyStates;
-
-		for (uint32_t passIndex = 0;
-		     passIndex < static_cast<uint32_t>(mPasses.size());
-		     ++passIndex) {
-			std::unordered_map<uint32_t, PassResourceAccess> accesses;
-			for (const RgUse& use : mPasses[passIndex].uses) {
-				auto& access = accesses[use.textureId];
-				switch (use.access) {
-					case RG_ACCESS::RENDER_TARGET: access.isRenderTarget = true;
-						break;
-					case RG_ACCESS::UAV_WRITE: access.isUavWrite = true;
-						break;
-					case RG_ACCESS::SRV_READ_PS:
-					case RG_ACCESS::SRV_READ_CS: access.isSrvRead = true;
-						break;
-					case RG_ACCESS::DEPTH_WRITE: access.isDepthWrite = true;
-						break;
-					case RG_ACCESS::DEPTH_READ: access.isDepthRead = true;
-						break;
-				}
-			}
-
-			for (const auto& [textureId, access] : accesses) {
-				auto& dependencyState = resourceDependencyStates[textureId];
-				if (access.HasRead()) {
-					if (dependencyState.lastWriter.has_value()) {
-						AddDependency(
-							outgoingDependencies,
-							*dependencyState.lastWriter,
-							passIndex
-						);
-					}
-					dependencyState.readersSinceLastWrite.emplace_back(
-						passIndex);
-				}
-
-				if (access.HasWrite()) {
-					if (dependencyState.lastWriter.has_value()) {
-						AddDependency(
-							outgoingDependencies,
-							*dependencyState.lastWriter,
-							passIndex
-						);
-					}
-					for (const uint32_t readerPassIndex :
-					     dependencyState.readersSinceLastWrite) {
-						AddDependency(
-							outgoingDependencies,
-							readerPassIndex,
-							passIndex
-						);
-					}
-					dependencyState.readersSinceLastWrite.clear();
-					dependencyState.lastWriter = passIndex;
-				}
-			}
-		}
-
-		std::vector<uint32_t> inDegree(mPasses.size());
-		for (const auto& dependents : outgoingDependencies) {
-			for (const uint32_t dependentPassIndex : dependents) {
-				++inDegree[dependentPassIndex];
-			}
-		}
-
-		std::vector<uint32_t> readyPasses;
-		readyPasses.reserve(mPasses.size());
-		for (uint32_t passIndex = 0;
-		     passIndex < static_cast<uint32_t>(mPasses.size());
-		     ++passIndex) {
-			if (inDegree[passIndex] == 0) {
-				readyPasses.emplace_back(passIndex);
-			}
-		}
-
 		std::vector<uint32_t> executionOrder;
-		executionOrder.reserve(mPasses.size());
-		while (!readyPasses.empty()) {
-			const auto     nextIt    = std::ranges::min_element(readyPasses);
-			const uint32_t passIndex = *nextIt;
-			readyPasses.erase(nextIt);
-			executionOrder.emplace_back(passIndex);
-
-			for (const uint32_t dependentPassIndex :
-			     outgoingDependencies[passIndex]) {
-				if (--inDegree[dependentPassIndex] == 0) {
-					readyPasses.emplace_back(dependentPassIndex);
+		if (HasCachedDependencyTopology()) {
+			executionOrder = mCachedExecutionOrder;
+		} else {
+			// パス登録順とは別に、宣言済みリソースアクセスから RAW/WAR/WAW 依存を
+			// 構築する。これにより実行順は手続き的な追加順ではなく、リソース契約に
+			// よって決まる。複数の有効順がある場合だけ登録順を維持する。
+			std::vector<std::vector<uint32_t>> outgoingDependencies(mPasses.size());
+			std::unordered_map<uint32_t, ResourceDependencyState> resourceDependencyStates;
+			for (uint32_t passIndex = 0; passIndex < static_cast<uint32_t>(mPasses.size()); ++passIndex) {
+				std::unordered_map<uint32_t, PassResourceAccess> accesses;
+				for (const RgUse& use : mPasses[passIndex].uses) {
+					auto& access = accesses[use.textureId];
+					switch (use.access) {
+						case RG_ACCESS::RENDER_TARGET: access.isRenderTarget = true; break;
+						case RG_ACCESS::UAV_WRITE: access.isUavWrite = true; break;
+						case RG_ACCESS::SRV_READ_PS:
+						case RG_ACCESS::SRV_READ_CS: access.isSrvRead = true; break;
+						case RG_ACCESS::DEPTH_WRITE: access.isDepthWrite = true; break;
+						case RG_ACCESS::DEPTH_READ: access.isDepthRead = true; break;
+					}
+				}
+				for (const auto& [textureId, access] : accesses) {
+					auto& dependencyState = resourceDependencyStates[textureId];
+					if (access.HasRead()) {
+						if (dependencyState.lastWriter.has_value()) {
+							AddDependency(outgoingDependencies, *dependencyState.lastWriter, passIndex);
+						}
+						dependencyState.readersSinceLastWrite.emplace_back(passIndex);
+					}
+					if (access.HasWrite()) {
+						if (dependencyState.lastWriter.has_value()) {
+							AddDependency(outgoingDependencies, *dependencyState.lastWriter, passIndex);
+						}
+						for (const uint32_t readerPassIndex : dependencyState.readersSinceLastWrite) {
+							AddDependency(outgoingDependencies, readerPassIndex, passIndex);
+						}
+						dependencyState.readersSinceLastWrite.clear();
+						dependencyState.lastWriter = passIndex;
+					}
 				}
 			}
-		}
-
-		if (executionOrder.size() != mPasses.size()) {
-			Fatal(kChannel, "RenderGraph pass dependencies contain a cycle.");
-			UASSERT(false);
-			return;
+			std::vector<uint32_t> inDegree(mPasses.size());
+			for (const auto& dependents : outgoingDependencies) {
+				for (const uint32_t dependentPassIndex : dependents) {
+					++inDegree[dependentPassIndex];
+				}
+			}
+			std::vector<uint32_t> readyPasses;
+			readyPasses.reserve(mPasses.size());
+			for (uint32_t passIndex = 0; passIndex < static_cast<uint32_t>(mPasses.size()); ++passIndex) {
+				if (inDegree[passIndex] == 0) {
+					readyPasses.emplace_back(passIndex);
+				}
+			}
+			executionOrder.reserve(mPasses.size());
+			while (!readyPasses.empty()) {
+				const auto nextIt = std::ranges::min_element(readyPasses);
+				const uint32_t passIndex = *nextIt;
+				readyPasses.erase(nextIt);
+				executionOrder.emplace_back(passIndex);
+				for (const uint32_t dependentPassIndex : outgoingDependencies[passIndex]) {
+					if (--inDegree[dependentPassIndex] == 0) {
+						readyPasses.emplace_back(dependentPassIndex);
+					}
+				}
+			}
+			if (executionOrder.size() != mPasses.size()) {
+				Fatal(kChannel, "RenderGraph pass dependencies contain a cycle.");
+				UASSERT(false);
+				return;
+			}
+			CacheDependencyTopology(executionOrder);
 		}
 
 		const auto EnsureTrackedResourceState =
@@ -483,13 +453,52 @@ namespace Unnamed::Render {
 		mGlobalStates.clear();
 		mKnownResourceRevisions.clear();
 		mStatesInitialized = false;
+		mCachedDependencyUses.clear();
+		mCachedExecutionOrder.clear();
 		mIsDirty           = true;
 	}
 
 	void RenderGraph::Reset() {
 		mPasses.clear();
 		mCompiled.clear();
+		// pass は毎フレーム構築し直すが、同じリソース契約なら依存順は再利用できる。
 		mIsDirty = true;
+	}
+
+	bool RenderGraph::HasCachedDependencyTopology() const {
+		if (
+			mCachedDependencyUses.size() != mPasses.size() ||
+			mCachedExecutionOrder.size() != mPasses.size()
+		) {
+			return false;
+		}
+		for (size_t passIndex = 0; passIndex < mPasses.size(); ++passIndex) {
+			const auto& cachedUses = mCachedDependencyUses[passIndex];
+			const auto& currentUses = mPasses[passIndex].uses;
+			if (cachedUses.size() != currentUses.size()) {
+				return false;
+			}
+			for (size_t useIndex = 0; useIndex < currentUses.size(); ++useIndex) {
+				if (
+					cachedUses[useIndex].textureId != currentUses[useIndex].textureId ||
+					cachedUses[useIndex].access != currentUses[useIndex].access
+				) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	void RenderGraph::CacheDependencyTopology(
+		const std::vector<uint32_t>& executionOrder
+	) {
+		mCachedDependencyUses.clear();
+		mCachedDependencyUses.reserve(mPasses.size());
+		for (const RgPass& pass : mPasses) {
+			mCachedDependencyUses.emplace_back(pass.uses);
+		}
+		mCachedExecutionOrder = executionOrder;
 	}
 
 	void RenderGraph::BeginPass(
