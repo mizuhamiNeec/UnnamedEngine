@@ -191,6 +191,8 @@ namespace Unnamed {
 			previewOutput.textureId   = it->second.textureId;
 			previewOutput.srvCpu      = it->second.srvCpu;
 			previewOutput.srvRevision = it->second.srvRevision;
+			previewOutput.uvMin       = it->second.uvMin;
+			previewOutput.uvMax       = it->second.uvMax;
 			previewSize               = it->second.size;
 		}
 
@@ -284,6 +286,8 @@ namespace Unnamed {
 		cache.textureId   = output.textureId;
 		cache.srvCpu      = output.srvCpu;
 		cache.srvRevision = output.srvRevision;
+		cache.uvMin       = output.uvMin;
+		cache.uvMax       = output.uvMax;
 		cache.size        = size;
 	}
 

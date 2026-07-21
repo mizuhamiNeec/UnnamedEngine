@@ -54,10 +54,13 @@ namespace Unnamed {
 			"tool.gui.preview";
 
 	private:
+		/// @brief GUI プレビュー出力の SRV と有効領域を UI 構築まで保持します。
 		struct ViewOutputCache {
 			D3D12_CPU_DESCRIPTOR_HANDLE srvCpu      = {};
 			uint64_t                    srvRevision = 0;
 			uint32_t                    textureId   = 0;
+			Vec2                        uvMin       = Vec2::zero;
+			Vec2                        uvMax       = Vec2::one;
 			Vec2                        size        = Vec2::zero;
 		};
 

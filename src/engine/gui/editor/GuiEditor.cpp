@@ -1281,7 +1281,13 @@ namespace Unnamed::Gui {
 				previewOutput.srvRevision,
 				previewOutput.srvCpu
 			);
-			ImGui::Image(textureId, ImVec2(drawWidth, drawHeight));
+			// 出力の割り当てサイズが論理解像度より大きい場合も、余白を表示しない。
+			ImGui::Image(
+				textureId,
+				ImVec2(drawWidth, drawHeight),
+				ImVec2(previewOutput.uvMin.x, previewOutput.uvMin.y),
+				ImVec2(previewOutput.uvMax.x, previewOutput.uvMax.y)
+			);
 		} else {
 			ImGui::InvisibleButton(
 				"##UiPreviewPlaceholder",
