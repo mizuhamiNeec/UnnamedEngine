@@ -837,6 +837,9 @@ namespace Unnamed {
 				Profiler::ScopeTimer scope(mProfiler.get(), "ImGui.EndFrame");
 				mImGuiLayer->EndFrame();
 			}
+			// EndFrame 後は ImGui draw data が確定するため、実際に参照する SRV を
+			// RenderGraph の ImGui pass へ渡せるようにフレーム入力へ回収する。
+			inputs.uiSampledTextureIds = mImGuiLayer->ConsumeSampledTextureIds();
 		}
 		if (mEditorRuntime && mIsEditorMode) {
 			mEditorRuntime->FillEditorRenderViews(inputs);

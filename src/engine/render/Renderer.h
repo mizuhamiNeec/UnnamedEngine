@@ -144,7 +144,6 @@ namespace Unnamed::Render {
 		);
 		/// @brief ビューごとの解像度と永続出力リソースの寿命を同期します。
 		void SynchronizeViewRuntimeStates(
-			RenderDevice& renderDevice,
 			uint32_t      backBufferWidth,
 			uint32_t      backBufferHeight
 		);
@@ -486,11 +485,6 @@ namespace Unnamed::Render {
 			const std::vector<uint32_t>& screenSpriteTextureIds
 		);
 
-		/// @brief editor UI が参照する view output を SRV 状態に遷移する pass を追加します。
-		void AddPrepareUiViewOutputsPass(
-			const std::vector<RenderViewInput>& frameViews
-		);
-
 		/// @brief present 対象 view を back buffer に合成する pass を追加します。
 		void AddPresentPass(RenderDevice& renderDevice);
 
@@ -503,7 +497,10 @@ namespace Unnamed::Render {
 		);
 
 		/// @brief ImGui main draw data pass を追加します。
-		void AddImGuiMainPass();
+		/// @param uiSampledTextureIds 確定済み ImGui draw data が SRV として参照するテクスチャ。
+		void AddImGuiMainPass(
+			const std::vector<uint32_t>& uiSampledTextureIds
+		);
 
 		static constexpr uint32_t kMaxDebugLines = 65536; // TODO: とりあえず
 
@@ -546,6 +543,10 @@ namespace Unnamed::Render {
 		std::unordered_map<std::string, ViewRuntimeState> mViewStates;
 		std::vector<RenderViewInput> mFrameViews;
 		std::vector<DebugLineInput> mFrameDebugLines;
+		/// @brief 現フレームの ImGui pass 完了後に解放する旧ビュー出力です。
+		std::vector<ViewRuntimeState> mDeferredViewTextureReleases;
+		/// @brief 現フレームの ImGui draw data が参照する RenderGraph テクスチャです。
+		std::vector<uint32_t> mFrameUiSampledTextureIds;
 		std::string mPresentViewKey;
 		UiMainRenderCallback mUiMainRenderCallback;
 		UiPlatformRenderCallback mUiPlatformRenderCallback;
@@ -565,5 +566,9 @@ namespace Unnamed::Render {
 		static void ReleaseViewRuntimeTextures(
 			RenderDevice& renderDevice, ViewRuntimeState& state
 		);
+		/// @brief ImGui が前フレーム出力を参照できるよう、解放を pass 完了後まで保留します。
+		void DeferViewRuntimeTextureRelease(ViewRuntimeState&& state);
+		/// @brief ImGui pass 実行後に保留中のビューリソースをレジストリから解放します。
+		void ReleaseDeferredViewRuntimeTextures(RenderDevice& renderDevice);
 	};
 }

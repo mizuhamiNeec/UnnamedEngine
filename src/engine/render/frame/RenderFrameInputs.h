@@ -214,6 +214,11 @@ namespace Unnamed::Render {
 		std::vector<RenderViewInput> views;
 		DebugDrawFrameInput          debugDraw;
 
+		/// @brief ImGui の確定済み描画データが SRV として参照する RenderGraph テクスチャです。
+		/// @details Renderer はこの一覧を ImGui pass のリソース契約として宣言し、
+		///          pass 実行後まで対象リソースを保持します。
+		std::vector<uint32_t> uiSampledTextureIds;
+
 		float time = 0.0f;
 	};
 }

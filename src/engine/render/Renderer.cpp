@@ -61,6 +61,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::Shutdown(RenderDevice& renderDevice) {
+		ReleaseDeferredViewRuntimeTextures(renderDevice);
 		mTextureResourceCache.ReleaseAll();
 		ReleaseMaterialBindings(renderDevice);
 		ReleaseDefaultMaterialTextures(renderDevice);
@@ -111,8 +112,9 @@ namespace Unnamed::Render {
 		}
 
 		// ワールドが提出した描画入力を、このフレームで実行するビュー一覧として確定する
-		mFrameViews      = inputs.views;
-		mFrameDebugLines = inputs.debugDraw.lines;
+		mFrameViews                 = inputs.views;
+		mFrameDebugLines            = inputs.debugDraw.lines;
+		mFrameUiSampledTextureIds   = inputs.uiSampledTextureIds;
 		if (mFrameViews.empty()) {
 			RenderViewInput fallback = {};
 			fallback.viewKey = "default.main";
@@ -125,9 +127,7 @@ namespace Unnamed::Render {
 
 		UploadDebugLinesForFrame();
 
-		SynchronizeViewRuntimeStates(
-			renderDevice, backBufferWidth, backBufferHeight
-		);
+		SynchronizeViewRuntimeStates(backBufferWidth, backBufferHeight);
 
 		PrepareFrameResources(renderDevice, dx);
 
@@ -178,6 +178,9 @@ namespace Unnamed::Render {
 			Profiler::ScopeTimer scope(profiler, "Render.GraphExecute");
 			mGraph.Execute(rhi);
 		}
+		// ImGui は UI 構築時点のビュー出力を参照するため、解像度変更などで
+		// 置き換えた旧リソースは、この pass の実行後に初めて解放できる。
+		ReleaseDeferredViewRuntimeTextures(renderDevice);
 		if (mUiPlatformRenderCallback) {
 			mUiPlatformRenderCallback();
 		}
@@ -247,7 +250,6 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::SynchronizeViewRuntimeStates(
-		RenderDevice&  renderDevice,
 		const uint32_t backBufferWidth,
 		const uint32_t backBufferHeight
 	) {
@@ -320,11 +322,6 @@ namespace Unnamed::Render {
 				                                      ) :
 				                                      logicalHeight;
 
-			state.type          = view.type;
-			state.output        = view.output;
-			state.logicalWidth  = logicalWidth;
-			state.logicalHeight = logicalHeight;
-
 			uint32_t desiredAllocatedWidth  = logicalWidth;
 			uint32_t desiredAllocatedHeight = logicalHeight;
 			if (allowGrowOnlyReuse) {
@@ -344,25 +341,21 @@ namespace Unnamed::Render {
 				typeChanged ||
 				state.allocatedWidth != desiredAllocatedWidth ||
 				state.allocatedHeight != desiredAllocatedHeight;
+			if (sizeChanged || typeChanged) {
+				DeferViewRuntimeTextureRelease(std::move(state));
+				state = {};
+			}
+			state.type            = view.type;
+			state.output          = view.output;
+			state.logicalWidth    = logicalWidth;
+			state.logicalHeight   = logicalHeight;
 			state.allocatedWidth  = desiredAllocatedWidth;
 			state.allocatedHeight = desiredAllocatedHeight;
-
-			if (sizeChanged || typeChanged) {
-				ReleaseViewRuntimeTextures(renderDevice, state);
-				state.colorTextureId   = 0;
-				state.depthTextureId   = 0;
-				state.postFxTextureAId = 0;
-				state.postFxTextureBId = 0;
-				for (uint32_t& bloomMipTextureId : state.bloomMipTextureIds) {
-					bloomMipTextureId = 0;
-				}
-				state.outputTextureId = 0;
-			}
 		}
 
 		for (auto it = mViewStates.begin(); it != mViewStates.end();) {
 			if (!activeViewKeys.contains(it->first)) {
-				ReleaseViewRuntimeTextures(renderDevice, it->second);
+				DeferViewRuntimeTextureRelease(std::move(it->second));
 				it = mViewStates.erase(it);
 			} else {
 				++it;
@@ -819,5 +812,23 @@ namespace Unnamed::Render {
 		state.postFxTextureAId = 0;
 		state.postFxTextureBId = 0;
 		state.outputTextureId  = 0;
+	}
+
+	void Renderer::DeferViewRuntimeTextureRelease(ViewRuntimeState&& state) {
+		if (
+			state.colorTextureId == 0 && state.depthTextureId == 0 &&
+			state.postFxTextureAId == 0 && state.postFxTextureBId == 0 &&
+			state.outputTextureId == 0 && state.bloomMipTextureIds.empty()
+		) {
+			return;
+		}
+		mDeferredViewTextureReleases.emplace_back(std::move(state));
+	}
+
+	void Renderer::ReleaseDeferredViewRuntimeTextures(RenderDevice& renderDevice) {
+		for (ViewRuntimeState& state : mDeferredViewTextureReleases) {
+			ReleaseViewRuntimeTextures(renderDevice, state);
+		}
+		mDeferredViewTextureReleases.clear();
 	}
 }

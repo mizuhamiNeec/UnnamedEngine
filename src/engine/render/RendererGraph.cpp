@@ -600,8 +600,6 @@ namespace Unnamed::Render {
 			mViewStates[view.viewKey].outputTextureId = outputId;
 		}
 
-		AddPrepareUiViewOutputsPass(frameViews);
-
 		if (!mPresentViewKey.empty()) {
 			AddPresentPass(renderDevice);
 		} else {
@@ -609,7 +607,7 @@ namespace Unnamed::Render {
 		}
 
 		AddShadowMapDebugPass(renderDevice);
-		AddImGuiMainPass();
+		AddImGuiMainPass(mFrameUiSampledTextureIds);
 	}
 
 	void Renderer::AddSceneClearPass(
@@ -2929,45 +2927,6 @@ namespace Unnamed::Render {
 		);
 	}
 
-	void Renderer::AddPrepareUiViewOutputsPass(
-		const std::vector<RenderViewInput>& frameViews
-	) {
-		// Pass: Prepare UI view outputs.
-		// Input: exposed mViewStates outputTextureId values.
-		// Output: no draw output; declares SRV reads for UI-visible view textures.
-		// PSO: none.
-		// RootSignature: none.
-		// RenderTarget: none.
-		// DepthStencil: none.
-		// DescriptorHeap: none.
-		// ResourceState: ReadSrvPs(each outputTextureId for views with output.exposeToUi).
-		// Notes: This is a graph state/preparation pass for editor UI sampling.
-		std::vector<uint32_t> uiReadableOutputs;
-		uiReadableOutputs.reserve(frameViews.size());
-		for (const RenderViewInput& view : frameViews) {
-			if (!view.output.exposeToUi) {
-				continue;
-			}
-			const auto it = mViewStates.find(view.viewKey);
-			if (it == mViewStates.end() || it->second.outputTextureId == 0) {
-				continue;
-			}
-			uiReadableOutputs.emplace_back(it->second.outputTextureId);
-		}
-		if (!uiReadableOutputs.empty()) {
-			mGraph.AddPass(
-				"PrepareUiViewOutputs",
-				[uiReadableOutputs](RenderGraphBuilder& b) {
-					for (const uint32_t texId : uiReadableOutputs) {
-						b.ReadSrvPs(texId);
-					}
-				},
-				[](RenderPassContext&) {
-				}
-			);
-		}
-	}
-
 	void Renderer::AddPresentPass(RenderDevice& renderDevice) {
 		// パス: フルスクリーン サンプルの提示。
 		// 入力: mPresentViewKey outputTextureId SRV。
@@ -3195,9 +3154,11 @@ namespace Unnamed::Render {
 		}
 	}
 
-	void Renderer::AddImGuiMainPass() {
+	void Renderer::AddImGuiMainPass(
+		const std::vector<uint32_t>& uiSampledTextureIds
+	) {
 		// パス: ImGui メイン。
-		// 入力: mUiMainRenderCallback ImGui 描画データ コールバック。
+		// 入力: 確定済み ImGui 描画データが参照する SRV と mUiMainRenderCallback。
 		// 出力: スワップチェーン バックバッファ 書き込み。
 		// PSO: コールバック オーナーの ImGui パイプライン ステート。
 		// ルートシグネチャ: コールバック オーナーの ImGui ルートシグネチャ。
@@ -3208,7 +3169,10 @@ namespace Unnamed::Render {
 		// 注記: RendererGraph はパスをスケジュール化し、コールバック を呼び出すのみ。
 		mGraph.AddPass(
 			"ImGuiMainPass",
-			[](RenderGraphBuilder& b) {
+			[uiSampledTextureIds](RenderGraphBuilder& b) {
+				for (const uint32_t textureId : uiSampledTextureIds) {
+					b.ReadSrvPs(textureId);
+				}
 				b.WriteBackBufferRt();
 			},
 			[this](RenderPassContext& pass) {
