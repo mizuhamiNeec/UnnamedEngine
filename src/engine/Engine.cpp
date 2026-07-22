@@ -198,6 +198,7 @@ namespace Unnamed {
 		}
 
 		if (callbacks.onPostInitialize && !callbacks.onPostInitialize(*this)) {
+			Error("Engine", "Post-initialization callback failed.");
 			if (callbacks.onPreShutdown) {
 				callbacks.onPreShutdown(*this);
 			}
@@ -298,6 +299,7 @@ namespace Unnamed {
 		// WindowManagerの初期化メインウィンドウ作成
 		mWindowManager = std::make_unique<WindowManager>();
 		if (!mWindowManager->Init(mConfig.window)) {
+			Error("Engine", "WindowManager initialization failed.");
 			return false;
 		}
 
@@ -311,6 +313,7 @@ namespace Unnamed {
 		// ConsoleSystemの初期化
 		mConsoleSystem = std::make_unique<ConsoleSystem>();
 		if (!mConsoleSystem->Init()) {
+			Error("Engine", "ConsoleSystem initialization failed.");
 			return false;
 		}
 
@@ -318,6 +321,7 @@ namespace Unnamed {
 		mTerminalSystem = std::make_unique<
 			TerminalSystem>(mConsoleSystem.get());
 		if (!mTerminalSystem->Init()) {
+			Error("Engine", "TerminalSystem initialization failed.");
 			return false;
 		}
 
@@ -384,6 +388,7 @@ namespace Unnamed {
 
 		mAudioSystem = std::make_unique<AudioSystem>();
 		if (!mAudioSystem->Init()) {
+			Error("Engine", "AudioSystem initialization failed.");
 			return false;
 		}
 		ServiceLocator::Register<AudioSystem>(mAudioSystem.get());
@@ -391,6 +396,7 @@ namespace Unnamed {
 		// TimeSystemの初期化
 		mTimeSystem = std::make_unique<TimeSystem>();
 		if (!mTimeSystem->Init()) {
+			Error("Engine", "TimeSystem initialization failed.");
 			return false;
 		}
 
@@ -400,6 +406,7 @@ namespace Unnamed {
 		// InputSystemの初期化
 		mInputSystem = std::make_unique<InputSystem>();
 		if (!mInputSystem->Init()) {
+			Error("Engine", "InputSystem initialization failed.");
 			return false;
 		}
 
