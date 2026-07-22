@@ -7,7 +7,6 @@
 #include <vector>
 
 #include <imgui.h>
-#include <wrl/client.h>
 
 struct ImGui_ImplDX12_InitInfo;
 
@@ -41,11 +40,18 @@ namespace Unnamed {
 		) const;
 		void RenderPlatformWindows() const;
 
+		/// @brief 指定した RenderGraph テクスチャ用の ImGui SRV を取得します。
+		/// @details このフレームで返した textureId は ConsumeSampledTextureIds() で回収し、
+		///          ImGui pass の読み取り依存として RenderGraph へ渡す必要があります。
 		ImTextureID GetOrCreateTextureId(
-			uint64_t                    key,
+			uint32_t                    textureId,
 			uint64_t                    revision,
 			D3D12_CPU_DESCRIPTOR_HANDLE sourceSrv
 		);
+
+		/// @brief 現フレームの ImGui 描画データがサンプリングするテクスチャ ID を回収します。
+		/// @details BeginFrame() で収集範囲を初期化し、呼び出し後は次フレームまで空になります。
+		[[nodiscard]] std::vector<uint32_t> ConsumeSampledTextureIds();
 
 		[[nodiscard]] ID3D12DescriptorHeap* GetDescriptorHeap() const;
 
@@ -79,6 +85,7 @@ namespace Unnamed {
 		};
 
 		std::unordered_map<uint64_t, TextureSlots> mTextureSlotsByKey;
+		std::vector<uint32_t> mFrameSampledTextureIds;
 	};
 }
 

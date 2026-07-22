@@ -47,5 +47,7 @@ namespace Unnamed {
 		std::vector<AssetID> dependencies; // パースして見つかった依存
 		FileStamp            stamp;        // ファイルのタイムスタンプ
 		std::string          resolveName;  // 表示名
+		std::vector<Path>    sourceWatchPaths; // missing依存の再試行用監視パス
+		std::vector<UnresolvedShaderInclude> unresolvedShaderIncludes;
 	};
 }

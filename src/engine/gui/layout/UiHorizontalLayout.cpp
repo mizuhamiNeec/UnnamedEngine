@@ -1,6 +1,6 @@
 #include "UiHorizontalLayout.h"
 
-	namespace Unnamed::Gui {
+namespace Unnamed::Gui {
 	UiHorizontalLayout::UiHorizontalLayout() {
 		(void)GetOrAddComponent<UiHorizontalLayoutComponent>();
 		SyncLayoutComponent();

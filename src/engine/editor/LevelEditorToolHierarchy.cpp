@@ -21,6 +21,7 @@
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiUtil.h"
 #include "engine/ImGui/ImGuiWidgets.h"
+#include "engine/scene/SceneFolderPath.h"
 #include "engine/unnamed/framework/components/TransformComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -147,11 +148,12 @@ namespace Unnamed {
 					existingStableNames.contains(info.stableName);
 				uint32_t componentIcon = kIconQuestionMark;
 				if (const auto cached = sComponentIconCache.find(
-					info.stableName
-				); cached != sComponentIconCache.end()) {
+						info.stableName
+					);
+					cached != sComponentIconCache.end()) {
 					componentIcon = cached->second;
 				} else {
-					if (auto component = ComponentRegistry::Get().Create(
+					if (const auto component = ComponentRegistry::Get().Create(
 						info.stableName
 					)) {
 						componentIcon = component->GetIcon();
@@ -179,77 +181,11 @@ namespace Unnamed {
 			return added;
 		}
 
-		std::vector<std::string> SplitFolderPath(std::string_view folderPath) {
-			std::vector<std::string> parts;
-			size_t                   begin = 0;
-			while (begin < folderPath.size()) {
-				const size_t end = folderPath.find('/', begin);
-				const size_t len = (end == std::string_view::npos ?
-					                    folderPath.size() :
-					                    end) - begin;
-				if (len > 0) {
-					parts.emplace_back(folderPath.substr(begin, len));
-				}
-				if (end == std::string_view::npos) {
-					break;
-				}
-				begin = end + 1;
-			}
-			return parts;
-		}
-
-		std::string NormalizeFolderPath(const std::string_view folderPath) {
-			std::string path(folderPath);
-			std::ranges::replace(path, '\\', '/');
-			while (!path.empty() && path.front() == '/') {
-				path.erase(path.begin());
-			}
-			while (!path.empty() && path.back() == '/') {
-				path.pop_back();
-			}
-			return path;
-		}
-
-		std::string JoinFolderPath(
-			const std::string_view parent, const std::string_view child
-		) {
-			if (parent.empty()) {
-				return std::string(child);
-			}
-			if (child.empty()) {
-				return std::string(parent);
-			}
-			return std::string(parent) + "/" + std::string(child);
-		}
-
-		std::string GetFolderLeafName(const std::string_view folderPath) {
-			const size_t slashPos = folderPath.find_last_of('/');
-			return slashPos == std::string_view::npos ?
-				       std::string(folderPath) :
-				       std::string(folderPath.substr(slashPos + 1));
-		}
-
-		bool IsFolderEqualOrDescendant(
-			const std::string_view path, const std::string_view ancestor
-		) {
-			if (ancestor.empty()) {
-				return true;
-			}
-			if (path == ancestor) {
-				return true;
-			}
-			if (path.size() <= ancestor.size()) {
-				return false;
-			}
-			return path.starts_with(ancestor) &&
-			       path[ancestor.size()] == '/';
-		}
-
 		OutlinerFolderNode* EnsureFolderNode(
 			OutlinerFolderNode& root, const std::string_view folderPath
 		) {
 			OutlinerFolderNode* node = &root;
-			for (const auto& part : SplitFolderPath(folderPath)) {
+			for (const auto& part : SceneFolderPath::Split(folderPath)) {
 				node = &node->children[part];
 			}
 			return node;
@@ -276,14 +212,16 @@ namespace Unnamed {
 		std::string MakeUniqueFolderPath(
 			const Scene& scene, const std::string_view parentFolderPath
 		) {
-			const std::string parent = NormalizeFolderPath(parentFolderPath);
-			int               suffix = 0;
-			for (;;) {
+			const std::string parent = SceneFolderPath::Normalize(
+				parentFolderPath
+			);
+			int suffix = 0;
+			while (true) {
 				const std::string candidateName =
 					suffix == 0 ?
 						"NewFolder" :
 						"NewFolder" + std::to_string(suffix);
-				const std::string candidatePath = JoinFolderPath(
+				const std::string candidatePath = SceneFolderPath::Join(
 					parent, candidateName
 				);
 				if (
@@ -331,7 +269,7 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] std::string BuildDuplicateEntityName(
-			const Scene& scene,
+			const Scene&  scene,
 			const Entity& source
 		) {
 			const std::string baseName =
@@ -360,7 +298,7 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] bool IsComponentGuidUsed(
-			const Scene& scene,
+			const Scene&   scene,
 			const uint64_t guid
 		) {
 			if (guid == 0) {
@@ -402,7 +340,7 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] Entity* DuplicateEntityInScene(
-			Scene& scene,
+			Scene&        scene,
 			const Entity& source
 		) {
 			const std::string duplicatedName = BuildDuplicateEntityName(
@@ -454,10 +392,14 @@ namespace Unnamed {
 				}
 			);
 
-			const auto* sourceTransform = source.GetComponent<TransformComponent>();
-			auto* duplicatedTransform = duplicated.GetComponent<TransformComponent>();
-			if (sourceTransform && duplicatedTransform && sourceTransform->GetParent()) {
-				duplicatedTransform->SetParent(sourceTransform->GetParent(), false);
+			const auto* sourceTransform = source.GetComponent<
+				TransformComponent>();
+			auto* duplicatedTransform = duplicated.GetComponent<
+				TransformComponent>();
+			if (sourceTransform && duplicatedTransform && sourceTransform->
+			    GetParent()) {
+				duplicatedTransform->SetParent(sourceTransform->GetParent(),
+				                               false);
 			}
 
 			return &duplicated;
@@ -497,7 +439,7 @@ namespace Unnamed {
 			renameEntityId   = 0;
 			renameFolderPath = std::string(folderPath);
 			std::ranges::fill(renameBuffer, '\0');
-			const std::string leafName = GetFolderLeafName(folderPath);
+			const std::string leafName = SceneFolderPath::LeafName(folderPath);
 			memcpy(
 				renameBuffer.data(),
 				leafName.c_str(),
@@ -581,7 +523,7 @@ namespace Unnamed {
 
 			OutlinerFolderNode root = {};
 			BuildOutlinerTree(root, *scene);
-			uint64_t    pendingDeleteEntityId = 0;
+			uint64_t    pendingDeleteEntityId    = 0;
 			uint64_t    pendingDuplicateEntityId = 0;
 			std::string pendingDeleteFolderPath;
 			bool        pendingCreateEntity = false;
@@ -687,7 +629,7 @@ namespace Unnamed {
 						ImGui::AcceptDragDropPayload(
 							"OUTLINER_FOLDER"
 						)) {
-						auto sourcePath = static_cast<const char*>(
+						const auto sourcePath = static_cast<const char*>(
 							payload->Data
 						);
 						if (sourcePath) {
@@ -771,9 +713,10 @@ namespace Unnamed {
 				const std::string&        folderPath
 			) {
 					if (!folderPath.empty()) {
-						const std::string displayName = GetFolderLeafName(
-							folderPath
-						);
+						const std::string displayName =
+							SceneFolderPath::LeafName(
+								folderPath
+							);
 						ImGui::TableNextRow();
 						ImGui::TableNextColumn();
 						const bool opened = ImGui::TreeNodeEx(
@@ -807,14 +750,14 @@ namespace Unnamed {
 								ImGui::AcceptDragDropPayload(
 									"OUTLINER_FOLDER"
 								)) {
-								auto sourcePath = static_cast<const char
+								const auto sourcePath = static_cast<const char
 									*>(
 									payload->Data
 								);
 								if (
 									sourcePath &&
 									folderPath != sourcePath &&
-									!IsFolderEqualOrDescendant(
+									!SceneFolderPath::IsEqualOrDescendant(
 										folderPath, sourcePath
 									)
 								) {
@@ -850,8 +793,8 @@ namespace Unnamed {
 
 					for (const auto& [childName, childNode] : node.children) {
 						const std::string childPath = folderPath.empty() ?
-							childName :
-							folderPath + "/" + childName;
+								childName :
+								folderPath + "/" + childName;
 						drawFolder(childNode, childPath);
 					}
 
@@ -861,11 +804,11 @@ namespace Unnamed {
 								                        TransformComponent>() :
 							                        nullptr;
 						const auto* parentTransform = transform ?
-							transform->GetParent() :
-							nullptr;
+								transform->GetParent() :
+								nullptr;
 						const Entity* parentEntity = parentTransform ?
-							parentTransform->GetOwner() :
-							nullptr;
+								parentTransform->GetOwner() :
+								nullptr;
 						if (
 							parentEntity &&
 							std::string(parentEntity->GetFolderPath()) ==
@@ -932,8 +875,10 @@ namespace Unnamed {
 				createEntity(pendingCreateFolderPath);
 			}
 			if (pendingDuplicateEntityId != 0) {
-				if (Entity* sourceEntity = scene->FindEntity(pendingDuplicateEntityId)) {
-					if (Entity* duplicated = DuplicateEntityInScene(*scene, *sourceEntity)) {
+				if (Entity* sourceEntity = scene->FindEntity(
+					pendingDuplicateEntityId)) {
+					if (Entity* duplicated = DuplicateEntityInScene(
+						*scene, *sourceEntity)) {
 						mSelectedEntityId = duplicated->GetGuid();
 					}
 				}
@@ -1063,7 +1008,7 @@ namespace Unnamed {
 			ImGui::GetCursorPosY() + textSize + ImGui::GetStyle().ItemSpacing.y
 		);
 
-		std::string label = "GUID: " + std::to_string(entity->GetGuid());
+		const std::string label = "GUID: " + std::to_string(entity->GetGuid());
 		if (
 			ImGuiWidgets::IconButton(
 				kIconCopy, label.c_str(), ImVec2(0, 0), 1.0f, ImGuiDir_Right
@@ -1081,10 +1026,7 @@ namespace Unnamed {
 			ImGui::OpenPopup("InspectorAddComponentPopup");
 		}
 
-		ImGui::PushStyleVar(
-			ImGuiStyleVar_WindowPadding,
-			ImVec2(kPopupPadding, kPopupPadding)
-		);
+		ImGuiWidgets::BeginMenu();
 
 		if (ImGui::BeginPopup("InspectorAddComponentPopup")) {
 			ComponentMenuNode addComponentRoot    = {};
@@ -1114,7 +1056,7 @@ namespace Unnamed {
 			ImGui::EndPopup();
 		}
 
-		ImGui::PopStyleVar();
+		ImGuiWidgets::EndMenu();
 
 		ImGui::Separator();
 
@@ -1126,7 +1068,7 @@ namespace Unnamed {
 		);
 
 		auto pendingAction =
-			ImGuiUtil::HeaderMenuAction::None;
+			ImGuiWidgets::HeaderMenuAction::None;
 		BaseComponent* pendingTarget = nullptr;
 
 		for (size_t index = 0; index < orderedComponents.size(); ++index) {
@@ -1143,13 +1085,13 @@ namespace Unnamed {
 				orderedComponents[index - 1] != nullptr &&
 				orderedComponents[index - 1]->GetStableName() != "Transform";
 			const bool canMoveDown =
-				!isTransform && (index + 1) < orderedComponents.size();
+				!isTransform && index + 1 < orderedComponents.size();
 			const bool canRemove = !isTransform;
 
 			bool componentActive = component->IsActive();
 			auto action          =
-				ImGuiUtil::HeaderMenuAction::None;
-			const bool open = ImGuiUtil::CollapsingHeaderWithCheckbox(
+				ImGuiWidgets::HeaderMenuAction::None;
+			const bool open = ImGuiWidgets::CollapsingHeaderWithCheckbox(
 				component->GetIcon(),
 				component->GetComponentName().data(),
 				component->GetGuid(),
@@ -1169,7 +1111,7 @@ namespace Unnamed {
 			ImGui::Separator();
 
 			if (
-				action != ImGuiUtil::HeaderMenuAction::None &&
+				action != ImGuiWidgets::HeaderMenuAction::None &&
 				pendingTarget == nullptr
 			) {
 				pendingAction = action;
@@ -1179,16 +1121,16 @@ namespace Unnamed {
 
 		if (pendingTarget != nullptr) {
 			switch (pendingAction) {
-				case ImGuiUtil::HeaderMenuAction::MoveUp: (void)entity->
+				case ImGuiWidgets::HeaderMenuAction::MoveUp: (void)entity->
 						MoveComponentUp(pendingTarget);
 					break;
-				case ImGuiUtil::HeaderMenuAction::MoveDown: (void)entity->
+				case ImGuiWidgets::HeaderMenuAction::MoveDown: (void)entity->
 						MoveComponentDown(pendingTarget);
 					break;
-				case ImGuiUtil::HeaderMenuAction::Remove: entity->
+				case ImGuiWidgets::HeaderMenuAction::Remove: entity->
 						RemoveComponent(pendingTarget);
 					break;
-				case ImGuiUtil::HeaderMenuAction::None:
+				case ImGuiWidgets::HeaderMenuAction::None:
 				default: break;
 			}
 		}
@@ -1207,7 +1149,7 @@ namespace Unnamed {
 				) {
 					return;
 				}
-				(void)mSequenceEditorController->OpenDocument(path);
+				(void)mSequenceEditorController->OpenDocument(Path(path));
 			}
 		);
 	}

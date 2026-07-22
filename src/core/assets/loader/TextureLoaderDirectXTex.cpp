@@ -1,4 +1,5 @@
 #include "TextureLoaderDirectXTex.h"
+#include "DirectXTexConversions.h"
 
 #include <algorithm>
 #include <array>
@@ -6,28 +7,13 @@
 #include <filesystem>
 
 #include <core/assets/types/TextureAssetData.h>
-#include <core/path/PathUtil.h>
+#include <core/filesystem/Path.h>
 #include <core/string/StrUtil.h>
 
 #include <engine/unnamed/subsystem/console/Log.h>
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "TxLdrDtx";
-
-	namespace {
-		[[nodiscard]] bool IsSrgbFormat(const DXGI_FORMAT format) {
-			switch (format) {
-				case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-				case DXGI_FORMAT_BC1_UNORM_SRGB:
-				case DXGI_FORMAT_BC2_UNORM_SRGB:
-				case DXGI_FORMAT_BC3_UNORM_SRGB:
-				case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
-				case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
-				case DXGI_FORMAT_BC7_UNORM_SRGB: return true;
-				default: return false;
-			}
-		}
-	}
 
 	static constexpr std::array kSupportedExtensions = {
 		// DirectDraw Surface
@@ -50,13 +36,15 @@ namespace Unnamed {
 	};
 
 	bool TextureLoaderDirectXTex::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
-		bool ok = false;
+		bool              ok      = false;
+		const std::string pathExt =
+			StrUtil::ToLowerCase(path.Extension().ToGenericUtf8());
 
 		// サポートされている拡張子か確認
 		for (const auto& supported : kSupportedExtensions) {
-			if (StrUtil::HasExtension(path, supported)) {
+			if (pathExt == supported) {
 				ok = true;
 				break;
 			}
@@ -76,7 +64,7 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult TextureLoaderDirectXTex::Load(const std::string& path) {
+	LoadResult TextureLoaderDirectXTex::Load(const Path& path) {
 		LoadResult r = {};
 		using namespace DirectX;
 
@@ -84,8 +72,10 @@ namespace Unnamed {
 		TexMetadata  meta = {};
 		HRESULT      hr   = E_FAIL;
 
-		std::wstring wPath = StrUtil::ToWString(path);
-		std::string  ext   = StrUtil::ToLowerExt(path);
+		std::wstring wPath = path.Native().wstring();
+		std::string  ext   = StrUtil::ToLowerCase(
+			path.Extension().ToGenericUtf8()
+		);
 
 		if (ext == ".dds") {
 			hr = LoadFromDDSFile(
@@ -134,20 +124,23 @@ namespace Unnamed {
 
 		// アセットデータにつめつめ
 		TextureAssetData out = {};
-		out.width     = static_cast<uint32_t>(meta.width);
-		out.height    = static_cast<uint32_t>(meta.height);
-		out.arraySize = static_cast<uint32_t>(std::max<size_t>(meta.arraySize, 1));
-		out.mipLevels = static_cast<uint32_t>(std::max<size_t>(meta.mipLevels, 1));
-		out.format     = meta.format;
-		out.isSRGB     = IsSrgbFormat(meta.format);
-		out.isCubeMap  = meta.IsCubemap();
-		out.dimension  = out.isCubeMap ?
-			                 TEXTURE_DIMENSION::TEXTURE_CUBE :
-			                 TEXTURE_DIMENSION::TEXTURE_2D;
-		out.sourcePath = path;
+		out.width            = static_cast<uint32_t>(meta.width);
+		out.height           = static_cast<uint32_t>(meta.height);
+		out.arraySize        = static_cast<uint32_t>(std::max<size_t>(
+			meta.arraySize, 1));
+		out.mipLevels = static_cast<uint32_t>(std::max<size_t>(
+			meta.mipLevels, 1));
+		out.format    = meta.format;
+		out.isSRGB    = DirectXTexConversions::IsSrgbFormat(meta.format);
+		out.isCubeMap = meta.IsCubemap();
+		out.dimension = out.isCubeMap ?
+			                TEXTURE_DIMENSION::TEXTURE_CUBE :
+			                TEXTURE_DIMENSION::TEXTURE_2D;
+		out.sourcePath = path.LexicallyNormal();
 
 		out.subresources.reserve(
-			static_cast<size_t>(out.arraySize) * static_cast<size_t>(out.mipLevels)
+			static_cast<size_t>(out.arraySize) * static_cast<size_t>(out.
+				mipLevels)
 		);
 		out.mips.resize(out.mipLevels);
 
@@ -171,11 +164,11 @@ namespace Unnamed {
 				);
 
 				if (arraySlice == 0) {
-					TextureMip mip = {};
-					mip.width      = subresource.width;
-					mip.height     = subresource.height;
-					mip.rowPitch   = subresource.rowPitch;
-					mip.bytes      = subresource.bytes;
+					TextureMip mip     = {};
+					mip.width          = subresource.width;
+					mip.height         = subresource.height;
+					mip.rowPitch       = subresource.rowPitch;
+					mip.bytes          = subresource.bytes;
 					out.mips[mipLevel] = std::move(mip);
 				}
 
@@ -184,9 +177,12 @@ namespace Unnamed {
 		}
 
 		r.payload     = std::move(out);
-		r.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
-		if (std::error_code ec; Path::ExistsUtf8(path, ec)) {
-			r.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		r.resolveName = Path::ToUtf8String(path.FileName());
+		if (std::error_code ec;
+			std::filesystem::exists(path.Native(), ec)) {
+			r.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 
 		return r;

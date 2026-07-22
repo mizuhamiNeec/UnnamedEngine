@@ -16,7 +16,9 @@ namespace Unnamed::Gui {
 		void OnBeforeLayout(UiWidget& owner) override;
 
 		void Serialize(JsonWriter& writer) const override;
-		void Deserialize(const JsonReader& reader) override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const UiDeserializeContext& context
+		) override;
 
 		void SyncFromWidget(const UiWidget& owner);
 
@@ -27,11 +29,11 @@ namespace Unnamed::Gui {
 		void SetSizePolicy(UiSizePolicy sizePolicy);
 		void SetSizeConstraints(UiSizeConstraints constraints);
 
-		[[nodiscard]] const Rect& GetRect() const;
-		[[nodiscard]] const Anchors& GetAnchors() const;
-		[[nodiscard]] const Margins& GetMargins() const;
-		[[nodiscard]] const Pivot& GetPivot() const;
-		[[nodiscard]] UiSizePolicy GetSizePolicy() const;
+		[[nodiscard]] const Rect&              GetRect() const;
+		[[nodiscard]] const Anchors&           GetAnchors() const;
+		[[nodiscard]] const Margins&           GetMargins() const;
+		[[nodiscard]] const Pivot&             GetPivot() const;
+		[[nodiscard]] UiSizePolicy             GetSizePolicy() const;
 		[[nodiscard]] const UiSizeConstraints& GetSizeConstraints() const;
 
 	private:

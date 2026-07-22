@@ -2,14 +2,10 @@
 #include "ImGuiWidgets.h"
 
 #include <array>
-#include <format>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <pch.h>
 
-#include <core/math/Math.h>
-
-#include <engine/Properties.h>
 #include <engine/ImGui/Icons.h>
 
 namespace ImGuiWidgets {
@@ -190,7 +186,8 @@ namespace ImGuiWidgets {
 	/// @param p3 コントロールポイント2のY座標への参照
 	/// @return 値が変更された場合にtrueを返します。
 	bool EditCubicBezier(
-		const std::string& label, float p0, float p1, float p2, float p3
+		const std::string& label, const float p0, const float p1,
+		const float        p2, const float    p3
 	) {
 		// ドラッグ中か?
 		static bool bIsDraggingCp1 = false;
@@ -353,8 +350,9 @@ namespace ImGuiWidgets {
 			                                ImVec2(0.0f, 0.0f);
 		const float autoIconFontSize =
 			std::max(1.0f, baseFontSize * iconScale);
-		const float autoFontScale  = autoIconFontSize / baseFontSizeSafe;
-		ImVec2      layoutIconSize = ImVec2(
+		const float autoFontScale = autoIconFontSize / baseFontSizeSafe;
+
+		auto layoutIconSize = ImVec2(
 			iconBaseSize.x * autoFontScale, iconBaseSize.y * autoFontScale
 		);
 
@@ -398,18 +396,19 @@ namespace ImGuiWidgets {
 		}
 
 		const std::string btnId =
-			"##IconBtn" + iconUtf8 + std::to_string(ImGui::GetID(icon));
+			"##IconBtn" + iconUtf8 + std::to_string(
+				ImGui::GetID(static_cast<int>(icon)));
 		const bool pressed = ImGui::InvisibleButton(btnId.c_str(), size);
 		const bool hovered = ImGui::IsItemHovered();
 		const bool active  = ImGui::IsItemActive();
 
 		const ImVec2 itemMin  = ImGui::GetItemRectMin();
 		const ImVec2 itemMax  = ImGui::GetItemRectMax();
-		const ImVec2 itemSize = ImVec2(
+		const auto   itemSize = ImVec2(
 			itemMax.x - itemMin.x, itemMax.y - itemMin.y
 		);
-		const ImVec2 innerMin  = ImVec2(itemMin.x + pad.x, itemMin.y + pad.y);
-		const ImVec2 innerSize = ImVec2(
+		const auto innerMin  = ImVec2(itemMin.x + pad.x, itemMin.y + pad.y);
+		const auto innerSize = ImVec2(
 			std::max(1.0f, itemSize.x - pad.x * 2.0f),
 			std::max(1.0f, itemSize.y - pad.y * 2.0f)
 		);
@@ -428,8 +427,8 @@ namespace ImGuiWidgets {
 		const float iconFontSize = autoHeight ?
 			                           autoIconFontSize :
 			                           std::max(1.0f, innerSize.y * iconScale);
-		const float  fontScale = iconFontSize / baseFontSizeSafe;
-		const ImVec2 iconSize  = ImVec2(
+		const float fontScale = iconFontSize / baseFontSizeSafe;
+		const auto  iconSize  = ImVec2(
 			iconBaseSize.x * fontScale, iconBaseSize.y * fontScale
 		);
 
@@ -519,16 +518,14 @@ namespace ImGuiWidgets {
 		);
 	}
 
-	/// @brief メインメニュー用のBeginMenuを開始します。
-	///	@param label メニューラベル
-	/// @param enabled メニューが有効かどうか
-	/// @return メニューが開かれた場合にtrueを返します。
-	bool BeginMainMenu(const char* label, const bool enabled) {
+	bool BeginMainMenu(
+		const char* label, const float height, const bool enabled
+	) {
 		ImGui::PushStyleVar(
 			ImGuiStyleVar_FramePadding,
 			ImVec2(
 				ImGui::GetStyle().FramePadding.x,
-				kTitleBarH * 0.5f - ImGui::GetFontSize() *
+				height * 0.5f - ImGui::GetFontSize() *
 				0.5f
 			)
 		);
@@ -536,7 +533,7 @@ namespace ImGuiWidgets {
 			ImGuiStyleVar_ItemSpacing,
 			ImVec2(
 				ImGui::GetStyle().ItemSpacing.x,
-				kTitleBarH
+				height
 			)
 		);
 		const bool ret = ImGui::BeginMenu(label, enabled);
@@ -544,6 +541,16 @@ namespace ImGuiWidgets {
 		return ret;
 	}
 
+	void BeginMenu() {
+		ImGui::PushStyleVar(
+			ImGuiStyleVar_WindowPadding,
+			ImVec2(8.0f, 8.0f)
+		);
+	}
+
+	void EndMenu() {
+		ImGui::PopStyleVar();
+	}
 
 	void HandleHoveredComboMenuMouseWheelScroll(
 		uint32_t& index, const uint32_t itemSize
@@ -583,7 +590,7 @@ namespace ImGuiWidgets {
 
 		// Submit label or explicit size to ItemSize(), whereas ItemAdd() will submit a larger/spanning rectangle.
 		const ImGuiID id        = window->GetID(label);
-		const ImVec2  labelSize = ImGui::CalcTextSize(label, NULL, true);
+		const ImVec2  labelSize = ImGui::CalcTextSize(label, nullptr, true);
 		ImVec2        size(
 			sizeArg.x != 0.0f ? sizeArg.x : labelSize.x,
 			sizeArg.y != 0.0f ? sizeArg.y : labelSize.y
@@ -811,7 +818,7 @@ namespace ImGuiWidgets {
 	}
 
 	static ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) {
-		return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y);
+		return {lhs.x - rhs.x, lhs.y - rhs.y};
 	}
 
 	bool BeginMenuEx(
@@ -895,7 +902,7 @@ namespace ImGuiWidgets {
 				textPos.y - style.FramePadding.y + window->MenuBarHeight
 			);
 		} else {
-			float iconW = (icon && icon[0]) ?
+			float iconW = icon && icon[0] ?
 				              ImGui::CalcTextSize(icon, NULL).x :
 				              0.0f;
 			float checkmarkW = IM_TRUNC(g.FontSize * 1.20f);
@@ -937,7 +944,7 @@ namespace ImGuiWidgets {
 			ImGui::EndDisabled();
 		}
 
-		const bool hovered = (g.HoveredId == id) && enabled && !g.
+		const bool hovered = g.HoveredId == id && enabled && !g.
 		                     NavHighlightItemUnderNav;
 		if (menusetIsOpen) {
 			ImGui::PopItemFlag();
@@ -949,24 +956,24 @@ namespace ImGuiWidgets {
 		if (window->DC.LayoutType == ImGuiLayoutType_Vertical) {
 			bool            movingTowardChildMenu = false;
 			ImGuiPopupData* childPopup            =
-				(g.BeginPopupStack.Size < g.OpenPopupStack.Size) ?
+				g.BeginPopupStack.Size < g.OpenPopupStack.Size ?
 					&g.OpenPopupStack[g.BeginPopupStack.Size] :
 					NULL; // Popup candidate (testing below)
 			ImGuiWindow* childMenuWindow =
-			(childPopup && childPopup->Window && childPopup->Window->
-			 ParentWindow == window) ?
-				childPopup->Window :
-				NULL;
+				childPopup && childPopup->Window && childPopup->Window->
+				ParentWindow == window ?
+					childPopup->Window :
+					NULL;
 			if (g.HoveredWindow == window && childMenuWindow != NULL) {
 				const float refUnit  = g.FontSize; // FIXME-DPI
 				const float childDir =
-					(window->Pos.x < childMenuWindow->Pos.x) ? 1.0f : -1.0f;
+					window->Pos.x < childMenuWindow->Pos.x ? 1.0f : -1.0f;
 				const ImRect nextWindowRect = childMenuWindow->Rect();
-				ImVec2       ta             = (g.IO.MousePos - g.IO.MouseDelta);
-				ImVec2       tb             = (childDir > 0.0f) ?
+				ImVec2       ta             = g.IO.MousePos - g.IO.MouseDelta;
+				ImVec2       tb             = childDir > 0.0f ?
 					                              nextWindowRect.GetTL() :
 					                              nextWindowRect.GetTR();
-				ImVec2 tc = (childDir > 0.0f) ?
+				ImVec2 tc = childDir > 0.0f ?
 					            nextWindowRect.GetBL() :
 					            nextWindowRect.GetBR();
 				const float padFarmostH = ImClamp(
@@ -977,10 +984,10 @@ namespace ImGuiWidgets {
 				tb.x += childDir * refUnit;
 				tc.x += childDir * refUnit;
 				tb.y = ta.y + ImMax(
-					       (tb.y - padFarmostH) - ta.y, -refUnit * 8.0f
+					       tb.y - padFarmostH - ta.y, -refUnit * 8.0f
 				       );
 				tc.y = ta.y + ImMin(
-					       (tc.y + padFarmostH) - ta.y, +refUnit * 8.0f
+					       tc.y + padFarmostH - ta.y, +refUnit * 8.0f
 				       );
 				movingTowardChildMenu = ImTriangleContainsPoint(
 					ta, tb, tc, g.IO.MousePos
@@ -1084,7 +1091,7 @@ namespace ImGuiWidgets {
 	/// @param rhs 右辺のImVec2
 	/// @return 加算結果のImVec2
 	static ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) {
-		return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
+		return {lhs.x + rhs.x, lhs.y + rhs.y};
 	}
 
 	bool MenuItemExWithRounding(
@@ -1233,7 +1240,8 @@ namespace ImGuiWidgets {
 	}
 
 	void ShowAboutWindow(
-		std::string systemName, std::string version, uint32_t logo, bool& bShow
+		const std::string& systemName, const std::string& version,
+		const uint32_t     logo, bool&                    bShow
 	) {
 		const std::string text = "About " + systemName;
 
@@ -1345,6 +1353,125 @@ namespace ImGuiWidgets {
 			acceptedMask,
 			helpText
 		);
+	}
+
+	bool CollapsingHeaderWithCheckbox(
+		const uint32_t           icon,
+		const char*              label,
+		const uint64_t           id,
+		bool*                    checkbox,
+		HeaderMenuAction*        action,
+		const bool               canMoveUp,
+		const bool               canMoveDown,
+		const bool               canRemove,
+		const ImGuiTreeNodeFlags flags
+	) {
+		const std::string uniqueID   = "##" + std::to_string(id);
+		auto              menuAction = HeaderMenuAction::None;
+
+		ImGui::PushID(uniqueID.c_str());
+		ImGui::BeginGroup();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{8.0f, 8.0f});
+
+		const bool isOpen = ImGui::CollapsingHeader(
+			uniqueID.c_str(),
+			flags | ImGuiTreeNodeFlags_AllowOverlap // チェックボックスと重なってもいいようにする
+		);
+
+		const float  collapsingHeaderHeight = ImGui::GetItemRectSize().y;
+		const ImVec2 collapsingHeaderMin    = ImGui::GetItemRectMin();
+		const ImVec2 collapsingHeaderMax    = ImGui::GetItemRectMax();
+
+		ImGui::PopStyleVar();
+
+		ImGui::SameLine();
+
+		// アイコンを表示
+		constexpr float iconScale = 1.5f;
+
+		// フォントサイズを取得
+		const float fontSize = ImGui::GetFontSize();
+		ImVec2      iconSize = ImGui::CalcTextSize(
+			Unnamed::StrUtil::ConvertToUtf8(icon).c_str()
+		);
+		iconSize.x *= iconScale;
+
+		ImGui::GetWindowDrawList()->AddText(
+			ImGui::GetFont(),
+			fontSize * iconScale,
+			ImVec2(
+				ImGui::GetCursorScreenPos().x,
+				ImGui::GetCursorScreenPos().y + collapsingHeaderHeight * 0.5f -
+				fontSize * iconScale * 0.5f
+			),
+			ImGui::GetColorU32(ImGuiCol_Text),
+			Unnamed::StrUtil::ConvertToUtf8(icon).c_str()
+		);
+
+		ImGui::SameLine();
+
+		// チェックボックス用にカーソル位置を調整
+		ImGui::SetCursorPos(
+			ImVec2(
+				ImGui::GetCursorPosX() + ImGui::GetStyle().ItemSpacing.x +
+				iconSize.x,
+				ImGui::GetCursorPosY() + collapsingHeaderHeight * 0.5f -
+				ImGui::GetFrameHeight() * 0.5f
+			)
+		);
+
+		// チェックボックスを表示
+		ImGui::Checkbox("##Checkbox", checkbox);
+
+		ImGui::SameLine();
+
+		// ラベルを表示
+		ImGui::Text(label);
+
+		ImGui::SameLine();
+
+		const std::string moreHoriz = Unnamed::StrUtil::ConvertToUtf8(
+			kIconMoreHoriz
+		);
+
+		const float buttonWidth = ImGui::CalcTextSize(moreHoriz.c_str()).x +
+		                          ImGui::GetStyle().FramePadding.x * 2.0f;
+		ImGui::SetCursorPosX(
+			ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x -
+			ImGui::GetStyle().ItemSpacing.x * 2.0f - buttonWidth
+		);
+		const float headerCenterY =
+			(collapsingHeaderMin.y + collapsingHeaderMax.
+			 y) *
+			0.5f;
+		const float buttonTopY = headerCenterY - ImGui::GetFrameHeight() * 0.5f;
+		ImGui::SetCursorPosY(buttonTopY - ImGui::GetWindowPos().y);
+
+		const bool menuOpen = ImGui::Button(moreHoriz.c_str());
+
+		if (menuOpen) {
+			ImGui::OpenPopup("##HeaderMenu");
+		}
+		if (ImGui::BeginPopup("##HeaderMenu")) {
+			if (ImGui::MenuItem("Move Up", nullptr, false, canMoveUp)) {
+				menuAction = HeaderMenuAction::MoveUp;
+			}
+			if (ImGui::MenuItem("Move Down", nullptr, false, canMoveDown)) {
+				menuAction = HeaderMenuAction::MoveDown;
+			}
+			if (ImGui::MenuItem("Remove", nullptr, false, canRemove)) {
+				menuAction = HeaderMenuAction::Remove;
+			}
+			ImGui::EndPopup();
+		}
+
+		ImGui::EndGroup();
+		ImGui::PopID();
+		if (action != nullptr) {
+			*action = menuAction;
+		}
+		return isOpen;
 	}
 }
 #endif

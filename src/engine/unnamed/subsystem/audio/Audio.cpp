@@ -18,14 +18,14 @@ namespace Unnamed {
 			return false;
 		}
 
-		WAVEFORMATEX wfex         = {};
-		wfex.wFormatTag           = soundData.formatTag;
-		wfex.nChannels            = soundData.channels;
-		wfex.nSamplesPerSec       = soundData.sampleRate;
-		wfex.nAvgBytesPerSec      = soundData.averageBytesPerSecond;
-		wfex.nBlockAlign          = soundData.blockAlign;
-		wfex.wBitsPerSample       = soundData.bitsPerSample;
-		wfex.cbSize               = 0;
+		WAVEFORMATEX wfex    = {};
+		wfex.wFormatTag      = soundData.formatTag;
+		wfex.nChannels       = soundData.channels;
+		wfex.nSamplesPerSec  = soundData.sampleRate;
+		wfex.nAvgBytesPerSec = soundData.averageBytesPerSecond;
+		wfex.nBlockAlign     = soundData.blockAlign;
+		wfex.wBitsPerSample  = soundData.bitsPerSample;
+		wfex.cbSize          = 0;
 
 		const HRESULT hr = xAudio2->CreateSourceVoice(&mSourceVoice, &wfex);
 		if (FAILED(hr)) {
@@ -33,8 +33,9 @@ namespace Unnamed {
 			return false;
 		}
 
-		mOwnedPcmData       = soundData.pcmData;
-		mAudioBuffer        = {};
+		// XAudio2 が再生中も参照するため、PCM バッファは Voice の寿命まで保持する
+		mOwnedPcmData           = soundData.pcmData;
+		mAudioBuffer            = {};
 		mAudioBuffer.pAudioData = mOwnedPcmData.data();
 		mAudioBuffer.AudioBytes = static_cast<UINT32>(mOwnedPcmData.size());
 		mAudioBuffer.Flags      = XAUDIO2_END_OF_STREAM;
@@ -120,6 +121,7 @@ namespace Unnamed {
 			return;
 		}
 
+		// バッファ参照を外してから PCM 所有領域を解放する
 		mSourceVoice->Stop();
 		mSourceVoice->FlushSourceBuffers();
 		mSourceVoice->DestroyVoice();

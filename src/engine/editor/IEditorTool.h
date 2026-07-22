@@ -7,6 +7,8 @@
 
 #include "core/math/Vec2.h"
 
+#include "engine/ImGui/Icons.h"
+
 namespace Unnamed {
 	class ConsoleSystem;
 	class InputSystem;
@@ -25,15 +27,15 @@ namespace Unnamed {
 	}
 
 	struct EditorToolServices {
-		WindowManager*       windowManager = nullptr;
-		Render::RenderModule* renderModule  = nullptr;
-		ImGuiLayer*          imGuiLayer    = nullptr;
-		ConsoleSystem*       console       = nullptr;
-		InputSystem*         inputSystem   = nullptr;
-		AssetManager*        assetManager  = nullptr;
-		IDemoService*        demoService   = nullptr;
-		IGameWorldFactory*   gameWorldFactory = nullptr;
-		Profiler*            profiler      = nullptr;
+		WindowManager*        windowManager    = nullptr;
+		Render::RenderModule* renderModule     = nullptr;
+		ImGuiLayer*           imGuiLayer       = nullptr;
+		ConsoleSystem*        console          = nullptr;
+		InputSystem*          inputSystem      = nullptr;
+		AssetManager*         assetManager     = nullptr;
+		IDemoService*         demoService      = nullptr;
+		IGameWorldFactory*    gameWorldFactory = nullptr;
+		Profiler*             profiler         = nullptr;
 	};
 
 	struct EditorToolFrameContext {
@@ -51,17 +53,24 @@ namespace Unnamed {
 		virtual void Initialize(const EditorToolServices& services) {
 			(void)services;
 		}
-		virtual void Shutdown() {}
-		virtual void BeginUI() {}
+
+		virtual void Shutdown() {
+		}
+
+		virtual void BeginUI() {
+		}
+
 		virtual void Tick(const EditorToolFrameContext& frameContext) = 0;
 		virtual void BuildUi(const EditorToolFrameContext& frameContext) = 0;
 
 		virtual void CollectRenderViews(Render::RenderFrameInputs& inputs) = 0;
-		virtual void EnumerateViewKeys(std::vector<std::string>& outViewKeys) const = 0;
+		virtual void EnumerateViewKeys(
+			std::vector<std::string>& outViewKeys
+		) const = 0;
 		virtual void SetViewOutput(
-			std::string_view viewKey,
+			std::string_view               viewKey,
 			const Render::SceneOutputView& output,
-			Vec2 size
+			Vec2                           size
 		) = 0;
 
 		[[nodiscard]] virtual World* GetRuntimeWorld() {
@@ -69,8 +78,11 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] virtual bool IsOpen() const = 0;
-		virtual void SetOpen(bool open) = 0;
+		virtual void               SetOpen(bool open) = 0;
+
+		virtual uint32_t GetIcon() {
+			return kIconQuestionMark;
+		}
 	};
 }
-
 #endif

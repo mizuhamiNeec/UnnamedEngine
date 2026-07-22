@@ -33,23 +33,23 @@
                         "materialInstancePath": "",
                         "materialSlots": [
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 0
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/gray.matinst.json",
+                                "materialInstancePath": "materials/instances/gray.matinst.json",
                                 "slotIndex": 1
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 2
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/red.matinst.json",
+                                "materialInstancePath": "materials/instances/red.matinst.json",
                                 "slotIndex": 3
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 4
                             }
                         ],
@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.000221252441406,
-                            36.00053024291992,
-                            16.000221252441406
+                            16.000267028808594,
+                            36.00063705444336,
+                            16.000267028808594
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -165,7 +165,7 @@
                         "receiveInput": false,
                         "sortKey": 300,
                         "spaceMode": "Screen",
-                        "uiAssetPath": "ui/hud.ui.json",
+                        "uiDocumentPath": "ui/hud.ui.json",
                         "worldSize": [
                             2.0,
                             1.125
@@ -655,7 +655,6 @@
                 {
                     "active": true,
                     "data": {
-                        "materialInstancePath": "",
                         "materialSlots": [],
                         "meshPath": "models/viewmodel/viewmodel.glb"
                     },
@@ -944,7 +943,7 @@
                         "loop": false,
                         "pitch": 1.0,
                         "playOnStart": false,
-                        "soundPath": "sounds/se/footstep/Robot_Footstep_Single_v3_02.wav",
+                        "soundPath": "sounds/se/player/Robot_Footstep_Single_v3_02.wav",
                         "volume": 0.30000001192092896
                     },
                     "guid": 17000123456789012345,
@@ -956,10 +955,22 @@
                         "loop": false,
                         "pitch": 1.0,
                         "playOnStart": false,
-                        "soundPath": "sounds/se/footstep/Robot_Footstep_Single_v2_01.wav",
+                        "soundPath": "sounds/se/player/Robot_Footstep_Single_v2_01.wav",
                         "volume": 0.36000001430511475
                     },
                     "guid": 17000123456789012347,
+                    "type": "engine.AudioSource"
+                },
+                {
+                    "active": true,
+                    "data": {
+                        "loop": false,
+                        "pitch": 1.0,
+                        "playOnStart": false,
+                        "soundPath": "sounds/se/player/UI_Noisy_Impact_09.wav",
+                        "volume": 0.20000000298023224
+                    },
+                    "guid": 17000123456789012349,
                     "type": "engine.AudioSource"
                 },
                 {
@@ -973,6 +984,14 @@
                                 "sourceComponentGuid": 17000123456789012345,
                                 "sourceEntityGuid": 0,
                                 "volume": 0.30000001192092896
+                            },
+                            {
+                                "id": "se_doublejump",
+                                "pitchMax": 1.059999942779541,
+                                "pitchMin": 0.949999988079071,
+                                "sourceComponentGuid": 17000123456789012349,
+                                "sourceEntityGuid": 0,
+                                "volume": 0.15000000596046448
                             },
                             {
                                 "id": "se_land",
@@ -1061,7 +1080,7 @@
                         "receiveInput": false,
                         "sortKey": 0,
                         "spaceMode": "WorldBillboard",
-                        "uiAssetPath": "ui/crosshair.ui.json",
+                        "uiDocumentPath": "ui/crosshair.ui.json",
                         "worldSize": [
                             256.0,
                             256.0
@@ -1154,7 +1173,7 @@
                     "active": true,
                     "data": {
                         "intensity": 1.0,
-                        "texturePath": "content/core/textures/wave.dds"
+                        "texturePath": "textures/wave.dds"
                     },
                     "guid": 13523057102086617376,
                     "type": "engine.Skybox"
@@ -1330,7 +1349,7 @@
                                 ]
                             }
                         ],
-                        "skipAction": "",
+                        "skipAction": "jump",
                         "startAudioSourceGuid": 9100000000000000212,
                         "tourCameraEntityGuid": 9100000000000000200
                     },
@@ -1365,7 +1384,7 @@
             "folderPath": "",
             "guid": 2319,
             "isEditorOnly": false,
-            "name": "Entity",
+            "name": "Cutscene",
             "visible": true
         },
         {
@@ -1436,156 +1455,6 @@
             "guid": 2320,
             "isEditorOnly": false,
             "name": "Script",
-            "visible": true
-        },
-        {
-            "active": true,
-            "components": [
-                {
-                    "active": true,
-                    "data": {
-                        "parentEntityGuid": 0,
-                        "position": [
-                            39.013999938964844,
-                            1.6260000467300415,
-                            0.0
-                        ],
-                        "rotation": [
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "scale": [
-                            1.0,
-                            1.0,
-                            1.0
-                        ]
-                    },
-                    "guid": 14432184254079450260,
-                    "type": "engine.Transform"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "materialInstancePath": "",
-                        "materialSlots": [],
-                        "meshPath": "content/core/models/fan.obj"
-                    },
-                    "guid": 11218511112006460158,
-                    "type": "engine.StaticMeshRenderer"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "dynamic": true,
-                        "enabled": true
-                    },
-                    "guid": 11799664914444189922,
-                    "type": "engine.StaticMeshCollider"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "enabled": true,
-                        "moveToPointB": true,
-                        "pointA": [
-                            39.013999938964844,
-                            1.6260000467300415,
-                            0.0
-                        ],
-                        "pointB": [
-                            39.013999938964844,
-                            11.62600040435791,
-                            0.0
-                        ],
-                        "snapOnAttach": true,
-                        "speed": 5.0,
-                        "startFromA": true
-                    },
-                    "guid": 14408135907502723530,
-                    "type": "game.PatrolPoint"
-                }
-            ],
-            "folderPath": "",
-            "guid": 2321,
-            "isEditorOnly": false,
-            "name": "VerticalMovingPlatform",
-            "visible": true
-        },
-        {
-            "active": true,
-            "components": [
-                {
-                    "active": true,
-                    "data": {
-                        "parentEntityGuid": 0,
-                        "position": [
-                            39.013999938964844,
-                            1.6260000467300415,
-                            8.128000259399414
-                        ],
-                        "rotation": [
-                            0.0,
-                            0.0,
-                            0.0,
-                            1.0
-                        ],
-                        "scale": [
-                            1.0,
-                            4.0,
-                            1.0
-                        ]
-                    },
-                    "guid": 12851917235657260575,
-                    "type": "engine.Transform"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "materialInstancePath": "",
-                        "materialSlots": [],
-                        "meshPath": "content/core/models/fan.obj"
-                    },
-                    "guid": 10079947523180645772,
-                    "type": "engine.StaticMeshRenderer"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "dynamic": true,
-                        "enabled": true
-                    },
-                    "guid": 13167560044277730826,
-                    "type": "engine.StaticMeshCollider"
-                },
-                {
-                    "active": true,
-                    "data": {
-                        "enabled": true,
-                        "moveToPointB": true,
-                        "pointA": [
-                            39.013999938964844,
-                            1.6260000467300415,
-                            8.128000259399414
-                        ],
-                        "pointB": [
-                            92.65899658203125,
-                            1.6260000467300415,
-                            8.128000259399414
-                        ],
-                        "snapOnAttach": true,
-                        "speed": 5.0,
-                        "startFromA": true
-                    },
-                    "guid": 16121965786767389326,
-                    "type": "game.PatrolPoint"
-                }
-            ],
-            "folderPath": "",
-            "guid": 2322,
-            "isEditorOnly": false,
-            "name": "HorizontalMovingPlatform",
             "visible": true
         },
         {

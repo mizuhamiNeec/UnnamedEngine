@@ -15,7 +15,7 @@ namespace Unnamed::Gui {
 			return "ButtonBehavior";
 		}
 
-		void SetText(const std::string_view& text);
+		void                           SetText(const std::string_view& text);
 		[[nodiscard]] std::string_view GetText() const;
 
 		void SetOnClick(const std::function<void()>& callback);
@@ -25,21 +25,23 @@ namespace Unnamed::Gui {
 		[[nodiscard]] const Color& GetNormalColor() const;
 		[[nodiscard]] const Color& GetHoveredColor() const;
 		[[nodiscard]] const Color& GetPressedColor() const;
-		void SetBorderColor(const Color& color);
+		void                       SetBorderColor(const Color& color);
 		[[nodiscard]] const Color& GetBorderColor() const;
-		void SetTextColor(const Color& color);
+		void                       SetTextColor(const Color& color);
 		[[nodiscard]] const Color& GetTextColor() const;
-		void SetCornerRadius(float radius);
-		[[nodiscard]] float GetCornerRadius() const;
-		void SetFontSize(float size);
-		[[nodiscard]] float GetFontSize() const;
+		void                       SetCornerRadius(float radius);
+		[[nodiscard]] float        GetCornerRadius() const;
+		void                       SetFontSize(float size);
+		[[nodiscard]] float        GetFontSize() const;
 
 		void BuildDrawCommands(
 			const UiWidget& owner, std::vector<UiDrawCommand>& out
 		) const override;
 		void OnClick(UiWidget& owner) override;
 		void Serialize(JsonWriter& writer) const override;
-		void Deserialize(const JsonReader& reader) override;
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const UiDeserializeContext& context
+		) override;
 
 	private:
 		std::string           mText;

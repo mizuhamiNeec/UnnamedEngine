@@ -21,8 +21,8 @@ namespace Unnamed::Render {
 		D3D12_VERTEX_BUFFER_VIEW vbv = {};
 		D3D12_INDEX_BUFFER_VIEW  ibv = {};
 
-		uint32_t indexCount = 0;
-		std::vector<MeshSubMeshRange> submeshes = {};
+		uint32_t                      indexCount = 0;
+		std::vector<MeshSubMeshRange> submeshes  = {};
 
 		AABB localAABB;
 	};

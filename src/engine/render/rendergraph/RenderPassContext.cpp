@@ -5,6 +5,7 @@
 
 #include "RenderGraph.h"
 
+#include "engine/RHI/d3d12/D3D12CommandContext.h"
 #include "engine/rhi/d3d12/D3D12SwapChain.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 
@@ -62,13 +63,6 @@ namespace Unnamed::Render {
 		mContext.SetSrvUavHeap(mSrvUavHeap);
 	}
 
-	void RenderPassContext::SetBackBufferAsRenderTarget() const {
-		const uint32_t index = mContext.GetSwapChain()->
-		                                GetCurrentBackBufferIndex();
-		const auto rtv = mContext.GetSwapChain()->GetRtvHandle(index);
-		mCommandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
-	}
-
 	void RenderPassContext::BindComputeUavTable(
 		const uint32_t rootIndex, const uint32_t textureId
 	) const {
@@ -119,6 +113,102 @@ namespace Unnamed::Render {
 			return;
 		}
 		mCommandList->SetComputeRootConstantBufferView(rootIndex, gpuVa);
+	}
+
+	void RenderPassContext::SetStencilRef(const uint32_t ref) const {
+		mCommandList->OMSetStencilRef(ref);
+	}
+
+	void RenderPassContext::SetComputePipeline(
+		ID3D12RootSignature* rootSignature, ID3D12PipelineState* pipelineState
+	) const {
+		mContext.SetComputePipeline(rootSignature, pipelineState);
+	}
+
+	void RenderPassContext::SetGraphicsPipeline(
+		ID3D12RootSignature* rootSignature, ID3D12PipelineState* pipelineState
+	) const {
+		mContext.SetGraphicsPipeline(rootSignature, pipelineState);
+	}
+
+	void RenderPassContext::SetPrimitiveTopology(
+		const D3D_PRIMITIVE_TOPOLOGY topology
+	) const {
+		mCommandList->IASetPrimitiveTopology(topology);
+	}
+
+	void RenderPassContext::SetVertexBuffer(
+		const D3D12_VERTEX_BUFFER_VIEW& vbv
+	) const {
+		mCommandList->IASetPrimitiveTopology(
+			D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		mCommandList->IASetVertexBuffers(0, 1, &vbv);
+	}
+
+	void RenderPassContext::DrawTriangleTest() const {
+		mCommandList->DrawInstanced(3, 1, 0, 0);
+	}
+
+	void RenderPassContext::DrawInstanced(
+		const uint32_t vertexCount, const uint32_t instanceCount
+	) const {
+		mCommandList->DrawInstanced(vertexCount, instanceCount, 0, 0);
+	}
+
+	void RenderPassContext::DrawIndexedTest(
+		const uint32_t indexCount,
+		const uint32_t startIndexLocation,
+		const int32_t  baseVertexLocation
+	) const {
+		mCommandList->DrawIndexedInstanced(
+			indexCount,
+			1,
+			startIndexLocation,
+			baseVertexLocation,
+			0
+		);
+	}
+
+	void RenderPassContext::DispatchForBackBuffer(
+		const uint32_t threadGroupSizeX, const uint32_t threadGroupSizeY
+	) const {
+		const uint32_t gx = (mBackBufferWidth + threadGroupSizeX - 1) /
+		                    threadGroupSizeX;
+		const uint32_t gy = (mBackBufferHeight + threadGroupSizeY - 1) /
+		                    threadGroupSizeY;
+		mContext.Dispatch(gx, gy, 1);
+	}
+
+	void RenderPassContext::Dispatch(
+		const uint32_t x, const uint32_t y, const uint32_t z
+	) const {
+		mContext.Dispatch(x, y, z);
+	}
+
+	void RenderPassContext::DrawFullscreenTriangle() const {
+		mContext.DrawFullScreenTriangle();
+	}
+
+	void RenderPassContext::ClearBackBuffer(
+		const float r, const float g, const float b, const float a
+	) const {
+		const Rhi::ClearColor color = {.r = r, .g = g, .b = b, .a = a};
+		mContext.ClearBackBuffer(color);
+	}
+
+	uint32_t RenderPassContext::GetBackBufferWidth() const {
+		return mBackBufferWidth;
+	}
+
+	uint32_t RenderPassContext::GetBackBufferHeight() const {
+		return mBackBufferHeight;
+	}
+
+	void RenderPassContext::SetBackBufferAsRenderTarget() const {
+		const uint32_t index = mContext.GetSwapChain()->
+		                                GetCurrentBackBufferIndex();
+		const auto rtv = mContext.GetSwapChain()->GetRtvHandle(index);
+		mCommandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
 	}
 
 	void RenderPassContext::SetRenderTarget(uint32_t textureId) const {
@@ -203,14 +293,14 @@ namespace Unnamed::Render {
 			return;
 		}
 
-		constexpr uint32_t kMaxRtvs = 8;
-		const uint32_t     count    = std::min<uint32_t>(
-			static_cast<uint32_t>(textureIds.size()), kMaxRtvs
+		constexpr uint32_t maxRtvs = 8;
+		const uint32_t     count   = std::min<uint32_t>(
+			static_cast<uint32_t>(textureIds.size()), maxRtvs
 		);
 
-		std::array<D3D12_CPU_DESCRIPTOR_HANDLE, kMaxRtvs> rtvs      = {};
-		std::array<ID3D12Resource*, kMaxRtvs>             resources = {};
-		uint32_t                                          outCount  = 0;
+		std::array<D3D12_CPU_DESCRIPTOR_HANDLE, maxRtvs> rtvs      = {};
+		std::array<ID3D12Resource*, maxRtvs>             resources = {};
+		uint32_t                                         outCount  = 0;
 
 		std::unordered_set<uint64_t>              seenRtvPtr;
 		std::unordered_set<const ID3D12Resource*> seenRes;
@@ -306,10 +396,6 @@ namespace Unnamed::Render {
 		);
 	}
 
-	void RenderPassContext::SetStencilRef(const uint32_t ref) const {
-		mCommandList->OMSetStencilRef(ref);
-	}
-
 	void RenderPassContext::SetRenderTargetAndDepth(
 		const std::span<const uint32_t> colorRtIds,
 		std::optional<uint32_t>         depthRtId
@@ -362,90 +448,5 @@ namespace Unnamed::Render {
 		}
 
 		mCommandList->OMSetRenderTargets(count, rtvs.data(), FALSE, dsvPtr);
-	}
-
-	void RenderPassContext::SetComputePipeline(
-		ID3D12RootSignature* rootSignature, ID3D12PipelineState* pipelineState
-	) const {
-		mContext.SetComputePipeline(rootSignature, pipelineState);
-	}
-
-	void RenderPassContext::SetGraphicsPipeline(
-		ID3D12RootSignature* rootSignature, ID3D12PipelineState* pipelineState
-	) const {
-		mContext.SetGraphicsPipeline(rootSignature, pipelineState);
-	}
-
-	void RenderPassContext::SetPrimitiveTopology(
-		const D3D_PRIMITIVE_TOPOLOGY topology
-	) const {
-		mCommandList->IASetPrimitiveTopology(topology);
-	}
-
-	void RenderPassContext::SetVertexBuffer(
-		const D3D12_VERTEX_BUFFER_VIEW& vbv
-	) const {
-		mCommandList->IASetPrimitiveTopology(
-			D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		mCommandList->IASetVertexBuffers(0, 1, &vbv);
-	}
-
-	void RenderPassContext::DrawTriangleTest() const {
-		mCommandList->DrawInstanced(3, 1, 0, 0);
-	}
-
-	void RenderPassContext::DrawInstanced(
-		const uint32_t vertexCount, const uint32_t instanceCount
-	) const {
-		mCommandList->DrawInstanced(vertexCount, instanceCount, 0, 0);
-	}
-
-	void RenderPassContext::DrawIndexedTest(
-		const uint32_t indexCount,
-		const uint32_t startIndexLocation,
-		const int32_t  baseVertexLocation
-	) const {
-		mCommandList->DrawIndexedInstanced(
-			indexCount,
-			1,
-			startIndexLocation,
-			baseVertexLocation,
-			0
-		);
-	}
-
-	void RenderPassContext::DispatchForBackBuffer(
-		const uint32_t threadGroupSizeX, const uint32_t threadGroupSizeY
-	) const {
-		const uint32_t gx = (mBackBufferWidth + threadGroupSizeX - 1) /
-		                    threadGroupSizeX;
-		const uint32_t gy = (mBackBufferHeight + threadGroupSizeY - 1) /
-		                    threadGroupSizeY;
-		mContext.Dispatch(gx, gy, 1);
-	}
-
-	void RenderPassContext::Dispatch(
-		const uint32_t x, const uint32_t y, const uint32_t z
-	) const {
-		mContext.Dispatch(x, y, z);
-	}
-
-	void RenderPassContext::DrawFullscreenTriangle() const {
-		mContext.DrawFullScreenTriangle();
-	}
-
-	void RenderPassContext::ClearBackBuffer(
-		const float r, const float g, const float b, const float a
-	) const {
-		const Rhi::ClearColor color = {.r = r, .g = g, .b = b, .a = a};
-		mContext.ClearBackBuffer(color);
-	}
-
-	uint32_t RenderPassContext::GetBackBufferWidth() const {
-		return mBackBufferWidth;
-	}
-
-	uint32_t RenderPassContext::GetBackBufferHeight() const {
-		return mBackBufferHeight;
 	}
 }

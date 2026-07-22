@@ -13,7 +13,8 @@ Quaternion::Quaternion() :
 	x(0),
 	y(0),
 	z(0),
-	w(1) {}
+	w(1) {
+}
 
 Quaternion::Quaternion(
 	const float x, const float y, const float z,
@@ -22,7 +23,8 @@ Quaternion::Quaternion(
 	x(x),
 	y(y),
 	z(z),
-	w(w) {}
+	w(w) {
+}
 
 Quaternion::Quaternion(const Vec3& axis, const float angleRad) {
 	const float halfAngle    = angleRad * 0.5f;
@@ -119,9 +121,9 @@ Quaternion Quaternion::AxisAngle(const Vec3& axis, const float angleDeg) {
 }
 
 Quaternion Quaternion::LookRotation(const Vec3& forward, const Vec3& up) {
-	Vec3 f = forward.Normalized();
-	Vec3 r = up.Cross(f).Normalized();
-	Vec3 u = f.Cross(r);
+	const Vec3 f = forward.Normalized();
+	const Vec3 r = up.Cross(f).Normalized();
+	const Vec3 u = f.Cross(r);
 
 	// 回転行列を作る（行ベクトル想定）
 	Mat4 m;

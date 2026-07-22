@@ -4,7 +4,8 @@ namespace Unnamed {
 	Window::Window(const WindowId id, WindowDesc desc, const HWND hwnd) :
 		mHwnd(hwnd),
 		mDesc(std::move(desc)),
-		mId(id) {}
+		mId(id) {
+	}
 
 	WindowId Window::GetId() const {
 		return mId;
@@ -31,8 +32,11 @@ namespace Unnamed {
 	}
 
 	std::optional<WindowResizeEvent> Window::ConsumeResizeEvent() {
-		if (!mHasPendingResize) return std::nullopt;
+		if (!mHasPendingResize) {
+			return std::nullopt;
+		}
 
+		// 複数の WM_SIZE をまとめ、Engine 側では一度だけスワップチェーンを更新する
 		mDesc.width  = mPendingResize.width;
 		mDesc.height = mPendingResize.height;
 
@@ -118,13 +122,16 @@ namespace Unnamed {
 			mWindowedPlacement.showCmd = SW_SHOWNORMAL;
 		}
 
-		mWindowedStyle        = static_cast<DWORD>(GetWindowLong(mHwnd, GWL_STYLE));
-		mWindowedExStyle      = static_cast<DWORD>(GetWindowLong(mHwnd, GWL_EXSTYLE));
+		mWindowedStyle   = static_cast<DWORD>(GetWindowLong(mHwnd, GWL_STYLE));
+		mWindowedExStyle = static_cast<DWORD>(
+			GetWindowLong(mHwnd, GWL_EXSTYLE));
 		mHasWindowedPlacement = true;
 	}
 
 	void Window::ApplyWindowedMode() {
-		DWORD style = mWindowedStyle != 0 ? mWindowedStyle : WS_OVERLAPPEDWINDOW;
+		DWORD style = mWindowedStyle != 0 ?
+			              mWindowedStyle :
+			              WS_OVERLAPPEDWINDOW;
 		if (!mDesc.resizable) {
 			style &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
 		}
@@ -145,7 +152,10 @@ namespace Unnamed {
 				SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_FRAMECHANGED
 			);
 		} else {
-			RECT rect{.left = 0, .top = 0, .right = mDesc.width, .bottom = mDesc.height};
+			RECT rect{
+				.left   = 0, .top = 0, .right = mDesc.width,
+				.bottom = mDesc.height
+			};
 			AdjustWindowRectEx(&rect, style, FALSE, mWindowedExStyle);
 
 			const HMONITOR hMonitor = MonitorFromWindow(
@@ -159,11 +169,13 @@ namespace Unnamed {
 			const int32_t width  = rect.right - rect.left;
 			const int32_t height = rect.bottom - rect.top;
 			const int32_t posX   = mi.rcMonitor.left + (
-				                       mi.rcMonitor.right - mi.rcMonitor.left - width
-			                       ) / 2;
-			const int32_t posY   = mi.rcMonitor.top + (
-				                       mi.rcMonitor.bottom - mi.rcMonitor.top - height
-			                       ) / 2;
+				                     mi.rcMonitor.right - mi.rcMonitor.left -
+				                     width
+			                     ) / 2;
+			const int32_t posY = mi.rcMonitor.top + (
+				                     mi.rcMonitor.bottom - mi.rcMonitor.top -
+				                     height
+			                     ) / 2;
 
 			SetWindowPos(
 				mHwnd,
@@ -180,10 +192,12 @@ namespace Unnamed {
 	}
 
 	void Window::ApplyBorderlessMode(const WINDOW_MODE mode) {
+		// 復帰時にユーザーの位置・サイズを戻せるよう、枠なし化の前に保存する
 		CaptureWindowedPlacement();
 
 		MONITORINFO mi = {.cbSize = sizeof(mi)};
-		if (!GetMonitorInfoW(MonitorFromWindow(mHwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
+		if (!GetMonitorInfoW(MonitorFromWindow(mHwnd, MONITOR_DEFAULTTONEAREST),
+		                     &mi)) {
 			return;
 		}
 
@@ -193,11 +207,13 @@ namespace Unnamed {
 		const DWORD exStyle = static_cast<DWORD>(
 			GetWindowLong(mHwnd, GWL_EXSTYLE)
 		);
-		const DWORD borderlessStyle = (style & ~WS_OVERLAPPEDWINDOW) | WS_POPUP;
+		const DWORD borderlessStyle   = style & ~WS_OVERLAPPEDWINDOW | WS_POPUP;
 		const DWORD borderlessExStyle = exStyle & ~(
-			WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE |
-			WS_EX_STATICEDGE
-		);
+			                                WS_EX_DLGMODALFRAME |
+			                                WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE
+			                                |
+			                                WS_EX_STATICEDGE
+		                                );
 
 		SetWindowLong(mHwnd, GWL_STYLE, static_cast<LONG>(borderlessStyle));
 		SetWindowLong(mHwnd, GWL_EXSTYLE, static_cast<LONG>(borderlessExStyle));

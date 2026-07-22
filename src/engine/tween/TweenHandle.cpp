@@ -1,12 +1,12 @@
 ﻿#include "TweenHandle.h"
 
-
 namespace Unnamed {
 	TweenHandle::TweenHandle() = default;
 
 	TweenHandle::TweenHandle(
 		const std::weak_ptr<ITweenPlayable>& playable
-	) : mPlayable(playable) {}
+	) : mPlayable(playable) {
+	}
 
 	bool TweenHandle::IsValid() const {
 		return !mPlayable.expired();

@@ -9,7 +9,6 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/MeshAssetData.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/gui/UiCanvasRuntime.h"
 #include "engine/gui/UiDrawCommand.h"
@@ -38,7 +37,8 @@
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
 #include "engine/unnamed/subsystem/console/Log.h"
 // ReSharper disable once CppUnusedIncludeDirective
-#include "engine/unnamed/subsystem/console/concommand/ConVar.h"
+#include "core/filesystem/Path.h"
+
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 #include "engine/unnamed/subsystem/input/device/mouse/MouseDevice.h"
@@ -229,7 +229,7 @@ namespace Unnamed {
 	}
 
 	void World::FixedTick(const float fixedDeltaTime) {
-		// まずは削除予定のエンティティを削除
+		// 更新対象の一覧を作る前に削除予約を確定する
 		if (mScene) {
 			mScene->ProcessPendingEntityDestruction();
 		}
@@ -246,7 +246,8 @@ namespace Unnamed {
 			mSequenceRuntime->AdvanceAndApplyPreSimulation(fixedDeltaTime);
 		}
 
-		std::vector<Entity*> activeEntities = CollectActiveEntities(
+		// フェーズ間で対象と順序を揃えるため、この固定更新の一覧を固定する
+		const std::vector<Entity*> activeEntities = CollectActiveEntities(
 			mScene.get()
 		);
 		Profiler*  profiler      = mServices.profiler;
@@ -258,7 +259,7 @@ namespace Unnamed {
 			const auto start                 = std::chrono::steady_clock::now();
 			uint32_t   invokedComponentCount = 0;
 
-			for (Entity* entity : activeEntities) {
+			for (const Entity* entity : activeEntities) {
 				switch (phase) {
 					case TICK_PHASE::PRE_PHYSICS
 					: invokedComponentCount += entity->PrePhysicsTick(
@@ -300,6 +301,7 @@ namespace Unnamed {
 			);
 		};
 
+		// 各フェーズで同じグループ順を守り、依存する更新順序を維持する
 		for (const TickGroup group : kTickGroupOrder) {
 			RunPhaseGroup(TICK_PHASE::PRE_PHYSICS, group);
 		}
@@ -320,10 +322,10 @@ namespace Unnamed {
 			return;
 		}
 
-		std::vector<Entity*> activeEntities = CollectActiveEntities(
+		const std::vector<Entity*> activeEntities = CollectActiveEntities(
 			mScene.get()
 		);
-		for (Entity* entity : activeEntities) {
+		for (const Entity* entity : activeEntities) {
 			if (!entity) {
 				continue;
 			}
@@ -449,8 +451,14 @@ namespace Unnamed {
 		}
 	}
 
-	bool World::LoadSceneFromFile(const char* path) {
-		if (!path || std::string_view(path).empty()) {
+	bool World::LoadSceneFromFile(Path path) {
+		return LoadSceneFromFile(std::move(path), mSceneLoadOptions);
+	}
+
+	bool World::LoadSceneFromFile(
+		Path path, const SceneLoadOptions& options
+	) {
+		if (path.IsEmpty()) {
 			return false;
 		}
 
@@ -461,26 +469,26 @@ namespace Unnamed {
 		auto newScene = std::make_unique<Scene>();
 		newScene->SetWorld(this);
 		const bool ok = SceneSerializer::LoadFromFile(
-			*newScene, path, mGuidGenerator
+			*newScene, path, mGuidGenerator, options
 		);
 		if (!ok) {
 			return false;
 		}
 
 		SetScene(std::move(newScene));
-		mLoadedScenePath = StrUtil::NormalizePath(path);
+		mLoadedScenePath = path.LexicallyNormal();
 		OnSceneLoaded();
 
 		Msg(
 			kChannel, "Scene loaded successfully from file: {}",
-			std::string(path)
+			path
 		);
 
 		return true;
 	}
 
-	bool World::SaveSceneToFile(const char* path) const {
-		if (!mScene || !path || std::string_view(path).empty()) {
+	bool World::SaveSceneToFile(Path path) const {
+		if (!mScene || path.IsEmpty()) {
 			return false;
 		}
 		return SceneSerializer::SaveToFile(*mScene, path);
@@ -497,20 +505,19 @@ namespace Unnamed {
 			mSequenceRuntime->Clear();
 		}
 		mScene.reset();
-		mLoadedScenePath.clear();
+		mLoadedScenePath = {};
 	}
 
-	void World::RequestSceneTransition(const std::string_view path) {
-		const std::string normalizedPath = StrUtil::NormalizePath(
-			StrUtil::TrimSpaces(std::string(path))
-		);
-		if (normalizedPath.empty()) {
-			Warning(kChannel, "Scene transition was ignored because path is empty.");
+	void World::RequestSceneTransition(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (path.IsEmpty()) {
+			Warning(kChannel,
+			        "Scene transition was ignored because path is empty.");
 			return;
 		}
 
 		// 実行中のシーン更新中に即時ロードしないため、次の安全地点まで保留します。
-		mPendingSceneTransitionPath = normalizedPath;
+		mPendingSceneTransitionPath = std::move(path);
 		Msg(
 			kChannel,
 			"Queued scene transition to: {}",
@@ -519,15 +526,15 @@ namespace Unnamed {
 	}
 
 	void World::ProcessPendingSceneTransition() {
-		if (mPendingSceneTransitionPath.empty()) {
+		if (mPendingSceneTransitionPath.IsEmpty()) {
 			return;
 		}
 
 		// 再入時に同じ要求を処理しないよう、先に保留値を取り出します。
-		const std::string requestedPath = std::move(mPendingSceneTransitionPath);
-		mPendingSceneTransitionPath.clear();
+		const Path requestedPath    = std::move(mPendingSceneTransitionPath);
+		mPendingSceneTransitionPath = {};
 
-		if (LoadSceneFromFile(requestedPath.c_str())) {
+		if (LoadSceneFromFile(requestedPath)) {
 			return;
 		}
 
@@ -541,7 +548,8 @@ namespace Unnamed {
 	void World::FillRenderFrameInputs(
 		Render::RenderFrameInputs&  inputs,
 		Render::RenderFrameContext& frameContext,
-		AssetManager&               assetManager
+		AssetManager&               assetManager,
+		const bool                  enableUiInput
 	) {
 		frameContext.Reset();
 		inputs.views.clear();
@@ -555,10 +563,10 @@ namespace Unnamed {
 		}
 
 		Render::RenderViewInput sceneView = {};
-		bool skyLightResolved             = false;
-		sceneView.viewKey                 = "world.main";
-		sceneView.type                    = Render::RENDER_VIEW_TYPE::SCENE;
-		sceneView.output.sizeMode         =
+		bool                    skyLightResolved = false;
+		sceneView.viewKey = "world.main";
+		sceneView.type = Render::RENDER_VIEW_TYPE::SCENE;
+		sceneView.output.sizeMode =
 			Render::RENDER_VIEW_SIZE_MODE::MATCH_BACK_BUFFER;
 		sceneView.output.presentToSwapChain = true;
 		sceneView.output.clearSwapChainWhenNotPresenting = false;
@@ -583,9 +591,9 @@ namespace Unnamed {
 		InputSystem* inputSystem        = mServices.inputSystem;
 		static bool  sTextWarningLogged = false;
 		const Vec2   aspectViewportSize = inputSystem ?
-			                                  inputSystem->
-			                                  GetMouseClientViewportSize() :
-			                                  Vec2::zero;
+			                                inputSystem->
+			                                GetMouseClientViewportSize() :
+			                                Vec2::zero;
 		const float runtimeAspect = aspectViewportSize.y > 0.0f ?
 			                            aspectViewportSize.x /
 			                            aspectViewportSize.y :
@@ -610,12 +618,10 @@ namespace Unnamed {
 			}
 
 			if (!sceneView.skybox.enabled) {
-				auto* skybox = entity->GetComponent<SkyboxComponent>();
+				const auto* skybox = entity->GetComponent<SkyboxComponent>();
 				if (skybox && skybox->IsActive()) {
 					const AssetID skyboxTextureAssetId =
-						skybox->ResolveTextureAsset(
-							assetManager
-						);
+						skybox->GetTextureAssetId();
 					if (skyboxTextureAssetId != kInvalidAssetID) {
 						sceneView.skybox.enabled = true;
 						sceneView.skybox.textureAssetId = skyboxTextureAssetId;
@@ -648,7 +654,7 @@ namespace Unnamed {
 				StaticMeshRendererComponent>();
 			auto* skelRenderer = entity->GetComponent<
 				SkeletalMeshRendererComponent>();
-			auto* uiCanvas = entity->GetComponent<UiCanvasComponent>();
+			auto* uiCanvas    = entity->GetComponent<UiCanvasComponent>();
 			auto* newUiCanvas = entity->GetComponent<NewUICanvas>();
 			if (newUiCanvas && newUiCanvas->IsActive()) {
 				NewUiCanvasRuntimeEntry entry = {};
@@ -678,12 +684,13 @@ namespace Unnamed {
 						meshAssetId
 					);
 					const uint32_t materialIndex =
-						(meshAsset && !meshAsset->submeshes.empty()) ?
+						meshAsset && !meshAsset->submeshes.empty() ?
 							meshAsset->submeshes.front().materialIndex :
 							0u;
 					Render::VisibleRenderObject object = {};
 					object.meshAssetId                 = meshAssetId;
-					const auto& materialSlots = meshRenderer->GetMaterialSlots();
+					const auto& materialSlots          = meshRenderer->
+						GetMaterialSlots();
 					uint32_t maxSlotIndex = 0;
 					for (const auto& slot : materialSlots) {
 						maxSlotIndex = std::max(maxSlotIndex, slot.slotIndex);
@@ -700,7 +707,7 @@ namespace Unnamed {
 								);
 						}
 					}
-					object.materialInstanceId          = meshRenderer->
+					object.materialInstanceId = meshRenderer->
 						ResolveMaterialInstanceAssetForMaterialIndex(
 							assetManager,
 							materialIndex
@@ -713,14 +720,10 @@ namespace Unnamed {
 			}
 
 			if (skelRenderer && skelRenderer->IsActive()) {
-				const AssetID meshAssetId = skelRenderer->ResolveMeshAsset(
-					assetManager
-				);
+				const AssetID meshAssetId = skelRenderer->GetMeshAssetId();
 				if (meshAssetId == kInvalidAssetID) {
 					continue;
 				}
-
-				skelRenderer->ResolveMaterialInstanceAssets(assetManager);
 
 				Render::VisibleRenderObject object = {};
 				object.meshAssetId                 = meshAssetId;
@@ -747,14 +750,11 @@ namespace Unnamed {
 					meshAssetId
 				);
 				const uint32_t materialIndex =
-					(meshAsset && !meshAsset->submeshes.empty()) ?
+					meshAsset && !meshAsset->submeshes.empty() ?
 						meshAsset->submeshes.front().materialIndex :
 						0u;
 				object.materialInstanceId = skelRenderer->
-					ResolveMaterialInstanceAssetForMaterialIndex(
-						assetManager,
-						materialIndex
-					);
+					GetMaterialInstanceAssetIdForMaterialIndex(materialIndex);
 				object.ownerEntityGuid   = entity->GetGuid();
 				object.world             = transform->RenderWorldMat();
 				object.isSkinned         = false;
@@ -825,7 +825,8 @@ namespace Unnamed {
 			runtimeRoot->UpdateLayout();
 
 			const bool canProcessInput =
-				entry.canvas->GetReceiveInput() && inputSystem != nullptr;
+				enableUiInput && entry.canvas->GetReceiveInput() &&
+				inputSystem != nullptr;
 			if (canProcessInput) {
 				const Vec2 mousePos     = inputSystem->GetMouseClientPosition();
 				const Vec2 viewportSize = inputSystem->
@@ -905,11 +906,12 @@ namespace Unnamed {
 								entry.entity->GetGuid()
 							)
 						) {
-							const Vec2 localPixels = UiCanvasRuntime::WorldToUiPixels(
-								localWorld,
-								entry.canvas->GetWorldSize(),
-								pixelSize
-							);
+							const Vec2 localPixels =
+								UiCanvasRuntime::WorldToUiPixels(
+									localWorld,
+									entry.canvas->GetWorldSize(),
+									pixelSize
+								);
 							runtimeRoot->ProcessMouse(
 								localPixels.x,
 								localPixels.y,
@@ -982,15 +984,6 @@ namespace Unnamed {
 				if (draw.type == Gui::UI_DRAW_COMMAND_TYPE::IMAGE) {
 					Render::ScreenSpriteInput sprite =
 						UiCanvasRuntime::BuildScreenSprite(draw.image, sort);
-					if (!draw.image.texturePath.empty()) {
-						const AssetID textureAssetId = assetManager.LoadFromFile(
-							draw.image.texturePath,
-							ASSET_TYPE::TEXTURE
-						);
-						if (textureAssetId != kInvalidAssetID) {
-							sprite.texture.textureAssetId = textureAssetId;
-						}
-					}
 
 					if (
 						entry.canvas->GetSpaceMode() ==
@@ -998,7 +991,8 @@ namespace Unnamed {
 					) {
 						sceneView.screenSprites.emplace_back(std::move(sprite));
 					} else {
-						canvasSpriteView.screenSprites.emplace_back(std::move(sprite));
+						canvasSpriteView.screenSprites.emplace_back(
+							std::move(sprite));
 					}
 					continue;
 				}
@@ -1055,10 +1049,10 @@ namespace Unnamed {
 			}
 		}
 
-		size_t newUiOverlaySpriteCount = 0;
-		UI::UIDrawCommandSpriteStats newUiSpriteStats = {};
-		size_t                       newUiRectCommandCount = 0;
-		size_t                       newUiTextCommandCount = 0;
+		size_t                       newUiOverlaySpriteCount = 0;
+		UI::UIDrawCommandSpriteStats newUiSpriteStats        = {};
+		size_t                       newUiRectCommandCount   = 0;
+		size_t                       newUiTextCommandCount   = 0;
 		for (size_t canvasIndex = 0; canvasIndex < newUiCanvasEntries.size();
 		     ++canvasIndex) {
 			const auto& entry = newUiCanvasEntries[canvasIndex];
@@ -1074,6 +1068,9 @@ namespace Unnamed {
 					++newUiTextCommandCount;
 				}
 			}
+			UI::UIFontAtlas* fontAtlas = entry.canvas->ResolveFontAtlas(
+				assetManager
+			);
 			for (size_t commandIndex = 0; commandIndex < commands.size();
 			     ++commandIndex) {
 				const int32_t baseSortKey =
@@ -1083,7 +1080,7 @@ namespace Unnamed {
 				UI::AppendDrawCommandScreenSprites(
 					commands[commandIndex],
 					baseSortKey,
-					assetManager,
+					fontAtlas,
 					commandSprites,
 					&newUiSpriteStats
 				);
@@ -1144,12 +1141,20 @@ namespace Unnamed {
 		return true;
 	}
 
-	std::string_view World::GetLoadedScenePath() const {
+	Path World::GetLoadedScenePath() const {
 		return mLoadedScenePath;
 	}
 
-	void World::SetLoadedScenePath(std::string path) {
-		mLoadedScenePath = std::move(path);
+	uint64_t World::GetSceneGeneration() const noexcept {
+		return mSceneGeneration;
+	}
+
+	World* World::GetSimulationWorld() noexcept {
+		return this;
+	}
+
+	void World::SetLoadedScenePath(const Path& path) {
+		mLoadedScenePath = path.IsEmpty() ? Path() : path.LexicallyNormal();
 	}
 
 	WorldCameraManager& World::GetCameraManager() noexcept {
@@ -1191,6 +1196,9 @@ namespace Unnamed {
 			}
 		}
 		mScene = std::move(scene);
+		if (mScene) {
+			++mSceneGeneration;
+		}
 		mCameraManager.ClearCurrentCamera();
 		if (mSequenceRuntime) {
 			mSequenceRuntime->Clear();
@@ -1327,6 +1335,12 @@ namespace Unnamed {
 		mServices = services;
 	}
 
+	void World::SetSceneLoadOptions(
+		const SceneLoadOptions& options
+	) noexcept {
+		mSceneLoadOptions = options;
+	}
+
 	const WorldServices& World::GetServices() const noexcept {
 		return mServices;
 	}
@@ -1360,7 +1374,9 @@ namespace Unnamed {
 		return false;
 	}
 
-	void World::OnSceneLoaded() {}
-	
-	void World::OnSceneUnloaded() {}
+	void World::OnSceneLoaded() {
+	}
+
+	void World::OnSceneUnloaded() {
+	}
 }

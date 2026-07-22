@@ -1,10 +1,9 @@
 #include <pch.h>
 
-#include <filesystem>
 #include <fstream>
 #include <sstream>
 
-#include "core/path/PathUtil.h"
+#include "core/filesystem/Path.h"
 
 namespace Unnamed::StrUtil {
 	std::string ToString(const std::wstring& string) {
@@ -51,7 +50,6 @@ namespace Unnamed::StrUtil {
 		return ret;
 	}
 
-
 	std::wstring ToWString(const std::string& string) {
 		if (string.empty()) {
 			return {};
@@ -73,8 +71,8 @@ namespace Unnamed::StrUtil {
 		return result;
 	}
 
-	std::string ToLowerCase(const std::string& input) {
-		std::string result = input;
+	std::string ToLowerCase(const std::string_view input) {
+		std::string result(input);
 		std::ranges::transform(
 			result,
 			result.begin(),
@@ -137,7 +135,8 @@ namespace Unnamed::StrUtil {
 			utf8String += static_cast<char>(0x80 | codePoint >> 12 & 0x3F);
 			utf8String += static_cast<char>(0x80 | codePoint >> 6 & 0x3F);
 			utf8String += static_cast<char>(0x80 | codePoint & 0x3F);
-		} else {}
+		} else {
+		}
 
 		return utf8String;
 	}
@@ -152,25 +151,6 @@ namespace Unnamed::StrUtil {
 		}
 
 		return result;
-	}
-
-	bool HasExtension(std::string_view path, std::string_view ext) {
-		if (path.size() < ext.size()) {
-			return false;
-		}
-		const auto tail = path.substr(path.size() - ext.size(), ext.size());
-		const auto lowerTail = ToLowerCase(std::string(tail));
-		return lowerTail == ext;
-	}
-
-	std::string ToLowerExt(const std::string_view& str) {
-		std::string e = Path::ToUtf8String(
-			Path::FromUtf8(str).extension()
-		);
-		for (auto& c : e) {
-			c = static_cast<std::string::value_type>(std::tolower(c));
-		}
-		return e;
 	}
 
 	std::string RemoveDoubleQuotes(const std::string_view& str) {
@@ -228,17 +208,80 @@ namespace Unnamed::StrUtil {
 		return tokens;
 	}
 
-	std::string TrimSpaces(const std::string& string) {
+	std::string TrimSpaces(const std::string_view string) {
 		const size_t start = string.find_first_not_of(" \t\n\r");
 		const size_t end   = string.find_last_not_of(" \t\n\r");
 		if (start == std::string::npos || end == std::string::npos) {
 			return "";
 		}
-		return string.substr(start, end - start + 1);
+		return std::string(string.substr(start, end - start + 1));
 	}
 
-	bool ReadFileToString(const std::string& path, std::string& outString) {
-		const std::ifstream ifs(Path::FromUtf8(path), std::ios::binary);
+	std::string TrimAsciiWhitespace(const std::string_view string) {
+		size_t begin = 0;
+		while (
+			begin < string.size() &&
+			std::isspace(static_cast<unsigned char>(string[begin])) != 0
+		) {
+			++begin;
+		}
+		size_t end = string.size();
+		while (
+			end > begin &&
+			std::isspace(static_cast<unsigned char>(string[end - 1])) != 0
+		) {
+			--end;
+		}
+		return std::string(string.substr(begin, end - begin));
+	}
+
+	bool EqualsIgnoreCase(
+		const std::string_view lhs, const std::string_view rhs
+	) {
+		if (lhs.size() != rhs.size()) {
+			return false;
+		}
+		for (size_t i = 0; i < lhs.size(); ++i) {
+			if (
+				std::tolower(static_cast<unsigned char>(lhs[i])) !=
+				std::tolower(static_cast<unsigned char>(rhs[i]))
+			) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool StartsWithIgnoreCase(
+		const std::string_view string, const std::string_view prefix
+	) {
+		return string.size() >= prefix.size() &&
+		       EqualsIgnoreCase(string.substr(0, prefix.size()), prefix);
+	}
+
+	bool EndsWithIgnoreCase(
+		const std::string_view string, const std::string_view suffix
+	) {
+		return string.size() >= suffix.size() &&
+		       EqualsIgnoreCase(
+			       string.substr(string.size() - suffix.size()), suffix
+		       );
+	}
+
+	std::size_t FindIgnoreCase(
+		const std::string_view text, const std::string_view query
+	) {
+		if (query.empty() || text.empty()) {
+			return std::string::npos;
+		}
+
+		const std::string loweredText  = ToLowerCase(text);
+		const std::string loweredQuery = ToLowerCase(query);
+		return loweredText.find(loweredQuery);
+	}
+
+	bool ReadFileToString(const Path& path, std::string& outString) {
+		const std::ifstream ifs(path.Native(), std::ios::binary);
 		if (!ifs) {
 			return false;
 		}
@@ -246,15 +289,6 @@ namespace Unnamed::StrUtil {
 		ss << ifs.rdbuf();
 		outString = ss.str();
 		return true;
-	}
-
-	std::string NormalizePath(std::string path) {
-		for (auto& c : path) {
-			if (c == '\\') {
-				c = '/';
-			}
-		}
-		return path;
 	}
 
 	bool CheckBoolString(std::string str) {

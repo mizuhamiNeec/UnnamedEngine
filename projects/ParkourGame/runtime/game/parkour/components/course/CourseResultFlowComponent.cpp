@@ -3,11 +3,17 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <iterator>
+#include <memory>
 #include <utility>
 
-#ifdef _DEBUG
+#include <Windows.h>
+
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
+#include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
 #include "core/ComponentRegistry.h"
@@ -36,62 +42,242 @@
 
 namespace Unnamed {
 	namespace {
-		constexpr std::string_view kChannel = "CourseResultFlow";
+		constexpr std::string_view kChannel        = "CourseResultFlow";
 		constexpr float            kMinDurationSec = 0.01f;
+		constexpr size_t           kMaxRankingEntries = 5;
 
-		[[nodiscard]] bool IsEngineRootRelativePath(const std::string_view path) {
-			return path.rfind("content/", 0) == 0 ||
-			       path.rfind("projects/", 0) == 0;
+		struct CourseRankingTable {
+			std::string        courseId;
+			std::vector<float> elapsedSeconds;
+		};
+
+		[[nodiscard]] std::string SanitizeStorageName(
+			const std::string_view value
+		) {
+			std::string result;
+			result.reserve(value.size());
+			for (const char c : value) {
+				if (
+					(c >= 'a' && c <= 'z') ||
+					(c >= 'A' && c <= 'Z') ||
+					(c >= '0' && c <= '9') || c == '_' || c == '-'
+				) {
+					result.push_back(c);
+				}
+			}
+			return result.empty() ? "ParkourGame" : result;
 		}
 
-		[[nodiscard]] std::string ResolveResultContentPath(
-			const std::string_view configuredPath,
-			const std::string_view fallbackRelativePath
+		[[nodiscard]] Path ResolveRankingStoragePath() {
+			std::string gameName = "ParkourGame";
+			Path        fallbackRoot = Path("saved");
+			if (const GameRuntimeContext* runtimeContext =
+				ServiceLocator::Get<GameRuntimeContext>()) {
+				if (!runtimeContext->modulePaths.gameName.empty()) {
+					gameName = runtimeContext->modulePaths.gameName;
+				}
+				if (!runtimeContext->modulePaths.gameRoot.IsEmpty()) {
+					fallbackRoot = runtimeContext->modulePaths.gameRoot / Path("saved");
+				}
+			}
+
+			std::array<wchar_t, 32768> localAppData = {};
+			const DWORD length = GetEnvironmentVariableW(
+				L"LOCALAPPDATA",
+				localAppData.data(),
+				static_cast<DWORD>(localAppData.size())
+			);
+			if (length > 0 && length < localAppData.size()) {
+				return Path::FromNative(std::filesystem::path(localAppData.data())) /
+				       Path("UnnamedEngine") /
+				       Path(SanitizeStorageName(gameName)) /
+				       Path("course_rankings.json");
+			}
+
+			return fallbackRoot / Path("course_rankings.json");
+		}
+
+		void NormalizeRankingEntries(std::vector<float>& entries) {
+			std::erase_if(entries, [](const float elapsedSeconds) {
+				return !std::isfinite(elapsedSeconds) || elapsedSeconds <= 0.0f;
+			});
+			std::ranges::sort(entries);
+			if (entries.size() > kMaxRankingEntries) {
+				entries.resize(kMaxRankingEntries);
+			}
+		}
+
+		[[nodiscard]] std::vector<CourseRankingTable> LoadRankings(
+			const Path& path
 		) {
-			std::string effectivePath = configuredPath.empty() ?
-				                            std::string(fallbackRelativePath) :
-				                            std::string(configuredPath);
-			if (effectivePath.empty()) {
+			std::vector<CourseRankingTable> tables;
+			const JsonReader                reader(path);
+			const JsonReader                courses = reader["courses"];
+			if (!reader.Valid() || !courses.IsArray()) {
+				return tables;
+			}
+
+			tables.reserve(courses.Size());
+			for (size_t i = 0; i < courses.Size(); ++i) {
+				const JsonReader course = courses[i];
+				if (!course.IsObject()) {
+					continue;
+				}
+
+				CourseRankingTable table = {};
+				table.courseId = course["courseId"].GetString("");
+				const JsonReader times = course["elapsedSeconds"];
+				if (table.courseId.empty() || !times.IsArray()) {
+					continue;
+				}
+
+				table.elapsedSeconds.reserve(times.Size());
+				for (size_t timeIndex = 0; timeIndex < times.Size(); ++timeIndex) {
+					const JsonReader time = times[timeIndex];
+					if (time.IsNumber()) {
+						table.elapsedSeconds.emplace_back(time.GetFloat());
+					}
+				}
+				NormalizeRankingEntries(table.elapsedSeconds);
+				if (!table.elapsedSeconds.empty()) {
+					tables.emplace_back(std::move(table));
+				}
+			}
+
+			return tables;
+		}
+
+		[[nodiscard]] bool SaveRankings(
+			const Path& path,
+			const std::vector<CourseRankingTable>& tables
+		) {
+			try {
+				JsonWriter writer(path);
+				writer.BeginObject();
+				writer.Key("version");
+				writer.Write(1);
+				writer.Key("courses");
+				writer.BeginArray();
+				for (const CourseRankingTable& table : tables) {
+					writer.BeginObject();
+					writer.Key("courseId");
+					writer.Write(table.courseId);
+					writer.Key("elapsedSeconds");
+					writer.BeginArray();
+					for (const float elapsedSeconds : table.elapsedSeconds) {
+						writer.Write(elapsedSeconds);
+					}
+					writer.EndArray();
+					writer.EndObject();
+				}
+				writer.EndArray();
+				writer.EndObject();
+				return writer.Save();
+			} catch (const std::exception& exception) {
+				Warning(
+					kChannel,
+					"Failed to save course rankings to '{}': {}",
+					path,
+					exception.what()
+				);
+				return false;
+			}
+		}
+
+		[[nodiscard]] std::unique_ptr<Gui::UiWidget> CreateRankingDigitWidget(
+			const std::string_view name,
+			const Gui::Rect&       rect,
+			const int              value,
+			const int              minDigits,
+			AssetManager*          assetManager,
+			const Path&            texturePath,
+			Gui::UiDigitStripComponent*& outDigitStrip
+		) {
+			auto widget = std::make_unique<Gui::UiWidget>();
+			widget->SetName(name);
+			widget->SetAnchors({.minX = 0.5f, .minY = 0.5f, .maxX = 0.5f, .maxY = 0.5f});
+			widget->SetPivot({.x = 0.5f, .y = 0.5f});
+			widget->SetLocalRect(rect);
+			outDigitStrip = widget->AddComponent<Gui::UiDigitStripComponent>();
+			outDigitStrip->SetValue(value);
+			outDigitStrip->SetMinDigits(minDigits);
+			if (assetManager) {
+				(void)outDigitStrip->SetStripTexturePath(
+					texturePath.IsEmpty() ? "textures/digits.png" : texturePath.ToGenericUtf8(),
+					*assetManager
+				);
+			}
+			return widget;
+		}
+
+		[[nodiscard]] std::unique_ptr<Gui::UiWidget> CreateRankingSeparatorWidget(
+			const std::string_view name,
+			const Gui::Rect&       rect,
+			AssetManager*          assetManager,
+			const Path&            texturePath,
+			const Path&            fallbackTexturePath,
+			Gui::UiTextureComponent*& outTexture
+		) {
+			auto widget = std::make_unique<Gui::UiWidget>();
+			widget->SetName(name);
+			widget->SetAnchors({.minX = 0.5f, .minY = 0.5f, .maxX = 0.5f, .maxY = 0.5f});
+			widget->SetPivot({.x = 0.5f, .y = 0.5f});
+			widget->SetLocalRect(rect);
+			outTexture = widget->AddComponent<Gui::UiTextureComponent>();
+			if (assetManager) {
+				(void)outTexture->SetTexturePath(
+					texturePath.IsEmpty() ?
+						fallbackTexturePath.ToGenericUtf8() :
+						texturePath.ToGenericUtf8(),
+					*assetManager
+				);
+			}
+			return widget;
+		}
+
+		[[nodiscard]] Path ResolveResultContentPath(
+			const Path& configuredPath,
+			const Path& fallbackRelativePath
+		) {
+			const auto effectivePath = configuredPath.IsEmpty() ?
+				                           fallbackRelativePath :
+				                           configuredPath;
+			if (effectivePath.IsEmpty()) {
 				return {};
 			}
 
-			// 旧設定の "content/..." 指定はプロジェクトルート基準として扱います。
-			if (IsEngineRootRelativePath(effectivePath)) {
-				return "./" + effectivePath;
-			}
+			const auto resolveFromModulePaths =
+				[&effectivePath](const GameModulePaths& modulePaths) {
+					const std::string genericPath =
+						effectivePath.ToGenericUtf8();
+					if (
+						effectivePath.IsRelative() &&
+						genericPath.starts_with("content/")
+					) {
+						// 旧設定の "content/..." 指定はプロジェクトルート基準で解決します。
+						return ResolveGameRootPath(modulePaths, effectivePath);
+					}
+					return ResolveGameContentPath(modulePaths, effectivePath);
+				};
 
 			if (const GameRuntimeContext* runtimeContext =
 				ServiceLocator::Get<GameRuntimeContext>()) {
-				return ResolveGameContentPath(
-					runtimeContext->modulePaths,
-					effectivePath
-				);
+				return resolveFromModulePaths(runtimeContext->modulePaths);
 			}
-			if (const IGameModule* gameModule = ServiceLocator::Get<IGameModule>()) {
-				return ResolveGameContentPath(
-					gameModule->GetGameModulePaths(),
-					effectivePath
-				);
+			if (
+				const IGameModule* gameModule =
+					ServiceLocator::Get<IGameModule>()
+			) {
+				return resolveFromModulePaths(gameModule->GetGameModulePaths());
 			}
-			return effectivePath;
+			return effectivePath.LexicallyNormal();
 		}
-
-#ifdef _DEBUG
-		template <size_t N>
-		void DrawStringInput(const char* label, std::string& value) {
-			std::array<char, N> buffer = {};
-			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLen);
-			}
-			if (ImGui::InputText(label, buffer.data(), buffer.size())) {
-				value = buffer.data();
-			}
-		}
-#endif
 	}
 
 	void CourseResultFlowComponent::OnAttached() {
+		mRankedElapsedSeconds.clear();
+		mRankingRows.clear();
+		mCurrentRunRankingIndex = -1;
 		ResolveBindings();
 		HideResultWidgets();
 		SetFadeOverlayAlpha(0.0f);
@@ -112,14 +298,11 @@ namespace Unnamed {
 				mWasCourseCleared = cleared;
 				break;
 			}
-			case PHASE::SHOW_RESULT:
-				TickShowResult(clampedDelta);
+			case PHASE::SHOW_RESULT: TickShowResult(clampedDelta);
 				break;
-			case PHASE::FADE_OUT:
-				TickFadeOut(clampedDelta);
+			case PHASE::FADE_OUT: TickFadeOut(clampedDelta);
 				break;
-			case PHASE::TRANSITIONED:
-				UpdateResultWidgets(1.0f);
+			case PHASE::TRANSITIONED: UpdateResultWidgets(1.0f);
 				SetFadeOverlayAlpha(1.0f);
 				break;
 			default: break;
@@ -135,6 +318,7 @@ namespace Unnamed {
 		RestoreLockTargets();
 		HideResultWidgets();
 		SetFadeOverlayAlpha(0.0f);
+		mRankingRows.clear();
 		BaseComponent::OnDetached();
 	}
 
@@ -152,24 +336,55 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void CourseResultFlowComponent::DrawInspectorImGui() {
-		DrawStringInput<64>("Course Id", mCourseId);
+		(void)ImGuiWidgets::InputText<64>("Course Id", mCourseId);
 		if (mCourseId.empty()) {
 			mCourseId = "default";
 		}
-		DrawStringInput<128>("Title Scene Path", mTitleScenePath);
-		DrawStringInput<64>("Result Root Widget", mResultRootWidgetName);
-		DrawStringInput<64>("Clear Image Widget", mClearImageWidgetName);
-		DrawStringInput<64>("Elapsed Digits Widget (Legacy)", mElapsedDigitsWidgetName);
-		DrawStringInput<64>("Elapsed Minutes Widget", mElapsedMinutesWidgetName);
-		DrawStringInput<64>("Elapsed Seconds Widget", mElapsedSecondsWidgetName);
-		DrawStringInput<64>("Elapsed Fraction Widget", mElapsedFractionWidgetName);
-		DrawStringInput<64>("Elapsed Comma Widget", mElapsedCommaWidgetName);
-		DrawStringInput<64>("Elapsed Dot Widget", mElapsedDotWidgetName);
-		DrawStringInput<64>("Fade Overlay Widget", mFadeOverlayWidgetName);
-		DrawStringInput<128>("Clear Texture", mClearTexturePath);
-		DrawStringInput<128>("Digit Texture", mDigitTexturePath);
-		DrawStringInput<128>("Comma Texture", mCommaTexturePath);
-		DrawStringInput<128>("Dot Texture", mDotTexturePath);
+
+		std::string titleScenePathTemp = mTitleScenePath.ToUtf8();
+		(void)ImGuiWidgets::InputText<128>(
+			"Title Scene Path", titleScenePathTemp
+		);
+		mTitleScenePath = Path(titleScenePathTemp);
+		(void)ImGuiWidgets::InputText<64>(
+			"Result Root Widget", mResultRootWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Clear Image Widget", mClearImageWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Digits Widget (Legacy)", mElapsedDigitsWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Minutes Widget", mElapsedMinutesWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Seconds Widget", mElapsedSecondsWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Fraction Widget", mElapsedFractionWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Comma Widget", mElapsedCommaWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Elapsed Dot Widget", mElapsedDotWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Fade Overlay Widget", mFadeOverlayWidgetName
+		);
+		std::string clearTexturePath = mClearTexturePath.ToGenericUtf8();
+		(void)ImGuiWidgets::InputText<128>("Clear Texture", clearTexturePath);
+		mClearTexturePath            = Path(clearTexturePath);
+		std::string digitTexturePath = mDigitTexturePath.ToGenericUtf8();
+		(void)ImGuiWidgets::InputText<128>("Digit Texture", digitTexturePath);
+		mDigitTexturePath            = Path(digitTexturePath);
+		std::string commaTexturePath = mCommaTexturePath.ToGenericUtf8();
+		(void)ImGuiWidgets::InputText<128>("Comma Texture", commaTexturePath);
+		mCommaTexturePath          = Path(commaTexturePath);
+		std::string dotTexturePath = mDotTexturePath.ToGenericUtf8();
+		(void)ImGuiWidgets::InputText<128>("Dot Texture", dotTexturePath);
+		mDotTexturePath = Path(dotTexturePath);
 		ImGui::DragFloat(
 			"Result Hold Seconds",
 			&mResultHoldSeconds,
@@ -216,11 +431,17 @@ namespace Unnamed {
 		if (mCourseId.empty()) {
 			mCourseId = "default";
 		}
-		mTitleScenePath = reader["titleScenePath"].GetString(mTitleScenePath);
-		if (const JsonReader node = reader["hudCanvasEntityGuid"]; node.Valid()) {
+		mTitleScenePath = Path(
+			reader["titleScenePath"].GetString(mTitleScenePath.ToUtf8())
+		);
+		if (const JsonReader node = reader["hudCanvasEntityGuid"];
+			node.Valid()) {
 			mHudCanvasEntityGuid = node.GetUint64();
 		}
-		if (const JsonReader node = reader["clearAudioSourceGuid"]; node.Valid()) {
+		if (
+			const JsonReader node = reader["clearAudioSourceGuid"];
+			node.Valid()
+		) {
 			mClearAudioSourceGuid = node.GetUint64();
 		}
 
@@ -229,46 +450,63 @@ namespace Unnamed {
 		mClearImageWidgetName =
 			reader["clearImageWidgetName"].GetString(mClearImageWidgetName);
 		mElapsedDigitsWidgetName =
-			reader["elapsedDigitsWidgetName"].GetString(mElapsedDigitsWidgetName);
+			reader["elapsedDigitsWidgetName"].GetString(
+				mElapsedDigitsWidgetName);
 		mElapsedMinutesWidgetName =
-			reader["elapsedMinutesWidgetName"].GetString(mElapsedMinutesWidgetName);
+			reader["elapsedMinutesWidgetName"].GetString(
+				mElapsedMinutesWidgetName);
 		mElapsedSecondsWidgetName =
-			reader["elapsedSecondsWidgetName"].GetString(mElapsedSecondsWidgetName);
-		mElapsedFractionWidgetName = reader["elapsedFractionWidgetName"].GetString(
-			mElapsedFractionWidgetName
-		);
+			reader["elapsedSecondsWidgetName"].GetString(
+				mElapsedSecondsWidgetName);
+		mElapsedFractionWidgetName = reader["elapsedFractionWidgetName"].
+			GetString(
+				mElapsedFractionWidgetName
+			);
 		mElapsedCommaWidgetName =
 			reader["elapsedCommaWidgetName"].GetString(mElapsedCommaWidgetName);
 		mElapsedDotWidgetName =
 			reader["elapsedDotWidgetName"].GetString(mElapsedDotWidgetName);
 		mFadeOverlayWidgetName =
 			reader["fadeOverlayWidgetName"].GetString(mFadeOverlayWidgetName);
-		mClearTexturePath =
-			reader["clearTexturePath"].GetString(mClearTexturePath);
-		mDigitTexturePath =
-			reader["digitTexturePath"].GetString(mDigitTexturePath);
-		mCommaTexturePath =
-			reader["commaTexturePath"].GetString(mCommaTexturePath);
-		mDotTexturePath =
-			reader["dotTexturePath"].GetString(mDotTexturePath);
+		mClearTexturePath = Path(
+			reader["clearTexturePath"].GetString(
+				mClearTexturePath.ToGenericUtf8())
+		);
+		mDigitTexturePath = Path(
+			reader["digitTexturePath"].GetString(
+				mDigitTexturePath.ToGenericUtf8())
+		);
+		mCommaTexturePath = Path(
+			reader["commaTexturePath"].GetString(
+				mCommaTexturePath.ToGenericUtf8())
+		);
+		mDotTexturePath = Path(
+			reader["dotTexturePath"].GetString(mDotTexturePath.ToGenericUtf8())
+		);
 
-		if (const JsonReader node = reader["resultHoldSeconds"]; node.Valid()) {
+		if (const JsonReader node = reader["resultHoldSeconds"];
+			node.Valid()) {
 			mResultHoldSeconds =
 				std::max(kMinDurationSec, node.GetFloat(mResultHoldSeconds));
 		}
-		if (const JsonReader node = reader["fadeOutSeconds"]; node.Valid()) {
-			mFadeOutSeconds = std::max(kMinDurationSec, node.GetFloat(mFadeOutSeconds));
+		if (const JsonReader node = reader["fadeOutSeconds"];
+			node.Valid()) {
+			mFadeOutSeconds = std::max(kMinDurationSec,
+			                           node.GetFloat(mFadeOutSeconds));
 		}
 		if (const JsonReader node = reader["elapsedDigitsMinDigits"];
 			node.Valid()) {
-			mElapsedDigitsMinDigits = std::max(1, node.GetInt(mElapsedDigitsMinDigits));
+			mElapsedDigitsMinDigits = std::max(
+				1, node.GetInt(mElapsedDigitsMinDigits));
 		}
-		if (const JsonReader node = reader["elapsedDisplayScale"]; node.Valid()) {
+		if (const JsonReader node = reader["elapsedDisplayScale"];
+			node.Valid()) {
 			mElapsedDisplayScale =
 				std::max(1.0f, node.GetFloat(mElapsedDisplayScale));
 		}
 
-		if (const JsonReader lockNode = reader["lockTargets"]; lockNode.Valid()) {
+		if (const JsonReader lockNode = reader["lockTargets"];
+			lockNode.Valid()) {
 			const JsonReader lockArray = lockNode.GetArray();
 			mLockTargets.clear();
 			mLockTargets.reserve(lockArray.Size());
@@ -284,7 +522,8 @@ namespace Unnamed {
 					spec.entityGuid = entityNode.GetUint64();
 				}
 				spec.componentStableName =
-					item["componentStableName"].GetString(spec.componentStableName);
+					item["componentStableName"].GetString(
+						spec.componentStableName);
 				if (!spec.componentStableName.empty()) {
 					mLockTargets.emplace_back(std::move(spec));
 				}
@@ -320,13 +559,13 @@ namespace Unnamed {
 		writer.Key("fadeOverlayWidgetName");
 		writer.Write(mFadeOverlayWidgetName);
 		writer.Key("clearTexturePath");
-		writer.Write(mClearTexturePath);
+		writer.Write(mClearTexturePath.ToGenericUtf8());
 		writer.Key("digitTexturePath");
-		writer.Write(mDigitTexturePath);
+		writer.Write(mDigitTexturePath.ToGenericUtf8());
 		writer.Key("commaTexturePath");
-		writer.Write(mCommaTexturePath);
+		writer.Write(mCommaTexturePath.ToGenericUtf8());
 		writer.Key("dotTexturePath");
-		writer.Write(mDotTexturePath);
+		writer.Write(mDotTexturePath.ToGenericUtf8());
 		writer.Key("resultHoldSeconds");
 		writer.Write(mResultHoldSeconds);
 		writer.Key("fadeOutSeconds");
@@ -350,12 +589,14 @@ namespace Unnamed {
 		}
 
 		const CourseProgressSnapshot& snapshot = mCourseProgress->GetSnapshot();
-		mLatchedElapsedSeconds =
+		mLatchedElapsedSeconds                 =
 			snapshot.clearedElapsedSeconds > 0.0f ?
 				snapshot.clearedElapsedSeconds :
 				snapshot.elapsedSeconds;
 		mPhase               = PHASE::SHOW_RESULT;
 		mPhaseElapsedSeconds = 0.0f;
+		RecordRanking();
+		CreateRankingWidgets();
 
 		ApplyLockTargets();
 		if (mClearAudio) {
@@ -370,6 +611,150 @@ namespace Unnamed {
 			mCourseId,
 			mLatchedElapsedSeconds
 		);
+	}
+
+	void CourseResultFlowComponent::RecordRanking() {
+		mRankedElapsedSeconds.clear();
+		mCurrentRunRankingIndex = -1;
+		if (
+			!std::isfinite(mLatchedElapsedSeconds) ||
+			mLatchedElapsedSeconds <= 0.0f
+		) {
+			Warning(
+				kChannel,
+				"Skipped invalid course ranking time: course={} elapsed={}",
+				mCourseId,
+				mLatchedElapsedSeconds
+			);
+			return;
+		}
+
+		const Path rankingPath = ResolveRankingStoragePath();
+		std::vector<CourseRankingTable> tables = LoadRankings(rankingPath);
+		const std::string courseId =
+			mCourseId.empty() ? std::string("default") : mCourseId;
+		auto tableIt = std::ranges::find_if(
+			tables,
+			[&courseId](const CourseRankingTable& table) {
+				return table.courseId == courseId;
+			}
+		);
+		if (tableIt == tables.end()) {
+			tables.emplace_back(CourseRankingTable{.courseId = courseId});
+			tableIt = std::prev(tables.end());
+		}
+
+		std::vector<float>& entries = tableIt->elapsedSeconds;
+		NormalizeRankingEntries(entries);
+		const auto insertionIt = std::ranges::upper_bound(
+			entries,
+			mLatchedElapsedSeconds
+		);
+		const size_t insertionIndex = static_cast<size_t>(
+			std::distance(entries.begin(), insertionIt)
+		);
+		entries.insert(insertionIt, mLatchedElapsedSeconds);
+		NormalizeRankingEntries(entries);
+		mRankedElapsedSeconds = entries;
+		if (insertionIndex < mRankedElapsedSeconds.size()) {
+			mCurrentRunRankingIndex = static_cast<int>(insertionIndex);
+		}
+
+		if (!SaveRankings(rankingPath, tables)) {
+			Warning(
+				kChannel,
+				"Course ranking remains visible for this result, but was not persisted: {}",
+				rankingPath
+			);
+		}
+	}
+
+	void CourseResultFlowComponent::CreateRankingWidgets() {
+		if (!mResultRootWidget || !mRankingRows.empty()) {
+			return;
+		}
+
+		AssetManager* const assetManager = GetAssetManager();
+		for (size_t index = 0; index < mRankedElapsedSeconds.size(); ++index) {
+			const CourseElapsedTimeParts time = SplitCourseElapsedTime(
+				mRankedElapsedSeconds[index]
+			);
+			const float y = 130.0f + static_cast<float>(index) * 31.0f;
+			RankingRowWidgets row = {};
+			const std::string suffix = std::to_string(index + 1);
+
+			auto rankWidget = CreateRankingDigitWidget(
+				"CourseResultRankingRank" + suffix,
+				{.x = -140.0f, .y = y, .width = 28.0f, .height = 28.0f},
+				static_cast<int>(index + 1),
+				1,
+				assetManager,
+				mDigitTexturePath,
+				row.rank
+			);
+			row.rankWidget = rankWidget.get();
+			mResultRootWidget->AddChild(std::move(rankWidget));
+
+			auto minutesWidget = CreateRankingDigitWidget(
+				"CourseResultRankingMinutes" + suffix,
+				{.x = -70.0f, .y = y, .width = 56.0f, .height = 28.0f},
+				time.minutes,
+				2,
+				assetManager,
+				mDigitTexturePath,
+				row.minutes
+			);
+			row.minutesWidget = minutesWidget.get();
+			mResultRootWidget->AddChild(std::move(minutesWidget));
+
+			auto commaWidget = CreateRankingSeparatorWidget(
+				"CourseResultRankingComma" + suffix,
+				{.x = -35.0f, .y = y, .width = 28.0f, .height = 28.0f},
+				assetManager,
+				mCommaTexturePath,
+				Path("textures/colon.png"),
+				row.comma
+			);
+			row.commaWidget = commaWidget.get();
+			mResultRootWidget->AddChild(std::move(commaWidget));
+
+			auto secondsWidget = CreateRankingDigitWidget(
+				"CourseResultRankingSeconds" + suffix,
+				{.x = 0.0f, .y = y, .width = 56.0f, .height = 28.0f},
+				time.seconds,
+				2,
+				assetManager,
+				mDigitTexturePath,
+				row.seconds
+			);
+			row.secondsWidget = secondsWidget.get();
+			mResultRootWidget->AddChild(std::move(secondsWidget));
+
+			auto dotWidget = CreateRankingSeparatorWidget(
+				"CourseResultRankingDot" + suffix,
+				{.x = 35.0f, .y = y, .width = 28.0f, .height = 28.0f},
+				assetManager,
+				mDotTexturePath,
+				Path("textures/dot.png"),
+				row.dot
+			);
+			row.dotWidget = dotWidget.get();
+			mResultRootWidget->AddChild(std::move(dotWidget));
+
+			auto fractionWidget = CreateRankingDigitWidget(
+				"CourseResultRankingFraction" + suffix,
+				{.x = 70.0f, .y = y, .width = 56.0f, .height = 28.0f},
+				time.fraction,
+				2,
+				assetManager,
+				mDigitTexturePath,
+				row.fraction
+			);
+			row.fractionWidget = fractionWidget.get();
+			mResultRootWidget->AddChild(std::move(fractionWidget));
+
+			mRankingRows.emplace_back(row);
+		}
 	}
 
 	void CourseResultFlowComponent::TickShowResult(const float deltaTime) {
@@ -387,7 +772,7 @@ namespace Unnamed {
 
 	void CourseResultFlowComponent::TickFadeOut(const float deltaTime) {
 		mPhaseElapsedSeconds += deltaTime;
-		const float t = std::clamp(
+		const float t        = std::clamp(
 			mPhaseElapsedSeconds / std::max(kMinDurationSec, mFadeOutSeconds),
 			0.0f,
 			1.0f
@@ -406,11 +791,11 @@ namespace Unnamed {
 			return;
 		}
 
-		const std::string titleScenePath = ResolveResultContentPath(
+		const Path titleScenePath = ResolveResultContentPath(
 			mTitleScenePath,
-			"scenes/title.json"
+			Path("scenes/title.json")
 		);
-		if (titleScenePath.empty()) {
+		if (titleScenePath.IsEmpty()) {
 			Warning(kChannel, "Title scene path is empty.");
 			return;
 		}
@@ -430,12 +815,14 @@ namespace Unnamed {
 
 		const std::string normalizedCourseId =
 			mCourseId.empty() ? std::string("default") : mCourseId;
-		const auto tryBindCourseProgress = [&](Entity& entity) -> bool {
+		const auto TryBindCourseProgress = [&](Entity& entity) -> bool {
 			bool found = false;
 			entity.ForEachComponent(
 				[&](BaseComponent& component) {
-					auto* progress = dynamic_cast<CourseProgressComponent*>(&component);
-					if (!progress || progress->GetCourseId() != normalizedCourseId) {
+					auto* progress = dynamic_cast<CourseProgressComponent*>(&
+						component);
+					if (!progress || progress->GetCourseId() !=
+					    normalizedCourseId) {
 						return true;
 					}
 					mCourseProgress = progress;
@@ -447,11 +834,11 @@ namespace Unnamed {
 		};
 
 		if (Entity* owner = GetOwner()) {
-			(void)tryBindCourseProgress(*owner);
+			(void)TryBindCourseProgress(*owner);
 		}
 		if (!mCourseProgress) {
 			for (const auto& entityPtr : scene->GetEntities()) {
-				if (entityPtr && tryBindCourseProgress(*entityPtr)) {
+				if (entityPtr && TryBindCourseProgress(*entityPtr)) {
 					break;
 				}
 			}
@@ -469,7 +856,7 @@ namespace Unnamed {
 		}
 
 		if (mHudCanvas && mHudCanvas->EnsureRuntimeLoaded()) {
-			Gui::UiRoot*   root       = mHudCanvas->GetRuntimeRoot();
+			const Gui::UiRoot* root = mHudCanvas->GetRuntimeRoot();
 			Gui::UiWidget* rootWidget = root ? root->GetRootWidget() : nullptr;
 			if (rootWidget) {
 				mResultRootWidget = FindWidgetByNameRecursive(
@@ -511,7 +898,8 @@ namespace Unnamed {
 
 				if (mClearImageWidget) {
 					mClearImageTexture =
-						mClearImageWidget->GetOrAddComponent<Gui::UiTextureComponent>();
+						mClearImageWidget->GetOrAddComponent<
+							Gui::UiTextureComponent>();
 				}
 				if (mElapsedDigitsWidget) {
 					mElapsedDigits =
@@ -545,7 +933,8 @@ namespace Unnamed {
 				}
 				if (mFadeOverlayWidget) {
 					mFadeOverlayTexture =
-						mFadeOverlayWidget->GetOrAddComponent<Gui::UiTextureComponent>();
+						mFadeOverlayWidget->GetOrAddComponent<
+							Gui::UiTextureComponent>();
 				}
 			}
 		}
@@ -554,31 +943,34 @@ namespace Unnamed {
 	}
 
 	void CourseResultFlowComponent::ClearResolvedBindings() {
-		mCourseProgress      = nullptr;
-		mHudCanvas           = nullptr;
-		mClearAudio          = nullptr;
-		mResultRootWidget    = nullptr;
-		mClearImageWidget    = nullptr;
-		mElapsedDigitsWidget = nullptr;
-		mElapsedMinutesWidget = nullptr;
-		mElapsedSecondsWidget = nullptr;
+		mCourseProgress        = nullptr;
+		mHudCanvas             = nullptr;
+		mClearAudio            = nullptr;
+		mResultRootWidget      = nullptr;
+		mClearImageWidget      = nullptr;
+		mElapsedDigitsWidget   = nullptr;
+		mElapsedMinutesWidget  = nullptr;
+		mElapsedSecondsWidget  = nullptr;
 		mElapsedFractionWidget = nullptr;
-		mElapsedCommaWidget = nullptr;
-		mElapsedDotWidget = nullptr;
-		mFadeOverlayWidget   = nullptr;
-		mClearImageTexture   = nullptr;
-		mElapsedDigits       = nullptr;
-		mElapsedMinutes      = nullptr;
-		mElapsedSeconds      = nullptr;
-		mElapsedFraction     = nullptr;
-		mElapsedComma        = nullptr;
-		mElapsedDot          = nullptr;
-		mFadeOverlayTexture  = nullptr;
+		mElapsedCommaWidget    = nullptr;
+		mElapsedDotWidget      = nullptr;
+		mFadeOverlayWidget     = nullptr;
+		mClearImageTexture     = nullptr;
+		mElapsedDigits         = nullptr;
+		mElapsedMinutes        = nullptr;
+		mElapsedSeconds        = nullptr;
+		mElapsedFraction       = nullptr;
+		mElapsedComma          = nullptr;
+		mElapsedDot            = nullptr;
+		mFadeOverlayTexture    = nullptr;
 	}
 
-	void CourseResultFlowComponent::UpdateResultWidgets(const float alpha)
+	void CourseResultFlowComponent::UpdateResultWidgets(
+		const float alpha
+	)
 	const {
-		const float clampedAlpha = std::clamp(alpha, 0.0f, 1.0f);
+		const float         clampedAlpha = std::clamp(alpha, 0.0f, 1.0f);
+		AssetManager* const assetManager = GetAssetManager();
 		if (mResultRootWidget) {
 			mResultRootWidget->SetVisible(clampedAlpha > 0.0f);
 			mResultRootWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
@@ -588,9 +980,14 @@ namespace Unnamed {
 			mClearImageWidget->SetVisible(clampedAlpha > 0.0f);
 		}
 		if (mClearImageTexture) {
-			mClearImageTexture->SetTexturePath(
-				ResolveResultContentPath(mClearTexturePath, "textures/clear.png")
-			);
+			if (assetManager) {
+				(void)mClearImageTexture->SetTexturePath(
+					mClearTexturePath.IsEmpty() ?
+						"textures/clear.png" :
+						mClearTexturePath.ToGenericUtf8(),
+					*assetManager
+				);
+			}
 			Gui::Color color = mClearImageTexture->GetColor();
 			color.a          = clampedAlpha;
 			mClearImageTexture->SetColor(color);
@@ -615,16 +1012,23 @@ namespace Unnamed {
 			const CourseElapsedTimeParts time =
 				SplitCourseElapsedTime(mLatchedElapsedSeconds);
 
-			const auto applyDigitStrip = [&](Gui::UiWidget* widget,
-			                                 Gui::UiDigitStripComponent* strip,
-			                                 const int value) {
+			const auto ApplyDigitStrip = [&](
+				Gui::UiWidget*              widget,
+				Gui::UiDigitStripComponent* strip,
+				const int                   value
+			) {
 				if (!widget || !strip) {
 					return;
 				}
 				widget->SetVisible(clampedAlpha > 0.0f);
-				strip->SetStripTexturePath(
-					ResolveResultContentPath(mDigitTexturePath, "textures/digits.png")
-				);
+				if (assetManager) {
+					(void)strip->SetStripTexturePath(
+						mDigitTexturePath.IsEmpty() ?
+							"textures/digits.png" :
+							mDigitTexturePath.ToGenericUtf8(),
+						*assetManager
+					);
+				}
 				strip->SetMinDigits(2);
 				strip->SetValue(value);
 				Gui::Color color = strip->GetColor();
@@ -632,53 +1036,113 @@ namespace Unnamed {
 				strip->SetColor(color);
 				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 			};
-			applyDigitStrip(mElapsedMinutesWidget, mElapsedMinutes, time.minutes);
-			applyDigitStrip(mElapsedSecondsWidget, mElapsedSeconds, time.seconds);
-			applyDigitStrip(mElapsedFractionWidget, mElapsedFraction, time.fraction);
+			ApplyDigitStrip(mElapsedMinutesWidget, mElapsedMinutes,
+			                time.minutes);
+			ApplyDigitStrip(mElapsedSecondsWidget, mElapsedSeconds,
+			                time.seconds);
+			ApplyDigitStrip(mElapsedFractionWidget, mElapsedFraction,
+			                time.fraction);
 
-			const auto applySeparator = [&](Gui::UiWidget* widget,
-			                                Gui::UiTextureComponent* texture,
-			                                const std::string_view path,
-			                                const std::string_view fallbackPath) {
+			const auto ApplySeparator = [&](
+				Gui::UiWidget*           widget,
+				Gui::UiTextureComponent* texture,
+				const Path&              path,
+				const Path&              fallbackPath
+			) {
 				if (!widget || !texture) {
 					return;
 				}
 				widget->SetVisible(clampedAlpha > 0.0f);
-				texture->SetTexturePath(ResolveResultContentPath(path, fallbackPath));
+				if (assetManager) {
+					(void)texture->SetTexturePath(
+						path.IsEmpty() ?
+							fallbackPath.ToGenericUtf8() :
+							path.ToGenericUtf8(),
+						*assetManager
+					);
+				}
 				Gui::Color color = texture->GetColor();
 				color.a          = clampedAlpha;
 				texture->SetColor(color);
 				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 			};
-			applySeparator(
+			ApplySeparator(
 				mElapsedCommaWidget,
 				mElapsedComma,
 				mCommaTexturePath,
-				"textures/colon.png"
+				Path("textures/colon.png")
 			);
-			applySeparator(
+			ApplySeparator(
 				mElapsedDotWidget,
 				mElapsedDot,
 				mDotTexturePath,
-				"textures/dot.png"
+				Path("textures/dot.png")
 			);
 		} else if (mElapsedDigits) {
 			const int displayValue = static_cast<int>(
 				std::lround(std::max(0.0f, mLatchedElapsedSeconds) *
 				            mElapsedDisplayScale)
 			);
-			mElapsedDigits->SetStripTexturePath(
-				ResolveResultContentPath(mDigitTexturePath, "textures/digits.png")
-			);
+			if (assetManager) {
+				(void)mElapsedDigits->SetStripTexturePath(
+					mDigitTexturePath.IsEmpty() ?
+						"textures/digits.png" :
+						mDigitTexturePath.ToGenericUtf8(),
+					*assetManager
+				);
+			}
 			mElapsedDigits->SetMinDigits(mElapsedDigitsMinDigits);
 			mElapsedDigits->SetValue(displayValue);
 			Gui::Color color = mElapsedDigits->GetColor();
 			color.a          = clampedAlpha;
 			mElapsedDigits->SetColor(color);
 		}
+		UpdateRankingWidgets(clampedAlpha);
 	}
 
-	void CourseResultFlowComponent::SetFadeOverlayAlpha(const float alpha)
+	void CourseResultFlowComponent::UpdateRankingWidgets(
+		const float alpha
+	) const {
+		const float clampedAlpha = std::clamp(alpha, 0.0f, 1.0f);
+		for (size_t index = 0; index < mRankingRows.size(); ++index) {
+			const RankingRowWidgets& row = mRankingRows[index];
+			const bool isCurrentRun =
+				static_cast<int>(index) == mCurrentRunRankingIndex;
+			const Gui::Color color = isCurrentRun ?
+				Gui::Color{.r = 1.0f, .g = 0.9f, .b = 0.62f, .a = clampedAlpha} :
+				Gui::Color{.r = 0.76f, .g = 0.84f, .b = 0.96f, .a = clampedAlpha};
+			const auto ApplyDigit = [&color, clampedAlpha](
+				Gui::UiWidget* widget, Gui::UiDigitStripComponent* digit
+			) {
+				if (!widget || !digit) {
+					return;
+				}
+				widget->SetVisible(clampedAlpha > 0.0f);
+				digit->SetColor(color);
+				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+			};
+			const auto ApplySeparator = [&color, clampedAlpha](
+				Gui::UiWidget* widget, Gui::UiTextureComponent* texture
+			) {
+				if (!widget || !texture) {
+					return;
+				}
+				widget->SetVisible(clampedAlpha > 0.0f);
+				texture->SetColor(color);
+				widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
+			};
+			ApplyDigit(row.rankWidget, row.rank);
+			ApplyDigit(row.minutesWidget, row.minutes);
+			ApplySeparator(row.commaWidget, row.comma);
+			ApplyDigit(row.secondsWidget, row.seconds);
+			ApplySeparator(row.dotWidget, row.dot);
+			ApplyDigit(row.fractionWidget, row.fraction);
+		}
+	}
+
+	void CourseResultFlowComponent::SetFadeOverlayAlpha(
+		const float alpha
+	)
 	const {
 		if (!mFadeOverlayWidget || !mFadeOverlayTexture) {
 			return;
@@ -705,18 +1169,26 @@ namespace Unnamed {
 			mElapsedDigitsWidget->SetVisible(false);
 			mElapsedDigitsWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 		}
-		const auto hideWidget = [](Gui::UiWidget* widget) {
+		const auto HideWidget = [](Gui::UiWidget* widget) {
 			if (!widget) {
 				return;
 			}
 			widget->SetVisible(false);
 			widget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 		};
-		hideWidget(mElapsedMinutesWidget);
-		hideWidget(mElapsedSecondsWidget);
-		hideWidget(mElapsedFractionWidget);
-		hideWidget(mElapsedCommaWidget);
-		hideWidget(mElapsedDotWidget);
+		HideWidget(mElapsedMinutesWidget);
+		HideWidget(mElapsedSecondsWidget);
+		HideWidget(mElapsedFractionWidget);
+		HideWidget(mElapsedCommaWidget);
+		HideWidget(mElapsedDotWidget);
+		for (const RankingRowWidgets& row : mRankingRows) {
+			HideWidget(row.rankWidget);
+			HideWidget(row.minutesWidget);
+			HideWidget(row.commaWidget);
+			HideWidget(row.secondsWidget);
+			HideWidget(row.dotWidget);
+			HideWidget(row.fractionWidget);
+		}
 	}
 
 	void CourseResultFlowComponent::ApplyLockTargets() {
@@ -729,7 +1201,8 @@ namespace Unnamed {
 			if (!target || target == this) {
 				continue;
 			}
-			if (std::ranges::find(lockedComponents, target) != lockedComponents.end()) {
+			if (std::ranges::find(lockedComponents, target) != lockedComponents.
+			    end()) {
 				continue;
 			}
 
@@ -761,7 +1234,7 @@ namespace Unnamed {
 			return nullptr;
 		}
 
-		const auto findInEntity = [&](Entity& entity) -> BaseComponent* {
+		const auto FindInEntity = [&](Entity& entity) -> BaseComponent* {
 			BaseComponent* found = nullptr;
 			entity.ForEachComponent(
 				[&](BaseComponent& component) {
@@ -777,20 +1250,20 @@ namespace Unnamed {
 
 		if (spec.entityGuid != 0) {
 			if (Entity* entity = scene->FindEntity(spec.entityGuid)) {
-				return findInEntity(*entity);
+				return FindInEntity(*entity);
 			}
 			return nullptr;
 		}
 
 		if (Entity* owner = GetOwner()) {
-			if (BaseComponent* found = findInEntity(*owner)) {
+			if (BaseComponent* found = FindInEntity(*owner)) {
 				return found;
 			}
 		}
 
 		for (const auto& entityPtr : scene->GetEntities()) {
 			if (entityPtr) {
-				if (BaseComponent* found = findInEntity(*entityPtr)) {
+				if (BaseComponent* found = FindInEntity(*entityPtr)) {
 					return found;
 				}
 			}
@@ -805,7 +1278,7 @@ namespace Unnamed {
 			return nullptr;
 		}
 
-		Scene* scene = GetScene();
+		const Scene* scene = GetScene();
 		if (!scene) {
 			return nullptr;
 		}
@@ -833,7 +1306,7 @@ namespace Unnamed {
 	}
 
 	Gui::UiWidget* CourseResultFlowComponent::FindWidgetByNameRecursive(
-		Gui::UiWidget*          root,
+		Gui::UiWidget*         root,
 		const std::string_view widgetName
 	) {
 		if (!root) {
@@ -856,7 +1329,8 @@ namespace Unnamed {
 		}
 
 		for (Gui::UiWidget* child : root->GetReferenceChildren()) {
-			if (Gui::UiWidget* found = FindWidgetByNameRecursive(child, widgetName)) {
+			if (Gui::UiWidget* found = FindWidgetByNameRecursive(
+				child, widgetName)) {
 				return found;
 			}
 		}
@@ -864,7 +1338,7 @@ namespace Unnamed {
 	}
 
 	void CourseResultFlowComponent::SerializeLockTarget(
-		JsonWriter&            writer,
+		JsonWriter&           writer,
 		const LockTargetSpec& spec
 	) {
 		writer.BeginObject();
@@ -887,4 +1361,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(CourseResultFlowComponent);
 }
-

@@ -16,22 +16,6 @@
 #include "engine/unnamed/framework/entity/Entity.h"
 
 namespace Unnamed {
-	namespace {
-		float ReadFloatOr(
-			const JsonReader& reader, const char* key, const float fallback
-		) {
-			const JsonReader value = reader[key];
-			return value.Valid() ? value.GetFloat() : fallback;
-		}
-
-		bool ReadBoolOr(
-			const JsonReader& reader, const char* key, const bool fallback
-		) {
-			const JsonReader value = reader[key];
-			return value.Valid() ? value.GetBool() : fallback;
-		}
-	}
-
 	void DirectionalLightComponent::SetColor(const Vec3& color) noexcept {
 		mColor = Vec3(
 			std::max(0.0f, color.x),
@@ -74,8 +58,8 @@ namespace Unnamed {
 
 		const auto* transform = owner->GetComponent<TransformComponent>();
 		Vec3        lightRayDirection = transform ?
-			                                transform->Forward() :
-			                                Vec3(0.0f, -1.0f, 0.0f);
+			                         transform->Forward() :
+			                         Vec3(0.0f, -1.0f, 0.0f);
 		if (lightRayDirection.IsZero()) {
 			lightRayDirection = Vec3(0.0f, -1.0f, 0.0f);
 		}
@@ -104,8 +88,8 @@ namespace Unnamed {
 
 	void DirectionalLightComponent::Deserialize(const JsonReader& reader) {
 		SetColor(reader["color"].GetVec3(mColor));
-		SetIntensity(ReadFloatOr(reader, "intensity", mIntensity));
-		SetCastsShadow(ReadBoolOr(reader, "castsShadow", mCastsShadow));
+		SetIntensity(reader.ReadFloatOr("intensity", mIntensity));
+		SetCastsShadow(reader.ReadBoolOr("castsShadow", mCastsShadow));
 	}
 
 	void DirectionalLightComponent::Serialize(JsonWriter& writer) const {

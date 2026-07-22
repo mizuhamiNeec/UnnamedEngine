@@ -7,7 +7,12 @@
 
 #include "core/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
+#include "core/content/ContentPathResolver.h"
+#include "core/io/json/JsonReader.h"
+#include "core/io/json/JsonWriter.h"
 
+#include "engine/ImGui/ImGuiWidgets.h"
+#include "engine/scene/SceneLoadOptions.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
 #include "engine/unnamed/subsystem/console/concommand/ConVar.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
@@ -18,7 +23,7 @@
 namespace Unnamed {
 	namespace {
 		constexpr std::string_view kDefaultUIFontPath =
-			R"(.\content\core\fonts\JetBrainsMono.ttf)";
+			"fonts/JetBrainsMono.ttf";
 
 #ifdef _DEBUG
 		constexpr const char* kTextAlignLabels[] = {
@@ -49,6 +54,14 @@ namespace Unnamed {
 
 	void NewUICanvas::OnAttached() {
 		BaseComponent::OnAttached();
+		if (mFontAtlas == nullptr) {
+			if (AssetManager* assetManager = GetAssetManager()) {
+				(void)InitializeFontAtlas(
+					*assetManager,
+					AssetReferenceValidationPolicy::Permissive
+				);
+			}
+		}
 	}
 
 	void NewUICanvas::OnTick(const float deltaTime) {
@@ -73,17 +86,9 @@ namespace Unnamed {
 		mContext.BeginFrame(inputState, frameDeltaTime);
 		mContext.SetTheme(mTheme);
 		if (AssetManager* assetManager = GetAssetManager()) {
-			UI::UIFontAtlas* fontAtlas = UI::GetUIFontAtlasCache().GetOrCreate(
-				UI::MakeUIFontAtlasKey(
-					kDefaultUIFontPath,
-					mTheme.fontSize,
-					mTheme.fontOversampleH,
-					mTheme.fontOversampleV
-				),
-				*assetManager
-			);
-			mContext.SetFontAtlas(fontAtlas);
+			mFontAtlas = ResolveFontAtlas(*assetManager);
 		}
+		mContext.SetFontAtlas(mFontAtlas);
 
 		constexpr auto       panelPosition = Vec2(24.0f, 24.0f);
 		constexpr auto       panelSize     = Vec2(1024.0f, 1024.0f);
@@ -148,7 +153,10 @@ namespace Unnamed {
 			mContext.Separator();
 
 			{
-				mContext.BeginRow(panelPosition + Vec2(mTheme.panelPadding, 256.0f + mTheme.defaultGap)  ,mTheme.defaultGap);
+				mContext.BeginRow(
+					panelPosition + Vec2(mTheme.panelPadding,
+					                     256.0f + mTheme.defaultGap),
+					mTheme.defaultGap);
 
 				if (mContext.Button("OK", buttonSize)) {
 					Msg("UI", "OK button clicked!");
@@ -160,7 +168,7 @@ namespace Unnamed {
 
 				mContext.EndRow();
 			}
-			
+
 			mContext.EndColumn();
 		}
 
@@ -180,6 +188,7 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void NewUICanvas::DrawInspectorImGui() {
+		bool fontSettingsChanged = false;
 		ImGui::SeparatorText("==THEME==");
 
 		ImGui::SeparatorText("Button");
@@ -221,13 +230,28 @@ namespace Unnamed {
 
 		ImGui::SeparatorText("Font");
 
-		ImGui::DragFloat("FontSize", &mTheme.fontSize);
+		std::string fontPath = mFontPath.has_value() ?
+			mFontPath->String() :
+			std::string{};
+		if (
+			ImGuiWidgets::AssetPathPicker(
+				"FontPath", fontPath, ImGuiWidgets::kAssetTypeMaskAny
+			)
+		) {
+			mFontPath = VirtualPath::ParseContentReference(fontPath);
+			fontSettingsChanged = true;
+		}
+
+		fontSettingsChanged |= ImGui::DragFloat(
+			"FontSize", &mTheme.fontSize
+		);
 
 		int fontOversampleH = static_cast<int>(mTheme.fontOversampleH);
 		if (ImGui::DragInt("FontOversampleH", &fontOversampleH, 1.0f, 1, 64)) {
 			mTheme.fontOversampleH = static_cast<uint32_t>(std::max(
 				fontOversampleH, 1
 			));
+			fontSettingsChanged = true;
 		}
 
 		int fontOversampleV = static_cast<int>(mTheme.fontOversampleV);
@@ -235,6 +259,18 @@ namespace Unnamed {
 			mTheme.fontOversampleV = static_cast<uint32_t>(std::max(
 				fontOversampleV, 1
 			));
+			fontSettingsChanged = true;
+		}
+
+		if (fontSettingsChanged) {
+			if (AssetManager* assetManager = GetAssetManager()) {
+				(void)InitializeFontAtlas(
+					*assetManager,
+					AssetReferenceValidationPolicy::Permissive
+				);
+			} else {
+				mFontAtlas = nullptr;
+			}
 		}
 
 		ImGui::SeparatorText("FontAtlas Cache");
@@ -261,9 +297,10 @@ namespace Unnamed {
 				cacheInfo.destroyRuntimeAssetFailedCount
 			)
 		);
-		if (AssetManager* assetManager = GetWorld() ?
-			                                 GetWorld()->GetAssetManager() :
-			                                 nullptr) {
+		if (const AssetManager* assetManager = GetWorld() ?
+			                                       GetWorld()->
+			                                       GetAssetManager() :
+			                                       nullptr) {
 			const AssetManager::DebugStats assetStats =
 				assetManager->GetDebugStats();
 			ImGui::Text(
@@ -291,7 +328,7 @@ namespace Unnamed {
 		);
 		ImGui::Text(
 			"Current font path: %s",
-			cacheInfo.currentKey.fontPath.c_str()
+			cacheInfo.currentKey.fontPath.String().c_str()
 		);
 		if (ImGui::Button("Clear Font Cache")) {
 			if (AssetManager* assetManager = GetWorld() ?
@@ -320,15 +357,200 @@ namespace Unnamed {
 	}
 
 	void NewUICanvas::Deserialize(const JsonReader& reader) {
-		(void)reader;
+		mFontAtlas = nullptr;
+		mResolvedFontPath.Clear();
+		const JsonReader fontPathNode = reader["fontPath"];
+		const std::string fontPath = fontPathNode.Valid() &&
+		                             fontPathNode.IsString() ?
+			fontPathNode.GetString() :
+			std::string(kDefaultUIFontPath);
+		mFontPath = VirtualPath::ParseContentReference(fontPath);
+		if (reader.Has("fontSize")) {
+			mTheme.fontSize = reader["fontSize"].GetFloat(mTheme.fontSize);
+		}
+		if (reader.Has("fontOversampleH")) {
+			mTheme.fontOversampleH = static_cast<uint32_t>(std::max(
+				1, reader["fontOversampleH"].GetInt(1)
+			));
+		}
+		if (reader.Has("fontOversampleV")) {
+			mTheme.fontOversampleV = static_cast<uint32_t>(std::max(
+				1, reader["fontOversampleV"].GetInt(1)
+			));
+		}
+	}
+
+	bool NewUICanvas::Deserialize(
+		const JsonReader& reader, const SceneDeserializeContext& context
+	) {
+		mFontAtlas = nullptr;
+		mResolvedFontPath.Clear();
+		const JsonReader fontPathNode = reader["fontPath"];
+		const std::string fontPath = fontPathNode.Valid() ?
+			fontPathNode.GetString() :
+			std::string(kDefaultUIFontPath);
+		if (fontPathNode.Valid() && !fontPathNode.IsString()) {
+			Error("UI", "NewUICanvas fontPath must be a string.");
+			if (IsStrictAssetValidation(context.loadOptions)) {
+				return false;
+			}
+			mFontPath = VirtualPath::ParseContentReference(
+				kDefaultUIFontPath
+			);
+		} else {
+			mFontPath = VirtualPath::ParseContentReference(fontPath);
+			if (!mFontPath.has_value()) {
+				Error("UI", "Invalid UI font virtual path: {}", fontPath);
+				if (IsStrictAssetValidation(context.loadOptions)) {
+					return false;
+				}
+				mFontPath = VirtualPath::ParseContentReference(
+					kDefaultUIFontPath
+				);
+			}
+		}
+
+		if (reader.Has("fontSize")) {
+			mTheme.fontSize = reader["fontSize"].GetFloat(mTheme.fontSize);
+		}
+		if (reader.Has("fontOversampleH")) {
+			mTheme.fontOversampleH = static_cast<uint32_t>(std::max(
+				1, reader["fontOversampleH"].GetInt(1)
+			));
+		}
+		if (reader.Has("fontOversampleV")) {
+			mTheme.fontOversampleV = static_cast<uint32_t>(std::max(
+				1, reader["fontOversampleV"].GetInt(1)
+			));
+		}
+
+		if (!context.assetManager) {
+			Error("UI", "AssetManager is unavailable for NewUICanvas font.");
+			return false;
+		}
+		return InitializeFontAtlas(
+			*context.assetManager,
+			ToAssetReferenceValidationPolicy(
+				context.loadOptions.assetValidationPolicy
+			)
+		);
 	}
 
 	void NewUICanvas::Serialize(JsonWriter& writer) const {
-		(void)writer;
+		if (mFontPath.has_value()) {
+			writer.Key("fontPath");
+			writer.Write(mFontPath->String());
+		}
+		writer.Key("fontSize");
+		writer.Write(mTheme.fontSize);
+		writer.Key("fontOversampleH");
+		writer.Write(mTheme.fontOversampleH);
+		writer.Key("fontOversampleV");
+		writer.Write(mTheme.fontOversampleV);
 	}
 
 	const std::vector<UI::UIDrawCommand>& NewUICanvas::GetDrawCommands() const {
 		return mDrawCommands;
+	}
+
+	UI::UIFontAtlas* NewUICanvas::ResolveFontAtlas(
+		AssetManager& assetManager
+	) {
+		if (!mFontPath.has_value() || mResolvedFontPath.IsEmpty()) {
+			mFontAtlas = nullptr;
+			return nullptr;
+		}
+		mFontAtlas = UI::GetUIFontAtlasCache().GetOrCreate(
+			UI::MakeUIFontAtlasKey(
+				*mFontPath,
+				mTheme.fontSize,
+				mTheme.fontOversampleH,
+				mTheme.fontOversampleV
+			),
+			mResolvedFontPath,
+			assetManager
+		);
+		return mFontAtlas;
+	}
+
+	bool NewUICanvas::InitializeFontAtlas(
+		AssetManager& assetManager,
+		const AssetReferenceValidationPolicy validationPolicy
+	) {
+		mFontAtlas = nullptr;
+		mResolvedFontPath.Clear();
+		const std::optional<VirtualPath> defaultFontPath =
+			VirtualPath::ParseContentReference(kDefaultUIFontPath);
+		if (!defaultFontPath.has_value()) {
+			return false;
+		}
+		if (!mFontPath.has_value()) {
+			if (IsStrictAssetValidation(validationPolicy)) {
+				return false;
+			}
+			mFontPath = *defaultFontPath;
+		}
+
+		if (TryInitializeFontAtlas(*mFontPath, assetManager)) {
+			return true;
+		}
+		if (
+			IsStrictAssetValidation(validationPolicy) ||
+			*mFontPath == *defaultFontPath
+		) {
+			return false;
+		}
+
+		Warning(
+			"UI",
+			"Falling back to default UI font: {}",
+			defaultFontPath->String()
+		);
+		mFontPath = *defaultFontPath;
+		return TryInitializeFontAtlas(*mFontPath, assetManager);
+	}
+
+	bool NewUICanvas::TryInitializeFontAtlas(
+		const VirtualPath& fontPath, AssetManager& assetManager
+	) {
+		const auto resolution = assetManager.GetContentPathResolver().ResolveFile(
+			fontPath
+		);
+		if (!resolution.has_value()) {
+			Error("UI", "Failed to resolve UI font file: {}", fontPath.String());
+			return false;
+		}
+
+		mFontAtlas = UI::GetUIFontAtlasCache().GetOrCreate(
+			UI::MakeUIFontAtlasKey(
+				fontPath,
+				mTheme.fontSize,
+				mTheme.fontOversampleH,
+				mTheme.fontOversampleV
+			),
+			resolution->resolvedPath,
+			assetManager
+		);
+		if (!mFontAtlas) {
+			Error(
+				"UI",
+				"Failed to build UI font atlas: virtualPath={} mount={} physicalPath={}",
+				fontPath.String(),
+				resolution->mountId,
+				resolution->resolvedPath
+			);
+			return false;
+		}
+		mResolvedFontPath = resolution->resolvedPath;
+
+		DevMsg(
+			"UI",
+			"Resolved UI font: virtualPath={} mount={} physicalPath={}",
+			fontPath.String(),
+			resolution->mountId,
+			resolution->resolvedPath
+		);
+		return true;
 	}
 
 	REGISTER_COMPONENT(NewUICanvas);

@@ -1,5 +1,4 @@
 #include "SkeletalMeshRendererComponent.h"
-#include "StaticMeshRendererComponent.h"  // MaterialSlot 定義のため
 
 #include <algorithm>
 
@@ -7,33 +6,41 @@
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/MeshAssetData.h"
+#include "core/content/ContentPathResolver.h"
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
+#include "engine/scene/SceneLoadOptions.h"
 
 namespace Unnamed {
-	namespace {
-		std::string ReadStringOr(
-			const JsonReader& reader, const char* key, const char* fallback
-		) {
-			const JsonReader value = reader[key];
-			return value.Valid() ? value.GetString() : std::string(fallback);
+	void SkeletalMeshRendererComponent::OnAttached() {
+		AssetManager* assetManager = GetAssetManager();
+		if (!assetManager) {
+			return;
 		}
-
-		uint32_t ComputeRequiredMaterialSlotCount(const MeshAssetData& meshAsset) {
-			if (meshAsset.submeshes.empty()) {
-				return 1;
+		if (mMeshPath.has_value() && mMeshAssetId == kInvalidAssetID) {
+			const VirtualPath path = *mMeshPath;
+			(void)SetMeshPath(path, *assetManager);
+		}
+		if (
+			mMaterialInstancePath.has_value() &&
+			mMaterialInstanceAssetId == kInvalidAssetID
+		) {
+			const VirtualPath path = *mMaterialInstancePath;
+			(void)SetMaterialInstancePath(path, *assetManager);
+		}
+		for (SkeletalMaterialSlotReference& slot : mMaterialSlots) {
+			if (!slot.materialInstancePath.has_value() ||
+			    slot.assetId != kInvalidAssetID) {
+				continue;
 			}
-
-			uint32_t maxMaterialIndex = 0;
-			for (const auto& submesh : meshAsset.submeshes) {
-				maxMaterialIndex = std::max(maxMaterialIndex, submesh.materialIndex);
-			}
-
-			return maxMaterialIndex + 1;
+			const VirtualPath path = *slot.materialInstancePath;
+			(void)SetMaterialInstancePathForSlot(
+				slot.slotIndex, path, *assetManager
+			);
 		}
 	}
 
@@ -46,61 +53,299 @@ namespace Unnamed {
 	}
 
 	void SkeletalMeshRendererComponent::Deserialize(const JsonReader& reader) {
-		std::string meshPath = ReadStringOr(reader, "meshPath", "");
-		if (meshPath.empty()) {
-			meshPath = ReadStringOr(reader, "mesh", "");
-		}
+		constexpr SceneLoadOptions options{};
+		const Path scenePath("<direct component deserialize>");
+		const SceneDeserializeContext context{
+			.loadOptions   = options,
+			.assetManager  = GetAssetManager(),
+			.scenePath     = scenePath,
+			.entityName    = "<unknown>",
+			.entityId      = 0,
+			.componentType = GetStableName(),
+		};
+		(void)Deserialize(reader, context);
+	}
 
-		std::string matPath = ReadStringOr(
-			reader, "materialInstancePath", ""
-		);
-		if (matPath.empty()) {
-			matPath = ReadStringOr(reader, "material", "");
-		}
+	bool SkeletalMeshRendererComponent::Deserialize(
+		const JsonReader& reader, const SceneDeserializeContext& context
+	) {
+		ClearMeshPath();
+		ClearMaterialInstancePath();
+		ClearMaterialSlots();
+		const bool strict = IsStrictAssetValidation(context.loadOptions);
 
-		SetMeshPath(meshPath);
-
-		// 新形式（materialSlots）をチェック
-		const JsonReader slotsReader = reader["materialSlots"];
-		if (slotsReader.Valid() && slotsReader.IsArray()) {
-			std::vector<MaterialSlot> slots;
-			for (size_t i = 0; i < slotsReader.Size(); ++i) {
-				const JsonReader slotReader = slotsReader[i];
-				if (!slotReader.Valid()) {
-					continue;
+		const JsonReader meshNode = reader["meshPath"].Valid() ?
+			reader["meshPath"] : reader["mesh"];
+		if (meshNode.Valid()) {
+			if (!meshNode.IsString()) {
+				Error(
+					"Scene",
+					"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='meshPath' reason='expected string'",
+					context.scenePath, context.entityName, context.entityId,
+					context.componentType
+				);
+				if (strict) {
+					return false;
 				}
-				MaterialSlot slot;
-				slot.slotIndex = static_cast<uint32_t>(slotReader["slotIndex"].GetInt(static_cast<int>(i)));
-				slot.materialInstancePath = slotReader["materialInstancePath"].GetString("");
-				slots.push_back(slot);
+			} else if (const std::string value = meshNode.GetString(); !value.empty()) {
+				const std::optional<VirtualPath> path =
+					VirtualPath::ParseContentReference(value);
+				if (!path.has_value()) {
+					Error(
+						"Scene",
+						"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='meshPath' virtualPath='{}'",
+						context.scenePath, context.entityName, context.entityId,
+						context.componentType, value
+					);
+					if (strict) {
+						return false;
+					}
+				} else if (!context.assetManager) {
+					Error(
+						"Scene",
+						"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='meshPath' virtualPath='{}' reason='AssetManager unavailable'",
+						context.scenePath, context.entityName, context.entityId,
+						context.componentType, value
+					);
+					if (strict) {
+						return false;
+					}
+				} else {
+					const std::optional<ResolvedContentFile> resolved =
+						context.assetManager->GetContentPathResolver().ResolveFile(*path);
+					if (!resolved.has_value()) {
+						Error(
+							"Scene",
+							"Scene asset reference failed: classification='unresolved content' scene='{}' entity='{}' entityId={} component='{}' field='meshPath' virtualPath='{}'",
+							context.scenePath, context.entityName, context.entityId,
+							context.componentType, value
+						);
+						if (strict) {
+							return false;
+						}
+					} else if (!SetMeshPath(*path, *context.assetManager)) {
+						const AssetID loadedId = context.assetManager->FindByPath(
+							resolved->resolvedPath
+						);
+						const bool contentsMismatch = loadedId != kInvalidAssetID &&
+							context.assetManager->Get<MeshAssetData>(loadedId) != nullptr;
+						Error(
+							"Scene",
+							"Scene asset reference failed: classification='{}' scene='{}' entity='{}' entityId={} component='{}' field='meshPath' virtualPath='{}' mount='{}' physicalPath='{}'",
+							contentsMismatch ? "mesh contents mismatch" :
+							"asset load failure",
+							context.scenePath, context.entityName, context.entityId,
+							context.componentType, value, resolved->mountId,
+							resolved->resolvedPath
+						);
+						if (strict) {
+							return false;
+						}
+					}
+				}
 			}
-			SetMaterialSlots(slots);
-		} else if (!matPath.empty()) {
-			// 旧形式（単一 materialInstancePath）から新形式に変換
-			SetMaterialInstancePath(matPath);
 		}
+
+		const JsonReader materialNode = reader["materialInstancePath"].Valid() ?
+			reader["materialInstancePath"] : reader["material"];
+		if (materialNode.Valid()) {
+			if (!materialNode.IsString()) {
+				Error(
+					"Scene",
+					"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='materialInstancePath' reason='expected string'",
+					context.scenePath, context.entityName, context.entityId,
+					context.componentType
+				);
+				if (strict) {
+					return false;
+				}
+			} else if (const std::string value = materialNode.GetString(); !value.empty()) {
+				const std::optional<VirtualPath> path =
+					VirtualPath::ParseContentReference(value);
+				if (!path.has_value()) {
+					Error(
+						"Scene",
+						"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='materialInstancePath' virtualPath='{}'",
+						context.scenePath, context.entityName, context.entityId,
+						context.componentType, value
+					);
+					if (strict) {
+						return false;
+					}
+				} else if (!context.assetManager) {
+					Error(
+						"Scene",
+						"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='materialInstancePath' virtualPath='{}' reason='AssetManager unavailable'",
+						context.scenePath, context.entityName, context.entityId,
+						context.componentType, value
+					);
+					if (strict) {
+						return false;
+					}
+				} else {
+					const std::optional<ResolvedContentFile> resolved =
+						context.assetManager->GetContentPathResolver().ResolveFile(*path);
+					if (!resolved.has_value()) {
+						Error(
+							"Scene",
+							"Scene asset reference failed: classification='unresolved content' scene='{}' entity='{}' entityId={} component='{}' field='materialInstancePath' virtualPath='{}'",
+							context.scenePath, context.entityName, context.entityId,
+							context.componentType, value
+						);
+						if (strict) {
+							return false;
+						}
+					} else if (!SetMaterialInstancePath(*path, *context.assetManager)) {
+						Error(
+							"Scene",
+							"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='materialInstancePath' virtualPath='{}' mount='{}' physicalPath='{}'",
+							context.scenePath, context.entityName, context.entityId,
+							context.componentType, value, resolved->mountId,
+							resolved->resolvedPath
+						);
+						if (strict) {
+							return false;
+						}
+					}
+				}
+			}
+		}
+
+		const JsonReader slotsNode = reader["materialSlots"];
+		if (!slotsNode.Valid()) {
+			return true;
+		}
+		if (!slotsNode.IsArray()) {
+			Error(
+				"Scene",
+				"Scene asset reference failed: classification='invalid material slots' scene='{}' entity='{}' entityId={} component='{}' field='materialSlots' reason='expected array'",
+				context.scenePath, context.entityName, context.entityId,
+				context.componentType
+			);
+			return !strict;
+		}
+
+		for (size_t i = 0; i < slotsNode.Size(); ++i) {
+			const JsonReader slotNode = slotsNode[i];
+			uint32_t slotIndex = static_cast<uint32_t>(i);
+			JsonReader pathNode = slotNode;
+			if (slotNode.IsObject()) {
+				const JsonReader indexNode = slotNode["slotIndex"];
+				if (indexNode.Valid()) {
+					const int index = indexNode.GetInt(-1);
+					if (!indexNode.IsNumberInteger() || index < 0) {
+						Error(
+							"Scene",
+							"Scene asset reference failed: classification='invalid material slot' scene='{}' entity='{}' entityId={} component='{}' field='materialSlots[{}].slotIndex' reason='expected non-negative integer'",
+							context.scenePath, context.entityName,
+							context.entityId, context.componentType, i
+						);
+						ClearMaterialSlots();
+						return !strict;
+					}
+					slotIndex = static_cast<uint32_t>(index);
+				}
+				pathNode = slotNode["materialInstancePath"];
+			}
+			if (!pathNode.Valid()) {
+				mMaterialSlots.emplace_back(
+					SkeletalMaterialSlotReference{.slotIndex = slotIndex}
+				);
+				continue;
+			}
+			if (!pathNode.IsString()) {
+				Error(
+					"Scene",
+					"Scene asset reference failed: classification='invalid material slot' scene='{}' entity='{}' entityId={} component='{}' field='materialSlots[{}]' reason='expected string or object'",
+					context.scenePath, context.entityName, context.entityId,
+					context.componentType, i
+				);
+				ClearMaterialSlots();
+				return !strict;
+			}
+			const std::string value = pathNode.GetString();
+			if (value.empty()) {
+				mMaterialSlots.emplace_back(
+					SkeletalMaterialSlotReference{.slotIndex = slotIndex}
+				);
+				continue;
+			}
+			const std::optional<VirtualPath> path =
+				VirtualPath::ParseContentReference(value);
+			if (!path.has_value()) {
+				Error(
+					"Scene",
+					"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='materialSlots[{}].materialInstancePath' virtualPath='{}'",
+					context.scenePath, context.entityName, context.entityId,
+					context.componentType, i, value
+				);
+				ClearMaterialSlots();
+				return !strict;
+			}
+			if (!context.assetManager) {
+				Error(
+					"Scene",
+					"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='materialSlots[{}].materialInstancePath' virtualPath='{}' reason='AssetManager unavailable'",
+					context.scenePath, context.entityName, context.entityId,
+					context.componentType, i, value
+				);
+				ClearMaterialSlots();
+				return !strict;
+			}
+			const std::optional<ResolvedContentFile> resolved =
+				context.assetManager->GetContentPathResolver().ResolveFile(*path);
+			if (!resolved.has_value()) {
+				Error(
+					"Scene",
+					"Scene asset reference failed: classification='unresolved content' scene='{}' entity='{}' entityId={} component='{}' field='materialSlots[{}].materialInstancePath' virtualPath='{}'",
+					context.scenePath, context.entityName, context.entityId,
+					context.componentType, i, value
+				);
+				ClearMaterialSlots();
+				return !strict;
+			}
+			if (!SetMaterialInstancePathForSlot(
+				slotIndex, *path, *context.assetManager
+			)) {
+				Error(
+					"Scene",
+					"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='materialSlots[{}].materialInstancePath' virtualPath='{}' mount='{}' physicalPath='{}'",
+					context.scenePath, context.entityName, context.entityId,
+					context.componentType, i, value, resolved->mountId,
+					resolved->resolvedPath
+				);
+				ClearMaterialSlots();
+				return !strict;
+			}
+		}
+		return true;
 	}
 
 	void SkeletalMeshRendererComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("meshPath");
-		writer.Write(mMeshPath);
-		
+		if (mMeshPath.has_value()) {
+			writer.Key("meshPath");
+			writer.Write(mMeshPath->String());
+		}
+
 		// 新形式で materialSlots を出力
 		writer.Key("materialSlots");
 		writer.BeginArray();
-		for (const auto& slot : mMaterialSlots) {
+		for (const SkeletalMaterialSlotReference& slot : mMaterialSlots) {
 			writer.BeginObject();
 			writer.Key("slotIndex");
 			writer.Write(slot.slotIndex);
-			writer.Key("materialInstancePath");
-			writer.Write(slot.materialInstancePath);
+			if (slot.materialInstancePath.has_value()) {
+				writer.Key("materialInstancePath");
+				writer.Write(slot.materialInstancePath->String());
+			}
 			writer.EndObject();
 		}
 		writer.EndArray();
 
-		// 互換性のため古い形式も出力（mMaterialInstancePath が設定されている場合）
-		writer.Key("materialInstancePath");
-		writer.Write(mMaterialInstancePath);
+		if (mMaterialInstancePath.has_value()) {
+			writer.Key("materialInstancePath");
+			writer.Write(mMaterialInstancePath->String());
+		}
 	}
 
 	uint32_t SkeletalMeshRendererComponent::GetIcon() const noexcept {
@@ -109,7 +354,8 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SkeletalMeshRendererComponent::DrawInspectorImGui() {
-		std::string meshPath = mMeshPath;
+		std::string meshPath = mMeshPath.has_value() ?
+			mMeshPath->String() : std::string{};
 		if (
 			ImGuiWidgets::AssetPathPicker(
 				"SkeletalMeshPath",
@@ -117,26 +363,37 @@ namespace Unnamed {
 				ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::MESH)
 			)
 		) {
-			SetMeshPath(meshPath);
+			const std::optional<VirtualPath> path =
+				VirtualPath::ParseContentReference(meshPath);
+			AssetManager* assetManager = GetAssetManager();
+			if (!path.has_value() || !assetManager) {
+				ClearMeshPath();
+			} else {
+				(void)SetMeshPath(*path, *assetManager);
+			}
 		}
 
 		uint32_t meshSlotCount = 0;
 		if (AssetManager* assetManager = GetAssetManager()) {
-			const AssetID meshAssetId = ResolveMeshAsset(*assetManager);
+			const AssetID meshAssetId = GetMeshAssetId();
 			if (meshAssetId != kInvalidAssetID) {
-				const MeshAssetData* meshAsset = assetManager->Get<MeshAssetData>(meshAssetId);
+				const MeshAssetData* meshAsset = assetManager->Get<
+					MeshAssetData>(meshAssetId);
 				if (meshAsset != nullptr) {
-					meshSlotCount = ComputeRequiredMaterialSlotCount(*meshAsset);
+					meshSlotCount =
+						ComputeRequiredMaterialSlotCount(*meshAsset);
 				}
 			}
 		}
 
 		// Material Slots セクション
-		if (ImGui::CollapsingHeader("Material Slots", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (ImGui::CollapsingHeader("Material Slots",
+		                            ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (meshSlotCount > 0) {
 				ImGui::Text("Mesh Slots: %u", meshSlotCount);
 				if (ImGui::Button("Sync Slots From Mesh")) {
-					std::vector<MaterialSlot> syncedSlots = mMaterialSlots;
+					std::vector<SkeletalMaterialSlotReference> syncedSlots =
+						mMaterialSlots;
 					if (syncedSlots.size() < meshSlotCount) {
 						syncedSlots.resize(meshSlotCount);
 					}
@@ -150,23 +407,39 @@ namespace Unnamed {
 			}
 
 			for (uint32_t i = 0; i < mMaterialSlots.size(); ++i) {
-				std::string slotLabel = "Slot " + std::to_string(mMaterialSlots[i].slotIndex);
-				std::string slotPath = mMaterialSlots[i].materialInstancePath;
+				std::string slotLabel = "Slot " + std::to_string(
+					                        mMaterialSlots[i].slotIndex);
+				std::string slotPath =
+					mMaterialSlots[i].materialInstancePath.has_value() ?
+					mMaterialSlots[i].materialInstancePath->String() :
+					std::string{};
 				if (
 					ImGuiWidgets::AssetPathPicker(
 						slotLabel.c_str(),
 						slotPath,
-						ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::MATERIAL_INSTANCE)
+						ImGuiWidgets::AssetTypeToMask(
+							ASSET_TYPE::MATERIAL_INSTANCE)
 					)
 				) {
-					SetMaterialInstancePathForSlot(i, slotPath);
+					const std::optional<VirtualPath> path =
+						VirtualPath::ParseContentReference(slotPath);
+					AssetManager* assetManager = GetAssetManager();
+					if (!path.has_value() || !assetManager) {
+						mMaterialSlots[i].materialInstancePath.reset();
+						mMaterialSlots[i].assetId = kInvalidAssetID;
+				} else {
+					(void)SetMaterialInstancePathForSlot(
+						mMaterialSlots[i].slotIndex, *path, *assetManager
+					);
+					}
 				}
 			}
 		}
 
 		// 旧形式互換性：単一パスのピッカー（mMaterialSlots が空の場合のみ表示）
 		if (mMaterialSlots.empty()) {
-			std::string materialPath = mMaterialInstancePath;
+			std::string materialPath = mMaterialInstancePath.has_value() ?
+				mMaterialInstancePath->String() : std::string{};
 			if (
 				ImGuiWidgets::AssetPathPicker(
 					"SkeletalMaterialPath",
@@ -174,76 +447,148 @@ namespace Unnamed {
 					ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::MATERIAL_INSTANCE)
 				)
 			) {
-				SetMaterialInstancePath(materialPath);
+				const std::optional<VirtualPath> path =
+					VirtualPath::ParseContentReference(materialPath);
+				AssetManager* assetManager = GetAssetManager();
+				if (!path.has_value() || !assetManager) {
+					ClearMaterialInstancePath();
+				} else {
+					(void)SetMaterialInstancePath(*path, *assetManager);
+				}
 			}
 		}
 	}
 #endif
 
-	void SkeletalMeshRendererComponent::SetMeshPath(const std::string& path) {
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mMeshPath == normalized) {
-			return;
+	bool SkeletalMeshRendererComponent::SetMeshPath(
+		const VirtualPath& path, AssetManager& assetManager
+	) {
+		if (mMeshPath.has_value() && *mMeshPath == path &&
+		    mMeshAssetId != kInvalidAssetID) {
+			return true;
 		}
 
-		mMeshPath    = normalized;
+		const AssetID meshAssetId = assetManager.LoadMesh(path);
+		const MeshAssetData* meshAsset = assetManager.Get<MeshAssetData>(
+			meshAssetId
+		);
+		const bool hasWeightedVertex = meshAsset && std::ranges::any_of(
+			meshAsset->vertices,
+			[](const MeshVertex& vertex) {
+				return std::ranges::any_of(
+					vertex.boneWeights,
+					[](const float weight) { return weight > 0.0f; }
+				);
+			}
+		);
+		if (!meshAsset || !meshAsset->hasSkinning ||
+		    meshAsset->skeleton.empty() || !hasWeightedVertex) {
+			if (meshAssetId != kInvalidAssetID) {
+				Error(
+					"SkeletalMesh",
+					"Mesh asset is not suitable for skeletal rendering: virtualPath={} assetId={} hasSkinning={} boneCount={} hasWeightedVertex={}",
+					path.String(), meshAssetId,
+					meshAsset ? meshAsset->hasSkinning : false,
+					meshAsset ? meshAsset->skeleton.size() : 0,
+					hasWeightedVertex
+				);
+			}
+			ClearMeshPath();
+			return false;
+		}
+
+		mMeshPath    = path;
+		mMeshAssetId = meshAssetId;
+		return true;
+	}
+
+	void SkeletalMeshRendererComponent::ClearMeshPath() noexcept {
+		mMeshPath.reset();
 		mMeshAssetId = kInvalidAssetID;
 	}
 
-	void SkeletalMeshRendererComponent::SetMaterialInstancePath(
-		const std::string& path
+	bool SkeletalMeshRendererComponent::SetMaterialInstancePath(
+		const VirtualPath& path, AssetManager& assetManager
 	) {
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mMaterialInstancePath == normalized) {
-			return;
+		if (mMaterialInstancePath.has_value() &&
+		    *mMaterialInstancePath == path &&
+		    mMaterialInstanceAssetId != kInvalidAssetID) {
+			return true;
 		}
 
-		mMaterialInstancePath    = normalized;
+		const AssetID assetId = assetManager.LoadMaterialInstance(path);
+		if (assetId == kInvalidAssetID) {
+			ClearMaterialInstancePath();
+			return false;
+		}
+		mMaterialInstancePath    = path;
+		mMaterialInstanceAssetId = assetId;
+		return true;
+	}
+
+	void SkeletalMeshRendererComponent::ClearMaterialInstancePath() noexcept {
+		mMaterialInstancePath.reset();
 		mMaterialInstanceAssetId = kInvalidAssetID;
 	}
 
-	const std::string&
+	void SkeletalMeshRendererComponent::SetMaterialSlots(
+		const std::vector<SkeletalMaterialSlotReference>& slots
+	) {
+		mMaterialSlots = slots;
+	}
+
+	void SkeletalMeshRendererComponent::ClearMaterialSlots() noexcept {
+		mMaterialSlots.clear();
+	}
+
+	bool SkeletalMeshRendererComponent::SetMaterialInstancePathForSlot(
+		const uint32_t slotIndex, const VirtualPath& path,
+		AssetManager& assetManager
+	) {
+		const AssetID assetId = assetManager.LoadMaterialInstance(path);
+		if (assetId == kInvalidAssetID) {
+			const auto failedSlot = std::ranges::find(
+				mMaterialSlots, slotIndex,
+				&SkeletalMaterialSlotReference::slotIndex
+			);
+			if (failedSlot != mMaterialSlots.end()) {
+				failedSlot->materialInstancePath.reset();
+				failedSlot->assetId = kInvalidAssetID;
+			}
+			return false;
+		}
+		const auto slot = std::ranges::find(
+			mMaterialSlots, slotIndex,
+			&SkeletalMaterialSlotReference::slotIndex
+		);
+		if (slot != mMaterialSlots.end()) {
+			slot->materialInstancePath = path;
+			slot->assetId              = assetId;
+		} else {
+			mMaterialSlots.emplace_back(
+				SkeletalMaterialSlotReference{
+					.slotIndex            = slotIndex,
+					.materialInstancePath = path,
+					.assetId               = assetId,
+				}
+			);
+		}
+		return true;
+	}
+
+	const std::optional<VirtualPath>&
 	SkeletalMeshRendererComponent::GetMeshPath() const noexcept {
 		return mMeshPath;
 	}
 
-	const std::string&
+	const std::optional<VirtualPath>&
 	SkeletalMeshRendererComponent::GetMaterialInstancePath() const noexcept {
 		return mMaterialInstancePath;
 	}
 
-	AssetID SkeletalMeshRendererComponent::ResolveMeshAsset(
-		AssetManager& assetManager
-	) {
-		if (mMeshPath.empty()) {
-			return kInvalidAssetID;
-		}
-		if (mMeshAssetId != kInvalidAssetID) {
-			return mMeshAssetId;
-		}
-
-		mMeshAssetId = assetManager.LoadFromFile(mMeshPath, ASSET_TYPE::MESH);
-		return mMeshAssetId;
-	}
-
-	AssetID SkeletalMeshRendererComponent::ResolveMaterialInstanceAsset(
-		AssetManager& assetManager
-	) {
-		if (mMaterialInstancePath.empty()) {
-			return kInvalidAssetID;
-		}
-		if (mMaterialInstanceAssetId != kInvalidAssetID) {
-			return mMaterialInstanceAssetId;
-		}
-
-		mMaterialInstanceAssetId = assetManager.LoadFromFile(
-			mMaterialInstancePath, ASSET_TYPE::MATERIAL_INSTANCE
-		);
-		return mMaterialInstanceAssetId;
+	const std::vector<SkeletalMaterialSlotReference>&
+	SkeletalMeshRendererComponent::GetMaterialSlots() const noexcept {
+		return mMaterialSlots;
 	}
 
 	AssetID SkeletalMeshRendererComponent::GetMeshAssetId() const noexcept {
@@ -255,99 +600,14 @@ namespace Unnamed {
 		return mMaterialInstanceAssetId;
 	}
 
-	void SkeletalMeshRendererComponent::SetMaterialSlots(
-		const std::vector<MaterialSlot>& slots
-	) {
-		mMaterialSlots = slots;
-		mMaterialInstanceAssetIds.clear();
-		mMaterialInstanceAssetIds.resize(slots.size(), kInvalidAssetID);
-	}
-
-	void SkeletalMeshRendererComponent::SetMaterialInstancePathForSlot(
-		uint32_t slotIndex, const std::string& path
-	) {
-		// スロットベクタが十分なサイズでない場合は拡張
-		if (slotIndex >= mMaterialSlots.size()) {
-			mMaterialSlots.resize(slotIndex + 1);
-		}
-
-		const std::string normalized = path.empty() ?
-			                               std::string() :
-			                               StrUtil::NormalizePath(path);
-		if (mMaterialSlots[slotIndex].materialInstancePath == normalized) {
-			return;
-		}
-
-		mMaterialSlots[slotIndex].slotIndex = slotIndex;
-		mMaterialSlots[slotIndex].materialInstancePath = normalized;
-
-		// マテリアルアセットIDリセット
-		if (slotIndex < mMaterialInstanceAssetIds.size()) {
-			mMaterialInstanceAssetIds[slotIndex] = kInvalidAssetID;
-		}
-	}
-
-	const std::vector<MaterialSlot>&
-	SkeletalMeshRendererComponent::GetMaterialSlots() const noexcept {
-		return mMaterialSlots;
-	}
-
-	void SkeletalMeshRendererComponent::ResolveMaterialInstanceAssets(
-		AssetManager& assetManager
-	) {
-		// マテリアルスロットが空の場合、旧形式の単一パスで初期化
-		if (mMaterialSlots.empty() && !mMaterialInstancePath.empty()) {
-			MaterialSlot slot;
-			slot.slotIndex = 0;
-			slot.materialInstancePath = mMaterialInstancePath;
-			mMaterialSlots.push_back(slot);
-		}
-
-		// マテリアルアセットIDリスト用意
-		if (mMaterialInstanceAssetIds.size() != mMaterialSlots.size()) {
-			mMaterialInstanceAssetIds.resize(mMaterialSlots.size(), kInvalidAssetID);
-		}
-
-		// 各スロットを解決
-		for (uint32_t i = 0; i < mMaterialSlots.size(); ++i) {
-			if (mMaterialInstanceAssetIds[i] != kInvalidAssetID) {
-				continue;  // 既に解決済み
-			}
-
-			if (mMaterialSlots[i].materialInstancePath.empty()) {
-				continue;  // パスが空の場合はスキップ
-			}
-
-			mMaterialInstanceAssetIds[i] = assetManager.LoadFromFile(
-				mMaterialSlots[i].materialInstancePath, ASSET_TYPE::MATERIAL_INSTANCE
-			);
-		}
-	}
-
-	AssetID SkeletalMeshRendererComponent::ResolveMaterialInstanceAssetForMaterialIndex(
-		AssetManager& assetManager,
-		uint32_t      materialIndex
-	) {
-		ResolveMaterialInstanceAssets(assetManager);
-
-		AssetID materialId = GetMaterialInstanceAssetIdForMaterialIndex(
-			materialIndex
-		);
-		if (materialId != kInvalidAssetID) {
-			return materialId;
-		}
-
-		// 旧形式の単一マテリアルとの互換性を維持します。
-		return ResolveMaterialInstanceAsset(assetManager);
-	}
-
 	AssetID SkeletalMeshRendererComponent::GetMaterialInstanceAssetIdForSlot(
-		uint32_t slotIndex
+		const uint32_t slotIndex
 	) const noexcept {
-		if (slotIndex >= mMaterialInstanceAssetIds.size()) {
-			return kInvalidAssetID;
-		}
-		return mMaterialInstanceAssetIds[slotIndex];
+		const auto slot = std::ranges::find(
+			mMaterialSlots, slotIndex,
+			&SkeletalMaterialSlotReference::slotIndex
+		);
+		return slot != mMaterialSlots.end() ? slot->assetId : kInvalidAssetID;
 	}
 
 	AssetID

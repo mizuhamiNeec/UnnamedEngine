@@ -14,23 +14,25 @@ namespace Unnamed::Render {
 
 	/// @brief TextureResourceCache のデバッグ統計情報です。
 	struct TextureResourceCacheDebugStats {
-		uint32_t spriteEntryCount        = 0;
-		uint32_t skyboxEntryCount        = 0;
-		uint32_t materialEntryCount      = 0;
-		uint32_t liveEntryCount          = 0;
-		uint64_t createdTextureCount     = 0;
-		uint64_t ttlReleaseCount         = 0;
-		uint64_t versionRecreateCount    = 0;
-		uint64_t releaseAllReleaseCount  = 0;
-		uint64_t failedResolveCount      = 0;
-		uint64_t lastFrameReleasedByTtl  = 0;
+		uint32_t spriteEntryCount       = 0;
+		uint32_t skyboxEntryCount       = 0;
+		uint32_t materialEntryCount     = 0;
+		uint32_t liveEntryCount         = 0;
+		uint64_t createdTextureCount    = 0;
+		uint64_t ttlReleaseCount        = 0;
+		uint64_t versionRecreateCount   = 0;
+		uint64_t releaseAllReleaseCount = 0;
+		uint64_t failedResolveCount     = 0;
+		uint64_t lastFrameReleasedByTtl = 0;
 	};
 
 	/// @brief AssetID から RgTextureId への解決と寿命管理を行います。
 	class TextureResourceCache {
 	public:
 		/// @brief キャッシュを初期化します。
-		void Initialize(AssetManager* assetManager, RgResourceRegistry* registry);
+		void Initialize(
+			AssetManager* assetManager, RgResourceRegistry* registry
+		);
 
 		/// @brief 現在フレーム番号を設定します。
 		void BeginFrame(uint64_t frameIndex);
@@ -58,16 +60,16 @@ namespace Unnamed::Render {
 
 	private:
 		struct CacheEntry {
-			uint32_t textureId    = 0;
-			uint32_t assetVersion = 0;
+			uint32_t textureId     = 0;
+			uint32_t assetVersion  = 0;
 			uint64_t lastUsedFrame = 0;
 		};
 
 		[[nodiscard]] uint32_t ResolveTexture(
-			AssetID                               assetId,
-			bool                                  requireCubeMap,
-			bool                                  requireTexture2D,
-			const char*                           debugName,
+			AssetID                                  assetId,
+			bool                                     requireCubeMap,
+			bool                                     requireTexture2D,
+			const char*                              debugName,
 			std::unordered_map<AssetID, CacheEntry>& cacheEntries
 		);
 		uint64_t CollectGarbageInternal(
@@ -77,10 +79,10 @@ namespace Unnamed::Render {
 			std::unordered_map<AssetID, CacheEntry>& cacheEntries
 		);
 
-		AssetManager*      mAssetManager = nullptr;
-		RgResourceRegistry* mRegistry    = nullptr;
-		uint64_t           mCurrentFrame = 0;
-		uint64_t           mUnusedFrameThreshold = 120;
+		AssetManager*       mAssetManager         = nullptr;
+		RgResourceRegistry* mRegistry             = nullptr;
+		uint64_t            mCurrentFrame         = 0;
+		uint64_t            mUnusedFrameThreshold = 120;
 
 		std::unordered_map<AssetID, CacheEntry> mSpriteEntries;
 		std::unordered_map<AssetID, CacheEntry> mSkyboxEntries;

@@ -53,7 +53,8 @@ namespace Unnamed {
 	}
 
 	/// @brief デバイスの状態を更新する
-	void KeyboardDevice::Update() {}
+	void KeyboardDevice::Update() {
+	}
 
 	/// @brief 指定したキーの状態を取得する
 	/// @param key 入力キー

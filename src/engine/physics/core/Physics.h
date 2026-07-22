@@ -116,7 +116,7 @@ namespace Unnamed::Physics {
 
 		[[nodiscard]] static Triangle ToWorldTriangle(
 			const RegisteredBVH& bvh,
-			const uint32_t       triIdx
+			uint32_t             triIdx
 		);
 
 		template <class CastType>
@@ -163,7 +163,7 @@ namespace Unnamed::Physics {
 			}
 
 			constexpr float startSolidToiEpsilon = 1e-6f;
-			constexpr float overlapDepthEpsilon = 1e-6f;
+			constexpr float overlapDepthEpsilon  = 1e-6f;
 
 			float    bestToi       = 1.0f;
 			uint32_t hitTri        = UINT32_MAX;
@@ -446,7 +446,7 @@ namespace Unnamed::Physics {
 				outHit->hitEntityGuid = hitEntityGuid;
 				outHit->startSolid    = startSolid;
 				outHit->allsolid      = startSolid && usingStartSolidFallback &&
-				                   bestToi <= (startSolidToiEpsilon + 1.0e-6f);
+				                   bestToi <= startSolidToiEpsilon + 1.0e-6f;
 			}
 			return true;
 		}

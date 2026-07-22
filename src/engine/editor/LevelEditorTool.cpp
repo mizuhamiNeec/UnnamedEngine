@@ -7,8 +7,8 @@
 
 #include "ImGuizmoConfigLoader.h"
 
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
-#include "core/string/StrUtil.h"
 
 #include "engine/platform/Window.h"
 #include "engine/platform/WindowManager.h"
@@ -29,8 +29,8 @@ namespace Unnamed {
 		[[nodiscard]] Vec2 ResolveMainWindowMonitorExtent(
 			WindowManager& windowManager
 		) {
-			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			const Window* const  mainWindow   = windowManager.FindWindowById(
+			const WindowId      mainWindowId = windowManager.GetMainWindowId();
+			const Window* const mainWindow   = windowManager.FindWindowById(
 				mainWindowId
 			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
@@ -63,8 +63,8 @@ namespace Unnamed {
 		[[nodiscard]] Vec2 ResolveMainWindowClientExtent(
 			WindowManager& windowManager
 		) {
-			const WindowId mainWindowId = windowManager.GetMainWindowId();
-			const Window* const  mainWindow   = windowManager.FindWindowById(
+			const WindowId      mainWindowId = windowManager.GetMainWindowId();
+			const Window* const mainWindow   = windowManager.FindWindowById(
 				mainWindowId
 			);
 			if (!mainWindow || !mainWindow->GetHwnd()) {
@@ -86,64 +86,6 @@ namespace Unnamed {
 				static_cast<float>(clientWidth),
 				static_cast<float>(clientHeight)
 			};
-		}
-
-		[[nodiscard]] Vec2 ResolveSceneRenderExtentForInput(
-			const Render::SceneViewRenderMode& request
-		) {
-			uint32_t width  = std::max(1u, request.viewportPanelWidth);
-			uint32_t height = std::max(1u, request.viewportPanelHeight);
-
-			switch (request.mode) {
-				case Render::SCENE_RENDER_MODE::FIT_VIEWPORT: {
-					break;
-				}
-				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_16X9: {
-					if (width * 9 > height * 16) {
-						width = height * 16 / 9;
-					} else {
-						height = width * 9 / 16;
-					}
-					break;
-				}
-				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_4X3: {
-					if (width * 3 > height * 4) {
-						width = height * 4 / 3;
-					} else {
-						height = width * 3 / 4;
-					}
-					break;
-				}
-				case Render::SCENE_RENDER_MODE::HD_720P: {
-					width  = 1280;
-					height = 720;
-					break;
-				}
-				case Render::SCENE_RENDER_MODE::FHD_1080P: {
-					width  = 1920;
-					height = 1080;
-					break;
-				}
-				case Render::SCENE_RENDER_MODE::UHD_4K: {
-					width  = 3840;
-					height = 2160;
-					break;
-				}
-				default: {
-					break;
-				}
-			}
-
-			width  = std::clamp(width, 2u, 8192u);
-			height = std::clamp(height, 2u, 8192u);
-			if ((width & 1u) != 0u) {
-				--width;
-			}
-			if ((height & 1u) != 0u) {
-				--height;
-			}
-
-			return {static_cast<float>(width), static_cast<float>(height)};
 		}
 	}
 
@@ -428,7 +370,7 @@ namespace Unnamed {
 			view.output.clearSwapChainWhenNotPresenting = !presentToSwapChain;
 			view.output.exposeToUi = exposeToUi;
 
-			mCameraManager.SyncGameplayCameraAspect(
+			EditorViewportCameraManager::SyncGameplayCameraAspect(
 				mEditorWorld, view.sceneViewMode, binding
 			);
 			const Render::RenderCameraInput* fallback = sourceScene.camera.
@@ -436,7 +378,7 @@ namespace Unnamed {
 					&sourceScene.camera :
 					nullptr;
 			const EditorViewportCameraManager::ResolvedCamera resolved =
-				mCameraManager.ResolveViewCamera(
+				EditorViewportCameraManager::ResolveViewCamera(
 					mEditorWorld,
 					key,
 					view.sceneViewMode,
@@ -565,8 +507,15 @@ namespace Unnamed {
 				clientExtent.y,
 				true
 			);
-		const Vec2 runtimeViewportSize = ResolveSceneRenderExtentForInput(
-			sceneRequest
+		const auto [runtimeViewportWidth, runtimeViewportHeight] =
+			Render::ResolveSceneViewRenderExtent(
+				sceneRequest.viewportPanelWidth,
+				sceneRequest.viewportPanelHeight,
+				sceneRequest
+			);
+		const Vec2 runtimeViewportSize(
+			static_cast<float>(runtimeViewportWidth),
+			static_cast<float>(runtimeViewportHeight)
 		);
 
 		mViewportPanelWidth  = runtimeViewportSize.x;
@@ -703,7 +652,12 @@ namespace Unnamed {
 		return const_cast<Scene*>(scene)->FindEntity(mSelectedEntityId);
 	}
 
-	bool LevelEditorTool::SaveSceneAs(const std::string& path) const {
+	bool LevelEditorTool::SaveSceneAs(Path path) const {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (path.IsEmpty()) {
+			return false;
+		}
+
 		const Scene* scene = mEditorWorld.GetEditableScene();
 		if (!scene) {
 			return false;
@@ -715,11 +669,9 @@ namespace Unnamed {
 		return true;
 	}
 
-	bool LevelEditorTool::LoadSceneFromPath(const std::string& path) {
-		const std::string normalizedPath = StrUtil::NormalizePath(
-			StrUtil::TrimSpaces(path)
-		);
-		if (normalizedPath.empty()) {
+	bool LevelEditorTool::LoadSceneFromPath(Path path) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (path.IsEmpty()) {
 			return false;
 		}
 
@@ -728,20 +680,21 @@ namespace Unnamed {
 			mEditorWorld.StopPlayInEditor();
 		}
 
-		if (!mEditorWorld.LoadSceneFromFile(normalizedPath.c_str())) {
+		if (!mEditorWorld.LoadSceneFromFile(path)) {
 			Warning(
 				"LevelEditorTool",
 				"Failed to load scene: {}",
-				normalizedPath
+				path
 			);
 			return false;
 		}
 
 		mSelectedEntityId = 0;
-		Msg("LevelEditorTool", "Scene loaded: {}", normalizedPath);
+		Msg("LevelEditorTool", "Scene loaded: {}", path);
 
 		mConsoleSystem->ExecuteCommand(
-			"notify info 2 LevelEditor | SceneLoaded: " + normalizedPath
+			"notify info 2 LevelEditor | SceneLoaded: " +
+			path.ToGenericUtf8()
 		);
 
 		return true;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstddef>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -27,7 +26,7 @@ namespace Unnamed {
 
 		struct AnimationStateDesc {
 			std::string stateId;
-			size_t      layerIndex    = 0;
+			size_t      layerIndex = 0;
 			std::string clipName;
 			float       weight        = 1.0f;
 			float       speed         = 1.0f;
@@ -41,23 +40,25 @@ namespace Unnamed {
 		[[nodiscard]] uint32_t         GetIcon() const override;
 
 		void OnAttached() override;
-		void OnRenderTick(float renderDeltaTime, float interpolationAlpha) override;
+		void OnRenderTick(
+			float renderDeltaTime, float interpolationAlpha
+		) override;
 
 		void Deserialize(const JsonReader& reader) override;
 		void Serialize(JsonWriter& writer) const override;
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-		void DrawInspectorImGui() override;
+		void                                   DrawInspectorImGui() override;
 		[[nodiscard]] std::vector<std::string> DebugGetStateIds() const;
 #endif
 
-		void Play();
-		void Pause();
-		void Stop();
-		bool PlayState(std::string_view stateId);
+		void               Play();
+		void               Pause();
+		void               Stop();
+		bool               PlayState(std::string_view stateId);
 		[[nodiscard]] bool HasState(std::string_view stateId) const;
 
-		void SetClipName(const std::string& clipName);
+		void                           SetClipName(const std::string& clipName);
 		[[nodiscard]] std::string_view GetClipName() const noexcept;
 
 		void               SetLoop(bool enabled);
@@ -118,7 +119,7 @@ namespace Unnamed {
 		void EnsureHasAtLeastOneLayer();
 		void ClampLayerPlaybackIfPossible(size_t layerIndex);
 
-		std::vector<RuntimeLayerState> mLayers;
+		std::vector<RuntimeLayerState>                      mLayers;
 		std::unordered_map<std::string, AnimationStateDesc> mStateMap;
 	};
 }

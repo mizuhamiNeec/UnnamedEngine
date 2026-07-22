@@ -2,33 +2,8 @@
 
 #include "d3dx12.h"
 #include "ShaderLibrary.h"
+#include "engine/rhi/d3d12/D3D12Util.h"
 #include "engine/unnamed/subsystem/console/Log.h"
-
-namespace {
-	const char* SemanticToString(const Unnamed::Rhi::VertexSemantic s) {
-		using namespace Unnamed::Rhi;
-		switch (s) {
-			case VertexSemantic::POSITION: return "POSITION";
-			case VertexSemantic::NORMAL: return "NORMAL";
-			case VertexSemantic::TANGENT: return "TANGENT";
-			case VertexSemantic::COLOR: return "COLOR";
-			case VertexSemantic::TEXCOORD: return "TEXCOORD";
-			default: return "UNKNOWN_SEMANTIC";
-		}
-	}
-
-	DXGI_FORMAT ToDxgiFormat(const Unnamed::Rhi::VertexFormat format) {
-		using Unnamed::Rhi::VertexFormat;
-		switch (format) {
-			case VertexFormat::FLOAT1: return DXGI_FORMAT_R32_FLOAT;
-			case VertexFormat::FLOAT2: return DXGI_FORMAT_R32G32_FLOAT;
-			case VertexFormat::FLOAT3: return DXGI_FORMAT_R32G32B32_FLOAT;
-			case VertexFormat::FLOAT4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case VertexFormat::U_BYTE4_N: return DXGI_FORMAT_R8G8B8A8_UNORM;
-			default: return DXGI_FORMAT_R32G32B32_FLOAT;
-		}
-	}
-}
 
 namespace Unnamed::Render {
 	static constexpr std::string_view kChannel = "PipelineCache";
@@ -41,9 +16,9 @@ namespace Unnamed::Render {
 
 		for (const auto& e : layout.elements) {
 			D3D12_INPUT_ELEMENT_DESC d = {};
-			d.SemanticName             = SemanticToString(e.semantic);
+			d.SemanticName             = Rhi::ToD3D12SemanticName(e.semantic);
 			d.SemanticIndex            = e.semanticIndex;
-			d.Format                   = ToDxgiFormat(e.format);
+			d.Format                   = Rhi::ToDxgiFormat(e.format);
 			d.InputSlot                = e.inputSlot;
 			d.AlignedByteOffset        = e.offset;
 			d.InputSlotClass           = e.perInstance ?
@@ -60,18 +35,20 @@ namespace Unnamed::Render {
 	PipelineCache::PipelineCache(
 		ID3D12Device* device, ShaderLibrary& shaders
 	) : mDevice(device),
-	    mShaders(shaders) {}
+	    mShaders(shaders) {
+	}
 
 	ID3D12PipelineState* PipelineCache::GetOrCreateGraphicsPso(
 		const GraphicsPsoKey& key
 	) {
-		auto       it          = mGraphics.find(key);
-		const bool hasExisting = it != mGraphics.end();
+		auto       it           = mGraphics.find(key);
+		const bool hasExisting  = it != mGraphics.end();
 		const bool needsRebuild =
 			!hasExisting || mDirtyGraphics.contains(key);
 		if (!needsRebuild) {
 			return it->second.Get();
 		}
+		// ホットリロード失敗時も、既存 PSO があれば描画を継続できるように残す
 		mDirtyGraphics.erase(key);
 
 		const auto& vsDxil = mShaders.GetOrCreateDxil(key.vs);
@@ -85,7 +62,11 @@ namespace Unnamed::Render {
 				key.ps.shaderSourceId,
 				key.ps.entry
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mGraphics.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
@@ -106,7 +87,7 @@ namespace Unnamed::Render {
 			desc.BlendState.RenderTarget[i].RenderTargetWriteMask =
 				key.colorWriteMask;
 		}
-		desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		desc.RasterizerState          = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 		desc.RasterizerState.CullMode = key.cullMode;
 
 		desc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -117,7 +98,8 @@ namespace Unnamed::Render {
 		desc.RTVFormats[0]    = key.numRenderTargets > 0 ?
 			                     key.rtvFormat :
 			                     DXGI_FORMAT_UNKNOWN;
-		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Count   = key.sampleCount;
+		desc.SampleDesc.Quality = key.sampleQuality;
 
 		if (key.depthEnable || key.stencilEnable) {
 			desc.DSVFormat = key.dsvFormat;
@@ -128,9 +110,9 @@ namespace Unnamed::Render {
 		if (key.depthEnable) {
 			desc.DepthStencilState.DepthEnable    = TRUE;
 			desc.DepthStencilState.DepthWriteMask = key.depthWriteEnable ?
-				                                D3D12_DEPTH_WRITE_MASK_ALL :
-				                                D3D12_DEPTH_WRITE_MASK_ZERO;
-			desc.DepthStencilState.DepthFunc      = key.depthFunc;
+				                                        D3D12_DEPTH_WRITE_MASK_ALL :
+				                                        D3D12_DEPTH_WRITE_MASK_ZERO;
+			desc.DepthStencilState.DepthFunc = key.depthFunc;
 		} else {
 			desc.DepthStencilState.DepthEnable = FALSE;
 			desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
@@ -184,7 +166,11 @@ namespace Unnamed::Render {
 				"CreateGraphicsPipelineState failed. hr=0x{:08X}",
 				static_cast<uint32_t>(hr)
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mGraphics.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		if (hasExisting) {
@@ -200,13 +186,14 @@ namespace Unnamed::Render {
 	ID3D12PipelineState* PipelineCache::GetOrCreateComputePso(
 		const ComputePipelineKey& key
 	) {
-		auto       it          = mCompute.find(key);
-		const bool hasExisting = it != mCompute.end();
+		const auto it           = mCompute.find(key);
+		const bool hasExisting  = it != mCompute.end();
 		const bool needsRebuild =
 			!hasExisting || mDirtyCompute.contains(key);
 		if (!needsRebuild) {
 			return it->second.Get();
 		}
+		// ホットリロード失敗時も、既存 PSO があれば描画を継続できるように残す
 		mDirtyCompute.erase(key);
 
 		const auto& csDxil = mShaders.GetOrCreateDxil(key.cs);
@@ -217,7 +204,11 @@ namespace Unnamed::Render {
 				key.cs.shaderSourceId,
 				key.cs.entry
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mCompute.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {};
@@ -234,7 +225,11 @@ namespace Unnamed::Render {
 				"CreateComputePipelineState failed. hr=0x{:08X}",
 				static_cast<uint32_t>(hr)
 			);
-			return hasExisting ? it->second.Get() : nullptr;
+			if (!hasExisting) {
+				mCompute.emplace(key, nullptr);
+				return nullptr;
+			}
+			return it->second.Get();
 		}
 
 		if (hasExisting) {

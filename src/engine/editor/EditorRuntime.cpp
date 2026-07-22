@@ -27,9 +27,7 @@ namespace Unnamed {
 		mToolHost.Initialize();
 	}
 
-	EditorRuntime::~EditorRuntime() = default;
-
-	void EditorRuntime::BeginUI() {
+	void EditorRuntime::BeginUI() const {
 		mToolHost.BeginUI();
 	}
 
@@ -42,7 +40,7 @@ namespace Unnamed {
 		mToolHost.BuildUi(frameContext);
 	}
 
-	void EditorRuntime::TogglePresentMode() {
+	void EditorRuntime::TogglePresentMode() const {
 		mToolHost.TogglePresentMode();
 	}
 
@@ -52,15 +50,15 @@ namespace Unnamed {
 
 	void EditorRuntime::FillEditorRenderViews(
 		Render::RenderFrameInputs& inputs
-	) {
+	) const {
 		mToolHost.CollectRenderViews(inputs);
 	}
 
-	void EditorRuntime::SyncViewOutputs() {
+	void EditorRuntime::SyncViewOutputs() const {
 		mToolHost.SyncViewOutputs();
 	}
 
-	void EditorRuntime::SyncPresentationState() {
+	void EditorRuntime::SyncPresentationState() const {
 		mToolHost.SyncPresentationState();
 	}
 

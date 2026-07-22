@@ -1,5 +1,6 @@
 #pragma once
 #include "Rect.h"
+#include "UiDrawCommand.h"
 #include "UiWidget.h"
 #include "components/UiLayoutComponents.h"
 
@@ -7,6 +8,55 @@
 #include "core/io/json/JsonWriter.h"
 
 namespace Unnamed::Gui {
+	/// @brief UIカラーをRGBA順のJSON配列として書き込みます。
+	/// @param writer 書き込み先
+	/// @param color 書き込むUIカラー
+	inline void WriteColor(JsonWriter& writer, const Color& color) {
+		writer.BeginArray();
+		writer.Write(color.r);
+		writer.Write(color.g);
+		writer.Write(color.b);
+		writer.Write(color.a);
+		writer.EndArray();
+	}
+
+	/// @brief RGBA順のJSON配列からUIカラーを読み取ります。
+	/// @param node 読み取り元
+	/// @param fallback 無効または4要素未満の場合の値
+	/// @return 読み取ったUIカラー、またはfallback
+	inline Color ReadColor(const JsonReader& node, const Color& fallback) {
+		if (!node.Valid() || node.Size() < 4) {
+			return fallback;
+		}
+		return {
+			.r = node[0].GetFloat(),
+			.g = node[1].GetFloat(),
+			.b = node[2].GetFloat(),
+			.a = node[3].GetFloat(),
+		};
+	}
+
+	/// @brief Vec2をXY順のJSON配列として書き込みます。
+	/// @param writer 書き込み先
+	/// @param value 書き込む値
+	inline void WriteVec2(JsonWriter& writer, const Vec2& value) {
+		writer.BeginArray();
+		writer.Write(value.x);
+		writer.Write(value.y);
+		writer.EndArray();
+	}
+
+	/// @brief XY順のJSON配列からVec2を読み取ります。
+	/// @param node 読み取り元
+	/// @param fallback 無効または2要素未満の場合の値
+	/// @return 読み取ったVec2、またはfallback
+	inline Vec2 ReadVec2(const JsonReader& node, const Vec2& fallback) {
+		if (!node.Valid() || node.Size() < 2) {
+			return fallback;
+		}
+		return Vec2(node[0].GetFloat(), node[1].GetFloat());
+	}
+
 	inline void WriteRect(JsonWriter& writer, const Rect& r) {
 		writer.BeginArray();
 		writer.Write(r.x);

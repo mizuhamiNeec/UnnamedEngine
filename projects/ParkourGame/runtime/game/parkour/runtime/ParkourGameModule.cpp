@@ -1,4 +1,5 @@
 #include <pch.h>
+#include "core/filesystem/Path.h"
 
 #include "ParkourGameModule.h"
 #include "ParkourComponentRegistration.h"
@@ -6,7 +7,6 @@
 #include "core/ComponentRegistry.h"
 #include "engine/physics/core/Physics.h"
 #include "engine/scene/Scene.h"
-#include "engine/game/GamePathResolver.h"
 #include "game/core/replay/DemoManager.h"
 #include "game/parkour/runtime/ParkourGameWorld.h"
 
@@ -85,23 +85,16 @@ namespace Unnamed {
 
 	GameModulePaths ParkourGameModule::GetGameModulePaths() const {
 		return {
-			.gameName            = "Parkour",
-			.gameRoot            = "./projects/ParkourGame",
-			.contentRoot         = std::string(kParkourProjectContentRoot),
-			.configRoot          = "./projects/ParkourGame/config",
-			.defaultStartupScene = "scenes/title.json",
+			.gameName = "Parkour",
+			.gameRoot = Path("./projects/ParkourGame"),
+			.contentRoot = Path(kParkourProjectContentRoot),
+			.configRoot = Path("./projects/ParkourGame/config"),
+			.defaultStartupScene = VirtualPath::ParseOrThrow("scenes/title.json"),
 		};
 	}
 
-	std::string ParkourGameModule::GetDefaultStartupScenePath() const {
-		return GetGameModulePaths().defaultStartupScene;
-	}
-
-	std::string ParkourGameModule::GetDefaultUiDocumentPath() const {
-		return ResolveGameContentPath(
-			GetGameModulePaths(),
-			"ui/MainMenu.ui.json"
-		);
+	std::optional<VirtualPath> ParkourGameModule::GetDefaultUiDocument() const {
+		return VirtualPath::ParseContentReference("ui/MainMenu.ui.json");
 	}
 
 	std::unique_ptr<IGameModule> CreateParkourGameModule() {

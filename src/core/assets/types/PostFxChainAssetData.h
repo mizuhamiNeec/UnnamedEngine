@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/VirtualPath.h"
 #include "core/math/Vec4.h"
 
 namespace Unnamed {
@@ -12,8 +13,8 @@ namespace Unnamed {
 		std::string name;
 		bool        enabled = true;
 
-		AssetID     shaderProgramId = kInvalidAssetID;
-		std::string shaderProgramPath;
+		AssetID shaderProgramId = kInvalidAssetID;
+		VirtualPath shaderProgramPath;
 
 		std::unordered_map<std::string, float> scalarParams;
 		std::unordered_map<std::string, Vec4>  colorParams;

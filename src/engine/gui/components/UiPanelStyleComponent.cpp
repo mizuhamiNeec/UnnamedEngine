@@ -3,32 +3,10 @@
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
+#include "engine/gui/UiSerializationHelpers.h"
 #include "engine/gui/UiWidget.h"
 
 namespace Unnamed::Gui {
-	namespace {
-		void WriteColor(JsonWriter& writer, const Color& color) {
-			writer.BeginArray();
-			writer.Write(color.r);
-			writer.Write(color.g);
-			writer.Write(color.b);
-			writer.Write(color.a);
-			writer.EndArray();
-		}
-
-		Color ReadColor(const JsonReader& reader, const Color& fallback) {
-			if (!reader.Valid() || reader.Size() < 4) {
-				return fallback;
-			}
-			return {
-				.r = reader[0].GetFloat(),
-				.g = reader[1].GetFloat(),
-				.b = reader[2].GetFloat(),
-				.a = reader[3].GetFloat(),
-			};
-		}
-	}
-
 	void UiPanelStyleComponent::SetBackgroundColor(const Color& color) {
 		mBackgroundColor = color;
 	}
@@ -62,18 +40,18 @@ namespace Unnamed::Gui {
 	}
 
 	void UiPanelStyleComponent::BuildDrawCommands(
-		const UiWidget& owner,
+		const UiWidget&             owner,
 		std::vector<UiDrawCommand>& out
 	) const {
 		if (!owner.IsVisible()) {
 			return;
 		}
 
-		UiDrawCommand command = {};
-		command.type          = UI_DRAW_COMMAND_TYPE::RECT;
-		command.rect.rect     = owner.GetGlobalRect();
-		command.rect.fillColor = mBackgroundColor;
-		command.rect.cornerRadius = mCornerRadius;
+		UiDrawCommand command        = {};
+		command.type                 = UI_DRAW_COMMAND_TYPE::RECT;
+		command.rect.rect            = owner.GetGlobalRect();
+		command.rect.fillColor       = mBackgroundColor;
+		command.rect.cornerRadius    = mCornerRadius;
 		command.rect.borderThickness = mBorderThickness;
 		command.rect.borderColor     = mBorderColor;
 		out.emplace_back(command);
@@ -90,7 +68,10 @@ namespace Unnamed::Gui {
 		WriteColor(writer, mBorderColor);
 	}
 
-	void UiPanelStyleComponent::Deserialize(const JsonReader& reader) {
+	bool UiPanelStyleComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		(void)context;
 		if (reader.Has("fillColor")) {
 			mBackgroundColor = ReadColor(reader["fillColor"], mBackgroundColor);
 		}
@@ -103,5 +84,6 @@ namespace Unnamed::Gui {
 		if (reader.Has("borderColor")) {
 			mBorderColor = ReadColor(reader["borderColor"], mBorderColor);
 		}
+		return true;
 	}
 }

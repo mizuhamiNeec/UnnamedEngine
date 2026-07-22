@@ -22,7 +22,8 @@ namespace Unnamed {
 			"sv_tickrate",
 			static_cast<int>(kDefaultDemoTickRate)
 		);
-		return std::clamp(static_cast<uint32_t>(std::max(1, rawTickRate)), 1u, 1000u);
+		return std::clamp(static_cast<uint32_t>(std::max(1, rawTickRate)), 1u,
+		                  1000u);
 	}
 
 	float IDemoService::TickStepSecondsFromRate(const uint32_t tickRate) {

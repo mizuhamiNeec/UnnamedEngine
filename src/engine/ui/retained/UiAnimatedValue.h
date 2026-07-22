@@ -41,7 +41,7 @@ namespace Unnamed::UI::Retained {
 			mAnimating       = true;
 		}
 
-		void Update(float deltaTime) noexcept {
+		void Update(const float deltaTime) noexcept {
 			if (!mAnimating) {
 				return;
 			}

@@ -7,4 +7,3 @@ namespace Unnamed {
 	/// @param componentRegistry 登録先コンポーネントレジストリ
 	void RegisterDefaultEngineComponents(ComponentRegistry& componentRegistry);
 }
-

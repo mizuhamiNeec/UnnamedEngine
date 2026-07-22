@@ -120,7 +120,9 @@ namespace Unnamed {
 			return ImGui::GetColorU32(ImGuiCol_Text);
 		}
 
-		std::optional<NOTIFY_TYPE> TryParseNotifyType(const std::string_view value) {
+		std::optional<NOTIFY_TYPE> TryParseNotifyType(
+			const std::string_view value
+		) {
 			const std::string lower = StrUtil::ToLowerCase(std::string(value));
 			if (lower == "info" || lower == "i") {
 				return NOTIFY_TYPE::INFO;
@@ -139,7 +141,7 @@ namespace Unnamed {
 
 		std::string JoinArgs(
 			const std::vector<std::string>& args, const size_t beginIndex,
-			const size_t                          endIndex
+			const size_t                    endIndex
 		) {
 			if (beginIndex >= endIndex || beginIndex >= args.size()) {
 				return {};
@@ -449,6 +451,7 @@ namespace Unnamed {
 				std::vector<NotificationLayout> layouts;
 				layouts.reserve(mNotifications.size());
 
+				// 全カードの配置先を先に決め、追加・削除時もスタックを滑らかに移動する
 				float totalHeight = 0.0f;
 				for (const std::shared_ptr<NotificationState>& state :
 				     mNotifications) {
@@ -630,8 +633,9 @@ namespace Unnamed {
 			return;
 		}
 
+		// 完了コールバックが通知の寿命を延長しないよう弱参照だけを保持する
 		const std::weak_ptr weakNotification = notification;
-		const auto fadeTween = mTweenManager->CreateTo(
+		const auto          fadeTween        = mTweenManager->CreateTo(
 			notification->opacity, 0.0f, kExitDurationSeconds
 		);
 		fadeTween->SetEaseCubicBezier(kP1, kP2).OnComplete(

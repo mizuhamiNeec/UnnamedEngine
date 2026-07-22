@@ -5,7 +5,6 @@
 #include <random>
 #include <thread>
 
-
 namespace Unnamed {
 	constexpr uint64_t kGuidRandom64MsbMask = 0x8000'0000'0000'0000ULL;
 
@@ -28,7 +27,8 @@ namespace Unnamed {
 		}
 	}
 
-	GuidGenerator::GuidGenerator(const MODE m) : mMode(m) {}
+	GuidGenerator::GuidGenerator(const MODE m) : mMode(m) {
+	}
 
 	uint64_t GuidGenerator::Alloc() {
 		switch (mMode) {
@@ -37,7 +37,7 @@ namespace Unnamed {
 					       1, std::memory_order_relaxed
 				       ) + 1;
 			}
-			case MODE::RANDOM64: return AllocRandom64ThreadSafe();
+			case MODE::RANDOM64: return AllocRandom();
 
 			default: {
 				return mCounter.fetch_add(
@@ -45,5 +45,9 @@ namespace Unnamed {
 				       ) + 1;
 			}
 		}
+	}
+
+	uint64_t GuidGenerator::AllocRandom() {
+		return AllocRandom64ThreadSafe();
 	}
 }

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "core/filesystem/Path.h"
 #include "core/math/Mat4.h"
 #include "core/math/Quaternion.h"
 #include "core/math/Vec2.h"
@@ -74,6 +75,11 @@ namespace Unnamed {
 		Vec3 localBoundsMin = Vec3(FLT_MAX);
 		Vec3 localBoundsMax = Vec3(-FLT_MAX);
 
-		std::string sourcePath;
+		Path sourcePath;
 	};
+
+	/// @brief メッシュに必要なマテリアルスロット数を返します。
+	/// @param meshAsset 対象メッシュ
+	/// @return サブメッシュの最大materialIndexから求めたスロット数
+	uint32_t ComputeRequiredMaterialSlotCount(const MeshAssetData& meshAsset);
 }

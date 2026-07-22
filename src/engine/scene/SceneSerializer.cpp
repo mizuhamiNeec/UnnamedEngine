@@ -11,55 +11,36 @@
 
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/subsystem/console/Log.h"
+#include "engine/world/World.h"
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "SceneSerializer";
 
 	bool SceneSerializer::LoadFromFile(
-		Scene& scene, const std::string& path, GuidGenerator& guidGen
+		Scene& scene, Path path, GuidGenerator& guidGen,
+		const SceneLoadOptions& options
 	) {
 		const JsonReader root(path);
 		if (!root.Valid()) {
 			Error(kChannel, "Failed to open scene: {}", path);
 			return false;
 		}
-		return Deserialize(scene, root, guidGen);
+		return Deserialize(scene, root, guidGen, options, path);
 	}
 
 	bool SceneSerializer::SaveToFile(
-		const Scene& scene, const std::string& path
+		const Scene& scene, const Path& path
 	) {
 		JsonWriter writer(path);
 		Serialize(scene, writer);
 		return writer.Save();
 	}
 
-	namespace {
-		bool ReadBoolOr(
-			const JsonReader& r, const char* key, const bool fallback
-		) {
-			const JsonReader v = r[key];
-			return v.Valid() ? v.GetBool() : fallback;
-		}
-
-		uint64_t ReadU64Or(
-			const JsonReader& r, const char* key, const uint64_t fallback
-		) {
-			const JsonReader v = r[key];
-			return v.Valid() ? v.GetUint64() : fallback;
-		}
-
-		std::string ReadStringOr(
-			const JsonReader& r, const char* key, const char* fallback
-		) {
-			const JsonReader v = r[key];
-			return v.Valid() ? v.GetString() : std::string(fallback);
-		}
-	}
-
 	bool SceneSerializer::Deserialize(
-		Scene& scene, const JsonReader& root, GuidGenerator& guidGen
+		Scene& scene, const JsonReader& root, GuidGenerator& guidGen,
+		const SceneLoadOptions& options, const Path& scenePath
 	) {
+		// 読み込み失敗時に以前のシーン内容が混在しないよう、先に置き換える
 		scene.Reset();
 
 		const JsonReader folders = root["folders"];
@@ -87,13 +68,14 @@ namespace Unnamed {
 				continue;
 			}
 
-			const std::string name = ReadStringOr(e, "name", "unnamed");
-			const std::string folderPath = ReadStringOr(e, "folderPath", "");
-			const uint64_t guid = ReadU64Or(e, "guid", 0);
-			const bool isEditorOnly = ReadBoolOr(e, "isEditorOnly", false);
-			const bool entityActive = ReadBoolOr(e, "active", true);
-			const bool entityVisible = ReadBoolOr(e, "visible", true);
+			const std::string name = e.ReadStringOr("name", "unnamed");
+			const std::string folderPath = e.ReadStringOr("folderPath", "");
+			const uint64_t guid = e.ReadUint64Or("guid", 0);
+			const bool isEditorOnly = e.ReadBoolOr("isEditorOnly", false);
+			const bool entityActive = e.ReadBoolOr("active", true);
+			const bool entityVisible = e.ReadBoolOr("visible", true);
 
+			// ファイル内の GUID 重複や未指定は実行時に一意な値へ補正する
 			uint64_t finalGuid = guid != 0 ? guid : guidGen.Alloc();
 			while (finalGuid == 0 || scene.FindEntity(finalGuid) != nullptr) {
 				finalGuid = guidGen.Alloc();
@@ -115,7 +97,7 @@ namespace Unnamed {
 					continue;
 				}
 
-				const std::string type = ReadStringOr(c, "type", "");
+				const std::string type = c.ReadStringOr("type", "");
 				if (type.empty()) {
 					continue;
 				}
@@ -127,17 +109,38 @@ namespace Unnamed {
 					continue;
 				}
 
-				const uint64_t compGuid = ReadU64Or(c, "guid", 0);
+				const uint64_t compGuid = c.ReadUint64Or("guid", 0);
 				comp->SetGuid(compGuid != 0 ? compGuid : guidGen.Alloc());
 
-				comp->SetActive(ReadBoolOr(c, "active", true));
+				comp->SetActive(c.ReadBoolOr("active", true));
 
 				const JsonReader data = c["data"];
 				if (data.Valid()) {
-					// コンポーネントに任せる
-					comp->Deserialize(data);
+					const World* world = scene.GetWorld();
+					const SceneDeserializeContext context{
+						.loadOptions  = options,
+						.assetManager = world ? world->GetAssetManager() : nullptr,
+						.scenePath    = scenePath,
+						.entityName   = name,
+						.entityId     = finalGuid,
+						.componentType = type,
+					};
+					if (!comp->Deserialize(data, context)) {
+						// 部分的に復元されたシーンを残さず、呼び出し元へ失敗を伝える
+						Error(
+							kChannel,
+							"Component deserialize failed: scene='{}' entity='{}' entityId={} component='{}'",
+							scenePath,
+							name,
+							finalGuid,
+							type
+						);
+						scene.Reset();
+						return false;
+					}
 				}
 
+				// Deserialize 完了後にアタッチし、初期化フックが復元済みの値を参照できるようにする
 				(void)entity.AddComponentInstance(std::move(comp));
 			}
 		}
@@ -240,7 +243,11 @@ namespace Unnamed {
 			const auto parseEnd = std::chrono::steady_clock::now();
 			const JsonReader reader(root);
 			const auto deserializeStart = std::chrono::steady_clock::now();
-			const bool ok = Deserialize(dst, reader, guidGen);
+			const SceneLoadOptions options{};
+			const Path scenePath("__clone__.json");
+			const bool ok = Deserialize(
+				dst, reader, guidGen, options, scenePath
+			);
 			const auto deserializeEnd = std::chrono::steady_clock::now();
 
 			DevMsg(

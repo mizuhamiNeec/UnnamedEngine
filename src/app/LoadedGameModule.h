@@ -37,9 +37,9 @@ namespace Unnamed {
 		/// @brief Engine へ渡すワールドファクトリを返します。
 		[[nodiscard]] IGameWorldFactory& GetWorldFactory() const;
 		/// @brief Engine へ渡す Demo サービスを生成します。
-		[[nodiscard]] std::unique_ptr<IDemoService> CreateDemoService();
+		[[nodiscard]] std::unique_ptr<IDemoService> CreateDemoService() const;
 		/// @brief Engine へ渡すランタイムコンテキストを返します。
-		[[nodiscard]] GameRuntimeContext& GetRuntimeContext();
+		[[nodiscard]] GameRuntimeContext& GetRuntimeContext() const;
 		/// @brief ログ向けに GameModule 名を返します。
 		[[nodiscard]] std::string GetGameModuleName() const;
 		/// @brief ログ向けに要求 runtime module 名を返します。
@@ -47,14 +47,14 @@ namespace Unnamed {
 
 	private:
 		LoadedGameModule(
-			std::string                requestedModuleName,
+			std::string                  requestedModuleName,
 			std::unique_ptr<IGameModule> gameModule
 		);
 
-		std::string                 mRequestedModuleName = {};
-		std::unique_ptr<IGameModule> mGameModule = {};
-		std::unique_ptr<GameRuntimeContext> mRuntimeContext = {};
-		bool mLoaded = false;
-		bool mRuntimeContextRegistered = false;
+		std::string                         mRequestedModuleName      = {};
+		std::unique_ptr<IGameModule>        mGameModule               = {};
+		std::unique_ptr<GameRuntimeContext> mRuntimeContext           = {};
+		bool                                mLoaded                   = false;
+		bool                                mRuntimeContextRegistered = false;
 	};
 }

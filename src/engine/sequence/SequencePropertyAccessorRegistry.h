@@ -36,22 +36,22 @@ namespace Unnamed {
 
 		/// @brief Floatアクセサを登録します。
 		void RegisterFloat(
-			std::string componentStableName,
-			std::string propertyPath,
+			const std::string&    componentStableName,
+			const std::string&    propertyPath,
 			SequenceFloatAccessor accessor
 		);
 
 		/// @brief Boolアクセサを登録します。
 		void RegisterBool(
-			std::string componentStableName,
-			std::string propertyPath,
+			const std::string&   componentStableName,
+			const std::string&   propertyPath,
 			SequenceBoolAccessor accessor
 		);
 
 		/// @brief Vec3アクセサを登録します。
 		void RegisterVec3(
-			std::string componentStableName,
-			std::string propertyPath,
+			const std::string&   componentStableName,
+			const std::string&   propertyPath,
 			SequenceVec3Accessor accessor
 		);
 
@@ -79,8 +79,11 @@ namespace Unnamed {
 			std::string_view propertyPath
 		);
 
-		std::unordered_map<std::string, SequenceFloatAccessor> mFloatAccessors = {};
-		std::unordered_map<std::string, SequenceBoolAccessor>  mBoolAccessors  = {};
-		std::unordered_map<std::string, SequenceVec3Accessor>  mVec3Accessors  = {};
+		std::unordered_map<std::string, SequenceFloatAccessor> mFloatAccessors =
+			{};
+		std::unordered_map<std::string, SequenceBoolAccessor> mBoolAccessors =
+			{};
+		std::unordered_map<std::string, SequenceVec3Accessor> mVec3Accessors =
+			{};
 	};
 }

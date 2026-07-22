@@ -1,6 +1,5 @@
 #include "EditorWorld.h"
 
-#include <algorithm>
 #include <chrono>
 
 #include "engine/game/IGameWorldFactory.h"
@@ -18,36 +17,6 @@ namespace Unnamed {
 
 	EditorWorld::~EditorWorld() = default;
 
-	namespace {
-		float ResolveEditorCameraAspect(
-			const Render::SceneViewRenderMode& request
-		) {
-			switch (request.mode) {
-				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_16X9
-				: return 16.0f / 9.0f;
-				case Render::SCENE_RENDER_MODE::FIXED_ASPECT_4X3
-				: return 4.0f / 3.0f;
-				case Render::SCENE_RENDER_MODE::HD_720P
-				: return 1280.0f / 720.0f;
-				case Render::SCENE_RENDER_MODE::FHD_1080P
-				: return 1920.0f / 1080.0f;
-				case Render::SCENE_RENDER_MODE::UHD_4K
-				: return 3840.0f / 2160.0f;
-				case Render::SCENE_RENDER_MODE::FIT_VIEWPORT:
-				default: {
-					const uint32_t width = std::max(
-						1u, request.viewportPanelWidth
-					);
-					const uint32_t height = std::max(
-						1u, request.viewportPanelHeight
-					);
-					return static_cast<float>(width) / static_cast<float>(
-						       height);
-				}
-			}
-		}
-	}
-
 	void EditorWorld::Initialize() {
 		World::Initialize();
 
@@ -56,7 +25,7 @@ namespace Unnamed {
 				"__EditorCameraEntity", mGuidGenerator.Alloc(), true
 			);
 			auto* transform = mEditorEntity->AddComponent<TransformComponent>();
-			transform->SetPosition(Vec3(0.0f, 5.0f, -3.0f));
+			transform->SetPosition(Math::HtoM({0.0f, 256.0f, -256.0f}));
 			transform->SetRotation(
 				Quaternion::EulerDegrees(Vec3::right * 15.0f)
 			);
@@ -69,7 +38,6 @@ namespace Unnamed {
 			if (mPlayWorld) {
 				mPlayWorld->FixedTick(fixedDeltaTime);
 			}
-			return;
 		}
 	}
 
@@ -121,7 +89,7 @@ namespace Unnamed {
 		playWorld->Initialize();
 		const auto worldInitEnd = std::chrono::steady_clock::now();
 
-		auto          playScene = std::make_unique<Scene>();
+		auto playScene = std::make_unique<Scene>();
 		playScene->SetWorld(playWorld.get());
 		GuidGenerator cloneGuid;
 		const auto    cloneStart = std::chrono::steady_clock::now();
@@ -175,16 +143,19 @@ namespace Unnamed {
 	void EditorWorld::FillRenderFrameInputs(
 		Render::RenderFrameInputs&  inputs,
 		Render::RenderFrameContext& frameContext,
-		AssetManager&               assetManager
+		AssetManager&               assetManager,
+		const bool                  enableUiInput
 	) {
 		if (mPlayWorld) {
 			mPlayWorld->FillRenderFrameInputs(
-				inputs, frameContext, assetManager
+				inputs, frameContext, assetManager, enableUiInput
 			);
 			return;
 		}
 
-		World::FillRenderFrameInputs(inputs, frameContext, assetManager);
+		World::FillRenderFrameInputs(
+			inputs, frameContext, assetManager, enableUiInput
+		);
 
 		Render::RenderViewInput* primarySceneView = nullptr;
 		for (auto& view : inputs.views) {
@@ -214,8 +185,12 @@ namespace Unnamed {
 		return false;
 	}
 
+	World* EditorWorld::GetSimulationWorld() noexcept {
+		return mPlayWorld ? mPlayWorld.get() : this;
+	}
+
 	World* EditorWorld::GetRuntimeSceneWorld() {
-		return mPlayWorld ? static_cast<World*>(mPlayWorld.get()) : this;
+		return mPlayWorld ? mPlayWorld.get() : this;
 	}
 
 	const World* EditorWorld::GetRuntimeSceneWorld() const {
@@ -257,8 +232,8 @@ namespace Unnamed {
 
 	bool EditorWorld::BuildEditorCameraMatrices(
 		const Render::SceneViewRenderMode& request,
-		Mat4&                             outView,
-		Mat4&                             outProj
+		Mat4&                              outView,
+		Mat4&                              outProj
 	) {
 		UpdateEditorCameraAspectIfNeeded(request);
 		if (!mEditorEntity || !mEditorEntity->IsActive()) {
@@ -279,6 +254,24 @@ namespace Unnamed {
 			return;
 		}
 		camera->SetLookEnabled(enabled);
+	}
+
+	bool EditorWorld::BuildUiInputCamera(
+		Render::RenderCameraInput& outCamera
+	) const {
+		outCamera = {};
+		if (!mEditorEntity || !mEditorEntity->IsActive()) {
+			return false;
+		}
+
+		const auto* camera =
+			mEditorEntity->GetComponent<EditorCameraComponent>();
+		if (!camera || !camera->IsActive()) {
+			return false;
+		}
+
+		camera->BuildCameraInput(outCamera);
+		return outCamera.valid;
 	}
 
 	void EditorWorld::UpdateEditorCameraAspectIfNeeded(
@@ -314,29 +307,12 @@ namespace Unnamed {
 		}
 
 		if (shouldUpdate) {
-			camera->SetAspectRatio(ResolveEditorCameraAspect(request));
+			camera->
+				SetAspectRatio(Render::ResolveSceneViewAspectRatio(request));
 		}
 
 		mLastAspectMode           = request.mode;
 		mLastAspectViewportWidth  = request.viewportPanelWidth;
 		mLastAspectViewportHeight = request.viewportPanelHeight;
-	}
-
-	bool EditorWorld::BuildUiInputCamera(
-		Render::RenderCameraInput& outCamera
-	) const {
-		outCamera = {};
-		if (!mEditorEntity || !mEditorEntity->IsActive()) {
-			return false;
-		}
-
-		const auto* camera =
-			mEditorEntity->GetComponent<EditorCameraComponent>();
-		if (!camera || !camera->IsActive()) {
-			return false;
-		}
-
-		camera->BuildCameraInput(outCamera);
-		return outCamera.valid;
 	}
 }

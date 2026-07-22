@@ -1,7 +1,5 @@
 #include "MouseDevice.h"
 
-#include "engine/unnamed/subsystem/console/Log.h"
-
 namespace Unnamed {
 	namespace {
 		bool IsRemoteSession() {

@@ -1,10 +1,8 @@
 #include "ConsoleScriptComponent.h"
 
-#include <algorithm>
-#include <array>
-
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
+#include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
 #include "core/ComponentRegistry.h"
@@ -57,7 +55,7 @@ namespace Unnamed {
 			for (size_t i = 0; i < commands.size(); ++i) {
 				ImGui::PushID(static_cast<int>(i));
 				std::string& command = commands[i];
-				EditCommandInput<512>("##Command", command);
+				(void)ImGuiWidgets::InputText<512>("##Command", command);
 				ImGui::SameLine();
 				if (ImGui::Button("Remove")) {
 					commands.erase(
@@ -88,7 +86,8 @@ namespace Unnamed {
 					continue;
 				}
 				std::string command = StrUtil::TrimSpaces(
-					commandNode.GetString(""));
+					commandNode.GetString("")
+				);
 				if (command.empty()) {
 					continue;
 				}
@@ -183,3 +182,4 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(ConsoleScriptComponent);
 }
+

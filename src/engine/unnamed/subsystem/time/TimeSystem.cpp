@@ -24,9 +24,9 @@ namespace Unnamed {
 	}
 
 	/// @brief フレーム終了処理
-	void TimeSystem::EndFrame() const {
+	void TimeSystem::EndFrame(const bool advanceGameTime) const {
 		mFrameLimiter->Limit();
-		mGameTime->EndFrame();
+		mGameTime->EndFrame(advanceGameTime);
 	}
 
 	/// @brief 名前を取得します

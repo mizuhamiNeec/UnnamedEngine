@@ -7,14 +7,14 @@
 
 namespace Unnamed::Gui {
 	namespace {
-		static constexpr std::string_view kChannel = "UiDocument";
+		constexpr std::string_view kChannel = "UiDocument";
 	}
 
 	UiDocument::UiDocument() = default;
 
 	UiDocument::~UiDocument() = default;
 
-	bool UiDocument::Save(const std::string& path) const {
+	bool UiDocument::Save(const Path& path) const {
 		JsonWriter writer(path);
 
 		writer.BeginObject();
@@ -33,18 +33,21 @@ namespace Unnamed::Gui {
 		return writer.Save();
 	}
 
-	std::shared_ptr<UiDocument> UiDocument::Load(const std::string& path) {
+	std::shared_ptr<UiDocument> UiDocument::Load(
+		const Path& path, const UiDeserializeContext& context
+	) {
 		const JsonReader reader(path);
 		if (!reader.Valid()) {
 			Error(kChannel, "Failed to open UI document '{}'.", path);
 			return nullptr;
 		}
-		return LoadFromJson(reader, path);
+		return LoadFromJson(reader, path.ToGenericUtf8(), context);
 	}
 
 	std::shared_ptr<UiDocument> UiDocument::LoadFromJson(
-		const JsonReader& reader,
-		const std::string& sourceLabel
+		const JsonReader&  reader,
+		const std::string& sourceLabel,
+		const UiDeserializeContext& context
 	) {
 		if (!reader.Valid()) {
 			Error(kChannel, "Invalid UI document source: '{}'.", sourceLabel);
@@ -72,7 +75,7 @@ namespace Unnamed::Gui {
 		}
 
 		const JsonReader rootNode   = reader["root"];
-		auto             rootWidget = UiWidget::CreateFromJson(rootNode);
+		auto rootWidget = UiWidget::CreateFromJson(rootNode, context);
 		if (!rootWidget) {
 			Error(kChannel, "UI root parse failed: '{}'.", sourceLabel);
 			return nullptr;

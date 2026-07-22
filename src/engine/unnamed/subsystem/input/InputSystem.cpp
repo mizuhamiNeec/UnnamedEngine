@@ -152,6 +152,7 @@ namespace Unnamed {
 
 	/// @brief 更新
 	void InputSystem::Update(float) {
+		// このフレームのアクションと軸を同じデバイス状態から組み立てる
 		for (const auto& inputDevice : mDevices) {
 			inputDevice->Update();
 		}

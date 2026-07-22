@@ -33,23 +33,23 @@
                         "materialInstancePath": "",
                         "materialSlots": [
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 0
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/gray.matinst.json",
+                                "materialInstancePath": "materials/instances/gray.matinst.json",
                                 "slotIndex": 1
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/dev_default.matinst.json",
                                 "slotIndex": 2
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/red.matinst.json",
+                                "materialInstancePath": "materials/instances/red.matinst.json",
                                 "slotIndex": 3
                             },
                             {
-                                "materialInstancePath": "content/core/materials/instances/dev_default.matinst.json",
+                                "materialInstancePath": "materials/instances/game_fixture.matinst.json",
                                 "slotIndex": 4
                             }
                         ],
@@ -105,9 +105,9 @@
                     "active": true,
                     "data": {
                         "boxHalfExtentsHu": [
-                            16.000099182128906,
-                            36.00023651123047,
-                            16.000099182128906
+                            16.00011444091797,
+                            36.000274658203125,
+                            16.00011444091797
                         ],
                         "cameraRootEntityGuid": 2101,
                         "collisionEnabled": true,
@@ -149,7 +149,7 @@
                         "receiveInput": false,
                         "sortKey": 300,
                         "spaceMode": "Screen",
-                        "uiAssetPath": "ui/hud.ui.json",
+                        "uiDocumentPath": "ui/hud.ui.json",
                         "worldSize": [
                             2.0,
                             1.125
@@ -358,7 +358,6 @@
                 {
                     "active": true,
                     "data": {
-                        "materialInstancePath": "",
                         "materialSlots": [],
                         "meshPath": "models/viewmodel/viewmodel.glb"
                     },
@@ -647,7 +646,7 @@
                         "loop": false,
                         "pitch": 1.0,
                         "playOnStart": false,
-                        "soundPath": "sounds/se/footstep/Robot_Footstep_Single_v3_02.wav",
+                        "soundPath": "sounds/se/player/Robot_Footstep_Single_v3_02.wav",
                         "volume": 0.30000001192092896
                     },
                     "guid": 17000123456789012345,
@@ -659,10 +658,22 @@
                         "loop": false,
                         "pitch": 1.0,
                         "playOnStart": false,
-                        "soundPath": "sounds/se/footstep/Robot_Footstep_Single_v2_01.wav",
+                        "soundPath": "sounds/se/player/Robot_Footstep_Single_v2_01.wav",
                         "volume": 0.36000001430511475
                     },
                     "guid": 17000123456789012347,
+                    "type": "engine.AudioSource"
+                },
+                {
+                    "active": true,
+                    "data": {
+                        "loop": false,
+                        "pitch": 1.0,
+                        "playOnStart": false,
+                        "soundPath": "sounds/se/player/UI_Noisy_Impact_09.wav",
+                        "volume": 0.20000000298023224
+                    },
+                    "guid": 17000123456789012349,
                     "type": "engine.AudioSource"
                 },
                 {
@@ -676,6 +687,14 @@
                                 "sourceComponentGuid": 17000123456789012345,
                                 "sourceEntityGuid": 0,
                                 "volume": 0.30000001192092896
+                            },
+                            {
+                                "id": "se_doublejump",
+                                "pitchMax": 1.059999942779541,
+                                "pitchMin": 0.949999988079071,
+                                "sourceComponentGuid": 17000123456789012349,
+                                "sourceEntityGuid": 0,
+                                "volume": 0.15000000596046448
                             },
                             {
                                 "id": "se_land",
@@ -764,7 +783,7 @@
                         "receiveInput": false,
                         "sortKey": 0,
                         "spaceMode": "WorldBillboard",
-                        "uiAssetPath": "ui/crosshair.ui.json",
+                        "uiDocumentPath": "ui/crosshair.ui.json",
                         "worldSize": [
                             256.0,
                             256.0
@@ -857,7 +876,7 @@
                     "active": true,
                     "data": {
                         "intensity": 1.0,
-                        "texturePath": "content/core/textures/wave.dds"
+                        "texturePath": "textures/wave.dds"
                     },
                     "guid": 13523057102086617376,
                     "type": "engine.Skybox"
@@ -953,7 +972,7 @@
                         "receiveInput": true,
                         "sortKey": 1000,
                         "spaceMode": "Screen",
-                        "uiAssetPath": "ui/TitleMenu.ui.json",
+                        "uiDocumentPath": "ui/TitleMenu.ui.json",
                         "worldSize": [
                             2.0,
                             1.125

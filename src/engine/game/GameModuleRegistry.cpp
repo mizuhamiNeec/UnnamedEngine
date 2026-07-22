@@ -1,8 +1,9 @@
 #include "GameModuleRegistry.h"
 
 #include <algorithm>
-#include <cctype>
 #include <ranges>
+
+#include "core/string/StrUtil.h"
 
 namespace Unnamed {
 	bool GameModuleRegistry::RegisterFactory(
@@ -51,18 +52,5 @@ namespace Unnamed {
 		}
 		std::ranges::sort(names);
 		return names;
-	}
-
-	std::string GameModuleRegistry::NormalizeModuleName(
-		const std::string_view moduleName
-	) {
-		std::string normalized(moduleName);
-		std::transform(
-			normalized.begin(),
-			normalized.end(),
-			normalized.begin(),
-			[](const unsigned char ch) { return static_cast<char>(std::tolower(ch)); }
-		);
-		return normalized;
 	}
 }

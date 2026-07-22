@@ -1,22 +1,21 @@
 #ifdef _DEBUG
 #include "SequenceEditorDocument.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
-#include <filesystem>
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/loader/SequenceFileIO.h"
-#include "core/path/PathUtil.h"
-#include "core/string/StrUtil.h"
 
 namespace Unnamed {
 	namespace {
 		constexpr size_t kMaxUndoDepth = 128;
 	}
 
-	SequenceEditorDocument::SequenceEditorDocument(std::string path) :
-		mPath(StrUtil::NormalizePath(std::move(path))) {}
+	SequenceEditorDocument::SequenceEditorDocument(const Path& path) :
+		mPath(path) {
+	}
 
 	bool SequenceEditorDocument::ReloadFromDisk() {
 		SequenceFileLoadResult loadResult = {};
@@ -24,11 +23,11 @@ namespace Unnamed {
 			return false;
 		}
 
-		mAuthoringData          = std::move(loadResult.authoring);
-		mLastSavedSemanticHash  = loadResult.semanticHash;
-		mMigratedOnLoad         = loadResult.migrated;
-		mDirty                  = false;
-		mExternalConflict       = false;
+		mAuthoringData         = std::move(loadResult.authoring);
+		mLastSavedSemanticHash = loadResult.semanticHash;
+		mMigratedOnLoad        = loadResult.migrated;
+		mDirty                 = false;
+		mExternalConflict      = false;
 		mUndoStack.clear();
 		mRedoStack.clear();
 		return true;
@@ -107,8 +106,9 @@ namespace Unnamed {
 	AssetID SequenceEditorDocument::RebuildPreviewRuntimeAsset(
 		AssetManager& assetManager
 	) {
-		static uint64_t runtimeSerial = 1;
-		SequenceAssetData runtimeData = SequenceFileIO::BuildRuntimeData(mAuthoringData);
+		static uint64_t   runtimeSerial = 1;
+		SequenceAssetData runtimeData   = SequenceFileIO::BuildRuntimeData(
+			mAuthoringData);
 		const std::string runtimeName = "sequence.editor.preview." +
 		                                GetDisplayName() + "." +
 		                                std::to_string(runtimeSerial++);
@@ -120,20 +120,20 @@ namespace Unnamed {
 		return mPreviewAssetId;
 	}
 
-	const std::string& SequenceEditorDocument::GetPath() const {
+	const Path& SequenceEditorDocument::GetPath() const {
 		return mPath;
 	}
 
 	std::string SequenceEditorDocument::GetDisplayName() const {
-		const std::filesystem::path path = Path::FromUtf8(mPath);
-		return Path::ToUtf8String(path.stem().stem());
+		return mPath.ToUtf8();
 	}
 
 	SequenceAuthoringData& SequenceEditorDocument::GetAuthoringData() {
 		return mAuthoringData;
 	}
 
-	const SequenceAuthoringData& SequenceEditorDocument::GetAuthoringData() const {
+	const SequenceAuthoringData&
+	SequenceEditorDocument::GetAuthoringData() const {
 		return mAuthoringData;
 	}
 

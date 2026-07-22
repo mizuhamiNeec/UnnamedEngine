@@ -3,14 +3,15 @@
 #include <bit>
 #include <cstdint>
 #include <fstream>
-#include <string>
 #include <string_view>
 #include <vector>
+
+#include "core/filesystem/Path.h"
 
 namespace Unnamed {
 	class BinaryWriter {
 	public:
-		explicit BinaryWriter(const std::string& path);
+		explicit BinaryWriter(const Path& path);
 
 		/// @brief ファイルが正常に開けているか
 		/// @return ファイルが正常に開けているならtrue、開けなかった場合はfalse
@@ -27,13 +28,13 @@ namespace Unnamed {
 		/// @brief 書き込み位置を移動する
 		/// @param offset 移動先のオフセット（バイト単位）
 		/// @return 書き込み位置の移動に成功したか
-		bool Seek(const uint64_t offset);
+		bool Seek(uint64_t offset);
 
 		/// @brief バイト列を書き込む
 		/// @param data 書き込むデータの先頭ポインタ
 		/// @param sizeBytes 書き込むデータのサイズ（バイト単位）
 		/// @return 書き込みに成功したか
-		bool WriteBytes(const void* data, const size_t sizeBytes);
+		bool WriteBytes(const void* data, size_t sizeBytes);
 
 		/// @brief 標準レイアウトな値をバイト列として書き込む。
 		/// @tparam T 書き込む値の型。標準レイアウトである必要がある。
@@ -49,7 +50,7 @@ namespace Unnamed {
 		/// @brief 文字列を書き込む。文字列の長さはuint32_tで表現できる必要がある。
 		/// @param text 書き込む文字列
 		/// @return 書き込みに成功したか
-		bool WriteString(const std::string_view text);
+		bool WriteString(std::string_view text);
 
 		/// @brief 標準レイアウトな配列を連続バイト列として書き込む。
 		/// @tparam T 書き込む要素型。標準レイアウトである必要がある。

@@ -1,23 +1,22 @@
 #include "ShaderProgramLoader.h"
+#include "core/filesystem/Path.h"
 
 #include <filesystem>
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/ShaderProgramAssetData.h"
+#include "core/content/ContentPathResolver.h"
+#include "core/filesystem/VirtualPath.h"
 #include "core/io/json/JsonReader.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
+
+#include "engine/unnamed/subsystem/console/Log.h"
 
 namespace Unnamed {
 	class JsonReader;
 
 	namespace {
-		bool IsShaderProgramPath(const std::string_view path) {
-			return StrUtil::ToLowerCase(std::string(path)).ends_with(
-				".shader.json"
-			);
-		}
-
 		void ParseDefines(
 			const JsonReader&                                 j,
 			std::vector<std::pair<std::string, std::string>>& outDefines
@@ -61,108 +60,173 @@ namespace Unnamed {
 			);
 		}
 
-		std::optional<ShaderProgramStage> ParseStage(
-			const JsonReader& j, const std::filesystem::path& baseDir
+		bool ParseStage(
+			const JsonReader& j,
+			const Path&       shaderProgramPath,
+			const std::string_view fieldName,
+			ShaderProgramStage& output
 		) {
 			if (!j.Valid() || !j.IsObject()) {
-				return std::nullopt;
+				Error(
+					"ShaderProgramLoader",
+					"Invalid shader stage type: shaderProgram='{}' field='{}' expected='object'",
+					shaderProgramPath,
+					fieldName
+				);
+				return false;
 			}
 
-			const auto sourcePath = j.Read<std::string>("path");
-			if (!sourcePath.has_value() || sourcePath->empty()) {
-				return std::nullopt;
+			const JsonReader sourcePathNode = j["path"];
+			if (!sourcePathNode.Valid() || !sourcePathNode.IsString()) {
+				Error(
+					"ShaderProgramLoader",
+					"Invalid shader stage source type: shaderProgram='{}' field='{}.path' expected='string'",
+					shaderProgramPath,
+					fieldName
+				);
+				return false;
 			}
 
-			ShaderProgramStage stage = {};
-			stage.sourcePath         = Path::ResolveRelativePath(
-				baseDir, *sourcePath
-			);
-			stage.entry   = j.Read<std::string>("entry").value_or("Main");
-			stage.profile = j.Read<std::string>("profile").value_or(
+			const std::string sourcePathText = sourcePathNode.GetString();
+			const std::optional<VirtualPath> sourcePath =
+				VirtualPath::ParseContentReference(sourcePathText);
+			if (!sourcePath.has_value()) {
+				Error(
+					"ShaderProgramLoader",
+					"Invalid shader stage source virtual path: shaderProgram='{}' field='{}.path' virtualPath='{}'",
+					shaderProgramPath,
+					fieldName,
+					sourcePathText
+				);
+				return false;
+			}
+
+			output.sourcePath = *sourcePath;
+			output.entry = j.Read<std::string>("entry").value_or("Main");
+			output.profile = j.Read<std::string>("profile").value_or(
 				std::string()
 			);
 			if (j.Has("defines")) {
-				ParseDefines(j["defines"], stage.defines);
+				ParseDefines(j["defines"], output.defines);
 			}
-			return stage;
+			return true;
 		}
 	}
 
 	ShaderProgramLoader::ShaderProgramLoader(AssetManager* assetManager) :
-		mAssetManager(assetManager) {}
+		mAssetManager(assetManager) {
+	}
 
 	bool ShaderProgramLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
-		const bool ok = IsShaderProgramPath(path);
+		const bool ok = StrUtil::EndsWithIgnoreCase(
+			path.ToGenericUtf8(), ".shader.json"
+		);
 		if (outType) {
 			*outType = ok ? ASSET_TYPE::SHADER_PROGRAM : ASSET_TYPE::UNKNOWN;
 		}
 		return ok;
 	}
 
-	LoadResult ShaderProgramLoader::Load(const std::string& path) {
+	LoadResult ShaderProgramLoader::Load(const Path& path) {
+		return Load(path, AssetLoadContext{});
+	}
+
+	LoadResult ShaderProgramLoader::Load(
+		const Path& path, const AssetLoadContext& context
+	) {
 		LoadResult       result = {};
 		const JsonReader root(path);
 		if (!root.Valid()) {
 			return result;
 		}
 
-		const std::filesystem::path full = Path::FromUtf8(path);
-		const std::filesystem::path baseDir = full.parent_path();
+		const Path full = path.LexicallyNormal();
+		if (root.Has("includeDirs")) {
+			Error(
+				"ShaderProgramLoader",
+				"ShaderProgram includeDirs is not supported; use explicit HLSL include references: shaderProgram='{}'",
+				full
+			);
+			return result;
+		}
 
 		ShaderProgramAssetData data = {};
 		data.name                   = root.Read<std::string>("name").value_or(
-			Path::ToUtf8String(full.filename())
+			Path::ToUtf8String(full.FileName())
 		);
 
-		if (root.Has("vs")) {
-			data.vs = ParseStage(root["vs"], baseDir);
-		}
-		if (root.Has("ps")) {
-			data.ps = ParseStage(root["ps"], baseDir);
-		}
-		if (root.Has("cs")) {
-			data.cs = ParseStage(root["cs"], baseDir);
-		}
-
-		const JsonReader includeDirs = root["includeDirs"];
-		if (includeDirs.Valid() && includeDirs.IsArray()) {
-			for (size_t i = 0; i < includeDirs.Size(); ++i) {
-				const JsonReader v = includeDirs[i];
-				if (!v.Valid() || !v.IsString()) {
-					continue;
-				}
-				data.includeDirectories.emplace_back(
-					Path::ResolveRelativePath(baseDir, v.GetString())
-				);
-			}
-		}
-
-		auto addStageDependency = [&](
-			const std::optional<ShaderProgramStage>& stage
+		auto loadStage = [this, &context, &full, &result](
+			const JsonReader& stageNode,
+			const std::string_view fieldName,
+			std::optional<ShaderProgramStage>& output
 		) {
-			if (!stage.has_value()) {
-				return;
+			ShaderProgramStage stage = {};
+			if (!ParseStage(stageNode, full, fieldName, stage)) {
+				return false;
 			}
-			const AssetID dep = mAssetManager->LoadFromFile(
-				stage->sourcePath, ASSET_TYPE::SHADER_SOURCE
-			);
-			if (dep != kInvalidAssetID) {
-				result.dependencies.emplace_back(dep);
+
+			// プログラムを解決したマウント内で依存シェーダーも解決し、上書き層を混在させない
+			stage.shaderSourceAssetId = context.resolvedMountId.empty()
+				? mAssetManager->LoadAsset(
+					stage.sourcePath, ASSET_TYPE::SHADER_SOURCE)
+				: mAssetManager->LoadAssetFromMount(
+					stage.sourcePath,
+					context.resolvedMountId,
+					ASSET_TYPE::SHADER_SOURCE
+				);
+			if (stage.shaderSourceAssetId == kInvalidAssetID) {
+				const auto candidate = context.resolvedMountId.empty() ?
+					mAssetManager->GetContentPathResolver().ResolveFile(
+						stage.sourcePath
+					) :
+					mAssetManager->GetContentPathResolver().
+						BuildFileCandidateFromMount(
+							context.resolvedMountId, stage.sourcePath
+						);
+				if (candidate.has_value()) {
+					const AssetID failedDependency = mAssetManager->FindByPath(
+						candidate->resolvedPath
+					);
+					if (failedDependency != kInvalidAssetID) {
+						result.dependencies.emplace_back(failedDependency);
+					}
+				}
+				Error(
+					"ShaderProgramLoader",
+					"Shader stage source dependency load failed: shaderProgram='{}' field='{}.path' virtualPath='{}' mount='{}'",
+					full,
+					fieldName,
+					stage.sourcePath.String(),
+					context.resolvedMountId
+				);
+				return false;
 			}
+
+			result.dependencies.emplace_back(stage.shaderSourceAssetId);
+			output = std::move(stage);
+			return true;
 		};
 
-		addStageDependency(data.vs);
-		addStageDependency(data.ps);
-		addStageDependency(data.cs);
+		if (root.Has("vs") && !loadStage(root["vs"], "vs", data.vs)) {
+			return result;
+		}
+		if (root.Has("ps") && !loadStage(root["ps"], "ps", data.ps)) {
+			return result;
+		}
+		if (root.Has("cs") && !loadStage(root["cs"], "cs", data.cs)) {
+			return result;
+		}
 
 		result.payload     = std::move(data);
-		result.resolveName = Path::ToUtf8String(full.stem().stem());
+		result.resolveName = Path::ToUtf8String(full.Stem().Stem());
 
 		std::error_code ec;
-		if (Path::ExistsUtf8(path, ec)) {
-			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		if (std::filesystem::exists(path.Native(), ec)) {
+			result.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 
 		return result;

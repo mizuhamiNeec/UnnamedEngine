@@ -17,28 +17,13 @@
 #include "engine/world/World.h"
 
 namespace Unnamed {
-	namespace {
-		float ReadFloatOr(
-			const JsonReader& reader, const char* key, const float fallback
-		) {
-			const JsonReader value = reader[key];
-			return value.Valid() ? value.GetFloat() : fallback;
-		}
-
-		bool ReadBoolOr(
-			const JsonReader& reader, const char* key, const bool fallback
-		) {
-			const JsonReader value = reader[key];
-			return value.Valid() ? value.GetBool() : fallback;
-		}
-	}
-
 	void CameraComponent::Deserialize(const JsonReader& reader) {
-		mFovYDegrees  = ReadFloatOr(reader, "fovYDegrees", mFovYDegrees);
-		mNearZ        = ReadFloatOr(reader, "nearZ", mNearZ);
-		mFarZ         = ReadFloatOr(reader, "farZ", mFarZ);
-		mExposureEv   = ReadFloatOr(reader, "exposureEv", mExposureEv);
-		mCameraActive = ReadBoolOr(reader, "cameraActive", mCameraActive);
+		mFovYDegrees =
+			reader.ReadFloatOr("fovYDegrees", mFovYDegrees);
+		mNearZ        = reader.ReadFloatOr("nearZ", mNearZ);
+		mFarZ         = reader.ReadFloatOr("farZ", mFarZ);
+		mExposureEv   = reader.ReadFloatOr("exposureEv", mExposureEv);
+		mCameraActive = reader.ReadBoolOr("cameraActive", mCameraActive);
 	}
 
 	void CameraComponent::Serialize(JsonWriter& writer) const {

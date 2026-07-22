@@ -5,6 +5,8 @@
 #include <string_view>
 #include <vector>
 
+#include <core/filesystem/Path.h>
+
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 
 namespace Unnamed {
@@ -70,6 +72,22 @@ namespace Unnamed {
 			bool           previousActive = true;
 		};
 
+		/// @brief リザルト画面へ動的に追加したランキング1行の参照です。
+		struct RankingRowWidgets {
+			Gui::UiWidget*           rankWidget     = nullptr;
+			Gui::UiWidget*           minutesWidget  = nullptr;
+			Gui::UiWidget*           commaWidget    = nullptr;
+			Gui::UiWidget*           secondsWidget  = nullptr;
+			Gui::UiWidget*           dotWidget      = nullptr;
+			Gui::UiWidget*           fractionWidget = nullptr;
+			Gui::UiDigitStripComponent* rank     = nullptr;
+			Gui::UiDigitStripComponent* minutes  = nullptr;
+			Gui::UiTextureComponent*    comma    = nullptr;
+			Gui::UiDigitStripComponent* seconds  = nullptr;
+			Gui::UiTextureComponent*    dot      = nullptr;
+			Gui::UiDigitStripComponent* fraction = nullptr;
+		};
+
 		/// @brief リザルト演出を開始します。
 		void BeginResult();
 		/// @brief リザルト表示フェーズを更新します。
@@ -78,6 +96,10 @@ namespace Unnamed {
 		void TickFadeOut(float deltaTime);
 		/// @brief タイトルシーンへの遷移を要求します。
 		void CommitTitleTransition();
+		/// @brief 今回の走行タイムを永続ランキングへ登録します。
+		void RecordRanking();
+		/// @brief 保持しているランキングから結果画面の行を生成します。
+		void CreateRankingWidgets();
 
 		/// @brief CourseProgress/UI/Audio の参照を再解決します。
 		void ResolveBindings();
@@ -85,6 +107,8 @@ namespace Unnamed {
 		void ClearResolvedBindings();
 		/// @brief リザルトUIの表示内容を更新します。
 		void UpdateResultWidgets(float alpha) const;
+		/// @brief ランキング行の表示内容を更新します。
+		void UpdateRankingWidgets(float alpha) const;
 		/// @brief フェードオーバーレイのアルファを更新します。
 		void SetFadeOverlayAlpha(float alpha) const;
 		/// @brief リザルト関連UIを非表示にします。
@@ -116,7 +140,7 @@ namespace Unnamed {
 		[[nodiscard]] static float EvaluateEase(float t);
 
 		std::string mCourseId       = "default";
-		std::string mTitleScenePath = "scenes/title.json";
+		Path mTitleScenePath = Path("scenes/title.json");
 
 		uint64_t mHudCanvasEntityGuid = 0;
 		uint64_t mClearAudioSourceGuid = 0;
@@ -130,10 +154,10 @@ namespace Unnamed {
 		std::string mElapsedCommaWidgetName = "CourseResultElapsedComma";
 		std::string mElapsedDotWidgetName   = "CourseResultElapsedDot";
 		std::string mFadeOverlayWidgetName   = "OpeningFadeOverlay";
-		std::string mClearTexturePath        = "textures/clear.png";
-		std::string mDigitTexturePath        = "textures/digits.png";
-		std::string mCommaTexturePath        = "textures/colon.png";
-		std::string mDotTexturePath          = "textures/dot.png";
+		Path        mClearTexturePath        = Path("textures/clear.png");
+		Path        mDigitTexturePath        = Path("textures/digits.png");
+		Path        mCommaTexturePath        = Path("textures/colon.png");
+		Path        mDotTexturePath          = Path("textures/dot.png");
 
 		float mResultHoldSeconds = 2.0f;
 		float mFadeOutSeconds    = 0.45f;
@@ -142,6 +166,8 @@ namespace Unnamed {
 
 		std::vector<LockTargetSpec>  mLockTargets = {};
 		std::vector<ActiveLockState> mActiveLocks = {};
+		std::vector<float>           mRankedElapsedSeconds = {};
+		std::vector<RankingRowWidgets> mRankingRows = {};
 
 		CourseProgressComponent* mCourseProgress = nullptr;
 		UiCanvasComponent*       mHudCanvas      = nullptr;
@@ -168,7 +194,7 @@ namespace Unnamed {
 		PHASE mPhase               = PHASE::WAITING;
 		float mPhaseElapsedSeconds = 0.0f;
 		float mLatchedElapsedSeconds = 0.0f;
+		int   mCurrentRunRankingIndex = -1;
 		bool  mWasCourseCleared    = false;
 	};
 }
-

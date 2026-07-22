@@ -1,8 +1,10 @@
-﻿#include <string>
+#include <string>
+
+#include "core/filesystem/Path.h"
 
 namespace Unnamed {
 	struct EditorGuiData {
-		std::string sourcePath; // ソースファイルのパス
+		Path        sourcePath; // ソースファイルのパス
 		std::string source;     // ソースコードの内容
 		std::string lastError;  // 最後のエラーメッセージ...?
 		bool        hasError;   // スクリプトにエラーがあるか?

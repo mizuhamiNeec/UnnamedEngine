@@ -3,18 +3,20 @@
 #include <fstream>
 
 #include <core/string/StrUtil.h>
-#include <core/path/PathUtil.h>
+#include <core/filesystem/Path.h>
 
 #include <engine/unnamed/subsystem/console/Log.h>
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "ConScrP";
 
-	/// @brief コンストラクタ
-	/// @param path スクリプトファイルのパス
-	ConsoleScriptParser::ConsoleScriptParser(const std::string_view& path) {
-		const std::filesystem::path nativePath = Path::FromUtf8(path);
-		std::ifstream               inputFile(nativePath);
+	// TODO: 仮想パスに対応していないので要修正
+	
+	void ConsoleScriptParser::ParseAndExecute(const Path& path) {
+		const auto& native = path.Native();
+
+		// ファイルを開く
+		std::ifstream inputFile(native);
 
 		// 存在しない場合は作る
 		if (!inputFile) {
@@ -22,7 +24,7 @@ namespace Unnamed {
 				kChannel, "Script file not found. Creating a new one: {}",
 				std::string(path)
 			);
-			std::ofstream outputFile(nativePath);
+			std::ofstream outputFile(native);
 			if (!outputFile) {
 				Error(
 					kChannel, "Failed to create script file: {}",
@@ -31,7 +33,7 @@ namespace Unnamed {
 				throw std::runtime_error("Failed to create script file");
 			}
 			outputFile.close();
-			inputFile.open(nativePath);
+			inputFile.open(native);
 		}
 
 		if (!inputFile.is_open()) {

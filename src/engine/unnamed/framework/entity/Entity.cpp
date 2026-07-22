@@ -27,7 +27,8 @@ namespace Unnamed {
 	) :
 		mName(name),
 		mGuid(guid),
-		mIsEditorOnly(isEditorOnly) {}
+		mIsEditorOnly(isEditorOnly) {
+	}
 
 	Entity::~Entity() {
 		OnDestroy();
@@ -285,6 +286,7 @@ namespace Unnamed {
 			return nullptr;
 		}
 
+		// アタッチ通知までに所有者と型索引の両方を参照できる状態にする
 		component->SetOwner(this);
 		BaseComponent* raw = component.get();
 
@@ -312,7 +314,8 @@ namespace Unnamed {
 			return;
 		}
 
-		if ((*it) != nullptr) {
+		if (*it != nullptr) {
+			// デタッチ通知ではまだ所有者をたどれるようにする
 			(*it)->OnDetached();
 			(*it)->SetOwner(nullptr);
 		}

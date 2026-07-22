@@ -38,21 +38,15 @@ namespace Unnamed::Physics {
 			};
 		}
 
-		[[nodiscard]] bool IsAABBOverlap(
-			const AABB& lhs,
-			const AABB& rhs
-		) {
-			return lhs.max.x >= rhs.min.x && lhs.min.x <= rhs.max.x &&
-			       lhs.max.y >= rhs.min.y && lhs.min.y <= rhs.max.y &&
-			       lhs.max.z >= rhs.min.z && lhs.min.z <= rhs.max.z;
-		}
 	}
 
 	/// @brief 初期化
-	void Engine::Init() {}
+	void Engine::Init() {
+	}
 
 	/// @brief 更新
-	void Engine::Update(float) const {}
+	void Engine::Update(float) const {
+	}
 
 	void Engine::EndFrame() const {
 #ifdef _DEBUG
@@ -294,7 +288,7 @@ namespace Unnamed::Physics {
 					continue;
 				}
 				const AABB rootBounds = ToWorldBounds(bvh, bvh.nodes[0].bounds);
-				if (IsAABBOverlap(boxAABB, rootBounds)) {
+				if (boxAABB.Overlaps(rootBounds)) {
 					filtered.emplace_back(&bvh);
 				}
 			}
@@ -317,7 +311,7 @@ namespace Unnamed::Physics {
 					const uint32_t index = stack[--sp];
 					const auto& node = bvh->nodes[index];
 					const AABB nodeBounds = ToWorldBounds(*bvh, node.bounds);
-					if (!IsAABBOverlap(boxAABB, nodeBounds)) {
+					if (!boxAABB.Overlaps(nodeBounds)) {
 						continue;
 					}
 
@@ -344,8 +338,8 @@ namespace Unnamed::Physics {
 							const bool betterPenetration = penetrationDepth >
 								bestPenetration;
 							const bool equalPenetration = std::abs(
-								penetrationDepth - bestPenetration
-							) <= 1.0e-6f;
+									penetrationDepth - bestPenetration
+								) <= 1.0e-6f;
 							const bool betterTieBreak = equalPenetration &&
 								(bvh->ownerGuid < bestHit.hitEntityGuid ||
 								 (bvh->ownerGuid == bestHit.hitEntityGuid &&
@@ -358,13 +352,13 @@ namespace Unnamed::Physics {
 							bestHit.toi     = 1.0f;
 							bestHit.depth   = penetrationDepth;
 							bestHit.pos     = box.center + separationAxis * (
-								                  std::min(
-									                  {
-										                  box.halfSize.x,
-										                  box.halfSize.y,
-										                  box.halfSize.z
-									                  }
-								                  ) - penetrationDepth * 0.5f);
+								              std::min(
+									              {
+										              box.halfSize.x,
+										              box.halfSize.y,
+										              box.halfSize.z
+									              }
+								              ) - penetrationDepth * 0.5f);
 							bestHit.normal        = separationAxis;
 							bestHit.triIndex      = triIdx;
 							bestHit.hitEntityGuid = bvh->ownerGuid;
@@ -529,6 +523,7 @@ namespace Unnamed::Physics {
 			return false;
 		}
 
+		// 移動種別にかかわらず、所有者ごとに衝突メッシュは一つだけ保持する
 		RemoveColliderByOwnerGuid(mStaticBVHs, ownerGuid);
 		RemoveColliderByOwnerGuid(mDynamicBVHs, ownerGuid);
 
@@ -558,6 +553,7 @@ namespace Unnamed::Physics {
 			return false;
 		}
 
+		// 移動種別にかかわらず、所有者ごとに衝突メッシュは一つだけ保持する
 		RemoveColliderByOwnerGuid(mStaticBVHs, ownerGuid);
 		RemoveColliderByOwnerGuid(mDynamicBVHs, ownerGuid);
 
@@ -594,6 +590,7 @@ namespace Unnamed::Physics {
 		if (it == mDynamicBVHs.end()) {
 			return false;
 		}
+		// Dynamic BVH はローカル空間を保ち、問い合わせ時に現在の変換を適用する
 		it->world = world;
 		return true;
 	}
@@ -695,6 +692,7 @@ namespace Unnamed::Physics {
 				continue;
 			}
 
+			// Static は登録時に焼き込み、Dynamic は更新可能なローカル頂点を保持する
 			const Triangle tri = mobility == ColliderMobility::Dynamic ?
 				                     BuildTriangleLocal(
 					                     vertices[i0],
@@ -784,7 +782,7 @@ namespace Unnamed::Physics {
 				continue;
 			}
 			const AABB rootBounds = ToWorldBounds(bvh, bvh.nodes[0].bounds);
-			if (IsAABBOverlap(boxAABB, rootBounds)) {
+			if (boxAABB.Overlaps(rootBounds)) {
 				filtered.emplace_back(&bvh);
 			}
 		}
@@ -827,7 +825,7 @@ namespace Unnamed::Physics {
 				const auto&    node       = bvh->nodes[index];
 				const AABB     nodeBounds = ToWorldBounds(*bvh, node.bounds);
 
-				if (!IsAABBOverlap(boxAABB, nodeBounds)) {
+				if (!boxAABB.Overlaps(nodeBounds)) {
 					continue;
 				}
 
@@ -859,13 +857,13 @@ namespace Unnamed::Physics {
 						tmpHit.toi   = 1.0f;
 						tmpHit.depth = penetrationDepth;
 						tmpHit.pos   = box.center + separationAxis * (
-							               std::min(
-								               {
-									               box.halfSize.x,
-									               box.halfSize.y,
-									               box.halfSize.z
-								               }
-							               ) - penetrationDepth * 0.5f);
+							             std::min(
+								             {
+									             box.halfSize.x,
+									             box.halfSize.y,
+									             box.halfSize.z
+								             }
+							             ) - penetrationDepth * 0.5f);
 						tmpHit.normal        = separationAxis;
 						tmpHit.triIndex      = triIdx;
 						tmpHit.hitEntityGuid = bvh->ownerGuid;
@@ -1004,7 +1002,7 @@ namespace Unnamed::Physics {
 				continue;
 			}
 			const AABB rootBounds = ToWorldBounds(bvh, bvh.nodes[0].bounds);
-			if (IsAABBOverlap(boxAABB, rootBounds)) {
+			if (boxAABB.Overlaps(rootBounds)) {
 				filtered.emplace_back(&bvh);
 			}
 		}
@@ -1029,7 +1027,7 @@ namespace Unnamed::Physics {
 					nodes[index];
 				const AABB nodeBounds = ToWorldBounds(*bvh, bounds);
 
-				if (!IsAABBOverlap(boxAABB, nodeBounds)) {
+				if (!boxAABB.Overlaps(nodeBounds)) {
 					continue;
 				}
 
@@ -1065,13 +1063,13 @@ namespace Unnamed::Physics {
 						out.toi   = 1.0f;
 						out.depth = penetrationDepth;
 						out.pos   = box.center + separationAxis * (
-							            std::min(
-								            {
-									            box.halfSize.x,
-									            box.halfSize.y,
-									            box.halfSize.z
-								            }
-							            ) - penetrationDepth * 0.5f);
+							          std::min(
+								          {
+									          box.halfSize.x,
+									          box.halfSize.y,
+									          box.halfSize.z
+								          }
+							          ) - penetrationDepth * 0.5f);
 						out.normal        = separationAxis;
 						out.triIndex      = triIdx;
 						out.hitEntityGuid = bvh->ownerGuid;

@@ -126,6 +126,27 @@ struct Mat4 final {
 		float left, float     top, float right, float bottom,
 		float nearClip, float farClip
 	);
+	
+	/// @brief Direct3D向け正射影行列を生成する
+	/// @param left 左端
+	/// @param top 上端
+	/// @param right 右端
+	/// @param bottom 下端
+	/// @param nearClip 近クリップ面
+	/// @param farClip 遠クリップ面
+	/// @param depthMode 深度方向
+	/// @return 正射影行列
+	static Mat4 OrthographicD3D(
+		float left, float     top, float right, float bottom,
+		float nearClip, float farClip, ProjectionDepthMode depthMode
+	);
+
+	/// @brief 注視点からビュー行列を生成する
+	/// @param eye 視点位置
+	/// @param target 注視点
+	/// @param up 上方向
+	/// @return ビュー行列
+	static Mat4 LookAtView(const Vec3& eye, const Vec3& target, const Vec3& up);
 
 	/// @brief ビューポート行列を生成する
 	/// @param left 左端

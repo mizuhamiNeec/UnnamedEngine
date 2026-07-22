@@ -1,22 +1,23 @@
 #include "SequenceDirectorComponent.h"
 
 #include <algorithm>
-#include <array>
-#include <cstddef>
-#include <cstring>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
+#include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
 #include "core/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/SequenceAssetData.h"
+#include "core/content/ContentPathResolver.h"
+#include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/scene/Scene.h"
+#include "engine/scene/SceneLoadOptions.h"
 #include "engine/sequence/SequencePlayer.h"
 #include "engine/sequence/SequenceRuntime.h"
 #include "engine/unnamed/framework/entity/Entity.h"
@@ -25,32 +26,29 @@
 
 namespace Unnamed {
 	namespace {
-		static constexpr std::string_view kChannel = "SequenceDirector";
+		constexpr std::string_view kChannel = "SequenceDirector";
 
-#ifdef _DEBUG
-		template <size_t N>
-		void DrawStringInput(const char* label, std::string& value) {
-			std::array<char, N> buffer = {};
-			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLen);
-			}
-			if (ImGui::InputText(label, buffer.data(), buffer.size())) {
-				value = buffer.data();
-			}
-		}
-#endif
 	}
 
 	void SequenceDirectorComponent::OnAttached() {
-		mPlayRequested = mPlayOnAttach;
+		if (
+			mSequencePath.has_value() &&
+			mSequenceAssetId == kInvalidAssetID
+		) {
+			if (AssetManager* assetManager = GetAssetManager()) {
+				const VirtualPath sequencePath = *mSequencePath;
+				(void)SetSequencePath(sequencePath, *assetManager);
+			}
+		}
+		mPlayRequested =
+			mPlayOnAttach && mSequenceAssetId != kInvalidAssetID;
 	}
 
 	void SequenceDirectorComponent::OnDetached() {
 		StopPlayback(true);
 		// Runtime側は weak_ptr 登録なので、所有を外せば次ティックで自然に掃除されます。
 		mPlayer.reset();
-		mSequenceAssetId = 0;
+		mSequenceAssetId = kInvalidAssetID;
 	}
 
 	void SequenceDirectorComponent::OnTick(const float deltaTime) {
@@ -60,7 +58,7 @@ namespace Unnamed {
 
 	void SequenceDirectorComponent::OnEditorTick(const float deltaTime) {
 		(void)deltaTime;
-		World* world = GetWorld();
+		const World* world = GetWorld();
 		if (!world || !world->IsGameSimulationEnabled()) {
 			// PIE外ではディレクター駆動を止め、ロジックとの競合を防ぎます。
 			if (mPlayer && mPlayer->IsEvaluating()) {
@@ -85,13 +83,30 @@ namespace Unnamed {
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 	void SequenceDirectorComponent::DrawInspectorImGui() {
-		DrawStringInput<256>("Sequence Path", mSequencePath);
+		std::string sequencePath = mSequencePath.has_value() ?
+			mSequencePath->String() : std::string{};
+		const std::string previousSequencePath = sequencePath;
+		(void)ImGuiWidgets::InputText<256>("Sequence Path", sequencePath);
+		if (
+			ImGui::IsItemDeactivatedAfterEdit() &&
+			sequencePath != previousSequencePath
+		) {
+			const std::optional<VirtualPath> virtualPath =
+				VirtualPath::ParseContentReference(sequencePath);
+			AssetManager* assetManager = GetAssetManager();
+			if (!virtualPath.has_value() || !assetManager) {
+				ClearSequencePath();
+			} else {
+				(void)SetSequencePath(*virtualPath, *assetManager);
+			}
+		}
 		ImGui::Checkbox("Play On Attach", &mPlayOnAttach);
 		ImGui::Checkbox("Auto Stop When Completed", &mAutoStopWhenCompleted);
 		ImGui::DragFloat("Play Rate", &mPlayRate, 0.05f, 0.0f, 8.0f);
 		ImGui::Checkbox("Loop", &mLoop);
 		int completionMode = static_cast<int>(mCompletionMode);
-		if (ImGui::Combo("Completion Mode", &completionMode, "Restore\0Keep\0")) {
+		if (ImGui::Combo("Completion Mode", &completionMode,
+		                 "Restore\0Keep\0")) {
 			mCompletionMode = completionMode == 1 ?
 				                  SEQUENCE_COMPLETION_MODE::KEEP_STATE :
 				                  SEQUENCE_COMPLETION_MODE::RESTORE_STATE;
@@ -114,10 +129,14 @@ namespace Unnamed {
 				ImGuiDataType_U64,
 				&spec.componentGuid
 			);
-			ImGui::InputScalar("Entity Guid", ImGuiDataType_U64, &spec.entityGuid);
-			DrawStringInput<128>("Component StableName", spec.componentStableName);
+			ImGui::InputScalar("Entity Guid", ImGuiDataType_U64,
+			                   &spec.entityGuid);
+			(void)ImGuiWidgets::InputText<128>(
+				"Component StableName", spec.componentStableName
+			);
 			if (ImGui::Button("Remove")) {
-				mLockTargets.erase(mLockTargets.begin() + static_cast<ptrdiff_t>(i));
+				mLockTargets.erase(
+					mLockTargets.begin() + static_cast<ptrdiff_t>(i));
 				ImGui::PopID();
 				break;
 			}
@@ -125,7 +144,8 @@ namespace Unnamed {
 			ImGui::PopID();
 		}
 
-		ImGui::Text("Evaluating: %s", mPlayer && mPlayer->IsEvaluating() ? "true" : "false");
+		ImGui::Text("Evaluating: %s",
+		            mPlayer && mPlayer->IsEvaluating() ? "true" : "false");
 		if (!mPlayer || !mPlayer->IsEvaluating()) {
 			if (ImGui::Button("Start")) {
 				mPlayRequested = true;
@@ -137,31 +157,54 @@ namespace Unnamed {
 #endif
 
 	void SequenceDirectorComponent::Deserialize(const JsonReader& reader) {
-		mSequencePath = reader["sequencePath"].GetString(mSequencePath);
-		if (const JsonReader playOnAttach = reader["playOnAttach"]; playOnAttach.Valid()) {
+		constexpr SceneLoadOptions options{};
+		const Path scenePath("<direct component deserialize>");
+		const SceneDeserializeContext context{
+			.loadOptions   = options,
+			.assetManager  = GetAssetManager(),
+			.scenePath     = scenePath,
+			.entityName    = "<unknown>",
+			.entityId      = 0,
+			.componentType = GetStableName(),
+		};
+		(void)Deserialize(reader, context);
+	}
+
+	bool SequenceDirectorComponent::Deserialize(
+		const JsonReader& reader, const SceneDeserializeContext& context
+	) {
+		ClearSequencePath();
+		if (const JsonReader playOnAttach = reader["playOnAttach"];
+			playOnAttach.Valid()) {
 			mPlayOnAttach = playOnAttach.GetBool(mPlayOnAttach);
 		}
-		if (const JsonReader autoStop = reader["autoStopWhenCompleted"]; autoStop.Valid()) {
+		if (const JsonReader autoStop = reader["autoStopWhenCompleted"];
+			autoStop.Valid()) {
 			mAutoStopWhenCompleted = autoStop.GetBool(mAutoStopWhenCompleted);
 		}
-		if (const JsonReader playRate = reader["playRate"]; playRate.Valid()) {
+		if (const JsonReader playRate = reader["playRate"];
+			playRate.Valid()) {
 			mPlayRate = std::max(0.0f, playRate.GetFloat(mPlayRate));
 		}
-		if (const JsonReader loop = reader["loop"]; loop.Valid()) {
+		if (const JsonReader loop = reader["loop"];
+			loop.Valid()) {
 			mLoop = loop.GetBool(mLoop);
 		}
-		if (const JsonReader completionMode = reader["completionMode"]; completionMode.Valid()) {
+		if (const JsonReader completionMode = reader["completionMode"];
+			completionMode.Valid()) {
 			const std::string text = completionMode.GetString("Restore");
-			mCompletionMode = text == "Keep" ?
+			mCompletionMode        = text == "Keep" ?
 				                  SEQUENCE_COMPLETION_MODE::KEEP_STATE :
 				                  SEQUENCE_COMPLETION_MODE::RESTORE_STATE;
 		}
-		if (const JsonReader applyLocks = reader["applyComponentLocks"]; applyLocks.Valid()) {
+		if (const JsonReader applyLocks = reader["applyComponentLocks"];
+			applyLocks.Valid()) {
 			mApplyComponentLocks = applyLocks.GetBool(mApplyComponentLocks);
 		}
 
 		mLockTargets.clear();
-		if (const JsonReader lockTargets = reader["lockTargets"]; lockTargets.Valid()) {
+		if (const JsonReader lockTargets = reader["lockTargets"];
+			lockTargets.Valid()) {
 			const JsonReader lockArray = lockTargets.GetArray();
 			for (size_t i = 0; i < lockArray.Size(); ++i) {
 				const JsonReader lockNode = lockArray[i];
@@ -173,22 +216,103 @@ namespace Unnamed {
 					componentGuid.Valid()) {
 					spec.componentGuid = componentGuid.GetUint64();
 				}
-				if (const JsonReader entityGuid = lockNode["entityGuid"]; entityGuid.Valid()) {
+				if (const JsonReader entityGuid = lockNode["entityGuid"];
+					entityGuid.Valid()) {
 					spec.entityGuid = entityGuid.GetUint64();
 				}
-				spec.componentStableName = lockNode["componentStableName"].GetString(
-					spec.componentStableName
-				);
+				spec.componentStableName = lockNode["componentStableName"].
+					GetString(
+						spec.componentStableName
+					);
 				mLockTargets.emplace_back(std::move(spec));
 			}
 		}
 
-		mPlayRequested = mPlayOnAttach;
+		const JsonReader pathNode = reader["sequencePath"];
+		if (!pathNode.Valid()) {
+			return true;
+		}
+		if (!pathNode.IsString()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='sequencePath' reason='expected string'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		const std::string sequencePath = pathNode.GetString();
+		if (sequencePath.empty()) {
+			return true;
+		}
+		const std::optional<VirtualPath> virtualPath =
+			VirtualPath::ParseContentReference(sequencePath);
+		if (!virtualPath.has_value()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='invalid virtual path' scene='{}' entity='{}' entityId={} component='{}' field='sequencePath' virtualPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				sequencePath
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		if (!context.assetManager) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='sequencePath' virtualPath='{}' reason='AssetManager unavailable'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				sequencePath
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		const std::optional<ResolvedContentFile> resolvedFile =
+			context.assetManager->GetContentPathResolver().ResolveFile(*virtualPath);
+		if (!resolvedFile.has_value()) {
+			Error(
+				kChannel,
+				"Scene asset reference failed: classification='unresolved content' scene='{}' entity='{}' entityId={} component='{}' field='sequencePath' virtualPath='{}'",
+				context.scenePath,
+				context.entityName,
+				context.entityId,
+				context.componentType,
+				sequencePath
+			);
+			return !IsStrictAssetValidation(context.loadOptions);
+		}
+
+		if (SetSequencePath(*virtualPath, *context.assetManager)) {
+			return true;
+		}
+		Error(
+			kChannel,
+			"Scene asset reference failed: classification='asset load failure' scene='{}' entity='{}' entityId={} component='{}' field='sequencePath' virtualPath='{}' mount='{}' physicalPath='{}'",
+			context.scenePath,
+			context.entityName,
+			context.entityId,
+			context.componentType,
+			sequencePath,
+			resolvedFile->mountId,
+			resolvedFile->resolvedPath
+		);
+		return !IsStrictAssetValidation(context.loadOptions);
 	}
 
 	void SequenceDirectorComponent::Serialize(JsonWriter& writer) const {
-		writer.Key("sequencePath");
-		writer.Write(mSequencePath);
+		if (mSequencePath.has_value()) {
+			writer.Key("sequencePath");
+			writer.Write(mSequencePath->String());
+		}
 		writer.Key("playOnAttach");
 		writer.Write(mPlayOnAttach);
 		writer.Key("autoStopWhenCompleted");
@@ -221,6 +345,46 @@ namespace Unnamed {
 		writer.EndArray();
 	}
 
+	bool SequenceDirectorComponent::SetSequencePath(
+		const VirtualPath& path, AssetManager& assetManager
+	) {
+		if (
+			mSequencePath.has_value() && *mSequencePath == path &&
+			mSequenceAssetId != kInvalidAssetID
+		) {
+			return true;
+		}
+
+		const AssetID assetId = assetManager.LoadSequence(path);
+		if (assetId == kInvalidAssetID) {
+			ClearSequencePath();
+			return false;
+		}
+
+		StopPlayback(true);
+		mSequencePath      = path;
+		mSequenceAssetId   = assetId;
+		mLoggedLoadFailure = false;
+		mPlayRequested     = mPlayOnAttach;
+		return true;
+	}
+
+	void SequenceDirectorComponent::ClearSequencePath() {
+		StopPlayback(true);
+		mSequencePath.reset();
+		mSequenceAssetId   = kInvalidAssetID;
+		mLoggedLoadFailure = false;
+	}
+
+	const std::optional<VirtualPath>&
+	SequenceDirectorComponent::GetSequencePath() const noexcept {
+		return mSequencePath;
+	}
+
+	AssetID SequenceDirectorComponent::GetSequenceAssetId() const noexcept {
+		return mSequenceAssetId;
+	}
+
 	void SequenceDirectorComponent::EnsurePlayer() {
 		if (!mPlayer) {
 			mPlayer = std::make_shared<SequencePlayer>();
@@ -232,7 +396,7 @@ namespace Unnamed {
 	}
 
 	bool SequenceDirectorComponent::StartPlayback() {
-		World* world = GetWorld();
+		const World* world = GetWorld();
 		if (!world) {
 			return false;
 		}
@@ -240,7 +404,10 @@ namespace Unnamed {
 		if (!assetManager) {
 			return false;
 		}
-		if (mSequencePath.empty()) {
+		if (
+			!mSequencePath.has_value() ||
+			mSequenceAssetId == kInvalidAssetID
+		) {
 			return false;
 		}
 
@@ -249,22 +416,19 @@ namespace Unnamed {
 			return false;
 		}
 
-		const AssetID assetId = assetManager->LoadFromFile(
-			mSequencePath,
-			ASSET_TYPE::SEQUENCE
-		);
-		const auto* sequenceAsset = assetManager->Get<SequenceAssetData>(assetId);
+		const auto* sequenceAsset = assetManager->Get<SequenceAssetData>(
+			mSequenceAssetId);
 		if (!sequenceAsset) {
 			if (!mLoggedLoadFailure) {
-				Warning(kChannel, "Failed to load sequence '{}'.", mSequencePath);
+				Warning(kChannel, "Failed to load sequence '{}'.",
+				        mSequencePath->String());
 				mLoggedLoadFailure = true;
 			}
 			return false;
 		}
 
 		mLoggedLoadFailure = false;
-		mSequenceAssetId = assetId;
-		mPlayer->SetAssetId(assetId);
+		mPlayer->SetAssetId(mSequenceAssetId);
 		mPlayer->SetPlayRate(std::max(0.0f, mPlayRate));
 		mPlayer->SetLoop(mLoop);
 		mPlayer->SetCompletionMode(mCompletionMode);
@@ -334,7 +498,7 @@ namespace Unnamed {
 
 			mActiveLocks.emplace_back(
 				ActiveLockState{
-					.component = target,
+					.component      = target,
 					.previousActive = target->IsActive(),
 				}
 			);

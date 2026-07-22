@@ -1,6 +1,5 @@
 #pragma once
 #include <array>
-#include <string>
 
 #include "engine/gui/UiDocumentManager.h"
 #include "engine/gui/UiScreenStack.h"
@@ -9,6 +8,7 @@
 
 #ifdef _DEBUG
 namespace Unnamed {
+	class AssetManager;
 	class ImGuiLayer;
 
 	namespace Render {
@@ -27,7 +27,7 @@ namespace Unnamed::Gui {
 		std::array<char, 256> pathBuffer           = {};
 		std::array<char, 128> outlinerFilterBuffer = {};
 		std::array<char, 128> renameBuffer         = {};
-		std::string           activeDocumentPath;
+		Path                  activeDocumentPath;
 		bool                  textWarningLogged     = false;
 		bool                  documentChanged       = false;
 		int                   addComponentTypeIndex = 0;
@@ -37,7 +37,9 @@ namespace Unnamed::Gui {
 
 	void DrawUiHierarchyWindow(UiRoot& uiRoot, GuiEditorContext& context);
 	void DrawUiPaletteWindow(UiRoot& uiRoot, GuiEditorContext& context);
-	void DrawUiInspectorWindow(GuiEditorContext& context);
+	void DrawUiInspectorWindow(
+		GuiEditorContext& context, AssetManager& assetManager
+	);
 	void DrawUiEditorMenu(
 		UiDocumentManager&           manager,
 		std::shared_ptr<UiDocument>& activeDocument,

@@ -1,17 +1,11 @@
 #include "SequenceMigrator.h"
 
-#include <algorithm>
 #include <array>
 
 #include "core/guidgenerator/GuidGenerator.h"
 
 namespace Unnamed {
 	namespace {
-		[[nodiscard]] uint64_t AllocateStableId() {
-			static GuidGenerator generator;
-			return generator.Alloc();
-		}
-
 		[[nodiscard]] bool EnsureIdField(
 			nlohmann::json& node,
 			const char*     keyName
@@ -23,10 +17,11 @@ namespace Unnamed {
 			if (it != node.end() && it->is_number_unsigned()) {
 				return false;
 			}
-			if (it != node.end() && it->is_number_integer() && it->get<int64_t>() > 0) {
+			if (it != node.end() && it->is_number_integer() && it->get<
+				    int64_t>() > 0) {
 				return false;
 			}
-			node[keyName] = AllocateStableId();
+			node[keyName] = GuidGenerator::AllocRandom();
 			return true;
 		}
 
@@ -36,7 +31,7 @@ namespace Unnamed {
 			}
 
 			bool changed = false;
-			changed |= EnsureIdField(curveNode, "channelId");
+			changed      |= EnsureIdField(curveNode, "channelId");
 			if (!curveNode.contains("keys") || !curveNode["keys"].is_array()) {
 				curveNode["keys"] = nlohmann::json::array();
 				changed           = true;
@@ -54,42 +49,51 @@ namespace Unnamed {
 			}
 
 			bool changed = false;
-			changed |= EnsureIdField(sectionNode, "sectionId");
+			changed      |= EnsureIdField(sectionNode, "sectionId");
 
 			static constexpr std::array kCurveKeys = {
 				"floatCurve",
 				"vec3XCurve", "vec3YCurve", "vec3ZCurve",
 				"transformPosX", "transformPosY", "transformPosZ",
-				"transformRotX", "transformRotY", "transformRotZ", "transformRotW",
+				"transformRotX", "transformRotY", "transformRotZ",
+				"transformRotW",
 				"transformScaleX", "transformScaleY", "transformScaleZ"
 			};
 			for (const char* curveKey : kCurveKeys) {
-				if (!sectionNode.contains(curveKey) || !sectionNode[curveKey].is_object()) {
+				if (!sectionNode.contains(curveKey) || !sectionNode[curveKey].
+				    is_object()) {
 					continue;
 				}
 				changed |= EnsureCurveNodeIds(sectionNode[curveKey]);
 			}
 
-			if (sectionNode.contains("boolKeys") && sectionNode["boolKeys"].is_array()) {
+			if (sectionNode.contains("boolKeys") && sectionNode["boolKeys"].
+			    is_array()) {
 				for (auto& keyNode : sectionNode["boolKeys"]) {
 					changed |= EnsureIdField(keyNode, "keyId");
 				}
 			}
-			if (sectionNode.contains("cameraCutKeys") && sectionNode["cameraCutKeys"].is_array()) {
+			if (sectionNode.contains("cameraCutKeys") && sectionNode[
+				    "cameraCutKeys"].is_array()) {
 				for (auto& keyNode : sectionNode["cameraCutKeys"]) {
 					changed |= EnsureIdField(keyNode, "keyId");
 				}
 			}
-			if (sectionNode.contains("eventKeys") && sectionNode["eventKeys"].is_array()) {
+			if (sectionNode.contains("eventKeys") && sectionNode["eventKeys"].
+			    is_array()) {
 				for (auto& keyNode : sectionNode["eventKeys"]) {
 					changed |= EnsureIdField(keyNode, "keyId");
 				}
 			}
 
-			if (sectionNode.contains("skeletal") && sectionNode["skeletal"].is_object()) {
+			if (sectionNode.contains("skeletal") && sectionNode["skeletal"].
+			    is_object()) {
 				auto& skeletalNode = sectionNode["skeletal"];
-				for (const char* skeletalCurve : {"weightCurve", "playbackCurve", "speedCurve"}) {
-					if (!skeletalNode.contains(skeletalCurve) || !skeletalNode[skeletalCurve].is_object()) {
+				for (const char* skeletalCurve : {
+					     "weightCurve", "playbackCurve", "speedCurve"
+				     }) {
+					if (!skeletalNode.contains(skeletalCurve) || !skeletalNode[
+						    skeletalCurve].is_object()) {
 						continue;
 					}
 					changed |= EnsureCurveNodeIds(skeletalNode[skeletalCurve]);
@@ -122,7 +126,7 @@ namespace Unnamed {
 		bool changed = false;
 		if (sourceVersion < 2) {
 			ioRoot["version"] = 2;
-			changed = true;
+			changed           = true;
 		}
 
 		if (!ioRoot.contains("bindings") || !ioRoot["bindings"].is_array()) {
@@ -142,7 +146,8 @@ namespace Unnamed {
 				continue;
 			}
 			changed |= EnsureIdField(trackNode, "trackId");
-			if (!trackNode.contains("sections") || !trackNode["sections"].is_array()) {
+			if (!trackNode.contains("sections") || !trackNode["sections"].
+			    is_array()) {
 				trackNode["sections"] = nlohmann::json::array();
 				changed               = true;
 			}
@@ -156,18 +161,20 @@ namespace Unnamed {
 			changed          = true;
 		}
 		nlohmann::json& editorNode = ioRoot["editor"];
-		if (!editorNode.contains("scrubFireEvents") || !editorNode["scrubFireEvents"].is_boolean()) {
+		if (!editorNode.contains("scrubFireEvents") || !editorNode[
+			    "scrubFireEvents"].is_boolean()) {
 			editorNode["scrubFireEvents"] = false;
 			changed                       = true;
 		}
-		if (!editorNode.contains("autoKeyEnabled") || !editorNode["autoKeyEnabled"].is_boolean()) {
+		if (!editorNode.contains("autoKeyEnabled") || !editorNode[
+			    "autoKeyEnabled"].is_boolean()) {
 			editorNode["autoKeyEnabled"] = false;
 			changed                      = true;
 		}
 
 		if (ioRoot.value("version", 1) != 2) {
 			ioRoot["version"] = 2;
-			changed = true;
+			changed           = true;
 		}
 
 		if (outChanged) {

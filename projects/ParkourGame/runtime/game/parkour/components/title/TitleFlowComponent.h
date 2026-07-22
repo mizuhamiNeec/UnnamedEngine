@@ -3,6 +3,8 @@
 #include <string>
 #include <string_view>
 
+#include "core/filesystem/Path.h"
+
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 
 namespace Unnamed {
@@ -20,7 +22,7 @@ namespace Unnamed {
 	public:
 		/// @brief タイトル演出を更新します。
 		/// @param deltaTime 前フレームからの経過時間（秒）
-		void OnTick(float deltaTime) override;
+		void OnFrameInputTick(float deltaTime) override;
 		/// @brief エディタ中も同じタイトル演出を更新します。
 		/// @param deltaTime 前フレームからの経過時間（秒）
 		void OnEditorTick(float deltaTime) override;
@@ -74,14 +76,14 @@ namespace Unnamed {
 		/// @brief Playプロンプトの点滅を更新します。
 		void UpdatePlayPromptBlink(float deltaTime);
 		/// @brief タイトルdemoパスを解決します。
-		[[nodiscard]] std::string ResolveDemoPath() const;
+		[[nodiscard]] Path ResolveDemoPath() const;
 		/// @brief クリックイベントで開始要求を受け取ります。
 		void RequestStart();
 		/// @brief クリックイベントで終了要求を受け取ります。
 		void RequestQuit();
 
-		std::string mGameplayScenePath = "scenes/game.json";
-		std::string mDemoPath          = "replay/title_demo.udemo";
+		Path        mGameplayScenePath = Path("scenes/game.json");
+		Path        mDemoPath          = Path("replay/title_demo.udemo");
 		std::string mPlayButtonName    = "PlayButton";
 		std::string mQuitButtonName    = "QuitButton";
 		std::string mPlayPromptName    = "PlayImage";
@@ -105,7 +107,7 @@ namespace Unnamed {
 		bool        mQuitRequested       = false;
 		float       mDemoRetrySeconds    = 0.0f;
 		bool        mHasSavedMismatchPolicy = false;
-		std::string mActiveDemoPath;
+		Path        mActiveDemoPath;
 		std::string mSavedMismatchPolicy;
 	};
 }

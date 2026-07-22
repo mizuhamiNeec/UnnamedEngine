@@ -1,7 +1,7 @@
 #include "DemoManager.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
-#include <cmath>
 #include <filesystem>
 #include <limits>
 #include <sstream>
@@ -9,7 +9,6 @@
 #include "DemoBinaryReader.h"
 #include "DemoBinaryWriter.h"
 
-#include "core/path/PathUtil.h"
 #include "engine/game/GamePathResolver.h"
 #include "engine/game/IGameModule.h"
 #include "engine/scene/Scene.h"
@@ -25,51 +24,40 @@ namespace Unnamed {
 	namespace {
 		constexpr std::string_view kChannel = "Demo";
 
-		std::string ToLowerAscii(std::string_view text) {
-			std::string lowered(text);
-			std::ranges::transform(
-				lowered,
-				lowered.begin(),
-				[](const unsigned char ch) {
-					return static_cast<char>(std::tolower(ch));
-				}
-			);
-			return lowered;
-		}
-
 		[[nodiscard]] std::string NormalizePathForCompare(
-			const std::string_view pathText
+			const Path& pathText
 		) {
-			if (pathText.empty()) {
+			if (pathText.IsEmpty()) {
 				return {};
 			}
-			std::string normalized = Path::ToGenericUtf8(
-				Path::FromUtf8(pathText).lexically_normal()
-			);
+			auto normalized = pathText.LexicallyNormal().ToGenericUtf8();
 			if (normalized.rfind("./", 0) == 0) {
 				normalized.erase(0, 2);
 			}
 			return normalized;
 		}
 
-		[[nodiscard]] std::string ResolveDefaultRecordingPath() {
+		[[nodiscard]] Path ResolveDefaultRecordingPath() {
 			constexpr std::string_view kDefaultRelativePath =
 				"replay/demo_recorded_v2.udemo";
-			if (const IGameModule* gameModule = ServiceLocator::Get<IGameModule>()) {
+			if (const IGameModule* gameModule = ServiceLocator::Get<
+				IGameModule>()) {
 				return ResolveGameContentPath(
 					gameModule->GetGameModulePaths(),
-					kDefaultRelativePath
+					Path(kDefaultRelativePath)
 				);
 			}
-			return std::string(kDefaultRelativePath);
+			return Path(kDefaultRelativePath);
 		}
 	}
 
-	bool DemoManager::StartRecording(std::string path) {
-		if (path.empty()) {
+	bool DemoManager::StartRecording(Path path) {
+		if (path.IsEmpty()) {
 			path = ResolveDefaultRecordingPath();
 		}
-		if (Path::FromUtf8(ToLowerAscii(path)).extension() == ".json") {
+
+		// 拡張子が.jsonの場合はエラーを出す（誤ってJSON形式で保存しないように）
+		if (path.Extension() == Path(".json")) {
 			Error(
 				kChannel,
 				"JSON demo recording is unsupported in DemoFileV2. Please use .udemo."
@@ -83,8 +71,9 @@ namespace Unnamed {
 			Reset();
 		}
 
-		mMode                = MODE::RECORDING;
-		mCurrentPath         = std::move(path);
+		// 記録中は途中で設定が変わっても固定ステップを変えない
+		mMode        = MODE::RECORDING;
+		mCurrentPath = std::move(path);
 		++mRecordingSessionSerial;
 		mFile                = {};
 		mFile.version        = kDemoFileVersion;
@@ -97,8 +86,8 @@ namespace Unnamed {
 		return true;
 	}
 
-	bool DemoManager::StartPlayback(std::string path) {
-		if (path.empty()) {
+	bool DemoManager::StartPlayback(Path path) {
+		if (path.IsEmpty()) {
 			Error(kChannel, "demo_play requires a path.");
 			return false;
 		}
@@ -166,7 +155,7 @@ namespace Unnamed {
 		return mMode == MODE::PLAYBACK ? mFile.startTick : 0ull;
 	}
 
-	std::string_view DemoManager::GetCurrentPath() const {
+	Path DemoManager::GetCurrentPath() const {
 		return mCurrentPath;
 	}
 
@@ -179,8 +168,9 @@ namespace Unnamed {
 	}
 
 	uint32_t DemoManager::GetSimulationTickRate() const {
+		// 録画・再生はファイルに固定したレートを優先して決定性を保つ
 		if (mMode == MODE::PLAYBACK || mMode == MODE::RECORDING) {
-			return SanitizeTickRate(mActiveTickRate);
+			return ClampTickRate(mActiveTickRate);
 		}
 		return ResolveConfiguredTickRate();
 	}
@@ -216,6 +206,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// 追い越したコマンドを捨て、現在の固定ティックだけを一度だけ消費する
 		while (mPlaybackCommandCursor < mFile.commands.size() &&
 		       mFile.commands[mPlaybackCommandCursor].tick < tick) {
 			++mPlaybackCommandCursor;
@@ -250,9 +241,9 @@ namespace Unnamed {
 			return;
 		}
 
-		if (mFile.mapPath.empty()) {
+		if (mFile.mapPath.IsEmpty()) {
 			if (const World* world = subjectEntity.GetWorld()) {
-				mFile.mapPath = std::string(world->GetLoadedScenePath());
+				mFile.mapPath = world->GetLoadedScenePath();
 			}
 		}
 
@@ -264,9 +255,8 @@ namespace Unnamed {
 			return true;
 		}
 
-		if (!mFile.mapPath.empty()) {
-			const World* world = subjectEntity.GetWorld();
-			if (world) {
+		if (!mFile.mapPath.IsEmpty()) {
+			if (const World* world = subjectEntity.GetWorld()) {
 				const std::string expectedMap = NormalizePathForCompare(
 					mFile.mapPath
 				);
@@ -298,9 +288,10 @@ namespace Unnamed {
 			}
 		}
 
-		const uint64_t entityGuid = subjectEntity.GetGuid();
-		const auto& initialEntities =
+		const uint64_t entityGuid      = subjectEntity.GetGuid();
+		const auto&    initialEntities =
 			ResolvePlaybackInitialSnapshotSet(subjectEntity);
+		// シーン全体の初期状態は最初の対象エンティティで一度だけ復元する
 		if (!mPlaybackInitialSetApplied && !initialEntities.empty()) {
 			Scene* scene = nullptr;
 			if (World* world = subjectEntity.GetWorld()) {
@@ -381,9 +372,9 @@ namespace Unnamed {
 		snapshot.entities.emplace_back(std::move(currentSnapshotRecord));
 
 		if (mMode == MODE::RECORDING) {
-			if (mFile.mapPath.empty()) {
+			if (mFile.mapPath.IsEmpty()) {
 				if (const World* world = subjectEntity.GetWorld()) {
-					mFile.mapPath = std::string(world->GetLoadedScenePath());
+					mFile.mapPath = world->GetLoadedScenePath();
 				}
 			}
 			mFile.snapshots.emplace_back(std::move(snapshot));
@@ -413,9 +404,9 @@ namespace Unnamed {
 		if (expected.entities.empty() || snapshot.entities.empty()) {
 			return;
 		}
-		const EntitySnapshotRecord& currentRecord  = snapshot.entities.front();
+		const EntitySnapshotRecord& currentRecord = snapshot.entities.front();
 		const EntitySnapshotRecord* expectedRecord = nullptr;
-		const uint64_t recordedEntityGuid =
+		const uint64_t              recordedEntityGuid =
 			ResolvePlaybackRecordedEntityGuid(currentRecord.entityGuid);
 		for (const EntitySnapshotRecord& expectedEntityRecord : expected.
 		     entities) {
@@ -467,8 +458,188 @@ namespace Unnamed {
 		}
 	}
 
+	void DemoManager::Reset() {
+		mMode                   = MODE::IDLE;
+		mCurrentPath            = {};
+		mFile                   = {};
+		mPlaybackCommandCursor  = 0;
+		mPlaybackSnapshotCursor = 0;
+		mSnapshotMismatchCount  = 0;
+		mFirstMismatchTick      = std::numeric_limits<uint64_t>::max();
+		mPlaybackInitialAppliedEntities.clear();
+		mPlaybackEntityGuidRemap.clear();
+		mPlaybackInitialSetApplied = false;
+		mActiveTickRate            = ResolveConfiguredTickRate();
+	}
+
+	std::string DemoManager::BuildStatusString() const {
+		std::string modeText = "Idle";
+		if (mMode == MODE::RECORDING) {
+			modeText = "Recording";
+		} else if (mMode == MODE::PLAYBACK) {
+			modeText = "Playback";
+		}
+		std::ostringstream stream;
+		stream
+			<< "mode=" << modeText
+			<< ", path='" << mCurrentPath.ToUtf8() << "'"
+			<< ", commands=" << mFile.commands.size()
+			<< ", snapshots=" << mFile.snapshots.size()
+			<< ", playbackCommandCursor=" << mPlaybackCommandCursor
+			<< ", playbackSnapshotCursor=" << mPlaybackSnapshotCursor
+			<< ", mismatch=" << mSnapshotMismatchCount
+			<< ", tickRate=" << GetSimulationTickRate()
+			<< ", playbackSession=" << mPlaybackSessionSerial
+			<< ", firstMismatchTick="
+			<< (mFirstMismatchTick != std::numeric_limits<uint64_t>::max() ?
+				    std::to_string(mFirstMismatchTick) :
+				    "none")
+			<< ", mismatchPolicy=" << MismatchPolicyToString(
+				ResolveMismatchPolicy()
+			);
+		return stream.str();
+	}
+
+	DemoManager::MISMATCH_POLICY DemoManager::ResolveMismatchPolicy() {
+		const ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
+		if (!console) {
+			return MISMATCH_POLICY::CONTINUE;
+		}
+
+		const std::string raw = StrUtil::ToLowerCase(
+			console->GetConVarValueString("demo_mismatch_policy")
+		);
+		if (raw == "stop") {
+			return MISMATCH_POLICY::STOP;
+		}
+		if (raw == "ignore" || raw == "off" || raw == "none") {
+			return MISMATCH_POLICY::SILENT;
+		}
+		if (raw == "resync") {
+			static bool sWarnedResyncFallback = false;
+			if (!sWarnedResyncFallback) {
+				Warning(
+					kChannel,
+					"demo_mismatch_policy=resync is unsupported in DemoFileV2. Falling back to continue."
+				);
+				sWarnedResyncFallback = true;
+			}
+		}
+		return MISMATCH_POLICY::CONTINUE;
+	}
+
+	uint64_t DemoManager::ResolveMismatchLogInterval() {
+		const ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
+		if (!console) {
+			return 120ull;
+		}
+		const std::string raw = console->GetConVarValueString(
+			"demo_mismatch_log_interval"
+		);
+		if (raw.empty()) {
+			return 120ull;
+		}
+		try {
+			const int value = std::stoi(raw);
+			return static_cast<uint64_t>(std::max(1, value));
+		} catch (...) {
+			return 120ull;
+		}
+	}
+
+	uint32_t DemoManager::ClampTickRate(const uint32_t tickRate) {
+		return std::clamp(tickRate, 1u, 1000u);
+	}
+
+	std::string_view DemoManager::MismatchPolicyToString(
+		const MISMATCH_POLICY policy
+	) {
+		switch (policy) {
+			case MISMATCH_POLICY::STOP: return "stop";
+			case MISMATCH_POLICY::SILENT: return "ignore";
+			case MISMATCH_POLICY::CONTINUE:
+			default: return "continue";
+		}
+	}
+
+	bool DemoManager::SaveRecordingToFile() const {
+		if (mCurrentPath.IsEmpty()) {
+			Error(kChannel, "Cannot save recording: path is empty.");
+			return false;
+		}
+
+		const std::filesystem::path outPath = mCurrentPath.Native();
+		if (outPath.has_parent_path()) {
+			std::filesystem::create_directories(outPath.parent_path());
+		}
+
+		std::string error;
+		if (
+			constexpr DemoBinaryWriter writer = {};
+			!writer.WriteFile(mCurrentPath, mFile, &error)
+		) {
+			Error(
+				kChannel,
+				"Failed to write demo binary '{}': {}",
+				mCurrentPath,
+				error
+			);
+			return false;
+		}
+		return true;
+	}
+
+	bool DemoManager::LoadPlaybackFile(const Path& path) {
+		const std::string pathText    = path.ToUtf8();
+		const std::string loweredPath = StrUtil::ToLowerCase(pathText);
+		if (Path(loweredPath).Extension() ==
+		    Path(".json")) {
+			Error(
+				kChannel,
+				"JSON demo playback is unsupported in DemoFileV2. Please record or convert to .udemo."
+			);
+			return false;
+		}
+
+		DemoFileV2       loaded = {};
+		DemoBinaryReader reader = {};
+		std::string      error;
+		if (!reader.ReadFile(path, loaded, &error)) {
+			Error(kChannel, "Failed to read demo binary '{}': {}", path, error);
+			return false;
+		}
+
+		if (loaded.version != kDemoFileVersion) {
+			Error(
+				kChannel,
+				"Unsupported demo version: {} (expected {})",
+				loaded.version,
+				kDemoFileVersion
+			);
+			return false;
+		}
+		if (loaded.tickRate == 0) {
+			Error(
+				kChannel,
+				"Unsupported demo tickRate: {}",
+				loaded.tickRate,
+				0
+			);
+			return false;
+		}
+		loaded.tickRate = ClampTickRate(loaded.tickRate);
+
+		mFile                   = std::move(loaded);
+		mPlaybackCommandCursor  = 0;
+		mPlaybackSnapshotCursor = 0;
+		mSnapshotMismatchCount  = 0;
+		mFirstMismatchTick      = std::numeric_limits<uint64_t>::max();
+		mActiveTickRate         = mFile.tickRate;
+		return true;
+	}
+
 	void DemoManager::CaptureInitialSnapshotSet(
-		const Entity& subjectEntity,
+		const Entity&                      subjectEntity,
 		std::vector<EntitySnapshotRecord>& outRecords
 	) const {
 		const auto captureEntity = [this, &outRecords](const Entity& entity) {
@@ -535,13 +706,13 @@ namespace Unnamed {
 		}
 
 		std::vector<EntitySnapshotRecord>& syntheticInitial =
-			mPlaybackSyntheticInitialEntities[mCurrentPath];
+			mPlaybackSyntheticInitialEntities[mCurrentPath.ToUtf8()];
 		if (syntheticInitial.empty()) {
 			CaptureInitialSnapshotSet(subjectEntity, syntheticInitial);
 			Warning(
 				kChannel,
 				"Demo initial snapshot set is empty. Captured runtime state as a synthetic loop start. path='{}'",
-				mCurrentPath
+				mCurrentPath.ToUtf8()
 			);
 		}
 		return syntheticInitial;
@@ -562,8 +733,8 @@ namespace Unnamed {
 
 	const EntitySnapshotRecord* DemoManager::FindInitialSnapshotByGuid(
 		const std::vector<EntitySnapshotRecord>& records,
-		const uint64_t entityGuid
-	) const {
+		const uint64_t                           entityGuid
+	) {
 		if (entityGuid == 0) {
 			return nullptr;
 		}
@@ -579,13 +750,13 @@ namespace Unnamed {
 	const EntitySnapshotRecord*
 	DemoManager::FindInitialSnapshotForRuntimeEntity(
 		const std::vector<EntitySnapshotRecord>& records,
-		const Entity& subjectEntity
+		const Entity&                            subjectEntity
 	) const {
 		const uint64_t runtimeEntityGuid = subjectEntity.GetGuid();
 
 		// まずGUID一致を優先し、同じシーンをそのまま再生する場合の挙動を維持します。
 		if (const EntitySnapshotRecord* exact =
-			    FindInitialSnapshotByGuid(records, runtimeEntityGuid)) {
+			FindInitialSnapshotByGuid(records, runtimeEntityGuid)) {
 			return exact;
 		}
 
@@ -593,17 +764,17 @@ namespace Unnamed {
 			ResolvePlaybackRecordedEntityGuid(runtimeEntityGuid);
 		if (remappedEntityGuid != runtimeEntityGuid) {
 			if (const EntitySnapshotRecord* remapped =
-				    FindInitialSnapshotByGuid(records, remappedEntityGuid)) {
+				FindInitialSnapshotByGuid(records, remappedEntityGuid)) {
 				return remapped;
 			}
 		}
 
 		// コマンド/検証スナップショットに残っている主体GUIDを現在のプレイヤーへ対応付けます。
 		if (const uint64_t recordedSubjectEntityGuid =
-			    ResolveRecordedSubjectEntityGuid();
+				ResolveRecordedSubjectEntityGuid();
 			recordedSubjectEntityGuid != 0) {
 			if (const EntitySnapshotRecord* recordedSubject =
-				    FindInitialSnapshotByGuid(records, recordedSubjectEntityGuid)) {
+				FindInitialSnapshotByGuid(records, recordedSubjectEntityGuid)) {
 				return recordedSubject;
 			}
 		}
@@ -629,181 +800,5 @@ namespace Unnamed {
 			}
 		}
 		return 0;
-	}
-
-	void DemoManager::Reset() {
-		mMode = MODE::IDLE;
-		mCurrentPath.clear();
-		mFile                   = {};
-		mPlaybackCommandCursor  = 0;
-		mPlaybackSnapshotCursor = 0;
-		mSnapshotMismatchCount  = 0;
-		mFirstMismatchTick      = std::numeric_limits<uint64_t>::max();
-		mPlaybackInitialAppliedEntities.clear();
-		mPlaybackEntityGuidRemap.clear();
-		mPlaybackInitialSetApplied = false;
-		mActiveTickRate            = ResolveConfiguredTickRate();
-	}
-
-	std::string DemoManager::BuildStatusString() const {
-		std::string modeText = "Idle";
-		if (mMode == MODE::RECORDING) {
-			modeText = "Recording";
-		} else if (mMode == MODE::PLAYBACK) {
-			modeText = "Playback";
-		}
-		std::ostringstream stream;
-		stream
-			<< "mode=" << modeText
-			<< ", path='" << mCurrentPath << "'"
-			<< ", commands=" << mFile.commands.size()
-			<< ", snapshots=" << mFile.snapshots.size()
-			<< ", playbackCommandCursor=" << mPlaybackCommandCursor
-			<< ", playbackSnapshotCursor=" << mPlaybackSnapshotCursor
-			<< ", mismatch=" << mSnapshotMismatchCount
-			<< ", tickRate=" << GetSimulationTickRate()
-			<< ", playbackSession=" << mPlaybackSessionSerial
-			<< ", firstMismatchTick="
-			<< (mFirstMismatchTick != std::numeric_limits<uint64_t>::max() ?
-				    std::to_string(mFirstMismatchTick) :
-				    "none")
-			<< ", mismatchPolicy=" << MismatchPolicyToString(
-				ResolveMismatchPolicy()
-			);
-		return stream.str();
-	}
-
-	DemoManager::MISMATCH_POLICY DemoManager::ResolveMismatchPolicy() {
-		ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
-		if (!console) {
-			return MISMATCH_POLICY::CONTINUE;
-		}
-
-		const std::string raw = ToLowerAscii(
-			console->GetConVarValueString("demo_mismatch_policy")
-		);
-		if (raw == "stop") {
-			return MISMATCH_POLICY::STOP;
-		}
-		if (raw == "ignore" || raw == "off" || raw == "none") {
-			return MISMATCH_POLICY::SILENT;
-		}
-		if (raw == "resync") {
-			static bool sWarnedResyncFallback = false;
-			if (!sWarnedResyncFallback) {
-				Warning(
-					kChannel,
-					"demo_mismatch_policy=resync is unsupported in DemoFileV2. Falling back to continue."
-				);
-				sWarnedResyncFallback = true;
-			}
-		}
-		return MISMATCH_POLICY::CONTINUE;
-	}
-
-	uint64_t DemoManager::ResolveMismatchLogInterval() {
-		ConsoleSystem* console = ServiceLocator::Get<ConsoleSystem>();
-		if (!console) {
-			return 120ull;
-		}
-		const std::string raw = console->GetConVarValueString(
-			"demo_mismatch_log_interval"
-		);
-		if (raw.empty()) {
-			return 120ull;
-		}
-		try {
-			const int value = std::stoi(raw);
-			return static_cast<uint64_t>(std::max(1, value));
-		} catch (...) {
-			return 120ull;
-		}
-	}
-
-	uint32_t DemoManager::SanitizeTickRate(const uint32_t tickRate) {
-		return std::clamp(tickRate, 1u, 1000u);
-	}
-
-	std::string_view DemoManager::MismatchPolicyToString(
-		const MISMATCH_POLICY policy
-	) {
-		switch (policy) {
-			case MISMATCH_POLICY::STOP: return "stop";
-			case MISMATCH_POLICY::SILENT: return "ignore";
-			case MISMATCH_POLICY::CONTINUE:
-			default: return "continue";
-		}
-	}
-
-	bool DemoManager::SaveRecordingToFile() const {
-		if (mCurrentPath.empty()) {
-			Error(kChannel, "Cannot save recording: path is empty.");
-			return false;
-		}
-
-		const std::filesystem::path outPath(mCurrentPath);
-		if (outPath.has_parent_path()) {
-			std::filesystem::create_directories(outPath.parent_path());
-		}
-
-		DemoBinaryWriter writer = {};
-		std::string      error;
-		if (!writer.WriteFile(mCurrentPath, mFile, &error)) {
-			Error(
-				kChannel,
-				"Failed to write demo binary '{}': {}",
-				mCurrentPath,
-				error
-			);
-			return false;
-		}
-		return true;
-	}
-
-	bool DemoManager::LoadPlaybackFile(const std::string& path) {
-		const std::string loweredPath = ToLowerAscii(path);
-		if (Path::FromUtf8(loweredPath).extension() == ".json") {
-			Error(
-				kChannel,
-				"JSON demo playback is unsupported in DemoFileV2. Please record or convert to .udemo."
-			);
-			return false;
-		}
-
-		DemoFileV2       loaded = {};
-		DemoBinaryReader reader = {};
-		std::string      error;
-		if (!reader.ReadFile(path, loaded, &error)) {
-			Error(kChannel, "Failed to read demo binary '{}': {}", path, error);
-			return false;
-		}
-
-		if (loaded.version != kDemoFileVersion) {
-			Error(
-				kChannel,
-				"Unsupported demo version: {} (expected {})",
-				loaded.version,
-				kDemoFileVersion
-			);
-			return false;
-		}
-		if (loaded.tickRate == 0) {
-			Error(
-				kChannel,
-				"Unsupported demo tickRate: {}",
-				loaded.tickRate,
-				0
-			);
-			return false;
-		}
-		loaded.tickRate = SanitizeTickRate(loaded.tickRate);
-
-		mFile                   = std::move(loaded);
-		mPlaybackCommandCursor  = 0;
-		mPlaybackSnapshotCursor = 0;
-		mSnapshotMismatchCount  = 0;
-		mFirstMismatchTick      = std::numeric_limits<uint64_t>::max();
-		mActiveTickRate         = mFile.tickRate;
-		return true;
 	}
 }

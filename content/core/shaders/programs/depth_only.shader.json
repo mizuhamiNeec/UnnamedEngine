@@ -1,12 +1,12 @@
 {
 	"name": "DepthOnly",
 	"vs": {
-		"path": "../src/DepthOnly.hlsl",
+		"path": "shaders/src/DepthOnly.hlsl",
 		"entry": "VsMain",
 		"profile": "vs_6_6"
 	},
 	"ps": {
-		"path": "../src/DepthOnly.hlsl",
+		"path": "shaders/src/DepthOnly.hlsl",
 		"entry": "PsMain",
 		"profile": "ps_6_6"
 	}

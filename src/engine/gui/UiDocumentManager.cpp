@@ -2,115 +2,121 @@
 
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/UiDocumentAssetData.h"
+#include "core/content/ContentPathResolver.h"
 #include "core/io/json/JsonReader.h"
-#include "core/string/StrUtil.h"
 
+#include "engine/content/ContentMountDefinitions.h"
+#include "engine/gui/UiDeserializeContext.h"
 #include "engine/unnamed/subsystem/console/Log.h"
-#include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 
 namespace Unnamed::Gui {
 	static constexpr std::string_view kChannel = "UiDocument";
 
-	UiDocumentManager::UiDocumentManager(AssetManager* assetManager) :
+	UiDocumentManager::UiDocumentManager(AssetManager& assetManager) :
 		mAssetManager(assetManager) {
-		if (!mAssetManager) {
-			mAssetManager = ServiceLocator::Get<AssetManager>();
-		}
 	}
 
 	UiDocumentManager::~UiDocumentManager() = default;
 
 	std::shared_ptr<UiDocument> UiDocumentManager::LoadDocument(
-		const std::string& path
+		const Path& path
 	) {
-		if (!mAssetManager) {
-			Error(kChannel, "AssetManager is not available.");
-			return nullptr;
-		}
-
-		const std::string normalizedPath = NormalizePath(path);
-		ManagedDocument&  managed = mDocuments[normalizedPath];
-		managed.normalizedPath = normalizedPath;
-		managed.assetId = mAssetManager->LoadFromFile(
+		const Path        normalizedPath = NormalizePath(path);
+		const std::string key            = normalizedPath.ToGenericUtf8();
+		ManagedDocument&  managed        = mDocuments[key];
+		managed.normalizedPath           = normalizedPath;
+		managed.assetId                  = mAssetManager.LoadAssetFromFile(
 			normalizedPath, ASSET_TYPE::UI_DOCUMENT
 		);
 		if (managed.assetId == kInvalidAssetID) {
-			Error(kChannel, "Failed to load UI document asset '{}'.", normalizedPath);
+			Error(kChannel, "Failed to load UI document asset '{}'.",
+			      normalizedPath);
 			return nullptr;
 		}
 
 		if (!ReloadDocumentFromAsset(managed)) {
-			Error(kChannel, "Failed to decode UI document '{}'.", normalizedPath);
+			Error(kChannel, "Failed to decode UI document '{}'.",
+			      normalizedPath);
 			return nullptr;
 		}
 
 		managed.dirty           = false;
 		managed.pendingExternal = false;
-		DevMsg(kChannel, "Loaded UiDocument asset: {}", normalizedPath.c_str());
+		DevMsg(kChannel, "Loaded UiDocument asset: {}", normalizedPath);
 		return managed.document;
 	}
 
-	void UiDocumentManager::UnloadDocument(const std::string& path) {
-		mDocuments.erase(NormalizePath(path));
+	void UiDocumentManager::UnloadDocument(const Path& path) {
+		mDocuments.erase(NormalizePath(path).ToGenericUtf8());
 	}
 
 	std::shared_ptr<UiDocument> UiDocumentManager::GetDocument(
-		const std::string& path
+		const Path& path
 	) const {
 		const ManagedDocument* managed = FindManaged(path);
 		return managed ? managed->document : nullptr;
 	}
 
 	bool UiDocumentManager::SaveDocument(
-		const std::string&               path,
+		const Path&                        path,
 		const std::shared_ptr<UiDocument>& document
 	) {
 		if (!document) {
 			return false;
 		}
 
-		const std::string normalizedPath = NormalizePath(path);
+		const Path        normalizedPath = NormalizePath(path);
+		const std::string key            = normalizedPath.ToGenericUtf8();
+		const std::optional<std::string> mountId =
+			mAssetManager.GetContentPathResolver().FindMountIdForResolvedPath(
+				normalizedPath
+			);
+		// 共通 UI は上書きしない。編集結果はゲーム固有コンテンツへ保存する
+		if (mountId == ContentMountId::kCore) {
+			Warning(
+				kChannel,
+				"Core UI documents are read-only. Duplicate the document into Game content before saving: {}",
+				normalizedPath
+			);
+			return false;
+		}
 		if (!document->Save(normalizedPath)) {
 			return false;
 		}
 
-		ManagedDocument& managed = mDocuments[normalizedPath];
-		managed.normalizedPath = normalizedPath;
-		managed.document       = document;
-		managed.dirty          = false;
-		managed.pendingExternal = false;
+		ManagedDocument& managed = mDocuments[key];
+		managed.normalizedPath   = normalizedPath;
+		managed.document         = document;
+		managed.dirty            = false;
+		managed.pendingExternal  = false;
 
-		if (!mAssetManager) {
-			return true;
-		}
-
-		managed.assetId = mAssetManager->LoadFromFile(
+		managed.assetId = mAssetManager.LoadAssetFromFile(
 			normalizedPath,
 			ASSET_TYPE::UI_DOCUMENT,
 			AssetManager::AssetLoadPolicy::ForceReload
 		);
 		if (managed.assetId == kInvalidAssetID) {
-			return true;
+			return false;
 		}
 
-		managed.loadedVersion = mAssetManager->Meta(managed.assetId).version;
+		managed.loadedVersion = mAssetManager.Meta(managed.assetId).version;
 		return true;
 	}
 
-	void UiDocumentManager::MarkDirty(const std::string& path, const bool dirty) {
+	void UiDocumentManager::MarkDirty(const Path& path, const bool dirty) {
 		if (ManagedDocument* managed = FindManaged(path)) {
 			managed->dirty = dirty;
 		}
 	}
 
-	bool UiDocumentManager::IsDirty(const std::string& path) const {
+	bool UiDocumentManager::IsDirty(const Path& path) const {
 		if (const ManagedDocument* managed = FindManaged(path)) {
 			return managed->dirty;
 		}
 		return false;
 	}
 
-	bool UiDocumentManager::HasPendingExternal(const std::string& path) const {
+	bool UiDocumentManager::HasPendingExternal(const Path& path) const {
 		if (const ManagedDocument* managed = FindManaged(path)) {
 			return managed->pendingExternal;
 		}
@@ -118,8 +124,8 @@ namespace Unnamed::Gui {
 	}
 
 	void UiDocumentManager::ResolvePendingExternal(
-		const std::string& path,
-		const bool         reloadFromAsset
+		const Path& path,
+		const bool  reloadFromAsset
 	) {
 		ManagedDocument* managed = FindManaged(path);
 		if (!managed || !managed->pendingExternal) {
@@ -134,23 +140,21 @@ namespace Unnamed::Gui {
 		managed->pendingExternal = false;
 	}
 
-	std::vector<std::string> UiDocumentManager::UpdateTrackedDocuments() {
-		std::vector<std::string> updatedPaths;
-		if (!mAssetManager) {
-			return updatedPaths;
-		}
-
+	std::vector<Path> UiDocumentManager::UpdateTrackedDocuments() {
+		std::vector<Path> updatedPaths;
 		for (auto& [path, managed] : mDocuments) {
 			if (managed.assetId == kInvalidAssetID) {
 				continue;
 			}
 
-			const uint64_t currentVersion = mAssetManager->Meta(managed.assetId).
-			                                              version;
+			const uint64_t currentVersion = mAssetManager.Meta(managed.assetId)
+				.
+				version;
 			if (currentVersion <= managed.loadedVersion) {
 				continue;
 			}
 
+			// 未保存の編集がある間は外部更新を保留し、編集内容を自動で失わない
 			if (managed.dirty) {
 				managed.pendingExternal = true;
 				continue;
@@ -158,47 +162,54 @@ namespace Unnamed::Gui {
 
 			if (ReloadDocumentFromAsset(managed)) {
 				managed.pendingExternal = false;
-				updatedPaths.emplace_back(path);
+				updatedPaths.emplace_back(managed.normalizedPath);
 			}
 		}
 
 		return updatedPaths;
 	}
 
-	std::string UiDocumentManager::NormalizePath(std::string path) {
-		return StrUtil::NormalizePath(std::move(path));
+	Path UiDocumentManager::NormalizePath(const Path& path) {
+		return path.IsEmpty() ? Path() : path.LexicallyNormal();
 	}
 
-	bool UiDocumentManager::ReloadDocumentFromAsset(ManagedDocument& managed) const {
-		if (!mAssetManager || managed.assetId == kInvalidAssetID) {
+	bool UiDocumentManager::ReloadDocumentFromAsset(
+		ManagedDocument& managed
+	) const {
+		if (managed.assetId == kInvalidAssetID) {
 			return false;
 		}
 
-		const auto* assetData = mAssetManager->Get<UiDocumentAssetData>(
+		const auto* assetData = mAssetManager.Get<UiDocumentAssetData>(
 			managed.assetId
 		);
 		if (!assetData) {
 			return false;
 		}
 
+		const UiDeserializeContext context{
+			.assetManager = mAssetManager,
+		};
 		auto doc = UiDocument::LoadFromJson(
 			JsonReader(assetData->rootJson),
-			managed.normalizedPath
+			managed.normalizedPath.ToGenericUtf8(),
+			context
 		);
 		if (!doc) {
 			return false;
 		}
 
 		managed.document      = std::move(doc);
-		managed.loadedVersion = mAssetManager->Meta(managed.assetId).version;
+		managed.loadedVersion = mAssetManager.Meta(managed.assetId).version;
 		return true;
 	}
 
 	UiDocumentManager::ManagedDocument* UiDocumentManager::FindManaged(
-		const std::string& path
+		const Path& path
 	) {
-		const std::string normalizedPath = NormalizePath(path);
-		const auto        it = mDocuments.find(normalizedPath);
+		const std::string normalizedPath =
+			NormalizePath(path).ToGenericUtf8();
+		const auto it = mDocuments.find(normalizedPath);
 		if (it == mDocuments.end()) {
 			return nullptr;
 		}
@@ -206,10 +217,11 @@ namespace Unnamed::Gui {
 	}
 
 	const UiDocumentManager::ManagedDocument* UiDocumentManager::FindManaged(
-		const std::string& path
+		const Path& path
 	) const {
-		const std::string normalizedPath = NormalizePath(path);
-		const auto        it = mDocuments.find(normalizedPath);
+		const std::string normalizedPath =
+			NormalizePath(path).ToGenericUtf8();
+		const auto it = mDocuments.find(normalizedPath);
 		if (it == mDocuments.end()) {
 			return nullptr;
 		}

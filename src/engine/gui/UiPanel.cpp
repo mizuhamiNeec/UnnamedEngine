@@ -16,7 +16,7 @@ namespace Unnamed::Gui {
 	}
 
 	const Color& UiPanel::GetBackgroundColor() const {
-		static const Color fallback = {
+		static constexpr Color fallback = {
 			.r = 0.15f, .g = 0.15f, .b = 0.18f, .a = 1.0f
 		};
 		if (const auto* style = GetStyleComponent()) {

@@ -8,7 +8,6 @@
 #include <engine/unnamed/subsystem/input/device/gamepad/GamepadDevice.h>
 #include <engine/unnamed/subsystem/input/device/mouse/MouseDevice.h>
 
-
 namespace Unnamed {
 	std::optional<InputKey> KeyNameTable::FromString(
 		const std::string_view name

@@ -1,12 +1,12 @@
 {
 	"name": "DepthVis",
 	"vs": {
-		"path": "../src/FullscreenTriangle.hlsli",
+		"path": "shaders/src/FullscreenTriangle.hlsli",
 		"entry": "VsMain",
 		"profile": "vs_6_6"
 	},
 	"ps": {
-		"path": "../src/FsDepthVis.hlsl",
+		"path": "shaders/src/FsDepthVis.hlsl",
 		"entry": "PsMain",
 		"profile": "ps_6_6"
 	}

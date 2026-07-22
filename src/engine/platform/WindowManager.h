@@ -9,7 +9,6 @@
 #include "Window.h"
 
 #include "engine/EngineConfig.h"
-#include "engine/unnamed/subsystem/input/InputSystem.h"
 
 namespace Unnamed {
 	class WindowManager final {
@@ -58,7 +57,7 @@ namespace Unnamed {
 
 		/// @brief プラットフォームイベントのコールバックを登録します。
 		/// @param events 登録するイベントコールバックのインターフェースへのポインタ
-		static void RegisterPlatformEvents(IPlatformEvents* events);
+		void RegisterPlatformEvents(IPlatformEvents* events);
 
 	private:
 		/// @brief ウィンドウクラスが登録されていることを保証します。登録されていない場合は登録します。

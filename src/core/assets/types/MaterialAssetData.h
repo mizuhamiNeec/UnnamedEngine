@@ -1,9 +1,11 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/VirtualPath.h"
 #include "core/math/Vec4.h"
 
 namespace Unnamed {
@@ -28,6 +30,23 @@ namespace Unnamed {
 		NONE            = 3,
 	};
 
+	/// @brief 文字列からマテリアルドメインを解析します。
+	/// @param text 解析する文字列
+	/// @return 解析結果。未定義文字列はPBR_METAL_ROUGHを返します。
+	MATERIAL_DOMAIN ParseMaterialDomain(std::string_view text);
+
+	/// @brief 文字列からマテリアルシェーディングモデルを解析します。
+	/// @param text 解析する文字列
+	/// @return 解析結果。未定義文字列はLIT_PBRを返します。
+	MATERIAL_SHADING_MODEL ParseMaterialShadingModel(std::string_view text);
+
+	/// @brief 文字列からShadowMap caster用カリングモードを解析します。
+	/// @param text 解析する文字列
+	/// @return 解析結果。未定義文字列はFOLLOW_MATERIALを返します。
+	MATERIAL_SHADOW_CULL_MODE ParseMaterialShadowCullMode(
+		std::string_view text
+	);
+
 	/// @brief マテリアルの描画状態を表す構造体
 	struct MaterialRenderStateData {
 		bool                      depthEnable    = true;
@@ -47,9 +66,9 @@ namespace Unnamed {
 	struct MaterialAssetData {
 		std::string name;
 
-		AssetID         shaderProgramId = kInvalidAssetID;
-		std::string     shaderProgramPath;
-		MATERIAL_DOMAIN domain = MATERIAL_DOMAIN::PBR_METAL_ROUGH;
+		AssetID                shaderProgramId = kInvalidAssetID;
+		VirtualPath            shaderProgramPath;
+		MATERIAL_DOMAIN        domain       = MATERIAL_DOMAIN::PBR_METAL_ROUGH;
 		MATERIAL_SHADING_MODEL shadingModel =
 			MATERIAL_SHADING_MODEL::LIT_PBR;
 

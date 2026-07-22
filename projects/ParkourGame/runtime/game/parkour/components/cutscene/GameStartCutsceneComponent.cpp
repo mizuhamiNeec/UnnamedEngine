@@ -1,14 +1,12 @@
 #include "GameStartCutsceneComponent.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
-#include <cstddef>
-#include <cstring>
 #include <ranges>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
+#include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
 #include "core/ComponentRegistry.h"
@@ -36,27 +34,25 @@
 
 namespace Unnamed {
 	namespace {
-		constexpr float kMinDurationSec = 0.01f;
-		constexpr std::string_view kDefaultLookLockStableName = "game.CameraRotator";
-
-#ifdef _DEBUG
-		template <size_t N>
-		void DrawStringInput(const char* label, std::string& value) {
-			std::array<char, N> buffer = {};
-			const size_t        copyLen = std::min(value.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLen);
-			}
-			if (ImGui::InputText(label, buffer.data(), buffer.size())) {
-				value = buffer.data();
-			}
-		}
-#endif
+		constexpr float            kMinDurationSec            = 0.01f;
+		constexpr std::string_view kDefaultLookLockStableName =
+			"game.CameraRotator";
 	}
 
 	void GameStartCutsceneComponent::OnAttached() {
 		// シーンロード中は参照先エンティティが未生成のため、開始は初回Tickへ遅延します。
 		mPendingStartSequence = true;
+	}
+
+	void GameStartCutsceneComponent::OnFrameInputTick(float) {
+		if (!mSequenceActive || mPhase != PHASE::TOUR || mSkipAction.empty()) {
+			return;
+		}
+
+		if (const InputSystem* input = GetInputSystem();
+		    input && input->IsPressed(mSkipAction)) {
+			EnterCountdown();
+		}
 	}
 
 	void GameStartCutsceneComponent::OnTick(const float deltaTime) {
@@ -71,8 +67,10 @@ namespace Unnamed {
 
 		const float clampedDelta = std::max(0.0f, deltaTime);
 		switch (mPhase) {
-			case PHASE::TOUR: TickTour(clampedDelta); break;
-			case PHASE::COUNTDOWN: TickCountdown(clampedDelta); break;
+			case PHASE::TOUR: TickTour(clampedDelta);
+				break;
+			case PHASE::COUNTDOWN: TickCountdown(clampedDelta);
+				break;
 			case PHASE::GAMEPLAY:
 			default: break;
 		}
@@ -110,6 +108,18 @@ namespace Unnamed {
 		ClearResolvedBindings();
 	}
 
+	std::string_view GameStartCutsceneComponent::GetStableName() const {
+		return "parkour.GameStartCutscene";
+	}
+
+	std::string_view GameStartCutsceneComponent::GetComponentName() const {
+		return "GameStartCutscene";
+	}
+
+	uint32_t GameStartCutsceneComponent::GetIcon() const {
+		return kIconVideoCam;
+	}
+
 	void GameStartCutsceneComponent::DrawShotDebugAxes() const {
 		World* world = GetWorld();
 		if (!world) {
@@ -118,7 +128,7 @@ namespace Unnamed {
 
 		auto& debugDraw = world->GetDebugDraw();
 		for (const ShotSpec& shot : mShots) {
-			const auto drawShotAxis = [&debugDraw](
+			const auto DrawShotAxis = [&debugDraw](
 				const Vec3& cameraPos,
 				const Vec3& lookAtPos,
 				const float axisLength
@@ -157,22 +167,10 @@ namespace Unnamed {
 			};
 
 			// 各ショットの開始点/終了点の両方を可視化して、座標調整をしやすくします。
-			constexpr float kAxisLength = 1.5f;
-			drawShotAxis(shot.startPos, shot.startLook, kAxisLength);
-			drawShotAxis(shot.endPos, shot.endLook, kAxisLength);
+			constexpr float axisLength = 1.5f;
+			DrawShotAxis(shot.startPos, shot.startLook, axisLength);
+			DrawShotAxis(shot.endPos, shot.endLook, axisLength);
 		}
-	}
-
-	std::string_view GameStartCutsceneComponent::GetStableName() const {
-		return "parkour.GameStartCutscene";
-	}
-
-	std::string_view GameStartCutsceneComponent::GetComponentName() const {
-		return "GameStartCutscene";
-	}
-
-	uint32_t GameStartCutsceneComponent::GetIcon() const {
-		return kIconVideoCam;
 	}
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
@@ -203,13 +201,21 @@ namespace Unnamed {
 			&mStartAudioSourceGuid
 		);
 
-		DrawStringInput<64>("Skip Action", mSkipAction);
-		DrawStringInput<64>("Digit Widget Name", mCountdownDigitWidgetName);
-		DrawStringInput<64>("Start Widget Name", mCountdownStartWidgetName);
-		DrawStringInput<64>("Fade Widget Name", mFadeOverlayWidgetName);
+		(void)ImGuiWidgets::InputText<64>("Skip Action", mSkipAction);
+		(void)ImGuiWidgets::InputText<64>(
+			"Digit Widget Name", mCountdownDigitWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Start Widget Name", mCountdownStartWidgetName
+		);
+		(void)ImGuiWidgets::InputText<64>(
+			"Fade Widget Name", mFadeOverlayWidgetName
+		);
 
-		ImGui::DragFloat("Fade Out Seconds", &mFadeOutSeconds, 0.01f, 0.01f, 3.0f);
-		ImGui::DragFloat("Fade In Seconds", &mFadeInSeconds, 0.01f, 0.01f, 3.0f);
+		ImGui::DragFloat("Fade Out Seconds", &mFadeOutSeconds, 0.01f, 0.01f,
+		                 3.0f);
+		ImGui::DragFloat("Fade In Seconds", &mFadeInSeconds, 0.01f, 0.01f,
+		                 3.0f);
 		ImGui::DragFloat(
 			"Countdown Digit Seconds",
 			&mCountdownDigitSeconds,
@@ -237,7 +243,8 @@ namespace Unnamed {
 			ImGui::DragFloat3("End Pos", &shot.endPos.x, 0.1f);
 			ImGui::DragFloat3("Start Look", &shot.startLook.x, 0.1f);
 			ImGui::DragFloat3("End Look", &shot.endLook.x, 0.1f);
-			ImGui::DragFloat("Duration", &shot.durationSeconds, 0.01f, 0.01f, 20.0f);
+			ImGui::DragFloat("Duration", &shot.durationSeconds, 0.01f, 0.01f,
+			                 20.0f);
 			if (ImGui::Button("Remove Shot")) {
 				mShots.erase(mShots.begin() + static_cast<ptrdiff_t>(i));
 				ImGui::PopID();
@@ -254,10 +261,14 @@ namespace Unnamed {
 		for (size_t i = 0; i < mLockTargets.size(); ++i) {
 			ImGui::PushID(1000 + static_cast<int>(i));
 			LockTargetSpec& spec = mLockTargets[i];
-			ImGui::InputScalar("Entity Guid", ImGuiDataType_U64, &spec.entityGuid);
-			DrawStringInput<96>("Component StableName", spec.componentStableName);
+			ImGui::InputScalar("Entity Guid", ImGuiDataType_U64,
+			                   &spec.entityGuid);
+			(void)ImGuiWidgets::InputText<96>(
+				"Component StableName", spec.componentStableName
+			);
 			if (ImGui::Button("Remove Lock")) {
-				mLockTargets.erase(mLockTargets.begin() + static_cast<ptrdiff_t>(i));
+				mLockTargets.erase(
+					mLockTargets.begin() + static_cast<ptrdiff_t>(i));
 				ImGui::PopID();
 				break;
 			}
@@ -268,48 +279,64 @@ namespace Unnamed {
 #endif
 
 	void GameStartCutsceneComponent::Deserialize(const JsonReader& reader) {
-		if (const JsonReader node = reader["tourCameraEntityGuid"]; node.Valid()) {
+		if (const JsonReader node = reader["tourCameraEntityGuid"];
+			node.Valid()) {
 			mTourCameraEntityGuid = node.GetUint64();
 		}
-		if (const JsonReader node = reader["playerCameraEntityGuid"]; node.Valid()) {
+		if (const JsonReader node = reader["playerCameraEntityGuid"];
+			node.Valid()) {
 			mPlayerCameraEntityGuid = node.GetUint64();
 		}
-		if (const JsonReader node = reader["hudCanvasEntityGuid"]; node.Valid()) {
+		if (const JsonReader node = reader["hudCanvasEntityGuid"];
+			node.Valid()) {
 			mHudCanvasEntityGuid = node.GetUint64();
 		}
-		if (const JsonReader node = reader["countAudioSourceGuid"]; node.Valid()) {
+		if (const JsonReader node = reader["countAudioSourceGuid"];
+			node.Valid()) {
 			mCountAudioSourceGuid = node.GetUint64();
 		}
-		if (const JsonReader node = reader["startAudioSourceGuid"]; node.Valid()) {
+		if (const JsonReader node = reader["startAudioSourceGuid"];
+			node.Valid()) {
 			mStartAudioSourceGuid = node.GetUint64();
 		}
 
 		mSkipAction = reader["skipAction"].GetString(mSkipAction);
 
 		mCountdownDigitWidgetName =
-			reader["countdownDigitWidgetName"].GetString(mCountdownDigitWidgetName);
+			reader["countdownDigitWidgetName"].GetString(
+				mCountdownDigitWidgetName);
 		mCountdownStartWidgetName =
-			reader["countdownStartWidgetName"].GetString(mCountdownStartWidgetName);
+			reader["countdownStartWidgetName"].GetString(
+				mCountdownStartWidgetName);
 		mFadeOverlayWidgetName =
 			reader["fadeOverlayWidgetName"].GetString(mFadeOverlayWidgetName);
 
-		if (const JsonReader node = reader["fadeOutSeconds"]; node.Valid()) {
-			mFadeOutSeconds = std::max(kMinDurationSec, node.GetFloat(mFadeOutSeconds));
+		if (const JsonReader node = reader["fadeOutSeconds"];
+			node.Valid()) {
+			mFadeOutSeconds = std::max(kMinDurationSec,
+			                           node.GetFloat(mFadeOutSeconds));
 		}
-		if (const JsonReader node = reader["fadeInSeconds"]; node.Valid()) {
-			mFadeInSeconds = std::max(kMinDurationSec, node.GetFloat(mFadeInSeconds));
+		if (const JsonReader node = reader["fadeInSeconds"];
+			node.Valid()) {
+			mFadeInSeconds = std::max(kMinDurationSec,
+			                          node.GetFloat(mFadeInSeconds));
 		}
-		if (const JsonReader node = reader["countdownDigitSeconds"]; node.Valid()) {
+		if (const JsonReader node = reader["countdownDigitSeconds"];
+			node.Valid()) {
 			mCountdownDigitSeconds =
-				std::max(kMinDurationSec, node.GetFloat(mCountdownDigitSeconds));
+				std::max(kMinDurationSec,
+				         node.GetFloat(mCountdownDigitSeconds));
 		}
-		if (const JsonReader node = reader["countdownStartSeconds"]; node.Valid()) {
+		if (const JsonReader node = reader["countdownStartSeconds"];
+			node.Valid()) {
 			mCountdownStartSeconds =
-				std::max(kMinDurationSec, node.GetFloat(mCountdownStartSeconds));
+				std::max(kMinDurationSec,
+				         node.GetFloat(mCountdownStartSeconds));
 		}
 
-		if (const JsonReader shotsNode = reader["shots"]; shotsNode.Valid()) {
-			const JsonReader         shotArray = shotsNode.GetArray();
+		if (const JsonReader shotsNode = reader["shots"];
+			shotsNode.Valid()) {
+			const JsonReader      shotArray   = shotsNode.GetArray();
 			std::vector<ShotSpec> parsedShots = {};
 			parsedShots.reserve(shotArray.Size());
 			for (size_t i = 0; i < shotArray.Size(); ++i) {
@@ -318,11 +345,11 @@ namespace Unnamed {
 					continue;
 				}
 
-				ShotSpec shot        = {};
-				shot.startPos        = shotNode["startPos"].GetVec3(shot.startPos);
-				shot.endPos          = shotNode["endPos"].GetVec3(shot.endPos);
-				shot.startLook       = shotNode["startLook"].GetVec3(shot.startLook);
-				shot.endLook         = shotNode["endLook"].GetVec3(shot.endLook);
+				ShotSpec shot = {};
+				shot.startPos = shotNode["startPos"].GetVec3(shot.startPos);
+				shot.endPos = shotNode["endPos"].GetVec3(shot.endPos);
+				shot.startLook = shotNode["startLook"].GetVec3(shot.startLook);
+				shot.endLook = shotNode["endLook"].GetVec3(shot.endLook);
 				shot.durationSeconds = std::max(
 					kMinDurationSec,
 					shotNode["durationSeconds"].GetFloat(shot.durationSeconds)
@@ -334,7 +361,8 @@ namespace Unnamed {
 			}
 		}
 
-		if (const JsonReader lockNode = reader["lockTargets"]; lockNode.Valid()) {
+		if (const JsonReader lockNode = reader["lockTargets"];
+			lockNode.Valid()) {
 			const JsonReader lockArray = lockNode.GetArray();
 			mLockTargets.clear();
 			mLockTargets.reserve(lockArray.Size());
@@ -345,11 +373,13 @@ namespace Unnamed {
 				}
 
 				LockTargetSpec spec = {};
-				if (const JsonReader entityNode = item["entityGuid"]; entityNode.Valid()) {
+				if (const JsonReader entityNode = item["entityGuid"];
+					entityNode.Valid()) {
 					spec.entityGuid = entityNode.GetUint64();
 				}
 				spec.componentStableName =
-					item["componentStableName"].GetString(spec.componentStableName);
+					item["componentStableName"].GetString(
+						spec.componentStableName);
 				if (spec.componentStableName.empty()) {
 					continue;
 				}
@@ -445,34 +475,28 @@ namespace Unnamed {
 			return;
 		}
 
-		if (!mSkipAction.empty()) {
-			if (const InputSystem* input = GetInputSystem()) {
-				if (input->IsPressed(mSkipAction)) {
-					EnterCountdown();
-					return;
-				}
-			}
-		}
-
 		if (mShots.empty()) {
 			EnterCountdown();
 			return;
 		}
 
-		const ShotSpec& shot     = mShots[mShotIndex];
-		const float     duration = std::max(kMinDurationSec, shot.durationSeconds);
+		const ShotSpec& shot = mShots[mShotIndex];
+		const float duration = std::max(kMinDurationSec, shot.durationSeconds);
 		mShotElapsedSeconds += deltaTime;
 
-		const float rawT = std::clamp(mShotElapsedSeconds / duration, 0.0f, 1.0f);
+		const float rawT = std::clamp(mShotElapsedSeconds / duration, 0.0f,
+		                              1.0f);
 		const float easedT = EvaluateEase(rawT);
-		const Vec3  cameraPos = Math::Lerp(shot.startPos, shot.endPos, easedT);
-		const Vec3  lookAtPos = Math::Lerp(shot.startLook, shot.endLook, easedT);
+		const Vec3 cameraPos = Math::Lerp(shot.startPos, shot.endPos, easedT);
+		const Vec3 lookAtPos = Math::Lerp(shot.startLook, shot.endLook, easedT);
 		ApplyTourCameraPose(cameraPos, lookAtPos);
 
 		const bool hasNextShot = mShotIndex + 1 < mShots.size();
 		if (hasNextShot && !mShotFadeSwapped) {
-			const float fadeOutDuration = std::max(kMinDurationSec, mFadeOutSeconds);
-			const float fadeOutStartSec = std::max(0.0f, duration - fadeOutDuration);
+			const float fadeOutDuration = std::max(
+				kMinDurationSec, mFadeOutSeconds);
+			const float fadeOutStartSec = std::max(
+				0.0f, duration - fadeOutDuration);
 			if (mShotElapsedSeconds >= fadeOutStartSec) {
 				const float fadeOutT = std::clamp(
 					(mShotElapsedSeconds - fadeOutStartSec) / fadeOutDuration,
@@ -504,7 +528,8 @@ namespace Unnamed {
 		}
 
 		if (mShotFadeActive && mShotFadeSwapped) {
-			const float fadeInDuration = std::max(kMinDurationSec, mFadeInSeconds);
+			const float fadeInDuration = std::max(
+				kMinDurationSec, mFadeInSeconds);
 			const float fadeInT = std::clamp(
 				mShotElapsedSeconds / fadeInDuration,
 				0.0f,
@@ -524,15 +549,17 @@ namespace Unnamed {
 	void GameStartCutsceneComponent::TickCountdown(const float deltaTime) {
 		(void)SwitchToPlayerCamera();
 
-		mCountdownElapsedSeconds += deltaTime;
-		const float digitDuration = std::max(kMinDurationSec, mCountdownDigitSeconds);
+		mCountdownElapsedSeconds  += deltaTime;
+		const float digitDuration = std::max(kMinDurationSec,
+		                                     mCountdownDigitSeconds);
 		const float digitTotalDuration = digitDuration * 3.0f;
-		const float totalDuration =
-			digitTotalDuration + std::max(kMinDurationSec, mCountdownStartSeconds);
+		const float totalDuration      =
+			digitTotalDuration + std::max(kMinDurationSec,
+			                              mCountdownStartSeconds);
 
 		// START表示に入るタイミングでプレイヤー操作を解放します。
-		if (!mGameplayControlReleased && mCountdownElapsedSeconds >= digitTotalDuration)
-		{
+		if (!mGameplayControlReleased && mCountdownElapsedSeconds >=
+		    digitTotalDuration) {
 			RestoreLockTargets();
 			mGameplayControlReleased = true;
 		}
@@ -576,10 +603,12 @@ namespace Unnamed {
 	}
 
 	void GameStartCutsceneComponent::UpdateCountdownAudio() {
-		const float digitDuration = std::max(kMinDurationSec, mCountdownDigitSeconds);
+		const float digitDuration = std::max(kMinDurationSec,
+		                                     mCountdownDigitSeconds);
 		const float digitTotalDuration = digitDuration * 3.0f;
-		const float totalDuration =
-			digitTotalDuration + std::max(kMinDurationSec, mCountdownStartSeconds);
+		const float totalDuration      =
+			digitTotalDuration + std::max(kMinDurationSec,
+			                              mCountdownStartSeconds);
 
 		int cueStep = -1;
 		if (mCountdownElapsedSeconds < digitTotalDuration) {
@@ -629,11 +658,11 @@ namespace Unnamed {
 		const bool  visible = alpha > 0.001f && mPhase != PHASE::GAMEPLAY;
 		mFadeOverlayWidget->SetVisible(visible);
 
-		Gui::Color color = mFadeOverlayTexture->GetColor();
-		color.r          = 0.0f;
-		color.g          = 0.0f;
-		color.b          = 0.0f;
-		color.a          = visible ? alpha : 0.0f;
+		Gui::Color color;
+		color.r = 0.0f;
+		color.g = 0.0f;
+		color.b = 0.0f;
+		color.a = visible ? alpha : 0.0f;
 		mFadeOverlayTexture->SetColor(color);
 		mFadeOverlayWidget->MarkDirty(Gui::DIRTY_FLAGS::DRAW);
 	}
@@ -660,37 +689,43 @@ namespace Unnamed {
 		const float     digitBaseHeight = std::max(1.0f, digitBaseRect.height);
 
 		const float digitTarget =
-			std::clamp(std::min(viewW, viewH) * 0.24f, 96.0f, 320.0f);
+			std::clamp(std::min(viewW, viewH) * 0.14f, 64.0f, 192.0f);
 		const float digitScale =
 			digitTarget / std::max(digitBaseWidth, digitBaseHeight);
 
 		const float startBaseWidth  = std::max(1.0f, startBaseRect.width);
 		const float startBaseHeight = std::max(1.0f, startBaseRect.height);
-		const float startScale =
-			std::clamp(viewW * 0.42f / startBaseWidth, 0.45f, 1.45f);
-		float startWidth      = startBaseWidth * startScale;
-		float startHeight     = startBaseHeight * startScale;
+		const float startScale      =
+			std::clamp(viewW * 0.25f / startBaseWidth, 0.45f, 1.45f);
+		float       startWidth   = startBaseWidth * startScale;
+		float       startHeight  = startBaseHeight * startScale;
 		const float startOffsetY = centerOffsetY + digitTarget * 0.05f;
 
-		const float digitDuration      = std::max(kMinDurationSec, mCountdownDigitSeconds);
+		const float digitDuration = std::max(kMinDurationSec,
+		                                     mCountdownDigitSeconds);
 		const float digitTotalDuration = digitDuration * 3.0f;
 		if (mCountdownElapsedSeconds < digitTotalDuration) {
 			const int digit =
 				3 - static_cast<int>(mCountdownElapsedSeconds / digitDuration);
 			const float phase = std::clamp(
-				std::fmod(mCountdownElapsedSeconds, digitDuration) / digitDuration,
+				std::fmod(mCountdownElapsedSeconds, digitDuration) /
+				digitDuration,
 				0.0f,
 				1.0f
 			);
 			const float pulseScale = 1.0f + (1.0f - phase) * 0.24f;
-			const float alpha      = std::clamp(1.0f - phase * 0.75f, 0.0f, 1.0f);
+			const float alpha = std::clamp(1.0f - phase * 0.75f, 0.0f, 1.0f);
 
 			mCountdownDigitWidget->SetVisible(true);
 			mCountdownDigitTransform->SetAnchors(
-				Gui::Anchors{.minX = 0.5f, .minY = 0.5f, .maxX = 0.5f, .maxY = 0.5f}
+				Gui::Anchors{
+					.minX = 0.5f, .minY = 0.5f, .maxX = 0.5f, .maxY = 0.5f
+				}
 			);
 			mCountdownDigitTransform->SetMargins(Gui::Margins{});
-			mCountdownDigitTransform->SetPivot(Gui::Pivot{.x = 0.5f, .y = 0.5f});
+			mCountdownDigitTransform->SetPivot(Gui::Pivot{
+				.x = 0.5f, .y = 0.5f
+			});
 			mCountdownDigitTransform->SetRect(
 				Gui::Rect{
 					.x      = 0.0f,
@@ -700,8 +735,9 @@ namespace Unnamed {
 				}
 			);
 
-			const float clampedDigit = std::clamp(static_cast<float>(digit), 0.0f, 9.0f);
-			const float uvMinX       = clampedDigit * 0.1f;
+			const float clampedDigit = std::clamp(
+				static_cast<float>(digit), 0.0f, 9.0f);
+			const float uvMinX = clampedDigit * 0.1f;
 			mCountdownDigitTexture->SetUvMin(Vec2(uvMinX, 0.0f));
 			mCountdownDigitTexture->SetUvMax(Vec2(uvMinX + 0.1f, 1.0f));
 			Gui::Color digitColor = mCountdownDigitTexture->GetColor();
@@ -719,7 +755,8 @@ namespace Unnamed {
 			return;
 		}
 
-		const float startDuration = std::max(kMinDurationSec, mCountdownStartSeconds);
+		const float startDuration = std::max(kMinDurationSec,
+		                                     mCountdownStartSeconds);
 		const float phase = std::clamp(
 			(mCountdownElapsedSeconds - digitTotalDuration) / startDuration,
 			0.0f,
@@ -727,8 +764,8 @@ namespace Unnamed {
 		);
 		const float alpha = std::sin(phase * Math::pi);
 		const float pulse = 1.0f + 0.08f * std::sin(phase * Math::pi);
-		startWidth *= pulse;
-		startHeight *= pulse;
+		startWidth        *= pulse;
+		startHeight       *= pulse;
 
 		mCountdownDigitWidget->SetVisible(false);
 		Gui::Color digitColor = mCountdownDigitTexture->GetColor();
@@ -792,26 +829,6 @@ namespace Unnamed {
 		}
 	}
 
-	void GameStartCutsceneComponent::ClearResolvedBindings() {
-		mTourCameraEntity    = nullptr;
-		mTourCameraTransform = nullptr;
-		mTourCamera          = nullptr;
-		mPlayerCameraEntity  = nullptr;
-		mPlayerCamera        = nullptr;
-		mHudCanvas           = nullptr;
-		mCountAudioSource    = nullptr;
-		mStartAudioSource    = nullptr;
-
-		mCountdownDigitWidget    = nullptr;
-		mCountdownDigitTransform = nullptr;
-		mCountdownDigitTexture   = nullptr;
-		mCountdownStartWidget    = nullptr;
-		mCountdownStartTransform = nullptr;
-		mCountdownStartTexture   = nullptr;
-		mFadeOverlayWidget       = nullptr;
-		mFadeOverlayTexture      = nullptr;
-	}
-
 	void GameStartCutsceneComponent::ResolveBindings() {
 		ClearResolvedBindings();
 
@@ -833,7 +850,8 @@ namespace Unnamed {
 			mPlayerCameraEntity = scene->FindEntity(mPlayerCameraEntityGuid);
 		}
 		if (mPlayerCameraEntity) {
-			mPlayerCamera = mPlayerCameraEntity->GetComponent<CameraComponent>();
+			mPlayerCamera = mPlayerCameraEntity->GetComponent<
+				CameraComponent>();
 		}
 
 		Entity* hudEntity = nullptr;
@@ -848,7 +866,7 @@ namespace Unnamed {
 		}
 
 		if (mHudCanvas && mHudCanvas->EnsureRuntimeLoaded()) {
-			Gui::UiRoot*   root       = mHudCanvas->GetRuntimeRoot();
+			const Gui::UiRoot* root = mHudCanvas->GetRuntimeRoot();
 			Gui::UiWidget* rootWidget = root ? root->GetRootWidget() : nullptr;
 			if (rootWidget) {
 				mCountdownDigitWidget = FindWidgetByNameRecursive(
@@ -860,28 +878,29 @@ namespace Unnamed {
 					mCountdownStartWidgetName
 				);
 				mFadeOverlayWidget =
-					FindWidgetByNameRecursive(rootWidget, mFadeOverlayWidgetName);
+					FindWidgetByNameRecursive(rootWidget,
+					                          mFadeOverlayWidgetName);
 
 				if (mCountdownDigitWidget) {
 					mCountdownDigitTransform =
 						mCountdownDigitWidget
-							->GetOrAddComponent<Gui::UiTransformComponent>();
+						->GetOrAddComponent<Gui::UiTransformComponent>();
 					mCountdownDigitTexture =
 						mCountdownDigitWidget
-							->GetOrAddComponent<Gui::UiTextureComponent>();
+						->GetOrAddComponent<Gui::UiTextureComponent>();
 				}
 				if (mCountdownStartWidget) {
 					mCountdownStartTransform =
 						mCountdownStartWidget
-							->GetOrAddComponent<Gui::UiTransformComponent>();
+						->GetOrAddComponent<Gui::UiTransformComponent>();
 					mCountdownStartTexture =
 						mCountdownStartWidget
-							->GetOrAddComponent<Gui::UiTextureComponent>();
+						->GetOrAddComponent<Gui::UiTextureComponent>();
 				}
 				if (mFadeOverlayWidget) {
 					mFadeOverlayTexture =
 						mFadeOverlayWidget
-							->GetOrAddComponent<Gui::UiTextureComponent>();
+						->GetOrAddComponent<Gui::UiTextureComponent>();
 				}
 			}
 		}
@@ -890,9 +909,29 @@ namespace Unnamed {
 		mStartAudioSource = ResolveAudioSourceByGuid(mStartAudioSourceGuid);
 	}
 
+	void GameStartCutsceneComponent::ClearResolvedBindings() {
+		mTourCameraEntity    = nullptr;
+		mTourCameraTransform = nullptr;
+		mTourCamera          = nullptr;
+		mPlayerCameraEntity  = nullptr;
+		mPlayerCamera        = nullptr;
+		mHudCanvas           = nullptr;
+		mCountAudioSource    = nullptr;
+		mStartAudioSource    = nullptr;
+
+		mCountdownDigitWidget    = nullptr;
+		mCountdownDigitTransform = nullptr;
+		mCountdownDigitTexture   = nullptr;
+		mCountdownStartWidget    = nullptr;
+		mCountdownStartTransform = nullptr;
+		mCountdownStartTexture   = nullptr;
+		mFadeOverlayWidget       = nullptr;
+		mFadeOverlayTexture      = nullptr;
+	}
+
 	void GameStartCutsceneComponent::ApplyLockTargets() {
 		RestoreLockTargets();
-		std::vector<BaseComponent*> lockedComponents = {};
+		std::vector<BaseComponent*> lockedComponents     = {};
 		std::vector<LockTargetSpec> effectiveLockTargets = mLockTargets;
 		effectiveLockTargets.reserve(mLockTargets.size() + 1);
 
@@ -906,8 +945,9 @@ namespace Unnamed {
 		if (!hasDefaultLookLock) {
 			effectiveLockTargets.emplace_back(
 				LockTargetSpec{
-					.entityGuid = 0,
-					.componentStableName = std::string(kDefaultLookLockStableName),
+					.entityGuid          = 0,
+					.componentStableName = std::string(
+						kDefaultLookLockStableName),
 				}
 			);
 		}
@@ -918,7 +958,8 @@ namespace Unnamed {
 			if (!target || target == this) {
 				continue;
 			}
-			if (std::ranges::find(lockedComponents, target) != lockedComponents.end()) {
+			if (std::ranges::find(lockedComponents, target) != lockedComponents.
+			    end()) {
 				continue;
 			}
 
@@ -946,7 +987,7 @@ namespace Unnamed {
 	void GameStartCutsceneComponent::ApplyTourCameraPose(
 		const Vec3& cameraPos,
 		const Vec3& lookAtPos
-	) {
+	) const {
 		if (!mTourCameraTransform) {
 			return;
 		}
@@ -959,12 +1000,13 @@ namespace Unnamed {
 		}
 		viewDir.Normalize();
 
-		const Quaternion lookRotation = Quaternion::LookRotation(viewDir, Vec3::up);
+		const Quaternion lookRotation = Quaternion::LookRotation(
+			viewDir, Vec3::up);
 		mTourCameraTransform->SetRotation(lookRotation);
 		mTourCameraTransform->RequestInterpolationResync();
 	}
 
-	bool GameStartCutsceneComponent::SwitchToTourCamera() {
+	bool GameStartCutsceneComponent::SwitchToTourCamera() const {
 		World* world = GetWorld();
 		if (!world || !mTourCameraEntity || !mTourCamera) {
 			return false;
@@ -975,10 +1017,11 @@ namespace Unnamed {
 			mPlayerCamera->SetCameraActive(false);
 		}
 		mTourCamera->SetCameraActive(true);
-		return world->GetCameraManager().SetCurrentCamera(mTourCameraEntity->GetGuid());
+		return world->GetCameraManager().SetCurrentCamera(
+			mTourCameraEntity->GetGuid());
 	}
 
-	bool GameStartCutsceneComponent::SwitchToPlayerCamera() {
+	bool GameStartCutsceneComponent::SwitchToPlayerCamera() const {
 		World* world = GetWorld();
 		if (!world || !mPlayerCameraEntity || !mPlayerCamera) {
 			return false;
@@ -988,7 +1031,8 @@ namespace Unnamed {
 			mTourCamera->SetCameraActive(false);
 		}
 		mPlayerCamera->SetCameraActive(true);
-		return world->GetCameraManager().SetCurrentCamera(mPlayerCameraEntity->GetGuid());
+		return world->GetCameraManager().SetCurrentCamera(
+			mPlayerCameraEntity->GetGuid());
 	}
 
 	BaseComponent* GameStartCutsceneComponent::ResolveLockTarget(
@@ -999,14 +1043,14 @@ namespace Unnamed {
 			return nullptr;
 		}
 
-		const auto matches = [&](BaseComponent& component) {
+		const auto Matches = [&](BaseComponent& component) {
 			return component.GetStableName() == spec.componentStableName;
 		};
-		const auto findInEntity = [&](Entity& entity) -> BaseComponent* {
+		const auto FindInEntity = [&](Entity& entity) -> BaseComponent* {
 			BaseComponent* found = nullptr;
 			entity.ForEachComponent(
 				[&](BaseComponent& component) {
-					if (!matches(component)) {
+					if (!Matches(component)) {
 						return true;
 					}
 					found = &component;
@@ -1018,13 +1062,13 @@ namespace Unnamed {
 
 		if (spec.entityGuid != 0) {
 			if (Entity* entity = scene->FindEntity(spec.entityGuid)) {
-				return findInEntity(*entity);
+				return FindInEntity(*entity);
 			}
 			return nullptr;
 		}
 
 		if (Entity* owner = GetOwner()) {
-			if (BaseComponent* found = findInEntity(*owner)) {
+			if (BaseComponent* found = FindInEntity(*owner)) {
 				return found;
 			}
 		}
@@ -1033,7 +1077,7 @@ namespace Unnamed {
 			if (!entityPtr) {
 				continue;
 			}
-			if (BaseComponent* found = findInEntity(*entityPtr)) {
+			if (BaseComponent* found = FindInEntity(*entityPtr)) {
 				return found;
 			}
 		}
@@ -1047,7 +1091,7 @@ namespace Unnamed {
 			return nullptr;
 		}
 
-		Scene* scene = GetScene();
+		const Scene* scene = GetScene();
 		if (!scene) {
 			return nullptr;
 		}
@@ -1074,20 +1118,24 @@ namespace Unnamed {
 		return nullptr;
 	}
 
-	bool GameStartCutsceneComponent::ResolveViewportSize(Vec2& outViewportSizePx)
-		const {
+	bool GameStartCutsceneComponent::ResolveViewportSize(
+		Vec2& outViewportSizePx
+	)
+	const {
 		outViewportSizePx = Vec2::zero;
 		if (const InputSystem* input = GetInputSystem()) {
 			outViewportSizePx = input->GetMouseClientViewportSize();
 		}
 		if (outViewportSizePx.x <= 1.0f || outViewportSizePx.y <= 1.0f) {
-			outViewportSizePx = mHudCanvas ? mHudCanvas->GetPixelSize() : Vec2::zero;
+			outViewportSizePx = mHudCanvas ?
+				                    mHudCanvas->GetPixelSize() :
+				                    Vec2::zero;
 		}
 		return outViewportSizePx.x > 1.0f && outViewportSizePx.y > 1.0f;
 	}
 
 	Gui::UiWidget* GameStartCutsceneComponent::FindWidgetByNameRecursive(
-		Gui::UiWidget*        root,
+		Gui::UiWidget*         root,
 		const std::string_view widgetName
 	) {
 		if (!root) {
@@ -1153,4 +1201,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(GameStartCutsceneComponent);
 }
-

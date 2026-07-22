@@ -2,8 +2,6 @@
 
 #include <pch.h>
 
-#include <core/math/Math.h>
-
 #include <cassert>
 #include <cmath>
 #include <format>
@@ -374,16 +372,70 @@ Mat4 Mat4::MakeOrthographicMat(
 	const float left, const float top, const float right, const float bottom,
 	const float nearClip, const float farClip
 ) {
+	return OrthographicD3D(
+		left,
+		top,
+		right,
+		bottom,
+		nearClip,
+		farClip,
+		ProjectionDepthMode::ForwardZ
+	);
+}
+
+Mat4 Mat4::OrthographicD3D(
+	const float left,
+	const float top,
+	const float right,
+	const float bottom,
+	const float nearClip,
+	const float farClip,
+	const ProjectionDepthMode depthMode
+) {
 	Mat4 result = identity;
 
+	const float depthRange = farClip - nearClip;
 	result.m[0][0] = 2.0f / (right - left);
 	result.m[1][1] = 2.0f / (top - bottom);
-	result.m[2][2] = 1.0f / (farClip - nearClip);
 	result.m[3][0] = (left + right) / (left - right);
 	result.m[3][1] = (top + bottom) / (bottom - top);
-	result.m[3][2] = nearClip / (nearClip - farClip);
+
+	if (depthMode == ProjectionDepthMode::ReverseZ) {
+		result.m[2][2] = -1.0f / depthRange;
+		result.m[3][2] = farClip / depthRange;
+	} else {
+		result.m[2][2] = 1.0f / depthRange;
+		result.m[3][2] = nearClip / (nearClip - farClip);
+	}
 
 	return result;
+}
+
+Mat4 Mat4::LookAtView(const Vec3& eye, const Vec3& target, const Vec3& up) {
+	Vec3 forward = (target - eye).Normalized();
+	if (forward.IsZero()) {
+		forward = Vec3::forward;
+	}
+	Vec3 right = up.Cross(forward).Normalized();
+	if (right.IsZero()) {
+		right = Vec3::right;
+	}
+	const Vec3 viewUp = forward.Cross(right);
+
+	Mat4 view    = identity;
+	view.m[0][0] = right.x;
+	view.m[1][0] = right.y;
+	view.m[2][0] = right.z;
+	view.m[3][0] = -eye.Dot(right);
+	view.m[0][1] = viewUp.x;
+	view.m[1][1] = viewUp.y;
+	view.m[2][1] = viewUp.z;
+	view.m[3][1] = -eye.Dot(viewUp);
+	view.m[0][2] = forward.x;
+	view.m[1][2] = forward.y;
+	view.m[2][2] = forward.z;
+	view.m[3][2] = -eye.Dot(forward);
+	return view;
 }
 
 Mat4 Mat4::ViewportMat(

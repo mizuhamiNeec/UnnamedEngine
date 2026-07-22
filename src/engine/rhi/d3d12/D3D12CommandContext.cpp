@@ -6,11 +6,14 @@ namespace Unnamed::Rhi {
 	D3D12CommandContext::D3D12CommandContext(
 		ID3D12GraphicsCommandList* commandList, D3D12SwapChain* swapChain
 	) : mCommandList(commandList),
-	    mSwapChain(swapChain) {}
+	    mSwapChain(swapChain) {
+	}
 
-	void D3D12CommandContext::Begin() {}
+	void D3D12CommandContext::Begin() {
+	}
 
-	void D3D12CommandContext::End() {}
+	void D3D12CommandContext::End() {
+	}
 
 	void D3D12CommandContext::TransitionBackBufferToRenderTarget() {
 		// 現在のバックバッファを取得
@@ -53,14 +56,14 @@ namespace Unnamed::Rhi {
 		const auto     rtv   = mSwapChain->GetRtvHandle(index);
 
 		mCommandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
-
+		
 		const std::array clearColor{
-			color.r, color.g,color.b,color.a
+			color.r, color.g, color.b, color.a
 		};
 		mCommandList->ClearRenderTargetView(rtv, clearColor.data(), 0, nullptr);
 	}
 
-	void D3D12CommandContext::SetSrvUavHeap(ID3D12DescriptorHeap* heap) {
+	void D3D12CommandContext::SetSrvUavHeap(ID3D12DescriptorHeap* heap) const {
 		ID3D12DescriptorHeap* heaps[] = {heap};
 		mCommandList->SetDescriptorHeaps(1, heaps);
 	}
@@ -68,7 +71,7 @@ namespace Unnamed::Rhi {
 	void D3D12CommandContext::TransitionResource(
 		ID3D12Resource* resource, const D3D12_RESOURCE_STATES before,
 		const D3D12_RESOURCE_STATES after
-	) {
+	) const {
 		if (before == after) {
 			return;
 		}

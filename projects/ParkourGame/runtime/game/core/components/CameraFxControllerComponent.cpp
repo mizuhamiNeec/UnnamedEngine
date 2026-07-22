@@ -5,8 +5,9 @@
 #include <cmath>
 #include <utility>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
+#include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
 #include "core/ComponentRegistry.h"
@@ -38,8 +39,8 @@ namespace Unnamed {
 
 		[[nodiscard]] float ResolveLerpSpeed(const float durationSec) {
 			// Avoid one-frame teleport when duration is zero or extremely short.
-			constexpr float kMinDurationSec = 0.05f;
-			return 1.0f / std::max(durationSec, kMinDurationSec);
+			constexpr float minDurationSec = 0.05f;
+			return 1.0f / std::max(durationSec, minDurationSec);
 		}
 
 		[[nodiscard]] uint32_t Hash1D(const int x, const uint32_t seed) {
@@ -53,8 +54,8 @@ namespace Unnamed {
 		}
 
 		[[nodiscard]] float HashToUnit(const uint32_t value) {
-			constexpr float kInv24Bit = 1.0f / 16777215.0f;
-			return static_cast<float>(value & 0x00ffffffu) * kInv24Bit;
+			constexpr float inv24Bit = 1.0f / 16777215.0f;
+			return static_cast<float>(value & 0x00ffffffu) * inv24Bit;
 		}
 
 		[[nodiscard]] float PerlinFade(const float t) {
@@ -107,27 +108,6 @@ namespace Unnamed {
 			{.name = "OUT_BOUNCE", .type = EASE_TYPE::OUT_BOUNCE},
 			{.name = "IN_OUT_BOUNCE", .type = EASE_TYPE::IN_OUT_BOUNCE},
 		};
-
-#ifdef _DEBUG
-		bool EditStringField(
-			const char* label, std::string& value, const size_t capacity = 128
-		) {
-			std::vector<char> buffer(capacity, '\0');
-			const size_t      copyLength = std::min(value.size(), capacity - 1);
-			if (copyLength > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLength);
-			}
-			if (!ImGui::InputText(label, buffer.data(), buffer.size())) {
-				return false;
-			}
-			value = buffer.data();
-			return true;
-		}
-
-		bool EditEntityGuidField(const char* label, uint64_t& guid) {
-			return ImGui::InputScalar(label, ImGuiDataType_U64, &guid);
-		}
-#endif
 	}
 
 	void CameraFxControllerComponent::OnAttached() {
@@ -158,9 +138,11 @@ namespace Unnamed {
 			return;
 		}
 
+		// 視覚効果は固定シミュレーションに混ぜず、描画フレームでのみ進める
 		mCamera         = ResolveCamera();
 		mShakeTransform = ResolveShakeTransform();
 
+		// 同時に発火したシェイクは個別の減衰ノイズとして重ね合わせる
 		Vec2 shakeOffset = Vec2::zero;
 		for (size_t i = 0; i < mActiveShakes.size();) {
 			ActiveShake& shake = mActiveShakes[i];
@@ -204,7 +186,7 @@ namespace Unnamed {
 			fovOffset = mActiveFovAnim.targetDeltaDeg;
 		}
 
-		Vec3 rotationOffset = mCurrentRotationOffsetDeg;
+		Vec3 rotationOffset;
 		if (mActiveRotationAnim.active) {
 			const float inSec = std::max(0.0f, mActiveRotationAnim.inSec);
 			const float outSec = std::max(0.0f, mActiveRotationAnim.outSec);
@@ -230,7 +212,9 @@ namespace Unnamed {
 					);
 				} else if (elapsedSec < totalDuration) {
 					const float outElapsed = elapsedSec - inSec;
-					const float t = outSec > 1.0e-6f ? outElapsed / outSec : 1.0f;
+					const float t          = outSec > 1.0e-6f ?
+						                         outElapsed / outSec :
+						                         1.0f;
 					const float easedT = TweenEase::Evaluate(
 						mActiveRotationAnim.ease,
 						std::clamp(t, 0.0f, 1.0f)
@@ -362,15 +346,19 @@ namespace Unnamed {
 		mCamera         = ResolveCamera();
 		mShakeTransform = ResolveShakeTransform();
 
-		Entity* owner = GetOwner();
+		const Entity* owner = GetOwner();
 		ImGui::Text(
 			"Owner GUID: %llu",
 			static_cast<unsigned long long>(owner ? owner->GetGuid() : 0)
 		);
-		if (EditEntityGuidField("Camera Entity GUID", mCameraEntityGuid)) {
+		if (ImGui::InputScalar(
+			"Camera Entity GUID", ImGuiDataType_U64, &mCameraEntityGuid
+		)) {
 			mCamera = ResolveCamera();
 		}
-		if (EditEntityGuidField("Shake Entity GUID", mShakeEntityGuid)) {
+		if (ImGui::InputScalar(
+			"Shake Entity GUID", ImGuiDataType_U64, &mShakeEntityGuid
+		)) {
 			ResetOutputs();
 			mShakeTransform = ResolveShakeTransform();
 		}
@@ -437,7 +425,7 @@ namespace Unnamed {
 			ImGui::PushID(static_cast<int>(i));
 			ImGui::SeparatorText(("ShakePreset " + std::to_string(i)).c_str());
 
-			(void)EditStringField("ID", preset.id);
+			(void)ImGuiWidgets::InputText("ID", preset.id, 128);
 			(void)ImGui::DragFloat2(
 				"Amp PitchYaw Deg",
 				&preset.ampPitchYawDeg.x,
@@ -488,7 +476,7 @@ namespace Unnamed {
 			ImGui::PushID(100000 + static_cast<int>(i));
 			ImGui::SeparatorText(("FovPreset " + std::to_string(i)).c_str());
 
-			(void)EditStringField("ID", preset.id);
+			(void)ImGuiWidgets::InputText("ID", preset.id, 128);
 			(void)ImGui::DragFloat(
 				"Target Delta Deg",
 				&preset.targetDeltaDeg,
@@ -532,7 +520,7 @@ namespace Unnamed {
 				("RotationPreset " + std::to_string(i)).c_str()
 			);
 
-			(void)EditStringField("ID", preset.id);
+			(void)ImGuiWidgets::InputText("ID", preset.id, 128);
 			(void)ImGui::DragFloat3(
 				"Euler Deg",
 				&preset.eulerDeg.x,
@@ -930,4 +918,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(CameraFxControllerComponent);
 }
-

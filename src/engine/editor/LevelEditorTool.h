@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "ContentBrowser.h"
-#include "EditorNotification.h"
 #include "EditorViewportCameraManager.h"
 #include "IEditorTool.h"
 
@@ -110,9 +109,9 @@ namespace Unnamed {
 		[[nodiscard]] Scene*       GetOutlinerScene();
 		[[nodiscard]] const Scene* GetOutlinerScene() const;
 
-		void DrawMainMenu();
-		void DrawSideBar();
-		void DrawStatusBar();
+		void        DrawMainMenu();
+		static void DrawSideBar();
+		void        DrawStatusBar();
 
 		void DrawViewport(float deltaTime);
 		void DrawViewportTopBar();
@@ -131,12 +130,12 @@ namespace Unnamed {
 		void DrawProfilerWindow();
 
 		[[nodiscard]] Entity* GetSelectedEntity() const;
-		[[nodiscard]] bool    SaveSceneAs(const std::string& path) const;
+		[[nodiscard]] bool    SaveSceneAs(Path path) const;
 
 		/// @brief 指定パスのシーンをエディターワールドへロードします。
 		/// @param path ロードするシーンパス
 		/// @return ロードに成功した場合はtrue
-		bool LoadSceneFromPath(const std::string& path);
+		bool LoadSceneFromPath(Path path);
 
 		[[nodiscard]] ViewportCameraBinding ResolveViewportBinding(
 			std::string_view viewKey

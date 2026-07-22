@@ -6,10 +6,6 @@
 
 namespace Unnamed {
 	namespace {
-		[[nodiscard]] float Clamp01(const float value) {
-			return std::clamp(value, 0.0f, 1.0f);
-		}
-
 		constexpr float kMinGuideAlpha = 0.25f;
 	}
 
@@ -32,8 +28,8 @@ namespace Unnamed {
 			return false;
 		}
 
-		Vec3 ndc = Vec3(clip.x, clip.y, clip.z) / clip.w;
-		Vec2 screenPositionPx = Vec2(
+		const Vec3 ndc = Vec3(clip.x, clip.y, clip.z) / clip.w;
+		auto screenPositionPx = Vec2(
 			(ndc.x * 0.5f + 0.5f) * viewportSizePx.x,
 			(1.0f - (ndc.y * 0.5f + 0.5f)) * viewportSizePx.y
 		);
@@ -95,7 +91,9 @@ namespace Unnamed {
 
 		const float distanceFromCenter = std::hypot(toCenter.x, toCenter.y);
 		const float maxDistance = std::max(1.0f, std::hypot(center.x, center.y));
-		const float distanceT = Clamp01(distanceFromCenter / maxDistance);
+		const float distanceT = std::clamp(
+			distanceFromCenter / maxDistance, 0.0f, 1.0f
+		);
 
 		outResult.screenPositionPx = screenPositionPx;
 		outResult.vectorFromCenter = toCenter;
@@ -106,4 +104,3 @@ namespace Unnamed {
 		return true;
 	}
 }
-

@@ -3,14 +3,14 @@
 #include <Windows.h>
 
 #include <engine/unnamed/subsystem/console/ConsoleSystem.h>
-#include <engine/unnamed/subsystem/interface/ServiceLocator.h>
 
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
 	TerminalSystem::TerminalSystem(ConsoleSystem* console) : mConsole(
 		console
-	) {}
+	) {
+	}
 
 	TerminalSystem::~TerminalSystem() {
 		Stop();

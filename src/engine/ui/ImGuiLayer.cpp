@@ -96,7 +96,8 @@ namespace Unnamed {
 			ImGui_ImplDX12_InitInfo*,
 			D3D12_CPU_DESCRIPTOR_HANDLE,
 			D3D12_GPU_DESCRIPTOR_HANDLE
-		) {};
+		) {
+			};
 
 		ImGui_ImplDX12_Init(&initInfo);
 	}
@@ -114,6 +115,7 @@ namespace Unnamed {
 		self.mFrameIndex = self.mFramesInFlight > 0 ?
 			                   frameIndex % self.mFramesInFlight :
 			                   0;
+		self.mFrameSampledTextureIds.clear();
 
 		ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -155,15 +157,18 @@ namespace Unnamed {
 	}
 
 	ImTextureID ImGuiLayer::GetOrCreateTextureId(
-		const uint64_t                    key,
+		const uint32_t                    textureId,
 		const uint64_t                    revision,
 		const D3D12_CPU_DESCRIPTOR_HANDLE sourceSrv
 	) {
-		if (sourceSrv.ptr == 0) {
+		if (textureId == 0 || sourceSrv.ptr == 0) {
 			return 0;
 		}
+		if (std::ranges::find(mFrameSampledTextureIds, textureId) == mFrameSampledTextureIds.end()) {
+			mFrameSampledTextureIds.emplace_back(textureId);
+		}
 
-		auto& textureSlots = mTextureSlotsByKey[key];
+		auto& textureSlots = mTextureSlotsByKey[textureId];
 		auto& frameSlots   = textureSlots.frameSlots;
 		if (frameSlots.empty()) {
 			frameSlots.resize(mFramesInFlight);
@@ -183,6 +188,12 @@ namespace Unnamed {
 
 		const D3D12_GPU_DESCRIPTOR_HANDLE gpu = GpuHandleAt(frameSlot.slot);
 		return gpu.ptr;
+	}
+
+	std::vector<uint32_t> ImGuiLayer::ConsumeSampledTextureIds() {
+		std::vector<uint32_t> sampledTextureIds = std::move(mFrameSampledTextureIds);
+		mFrameSampledTextureIds.clear();
+		return sampledTextureIds;
 	}
 
 	ID3D12DescriptorHeap* ImGuiLayer::GetDescriptorHeap() const {

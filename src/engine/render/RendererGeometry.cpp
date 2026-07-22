@@ -16,6 +16,7 @@
 #include "core/assets/types/MeshAssetData.h"
 #include "core/assets/types/PostFxChainAssetData.h"
 #include "core/assets/types/TextureAssetData.h"
+#include "core/filesystem/VirtualPath.h"
 
 #include "engine/rhi/Buffer.h"
 #include "engine/rhi/d3d12/D3D12Device.h"
@@ -34,32 +35,41 @@ namespace Unnamed::Render {
 			}
 		}
 
-		std::string ResolveMaterialTextureOverridePath(
+		const MatTextureOverride* ResolveMaterialTextureOverride(
 			const MaterialInstanceAssetData& matInst,
 			const MATERIAL_TEXTURE_SLOT      slot
 		) {
-			auto findOverride = [&matInst](const char* key) -> std::string {
+			auto FindOverride = [&matInst](
+				const char* key
+			) -> const MatTextureOverride* {
 				if (const auto it = matInst.textureOverrides.find(key);
 					it != matInst.textureOverrides.end()) {
-					return it->second;
+					return &it->second;
 				}
-				return {};
+				return nullptr;
 			};
 
 			switch (slot) {
-				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: if (std::string path =
-							findOverride("BaseColor");
-						!path.empty()) {
-						return path;
+				case MATERIAL_TEXTURE_SLOT::BASE_COLOR: {
+					if (
+						const MatTextureOverride* textureOverride =
+							FindOverride("BaseColor")
+					) {
+						return textureOverride;
 					}
-					return findOverride("MainTex");
-				case MATERIAL_TEXTURE_SLOT::NORMAL: return findOverride(
-						"Normal");
-				case MATERIAL_TEXTURE_SLOT::ORM: return findOverride("ORM");
-				case MATERIAL_TEXTURE_SLOT::EMISSIVE: return findOverride(
-						"Emissive");
+					return FindOverride("MainTex");
+				}
+				case MATERIAL_TEXTURE_SLOT::NORMAL: {
+					return FindOverride("Normal");
+				}
+				case MATERIAL_TEXTURE_SLOT::ORM: {
+					return FindOverride("ORM");
+				}
+				case MATERIAL_TEXTURE_SLOT::EMISSIVE: {
+					return FindOverride("Emissive");
+				}
 				case MATERIAL_TEXTURE_SLOT::COUNT:
-				default: return {};
+				default: return nullptr;
 			}
 		}
 
@@ -155,12 +165,12 @@ namespace Unnamed::Render {
 		}
 
 		struct VertexGeom {
-			float px,  py, pz;
-			float nx,  ny, nz;
-			float u,   v;
-			float tx,  ty,  tz,  tw;
-			float bi0, bi1, bi2, bi3;
-			float bw0, bw1, bw2, bw3;
+			Vec3 pos;
+			Vec3 normal;
+			Vec2 uv;
+			Vec4 tangent;
+			Vec4 boneIndices;
+			Vec4 blendWeights;
 		};
 
 		struct QuadVertex {
@@ -171,7 +181,7 @@ namespace Unnamed::Render {
 		AABB MakeAabbFromPositions(const std::vector<VertexGeom>& vertices) {
 			AABB aabb{};
 			for (const auto& v : vertices) {
-				aabb.Expand(Vec3(v.px, v.py, v.pz));
+				aabb.Expand(Vec3(v.pos.x, v.pos.y, v.pos.z));
 			}
 			return aabb;
 		}
@@ -184,27 +194,27 @@ namespace Unnamed::Render {
 		auto* device  = dx.GetDevice();
 		auto* cmdList = up.GetCommandList();
 
-		constexpr VertexGeom verts[3] = {
+		const VertexGeom verts[3] = {
 			{
-				.px  = -0.5f, .py = -0.5f, .pz = 0.0f,
-				.nx  = 0, .ny     = 0, .nz     = 1,
-				.u   = 0, .v      = 1,
-				.bi0 = 0, .bi1    = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1    = 0, .bw2 = 0, .bw3 = 0
+				.pos          = {-0.5f, -0.5f, 0.0f},
+				.normal       = Vec3::forward,
+				.uv           = Vec2::up,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero,
 			},
 			{
-				.px  = 0.0f, .py = 0.5f, .pz = 0.0f,
-				.nx  = 0, .ny    = 0, .nz    = 1,
-				.u   = 0.5f, .v  = 0,
-				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+				.pos          = {0.0f, 0.5f, 0.0f},
+				.normal       = Vec3::forward,
+				.uv           = Vec2::up,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero
 			},
 			{
-				.px  = 0.5f, .py = -0.5f, .pz = 0.0f,
-				.nx  = 0, .ny    = 0, .nz     = 1,
-				.u   = 1, .v     = 1,
-				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+				.pos          = {0.5f, -0.5f, 0.0f},
+				.normal       = Vec3::forward,
+				.uv           = Vec2::up,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero
 			},
 		};
 		constexpr uint16_t indices[3] = {0, 1, 2};
@@ -314,65 +324,76 @@ namespace Unnamed::Render {
 		auto* device  = dx.GetDevice();
 		auto* cmdList = up.GetCommandList();
 
-		constexpr VertexGeom verts[8] = {
-			{
-				.px  = -1.0f, .py = -1.0f, .pz = -1.0f,
-				.nx  = 0, .ny     = 0, .nz     = 0,
-				.u   = 0, .v      = 0,
-				.bi0 = 0, .bi1    = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1    = 0, .bw2 = 0, .bw3 = 0
+		const std::array verts = {
+			VertexGeom{
+				.pos          = {-1.0f, -1.0f, -1.0f},
+				.normal       = Vec3::zero,
+				.uv           = Vec2::zero,
+				.tangent      = Vec4::zero,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero
 			},
-			{
-				.px  = 1.0f, .py = -1.0f, .pz = -1.0f,
-				.nx  = 0, .ny    = 0, .nz     = 0,
-				.u   = 0, .v     = 0,
-				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+			VertexGeom{
+				.pos          = {1.0f, -1.0f, -1.0f},
+				.normal       = Vec3::zero,
+				.uv           = Vec2::zero,
+				.tangent      = Vec4::zero,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero
 			},
-			{
-				.px  = 1.0f, .py = 1.0f, .pz = -1.0f,
-				.nx  = 0, .ny    = 0, .nz    = 0,
-				.u   = 0, .v     = 0,
-				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+			VertexGeom{
+				.pos          = {1.0f, 1.0f, -1.0f},
+				.normal       = Vec3::zero,
+				.uv           = Vec2::zero,
+				.tangent      = Vec4::zero,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero
 			},
-			{
-				.px  = -1.0f, .py = 1.0f, .pz = -1.0f,
-				.nx  = 0, .ny     = 0, .nz    = 0,
-				.u   = 0, .v      = 0,
-				.bi0 = 0, .bi1    = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1    = 0, .bw2 = 0, .bw3 = 0
+			VertexGeom{
+				.pos          = {-1.0f, 1.0f, -1.0f},
+				.normal       = Vec3::zero,
+				.uv           = Vec2::zero,
+				.tangent      = Vec4::zero,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero
 			},
-			{
-				.px  = -1.0f, .py = -1.0f, .pz = 1.0f,
-				.nx  = 0, .ny     = 0, .nz     = 0,
-				.u   = 0, .v      = 0,
-				.bi0 = 0, .bi1    = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1    = 0, .bw2 = 0, .bw3 = 0
+			VertexGeom{
+				.pos          = {-1.0f, 1.0f, -1.0f},
+				.normal       = Vec3::zero,
+				.uv           = Vec2::zero,
+				.tangent      = Vec4::zero,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero
 			},
-			{
-				.px  = 1.0f, .py = -1.0f, .pz = 1.0f,
-				.nx  = 0, .ny    = 0, .nz     = 0,
-				.u   = 0, .v     = 0,
-				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+			VertexGeom{
+				.pos          = {-1.0f, -1.0f, 1.0f},
+				.normal       = Vec3::zero,
+				.uv           = Vec2::zero,
+				.tangent      = Vec4::zero,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero
 			},
-			{
-				.px  = 1.0f, .py = 1.0f, .pz = 1.0f,
-				.nx  = 0, .ny    = 0, .nz    = 0,
-				.u   = 0, .v     = 0,
-				.bi0 = 0, .bi1   = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1   = 0, .bw2 = 0, .bw3 = 0
+			VertexGeom{
+				.pos          = {1.0f, 1.0f, 1.0f},
+				.normal       = Vec3::zero,
+				.uv           = Vec2::zero,
+				.tangent      = Vec4::zero,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero
 			},
-			{
-				.px  = -1.0f, .py = 1.0f, .pz = 1.0f,
-				.nx  = 0, .ny     = 0, .nz    = 0,
-				.u   = 0, .v      = 0,
-				.bi0 = 0, .bi1    = 0, .bi2 = 0, .bi3 = 0,
-				.bw0 = 1, .bw1    = 0, .bw2 = 0, .bw3 = 0
+			VertexGeom{
+				.pos          = {-1.0f, 1.0f, 1.0f},
+				.normal       = Vec3::zero,
+				.uv           = Vec2::zero,
+				.tangent      = Vec4::zero,
+				.boneIndices  = Vec4::zero,
+				.blendWeights = Vec4::zero
 			},
 		};
-		constexpr uint16_t indices[36] = {
+
+		constexpr uint8_t indexCount = 36;
+
+		constexpr std::array<uint16_t, indexCount> indices = {
 			0, 1, 2, 0, 2, 3,
 			4, 6, 5, 4, 7, 6,
 			4, 5, 1, 4, 1, 0,
@@ -387,8 +408,8 @@ namespace Unnamed::Render {
 		CreateDefaultBufferWithUpload(
 			device,
 			cmdList,
-			verts,
-			sizeof(verts),
+			verts.data(),
+			verts.size() * sizeof(VertexGeom),
 			mSkyboxPass.geom.vb,
 			vbUpload,
 			D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER
@@ -397,8 +418,8 @@ namespace Unnamed::Render {
 		CreateDefaultBufferWithUpload(
 			device,
 			cmdList,
-			indices,
-			sizeof(indices),
+			indices.data(),
+			indices.size() * sizeof(uint16_t),
 			mSkyboxPass.geom.ib,
 			ibUpload,
 			D3D12_RESOURCE_STATE_INDEX_BUFFER
@@ -408,16 +429,18 @@ namespace Unnamed::Render {
 
 		mSkyboxPass.geom.vbv.BufferLocation =
 			mSkyboxPass.geom.vb->GetGPUVirtualAddress();
-		mSkyboxPass.geom.vbv.SizeInBytes   = sizeof(verts);
+		mSkyboxPass.geom.vbv.SizeInBytes =
+			static_cast<UINT>(verts.size() * sizeof(VertexGeom));
 		mSkyboxPass.geom.vbv.StrideInBytes = sizeof(VertexGeom);
 
 		mSkyboxPass.geom.ibv.BufferLocation =
 			mSkyboxPass.geom.ib->GetGPUVirtualAddress();
-		mSkyboxPass.geom.ibv.SizeInBytes = sizeof(indices);
-		mSkyboxPass.geom.ibv.Format      = DXGI_FORMAT_R16_UINT;
-		mSkyboxPass.geom.indexCount      = 36;
-		mSkyboxPass.geom.localAABB       = MakeAabbFromPositions(
-			std::vector<VertexGeom>(std::begin(verts), std::end(verts))
+		mSkyboxPass.geom.ibv.SizeInBytes =
+			static_cast<UINT>(indices.size() * sizeof(uint16_t));
+		mSkyboxPass.geom.ibv.Format = DXGI_FORMAT_R16_UINT;
+		mSkyboxPass.geom.indexCount = indexCount;
+		mSkyboxPass.geom.localAABB  = MakeAabbFromPositions(
+			std::vector(std::begin(verts), std::end(verts))
 		);
 
 		mSkyboxPass.geom.vb->SetName(L"SkyboxCubeVB_Default");
@@ -425,8 +448,8 @@ namespace Unnamed::Render {
 	}
 
 	bool Renderer::EnsureMeshResourceLoaded(
-		RenderDevice& renderDevice, Rhi::D3D12Device& dx,
-		const AssetID meshAssetId
+		const RenderDevice& renderDevice, Rhi::D3D12Device& dx,
+		const AssetID       meshAssetId
 	) {
 		if (meshAssetId == kInvalidAssetID) {
 			return false;
@@ -444,27 +467,28 @@ namespace Unnamed::Render {
 
 		std::vector<VertexGeom> vertices;
 		vertices.reserve(meshAsset->vertices.size());
-		for (const auto& v : meshAsset->vertices) {
+		for (const auto& [position, normal, uv, tangent, boneIndices,
+			     boneWeights] : meshAsset->vertices) {
 			float weightSum = 0.0f;
-			for (const float w : v.boneWeights) {
+			for (const float w : boneWeights) {
 				weightSum += w;
 			}
-			const float w0 = weightSum > 0.0f ? v.boneWeights[0] : 1.0f;
-			const float w1 = weightSum > 0.0f ? v.boneWeights[1] : 0.0f;
-			const float w2 = weightSum > 0.0f ? v.boneWeights[2] : 0.0f;
-			const float w3 = weightSum > 0.0f ? v.boneWeights[3] : 0.0f;
+			const float w0 = weightSum > 0.0f ? boneWeights[0] : 1.0f;
+			const float w1 = weightSum > 0.0f ? boneWeights[1] : 0.0f;
+			const float w2 = weightSum > 0.0f ? boneWeights[2] : 0.0f;
+			const float w3 = weightSum > 0.0f ? boneWeights[3] : 0.0f;
 			vertices.emplace_back(
 				VertexGeom{
-					.px  = v.position.x, .py = v.position.y, .pz = v.position.z,
-					.nx  = v.normal.x, .ny   = v.normal.y, .nz   = v.normal.z,
-					.u   = v.uv.x, .v        = v.uv.y,
-					.tx  = v.tangent.x, .ty  = v.tangent.y,
-					.tz  = v.tangent.z, .tw  = v.tangent.w,
-					.bi0 = static_cast<float>(v.boneIndices[0]),
-					.bi1 = static_cast<float>(v.boneIndices[1]),
-					.bi2 = static_cast<float>(v.boneIndices[2]),
-					.bi3 = static_cast<float>(v.boneIndices[3]),
-					.bw0 = w0, .bw1 = w1, .bw2 = w2, .bw3 = w3
+					.pos         = position,
+					.normal      = normal,
+					.uv          = uv,
+					.boneIndices = Vec4(
+						boneIndices[0],
+						boneIndices[1],
+						boneIndices[2],
+						boneIndices[3]
+					),
+					.blendWeights = Vec4(w0, w1, w2, w3)
 				}
 			);
 		}
@@ -541,15 +565,16 @@ namespace Unnamed::Render {
 			size());
 		if (!meshAsset->submeshes.empty()) {
 			meshBuffer.submeshes.reserve(meshAsset->submeshes.size());
-			for (const auto& submesh : meshAsset->submeshes) {
-				if (submesh.indexCount == 0) {
+			for (const auto& [indexStart, indexCount, materialIndex] : meshAsset
+			     ->submeshes) {
+				if (indexCount == 0) {
 					continue;
 				}
 
 				MeshSubMeshRange range = {};
-				range.indexStart       = submesh.indexStart;
-				range.indexCount       = submesh.indexCount;
-				range.materialIndex    = submesh.materialIndex;
+				range.indexStart       = indexStart;
+				range.indexCount       = indexCount;
+				range.materialIndex    = materialIndex;
 				meshBuffer.submeshes.emplace_back(range);
 			}
 		}
@@ -568,31 +593,13 @@ namespace Unnamed::Render {
 		meshBuffer.vb->SetName(L"SceneMesh_VB");
 		meshBuffer.ib->SetName(L"SceneMesh_IB");
 
-		const auto [it, inserted] = mSceneMeshesByAsset.emplace(
-			meshAssetId, std::move(meshBuffer)
-		);
-		if (inserted) {
-			mLoadedMeshAsset = meshAssetId;
-		}
-		if (mSceneMeshes.empty()) {
-			mSceneMeshes.emplace_back(it->second);
-		}
+		mSceneMeshesByAsset.emplace(meshAssetId, std::move(meshBuffer));
 		return true;
 	}
 
-	void Renderer::LoadSceneMeshResources(
-		RenderDevice& renderDevice, Rhi::D3D12Device& dx
-	) {
-		(void)renderDevice;
-		(void)dx;
-		// 旧 hand.gltf のハードコード初期読み込みは廃止。
-		// 描画対象メッシュは World::FillRenderFrameInputs から供給される。
-		mSceneMeshes.clear();
-		mLoadedMeshAsset = kInvalidAssetID;
-	}
-
-	constexpr std::string_view kDefaultMaterialInstance =
-		"./content/core/materials/instances/dev_default.matinst.json";
+	const VirtualPath kDefaultMaterialInstance = VirtualPath::ParseOrThrow(
+		"materials/instances/dev_default.matinst.json"
+	);
 
 	void Renderer::LoadMaterialResources(
 		RenderDevice& renderDevice, Rhi::D3D12Device& dx
@@ -601,12 +608,24 @@ namespace Unnamed::Render {
 		std::vector<AssetID> requestedMaterialInstances = {};
 		EnsureDefaultMaterialTextures(renderDevice);
 
-		const AssetID materialInstanceId = assetManager.LoadFromFile(
-			std::string(kDefaultMaterialInstance), ASSET_TYPE::MATERIAL_INSTANCE
+		const AssetID materialInstanceId = assetManager.LoadMaterialInstance(
+			kDefaultMaterialInstance
 		);
 		if (materialInstanceId != kInvalidAssetID) {
 			requestedMaterialInstances.emplace_back(materialInstanceId);
 			mDefaultMaterialInstance = materialInstanceId;
+		}
+
+		if (IsStrictRenderStartupValidation(mStartupOptions)) {
+			for (const AssetID assetId : assetManager.AllAssets()) {
+				const AssetMetaData& meta = assetManager.Meta(assetId);
+				if (
+					meta.loaded &&
+					meta.type == ASSET_TYPE::MATERIAL_INSTANCE
+				) {
+					requestedMaterialInstances.emplace_back(assetId);
+				}
+			}
 		}
 
 		// 可視オブジェクトが参照する全マテリアルインスタンスを収集します。
@@ -793,19 +812,16 @@ namespace Unnamed::Render {
 				binding.constants.opacity = it->second;
 			}
 
-			auto resolveTexture = [&](const MATERIAL_TEXTURE_SLOT slot) {
-				const std::string path = ResolveMaterialTextureOverridePath(
-					*matInst, slot
-				);
-				if (path.empty()) {
+			auto ResolveTexture = [&](const MATERIAL_TEXTURE_SLOT slot) {
+				const MatTextureOverride* textureOverride =
+					ResolveMaterialTextureOverride(*matInst, slot);
+				if (textureOverride == nullptr) {
 					return GetFallbackTextureId(
 						mDefaultMaterialTextures, slot
 					);
 				}
 
-				const AssetID texId = assetManager.LoadFromFile(
-					path, ASSET_TYPE::TEXTURE
-				);
+				const AssetID texId = textureOverride->assetId;
 				if (slot == MATERIAL_TEXTURE_SLOT::NORMAL) {
 					const auto* texture = assetManager.Get<TextureAssetData>(
 						texId
@@ -815,7 +831,7 @@ namespace Unnamed::Render {
 							"Renderer",
 							"Material instance {} uses an sRGB Normal texture '{}'. Tangent-space DirectX normal maps must be linear.",
 							requestedMaterialInstanceId,
-							path
+							textureOverride->assetPath.String()
 						);
 					}
 				}
@@ -828,7 +844,7 @@ namespace Unnamed::Render {
 							"Renderer",
 							"Material instance {} uses an sRGB ORM texture '{}'. ORM must be linear: R=AO, G=Perceptual Roughness, B=Metallic.",
 							requestedMaterialInstanceId,
-							path
+							textureOverride->assetPath.String()
 						);
 					}
 				}
@@ -841,13 +857,13 @@ namespace Unnamed::Render {
 			};
 
 			binding.textures.baseColorTextureId =
-				resolveTexture(MATERIAL_TEXTURE_SLOT::BASE_COLOR);
+				ResolveTexture(MATERIAL_TEXTURE_SLOT::BASE_COLOR);
 			binding.textures.normalTextureId =
-				resolveTexture(MATERIAL_TEXTURE_SLOT::NORMAL);
+				ResolveTexture(MATERIAL_TEXTURE_SLOT::NORMAL);
 			binding.textures.ormTextureId =
-				resolveTexture(MATERIAL_TEXTURE_SLOT::ORM);
+				ResolveTexture(MATERIAL_TEXTURE_SLOT::ORM);
 			binding.textures.emissiveTextureId =
-				resolveTexture(MATERIAL_TEXTURE_SLOT::EMISSIVE);
+				ResolveTexture(MATERIAL_TEXTURE_SLOT::EMISSIVE);
 
 			mMaterialBindings.emplace(
 				requestedMaterialInstanceId,
@@ -857,15 +873,15 @@ namespace Unnamed::Render {
 	}
 
 	constexpr std::string_view kDefaultPostFxChainPath =
-		"./content/core/postfx/default.postfx.json";
+		"postfx/default.postfx.json";
 
-	void Renderer::LoadPostFxChain(const RenderDevice& renderDevice) {
+	bool Renderer::LoadPostFxChain(const RenderDevice& renderDevice) {
 		auto&       assetManager = renderDevice.GetAssetManager();
 		const auto& dx           = static_cast<Rhi::D3D12Device&>(renderDevice.
 			GetRhiDevice());
 		if (mPostFxChainAsset == kInvalidAssetID) {
-			mPostFxChainAsset = assetManager.LoadFromFile(
-				std::string(kDefaultPostFxChainPath), ASSET_TYPE::POST_FX_CHAIN
+			mPostFxChainAsset = LoadCoreAsset(
+				assetManager, kDefaultPostFxChainPath, ASSET_TYPE::POST_FX_CHAIN
 			);
 		}
 
@@ -873,38 +889,43 @@ namespace Unnamed::Render {
 			mPostFxChainAsset);
 		if (!chain) {
 			mPostFxPasses.clear();
-			return;
+			return false;
 		}
 
 		std::vector<PostFxRuntimePass> runtimePasses;
 		runtimePasses.reserve(chain->passes.size());
 
 		for (const auto& passAsset : chain->passes) {
-			AssetID shaderProgramId = passAsset.shaderProgramId;
-			if (
-				shaderProgramId == kInvalidAssetID &&
-				!passAsset.shaderProgramPath.empty()
-			) {
-				shaderProgramId = assetManager.LoadFromFile(
-					passAsset.shaderProgramPath, ASSET_TYPE::SHADER_PROGRAM
-				);
-			}
+			const AssetID shaderProgramId = passAsset.shaderProgramId;
 			if (shaderProgramId == kInvalidAssetID) {
-				continue;
+				mPostFxPasses.clear();
+				return false;
+			}
+			if (!ValidateShaderProgramStages(
+				assetManager,
+				shaderProgramId,
+				REQUIRED_SHADER_STAGES::GRAPHICS,
+				passAsset.name
+			)) {
+				mPostFxPasses.clear();
+				return false;
 			}
 
 			PostFxRuntimePass runtimePass = {};
-			runtimePass.name              = passAsset.name;
-			runtimePass.enabled           = passAsset.enabled;
-			runtimePass.scalarDefaults    = passAsset.scalarParams;
-			runtimePass.colorDefaults     = passAsset.colorParams;
-			runtimePass.pass.pipeline     = mPipelineRegistry.RegisterGraphics(
-				RendererPipelineCatalog::MakeFullscreenPreset(
-					"PostFx_" + runtimePass.name,
-					shaderProgramId,
-					dx.GetFsRootSignature(),
-					kSceneHdrColorFormat
-				)
+			runtimePass.name = passAsset.name;
+			runtimePass.enabled = passAsset.enabled;
+			runtimePass.scalarDefaults = passAsset.scalarParams;
+			runtimePass.colorDefaults = passAsset.colorParams;
+			auto pipelineSpec = RendererPipelineCatalog::MakeFullscreenPreset(
+				"PostFx_" + runtimePass.name,
+				shaderProgramId,
+				dx.GetFsRootSignature(),
+				kSceneHdrColorFormat
+			);
+			pipelineSpec.startupRequirement =
+				PIPELINE_STARTUP_REQUIREMENT::CONFIGURED_OPTIONAL;
+			runtimePass.pass.pipeline = mPipelineRegistry.RegisterGraphics(
+				pipelineSpec
 			);
 			runtimePass.pass.resolved = nullptr;
 
@@ -912,6 +933,7 @@ namespace Unnamed::Render {
 		}
 
 		mPostFxPasses = std::move(runtimePasses);
+		return true;
 	}
 
 	uint32_t Renderer::EnsureSpriteTextureLoaded(
@@ -934,10 +956,11 @@ namespace Unnamed::Render {
 			return mSpriteFallbackTextureId;
 		}
 
-		static bool sLoggedFontAtlasTexturePath = false;
+		static bool       sLoggedFontAtlasTexturePath = false;
+		const std::string textureSourcePath = tex->sourcePath.ToGenericUtf8();
 		if (
 			!sLoggedFontAtlasTexturePath &&
-			tex->sourcePath.find("runtime://ui/font_atlas_ascii") !=
+			textureSourcePath.find("runtime://ui/font_atlas_ascii") !=
 			std::string::npos
 		) {
 			const size_t mipCount  = tex->mips.size();
@@ -976,7 +999,7 @@ namespace Unnamed::Render {
 	}
 
 	uint32_t Renderer::EnsureSkyboxTextureLoaded(
-		RenderDevice& renderDevice, const AssetID textureAssetId
+		const RenderDevice& renderDevice, const AssetID textureAssetId
 	) {
 		(void)renderDevice;
 		if (textureAssetId == kInvalidAssetID) {
@@ -1006,10 +1029,9 @@ namespace Unnamed::Render {
 		mip.rowPitch           = 4;
 		mip.bytes              = {255, 255, 255, 255};
 		white.mips.emplace_back(std::move(mip));
-		mSpriteFallbackTextureId = renderDevice.GetRegistry().
-		                                        CreateTexture2DFromAsset(
-			                                        white,
-			                                        "SpriteOverlayFallbackWhite"
-		                                        );
+		mSpriteFallbackTextureId =
+			renderDevice.GetRegistry().CreateTexture2DFromAsset(
+				white, "SpriteOverlayFallbackWhite"
+			);
 	}
 }

@@ -7,7 +7,6 @@
 #include "core/hash/StableHashBuilder.h"
 
 #include "core/math/Vec2.h"
-#include "core/math/Vec4.h"
 
 namespace Unnamed::UI::Retained {
 	/// @brief UIノードの識別子

@@ -1,0 +1,14 @@
+{
+	"name": "game_fixture",
+	"shader": "shaders/programs/game_fixture.shader.json",
+	"domain": "unlit",
+	"shadingModel": "Unlit",
+	"renderState": {
+		"depthEnable": true,
+		"castsShadow": false,
+		"depthWrite": true,
+		"cullBackFace": true,
+		"blendEnable": false,
+		"stencilEnable": false
+	}
+}

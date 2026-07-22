@@ -29,17 +29,6 @@ namespace Unnamed {
 			       std::isfinite(value.z) && std::isfinite(value.w);
 		}
 
-		float DeltaAngleDegrees(const float currentDeg, const float targetDeg) {
-			float delta = std::fmod(targetDeg - currentDeg, 360.0f);
-			if (delta > 180.0f) {
-				delta -= 360.0f;
-			}
-			if (delta < -180.0f) {
-				delta += 360.0f;
-			}
-			return delta;
-		}
-
 		Vec2 ExtractLookPitchYawDegrees(const Quaternion& rotation) {
 			const Vec3 forward = rotation.RotateVector(Vec3::forward).
 			                              Normalized();
@@ -103,9 +92,10 @@ namespace Unnamed {
 		if (!mInitialized) {
 			mBaseLocalPosition = mTransform->GetPosition();
 			mBaseLocalRotation = mTransform->GetRotation();
-			mPrevLookDeg = ExtractLookPitchYawDegrees(mLookSource->GetRotation());
-			mPitch = 0.0f;
-			mYaw = 0.0f;
+			mPrevLookDeg       = ExtractLookPitchYawDegrees(
+				mLookSource->GetRotation());
+			mPitch       = 0.0f;
+			mYaw         = 0.0f;
 			mInitialized = true;
 		}
 
@@ -113,7 +103,8 @@ namespace Unnamed {
 			mAttenuation * renderDeltaTime, 0.0f, 1.0f
 		);
 
-		const Vec2 lookNow = ExtractLookPitchYawDegrees(mLookSource->GetRotation());
+		const Vec2 lookNow = ExtractLookPitchYawDegrees(
+			mLookSource->GetRotation());
 		if (!IsFiniteVec2(lookNow) || !IsFiniteVec2(mPrevLookDeg)) {
 			mPrevLookDeg = Vec2::zero;
 			mPitch       = 0.0f;
@@ -121,12 +112,15 @@ namespace Unnamed {
 			return;
 		}
 
-		const float deltaPitch = DeltaAngleDegrees(mPrevLookDeg.x, lookNow.x);
-		const float deltaYaw   = DeltaAngleDegrees(mPrevLookDeg.y, lookNow.y);
-		mPrevLookDeg           = lookNow;
-		
+		const float deltaPitch = Math::DeltaAngleDegrees(
+			mPrevLookDeg.x, lookNow.x
+		);
+		const float deltaYaw = Math::DeltaAngleDegrees(
+			mPrevLookDeg.y, lookNow.y);
+		mPrevLookDeg = lookNow;
+
 		mPitch += deltaPitch * mSwayAmount * renderDeltaTime;
-		mYaw += deltaYaw * mSwayAmount * renderDeltaTime;
+		mYaw   += deltaYaw * mSwayAmount * renderDeltaTime;
 
 		mPitch = std::lerp(mPitch, 0.0f, attenuationT); // ピッチの減衰
 		mYaw   = std::lerp(mYaw, 0.0f, attenuationT);   // ヨーの減衰
@@ -228,4 +222,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(ViewmodelSway);
 }
-

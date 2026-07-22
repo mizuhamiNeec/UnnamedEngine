@@ -43,7 +43,14 @@ namespace Unnamed {
 		World::RenderTick(renderDeltaTime, interpolationAlpha);
 	}
 
-	bool GameWorld::LoadSceneFromFile(const char* path) {
+	bool GameWorld::LoadSceneFromFile(
+		Path path, const SceneLoadOptions& options
+	) {
+		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
+		if (path.IsEmpty()) {
+			return false;
+		}
+
 		const auto start = std::chrono::steady_clock::now();
 		const bool ok    = [&] {
 			if (!path || std::string_view(path).empty()) {
@@ -59,7 +66,7 @@ namespace Unnamed {
 			auto       newScene = std::make_unique<Scene>();
 			newScene->SetWorld(this);
 			const bool loadOk   = SceneSerializer::LoadFromFile(
-				*newScene, path, mGuidGenerator
+				*newScene, path, mGuidGenerator, options
 			);
 			if (!loadOk) {
 				return false;
@@ -69,7 +76,7 @@ namespace Unnamed {
 			const auto afterSetScene = std::chrono::steady_clock::now();
 
 			// Base World と同等に、現在ロード中のシーンパスとフックを更新します。
-			mLoadedScenePath = StrUtil::NormalizePath(path);
+			mLoadedScenePath = path;
 			OnSceneLoaded();
 
 			Msg(
@@ -87,7 +94,7 @@ namespace Unnamed {
 				std::chrono::duration_cast<std::chrono::milliseconds>(
 					afterSetScene - start
 				).count(),
-				std::string(path)
+				path
 			);
 
 			return true;
@@ -117,9 +124,12 @@ namespace Unnamed {
 	void GameWorld::FillRenderFrameInputs(
 		Render::RenderFrameInputs&  inputs,
 		Render::RenderFrameContext& frameContext,
-		AssetManager&               assetManager
+		AssetManager&               assetManager,
+		const bool                  enableUiInput
 	) {
-		World::FillRenderFrameInputs(inputs, frameContext, assetManager);
+		World::FillRenderFrameInputs(
+			inputs, frameContext, assetManager, enableUiInput
+		);
 	}
 
 	void GameWorld::SetScene(std::unique_ptr<Scene> scene) {

@@ -2,15 +2,19 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/Path.h"
+#include "core/filesystem/VirtualPath.h"
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
 #include "engine/world/GameplayCueBus.h"
 #include "game/core/presentation/EventPresentationTypes.h"
 
 namespace Unnamed {
+	class AssetManager;
 	class ComponentRegistry;
 	class JsonReader;
 	class JsonWriter;
@@ -63,19 +67,27 @@ namespace Unnamed {
 		/// @brief JSON から設定を復元します。
 		/// @param reader JSON リーダー
 		void Deserialize(const JsonReader& reader) override;
+		/// @brief シーン読込方針を適用してJSONから設定を復元します。
+		[[nodiscard]] bool Deserialize(
+			const JsonReader& reader, const SceneDeserializeContext& context
+		) override;
 
 		/// @brief JSON へ設定を保存します。
 		/// @param writer JSON ライター
 		void Serialize(JsonWriter& writer) const override;
 
 	private:
-		/// @brief アセットパスを正規化して設定します。
-		/// @param path アセットパス
-		void SetAssetPath(const std::string& path);
+		/// @brief 論理参照を設定し、EventPresentationアセットをロードします。
+		[[nodiscard]] bool SetPresentationPath(
+			const VirtualPath& path, AssetManager& assetManager
+		);
 
-		/// @brief EventPresentation アセットをロードして実行用データを再構築します。
-		/// @return ロード成功時 true
-		bool LoadAsset();
+		/// @brief 論理参照とロード済み状態をクリアします。
+		void ClearPresentationPath();
+
+		/// @brief ロード済みAssetIDから実行用データを再構築します。
+		/// @return 再構築成功時 true
+		bool RebuildRuntimeData(AssetManager& assetManager);
 
 		/// @brief アセットのバージョン変化を監視し必要に応じてリロードします。
 		void RefreshAssetIfNeeded();
@@ -111,18 +123,18 @@ namespace Unnamed {
 
 		/// @brief AudioFxController を解決します。
 		/// @return 解決結果（失敗時は nullptr）
-		[[nodiscard]] AudioFxControllerComponent* ResolveAudioFx();
+		[[nodiscard]] AudioFxControllerComponent* ResolveAudioFx() const;
 
 		/// @brief CameraFxController を解決します。
 		/// @return 解決結果（失敗時は nullptr）
-		[[nodiscard]] CameraFxControllerComponent* ResolveCameraFx();
+		[[nodiscard]] CameraFxControllerComponent* ResolveCameraFx() const;
 
 		/// @brief SkeletalAnimation を解決します。
 		/// @return 解決結果（失敗時は nullptr）
-		[[nodiscard]] SkeletalAnimationComponent* ResolveAnimation();
+		[[nodiscard]] SkeletalAnimationComponent* ResolveAnimation() const;
 
-		std::string                      mAssetPath;
-		AssetID                          mAssetId = kInvalidAssetID;
+		std::optional<VirtualPath>       mPresentationPath;
+		AssetID                          mPresentationAssetId = kInvalidAssetID;
 		uint64_t                         mLoadedAssetVersion = 0;
 		std::string                      mLoadedAssetName;
 		std::vector<EventPresentationTrigger> mTriggers;
@@ -150,6 +162,7 @@ namespace Unnamed {
 		float       mDebugPublishValue2 = 400.0f;
 		uint64_t    mDebugHandledCueCount = 0;
 #ifdef UNNAMED_WITH_EDITOR
+		Path mEditorPresentationPath;
 		std::unique_ptr<EventPresentationGraphEditorState> mGraphEditorState;
 #endif
 #endif

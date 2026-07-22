@@ -54,6 +54,13 @@ namespace Unnamed {
 	void BaseComponent::DrawInspectorImGui() {
 	}
 
+	bool BaseComponent::Deserialize(
+		const JsonReader& reader, const SceneDeserializeContext&
+	) {
+		Deserialize(reader);
+		return true;
+	}
+
 	Entity* BaseComponent::GetOwner() const {
 		return mOwner;
 	}

@@ -102,21 +102,31 @@ namespace Unnamed {
 			currentVel      += Math::HtoM(acc) * wishDir;
 		}
 
-		void ExecuteGroundJumpAndSwitchToAir(
+		[[nodiscard]] bool ExecuteGroundJumpAndSwitchToAir(
 			MovementContext& context,
 			ConsoleSystem*   console,
 			const float      deltaTime
 		) {
 			if (!context.transform || !context.resolver) {
-				return;
+				return false;
 			}
 
 			const float detachBiasM =
 				Math::HtoM(kJumpDetachBiasHu);
-
-			context.transform->SetPosition(
-				context.transform->GetPosition() + Vec3::up * detachBiasM
-			);
+			const Vec3 detachedPosition =
+				context.transform->GetPosition() + Vec3::up * detachBiasM;
+			Physics::Hit detachOverlap{};
+			if (
+				context.resolver->CollectOverlaps(
+					detachedPosition,
+					context.halfExtents,
+					&detachOverlap,
+					1
+				) > 0
+			) {
+				return false;
+			}
+			context.transform->SetPosition(detachedPosition);
 
 			context.velocity.y += Math::HtoM(
 				console ?
@@ -148,6 +158,7 @@ namespace Unnamed {
 				"jump from slide",
 				"ParkourSlideAbility"
 			);
+			return true;
 		}
 
 		struct SpeedVaultTrajectory {
@@ -169,6 +180,29 @@ namespace Unnamed {
 		[[nodiscard]] bool IsBlockingCastHit(const Physics::Hit& hit) {
 			return hit.startSolid || hit.allsolid ||
 			       hit.toi < 1.0f - kPathSweepBlockToiEpsilon;
+		}
+
+		/// @brief Transform 駆動の特殊移動でも、通常移動と同じ Sweep/押し出しを必ず通す。
+		/// 応答後速度は演出用の補間速度なので、呼び出し元のゲームプレイ速度は変更しない。
+		/// @param context 移動コンテキスト
+		/// @param targetPosition 移動先のワールド座標
+		/// @param deltaTime フレーム時間
+		/// @return 移動が成功した場合は true
+		[[nodiscard]] bool MoveTransformWithSlideResponse(
+			MovementContext& context,
+			const Vec3&      targetPosition,
+			const float      deltaTime
+		) {
+			if (!context.transform || !context.resolver) {
+				return false;
+			}
+
+			Vec3 position         = context.transform->GetPosition();
+			Vec3 responseVelocity = (targetPosition - position) /
+			                        std::max(deltaTime, 1.0e-6f);
+			context.resolver->SlideMove(position, responseVelocity, deltaTime);
+			context.transform->SetPosition(position);
+			return true;
 		}
 
 		/// @brief ハルの移動経路が通行可能かを段階的に検証します。
@@ -1265,7 +1299,7 @@ namespace Unnamed {
 				return true;
 			}
 
-			bool Tick(MovementContext& context, float deltaTime) override {
+			bool Tick(MovementContext& context, const float deltaTime) override {
 				auto* parkour = AsParkour(context);
 				if (!parkour || !context.transform) {
 					return false;
@@ -1287,10 +1321,11 @@ namespace Unnamed {
 				const float t          = std::clamp(
 					runtime.blink.moveTime / duration, 0.0f, 1.0f
 				);
-				context.transform->SetPosition(
-					Math::Lerp(
-						runtime.blink.startPos, runtime.blink.targetPos, t
-					)
+				(void)MoveTransformWithSlideResponse(
+					context,
+					Math::Lerp(runtime.blink.startPos, runtime.blink.targetPos,
+					           t),
+					deltaTime
 				);
 				parkour->SyncCollisionHull(context.transform);
 				context.isGrounded            = false;
@@ -1417,7 +1452,6 @@ namespace Unnamed {
 				context.velocity += runtime.wallRun.direction * Math::HtoM(
 					startBoost
 				);
-				context.modeTickSuppressed = true;
 				parkour->PublishParkourMovementCue(
 					candidate.isRightWall ?
 						"movement.wallrun.start.right" :
@@ -1442,6 +1476,7 @@ namespace Unnamed {
 				const auto* physics = context.resolver->GetPhysics();
 				if (!physics) {
 					parkour->EndWallRun();
+					context.modeTickSuppressed = false;
 					return false;
 				}
 
@@ -1453,6 +1488,7 @@ namespace Unnamed {
 					                       2.5f;
 				if (runtime.wallRun.time >= maxTime) {
 					parkour->EndWallRun();
+					context.modeTickSuppressed = false;
 					return false;
 				}
 
@@ -1476,6 +1512,7 @@ namespace Unnamed {
 					&wallHit
 				)) {
 					parkour->EndWallRun();
+					context.modeTickSuppressed = false;
 					return false;
 				}
 
@@ -1484,6 +1521,7 @@ namespace Unnamed {
 					    runtime.wallRun.normal
 				    ) < 0.5f) {
 					parkour->EndWallRun();
+					context.modeTickSuppressed = false;
 					return false;
 				}
 				runtime.wallRun.normal = (
@@ -1501,6 +1539,7 @@ namespace Unnamed {
 
 				if (context.input.crouchPressed || context.isGrounded) {
 					parkour->EndWallRun();
+					context.modeTickSuppressed = false;
 					return false;
 				}
 
@@ -1513,6 +1552,7 @@ namespace Unnamed {
 					                         200.0f;
 				if (Math::MtoH(velHorz.Length()) < minSpeedHu * 0.5f) {
 					parkour->EndWallRun();
+					context.modeTickSuppressed = false;
 					return false;
 				}
 
@@ -1539,6 +1579,7 @@ namespace Unnamed {
 							 0.5f)
 						) {
 							parkour->EndWallRun();
+							context.modeTickSuppressed = false;
 							return false;
 						}
 					}
@@ -1575,6 +1616,7 @@ namespace Unnamed {
 								0.1f
 						);
 						parkour->EndWallRun();
+						context.modeTickSuppressed = false;
 						context.SubmitTransition(
 							MOVEMENT_MODE_ID::AIR,
 							MOVEMENT_TRANSITION_PRIORITY::STANCE,
@@ -1782,9 +1824,8 @@ namespace Unnamed {
 						std::numeric_limits<float>::max()
 				);
 				const float originalY = context.velocity.y;
-				context.velocity = runtime.slide.direction * boostedSpeed;
-				context.velocity.y = originalY;
-				context.modeTickSuppressed = true;
+				context.velocity      = runtime.slide.direction * boostedSpeed;
+				context.velocity.y    = originalY;
 				return true;
 			}
 
@@ -1828,11 +1869,14 @@ namespace Unnamed {
 				);
 
 				if (context.input.jumpPressed) {
-					runtime.slide.active = false;
-					ExecuteGroundJumpAndSwitchToAir(
-						context, mConsole, deltaTime
-					);
-					return false;
+					if (
+						ExecuteGroundJumpAndSwitchToAir(
+							context, mConsole, deltaTime
+						)
+					) {
+						runtime.slide.active = false;
+						return false;
+					}
 				}
 
 				Vec3 movePos = context.transform ?
@@ -2046,9 +2090,11 @@ namespace Unnamed {
 					runtime.vault.time / duration, 0.0f, 1.0f
 				);
 				const float u = 1.0f - t;
+				// Vault 開始時に経路を検証済みなので、障害物を乗り越える補間中は
+				// 通常の SlideMove で同じ障害物に再び遮られないよう軌道を適用する。
 				context.transform->SetPosition(
-					runtime.vault.startPos * (u * u) + runtime.vault.apexPos * (
-						2.0f * u * t) + runtime.vault.endPos * (t * t)
+					runtime.vault.startPos * (u * u) + runtime.vault.apexPos *
+					(2.0f * u * t) + runtime.vault.endPos * (t * t)
 				);
 				parkour->SyncCollisionHull(context.transform);
 				context.velocity              = Vec3::zero;

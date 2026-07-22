@@ -106,6 +106,7 @@ namespace Unnamed {
 		const auto  it = mEntries.find(key);
 		if (it != mEntries.end()) {
 			const Entry& existing              = it->second;
+			// 同一型の重複登録は、複数の登録経路を許容するため冪等に扱う
 			const bool   sameTypedRegistration =
 				hasTypeInfo && existing.hasTypeInfo &&
 				existing.typeIndex == typeIndex;
@@ -164,6 +165,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// 同じ実装型を別の永続名へ再登録するとシリアライズ互換性が壊れる
 		if (hasTypeInfo) {
 			const auto typeIt = mStableNamesByType.find(typeIndex);
 			if (typeIt != mStableNamesByType.end() && typeIt->second != key) {

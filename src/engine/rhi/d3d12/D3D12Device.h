@@ -7,7 +7,6 @@
 
 #include "D3D12FrameUploadAllocator.h"
 
-#include "engine/Properties.h"
 #include "engine/rhi/DxcShaderCompiler.h"
 #include "engine/rhi/RhiTypes.h"
 #include "engine/rhi/interface/IRhiDevice.h"
@@ -69,9 +68,9 @@ namespace Unnamed::Rhi {
 		[[nodiscard]] ID3D12RootSignature* GetFsRootSignature() const;
 		[[nodiscard]] ID3D12RootSignature* GetGeomRootSignature() const;
 		[[nodiscard]] ID3D12RootSignature* GetGeomRootSignatureLinearClamp()
-			const;
+		const;
 		[[nodiscard]] ID3D12RootSignature* GetGeomRootSignaturePointClamp()
-			const;
+		const;
 
 		[[nodiscard]] ID3D12Device* GetDevice() const;
 		DxcShaderCompiler&          GetDxcCompiler();
@@ -118,17 +117,17 @@ namespace Unnamed::Rhi {
 		void        CreateRtvHeap();
 		void        CreateDsvHeap();
 		/// @brief 使用するルートシグネチャ群を作成します。
-		void        CreatePipelines();
+		void CreatePipelines();
 		/// @brief コンピュート用ルートシグネチャを作成します。
-		void        CreateComputeRootSignature();
+		void CreateComputeRootSignature();
 		/// @brief フルスクリーン描画用ルートシグネチャを作成します。
-		void        CreateFullscreenRootSignature();
+		void CreateFullscreenRootSignature();
 		/// @brief ジオメトリ描画用ルートシグネチャを作成します。
-		void        CreateGeometryRootSignature();
-		void        CreateCommandObjects();
-		void        CreateFenceObjects();
-		void        WaitForFrame(uint32_t frameIndex) const;
-		void        SignalFrame(uint32_t frameIndex);
+		void CreateGeometryRootSignature();
+		void CreateCommandObjects();
+		void CreateFenceObjects();
+		void WaitForFrame(uint32_t frameIndex) const;
+		void SignalFrame(uint32_t frameIndex);
 
 	public:
 		[[nodiscard]] uint64_t GetCompletedFenceValue() const;
@@ -201,7 +200,9 @@ namespace Unnamed::Rhi {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mCsRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mFsRootSignature;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> mGeomRootSignature;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> mGeomRootSignatureLinearClamp;
-		Microsoft::WRL::ComPtr<ID3D12RootSignature> mGeomRootSignaturePointClamp;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature>
+		mGeomRootSignatureLinearClamp;
+		Microsoft::WRL::ComPtr<ID3D12RootSignature>
+		mGeomRootSignaturePointClamp;
 	};
 }

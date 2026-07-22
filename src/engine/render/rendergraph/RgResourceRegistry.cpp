@@ -42,12 +42,12 @@ namespace Unnamed::Render {
 				return 0;
 			}
 
-			const uint64_t slices = static_cast<uint64_t>(std::max<uint16_t>(
+			const uint64_t slices = std::max<uint16_t>(
 				desc.DepthOrArraySize, 1
-			));
-			const uint64_t mipLevels = static_cast<uint64_t>(std::max<uint16_t>(
+			);
+			const uint64_t mipLevels = std::max<uint16_t>(
 				desc.MipLevels, 1
-			));
+			);
 			const uint64_t pixels =
 				desc.Width * static_cast<uint64_t>(desc.Height);
 			return pixels * slices * mipLevels *
@@ -263,12 +263,12 @@ namespace Unnamed::Render {
 			up.Begin();
 			auto* cmd = up.GetCommandList();
 
-			D3D12_RESOURCE_DESC rd = e.resource->GetDesc();
-			const UINT subresourceCount = static_cast<UINT>(std::min<uint32_t>(
+			D3D12_RESOURCE_DESC rd               = e.resource->GetDesc();
+			const UINT          subresourceCount = std::min<uint32_t>(
 				expectedSubresources,
 				static_cast<uint32_t>(rd.MipLevels) *
 				static_cast<uint32_t>(rd.DepthOrArraySize)
-			));
+			);
 			uint64_t                                        requiredBytes = 0;
 			std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(
 				subresourceCount
@@ -334,9 +334,7 @@ namespace Unnamed::Render {
 						static_cast<uint8_t*>(map) + footprint.Offset +
 						static_cast<size_t>(y) *
 						footprint.Footprint.RowPitch;
-					const size_t rowBytes = static_cast<size_t>(
-						rowSizeInBytes[subresourceIndex]
-					);
+					const size_t   rowBytes = rowSizeInBytes[subresourceIndex];
 					const uint64_t dstBegin =
 						footprint.Offset +
 						static_cast<uint64_t>(y) *

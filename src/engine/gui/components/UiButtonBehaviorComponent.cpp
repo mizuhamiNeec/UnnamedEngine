@@ -3,32 +3,10 @@
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
+#include "engine/gui/UiSerializationHelpers.h"
 #include "engine/gui/UiWidget.h"
 
 namespace Unnamed::Gui {
-	namespace {
-		void WriteColor(JsonWriter& writer, const Color& color) {
-			writer.BeginArray();
-			writer.Write(color.r);
-			writer.Write(color.g);
-			writer.Write(color.b);
-			writer.Write(color.a);
-			writer.EndArray();
-		}
-
-		Color ReadColor(const JsonReader& reader, const Color& fallback) {
-			if (!reader.Valid() || reader.Size() < 4) {
-				return fallback;
-			}
-			return {
-				.r = reader[0].GetFloat(),
-				.g = reader[1].GetFloat(),
-				.b = reader[2].GetFloat(),
-				.a = reader[3].GetFloat(),
-			};
-		}
-	}
-
 	void UiButtonBehaviorComponent::SetText(const std::string_view& text) {
 		mText = text;
 	}
@@ -98,7 +76,7 @@ namespace Unnamed::Gui {
 	}
 
 	void UiButtonBehaviorComponent::BuildDrawCommands(
-		const UiWidget& owner,
+		const UiWidget&             owner,
 		std::vector<UiDrawCommand>& out
 	) const {
 		if (!owner.IsVisible()) {
@@ -114,11 +92,11 @@ namespace Unnamed::Gui {
 
 		const Rect& rect = owner.GetGlobalRect();
 
-		UiDrawCommand rectCommand = {};
-		rectCommand.type          = UI_DRAW_COMMAND_TYPE::RECT;
-		rectCommand.rect.rect     = rect;
-		rectCommand.rect.fillColor = background;
-		rectCommand.rect.cornerRadius = mCornerRadius;
+		UiDrawCommand rectCommand        = {};
+		rectCommand.type                 = UI_DRAW_COMMAND_TYPE::RECT;
+		rectCommand.rect.rect            = rect;
+		rectCommand.rect.fillColor       = background;
+		rectCommand.rect.cornerRadius    = mCornerRadius;
 		rectCommand.rect.borderThickness = 1.0f;
 		rectCommand.rect.borderColor     = mBorderColor;
 		out.emplace_back(rectCommand);
@@ -163,7 +141,10 @@ namespace Unnamed::Gui {
 		writer.Write(mFontSize);
 	}
 
-	void UiButtonBehaviorComponent::Deserialize(const JsonReader& reader) {
+	bool UiButtonBehaviorComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		(void)context;
 		if (reader.Has("text")) {
 			mText = reader["text"].GetString();
 		}
@@ -188,5 +169,6 @@ namespace Unnamed::Gui {
 		if (reader.Has("fontSize")) {
 			mFontSize = reader["fontSize"].GetFloat();
 		}
+		return true;
 	}
 }

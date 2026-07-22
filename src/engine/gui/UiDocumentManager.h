@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "core/assets/AssetID.h"
+#include "core/filesystem/Path.h"
 
 #include "UiDocument.h"
 
@@ -19,40 +20,40 @@ namespace Unnamed {
 namespace Unnamed::Gui {
 	class UiDocumentManager {
 	public:
-		explicit UiDocumentManager(AssetManager* assetManager = nullptr);
+		explicit UiDocumentManager(AssetManager& assetManager);
 		~UiDocumentManager();
 
-		std::shared_ptr<UiDocument> LoadDocument(const std::string& path);
-		void                        UnloadDocument(const std::string& path);
+		std::shared_ptr<UiDocument> LoadDocument(const Path& path);
+		void                        UnloadDocument(const Path& path);
 
-		std::shared_ptr<UiDocument> GetDocument(const std::string& path) const;
+		std::shared_ptr<UiDocument> GetDocument(const Path& path) const;
 		bool                        SaveDocument(
-			const std::string&              path,
+			const Path&                        path,
 			const std::shared_ptr<UiDocument>& document
 		);
 
-		void MarkDirty(const std::string& path, bool dirty = true);
-		[[nodiscard]] bool IsDirty(const std::string& path) const;
-		[[nodiscard]] bool HasPendingExternal(const std::string& path) const;
-		void ResolvePendingExternal(const std::string& path, bool reloadFromAsset);
-		std::vector<std::string> UpdateTrackedDocuments();
+		void MarkDirty(const Path& path, bool dirty = true);
+		[[nodiscard]] bool IsDirty(const Path& path) const;
+		[[nodiscard]] bool HasPendingExternal(const Path& path) const;
+		void ResolvePendingExternal(const Path& path, bool reloadFromAsset);
+		std::vector<Path> UpdateTrackedDocuments();
 
 	private:
 		struct ManagedDocument {
-			std::string               normalizedPath;
-			AssetID                   assetId = kInvalidAssetID;
-			uint64_t                  loadedVersion = 0;
+			Path                        normalizedPath;
+			AssetID                     assetId       = kInvalidAssetID;
+			uint64_t                    loadedVersion = 0;
 			std::shared_ptr<UiDocument> document;
-			bool                      dirty = false;
-			bool                      pendingExternal = false;
+			bool                        dirty           = false;
+			bool                        pendingExternal = false;
 		};
 
-		static std::string     NormalizePath(std::string path);
-		bool                   ReloadDocumentFromAsset(ManagedDocument& managed) const;
-		ManagedDocument*       FindManaged(const std::string& path);
-		const ManagedDocument* FindManaged(const std::string& path) const;
+		static Path NormalizePath(const Path& path);
+		bool ReloadDocumentFromAsset(ManagedDocument& managed) const;
+		ManagedDocument* FindManaged(const Path& path);
+		const ManagedDocument* FindManaged(const Path& path) const;
 
-		AssetManager* mAssetManager = nullptr;
+		AssetManager& mAssetManager;
 		std::unordered_map<std::string, ManagedDocument> mDocuments;
 	};
 }

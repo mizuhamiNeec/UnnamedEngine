@@ -18,12 +18,12 @@ namespace Unnamed::Rhi {
 		void TransitionBackBufferToPresent() override;
 		void ClearBackBuffer(const ClearColor& color) override;
 
-		void SetSrvUavHeap(ID3D12DescriptorHeap* heap);
+		void SetSrvUavHeap(ID3D12DescriptorHeap* heap) const;
 
 		void TransitionResource(
 			ID3D12Resource*       resource, D3D12_RESOURCE_STATES before,
 			D3D12_RESOURCE_STATES after
-		);
+		) const;
 
 		void SetComputePipeline(
 			ID3D12RootSignature* rs, ID3D12PipelineState* pso

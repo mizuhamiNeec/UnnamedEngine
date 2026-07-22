@@ -1,7 +1,5 @@
 #include "engine/unnamed/subsystem/audio/AudioSystem.h"
 
-#include <algorithm>
-
 #include "engine/unnamed/subsystem/audio/Audio.h"
 
 namespace Unnamed {
@@ -56,15 +54,17 @@ namespace Unnamed {
 			return nullptr;
 		}
 
+		// システムは弱参照だけを持ち、再生者側の寿命を不必要に延長しない
 		CleanupExpiredVoices();
 		mVoices.emplace_back(voice);
 		return voice;
 	}
 
 	void AudioSystem::StopAll() {
+		// 破棄前にキュー済みバッファの再生を止める
 		CleanupExpiredVoices();
 		for (const auto& weak : mVoices) {
-			if (auto voice = weak.lock()) {
+			if (const auto voice = weak.lock()) {
 				voice->Stop();
 			}
 		}
@@ -77,7 +77,9 @@ namespace Unnamed {
 	void AudioSystem::CleanupExpiredVoices() {
 		std::erase_if(
 			mVoices,
-			[](const std::weak_ptr<AudioVoice>& weak) { return weak.expired(); }
+			[](const std::weak_ptr<AudioVoice>& weak) {
+				return weak.expired();
+			}
 		);
 	}
 }

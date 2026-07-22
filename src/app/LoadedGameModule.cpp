@@ -15,7 +15,8 @@ namespace Unnamed {
 		const GameModuleRegistry& registry,
 		const std::string_view    requestedModuleName
 	) {
-		std::unique_ptr<IGameModule> gameModule = registry.Create(requestedModuleName);
+		std::unique_ptr<IGameModule> gameModule = registry.Create(
+			requestedModuleName);
 		if (!gameModule) {
 			return nullptr;
 		}
@@ -25,28 +26,6 @@ namespace Unnamed {
 				std::move(gameModule)
 			)
 		);
-	}
-
-	LoadedGameModule::LoadedGameModule(
-		std::string                 requestedModuleName,
-		std::unique_ptr<IGameModule> gameModule
-	) : mRequestedModuleName(std::move(requestedModuleName)),
-	    mGameModule(std::move(gameModule)),
-	    mRuntimeContext(std::make_unique<GameRuntimeContext>()) {
-		if (!mRuntimeContext || !mGameModule) {
-			return;
-		}
-
-		mRuntimeContext->runtimeModuleName = mRequestedModuleName;
-		mRuntimeContext->modulePaths = mGameModule->GetGameModulePaths();
-		mRuntimeContext->defaultStartupScenePath =
-			mGameModule->GetDefaultStartupScenePath();
-		if (mRuntimeContext->defaultStartupScenePath.empty()) {
-			mRuntimeContext->defaultStartupScenePath =
-				mRuntimeContext->modulePaths.defaultStartupScene;
-		}
-		mRuntimeContext->defaultUiDocumentPath =
-			mGameModule->GetDefaultUiDocumentPath();
 	}
 
 	LoadedGameModule::~LoadedGameModule() {
@@ -77,6 +56,7 @@ namespace Unnamed {
 			return false;
 		}
 
+		// 起動コンテンツをロードする前にゲーム固有の型と実装を登録する
 		mGameModule->RegisterAssetTypes(engine);
 		mGameModule->RegisterComponents(engine);
 		mGameModule->RegisterSystems(engine);
@@ -98,6 +78,7 @@ namespace Unnamed {
 			return;
 		}
 
+		// Engine のサービスが有効な間にゲーム側の参照を解放する
 		mGameModule->OnUnload(engine);
 		mLoaded = false;
 		Msg(
@@ -112,14 +93,14 @@ namespace Unnamed {
 		return *mGameModule;
 	}
 
-	std::unique_ptr<IDemoService> LoadedGameModule::CreateDemoService() {
+	std::unique_ptr<IDemoService> LoadedGameModule::CreateDemoService() const {
 		if (!mGameModule) {
 			return nullptr;
 		}
 		return mGameModule->CreateDemoService();
 	}
 
-	GameRuntimeContext& LoadedGameModule::GetRuntimeContext() {
+	GameRuntimeContext& LoadedGameModule::GetRuntimeContext() const {
 		return *mRuntimeContext;
 	}
 
@@ -132,5 +113,23 @@ namespace Unnamed {
 
 	const std::string& LoadedGameModule::GetRequestedModuleName() const {
 		return mRequestedModuleName;
+	}
+
+	LoadedGameModule::LoadedGameModule(
+		std::string                  requestedModuleName,
+		std::unique_ptr<IGameModule> gameModule
+	) : mRequestedModuleName(std::move(requestedModuleName)),
+	    mGameModule(std::move(gameModule)),
+	    mRuntimeContext(std::make_unique<GameRuntimeContext>()) {
+		if (!mRuntimeContext || !mGameModule) {
+			return;
+		}
+
+		mRuntimeContext->runtimeModuleName = mRequestedModuleName;
+		mRuntimeContext->modulePaths = mGameModule->GetGameModulePaths();
+		mRuntimeContext->defaultStartupScene =
+			mRuntimeContext->modulePaths.defaultStartupScene;
+		mRuntimeContext->defaultUiDocument =
+			mGameModule->GetDefaultUiDocument();
 	}
 }

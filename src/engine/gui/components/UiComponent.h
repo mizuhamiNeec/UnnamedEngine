@@ -4,12 +4,14 @@
 #include <vector>
 
 namespace Unnamed {
+	class AssetManager;
 	class JsonReader;
 	class JsonWriter;
 }
 
 namespace Unnamed::Gui {
 	struct UiDrawCommand;
+	struct UiDeserializeContext;
 	class UiWidget;
 
 	class UiComponent {
@@ -33,6 +35,10 @@ namespace Unnamed::Gui {
 		virtual void OnClick(UiWidget& owner);
 
 		virtual void Serialize(JsonWriter& writer) const;
-		virtual void Deserialize(const JsonReader& reader);
+		/// @brief UIコンポーネントをJSONから復元します。
+		/// @return 復元に成功した場合はtrue。
+		[[nodiscard]] virtual bool Deserialize(
+			const JsonReader& reader, const UiDeserializeContext& context
+		);
 	};
 }

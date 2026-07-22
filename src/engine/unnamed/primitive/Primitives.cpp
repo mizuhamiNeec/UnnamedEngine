@@ -72,6 +72,12 @@ namespace Unnamed {
 		Expand(aabb.max);
 	}
 
+	bool AABB::Overlaps(const AABB& other) const {
+		return max.x >= other.min.x && min.x <= other.max.x &&
+		       max.y >= other.min.y && min.y <= other.max.y &&
+		       max.z >= other.min.z && min.z <= other.max.z;
+	}
+
 	/// @brief AABBの中心を取得します
 	/// @return AABBの中心座標
 	Vec3 AABB::Center() const {

@@ -1,13 +1,14 @@
 #include "MeshAssetLoader.h"
+#include "AssimpConversions.h"
+#include "core/assets/FileStamp.h"
+#include "core/filesystem/Path.h"
 
 #include <algorithm>
 #include <array>
-#include <chrono>
 #include <filesystem>
 #include <unordered_map>
 
 #include <assimp/Importer.hpp>
-#include <assimp/matrix4x4.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
@@ -16,7 +17,7 @@
 #include "core/hash/StableHashBuilder.h"
 #include "core/io/binary/BinaryReader.h"
 #include "core/io/binary/BinaryWriter.h"
-#include "core/path/PathUtil.h"
+
 #include "core/string/StrUtil.h"
 
 #include "engine/profiler/Profiler.h"
@@ -52,25 +53,6 @@ namespace Unnamed {
 			uint32_t flags                = 0;
 		};
 
-		/// @brief ファイルの状態を表すスタンプ。ファイルの存在、更新日時、サイズを組み合わせて、ファイルが同一かどうかを判定するために使う。
-		/// @param path 判定するファイルのパス
-		/// @return ファイルのスタンプ
-		/// @note ファイルの内容までは見ないため、同一のスタンプでも内容が変わっている可能性はある。あくまで「前回読み込んだときと同じファイルかどうか」を判定するためのもの。
-		FileStamp ReadCurrentFileStamp(const std::string& path) {
-			FileStamp       stamp = {};
-			std::error_code ec;
-			if (!Path::ExistsUtf8(path, ec)) {
-				return stamp;
-			}
-
-			const auto lastWrite = Path::LastWriteTimeUtf8(path, ec);
-			if (!ec) {
-				stamp.lastWriteTicks = lastWrite.time_since_epoch().count();
-			}
-			stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
-			return stamp;
-		}
-
 		/// @brief Assimpのインポート設定を表すハッシュ値を生成する。スキンニングの有無によって、頂点処理のフラット化（PreTransformVertices）を切り替えるため、スキンニングの有無も考慮する。
 		/// @param hasSkinning スキンニングがあるか?
 		/// @return インポート設定を表すハッシュ値
@@ -91,24 +73,6 @@ namespace Unnamed {
 				);
 			}
 			return hashBuilder.Value();
-		}
-
-		/// @brief Assimpの4x4行列をエンジンのMat4に変換する。Assimpは行優先、エンジンは列優先なので、要素の入れ替えに注意。
-		/// @param m 変換するAssimpの行列
-		/// @return 変換されたMat4
-		Mat4 ToMat4(const aiMatrix4x4& m) {
-			Mat4 out = Mat4::identity;
-			out      = {
-				{m.a1, m.b1, m.c1, m.d1}, // 1列目				
-				{m.a2, m.b2, m.c2, m.d2}, // 2列目
-				{m.a3, m.b3, m.c3, m.d3}, // 3列目
-				{m.a4, m.b4, m.c4, m.d4}  // 4列目
-			};
-			return out;
-		}
-
-		Vec3 ToVec3(const aiVector3D& v) {
-			return {v.x, v.y, v.z};
 		}
 
 		[[nodiscard]] bool IsFiniteVec3(const Vec3& v) {
@@ -147,10 +111,6 @@ namespace Unnamed {
 			const Vec3  b    = SafeNormalizeOr(bitangent, n.Cross(t));
 			const float sign = n.Cross(t).Dot(b) < 0.0f ? -1.0f : 1.0f;
 			return {t, sign};
-		}
-
-		Quaternion ToQuaternion(const aiQuaternion& q) {
-			return Quaternion(q.x, q.y, q.z, q.w).Normalized();
 		}
 
 		void BuildNodeLookup(
@@ -192,9 +152,11 @@ namespace Unnamed {
 				aiVector3D    translation(0.0f, 0.0f, 0.0f);
 				node->mTransformation.Decompose(scaling, rotation, translation);
 
-				bone.bindLocalTranslation = ToVec3(translation);
-				bone.bindLocalRotation    = ToQuaternion(rotation);
-				bone.bindLocalScale       = ToVec3(scaling);
+				bone.bindLocalTranslation =
+					AssimpConversions::ToVec3(translation);
+				bone.bindLocalRotation =
+					AssimpConversions::ToQuaternion(rotation);
+				bone.bindLocalScale = AssimpConversions::ToVec3(scaling);
 
 				bone.parentIndex     = -1;
 				const aiNode* parent = node->mParent;
@@ -273,8 +235,8 @@ namespace Unnamed {
 				clip.name                   = anim->mName.length > 0 ?
 					            std::string(
 						            anim->mName.C_Str()) :
-					            ("Anim" + std::to_string(
-						             animIndex));
+					            "Anim" + std::to_string(
+						            animIndex);
 				clip.durationSeconds = anim->mDuration > 0.0 ?
 					                       static_cast<float>(
 						                       anim->mDuration /
@@ -308,7 +270,7 @@ namespace Unnamed {
 								.timeSeconds = static_cast<float>(
 									key.mTime / ticksPerSecond
 								),
-								.value = ToVec3(key.mValue)
+								.value = AssimpConversions::ToVec3(key.mValue)
 							}
 						);
 					}
@@ -320,7 +282,8 @@ namespace Unnamed {
 								.timeSeconds = static_cast<float>(
 									key.mTime / ticksPerSecond
 								),
-								.value = ToQuaternion(key.mValue)
+								.value =
+									AssimpConversions::ToQuaternion(key.mValue)
 							}
 						);
 					}
@@ -332,7 +295,7 @@ namespace Unnamed {
 								.timeSeconds = static_cast<float>(
 									key.mTime / ticksPerSecond
 								),
-								.value = ToVec3(key.mValue)
+								.value = AssimpConversions::ToVec3(key.mValue)
 							}
 						);
 					}
@@ -462,10 +425,12 @@ namespace Unnamed {
 
 						if (mesh->HasNormals()) {
 							const Vec3 n = SafeNormalizeOr(
-								ToVec3(mesh->mNormals[v]), Vec3::up
+								AssimpConversions::ToVec3(mesh->mNormals[v]),
+								Vec3::up
 							);
 							const Vec3 t = OrthonormalizeTangent(
-								ToVec3(mesh->mTangents[v]), n
+								AssimpConversions::ToVec3(mesh->mTangents[v]),
+								n
 							);
 							mesh->mTangents[v] = aiVector3D(t.x, t.y, t.z);
 						}
@@ -480,11 +445,12 @@ namespace Unnamed {
 	}
 
 	bool MeshAssetLoader::CanLoad(
-		const std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
 		// 拡張子ベースで判定。厳密なファイル存在チェックはLoad()に任せる。
-		const std::string ext = StrUtil::ToLowerExt(path);
-		bool              ok  = false;
+		const std::string ext =
+			StrUtil::ToLowerCase(path.Extension().ToGenericUtf8());
+		bool ok = false;
 
 		for (const auto& supportedExt : kSupportedExtensions) {
 			if (ext == supportedExt) {
@@ -500,7 +466,7 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult MeshAssetLoader::Load(const std::string& path) {
+	LoadResult MeshAssetLoader::Load(const Path& path) {
 		LoadResult r = {};
 		if (TryLoadDerivedCache(path, r)) {
 			return r;
@@ -517,7 +483,9 @@ namespace Unnamed {
 			aiProcess_CalcTangentSpace |
 			aiProcess_ConvertToLeftHanded;
 
-		const aiScene* scene = importer.ReadFile(path, kBaseFlags);
+		const aiScene* scene = importer.ReadFile(
+			path.ToGenericUtf8(), kBaseFlags
+		);
 
 		if (!scene) {
 			Error(
@@ -545,7 +513,7 @@ namespace Unnamed {
 		}
 
 		MeshAssetData out = {};
-		out.sourcePath    = path;
+		out.sourcePath    = path.LexicallyNormal();
 		out.hasSkinning   = hasBones;
 		std::unordered_map<std::string, uint16_t> boneNameToIndex;
 
@@ -588,8 +556,8 @@ namespace Unnamed {
 				if (mesh->HasTangentsAndBitangents()) {
 					v.tangent = BuildTangentWithHandedness(
 						v.normal,
-						ToVec3(mesh->mTangents[i]),
-						ToVec3(mesh->mBitangents[i])
+						AssimpConversions::ToVec3(mesh->mTangents[i]),
+						AssimpConversions::ToVec3(mesh->mBitangents[i])
 					);
 				} else {
 					v.tangent = Vec4(
@@ -624,7 +592,8 @@ namespace Unnamed {
 						SkeletonBoneAssetData sb = {};
 						sb.name                  = boneName;
 						sb.parentIndex           = -1;
-						sb.inverseBindPose       = ToMat4(bone->mOffsetMatrix);
+						sb.inverseBindPose =
+							AssimpConversions::ToMat4(bone->mOffsetMatrix);
 						out.skeleton.emplace_back(std::move(sb));
 					} else {
 						globalBoneIndex = it->second;
@@ -699,31 +668,30 @@ namespace Unnamed {
 		}
 
 		r.payload     = std::move(out);
-		r.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
+		r.resolveName = Path::ToUtf8String(path.FileName());
 		r.stamp       = ReadCurrentFileStamp(path);
 		WriteDerivedCache(path, r);
 
 		return r;
 	}
 
-	std::filesystem::path MeshAssetLoader::GetDerivedCachePath(
-		const std::string& sourcePath
-	) {
-		const std::string normalized = StrUtil::NormalizePath(sourcePath);
-		const uint64_t    hash       = std::hash<std::string>{}(normalized);
-		return std::filesystem::path("./bin/cache/assets/meshes") /
-		       (std::to_string(hash) + ".umeshbin");
+	Path MeshAssetLoader::GetDerivedCachePath(const Path& sourcePath) {
+		const std::string normalized =
+			sourcePath.LexicallyNormal().ToGenericUtf8();
+		const uint64_t hash = std::hash<std::string>{}(normalized);
+		return Path("./bin/cache/assets/meshes") /
+		       Path(std::to_string(hash) + ".umeshbin");
 	}
 
 	bool MeshAssetLoader::TryLoadDerivedCache(
-		const std::string& path, LoadResult& out
+		const Path& path, LoadResult& out
 	) {
-		const std::filesystem::path cachePath = GetDerivedCachePath(path);
-		if (!std::filesystem::exists(cachePath)) {
+		const Path cachePath = GetDerivedCachePath(path);
+		if (!std::filesystem::exists(cachePath.Native())) {
 			return false;
 		}
 
-		BinaryReader reader(Path::ToUtf8String(cachePath));
+		BinaryReader reader(cachePath);
 		if (!reader.IsOpen()) {
 			return false;
 		}
@@ -737,7 +705,7 @@ namespace Unnamed {
 			return false;
 		}
 
-		const std::string normalized  = StrUtil::NormalizePath(path);
+		const std::string normalized  = path.LexicallyNormal().ToGenericUtf8();
 		const FileStamp   sourceStamp = ReadCurrentFileStamp(path);
 		if (header.sourcePathHash != std::hash<std::string>{}(normalized)) {
 			return false;
@@ -756,7 +724,7 @@ namespace Unnamed {
 		}
 
 		MeshAssetData mesh = {};
-		mesh.sourcePath    = path;
+		mesh.sourcePath    = path.LexicallyNormal();
 		mesh.hasSkinning   = hasSkinning;
 		mesh.vertices.resize(header.vertexCount);
 		mesh.indices.resize(header.indexCount);
@@ -848,7 +816,7 @@ namespace Unnamed {
 		}
 
 		out.payload     = std::move(mesh);
-		out.resolveName = Path::ToUtf8String(Path::FromUtf8(path).filename());
+		out.resolveName = Path::ToUtf8String(path.FileName());
 		out.stamp       = sourceStamp;
 
 		if (Profiler* profiler = ServiceLocator::Get<Profiler>()) {
@@ -858,7 +826,7 @@ namespace Unnamed {
 	}
 
 	bool MeshAssetLoader::WriteDerivedCache(
-		const std::string& path, const LoadResult& in
+		const Path& path, const LoadResult& in
 	) {
 		const auto* mesh = std::get_if<MeshAssetData>(
 			&const_cast<AssetPayload&>(in.payload)
@@ -867,18 +835,20 @@ namespace Unnamed {
 			return false;
 		}
 
-		const std::filesystem::path cachePath = GetDerivedCachePath(path);
-		std::error_code             ec;
-		std::filesystem::create_directories(cachePath.parent_path(), ec);
+		const Path      cachePath = GetDerivedCachePath(path);
+		std::error_code ec;
+		std::filesystem::create_directories(
+			cachePath.ParentPath().Native(), ec
+		);
 
-		BinaryWriter writer(Path::ToUtf8String(cachePath));
+		BinaryWriter writer(cachePath);
 		if (!writer.IsOpen()) {
 			return false;
 		}
 
 		MeshCacheHeader header = {};
 		header.sourcePathHash  = std::hash<std::string>{}(
-			StrUtil::NormalizePath(path)
+			path.LexicallyNormal().ToGenericUtf8()
 		);
 		header.sourceLastWriteTicks = in.stamp.lastWriteTicks;
 		header.sourceSizeBytes = in.stamp.sizeInBytes;

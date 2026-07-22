@@ -9,8 +9,6 @@
 #include <engine/unnamed/subsystem/input/device/base/BaseInputDevice.h>
 #include <engine/unnamed/subsystem/interface/ISubsystem.h>
 
-#include <core/math/Math.h>
-
 /// @brief 入力キー構造体
 template <>
 struct std::hash<Unnamed::InputKey> {

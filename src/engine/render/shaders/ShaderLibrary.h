@@ -1,10 +1,10 @@
 #pragma once
 #include <cstdint>
-#include <filesystem>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
+#include "core/filesystem/Path.h"
 #include "ShaderKey.h"
 
 namespace Unnamed {
@@ -34,27 +34,35 @@ namespace Unnamed::Render {
 		void InvalidateByShaderSource(AssetID shaderSourceId);
 
 		void InvalidateAll();
-		void SetCacheDirectory(std::filesystem::path dir);
+		void SetCacheDirectory(Path dir);
 
 	private:
-		[[nodiscard]] std::filesystem::path GetDxilCachePath(
-			const ShaderKey& key
-		) const;
+		struct ShaderDependencyFingerprint final {
+			std::string mountId;
+			std::string stablePath;
+			AssetID     assetId = kInvalidAssetID;
+			uint32_t    version = 0;
+			uint64_t    sizeInBytes = 0;
+			int64_t     lastWriteTicks = 0;
+		};
+
+		[[nodiscard]] Path     GetDxilCachePath(const ShaderKey& key) const;
 		[[nodiscard]] uint64_t ComputeDerivedHash(const ShaderKey& key) const;
+		/// @brief Root ShaderSourceを含む推移的依存fingerprintを安定順で収集します。
+		[[nodiscard]] std::vector<ShaderDependencyFingerprint>
+		CollectDependencyFingerprints(AssetID rootShaderSourceId) const;
 
 		static std::vector<std::wstring> BuildDxcArgs(const ShaderKey& key);
 
-		static std::vector<uint8_t> ReadFileBytes(
-			const std::filesystem::path& path
-		);
-		static void WriteFileBytes(
-			const std::filesystem::path& path, const std::vector<uint8_t>& bytes
+		static std::vector<uint8_t> ReadFileBytes(const Path& path);
+		static void                 WriteFileBytes(
+			const Path& path, const std::vector<uint8_t>& bytes
 		);
 
 		AssetManager&           mAssetManager;
 		Rhi::DxcShaderCompiler& mDxcShaderCompiler;
 
-		std::filesystem::path mCacheDir = {};
+		Path mCacheDir = {};
 
 		std::unordered_map<ShaderKey, ShaderDxil, ShaderKeyHash> mRuntimeCache;
 		std::unordered_set<ShaderKey, ShaderKeyHash>             mDirtyKeys;

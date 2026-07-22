@@ -31,13 +31,14 @@ namespace Unnamed {
 
 	/// @brief 1ティック内でのシーケンス走査区間です。
 	struct SequenceTraversalRange final {
-		float                       startFrame   = 0.0f;
-		float                       endFrame     = 0.0f;
-		SEQUENCE_PLAYBACK_DIRECTION direction    = SEQUENCE_PLAYBACK_DIRECTION::FORWARD;
-		bool                        wrapped      = false;
-		int32_t                     loopCount    = 0;
-		bool                        causedBySeek = false;
-		uint64_t                    traversalSerial = 0;
-		bool                        valid        = false;
+		float                       startFrame = 0.0f;
+		float                       endFrame   = 0.0f;
+		SEQUENCE_PLAYBACK_DIRECTION direction  =
+			SEQUENCE_PLAYBACK_DIRECTION::FORWARD;
+		bool     wrapped         = false;
+		int32_t  loopCount       = 0;
+		bool     causedBySeek    = false;
+		uint64_t traversalSerial = 0;
+		bool     valid           = false;
 	};
 }

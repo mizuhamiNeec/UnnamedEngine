@@ -13,7 +13,7 @@ namespace Unnamed {
 
 	/// @brief コンパイル済みトラック参照です。
 	struct CompiledSequenceTrack final {
-		const SequenceTrackAssetData* source = nullptr;
+		const SequenceTrackAssetData*        source   = nullptr;
 		std::vector<CompiledSequenceSection> sections = {};
 	};
 
@@ -21,20 +21,24 @@ namespace Unnamed {
 	class CompiledSequence final {
 	public:
 		/// @brief 元アセットからコンパイル済みデータを生成します。
-		explicit CompiledSequence(std::shared_ptr<const SequenceAssetData> asset);
+		explicit CompiledSequence(
+			std::shared_ptr<const SequenceAssetData> asset
+		);
 
 		/// @brief 元シーケンスアセットを取得します。
-		[[nodiscard]] const std::shared_ptr<const SequenceAssetData>& GetAsset() const;
+		[[nodiscard]] const std::shared_ptr<const SequenceAssetData>&
+		GetAsset() const;
 
 		/// @brief コンパイル済みトラック配列を取得します。
-		[[nodiscard]] const std::vector<CompiledSequenceTrack>& GetTracks() const;
+		[[nodiscard]] const std::vector<CompiledSequenceTrack>&
+		GetTracks() const;
 
 		/// @brief 総フレーム長を取得します。
 		[[nodiscard]] int64_t GetLengthFrames() const;
 
 	private:
-		std::shared_ptr<const SequenceAssetData> mAsset = nullptr;
-		std::vector<CompiledSequenceTrack>       mTracks = {};
+		std::shared_ptr<const SequenceAssetData> mAsset        = nullptr;
+		std::vector<CompiledSequenceTrack>       mTracks       = {};
 		int64_t                                  mLengthFrames = 0;
 	};
 }

@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <core/filesystem/Path.h>
+
 #include "core/assets/AssetID.h"
 #include "core/assets/types/SequenceAuthoringData.h"
 
@@ -15,7 +17,7 @@ namespace Unnamed {
 	public:
 		/// @brief コンストラクタです。
 		/// @param path 対象 `.sequence.json` パス
-		explicit SequenceEditorDocument(std::string path);
+		explicit SequenceEditorDocument(const Path& path);
 
 		/// @brief ディスクからドキュメントを再読み込みします。
 		[[nodiscard]] bool ReloadFromDisk();
@@ -45,10 +47,12 @@ namespace Unnamed {
 		[[nodiscard]] bool ResolveConflictReloadDisk();
 
 		/// @brief 現在の編集データからプレビュー用ランタイムアセットを再生成します。
-		[[nodiscard]] AssetID RebuildPreviewRuntimeAsset(AssetManager& assetManager);
+		[[nodiscard]] AssetID RebuildPreviewRuntimeAsset(
+			AssetManager& assetManager
+		);
 
 		/// @brief ドキュメントパスを取得します。
-		[[nodiscard]] const std::string& GetPath() const;
+		[[nodiscard]] const Path& GetPath() const;
 
 		/// @brief ドキュメント表示名を取得します。
 		[[nodiscard]] std::string GetDisplayName() const;
@@ -78,14 +82,14 @@ namespace Unnamed {
 		[[nodiscard]] bool WasMigratedOnLoad() const;
 
 	private:
-		std::string         mPath = {};
-		SequenceAuthoringData mAuthoringData = {};
-		AssetID             mSourceAssetId = kInvalidAssetID;
-		AssetID             mPreviewAssetId = kInvalidAssetID;
-		uint64_t            mLastSavedSemanticHash = 0;
-		bool                mDirty = false;
-		bool                mExternalConflict = false;
-		bool                mMigratedOnLoad = false;
+		Path                  mPath                  = {};
+		SequenceAuthoringData mAuthoringData         = {};
+		AssetID               mSourceAssetId         = kInvalidAssetID;
+		AssetID               mPreviewAssetId        = kInvalidAssetID;
+		uint64_t              mLastSavedSemanticHash = 0;
+		bool                  mDirty                 = false;
+		bool                  mExternalConflict      = false;
+		bool                  mMigratedOnLoad        = false;
 
 		std::vector<SequenceAuthoringData> mUndoStack = {};
 		std::vector<SequenceAuthoringData> mRedoStack = {};

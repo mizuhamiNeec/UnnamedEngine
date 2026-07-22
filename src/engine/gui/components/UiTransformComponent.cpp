@@ -42,7 +42,10 @@ namespace Unnamed::Gui {
 		WriteConstraints(writer, mSizeConstraints);
 	}
 
-	void UiTransformComponent::Deserialize(const JsonReader& reader) {
+	bool UiTransformComponent::Deserialize(
+		const JsonReader& reader, const UiDeserializeContext& context
+	) {
+		(void)context;
 		if (reader.Has("rect")) {
 			mRect = ReadRect(reader["rect"].GetArray());
 		}
@@ -62,6 +65,7 @@ namespace Unnamed::Gui {
 			mSizeConstraints = ReadConstraints(reader["constraints"]);
 		}
 		mNeedsApply = true;
+		return true;
 	}
 
 	void UiTransformComponent::SyncFromWidget(const UiWidget& owner) {
@@ -74,22 +78,22 @@ namespace Unnamed::Gui {
 	}
 
 	void UiTransformComponent::SetRect(const Rect& rect) {
-		mRect      = rect;
+		mRect       = rect;
 		mNeedsApply = true;
 	}
 
 	void UiTransformComponent::SetAnchors(const Anchors& anchors) {
-		mAnchors   = anchors;
+		mAnchors    = anchors;
 		mNeedsApply = true;
 	}
 
 	void UiTransformComponent::SetMargins(const Margins& margins) {
-		mMargins   = margins;
+		mMargins    = margins;
 		mNeedsApply = true;
 	}
 
 	void UiTransformComponent::SetPivot(const Pivot& pivot) {
-		mPivot     = pivot;
+		mPivot      = pivot;
 		mNeedsApply = true;
 	}
 

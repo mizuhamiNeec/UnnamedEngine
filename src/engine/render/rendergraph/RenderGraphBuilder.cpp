@@ -20,7 +20,8 @@ namespace Unnamed::Render {
 
 	RenderGraphBuilder::RenderGraphBuilder(
 		RgResourceRegistry& registry
-	) : mRegistry(registry) {}
+	) : mRegistry(registry) {
+	}
 
 	uint32_t RenderGraphBuilder::CreateTexture(
 		const RgTextureDesc& desc

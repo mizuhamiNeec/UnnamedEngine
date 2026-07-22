@@ -11,7 +11,8 @@
 namespace Unnamed {
 	void RegisterBuiltInGameModules(GameModuleRegistry& registry) {
 #ifdef UNNAMED_WITH_PARKOUR_RUNTIME
-		(void)registry.RegisterFactory("ParkourGameRuntime", &CreateParkourGameModule);
+		(void)registry.RegisterFactory("ParkourGameRuntime",
+		                               &CreateParkourGameModule);
 		(void)registry.RegisterFactory("ParkourGame", &CreateParkourGameModule);
 		(void)registry.RegisterFactory("Parkour", &CreateParkourGameModule);
 #else

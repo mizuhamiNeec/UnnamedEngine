@@ -11,9 +11,6 @@
 
 #include "ConsoleSystem.h"
 
-#include "core/string/StrUtil.h"
-
-#include "engine/Properties.h"
 #include "engine/ImGui/Icons.h"
 
 namespace Unnamed {
@@ -57,10 +54,7 @@ namespace Unnamed {
 	void ConVarHelper::ShowMenuBar() {
 		// メニューバー
 		if (ImGui::BeginMenuBar()) {
-			ImGui::PushStyleVar(
-				ImGuiStyleVar_WindowPadding,
-				ImVec2(kPopupPadding, kPopupPadding)
-			);
+			ImGuiWidgets::BeginMenu();
 
 			if (ImGui::BeginMenu("File")) {
 				if (ImGuiWidgets::MenuItemWithIcon(
@@ -77,8 +71,7 @@ namespace Unnamed {
 				ImGui::EndMenu();
 			}
 
-			ImGui::PopStyleVar();
-
+			ImGuiWidgets::EndMenu();
 			ImGui::EndMenuBar();
 		}
 	}
@@ -767,8 +760,11 @@ namespace Unnamed {
 		mElementEditDraftExecutableButton = elem;
 	}
 
-	void ConVarHelper::ImportPage() {}
-	void ConVarHelper::ExportPage() {}
+	void ConVarHelper::ImportPage() {
+	}
+
+	void ConVarHelper::ExportPage() {
+	}
 
 	void ConVarHelper::RearrangeGridElements(
 		const uint32_t newWidth, const uint32_t newHeight

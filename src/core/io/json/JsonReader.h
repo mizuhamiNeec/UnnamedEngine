@@ -8,10 +8,10 @@
 #include <string_view>
 #include <vector>
 
+#include "core/filesystem/Path.h"
 #include "core/math/Quaternion.h"
 #include "core/math/Vec3.h"
 #include "core/math/Vec4.h"
-#include "core/path/PathUtil.h"
 
 namespace Unnamed {
 	/// @brief JSON読み込みクラス
@@ -21,18 +21,30 @@ namespace Unnamed {
 		/// @brief デフォルトコンストラクタ
 		JsonReader() = default;
 
-
 		/// @brief JSONオブジェクトから初期化するコンストラクタ
 		/// @param root JSONルートオブジェクト
 		explicit JsonReader(const nlohmann::json& root)
 			: mStorage(std::make_shared<nlohmann::json>(root)),
 			  mNode(mStorage.get()),
-			  mValid(true) {}
+			  mValid(true) {
+		}
 
 		/// @brief ファイルパスから読み込むコンストラクタ
 		/// @param path JSONファイルのパス
-		explicit JsonReader(const std::string& path) {
-			std::ifstream ifs(Path::FromUtf8(path));
+		explicit JsonReader(const char* path) :
+			JsonReader(Path(path == nullptr ? "" : path)) {
+		}
+
+		/// @brief ファイルパスから読み込むコンストラクタ
+		/// @param path JSONファイルのパス
+		explicit JsonReader(const std::string& path) :
+			JsonReader(Path(path)) {
+		}
+
+		/// @brief ファイルパスから読み込むコンストラクタ
+		/// @param path JSONファイルのパス
+		explicit JsonReader(const Path& path) {
+			std::ifstream ifs(path.Native());
 			if (!ifs) {
 				mValid = false;
 				return;
@@ -119,6 +131,17 @@ namespace Unnamed {
 			return fallback;
 		}
 
+		/// @brief オブジェクト内のキーをboolとして取得します。
+		/// @param key 取得するキー名。
+		/// @param fallback キーが存在しない場合の戻り値。
+		/// @return 取得したbool値、またはfallback。
+		[[nodiscard]] bool ReadBoolOr(
+			const std::string_view& key, const bool fallback
+		) const {
+			const JsonReader value = (*this)[key];
+			return value.Valid() ? value.GetBool() : fallback;
+		}
+
 		[[nodiscard]] std::string GetString(
 			const std::string& fallback = "readerror"
 		) const {
@@ -131,6 +154,19 @@ namespace Unnamed {
 			return fallback;
 		}
 
+		/// @brief オブジェクト内のキーを文字列として取得します。
+		/// @param key 取得するキー名。
+		/// @param fallback キーが存在しない場合の戻り値。
+		/// @return 取得した文字列、またはfallback。
+		[[nodiscard]] std::string ReadStringOr(
+			const std::string_view& key, const std::string_view fallback
+		) const {
+			const JsonReader value = (*this)[key];
+			return value.Valid() ?
+				       value.GetString() :
+				       std::string(fallback);
+		}
+
 		[[nodiscard]] float GetFloat(const float fallback = 0.0f) const {
 			if (!mNode) {
 				return fallback;
@@ -141,6 +177,17 @@ namespace Unnamed {
 				return mNode->get<float>();
 			}
 			return fallback;
+		}
+
+		/// @brief オブジェクト内のキーをfloatとして取得します。
+		/// @param key 取得するキー名。
+		/// @param fallback キーが存在しない場合の戻り値。
+		/// @return 取得したfloat値、またはfallback。
+		[[nodiscard]] float ReadFloatOr(
+			const std::string_view& key, const float fallback
+		) const {
+			const JsonReader value = (*this)[key];
+			return value.Valid() ? value.GetFloat() : fallback;
 		}
 
 		[[nodiscard]] int GetInt(const int fallback = 0) const {
@@ -221,6 +268,17 @@ namespace Unnamed {
 
 		[[nodiscard]] uint64_t GetUint64() const {
 			return TryGetUint64().value_or(0ull);
+		}
+
+		/// @brief オブジェクト内のキーをuint64として取得します。
+		/// @param key 取得するキー名。
+		/// @param fallback キーが存在しない場合の戻り値。
+		/// @return 取得したuint64値、またはfallback。
+		[[nodiscard]] uint64_t ReadUint64Or(
+			const std::string_view& key, const uint64_t fallback
+		) const {
+			const JsonReader value = (*this)[key];
+			return value.Valid() ? value.GetUint64() : fallback;
 		}
 
 		/// @brief uint64 として厳密に取得する(変換できない場合は nullopt)
@@ -332,7 +390,8 @@ namespace Unnamed {
 		)
 			: mStorage(std::move(storage)),
 			  mNode(node),
-			  mValid(valid && node != nullptr) {}
+			  mValid(valid && node != nullptr) {
+		}
 
 		std::shared_ptr<nlohmann::json> mStorage;
 		const nlohmann::json*           mNode{nullptr};

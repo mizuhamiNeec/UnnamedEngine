@@ -68,7 +68,7 @@ namespace Unnamed {
 		using PFN_XInputGetState = DWORD(WINAPI*)(DWORD, XINPUT_STATE*);
 		using PFN_XInputSetState = DWORD(WINAPI*)(DWORD, XINPUT_VIBRATION*);
 		using PFN_XInputGetCapabilities =
-			DWORD(WINAPI*)(DWORD, DWORD, XINPUT_CAPABILITIES*);
+		DWORD(WINAPI*)(DWORD, DWORD, XINPUT_CAPABILITIES*);
 
 		struct DirectInputPad {
 			IDirectInputDevice8W* device = nullptr;
@@ -92,39 +92,41 @@ namespace Unnamed {
 		);
 		BOOL ConfigureAxisRange(const DIDEVICEOBJECTINSTANCEW* object);
 
-		void LoadXInput();
-		void UnloadXInput();
+		void               LoadXInput();
+		void               UnloadXInput();
 		[[nodiscard]] bool PollXInput();
-		void MergeXInputState(
-			uint32_t             userIndex,
-			const XINPUT_STATE&  state
+		void               MergeXInputState(
+			uint32_t            userIndex,
+			const XINPUT_STATE& state
 		);
 		void RefreshXInputRumbleTarget(
-			uint32_t             userIndex,
-			const XINPUT_STATE&  state
+			uint32_t            userIndex,
+			const XINPUT_STATE& state
 		);
 
-		void LoadDirectInput();
-		void UnloadDirectInput();
-		void EnumerateDirectInputDevices();
-		void ClearDirectInputDevices();
+		void               LoadDirectInput();
+		void               UnloadDirectInput();
+		void               EnumerateDirectInputDevices();
+		void               ClearDirectInputDevices();
 		[[nodiscard]] bool PollDirectInput();
-		void MergeDirectInputState(const DIJOYSTATE2& state);
+		void               MergeDirectInputState(const DIJOYSTATE2& state);
 
 		void ResetFrameStates();
 		void UpdateDirectionalButtonsFromAnalogs();
 		void ApplyRumble();
-		void ApplyRumbleToXInput(uint32_t userIndex, float low, float high) const;
+		void ApplyRumbleToXInput(
+			uint32_t userIndex, float low, float high
+		) const;
 
 		[[nodiscard]] static float NormalizeSignedAxis(int value, int deadzone);
 		[[nodiscard]] static float NormalizeUnsignedAxis(
 			uint32_t value,
 			uint32_t deadzone
 		);
-		[[nodiscard]] static float Clamp01(float value);
+		[[nodiscard]] static float  Clamp01(float value);
 		[[nodiscard]] static double NowSeconds();
-		[[nodiscard]] static bool IsAnalogCode(uint32_t code);
-		[[nodiscard]] static bool IsStickCode(uint32_t code);
+		[[nodiscard]] static bool   IsAnalogCode(uint32_t code);
+		[[nodiscard]] static bool   IsStickCode(uint32_t code);
 
 		HWND mWindowHandle = nullptr;
 
@@ -139,22 +141,22 @@ namespace Unnamed {
 		uint32_t                  mLastActiveXInputUser    = 0;
 		bool                      mHasLastActiveXInputUser = false;
 
-		HMODULE                      mDirectInputModule          = nullptr;
-		IDirectInput8W*              mDirectInput                = nullptr;
-		IDirectInputDevice8W*        mConfiguringDirectInputDevice = nullptr;
-		std::vector<DirectInputPad>  mDirectInputPads;
-		bool                         mDirectInputRefreshRequested = false;
+		HMODULE                     mDirectInputModule            = nullptr;
+		IDirectInput8W*             mDirectInput                  = nullptr;
+		IDirectInputDevice8W*       mConfiguringDirectInputDevice = nullptr;
+		std::vector<DirectInputPad> mDirectInputPads;
+		bool                        mDirectInputRefreshRequested = false;
 
 		std::vector<RumbleEvent> mRumbleEvents;
 		float                    mAppliedRumbleLow  = 0.0f;
 		float                    mAppliedRumbleHigh = 0.0f;
 
-		static constexpr float kAxisAsButtonThreshold = 0.25f;
-		static constexpr float kTriggerAsButtonThreshold = 0.2f;
-		static constexpr float kDirectInputStickDeadzone = 0.12f;
-		static constexpr float kDirectInputTriggerDeadzone = 0.06f;
-		static constexpr int   kXInputStickDeadzoneLeft = 7849;
-		static constexpr int   kXInputStickDeadzoneRight = 8689;
-		static constexpr uint32_t kXInputTriggerDeadzone = 30;
+		static constexpr float    kAxisAsButtonThreshold      = 0.25f;
+		static constexpr float    kTriggerAsButtonThreshold   = 0.2f;
+		static constexpr float    kDirectInputStickDeadzone   = 0.12f;
+		static constexpr float    kDirectInputTriggerDeadzone = 0.06f;
+		static constexpr int      kXInputStickDeadzoneLeft    = 7849;
+		static constexpr int      kXInputStickDeadzoneRight   = 8689;
+		static constexpr uint32_t kXInputTriggerDeadzone      = 30;
 	};
 }

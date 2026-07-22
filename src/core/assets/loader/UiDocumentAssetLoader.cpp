@@ -1,16 +1,16 @@
-
 #include "UiDocumentAssetLoader.h"
+#include "core/filesystem/Path.h"
 
 #include <fstream>
 
-#include "core/path/PathUtil.h"
 #include "core/string/StrUtil.h"
 
 namespace Unnamed {
 	bool UiDocumentAssetLoader::CanLoad(
-		std::string_view path, ASSET_TYPE* outType
+		const Path& path, ASSET_TYPE* outType
 	) const {
-		const bool ok = StrUtil::ToLowerCase(std::string(path)).ends_with(
+		const bool ok = StrUtil::EndsWithIgnoreCase(
+			path.ToGenericUtf8(),
 			".ui.json"
 		);
 		if (outType) {
@@ -19,9 +19,9 @@ namespace Unnamed {
 		return ok;
 	}
 
-	LoadResult UiDocumentAssetLoader::Load(const std::string& path) {
+	LoadResult UiDocumentAssetLoader::Load(const Path& path) {
 		LoadResult    result = {};
-		std::ifstream ifs(Path::FromUtf8(path));
+		std::ifstream ifs(path.Native());
 		if (!ifs) {
 			return result;
 		}
@@ -43,17 +43,19 @@ namespace Unnamed {
 			return result;
 		}
 
-		const std::filesystem::path full = Path::FromUtf8(path);
-		UiDocumentAssetData         data = {};
-		data.name = root.value("name", Path::ToUtf8String(full.filename()));
+		const Path          full = path.LexicallyNormal();
+		UiDocumentAssetData data = {};
+		data.name = root.value("name", Path::ToUtf8String(full.FileName()));
 		data.rootJson = std::move(root);
 
 		result.payload     = std::move(data);
-		result.resolveName = Path::ToUtf8String(full.stem().stem());
+		result.resolveName = Path::ToUtf8String(full.Stem().Stem());
 
 		std::error_code ec;
-		if (Path::ExistsUtf8(path, ec)) {
-			result.stamp.sizeInBytes = Path::FileSizeUtf8(path, ec);
+		if (std::filesystem::exists(path.Native(), ec)) {
+			result.stamp.sizeInBytes = std::filesystem::file_size(
+				path.Native(), ec
+			);
 		}
 		return result;
 	}

@@ -169,11 +169,11 @@ namespace Unnamed::Render {
 			uint64_t                               retireFenceValue = 0;
 			Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 			uint64_t                               approxBytes = 0;
-			uint32_t                               textureId   = 0;
-			uint32_t                               srvLocal    = UINT32_MAX;
-			uint32_t                               uavLocal    = UINT32_MAX;
-			uint32_t                               rtvLocal    = UINT32_MAX;
-			uint32_t                               dsvLocal    = UINT32_MAX;
+			uint32_t                               textureId = 0;
+			uint32_t                               srvLocal = UINT32_MAX;
+			uint32_t                               uavLocal = UINT32_MAX;
+			uint32_t                               rtvLocal = UINT32_MAX;
+			uint32_t                               dsvLocal = UINT32_MAX;
 			uint32_t                               srvCpuLocal = UINT32_MAX;
 			bool                                   releaseTextureId = false;
 		};
@@ -214,17 +214,17 @@ namespace Unnamed::Render {
 		uint32_t mBackBufferHeight = 0;
 
 		std::vector<uint32_t>               mDsvFrameBase;
-		uint32_t                            mDsvPerFrameSlots = 0;
-		uint32_t                            mNextDsvLocal     = 0;
+		uint32_t                            mDsvPerFrameSlots   = 0;
+		uint32_t                            mNextDsvLocal       = 0;
 		uint32_t                            mNextDsvLocalGlobal = 0;
-		uint32_t                            mDsvCapacity      = 0;
+		uint32_t                            mDsvCapacity        = 0;
 		std::vector<RetiredTextureResource> mRetiredResources;
 		uint64_t                            mGlobalSrvRevision = 1;
 
-		std::vector<uint32_t> mFreeSrvUavLocals;
+		std::vector<uint32_t>                      mFreeSrvUavLocals;
 		std::vector<std::pair<uint32_t, uint32_t>> mFreeSrvUavTableRanges;
-		std::vector<uint32_t> mFreeRtvLocals;
-		std::vector<uint32_t> mFreeCpuLocals;
-		std::vector<uint32_t> mFreeDsvLocals;
+		std::vector<uint32_t>                      mFreeRtvLocals;
+		std::vector<uint32_t>                      mFreeCpuLocals;
+		std::vector<uint32_t>                      mFreeDsvLocals;
 	};
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <format>
+#include <cstdint>
 #include <memory>
 #include <source_location>
 #include <type_traits>
@@ -15,12 +15,19 @@
 #include <engine/unnamed/subsystem/interface/ISubsystem.h>
 
 namespace Unnamed {
-	constexpr uint32_t kConsoleBufferSize = 1024; // ログバッファのサイズ
+	constexpr uint32_t kConsoleBufferSize = 8192; // ログバッファのサイズ
 
 	class ConCommandBase;
 	class ConCommand;
 	template <typename T>
 	class ConVar;
+
+	enum class CONSOLE_SYSTEM_STATE : uint8_t {
+		UNINITIALIZED,
+		RUNNING,
+		SHUTTING_DOWN,
+		DESTROYED,
+	};
 
 	/// @brief コンソールログテキスト構造体
 	struct ConsoleLogText {
@@ -102,11 +109,12 @@ namespace Unnamed {
 		/// @brief コンソールコマンドを登録します
 		/// @param conCommand 登録するコマンドへのポインタ
 		void RegisterConCommand(ConCommandBase* conCommand);
-		void UnregisterConCommand(const ConCommandBase* conCommand);
+		void UnregisterConCommand(const ConCommandBase* conCommand) noexcept;
 
 		/// @brief コンソール変数を登録します
 		/// @param conVar 登録する変数へのポインタ
 		void RegisterConVar(ConCommandBase* conVar);
+		void UnregisterConVar(const ConCommandBase* conVar) noexcept;
 
 		/// @brief コンソールにコマンドを送信します。
 		/// @param command コマンド文字列
@@ -169,21 +177,9 @@ namespace Unnamed {
 		/// @return 変数の値、またはフォールバック値
 		template <typename T>
 		[[nodiscard]] T GetConVarValueOr(
-			const std::string_view name,
+			std::string_view name,
 			const T&               fallback
-		) {
-			if (const auto* var = GetConVarAs<ConVar<T>>(name)) {
-				return var->GetValue();
-			}
-			Print(
-				LogLevel::Warning, "Console",
-				std::format(
-					"CVar '{}' not found. Returning fallback value.", name
-				),
-				std::source_location::current()
-			);
-			return fallback;
-		}
+		);
 
 		/// @brief 入力テキストに基づいて曖昧検索でコンソール変数を検索します
 		/// @param input 検索キーワード
@@ -214,6 +210,8 @@ namespace Unnamed {
 			ConCommandBase* var, const std::vector<std::string>& args
 		);
 
+		void DetachRegisteredConsoleObjects() noexcept;
+
 		// ログのリングバッファ
 		RingBuffer<ConsoleLogText, kConsoleBufferSize> mLogBuffer;
 
@@ -226,6 +224,8 @@ namespace Unnamed {
 		std::unordered_map<std::string, ConCommandBase*> mConVars;
 		std::unique_ptr<ConCommand>                      mHelpCommand;
 		std::unique_ptr<ConCommand>                      mClearCommand;
+		CONSOLE_SYSTEM_STATE                               mState =
+			CONSOLE_SYSTEM_STATE::UNINITIALIZED;
 
 #ifdef UNNAMED_WITH_EDITOR // デバッグ時(ImGui有効化時)にはコンソールUIを有効化
 		std::unique_ptr<ConsoleUI> mConsoleUI;

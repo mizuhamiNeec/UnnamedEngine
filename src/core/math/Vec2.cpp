@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
-#include <core/math/Math.h>
 
 const Vec2 Vec2::zero(0.0f, 0.0f);
 const Vec2 Vec2::one(1.0f, 1.0f);

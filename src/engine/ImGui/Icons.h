@@ -1,6 +1,10 @@
 #pragma once
 #include <cstdint>
 
+//-----------------------------------------------------------------------------
+// Material Icons: https://fonts.google.com/icons
+//-----------------------------------------------------------------------------
+
 // ---- System / Window -------------------------------------------------------
 constexpr uint32_t kIconPower    = 0xE8AC; // 電源
 constexpr uint32_t kIconSettings = 0xE8B8; // 設定
@@ -11,6 +15,7 @@ constexpr uint32_t kIconClose    = 0xE5CD; // 閉じる
 constexpr uint32_t kIconArrowBack = 0xE5C4; // 戻る/ロゴ(仮)
 constexpr uint32_t kIconAdd       = 0xE145; // 追加
 constexpr uint32_t kIconMoreHoriz = 0xE5D3; // その他（水平）
+constexpr uint32_t kIconRefresh   = 0xE5D5; // 更新/リフレッシュ
 
 // ---- Help / Info -----------------------------------------------------------
 constexpr uint32_t kIconInfo         = 0xE88E; // 情報

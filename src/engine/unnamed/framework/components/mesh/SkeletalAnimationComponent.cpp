@@ -11,6 +11,7 @@
 #include "core/assets/types/MeshAssetData.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
+#include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
 
@@ -142,6 +143,7 @@ namespace Unnamed {
 				accum.hasReference = true;
 			}
 
+			// q と -q の加重平均が相殺しないよう、基準半球へ揃える
 			const float dot =
 				accum.reference.x * q.x +
 				accum.reference.y * q.y +
@@ -197,38 +199,6 @@ namespace Unnamed {
 			state.speed    = std::clamp(state.speed, 0.0f, 8.0f);
 			state.blendSec = std::clamp(state.blendSec, 0.0f, 4.0f);
 			return state;
-		}
-
-		std::string ToLowerAscii(const std::string_view text) {
-			std::string lowered(text);
-			std::ranges::transform(
-				lowered,
-				lowered.begin(),
-				[](const unsigned char c) {
-					return static_cast<char>(std::tolower(c));
-				}
-			);
-			return lowered;
-		}
-
-		std::string TrimAscii(const std::string_view text) {
-			size_t begin = 0;
-			while (
-				begin < text.size() &&
-				std::isspace(static_cast<unsigned char>(text[begin])) != 0
-			) {
-				++begin;
-			}
-
-			size_t end = text.size();
-			while (
-				end > begin &&
-				std::isspace(static_cast<unsigned char>(text[end - 1])) != 0
-			) {
-				--end;
-			}
-
-			return std::string(text.substr(begin, end - begin));
 		}
 
 		std::string_view StripAnimStatePrefix(const std::string_view stateId) {
@@ -324,6 +294,7 @@ namespace Unnamed {
 			return;
 		}
 
+		// スキニング姿勢は描画時だけ使うため、再生時間も描画フレームで進める
 		EnsureHasAtLeastOneLayer();
 		for (size_t i = 0; i < mLayers.size(); ++i) {
 			auto& layer = mLayers[i];
@@ -398,6 +369,7 @@ namespace Unnamed {
 			}
 		}
 
+		// 旧形式の単一クリップ指定は先頭レイヤーとして読み替える
 		if (mLayers.empty()) {
 			AnimationLayerDesc legacy = {};
 			if (reader.Has("clipName")) {
@@ -425,7 +397,9 @@ namespace Unnamed {
 
 				AnimationStateDesc state = {};
 				if (stateNode.Has("stateId")) {
-					state.stateId = TrimAscii(stateNode["stateId"].GetString());
+					state.stateId = StrUtil::TrimSpaces(
+						stateNode["stateId"].GetString()
+					);
 				}
 				if (state.stateId.empty()) {
 					continue;
@@ -436,7 +410,7 @@ namespace Unnamed {
 					);
 				}
 				if (stateNode.Has("clipName")) {
-					state.clipName = TrimAscii(
+					state.clipName = StrUtil::TrimSpaces(
 						stateNode["clipName"].GetString()
 					);
 				}
@@ -502,7 +476,7 @@ namespace Unnamed {
 		writer.Key("stateMap");
 		writer.BeginArray();
 		for (const auto& [stateId, state] : mStateMap) {
-			const std::string serializedStateId = TrimAscii(
+			const std::string serializedStateId = StrUtil::TrimSpaces(
 				state.stateId.empty() ? stateId : state.stateId
 			);
 			writer.BeginObject();
@@ -650,7 +624,7 @@ namespace Unnamed {
 			ImGui::PushID(200000 + static_cast<int>(i));
 			ImGui::SeparatorText(("State " + std::to_string(i)).c_str());
 
-			state.stateId = TrimAscii(
+			state.stateId = StrUtil::TrimSpaces(
 				state.stateId.empty() ? key : state.stateId
 			);
 			std::array<char, 256> stateIdBuffer = {};
@@ -662,9 +636,9 @@ namespace Unnamed {
 			if (ImGui::InputText(
 				"State ID", stateIdBuffer.data(), stateIdBuffer.size()
 			)) {
-				state.stateId = TrimAscii(stateIdBuffer.data());
+				state.stateId = StrUtil::TrimSpaces(stateIdBuffer.data());
 			}
-			state.stateId = TrimAscii(state.stateId);
+			state.stateId = StrUtil::TrimSpaces(state.stateId);
 
 			int layerIndex = static_cast<int>(state.layerIndex);
 			if (ImGui::DragInt("Layer Index", &layerIndex, 0.1f, 0, 16)) {
@@ -692,7 +666,7 @@ namespace Unnamed {
 			(void)ImGui::Checkbox("Restart On Play", &state.restartOnPlay);
 			state = SanitizeStateDesc(std::move(state));
 
-			const std::string currentStateId = TrimAscii(
+			const std::string currentStateId = StrUtil::TrimSpaces(
 				state.stateId.empty() ? key : state.stateId
 			);
 			if (currentStateId.empty()) {
@@ -707,7 +681,7 @@ namespace Unnamed {
 					if (otherIt == mStateMap.end()) {
 						continue;
 					}
-					const std::string otherId = TrimAscii(
+					const std::string otherId = StrUtil::TrimSpaces(
 						otherIt->second.stateId.empty() ?
 							otherKey :
 							otherIt->second.stateId
@@ -757,7 +731,7 @@ namespace Unnamed {
 		std::vector<std::string> ids;
 		ids.reserve(mStateMap.size());
 		for (const auto& [id, state] : mStateMap) {
-			const std::string normalized = TrimAscii(
+			const std::string normalized = StrUtil::TrimSpaces(
 				state.stateId.empty() ? id : state.stateId
 			);
 			if (!normalized.empty()) {
@@ -795,13 +769,13 @@ namespace Unnamed {
 
 	bool SkeletalAnimationComponent::PlayState(const std::string_view stateId) {
 		auto FindState = [&](const std::string_view id) {
-			const std::string trimmedId = TrimAscii(id);
+			const std::string trimmedId = StrUtil::TrimSpaces(id);
 			auto              it        = mStateMap.find(trimmedId);
 			if (it != mStateMap.end()) {
 				return it;
 			}
 
-			const std::string strippedText = TrimAscii(
+			const std::string strippedText = StrUtil::TrimSpaces(
 				StripAnimStatePrefix(trimmedId)
 			);
 			const std::string_view stripped = strippedText;
@@ -812,13 +786,13 @@ namespace Unnamed {
 				}
 			}
 
-			const std::string lowered = ToLowerAscii(stripped);
+			const std::string lowered = StrUtil::ToLowerCase(stripped);
 			for (auto jt = mStateMap.begin(); jt != mStateMap.end(); ++jt) {
-				const std::string keyNormalized = ToLowerAscii(
-					TrimAscii(jt->first)
+				const std::string keyNormalized = StrUtil::ToLowerCase(
+					StrUtil::TrimSpaces(jt->first)
 				);
-				const std::string valueNormalized = ToLowerAscii(
-					TrimAscii(jt->second.stateId)
+				const std::string valueNormalized = StrUtil::ToLowerCase(
+					StrUtil::TrimSpaces(jt->second.stateId)
 				);
 				if (keyNormalized == lowered || valueNormalized == lowered) {
 					return jt;
@@ -888,12 +862,12 @@ namespace Unnamed {
 		const std::string_view stateId
 	)
 	const {
-		const std::string trimmedId = TrimAscii(stateId);
+		const std::string trimmedId = StrUtil::TrimSpaces(stateId);
 		if (mStateMap.contains(trimmedId)) {
 			return true;
 		}
 
-		const std::string strippedText = TrimAscii(
+		const std::string strippedText = StrUtil::TrimSpaces(
 			StripAnimStatePrefix(trimmedId)
 		);
 		const std::string_view stripped = strippedText;
@@ -901,14 +875,15 @@ namespace Unnamed {
 			return true;
 		}
 
-		const std::string lowered = ToLowerAscii(stripped);
+		const std::string lowered = StrUtil::ToLowerCase(stripped);
 		return std::ranges::any_of(
 			mStateMap,
 			[&](const auto& entry) {
 				const auto& [id, state] = entry;
 				return
-					ToLowerAscii(TrimAscii(id)) == lowered ||
-					ToLowerAscii(TrimAscii(state.stateId)) == lowered;
+					StrUtil::ToLowerCase(StrUtil::TrimSpaces(id)) == lowered ||
+					StrUtil::ToLowerCase(StrUtil::TrimSpaces(state.stateId)) ==
+						lowered;
 			}
 		);
 	}
@@ -1088,6 +1063,7 @@ namespace Unnamed {
 		std::vector<BlendAccumQuat> blendedRotation(boneCount);
 		std::vector<BlendAccumVec3> blendedScale(boneCount);
 
+		// 各レイヤーと遷移元を同じ重み空間で蓄積する
 		for (size_t layerIndex = 0; layerIndex < mLayers.size(); ++layerIndex) {
 			auto&       layer       = mLayers[layerIndex];
 			const float layerWeight = std::max(layer.desc.weight, 0.0f);

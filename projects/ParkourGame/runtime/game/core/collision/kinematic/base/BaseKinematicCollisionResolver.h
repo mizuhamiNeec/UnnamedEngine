@@ -30,8 +30,8 @@ namespace Unnamed {
 			Math::HtoM(32.0f)
 		);
 		float deltaTime  = 0.0f;
-		float skinWidth  = Math::HtoM(0.01f);
-		float overBounce = 1.001f;
+		float skinWidth  = Math::HtoM(0.0f);
+		float overBounce = 1.0001f;
 	};
 
 	struct KinematicMoveResult {

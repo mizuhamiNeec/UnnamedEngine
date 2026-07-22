@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 
-
 namespace Unnamed {
 	/// @brief メモリユーティリティクラス
 	/// @details メモリアライメントなどのメモリ操作用ヘルパー関数を提供します 

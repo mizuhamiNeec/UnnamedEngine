@@ -6,24 +6,45 @@
 #include "engine/unnamed/primitive/Primitives.h"
 
 namespace {
-	Vec3 ClosestPointOnTriangle(
+	constexpr float kContactEpsilon  = 1e-6f;  // 接触判定の許容誤差
+	constexpr float kDistanceEpsilon = 1e-5f;  // 距離計算の許容誤差
+	constexpr float kEdgeEpsilon     = 1e-6f;  // 辺の判定の許容誤差
+	constexpr float kEpsilon         = 1e-6f;  // 汎用の許容誤差
+	constexpr float kNormalEpsilon   = 1e-12f; // 法線ベクトルの正規化の許容誤差
+	constexpr float kParallelEpsilon = 1e-8f;  // 平行判定の許容誤差
+	constexpr float kRootEpsilon     = 1e-6f;  // ルート計算の許容誤差
+
+	bool IsPointInsideTrianglePlane(
+		const Vec3&              pointOnPlane,
 		const Unnamed::Triangle& tri,
-		const Vec3&              p
+		const Vec3&              triNormal
 	) {
+		const Vec3 c0 = (tri.v1 - tri.v0).Cross(pointOnPlane - tri.v0);
+		const Vec3 c1 = (tri.v2 - tri.v1).Cross(pointOnPlane - tri.v1);
+		const Vec3 c2 = (tri.v0 - tri.v2).Cross(pointOnPlane - tri.v2);
+
+		return triNormal.Dot(c0) >= -kEdgeEpsilon &&
+		       triNormal.Dot(c1) >= -kEdgeEpsilon &&
+		       triNormal.Dot(c2) >= -kEdgeEpsilon;
+	}
+}
+
+namespace Unnamed::Physics {
+	Vec3 ClosestPointOnTriangle(const Triangle& tri, const Vec3& point) {
 		const Vec3 a = tri.v0;
 		const Vec3 b = tri.v1;
 		const Vec3 c = tri.v2;
 
 		const Vec3  ab = b - a;
 		const Vec3  ac = c - a;
-		const Vec3  ap = p - a;
+		const Vec3  ap = point - a;
 		const float d1 = ab.Dot(ap);
 		const float d2 = ac.Dot(ap);
 		if (d1 <= 0.0f && d2 <= 0.0f) {
 			return a;
 		}
 
-		const Vec3  bp = p - b;
+		const Vec3  bp = point - b;
 		const float d3 = ab.Dot(bp);
 		const float d4 = ac.Dot(bp);
 		if (d3 >= 0.0f && d4 <= d3) {
@@ -36,7 +57,7 @@ namespace {
 			return a + ab * v;
 		}
 
-		const Vec3  cp = p - c;
+		const Vec3  cp = point - c;
 		const float d5 = ab.Dot(cp);
 		const float d6 = ac.Dot(cp);
 		if (d6 >= 0.0f && d5 <= d6) {
@@ -51,13 +72,13 @@ namespace {
 
 		const float va = d3 * d6 - d5 * d4;
 		if (va <= 0.0f && d4 - d3 >= 0.0f && d5 - d6 >= 0.0f) {
-			const Vec3  bc = c - b;
+			const Vec3  bc      = c - b;
 			const float bcLenSq = bc.Dot(bc);
 			if (bcLenSq <= 1e-12f) {
 				return b;
 			}
 			const float t =
-				std::clamp((p - b).Dot(bc) / bcLenSq, 0.0f, 1.0f);
+				std::clamp((point - b).Dot(bc) / bcLenSq, 0.0f, 1.0f);
 			return b + bc * t;
 		}
 
@@ -67,33 +88,10 @@ namespace {
 			return a;
 		}
 		const Vec3  nn   = n / std::sqrt(nLenSq);
-		const float dist = (p - a).Dot(nn);
-		return p - nn * dist;
+		const float dist = (point - a).Dot(nn);
+		return point - nn * dist;
 	}
 
-	bool IsPointInsideTrianglePlane(
-		const Vec3&              pointOnPlane,
-		const Unnamed::Triangle& tri,
-		const Vec3&              triNormal
-	) {
-		constexpr float kEdgeEpsilon = 1e-6f;
-
-		const Vec3 c0 = (tri.v1 - tri.v0).Cross(pointOnPlane - tri.v0);
-		const Vec3 c1 = (tri.v2 - tri.v1).Cross(pointOnPlane - tri.v1);
-		const Vec3 c2 = (tri.v0 - tri.v2).Cross(pointOnPlane - tri.v2);
-
-		return triNormal.Dot(c0) >= -kEdgeEpsilon &&
-		       triNormal.Dot(c1) >= -kEdgeEpsilon &&
-		       triNormal.Dot(c2) >= -kEdgeEpsilon;
-	}
-}
-
-namespace Unnamed::Physics {
-	/// @brief レイとAABBの交差判定を行います
-	/// @param ray 判定するレイ
-	/// @param aabb 判定するAABB
-	/// @param tMaxOut レイがAABBに衝突するまでの距離を格納する出力変数
-	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool RayVsAABB(
 		const Ray& ray, const AABB& aabb,
 		float&     tMaxOut
@@ -125,21 +123,14 @@ namespace Unnamed::Physics {
 		return true;
 	}
 
-	/// @brief レイと三角形の交差判定を行います（Möller–Trumboreアルゴリズム）
-	/// @param triangle 判定する三角形
-	/// @param ray 判定するレイ
-	/// @param tHit 衝突点までの距離を格納する出力変数
-	/// @param outNormal 衝突点の法線を格納する出力変数
-	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool TriangleVsRay(
 		const Triangle& triangle, const Ray& ray,
 		float&          tHit, Vec3&          outNormal
 	) {
-		constexpr float kEpsilon = 1e-6f;
-		const Vec3      e1       = triangle.v1 - triangle.v0;
-		const Vec3      e2       = triangle.v2 - triangle.v0;
-		const Vec3      p        = ray.dir.Cross(e2);
-		const float     det      = e1.Dot(p);
+		const Vec3  e1  = triangle.v1 - triangle.v0;
+		const Vec3  e2  = triangle.v2 - triangle.v0;
+		const Vec3  p   = ray.dir.Cross(e2);
+		const float det = e1.Dot(p);
 
 		if (fabs(det) < kEpsilon) {
 			return false;
@@ -169,13 +160,6 @@ namespace Unnamed::Physics {
 		return true;
 	}
 
-	/// @brief スイープAABBと三角形の連続衝突判定を行います（SAT）
-	/// @param box0 判定するAABBの初期位置
-	/// @param delta AABBの移動ベクトル
-	/// @param tri 判定する三角形
-	/// @param outTOI 衝突までの時間を格納する出力変数（0.0〜1.0）
-	/// @param outNrm 衝突時の法線を格納する出力変数
-	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool SweptAabbVsTriSAT(
 		const Box&      box0,
 		const Vec3&     delta,
@@ -183,9 +167,6 @@ namespace Unnamed::Physics {
 		float&          outTOI,
 		Vec3&           outNrm
 	) {
-		constexpr float kNormalEpsilon = 1e-12f;
-		constexpr float kContactEpsilon = 1e-6f;
-
 		/* ---------- 1. 基本量 ---------- */
 		const Vec3 C0 = box0.center;
 		const Vec3 H  = box0.halfSize;
@@ -317,14 +298,6 @@ namespace Unnamed::Physics {
 		return true;
 	}
 
-	/// @brief スイープ球と三角形の連続衝突判定を行います
-	/// @param center 判定する球の中心位置
-	/// @param radius 球の半径
-	/// @param delta 球の移動ベクトル
-	/// @param tri 判定する三角形
-	/// @param outTOI 衝突までの時間を格納する出力変数（0.0〜1.0）
-	/// @param outNormal 衝突時の法線を格納する出力変数
-	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool SweptSphereVsTriSAT(
 		const Vec3&     center,
 		float           radius,
@@ -333,11 +306,6 @@ namespace Unnamed::Physics {
 		float&          outTOI,
 		Vec3&           outNormal
 	) {
-		constexpr float kParallelEpsilon = 1e-8f;
-		constexpr float kRootEpsilon     = 1e-6f;
-		constexpr float kNormalEpsilon   = 1e-12f;
-		constexpr float kDistanceEpsilon = 1e-5f;
-
 		if (radius <= 0.0f) {
 			return false;
 		}
@@ -345,8 +313,8 @@ namespace Unnamed::Physics {
 		const Vec3 p0 = center;
 		const Vec3 v  = delta;
 
-		const Vec3  e0 = tri.v1 - tri.v0;
-		const Vec3  e1 = tri.v2 - tri.v0;
+		const Vec3  e0        = tri.v1 - tri.v0;
+		const Vec3  e1        = tri.v2 - tri.v0;
 		Vec3        triNormal = e0.Cross(e1);
 		const float triNLenSq = triNormal.SqrLength();
 		if (triNLenSq > kNormalEpsilon) {
@@ -356,7 +324,7 @@ namespace Unnamed::Physics {
 		}
 
 		float candidateTimes[24];
-		int   candidateCount = 0;
+		int   candidateCount    = 0;
 		auto  pushCandidateTime = [&](const float t) {
 			if (t < -kRootEpsilon || t > 1.0f + kRootEpsilon) {
 				return;
@@ -372,7 +340,9 @@ namespace Unnamed::Physics {
 			}
 		};
 
-		auto addQuadraticRoots = [&](const float a, const float b, const float c) {
+		auto addQuadraticRoots = [&](
+			const float a, const float b, const float c
+		) {
 			if (fabsf(a) <= kParallelEpsilon) {
 				if (fabsf(b) <= kParallelEpsilon) {
 					return;
@@ -385,7 +355,7 @@ namespace Unnamed::Physics {
 			if (discriminant < -kParallelEpsilon) {
 				return;
 			}
-			discriminant = std::max(0.0f, discriminant);
+			discriminant         = std::max(0.0f, discriminant);
 			const float sqrtDisc = std::sqrt(discriminant);
 			const float inv2A    = 0.5f / a;
 			pushCandidateTime((-b - sqrtDisc) * inv2A);
@@ -427,9 +397,9 @@ namespace Unnamed::Physics {
 				continue;
 			}
 
-			const Vec3  m        = p0 - edgeStarts[i];
-			const float mdotEdge = m.Dot(edge);
-			const float vdotEdge = v.Dot(edge);
+			const Vec3  m          = p0 - edgeStarts[i];
+			const float mdotEdge   = m.Dot(edge);
+			const float vdotEdge   = v.Dot(edge);
 			const float invEdgeLen = 1.0f / edgeLen;
 
 			const float s0 = mdotEdge * invEdgeLen;
@@ -473,24 +443,26 @@ namespace Unnamed::Physics {
 		// 頂点接触候補（移動点と頂点距離が半径になる時刻）
 		const Vec3 vertices[3] = {tri.v0, tri.v1, tri.v2};
 		for (const Vec3& vertex : vertices) {
-			const Vec3 toVertex = p0 - vertex;
-			const float a       = motionLenSq;
-			const float b       = 2.0f * toVertex.Dot(v);
-			const float c       = toVertex.Dot(toVertex) - radius * radius;
+			const Vec3  toVertex = p0 - vertex;
+			const float a        = motionLenSq;
+			const float b        = 2.0f * toVertex.Dot(v);
+			const float c        = toVertex.Dot(toVertex) - radius * radius;
 			addQuadraticRoots(a, b, c);
 		}
 
-		float bestTOI  = FLT_MAX;
-		Vec3  bestNrm  = Vec3::zero;
-		bool  hasHit   = false;
-		const float maxDist = radius + kDistanceEpsilon;
+		float       bestTOI   = FLT_MAX;
+		Vec3        bestNrm   = Vec3::zero;
+		bool        hasHit    = false;
+		const float maxDist   = radius + kDistanceEpsilon;
 		const float maxDistSq = maxDist * maxDist;
 
-		auto evaluateCandidate = [&](const float t, const Vec3& fallbackNormal) {
-			const Vec3 centerAtT = p0 + v * t;
-			const Vec3 closest   = ClosestPointOnTriangle(tri, centerAtT);
-			Vec3       sep       = centerAtT - closest;
-			const float distSq   = sep.SqrLength();
+		auto evaluateCandidate = [&](
+			const float t, const Vec3& fallbackNormal
+		) {
+			const Vec3  centerAtT = p0 + v * t;
+			const Vec3  closest   = ClosestPointOnTriangle(tri, centerAtT);
+			const Vec3  sep       = centerAtT - closest;
+			const float distSq    = sep.SqrLength();
 			if (distSq > maxDistSq) {
 				return;
 			}
@@ -499,7 +471,7 @@ namespace Unnamed::Physics {
 			if (distSq > kNormalEpsilon) {
 				normal /= std::sqrt(distSq);
 			} else {
-				normal = fallbackNormal;
+				normal                    = fallbackNormal;
 				const float fallbackLenSq = normal.SqrLength();
 				if (fallbackLenSq > kNormalEpsilon) {
 					normal /= std::sqrt(fallbackLenSq);
@@ -538,15 +510,6 @@ namespace Unnamed::Physics {
 		return true;
 	}
 
-	/// @brief スイープ円柱と三角形の連続衝突判定を行います（SAT）
-	/// @param base 円柱の底面中心位置
-	/// @param halfHeight 円柱の半高さ
-	/// @param radius 円柱の半径
-	/// @param delta 円柱の移動ベクトル
-	/// @param tri 判定する三角形
-	/// @param outTOI 衝突までの時間を格納する出力変数（0.0〜1.0）
-	/// @param outNormal 衝突時の法線を格納する出力変数
-	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool SweptCylinderVsTriSAT(
 		const Vec3&     base,
 		float           halfHeight,
@@ -560,15 +523,6 @@ namespace Unnamed::Physics {
 		return false;
 	}
 
-	/// @brief スイープカプセルと三角形の連続衝突判定を行います（SAT）
-	/// @param a カプセルの一端点位置
-	/// @param b カプセルの他端点位置
-	/// @param radius カプセルの半径
-	/// @param delta カプセルの移動ベクトル
-	/// @param tri 判定する三角形
-	/// @param outTOI 衝突までの時間を格納する出力変数（0.0〜1.0）
-	/// @param outNormal 衝突時の法線を格納する出力変数
-	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool SweptCapsuleVsTriSAT(
 		const Vec3&     a,
 		const Vec3&     b,
@@ -582,23 +536,15 @@ namespace Unnamed::Physics {
 		return false;
 	}
 
-	/// @brief ボックスと三角形の静的衝突判定を行います（SAT）
-	/// @param box 判定するボックス
-	/// @param tri 判定する三角形
-	/// @param outNormal 衝突時の法線を格納する出力変数
-	/// @param outDepth 衝突の貫入深度を格納する出力変数
-	/// @return 衝突する場合はtrue、しない場合はfalse
 	bool BoxVsTriangleOverlap(
 		const Box&      box,
 		const Triangle& tri,
 		Vec3&           outNormal,
 		float&          outDepth
 	) {
-		constexpr float kContactEpsilon = 1e-6f;
-
 		// 1) テストする軸 13 本
-		Vec3 axes[13];
-		int  axisCnt = 0;
+		Vec3       axes[13];
+		int        axisCnt    = 0;
 		const Vec3 boxAxes[3] = {Vec3::right, Vec3::up, Vec3::forward};
 
 		// (a) ボックスのローカル軸
@@ -626,9 +572,9 @@ namespace Unnamed::Physics {
 			}
 		}
 
-		// 2) 各軸で投影レンジを比べ、最小オーバラップを記録
+		// 2) 各軸で投影レンジを比べ、分離に必要な最小移動量を記録
 		float bestDepth = FLT_MAX;
-		Vec3  bestAxis  = Vec3::zero;
+		Vec3  bestNormal = Vec3::zero;
 
 		for (int i = 0; i < axisCnt; ++i) {
 			const Vec3& ax = axes[i];
@@ -649,26 +595,31 @@ namespace Unnamed::Physics {
 			triMin       = std::min({triMin, d1, d2});
 			triMax       = std::max({triMax, d1, d2});
 
-			// オーバラップ量（符号付き）
-			const float overlap = std::min(boxMax, triMax) - std::max(
-				                      boxMin, triMin
-			                      );
-			if (overlap <= kContactEpsilon) {
+			// 三角形は面法線方向の厚みが0なので、投影区間の交差長では
+			// 貫入深度を得られない。まず接触を除いて分離軸を判定する。
+			if (
+				boxMax <= triMin + kContactEpsilon ||
+				triMax <= boxMin + kContactEpsilon
+			) {
 				return false; // 分離軸発見 → 衝突無し
 			}
 
-			if (overlap < bestDepth) {
-				bestDepth = overlap;
-				bestAxis  = ax;
+			// ボックスを正負どちらへ動かせばこの軸で分離できるかを比較し、
+			// 最小並進ベクトルの向きと距離を保持する。
+			const float pushPositive = triMax - boxMin;
+			const float pushNegative = boxMax - triMin;
+			const bool  pushTowardPositive = pushPositive < pushNegative;
+			const float axisDepth = pushTowardPositive ?
+				                        pushPositive :
+				                        pushNegative;
+			if (axisDepth < bestDepth) {
+				bestDepth  = axisDepth;
+				bestNormal = pushTowardPositive ? ax : -ax;
 			}
 		}
 
-		// 3) bestAxis 方向へ押し出し
-		// 軸種別（面/辺）に依存しないよう、三角形重心を基準に符号を決めます。
-		const Vec3 triCentroid = (tri.v0 + tri.v1 + tri.v2) * (1.0f / 3.0f);
-		outNormal              = (box.center - triCentroid).Dot(bestAxis) >= 0.0f ?
-			                         bestAxis :
-			                         -bestAxis;
+		// 3) 最小移動量の方向へ押し出し
+		outNormal = bestNormal;
 		outDepth = bestDepth;
 		return true;
 	}

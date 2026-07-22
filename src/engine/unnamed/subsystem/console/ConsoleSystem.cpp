@@ -4,7 +4,8 @@
 #include <iostream>
 #include <ranges>
 
-#include <core/path/PathUtil.h>
+#include <core/filesystem/Path.h>
+#include <core/string/StrUtil.h>
 #include <engine/unnamed/subsystem/console/ConsoleSystem.h>
 #include <engine/unnamed/subsystem/console/ConsoleUI.h>
 #include <engine/unnamed/subsystem/console/ConVarWriter.h>
@@ -24,27 +25,108 @@ namespace Unnamed {
 	static constexpr std::string_view kChannelConsole = "Console";
 	static constexpr std::string_view kConsoleLogPath = "./consolesystem.log";
 
-	// 互換性維持用の既存 user.cfg です。
+	// 互換性維持用の既存 user.cfg
 	static constexpr std::string_view kLegacyUserCfgPath =
 		"./content/core/cfg/user.cfg";
 
-	[[nodiscard]] std::string ResolvePersistUserCfgPath() {
+	[[nodiscard]] int CalculateLevenshteinDistance(
+		const std::string_view s1, const std::string_view s2
+	) {
+		const int len1 = static_cast<int>(s1.length());
+		const int len2 = static_cast<int>(s2.length());
+
+		std::vector<std::vector<int>> dp(
+			len1 + 1, std::vector<int>(len2 + 1)
+		);
+		for (int i = 0; i <= len1; ++i) {
+			dp[i][0] = i;
+		}
+		for (int j = 0; j <= len2; ++j) {
+			dp[0][j] = j;
+		}
+
+		for (int i = 1; i <= len1; ++i) {
+			for (int j = 1; j <= len2; ++j) {
+				const int cost =
+					s1[static_cast<size_t>(i - 1)] ==
+					s2[static_cast<size_t>(j - 1)] ?
+						0 :
+						1;
+				dp[i][j] = std::min(
+					{
+						dp[i - 1][j] + 1,
+						dp[i][j - 1] + 1,
+						dp[i - 1][j - 1] + cost
+					}
+				);
+			}
+		}
+
+		return dp[len1][len2];
+	}
+
+	template <typename Range, typename GetNameFn>
+	[[nodiscard]] std::vector<std::string> CollectSimilarNames(
+		const std::string_view input,
+		const size_t           maxResults,
+		const Range&           entries,
+		GetNameFn              getName
+	) {
+		std::vector<std::pair<std::string, int>> candidates;
+		const std::string lowerInputStr = StrUtil::ToLowerCase(input);
+
+		for (const auto& entry : entries) {
+			const std::string_view name      = getName(entry);
+			const std::string      lowerName = StrUtil::ToLowerCase(name);
+			const int distance = CalculateLevenshteinDistance(
+				lowerInputStr, lowerName
+			);
+			const bool prefixMatch = lowerName.starts_with(lowerInputStr);
+			const int threshold = static_cast<int>(lowerInputStr.length()) * 2;
+
+			if (prefixMatch || distance <= threshold) {
+				int score = 1000 - distance;
+				if (prefixMatch) {
+					score += 500;
+				}
+				candidates.emplace_back(std::string(name), score);
+			}
+		}
+
+		std::ranges::sort(
+			candidates,
+			[](const auto& a, const auto& b) {
+				return a.second > b.second;
+			}
+		);
+
+		std::vector<std::string> results;
+		results.reserve(std::min(maxResults, candidates.size()));
+		for (const auto& [name, _] :
+		     candidates | std::views::take(maxResults)) {
+			results.push_back(name);
+		}
+
+		return results;
+	}
+
+	[[nodiscard]] Path ResolvePersistUserCfgPath() {
 		const GameRuntimeContext* runtimeContext =
 			ServiceLocator::Get<GameRuntimeContext>();
 		if (!runtimeContext) {
-			return std::string(kLegacyUserCfgPath);
+			return Path(kLegacyUserCfgPath);
 		}
 
-		const std::string resolvedPath = ResolveGameConfigPath(
+		const Path resolvedPath = ResolveGameConfigPath(
 			runtimeContext->modulePaths,
-			"user.cfg"
+			Path("user.cfg")
 		);
-		if (resolvedPath.empty()) {
-			return std::string(kLegacyUserCfgPath);
+		if (resolvedPath.IsEmpty()) {
+			return Path(kLegacyUserCfgPath);
 		}
 
-		const std::filesystem::path configPath = Path::FromUtf8(resolvedPath);
-		const std::filesystem::path configDir = configPath.parent_path();
+		const std::filesystem::path configPath = resolvedPath.Native();
+		const std::filesystem::path configDir  = configPath.parent_path();
 		if (!configDir.empty()) {
 			std::error_code ec;
 			std::filesystem::create_directories(configDir, ec);
@@ -54,13 +136,13 @@ namespace Unnamed {
 					"Failed to create config directory '{}': {}. Falling back to '{}'.",
 					Path::ToGenericUtf8(configDir),
 					ec.message(),
-					std::string(kLegacyUserCfgPath)
+					Path(kLegacyUserCfgPath)
 				);
-				return std::string(kLegacyUserCfgPath);
+				return Path(kLegacyUserCfgPath);
 			}
 		}
 
-		return Path::ToGenericUtf8(configPath);
+		return Path::FromNative(configPath).LexicallyNormal();
 	}
 
 	EXEC_FLAG operator|=(EXEC_FLAG& lhs, const EXEC_FLAG& rhs) {
@@ -78,16 +160,23 @@ namespace Unnamed {
 	}
 
 	ConsoleSystem::~ConsoleSystem() {
-	};
+		Shutdown();
+		mState = CONSOLE_SYSTEM_STATE::DESTROYED;
+	}
 
 	bool ConsoleSystem::Init() {
+		if (mState == CONSOLE_SYSTEM_STATE::RUNNING) {
+			return true;
+		}
+		mState = CONSOLE_SYSTEM_STATE::RUNNING;
+
 		// サービスロケータに登録
 		ServiceLocator::Register<ConsoleSystem>(this);
 
 		// ファイルログの開始
 		if (mEnableFileLog) {
 			ConsoleFileLogSink::Config cfg;
-			cfg.path = std::string(kConsoleLogPath);
+			cfg.path = Path(kConsoleLogPath);
 			if (!mFileLogSink.Start(cfg)) {
 				Error(
 					kChannelConsole,
@@ -123,12 +212,18 @@ namespace Unnamed {
 	}
 
 	void ConsoleSystem::Shutdown() {
-		mHelpCommand.reset();
-		mClearCommand.reset();
+		if (
+			mState == CONSOLE_SYSTEM_STATE::UNINITIALIZED ||
+			mState == CONSOLE_SYSTEM_STATE::DESTROYED ||
+			mState == CONSOLE_SYSTEM_STATE::SHUTTING_DOWN
+		) {
+			return;
+		}
+		mState = CONSOLE_SYSTEM_STATE::SHUTTING_DOWN;
 
 		// ユーザー設定ファイルに変数を書き込む
 		try {
-			const std::string userCfgPath = ResolvePersistUserCfgPath();
+			const Path userCfgPath = ResolvePersistUserCfgPath();
 			DevMsg(
 				kChannelConsole,
 				"Persisting archived convars to '{}'.",
@@ -148,10 +243,15 @@ namespace Unnamed {
 			);
 		}
 
+		DetachRegisteredConsoleObjects();
+		mHelpCommand.reset();
+		mClearCommand.reset();
+
 		// ファイルログ停止して残りを書き出し
 		mFileLogSink.Stop();
 
 		ServiceLocator::Register<ConsoleSystem>(nullptr);
+		mState = CONSOLE_SYSTEM_STATE::UNINITIALIZED;
 	}
 
 	const std::string_view ConsoleSystem::GetName() const {
@@ -225,14 +325,30 @@ namespace Unnamed {
 	}
 
 	void ConsoleSystem::RegisterConCommand(ConCommandBase* conCommand) {
+		if (!conCommand || mState != CONSOLE_SYSTEM_STATE::RUNNING) {
+			return;
+		}
+		const std::string commandName(conCommand->GetName());
+		if (const auto it = mConCommands.find(commandName);
+			it != mConCommands.end() && it->second != conCommand &&
+			it->second != nullptr) {
+			it->second->DetachFromConsoleSystem(*this);
+		}
+		conCommand->AttachToConsoleSystem(
+			*this, ConsoleRegistrationKind::Command
+		);
+		mConCommands[commandName] = conCommand;
+	}
+
+	void ConsoleSystem::UnregisterConCommand(
+		const ConCommandBase* conCommand
+	) noexcept {
 		if (!conCommand) {
 			return;
 		}
-		mConCommands[std::string(conCommand->GetName())] = conCommand;
-	}
 
-	void ConsoleSystem::UnregisterConCommand(const ConCommandBase* conCommand) {
-		if (!conCommand) {
+		const_cast<ConCommandBase*>(conCommand)->DetachFromConsoleSystem(*this);
+		if (mState == CONSOLE_SYSTEM_STATE::DESTROYED) {
 			return;
 		}
 
@@ -243,7 +359,52 @@ namespace Unnamed {
 	}
 
 	void ConsoleSystem::RegisterConVar(ConCommandBase* conVar) {
-		mConVars[std::string(conVar->GetName())] = conVar;
+		if (!conVar || mState != CONSOLE_SYSTEM_STATE::RUNNING) {
+			return;
+		}
+		const std::string conVarName(conVar->GetName());
+		if (const auto it = mConVars.find(conVarName);
+			it != mConVars.end() && it->second != conVar &&
+			it->second != nullptr) {
+			it->second->DetachFromConsoleSystem(*this);
+		}
+		conVar->AttachToConsoleSystem(
+			*this, ConsoleRegistrationKind::ConVar
+		);
+		mConVars[conVarName] = conVar;
+	}
+
+	void ConsoleSystem::UnregisterConVar(
+		const ConCommandBase* conVar
+	) noexcept {
+		if (!conVar) {
+			return;
+		}
+
+		const_cast<ConCommandBase*>(conVar)->DetachFromConsoleSystem(*this);
+		if (mState == CONSOLE_SYSTEM_STATE::DESTROYED) {
+			return;
+		}
+
+		const auto it = mConVars.find(std::string(conVar->GetName()));
+		if (it != mConVars.end() && it->second == conVar) {
+			mConVars.erase(it);
+		}
+	}
+
+	void ConsoleSystem::DetachRegisteredConsoleObjects() noexcept {
+		for (ConCommandBase* command : mConCommands | std::views::values) {
+			if (command) {
+				command->DetachFromConsoleSystem(*this);
+			}
+		}
+		for (ConCommandBase* conVar : mConVars | std::views::values) {
+			if (conVar) {
+				conVar->DetachFromConsoleSystem(*this);
+			}
+		}
+		mConCommands.clear();
+		mConVars.clear();
 	}
 
 	template <typename T>
@@ -560,211 +721,61 @@ namespace Unnamed {
 		return type;
 	}
 
+	template <typename T>
+	T ConsoleSystem::GetConVarValueOr(
+		const std::string_view name,
+		const T&               fallback
+	) {
+		if (const auto* var = GetConVarAs<ConVar<T>>(name)) {
+			return var->GetValue();
+		}
+		Print(
+			LogLevel::Warning, "Console",
+			std::format(
+				"CVar '{}' not found. Returning fallback value.", name
+			),
+			std::source_location::current()
+		);
+		return fallback;
+	}
+
+	template bool ConsoleSystem::GetConVarValueOr<bool>(
+		std::string_view,
+		const bool&
+	);
+	template int ConsoleSystem::GetConVarValueOr<int>(
+		std::string_view,
+		const int&
+	);
+	template float ConsoleSystem::GetConVarValueOr<float>(
+		std::string_view,
+		const float&
+	);
+
 	std::vector<std::string> ConsoleSystem::FindSimilarConVars(
 		const std::string_view input, size_t maxResults
 	) {
-		// 大文字小文字を区別しないstring_viewを小文字に変換するヘルパー
-		auto toLower = [](std::string_view str) -> std::string {
-			std::string result(str.begin(), str.end());
-			std::ranges::transform(result
-			                       , result.begin(),
-			                       [](const unsigned char c) {
-				                       return std::tolower(c);
-			                       }
-			);
-			return result;
-		};
-
-		// Levenshtein距離を計算する関数
-		auto calculateLevenshteinDistance = [](
-			const std::string_view s1, const std::string_view s2
-		) -> int {
-			const int len1 = static_cast<int>(s1.length());
-			const int len2 = static_cast<int>(s2.length());
-
-			// dp テーブルの初期化
-			std::vector<std::vector<int>> dp(
-				len1 + 1, std::vector<int>(len2 + 1)
-			);
-			for (int i = 0; i <= len1; ++i) {
-				dp[i][0] = i;
+		return CollectSimilarNames(
+			input,
+			maxResults,
+			mConVars,
+			[](const auto& entry) -> std::string_view {
+				return entry.first;
 			}
-			for (int j = 0; j <= len2; ++j) {
-				dp[0][j] = j;
-			}
-
-			// dpテーブルを埋める
-			for (int i = 1; i <= len1; ++i) {
-				for (int j = 1; j <= len2; ++j) {
-					const int cost =
-					(s1[static_cast<size_t>(i - 1)] ==
-					 s2[static_cast<size_t>(j - 1)]) ?
-						0 :
-						1;
-					dp[i][j] = std::min(
-						{
-							dp[i - 1][j] + 1,       // 削除
-							dp[i][j - 1] + 1,       // 挿入
-							dp[i - 1][j - 1] + cost // 置換
-						}
-					);
-				}
-			}
-
-			return dp[len1][len2];
-		};
-
-		// マッチ候補とスコアを格納するペア
-		std::vector<std::pair<std::string, int>> candidates;
-
-		// 入力テキストを小文字に変換
-		const std::string lowerInputStr = toLower(input);
-
-		// 全てのconvarを検索
-		for (const auto& [name, _] : mConVars) {
-			// convar名を小文字に変換
-			const std::string lowerName = toLower(name);
-
-			// スコアを計算（距離が小さいほど良い）
-			const int distance = calculateLevenshteinDistance(
-				lowerInputStr, lowerName
-			);
-
-			// 距離が入力文字列の長さの2倍以下、または前方一致している場合を採用
-			const bool prefixMatch =
-				lowerName.find(lowerInputStr) == 0;
-			const int threshold = static_cast<int>(lowerInputStr.length()) * 2;
-
-			if (prefixMatch || distance <= threshold) {
-				// スコアを計算（前方一致は優遇）
-				int score = 1000 - distance;
-				if (prefixMatch) {
-					score += 500; // 前方一致ボーナス
-				}
-				candidates.emplace_back(name, score);
-			}
-		}
-
-		// スコア順でソート（高スコアが先）
-		std::ranges::sort(candidates
-		                  ,
-		                  [](const auto& a, const auto& b) {
-			                  return a.second > b.second;
-		                  }
 		);
-
-		// 結果を返す
-		std::vector<std::string> results;
-		for (const auto& [name, _] :
-		     candidates | std::views::take(maxResults)) {
-			results.push_back(name);
-		}
-
-		return results;
 	}
 
 	std::vector<std::string> ConsoleSystem::FindSimilarConCommands(
 		const std::string_view input, size_t maxResults
 	) {
-		// 大文字小文字を区別しないstring_viewを小文字に変換するヘルパー
-		auto toLower = [](std::string_view str) -> std::string {
-			std::string result(str.begin(), str.end());
-			std::ranges::transform(
-				result
-				, result.begin(),
-				[](const unsigned char c) {
-					return std::tolower(c);
-				}
-			);
-			return result;
-		};
-
-		// Levenshtein距離を計算する関数
-		auto calculateLevenshteinDistance = [](
-			const std::string_view s1, const std::string_view s2
-		) -> int {
-			const int len1 = static_cast<int>(s1.length());
-			const int len2 = static_cast<int>(s2.length());
-
-			// dp テーブルの初期化
-			std::vector<std::vector<int>> dp(
-				len1 + 1, std::vector<int>(len2 + 1)
-			);
-			for (int i = 0; i <= len1; ++i) {
-				dp[i][0] = i;
-			}
-			for (int j = 0; j <= len2; ++j) {
-				dp[0][j] = j;
-			}
-
-			// dpテーブルを埋める
-			for (int i = 1; i <= len1; ++i) {
-				for (int j = 1; j <= len2; ++j) {
-					const int cost =
-					(s1[static_cast<size_t>(i - 1)] ==
-					 s2[static_cast<size_t>(j - 1)]) ?
-						0 :
-						1;
-					dp[i][j] = std::min(
-						{
-							dp[i - 1][j] + 1,       // 削除
-							dp[i][j - 1] + 1,       // 挿入
-							dp[i - 1][j - 1] + cost // 置換
-						}
-					);
-				}
-			}
-
-			return dp[len1][len2];
-		};
-
-		// マッチ候補とスコアを格納するペア
-		std::vector<std::pair<std::string, int>> candidates;
-
-		// 入力テキストを小文字に変換
-		const std::string lowerInputStr = toLower(input);
-
-		// 全てのコマンドを検索
-		for (const auto& name : mConCommands | std::views::keys) {
-			// コマンド名を小文字に変換
-			const std::string lowerName = toLower(name);
-
-			// スコアを計算（距離が小さいほど良い）
-			const int distance = calculateLevenshteinDistance(
-				lowerInputStr, lowerName
-			);
-
-			// 距離が入力文字列の長さの2倍以下、または前方一致している場合を採用
-			const bool prefixMatch =
-				lowerName.starts_with(lowerInputStr);
-			const int threshold = static_cast<int>(lowerInputStr.length()) * 2;
-
-			if (prefixMatch || distance <= threshold) {
-				// スコアを計算（前方一致は優遇）
-				int score = 1000 - distance;
-				if (prefixMatch) {
-					score += 500; // 前方一致ボーナス
-				}
-				candidates.emplace_back(name, score);
-			}
-		}
-
-		// スコア順でソート（高スコアが先）
-		std::ranges::sort(
-			candidates,
-			[](const auto& a, const auto& b) {
-				return a.second > b.second;
+		return CollectSimilarNames(
+			input,
+			maxResults,
+			mConCommands,
+			[](const auto& entry) -> std::string_view {
+				return entry.first;
 			}
 		);
-
-		// 結果を返す
-		std::vector<std::string> results;
-		for (const auto& [name, _] :
-		     candidates | std::views::take(maxResults)) {
-			results.push_back(name);
-		}
-
-		return results;
 	}
 
 	void ConsoleSystem::RegisterCommonCommands() {

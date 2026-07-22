@@ -1,8 +1,13 @@
 #pragma once
+#include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <string>
+#include <vector>
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
 #include <imgui.h>
 
 #include "core/assets/AssetType.h"
@@ -24,6 +29,49 @@ namespace ImGuiWidgets {
 		Unnamed::ASSET_TYPE type,
 		AssetTypeMask       acceptedMask
 	);
+
+	/// @brief 固定容量の編集バッファを使ってstd::stringを入力します。
+	/// @param label ウィジェットのラベル
+	/// @param value 編集対象の文字列
+	/// @param capacity 終端nullを含む編集バッファ容量
+	/// @return ImGuiが値の変更を報告した場合はtrue
+	inline bool InputText(
+		const char* label, std::string& value, const size_t capacity
+	) {
+		if (capacity == 0) {
+			return false;
+		}
+		std::vector<char> buffer(capacity, '\0');
+		const size_t      copyLength = std::min(value.size(), capacity - 1);
+		if (copyLength > 0) {
+			std::memcpy(buffer.data(), value.data(), copyLength);
+		}
+		if (!ImGui::InputText(label, buffer.data(), buffer.size())) {
+			return false;
+		}
+		value = buffer.data();
+		return true;
+	}
+
+	/// @brief スタック上の固定長バッファを使ってstd::stringを入力します。
+	/// @tparam Capacity 終端nullを含む編集バッファ容量
+	/// @param label ウィジェットのラベル
+	/// @param value 編集対象の文字列
+	/// @return ImGuiが値の変更を報告した場合はtrue
+	template <size_t Capacity>
+	bool InputText(const char* label, std::string& value) {
+		static_assert(Capacity > 0);
+		std::array<char, Capacity> buffer = {};
+		const size_t copyLength = std::min(value.size(), buffer.size() - 1);
+		if (copyLength > 0) {
+			std::memcpy(buffer.data(), value.data(), copyLength);
+		}
+		if (!ImGui::InputText(label, buffer.data(), buffer.size())) {
+			return false;
+		}
+		value = buffer.data();
+		return true;
+	}
 
 	/// @brief Dragウィジェット用のスタイルカラーをプッシュします。
 	/// @param bg 通常時の背景色
@@ -99,9 +147,16 @@ namespace ImGuiWidgets {
 
 	/// @brief メインメニューバーを開始します。
 	/// @param label メニューバーのラベル
+	/// @param height メニューバーの高さ
 	/// @param enabled メニューバーが有効かどうか
 	/// @return メニューバーが開始された場合にtrueを返します
-	bool BeginMainMenu(const char* label, bool enabled = true);
+	bool BeginMainMenu(const char* label, float height, bool enabled = true);
+
+	/// @brief エンジン用のメニューを開始します。
+	void BeginMenu();
+
+	/// @brief エンジン用のメニューを終了します。
+	void EndMenu();
 
 	/// @brief ホバー中のコンボメニューに対するマウスホイールスクロールを処理します。
 	/// @param index 現在の選択インデックスへの参照
@@ -129,7 +184,7 @@ namespace ImGuiWidgets {
 	/// @param rounding 角丸の半径
 	/// @return メニューが開かれた場合にtrueを返します
 	bool BeginMenuEx(
-		const char* label, const char* icon, bool enabled, float rounding
+		const char* label, const char* icon, bool enabled, float rounding = 4.0f
 	);
 
 	/// @brief 角丸四角形のメニューアイテムを表示します。
@@ -166,7 +221,8 @@ namespace ImGuiWidgets {
 	/// @param logo ロゴのコードポイント(フォントアイコン)
 	/// @param bShow ウィンドウの表示状態への参照。ウィンドウが閉じられた場合にfalseになります。
 	void ShowAboutWindow(
-		std::string systemName, std::string version, uint32_t logo, bool& bShow
+		const std::string& systemName, const std::string& version,
+		uint32_t           logo, bool&                    bShow
 	);
 
 	/// @brief アセットパスの入力 + D&D受け入れ + ピッカー起動を行うウィジェット
@@ -180,6 +236,37 @@ namespace ImGuiWidgets {
 		std::string&  path,
 		AssetTypeMask acceptedMask,
 		const char*   helpText = nullptr
+	);
+
+	enum class HeaderMenuAction {
+		None = 0,
+		MoveUp,
+		MoveDown,
+		Remove,
+	};
+
+	/// @brief 折りたたみヘッダーとチェックボックスを組み合わせたウィジェットを表示します。
+	/// @param icon アイコン（フォントアイコン）
+	/// @param label ヘッダーのラベル
+	/// @param id ヘッダーのID。GUIDを突っ込む
+	/// @param checkbox チェックボックスの状態への参照
+	/// @param action ヘッダーメニューで選択されたアクション
+	/// @param canMoveUp 「上に移動」項目を有効化するかどうか
+	/// @param canMoveDown 「下に移動」項目を有効化するかどうか
+	/// @param canRemove 「削除」項目を有効化するかどうか
+	/// @param flags ImGuiTreeNodeFlagsのフラグ
+	/// @return ヘッダーが開かれた場合にtrueを返します
+	/// @details 主にインスペクタで使用します。
+	bool CollapsingHeaderWithCheckbox(
+		uint32_t           icon,
+		const char*        label,
+		uint64_t           id,
+		bool*              checkbox,
+		HeaderMenuAction*  action,
+		bool               canMoveUp   = true,
+		bool               canMoveDown = true,
+		bool               canRemove   = true,
+		ImGuiTreeNodeFlags flags       = 0
 	);
 }
 #endif

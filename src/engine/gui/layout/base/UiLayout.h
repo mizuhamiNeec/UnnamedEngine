@@ -14,7 +14,7 @@ namespace Unnamed::Gui {
 		void SetPadding(const LayoutPadding& padding);
 		[[nodiscard]] const LayoutPadding& GetPadding() const;
 
-		void SetSpacing(float spacing);
+		void                SetSpacing(float spacing);
 		[[nodiscard]] float GetSpacing() const;
 
 	protected:

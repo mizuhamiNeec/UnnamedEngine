@@ -1,21 +1,25 @@
-#include "Renderer.h"
-
 #include <algorithm>
 #include <cmath>
 #include <unordered_set>
 #include <utility>
 
 #include "RenderDevice.h"
+#include "Renderer.h"
 
 #include "core/math/Math.h"
+#include "core/string/StrUtil.h"
 
 #include "engine/rhi/d3d12/D3D12Device.h"
 #include "engine/rhi/d3d12/D3D12Util.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
+#include "engine/unnamed/subsystem/console/concommand/ConVar.h"
 
 #include "rendergraph/RenderGraphBuilder.h"
 #include "rendergraph/RenderPassContext.h"
+
 #include "shaders/RootSignatureSlots.h"
+
+// ReSharper disable CppRedundantCastExpression
 
 namespace Unnamed::Render {
 	namespace {
@@ -27,9 +31,9 @@ namespace Unnamed::Render {
 		) {
 			Rhi::FrameConstants frame  = {};
 			const float         aspect = height > 0 ?
-				                             static_cast<float>(width) /
-				                             static_cast<float>(height) :
-				                             16.0f / 9.0f;
+				                     static_cast<float>(width) /
+				                     static_cast<float>(height) :
+				                     16.0f / 9.0f;
 			const Mat4 fallbackView = Mat4::identity;
 			const Mat4 fallbackProj = Mat4::PerspectiveFovD3D(
 				90.0f * Math::deg2Rad,
@@ -44,69 +48,6 @@ namespace Unnamed::Render {
 			frame.cameraPos = camera.valid ? camera.cameraPos : Vec3::zero;
 			frame.time      = time;
 			return frame;
-		}
-
-		Mat4 BuildOrthographic(
-			const uint32_t width, const uint32_t height
-		) {
-			return Mat4::MakeOrthographicMat(
-				0.0f,
-				0.0f,
-				static_cast<float>(width),
-				static_cast<float>(height),
-				0.0f,
-				1.0f
-			);
-		}
-
-		Mat4 BuildReverseZOrthographic(
-			const float left,
-			const float top,
-			const float right,
-			const float bottom,
-			const float nearClip,
-			const float farClip
-		) {
-			Mat4        result     = Mat4::identity;
-			const float depthRange = farClip - nearClip;
-			result.m[0][0]         = 2.0f / (right - left);
-			result.m[1][1]         = 2.0f / (top - bottom);
-			result.m[2][2]         = -1.0f / depthRange;
-			result.m[3][0]         = (left + right) / (left - right);
-			result.m[3][1]         = (top + bottom) / (bottom - top);
-			result.m[3][2]         = farClip / depthRange;
-			return result;
-		}
-
-		Mat4 BuildLookAtView(
-			const Vec3& eye,
-			const Vec3& target,
-			const Vec3& up
-		) {
-			Vec3 forward = (target - eye).Normalized();
-			if (forward.IsZero()) {
-				forward = Vec3::forward;
-			}
-			Vec3 right = up.Cross(forward).Normalized();
-			if (right.IsZero()) {
-				right = Vec3::right;
-			}
-			const Vec3 viewUp = forward.Cross(right);
-
-			Mat4 view    = Mat4::identity;
-			view.m[0][0] = right.x;
-			view.m[1][0] = right.y;
-			view.m[2][0] = right.z;
-			view.m[3][0] = -eye.Dot(right);
-			view.m[0][1] = viewUp.x;
-			view.m[1][1] = viewUp.y;
-			view.m[2][1] = viewUp.z;
-			view.m[3][1] = -eye.Dot(viewUp);
-			view.m[0][2] = forward.x;
-			view.m[1][2] = forward.y;
-			view.m[2][2] = forward.z;
-			view.m[3][2] = -eye.Dot(forward);
-			return view;
 		}
 
 		struct DirectionalShadowMatrices {
@@ -133,15 +74,16 @@ namespace Unnamed::Render {
 			const Vec3 eye = center - lightRayDirection * shadowDistance;
 			DirectionalShadowMatrices result;
 			result.lightRayDirection = lightRayDirection;
-			result.directionToLight = directionToLight;
-			result.lightView = BuildLookAtView(eye, center, Vec3::up);
-			result.lightProj = BuildReverseZOrthographic(
+			result.directionToLight  = directionToLight;
+			result.lightView         = Mat4::LookAtView(eye, center, Vec3::up);
+			result.lightProj         = Mat4::OrthographicD3D(
 				-orthoHalfSize,
 				orthoHalfSize,
 				orthoHalfSize,
 				-orthoHalfSize,
 				0.1f,
-				shadowDistance * 2.0f
+				shadowDistance * 2.0f,
+				ProjectionDepthMode::ReverseZ
 			);
 			result.lightViewProj = result.lightView * result.lightProj;
 			return result;
@@ -211,29 +153,13 @@ namespace Unnamed::Render {
 			return result;
 		}
 
-		bool EqualsIgnoreCase(
-			const std::string_view lhs, const std::string_view rhs
-		) {
-			if (lhs.size() != rhs.size()) {
-				return false;
-			}
-			for (size_t i = 0; i < lhs.size(); ++i) {
-				if (
-					std::tolower(static_cast<unsigned char>(lhs[i])) !=
-					std::tolower(static_cast<unsigned char>(rhs[i]))
-				) {
-					return false;
-				}
-			}
-			return true;
-		}
-
 		const PostFxPassOverride* FindPostFxPassOverride(
 			const std::string_view                 passName,
 			const std::vector<PostFxPassOverride>& overrides
 		) {
 			for (const auto& passOverride : overrides) {
-				if (EqualsIgnoreCase(passOverride.passName, passName)) {
+				if (StrUtil::EqualsIgnoreCase(passOverride.passName,
+				                              passName)) {
 					return &passOverride;
 				}
 			}
@@ -375,7 +301,6 @@ namespace Unnamed::Render {
 		RenderDevice&                       renderDevice,
 		const std::vector<RenderViewInput>& frameViews
 	) {
-		mGraphBuilt = true;
 		mGraph.SetRenderDevice(renderDevice);
 
 		for (const RenderViewInput& view : frameViews) {
@@ -559,7 +484,7 @@ namespace Unnamed::Render {
 					frameViews[firstSceneViewIndex].camera,
 					shadowLight
 				);
-			mDirectionalShadow.enabled       = true;
+			mDirectionalShadow.enabled           = true;
 			mDirectionalShadow.lightView         = shadowMatrices.lightView;
 			mDirectionalShadow.lightProj         = shadowMatrices.lightProj;
 			mDirectionalShadow.lightViewProj     = shadowMatrices.lightViewProj;
@@ -675,8 +600,6 @@ namespace Unnamed::Render {
 			mViewStates[view.viewKey].outputTextureId = outputId;
 		}
 
-		AddPrepareUiViewOutputsPass(frameViews);
-
 		if (!mPresentViewKey.empty()) {
 			AddPresentPass(renderDevice);
 		} else {
@@ -684,7 +607,7 @@ namespace Unnamed::Render {
 		}
 
 		AddShadowMapDebugPass(renderDevice);
-		AddImGuiMainPass();
+		AddImGuiMainPass(mFrameUiSampledTextureIds);
 	}
 
 	void Renderer::AddSceneClearPass(
@@ -807,10 +730,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>(&state.colorTextureId, 1),
-					state.depthTextureId
-				);
 				pass.SetGraphicsPipeline(
 					mSkyboxPass.geom.resolved->rootSignature,
 					mSkyboxPass.geom.resolved->pso
@@ -852,7 +771,7 @@ namespace Unnamed::Render {
 		// レンダーターゲット: state.colorTextureId。
 		// 深度ステンシル: state.depthTextureId。
 		// ディスクリプタヒープ: RenderPassContext::SetSrvUavHeap 経由の D3D12Device SRV/UAV ヒープ。
-		// リソースステート: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(有効時の mDirectionalShadow.shadowDepthTextureId)。 マテリアルテクスチャ SRV は MaterialBinding/フォールバックテクスチャを通じた描画時にバインドされる。
+		// リソースステート: WriteRt(state.colorTextureId), WriteDepth(state.depthTextureId), ReadSrvPs(影と実際に描画するマテリアルの全テクスチャ)。
 		// 注記: 静的メッシュとスキンメッシュはこのパスを共有する。不透明マテリアルシェーダ/深度/カルバリアントは描画ごとに選択される。透明/ブレンドマテリアル処理は意図的に未対応のまま。
 		const uint32_t colorId       = state.colorTextureId;
 		const uint32_t depthId       = state.depthTextureId;
@@ -870,19 +789,86 @@ namespace Unnamed::Render {
 				 "r_shadowmap_enabled",
 				 true
 			 ));
+		uint32_t shadowSrvTextureId = shadowEnabled ? shadowDepthId : 0;
+		if (shadowSrvTextureId == 0) {
+			EnsureSpriteFallbackTexture(renderDevice);
+			shadowSrvTextureId = mSpriteFallbackTextureId;
+		}
+
+		const RenderViewInput& view = mFrameViews[viewIndex];
+		const MaterialBinding* fallbackMaterial = nullptr;
+		if (const auto it = mMaterialBindings.find(mDefaultMaterialInstance);
+		    it != mMaterialBindings.end()) {
+			fallbackMaterial = &it->second;
+		}
+		const auto resolveMaterialBinding =
+			[this, fallbackMaterial](const AssetID materialInstanceId)
+			-> const MaterialBinding* {
+				if (const auto it = mMaterialBindings.find(materialInstanceId);
+				    it != mMaterialBindings.end()) {
+					return &it->second;
+				}
+				return fallbackMaterial;
+			};
+
+		std::vector<uint32_t> geometryTextureIds;
+		std::unordered_set<uint32_t> seenGeometryTextureIds;
+		const auto addMaterialTextureIds = [&geometryTextureIds,
+		                                    &seenGeometryTextureIds](
+			const MaterialBinding* materialBinding
+		) {
+			if (!materialBinding) {
+				return;
+			}
+			for (const uint32_t textureId : materialBinding->resolvedTextureIds) {
+				if (textureId != 0 && seenGeometryTextureIds.insert(textureId).second) {
+					geometryTextureIds.emplace_back(textureId);
+				}
+			}
+		};
+		for (const auto& objectInput : view.visibleObjects) {
+			const auto meshIt = mSceneMeshesByAsset.find(objectInput.meshAssetId);
+			if (meshIt == mSceneMeshesByAsset.end()) {
+				continue;
+			}
+			const MeshBuffer& mesh = meshIt->second;
+			if (mesh.submeshes.empty()) {
+				addMaterialTextureIds(
+					resolveMaterialBinding(objectInput.materialInstanceId)
+				);
+				continue;
+			}
+			for (const auto& submesh : mesh.submeshes) {
+				if (submesh.indexCount == 0) {
+					continue;
+				}
+				AssetID materialInstanceId = objectInput.materialInstanceId;
+				if (submesh.materialIndex < objectInput.materialInstanceIdsBySlot.size()) {
+					const AssetID slotMaterialId =
+						objectInput.materialInstanceIdsBySlot[submesh.materialIndex];
+					if (slotMaterialId != kInvalidAssetID) {
+						materialInstanceId = slotMaterialId;
+					}
+				}
+				addMaterialTextureIds(resolveMaterialBinding(materialInstanceId));
+			}
+		}
 
 		mGraph.AddPass(
 			prefix + "Geometry",
-			[colorId, depthId, shadowDepthId, shadowEnabled](
+			[colorId, depthId, shadowSrvTextureId, geometryTextureIds](
 			RenderGraphBuilder& b
 		) {
 				b.WriteRt(colorId);
 				b.WriteDepth(depthId);
-				if (shadowEnabled) {
-					b.ReadSrvPs(shadowDepthId);
+				if (shadowSrvTextureId != 0) {
+					b.ReadSrvPs(shadowSrvTextureId);
+				}
+				for (const uint32_t textureId : geometryTextureIds) {
+					b.ReadSrvPs(textureId);
 				}
 			},
-			[this, viewIndex, state, shadowDepthId, shadowEnabled,
+			[this, viewIndex, state, shadowSrvTextureId, shadowEnabled,
 				&renderDevice](
 			RenderPassContext& pass
 		) {
@@ -913,11 +899,11 @@ namespace Unnamed::Render {
 					);
 
 				Rhi::ShadowConstants shadow = {};
-				shadow.lightViewProj        = mDirectionalShadow.lightViewProj;
+				shadow.lightViewProj = mDirectionalShadow.lightViewProj;
 				const DirectionalLightInput& light = view.directionalLight;
-				const bool directLightEnabled =
+				const bool                   directLightEnabled =
 					light.enabled && light.intensity > 0.0f;
-				shadow.params               = Vec4(
+				shadow.params = Vec4(
 					mConsole ?
 						mConsole->GetConVarValueOr(
 							"r_shadowmap_bias", 0.0005f
@@ -937,7 +923,9 @@ namespace Unnamed::Render {
 				shadow.filterParams = Vec4(
 					mConsole && mConsole->GetConVarValueOr(
 						"r_shadowmap_pcf_enabled", true
-					) ? 1.0f : 0.0f,
+					) ?
+						1.0f :
+						0.0f,
 					mConsole ?
 						mConsole->GetConVarValueOr(
 							"r_shadowmap_pcf_radius", 1.0f
@@ -971,8 +959,8 @@ namespace Unnamed::Render {
 						&shadow, sizeof(shadow)
 					);
 
-				Rhi::EnvironmentLightingConstants environment = {};
-				const EnvironmentLightInput& environmentLight =
+				Rhi::EnvironmentLightingConstants environment      = {};
+				const EnvironmentLightInput&      environmentLight =
 					view.environmentLight;
 				environment.skyAmbientColor = Vec4(
 					environmentLight.skyColor.x,
@@ -999,14 +987,6 @@ namespace Unnamed::Render {
 						&environment, sizeof(environment)
 					);
 
-				uint32_t shadowSrvTextureId = shadowEnabled ?
-					                              shadowDepthId :
-					                              0;
-				if (shadowSrvTextureId == 0) {
-					EnsureSpriteFallbackTexture(renderDevice);
-					shadowSrvTextureId = mSpriteFallbackTextureId;
-				}
-
 				pass.SetViewportAndScissor(
 					0.0f,
 					0.0f,
@@ -1014,10 +994,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>(&state.colorTextureId, 1),
-					state.depthTextureId
-				);
 				if (!mGeometryPass.resolved || !mGeometryPass.resolved->
 				    pso) {
 					return;
@@ -1049,7 +1025,7 @@ namespace Unnamed::Render {
 					}
 					return true;
 				};
-				const auto BindSceneLightingInputs = [&]() {
+				const auto BindSceneLightingInputs = [&] {
 					pass.BindGraphicsCbv(
 						ToRootIndex(GEOM_ROOT_SLOT::SHADOW_CONSTANTS),
 						shadowCb
@@ -1080,9 +1056,10 @@ namespace Unnamed::Render {
 						materialBinding->materialTextureTable.IsValid()
 					) {
 						return renderDevice.GetRegistry().
-							GetSrvDescriptorTableGpu(
-								materialBinding->materialTextureTable
-							);
+						                    GetSrvDescriptorTableGpu(
+							                    materialBinding->
+							                    materialTextureTable
+						                    );
 					}
 					return D3D12_GPU_DESCRIPTOR_HANDLE{};
 				};
@@ -1151,7 +1128,7 @@ namespace Unnamed::Render {
 							materialBinding = &matIt->second;
 						}
 						if (materialBinding) {
-							material  = materialBinding->constants;
+							material = materialBinding->constants;
 						}
 						const auto materialTextureTable =
 							ResolveMaterialTextureTable(materialBinding);
@@ -1220,7 +1197,7 @@ namespace Unnamed::Render {
 							materialBinding = &matIt->second;
 						}
 						if (materialBinding) {
-							material  = materialBinding->constants;
+							material = materialBinding->constants;
 						}
 						const auto materialTextureTable =
 							ResolveMaterialTextureTable(materialBinding);
@@ -1290,7 +1267,7 @@ namespace Unnamed::Render {
 				b.ClearDepth(shadowDepthId, 0.0f, 0);
 			},
 			[this, viewIndex, shadowState, &renderDevice](
-			RenderPassContext& pass
+			const RenderPassContext& pass
 		) {
 				const RenderViewInput& view = mFrameViews[viewIndex];
 				if (view.visibleObjects.empty()) {
@@ -1329,10 +1306,6 @@ namespace Unnamed::Render {
 					0.0f,
 					static_cast<float>(shadowState.resolution),
 					static_cast<float>(shadowState.resolution)
-				);
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>{},
-					shadowState.shadowDepthTextureId
 				);
 
 				const ResolvedGraphicsPipeline* currentPipeline    = nullptr;
@@ -1612,10 +1585,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>(&state.colorTextureId, 1),
-					state.depthTextureId
-				);
 				if (
 					!mBillboardPass.depthGeom.resolved ||
 					!mBillboardPass.depthGeom.resolved->pso
@@ -1769,10 +1738,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>(&state.colorTextureId, 1),
-					state.depthTextureId
-				);
 				if (
 					!mBillboardPass.depthGeom.resolved ||
 					!mBillboardPass.depthGeom.resolved->pso
@@ -1928,10 +1893,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalWidth),
 					static_cast<float>(state.logicalHeight)
 				);
-				pass.SetRenderTargetAndDepth(
-					std::span<const uint32_t>(&state.colorTextureId, 1),
-					state.depthTextureId
-				);
 				pass.SetGraphicsPipeline(
 					mLinePass.resolved->rootSignature,
 					mLinePass.resolved->pso
@@ -2017,7 +1978,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTarget(state.colorTextureId);
 				if (
 					!mBillboardPass.frontGeom.resolved ||
 					!mBillboardPass.frontGeom.resolved->pso
@@ -2167,7 +2127,7 @@ namespace Unnamed::Render {
 				continue;
 			}
 
-			if (EqualsIgnoreCase(passRes.name, "Bloom")) {
+			if (StrUtil::EqualsIgnoreCase(passRes.name, "Bloom")) {
 				const int mipCount = static_cast<int>(
 					state.bloomMipTextureIds.size()
 				);
@@ -2254,7 +2214,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddBloomDownsamplePasses(
-		RenderDevice&           renderDevice,
+		const RenderDevice&     renderDevice,
 		const std::string&      prefix,
 		const ViewRuntimeState& state,
 		const int               mipCount,
@@ -2328,7 +2288,6 @@ namespace Unnamed::Render {
 						static_cast<float>(dstHeight)
 					);
 					pass.SetSrvUavHeap();
-					pass.SetRenderTarget(dstId);
 					if (
 						!mBloomDownsamplePass.resolved ||
 						!mBloomDownsamplePass.resolved->pso
@@ -2356,7 +2315,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddBloomUpsamplePasses(
-		RenderDevice&           renderDevice,
+		const RenderDevice&     renderDevice,
 		const std::string&      prefix,
 		const ViewRuntimeState& state,
 		const int               mipCount,
@@ -2425,7 +2384,6 @@ namespace Unnamed::Render {
 						static_cast<float>(dstHeight)
 					);
 					pass.SetSrvUavHeap();
-					pass.SetRenderTarget(dstHighId);
 					if (
 						!mBloomUpsamplePass.resolved ||
 						!mBloomUpsamplePass.resolved->pso
@@ -2483,7 +2441,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTarget(bloomCombinedOutId);
 				if (!mHdrCopyPass.resolved || !mHdrCopyPass.resolved->pso) {
 					return;
 				}
@@ -2525,7 +2482,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddBloomCompositePass(
-		RenderDevice&           renderDevice,
+		const RenderDevice&           renderDevice,
 		const std::string&      prefix,
 		const ViewRuntimeState& state,
 		const uint32_t          bloomBaseId,
@@ -2584,7 +2541,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTarget(bloomCombinedOutId);
 				if (
 					!mBloomCombinePass.resolved ||
 					!mBloomCombinePass.resolved->pso
@@ -2609,7 +2565,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddGenericPostFxPasses(
-		RenderDevice&            renderDevice,
+		const RenderDevice&            renderDevice,
 		const std::string&       prefix,
 		const ViewRuntimeState&  state,
 		const PostFxRuntimePass& passRes,
@@ -2670,7 +2626,6 @@ namespace Unnamed::Render {
 					passRes.pass.resolved->rootSignature,
 					passRes.pass.resolved->pso
 				);
-				pass.SetRenderTarget(outId);
 				pass.BindGraphicsCbv(
 					ToRootIndex(FS_ROOT_SLOT::POST_FX_PARAMS),
 					postFxCb
@@ -2689,7 +2644,7 @@ namespace Unnamed::Render {
 	}
 
 	void Renderer::AddToneMapExposurePass(
-		RenderDevice&           renderDevice,
+		const RenderDevice&           renderDevice,
 		const std::string&      prefix,
 		const ViewRuntimeState& state,
 		const RenderViewInput&  view,
@@ -2733,7 +2688,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTarget(toneMapOutputId);
 				if (!mToneMapPass.resolved || !mToneMapPass.resolved->pso) {
 					return;
 				}
@@ -2830,8 +2784,13 @@ namespace Unnamed::Render {
 
 				Rhi::FrameConstants frame = {};
 				frame.view                = Mat4::identity;
-				frame.proj                = BuildOrthographic(
-					state.logicalWidth, state.logicalHeight
+				frame.proj                = Mat4::MakeOrthographicMat(
+					0.0f,
+					0.0f,
+					static_cast<float>(state.logicalWidth),
+					static_cast<float>(state.logicalHeight),
+					0.0f,
+					1.0f
 				);
 				frame.viewProj = frame.view * frame.proj;
 				const D3D12_GPU_VIRTUAL_ADDRESS frameCb =
@@ -2844,7 +2803,6 @@ namespace Unnamed::Render {
 					static_cast<float>(state.logicalHeight)
 				);
 				pass.SetSrvUavHeap();
-				pass.SetRenderTarget(outputId);
 
 				int textSamplerMode = 0;
 				if (mConsole != nullptr) {
@@ -2908,19 +2866,19 @@ namespace Unnamed::Render {
 
 					Rhi::ObjectConstants object = {};
 					object.world                = Mat4::Scale(
-						                              Vec3(
-							                              sprite.sizePx.x *
-							                              0.5f,
-							                              sprite.sizePx.y *
-							                              0.5f,
-							                              1.0f
-						                              )
-					                              ) * Mat4::RotateZ(
-						                              sprite.rotationRad
-					                              ) * Mat4::Translate(
-						                              Vec3(center.x, center.y,
-							                              0.0f)
-					                              );
+						               Vec3(
+							               sprite.sizePx.x *
+							               0.5f,
+							               sprite.sizePx.y *
+							               0.5f,
+							               1.0f
+						               )
+					               ) * Mat4::RotateZ(
+						               sprite.rotationRad
+					               ) * Mat4::Translate(
+						               Vec3(center.x, center.y,
+						                    0.0f)
+					               );
 					object.worldInverseTranspose = Mat4::identity;
 					// 使わんので単位
 					const float uvMinY = sprite.uvFlipY ?
@@ -2967,45 +2925,6 @@ namespace Unnamed::Render {
 				}
 			}
 		);
-	}
-
-	void Renderer::AddPrepareUiViewOutputsPass(
-		const std::vector<RenderViewInput>& frameViews
-	) {
-		// Pass: Prepare UI view outputs.
-		// Input: exposed mViewStates outputTextureId values.
-		// Output: no draw output; declares SRV reads for UI-visible view textures.
-		// PSO: none.
-		// RootSignature: none.
-		// RenderTarget: none.
-		// DepthStencil: none.
-		// DescriptorHeap: none.
-		// ResourceState: ReadSrvPs(each outputTextureId for views with output.exposeToUi).
-		// Notes: This is a graph state/preparation pass for editor UI sampling.
-		std::vector<uint32_t> uiReadableOutputs;
-		uiReadableOutputs.reserve(frameViews.size());
-		for (const RenderViewInput& view : frameViews) {
-			if (!view.output.exposeToUi) {
-				continue;
-			}
-			const auto it = mViewStates.find(view.viewKey);
-			if (it == mViewStates.end() || it->second.outputTextureId == 0) {
-				continue;
-			}
-			uiReadableOutputs.emplace_back(it->second.outputTextureId);
-		}
-		if (!uiReadableOutputs.empty()) {
-			mGraph.AddPass(
-				"PrepareUiViewOutputs",
-				[uiReadableOutputs](RenderGraphBuilder& b) {
-					for (const uint32_t texId : uiReadableOutputs) {
-						b.ReadSrvPs(texId);
-					}
-				},
-				[](RenderPassContext&) {
-				}
-			);
-		}
 	}
 
 	void Renderer::AddPresentPass(RenderDevice& renderDevice) {
@@ -3235,9 +3154,11 @@ namespace Unnamed::Render {
 		}
 	}
 
-	void Renderer::AddImGuiMainPass() {
+	void Renderer::AddImGuiMainPass(
+		const std::vector<uint32_t>& uiSampledTextureIds
+	) {
 		// パス: ImGui メイン。
-		// 入力: mUiMainRenderCallback ImGui 描画データ コールバック。
+		// 入力: 確定済み ImGui 描画データが参照する SRV と mUiMainRenderCallback。
 		// 出力: スワップチェーン バックバッファ 書き込み。
 		// PSO: コールバック オーナーの ImGui パイプライン ステート。
 		// ルートシグネチャ: コールバック オーナーの ImGui ルートシグネチャ。
@@ -3248,7 +3169,10 @@ namespace Unnamed::Render {
 		// 注記: RendererGraph はパスをスケジュール化し、コールバック を呼び出すのみ。
 		mGraph.AddPass(
 			"ImGuiMainPass",
-			[](RenderGraphBuilder& b) {
+			[uiSampledTextureIds](RenderGraphBuilder& b) {
+				for (const uint32_t textureId : uiSampledTextureIds) {
+					b.ReadSrvPs(textureId);
+				}
 				b.WriteBackBufferRt();
 			},
 			[this](RenderPassContext& pass) {

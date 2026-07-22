@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "core/assets/AssetID.h"
@@ -46,6 +47,22 @@ namespace Unnamed::Render {
 		uint32_t          allocationHintHeight = 0;
 		bool              preferRealtimeResize = true;
 	};
+
+	/// @brief SceneViewRenderModeからカメラ用アスペクト比を求めます。
+	/// @param request シーンビューの表示要求
+	/// @return カメラ投影に使用するアスペクト比
+	float ResolveSceneViewAspectRatio(const SceneViewRenderMode& request);
+
+	/// @brief SceneViewRenderModeから実際のシーン描画サイズを求めます。
+	/// @param fallbackWidth viewportPanelWidth未指定時に使う幅
+	/// @param fallbackHeight viewportPanelHeight未指定時に使う高さ
+	/// @param request シーンビューの表示要求
+	/// @return 2以上8192以下の偶数へ丸めた描画サイズ
+	std::pair<uint32_t, uint32_t> ResolveSceneViewRenderExtent(
+		uint32_t                   fallbackWidth,
+		uint32_t                   fallbackHeight,
+		const SceneViewRenderMode& request
+	);
 
 	struct PostFxPassOverride {
 		std::string                            passName;
@@ -196,6 +213,11 @@ namespace Unnamed::Render {
 		uint32_t                     frameIndex = 0;
 		std::vector<RenderViewInput> views;
 		DebugDrawFrameInput          debugDraw;
+
+		/// @brief ImGui の確定済み描画データが SRV として参照する RenderGraph テクスチャです。
+		/// @details Renderer はこの一覧を ImGui pass のリソース契約として宣言し、
+		///          pass 実行後まで対象リソースを保持します。
+		std::vector<uint32_t> uiSampledTextureIds;
 
 		float time = 0.0f;
 	};
