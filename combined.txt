@@ -30982,6 +30982,8 @@ namespace Unnamed {
 		bool showHelp = false;
 		/// @brief 起動前検証のみ実行して終了するかどうかです。
 		bool validateStartupOnly = false;
+		/// @brief 音声出力を無効化して起動するかどうかです。
+		bool disableAudio = false;
 		/// @brief 起動引数診断（警告/エラー）です。
 		std::vector<std::string> diagnostics = {};
 	};
@@ -31110,7 +31112,8 @@ namespace Unnamed {
 			"  --projects-root=<path>   明示的に projects ルートを指定してマニフェスト検索。\n";
 		helpText +=
 			"  --projects-root <path>   明示的に projects ルートを指定してマニフェスト検索。\n";
-		helpText += "  --validate-startup-only  起動前検証のみ実行して終了。\n\n";
+		helpText += "  --validate-startup-only  起動前検証のみ実行して終了。\n";
+		helpText += "  --disable-audio          音声出力を無効化して起動。\n\n";
 		helpText += "Environment:\n";
 		helpText +=
 			"  UNNAMED_PROJECTS_ROOT=<path> projects ルートを直接指定してマニフェスト検索。\n";
@@ -31139,7 +31142,7 @@ namespace Unnamed {
 	}
 
 	/// @brief 現在プロセスのコマンドラインを共通ルールで解析します。
-	/// @details `--game[= ]` と `--project[= ]` と `--projects-root[= ]` と `--repo-root[= ]` と `--help/-h` に対応します。
+	/// @details `--game[= ]`、`--project[= ]`、`--projects-root[= ]`、`--repo-root[= ]`、`--validate-startup-only`、`--disable-audio`、`--help/-h` に対応します。
 	[[nodiscard]] inline LaunchDesc ParseAppLaunchOptionsFromCommandLine() {
 		LaunchDesc options          = {};
 		const auto appendDiagnostic = [&](const std::string_view text) {
@@ -31291,6 +31294,10 @@ namespace Unnamed {
 			if (arg.rfind(L"--", 0) == 0) {
 				if (arg == L"--validate-startup-only") {
 					options.validateStartupOnly = true;
+					continue;
+				}
+				if (arg == L"--disable-audio") {
+					options.disableAudio = true;
 					continue;
 				}
 				appendDiagnostic(
@@ -31740,6 +31747,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 				Unnamed::Render::RENDER_STARTUP_VALIDATION_POLICY::Strict :
 				Unnamed::Render::RENDER_STARTUP_VALIDATION_POLICY::Runtime,
 		},
+		.enableAudioOutput = !launchOptions.disableAudio,
 	};
 	Unnamed::Engine                   engine(runtimeBindings, runMode);
 	const Unnamed::EngineRunCallbacks callbacks = {
@@ -46124,9 +46132,12 @@ namespace Unnamed {
 		);
 
 		mAudioSystem = std::make_unique<AudioSystem>();
-		if (!mAudioSystem->Init()) {
+		if (!mAudioSystem->Init(mRuntimeBindings.enableAudioOutput)) {
 			Error("Engine", "AudioSystem initialization failed.");
 			return false;
+		}
+		if (!mRuntimeBindings.enableAudioOutput) {
+			Msg("Engine", "Audio output is disabled by launch option.");
 		}
 		ServiceLocator::Register<AudioSystem>(mAudioSystem.get());
 
@@ -47171,6 +47182,8 @@ namespace Unnamed {
 		SceneLoadOptions sceneLoadOptions = {};
 		/// @brief Renderer起動時のShader/PSO検証オプションです。
 		Render::RenderStartupOptions renderStartupOptions = {};
+		/// @brief 音声出力バックエンドを初期化するかどうかです。
+		bool enableAudioOutput = true;
 	};
 
 	/// @brief Engine 実行時フックです。
@@ -92418,11 +92431,21 @@ namespace Unnamed {
 
 		auto* assetManager = GetAssetManager();
 		auto* audioSystem  = ServiceLocator::Get<AudioSystem>();
-		if (!assetManager || !audioSystem || !audioSystem->IsReady()) {
+		if (!assetManager || !audioSystem) {
 			if (!mLoggedError) {
 				Error(
 					kChannel, "AssetManager or AudioSystem is not available."
 				);
+				mLoggedError = true;
+			}
+			return false;
+		}
+		if (!audioSystem->IsOutputEnabled()) {
+			return false;
+		}
+		if (!audioSystem->IsReady()) {
+			if (!mLoggedError) {
+				Error(kChannel, "AudioSystem is not ready.");
 				mLoggedError = true;
 			}
 			return false;
@@ -101763,7 +101786,14 @@ namespace Unnamed {
 		Shutdown();
 	}
 
-	bool AudioSystem::Init() {
+	bool AudioSystem::Init(const bool enableOutput) {
+		if (!enableOutput) {
+			Shutdown();
+			mOutputEnabled = false;
+			return true;
+		}
+
+		mOutputEnabled = true;
 		if (mXAudio2 && mMasterVoice) {
 			return true;
 		}
@@ -101828,6 +101858,10 @@ namespace Unnamed {
 		return mXAudio2 != nullptr && mMasterVoice != nullptr;
 	}
 
+	bool AudioSystem::IsOutputEnabled() const noexcept {
+		return mOutputEnabled;
+	}
+
 	void AudioSystem::CleanupExpiredVoices() {
 		std::erase_if(
 			mVoices,
@@ -101863,7 +101897,10 @@ namespace Unnamed {
 		AudioSystem(const AudioSystem&)            = delete;
 		AudioSystem& operator=(const AudioSystem&) = delete;
 
-		bool Init();
+		/// @brief 音声出力バックエンドを初期化します。
+		/// @param enableOutput false の場合は音声を再生しない無音モードで初期化します。
+		/// @return 初期化に成功した場合は true を返します。
+		[[nodiscard]] bool Init(bool enableOutput = true);
 		void Shutdown();
 
 		[[nodiscard]] std::shared_ptr<AudioVoice> CreateVoice(
@@ -101872,6 +101909,9 @@ namespace Unnamed {
 
 		void               StopAll();
 		[[nodiscard]] bool IsReady() const noexcept;
+		/// @brief 音声出力が有効な起動設定かどうかを返します。
+		/// @details false の場合、音声コンポーネントは Voice を作成せず無音で動作します。
+		[[nodiscard]] bool IsOutputEnabled() const noexcept;
 
 	private:
 		void CleanupExpiredVoices();
@@ -101879,6 +101919,7 @@ namespace Unnamed {
 		Microsoft::WRL::ComPtr<IXAudio2>       mXAudio2;
 		IXAudio2MasteringVoice*                mMasterVoice = nullptr;
 		std::vector<std::weak_ptr<AudioVoice>> mVoices;
+		bool                                   mOutputEnabled = true;
 	};
 }
 
