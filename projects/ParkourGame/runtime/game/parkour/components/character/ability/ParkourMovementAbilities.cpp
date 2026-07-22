@@ -102,21 +102,31 @@ namespace Unnamed {
 			currentVel      += Math::HtoM(acc) * wishDir;
 		}
 
-		void ExecuteGroundJumpAndSwitchToAir(
+		[[nodiscard]] bool ExecuteGroundJumpAndSwitchToAir(
 			MovementContext& context,
 			ConsoleSystem*   console,
 			const float      deltaTime
 		) {
 			if (!context.transform || !context.resolver) {
-				return;
+				return false;
 			}
 
 			const float detachBiasM =
 				Math::HtoM(kJumpDetachBiasHu);
-
-			context.transform->SetPosition(
-				context.transform->GetPosition() + Vec3::up * detachBiasM
-			);
+			const Vec3 detachedPosition =
+				context.transform->GetPosition() + Vec3::up * detachBiasM;
+			Physics::Hit detachOverlap{};
+			if (
+				context.resolver->CollectOverlaps(
+					detachedPosition,
+					context.halfExtents,
+					&detachOverlap,
+					1
+				) > 0
+			) {
+				return false;
+			}
+			context.transform->SetPosition(detachedPosition);
 
 			context.velocity.y += Math::HtoM(
 				console ?
@@ -148,6 +158,7 @@ namespace Unnamed {
 				"jump from slide",
 				"ParkourSlideAbility"
 			);
+			return true;
 		}
 
 		struct SpeedVaultTrajectory {
@@ -1858,11 +1869,14 @@ namespace Unnamed {
 				);
 
 				if (context.input.jumpPressed) {
-					runtime.slide.active = false;
-					ExecuteGroundJumpAndSwitchToAir(
-						context, mConsole, deltaTime
-					);
-					return false;
+					if (
+						ExecuteGroundJumpAndSwitchToAir(
+							context, mConsole, deltaTime
+						)
+					) {
+						runtime.slide.active = false;
+						return false;
+					}
 				}
 
 				Vec3 movePos = context.transform ?

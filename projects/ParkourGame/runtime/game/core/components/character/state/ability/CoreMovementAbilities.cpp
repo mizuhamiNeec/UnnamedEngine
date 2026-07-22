@@ -46,9 +46,21 @@ namespace Unnamed {
 		const float deltaTime
 	) {
 		const float detachBiasM = Math::HtoM(kJumpDetachBiasHu);
-		context.transform->SetPosition(
-			context.transform->GetPosition() + Vec3::up * detachBiasM
-		);
+		const Vec3 detachedPosition =
+			context.transform->GetPosition() + Vec3::up * detachBiasM;
+		Physics::Hit detachOverlap{};
+		if (
+			context.resolver->CollectOverlaps(
+				detachedPosition,
+				context.halfExtents,
+				&detachOverlap,
+				1
+			) > 0
+		) {
+			// 離床用の位置補正で天井へ侵入する場合は、地上状態を維持する。
+			return false;
+		}
+		context.transform->SetPosition(detachedPosition);
 
 		context.velocity.y += Math::HtoM(
 			mConsole ? mConsole->GetConVarValueOr("sv_jumpvelocity", 420.0f) : 420.0f

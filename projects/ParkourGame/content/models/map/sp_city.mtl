@@ -1,4 +1,4 @@
-# Blender 5.2.0 LTS MTL File: '11528_autosave.blend'
+# Blender 5.2.0 LTS MTL File: 'None'
 # www.blender.org
 
 newmtl materials/dev/dev_measuregeneric01c.vmat
@@ -9,7 +9,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd C:/Users/MizuHami/Repositories/Softwares/Steam/steamapps/common/Counter-Strike Global Offensive/game/bin/win64/materials/dev/dev_measuregeneric01c_color_tga_f0750d01.vtex
+map_Kd S:/Softwares/Steam/steamapps/common/Counter-Strike Global Offensive/game/bin/win64/materials/dev/dev_measuregeneric01c_color_tga_f0750d01.vtex
 
 newmtl materials/dev/reflectivity_30.vmat
 Ns 50.000011
@@ -19,7 +19,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd C:/Users/MizuHami/Repositories/UnnamedEngine/content/core/textures/dev_measure.png
+map_Kd S:/Softwares/Steam/steamapps/common/Counter-Strike Global Offensive/game/bin/win64/materials/dev/reflectivity_30_color_tga_72d9c5c1.vtex
 
 newmtl materials/error.vmat
 Ns 50.000011
@@ -39,4 +39,4 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd C:/Users/MizuHami/Repositories/Softwares/Steam/steamapps/common/Counter-Strike Global Offensive/game/bin/win64/materials/models/editor/light_spot_color_psd_67849a44.vtex
+map_Kd S:/Softwares/Steam/steamapps/common/Counter-Strike Global Offensive/game/bin/win64/materials/models/editor/light_spot_color_psd_67849a44.vtex

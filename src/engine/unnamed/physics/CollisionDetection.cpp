@@ -572,9 +572,9 @@ namespace Unnamed::Physics {
 			}
 		}
 
-		// 2) 各軸で投影レンジを比べ、最小オーバラップを記録
+		// 2) 各軸で投影レンジを比べ、分離に必要な最小移動量を記録
 		float bestDepth = FLT_MAX;
-		Vec3  bestAxis  = Vec3::zero;
+		Vec3  bestNormal = Vec3::zero;
 
 		for (int i = 0; i < axisCnt; ++i) {
 			const Vec3& ax = axes[i];
@@ -595,26 +595,31 @@ namespace Unnamed::Physics {
 			triMin       = std::min({triMin, d1, d2});
 			triMax       = std::max({triMax, d1, d2});
 
-			// オーバラップ量（符号付き）
-			const float overlap = std::min(boxMax, triMax) - std::max(
-				                      boxMin, triMin
-			                      );
-			if (overlap <= kContactEpsilon) {
+			// 三角形は面法線方向の厚みが0なので、投影区間の交差長では
+			// 貫入深度を得られない。まず接触を除いて分離軸を判定する。
+			if (
+				boxMax <= triMin + kContactEpsilon ||
+				triMax <= boxMin + kContactEpsilon
+			) {
 				return false; // 分離軸発見 → 衝突無し
 			}
 
-			if (overlap < bestDepth) {
-				bestDepth = overlap;
-				bestAxis  = ax;
+			// ボックスを正負どちらへ動かせばこの軸で分離できるかを比較し、
+			// 最小並進ベクトルの向きと距離を保持する。
+			const float pushPositive = triMax - boxMin;
+			const float pushNegative = boxMax - triMin;
+			const bool  pushTowardPositive = pushPositive < pushNegative;
+			const float axisDepth = pushTowardPositive ?
+				                        pushPositive :
+				                        pushNegative;
+			if (axisDepth < bestDepth) {
+				bestDepth  = axisDepth;
+				bestNormal = pushTowardPositive ? ax : -ax;
 			}
 		}
 
-		// 3) bestAxis 方向へ押し出し
-		// 軸種別（面/辺）に依存しないよう、三角形重心を基準に符号を決めます。
-		const Vec3 triCentroid = (tri.v0 + tri.v1 + tri.v2) * (1.0f / 3.0f);
-		outNormal = (box.center - triCentroid).Dot(bestAxis) >= 0.0f ?
-			            bestAxis :
-			            -bestAxis;
+		// 3) 最小移動量の方向へ押し出し
+		outNormal = bestNormal;
 		outDepth = bestDepth;
 		return true;
 	}
