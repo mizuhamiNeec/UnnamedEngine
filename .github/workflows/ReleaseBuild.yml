@@ -80,11 +80,11 @@ jobs:
         run: |
           $gameExe = Resolve-Path ".\bin\Release-windows-x86_64\UnnamedLauncher\UnnamedLauncher.exe"
           $project = Resolve-Path ".\projects\ParkourGame\config\game_profile.json"
-          Write-Host "Running Parkour startup validation: $gameExe --project=$project --validate-startup-only"
+          Write-Host "Running Parkour startup validation: $gameExe --project=$project --validate-startup-only --disable-audio"
           $valOut = [System.IO.Path]::GetTempFileName()
           $valErr = [System.IO.Path]::GetTempFileName()
           try {
-            $gameProcess = Start-Process -FilePath $gameExe -ArgumentList @("--project=$project", "--validate-startup-only") -WorkingDirectory $PWD -Wait -PassThru -NoNewWindow -RedirectStandardOutput $valOut -RedirectStandardError $valErr
+            $gameProcess = Start-Process -FilePath $gameExe -ArgumentList @("--project=$project", "--validate-startup-only", "--disable-audio") -WorkingDirectory $PWD -Wait -PassThru -NoNewWindow -RedirectStandardOutput $valOut -RedirectStandardError $valErr
             $validationText = ((Get-Content -Path $valOut -Raw) + [Environment]::NewLine + (Get-Content -Path $valErr -Raw)).Trim()
             if (-not [string]::IsNullOrWhiteSpace($validationText)) {
               Write-Host $validationText
@@ -104,7 +104,7 @@ jobs:
             -Project .\projects\ParkourGame\config\game_profile.json `
             -AppExePath .\bin\Release-windows-x86_64\UnnamedLauncher\UnnamedLauncher.exe `
             -OutputRoot .\dist\ci-release-parkour `
-            -ValidateStartup -ValidateIsolatedStartup
+            -ValidateStartup -ValidateIsolatedStartup -DisableAudio
           if ($LASTEXITCODE -ne 0) {
             throw "Packaged startup validation failed (exit=$LASTEXITCODE)"
           }

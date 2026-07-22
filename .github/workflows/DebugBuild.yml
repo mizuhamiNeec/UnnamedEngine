@@ -92,11 +92,11 @@ jobs:
           $editorExe = Resolve-Path ".\bin\Debug-windows-x86_64\UnnamedEditorApp\UnnamedEditorApp.exe"
 
           foreach ($exe in @($launcherExe, $editorExe)) {
-            Write-Host "Running startup validation: $exe --project=$projectManifest --validate-startup-only"
+            Write-Host "Running startup validation: $exe --project=$projectManifest --validate-startup-only --disable-audio"
             $valOut = [System.IO.Path]::GetTempFileName()
             $valErr = [System.IO.Path]::GetTempFileName()
             try {
-              $process = Start-Process -FilePath $exe -ArgumentList @("--project=$projectManifest", "--validate-startup-only") -WorkingDirectory $PWD -Wait -PassThru -NoNewWindow -RedirectStandardOutput $valOut -RedirectStandardError $valErr
+              $process = Start-Process -FilePath $exe -ArgumentList @("--project=$projectManifest", "--validate-startup-only", "--disable-audio") -WorkingDirectory $PWD -Wait -PassThru -NoNewWindow -RedirectStandardOutput $valOut -RedirectStandardError $valErr
               $validationText = ((Get-Content -Path $valOut -Raw) + [Environment]::NewLine + (Get-Content -Path $valErr -Raw)).Trim()
               if (-not [string]::IsNullOrWhiteSpace($validationText)) {
                 Write-Host $validationText

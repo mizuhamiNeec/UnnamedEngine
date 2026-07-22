@@ -52,6 +52,8 @@ namespace Unnamed {
 		SceneLoadOptions sceneLoadOptions = {};
 		/// @brief Renderer起動時のShader/PSO検証オプションです。
 		Render::RenderStartupOptions renderStartupOptions = {};
+		/// @brief 音声出力バックエンドを初期化するかどうかです。
+		bool enableAudioOutput = true;
 	};
 
 	/// @brief Engine 実行時フックです。

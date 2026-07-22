@@ -9,7 +9,14 @@ namespace Unnamed {
 		Shutdown();
 	}
 
-	bool AudioSystem::Init() {
+	bool AudioSystem::Init(const bool enableOutput) {
+		if (!enableOutput) {
+			Shutdown();
+			mOutputEnabled = false;
+			return true;
+		}
+
+		mOutputEnabled = true;
 		if (mXAudio2 && mMasterVoice) {
 			return true;
 		}
@@ -72,6 +79,10 @@ namespace Unnamed {
 
 	bool AudioSystem::IsReady() const noexcept {
 		return mXAudio2 != nullptr && mMasterVoice != nullptr;
+	}
+
+	bool AudioSystem::IsOutputEnabled() const noexcept {
+		return mOutputEnabled;
 	}
 
 	void AudioSystem::CleanupExpiredVoices() {

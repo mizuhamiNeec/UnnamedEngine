@@ -5,6 +5,7 @@ param(
     [string]$ProjectPath = "",
     [string]$SandboxRoot = "",
     [switch]$KeepSandbox,
+    [switch]$DisableAudio,
     [switch]$Force
 )
 
@@ -150,15 +151,20 @@ try {
 
     $process = $null
     try {
-        $process = Start-Process -FilePath $isolatedExe -ArgumentList @("--project=$isolatedProject", "--validate-startup-only") -WorkingDirectory $isolationRoot -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        $projectArgument = ('--project="{0}"' -f $isolatedProject)
+        $validationArguments = @($projectArgument, "--validate-startup-only")
+        if ($DisableAudio) {
+            $validationArguments += "--disable-audio"
+        }
+        $process = Start-Process -FilePath $isolatedExe -ArgumentList $validationArguments -WorkingDirectory $isolationRoot -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
     }
     finally {
         $env:UNNAMED_REPO_ROOT = $oldRepoRootEnv
         $env:UNNAMED_PROJECTS_ROOT = $oldProjectsRootEnv
     }
 
-    $stdout = Get-Content -Path $stdoutPath -Raw
-    $stderr = Get-Content -Path $stderrPath -Raw
+    $stdout = Get-Content -Path $stdoutPath -Raw -Encoding UTF8
+    $stderr = Get-Content -Path $stderrPath -Raw -Encoding UTF8
     $combined = (($stdout + [Environment]::NewLine + $stderr).Trim())
     if (-not [string]::IsNullOrWhiteSpace($combined)) {
         Write-Host $combined

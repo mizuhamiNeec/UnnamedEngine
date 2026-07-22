@@ -9,6 +9,7 @@ param(
     [switch]$AllowExecutableModFiles,
     [switch]$ValidateStartup,
     [switch]$ValidateIsolatedStartup,
+    [switch]$DisableAudio,
     [string]$IsolatedValidatorPath = "",
     [switch]$Force
 )
@@ -74,6 +75,27 @@ function Ensure-ManifestShape {
         if (-not $Manifest.PSObject.Properties.Match($requiredField)) {
             throw "game_profile.json is missing required field '$requiredField': $ManifestPath"
         }
+    }
+}
+
+function Assert-PackagedManifestPaths {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Manifest,
+        [Parameter(Mandatory = $true)]
+        [string]$ManifestPath
+    )
+
+    $manifestDir = Split-Path -Parent $ManifestPath
+    $resolvedContentRoot = Resolve-PathAgainstBase -BasePath $manifestDir -Value ([string]$Manifest.contentRoot)
+    $startupScenePath = [string]$Manifest.defaultStartupScene
+    $resolvedStartupScene = Resolve-PathAgainstBase -BasePath $resolvedContentRoot -Value $startupScenePath
+
+    if (-not (Test-Path -LiteralPath $resolvedContentRoot -PathType Container)) {
+        throw "Packaged contentRoot does not exist from manifest '$ManifestPath': $resolvedContentRoot"
+    }
+    if (-not (Test-Path -LiteralPath $resolvedStartupScene -PathType Leaf)) {
+        throw "Packaged defaultStartupScene does not exist from manifest '$ManifestPath': $resolvedStartupScene"
     }
 }
 
@@ -288,6 +310,7 @@ if ($manifest.PSObject.Properties.Match("mods").Count -gt 0 -and $null -ne $mani
 
 $packagedManifestPath = Join-Path $targetConfigRoot "game_profile.json"
 $packagedManifest | ConvertTo-Json -Depth 16 | Set-Content -Path $packagedManifestPath -Encoding UTF8
+Assert-PackagedManifestPaths -Manifest $packagedManifest -ManifestPath $packagedManifestPath
 
 $packagedExePath = Join-Path $resolvedOutputRoot (Split-Path -Leaf $resolvedAppExe)
 if ($ValidateStartup) {
@@ -298,8 +321,13 @@ if ($ValidateStartup) {
     $stdoutPath = [System.IO.Path]::GetTempFileName()
     $stderrPath = [System.IO.Path]::GetTempFileName()
     try {
-        $process = Start-Process -FilePath $packagedExePath -ArgumentList @("--project=$packagedManifestPath", "--validate-startup-only") -WorkingDirectory $resolvedOutputRoot -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
-        $validationText = ((Get-Content -Path $stdoutPath -Raw) + [Environment]::NewLine + (Get-Content -Path $stderrPath -Raw)).Trim()
+        $projectArgument = ('--project="{0}"' -f $packagedManifestPath)
+        $validationArguments = @($projectArgument, "--validate-startup-only")
+        if ($DisableAudio) {
+            $validationArguments += "--disable-audio"
+        }
+        $process = Start-Process -FilePath $packagedExePath -ArgumentList $validationArguments -WorkingDirectory $resolvedOutputRoot -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        $validationText = ((Get-Content -Path $stdoutPath -Raw -Encoding UTF8) + [Environment]::NewLine + (Get-Content -Path $stderrPath -Raw -Encoding UTF8)).Trim()
         if (-not [string]::IsNullOrWhiteSpace($validationText)) {
             Write-Host $validationText
         }
@@ -325,7 +353,18 @@ if ($ValidateIsolatedStartup) {
         throw "isolated validator script was not found: $IsolatedValidatorPath"
     }
 
-    & powershell -ExecutionPolicy Bypass -File $IsolatedValidatorPath -PackagedRoot $resolvedOutputRoot -AppExePath $packagedExePath -ProjectPath $packagedManifestPath -Force
+    $validatorArguments = @(
+        "-ExecutionPolicy", "Bypass",
+        "-File", $IsolatedValidatorPath,
+        "-PackagedRoot", $resolvedOutputRoot,
+        "-AppExePath", $packagedExePath,
+        "-ProjectPath", $packagedManifestPath
+    )
+    if ($DisableAudio) {
+        $validatorArguments += "-DisableAudio"
+    }
+    $validatorArguments += "-Force"
+    & powershell @validatorArguments
     if ($LASTEXITCODE -ne 0) {
         throw "isolated startup validation script failed with exit code $LASTEXITCODE"
     }

@@ -182,6 +182,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 				Unnamed::Render::RENDER_STARTUP_VALIDATION_POLICY::Strict :
 				Unnamed::Render::RENDER_STARTUP_VALIDATION_POLICY::Runtime,
 		},
+		.enableAudioOutput = !launchOptions.disableAudio,
 	};
 	Unnamed::Engine                   engine(runtimeBindings, runMode);
 	const Unnamed::EngineRunCallbacks callbacks = {

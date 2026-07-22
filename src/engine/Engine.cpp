@@ -387,9 +387,12 @@ namespace Unnamed {
 		);
 
 		mAudioSystem = std::make_unique<AudioSystem>();
-		if (!mAudioSystem->Init()) {
+		if (!mAudioSystem->Init(mRuntimeBindings.enableAudioOutput)) {
 			Error("Engine", "AudioSystem initialization failed.");
 			return false;
+		}
+		if (!mRuntimeBindings.enableAudioOutput) {
+			Msg("Engine", "Audio output is disabled by launch option.");
 		}
 		ServiceLocator::Register<AudioSystem>(mAudioSystem.get());
 

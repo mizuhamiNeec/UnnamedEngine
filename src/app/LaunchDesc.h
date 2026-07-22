@@ -29,6 +29,8 @@ namespace Unnamed {
 		bool showHelp = false;
 		/// @brief 起動前検証のみ実行して終了するかどうかです。
 		bool validateStartupOnly = false;
+		/// @brief 音声出力を無効化して起動するかどうかです。
+		bool disableAudio = false;
 		/// @brief 起動引数診断（警告/エラー）です。
 		std::vector<std::string> diagnostics = {};
 	};
@@ -157,7 +159,8 @@ namespace Unnamed {
 			"  --projects-root=<path>   明示的に projects ルートを指定してマニフェスト検索。\n";
 		helpText +=
 			"  --projects-root <path>   明示的に projects ルートを指定してマニフェスト検索。\n";
-		helpText += "  --validate-startup-only  起動前検証のみ実行して終了。\n\n";
+		helpText += "  --validate-startup-only  起動前検証のみ実行して終了。\n";
+		helpText += "  --disable-audio          音声出力を無効化して起動。\n\n";
 		helpText += "Environment:\n";
 		helpText +=
 			"  UNNAMED_PROJECTS_ROOT=<path> projects ルートを直接指定してマニフェスト検索。\n";
@@ -186,7 +189,7 @@ namespace Unnamed {
 	}
 
 	/// @brief 現在プロセスのコマンドラインを共通ルールで解析します。
-	/// @details `--game[= ]` と `--project[= ]` と `--projects-root[= ]` と `--repo-root[= ]` と `--help/-h` に対応します。
+	/// @details `--game[= ]`、`--project[= ]`、`--projects-root[= ]`、`--repo-root[= ]`、`--validate-startup-only`、`--disable-audio`、`--help/-h` に対応します。
 	[[nodiscard]] inline LaunchDesc ParseAppLaunchOptionsFromCommandLine() {
 		LaunchDesc options          = {};
 		const auto appendDiagnostic = [&](const std::string_view text) {
@@ -338,6 +341,10 @@ namespace Unnamed {
 			if (arg.rfind(L"--", 0) == 0) {
 				if (arg == L"--validate-startup-only") {
 					options.validateStartupOnly = true;
+					continue;
+				}
+				if (arg == L"--disable-audio") {
+					options.disableAudio = true;
 					continue;
 				}
 				appendDiagnostic(

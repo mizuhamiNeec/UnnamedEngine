@@ -366,11 +366,21 @@ namespace Unnamed {
 
 		auto* assetManager = GetAssetManager();
 		auto* audioSystem  = ServiceLocator::Get<AudioSystem>();
-		if (!assetManager || !audioSystem || !audioSystem->IsReady()) {
+		if (!assetManager || !audioSystem) {
 			if (!mLoggedError) {
 				Error(
 					kChannel, "AssetManager or AudioSystem is not available."
 				);
+				mLoggedError = true;
+			}
+			return false;
+		}
+		if (!audioSystem->IsOutputEnabled()) {
+			return false;
+		}
+		if (!audioSystem->IsReady()) {
+			if (!mLoggedError) {
+				Error(kChannel, "AudioSystem is not ready.");
 				mLoggedError = true;
 			}
 			return false;
