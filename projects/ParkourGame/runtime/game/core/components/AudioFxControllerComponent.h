@@ -12,8 +12,10 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief AudioFxControllerComponentは、効果音presetの再生要求をAudioSourceへ仲介し、同時再生状態を管理します
 	class AudioFxControllerComponent final : public BaseComponent {
 	public:
+		/// @brief OneShotPresetは、単発効果音のsound asset、音量、pitch、同時再生制限を保持します
 		struct OneShotPreset {
 			std::string id;
 			uint64_t    sourceEntityGuid    = 0;

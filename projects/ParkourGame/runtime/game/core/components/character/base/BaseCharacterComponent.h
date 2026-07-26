@@ -12,6 +12,7 @@ namespace Unnamed {
 	class TransformComponent;
 	class BaseKinematicCollisionResolver;
 
+	/// @brief MovementFrameInputは、固定step中に使う移動方向、jump、crouch入力をsnapshotとして保持します
 	struct MovementFrameInput {
 		// 移動入力のベクトル
 		Vec3 moveAxis = Vec3::zero;

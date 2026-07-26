@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 
+/// @brief Keyframeは、animation sampleの時刻と補間対象値を1 keyとして保持します
 template <typename T>
 struct Keyframe {
 	float time;

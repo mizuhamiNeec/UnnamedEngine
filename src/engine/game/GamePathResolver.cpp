@@ -23,6 +23,7 @@ namespace Unnamed {
 			MOD,
 		};
 
+		/// @brief ContentMountRootは、content mount名と解決済みphysical root pathの対応を保持します
 		struct ContentMountRoot {
 			Path                rootPath;
 			CONTENT_MOUNT_LAYER layer = CONTENT_MOUNT_LAYER::BASE;

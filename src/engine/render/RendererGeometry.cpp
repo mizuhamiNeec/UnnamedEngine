@@ -164,6 +164,7 @@ namespace Unnamed::Render {
 			cmdList->ResourceBarrier(1, &barrier);
 		}
 
+		/// @brief VertexGeomは、geometry passへ渡すposition、normal、tangent、UVの頂点layoutを定義します
 		struct VertexGeom {
 			Vec3 pos;
 			Vec3 normal;
@@ -173,6 +174,7 @@ namespace Unnamed::Render {
 			Vec4 blendWeights;
 		};
 
+		/// @brief QuadVertexは、fullscreen quad shaderへ渡すclip位置とUVの頂点layoutを定義します
 		struct QuadVertex {
 			float px, py, pz;
 			float u,  v;

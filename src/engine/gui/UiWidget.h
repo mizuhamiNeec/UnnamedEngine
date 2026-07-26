@@ -34,11 +34,13 @@ namespace Unnamed::Gui {
 		EXPAND, // 親にねだる
 	};
 
+	/// @brief UiSizePolicyは、UiWidgetが親の余剰幅・高さを伸縮へ使う方針を保持します
 	struct UiSizePolicy {
 		UiSizePolicyAxis horizontal = UiSizePolicyAxis::FIXED;
 		UiSizePolicyAxis vertical   = UiSizePolicyAxis::FIXED;
 	};
 
+	/// @brief UiSizeConstraintsは、UiWidgetの最小・最大幅と高さをlayout制約として保持します
 	struct UiSizeConstraints {
 		float minWidth  = 0.0f;
 		float minHeight = 0.0f;

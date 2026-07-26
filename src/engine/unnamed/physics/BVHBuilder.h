@@ -7,6 +7,7 @@
 
 namespace Unnamed::Physics {
 	// フラットノード
+	/// @brief FlatNodeは、物理照会の階層またはグラフにおける接続関係とノード固有値を保持します
 	struct FlatNode {
 		AABB     bounds;
 		uint32_t leftFirst;

@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <concepts>
 #include <mutex>
 #include <optional>
 
@@ -9,6 +10,11 @@ namespace Unnamed {
 	/// @tparam Capacity リングバッファの容量
 	/// @details 固定サイズの循環バッファで、容量に達すると古いデータを上書きします。 めちゃ便利!!
 	template <typename T, size_t Capacity>
+		requires (
+			Capacity > 0 &&
+			std::default_initializable<T> &&
+			std::assignable_from<T&, const T&>
+		)
 	class RingBuffer {
 	public:
 		/// @brief デフォルトコンストラクタ

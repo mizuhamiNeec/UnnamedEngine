@@ -149,6 +149,7 @@ namespace Unnamed::UI {
 		[[nodiscard]] UIFontAtlasCacheDebugInfo GetDebugInfo() const;
 
 	private:
+		/// @brief CacheEntryは、即時UIキャッシュ内の資源と最終利用情報を同じ寿命で保持します
 		struct CacheEntry {
 			UIFontAtlasKey               key = {};
 			std::unique_ptr<UIFontAtlas> atlas;

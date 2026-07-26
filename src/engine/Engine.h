@@ -62,7 +62,7 @@ namespace Unnamed {
 		std::function<void(Engine&)> onPreShutdown = {};
 	};
 
-	/// @brief エンジンクラス
+	/// @brief 各サブシステムの初期化、フレーム実行、終了順序を統括します
 	class Engine final {
 	public:
 		/// @brief コンストラクタ

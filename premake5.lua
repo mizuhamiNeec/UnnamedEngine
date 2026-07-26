@@ -13,4 +13,7 @@ startproject(startupProject)
 
 dofile("build/premake/thirdparty.lua")
 dofile("build/premake/engine.lua")
-dofile("build/premake/apps.lua")
+if not _OPTIONS["engine-only"] then
+	dofile("build/premake/apps.lua")
+end
+dofile("build/premake/tests.lua")

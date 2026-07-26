@@ -188,6 +188,7 @@ namespace Unnamed {
 		bool                       mGridSnapEnabled = true;
 		int                        mGridSnapSize    = 32;
 
+		/// @brief NodeRuntimeStateは、presentation nodeの開始時刻と完了状態を再生中だけ保持します
 		struct NodeRuntimeState final {
 			double lastExecutedAt        = -1.0;
 			double lastConditionFailedAt = -1.0;

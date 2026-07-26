@@ -9,6 +9,7 @@ namespace Unnamed {
 	class JsonWriter;
 	class TransformComponent;
 
+	/// @brief PatrolPointComponentは、巡回点の次接続と待機設定をシーンへ保存・復元します
 	class PatrolPointComponent final : public BaseComponent {
 	public:
 		void                     OnAttached() override;

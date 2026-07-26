@@ -16,6 +16,7 @@
 namespace Unnamed {
 	class Entity;
 
+	/// @brief DemoManagerは、replay recording・playback sessionとframe packetの進行を管理します
 	class DemoManager final : public IDemoService {
 	public:
 		/// @brief デモのモード

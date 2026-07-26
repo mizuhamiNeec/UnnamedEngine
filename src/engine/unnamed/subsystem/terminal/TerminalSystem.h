@@ -8,6 +8,7 @@
 namespace Unnamed {
 	class ConsoleSystem;
 
+	/// @brief TerminalSystemは、Windows terminalの入出力をConsoleSystemのcommand実行へ接続します
 	class TerminalSystem final : public ISubsystem {
 	public:
 		explicit TerminalSystem(ConsoleSystem* console);

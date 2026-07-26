@@ -126,7 +126,7 @@ namespace Unnamed {
 			uint64_t    order     = 0;
 		};
 
-		/// @brief 発火イベントです。
+		/// @brief EventDispatchは、sequence eventの発火時刻、event名、payloadを保持します
 		struct EventDispatch final {
 			uint64_t    keyId = 0;
 			std::string cueId;
@@ -136,18 +136,21 @@ namespace Unnamed {
 			std::string consoleCommand;
 		};
 
+		/// @brief FloatTargetMetaは、sequenceのFloatTarget対象を実行時に解決する識別情報を保持します
 		struct FloatTargetMeta final {
 			uint64_t    entityGuid = 0;
 			std::string componentStableName;
 			std::string propertyPath;
 		};
 
+		/// @brief BoolTargetMetaは、sequenceのBoolTarget対象を実行時に解決する識別情報を保持します
 		struct BoolTargetMeta final {
 			uint64_t    entityGuid = 0;
 			std::string componentStableName;
 			std::string propertyPath;
 		};
 
+		/// @brief Vec3TargetMetaは、sequenceのVec3Target対象を実行時に解決する識別情報を保持します
 		struct Vec3TargetMeta final {
 			uint64_t    entityGuid = 0;
 			std::string componentStableName;

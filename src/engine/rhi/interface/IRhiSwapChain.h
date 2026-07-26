@@ -4,6 +4,7 @@
 #include <engine/rhi/RhiTypes.h>
 
 namespace Unnamed::Rhi {
+	/// @brief IRhiSwapChainは、back buffer取得、resize、presentを提供するswap chain契約を定義します
 	class IRhiSwapChain {
 	public:
 		virtual ~IRhiSwapChain() = default;

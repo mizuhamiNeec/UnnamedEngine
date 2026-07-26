@@ -49,7 +49,7 @@ namespace Unnamed {
 		static constexpr auto kBgColorDefault = Vec4(0.29f, 0.29f, 0.29f, 1.0f);
 		static constexpr auto kFgColorDefault = Vec4(0.71f, 0.71f, 0.72f, 1.0f);
 
-		/// @brief 空の構造体
+		/// @brief Emptyは、ConVar UI layout variantで内容を持たない空要素を表します
 		struct Empty {
 		};
 
@@ -88,10 +88,11 @@ namespace Unnamed {
 			std::variant<Empty, Label, Button, ExecutableButton> element;
 		};
 
-		/// @brief ページの構造体
+		/// @brief Pageは、ConVar helper UIのpage名と所属control列を保持します
 		struct Page {
 			std::string name; // ページ名
 
+			/// @brief Gridは、ConVar helper UIを行列配置する列数、間隔、control列を保持します
 			struct Grid {
 				uint32_t width;            // テーブルの列数
 				uint32_t height;           // テーブルの行数

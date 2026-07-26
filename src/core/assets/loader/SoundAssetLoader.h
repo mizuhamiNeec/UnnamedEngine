@@ -3,6 +3,7 @@
 #include "core/assets/loader/interface/IAssetLoader.h"
 
 namespace Unnamed {
+	/// @brief SoundAssetLoaderは、音声fileをPCM formatとsample byte列へdecodeします
 	class SoundAssetLoader final : public IAssetLoader {
 	public:
 		bool CanLoad(

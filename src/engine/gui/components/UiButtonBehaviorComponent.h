@@ -9,6 +9,7 @@
 #include "engine/gui/UiDrawCommand.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiButtonBehaviorComponentは、UiWidgetのhover・press・click状態を入力から更新します
 	class UiButtonBehaviorComponent final : public UiComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {

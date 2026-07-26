@@ -7,6 +7,7 @@
 #include "engine/rhi/RhiTypes.h"
 
 namespace Unnamed::Rhi {
+	/// @brief IRhiDeviceは、buffer・texture・pipeline生成とcommand context取得のRHI device契約を定義します
 	class IRhiDevice {
 	public:
 		virtual ~IRhiDevice() = default;

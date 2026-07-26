@@ -1,6 +1,6 @@
 #include "EngineComponentRegistration.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 
 #include "EngineComponentCatalog.h"
 #include "engine/unnamed/subsystem/console/Log.h"

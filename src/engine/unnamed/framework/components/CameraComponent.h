@@ -9,6 +9,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief CameraComponentは、view・projection行列とviewport設定をWorldの描画cameraとして提供します
 	class CameraComponent final : public BaseComponent {
 	public:
 		// ---- CameraComponent -----------------------------------------------

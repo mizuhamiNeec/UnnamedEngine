@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 namespace Unnamed {
+	/// @brief ITweenPlayableは、Tween実装が満たす操作契約とライフタイム境界を定義します
 	class ITweenPlayable {
 	public:
 		virtual ~ITweenPlayable() = default;

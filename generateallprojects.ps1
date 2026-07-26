@@ -1,4 +1,4 @@
-Write-Host "Generating projects (default: Parkour-only --games=parkour)..."
+Write-Host "Generating engine, Parkour, application, and test projects..."
 
 $localPremakePath = Join-Path -Path $PSScriptRoot -ChildPath "premake5.exe"
 $premakeCommand = $null
@@ -21,7 +21,7 @@ if (-not $premakeCommand) {
 }
 
 try {
-    & $premakeCommand --games=parkour vs2026
+    & $premakeCommand vs2026
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Premake5 execution completed."

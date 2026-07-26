@@ -12,6 +12,7 @@ namespace Unnamed {
 	class EditorCameraComponent;
 	class IGameWorldFactory;
 
+	/// @brief EditorWorldは、編集scene、selection、Editor cameraを保持し、simulationを開始せずに更新します
 	class EditorWorld final : public World {
 	public:
 		~EditorWorld() override;

@@ -9,7 +9,7 @@
 #include "core/math/Vec2.h"
 
 namespace Unnamed::UI::Retained {
-	/// @brief UIノードの識別子
+	/// @brief retained UIノードを世代付き整数で安定して識別します
 	struct UiNodeId {
 		constexpr static uint64_t kInvalid =
 			std::numeric_limits<uint64_t>::max();
@@ -39,6 +39,7 @@ namespace Unnamed::UI::Retained {
 		auto operator<=>(const UiNodeHandle&) const = default;
 	};
 
+	/// @brief retained UIレイアウトの位置と寸法をピクセル単位で表します
 	struct UiRect {
 		Vec2 min = Vec2::zero;
 		Vec2 max = Vec2::zero;
@@ -75,6 +76,7 @@ namespace Unnamed::UI::Retained {
 		DISABLED,
 	};
 
+	/// @brief UiInteractionResultは、retained UI nodeのhover、hold、click判定を当該frameの結果として返します
 	struct UiInteractionResult {
 		bool hovered = false;
 		bool held    = false;
@@ -89,6 +91,7 @@ namespace Unnamed::UI::Retained {
 		CLICK
 	};
 
+	/// @brief UiEventは、retained UIで発生した事象と配送に必要な付随値を保持します
 	struct UiEvent {
 		UiNodeId      target = {};
 		UI_EVENT_TYPE type   = UI_EVENT_TYPE::CLICK;

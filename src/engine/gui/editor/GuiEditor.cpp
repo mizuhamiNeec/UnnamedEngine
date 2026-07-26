@@ -31,6 +31,7 @@ namespace Unnamed::Gui {
 	namespace {
 		constexpr auto kRenamePopupId = "Rename Widget";
 
+		/// @brief PaletteTemplateは、GUI editor paletteに表示する名称、分類、widget生成callbackを保持します
 		struct PaletteTemplate {
 			const char*                 category;
 			const char*                 label;

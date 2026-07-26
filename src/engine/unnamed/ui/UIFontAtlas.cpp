@@ -37,6 +37,7 @@ namespace Unnamed::UI {
 	namespace {
 		constexpr std::string_view kChannel = "UI";
 
+		/// @brief PendingGlyphは、font atlasへ追加予定のcodepoint、metrics、bitmapを保持します
 		struct PendingGlyph {
 			stbtt_packedchar packed    = {};
 			float            advanceX  = 0.0f;

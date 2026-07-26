@@ -9,6 +9,7 @@
 #include "core/filesystem/Path.h"
 
 namespace Unnamed {
+	/// @brief BinaryWriterは、バイナリ入出力の型付き値を決められたバイナリ形式へ書き出します
 	class BinaryWriter {
 	public:
 		explicit BinaryWriter(const Path& path);

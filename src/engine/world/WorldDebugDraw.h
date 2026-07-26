@@ -8,6 +8,7 @@
 #include "engine/render/frame/RenderFrameInputs.h"
 
 namespace Unnamed {
+	/// @brief WorldDebugDrawは、ワールド空間のデバッグ線分を寿命付きで蓄積して描画入力へ提出します
 	class WorldDebugDraw {
 	public:
 		/// @brief ラインを描画します。
@@ -140,6 +141,7 @@ namespace Unnamed {
 		void FlushToRenderFrameInputs(Render::RenderFrameInputs& inputs);
 
 	private:
+		/// @brief PendingLineは、debug線分の両端、色、残り表示時間を保持します
 		struct PendingLine {
 			Vec3 start = Vec3::zero;
 			Vec3 end   = Vec3::right;

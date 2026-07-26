@@ -44,6 +44,9 @@ ipch/
 # Logs / crash dumps
 *.log
 *.dmp
+*.tmp
+*.cache
+*.vsix
 
 # ReSharper / Rider / JetBrains
 _ReSharper*/
@@ -51,6 +54,11 @@ _ReSharper*/
 *.DotSettings.user
 .idea/
 *.DotSettings
+
+# Local analysis state
+.serena/
+__pycache__/
+*.pyc
 
 # ImGui config (user local)
 imgui.ini
@@ -63,6 +71,9 @@ imgui.ini
 /ClassDiagram.cd
 .github/copilot-instructions.md
 /premake5.exe
+/artifacts/
+/dist/
+/cvarhelper.ini
 projects/*/config/user.cfg
 projects/*/projects/*/config/user.cfg
 

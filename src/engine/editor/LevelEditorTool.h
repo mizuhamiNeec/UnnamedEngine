@@ -53,6 +53,7 @@ namespace Unnamed {
 		HU    = 1,
 	};
 
+	/// @brief LevelEditorToolは、World hierarchy、viewport、component propertyを編集するlevel UIを提供します
 	class LevelEditorTool final : public IEditorTool {
 	public:
 		LevelEditorTool(WindowManager& windowManager, ImGuiLayer& imGuiLayer);
@@ -92,6 +93,7 @@ namespace Unnamed {
 			"tool.level.scene.perspective";
 
 	private:
+		/// @brief ViewOutputCacheは、view textureのSRV、revision、texture ID、表示寸法とUV範囲を再利用用に保持します
 		struct ViewOutputCache {
 			D3D12_CPU_DESCRIPTOR_HANDLE srvCpu      = {};
 			uint64_t                    srvRevision = 0;

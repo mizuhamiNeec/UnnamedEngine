@@ -19,6 +19,7 @@ namespace Unnamed {
 		/// @brief deterministicアクション入力キューの最大保持件数です。
 		static constexpr size_t kDeterministicActionInputQueueCapacity = 128;
 
+		/// @brief WallRunRuntimeは、接触wall、走行side、経過時間、離脱抑止状態をwall-run中だけ保持します
 		struct WallRunRuntime {
 			bool  active            = false;
 			Vec3  normal            = Vec3::zero;
@@ -29,12 +30,14 @@ namespace Unnamed {
 			bool  jumpWasHeldOnInit = false;
 		};
 
+		/// @brief SlideRuntimeは、slide開始速度、経過時間、stance復帰待ち状態をslide中だけ保持します
 		struct SlideRuntime {
 			bool  active    = false;
 			Vec3  direction = Vec3::zero;
 			float time      = 0.0f;
 		};
 
+		/// @brief BlinkRuntimeは、blink開始位置、目標位置、補間進行を瞬間移動中だけ保持します
 		struct BlinkRuntime {
 			float cooldown  = 0.0f;
 			bool  active    = false;
@@ -43,6 +46,7 @@ namespace Unnamed {
 			Vec3  targetPos = Vec3::zero;
 		};
 
+		/// @brief VaultRuntimeは、vault軌道、開始姿勢、補間進行を障害物通過中だけ保持します
 		struct VaultRuntime {
 			bool  active      = false;
 			float time        = 0.0f;
@@ -53,6 +57,7 @@ namespace Unnamed {
 			Vec3  preVelocity = Vec3::zero;
 		};
 
+		/// @brief ParkourRuntimeは、現在ability、入力buffer、移動補助cacheをparkour更新間で保持します
 		struct ParkourRuntime {
 			bool           hasDoubleJump           = true;
 			bool           lastJumpHeld            = false;
@@ -276,6 +281,7 @@ namespace Unnamed {
 		bool                        mCameraRootBaseLocalCached = false;
 		CharacterActionFrameInput   mActionFrameInput = {};
 
+		/// @brief DeterministicActionInputPacketは、movement abilityを再現するtick、固定step、action入力を保持します
 		struct DeterministicActionInputPacket {
 			uint64_t                  tick        = 0;
 			float                     stepSeconds = 0.0f;

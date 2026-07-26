@@ -11,6 +11,7 @@ namespace Unnamed::UI {
 		TEXT, // テキスト
 	};
 
+	/// @brief UIDrawCommandは、即時UIで順序付き実行する命令と引数を保持します
 	struct UIDrawCommand {
 		UIDrawCommandType type = UIDrawCommandType::RECT;
 
@@ -26,6 +27,7 @@ namespace Unnamed::UI {
 		uint32_t textOversampleV = 1;
 	};
 
+	/// @brief UIDrawListは、即時UIが生成したスプライト描画命令を提出順に蓄積します
 	class UIDrawList {
 	public:
 		void Clear();

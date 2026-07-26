@@ -6,6 +6,7 @@
 #include "UiWidget.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiDocumentは、GUIウィジェット階層のルートとドキュメント固有状態を所有します
 	class UiDocument {
 	public:
 		UiDocument();

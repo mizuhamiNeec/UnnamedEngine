@@ -10,6 +10,7 @@
 #include "engine/gui/UiDrawCommand.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiDigitStripComponentは、数値を桁ごとのtexture領域へ変換して連続描画します
 	class UiDigitStripComponent final : public UiComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {

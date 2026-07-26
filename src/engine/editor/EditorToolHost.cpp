@@ -13,7 +13,7 @@
 #include "engine/ImGui/ImGuiWidgets.h"
 #include "engine/render/RenderModule.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
-#include "engine/unnamed/subsystem/editorluasystem/EditorLuaSystem.h"
+#include "engine/editor/lua/EditorLuaSystem.h"
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel        = "EdTlHost";

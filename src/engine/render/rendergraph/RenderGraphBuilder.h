@@ -17,26 +17,31 @@ namespace Unnamed::Render {
 		DEPTH_READ,
 	};
 
+	/// @brief RgUseは、RenderGraph resource handleと要求accessを1件のpass useとして保持します
 	struct RgUse {
 		uint32_t  textureId = 0;
 		RG_ACCESS access    = RG_ACCESS::SRV_READ_PS;
 	};
 
+	/// @brief Colorは、render target clear命令へ渡すRGBA値を保持します
 	struct Color {
 		float r, g, b, a = 0.0f;
 	};
 
+	/// @brief RgClearCmdは、render target handleとclear colorをpass開始時のclear命令として保持します
 	struct RgClearCmd {
 		uint32_t textureId = 0;
 		Color    color;
 	};
 
+	/// @brief RgDepthClearCmdは、depth target handleとdepth・stencil値をclear命令として保持します
 	struct RgDepthClearCmd {
 		uint32_t textureId = 0;
 		float    depth     = 1.0f;
 		uint8_t  stencil   = 0;
 	};
 
+	/// @brief RenderGraphBuilderは、RenderGraphの入力記述から実行用データ構造を構築します
 	class RenderGraphBuilder {
 	public:
 		explicit RenderGraphBuilder(RgResourceRegistry& registry);

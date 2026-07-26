@@ -4,6 +4,7 @@
 namespace Unnamed {
 	class AssetManager;
 
+	/// @brief PostFxChainLoaderは、post-process pass列とmaterial参照から実行順付きchainを構築します
 	class PostFxChainLoader : public IAssetLoader {
 	public:
 		explicit PostFxChainLoader(AssetManager* assetManager);

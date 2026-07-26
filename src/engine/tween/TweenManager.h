@@ -5,6 +5,7 @@
 #include "TweenInstance.h"
 
 namespace Unnamed {
+	/// @brief TweenManagerは、active Tweenをshared ownershipで保持し、更新・完了・一括停止を管理します
 	class TweenManager {
 	public:
 		TweenManager()  = default;

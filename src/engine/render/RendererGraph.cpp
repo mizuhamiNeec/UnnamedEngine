@@ -50,6 +50,7 @@ namespace Unnamed::Render {
 			return frame;
 		}
 
+		/// @brief DirectionalShadowMatricesは、directional light cascadeごとのview・projection行列を保持します
 		struct DirectionalShadowMatrices {
 			Mat4 lightView         = Mat4::identity;
 			Mat4 lightProj         = Mat4::identity;
@@ -89,6 +90,7 @@ namespace Unnamed::Render {
 			return result;
 		}
 
+		/// @brief PostFxParamsConstantsは、post-process material parameterをshader定数layoutで保持します
 		struct PostFxParamsConstants {
 			Vec4 scalar0 = Vec4::zero;
 			Vec4 scalar1 = Vec4::zero;
@@ -96,6 +98,7 @@ namespace Unnamed::Render {
 			Vec4 color1  = Vec4::zero;
 		};
 
+		/// @brief BloomPyramidConstantsは、bloom pyramidのsource寸法、mip index、thresholdをshader定数として保持します
 		struct BloomPyramidConstants {
 			Vec4 params0 = Vec4::zero;
 			// x=invSrcW, y=invSrcH, z=threshold, w=knee
@@ -103,6 +106,7 @@ namespace Unnamed::Render {
 			// x=radius, y=intensity, z=firstPass
 		};
 
+		/// @brief FitRectは、レンダリング要素の位置と寸法を同じ座標系で表します
 		struct FitRect {
 			float x      = 0.0f;
 			float y      = 0.0f;

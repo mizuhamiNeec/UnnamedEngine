@@ -33,16 +33,19 @@ namespace Unnamed {
 		Vec3        bindLocalScale       = Vec3::one;
 	};
 
+	/// @brief AnimationKeyVec3AssetDataは、AnimationKeyVec3Asset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct AnimationKeyVec3AssetData {
 		float timeSeconds = 0.0f;
 		Vec3  value       = Vec3::zero;
 	};
 
+	/// @brief AnimationKeyQuatAssetDataは、AnimationKeyQuatAsset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct AnimationKeyQuatAssetData {
 		float      timeSeconds = 0.0f;
 		Quaternion value       = Quaternion::identity;
 	};
 
+	/// @brief SkeletonBoneTrackAssetDataは、SkeletonBoneTrackAsset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct SkeletonBoneTrackAssetData {
 		int32_t                                boneIndex = -1;
 		std::vector<AnimationKeyVec3AssetData> translationKeys;
@@ -50,6 +53,7 @@ namespace Unnamed {
 		std::vector<AnimationKeyVec3AssetData> scaleKeys;
 	};
 
+	/// @brief AnimationClipAssetDataは、AnimationClipAsset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct AnimationClipAssetData {
 		std::string                             name;
 		float                                   durationSeconds = 0.0f;

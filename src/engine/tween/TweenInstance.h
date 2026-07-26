@@ -11,6 +11,7 @@
 #include "TweenTypes.h"
 
 namespace Unnamed {
+	/// @brief TweenInstanceは、開始値から終了値までの補間、遅延、ループ、完了通知を再生状態として管理します
 	template <typename TValue>
 	class TweenInstance final : public ITweenPlayable {
 	public:

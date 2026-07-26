@@ -28,6 +28,7 @@ namespace Unnamed {
 		return seed ^ value + mixConstant + (seed << 6) + (seed >> 2);
 	}
 
+	/// @brief 順序付き入力から実行間で安定したハッシュ値を構築します
 	class StableHashBuilder final {
 	public:
 		explicit constexpr

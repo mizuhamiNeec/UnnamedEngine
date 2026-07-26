@@ -4,7 +4,7 @@
 #include "ParkourGameModule.h"
 #include "ParkourComponentRegistration.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "engine/physics/core/Physics.h"
 #include "engine/scene/Scene.h"
 #include "game/core/replay/DemoManager.h"

@@ -5,6 +5,7 @@
 #include "core/math/Mat4.h"
 
 namespace Unnamed {
+	/// @brief StaticMeshColliderComponentは、static meshから物理colliderを登録し、Transform変更へ追従します
 	class StaticMeshColliderComponent final : public BaseComponent {
 	public:
 		void OnAttached() override;

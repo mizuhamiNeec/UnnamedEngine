@@ -4,6 +4,7 @@
 #include "core/math/Vec3.h"
 
 namespace Unnamed {
+	/// @brief GrappleStateは、grapple接続先、rope長、接続中フラグを移動更新間で保持します
 	struct GrappleState {
 		Vec3 anchorPoint = Vec3::zero;
 

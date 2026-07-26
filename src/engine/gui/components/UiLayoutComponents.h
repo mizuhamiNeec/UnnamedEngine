@@ -3,6 +3,7 @@
 #include "UiComponent.h"
 
 namespace Unnamed::Gui {
+	/// @brief LayoutPaddingは、layout内容領域の上下左右paddingをpixel単位で保持します
 	struct LayoutPadding {
 		float left   = 0.0f;
 		float top    = 0.0f;
@@ -10,6 +11,7 @@ namespace Unnamed::Gui {
 		float bottom = 0.0f;
 	};
 
+	/// @brief UiLinearLayoutComponentは、子UiWidgetを指定軸、間隔、alignmentに従って配置します
 	class UiLinearLayoutComponent : public UiComponent {
 	public:
 		void SetPadding(const LayoutPadding& padding);
@@ -35,6 +37,7 @@ namespace Unnamed::Gui {
 		float         mSpacing = 0.0f;
 	};
 
+	/// @brief UiVerticalLayoutComponentは、子UiWidgetを上から下へ間隔付きで配置します
 	class UiVerticalLayoutComponent final : public UiLinearLayoutComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {
@@ -47,6 +50,7 @@ namespace Unnamed::Gui {
 		}
 	};
 
+	/// @brief UiHorizontalLayoutComponentは、子UiWidgetを左から右へ間隔付きで配置します
 	class UiHorizontalLayoutComponent final : public UiLinearLayoutComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {

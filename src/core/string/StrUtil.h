@@ -129,6 +129,7 @@ namespace Unnamed::StrUtil {
 	/// @return ブール文字列の場合true
 	bool CheckBoolString(std::string str);
 
+	/// @brief 文字列中のリンク範囲をバイトオフセットで表します
 	struct LinkSpan {
 		std::size_t begin;
 		std::size_t end; // [begin, end]

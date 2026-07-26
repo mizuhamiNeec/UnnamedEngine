@@ -18,6 +18,7 @@ namespace Unnamed {
 		Path     materialInstancePath;
 	};
 
+	/// @brief StaticMeshRendererComponentは、static meshとmaterialの描画instanceをrendererへ提出します
 	class StaticMeshRendererComponent final : public BaseComponent {
 	public:
 		// ---- StaticMeshRendererComponent -----------------------------------

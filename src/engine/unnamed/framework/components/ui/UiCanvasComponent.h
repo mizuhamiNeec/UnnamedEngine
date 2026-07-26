@@ -57,6 +57,7 @@ namespace Unnamed {
 	[[nodiscard]] UI_CANVAS_BILLBOARD_DEPTH_MODE
 	ParseUiCanvasBillboardDepthMode(std::string_view value);
 
+	/// @brief UiCanvasComponentは、entity上のGUI canvasをWorldの入力・描画更新へ登録します
 	class UiCanvasComponent final : public BaseComponent {
 	public:
 		UiCanvasComponent();

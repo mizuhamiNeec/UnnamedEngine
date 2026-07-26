@@ -17,6 +17,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief CameraRotatorComponentは、mouse・gamepad入力をyawとpitchへ変換し、Camera姿勢を更新します
 	class CameraRotatorComponent final : public BaseComponent {
 	public:
 		void OnAttached() override;

@@ -1,7 +1,7 @@
 #pragma once
 
 namespace Unnamed {
-	/// @brief レイ構造体
+	/// @brief 始点と正規化方向で半直線を表します
 	struct Ray {
 		Vec3  origin;         // Origin
 		Vec3  dir;            // Direction
@@ -10,13 +10,13 @@ namespace Unnamed {
 		float tMax = FLT_MAX; // Maximum distance
 	};
 
-	/// @brief 線分構造体
+	/// @brief 2端点で有限線分を表します
 	struct Line {
 		Vec3 start = Vec3::zero;
 		Vec3 end   = Vec3::right;
 	};
 
-	/// @brief 三角形構造体
+	/// @brief 3頂点とそこから導出される面法線を表します
 	struct Triangle {
 		static constexpr float kSin60 = 0.86603f; // 60度の正弦値
 
@@ -25,7 +25,7 @@ namespace Unnamed {
 		Vec3 v2 = Vec3::up;
 	};
 
-	/// @brief 平面構造体
+	/// @brief 単位法線と原点からの符号付き距離で平面を表します
 	struct Plane {
 		Vec3  normal = Vec3::zero;
 		float d      = 0.0f;
@@ -36,18 +36,18 @@ namespace Unnamed {
 	/// @return 正規化された平面
 	Plane NormalizePlane(const Plane& plane);
 
-	/// @brief ボックス構造体
+	/// @brief 中心、半径、および姿勢で有向ボックスを表します
 	struct Box {
 		Vec3 center   = Vec3::zero;
 		Vec3 halfSize = Vec3::one * 0.5f;
 	};
 
-	/// @brief フラスタム構造体
+	/// @brief ビュー錐台を構成する6平面を保持します
 	struct Frustum {
 		Plane planes[6];
 	};
 
-	/// @brief 球 構造体
+	/// @brief 中心と半径で球を表します
 	struct Sphere {
 		Vec3  center = Vec3::zero;
 		float radius = 0.5f;
@@ -94,7 +94,7 @@ namespace Unnamed {
 		float         farZ
 	);
 
-	/// @brief カプセル構造体
+	/// @brief 線分の両端と半径でカプセル形状を表します
 	struct Capsule {
 		Vec3  start  = Vec3::down * 0.5f;
 		Vec3  end    = Vec3::up * 0.5f;

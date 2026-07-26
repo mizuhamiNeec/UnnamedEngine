@@ -6,6 +6,7 @@
 #include "engine/gui/UiWidget.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiTransformComponentは、UiWidgetの位置、寸法、anchorをlayout可能な状態として保持します
 	class UiTransformComponent final : public UiComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {

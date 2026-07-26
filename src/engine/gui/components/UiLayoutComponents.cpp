@@ -58,6 +58,7 @@ namespace Unnamed::Gui {
 			selfRect.height - mPadding.top - mPadding.bottom
 		);
 
+		/// @brief ChildInfoは、layout対象widget、固定extent、余剰領域を受け取る指定をchild一件分保持します
 		struct ChildInfo {
 			UiWidget* widget      = nullptr;
 			float     fixedExtent = 0.0f;

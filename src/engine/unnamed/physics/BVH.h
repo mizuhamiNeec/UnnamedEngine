@@ -5,7 +5,7 @@
 #include <core/math/Mat4.h>
 #include <engine/unnamed/physics/BVHBuilder.h>
 
-/// @brief BVH構造体
+/// @brief 三角形群を階層化した境界ボリュームと葉インデックスを所有します
 struct BVH {
 	std::vector<Unnamed::Physics::FlatNode> nodes;
 	std::vector<uint32_t>                   triIndices;

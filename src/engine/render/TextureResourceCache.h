@@ -59,6 +59,7 @@ namespace Unnamed::Render {
 		[[nodiscard]] TextureResourceCacheDebugStats GetDebugStats() const;
 
 	private:
+		/// @brief CacheEntryは、レンダリングキャッシュ内の資源と最終利用情報を同じ寿命で保持します
 		struct CacheEntry {
 			uint32_t textureId     = 0;
 			uint32_t assetVersion  = 0;

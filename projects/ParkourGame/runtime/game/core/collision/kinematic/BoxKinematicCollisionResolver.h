@@ -4,6 +4,7 @@
 #include "base/BaseKinematicCollisionResolver.h"
 
 namespace Unnamed {
+	/// @brief BoxKinematicCollisionResolverは、box sweepとpenetration queryから接触・補正結果を解決します
 	class BoxKinematicCollisionResolver final : public
 		BaseKinematicCollisionResolver {
 	public:
@@ -16,6 +17,7 @@ namespace Unnamed {
 			END_POSITION_OVERLAP,
 		};
 
+		/// @brief CollisionDebugStateは、衝突解決の接触点と補正ベクトルをdebug描画用に保持します
 		struct CollisionDebugState {
 			bool          hasBlockingHit    = false;
 			uint32_t      blockingHitCount  = 0;

@@ -1,6 +1,7 @@
 #pragma once
 
 namespace Unnamed {
+	/// @brief UTF-8とWindowsワイド文字列の境界変換を提供します
 	class TextEncoding final {
 	public:
 		TextEncoding() = delete;

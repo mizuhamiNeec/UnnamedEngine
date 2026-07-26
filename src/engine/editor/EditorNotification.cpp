@@ -19,6 +19,7 @@
 #include "engine/unnamed/subsystem/console/concommand/ConCommand.h"
 
 namespace Unnamed {
+	/// @brief NotificationStateは、Editor通知の表示開始時刻とfade進行を保持します
 	struct EditorNotification::NotificationState {
 		Notification notification;
 		uint64_t     id             = 0;
@@ -53,6 +54,7 @@ namespace Unnamed {
 		constexpr Vec2  kP1(0.2f, 0.0f);
 		constexpr Vec2  kP2(0.0f, 1.0f);
 
+		/// @brief NotificationLayoutは、Editor通知を積み重ねる画面位置、幅、行間を計算結果として保持します
 		struct NotificationLayout {
 			float  bodyFontSize            = 0.0f;
 			float  titleFontSize           = 0.0f;
