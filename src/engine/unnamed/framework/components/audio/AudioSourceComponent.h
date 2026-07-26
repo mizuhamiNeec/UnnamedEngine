@@ -16,6 +16,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief AudioSourceComponentは、sound assetとXAudio2 voiceの再生・停止・音量状態を管理します
 	class AudioSourceComponent final : public BaseComponent {
 	public:
 		[[nodiscard]] std::string_view GetStableName() const override;

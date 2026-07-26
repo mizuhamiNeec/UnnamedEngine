@@ -10,6 +10,7 @@
 #include "engine/gui/UiDrawCommand.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiTextureComponentは、asset textureとtintをUiWidgetのimage描画へ提供します
 	class UiTextureComponent final : public UiComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {

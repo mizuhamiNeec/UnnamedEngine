@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 namespace Unnamed {
-	/// @brief 再生可能なTweenのインターフェース。Tweenの更新、再生、一時停止、完了などの操作を提供します。
+	/// @brief ITweenPlayableは、Tween実装が満たす操作契約とライフタイム境界を定義します
 	class ITweenPlayable {
 	public:
 		virtual ~ITweenPlayable() = default;

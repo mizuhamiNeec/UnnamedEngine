@@ -19,6 +19,7 @@ namespace Unnamed::Rhi {
 		U_BYTE4_N,
 	};
 
+	/// @brief VertexElementDescは、1頂点属性のsemantic、format、byte offset、input slotを指定します
 	struct VertexElementDesc {
 		VertexSemantic semantic      = VertexSemantic::POSITION;
 		uint8_t        semanticIndex = 0;
@@ -30,6 +31,7 @@ namespace Unnamed::Rhi {
 		uint16_t instanceStepRate = 0;
 	};
 
+	/// @brief VertexLayoutDescは、PSO作成へ渡す頂点属性列とstrideを指定します
 	struct VertexLayoutDesc {
 		uint32_t                       stride = 0;
 		std::vector<VertexElementDesc> elements;

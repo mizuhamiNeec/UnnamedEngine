@@ -166,6 +166,7 @@ namespace Unnamed {
 	};
 }
 
+/// @brief Pathを汎用文字列フォーマッターへ橋渡しします
 template <>
 struct std::formatter<Unnamed::Path, char> : std::formatter<std::string, char> {
 	auto format(const Unnamed::Path& path, std::format_context& ctx) const {

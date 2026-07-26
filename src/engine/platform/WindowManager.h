@@ -11,6 +11,7 @@
 #include "engine/EngineConfig.h"
 
 namespace Unnamed {
+	/// @brief WindowManagerは、Win32 Window instanceを所有し、message pumpと終了要求を管理します
 	class WindowManager final {
 	public:
 		WindowManager();

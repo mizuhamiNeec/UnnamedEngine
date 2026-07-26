@@ -9,7 +9,7 @@ namespace Unnamed {
 		GAMEPAD
 	};
 
-	/// @brief 入力キー構造体
+	/// @brief 入力デバイス種別とデバイス内キーコードの組を識別します
 	struct InputKey {
 		InputDeviceType device;
 		uint32_t        code;

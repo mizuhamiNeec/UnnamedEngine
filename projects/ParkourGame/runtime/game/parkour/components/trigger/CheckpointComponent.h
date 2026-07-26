@@ -8,6 +8,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief CheckpointComponentは、player進入時にcourse checkpoint到達を記録します
 	class CheckpointComponent final : public TriggerVolumeComponentBase {
 	public:
 		[[nodiscard]] std::string_view GetStableName() const override {

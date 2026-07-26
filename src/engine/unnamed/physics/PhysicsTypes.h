@@ -4,6 +4,7 @@
 
 namespace Unnamed::Physics {
 	// ヒット情報
+	/// @brief 形状照会の衝突位置、法線、距離、および対象を呼び出し元へ返します
 	struct Hit {
 		float    toi           = FLT_MAX; // 0～1（キャストのTOI）。Overlap系は1.0f
 		float    depth         = 0.0f;
@@ -16,6 +17,7 @@ namespace Unnamed::Physics {
 	};
 
 	// 形状情報
+	/// @brief 衝突判定に使う三角形の頂点と面情報を保持します
 	struct TriInfo {
 		AABB     bounds;   // 境界
 		Vec3     center;   // 中心

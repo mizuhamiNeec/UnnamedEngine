@@ -7,6 +7,7 @@
 #include <vector>
 
 namespace Unnamed {
+	/// @brief BinaryReaderは、バイナリ入出力のバイト列を境界検査しながら型付き値へ読み出します
 	class BinaryReader {
 	public:
 		/// @brief 指定したパスのファイルをバイナリモードで開く。

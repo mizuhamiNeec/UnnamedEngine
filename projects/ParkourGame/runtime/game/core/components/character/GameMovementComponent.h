@@ -120,6 +120,7 @@ namespace Unnamed {
 		InputSystem*     mInput   = nullptr;
 		ConsoleSystem*   mConsole = nullptr;
 
+		/// @brief SupportCacheは、接地追従に使う支持entity、支持面の速度・step変位、接地状態をframe間で保持します
 		struct SupportCache {
 			uint64_t supportEntityGuid     = 0;
 			Vec3     supportLinearVelocity = Vec3::zero;

@@ -7,6 +7,7 @@
 #include "engine/render/frame/RenderFrameInputs.h"
 
 namespace Unnamed {
+	/// @brief DirectionalLightComponentは、方向光の向き、色、強度、shadow設定を描画入力へ提供します
 	class DirectionalLightComponent final : public BaseComponent {
 	public:
 		/// @brief ライト色を設定します。

@@ -161,6 +161,7 @@ namespace Unnamed {
 			return true;
 		}
 
+		/// @brief SpeedVaultTrajectoryは、speed vaultの開始点、通過点、着地点と補間進行を保持します
 		struct SpeedVaultTrajectory {
 			Vec3 startPos    = Vec3::zero;
 			Vec3 apexPos     = Vec3::zero;
@@ -168,6 +169,7 @@ namespace Unnamed {
 			Vec3 preVelocity = Vec3::zero;
 		};
 
+		/// @brief WallRunCandidateは、wall hit、走行方向、左右sideをwall-run開始候補として保持します
 		struct WallRunCandidate {
 			Vec3 normal      = Vec3::zero;
 			Vec3 direction   = Vec3::zero;
@@ -1034,6 +1036,7 @@ namespace Unnamed {
 			);
 		}
 
+		/// @brief ParkourCrouchAbilityは、crouch入力に応じて立ち・しゃがみ姿勢を切り替え、天井干渉時の解除を抑止します
 		class ParkourCrouchAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -1096,6 +1099,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourDoubleJumpAbilityは、空中jump入力を残り回数と接地状態で判定し、追加上向き速度を適用します
 		class ParkourDoubleJumpAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -1115,7 +1119,7 @@ namespace Unnamed {
 			}
 
 			[[nodiscard]] bool
-			CanRunInMode(MOVEMENT_MODE_ID modeId) const override {
+			CanRunInMode(const MOVEMENT_MODE_ID modeId) const override {
 				return modeId == MOVEMENT_MODE_ID::AIR;
 			}
 
@@ -1191,6 +1195,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourBlinkAbilityは、blink入力の移動先を衝突照会し、安全な位置へ瞬間移動します
 		class ParkourBlinkAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -1235,7 +1240,7 @@ namespace Unnamed {
 					return false;
 				}
 
-				Vec3 dir = context.input.forward.Normalized();
+				const Vec3 dir = context.input.forward.Normalized();
 				if (dir.IsZero()) {
 					return false;
 				}
@@ -1346,6 +1351,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourWallRunAbilityは、走行可能な壁面を検出し、接触中の速度と重力補正を更新します
 		class ParkourWallRunAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -1365,7 +1371,7 @@ namespace Unnamed {
 			}
 
 			[[nodiscard]] bool
-			CanRunInMode(MOVEMENT_MODE_ID modeId) const override {
+			CanRunInMode(const MOVEMENT_MODE_ID modeId) const override {
 				return modeId == MOVEMENT_MODE_ID::AIR;
 			}
 
@@ -1744,6 +1750,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourSlideAbilityは、slide開始条件を判定し、低姿勢中の速度・摩擦・終了条件を更新します
 		class ParkourSlideAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -1980,6 +1987,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourSpeedVaultAbilityは、低障害物のvault軌道を検証し、補間移動と着地遷移を制御します
 		class ParkourSpeedVaultAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -2154,6 +2162,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourGrappleAbilityは、grapple対象を照会し、rope距離と牽引加速度を更新します
 		class ParkourGrappleAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {

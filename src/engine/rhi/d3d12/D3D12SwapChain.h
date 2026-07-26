@@ -8,6 +8,7 @@
 #include "engine/rhi/interface/IRhiSwapChain.h"
 
 namespace Unnamed::Rhi {
+	/// @brief D3D12SwapChainは、DXGI swap chainとback buffer viewの生成、resize、presentを管理します
 	class D3D12SwapChain final : public IRhiSwapChain {
 	public:
 		D3D12SwapChain(

@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/guidgenerator/GuidGenerator.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
@@ -28,11 +28,13 @@
 
 namespace Unnamed {
 	namespace {
+		/// @brief OutlinerFolderNodeは、Outliner folder名、親子関係、展開状態を保持します
 		struct OutlinerFolderNode {
 			std::map<std::string, OutlinerFolderNode> children;
 			std::vector<Entity*>                      entities;
 		};
 
+		/// @brief ComponentMenuNodeは、add-component menuのcategory階層と登録component項目を保持します
 		struct ComponentMenuNode {
 			std::map<std::string, ComponentMenuNode>                children;
 			std::vector<ComponentRegistry::RegisteredComponentInfo> components;

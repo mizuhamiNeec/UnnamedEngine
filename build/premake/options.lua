@@ -5,6 +5,11 @@ newoption {
 }
 
 newoption {
+	trigger = "engine-only",
+	description = "Generate reusable engine, third-party, and engine test targets without application/game targets.",
+}
+
+newoption {
 	trigger = "projects-root",
 	value = "PATH",
 	description = "Root directory that contains game projects (e.g. S:/Repositories/TD4_01/projects).",

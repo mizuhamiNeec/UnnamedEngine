@@ -13,6 +13,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief SkyboxComponentは、skybox textureと描画設定をWorld rendererへ提供します
 	class SkyboxComponent final : public BaseComponent {
 	public:
 		/// @brief Skybox cubemapを論理パスからロードして設定します。

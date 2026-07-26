@@ -2,6 +2,7 @@
 #include "interface/IAssetLoader.h"
 
 namespace Unnamed {
+	/// @brief MeshAssetLoaderは、mesh fileをvertex、index、submesh、skeleton dataへdecodeします
 	class MeshAssetLoader final : public IAssetLoader {
 	public:
 		bool CanLoad(const Path& path, ASSET_TYPE* outType) const override;

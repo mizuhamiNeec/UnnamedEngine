@@ -24,6 +24,7 @@ namespace Unnamed::Render {
 		VIEW_OUTPUT = 1,
 	};
 
+	/// @brief SpriteTextureRefは、sprite textureのasset IDと解決済みGPU resource参照を保持します
 	struct SpriteTextureRef {
 		SPRITE_TEXTURE_SOURCE source         = SPRITE_TEXTURE_SOURCE::ASSET;
 		AssetID               textureAssetId = kInvalidAssetID;
@@ -39,6 +40,7 @@ namespace Unnamed::Render {
 		UHD_4K,
 	};
 
+	/// @brief SceneViewRenderModeは、scene viewで有効にするlighting、wireframe、debug描画modeを保持します
 	struct SceneViewRenderMode {
 		SCENE_RENDER_MODE mode = SCENE_RENDER_MODE::FIT_VIEWPORT;
 		uint32_t          viewportPanelWidth = 0;
@@ -64,6 +66,7 @@ namespace Unnamed::Render {
 		const SceneViewRenderMode& request
 	);
 
+	/// @brief PostFxPassOverrideは、名前で指定したpost-process passの有効状態とparameter overrideを保持します
 	struct PostFxPassOverride {
 		std::string                            passName;
 		bool                                   hasEnabledOverride = false;
@@ -82,6 +85,7 @@ namespace Unnamed::Render {
 		MATCH_BACK_BUFFER = 1,
 	};
 
+	/// @brief RenderViewOutputDescは、render viewの出力texture、format、幅、高さを指定します
 	struct RenderViewOutputDesc {
 		RENDER_VIEW_SIZE_MODE sizeMode = RENDER_VIEW_SIZE_MODE::FIXED;
 		uint32_t              width = 0;
@@ -91,6 +95,7 @@ namespace Unnamed::Render {
 		bool                  exposeToUi = false;
 	};
 
+	/// @brief RenderCameraInputは、camera位置、view・projection行列、viewportを1 view分の描画入力として保持します
 	struct RenderCameraInput {
 		Mat4                  view       = Mat4::identity;
 		Mat4                  proj       = Mat4::identity;
@@ -103,12 +108,14 @@ namespace Unnamed::Render {
 		bool                  valid      = false;
 	};
 
+	/// @brief SkyboxInputは、skybox texture、world回転、露出値を背景描画入力として保持します
 	struct SkyboxInput {
 		bool    enabled        = false;
 		AssetID textureAssetId = kInvalidAssetID;
 		float   intensity      = 1.0f;
 	};
 
+	/// @brief DirectionalLightInputは、方向光の向き、色、強度、shadow設定をframe描画入力として保持します
 	struct DirectionalLightInput {
 		bool enabled     = false;
 		bool castsShadow = true;
@@ -119,6 +126,7 @@ namespace Unnamed::Render {
 		float intensity         = 1.0f;
 	};
 
+	/// @brief EnvironmentLightInputは、ambient色、IBL texture、露出値を環境照明入力として保持します
 	struct EnvironmentLightInput {
 		Vec3  skyColor    = Vec3::zero;
 		Vec3  groundColor = Vec3::zero;
@@ -126,6 +134,7 @@ namespace Unnamed::Render {
 		bool  enabled     = false;
 	};
 
+	/// @brief VisibleRenderObjectは、cullingを通過したrender object、world transform、material参照を保持します
 	struct VisibleRenderObject {
 		AssetID              meshAssetId               = kInvalidAssetID;
 		AssetID              materialInstanceId        = kInvalidAssetID;
@@ -139,11 +148,13 @@ namespace Unnamed::Render {
 		uint32_t skeletonPaletteId = 0;
 	};
 
+	/// @brief SkinningPaletteInputは、skinned meshが参照するbone行列範囲とpalette IDを保持します
 	struct SkinningPaletteInput {
 		AssetID           meshAssetId = kInvalidAssetID;
 		std::vector<Mat4> boneMatrices;
 	};
 
+	/// @brief ScreenSpriteInputは、screen-space spriteの矩形、UV、色、texture参照を保持します
 	struct ScreenSpriteInput {
 		SpriteTextureRef texture;
 		Vec2             positionPx  = Vec2::zero;
@@ -157,6 +168,7 @@ namespace Unnamed::Render {
 		bool             uvFlipY     = false;
 	};
 
+	/// @brief WorldBillboardInputは、camera正対quadのworld位置、寸法、色、texture参照を保持します
 	struct WorldBillboardInput {
 		SpriteTextureRef texture;
 		Vec3             worldPosition = Vec3::zero;
@@ -168,6 +180,7 @@ namespace Unnamed::Render {
 		bool             depthTest     = true;
 	};
 
+	/// @brief WorldSpriteInputは、world-space spriteのtransform、UV、色、texture参照を保持します
 	struct WorldSpriteInput {
 		SpriteTextureRef texture;
 		Vec3             worldPosition = Vec3::zero;
@@ -180,16 +193,19 @@ namespace Unnamed::Render {
 		bool             uvFlipY       = true;
 	};
 
+	/// @brief DebugLineInputは、world-space線分の2端点と色をdebug描画入力として保持します
 	struct DebugLineInput {
 		Vec3 start = Vec3::zero;
 		Vec3 end   = Vec3::right;
 		Vec4 color = Vec4::one;
 	};
 
+	/// @brief DebugDrawFrameInputは、1frameに提出するdebug線分列と描画有効状態を保持します
 	struct DebugDrawFrameInput {
 		std::vector<DebugLineInput> lines;
 	};
 
+	/// @brief RenderViewInputは、1 viewのcamera、出力先、render mode、可視object範囲を保持します
 	struct RenderViewInput {
 		std::string viewKey;
 
@@ -209,6 +225,7 @@ namespace Unnamed::Render {
 		std::vector<ScreenSpriteInput>    screenSprites;
 	};
 
+	/// @brief RenderFrameInputsは、WorldからRendererへ渡すview、light、visible object、UIを1frame snapshotとして所有します
 	struct RenderFrameInputs {
 		uint32_t                     frameIndex = 0;
 		std::vector<RenderViewInput> views;

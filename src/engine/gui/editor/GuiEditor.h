@@ -20,6 +20,7 @@ namespace Unnamed::Gui {
 	class UiWidget;
 	class UiRoot;
 
+	/// @brief GuiEditorContextは、選択・rename・削除対象widgetとeditor操作用text bufferを保持します
 	struct GuiEditorContext {
 		UiWidget*             selectedWidget       = nullptr;
 		UiWidget*             renameTargetWidget   = nullptr;

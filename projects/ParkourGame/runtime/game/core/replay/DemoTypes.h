@@ -20,6 +20,7 @@ namespace Unnamed {
 		PLAYER_INPUT = 0,
 	};
 
+	/// @brief DemoPlayerInputPayloadは、リプレイ記録・再生イベントで送受信する値を一単位として保持します
 	struct DemoPlayerInputPayload {
 		MovementFrameInput        movement     = {};
 		CharacterActionFrameInput action       = {};
@@ -27,6 +28,7 @@ namespace Unnamed {
 		float                     viewPitchDeg = 0.0f;
 	};
 
+	/// @brief DemoTickCommandは、simulation tickとそのtickで適用するplayer commandを保持します
 	struct DemoTickCommand {
 		uint64_t               tick = 0;
 		uint64_t               subjectEntityGuid = 0;
@@ -34,6 +36,7 @@ namespace Unnamed {
 		DemoPlayerInputPayload playerInput = {};
 	};
 
+	/// @brief EntitySnapshotRecordは、リプレイ記録・再生で保存・復元する一件分の記録を保持します
 	struct EntitySnapshotRecord {
 		uint64_t       entityGuid = 0;
 		std::string    entityType;
@@ -42,11 +45,13 @@ namespace Unnamed {
 		uint64_t       hash         = 0;
 	};
 
+	/// @brief FrameSnapshotは、リプレイ記録・再生の特定時点を再現する状態値を保持します
 	struct FrameSnapshot {
 		uint64_t                          tick     = 0;
 		std::vector<EntitySnapshotRecord> entities = {};
 	};
 
+	/// @brief DemoFileV2は、version 2 replayのheader、初期scene、frame packet列を所有します
 	struct DemoFileV2 {
 		uint32_t version = kDemoFileVersion;
 		uint32_t tickRate = kDefaultDemoTickRate;

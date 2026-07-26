@@ -7,6 +7,7 @@
 #include "engine/render/frame/RenderFrameInputs.h"
 
 namespace Unnamed {
+	/// @brief SkyLightComponentは、環境光の色と強度をscene lighting入力へ提供します
 	class SkyLightComponent final : public BaseComponent {
 	public:
 		/// @brief 空側 Hemisphere Ambient 色を設定します。

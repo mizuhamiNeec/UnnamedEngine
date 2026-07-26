@@ -5,6 +5,7 @@
 #include "engine/gui/UiDrawCommand.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiPanelStyleComponentは、panelの背景色、border、paddingを描画とlayoutへ提供します
 	class UiPanelStyleComponent final : public UiComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {

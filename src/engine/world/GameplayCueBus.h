@@ -89,6 +89,7 @@ namespace Unnamed {
 		std::unordered_map<std::string, uint64_t> mEntityIdValues;
 	};
 
+	/// @brief GameplayCueは、cue tag、送信元、payloadを1件のgameplay通知として保持します
 	struct GameplayCue {
 		std::string           id;
 		uint64_t              sourceEntityGuid = 0;
@@ -144,11 +145,13 @@ namespace Unnamed {
 		) const;
 	};
 
+	/// @brief GameplayCueFilterは、ワールドイベントまたは要素を通過させる条件を保持します
 	struct GameplayCueFilter {
 		std::string cueId;
 		uint64_t    sourceEntityGuid = 0;
 	};
 
+	/// @brief GameplayCueBusは、GameplayCueをフィルター条件に一致するlistenerへ同期配送します
 	class GameplayCueBus final {
 	public:
 		using Handle   = uint64_t;
@@ -175,6 +178,7 @@ namespace Unnamed {
 		void Clear();
 
 	private:
+		/// @brief Listenerは、GameplayCue listener ID、filter、callbackとowner lifetime tokenを保持します
 		struct Listener {
 			Handle            handle   = 0;
 			GameplayCueFilter filter   = {};

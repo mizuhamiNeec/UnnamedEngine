@@ -7,8 +7,10 @@
 namespace Unnamed {
 	class World;
 
+	/// @brief WorldCameraManagerは、World内cameraの優先順位と現在の描画camera解決を管理します
 	class WorldCameraManager final {
 	public:
+		/// @brief CurrentCameraInfoは、選択中camera entityのGUID、解決済み描画camera、有効性を直近frameのsnapshotとして保持します
 		struct CurrentCameraInfo {
 			uint64_t                  entityGuid = 0;
 			Render::RenderCameraInput camera     = {};

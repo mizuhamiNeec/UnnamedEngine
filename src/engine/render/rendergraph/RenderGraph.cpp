@@ -41,6 +41,7 @@ namespace Unnamed::Render {
 	static constexpr std::string_view kChannel = "RDG";
 
 	namespace {
+		/// @brief PassResourceAccessは、RenderGraph passがresourceへ行うread・write種別とpipeline stageを保持します
 		struct PassResourceAccess {
 			bool isRenderTarget = false;
 			bool isUavWrite     = false;
@@ -57,6 +58,7 @@ namespace Unnamed::Render {
 			}
 		};
 
+		/// @brief ResourceDependencyStateは、RenderGraph resourceの直前accessと依存passをDAG構築中に保持します
 		struct ResourceDependencyState {
 			std::optional<uint32_t> lastWriter;
 			std::vector<uint32_t>   readersSinceLastWrite;

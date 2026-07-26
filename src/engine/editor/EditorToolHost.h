@@ -26,6 +26,7 @@ namespace Unnamed {
 
 	class GuiEditorTool;
 
+	/// @brief EditorToolHostは、登録済みEditor toolの選択、フレーム更新、UI描画の呼び出し順序を管理します
 	class EditorToolHost final {
 	public:
 		EditorToolHost(

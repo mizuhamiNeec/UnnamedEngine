@@ -8,6 +8,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief GoalComponentは、player進入時にcourse完走を確定してresult flowを開始します
 	class GoalComponent final : public TriggerVolumeComponentBase {
 	public:
 		[[nodiscard]] std::string_view GetStableName() const override {

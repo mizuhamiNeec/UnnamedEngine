@@ -14,8 +14,10 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief SkeletalAnimationComponentは、animation clip、layer、transitionを評価してskeleton poseを更新します
 	class SkeletalAnimationComponent final : public BaseComponent {
 	public:
+		/// @brief AnimationLayerDescは、animation layerの名前、weight、blend mode、初期stateを指定します
 		struct AnimationLayerDesc {
 			std::string clipName;
 			float       weight      = 1.0f;
@@ -24,6 +26,7 @@ namespace Unnamed {
 			bool        playOnStart = true;
 		};
 
+		/// @brief AnimationStateDescは、animation stateのclip、loop、speed、transition設定を指定します
 		struct AnimationStateDesc {
 			std::string stateId;
 			size_t      layerIndex = 0;
@@ -95,6 +98,7 @@ namespace Unnamed {
 		);
 
 	private:
+		/// @brief RuntimeLayerStateは、animation layerの再生clip、時刻、weightを評価間で保持します
 		struct RuntimeLayerState {
 			AnimationLayerDesc desc;
 			float              playbackTime        = 0.0f;
@@ -102,6 +106,7 @@ namespace Unnamed {
 			bool               isPlaying           = false;
 			bool               playOnStartConsumed = false;
 
+			/// @brief TransitionStateは、animation transitionのsource、destination、blend進行を保持します
 			struct TransitionState {
 				std::string fromClipName;
 				float       fromPlaybackTime       = 0.0f;

@@ -3,7 +3,7 @@
 #include "../CameraRotatorComponent.h"
 #include "../character/base/BaseCharacterComponent.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 
 #include "engine/ImGui/ImGuiWidgets.h"
 #include "engine/scene/Scene.h"

@@ -10,6 +10,7 @@ namespace Unnamed {
 	class BaseComponent;
 	class Entity;
 
+	/// @brief ReplaySerializerRegistryは、リプレイ記録・再生の実装を安定キーで登録し、利用側へ解決します
 	class ReplaySerializerRegistry {
 	public:
 		using WriteStateFn = std::function<void(
@@ -22,6 +23,7 @@ namespace Unnamed {
 		)>;
 		using HashStateFn = std::function<uint64_t(const BaseComponent& component)>;
 
+		/// @brief ComponentSerializerは、component型に対応するreplay serialize・deserialize callbackを保持します
 		struct ComponentSerializer {
 			std::string stableName;
 			WriteStateFn writeState = {};

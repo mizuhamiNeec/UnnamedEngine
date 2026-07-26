@@ -10,11 +10,12 @@
 
 namespace Unnamed {
 	/// @brief コンポーネントレジストリ
-	/// @details 
+	/// @details
 	class ComponentRegistry {
 	public:
 		using CreateFn = std::unique_ptr<BaseComponent>(*)();
 
+		/// @brief Entryは、コンポーネント生成関数、表示名、型識別子を登録済みcomponentごとに保持します
 		struct Entry {
 			CreateFn        create = nullptr;
 			std::string     displayName;
@@ -22,6 +23,7 @@ namespace Unnamed {
 			bool            hasTypeInfo = false;
 		};
 
+		/// @brief RegisteredComponentInfoは、Editorのcomponent追加UIへ公開する安定名と表示名を保持します
 		struct RegisteredComponentInfo {
 			std::string stableName;
 			std::string displayName;
@@ -87,6 +89,7 @@ namespace Unnamed {
 	};
 
 	namespace Detail {
+		/// @brief AutoComponentRegisterは、static初期化時にcomponent factoryをComponentRegistryへ登録します
 		struct AutoComponentRegister final {
 			AutoComponentRegister(
 				std::string_view            stableName,

@@ -16,10 +16,12 @@ namespace Unnamed {
 }
 
 namespace Unnamed::Render {
+	/// @brief ShaderDxilは、compile済みDXIL bytecodeとshader cache識別情報を所有します
 	struct ShaderDxil {
 		std::vector<uint8_t> bytes;
 	};
 
+	/// @brief ShaderLibraryは、コンパイル済みDXILと依存ファイル指紋をキー別にキャッシュします
 	class ShaderLibrary {
 	public:
 		ShaderLibrary(
@@ -37,6 +39,7 @@ namespace Unnamed::Render {
 		void SetCacheDirectory(Path dir);
 
 	private:
+		/// @brief ShaderDependencyFingerprintは、shader依存fileのpath、更新時刻、content hashを保持します
 		struct ShaderDependencyFingerprint final {
 			std::string mountId;
 			std::string stablePath;

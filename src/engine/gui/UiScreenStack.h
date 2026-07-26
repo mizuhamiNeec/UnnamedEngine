@@ -5,6 +5,7 @@
 #include "UiScreen.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiScreenStackは、画面の積み重ね順に入力対象と描画順を管理します
 	class UiScreenStack {
 	public:
 		explicit UiScreenStack(UiRoot* uiRoot);

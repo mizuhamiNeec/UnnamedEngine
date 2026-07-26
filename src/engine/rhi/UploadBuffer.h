@@ -11,6 +11,7 @@ namespace Unnamed::Rhi {
 		return v + (a - 1) & ~(a - 1);
 	}
 
+	/// @brief UploadBufferは、永続mapしたD3D12 upload heapを所有し、256 byte strideの要素書き込みを管理します
 	template <typename T>
 	class UploadBuffer {
 	public:

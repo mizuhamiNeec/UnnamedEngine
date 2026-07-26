@@ -5,6 +5,7 @@
 namespace Unnamed::UI::Retained {
 	struct UiNode;
 
+	/// @brief UiDocumentは、retained UIノード木と世代付きノードIDの割り当てを所有します
 	class UiDocument {
 	public:
 		/// @brief ノードを作成してドキュメントに追加します

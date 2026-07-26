@@ -5,6 +5,7 @@
 #include "core/assets/AssetID.h"
 
 namespace Unnamed::Render {
+	/// @brief ShaderKeyは、shader compile結果を一意に決めるpath、entry point、profile、define列を保持します
 	struct ShaderKey {
 		AssetID shaderSourceId = kInvalidAssetID;
 		std::string entry; // エントリポイント名
@@ -20,6 +21,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief ShaderKeyHashは、シェーダーパス、エントリーポイント、プロファイル、define列からShaderKeyのハッシュを計算します
 	struct ShaderKeyHash {
 		size_t operator()(const ShaderKey& key) const noexcept;
 	};

@@ -104,6 +104,7 @@ namespace Unnamed {
 		[[nodiscard]] uint64_t ComputeReplayStateHash() const;
 
 	private:
+		/// @brief DeterministicActionInputPacketは、course進行を再計算するtick、固定step、action入力を保持します
 		struct DeterministicActionInputPacket {
 			uint64_t                  tick        = 0;
 			float                     stepSeconds = 0.0f;

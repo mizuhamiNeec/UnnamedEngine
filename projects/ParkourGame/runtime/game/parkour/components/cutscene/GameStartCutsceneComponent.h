@@ -69,7 +69,7 @@ namespace Unnamed {
 			float durationSeconds = 1.0f;
 		};
 
-		/// @brief ロック対象定義です。
+		/// @brief LockTargetSpecは、開始cutscene中に無効化するcomponentをentity GUIDとstable nameで指定します
 		struct LockTargetSpec {
 			uint64_t    entityGuid          = 0;
 			std::string componentStableName = "";

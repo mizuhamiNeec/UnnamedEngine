@@ -6,6 +6,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief SpeedBoostAreaComponentは、領域内characterへ設定倍率の移動速度補正を適用します
 	class SpeedBoostAreaComponent final : public TriggerVolumeComponentBase {
 	public:
 		[[nodiscard]] std::string_view GetStableName() const override {

@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/types/MeshAssetData.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
@@ -17,17 +17,20 @@
 
 namespace Unnamed {
 	namespace {
+		/// @brief LocalBonePoseは、bone local poseのtranslation、rotation、scaleを保持します
 		struct LocalBonePose {
 			Vec3       translation = Vec3::zero;
 			Quaternion rotation    = Quaternion::identity;
 			Vec3       scale       = Vec3::one;
 		};
 
+		/// @brief BlendAccumVec3は、Vec3 animation channelの加重和と総weightをblend中だけ保持します
 		struct BlendAccumVec3 {
 			Vec3  weightedSum = Vec3::zero;
 			float weightSum   = 0.0f;
 		};
 
+		/// @brief BlendAccumQuatは、Quaternion animation channelの加重和と基準向きをblend中だけ保持します
 		struct BlendAccumQuat {
 			float      x            = 0.0f;
 			float      y            = 0.0f;

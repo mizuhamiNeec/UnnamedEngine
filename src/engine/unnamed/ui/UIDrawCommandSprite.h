@@ -9,6 +9,7 @@
 
 namespace Unnamed::UI {
 	class UIFontAtlas;
+	/// @brief UIDrawCommandSpriteStatsは、即時UIの診断用カウンターと集計値を保持します
 	struct UIDrawCommandSpriteStats {
 		uint32_t textCommandCount  = 0;
 		uint32_t glyphSpriteCount  = 0;

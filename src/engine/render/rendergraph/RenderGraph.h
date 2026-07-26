@@ -20,6 +20,7 @@ namespace Unnamed::Render {
 	class RenderGraphBuilder;
 	class RenderPassContext;
 
+	/// @brief RgPassは、RenderGraph passの名称、setup結果、実行callback、resource use列を所有します
 	struct RgPass {
 		std::string                  name;
 		std::vector<RgUse>           uses;
@@ -32,12 +33,14 @@ namespace Unnamed::Render {
 		std::function<void(RenderPassContext&)> execute;
 	};
 
+	/// @brief CompiledTransitionは、resource barrierに必要な遷移前後stateと対象resourceを保持します
 	struct CompiledTransition {
 		uint32_t              textureId = 0;
 		D3D12_RESOURCE_STATES before    = D3D12_RESOURCE_STATE_COMMON;
 		D3D12_RESOURCE_STATES after     = D3D12_RESOURCE_STATE_COMMON;
 	};
 
+	/// @brief CompiledPassは、実行順が確定したpass参照と事前barrier列を保持します
 	struct CompiledPass {
 		std::vector<CompiledTransition> transitionsBefore;
 		std::vector<uint32_t>           uavBarriersBefore;

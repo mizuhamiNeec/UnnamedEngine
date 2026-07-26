@@ -4,6 +4,7 @@
 #include <d3d12.h>
 
 namespace Unnamed::Render {
+	/// @brief IDescriptorResolverは、RenderGraph resource handleからframe有効なSRV・UAV descriptorを解決します
 	class IDescriptorResolver {
 	public:
 		virtual ~IDescriptorResolver() = default;

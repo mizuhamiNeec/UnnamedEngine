@@ -60,7 +60,7 @@ namespace Unnamed {
 			TRANSITIONED,
 		};
 
-		/// @brief ロック対象定義です。
+		/// @brief LockTargetSpecは、result演出中に無効化するcomponentをentity GUIDとstable nameで指定します
 		struct LockTargetSpec {
 			uint64_t    entityGuid = 0;
 			std::string componentStableName;

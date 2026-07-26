@@ -26,6 +26,7 @@ namespace Unnamed {
 		struct SceneOutputView;
 	}
 
+	/// @brief EditorToolServicesは、Editor toolへ注入するWorld、Renderer、各subsystemの非所有参照を保持します
 	struct EditorToolServices {
 		WindowManager*        windowManager    = nullptr;
 		Render::RenderModule* renderModule     = nullptr;
@@ -38,11 +39,13 @@ namespace Unnamed {
 		Profiler*             profiler         = nullptr;
 	};
 
+	/// @brief EditorToolFrameContextは、Editor tool更新に使うscaled・unscaled delta timeをframe単位で渡します
 	struct EditorToolFrameContext {
 		float unscaledDeltaTime = 0.0f;
 		float deltaTime         = 0.0f;
 	};
 
+	/// @brief IEditorToolは、Editor toolの識別、open状態、frame更新、UI描画契約を定義します
 	class IEditorTool {
 	public:
 		virtual ~IEditorTool() = default;

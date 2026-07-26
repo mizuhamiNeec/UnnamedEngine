@@ -3,9 +3,10 @@
 
 #include <thirdparty/lua/lua.hpp>
 
-#include "../interface/ISubsystem.h"
+#include <engine/unnamed/subsystem/interface/ISubsystem.h>
 
 namespace Unnamed {
+	/// @brief EditorLuaSystemは、Editor専用Lua stateを所有し、tool scriptの実行と関数呼び出しを仲介します
 	class EditorLuaSystem : public ISubsystem {
 	public:
 		// ---- ISubsystem ----------------------------------------------------

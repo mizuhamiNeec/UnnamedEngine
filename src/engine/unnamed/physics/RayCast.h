@@ -2,7 +2,7 @@
 #include <engine/unnamed/physics/ShapeCast.h>
 
 namespace Unnamed::Physics {
-	/// @brief レイキャスト構造体
+	/// @brief レイと三角形群の最近接ヒットを評価します
 	struct RayCast final : ShapeCast {
 		[[nodiscard]] AABB ExpandNode(
 			const AABB& nodeBounds

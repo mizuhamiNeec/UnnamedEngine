@@ -13,6 +13,7 @@ namespace Unnamed {
 	};
 
 	// @brief テクスチャのミップマップ情報
+	/// @brief TextureMipは、1 mip levelの幅、高さ、row pitch、pixel byte列を所有します
 	struct TextureMip {
 		std::vector<uint8_t> bytes;        // ピクセルデータ
 		uint32_t             width    = 0; // ミップマップの幅
@@ -21,6 +22,7 @@ namespace Unnamed {
 	};
 
 	// @brief テクスチャサブリソース情報（mip + arraySlice）
+	/// @brief TextureSubresourceは、texture array sliceとmip levelをGPU upload対象として識別します
 	struct TextureSubresource {
 		std::vector<uint8_t> bytes;
 		uint32_t             width      = 0;

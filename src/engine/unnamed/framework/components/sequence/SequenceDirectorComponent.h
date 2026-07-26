@@ -62,14 +62,14 @@ namespace Unnamed {
 		[[nodiscard]] AssetID GetSequenceAssetId() const noexcept;
 
 	private:
-		/// @brief ロック対象仕様です。
+		/// @brief LockTargetSpecは、エンジンで対象を選択・拘束するための宣言的条件を保持します
 		struct LockTargetSpec final {
 			uint64_t    componentGuid       = 0;
 			uint64_t    entityGuid          = 0;
 			std::string componentStableName = "";
 		};
 
-		/// @brief ロック復帰情報です。
+		/// @brief ActiveLockStateは、sequenceが現在拘束する対象と解除条件を保持します
 		struct ActiveLockState final {
 			BaseComponent* component      = nullptr;
 			bool           previousActive = true;

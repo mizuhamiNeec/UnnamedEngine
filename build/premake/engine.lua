@@ -33,9 +33,6 @@ project "UnnamedEngineRuntime"
 		"src/engine/ui/ImGuiLayer.cpp",
 		"src/engine/world/EditorWorld.h",
 		"src/engine/world/EditorWorld.cpp",
-		"src/engine/world/GameWorld.h",
-		"src/engine/world/GameWorld.cpp",
-		"src/engine/game/GameModuleRegistry.cpp",
 		"src/app/**",
 	}))
 
@@ -79,9 +76,6 @@ project "UnnamedEngineRuntimeEditor"
 		"src/engine/ui/ImGuiLayer.cpp",
 		"src/engine/world/EditorWorld.h",
 		"src/engine/world/EditorWorld.cpp",
-		"src/engine/world/GameWorld.h",
-		"src/engine/world/GameWorld.cpp",
-		"src/engine/game/GameModuleRegistry.cpp",
 		"src/app/**",
 	}))
 
@@ -90,6 +84,8 @@ project "UnnamedEngineRuntimeEditor"
 	links { "DirectXTex", "Lua" }
 	LinkAssimpByConfig()
 	defines { "UNNAMED_WITH_EDITOR" }
+
+group "Editor"
 
 project "UnnamedEditorRuntime"
 	kind "StaticLib"
@@ -111,8 +107,6 @@ project "UnnamedEditorRuntime"
 		"src/engine/ui/ImGuiLayer.cpp",
 		"src/engine/gui/editor/**.h",
 		"src/engine/gui/editor/**.cpp",
-		"src/engine/unnamed/subsystem/editorluasystem/**.h",
-		"src/engine/unnamed/subsystem/editorluasystem/**.cpp",
 		"src/thirdparty/ImGui/imgui.cpp",
 		"src/thirdparty/ImGui/imgui_draw.cpp",
 		"src/thirdparty/ImGui/imgui_widgets.cpp",

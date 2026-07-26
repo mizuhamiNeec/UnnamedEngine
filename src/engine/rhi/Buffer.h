@@ -8,12 +8,14 @@
 #include "engine/unnamed/primitive/Primitives.h"
 
 namespace Unnamed::Render {
+	/// @brief MeshSubMeshRangeは、submeshのindex開始位置、index数、material slotを保持します
 	struct MeshSubMeshRange {
 		uint32_t indexStart    = 0;
 		uint32_t indexCount    = 0;
 		uint32_t materialIndex = 0;
 	};
 
+	/// @brief MeshBufferは、vertex・index GPU bufferとsubmesh範囲列を所有します
 	struct MeshBuffer {
 		Microsoft::WRL::ComPtr<ID3D12Resource> vb;
 		Microsoft::WRL::ComPtr<ID3D12Resource> ib;

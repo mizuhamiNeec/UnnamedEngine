@@ -13,7 +13,7 @@
 
 #include <utility>
 
-#include <core/ComponentRegistry.h>
+#include <engine/ComponentRegistry.h>
 #include <core/assets/AssetManager.h>
 #include <core/assets/loader/EditorGuiLoader.h>
 #include <core/assets/loader/EventPresentationLoader.h>
@@ -51,7 +51,7 @@
 #include <engine/unnamed/ui/UIFontAtlas.h>
 #include <engine/ui/ImGuiLayer.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
-#include <engine/unnamed/subsystem/EditorLuaSystem/EditorLuaSystem.h>
+#include <engine/unnamed/subsystem/input/InputSystem.h>
 #include <engine/unnamed/subsystem/input/InputSystem.h>
 #include <engine/unnamed/subsystem/input/device/gamepad/GamepadDevice.h>
 #include <engine/unnamed/subsystem/input/device/keyboard/KeyboardDevice.h>
@@ -322,6 +322,13 @@ namespace Unnamed {
 			TerminalSystem>(mConsoleSystem.get());
 		if (!mTerminalSystem->Init()) {
 			Error("Engine", "TerminalSystem initialization failed.");
+			return false;
+		}
+
+		const GameRuntimeContext& runtimeContext = *mRuntimeBindings.
+			runtimeContext;
+		// アセット管理より先にコンテンツの解決先を確立する
+		if (!InitializeContentMounts(runtimeContext)) {
 			return false;
 		}
 

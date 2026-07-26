@@ -3,7 +3,7 @@
 #include "TweenTypes.h"
 
 namespace Unnamed {
-	/// @brief Tweenのイージング関数を提供するクラス。
+	/// @brief 正規化時間へイージング曲線を適用する純粋関数群を提供します
 	class TweenEase {
 	public:
 		/// @brief 指定されたイージングタイプに基づいて、正規化時間に対する補間係数を計算します。

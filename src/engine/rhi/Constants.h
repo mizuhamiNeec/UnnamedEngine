@@ -4,6 +4,7 @@
 #include "core/math/Vec4.h"
 
 namespace Unnamed::Rhi {
+	/// @brief FrameConstantsは、frame時刻、camera、viewportなど全描画で共有するshader定数を保持します
 	struct alignas(16) FrameConstants {
 		Mat4  view        = Mat4::identity; // 64 +
 		Mat4  proj        = Mat4::identity; // 64 +
@@ -22,6 +23,7 @@ namespace Unnamed::Rhi {
 		"FrameConstants must be 256 bytes or less"
 	);
 
+	/// @brief ObjectConstantsは、1 render objectのworld行列とobject識別値をshader定数として保持します
 	struct alignas(16) ObjectConstants {
 		Mat4 world = Mat4::identity; // 64 +
 		Mat4 worldInverseTranspose = Mat4::identity; // 64 = 128
@@ -38,6 +40,7 @@ namespace Unnamed::Rhi {
 		"ObjectConstants must be 256 bytes or less"
 	);
 
+	/// @brief SkinningPaletteConstantsは、skinning shaderへ転送するbone変換行列列を保持します
 	struct alignas(16) SkinningPaletteConstants {
 		static constexpr uint32_t kMaxBones        = 512;
 		Mat4                      bones[kMaxBones] = {};
@@ -48,6 +51,7 @@ namespace Unnamed::Rhi {
 		"SkinningPaletteConstants must fit in one constant buffer (64KB)"
 	);
 
+	/// @brief MaterialConstantsは、PBR materialの色、roughness、metallic等をshader定数として保持します
 	struct alignas(16) MaterialConstants {
 		Vec4  baseColor     = Vec4::one;
 		Vec4  emissiveColor = Vec4::zero;
@@ -68,6 +72,7 @@ namespace Unnamed::Rhi {
 		"MaterialConstants must be 256 bytes or less"
 	);
 
+	/// @brief ShadowConstantsは、shadow map変換、cascade境界、bias値をshader定数として保持します
 	struct alignas(16) ShadowConstants {
 		Mat4 lightViewProj = Mat4::identity;
 		Vec4 params        = Vec4::zero;
@@ -87,6 +92,7 @@ namespace Unnamed::Rhi {
 		"ShadowConstants must be 256 bytes or less"
 	);
 
+	/// @brief EnvironmentLightingConstantsは、ambient・IBL強度とenvironment parameterをshader定数として保持します
 	struct alignas(16) EnvironmentLightingConstants {
 		Vec4 skyAmbientColor    = Vec4(0.25f, 0.30f, 0.40f, 1.0f);
 		Vec4 groundAmbientColor = Vec4(0.08f, 0.07f, 0.06f, 1.0f);

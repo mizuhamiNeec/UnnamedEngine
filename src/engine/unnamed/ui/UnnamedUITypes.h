@@ -2,7 +2,7 @@
 #include "core/math/Vec2.h"
 
 namespace Unnamed::UI {
-	/// @brief UIの矩形構造体
+	/// @brief 即時UIの位置と寸法をピクセル単位で表します
 	struct UIRect {
 		Vec2 position = Vec2::zero;
 		Vec2 size     = Vec2::one;

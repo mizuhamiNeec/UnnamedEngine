@@ -4,7 +4,7 @@
 
 #include <imgui.h>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 

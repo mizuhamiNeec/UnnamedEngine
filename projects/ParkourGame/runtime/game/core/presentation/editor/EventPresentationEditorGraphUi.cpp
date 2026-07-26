@@ -452,6 +452,7 @@ namespace Unnamed {
 			);
 		}
 
+		/// @brief NodeRectは、ゲーム演出要素の位置と寸法を同じ座標系で表します
 		struct NodeRect final {
 			ImVec2 min;
 			ImVec2 max;

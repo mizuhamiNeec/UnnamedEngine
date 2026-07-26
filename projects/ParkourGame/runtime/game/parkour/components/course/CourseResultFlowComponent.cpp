@@ -16,7 +16,7 @@
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -46,6 +46,7 @@ namespace Unnamed {
 		constexpr float            kMinDurationSec = 0.01f;
 		constexpr size_t           kMaxRankingEntries = 5;
 
+		/// @brief CourseRankingTableは、course result画面へ表示する順位行とplayerの挿入位置を保持します
 		struct CourseRankingTable {
 			std::string        courseId;
 			std::vector<float> elapsedSeconds;

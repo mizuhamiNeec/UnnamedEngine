@@ -10,7 +10,7 @@
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -26,6 +26,7 @@
 
 namespace Unnamed {
 	namespace {
+		/// @brief EaseNamePairは、easing列挙値とEditor表示名の対応を保持します
 		struct EaseNamePair {
 			std::string_view name = "LINEAR";
 			EASE_TYPE        type = EASE_TYPE::LINEAR;

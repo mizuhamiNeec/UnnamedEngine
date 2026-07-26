@@ -18,6 +18,7 @@ namespace Unnamed {
 }
 
 namespace Unnamed::Gui {
+	/// @brief UiDocumentManagerは、UiDocumentをIDで所有し、screenへのattach・detach寿命を管理します
 	class UiDocumentManager {
 	public:
 		explicit UiDocumentManager(AssetManager& assetManager);
@@ -39,6 +40,7 @@ namespace Unnamed::Gui {
 		std::vector<Path> UpdateTrackedDocuments();
 
 	private:
+		/// @brief ManagedDocumentは、document ID、UiDocument所有権、screenへのattach状態を保持します
 		struct ManagedDocument {
 			Path                        normalizedPath;
 			AssetID                     assetId       = kInvalidAssetID;

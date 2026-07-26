@@ -5,6 +5,7 @@
 namespace Unnamed::Render {
 	class RgResourceRegistry;
 
+	/// @brief RegistryDescriptorResolverは、RgResourceRegistryを参照してtexture handleのdescriptorを解決します
 	class RegistryDescriptorResolver final : public IDescriptorResolver {
 	public:
 		explicit RegistryDescriptorResolver(const RgResourceRegistry& reg);
