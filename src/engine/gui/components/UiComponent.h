@@ -14,6 +14,7 @@ namespace Unnamed::Gui {
 	struct UiDeserializeContext;
 	class UiWidget;
 
+	/// @brief UiComponentは、entity上のGUI widget参照と有効状態をcomponent lifecycleへ接続します
 	class UiComponent {
 	public:
 		virtual ~UiComponent() = default;

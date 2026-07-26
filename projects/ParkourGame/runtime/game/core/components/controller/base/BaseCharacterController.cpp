@@ -2,7 +2,7 @@
 
 #include "../../character/base/BaseCharacterComponent.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/unnamed/framework/entity/Entity.h"

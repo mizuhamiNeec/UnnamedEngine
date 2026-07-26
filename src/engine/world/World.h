@@ -36,6 +36,7 @@ namespace Unnamed {
 		struct RenderCameraInput;
 	}
 
+	/// @brief ワールド固有の経過時間、デルタ時間、および時間倍率を保持します
 	struct WorldTime {
 		float    fixedDeltaTime          = 0.0f;
 		float    renderDeltaTime         = 0.0f;
@@ -56,6 +57,7 @@ namespace Unnamed {
 		AudioSystem*   audioSystem  = nullptr;
 	};
 
+	/// @brief エンティティー、物理、描画入力、およびシーン遷移のフレーム寿命を統括します
 	class World {
 	public:
 		virtual ~World();
@@ -262,6 +264,7 @@ namespace Unnamed {
 		[[nodiscard]] AudioSystem* GetAudioSystem() const noexcept;
 
 	protected:
+		/// @brief PostFxPassOverridesは、Worldがpost-process pass名ごとに適用する有効状態とparameter値を保持します
 		struct PostFxPassOverrides {
 			std::unordered_map<std::string, Vec4>  colorParams;
 			std::unordered_map<std::string, float> scalarParams;

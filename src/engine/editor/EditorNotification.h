@@ -18,6 +18,7 @@ namespace Unnamed {
 		FATAL,   // 致命的な問題を示す通知。あんまり見たくないです。ははっ。
 	};
 
+	/// @brief Notificationは、Editorへ表示する本文、severity、表示時間を保持します
 	struct Notification {
 		std::string title;       // 通知のタイトル
 		std::string description; // タイトルの下に表示される説明文

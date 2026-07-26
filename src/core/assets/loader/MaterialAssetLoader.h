@@ -4,6 +4,7 @@
 namespace Unnamed {
 	class AssetManager;
 
+	/// @brief MaterialAssetLoaderは、material定義のshader、parameter、texture参照を検証してruntime materialへ変換します
 	class MaterialAssetLoader : public IAssetLoader {
 	public:
 		explicit MaterialAssetLoader(AssetManager* assetManager);

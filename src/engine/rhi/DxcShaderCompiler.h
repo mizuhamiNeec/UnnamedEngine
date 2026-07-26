@@ -8,6 +8,7 @@
 #include <dxcapi.h>
 
 namespace Unnamed::Rhi {
+	/// @brief DxcShaderCompilerは、RHIのソースと設定を実行可能な中間表現へコンパイルします
 	class DxcShaderCompiler {
 	public:
 		DxcShaderCompiler();

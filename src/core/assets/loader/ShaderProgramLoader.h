@@ -4,6 +4,7 @@
 namespace Unnamed {
 	class AssetManager;
 
+	/// @brief ShaderProgramLoaderは、shader stage、entry point、defineを検証してcompile要求へ変換します
 	class ShaderProgramLoader : public IAssetLoader {
 	public:
 		explicit ShaderProgramLoader(AssetManager* assetManager);

@@ -11,6 +11,7 @@ namespace Unnamed::UI::Retained {
 		return start + (target - start) * time;
 	}
 
+	/// @brief UiAnimatedValueは、retained UI値の現在値、目標値、補間時間を保持してフレーム更新します
 	template <typename T>
 	class UiAnimatedValue {
 	public:

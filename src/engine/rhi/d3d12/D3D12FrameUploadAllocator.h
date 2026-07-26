@@ -5,6 +5,7 @@
 #include <wrl/client.h>
 
 namespace Unnamed ::Rhi {
+	/// @brief D3D12FrameUploadAllocatorは、フレームごとにリセットするUpload Heapから整列済み領域を払い出します
 	class D3D12FrameUploadAllocator {
 	public:
 		/// @brief フレームごとにリセットされるアップロード用バッファアロケータ

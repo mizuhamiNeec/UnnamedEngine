@@ -14,6 +14,7 @@
 namespace Unnamed::Render {
 	class ShaderLibrary;
 
+	/// @brief GraphicsPsoKeyは、graphics PSOを一意に決めるshader、root signature、raster・depth・blend状態を保持します
 	struct GraphicsPsoKey {
 		ShaderKey vs;
 		ShaderKey ps;
@@ -94,6 +95,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief ComputePipelineKeyは、compute PSOを一意に決めるshaderとroot signatureを保持します
 	struct ComputePipelineKey {
 		ShaderKey            cs;
 		ID3D12RootSignature* rootSignature = nullptr;
@@ -121,6 +123,7 @@ namespace Unnamed::Render {
 		return hash.Value();
 	}
 
+	/// @brief GraphicsPipelineKeyHashは、シェーダー、ルートシグネチャー、描画状態、頂点レイアウトからGraphicsPsoKeyのハッシュを計算します
 	struct GraphicsPipelineKeyHash {
 		size_t operator()(const GraphicsPsoKey& k) const noexcept {
 			HashBuilder hash = {};
@@ -168,6 +171,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief GraphicsPipelineKeyEqualは、GraphicsPsoKeyの全パイプライン状態を比較して同一PSOを表すか判定します
 	struct GraphicsPipelineKeyEqual {
 		bool operator()(
 			const GraphicsPsoKey& a, const GraphicsPsoKey& b
@@ -281,6 +285,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief ComputePipelineKeyHashは、コンピュートシェーダーとルートシグネチャーからComputePipelineKeyのハッシュを計算します
 	struct ComputePipelineKeyHash {
 		size_t operator()(const ComputePipelineKey& k) const noexcept {
 			HashBuilder hash = {};
@@ -290,6 +295,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief BuiltInputLayoutは、PSO作成まで文字列を生存させながらD3D12入力要素配列を所有します
 	struct BuiltInputLayout {
 		std::vector<D3D12_INPUT_ELEMENT_DESC> elements;
 	};
@@ -298,6 +304,7 @@ namespace Unnamed::Render {
 		const Rhi::VertexLayoutDesc& layout
 	);
 
+	/// @brief PipelineCacheは、描画・コンピュート設定をキーにD3D12 PSOを生成して再利用します
 	class PipelineCache {
 	public:
 		PipelineCache(ID3D12Device* device, ShaderLibrary& shaders);

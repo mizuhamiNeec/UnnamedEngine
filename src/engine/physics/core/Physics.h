@@ -12,7 +12,7 @@
 #include "core/assets/types/MeshAssetData.h"
 
 namespace Unnamed::Physics {
-	/// @brief 物理エンジン
+	/// @brief コライダー登録、空間照会、形状キャストを提供する物理ワールドを管理します
 	class Engine {
 	public:
 		void Init();
@@ -182,10 +182,12 @@ namespace Unnamed::Physics {
 			bool     hasStartSolidHit = false;
 
 #ifdef _DEBUG
+			/// @brief StackItemは、debug path復元用parent indexを伴うBVH nodeを走査stackへ保持します
 			struct StackItem {
 				uint32_t nodeIndex;
 				int      parentEntry;
 			};
+			/// @brief PathEntryは、debug用BVH経路復元で使うnode indexと親entry indexを保持します
 			struct PathEntry {
 				uint32_t nodeIndex;
 				int      parentEntry;
@@ -197,6 +199,7 @@ namespace Unnamed::Physics {
 			std::vector<PathEntry> bestStartSolidPathData;
 			int                    bestStartSolidPathLeaf = -1;
 #else
+			/// @brief StackItemは、Release BVH走査で後から評価するnode indexだけを保持します
 			struct StackItem {
 				uint32_t nodeIndex;
 			};

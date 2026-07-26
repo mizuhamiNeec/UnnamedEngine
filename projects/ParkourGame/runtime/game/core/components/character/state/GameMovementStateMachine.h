@@ -39,6 +39,7 @@ namespace Unnamed {
 		[[nodiscard]] bool IsAbilityActive(MOVEMENT_ABILITY_SLOT slot) const;
 
 	private:
+		/// @brief AbilityEntryは、移動abilityのshared ownershipと現在の有効状態を保持します
 		struct AbilityEntry {
 			std::shared_ptr<IMovementAbility> ability = nullptr;
 			bool active = false;

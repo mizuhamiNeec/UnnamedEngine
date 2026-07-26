@@ -5,7 +5,7 @@
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/string/StrUtil.h"
@@ -23,20 +23,6 @@ namespace Unnamed {
 		constexpr auto kDetachCommandsKey = "detachCommands";
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-		template <size_t N>
-		bool EditCommandInput(const char* label, std::string& value) {
-			std::array<char, N> buffer = {};
-			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLen);
-			}
-			if (!ImGui::InputText(label, buffer.data(), buffer.size())) {
-				return false;
-			}
-			value = buffer.data();
-			return true;
-		}
-
 		void DrawCommandListInspector(
 			const char*               label,
 			std::vector<std::string>& commands
@@ -58,7 +44,8 @@ namespace Unnamed {
 				(void)ImGuiWidgets::InputText<512>("##Command", command);
 				ImGui::SameLine();
 				if (ImGui::Button("Remove")) {
-					commands.erase(
+					commands.
+						erase(
 						commands.begin() + static_cast<ptrdiff_t>(i)
 					);
 					ImGui::PopID();

@@ -6,6 +6,7 @@
 namespace Unnamed::Gui {
 	class UiLinearLayoutComponent;
 
+	/// @brief UiLayoutは、親領域と子widgetのsize policyから配置矩形を計算する基底契約を提供します
 	class UiLayout : public UiWidget {
 	public:
 		UiLayout();

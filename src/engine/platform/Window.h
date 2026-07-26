@@ -8,6 +8,7 @@
 #include "engine/EngineConfig.h"
 
 namespace Unnamed {
+	/// @brief WindowIdは、Windowsプラットフォームの対象を値型として安定して識別します
 	struct WindowId {
 		uint32_t value = 0;
 
@@ -20,6 +21,7 @@ namespace Unnamed {
 		}
 	};
 
+	/// @brief WindowDescは、Windowsプラットフォームオブジェクトの生成と初期化に必要な設定を保持します
 	struct WindowDesc {
 		std::string title     = "Unnamed Window";
 		int32_t     width     = 1280;
@@ -29,12 +31,14 @@ namespace Unnamed {
 		bool        visible   = true;
 	};
 
+	/// @brief WindowResizeEventは、Windowsプラットフォームで発生した事象と配送に必要な付随値を保持します
 	struct WindowResizeEvent {
 		int32_t width        = 0;
 		int32_t height       = 0;
 		bool    isLiveResize = false;
 	};
 
+	/// @brief Win32ウィンドウの生成、メッセージ処理、およびネイティブハンドル寿命を管理します
 	class Window final {
 	public:
 		Window(WindowId id, WindowDesc desc, HWND hwnd);

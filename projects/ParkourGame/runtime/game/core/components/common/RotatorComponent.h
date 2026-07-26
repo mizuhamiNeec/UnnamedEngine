@@ -9,6 +9,7 @@ namespace Unnamed {
 	class JsonWriter;
 	class TransformComponent;
 
+	/// @brief RotatorComponentは、設定した回転軸と角速度で所有Transformを毎フレーム回転します
 	class RotatorComponent final : public BaseComponent {
 	public:
 		void OnTick(float deltaTime) override;

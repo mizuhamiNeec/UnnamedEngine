@@ -26,6 +26,7 @@ namespace Unnamed {
 		struct SceneOutputView;
 	}
 
+	/// @brief GuiEditorToolは、GUI documentのnode選択、property編集、preview描画をEditor toolとして提供します
 	class GuiEditorTool final : public IEditorTool {
 	public:
 		explicit GuiEditorTool(ImGuiLayer& imGuiLayer);

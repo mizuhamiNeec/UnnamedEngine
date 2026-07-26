@@ -18,10 +18,12 @@ namespace Unnamed {
 	class ContentPathResolver;
 	class IAssetLoader;
 
+	/// @brief アセットのロード、依存関係、ホットリロード、およびキャッシュ寿命を統括します
 	class AssetManager {
 	public:
 		using ReloadCallback = std::function<void(AssetID id)>;
 
+		/// @brief DebugStatsは、アセット管理の診断用カウンターと集計値を保持します
 		struct DebugStats {
 			size_t   runtimeAssetCount          = 0;
 			size_t   runtimeTextureAssetCount   = 0;
@@ -317,11 +319,13 @@ namespace Unnamed {
 		/// @brief すべてのアセットの依存関係情報を再構築します
 		void RebuildAllDependents();
 
+		/// @brief SourceWatchStateは、asset sourceの監視時刻とreload判定状態を保持します
 		struct SourceWatchState final {
 			Path      path;
 			FileStamp stamp;
 		};
 
+		/// @brief アセット依存グラフの隣接関係と走査状態を保持します
 		struct Node {
 			AssetMetaData        meta;
 			AssetPayload         payload;

@@ -8,9 +8,15 @@ if rootDirOverride ~= nil and rootDirOverride ~= "" then
 else
 	ROOT_DIR = path.getabsolute(path.getdirectory(_MAIN_SCRIPT))
 end
-BIN_DIR = path.join(ROOT_DIR, "bin")
+local outputRootOverride = _G.UNNAMED_OUTPUT_ROOT_OVERRIDE
+if outputRootOverride ~= nil and outputRootOverride ~= "" then
+	OUTPUT_ROOT = path.getabsolute(outputRootOverride)
+else
+	OUTPUT_ROOT = ROOT_DIR
+end
+BIN_DIR = path.join(OUTPUT_ROOT, "bin")
 INT_DIR = path.join(BIN_DIR, "intermediate")
-BUILD_DIR = path.join(ROOT_DIR, "build")
+BUILD_DIR = path.join(OUTPUT_ROOT, "build")
 PROJECT_FILES_DIR = path.join(BUILD_DIR, "projects")
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"

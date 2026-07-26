@@ -6,6 +6,7 @@
 #include <string>
 
 namespace Unnamed {
+	/// @brief CourseElapsedTimePartsは、パルクールゲームプレイで表示・計算しやすい単位へ分解した値を保持します
 	struct CourseElapsedTimeParts {
 		int minutes  = 0;
 		int seconds  = 0;

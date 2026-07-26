@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <string_view>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/content/ContentPathResolver.h"
 #include "core/io/json/JsonReader.h"

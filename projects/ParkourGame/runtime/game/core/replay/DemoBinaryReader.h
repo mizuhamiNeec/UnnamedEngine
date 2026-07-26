@@ -8,6 +8,7 @@
 #include "core/io/binary/BinaryReader.h"
 
 namespace Unnamed {
+	/// @brief DemoBinaryReaderは、リプレイ記録・再生のバイト列を境界検査しながら型付き値へ読み出します
 	class DemoBinaryReader {
 	public:
 		[[nodiscard]] static bool ReadFile(

@@ -2,7 +2,7 @@
 #include <core/math/Vec2.h>
 
 namespace Unnamed::Gui {
-	/// @brief 矩形構造体
+	/// @brief UI空間の左上座標と幅・高さをピクセル単位で表します
 	struct Rect {
 		float x      = 0.0f; // X座標
 		float y      = 0.0f; // Y座標

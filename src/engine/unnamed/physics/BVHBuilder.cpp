@@ -92,6 +92,7 @@ namespace Unnamed::Physics {
 		const int&      axis, uint32_t&        outMid
 	) {
 		static constexpr int kBucket = 12;
+		/// @brief Bucketは、BVH SAH分割bucketの境界boxとprimitive数を保持します
 		struct Bucket {
 			AABB     bounds;
 			uint32_t count = 0;

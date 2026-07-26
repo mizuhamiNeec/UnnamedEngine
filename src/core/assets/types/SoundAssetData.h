@@ -4,6 +4,7 @@
 #include <vector>
 
 namespace Unnamed {
+	/// @brief SoundAssetDataは、SoundAsset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct SoundAssetData {
 		uint16_t             formatTag             = 0;
 		uint16_t             channels              = 0;

@@ -44,6 +44,7 @@ namespace Unnamed {
 	constexpr uint16_t kDemoActionFlagWeaponCycleNextPressed = 0x1000u;
 	constexpr uint16_t kDemoActionFlagWeaponCyclePrevPressed = 0x2000u;
 
+	/// @brief DemoBinaryFileHeaderは、replay fileのmagic、version、header size、chunk数を保持します
 	struct DemoBinaryFileHeader {
 		uint32_t magic      = kDemoBinaryMagic;
 		uint32_t version    = kDemoBinaryVersion;
@@ -51,11 +52,13 @@ namespace Unnamed {
 		uint32_t reserved   = 0;
 	};
 
+	/// @brief DemoBinaryChunkHeaderは、replay chunkの種別、payload size、tick範囲を保持します
 	struct DemoBinaryChunkHeader {
 		uint32_t id   = 0;
 		uint32_t size = 0;
 	};
 
+	/// @brief DemoBinaryPackedPlayerCommandは、replayへ保存するplayer commandを固定幅fieldへpackして保持します
 	struct DemoBinaryPackedPlayerCommand {
 		uint64_t tick              = 0;
 		uint64_t subjectEntityGuid = 0;

@@ -8,6 +8,7 @@
 namespace Unnamed {
 	class TransformComponent;
 
+	/// @brief ViewmodelSwayは、視点移動と回転から一人称モデルの位置・姿勢オフセットを計算します
 	class ViewmodelSway : public BaseComponent {
 	public:
 		void OnAttached() override;

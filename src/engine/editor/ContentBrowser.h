@@ -15,11 +15,13 @@ namespace Unnamed::EditorContentBrowser {
 	inline constexpr const char*   kAssetDragDropPayloadId =
 		"UNNAMED_ASSET_REF";
 
+	/// @brief AssetDragDropPayloadは、エディターイベントで送受信する値を一単位として保持します
 	struct AssetDragDropPayload {
 		uint16_t assetType = 0;
 		char     path[512] = {};
 	};
 
+	/// @brief BrowserViewStateは、Content Browserの現在directory、選択、表示modeを保持します
 	struct BrowserViewState {
 		Path  rootPath    = Path("./content");
 		Path  currentPath = Path("./content");

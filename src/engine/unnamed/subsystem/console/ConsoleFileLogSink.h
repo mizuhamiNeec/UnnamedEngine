@@ -18,6 +18,7 @@ namespace Unnamed {
 	/// @details 別スレッドでキューに溜まったログイベントをファイルに書き出します。
 	class ConsoleFileLogSink final {
 	public:
+		/// @brief Eventは、開発者コンソールで発生した事象と配送に必要な付随値を保持します
 		struct Event {
 			uint64_t             sequence = 0;
 			LogLevel             level    = LogLevel::Info;
@@ -28,6 +29,7 @@ namespace Unnamed {
 			uint32_t             threadId = 0;
 		};
 
+		/// @brief Configは、機能の生成時に適用する有効化条件と調整値を保持します
 		struct Config {
 			Path     path            = Path("./consolesystem.log");
 			uint32_t flushIntervalMs = 250;             // flushの間隔

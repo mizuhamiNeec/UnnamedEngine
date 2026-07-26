@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/MeshAssetData.h"

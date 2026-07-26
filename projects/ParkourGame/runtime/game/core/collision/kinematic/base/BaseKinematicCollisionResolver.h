@@ -14,6 +14,7 @@ namespace Unnamed {
 		CAPSULE, // カプセル
 	};
 
+	/// @brief KinematicContactは、接触点、法線、貫通量、衝突対象を1件のkinematic接触結果として保持します
 	struct KinematicContact {
 		uint64_t hitEntityGuid = 0;
 		Vec3     normal        = Vec3::zero;
@@ -21,6 +22,7 @@ namespace Unnamed {
 		float    depth         = 0.0f;
 	};
 
+	/// @brief KinematicMoveQueryは、キネマティック衝突解決照会の入力条件を一単位として呼び出し先へ渡します
 	struct KinematicMoveQuery {
 		Vec3 position    = Vec3::zero;
 		Vec3 velocity    = Vec3::zero;
@@ -34,6 +36,7 @@ namespace Unnamed {
 		float overBounce = 1.0001f;
 	};
 
+	/// @brief KinematicMoveResultは、解決後の位置・速度、接地・衝突状態、移動時間、接触列を返します
 	struct KinematicMoveResult {
 		static constexpr uint32_t kMaxContacts = 4;
 

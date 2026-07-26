@@ -15,10 +15,12 @@ namespace Unnamed {
 
 	using EntityId = uint64_t;
 
+	/// @brief SceneEntityHandleは、エンジンの所有者が管理する資源を世代付きまたは型付きIDで参照します
 	struct SceneEntityHandle {
 		EntityId id = 0;
 	};
 
+	/// @brief Sceneは、シリアライズ対象のエンティティー集合とシーン識別情報を所有します
 	class Scene {
 	public:
 		Scene();

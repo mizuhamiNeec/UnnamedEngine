@@ -20,6 +20,7 @@ namespace Unnamed::Render {
 	struct RenderFrameInputs;
 	class RenderDevice;
 
+	/// @brief RenderModuleは、RendererとRHIの初期化・終了順序をmodule境界として集約します
 	class RenderModule {
 	public:
 		RenderModule(AssetManager& assetManager, Rhi::IRhiDevice& rhiDevice);

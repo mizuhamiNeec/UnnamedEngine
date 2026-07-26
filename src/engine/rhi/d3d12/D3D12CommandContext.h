@@ -5,6 +5,7 @@
 #include "engine/rhi/interface/IRhiCommandContext.h"
 
 namespace Unnamed::Rhi {
+	/// @brief D3D12CommandContextは、コマンドリストへの描画・ディスパッチ・資源遷移記録を仲介します
 	class D3D12CommandContext final : public IRhiCommandContext {
 	public:
 		D3D12CommandContext(

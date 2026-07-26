@@ -5,6 +5,7 @@
 #include "core/filesystem/Path.h"
 
 namespace Unnamed {
+	/// @brief ファイル更新検知に使う更新時刻とサイズのスナップショットを保持します
 	struct FileStamp {
 		int64_t  lastWriteTicks = 0;
 		uint64_t sizeInBytes    = 0;

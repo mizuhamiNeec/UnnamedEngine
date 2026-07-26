@@ -5,6 +5,7 @@
 namespace Unnamed::Gui {
 	class UiPanelStyleComponent;
 
+	/// @brief UiPanelは、子ウィジェットの配置領域と背景描画を提供します
 	class UiPanel : public UiWidget {
 	public:
 		UiPanel();

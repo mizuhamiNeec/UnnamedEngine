@@ -4,7 +4,7 @@
 #include <core/assets/AssetManager.h>
 #include <core/filesystem/VirtualPath.h>
 
-#include "engine/unnamed/subsystem/EditorLuaSystem/EditorLuaSystem.h"
+#include "engine/editor/lua/EditorLuaSystem.h"
 
 namespace Unnamed {
 	/// @brief luaでエディタを拡張するためのGUIパネル

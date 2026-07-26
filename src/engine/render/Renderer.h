@@ -210,16 +210,19 @@ namespace Unnamed::Render {
 				PIPELINE_RESOLVE_SCOPE::ALL_REGISTERED
 		);
 
+		/// @brief FullscreenPassResは、Fullscreen描画passが再利用するroot signatureとpipeline stateを保持します
 		struct FullscreenPassRes {
 			PipelineHandle                  pipeline = {};
 			const ResolvedGraphicsPipeline* resolved = nullptr;
 		};
 
+		/// @brief ComputePassResは、Compute描画passが再利用するroot signatureとpipeline stateを保持します
 		struct ComputePassRes {
 			PipelineHandle                 pipeline = {};
 			const ResolvedComputePipeline* resolved = nullptr;
 		};
 
+		/// @brief GeometryPassResは、Geometry描画passが再利用するroot signatureとpipeline stateを保持します
 		struct GeometryPassRes {
 			PipelineHandle                  pipeline = {};
 			const ResolvedGraphicsPipeline* resolved = nullptr;
@@ -240,6 +243,7 @@ namespace Unnamed::Render {
 		// - MaterialTextures order is BaseColor(t0), Normal(t1), ORM(t2), Emissive(t3).
 		// - Custom constant buffers and shader reflection are not supported yet.
 		// - Non-compatible shaders may compile/resolve but can fail at draw time.
+		/// @brief MaterialBindingは、Materialの論理識別子とruntime resource参照の対応を保持します
 		struct MaterialBinding {
 			Rhi::MaterialConstants constants = {};
 			AssetID materialInstanceId = kInvalidAssetID;
@@ -255,6 +259,7 @@ namespace Unnamed::Render {
 			bool                    pipelineResolveWarningEmitted = false;
 		};
 
+		/// @brief PostFxRuntimePassは、post-process passのmaterial、入出力resource、実行順を保持します
 		struct PostFxRuntimePass {
 			std::string                            name;
 			bool                                   enabled = true;
@@ -263,21 +268,25 @@ namespace Unnamed::Render {
 			FullscreenPassRes                      pass = {};
 		};
 
+		/// @brief SpritePassResは、Sprite描画passが再利用するroot signatureとpipeline stateを保持します
 		struct SpritePassRes {
 			GeometryPassRes geom            = {};
 			GeometryPassRes geomLinearClamp = {};
 			GeometryPassRes geomPointClamp  = {};
 		};
 
+		/// @brief BillboardPassResは、Billboard描画passが再利用するroot signatureとpipeline stateを保持します
 		struct BillboardPassRes {
 			GeometryPassRes depthGeom = {};
 			GeometryPassRes frontGeom = {};
 		};
 
+		/// @brief SkyboxPassResは、Skybox描画passが再利用するroot signatureとpipeline stateを保持します
 		struct SkyboxPassRes {
 			GeometryPassRes geom = {};
 		};
 
+		/// @brief DebugLineVertexは、debug line shaderへ渡すworld位置と色の頂点layoutを定義します
 		struct DebugLineVertex {
 			float px = 0.0f;
 			float py = 0.0f;
@@ -288,6 +297,7 @@ namespace Unnamed::Render {
 			float a  = 1.0f;
 		};
 
+		/// @brief LinePassResは、Line描画passが再利用するroot signatureとpipeline stateを保持します
 		struct LinePassRes {
 			PipelineHandle                  pipeline = {};
 			const ResolvedGraphicsPipeline* resolved = nullptr;
@@ -299,6 +309,7 @@ namespace Unnamed::Render {
 			uint32_t                               frameVertexCount = 0;
 		};
 
+		/// @brief DirectionalShadowRuntimeStateは、directional shadowの有効cascadeとframe resource参照を保持します
 		struct DirectionalShadowRuntimeState {
 			bool     enabled              = false;
 			uint32_t shadowDepthTextureId = 0;
@@ -312,6 +323,7 @@ namespace Unnamed::Render {
 			float    intensity            = 1.0f;
 		};
 
+		/// @brief ViewRuntimeStateは、描画viewごとの履歴textureと前frame camera情報を保持します
 		struct ViewRuntimeState {
 			RENDER_VIEW_TYPE      type               = RENDER_VIEW_TYPE::SCENE;
 			RenderViewOutputDesc  output             = {};

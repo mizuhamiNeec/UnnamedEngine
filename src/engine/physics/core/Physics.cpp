@@ -795,6 +795,7 @@ namespace Unnamed::Physics {
 			);
 		}
 
+		/// @brief EntityOverlapAggregateは、同一entityに属する複数shapeのoverlap結果をentity単位へ集約します
 		struct EntityOverlapAggregate {
 			uint64_t guid       = 0;
 			Hit      deepestHit = {};

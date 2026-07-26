@@ -4,6 +4,7 @@
 namespace Unnamed {
 	class AssetManager;
 
+	/// @brief MaterialInstanceAssetLoaderは、親material参照とparameter overrideからruntime instanceを構築します
 	class MaterialInstanceAssetLoader : public IAssetLoader {
 	public:
 		explicit MaterialInstanceAssetLoader(AssetManager* assetManager);

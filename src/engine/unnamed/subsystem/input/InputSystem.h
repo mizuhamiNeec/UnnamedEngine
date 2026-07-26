@@ -9,7 +9,7 @@
 #include <engine/unnamed/subsystem/input/device/base/BaseInputDevice.h>
 #include <engine/unnamed/subsystem/interface/ISubsystem.h>
 
-/// @brief 入力キー構造体
+/// @brief InputKeyのデバイス種別とコードを連想コンテナ用ハッシュへ変換します
 template <>
 struct std::hash<Unnamed::InputKey> {
 	size_t operator()(const Unnamed::InputKey& key) const noexcept {
@@ -59,7 +59,7 @@ namespace Unnamed {
 		INPUT_AXIS axis    = INPUT_AXIS::X;
 	};
 
-	/// @brief 入力システムクラス
+	/// @brief InputSystemは、入力の初期化、フレーム更新、および終了順序を統括します
 	class InputSystem final : public ISubsystem, public IWin32MsgListener {
 	public:
 		~InputSystem() override;
@@ -253,6 +253,7 @@ namespace Unnamed {
 
 		std::vector<std::shared_ptr<BaseInputDevice>> mDevices;
 
+		/// @brief MouseLockAnchorは、mouse lock開始時のscreen座標とclient座標を復帰位置として保持します
 		struct MouseLockAnchor {
 			HWND hwnd      = nullptr;
 			Vec2 clientPos = Vec2::zero;

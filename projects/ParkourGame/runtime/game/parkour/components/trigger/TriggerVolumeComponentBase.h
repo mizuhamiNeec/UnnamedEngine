@@ -9,6 +9,7 @@ namespace Unnamed {
 	class JsonWriter;
 	class TransformComponent;
 
+	/// @brief TriggerVolumeComponentBaseは、ボックス領域への進入・離脱を追跡し、派生トリガーへ通知します
 	class TriggerVolumeComponentBase : public BaseComponent {
 	public:
 		/// @brief ローカル中心座標(Hu)を返します。

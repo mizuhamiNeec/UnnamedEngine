@@ -7,6 +7,7 @@
 namespace Unnamed::Gui {
 	class UiButtonBehaviorComponent;
 
+	/// @brief UiButtonは、押下状態とクリック通知をUiWidgetの入力処理へ追加します
 	class UiButton : public UiWidget {
 	public:
 		UiButton();

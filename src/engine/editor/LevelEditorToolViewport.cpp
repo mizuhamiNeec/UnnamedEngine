@@ -24,6 +24,7 @@
 
 namespace Unnamed {
 	namespace {
+		/// @brief ViewportFitResultは、panel内へaspect比を保って収めた描画位置、寸法、aspect比を返します
 		struct ViewportFitResult {
 			Vec2  drawPos     = Vec2::zero;
 			Vec2  drawSize    = Vec2::one;

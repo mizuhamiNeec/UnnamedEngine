@@ -18,6 +18,7 @@ namespace Unnamed::UI {
 }
 
 namespace Unnamed {
+	/// @brief NewUICanvasは、エンジン要素のルート配置、入力、および描画提出を管理します
 	class NewUICanvas : public BaseComponent {
 	public:
 		//---------------------------------------------------------------------

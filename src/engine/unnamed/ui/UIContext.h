@@ -12,6 +12,7 @@
 #include "engine/tween/TweenManager.h"
 
 namespace Unnamed::UI {
+	/// @brief UIContextは、即時UIの入力、レイアウトスタック、操作状態、描画リストをフレーム単位で管理します
 	class UIContext {
 	public:
 		UIContext();
@@ -72,22 +73,26 @@ namespace Unnamed::UI {
 			ROW
 		};
 
+		/// @brief UILayoutStateは、即時UIのcursor位置、利用可能幅、行高さをlayout stack内で保持します
 		struct UILayoutState {
 			Vec2                cursorPosition = Vec2::zero;
 			float               gap            = 0.0f;
 			UI_LAYOUT_DIRECTION direction      = UI_LAYOUT_DIRECTION::COLUMN;
 		};
 
+		/// @brief UIButtonAnimationStateは、即時buttonのhover・press補間値をwidget IDごとに保持します
 		struct UIButtonAnimationState {
 			float hoverAmount = 0.0f;
 			float pressAmount = 0.0f;
 		};
 
+		/// @brief UICheckBoxAnimationStateは、即時checkboxのhover・check補間値をwidget IDごとに保持します
 		struct UICheckBoxAnimationState {
 			float hoverAmount = 0.0f;
 			float pressAmount = 0.0f;
 		};
 
+		/// @brief UISliderAnimationStateは、即時sliderのhover・grab補間値をwidget IDごとに保持します
 		struct UISliderAnimationState {
 			float hoverAmount = 0.0f;
 			float pressAmount = 0.0f;

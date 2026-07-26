@@ -11,6 +11,7 @@ namespace Unnamed {
 	class AudioVoice;
 	struct SoundAssetData;
 
+	/// @brief AudioSystemは、XAudio2 engineとmaster voiceを所有し、sound voiceの生成・停止を仲介します
 	class AudioSystem {
 	public:
 		AudioSystem();

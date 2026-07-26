@@ -9,6 +9,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief EditorCameraComponentは、Editor viewport入力から自由cameraの移動・回転を更新します
 	class EditorCameraComponent final : public BaseComponent {
 	public:
 		// ---- EditorCameraComponent -----------------------------------------

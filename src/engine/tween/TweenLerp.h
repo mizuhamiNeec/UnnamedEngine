@@ -9,10 +9,7 @@ namespace Unnamed {
 	template <typename TValue>
 	struct TweenLerp;
 
-	//-------------------------------------------------------------------------
-	// 各型のEvaluate関数の定義
-	//-------------------------------------------------------------------------
-
+	/// @brief float値を線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<float> {
 		static float Evaluate(
@@ -20,6 +17,7 @@ namespace Unnamed {
 		);
 	};
 
+	/// @brief double値を線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<double> {
 		static double Evaluate(
@@ -27,6 +25,7 @@ namespace Unnamed {
 		);
 	};
 
+	/// @brief Vec2の各成分を線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<Vec2> {
 		static Vec2 Evaluate(
@@ -34,6 +33,7 @@ namespace Unnamed {
 		);
 	};
 
+	/// @brief Vec3の各成分を線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<Vec3> {
 		static Vec3 Evaluate(
@@ -41,6 +41,7 @@ namespace Unnamed {
 		);
 	};
 
+	/// @brief Vec4の各成分を線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<Vec4> {
 		static Vec4 Evaluate(
@@ -48,6 +49,7 @@ namespace Unnamed {
 		);
 	};
 
+	/// @brief Quaternionを球面線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<Quaternion> {
 		static Quaternion Evaluate(

@@ -9,6 +9,7 @@
 namespace Unnamed::Gui {
 	class UiWidget;
 
+	/// @brief UiRootは、GUI階層の最上位でレイアウト、入力配送、描画コマンド生成を統括します
 	class UiRoot {
 	public:
 		UiRoot();

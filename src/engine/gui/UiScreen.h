@@ -4,6 +4,7 @@
 #include "UiDocument.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiScreenは、画面単位のUiRootと表示ライフサイクルを所有します
 	class UiScreen {
 	public:
 		UiScreen(std::shared_ptr<UiDocument> document);

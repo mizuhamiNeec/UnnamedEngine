@@ -1,6 +1,6 @@
 #include "ParkourComponentRegistration.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 
 #include "engine/unnamed/framework/components/DirectionalLightComponent.h"
 #include "engine/unnamed/framework/components/SkyLightComponent.h"

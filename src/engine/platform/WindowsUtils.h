@@ -23,6 +23,7 @@ public:
 	static bool IsAppDarkTheme();
 	static bool IsSystemDarkTheme();
 
+	/// @brief ProcessResultは、子processのexit code、標準出力・標準error、timeoutとWin32起動errorを返します
 	struct ProcessResult {
 		unsigned long exitCode = 0;
 		std::string   stdoutText;
@@ -68,6 +69,7 @@ public:
 		unsigned long       timeoutMs        = 0
 	);
 
+	/// @brief ProcessHandleは、子プロセス、主スレッド、標準出力パイプのWin32ハンドルをCloseProcessHandleまで所有・管理します
 	struct ProcessHandle {
 		void* hProcess  = nullptr;
 		void* hThread   = nullptr;

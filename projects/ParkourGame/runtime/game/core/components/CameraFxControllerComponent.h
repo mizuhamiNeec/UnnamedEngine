@@ -18,8 +18,10 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief CameraFxControllerComponentは、camera shake、FOV、回転演出を合成してCameraへ適用します
 	class CameraFxControllerComponent final : public BaseComponent {
 	public:
+		/// @brief ShakePresetは、camera shakeの振幅、周波数、duration、easeを保持します
 		struct ShakePreset {
 			std::string id;
 			Vec2        ampPitchYawDeg = Vec2(0.25f, 0.25f);
@@ -28,12 +30,14 @@ namespace Unnamed {
 			float       decay          = 1.0f;
 		};
 
+		/// @brief FovPresetは、FOV演出の目標角度、duration、easeを保持します
 		struct FovPreset {
 			std::string id;
 			float       targetDeltaDeg = 8.0f;
 			float       lerpSpeed      = 8.0f;
 		};
 
+		/// @brief RotationPresetは、camera回転演出の目標姿勢、duration、easeを保持します
 		struct RotationPreset {
 			std::string id;
 			Vec3        eulerDeg = Vec3::zero;
@@ -69,6 +73,7 @@ namespace Unnamed {
 		void Serialize(JsonWriter& writer) const override;
 
 	private:
+		/// @brief ActiveShakeは、再生中camera shakeのpreset、経過時間、乱数位相を保持します
 		struct ActiveShake {
 			Vec2  amplitudeDeg = Vec2::zero;
 			float frequencyHz  = 18.0f;
@@ -80,11 +85,13 @@ namespace Unnamed {
 			uint32_t seedYaw   = 0;
 		};
 
+		/// @brief ActiveFovAnimは、再生中FOV演出の開始値、目標値、経過時間を保持します
 		struct ActiveFovAnim {
 			float targetDeltaDeg = 0.0f;
 			float lerpSpeed      = 8.0f;
 		};
 
+		/// @brief ActiveRotationAnimは、再生中camera回転演出の開始姿勢、目標姿勢、経過時間を保持します
 		struct ActiveRotationAnim {
 			Vec3      startEulerDeg  = Vec3::zero;
 			Vec3      targetEulerDeg = Vec3::zero;

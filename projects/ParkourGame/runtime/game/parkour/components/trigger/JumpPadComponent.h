@@ -6,6 +6,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief JumpPadComponentは、進入したcharacterへ設定方向・強度の跳躍速度を適用します
 	class JumpPadComponent final : public TriggerVolumeComponentBase {
 	public:
 		[[nodiscard]] std::string_view GetStableName() const override {

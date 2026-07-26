@@ -10,6 +10,7 @@
 #include "core/io/binary/BinaryWriter.h"
 
 namespace Unnamed {
+	/// @brief DemoBinaryWriterは、リプレイ記録・再生の型付き値を決められたバイナリ形式へ書き出します
 	class DemoBinaryWriter {
 	public:
 		[[nodiscard]] bool WriteFile(

@@ -9,7 +9,7 @@
 #include <imgui.h>
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/EventPresentationAssetData.h"
@@ -41,6 +41,7 @@
 
 namespace Unnamed {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+	/// @brief EventPresentationGraphEditorStateは、presentation graph editorの選択nodeと編集中linkを保持します
 	struct EventPresentationGraphEditorState final {
 		bool                                            windowOpen   = false;
 		bool                                            dirty        = false;

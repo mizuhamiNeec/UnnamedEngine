@@ -11,8 +11,7 @@
 #include "TweenTypes.h"
 
 namespace Unnamed {
-	/// @brief Tweenのインスタンスを表すクラス。指定されたGetter関数とSetter関数を使用して、値の補間を行います。
-	/// @tparam TValue 補間する値の型。float、Vec2、Vec3、Vec4、Quaternionに対応。
+	/// @brief TweenInstanceは、開始値から終了値までの補間、遅延、ループ、完了通知を再生状態として管理します
 	template <typename TValue>
 	class TweenInstance final : public ITweenPlayable {
 	public:

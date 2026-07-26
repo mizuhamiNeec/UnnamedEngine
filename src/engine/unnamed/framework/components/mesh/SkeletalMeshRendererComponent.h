@@ -19,6 +19,7 @@ namespace Unnamed {
 		AssetID                    assetId = kInvalidAssetID;
 	};
 
+	/// @brief SkeletalMeshRendererComponentは、skeletal mesh、material、bone paletteをrendererへ提出します
 	class SkeletalMeshRendererComponent final : public BaseComponent {
 	public:
 		// ---- SkeletalMeshRendererComponent ---------------------------------

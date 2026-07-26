@@ -19,6 +19,7 @@ namespace Unnamed {
 		class RenderPassContext;
 	}
 
+	/// @brief ImGuiLayerは、ImGuiコンテキスト、フレーム開始・描画、GPU descriptor寿命を管理します
 	class ImGuiLayer {
 	public:
 		ImGuiLayer(
@@ -56,6 +57,7 @@ namespace Unnamed {
 		[[nodiscard]] ID3D12DescriptorHeap* GetDescriptorHeap() const;
 
 	private:
+		/// @brief FrameTextureSlotは、ImGui textureのSRV descriptorと最終参照frameを保持します
 		struct FrameTextureSlot {
 			uint32_t                    slot            = UINT32_MAX;
 			uint64_t                    revision        = UINT64_MAX;
@@ -80,6 +82,7 @@ namespace Unnamed {
 		uint32_t mFramesInFlight = 1;
 		uint32_t mFrameIndex     = 0;
 
+		/// @brief TextureSlotsは、frameごとのImGui texture slot集合と再利用cursorを保持します
 		struct TextureSlots {
 			std::vector<FrameTextureSlot> frameSlots;
 		};

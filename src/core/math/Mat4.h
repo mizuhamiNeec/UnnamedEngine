@@ -12,7 +12,7 @@ enum class ProjectionDepthMode : uint8_t {
 	ReverseZ,
 };
 
-/// @brief 4x4行列構造体
+/// @brief 行優先の4x4行列を保持し、ビュー・射影・アフィン変換を提供します
 struct Mat4 final {
 	float m[4][4]; ///< 行列の要素（4x4）
 
