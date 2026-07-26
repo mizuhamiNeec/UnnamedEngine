@@ -23,6 +23,7 @@ namespace Unnamed::EditorContentBrowser {
 	namespace {
 		namespace fs = std::filesystem;
 
+		/// @brief BrowserEntryは、Content Browserに表示するpath、表示名、directory・asset種別を保持します
 		struct BrowserEntry {
 			Path        path;
 			std::string name;

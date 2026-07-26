@@ -24,12 +24,14 @@ namespace Unnamed {
 	namespace {
 		/// @brief コンソールUIのデータ構造体
 		struct ConsoleUIData {
+			/// @brief SuggestionEntryは、console補完候補の表示名、補助表示、ConVar種別を保持します
 			struct SuggestionEntry {
 				std::string name;
 				std::string secondaryText;
 				bool        isConVar = false;
 			};
 
+			/// @brief SuggestionStateは、console補完候補、選択index、popup表示状態を保持します
 			struct SuggestionState {
 				std::vector<SuggestionEntry> items;
 				std::string                  query;

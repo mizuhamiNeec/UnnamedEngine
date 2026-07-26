@@ -126,12 +126,14 @@ namespace Unnamed {
 			return static_cast<size_t>(group);
 		}
 
+		/// @brief UiCanvasRuntimeEntryは、更新対象entityとそのtransform・legacy UI canvasへの非所有参照を保持します
 		struct UiCanvasRuntimeEntry {
 			Entity*             entity    = nullptr;
 			TransformComponent* transform = nullptr;
 			UiCanvasComponent*  canvas    = nullptr;
 		};
 
+		/// @brief NewUiCanvasRuntimeEntryは、更新対象のretained UI canvasへの非所有参照を保持します
 		struct NewUiCanvasRuntimeEntry {
 			NewUICanvas* canvas = nullptr;
 		};

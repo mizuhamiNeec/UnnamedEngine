@@ -11,6 +11,7 @@ namespace Unnamed {
 	/// @brief パフォーマンスプロファイラー。フレームごとのサンプルを記録し、履歴を保持します。
 	class Profiler {
 	public:
+		/// @brief SampleViewは、profiler sampleの名称、経過時間、nest深度を表示用に参照します
 		struct SampleView {
 			std::string_view          name;
 			const std::vector<float>* history           = nullptr;
@@ -21,6 +22,7 @@ namespace Unnamed {
 			uint32_t                  colorIndex        = 0;
 		};
 
+		/// @brief ScopeTimerは、構築から破棄までの経過時間を計測し、対応するProfilerへRAIIで記録します
 		class ScopeTimer {
 		public:
 			ScopeTimer(Profiler* profiler, std::string_view name);
@@ -62,6 +64,7 @@ namespace Unnamed {
 		[[nodiscard]] uint64_t GetFrameCount() const;
 
 	private:
+		/// @brief SampleDataは、named profiling scopeのframe内時間、履歴、平均・最大時間を保持します
 		struct SampleData {
 			std::string        name;
 			std::vector<float> history;

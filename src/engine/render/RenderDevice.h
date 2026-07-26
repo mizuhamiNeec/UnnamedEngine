@@ -15,6 +15,7 @@ namespace Unnamed::Rhi {
 }
 
 namespace Unnamed::Render {
+	/// @brief RenderDeviceは、shader・PSO cache、RenderGraph registry、asset由来の再生成要求を管理します
 	class RenderDevice {
 	public:
 		RenderDevice(Rhi::IRhiDevice& rhiDevice, AssetManager& assetManager);

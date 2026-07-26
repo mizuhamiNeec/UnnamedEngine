@@ -29,6 +29,7 @@ namespace Unnamed {
 	constexpr Vec4 kConTextColorString  = {0.99f, 0.0f, 0.82f, 1.0f};
 	constexpr Vec4 kConTextColorVec3    = {0.99f, 0.78f, 0.14f, 1.0f};
 
+	/// @brief InputTextWithComboItemsは、console入力欄と補完popupへ渡す候補列と選択状態を保持します
 	struct InputTextWithComboItems {
 		const char* (*itemGetter)(void* userData, int idx);
 		void*         userData;
@@ -55,6 +56,7 @@ namespace Unnamed {
 		void OnConsoleUpdate();
 
 	private:
+		/// @brief SuggestionContextは、入力行内の補完対象tokenの範囲、文字列、確定状態を保持します
 		struct SuggestionContext {
 			size_t      segmentStart = 0;
 			size_t      tokenStart   = 0;
@@ -63,6 +65,7 @@ namespace Unnamed {
 			bool        tokenConfirmed = false;
 		};
 
+		/// @brief SuggestionItemは、console補完候補の表示文字列、挿入文字列、command種別を保持します
 		struct SuggestionItem {
 			std::string name;
 			std::string secondaryText;

@@ -20,6 +20,7 @@ namespace Unnamed::Rhi {
 	class DxcShaderCompiler;
 	static constexpr uint32_t kMaxFramesInFlight = 3; // 最大同時フレーム数
 
+	/// @brief D3D12Deviceは、ID3D12Device、queue、descriptor allocator、upload contextを所有します
 	class D3D12Device final : public IRhiDevice {
 	public:
 		D3D12Device(
@@ -78,6 +79,7 @@ namespace Unnamed::Rhi {
 		D3D12FrameUploadAllocator& GetFrameUploadAllocator();
 		[[nodiscard]] uint32_t     GetFramesInFlight() const;
 
+		/// @brief UploadContextは、一時アップロード資源とコピーコマンドをフェンス完了まで所有します
 		class UploadContext {
 		public:
 			explicit UploadContext(D3D12Device& device);
@@ -152,6 +154,7 @@ namespace Unnamed::Rhi {
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;
 
 		// フレームコンテキスト
+		/// @brief FrameContextは、GPU fence完了まで再利用しないcommand allocatorとframe upload allocatorを所有します
 		struct FrameContext {
 			Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
 			uint64_t                                       fenceValue = 0;

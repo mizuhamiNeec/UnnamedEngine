@@ -48,6 +48,7 @@ enum : uint16_t {
 };
 
 namespace Unnamed {
+	/// @brief GamepadDeviceは、XInput gamepadのbutton・axis状態と時間指定rumble要求を更新します
 	class GamepadDevice final : public BaseInputDevice {
 	public:
 		explicit GamepadDevice(HWND hWnd);
@@ -70,10 +71,12 @@ namespace Unnamed {
 		using PFN_XInputGetCapabilities =
 		DWORD(WINAPI*)(DWORD, DWORD, XINPUT_CAPABILITIES*);
 
+		/// @brief DirectInputPadは、DirectInput gamepad device、識別子、接続状態を所有します
 		struct DirectInputPad {
 			IDirectInputDevice8W* device = nullptr;
 		};
 
+		/// @brief RumbleEventは、入力で発生した事象と配送に必要な付随値を保持します
 		struct RumbleEvent {
 			float  low     = 0.0f;
 			float  high    = 0.0f;

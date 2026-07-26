@@ -25,6 +25,7 @@ namespace Unnamed::Render {
 		MATCH_BACK_BUFFER
 	};
 
+	/// @brief RgTextureDescは、RenderGraphオブジェクトの生成と初期化に必要な設定を保持します
 	struct RgTextureDesc {
 		uint32_t width  = 0;
 		uint32_t height = 0;
@@ -51,6 +52,7 @@ namespace Unnamed::Render {
 		RG_EXTENT_MODE extentMode = RG_EXTENT_MODE::FIXED;
 	};
 
+	/// @brief RgRegistryDebugStatsは、RenderGraphの診断用カウンターと集計値を保持します
 	struct RgRegistryDebugStats {
 		uint32_t activeTextureCount     = 0;
 		uint64_t activeTextureBytes     = 0;
@@ -63,6 +65,7 @@ namespace Unnamed::Render {
 		uint32_t reusableTextureIdCount = 0;
 	};
 
+	/// @brief RgSrvDescriptorTableは、RenderGraph SRV tableのdescriptor先頭、要素数、frame寿命を保持します
 	struct RgSrvDescriptorTable {
 		uint32_t baseLocal = UINT32_MAX;
 		uint32_t count     = 0;
@@ -72,6 +75,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief RgResourceRegistryは、RenderGraphの実装を安定キーで登録し、利用側へ解決します
 	class RgResourceRegistry {
 	public:
 		explicit RgResourceRegistry(Rhi::D3D12Device& dx);
@@ -145,6 +149,7 @@ namespace Unnamed::Render {
 
 		void RebuildDescriptorLayout();
 
+		/// @brief TexEntryは、RenderGraph textureのD3D12 resource、記述子revision、frame内descriptor indexを所有します
 		struct TexEntry {
 			RgTextureDesc                          desc;
 			Microsoft::WRL::ComPtr<ID3D12Resource> resource;
@@ -165,6 +170,7 @@ namespace Unnamed::Render {
 			bool isCubeMap = false;
 		};
 
+		/// @brief RetiredTextureResourceは、置換済みtexture resourceと安全に解放できるframe番号を保持します
 		struct RetiredTextureResource {
 			uint64_t                               retireFenceValue = 0;
 			Microsoft::WRL::ComPtr<ID3D12Resource> resource;

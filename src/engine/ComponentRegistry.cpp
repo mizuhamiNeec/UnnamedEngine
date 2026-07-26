@@ -1,4 +1,4 @@
-#include "ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 
 #include <algorithm>
 

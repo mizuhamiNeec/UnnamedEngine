@@ -7,10 +7,12 @@
 #include "core/math/Vec4.h"
 
 namespace Unnamed::UI::Retained {
+	/// @brief UiBackendFrameContextは、backend描画時に使用するviewport矩形をframe単位で渡します
 	struct UiBackendFrameContext {
 		UiRect viewportRect = {};
 	};
 
+	/// @brief UiRectPaintDataは、clip範囲を伴う角丸矩形の描画位置と色をbackendへ渡します
 	struct UiRectPaintData {
 		UiRect rect     = {};
 		UiRect clipRect = {};
@@ -20,6 +22,7 @@ namespace Unnamed::UI::Retained {
 		float cornerRadius = 0.0f;
 	};
 
+	/// @brief UiImagePaintDataは、clip範囲、texture、UV、tintを1件のimage描画命令としてbackendへ渡します
 	struct UiImagePaintData {
 		UiRect rect     = {};
 		UiRect clipRect = {};
@@ -32,6 +35,7 @@ namespace Unnamed::UI::Retained {
 		Vec4 tintColor = Vec4::white;
 	};
 
+	/// @brief IUiBackendは、retained UIを描画・入力バックエンドへ接続する契約を定義します
 	class IUiBackend {
 	public:
 		virtual ~IUiBackend() = default;
