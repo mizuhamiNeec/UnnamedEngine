@@ -33,7 +33,6 @@ env:
   # Visual Studio の構成(Debug / Develop / Release)
   CONFIGURATION: Release
   PLATFORM: x64
-  PREMAKE_GAMES: parkour
 
 jobs:
   build:
@@ -55,7 +54,7 @@ jobs:
 
       - name: Generate Visual Studio 2026 project files
         shell: pwsh
-        run: .\premake5.exe --games=$env:PREMAKE_GAMES vs2026
+        run: .\premake5.exe vs2026
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v3
@@ -65,14 +64,20 @@ jobs:
       - name: Build
         shell: pwsh
         run: |
-          $project = ".\build\projects\UnnamedLauncher\UnnamedLauncher.vcxproj"
-          Write-Host "Building shipping target $project ($env:CONFIGURATION|$env:PLATFORM)"
-          msbuild $project `
-            /m:1 `
-            /p:Configuration=$env:CONFIGURATION `
-            /p:Platform=$env:PLATFORM
-          if ($LASTEXITCODE -ne 0) {
-            throw "Build failed: $project (exit=$LASTEXITCODE)"
+          $projects = @(
+            ".\build\projects\UnnamedAssetPathContractTests\UnnamedAssetPathContractTests.vcxproj",
+            ".\build\projects\UnnamedLauncher\UnnamedLauncher.vcxproj"
+          )
+
+          foreach ($project in $projects) {
+            Write-Host "Building $project ($env:CONFIGURATION|$env:PLATFORM)"
+            msbuild $project `
+              /m:1 `
+              /p:Configuration=$env:CONFIGURATION `
+              /p:Platform=$env:PLATFORM
+            if ($LASTEXITCODE -ne 0) {
+              throw "Build failed: $project (exit=$LASTEXITCODE)"
+            }
           }
 
       - name: Parkour release startup validation

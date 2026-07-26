@@ -7,8 +7,8 @@ function CreateUnnamedWorkspace(options)
 
     ENGINE_ROOT = path.getabsolute(resolvedEngineRoot)
     UNNAMED_ROOT_DIR_OVERRIDE = ENGINE_ROOT
+    UNNAMED_OUTPUT_ROOT_OVERRIDE = options.outputRoot or ENGINE_ROOT
     PROJECTS_ROOT = options.projectsRoot
-    OUTPUT_ROOT = options.outputRoot or ENGINE_ROOT
 
     function IncludeEnginePremake(file)
         include(path.join(ENGINE_ROOT, "build/premake", file))
@@ -22,6 +22,5 @@ function CreateUnnamedWorkspace(options)
 
     IncludeEnginePremake("thirdparty.lua")
     IncludeEnginePremake("engine.lua")
-    IncludeEnginePremake("games.lua")
-    IncludeEnginePremake("apps.lua")
+    IncludeEnginePremake("tests.lua")
 end

@@ -31,7 +31,6 @@ env:
   # Visual Studio の構成(Debug / Develop / Release)
   CONFIGURATION: Develop
   PLATFORM: x64
-  PREMAKE_GAMES: parkour
 
 jobs:
   build:
@@ -53,7 +52,7 @@ jobs:
 
       - name: Generate Visual Studio 2026 project files
         shell: pwsh
-        run: .\premake5.exe --games=$env:PREMAKE_GAMES vs2026
+        run: .\premake5.exe vs2026
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v3
@@ -68,6 +67,7 @@ jobs:
             ".\build\projects\Lua\Lua.vcxproj",
             ".\build\projects\UnnamedEngineRuntime\UnnamedEngineRuntime.vcxproj",
             ".\build\projects\ParkourGameRuntime\ParkourGameRuntime.vcxproj",
+            ".\build\projects\UnnamedAssetPathContractTests\UnnamedAssetPathContractTests.vcxproj",
             ".\build\projects\UnnamedLauncher\UnnamedLauncher.vcxproj"
           )
 

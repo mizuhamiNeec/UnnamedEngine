@@ -3,6 +3,7 @@ function AppLaunchFiles()
 		"src/pch.h",
 		"src/pch.cpp",
 		"src/app/LaunchDesc.h",
+		"src/app/GameProfileLoader.h",
 		"src/app/GameModuleRegistry.cpp",
 		"src/app/GameRuntimeModuleRegistration.h",
 		"src/app/GameRuntimeModuleRegistration.cpp",
@@ -50,6 +51,7 @@ function ParkourRuntimeProject(projectName, enableEditor)
 end
 
 if hasParkourRuntime then
+	group "Game/Parkour"
 	ParkourRuntimeProject("ParkourGameRuntime", false)
 	ParkourRuntimeProject("ParkourGameRuntimeEditor", true)
 end
@@ -79,6 +81,8 @@ project "UnnamedLauncher"
 	}
 	LinkAssimpByConfig()
 	CopyDxCompilerDlls()
+
+group "Editor/Applications"
 
 project "UnnamedEditorApp"
 	kind "WindowedApp"
