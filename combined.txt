@@ -22,6 +22,7 @@
 └──     └── textures/
 ├── docs/
 └── ├── assets/
+└── ├── maintenance/
 ├── license/
 ├── projects/
 └── └── ParkourGame/
@@ -207,12 +208,8 @@
 └── └── ├── LaunchDesc.h
 └── └── ├── LoadedGameModule.cpp
 └── └── ├── LoadedGameModule.h
-└── └── ├── main.cpp
-└── └── └── runtime/
-└── └──     └── TeamGameRuntimeApiEntry.cpp
+└── └── └── main.cpp
 └── ├── core/
-└── └── ├── ComponentRegistry.cpp
-└── └── ├── ComponentRegistry.h
 └── └── ├── UnnamedMacro.cpp
 └── └── ├── UnnamedMacro.h
 └── └── ├── assets/
@@ -341,6 +338,8 @@
 └── └── └── ├── KeyFrame.h
 └── └── └── ├── Node.cpp
 └── └── └── └── Node.h
+└── └── ├── ComponentRegistry.cpp
+└── └── ├── ComponentRegistry.h
 └── └── ├── Engine.cpp
 └── └── ├── Engine.h
 └── └── ├── EngineComponentCatalog.h
@@ -387,6 +386,9 @@
 └── └── └── ├── LevelEditorToolHierarchy.cpp
 └── └── └── ├── LevelEditorToolProfiler.cpp
 └── └── └── ├── LevelEditorToolViewport.cpp
+└── └── └── ├── lua/
+└── └── └── └── ├── EditorLuaSystem.cpp
+└── └── └── └── └── EditorLuaSystem.h
 └── └── └── └── sequence/
 └── └── └──     ├── SequenceEditorController.cpp
 └── └── └──     ├── SequenceEditorController.h
@@ -690,9 +692,6 @@
 └── └── └── └── └── └── interface/
 └── └── └── └── └──     ├── IConsole.cpp
 └── └── └── └── └──     └── IConsole.h
-└── └── └── └── ├── editorluasystem/
-└── └── └── └── └── ├── EditorLuaSystem.cpp
-└── └── └── └── └── └── EditorLuaSystem.h
 └── └── └── └── ├── input/
 └── └── └── └── └── ├── InputSystem.cpp
 └── └── └── └── └── ├── InputSystem.h
@@ -935,6 +934,7 @@
 └──     └── nlohmann/
 └──         └── json.hpp
 └── tools/
+    ├── tests/
 ================================================================================
 
 
@@ -1612,6 +1612,7 @@ File Path: projects/ParkourGame/runtime/game/core/collision/kinematic/BoxKinemat
 #include "base/BaseKinematicCollisionResolver.h"
 
 namespace Unnamed {
+	/// @brief BoxKinematicCollisionResolverは、box sweepとpenetration queryから接触・補正結果を解決します
 	class BoxKinematicCollisionResolver final : public
 		BaseKinematicCollisionResolver {
 	public:
@@ -1624,6 +1625,7 @@ namespace Unnamed {
 			END_POSITION_OVERLAP,
 		};
 
+		/// @brief CollisionDebugStateは、衝突解決の接触点と補正ベクトルをdebug描画用に保持します
 		struct CollisionDebugState {
 			bool          hasBlockingHit    = false;
 			uint32_t      blockingHitCount  = 0;
@@ -1771,6 +1773,7 @@ namespace Unnamed {
 		CAPSULE, // カプセル
 	};
 
+	/// @brief KinematicContactは、接触点、法線、貫通量、衝突対象を1件のkinematic接触結果として保持します
 	struct KinematicContact {
 		uint64_t hitEntityGuid = 0;
 		Vec3     normal        = Vec3::zero;
@@ -1778,6 +1781,7 @@ namespace Unnamed {
 		float    depth         = 0.0f;
 	};
 
+	/// @brief KinematicMoveQueryは、キネマティック衝突解決照会の入力条件を一単位として呼び出し先へ渡します
 	struct KinematicMoveQuery {
 		Vec3 position    = Vec3::zero;
 		Vec3 velocity    = Vec3::zero;
@@ -1791,6 +1795,7 @@ namespace Unnamed {
 		float overBounce = 1.0001f;
 	};
 
+	/// @brief KinematicMoveResultは、解決後の位置・速度、接地・衝突状態、移動時間、接触列を返します
 	struct KinematicMoveResult {
 		static constexpr uint32_t kMaxContacts = 4;
 
@@ -1877,7 +1882,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/AudioFxControllerCo
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/random/Random.h"
@@ -2177,8 +2182,10 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief AudioFxControllerComponentは、効果音presetの再生要求をAudioSourceへ仲介し、同時再生状態を管理します
 	class AudioFxControllerComponent final : public BaseComponent {
 	public:
+		/// @brief OneShotPresetは、単発効果音のsound asset、音量、pitch、同時再生制限を保持します
 		struct OneShotPreset {
 			std::string id;
 			uint64_t    sourceEntityGuid    = 0;
@@ -2234,7 +2241,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/CameraFxControllerC
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -2250,6 +2257,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/CameraFxControllerC
 
 namespace Unnamed {
 	namespace {
+		/// @brief EaseNamePairは、easing列挙値とEditor表示名の対応を保持します
 		struct EaseNamePair {
 			std::string_view name = "LINEAR";
 			EASE_TYPE        type = EASE_TYPE::LINEAR;
@@ -3167,8 +3175,10 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief CameraFxControllerComponentは、camera shake、FOV、回転演出を合成してCameraへ適用します
 	class CameraFxControllerComponent final : public BaseComponent {
 	public:
+		/// @brief ShakePresetは、camera shakeの振幅、周波数、duration、easeを保持します
 		struct ShakePreset {
 			std::string id;
 			Vec2        ampPitchYawDeg = Vec2(0.25f, 0.25f);
@@ -3177,12 +3187,14 @@ namespace Unnamed {
 			float       decay          = 1.0f;
 		};
 
+		/// @brief FovPresetは、FOV演出の目標角度、duration、easeを保持します
 		struct FovPreset {
 			std::string id;
 			float       targetDeltaDeg = 8.0f;
 			float       lerpSpeed      = 8.0f;
 		};
 
+		/// @brief RotationPresetは、camera回転演出の目標姿勢、duration、easeを保持します
 		struct RotationPreset {
 			std::string id;
 			Vec3        eulerDeg = Vec3::zero;
@@ -3218,6 +3230,7 @@ namespace Unnamed {
 		void Serialize(JsonWriter& writer) const override;
 
 	private:
+		/// @brief ActiveShakeは、再生中camera shakeのpreset、経過時間、乱数位相を保持します
 		struct ActiveShake {
 			Vec2  amplitudeDeg = Vec2::zero;
 			float frequencyHz  = 18.0f;
@@ -3229,11 +3242,13 @@ namespace Unnamed {
 			uint32_t seedYaw   = 0;
 		};
 
+		/// @brief ActiveFovAnimは、再生中FOV演出の開始値、目標値、経過時間を保持します
 		struct ActiveFovAnim {
 			float targetDeltaDeg = 0.0f;
 			float lerpSpeed      = 8.0f;
 		};
 
+		/// @brief ActiveRotationAnimは、再生中camera回転演出の開始姿勢、目標姿勢、経過時間を保持します
 		struct ActiveRotationAnim {
 			Vec3      startEulerDeg  = Vec3::zero;
 			Vec3      targetEulerDeg = Vec3::zero;
@@ -3292,7 +3307,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/CameraRotatorCompon
 
 #include <imgui.h>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -3553,6 +3568,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief CameraRotatorComponentは、mouse・gamepad入力をyawとpitchへ変換し、Camera姿勢を更新します
 	class CameraRotatorComponent final : public BaseComponent {
 	public:
 		void OnAttached() override;
@@ -3620,7 +3636,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/ViewmodelSway.cpp
 #include <imgui.h>
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -3850,6 +3866,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/ViewmodelSway.h
 namespace Unnamed {
 	class TransformComponent;
 
+	/// @brief ViewmodelSwayは、視点移動と回転から一人称モデルの位置・姿勢オフセットを計算します
 	class ViewmodelSway : public BaseComponent {
 	public:
 		void OnAttached() override;
@@ -3910,7 +3927,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/character/GameMovem
 
 #include "base/BaseCharacterComponent.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/string/StrUtil.h"
@@ -4896,6 +4913,7 @@ namespace Unnamed {
 		InputSystem*     mInput   = nullptr;
 		ConsoleSystem*   mConsole = nullptr;
 
+		/// @brief SupportCacheは、接地追従に使う支持entity、支持面の速度・step変位、接地状態をframe間で保持します
 		struct SupportCache {
 			uint64_t supportEntityGuid     = 0;
 			Vec3     supportLinearVelocity = Vec3::zero;
@@ -4924,7 +4942,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/character/base/Base
 
 #include "../state/GameMovementStateMachine.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -5148,6 +5166,7 @@ namespace Unnamed {
 	class TransformComponent;
 	class BaseKinematicCollisionResolver;
 
+	/// @brief MovementFrameInputは、固定step中に使う移動方向、jump、crouch入力をsnapshotとして保持します
 	struct MovementFrameInput {
 		// 移動入力のベクトル
 		Vec3 moveAxis = Vec3::zero;
@@ -5882,6 +5901,7 @@ namespace Unnamed {
 		[[nodiscard]] bool IsAbilityActive(MOVEMENT_ABILITY_SLOT slot) const;
 
 	private:
+		/// @brief AbilityEntryは、移動abilityのshared ownershipと現在の有効状態を保持します
 		struct AbilityEntry {
 			std::shared_ptr<IMovementAbility> ability = nullptr;
 			bool active = false;
@@ -6863,7 +6883,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/common/PatrolPointC
 
 #include <imgui.h>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
@@ -7040,6 +7060,7 @@ namespace Unnamed {
 	class JsonWriter;
 	class TransformComponent;
 
+	/// @brief PatrolPointComponentは、巡回点の次接続と待機設定をシーンへ保存・復元します
 	class PatrolPointComponent final : public BaseComponent {
 	public:
 		void                     OnAttached() override;
@@ -7082,7 +7103,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/common/RotatorCompo
 
 #include <imgui.h>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Quaternion.h"
@@ -7172,6 +7193,7 @@ namespace Unnamed {
 	class JsonWriter;
 	class TransformComponent;
 
+	/// @brief RotatorComponentは、設定した回転軸と角速度で所有Transformを毎フレーム回転します
 	class RotatorComponent final : public BaseComponent {
 	public:
 		void OnTick(float deltaTime) override;
@@ -7212,7 +7234,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/controller/PlayerCh
 #include "../CameraRotatorComponent.h"
 #include "../character/base/BaseCharacterComponent.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 
 #include "engine/ImGui/ImGuiWidgets.h"
 #include "engine/scene/Scene.h"
@@ -7934,7 +7956,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/controller/base/Bas
 
 #include "../../character/base/BaseCharacterComponent.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/unnamed/framework/entity/Entity.h"
@@ -8044,7 +8066,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/inventory/Inventory
 #include <imgui.h>
 #include <utility>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
@@ -9041,7 +9063,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/inventory/WorldItem
 ============================================================
 #include "WorldItemComponent.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
@@ -9194,7 +9216,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/presentation/EventP
 #include <imgui.h>
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/EventPresentationAssetData.h"
@@ -9226,6 +9248,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/presentation/EventP
 
 namespace Unnamed {
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
+	/// @brief EventPresentationGraphEditorStateは、presentation graph editorの選択nodeと編集中linkを保持します
 	struct EventPresentationGraphEditorState final {
 		bool                                            windowOpen   = false;
 		bool                                            dirty        = false;
@@ -10656,7 +10679,7 @@ File Path: projects/ParkourGame/runtime/game/core/components/weapon/WeaponSystem
 #include <cfloat>
 #include <imgui.h>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/string/StrUtil.h"
@@ -14994,6 +15017,7 @@ namespace Unnamed {
 			);
 		}
 
+		/// @brief NodeRectは、ゲーム演出要素の位置と寸法を同じ座標系で表します
 		struct NodeRect final {
 			ImVec2 min;
 			ImVec2 max;
@@ -16525,6 +16549,7 @@ namespace Unnamed {
 		bool                       mGridSnapEnabled = true;
 		int                        mGridSnapSize    = 32;
 
+		/// @brief NodeRuntimeStateは、presentation nodeの開始時刻と完了状態を再生中だけ保持します
 		struct NodeRuntimeState final {
 			double lastExecutedAt        = -1.0;
 			double lastConditionFailedAt = -1.0;
@@ -16814,6 +16839,7 @@ namespace Unnamed {
 	constexpr uint16_t kDemoActionFlagWeaponCycleNextPressed = 0x1000u;
 	constexpr uint16_t kDemoActionFlagWeaponCyclePrevPressed = 0x2000u;
 
+	/// @brief DemoBinaryFileHeaderは、replay fileのmagic、version、header size、chunk数を保持します
 	struct DemoBinaryFileHeader {
 		uint32_t magic      = kDemoBinaryMagic;
 		uint32_t version    = kDemoBinaryVersion;
@@ -16821,11 +16847,13 @@ namespace Unnamed {
 		uint32_t reserved   = 0;
 	};
 
+	/// @brief DemoBinaryChunkHeaderは、replay chunkの種別、payload size、tick範囲を保持します
 	struct DemoBinaryChunkHeader {
 		uint32_t id   = 0;
 		uint32_t size = 0;
 	};
 
+	/// @brief DemoBinaryPackedPlayerCommandは、replayへ保存するplayer commandを固定幅fieldへpackして保持します
 	struct DemoBinaryPackedPlayerCommand {
 		uint64_t tick              = 0;
 		uint64_t subjectEntityGuid = 0;
@@ -17211,6 +17239,7 @@ File Path: projects/ParkourGame/runtime/game/core/replay/DemoBinaryReader.h
 #include "core/io/binary/BinaryReader.h"
 
 namespace Unnamed {
+	/// @brief DemoBinaryReaderは、リプレイ記録・再生のバイト列を境界検査しながら型付き値へ読み出します
 	class DemoBinaryReader {
 	public:
 		[[nodiscard]] static bool ReadFile(
@@ -17590,6 +17619,7 @@ File Path: projects/ParkourGame/runtime/game/core/replay/DemoBinaryWriter.h
 #include "core/io/binary/BinaryWriter.h"
 
 namespace Unnamed {
+	/// @brief DemoBinaryWriterは、リプレイ記録・再生の型付き値を決められたバイナリ形式へ書き出します
 	class DemoBinaryWriter {
 	public:
 		[[nodiscard]] bool WriteFile(
@@ -18471,6 +18501,7 @@ File Path: projects/ParkourGame/runtime/game/core/replay/DemoManager.h
 namespace Unnamed {
 	class Entity;
 
+	/// @brief DemoManagerは、replay recording・playback sessionとframe packetの進行を管理します
 	class DemoManager final : public IDemoService {
 	public:
 		/// @brief デモのモード
@@ -18709,6 +18740,7 @@ namespace Unnamed {
 		PLAYER_INPUT = 0,
 	};
 
+	/// @brief DemoPlayerInputPayloadは、リプレイ記録・再生イベントで送受信する値を一単位として保持します
 	struct DemoPlayerInputPayload {
 		MovementFrameInput        movement     = {};
 		CharacterActionFrameInput action       = {};
@@ -18716,6 +18748,7 @@ namespace Unnamed {
 		float                     viewPitchDeg = 0.0f;
 	};
 
+	/// @brief DemoTickCommandは、simulation tickとそのtickで適用するplayer commandを保持します
 	struct DemoTickCommand {
 		uint64_t               tick = 0;
 		uint64_t               subjectEntityGuid = 0;
@@ -18723,6 +18756,7 @@ namespace Unnamed {
 		DemoPlayerInputPayload playerInput = {};
 	};
 
+	/// @brief EntitySnapshotRecordは、リプレイ記録・再生で保存・復元する一件分の記録を保持します
 	struct EntitySnapshotRecord {
 		uint64_t       entityGuid = 0;
 		std::string    entityType;
@@ -18731,11 +18765,13 @@ namespace Unnamed {
 		uint64_t       hash         = 0;
 	};
 
+	/// @brief FrameSnapshotは、リプレイ記録・再生の特定時点を再現する状態値を保持します
 	struct FrameSnapshot {
 		uint64_t                          tick     = 0;
 		std::vector<EntitySnapshotRecord> entities = {};
 	};
 
+	/// @brief DemoFileV2は、version 2 replayのheader、初期scene、frame packet列を所有します
 	struct DemoFileV2 {
 		uint32_t version = kDemoFileVersion;
 		uint32_t tickRate = kDefaultDemoTickRate;
@@ -19181,6 +19217,7 @@ namespace Unnamed {
 	class BaseComponent;
 	class Entity;
 
+	/// @brief ReplaySerializerRegistryは、リプレイ記録・再生の実装を安定キーで登録し、利用側へ解決します
 	class ReplaySerializerRegistry {
 	public:
 		using WriteStateFn = std::function<void(
@@ -19193,6 +19230,7 @@ namespace Unnamed {
 		)>;
 		using HashStateFn = std::function<uint64_t(const BaseComponent& component)>;
 
+		/// @brief ComponentSerializerは、component型に対応するreplay serialize・deserialize callbackを保持します
 		struct ComponentSerializer {
 			std::string stableName;
 			WriteStateFn writeState = {};
@@ -19241,7 +19279,7 @@ File Path: projects/ParkourGame/runtime/game/core/script/ConsoleScriptComponent.
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/string/StrUtil.h"
@@ -19259,20 +19297,6 @@ namespace Unnamed {
 		constexpr auto kDetachCommandsKey = "detachCommands";
 
 #if defined(_DEBUG) && defined(UNNAMED_WITH_EDITOR)
-		template <size_t N>
-		bool EditCommandInput(const char* label, std::string& value) {
-			std::array<char, N> buffer = {};
-			const size_t copyLen = std::min(value.size(), buffer.size() - 1);
-			if (copyLen > 0) {
-				std::memcpy(buffer.data(), value.data(), copyLen);
-			}
-			if (!ImGui::InputText(label, buffer.data(), buffer.size())) {
-				return false;
-			}
-			value = buffer.data();
-			return true;
-		}
-
 		void DrawCommandListInspector(
 			const char*               label,
 			std::vector<std::string>& commands
@@ -19294,7 +19318,8 @@ namespace Unnamed {
 				(void)ImGuiWidgets::InputText<512>("##Command", command);
 				ImGui::SameLine();
 				if (ImGui::Button("Remove")) {
-					commands.erase(
+					commands.
+						erase(
 						commands.begin() + static_cast<ptrdiff_t>(i)
 					);
 					ImGui::PopID();
@@ -19482,6 +19507,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/character/Grappl
 #include "core/math/Vec3.h"
 
 namespace Unnamed {
+	/// @brief GrappleStateは、grapple接続先、rope長、接続中フラグを移動更新間で保持します
 	struct GrappleState {
 		Vec3 anchorPoint = Vec3::zero;
 
@@ -19511,7 +19537,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/character/Parkou
 #include <cmath>
 #include <imgui.h>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -21345,6 +21371,7 @@ namespace Unnamed {
 		/// @brief deterministicアクション入力キューの最大保持件数です。
 		static constexpr size_t kDeterministicActionInputQueueCapacity = 128;
 
+		/// @brief WallRunRuntimeは、接触wall、走行side、経過時間、離脱抑止状態をwall-run中だけ保持します
 		struct WallRunRuntime {
 			bool  active            = false;
 			Vec3  normal            = Vec3::zero;
@@ -21355,12 +21382,14 @@ namespace Unnamed {
 			bool  jumpWasHeldOnInit = false;
 		};
 
+		/// @brief SlideRuntimeは、slide開始速度、経過時間、stance復帰待ち状態をslide中だけ保持します
 		struct SlideRuntime {
 			bool  active    = false;
 			Vec3  direction = Vec3::zero;
 			float time      = 0.0f;
 		};
 
+		/// @brief BlinkRuntimeは、blink開始位置、目標位置、補間進行を瞬間移動中だけ保持します
 		struct BlinkRuntime {
 			float cooldown  = 0.0f;
 			bool  active    = false;
@@ -21369,6 +21398,7 @@ namespace Unnamed {
 			Vec3  targetPos = Vec3::zero;
 		};
 
+		/// @brief VaultRuntimeは、vault軌道、開始姿勢、補間進行を障害物通過中だけ保持します
 		struct VaultRuntime {
 			bool  active      = false;
 			float time        = 0.0f;
@@ -21379,6 +21409,7 @@ namespace Unnamed {
 			Vec3  preVelocity = Vec3::zero;
 		};
 
+		/// @brief ParkourRuntimeは、現在ability、入力buffer、移動補助cacheをparkour更新間で保持します
 		struct ParkourRuntime {
 			bool           hasDoubleJump           = true;
 			bool           lastJumpHeld            = false;
@@ -21602,6 +21633,7 @@ namespace Unnamed {
 		bool                        mCameraRootBaseLocalCached = false;
 		CharacterActionFrameInput   mActionFrameInput = {};
 
+		/// @brief DeterministicActionInputPacketは、movement abilityを再現するtick、固定step、action入力を保持します
 		struct DeterministicActionInputPacket {
 			uint64_t                  tick        = 0;
 			float                     stepSeconds = 0.0f;
@@ -21783,6 +21815,7 @@ namespace Unnamed {
 			return true;
 		}
 
+		/// @brief SpeedVaultTrajectoryは、speed vaultの開始点、通過点、着地点と補間進行を保持します
 		struct SpeedVaultTrajectory {
 			Vec3 startPos    = Vec3::zero;
 			Vec3 apexPos     = Vec3::zero;
@@ -21790,6 +21823,7 @@ namespace Unnamed {
 			Vec3 preVelocity = Vec3::zero;
 		};
 
+		/// @brief WallRunCandidateは、wall hit、走行方向、左右sideをwall-run開始候補として保持します
 		struct WallRunCandidate {
 			Vec3 normal      = Vec3::zero;
 			Vec3 direction   = Vec3::zero;
@@ -22656,6 +22690,7 @@ namespace Unnamed {
 			);
 		}
 
+		/// @brief ParkourCrouchAbilityは、crouch入力に応じて立ち・しゃがみ姿勢を切り替え、天井干渉時の解除を抑止します
 		class ParkourCrouchAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -22718,6 +22753,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourDoubleJumpAbilityは、空中jump入力を残り回数と接地状態で判定し、追加上向き速度を適用します
 		class ParkourDoubleJumpAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -22737,7 +22773,7 @@ namespace Unnamed {
 			}
 
 			[[nodiscard]] bool
-			CanRunInMode(MOVEMENT_MODE_ID modeId) const override {
+			CanRunInMode(const MOVEMENT_MODE_ID modeId) const override {
 				return modeId == MOVEMENT_MODE_ID::AIR;
 			}
 
@@ -22813,6 +22849,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourBlinkAbilityは、blink入力の移動先を衝突照会し、安全な位置へ瞬間移動します
 		class ParkourBlinkAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -22857,7 +22894,7 @@ namespace Unnamed {
 					return false;
 				}
 
-				Vec3 dir = context.input.forward.Normalized();
+				const Vec3 dir = context.input.forward.Normalized();
 				if (dir.IsZero()) {
 					return false;
 				}
@@ -22968,6 +23005,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourWallRunAbilityは、走行可能な壁面を検出し、接触中の速度と重力補正を更新します
 		class ParkourWallRunAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -22987,7 +23025,7 @@ namespace Unnamed {
 			}
 
 			[[nodiscard]] bool
-			CanRunInMode(MOVEMENT_MODE_ID modeId) const override {
+			CanRunInMode(const MOVEMENT_MODE_ID modeId) const override {
 				return modeId == MOVEMENT_MODE_ID::AIR;
 			}
 
@@ -23366,6 +23404,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourSlideAbilityは、slide開始条件を判定し、低姿勢中の速度・摩擦・終了条件を更新します
 		class ParkourSlideAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -23602,6 +23641,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourSpeedVaultAbilityは、低障害物のvault軌道を検証し、補間移動と着地遷移を制御します
 		class ParkourSpeedVaultAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -23776,6 +23816,7 @@ namespace Unnamed {
 			}
 		};
 
+		/// @brief ParkourGrappleAbilityは、grapple対象を照会し、rope距離と牽引加速度を更新します
 		class ParkourGrappleAbility final : public IMovementAbility {
 		public:
 			void Init(ConsoleSystem* console) override {
@@ -23877,6 +23918,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/course/CourseEla
 #include <string>
 
 namespace Unnamed {
+	/// @brief CourseElapsedTimePartsは、パルクールゲームプレイで表示・計算しやすい単位へ分解した値を保持します
 	struct CourseElapsedTimeParts {
 		int minutes  = 0;
 		int seconds  = 0;
@@ -24077,7 +24119,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/course/CoursePro
 #include <imgui.h>
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -24938,6 +24980,7 @@ namespace Unnamed {
 		[[nodiscard]] uint64_t ComputeReplayStateHash() const;
 
 	private:
+		/// @brief DeterministicActionInputPacketは、course進行を再計算するtick、固定step、action入力を保持します
 		struct DeterministicActionInputPacket {
 			uint64_t                  tick        = 0;
 			float                     stepSeconds = 0.0f;
@@ -24989,7 +25032,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/course/CoursePro
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
@@ -25771,7 +25814,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/course/CourseRes
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -25801,6 +25844,7 @@ namespace Unnamed {
 		constexpr float            kMinDurationSec = 0.01f;
 		constexpr size_t           kMaxRankingEntries = 5;
 
+		/// @brief CourseRankingTableは、course result画面へ表示する順位行とplayerの挿入位置を保持します
 		struct CourseRankingTable {
 			std::string        courseId;
 			std::vector<float> elapsedSeconds;
@@ -27183,7 +27227,7 @@ namespace Unnamed {
 			TRANSITIONED,
 		};
 
-		/// @brief ロック対象定義です。
+		/// @brief LockTargetSpecは、result演出中に無効化するcomponentをentity GUIDとstable nameで指定します
 		struct LockTargetSpec {
 			uint64_t    entityGuid = 0;
 			std::string componentStableName;
@@ -27337,7 +27381,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/cutscene/GameSta
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -28605,7 +28649,7 @@ namespace Unnamed {
 			float durationSeconds = 1.0f;
 		};
 
-		/// @brief ロック対象定義です。
+		/// @brief LockTargetSpecは、開始cutscene中に無効化するcomponentをentity GUIDとstable nameで指定します
 		struct LockTargetSpec {
 			uint64_t    entityGuid          = 0;
 			std::string componentStableName = "";
@@ -28797,7 +28841,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/title/TitleFlowC
 #include <algorithm>
 #include <cmath>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/filesystem/Path.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
@@ -29462,7 +29506,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/trigger/Checkpoi
 #include <cstring>
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -29563,6 +29607,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief CheckpointComponentは、player進入時にcourse checkpoint到達を記録します
 	class CheckpointComponent final : public TriggerVolumeComponentBase {
 	public:
 		[[nodiscard]] std::string_view GetStableName() const override {
@@ -29618,7 +29663,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/trigger/GoalComp
 #include <cstring>
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
@@ -29686,6 +29731,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief GoalComponentは、player進入時にcourse完走を確定してresult flowを開始します
 	class GoalComponent final : public TriggerVolumeComponentBase {
 	public:
 		[[nodiscard]] std::string_view GetStableName() const override {
@@ -29729,7 +29775,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/trigger/JumpPadC
 #include <imgui.h>
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
@@ -29777,6 +29823,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief JumpPadComponentは、進入したcharacterへ設定方向・強度の跳躍速度を適用します
 	class JumpPadComponent final : public TriggerVolumeComponentBase {
 	public:
 		[[nodiscard]] std::string_view GetStableName() const override {
@@ -29814,7 +29861,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/components/trigger/SpeedBoo
 #include <imgui.h>
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
@@ -29863,6 +29910,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief SpeedBoostAreaComponentは、領域内characterへ設定倍率の移動速度補正を適用します
 	class SpeedBoostAreaComponent final : public TriggerVolumeComponentBase {
 	public:
 		[[nodiscard]] std::string_view GetStableName() const override {
@@ -29979,6 +30027,7 @@ namespace Unnamed {
 	class JsonWriter;
 	class TransformComponent;
 
+	/// @brief TriggerVolumeComponentBaseは、ボックス領域への進入・離脱を追跡し、派生トリガーへ通知します
 	class TriggerVolumeComponentBase : public BaseComponent {
 	public:
 		/// @brief ローカル中心座標(Hu)を返します。
@@ -30016,7 +30065,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/runtime/ParkourComponentReg
 ============================================================
 #include "ParkourComponentRegistration.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 
 #include "engine/unnamed/framework/components/DirectionalLightComponent.h"
 #include "engine/unnamed/framework/components/SkyLightComponent.h"
@@ -30225,7 +30274,7 @@ File Path: projects/ParkourGame/runtime/game/parkour/runtime/ParkourGameModule.c
 #include "ParkourGameModule.h"
 #include "ParkourComponentRegistration.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "engine/physics/core/Physics.h"
 #include "engine/scene/Scene.h"
 #include "game/core/replay/DemoManager.h"
@@ -31779,369 +31828,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 
 
 ============================================================
-File Path: src/app/runtime/TeamGameRuntimeApiEntry.cpp
-============================================================
-#include <pch.h>
-
-#include "engine/game/IGameModule.h"
-#include "game/team/runtime/TeamGameModule.h"
-
-UNNAMED_EXPORT_GAME_RUNTIME_API_V1("TeamGameRuntime", Unnamed::TeamGameModule)
-
-
-============================================================
-File Path: src/core/ComponentRegistry.cpp
-============================================================
-#include "ComponentRegistry.h"
-
-#include <algorithm>
-
-#include "engine/unnamed/subsystem/console/Log.h"
-
-namespace Unnamed {
-	bool ComponentRegistry::Register(
-		const std::string_view stableName, const CreateFn createFn,
-		const std::string_view displayName
-	) {
-		return RegisterInternal(
-			stableName,
-			createFn,
-			displayName,
-			std::type_index(typeid(void)),
-			false
-		);
-	}
-
-	bool ComponentRegistry::Register(
-		const std::string_view stableName, const CreateFn createFn,
-		const std::string_view displayName,
-		const std::type_index  typeIndex
-	) {
-		return RegisterInternal(
-			stableName, createFn, displayName, typeIndex, true
-		);
-	}
-
-	std::unique_ptr<BaseComponent> ComponentRegistry::Create(
-		const std::string_view stableName
-	) const {
-		const Entry* e = Find(stableName);
-		if (!e || !e->create) {
-			return nullptr;
-		}
-
-		return e->create();
-	}
-
-	bool ComponentRegistry::IsRegistered(
-		const std::string_view stableName
-	) const {
-		return Find(stableName) != nullptr;
-	}
-
-	const ComponentRegistry::Entry* ComponentRegistry::Find(
-		const std::string_view stableName
-	) const {
-		if (stableName.empty()) {
-			return nullptr;
-		}
-
-		const auto it = mEntries.find(std::string(stableName));
-		if (it == mEntries.end()) {
-			return nullptr;
-		}
-		return &it->second;
-	}
-
-	std::vector<ComponentRegistry::RegisteredComponentInfo>
-	ComponentRegistry::ListRegisteredComponents() const {
-		std::vector<RegisteredComponentInfo> result;
-		result.reserve(mEntries.size());
-
-		for (const auto& [stableName, entry] : mEntries) {
-			RegisteredComponentInfo info;
-			info.stableName  = stableName;
-			info.displayName = entry.displayName;
-			result.emplace_back(std::move(info));
-		}
-
-		std::ranges::sort(
-			result,
-			[](
-			const RegisteredComponentInfo& lhs,
-			const RegisteredComponentInfo& rhs
-		) {
-				return lhs.stableName < rhs.stableName;
-			}
-		);
-		return result;
-	}
-
-	void ComponentRegistry::Clear() {
-		mEntries.clear();
-		mStableNamesByType.clear();
-	}
-
-	ComponentRegistry& ComponentRegistry::Get() {
-		static ComponentRegistry sRegistry;
-		return sRegistry;
-	}
-
-	bool ComponentRegistry::RegisterInternal(
-		const std::string_view stableName, const CreateFn createFn,
-		const std::string_view displayName,
-		const std::type_index  typeIndex, const bool hasTypeInfo
-	) {
-		if (stableName.empty() || createFn == nullptr) {
-			return false;
-		}
-
-		std::string key(stableName);
-		const auto  it = mEntries.find(key);
-		if (it != mEntries.end()) {
-			const Entry& existing              = it->second;
-			// 同一型の重複登録は、複数の登録経路を許容するため冪等に扱う
-			const bool   sameTypedRegistration =
-				hasTypeInfo && existing.hasTypeInfo &&
-				existing.typeIndex == typeIndex;
-			if (sameTypedRegistration) {
-				if (
-					!displayName.empty() &&
-					!existing.displayName.empty() &&
-					existing.displayName != displayName
-				) {
-					Warning(
-						"ComponentRegistry",
-						"Component '{}' was already registered with display name '{}'; duplicate registration requested display name '{}'. Keeping existing value.",
-						stableName,
-						existing.displayName,
-						displayName
-					);
-				}
-				return true;
-			}
-
-			const bool sameLegacyFactory =
-				!hasTypeInfo && !existing.hasTypeInfo &&
-				existing.create == createFn;
-			if (sameLegacyFactory) {
-				if (
-					!displayName.empty() &&
-					!existing.displayName.empty() &&
-					existing.displayName != displayName
-				) {
-					Warning(
-						"ComponentRegistry",
-						"Component '{}' was already registered with display name '{}'; duplicate legacy registration requested display name '{}'. Keeping existing value.",
-						stableName,
-						existing.displayName,
-						displayName
-					);
-				}
-				return true;
-			}
-
-			if (existing.hasTypeInfo && hasTypeInfo) {
-				Error(
-					"ComponentRegistry",
-					"Conflicting component registration for stable name '{}': existing type='{}' new type='{}'.",
-					stableName,
-					existing.typeIndex.name(),
-					typeIndex.name()
-				);
-			} else {
-				Error(
-					"ComponentRegistry",
-					"Conflicting component registration for stable name '{}': type information is missing on one side and safety cannot be guaranteed.",
-					stableName
-				);
-			}
-			return false;
-		}
-
-		// 同じ実装型を別の永続名へ再登録するとシリアライズ互換性が壊れる
-		if (hasTypeInfo) {
-			const auto typeIt = mStableNamesByType.find(typeIndex);
-			if (typeIt != mStableNamesByType.end() && typeIt->second != key) {
-				Error(
-					"ComponentRegistry",
-					"Component type '{}' is already registered as stable name '{}' and cannot be re-registered as '{}'.",
-					typeIndex.name(),
-					typeIt->second,
-					stableName
-				);
-				return false;
-			}
-		}
-
-		Entry e;
-		e.create      = createFn;
-		e.displayName = std::string(displayName);
-		e.typeIndex   = typeIndex;
-		e.hasTypeInfo = hasTypeInfo;
-
-		mEntries.emplace(std::move(key), std::move(e));
-		if (hasTypeInfo) {
-			mStableNamesByType[typeIndex] = std::string(stableName);
-		}
-		return true;
-	}
-
-	namespace Detail {
-		AutoComponentRegister::AutoComponentRegister(
-			const std::string_view            stableName,
-			const std::string_view            displayName,
-			const ComponentRegistry::CreateFn createFn
-		) {
-			ComponentRegistry::Get().Register(
-				stableName, createFn, displayName
-			);
-		}
-
-		AutoComponentRegister::AutoComponentRegister(
-			const std::string_view            stableName,
-			const std::string_view            displayName,
-			const ComponentRegistry::CreateFn createFn,
-			const std::type_index             typeIndex
-		) {
-			ComponentRegistry::Get().Register(
-				stableName, createFn, displayName, typeIndex
-			);
-		}
-	}
-}
-
-
-============================================================
-File Path: src/core/ComponentRegistry.h
-============================================================
-#pragma once
-#include <memory>
-#include <string>
-#include <typeindex>
-#include <type_traits>
-#include <unordered_map>
-#include <vector>
-
-#include "engine/unnamed/framework/components/base/BaseComponent.h"
-
-namespace Unnamed {
-	/// @brief コンポーネントレジストリ
-	/// @details 
-	class ComponentRegistry {
-	public:
-		using CreateFn = std::unique_ptr<BaseComponent>(*)();
-
-		struct Entry {
-			CreateFn        create = nullptr;
-			std::string     displayName;
-			std::type_index typeIndex   = std::type_index(typeid(void));
-			bool            hasTypeInfo = false;
-		};
-
-		struct RegisteredComponentInfo {
-			std::string stableName;
-			std::string displayName;
-		};
-
-		ComponentRegistry()  = default;
-		~ComponentRegistry() = default;
-
-		ComponentRegistry(const ComponentRegistry&)            = delete;
-		ComponentRegistry& operator=(const ComponentRegistry&) = delete;
-
-		bool Register(
-			std::string_view stableName, CreateFn createFn,
-			std::string_view displayName
-		);
-		bool Register(
-			std::string_view stableName, CreateFn         createFn,
-			std::string_view displayName, std::type_index typeIndex
-		);
-
-		template <typename T>
-		bool RegisterTyped(
-			std::string_view stableName,
-			std::string_view displayName
-		) {
-			static_assert(
-				std::is_base_of_v<BaseComponent, T>,
-				"T must derive from BaseComponent."
-			);
-			return Register(
-				stableName,
-				[]() -> std::unique_ptr<BaseComponent> {
-					return std::make_unique<T>();
-				},
-				displayName,
-				std::type_index(typeid(T))
-			);
-		}
-
-		[[nodiscard]] std::unique_ptr<BaseComponent> Create(
-			std::string_view stableName
-		) const;
-
-		[[nodiscard]] bool IsRegistered(std::string_view stableName) const;
-
-		[[nodiscard]] const Entry* Find(std::string_view stableName) const;
-		[[nodiscard]] std::vector<RegisteredComponentInfo>
-		ListRegisteredComponents() const;
-
-		void Clear();
-
-		static ComponentRegistry& Get();
-
-	private:
-		bool RegisterInternal(
-			std::string_view stableName, CreateFn         createFn,
-			std::string_view displayName, std::type_index typeIndex,
-			bool             hasTypeInfo
-		);
-
-		std::unordered_map<std::string, Entry>           mEntries;
-		std::unordered_map<std::type_index, std::string> mStableNamesByType;
-	};
-
-	namespace Detail {
-		struct AutoComponentRegister final {
-			AutoComponentRegister(
-				std::string_view            stableName,
-				std::string_view            displayName,
-				ComponentRegistry::CreateFn createFn
-			);
-			AutoComponentRegister(
-				std::string_view            stableName,
-				std::string_view            displayName,
-				ComponentRegistry::CreateFn createFn,
-				std::type_index             typeIndex
-			);
-		};
-	}
-}
-
-// コンポーネント登録マクロ
-#define REGISTER_COMPONENT(T)								\
-namespace {													\
-std::unique_ptr<Unnamed::BaseComponent> Create_##T() {		\
-return std::make_unique<T>();								\
-}															\
-const Unnamed::Detail::AutoComponentRegister gAutoReg_##T(	\
-T{}.GetStableName(), T{}.GetComponentName(), &Create_##T, std::type_index(typeid(T)));	\
-}
-
-// 拡張コンポーネント登録マクロ
-#define REGISTER_COMPONENT_EX(T, stableNameLiteral, displayNameLiteral) \
-namespace {																\
-std::unique_ptr<Unnamed::BaseComponent> Create_##T() {					\
-return std::make_unique<T>();											\
-}																		\
-const Unnamed::Detail::AutoComponentRegister gAutoReg_##T(				\
-(stableNameLiteral), (displayNameLiteral), &Create_##T, std::type_index(typeid(T)));				\
-}
-
-
-============================================================
 File Path: src/core/UnnamedMacro.cpp
 ============================================================
 #include <pch.h>
@@ -33657,10 +33343,12 @@ namespace Unnamed {
 	class ContentPathResolver;
 	class IAssetLoader;
 
+	/// @brief アセットのロード、依存関係、ホットリロード、およびキャッシュ寿命を統括します
 	class AssetManager {
 	public:
 		using ReloadCallback = std::function<void(AssetID id)>;
 
+		/// @brief DebugStatsは、アセット管理の診断用カウンターと集計値を保持します
 		struct DebugStats {
 			size_t   runtimeAssetCount          = 0;
 			size_t   runtimeTextureAssetCount   = 0;
@@ -33956,11 +33644,13 @@ namespace Unnamed {
 		/// @brief すべてのアセットの依存関係情報を再構築します
 		void RebuildAllDependents();
 
+		/// @brief SourceWatchStateは、asset sourceの監視時刻とreload判定状態を保持します
 		struct SourceWatchState final {
 			Path      path;
 			FileStamp stamp;
 		};
 
+		/// @brief アセット依存グラフの隣接関係と走査状態を保持します
 		struct Node {
 			AssetMetaData        meta;
 			AssetPayload         payload;
@@ -34172,6 +33862,7 @@ File Path: src/core/assets/FileStamp.h
 #include "core/filesystem/Path.h"
 
 namespace Unnamed {
+	/// @brief ファイル更新検知に使う更新時刻とサイズのスナップショットを保持します
 	struct FileStamp {
 		int64_t  lastWriteTicks = 0;
 		uint64_t sizeInBytes    = 0;
@@ -34477,6 +34168,7 @@ File Path: src/core/assets/loader/EditorGuiLoader.h
 #include "interface/IAssetLoader.h"
 
 namespace Unnamed {
+	/// @brief EditorGuiLoaderは、Lua editor GUI sourceを読み込み、実行用EditorGuiDataへ変換します
 	class EditorGuiLoader : public IAssetLoader {
 	public:
 		bool CanLoad(const Path& path, ASSET_TYPE* outType) const override;
@@ -34874,6 +34566,7 @@ File Path: src/core/assets/loader/MaterialAssetLoader.h
 namespace Unnamed {
 	class AssetManager;
 
+	/// @brief MaterialAssetLoaderは、material定義のshader、parameter、texture参照を検証してruntime materialへ変換します
 	class MaterialAssetLoader : public IAssetLoader {
 	public:
 		explicit MaterialAssetLoader(AssetManager* assetManager);
@@ -35101,6 +34794,7 @@ File Path: src/core/assets/loader/MaterialInstanceAssetLoader.h
 namespace Unnamed {
 	class AssetManager;
 
+	/// @brief MaterialInstanceAssetLoaderは、親material参照とparameter overrideからruntime instanceを構築します
 	class MaterialInstanceAssetLoader : public IAssetLoader {
 	public:
 		explicit MaterialInstanceAssetLoader(AssetManager* assetManager);
@@ -36077,6 +35771,7 @@ File Path: src/core/assets/loader/MeshAssetLoader.h
 #include "interface/IAssetLoader.h"
 
 namespace Unnamed {
+	/// @brief MeshAssetLoaderは、mesh fileをvertex、index、submesh、skeleton dataへdecodeします
 	class MeshAssetLoader final : public IAssetLoader {
 	public:
 		bool CanLoad(const Path& path, ASSET_TYPE* outType) const override;
@@ -36267,6 +35962,7 @@ File Path: src/core/assets/loader/PostFxChainLoader.h
 namespace Unnamed {
 	class AssetManager;
 
+	/// @brief PostFxChainLoaderは、post-process pass列とmaterial参照から実行順付きchainを構築します
 	class PostFxChainLoader : public IAssetLoader {
 	public:
 		explicit PostFxChainLoader(AssetManager* assetManager);
@@ -37547,6 +37243,7 @@ File Path: src/core/assets/loader/ShaderProgramLoader.h
 namespace Unnamed {
 	class AssetManager;
 
+	/// @brief ShaderProgramLoaderは、shader stage、entry point、defineを検証してcompile要求へ変換します
 	class ShaderProgramLoader : public IAssetLoader {
 	public:
 		explicit ShaderProgramLoader(AssetManager* assetManager);
@@ -37950,6 +37647,7 @@ File Path: src/core/assets/loader/SoundAssetLoader.h
 #include "core/assets/loader/interface/IAssetLoader.h"
 
 namespace Unnamed {
+	/// @brief SoundAssetLoaderは、音声fileをPCM formatとsample byte列へdecodeします
 	class SoundAssetLoader final : public IAssetLoader {
 	public:
 		bool CanLoad(
@@ -38247,6 +37945,7 @@ File Path: src/core/assets/loader/UiDocumentAssetLoader.h
 #include "core/assets/loader/interface/IAssetLoader.h"
 
 namespace Unnamed {
+	/// @brief UiDocumentAssetLoaderは、UI JSONのnode階層、style、asset参照をUiDocumentDataへ変換します
 	class UiDocumentAssetLoader final : public IAssetLoader {
 	public:
 		bool CanLoad(
@@ -38670,6 +38369,7 @@ File Path: src/core/assets/types/EditorGuiData.h
 #include "core/filesystem/Path.h"
 
 namespace Unnamed {
+	/// @brief EditorGuiDataは、EditorGui assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct EditorGuiData {
 		Path        sourcePath; // ソースファイルのパス
 		std::string source;     // ソースコードの内容
@@ -38968,16 +38668,19 @@ namespace Unnamed {
 		Vec3        bindLocalScale       = Vec3::one;
 	};
 
+	/// @brief AnimationKeyVec3AssetDataは、AnimationKeyVec3Asset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct AnimationKeyVec3AssetData {
 		float timeSeconds = 0.0f;
 		Vec3  value       = Vec3::zero;
 	};
 
+	/// @brief AnimationKeyQuatAssetDataは、AnimationKeyQuatAsset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct AnimationKeyQuatAssetData {
 		float      timeSeconds = 0.0f;
 		Quaternion value       = Quaternion::identity;
 	};
 
+	/// @brief SkeletonBoneTrackAssetDataは、SkeletonBoneTrackAsset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct SkeletonBoneTrackAssetData {
 		int32_t                                boneIndex = -1;
 		std::vector<AnimationKeyVec3AssetData> translationKeys;
@@ -38985,6 +38688,7 @@ namespace Unnamed {
 		std::vector<AnimationKeyVec3AssetData> scaleKeys;
 	};
 
+	/// @brief AnimationClipAssetDataは、AnimationClipAsset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct AnimationClipAssetData {
 		std::string                             name;
 		float                                   durationSeconds = 0.0f;
@@ -39311,6 +39015,7 @@ File Path: src/core/assets/types/SoundAssetData.h
 #include <vector>
 
 namespace Unnamed {
+	/// @brief SoundAssetDataは、SoundAsset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct SoundAssetData {
 		uint16_t             formatTag             = 0;
 		uint16_t             channels              = 0;
@@ -39341,6 +39046,7 @@ namespace Unnamed {
 	};
 
 	// @brief テクスチャのミップマップ情報
+	/// @brief TextureMipは、1 mip levelの幅、高さ、row pitch、pixel byte列を所有します
 	struct TextureMip {
 		std::vector<uint8_t> bytes;        // ピクセルデータ
 		uint32_t             width    = 0; // ミップマップの幅
@@ -39349,6 +39055,7 @@ namespace Unnamed {
 	};
 
 	// @brief テクスチャサブリソース情報（mip + arraySlice）
+	/// @brief TextureSubresourceは、texture array sliceとmip levelをGPU upload対象として識別します
 	struct TextureSubresource {
 		std::vector<uint8_t> bytes;
 		uint32_t             width      = 0;
@@ -39387,6 +39094,7 @@ File Path: src/core/assets/types/UiDocumentAssetData.h
 #include <json.hpp>
 
 namespace Unnamed {
+	/// @brief UiDocumentAssetDataは、UiDocumentAsset assetのdecode結果をruntime生成処理へ渡す中間表現として保持します
 	struct UiDocumentAssetData {
 		std::string    name;
 		nlohmann::json rootJson;
@@ -39399,6 +39107,7 @@ File Path: src/core/containers/RingBuffer.h
 ============================================================
 #pragma once
 #include <array>
+#include <concepts>
 #include <mutex>
 #include <optional>
 
@@ -39408,6 +39117,11 @@ namespace Unnamed {
 	/// @tparam Capacity リングバッファの容量
 	/// @details 固定サイズの循環バッファで、容量に達すると古いデータを上書きします。 めちゃ便利!!
 	template <typename T, size_t Capacity>
+		requires (
+			Capacity > 0 &&
+			std::default_initializable<T> &&
+			std::assignable_from<T&, const T&>
+		)
 	class RingBuffer {
 	public:
 		/// @brief デフォルトコンストラクタ
@@ -40303,6 +40017,7 @@ namespace Unnamed {
 	};
 }
 
+/// @brief Pathを汎用文字列フォーマッターへ橋渡しします
 template <>
 struct std::formatter<Unnamed::Path, char> : std::formatter<std::string, char> {
 	auto format(const Unnamed::Path& path, std::format_context& ctx) const {
@@ -40743,6 +40458,7 @@ namespace Unnamed {
 		return seed ^ value + mixConstant + (seed << 6) + (seed >> 2);
 	}
 
+	/// @brief 順序付き入力から実行間で安定したハッシュ値を構築します
 	class StableHashBuilder final {
 	public:
 		explicit constexpr
@@ -40893,6 +40609,7 @@ File Path: src/core/io/binary/BinaryReader.h
 #include <vector>
 
 namespace Unnamed {
+	/// @brief BinaryReaderは、バイナリ入出力のバイト列を境界検査しながら型付き値へ読み出します
 	class BinaryReader {
 	public:
 		/// @brief 指定したパスのファイルをバイナリモードで開く。
@@ -41059,6 +40776,7 @@ File Path: src/core/io/binary/BinaryWriter.h
 #include "core/filesystem/Path.h"
 
 namespace Unnamed {
+	/// @brief BinaryWriterは、バイナリ入出力の型付き値を決められたバイナリ形式へ書き出します
 	class BinaryWriter {
 	public:
 		explicit BinaryWriter(const Path& path);
@@ -42616,7 +42334,7 @@ enum class ProjectionDepthMode : uint8_t {
 	ReverseZ,
 };
 
-/// @brief 4x4行列構造体
+/// @brief 行優先の4x4行列を保持し、ビュー・射影・アフィン変換を提供します
 struct Mat4 final {
 	float m[4][4]; ///< 行列の要素（4x4）
 
@@ -44730,6 +44448,7 @@ struct Vec3;
 //-----------------------------------------------------------------------------
 // 乱数生成器
 //-----------------------------------------------------------------------------
+/// @brief エンジン共通の疑似乱数生成器と分布変換を提供します
 class Random final {
 public:
 	static int   IntRange(const int& min = 0, const int& max = 1);
@@ -45318,6 +45037,7 @@ namespace Unnamed::StrUtil {
 	/// @return ブール文字列の場合true
 	bool CheckBoolString(std::string str);
 
+	/// @brief 文字列中のリンク範囲をバイトオフセットで表します
 	struct LinkSpan {
 		std::size_t begin;
 		std::size_t end; // [begin, end]
@@ -45499,6 +45219,7 @@ File Path: src/core/string/TextEncoding.h
 #pragma once
 
 namespace Unnamed {
+	/// @brief UTF-8とWindowsワイド文字列の境界変換を提供します
 	class TextEncoding final {
 	public:
 		TextEncoding() = delete;
@@ -45526,6 +45247,7 @@ File Path: src/engine/Animation/Animation.h
 #include <string>
 #include <engine/Animation/Node.h>
 
+/// @brief Animationは、animation clipのduration、tick rate、node channel列を所有します
 struct Animation {
 	float duration; // アニメーション全体の尺
 	// NodeAnimationの集合。Node名でひけるようにしておく
@@ -45631,6 +45353,7 @@ File Path: src/engine/Animation/KeyFrame.h
 #pragma once
 #include <vector>
 
+/// @brief Keyframeは、animation sampleの時刻と補間対象値を1 keyとして保持します
 template <typename T>
 struct Keyframe {
 	float time;
@@ -45714,18 +45437,22 @@ File Path: src/engine/Animation/Node.h
 
 struct aiNode;
 
+/// @brief AnimationCurveは、時間順keyframe列を所有し、指定時刻の値を補間します
 template <typename T>
 struct AnimationCurve {
 	std::vector<Keyframe<T>> keyFrames;
 };
 
+/// @brief NodeAnimationは、skeleton nodeごとのtranslation、rotation、scale curveを保持します
 struct NodeAnimation {
 	AnimationCurve<Vec3>       translate;
 	AnimationCurve<Quaternion> rotate;
 	AnimationCurve<Vec3>       scale;
 };
 
+/// @brief アニメーション階層の子ノードとローカル変換を保持します
 struct Node {
+	/// @brief アニメーションキーから得た平行移動、回転、拡縮を一組で保持します
 	struct Transform {
 		Vec3       translate;
 		Quaternion rotate;
@@ -45738,6 +45465,361 @@ struct Node {
 };
 
 Node ReadNode(const aiNode* node);
+
+
+============================================================
+File Path: src/engine/ComponentRegistry.cpp
+============================================================
+#include "engine/ComponentRegistry.h"
+
+#include <algorithm>
+
+#include "engine/unnamed/subsystem/console/Log.h"
+
+namespace Unnamed {
+	bool ComponentRegistry::Register(
+		const std::string_view stableName, const CreateFn createFn,
+		const std::string_view displayName
+	) {
+		return RegisterInternal(
+			stableName,
+			createFn,
+			displayName,
+			std::type_index(typeid(void)),
+			false
+		);
+	}
+
+	bool ComponentRegistry::Register(
+		const std::string_view stableName, const CreateFn createFn,
+		const std::string_view displayName,
+		const std::type_index  typeIndex
+	) {
+		return RegisterInternal(
+			stableName, createFn, displayName, typeIndex, true
+		);
+	}
+
+	std::unique_ptr<BaseComponent> ComponentRegistry::Create(
+		const std::string_view stableName
+	) const {
+		const Entry* e = Find(stableName);
+		if (!e || !e->create) {
+			return nullptr;
+		}
+
+		return e->create();
+	}
+
+	bool ComponentRegistry::IsRegistered(
+		const std::string_view stableName
+	) const {
+		return Find(stableName) != nullptr;
+	}
+
+	const ComponentRegistry::Entry* ComponentRegistry::Find(
+		const std::string_view stableName
+	) const {
+		if (stableName.empty()) {
+			return nullptr;
+		}
+
+		const auto it = mEntries.find(std::string(stableName));
+		if (it == mEntries.end()) {
+			return nullptr;
+		}
+		return &it->second;
+	}
+
+	std::vector<ComponentRegistry::RegisteredComponentInfo>
+	ComponentRegistry::ListRegisteredComponents() const {
+		std::vector<RegisteredComponentInfo> result;
+		result.reserve(mEntries.size());
+
+		for (const auto& [stableName, entry] : mEntries) {
+			RegisteredComponentInfo info;
+			info.stableName  = stableName;
+			info.displayName = entry.displayName;
+			result.emplace_back(std::move(info));
+		}
+
+		std::ranges::sort(
+			result,
+			[](
+			const RegisteredComponentInfo& lhs,
+			const RegisteredComponentInfo& rhs
+		) {
+				return lhs.stableName < rhs.stableName;
+			}
+		);
+		return result;
+	}
+
+	void ComponentRegistry::Clear() {
+		mEntries.clear();
+		mStableNamesByType.clear();
+	}
+
+	ComponentRegistry& ComponentRegistry::Get() {
+		static ComponentRegistry sRegistry;
+		return sRegistry;
+	}
+
+	bool ComponentRegistry::RegisterInternal(
+		const std::string_view stableName, const CreateFn createFn,
+		const std::string_view displayName,
+		const std::type_index  typeIndex, const bool hasTypeInfo
+	) {
+		if (stableName.empty() || createFn == nullptr) {
+			return false;
+		}
+
+		std::string key(stableName);
+		const auto  it = mEntries.find(key);
+		if (it != mEntries.end()) {
+			const Entry& existing              = it->second;
+			// 同一型の重複登録は、複数の登録経路を許容するため冪等に扱う
+			const bool   sameTypedRegistration =
+				hasTypeInfo && existing.hasTypeInfo &&
+				existing.typeIndex == typeIndex;
+			if (sameTypedRegistration) {
+				if (
+					!displayName.empty() &&
+					!existing.displayName.empty() &&
+					existing.displayName != displayName
+				) {
+					Warning(
+						"ComponentRegistry",
+						"Component '{}' was already registered with display name '{}'; duplicate registration requested display name '{}'. Keeping existing value.",
+						stableName,
+						existing.displayName,
+						displayName
+					);
+				}
+				return true;
+			}
+
+			const bool sameLegacyFactory =
+				!hasTypeInfo && !existing.hasTypeInfo &&
+				existing.create == createFn;
+			if (sameLegacyFactory) {
+				if (
+					!displayName.empty() &&
+					!existing.displayName.empty() &&
+					existing.displayName != displayName
+				) {
+					Warning(
+						"ComponentRegistry",
+						"Component '{}' was already registered with display name '{}'; duplicate legacy registration requested display name '{}'. Keeping existing value.",
+						stableName,
+						existing.displayName,
+						displayName
+					);
+				}
+				return true;
+			}
+
+			if (existing.hasTypeInfo && hasTypeInfo) {
+				Error(
+					"ComponentRegistry",
+					"Conflicting component registration for stable name '{}': existing type='{}' new type='{}'.",
+					stableName,
+					existing.typeIndex.name(),
+					typeIndex.name()
+				);
+			} else {
+				Error(
+					"ComponentRegistry",
+					"Conflicting component registration for stable name '{}': type information is missing on one side and safety cannot be guaranteed.",
+					stableName
+				);
+			}
+			return false;
+		}
+
+		// 同じ実装型を別の永続名へ再登録するとシリアライズ互換性が壊れる
+		if (hasTypeInfo) {
+			const auto typeIt = mStableNamesByType.find(typeIndex);
+			if (typeIt != mStableNamesByType.end() && typeIt->second != key) {
+				Error(
+					"ComponentRegistry",
+					"Component type '{}' is already registered as stable name '{}' and cannot be re-registered as '{}'.",
+					typeIndex.name(),
+					typeIt->second,
+					stableName
+				);
+				return false;
+			}
+		}
+
+		Entry e;
+		e.create      = createFn;
+		e.displayName = std::string(displayName);
+		e.typeIndex   = typeIndex;
+		e.hasTypeInfo = hasTypeInfo;
+
+		mEntries.emplace(std::move(key), std::move(e));
+		if (hasTypeInfo) {
+			mStableNamesByType[typeIndex] = std::string(stableName);
+		}
+		return true;
+	}
+
+	namespace Detail {
+		AutoComponentRegister::AutoComponentRegister(
+			const std::string_view            stableName,
+			const std::string_view            displayName,
+			const ComponentRegistry::CreateFn createFn
+		) {
+			ComponentRegistry::Get().Register(
+				stableName, createFn, displayName
+			);
+		}
+
+		AutoComponentRegister::AutoComponentRegister(
+			const std::string_view            stableName,
+			const std::string_view            displayName,
+			const ComponentRegistry::CreateFn createFn,
+			const std::type_index             typeIndex
+		) {
+			ComponentRegistry::Get().Register(
+				stableName, createFn, displayName, typeIndex
+			);
+		}
+	}
+}
+
+
+============================================================
+File Path: src/engine/ComponentRegistry.h
+============================================================
+#pragma once
+#include <memory>
+#include <string>
+#include <typeindex>
+#include <type_traits>
+#include <unordered_map>
+#include <vector>
+
+#include "engine/unnamed/framework/components/base/BaseComponent.h"
+
+namespace Unnamed {
+	/// @brief コンポーネントレジストリ
+	/// @details
+	class ComponentRegistry {
+	public:
+		using CreateFn = std::unique_ptr<BaseComponent>(*)();
+
+		/// @brief Entryは、コンポーネント生成関数、表示名、型識別子を登録済みcomponentごとに保持します
+		struct Entry {
+			CreateFn        create = nullptr;
+			std::string     displayName;
+			std::type_index typeIndex   = std::type_index(typeid(void));
+			bool            hasTypeInfo = false;
+		};
+
+		/// @brief RegisteredComponentInfoは、Editorのcomponent追加UIへ公開する安定名と表示名を保持します
+		struct RegisteredComponentInfo {
+			std::string stableName;
+			std::string displayName;
+		};
+
+		ComponentRegistry()  = default;
+		~ComponentRegistry() = default;
+
+		ComponentRegistry(const ComponentRegistry&)            = delete;
+		ComponentRegistry& operator=(const ComponentRegistry&) = delete;
+
+		bool Register(
+			std::string_view stableName, CreateFn createFn,
+			std::string_view displayName
+		);
+		bool Register(
+			std::string_view stableName, CreateFn         createFn,
+			std::string_view displayName, std::type_index typeIndex
+		);
+
+		template <typename T>
+		bool RegisterTyped(
+			std::string_view stableName,
+			std::string_view displayName
+		) {
+			static_assert(
+				std::is_base_of_v<BaseComponent, T>,
+				"T must derive from BaseComponent."
+			);
+			return Register(
+				stableName,
+				[]() -> std::unique_ptr<BaseComponent> {
+					return std::make_unique<T>();
+				},
+				displayName,
+				std::type_index(typeid(T))
+			);
+		}
+
+		[[nodiscard]] std::unique_ptr<BaseComponent> Create(
+			std::string_view stableName
+		) const;
+
+		[[nodiscard]] bool IsRegistered(std::string_view stableName) const;
+
+		[[nodiscard]] const Entry* Find(std::string_view stableName) const;
+		[[nodiscard]] std::vector<RegisteredComponentInfo>
+		ListRegisteredComponents() const;
+
+		void Clear();
+
+		static ComponentRegistry& Get();
+
+	private:
+		bool RegisterInternal(
+			std::string_view stableName, CreateFn         createFn,
+			std::string_view displayName, std::type_index typeIndex,
+			bool             hasTypeInfo
+		);
+
+		std::unordered_map<std::string, Entry>           mEntries;
+		std::unordered_map<std::type_index, std::string> mStableNamesByType;
+	};
+
+	namespace Detail {
+		/// @brief AutoComponentRegisterは、static初期化時にcomponent factoryをComponentRegistryへ登録します
+		struct AutoComponentRegister final {
+			AutoComponentRegister(
+				std::string_view            stableName,
+				std::string_view            displayName,
+				ComponentRegistry::CreateFn createFn
+			);
+			AutoComponentRegister(
+				std::string_view            stableName,
+				std::string_view            displayName,
+				ComponentRegistry::CreateFn createFn,
+				std::type_index             typeIndex
+			);
+		};
+	}
+}
+
+// コンポーネント登録マクロ
+#define REGISTER_COMPONENT(T)								\
+namespace {													\
+std::unique_ptr<Unnamed::BaseComponent> Create_##T() {		\
+return std::make_unique<T>();								\
+}															\
+const Unnamed::Detail::AutoComponentRegister gAutoReg_##T(	\
+T{}.GetStableName(), T{}.GetComponentName(), &Create_##T, std::type_index(typeid(T)));	\
+}
+
+// 拡張コンポーネント登録マクロ
+#define REGISTER_COMPONENT_EX(T, stableNameLiteral, displayNameLiteral) \
+namespace {																\
+std::unique_ptr<Unnamed::BaseComponent> Create_##T() {					\
+return std::make_unique<T>();											\
+}																		\
+const Unnamed::Detail::AutoComponentRegister gAutoReg_##T(				\
+(stableNameLiteral), (displayNameLiteral), &Create_##T, std::type_index(typeid(T)));				\
+}
 
 
 ============================================================
@@ -45758,7 +45840,7 @@ File Path: src/engine/Engine.cpp
 
 #include <utility>
 
-#include <core/ComponentRegistry.h>
+#include <engine/ComponentRegistry.h>
 #include <core/assets/AssetManager.h>
 #include <core/assets/loader/EditorGuiLoader.h>
 #include <core/assets/loader/EventPresentationLoader.h>
@@ -45796,7 +45878,7 @@ File Path: src/engine/Engine.cpp
 #include <engine/unnamed/ui/UIFontAtlas.h>
 #include <engine/ui/ImGuiLayer.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
-#include <engine/unnamed/subsystem/EditorLuaSystem/EditorLuaSystem.h>
+#include <engine/unnamed/subsystem/input/InputSystem.h>
 #include <engine/unnamed/subsystem/input/InputSystem.h>
 #include <engine/unnamed/subsystem/input/device/gamepad/GamepadDevice.h>
 #include <engine/unnamed/subsystem/input/device/keyboard/KeyboardDevice.h>
@@ -47194,7 +47276,7 @@ namespace Unnamed {
 		std::function<void(Engine&)> onPreShutdown = {};
 	};
 
-	/// @brief エンジンクラス
+	/// @brief 各サブシステムの初期化、フレーム実行、終了順序を統括します
 	class Engine final {
 	public:
 		/// @brief コンストラクタ
@@ -47388,7 +47470,7 @@ File Path: src/engine/EngineComponentRegistration.cpp
 ============================================================
 #include "EngineComponentRegistration.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 
 #include "EngineComponentCatalog.h"
 #include "engine/unnamed/subsystem/console/Log.h"
@@ -47396,8 +47478,8 @@ File Path: src/engine/EngineComponentRegistration.cpp
 namespace Unnamed {
 	void RegisterDefaultEngineComponents(ComponentRegistry& componentRegistry) {
 		const auto RegisterIfMissing = [&](auto typeTag) {
-			using T = typename decltype(typeTag)::type;
-			const T probe{};
+			using T = decltype(typeTag)::type;
+			const T                probe{};
 			const std::string_view stableName = probe.GetStableName();
 			if (componentRegistry.IsRegistered(stableName)) {
 				return;
@@ -47422,7 +47504,6 @@ namespace Unnamed {
 		ForEachEngineComponentType(RegisterIfMissing);
 	}
 }
-
 
 
 ============================================================
@@ -47461,9 +47542,11 @@ namespace Unnamed {
 		D3D12,
 	};
 
+	/// @brief EngineConfigは、Engine機能の生成時に適用する有効化条件と調整値を保持します
 	struct EngineConfig {
 		RUN_MODE mode;
 
+		/// @brief Windowは、engine起動時のwindow title、client幅、高さ、表示設定を保持します
 		struct Window {
 			std::string title     = "Unnamed Engine";
 			int32_t     width     = 1280;
@@ -49709,6 +49792,7 @@ namespace Unnamed::EditorContentBrowser {
 	namespace {
 		namespace fs = std::filesystem;
 
+		/// @brief BrowserEntryは、Content Browserに表示するpath、表示名、directory・asset種別を保持します
 		struct BrowserEntry {
 			Path        path;
 			std::string name;
@@ -50461,11 +50545,13 @@ namespace Unnamed::EditorContentBrowser {
 	inline constexpr const char*   kAssetDragDropPayloadId =
 		"UNNAMED_ASSET_REF";
 
+	/// @brief AssetDragDropPayloadは、エディターイベントで送受信する値を一単位として保持します
 	struct AssetDragDropPayload {
 		uint16_t assetType = 0;
 		char     path[512] = {};
 	};
 
+	/// @brief BrowserViewStateは、Content Browserの現在directory、選択、表示modeを保持します
 	struct BrowserViewState {
 		Path  rootPath    = Path("./content");
 		Path  currentPath = Path("./content");
@@ -50635,7 +50721,7 @@ File Path: src/engine/editor/EditorGuiScriptPanel.h
 #include <core/assets/AssetManager.h>
 #include <core/filesystem/VirtualPath.h>
 
-#include "engine/unnamed/subsystem/EditorLuaSystem/EditorLuaSystem.h"
+#include "engine/editor/lua/EditorLuaSystem.h"
 
 namespace Unnamed {
 	/// @brief luaでエディタを拡張するためのGUIパネル
@@ -50688,6 +50774,7 @@ File Path: src/engine/editor/EditorNotification.cpp
 #include "engine/unnamed/subsystem/console/concommand/ConCommand.h"
 
 namespace Unnamed {
+	/// @brief NotificationStateは、Editor通知の表示開始時刻とfade進行を保持します
 	struct EditorNotification::NotificationState {
 		Notification notification;
 		uint64_t     id             = 0;
@@ -50722,6 +50809,7 @@ namespace Unnamed {
 		constexpr Vec2  kP1(0.2f, 0.0f);
 		constexpr Vec2  kP2(0.0f, 1.0f);
 
+		/// @brief NotificationLayoutは、Editor通知を積み重ねる画面位置、幅、行間を計算結果として保持します
 		struct NotificationLayout {
 			float  bodyFontSize            = 0.0f;
 			float  titleFontSize           = 0.0f;
@@ -51343,6 +51431,7 @@ namespace Unnamed {
 		FATAL,   // 致命的な問題を示す通知。あんまり見たくないです。ははっ。
 	};
 
+	/// @brief Notificationは、Editorへ表示する本文、severity、表示時間を保持します
 	struct Notification {
 		std::string title;       // 通知のタイトル
 		std::string description; // タイトルの下に表示される説明文
@@ -51418,6 +51507,7 @@ namespace Unnamed {
 	// エディタのプロパティ
 	//-------------------------------------------------------------------------
 
+	/// @brief EditorUIPropertiesは、Editor UIで共有する色、余白、寸法のstyle値を保持します
 	struct EditorUIProperties {
 		float titleBarHeight = 36;   // タイトルバーの高さ
 		float popupPadding   = 8.0f; // ポップアップのパディング
@@ -51603,7 +51693,7 @@ File Path: src/engine/editor/EditorToolHost.cpp
 #include "engine/ImGui/ImGuiWidgets.h"
 #include "engine/render/RenderModule.h"
 #include "engine/unnamed/subsystem/console/ConsoleSystem.h"
-#include "engine/unnamed/subsystem/editorluasystem/EditorLuaSystem.h"
+#include "engine/editor/lua/EditorLuaSystem.h"
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel        = "EdTlHost";
@@ -52055,6 +52145,7 @@ namespace Unnamed {
 
 	class GuiEditorTool;
 
+	/// @brief EditorToolHostは、登録済みEditor toolの選択、フレーム更新、UI描画の呼び出し順序を管理します
 	class EditorToolHost final {
 	public:
 		EditorToolHost(
@@ -52125,6 +52216,7 @@ File Path: src/engine/editor/EditorUiMetrics.h
 ﻿#pragma once
 
 namespace Unnamed {
+	/// @brief EditorUiMetricsは、DPI倍率に応じたEditor UIの寸法と間隔を算出します
 	class EditorUiMetrics {
 	public:
 		void SetScale(const float scale) {
@@ -52371,14 +52463,17 @@ namespace Unnamed {
 		CameraEntity      = 2,
 	};
 
+	/// @brief ViewportCameraBindingは、ViewportCameraの論理識別子とruntime resource参照の対応を保持します
 	struct ViewportCameraBinding {
 		ViewportCameraBindingKind kind = ViewportCameraBindingKind::
 			EditorPerspective;
 		uint64_t cameraEntityGuid = 0;
 	};
 
+	/// @brief EditorViewportCameraManagerは、viewportごとのcamera bindingとactive camera解決を管理します
 	class EditorViewportCameraManager final {
 	public:
+		/// @brief ResolvedCameraは、viewportが使用するcamera componentとtransformの非所有参照を保持します
 		struct ResolvedCamera {
 			Render::RenderCameraInput input          = {};
 			bool                      isOrthographic = false;
@@ -52767,6 +52862,7 @@ namespace Unnamed {
 		struct SceneOutputView;
 	}
 
+	/// @brief GuiEditorToolは、GUI documentのnode選択、property編集、preview描画をEditor toolとして提供します
 	class GuiEditorTool final : public IEditorTool {
 	public:
 		explicit GuiEditorTool(ImGuiLayer& imGuiLayer);
@@ -52859,6 +52955,7 @@ namespace Unnamed {
 		struct SceneOutputView;
 	}
 
+	/// @brief EditorToolServicesは、Editor toolへ注入するWorld、Renderer、各subsystemの非所有参照を保持します
 	struct EditorToolServices {
 		WindowManager*        windowManager    = nullptr;
 		Render::RenderModule* renderModule     = nullptr;
@@ -52871,11 +52968,13 @@ namespace Unnamed {
 		Profiler*             profiler         = nullptr;
 	};
 
+	/// @brief EditorToolFrameContextは、Editor tool更新に使うscaled・unscaled delta timeをframe単位で渡します
 	struct EditorToolFrameContext {
 		float unscaledDeltaTime = 0.0f;
 		float deltaTime         = 0.0f;
 	};
 
+	/// @brief IEditorToolは、Editor toolの識別、open状態、frame更新、UI描画契約を定義します
 	class IEditorTool {
 	public:
 		virtual ~IEditorTool() = default;
@@ -53016,6 +53115,7 @@ File Path: src/engine/editor/ImGuizmoConfigLoader.h
 namespace Unnamed {
 	class ConsoleSystem;
 
+	/// @brief ImGuizmoConfigLoaderは、ImGuizmo設定ファイルを読み込み、コンソール変数へ反映します
 	class ImGuizmoConfigLoader {
 	public:
 		ImGuizmoConfigLoader(std::string configPath);
@@ -53797,6 +53897,7 @@ namespace Unnamed {
 		HU    = 1,
 	};
 
+	/// @brief LevelEditorToolは、World hierarchy、viewport、component propertyを編集するlevel UIを提供します
 	class LevelEditorTool final : public IEditorTool {
 	public:
 		LevelEditorTool(WindowManager& windowManager, ImGuiLayer& imGuiLayer);
@@ -53836,6 +53937,7 @@ namespace Unnamed {
 			"tool.level.scene.perspective";
 
 	private:
+		/// @brief ViewOutputCacheは、view textureのSRV、revision、texture ID、表示寸法とUV範囲を再利用用に保持します
 		struct ViewOutputCache {
 			D3D12_CPU_DESCRIPTOR_HANDLE srvCpu      = {};
 			uint64_t                    srvRevision = 0;
@@ -54508,7 +54610,7 @@ File Path: src/engine/editor/LevelEditorToolHierarchy.cpp
 #include <unordered_map>
 #include <unordered_set>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/guidgenerator/GuidGenerator.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
@@ -54525,11 +54627,13 @@ File Path: src/engine/editor/LevelEditorToolHierarchy.cpp
 
 namespace Unnamed {
 	namespace {
+		/// @brief OutlinerFolderNodeは、Outliner folder名、親子関係、展開状態を保持します
 		struct OutlinerFolderNode {
 			std::map<std::string, OutlinerFolderNode> children;
 			std::vector<Entity*>                      entities;
 		};
 
+		/// @brief ComponentMenuNodeは、add-component menuのcategory階層と登録component項目を保持します
 		struct ComponentMenuNode {
 			std::map<std::string, ComponentMenuNode>                children;
 			std::vector<ComponentRegistry::RegisteredComponentInfo> components;
@@ -55915,6 +56019,7 @@ File Path: src/engine/editor/LevelEditorToolViewport.cpp
 
 namespace Unnamed {
 	namespace {
+		/// @brief ViewportFitResultは、panel内へaspect比を保って収めた描画位置、寸法、aspect比を返します
 		struct ViewportFitResult {
 			Vec2  drawPos     = Vec2::zero;
 			Vec2  drawSize    = Vec2::one;
@@ -56635,6 +56740,229 @@ namespace Unnamed {
 }
 
 #endif
+
+
+============================================================
+File Path: src/engine/editor/lua/EditorLuaSystem.cpp
+============================================================
+#include "EditorLuaSystem.h"
+
+#include <thirdparty/lua/lua.hpp>
+#ifdef UNNAMED_WITH_EDITOR
+#include <imgui.h>
+#endif
+
+namespace Unnamed {
+	namespace {
+		void SetError(std::string* outError, const char* message) {
+			if (outError) {
+				*outError = message ? message : "Unknown Lua error";
+			}
+		}
+
+		int LuaUiText(lua_State* lua) {
+			const char* text = luaL_checkstring(lua, 1);
+#ifdef UNNAMED_WITH_EDITOR
+			ImGui::TextUnformatted(text);
+#else
+			(void)text;
+#endif
+			return 0;
+		}
+
+		int LuaUiButton(lua_State* lua) {
+			const char* text = luaL_checkstring(lua, 1);
+#ifdef UNNAMED_WITH_EDITOR
+			const bool pressed = ImGui::Button(text);
+#else
+			(void)text;
+			constexpr bool pressed = false;
+#endif
+
+			lua_pushboolean(lua, pressed);
+			return 1;
+		}
+
+		int LuaUiBeginWindow(lua_State* lua) {
+			const char* title = luaL_checkstring(lua, 1);
+#ifdef UNNAMED_WITH_EDITOR
+			const bool opened = ImGui::Begin(title);
+#else
+			(void)title;
+			constexpr bool opened = false;
+#endif
+			lua_pushboolean(lua, opened);
+			return 1;
+		}
+
+		int LuaUiEndWindow(lua_State*) {
+#ifdef UNNAMED_WITH_EDITOR
+			ImGui::End();
+#endif
+			return 0;
+		}
+
+		void RegisterEditorLuaBindings(lua_State* lua) {
+			lua_register(lua, "Ui_Text", LuaUiText);
+			lua_register(lua, "Ui_Button", LuaUiButton);
+			lua_register(lua, "Ui_BeginWindow", LuaUiBeginWindow);
+			lua_register(lua, "Ui_EndWindow", LuaUiEndWindow);
+		}
+
+		auto kEditorUiBootStrapLua = R"(
+			Ui = Ui or {}
+			
+			function Ui.Text(text)
+				Ui_Text(text)
+			end
+
+			function Ui.Button(text)
+				return Ui_Button(text)
+			end
+
+			function Ui.BeginWindow(title)
+				return Ui_BeginWindow(title)
+			end
+
+			function Ui.EndWindow()
+				Ui_EndWindow()
+			end
+		)";
+	}
+
+	bool EditorLuaSystem::Init() {
+		if (mState) {
+			return true;
+		}
+
+		mState = luaL_newstate();
+		if (!mState) {
+			return false;
+		}
+
+		luaL_openlibs(mState);
+		RegisterEditorLuaBindings(mState);
+
+		std::string error;
+		ExecuteString(kEditorUiBootStrapLua, &error);
+
+		return true;
+	}
+
+	void EditorLuaSystem::Shutdown() {
+		if (mState) {
+			lua_close(mState);
+			mState = nullptr;
+		}
+	}
+
+	const std::string_view EditorLuaSystem::GetName() const {
+		return "EditorLua";
+	}
+
+	bool EditorLuaSystem::ExecuteString(
+		const std::string& src, std::string* outError
+	) const {
+		if (!mState) {
+			SetError(outError, "Lua state is not initialized");
+			return false;
+		}
+
+		if (outError) {
+			outError->clear();
+		}
+
+		const int loadResult = luaL_loadbuffer(
+			mState,
+			src.data(),
+			src.size(),
+			"EditorGuiScript"
+		);
+
+		if (loadResult != LUA_OK) {
+			SetError(outError, lua_tostring(mState, -1));
+			lua_pop(mState, 1);
+			return false;
+		}
+
+		const int callResult = lua_pcall(mState, 0, 0, 0);
+		if (callResult != LUA_OK) {
+			SetError(outError, lua_tostring(mState, -1));
+			lua_pop(mState, 1);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool EditorLuaSystem::CallFunction(
+		const char* name, std::string* outError
+	) const {
+		if (!mState) {
+			SetError(outError, "Lua state is not initialized");
+			return false;
+		}
+
+		if (!name || name[0] == '\0') {
+			SetError(outError, "Lua function name is empty");
+			return false;
+		}
+
+		if (outError) {
+			outError->clear();
+		}
+
+		lua_getglobal(mState, name);
+
+		if (!lua_isfunction(mState, -1)) {
+			lua_pop(mState, 1);
+
+			std::string message = "Lua function not found: ";
+			message             += name;
+			SetError(outError, message.c_str());
+			return false;
+		}
+
+		const int callResult = lua_pcall(mState, 0, 0, 0);
+		if (callResult != LUA_OK) {
+			SetError(outError, lua_tostring(mState, -1));
+			lua_pop(mState, 1);
+			return false;
+		}
+
+		return true;
+	}
+}
+
+
+============================================================
+File Path: src/engine/editor/lua/EditorLuaSystem.h
+============================================================
+﻿#pragma once
+#include <string>
+
+#include <thirdparty/lua/lua.hpp>
+
+#include <engine/unnamed/subsystem/interface/ISubsystem.h>
+
+namespace Unnamed {
+	/// @brief EditorLuaSystemは、Editor専用Lua stateを所有し、tool scriptの実行と関数呼び出しを仲介します
+	class EditorLuaSystem : public ISubsystem {
+	public:
+		// ---- ISubsystem ----------------------------------------------------
+		bool Init() override;
+		void Shutdown() override;
+
+		[[nodiscard]] const std::string_view GetName() const override;
+
+		// ---- EditorLuaSystem -----------------------------------------------
+		bool ExecuteString(const std::string& src, std::string* outError) const;
+		bool CallFunction(const char* name, std::string* outError) const;
+
+	private:
+		lua_State* mState = nullptr;
+	};
+}
 
 
 ============================================================
@@ -57804,62 +58132,6 @@ namespace Unnamed {
 ============================================================
 File Path: src/engine/game/GameModuleRegistry.cpp
 ============================================================
-#include "GameModuleRegistry.h"
-
-#include <algorithm>
-#include <ranges>
-
-#include "core/string/StrUtil.h"
-
-namespace Unnamed {
-	bool GameModuleRegistry::RegisterFactory(
-		const std::string_view moduleName,
-		const CreateFunction   createFunction
-	) {
-		if (moduleName.empty() || createFunction == nullptr) {
-			return false;
-		}
-
-		const std::string normalized = NormalizeModuleName(moduleName);
-		mFactories[normalized] = createFunction;
-		mDisplayNames[normalized] = std::string(moduleName);
-		return true;
-	}
-
-	std::unique_ptr<IGameModule> GameModuleRegistry::Create(
-		const std::string_view moduleName
-	) const {
-		const std::string normalized = NormalizeModuleName(moduleName);
-		if (normalized.empty()) {
-			return nullptr;
-		}
-
-		const auto factoryIt = mFactories.find(normalized);
-		if (factoryIt == mFactories.end() || factoryIt->second == nullptr) {
-			return nullptr;
-		}
-		return factoryIt->second();
-	}
-
-	bool GameModuleRegistry::Contains(const std::string_view moduleName) const {
-		const std::string normalized = NormalizeModuleName(moduleName);
-		if (normalized.empty()) {
-			return false;
-		}
-		return mFactories.contains(normalized);
-	}
-
-	std::vector<std::string> GameModuleRegistry::ListRegisteredNames() const {
-		std::vector<std::string> names = {};
-		names.reserve(mDisplayNames.size());
-		for (const auto& [normalizedName, displayName] : mDisplayNames) {
-			(void)normalizedName;
-			names.push_back(displayName);
-		}
-		std::ranges::sort(names);
-		return names;
-	}
-}
 
 
 ============================================================
@@ -57934,6 +58206,7 @@ namespace Unnamed {
 			MOD,
 		};
 
+		/// @brief ContentMountRootは、content mount名と解決済みphysical root pathの対応を保持します
 		struct ContentMountRoot {
 			Path                rootPath;
 			CONTENT_MOUNT_LAYER layer = CONTENT_MOUNT_LAYER::BASE;
@@ -58680,7 +58953,7 @@ File Path: src/engine/gui/Rect.h
 #include <core/math/Vec2.h>
 
 namespace Unnamed::Gui {
-	/// @brief 矩形構造体
+	/// @brief UI空間の左上座標と幅・高さをピクセル単位で表します
 	struct Rect {
 		float x      = 0.0f; // X座標
 		float y      = 0.0f; // Y座標
@@ -58795,6 +59068,7 @@ File Path: src/engine/gui/UiButton.h
 namespace Unnamed::Gui {
 	class UiButtonBehaviorComponent;
 
+	/// @brief UiButtonは、押下状態とクリック通知をUiWidgetの入力処理へ追加します
 	class UiButton : public UiWidget {
 	public:
 		UiButton();
@@ -59401,6 +59675,7 @@ File Path: src/engine/gui/UiDocument.h
 #include "UiWidget.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiDocumentは、GUIウィジェット階層のルートとドキュメント固有状態を所有します
 	class UiDocument {
 	public:
 		UiDocument();
@@ -59697,6 +59972,7 @@ namespace Unnamed {
 }
 
 namespace Unnamed::Gui {
+	/// @brief UiDocumentManagerは、UiDocumentをIDで所有し、screenへのattach・detach寿命を管理します
 	class UiDocumentManager {
 	public:
 		explicit UiDocumentManager(AssetManager& assetManager);
@@ -59718,6 +59994,7 @@ namespace Unnamed::Gui {
 		std::vector<Path> UpdateTrackedDocuments();
 
 	private:
+		/// @brief ManagedDocumentは、document ID、UiDocument所有権、screenへのattach状態を保持します
 		struct ManagedDocument {
 			Path                        normalizedPath;
 			AssetID                     assetId       = kInvalidAssetID;
@@ -59755,6 +60032,7 @@ File Path: src/engine/gui/UiDrawCommand.h
 #include "Rect.h"
 
 namespace Unnamed::Gui {
+	/// @brief Colorは、GUI描画命令へ渡す非premultiplied RGBA成分を保持します
 	struct Color {
 		float r = 1.0f;
 		float g = 1.0f;
@@ -59768,6 +60046,7 @@ namespace Unnamed::Gui {
 		IMAGE,
 	};
 
+	/// @brief UiDrawCommandRectは、GUI要素の位置と寸法を同じ座標系で表します
 	struct UiDrawCommandRect {
 		Rect  rect;
 		Color fillColor;
@@ -59776,6 +60055,7 @@ namespace Unnamed::Gui {
 		Color borderColor     = {.r = 0.0f, .g = 0.0f, .b = 0.0f, .a = 1.0f};
 	};
 
+	/// @brief UiDrawCommandTextは、描画文字列、font、位置、色を1件のtext描画命令として保持します
 	struct UiDrawCommandText {
 		Vec2        position;
 		std::string text;
@@ -59783,6 +60063,7 @@ namespace Unnamed::Gui {
 		float       fontSize = 16.0f;
 	};
 
+	/// @brief UiDrawCommandImageは、texture、描画矩形、UV、tintを1件のimage描画命令として保持します
 	struct UiDrawCommandImage {
 		Rect    rect;
 		AssetID textureAssetId = kInvalidAssetID;
@@ -59793,6 +60074,7 @@ namespace Unnamed::Gui {
 		float rotationRad = 0.0f;
 	};
 
+	/// @brief UiDrawCommandは、GUIで順序付き実行する命令と引数を保持します
 	struct UiDrawCommand {
 		UI_DRAW_COMMAND_TYPE type{UI_DRAW_COMMAND_TYPE::RECT};
 		UiDrawCommandRect    rect;
@@ -59866,6 +60148,7 @@ File Path: src/engine/gui/UiPanel.h
 namespace Unnamed::Gui {
 	class UiPanelStyleComponent;
 
+	/// @brief UiPanelは、子ウィジェットの配置領域と背景描画を提供します
 	class UiPanel : public UiWidget {
 	public:
 		UiPanel();
@@ -60026,6 +60309,7 @@ File Path: src/engine/gui/UiRoot.h
 namespace Unnamed::Gui {
 	class UiWidget;
 
+	/// @brief UiRootは、GUI階層の最上位でレイアウト、入力配送、描画コマンド生成を統括します
 	class UiRoot {
 	public:
 		UiRoot();
@@ -60123,6 +60407,7 @@ File Path: src/engine/gui/UiScreen.h
 #include "UiDocument.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiScreenは、画面単位のUiRootと表示ライフサイクルを所有します
 	class UiScreen {
 	public:
 		UiScreen(std::shared_ptr<UiDocument> document);
@@ -60246,6 +60531,7 @@ File Path: src/engine/gui/UiScreenStack.h
 #include "UiScreen.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiScreenStackは、画面の積み重ね順に入力対象と描画順を管理します
 	class UiScreenStack {
 	public:
 		explicit UiScreenStack(UiRoot* uiRoot);
@@ -61468,11 +61754,13 @@ namespace Unnamed::Gui {
 		EXPAND, // 親にねだる
 	};
 
+	/// @brief UiSizePolicyは、UiWidgetが親の余剰幅・高さを伸縮へ使う方針を保持します
 	struct UiSizePolicy {
 		UiSizePolicyAxis horizontal = UiSizePolicyAxis::FIXED;
 		UiSizePolicyAxis vertical   = UiSizePolicyAxis::FIXED;
 	};
 
+	/// @brief UiSizeConstraintsは、UiWidgetの最小・最大幅と高さをlayout制約として保持します
 	struct UiSizeConstraints {
 		float minWidth  = 0.0f;
 		float minHeight = 0.0f;
@@ -61943,6 +62231,7 @@ File Path: src/engine/gui/components/UiButtonBehaviorComponent.h
 #include "engine/gui/UiDrawCommand.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiButtonBehaviorComponentは、UiWidgetのhover・press・click状態を入力から更新します
 	class UiButtonBehaviorComponent final : public UiComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {
@@ -62083,6 +62372,7 @@ namespace Unnamed::Gui {
 	struct UiDeserializeContext;
 	class UiWidget;
 
+	/// @brief UiComponentは、entity上のGUI widget参照と有効状態をcomponent lifecycleへ接続します
 	class UiComponent {
 	public:
 		virtual ~UiComponent() = default;
@@ -62325,6 +62615,7 @@ File Path: src/engine/gui/components/UiDigitStripComponent.h
 #include "engine/gui/UiDrawCommand.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiDigitStripComponentは、数値を桁ごとのtexture領域へ変換して連続描画します
 	class UiDigitStripComponent final : public UiComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {
@@ -62440,6 +62731,7 @@ namespace Unnamed::Gui {
 			selfRect.height - mPadding.top - mPadding.bottom
 		);
 
+		/// @brief ChildInfoは、layout対象widget、固定extent、余剰領域を受け取る指定をchild一件分保持します
 		struct ChildInfo {
 			UiWidget* widget      = nullptr;
 			float     fixedExtent = 0.0f;
@@ -62559,6 +62851,7 @@ File Path: src/engine/gui/components/UiLayoutComponents.h
 #include "UiComponent.h"
 
 namespace Unnamed::Gui {
+	/// @brief LayoutPaddingは、layout内容領域の上下左右paddingをpixel単位で保持します
 	struct LayoutPadding {
 		float left   = 0.0f;
 		float top    = 0.0f;
@@ -62566,6 +62859,7 @@ namespace Unnamed::Gui {
 		float bottom = 0.0f;
 	};
 
+	/// @brief UiLinearLayoutComponentは、子UiWidgetを指定軸、間隔、alignmentに従って配置します
 	class UiLinearLayoutComponent : public UiComponent {
 	public:
 		void SetPadding(const LayoutPadding& padding);
@@ -62591,6 +62885,7 @@ namespace Unnamed::Gui {
 		float         mSpacing = 0.0f;
 	};
 
+	/// @brief UiVerticalLayoutComponentは、子UiWidgetを上から下へ間隔付きで配置します
 	class UiVerticalLayoutComponent final : public UiLinearLayoutComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {
@@ -62603,6 +62898,7 @@ namespace Unnamed::Gui {
 		}
 	};
 
+	/// @brief UiHorizontalLayoutComponentは、子UiWidgetを左から右へ間隔付きで配置します
 	class UiHorizontalLayoutComponent final : public UiLinearLayoutComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {
@@ -62721,6 +63017,7 @@ File Path: src/engine/gui/components/UiPanelStyleComponent.h
 #include "engine/gui/UiDrawCommand.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiPanelStyleComponentは、panelの背景色、border、paddingを描画とlayoutへ提供します
 	class UiPanelStyleComponent final : public UiComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {
@@ -62951,6 +63248,7 @@ File Path: src/engine/gui/components/UiTextureComponent.h
 #include "engine/gui/UiDrawCommand.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiTextureComponentは、asset textureとtintをUiWidgetのimage描画へ提供します
 	class UiTextureComponent final : public UiComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {
@@ -63158,6 +63456,7 @@ File Path: src/engine/gui/components/UiTransformComponent.h
 #include "engine/gui/UiWidget.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiTransformComponentは、UiWidgetの位置、寸法、anchorをlayout可能な状態として保持します
 	class UiTransformComponent final : public UiComponent {
 	public:
 		[[nodiscard]] std::string_view GetTypeName() const override {
@@ -63236,6 +63535,7 @@ namespace Unnamed::Gui {
 	namespace {
 		constexpr auto kRenamePopupId = "Rename Widget";
 
+		/// @brief PaletteTemplateは、GUI editor paletteに表示する名称、分類、widget生成callbackを保持します
 		struct PaletteTemplate {
 			const char*                 category;
 			const char*                 label;
@@ -64599,6 +64899,7 @@ namespace Unnamed::Gui {
 	class UiWidget;
 	class UiRoot;
 
+	/// @brief GuiEditorContextは、選択・rename・削除対象widgetとeditor操作用text bufferを保持します
 	struct GuiEditorContext {
 		UiWidget*             selectedWidget       = nullptr;
 		UiWidget*             renameTargetWidget   = nullptr;
@@ -64659,6 +64960,7 @@ File Path: src/engine/gui/layout/UiHorizontalLayout.h
 #include "base/UiLayout.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiHorizontalLayoutは、子widgetを左から右へspacingとalignmentに従って配置します
 	class UiHorizontalLayout : public UiLayout {
 	public:
 		UiHorizontalLayout();
@@ -64693,6 +64995,7 @@ File Path: src/engine/gui/layout/UiVerticalLayout.h
 #include "base/UiLayout.h"
 
 namespace Unnamed::Gui {
+	/// @brief UiVerticalLayoutは、子widgetを上から下へspacingとalignmentに従って配置します
 	class UiVerticalLayout : public UiLayout {
 	public:
 		UiVerticalLayout();
@@ -64760,6 +65063,7 @@ File Path: src/engine/gui/layout/base/UiLayout.h
 namespace Unnamed::Gui {
 	class UiLinearLayoutComponent;
 
+	/// @brief UiLayoutは、親領域と子widgetのsize policyから配置矩形を計算する基底契約を提供します
 	class UiLayout : public UiWidget {
 	public:
 		UiLayout();
@@ -65580,6 +65884,7 @@ namespace Unnamed::Physics {
 			);
 		}
 
+		/// @brief EntityOverlapAggregateは、同一entityに属する複数shapeのoverlap結果をentity単位へ集約します
 		struct EntityOverlapAggregate {
 			uint64_t guid       = 0;
 			Hit      deepestHit = {};
@@ -65887,7 +66192,7 @@ File Path: src/engine/physics/core/Physics.h
 #include "core/assets/types/MeshAssetData.h"
 
 namespace Unnamed::Physics {
-	/// @brief 物理エンジン
+	/// @brief コライダー登録、空間照会、形状キャストを提供する物理ワールドを管理します
 	class Engine {
 	public:
 		void Init();
@@ -66057,10 +66362,12 @@ namespace Unnamed::Physics {
 			bool     hasStartSolidHit = false;
 
 #ifdef _DEBUG
+			/// @brief StackItemは、debug path復元用parent indexを伴うBVH nodeを走査stackへ保持します
 			struct StackItem {
 				uint32_t nodeIndex;
 				int      parentEntry;
 			};
+			/// @brief PathEntryは、debug用BVH経路復元で使うnode indexと親entry indexを保持します
 			struct PathEntry {
 				uint32_t nodeIndex;
 				int      parentEntry;
@@ -66072,6 +66379,7 @@ namespace Unnamed::Physics {
 			std::vector<PathEntry> bestStartSolidPathData;
 			int                    bestStartSolidPathLeaf = -1;
 #else
+			/// @brief StackItemは、Release BVH走査で後から評価するnode indexだけを保持します
 			struct StackItem {
 				uint32_t nodeIndex;
 			};
@@ -66714,6 +67022,7 @@ File Path: src/engine/platform/Window.h
 #include "engine/EngineConfig.h"
 
 namespace Unnamed {
+	/// @brief WindowIdは、Windowsプラットフォームの対象を値型として安定して識別します
 	struct WindowId {
 		uint32_t value = 0;
 
@@ -66726,6 +67035,7 @@ namespace Unnamed {
 		}
 	};
 
+	/// @brief WindowDescは、Windowsプラットフォームオブジェクトの生成と初期化に必要な設定を保持します
 	struct WindowDesc {
 		std::string title     = "Unnamed Window";
 		int32_t     width     = 1280;
@@ -66735,12 +67045,14 @@ namespace Unnamed {
 		bool        visible   = true;
 	};
 
+	/// @brief WindowResizeEventは、Windowsプラットフォームで発生した事象と配送に必要な付随値を保持します
 	struct WindowResizeEvent {
 		int32_t width        = 0;
 		int32_t height       = 0;
 		bool    isLiveResize = false;
 	};
 
+	/// @brief Win32ウィンドウの生成、メッセージ処理、およびネイティブハンドル寿命を管理します
 	class Window final {
 	public:
 		Window(WindowId id, WindowDesc desc, HWND hwnd);
@@ -67273,6 +67585,7 @@ File Path: src/engine/platform/WindowManager.h
 #include "engine/EngineConfig.h"
 
 namespace Unnamed {
+	/// @brief WindowManagerは、Win32 Window instanceを所有し、message pumpと終了要求を管理します
 	class WindowManager final {
 	public:
 		WindowManager();
@@ -67930,6 +68243,7 @@ public:
 	static bool IsAppDarkTheme();
 	static bool IsSystemDarkTheme();
 
+	/// @brief ProcessResultは、子processのexit code、標準出力・標準error、timeoutとWin32起動errorを返します
 	struct ProcessResult {
 		unsigned long exitCode = 0;
 		std::string   stdoutText;
@@ -67975,6 +68289,7 @@ public:
 		unsigned long       timeoutMs        = 0
 	);
 
+	/// @brief ProcessHandleは、子プロセス、主スレッド、標準出力パイプのWin32ハンドルをCloseProcessHandleまで所有・管理します
 	struct ProcessHandle {
 		void* hProcess  = nullptr;
 		void* hThread   = nullptr;
@@ -68149,6 +68464,7 @@ namespace Unnamed {
 	/// @brief パフォーマンスプロファイラー。フレームごとのサンプルを記録し、履歴を保持します。
 	class Profiler {
 	public:
+		/// @brief SampleViewは、profiler sampleの名称、経過時間、nest深度を表示用に参照します
 		struct SampleView {
 			std::string_view          name;
 			const std::vector<float>* history           = nullptr;
@@ -68159,6 +68475,7 @@ namespace Unnamed {
 			uint32_t                  colorIndex        = 0;
 		};
 
+		/// @brief ScopeTimerは、構築から破棄までの経過時間を計測し、対応するProfilerへRAIIで記録します
 		class ScopeTimer {
 		public:
 			ScopeTimer(Profiler* profiler, std::string_view name);
@@ -68200,6 +68517,7 @@ namespace Unnamed {
 		[[nodiscard]] uint64_t GetFrameCount() const;
 
 	private:
+		/// @brief SampleDataは、named profiling scopeのframe内時間、履歴、平均・最大時間を保持します
 		struct SampleData {
 			std::string        name;
 			std::vector<float> history;
@@ -68404,6 +68722,7 @@ namespace Unnamed::Rhi {
 }
 
 namespace Unnamed::Render {
+	/// @brief RenderDeviceは、shader・PSO cache、RenderGraph registry、asset由来の再生成要求を管理します
 	class RenderDevice {
 	public:
 		RenderDevice(Rhi::IRhiDevice& rhiDevice, AssetManager& assetManager);
@@ -68574,6 +68893,7 @@ namespace Unnamed::Render {
 	struct RenderFrameInputs;
 	class RenderDevice;
 
+	/// @brief RenderModuleは、RendererとRHIの初期化・終了順序をmodule境界として集約します
 	class RenderModule {
 	public:
 		RenderModule(AssetManager& assetManager, Rhi::IRhiDevice& rhiDevice);
@@ -69702,16 +70022,19 @@ namespace Unnamed::Render {
 				PIPELINE_RESOLVE_SCOPE::ALL_REGISTERED
 		);
 
+		/// @brief FullscreenPassResは、Fullscreen描画passが再利用するroot signatureとpipeline stateを保持します
 		struct FullscreenPassRes {
 			PipelineHandle                  pipeline = {};
 			const ResolvedGraphicsPipeline* resolved = nullptr;
 		};
 
+		/// @brief ComputePassResは、Compute描画passが再利用するroot signatureとpipeline stateを保持します
 		struct ComputePassRes {
 			PipelineHandle                 pipeline = {};
 			const ResolvedComputePipeline* resolved = nullptr;
 		};
 
+		/// @brief GeometryPassResは、Geometry描画passが再利用するroot signatureとpipeline stateを保持します
 		struct GeometryPassRes {
 			PipelineHandle                  pipeline = {};
 			const ResolvedGraphicsPipeline* resolved = nullptr;
@@ -69732,6 +70055,7 @@ namespace Unnamed::Render {
 		// - MaterialTextures order is BaseColor(t0), Normal(t1), ORM(t2), Emissive(t3).
 		// - Custom constant buffers and shader reflection are not supported yet.
 		// - Non-compatible shaders may compile/resolve but can fail at draw time.
+		/// @brief MaterialBindingは、Materialの論理識別子とruntime resource参照の対応を保持します
 		struct MaterialBinding {
 			Rhi::MaterialConstants constants = {};
 			AssetID materialInstanceId = kInvalidAssetID;
@@ -69747,6 +70071,7 @@ namespace Unnamed::Render {
 			bool                    pipelineResolveWarningEmitted = false;
 		};
 
+		/// @brief PostFxRuntimePassは、post-process passのmaterial、入出力resource、実行順を保持します
 		struct PostFxRuntimePass {
 			std::string                            name;
 			bool                                   enabled = true;
@@ -69755,21 +70080,25 @@ namespace Unnamed::Render {
 			FullscreenPassRes                      pass = {};
 		};
 
+		/// @brief SpritePassResは、Sprite描画passが再利用するroot signatureとpipeline stateを保持します
 		struct SpritePassRes {
 			GeometryPassRes geom            = {};
 			GeometryPassRes geomLinearClamp = {};
 			GeometryPassRes geomPointClamp  = {};
 		};
 
+		/// @brief BillboardPassResは、Billboard描画passが再利用するroot signatureとpipeline stateを保持します
 		struct BillboardPassRes {
 			GeometryPassRes depthGeom = {};
 			GeometryPassRes frontGeom = {};
 		};
 
+		/// @brief SkyboxPassResは、Skybox描画passが再利用するroot signatureとpipeline stateを保持します
 		struct SkyboxPassRes {
 			GeometryPassRes geom = {};
 		};
 
+		/// @brief DebugLineVertexは、debug line shaderへ渡すworld位置と色の頂点layoutを定義します
 		struct DebugLineVertex {
 			float px = 0.0f;
 			float py = 0.0f;
@@ -69780,6 +70109,7 @@ namespace Unnamed::Render {
 			float a  = 1.0f;
 		};
 
+		/// @brief LinePassResは、Line描画passが再利用するroot signatureとpipeline stateを保持します
 		struct LinePassRes {
 			PipelineHandle                  pipeline = {};
 			const ResolvedGraphicsPipeline* resolved = nullptr;
@@ -69791,6 +70121,7 @@ namespace Unnamed::Render {
 			uint32_t                               frameVertexCount = 0;
 		};
 
+		/// @brief DirectionalShadowRuntimeStateは、directional shadowの有効cascadeとframe resource参照を保持します
 		struct DirectionalShadowRuntimeState {
 			bool     enabled              = false;
 			uint32_t shadowDepthTextureId = 0;
@@ -69804,6 +70135,7 @@ namespace Unnamed::Render {
 			float    intensity            = 1.0f;
 		};
 
+		/// @brief ViewRuntimeStateは、描画viewごとの履歴textureと前frame camera情報を保持します
 		struct ViewRuntimeState {
 			RENDER_VIEW_TYPE      type               = RENDER_VIEW_TYPE::SCENE;
 			RenderViewOutputDesc  output             = {};
@@ -70235,6 +70567,7 @@ namespace Unnamed::Render {
 			cmdList->ResourceBarrier(1, &barrier);
 		}
 
+		/// @brief VertexGeomは、geometry passへ渡すposition、normal、tangent、UVの頂点layoutを定義します
 		struct VertexGeom {
 			Vec3 pos;
 			Vec3 normal;
@@ -70244,6 +70577,7 @@ namespace Unnamed::Render {
 			Vec4 blendWeights;
 		};
 
+		/// @brief QuadVertexは、fullscreen quad shaderへ渡すclip位置とUVの頂点layoutを定義します
 		struct QuadVertex {
 			float px, py, pz;
 			float u,  v;
@@ -71163,6 +71497,7 @@ namespace Unnamed::Render {
 			return frame;
 		}
 
+		/// @brief DirectionalShadowMatricesは、directional light cascadeごとのview・projection行列を保持します
 		struct DirectionalShadowMatrices {
 			Mat4 lightView         = Mat4::identity;
 			Mat4 lightProj         = Mat4::identity;
@@ -71202,6 +71537,7 @@ namespace Unnamed::Render {
 			return result;
 		}
 
+		/// @brief PostFxParamsConstantsは、post-process material parameterをshader定数layoutで保持します
 		struct PostFxParamsConstants {
 			Vec4 scalar0 = Vec4::zero;
 			Vec4 scalar1 = Vec4::zero;
@@ -71209,6 +71545,7 @@ namespace Unnamed::Render {
 			Vec4 color1  = Vec4::zero;
 		};
 
+		/// @brief BloomPyramidConstantsは、bloom pyramidのsource寸法、mip index、thresholdをshader定数として保持します
 		struct BloomPyramidConstants {
 			Vec4 params0 = Vec4::zero;
 			// x=invSrcW, y=invSrcH, z=threshold, w=knee
@@ -71216,6 +71553,7 @@ namespace Unnamed::Render {
 			// x=radius, y=intensity, z=firstPass
 		};
 
+		/// @brief FitRectは、レンダリング要素の位置と寸法を同じ座標系で表します
 		struct FitRect {
 			float x      = 0.0f;
 			float y      = 0.0f;
@@ -75435,6 +75773,7 @@ namespace Unnamed::Render {
 		[[nodiscard]] TextureResourceCacheDebugStats GetDebugStats() const;
 
 	private:
+		/// @brief CacheEntryは、レンダリングキャッシュ内の資源と最終利用情報を同じ寿命で保持します
 		struct CacheEntry {
 			uint32_t textureId     = 0;
 			uint32_t assetVersion  = 0;
@@ -75580,6 +75919,7 @@ namespace Unnamed::Render {
 		HARDWARE_PIPELINE,
 	};
 
+	/// @brief RtInstanceDescは、TLAS instanceのtransform、BLAS address、mask、instance IDを指定します
 	struct RtInstanceDesc {
 		uint32_t meshIndex    = 0;
 		uint32_t instanceMask = 0xFF;
@@ -75587,29 +75927,34 @@ namespace Unnamed::Render {
 		AABB     worldBounds  = {};
 	};
 
+	/// @brief RtFrameStateは、ray tracing機能のframe有効状態と診断値を保持します
 	struct RtFrameState {
 		RT_BUILD_MODE               buildMode = RT_BUILD_MODE::NONE;
 		std::vector<RtInstanceDesc> visibleInstances;
 		bool                        needsTlasRebuild = false;
 	};
 
+	/// @brief GiFrameStateは、global illumination機能のframe有効状態と診断値を保持します
 	struct GiFrameState {
 		uint32_t irradianceHistoryTextureId = 0;
 		uint32_t momentsHistoryTextureId    = 0;
 		bool     historyValid               = false;
 	};
 
+	/// @brief VirtualGeometryConfigは、VirtualGeometry機能の生成時に適用する有効化条件と調整値を保持します
 	struct VirtualGeometryConfig {
 		uint32_t pageSize          = 128;
 		uint32_t maxResidentPages  = 65'536;
 		uint32_t requestBufferSize = 16'384;
 	};
 
+	/// @brief VirtualGeometryFrameStateは、virtual geometry機能のframe有効状態と診断値を保持します
 	struct VirtualGeometryFrameState {
 		uint32_t              feedbackTextureId = 0;
 		std::vector<uint32_t> feedbackRequests;
 	};
 
+	/// @brief AdvancedRenderFoundationは、レイトレーシング、GI、仮想ジオメトリ機能の利用可否とフレーム状態を集約します
 	class AdvancedRenderFoundation {
 	public:
 		void Initialize(
@@ -75837,6 +76182,7 @@ namespace Unnamed::Render {
 		VIEW_OUTPUT = 1,
 	};
 
+	/// @brief SpriteTextureRefは、sprite textureのasset IDと解決済みGPU resource参照を保持します
 	struct SpriteTextureRef {
 		SPRITE_TEXTURE_SOURCE source         = SPRITE_TEXTURE_SOURCE::ASSET;
 		AssetID               textureAssetId = kInvalidAssetID;
@@ -75852,6 +76198,7 @@ namespace Unnamed::Render {
 		UHD_4K,
 	};
 
+	/// @brief SceneViewRenderModeは、scene viewで有効にするlighting、wireframe、debug描画modeを保持します
 	struct SceneViewRenderMode {
 		SCENE_RENDER_MODE mode = SCENE_RENDER_MODE::FIT_VIEWPORT;
 		uint32_t          viewportPanelWidth = 0;
@@ -75877,6 +76224,7 @@ namespace Unnamed::Render {
 		const SceneViewRenderMode& request
 	);
 
+	/// @brief PostFxPassOverrideは、名前で指定したpost-process passの有効状態とparameter overrideを保持します
 	struct PostFxPassOverride {
 		std::string                            passName;
 		bool                                   hasEnabledOverride = false;
@@ -75895,6 +76243,7 @@ namespace Unnamed::Render {
 		MATCH_BACK_BUFFER = 1,
 	};
 
+	/// @brief RenderViewOutputDescは、render viewの出力texture、format、幅、高さを指定します
 	struct RenderViewOutputDesc {
 		RENDER_VIEW_SIZE_MODE sizeMode = RENDER_VIEW_SIZE_MODE::FIXED;
 		uint32_t              width = 0;
@@ -75904,6 +76253,7 @@ namespace Unnamed::Render {
 		bool                  exposeToUi = false;
 	};
 
+	/// @brief RenderCameraInputは、camera位置、view・projection行列、viewportを1 view分の描画入力として保持します
 	struct RenderCameraInput {
 		Mat4                  view       = Mat4::identity;
 		Mat4                  proj       = Mat4::identity;
@@ -75916,12 +76266,14 @@ namespace Unnamed::Render {
 		bool                  valid      = false;
 	};
 
+	/// @brief SkyboxInputは、skybox texture、world回転、露出値を背景描画入力として保持します
 	struct SkyboxInput {
 		bool    enabled        = false;
 		AssetID textureAssetId = kInvalidAssetID;
 		float   intensity      = 1.0f;
 	};
 
+	/// @brief DirectionalLightInputは、方向光の向き、色、強度、shadow設定をframe描画入力として保持します
 	struct DirectionalLightInput {
 		bool enabled     = false;
 		bool castsShadow = true;
@@ -75932,6 +76284,7 @@ namespace Unnamed::Render {
 		float intensity         = 1.0f;
 	};
 
+	/// @brief EnvironmentLightInputは、ambient色、IBL texture、露出値を環境照明入力として保持します
 	struct EnvironmentLightInput {
 		Vec3  skyColor    = Vec3::zero;
 		Vec3  groundColor = Vec3::zero;
@@ -75939,6 +76292,7 @@ namespace Unnamed::Render {
 		bool  enabled     = false;
 	};
 
+	/// @brief VisibleRenderObjectは、cullingを通過したrender object、world transform、material参照を保持します
 	struct VisibleRenderObject {
 		AssetID              meshAssetId               = kInvalidAssetID;
 		AssetID              materialInstanceId        = kInvalidAssetID;
@@ -75952,11 +76306,13 @@ namespace Unnamed::Render {
 		uint32_t skeletonPaletteId = 0;
 	};
 
+	/// @brief SkinningPaletteInputは、skinned meshが参照するbone行列範囲とpalette IDを保持します
 	struct SkinningPaletteInput {
 		AssetID           meshAssetId = kInvalidAssetID;
 		std::vector<Mat4> boneMatrices;
 	};
 
+	/// @brief ScreenSpriteInputは、screen-space spriteの矩形、UV、色、texture参照を保持します
 	struct ScreenSpriteInput {
 		SpriteTextureRef texture;
 		Vec2             positionPx  = Vec2::zero;
@@ -75970,6 +76326,7 @@ namespace Unnamed::Render {
 		bool             uvFlipY     = false;
 	};
 
+	/// @brief WorldBillboardInputは、camera正対quadのworld位置、寸法、色、texture参照を保持します
 	struct WorldBillboardInput {
 		SpriteTextureRef texture;
 		Vec3             worldPosition = Vec3::zero;
@@ -75981,6 +76338,7 @@ namespace Unnamed::Render {
 		bool             depthTest     = true;
 	};
 
+	/// @brief WorldSpriteInputは、world-space spriteのtransform、UV、色、texture参照を保持します
 	struct WorldSpriteInput {
 		SpriteTextureRef texture;
 		Vec3             worldPosition = Vec3::zero;
@@ -75993,16 +76351,19 @@ namespace Unnamed::Render {
 		bool             uvFlipY       = true;
 	};
 
+	/// @brief DebugLineInputは、world-space線分の2端点と色をdebug描画入力として保持します
 	struct DebugLineInput {
 		Vec3 start = Vec3::zero;
 		Vec3 end   = Vec3::right;
 		Vec4 color = Vec4::one;
 	};
 
+	/// @brief DebugDrawFrameInputは、1frameに提出するdebug線分列と描画有効状態を保持します
 	struct DebugDrawFrameInput {
 		std::vector<DebugLineInput> lines;
 	};
 
+	/// @brief RenderViewInputは、1 viewのcamera、出力先、render mode、可視object範囲を保持します
 	struct RenderViewInput {
 		std::string viewKey;
 
@@ -76022,6 +76383,7 @@ namespace Unnamed::Render {
 		std::vector<ScreenSpriteInput>    screenSprites;
 	};
 
+	/// @brief RenderFrameInputsは、WorldからRendererへ渡すview、light、visible object、UIを1frame snapshotとして所有します
 	struct RenderFrameInputs {
 		uint32_t                     frameIndex = 0;
 		std::vector<RenderViewInput> views;
@@ -76046,6 +76408,7 @@ File Path: src/engine/render/rendergraph/IDescriptorResolver.h
 #include <d3d12.h>
 
 namespace Unnamed::Render {
+	/// @brief IDescriptorResolverは、RenderGraph resource handleからframe有効なSRV・UAV descriptorを解決します
 	class IDescriptorResolver {
 	public:
 		virtual ~IDescriptorResolver() = default;
@@ -76120,6 +76483,7 @@ File Path: src/engine/render/rendergraph/RegistryDescriptorResolver.h
 namespace Unnamed::Render {
 	class RgResourceRegistry;
 
+	/// @brief RegistryDescriptorResolverは、RgResourceRegistryを参照してtexture handleのdescriptorを解決します
 	class RegistryDescriptorResolver final : public IDescriptorResolver {
 	public:
 		explicit RegistryDescriptorResolver(const RgResourceRegistry& reg);
@@ -76195,6 +76559,7 @@ namespace Unnamed::Render {
 	static constexpr std::string_view kChannel = "RDG";
 
 	namespace {
+		/// @brief PassResourceAccessは、RenderGraph passがresourceへ行うread・write種別とpipeline stageを保持します
 		struct PassResourceAccess {
 			bool isRenderTarget = false;
 			bool isUavWrite     = false;
@@ -76211,6 +76576,7 @@ namespace Unnamed::Render {
 			}
 		};
 
+		/// @brief ResourceDependencyStateは、RenderGraph resourceの直前accessと依存passをDAG構築中に保持します
 		struct ResourceDependencyState {
 			std::optional<uint32_t> lastWriter;
 			std::vector<uint32_t>   readersSinceLastWrite;
@@ -76793,6 +77159,7 @@ namespace Unnamed::Render {
 	class RenderGraphBuilder;
 	class RenderPassContext;
 
+	/// @brief RgPassは、RenderGraph passの名称、setup結果、実行callback、resource use列を所有します
 	struct RgPass {
 		std::string                  name;
 		std::vector<RgUse>           uses;
@@ -76805,12 +77172,14 @@ namespace Unnamed::Render {
 		std::function<void(RenderPassContext&)> execute;
 	};
 
+	/// @brief CompiledTransitionは、resource barrierに必要な遷移前後stateと対象resourceを保持します
 	struct CompiledTransition {
 		uint32_t              textureId = 0;
 		D3D12_RESOURCE_STATES before    = D3D12_RESOURCE_STATE_COMMON;
 		D3D12_RESOURCE_STATES after     = D3D12_RESOURCE_STATE_COMMON;
 	};
 
+	/// @brief CompiledPassは、実行順が確定したpass参照と事前barrier列を保持します
 	struct CompiledPass {
 		std::vector<CompiledTransition> transitionsBefore;
 		std::vector<uint32_t>           uavBarriersBefore;
@@ -77079,26 +77448,31 @@ namespace Unnamed::Render {
 		DEPTH_READ,
 	};
 
+	/// @brief RgUseは、RenderGraph resource handleと要求accessを1件のpass useとして保持します
 	struct RgUse {
 		uint32_t  textureId = 0;
 		RG_ACCESS access    = RG_ACCESS::SRV_READ_PS;
 	};
 
+	/// @brief Colorは、render target clear命令へ渡すRGBA値を保持します
 	struct Color {
 		float r, g, b, a = 0.0f;
 	};
 
+	/// @brief RgClearCmdは、render target handleとclear colorをpass開始時のclear命令として保持します
 	struct RgClearCmd {
 		uint32_t textureId = 0;
 		Color    color;
 	};
 
+	/// @brief RgDepthClearCmdは、depth target handleとdepth・stencil値をclear命令として保持します
 	struct RgDepthClearCmd {
 		uint32_t textureId = 0;
 		float    depth     = 1.0f;
 		uint8_t  stencil   = 0;
 	};
 
+	/// @brief RenderGraphBuilderは、RenderGraphの入力記述から実行用データ構造を構築します
 	class RenderGraphBuilder {
 	public:
 		explicit RenderGraphBuilder(RgResourceRegistry& registry);
@@ -79006,6 +79380,7 @@ namespace Unnamed::Render {
 		MATCH_BACK_BUFFER
 	};
 
+	/// @brief RgTextureDescは、RenderGraphオブジェクトの生成と初期化に必要な設定を保持します
 	struct RgTextureDesc {
 		uint32_t width  = 0;
 		uint32_t height = 0;
@@ -79032,6 +79407,7 @@ namespace Unnamed::Render {
 		RG_EXTENT_MODE extentMode = RG_EXTENT_MODE::FIXED;
 	};
 
+	/// @brief RgRegistryDebugStatsは、RenderGraphの診断用カウンターと集計値を保持します
 	struct RgRegistryDebugStats {
 		uint32_t activeTextureCount     = 0;
 		uint64_t activeTextureBytes     = 0;
@@ -79044,6 +79420,7 @@ namespace Unnamed::Render {
 		uint32_t reusableTextureIdCount = 0;
 	};
 
+	/// @brief RgSrvDescriptorTableは、RenderGraph SRV tableのdescriptor先頭、要素数、frame寿命を保持します
 	struct RgSrvDescriptorTable {
 		uint32_t baseLocal = UINT32_MAX;
 		uint32_t count     = 0;
@@ -79053,6 +79430,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief RgResourceRegistryは、RenderGraphの実装を安定キーで登録し、利用側へ解決します
 	class RgResourceRegistry {
 	public:
 		explicit RgResourceRegistry(Rhi::D3D12Device& dx);
@@ -79126,6 +79504,7 @@ namespace Unnamed::Render {
 
 		void RebuildDescriptorLayout();
 
+		/// @brief TexEntryは、RenderGraph textureのD3D12 resource、記述子revision、frame内descriptor indexを所有します
 		struct TexEntry {
 			RgTextureDesc                          desc;
 			Microsoft::WRL::ComPtr<ID3D12Resource> resource;
@@ -79146,6 +79525,7 @@ namespace Unnamed::Render {
 			bool isCubeMap = false;
 		};
 
+		/// @brief RetiredTextureResourceは、置換済みtexture resourceと安全に解放できるframe番号を保持します
 		struct RetiredTextureResource {
 			uint64_t                               retireFenceValue = 0;
 			Microsoft::WRL::ComPtr<ID3D12Resource> resource;
@@ -79675,6 +80055,7 @@ File Path: src/engine/render/shaders/PipelineCache.h
 namespace Unnamed::Render {
 	class ShaderLibrary;
 
+	/// @brief GraphicsPsoKeyは、graphics PSOを一意に決めるshader、root signature、raster・depth・blend状態を保持します
 	struct GraphicsPsoKey {
 		ShaderKey vs;
 		ShaderKey ps;
@@ -79755,6 +80136,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief ComputePipelineKeyは、compute PSOを一意に決めるshaderとroot signatureを保持します
 	struct ComputePipelineKey {
 		ShaderKey            cs;
 		ID3D12RootSignature* rootSignature = nullptr;
@@ -79782,6 +80164,7 @@ namespace Unnamed::Render {
 		return hash.Value();
 	}
 
+	/// @brief GraphicsPipelineKeyHashは、シェーダー、ルートシグネチャー、描画状態、頂点レイアウトからGraphicsPsoKeyのハッシュを計算します
 	struct GraphicsPipelineKeyHash {
 		size_t operator()(const GraphicsPsoKey& k) const noexcept {
 			HashBuilder hash = {};
@@ -79829,6 +80212,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief GraphicsPipelineKeyEqualは、GraphicsPsoKeyの全パイプライン状態を比較して同一PSOを表すか判定します
 	struct GraphicsPipelineKeyEqual {
 		bool operator()(
 			const GraphicsPsoKey& a, const GraphicsPsoKey& b
@@ -79942,6 +80326,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief ComputePipelineKeyHashは、コンピュートシェーダーとルートシグネチャーからComputePipelineKeyのハッシュを計算します
 	struct ComputePipelineKeyHash {
 		size_t operator()(const ComputePipelineKey& k) const noexcept {
 			HashBuilder hash = {};
@@ -79951,6 +80336,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief BuiltInputLayoutは、PSO作成まで文字列を生存させながらD3D12入力要素配列を所有します
 	struct BuiltInputLayout {
 		std::vector<D3D12_INPUT_ELEMENT_DESC> elements;
 	};
@@ -79959,6 +80345,7 @@ namespace Unnamed::Render {
 		const Rhi::VertexLayoutDesc& layout
 	);
 
+	/// @brief PipelineCacheは、描画・コンピュート設定をキーにD3D12 PSOを生成して再利用します
 	class PipelineCache {
 	public:
 		PipelineCache(ID3D12Device* device, ShaderLibrary& shaders);
@@ -80770,6 +81157,7 @@ File Path: src/engine/render/shaders/ShaderKey.h
 #include "core/assets/AssetID.h"
 
 namespace Unnamed::Render {
+	/// @brief ShaderKeyは、shader compile結果を一意に決めるpath、entry point、profile、define列を保持します
 	struct ShaderKey {
 		AssetID shaderSourceId = kInvalidAssetID;
 		std::string entry; // エントリポイント名
@@ -80785,6 +81173,7 @@ namespace Unnamed::Render {
 		}
 	};
 
+	/// @brief ShaderKeyHashは、シェーダーパス、エントリーポイント、プロファイル、define列からShaderKeyのハッシュを計算します
 	struct ShaderKeyHash {
 		size_t operator()(const ShaderKey& key) const noexcept;
 	};
@@ -81170,10 +81559,12 @@ namespace Unnamed {
 }
 
 namespace Unnamed::Render {
+	/// @brief ShaderDxilは、compile済みDXIL bytecodeとshader cache識別情報を所有します
 	struct ShaderDxil {
 		std::vector<uint8_t> bytes;
 	};
 
+	/// @brief ShaderLibraryは、コンパイル済みDXILと依存ファイル指紋をキー別にキャッシュします
 	class ShaderLibrary {
 	public:
 		ShaderLibrary(
@@ -81191,6 +81582,7 @@ namespace Unnamed::Render {
 		void SetCacheDirectory(Path dir);
 
 	private:
+		/// @brief ShaderDependencyFingerprintは、shader依存fileのpath、更新時刻、content hashを保持します
 		struct ShaderDependencyFingerprint final {
 			std::string mountId;
 			std::string stablePath;
@@ -81245,12 +81637,14 @@ File Path: src/engine/rhi/Buffer.h
 #include "engine/unnamed/primitive/Primitives.h"
 
 namespace Unnamed::Render {
+	/// @brief MeshSubMeshRangeは、submeshのindex開始位置、index数、material slotを保持します
 	struct MeshSubMeshRange {
 		uint32_t indexStart    = 0;
 		uint32_t indexCount    = 0;
 		uint32_t materialIndex = 0;
 	};
 
+	/// @brief MeshBufferは、vertex・index GPU bufferとsubmesh範囲列を所有します
 	struct MeshBuffer {
 		Microsoft::WRL::ComPtr<ID3D12Resource> vb;
 		Microsoft::WRL::ComPtr<ID3D12Resource> ib;
@@ -81281,6 +81675,7 @@ File Path: src/engine/rhi/Constants.h
 #include "core/math/Vec4.h"
 
 namespace Unnamed::Rhi {
+	/// @brief FrameConstantsは、frame時刻、camera、viewportなど全描画で共有するshader定数を保持します
 	struct alignas(16) FrameConstants {
 		Mat4  view        = Mat4::identity; // 64 +
 		Mat4  proj        = Mat4::identity; // 64 +
@@ -81299,6 +81694,7 @@ namespace Unnamed::Rhi {
 		"FrameConstants must be 256 bytes or less"
 	);
 
+	/// @brief ObjectConstantsは、1 render objectのworld行列とobject識別値をshader定数として保持します
 	struct alignas(16) ObjectConstants {
 		Mat4 world = Mat4::identity; // 64 +
 		Mat4 worldInverseTranspose = Mat4::identity; // 64 = 128
@@ -81315,6 +81711,7 @@ namespace Unnamed::Rhi {
 		"ObjectConstants must be 256 bytes or less"
 	);
 
+	/// @brief SkinningPaletteConstantsは、skinning shaderへ転送するbone変換行列列を保持します
 	struct alignas(16) SkinningPaletteConstants {
 		static constexpr uint32_t kMaxBones        = 512;
 		Mat4                      bones[kMaxBones] = {};
@@ -81325,6 +81722,7 @@ namespace Unnamed::Rhi {
 		"SkinningPaletteConstants must fit in one constant buffer (64KB)"
 	);
 
+	/// @brief MaterialConstantsは、PBR materialの色、roughness、metallic等をshader定数として保持します
 	struct alignas(16) MaterialConstants {
 		Vec4  baseColor     = Vec4::one;
 		Vec4  emissiveColor = Vec4::zero;
@@ -81345,6 +81743,7 @@ namespace Unnamed::Rhi {
 		"MaterialConstants must be 256 bytes or less"
 	);
 
+	/// @brief ShadowConstantsは、shadow map変換、cascade境界、bias値をshader定数として保持します
 	struct alignas(16) ShadowConstants {
 		Mat4 lightViewProj = Mat4::identity;
 		Vec4 params        = Vec4::zero;
@@ -81364,6 +81763,7 @@ namespace Unnamed::Rhi {
 		"ShadowConstants must be 256 bytes or less"
 	);
 
+	/// @brief EnvironmentLightingConstantsは、ambient・IBL強度とenvironment parameterをshader定数として保持します
 	struct alignas(16) EnvironmentLightingConstants {
 		Vec4 skyAmbientColor    = Vec4(0.25f, 0.30f, 0.40f, 1.0f);
 		Vec4 groundAmbientColor = Vec4(0.08f, 0.07f, 0.06f, 1.0f);
@@ -81583,6 +81983,7 @@ File Path: src/engine/rhi/DxcShaderCompiler.h
 #include <dxcapi.h>
 
 namespace Unnamed::Rhi {
+	/// @brief DxcShaderCompilerは、RHIのソースと設定を実行可能な中間表現へコンパイルします
 	class DxcShaderCompiler {
 	public:
 		DxcShaderCompiler();
@@ -81688,6 +82089,7 @@ namespace Unnamed::Rhi {
 		U_BYTE4_N,
 	};
 
+	/// @brief VertexElementDescは、1頂点属性のsemantic、format、byte offset、input slotを指定します
 	struct VertexElementDesc {
 		VertexSemantic semantic      = VertexSemantic::POSITION;
 		uint8_t        semanticIndex = 0;
@@ -81699,6 +82101,7 @@ namespace Unnamed::Rhi {
 		uint16_t instanceStepRate = 0;
 	};
 
+	/// @brief VertexLayoutDescは、PSO作成へ渡す頂点属性列とstrideを指定します
 	struct VertexLayoutDesc {
 		uint32_t                       stride = 0;
 		std::vector<VertexElementDesc> elements;
@@ -81715,6 +82118,7 @@ File Path: src/engine/rhi/RhiTypes.h
 #include <cstdint>
 
 namespace Unnamed::Rhi {
+	/// @brief DeviceDescは、D3D12 device生成時のadapter選択とdebug機能設定を指定します
 	struct DeviceDesc {
 		bool enableDebugLayer         = false; // デバッグレイヤーを有効にするか?
 		bool enableGpuBasedValidation = false; // バリデーションレイヤーを有効にするか?
@@ -81725,6 +82129,7 @@ namespace Unnamed::Rhi {
 		R10G10B10A2_UNORM // 10-10-10-2 RGBA
 	};
 
+	/// @brief SwapChainDescは、swap chainのwindow、幅、高さ、format、buffer数を指定します
 	struct SwapChainDesc {
 		uint32_t width       = 1280; // デフォルト幅
 		uint32_t height      = 720;  // デフォルト高さ
@@ -81736,6 +82141,7 @@ namespace Unnamed::Rhi {
 		bool vSync = false; // 垂直同期を行うか?
 	};
 
+	/// @brief ClearColorは、描画色のRGBA成分を同一色空間の値として保持します
 	struct ClearColor {
 		float r = 0.0f;
 		float g = 0.0f;
@@ -81761,6 +82167,7 @@ namespace Unnamed::Rhi {
 		return v + (a - 1) & ~(a - 1);
 	}
 
+	/// @brief UploadBufferは、永続mapしたD3D12 upload heapを所有し、256 byte strideの要素書き込みを管理します
 	template <typename T>
 	class UploadBuffer {
 	public:
@@ -82035,6 +82442,7 @@ File Path: src/engine/rhi/d3d12/D3D12CommandContext.h
 #include "engine/rhi/interface/IRhiCommandContext.h"
 
 namespace Unnamed::Rhi {
+	/// @brief D3D12CommandContextは、コマンドリストへの描画・ディスパッチ・資源遷移記録を仲介します
 	class D3D12CommandContext final : public IRhiCommandContext {
 	public:
 		D3D12CommandContext(
@@ -83154,6 +83562,7 @@ namespace Unnamed::Rhi {
 	class DxcShaderCompiler;
 	static constexpr uint32_t kMaxFramesInFlight = 3; // 最大同時フレーム数
 
+	/// @brief D3D12Deviceは、ID3D12Device、queue、descriptor allocator、upload contextを所有します
 	class D3D12Device final : public IRhiDevice {
 	public:
 		D3D12Device(
@@ -83212,6 +83621,7 @@ namespace Unnamed::Rhi {
 		D3D12FrameUploadAllocator& GetFrameUploadAllocator();
 		[[nodiscard]] uint32_t     GetFramesInFlight() const;
 
+		/// @brief UploadContextは、一時アップロード資源とコピーコマンドをフェンス完了まで所有します
 		class UploadContext {
 		public:
 			explicit UploadContext(D3D12Device& device);
@@ -83286,6 +83696,7 @@ namespace Unnamed::Rhi {
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;
 
 		// フレームコンテキスト
+		/// @brief FrameContextは、GPU fence完了まで再利用しないcommand allocatorとframe upload allocatorを所有します
 		struct FrameContext {
 			Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
 			uint64_t                                       fenceValue = 0;
@@ -83457,6 +83868,7 @@ File Path: src/engine/rhi/d3d12/D3D12FrameUploadAllocator.h
 #include <wrl/client.h>
 
 namespace Unnamed ::Rhi {
+	/// @brief D3D12FrameUploadAllocatorは、フレームごとにリセットするUpload Heapから整列済み領域を払い出します
 	class D3D12FrameUploadAllocator {
 	public:
 		/// @brief フレームごとにリセットされるアップロード用バッファアロケータ
@@ -83731,6 +84143,7 @@ File Path: src/engine/rhi/d3d12/D3D12SwapChain.h
 #include "engine/rhi/interface/IRhiSwapChain.h"
 
 namespace Unnamed::Rhi {
+	/// @brief D3D12SwapChainは、DXGI swap chainとback buffer viewの生成、resize、presentを管理します
 	class D3D12SwapChain final : public IRhiSwapChain {
 	public:
 		D3D12SwapChain(
@@ -83878,6 +84291,7 @@ File Path: src/engine/rhi/interface/IRhiCommandContext.h
 #include "engine/rhi/RhiTypes.h"
 
 namespace Unnamed::Rhi {
+	/// @brief IRhiCommandContextは、描画・dispatch・copy・resource barrierを記録するRHI command契約を定義します
 	class IRhiCommandContext {
 	public:
 		virtual ~IRhiCommandContext() = default;
@@ -83905,6 +84319,7 @@ File Path: src/engine/rhi/interface/IRhiDevice.h
 #include "engine/rhi/RhiTypes.h"
 
 namespace Unnamed::Rhi {
+	/// @brief IRhiDeviceは、buffer・texture・pipeline生成とcommand context取得のRHI device契約を定義します
 	class IRhiDevice {
 	public:
 		virtual ~IRhiDevice() = default;
@@ -83936,6 +84351,7 @@ File Path: src/engine/rhi/interface/IRhiSwapChain.h
 #include <engine/rhi/RhiTypes.h>
 
 namespace Unnamed::Rhi {
+	/// @brief IRhiSwapChainは、back buffer取得、resize、presentを提供するswap chain契約を定義します
 	class IRhiSwapChain {
 	public:
 		virtual ~IRhiSwapChain() = default;
@@ -84238,10 +84654,12 @@ namespace Unnamed {
 
 	using EntityId = uint64_t;
 
+	/// @brief SceneEntityHandleは、エンジンの所有者が管理する資源を世代付きまたは型付きIDで参照します
 	struct SceneEntityHandle {
 		EntityId id = 0;
 	};
 
+	/// @brief Sceneは、シリアライズ対象のエンティティー集合とシーン識別情報を所有します
 	class Scene {
 	public:
 		Scene();
@@ -84535,7 +84953,7 @@ File Path: src/engine/scene/SceneSerializer.cpp
 
 #include "Scene.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/guidgenerator/GuidGenerator.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
@@ -84824,6 +85242,7 @@ namespace Unnamed {
 	// TODO: シーン遷移は一時的なシーン状態にデシリアライズし、検証が成功した後にのみコミットされるべき
 	//-------------------------------------------------------------------------
 
+	/// @brief SceneSerializerは、SceneのエンティティーとコンポーネントをJSONへ保存・復元し、シーン複製を仲介します
 	class SceneSerializer {
 	public:
 		/// @brief JSON ファイルからシーンを読み込みます。
@@ -88127,7 +88546,7 @@ namespace Unnamed {
 			uint64_t    order     = 0;
 		};
 
-		/// @brief 発火イベントです。
+		/// @brief EventDispatchは、sequence eventの発火時刻、event名、payloadを保持します
 		struct EventDispatch final {
 			uint64_t    keyId = 0;
 			std::string cueId;
@@ -88137,18 +88556,21 @@ namespace Unnamed {
 			std::string consoleCommand;
 		};
 
+		/// @brief FloatTargetMetaは、sequenceのFloatTarget対象を実行時に解決する識別情報を保持します
 		struct FloatTargetMeta final {
 			uint64_t    entityGuid = 0;
 			std::string componentStableName;
 			std::string propertyPath;
 		};
 
+		/// @brief BoolTargetMetaは、sequenceのBoolTarget対象を実行時に解決する識別情報を保持します
 		struct BoolTargetMeta final {
 			uint64_t    entityGuid = 0;
 			std::string componentStableName;
 			std::string propertyPath;
 		};
 
+		/// @brief Vec3TargetMetaは、sequenceのVec3Target対象を実行時に解決する識別情報を保持します
 		struct Vec3TargetMeta final {
 			uint64_t    entityGuid = 0;
 			std::string componentStableName;
@@ -88304,7 +88726,7 @@ File Path: src/engine/tween/ITweenPlayable.h
 ﻿#pragma once
 
 namespace Unnamed {
-	/// @brief 再生可能なTweenのインターフェース。Tweenの更新、再生、一時停止、完了などの操作を提供します。
+	/// @brief ITweenPlayableは、Tween実装が満たす操作契約とライフタイム境界を定義します
 	class ITweenPlayable {
 	public:
 		virtual ~ITweenPlayable() = default;
@@ -88534,7 +88956,7 @@ File Path: src/engine/tween/TweenEase.h
 #include "TweenTypes.h"
 
 namespace Unnamed {
-	/// @brief Tweenのイージング関数を提供するクラス。
+	/// @brief 正規化時間へイージング曲線を適用する純粋関数群を提供します
 	class TweenEase {
 	public:
 		/// @brief 指定されたイージングタイプに基づいて、正規化時間に対する補間係数を計算します。
@@ -88613,6 +89035,7 @@ File Path: src/engine/tween/TweenHandle.h
 #include "ITweenPlayable.h"
 
 namespace Unnamed {
+	/// @brief TweenHandleは、再生中Tweenへのweak_ptrを保持し、対象の破棄後は無効な非所有ハンドルとして動作します
 	class TweenHandle {
 	public:
 		TweenHandle();
@@ -88665,8 +89088,7 @@ File Path: src/engine/tween/TweenInstance.h
 #include "TweenTypes.h"
 
 namespace Unnamed {
-	/// @brief Tweenのインスタンスを表すクラス。指定されたGetter関数とSetter関数を使用して、値の補間を行います。
-	/// @tparam TValue 補間する値の型。float、Vec2、Vec3、Vec4、Quaternionに対応。
+	/// @brief TweenInstanceは、開始値から終了値までの補間、遅延、ループ、完了通知を再生状態として管理します
 	template <typename TValue>
 	class TweenInstance final : public ITweenPlayable {
 	public:
@@ -89087,10 +89509,7 @@ namespace Unnamed {
 	template <typename TValue>
 	struct TweenLerp;
 
-	//-------------------------------------------------------------------------
-	// 各型のEvaluate関数の定義
-	//-------------------------------------------------------------------------
-
+	/// @brief float値を線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<float> {
 		static float Evaluate(
@@ -89098,6 +89517,7 @@ namespace Unnamed {
 		);
 	};
 
+	/// @brief double値を線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<double> {
 		static double Evaluate(
@@ -89105,6 +89525,7 @@ namespace Unnamed {
 		);
 	};
 
+	/// @brief Vec2の各成分を線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<Vec2> {
 		static Vec2 Evaluate(
@@ -89112,6 +89533,7 @@ namespace Unnamed {
 		);
 	};
 
+	/// @brief Vec3の各成分を線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<Vec3> {
 		static Vec3 Evaluate(
@@ -89119,6 +89541,7 @@ namespace Unnamed {
 		);
 	};
 
+	/// @brief Vec4の各成分を線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<Vec4> {
 		static Vec4 Evaluate(
@@ -89126,6 +89549,7 @@ namespace Unnamed {
 		);
 	};
 
+	/// @brief Quaternionを球面線形補間してTweenInstanceへ返します
 	template <>
 	struct TweenLerp<Quaternion> {
 		static Quaternion Evaluate(
@@ -89192,8 +89616,8 @@ File Path: src/engine/tween/TweenManager.h
 #include "TweenInstance.h"
 
 namespace Unnamed {
-	/// @brief Tweenの管理クラス。Tweenの作成、更新、終了を行います。
-	class TweenManager final {
+	/// @brief TweenManagerは、active Tweenをshared ownershipで保持し、更新・完了・一括停止を管理します
+	class TweenManager {
 	public:
 		TweenManager() = default;
 
@@ -89630,6 +90054,7 @@ namespace Unnamed {
 		class RenderPassContext;
 	}
 
+	/// @brief ImGuiLayerは、ImGuiコンテキスト、フレーム開始・描画、GPU descriptor寿命を管理します
 	class ImGuiLayer {
 	public:
 		ImGuiLayer(
@@ -89667,6 +90092,7 @@ namespace Unnamed {
 		[[nodiscard]] ID3D12DescriptorHeap* GetDescriptorHeap() const;
 
 	private:
+		/// @brief FrameTextureSlotは、ImGui textureのSRV descriptorと最終参照frameを保持します
 		struct FrameTextureSlot {
 			uint32_t                    slot            = UINT32_MAX;
 			uint64_t                    revision        = UINT64_MAX;
@@ -89691,6 +90117,7 @@ namespace Unnamed {
 		uint32_t mFramesInFlight = 1;
 		uint32_t mFrameIndex     = 0;
 
+		/// @brief TextureSlotsは、frameごとのImGui texture slot集合と再利用cursorを保持します
 		struct TextureSlots {
 			std::vector<FrameTextureSlot> frameSlots;
 		};
@@ -89715,10 +90142,12 @@ File Path: src/engine/ui/retained/IUiBackend.h
 #include "core/math/Vec4.h"
 
 namespace Unnamed::UI::Retained {
+	/// @brief UiBackendFrameContextは、backend描画時に使用するviewport矩形をframe単位で渡します
 	struct UiBackendFrameContext {
 		UiRect viewportRect = {};
 	};
 
+	/// @brief UiRectPaintDataは、clip範囲を伴う角丸矩形の描画位置と色をbackendへ渡します
 	struct UiRectPaintData {
 		UiRect rect     = {};
 		UiRect clipRect = {};
@@ -89728,6 +90157,7 @@ namespace Unnamed::UI::Retained {
 		float cornerRadius = 0.0f;
 	};
 
+	/// @brief UiImagePaintDataは、clip範囲、texture、UV、tintを1件のimage描画命令としてbackendへ渡します
 	struct UiImagePaintData {
 		UiRect rect     = {};
 		UiRect clipRect = {};
@@ -89740,6 +90170,7 @@ namespace Unnamed::UI::Retained {
 		Vec4 tintColor = Vec4::white;
 	};
 
+	/// @brief IUiBackendは、retained UIを描画・入力バックエンドへ接続する契約を定義します
 	class IUiBackend {
 	public:
 		virtual ~IUiBackend() = default;
@@ -89777,6 +90208,7 @@ namespace Unnamed::UI::Retained {
 		return start + (target - start) * time;
 	}
 
+	/// @brief UiAnimatedValueは、retained UI値の現在値、目標値、補間時間を保持してフレーム更新します
 	template <typename T>
 	class UiAnimatedValue {
 	public:
@@ -89920,6 +90352,7 @@ File Path: src/engine/ui/retained/UiDocument.h
 namespace Unnamed::UI::Retained {
 	struct UiNode;
 
+	/// @brief UiDocumentは、retained UIノード木と世代付きノードIDの割り当てを所有します
 	class UiDocument {
 	public:
 		/// @brief ノードを作成してドキュメントに追加します
@@ -89988,6 +90421,7 @@ File Path: src/engine/ui/retained/UiNode.h
 #include "core/assets/AssetID.h"
 
 namespace Unnamed::UI::Retained {
+	/// @brief UiButtonVisualStyleは、buttonの通常・hover・pressed状態ごとの背景色とtintを保持します
 	struct UiButtonVisualStyle {
 		Vec4 backgroundColor  = Vec4::zero;
 		Vec4 contentTintColor = Vec4::white;
@@ -90000,6 +90434,7 @@ namespace Unnamed::UI::Retained {
 		UiEasing easing = UiEasing::LINEAR;
 	};
 
+	/// @brief UiButtonStyleは、buttonのvisual style、padding、animation durationを保持します
 	struct UiButtonStyle {
 		UiButtonVisualStyle normal;
 		UiButtonVisualStyle hovered;
@@ -90007,6 +90442,7 @@ namespace Unnamed::UI::Retained {
 		UiButtonVisualStyle disabled;
 	};
 
+	/// @brief UiButtonRuntimeStateは、retained buttonのhover、press、animation値をframe間で保持します
 	struct UiButtonRuntimeState {
 		UiAnimatedValue<Vec4>  backgroundColor;
 		UiAnimatedValue<Vec4>  contentTintColor;
@@ -90018,6 +90454,7 @@ namespace Unnamed::UI::Retained {
 		bool initialized = false;
 	};
 
+	/// @brief UiButtonDataは、buttonのstyle、frame間の操作状態、有効・無効状態をnode内で保持します
 	struct UiButtonData {
 		UiButtonStyle        style;
 		UiButtonRuntimeState runtimeState;
@@ -90025,6 +90462,7 @@ namespace Unnamed::UI::Retained {
 		bool enabled = true;
 	};
 
+	/// @brief UiImageDataは、nodeが描画するtexture、UV範囲、tint色を保持します
 	struct UiImageData {
 		AssetID textureId = {};
 
@@ -90036,6 +90474,7 @@ namespace Unnamed::UI::Retained {
 
 	using UiNodeData = std::variant<UiButtonData, UiImageData>;
 
+	/// @brief UiNodeは、retained UIの階層またはグラフにおける接続関係とノード固有値を保持します
 	struct UiNode {
 		UiNodeId     id   = {};
 		UI_NODE_TYPE type = UI_NODE_TYPE::IMAGE;
@@ -90375,11 +90814,13 @@ File Path: src/engine/ui/retained/UiSystem.h
 #include "UiTypes.h"
 
 namespace Unnamed::UI::Retained {
+	/// @brief UiFrameContextは、retained UI更新に使うviewport矩形とunscaled delta timeをframe単位で渡します
 	struct UiFrameContext {
 		UiRect viewportRect      = {};
 		float  unscaledDeltaTime = 0.0f;
 	};
 
+	/// @brief UiSystemは、retained UIの初期化、フレーム更新、および終了順序を統括します
 	class UiSystem {
 	public:
 		void Render(
@@ -90391,6 +90832,7 @@ namespace Unnamed::UI::Retained {
 
 		[[nodiscard]] std::span<const UiEvent> GetEvents() const;
 
+		/// @brief TraversalContextは、親nodeから継承する矩形、tint、opacity、clip範囲を走査中に保持します
 		struct TraversalContext {
 			Vec2 origin = Vec2::zero;
 			Vec2 size   = Vec2::one;
@@ -90454,7 +90896,7 @@ File Path: src/engine/ui/retained/UiTypes.h
 #include "core/math/Vec2.h"
 
 namespace Unnamed::UI::Retained {
-	/// @brief UIノードの識別子
+	/// @brief retained UIノードを世代付き整数で安定して識別します
 	struct UiNodeId {
 		constexpr static uint64_t kInvalid =
 			std::numeric_limits<uint64_t>::max();
@@ -90484,6 +90926,7 @@ namespace Unnamed::UI::Retained {
 		auto operator<=>(const UiNodeHandle&) const = default;
 	};
 
+	/// @brief retained UIレイアウトの位置と寸法をピクセル単位で表します
 	struct UiRect {
 		Vec2 min = Vec2::zero;
 		Vec2 max = Vec2::zero;
@@ -90520,6 +90963,7 @@ namespace Unnamed::UI::Retained {
 		DISABLED,
 	};
 
+	/// @brief UiInteractionResultは、retained UI nodeのhover、hold、click判定を当該frameの結果として返します
 	struct UiInteractionResult {
 		bool hovered = false;
 		bool held    = false;
@@ -90534,6 +90978,7 @@ namespace Unnamed::UI::Retained {
 		CLICK
 	};
 
+	/// @brief UiEventは、retained UIで発生した事象と配送に必要な付随値を保持します
 	struct UiEvent {
 		UiNodeId      target = {};
 		UI_EVENT_TYPE type   = UI_EVENT_TYPE::CLICK;
@@ -90562,7 +91007,7 @@ File Path: src/engine/unnamed/framework/components/CameraComponent.cpp
 
 #include "TransformComponent.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -90727,6 +91172,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief CameraComponentは、view・projection行列とviewport設定をWorldの描画cameraとして提供します
 	class CameraComponent final : public BaseComponent {
 	public:
 		// ---- CameraComponent -----------------------------------------------
@@ -90798,7 +91244,7 @@ File Path: src/engine/unnamed/framework/components/DirectionalLightComponent.cpp
 
 #include "TransformComponent.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
@@ -90920,6 +91366,7 @@ File Path: src/engine/unnamed/framework/components/DirectionalLightComponent.h
 #include "engine/render/frame/RenderFrameInputs.h"
 
 namespace Unnamed {
+	/// @brief DirectionalLightComponentは、方向光の向き、色、強度、shadow設定を描画入力へ提供します
 	class DirectionalLightComponent final : public BaseComponent {
 	public:
 		/// @brief ライト色を設定します。
@@ -90975,7 +91422,7 @@ File Path: src/engine/unnamed/framework/components/SkyLightComponent.cpp
 #include <imgui.h>
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 
@@ -91080,6 +91527,7 @@ File Path: src/engine/unnamed/framework/components/SkyLightComponent.h
 #include "engine/render/frame/RenderFrameInputs.h"
 
 namespace Unnamed {
+	/// @brief SkyLightComponentは、環境光の色と強度をscene lighting入力へ提供します
 	class SkyLightComponent final : public BaseComponent {
 	public:
 		/// @brief 空側 Hemisphere Ambient 色を設定します。
@@ -91133,7 +91581,7 @@ File Path: src/engine/unnamed/framework/components/SkyboxComponent.cpp
 
 #include <imgui.h>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/TextureAssetData.h"
@@ -91348,6 +91796,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief SkyboxComponentは、skybox textureと描画設定をWorld rendererへ提供します
 	class SkyboxComponent final : public BaseComponent {
 	public:
 		/// @brief Skybox cubemapを論理パスからロードして設定します。
@@ -91398,7 +91847,7 @@ File Path: src/engine/unnamed/framework/components/TransformComponent.cpp
 
 #include <engine/ImGui/Icons.h>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -92069,7 +92518,7 @@ File Path: src/engine/unnamed/framework/components/audio/AudioSourceComponent.cp
 
 #include <imgui.h>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/SoundAssetData.h"
@@ -92531,6 +92980,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief AudioSourceComponentは、sound assetとXAudio2 voiceの再生・停止・音量状態を管理します
 	class AudioSourceComponent final : public BaseComponent {
 	public:
 		[[nodiscard]] std::string_view GetStableName() const override;
@@ -92930,7 +93380,7 @@ File Path: src/engine/unnamed/framework/components/collider/StaticMeshColliderCo
 
 #include "../mesh/StaticMeshRendererComponent.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
@@ -93140,6 +93590,7 @@ File Path: src/engine/unnamed/framework/components/collider/StaticMeshColliderCo
 #include "core/math/Mat4.h"
 
 namespace Unnamed {
+	/// @brief StaticMeshColliderComponentは、static meshから物理colliderを登録し、Transform変更へ追従します
 	class StaticMeshColliderComponent final : public BaseComponent {
 	public:
 		void OnAttached() override;
@@ -93186,7 +93637,7 @@ File Path: src/engine/unnamed/framework/components/editor/EditorCameraComponent.
 
 #include "../TransformComponent.h"
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
 #include "core/math/Math.h"
@@ -93556,6 +94007,7 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief EditorCameraComponentは、Editor viewport入力から自由cameraの移動・回転を更新します
 	class EditorCameraComponent final : public BaseComponent {
 	public:
 		// ---- EditorCameraComponent -----------------------------------------
@@ -93654,7 +94106,7 @@ File Path: src/engine/unnamed/framework/components/mesh/SkeletalAnimationCompone
 #include <unordered_map>
 #include <utility>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/types/MeshAssetData.h"
 #include "core/io/json/JsonReader.h"
 #include "core/io/json/JsonWriter.h"
@@ -93664,17 +94116,20 @@ File Path: src/engine/unnamed/framework/components/mesh/SkeletalAnimationCompone
 
 namespace Unnamed {
 	namespace {
+		/// @brief LocalBonePoseは、bone local poseのtranslation、rotation、scaleを保持します
 		struct LocalBonePose {
 			Vec3       translation = Vec3::zero;
 			Quaternion rotation    = Quaternion::identity;
 			Vec3       scale       = Vec3::one;
 		};
 
+		/// @brief BlendAccumVec3は、Vec3 animation channelの加重和と総weightをblend中だけ保持します
 		struct BlendAccumVec3 {
 			Vec3  weightedSum = Vec3::zero;
 			float weightSum   = 0.0f;
 		};
 
+		/// @brief BlendAccumQuatは、Quaternion animation channelの加重和と基準向きをblend中だけ保持します
 		struct BlendAccumQuat {
 			float      x            = 0.0f;
 			float      y            = 0.0f;
@@ -95001,8 +95456,10 @@ namespace Unnamed {
 	class JsonReader;
 	class JsonWriter;
 
+	/// @brief SkeletalAnimationComponentは、animation clip、layer、transitionを評価してskeleton poseを更新します
 	class SkeletalAnimationComponent final : public BaseComponent {
 	public:
+		/// @brief AnimationLayerDescは、animation layerの名前、weight、blend mode、初期stateを指定します
 		struct AnimationLayerDesc {
 			std::string clipName;
 			float       weight      = 1.0f;
@@ -95011,6 +95468,7 @@ namespace Unnamed {
 			bool        playOnStart = true;
 		};
 
+		/// @brief AnimationStateDescは、animation stateのclip、loop、speed、transition設定を指定します
 		struct AnimationStateDesc {
 			std::string stateId;
 			size_t      layerIndex = 0;
@@ -95082,6 +95540,7 @@ namespace Unnamed {
 		);
 
 	private:
+		/// @brief RuntimeLayerStateは、animation layerの再生clip、時刻、weightを評価間で保持します
 		struct RuntimeLayerState {
 			AnimationLayerDesc desc;
 			float              playbackTime        = 0.0f;
@@ -95089,6 +95548,7 @@ namespace Unnamed {
 			bool               isPlaying           = false;
 			bool               playOnStartConsumed = false;
 
+			/// @brief TransitionStateは、animation transitionのsource、destination、blend進行を保持します
 			struct TransitionState {
 				std::string fromClipName;
 				float       fromPlaybackTime       = 0.0f;
@@ -95119,7 +95579,7 @@ File Path: src/engine/unnamed/framework/components/mesh/SkeletalMeshRendererComp
 
 #include <algorithm>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/MeshAssetData.h"
@@ -95773,6 +96233,7 @@ namespace Unnamed {
 		AssetID                    assetId = kInvalidAssetID;
 	};
 
+	/// @brief SkeletalMeshRendererComponentは、skeletal mesh、material、bone paletteをrendererへ提出します
 	class SkeletalMeshRendererComponent final : public BaseComponent {
 	public:
 		// ---- SkeletalMeshRendererComponent ---------------------------------
@@ -95877,7 +96338,7 @@ File Path: src/engine/unnamed/framework/components/mesh/StaticMeshRendererCompon
 
 #include <functional>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/MeshAssetData.h"
 #include "core/content/ContentPathResolver.h"
@@ -96545,6 +97006,7 @@ namespace Unnamed {
 		Path     materialInstancePath;
 	};
 
+	/// @brief StaticMeshRendererComponentは、static meshとmaterialの描画instanceをrendererへ提出します
 	class StaticMeshRendererComponent final : public BaseComponent {
 	public:
 		// ---- StaticMeshRendererComponent -----------------------------------
@@ -96665,7 +97127,7 @@ File Path: src/engine/unnamed/framework/components/sequence/SequenceDirectorComp
 #include "engine/ImGui/ImGuiWidgets.h"
 #endif
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/types/SequenceAssetData.h"
 #include "core/content/ContentPathResolver.h"
@@ -97311,14 +97773,14 @@ namespace Unnamed {
 		[[nodiscard]] AssetID GetSequenceAssetId() const noexcept;
 
 	private:
-		/// @brief ロック対象仕様です。
+		/// @brief LockTargetSpecは、エンジンで対象を選択・拘束するための宣言的条件を保持します
 		struct LockTargetSpec final {
 			uint64_t    componentGuid       = 0;
 			uint64_t    entityGuid          = 0;
 			std::string componentStableName = "";
 		};
 
-		/// @brief ロック復帰情報です。
+		/// @brief ActiveLockStateは、sequenceが現在拘束する対象と解除条件を保持します
 		struct ActiveLockState final {
 			BaseComponent* component      = nullptr;
 			bool           previousActive = true;
@@ -97372,7 +97834,7 @@ File Path: src/engine/unnamed/framework/components/ui/NewUICanvas.cpp
 #include <algorithm>
 #include <string_view>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/content/ContentPathResolver.h"
 #include "core/io/json/JsonReader.h"
@@ -97947,6 +98409,7 @@ namespace Unnamed::UI {
 }
 
 namespace Unnamed {
+	/// @brief NewUICanvasは、エンジン要素のルート配置、入力、および描画提出を管理します
 	class NewUICanvas : public BaseComponent {
 	public:
 		//---------------------------------------------------------------------
@@ -98017,7 +98480,7 @@ File Path: src/engine/unnamed/framework/components/ui/UiCanvasComponent.cpp
 
 #include <imgui.h>
 
-#include "core/ComponentRegistry.h"
+#include "engine/ComponentRegistry.h"
 #include "core/assets/AssetManager.h"
 #include "core/assets/AssetType.h"
 #include "core/assets/types/UiDocumentAssetData.h"
@@ -98648,6 +99111,7 @@ namespace Unnamed {
 	[[nodiscard]] UI_CANVAS_BILLBOARD_DEPTH_MODE
 	ParseUiCanvasBillboardDepthMode(std::string_view value);
 
+	/// @brief UiCanvasComponentは、entity上のGUI canvasをWorldの入力・描画更新へ登録します
 	class UiCanvasComponent final : public BaseComponent {
 	public:
 		UiCanvasComponent();
@@ -99805,7 +100269,7 @@ File Path: src/engine/unnamed/physics/BVH.h
 #include <core/math/Mat4.h>
 #include <engine/unnamed/physics/BVHBuilder.h>
 
-/// @brief BVH構造体
+/// @brief 三角形群を階層化した境界ボリュームと葉インデックスを所有します
 struct BVH {
 	std::vector<Unnamed::Physics::FlatNode> nodes;
 	std::vector<uint32_t>                   triIndices;
@@ -99925,6 +100389,7 @@ namespace Unnamed::Physics {
 		const int&      axis, uint32_t&        outMid
 	) {
 		static constexpr int kBucket = 12;
+		/// @brief Bucketは、BVH SAH分割bucketの境界boxとprimitive数を保持します
 		struct Bucket {
 			AABB     bounds;
 			uint32_t count = 0;
@@ -100021,6 +100486,7 @@ File Path: src/engine/unnamed/physics/BVHBuilder.h
 
 namespace Unnamed::Physics {
 	// フラットノード
+	/// @brief FlatNodeは、物理照会の階層またはグラフにおける接続関係とノード固有値を保持します
 	struct FlatNode {
 		AABB     bounds;
 		uint32_t leftFirst;
@@ -100951,6 +101417,7 @@ File Path: src/engine/unnamed/physics/PhysicsTypes.h
 
 namespace Unnamed::Physics {
 	// ヒット情報
+	/// @brief 形状照会の衝突位置、法線、距離、および対象を呼び出し元へ返します
 	struct Hit {
 		float    toi           = FLT_MAX; // 0～1（キャストのTOI）。Overlap系は1.0f
 		float    depth         = 0.0f;
@@ -100963,6 +101430,7 @@ namespace Unnamed::Physics {
 	};
 
 	// 形状情報
+	/// @brief 衝突判定に使う三角形の頂点と面情報を保持します
 	struct TriInfo {
 		AABB     bounds;   // 境界
 		Vec3     center;   // 中心
@@ -101039,7 +101507,7 @@ File Path: src/engine/unnamed/physics/RayCast.h
 #include <engine/unnamed/physics/ShapeCast.h>
 
 namespace Unnamed::Physics {
-	/// @brief レイキャスト構造体
+	/// @brief レイと三角形群の最近接ヒットを評価します
 	struct RayCast final : ShapeCast {
 		[[nodiscard]] AABB ExpandNode(
 			const AABB& nodeBounds
@@ -101488,7 +101956,7 @@ File Path: src/engine/unnamed/primitive/Primitives.h
 #pragma once
 
 namespace Unnamed {
-	/// @brief レイ構造体
+	/// @brief 始点と正規化方向で半直線を表します
 	struct Ray {
 		Vec3  origin;         // Origin
 		Vec3  dir;            // Direction
@@ -101497,13 +101965,13 @@ namespace Unnamed {
 		float tMax = FLT_MAX; // Maximum distance
 	};
 
-	/// @brief 線分構造体
+	/// @brief 2端点で有限線分を表します
 	struct Line {
 		Vec3 start = Vec3::zero;
 		Vec3 end   = Vec3::right;
 	};
 
-	/// @brief 三角形構造体
+	/// @brief 3頂点とそこから導出される面法線を表します
 	struct Triangle {
 		static constexpr float kSin60 = 0.86603f; // 60度の正弦値
 
@@ -101512,7 +101980,7 @@ namespace Unnamed {
 		Vec3 v2 = Vec3::up;
 	};
 
-	/// @brief 平面構造体
+	/// @brief 単位法線と原点からの符号付き距離で平面を表します
 	struct Plane {
 		Vec3  normal = Vec3::zero;
 		float d      = 0.0f;
@@ -101523,18 +101991,18 @@ namespace Unnamed {
 	/// @return 正規化された平面
 	Plane NormalizePlane(const Plane& plane);
 
-	/// @brief ボックス構造体
+	/// @brief 中心、半径、および姿勢で有向ボックスを表します
 	struct Box {
 		Vec3 center   = Vec3::zero;
 		Vec3 halfSize = Vec3::one * 0.5f;
 	};
 
-	/// @brief フラスタム構造体
+	/// @brief ビュー錐台を構成する6平面を保持します
 	struct Frustum {
 		Plane planes[6];
 	};
 
-	/// @brief 球 構造体
+	/// @brief 中心と半径で球を表します
 	struct Sphere {
 		Vec3  center = Vec3::zero;
 		float radius = 0.5f;
@@ -101581,7 +102049,7 @@ namespace Unnamed {
 		float         farZ
 	);
 
-	/// @brief カプセル構造体
+	/// @brief 線分の両端と半径でカプセル形状を表します
 	struct Capsule {
 		Vec3  start  = Vec3::down * 0.5f;
 		Vec3  end    = Vec3::up * 0.5f;
@@ -101889,6 +102357,7 @@ namespace Unnamed {
 	class AudioVoice;
 	struct SoundAssetData;
 
+	/// @brief AudioSystemは、XAudio2 engineとmaster voiceを所有し、sound voiceの生成・停止を仲介します
 	class AudioSystem {
 	public:
 		AudioSystem();
@@ -102759,7 +103228,7 @@ namespace Unnamed {
 		static constexpr auto kBgColorDefault = Vec4(0.29f, 0.29f, 0.29f, 1.0f);
 		static constexpr auto kFgColorDefault = Vec4(0.71f, 0.71f, 0.72f, 1.0f);
 
-		/// @brief 空の構造体
+		/// @brief Emptyは、ConVar UI layout variantで内容を持たない空要素を表します
 		struct Empty {
 		};
 
@@ -102798,10 +103267,11 @@ namespace Unnamed {
 			std::variant<Empty, Label, Button, ExecutableButton> element;
 		};
 
-		/// @brief ページの構造体
+		/// @brief Pageは、ConVar helper UIのpage名と所属control列を保持します
 		struct Page {
 			std::string name; // ページ名
 
+			/// @brief Gridは、ConVar helper UIを行列配置する列数、間隔、control列を保持します
 			struct Grid {
 				uint32_t width;            // テーブルの列数
 				uint32_t height;           // テーブルの行数
@@ -102975,6 +103445,7 @@ File Path: src/engine/unnamed/subsystem/console/ConVarWriter.h
 #pragma once
 
 namespace Unnamed {
+	/// @brief ConVarWriterは、永続化対象のコンソール変数を名前と値のテキスト行としてファイルへ書き出します
 	class ConVarWriter {
 	public:
 		explicit ConVarWriter(const Path& path);
@@ -103235,6 +103706,7 @@ namespace Unnamed {
 	/// @details 別スレッドでキューに溜まったログイベントをファイルに書き出します。
 	class ConsoleFileLogSink final {
 	public:
+		/// @brief Eventは、開発者コンソールで発生した事象と配送に必要な付随値を保持します
 		struct Event {
 			uint64_t             sequence = 0;
 			LogLevel             level    = LogLevel::Info;
@@ -103245,6 +103717,7 @@ namespace Unnamed {
 			uint32_t             threadId = 0;
 		};
 
+		/// @brief Configは、機能の生成時に適用する有効化条件と調整値を保持します
 		struct Config {
 			Path     path            = Path("./consolesystem.log");
 			uint32_t flushIntervalMs = 250;             // flushの間隔
@@ -104788,12 +105261,14 @@ namespace Unnamed {
 	namespace {
 		/// @brief コンソールUIのデータ構造体
 		struct ConsoleUIData {
+			/// @brief SuggestionEntryは、console補完候補の表示名、補助表示、ConVar種別を保持します
 			struct SuggestionEntry {
 				std::string name;
 				std::string secondaryText;
 				bool        isConVar = false;
 			};
 
+			/// @brief SuggestionStateは、console補完候補、選択index、popup表示状態を保持します
 			struct SuggestionState {
 				std::vector<SuggestionEntry> items;
 				std::string                  query;
@@ -106171,6 +106646,7 @@ namespace Unnamed {
 	constexpr Vec4 kConTextColorString  = {0.99f, 0.0f, 0.82f, 1.0f};
 	constexpr Vec4 kConTextColorVec3    = {0.99f, 0.78f, 0.14f, 1.0f};
 
+	/// @brief InputTextWithComboItemsは、console入力欄と補完popupへ渡す候補列と選択状態を保持します
 	struct InputTextWithComboItems {
 		const char* (*itemGetter)(void* userData, int idx);
 		void*         userData;
@@ -106197,6 +106673,7 @@ namespace Unnamed {
 		void OnConsoleUpdate();
 
 	private:
+		/// @brief SuggestionContextは、入力行内の補完対象tokenの範囲、文字列、確定状態を保持します
 		struct SuggestionContext {
 			size_t      segmentStart = 0;
 			size_t      tokenStart   = 0;
@@ -106205,6 +106682,7 @@ namespace Unnamed {
 			bool        tokenConfirmed = false;
 		};
 
+		/// @brief SuggestionItemは、console補完候補の表示文字列、挿入文字列、command種別を保持します
 		struct SuggestionItem {
 			std::string name;
 			std::string secondaryText;
@@ -108086,228 +108564,6 @@ namespace Unnamed {
 
 
 ============================================================
-File Path: src/engine/unnamed/subsystem/editorluasystem/EditorLuaSystem.cpp
-============================================================
-#include "EditorLuaSystem.h"
-
-#include <thirdparty/lua/lua.hpp>
-#ifdef UNNAMED_WITH_EDITOR
-#include <imgui.h>
-#endif
-
-namespace Unnamed {
-	namespace {
-		void SetError(std::string* outError, const char* message) {
-			if (outError) {
-				*outError = message ? message : "Unknown Lua error";
-			}
-		}
-
-		int LuaUiText(lua_State* lua) {
-			const char* text = luaL_checkstring(lua, 1);
-#ifdef UNNAMED_WITH_EDITOR
-			ImGui::TextUnformatted(text);
-#else
-			(void)text;
-#endif
-			return 0;
-		}
-
-		int LuaUiButton(lua_State* lua) {
-			const char* text = luaL_checkstring(lua, 1);
-#ifdef UNNAMED_WITH_EDITOR
-			const bool pressed = ImGui::Button(text);
-#else
-			(void)text;
-			constexpr bool pressed = false;
-#endif
-
-			lua_pushboolean(lua, pressed);
-			return 1;
-		}
-
-		int LuaUiBeginWindow(lua_State* lua) {
-			const char* title = luaL_checkstring(lua, 1);
-#ifdef UNNAMED_WITH_EDITOR
-			const bool opened = ImGui::Begin(title);
-#else
-			(void)title;
-			constexpr bool opened = false;
-#endif
-			lua_pushboolean(lua, opened);
-			return 1;
-		}
-
-		int LuaUiEndWindow(lua_State*) {
-#ifdef UNNAMED_WITH_EDITOR
-			ImGui::End();
-#endif
-			return 0;
-		}
-
-		void RegisterEditorLuaBindings(lua_State* lua) {
-			lua_register(lua, "Ui_Text", LuaUiText);
-			lua_register(lua, "Ui_Button", LuaUiButton);
-			lua_register(lua, "Ui_BeginWindow", LuaUiBeginWindow);
-			lua_register(lua, "Ui_EndWindow", LuaUiEndWindow);
-		}
-
-		auto kEditorUiBootStrapLua = R"(
-			Ui = Ui or {}
-			
-			function Ui.Text(text)
-				Ui_Text(text)
-			end
-
-			function Ui.Button(text)
-				return Ui_Button(text)
-			end
-
-			function Ui.BeginWindow(title)
-				return Ui_BeginWindow(title)
-			end
-
-			function Ui.EndWindow()
-				Ui_EndWindow()
-			end
-		)";
-	}
-
-	bool EditorLuaSystem::Init() {
-		if (mState) {
-			return true;
-		}
-
-		mState = luaL_newstate();
-		if (!mState) {
-			return false;
-		}
-
-		luaL_openlibs(mState);
-		RegisterEditorLuaBindings(mState);
-
-		std::string error;
-		ExecuteString(kEditorUiBootStrapLua, &error);
-
-		return true;
-	}
-
-	void EditorLuaSystem::Shutdown() {
-		if (mState) {
-			lua_close(mState);
-			mState = nullptr;
-		}
-	}
-
-	const std::string_view EditorLuaSystem::GetName() const {
-		return "EditorLua";
-	}
-
-	bool EditorLuaSystem::ExecuteString(
-		const std::string& src, std::string* outError
-	) const {
-		if (!mState) {
-			SetError(outError, "Lua state is not initialized");
-			return false;
-		}
-
-		if (outError) {
-			outError->clear();
-		}
-
-		const int loadResult = luaL_loadbuffer(
-			mState,
-			src.data(),
-			src.size(),
-			"EditorGuiScript"
-		);
-
-		if (loadResult != LUA_OK) {
-			SetError(outError, lua_tostring(mState, -1));
-			lua_pop(mState, 1);
-			return false;
-		}
-
-		const int callResult = lua_pcall(mState, 0, 0, 0);
-		if (callResult != LUA_OK) {
-			SetError(outError, lua_tostring(mState, -1));
-			lua_pop(mState, 1);
-			return false;
-		}
-
-		return true;
-	}
-
-	bool EditorLuaSystem::CallFunction(
-		const char* name, std::string* outError
-	) const {
-		if (!mState) {
-			SetError(outError, "Lua state is not initialized");
-			return false;
-		}
-
-		if (!name || name[0] == '\0') {
-			SetError(outError, "Lua function name is empty");
-			return false;
-		}
-
-		if (outError) {
-			outError->clear();
-		}
-
-		lua_getglobal(mState, name);
-
-		if (!lua_isfunction(mState, -1)) {
-			lua_pop(mState, 1);
-
-			std::string message = "Lua function not found: ";
-			message             += name;
-			SetError(outError, message.c_str());
-			return false;
-		}
-
-		const int callResult = lua_pcall(mState, 0, 0, 0);
-		if (callResult != LUA_OK) {
-			SetError(outError, lua_tostring(mState, -1));
-			lua_pop(mState, 1);
-			return false;
-		}
-
-		return true;
-	}
-}
-
-
-============================================================
-File Path: src/engine/unnamed/subsystem/editorluasystem/EditorLuaSystem.h
-============================================================
-﻿#pragma once
-#include <string>
-
-#include <thirdparty/lua/lua.hpp>
-
-#include "../interface/ISubsystem.h"
-
-namespace Unnamed {
-	class EditorLuaSystem : public ISubsystem {
-	public:
-		// ---- ISubsystem ----------------------------------------------------
-		bool Init() override;
-		void Shutdown() override;
-
-		[[nodiscard]] const std::string_view GetName() const override;
-
-		// ---- EditorLuaSystem -----------------------------------------------
-		bool ExecuteString(const std::string& src, std::string* outError) const;
-		bool CallFunction(const char* name, std::string* outError) const;
-
-	private:
-		lua_State* mState = nullptr;
-	};
-}
-
-
-============================================================
 File Path: src/engine/unnamed/subsystem/input/InputSystem.cpp
 ============================================================
 #include <algorithm>
@@ -109404,7 +109660,7 @@ File Path: src/engine/unnamed/subsystem/input/InputSystem.h
 #include <engine/unnamed/subsystem/input/device/base/BaseInputDevice.h>
 #include <engine/unnamed/subsystem/interface/ISubsystem.h>
 
-/// @brief 入力キー構造体
+/// @brief InputKeyのデバイス種別とコードを連想コンテナ用ハッシュへ変換します
 template <>
 struct std::hash<Unnamed::InputKey> {
 	size_t operator()(const Unnamed::InputKey& key) const noexcept {
@@ -109454,7 +109710,7 @@ namespace Unnamed {
 		INPUT_AXIS axis    = INPUT_AXIS::X;
 	};
 
-	/// @brief 入力システムクラス
+	/// @brief InputSystemは、入力の初期化、フレーム更新、および終了順序を統括します
 	class InputSystem final : public ISubsystem, public IWin32MsgListener {
 	public:
 		~InputSystem() override;
@@ -109648,6 +109904,7 @@ namespace Unnamed {
 
 		std::vector<std::shared_ptr<BaseInputDevice>> mDevices;
 
+		/// @brief MouseLockAnchorは、mouse lock開始時のscreen座標とclient座標を復帰位置として保持します
 		struct MouseLockAnchor {
 			HWND hwnd      = nullptr;
 			Vec2 clientPos = Vec2::zero;
@@ -109980,7 +110237,7 @@ namespace Unnamed {
 		GAMEPAD
 	};
 
-	/// @brief 入力キー構造体
+	/// @brief 入力デバイス種別とデバイス内キーコードの組を識別します
 	struct InputKey {
 		InputDeviceType device;
 		uint32_t        code;
@@ -110900,6 +111157,7 @@ enum : uint16_t {
 };
 
 namespace Unnamed {
+	/// @brief GamepadDeviceは、XInput gamepadのbutton・axis状態と時間指定rumble要求を更新します
 	class GamepadDevice final : public BaseInputDevice {
 	public:
 		explicit GamepadDevice(HWND hWnd);
@@ -110922,10 +111180,12 @@ namespace Unnamed {
 		using PFN_XInputGetCapabilities =
 		DWORD(WINAPI*)(DWORD, DWORD, XINPUT_CAPABILITIES*);
 
+		/// @brief DirectInputPadは、DirectInput gamepad device、識別子、接続状態を所有します
 		struct DirectInputPad {
 			IDirectInputDevice8W* device = nullptr;
 		};
 
+		/// @brief RumbleEventは、入力で発生した事象と配送に必要な付随値を保持します
 		struct RumbleEvent {
 			float  low     = 0.0f;
 			float  high    = 0.0f;
@@ -111645,6 +111905,7 @@ File Path: src/engine/unnamed/subsystem/terminal/TerminalSystem.h
 namespace Unnamed {
 	class ConsoleSystem;
 
+	/// @brief TerminalSystemは、Windows terminalの入出力をConsoleSystemのcommand実行へ接続します
 	class TerminalSystem final : public ISubsystem {
 	public:
 		explicit TerminalSystem(ConsoleSystem* console);
@@ -112239,7 +112500,7 @@ File Path: src/engine/unnamed/time/DateTime.h
 ============================================================
 #pragma once
 
-/// @brief 日付時間構造体
+/// @brief ログや表示に使うローカル暦日時の各要素を保持します
 struct DateTime {
 	int year        = 0;
 	int month       = 0;
@@ -113021,6 +113282,7 @@ File Path: src/engine/unnamed/ui/UIContext.h
 #include "engine/tween/TweenManager.h"
 
 namespace Unnamed::UI {
+	/// @brief UIContextは、即時UIの入力、レイアウトスタック、操作状態、描画リストをフレーム単位で管理します
 	class UIContext {
 	public:
 		UIContext();
@@ -113081,22 +113343,26 @@ namespace Unnamed::UI {
 			ROW
 		};
 
+		/// @brief UILayoutStateは、即時UIのcursor位置、利用可能幅、行高さをlayout stack内で保持します
 		struct UILayoutState {
 			Vec2                cursorPosition = Vec2::zero;
 			float               gap            = 0.0f;
 			UI_LAYOUT_DIRECTION direction      = UI_LAYOUT_DIRECTION::COLUMN;
 		};
 
+		/// @brief UIButtonAnimationStateは、即時buttonのhover・press補間値をwidget IDごとに保持します
 		struct UIButtonAnimationState {
 			float hoverAmount = 0.0f;
 			float pressAmount = 0.0f;
 		};
 
+		/// @brief UICheckBoxAnimationStateは、即時checkboxのhover・check補間値をwidget IDごとに保持します
 		struct UICheckBoxAnimationState {
 			float hoverAmount = 0.0f;
 			float pressAmount = 0.0f;
 		};
 
+		/// @brief UISliderAnimationStateは、即時sliderのhover・grab補間値をwidget IDごとに保持します
 		struct UISliderAnimationState {
 			float hoverAmount = 0.0f;
 			float pressAmount = 0.0f;
@@ -113434,6 +113700,7 @@ File Path: src/engine/unnamed/ui/UIDrawCommandSprite.h
 
 namespace Unnamed::UI {
 	class UIFontAtlas;
+	/// @brief UIDrawCommandSpriteStatsは、即時UIの診断用カウンターと集計値を保持します
 	struct UIDrawCommandSpriteStats {
 		uint32_t textCommandCount  = 0;
 		uint32_t glyphSpriteCount  = 0;
@@ -113494,6 +113761,7 @@ namespace Unnamed::UI {
 	namespace {
 		constexpr std::string_view kChannel = "UI";
 
+		/// @brief PendingGlyphは、font atlasへ追加予定のcodepoint、metrics、bitmapを保持します
 		struct PendingGlyph {
 			stbtt_packedchar packed    = {};
 			float            advanceX  = 0.0f;
@@ -114173,6 +114441,7 @@ namespace Unnamed::UI {
 		[[nodiscard]] UIFontAtlasCacheDebugInfo GetDebugInfo() const;
 
 	private:
+		/// @brief CacheEntryは、即時UIキャッシュ内の資源と最終利用情報を同じ寿命で保持します
 		struct CacheEntry {
 			UIFontAtlasKey               key = {};
 			std::unique_ptr<UIFontAtlas> atlas;
@@ -114456,6 +114725,7 @@ namespace Unnamed::UI {
 		TEXT, // テキスト
 	};
 
+	/// @brief UIDrawCommandは、即時UIで順序付き実行する命令と引数を保持します
 	struct UIDrawCommand {
 		UIDrawCommandType type = UIDrawCommandType::RECT;
 
@@ -114471,6 +114741,7 @@ namespace Unnamed::UI {
 		uint32_t textOversampleV = 1;
 	};
 
+	/// @brief UIDrawListは、即時UIが生成したスプライト描画命令を提出順に蓄積します
 	class UIDrawList {
 	public:
 		void Clear();
@@ -114523,6 +114794,7 @@ File Path: src/engine/unnamed/ui/UnnamedUIInput.h
 #include "core/math/Vec2.h"
 
 namespace Unnamed::UI {
+	/// @brief UnnamedUiInputStateは、mouse位置、button遷移、wheel量を即時UIの1frame入力として保持します
 	struct UnnamedUiInputState {
 		Vec2 mousePosition = Vec2::zero;
 		bool mouseDown     = false;
@@ -114556,7 +114828,7 @@ File Path: src/engine/unnamed/ui/UnnamedUITypes.h
 #include "core/math/Vec2.h"
 
 namespace Unnamed::UI {
-	/// @brief UIの矩形構造体
+	/// @brief 即時UIの位置と寸法をピクセル単位で表します
 	struct UIRect {
 		Vec2 position = Vec2::zero;
 		Vec2 size     = Vec2::one;
@@ -114928,6 +115200,7 @@ namespace Unnamed {
 	class EditorCameraComponent;
 	class IGameWorldFactory;
 
+	/// @brief EditorWorldは、編集scene、selection、Editor cameraを保持し、simulationを開始せずに更新します
 	class EditorWorld final : public World {
 	public:
 		~EditorWorld() override;
@@ -115002,204 +115275,11 @@ namespace Unnamed {
 ============================================================
 File Path: src/engine/world/GameWorld.cpp
 ============================================================
-#include "GameWorld.h"
-
-#include "core/string/StrUtil.h"
-
-#include "engine/render/frame/RenderFrameInputs.h"
-#include "engine/scene/SceneSerializer.h"
-
-#include "engine/unnamed/subsystem/console/Log.h"
-
-#include <chrono>
-
-#include "engine/scene/Scene.h"
-
-namespace Unnamed {
-	GameWorld::~GameWorld() = default;
-
-	void GameWorld::Initialize() {
-		const auto start = std::chrono::steady_clock::now();
-		World::Initialize();
-		const auto worldInitEnd = std::chrono::steady_clock::now();
-
-		Msg(
-			"GameWorld",
-			"Initialize timing: worldInit={}ms",
-			std::chrono::duration_cast<std::chrono::milliseconds>(
-				worldInitEnd - start
-			).count()
-		);
-	}
-
-	void GameWorld::Shutdown() {
-		World::Shutdown();
-	}
-
-	void GameWorld::FixedTick(const float fixedDeltaTime) {
-		World::FixedTick(fixedDeltaTime);
-	}
-
-	void GameWorld::RenderTick(
-		const float renderDeltaTime,
-		const float interpolationAlpha
-	) {
-		World::RenderTick(renderDeltaTime, interpolationAlpha);
-	}
-
-	bool GameWorld::LoadSceneFromFile(
-		Path path, const SceneLoadOptions& options
-	) {
-		path = path.IsEmpty() ? Path() : path.LexicallyNormal();
-		if (path.IsEmpty()) {
-			return false;
-		}
-
-		const auto start = std::chrono::steady_clock::now();
-		const bool ok    = [&] {
-			if (!path || std::string_view(path).empty()) {
-				return false;
-			}
-
-			const auto beforeUnload = std::chrono::steady_clock::now();
-			UnloadScene();
-			const auto afterUnload = std::chrono::steady_clock::now();
-
-			// GUIDが同じシーンへ遷移しても物理登録が競合しないよう、
-			// 旧シーン解除後に新シーンをロードします。
-			auto       newScene = std::make_unique<Scene>();
-			newScene->SetWorld(this);
-			const bool loadOk   = SceneSerializer::LoadFromFile(
-				*newScene, path, mGuidGenerator, options
-			);
-			if (!loadOk) {
-				return false;
-			}
-
-			World::SetScene(std::move(newScene));
-			const auto afterSetScene = std::chrono::steady_clock::now();
-
-			// Base World と同等に、現在ロード中のシーンパスとフックを更新します。
-			mLoadedScenePath = path;
-			OnSceneLoaded();
-
-			Msg(
-				"GameWorld",
-				"LoadSceneFromFile timing: load={}ms unload={}ms setScene={}ms total={}ms path={}",
-				std::chrono::duration_cast<std::chrono::milliseconds>(
-					beforeUnload - start
-				).count(),
-				std::chrono::duration_cast<std::chrono::milliseconds>(
-					afterUnload - beforeUnload
-				).count(),
-				std::chrono::duration_cast<std::chrono::milliseconds>(
-					afterSetScene - afterUnload
-				).count(),
-				std::chrono::duration_cast<std::chrono::milliseconds>(
-					afterSetScene - start
-				).count(),
-				path
-			);
-
-			return true;
-		}();
-
-		if (!ok) {
-			const auto end = std::chrono::steady_clock::now();
-			Msg(
-				"GameWorld",
-				"LoadSceneFromFile timing: failed total={}ms path={}",
-				std::chrono::duration_cast<std::chrono::milliseconds>(
-					end - start
-				).count(),
-				path ? std::string(path) : std::string("<null>")
-			);
-		}
-		return ok;
-	}
-
-	void GameWorld::UnloadScene() {
-		if (!mScene) {
-			return;
-		}
-		World::UnloadScene();
-	}
-
-	void GameWorld::FillRenderFrameInputs(
-		Render::RenderFrameInputs&  inputs,
-		Render::RenderFrameContext& frameContext,
-		AssetManager&               assetManager,
-		const bool                  enableUiInput
-	) {
-		World::FillRenderFrameInputs(
-			inputs, frameContext, assetManager, enableUiInput
-		);
-	}
-
-	void GameWorld::SetScene(std::unique_ptr<Scene> scene) {
-		const auto start = std::chrono::steady_clock::now();
-		if (mScene) {
-			const auto unloadStart = std::chrono::steady_clock::now();
-			UnloadScene();
-			const auto unloadEnd = std::chrono::steady_clock::now();
-			Msg(
-				"GameWorld",
-				"SetScene timing: UnloadScene={}ms",
-				std::chrono::duration_cast<std::chrono::milliseconds>(
-					unloadEnd - unloadStart
-				).count()
-			);
-		}
-
-		const auto setStart = std::chrono::steady_clock::now();
-		World::SetScene(std::move(scene));
-		const auto setEnd = std::chrono::steady_clock::now();
-
-		Msg(
-			"GameWorld",
-			"SetScene timing: setScene={}ms",
-			std::chrono::duration_cast<std::chrono::milliseconds>(
-				setEnd - setStart
-			).count()
-		);
-	}
-}
 
 
 ============================================================
 File Path: src/engine/world/GameWorld.h
 ============================================================
-#pragma once
-
-#include "World.h"
-
-namespace Unnamed {
-	class GameWorld final : public World {
-	public:
-		using World::LoadSceneFromFile;
-
-		~GameWorld() override;
-
-		void Initialize() override;
-		void Shutdown() override;
-		void FixedTick(float fixedDeltaTime) override;
-		void RenderTick(float renderDeltaTime, float interpolationAlpha) override;
-
-		bool LoadSceneFromFile(
-			Path path, const SceneLoadOptions& options
-		) override;
-		void UnloadScene() override;
-
-		void FillRenderFrameInputs(
-			Render::RenderFrameInputs&  inputs,
-			Render::RenderFrameContext& frameContext,
-			AssetManager&               assetManager,
-			bool                        enableUiInput = true
-		) override;
-
-		void SetScene(std::unique_ptr<Scene> scene) override;
-	};
-}
 
 
 ============================================================
@@ -115569,6 +115649,7 @@ namespace Unnamed {
 		std::unordered_map<std::string, uint64_t> mEntityIdValues;
 	};
 
+	/// @brief GameplayCueは、cue tag、送信元、payloadを1件のgameplay通知として保持します
 	struct GameplayCue {
 		std::string           id;
 		uint64_t              sourceEntityGuid = 0;
@@ -115624,11 +115705,13 @@ namespace Unnamed {
 		) const;
 	};
 
+	/// @brief GameplayCueFilterは、ワールドイベントまたは要素を通過させる条件を保持します
 	struct GameplayCueFilter {
 		std::string cueId;
 		uint64_t    sourceEntityGuid = 0;
 	};
 
+	/// @brief GameplayCueBusは、GameplayCueをフィルター条件に一致するlistenerへ同期配送します
 	class GameplayCueBus final {
 	public:
 		using Handle   = uint64_t;
@@ -115655,6 +115738,7 @@ namespace Unnamed {
 		void Clear();
 
 	private:
+		/// @brief Listenerは、GameplayCue listener ID、filter、callbackとowner lifetime tokenを保持します
 		struct Listener {
 			Handle            handle   = 0;
 			GameplayCueFilter filter   = {};
@@ -115811,12 +115895,14 @@ namespace Unnamed {
 			return static_cast<size_t>(group);
 		}
 
+		/// @brief UiCanvasRuntimeEntryは、更新対象entityとそのtransform・legacy UI canvasへの非所有参照を保持します
 		struct UiCanvasRuntimeEntry {
 			Entity*             entity    = nullptr;
 			TransformComponent* transform = nullptr;
 			UiCanvasComponent*  canvas    = nullptr;
 		};
 
+		/// @brief NewUiCanvasRuntimeEntryは、更新対象のretained UI canvasへの非所有参照を保持します
 		struct NewUiCanvasRuntimeEntry {
 			NewUICanvas* canvas = nullptr;
 		};
@@ -117108,6 +117194,7 @@ namespace Unnamed {
 		struct RenderCameraInput;
 	}
 
+	/// @brief ワールド固有の経過時間、デルタ時間、および時間倍率を保持します
 	struct WorldTime {
 		float    fixedDeltaTime          = 0.0f;
 		float    renderDeltaTime         = 0.0f;
@@ -117128,6 +117215,7 @@ namespace Unnamed {
 		AudioSystem*   audioSystem  = nullptr;
 	};
 
+	/// @brief エンティティー、物理、描画入力、およびシーン遷移のフレーム寿命を統括します
 	class World {
 	public:
 		virtual ~World();
@@ -117334,6 +117422,7 @@ namespace Unnamed {
 		[[nodiscard]] AudioSystem* GetAudioSystem() const noexcept;
 
 	protected:
+		/// @brief PostFxPassOverridesは、Worldがpost-process pass名ごとに適用する有効状態とparameter値を保持します
 		struct PostFxPassOverrides {
 			std::unordered_map<std::string, Vec4>  colorParams;
 			std::unordered_map<std::string, float> scalarParams;
@@ -117539,8 +117628,10 @@ File Path: src/engine/world/WorldCameraManager.h
 namespace Unnamed {
 	class World;
 
+	/// @brief WorldCameraManagerは、World内cameraの優先順位と現在の描画camera解決を管理します
 	class WorldCameraManager final {
 	public:
+		/// @brief CurrentCameraInfoは、選択中camera entityのGUID、解決済み描画camera、有効性を直近frameのsnapshotとして保持します
 		struct CurrentCameraInfo {
 			uint64_t                  entityGuid = 0;
 			Render::RenderCameraInput camera     = {};
@@ -117962,6 +118053,7 @@ File Path: src/engine/world/WorldDebugDraw.h
 #include "engine/render/frame/RenderFrameInputs.h"
 
 namespace Unnamed {
+	/// @brief WorldDebugDrawは、ワールド空間のデバッグ線分を寿命付きで蓄積して描画入力へ提出します
 	class WorldDebugDraw {
 	public:
 		/// @brief ラインを描画します。
@@ -118100,6 +118192,7 @@ namespace Unnamed {
 		void FlushToRenderFrameInputs(Render::RenderFrameInputs& inputs);
 
 	private:
+		/// @brief PendingLineは、debug線分の両端、色、残り表示時間を保持します
 		struct PendingLine {
 			Vec3 start = Vec3::zero;
 			Vec3 end   = Vec3::right;
