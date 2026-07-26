@@ -332,13 +332,6 @@ namespace Unnamed {
 			return false;
 		}
 
-		const GameRuntimeContext& runtimeContext = *mRuntimeBindings.
-			runtimeContext;
-		// アセット管理より先にコンテンツの解決先を確立する
-		if (!InitializeContentMounts(runtimeContext)) {
-			return false;
-		}
-
 		if (mRuntimeBindings.createDemoService) {
 			mDemoService = mRuntimeBindings.createDemoService();
 		}
