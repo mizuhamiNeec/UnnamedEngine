@@ -48,10 +48,8 @@
 #include <engine/rhi/d3d12/D3D12Device.h>
 #include <engine/rhi/d3d12/D3D12Util.h>
 #include <engine/rhi/interface/IRhiDevice.h>
-#include <engine/unnamed/ui/UIFontAtlas.h>
 #include <engine/ui/ImGuiLayer.h>
 #include <engine/unnamed/subsystem/console/concommand/ConCommand.h>
-#include <engine/unnamed/subsystem/input/InputSystem.h>
 #include <engine/unnamed/subsystem/input/InputSystem.h>
 #include <engine/unnamed/subsystem/input/device/gamepad/GamepadDevice.h>
 #include <engine/unnamed/subsystem/input/device/keyboard/KeyboardDevice.h>
@@ -304,11 +302,11 @@ namespace Unnamed {
 		}
 
 		// メインウィンドウのID取得
-		const auto id = mWindowManager->GetMainWindowId();
+		const auto id     = mWindowManager->GetMainWindowId();
 		// メインウィンドウのポインタ取得
 		const auto window = mWindowManager->FindWindowById(id);
 		// HWND取得
-		auto hwnd = window->GetHwnd();
+		auto       hwnd   = window->GetHwnd();
 
 		// ConsoleSystemの初期化
 		mConsoleSystem = std::make_unique<ConsoleSystem>();
@@ -769,7 +767,8 @@ namespace Unnamed {
 			}
 
 			mSimulationAccumulator += sceneWarmupFrame ?
-				                          0.0f : std::max(0.0f, scaledDeltaTime);
+				                          0.0f :
+				                          std::max(0.0f, scaledDeltaTime);
 			// 長時間停止後の追い付き更新が無制限に続かないよう上限を設ける
 			mSimulationAccumulator = std::min(
 				mSimulationAccumulator,
@@ -814,8 +813,8 @@ namespace Unnamed {
 
 		Render::RenderFrameInputs inputs = {};
 		// フレームインデックスとゲーム時間を設定
-		inputs.frameIndex = mFrameIndex++;
-		inputs.time       =
+		inputs.frameIndex                = mFrameIndex++;
+		inputs.time                      =
 			static_cast<float>(mTimeSystem->GetGameTime()->TotalTime());
 		if (runtimeWorld && mRenderFrameContext) {
 			Profiler::ScopeTimer scope(
@@ -849,7 +848,8 @@ namespace Unnamed {
 			}
 			// EndFrame 後は ImGui draw data が確定するため、実際に参照する SRV を
 			// RenderGraph の ImGui pass へ渡せるようにフレーム入力へ回収する。
-			inputs.uiSampledTextureIds = mImGuiLayer->ConsumeSampledTextureIds();
+			inputs.uiSampledTextureIds = mImGuiLayer->
+				ConsumeSampledTextureIds();
 		}
 		if (mEditorRuntime && mIsEditorMode) {
 			mEditorRuntime->FillEditorRenderViews(inputs);
@@ -963,9 +963,6 @@ namespace Unnamed {
 		}
 		mPlatformEvents.reset();
 
-		if (mAssetManager) {
-			UI::GetUIFontAtlasCache().Clear(mAssetManager.get());
-		}
 		ServiceLocator::Register<AssetManager>(nullptr);
 		mAssetManager.reset();
 

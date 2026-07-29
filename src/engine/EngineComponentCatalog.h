@@ -12,7 +12,6 @@
 #include "engine/unnamed/framework/components/mesh/SkeletalMeshRendererComponent.h"
 #include "engine/unnamed/framework/components/mesh/StaticMeshRendererComponent.h"
 #include "engine/unnamed/framework/components/sequence/SequenceDirectorComponent.h"
-#include "engine/unnamed/framework/components/ui/NewUICanvas.h"
 #include "engine/unnamed/framework/components/ui/UiCanvasComponent.h"
 
 namespace Unnamed {
@@ -31,7 +30,6 @@ namespace Unnamed {
 		fn(std::type_identity<SkeletalMeshRendererComponent>{});
 		fn(std::type_identity<SkeletalAnimationComponent>{});
 		fn(std::type_identity<UiCanvasComponent>{});
-		fn(std::type_identity<NewUICanvas>{});
 		fn(std::type_identity<AudioSourceComponent>{});
 		fn(std::type_identity<SequenceDirectorComponent>{});
 	}
