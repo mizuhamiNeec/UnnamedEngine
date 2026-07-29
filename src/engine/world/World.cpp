@@ -7,7 +7,6 @@
 #include <cstdint>
 
 #include "core/assets/AssetManager.h"
-#include "core/assets/AssetType.h"
 #include "core/assets/types/MeshAssetData.h"
 
 #include "engine/gui/UiCanvasRuntime.h"
@@ -30,7 +29,6 @@
 #include "engine/unnamed/framework/components/mesh/SkeletalAnimationComponent.h"
 #include "engine/unnamed/framework/components/mesh/SkeletalMeshRendererComponent.h"
 #include "engine/unnamed/framework/components/mesh/StaticMeshRendererComponent.h"
-#include "engine/unnamed/framework/components/ui/NewUICanvas.h"
 #include "engine/unnamed/framework/components/ui/UiCanvasComponent.h"
 #include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/unnamed/primitive/Primitives.h"
@@ -42,7 +40,6 @@
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 #include "engine/unnamed/subsystem/input/device/mouse/MouseDevice.h"
-#include "engine/unnamed/ui/UIDrawCommandSprite.h"
 
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "World";
@@ -132,12 +129,7 @@ namespace Unnamed {
 			TransformComponent* transform = nullptr;
 			UiCanvasComponent*  canvas    = nullptr;
 		};
-
-		/// @brief NewUiCanvasRuntimeEntryは、更新対象のretained UI canvasへの非所有参照を保持します
-		struct NewUiCanvasRuntimeEntry {
-			NewUICanvas* canvas = nullptr;
-		};
-
+		
 		[[nodiscard]] std::vector<Entity*> CollectActiveEntities(
 			const Scene* scene
 		) {
@@ -489,7 +481,7 @@ namespace Unnamed {
 		return true;
 	}
 
-	bool World::SaveSceneToFile(Path path) const {
+	bool World::SaveSceneToFile(const Path path) const {
 		if (!mScene || path.IsEmpty()) {
 			return false;
 		}
@@ -588,14 +580,12 @@ namespace Unnamed {
 
 		std::vector<UiCanvasRuntimeEntry> uiCanvasEntries;
 		uiCanvasEntries.reserve(mScene->GetEntities().size());
-		std::vector<NewUiCanvasRuntimeEntry> newUiCanvasEntries;
-		newUiCanvasEntries.reserve(mScene->GetEntities().size());
 		InputSystem* inputSystem        = mServices.inputSystem;
 		static bool  sTextWarningLogged = false;
 		const Vec2   aspectViewportSize = inputSystem ?
-			                                inputSystem->
-			                                GetMouseClientViewportSize() :
-			                                Vec2::zero;
+			                                  inputSystem->
+			                                  GetMouseClientViewportSize() :
+			                                  Vec2::zero;
 		const float runtimeAspect = aspectViewportSize.y > 0.0f ?
 			                            aspectViewportSize.x /
 			                            aspectViewportSize.y :
@@ -657,12 +647,6 @@ namespace Unnamed {
 			auto* skelRenderer = entity->GetComponent<
 				SkeletalMeshRendererComponent>();
 			auto* uiCanvas    = entity->GetComponent<UiCanvasComponent>();
-			auto* newUiCanvas = entity->GetComponent<NewUICanvas>();
-			if (newUiCanvas && newUiCanvas->IsActive()) {
-				NewUiCanvasRuntimeEntry entry = {};
-				entry.canvas                  = newUiCanvas;
-				newUiCanvasEntries.emplace_back(entry);
-			}
 			if (!transform) {
 				continue;
 			}
@@ -1051,52 +1035,8 @@ namespace Unnamed {
 			}
 		}
 
-		size_t                       newUiOverlaySpriteCount = 0;
-		UI::UIDrawCommandSpriteStats newUiSpriteStats        = {};
-		size_t                       newUiRectCommandCount   = 0;
-		size_t                       newUiTextCommandCount   = 0;
-		for (size_t canvasIndex = 0; canvasIndex < newUiCanvasEntries.size();
-		     ++canvasIndex) {
-			const auto& entry = newUiCanvasEntries[canvasIndex];
-			if (!entry.canvas) {
-				continue;
-			}
-
-			const auto& commands = entry.canvas->GetDrawCommands();
-			for (const UI::UIDrawCommand& command : commands) {
-				if (command.type == UI::UIDrawCommandType::RECT) {
-					++newUiRectCommandCount;
-				} else if (command.type == UI::UIDrawCommandType::TEXT) {
-					++newUiTextCommandCount;
-				}
-			}
-			UI::UIFontAtlas* fontAtlas = entry.canvas->ResolveFontAtlas(
-				assetManager
-			);
-			for (size_t commandIndex = 0; commandIndex < commands.size();
-			     ++commandIndex) {
-				const int32_t baseSortKey =
-					static_cast<int32_t>(canvasIndex) * 100000 +
-					static_cast<int32_t>(commandIndex) * 256;
-				std::vector<Render::ScreenSpriteInput> commandSprites;
-				UI::AppendDrawCommandScreenSprites(
-					commands[commandIndex],
-					baseSortKey,
-					fontAtlas,
-					commandSprites,
-					&newUiSpriteStats
-				);
-				if (commandSprites.empty()) {
-					continue;
-				}
-				newUiOverlaySpriteCount += commandSprites.size();
-				frameContext.AddOverlaySprites(std::move(commandSprites));
-			}
-		}
-
 		const auto& frameOverlaySprites =
 			frameContext.GetOverlayData().screenSprites;
-		const size_t sceneSpritesBeforeMerge = sceneView.screenSprites.size();
 		if (!frameOverlaySprites.empty()) {
 			sceneView.screenSprites.reserve(
 				sceneView.screenSprites.size() + frameOverlaySprites.size()
@@ -1106,24 +1046,6 @@ namespace Unnamed {
 				frameOverlaySprites.begin(),
 				frameOverlaySprites.end()
 			);
-		}
-		static bool sLoggedNewUiPipelineSummary = false;
-		if (!sLoggedNewUiPipelineSummary && newUiOverlaySpriteCount > 0) {
-			DevMsg(
-				"UI",
-				"NewUI pipeline summary frame={}: commandGen(rect={}, text={}) -> overlayTransform(glyphSprites={}, skippedGlyphs={}, totalOverlaySprites={}) -> frameContextSubmit(overlaySprites={}) -> sceneMerge(before={}, added={}, after={}).",
-				inputs.frameIndex,
-				newUiRectCommandCount,
-				newUiTextCommandCount,
-				newUiSpriteStats.glyphSpriteCount,
-				newUiSpriteStats.skippedGlyphCount,
-				newUiOverlaySpriteCount,
-				frameOverlaySprites.size(),
-				sceneSpritesBeforeMerge,
-				frameOverlaySprites.size(),
-				sceneView.screenSprites.size()
-			);
-			sLoggedNewUiPipelineSummary = true;
 		}
 
 		if (!mDebugScreenSprites.empty()) {
@@ -1139,20 +1061,20 @@ namespace Unnamed {
 		inputs.views.emplace_back(std::move(sceneView));
 	}
 
-	bool World::IsGameSimulationEnabled() const noexcept {
-		return true;
-	}
-
-	Path World::GetLoadedScenePath() const {
-		return mLoadedScenePath;
-	}
-
 	uint64_t World::GetSceneGeneration() const noexcept {
 		return mSceneGeneration;
 	}
 
 	World* World::GetSimulationWorld() noexcept {
 		return this;
+	}
+
+	bool World::IsGameSimulationEnabled() const noexcept {
+		return true;
+	}
+
+	Path World::GetLoadedScenePath() const {
+		return mLoadedScenePath;
 	}
 
 	void World::SetLoadedScenePath(const Path& path) {
