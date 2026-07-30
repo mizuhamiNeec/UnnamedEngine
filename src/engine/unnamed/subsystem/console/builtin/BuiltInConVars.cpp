@@ -279,7 +279,7 @@ namespace Unnamed {
 		);
 
 		//---------------------------------------------------------------------
-		// Camera 
+		// Camera
 		//---------------------------------------------------------------------
 
 		static ConVar cl_pitchdown(
@@ -310,14 +310,6 @@ namespace Unnamed {
 		);
 
 		//---------------------------------------------------------------------
-		// Map 
-		//---------------------------------------------------------------------
-		static ConVar r_mapextents(
-			"r_mapextents", 16384.0f, FCVAR::CHEAT,
-			"Set the max dimension for the map."
-		);
-
-		//---------------------------------------------------------------------
 		// Graphics
 		//---------------------------------------------------------------------
 		static ConVar fps_max(
@@ -334,7 +326,7 @@ namespace Unnamed {
 			"demo_mismatch_policy", "continue", FCVAR::ARCHIVE,
 			"Demo mismatch handling policy: continue | stop | ignore."
 		);
-		static ConVar<int> demo_mismatch_log_interval(
+		static ConVar demo_mismatch_log_interval(
 			"demo_mismatch_log_interval", 120, FCVAR::ARCHIVE,
 			"Demo mismatch logging interval in ticks after first 16 logs.",
 			true,
