@@ -58,8 +58,6 @@ namespace Unnamed {
 		}
 	}
 
-	PlayerCharacterController::~PlayerCharacterController() = default;
-
 	void PlayerCharacterController::OnAttached() {
 		BaseCharacterController::OnAttached();
 

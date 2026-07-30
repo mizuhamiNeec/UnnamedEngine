@@ -9,10 +9,10 @@ namespace Unnamed::Gui {
 	/// @brief UiDocumentは、GUIウィジェット階層のルートとドキュメント固有状態を所有します
 	class UiDocument {
 	public:
-		UiDocument();
-		~UiDocument();
+		UiDocument()  = default;
+		~UiDocument() = default;
 
-		bool                               Save(const Path& path) const;
+		bool Save(const Path& path) const;
 		[[nodiscard]] static std::shared_ptr<UiDocument> Load(
 			const Path& path, const UiDeserializeContext& context
 		);

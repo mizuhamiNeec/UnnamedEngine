@@ -11,9 +11,6 @@ namespace Unnamed {
 		constexpr std::string_view kChannel = "GMSM";
 	}
 
-	GameMovementStateMachine::GameMovementStateMachine() = default;
-	GameMovementStateMachine::~GameMovementStateMachine() = default;
-
 	void GameMovementStateMachine::Init(ConsoleSystem* console) {
 		mConsole = console;
 		mHasReportedMissingConsole = false;

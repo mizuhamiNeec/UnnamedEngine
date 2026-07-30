@@ -7,8 +7,6 @@ namespace Unnamed::Gui {
 		(void)GetOrAddComponent<UiPanelStyleComponent>();
 	}
 
-	UiPanel::~UiPanel() = default;
-
 	void UiPanel::SetBackgroundColor(const Color& color) const {
 		if (auto* style = GetStyleComponent()) {
 			style->SetBackgroundColor(color);

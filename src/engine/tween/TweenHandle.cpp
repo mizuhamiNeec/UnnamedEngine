@@ -1,8 +1,6 @@
 ﻿#include "TweenHandle.h"
 
 namespace Unnamed {
-	TweenHandle::TweenHandle() = default;
-
 	TweenHandle::TweenHandle(
 		const std::weak_ptr<ITweenPlayable>& playable
 	) : mPlayable(playable) {

@@ -10,8 +10,6 @@
 #include "engine/unnamed/subsystem/input/InputSystem.h"
 
 namespace Unnamed {
-	BaseCharacterController::~BaseCharacterController() = default;
-
 	void BaseCharacterController::OnAttached() {
 		BaseComponent::OnAttached();
 

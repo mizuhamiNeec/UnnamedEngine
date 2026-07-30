@@ -4,9 +4,10 @@
 #include "ParkourGameModule.h"
 #include "ParkourComponentRegistration.h"
 
-#include "engine/ComponentRegistry.h"
-#include "engine/physics/core/Physics.h"
+#include "engine/unnamed/framework/entity/Entity.h"
 #include "engine/scene/Scene.h"
+
+#include "engine/ComponentRegistry.h"
 #include "game/core/replay/DemoManager.h"
 #include "game/parkour/runtime/ParkourGameWorld.h"
 
@@ -85,11 +86,12 @@ namespace Unnamed {
 
 	GameModulePaths ParkourGameModule::GetGameModulePaths() const {
 		return {
-			.gameName = "Parkour",
-			.gameRoot = Path("./projects/ParkourGame"),
-			.contentRoot = Path(kParkourProjectContentRoot),
-			.configRoot = Path("./projects/ParkourGame/config"),
-			.defaultStartupScene = VirtualPath::ParseOrThrow("scenes/title.json"),
+			.gameName            = "Parkour",
+			.gameRoot            = Path("./projects/ParkourGame"),
+			.contentRoot         = Path(kParkourProjectContentRoot),
+			.configRoot          = Path("./projects/ParkourGame/config"),
+			.defaultStartupScene = VirtualPath::ParseOrThrow(
+				"scenes/title.json"),
 		};
 	}
 

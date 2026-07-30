@@ -105,8 +105,6 @@ namespace Unnamed {
 		);
 	}
 
-	LevelEditorTool::~LevelEditorTool() = default;
-
 	void LevelEditorTool::Initialize(const EditorToolServices& services) {
 		if (mInitialized) {
 			return;

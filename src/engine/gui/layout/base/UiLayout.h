@@ -9,8 +9,8 @@ namespace Unnamed::Gui {
 	/// @brief UiLayoutは、親領域と子widgetのsize policyから配置矩形を計算する基底契約を提供します
 	class UiLayout : public UiWidget {
 	public:
-		UiLayout();
-		~UiLayout() override;
+		UiLayout()           = default;
+		~UiLayout() override = default;
 
 		void SetPadding(const LayoutPadding& padding);
 		[[nodiscard]] const LayoutPadding& GetPadding() const;

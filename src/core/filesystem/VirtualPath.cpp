@@ -21,8 +21,6 @@ namespace Unnamed {
 		}
 	}
 
-	VirtualPath::VirtualPath() = default;
-
 	std::optional<VirtualPath> VirtualPath::Parse(
 		const std::string_view utf8Path
 	) {

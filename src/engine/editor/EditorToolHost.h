@@ -1,10 +1,11 @@
 #pragma once
-#pragma once
 #ifdef _DEBUG
 
 #include <memory>
 #include <vector>
 
+#include "sequence/SequenceEditorController.h"
+#include "engine/world/EditorWorld.h"
 #include "IEditorTool.h"
 #include "LevelEditorTool.h"
 

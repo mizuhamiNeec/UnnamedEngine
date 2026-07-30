@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 #include <cstdint>
 #include <vector>
 
@@ -10,7 +11,7 @@ namespace Unnamed {
 	/// @brief サウンド再生インスタンス（1ボイス）
 	class AudioVoice final {
 	public:
-		AudioVoice();
+		AudioVoice() = default;
 		~AudioVoice();
 
 		AudioVoice(const AudioVoice&)            = delete;

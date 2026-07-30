@@ -1,5 +1,6 @@
 #include "EngineComponentRegistration.h"
 
+#include "gui/UiRoot.h"
 #include "engine/ComponentRegistry.h"
 
 #include "EngineComponentCatalog.h"

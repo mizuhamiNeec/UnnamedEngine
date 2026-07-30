@@ -54,8 +54,6 @@ namespace Unnamed {
 
 	}
 
-	ParkourMovementComponent::~ParkourMovementComponent() = default;
-
 	void ParkourMovementComponent::OnAttached() {
 		GameMovementComponent::OnAttached();
 		mAutoSprintActive = false;

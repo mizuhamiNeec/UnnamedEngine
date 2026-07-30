@@ -7,7 +7,7 @@ namespace Unnamed {
 	/// @brief TweenHandleは、再生中Tweenへのweak_ptrを保持し、対象の破棄後は無効な非所有ハンドルとして動作します
 	class TweenHandle {
 	public:
-		TweenHandle();
+		TweenHandle() = default;
 
 		/// @brief コンストラクタ
 		/// @param playable TweenPlayableオブジェクトへのWeakPtr。

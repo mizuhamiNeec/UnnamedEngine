@@ -1,8 +1,6 @@
 #include "UiLayout.h"
 
 namespace Unnamed::Gui {
-	UiLayout::UiLayout()  = default;
-	UiLayout::~UiLayout() = default;
 
 	void UiLayout::SetPadding(const LayoutPadding& padding) {
 		mPadding = padding;

@@ -6,10 +6,9 @@
 #include "engine/scene/Scene.h"
 #include "engine/scene/SceneSerializer.h"
 #include "engine/unnamed/subsystem/console/Log.h"
+#include "engine/unnamed/framework/entity/Entity.h"
 
 namespace Unnamed {
-	ParkourGameWorld::~ParkourGameWorld() = default;
-
 	void ParkourGameWorld::Initialize() {
 		const auto start = std::chrono::steady_clock::now();
 		World::Initialize();

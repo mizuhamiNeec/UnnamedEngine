@@ -8,9 +8,6 @@
 #include "engine/scene/SceneFolderPath.h"
 
 namespace Unnamed {
-	Scene::Scene()  = default;
-	Scene::~Scene() = default;
-
 	Entity& Scene::CreateEntity(
 		const std::string_view name, uint64_t id, bool isEditorOnly
 	) {

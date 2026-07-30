@@ -22,7 +22,6 @@ namespace Unnamed::Gui {
 	class UiDocumentManager {
 	public:
 		explicit UiDocumentManager(AssetManager& assetManager);
-		~UiDocumentManager();
 
 		std::shared_ptr<UiDocument> LoadDocument(const Path& path);
 		void                        UnloadDocument(const Path& path);

@@ -9,10 +9,9 @@ namespace Unnamed {
 	/// @details プレイヤー、BOT、リプレイなど、様々なキャラクター制御の実装がこのクラスを継承して行われることを想定しています。
 	class BaseCharacterController : public BaseComponent {
 	public:
-		~BaseCharacterController() override;
+		~BaseCharacterController() override = default;
 
 		// ---- BaseCharacterController ---------------------------------------
-
 
 		// ---- BaseComponent ------------------------------------------------
 		void OnAttached() override;
@@ -34,4 +33,3 @@ namespace Unnamed {
 		BaseCharacterComponent* mTarget = nullptr;
 	};
 }
-

@@ -23,8 +23,8 @@ namespace Unnamed {
 	/// @brief Sceneは、シリアライズ対象のエンティティー集合とシーン識別情報を所有します
 	class Scene {
 	public:
-		Scene();
-		~Scene();
+		Scene()  = default;
+		~Scene() = default;
 
 		// コピー・コピー代入禁止
 		Scene(const Scene&)            = delete;

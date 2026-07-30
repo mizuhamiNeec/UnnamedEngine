@@ -518,8 +518,10 @@ namespace Unnamed {
 		const ItemDefinition&,
 		const WeaponItemDefinition&,
 		WeaponModuleRuntime&
+
 	
-	) {}
+	) {
+	}
 
 	void IWeaponActionModule::OnDeselected(
 		const WeaponActionRuntimeContext&,
@@ -527,9 +529,8 @@ namespace Unnamed {
 		const WeaponItemDefinition&,
 		WeaponModuleRuntime&
 	
-	) {}
-
-	WeaponSystemComponent::~WeaponSystemComponent() = default;
+	) {
+	}
 
 	void WeaponSystemComponent::EnqueueDeterministicActionInput(
 		const uint64_t                   tick,
@@ -665,11 +666,13 @@ namespace Unnamed {
 #endif
 
 	void WeaponSystemComponent::Deserialize(const JsonReader& reader) {
-		if (const JsonReader verbose = reader["verboseLogging"]; verbose.
+		if (const JsonReader verbose = reader["verboseLogging"];
+			verbose.
 			Valid()) {
 			mVerboseLogging = verbose.GetBool(mVerboseLogging);
 		}
-		if (const JsonReader drawTrace = reader["drawDebugTrace"]; drawTrace.
+		if (const JsonReader drawTrace = reader["drawDebugTrace"];
+			drawTrace.
 			Valid()) {
 			mDrawDebugTrace = drawTrace.GetBool(mDrawDebugTrace);
 		}
@@ -826,4 +829,3 @@ namespace Unnamed {
 
 	REGISTER_COMPONENT(WeaponSystemComponent);
 }
-

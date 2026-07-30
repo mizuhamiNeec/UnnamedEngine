@@ -11,15 +11,15 @@ namespace Unnamed::Gui {
 	class UiButton : public UiWidget {
 	public:
 		UiButton();
-		~UiButton() override;
+		~UiButton() override = default;
 
-		void                           SetText(const std::string_view& text);
+		void                           SetText(const std::string_view& text) const;
 		[[nodiscard]] std::string_view GetText() const;
 
-		void SetOnClick(const std::function<void()>& callback);
+		void SetOnClick(const std::function<void()>& callback) const;
 		void SetColors(
 			const Color& normal, const Color& hovered, const Color& pressed
-		);
+		) const;
 
 		[[nodiscard]] const char* GetTypeName() const override {
 			return "ButtonPreset";

@@ -13,7 +13,7 @@ namespace Unnamed::Gui {
 	class UiRoot {
 	public:
 		UiRoot();
-		~UiRoot();
+		~UiRoot() = default;
 
 		/// @brief ルートウィジェットの矩形を設定します。
 		/// @param rect 新しい矩形

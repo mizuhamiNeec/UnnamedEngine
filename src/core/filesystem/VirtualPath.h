@@ -6,7 +6,7 @@ namespace Unnamed {
 	/// 区切り文字は常に '/' へ正規化され、絶対パスと親ディレクトリ参照は禁止されます。
 	class VirtualPath final {
 	public:
-		VirtualPath();
+		VirtualPath() = default;
 
 		/// @brief UTF-8論理パスを解析します。
 		/// @return 解析に成功した場合は VirtualPath を返し、失敗した場合は std::nullopt を返します。

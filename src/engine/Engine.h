@@ -3,7 +3,6 @@
 #include <functional>
 #include <memory>
 
-#include <core/assets/AssetID.h>
 #include <core/content/ContentPathResolver.h>
 
 #include <engine/EngineConfig.h>
@@ -61,7 +60,7 @@ namespace Unnamed {
 		/// @brief Engine 初期化後に呼ばれます。false を返すと起動失敗として終了します。
 		std::function<bool(Engine&)> onPostInitialize = {};
 		/// @brief Engine シャットダウン直前に呼ばれます。
-		std::function<void(Engine&)> onPreShutdown = {};
+		std::function<void(Engine&)> onPreShutdown    = {};
 	};
 
 	/// @brief 各サブシステムの初期化、フレーム実行、終了順序を統括します
@@ -71,9 +70,6 @@ namespace Unnamed {
 		/// @param runtimeBindings ゲームランタイム依存情報
 		/// @param runMode 実行モード
 		Engine(const EngineRuntimeBindings& runtimeBindings, RUN_MODE runMode);
-
-		/// @brief デストラクタ
-		~Engine();
 
 		/// @brief エンジンの実行
 		/// @param callbacks 実行時コールバック
@@ -190,7 +186,7 @@ namespace Unnamed {
 		std::unique_ptr<Render::RenderFrameContext> mRenderFrameContext;
 		float mAssetHotReloadPollAccumulator = 0.0f;
 		float mSimulationAccumulator = 0.0f;
-		World*   mWarmupWorld           = nullptr;
+		World* mWarmupWorld = nullptr;
 		uint64_t mWarmedSceneGeneration = 0;
 		uint32_t mFrameIndex = 0;
 		uint32_t mLastResizeWidth = 0;

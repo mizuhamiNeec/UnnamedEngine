@@ -16,8 +16,6 @@ namespace Unnamed::Gui {
 		mAssetManager(assetManager) {
 	}
 
-	UiDocumentManager::~UiDocumentManager() = default;
-
 	std::shared_ptr<UiDocument> UiDocumentManager::LoadDocument(
 		const Path& path
 	) {

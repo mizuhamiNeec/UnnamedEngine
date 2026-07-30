@@ -72,7 +72,7 @@ namespace Unnamed {
 			GrappleState grapple = {};
 		};
 
-		~ParkourMovementComponent() override;
+		~ParkourMovementComponent() override = default;
 
 		void OnAttached() override;
 		void SimulateStep(
@@ -257,29 +257,29 @@ namespace Unnamed {
 		bool ApplyDuckHull(MovementContext& context);
 		bool ApplyStandHull(MovementContext& context);
 
-		bool                        mAutoSprintActive = false;
-		ParkourRuntime              mRuntime = {};
+		bool mAutoSprintActive = false;
+		ParkourRuntime mRuntime = {};
 		mutable DuckStandDebugFrame mDuckStandDebug = {};
-		Vec3                        mStandingHalfExtents = Vec3::zero;
-		Vec3                        mDuckHalfExtents = Vec3::zero;
-		uint64_t                    mCameraRootEntityGuid = 0;
-		Vec3                        mCameraRootBaseLocalPosition = Vec3::zero;
-		float                       mStandViewHeightHu = 64.0f;
-		float                       mDuckViewHeightHu = 28.0f;
-		float                       mDuckViewTimeToDuckSec = 0.4f;
-		float                       mDuckViewTimeToUnduckSec = 0.2f;
-		float                       mDuckViewClampPaddingHu = 1.0f;
-		float                       mDuckViewFraction = 0.0f;
-		float                       mDuckViewUnduckHoldRemainingSec = 0.0f;
-		float                       mDuckViewSmoothedLocalY = 0.0f;
-		bool                        mDuckViewFractionInitialized = false;
-		bool                        mDuckViewSmoothedLocalYInitialized = false;
-		float                       mWallRunViewFollowResponsiveness = 30.0f;
-		float                       mWallRunViewFollowMaxYawSpeedDegPerSec = 3600.0f;
-		float                       mWallRunViewFollowSmoothedYawDeg = 0.0f;
-		bool                        mWallRunViewFollowInitialized = false;
-		bool                        mCameraRootBaseLocalCached = false;
-		CharacterActionFrameInput   mActionFrameInput = {};
+		Vec3 mStandingHalfExtents = Vec3::zero;
+		Vec3 mDuckHalfExtents = Vec3::zero;
+		uint64_t mCameraRootEntityGuid = 0;
+		Vec3 mCameraRootBaseLocalPosition = Vec3::zero;
+		float mStandViewHeightHu = 64.0f;
+		float mDuckViewHeightHu = 28.0f;
+		float mDuckViewTimeToDuckSec = 0.4f;
+		float mDuckViewTimeToUnduckSec = 0.2f;
+		float mDuckViewClampPaddingHu = 1.0f;
+		float mDuckViewFraction = 0.0f;
+		float mDuckViewUnduckHoldRemainingSec = 0.0f;
+		float mDuckViewSmoothedLocalY = 0.0f;
+		bool mDuckViewFractionInitialized = false;
+		bool mDuckViewSmoothedLocalYInitialized = false;
+		float mWallRunViewFollowResponsiveness = 30.0f;
+		float mWallRunViewFollowMaxYawSpeedDegPerSec = 3600.0f;
+		float mWallRunViewFollowSmoothedYawDeg = 0.0f;
+		bool mWallRunViewFollowInitialized = false;
+		bool mCameraRootBaseLocalCached = false;
+		CharacterActionFrameInput mActionFrameInput = {};
 
 		/// @brief DeterministicActionInputPacketは、movement abilityを再現するtick、固定step、action入力を保持します
 		struct DeterministicActionInputPacket {

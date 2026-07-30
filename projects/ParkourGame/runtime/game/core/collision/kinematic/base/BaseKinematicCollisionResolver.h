@@ -53,7 +53,7 @@ namespace Unnamed {
 	class BaseKinematicCollisionResolver {
 	public:
 		explicit BaseKinematicCollisionResolver(Physics::Engine* engine);
-		virtual  ~BaseKinematicCollisionResolver();
+		virtual  ~BaseKinematicCollisionResolver() = default;
 
 		/// @brief ベクトルを法線に沿って反射させます。
 		/// @param in 入力ベクトル

@@ -31,9 +31,6 @@ namespace Unnamed {
 		auto gWindowClassName = L"UnnamedEngineWindowClass";
 	}
 
-	WindowManager::WindowManager()  = default;
-	WindowManager::~WindowManager() = default;
-
 	bool WindowManager::Init(
 		const EngineConfig::Window& mainWindowConfig
 	) {

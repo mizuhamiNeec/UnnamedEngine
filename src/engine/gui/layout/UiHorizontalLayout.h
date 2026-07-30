@@ -6,7 +6,7 @@ namespace Unnamed::Gui {
 	class UiHorizontalLayout : public UiLayout {
 	public:
 		UiHorizontalLayout();
-		~UiHorizontalLayout() override;
+		~UiHorizontalLayout() override = default;
 
 		const char* GetTypeName() const override {
 			return "HorizontalLayoutPreset";

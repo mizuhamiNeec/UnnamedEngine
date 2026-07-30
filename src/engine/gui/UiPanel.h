@@ -9,7 +9,7 @@ namespace Unnamed::Gui {
 	class UiPanel : public UiWidget {
 	public:
 		UiPanel();
-		~UiPanel() override;
+		~UiPanel() override = default;
 
 		void                       SetBackgroundColor(const Color& color) const;
 		[[nodiscard]] const Color& GetBackgroundColor() const;

@@ -14,8 +14,8 @@ namespace Unnamed {
 	/// @brief WindowManagerは、Win32 Window instanceを所有し、message pumpと終了要求を管理します
 	class WindowManager final {
 	public:
-		WindowManager();
-		~WindowManager();
+		WindowManager()  = default;
+		~WindowManager() = default;
 
 		/// @brief 初期化処理
 		/// @param mainWindowConfig メインウィンドウの設定

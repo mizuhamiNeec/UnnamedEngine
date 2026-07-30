@@ -15,8 +15,6 @@
 namespace Unnamed {
 	static constexpr std::string_view kChannel = "EditorWorld";
 
-	EditorWorld::~EditorWorld() = default;
-
 	void EditorWorld::Initialize() {
 		World::Initialize();
 

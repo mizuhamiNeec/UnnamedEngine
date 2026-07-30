@@ -6,7 +6,7 @@ namespace Unnamed::Gui {
 	class UiVerticalLayout : public UiLayout {
 	public:
 		UiVerticalLayout();
-		~UiVerticalLayout() override;
+		~UiVerticalLayout() override = default;
 
 		const char* GetTypeName() const override {
 			return "VerticalLayoutPreset";

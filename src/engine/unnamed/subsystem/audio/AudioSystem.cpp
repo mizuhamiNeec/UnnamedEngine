@@ -3,8 +3,6 @@
 #include "engine/unnamed/subsystem/audio/Audio.h"
 
 namespace Unnamed {
-	AudioSystem::AudioSystem() = default;
-
 	AudioSystem::~AudioSystem() {
 		Shutdown();
 	}

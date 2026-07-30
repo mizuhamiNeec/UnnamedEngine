@@ -28,8 +28,8 @@ namespace Unnamed {
 			LATE = 4, // 物理演算の後に処理したいものをここに入れます。
 		};
 
-		explicit BaseComponent();
-		virtual  ~BaseComponent();
+		explicit BaseComponent()  = default;
+		virtual  ~BaseComponent() = default;
 
 		/// @brief コンポーネントがエンティティに取り付けられたときに呼び出されます。
 		virtual void OnAttached();

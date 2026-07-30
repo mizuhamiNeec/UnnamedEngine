@@ -183,8 +183,6 @@ namespace Unnamed {
 	    mConfig() {
 	}
 
-	Engine::~Engine() = default;
-
 	int Engine::Run(const EngineRunCallbacks& callbacks) {
 		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); // リークチェック
 

@@ -22,7 +22,7 @@ namespace Unnamed {
 	/// @brief プレイヤーの移動を処理するコンポーネントです。
 	class GameMovementComponent : public BaseCharacterComponent {
 	public:
-		~GameMovementComponent() override;
+		~GameMovementComponent() override = default;
 
 		// ---- GameMovementComponent -----------------------------------------
 		void SimulateStep(

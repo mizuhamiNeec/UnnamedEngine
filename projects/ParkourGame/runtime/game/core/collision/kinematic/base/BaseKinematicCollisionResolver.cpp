@@ -9,8 +9,6 @@ namespace Unnamed {
 	) : mEngine(engine) {
 	}
 
-	BaseKinematicCollisionResolver::~BaseKinematicCollisionResolver() = default;
-
 	Vec3 BaseKinematicCollisionResolver::ClipVelocity(
 		const Vec3& in, const Vec3& normal, const float overbounce
 	) {

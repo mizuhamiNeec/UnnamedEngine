@@ -10,10 +10,6 @@ namespace Unnamed::Gui {
 		constexpr std::string_view kChannel = "UiDocument";
 	}
 
-	UiDocument::UiDocument() = default;
-
-	UiDocument::~UiDocument() = default;
-
 	bool UiDocument::Save(const Path& path) const {
 		JsonWriter writer(path);
 

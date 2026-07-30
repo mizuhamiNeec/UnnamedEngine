@@ -2,7 +2,6 @@
 #include <memory>
 #include <core/containers/RingBuffer.h>
 
-#include "core/math/Math.h"
 #include "core/math/Vec3.h"
 
 #include "engine/unnamed/framework/components/base/BaseComponent.h"
@@ -44,7 +43,7 @@ namespace Unnamed {
 		static constexpr size_t kDeterministicInputQueueCapacity = 128;
 
 		using BaseComponent::BaseComponent;
-		~BaseCharacterComponent() override;
+		~BaseCharacterComponent() override = default;
 
 		// ---- BaseCharacterComponent ----------------------------------------
 		/// @brief 現在のフレームの入力を追加します。

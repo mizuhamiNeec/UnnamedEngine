@@ -61,7 +61,7 @@ namespace Unnamed {
 	class UiCanvasComponent final : public BaseComponent {
 	public:
 		UiCanvasComponent();
-		~UiCanvasComponent() override;
+		~UiCanvasComponent() override = default;
 
 		[[nodiscard]] std::string_view GetStableName() const override {
 			return "engine.UiCanvas";
@@ -71,7 +71,7 @@ namespace Unnamed {
 			return "UiCanvas";
 		}
 
-		void Deserialize(const JsonReader& reader) override;
+		void               Deserialize(const JsonReader& reader) override;
 		[[nodiscard]] bool Deserialize(
 			const JsonReader& reader, const SceneDeserializeContext& context
 		) override;
@@ -88,7 +88,7 @@ namespace Unnamed {
 			const VirtualPath& path, AssetManager& assetManager
 		);
 		/// @brief UI Document参照とロード済み状態をクリアします。
-		void ClearUiDocumentPath();
+		void                                            ClearUiDocumentPath();
 		/// @brief UI Documentの論理参照を取得します。
 		[[nodiscard]] const std::optional<VirtualPath>& GetUiDocumentPath(
 		) const;
@@ -135,10 +135,10 @@ namespace Unnamed {
 		int32_t mSortKey      = 0;
 		bool    mReceiveInput = true;
 
-		AssetID                      mUiDocumentAssetId  = kInvalidAssetID;
-		uint64_t                     mLoadedAssetVersion = 0;
-		std::unique_ptr<Gui::UiRoot> mRuntimeRoot;
-		bool                         mLoggedLoadFailure = false;
+		AssetID                        mUiDocumentAssetId  = kInvalidAssetID;
+		uint64_t                       mLoadedAssetVersion = 0;
+		std::unique_ptr<Gui::UiRoot>   mRuntimeRoot;
+		bool                           mLoggedLoadFailure     = false;
 		AssetReferenceValidationPolicy mAssetValidationPolicy =
 			AssetReferenceValidationPolicy::Permissive;
 	};

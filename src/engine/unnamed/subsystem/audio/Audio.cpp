@@ -5,8 +5,6 @@
 #include "core/assets/types/SoundAssetData.h"
 
 namespace Unnamed {
-	AudioVoice::AudioVoice() = default;
-
 	AudioVoice::~AudioVoice() {
 		DestroyVoice();
 	}

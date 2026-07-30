@@ -9,7 +9,7 @@ namespace Unnamed {
 		using World::LoadSceneFromFile;
 
 		/// @brief デストラクタです。
-		~ParkourGameWorld() override;
+		~ParkourGameWorld() override = default;
 
 		/// @brief ワールドを初期化します。
 		void Initialize() override;
@@ -18,7 +18,9 @@ namespace Unnamed {
 		/// @brief 固定ティックを実行します。
 		void FixedTick(float fixedDeltaTime) override;
 		/// @brief 描画ティックを実行します。
-		void RenderTick(float renderDeltaTime, float interpolationAlpha) override;
+		void RenderTick(
+			float renderDeltaTime, float interpolationAlpha
+		) override;
 
 		/// @brief シーンファイルをロードします。
 		bool LoadSceneFromFile(

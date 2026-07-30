@@ -5,6 +5,4 @@ namespace Unnamed::Gui {
 		(void)GetOrAddComponent<UiHorizontalLayoutComponent>();
 		SyncLayoutComponent();
 	}
-
-	UiHorizontalLayout::~UiHorizontalLayout() = default;
 }

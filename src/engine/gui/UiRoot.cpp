@@ -21,8 +21,6 @@ namespace Unnamed::Gui {
 		);
 	}
 
-	UiRoot::~UiRoot() = default;
-
 	void UiRoot::SetRootRect(const Rect& rect) {
 		mRootRect = rect;
 		mRootWidget->SetLocalRect(

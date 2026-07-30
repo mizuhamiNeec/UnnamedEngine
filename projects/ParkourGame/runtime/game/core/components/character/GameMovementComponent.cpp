@@ -57,8 +57,6 @@ namespace Unnamed {
 		}
 	}
 
-	GameMovementComponent::~GameMovementComponent() = default;
-
 	void GameMovementComponent::SimulateStep(
 		TransformComponent* transform, const MovementFrameInput& input,
 		const float         stepSeconds

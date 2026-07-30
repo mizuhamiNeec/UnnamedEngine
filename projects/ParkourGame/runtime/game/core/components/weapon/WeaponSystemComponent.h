@@ -82,8 +82,8 @@ namespace Unnamed {
 		/// @brief deterministic アクション入力キューの最大保持件数です。
 		static constexpr size_t kDeterministicActionInputQueueCapacity = 128;
 
-		/// @brief 破棄時に内部ランタイムを解放します。
-		~WeaponSystemComponent() override;
+		/// @brief デストラクタ
+		~WeaponSystemComponent() override = default;
 
 		/// @brief deterministic アクション入力をキューに追加します。
 		void EnqueueDeterministicActionInput(
@@ -183,9 +183,8 @@ namespace Unnamed {
 		/// @brief 前回実行対象だった装備インスタンス GUID です。
 		uint64_t mLastEquippedInstanceGuid = 0;
 		/// @brief 詳細ログを出すかです。
-		bool mVerboseLogging = false;
+		bool     mVerboseLogging           = false;
 		/// @brief 武器トレースのデバッグ描画を出すかです。
-		bool mDrawDebugTrace = true;
+		bool     mDrawDebugTrace           = true;
 	};
 }
-

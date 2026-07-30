@@ -15,7 +15,7 @@ namespace Unnamed {
 	/// @brief EditorWorldは、編集scene、selection、Editor cameraを保持し、simulationを開始せずに更新します
 	class EditorWorld final : public World {
 	public:
-		~EditorWorld() override;
+		~EditorWorld() override = default;
 
 		void Initialize() override;
 		void FixedTick(float fixedDeltaTime) override;

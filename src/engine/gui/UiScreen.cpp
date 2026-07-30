@@ -6,8 +6,6 @@ namespace Unnamed::Gui {
 	) {
 	}
 
-	UiScreen::~UiScreen() = default;
-
 	UiDocument* UiScreen::GetDocument() const {
 		return mDocument.get();
 	}

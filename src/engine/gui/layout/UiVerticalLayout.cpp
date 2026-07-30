@@ -5,6 +5,4 @@ namespace Unnamed::Gui {
 		(void)GetOrAddComponent<UiVerticalLayoutComponent>();
 		SyncLayoutComponent();
 	}
-
-	UiVerticalLayout::~UiVerticalLayout() = default;
 }

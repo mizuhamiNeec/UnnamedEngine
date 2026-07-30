@@ -14,8 +14,8 @@ namespace Unnamed {
 	/// @brief Locomotion ModeとAbilityを統合管理する状態機械です。
 	class GameMovementStateMachine {
 	public:
-		GameMovementStateMachine();
-		~GameMovementStateMachine();
+		GameMovementStateMachine()  = default;
+		~GameMovementStateMachine() = default;
 
 		/// @brief 状態機械で利用するサービス参照を初期化します。
 		/// @param console Mode/Ability に渡す ConsoleSystem 参照
@@ -42,7 +42,7 @@ namespace Unnamed {
 		/// @brief AbilityEntryは、移動abilityのshared ownershipと現在の有効状態を保持します
 		struct AbilityEntry {
 			std::shared_ptr<IMovementAbility> ability = nullptr;
-			bool active = false;
+			bool                              active  = false;
 		};
 
 		void ApplyModeTransition(
@@ -57,17 +57,17 @@ namespace Unnamed {
 			MOVEMENT_MODE_ID modeId
 		);
 
-		[[nodiscard]] uint64_t RebuildAbilityMask() const;
+		[[nodiscard]] uint64_t       RebuildAbilityMask() const;
 		[[nodiscard]] IMovementMode* GetMode(MOVEMENT_MODE_ID modeId) const;
 
-		ConsoleSystem* mConsole = nullptr;
-		bool mHasReportedMissingConsole = false;
+		ConsoleSystem* mConsole                   = nullptr;
+		bool           mHasReportedMissingConsole = false;
 
 		std::array<std::shared_ptr<IMovementMode>, static_cast<size_t>(
-			MOVEMENT_MODE_ID::COUNT
-		)> mModes = {};
-		std::vector<AbilityEntry> mAbilities = {};
-		MOVEMENT_MODE_ID mCurrentModeId = MOVEMENT_MODE_ID::AIR;
-		uint64_t mActiveAbilityMask = 0;
+			           MOVEMENT_MODE_ID::COUNT
+		           )>             mModes             = {};
+		std::vector<AbilityEntry> mAbilities         = {};
+		MOVEMENT_MODE_ID          mCurrentModeId     = MOVEMENT_MODE_ID::AIR;
+		uint64_t                  mActiveAbilityMask = 0;
 	};
 }

@@ -20,8 +20,6 @@
 namespace Unnamed {
 	constexpr float kDefaultMoveSpeedHu = 320.0f;
 
-	BaseCharacterComponent::~BaseCharacterComponent() = default;
-
 	void BaseCharacterComponent::AddMovementFrameInput(
 		const MovementFrameInput& input
 	) {

@@ -8,9 +8,6 @@
 #include "engine/world/World.h"
 
 namespace Unnamed {
-	BaseComponent::BaseComponent()  = default;
-	BaseComponent::~BaseComponent() = default;
-
 	void BaseComponent::OnAttached() {
 	}
 

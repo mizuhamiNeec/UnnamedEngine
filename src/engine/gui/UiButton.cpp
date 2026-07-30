@@ -7,9 +7,7 @@ namespace Unnamed::Gui {
 		(void)GetOrAddComponent<UiButtonBehaviorComponent>();
 	}
 
-	UiButton::~UiButton() = default;
-
-	void UiButton::SetText(const std::string_view& text) {
+	void UiButton::SetText(const std::string_view& text) const {
 		if (auto* behavior = GetBehavior()) {
 			behavior->SetText(text);
 		}
@@ -22,7 +20,7 @@ namespace Unnamed::Gui {
 		return {};
 	}
 
-	void UiButton::SetOnClick(const std::function<void()>& callback) {
+	void UiButton::SetOnClick(const std::function<void()>& callback) const {
 		if (auto* behavior = GetBehavior()) {
 			behavior->SetOnClick(callback);
 		}
@@ -32,7 +30,7 @@ namespace Unnamed::Gui {
 		const Color& normal,
 		const Color& hovered,
 		const Color& pressed
-	) {
+	) const {
 		if (auto* behavior = GetBehavior()) {
 			behavior->SetColors(normal, hovered, pressed);
 		}

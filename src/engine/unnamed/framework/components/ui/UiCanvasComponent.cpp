@@ -81,8 +81,6 @@ namespace Unnamed {
 		mUiDocumentPath(ResolveDefaultUiDocumentPath()) {
 	}
 
-	UiCanvasComponent::~UiCanvasComponent() = default;
-
 	void UiCanvasComponent::Deserialize(const JsonReader& reader) {
 		constexpr SceneLoadOptions options{};
 		const Path scenePath("<direct component deserialize>");

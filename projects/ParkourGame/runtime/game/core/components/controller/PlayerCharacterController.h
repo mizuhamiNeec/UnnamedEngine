@@ -14,7 +14,7 @@ namespace Unnamed {
 	/// @brief プレイヤーがキャラクターを制御するためのコンポーネントです。
 	class PlayerCharacterController : public BaseCharacterController {
 	public:
-		~PlayerCharacterController() override;
+		~PlayerCharacterController() override = default;
 
 		// ---- BaseComponent ------------------------------------------------
 		void OnAttached() override;
@@ -69,4 +69,3 @@ namespace Unnamed {
 		uint64_t                  mObservedRecordingSessionSerial   = 0;
 	};
 }
-

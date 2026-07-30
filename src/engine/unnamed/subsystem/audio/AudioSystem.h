@@ -14,7 +14,7 @@ namespace Unnamed {
 	/// @brief AudioSystemは、XAudio2 engineとmaster voiceを所有し、sound voiceの生成・停止を仲介します
 	class AudioSystem {
 	public:
-		AudioSystem();
+		AudioSystem() = default;
 		~AudioSystem();
 
 		AudioSystem(const AudioSystem&)            = delete;
@@ -24,7 +24,7 @@ namespace Unnamed {
 		/// @param enableOutput false の場合は音声を再生しない無音モードで初期化します。
 		/// @return 初期化に成功した場合は true を返します。
 		[[nodiscard]] bool Init(bool enableOutput = true);
-		void Shutdown();
+		void               Shutdown();
 
 		[[nodiscard]] std::shared_ptr<AudioVoice> CreateVoice(
 			const SoundAssetData& soundData

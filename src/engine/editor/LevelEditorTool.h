@@ -57,7 +57,7 @@ namespace Unnamed {
 	class LevelEditorTool final : public IEditorTool {
 	public:
 		LevelEditorTool(WindowManager& windowManager, ImGuiLayer& imGuiLayer);
-		~LevelEditorTool() override;
+		~LevelEditorTool() override = default;
 
 		void Initialize(const EditorToolServices& services) override;
 		void Shutdown() override;
