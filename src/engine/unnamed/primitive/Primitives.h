@@ -16,10 +16,10 @@ namespace Unnamed {
 		Vec3 end   = Vec3::right;
 	};
 
+	static constexpr float kSin60 = 0.86603f; // 60度の正弦値
+
 	/// @brief 3頂点とそこから導出される面法線を表します
 	struct Triangle {
-		static constexpr float kSin60 = 0.86603f; // 60度の正弦値
-
 		Vec3 v0 = Vec3(-kSin60, -0.5f, 0.0f);
 		Vec3 v1 = Vec3(kSin60, -0.5f, 0.0f);
 		Vec3 v2 = Vec3::up;
