@@ -183,6 +183,8 @@ namespace Unnamed {
 	    mConfig() {
 	}
 
+	Engine::~Engine() = default;
+
 	int Engine::Run(const EngineRunCallbacks& callbacks) {
 		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); // リークチェック
 
@@ -244,7 +246,8 @@ namespace Unnamed {
 	bool Engine::Init() {
 		// COMの初期化
 		const HRESULT hr = CoInitializeEx(
-			nullptr, COINIT_MULTITHREADED
+			nullptr,
+			COINIT_MULTITHREADED
 		);
 		mCoInitialized = SUCCEEDED(hr);
 		if (!mCoInitialized && hr != RPC_E_CHANGED_MODE) {
@@ -453,10 +456,12 @@ namespace Unnamed {
 		);
 
 		mRenderModule = std::make_unique<Render::RenderModule>(
-			*mAssetManager, *mRhiDevice
+			*mAssetManager,
+			*mRhiDevice
 		);
 		if (!mRenderModule->Init(
-			mConsoleSystem.get(), mRuntimeBindings.renderStartupOptions
+			mConsoleSystem.get(),
+			mRuntimeBindings.renderStartupOptions
 		)) {
 			Error("Engine", "Renderer initialization failed.");
 			return false;
@@ -597,7 +602,9 @@ namespace Unnamed {
 			World& world = ActivateWorld(std::move(runtimeWorld));
 			if (
 				!LoadDefaultStartupScene(
-					world, runtimeContext, mRuntimeBindings.sceneLoadOptions
+					world,
+					runtimeContext,
+					mRuntimeBindings.sceneLoadOptions
 				)
 			) {
 				return false;
@@ -619,7 +626,8 @@ namespace Unnamed {
 
 		// ユーザー名をコンソール変数に設定
 		mConsoleSystem->ExecuteCommand(
-			"name " + WindowsUtils::GetWindowsUserName(), EXEC_FLAG::SILENT
+			"name " + WindowsUtils::GetWindowsUserName(),
+			EXEC_FLAG::SILENT
 		);
 
 		return true;
@@ -660,7 +668,8 @@ namespace Unnamed {
 				hotreloadpollinterval
 			) {
 				Profiler::ScopeTimer scope(
-					mProfiler.get(), "Asset.PollHotReload"
+					mProfiler.get(),
+					"Asset.PollHotReload"
 				);
 				mAssetManager->PollSourceChanges();
 				mAssetHotReloadPollAccumulator = 0.0f;
@@ -721,7 +730,8 @@ namespace Unnamed {
 			{
 				// シーン遷移はフレーム先頭でまとめて適用し、更新ループ中の差し替えを避けます。
 				Profiler::ScopeTimer scope(
-					mProfiler.get(), "World.ProcessPendingSceneTransition"
+					mProfiler.get(),
+					"World.ProcessPendingSceneTransition"
 				);
 				if (World* transitionTarget = ResolveSceneTransitionTargetWorld(
 					runtimeWorld
@@ -776,7 +786,8 @@ namespace Unnamed {
 			if (!sceneWarmupFrame) {
 				// 入力は描画フレームごとに一度だけ収集し、固定更新で共有する
 				Profiler::ScopeTimer scope(
-					mProfiler.get(), "World.FrameInputTick"
+					mProfiler.get(),
+					"World.FrameInputTick"
 				);
 				runtimeWorld->FrameInputTick(unscaledDeltaTime);
 			}
@@ -816,7 +827,8 @@ namespace Unnamed {
 			static_cast<float>(mTimeSystem->GetGameTime()->TotalTime());
 		if (runtimeWorld && mRenderFrameContext) {
 			Profiler::ScopeTimer scope(
-				mProfiler.get(), "World.FillRenderFrameInputs"
+				mProfiler.get(),
+				"World.FillRenderFrameInputs"
 			);
 			runtimeWorld->FillRenderFrameInputs(
 				inputs,
@@ -835,7 +847,8 @@ namespace Unnamed {
 					EDITOR_PRESENT_MODE::VIEWPORT_PANEL
 				) {
 					Profiler::ScopeTimer scope(
-						mProfiler.get(), "Editor.BuildUi"
+						mProfiler.get(),
+						"Editor.BuildUi"
 					);
 					mEditorRuntime->BuildUi(unscaledDeltaTime);
 				}
@@ -987,8 +1000,10 @@ namespace Unnamed {
 					(
 						std::cmp_not_equal(resize->width, mLastResizeWidth)
 						||
-						std::cmp_not_equal(resize->height,
-						                   mLastResizeHeight)
+						std::cmp_not_equal(
+							resize->height,
+							mLastResizeHeight
+						)
 					)
 				) {
 					mLastResizeWidth =
@@ -997,7 +1012,8 @@ namespace Unnamed {
 						static_cast<uint32_t>(resize->height);
 					if (mRenderModule) {
 						mRenderModule->OnResize(
-							mLastResizeWidth, mLastResizeHeight
+							mLastResizeWidth,
+							mLastResizeHeight
 						);
 					}
 				}
@@ -1010,8 +1026,10 @@ namespace Unnamed {
 		const auto QueueSceneTransition = [this](Path path) {
 			World* runtimeWorld = GetWorld();
 			if (!runtimeWorld) {
-				Warning("Engine",
-				        "Scene transition failed: runtime world is null.");
+				Warning(
+					"Engine",
+					"Scene transition failed: runtime world is null."
+				);
 				return false;
 			}
 
@@ -1019,8 +1037,10 @@ namespace Unnamed {
 				runtimeWorld
 			);
 			if (!transitionTarget) {
-				Warning("Engine",
-				        "Scene transition failed: transition target world is null.");
+				Warning(
+					"Engine",
+					"Scene transition failed: transition target world is null."
+				);
 				return false;
 			}
 
@@ -1075,8 +1095,10 @@ namespace Unnamed {
 						runtimeWorld
 					);
 				if (!transitionTarget) {
-					Warning("Engine",
-					        "Reload failed: transition target world is null.");
+					Warning(
+						"Engine",
+						"Reload failed: transition target world is null."
+					);
 					return false;
 				}
 

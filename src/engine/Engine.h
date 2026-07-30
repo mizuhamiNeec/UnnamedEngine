@@ -70,6 +70,7 @@ namespace Unnamed {
 		/// @param runtimeBindings ゲームランタイム依存情報
 		/// @param runMode 実行モード
 		Engine(const EngineRuntimeBindings& runtimeBindings, RUN_MODE runMode);
+		~Engine();
 
 		/// @brief エンジンの実行
 		/// @param callbacks 実行時コールバック
