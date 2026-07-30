@@ -36,7 +36,7 @@ namespace Unnamed {
 	/// @return 正規化された平面
 	Plane NormalizePlane(const Plane& plane);
 
-	/// @brief 中心、半径、および姿勢で有向ボックスを表します
+	/// @brief 中心、半径でボックスを表します
 	struct Box {
 		Vec3 center   = Vec3::zero;
 		Vec3 halfSize = Vec3::one * 0.5f;
