@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include "Vec2.h"
 
 const Vec2 Vec2::zero(0.0f, 0.0f);
 const Vec2 Vec2::one(1.0f, 1.0f);
@@ -88,6 +89,10 @@ Vec2 Vec2::RotateVector(const float angleZ) const {
 	const float cos = std::cos(angleZ);
 	const float sin = std::sin(angleZ);
 	return {x * cos - y * sin, x * sin + y * cos};
+}
+
+bool Vec2::IsValid() const {
+	return std::isfinite(x) && std::isfinite(y);
 }
 
 float& Vec2::operator[](const uint32_t index) {

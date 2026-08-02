@@ -7,6 +7,7 @@
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include "Quaternion.h"
+#include "Vec3.h"
 
 const Vec3 Vec3::zero(0.0f, 0.0f, 0.0f);
 const Vec3 Vec3::one(1.0f, 1.0f, 1.0f);
@@ -134,6 +135,10 @@ Vec3 Vec3::Abs() {
 Vec3 Vec3::TransformDirection(const Quaternion& rotation) const {
 	const Mat4 rotationMat = Mat4::RotateQuaternion(rotation);
 	return Mat4::Transform(*this, rotationMat);
+}
+
+bool Vec3::IsValid() const {
+	return std::isfinite(x) && std::isfinite(y) && std::isfinite(z);
 }
 
 float& Vec3::operator[](const uint32_t index) {

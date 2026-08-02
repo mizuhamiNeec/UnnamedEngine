@@ -6,9 +6,7 @@ struct Vec4;
 struct Quaternion;
 #include <core/math/Vec2.h>
 
-/**
- * @brief 3次元ベクトル構造体
- */
+/// @brief 3次元ベクトル構造体
 struct Vec3 final {
 	float x, y, z;
 
@@ -78,66 +76,53 @@ struct Vec3 final {
 	/// @return 外積のベクトル
 	Vec3 Cross(const Vec3& other) const;
 
-	/**
-	 * @brief ゼロベクトルかどうかを判定する
-	 * @param tolerance 許容誤差（デフォルト: 1e-6f）
-	 * @return ゼロベクトルの場合true
-	 */
+	
+	/// @brief ゼロベクトルかどうかを判定する
+	/// @param tolerance 許容誤差（デフォルト: 1e-6f）
+	/// @return ゼロベクトルの場合true
 	bool IsZero(float tolerance = 1e-6f) const;
 
-	/**
-	 * @brief 他のベクトルと平行かどうかを判定する
-	 * @param other 対象ベクトル
-	 * @return 平行の場合true
-	 */
+	/// @brief 他のベクトルと平行かどうかを判定する
+	/// @param other 対象ベクトル
+	/// @return 平行の場合true
 	bool IsParallel(const Vec3& other) const;
 
-	/**
-	 * @brief このベクトルを正規化する
-	 */
+	/// @brief このベクトルを正規化する
 	void Normalize();
 
-	/**
-	 * @brief 正規化されたベクトルを取得する
-	 * @return 正規化されたベクトル
-	 */
+	/// @brief 正規化されたベクトルを取得する
+	/// @return 正規化されたベクトル
 	Vec3 Normalized() const;
 
-	/**
-	 * @brief ベクトルを範囲内にクランプする
-	 * @param minVec 最小値
-	 * @param maxVec 最大値
-	 * @return クランプされたベクトル
-	 */
+	/// @brief ベクトルを範囲内にクランプする
+	/// @param minVec 最小値
+	/// @param maxVec 最大値
+	/// @return クランプされたベクトル
 	Vec3 Clamp(Vec3 minVec, Vec3 maxVec) const;
 
-	/**
-	 * @brief ベクトルの長さを範囲内にクランプする
-	 * @param minVec 最小長
-	 * @param maxVec 最大長
-	 * @return クランプされたベクトル
-	 */
+	/// @brief ベクトルの長さを範囲内にクランプする
+	/// @param minVec 最小長
+	/// @param maxVec 最大長
+	/// @return クランプされたベクトル
 	Vec3 ClampLength(float minVec, float maxVec);
 
-	/**
-	 * @brief 法線ベクトルに対する反射ベクトルを計算する
-	 * @param normal 法線ベクトル
-	 * @return 反射ベクトル
-	 */
+	/// @brief 法線ベクトルに対する反射ベクトルを計算する
+	/// @param normal 法線ベクトル
+	/// @return 反射ベクトル
 	Vec3 Reflect(const Vec3& normal) const;
 
-	/**
-	 * @brief 各成分の絶対値を取得する
-	 * @return 絶対値ベクトル
-	 */
+	/// @brief 各成分の絶対値を取得する
+	/// @return 絶対値ベクトル
 	Vec3 Abs();
 
-	/**
-	 * @brief クォータニオンによる回転を適用する
-	 * @param rotation 回転クォータニオン
-	 * @return 回転後のベクトル
-	 */
+	/// @brief クォータニオンによる回転を適用する
+	/// @param rotation 回転クォータニオン
+	/// @return 回転後のベクトル
 	Vec3 TransformDirection(const Quaternion& rotation) const;
+
+	/// @brief 有効かどうかを判定する
+	/// @return 有効な場合true
+	bool IsValid() const;
 
 	/* ---------------- 演算子 ---------------- */
 	float&       operator[](uint32_t index);

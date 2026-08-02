@@ -18,6 +18,13 @@ Vec4 Vec4::orange    = Vec4(1.0f, 0.5f, 0.0f, 1.0f);
 Vec4 Vec4::purple    = Vec4(0.5f, 0.0f, 0.5f, 1.0f);
 Vec4 Vec4::brown     = Vec4(0.6f, 0.3f, 0.0f, 1.0f);
 
+bool Vec4::IsValid() const {
+	return std::isfinite(x) &&
+	       std::isfinite(y) &&
+	       std::isfinite(z) &&
+	       std::isfinite(w);
+}
+
 constexpr float& Vec4::operator[](const int index) {
 	return *(&x + index);
 }
