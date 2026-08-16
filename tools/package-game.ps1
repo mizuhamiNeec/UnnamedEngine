@@ -3,6 +3,8 @@ param(
     [string]$Project,
     [string]$AppExePath = "",
     [string]$OutputRoot = "",
+    [ValidateSet("Debug", "Develop", "Release")]
+    [string]$Configuration = "Release",
     [switch]$IncludeMods,
     [switch]$SkipModSecurityCheck,
     [switch]$FailOnUnsignedMods,
@@ -104,7 +106,8 @@ function Copy-DirectoryContents {
         [Parameter(Mandatory = $true)]
         [string]$SourceDir,
         [Parameter(Mandatory = $true)]
-        [string]$DestinationDir
+        [string]$DestinationDir,
+        [string[]]$ExcludedFileNames = @()
     )
 
     if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) {
@@ -113,7 +116,49 @@ function Copy-DirectoryContents {
 
     New-Item -ItemType Directory -Force -Path $DestinationDir | Out-Null
     foreach ($entry in Get-ChildItem -LiteralPath $SourceDir -Force) {
+        if (-not $entry.PSIsContainer -and $ExcludedFileNames -contains $entry.Name) {
+            continue
+        }
         Copy-Item -LiteralPath $entry.FullName -Destination $DestinationDir -Recurse -Force
+    }
+}
+
+function Copy-RuntimeFiles {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$AppExePath,
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationDir
+    )
+
+    $appSourceDir = Split-Path -Parent $AppExePath
+    New-Item -ItemType Directory -Force -Path $DestinationDir | Out-Null
+    Copy-Item -LiteralPath $AppExePath -Destination $DestinationDir -Force
+
+    foreach ($runtimeDll in Get-ChildItem -LiteralPath $appSourceDir -File -Filter "*.dll") {
+        Copy-Item -LiteralPath $runtimeDll.FullName -Destination $DestinationDir -Force
+    }
+}
+
+function Remove-GeneratedRuntimeArtifacts {
+    param([Parameter(Mandatory = $true)][string]$PackagedRoot)
+
+    $generatedPaths = @(
+        (Join-Path $PackagedRoot "consolesystem.log"),
+        (Join-Path $PackagedRoot "config/user.cfg"),
+        (Join-Path $PackagedRoot "bin/cache")
+    )
+
+    foreach ($generatedPath in $generatedPaths) {
+        if (Test-Path -LiteralPath $generatedPath) {
+            Remove-Item -LiteralPath $generatedPath -Recurse -Force
+        }
+    }
+
+    $runtimeBinRoot = Join-Path $PackagedRoot "bin"
+    if ((Test-Path -LiteralPath $runtimeBinRoot -PathType Container) -and
+        (Get-ChildItem -LiteralPath $runtimeBinRoot -Force).Count -eq 0) {
+        Remove-Item -LiteralPath $runtimeBinRoot -Force
     }
 }
 
@@ -121,6 +166,7 @@ function Resolve-AppExecutable {
     param(
         [Parameter(Mandatory = $true)]
         [object]$Manifest,
+        [string]$Configuration,
         [string]$ExplicitPath
     )
 
@@ -132,9 +178,9 @@ function Resolve-AppExecutable {
     }
 
     $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
-    $binRoot = Join-Path $repoRoot "bin"
-    if (-not (Test-Path -LiteralPath $binRoot -PathType Container)) {
-        throw "bin directory was not found for auto app detection: $binRoot"
+    $configurationRoot = Join-Path $repoRoot ("bin/{0}-windows-x86_64" -f $Configuration)
+    if (-not (Test-Path -LiteralPath $configurationRoot -PathType Container)) {
+        throw "Build output directory was not found: $configurationRoot. Build $Configuration|x64 first or pass -AppExePath."
     }
 
     $candidateNames = @()
@@ -145,7 +191,7 @@ function Resolve-AppExecutable {
     $candidateNames += "UnnamedLauncher.exe"
 
     foreach ($candidateName in $candidateNames) {
-        $candidates = Get-ChildItem -LiteralPath $binRoot -Recurse -File -Filter $candidateName | Sort-Object LastWriteTimeUtc -Descending
+        $candidates = Get-ChildItem -LiteralPath $configurationRoot -Recurse -File -Filter $candidateName | Sort-Object FullName
         if ($candidates.Count -gt 0) {
             return $candidates[0].FullName
         }
@@ -213,7 +259,7 @@ Copy-DirectoryContents -SourceDir $engineContentRoot -DestinationDir $targetCont
 if (-not (Test-EquivalentPath -LeftPath $engineContentRoot -RightPath $resolvedContentRoot)) {
     Copy-DirectoryContents -SourceDir $resolvedContentRoot -DestinationDir $targetContentRoot
 }
-Copy-DirectoryContents -SourceDir $resolvedConfigRoot -DestinationDir $targetConfigRoot
+Copy-DirectoryContents -SourceDir $resolvedConfigRoot -DestinationDir $targetConfigRoot -ExcludedFileNames @("user.cfg")
 
 if ($IncludeMods) {
     $sourceModsRoot = Join-Path $resolvedGameRoot "mods"
@@ -257,17 +303,8 @@ if ($manifest.PSObject.Properties.Match("runtimeBinary").Count -gt 0 -and -not [
     }
 }
 
-$resolvedAppExe = Resolve-AppExecutable -Manifest $manifest -ExplicitPath $AppExePath
-$appSourceDir = Split-Path -Parent $resolvedAppExe
-Copy-DirectoryContents -SourceDir $appSourceDir -DestinationDir $resolvedOutputRoot
-
-$appParentDir = Split-Path -Parent $appSourceDir
-foreach ($supportDirName in @("DirectXTex", "Lua")) {
-    $supportDir = Join-Path $appParentDir $supportDirName
-    if (Test-Path -LiteralPath $supportDir -PathType Container) {
-        Copy-DirectoryContents -SourceDir $supportDir -DestinationDir (Join-Path $resolvedOutputRoot $supportDirName)
-    }
-}
+$resolvedAppExe = Resolve-AppExecutable -Manifest $manifest -Configuration $Configuration -ExplicitPath $AppExePath
+Copy-RuntimeFiles -AppExePath $resolvedAppExe -DestinationDir $resolvedOutputRoot
 
 $packagedManifest = [ordered]@{}
 $packagedManifest.schemaVersion = [int]$manifest.schemaVersion
@@ -370,10 +407,13 @@ if ($ValidateIsolatedStartup) {
     }
 }
 
+Remove-GeneratedRuntimeArtifacts -PackagedRoot $resolvedOutputRoot
+
 Write-Host "Packaged game:"
 Write-Host "  GameName        : $gameName"
 Write-Host "  Project         : $resolvedProject"
 Write-Host "  App             : $resolvedAppExe"
+Write-Host "  Configuration   : $Configuration"
 Write-Host "  Output          : $resolvedOutputRoot"
 Write-Host "  Content         : $targetContentRoot"
 Write-Host "  Config          : $targetConfigRoot"
