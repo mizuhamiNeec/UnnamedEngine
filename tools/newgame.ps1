@@ -359,15 +359,6 @@ namespace Unnamed {
 }
 "@
 
-$configReadme = @"
-# $gameName Config
-
-このフォルダーには $gameName のランタイム設定ファイルが含まれています。
-
-- game_profile.json: GameModuleFactoryによって使用されるランタイムマニフェスト.
-- user.cfg: game-local のアーカイブされた/デフォルトの CVar 値。
-"@
-
 $configUserCfg = @"
 post_bloommipcount 8
 asset_hotreloadpollinterval 0.5
@@ -376,7 +367,6 @@ fps_max 0
 "@
 
 Write-TextFile -Path (Join-Path $configRoot "game_profile.json") -Content $gameProfileJson
-Write-TextFile -Path (Join-Path $configRoot "README.md") -Content $configReadme
 Write-TextFile -Path (Join-Path $configRoot "user.cfg") -Content $configUserCfg
 Write-TextFile -Path (Join-Path $contentScenesRoot "bootstrap.json") -Content $bootstrapSceneJson
 
