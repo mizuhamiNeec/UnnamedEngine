@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true)]
     [string]$Name,
     [string]$Alias = "",
@@ -6,6 +6,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# 生成物は Windows PowerShell 5.1 と PowerShell 7 のどちらからも
+# 正しく読める UTF-8 BOM 付きで保存する。
+$utf8BomEncoding = [System.Text.UTF8Encoding]::new($true)
 
 function Write-TextFile {
     param(
@@ -19,7 +23,7 @@ function Write-TextFile {
     if (-not [string]::IsNullOrWhiteSpace($dir)) {
         New-Item -ItemType Directory -Force -Path $dir | Out-Null
     }
-    Set-Content -Path $Path -Value $Content -Encoding UTF8
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8BomEncoding)
 }
 
 function To-LowerSnake {
@@ -86,17 +90,18 @@ $moduleContentRootPath = "./projects/$gameName/content"
 $moduleConfigRootPath = "./projects/$gameName/config"
 
 $relativeFromRepo = Get-RelativePath -BasePath $repoRoot -TargetPath $gameRoot
-if (-not $relativeFromRepo.StartsWith("..")) {
-    $relativeFromRepo = $relativeFromRepo.Replace("\", "/")
-    $moduleGameRootPath = "./$relativeFromRepo"
-    $moduleContentRootPath = "$moduleGameRootPath/content"
-    $moduleConfigRootPath = "$moduleGameRootPath/config"
-} else {
-    $normalizedAbsoluteGameRoot = $gameRoot.Replace("\", "/")
-    $moduleGameRootPath = $normalizedAbsoluteGameRoot
-    $moduleContentRootPath = "$normalizedAbsoluteGameRoot/content"
-    $moduleConfigRootPath = "$normalizedAbsoluteGameRoot/config"
+if ($relativeFromRepo -match "^[a-zA-Z][a-zA-Z0-9+.-]*:") {
+    throw "ProjectsRoot must be on the same volume as the engine repository to generate portable module paths: $resolvedProjectsRoot"
 }
+
+# GameModule の既定パスは Engine 実行時の working directory（Engine ルート）基準。
+# 実行時には game_profile.json の相対パスが優先される。
+$moduleGameRootPath = $relativeFromRepo.Replace("\", "/")
+if (-not $moduleGameRootPath.StartsWith(".")) {
+    $moduleGameRootPath = "./$moduleGameRootPath"
+}
+$moduleContentRootPath = "$moduleGameRootPath/content"
+$moduleConfigRootPath = "$moduleGameRootPath/config"
 
 $gameProfileJson = @"
 {
@@ -357,15 +362,15 @@ namespace Unnamed {
 $configReadme = @"
 # $gameName Config
 
-This folder contains runtime config files for $gameName.
+このフォルダーには $gameName のランタイム設定ファイルが含まれています。
 
-- game_profile.json: runtime manifest consumed by GameModuleFactory.
-- user.cfg: game-local archived/default convar values.
+- game_profile.json: GameModuleFactoryによって使用されるランタイムマニフェスト.
+- user.cfg: game-local のアーカイブされた/デフォルトの CVar 値。
 "@
 
 $configUserCfg = @"
 post_bloommipcount 8
-asset_hotreloadpollinterval 0.125
+asset_hotreloadpollinterval 0.5
 r_vsync false
 fps_max 0
 "@
