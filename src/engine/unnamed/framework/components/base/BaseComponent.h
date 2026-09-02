@@ -33,24 +33,32 @@ namespace Unnamed {
 
 		/// @brief コンポーネントがエンティティに取り付けられたときに呼び出されます。
 		virtual void OnAttached();
+
 		/// @brief コンポーネントがエンティティから取り外されたときに呼び出されます。
 		virtual void OnDetached();
 
 		/// @brief 物理演算の前に呼び出されます。
 		/// @param deltaTime 前のフレームからの経過時間 [秒]
 		virtual void PrePhysicsTick(float deltaTime);
-		/// @brief 毎フレーム呼び出されます。
-		/// @param deltaTime 前のフレームからの経過時間 [秒]
+
+		/// @brief 毎ティック呼び出されます。毎フレームではないので注意。
+		/// @param deltaTime 前のティックからの経過時間 [秒]
 		virtual void OnTick(float deltaTime);
-		/// @brief 固定シミュレーション前の入力反映フェーズで呼び出されます。
+
+		/// @brief 入力処理などの、毎フレーム呼び出される処理を行う際に呼び出されます。
+		/// @details OnTick() は固定ティックで呼び出されますが、
+		/// OnFrameInputTick() は描画フレームごとに呼び出されます。
+		/// 入力処理やカメラの更新などは OnFrameInputTick() で行うと良いです。
 		/// @param frameDeltaTime 描画フレームの経過時間 [秒]
 		virtual void OnFrameInputTick(float frameDeltaTime);
+
 		/// @brief 描画フレームで見た目更新を行う際に呼び出されます。
 		/// @param renderDeltaTime 描画フレームの経過時間 [秒]
 		/// @param interpolationAlpha 固定ティック補間係数 [0..1]
 		virtual void OnRenderTick(
 			float renderDeltaTime, float interpolationAlpha
 		);
+
 		/// @brief 物理演算の後に呼び出されます。
 		/// @param deltaTime 前のフレームからの経過時間 [秒]
 		virtual void PostPhysicsTick(float deltaTime);
