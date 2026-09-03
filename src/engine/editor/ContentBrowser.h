@@ -23,11 +23,14 @@ namespace Unnamed::EditorContentBrowser {
 
 	/// @brief BrowserViewStateは、Content Browserの現在directory、選択、表示modeを保持します
 	struct BrowserViewState {
-		Path  rootPath    = Path("./content");
-		Path  currentPath = Path("./content");
-		Path  selectedPath;
-		bool  iconView = false;
-		float iconSize = 96.0f;
+		// root/current are physical paths used exclusively for enumeration.  Values
+		// exported from the browser are always content virtual paths.
+		Path        rootPath;
+		Path        currentPath;
+		Path        selectedPath;
+		std::string selectedMountId;
+		bool        iconView = false;
+		float       iconSize = 96.0f;
 	};
 
 	using AssetOpenCallback = std::function<void(

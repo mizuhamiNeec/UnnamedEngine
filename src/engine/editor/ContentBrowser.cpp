@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <filesystem>
+#include <fstream>
 #include <format>
 #include <unordered_map>
 #include <vector>
@@ -12,11 +13,13 @@
 #include <imgui.h>
 
 #include "core/assets/AssetManager.h"
+#include "core/content/ContentPathResolver.h"
 
 #include "core/string/StrUtil.h"
 
 #include "engine/ImGui/Icons.h"
 #include "engine/ImGui/ImGuiWidgets.h"
+#include "engine/content/ContentMountDefinitions.h"
 #include "engine/unnamed/subsystem/interface/ServiceLocator.h"
 
 namespace Unnamed::EditorContentBrowser {
@@ -26,12 +29,79 @@ namespace Unnamed::EditorContentBrowser {
 		/// @brief BrowserEntryは、Content Browserに表示するpath、表示名、directory・asset種別を保持します
 		struct BrowserEntry {
 			Path        path;
+			std::string virtualPath;
 			std::string name;
 			bool        isDirectory = false;
 			ASSET_TYPE  type        = ASSET_TYPE::UNKNOWN;
 		};
 
 		std::unordered_map<ImGuiID, BrowserViewState> sPickerStates;
+
+		const ContentPathResolver* GetContentResolver() {
+			if (const auto* assetManager = ServiceLocator::Get<
+				AssetManager>()) {
+				return &assetManager->GetContentPathResolver();
+			}
+			return nullptr;
+		}
+
+		bool SetActiveMount(
+			BrowserViewState& state, const std::string_view mountId
+		) {
+			const ContentPathResolver* resolver = GetContentResolver();
+			if (!resolver) {
+				return false;
+			}
+			for (const ContentDirectoryMount& mount : resolver->GetMounts()) {
+				if (mount.id != mountId) {
+					continue;
+				}
+				state.selectedMountId = mount.id;
+				state.rootPath        = mount.rootPath.LexicallyNormal();
+				state.currentPath     = state.rootPath;
+				state.selectedPath.Clear();
+				return true;
+			}
+			return false;
+		}
+
+		bool EnsureActiveMount(BrowserViewState& state) {
+			const ContentPathResolver* resolver = GetContentResolver();
+			if (!resolver || resolver->GetMounts().empty()) {
+				return false;
+			}
+			if (!state.selectedMountId.empty()) {
+				for (const ContentDirectoryMount& mount : resolver->
+				     GetMounts()) {
+					if (mount.id != state.selectedMountId) {
+						continue;
+					}
+					if (state.rootPath.LexicallyNormal() ==
+					    mount.rootPath.LexicallyNormal()) {
+						return true;
+					}
+					return SetActiveMount(state, state.selectedMountId);
+				}
+			}
+			// New assets are game-owned by default.  Fall back to the highest
+			// priority mount when the application has no game content.
+			if (SetActiveMount(state, ContentMountId::kGame)) {
+				return true;
+			}
+			return SetActiveMount(state, resolver->GetMounts().front().id);
+		}
+
+		std::optional<ResolvedContentFile>
+		DescribeMountedPath(const Path& path) {
+			const ContentPathResolver* resolver = GetContentResolver();
+			if (!resolver) {
+				return std::nullopt;
+			}
+			const auto mountId = resolver->FindMountIdForResolvedPath(path);
+			return mountId ?
+				       resolver->DescribePathFromMount(*mountId, path) :
+				       std::nullopt;
+		}
 
 		bool IsPathInsideRoot(const Path& path, const Path& root) {
 			// 文字列の接頭辞だけで sibling directory を root 内と誤認しない
@@ -65,24 +135,28 @@ namespace Unnamed::EditorContentBrowser {
 				return false;
 			}
 
-			// エディタで選んだ物理ファイルは、選択時点でアセットとして解決を試みる
-			if (
-				auto* assetManager = ServiceLocator::Get<AssetManager>();
-				assetManager && guessedType != ASSET_TYPE::UNKNOWN
-			) {
-				std::error_code ec;
-				const Path physicalPath = normalized.IsAbsolute() ?
-					normalized :
-					Path::FromNative(std::filesystem::absolute(
-						normalized.Native(), ec
-					)).LexicallyNormal();
-				if (!ec) {
-					(void)assetManager->LoadAssetFromFile(
-						physicalPath, guessedType
-					);
-				}
+			auto* assetManager = ServiceLocator::Get<AssetManager>();
+			if (!assetManager) {
+				return false;
 			}
-			ioPath = normalized.ToGenericUtf8();
+			const ContentPathResolver& resolver =
+				assetManager->GetContentPathResolver();
+			std::optional<VirtualPath> virtualPath =
+				VirtualPath::ParseContentReference(normalized.ToGenericUtf8());
+			if (!virtualPath.has_value()) {
+				const auto described = DescribeMountedPath(normalized);
+				if (!described.has_value()) {
+					return false;
+				}
+				virtualPath = described->virtualPath;
+			}
+			if (!resolver.ResolveFile(*virtualPath).has_value()) {
+				return false;
+			}
+			if (guessedType != ASSET_TYPE::UNKNOWN) {
+				(void)assetManager->LoadAsset(*virtualPath, guessedType);
+			}
+			ioPath = virtualPath->String();
 			return true;
 		}
 
@@ -127,8 +201,11 @@ namespace Unnamed::EditorContentBrowser {
 
 				const fs::directory_entry& de = *it;
 				BrowserEntry               entry = {};
-				entry.path = Path::FromNative(de.path());
-				entry.name = Path::ToUtf8String(entry.path.FileName());
+				entry.path = Path::FromNative(de.path()).LexicallyNormal();
+				if (const auto described = DescribeMountedPath(entry.path)) {
+					entry.virtualPath = described->virtualPath.String();
+				}
+				entry.name        = Path::ToUtf8String(entry.path.FileName());
 				entry.isDirectory = de.is_directory(ec);
 				if (ec) {
 					continue;
@@ -164,8 +241,11 @@ namespace Unnamed::EditorContentBrowser {
 
 			AssetDragDropPayload payload = {};
 			payload.assetType = static_cast<uint16_t>(entry.type);
-			const std::string normalizedPath = entry.path.LexicallyNormal().
-				ToUtf8();
+			const std::string& normalizedPath = entry.virtualPath;
+			if (normalizedPath.empty()) {
+				ImGui::EndDragDropSource();
+				return;
+			}
 			memcpy(
 				payload.path,
 				normalizedPath.c_str(),
@@ -178,6 +258,113 @@ namespace Unnamed::EditorContentBrowser {
 			);
 			ImGui::TextUnformatted(entry.name.c_str());
 			ImGui::EndDragDropSource();
+		}
+
+		std::string MakeUniqueAssetName(
+			const Path&            directory, const std::string_view stem,
+			const std::string_view extension
+		) {
+			for (uint32_t suffix = 1; suffix < 10000; ++suffix) {
+				const std::string name = suffix == 1 ?
+					                         std::string(stem) + std::string(
+						                         extension
+					                         ) :
+					                         std::format(
+						                         "{}{}{}",
+						                         stem,
+						                         suffix,
+						                         extension
+					                         );
+				if (!(directory / Path(name)).IsRegularFile()) {
+					return name;
+				}
+			}
+			return {};
+		}
+
+		bool CreateAssetTemplate(
+			BrowserViewState&      state, const std::string_view     stem,
+			const std::string_view extension, const std::string_view text
+		) {
+			if (state.selectedMountId != ContentMountId::kGame) {
+				return false;
+			}
+			const std::string name = MakeUniqueAssetName(
+				state.currentPath,
+				stem,
+				extension
+			);
+			if (name.empty()) {
+				return false;
+			}
+			std::error_code ec;
+			fs::create_directories(state.currentPath.Native(), ec);
+			if (ec) {
+				return false;
+			}
+			const Path filePath = (state.currentPath / Path(name)).
+				LexicallyNormal();
+			std::ofstream stream(
+				filePath.Native(),
+				std::ios::binary | std::ios::trunc
+			);
+			if (!stream) {
+				return false;
+			}
+			stream << text;
+			stream.close();
+			if (!stream) {
+				return false;
+			}
+			state.selectedPath = filePath;
+			return true;
+		}
+
+		void DrawCreateAssetContextMenu(BrowserViewState& state) {
+			if (!ImGui::BeginPopupContextWindow(
+				"ContentBrowserCreateAsset",
+				ImGuiPopupFlags_MouseButtonRight
+			)) {
+				return;
+			}
+
+			const bool canCreate =
+				state.selectedMountId == ContentMountId::kGame;
+			if (!canCreate) {
+				ImGui::BeginDisabled();
+			}
+			if (ImGui::MenuItem("New Empty Scene")) {
+				(void)CreateAssetTemplate(
+					state,
+					"NewScene",
+					".scene.json",
+					"{\n  \"folders\": [],\n  \"entities\": []\n}\n"
+				);
+			}
+			if (ImGui::MenuItem("New Material")) {
+				(void)CreateAssetTemplate(
+					state,
+					"NewMaterial",
+					".material.json",
+					"{\n  \"name\": \"NewMaterial\",\n  \"shader\": \"shaders/programs/pbr.shader.json\",\n  \"domain\": \"pbr\",\n  \"shadingModel\": \"LitPBR\",\n  \"renderState\": { \"depthEnable\": true, \"depthWrite\": true, \"cullBackFace\": true, \"blendEnable\": false, \"castsShadow\": true },\n  \"scalars\": {},\n  \"vectors\": {}\n}\n"
+				);
+			}
+			if (ImGui::MenuItem("New UI Document")) {
+				(void)CreateAssetTemplate(
+					state,
+					"NewUiDocument",
+					".ui.json",
+					"{\n  \"version\": 2,\n  \"name\": \"NewUiDocument\",\n  \"root\": { \"name\": \"Root\", \"visible\": true, \"enabled\": true, \"components\": [], \"children\": [] }\n}\n"
+				);
+			}
+			if (!canCreate) {
+				ImGui::EndDisabled();
+				ImGui::Separator();
+				ImGui::TextDisabled(
+					"Core content is read-only. Select Game to create assets."
+				);
+			}
+			ImGui::EndPopup();
 		}
 
 		void DrawTreeRecursive(
@@ -315,7 +502,9 @@ namespace Unnamed::EditorContentBrowser {
 
 			const std::string iconUtf8     = StrUtil::ConvertToUtf8(icon);
 			const float       iconFontSize = std::clamp(
-				iconAreaSize * 0.42f, 18.0f, 34.0f
+				iconAreaSize * 0.42f,
+				18.0f,
+				34.0f
 			);
 			const ImVec2 iconSize = ImGui::CalcTextSize(iconUtf8.c_str());
 			const ImVec2 iconPos(
@@ -332,7 +521,8 @@ namespace Unnamed::EditorContentBrowser {
 
 			const float       textMaxWidth = iconAreaSize - padding * 2.0f;
 			const std::string displayName  = FitTextWithEllipsis(
-				entry.name, textMaxWidth
+				entry.name,
+				textMaxWidth
 			);
 			const ImVec2 textPos(
 				cellMin.x + padding,
@@ -348,6 +538,7 @@ namespace Unnamed::EditorContentBrowser {
 			BrowserViewState&        state,
 			const AssetTypeMask      acceptedMask,
 			const bool               emitDragPayload,
+			const bool               allowAssetCreation,
 			std::string*             outCommittedPath,
 			const AssetOpenCallback* onAssetOpen
 		) {
@@ -370,15 +561,21 @@ namespace Unnamed::EditorContentBrowser {
 				)
 			) {
 				ImGui::TableSetupColumn(
-					"Tree", ImGuiTableColumnFlags_WidthFixed, 260.0f
+					"Tree",
+					ImGuiTableColumnFlags_WidthFixed,
+					260.0f
 				);
 				ImGui::TableSetupColumn(
-					"Main", ImGuiTableColumnFlags_WidthStretch, 0.0f
+					"Main",
+					ImGuiTableColumnFlags_WidthStretch,
+					0.0f
 				);
 
 				ImGui::TableNextColumn();
 				ImGui::BeginChild(
-					"##ContentBrowserTree", ImVec2(0.0f, 0.0f), false
+					"##ContentBrowserTree",
+					ImVec2(0.0f, 0.0f),
+					false
 				);
 				DrawTreeRecursive(rootPath, rootPath, currentPath);
 				currentPath = currentPath.LexicallyNormal();
@@ -386,7 +583,9 @@ namespace Unnamed::EditorContentBrowser {
 
 				ImGui::TableNextColumn();
 				ImGui::BeginChild(
-					"##ContentBrowserMain", ImVec2(0.0f, 0.0f), false
+					"##ContentBrowserMain",
+					ImVec2(0.0f, 0.0f),
+					false
 				);
 
 				std::vector<BrowserEntry> entries;
@@ -427,11 +626,13 @@ namespace Unnamed::EditorContentBrowser {
 								)
 							) {
 								if (outCommittedPath) {
-									*outCommittedPath = normalizedPath.ToUtf8();
+									*outCommittedPath = entry.virtualPath;
 									committed         = true;
 								} else if (onAssetOpen && *onAssetOpen) {
 									(*onAssetOpen)(
-										normalizedPath.ToUtf8(), entry.type);
+										entry.virtualPath,
+										entry.type
+									);
 								}
 							}
 						}
@@ -482,11 +683,13 @@ namespace Unnamed::EditorContentBrowser {
 								!entry.isDirectory && doubleClicked
 							) {
 								if (outCommittedPath) {
-									*outCommittedPath = normalizedPath.ToUtf8();
+									*outCommittedPath = entry.virtualPath;
 									committed         = true;
 								} else if (onAssetOpen && *onAssetOpen) {
 									(*onAssetOpen)(
-										normalizedPath.ToUtf8(), entry.type);
+										entry.virtualPath,
+										entry.type
+									);
 								}
 							}
 						}
@@ -503,6 +706,9 @@ namespace Unnamed::EditorContentBrowser {
 					}
 				}
 
+				if (allowAssetCreation) {
+					DrawCreateAssetContextMenu(state);
+				}
 				ImGui::EndChild();
 				ImGui::EndTable();
 			}
@@ -512,15 +718,40 @@ namespace Unnamed::EditorContentBrowser {
 		}
 
 		bool DrawTopBar(BrowserViewState& state) {
+			if (!EnsureActiveMount(state)) {
+				ImGui::TextUnformatted("No content mounts are available.");
+				return false;
+			}
 			const Path rootPath    = state.rootPath.LexicallyNormal();
 			Path       currentPath = state.currentPath.LexicallyNormal();
 			if (!IsPathInsideRoot(currentPath, rootPath)) {
 				currentPath = rootPath;
 			}
 
+			const ContentPathResolver* resolver = GetContentResolver();
+			if (resolver && ImGui::BeginCombo(
+				    "Mount",
+				    state.selectedMountId.c_str()
+			    )) {
+				for (const ContentDirectoryMount& mount : resolver->
+				     GetMounts()) {
+					const bool selected = state.selectedMountId == mount.id;
+					if (ImGui::Selectable(mount.id.c_str(), selected)) {
+						(void)SetActiveMount(state, mount.id);
+					}
+					if (selected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::SameLine();
 			if (
 				ImGuiWidgets::IconButton(
-					kIconArrowUpward, nullptr, ImVec2(0, 0), 1.0f
+					kIconArrowUpward,
+					nullptr,
+					ImVec2(0, 0),
+					1.0f
 				)
 			) {
 				const Path parent = currentPath.ParentPath();
@@ -535,8 +766,13 @@ namespace Unnamed::EditorContentBrowser {
 			ImGui::RadioButton("Icon", &viewMode, 1);
 			state.iconView = viewMode == 1;
 			ImGui::SameLine();
-			const std::string currentPathText =
-				currentPath.LexicallyNormal().ToGenericUtf8();
+			const auto currentDescription = DescribeMountedPath(currentPath);
+			const std::string currentPathText = currentDescription ?
+				                                    currentDescription->
+				                                    virtualPath.String() :
+				                                    currentPath.
+				                                    LexicallyNormal().
+				                                    ToGenericUtf8();
 			ImGui::TextDisabled("%s", currentPathText.c_str());
 
 			state.currentPath = currentPath.LexicallyNormal();
@@ -590,10 +826,15 @@ namespace Unnamed::EditorContentBrowser {
 		);
 		ImGui::SetNextItemWidth(inputWidth);
 		if (ImGui::InputText(
-			"##AssetPath", pathBuffer.data(), pathBuffer.size()
+			"##AssetPath",
+			pathBuffer.data(),
+			pathBuffer.size()
 		)) {
-			if (TryCommitAssetPath(path, Path(pathBuffer.data()),
-			                       acceptedMask)) {
+			if (TryCommitAssetPath(
+				path,
+				Path(pathBuffer.data()),
+				acceptedMask
+			)) {
 				changed = true;
 			} else {
 				rejected = true;
@@ -611,7 +852,9 @@ namespace Unnamed::EditorContentBrowser {
 					);
 					if (
 						TryCommitAssetPath(
-							path, Path(assetPayload->path), acceptedMask
+							path,
+							Path(assetPayload->path),
+							acceptedMask
 						)
 					) {
 						changed = true;
@@ -625,12 +868,7 @@ namespace Unnamed::EditorContentBrowser {
 
 		const ImGuiID     widgetId    = ImGui::GetID("##AssetPath");
 		BrowserViewState& pickerState = sPickerStates[widgetId];
-		if (pickerState.rootPath.IsEmpty()) {
-			pickerState.rootPath = Path("./content");
-		}
-		if (pickerState.currentPath.IsEmpty()) {
-			pickerState.currentPath = pickerState.rootPath;
-		}
+		(void)EnsureActiveMount(pickerState);
 
 		ImGui::SameLine();
 		const std::string popupId = std::format(
@@ -638,12 +876,18 @@ namespace Unnamed::EditorContentBrowser {
 			static_cast<uint32_t>(widgetId)
 		);
 		if (ImGui::Button("...")) {
-			const Path rootPath   = pickerState.rootPath.LexicallyNormal();
-			const Path targetPath = Path(path).LexicallyNormal();
-			if (!path.empty() && IsPathInsideRoot(targetPath, rootPath)) {
+			const Path rootPath    = pickerState.rootPath.LexicallyNormal();
+			const auto virtualPath = VirtualPath::ParseContentReference(path);
+			const auto resolved    = virtualPath && GetContentResolver() ?
+				                         GetContentResolver()->ResolveFile(
+					                         *virtualPath
+				                         ) :
+				                         std::nullopt;
+			if (resolved && SetActiveMount(pickerState, resolved->mountId)) {
 				pickerState.currentPath =
-					targetPath.ParentPath().LexicallyNormal();
-				pickerState.selectedPath = targetPath.LexicallyNormal();
+					resolved->resolvedPath.ParentPath().LexicallyNormal();
+				pickerState.selectedPath = resolved->resolvedPath.
+					LexicallyNormal();
 			} else {
 				pickerState.currentPath = rootPath.LexicallyNormal();
 				pickerState.selectedPath.Clear();
@@ -684,11 +928,14 @@ namespace Unnamed::EditorContentBrowser {
 				pickerState,
 				acceptedMask,
 				false,
+				false,
 				&committedPath,
 				nullptr
 			);
 			if (committedByDoubleClick && TryCommitAssetPath(
-				    path, Path(committedPath), acceptedMask
+				    path,
+				    Path(committedPath),
+				    acceptedMask
 			    )) {
 				changed = true;
 				ImGui::CloseCurrentPopup();
@@ -698,7 +945,9 @@ namespace Unnamed::EditorContentBrowser {
 				if (
 					!pickerState.selectedPath.IsEmpty() &&
 					TryCommitAssetPath(
-						path, pickerState.selectedPath, acceptedMask
+						path,
+						pickerState.selectedPath,
+						acceptedMask
 					)
 				) {
 					changed = true;
@@ -726,17 +975,25 @@ namespace Unnamed::EditorContentBrowser {
 		const AssetOpenCallback& onAssetOpen
 	) {
 		if (!ImGui::Begin(
-			windowName, nullptr,
+			windowName,
+			nullptr,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
 		)) {
 			ImGui::End();
 			return;
 		}
 
+		if (!EnsureActiveMount(state)) {
+			ImGui::TextUnformatted("No content mounts are available.");
+			ImGui::End();
+			return;
+		}
 		const fs::path  rootPath = state.rootPath.LexicallyNormal().Native();
 		std::error_code ec;
 		if (!fs::exists(rootPath, ec) || !fs::is_directory(rootPath, ec)) {
-			ImGui::TextUnformatted("`./content` directory not found.");
+			ImGui::TextUnformatted(
+				"Selected content mount directory was not found."
+			);
 			ImGui::End();
 			return;
 		}
@@ -745,6 +1002,7 @@ namespace Unnamed::EditorContentBrowser {
 		(void)DrawContentView(
 			state,
 			kAssetTypeMaskAny,
+			true,
 			true,
 			nullptr,
 			&onAssetOpen

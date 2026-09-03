@@ -58,16 +58,18 @@ namespace Unnamed::Gui {
 			if (context.pathBuffer[0] == '\0') {
 				if (const auto* runtimeContext = ServiceLocator::Get<
 					GameRuntimeContext>()) {
-					const auto* assetManager = ServiceLocator::Get<AssetManager>();
+					const auto* assetManager = ServiceLocator::Get<
+						AssetManager>();
 					const auto resolution =
-						assetManager && runtimeContext->defaultUiDocument.has_value() ?
-						assetManager->GetContentPathResolver().ResolveFile(
-							*runtimeContext->defaultUiDocument
-						) :
-						std::nullopt;
+						assetManager && runtimeContext->defaultUiDocument.
+						has_value() ?
+							assetManager->GetContentPathResolver().ResolveFile(
+								*runtimeContext->defaultUiDocument
+							) :
+							std::nullopt;
 					if (resolution.has_value()) {
 						const std::string defaultUiPath =
-							resolution->resolvedPath.ToGenericUtf8();
+							runtimeContext->defaultUiDocument->String();
 						std::snprintf(
 							context.pathBuffer.data(),
 							context.pathBuffer.size(),
@@ -339,7 +341,8 @@ namespace Unnamed::Gui {
 
 				if (ImGui::Button("Apply")) {
 					context.renameTargetWidget->SetName(
-						context.renameBuffer.data());
+						context.renameBuffer.data()
+					);
 					MarkDocumentDirty(context);
 					context.renameTargetWidget = nullptr;
 					ImGui::CloseCurrentPopup();
@@ -365,7 +368,7 @@ namespace Unnamed::Gui {
 
 			const bool         selected = widget == context.selectedWidget;
 			ImGuiTreeNodeFlags flags    = ImGuiTreeNodeFlags_OpenOnArrow |
-			                           ImGuiTreeNodeFlags_SpanAvailWidth;
+			                              ImGuiTreeNodeFlags_SpanAvailWidth;
 			if (
 				widget->GetChildren().empty() &&
 				widget->GetReferenceChildren().empty()
@@ -455,8 +458,12 @@ namespace Unnamed::Gui {
 				);
 			}
 			for (UiWidget* refChild : widget->GetReferenceChildren()) {
-				DrawWidgetTreeNode(editableRoot, refChild, context,
-				                   filterLower);
+				DrawWidgetTreeNode(
+					editableRoot,
+					refChild,
+					context,
+					filterLower
+				);
 			}
 
 			if (!(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
@@ -558,11 +565,16 @@ namespace Unnamed::Gui {
 
 		UiWidget* editableRoot = GetEditableDocumentRoot(uiRoot);
 		if (editableRoot) {
-			DrawWidgetTreeNode(editableRoot, editableRoot, context,
-			                   filterLower);
+			DrawWidgetTreeNode(
+				editableRoot,
+				editableRoot,
+				context,
+				filterLower
+			);
 		} else {
 			ImGui::TextUnformatted(
-				"No root widget. Load or create a document root.");
+				"No root widget. Load or create a document root."
+			);
 		}
 
 		DrawRenamePopup(context);
@@ -596,8 +608,10 @@ namespace Unnamed::Gui {
 			"Basic", "Controls", "Layout"
 		};
 		for (const char* category : categories) {
-			if (!ImGui::CollapsingHeader(category,
-			                             ImGuiTreeNodeFlags_DefaultOpen)) {
+			if (!ImGui::CollapsingHeader(
+				category,
+				ImGuiTreeNodeFlags_DefaultOpen
+			)) {
 				continue;
 			}
 
@@ -868,10 +882,16 @@ namespace Unnamed::Gui {
 						component)
 				) {
 					char textBuffer[128] = {};
-					CopyStringToBuffer(button->GetText(), textBuffer,
-					                   sizeof(textBuffer));
-					if (ImGui::InputText("Text", textBuffer,
-					                     sizeof(textBuffer))) {
+					CopyStringToBuffer(
+						button->GetText(),
+						textBuffer,
+						sizeof(textBuffer)
+					);
+					if (ImGui::InputText(
+						"Text",
+						textBuffer,
+						sizeof(textBuffer)
+					)) {
 						button->SetText(textBuffer);
 						changed = true;
 					}
@@ -926,9 +946,11 @@ namespace Unnamed::Gui {
 				} else if (
 					auto* texture = dynamic_cast<UiTextureComponent*>(component)
 				) {
-					std::string texturePath = texture->GetTexturePath().has_value() ?
-						texture->GetTexturePath()->String() :
-						std::string{};
+					std::string texturePath = texture->GetTexturePath().
+					                          has_value() ?
+						                          texture->GetTexturePath()->
+						                          String() :
+						                          std::string{};
 					if (
 						ImGuiWidgets::AssetPathPicker(
 							"Texture",
@@ -942,7 +964,8 @@ namespace Unnamed::Gui {
 							texture->ClearTexturePath();
 						} else {
 							(void)texture->SetTexturePath(
-								*virtualPath, assetManager
+								*virtualPath,
+								assetManager
 							);
 						}
 						changed = true;
@@ -956,16 +979,26 @@ namespace Unnamed::Gui {
 
 					Vec2  uvMin         = texture->GetUvMin();
 					float uvMinArray[2] = {uvMin.x, uvMin.y};
-					if (ImGui::DragFloat2("UV Min", uvMinArray, 0.001f, 0.0f,
-					                      1.0f)) {
+					if (ImGui::DragFloat2(
+						"UV Min",
+						uvMinArray,
+						0.001f,
+						0.0f,
+						1.0f
+					)) {
 						texture->SetUvMin(Vec2(uvMinArray[0], uvMinArray[1]));
 						changed = true;
 					}
 
 					Vec2  uvMax         = texture->GetUvMax();
 					float uvMaxArray[2] = {uvMax.x, uvMax.y};
-					if (ImGui::DragFloat2("UV Max", uvMaxArray, 0.001f, 0.0f,
-					                      1.0f)) {
+					if (ImGui::DragFloat2(
+						"UV Max",
+						uvMaxArray,
+						0.001f,
+						0.0f,
+						1.0f
+					)) {
 						texture->SetUvMax(Vec2(uvMaxArray[0], uvMaxArray[1]));
 						changed = true;
 					}
@@ -975,8 +1008,8 @@ namespace Unnamed::Gui {
 				) {
 					std::string texturePath =
 						strip->GetStripTexturePath().has_value() ?
-						strip->GetStripTexturePath()->String() :
-						std::string{};
+							strip->GetStripTexturePath()->String() :
+							std::string{};
 					if (
 						ImGuiWidgets::AssetPathPicker(
 							"Strip Texture",
@@ -990,7 +1023,8 @@ namespace Unnamed::Gui {
 							strip->ClearStripTexturePath();
 						} else {
 							(void)strip->SetStripTexturePath(
-								*virtualPath, assetManager
+								*virtualPath,
+								assetManager
 							);
 						}
 						changed = true;
@@ -1009,8 +1043,13 @@ namespace Unnamed::Gui {
 					}
 
 					float spacing = strip->GetDigitSpacing();
-					if (ImGui::DragFloat("Digit Spacing", &spacing, 0.1f, 0.0f,
-					                     256.0f)) {
+					if (ImGui::DragFloat(
+						"Digit Spacing",
+						&spacing,
+						0.1f,
+						0.0f,
+						256.0f
+					)) {
 						strip->SetDigitSpacing(spacing);
 						changed = true;
 					}
@@ -1070,7 +1109,8 @@ namespace Unnamed::Gui {
 					!selected->GetComponent<UiTransformComponent>()
 				) {
 					if (auto component = UiWidget::CreateComponentByTypeName(
-						typeName)
+							typeName
+						)
 					) {
 						selected->AddComponent(std::move(component));
 						changed = true;
@@ -1095,15 +1135,38 @@ namespace Unnamed::Gui {
 		EnsureContextDefaults(context);
 
 		ImGui::Begin("UI Document");
-		ImGui::InputText(
-			"Path",
-			context.pathBuffer.data(),
-			context.pathBuffer.size()
+		std::string documentVirtualPath(context.pathBuffer.data());
+		if (ImGuiWidgets::AssetPathPicker(
+			"Document",
+			documentVirtualPath,
+			ImGuiWidgets::AssetTypeToMask(ASSET_TYPE::UI_DOCUMENT),
+			"Select a UI document from the mounted Core or Game content."
+		)) {
+			CopyStringToBuffer(
+				documentVirtualPath,
+				context.pathBuffer.data(),
+				context.pathBuffer.size()
+			);
+		}
+		const auto virtualPath = VirtualPath::ParseContentReference(
+			context.pathBuffer.data()
 		);
+		const auto resolvedPath = virtualPath ?
+			                          ServiceLocator::Get<AssetManager>()->
+			                          GetContentPathResolver().ResolveFile(
+				                          *virtualPath
+			                          ) :
+			                          std::nullopt;
+		const Path normalizedPath = resolvedPath ?
+			                            resolvedPath->resolvedPath :
+			                            Path();
+		if (!virtualPath || !resolvedPath) {
+			ImGui::TextDisabled("Select an existing UI document.");
+		}
 
-		const Path normalizedPath =
-			Path(context.pathBuffer.data()).LexicallyNormal();
-
+		if (!resolvedPath) {
+			ImGui::BeginDisabled();
+		}
 		if (ImGui::Button("Load")) {
 			auto doc = manager.LoadDocument(normalizedPath);
 			if (doc) {
@@ -1124,7 +1187,13 @@ namespace Unnamed::Gui {
 				);
 			}
 		}
+		if (!resolvedPath) {
+			ImGui::EndDisabled();
+		}
 		ImGui::SameLine();
+		if (!activeDocument) {
+			ImGui::BeginDisabled();
+		}
 		if (ImGui::Button("Save")) {
 			if (manager.SaveDocument(normalizedPath, activeDocument)) {
 				context.activeDocumentPath = normalizedPath;
@@ -1137,6 +1206,9 @@ namespace Unnamed::Gui {
 					normalizedPath
 				);
 			}
+		}
+		if (!activeDocument) {
+			ImGui::EndDisabled();
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Reload From Asset")) {
@@ -1270,7 +1342,7 @@ namespace Unnamed::Gui {
 			std::max(1.0f, fitHeight * context.previewZoom);
 
 		const ImVec2 baseCursor = ImGui::GetCursorScreenPos();
-		const auto imagePos   = ImVec2(
+		const auto   imagePos   = ImVec2(
 			baseCursor.x + std::max(0.0f, (avail.x - drawWidth) * 0.5f),
 			baseCursor.y + std::max(0.0f, (avail.y - drawHeight) * 0.5f)
 		);
@@ -1313,10 +1385,10 @@ namespace Unnamed::Gui {
 		const float  u            = (mousePos.x - imagePos.x) / drawWidth;
 		const float  v            = (mousePos.y - imagePos.y) / drawHeight;
 		const bool   inside       = imageHovered &&
-		                    u >= 0.0f &&
-		                    u <= 1.0f &&
-		                    v >= 0.0f &&
-		                    v <= 1.0f;
+		                            u >= 0.0f &&
+		                            u <= 1.0f &&
+		                            v >= 0.0f &&
+		                            v <= 1.0f;
 
 		const float localX = inside ? u * targetWidth : -FLT_MAX;
 		const float localY = inside ? v * targetHeight : -FLT_MAX;
